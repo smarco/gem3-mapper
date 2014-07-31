@@ -232,7 +232,7 @@ __device__ void myerslocalKeplerKernel_CC30( const d_qryEntry_t *d_queries, cons
 			}
 
 			if(intraQueryThreadIdx  == (threadsPerQuery - 1)){
-	    		d_reorderResults[idCandidate].column = minColumn/* - (positionRef % BASES_PER_ENTRY)*/;
+	    		d_reorderResults[idCandidate].column = minColumn - (positionRef % BASES_PER_ENTRY);
 	    		d_reorderResults[idCandidate].score = minScore;
 			}
 		}

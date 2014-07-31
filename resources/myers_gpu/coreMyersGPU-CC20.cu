@@ -245,7 +245,7 @@ __device__ void myerslocalFermiKernel_CC20( const d_qryEntry_t *d_queries, const
 			}
 
 			if(intraQueryThreadIdx  == (threadsPerQuery - 1)){
-	    		d_reorderResults[idCandidate].column = minColumn/* - (positionRef % BASES_PER_ENTRY)*/;
+	    		d_reorderResults[idCandidate].column = minColumn - (positionRef % BASES_PER_ENTRY);
 	    		d_reorderResults[idCandidate].score = minScore;
 			}
 		}
