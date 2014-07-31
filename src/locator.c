@@ -300,20 +300,20 @@ GEM_INLINE uint64_t locator_lookup_interval_index(locator_t* const locator,const
 GEM_INLINE void locator_map(locator_t* const locator,const uint64_t index_position,location_t* const location) {
   LOCATOR_CHECK(locator);
   GEM_CHECK_NULL(location);
-  // Find interval
-  const locator_interval_t* const intervals = locator->intervals + locator_lookup_interval_index(locator,index_position);
+//  // Find interval // FIXME
+//  const locator_interval_t* const intervals = locator->intervals + locator_lookup_interval_index(locator,index_position);
   // Fill @location
-  if (locator_interval_is_forward(intervals)) {
-    location->position = intervals->sequence_offset + (index_position-intervals->begin_position);
-    location->direction = Forward;
-    location->tag = locator_interval_get_tag(locator,intervals);
-  } else { // Reverse
-    location->position = intervals->sequence_offset +
-        (intervals->end_position-intervals->begin_position) - (index_position-intervals->begin_position);
-      // TODO Memoizate +(intervals->end_position-intervals->begin_position) in the index
-    location->direction = Reverse;
-    location->tag = locator_interval_get_tag(locator,intervals);
-  }
+//  if (locator_interval_is_forward(intervals)) { // FIXME
+//    location->position = intervals->sequence_offset + (index_position-intervals->begin_position);
+//    location->direction = Forward;
+//    location->tag = locator_interval_get_tag(locator,intervals);
+//  } else { // Reverse
+//    location->position = intervals->sequence_offset +
+//        (intervals->end_position-intervals->begin_position) - (index_position-intervals->begin_position);
+//      // TODO Memoizate +(intervals->end_position-intervals->begin_position) in the index
+//    location->direction = Reverse;
+//    location->tag = locator_interval_get_tag(locator,intervals);
+//  }
 }
 // Inverse Locator (Location-to-position mapping)
 GEM_INLINE int64_t inverse_locator_map(locator_t* const locator,const uint8_t* const tag,const strand_t strand,const int64_t text_position) {

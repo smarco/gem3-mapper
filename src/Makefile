@@ -51,7 +51,7 @@ debug: COMPILE_C_FLAGS=-O0 $(GENERAL_FLAGS) $(DEBUG_FLAGS)
 debug: $(GEM_CORE_LIB)
 
 $(GEM_CORE_LIB): $(OBJS)
-	$(AR) -rcs $(GEM_CORE_LIB) $(FOLDER_BUILD)/*.o
+	$(AR) -rcs $(GEM_CORE_LIB) $(FOLDER_BUILD)/*.o $(FOLDER_RESOURCES_BUILD)/*.o
 
 # Building Exceptions (Dependencies)
 $(FOLDER_BUILD)/fm.o : fm.c

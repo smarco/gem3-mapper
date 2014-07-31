@@ -12,20 +12,24 @@ include Makefile.mk
 all: release
 
 release: setup
+	$(MAKE) --directory=resources
 	$(MAKE) --directory=src
 	$(MAKE) --directory=tools
 	
+debug: setup
+	$(MAKE) --directory=resources debug
+	$(MAKE) --directory=src debug
+	$(MAKE) --directory=tools debug
+	
 static:	setup
+  $(MAKE) --directory=resources
 	$(MAKE) --directory=src
 	$(MAKE) --directory=tools static
 	
 profile: setup
+  $(MAKE) --directory=resources
 	$(MAKE) --directory=src profile
 	$(MAKE) --directory=tools profile
-
-debug: setup
-	$(MAKE) --directory=src debug
-	$(MAKE) --directory=tools debug
 
 check: setup debug
 	$(MAKE) --directory=test check
@@ -34,5 +38,6 @@ setup:
 	@mkdir -p $(FOLDER_BIN) $(FOLDER_BUILD) $(FOLDER_LIB)
 
 clean:
+	$(MAKE) --directory=resources clean
 	$(MAKE) --directory=test clean
 	@rm -rf $(FOLDER_BIN) $(FOLDER_BUILD) $(FOLDER_LIB)

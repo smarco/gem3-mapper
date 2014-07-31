@@ -316,7 +316,7 @@ GEM_INLINE void archive_decode_matches(
       ++global_matches_it;
     }
   }
-  vector_update_used(matches->global_matches,global_matches_it); // Update used
+//  vector_update_used(matches->global_matches,global_matches_it); // Update used // FIXME
   // Decode interval matches until we reach @max_decoded_matches
   VECTOR_ITERATE(matches->interval_matches,match_interval,match_interval_num,match_interval_t) {
     if (num_matches_last_stratum >= matches_to_decode_last_stratum) break;
@@ -331,8 +331,8 @@ GEM_INLINE void archive_decode_matches(
 
     // 1.- (Re)Align the matching-text retrieved with the seq-read(pattern) [Retrieve CIGAR string]
     if (match_interval->text == NULL) {
-      archive_text_retrieve(archive,match_trace.position,
-          match_interval->length /* + delta TODO*/,matches->text_collection);
+//      archive_text_retrieve(archive,match_trace.position, // FIXME
+//          match_interval->length /* + delta TODO*/,matches->text_collection);
       // match_interval->text = *** // TODO
     }
     // Realign (if needed)
@@ -368,7 +368,7 @@ GEM_INLINE void archive_decode_matches(
     locator_map(archive->locator,match_trace.position,&location);
     match_trace.position = location.position;
     if (location.direction == Reverse) { // Adjust position by the effective length
-      match_effective_length = matches_get_effective_length(matches,??,cigar_buffer_offset,cigar_length);
+//      match_effective_length = matches_get_effective_length(matches,??,cigar_buffer_offset,cigar_length); // FIXME
       match_trace.position -= (match_effective_length-1);
     }
 
@@ -389,7 +389,7 @@ GEM_INLINE void archive_decode_matches(
       match_trace.position = location.position;
       if (location.direction == Reverse) { // Adjust position by the effective length
         if (match_effective_length==UINT64_MAX) {
-          match_effective_length = matches_get_effective_length(matches,??,cigar_buffer_offset,cigar_length);
+//          match_effective_length = matches_get_effective_length(matches,??,cigar_buffer_offset,cigar_length); // FIXME
         }
         match_trace.position -= (match_effective_length-1);
       }
