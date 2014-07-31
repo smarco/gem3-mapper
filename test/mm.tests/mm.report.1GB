@@ -1,0 +1,297 @@
+==> gt_mm_bulk_malloc
+[GTMalloc.profile]
+GTDebug (gt_mm.c:91,gt_mm_bulk_malloc)
+ Memory aligned to 128 bits (0x2b7c40d2b010)
+--> Time.alloc           0.027       
+--> Time.writeSeq.all    2.141       
+--> Time.readSeq.all     0.553  (7DE8B124085FF240)
+--> Time.writeRand.100M  6.561       
+--> Time.readRand.100M   8.081  (1D87D1031EB4135A)
+[GTMalloc.profile]
+GTDebug (gt_mm.c:91,gt_mm_bulk_malloc)
+ Memory aligned to 128 bits (0x2b32e0646010)
+--> Time.alloc           0.000       
+--> Time.writeSeq.all    2.123       
+--> Time.readSeq.all     0.548  (7DE8B124085FF240)
+--> Time.writeRand.100M  6.407       
+--> Time.readRand.100M   7.965  (5DCEB67CA14F730A)
+
+==> gt_mm_bulk_malloc_temp
+[GTMapMallocTMP.profile]
+GTDebug (gt_mm.c:207,gt_mm_bulk_mmalloc_temp)
+ Memory aligned to 32KB (0x2af792b8c000)
+--> Time.alloc           0.011       
+--> Time.writeSeq.all    3.626       
+--> Time.readSeq.all     0.584  (7DE8B124085FF240)
+--> Time.writeRand.100M  52.275       
+--> Time.readRand.100M   9.120  (5A9392425734E6DE)
+[GTMapMallocTMP.profile]
+GTDebug (gt_mm.c:207,gt_mm_bulk_mmalloc_temp)
+ Memory aligned to 32KB (0x2b5b772d8000)
+--> Time.alloc           0.000       
+--> Time.writeSeq.all    49.325       
+--> Time.readSeq.all     0.549  (7DE8B124085FF240)
+--> Time.writeRand.100M  23.601       
+--> Time.readRand.100M   7.973  (1EBD691D5FA4C10C)
+
+==> gt_mm_bulk_mmalloc PRIVATE
+[GTMapMalloc.profile]
+GTDebug (gt_mm.c:121,gt_mm_bulk_mmalloc)
+ Memory aligned to 32KB (0x2b0ec3786000)
+--> Time.alloc           0.000       
+--> Time.writeSeq.all    2.124       
+--> Time.readSeq.all     0.554  (7DE8B124085FF240)
+--> Time.writeRand.100M  6.655       
+--> Time.readRand.100M   8.151  (3A6F794925CE55CE)
+[GTMapMalloc.profile]
+GTDebug (gt_mm.c:121,gt_mm_bulk_mmalloc)
+ Memory aligned to 32KB (0x2b5a389a9000)
+--> Time.alloc           0.000       
+--> Time.writeSeq.all    2.123       
+--> Time.readSeq.all     0.553  (7DE8B124085FF240)
+--> Time.writeRand.100M  6.723       
+--> Time.readRand.100M   8.195  (66136B1FD07021EC)
+
+==> gt_mm_bulk_mmalloc SHARED
+[GTMapMalloc.profile]
+GTDebug (gt_mm.c:121,gt_mm_bulk_mmalloc)
+ Memory aligned to 32KB (0x2b35c22e8000)
+--> Time.alloc           0.000       
+--> Time.writeSeq.all    2.507       
+--> Time.readSeq.all     0.554  (7DE8B124085FF240)
+--> Time.writeRand.100M  6.617       
+--> Time.readRand.100M   8.142  (912A89D22F7992D8)
+[GTMapMalloc.profile]
+GTDebug (gt_mm.c:121,gt_mm_bulk_mmalloc)
+ Memory aligned to 32KB (0x2aca6aa5d000)
+--> Time.alloc           0.000       
+--> Time.writeSeq.all    2.517       
+--> Time.readSeq.all     0.554  (7DE8B124085FF240)
+--> Time.writeRand.100M  6.592       
+--> Time.readRand.100M   8.217  (75CF006D37D0244)
+
+==> gt_mm_bulk_mmap_file PRIVATE
+[GTMapMallocFILE.profile]
+GTDebug (gt_mm.c:148,gt_mm_bulk_mmap_file)
+ Memory aligned to 32KB (0x2b3ffa0b8000)
+--> Time.alloc           0.033       
+--> Time.readSeq.all     63.424  (D0E057F103A0E5BE)
+--> Time.readRand.10M    7.976  (C3CB1F2B392CE70F)
+[GTMapMallocFILE.profile]
+GTDebug (gt_mm.c:148,gt_mm_bulk_mmap_file)
+ Memory aligned to 32KB (0x2b30f3d52000)
+--> Time.alloc           0.000       
+--> Time.readSeq.all     63.466  (D0E057F103A0E5BE)
+--> Time.readRand.10M    11.593  (765B10D1197FAE7C)
+
+==> gt_mm_bulk_mmap_file SHARED
+[GTMapMallocFILE.profile]
+GTDebug (gt_mm.c:148,gt_mm_bulk_mmap_file)
+ Memory aligned to 32KB (0x2b095b4f8000)
+--> Time.alloc           0.000       
+--> Time.readSeq.all     63.714  (D0E057F103A0E5BE)
+--> Time.readRand.10M    7.977  (AD94C96E74F66E94)
+[GTMapMallocFILE.profile]
+GTDebug (gt_mm.c:148,gt_mm_bulk_mmap_file)
+ Memory aligned to 32KB (0x2ba977072000)
+--> Time.alloc           0.000       
+--> Time.readSeq.all     63.457  (D0E057F103A0E5BE)
+--> Time.readRand.10M    8.084  (EA94FA34229DD809)
+-------------------------------------------------------------------------------
+
+==> gt_mm_bulk_load_file T=1 256MB
+[GTLoadFILE.profile]
+GTDebug (gt_mm.c:305,gt_mm_bulk_load_file)
+ Memory aligned to 128 bits (0x2b8e3330c010)
+--> Time.alloc           63.452       
+--> Time.readSeq.all     0.549  (D0E057F103A0E5BE)
+--> Time.readRand.10M    7.954  (14151ABCE140383F)
+[GTLoadFILE.profile]
+GTDebug (gt_mm.c:305,gt_mm_bulk_load_file)
+ Memory aligned to 128 bits (0x2ba569744010)
+--> Time.alloc           63.314       
+--> Time.readSeq.all     0.583  (D0E057F103A0E5BE)
+--> Time.readRand.10M    9.832  (80A94F00E72703A8)
+
+==> gt_mm_bulk_load_file T=2 256MB
+[GTLoadFILE.profile]
+GTDebug (gt_mm.c:305,gt_mm_bulk_load_file)
+ Memory aligned to 128 bits (0x2b00fb3b8010)
+--> Time.alloc           67.603       
+--> Time.readSeq.all     0.591  (D0E057F103A0E5BE)
+--> Time.readRand.10M    9.672  (A896F3C1166AF66D)
+[GTLoadFILE.profile]
+GTDebug (gt_mm.c:305,gt_mm_bulk_load_file)
+ Memory aligned to 128 bits (0x2b2ee17ff010)
+--> Time.alloc           67.913       
+--> Time.readSeq.all     0.619  (D0E057F103A0E5BE)
+--> Time.readRand.10M    10.457  (D73EE7D6F49036E9)
+
+==> gt_mm_bulk_load_file T=4 256MB
+[GTLoadFILE.profile]
+GTDebug (gt_mm.c:305,gt_mm_bulk_load_file)
+ Memory aligned to 128 bits (0x2b3c0fa34010)
+--> Time.alloc           70.675       
+--> Time.readSeq.all     0.645  (D0E057F103A0E5BE)
+--> Time.readRand.10M    11.058  (5DA7D8EAE729CD5C)
+[GTLoadFILE.profile]
+GTDebug (gt_mm.c:305,gt_mm_bulk_load_file)
+ Memory aligned to 128 bits (0x2aabdf1a2010)
+--> Time.alloc           70.382       
+--> Time.readSeq.all     0.662  (D0E057F103A0E5BE)
+--> Time.readRand.10M    11.448  (5D5070A47F2173B5)
+
+==> gt_mm_bulk_load_file T=8 256MB
+[GTLoadFILE.profile]
+GTDebug (gt_mm.c:305,gt_mm_bulk_load_file)
+ Memory aligned to 128 bits (0x2b4235214010)
+--> Time.alloc           78.413       
+--> Time.readSeq.all     0.652  (D0E057F103A0E5BE)
+--> Time.readRand.10M    11.193  (556F84FC0A3BE2F1)
+[GTLoadFILE.profile]
+GTDebug (gt_mm.c:305,gt_mm_bulk_load_file)
+ Memory aligned to 128 bits (0x2b946ed14010)
+--> Time.alloc           78.259       
+--> Time.readSeq.all     0.606  (D0E057F103A0E5BE)
+--> Time.readRand.10M    10.048  (36773E39FDEC2479)
+
+==> gt_mm_bulk_load_file T=10 256MB
+[GTLoadFILE.profile]
+GTDebug (gt_mm.c:305,gt_mm_bulk_load_file)
+ Memory aligned to 128 bits (0x2b0dc3c6b010)
+--> Time.alloc           83.217       
+--> Time.readSeq.all     0.608  (D0E057F103A0E5BE)
+--> Time.readRand.10M    10.157  (657CE2786DA204E2)
+[GTLoadFILE.profile]
+GTDebug (gt_mm.c:305,gt_mm_bulk_load_file)
+ Memory aligned to 128 bits (0x2ab30a43a010)
+--> Time.alloc           84.588       
+--> Time.readSeq.all     0.596  (D0E057F103A0E5BE)
+--> Time.readRand.10M    9.856  (D00622DE5B1E6842)
+
+==> gt_mm_bulk_load_file T=12 256MB
+[GTLoadFILE.profile]
+GTDebug (gt_mm.c:305,gt_mm_bulk_load_file)
+ Memory aligned to 128 bits (0x2b8220f82010)
+--> Time.alloc           85.490       
+--> Time.readSeq.all     0.586  (D0E057F103A0E5BE)
+--> Time.readRand.10M    9.604  (1DFEF11CAE631D70)
+[GTLoadFILE.profile]
+GTDebug (gt_mm.c:305,gt_mm_bulk_load_file)
+ Memory aligned to 128 bits (0x2b1d35233010)
+--> Time.alloc           84.151       
+--> Time.readSeq.all     0.627  (D0E057F103A0E5BE)
+--> Time.readRand.10M    10.645  (F6B30B4F15D93453)
+-------------------------------------------------------------------------------
+
+==> gt_mm_bulk_mload_file T=1 256MB
+[GTMapLoadFILE.profile]
+GTDebug (gt_mm.c:121,gt_mm_bulk_mmalloc)
+ Memory aligned to 32KB (0x2ab357835000)
+--> Time.alloc           63.669       
+--> Time.readSeq.all     0.681  (D0E057F103A0E5BE)
+--> Time.readRand.10M    11.240  (81F90473D1AA38BF)
+[GTMapLoadFILE.profile]
+GTDebug (gt_mm.c:121,gt_mm_bulk_mmalloc)
+ Memory aligned to 32KB (0x2b0512da0000)
+--> Time.alloc           63.475       
+--> Time.readSeq.all     0.549  (D0E057F103A0E5BE)
+--> Time.readRand.10M    8.012  (9105109E5B4787E7)
+
+==> gt_mm_bulk_mload_file T=2 256MB
+[GTMapLoadFILE.profile]
+GTDebug (gt_mm.c:121,gt_mm_bulk_mmalloc)
+ Memory aligned to 32KB (0x2afb99b8c000)
+--> Time.alloc           67.703       
+--> Time.readSeq.all     0.620  (D0E057F103A0E5BE)
+--> Time.readRand.10M    10.469  (7ED6410AD9A0D70)
+[GTMapLoadFILE.profile]
+GTDebug (gt_mm.c:121,gt_mm_bulk_mmalloc)
+ Memory aligned to 32KB (0x2ba9ed839000)
+--> Time.alloc           67.692       
+--> Time.readSeq.all     0.631  (D0E057F103A0E5BE)
+--> Time.readRand.10M    10.804  (2961C4E29571FE4D)
+
+==> gt_mm_bulk_mload_file T=4 256MB
+[GTMapLoadFILE.profile]
+GTDebug (gt_mm.c:121,gt_mm_bulk_mmalloc)
+ Memory aligned to 32KB (0x2acbfb4ff000)
+--> Time.alloc           70.210       
+--> Time.readSeq.all     0.632  (D0E057F103A0E5BE)
+--> Time.readRand.10M    10.720  (90AD5A52BFE54ED4)
+[GTMapLoadFILE.profile]
+GTDebug (gt_mm.c:121,gt_mm_bulk_mmalloc)
+ Memory aligned to 32KB (0x2ac0f90d7000)
+--> Time.alloc           71.252       
+--> Time.readSeq.all     0.637  (D0E057F103A0E5BE)
+--> Time.readRand.10M    10.893  (20C94D71BAB9BA75)
+
+==> gt_mm_bulk_mload_file T=8 256MB
+[GTMapLoadFILE.profile]
+GTDebug (gt_mm.c:121,gt_mm_bulk_mmalloc)
+ Memory aligned to 32KB (0x2ba417cbd000)
+--> Time.alloc           78.134       
+--> Time.readSeq.all     0.618  (D0E057F103A0E5BE)
+--> Time.readRand.10M    10.415  (5A665D3BA4D3E5FA)
+[GTMapLoadFILE.profile]
+GTDebug (gt_mm.c:121,gt_mm_bulk_mmalloc)
+ Memory aligned to 32KB (0x2ac6d66ec000)
+--> Time.alloc           78.282       
+--> Time.readSeq.all     0.667  (D0E057F103A0E5BE)
+--> Time.readRand.10M    11.512  (4C0024E069AD569B)
+
+==> gt_mm_bulk_mload_file T=10 256MB
+[GTMapLoadFILE.profile]
+GTDebug (gt_mm.c:121,gt_mm_bulk_mmalloc)
+ Memory aligned to 32KB (0x2abe91ce5000)
+--> Time.alloc           83.939       
+--> Time.readSeq.all     0.651  (D0E057F103A0E5BE)
+--> Time.readRand.10M    11.246  (5251540B6F2D6B11)
+[GTMapLoadFILE.profile]
+GTDebug (gt_mm.c:121,gt_mm_bulk_mmalloc)
+ Memory aligned to 32KB (0x2aab47feb000)
+--> Time.alloc           85.027       
+--> Time.readSeq.all     0.627  (D0E057F103A0E5BE)
+--> Time.readRand.10M    10.405  (E29F62B324029099)
+
+==> gt_mm_bulk_mload_file T=12 256MB
+[GTMapLoadFILE.profile]
+GTDebug (gt_mm.c:121,gt_mm_bulk_mmalloc)
+ Memory aligned to 32KB (0x2b5b97c09000)
+--> Time.alloc           84.424       
+--> Time.readSeq.all     0.654  (D0E057F103A0E5BE)
+--> Time.readRand.10M    11.263  (66FA3B94F9BF2A3E)
+[GTMapLoadFILE.profile]
+GTDebug (gt_mm.c:121,gt_mm_bulk_mmalloc)
+ Memory aligned to 32KB (0x2b8ffa325000)
+--> Time.alloc           84.405       
+--> Time.readSeq.all     0.650  (D0E057F103A0E5BE)
+--> Time.readRand.10M    11.160  (15762E33D4B42A0)
+
+==> gt_mm_bulk_mmap_populate_file PRIVATE
+[GTMapMallocFILE.POPULATE.profile]
+GTDebug (gt_mm.c:170,gt_mm_bulk_mmap_file_populate)
+ Memory aligned to 32KB (0x2ad476646000)
+--> Time.alloc           63.311       
+--> Time.readSeq.all     0.551  (D0E057F103A0E5BE)
+--> Time.readRand.10M    8.080  (353323FC1C217C9E)
+[GTMapMallocFILE.POPULATE.profile]
+GTDebug (gt_mm.c:170,gt_mm_bulk_mmap_file_populate)
+ Memory aligned to 32KB (0x2b4f938cd000)
+--> Time.alloc           63.290       
+--> Time.readSeq.all     0.628  (D0E057F103A0E5BE)
+--> Time.readRand.10M    10.398  (4753C24EAE6222C9)
+
+==> gt_mm_bulk_mmap_populate_file SHARED
+[GTMapMallocFILE.POPULATE.profile]
+GTDebug (gt_mm.c:170,gt_mm_bulk_mmap_file_populate)
+ Memory aligned to 32KB (0x2b706cb68000)
+--> Time.alloc           63.414       
+--> Time.readSeq.all     0.549  (D0E057F103A0E5BE)
+--> Time.readRand.10M    7.985  (F8D5E1FDE20217DA)
+[GTMapMallocFILE.POPULATE.profile]
+GTDebug (gt_mm.c:170,gt_mm_bulk_mmap_file_populate)
+ Memory aligned to 32KB (0x2b7afbcd5000)
+--> Time.alloc           63.626       
+--> Time.readSeq.all     0.549  (D0E057F103A0E5BE)
+--> Time.readRand.10M    7.965  (60286B4872712F42)

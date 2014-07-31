@@ -1,0 +1,96 @@
+/*
+ * PROJECT: GEMMapper
+ * FILE: mm_pool.h
+ * DATE: 06/06/2012
+ * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
+ * DESCRIPTION:
+ *     - PoolMemory
+ *         Pool of Slabs as to gather all slabs needed along a program (of different segment size)
+ *         This structure (essentially a hub) concentrates the memory sources of a program trying to avoid
+ *           the individual usage of slabs and increase the fragmentation and unused blocks.
+ *         Many slab sizes are available { mm_pool_128KB , mm_pool_2MB , mm_pool_8MB, mm_pool_32MB, mm_pool_128MB }.
+ *           If bigger blocks are required, tailored mm_slabs should be created for that purpose
+ *           (as no possible reuse of those slab can be expected)
+ */
+
+
+#include "mm_pool.h"
+
+#include "commons.h"
+#include "errors.h"
+#include "vector.h"
+#include "fm.h"
+
+typedef struct {
+  /* Huge Slab (128MB pages in 512MB)*/
+  mm_slab_t* mm_slab_128MB;
+  /* Extra-Large Slab (32MB pages in 256MB) */
+  mm_slab_t* mm_slab_32MB;
+  /* Large Slab (8MB pages in 64MB) */
+  mm_slab_t* mm_slab_8MB;
+  /* Regular Slab (2MB pages in 32MB) */
+  mm_slab_t* mm_slab_2MB;
+  /* Small Slab (128KB pages in 32MB)*/
+  mm_slab_t* mm_slab_128KB;
+} mm_pool_t;
+
+// Global memory pool
+mm_pool_t* gem_memory_pool = NULL;
+
+GEM_INLINE mm_slab_t* mm_pool_get_slab(const mm_pool_type_t mm_pool_type) {
+  // Check @gem_memory_pool
+  if (gem_memory_pool==NULL) {
+    gem_memory_pool = mm_alloc(mm_pool_t);
+    gem_memory_pool->mm_slab_128MB = NULL;
+    gem_memory_pool->mm_slab_32MB = NULL;
+    gem_memory_pool->mm_slab_8MB = NULL;
+    gem_memory_pool->mm_slab_2MB = NULL;
+    gem_memory_pool->mm_slab_128KB = NULL;
+  }
+  // Choose slab
+  switch (mm_pool_type) {
+    case mm_pool_128KB: // Small
+      if (gem_memory_pool->mm_slab_128KB==NULL) {
+        gem_memory_pool->mm_slab_128KB = mm_slab_new_(BUFFER_SIZE_128K,BUFFER_SIZE_32M,MM_UNLIMITED_MEM,"small.128KB");
+      }
+      return gem_memory_pool->mm_slab_128KB;
+    case mm_pool_2MB: // Regular
+      if (gem_memory_pool->mm_slab_2MB==NULL) {
+        gem_memory_pool->mm_slab_2MB = mm_slab_new_(BUFFER_SIZE_2M,BUFFER_SIZE_32M,MM_UNLIMITED_MEM,"regular.2MB");
+      }
+      return gem_memory_pool->mm_slab_2MB;
+    case mm_pool_8MB: // Large
+      if (gem_memory_pool->mm_slab_8MB==NULL) {
+        gem_memory_pool->mm_slab_8MB = mm_slab_new_(BUFFER_SIZE_8M,BUFFER_SIZE_64M,MM_UNLIMITED_MEM,"large.8MB");
+      }
+      return gem_memory_pool->mm_slab_8MB;
+    case mm_pool_32MB: // Extra-large
+      if (gem_memory_pool->mm_slab_32MB==NULL) {
+        gem_memory_pool->mm_slab_32MB = mm_slab_new_(BUFFER_SIZE_32M,BUFFER_SIZE_256M,MM_UNLIMITED_MEM,"huge.32MB");
+      }
+      return gem_memory_pool->mm_slab_32MB;
+    case mm_pool_128MB: // Huge
+      if (gem_memory_pool->mm_slab_128MB==NULL) {
+        gem_memory_pool->mm_slab_128MB = mm_slab_new_(BUFFER_SIZE_128M,BUFFER_SIZE_256M,MM_UNLIMITED_MEM,"huge.128MB");
+      }
+      return gem_memory_pool->mm_slab_128MB;
+    default:
+      GEM_INVALID_CASE();
+      break;
+  }
+  return NULL;
+}
+GEM_INLINE void mm_pool_delete() {
+  // Check @gem_memory_pool
+  if (gem_memory_pool!=NULL) {
+    // Delete slabs
+    if (gem_memory_pool->mm_slab_128KB!=NULL) mm_slab_delete(gem_memory_pool->mm_slab_128KB);
+    if (gem_memory_pool->mm_slab_2MB!=NULL) mm_slab_delete(gem_memory_pool->mm_slab_2MB);
+    if (gem_memory_pool->mm_slab_8MB!=NULL) mm_slab_delete(gem_memory_pool->mm_slab_8MB);
+    if (gem_memory_pool->mm_slab_32MB!=NULL) mm_slab_delete(gem_memory_pool->mm_slab_32MB);
+    if (gem_memory_pool->mm_slab_128MB!=NULL) mm_slab_delete(gem_memory_pool->mm_slab_128MB);
+    // Free handler
+    mm_free(gem_memory_pool);
+  }
+}
+

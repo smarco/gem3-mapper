@@ -1,0 +1,87 @@
+Release notes for ds_ssort,   version 0.9.0
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Copyright (C) 2002 Giovanni Manzini
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details (file COPYRIGHT.GPL.txt)
+
+  As an alternative, you can use this software under the terms of the 
+  MOZILLA PUBLIC LICENSE Version 1.1 (see file COPYRIGHT.MPL.txt)  
+
+
+
+The source code in this archive is an implementation of the Deep-Shallow 
+Suffix Sorting algorithm described in the paper:
+
+G. Manzini, P. Ferragina
+Engineering a Lightweight Suffix Array Construction Algorithm.
+Proc. 10th European Symposium on Algorithms (ESA '02).
+Springer Verlag Lecture Notes in Computer Science n. 2461, pp 698-710.
+http://www.mfn.unipmn.it/~manzini/lightweight
+
+To compile the files just give the command make (without any argument).  The
+executable ds accepts several options (most of them not described in the above
+paper), and therefore it is quite difficult to use unless you are willing to
+spend some time studying the source code.  For this reason the makefile also
+creates the archive ds_ssort.a which provides a simplified access to the
+suffix sorting routines. The procedure bwt_file() in the file bwt.c shows how
+an external program can call the ds suffix sorting routine. Essentially you
+first need to call the init_ds_ssort() routine which does some initializations
+and returns an integer called the overshoot. 
+
+Then you can call:
+  ds_ssort(unsigned char *text, int *sa, int n)
+where 
+  n is the size of the input string, 
+  text[] is an array of length (n+overshoot) which in t[0..n-1] contains the 
+         input string. [overshoot is the value returned by init_ds_ssort()]
+  sa[]   is an array of length n, which at the end of the computation
+         contains the suffix array.
+Note that you are responsible of allocating text[] and sa[] BEFORE calling
+ds_ssort()!
+When calling init_ds_ssort() you must specify two arguments; the first one
+is the parameter d (see section 3.3 in the above paper) and the second one 
+is the parameter b=n/B (see section 3.1 in the paper). If in doubt use
+d=500 and b=2000. The space occupancy of the ds algorithm is
+at most 5n + (36n)/b + (6n)/d bytes. 
+
+Don't forget to include the file ds_ssort.h before calling the 
+procedures init_ds_ssort() and and ds_ssort().
+
+The makefile also creates the executables bwt and unbwt.  bwt compute the
+Burrows-Wheeler transform of infile and writes it to infile.bwt; unbwt does
+the reverse transformation.
+
+
+--------------------------------------------------------------------
+NEW: Lightweight LCP array computation
+
+The makefile creates the executable testlcp which tests several 
+algorithm for linear time computation of the LCP array given the text 
+and the suffix array. These algorithm are described in the paper
+
+G. Manzini
+Two Space Saving Tricks for Linear Time LCP Array Computation
+Proc. 9th Scandinavian Workshop on Algorithm Theory (SWAT '04),
+Springer Verlag LNCS n. 3111, pagg. 372-383
+
+The source code of the LCP algorithms can be found in the files
+lcp_aux.c, lcp5_aux.c and bwt_aux.c. More documentations 
+will be included soon. Stay tuned!
+
+--------------------------------------------------------------------- 
+
+
+The software in this archive should be considered an ALPHA version. I will be
+glad to receive your comments and bug reports.
+
+Giovanni Manzini
+manzini@mfn.unipmn.it
+

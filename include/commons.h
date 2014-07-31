@@ -1,0 +1,272 @@
+/*
+ * PROJECT: GEMMapper
+ * FILE: commons.c
+ * DATE: 06/06/2012
+ * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
+ * DESCRIPTION: Base module containing general purpose functions
+ */
+
+#ifndef COMMONS_H_
+#define COMMONS_H_
+
+/*
+ * VERSION
+ */
+#define GEM_CORE_VERSION "3.2.0"
+
+/*
+ * SETUP
+ */
+#define _GNU_SOURCE 1
+//#define __USE_GNU 1
+
+/*
+ * GENERAL HEADERS
+ */
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <stdbool.h>
+#include <stdint.h>
+#include <float.h>
+#include <inttypes.h>
+#include <ctype.h>
+#include <sys/types.h>
+#include <time.h>
+#include <sys/time.h>
+
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+#include <string.h>
+#include <math.h>
+#include <stdarg.h>
+
+#include <err.h>
+#include <errno.h>
+#include <assert.h>
+#include <signal.h>
+
+#include <endian.h>
+
+#include "gthread.h"
+
+/*
+ * Common constants
+ */
+#define STREAM_FILE_NAME "stream"
+#define STREAM_FILE_DESCRIPTOR "<<STREAM>>"
+#define ALL UINT64_MAX
+#define NO_STRATA ((int64_t)(-1))
+// Special Characters
+#define EOS '\0'
+#define EOL '\n'
+#define TAB '\t'
+#define DOS_EOL '\r'
+#define PLUS '+'
+#define MINUS '-'
+#define FORMAT '%'
+#define SPACE ' '
+#define SLASH '/'
+#define STAR '*'
+#define DOT '.'
+#define EQUAL '='
+#define COMA ','
+#define SEMICOLON ';'
+#define COLON ':'
+#define HASH '#'
+#define UNDERSCORE '_'
+// Buffer sizes
+#define BUFFER_SIZE_1K   (1ul<<10)
+#define BUFFER_SIZE_2K   (1ul<<11)
+#define BUFFER_SIZE_4K   (1ul<<12)
+#define BUFFER_SIZE_8K   (1ul<<13)
+#define BUFFER_SIZE_16K  (1ul<<14)
+#define BUFFER_SIZE_32K  (1ul<<15)
+#define BUFFER_SIZE_64K  (1ul<<16)
+#define BUFFER_SIZE_128K (1ul<<17)
+#define BUFFER_SIZE_256K (1ul<<18)
+#define BUFFER_SIZE_512K (1ul<<19)
+#define BUFFER_SIZE_1M   (1ul<<20)
+#define BUFFER_SIZE_2M   (1ul<<21)
+#define BUFFER_SIZE_4M   (1ul<<22)
+#define BUFFER_SIZE_8M   (1ul<<23)
+#define BUFFER_SIZE_16M  (1ul<<24)
+#define BUFFER_SIZE_32M  (1ul<<25)
+#define BUFFER_SIZE_64M  (1ul<<26)
+#define BUFFER_SIZE_128M (1ul<<27)
+#define BUFFER_SIZE_256M (1ul<<28)
+#define BUFFER_SIZE_512M (1ul<<29)
+#define BUFFER_SIZE_1G   (1ul<<30)
+#define BUFFER_SIZE_2G   (1ul<<31)
+#define BUFFER_SIZE_4G   (1ul<<32)
+#define BUFFER_SIZE_8G   (1ul<<33)
+#define BUFFER_SIZE_16G  (1ul<<34)
+#define BUFFER_SIZE_32G  (1ul<<35)
+#define BUFFER_SIZE_64G  (1ul<<36)
+#define BUFFER_SIZE_128G (1ul<<37)
+#define BUFFER_SIZE_256G (1ul<<38)
+
+// Number of lines
+#define NUM_LINES_1K      (1000ul)
+#define NUM_LINES_2K      (2000ul)
+#define NUM_LINES_5K      (5000ul)
+#define NUM_LINES_10K    (10000ul)
+#define NUM_LINES_20K    (20000ul)
+#define NUM_LINES_50K    (50000ul)
+#define NUM_LINES_100K  (100000ul)
+#define NUM_LINES_200K  (200000ul)
+#define NUM_LINES_500K  (500000ul)
+#define NUM_LINES_1M   (1000000ul)
+#define NUM_LINES_2M   (2000000ul)
+#define NUM_LINES_5M   (5000000ul)
+#define NUM_LINES_10M (10000000ul)
+#define NUM_LINES_20M (20000000ul)
+#define NUM_LINES_50M (50000000ul)
+// BM sizes
+#define UINT512_LENGTH 512
+#define UINT512_SIZE 64
+#define UINT256_LENGTH 256
+#define UINT256_SIZE 32
+#define UINT128_LENGTH 128
+#define UINT128_SIZE 16
+#define UINT64_LENGTH 64
+#define UINT64_SIZE 8
+#define UINT32_LENGTH 32
+#define UINT32_SIZE 4
+#define UINT16_LENGTH 16
+#define UINT16_SIZE 2
+#define UINT8_LENGTH 8
+#define UINT8_SIZE 1
+// Types Length
+#define INT_MAX_LENGTH 20
+
+/*
+ * Common Masks
+ */
+#define UINT64_ZEROS 0x0000000000000000ull
+#define UINT64_ONES  0xFFFFFFFFFFFFFFFFull
+// Extraction masks
+#define UINT64_ONE_MASK        0x0000000000000001ull
+#define UINT64_ZERO_MASK       0xFFFFFFFFFFFFFFFEull
+#define UINT64_ONE_LAST_MASK   0x8000000000000000ull
+#define UINT64_ZERO_LAST_MASK  0x7FFFFFFFFFFFFFFFull
+// Counting Masks
+extern const uint64_t uint64_mask_ones[];
+extern const uint64_t uint64_mask_inverse_ones[];
+#define uint64_erank_mask(position) uint64_mask_ones[(position)]
+#define uint64_erank_inv_mask(position) uint64_mask_inverse_ones[(position)]
+
+/*
+ * Conversion utils
+ */
+#define CONVERT_B_TO_KB(number) ((number)/(1024))
+#define CONVERT_B_TO_MB(number) ((number)/(1024*1024))
+#define CONVERT_B_TO_GB(number) ((number)/(1024*1024*1024))
+
+/*
+ * Compilation/Code Miscellaneous
+ */
+// GemTools Inline
+#define GEM_INLINE inline
+// Conditional expect
+#define gem_expect_true(condition)  __builtin_expect(condition,1)
+#define gem_expect_false(condition) __builtin_expect(condition,0)
+// Macro Stringify
+#define QUOTE(value) #value
+
+/*
+ * Helper functions (OPERATIVE)
+ */
+#define SWAP(a,b) do {typeof(a) aux = a; a = b; b = aux;} while (0)
+#define CFREE(handler) if (handler!=NULL) mm_free(handler);
+#define DELEGATE_ERROR(funtion_call,error_code) if ((error_code=funtion_call)) { return error_code; }
+
+/*
+ * Random number generator
+ */
+#define gem_srand() srand(time(0))
+// Pseudo-random numbers in [min, max]
+#define gem_rand(min,max)   ( min + ( rand()%(max-min+1) ) )
+#define gem_rand_f(min,max) ( min + ((double)rand()/(double)(RAND_MAX+1)) * (max-min+1) )
+GEM_INLINE uint64_t gem_rand_IID(const uint64_t min,const uint64_t max);
+// Pseudo-random numbers in [0, 1)
+#define gem_drand() (double)rand()/(double)(RAND_MAX+1)
+
+/*
+ * Common numerical data processing/formating
+ */
+#define MIN(a,b) (((a)<=(b))?(a):(b))
+#define MAX(a,b) (((a)>=(b))?(a):(b))
+#define ABS(a) (((a)>=0)?(a):-(a))
+#define IS_NUMBER(character) ('0' <= (character) && (character) <= '9')
+#define IS_DIGIT(character) IS_NUMBER(character)
+#define IS_LETTER(character) (('a' <= (character) && (character) <= 'z') || ('A' <= (character) && (character) <= 'Z'))
+#define IS_ALPHANUMERIC(character) (IS_NUMBER(character) || IS_LETTER(character))
+#define IS_BETWEEN(number,a,b) ((a)<=(number) && (number)<=(b))
+
+#define PERCENTAGE(AMOUNT,TOTAL) ((TOTAL)?100.0*(float)(AMOUNT)/(float)(TOTAL):0.0)
+#define DIV(NUMERATOR,DENOMINATOR) ((DENOMINATOR)?(NUMERATOR)/(DENOMINATOR):(0))
+#define DIV_CEIL(NUMERATOR,DENOMINATOR) (((NUMERATOR)+((DENOMINATOR)-1))/(DENOMINATOR))
+#define DIV_F(NUMERATOR,DENOMINATOR) ((DENOMINATOR)?(float)(NUMERATOR)/(float)(DENOMINATOR):(0))
+
+#define POW4(number) (1<<((number)<<1))
+
+GEM_INLINE uint64_t integer_proportion(const float proportion,const uint64_t length);
+GEM_INLINE uint64_t integer_lower_power_of_two(uint64_t number);
+GEM_INLINE uint64_t integer_upper_power_of_two(uint64_t number);
+
+/*
+ * CheckSum & BitDisplay
+ */
+GEM_INLINE uint64_t checksum_uint64(uint64_t* mem,const uint64_t num_words);
+GEM_INLINE void checksum_incremental_uint64(uint64_t* const checksum,const uint64_t word);
+
+#define CHAR_TO_PRINTABLE(character) ( ('!' <= (character) && (character) <= '~') ? (character) : '#')
+GEM_INLINE void fprintf_uint64_binary(FILE* const stream,const uint64_t word);
+GEM_INLINE void fprintf_uint64_footprint(FILE* const stream,const uint64_t word);
+
+/*
+ * Common parsing
+ */
+#define IS_EOL(character) gem_expect_false((character)==EOL)
+#define IS_ANY_EOL(character) ((character)==EOL || (character)==DOS_EOL)
+#define IS_HEX_DIGIT(character) (IS_NUMBER(character) || ('a' <= (character) && (character) <= 'f') || ('A' <= (character) && (character) <= 'F'))
+
+#define GET_DIGIT(character) ((character) - '0')
+#define GET_HEX_DIGIT(character) (IS_NUMBER(character) ? GET_DIGIT(character) : (toupper(character) - 'A' + 10))
+
+#define IS_END_OF_RECORD(character) ( (character)==EOL || (character)==EOS )
+#define IS_END_OF_FIELD(character) ( IS_END_OF_RECORD(character) || (character)==SPACE || (character)==TAB )
+
+/*
+ * Time (ms)
+ */
+#define TIME_DIFF(start,end) ((end.tv_sec + end.tv_usec/1E6) - (start.tv_sec + start.tv_usec/1E6))
+
+/*
+ * Popcount macros
+ */
+#ifdef __SSE4_2__
+  #include <nmmintrin.h>
+  #define POPCOUNT_64(word64) _mm_popcnt_u64((word64))
+  #define POPCOUNT_32(word32) _mm_popcnt_u32((word32))
+#else
+  #define POPCOUNT_64(word64) __builtin_popcountll((word64))
+  #define POPCOUNT_32(word32) __builtin_popcount((word32))
+#endif
+/*
+ * Prefetch macros
+ */
+#ifdef __SSE__
+  #include <xmmintrin.h>
+  #define PREFETCH(ADDR) _mm_prefetch((ADDR),_MM_HINT_NTA)
+#else
+  #define PREFETCH(ADDR) __builtin_prefetch((ADDR),0,0)
+#endif
+
+
+
+#endif /* COMMONS_H_ */

@@ -1,0 +1,20 @@
+######################################################################################
+## Slurm drive
+######################################################################################
+[smarco@cn502{00:46:07} GEMTools.v7]> ./bin/gt.construct -i ~/Indexes/human.gem -s 3 -1 0
+[GTMapMallocFILE.profile]
+GTDebug (gt_mm.c:148,gt_mm_bulk_mmap_file)
+ Memory aligned to 32KB (0x2affd0983000)
+--> Time.alloc           0.002       
+--> Time.readSeq.all     111.124  (D0E057F103A0E5BE)
+--> Time.readRand.10M    7.742  (D547A8DB443BAC30)
+######################################################################################
+## Local Hard drive
+######################################################################################
+[smarco@cn502{01:01:39} GEMTools.v7]> ./bin/gt.construct -i /scratch_tmp/human.gem -s 3 -1 0
+[GTMapMallocFILE.profile]
+GTDebug (gt_mm.c:148,gt_mm_bulk_mmap_file)
+ Memory aligned to 32KB (0x2b9b9c6b6000)
+--> Time.alloc           0.000       
+--> Time.readSeq.all     25.765  (D0E057F103A0E5BE)
+--> Time.readRand.10M    11.630  (E5EFCB85F5E13CFF)
