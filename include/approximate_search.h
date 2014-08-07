@@ -22,8 +22,6 @@
 
 #include "region_profile.h"
 #include "interval_set.h"
-#include "filtering_candidates.h"
-
 
 // Approximate Search Internals
 typedef enum { check_none, check_pmatches_correctness, check_imatches_correctness, check_correctness, check_completness } check_matches_t;
@@ -83,6 +81,7 @@ typedef struct {
 } approximate_search_parameters_t;
 // Approximate Search
 typedef enum { asearch_init, asearch_filtering, asearch_neighborhood, asearch_end } approximate_search_stage_t;
+typedef struct _filtering_candidates_t filtering_candidates_t; // FIXME Ahead declaration
 typedef struct {
   /* Index Structures & Parameters */
   locator_t* locator;                                 // Sequence Locator
@@ -107,6 +106,8 @@ typedef struct {
   /* MM */
   mm_stack_t* mm_stack;  // Memory stack
 } approximate_search_t;
+
+#include "filtering_candidates.h"
 
 /*
  * Approximate Search Parameters

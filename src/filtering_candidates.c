@@ -21,6 +21,19 @@
 #define FC_DISTANCE_EXCEED UINT64_MAX
 
 /*
+ * Filtering Candidates
+ */
+struct _filtering_candidates_t {
+  /* Pending candidates */
+  vector_t* candidate_positions;              // Candidates positions (candidate_position_t)
+  /* Checked Positions */
+  vector_t* verified_candidate_positions;     // Verified positions (uint64_t)
+  /* Internals */
+  vector_t* regions_buffer;                   // Regions Buffer (region_t)
+  text_collection_t* candidates_collection;   // Candidates Text-Collection (Stores candidates Texts)
+};
+
+/*
  * Candidates
  */
 // (1) Alias input fields
@@ -152,11 +165,12 @@ GEM_INLINE void filtering_candidates_align_hamming(
 }
 
 GEM_INLINE void filtering_candidates_align_levenshtein(
-    candidate_position_t* const text_candidate,const pattern_t* const pattern,
+    candidate_position_t* const text_candidate,pattern_t* const pattern,
     const uint8_t* const candidate_text,const uint64_t candidate_length,const uint64_t max_mismatches) {
   uint64_t position, distance;
+  bpm_pattern_t* const bpm_pattern = &pattern->bpm_pattern;
   bpm_get_distance__cutoff(
-      pattern->bpm_pattern,candidate_text,candidate_length,
+      bpm_pattern,candidate_text,candidate_length,
       &position,&distance,max_mismatches);
   // TODO
 }
@@ -184,10 +198,10 @@ GEM_INLINE void filtering_candidates_align(
       const uint64_t boundary_offset =
           text_candidate->cip_candidate_begin_position - text_candidate->cip_eff_candidate_begin_position;
       filtering_candidates_align_hamming(text_candidate,text+boundary_offset,key,key_length,allowed_enc,1); // TODO Check this mathematically
-      if (distance != FC_DISTANCE_EXCEED) {
-        // Store match
-        continue; // Next
-      }
+//      if (distance != FC_DISTANCE_EXCEED) { // TODO
+//        // Store match
+//        continue; // Next
+//      }
     }
     // 2. Check Levenshtein distance
     // 2.1 Generalized Counting filter // TODO
@@ -195,10 +209,10 @@ GEM_INLINE void filtering_candidates_align(
     const uint64_t eff_text_length =
         text_candidate->cip_eff_candidate_end_position - text_candidate->cip_eff_candidate_begin_position;
     filtering_candidates_align_levenshtein(pattern,text,eff_text_length,max_effective_filtering_error);
-    if (distance != FC_DISTANCE_EXCEED) {
-      // Store match
-      continue; // Next
-    }
+//    if (distance != FC_DISTANCE_EXCEED) { // TODO
+//      // Store match
+//      continue; // Next
+//    }
 
     // 3. Local match (TODO Store as chunk matching ... try to extend borders)
   }
@@ -454,104 +468,104 @@ GEM_INLINE void filtering_candidates_decode_candidates_positions(
         candidate->candidate_region->end,key_length-candidate->candidate_region->end,boundary_error);
   }
 }
-typedef struct {
-  uint64_t vector_rank;
-  uint64_t index_position;
-  uint64_t distance;
-  uint64_t used_slot;
-  bwt_block_locator_t bwt_block_locator;
-} fc_batch_decode_candidate;
-GEM_INLINE void filtering_candidates_decode_candidates_positions_batch_prefetched(
-    const locator_t* const locator,const fm_index_t* const fm_index,
-    vector_t* const candidate_text_positions,const uint64_t key_length,const uint64_t boundary_error) {
-  // Init
-  const uint64_t bwt_length = fm_index_get_length(fm_index);
-  const bwt_t* const bwt = fm_index->bwt;
-  const sampled_sa_t* const sampled_sa = fm_index->sampled_sa;
-  candidate_position_t* const candidates = vector_get_mem(candidate_text_positions,candidate_position_t);
-  // Batch Decode
-  fc_batch_decode_candidate batch[FC_DECODE_NUM_POSITIONS_PREFETCHED];
-  const uint64_t num_candidate_text_positions = vector_get_used(candidate_text_positions);
-  // Initial fill batch
-  uint64_t current_position=0, i;
-  for (i=0;i<FC_DECODE_NUM_POSITIONS_PREFETCHED && current_position<num_candidate_text_positions;++current_position) {
-    if (!sampled_sa_is_sampled(sampled_sa,candidates[current_position].cip_region_index_position)) {
-      batch[i].index_position = candidates[current_position].cip_region_index_position;
-      batch[i].vector_rank = current_position;
-      batch[i].distance = 0;
-      batch[i].used_slot = true;
-      ++i;
-    }
-  }
-  const bool full_filled_batch = (i==FC_DECODE_NUM_POSITIONS_PREFETCHED);
-  for (;i<FC_DECODE_NUM_POSITIONS_PREFETCHED;++i) {
-    batch[i].used_slot = false;
-  }
-  // Full-prefetch loop for sampled-LF
-  if (full_filled_batch==FC_DECODE_NUM_POSITIONS_PREFETCHED) {
-    while (current_position<num_candidate_text_positions) {
-      for (i=0;i<FC_DECODE_NUM_POSITIONS_PREFETCHED;++i) {
-        bwt_prefetch(bwt,batch[i].index_position,&(batch[i].bwt_block_locator));
-      }
-      for (i=0;i<FC_DECODE_NUM_POSITIONS_PREFETCHED;++i) {
-        batch[i].index_position = bwt_prefetched_LF(bwt,batch[i].index_position,&(batch[i].bwt_block_locator));
-        ++(batch[i].distance);
-        if (sampled_sa_is_sampled(sampled_sa,batch[i].index_position)) {
-          candidates[batch[i].vector_rank].cip_sampled_pos = batch[i].index_position;
-          candidates[batch[i].vector_rank].cip_distance = batch[i].distance;
-          batch[i].used_slot = false;
-          // Select new candidate to decode
-          while (current_position < num_candidate_text_positions &&
-                 !sampled_sa_is_sampled(sampled_sa,candidates[current_position].cip_region_index_position)) {
-            ++current_position;
-          }
-          if (current_position < num_candidate_text_positions) {
-            batch[i].index_position = candidates[current_position].cip_region_index_position;
-            batch[i].vector_rank = current_position;
-            batch[i].distance = 0;
-            batch[i].used_slot = true;
-          }
-        }
-      }
-    }
-  }
-  // Solve remaining queries
-  for (i=0;i<FC_DECODE_NUM_POSITIONS_PREFETCHED;++i) {
-    if (batch[i].used_slot) {
-      do {
-        batch[i].index_position = bwt_LF(bwt,batch[i].index_position);
-        ++(batch[i].distance);
-      } while (!sampled_sa_is_sampled(sampled_sa,batch[i].index_position));
-      candidates[batch[i].vector_rank].cip_sampled_pos = batch[i].index_position;
-      candidates[batch[i].vector_rank].cip_distance = batch[i].distance;
-    }
-  }
-  // Prefetch SA-retrieve samples
-  uint64_t num_left_positions = num_candidate_text_positions;
-  current_position = 0;
-  while (num_left_positions < num_candidate_text_positions) {
-    const uint64_t batch_size = MIN(num_left_positions,FC_RETRIEVE_SAMPLE_NUM_POSITIONS_PREFETCHED);
-    const uint64_t batch_top = current_position+batch_size;
-    for (i=current_position;i<batch_top;++i) {
-      sampled_sa_prefetch_sample(sampled_sa,candidates[i].cip_sampled_pos);
-    }
-    for (i=current_position;i<batch_top;++i) {
-      candidates[i].cip_region_text_position =
-          (sampled_sa_get_sample(sampled_sa,candidates[i].cip_sampled_pos) + candidates[i].cip_distance) % bwt_length;
-    }
-    current_position = batch_top;
-    num_left_positions -= batch_size;
-  }
-  // Adjust decoded position to the beginning of the read
-  candidate_position_t* candidate = vector_get_mem(candidate_text_positions,candidate_position_t);
-  for (current_position=0;current_position<num_candidate_text_positions;++current_position,++candidate) {
-    // Locate Position
-    candidates->locator_interval = locator_lookup_interval(locator,candidates->cip_region_text_position);
-    // Adjust Position
-    filtering_candidates_adjust_position(candidates,
-        candidates->candidate_region->end,key_length-candidates->candidate_region->end,boundary_error);
-  }
-}
+//typedef struct {
+//  uint64_t vector_rank;
+//  uint64_t index_position;
+//  uint64_t distance;
+//  uint64_t used_slot;
+//  bwt_block_locator_t bwt_block_locator;
+//} fc_batch_decode_candidate;
+//GEM_INLINE void filtering_candidates_decode_candidates_positions_batch_prefetched(
+//    const locator_t* const locator,const fm_index_t* const fm_index,
+//    vector_t* const candidate_text_positions,const uint64_t key_length,const uint64_t boundary_error) {
+//  // Init
+//  const uint64_t bwt_length = fm_index_get_length(fm_index);
+//  const bwt_t* const bwt = fm_index->bwt;
+//  const sampled_sa_t* const sampled_sa = fm_index->sampled_sa;
+//  candidate_position_t* const candidates = vector_get_mem(candidate_text_positions,candidate_position_t);
+//  // Batch Decode
+//  fc_batch_decode_candidate batch[FC_DECODE_NUM_POSITIONS_PREFETCHED];
+//  const uint64_t num_candidate_text_positions = vector_get_used(candidate_text_positions);
+//  // Initial fill batch
+//  uint64_t current_position=0, i;
+//  for (i=0;i<FC_DECODE_NUM_POSITIONS_PREFETCHED && current_position<num_candidate_text_positions;++current_position) {
+//    if (!sampled_sa_is_sampled(sampled_sa,candidates[current_position].cip_region_index_position)) {
+//      batch[i].index_position = candidates[current_position].cip_region_index_position;
+//      batch[i].vector_rank = current_position;
+//      batch[i].distance = 0;
+//      batch[i].used_slot = true;
+//      ++i;
+//    }
+//  }
+//  const bool full_filled_batch = (i==FC_DECODE_NUM_POSITIONS_PREFETCHED);
+//  for (;i<FC_DECODE_NUM_POSITIONS_PREFETCHED;++i) {
+//    batch[i].used_slot = false;
+//  }
+//  // Full-prefetch loop for sampled-LF
+//  if (full_filled_batch==FC_DECODE_NUM_POSITIONS_PREFETCHED) {
+//    while (current_position<num_candidate_text_positions) {
+//      for (i=0;i<FC_DECODE_NUM_POSITIONS_PREFETCHED;++i) {
+//        bwt_prefetch(bwt,batch[i].index_position,&(batch[i].bwt_block_locator));
+//      }
+//      for (i=0;i<FC_DECODE_NUM_POSITIONS_PREFETCHED;++i) {
+//        batch[i].index_position = bwt_prefetched_LF(bwt,batch[i].index_position,&(batch[i].bwt_block_locator));
+//        ++(batch[i].distance);
+//        if (sampled_sa_is_sampled(sampled_sa,batch[i].index_position)) {
+//          candidates[batch[i].vector_rank].cip_sampled_pos = batch[i].index_position;
+//          candidates[batch[i].vector_rank].cip_distance = batch[i].distance;
+//          batch[i].used_slot = false;
+//          // Select new candidate to decode
+//          while (current_position < num_candidate_text_positions &&
+//                 !sampled_sa_is_sampled(sampled_sa,candidates[current_position].cip_region_index_position)) {
+//            ++current_position;
+//          }
+//          if (current_position < num_candidate_text_positions) {
+//            batch[i].index_position = candidates[current_position].cip_region_index_position;
+//            batch[i].vector_rank = current_position;
+//            batch[i].distance = 0;
+//            batch[i].used_slot = true;
+//          }
+//        }
+//      }
+//    }
+//  }
+//  // Solve remaining queries
+//  for (i=0;i<FC_DECODE_NUM_POSITIONS_PREFETCHED;++i) {
+//    if (batch[i].used_slot) {
+//      do {
+//        batch[i].index_position = bwt_LF(bwt,batch[i].index_position);
+//        ++(batch[i].distance);
+//      } while (!sampled_sa_is_sampled(sampled_sa,batch[i].index_position));
+//      candidates[batch[i].vector_rank].cip_sampled_pos = batch[i].index_position;
+//      candidates[batch[i].vector_rank].cip_distance = batch[i].distance;
+//    }
+//  }
+//  // Prefetch SA-retrieve samples
+//  uint64_t num_left_positions = num_candidate_text_positions;
+//  current_position = 0;
+//  while (num_left_positions < num_candidate_text_positions) {
+//    const uint64_t batch_size = MIN(num_left_positions,FC_RETRIEVE_SAMPLE_NUM_POSITIONS_PREFETCHED);
+//    const uint64_t batch_top = current_position+batch_size;
+//    for (i=current_position;i<batch_top;++i) {
+//      sampled_sa_prefetch_sample(sampled_sa,candidates[i].cip_sampled_pos);
+//    }
+//    for (i=current_position;i<batch_top;++i) {
+//      candidates[i].cip_region_text_position =
+//          (sampled_sa_get_sample(sampled_sa,candidates[i].cip_sampled_pos) + candidates[i].cip_distance) % bwt_length;
+//    }
+//    current_position = batch_top;
+//    num_left_positions -= batch_size;
+//  }
+//  // Adjust decoded position to the beginning of the read
+//  candidate_position_t* candidate = vector_get_mem(candidate_text_positions,candidate_position_t);
+//  for (current_position=0;current_position<num_candidate_text_positions;++current_position,++candidate) {
+//    // Locate Position
+//    candidates->locator_interval = locator_lookup_interval(locator,candidates->cip_region_text_position);
+//    // Adjust Position
+//    filtering_candidates_adjust_position(candidates,
+//        candidates->candidate_region->end,key_length-candidates->candidate_region->end,boundary_error);
+//  }
+//}
 /*
  *
  */

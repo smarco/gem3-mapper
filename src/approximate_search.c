@@ -497,7 +497,7 @@ GEM_INLINE void approximate_search_filter_regions(
       PROF_END(SC_FILTER_REGIONS);
       PROF_BEGIN(SC_ATH_FILTER);
 
-      // TODO filtering_candidates_verify_pending(filtering_candidates,matches,true,true);
+      filtering_candidates_verify_pending(filtering_candidates,matches,true,true);
       approximate_search_adjust_max_differences_using_strata(search,matches);
 
       PROF_END(SC_ATH_FILTER);
@@ -542,7 +542,7 @@ GEM_INLINE void approximate_search_read_recovery(
       &approximate_search->filtering_candidates,&approximate_search->region_profile);
 
   // Verify !!
-  // TODO filtering_candidates_verify_pending(&approximate_search->filtering_candidates,matches,true,true);
+  filtering_candidates_verify_pending(&approximate_search->filtering_candidates,matches,true,true);
   PROF_END(GP_READ_RECOVERY);
 
   // Update MCS
@@ -822,7 +822,7 @@ GEM_INLINE void approximate_search_adaptive_mapping(approximate_search_t* const 
   // Filter the candidates
   PROF_ADD_COUNTER(GSC_ATH_FILTER_CAND,filtering_candidates_get_pending_candidates(&search->filtering_candidates));
   PROF_INC_COUNTER(GSC_ATH_HIT); PROF_BEGIN(SC_ATH_FILTER);
-  // TODO filtering_candidates_verify_pending(&search->filtering_candidates,matches,true,true);
+  filtering_candidates_verify_pending(&search->filtering_candidates,matches,true,true);
   PROF_END(SC_ATH_FILTER);
   // Set the
   if (!search->max_matches_reached) {

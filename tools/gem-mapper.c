@@ -586,7 +586,7 @@ int main(int argc,char** argv) {
 /*
  * Myers sample-0 // TEST
  */
-/*
+
 typedef struct {
   uint32_t totalQueriesEntries;
   uint32_t numQueries;
@@ -780,4 +780,4 @@ int main_sample_0(int argc,char** argv) {
 
   return (0);
 }
-*/
+
