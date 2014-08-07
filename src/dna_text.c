@@ -123,7 +123,7 @@ GEM_INLINE void dna_text_print_content(FILE* const stream,dna_text_t* const dna_
   const uint64_t text_length = dna_text->length;
   fwrite(enc_text,1,text_length,stream);
 }
-GEM_INLINE void dna_text_print_content_folded(FILE* const stream,dna_text_t* const dna_text,const uint64_t width) {
+GEM_INLINE void dna_text_pretty_print_content(FILE* const stream,dna_text_t* const dna_text,const uint64_t width) {
   DNA_TEXT_CHECK(dna_text);
   // Iterate over all indexed text
   const uint8_t* const enc_text = dna_text->text;

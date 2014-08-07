@@ -148,4 +148,6 @@ GEM_INLINE void output_map_single_end_matches(
     // Print match
     output_map_print_match(buffered_output_file,matches,match_position,match_trace);
   }
+  // Next
+  bofprintf_fixed(buffered_output_file,1,"\n");
 }

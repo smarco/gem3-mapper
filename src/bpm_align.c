@@ -214,7 +214,7 @@ GEM_INLINE bool bpm_get_distance(
   }
 }
 GEM_INLINE bool bpm_get_distance__cutoff(
-    bpm_pattern_t* const bpm_pattern,char* const sequence,const uint64_t sequence_length,
+    bpm_pattern_t* const bpm_pattern,const uint8_t* const sequence,const uint64_t sequence_length,
     uint64_t* const position,uint64_t* const distance,const uint64_t max_distance) {
   // Pattern variables
   const uint64_t* peq = (uint64_t*)bpm_pattern->peq;

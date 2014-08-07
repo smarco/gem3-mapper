@@ -52,7 +52,7 @@ typedef struct {
   uint64_t end;
   // Degree assigned to this region
   uint64_t degree;
-} mismatch_region_t;
+} region_t;
 // Region Profile
 typedef struct {
   uint64_t id;
@@ -66,10 +66,10 @@ typedef struct {
   uint64_t num_filtering_regions;  // Total number of regions := region_unique + region_standard + region_gap
   uint64_t num_standard_regions;   // Number of Standard Regions
   /* Mismatch regions */
-  mismatch_region_t* mismatch_region;
+  region_t* mismatch_region; // FIXME Change name -> search_regions eg
   uint64_t num_mismatch_region;
   /* Region Partition Properties */
-  uint64_t misms_required;              // Total mismatches required to get a new match
+  uint64_t misms_required;         // Total mismatches required to get a new match
   /* Locator for region sorting */
   region_locator_t* loc;
 } region_profile_t;
@@ -97,8 +97,8 @@ typedef struct {
  * Setup
  */
 GEM_INLINE void region_profile_new(
-    region_profile_t* const region_profile,
-    pattern_t* const pattern,mm_stack_t* const mm_stack);
+    region_profile_t* const region_profile,const uint64_t pattern_length,
+    mm_stack_t* const mm_stack);
 
 
 /*
@@ -125,7 +125,7 @@ GEM_INLINE void region_profile_generate_adaptive(
     const uint64_t rp_dec_factor,const uint64_t rp_region_type_th,const uint64_t max_regions);
 GEM_INLINE void region_profile_generate_full_progressive(
     region_profile_t* const region_profile,
-    mismatch_region_t* const base_region,const uint64_t start_region,const uint64_t total_regions);
+    region_t* const base_region,const uint64_t start_region,const uint64_t total_regions);
 
 /*
  * Region Profile Utils
@@ -137,12 +137,16 @@ GEM_INLINE void region_profile_fill_gaps(
 GEM_INLINE void region_profile_extend_first_region(
     region_profile_t* const region_profile,fm_index_t* const fm_index,const uint64_t rp_region_type_th);
 GEM_INLINE void region_profile_extend_last_region(
-    region_profile_t* const region_profile,fm_index_t* const fm_index,const uint64_t rp_region_type_th);
+    region_profile_t* const region_profile,fm_index_t* const fm_index,
+    pattern_t* const pattern,const bool* const allowed_enc,
+    const uint64_t rp_region_type_th);
 
 /*
  * Display
  */
-GEM_INLINE void region_profile_print(FILE* const stream,const region_profile_t* const region_profile);
+GEM_INLINE void region_profile_print(
+    FILE* const stream,const region_profile_t* const region_profile,
+    const bool sorted,const bool display_misms_regions);
 
 /*
  * Stats
@@ -169,7 +173,5 @@ GEM_INLINE void region_profile_stats_record(region_profile_stats_t* const region
   for (position=0,region=filtering_region+loc[0].id; \
        position<num_filtering_regions; \
        ++position,region=filtering_region+loc[position].id)
-
-
 
 #endif /* REGION_PROFILE_H_ */

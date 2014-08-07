@@ -85,8 +85,8 @@ struct _bwt_block_elms_t {
 /*
  * BWT Dimensions
  *   Alphabet = 3bits => 3 dense
- *   MinorBlock => 24B
- *   MayorBlock => 24KB (1024 MinorBlocks)
+ *   MinorBlock => 40B
+ *   MayorBlock => 40KB (1024 MinorBlocks)
  *   |MinorCounters| = 8*UINT16
  *   |MayorCounters| = 8*UINT64  (Stored separately)
  *   MinorBlock.BM = 3*UINT64
@@ -99,10 +99,10 @@ struct _bwt_block_elms_t {
  *       5 SysPage => 512 minorBlocks (4 unaligned) => ((512+4)/512) => 1,0078 PageFaults per access [OK]
  *       40KB/4KB = 10 SysPage per MayorBlock
  */
-#define BWT_MINOR_COUNTER_RANGE        8
+#define BWT_MINOR_COUNTER_RANGE         8
 #define BWT_MINOR_BLOCK_COUNTER_LENGTH 16
 #define BWT_MINOR_BLOCK_LENGTH         64
-#define BWT_MINOR_BLOCK_BITS           3
+#define BWT_MINOR_BLOCK_BITS            3
 
 #define BWT_MINOR_BLOCK_SIZE \
   (BWT_MINOR_BLOCK_COUNTER_LENGTH*BWT_MINOR_COUNTER_RANGE + \
@@ -204,7 +204,7 @@ GEM_INLINE void bwt_builder_write_mayor_counters(bwt_builder_t* const bwt_builde
   for (i=0;i<BWT_MAYOR_COUNTER_RANGE;++i) {
     // Update sentinel counters
     bwt_builder->mayor_occ[i] += bwt_builder->minor_occ[i];
-    bwt_builder->minor_occ[i] = 0;
+    bwt_builder->minor_occ[i] = 0; // Reset
     // Dump counters
     mayor_counters[i] = bwt_builder->mayor_occ[i] + bwt_builder->bwt.C[i];
   }
@@ -217,10 +217,9 @@ GEM_INLINE void bwt_builder_write_minor_counters(bwt_builder_t* const bwt_builde
   // Dump main-4 counters
   for (i=0;i<BWT_MINOR_COUNTER_RANGE;++i) {
     minor_counters_mem[i] = bwt_builder->minor_occ[i]; // Write minorCounter
-    bwt_builder->minor_occ[i] = 0; // Reset
   }
   // Update minorBlock pointer
-  bwt_builder->minor_block_mem += 2;
+  bwt_builder->minor_block_mem += 2; // 2*64bits == 8*16bits
 }
 GEM_INLINE void bwt_builder_write_minor_block(
     bwt_builder_t* const bwt_builder,
@@ -608,18 +607,18 @@ GEM_INLINE bool bwt_precomputed_erank_interval(
  * BWT LF (Last to first)
  */
 GEM_INLINE uint64_t bwt_LF(
-    const bwt_t* const bwt,const uint8_t position) {
+    const bwt_t* const bwt,const uint64_t position) {
   uint8_t char_enc;
   return bwt_LF__enc(bwt,position,&char_enc);
 }
 GEM_INLINE uint64_t bwt_prefetched_LF(
-    const bwt_t* const bwt,const uint8_t position,
+    const bwt_t* const bwt,const uint64_t position,
     const bwt_block_locator_t* const block_loc) {
   uint8_t char_enc;
   return bwt_prefetched_LF__enc(bwt,position,&char_enc,block_loc);
 }
 GEM_INLINE uint64_t bwt_LF__enc(
-    const bwt_t* const bwt,const uint8_t position,uint8_t* const char_enc) {
+    const bwt_t* const bwt,const uint64_t position,uint8_t* const char_enc) {
   BWT_LF_TICK();
   BWT_LOCATE_BLOCK(bwt,position,block_pos,block_mod,mayor_counters,block_mem);
   *char_enc = bwt_char_(bwt,block_pos,block_mod,block_mem);
@@ -634,7 +633,7 @@ GEM_INLINE uint64_t bwt_LF__character(
   return rank_LF;
 }
 GEM_INLINE uint64_t bwt_prefetched_LF__enc(
-    const bwt_t* const bwt,const uint8_t position,uint8_t* const char_enc,
+    const bwt_t* const bwt,const uint64_t position,uint8_t* const char_enc,
     const bwt_block_locator_t* const block_loc) {
   BWT_LF_TICK();
   *char_enc = bwt_char_(bwt,block_loc->block_pos,block_loc->block_mod,block_loc->block_mem);

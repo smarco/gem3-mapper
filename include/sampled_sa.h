@@ -38,11 +38,12 @@ GEM_INLINE void sampled_sa_builder_delete(sampled_sa_builder_t* const sampled_sa
 /*
  * Accessors
  */
-GEM_INLINE uint64_t sampled_sa_get_size(sampled_sa_t* const sampled_sa);
-GEM_INLINE uint64_t sampled_sa_get_sampling_rate_value(sampled_sa_t* const sampled_sa);
-GEM_INLINE sampling_rate_t sampled_sa_get_sampling_rate(sampled_sa_t* const sampled_sa);
-GEM_INLINE bool sampled_sa_is_sampled(sampled_sa_t* const sampled_sa,const uint64_t sa_position);
-GEM_INLINE uint64_t sampled_sa_get_sample(sampled_sa_t* const sampled_sa,const uint64_t sa_sampled_position);
+GEM_INLINE uint64_t sampled_sa_get_size(const sampled_sa_t* const sampled_sa);
+GEM_INLINE uint64_t sampled_sa_get_sampling_rate_value(const sampled_sa_t* const sampled_sa);
+GEM_INLINE sampling_rate_t sampled_sa_get_sampling_rate(const sampled_sa_t* const sampled_sa);
+GEM_INLINE bool sampled_sa_is_sampled(const sampled_sa_t* const sampled_sa,const uint64_t sa_position);
+GEM_INLINE void sampled_sa_prefetch_sample(const sampled_sa_t* const sampled_sa,const uint64_t sa_sampled_position);
+GEM_INLINE uint64_t sampled_sa_get_sample(const sampled_sa_t* const sampled_sa,const uint64_t sa_sampled_position);
 
 /*
  * Display/Stats

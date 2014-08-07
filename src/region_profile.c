@@ -12,34 +12,33 @@
  * Setup
  */
 GEM_INLINE void region_profile_new(
-    region_profile_t* const region_profile,pattern_t* const pattern,
+    region_profile_t* const region_profile,const uint64_t pattern_length,
     mm_stack_t* const mm_stack) {
   // Allocate memory for the region profile
-  const uint64_t max_length = pattern->key_length;
-  // Pattern
-  region_profile->pattern_length = max_length;
+  region_profile->pattern_length = pattern_length;
   // Filtering regions
-  region_profile->filtering_region = mm_stack_calloc(mm_stack,max_length,filtering_region_t,false);
+  region_profile->filtering_region = mm_stack_calloc(mm_stack,pattern_length,filtering_region_t,false);
   region_profile->num_filtering_regions = 0;
   region_profile->num_standard_regions = 0;
   // Mismatch regions
-  region_profile->mismatch_region = mm_stack_calloc(mm_stack,max_length,mismatch_region_t,false);
+  region_profile->mismatch_region = mm_stack_calloc(mm_stack,pattern_length,region_t,false);
   region_profile->num_mismatch_region = 0;
   // Region Partition Properties
   region_profile->misms_required = 0;
   // Locator for region sorting
-  region_profile->loc = mm_stack_calloc(mm_stack,max_length,region_locator_t,false);
+  region_profile->loc = mm_stack_calloc(mm_stack,pattern_length,region_locator_t,false);
 }
 /*
  * Accessors
  */
 GEM_INLINE uint64_t region_get_num_regions(region_profile_t* const region_profile) {
-  // TODO
-  return 0;
+  // All regions (region_unique + region_standard + region_gap)
+  return region_profile->num_filtering_regions;
 }
 GEM_INLINE bool region_profile_has_exact_matches(region_profile_t* const region_profile) {
-  // Condition to determine if there are exact matches (taken into account the first region)
-  return (region_profile->num_filtering_regions>0) &&
+  // Condition (sufficient but not necessary) to determine
+  //   if there are exact matches (taken into account the first region)
+  return (region_profile->num_filtering_regions==1) &&
       (region_profile->filtering_region[0].end == 0 &&
        region_profile->filtering_region[0].start == region_profile->pattern_length &&
        (region_profile->filtering_region[0].hi-region_profile->filtering_region[0].lo) > 0);
@@ -53,7 +52,7 @@ GEM_INLINE void region_profile_generate_fixed(
     region_profile_t* const region_profile,
     fm_index_t* const fm_index,pattern_t* const pattern,
     bool* const allowed_enc,const uint64_t num_regions) {
-  // TODO
+  GEM_NOT_IMPLEMENTED(); // TODO
 }
 /*
  * Region Profile Generation (Adaptive)
@@ -110,11 +109,14 @@ GEM_INLINE void region_profile_generate_adaptive(
     fm_index_t* const fm_index,pattern_t* const pattern,const bool* const allowed_enc,
     const uint64_t rp_region_th,const uint64_t rp_max_steps,
     const uint64_t rp_dec_factor,const uint64_t rp_region_type_th,const uint64_t max_regions) {
+  // FIXME: version that forces to have at least 1 candidate
   PROF_BEGIN(GP_REGION_PROFILE);
   filtering_region_t* const regions = region_profile->filtering_region;
   uint64_t num_regions = 0, num_standard_regions = 0, last_cut = 0;
   uint64_t lo, hi, hi_cut, lo_cut, expected_count, max_steps;
 
+  // Prepare rank_query
+  const rank_mtable_t* const rank_mtable = fm_index->rank_table;
   rank_mquery_t rank_mquery;
   rank_mquery_new(&rank_mquery);
 
@@ -137,8 +139,8 @@ GEM_INLINE void region_profile_generate_adaptive(
     // Rank query
     const uint8_t enc_char = key[key_len];
     if (rank_mquery_is_exhausted(&rank_mquery)
-        /* && lookupLevel > MIN_LOOKUP_FETCH(properLength/4) */) {
-      rank_mquery_add_char(&rank_mquery,enc_char);
+        /* && lookupLevel > MIN_LOOKUP_FETCH(properLength/4) TODO */) {
+      rank_mquery_add_char(rank_mtable,&rank_mquery,enc_char);
     } else {
       lo = bwt_erank(fm_index->bwt,enc_char,lo);
       hi = bwt_erank(fm_index->bwt,enc_char,hi);
@@ -148,7 +150,7 @@ GEM_INLINE void region_profile_generate_adaptive(
     const uint64_t num_candidates = hi-lo;
     if (gem_expect_true(num_candidates > rp_region_th)) continue;
 
-    // We have candidates
+    // We have candidates // FIXME FIXME FIXME FIXME FIXME It's of no interest to have zero candidates
     if (num_candidates > 0) {
       if (last_cut == 0) {
         REGION_SAVE_CUT_POINT();
@@ -177,7 +179,7 @@ GEM_INLINE void region_profile_generate_adaptive(
   region_profile->num_filtering_regions = num_regions;
   region_profile->num_standard_regions = num_standard_regions;
 
-  // We leave a ghost region
+  // We leave a ghost region // FIXME: Why?
   regions[num_regions].end=0;
   regions[num_regions].lo=lo;
   regions[num_regions].hi=hi;
@@ -185,7 +187,7 @@ GEM_INLINE void region_profile_generate_adaptive(
   PROF_END(GP_REGION_PROFILE);
 }
 GEM_INLINE void region_profile_generate_full_progressive(
-    region_profile_t* const region_profile,mismatch_region_t* const base_region,
+    region_profile_t* const region_profile,region_t* const base_region,
     const uint64_t start_region,const uint64_t total_regions) {
   region_profile->num_mismatch_region = total_regions;
   region_profile->mismatch_region = base_region;
@@ -278,6 +280,7 @@ GEM_INLINE void region_profile_sort_by_candidates(region_profile_t* const region
 }
 GEM_INLINE void region_profile_fill_gaps(
     region_profile_t* const region_profile,const uint64_t eff_mismatches) {
+  GEM_NOT_IMPLEMENTED(); // TODO
 //  const bool* const allowed_chars = search_params->allowed_chars;
 //  const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
 //  filtering_region* const filtered_region = region_profile->filtering_region;
@@ -324,62 +327,79 @@ GEM_INLINE void region_profile_fill_gaps(
  */
 GEM_INLINE void region_profile_extend_first_region(
     region_profile_t* const region_profile,fm_index_t* const fm_index,const uint64_t rp_region_type_th) {
-
+  GEM_NOT_IMPLEMENTED(); // TODO
 }
 /*
- * PRE: region_profile->num_regions > 0
  * Tries to extend the last region of the profile to the end of the key (position 0)
  */
 GEM_INLINE void region_profile_extend_last_region(
-    region_profile_t* const region_profile,fm_index_t* const fm_index,const uint64_t rp_region_type_th) {
-
-//// Merge the tail with the last region
-//filtering_region* const last_region = region_profile->filtering_region +
-//    (region_profile->num_filtering_regions-1);
-//if (last_region->end != 0) {
-//  // Continue the search
-//  last_region->end = fmi_bsearch_continue(
-//      a,key,key_len,allowed_repl,last_region->hi,last_region->lo,
-//      last_region->end,0,&(last_region->hi),&(last_region->lo));
-//  // Adjust the region end (if needed) and type
-//  const uint64_t count = last_region->hi-last_region->lo;
-//  if (count==0) last_region->end = 0;
-//  if (last_region->type==ZERO_REGION && count<=rp_region_type_th) {
-//    last_region->type = NON_ZERO_REGION;
-//    --(region_profile->num_zero_filtering_regions);
-//  }
-//}
+    region_profile_t* const region_profile,fm_index_t* const fm_index,
+    pattern_t* const pattern,const bool* const allowed_enc,
+    const uint64_t rp_region_type_th) {
+  GEM_INTERNAL_CHECK(region_profile->num_filtering_regions > 0,"RegionProfile. No last region to extend");
+  // Pattern
+  uint8_t* const key = pattern->key;
+  // Merge the tail with the last region
+  filtering_region_t* const last_region = region_profile->filtering_region + (region_profile->num_filtering_regions-1);
+  if (last_region->end != 0) {
+    // Continue the search
+    while (last_region->end > 0) {
+      if (last_region->hi==last_region->lo) break;
+      // Query step
+      const uint8_t enc_char = key[--last_region->end];
+      if (!allowed_enc[enc_char]) break;
+      last_region->lo=bwt_erank(fm_index->bwt,enc_char,last_region->lo);
+      last_region->hi=bwt_erank(fm_index->bwt,enc_char,last_region->hi);
+    }
+    // Adjust the region end (if needed) and type
+    const uint64_t count = last_region->hi-last_region->lo;
+    if (count==0) last_region->end = 0;
+    if (last_region->type==region_standard && count<=rp_region_type_th) {
+      last_region->type = region_unique;
+      --(region_profile->num_standard_regions);
+    }
+  }
 }
 /*
  * Display
  */
-GEM_INLINE void region_profile_print(FILE* const stream,const region_profile_t* const region_profile) {
-
-//#ifdef GEM_SHOW_PROFILES
-//#define FMI_SHOW_REGION_PROFILE(REGION_PROFILE, REMARKS...) {
-//  filtering_region* ppp_region = REGION_PROFILE->filtering_region;
-//  int64_t iii, mmm = REGION_PROFILE->num_filtering_regions;
-//  fprintf(stderr, REMARKS);
-//  if (mmm==0)  fprintf(stderr, " {no regions}");
-//  for (iii=mmm-1; iii>=0; --iii) {
-//    fprintf(stderr, "[%lu,%lu]{min=%lu/max=%lu} (degree=%lu;cand=%lu)   <|>   ",
-//        ppp_region[iii].end, ppp_region[iii].start,
-//        ppp_region[iii].min, ppp_region[iii].max, ppp_region[iii].degree,
-//        ppp_region[iii].hi-ppp_region[iii].lo);
-//  }
-//  fprintf(stderr, "\n");
-//}
-//#define FMI_SHOW_MISMS_PROFILE(REGION_PROFILE, REMARKS...) {
-//  mismatch_region* ppp_region = REGION_PROFILE->mismatch_region;
-//  int64_t iii, mmm = REGION_PROFILE->num_mismatch_region;
-//  fprintf(stderr, REMARKS);
-//  if (mmm==0)  fprintf(stderr, " {no regions}");
-//  for (iii=mmm-1; iii>=0; --iii) {
-//    fprintf(stderr, "[%lu,%lu](d=%lu)   <-->   ",
-//        ppp_region[iii].end, ppp_region[iii].start, ppp_region[iii].degree);
-//  }
-//  fprintf(stderr, "\n");
-//}
+GEM_INLINE void region_profile_print(
+    FILE* const stream,const region_profile_t* const region_profile,
+    const bool sorted,const bool display_misms_regions) {
+  tab_fprintf(stream,"[GEM]>Region.Profile\n");
+  tab_fprintf(stream,"  => Pattern.length %lu\n",region_profile->pattern_length);
+  tab_fprintf(stream,"  => Num.Filtering.Regions %lu\n",region_profile->num_filtering_regions);
+  tab_fprintf(stream,"  => Num.Standard.Regions %lu\n",region_profile->num_standard_regions);
+  tab_fprintf(stream,"  => Misms.required %lu\n",region_profile->misms_required);
+  tab_fprintf(stream,"  => Filtering.Regions\n");
+  if (!sorted) {
+    REGION_PROFILE_ITERATE(region_profile,region,position) {
+      tab_fprintf(stream,"       [%lu]\ttype=%s\tregion=[%lu,%lu)\tcand=%lu\tdegree=%lu\n",
+          position,
+          region->type==region_unique ? "region_unique" :
+              (region->type==region_standard ? "region_standard" : "region_gap"),
+          region->end,region->start,region->hi-region->lo,region->degree);
+    }
+  } else {
+    REGION_LOCATOR_ITERATE(region_profile,region,position) {
+      tab_fprintf(stream,"       [%lu]\ttype=%s\tregion=[%lu,%lu)\t%cand=lu\t%degree=lu\n",
+          position,
+          region->type==region_unique ? "region_unique" :
+              (region->type==region_standard ? "region_standard" : "region_gap"),
+          region->end,region->start,region->hi-region->lo,region->degree);
+    }
+  }
+  if (display_misms_regions) {
+    tab_fprintf(stream,"  => Num.Misms.regions %lu\n",region_profile->num_mismatch_region);
+    tab_fprintf(stream,"  => Misms.Regions\n");
+    uint64_t i;
+    for (i=0;i<region_profile->num_mismatch_region;++i) {
+      const region_t* const mismatch_region = region_profile->mismatch_region+i;
+      tab_fprintf(stream,"       {%lu}\tloc=[%lu,%lu)\tdegree=%lu\n",
+          i,mismatch_region->end,mismatch_region->start,mismatch_region->degree);
+    }
+  }
+  fflush(stream);
 }
 /*
  * Stats
@@ -416,6 +436,7 @@ GEM_INLINE void region_profile_stats_record(region_profile_stats_t* const region
  * Assigns to @filtered_region profile a continuous set of regions,
  * handling wildcards and regions in-between filtered regions
  */
+/*
 #define FMI_REGION_GET_NUMBER_BASES(region) (region)->hi
 #define FMI_REGION_SET_NUMBER_BASES(region,number_bases) (region)->hi = number_bases;
 #define FMI_REGION_PROFILE_COUNT_BASES(key,region) { \
@@ -431,7 +452,7 @@ GEM_INLINE void region_profile_stats_record(region_profile_stats_t* const region
   last_pos -= size_chunk; \
   misms_region[i].end = last_pos
 
-
+*/
 
 
 

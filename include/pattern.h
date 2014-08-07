@@ -21,6 +21,7 @@ typedef struct {
   /* Pattern Properties */
   uint64_t num_wildcards;
   uint64_t num_low_quality_bases;
+  uint64_t max_effective_filtering_error;
   /* Pattern BitVector-Encoded (Myers-DP) */
   bpm_pattern_t bpm_pattern;
 } pattern_t;

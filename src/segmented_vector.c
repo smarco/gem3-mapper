@@ -59,7 +59,7 @@ GEM_INLINE void svector_reap(svector_t* const svector) {
   if (svector->segments->used > svector->min_resident_segments) {
     // Reap non-resident segments // TODO Register Number of reaps
     mm_slab_lock(svector->mm_slab);
-    VECTOR_OFFSET_ITERATE(svector->segments,segment,position,svector->min_resident_segments,vector_segment_t) {
+    VECTOR_ITERATE_OFFSET(svector->segments,segment,position,svector->min_resident_segments,vector_segment_t) {
       mm_slab_put(svector->mm_slab,segment->slab_unit);
     }
     mm_slab_unlock(svector->mm_slab);

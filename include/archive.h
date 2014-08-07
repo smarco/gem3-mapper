@@ -127,12 +127,12 @@ GEM_INLINE void archive_search_single_end(archive_search_t* const archive_search
 //
 
 /*
- * Decoding Matches (Retrieving & Processing matches)
+ * Select Matches (Retrieving & Processing matches)
  *   - 1. Expand interval-matches (compacted)
- *   - 2. Sort matches wrt distance
- *   - 3. Transform CIGAR of reverse matches
+ *   - 2. Transform CIGAR of reverse matches
+ *   - 3. Sort matches wrt distance
  */
-GEM_INLINE void archive_search_decode_matches(
+GEM_INLINE void archive_search_select_matches(
     archive_search_t* const archive_search,
     const uint64_t max_decoded_matches,const uint64_t min_decoded_strata,
     const uint64_t min_reported_matches,const uint64_t max_reported_matches);

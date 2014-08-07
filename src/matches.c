@@ -137,6 +137,7 @@ GEM_INLINE match_trace_t* matches_lookup_match(matches_t* const matches,const ui
 }
 GEM_INLINE void matches_add_match_trace_t(
     matches_t* const matches,match_trace_t* const match_trace) {
+  // TODO: Index
   vector_insert(matches->global_matches,*match_trace,match_trace_t);
 }
 GEM_INLINE void matches_add_match_trace_(
@@ -158,7 +159,13 @@ GEM_INLINE void matches_add_interval_match(
   const uint64_t num_matches = hi-lo;
   if (gem_expect_false(num_matches==0)) return;
   // Setup the interval-match
-  match_interval_t match_interval = { hi, lo, NULL, length, distance, strand };
+  match_interval_t match_interval;
+  match_interval.lo = lo;
+  match_interval.hi = hi;
+  match_interval.length = length;
+  match_interval.distance = distance;
+  match_interval.strand = strand;
+  match_interval.text = NULL;
   // Update counters
   matches_counters_add(matches,distance,num_matches);
   // Add the interval
@@ -170,12 +177,21 @@ GEM_INLINE void matches_add_interval_set(
   GEM_NOT_IMPLEMENTED();
   // TODO
 }
+GEM_INLINE void matches_hint_add_match_trace(matches_t* const matches,const uint64_t num_matches_trace_to_add) {
+  vector_reserve_additional(matches->global_matches,num_matches_trace_to_add);
+}
+GEM_INLINE void matches_hint_add_match_interval(matches_t* const matches,const uint64_t num_matches_interval_to_add) {
+  vector_reserve_additional(matches->interval_matches,num_matches_interval_to_add);
+}
 /*
  * Handling matches
  */
 GEM_INLINE void matches_reverse_CIGAR(
     matches_t* const matches,
     const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
+  // Exact Match
+  if (cigar_length==0) return; // FIXME: Even all-matching matches have CIGAR=1
+  // Reverse CIGAR
   cigar_element_t* const cigar_buffer = vector_get_elm(matches->cigar_buffer,cigar_buffer_offset,cigar_element_t);
   const uint64_t middle_point = cigar_length/2;
   uint64_t i;
@@ -194,6 +210,9 @@ GEM_INLINE void matches_reverse_CIGAR(
 GEM_INLINE void matches_reverse_CIGAR_colorspace(
     matches_t* const matches,
     const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
+  // Exact Match
+  if (cigar_length==0) return; // FIXME: Even all-matching matches have CIGAR=1
+  // Reverse CIGAR
   cigar_element_t* const cigar_buffer = vector_get_elm(matches->cigar_buffer,cigar_buffer_offset,cigar_element_t);
   const uint64_t middle_point = cigar_length/2;
   uint64_t i;
@@ -206,6 +225,9 @@ GEM_INLINE void matches_reverse_CIGAR_colorspace(
 GEM_INLINE uint64_t matches_get_effective_length(
     matches_t* const matches,const uint64_t read_length,
     const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
+  // Exact Match
+  if (cigar_length==0) return read_length; // FIXME: Even all-matching matches have CIGAR=1
+  // Traverse CIGAR
   const cigar_element_t* cigar_element = vector_get_elm(matches->cigar_buffer,cigar_buffer_offset,cigar_element_t);
   int64_t i, effective_length = read_length;
   for (i=0;i<cigar_length;++i,++cigar_element) {
@@ -221,7 +243,7 @@ GEM_INLINE uint64_t matches_get_effective_length(
         break;
     }
   }
-  GEM_INTERNAL_CHECK(effective_length<0,"Match effective length is negative");
+  GEM_INTERNAL_CHECK(effective_length >= 0,"Match effective length must be positive");
   return effective_length;
 }
 /*

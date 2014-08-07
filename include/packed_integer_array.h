@@ -38,9 +38,6 @@ typedef struct {
   uint64_t* bitmap;            // Packed Integer Array
   /* MM */
   mm_t* mm_bitmap;
-  /* Space Range [Idx_start,Idx_end) */
-  uint64_t first_block_offset; // First block offset
-  uint64_t idx_offset;         // Global offset
 } packed_integer_array_t;
 
 /*
@@ -55,8 +52,6 @@ GEM_INLINE void packed_integer_array_write(
 GEM_INLINE void packed_integer_array_write_adaptor(
     fm_t* const file_manager,const uint64_t max_integer,const uint64_t num_integers,
     const uint64_t* const raw_integer_array);
-GEM_INLINE void packed_integer_array_sliced_write(
-    fm_t* const file_manager,packed_integer_array_t** const array,const uint64_t num_array);
 GEM_INLINE void packed_integer_array_delete(packed_integer_array_t* const array);
 
 /*
@@ -67,8 +62,6 @@ GEM_INLINE void packed_integer_array_store(packed_integer_array_t* const array,c
 
 GEM_INLINE uint64_t packed_integer_array_get_size(packed_integer_array_t* const array);
 GEM_INLINE uint64_t packed_integer_array_get_length(packed_integer_array_t* const array);
-GEM_INLINE uint64_t packed_integer_array_sliced_get_size(
-    packed_integer_array_t** const array,const uint64_t num_array);
 
 /*
  * Display

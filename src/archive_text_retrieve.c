@@ -95,86 +95,86 @@ GEM_INLINE void archive_text_append_starting_position(
 /*
  * Text Retriever
  */
-GEM_INLINE void archive_text_retrieve_continuous_text_within_interval(
-    const locator_interval_t* const loc_interval,const uint64_t current_index_position,
-    const uint64_t remaining_length,text_block_t* const current_text_block) {
-  // TODO
-}
-GEM_INLINE void archive_text_retrieve_rec(
-    archive_t* const archive,
-    const locator_interval_t* const loc_interval,const int64_t current_vertex_index,
-    const uint64_t current_index_position,const int64_t remaining_length,
-    text_collection_t* const text_collection,text_block_t* current_text_block,const uint64_t num_trace_blocks) {
-  ARCHIVE_CHECK_INDEX_POSITION(archive,current_index_position);
-  GEM_CHECK_NOT_NEGATIVE(remaining_length);
-  // Request new text-block if we come from a jump
-  if (current_text_block==NULL) current_text_block = text_collection_new_block(text_collection);
-  // (1) No Vertex not contained in the interval
-  if (gem_expect_false(current_vertex_index < 0)) {
-    // Retrieve continuous text-block
-    archive_text_retrieve_continuous_text_within_interval(loc_interval,current_index_position,remaining_length,current_text_block);
-    // Request new trace, set the last trace-block & return
-    text_trace_t* const text_trace = text_collection_new_trace(text_collection,num_trace_blocks+1);
-    *text_collection_get_trace_block(text_collection,text_trace,num_trace_blocks) = current_text_block;
-    return;
-  }
-  const int64_t end_position = current_index_position+remaining_length-1;
-  const vertex_t* vertex = graph_text_get_vertex(archive->graph,current_vertex_index);
-  // (2) Vertex not contained in the locator-interval
-  // (3) Vertex beyond the text scope
-  if (loc_interval->end_position <= vertex->position || end_position <= vertex->position) {
-    // Retrieve continuous text-block
-    archive_text_retrieve_continuous_text_within_interval(loc_interval,current_index_position,remaining_length,current_text_block);
-    // Request new trace, set the last trace-block & return
-    text_trace_t* const text_trace = text_collection_new_trace(text_collection,num_trace_blocks+1);
-    *text_collection_get_trace_block(text_collection,text_trace,num_trace_blocks) = current_text_block;
-    return;
-  }
-  // (4) Vertex in between (Check the properties of edge-group in the text interval)
-  const int64_t distance_to_edge = current_index_position-vertex->position;
-  const int64_t new_remaining_length = remaining_length - distance_to_edge;
-  GEM_CHECK_NOT_NEGATIVE(new_remaining_length);
-  // Retrieve continuous text-block
-  const uint64_t initial_num_traces = text_collection_get_num_traces(text_collection);
-
-  // TODO [current_index_position,current_index_position+distance_to_edge)
-
-  // (4.1) Destiny-jump (follow jump connections backwards)
-  if (edge_attributes_is_jump_source(vertex->edge_attributes)) {
-    uint64_t edge_idx;
-    for (edge_idx=vertex->edge_begin_idx;edge_idx<vertex->edge_end_idx;++edge_idx) {
-      const edge_t* const edge = graph_text_get_edge(archive->graph,edge_idx);
-      const uint64_t vertex_dst = graph_text_lookup_vertex_index(archive->graph,edge->position_dst);
-      const uint64_t locator_interval_dst_index = locator_lookup_interval_index(archive->locator,edge->position_dst);
-      const locator_interval_t* const loc_interval_dst = locator_get_interval(archive->locator,locator_interval_dst_index);
-      archive_text_retrieve_rec(archive,loc_interval_dst,vertex_dst,
-          edge->position_dst,new_remaining_length,text_collection,current_text_block,num_trace_blocks+1);
-    }
-  }
-  if (edge_attributes_is_overlapping(vertex->edge_attributes)) {
-    // (4.2) Overlapping SNV (Follow the reference)
-    archive_text_retrieve_rec(archive,loc_interval,current_vertex_index+1,
-        vertex->position,new_remaining_length,text_collection,current_text_block,num_trace_blocks);
-  } else {
-    // (4.3) Source-Jump or non-overlapping SNV (Ghost character; Follow the reference)
-    archive_text_retrieve_rec(archive,loc_interval,current_vertex_index+1,
-        vertex->position,new_remaining_length+1,text_collection,current_text_block,num_trace_blocks);
-  }
-  // Add text-block to all text-traces generated
-
-  // FIXME Not all instances add text-block
-
-  const uint64_t total_num_traces = text_collection_get_num_traces(text_collection);
-  uint64_t i;
-  for (i=initial_num_traces;i<total_num_traces;++i) {
-    text_trace_t* const text_trace = text_collection_get_trace(text_collection,i);
-    *text_collection_get_trace_block(text_collection,text_trace,num_trace_blocks) = current_text_block;
-  }
-
-
-
-
-}
+//GEM_INLINE void archive_text_retrieve_continuous_text_within_interval(
+//    const locator_interval_t* const loc_interval,const uint64_t current_index_position,
+//    const uint64_t remaining_length,text_block_t* const current_text_block) {
+//  // TODO
+//}
+//GEM_INLINE void archive_text_retrieve_rec(
+//    archive_t* const archive,
+//    const locator_interval_t* const loc_interval,const int64_t current_vertex_index,
+//    const uint64_t current_index_position,const int64_t remaining_length,
+//    text_collection_t* const text_collection,text_block_t* current_text_block,const uint64_t num_trace_blocks) {
+//  ARCHIVE_CHECK_INDEX_POSITION(archive,current_index_position);
+//  GEM_CHECK_NOT_NEGATIVE(remaining_length);
+//  // Request new text-block if we come from a jump
+//  if (current_text_block==NULL) current_text_block = text_collection_new_block(text_collection);
+//  // (1) No Vertex not contained in the interval
+//  if (gem_expect_false(current_vertex_index < 0)) {
+//    // Retrieve continuous text-block
+//    archive_text_retrieve_continuous_text_within_interval(loc_interval,current_index_position,remaining_length,current_text_block);
+//    // Request new trace, set the last trace-block & return
+//    text_trace_t* const text_trace = text_collection_new_trace(text_collection,num_trace_blocks+1);
+//    *text_collection_get_trace_block(text_collection,text_trace,num_trace_blocks) = current_text_block;
+//    return;
+//  }
+//  const int64_t end_position = current_index_position+remaining_length-1;
+//  const vertex_t* vertex = graph_text_get_vertex(archive->graph,current_vertex_index);
+//  // (2) Vertex not contained in the locator-interval
+//  // (3) Vertex beyond the text scope
+//  if (loc_interval->end_position <= vertex->position || end_position <= vertex->position) {
+//    // Retrieve continuous text-block
+//    archive_text_retrieve_continuous_text_within_interval(loc_interval,current_index_position,remaining_length,current_text_block);
+//    // Request new trace, set the last trace-block & return
+//    text_trace_t* const text_trace = text_collection_new_trace(text_collection,num_trace_blocks+1);
+//    *text_collection_get_trace_block(text_collection,text_trace,num_trace_blocks) = current_text_block;
+//    return;
+//  }
+//  // (4) Vertex in between (Check the properties of edge-group in the text interval)
+//  const int64_t distance_to_edge = current_index_position-vertex->position;
+//  const int64_t new_remaining_length = remaining_length - distance_to_edge;
+//  GEM_CHECK_NOT_NEGATIVE(new_remaining_length);
+//  // Retrieve continuous text-block
+//  const uint64_t initial_num_traces = text_collection_get_num_traces(text_collection);
+//
+//  // TODO [current_index_position,current_index_position+distance_to_edge)
+//
+//  // (4.1) Destiny-jump (follow jump connections backwards)
+//  if (edge_attributes_is_jump_source(vertex->edge_attributes)) {
+//    uint64_t edge_idx;
+//    for (edge_idx=vertex->edge_begin_idx;edge_idx<vertex->edge_end_idx;++edge_idx) {
+//      const edge_t* const edge = graph_text_get_edge(archive->graph,edge_idx);
+//      const uint64_t vertex_dst = graph_text_lookup_vertex_index(archive->graph,edge->position_dst);
+//      const uint64_t locator_interval_dst_index = locator_lookup_interval_index(archive->locator,edge->position_dst);
+//      const locator_interval_t* const loc_interval_dst = locator_get_interval(archive->locator,locator_interval_dst_index);
+//      archive_text_retrieve_rec(archive,loc_interval_dst,vertex_dst,
+//          edge->position_dst,new_remaining_length,text_collection,current_text_block,num_trace_blocks+1);
+//    }
+//  }
+//  if (edge_attributes_is_overlapping(vertex->edge_attributes)) {
+//    // (4.2) Overlapping SNV (Follow the reference)
+//    archive_text_retrieve_rec(archive,loc_interval,current_vertex_index+1,
+//        vertex->position,new_remaining_length,text_collection,current_text_block,num_trace_blocks);
+//  } else {
+//    // (4.3) Source-Jump or non-overlapping SNV (Ghost character; Follow the reference)
+//    archive_text_retrieve_rec(archive,loc_interval,current_vertex_index+1,
+//        vertex->position,new_remaining_length+1,text_collection,current_text_block,num_trace_blocks);
+//  }
+//  // Add text-block to all text-traces generated
+//
+//  // FIXME Not all instances add text-block
+//
+//  const uint64_t total_num_traces = text_collection_get_num_traces(text_collection);
+//  uint64_t i;
+//  for (i=initial_num_traces;i<total_num_traces;++i) {
+//    text_trace_t* const text_trace = text_collection_get_trace(text_collection,i);
+//    *text_collection_get_trace_block(text_collection,text_trace,num_trace_blocks) = current_text_block;
+//  }
+//
+//
+//
+//
+//}
 GEM_INLINE void archive_text_retrieve(
     archive_t* const archive,const uint64_t index_position,const uint64_t length,
     text_collection_t* const text_collection) {

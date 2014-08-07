@@ -44,7 +44,7 @@ GEM_INLINE void vector_reserve(vector_t* const vector,const uint64_t num_element
 GEM_INLINE void vector_resize__clear(vector_t* const vector,const uint64_t num_elements);
 #define vector_cast__clear(vector,type) vector_cast__clear_s(vector,sizeof(type))
 GEM_INLINE void vector_cast__clear_(vector_t* const vector,const uint64_t element_size);
-#define vector_clear(vector) (vector)->used=0
+#define vector_clear(vector) (vector)->used=0   // TODO Implement a REAP mechanism
 GEM_INLINE void vector_delete(vector_t* const vector);
 #define vector_is_empty(vector) (vector_get_used(vector)==0)
 #define vector_reserve_additional(vector,additional) vector_reserve(vector,vector_get_used(vector)+additional,false)
@@ -75,7 +75,7 @@ GEM_INLINE void vector_delete(vector_t* const vector);
 #define vector_dec_used(vector) (--((vector)->used))
 #define vector_add_used(vector,additional) vector_set_used(vector,vector_get_used(vector)+additional)
 #define vector_update_used(vector,pointer_to_next_free_element) \
-  (vector)->used = (pointer_to_next_free_element) - vector_get_mem(vector,__typeof__(pointer_to_next_free_element))
+  (vector)->used = (pointer_to_next_free_element) - ((__typeof__(pointer_to_next_free_element))((vector)->memory))
 
 
 /*
@@ -99,13 +99,24 @@ GEM_INLINE void vector_delete(vector_t* const vector);
  *   }
  */
 #define VECTOR_ITERATE(vector,element,counter,type) \
-  uint64_t counter; \
+  const uint64_t vector_used_##element = vector_get_used(vector); \
   type* element = vector_get_mem(vector,type); \
-  for (counter=0;counter<vector_get_used(vector);++element,++counter)
-#define VECTOR_OFFSET_ITERATE(vector,element,counter,offset,type) \
   uint64_t counter; \
+  for (counter=0;counter<vector_used_##element;++element,++counter)
+#define VECTOR_ITERATE_OFFSET(vector,element,counter,offset,type) \
+  const uint64_t vector_used_##element = vector_get_used(vector); \
   type* element = vector_get_elm(vector,offset,type); \
-  for (counter=offset;counter<vector_get_used(vector);++element,++counter)
+  uint64_t counter; \
+  for (counter=offset;counter<vector_used_##element;++element,++counter)
+#define VECTOR_ITERATE_CONST(vector,element,counter,type) \
+  const uint64_t vector_used_##element = vector_get_used(vector); \
+  const type* element = vector_get_mem(vector,type); \
+  uint64_t counter; \
+  for (counter=0;counter<vector_used_##element;++element,++counter)
+#define VECTOR_ITERATE_ELASTIC(vector,element,counter,type) \
+  type* element = vector_get_mem(vector,type); \
+  uint64_t counter; \
+  for (counter=0;counter<vector_get_used(vector);++element,++counter)
 
 /*
  * Miscellaneous

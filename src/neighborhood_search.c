@@ -29,5 +29,5 @@
 GEM_INLINE void neighborhood_search(
     const uint8_t* const key,const uint64_t length,const uint64_t max_error,
     interval_set_t* const intervals_result) {
-  // TODO
+  GEM_NOT_IMPLEMENTED(); // TODO
 }

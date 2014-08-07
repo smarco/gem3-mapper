@@ -105,23 +105,30 @@ GEM_INLINE void sampled_sa_builder_delete(sampled_sa_builder_t* const sampled_sa
 /*
  * Accessors
  */
-GEM_INLINE uint64_t sampled_sa_get_size(sampled_sa_t* const sampled_sa) {
+GEM_INLINE uint64_t sampled_sa_get_size(const sampled_sa_t* const sampled_sa) {
   SAMPLED_SA_CHECK(sampled_sa);
   return packed_integer_array_get_size(sampled_sa->packed_integer_array);
 }
-GEM_INLINE uint64_t sampled_sa_get_sampling_rate_value(sampled_sa_t* const sampled_sa) {
+GEM_INLINE uint64_t sampled_sa_get_sampling_rate_value(const sampled_sa_t* const sampled_sa) {
   SAMPLED_SA_CHECK(sampled_sa);
   return (1<<sampled_sa->sampling_rate);
 }
-GEM_INLINE sampling_rate_t sampled_sa_get_sampling_rate(sampled_sa_t* const sampled_sa) {
+GEM_INLINE sampling_rate_t sampled_sa_get_sampling_rate(const sampled_sa_t* const sampled_sa) {
   SAMPLED_SA_CHECK(sampled_sa);
   return sampled_sa->sampling_rate;
 }
-GEM_INLINE bool sampled_sa_is_sampled(sampled_sa_t* const sampled_sa,const uint64_t sa_position) {
+GEM_INLINE bool sampled_sa_is_sampled(const sampled_sa_t* const sampled_sa,const uint64_t sa_position) {
   SAMPLED_SA_CHECK(sampled_sa);
-  return ((sa_position % sampled_sa->sampling_rate) == 0);
+  return ((sa_position % (1<<sampled_sa->sampling_rate)) == 0);
 }
-GEM_INLINE uint64_t sampled_sa_get_sample(sampled_sa_t* const sampled_sa,const uint64_t sa_sampled_position) {
+GEM_INLINE void sampled_sa_prefetch_sample(const sampled_sa_t* const sampled_sa,const uint64_t sa_sampled_position) {
+  SAMPLED_SA_CHECK(sampled_sa);
+  // Calculate array index position
+  const uint64_t array_position = (sa_sampled_position>>sampled_sa->sampling_rate);
+  // Prefetch SA position
+  packed_integer_array_prefetch(sampled_sa->packed_integer_array,array_position);
+}
+GEM_INLINE uint64_t sampled_sa_get_sample(const sampled_sa_t* const sampled_sa,const uint64_t sa_sampled_position) {
   SAMPLED_SA_CHECK(sampled_sa);
   // Calculate array index position
   const uint64_t array_position = (sa_sampled_position>>sampled_sa->sampling_rate);

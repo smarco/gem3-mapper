@@ -20,6 +20,7 @@ FOLDER_DATASETS=$(ROOT_PATH)/datasets
 FOLDER_INCLUDE=$(ROOT_PATH)/include
 FOLDER_LIB=$(ROOT_PATH)/lib
 FOLDER_RESOURCES=$(ROOT_PATH)/resources
+FOLDER_RESOURCES_BUILD=$(ROOT_PATH)/resources/build
 
 ifeq ($(PLATFORM),Darwin)
 FOLDER_RESOURCES_LIB=$(ROOT_PATH)/resources/lib/mac
@@ -62,7 +63,9 @@ OPT_FLAGS=-Ofast $(ARCH_OPT_FLAGS) # -fomit-frame-pointer -ftree-vectorize
 INCLUDE_FLAGS=-I$(FOLDER_INCLUDE) -I$(FOLDER_RESOURCES_INCLUDE)
 LIB_PATH_FLAGS=-L$(FOLDER_LIB) -L$(FOLDER_RESOURCES_LIB)
 
+CUDA_LIBRARY_FLAGS=-L/usr/local/cuda/lib64 -I/usr/local/cuda/include -lcuda -lcudart
+
 SUPPRESS_CHECKS=-DNDEBUG
-DEBUG_FLAGS=-g -ggdb3 -rdynamic -DGEM_DEBUG
+DEBUG_FLAGS=-g -ggdb3 -rdynamic -DGEM_DEBUG 
 
 

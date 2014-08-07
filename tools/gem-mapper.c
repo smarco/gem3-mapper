@@ -3,17 +3,11 @@
  * FILE: gem-mapper.c
  * DATE:5/12/2012
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
- * DESCRIPTION: Genomic Reads Mapper
+ * DESCRIPTION: Genomic Read Mapper
  */
 
 #include "gem_core.h"
 #include "../resources/myers_gpu/myers-interface.h"
-
-
-/*
- * GEM-indexer Errors
- */
-#define GEM_ERROR_MAPPER_PARSING_MAX_MEMORY "Error parsing parameter --max-memory. '%s' not a valid measure (Eg 2GB)"
 
 /*
  * GEM-Mapper Threads info
@@ -140,7 +134,7 @@ gem_mapper_parameters_t parameters = {
     .min_decoded_strata=0,
     .max_decoded_matches=20,
     .min_reported_matches=1,
-    .max_reported_matches=ALL,
+    .max_reported_matches=100,
     /* System */
     .num_threads=1,
     .max_memory=0,
@@ -235,8 +229,8 @@ void* gem_mapper_thread(uint64_t thread_id) {
     // Search into the archive
     archive_search_single_end(archive_search,mapper_thread->seq_read);
 
-    // Decode matches
-    archive_search_decode_matches(archive_search,
+    // Select matches
+    archive_search_select_matches(archive_search,
         parameters.max_decoded_matches,parameters.min_decoded_strata,
         parameters.min_reported_matches,parameters.max_reported_matches);
     // archive_search_score_matches(archive_search); // TODO
@@ -280,11 +274,13 @@ GEM_INLINE void gem_mapper_launch_mapping_threads() {
  */
 GEM_INLINE void gem_mapper_load_index() {
   // Load archive
+  gem_cond_log(parameters.verbose,"[Loading GEM index '%s']",parameters.index_file_name);
   mapper_data.gem_archive = archive_read(parameters.index_file_name,parameters.check_index,parameters.verbose);
 }
 GEM_INLINE void gem_mapper_open_input() {
   // Open input file
   if (parameters.input_file_name==NULL) {
+    gem_cond_log(parameters.verbose,"[Reading input file from stdin]");
     switch (parameters.input_compression) {
       case FM_GZIPPED_FILE:
         mapper_data.input_file = input_gzip_stream_open(stdin);
@@ -297,7 +293,8 @@ GEM_INLINE void gem_mapper_open_input() {
         break;
     }
   } else {
-     mapper_data.input_file = input_file_open(parameters.input_file_name,false);
+    gem_cond_log(parameters.verbose,"[Opening input file '%s']",parameters.input_file_name);
+    mapper_data.input_file = input_file_open(parameters.input_file_name,false);
   }
   // TODO: Checks
 }
@@ -306,8 +303,13 @@ GEM_INLINE void gem_mapper_close_input() {
 }
 GEM_INLINE void gem_mapper_open_output() {
   // Open output stream
-  mapper_data.output_stream = (parameters.output_file_name==NULL) ?
-      stdout : fopen(parameters.output_file_name,"w");
+  if (parameters.output_file_name==NULL) {
+    gem_cond_log(parameters.verbose,"[Outputting to stdout]");
+    mapper_data.output_stream = stdout;
+  } else {
+    gem_cond_log(parameters.verbose,"[Outputting to '%s']",parameters.output_file_name);
+    mapper_data.output_stream = fopen(parameters.output_file_name,"w");
+  }
   // Open output file // TODO Unsorted
   switch (parameters.output_compression) {
     case FM_GZIPPED_FILE:
@@ -548,15 +550,43 @@ void parse_arguments(int argc,char** argv) {
   if (parameters.max_memory==0) {
     parameters.max_memory = mm_get_available_mem();
   }
+  // Check min_reported_matches <= max_reported_matches
+  // TODO
   // Free
   string_delete(getopt_short_string);
   mm_free(getopt_options);
 }
+/*
+ * Main
+ */
+int main(int argc,char** argv) {
+  // Parsing command-line options
+  parse_arguments(argc,argv); // Parse cmd-line
+  // GEM Runtime setup
+  gem_runtime_init(parameters.num_threads,parameters.max_memory,parameters.tmp_folder,gem_mapper_error_report);
 
+  // Open Input/Output File(s)
+  gem_mapper_open_input();
+  gem_mapper_open_output();
 
+  // Load GEM-Index
+  gem_mapper_load_index();
 
+  // Launch mapping threads
+  gem_mapper_launch_mapping_threads();
 
+  // CleanUP
+  // TODO Clean index
+  // TODO clean parameters
+  gem_mapper_close_input();  // Close I/O files
+  gem_mapper_close_output(); // Close I/O files
 
+  return 0;
+}
+/*
+ * Myers sample-0 // TEST
+ */
+/*
 typedef struct {
   uint32_t totalQueriesEntries;
   uint32_t numQueries;
@@ -698,16 +728,8 @@ int freeTestData(test_t *testData)
   free(testData->results);
   return (0);
 }
-
-int main(int argc,char** argv) {
-//  // Parsing command-line options
-//  parse_arguments(argc,argv); // Parse cmd-line
-//  // GEM Runtime setup
-//  gem_runtime_init(parameters.num_threads,parameters.max_memory,parameters.tmp_folder,gem_mapper_error_report);
-
-
-
-  // Myers sample-0 // TEST
+int main_sample_0(int argc,char** argv) {
+  //
   void **buffer;
   int32_t idBuffer, numBuffers = argc - 3, error;
   float distance = atof(argv[1]);
@@ -757,25 +779,5 @@ int main(int argc,char** argv) {
     freeTestData(&testData[idBuffer]);
 
   return (0);
-
-
-
-//  // Open Input/Output File(s)
-//  gem_mapper_open_input();
-//  gem_mapper_open_output();
-//
-//  // Load GEM-Index
-//  gem_mapper_load_index();
-//
-//  // Launch mapping threads
-//  gem_mapper_launch_mapping_threads();
-//
-//  // CleanUP
-//  // TODO Clean index
-//  // TODO clean parameters
-//  gem_mapper_close_input();  // Close I/O files
-//  gem_mapper_close_output(); // Close I/O files
-
-  return 0;
 }
-
+*/

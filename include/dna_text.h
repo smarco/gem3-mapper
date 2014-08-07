@@ -80,7 +80,7 @@ GEM_INLINE void dna_text_set_char(const dna_text_t* const dna_text,const uint64_
 // Display
 GEM_INLINE void dna_text_print(FILE* const stream,dna_text_t* const dna_text);
 GEM_INLINE void dna_text_print_content(FILE* const stream,dna_text_t* const dna_text);
-GEM_INLINE void dna_text_print_content_folded(FILE* const stream,dna_text_t* const dna_text,const uint64_t width);
+GEM_INLINE void dna_text_pretty_print_content(FILE* const stream,dna_text_t* const dna_text,const uint64_t width);
 
 /*
  * DNA Text [Stats]

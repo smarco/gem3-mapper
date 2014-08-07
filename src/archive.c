@@ -230,11 +230,21 @@ GEM_INLINE void archive_search_single_end(archive_search_t* const archive_search
 GEM_INLINE void archive_realign_match(
     archive_t* const archive,matches_t* const matches,
     match_trace_t* const match_trace,
-    const char* const text,const uint64_t length) {
-  // TODO
-//  match_trace->distance = ?;
-//  match_trace->cigar_length = ?;
-//  match_trace->cigar_buffer_offset = ?;
+    const char* const text,const uint64_t length,const uint64_t edit_distance) {
+  if (edit_distance == 0) {
+    match_trace->cigar_buffer_offset = vector_get_used(matches->cigar_buffer);
+    match_trace->cigar_length = 1;
+    // Insert all-matching CIGAR
+    cigar_element_t cigar_element;
+    cigar_element.type = cigar_match;
+    cigar_element.length = length;
+    vector_insert(matches->cigar_buffer,cigar_element,cigar_element_t);
+  } else {
+    // TODO
+    //  match_trace->distance = ?;
+    //  match_trace->cigar_length = ?;
+    //  match_trace->cigar_buffer_offset = ?;
+  }
 }
 /*
  * Decoding Matches (Retrieving & Processing matches)
@@ -261,10 +271,12 @@ GEM_INLINE void archive_search_calculate_matches_to_decode(
     }
   }
   // Maximum stratum to decode (increased by @min_decoded_strata)
-  const uint64_t min_nz_stratum = matches_counters_get_min_matching_stratum(matches);
-  const uint64_t mandatory_strata = min_nz_stratum + min_decoded_strata;
-  for (;strata_to_decode<max_nz_stratum && strata_to_decode<mandatory_strata;++strata_to_decode) {
-    total_matches += counters[strata_to_decode];
+  if (min_decoded_strata > 0) {
+    const uint64_t min_nz_stratum = matches_counters_get_min_matching_stratum(matches);
+    const uint64_t mandatory_strata = min_nz_stratum + min_decoded_strata;
+    for (;strata_to_decode<max_nz_stratum && strata_to_decode<mandatory_strata;++strata_to_decode) {
+      total_matches += counters[strata_to_decode];
+    }
   }
   // Maximum stratum to decode (increased by @min_reported_matches)
   for (;strata_to_decode<max_nz_stratum && total_matches<min_reported_matches;++strata_to_decode) {
@@ -282,27 +294,27 @@ GEM_INLINE void archive_search_calculate_matches_to_decode(
     *matches_to_decode_last_stratum_out = UINT64_MAX;
     if (total_matches > max_reported_matches) {
       const uint64_t prev_acc = total_matches - counters[strata_to_decode-1];
-      if (prev_acc >= min_reported_matches) {
-        *matches_to_decode_last_stratum_out = max_reported_matches - prev_acc;
-      } else {
-        *matches_to_decode_last_stratum_out = max_reported_matches - prev_acc + (min_reported_matches - prev_acc);
-      }
+      const uint64_t max_matches_from_last_stratum = max_reported_matches - prev_acc;
+      *matches_to_decode_last_stratum_out = max_matches_from_last_stratum;
     }
   } else {
     *total_strata_to_decode = 0;
     *matches_to_decode_last_stratum_out = 0;
   }
 }
-GEM_INLINE void archive_decode_matches(
-    archive_t* const archive,matches_t* const matches,
-    const uint64_t maximum_match_distance,const uint64_t matches_to_decode_last_stratum) {
+GEM_INLINE void archive_search_decode_matches(
+    archive_search_t* const archive_search,matches_t* const matches,
+    const uint64_t strata_to_decode,const uint64_t matches_to_decode_last_stratum) {
+  archive_t* const archive = archive_search->archive;
+  const uint64_t seq_length = sequence_get_length(archive_search->sequence);
+  const uint64_t last_stratum_distance = strata_to_decode-1;
   // Count already decoded matches & discard unwanted matches
   uint64_t num_matches_last_stratum = 0;
   match_trace_t* global_matches_it = vector_get_mem(matches->global_matches,match_trace_t);
   VECTOR_ITERATE(matches->global_matches,match_trace,match_trace_num,match_trace_t) {
-    if (match_trace->distance <= maximum_match_distance) {
+    if (match_trace->distance <= last_stratum_distance) {
       // Count matches last stratum
-      if (match_trace->distance == maximum_match_distance) {
+      if (match_trace->distance == last_stratum_distance) {
         if (num_matches_last_stratum < matches_to_decode_last_stratum) {
           ++num_matches_last_stratum;
         } else {
@@ -316,18 +328,17 @@ GEM_INLINE void archive_decode_matches(
       ++global_matches_it;
     }
   }
-//  vector_update_used(matches->global_matches,global_matches_it); // Update used // FIXME
+  vector_update_used(matches->global_matches,global_matches_it); // Update used
   // Decode interval matches until we reach @max_decoded_matches
   VECTOR_ITERATE(matches->interval_matches,match_interval,match_interval_num,match_interval_t) {
     if (num_matches_last_stratum >= matches_to_decode_last_stratum) break;
     // Get next match-interval
-    if ((match_interval->lo >= match_interval->hi) || (match_interval->distance > maximum_match_distance)) continue;
+    if ((match_interval->lo >= match_interval->hi) || (match_interval->distance > last_stratum_distance)) continue;
 
     // 0.- Decode position (Use the first position of the interval, lo)
     match_trace_t match_trace;
-    match_trace.strand = match_interval->strand;
     match_trace.position = fm_index_lookup(archive->fm_index,match_interval->lo);
-    match_trace.trace_offset = text_collection_get_num_traces(matches->text_collection); // TODO: Undestand SANTI??
+    // match_trace.trace_offset = text_collection_get_num_traces(matches->text_collection); // TODO: Undestand SANTI??
 
     // 1.- (Re)Align the matching-text retrieved with the seq-read(pattern) [Retrieve CIGAR string]
     if (match_interval->text == NULL) {
@@ -336,19 +347,16 @@ GEM_INLINE void archive_decode_matches(
       // match_interval->text = *** // TODO
     }
     // Realign (if needed)
-    if (match_trace.distance > 0) {
-      archive_realign_match(archive,matches,&match_trace,match_interval->text,match_interval->length);
-    } else {
-      match_trace.cigar_buffer_offset = UINT64_MAX;
-      match_trace.cigar_length = 0;
-    }
+    archive_realign_match(archive,matches,&match_trace,
+        match_interval->text,match_interval->length,match_interval->distance);
+
     // Store CIGAR reference
     const uint64_t cigar_buffer_offset = match_trace.cigar_buffer_offset;
     const uint64_t cigar_length = match_trace.cigar_length;
     uint64_t match_effective_length = UINT64_MAX;
 
     // 2.- Reverse CIGAR (If the search was performed in the reverse strand, emulated)
-    if (match_trace.strand == Reverse) {
+    if (match_interval->strand == Reverse) {
       if (archive->filter_type==Iupac_dna) {
         matches_reverse_CIGAR(matches,cigar_buffer_offset,cigar_length);
       } else { // Iupac_colorspace_dna
@@ -367,40 +375,48 @@ GEM_INLINE void archive_decode_matches(
     location_t location;
     locator_map(archive->locator,match_trace.position,&location);
     match_trace.position = location.position;
+    match_trace.sequence_name = location.tag;
     if (location.direction == Reverse) { // Adjust position by the effective length
-//      match_effective_length = matches_get_effective_length(matches,??,cigar_buffer_offset,cigar_length); // FIXME
+      match_effective_length = matches_get_effective_length(matches,seq_length,cigar_buffer_offset,cigar_length);
       match_trace.position -= (match_effective_length-1);
+      match_trace.strand = Reverse;
+      // TODO Check impossible (location.direction == Reverse) && (match_trace.strand == Reverse)
+    } else {
+      match_trace.strand = match_interval->strand;
     }
 
     // 4.- Add the match
     matches_add_match_trace_t(matches,&match_trace);
-    const bool last_stratum_match = (match_interval->distance == maximum_match_distance);
+    const bool last_stratum_match = (match_interval->distance == last_stratum_distance);
     if (last_stratum_match) ++num_matches_last_stratum;
 
     // 5.- Build the rest of the interval
     uint64_t sa_position;
     for (sa_position=match_interval->lo+1;sa_position<match_interval->hi;++sa_position) {
       // Check number of matches (only last stratum)
-      if (last_stratum_match && ++num_matches_last_stratum >= matches_to_decode_last_stratum) break;
+      if (last_stratum_match && (++num_matches_last_stratum >= matches_to_decode_last_stratum)) break;
       // 0.- Decode position
       match_trace.position = fm_index_lookup(archive->fm_index,sa_position);
       // 3.- Locate-map the match
       locator_map(archive->locator,match_trace.position,&location);
       match_trace.position = location.position;
+      match_trace.sequence_name = location.tag;
       if (location.direction == Reverse) { // Adjust position by the effective length
         if (match_effective_length==UINT64_MAX) {
-//          match_effective_length = matches_get_effective_length(matches,??,cigar_buffer_offset,cigar_length); // FIXME
+          match_effective_length = matches_get_effective_length(matches,seq_length,cigar_buffer_offset,cigar_length);
         }
         match_trace.position -= (match_effective_length-1);
+        match_trace.strand = Reverse;
+        // TODO Check impossible (location.direction == Reverse) && (match_trace.strand == Reverse)
+      } else {
+        match_trace.strand = match_interval->strand;
       }
       // 4.- Add the match
       matches_add_match_trace_t(matches,&match_trace);
     }
   }
-  // Sort all matches
-  matches_sort_by_distance(matches);
 }
-GEM_INLINE void archive_search_decode_matches(
+GEM_INLINE void archive_search_select_matches(
     archive_search_t* const archive_search,
     const uint64_t max_decoded_matches,const uint64_t min_decoded_strata,
     const uint64_t min_reported_matches,const uint64_t max_reported_matches) {
@@ -416,9 +432,12 @@ GEM_INLINE void archive_search_decode_matches(
       &strata_to_decode,&matches_to_decode_last_stratum);
   // Decode matches
   if (strata_to_decode > 0) {
-    archive_decode_matches(archive_search->archive,matches,strata_to_decode,matches_to_decode_last_stratum);
+    archive_search_decode_matches(archive_search,matches,strata_to_decode,matches_to_decode_last_stratum);
+    // Sort all matches
+    matches_sort_by_distance(matches);
   } else {
-    vector_set_used(matches->global_matches,0); // Remove all matches
+    // Remove all matches
+    matches_clear(matches);
   }
 }
 /*

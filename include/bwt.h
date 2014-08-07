@@ -110,17 +110,17 @@ GEM_INLINE bool bwt_precomputed_erank_interval(
  * BWT LF (Last to first)
  */
 GEM_INLINE uint64_t bwt_LF(
-    const bwt_t* const bwt,const uint8_t position);
+    const bwt_t* const bwt,const uint64_t position);
 GEM_INLINE uint64_t bwt_prefetched_LF(
-    const bwt_t* const bwt,const uint8_t position,
+    const bwt_t* const bwt,const uint64_t position,
     const bwt_block_locator_t* const block_loc);
 
 GEM_INLINE uint64_t bwt_LF__enc(
-    const bwt_t* const bwt,const uint8_t position,uint8_t* const char_enc);
+    const bwt_t* const bwt,const uint64_t position,uint8_t* const char_enc);
 GEM_INLINE uint64_t bwt_LF__character(
     const bwt_t* const bwt,const uint64_t position,char* const character);
 GEM_INLINE uint64_t bwt_prefetched_LF__enc(
-    const bwt_t* const bwt,const uint8_t position,uint8_t* const char_enc,
+    const bwt_t* const bwt,const uint64_t position,uint8_t* const char_enc,
     const bwt_block_locator_t* const block_loc);
 
 /*

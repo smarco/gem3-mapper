@@ -17,7 +17,8 @@
 /*
  * Utils
  */
-#define MFASTA_IS_ANY_TAG_SEPARATOR(character) ((character)==TAB || (character)==COLON || (character)==COMA)
+#define MFASTA_IS_ANY_TAG_SEPARATOR(character) \
+  ((character)==TAB || (character)==COLON || (character)==COMA || (character)==EOL || (character)==EOS)
 
 /*
  * MultiFASTA Parsing State

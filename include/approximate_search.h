@@ -87,7 +87,7 @@ typedef struct {
   /* Index Structures & Parameters */
   locator_t* locator;                                 // Sequence Locator
   graph_text_t* graph;                                // Graph (text + graph = hypertext)
-  dna_text_t* text;                                   // Index-Text
+  dna_text_t* enc_text;                               // Index-Text (Encoded)
   fm_index_t* fm_index;                               // FM-Index
   pattern_t pattern;                                  // Search Pattern
   approximate_search_parameters_t* search_parameters; // Search Parameters
@@ -136,7 +136,7 @@ GEM_INLINE void approximate_search_instantiate_values(
  * Approximate Search
  */
 GEM_INLINE approximate_search_t* approximate_search_new(
-    locator_t* const locator,graph_text_t* const graph,dna_text_t* const text,fm_index_t* const fm_index,
+    locator_t* const locator,graph_text_t* const graph,dna_text_t* const enc_text,fm_index_t* const fm_index,
     approximate_search_parameters_t* const search_parameters,mm_stack_t* const mm_stack);
 GEM_INLINE void approximate_search_clear(approximate_search_t* const approximate_search);
 GEM_INLINE void approximate_search_delete(approximate_search_t* const approximate_search);

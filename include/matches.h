@@ -147,6 +147,9 @@ GEM_INLINE void matches_add_interval_match(
 GEM_INLINE void matches_add_interval_set(
     matches_t* const matches,interval_set_t* const interval_set);
 
+GEM_INLINE void matches_hint_add_match_trace(matches_t* const matches,const uint64_t num_matches_trace_to_add);
+GEM_INLINE void matches_hint_add_match_interval(matches_t* const matches,const uint64_t num_matches_interval_to_add);
+
 /*
  * Handling matches
  */

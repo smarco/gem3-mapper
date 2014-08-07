@@ -13,9 +13,9 @@
  */
 GEM_INLINE void archive_builder_dump_index_text(archive_builder_t* const archive_builder) {
   // Open file
-  char* const indexed_text_file_name = gem_strcat(archive_builder->output_file_name_prefix,".idx_text");
+  char* const indexed_text_file_name = gem_strcat(archive_builder->output_file_name_prefix,".text");
   FILE* const indexed_text_file = fopen(indexed_text_file_name,"w");
-  dna_text_print_content(indexed_text_file,archive_builder->enc_text);
+  dna_text_pretty_print_content(indexed_text_file,archive_builder->enc_text,80);
   // Close & release
   fclose(indexed_text_file);
   free(indexed_text_file_name);
@@ -37,8 +37,11 @@ GEM_INLINE void archive_builder_inspect_text(
     const char line_begin = *vector_get_mem(line_buffer,char);
     if (gem_expect_true(line_begin!=FASTA_TAG_BEGIN)) {
       enc_text_length += vector_get_used(line_buffer)-1;
+    } else {
+      ++enc_text_length; // Separator
     }
   }
+  ++enc_text_length; // Separator
   vector_delete(line_buffer);
   ticker_finish(&ticker);
   // Configure RC generation
@@ -54,6 +57,10 @@ GEM_INLINE void archive_builder_inspect_text(
   // Rewind input MULTIFASTA
   input_file_rewind(input_multifasta);
   input_multifasta_state_clear(&(archive_builder->parsing_state));
+  // Log
+  gem_log("Inspected text %lu characters (%s). Requesting %lu MB (enc_text)",enc_text_length,
+      (archive_builder->indexed_complement==index_complement_yes) ? "index_complement=yes" : "index_complement=no",
+      CONVERT_B_TO_MB(enc_text_length));
   // Allocate Text (Circular BWT extra)
   archive_builder->enc_text = dna_text_padded_new(enc_text_length,2,SA_BWT_PADDED_LENGTH);
 }
@@ -152,14 +159,15 @@ GEM_INLINE void archive_builder_generate_text_add_sequence(
   }
   // Parse TAG (Skip separators)
   const uint64_t tag_buffer_length = vector_get_used(tag);
-  char* const tag_buffer = vector_get_mem(tag,char);
+  char* const tag_buffer = vector_get_mem(tag,char)+1;
   uint64_t tag_length;
-  for (tag_length=1;tag_length<tag_buffer_length;++tag_length) {
+  for (tag_length=0;tag_length<tag_buffer_length;++tag_length) {
     if (MFASTA_IS_ANY_TAG_SEPARATOR(tag_buffer[tag_length])) break;
   }
   tag_buffer[tag_length] = EOS;
+  gem_cond_fatal_error(tag_length==0,MULTIFASTA_TAG_EMPTY,PRI_input_file_content(input_multifasta));
   // Add to locator
-  const int64_t tag_id = locator_builder_add_sequence(archive_builder->locator,tag_buffer+1,tag_length);
+  const int64_t tag_id = locator_builder_add_sequence(archive_builder->locator,tag_buffer,tag_length);
   // Open interval
   locator_builder_open_interval(archive_builder->locator,tag_id);
   // Begin new text-sequence (Expect sequence after TAG)

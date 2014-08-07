@@ -74,7 +74,7 @@ typedef struct {
   uint64_t num_intervals;
   /* Tag locator */
   shash_t* tags_dictionary;         // Tag's Dictionary use for inverse locator (locator_inverse_t*)
-  locator_tag_t* tag_locator;       // Tag Locator
+  locator_tag_t* tag_locator;       // Tag Locator // FIXME: Doesn't make sense to have a pointer and an ID
   uint64_t num_tags;
   /* Tags Buffer */
   char* tags_buffer;                // Tag Buffer
@@ -124,10 +124,10 @@ GEM_INLINE void locator_delete(locator_t* const locator);
 GEM_INLINE uint64_t locator_get_size(locator_t* const locator);
 GEM_INLINE locator_interval_t* locator_get_interval(const locator_t* const locator,const uint64_t interval_index);
 // [Locator Interval]
-GEM_INLINE char* locator_interval_get_tag(const locator_t* const locator,locator_interval_t* const interval);
-GEM_INLINE uint64_t locator_interval_get_index_length(locator_interval_t* const interval);
-GEM_INLINE uint64_t locator_interval_get_text_length(locator_interval_t* const interval);
-GEM_INLINE bool locator_interval_is_forward(locator_interval_t* const interval);
+GEM_INLINE char* locator_interval_get_tag(const locator_t* const locator,const locator_interval_t* const interval);
+GEM_INLINE uint64_t locator_interval_get_index_length(const locator_interval_t* const interval);
+GEM_INLINE uint64_t locator_interval_get_text_length(const locator_interval_t* const interval);
+GEM_INLINE bool locator_interval_is_forward(const locator_interval_t* const interval);
 
 /*
  * Builder
@@ -161,13 +161,14 @@ GEM_INLINE void locator_builder_skip_index(locator_builder_t* const locator_buil
 /*
  * Locating functions
  */
-GEM_INLINE uint64_t locator_lookup_interval_index(locator_t* const locator,const uint64_t index_position);
+GEM_INLINE uint64_t locator_lookup_interval_index(const locator_t* const locator,const uint64_t index_position);
+GEM_INLINE locator_interval_t* locator_lookup_interval(const locator_t* const locator,const uint64_t index_position);
 
 /*
  * Map functions (High level mapping)
  */
 // [Direct Locator] (Position-to-location mapping)
-GEM_INLINE void locator_map(locator_t* const locator,const uint64_t index_position,location_t* const location);
+GEM_INLINE void locator_map(const locator_t* const locator,const uint64_t index_position,location_t* const location);
 // [Inverse Locator] (Location-to-position mapping)
 GEM_INLINE int64_t inverse_locator_map(locator_t* const locator,const uint8_t* const tag,const strand_t strand,const int64_t text_position);
 

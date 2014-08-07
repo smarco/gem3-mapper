@@ -68,7 +68,11 @@ GEM_INLINE uint64_t fm_index_psi(const fm_index_t* const fm_index,const uint64_t
 // Decode fm_index->text[bwt_position..bwt_position+length-1] into @buffer.
 GEM_INLINE uint64_t fm_index_decode(
     const fm_index_t* const fm_index,const uint64_t bwt_position,const uint64_t length,char* const buffer);
-// Basic backward search
+// Basic backward search.
+GEM_INLINE void fm_index_bsearch_pure(
+    const fm_index_t* const fm_index,
+    const uint8_t* const key,uint64_t key_length,
+    uint64_t* const hi_out,uint64_t* const lo_out);
 GEM_INLINE void fm_index_bsearch(
     const fm_index_t* const fm_index,
     const uint8_t* const key,const uint64_t key_length,
@@ -85,5 +89,10 @@ GEM_INLINE uint64_t fm_index_bsearch_continue(
  * Display
  */
 GEM_INLINE void fm_index_print(FILE* const stream,const fm_index_t* const fm_index);
+
+/*
+ * Errors
+ */
+#define GEM_ERROR_FM_INDEX_INDEX_OOR "FM_index error. Index position %lu out-of-range BWT[0,%lu)"
 
 #endif /* FM_INDEX_H_ */

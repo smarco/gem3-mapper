@@ -90,20 +90,23 @@ GEM_INLINE locator_interval_t* locator_get_interval(const locator_t* const locat
 /*
  * Accessors/Utils [Locator Interval]
  */
-GEM_INLINE char* locator_interval_get_tag(const locator_t* const locator,locator_interval_t* const interval) {
+GEM_INLINE char* locator_interval_get_tag(const locator_t* const locator,const locator_interval_t* const interval) {
   LOCATOR_CHECK(locator);
   LOCATOR_INTERVAL_CHECK(interval);
-  return locator->tag_locator[ABS(interval->tag_id)-1].tag;
+  // return locator->tag_locator[ABS(interval->tag_id)-1].tag;
+  // TODO: improve this incoherence
+  //       OR enhance and load at start
+  return locator->tags_buffer+locator->tag_locator[ABS(interval->tag_id)-1].offset;
 }
-GEM_INLINE uint64_t locator_interval_get_index_length(locator_interval_t* const interval) {
+GEM_INLINE uint64_t locator_interval_get_index_length(const locator_interval_t* const interval) {
   LOCATOR_INTERVAL_CHECK(interval);
   return (interval->end_position - interval->begin_position);
 }
-GEM_INLINE uint64_t locator_interval_get_text_length(locator_interval_t* const interval) {
+GEM_INLINE uint64_t locator_interval_get_text_length(const locator_interval_t* const interval) {
   LOCATOR_INTERVAL_CHECK(interval);
   return interval->sequence_length;
 }
-GEM_INLINE bool locator_interval_is_forward(locator_interval_t* const interval) {
+GEM_INLINE bool locator_interval_is_forward(const locator_interval_t* const interval) {
   LOCATOR_INTERVAL_CHECK(interval);
   return (interval->tag_id > 0);
 }
@@ -258,7 +261,7 @@ GEM_INLINE int64_t locator_builder_add_sequence(
     ++(locator_builder->tag_id_generator);
     current_tag->tag_id = locator_builder->tag_id_generator;
     current_tag->offset = locator_builder->tags_buffer_size;
-    current_tag->tag = svector_insert_char_buffer(locator_builder->tags_buffer,tag,tag_length);
+    current_tag->tag = svector_insert_char_buffer(locator_builder->tags_buffer,tag,tag_length+1); // Insert EOS
     locator_builder->tags_buffer_size += tag_length+1;
     current_tag->length = tag_length;
     svector_write_iterator_next(&(locator_builder->tag_locator_iterator)); // Next
@@ -275,7 +278,8 @@ GEM_INLINE void locator_builder_skip_index(locator_builder_t* const locator_buil
 /*
  * Locating functions
  */
-GEM_INLINE uint64_t locator_lookup_interval_index(locator_t* const locator,const uint64_t index_position) {
+GEM_INLINE uint64_t locator_lookup_interval_index(const locator_t* const locator,const uint64_t index_position) {
+  LOCATOR_CHECK(locator);
   // Binary search of the interval
   const locator_interval_t* const intervals = locator->intervals;
   uint64_t lo = 0;
@@ -293,27 +297,31 @@ GEM_INLINE uint64_t locator_lookup_interval_index(locator_t* const locator,const
       index_position < intervals[lo].end_position,"Locator-Interval Binary Search. Wrong Boundaries");
   return lo;
 }
+GEM_INLINE locator_interval_t* locator_lookup_interval(const locator_t* const locator,const uint64_t index_position) {
+  LOCATOR_CHECK(locator);
+  return locator->intervals + locator_lookup_interval_index(locator,index_position);
+}
 /*
  * Map functions (High level mapping)
  */
 // Direct Locator (Position-to-location mapping)
-GEM_INLINE void locator_map(locator_t* const locator,const uint64_t index_position,location_t* const location) {
+GEM_INLINE void locator_map(const locator_t* const locator,const uint64_t index_position,location_t* const location) {
   LOCATOR_CHECK(locator);
   GEM_CHECK_NULL(location);
-//  // Find interval // FIXME
-//  const locator_interval_t* const intervals = locator->intervals + locator_lookup_interval_index(locator,index_position);
+  // Find interval
+  const locator_interval_t* const intervals = locator_lookup_interval(locator,index_position);
   // Fill @location
-//  if (locator_interval_is_forward(intervals)) { // FIXME
-//    location->position = intervals->sequence_offset + (index_position-intervals->begin_position);
-//    location->direction = Forward;
-//    location->tag = locator_interval_get_tag(locator,intervals);
-//  } else { // Reverse
-//    location->position = intervals->sequence_offset +
-//        (intervals->end_position-intervals->begin_position) - (index_position-intervals->begin_position);
-//      // TODO Memoizate +(intervals->end_position-intervals->begin_position) in the index
-//    location->direction = Reverse;
-//    location->tag = locator_interval_get_tag(locator,intervals);
-//  }
+  if (locator_interval_is_forward(intervals)) {
+    location->position = intervals->sequence_offset + (index_position-intervals->begin_position);
+    location->direction = Forward;
+    location->tag = locator_interval_get_tag(locator,intervals);
+  } else { // Reverse
+    location->position = intervals->sequence_offset +
+        (intervals->end_position-intervals->begin_position) - (index_position-intervals->begin_position);
+      // TODO Memoizate +(intervals->end_position-intervals->begin_position) in the index
+    location->direction = Reverse;
+    location->tag = locator_interval_get_tag(locator,intervals);
+  }
 }
 // Inverse Locator (Location-to-position mapping)
 GEM_INLINE int64_t inverse_locator_map(locator_t* const locator,const uint8_t* const tag,const strand_t strand,const int64_t text_position) {

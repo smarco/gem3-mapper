@@ -76,12 +76,12 @@ GEM_INLINE void approximate_search_initialize_replacements(approximate_search_pa
   search_parameters->allowed_chars[DNA_CHAR_C] = true;
   search_parameters->allowed_chars[DNA_CHAR_G] = true;
   search_parameters->allowed_chars[DNA_CHAR_T] = true;
-  search_parameters->allowed_chars[DNA_CHAR_N] = true;
+  search_parameters->allowed_chars[DNA_CHAR_N] = false;
   search_parameters->allowed_enc[ENC_DNA_CHAR_A] = true;
   search_parameters->allowed_enc[ENC_DNA_CHAR_C] = true;
   search_parameters->allowed_enc[ENC_DNA_CHAR_G] = true;
   search_parameters->allowed_enc[ENC_DNA_CHAR_T] = true;
-  search_parameters->allowed_enc[ENC_DNA_CHAR_N] = true;
+  search_parameters->allowed_enc[ENC_DNA_CHAR_N] = false;
 }
 GEM_INLINE void approximate_search_parameters_init(approximate_search_parameters_t* const search_parameters) {
   /*
@@ -182,18 +182,18 @@ GEM_INLINE void approximate_search_instantiate_values(
 // [Approximate Search]
 ///////////////////////////////////////////////////////////////////////////////
 GEM_INLINE approximate_search_t* approximate_search_new(
-    locator_t* const locator,graph_text_t* const graph,dna_text_t* const text,fm_index_t* const fm_index,
+    locator_t* const locator,graph_text_t* const graph,dna_text_t* const enc_text,fm_index_t* const fm_index,
     approximate_search_parameters_t* const search_parameters,mm_stack_t* const mm_stack) {
   // Allocate handler
   approximate_search_t* const approximate_search = mm_alloc(approximate_search_t);
   // Index Structures & Parameters
   approximate_search->locator = locator;
   approximate_search->graph = graph;
-  approximate_search->text = text;
+  approximate_search->enc_text = enc_text;
   approximate_search->fm_index = fm_index;
   approximate_search->search_parameters = search_parameters;
   // Search Auxiliary Structures
-  filtering_candidates_new(&approximate_search->filtering_candidates,mm_pool_get_slab(mm_pool_2MB)); // Filtering Candidates
+  filtering_candidates_new(&approximate_search->filtering_candidates); // Filtering Candidates
   // Interval Set TODO
 
 
@@ -271,6 +271,22 @@ GEM_INLINE void approximate_search_prepare_pattern(
   }
   pattern->num_wildcards = num_wildcards;
   pattern->num_low_quality_bases = num_low_quality_bases;
+  // Calculate the effective number of differences
+  const int64_t max_allowed_error = (int64_t)read_length - (int64_t) search_parameters->min_matching_length_nominal;
+  uint64_t effective_filtering_max_error;
+  if (gem_expect_false(max_allowed_error<=0)) { // Constrained by min_matching_length_nominal
+    effective_filtering_max_error = 0;
+  } else {
+    // Constrained by num_low_quality_bases
+    effective_filtering_max_error =
+        search_parameters->max_filtering_error_nominal + approximate_search->pattern.num_low_quality_bases;
+    if (effective_filtering_max_error > max_allowed_error) {
+      effective_filtering_max_error = max_allowed_error;
+    }
+  }
+  pattern->max_effective_filtering_error = effective_filtering_max_error;
+  // Prepare region profile
+  region_profile_new(&approximate_search->region_profile,read_length,mm_stack);
   // Prepare BPM pattern
   bpm_pattern_compile(&pattern->bpm_pattern,UINT128_SIZE,pattern->key,read_length,mm_stack);
 }
@@ -387,8 +403,8 @@ GEM_INLINE void approximate_search_filter_regions(
   const uint8_t* const key = search->pattern.key;
 
   const uint64_t num_regions = region_profile->num_filtering_regions;
-  const uint64_t num_zregions = region_profile->num_standard_regions; // FIXME
-  const uint64_t num_nzregions = num_regions - num_zregions; // FIXME
+  const uint64_t num_standard_regions = region_profile->num_standard_regions; // FIXME
+  const uint64_t num_unique_regions = num_regions - num_standard_regions; // FIXME
 
   PROF_BEGIN(SC_FILTER_REGIONS);
   PROF_ADD_COUNTER(GSC_CAND_FILTER_REGIONS,MIN(search->max_differences+1,num_regions));
@@ -396,29 +412,28 @@ GEM_INLINE void approximate_search_filter_regions(
   // Dynamic Scheduling (Pre-Sort regions)
   if (dynamic_scheduling) region_profile_sort_by_estimated_mappability(&search->region_profile);
 
-
   uint64_t candidates, misms_required = 0;
-  int64_t nzregions_left = num_nzregions;
+  int64_t num_unique_regions_left = num_unique_regions;
   REGION_LOCATOR_ITERATE(region_profile,region,position) {
     PROF_INC_COUNTER(GSC_FILTER_REGIONS);
     bool perform_search = true;
 
     // Dynamic Schedule
     if (dynamic_scheduling) {
-      int64_t misms_nzregions = (int64_t)(search->max_differences+1) - (int64_t)(misms_required+num_zregions);
+      int64_t misms_unique_regions = (int64_t)(search->max_differences+1) - (int64_t)(misms_required+num_standard_regions);
       if (region->type == region_unique) { // region_unique; can be filtered adding errors
         const uint64_t length = region->start-region->end;
-        if (nzregions_left >= misms_nzregions || length < sensibility_error_length || search->max_differences==1) {
+        if (num_unique_regions_left >= misms_unique_regions || length < sensibility_error_length || search->max_differences==1) {
           region->min=REGION_FILTER_DEGREE_ZERO;
-          misms_nzregions-=REGION_FILTER_DEGREE_ZERO;
-        } else if (2*nzregions_left >= misms_nzregions || length < 2*sensibility_error_length || search->max_differences==2) {
+          misms_unique_regions-=REGION_FILTER_DEGREE_ZERO;
+        } else if (2*num_unique_regions_left >= misms_unique_regions || length < 2*sensibility_error_length || search->max_differences==2) {
           region->min=REGION_FILTER_DEGREE_ONE;
-          misms_nzregions-=REGION_FILTER_DEGREE_ONE;
+          misms_unique_regions-=REGION_FILTER_DEGREE_ONE;
         } else {
           region->min=REGION_FILTER_DEGREE_TWO;
-          misms_nzregions-=REGION_FILTER_DEGREE_TWO;
+          misms_unique_regions-=REGION_FILTER_DEGREE_TWO;
         }
-        --nzregions_left;
+        --num_unique_regions_left;
       } else { // region_standard (already has some/several matches)
         region->min = REGION_FILTER_DEGREE_ZERO;
       }
@@ -482,7 +497,7 @@ GEM_INLINE void approximate_search_filter_regions(
       PROF_END(SC_FILTER_REGIONS);
       PROF_BEGIN(SC_ATH_FILTER);
 
-      filtering_candidates_verify_pending(filtering_candidates,matches,true,true);
+      // TODO filtering_candidates_verify_pending(filtering_candidates,matches,true,true);
       approximate_search_adjust_max_differences_using_strata(search,matches);
 
       PROF_END(SC_ATH_FILTER);
@@ -527,7 +542,7 @@ GEM_INLINE void approximate_search_read_recovery(
       &approximate_search->filtering_candidates,&approximate_search->region_profile);
 
   // Verify !!
-  filtering_candidates_verify_pending(&approximate_search->filtering_candidates,matches,true,true);
+  // TODO filtering_candidates_verify_pending(&approximate_search->filtering_candidates,matches,true,true);
   PROF_END(GP_READ_RECOVERY);
 
   // Update MCS
@@ -732,7 +747,7 @@ GEM_INLINE void approximate_search_neighborhood_search(approximate_search_t* con
   }
 }
 /*
- * [GEM-workflow 4.0] Incremental mapping (A.K.A. Complete mapping)
+ * [GEM-workflow 4.0] Adaptive mapping (Formerly known as fast-mapping)
  *
  *   Filtering-only approach indented to adjust the degree of filtering w.r.t
  *   the structure of the read. Thus, in general terms, a read with many regions
@@ -772,18 +787,19 @@ GEM_INLINE void approximate_search_adaptive_mapping(approximate_search_t* const 
   // Zero-region reads
   const uint64_t num_wildcards = search->pattern.num_wildcards;
   if (region_profile->num_filtering_regions==0) {
-    if (region_profile_has_exact_matches(region_profile)) {
-      const filtering_region_t* const first_region = region_profile->filtering_region;
-      matches_add_interval_match(matches,first_region->hi,first_region->lo,pattern->key_length,0,search->search_strand);
-      search->max_differences = parameters->complete_strata_after_best_nominal;
-      search->max_complete_stratum = 1;
-    } else { // No guaranteed complete stratum
-      search->max_complete_stratum = num_wildcards;
-    }
+    search->max_complete_stratum = num_wildcards;
     return;
   }
   // Extend last region
-  region_profile_extend_last_region(region_profile,fm_index,parameters->srp_region_type_th);
+  region_profile_extend_last_region(region_profile,fm_index,pattern,parameters->allowed_enc,parameters->srp_region_type_th);
+  region_profile_print(stderr,region_profile,false,false); // DEBUG
+  if (region_profile_has_exact_matches(region_profile)) {
+    const filtering_region_t* const first_region = region_profile->filtering_region;
+    matches_add_interval_match(matches,first_region->hi,first_region->lo,pattern->key_length,0,search->search_strand);
+    search->max_differences = parameters->complete_strata_after_best_nominal;
+    search->max_complete_stratum = 1;
+    return;
+  }
   // Process the proper fast-mapping scheme
   const uint64_t sensibility_error_length =
       parameters->filtering_region_factor*fm_index_get_proper_length(search->fm_index);
@@ -797,8 +813,8 @@ GEM_INLINE void approximate_search_adaptive_mapping(approximate_search_t* const 
       approximate_search_filter_regions(search,STATIC_SCHEDULING,
           sensibility_error_length,parameters->filtering_threshold,matches);
       break;
-    default: // FM_DEGREE={1..n}
-      approximate_search_schedule_fixed_filtering_degree(region_profile,parameters->fast_mapping_degree);
+    default: // FM_DEGREE={0..n}
+      approximate_search_schedule_fixed_filtering_degree(region_profile,parameters->fast_mapping_degree+1);
       approximate_search_filter_regions(search,STATIC_SCHEDULING,
           sensibility_error_length,parameters->filtering_threshold,matches);
       break;
@@ -806,7 +822,7 @@ GEM_INLINE void approximate_search_adaptive_mapping(approximate_search_t* const 
   // Filter the candidates
   PROF_ADD_COUNTER(GSC_ATH_FILTER_CAND,filtering_candidates_get_pending_candidates(&search->filtering_candidates));
   PROF_INC_COUNTER(GSC_ATH_HIT); PROF_BEGIN(SC_ATH_FILTER);
-  filtering_candidates_verify_pending(&search->filtering_candidates,matches,true,true);
+  // TODO filtering_candidates_verify_pending(&search->filtering_candidates,matches,true,true);
   PROF_END(SC_ATH_FILTER);
   // Set the
   if (!search->max_matches_reached) {

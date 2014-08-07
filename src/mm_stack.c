@@ -95,7 +95,7 @@ GEM_INLINE void mm_stack_free(mm_stack_t* const mm_stack) {
   first_stack_segment->memory_available = mm_stack->segment_size;
   // Reap non-resident segments
   mm_slab_lock(mm_stack->mm_slab);
-  VECTOR_OFFSET_ITERATE(mm_stack->segments,stack_segment,position,1,mm_stack_segment_t) {
+  VECTOR_ITERATE_OFFSET(mm_stack->segments,stack_segment,position,1,mm_stack_segment_t) {
     mm_slab_put(mm_stack->mm_slab,stack_segment->slab_unit);
   }
   mm_slab_unlock(mm_stack->mm_slab);
