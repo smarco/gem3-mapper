@@ -1,14 +1,57 @@
-#include <stdint.h>
+#include "myers-interface.h"
 
-#define		NUM_BITS			4
-#define		NUM_BASES			5
-#define		NUM_BASES_ENTRY		128
-#define     SIZE_GPU_HW_WORD   	32
-#define		NUM_SUB_ENTRIES 	(NUM_BASES_ENTRY / SIZE_GPU_HW_WORD)
-#define     MAX_VALUE       	0xFFFFFFFF
+/********************************
+Common constants for Device & Host
+*********************************/
 
-#define CUDA_ERROR(error) (CudaError(error, __FILE__, __LINE__ ))
-#define MYERS_ERROR(error) (MyersError(error, __FILE__, __LINE__ ))
+#define UINT32_ZEROS			0x00000000u
+#define UINT32_ONES  			0xFFFFFFFFu
+#define UINT32_ONE_LAST_MASK  	0x80000000u
+#define	UINT32_SIZE				4
+
+#define	CUDA_ERROR(error)		(CudaError(error, __FILE__, __LINE__ ))
+#define	MYERS_ERROR(error)		(MyersError(error, __FILE__, __LINE__ ))
+#define	MYERS_INLINE			inline
+
+/* Defines related to Reference representation */
+#define	REFERENCE_CHAR_LENGTH		4
+#define	REFERENCE_CHARS_PER_ENTRY	(UINT32_LENGTH / REFERENCE_CHAR_LENGTH)
+#define REFERENCE_END_PADDING		1250
+
+/* Defines related to GPU Architecture */
+#define	WARP_SIZE						32
+#ifndef CUDA_NUM_THREADS
+		#define		CUDA_NUM_THREADS	128
+#endif
+
+/* Defines to distribute and balance the work in GPU*/
+#define	PEQ_LENGTH_PER_CUDA_THREAD		128
+#define	NUM_BUCKETS_FOR_BINNING			(WARP_SIZE + 1)
+#define MIN_CANDIDATES_PER_BUFFER		1000
+
+/* Functions inline */
+#define DIV_CEIL(NUMERATOR,DENOMINATOR) (((NUMERATOR)+((DENOMINATOR)-1))/(DENOMINATOR))
+#define ROUND(NUM) ((int)(NUM < 0 ? (NUM - 0.5) : (NUM + 0.5)))
+#define MIN(NUM_A, NUM_B) (((NUM_A) < (NUM_B)) ? NUM_A : NUM_B)
+
+/* Conversion utils */
+#define CONVERT_B_TO_KB(number) ((number)/(1024))
+#define CONVERT_B_TO_MB(number) ((number)/(1024*1024))
+#define CONVERT_B_TO_GB(number) ((number)/(1024*1024*1024))
+#define CONVERT_MB_TO_B(number) ((number*1024*1024))
+
+/* System */
+#define FILE_SIZE_LINES				250
+
+/* Encoded DNA Nucleotides */
+#define ENC_DNA_CHAR_A 0
+#define ENC_DNA_CHAR_C 1
+#define ENC_DNA_CHAR_G 2
+#define ENC_DNA_CHAR_T 3
+
+#define ENC_DNA_CHAR_N    4
+#define ENC_DNA_CHAR_SEP  5
+#define ENC_DNA_CHAR_JUMP 6
 
 typedef enum
 {
@@ -17,7 +60,9 @@ typedef enum
     E_READING_FILE,
 	E_INSUFFICIENT_MEM_GPU,
 	E_ALLOCATE_MEM,
-	E_INCOMPATIBLE_GPU
+	E_INCOMPATIBLE_GPU,
+	E_NO_SUPPORTED_GPUS,
+	E_REFERENCE_CODING
 } _config_error;
 
 /*Error type for the Myers API */
@@ -25,46 +70,22 @@ typedef _config_error myersError_t;
 
 
 /*****************************
-Common types for Device & Host
-*****************************/
-
-typedef struct {
-	uint32_t column;
-	uint32_t score;
-} resEntry_t;
-
-typedef struct {
-	uint32_t query;
-	uint64_t position;
-} candInfo_t;
-
-typedef struct {
-	uint32_t posEntry;
-	uint32_t size;
-} qryInfo_t;
-
-typedef struct {
-	uint32_t bitmap[NUM_BASES][NUM_SUB_ENTRIES];
-} qryEntry_t;
-
-
-/*****************************
 Internal Objects
 *****************************/
 
 typedef struct {
-	uint32_t size;
-	uint32_t numEntries; 
-	uint32_t *h_reference;
-	uint32_t *d_reference;
+	uint64_t	size;
+	uint64_t	numEntries;
+	uint32_t	*h_reference;
+	uint32_t	**d_reference;
 } reference_buffer_t;
 
 typedef struct {
-	uint32_t numResults;
- 	uint32_t numReorderedResults;
-	resEntry_t* h_results;
-	resEntry_t* h_reorderResults;
-	resEntry_t* d_reorderResults;
+	uint32_t	numResults;
+ 	uint32_t	numReorderedResults;
+	resEntry_t	*h_results;
+	resEntry_t	*h_reorderResults;
+	resEntry_t	*d_reorderResults;
 } results_buffer_t;
 
 typedef struct {
@@ -86,24 +107,34 @@ typedef struct {
 } candidates_buffer_t;
 
 
+typedef struct {
+	uint32_t	numDevices;
+	uint32_t	numSupportedDevices;
+	uint32_t	idDevice;
+	uint32_t	idSupportedDevice;
+	devArch_t	architecture;
+	uint32_t	cudaCores;
+	uint32_t	frequency;   /*Mhz*/
+	float		relativePerformance;
+} device_info_t;
+
 
 /*************************************
 Specific types for the Devices (GPUs)
 **************************************/
 
 typedef struct {
-	uint4 bitmap[NUM_BASES];
+	uint4 bitmap[PEQ_ALPHABET_SIZE];
 } d_qryEntry_t;
 
 typedef struct {
-	uint32_t 	totalQueriesEntries;
-	uint32_t 	numQueries;
-	d_qryEntry_t 	*h_queries;
-	d_qryEntry_t 	*d_queries;
-	qryInfo_t 		*h_qinfo;
-	qryInfo_t 		*d_qinfo;
+	uint32_t		totalQueriesEntries;
+	uint32_t		numQueries;
+	d_qryEntry_t	*h_queries;
+	d_qryEntry_t	*d_queries;
+	qryInfo_t		*h_qinfo;
+	qryInfo_t		*d_qinfo;
 } d_queries_buffer_t;
-
 
 
 /*************************************
@@ -113,7 +144,6 @@ Specific types for the Host (CPU)
 typedef struct {
 	uint32_t 	totalQueriesEntries;
 	uint32_t 	numQueries;
-	float		distance;
 	qryEntry_t 	*h_queries;
 	qryEntry_t 	*d_queries;
 	qryInfo_t 	*h_qinfo;
@@ -133,10 +163,8 @@ typedef struct {
 	uint32_t			maxCandidates;
 	uint32_t			maxQueries;
 	uint32_t			maxReorderBuffer;
-	uint32_t			idDevice;
-	uint32_t			majorCC;
-	uint32_t			minorCC;
 	cudaStream_t		idStream;
+	device_info_t		*device;
 	reference_buffer_t 	*reference;
 	queries_buffer_t 	*queries;
 	candidates_buffer_t *candidates;
@@ -144,3 +172,19 @@ typedef struct {
 	results_buffer_t 	*results;
 } buffer_t;
 
+
+/*************************************
+GPU Side defines (ASM instructions)
+**************************************/
+
+// output temporal carry in internal register
+#define UADD__CARRY_OUT(c, a, b) \
+     asm volatile("add.cc.u32 %0, %1, %2;" : "=r"(c) : "r"(a) , "r"(b));
+
+// add & output with temporal carry of internal register
+#define UADD__IN_CARRY_OUT(c, a, b) \
+     asm volatile("addc.cc.u32 %0, %1, %2;" : "=r"(c) : "r"(a) , "r"(b));
+
+// add with temporal carry of internal register
+#define UADD__IN_CARRY(c, a, b) \
+     asm volatile("addc.u32 %0, %1, %2;" : "=r"(c) : "r"(a) , "r"(b));

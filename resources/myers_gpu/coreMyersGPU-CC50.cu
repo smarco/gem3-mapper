@@ -1,35 +1,6 @@
 #include <stdio.h>
 #include "myers-common.h"
 
-#define		NUM_BITS				4
-#define		NUM_BASES				5
-#define		BASES_PER_THREAD		128
-#define		BASES_PER_ENTRY			8
-
-#define     SIZE_GPU_HW_WORD   		32
-#define		SIZE_WARP				32
-
-#define     HIGH_MASK_32    		0x80000000
-#define     LOW_MASK_32     		0x00000001
-#define     MAX_VALUE       		0xFFFFFFFF
-
-#ifndef 	DEVICE
-			#define 	DEVICE 		0
-#endif
-
-// output temporal carry in internal register
-#define UADD__CARRY_OUT(c, a, b) \
-     asm volatile("add.cc.u32 %0, %1, %2;" : "=r"(c) : "r"(a) , "r"(b));
-
-// add & output with temporal carry of internal register
-#define UADD__IN_CARRY_OUT(c, a, b) \
-     asm volatile("addc.cc.u32 %0, %1, %2;" : "=r"(c) : "r"(a) , "r"(b));
-
-// add with temporal carry of internal register
-#define UADD__IN_CARRY(c, a, b) \
-     asm volatile("addc.u32 %0, %1, %2;" : "=r"(c) : "r"(a) , "r"(b));
-
-
 inline __device__ void shuffle_collaborative_shift_CC50(uint32_t value_A, uint32_t value_B, uint32_t value_C, uint32_t value_D,
 					       						   		const uint32_t localThreadIdx,
 					       						   		uint32_t* res_A, uint32_t* res_B, uint32_t* res_C, uint32_t* res_D)
@@ -110,7 +81,7 @@ inline __device__ uint32_t select_CC50(const uint32_t indexWord,
 __device__ void myerslocalMaxwellKernel_CC50( const d_qryEntry_t *d_queries, const uint32_t * __restrict d_reference, const candInfo_t *d_candidates,
 											 const uint32_t *d_reorderBuffer, resEntry_t *d_reorderResults, const qryInfo_t *d_qinfo,
 								 			 const uint32_t idCandidate, const uint32_t sizeRef, const uint32_t numReorderedResults,
-											 const float distance, const uint32_t intraQueryThreadIdx, const uint32_t threadsPerQuery)
+											 const uint32_t intraQueryThreadIdx, const uint32_t threadsPerQuery)
 {
 	if (idCandidate < numReorderedResults){
 
@@ -128,31 +99,31 @@ __device__ void myerslocalMaxwellKernel_CC50( const d_qryEntry_t *d_queries, con
 		const uint64_t positionRef = d_candidates[originalCandidate].position;
 		const uint32_t sizeQuery = d_qinfo[d_candidates[originalCandidate].query].size;
 		const uint32_t entry = d_qinfo[d_candidates[originalCandidate].query].posEntry + intraQueryThreadIdx;
-		const uint32_t sizeCandidate = sizeQuery * (1 + 2 * distance);
-		const uint32_t numEntriesPerCandidate = (sizeCandidate / BASES_PER_ENTRY) + ((sizeCandidate % BASES_PER_ENTRY) ? 2 : 1);
+		const uint32_t sizeCandidate = d_candidates[originalCandidate].size; /* sizeQuery * (1 + 2 * distance)*/
+		const uint32_t numEntriesPerCandidate = (sizeCandidate / REFERENCE_CHARS_PER_ENTRY) + ((sizeCandidate % REFERENCE_CHARS_PER_ENTRY) ? 2 : 1);
 		uint32_t candidate;
 
-		const uint32_t mask = ((sizeQuery % SIZE_GPU_HW_WORD) == 0) ? HIGH_MASK_32 : 1 << ((sizeQuery % SIZE_GPU_HW_WORD) - 1);
+		const uint32_t mask = ((sizeQuery % UINT32_LENGTH) == 0) ? UINT32_ONE_LAST_MASK : 1 << ((sizeQuery % UINT32_LENGTH) - 1);
 		int32_t  score = sizeQuery, minScore = sizeQuery;
 		uint32_t idColumn = 0, minColumn = 0, indexBase;
 		uint32_t intraBase, idEntry;
 
-		indexWord = ((sizeQuery - 1) & (BASES_PER_THREAD - 1)) / SIZE_GPU_HW_WORD;
+		indexWord = ((sizeQuery - 1) & (PEQ_LENGTH_PER_CUDA_THREAD - 1)) / UINT32_LENGTH;
 
 		if((positionRef < sizeRef) && ((sizeRef - positionRef) > sizeCandidate)){
 
-			localCandidate = d_reference + (positionRef / BASES_PER_ENTRY);
+			localCandidate = d_reference + (positionRef / REFERENCE_CHARS_PER_ENTRY);
 
-			Pv_A = MAX_VALUE;
+			Pv_A = UINT32_ONES;
 			Mv_A = 0;
 
-			Pv_B = MAX_VALUE;
+			Pv_B = UINT32_ONES;
 			Mv_B = 0;
 
-			Pv_C = MAX_VALUE;
+			Pv_C = UINT32_ONES;
 			Mv_C = 0;
 
-			Pv_D = MAX_VALUE;
+			Pv_D = UINT32_ONES;
 			Mv_D = 0;
 
 			Eq0 = d_queries[entry].bitmap[0];
@@ -165,7 +136,7 @@ __device__ void myerslocalMaxwellKernel_CC50( const d_qryEntry_t *d_queries, con
 
 				candidate = localCandidate[idEntry];
 
-				for(intraBase = 0; intraBase < BASES_PER_ENTRY; intraBase++){
+				for(intraBase = 0; intraBase < REFERENCE_CHARS_PER_ENTRY; intraBase++){
 
 					indexBase = candidate & 0x07;
 					Eq_A = selectEq_CC50(indexBase, Eq0.x, Eq1.x, Eq2.x, Eq3.x, Eq4.x);
@@ -223,7 +194,7 @@ __device__ void myerslocalMaxwellKernel_CC50( const d_qryEntry_t *d_queries, con
 					Mv_C = Ph_C & Xv_C;
 					Mv_D = Ph_D & Xv_D;
 
-					candidate >>= NUM_BITS;
+					candidate >>= REFERENCE_CHAR_LENGTH;
 					minColumn = (score < minScore) ? idColumn : minColumn;
 					minScore  = (score < minScore) ? score    : minScore;
 					if(intraQueryThreadIdx  == (threadsPerQuery - 1))
@@ -232,7 +203,7 @@ __device__ void myerslocalMaxwellKernel_CC50( const d_qryEntry_t *d_queries, con
 			}
 
 			if(intraQueryThreadIdx  == (threadsPerQuery - 1)){
-	    		d_reorderResults[idCandidate].column = minColumn - (positionRef % BASES_PER_ENTRY);
+	    		d_reorderResults[idCandidate].column = minColumn - (positionRef % REFERENCE_CHARS_PER_ENTRY);
 	    		d_reorderResults[idCandidate].score = minScore;
 			}
 		}
@@ -241,27 +212,27 @@ __device__ void myerslocalMaxwellKernel_CC50( const d_qryEntry_t *d_queries, con
 
 __global__ void myersMaxwellKernel_CC50(const d_qryEntry_t *d_queries, const uint32_t * d_reference, const candInfo_t *d_candidates, const uint32_t *d_reorderBuffer,
 						    		   resEntry_t *d_reorderResults, const qryInfo_t *d_qinfo, const uint32_t sizeRef,  const uint32_t numReorderedResults,
-						    		   const float distance, uint32_t *d_initPosPerBucket, uint32_t *d_initWarpPerBucket, uint32_t numWarps)
+						    		   uint32_t *d_initPosPerBucket, uint32_t *d_initWarpPerBucket, uint32_t numWarps)
 {
 	uint32_t bucketIdx = 0;
 	uint32_t globalThreadIdx = blockIdx.x * blockDim.x + threadIdx.x;
-	uint32_t globalWarpIdx = globalThreadIdx / SIZE_WARP;
+	uint32_t globalWarpIdx = globalThreadIdx / WARP_SIZE;
 	uint32_t localThreadInTheBucket, idCandidate, intraQueryThreadIdx, threadsPerQuery, queriesPerWarp, localIdCandidateInTheBucket;
 
-	while((bucketIdx != (SIZE_WARP + 1)) && (d_initWarpPerBucket[bucketIdx] <= globalWarpIdx)){
+	while((bucketIdx != (WARP_SIZE + 1)) && (d_initWarpPerBucket[bucketIdx] <= globalWarpIdx)){
 		bucketIdx++;
 	}
 	bucketIdx--;
 
-	localThreadInTheBucket = globalThreadIdx - (d_initWarpPerBucket[bucketIdx] * SIZE_WARP);
+	localThreadInTheBucket = globalThreadIdx - (d_initWarpPerBucket[bucketIdx] * WARP_SIZE);
 	threadsPerQuery = bucketIdx + 1;
-	queriesPerWarp = SIZE_WARP / threadsPerQuery;
-	localIdCandidateInTheBucket = ((localThreadInTheBucket / SIZE_WARP) * queriesPerWarp) + ((threadIdx.x % SIZE_WARP) / threadsPerQuery);
+	queriesPerWarp = WARP_SIZE / threadsPerQuery;
+	localIdCandidateInTheBucket = ((localThreadInTheBucket / WARP_SIZE) * queriesPerWarp) + ((threadIdx.x % WARP_SIZE) / threadsPerQuery);
 	idCandidate = d_initPosPerBucket[bucketIdx] + localIdCandidateInTheBucket;
-	intraQueryThreadIdx = (threadIdx.x % SIZE_WARP) % threadsPerQuery;
+	intraQueryThreadIdx = (threadIdx.x % WARP_SIZE) % threadsPerQuery;
 
 	myerslocalMaxwellKernel_CC50(d_queries, d_reference, d_candidates, d_reorderBuffer, d_reorderResults, d_qinfo,
-	 				 			idCandidate, sizeRef, numReorderedResults, distance, intraQueryThreadIdx, threadsPerQuery);
+	 				 			idCandidate, sizeRef, numReorderedResults, intraQueryThreadIdx, threadsPerQuery);
 }
 
 extern "C"
@@ -273,18 +244,17 @@ myersError_t processMyersBufferOnMaxwell1stGen(buffer_t *mBuff)
 	reorder_buffer_t 	*rebuff 	= mBuff->reorderBuffer;
 	results_buffer_t 	*res 		= mBuff->results;
 	cudaStream_t 		idStream	= mBuff->idStream;
+	uint32_t			idSupDev	= mBuff->device->idSupportedDevice;
 
-	uint32_t threadsPerBlock = 128;
-	uint32_t numThreads = rebuff->numWarps * SIZE_WARP;
-	uint32_t blocksPerGrid = (numThreads / threadsPerBlock) + ((numThreads % threadsPerBlock) ? 1 : 0);
 
-	if(DEVICE == 0){
-		printf("MAXWELL: LAUNCH KERNEL 0 -- Bloques: %d - Th_block %d\n", blocksPerGrid, threadsPerBlock);
-		myersMaxwellKernel_CC50<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((d_qryEntry_t *)qry->d_queries, ref->d_reference, cand->d_candidates, rebuff->d_reorderBuffer,
-																			res->d_reorderResults, qry->d_qinfo, ref->size, res->numReorderedResults,
-																			qry->distance, rebuff->d_initPosPerBucket, rebuff->d_initWarpPerBucket,
-																			rebuff->numWarps);
-	}
+	uint32_t threadsPerBlock = CUDA_NUM_THREADS;
+	uint32_t numThreads = rebuff->numWarps * WARP_SIZE;
+	uint32_t blocksPerGrid = DIV_CEIL(numThreads, threadsPerBlock);
+
+	//printf("MAXWELL: LAUNCH KERNEL -- Bloques: %d - Th_block %d\n", blocksPerGrid, threadsPerBlock);
+	myersMaxwellKernel_CC50<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((d_qryEntry_t *)qry->d_queries, ref->d_reference[idSupDev], cand->d_candidates, rebuff->d_reorderBuffer,
+																		res->d_reorderResults, qry->d_qinfo, ref->size, res->numReorderedResults,
+																		rebuff->d_initPosPerBucket, rebuff->d_initWarpPerBucket, rebuff->numWarps);
 
 	return(SUCCESS);
 }
