@@ -170,7 +170,7 @@ MYERS_INLINE myersError_t transformReferenceASCII(const char *referenceASCII, re
 
 	CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint32_t), cudaHostAllocMapped));
 
-	for(idEntry = 0; idEntry < reference->numEntries; idEntry += REFERENCE_CHARS_PER_ENTRY){
+	for(idEntry = 0; idEntry < reference->numEntries; ++idEntry){
 		bitmap = 0;
 		for(i = 0; i < REFERENCE_CHARS_PER_ENTRY; i++){
 			referencePosition = idEntry * REFERENCE_CHARS_PER_ENTRY + i;
@@ -277,7 +277,7 @@ MYERS_INLINE myersError_t transformReferenceGEM(const char *referenceGEM, refere
 
 	CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint32_t), cudaHostAllocMapped));
 
-	for(idEntry = 0; idEntry < reference->numEntries; idEntry += REFERENCE_CHARS_PER_ENTRY){
+	for(idEntry = 0; idEntry < reference->numEntries; ++idEntry){
 		bitmap = 0;
 		for(i = 0; i < REFERENCE_CHARS_PER_ENTRY; i++){
 			referencePosition = idEntry * REFERENCE_CHARS_PER_ENTRY + i;
@@ -503,6 +503,8 @@ MYERS_INLINE myersError_t initDeviceBuffers(buffer_t ***myersBuffer, uint32_t nu
 		maxQueries    = maxCandidates / candidatesPerQuery;
 		maxPEQEntries = maxQueries * averageNumPEQEntries;
 
+		//TODO: Consider less buffers than GPUs!!
+		printf("Requested: %d - Available: %d \n", CONVERT_B_TO_MB(bytesPerBuffer * numBuffersPerDevice), freeDeviceMemory);
 		if ((maxCandidates < 1) || (maxQueries < 1) || (CONVERT_B_TO_MB(bytesPerBuffer * numBuffersPerDevice) > freeDeviceMemory))
 			MYERS_ERROR(E_INSUFFICIENT_MEM_GPU);
 
@@ -573,6 +575,7 @@ MYERS_INLINE myersError_t selectSupportedDevices(device_info_t ***devices, uint3
 
 	CUDA_ERROR(cudaGetDeviceCount(&numDevices));
 	printf("There are %d visible devices: \n", numDevices);
+	printf("Compiled with CUDA SDK %d.%d \n", CUDA_VERSION/1000, CUDA_VERSION%1000);
 
 	device_info_t **dev = (device_info_t **) malloc(numDevices * sizeof(device_info_t *));
 	if (dev == NULL) MYERS_ERROR(E_ALLOCATE_MEM);
@@ -807,19 +810,19 @@ MYERS_INLINE void sendMyersBuffer(void *myersBuffer, uint32_t numPEQEntries, uin
 	MYERS_ERROR(reorderingBuffer(mBuff));
 	MYERS_ERROR(transferCPUtoGPU(mBuff));
 
-	//#if (__CUDA_API_VERSION >= 3000) TODO
+	#if (CUDA_VERSION >= 3000)
 		if(mBuff->device->architecture & (ARCH_FERMI_1G | ARCH_FERMI_2G)) MYERS_ERROR(processMyersBufferOnFermi(mBuff));
-	//#endif
+	#endif
 
-	//#if (__CUDA_API_VERSION >= 5000) TODO
+	#if (CUDA_VERSION >= 5000)
 		if(mBuff->device->architecture & ARCH_KEPLER_1G) MYERS_ERROR(processMyersBufferOnKepler1stGen(mBuff));
 		if(mBuff->device->architecture & ARCH_KEPLER_2G) MYERS_ERROR(processMyersBufferOnKepler2ndGen(mBuff));
-	//#endif
+	#endif
 
-	//#if (__CUDA_API_VERSION >= 6000) TODO
+	#if (CUDA_VERSION >= 6000)
 		if(mBuff->device->architecture & (ARCH_MAXWELL | ARCH_NEWGEN)) MYERS_ERROR(processMyersBufferOnMaxwell1stGen(mBuff));
 		/* INCLUDED SUPPORT for future GPUs with PTX ASM code (JIT compiling) */
-	//#endif
+	#endif
 
 	MYERS_ERROR(transferGPUtoCPU(mBuff));
 }

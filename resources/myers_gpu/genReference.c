@@ -59,10 +59,10 @@ uint32_t transformReferenceASCII(const char *referenceASCII, reference_buffer_t 
 	uint64_t idEntry, i, referencePosition;
 	unsigned char referenceChar;
 
-	for(idEntry = 0; idEntry < reference->numEntries; idEntry += REFERENCE_CHARS_PER_ENTRY){
+	for(idEntry = 0; idEntry < reference->numEntries; ++idEntry){
 		bitmap = 0;
 		for(i = 0; i < REFERENCE_CHARS_PER_ENTRY; i++){
-			referencePosition = idEntry * REFERENCE_CHARS_PER_ENTRY + i;
+			referencePosition = (idEntry * REFERENCE_CHARS_PER_ENTRY) + i;
 			if (referencePosition < reference->size) referenceChar = referenceASCII[referencePosition];
 				else referenceChar = 'N'; //filling reference padding
 			indexBase = charToBinASCII(referenceChar);

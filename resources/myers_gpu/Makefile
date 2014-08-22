@@ -1,6 +1,14 @@
-CUDA_LIBRARY_FLAGS=-L/usr/local/cuda/lib64 -I/usr/local/cuda/include -lcuda -lcudart
+SHELL := /bin/bash
 
-all: release
+NVCC_VERSION = $(shell nvcc --version | grep release | sed 's/.*release //' |  sed 's/,.*//' | sed 's/\.//')
+CUDA_LIBRARY_FLAGS = -L/usr/local/cuda/lib64 -I/usr/local/cuda/include -lcuda -lcudart
+
+NVCC_MINIMAL_VERSION = $(shell [[ ($(NVCC_VERSION) -ge "0")  && ($(NVCC_VERSION) -le  "29") ]] && echo "10"; \
+				   		       [[ ($(NVCC_VERSION) -ge "30") && ($(NVCC_VERSION) -le  "49") ]] && echo "30"; \
+			   				   [[ ($(NVCC_VERSION) -ge "50") && ($(NVCC_VERSION) -le  "59") ]] && echo "50"; \
+			   				   [[ ($(NVCC_VERSION) -ge "60") && 						    ]] && echo "60";)
+
+all: release_$(NVCC_MINIMAL_VERSION)
 
 ######################
 #  BUILD PARSERS
@@ -18,19 +26,38 @@ greference:
 greference-debug:
 	gcc -O0 -g genReference.c -o ../build/greference-debug
 
-##################################################
-#  MYERS CPU VERSIONS		  					 #
-##################################################
+##############################
+#  MYERS RELEASE VERSIONS	 #
+##############################
 
 #TODO: check compiler version
 #TODO: fix the objects requeriments (in the parent makefile)
+#INCLUDED FATBINARY COMPILATION TO SUPPORT NEXT ARCHITECTURES
 
-release:
-	nvcc -O3 -m64 arch=compute_20,code=sm_20 -c coreMyersGPU-CC20.cu -o ../build/coreMyersGPU20.o
-	nvcc -O3 -m64 arch=compute_30,code=sm_30 -c coreMyersGPU-CC30.cu -o ../build/coreMyersGPU30.o
-	nvcc -O3 -m64 arch=compute_35,code=sm_35 -c coreMyersGPU-CC35.cu -o ../build/coreMyersGPU35.o
-	nvcc -O3 -m64 arch=compute_50,code=compute_50 -c coreMyersGPU-CC50.cu -o ../build/coreMyersGPU50.o
+release_10:
+	$(info CUDA SDK version $(NVCC_VERSION) NOT SUPPORTED - (At least CUDA SDK 3.0 is required))
+
+release_30:
+	nvcc -O3 -m64 -gencode=arch=compute_20,code=\’sm_20,compute_20\’ -c coreMyersGPU-CC20.cu -o ../build/coreMyersGPU20.o
 	gcc  -O3 -m64 $(CUDA_LIBRARY_FLAGS) -c myersGPU.c -o ../build/myersGPU.o
+
+release_50:
+	nvcc -O3 -m64 -gencode=arch=compute_20,code=\sm_20,compute_20\ -c coreMyersGPU-CC20.cu -o ../build/coreMyersGPU20.o
+	nvcc -O3 -m64 -gencode=arch=compute_30,code=\sm_30,compute_30\ -c coreMyersGPU-CC30.cu -o ../build/coreMyersGPU30.o
+	nvcc -O3 -m64 -gencode=arch=compute_35,code=\sm_35,compute_35\ -c coreMyersGPU-CC35.cu -o ../build/coreMyersGPU35.o
+	gcc  -O3 -m64 $(CUDA_LIBRARY_FLAGS) -c myersGPU.c -o ../build/myersGPU.o
+
+release_60:
+	nvcc -O3 -m64 -gencode arch=compute_20,code=\"sm_20,compute_20\" -c coreMyersGPU-CC20.cu -o ../build/coreMyersGPU20.o
+	nvcc -O3 -m64 -gencode arch=compute_30,code=\"sm_30,compute_30\" -c coreMyersGPU-CC30.cu -o ../build/coreMyersGPU30.o
+	nvcc -O3 -m64 -gencode arch=compute_35,code=\"sm_35,compute_35\" -c coreMyersGPU-CC35.cu -o ../build/coreMyersGPU35.o
+	nvcc -O3 -m64 -gencode arch=compute_50,code=\"sm_50,compute_50\" -c coreMyersGPU-CC50.cu -o ../build/coreMyersGPU50.o
+	gcc  -O3 -m64 $(CUDA_LIBRARY_FLAGS) -c myersGPU.c -o ../build/myersGPU.o
+
+
+##############################
+#  MYERS TESTING VERSIONS	 #
+##############################
 
 profile:
 	nvcc -O3 -m64 arch=compute_20,code=sm_20 --ptxas-options=-v -lineinfo -c coreMyersGPU-CC20.cu -o ../build/coreMyersGPU20.o

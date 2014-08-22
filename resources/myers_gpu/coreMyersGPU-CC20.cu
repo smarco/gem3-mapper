@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "myers-common.h"
 
+//TODO: unify all the coreMyersGPU-CC in just one using (__CUDA_ARCH__) 
 inline __device__ void shared_collaborative_shift_CC20(uint32_t value_A, uint32_t value_B, uint32_t value_C, uint32_t value_D,  
 					       						  	   const uint32_t localThreadIdx, const uint32_t intraWarpIdx, volatile uint32_t *interBuff,
 					       						  	   uint32_t* res_A, uint32_t* res_B, uint32_t* res_C, uint32_t* res_D)

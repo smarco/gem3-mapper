@@ -31,14 +31,14 @@ Common constants for Device & Host
 
 /* Functions inline */
 #define DIV_CEIL(NUMERATOR,DENOMINATOR) (((NUMERATOR)+((DENOMINATOR)-1))/(DENOMINATOR))
-#define ROUND(NUM) ((int)(NUM < 0 ? (NUM - 0.5) : (NUM + 0.5)))
-#define MIN(NUM_A, NUM_B) (((NUM_A) < (NUM_B)) ? NUM_A : NUM_B)
+#define ROUND(NUM) ((int)((NUM) < 0 ? ((NUM) - 0.5) : ((NUM) + 0.5)))
+#define MIN(NUM_A,NUM_B) (((NUM_A) < (NUM_B)) ? (NUM_A) : (NUM_B))
 
 /* Conversion utils */
 #define CONVERT_B_TO_KB(number) ((number)/(1024))
 #define CONVERT_B_TO_MB(number) ((number)/(1024*1024))
 #define CONVERT_B_TO_GB(number) ((number)/(1024*1024*1024))
-#define CONVERT_MB_TO_B(number) ((number*1024*1024))
+#define CONVERT_MB_TO_B(number) ((number)*1024*1024)
 
 /* System */
 #define FILE_SIZE_LINES				250
