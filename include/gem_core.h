@@ -44,11 +44,14 @@
 // Options Menu (Adaptors + Helpers)
 #include "options_menu.h"
 
+// Mapper
+#include "mapper.h"
+#include "mapper_cuda.h"
+
 /*
  * GEM Runtime
  */
-GEM_INLINE void gem_runtime_init(
-    const uint64_t num_threads,const uint64_t max_memory,char* const tmp_folder,report_function_t report_function);
+GEM_INLINE void gem_runtime_init(const uint64_t max_memory,char* const tmp_folder,report_function_t report_function);
 
 GEM_INLINE void gem_runtime_delete();
 

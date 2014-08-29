@@ -545,6 +545,7 @@ void* sa_builder_sort_suffixes_thread(uint64_t thread_id) {
       global_enc_bwt[sa_idx] = sa_value;
       // Store SA-samples
       if ((sa_idx%sampling_rate) == 0) {
+        // FIXME fprintf(stderr," >> SApos %lu = TextPos %lu\n",sa_idx,SA_POS_MASK_POSITION(sa_chunk[block_position]));
         sampled_sa_builder_set_sample(global_sampled_sa,sa_idx,SA_POS_MASK_POSITION(sa_chunk[block_position]));
       }
     }

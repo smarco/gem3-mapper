@@ -41,9 +41,12 @@ GEM_INLINE bool input_fasta_is_fastq(input_file_t* const input_file);
 /*
  * Read Parser
  */
+GEM_INLINE error_code_t input_fasta_parse_sequence_(
+    buffered_input_file_t* const buffered_fasta_input,sequence_t* const seq_read,
+    const bool strictly_normalized,const bool try_recovery); /* No Buffer Check */
 GEM_INLINE error_code_t input_fasta_parse_sequence(
     buffered_input_file_t* const buffered_fasta_input,sequence_t* const seq_read,
-    const bool strictly_normalized,const bool try_recovery);
+    const bool strictly_normalized,const bool try_recovery); /* Reloads Input-Buffer (if needed) */
 
 /*
  * Error codes

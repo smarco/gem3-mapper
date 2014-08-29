@@ -12,7 +12,8 @@
 #include "essentials.h"
 
 // Range of DNA Nucleotides
-#define DNA_RANGE 4
+#define DNA_RANGE     4
+#define DNA__N_RANGE  5
 #define DNA_EXT_RANGE 7
 
 #define DNA_RANGE_BITS 2

@@ -25,15 +25,17 @@ MODULES+=sequence dna_string dna_text cdna_text cdna_bitwise_text \
          sparse_bitmap sparse_array_locator packed_integer_array \
          text_collection \
          graph_text graph_text_builder
+# Misc
+MODULES+=options_menu 
 # GEM Structures
 MODULES+=archive_builder archive_text_builder archive_hypertext_builder archive_index_builder sa_builder \
          bwt rank_mtable sampled_sa sampled_rl fm_index interval_set matches \
-         archive archive_text_retrieve locator 
+         archive archive_search archive_search_group archive_text_retrieve locator 
 # GEM Search Modules
-MODULES+=approximate_search neighborhood_search filtering_candidates region_profile \
-         bpm_align quality_model
-# Misc
-MODULES+=options_menu gem_core
+MODULES+=approximate_search_parameters approximate_search neighborhood_search \
+         filtering_candidates region_profile bpm_align bpm_align_gpu quality_model
+# GEM Top-level Modules
+MODULES+=mapper mapper_cuda gem_core
         
 SRCS=$(addsuffix .c, $(MODULES))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))

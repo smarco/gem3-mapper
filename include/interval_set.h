@@ -30,13 +30,7 @@ typedef struct {
 
 
 typedef struct {
-  svector_t* intervals; /* (interval_t) */
-
   // TODO
-  svector_iterator_t pending_candidates_iterator; // Writing Iterator (always appending)
-  /* MM */ // TODO
-  mm_slab_t* mm_slab;
-  mm_stack_t* mm_stack;
 } interval_set_t;
 
 GEM_INLINE void interval_set_new(interval_set_t* const interval_set);

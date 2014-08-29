@@ -10,47 +10,46 @@
 
 
 GEM_INLINE void interval_set_new(interval_set_t* const interval_set) {
-
+  GEM_NOT_IMPLEMENTED(); // TODO
 }
 GEM_INLINE void interval_set_clear(interval_set_t* const interval_set) {
-
+  GEM_NOT_IMPLEMENTED(); // TODO
 }
 GEM_INLINE void interval_set_delete(interval_set_t* const interval_set) {
-
+  GEM_NOT_IMPLEMENTED(); // TODO
 }
 
-/*
- * Counts the number of candidates in the result set of intervals
- * ** CHECKED[4/8/2011]
- */
-#define COUNT_CANDIDATES(candidates, results) \
-  candidates=0; \
-  INTERVAL_ITERATE(results) { \
-    candidates+=interval->hi-interval->lo; \
-  } END_INTERVAL_ITERATE
-#define COUNT_SET_INTERVALS_CANDIDATES(candidates, result_vector, init_int, end_int, max_misms) { \
-  register uint64_t it; \
-  register interval_t* result_interval = vector_get_mem(result_vector) + init_int; \
-  candidates=0; \
-  for (it=init_int; it<end_int; ++it, ++result_interval) { \
-    if (result_interval->misms <= max_misms) { \
-      candidates+=result_interval->hi-result_interval->lo; \
-    } \
-  } \
-}
+///*
+// * Counts the number of candidates in the result set of intervals
+// * ** CHECKED[4/8/2011]
+// */
+//#define COUNT_CANDIDATES(candidates, results) \
+//  candidates=0; \
+//  INTERVAL_ITERATE(results) { \
+//    candidates+=interval->hi-interval->lo; \
+//  } END_INTERVAL_ITERATE
+//#define COUNT_SET_INTERVALS_CANDIDATES(candidates, result_vector, init_int, end_int, max_misms) { \
+//  register uint64_t it; \
+//  register interval_t* result_interval = vector_get_mem(result_vector) + init_int; \
+//  candidates=0; \
+//  for (it=init_int; it<end_int; ++it, ++result_interval) { \
+//    if (result_interval->misms <= max_misms) { \
+//      candidates+=result_interval->hi-result_interval->lo; \
+//    } \
+//  } \
+//}
 
 GEM_INLINE uint64_t interval_set_count_intervals(interval_set_t* const interval_set) {
-  // TODO
+  GEM_NOT_IMPLEMENTED(); // TODO
   return 0;
 }
 GEM_INLINE uint64_t interval_set_count_intervals_length(interval_set_t* const interval_set) {
-  // TODO
+  GEM_NOT_IMPLEMENTED(); // TODO
   return 0;
 }
 GEM_INLINE uint64_t interval_set_count_intervals_length_thresholded(
     interval_set_t* const interval_set,const uint64_t max_error) {
-
-  // TODO
+  GEM_NOT_IMPLEMENTED(); // TODO
   return 0;
 }
 

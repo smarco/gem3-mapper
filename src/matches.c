@@ -140,7 +140,7 @@ GEM_INLINE void matches_add_match_trace_t(
   // TODO: Index
   vector_insert(matches->global_matches,*match_trace,match_trace_t);
 }
-GEM_INLINE void matches_add_match_trace_(
+GEM_INLINE void matches_add_match_trace(
     matches_t* const matches,const uint64_t trace_offset,
     const uint64_t position,const uint64_t distance,const strand_t strand) {
   match_trace_t* match_trace;
@@ -150,6 +150,7 @@ GEM_INLINE void matches_add_match_trace_(
   match_trace->distance = distance;
   match_trace->strand = strand;
   match_trace->score = 0;
+  // TODO: Index
 }
 GEM_INLINE void matches_add_interval_match(
     matches_t* const matches,

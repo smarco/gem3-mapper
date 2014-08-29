@@ -138,18 +138,32 @@ GEM_INLINE uint64_t sampled_sa_get_sample(const sampled_sa_t* const sampled_sa,c
 /*
  * Display/Stats
  */
-GEM_INLINE void sampled_sa_print(FILE* const stream,sampled_sa_t* const sampled_sa) {
+GEM_INLINE void sampled_sa_print(FILE* const stream,sampled_sa_t* const sampled_sa,const bool display_data) {
   SAMPLED_SA_CHECK(sampled_sa);
+  const uint64_t sampling_rate = (uint64_t)sampled_sa->sampling_rate;
+  const uint64_t sampling_rate_value = sampled_sa_get_sampling_rate_value(sampled_sa);
   tab_fprintf(stream,"[GEM]>Sampled-SA\n");
   tab_fprintf(stream,"  => Architecture sSA.pck\n");
   tab_fprintf(stream,"    => Sampled-Space SA \n");
   tab_fprintf(stream,"    => ArrayImpl     Packed-Array \n");
-  tab_fprintf(stream,"  => SamplingRate 2^%lu\n",(uint64_t)sampled_sa->sampling_rate);
+  tab_fprintf(stream,"  => SamplingRate 2^%lu (%lu)\n",sampling_rate,sampling_rate_value);
   tab_fprintf(stream,"  => Length %lu\n",sampled_sa->index_length);
   tab_fprintf(stream,"  => Size %lu MB\n",CONVERT_B_TO_MB(sampled_sa_get_size(sampled_sa)));
   tab_global_inc();
   packed_integer_array_print(stream,sampled_sa->packed_integer_array,false);
   tab_global_dec();
+  // Print data
+  if (display_data) {
+    tab_fprintf(stream,"  => Sampled-SA.Data\n");
+    const packed_integer_array_t* const packed_integer_array = sampled_sa->packed_integer_array;
+    const uint64_t array_length = packed_integer_array_get_length(packed_integer_array);
+    uint64_t i;
+    for (i=0;i<array_length;++i) {
+      fprintf(stream,"%8lu/%8lu",i<<sampling_rate,packed_integer_array_load(packed_integer_array,i));
+      PRINT_COLUMN(stream,i,2,"\t");
+    }
+    PRINT_COLUMN_CLOSE(stream,i,2);
+  }
   // Flush
   fflush(stream);
 }

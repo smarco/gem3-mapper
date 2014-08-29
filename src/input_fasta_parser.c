@@ -274,13 +274,29 @@ GEM_INLINE error_code_t ifp_parse_sequence(
   }
   return 0;
 }
-GEM_INLINE error_code_t input_fasta_parse_sequence(
+GEM_INLINE error_code_t input_fasta_parse_sequence_(
     buffered_input_file_t* const buffered_fasta_input,sequence_t* const seq_read,
     const bool strictly_normalized,const bool try_recovery) {
   BUFFERED_INPUT_FILE_CHECK(buffered_fasta_input);
   SEQUENCE_CHECK(seq_read);
   // Prepare read
   sequence_clear(seq_read);
+  // Parse read
+  error_code_t error_code;
+  char* const line_start = buffered_fasta_input->cursor;
+  const uint64_t line_num = buffered_fasta_input->current_line_num;
+  if ((error_code=ifp_parse_sequence(buffered_fasta_input,seq_read,strictly_normalized,try_recovery))) {
+    const uint64_t column_pos = buffered_fasta_input->cursor-line_start;
+    input_fasta_parser_prompt_error(buffered_fasta_input,line_num,column_pos,error_code);
+    input_fasta_parser_next_record(buffered_fasta_input,line_start);
+    return INPUT_STATUS_FAIL;
+  }
+  return INPUT_STATUS_OK;
+}
+GEM_INLINE error_code_t input_fasta_parse_sequence(
+    buffered_input_file_t* const buffered_fasta_input,sequence_t* const seq_read,
+    const bool strictly_normalized,const bool try_recovery) {
+  BUFFERED_INPUT_FILE_CHECK(buffered_fasta_input);
   // Check input file
   error_code_t error_code;
   if (buffered_input_file_eob(buffered_fasta_input)) { // Check the end_of_block. Reload buffer if needed
@@ -294,13 +310,5 @@ GEM_INLINE error_code_t input_fasta_parse_sequence(
   //    return INPUT_STATUS_FAIL;
   //  }
   // Parse read
-  char* const line_start = buffered_fasta_input->cursor;
-  const uint64_t line_num = buffered_fasta_input->current_line_num;
-  if ((error_code=ifp_parse_sequence(buffered_fasta_input,seq_read,strictly_normalized,try_recovery))) {
-    const uint64_t column_pos = buffered_fasta_input->cursor-line_start;
-    input_fasta_parser_prompt_error(buffered_fasta_input,line_num,column_pos,error_code);
-    input_fasta_parser_next_record(buffered_fasta_input,line_start);
-    return INPUT_STATUS_FAIL;
-  }
-  return INPUT_STATUS_OK;
+  return input_fasta_parse_sequence_(buffered_fasta_input,seq_read,strictly_normalized,try_recovery);
 }

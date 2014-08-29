@@ -48,7 +48,7 @@ GEM_INLINE uint64_t sampled_sa_get_sample(const sampled_sa_t* const sampled_sa,c
 /*
  * Display/Stats
  */
-GEM_INLINE void sampled_sa_print(FILE* const stream,sampled_sa_t* const sampled_sa);
+GEM_INLINE void sampled_sa_print(FILE* const stream,sampled_sa_t* const sampled_sa,const bool display_data);
 GEM_INLINE void sampled_sa_builder_print(FILE* const stream,sampled_sa_builder_t* const sampled_sa_builder);
 
 

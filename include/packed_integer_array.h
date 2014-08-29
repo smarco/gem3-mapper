@@ -57,15 +57,16 @@ GEM_INLINE void packed_integer_array_delete(packed_integer_array_t* const array)
 /*
  * Accessors
  */
-GEM_INLINE uint64_t packed_integer_array_load(packed_integer_array_t* const array,const uint64_t position);
+GEM_INLINE void packed_integer_array_prefetch(const packed_integer_array_t* const array,const uint64_t position);
+GEM_INLINE uint64_t packed_integer_array_load(const packed_integer_array_t* const array,const uint64_t position);
 GEM_INLINE void packed_integer_array_store(packed_integer_array_t* const array,const uint64_t position,const uint64_t integer);
 
-GEM_INLINE uint64_t packed_integer_array_get_size(packed_integer_array_t* const array);
-GEM_INLINE uint64_t packed_integer_array_get_length(packed_integer_array_t* const array);
+GEM_INLINE uint64_t packed_integer_array_get_size(const packed_integer_array_t* const array);
+GEM_INLINE uint64_t packed_integer_array_get_length(const packed_integer_array_t* const array);
 
 /*
  * Display
  */
-GEM_INLINE void packed_integer_array_print(FILE* const stream,packed_integer_array_t* const array,const bool display_data);
+GEM_INLINE void packed_integer_array_print(FILE* const stream,const packed_integer_array_t* const array,const bool display_data);
 
 #endif /* PACKED_INTEGER_ARRAY_H_ */

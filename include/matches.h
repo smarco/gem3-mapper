@@ -136,7 +136,7 @@ GEM_INLINE uint64_t match_trace_get_cigar_length(const match_trace_t* const matc
 GEM_INLINE match_trace_t* matches_lookup_match(matches_t* const matches,const uint64_t position);
 GEM_INLINE void matches_add_match_trace_t(
     matches_t* const matches,match_trace_t* const match_trace);
-GEM_INLINE void matches_add_match_trace_(
+GEM_INLINE void matches_add_match_trace(
     matches_t* const matches,const uint64_t trace_offset,
     const uint64_t position,const uint64_t distance,const strand_t strand);
 

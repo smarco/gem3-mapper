@@ -446,61 +446,6 @@ GEM_INLINE void constructor_sparse_array_locator_test() {
   }
   sparse_array_locator_delete(locator);
 }
-GEM_INLINE void constructor_packed_integer_arrays_test() {
-  packed_integer_array_t* pia[4];
-  pia[0] = packed_integer_array_new(0,10,36);
-  pia[1] = packed_integer_array_new(10,20,36);
-  pia[2] = packed_integer_array_new(20,30,36);
-  pia[3] = packed_integer_array_new(30,40,36);
-
-  const uint64_t integer = ((((1ull<<35) | (1ull<<34)) | (1ull<1)) | 1ull);
-  uint64_t i = 0;
-  for (;i<10;++i) packed_integer_array_store(pia[0],i,integer);
-  for (;i<20;++i) packed_integer_array_store(pia[1],i,integer);
-  for (;i<30;++i) packed_integer_array_store(pia[2],i,integer);
-  for (;i<40;++i) packed_integer_array_store(pia[3],i,integer);
-
-  fm_t* file = fm_open_file("test.pia",FM_WRITE);
-  packed_integer_array_sliced_write(file,pia,4);
-  fm_close(file);
-  packed_integer_array_delete(pia[0]);
-  packed_integer_array_delete(pia[1]);
-  packed_integer_array_delete(pia[2]);
-  packed_integer_array_delete(pia[3]);
-
-  file = fm_open_file("test.pia",FM_READ);
-  packed_integer_array_t* const result = packed_integer_array_read(file);
-  for (i=0;i<result->num_elements;++i) {
-    fprintf(stderr,"%lu:%lu\n",i,packed_integer_array_load(result,i));
-  }
-}
-GEM_INLINE void constructor_packed_integer_arrays_test_bis() {
-  packed_integer_array_t* pia[4];
-  pia[0] = packed_integer_array_new(0,2,6);
-  pia[1] = packed_integer_array_new(2,4,6);
-  pia[2] = packed_integer_array_new(4,6,6);
-  pia[3] = packed_integer_array_new(6,8,6);
-
-  uint64_t i = 0;
-  for (;i<2;++i) packed_integer_array_store(pia[0],i,i);
-  for (;i<4;++i) packed_integer_array_store(pia[1],i,i);
-  for (;i<6;++i) packed_integer_array_store(pia[2],i,i);
-  for (;i<8;++i) packed_integer_array_store(pia[3],i,i);
-
-  fm_t* file = fm_open_file("test.pia",FM_WRITE);
-  packed_integer_array_sliced_write(file,pia,4);
-  fm_close(file);
-  packed_integer_array_delete(pia[0]);
-  packed_integer_array_delete(pia[1]);
-  packed_integer_array_delete(pia[2]);
-  packed_integer_array_delete(pia[3]);
-
-  file = fm_open_file("test.pia",FM_READ);
-  packed_integer_array_t* const result = packed_integer_array_read(file);
-  for (i=0;i<result->num_elements;++i) {
-    fprintf(stderr,"%lu:%lu\n",i,packed_integer_array_load(result,i));
-  }
-}
 GEM_INLINE void constructor_cdna_text__reverse() {
   mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
   cdna_text_t* const text = cdna_text_new(slab);

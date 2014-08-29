@@ -10,15 +10,29 @@
 #define FILTERING_CANDIDATES_H_
 
 #include "essentials.h"
+
+#include "locator.h"
+#include "fm_index.h"
+#include "dna_text.h"
+#include "pattern.h"
+
+#include "approximate_search_parameters.h"
 #include "region_profile.h"
 #include "interval_set.h"
 #include "matches.h"
-#include "approximate_search.h"
 
 /*
  * Filtering Candidates Vector
  */
-typedef struct _filtering_candidates_t filtering_candidates_t;
+typedef struct {
+  /* Pending candidates */
+  vector_t* candidate_positions;              // Candidates positions (candidate_position_t)
+  /* Checked Positions */
+  vector_t* verified_candidate_positions;     // Verified positions (uint64_t)
+  /* Internals */
+  vector_t* regions_buffer;                   // Regions Buffer (region_t)
+  text_collection_t* candidates_collection;   // Candidates Text-Collection (Stores candidates Texts)
+} filtering_candidates_t;
 
 GEM_INLINE void filtering_candidates_new(filtering_candidates_t* const filtering_candidates);
 GEM_INLINE void filtering_candidates_clear(filtering_candidates_t* const filtering_candidates);
@@ -41,7 +55,9 @@ GEM_INLINE uint64_t filtering_candidates_get_pending_candidates(filtering_candid
  * Filtering Candidates Verification
  */
 GEM_INLINE void filtering_candidates_verify_pending(
-    approximate_search_t* const approximate_search,matches_t* const matches,
-    filtering_candidates_t* const filtering_candidates);
+    filtering_candidates_t* const filtering_candidates,
+    const locator_t* const locator,const fm_index_t* const fm_index,
+    const dna_text_t* const enc_text,const pattern_t* const pattern,
+    const approximate_search_parameters_t* const search_parameters,matches_t* const matches);
 
 #endif /* FILTERING_CANDIDATES_H_ */

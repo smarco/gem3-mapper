@@ -50,14 +50,14 @@ GEM_INLINE void text_collection_delete(text_collection_t* const text_collection)
  * Accessors
  */
 // [Text-Block]
-GEM_INLINE uint64_t text_collection_new_trace(text_collection_t* const text_collection);
+GEM_INLINE uint64_t text_collection_new_trace(const text_collection_t* const text_collection);
 GEM_INLINE text_trace_t* text_collection_get_trace(
     const text_collection_t* const text_collection,const uint64_t text_trace_offset);
 // [Text-Trace]
 GEM_INLINE uint64_t text_collection_allocate_trace_blocks(
-    text_collection_t* const text_collection,const uint64_t num_trace_blocks);
+    const text_collection_t* const text_collection,const uint64_t num_trace_blocks);
 GEM_INLINE trace_block_t* text_collection_get_trace_block(
-    text_collection_t* const text_collection,const uint64_t trace_block_offset);
+    const text_collection_t* const text_collection,const uint64_t trace_block_offset);
 
 /*
  * Error Messages

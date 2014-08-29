@@ -17,10 +17,6 @@
 #include "dna_text.h"
 #include "fm_index.h"
 
-#include "sequence.h"
-#include "approximate_search.h"
-#include "matches.h"
-
 /*
  * Constants
  */
@@ -39,10 +35,6 @@
 #define ARCHIVE_CHECK_INDEX_POSITION(archive,index_position) \
   gem_fatal_check((int64_t)index_position < 0 || (int64_t)index_position >= archive_get_index_length(archive), \
       ARCHIVE_INDEX_OOB,index_position,archive_get_index_length(archive))
-
-#define ARCHIVE_SEARCH_CHECK(archive_search) \
-  GEM_CHECK_NULL(archive_search); \
-  ARCHIVE_CHECK(archive_search->archive)
 
 /*
  * Archive
@@ -67,27 +59,6 @@ typedef struct {
   // MM
   mm_t* mm;
 } archive_t;
-/*
- * Archive Approximate Search
- */
-typedef struct {
-  /* Archive */
-  archive_t* archive;
-  /* Sequence */
-  sequence_t* sequence;    // Input
-  sequence_t* rc_sequence; // Generated
-  /* Approximate Search */
-  approximate_search_parameters_t search_parameters; // Search parameters
-  approximate_search_t* forward_search_state;        // Forward Search State
-  approximate_search_t* reverse_search_state;        // Reverse Search State
-  /* Archive search control (Flow control) */
-  bool search_reverse;
-  bool probe_strand;
-  /* Matches */
-  matches_t* matches;
-  /* MM */
-  mm_stack_t* mm_stack; // Memory stack
-} archive_search_t;
 
 /*
  * Archive Loader
@@ -98,61 +69,8 @@ GEM_INLINE void archive_delete(archive_t* const archive);
 /*
  * Archive Accessors
  */
+GEM_INLINE bool archive_is_indexed_complement(const archive_t* const archive);
 GEM_INLINE uint64_t archive_get_index_length(const archive_t* const archive);
-
-/*
- * Archive Search Setup
- */
-GEM_INLINE archive_search_t* archive_search_new(archive_t* const archive);
-GEM_INLINE void archive_search_delete(archive_search_t* const archive_search);
-// [Initialize]
-GEM_INLINE void archive_search_prepare_sequence(archive_search_t* const archive_search,sequence_t* const sequence);
-// [Accessors]
-GEM_INLINE approximate_search_parameters_t* archive_search_get_search_parameters(archive_search_t* const archive_search);
-GEM_INLINE matches_t* archive_search_get_matches(archive_search_t* const archive_search);
-
-
-/*
- * SingleEnd Indexed Search (SE Online Approximate String Search)
- */
-GEM_INLINE void archive_search_single_end(archive_search_t* const archive_search,sequence_t* const sequence);
-
-///*
-// * PE Pairing (based on SE matches)
-// */
-//GEM_INLINE void archive_extend__pair_matches(
-//    const archive_t* const archive,multimatches* const multimatches,
-//    const uint64_t max_stratum,const uint64_t id_matches_from,const uint64_t id_matches_to,
-//    fmi_extend_parameters* const extend_parameters,vector_pool* const mpool);
-//
-
-/*
- * Select Matches (Retrieving & Processing matches)
- *   - 1. Expand interval-matches (compacted)
- *   - 2. Transform CIGAR of reverse matches
- *   - 3. Sort matches wrt distance
- */
-GEM_INLINE void archive_search_select_matches(
-    archive_search_t* const archive_search,
-    const uint64_t max_decoded_matches,const uint64_t min_decoded_strata,
-    const uint64_t min_reported_matches,const uint64_t max_reported_matches);
-
-/*
- * Decoding Matches Iterator (Decodes matches on the fly)
- */
-typedef struct {
-  // TODO
-} matches_decode_iterator_t;
-GEM_INLINE void matches_decode_iterator_new(
-    matches_decode_iterator_t* const matches_iterator,archive_search_t* const archive_search,
-    const uint64_t max_decoded_matches_stratum_wise,const uint64_t min_decoded_strata,
-    const uint64_t min_decoded_matches,const uint64_t max_decoded_matches);
-
-// TODO
-GEM_INLINE void matches_decode_iterator_get_XXX(matches_decode_iterator_t* const matches_iterator);
-
-GEM_INLINE void matches_decode_iterator_eoi(matches_decode_iterator_t* const matches_iterator);
-GEM_INLINE void matches_decode_iterator_next(matches_decode_iterator_t* const matches_iterator);
 
 /*
  * Display

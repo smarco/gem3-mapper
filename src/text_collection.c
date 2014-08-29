@@ -47,12 +47,12 @@ GEM_INLINE void text_collection_delete(text_collection_t* const text_collection)
  * Accessors
  */
 // [Text-Trace]
-GEM_INLINE uint64_t text_collection_new_trace(text_collection_t* const text_collection) {
+GEM_INLINE uint64_t text_collection_new_trace(const text_collection_t* const text_collection) {
   TEXT_COLLECTION_CHECK(text_collection);
   // Allocate new text-trace
-  const uint64_t text_trace_offset = vector_get_used(text_collection->trace_block_vector);
-  vector_reserve_additional(text_collection->trace_block_vector,1);
-  vector_add_used(text_collection->trace_block_vector,1);
+  const uint64_t text_trace_offset = vector_get_used(text_collection->text_traces);
+  vector_reserve_additional(text_collection->text_traces,1);
+  vector_add_used(text_collection->text_traces,1);
   // Return text_trace_offset
   return text_trace_offset;
 }
@@ -63,7 +63,7 @@ GEM_INLINE text_trace_t* text_collection_get_trace(
 }
 // [Trace-Blocks]
 GEM_INLINE uint64_t text_collection_allocate_trace_blocks(
-    text_collection_t* const text_collection,const uint64_t num_trace_blocks) {
+    const text_collection_t* const text_collection,const uint64_t num_trace_blocks) {
   TEXT_COLLECTION_CHECK(text_collection);
   // Allocate new trace-blocks
   const uint64_t trace_blocks_offset = vector_get_used(text_collection->trace_block_vector);
@@ -73,7 +73,7 @@ GEM_INLINE uint64_t text_collection_allocate_trace_blocks(
   return trace_blocks_offset;
 }
 GEM_INLINE trace_block_t* text_collection_get_trace_block(
-    text_collection_t* const text_collection,const uint64_t trace_block_offset) {
+    const text_collection_t* const text_collection,const uint64_t trace_block_offset) {
   TEXT_COLLECTION_CHECK(text_collection);
   return vector_get_elm(text_collection->trace_block_vector,trace_block_offset,trace_block_t);
 }

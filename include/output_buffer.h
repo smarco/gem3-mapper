@@ -6,6 +6,12 @@
  * DESCRIPTION: // TODO
  */
 
+/*
+ * TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+ *  Generalize minor/mayor to 3-levels
+ *  At unsorted buffers extend to segment buffers
+ */
+
 #ifndef OUTPUT_BUFFER_H_
 #define OUTPUT_BUFFER_H_
 

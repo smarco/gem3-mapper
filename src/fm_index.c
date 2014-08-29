@@ -328,7 +328,7 @@ GEM_INLINE void fm_index_print(FILE* const stream,const fm_index_t* const fm_ind
   tab_fprintf(stream,"    => BWT %lu MB (%2.3f%%)\n",CONVERT_B_TO_MB(bwt_size),PERCENTAGE(bwt_size,fm_index_size));
   tab_global_inc();
   // Sampled SuffixArray positions
-  sampled_sa_print(stream,fm_index->sampled_sa);
+  sampled_sa_print(stream,fm_index->sampled_sa,false);
   // Memoizated intervals
   rank_mtable_print(stream,fm_index->rank_table);
   // BWT structure
