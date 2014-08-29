@@ -233,7 +233,7 @@ void* mapper_SE_CUDA_run_generate_candidates_uo(mapper_cuda_search_t* const mapp
 
   // Get archive-search group for candidate generation
   archive_search_group_t* archive_search_group = archive_search_group_dispatcher_request_generating(dispatcher);
-  archive_search_t* archive_search_end1, *archive_search_end2;
+  archive_search_t* archive_search_end1 = NULL, *archive_search_end2 = NULL;
   uint64_t results_offset_end1, results_offset_end2;
 
   // FASTA/FASTQ reading loop

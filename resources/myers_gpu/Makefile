@@ -54,16 +54,16 @@ release_60: $(FOLDER_BUILD)/coreMyersGPU50.o $(FOLDER_BUILD)/coreMyersGPU35.o \
             $(FOLDER_BUILD)/coreMyersGPU30.o $(FOLDER_BUILD)/coreMyersGPU20.o $(FOLDER_BUILD)/myersGPU.o
             
 $(FOLDER_BUILD)/coreMyersGPU20.o: coreMyersGPU-CC20.cu
-	nvcc $(NVCC_COMPILE_FLAGS) -gencode arch=compute_20,code=sm_20 -c coreMyersGPU-CC20.cu -o $(FOLDER_BUILD)/coreMyersGPU20.o
+	nvcc $(NVCC_COMPILE_FLAGS) -gencode arch=compute_20,code=\"sm_20,compute_20\" -c coreMyersGPU-CC20.cu -o $(FOLDER_BUILD)/coreMyersGPU20.o
 
 $(FOLDER_BUILD)/coreMyersGPU30.o: coreMyersGPU-CC30.cu
-	nvcc $(NVCC_COMPILE_FLAGS) -gencode arch=compute_30,code=sm_30 -c coreMyersGPU-CC30.cu -o $(FOLDER_BUILD)/coreMyersGPU30.o
+	nvcc $(NVCC_COMPILE_FLAGS) -gencode arch=compute_30,code=\"sm_30,compute_30\" -c coreMyersGPU-CC30.cu -o $(FOLDER_BUILD)/coreMyersGPU30.o
 
 $(FOLDER_BUILD)/coreMyersGPU35.o: coreMyersGPU-CC35.cu
-	nvcc $(NVCC_COMPILE_FLAGS) -gencode arch=compute_35,code=sm_35 -c coreMyersGPU-CC35.cu -o $(FOLDER_BUILD)/coreMyersGPU35.o
+	nvcc $(NVCC_COMPILE_FLAGS) -gencode arch=compute_35,code=\"sm_35,compute_35\" -c coreMyersGPU-CC35.cu -o $(FOLDER_BUILD)/coreMyersGPU35.o
 
 $(FOLDER_BUILD)/coreMyersGPU50.o: coreMyersGPU-CC50.cu
-	nvcc $(NVCC_COMPILE_FLAGS) -gencode arch=compute_50,code=sm_50 -c coreMyersGPU-CC50.cu -o $(FOLDER_BUILD)/coreMyersGPU50.o
+	nvcc $(NVCC_COMPILE_FLAGS) -gencode arch=compute_50,code=\"sm_50,compute_50\" -c coreMyersGPU-CC50.cu -o $(FOLDER_BUILD)/coreMyersGPU50.o
 	
 $(FOLDER_BUILD)/myersGPU.o: myersGPU.c
 	gcc $(GCC_COMPILE_FLAGS) $(CUDA_LIBRARY_FLAGS) -c myersGPU.c -o $(FOLDER_BUILD)/myersGPU.o

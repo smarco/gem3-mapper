@@ -51,7 +51,8 @@ GEM_INLINE bool bpm_gpu_buffer_fits_in_buffer(
 GEM_INLINE void bpm_gpu_buffer_put_pattern(
     bpm_gpu_buffer_t* const bpm_gpu_buffer,const bpm_pattern_t* const bpm_pattern);
 GEM_INLINE void bpm_gpu_buffer_put_candidate(
-    bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t candidate_text_position);
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,
+    const uint64_t candidate_text_position,const uint64_t candidate_length);
 
 /*
  * Errors

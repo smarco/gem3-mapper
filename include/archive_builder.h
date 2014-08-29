@@ -4,6 +4,9 @@
  * DATE: 06/06/2012
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
+ *
+ *   TODO:
+ *     Loop-Peeling CUDA-version. Align index-sequences to 8 chars (mod8=0)
  */
 
 #ifndef ARCHIVE_BUILDER_H_

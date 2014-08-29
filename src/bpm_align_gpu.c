@@ -17,14 +17,23 @@
  *   5.- I need to understand the reason to store the pattern (qryEntry_t[]) in such interleaved fashion
  *     5.1 Check adaptor
  *   6.- Different CUDA-cards but, different buffer sizes? (Are buffers homogeneous?)
+ *     NO
  *   7.- Lost of performance due to underused buffers
  *   8.- MACRO_VAR to get CUDA_COMPATIBLE
- *
  * TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+ *
+ *  A. Autoconfig to detect CUDA_NVCC
+ *  B. PREFIXES for API
+ *  C. Function to detect CUDA card (to be used at main() to reject --cuda parameter(s))
+ *  D. Link Nsight remote run
+ *  E. Vtune Amplifier non-commercial
+ *
  */
 
 #include "bpm_align_gpu.h"
 #include "../resources/myers_gpu/myers-interface.h"
+
+#define BPM_GPU_BUFFER_SIZE BUFFER_SIZE_32M
 
 /*
  * BPM-GPU Setup
@@ -41,8 +50,8 @@ GEM_INLINE bpm_gpu_buffer_collection_t* bpm_gpu_init(
   // Initialize Myers
   const char* const text = (const char* const) dna_text_get_buffer(enc_text);
   const uint64_t text_length = dna_text_get_length(enc_text);
-  initMyers(&buffer_collection->internal_buffers,num_buffers,CONVERT_B_TO_MB(BUFFER_SIZE_8M),
-      text,GEM,text_length,average_query_size,candidates_per_query,ARCH_SUPPORTED); // FIXME Setup
+  initMyers(&buffer_collection->internal_buffers,num_buffers,CONVERT_B_TO_MB(BPM_GPU_BUFFER_SIZE),
+      text,GEM,text_length,average_query_size,candidates_per_query,ARCH_SUPPORTED);
   // Initialize Buffers
   uint64_t i;
   for (i=0;i<num_buffers;++i) {
@@ -153,10 +162,12 @@ GEM_INLINE void bpm_gpu_buffer_put_pattern(
   bpm_gpu_buffer->num_PEQ_entries += pattern_PEQ_num_entries;
 }
 GEM_INLINE void bpm_gpu_buffer_put_candidate(
-    bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t candidate_text_position) {
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,
+    const uint64_t candidate_text_position,const uint64_t candidate_length) {
   // Insert candidate
   candInfo_t* const query_candidate = getCandidatesBuffer(bpm_gpu_buffer->buffer) + bpm_gpu_buffer->num_candidates;
   query_candidate->query = bpm_gpu_buffer->pattern_id;
   query_candidate->position = candidate_text_position;
+  query_candidate->size = candidate_length;
   ++(bpm_gpu_buffer->num_candidates);
 }
