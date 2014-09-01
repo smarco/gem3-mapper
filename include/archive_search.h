@@ -48,15 +48,16 @@ typedef struct {
   /* Matches */
   matches_t* matches;
   /* MM */
-  mm_stack_t* mm_stack; // Memory stack
+  mm_stack_t* mm_stack;
 } archive_search_t;
 
 /*
  * Archive Search Setup
  */
-GEM_INLINE archive_search_t* archive_search_new(archive_t* const archive);
+GEM_INLINE archive_search_t* archive_search_new(archive_t* const archive,mm_stack_t* const mm_stack);
 GEM_INLINE void archive_search_clear(archive_search_t* const archive_search);
 GEM_INLINE void archive_search_delete(archive_search_t* const archive_search);
+GEM_INLINE void archive_search_set_mm_stack(archive_search_t* const archive_search,mm_stack_t* const mm_stack);
 // [Accessors]
 GEM_INLINE approximate_search_parameters_t* archive_search_get_search_parameters(archive_search_t* const archive_search);
 GEM_INLINE sequence_t* archive_search_get_sequence(const archive_search_t* const archive_search);
@@ -66,6 +67,7 @@ GEM_INLINE uint64_t archive_search_get_num_potential_canditates(const archive_se
 /*
  * SingleEnd Indexed Search (SE Online Approximate String Search)
  */
+GEM_INLINE void archive_search_prepare_sequence(archive_search_t* const archive_search);
 GEM_INLINE void archive_search_single_end(archive_search_t* const archive_search);
 
 ///*

@@ -17,11 +17,10 @@
 GEM_INLINE text_collection_t* text_collection_new() {
   // Allocate
   text_collection_t* const text_collection = mm_alloc(text_collection_t);
-  // Request slabs
-  mm_slab_t* const mm_slab_text = mm_pool_get_slab(mm_pool_8MB);
   // Text-Blocks
   text_collection->text_traces = vector_new(TEXT_COLLECTION_INIT_TEXT_TRACES,text_trace_t);
-  text_collection->text_buffer = svector_new(mm_slab_text,uint8_t);
+  // mm_slab_t* const mm_slab_text = mm_pool_get_slab(mm_pool_8MB); // Request slabs // TODO Graph
+  // text_collection->text_buffer = svector_new(mm_slab_text,uint8_t); // TODO Graph
   // Traces (Sequence of Text-Blocks)
   text_collection->trace_block_vector = vector_new(TEXT_COLLECTION_INIT_TRACE_BLOCKS,trace_block_t);
   // Return
@@ -31,14 +30,14 @@ GEM_INLINE void text_collection_clear(text_collection_t* const text_collection) 
   TEXT_COLLECTION_CHECK(text_collection);
   // Clear Text-Blocks & Traces
   vector_clear(text_collection->text_traces);
-  svector_clear(text_collection->text_buffer);
+  // svector_clear(text_collection->text_buffer); // TODO Graph
   vector_clear(text_collection->trace_block_vector);
 }
 GEM_INLINE void text_collection_delete(text_collection_t* const text_collection) {
   TEXT_COLLECTION_CHECK(text_collection);
   // Delete Text-Blocks & Traces
   vector_delete(text_collection->text_traces);
-  svector_delete(text_collection->text_buffer);
+  // svector_delete(text_collection->text_buffer); // TODO Graph
   vector_delete(text_collection->trace_block_vector);
   // Delete handler
   mm_free(text_collection);

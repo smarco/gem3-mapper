@@ -138,8 +138,8 @@ struct _bwt_block_elms_t {
  * BWT Builder Auxiliary functions
  */
 GEM_INLINE void bwt_builder_initialize(
-    bwt_builder_t* const bwt_builder,const uint64_t bwt_text_length,
-    const uint64_t* const character_occurrences,mm_slab_t* const mm_slab) {
+    bwt_builder_t* const bwt_builder,
+    const uint64_t bwt_text_length,const uint64_t* const character_occurrences) {
   struct _bwt_t* const bwt = &bwt_builder->bwt;
   /*
    * Meta-Data
@@ -166,7 +166,7 @@ GEM_INLINE void bwt_builder_initialize(
   bwt->bwt_mem = (uint64_t*) mm_calloc(bwt->num_minor_blocks*BWT_MINOR_BLOCK_SIZE,uint8_t,true);
   // Allocate eXtraLayer
   bwt_builder->xl_locator = sparse_array_locator_new(0,bwt->num_minor_blocks);
-  bwt_builder->xl_memory = svector_new(mm_slab,xl_block_t);
+  bwt_builder->xl_memory = svector_new(mm_pool_get_slab(mm_pool_32MB),xl_block_t);
   svector_iterator_new(&bwt_builder->xl_iterator,bwt_builder->xl_memory,SVECTOR_WRITE_ITERATOR,0);
   // Auxiliary variables
   bwt_builder->mayor_counter = 0;
@@ -275,14 +275,14 @@ GEM_INLINE void bwt_builder_write_minor_block(
  */
 GEM_INLINE bwt_builder_t* bwt_builder_new(
     dna_text_t* const bwt_text,const uint64_t* const character_occurrences,
-    const bool check,const bool verbose,mm_slab_t* const mm_slab) {
+    const bool check,const bool verbose) {
   // TODO Checks
   /*
    * Allocate & initialize builder
    */
   bwt_builder_t* const bwt_builder = mm_alloc(bwt_builder_t);
   const uint64_t bwt_length = bwt_text->length;
-  bwt_builder_initialize(bwt_builder,bwt_length,character_occurrences,mm_slab);
+  bwt_builder_initialize(bwt_builder,bwt_length,character_occurrences);
   /*
    * Compute BWT & write
    */

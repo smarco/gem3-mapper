@@ -192,8 +192,8 @@ GEM_INLINE void bpm_pattern_compile(
  * Reset search functions
  */
 GEM_INLINE void bpm_reset_search(
-    const uint64_t num_words,uint64_t* const P,uint64_t* const M,int64_t* const score,
-    const int64_t* const init_score,const uint64_t max_distance) {
+    const uint64_t num_words,uint64_t* const P,uint64_t* const M,
+    int64_t* const score,const int64_t* const init_score) {
   // Reset score,P,M
   uint64_t i;
   P[0]=BMP_W64_ONES;
@@ -264,8 +264,8 @@ GEM_INLINE int8_t bpm_advance_block(
  *   BMP[BitParalellMayers] - Myers' Fast Bit-Vector algorithm (Levenshtein)
  */
 GEM_INLINE bool bpm_get_distance(
-    bpm_pattern_t* const bpm_pattern,char* const sequence,const uint64_t sequence_length,
-    uint64_t* const position,uint64_t* const distance,const uint64_t max_distance) {
+    bpm_pattern_t* const bpm_pattern,const char* const sequence,const uint64_t sequence_length,
+    uint64_t* const position,uint64_t* const distance) {
   // Pattern variables
   const uint64_t* PEQ = (uint64_t*)bpm_pattern->PEQ;
   const uint64_t num_words = bpm_pattern->pattern_num_words;
@@ -277,7 +277,7 @@ GEM_INLINE bool bpm_get_distance(
 
   // Initialize search
   uint64_t min_score = UINT64_MAX, min_score_position = UINT64_MAX;
-  bpm_reset_search(num_words,P,M,score,init_score,max_distance);
+  bpm_reset_search(num_words,P,M,score,init_score);
 
   // Advance in DP-bit_encoded matrix
   uint64_t sequence_position;

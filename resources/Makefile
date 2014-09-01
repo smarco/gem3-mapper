@@ -15,7 +15,7 @@ release: setup
 	$(MAKE) --directory=myers_gpu
 
 debug: setup
-  $(MAKE) --directory=myers_gpu
+  $(MAKE) --directory=myers_gpu all
   
 setup: 
 	@mkdir -p build

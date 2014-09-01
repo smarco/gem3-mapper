@@ -41,6 +41,7 @@ typedef struct {
   /* BPM-GPU candidates buffer */
   bpm_gpu_buffer_t* bpm_gpu_buffer;     // BPM-Buffer
   /* Archive searches */
+  mm_stack_t* mm_stack;                 // Memory Stack
   vector_t* archive_searches;           // Vector of search members (archive_search_member_t)
   vector_t* archive_searches_attr;      // TODO Vector of generic attr of the members (E.g related buffered_ouput)
 } archive_search_group_t;
@@ -51,11 +52,12 @@ typedef struct {
   uint64_t num_groups_generating;       // Groups dispatched for candidate generation
   uint64_t num_groups_verifying;        // Groups being verified (BPM-CUDA)
   uint64_t num_groups_selecting;        // Groups dispatched for candidate selection
+  /* Dispatcher Record */
+  uint64_t num_threads_generating;
   /* Dispatcher Search Groups */
   archive_search_group_t* search_group; // Search Groups
   /* BPM-GPU Buffer*/
-  void** internal_buffers;              // Internal Buffers (used for deallocation)
-  bpm_gpu_buffer_t* bpm_gpu_buffers;    // BPM Buffers
+  bpm_gpu_buffer_collection_t* bpm_gpu_buffer_collection; // BPM Buffers
   /* Mutex/CV */
   pthread_mutex_t dispatcher_mutex;
   pthread_cond_t groups_free_cond;
@@ -74,6 +76,11 @@ GEM_INLINE void archive_search_group_add(
  */
 GEM_INLINE archive_search_group_dispatcher_t* archive_search_group_dispatcher_new();
 GEM_INLINE void archive_search_group_dispatcher_delete(archive_search_group_dispatcher_t* const dispatcher);
+
+GEM_INLINE void archive_search_group_dispatcher_register_generating(
+    archive_search_group_dispatcher_t* const dispatcher,const uint64_t num_threads);
+GEM_INLINE void archive_search_group_dispatcher_deregister_generating(
+    archive_search_group_dispatcher_t* const dispatcher,const uint64_t num_threads);
 
 GEM_INLINE archive_search_group_t* archive_search_group_dispatcher_request_generating(
     archive_search_group_dispatcher_t* const dispatcher);
@@ -97,6 +104,6 @@ GEM_INLINE void archive_search_select_candidates(
 /*
  * Error Messages
  */
-//#define GEM_ERROR_ARCHIVE_SEARCH_GROUP_
+#define GEM_ERROR_ARCHIVE_SEARCH_GROUP_MAPPING_MODE_NOT_SUPPORTED "Archive search-group. Mapping mode not supported (adaptive | fixed)"
 
 #endif /* ARCHIVE_SEARCH_GROUP_H_ */

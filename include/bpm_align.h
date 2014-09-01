@@ -55,8 +55,8 @@ GEM_INLINE void bpm_pattern_compile(
  *   BMP[BitParalellMyers] - Myers' Fast Bit-Vector algorithm (Levenshtein)
  */
 GEM_INLINE bool bpm_get_distance(
-    bpm_pattern_t* const bpm_pattern,char* const sequence,const uint64_t sequence_length,
-    uint64_t* const position,uint64_t* const distance,const uint64_t max_distance);
+    bpm_pattern_t* const bpm_pattern,const char* const sequence,const uint64_t sequence_length,
+    uint64_t* const position,uint64_t* const distance);
 GEM_INLINE bool bpm_get_distance__cutoff(
     const bpm_pattern_t* const bpm_pattern,const uint8_t* const sequence,const uint64_t sequence_length,
     uint64_t* const position,uint64_t* const distance,const uint64_t max_distance);

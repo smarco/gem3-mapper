@@ -32,7 +32,7 @@ GEM_INLINE void fm_index_builder(
    * Generate BWT & rank_mtable
    */
   bwt_builder_t* const bwt_builder =
-      bwt_builder_new(bwt_text,character_occurrences,check,verbose,mm_pool_get_slab(mm_pool_32MB));
+      bwt_builder_new(bwt_text,character_occurrences,check,verbose);
   if (verbose) bwt_builder_print(gem_info_get_stream(),bwt_builder);
   // Free BWT-text
   dna_text_delete(bwt_text);

@@ -9,10 +9,10 @@
 ROOT_PATH=..
 include ../Makefile.mk
 
-GEM_TOOLS=gem-mapper # gem-constructor gem-indexer 
+GEM_TOOLS=gem-mapper gem-indexer # gem-constructor 
 GEM_TOOLS_SRC=$(addsuffix .c, $(GEM_TOOLS))
 GEM_TOOLS_BIN=$(addprefix $(FOLDER_BIN)/, $(GEM_TOOLS))
-LIBS=-lgemcore_c -lpthread -lm $(LIBS_ZLIB) $(LIBS_BZLIB)
+LIBS=-lgemcore_c -lpthread -lm -lrt $(LIBS_ZLIB) $(LIBS_BZLIB)
 
 all: release
 
@@ -29,12 +29,11 @@ profile: $(GEM_TOOLS_BIN)
 debug: GEM_FLAGS=-O0 $(GENERAL_FLAGS) $(DEBUG_FLAGS)
 debug: $(GEM_TOOLS_BIN)
 
-$(FOLDER_BIN)/gem-mapper:
+$(FOLDER_BIN)/gem-mapper: $(FOLDER_LIB)/libgemcore_c.a gem-mapper.c
 	$(CC) $(GEM_FLAGS) -o $@ $(notdir $@).c $(LIB_PATH_FLAGS) $(INCLUDE_FLAGS) $(LIBS) $(CUDA_LIBRARY_FLAGS) -fopenmp
 
-# $(GEM_TOOLS_BIN): $(FOLDER_LIB)/libgemcore_c.a $(GEM_TOOLS_SRC)
-#	$(CC) $(GEM_FLAGS) -o $@ $(notdir $@).c $(LIB_PATH_FLAGS) $(INCLUDE_FLAGS) $(LIBS)
-	
-	
+$(FOLDER_BIN)/gem-indexer: $(FOLDER_LIB)/libgemcore_c.a gem-indexer.c
+	$(CC) $(GEM_FLAGS) -o $@ $(notdir $@).c $(LIB_PATH_FLAGS) $(INCLUDE_FLAGS) $(LIBS)
+
 	
 	

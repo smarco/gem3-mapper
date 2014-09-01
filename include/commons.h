@@ -244,7 +244,8 @@ GEM_INLINE void fprintf_uint64_footprint(FILE* const stream,const uint64_t word)
 /*
  * Time (ms)
  */
-#define TIME_DIFF(start,end) ((end.tv_sec + end.tv_usec/1E6) - (start.tv_sec + start.tv_usec/1E6))
+#define TIME_DIFF_NS(start,end) ((end.tv_sec*1000000000 + end.tv_nsec) - (start.tv_sec*1000000000 + start.tv_nsec))
+#define TIME_DIFF_S(start,end) ((end.tv_sec + end.tv_nsec/1E9) - (start.tv_sec + start.tv_nsec/1E9))
 
 /*
  * Popcount macros

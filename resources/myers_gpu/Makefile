@@ -1,6 +1,7 @@
 SHELL := /bin/bash
+NVCC := /usr/local/cuda/bin/nvcc
 
-NVCC_VERSION = $(shell nvcc --version | grep release | sed 's/.*release //' |  sed 's/,.*//' | sed 's/\.//')
+NVCC_VERSION = $(shell $(NVCC) --version | grep release | sed 's/.*release //' |  sed 's/,.*//' | sed 's/\.//')
 CUDA_LIBRARY_FLAGS = -L/usr/local/cuda/lib64 -I/usr/local/cuda/include -lcuda -lcudart
 
 NVCC_MINIMAL_VERSION = $(shell [[ ($(NVCC_VERSION) -ge "0")  && ($(NVCC_VERSION) -le  "29") ]] && echo "10"; \
@@ -54,16 +55,16 @@ release_60: $(FOLDER_BUILD)/coreMyersGPU50.o $(FOLDER_BUILD)/coreMyersGPU35.o \
             $(FOLDER_BUILD)/coreMyersGPU30.o $(FOLDER_BUILD)/coreMyersGPU20.o $(FOLDER_BUILD)/myersGPU.o
             
 $(FOLDER_BUILD)/coreMyersGPU20.o: coreMyersGPU-CC20.cu
-	nvcc $(NVCC_COMPILE_FLAGS) -gencode arch=compute_20,code=\"sm_20,compute_20\" -c coreMyersGPU-CC20.cu -o $(FOLDER_BUILD)/coreMyersGPU20.o
+	$(NVCC) $(NVCC_COMPILE_FLAGS) -gencode arch=compute_20,code=sm_20 -c coreMyersGPU-CC20.cu -o $(FOLDER_BUILD)/coreMyersGPU20.o
 
 $(FOLDER_BUILD)/coreMyersGPU30.o: coreMyersGPU-CC30.cu
-	nvcc $(NVCC_COMPILE_FLAGS) -gencode arch=compute_30,code=\"sm_30,compute_30\" -c coreMyersGPU-CC30.cu -o $(FOLDER_BUILD)/coreMyersGPU30.o
+	$(NVCC) $(NVCC_COMPILE_FLAGS) -gencode arch=compute_30,code=sm_30 -c coreMyersGPU-CC30.cu -o $(FOLDER_BUILD)/coreMyersGPU30.o
 
 $(FOLDER_BUILD)/coreMyersGPU35.o: coreMyersGPU-CC35.cu
-	nvcc $(NVCC_COMPILE_FLAGS) -gencode arch=compute_35,code=\"sm_35,compute_35\" -c coreMyersGPU-CC35.cu -o $(FOLDER_BUILD)/coreMyersGPU35.o
+	$(NVCC) $(NVCC_COMPILE_FLAGS) -gencode arch=compute_35,code=sm_35 -c coreMyersGPU-CC35.cu -o $(FOLDER_BUILD)/coreMyersGPU35.o
 
 $(FOLDER_BUILD)/coreMyersGPU50.o: coreMyersGPU-CC50.cu
-	nvcc $(NVCC_COMPILE_FLAGS) -gencode arch=compute_50,code=\"sm_50,compute_50\" -c coreMyersGPU-CC50.cu -o $(FOLDER_BUILD)/coreMyersGPU50.o
+	$(NVCC) $(NVCC_COMPILE_FLAGS) -gencode arch=compute_50,code=sm_50 -c coreMyersGPU-CC50.cu -o $(FOLDER_BUILD)/coreMyersGPU50.o
 	
 $(FOLDER_BUILD)/myersGPU.o: myersGPU.c
 	gcc $(GCC_COMPILE_FLAGS) $(CUDA_LIBRARY_FLAGS) -c myersGPU.c -o $(FOLDER_BUILD)/myersGPU.o
@@ -97,16 +98,16 @@ test-debug: myersGPU coreMyersGPU20 coreMyersGPU30 coreMyersGPU35 coreMyersGPU50
 	gcc $(GCC_COMPILE_FLAGS) $(CUDA_LIBRARY_FLAGS) test.c $(OBJS) -o ../build/test-debug -fopenmp
 
 coreMyersGPU20:
-	nvcc $(NVCC_COMPILE_FLAGS) arch=compute_20,code=sm_20 -c coreMyersGPU-CC20.cu -o ../build/coreMyersGPU20.o
+	$(NVCC) $(NVCC_COMPILE_FLAGS) arch=compute_20,code=sm_20 -c coreMyersGPU-CC20.cu -o ../build/coreMyersGPU20.o
 	
 coreMyersGPU30:
-	nvcc $(NVCC_COMPILE_FLAGS) arch=compute_30,code=sm_30 -c coreMyersGPU-CC30.cu -o ../build/coreMyersGPU30.o
+	$(NVCC) $(NVCC_COMPILE_FLAGS) arch=compute_30,code=sm_30 -c coreMyersGPU-CC30.cu -o ../build/coreMyersGPU30.o
 	
 coreMyersGPU35:
-	nvcc $(NVCC_COMPILE_FLAGS) arch=compute_35,code=sm_35 -c coreMyersGPU-CC35.cu -o ../build/coreMyersGPU35.o
+	$(NVCC) $(NVCC_COMPILE_FLAGS) arch=compute_35,code=sm_35 -c coreMyersGPU-CC35.cu -o ../build/coreMyersGPU35.o
 	
 coreMyersGPU50:
-	nvcc $(NVCC_COMPILE_FLAGS) arch=compute_50,code=compute_50,sm_50 -c coreMyersGPU-CC50.cu -o ../build/coreMyersGPU50.o
+	$(NVCC) $(NVCC_COMPILE_FLAGS) arch=compute_50,code=compute_50,sm_50 -c coreMyersGPU-CC50.cu -o ../build/coreMyersGPU50.o
 	
 myersGPU:
 	gcc $(GCC_COMPILE_FLAGS) $(CUDA_LIBRARY_FLAGS) -c myersGPU.c -o ../build/myersGPU.o

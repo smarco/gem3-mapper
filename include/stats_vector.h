@@ -45,6 +45,9 @@
  */
 typedef enum { STATS_VECTOR_CUSTOMED_RANGE, STATS_VECTOR_STEP_RANGE, STATS_VECTOR_RAW } stats_vector_type;
 typedef struct {
+  /* Aggregated counter */
+  gem_counter_t aggregated_counter; // TODO TODO TODO TODO TODO TODO TODO TODO TODO
+  /* Stats Vector */
   stats_vector_type type;
   uint64_t* counters;
   uint64_t num_counters;

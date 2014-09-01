@@ -92,7 +92,7 @@ GEM_INLINE void region_profile_generate_fixed(
   } \
   ++num_regions; \
   if (num_regions >= max_regions) { \
-    PROF_INC_COUNTER(GP_QUIT_PROFILE); \
+    PROF_INC_COUNTER(GP_REGION_PROFILE_QUIT_PROFILE); \
     break;\
   } \
 }
@@ -110,7 +110,7 @@ GEM_INLINE void region_profile_generate_adaptive(
     const uint64_t rp_region_th,const uint64_t rp_max_steps,
     const uint64_t rp_dec_factor,const uint64_t rp_region_type_th,const uint64_t max_regions) {
   // FIXME: version that forces to have at least 1 candidate
-  PROF_BEGIN(GP_REGION_PROFILE);
+  PROF_START_TIMER(GP_REGION_PROFILE_ADAPTIVE);
   filtering_region_t* const regions = region_profile->filtering_region;
   uint64_t num_regions = 0, num_standard_regions = 0, last_cut = 0;
   uint64_t lo, hi, hi_cut, lo_cut, expected_count, max_steps;
@@ -184,7 +184,7 @@ GEM_INLINE void region_profile_generate_adaptive(
   regions[num_regions].lo=lo;
   regions[num_regions].hi=hi;
 
-  PROF_END(GP_REGION_PROFILE);
+  PROF_STOP_TIMER(GP_REGION_PROFILE_ADAPTIVE);
 }
 GEM_INLINE void region_profile_generate_full_progressive(
     region_profile_t* const region_profile,region_t* const base_region,
@@ -405,16 +405,38 @@ GEM_INLINE void region_profile_print(
  * Stats
  */
 GEM_INLINE region_profile_stats_t* region_profile_stats_new() {
-  // TODO
-  return NULL;
+  region_profile_stats_t* const region_profile_stats = NULL;
+  GEM_NOT_IMPLEMENTED(); // TODO
+  PROF_BLOCK() {
+
+  }
+  return region_profile_stats;
 }
 GEM_INLINE void region_profile_stats_delete(region_profile_stats_t* const region_profile_stats) {
-  // TODO
-}
-GEM_INLINE void region_profile_stats_record(region_profile_stats_t* const region_profile_stats,region_profile_t* const region_profile) {
-  // TODO
-}
+  GEM_NOT_IMPLEMENTED(); // TODO
+  PROF_BLOCK() {
 
+  }
+}
+GEM_INLINE void region_profile_stats_record(
+    region_profile_stats_t* const region_profile_stats,region_profile_t* const region_profile) {
+  GEM_NOT_IMPLEMENTED(); // TODO
+  PROF_BLOCK() {
+
+  }
+}
+GEM_INLINE void region_profile_stats_print(FILE* const stream,region_profile_stats_t* const region_profile_stats) {
+  GEM_NOT_IMPLEMENTED(); // TODO
+  PROF_BLOCK() {
+    GEM_CHECK_NULL(stream);
+  }
+}
+GEM_INLINE void region_profile_gprof_print(FILE* const stream) {
+  GEM_NOT_IMPLEMENTED(); // TODO
+  PROF_BLOCK() {
+    GEM_CHECK_NULL(stream);
+  }
+}
 
 
 ///////////////////////////////////////////////////////////////////////////////

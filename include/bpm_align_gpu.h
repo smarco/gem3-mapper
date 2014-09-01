@@ -13,6 +13,25 @@
 #include "archive.h"
 #include "bpm_align.h"
 
+/*
+ * Debug
+ */
+#define BPM_GPU_PATTERN_DEBUG
+
+// BMP-GPU Buffer Stats
+typedef struct {
+  uint64_t num_uses;
+  gem_counter_t num_queries;
+  stats_vector_t* num_candidates;
+  stats_vector_t* queries_length;
+  gem_counter_t buffer_peq_usage;
+  gem_counter_t buffer_queries_usage;
+  gem_counter_t buffer_candidates_usage;
+} bpm_gpu_buffer_stats_t;
+
+/*
+ * BMP-GPU Buffer & Collection
+ */
 typedef struct {
   /* BMP-GPU Buffer*/
   void* buffer;
@@ -22,7 +41,12 @@ typedef struct {
   uint32_t num_candidates;
   /* Pattern ID generator */
   uint32_t pattern_id;
-  uint64_t candidates_left;           // Number of candidates left to put in buffer // FIXME maybe remove
+  /* Stats */
+  bpm_gpu_buffer_stats_t bpm_gpu_buffer_stats;
+  /* DEBUG */
+#ifdef BPM_GPU_PATTERN_DEBUG
+  dna_text_t* enc_text;
+#endif
 } bpm_gpu_buffer_t;
 typedef struct {
   void** internal_buffers;            // Internal Buffers
@@ -30,17 +54,21 @@ typedef struct {
   uint64_t num_buffers;               // Total number of buffers allocated
 } bpm_gpu_buffer_collection_t;
 
+
 /*
  * BPM_GPU Setup
  */
 GEM_INLINE bpm_gpu_buffer_collection_t* bpm_gpu_init(
-    const dna_text_t* const enc_text,const uint32_t num_buffers,
+    dna_text_t* const enc_text,const uint32_t num_buffers,
     const int32_t average_query_size,const int32_t candidates_per_query);
 GEM_INLINE void bpm_gpu_destroy(bpm_gpu_buffer_collection_t* const buffer_collection);
 
 /*
  * Buffer Accessors
  */
+GEM_INLINE uint64_t bpm_gpu_buffer_get_max_candidates(bpm_gpu_buffer_t* const bpm_gpu_buffer);
+GEM_INLINE uint64_t bpm_gpu_buffer_get_max_queries(bpm_gpu_buffer_t* const bpm_gpu_buffer);
+
 GEM_INLINE uint64_t bpm_gpu_buffer_get_num_candidates(bpm_gpu_buffer_t* const bpm_gpu_buffer);
 GEM_INLINE uint64_t bpm_gpu_buffer_get_num_queries(bpm_gpu_buffer_t* const bpm_gpu_buffer);
 
@@ -49,10 +77,27 @@ GEM_INLINE bool bpm_gpu_buffer_fits_in_buffer(
     const uint64_t num_patterns,const uint64_t total_pattern_length,const uint64_t total_candidates);
 
 GEM_INLINE void bpm_gpu_buffer_put_pattern(
-    bpm_gpu_buffer_t* const bpm_gpu_buffer,const bpm_pattern_t* const bpm_pattern);
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,bpm_pattern_t* const bpm_pattern);
 GEM_INLINE void bpm_gpu_buffer_put_candidate(
     bpm_gpu_buffer_t* const bpm_gpu_buffer,
     const uint64_t candidate_text_position,const uint64_t candidate_length);
+
+/*
+ * Send/Receive Buffer
+ */
+GEM_INLINE void bpm_gpu_buffer_send(bpm_gpu_buffer_t* const bpm_gpu_buffer);
+GEM_INLINE void bpm_gpu_buffer_receive(bpm_gpu_buffer_t* const bpm_gpu_buffer);
+
+/*
+ * Stats/Profile
+ */
+GEM_INLINE bpm_gpu_buffer_stats_t* bpm_gpu_buffer_stats_new();
+GEM_INLINE void bpm_gpu_buffer_stats_delete(bpm_gpu_buffer_stats_t* const bpm_gpu_buffer_stats);
+GEM_INLINE void bpm_gpu_buffer_stats_record(
+    bpm_gpu_buffer_stats_t* const bpm_gpu_buffer_stats,bpm_gpu_buffer_t* const bpm_gpu_buffer);
+GEM_INLINE void bpm_gpu_buffer_stats_print(
+    FILE* const stream,bpm_gpu_buffer_stats_t* const bpm_gpu_buffer_stats);
+GEM_INLINE void bpm_gpu_buffer_gprof_print(FILE* const stream);
 
 /*
  * Errors

@@ -77,20 +77,13 @@ typedef struct {
  * Region Profile Stats
  */
 typedef struct {
-
-  uint64_t num_profiles;          // Number of samples
-  uint64_t total_regions;         // Total number of regions extracted
-  uint64_t total_unique_regions;  // Total number of unique regions extracted
-  uint64_t total_candidates;      // Total number of candidates determined
-
-  stats_vector_t* regions_per_read;     // Number of regions per read
-  stats_vector_t* candidates_per_read;  // Total candidates per read
-
-  stats_matrix_t* region_length_vs_region_candidates; // Number of candidates depending on the region length
-} region_profile_aggregated_stats_t;
-typedef struct {
-  // TODO // TODO
-  // TODO // TODO
+  uint64_t num_profiles;                      // Number of samples
+  gem_counter_t total_regions;                // Total number of regions extracted
+  gem_counter_t total_unique_regions;         // Total number of unique regions extracted
+  gem_counter_t total_candidates;             // Total number of candidates determined
+  stats_vector_t* regions_per_read;           // Number of regions per read
+  stats_vector_t* candidates_per_read;        // Total candidates per read
+  stats_matrix_t* reglength_vs_regcandidates; // Number of candidates depending on the region length
 } region_profile_stats_t;
 
 /*
@@ -149,12 +142,14 @@ GEM_INLINE void region_profile_print(
     const bool sorted,const bool display_misms_regions);
 
 /*
- * Stats
+ * Stats/Profile
  */
 GEM_INLINE region_profile_stats_t* region_profile_stats_new();
 GEM_INLINE void region_profile_stats_delete(region_profile_stats_t* const region_profile_stats);
-// Record/Sample
-GEM_INLINE void region_profile_stats_record(region_profile_stats_t* const region_profile_stats,region_profile_t* const region_profile);
+GEM_INLINE void region_profile_stats_record(
+    region_profile_stats_t* const region_profile_stats,region_profile_t* const region_profile);
+GEM_INLINE void region_profile_stats_print(FILE* const stream,region_profile_stats_t* const region_profile_stats);
+GEM_INLINE void region_profile_gprof_print(FILE* const stream);
 
 /*
  * Iterator

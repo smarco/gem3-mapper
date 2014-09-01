@@ -73,7 +73,7 @@ GEM_INLINE void approximate_search_parameters_init(approximate_search_parameters
   search_parameters->complete_strata_after_best = 0.0;
   search_parameters->min_matching_length = 0.2;
   // Matches search
-  search_parameters->max_matches = ALL;
+  search_parameters->max_search_matches = ALL;
   // Replacements
   approximate_search_initialize_replacements(search_parameters);
   // Soft RP
@@ -140,8 +140,8 @@ GEM_INLINE void approximate_search_configure_replacements(
   search_parameters->mismatch_alphabet_length = count;
 }
 GEM_INLINE void approximate_search_configure_matches(
-    approximate_search_parameters_t* const search_parameters,const uint64_t max_matches) {
-  search_parameters->max_matches = max_matches;
+    approximate_search_parameters_t* const search_parameters,const uint64_t max_search_matches) {
+  search_parameters->max_search_matches = max_search_matches;
 }
 GEM_INLINE void approximate_search_instantiate_values(
     approximate_search_parameters_t* const search_parameters,const uint64_t pattern_length) {

@@ -61,6 +61,9 @@ GEM_INLINE void filtering_candidates_new(filtering_candidates_t* const filtering
   filtering_candidates->candidate_positions = vector_new(FC_INIT_CANDIDATE_POSITIONS,candidate_position_t);
   // Checked Positions
   filtering_candidates->verified_candidate_positions = vector_new(FC_INIT_CANDIDATE_POSITIONS,uint64_t);
+  // Candidates accepted
+  filtering_candidates->num_candidates_accepted = 0;
+  filtering_candidates->max_candidates_accepted = ALL;
   // Internals
   filtering_candidates->regions_buffer = vector_new(FC_INIT_REGIONS_BUFFER,region_t);
   filtering_candidates->candidates_collection = text_collection_new();
@@ -68,6 +71,8 @@ GEM_INLINE void filtering_candidates_new(filtering_candidates_t* const filtering
 GEM_INLINE void filtering_candidates_clear(filtering_candidates_t* const filtering_candidates) {
   vector_clear(filtering_candidates->regions_buffer);
   vector_clear(filtering_candidates->candidate_positions);
+  filtering_candidates->num_candidates_accepted = 0;
+  filtering_candidates->max_candidates_accepted = ALL;
   text_collection_clear(filtering_candidates->candidates_collection);
   vector_clear(filtering_candidates->verified_candidate_positions);
 }
@@ -76,6 +81,16 @@ GEM_INLINE void filtering_candidates_delete(filtering_candidates_t* const filter
   vector_delete(filtering_candidates->candidate_positions);
   text_collection_delete(filtering_candidates->candidates_collection);
   vector_delete(filtering_candidates->verified_candidate_positions);
+}
+/*
+ * Max candidates accepted
+ */
+GEM_INLINE void filtering_candidates_set_max_candidates_accepted(
+    filtering_candidates_t* const filtering_candidates,const uint64_t max_candidates_accepted) {
+  filtering_candidates->max_candidates_accepted = max_candidates_accepted;
+}
+GEM_INLINE bool filtering_candidates_is_max_candidates_reached(filtering_candidates_t* const filtering_candidates) {
+  return filtering_candidates->num_candidates_accepted >= filtering_candidates->max_candidates_accepted;
 }
 /*
  * Add Candidates
@@ -165,20 +180,24 @@ GEM_INLINE void filtering_candidates_align_levenshtein(
       &position,&text_candidate->cip_alg_distance,max_mismatches);
 }
 GEM_INLINE void filtering_candidates_align(
-    filtering_candidates_t* const filtering_candidates,
-    const pattern_t* const pattern,
+    filtering_candidates_t* const filtering_candidates,const pattern_t* const pattern,
     const approximate_search_parameters_t* const search_parameters,matches_t* const matches) {
+  // Candidates collection
   const text_collection_t* const candidates_collection = filtering_candidates->candidates_collection;
   // Pattern
   const uint8_t* const key = pattern->key;
   const uint64_t key_length = pattern->key_length;
   // Matching Constraints
+  const uint64_t max_search_matches = search_parameters->max_search_matches;
   const bool* const allowed_enc = search_parameters->allowed_enc;
   const uint64_t max_effective_filtering_error = pattern->max_effective_filtering_error;
+  uint64_t num_candidates_accepted = filtering_candidates->num_candidates_accepted;
   // Traverse all candidates (text-space)
   VECTOR_ITERATE(filtering_candidates->candidate_positions,text_candidate,candidate_pos,candidate_position_t) {
     // Skip discarded candidates
     if (text_candidate->cip_candidate_begin_position == FC_POSITION_DISCARDED) continue;
+    // Check matches accepted
+    if (gem_expect_false(num_candidates_accepted > max_search_matches)) break;
     // Candidate
     const text_trace_t* const text_trace = filtering_candidate_get_text_trace(candidates_collection,text_candidate);
     const uint8_t* const text = text_trace->text;
@@ -218,6 +237,7 @@ GEM_INLINE void filtering_candidates_align(
 //          matching_end_pos,
 //          matching_distance_bound
 //        ); // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+        ++num_candidates_accepted;
         continue; // Next
       }
     }
@@ -230,115 +250,16 @@ GEM_INLINE void filtering_candidates_align(
     if (text_candidate->cip_alg_distance != FC_DISTANCE_EXCEED) {
       // Store match
       // TODO
+      ++num_candidates_accepted;
       continue; // Next
     }
 
     // 3. Local match (TODO Store as chunk matching ... try to extend borders)
   }
+  // Update
+  filtering_candidates->num_candidates_accepted = num_candidates_accepted;
 
 
-//  ch_t *key = search_params->key;
-//  const uint64_t* const peq = search_params->peq;
-//  const uint64_t key_len = search_params->key_len;
-//  ch_t* mismatch_mask = search_params->mismatch_mask;
-//  const uint64_t max_indel_len = search_params->max_indel_len;
-//  const bool* const allowed_chars = search_params->allowed_chars;
-//  const uint64_t min_anchor_size = search_params->min_anchor_size;
-//  // const bool unique_mapping = search_params->unique_mapping; // TODO
-//
-//  START_STATS(SC_CHECK_CAND);
-//
-//  uint64_t* cntrs = vector_get_mem(matches->rbuf_counts);
-//  pos_match_t* out = (pos_match_t*)vector_get_mem(matches->rbuf_pos)+vector_get_used(matches->rbuf_pos);
-//  mismatch* misms = (mismatch*)vector_get_mem(matches->rbuf_mismatches)+vector_get_used(matches->rbuf_mismatches);
-//
-//  const uint64_t max_pattern_ext = max_indel_len+UNSAFE_MAX(max_distance,max_mismatches);
-//  vector_prepare(mpool->fbuf2, ch_t, 2*max_pattern_ext+key_len); // We use fbuf2 to store the decoded read
-//  ch_t* decoded = vector_get_mem(mpool->fbuf2);
-//
-//  uint64_t num_matches, i;
-//  uint64_t match_mismatches;
-//  idx_t match_position, match_end_position;
-//  for (i = 0, num_matches=0; i < num_queries; ++i, ++queries) {
-//    INC_COUNTER(GSC_CHECKED_MATCHES);
-//
-//    //
-//    // Check Hamming distance
-//    //
-//    const idx_t position = queries->cip_begin_position;
-//    bool correct = true;
-//    if (position+key_len < a->text_length) {
-//      // Decode
-//      START_STATS(SC_CHECK_DECODE);
-//      idx_t delta_position = position-UNSAFE_MIN(max_distance,queries->cip_begin_position);
-//      idx_t delta = position-delta_position;
-//      idx_t delta_end_key = UNSAFE_MIN(position+key_len+max_distance,a->text_length);
-//      idx_t delta_key_len = delta_end_key-delta_position;
-//      idx_t delta_decoded_len = fmi_decode(a,delta_position,delta_key_len,decoded);
-//      bool exists_gap = false;
-//      if (__builtin_expect(delta_decoded_len < key_len+delta,false)) { // There is a gap (Separator)
-//        exists_gap = true;
-//        const idx_t gap_pos = delta_position+delta_decoded_len;
-//        if (delta_decoded_len < delta) { // Delta gap, so still can try hamming
-//          delta_position = gap_pos+1; // Correct the position
-//          delta_end_key = UNSAFE_MIN(delta_position+key_len+max_distance,a->text_length);
-//          delta_key_len = delta_end_key-delta_position;
-//          delta = position-delta_position;
-//          assert(((int64_t)position-(int64_t)delta_position)>=0);
-//          delta_decoded_len = fmi_decode(a,delta_position,delta_key_len,decoded);
-//          STOP_STATS(SC_CHECK_DECODE);
-//          if (delta_decoded_len >= key_len+delta) {
-//            START_TIMER(TSC_CHECK_HAMMING);
-//            correct = fmi_matches_check_hamming_match(
-//                key,key_len,mismatch_mask,allowed_chars,decoded+delta,
-//                max_mismatches,misms,&match_mismatches,mpool);
-//            STOP_TIMER(TSC_CHECK_HAMMING);
-//          } else {
-//            correct = false;
-//          }
-//        } else {
-//          correct = false; // We go straight to levenshtein
-//          const idx_t chunk_pos = position+queries->end;
-//          if (gap_pos < chunk_pos) {
-//            delta_position = gap_pos+1;
-//            delta_end_key = UNSAFE_MIN(delta_position+key_len+max_distance,a->text_length);
-//          } else { // gap_pos > chunk_pos
-//            delta_end_key = gap_pos+1;
-//          }
-//          delta_key_len = delta_end_key-delta_position;
-//          delta_decoded_len = fmi_decode(a,delta_position,delta_key_len,decoded);
-//          STOP_STATS(SC_CHECK_DECODE);
-//        }
-//      } else {
-//        STOP_STATS(SC_CHECK_DECODE); START_TIMER(TSC_CHECK_HAMMING);
-//        correct = fmi_matches_check_hamming_match(
-//            key,key_len,mismatch_mask,allowed_chars,decoded+delta,
-//            max_mismatches,misms,&match_mismatches,mpool);
-//        STOP_TIMER(TSC_CHECK_HAMMING);
-//      }
-//      if (correct) { // CORRECT Hamming, cool!!
-//        INC_COUNTER(GSC_HAMMING_HIT);
-//        if (store_hamming_matches) {
-//          // FMI_MATCHES_STORE_NEW_MATCH(out,position,key_len,match_mismatches);
-//          FMI_MATCHES_CHECK_DUPLICATES__STORE_MATCH(position,key_len,match_mismatches);
-//        } else {
-//          FMI_MATCHES_ADJUST_MAX_MISMS_USING_DELTA(match_mismatches);
-//        }
-//      } else if (max_distance > 0 && min_anchor_size > 0) {
-//        //
-//        // Check Levenshtein distance
-//        //
-//        if (delta_decoded_len>=key_len || (key_len-delta_decoded_len)<=max_distance) {
-//          START_TIMER(TSC_CHECK_LEVENSHTEIN);
-//          correct = fmi_matches_check_levenshtein_match(
-//              key,peq,key_len,decoded,delta_decoded_len,max_distance,true,
-//              misms,&match_position,&match_end_position,&match_mismatches,mpool);
-//          STOP_TIMER(TSC_CHECK_LEVENSHTEIN);
-//        } else if (exists_gap) {
-//          bool initial_trim = false, final_trim = false;
-//          idx_t initial_trim_len = 0, final_trim_len = 0;
-//          ch_t* offset_key = key;
-//          int64_t offset_key_len = key_len;
 //          if (delta_position > position) { // Initial trim
 //            initial_trim = true;
 //            initial_trim_len = delta_position-position;
@@ -350,39 +271,9 @@ GEM_INLINE void filtering_candidates_align(
 //            final_trim_len = (position+key_len) - (delta_position+delta_decoded_len);
 //            offset_key_len -= final_trim_len;
 //          }
+
 //          if (offset_key_len<(int64_t)min_anchor_size) continue; // No enough anchor
-//          START_TIMER(TSC_CHECK_LEVENSHTEIN);
-//          // Recompute the peq vector
-//          uint64_t* const offset_peq = (uint64_t*)vector_get_mem(mpool->vbuf1)+(key_len*5);
-//          fmi_prepare_pattern_eq(a,offset_key,offset_key_len,offset_peq,allowed_chars,mismatch_mask);
-//          // Adjust the maximum differences allowed
-//          uint64_t max_anchor_distance = (offset_key_len*search_params->max_differences)/key_len;
-//          max_anchor_distance += matches->bad_quality_misms; // TODO: Tight
-//          if (max_anchor_distance > offset_key_len) max_anchor_distance=offset_key_len;
-//          correct = fmi_matches_check_levenshtein_match(
-//              offset_key,offset_peq,offset_key_len,decoded,delta_decoded_len,max_anchor_distance,true,
-//              misms,&match_position,&match_end_position,&match_mismatches,mpool);
-//          STOP_TIMER(TSC_CHECK_LEVENSHTEIN);
-//          if (correct) {
-//            if (initial_trim) {
-//              FMI_MATCHES_ADD_INITIAL_TRIM(misms,initial_trim_len,match_position,match_mismatches);
-//            }
-//            if (final_trim) {
-//              const uint64_t total_len = offset_key_len+(initial_trim?initial_trim_len:0);
-//              FMI_MATCHES_ADD_FINAL_TRIM(misms,final_trim_len,total_len,match_end_position,match_mismatches);
-//            }
-//          }
-//        } else {
-//          correct = false;
-//        }
-//        if (correct) { // CORRECT Levenshtein, cool!!
-//          INC_COUNTER(GSC_LEVENSHTEIN);
-//          match_position+=delta_position; match_end_position+=delta_position;
-//          FMI_MATCHES_CHECK_DUPLICATES__STORE_MATCH(match_position,
-//              (match_end_position-match_position),match_mismatches);
-//        }
-//      }
-//    }
+
 //
 //    //
 //    // Check single-indel distance
@@ -406,15 +297,9 @@ GEM_INLINE void filtering_candidates_align(
 //          (match_end_position-match_position),match_mismatches);
 //    }
 //  }
-//
-//  // Update mismatches and positions counters
-//  vector_update_used(matches->rbuf_mismatches,misms);
-//  vector_update_used(matches->rbuf_pos,out);
-//
-//  STOP_STATS(SC_CHECK_CAND);
 }
 /*
- *
+ * Retrieve all candidates(text) from the index
  */
 GEM_INLINE void filtering_candidates_retrieve_candidates(
     filtering_candidates_t* const filtering_candidates,
@@ -443,7 +328,7 @@ GEM_INLINE void filtering_candidates_retrieve_candidates(
   }
 }
 /*
- *
+ * Filtering adjustment of the position wrt region/seed on which the candidate is based
  */
 GEM_INLINE void filtering_candidates_adjust_position(
     candidate_position_t* const candidate,
@@ -587,7 +472,7 @@ GEM_INLINE void filtering_candidates_decode_candidates_positions(
 //  }
 //}
 /*
- *
+ * Sorting candidates/positions
  */
 int candidate_positions_cmp_position(const candidate_position_t* const a,const candidate_position_t* const b) {
   return a->cip_candidate_begin_position - b->cip_candidate_begin_position;
@@ -602,7 +487,7 @@ GEM_INLINE void filtering_candidates_sort_candidate_positions(const filtering_ca
       (int (*)(const void *,const void *))candidate_positions_cmp_position);
 }
 /*
- *
+ * Filtering discard duplicates & add positions to the list of verified positions
  */
 GEM_INLINE uint64_t filtering_candidates_get_previous_valid_candidate_position(
     const candidate_position_t* const candidates_vector,int64_t* const candidates_vector_idx) {
@@ -665,7 +550,7 @@ GEM_INLINE void filtering_candidates_add_verified_positions(
   // Set used
   vector_add_used(verified_candidate_positions,num_added_positions);
 }
-GEM_INLINE uint64_t filtering_candidates_discard_duplicates(
+GEM_INLINE uint64_t filtering_candidates_discard_duplicates__add_to_verified(
     filtering_candidates_t* const filtering_candidates,const uint64_t max_delta_difference) {
   // Sort candidate positions (text-space)
   filtering_candidates_sort_candidate_positions(filtering_candidates);
@@ -701,6 +586,28 @@ GEM_INLINE uint64_t filtering_candidates_discard_duplicates(
   // Return number of accepted positions
   return num_accepted_positions;
 }
+GEM_INLINE uint64_t filtering_candidates_discard_duplicates(
+    filtering_candidates_t* const filtering_candidates,const uint64_t max_delta_difference) {
+  // Sort candidate positions (text-space)
+  filtering_candidates_sort_candidate_positions(filtering_candidates);
+  // Traverse positions and eliminate duplicates
+  vector_t* const candidate_positions = filtering_candidates->candidate_positions;
+  uint64_t last_position = UINT64_MAX, num_accepted_positions = 0;
+  VECTOR_ITERATE(candidate_positions,text_candidate,n,candidate_position_t) {
+    // Check the position for duplicates (against previous position)
+    const uint64_t position = text_candidate->cip_candidate_begin_position;
+    const uint64_t delta = last_position<=position ? position-last_position : UINT64_MAX;
+    if (delta <= max_delta_difference) { // TODO delta=0 => Discard & delta>0 => Extend check
+      text_candidate->cip_candidate_begin_position = FC_POSITION_DISCARDED;
+      continue; // Repeated position
+    }
+    // Accept the candidate
+    ++num_accepted_positions;
+    last_position = position;
+  }
+  // Return number of accepted positions
+  return num_accepted_positions;
+}
 /*
  * Batch decode of all candidate positions (index-space -> text-space)
  *   (All the steps (CSA-lookup, rankQueries) are performed with prefetch-loops)
@@ -727,7 +634,7 @@ GEM_INLINE void filtering_candidates_verify_pending(
 //  }
 
   // Filter out duplicated positions (or already checked)
-  pending_candidates = filtering_candidates_discard_duplicates(filtering_candidates,boundary_error);
+  pending_candidates = filtering_candidates_discard_duplicates__add_to_verified(filtering_candidates,boundary_error);
   if (pending_candidates==0) return;
 
   // Retrieve text-candidates
@@ -736,6 +643,46 @@ GEM_INLINE void filtering_candidates_verify_pending(
   // Verify candidates
   matches_hint_add_match_trace(matches,pending_candidates); // Hint to matches
   filtering_candidates_align(filtering_candidates,pattern,search_parameters,matches);
+}
+GEM_INLINE uint64_t filtering_candidates_add_to_bpm_buffer(
+    filtering_candidates_t* const filtering_candidates,
+    const locator_t* const locator,const fm_index_t* const fm_index,
+    const dna_text_t* const enc_text,const pattern_t* const pattern,
+    const approximate_search_parameters_t* const search_parameters,
+    bpm_gpu_buffer_t* const bpm_gpu_buffer) {
+  // Batch decode+adjust of all positions of the candidates (cip_begin_position = decoded(cip_region_index_position))
+  const uint64_t key_length = pattern->key_length;
+  const uint64_t boundary_error = search_parameters->max_search_error_nominal;
+//  if (pending_candidates < FC_DECODE_NUM_POSITIONS_PREFETCHED) {
+    filtering_candidates_decode_candidates_positions(
+        locator,fm_index,filtering_candidates->candidate_positions,key_length,boundary_error);
+//  } else {  // TODO Enable batch decode
+//    filtering_candidates_decode_candidates_positions_batch_prefetched(
+//        locator,fm_index,filtering_candidates->candidate_text_positions,key_length,boundary_error);
+//  }
+
+  // Filter out duplicated positions
+  const uint64_t pending_candidates =
+      filtering_candidates_discard_duplicates(filtering_candidates,boundary_error);
+  if (pending_candidates==0) return 0;
+
+  // Add the pattern to the buffer (add a new query)
+  bpm_gpu_buffer_put_pattern(bpm_gpu_buffer,(bpm_pattern_t* const)&pattern->bpm_pattern);
+  // Traverse all candidates (text-space) & add them to the buffer
+  const uint64_t num_candidates = vector_get_used(filtering_candidates->candidate_positions);
+  candidate_position_t* text_candidate = vector_get_mem(filtering_candidates->candidate_positions,candidate_position_t);
+  uint64_t candidate_pos;
+  for (candidate_pos=0;candidate_pos<num_candidates;++candidate_pos,++text_candidate) {
+    const uint64_t eff_candidate_begin_position = text_candidate->cip_eff_candidate_begin_position;
+    const uint64_t eff_text_length = text_candidate->cip_eff_candidate_end_position - eff_candidate_begin_position;
+    bpm_gpu_buffer_put_candidate(bpm_gpu_buffer,eff_candidate_begin_position,eff_text_length);
+  }
+
+  // Clear candidates (makes no sense to keep storing anything)
+  filtering_candidates_clear(filtering_candidates);
+
+  // Return the final number of candidates added to the buffer
+  return num_candidates;
 }
 
 

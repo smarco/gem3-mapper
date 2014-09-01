@@ -17,7 +17,7 @@ release: setup
 	$(MAKE) --directory=tools
 	
 debug: setup
-	$(MAKE) --directory=resources debug
+	$(MAKE) --directory=resources
 	$(MAKE) --directory=src debug
 	$(MAKE) --directory=tools debug
 	

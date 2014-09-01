@@ -10,7 +10,7 @@
 /*
  * Archive Search Setup
  */
-GEM_INLINE archive_search_t* archive_search_new(archive_t* const archive) {
+GEM_INLINE archive_search_t* archive_search_new(archive_t* const archive,mm_stack_t* const mm_stack) {
   ARCHIVE_CHECK(archive);
   // Allocate handler
   archive_search_t* const archive_search = mm_alloc(archive_search_t);
@@ -20,7 +20,7 @@ GEM_INLINE archive_search_t* archive_search_new(archive_t* const archive) {
   archive_search->sequence = sequence_new(); // Input
   archive_search->rc_sequence = sequence_new(); // Generated
   // MM
-  archive_search->mm_stack = mm_stack_new(mm_pool_get_slab(mm_pool_2MB));
+  archive_search->mm_stack = mm_stack;
   // Approximate Search
   approximate_search_parameters_t* const search_parameters = &(archive_search->search_parameters);
   approximate_search_parameters_init(search_parameters); // Init parameters (defaults)
@@ -34,7 +34,7 @@ GEM_INLINE archive_search_t* archive_search_new(archive_t* const archive) {
   archive_search->probe_strand = true;
   archive_search->search_reverse = !archive->indexed_complement;
   // Matches
-  archive_search->matches = matches_new(mm_pool_get_slab(mm_pool_8MB));
+  archive_search->matches = matches_new();
   // Return
   return archive_search;
 }
@@ -52,10 +52,15 @@ GEM_INLINE void archive_search_delete(archive_search_t* const archive_search) {
   // Delete Approximate Search
   approximate_search_delete(archive_search->forward_search_state);
   approximate_search_delete(archive_search->reverse_search_state);
-  // Delete mm_stack
-  mm_stack_delete(archive_search->mm_stack);
   // Free handler
   mm_free(archive_search);
+}
+GEM_INLINE void archive_search_set_mm_stack(archive_search_t* const archive_search,mm_stack_t* const mm_stack) {
+  // MM
+  archive_search->mm_stack = mm_stack;
+  // Approximate Search
+  approximate_search_set_mm_stack(archive_search->forward_search_state,mm_stack);
+  approximate_search_set_mm_stack(archive_search->reverse_search_state,mm_stack);
 }
 /*
  * Archive Search [Accessors]
@@ -108,50 +113,39 @@ GEM_INLINE void archive_search_prepare_sequence(archive_search_t* const archive_
 }
 GEM_INLINE void archive_search_single_end(archive_search_t* const archive_search) {
   ARCHIVE_SEARCH_CHECK(archive_search);
-  const archive_t* const archive = archive_search->archive;
-  approximate_search_parameters_t* const search_parameters = &(archive_search->search_parameters);
   // Prepare pattern(s)
   archive_search_prepare_sequence(archive_search);
   // Clean Matches
   archive_search_clear(archive_search);
   // Search the pattern(s)
-  approximate_search_t* const forward_search_state = archive_search->forward_search_state;
-  if (archive->indexed_complement) {
+  approximate_search_t* const forward_asearch = archive_search->forward_search_state;
+  if (!archive_search->search_reverse) {
     // Compute the full search
-    forward_search_state->stop_search_stage = asearch_end; // Don't stop until search is done
-    forward_search_state->search_strand = Forward;
-    approximate_search(forward_search_state,archive_search->matches);
+    forward_asearch->stop_search_stage = asearch_end; // Don't stop until search is done
+    forward_asearch->search_strand = Forward;
+    approximate_search(forward_asearch,archive_search->matches);
   } else {
+    approximate_search_parameters_t* const search_parameters = &(archive_search->search_parameters);
     // Configure search stage to stop at
-    forward_search_state->stop_search_stage =
+    forward_asearch->stop_search_stage =
         (search_parameters->complete_strata_after_best_nominal <
-            forward_search_state->max_differences && archive_search->probe_strand) ? asearch_neighborhood : asearch_end;
+            forward_asearch->max_differences && archive_search->probe_strand) ? asearch_neighborhood : asearch_end;
     // Run the search (FORWARD)
-    forward_search_state->search_strand = Forward; // Configure forward search
-    approximate_search(forward_search_state,archive_search->matches);
+    forward_asearch->search_strand = Forward; // Configure forward search
+    approximate_search(forward_asearch,archive_search->matches);
     // Check the number of matches & keep searching
-    if (matches_get_num_matches(archive_search->matches) > search_parameters->max_matches) {
-      // Give up searching (More matches than requested)
-      forward_search_state->max_complete_stratum = 0;
-    } else {
+    if (!forward_asearch->max_matches_reached) {
       // Keep on searching
-      approximate_search_t* const reverse_asearch_state = archive_search->reverse_search_state;
-      reverse_asearch_state->stop_search_stage = asearch_end; // Force a full search
+      approximate_search_t* const reverse_asearch = archive_search->reverse_search_state;
+      reverse_asearch->stop_search_stage = asearch_end; // Force a full search
       // Run the search (REVERSE)
-      if (archive_search->search_reverse) {
-        reverse_asearch_state->search_strand = Reverse; // Configure reverse search
-        approximate_search(reverse_asearch_state,archive_search->matches);
-      }
+      reverse_asearch->search_strand = Reverse; // Configure reverse search
+      approximate_search(reverse_asearch,archive_search->matches);
       // Resume forward search (if not completed before)
-      if (forward_search_state->current_search_stage != asearch_end) {
-        if (matches_get_num_matches(archive_search->matches) > search_parameters->max_matches) {
-          // Give up searching (More matches than requested)
-          forward_search_state->max_complete_stratum = 0;
-        } else {
-          forward_search_state->stop_search_stage = asearch_end;
-          forward_search_state->search_strand = Forward; // Configure forward search
-          approximate_search(forward_search_state,archive_search->matches);
-        }
+      if (forward_asearch->current_search_stage != asearch_end && !forward_asearch->max_matches_reached) {
+        forward_asearch->stop_search_stage = asearch_end;
+        forward_asearch->search_strand = Forward; // Configure forward search
+        approximate_search(forward_asearch,archive_search->matches);
       }
     }
   }

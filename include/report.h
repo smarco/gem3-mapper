@@ -192,8 +192,8 @@ typedef struct {
   uint64_t step_ticks;
   // Timer
   bool timed;
-  struct timeval begin_timer;
-  struct timeval end_timer;
+  struct timespec begin_timer;
+  struct timespec end_timer;
   // Labels
   char* process_begin;
   char* process_end;

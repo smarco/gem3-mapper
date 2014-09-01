@@ -45,7 +45,7 @@ typedef struct {
   float min_matching_length;
   uint64_t min_matching_length_nominal;        // Minimum mapping segment size (verifying candidates)
   /* Matches search (Regulates the number of matches) */
-  uint64_t max_matches;
+  uint64_t max_search_matches;
   /* Replacements (Regulates the bases that can be replaced/mismatched) */
   char mismatch_alphabet[DNA_EXT_RANGE];
   uint64_t mismatch_alphabet_length;
@@ -96,7 +96,7 @@ GEM_INLINE void approximate_search_configure_replacements(
     approximate_search_parameters_t* const search_parameters,
     char* const mismatch_alphabet,const uint64_t mismatch_alphabet_length);
 GEM_INLINE void approximate_search_configure_matches(
-    approximate_search_parameters_t* const search_parameters,const uint64_t max_matches);
+    approximate_search_parameters_t* const search_parameters,const uint64_t max_search_matches);
 
 GEM_INLINE void approximate_search_instantiate_values(
     approximate_search_parameters_t* const search_parameters,const uint64_t pattern_length);

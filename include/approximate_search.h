@@ -43,15 +43,15 @@ typedef struct {
   approximate_search_stage_t stop_search_stage;       // Search stage to stop at
   uint64_t max_differences;
   uint64_t max_complete_stratum;
-  bool max_matches_reached;                           // Quick abandon due to maximum matches reached
+  uint64_t max_matches_reached;                       // Quick abandon due to maximum matches found
   /* Search Auxiliary Structures */
   region_profile_t region_profile;                    // Region Profile
   uint64_t num_potential_candidates;                  // Total number of candidates generated
   filtering_candidates_t filtering_candidates;        // Filtering Candidates
   interval_set_t intervals_result;                    // Interval Set (to hold intervals from neighborhood searches)
   // TODO
-  /* MM */
-  mm_stack_t* mm_stack;  // Memory stack
+  // MM
+  mm_stack_t* mm_stack;
 } approximate_search_t;
 
 /*
@@ -62,6 +62,7 @@ GEM_INLINE approximate_search_t* approximate_search_new(
     approximate_search_parameters_t* const parameters,mm_stack_t* const mm_stack);
 GEM_INLINE void approximate_search_clear(approximate_search_t* const search);
 GEM_INLINE void approximate_search_delete(approximate_search_t* const search);
+GEM_INLINE void approximate_search_set_mm_stack(approximate_search_t* const search,mm_stack_t* const mm_stack);
 
 /*
  * Accessors
@@ -77,7 +78,6 @@ GEM_INLINE void approximate_search_prepare_pattern(
 
 // ASM-Search!!
 GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t* const matches);
-
 
 
 //GEM_INLINE uint64_t fmi_mismatched_search_extend(

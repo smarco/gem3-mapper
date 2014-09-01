@@ -462,9 +462,9 @@ int main(int argc,char** argv) {
   parse_arguments(argc,argv);
 
   // GEM Runtime setup
-  gem_runtime_init(parameters.num_threads,parameters.max_memory,parameters.tmp_folder,NULL);
+  gem_runtime_init(parameters.max_memory,parameters.tmp_folder,NULL);
   gem_info_set_stream(fopen(parameters.info_file_name,"wb")); // Set INFO file
-  RESET__START_TIMER(&gem_indexer_timer); // Start global timer
+  TIMER_RESTART(&gem_indexer_timer); // Start global timer
 
   // GEM Archive Builder
   fm_t* const index_file = fm_open_file(parameters.output_index_file_name,FM_WRITE);
@@ -495,10 +495,10 @@ int main(int argc,char** argv) {
   /*
    * Display end banner
    */
-  STOP_TIMER(&gem_indexer_timer);
+  TIMER_STOP(&gem_indexer_timer);
   if (parameters.verbose) {
     tfprintf(stderr,"[GEM Index '%s' was successfully built in %2.3f min.] (see '%s.info' for further info)\n",
-        parameters.output_index_file_name,GET_TIMER(&gem_indexer_timer)/60.0,
+        parameters.output_index_file_name,TIMER_GET_S(&gem_indexer_timer)/60.0,
         parameters.output_index_file_name_prefix);
   }
 

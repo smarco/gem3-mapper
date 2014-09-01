@@ -222,7 +222,7 @@ GEM_INLINE void ticker_percentage_reset(
   ticker->finish_end="";
   // Set time
   ticker->timed=timed;
-  if (timed) gettimeofday(&(ticker->begin_timer),NULL);
+  if (timed) clock_gettime(CLOCK_REALTIME,&ticker->begin_timer);
 }
 GEM_INLINE void ticker_count_reset(
     ticker_t* const ticker,const bool enabled,const char* const label,
@@ -247,7 +247,7 @@ GEM_INLINE void ticker_count_reset(
   ticker->finish_end="";
   // Set time
   ticker->timed=timed;
-  if (timed) gettimeofday(&(ticker->begin_timer),NULL);
+  if (timed) clock_gettime(CLOCK_REALTIME,&ticker->begin_timer);
 }
 GEM_INLINE void ticker_percentage_finish(ticker_t* const ticker) {
   if (!ticker->enabled || ticker->finished) return;
@@ -255,10 +255,10 @@ GEM_INLINE void ticker_percentage_finish(ticker_t* const ticker) {
   ticker->finished = true;
   // Print
   if (ticker->timed) {
-    gettimeofday(&(ticker->end_timer),NULL);
+    clock_gettime(CLOCK_REALTIME,&ticker->end_timer);
     tfprintf(gem_log_get_stream(),"%s 100%% %s ...done [%2.3f s]\n",
         ticker->finish_begin,ticker->finish_end,
-        TIME_DIFF(ticker->begin_timer,ticker->end_timer));
+        TIME_DIFF_S(ticker->begin_timer,ticker->end_timer));
   } else {
     tfprintf(gem_log_get_stream(),"%s 100%% %s ...done.\n",ticker->finish_begin,ticker->finish_end);
   }
@@ -269,10 +269,10 @@ GEM_INLINE void ticker_count_finish(ticker_t* const ticker) {
   ticker->finished = true;
   // Print
   if (ticker->timed) {
-    gettimeofday(&(ticker->end_timer),NULL);
+    clock_gettime(CLOCK_REALTIME,&ticker->end_timer);
     tfprintf(gem_log_get_stream(),"%s %lu %s ...done [%2.3f s]\n",
         ticker->finish_begin,ticker->global_ticks,ticker->finish_end,
-        TIME_DIFF(ticker->begin_timer,ticker->end_timer));
+        TIME_DIFF_S(ticker->begin_timer,ticker->end_timer));
   } else {
     tfprintf(gem_log_get_stream(),"%s %lu %s ...done.\n",ticker->finish_begin,ticker->global_ticks,ticker->finish_end);
   }

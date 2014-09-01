@@ -157,7 +157,8 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
   buffered_input_file_attach_buffered_output(mapper_search->buffered_fasta_input,mapper_search->buffered_output_file);
 
   // Create an Archive-Search
-  mapper_search->archive_search = archive_search_new(parameters->archive);
+  mm_stack_t* const mm_stack = mm_stack_new(mm_pool_get_slab(mm_pool_2MB));
+  mapper_search->archive_search = archive_search_new(parameters->archive,mm_stack);
   mapper_SE_configure_archive_search(mapper_search->archive_search,parameters);
 
   // FASTA/FASTQ reading loop
@@ -168,6 +169,7 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
     // TODO: Check INPUT_STATUS_FAIL
 
     // Search into the archive
+    mm_stack_free(mm_stack); // Free stack for new use
     archive_search_single_end(mapper_search->archive_search);
 
     // Select matches
@@ -181,6 +183,7 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
         parameters,mapper_search->buffered_output_file,
         archive_search_get_sequence(mapper_search->archive_search),
         archive_search_get_matches(mapper_search->archive_search));
+
   }
 
   // Clean up

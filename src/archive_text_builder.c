@@ -316,7 +316,7 @@ GEM_INLINE void archive_builder_process_run_length_text(
     archive_builder_t* const archive_builder,const bool dump_run_length_text,const bool verbose) {
   // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
 //  // Allocate RL-text
-//  archive_builder->rl_text = cdna_text_new(mm_pool_get_slab(mm_pool_32MB));
+//  archive_builder->rl_text = cdna_text_new();
 //  // Init SA-Builder
 //  sa_builder_count_begin(archive_builder->sa_builder);
 //  // Init iterator & run-counters

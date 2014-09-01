@@ -26,7 +26,8 @@ typedef enum
  PROFILE_REFERENCE_FILE,
  ASCII,
  GEM
-} refCoding_t;
+} _reference_coding;
+typedef _reference_coding refCoding_t;
 typedef enum
 {
   ARCH_TESLA     = UINT32_ONE_MASK << 0,
@@ -37,7 +38,8 @@ typedef enum
  ARCH_MAXWELL    = UINT32_ONE_MASK << 5,
  ARCH_NEWGEN     = UINT32_ONE_MASK << 31,
  ARCH_SUPPORTED  = ARCH_FERMI_1G | ARCH_FERMI_2G | ARCH_KEPLER_1G | ARCH_KEPLER_2G | ARCH_MAXWELL | ARCH_NEWGEN
-} devArch_t;
+} _dev_arch;
+typedef _dev_arch devArch_t;
 
 /*
  * Common types for Device & Host

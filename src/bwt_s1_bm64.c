@@ -122,7 +122,7 @@ struct _bwt_block_elms_t {
  */
 GEM_INLINE void bwt_builder_initialize(
     bwt_builder_t* const bwt_builder,const uint64_t bwt_text_length,
-    const uint64_t* const character_occurrences,mm_slab_t* const mm_slab) {
+    const uint64_t* const character_occurrences) {
   struct _bwt_t* const bwt = &bwt_builder->bwt;
   /*
    * Meta-Data
@@ -235,14 +235,14 @@ GEM_INLINE void bwt_builder_write_minor_block(
  */
 GEM_INLINE bwt_builder_t* bwt_builder_new(
     dna_text_t* const bwt_text,const uint64_t* const character_occurrences,
-    const bool check,const bool verbose,mm_slab_t* const mm_slab) {
+    const bool check,const bool verbose) {
   // TODO Checks
   /*
    * Allocate & initialize builder
    */
   bwt_builder_t* const bwt_builder = mm_alloc(bwt_builder_t);
   const uint64_t bwt_length = dna_text_get_length(bwt_text);
-  bwt_builder_initialize(bwt_builder,bwt_length,character_occurrences,mm_slab);
+  bwt_builder_initialize(bwt_builder,bwt_length,character_occurrences);
   /*
    * Compute BWT & write
    */

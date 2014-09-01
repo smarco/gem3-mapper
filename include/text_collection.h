@@ -35,7 +35,7 @@ typedef struct {
 typedef struct {
   /* Text-Blocks */
   vector_t* text_traces;        // Text-Traces (text_trace_t)
-  svector_t* text_buffer;       // Encoded Text Buffer (uint8_t)
+  // svector_t* text_buffer;       // Encoded Text Buffer (uint8_t) // TODO Graph
   vector_t* trace_block_vector; // Traces (trace_block_t)
 } text_collection_t;
 
