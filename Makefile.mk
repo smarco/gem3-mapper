@@ -37,6 +37,8 @@ FOLDER_TOOLS=$(ROOT_PATH)/tools
 HAVE_ZLIB = 1
 HAVE_BZLIB = 1
 HAVE_OPENMP = 1
+HAVE_CUDA = 
+
 # OpenMP Lib
 ifeq ($(HAVE_OPENMP),1)
   DEF_OPENMP=-DHAVE_OPENMP
@@ -52,6 +54,13 @@ ifeq ($(HAVE_BZLIB),1)
   DEF_BZLIB=-DHAVE_BZLIB
   LIBS_BZLIB+=-lbz2
 endif
+# CUDA Lib
+ifeq ($(HAVE_CUDA),1)
+  DEF_CUDA=-DHAVE_CUDA
+  CUDA_PATH=
+  NVCC=$(CUDA_PATH)/bin/nvcc
+  CUDA_LIBRARY_FLAGS=-L$(CUDA_PATH)/lib64 -I$(CUDA_PATH)/include -lcuda -lcudart
+endif
 
 # Flags
 ARCH_FLAGS=-D__LINUX__
@@ -62,8 +71,6 @@ OPT_FLAGS=-Ofast $(ARCH_OPT_FLAGS) # -fomit-frame-pointer -ftree-vectorize
 
 INCLUDE_FLAGS=-I$(FOLDER_INCLUDE) -I$(FOLDER_RESOURCES_INCLUDE)
 LIB_PATH_FLAGS=-L$(FOLDER_LIB) -L$(FOLDER_RESOURCES_LIB)
-
-CUDA_LIBRARY_FLAGS=-L/usr/local/cuda/lib64 -I/usr/local/cuda/include -lcuda -lcudart
 
 SUPPRESS_CHECKS=-DNDEBUG
 DEBUG_FLAGS=-g -ggdb3 -rdynamic -DGEM_DEBUG 

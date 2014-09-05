@@ -1,7 +1,7 @@
 #============================================================================
 # PROJECT: GEM library
 # FILE: Makefile
-# DATE: 31/10/2012
+# DATE: 04/09/2014
 # DESCRIPTION: 
 #============================================================================
 
@@ -12,14 +12,18 @@ include ../Makefile.mk
 all: release
 
 release: setup
+ifeq ($(HAVE_CUDA),1)
 	$(MAKE) --directory=myers_gpu
-
+endif
 debug: setup
-  $(MAKE) --directory=myers_gpu all
-  
+ifeq ($(HAVE_CUDA),1)
+	$(MAKE) --directory=myers_gpu all
+endif
 setup: 
 	@mkdir -p build
 
 clean:
+ifeq ($(HAVE_CUDA),1)
 	$(MAKE) --directory=myers_gpu clean
+endif
 	@rm -rf build

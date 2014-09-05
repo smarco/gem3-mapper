@@ -78,8 +78,8 @@ inline __device__ uint32_t select_CC50(const uint32_t indexWord,
 	return value;
 }
 
-__device__ void myerslocalMaxwellKernel_CC50( const d_qryEntry_t *d_queries, const uint32_t * __restrict d_reference, const candInfo_t *d_candidates,
-											 const uint32_t *d_reorderBuffer, resEntry_t *d_reorderResults, const qryInfo_t *d_qinfo,
+__device__ void myerslocalMaxwellKernel_CC50( const d_qryEntry_t *d_queries, const uint32_t * __restrict d_reference, const bpm_gpu_cand_info_t *d_candidates,
+											 const uint32_t *d_reorderBuffer, bpm_gpu_res_entry_t *d_reorderResults, const bpm_gpu_qry_info_t *d_qinfo,
 								 			 const uint32_t idCandidate, const uint32_t sizeRef, const uint32_t numReorderedResults,
 											 const uint32_t intraQueryThreadIdx, const uint32_t threadsPerQuery)
 {
@@ -103,12 +103,12 @@ __device__ void myerslocalMaxwellKernel_CC50( const d_qryEntry_t *d_queries, con
 		const uint32_t numEntriesPerCandidate = (sizeCandidate / REFERENCE_CHARS_PER_ENTRY) + ((sizeCandidate % REFERENCE_CHARS_PER_ENTRY) ? 2 : 1);
 		uint32_t candidate;
 
-		const uint32_t mask = ((sizeQuery % UINT32_LENGTH) == 0) ? UINT32_ONE_LAST_MASK : 1 << ((sizeQuery % UINT32_LENGTH) - 1);
+		const uint32_t mask = ((sizeQuery % BMP_GPU_UINT32_LENGTH) == 0) ? UINT32_ONE_LAST_MASK : 1 << ((sizeQuery % BMP_GPU_UINT32_LENGTH) - 1);
 		int32_t  score = sizeQuery, minScore = sizeQuery;
 		uint32_t idColumn = 0, minColumn = 0, indexBase;
 		uint32_t intraBase, idEntry;
 
-		indexWord = ((sizeQuery - 1) & (PEQ_LENGTH_PER_CUDA_THREAD - 1)) / UINT32_LENGTH;
+		indexWord = ((sizeQuery - 1) & (PEQ_LENGTH_PER_CUDA_THREAD - 1)) / BMP_GPU_UINT32_LENGTH;
 
 		if((positionRef < sizeRef) && ((sizeRef - positionRef) > sizeCandidate)){
 
@@ -210,8 +210,8 @@ __device__ void myerslocalMaxwellKernel_CC50( const d_qryEntry_t *d_queries, con
 	}
 }
 
-__global__ void myersMaxwellKernel_CC50(const d_qryEntry_t *d_queries, const uint32_t * d_reference, const candInfo_t *d_candidates, const uint32_t *d_reorderBuffer,
-						    		   resEntry_t *d_reorderResults, const qryInfo_t *d_qinfo, const uint32_t sizeRef,  const uint32_t numReorderedResults,
+__global__ void myersMaxwellKernel_CC50(const d_qryEntry_t *d_queries, const uint32_t * d_reference, const bpm_gpu_cand_info_t *d_candidates, const uint32_t *d_reorderBuffer,
+						    		   bpm_gpu_res_entry_t *d_reorderResults, const bpm_gpu_qry_info_t *d_qinfo, const uint32_t sizeRef,  const uint32_t numReorderedResults,
 						    		   uint32_t *d_initPosPerBucket, uint32_t *d_initWarpPerBucket, uint32_t numWarps)
 {
 	uint32_t bucketIdx = 0;

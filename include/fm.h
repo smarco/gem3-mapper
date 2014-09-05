@@ -13,6 +13,7 @@
 #include "commons.h"
 #include "mm.h"
 
+// TODO: At configure time check if bzlib is installed HAVE_BZLIB (libbz2-dev)
 #include <zlib.h>
 #include <bzlib.h>
 

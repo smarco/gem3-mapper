@@ -15,7 +15,7 @@ Common constants for Device & Host
 
 /* Defines related to Reference representation */
 #define	REFERENCE_CHAR_LENGTH		4
-#define	REFERENCE_CHARS_PER_ENTRY	(UINT32_LENGTH / REFERENCE_CHAR_LENGTH)
+#define	REFERENCE_CHARS_PER_ENTRY	(BMP_GPU_UINT32_LENGTH / REFERENCE_CHAR_LENGTH)
 #define REFERENCE_END_PADDING		1250
 
 /* Defines related to GPU Architecture */
@@ -83,9 +83,9 @@ typedef struct {
 typedef struct {
 	uint32_t	numResults;
  	uint32_t	numReorderedResults;
-	resEntry_t	*h_results;
-	resEntry_t	*h_reorderResults;
-	resEntry_t	*d_reorderResults;
+	bpm_gpu_res_entry_t	*h_results;
+	bpm_gpu_res_entry_t	*h_reorderResults;
+	bpm_gpu_res_entry_t	*d_reorderResults;
 } results_buffer_t;
 
 typedef struct {
@@ -102,20 +102,20 @@ typedef struct {
 
 typedef struct {
 	uint32_t 	numCandidates;
-	candInfo_t 	*h_candidates;
-	candInfo_t 	*d_candidates;
+	bpm_gpu_cand_info_t 	*h_candidates;
+	bpm_gpu_cand_info_t 	*d_candidates;
 } candidates_buffer_t;
 
 
 typedef struct {
-	uint32_t	numDevices;
-	uint32_t	numSupportedDevices;
-	uint32_t	idDevice;
-	uint32_t	idSupportedDevice;
-	devArch_t	architecture;
-	uint32_t	cudaCores;
-	uint32_t	frequency;   /*Mhz*/
-	float		relativePerformance;
+	uint32_t			numDevices;
+	uint32_t			numSupportedDevices;
+	uint32_t			idDevice;
+	uint32_t			idSupportedDevice;
+	bpm_gpu_dev_arch_t	architecture;
+	uint32_t			cudaCores;
+	uint32_t			frequency;   /*Mhz*/
+	float				relativePerformance;
 } device_info_t;
 
 
@@ -124,7 +124,7 @@ Specific types for the Devices (GPUs)
 **************************************/
 
 typedef struct {
-	uint4 bitmap[PEQ_ALPHABET_SIZE];
+	uint4 bitmap[BMP_GPU_PEQ_ALPHABET_SIZE];
 } d_qryEntry_t;
 
 typedef struct {
@@ -132,8 +132,8 @@ typedef struct {
 	uint32_t		numQueries;
 	d_qryEntry_t	*h_queries;
 	d_qryEntry_t	*d_queries;
-	qryInfo_t		*h_qinfo;
-	qryInfo_t		*d_qinfo;
+	bpm_gpu_qry_info_t		*h_qinfo;
+	bpm_gpu_qry_info_t		*d_qinfo;
 } d_queries_buffer_t;
 
 
@@ -142,12 +142,12 @@ Specific types for the Host (CPU)
 **************************************/
 
 typedef struct {
-	uint32_t 	totalQueriesEntries;
-	uint32_t 	numQueries;
-	qryEntry_t 	*h_queries;
-	qryEntry_t 	*d_queries;
-	qryInfo_t 	*h_qinfo;
-	qryInfo_t 	*d_qinfo;
+	uint32_t 				totalQueriesEntries;
+	uint32_t 				numQueries;
+	bpm_gpu_qry_entry_t 	*h_queries;
+	bpm_gpu_qry_entry_t 	*d_queries;
+	bpm_gpu_qry_info_t 				*h_qinfo;
+	bpm_gpu_qry_info_t 				*d_qinfo;
 } queries_buffer_t;
 
 

@@ -22,12 +22,12 @@ debug: setup
 	$(MAKE) --directory=tools debug
 	
 static:	setup
-  $(MAKE) --directory=resources
+	$(MAKE) --directory=resources
 	$(MAKE) --directory=src
 	$(MAKE) --directory=tools static
 	
 profile: setup
-  $(MAKE) --directory=resources
+	$(MAKE) --directory=resources
 	$(MAKE) --directory=src profile
 	$(MAKE) --directory=tools profile
 

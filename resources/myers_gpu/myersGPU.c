@@ -40,42 +40,42 @@ MYERS_INLINE void MyersError(myersError_t err, const char *file,  int line ) {
 Functions to get the Myers buffers
 ************************************************************/
 
-MYERS_INLINE uint32_t getMaxPEQEntries(void *myersBuffer){
+MYERS_INLINE uint32_t bpm_gpu_buffer_get_max_peq_entries_(void *myersBuffer){
 	buffer_t *mBuff = (buffer_t *) myersBuffer;
 	return(mBuff->maxPEQEntries);
 }
 
-MYERS_INLINE uint32_t getMaxCandidates(void *myersBuffer){
+MYERS_INLINE uint32_t bpm_gpu_buffer_get_max_candidates_(void *myersBuffer){
 	buffer_t *mBuff = (buffer_t *) myersBuffer;
 	return(mBuff->maxCandidates);
 }
 
-MYERS_INLINE uint32_t getMaxQueries(void *myersBuffer){
+MYERS_INLINE uint32_t bpm_gpu_buffer_get_max_queries_(void *myersBuffer){
 	buffer_t *mBuff = (buffer_t *) myersBuffer;
 	return(mBuff->maxQueries);
 }
 
-MYERS_INLINE qryEntry_t* getPEQBuffer(void *myersBuffer){
+MYERS_INLINE bpm_gpu_qry_entry_t* bpm_gpu_buffer_get_peq_entries_(void *myersBuffer){
 	buffer_t *mBuff = (buffer_t *) myersBuffer;
 	return(mBuff->queries->h_queries);
 }
 
-MYERS_INLINE candInfo_t* getCandidatesBuffer(void *myersBuffer){
+MYERS_INLINE bpm_gpu_cand_info_t* bpm_gpu_buffer_get_candidates_(void *myersBuffer){
 	buffer_t *mBuff = (buffer_t *) myersBuffer;
 	return(mBuff->candidates->h_candidates);
 }
 
-MYERS_INLINE qryInfo_t* getPEQInfoBuffer(void *myersBuffer){
+MYERS_INLINE bpm_gpu_qry_info_t* bpm_gpu_buffer_get_peq_info_(void *myersBuffer){
 	buffer_t *mBuff = (buffer_t *) myersBuffer;
 	return(mBuff->queries->h_qinfo);
 }
 
-MYERS_INLINE resEntry_t* getResultsBuffer(void *myersBuffer){
+MYERS_INLINE bpm_gpu_res_entry_t* bpm_gpu_buffer_get_results_(void *myersBuffer){
 	buffer_t *mBuff = (buffer_t *) myersBuffer;
 	return(mBuff->results->h_results);
 }
 
-MYERS_INLINE uint32_t getIdDeviceBuffer(void *myersBuffer){
+MYERS_INLINE uint32_t bpm_gpu_buffer_get_id_device_(void *myersBuffer){
 	buffer_t *mBuff = (buffer_t *) myersBuffer;
 	return(mBuff->device->idDevice);
 }
@@ -150,15 +150,15 @@ MYERS_INLINE uint32_t charToBinASCII(unsigned char base)
     	    return(ENC_DNA_CHAR_A);
     	case 'C':
     	case 'c':
-    	    return(ENC_DNA_CHAR_C << (UINT32_LENGTH - REFERENCE_CHAR_LENGTH));
+    	    return(ENC_DNA_CHAR_C << (BMP_GPU_UINT32_LENGTH- REFERENCE_CHAR_LENGTH));
     	case 'G':
     	case 'g':
-    	    return(ENC_DNA_CHAR_G << (UINT32_LENGTH - REFERENCE_CHAR_LENGTH));
+    	    return(ENC_DNA_CHAR_G << (BMP_GPU_UINT32_LENGTH- REFERENCE_CHAR_LENGTH));
     	case 'T':
     	case 't':
-    	    return(ENC_DNA_CHAR_T << (UINT32_LENGTH - REFERENCE_CHAR_LENGTH));
+    	    return(ENC_DNA_CHAR_T << (BMP_GPU_UINT32_LENGTH- REFERENCE_CHAR_LENGTH));
     	default :
-    	    return(ENC_DNA_CHAR_N << (UINT32_LENGTH - REFERENCE_CHAR_LENGTH));
+    	    return(ENC_DNA_CHAR_N << (BMP_GPU_UINT32_LENGTH- REFERENCE_CHAR_LENGTH));
 	}
 }
 
@@ -283,7 +283,7 @@ MYERS_INLINE myersError_t transformReferenceGEM(const char *referenceGEM, refere
 			referencePosition = idEntry * REFERENCE_CHARS_PER_ENTRY + i;
 			if (referencePosition < reference->size) referenceChar = referenceGEM[referencePosition];
 				else referenceChar = 'N'; //filling reference padding
-			indexBase = ((uint32_t) referenceChar) << (UINT32_LENGTH - REFERENCE_CHAR_LENGTH);
+			indexBase = ((uint32_t) referenceChar) << (BMP_GPU_UINT32_LENGTH- REFERENCE_CHAR_LENGTH);
 			bitmap = (bitmap >> REFERENCE_CHAR_LENGTH) | indexBase;
 		}
 		reference->h_reference[referencePosition / REFERENCE_CHARS_PER_ENTRY] = bitmap;
@@ -291,7 +291,7 @@ MYERS_INLINE myersError_t transformReferenceGEM(const char *referenceGEM, refere
 	return(SUCCESS);
 }
 
-MYERS_INLINE myersError_t initReference(reference_buffer_t **reference, const char *referenceRaw, uint64_t refSize, refCoding_t refCoding)
+MYERS_INLINE myersError_t initReference(reference_buffer_t **reference, const char *referenceRaw, uint64_t refSize, bpm_gpu_ref_coding_t refCoding)
 {
 	reference_buffer_t *ref = (reference_buffer_t *) malloc(sizeof(reference_buffer_t));
 
@@ -318,10 +318,10 @@ MYERS_INLINE myersError_t initReference(reference_buffer_t **reference, const ch
 
 MYERS_INLINE float sizePerCandidate(uint32_t averageNumPEQEntries, uint32_t candidatesPerQuery)
 {
-	uint32_t bytesPerQuery = averageNumPEQEntries * sizeof(qryEntry_t) + sizeof(qryInfo_t);
-	uint32_t bytesCandidate = sizeof(candInfo_t);
-	uint32_t bytesResult = sizeof(candInfo_t);
-	uint32_t bytesBiningProcess = sizeof(candInfo_t);
+	uint32_t bytesPerQuery = averageNumPEQEntries * sizeof(bpm_gpu_qry_entry_t) + sizeof(bpm_gpu_qry_info_t);
+	uint32_t bytesCandidate = sizeof(bpm_gpu_cand_info_t);
+	uint32_t bytesResult = sizeof(bpm_gpu_cand_info_t);
+	uint32_t bytesBiningProcess = sizeof(bpm_gpu_cand_info_t);
 
 	return((bytesPerQuery/(float)candidatesPerQuery) + bytesCandidate
 			+ bytesResult + bytesBiningProcess);
@@ -350,12 +350,12 @@ MYERS_INLINE myersError_t initQueries(queries_buffer_t *queries, uint32_t maxPEQ
 	queries->d_qinfo = NULL;
 
 	//Allocate PEQ entries in CPU & GPU
-	CUDA_ERROR(cudaHostAlloc((void**) &queries->h_queries, maxPEQEntries * sizeof(qryEntry_t), cudaHostAllocMapped));
-	CUDA_ERROR(cudaMalloc((void**) &queries->d_queries, maxPEQEntries * sizeof(qryEntry_t)));
+	CUDA_ERROR(cudaHostAlloc((void**) &queries->h_queries, maxPEQEntries * sizeof(bpm_gpu_qry_entry_t), cudaHostAllocMapped));
+	CUDA_ERROR(cudaMalloc((void**) &queries->d_queries, maxPEQEntries * sizeof(bpm_gpu_qry_entry_t)));
 
 	//Allocate queries info in CPU & GPU
-	CUDA_ERROR(cudaHostAlloc((void**) &queries->h_qinfo, maxQueries * sizeof(qryInfo_t), cudaHostAllocMapped));
-	CUDA_ERROR(cudaMalloc((void**) &queries->d_qinfo, maxQueries * sizeof(qryInfo_t)));
+	CUDA_ERROR(cudaHostAlloc((void**) &queries->h_qinfo, maxQueries * sizeof(bpm_gpu_qry_info_t), cudaHostAllocMapped));
+	CUDA_ERROR(cudaMalloc((void**) &queries->d_qinfo, maxQueries * sizeof(bpm_gpu_qry_info_t)));
 
 	return (SUCCESS);
 }
@@ -367,8 +367,8 @@ MYERS_INLINE myersError_t initCandidates(candidates_buffer_t *candidates, uint32
 	candidates->d_candidates = NULL;
 
 	//Allocate candidates info in CPU & GPU
-	CUDA_ERROR(cudaHostAlloc((void**) &candidates->h_candidates, maxCandidates * sizeof(candInfo_t), cudaHostAllocMapped));
-	CUDA_ERROR(cudaMalloc((void**) &candidates->d_candidates, maxCandidates * sizeof(candInfo_t)));
+	CUDA_ERROR(cudaHostAlloc((void**) &candidates->h_candidates, maxCandidates * sizeof(bpm_gpu_cand_info_t), cudaHostAllocMapped));
+	CUDA_ERROR(cudaMalloc((void**) &candidates->d_candidates, maxCandidates * sizeof(bpm_gpu_cand_info_t)));
 
 	return (SUCCESS);
 }
@@ -409,12 +409,12 @@ MYERS_INLINE myersError_t initResults(results_buffer_t *results, uint32_t maxReo
 	results->d_reorderResults	= NULL;
 
 	//Allocate candidates info in CPU
-	results->h_results = (resEntry_t *) malloc(maxCandidates * sizeof(resEntry_t));
+	results->h_results = (bpm_gpu_res_entry_t *) malloc(maxCandidates * sizeof(bpm_gpu_res_entry_t));
 		if (results->h_results == NULL) return (E_ALLOCATE_MEM);
 
 	//Allocate Binary Reference in GPU
-	CUDA_ERROR(cudaHostAlloc((void**) &results->h_reorderResults, maxReorderBuffer * sizeof(resEntry_t), cudaHostAllocMapped));
-	CUDA_ERROR(cudaMalloc((void**) &results->d_reorderResults, maxReorderBuffer * sizeof(resEntry_t)));
+	CUDA_ERROR(cudaHostAlloc((void**) &results->h_reorderResults, maxReorderBuffer * sizeof(bpm_gpu_res_entry_t), cudaHostAllocMapped));
+	CUDA_ERROR(cudaMalloc((void**) &results->d_reorderResults, maxReorderBuffer * sizeof(bpm_gpu_res_entry_t)));
 
 	return (SUCCESS);
 }
@@ -481,10 +481,10 @@ MYERS_INLINE myersError_t initDeviceBuffers(buffer_t ***myersBuffer, uint32_t nu
 	remainderBuffers = numBuffers;
 	idGlobalBuffer = 0;
 
-	averageNumPEQEntries = DIV_CEIL(averageQuerySize, PEQ_ENTRY_LENGTH);
+	averageNumPEQEntries = DIV_CEIL(averageQuerySize, BMP_GPU_PEQ_ENTRY_LENGTH);
 	bucketPaddingCandidates = candidatesPerBinningPadding();
 
-	bytesPadding = bucketPaddingCandidates * (sizeof(uint32_t) + sizeof(resEntry_t));
+	bytesPadding = bucketPaddingCandidates * (sizeof(uint32_t) + sizeof(bpm_gpu_res_entry_t));
 	bytesPerCandidate = sizePerCandidate(averageNumPEQEntries, candidatesPerQuery);
 
 	for(idSupportedDevice = 0; idSupportedDevice < numSupportedDevices; ++idSupportedDevice){
@@ -526,7 +526,7 @@ MYERS_INLINE myersError_t initDeviceBuffers(buffer_t ***myersBuffer, uint32_t nu
 	return (SUCCESS);
 }
 
-MYERS_INLINE devArch_t getDeviceArchitecture(uint32_t idDevice)
+MYERS_INLINE bpm_gpu_dev_arch_t getDeviceArchitecture(uint32_t idDevice)
 {
 	struct cudaDeviceProp devProp;
 	cudaGetDeviceProperties(&devProp, idDevice);
@@ -540,7 +540,22 @@ MYERS_INLINE devArch_t getDeviceArchitecture(uint32_t idDevice)
 	return(ARCH_NEWGEN);													/* CC X.X		*/
 }
 
-MYERS_INLINE uint32_t getSMCudaCores(devArch_t architecture)
+MYERS_INLINE uint32_t bpm_gpu_get_num_supported_devices_()
+{
+	uint32_t idDevice, numDevices, numSupportedDevices = 0;
+	bpm_gpu_dev_arch_t deviceArch;
+
+	CUDA_ERROR(cudaGetDeviceCount(&numDevices));
+
+	for(idDevice = 0; idDevice < numDevices; ++idDevice){
+		deviceArch = getDeviceArchitecture(idDevice);
+	    if(deviceArch & ARCH_SUPPORTED) numSupportedDevices++;
+	}
+
+	return(numSupportedDevices);
+}
+
+MYERS_INLINE uint32_t getSMCudaCores(bpm_gpu_dev_arch_t architecture)
 {
 	switch (architecture) {
 		case ARCH_TESLA:		return(8);
@@ -556,7 +571,7 @@ MYERS_INLINE uint32_t getSMCudaCores(devArch_t architecture)
 MYERS_INLINE uint32_t getDeviceCudaCores(uint32_t idDevice)
 {
 	uint32_t coresPerSM;
-	devArch_t architecture;
+	bpm_gpu_dev_arch_t architecture;
 
 	struct cudaDeviceProp devProp;
 	cudaGetDeviceProperties(&devProp, idDevice);
@@ -567,11 +582,11 @@ MYERS_INLINE uint32_t getDeviceCudaCores(uint32_t idDevice)
 	return(devProp.multiProcessorCount * coresPerSM);
 }
 
-MYERS_INLINE myersError_t selectSupportedDevices(device_info_t ***devices, uint32_t minimumMemorySize, devArch_t selectedArchitectures)
+MYERS_INLINE myersError_t selectSupportedDevices(device_info_t ***devices, uint32_t minimumMemorySize, bpm_gpu_dev_arch_t selectedArchitectures)
 {
 	uint32_t idDevice, idSupportedDevice, numSupportedDevices, memoryFree, totalSystemPerformance = 0;
 	int32_t numDevices;
-	devArch_t architecture;
+	bpm_gpu_dev_arch_t architecture;
 
 	CUDA_ERROR(cudaGetDeviceCount(&numDevices));
 	printf("There are %d visible devices: \n", numDevices);
@@ -631,12 +646,12 @@ MYERS_INLINE uint32_t minMemorySizePerDevice(size_t *minimumMemorySize, referenc
 	uint32_t mBytesPerReference, mBytesPerBuffer; /* in MBytes */
 	float bytesPerCandidate;
 
-	averageNumPEQEntries = DIV_CEIL(averageQuerySize, PEQ_ENTRY_LENGTH);
+	averageNumPEQEntries = DIV_CEIL(averageQuerySize, BMP_GPU_PEQ_ENTRY_LENGTH);
 	mBytesPerReference = CONVERT_B_TO_MB(reference->numEntries * UINT32_SIZE);
 	bytesPerCandidate = sizePerCandidate(averageNumPEQEntries, candidatesPerQuery);
 
 	/* Increased bytes per buffer taking account the padding*/
-	bytesPadding = candidatesPerBinningPadding() * (sizeof(uint32_t) + sizeof(resEntry_t));
+	bytesPadding = candidatesPerBinningPadding() * (sizeof(uint32_t) + sizeof(bpm_gpu_res_entry_t));
 
 	mBytesPerBuffer =  CONVERT_B_TO_MB(MIN_CANDIDATES_PER_BUFFER * bytesPerCandidate + bytesPadding);
 	(* minimumMemorySize) = mBytesPerReference + numBuffers * mBytesPerBuffer;
@@ -644,9 +659,9 @@ MYERS_INLINE uint32_t minMemorySizePerDevice(size_t *minimumMemorySize, referenc
 	return (SUCCESS);
 }
 
-MYERS_INLINE void initMyers(void ***myersBuffer, uint32_t numBuffers, uint32_t maxMbPerBuffer,
-							const char *referenceRaw, refCoding_t refCoding, const uint64_t refSize,
-							uint32_t averageQuerySize, uint32_t candidatesPerQuery, devArch_t selectedArchitectures)
+MYERS_INLINE void bpm_gpu_init_(void ***myersBuffer, uint32_t numBuffers, uint32_t maxMbPerBuffer,
+							const char *referenceRaw, bpm_gpu_ref_coding_t refCoding, const uint64_t refSize,
+							uint32_t averageQuerySize, uint32_t candidatesPerQuery, bpm_gpu_dev_arch_t selectedArchitectures)
 {
   buffer_t				**buffer = NULL;
   reference_buffer_t 	*reference = NULL;
@@ -657,7 +672,7 @@ MYERS_INLINE void initMyers(void ***myersBuffer, uint32_t numBuffers, uint32_t m
   MYERS_ERROR(minMemorySizePerDevice(&minimumMemorySize, reference, numBuffers, averageQuerySize, candidatesPerQuery));
   MYERS_ERROR(selectSupportedDevices(&devices, minimumMemorySize, selectedArchitectures));
 
-  MYERS_ERROR(transferReferenceCPUtoGPUs(reference, devices));
+  MYERS_ERROR(transferReferenceCPUtoGPUs(reference, devices)) ;
   MYERS_ERROR(initDeviceBuffers(&buffer, numBuffers, reference, devices, maxMbPerBuffer, averageQuerySize, candidatesPerQuery));
 
   MYERS_ERROR(freeReferenceHost(reference));
@@ -760,13 +775,13 @@ MYERS_INLINE myersError_t transferCPUtoGPU(buffer_t *mBuff)
     CUDA_ERROR(cudaSetDevice(mBuff->device->idDevice));
 
 	//Transfer Binary Queries to GPU
-	CUDA_ERROR(cudaMemcpyAsync(qry->d_queries, qry->h_queries, qry->totalQueriesEntries * sizeof(qryEntry_t), cudaMemcpyHostToDevice, idStream));
+	CUDA_ERROR(cudaMemcpyAsync(qry->d_queries, qry->h_queries, qry->totalQueriesEntries * sizeof(bpm_gpu_qry_entry_t), cudaMemcpyHostToDevice, idStream));
 
 	//Transfer to GPU the information associated with Binary Queries
-	CUDA_ERROR(cudaMemcpyAsync(qry->d_qinfo, qry->h_qinfo, qry->numQueries * sizeof(qryInfo_t), cudaMemcpyHostToDevice, idStream));
+	CUDA_ERROR(cudaMemcpyAsync(qry->d_qinfo, qry->h_qinfo, qry->numQueries * sizeof(bpm_gpu_qry_info_t), cudaMemcpyHostToDevice, idStream));
 
 	//Transfer Candidates to GPU
-	CUDA_ERROR(cudaMemcpyAsync(cand->d_candidates, cand->h_candidates, cand->numCandidates * sizeof(candInfo_t), cudaMemcpyHostToDevice, idStream));
+	CUDA_ERROR(cudaMemcpyAsync(cand->d_candidates, cand->h_candidates, cand->numCandidates * sizeof(bpm_gpu_cand_info_t), cudaMemcpyHostToDevice, idStream));
 
 	//Transfer reordered buffer to GPU
 	CUDA_ERROR(cudaMemcpyAsync(rebuff->d_reorderBuffer, rebuff->h_reorderBuffer, rebuff->candidatesPerBufffer * sizeof(uint32_t), cudaMemcpyHostToDevice, idStream));
@@ -784,12 +799,12 @@ MYERS_INLINE myersError_t transferGPUtoCPU(buffer_t *mBuff)
 
 	//Select the device of the Multi-GPU platform
     CUDA_ERROR(cudaSetDevice(mBuff->device->idDevice));
-	CUDA_ERROR(cudaMemcpyAsync(res->h_reorderResults, res->d_reorderResults, res->numReorderedResults * sizeof(resEntry_t), cudaMemcpyDeviceToHost, idStream));
+	CUDA_ERROR(cudaMemcpyAsync(res->h_reorderResults, res->d_reorderResults, res->numReorderedResults * sizeof(bpm_gpu_res_entry_t), cudaMemcpyDeviceToHost, idStream));
 
 	return (SUCCESS);
 }
 
-MYERS_INLINE void sendMyersBuffer(void *myersBuffer, uint32_t numPEQEntries, uint32_t numQueries, uint32_t numCandidates)
+MYERS_INLINE void bpm_gpu_send_buffer_(void *myersBuffer, uint32_t numPEQEntries, uint32_t numQueries, uint32_t numCandidates)
 {
 	buffer_t *mBuff = (buffer_t *) myersBuffer;
 	uint32_t error;
@@ -846,7 +861,7 @@ MYERS_INLINE myersError_t reorderingResults(buffer_t *mBuff)
 	return (SUCCESS);
 }
 
-MYERS_INLINE void receiveMyersBuffer(void *myersBuffer)
+MYERS_INLINE void bpm_gpu_receive_buffer_(void *myersBuffer)
 {
 	buffer_t *mBuff = (buffer_t *) myersBuffer;
 	uint32_t error;
@@ -1010,7 +1025,7 @@ MYERS_INLINE myersError_t freeDevicesInfo(device_info_t ***deviceList)
     return(SUCCESS);
 }
 
-MYERS_INLINE void endMyers(void ***myersBuffer)
+MYERS_INLINE void bpm_gpu_destroy_(void ***myersBuffer)
 {
 	buffer_t **mBuff = (buffer_t **) (* myersBuffer);
 	uint32_t numSupportedDevices, idSupportedDevice, numBuffers, idBuffer;

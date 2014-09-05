@@ -30,7 +30,7 @@ debug: GEM_FLAGS=-O0 $(GENERAL_FLAGS) $(DEBUG_FLAGS)
 debug: $(GEM_TOOLS_BIN)
 
 $(FOLDER_BIN)/gem-mapper: $(FOLDER_LIB)/libgemcore_c.a gem-mapper.c
-	$(CC) $(GEM_FLAGS) -o $@ $(notdir $@).c $(LIB_PATH_FLAGS) $(INCLUDE_FLAGS) $(LIBS) $(CUDA_LIBRARY_FLAGS) -fopenmp
+	$(CC) $(GEM_FLAGS) -o $@ $(notdir $@).c $(LIB_PATH_FLAGS) $(INCLUDE_FLAGS) $(LIBS) $(DEF_CUDA) $(CUDA_LIBRARY_FLAGS)
 
 $(FOLDER_BIN)/gem-indexer: $(FOLDER_LIB)/libgemcore_c.a gem-indexer.c
 	$(CC) $(GEM_FLAGS) -o $@ $(notdir $@).c $(LIB_PATH_FLAGS) $(INCLUDE_FLAGS) $(LIBS)

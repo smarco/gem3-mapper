@@ -644,6 +644,7 @@ GEM_INLINE void filtering_candidates_verify_pending(
   matches_hint_add_match_trace(matches,pending_candidates); // Hint to matches
   filtering_candidates_align(filtering_candidates,pattern,search_parameters,matches);
 }
+#if HAVE_CUDA == 1
 GEM_INLINE uint64_t filtering_candidates_add_to_bpm_buffer(
     filtering_candidates_t* const filtering_candidates,
     const locator_t* const locator,const fm_index_t* const fm_index,
@@ -684,6 +685,7 @@ GEM_INLINE uint64_t filtering_candidates_add_to_bpm_buffer(
   // Return the final number of candidates added to the buffer
   return num_candidates;
 }
+#endif
 
 
 

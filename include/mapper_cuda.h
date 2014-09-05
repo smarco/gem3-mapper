@@ -34,7 +34,7 @@ typedef struct {
   /* Reporting */
   /* System */
   uint64_t num_generating_threads; // Total number of threads generating candidates
-  uint64_t num_selecting_threads;  // TOtal number of threads selecting candidates
+  uint64_t num_selecting_threads;  // Total number of threads selecting candidates
   /* Miscellaneous */
   /* Extras */
 } mapper_cuda_parameters_t;

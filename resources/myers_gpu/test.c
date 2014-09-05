@@ -16,7 +16,7 @@ typedef struct {
 	uint32_t numResults;
 	qryEntry_t	*queries;
 	candInfo_t	*candidates;
-	qryInfo_t	*qinfo;
+	bmp_gpu_qryInfo_t	*qinfo;
 	resEntry_t	*results;
 } test_t;
 
@@ -58,9 +58,9 @@ uint32_t loadQueries(const char *fn, test_t *testData, uint32_t *averageQuerySiz
 	result = fread(testData->candidates , sizeof(candInfo_t), testData->numCandidates, fp);
 		if (result != testData->numCandidates) return (14);
 
-	testData->qinfo = (qryInfo_t *) malloc(testData->numQueries * sizeof(qryInfo_t));
+	testData->qinfo = (bmp_gpu_qryInfo_t *) malloc(testData->numQueries * sizeof(bmp_gpu_qryInfo_t));
 		if (testData->qinfo == NULL) return (15);
-	result = fread(testData->qinfo , sizeof(qryInfo_t), testData->numQueries, fp);
+	result = fread(testData->qinfo , sizeof(bmp_gpu_qryInfo_t), testData->numQueries, fp);
 		if (result != testData->numQueries) return (16);
 
 	fclose(fp);
@@ -102,7 +102,7 @@ uint32_t putIntoBuffer(void *buffer, test_t *testData)
 
 	qryEntry_t * 	queries_buffer 		= getPEQBuffer(buffer);
 	candInfo_t *	candidates_buffer 	= getCandidatesBuffer(buffer);
-	qryInfo_t *		queryInfo_buffer	= getPEQInfoBuffer(buffer);
+	bmp_gpu_qryInfo_t *		queryInfo_buffer	= getPEQInfoBuffer(buffer);
 
 	testData->totalQueriesEntries = MIN(testData->totalQueriesEntries, getMaxPEQEntries(buffer));
 	testData->numCandidates 	  = MIN(testData->numCandidates, getMaxCandidates(buffer));
@@ -177,7 +177,7 @@ uint32_t main(int argc, char *argv[])
 	for(threadID = 0; threadID < numThreads; ++threadID)
 		loadTestData(qryFile, &testData[threadID], &averageQuerySize, &averageCandidatesPerQuery);
 
-	initMyers(&buffer, numBuffers, maxMbPerBuffer, refFile, PROFILE_REFERENCE_FILE, 0, averageQuerySize,
+	bpm_gpu_init(&buffer, numBuffers, maxMbPerBuffer, refFile, PROFILE_REFERENCE_FILE, 0, averageQuerySize,
 				averageCandidatesPerQuery, ARCH_SUPPORTED);
 
 	ts = sampleTime();

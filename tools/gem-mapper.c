@@ -313,9 +313,13 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
 int main(int argc,char** argv) {
   // Parsing command-line options
   mapper_parameters_t parameters;
-  mapper_cuda_parameters_t cuda_parameters;
+  #if HAVE_CUDA == 1
+  	  mapper_cuda_parameters_t cuda_parameters;
+  #endif
   mapper_parameters_set_defaults(&parameters); // Set defaults
-  mapper_cuda_parameters_set_defaults(&cuda_parameters); // Set defaults
+  #if HAVE_CUDA == 1
+  	  mapper_cuda_parameters_set_defaults(&cuda_parameters); // Set defaults
+  #endif
   parse_arguments(argc,argv,&parameters); // Parse cmd-line
 
   // Runtime setup
@@ -337,10 +341,14 @@ int main(int argc,char** argv) {
       GEM_NOT_IMPLEMENTED(); // TODO
       break;
     case mapper_se_cuda:
-      // Force Massive-filtering mapping mode
-      parameters.mapping_mode = mapping_massive_filtering;
-      mapper_SE_CUDA_run(&parameters,&cuda_parameters); // SE-CUDA mapping threads (Producer-Consumer)
-      GEM_NOT_IMPLEMENTED(); // TODO
+	  #if HAVE_CUDA == 1
+    	  // Force Massive-filtering mapping mode
+      	  parameters.mapping_mode = mapping_massive_filtering;
+      	  mapper_SE_CUDA_run(&parameters,&cuda_parameters); // SE-CUDA mapping threads (Producer-Consumer)
+      	  GEM_NOT_IMPLEMENTED(); // TODO
+	  #else
+          gem_fatal_error_msg("GEM binary not builded with CUDA support");
+	  #endif
       break;
     case mapper_graph:
       GEM_NOT_IMPLEMENTED(); // TODO
