@@ -22,6 +22,7 @@
 // GEM Index
 #include "archive.h"
 #include "archive_search.h"
+#include "archive_select.h"
 
 // ASM
 #include "approximate_search_parameters.h"
@@ -65,6 +66,16 @@ typedef struct {
   uint64_t max_search_matches;
   char* mismatch_alphabet;
   /* Paired-end Alignment */
+  /* Alignment Score */
+  alignment_model_t alignment_model;
+//  float model_hamming_max_distance; // FIXME -> Maybe curation removes all this before existing
+//  float model_levenshtein_max_distance;
+//  float model_gap_affine_max_distance;
+  uint64_t matching_score;
+  uint64_t mismatch_penalty;
+  uint64_t gap_open_penalty;
+  uint64_t gap_extension_penalty;
+  /* Mapping Quality */
   /* Reporting */
   uint64_t min_decoded_strata;
   uint64_t max_decoded_matches;
@@ -83,19 +94,22 @@ typedef struct {
 /*
  * Mapper Parameters
  */
-
 GEM_INLINE void mapper_parameters_set_defaults(mapper_parameters_t* const mapper_parameters);
+GEM_INLINE void mapper_configure_archive_search(
+    const mapper_parameters_t* const parameters,
+    search_parameters_t* const search_parameters,select_parameters_t* const select_parameters);
 
 /*
- * SE Mapper
+ * I/O
  */
-GEM_INLINE void mapper_SE_configure_archive_search(
-    archive_search_t* const archive_search,
-    const mapper_parameters_t* const parameters);
 GEM_INLINE void mapper_SE_output_matches(
     const mapper_parameters_t* const parameters,
     buffered_output_file_t* const buffered_output_file,
     const sequence_t* const seq_read,matches_t* const matches);
+
+/*
+ * SE Mapper
+ */
 GEM_INLINE void mapper_SE_run(mapper_parameters_t* const mapper_parameters);
 
 /*

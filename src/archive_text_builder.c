@@ -9,6 +9,12 @@
 #include "archive_text_builder.h"
 
 /*
+ * Constants
+ */
+#define ARCHIVE_BUILDER_RL_MAX_RUN_LENGTH 5
+#define ARCHIVE_BUILDER_RL_SAMPLING_RATE  (1<<6) /* 2^6=64 (HG => 460 MB)*/
+
+/*
  * DEBUG
  */
 GEM_INLINE void archive_builder_dump_index_text(archive_builder_t* const archive_builder) {
@@ -58,7 +64,7 @@ GEM_INLINE void archive_builder_inspect_text(
   input_file_rewind(input_multifasta);
   input_multifasta_state_clear(&(archive_builder->parsing_state));
   // Log
-  gem_log("Inspected text %lu characters (%s). Requesting %lu MB (enc_text)",enc_text_length,
+  gem_info("Inspected text %lu characters (%s). Requesting %lu MB (enc_text)",enc_text_length,
       (archive_builder->indexed_complement==index_complement_yes) ? "index_complement=yes" : "index_complement=no",
       CONVERT_B_TO_MB(enc_text_length));
   // Allocate Text (Circular BWT extra)
@@ -314,49 +320,48 @@ GEM_INLINE void archive_builder_process_multifasta(
  */
 GEM_INLINE void archive_builder_process_run_length_text(
     archive_builder_t* const archive_builder,const bool dump_run_length_text,const bool verbose) {
-  // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-//  // Allocate RL-text
-//  archive_builder->rl_text = cdna_text_new();
-//  // Init SA-Builder
-//  sa_builder_count_begin(archive_builder->sa_builder);
-//  // Init iterator & run-counters
-//  cdna_text_iterator_t iterator;
-//  cdna_text_iterator_init(&iterator,archive_builder->rl_text,0);
-//  gem_cond_fatal_error(cdna_text_iterator_eoi(&iterator),
-//      ARCHIVE_BUILDER_SEQUENCE_MIN_LENGTH,0ul,archive_builder->sa_builder->kmer_length);
-//  uint8_t last_char_enc = dna_decode(cdna_text_iterator_get_char_encoded(&iterator)); // Get character
-//  uint64_t run_length = 1, text_position = 0;
-//  // Run-Length Compact the text
-//  while (!cdna_text_iterator_eoi(&iterator)) {
-//    ++text_position;
-//    const uint8_t char_enc = dna_decode(cdna_text_iterator_get_char_encoded(&iterator)); // Get character
-//    if (char_enc == last_char_enc) {
-//      ++run_length;
-//    } else {
-//      // Add character
-//      sa_builder_count_suffix(archive_builder->sa_builder,last_char_enc); // Add to SA-Builder
-//      cdna_text_add_char(archive_builder->rl_text,last_char_enc); // Add to Index-Text
-//      cdna_text_iterator_next_char(&iterator); // Next
-//      // Reset RL-counter
-//      last_char_enc = char_enc;
-//      run_length = 1;
-//    }
-//
-//    // TODO
-//    // Store RL samples
-//
-//  }
-//  // Print last run
-//  sa_builder_count_suffix(archive_builder->sa_builder,last_char_enc); // Add to SA-Builder
-//  cdna_text_add_char(archive_builder->rl_text,last_char_enc); // Add to Index-Text
-//  cdna_text_iterator_next_char(&iterator); // Next
-//  // Finish counting k-mers & Close text
-//  sa_builder_count_end(archive_builder->sa_builder);
-//  cdna_text_close(archive_builder->rl_text);
-//  // Check Minimum bases processed
-//  const uint64_t kmer_length = archive_builder->sa_builder->kmer_length;
-//  const uint64_t rl_index_length = cdna_text_get_length(archive_builder->rl_text);
-//  gem_cond_fatal_error(rl_index_length < kmer_length,ARCHIVE_BUILDER_SEQUENCE_MIN_LENGTH,rl_index_length,kmer_length);
-//  // Swap text with rl-text (as to SA-index the rl-text)
-//  SWAP(archive_builder->text,archive_builder->rl_text);
+  // Allocate RL-text (Circular BWT extra)
+  const uint64_t enc_text_length = dna_text_get_length(archive_builder->enc_text);
+  archive_builder->enc_rl_text = dna_text_padded_new(enc_text_length,2,SA_BWT_PADDED_LENGTH);
+  const uint64_t max_num_samples = DIV_CEIL(enc_text_length,ARCHIVE_BUILDER_RL_SAMPLING_RATE);
+  uint64_t* const sampled_rl_text = mm_calloc(max_num_samples,uint64_t,true);
+  archive_builder->sampled_rl_text = sampled_rl_text;
+  // Compact the text into the RL-text
+  const uint8_t* const enc_text = dna_text_get_buffer(archive_builder->enc_text);
+  uint8_t* const enc_rl_text = dna_text_get_buffer(archive_builder->enc_rl_text);
+  uint64_t text_position, rl_text_position;
+  uint64_t run_length=1, num_rl_samples=0;
+  uint8_t last_char_enc = enc_text[0]; // Get first character
+  for (text_position=1,rl_text_position=0;text_position<enc_text_length;++text_position) {
+    const uint8_t char_enc = enc_text[text_position]; // Get character
+    if (char_enc == last_char_enc) {
+      if (gem_expect_false(run_length == ARCHIVE_BUILDER_RL_MAX_RUN_LENGTH)) {
+        // Store RL samples
+        if (rl_text_position%ARCHIVE_BUILDER_RL_SAMPLING_RATE==0) {
+          sampled_rl_text[num_rl_samples++] = text_position;
+        }
+        // Add character
+        enc_rl_text[rl_text_position++] = last_char_enc;
+        // Reset RL-counter
+        run_length = 1;
+      } else {
+        ++run_length;
+      }
+    } else {
+      // Store RL samples
+      if (rl_text_position%ARCHIVE_BUILDER_RL_SAMPLING_RATE==0) {
+        sampled_rl_text[num_rl_samples++] = text_position;
+      }
+      // Add character
+      enc_rl_text[rl_text_position++] = last_char_enc;
+      // Reset RL-counter
+      run_length = 1;
+      last_char_enc = char_enc;
+    }
+  }
+  // Print last run
+  enc_rl_text[rl_text_position++] = last_char_enc;
+  dna_text_set_length(archive_builder->enc_rl_text,rl_text_position);
+  // Swap text with rl-text (as to SA-index the rl-text)
+  SWAP(archive_builder->enc_text,archive_builder->enc_rl_text);
 }

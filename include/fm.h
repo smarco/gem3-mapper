@@ -13,10 +13,6 @@
 #include "commons.h"
 #include "mm.h"
 
-// TODO: At configure time check if bzlib is installed HAVE_BZLIB (libbz2-dev)
-#include <zlib.h>
-#include <bzlib.h>
-
 /*
  * I/O Constants/Values
  */
@@ -25,24 +21,7 @@ extern const mode_t fm_open_mode[3];
 
 typedef enum { FM_READ=0, FM_WRITE=1, FM_READ_WRITE=2 } fm_mode;
 typedef enum { FM_STREAM, FM_REGULAR_FILE, FM_GZIPPED_FILE, FM_BZIPPED_FILE } fm_type;
-typedef struct {
-  /* File */
-  int fd;                 /* File descriptor */
-  FILE* file;             /* FILE */
-  gzFile gz_file;         /* GZip FILE */
-  BZFILE* bz_file;        /* BZip FILE */
-  /* Attributes */
-  fm_type file_type;      /* File type */
-  fm_mode mode;           /* File mode {R,W,R/W} */
-  char *file_name;        /* File name */
-  /* Locator */
-  uint64_t byte_position; /* Current byte position */
-  uint64_t file_size;     /* File size */
-  bool eof;               /* End of file flag */
-  /* Auxiliary Skip Buffers */
-  uint8_t* skip_read_buffer;
-  uint8_t* skip_write_buffer;
-} fm_t;
+typedef struct _fm_t fm_t;
 
 /*
  * Checkers

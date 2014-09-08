@@ -20,8 +20,12 @@ typedef struct {
   buffered_output_file_t* buffered_output_file;
   /* Mapper parameters */
   mapper_parameters_t* mapper_parameters;
+  search_parameters_t search_parameters;
+  select_parameters_t select_parameters;
   /* Archive search */
   archive_search_t* archive_search;
+  matches_t* matches;
+  mm_search_t* mm_search;
 } mapper_search_t;
 
 /*
@@ -96,6 +100,13 @@ GEM_INLINE void mapper_parameters_set_defaults(mapper_parameters_t* const mapper
   mapper_parameters->max_search_matches=ALL;
   mapper_parameters->mismatch_alphabet="ACGT";
   /* Paired-end Alignment */
+  /* Alignment Score */
+  mapper_parameters->alignment_model=alignment_model_levenshtein;
+//  mapper_parameters->matching_score=; // TODO
+//  mapper_parameters->mismatch_penalty=;
+//  mapper_parameters->gap_open_penalty=;
+//  mapper_parameters->gap_extension_penalty=;
+  /* Mapping Quality */
   /* Reporting */
   mapper_parameters->output_format=MAP;
   mapper_parameters->min_decoded_strata=0;
@@ -111,13 +122,13 @@ GEM_INLINE void mapper_parameters_set_defaults(mapper_parameters_t* const mapper
   mapper_parameters->dev_verbose=false;
   /* Extras */
 }
-/*
- * Mapper SE Mapping
- */
-GEM_INLINE void mapper_SE_configure_archive_search(
-    archive_search_t* const archive_search,const mapper_parameters_t* const parameters) {
-  approximate_search_parameters_t* const search_parameters = archive_search_get_search_parameters(archive_search);
-  // Configure search
+GEM_INLINE void mapper_configure_archive_search(
+    const mapper_parameters_t* const parameters,
+    search_parameters_t* const search_parameters,select_parameters_t* const select_parameters) {
+  // Init
+  approximate_search_parameters_init(search_parameters);
+  archive_select_parameters_init(select_parameters);
+  // Configure ASM-search
   approximate_search_configure_mapping_strategy(search_parameters,
       parameters->mapping_mode,parameters->mapping_degree);
   approximate_search_configure_quality_model(search_parameters,
@@ -129,7 +140,15 @@ GEM_INLINE void mapper_SE_configure_archive_search(
   approximate_search_configure_replacements(search_parameters,
       parameters->mismatch_alphabet,gem_strlen(parameters->mismatch_alphabet));
   approximate_search_configure_matches(search_parameters,parameters->max_search_matches);
+  // Configure select
+  archive_select_configure_reporting(select_parameters,
+      parameters->min_decoded_strata,parameters->max_decoded_matches,
+      parameters->min_reported_matches,parameters->max_reported_matches);
+  archive_select_configure_alignment_model(select_parameters,parameters->alignment_model);
 }
+/*
+ * I/O
+ */
 GEM_INLINE void mapper_SE_output_matches(
     const mapper_parameters_t* const parameters,
     buffered_output_file_t* const buffered_output_file,
@@ -157,9 +176,11 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
   buffered_input_file_attach_buffered_output(mapper_search->buffered_fasta_input,mapper_search->buffered_output_file);
 
   // Create an Archive-Search
-  mm_stack_t* const mm_stack = mm_stack_new(mm_pool_get_slab(mm_pool_2MB));
-  mapper_search->archive_search = archive_search_new(parameters->archive,mm_stack);
-  mapper_SE_configure_archive_search(mapper_search->archive_search,parameters);
+  mapper_configure_archive_search(parameters,&mapper_search->search_parameters,&mapper_search->select_parameters);
+  mapper_search->archive_search = archive_search_new(
+      parameters->archive,&mapper_search->search_parameters,&mapper_search->select_parameters);
+  mapper_search->mm_search = mm_search_new(mm_pool_get_slab(mm_pool_2MB));
+  mapper_search->matches = matches_new();
 
   // FASTA/FASTQ reading loop
   error_code_t error_code;
@@ -169,21 +190,20 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
     // TODO: Check INPUT_STATUS_FAIL
 
     // Search into the archive
-    mm_stack_free(mm_stack); // Free stack for new use
-    archive_search_single_end(mapper_search->archive_search);
+    archive_search_single_end(mapper_search->archive_search,mapper_search->matches,mapper_search->mm_search);
 
     // Select matches
-    archive_search_select_matches(mapper_search->archive_search,
-        parameters->max_decoded_matches,parameters->min_decoded_strata,
-        parameters->min_reported_matches,parameters->max_reported_matches);
+    archive_select_matches(mapper_search->archive_search,mapper_search->matches,mapper_search->mm_search);
     // archive_search_score_matches(archive_search); // TODO
 
     // Output matches
     mapper_SE_output_matches(
         parameters,mapper_search->buffered_output_file,
-        archive_search_get_sequence(mapper_search->archive_search),
-        archive_search_get_matches(mapper_search->archive_search));
+        archive_search_get_sequence(mapper_search->archive_search),mapper_search->matches);
 
+    // Clear
+    mm_search_clear(mapper_search->mm_search);
+    matches_clear(mapper_search->matches);
   }
 
   // Clean up
@@ -197,7 +217,7 @@ GEM_INLINE void mapper_SE_run(mapper_parameters_t* const mapper_parameters) {
   // Setup threads & launch
   const uint64_t num_threads = mapper_parameters->num_threads;
   PROF_NEW(num_threads+1); // Setup Profiling (Add master thread)
-  mapper_search_t* const mapper_search = mm_malloc(num_threads*sizeof(mapper_search_t)); // Allocate mapper searches
+  mapper_search_t* const mapper_search = mm_calloc(num_threads,mapper_search_t,false); // Allocate mapper searches
   g_mapper_searches = mapper_search; // Set global searches for error reporting
   uint64_t i;
   for (i=0;i<num_threads;++i) {

@@ -152,6 +152,16 @@ GEM_INLINE mm_t* mm_bulk_mmalloc(const uint64_t num_bytes,const bool use_huge_pa
   GEM_CHECK_ZERO(num_bytes);
   // Allocate handler
   mm_t* const mem_manager = mm_alloc(mm_t);
+#ifdef MM_NO_MMAP
+  mem_manager->memory = mm_malloc(num_bytes);
+  mem_manager->cursor = mem_manager->memory;
+  mem_manager->mem_type = MM_MMAPPED;
+  mem_manager->mode = MM_READ_WRITE;
+  mem_manager->allocated = num_bytes;
+  mem_manager->fd = -1;
+  mem_manager->file_name = NULL;
+  return mem_manager;
+#else
   /*
    * MMap memory (anonymous)
    *   - MAP_PRIVATE => Fits in RAM+SWAP
@@ -177,9 +187,13 @@ GEM_INLINE mm_t* mm_bulk_mmalloc(const uint64_t num_bytes,const bool use_huge_pa
   mem_manager->file_name = NULL;
   // MM_PRINT_MEM_ALIGMENT(mem_manager->memory); // Debug
   return mem_manager;
+#endif
 }
 GEM_INLINE mm_t* mm_bulk_mmalloc_temp(const uint64_t num_bytes) {
   GEM_CHECK_ZERO(num_bytes);
+#ifdef MM_NO_MMAP
+  return mm_bulk_mmalloc(num_bytes,false);
+#else
   // Allocate handler
   mm_t* const mem_manager = mm_alloc(mm_t);
   // TemporalMemory (backed by a file)
@@ -215,22 +229,30 @@ GEM_INLINE mm_t* mm_bulk_mmalloc_temp(const uint64_t num_bytes) {
   mem_manager->allocated = num_bytes;
   // MM_PRINT_MEM_ALIGMENT(mem_manager->memory); // Debug
   return mem_manager;
+#endif
 }
 GEM_INLINE void mm_bulk_free(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
   if (mem_manager->mem_type==MM_HEAP) { // Heap BulkMemory
     mm_free(mem_manager->memory);
   } else { // MMapped BulkMemory
+#ifdef MM_NO_MMAP
+    mm_free(mem_manager->memory);
+#else
     gem_cond_fatal_error__perror(munmap(mem_manager->memory,mem_manager->allocated)==-1,SYS_UNMAP);
     if (mem_manager->fd!=-1) {
       gem_cond_fatal_error__perror(close(mem_manager->fd),SYS_HANDLE_TMP);
     }
+#endif
   }
   CFREE(mem_manager->file_name);
   mm_free(mem_manager);
 }
 GEM_INLINE mm_t* mm_bulk_mmap_file(char* const file_name,const mm_mode mode,const bool populate_page_tables) {
   GEM_CHECK_NULL(file_name);
+#ifdef MM_NO_MMAP
+  return mm_bulk_mload_file(file_name,1);
+#else
   // Allocate handler
   mm_t* const mem_manager = mm_alloc(mm_t);
   // Retrieve input file info
@@ -261,9 +283,13 @@ GEM_INLINE mm_t* mm_bulk_mmap_file(char* const file_name,const mm_mode mode,cons
   mem_manager->file_name = strndup(file_name,strlen(file_name));
   // MM_PRINT_MEM_ALIGMENT(mem_manager->memory); // Debug
   return mem_manager;
+#endif
 }
 GEM_INLINE mm_t* mm_bulk_load_file(char* const file_name,const uint64_t num_threads) {
   GEM_CHECK_NULL(file_name);
+#ifdef MM_NO_MMAP
+  return mm_bulk_mload_file(file_name,num_threads);
+#else
   // Allocate handler
   mm_t* const mem_manager = mm_alloc(mm_t);
   // Retrieve input file info
@@ -285,6 +311,7 @@ GEM_INLINE mm_t* mm_bulk_load_file(char* const file_name,const uint64_t num_thre
     fm_bulk_read_file(file_name,mem_manager->memory,0,0);
   }
   return mem_manager;
+#endif
 }
 GEM_INLINE mm_t* mm_bulk_mload_file(char* const file_name,const uint64_t num_threads) {
   GEM_CHECK_NULL(file_name);
@@ -483,7 +510,7 @@ GEM_INLINE void mm_copy_mem(mm_t* const mem_manager,void* const dst,const uint64
   mem_manager->cursor += num_bytes;
 }
 GEM_INLINE void mm_copy_mem_parallel(mm_t* const mem_manager,void* const dst,const uint64_t num_bytes,const uint64_t num_threads) {
-//  TODO
+  GEM_NOT_IMPLEMENTED(); // TODO
 }
 
 /*

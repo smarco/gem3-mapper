@@ -23,10 +23,13 @@
 /*
  * CIGAR (Mismatches/Indels)
  */
-typedef enum { cigar_match, cigar_mismatch, cigar_ins, cigar_del, cigar_soft_trim } cigar_t;
+typedef enum { cigar_match, cigar_mismatch, cigar_ins, cigar_del, cigar_soft_trim, cigar_null } cigar_t;
 typedef struct {
-  cigar_t type;    // Match, Mismatch, insertion or deletion
-  int32_t length; // Match length, Mismatch base or indel length
+  cigar_t type;              // Match, Mismatch, insertion or deletion
+  union {
+    int32_t length;    // Match length or indel length
+    uint8_t mismatch;  // Mismatch base
+  };
 } cigar_element_t;
 
 /*
@@ -37,7 +40,7 @@ typedef struct {
   uint64_t lo;           // SA Lo-Position
   uint64_t hi;           // SA Hi-Position
   /* Sequence */
-  char* text;            // Pointer to the matching-text
+  uint8_t* text;         // Pointer to the matching-text
   uint64_t length;       // Length of the matching-text
   uint64_t distance;     // Levenshtein score of the alignment
   strand_t strand;       // Mapping Strand (make a difference between matches found by searching F/R)
@@ -58,6 +61,15 @@ typedef struct {
   uint64_t cigar_buffer_offset;
   uint64_t cigar_length;
 } match_trace_t;
+// Overloaded to (match_trace_mark_t)
+#define match_trace_type         score
+#define match_trace_begin_offset cigar_length
+#define match_trace_length       cigar_buffer_offset
+// Match-Trace Mark Type
+#define match_trace_type_aligned      (INT64_MAX)
+#define match_trace_type_mark_hamming (INT64_MAX-1)
+#define match_trace_type_mark_edit    (INT64_MAX-2)
+
 
 ///*
 // * Local Match // TODO
@@ -134,6 +146,9 @@ GEM_INLINE uint64_t match_trace_get_cigar_length(const match_trace_t* const matc
  * Adding Matches
  */
 GEM_INLINE match_trace_t* matches_lookup_match(matches_t* const matches,const uint64_t position);
+GEM_INLINE void matches_add_match_trace_mark(
+    matches_t* const matches,const uint64_t trace_offset,const uint64_t position,const uint64_t distance,
+    const int64_t match_type,const uint64_t match_begin_offset,const uint64_t match_end_offset,const strand_t strand);
 GEM_INLINE void matches_add_match_trace_t(
     matches_t* const matches,match_trace_t* const match_trace);
 GEM_INLINE void matches_add_match_trace(
@@ -177,7 +192,7 @@ GEM_INLINE void matches_restore_point_rollback(matches_t* const matches);
 /*
  * Error Messages
  */
-// #define GEM_ERROR_MATCHES_ ""
+#define GEM_ERROR_MATCHES_CIGAR_ZERO_LENGTH "Matches. CIGAR length cannot be zero"
 
 //
 //#define MATCHES_GET_KEY_INFO(POS_MATCH,MATCHES) ((keys_info*)vector_get_mem(MATCHES->qbuf_keys_info)+POS_MATCH->key_id)

@@ -39,9 +39,9 @@
 #define cip_eff_candidate_begin_position   overloaded_field_1
 #define cip_candidate_begin_position       overloaded_field_2
 #define cip_text_trace_offset              overloaded_field_3
-// (4) Alias output filtering
-#define cip_alg_distance                   overloaded_field_2
-// TODO #define cip_alg_position                   overloaded_field_2
+//// (4) Alias output filtering
+//#define cip_alg_distance                   overloaded_field_2
+//#define cip_alg_position                   overloaded_field_3
 typedef struct {
   // Region Info
   region_t* candidate_region;
@@ -66,20 +66,17 @@ GEM_INLINE void filtering_candidates_new(filtering_candidates_t* const filtering
   filtering_candidates->max_candidates_accepted = ALL;
   // Internals
   filtering_candidates->regions_buffer = vector_new(FC_INIT_REGIONS_BUFFER,region_t);
-  filtering_candidates->candidates_collection = text_collection_new();
 }
 GEM_INLINE void filtering_candidates_clear(filtering_candidates_t* const filtering_candidates) {
   vector_clear(filtering_candidates->regions_buffer);
   vector_clear(filtering_candidates->candidate_positions);
   filtering_candidates->num_candidates_accepted = 0;
   filtering_candidates->max_candidates_accepted = ALL;
-  text_collection_clear(filtering_candidates->candidates_collection);
   vector_clear(filtering_candidates->verified_candidate_positions);
 }
 GEM_INLINE void filtering_candidates_delete(filtering_candidates_t* const filtering_candidates) {
   vector_delete(filtering_candidates->regions_buffer);
   vector_delete(filtering_candidates->candidate_positions);
-  text_collection_delete(filtering_candidates->candidates_collection);
   vector_delete(filtering_candidates->verified_candidate_positions);
 }
 /*
@@ -154,7 +151,7 @@ GEM_INLINE text_trace_t* filtering_candidate_get_text_trace(
 GEM_INLINE void filtering_candidates_align_hamming(
     candidate_position_t* const text_candidate,const uint8_t* const text,
     const uint8_t* const key,const uint64_t key_length,
-    const bool* const allowed_enc,const uint64_t max_mismatches) {
+    const bool* const allowed_enc,uint64_t* const hamming_distance,const uint64_t max_mismatches) {
   // Check candidate
   uint64_t i, mismatches;
   for (i=0,mismatches=0;i<key_length;++i) {
@@ -163,33 +160,32 @@ GEM_INLINE void filtering_candidates_align_hamming(
     if (!allowed_enc[candidate_enc] || candidate_enc != key[i]) {
       // Check Real Mismatch
       if (++mismatches > max_mismatches) {
-        text_candidate->cip_alg_distance = FC_DISTANCE_EXCEED;
+        *hamming_distance = FC_DISTANCE_EXCEED;
         return;
       }
     }
   }
-  text_candidate->cip_alg_distance = mismatches;
+  *hamming_distance = mismatches;
   return;
 }
 GEM_INLINE void filtering_candidates_align_levenshtein(
     candidate_position_t* const text_candidate,const pattern_t* const pattern,
-    const uint8_t* const candidate_text,const uint64_t candidate_length,const uint64_t max_mismatches) {
-  uint64_t position;
+    const uint8_t* const candidate_text,const uint64_t candidate_length,
+    uint64_t* const levenshtein_distance,uint64_t* const levenshtein_match_pos,const uint64_t max_error) {
   bpm_get_distance__cutoff(
       &pattern->bpm_pattern,candidate_text,candidate_length,
-      &position,&text_candidate->cip_alg_distance,max_mismatches);
+      levenshtein_match_pos,levenshtein_distance,max_error);
 }
 GEM_INLINE void filtering_candidates_align(
-    filtering_candidates_t* const filtering_candidates,const pattern_t* const pattern,
-    const approximate_search_parameters_t* const search_parameters,matches_t* const matches) {
-  // Candidates collection
-  const text_collection_t* const candidates_collection = filtering_candidates->candidates_collection;
+    filtering_candidates_t* const filtering_candidates,text_collection_t* const candidates_collection,
+    const pattern_t* const pattern,const strand_t search_strand,
+    const search_actual_parameters_t* const search_actual_parameters,matches_t* const matches) {
   // Pattern
   const uint8_t* const key = pattern->key;
   const uint64_t key_length = pattern->key_length;
   // Matching Constraints
-  const uint64_t max_search_matches = search_parameters->max_search_matches;
-  const bool* const allowed_enc = search_parameters->allowed_enc;
+  const uint64_t max_search_matches = search_actual_parameters->search_parameters->max_search_matches;
+  const bool* const allowed_enc = search_actual_parameters->search_parameters->allowed_enc;
   const uint64_t max_effective_filtering_error = pattern->max_effective_filtering_error;
   uint64_t num_candidates_accepted = filtering_candidates->num_candidates_accepted;
   // Traverse all candidates (text-space)
@@ -226,17 +222,18 @@ GEM_INLINE void filtering_candidates_align(
     const uint64_t text_length =
         text_candidate->cip_eff_candidate_end_position - text_candidate->cip_candidate_begin_position;
     if (text_length >= key_length) {
-      const uint64_t boundary_offset =
+      const uint64_t text_offset =
           text_candidate->cip_candidate_begin_position - text_candidate->cip_eff_candidate_begin_position;
       // TODO Check this mathematically embedding distances => 1d
-      filtering_candidates_align_hamming(text_candidate,text+boundary_offset,key,key_length,allowed_enc,1);
-      if (text_candidate->cip_alg_distance != FC_DISTANCE_EXCEED) {
+      uint64_t hamming_distance;
+      filtering_candidates_align_hamming(text_candidate,text+text_offset,
+          key,key_length,allowed_enc,&hamming_distance,max_effective_filtering_error);
+      if (hamming_distance != FC_DISTANCE_EXCEED) {
         // Store match
-//        matches_add_match_trace(matches,
-//          matching_begin_pos,
-//          matching_end_pos,
-//          matching_distance_bound
-//        ); // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+        matches_add_match_trace_mark(
+            matches,text_candidate->cip_text_trace_offset,
+            text_candidate->cip_candidate_begin_position,hamming_distance,
+            match_trace_type_mark_hamming,text_offset,key_length,search_strand);
         ++num_candidates_accepted;
         continue; // Next
       }
@@ -246,10 +243,16 @@ GEM_INLINE void filtering_candidates_align(
     // 2.2 Myers's BPM algorithm
     const uint64_t eff_text_length =
         text_candidate->cip_eff_candidate_end_position - text_candidate->cip_eff_candidate_begin_position;
-    filtering_candidates_align_levenshtein(text_candidate,pattern,text,eff_text_length,max_effective_filtering_error);
-    if (text_candidate->cip_alg_distance != FC_DISTANCE_EXCEED) {
+    uint64_t levenshtein_distance, levenshtein_match_pos;
+    filtering_candidates_align_levenshtein(
+        text_candidate,pattern,text,eff_text_length,
+        &levenshtein_distance,&levenshtein_match_pos,max_effective_filtering_error);
+    if (levenshtein_distance != FC_DISTANCE_EXCEED) {
       // Store match
-      // TODO
+      matches_add_match_trace_mark(
+          matches,text_candidate->cip_text_trace_offset,
+          text_candidate->cip_eff_candidate_begin_position,levenshtein_distance,
+          match_trace_type_mark_edit,0,levenshtein_match_pos+1,search_strand);
       ++num_candidates_accepted;
       continue; // Next
     }
@@ -302,9 +305,8 @@ GEM_INLINE void filtering_candidates_align(
  * Retrieve all candidates(text) from the index
  */
 GEM_INLINE void filtering_candidates_retrieve_candidates(
-    filtering_candidates_t* const filtering_candidates,
+    filtering_candidates_t* const filtering_candidates,text_collection_t* const candidates_collection,
     const locator_t* const locator,const dna_text_t* const enc_text) {
-  text_collection_t* const candidates_collection = filtering_candidates->candidates_collection;
   // Traverse all candidates (text-space)
   VECTOR_ITERATE(filtering_candidates->candidate_positions,text_candidate,candidate_pos,candidate_position_t) {
     // Skip discarded candidates
@@ -613,10 +615,10 @@ GEM_INLINE uint64_t filtering_candidates_discard_duplicates(
  *   (All the steps (CSA-lookup, rankQueries) are performed with prefetch-loops)
  */
 GEM_INLINE void filtering_candidates_verify_pending(
-    filtering_candidates_t* const filtering_candidates,
+    filtering_candidates_t* const filtering_candidates,text_collection_t* const text_collection,
     const locator_t* const locator,const fm_index_t* const fm_index,
-    const dna_text_t* const enc_text,const pattern_t* const pattern,
-    const approximate_search_parameters_t* const search_parameters,matches_t* const matches) {
+    const dna_text_t* const enc_text,const pattern_t* const pattern,const strand_t search_strand,
+    const search_actual_parameters_t* const search_actual_parameters,matches_t* const matches) {
 
   // Check non-empty pending candidates set
   uint64_t pending_candidates = filtering_candidates_get_pending_candidates(filtering_candidates);
@@ -624,7 +626,7 @@ GEM_INLINE void filtering_candidates_verify_pending(
 
   // Batch decode+adjust of all positions of the candidates (cip_begin_position = decoded(cip_region_index_position))
   const uint64_t key_length = pattern->key_length;
-  const uint64_t boundary_error = search_parameters->max_search_error_nominal;
+  const uint64_t boundary_error = search_actual_parameters->max_search_error_nominal;
 //  if (pending_candidates < FC_DECODE_NUM_POSITIONS_PREFETCHED) {
     filtering_candidates_decode_candidates_positions(
         locator,fm_index,filtering_candidates->candidate_positions,key_length,boundary_error);
@@ -638,22 +640,20 @@ GEM_INLINE void filtering_candidates_verify_pending(
   if (pending_candidates==0) return;
 
   // Retrieve text-candidates
-  filtering_candidates_retrieve_candidates(filtering_candidates,locator,enc_text);
+  filtering_candidates_retrieve_candidates(filtering_candidates,text_collection,locator,enc_text);
 
   // Verify candidates
   matches_hint_add_match_trace(matches,pending_candidates); // Hint to matches
-  filtering_candidates_align(filtering_candidates,pattern,search_parameters,matches);
+  filtering_candidates_align(filtering_candidates,text_collection,pattern,search_strand,search_actual_parameters,matches);
 }
-#if HAVE_CUDA == 1
 GEM_INLINE uint64_t filtering_candidates_add_to_bpm_buffer(
     filtering_candidates_t* const filtering_candidates,
     const locator_t* const locator,const fm_index_t* const fm_index,
-    const dna_text_t* const enc_text,const pattern_t* const pattern,
-    const approximate_search_parameters_t* const search_parameters,
-    bpm_gpu_buffer_t* const bpm_gpu_buffer) {
+    const dna_text_t* const enc_text,const pattern_t* const pattern,const strand_t search_strand,
+    const search_actual_parameters_t* const search_actual_parameters,bpm_gpu_buffer_t* const bpm_gpu_buffer) {
   // Batch decode+adjust of all positions of the candidates (cip_begin_position = decoded(cip_region_index_position))
   const uint64_t key_length = pattern->key_length;
-  const uint64_t boundary_error = search_parameters->max_search_error_nominal;
+  const uint64_t boundary_error = search_actual_parameters->max_search_error_nominal;
 //  if (pending_candidates < FC_DECODE_NUM_POSITIONS_PREFETCHED) {
     filtering_candidates_decode_candidates_positions(
         locator,fm_index,filtering_candidates->candidate_positions,key_length,boundary_error);
@@ -685,7 +685,6 @@ GEM_INLINE uint64_t filtering_candidates_add_to_bpm_buffer(
   // Return the final number of candidates added to the buffer
   return num_candidates;
 }
-#endif
 
 
 

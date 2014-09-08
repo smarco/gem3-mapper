@@ -35,7 +35,6 @@ typedef struct {
   uint64_t max_candidates_accepted;           // Quick abandon due to maximum candidates accepted
   /* Internals */
   vector_t* regions_buffer;                   // Regions Buffer (region_t)
-  text_collection_t* candidates_collection;   // Candidates Text-Collection (Stores candidates Texts)
 } filtering_candidates_t;
 
 GEM_INLINE void filtering_candidates_new(filtering_candidates_t* const filtering_candidates);
@@ -63,15 +62,14 @@ GEM_INLINE uint64_t filtering_candidates_get_pending_candidates(filtering_candid
  * Filtering Candidates Verification
  */
 GEM_INLINE void filtering_candidates_verify_pending(
-    filtering_candidates_t* const filtering_candidates,
+    filtering_candidates_t* const filtering_candidates,text_collection_t* const text_collection,
     const locator_t* const locator,const fm_index_t* const fm_index,
-    const dna_text_t* const enc_text,const pattern_t* const pattern,
-    const approximate_search_parameters_t* const search_parameters,matches_t* const matches);
+    const dna_text_t* const enc_text,const pattern_t* const pattern,const strand_t search_strand,
+    const search_actual_parameters_t* const search_actual_parameters,matches_t* const matches);
 GEM_INLINE uint64_t filtering_candidates_add_to_bpm_buffer(
     filtering_candidates_t* const filtering_candidates,
     const locator_t* const locator,const fm_index_t* const fm_index,
-    const dna_text_t* const enc_text,const pattern_t* const pattern,
-    const approximate_search_parameters_t* const search_parameters,
-    bpm_gpu_buffer_t* const bpm_gpu_buffer);
+    const dna_text_t* const enc_text,const pattern_t* const pattern,const strand_t search_strand,
+    const search_actual_parameters_t* const search_actual_parameters,bpm_gpu_buffer_t* const bpm_gpu_buffer);
 
 #endif /* FILTERING_CANDIDATES_H_ */

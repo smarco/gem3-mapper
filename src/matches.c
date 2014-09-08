@@ -135,22 +135,51 @@ GEM_INLINE void matches_index_match(matches_t* const matches,match_trace_t* cons
 GEM_INLINE match_trace_t* matches_lookup_match(matches_t* const matches,const uint64_t position) {
   return ihash_get(matches->start_gmatches,position,match_trace_t);
 }
+GEM_INLINE void matches_add_match_trace_mark(
+    matches_t* const matches,const uint64_t trace_offset,const uint64_t position,const uint64_t distance,
+    const int64_t match_type,const uint64_t match_begin_offset,const uint64_t match_length,const strand_t strand) {
+  // Check duplicates
+  if (matches_lookup_match(matches,position)!=NULL) {
+    // Add the match-trace mark (just a mark, not (re)aligned)
+    match_trace_t* match_trace;
+    vector_alloc_new(matches->global_matches,match_trace_t,match_trace);
+    match_trace->trace_offset = trace_offset;
+    match_trace->position = position;
+    match_trace->match_trace_type = match_type;
+    match_trace->match_trace_begin_offset = match_begin_offset;
+    match_trace->match_trace_length = match_length;
+    match_trace->distance = distance;
+    match_trace->strand = strand;
+    // Index
+    matches_index_match(matches,match_trace);
+  }
+}
 GEM_INLINE void matches_add_match_trace_t(
     matches_t* const matches,match_trace_t* const match_trace) {
-  // TODO: Index
-  vector_insert(matches->global_matches,*match_trace,match_trace_t);
+  // Check duplicates
+  if (matches_lookup_match(matches,match_trace->position)!=NULL) {
+    // Add the match-trace
+    vector_insert(matches->global_matches,*match_trace,match_trace_t);
+    // Index
+    matches_index_match(matches,match_trace);
+  }
 }
 GEM_INLINE void matches_add_match_trace(
     matches_t* const matches,const uint64_t trace_offset,
     const uint64_t position,const uint64_t distance,const strand_t strand) {
-  match_trace_t* match_trace;
-  vector_alloc_new(matches->global_matches,match_trace_t,match_trace);
-  match_trace->position = position;
-  match_trace->trace_offset = trace_offset;
-  match_trace->distance = distance;
-  match_trace->strand = strand;
-  match_trace->score = 0;
-  // TODO: Index
+  // Check duplicates
+  if (matches_lookup_match(matches,position)!=NULL) {
+    // Add the match-trace
+    match_trace_t* match_trace;
+    vector_alloc_new(matches->global_matches,match_trace_t,match_trace);
+    match_trace->position = position;
+    match_trace->trace_offset = trace_offset;
+    match_trace->distance = distance;
+    match_trace->strand = strand;
+    match_trace->score = 0;
+    // Index
+    matches_index_match(matches,match_trace);
+  }
 }
 GEM_INLINE void matches_add_interval_match(
     matches_t* const matches,
@@ -174,9 +203,7 @@ GEM_INLINE void matches_add_interval_match(
 }
 GEM_INLINE void matches_add_interval_set(
     matches_t* const matches,interval_set_t* const interval_set) {
-  // TODO NOT_IMPLEMENTED
-  GEM_NOT_IMPLEMENTED();
-  // TODO
+  GEM_NOT_IMPLEMENTED(); // TODO
 }
 GEM_INLINE void matches_hint_add_match_trace(matches_t* const matches,const uint64_t num_matches_trace_to_add) {
   vector_reserve_additional(matches->global_matches,num_matches_trace_to_add);
@@ -190,8 +217,8 @@ GEM_INLINE void matches_hint_add_match_interval(matches_t* const matches,const u
 GEM_INLINE void matches_reverse_CIGAR(
     matches_t* const matches,
     const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
-  // Exact Match
-  if (cigar_length==0) return; // FIXME: Even all-matching matches have CIGAR=1
+  // Exact Match (Even all-matching matches have CIGAR=1)
+  gem_fatal_check(cigar_length>0,MATCHES_CIGAR_ZERO_LENGTH);
   // Reverse CIGAR
   cigar_element_t* const cigar_buffer = vector_get_elm(matches->cigar_buffer,cigar_buffer_offset,cigar_element_t);
   const uint64_t middle_point = cigar_length/2;

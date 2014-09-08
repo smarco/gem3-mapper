@@ -15,10 +15,12 @@ release: setup
 ifeq ($(HAVE_CUDA),1)
 	$(MAKE) --directory=myers_gpu
 endif
+
 debug: setup
 ifeq ($(HAVE_CUDA),1)
 	$(MAKE) --directory=myers_gpu all
 endif
+
 setup: 
 	@mkdir -p build
 

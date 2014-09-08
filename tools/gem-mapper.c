@@ -84,9 +84,11 @@ option_t gem_mapper_options[] = {
   { 'Q', "quality-model", REQUIRED, TYPE_STRING, 3, false, "'gem'|'flat'", "(default=gem)" },
   { 300, "gem-quality-threshold", REQUIRED, TYPE_INT, 3, true, "<number>", "(default=26, that is e<=2e-3)" },
   /* Single-end Alignment */
-  { 400, "mapping-mode", REQUIRED, TYPE_INT, 4 , false, "'incremental'|'adaptive'|'fixed'|'fast'|'brute-force'|'massive'" , "(default=fast)" },
+  { 400, "mapping-mode", REQUIRED, TYPE_INT, 4 , false, "'incremental'|'adaptive'|'fixed'|'fast'|'brute-force'" , "(default=fast)" },
   { 401, "mapping-degree", REQUIRED, TYPE_INT, 4 , false, "<number|percentage>" , "(default=0)" },
+#ifdef HAVE_CUDA
   { 402, "cuda", NO_ARGUMENT, TYPE_NONE, 4, true, "", ""},
+#endif
   { 'e', "max-search-error", REQUIRED, TYPE_INT, 4 , true, "<number|percentage>" , "(default=0.04, 4%)" },
   { 'E', "max-filtering-error", REQUIRED, TYPE_INT, 4 , false, "<number|percentage>" , "(default=0.2, 20%)" },
   { 's', "complete-strata-after-best", REQUIRED, TYPE_INT, 4 , true, "<number|percentage>" , "(default=0)" },
@@ -94,22 +96,31 @@ option_t gem_mapper_options[] = {
   { 404, "max-search-matches", REQUIRED, TYPE_INT, 4 , true, "<number>" , "(not limited by default)" },
   { 405, "mismatch-alphabet", REQUIRED, TYPE_STRING, 4 , false, "<symbols>" , "(default=\"ACGT\")" },
   /* Paired-end Alignment */
+
+  /* Alignment Score */
+  { 600, "alignment-model", REQUIRED, TYPE_STRING, 8 , false, "'none'|'hamming'|'edit'|'gap-affine'" , "(default=edit)" },
+  { 'A', "matching-score", REQUIRED, TYPE_INT, 8 , false, "" , "(default=)" },
+  { 'B', "mismatch-penalty", REQUIRED, TYPE_INT, 8 , false, "" , "(default=)" },
+  { 'O', "gap-open-penalty", REQUIRED, TYPE_INT, 8 , false, "" , "(default=)" },
+  { 'X', "gap-extension-penalty", REQUIRED, TYPE_INT, 8 , false, "" , "(default=)" },
+  /* Mapping Quality */
+
   /* Reporting */
-  { 'F', "output-format", REQUIRED, TYPE_STRING, 6 , false, "'MAP'|'SAM'" , "(default=MAP)" },
-  { 'D', "min-decoded-strata", REQUIRED, TYPE_INT, 6 , false, "<number>" , "(stratum-wise, default=0)" },
-  { 'd', "max-decoded-matches", REQUIRED, TYPE_INT, 6 , false, "<number>|'all'" , "(stratum-wise, default=20)" },
-  { 'm', "min-reported-matches", REQUIRED, TYPE_INT, 6 , false, "<number>|'all'" , "(default=1)" },
-  { 'M', "max-reported-matches", REQUIRED, TYPE_INT, 6 , true, "<number>|'all'" , "(default=all)" },
+  { 'F', "output-format", REQUIRED, TYPE_STRING, 8 , false, "'MAP'|'SAM'" , "(default=MAP)" },
+  { 'D', "min-decoded-strata", REQUIRED, TYPE_INT, 8 , false, "<number>" , "(stratum-wise, default=0)" },
+  { 'd', "max-decoded-matches", REQUIRED, TYPE_INT, 8 , false, "<number>|'all'" , "(stratum-wise, default=20)" },
+  { 'm', "min-reported-matches", REQUIRED, TYPE_INT, 8 , false, "<number>|'all'" , "(default=1)" },
+  { 'M', "max-reported-matches", REQUIRED, TYPE_INT, 8 , true, "<number>|'all'" , "(default=all)" },
   /* System */
-  { 't', "threads", REQUIRED, TYPE_STRING, 7 , true, "<number>" , "(default=1)" },
-  { 700, "max-memory", REQUIRED, TYPE_STRING, 7 , true, "<maximum-memory>" , "(Eg 2GB)" },
-  { 701, "tmp-folder", REQUIRED, TYPE_STRING, 7 , true, "<temporal_dir_path>" , "(/tmp/)" },
+  { 't', "threads", REQUIRED, TYPE_STRING, 9 , true, "<number>" , "(default=1)" },
+  { 900, "max-memory", REQUIRED, TYPE_STRING, 9 , true, "<maximum-memory>" , "(Eg 2GB)" },
+  { 901, "tmp-folder", REQUIRED, TYPE_STRING, 9 , true, "<temporal_dir_path>" , "(/tmp/)" },
   /* Debug */
   /* Miscellaneous */
-  { 'v', "verbose", NO_ARGUMENT, TYPE_NONE, 9 , true, "" , "(disabled)" },
-  { 'V', "developer-verbose", NO_ARGUMENT, TYPE_NONE, 9 , false, "" , "(disabled)" },
-  { 'h', "help", NO_ARGUMENT, TYPE_NONE, 9 , true, "" , "(print usage)" },
-  { 'H', "help", NO_ARGUMENT, TYPE_NONE, 9 , false, "" , "(print usage + extras)" },
+  { 'v', "verbose", NO_ARGUMENT, TYPE_NONE, 11 , true, "" , "(disabled)" },
+  { 'V', "developer-verbose", NO_ARGUMENT, TYPE_NONE, 11 , false, "" , "(disabled)" },
+  { 'h', "help", NO_ARGUMENT, TYPE_NONE, 11 , true, "" , "(print usage)" },
+  { 'H', "help", NO_ARGUMENT, TYPE_NONE, 11 , false, "" , "(print usage + extras)" },
   /* Extras */
   {  0, "", 0, 0, 0, false, "", ""}
 };
@@ -120,11 +131,13 @@ char* gem_mapper_groups[] = {
   /*  3 */ "Qualities",
   /*  4 */ "Single-end Alignment",
   /*  5 */ "Paired-end Alignment",
-  /*  6 */ "Reporting",
-  /*  7 */ "System",
-  /*  8 */ "Debug",
-  /*  9 */ "Miscellaneous",
-  /* 10 */ "Extras"
+  /*  6 */ "Alignment Score"
+  /*  7 */ "Mapping Quality"
+  /*  8 */ "Reporting",
+  /*  9 */ "System",
+  /* 10 */ "Debug",
+  /* 11 */ "Miscellaneous",
+  /* 12 */ "Extras",
 };
 void usage(const bool print_inactive) {
   fprintf(stderr, "USAGE: ./gem-mapper [ARGS]...\n");
@@ -211,16 +224,13 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
         parameters->mapping_mode = mapping_neighborhood_search;
         break;
       }
-      if (gem_strcaseeq(optarg,"massive")) {
-        parameters->mapping_mode = mapping_massive_filtering;
-        break;
-      }
-      gem_fatal_error_msg("Option '--mapping-mode' must be 'incremental'|'adaptive'|'fixed'|'fast'|'brute-force'|'massive'");
+      gem_fatal_error_msg("Option '--mapping-mode' must be 'incremental'|'adaptive'|'fixed'|'fast'|'brute-force'");
       break;
     case 401: // --mapping-degree
       parameters->mapping_degree = atof(optarg);
       break;
     case 402: // --cuda
+      if (!bpm_gpu_support()) GEM_CUDA_NOT_SUPPORTED();
       parameters->mapper_type = mapper_se_cuda;
       break;
     case 'e': // --max-search-error
@@ -242,6 +252,21 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       parameters->mismatch_alphabet = optarg;
       break;
     /* Paired-end Alignment */
+    /* Alignment Score */
+    case 600:
+      if (gem_strcaseeq(optarg,"none")) {
+        parameters->alignment_model = alignment_model_none;
+      } else if (gem_strcaseeq(optarg,"hamming")) {
+        parameters->alignment_model = alignment_model_hamming;
+      } else if (gem_strcaseeq(optarg,"edit") || gem_strcaseeq(optarg,"levenshtein") ) {
+        parameters->alignment_model = alignment_model_levenshtein;
+      } else if (gem_strcaseeq(optarg,"gap-affine'")) {
+        parameters->alignment_model = alignment_model_gap_affine;
+      } else {
+        gem_fatal_error_msg("Option '--alignment-model' must be 'none'|'hamming'|'edit'|'gap-affine'");
+      }
+      break;
+    /* Mapping Quality */
     /* Reporting */
     case 'F': // --output-format
       if (gem_strcaseeq(optarg,"MAP")) {
@@ -251,7 +276,6 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       } else {
         gem_fatal_error_msg("Option '-F|--output-format' must be 'MAP' or 'SAM'");
       }
-      break;
       break;
     case 'D': // --min-decoded-strata
       parameters->min_decoded_strata = (gem_strcaseeq(optarg,"all")) ? ALL : atol(optarg);
@@ -269,10 +293,10 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 't': // --threads
       parameters->num_threads = atol(optarg);
       break;
-    case 700: // --max-memory
+    case 900: // --max-memory
       gem_cond_fatal_error(input_text_parse_size(optarg,&(parameters->max_memory)),PARSING_SIZE,"--max-memory",optarg);
       break;
-    case 701: // --tmp-folder
+    case 901: // --tmp-folder
       parameters->tmp_folder = optarg;
       break;
     /* Debug */
@@ -313,13 +337,9 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
 int main(int argc,char** argv) {
   // Parsing command-line options
   mapper_parameters_t parameters;
-  #if HAVE_CUDA == 1
-  	  mapper_cuda_parameters_t cuda_parameters;
-  #endif
   mapper_parameters_set_defaults(&parameters); // Set defaults
-  #if HAVE_CUDA == 1
-  	  mapper_cuda_parameters_set_defaults(&cuda_parameters); // Set defaults
-  #endif
+  mapper_cuda_parameters_t cuda_parameters;
+  mapper_cuda_parameters_set_defaults(&cuda_parameters); // Set defaults
   parse_arguments(argc,argv,&parameters); // Parse cmd-line
 
   // Runtime setup
@@ -341,14 +361,7 @@ int main(int argc,char** argv) {
       GEM_NOT_IMPLEMENTED(); // TODO
       break;
     case mapper_se_cuda:
-	  #if HAVE_CUDA == 1
-    	  // Force Massive-filtering mapping mode
-      	  parameters.mapping_mode = mapping_massive_filtering;
-      	  mapper_SE_CUDA_run(&parameters,&cuda_parameters); // SE-CUDA mapping threads (Producer-Consumer)
-      	  GEM_NOT_IMPLEMENTED(); // TODO
-	  #else
-          gem_fatal_error_msg("GEM binary not builded with CUDA support");
-	  #endif
+      mapper_SE_CUDA_run(&parameters,&cuda_parameters); // SE-CUDA mapping threads (Producer-Consumer)
       break;
     case mapper_graph:
       GEM_NOT_IMPLEMENTED(); // TODO

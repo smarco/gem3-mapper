@@ -34,11 +34,33 @@
 #define FM_ADAPTIVE (UINT64_MAX-1)
 
 /*
+ * MM Search
+ */
+GEM_INLINE mm_search_t* mm_search_new(mm_slab_t* const mm_stack_slab) {
+  // Allocate
+  mm_search_t* const mm_search = mm_alloc(mm_search_t);
+  // Setup
+  mm_search->mm_stack = mm_stack_new(mm_stack_slab);
+  mm_search->text_collection = text_collection_new();
+  // Return
+  return mm_search;
+}
+GEM_INLINE void mm_search_clear(mm_search_t* const mm_search) {
+  mm_stack_free(mm_search->mm_stack); // Free stack for new use
+  text_collection_clear(mm_search->text_collection); // Clear text-collection
+}
+GEM_INLINE void mm_search_delete(mm_search_t* const mm_search) {
+  mm_stack_delete(mm_search->mm_stack);
+  text_collection_delete(mm_search->text_collection);
+}
+
+/*
  * Setup
  */
 GEM_INLINE approximate_search_t* approximate_search_new(
-    locator_t* const locator,graph_text_t* const graph,dna_text_t* const enc_text,fm_index_t* const fm_index,
-    approximate_search_parameters_t* const parameters,mm_stack_t* const mm_stack) {
+    locator_t* const locator,graph_text_t* const graph,
+    dna_text_t* const enc_text,fm_index_t* const fm_index,
+    search_actual_parameters_t* const search_actual_parameters) {
   // Allocate handler
   approximate_search_t* const search = mm_alloc(approximate_search_t);
   // Index Structures & Parameters
@@ -46,16 +68,10 @@ GEM_INLINE approximate_search_t* approximate_search_new(
   search->graph = graph;
   search->enc_text = enc_text;
   search->fm_index = fm_index;
-  search->search_parameters = parameters;
+  search->search_actual_parameters = search_actual_parameters;
   // Search Auxiliary Structures
   filtering_candidates_new(&search->filtering_candidates); // Filtering Candidates
-  filtering_candidates_set_max_candidates_accepted(
-      &search->filtering_candidates,parameters->max_search_matches);
   // Interval Set TODO
-
-
-  // MM
-  search->mm_stack = mm_stack; // Memory stack
   // Return
   return search;
 }
@@ -63,7 +79,7 @@ GEM_INLINE void approximate_search_clear(approximate_search_t* const search) {
   // Reset Approximate Search State
   search->current_search_stage = asearch_init; // Current Stage of the search
   search->stop_search_stage  = asearch_end; // Search stage to stop at
-  search->max_differences = search->search_parameters->max_search_error_nominal;
+  search->max_differences = search->search_actual_parameters->max_search_error_nominal;
   search->max_complete_stratum = ALL;
   search->max_matches_reached = false;
   // Filtering Candidates
@@ -76,9 +92,6 @@ GEM_INLINE void approximate_search_delete(approximate_search_t* const search) {
   // Free handler
   mm_free(search);
 }
-GEM_INLINE void approximate_search_set_mm_stack(approximate_search_t* const search,mm_stack_t* const mm_stack) {
-  search->mm_stack = mm_stack; // MM
-}
 /*
  * Accessors
  */
@@ -89,12 +102,12 @@ GEM_INLINE uint64_t approximate_search_get_num_potential_candidates(approximate_
  * Pattern
  */
 GEM_INLINE void approximate_search_prepare_pattern(
-    approximate_search_t* const search,
-    const approximate_search_parameters_t* const parameters,sequence_t* const sequence) {
+    approximate_search_t* const search,sequence_t* const sequence,mm_stack_t* const mm_stack) {
+  // Parameters
+  const search_actual_parameters_t* const actual_parameters = search->search_actual_parameters;
+  const search_parameters_t* const parameters = actual_parameters->search_parameters;
   // Set quality search
   search->do_quality_search = (parameters->quality_format!=qualities_ignore) && sequence_has_qualities(sequence);
-  // Get StackMem-allocator
-  mm_stack_t* const mm_stack = search->mm_stack;
   // Allocate pattern memory
   const uint64_t read_length = sequence_get_length(sequence);
   pattern_t* const pattern = &search->pattern;
@@ -134,13 +147,13 @@ GEM_INLINE void approximate_search_prepare_pattern(
   pattern->num_wildcards = num_wildcards;
   pattern->num_low_quality_bases = num_low_quality_bases;
   // Calculate the effective number of differences
-  const int64_t max_allowed_error = (int64_t)read_length - (int64_t) parameters->min_matching_length_nominal;
+  const int64_t max_allowed_error = (int64_t)read_length - (int64_t) actual_parameters->min_matching_length_nominal;
   uint64_t effective_filtering_max_error;
   if (gem_expect_false(max_allowed_error<=0)) { // Constrained by min_matching_length_nominal
     effective_filtering_max_error = 0;
   } else {
     // Constrained by num_low_quality_bases
-    effective_filtering_max_error = parameters->max_filtering_error_nominal + pattern->num_low_quality_bases;
+    effective_filtering_max_error = actual_parameters->max_filtering_error_nominal + pattern->num_low_quality_bases;
     if (effective_filtering_max_error > max_allowed_error) {
       effective_filtering_max_error = max_allowed_error;
     }
@@ -162,7 +175,7 @@ GEM_INLINE void approximate_search_prepare_pattern(
 GEM_INLINE void approximate_search_adjust_max_differences_using_strata(
     approximate_search_t* const search,matches_t* const matches) {
   const uint64_t max_differences = search->max_differences;
-  const uint64_t delta = search->search_parameters->complete_strata_after_best_nominal;
+  const uint64_t delta = search->search_actual_parameters->complete_strata_after_best_nominal;
   if (delta < max_differences) {
     const int64_t fms = matches_counters_get_min_matching_stratum(matches);
     if (fms>=0 && fms+delta < max_differences) {
@@ -256,10 +269,10 @@ GEM_INLINE void approximate_search_add_regions_to_filter(
 GEM_INLINE void approximate_search_filter_regions(
     approximate_search_t* const search,
     const bool dynamic_scheduling,const uint64_t sensibility_error_length,
-    const uint64_t filtering_threshold,matches_t* const matches) {
+    const uint64_t filtering_threshold,matches_t* const matches,mm_search_t* const mm_search) {
   PROF_START_TIMER(GP_AS_FILTER_REGIONS);
   // Archive Data
-  const approximate_search_parameters_t* const parameters = search->search_parameters;
+  const search_actual_parameters_t* const actual_parameters = search->search_actual_parameters;
   const locator_t* const locator = search->locator;
   const fm_index_t* const fm_index = search->fm_index;
   const dna_text_t* const enc_text = search->enc_text;
@@ -359,10 +372,10 @@ GEM_INLINE void approximate_search_filter_regions(
     /* Otherwise, ignore the region (intractable) */
 
     /* Check candidates (Dynamic filtering)*/
-    if (dynamic_scheduling && parameters->complete_strata_after_best_nominal < search->max_differences) {
+    if (dynamic_scheduling && actual_parameters->complete_strata_after_best_nominal < search->max_differences) {
       PROF_PAUSE_TIMER(GP_AS_FILTER_REGIONS);
-      filtering_candidates_verify_pending(filtering_candidates,
-          locator,fm_index,enc_text,pattern,parameters,matches);
+      filtering_candidates_verify_pending(filtering_candidates,mm_search->text_collection,
+          locator,fm_index,enc_text,pattern,search->search_strand,actual_parameters,matches);
       approximate_search_adjust_max_differences_using_strata(search,matches);
       PROF_CONTINUE_TIMER(GP_AS_FILTER_REGIONS);
     }
@@ -386,14 +399,15 @@ GEM_INLINE void approximate_search_filter_regions(
  * out of bad quality reads
  */
 GEM_INLINE void approximate_search_read_recovery(
-    approximate_search_t* const search,
-    const uint64_t max_complete_stratum_value,matches_t* const matches) {
+    approximate_search_t* const search,const uint64_t max_complete_stratum_value,
+    matches_t* const matches,mm_search_t* const mm_search) {
   PROF_START_TIMER(GP_AS_READ_RECOVERY);
-  approximate_search_parameters_t* const parameters = search->search_parameters;
+  search_actual_parameters_t* const actual_parameters = search->search_actual_parameters;
+  search_parameters_t* const parameters = actual_parameters->search_parameters;
   // Compute the region profile
   region_profile_generate_adaptive(
       &search->region_profile,search->fm_index,
-      &search->pattern,search->search_parameters->allowed_enc,
+      &search->pattern,parameters->allowed_enc,
       parameters->rrp_region_th,parameters->rrp_max_steps,
       parameters->rrp_dec_factor,parameters->rrp_region_type_th,
       search->max_differences+1);
@@ -404,8 +418,9 @@ GEM_INLINE void approximate_search_read_recovery(
       &search->filtering_candidates,&search->region_profile);
 
   // Verify !!
-  filtering_candidates_verify_pending(&search->filtering_candidates,
-      search->locator,search->fm_index,search->enc_text,&search->pattern,parameters,matches);
+  filtering_candidates_verify_pending(
+      &search->filtering_candidates,mm_search->text_collection,search->locator,search->fm_index,
+      search->enc_text,&search->pattern,search->search_strand,actual_parameters,matches);
 
   // Update MCS
   search->max_complete_stratum = MIN(max_complete_stratum_value,search->max_complete_stratum);
@@ -431,16 +446,17 @@ GEM_INLINE void approximate_search_exact_search(
  * Basic brute force search
  */
 GEM_INLINE void approximate_search_basic(approximate_search_t* const search,matches_t* const matches) {
-  approximate_search_parameters_t* const parameters = search->search_parameters;
+  // Parameters, pattern & interval-set
+  const search_actual_parameters_t* const actual_parameters = search->search_actual_parameters;
   pattern_t* const pattern = &search->pattern;
   interval_set_t* const intervals_result = &search->intervals_result;
   // Basic search (Brute force mitigated by mrank_table)
   interval_set_clear(&search->intervals_result); // Clear
-  neighborhood_search(pattern->key,pattern->key_length,parameters->max_search_error_nominal,intervals_result);
+  neighborhood_search(pattern->key,pattern->key_length,actual_parameters->max_search_error_nominal,intervals_result);
   // Add results
   matches_add_interval_set(matches,intervals_result);
   // Update MCS
-  search->max_complete_stratum = parameters->max_search_error_nominal+1;
+  search->max_complete_stratum = actual_parameters->max_search_error_nominal+1;
 }
 /*
  * Scout adaptive filtering
@@ -454,8 +470,12 @@ GEM_INLINE void approximate_search_basic(approximate_search_t* const search,matc
  */
 GEM_INLINE bool approximate_search_scout_adaptive_filtering(
     approximate_search_t* const search,matches_t* const matches) {
+  // FM-Index
   fm_index_t* const fm_index = search->fm_index;
-  approximate_search_parameters_t* const parameters = search->search_parameters;
+  // Parameters
+  const search_actual_parameters_t* const actual_parameters = search->search_actual_parameters;
+  const search_parameters_t* const parameters = actual_parameters->search_parameters;
+  // Region-profile & pattern
   region_profile_t* const region_profile = &search->region_profile;
   pattern_t* const pattern = &search->pattern;
 
@@ -475,7 +495,7 @@ GEM_INLINE bool approximate_search_scout_adaptive_filtering(
   /*
    * Try to lower the search scope (max_differences) using @parameters->max_complete_strata
    */
-  if (parameters->complete_strata_after_best_nominal < search->max_differences) {
+  if (actual_parameters->complete_strata_after_best_nominal < search->max_differences) {
     // Check if it has exact matches
     bool exact_matches = false;
     if (region_profile_has_exact_matches(region_profile)) {
@@ -486,11 +506,11 @@ GEM_INLINE bool approximate_search_scout_adaptive_filtering(
     }
     // Try to lower @search->max_differences using @parameters->max_complete_strata
     if (exact_matches) {
-      search->max_differences = parameters->complete_strata_after_best_nominal;
-      if (parameters->complete_strata_after_best_nominal==0) {
+      search->max_differences = actual_parameters->complete_strata_after_best_nominal;
+      if (actual_parameters->complete_strata_after_best_nominal==0) {
         const filtering_region_t* const first_region = region_profile->filtering_region;
         matches_add_interval_match(matches,first_region->hi,first_region->lo,pattern->key_length,0,search->search_strand);
-        search->max_differences = parameters->complete_strata_after_best_nominal;
+        search->max_differences = actual_parameters->complete_strata_after_best_nominal;
         search->max_complete_stratum = 1;
         return true; // Well done !
       }
@@ -593,7 +613,8 @@ GEM_INLINE bool approximate_search_scout_adaptive_filtering(
 /*
  * // A.K.A. brute-force mapping
  */
-GEM_INLINE void approximate_search_neighborhood_search(approximate_search_t* const search,matches_t* const matches) {
+GEM_INLINE void approximate_search_neighborhood_search(
+    approximate_search_t* const search,matches_t* const matches,mm_search_t* const mm_search) {
   if (search->max_differences==0) {
     // Exact Search
     approximate_search_exact_search(search,matches);
@@ -629,8 +650,10 @@ GEM_INLINE void approximate_search_neighborhood_search(approximate_search_t* con
  *         we want to keep it separate to keep the main algorithm isolated
  */
 GEM_INLINE void approximate_search_adaptive_mapping(
-    approximate_search_t* const search,matches_t* const matches) {
-  const approximate_search_parameters_t* const parameters = search->search_parameters;
+    approximate_search_t* const search,matches_t* const matches,mm_search_t* const mm_search) {
+  // Parameters
+  const search_actual_parameters_t* const actual_parameters = search->search_actual_parameters;
+  const search_parameters_t* const parameters = actual_parameters->search_parameters;
   fm_index_t* const fm_index = search->fm_index;
   pattern_t* const pattern = &search->pattern;
   region_profile_t* const region_profile = &search->region_profile;
@@ -658,7 +681,7 @@ GEM_INLINE void approximate_search_adaptive_mapping(
     const filtering_region_t* const first_region = region_profile->filtering_region;
     matches_add_interval_match(matches,first_region->hi,first_region->lo,
         pattern->key_length,0,search->search_strand);
-    search->max_differences = parameters->complete_strata_after_best_nominal; // Lower max-differences
+    search->max_differences = actual_parameters->complete_strata_after_best_nominal; // Lower max-differences
     search->max_complete_stratum = 1;
     search->current_search_stage = asearch_end;
     return;
@@ -666,15 +689,15 @@ GEM_INLINE void approximate_search_adaptive_mapping(
   // Process the proper fast-mapping scheme
   const uint64_t sensibility_error_length =
       parameters->filtering_region_factor*fm_index_get_proper_length(search->fm_index);
-  switch (parameters->fast_mapping_degree_nominal) {
+  switch (actual_parameters->fast_mapping_degree_nominal) {
     case FM_ADAPTIVE:
       approximate_search_filter_regions(search,DYNAMIC_SCHEDULING,
-          sensibility_error_length,parameters->filtering_threshold,matches);
+          sensibility_error_length,parameters->filtering_threshold,matches,mm_search);
       break;
     default: // FM_DEGREE={0..n}
       approximate_search_schedule_fixed_filtering_degree(region_profile,parameters->fast_mapping_degree+1);
       approximate_search_filter_regions(search,STATIC_SCHEDULING,
-          sensibility_error_length,parameters->filtering_threshold,matches);
+          sensibility_error_length,parameters->filtering_threshold,matches,mm_search);
       break;
   }
 
@@ -684,8 +707,9 @@ GEM_INLINE void approximate_search_adaptive_mapping(
     search->current_search_stage = asearch_filtering;
     return;
   }
-  filtering_candidates_verify_pending(filtering_candidates,
-      search->locator,fm_index,search->enc_text,pattern,parameters,matches);
+  filtering_candidates_verify_pending(
+      filtering_candidates,mm_search->text_collection,search->locator,fm_index,
+      search->enc_text,pattern,search->search_strand,actual_parameters,matches);
 
   // Update MCS (maximum complete stratum)
   search->max_matches_reached = filtering_candidates_is_max_candidates_reached(filtering_candidates);
@@ -701,7 +725,7 @@ GEM_INLINE void approximate_search_adaptive_mapping(
  * [GEM-workflow 4.0] Incremental mapping (A.K.A. Complete mapping)
  */
 GEM_INLINE void approximate_search_incremental_mapping(
-    approximate_search_t* const search,matches_t* const matches) {
+    approximate_search_t* const search,matches_t* const matches,mm_search_t* const mm_search) {
   search->current_search_stage = asearch_end;
   GEM_NOT_IMPLEMENTED(); // TODO
 
@@ -784,9 +808,11 @@ GEM_INLINE void approximate_search_incremental_mapping(
 /*
  * Approximate String Matching using the FM-index.
  */
-GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t* const matches) {
+GEM_INLINE void approximate_search(
+    approximate_search_t* const search,matches_t* const matches,mm_search_t* const mm_search) {
   PROF_START_TIMER(GP_AS_MAIN);
-  const approximate_search_parameters_t* const search_parameters = search->search_parameters;
+  // Parameters
+  const search_parameters_t* const parameters = search->search_actual_parameters->search_parameters;
   // Check if all characters are wildcards
   if (search->pattern.key_length==search->pattern.num_wildcards) {
     search->max_complete_stratum = search->pattern.key_length;
@@ -796,15 +822,15 @@ GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t*
   /*
    * Select mapping strategy
    */
-  switch (search_parameters->mapping_mode) {
+  switch (parameters->mapping_mode) {
     case mapping_neighborhood_search:
-      approximate_search_neighborhood_search(search,matches); // A.K.A. brute-force mapping
+      approximate_search_neighborhood_search(search,matches,mm_search); // A.K.A. brute-force mapping
       break;
     case mapping_incremental_mapping:
-      approximate_search_incremental_mapping(search,matches); // A.K.A. complete-mapping
+      approximate_search_incremental_mapping(search,matches,mm_search); // A.K.A. complete-mapping
       break;
     case mapping_adaptive_filtering:
-      approximate_search_adaptive_mapping(search,matches);    // A.K.A. fast-mapping
+      approximate_search_adaptive_mapping(search,matches,mm_search);    // A.K.A. fast-mapping
       break;
     case mapping_fast:
       GEM_NOT_IMPLEMENTED();

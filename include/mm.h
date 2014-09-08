@@ -26,10 +26,15 @@
 #include "commons.h"
 #include "errors.h"
 
+/*
+ * Config
+ */
+#ifdef GEM_DEBUG
+#define MM_NO_MMAP
+#endif
+
 /******************************************************************************
- *
  * Memory Alignment Utils
- *
  ******************************************************************************/
 // Check Memory Alignment
 #define MM_MEM_ALIGNED_MASK_16b  mm_mem_alignment_bits_mask[0]

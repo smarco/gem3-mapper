@@ -138,10 +138,7 @@ inline bool gem_is_mute_report_stream();
       gem_flog(stream,gem_log_msg,##args); \
     } \
   } while (0)
-/*
- *
- */
-// Simple LOG
+// Info LOG
 #define gem_info(gem_info_msg,args...) \
   do { \
     FILE* const gem_stream=gem_info_get_stream(); \

@@ -59,6 +59,7 @@ typedef struct {
   dna_text_t* enc_text;                     // Encoded Input Text (from MultiFASTA)
   dna_text_t* enc_rl_text;                  // Encoded Run-Length Compacted Input Text (from MultiFASTA)
   uint64_t* character_occurrences;          // Total occurrences of each character
+  uint64_t* sampled_rl_text;                // Sampled RL-text (to retrieve approximate source text-positions)
   /* FM-Index */
   dna_text_t* enc_bwt;                      // BWT text
   sampling_rate_t sampling_rate;            // Sampling Rate

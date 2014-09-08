@@ -504,13 +504,13 @@ MYERS_INLINE myersError_t initDeviceBuffers(buffer_t ***myersBuffer, uint32_t nu
 		maxPEQEntries = maxQueries * averageNumPEQEntries;
 
 		//TODO: Consider less buffers than GPUs!!
-		printf("Requested: %d - Available: %d \n", CONVERT_B_TO_MB(bytesPerBuffer * numBuffersPerDevice), freeDeviceMemory);
+		printf("Requested: %d - Available: %d \n", (int)CONVERT_B_TO_MB(bytesPerBuffer * numBuffersPerDevice), freeDeviceMemory);
 		if ((maxCandidates < 1) || (maxQueries < 1) || (CONVERT_B_TO_MB(bytesPerBuffer * numBuffersPerDevice) > freeDeviceMemory))
 			MYERS_ERROR(E_INSUFFICIENT_MEM_GPU);
 
 		printf("Device %d: %d buffers x %d MBytes/buffer (max %d MB) = %d MBytes\n",
-				idDevice, numBuffersPerDevice, CONVERT_B_TO_MB(bytesPerBuffer), maxMbPerBuffer,
-				CONVERT_B_TO_MB(bytesPerBuffer) * numBuffersPerDevice);
+				idDevice, numBuffersPerDevice, (int)CONVERT_B_TO_MB(bytesPerBuffer), maxMbPerBuffer,
+				(int)CONVERT_B_TO_MB(bytesPerBuffer) * numBuffersPerDevice);
 
 		for(idLocalBuffer = 0; idLocalBuffer < numBuffersPerDevice; ++idLocalBuffer){
 			buffer[idGlobalBuffer] = (buffer_t *) malloc(sizeof(buffer_t));

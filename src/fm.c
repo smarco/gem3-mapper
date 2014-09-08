@@ -14,9 +14,46 @@
 
 #include <unistd.h>
 
+#ifdef HAVE_ZLIB
+#include <zlib.h>
+#endif
+
+#ifdef HAVE_BZLIB
+#include <bzlib.h>
+#endif
+
+/*
+ * Config
+ */
 #ifndef O_NOATIME
   #define O_NOATIME 0 /* FIXME: O_NOATIME is not allowed if only read rights are guaranteed */
 #endif
+
+/*
+ * File-Manager
+ */
+struct _fm_t {
+  /* File */
+  int fd;                 /* File descriptor */
+  FILE* file;             /* FILE */
+#ifdef HAVE_BZLIB
+  gzFile gz_file;         /* GZip FILE */
+#endif
+#ifdef HAVE_BZLIB
+  BZFILE* bz_file;        /* BZip FILE */
+#endif
+  /* Attributes */
+  fm_type file_type;      /* File type */
+  fm_mode mode;           /* File mode {R,W,R/W} */
+  char *file_name;        /* File name */
+  /* Locator */
+  uint64_t byte_position; /* Current byte position */
+  uint64_t file_size;     /* File size */
+  bool eof;               /* End of file flag */
+  /* Auxiliary Skip Buffers */
+  uint8_t* skip_read_buffer;
+  uint8_t* skip_write_buffer;
+};
 
 /*
  * I/O Constants/Values
@@ -605,7 +642,7 @@ GEM_INLINE void fm_bulk_read_file(char* const file_name,void* const dst,const ui
 }
 GEM_INLINE void fm_bulk_read_file_parallel(
     char* const file_name,void* const dst,const uint64_t offset,const uint64_t size,const uint64_t num_threads) {
-  // TODO
+  GEM_NOT_IMPLEMENTED(); // TODO
 }
 /*
  * FileManager Wrappers

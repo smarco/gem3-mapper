@@ -29,24 +29,14 @@ MODULES+=sequence dna_string dna_text cdna_text cdna_bitwise_text \
 MODULES+=options_menu 
 # GEM Structures
 MODULES+=archive_builder archive_text_builder archive_hypertext_builder archive_index_builder sa_builder \
-         bwt rank_mtable sampled_sa sampled_rl fm_index interval_set matches \
-         archive archive_search archive_text_retrieve locator 
-ifeq ($(HAVE_CUDA),1)
-	MODULES+=archive_search_group
-endif
-
+         bwt rank_mtable sampled_sa sampled_rl fm_index interval_set matches locator \
+         archive archive_search archive_search_group \
+         archive_select archive_select_parameters archive_text_retrieve 
 # GEM Search Modules
 MODULES+=approximate_search_parameters approximate_search neighborhood_search \
-         filtering_candidates region_profile bpm_align quality_model
-ifeq ($(HAVE_CUDA),1)
-	MODULES+=bpm_align_gpu
-endif
-         
+         filtering_candidates region_profile bpm_align bpm_align_gpu quality_model
 # GEM Top-level Modules
-MODULES+=mapper gem_core
-ifeq ($(HAVE_CUDA),1)
-	MODULES+=mapper_cuda
-endif
+MODULES+=mapper mapper_cuda gem_core
         
 SRCS=$(addsuffix .c, $(MODULES))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))
@@ -73,7 +63,7 @@ endif
 # Building Exceptions (Dependencies)
 $(FOLDER_BUILD)/fm.o : fm.c
 	$(CC) $(COMPILE_C_FLAGS) $(DEF_BZLIB) $(DEF_ZLIB) $(INCLUDE_FLAGS) -c $< -o $@
-$(FOLDER_BUILD)/filtering_candidates.o : filtering_candidates.c
+$(FOLDER_BUILD)/bpm_align_gpu.o : bpm_align_gpu.c
 	$(CC) $(COMPILE_C_FLAGS) $(DEF_CUDA) $(INCLUDE_FLAGS) -c $< -o $@
 
 # Building Exceptions (Implementations)

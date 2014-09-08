@@ -4,10 +4,14 @@
  * DATE: 06/06/2012
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
+ * TODO
+ *   - Block can surpass 256->uint8_t size
  */
 
 #include "bpm_align.h"
 #include "dna_string.h"
+
+#include "matches.h"
 
 #define BPM_PATTERN_CHECK(bpm_pattern) GEM_CHECK_NULL(bpm_pattern->PEQ)
 
@@ -114,11 +118,10 @@ GEM_INLINE int64_t align_levenshtein_get_distance(
 
 /*
  * Bit-compressed (Re)alignment
- *   BMP[BitParalellMayers] - Myers' Fast Bit-Vector algorithm (Levenshtein)
+ *   BPM[BitParalellMyers] - Myers' Fast Bit-Vector algorithm (Levenshtein)
  */
-
 // Constants
-#define BMP_W64_LENGTH 64
+#define BMP_W64_LENGTH 64  // FIXME
 #define BMP_W64_ONES UINT64_MAX
 
 #define BMP_INITIAL_BUFFER_SIZE ((16*DNA_RANGE+16*5)*64)
@@ -314,7 +317,8 @@ GEM_INLINE bool bpm_get_distance(
   }
 }
 GEM_INLINE bool bpm_get_distance__cutoff(
-    const bpm_pattern_t* const bpm_pattern,const uint8_t* const sequence,const uint64_t sequence_length,
+    const bpm_pattern_t* const bpm_pattern,
+    const uint8_t* const sequence,const uint64_t sequence_length,
     uint64_t* const position,uint64_t* const distance,const uint64_t max_distance) {
   // Pattern variables
   const uint64_t* PEQ = (uint64_t*)bpm_pattern->PEQ;
@@ -335,7 +339,7 @@ GEM_INLINE bool bpm_get_distance__cutoff(
   uint64_t sequence_position;
   for (sequence_position=0;sequence_position<sequence_length;++sequence_position) {
     // Fetch next character
-    const uint8_t enc_char = dna_encode(sequence[sequence_position]);
+    const uint8_t enc_char = sequence[sequence_position];
 
     // Advance all blocks
     int8_t carry;
@@ -508,4 +512,212 @@ GEM_INLINE bool bpm_get_distance__cutoff(
 //    return false;
 //  }
 //}
+
+
+
+/*
+ * Recover CIGAR from a matching string
+ */
+#define BPM_ALIGN_ADD_CIGAR_ELEMENT(cigar_element_type,element_length) \
+  if (cigar_element_buffer->type == cigar_del) { \
+    ++(cigar_element_buffer->length); \
+  } else { \
+    ++(cigar_element_buffer); \
+    cigar_element_buffer->type = cigar_del; \
+    cigar_element_buffer->length = element_length; \
+  }
+GEM_INLINE void bpm_align_match(
+    const uint8_t* const key,const bpm_pattern_t* const bpm_pattern,
+    const uint8_t* const sequence,const uint64_t sequence_length,const uint64_t matching_distance,
+    vector_t* const cigar_buffer,mm_stack_t* const mm_stack) {
+  // Pattern variables
+  const uint64_t* PEQ = (uint64_t*)bpm_pattern->PEQ;
+  const uint64_t num_words = bpm_pattern->pattern_num_words;
+  uint64_t* const P = (uint64_t*)bpm_pattern->P;
+  uint64_t* const M = (uint64_t*)bpm_pattern->M;
+  const uint64_t* const level_mask = (uint64_t*)bpm_pattern->level_mask;
+  int64_t* const score = (int64_t*)bpm_pattern->score;
+  const int64_t* const init_score = (int64_t*)bpm_pattern->init_score;
+  // Allocate auxiliary matrix
+  const uint64_t aux_matrix_size = bpm_pattern->pattern_num_words*bpm_pattern->pattern_word_size*sequence_length;
+  mm_stack_push_state(mm_stack); // Save stack state
+  uint64_t* const Pv = (uint64_t*)mm_stack_malloc(mm_stack,aux_matrix_size);
+  uint64_t* const Mv = (uint64_t*)mm_stack_malloc(mm_stack,aux_matrix_size);
+
+  // Initialize search
+  const uint8_t top = num_words-1;
+  uint8_t top_level;
+  bpm_reset_search__cutoff(&top_level,P,M,score,init_score,matching_distance);
+
+  // Advance in DP-bit_encoded matrix
+  uint64_t sequence_position;
+  for (sequence_position=0;sequence_position<sequence_length;++sequence_position) {
+    // Fetch next character
+    const uint8_t enc_char = sequence[sequence_position];
+    // Advance all blocks
+    int8_t carry;
+    uint64_t i;
+    for (i=0,carry=0;i<top_level;++i) {
+      const uint64_t bdp_idx = BPM_PATTERN_BDP_IDX(sequence_position,i,num_words);
+      const uint64_t next_bdp_idx = bdp_idx+num_words;
+      uint64_t* const Pv_in = Pv + bdp_idx;
+      uint64_t* const Mv_in = Mv + bdp_idx;
+      uint64_t* const Pv_out = Pv + next_bdp_idx;
+      uint64_t* const Mv_out = Mv + next_bdp_idx;
+      carry = bpm_advance_block(
+          PEQ[BPM_PATTERN_PEQ_IDX(enc_char,i,num_words)],
+          level_mask[i],*Pv_in,*Mv_in,carry+1,Pv_out,Mv_out);
+      score[i] += carry;
+    }
+
+    // Cut-off
+    const uint8_t last = top_level-1;
+    if ((score[last]-carry)<=matching_distance && last<top &&
+        ( (PEQ[BPM_PATTERN_PEQ_IDX(enc_char,top_level,num_words)] & 1) || (carry<0) )  ) {
+      // Init block V
+      const uint64_t bdp_idx = BPM_PATTERN_BDP_IDX(sequence_position,top_level,num_words);
+      const uint64_t next_bdp_idx = bdp_idx+num_words;
+      Pv[bdp_idx]=BMP_W64_ONES;
+      Mv[bdp_idx]=0;
+      // Advance block
+      uint64_t* const Pv_in = Pv + bdp_idx;
+      uint64_t* const Mv_in = Mv + bdp_idx;
+      uint64_t* const Pv_out = Pv + next_bdp_idx;
+      uint64_t* const Mv_out = Mv + next_bdp_idx;
+      score[top_level] = score[top_level-1] + init_score[top_level] - carry +
+          bpm_advance_block(PEQ[BPM_PATTERN_PEQ_IDX(enc_char,top_level,num_words)],
+              level_mask[top_level],*Pv_in,*Mv_in,carry+1,Pv_out,Mv_out);
+      ++top_level;
+    } else {
+      while (score[top_level-1]>matching_distance+init_score[top_level-1]) {
+        --top_level;
+      }
+    }
+//    // Check match (we don't need to check its a match)
+//    if (top_level==num_words && score[top_level-1]<=max_distance) {
+//      if (score[top_level-1]<min_score)  {
+//        min_score_position = sequence_position;
+//        min_score = score[top_level-1];
+//      }
+//    }
+  }
+  /*
+   * Retrieve the alignment. Store the match (Backtrace and generate CIGAR)
+   */
+  // Reserve CIGAR string (worst case)
+  const uint64_t pattern_length = bpm_pattern->pattern_length;
+  vector_reserve_additional(cigar_buffer,pattern_length);
+  cigar_element_t* cigar_element_buffer = vector_get_free_elm(cigar_buffer,cigar_element_t);
+  cigar_element_buffer->type = cigar_null; // Trick
+  // Start Backtrace
+  int64_t h = sequence_length - 1;
+  int64_t v = pattern_length - 1;
+  while (v >= 0 && h >= 0) {
+    const uint8_t block = v / UINT64_LENGTH;
+    const uint64_t bdp_idx = BPM_PATTERN_BDP_IDX(h+1,block,num_words);
+    const uint64_t mask = 1L << (v % UINT64_LENGTH);
+    if (Pv[bdp_idx] & mask) {
+      BPM_ALIGN_ADD_CIGAR_ELEMENT(cigar_del,1); // Deletion <-1>@v
+      --v;
+    } else if (Mv[(bdp_idx-num_words)] & mask) {
+      BPM_ALIGN_ADD_CIGAR_ELEMENT(cigar_ins,1); // Insertion <+1>@v
+      --h;
+    } else if (sequence[h] != key[v]) {
+      // Mismatch
+      cigar_element_buffer->type = cigar_mismatch;
+      cigar_element_buffer->mismatch = sequence[h];
+      --h; --v;
+    } else {
+      BPM_ALIGN_ADD_CIGAR_ELEMENT(cigar_match,1); // Match
+      --h; --v;
+    }
+  }
+  if (v >= 0) {
+    BPM_ALIGN_ADD_CIGAR_ELEMENT(cigar_del,v+1); // <-(@v+1)>@v
+  }
+  if (h >= 0) {
+    // We need to corret the matching_position // TODO
+//    *match_position = h+1;
+//    *match_end_position = hit_pos+1; // hit_pos = sequence_length-1;
+//    *match_distance = score_match-misms_num;
+  }
+  vector_update_used(cigar_buffer,cigar_element_buffer++); // Update CIGAR used
+  mm_stack_pop_state(mm_stack,false); // Free
+
+//  // (Re)Store misms // TODO
+//  if (misms_num > 0) {
+//    for (i = misms_num; i < score_match; ++i) {
+//      *(misms + (i - misms_num)) = *(misms + i);
+//    }
+//  }
+
+//  // Check // TODO
+//  gem_check(!align_check(
+//      key,key_length,decoded_text+(*match_position),
+//      hit_pos-(*match_position)+1,misms,score_match-misms_num)),);
+}
+
+
+
+
+
+
+
+
+
+
+//// Myers DEBUG
+//bool fmi_matches_check_alignment(
+//    const ch_t* const key,const uint64_t key_length,
+//    const ch_t* const text,uint64_t alg_length,
+//    mismatch* misms,const int64_t num_misms) {
+//  register bool correct = true;
+//  register int64_t p_ref = 0, p_read = 0, misms_pos=0;
+//  while (correct && p_read<key_length && p_ref<alg_length) {
+//    if (misms_pos<num_misms && misms[misms_pos].position == p_read) {
+//      if (misms[misms_pos].mismatch>=256) {
+//        register const uint64_t tmp=misms[misms_pos].mismatch/256;
+//        register const bool is_del = tmp%2;
+//        register const uint64_t size = tmp/2;
+//        if (!is_del) p_ref+=size;
+//        else p_read+=size;
+//      } else {
+//        correct = (misms[misms_pos].mismatch == text[p_ref] && key[p_read] != text[p_ref]);
+//        p_read++; p_ref++;
+//      }
+//      ++misms_pos;
+//    } else {
+//      correct = key[p_read] == text[p_ref];
+//      p_read++; p_ref++;
+//    }
+//  }
+//  while (correct && p_read<key_length) {
+//    if (misms_pos>=0 && misms[misms_pos].position == p_read) {
+//      if (misms[misms_pos].mismatch>=256) {
+//        register const uint64_t tmp=misms[misms_pos].mismatch/256;
+//        register const bool is_del = tmp%2;
+//        register const uint64_t size = tmp/2;
+//        if (!is_del) correct = false;
+//        else p_read+=size;
+//      } else {
+//        correct = false;
+//      }
+//      ++misms_pos;
+//    } else {
+//      correct = key[p_read] == text[p_ref];
+//      p_read++; p_ref++;
+//    }
+//  }
+//  return correct && p_read==key_length && misms_pos==num_misms && p_ref==alg_length;
+//}
+
+
+
+
+
+
+
+
+
+
 

@@ -464,6 +464,7 @@ int main(int argc,char** argv) {
   // GEM Runtime setup
   gem_runtime_init(parameters.max_memory,parameters.tmp_folder,NULL);
   gem_info_set_stream(fopen(parameters.info_file_name,"wb")); // Set INFO file
+  PROF_NEW(parameters.num_threads);
   TIMER_RESTART(&gem_indexer_timer); // Start global timer
 
   // GEM Archive Builder
@@ -504,6 +505,7 @@ int main(int argc,char** argv) {
 
   // Free
   indexer_cleanup(archive_builder);
+  PROF_DELETE();
 
   return 0;
 }

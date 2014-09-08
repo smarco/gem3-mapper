@@ -26,17 +26,27 @@
  */
 #define MM_STACK_CHECK(mm_stack) GEM_CHECK_NULL(mm_stack)
 
+/*
+ * MemoryManager Stack-like
+ */
 typedef struct {
-  mm_slab_unit_t* slab_unit;       // Slab-Unit
-  void* memory;                    // Pointer to free memory
-  uint64_t memory_available;       // Total memory available
+  mm_slab_unit_t* slab_unit;   // Slab-Unit
+  void* memory;                // Pointer to free memory
+  uint64_t memory_available;   // Total memory available
 } mm_stack_segment_t;
 typedef struct {
-  /* Slab allocator & Dimensions */
-  mm_slab_t* mm_slab;          // Memory allocator
+  uint64_t segment_pos;            // Last segments being used
+  uint64_t memory_available;   // Total memory available (last segment)
+} mm_stack_state_t;
+typedef struct {
+  /* Stack state(s) */
+  vector_t* state;             // Vector of states (mm_stack_state_t)
   uint64_t segment_size;       // Total size of each memory segment
+  uint64_t current_segment;    // Last segment being used
   /* Vector segments */
   vector_t* segments;          // Memory segments (mm_stack_segment_t)
+  /* Slab allocator */
+  mm_slab_t* mm_slab;          // Memory allocator
 } mm_stack_t;
 
 /*
@@ -46,7 +56,13 @@ GEM_INLINE mm_stack_t* mm_stack_new(mm_slab_t* const mm_slab);
 GEM_INLINE void mm_stack_delete(mm_stack_t* const mm_stack);
 
 /*
- * Accessors
+ * State
+ */
+GEM_INLINE void mm_stack_push_state(mm_stack_t* const mm_stack);
+GEM_INLINE void mm_stack_pop_state(mm_stack_t* const mm_stack,const bool reap_segments);
+
+/*
+ * Allocators
  */
 GEM_INLINE void* mm_stack_memory_allocate(mm_stack_t* const mm_stack,const uint64_t num_bytes,const bool zero_mem);
 GEM_INLINE void mm_stack_free(mm_stack_t* const mm_stack);

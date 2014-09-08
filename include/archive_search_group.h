@@ -37,13 +37,14 @@ typedef struct {
   /* State */
   uint32_t mayor_group_id; // TODO Group mayor ID (for input block)
   uint32_t minor_group_id; // TODO Group minor ID (for segmented groups)
-  archive_search_group_state_t state;   // State of the search group
+  archive_search_group_state_t state;                // State of the search group
   /* BPM-GPU candidates buffer */
-  bpm_gpu_buffer_t* bpm_gpu_buffer;     // BPM-Buffer
+  bpm_gpu_buffer_t* bpm_gpu_buffer;                  // BPM-Buffer
   /* Archive searches */
-  mm_stack_t* mm_stack;                 // Memory Stack
-  vector_t* archive_searches;           // Vector of search members (archive_search_member_t)
-  vector_t* archive_searches_attr;      // TODO Vector of generic attr of the members (E.g related buffered_ouput)
+  vector_t* archive_searches;                        // Vector of search members (archive_search_member_t)
+  vector_t* archive_searches_attr;                   // TODO Vector of generic attr of the members (E.g related buffered_ouput)
+  /* MM */
+  mm_search_t* mm_search;                            // Memory Managed Search
 } archive_search_group_t;
 typedef struct {
   /* Dispatcher State */
@@ -94,7 +95,8 @@ GEM_INLINE void archive_search_group_dispatcher_return_selecting(
 /*
  * Step-wise SE-Search
  */
-GEM_INLINE void archive_search_generate_candidates(archive_search_t* const archive_search);
+GEM_INLINE void archive_search_generate_candidates(
+    archive_search_t* const archive_search,mm_search_t* const mm_search);
 GEM_INLINE void archive_search_copy_candidates(
     archive_search_t* const archive_search,bpm_gpu_buffer_t* const bpm_gpu_buffer);
 GEM_INLINE void archive_search_select_candidates(

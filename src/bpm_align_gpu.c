@@ -4,31 +4,8 @@
  * DATE: 04/09/2014
  * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
  *            Santiago Marco-Sola <santiagomsola@gmail.com>
- */
-
-/*
- * TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
- *   1.- Common prefix to constants like NUM_SUB_ENTRIES or accessors
- *   2.- Remove duplicates of structures definition. E.g qryEntry_t
- *   3.- Remove redefinitions of structures
- *   4.- Check @bpm_gpu_init::initMyers
- *     4.1 Ref conversion
- *     4.2 ARCHITECTURE_TYPE call
- *   5.- I need to understand the reason to store the pattern (qryEntry_t[]) in such interleaved fashion
- *     5.1 Check adaptor
- *   6.- Different CUDA-cards but, different buffer sizes? (Are buffers homogeneous?)
- *     NO
- *   7.- Lost of performance due to underused buffers
- *   8.- MACRO_VAR to get CUDA_COMPATIBLE
- *   9.- Check ratios of allocated space. i.e. N*max_PEQ_entries <-> M*max_queries <-> Z*max_candidates
- * TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
- *
- *  A. Autoconfig to detect CUDA_NVCC
- *  B. PREFIXES for API
- *  C. Function to detect CUDA card (to be used at main() to reject --cuda parameter(s))
- *  D. Link Nsight remote run
- *  E. Vtune Amplifier non-commercial
- *
+ * TODO
+ *  - I need to understand the reason to store the pattern (qryEntry_t[]) in such interleaved fashion
  */
 
 #include "bpm_align_gpu.h"
@@ -43,6 +20,37 @@
 #define BPM_GPU_PATTERN_ALPHABET_LENGTH BMP_GPU_PEQ_ALPHABET_SIZE
 #define BPM_GPU_BUFFER_SIZE             BUFFER_SIZE_32M
 
+
+/*
+ * No-CUDA Support
+ */
+#ifndef HAVE_CUDA
+  // BPM_GPU Setup
+  GEM_INLINE bpm_gpu_buffer_collection_t* bpm_gpu_init(
+      dna_text_t* const enc_text,const uint32_t num_buffers,
+      const int32_t average_query_size,const int32_t candidates_per_query) {
+    GEM_CUDA_NOT_SUPPORTED();
+    return NULL;
+  }
+  GEM_INLINE void bpm_gpu_destroy(bpm_gpu_buffer_collection_t* const buffer_collection) { GEM_CUDA_NOT_SUPPORTED(); }
+  GEM_INLINE bool bpm_gpu_support() { return false; }
+  // Buffer Accessors
+  GEM_INLINE uint64_t bpm_gpu_buffer_get_max_candidates(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
+  GEM_INLINE uint64_t bpm_gpu_buffer_get_max_queries(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
+  GEM_INLINE uint64_t bpm_gpu_buffer_get_num_candidates(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
+  GEM_INLINE uint64_t bpm_gpu_buffer_get_num_queries(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
+  GEM_INLINE bool bpm_gpu_buffer_fits_in_buffer(
+      bpm_gpu_buffer_t* const bpm_gpu_buffer,
+      const uint64_t num_patterns,const uint64_t total_pattern_length,const uint64_t total_candidates) { GEM_CUDA_NOT_SUPPORTED(); return false; }
+  GEM_INLINE void bpm_gpu_buffer_put_pattern(
+      bpm_gpu_buffer_t* const bpm_gpu_buffer,bpm_pattern_t* const bpm_pattern) { GEM_CUDA_NOT_SUPPORTED(); }
+  GEM_INLINE void bpm_gpu_buffer_put_candidate(
+      bpm_gpu_buffer_t* const bpm_gpu_buffer,
+      const uint64_t candidate_text_position,const uint64_t candidate_length) { GEM_CUDA_NOT_SUPPORTED(); }
+  // Send/Receive Buffer
+  GEM_INLINE void bpm_gpu_buffer_send(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); }
+  GEM_INLINE void bpm_gpu_buffer_receive(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); }
+#else
 /*
  * BPM-GPU Setup
  */
@@ -82,6 +90,9 @@ GEM_INLINE void bpm_gpu_destroy(bpm_gpu_buffer_collection_t* const buffer_collec
   // Free HUB
   mm_free(buffer_collection->bpm_gpu_buffers);
   mm_free(buffer_collection);
+}
+GEM_INLINE bool bpm_gpu_support() {
+  return true;
 }
 /*
  * Buffer Accessors
@@ -126,7 +137,7 @@ GEM_INLINE bool bpm_gpu_buffer_fits_in_buffer(
   return true;
 }
 // Debug Guard
-#ifndef BPM_GPU_PATTERN_DEBUG
+# ifndef BPM_GPU_PATTERN_DEBUG
 GEM_INLINE void bpm_gpu_buffer_put_pattern(
     bpm_gpu_buffer_t* const bpm_gpu_buffer,const bpm_pattern_t* const bpm_pattern) {
   // Calculate PEQ dimensions
@@ -187,7 +198,7 @@ GEM_INLINE void bpm_gpu_buffer_send(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
 GEM_INLINE void bpm_gpu_buffer_receive(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
 	bpm_gpu_receive_buffer_(bpm_gpu_buffer->buffer);
 }
-#else
+# else /* BPM_GPU_PATTERN_DEBUG */
 GEM_INLINE void bpm_gpu_buffer_put_pattern(
     bpm_gpu_buffer_t* const bpm_gpu_buffer,bpm_pattern_t* const bpm_pattern) {
   // Calculate PEQ dimensions
@@ -245,9 +256,10 @@ GEM_INLINE void bpm_gpu_buffer_send(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
     }
   }
 }
-GEM_INLINE void bpm_gpu_buffer_receive(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
-  // [DEBUG] Do nothing
-}
+GEM_INLINE void bpm_gpu_buffer_receive(bpm_gpu_buffer_t* const bpm_gpu_buffer) { /* [DEBUG] Do nothing */ }
+# endif /* BPM_GPU_PATTERN_DEBUG */
+#endif /* HAVE_CUDA */
+
 /*
  * Stats/Profile
  */
@@ -280,4 +292,3 @@ GEM_INLINE void bpm_gpu_buffer_gprof_print(FILE* const stream) {
 
   }
 }
-#endif

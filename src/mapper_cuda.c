@@ -21,6 +21,8 @@
 typedef struct {
   /* Mapper parameters */
   mapper_parameters_t* mapper_parameters;
+  search_parameters_t search_parameters;
+  select_parameters_t select_parameters;
   /* Slab of archive_search_t */
   vector_t* archive_search_cache;  // Already allocated & configured (archive_search_t*)
   pthread_mutex_t mutex;           // Mutex to access the cache
@@ -65,11 +67,14 @@ GEM_INLINE void mapper_cuda_parameters_set_defaults(mapper_cuda_parameters_t* co
 GEM_INLINE archive_search_cache_t* archive_search_cache_new(mapper_parameters_t* const mapper_parameters) {
   // Alloc
   archive_search_cache_t* const archive_search_cache = mm_alloc(archive_search_cache_t);
-  // Init
+  // Initialize cache
   archive_search_cache->mapper_parameters = mapper_parameters;
   archive_search_cache->archive_search_cache =
       vector_new(MAPPER_CUDA_ARCHIVE_SEARCH_CACHE_INIT_SIZE,archive_search_t*);
   MUTEX_INIT(archive_search_cache->mutex);
+  // Configure Parameters
+  mapper_configure_archive_search(mapper_parameters,
+      &archive_search_cache->search_parameters,&archive_search_cache->select_parameters);
   // Return
   return archive_search_cache;
 }
@@ -83,24 +88,22 @@ GEM_INLINE void archive_search_cache_delete(archive_search_cache_t* const archiv
   MUTEX_DESTROY(archive_search_cache->mutex);
   mm_free(archive_search_cache);
 }
-GEM_INLINE archive_search_t* archive_search_cache_alloc(
-    archive_search_cache_t* const archive_search_cache,mm_stack_t* const mm_stack) {
+GEM_INLINE archive_search_t* archive_search_cache_alloc(archive_search_cache_t* const archive_search_cache) {
   archive_search_t* archive_search = NULL;
   MUTEX_BEGIN_SECTION(archive_search_cache->mutex) {
     if (vector_get_used(archive_search_cache->archive_search_cache)>0) {
       // Get from cache already prepared archive_search_t
       archive_search = *vector_get_last_elm(archive_search_cache->archive_search_cache,archive_search_t*);
       vector_dec_used(archive_search_cache->archive_search_cache);
-      // Change mm_stack
-      archive_search_set_mm_stack(archive_search,mm_stack);
     } else {
       // Allocate new one
-      archive_search = archive_search_new(archive_search_cache->mapper_parameters->archive,mm_stack);
-      // Configure
-      mapper_SE_configure_archive_search(archive_search,archive_search_cache->mapper_parameters);
+      archive_search = archive_search_new(
+          archive_search_cache->mapper_parameters->archive,
+          &archive_search_cache->search_parameters,&archive_search_cache->select_parameters);
     }
   } MUTEX_END_SECTION(archive_search_cache->mutex);
   // Return
+  archive_search_clear(archive_search);
   return archive_search;
 }
 GEM_INLINE void archive_search_cache_free(
@@ -178,7 +181,7 @@ void* mapper_SE_CUDA_run_generate_candidates_uo(mapper_cuda_search_t* const mapp
       if (buffered_input_file_get_lines_block(buffered_fasta_input,MAPPER_CUDA_NUM_LINES)==0) break;
     }
     // Obtain a clean archive-search (end/1)
-    archive_search_end1 = archive_search_cache_alloc(archive_search_cache,archive_search_group->mm_stack);
+    archive_search_end1 = archive_search_cache_alloc(archive_search_cache);
     // Parse Sequence (end/1)
     error_code_t error_code;
     if ((error_code=input_fasta_parse_sequence(
@@ -192,7 +195,7 @@ void* mapper_SE_CUDA_run_generate_candidates_uo(mapper_cuda_search_t* const mapp
       archive_search_end2 = NULL;
     } else {
       // Obtain a clean Archive-Search (end/2)
-      archive_search_end2 = archive_search_cache_alloc(archive_search_cache,archive_search_group->mm_stack);
+      archive_search_end2 = archive_search_cache_alloc(archive_search_cache);
       error_code_t error_code;
       if ((error_code=input_fasta_parse_sequence(
           buffered_fasta_input,archive_search_get_sequence(archive_search_end2),
@@ -203,9 +206,9 @@ void* mapper_SE_CUDA_run_generate_candidates_uo(mapper_cuda_search_t* const mapp
       }
     }
     // Generate Candidates (Search into the archive)
-    archive_search_generate_candidates(archive_search_end1);
+    archive_search_generate_candidates(archive_search_end1,archive_search_group->mm_search);
     if (gem_expect_true(archive_search_end2!=NULL)) {
-      archive_search_generate_candidates(archive_search_end2);
+      archive_search_generate_candidates(archive_search_end2,archive_search_group->mm_search);
     }
     // Calculate query dimensions
     uint64_t num_patterns, total_pattern_length, total_candidates;
@@ -251,6 +254,7 @@ void* mapper_SE_CUDA_run_select_candidates_uo(mapper_cuda_search_t* const mapper
   // Create new buffered writer
   const mapper_parameters_t* const parameters = mapper_cuda_search->mapper_parameters;
   buffered_output_file_t* buffered_output_file = buffered_output_file_new(parameters->output_file);
+  matches_t* const matches = matches_new();
 
   // Archive search-group loop
   archive_search_group_t* archive_search_group;
@@ -262,15 +266,13 @@ void* mapper_SE_CUDA_run_select_candidates_uo(mapper_cuda_search_t* const mapper
       archive_search_select_candidates(
           archive_search,archive_search_group->bpm_gpu_buffer,archive_search_member->results_buffer_offset);
       // Select matches
-      archive_search_select_matches(archive_search,
-          parameters->max_decoded_matches,parameters->min_decoded_strata,
-          parameters->min_reported_matches,parameters->max_reported_matches);
+      archive_select_matches(archive_search,matches,archive_search_group->mm_search);
+
       // archive_search_score_matches(archive_search); // TODO
       // Output matches
       mapper_SE_output_matches(
           parameters,buffered_output_file,
-          archive_search_get_sequence(archive_search),
-          archive_search_get_matches(archive_search));
+          archive_search_get_sequence(archive_search),matches);
       // Free archive_search
       archive_search_cache_free(archive_search_cache,archive_search);
     }
@@ -290,6 +292,8 @@ void* mapper_SE_CUDA_run_select_candidates_uo(mapper_cuda_search_t* const mapper
 GEM_INLINE void mapper_SE_CUDA_run(
     mapper_parameters_t* const mapper_parameters,
     mapper_cuda_parameters_t* const mapper_cuda_parameters) {
+  // Check CUDA-Support
+  if (!bpm_gpu_support()) GEM_CUDA_NOT_SUPPORTED();
   // Setup Profiling (Add master thread)
   const uint64_t total_threads =
       mapper_cuda_parameters->num_generating_threads +

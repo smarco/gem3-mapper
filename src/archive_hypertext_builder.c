@@ -76,7 +76,8 @@ GEM_INLINE int64_t archive_builder_generate_hypertext_add_sequence(
   return tag_id;
 }
 GEM_INLINE void archive_builder_generate_hypertext_process_character(
-    archive_builder_t* const archive_builder,graph_sorted_link_locator_t* const graph_link_locator,const char current_char) {
+    archive_builder_t* const archive_builder,
+    graph_sorted_link_locator_t* const graph_link_locator,const char current_char) {
   /*
    * Check Graph Pending Links for Text-Position
    * Types of Jump:
@@ -494,7 +495,8 @@ GEM_INLINE void archive_builder_process_multifasta__graph(
     const bool dump_locator_intervals,const bool dump_indexed_text,const bool dump_graph_links,const bool verbose) {
   // Check number of links
   if (graph_text_builder_get_num_links(archive_builder->graph) == 0) {
-    archive_builder_process_multifasta(archive_builder,input_multifasta,dump_locator_intervals,dump_indexed_text,verbose);
+    archive_builder_process_multifasta(archive_builder,
+        input_multifasta,dump_locator_intervals,dump_indexed_text,verbose);
     return;
   }
   // Generate Text & Graph (Forward)

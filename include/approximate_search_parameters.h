@@ -20,7 +20,6 @@ typedef enum {
   mapping_adaptive_filtering,
   mapping_fixed_filtering,
   mapping_fast,
-  mapping_massive_filtering,   /* Massive generation of candidates (meant to be used in CUDA mode) */
   mapping_neighborhood_search
 } mapping_mode_t;
 typedef struct {
@@ -30,20 +29,15 @@ typedef struct {
   /* Mapping strategy (Mapping mode + properties) */
   mapping_mode_t mapping_mode;
   float fast_mapping_degree;
-  uint64_t fast_mapping_degree_nominal;
   /* Qualities */
   quality_model_t quality_model;
   quality_format_t quality_format;
   uint64_t quality_threshold;
   /* Error Model (Regulates the number of Mismatch/Indels) */
   float max_search_error;
-  uint64_t max_search_error_nominal;           // Maximum number of error/differences while searching (edit distance)
   float max_filtering_error;
-  uint64_t max_filtering_error_nominal;        // Maximum tolerated error at filtering (verifying candidates)
   float complete_strata_after_best;
-  uint64_t complete_strata_after_best_nominal; // Maximum complete strata from first matching stratum
   float min_matching_length;
-  uint64_t min_matching_length_nominal;        // Minimum mapping segment size (verifying candidates)
   /* Matches search (Regulates the number of matches) */
   uint64_t max_search_matches;
   /* Replacements (Regulates the bases that can be replaced/mismatched) */
@@ -51,6 +45,7 @@ typedef struct {
   uint64_t mismatch_alphabet_length;
   bool allowed_chars[256];
   bool allowed_enc[DNA_EXT_RANGE];
+  /* Alignment Score */
   /*
    * Internals
    */
@@ -75,31 +70,47 @@ typedef struct {
   uint64_t pa_filtering_threshold;
   /* Checkers */
   check_matches_t check_matches;
-} approximate_search_parameters_t;
+} search_parameters_t;
+typedef struct {
+  /*
+   * Search parameters (Functional)
+   */
+  search_parameters_t* search_parameters;
+  /*
+   * Actual Search parameters (Evaluated to read-length)
+   */
+  /* Mapping strategy (Mapping mode + properties) */
+  uint64_t fast_mapping_degree_nominal;
+  /* Error Model (Regulates the number of Mismatch/Indels) */
+  uint64_t max_search_error_nominal;           // Maximum number of error/differences while searching (edit distance)
+  uint64_t max_filtering_error_nominal;        // Maximum tolerated error at filtering (verifying candidates)
+  uint64_t complete_strata_after_best_nominal; // Maximum complete strata from first matching stratum
+  uint64_t min_matching_length_nominal;        // Minimum mapping segment size (verifying candidates)
+} search_actual_parameters_t;
 
 /*
  * Approximate Search Parameters
  */
-GEM_INLINE void approximate_search_parameters_init(approximate_search_parameters_t* const search_parameters);
+GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const search_parameters);
 
 GEM_INLINE void approximate_search_configure_mapping_strategy(
-    approximate_search_parameters_t* const search_parameters,
+    search_parameters_t* const search_parameters,
     const mapping_mode_t mapping_mode,const float mapping_degree);
 GEM_INLINE void approximate_search_configure_quality_model(
-    approximate_search_parameters_t* const search_parameters,
+    search_parameters_t* const search_parameters,
     const quality_model_t quality_model,const quality_format_t quality_format,const uint64_t quality_threshold);
 GEM_INLINE void approximate_search_configure_error_model(
-    approximate_search_parameters_t* const search_parameters,
+    search_parameters_t* const search_parameters,
     float max_search_error,float max_filtering_error,
     float complete_strata_after_best,float min_matching_length);
 GEM_INLINE void approximate_search_configure_replacements(
-    approximate_search_parameters_t* const search_parameters,
+    search_parameters_t* const search_parameters,
     char* const mismatch_alphabet,const uint64_t mismatch_alphabet_length);
 GEM_INLINE void approximate_search_configure_matches(
-    approximate_search_parameters_t* const search_parameters,const uint64_t max_search_matches);
+    search_parameters_t* const search_parameters,const uint64_t max_search_matches);
 
 GEM_INLINE void approximate_search_instantiate_values(
-    approximate_search_parameters_t* const search_parameters,const uint64_t pattern_length);
+    search_actual_parameters_t* const search_actual_parameters,const uint64_t pattern_length);
 
 /*
  * Error Msg

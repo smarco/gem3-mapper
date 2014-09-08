@@ -41,7 +41,8 @@ GEM_INLINE int64_t align_levenshtein_get_distance(
 /*
  * Pattern Accessors
  */
-#define BPM_PATTERN_PEQ_IDX(encoded_character,word_pos,num_words) (encoded_character*num_words+word_pos)
+#define BPM_PATTERN_PEQ_IDX(encoded_character,word_pos,num_words) ((encoded_character)*(num_words)+(word_pos))
+#define BPM_PATTERN_BDP_IDX(position,word_pos,num_blocks) ((position)*(num_blocks)+(word_pos))
 
 /*
  * Compile Pattern
@@ -60,5 +61,9 @@ GEM_INLINE bool bpm_get_distance(
 GEM_INLINE bool bpm_get_distance__cutoff(
     const bpm_pattern_t* const bpm_pattern,const uint8_t* const sequence,const uint64_t sequence_length,
     uint64_t* const position,uint64_t* const distance,const uint64_t max_distance);
+GEM_INLINE void bpm_align_match(
+    const uint8_t* const key,const bpm_pattern_t* const bpm_pattern,
+    const uint8_t* const sequence,const uint64_t sequence_length,const uint64_t matching_distance,
+    vector_t* const cigar_buffer,mm_stack_t* const mm_stack);
 
 #endif /* BPM_ALIGN_H_ */

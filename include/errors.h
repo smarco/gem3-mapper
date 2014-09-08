@@ -152,6 +152,7 @@ void gem_perror();
 #define GEM_INVALID_CASE() gem_fatal_error(SELECTION_NOT_VALID)
 #define GEM_NOT_SUPPORTED() gem_fatal_error(NOT_SUPPORTED)
 #define GEM_NOT_IMPLEMENTED() gem_fatal_error(NOT_IMPLEMENTED)
+#define GEM_CUDA_NOT_SUPPORTED() gem_fatal_error(CUDA_NOT_SUPPORTED)
 #define GEM_UNREACHABLE_CODE() gem_fatal_error(UNREACHABLE_CODE)
 #define GEM_INTERNAL_CHECK(cond,msg) gem_fatal_check(!(cond),INTERNAL_CHECK,msg)
 /* Eclipse debugging definitions */
@@ -166,6 +167,7 @@ void gem_perror();
 #define GEM_ERROR_SELECTION_NOT_VALID "Library error. Selection not valid"
 #define GEM_ERROR_NOT_IMPLEMENTED "Function/Feature not implemented yet (Sorry for the inconvenience)"
 #define GEM_ERROR_NOT_SUPPORTED "Function/Feature not supported"
+#define GEM_ERROR_CUDA_NOT_SUPPORTED "No CUDA support detected"
 #define GEM_ERROR_UNREACHABLE_CODE "Unreachable code, please report"
 #define GEM_ERROR_POSITION_OUT_OF_RANGE "Requested position (%"PRIu64") out of range [%"PRIu64",%"PRId64"]"
 #define GEM_ERROR_ALG_INCONSISNTENCY "Algorithmic inconsistency, please report (Sorry for the inconvenience)"

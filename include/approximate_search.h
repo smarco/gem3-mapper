@@ -26,43 +26,58 @@
 
 #include "approximate_search_parameters.h"
 
-// Approximate Search
+/*
+ * Approximate Search
+ */
 typedef enum { asearch_init, asearch_filtering, asearch_neighborhood, asearch_end } approximate_search_stage_t;
 typedef struct {
   /* Index Structures & Parameters */
-  locator_t* locator;                                 // Sequence Locator
-  graph_text_t* graph;                                // Graph (text + graph = hypertext)
-  dna_text_t* enc_text;                               // Index-Text (Encoded)
-  fm_index_t* fm_index;                               // FM-Index
-  pattern_t pattern;                                  // Search Pattern
-  approximate_search_parameters_t* search_parameters; // Search Parameters
+  locator_t* locator;                                   // Sequence Locator
+  graph_text_t* graph;                                  // Graph (text + graph = hypertext)
+  dna_text_t* enc_text;                                 // Index-Text (Encoded)
+  fm_index_t* fm_index;                                 // FM-Index
+  pattern_t pattern;                                    // Search Pattern
+  search_actual_parameters_t* search_actual_parameters; // Search Parameters (Evaluated to read-length)
   /* Search State */
-  strand_t search_strand;                             // Current search strand
-  bool do_quality_search;                             // Quality search
-  approximate_search_stage_t current_search_stage;    // Current Stage of the search
-  approximate_search_stage_t stop_search_stage;       // Search stage to stop at
+  strand_t search_strand;                               // Current search strand
+  bool do_quality_search;                               // Quality search
+  approximate_search_stage_t current_search_stage;      // Current Stage of the search
+  approximate_search_stage_t stop_search_stage;         // Search stage to stop at
   uint64_t max_differences;
   uint64_t max_complete_stratum;
-  uint64_t max_matches_reached;                       // Quick abandon due to maximum matches found
+  uint64_t max_matches_reached;                         // Quick abandon due to maximum matches found
   /* Search Auxiliary Structures */
-  region_profile_t region_profile;                    // Region Profile
-  uint64_t num_potential_candidates;                  // Total number of candidates generated
-  filtering_candidates_t filtering_candidates;        // Filtering Candidates
-  interval_set_t intervals_result;                    // Interval Set (to hold intervals from neighborhood searches)
+  region_profile_t region_profile;                      // Region Profile
+  uint64_t num_potential_candidates;                    // Total number of candidates generated
+  filtering_candidates_t filtering_candidates;          // Filtering Candidates
+  interval_set_t intervals_result;                      // Interval Set (to hold intervals from neighborhood searches)
   // TODO
-  // MM
-  mm_stack_t* mm_stack;
 } approximate_search_t;
+// MM Search
+typedef struct {
+  /* Text-Collection Buffer */
+  text_collection_t* text_collection;  // Stores text-traces (candidates/matches/regions/...)
+  /* MM-Stack */
+  mm_stack_t* mm_stack;                // Used to allocate small chunks of memory for setup
+  // TODO
+} mm_search_t;
+
+/*
+ * MM Search
+ */
+GEM_INLINE mm_search_t* mm_search_new();
+GEM_INLINE void mm_search_clear(mm_search_t* const mm_search);
+GEM_INLINE void mm_search_delete(mm_search_t* const mm_search);
 
 /*
  * Setup
  */
 GEM_INLINE approximate_search_t* approximate_search_new(
-    locator_t* const locator,graph_text_t* const graph,dna_text_t* const enc_text,fm_index_t* const fm_index,
-    approximate_search_parameters_t* const parameters,mm_stack_t* const mm_stack);
+    locator_t* const locator,graph_text_t* const graph,
+    dna_text_t* const enc_text,fm_index_t* const fm_index,
+    search_actual_parameters_t* const search_actual_parameters);
 GEM_INLINE void approximate_search_clear(approximate_search_t* const search);
 GEM_INLINE void approximate_search_delete(approximate_search_t* const search);
-GEM_INLINE void approximate_search_set_mm_stack(approximate_search_t* const search,mm_stack_t* const mm_stack);
 
 /*
  * Accessors
@@ -73,11 +88,11 @@ GEM_INLINE uint64_t approximate_search_get_num_potential_candidates(approximate_
  * Pattern
  */
 GEM_INLINE void approximate_search_prepare_pattern(
-    approximate_search_t* const search,
-    const approximate_search_parameters_t* const parameters,sequence_t* const sequence);
+    approximate_search_t* const search,sequence_t* const sequence,mm_stack_t* const mm_stack);
 
 // ASM-Search!!
-GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t* const matches);
+GEM_INLINE void approximate_search(
+    approximate_search_t* const search,matches_t* const matches,mm_search_t* const mm_search);
 
 
 //GEM_INLINE uint64_t fmi_mismatched_search_extend(
