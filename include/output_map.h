@@ -16,6 +16,6 @@
 
 GEM_INLINE void output_map_single_end_matches(
     buffered_output_file_t* const buffered_output_file,
-    const sequence_t* const seq_read,matches_t* const matches);
+    sequence_t* const seq_read,matches_t* const matches);
 
 #endif /* OUTPUT_MAP_H_ */

@@ -32,7 +32,8 @@ GEM_INLINE struct option* options_adaptor_getopt(const option_t* const options_m
 }
 GEM_INLINE string_t* options_adaptor_getopt_short(const option_t* const options_menu) {
   const uint64_t num_options = options_get_num_options(options_menu);
-  string_t* const getopt_menu_short = string_new(2*num_options);
+  string_t* const getopt_menu_short = mm_alloc(string_t);
+  string_init(getopt_menu_short,2*num_options);
   // Adapt all the short options
   uint64_t i = 0;
   for (i=0;i<num_options;++i) {

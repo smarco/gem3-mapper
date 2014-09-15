@@ -107,6 +107,11 @@ GEM_INLINE FILE* gem_open_FILE(char* const file_name,const char* opentype);
 GEM_INLINE void gem_unlink(char* const file_name);
 
 /*
+ * Utils
+ */
+GEM_INLINE bool gem_access(char* const path,const fm_mode mode);
+
+/*
  * FileManager Printers
  */
 GEM_INLINE int vfmprintf(fm_t* const file_manager,const char *template,va_list v_args);

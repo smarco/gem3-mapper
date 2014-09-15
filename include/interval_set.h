@@ -33,9 +33,9 @@ typedef struct {
   // TODO
 } interval_set_t;
 
-GEM_INLINE void interval_set_new(interval_set_t* const interval_set);
+GEM_INLINE void interval_set_init(interval_set_t* const interval_set);
 GEM_INLINE void interval_set_clear(interval_set_t* const interval_set);
-GEM_INLINE void interval_set_delete(interval_set_t* const interval_set);
+GEM_INLINE void interval_set_destroy(interval_set_t* const interval_set);
 
 GEM_INLINE uint64_t interval_set_count_intervals(interval_set_t* const interval_set);
 GEM_INLINE uint64_t interval_set_count_intervals_length(interval_set_t* const interval_set);

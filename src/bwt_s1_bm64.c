@@ -374,6 +374,8 @@ GEM_INLINE void bwt_delete(bwt_t* const bwt) {
   }
   // Free bwt memory
   if (bwt->mm_bwt_mem) mm_bulk_free(bwt->mm_bwt_mem);
+  // Free handler
+  mm_free(bwt);
 }
 /*
  * BWT General Accessors

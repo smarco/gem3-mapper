@@ -55,6 +55,8 @@ GEM_INLINE void archive_delete(archive_t* const archive) {
   dna_text_delete(archive->enc_text);
   // Delete FM-index
   fm_index_delete(archive->fm_index);
+  // Free MM
+  if (archive->mm) mm_bulk_free(archive->mm);
   // Free handler
   mm_free(archive);
 }

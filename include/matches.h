@@ -62,14 +62,8 @@ typedef struct {
   uint64_t cigar_length;
 } match_trace_t;
 // Overloaded to (match_trace_mark_t)
-#define match_trace_type         score
 #define match_trace_begin_offset cigar_length
 #define match_trace_length       cigar_buffer_offset
-// Match-Trace Mark Type
-#define match_trace_type_aligned      (INT64_MAX)
-#define match_trace_type_mark_hamming (INT64_MAX-1)
-#define match_trace_type_mark_edit    (INT64_MAX-2)
-
 
 ///*
 // * Local Match // TODO
@@ -126,12 +120,14 @@ typedef struct {
  * Setup
  */
 GEM_INLINE matches_t* matches_new();
+GEM_INLINE void matches_configure(matches_t* const matches,text_collection_t* const text_collection);
 GEM_INLINE void matches_clear(matches_t* const matches);
 GEM_INLINE void matches_delete(matches_t* const matches);
 
 /*
  * Counters
  */
+GEM_INLINE void matches_counters_add(matches_t* const matches,const uint64_t distance,const uint64_t num_matches);
 GEM_INLINE uint64_t matches_get_num_matches(matches_t* const matches);
 GEM_INLINE uint64_t matches_counters_compact(matches_t* const matches);
 GEM_INLINE uint64_t matches_counters_get_min_matching_stratum(matches_t* const matches);
@@ -147,13 +143,14 @@ GEM_INLINE uint64_t match_trace_get_cigar_length(const match_trace_t* const matc
  */
 GEM_INLINE match_trace_t* matches_lookup_match(matches_t* const matches,const uint64_t position);
 GEM_INLINE void matches_add_match_trace_mark(
-    matches_t* const matches,const uint64_t trace_offset,const uint64_t position,const uint64_t distance,
-    const int64_t match_type,const uint64_t match_begin_offset,const uint64_t match_end_offset,const strand_t strand);
+    matches_t* const matches,const uint64_t trace_offset,const uint64_t position,
+    const uint64_t distance,const uint64_t match_begin_offset,const uint64_t match_length,
+    const strand_t strand,const bool update_counters);
 GEM_INLINE void matches_add_match_trace_t(
-    matches_t* const matches,match_trace_t* const match_trace);
+    matches_t* const matches,match_trace_t* const match_trace,const bool update_counters);
 GEM_INLINE void matches_add_match_trace(
-    matches_t* const matches,const uint64_t trace_offset,
-    const uint64_t position,const uint64_t distance,const strand_t strand);
+    matches_t* const matches,const uint64_t trace_offset,const uint64_t position,
+    const uint64_t distance,const strand_t strand,const bool update_counters);
 
 GEM_INLINE void matches_add_interval_match(
     matches_t* const matches,

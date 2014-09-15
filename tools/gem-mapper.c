@@ -13,13 +13,13 @@
  */
 GEM_INLINE void gem_mapper_load_index(mapper_parameters_t* const parameters) {
   // Load archive
-  gem_cond_log(parameters->user_verbose,"[Loading GEM index '%s']",parameters->index_file_name);
-  parameters->archive = archive_read(parameters->index_file_name,parameters->check_index,parameters->dev_verbose);
+  gem_cond_log(parameters->verbose_user,"[Loading GEM index '%s']",parameters->index_file_name);
+  parameters->archive = archive_read(parameters->index_file_name,parameters->check_index,parameters->verbose_dev);
 }
 GEM_INLINE void gem_mapper_open_input(mapper_parameters_t* const parameters) {
   // Open input file
   if (parameters->input_file_name==NULL) {
-    gem_cond_log(parameters->user_verbose,"[Reading input file from stdin]");
+    gem_cond_log(parameters->verbose_user,"[Reading input file from stdin]");
     switch (parameters->input_compression) {
       case FM_GZIPPED_FILE:
         parameters->input_file = input_gzip_stream_open(stdin);
@@ -32,7 +32,7 @@ GEM_INLINE void gem_mapper_open_input(mapper_parameters_t* const parameters) {
         break;
     }
   } else {
-    gem_cond_log(parameters->user_verbose,"[Opening input file '%s']",parameters->input_file_name);
+    gem_cond_log(parameters->verbose_user,"[Opening input file '%s']",parameters->input_file_name);
     parameters->input_file = input_file_open(parameters->input_file_name,false);
   }
   // TODO: Checks
@@ -43,10 +43,10 @@ GEM_INLINE void gem_mapper_close_input(mapper_parameters_t* const parameters) {
 GEM_INLINE void gem_mapper_open_output(mapper_parameters_t* const parameters) {
   // Open output stream
   if (parameters->output_file_name==NULL) {
-    gem_cond_log(parameters->user_verbose,"[Outputting to stdout]");
+    gem_cond_log(parameters->verbose_user,"[Outputting to stdout]");
     parameters->output_stream = stdout;
   } else {
-    gem_cond_log(parameters->user_verbose,"[Outputting to '%s']",parameters->output_file_name);
+    gem_cond_log(parameters->verbose_user,"[Outputting to '%s']",parameters->output_file_name);
     parameters->output_stream = fopen(parameters->output_file_name,"w");
   }
   // Open output file // TODO Unsorted
@@ -64,7 +64,6 @@ GEM_INLINE void gem_mapper_open_output(mapper_parameters_t* const parameters) {
 }
 GEM_INLINE void gem_mapper_close_output(mapper_parameters_t* const parameters) {
   output_file_close(parameters->output_file);
-  if (parameters->output_file_name!=NULL) fclose(parameters->output_stream);
 }
 /*
  * GEM-Mapper options Menu
@@ -131,8 +130,8 @@ char* gem_mapper_groups[] = {
   /*  3 */ "Qualities",
   /*  4 */ "Single-end Alignment",
   /*  5 */ "Paired-end Alignment",
-  /*  6 */ "Alignment Score"
-  /*  7 */ "Mapping Quality"
+  /*  6 */ "Alignment Score",
+  /*  7 */ "Mapping Quality",
   /*  8 */ "Reporting",
   /*  9 */ "System",
   /* 10 */ "Debug",
@@ -143,7 +142,15 @@ void usage(const bool print_inactive) {
   fprintf(stderr, "USAGE: ./gem-mapper [ARGS]...\n");
   options_fprint_menu(stderr,gem_mapper_options,gem_mapper_groups,false,print_inactive);
 }
-void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters) {
+void parse_arguments(
+    int argc,char** argv,mapper_parameters_t* const parameters,
+    mapper_cuda_parameters_t* const cuda_parameters) {
+  // Check number of parameters (quick usage & exit)
+  if (argc<=1) {
+    usage(false);
+    exit(0);
+  }
+  // Parse parameters
   struct option* getopt_options = options_adaptor_getopt(gem_mapper_options);
   string_t* const getopt_short_string = options_adaptor_getopt_short(gem_mapper_options);
   char* const getopt_short = string_get_buffer(getopt_short_string);
@@ -180,88 +187,91 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     /* Qualities */
     case 'q': // --quality-format
       if (gem_strcaseeq(optarg,"ignore")) {
-        parameters->quality_format=qualities_ignore;
+        parameters->search_parameters.quality_format=qualities_ignore;
       } else if (gem_strcaseeq(optarg,"offset-33")) {
-        parameters->quality_format=qualities_offset_33;
+        parameters->search_parameters.quality_format=qualities_offset_33;
       } else if (gem_strcaseeq(optarg,"offset-64")) {
-        parameters->quality_format=qualities_offset_64;
+        parameters->search_parameters.quality_format=qualities_offset_64;
       } else {
         gem_fatal_error_msg("Option '-q|--quality-format' must be 'ignore', 'offset-33' or 'offset-64'");
       }
       break;
     case 'Q': // --quality-model
       if (gem_strcaseeq(optarg,"gem")) {
-        parameters->quality_model=quality_model_type_gem;
+        parameters->search_parameters.quality_model=quality_model_type_gem;
         // TODO parameters->quality_score=gem_quality_score;
       } else if (gem_strcaseeq(optarg,"flat")) {
-        parameters->quality_model=quality_model_type_flat;
+        parameters->search_parameters.quality_model=quality_model_type_flat;
         // TODO parameters->quality_score=flat_quality_score;
       } else
       gem_fatal_error_msg("Option '-Q|--quality-model' must be 'gem' or 'flat'");
       break;
     case 300: // --gem-quality-threshold
-      parameters->quality_threshold = atoll(optarg);
+      parameters->search_parameters.quality_threshold = atoll(optarg);
       break;
     /* Single-end Alignment */
     case 400: // --mapping-mode
       if (gem_strcaseeq(optarg,"incremental")) {
-        parameters->mapping_mode = mapping_incremental_mapping;
+        parameters->search_parameters.mapping_mode = mapping_incremental_mapping;
         break;
       }
       if (gem_strcaseeq(optarg,"adaptive")) {
-        parameters->mapping_mode = mapping_adaptive_filtering;
+        parameters->search_parameters.mapping_mode = mapping_adaptive_filtering;
         break;
       }
       if (gem_strcaseeq(optarg,"fixed")) {
-        parameters->mapping_mode = mapping_fixed_filtering;
+        parameters->search_parameters.mapping_mode = mapping_fixed_filtering;
         break;
       }
       if (gem_strcaseeq(optarg,"fast")) {
-        parameters->mapping_mode = mapping_fast;
+        parameters->search_parameters.mapping_mode = mapping_fast;
         break;
       }
       if (gem_strcaseeq(optarg,"brute-force")) {
-        parameters->mapping_mode = mapping_neighborhood_search;
+        parameters->search_parameters.mapping_mode = mapping_neighborhood_search;
         break;
       }
       gem_fatal_error_msg("Option '--mapping-mode' must be 'incremental'|'adaptive'|'fixed'|'fast'|'brute-force'");
       break;
     case 401: // --mapping-degree
-      parameters->mapping_degree = atof(optarg);
+      parameters->search_parameters.mapping_degree = atof(optarg);
       break;
     case 402: // --cuda
       if (!bpm_gpu_support()) GEM_CUDA_NOT_SUPPORTED();
       parameters->mapper_type = mapper_se_cuda;
       break;
     case 'e': // --max-search-error
-      parameters->max_search_error = atof(optarg);
+      parameters->search_parameters.max_search_error = atof(optarg);
       break;
     case 'E': // --max-filtering-error
-      parameters->max_filtering_error = atof(optarg);
+      parameters->search_parameters.max_filtering_error = atof(optarg);
       break;
     case 's': // --complete-strata-after-best
-      parameters->complete_strata_after_best = atof(optarg);
+      parameters->search_parameters.complete_strata_after_best = atof(optarg);
       break;
     case 403: // --min-matching-length
-      parameters->min_matching_length = atof(optarg);
+      parameters->search_parameters.min_matching_length = atof(optarg);
       break;
     case 404: // --max-search-matches
-      parameters->max_search_matches = atol(optarg);
+      parameters->search_parameters.max_search_matches = atol(optarg);
       break;
-    case 405: // --mismatch-alphabet
-      parameters->mismatch_alphabet = optarg;
+    case 405: { // --mismatch-alphabet
+      const char* const mismatch_alphabet = optarg;
+      approximate_search_configure_replacements(
+          &parameters->search_parameters,mismatch_alphabet,gem_strlen(mismatch_alphabet));
       break;
+    }
     /* Paired-end Alignment */
     /* Alignment Score */
-    case 600:
+    case 600: // --alignment-model
       if (gem_strcaseeq(optarg,"none")) {
-        parameters->alignment_model = alignment_model_none;
+        parameters->select_parameters.alignment_model = alignment_model_none;
       } else if (gem_strcaseeq(optarg,"hamming")) {
-        parameters->alignment_model = alignment_model_hamming;
+        parameters->select_parameters.alignment_model = alignment_model_hamming;
       } else if (gem_strcaseeq(optarg,"edit") || gem_strcaseeq(optarg,"levenshtein") ) {
-        parameters->alignment_model = alignment_model_levenshtein;
+        parameters->select_parameters.alignment_model = alignment_model_levenshtein;
       } else if (gem_strcaseeq(optarg,"gap-affine'")) {
-        parameters->alignment_model = alignment_model_gap_affine;
+        parameters->select_parameters.alignment_model = alignment_model_gap_affine;
       } else {
         gem_fatal_error_msg("Option '--alignment-model' must be 'none'|'hamming'|'edit'|'gap-affine'");
       }
@@ -278,16 +288,16 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       }
       break;
     case 'D': // --min-decoded-strata
-      parameters->min_decoded_strata = (gem_strcaseeq(optarg,"all")) ? ALL : atol(optarg);
+      parameters->select_parameters.min_decoded_strata = (gem_strcaseeq(optarg,"all")) ? ALL : atol(optarg);
       break;
     case 'd': // --max-decoded-matches
-      parameters->max_decoded_matches = (gem_strcaseeq(optarg,"all")) ? ALL : atol(optarg);
+      parameters->select_parameters.max_decoded_matches = (gem_strcaseeq(optarg,"all")) ? ALL : atol(optarg);
       break;
     case 'm': // --min-reported-matches
-      parameters->min_reported_matches = (gem_strcaseeq(optarg,"all")) ? ALL : atol(optarg);
+      parameters->select_parameters.min_reported_matches = (gem_strcaseeq(optarg,"all")) ? ALL : atol(optarg);
       break;
     case 'M': // --max-reported-matches
-      parameters->max_reported_matches = (gem_strcaseeq(optarg,"all")) ? ALL : atol(optarg);
+      parameters->select_parameters.max_reported_matches = (gem_strcaseeq(optarg,"all")) ? ALL : atol(optarg);
       break;
     /* System */
     case 't': // --threads
@@ -302,10 +312,11 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     /* Debug */
     /* Misc */
     case 'v':
-      parameters->user_verbose = true;
+      parameters->verbose_user = true;
       break;
     case 'V':
-      parameters->dev_verbose = true;
+      parameters->verbose_user = true;
+      parameters->verbose_dev = true;
       break;
     case 'h':
       usage(false);
@@ -321,26 +332,66 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
   /*
    * Parameters Check
    */
+  // I/O Parameters
+  gem_cond_fatal_error_msg(parameters->output_file_name!=NULL &&
+      gem_streq(parameters->input_file_name,parameters->output_file_name),
+      "Input-file and output-file must be different");
+  gem_cond_fatal_error_msg(gem_streq(parameters->index_file_name,parameters->input_file_name),
+      "Index-file and input-file must be different");
+  gem_cond_fatal_error_msg(parameters->output_file_name!=NULL &&
+      gem_streq(parameters->index_file_name,parameters->output_file_name),
+      "Index-file and output-file must be different");
+  /*
+   * Search Parameters
+   */
+  /* Mapping strategy (Mapping mode + properties) */
+  /* Qualities */
+//  uint64_t quality_threshold;
+  gem_cond_fatal_error_msg(parameters->search_parameters.quality_threshold > 94,
+      "Quality threshold is too high (please consider lowering it or run ignoring qualities)");
+  gem_cond_fatal_error_msg(parameters->search_parameters.quality_threshold == 0,
+      "Quality threshold is zero (all base-calls will be considered wrong))");
+  /* Error Model */
+  gem_cond_fatal_error_msg(parameters->search_parameters.max_search_error >
+      parameters->search_parameters.max_filtering_error,
+      "Option '--max-search-error' is greater than 'max-filtering-error' [Inefficiency]");
+  /* Matches search */
+  /* Replacements (Regulates the bases that can be replaced/mismatched) */
+  /* Alignment Score */
+  /*
+   * Select Parameters
+   */
+  /* Single-end Alignment */
+  /* Paired-end Alignment */
+  /* Alignment Score */
+  /* Reporting */
+  gem_cond_fatal_error_msg(parameters->select_parameters.min_reported_matches >
+      parameters->select_parameters.max_reported_matches,
+      "Option '--max-reported-matches' must be greater or equal than 'min-reported-matches'");
   // System
-  if (parameters->max_memory==0) {
-    parameters->max_memory = mm_get_available_mem();
-  }
-  // Check min_reported_matches <= max_reported_matches
-  // TODO
+  /*
+   * TODO
+   *   check path (gem_access(char* const path,const fm_mode mode))
+   *   check number of cpus (force to increase it)
+   */
   // Free
-  string_delete(getopt_short_string);
+  string_destroy(getopt_short_string);
+  mm_free(getopt_short_string);
   mm_free(getopt_options);
 }
 /*
  * Main
  */
 int main(int argc,char** argv) {
+  // Mapper timer
+  gem_timer_t mapper_timer;
+  TIMER_RESTART(&mapper_timer);
   // Parsing command-line options
   mapper_parameters_t parameters;
-  mapper_parameters_set_defaults(&parameters); // Set defaults
   mapper_cuda_parameters_t cuda_parameters;
-  mapper_cuda_parameters_set_defaults(&cuda_parameters); // Set defaults
-  parse_arguments(argc,argv,&parameters); // Parse cmd-line
+  mapper_parameters_set_defaults(&parameters); // Set defaults
+  mapper_cuda_parameters_set_defaults(&cuda_parameters);
+  parse_arguments(argc,argv,&parameters,&cuda_parameters); // Parse cmd-line
 
   // Runtime setup
   gem_runtime_init(parameters.max_memory,parameters.tmp_folder,mapper_error_report);
@@ -375,6 +426,11 @@ int main(int argc,char** argv) {
   archive_delete(parameters.archive); // Delete archive
   gem_mapper_close_input(&parameters); // Close I/O files
   gem_mapper_close_output(&parameters); // Close I/O files
+
+  // Display end banner
+  TIMER_STOP(&mapper_timer);
+  gem_cond_log(parameters.verbose_user,
+      "[GEMMapper terminated successfully in %2.3f min.]\n",TIMER_GET_S(&mapper_timer)/60.0);
 
   return 0;
 }

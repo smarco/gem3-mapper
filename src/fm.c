@@ -467,7 +467,7 @@ GEM_INLINE void fm_skip_align_1024(fm_t* const file_manager) {
 }
 GEM_INLINE void fm_skip_align_4KB(fm_t* const file_manager) {
   FM_CHECK(file_manager);
-  fm_skip_align(file_manager,512);
+  fm_skip_align(file_manager,4096);
 }
 GEM_INLINE void fm_skip_align_mempage(fm_t* const file_manager) {
   FM_CHECK(file_manager);
@@ -663,6 +663,27 @@ GEM_INLINE FILE* gem_open_FILE(char* const file_name,const char* opentype) {
 }
 GEM_INLINE void gem_unlink(char* const file_name) {
   gem_cond_fatal_error__perror(unlink(file_name),FM_UNLINK,file_name);
+}
+/*
+ * Utils
+ */
+GEM_INLINE bool gem_access(char* const path,const fm_mode mode) {
+  if (access(path,F_OK)) {
+    if (ENOENT  == errno /* Does not exist*/ ||
+        ENOTDIR == errno /* Not a directory */) return false;
+  }
+  if (mode==FM_READ || mode==FM_READ_WRITE) {
+    if (access(path,R_OK)) return false;
+  }
+  if (mode==FM_WRITE || mode==FM_READ_WRITE) {
+    if (access(path,W_OK)) {
+      if (errno == EACCES /* Access denied */ ||
+          errno == EROFS /* Read-only filesystem */) {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 /*
  * FileManager Printers

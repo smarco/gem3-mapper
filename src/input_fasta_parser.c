@@ -252,9 +252,9 @@ GEM_INLINE error_code_t ifp_parse_sequence(
   error_code_t error_code;
   bool has_qualities;
   if ((error_code=ifp_parse_tag(buffered_input_file_get_text_line(buffered_fasta_input),
-      seq_read->tag,&(seq_read->attributes),&has_qualities))) return error_code;
+      &seq_read->tag,&seq_read->attributes,&has_qualities))) return error_code;
   // Parse READ
-  if ((error_code=ifp_parse_read(buffered_fasta_input,seq_read->read,true,true))) return error_code;
+  if ((error_code=ifp_parse_read(buffered_fasta_input,&seq_read->read,true,true))) return error_code;
   // Parse QUALITIES
   if (has_qualities) {
     // Skip '+'
@@ -262,11 +262,11 @@ GEM_INLINE error_code_t ifp_parse_sequence(
     if (**text_line!=FASTQ_SEP) return FASTA_ERROR_SEPARATOR_BAD_CHARACTER;
     PARSER_SKIP_LINE(text_line); PARSER_NEXT_CHAR(text_line);
     // Parse qualities string
-    if ((error_code=ifp_parse_qualities(buffered_fasta_input,seq_read->qualities,try_recovery))) return error_code;
+    if ((error_code=ifp_parse_qualities(buffered_fasta_input,&seq_read->qualities,try_recovery))) return error_code;
     // Check lengths
-    if (gem_expect_false(string_get_length(seq_read->read) != string_get_length(seq_read->qualities))) {
+    if (gem_expect_false(string_get_length(&seq_read->read) != string_get_length(&seq_read->qualities))) {
       if (!try_recovery) return FASTA_ERROR_LENGTHS;
-      string_clear(seq_read->qualities);
+      string_clear(&seq_read->qualities);
     }
     buffered_fasta_input->current_line_num += 4;
   } else {

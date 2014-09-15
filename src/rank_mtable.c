@@ -78,6 +78,7 @@ GEM_INLINE void rank_mtable_delete(rank_mtable_t* const rank_mtable) {
   mm_free(rank_mtable->sa_ranks_levels);
   mm_free(rank_mtable->level_skip);
   if (rank_mtable->mm_sa_ranks!=NULL) mm_bulk_free(rank_mtable->mm_sa_ranks);
+  mm_free(rank_mtable);
 }
 /*
  * Builder

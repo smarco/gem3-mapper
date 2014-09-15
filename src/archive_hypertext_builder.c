@@ -209,10 +209,11 @@ GEM_INLINE void archive_builder_process_graph(
   // Allocate archive graph and
   archive_builder->graph = graph_text_builder_new(mm_pool_get_slab(mm_pool_8MB));
   // Allocate temporal variables
-  string_t* const sequence_name_from = string_new(ARCHIVE_GRAPH_SEQUENCE_TAG_INITIAL_LENGTH);
-  string_t* const sequence_name_to = string_new(ARCHIVE_GRAPH_SEQUENCE_TAG_INITIAL_LENGTH);
-  string_t* const variant_tag = string_new(ARCHIVE_GRAPH_VARIANT_TAG_INITIAL_LENGTH);
-  string_t* const variant = string_new(ARCHIVE_GRAPH_VARIANT_INITIAL_LENGTH);
+  string_t sequence_name_from, sequence_name_to, variant_tag, variant;
+  string_init(&sequence_name_from,ARCHIVE_GRAPH_SEQUENCE_TAG_INITIAL_LENGTH);
+  string_init(&sequence_name_to,ARCHIVE_GRAPH_SEQUENCE_TAG_INITIAL_LENGTH);
+  string_init(&variant_tag,ARCHIVE_GRAPH_VARIANT_TAG_INITIAL_LENGTH);
+  string_init(&variant,ARCHIVE_GRAPH_VARIANT_INITIAL_LENGTH);
   graph_link_t graph_link_from, graph_link_to;
   // Read graph links loop
   ticker_t ticker;
@@ -222,8 +223,8 @@ GEM_INLINE void archive_builder_process_graph(
   while (!input_file_eof(input_graph)) {
     // Parse graph link
     error_code_t error_code;
-    if ((error_code=input_graph_link_parse(input_graph,variant_tag,
-        sequence_name_from,&graph_link_from,sequence_name_to,&graph_link_to,variant))) {
+    if ((error_code=input_graph_link_parse(input_graph,&variant_tag,
+        &sequence_name_from,&graph_link_from,&sequence_name_to,&graph_link_to,&variant))) {
       input_graph_link_parse_prompt_error(input_graph,error_code);
       input_file_skip_eol(input_graph);
       continue;
@@ -231,11 +232,11 @@ GEM_INLINE void archive_builder_process_graph(
     input_file_skip_eol(input_graph);
     // Process link information
     ticker_update(&ticker,1);
-    const uint64_t variant_length = string_get_length(variant);
+    const uint64_t variant_length = string_get_length(&variant);
     /*
      * SNV
      */
-    if (string_cmp(sequence_name_from,sequence_name_to)==0 && variant_length<=1) {
+    if (string_cmp(&sequence_name_from,&sequence_name_to)==0 && variant_length<=1) {
       int64_t abs_difference = ((int64_t)graph_link_from.position_text-(int64_t)graph_link_to.position_text);
       abs_difference = ABS(abs_difference);
       if (abs_difference <= 1) { // Is a SNV
@@ -247,8 +248,8 @@ GEM_INLINE void archive_builder_process_graph(
         // Add SNV
         graph_link_from.position_text = MIN(graph_link_from.position_text,graph_link_to.position_text);
         archive_builder_generate_graph_add_snv(
-            archive_builder,&graph_link_from,sequence_name_from,
-            (variant_length>0)?(*string_get_buffer(variant)):0,abs_difference==1);
+            archive_builder,&graph_link_from,&sequence_name_from,
+            (variant_length>0)?(*string_get_buffer(&variant)):0,abs_difference==1);
         // Next
         continue;
       }
@@ -259,7 +260,7 @@ GEM_INLINE void archive_builder_process_graph(
     if (variant_length==0) {
       // Add simple link
       archive_builder_generate_graph_add_simple_link(archive_builder,
-          &graph_link_from,sequence_name_from,&graph_link_to,sequence_name_to);
+          &graph_link_from,&sequence_name_from,&graph_link_to,&sequence_name_to);
       // Next
       continue;
     }
@@ -267,8 +268,8 @@ GEM_INLINE void archive_builder_process_graph(
      * General graph link (through a variant)
      */
     archive_builder_generate_graph_add_variant_link(
-        archive_builder,variant_tag,variant,
-        &graph_link_from,sequence_name_from,&graph_link_to,sequence_name_to);
+        archive_builder,&variant_tag,&variant,
+        &graph_link_from,&sequence_name_from,&graph_link_to,&sequence_name_to);
   }
   ticker_finish(&ticker);
   // Check if graph is needed
@@ -282,17 +283,18 @@ GEM_INLINE void archive_builder_process_graph(
     graph_text_builder_link_table_sort(archive_builder->graph,locator_builder_get_num_tags(archive_builder->locator));
   }
   // Free
-  string_delete(variant_tag);
-  string_delete(sequence_name_from);
-  string_delete(sequence_name_to);
-  string_delete(variant);
+  string_destroy(&variant_tag);
+  string_destroy(&sequence_name_from);
+  string_destroy(&sequence_name_to);
+  string_destroy(&variant);
 }
 /*
  * Archive Builder. Generate HyperText & RC-HyperText
  */
 GEM_INLINE void archive_builder_generate_hypertext(
     archive_builder_t* const archive_builder,input_file_t* const input_multifasta,const bool verbose) {
-  string_t* const tag = string_new(100);
+  string_t tag;
+  string_init(&tag,100);
   // Check MultiFASTA (Empty/wrong first character)
   input_file_check_buffer(input_multifasta);
   gem_cond_fatal_error(input_file_eof(input_multifasta),MULTIFASTA_EMPTY,input_file_get_file_name(input_multifasta));
@@ -313,7 +315,7 @@ GEM_INLINE void archive_builder_generate_hypertext(
     } else if (current_char==FASTA_TAG_BEGIN) { // Tag
       // Archive builder parse Tag
       const int64_t tag_id = archive_builder_generate_hypertext_add_sequence(
-          archive_builder,&graph_link_locator,input_multifasta,tag);
+          archive_builder,&graph_link_locator,input_multifasta,&tag);
       // Search Tag in the graph-builder (looking for unsolved jumps)
       graph_text_builder_link_locator_iterate_forward(archive_builder->graph,&graph_link_locator,tag_id);
     } else if (is_iupac_code(current_char)) { // Nucleotide -> A,C,G,T,N
@@ -342,7 +344,7 @@ GEM_INLINE void archive_builder_generate_hypertext(
   gem_cond_fatal_error(input_multifasta_get_text_sequence_length(parsing_state)==0,
       MULTIFASTA_SEQ_EMPTY,PRI_input_file_content(input_multifasta));
   // Free
-  string_delete(tag);
+  string_destroy(&tag);
 }
 GEM_INLINE void archive_builder_generate_rc_hypertext_inteval(
     archive_builder_t* const archive_builder,locator_interval_t* const locator_interval) {

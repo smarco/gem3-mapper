@@ -115,9 +115,17 @@ inline bool gem_is_mute_report_stream();
     } \
   } while (0)
 // Time LOG
-#define gem_log(gem_log_msg,args...) \
+#define gem_xlog(gem_log_msg,args...) \
   gem_report__timestamp_begin_block(GEM_LABEL_LOG,log,gem_log_msg,##args) \
   gem_report_end_block(0,0,0,0)
+#define gem_log(gem_log_msg,args...) \
+  do { \
+    FILE* const gem_stream=gem_log_get_stream(); \
+    if (!gem_is_mute_report_stream()) { \
+      tfprintf(gem_stream,gem_log_msg"\n",##args); \
+      fflush(gem_stream); \
+    } \
+  } while (0)
 // Conditional Time LOG
 #define gem_cond_log(condition,gem_log_msg,args...) \
   do { \
@@ -211,7 +219,9 @@ GEM_INLINE void ticker_count_reset(
     ticker_t* const ticker,const bool enabled,const char* const label,
     const uint64_t top,const uint64_t each,const bool timed);
 GEM_INLINE void ticker_update(ticker_t* const ticker,const uint64_t n);
+GEM_INLINE void ticker_update_mutex(ticker_t* const ticker,const uint64_t n);
 GEM_INLINE void ticker_finish(ticker_t* const ticker);
+GEM_INLINE void ticker_finish_mutex(ticker_t* const ticker);
 // Adding labels
 GEM_INLINE void ticker_add_process_label(ticker_t* const ticker,char* const process_begin,char* const process_end);
 GEM_INLINE void ticker_add_finish_label(ticker_t* const ticker,char* const finish_begin,char* const finish_end);
@@ -219,6 +229,9 @@ GEM_INLINE void ticker_add_finish_label(ticker_t* const ticker,char* const finis
 GEM_INLINE void ticker_set_status(ticker_t* const ticker,const bool enabled);
 // Set granularity
 GEM_INLINE void ticker_set_step(ticker_t* const ticker,const uint64_t step);
+// Enable mutex
+GEM_INLINE void ticker_mutex_enable(ticker_t* const ticker);
+GEM_INLINE void ticker_mutex_cleanup(ticker_t* const ticker);
 // Percentage/Count Ticker Macros
 #define TICKER_COND_BEGIN(condition,maximum,msg,timed) \
   ticker_t __ticker; \

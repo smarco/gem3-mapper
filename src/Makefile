@@ -30,7 +30,7 @@ MODULES+=options_menu
 # GEM Structures
 MODULES+=archive_builder archive_text_builder archive_hypertext_builder archive_index_builder sa_builder \
          bwt rank_mtable sampled_sa sampled_rl fm_index interval_set matches locator \
-         archive archive_search archive_search_group \
+         archive archive_search archive_search_group mm_search \
          archive_select archive_select_parameters archive_text_retrieve 
 # GEM Search Modules
 MODULES+=approximate_search_parameters approximate_search neighborhood_search \

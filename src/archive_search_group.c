@@ -32,16 +32,19 @@ GEM_INLINE void archive_search_group_init(
   // BPM-GPU candidates buffer
   search_group->bpm_gpu_buffer = bpm_gpu_buffers;
   // Archive searches
-  search_group->mm_search = mm_search_new(mm_pool_get_slab(mm_pool_8MB));
+  search_group->mm_search_end1 = mm_search_new(mm_pool_get_slab(mm_pool_8MB));
+  search_group->mm_search_end2 = mm_search_new(mm_pool_get_slab(mm_pool_8MB));
   search_group->archive_searches = vector_new(num_initial_searches,archive_search_member_t);
 //  search_group->archive_searches_attr = vector_new();
 }
 GEM_INLINE void archive_search_group_clear(archive_search_group_t* const search_group) {
-  mm_search_clear(search_group->mm_search);
+  mm_search_clear(search_group->mm_search_end1);
+  mm_search_clear(search_group->mm_search_end2);
   vector_clear(search_group->archive_searches);
 }
 GEM_INLINE void archive_search_group_destroy(archive_search_group_t* const search_group) {
-  mm_search_delete(search_group->mm_search);
+  mm_search_delete(search_group->mm_search_end1);
+  mm_search_delete(search_group->mm_search_end2);
   vector_delete(search_group->archive_searches);
 // vector_delete(search_group->archive_searches_attr);
 }
@@ -197,43 +200,41 @@ GEM_INLINE void archive_search_group_dispatcher_return_selecting(
 /*
  * Step-wise SE-Search
  */
-GEM_INLINE void archive_search_generate_candidates(
-    archive_search_t* const archive_search,mm_search_t* const mm_search) {
+GEM_INLINE void archive_search_generate_candidates(archive_search_t* const archive_search) {
   ARCHIVE_SEARCH_CHECK(archive_search);
-  // Prepare
-  archive_search_prepare_sequence(archive_search,mm_search->mm_stack); // Prepare pattern(s)
-  archive_search_clear(archive_search); // Clean Matches
+  // Reset initial values (Prepare pattern(s), instantiate parameters values, ...)
+  archive_search_reset(archive_search,sequence_get_length(&archive_search->sequence));
   // Check mapping mode
   gem_cond_fatal_error(
       archive_search->search_actual_parameters.search_parameters->mapping_mode!=mapping_adaptive_filtering ||
       archive_search->search_actual_parameters.search_parameters->mapping_mode!=mapping_fixed_filtering,
       ARCHIVE_SEARCH_GROUP_MAPPING_MODE_NOT_SUPPORTED);
   // Run the search (FORWARD)
-  approximate_search_t* const forward_asearch = archive_search->forward_search_state;
+  approximate_search_t* const forward_asearch = &archive_search->forward_search_state;
   forward_asearch->stop_search_stage = asearch_filtering; // Stop before filtering
   forward_asearch->search_strand = Forward; // Configure forward search
-  approximate_search(forward_asearch,NULL,mm_search);
+  approximate_search(forward_asearch,NULL);
   if (archive_search->search_reverse) {
     // Run the search (REVERSE)
-    approximate_search_t* const reverse_asearch = archive_search->reverse_search_state;
+    approximate_search_t* const reverse_asearch = &archive_search->reverse_search_state;
     reverse_asearch->stop_search_stage = asearch_filtering; // Stop before filtering
     reverse_asearch->search_strand = Reverse; // Configure reverse search
-    approximate_search(reverse_asearch,NULL,mm_search);
+    approximate_search(reverse_asearch,NULL);
   }
 }
 GEM_INLINE void archive_search_copy_candidates(
     archive_search_t* const archive_search,bpm_gpu_buffer_t* const bpm_gpu_buffer) {
   const archive_t* const archive = archive_search->archive;
   // Add candidates (FORWARD)
-  approximate_search_t* const forward_asearch = archive_search->forward_search_state;
+  approximate_search_t* const forward_asearch = &archive_search->forward_search_state;
   forward_asearch->num_potential_candidates = filtering_candidates_add_to_bpm_buffer(
-      &forward_asearch->filtering_candidates,archive->locator,archive->fm_index,archive->enc_text,
+      forward_asearch->filtering_candidates,archive->locator,archive->fm_index,archive->enc_text,
       &forward_asearch->pattern,forward_asearch->search_strand,forward_asearch->search_actual_parameters,bpm_gpu_buffer);
   if (archive_search->search_reverse) {
     // Add candidates (REVERSE)
-    approximate_search_t* const reverse_asearch = archive_search->reverse_search_state;
+    approximate_search_t* const reverse_asearch = &archive_search->reverse_search_state;
     reverse_asearch->num_potential_candidates = filtering_candidates_add_to_bpm_buffer(
-        &reverse_asearch->filtering_candidates,archive->locator,archive->fm_index,archive->enc_text,
+        reverse_asearch->filtering_candidates,archive->locator,archive->fm_index,archive->enc_text,
         &reverse_asearch->pattern,reverse_asearch->search_strand,reverse_asearch->search_actual_parameters,bpm_gpu_buffer);
   }
 }

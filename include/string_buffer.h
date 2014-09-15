@@ -13,11 +13,14 @@
 
 #include "commons.h"
 #include "errors.h"
+#include "mm_stack.h"
 
 typedef struct {
-  char* buffer;
-  uint64_t allocated;
-  uint64_t length;
+  char* buffer;         // String buffer
+  uint64_t allocated;   // Number of bytes allocated
+  uint64_t length;      // Length of the string (not including EOS)
+  /* MM */
+  mm_stack_t* mm_stack; // MM-Stack
 } string_t;
 
 // Direction (traversal)
@@ -27,30 +30,31 @@ typedef enum { traversal_forward, traversal_backward } traversal_direction_t;
  * Checkers
  */
 #define STRING_CHECK(string) \
-  GEM_CHECK_NULL(string); \
-  GEM_CHECK_NULL(string->buffer)
-#define STRING_CHECK_NO_STATIC(string) \
-  STRING_CHECK(string); \
-  gem_fatal_check(!string->allocated,STRING_STATIC)
+  GEM_CHECK_NULL((string)); \
+  GEM_CHECK_NULL((string)->buffer)
+#define STRING_DYNAMIC_CHECK(string) \
+  STRING_CHECK((string)); \
+  gem_fatal_check(!(string)->allocated,STRING_STATIC)
 
 /*
  * Printers
  */
 #define PRIs ".*s"
-#define PRIs_content(string) (int)string_get_length(string),string_get_buffer(string)
+#define PRIs_content(string) (int)string_get_length((string_t*)string),string_get_buffer((string_t*)string)
 
 /*
  * Constructor & Accessors
  */
-GEM_INLINE string_t* string_new(const uint64_t length);
-GEM_INLINE string_t* string_new_from_buffer(const char* const buffer);
+GEM_INLINE void string_init(string_t* const string,const uint64_t length);
+GEM_INLINE void string_init_static(string_t* const string,char* const buffer);
+GEM_INLINE void string_init_mm(string_t* const string,const uint64_t length,mm_stack_t* const mm_stack);
 GEM_INLINE void string_resize(string_t* const string,const uint64_t length);
 GEM_INLINE void string_clear(string_t* const string);
-GEM_INLINE void string_delete(string_t* const string);
+GEM_INLINE void string_destroy(string_t* const string);
 
 GEM_INLINE char* string_get_buffer(string_t* const string);
+GEM_INLINE void string_set_buffer_const(string_t* const string,const char* const buffer,const uint64_t length);
 GEM_INLINE void string_set_buffer(string_t* const string,char* const buffer_src,const uint64_t length);
-GEM_INLINE void string_set_const_buffer(string_t* const string,const char* const buffer,const uint64_t length);
 
 GEM_INLINE char* string_char_at(string_t* const string,const uint64_t pos);
 GEM_INLINE uint64_t string_get_length(string_t* const string);
@@ -79,7 +83,7 @@ GEM_INLINE void string_copy_reverse(string_t* const string_dst,string_t* const s
 /*
  * Compare functions
  */
-GEM_INLINE bool string_is_null(string_t* const string);
+GEM_INLINE bool string_is_null(const string_t* const string);
 GEM_INLINE int64_t string_cmp(string_t* const string_a,string_t* const string_b);
 GEM_INLINE int64_t string_ncmp(string_t* const string_a,string_t* const string_b,const uint64_t length);
 GEM_INLINE bool string_equals(string_t* const string_a,string_t* const string_b);
@@ -88,16 +92,16 @@ GEM_INLINE bool string_nequals(string_t* const string_a,string_t* const string_b
 /*
  * Handlers
  */
-GEM_INLINE string_t* string_dup(string_t* const sequence);
-GEM_INLINE void string_copy(string_t* const sequence_dst,string_t* const sequence_src);
+GEM_INLINE string_t* string_dup(string_t* const string);
+GEM_INLINE void string_copy(string_t* const string_dst,string_t* const string_src);
 
 /*
  * String Printers
  */
-GEM_INLINE int sb_printf_v(string_t* const sequence,const char *template,va_list v_args);
-GEM_INLINE int sb_printf(string_t* const sequence,const char *template,...);
-GEM_INLINE int sb_printf_append_v(string_t* const sequence,const char *template,va_list v_args);
-GEM_INLINE int sb_printf_append(string_t* const sequence,const char *template,...);
+GEM_INLINE int sbprintf_v(string_t* const string,const char *template,va_list v_args);
+GEM_INLINE int sbprintf(string_t* const string,const char *template,...);
+GEM_INLINE int sbprintf_append_v(string_t* const string,const char *template,va_list v_args);
+GEM_INLINE int sbprintf_append(string_t* const string,const char *template,...);
 
 /*
  * Iterator

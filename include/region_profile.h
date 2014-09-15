@@ -115,7 +115,8 @@ GEM_INLINE void region_profile_generate_adaptive(
     region_profile_t* const region_profile,
     fm_index_t* const fm_index,pattern_t* const pattern,const bool* const allowed_enc,
     const uint64_t rp_region_th,const uint64_t rp_max_steps,
-    const uint64_t rp_dec_factor,const uint64_t rp_region_type_th,const uint64_t max_regions);
+    const uint64_t rp_dec_factor,const uint64_t rp_region_type_th,
+    const uint64_t max_regions,const bool allow_zero_regions);
 GEM_INLINE void region_profile_generate_full_progressive(
     region_profile_t* const region_profile,
     region_t* const base_region,const uint64_t start_region,const uint64_t total_regions);

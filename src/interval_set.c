@@ -9,14 +9,14 @@
 #include "interval_set.h"
 
 
-GEM_INLINE void interval_set_new(interval_set_t* const interval_set) {
-  GEM_NOT_IMPLEMENTED(); // TODO
+GEM_INLINE void interval_set_init(interval_set_t* const interval_set) {
+  // GEM_NOT_IMPLEMENTED(); // TODO
 }
 GEM_INLINE void interval_set_clear(interval_set_t* const interval_set) {
-  GEM_NOT_IMPLEMENTED(); // TODO
+  // GEM_NOT_IMPLEMENTED(); // TODO
 }
-GEM_INLINE void interval_set_delete(interval_set_t* const interval_set) {
-  GEM_NOT_IMPLEMENTED(); // TODO
+GEM_INLINE void interval_set_destroy(interval_set_t* const interval_set) {
+  // GEM_NOT_IMPLEMENTED(); // TODO
 }
 
 /*

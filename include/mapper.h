@@ -53,41 +53,17 @@ typedef struct {
   /* I/O Attributes (qualities, ...) */
   bool fastq_strictly_normalized;
   bool fastq_try_recovery;
-  quality_format_t quality_format;
-  quality_model_t quality_model;
-  uint64_t quality_threshold;
-  /* Single-end Alignment */
-  mapping_mode_t mapping_mode;
-  float mapping_degree;
-  float max_search_error;
-  float max_filtering_error;
-  float complete_strata_after_best;
-  float min_matching_length;
-  uint64_t max_search_matches;
-  char* mismatch_alphabet;
-  /* Paired-end Alignment */
-  /* Alignment Score */
-  alignment_model_t alignment_model;
-//  float model_hamming_max_distance; // FIXME -> Maybe curation removes all this before existing
-//  float model_levenshtein_max_distance;
-//  float model_gap_affine_max_distance;
-  uint64_t matching_score;
-  uint64_t mismatch_penalty;
-  uint64_t gap_open_penalty;
-  uint64_t gap_extension_penalty;
-  /* Mapping Quality */
-  /* Reporting */
-  uint64_t min_decoded_strata;
-  uint64_t max_decoded_matches;
-  uint64_t min_reported_matches;
-  uint64_t max_reported_matches;
+  /* Search Parameters */
+  search_parameters_t search_parameters;
+  /* Select Parameters */
+  select_parameters_t select_parameters;
   /* System */
   uint64_t num_threads;
   uint64_t max_memory;
   char* tmp_folder;
   /* Miscellaneous */
-  bool user_verbose;
-  bool dev_verbose;
+  bool verbose_user;
+  bool verbose_dev;
   /* Extras */
 } mapper_parameters_t;
 
@@ -95,9 +71,6 @@ typedef struct {
  * Mapper Parameters
  */
 GEM_INLINE void mapper_parameters_set_defaults(mapper_parameters_t* const mapper_parameters);
-GEM_INLINE void mapper_configure_archive_search(
-    const mapper_parameters_t* const parameters,
-    search_parameters_t* const search_parameters,select_parameters_t* const select_parameters);
 
 /*
  * I/O
@@ -105,7 +78,7 @@ GEM_INLINE void mapper_configure_archive_search(
 GEM_INLINE void mapper_SE_output_matches(
     const mapper_parameters_t* const parameters,
     buffered_output_file_t* const buffered_output_file,
-    const sequence_t* const seq_read,matches_t* const matches);
+    sequence_t* const seq_read,matches_t* const matches);
 
 /*
  * SE Mapper

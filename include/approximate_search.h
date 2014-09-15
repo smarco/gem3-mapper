@@ -49,35 +49,28 @@ typedef struct {
   /* Search Auxiliary Structures */
   region_profile_t region_profile;                      // Region Profile
   uint64_t num_potential_candidates;                    // Total number of candidates generated
-  filtering_candidates_t filtering_candidates;          // Filtering Candidates
-  interval_set_t intervals_result;                      // Interval Set (to hold intervals from neighborhood searches)
-  // TODO
+  /* Search Auxiliary Structures (external) */
+  text_collection_t* text_collection;                   // Stores text-traces
+  filtering_candidates_t* filtering_candidates;         // Filtering Candidates
+  interval_set_t* interval_set;                         // Interval Set
+  /* MM */
+  mm_stack_t* mm_stack;                                 // MM-Stack
 } approximate_search_t;
-// MM Search
-typedef struct {
-  /* Text-Collection Buffer */
-  text_collection_t* text_collection;  // Stores text-traces (candidates/matches/regions/...)
-  /* MM-Stack */
-  mm_stack_t* mm_stack;                // Used to allocate small chunks of memory for setup
-  // TODO
-} mm_search_t;
-
-/*
- * MM Search
- */
-GEM_INLINE mm_search_t* mm_search_new();
-GEM_INLINE void mm_search_clear(mm_search_t* const mm_search);
-GEM_INLINE void mm_search_delete(mm_search_t* const mm_search);
 
 /*
  * Setup
  */
-GEM_INLINE approximate_search_t* approximate_search_new(
+GEM_INLINE void approximate_search_init(
+    approximate_search_t* const search,
     locator_t* const locator,graph_text_t* const graph,
     dna_text_t* const enc_text,fm_index_t* const fm_index,
     search_actual_parameters_t* const search_actual_parameters);
-GEM_INLINE void approximate_search_clear(approximate_search_t* const search);
-GEM_INLINE void approximate_search_delete(approximate_search_t* const search);
+GEM_INLINE void approximate_search_configure(
+    approximate_search_t* const search,
+    text_collection_t* text_collection,filtering_candidates_t* const filtering_candidates,
+    interval_set_t* const interval_set,mm_stack_t* const mm_stack);
+GEM_INLINE void approximate_search_reset(approximate_search_t* const search);
+GEM_INLINE void approximate_search_destroy(approximate_search_t* const search);
 
 /*
  * Accessors
@@ -88,11 +81,13 @@ GEM_INLINE uint64_t approximate_search_get_num_potential_candidates(approximate_
  * Pattern
  */
 GEM_INLINE void approximate_search_prepare_pattern(
-    approximate_search_t* const search,sequence_t* const sequence,mm_stack_t* const mm_stack);
+    approximate_search_t* const search,sequence_t* const sequence);
 
-// ASM-Search!!
+/*
+ * ASM-Search!!
+ */
 GEM_INLINE void approximate_search(
-    approximate_search_t* const search,matches_t* const matches,mm_search_t* const mm_search);
+    approximate_search_t* const search,matches_t* const matches);
 
 
 //GEM_INLINE uint64_t fmi_mismatched_search_extend(

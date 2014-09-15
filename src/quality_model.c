@@ -54,8 +54,8 @@ GEM_INLINE void quality_model_gem(
   const uint64_t key_length = sequence_get_length(sequence);
   uint64_t i;
   for (i=0;i<key_length;++i) {
-    const int64_t quality = *string_char_at(sequence->qualities,i) - enc_diff;
-    gem_cond_fatal_error(quality < 0,QUALITY_NEGATIVE,string_get_buffer(sequence->qualities)[i],i);
+    const int64_t quality = *string_char_at(&sequence->qualities,i) - enc_diff;
+    gem_cond_fatal_error(quality < 0,QUALITY_NEGATIVE,string_get_buffer(&sequence->qualities)[i],i);
     quality_mask[i] = (quality >= quality_threshold) ? qm_real : qm_pseudo;
   }
 }

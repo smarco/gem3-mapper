@@ -45,20 +45,29 @@
  * Memory Alignment Utils
  */
 const uint64_t mm_mem_alignment_bits_mask[] = { // Check Memory Alignment Bits (Masks)
-    0x0000000000000001lu, /*    16 bits aligned (  2B / 2^4)  */
-    0x0000000000000003lu, /*    32 bits aligned (  4B / 2^5)  */
-    0x0000000000000007lu, /*    64 bits aligned (  8B / 2^6)  */
-    0x000000000000000Flu, /*   128 bits aligned ( 16B / 2^7)  */
-    0x000000000000001Flu, /*   256 bits aligned ( 32B / 2^8)  */
-    0x000000000000003Flu, /*   512 bits aligned ( 64B / 2^9)  */
-    0x000000000000007Flu, /*  1024 bits aligned ( 1KB / 2^10) */
-    0x00000000000000FFlu, /*  2048 bits aligned ( 2KB / 2^11) */
-    0x00000000000001FFlu, /*  4096 bits aligned ( 4KB / 2^12) RegularPage Size*/
-    0x00000000000003FFlu, /*  8192 bits aligned ( 8KB / 2^13) */
-    0x00000000000007FFlu, /* 16384 bits aligned (16KB / 2^14) */
-    0x0000000000000FFFlu, /* 32768 bits aligned (32KB / 2^15) */
-    0x000000000003FFFFlu, /*   n/a bits aligned ( 2MB / 2^21) RegularPageHugeTLB Size */
-    0x000000000007FFFFlu, /*   n/a bits aligned ( 4MB / 2^21) */
+    0x0000000000000001lu, /*  [0]    16 bits aligned (   2B  @2^1)  */
+    0x0000000000000003lu, /*  [1]    32 bits aligned (   4B  @2^2)  */
+    0x0000000000000007lu, /*  [2]    64 bits aligned (   8B  @2^3)  */
+    0x000000000000000Flu, /*  [3]   128 bits aligned (  16B  @2^4)  */
+    0x000000000000001Flu, /*  [4]   256 bits aligned (  32B  @2^5)  */
+    0x000000000000003Flu, /*  [5]   512 bits aligned (  64B  @2^6)  */
+    0x000000000000007Flu, /*  [6]  1024 bits aligned ( 128B  @2^7)  */
+    0x00000000000000FFlu, /*  [7]  2048 bits aligned ( 256B  @2^8)  */
+    0x00000000000001FFlu, /*  [8]  4096 bits aligned ( 512B  @2^9)  */
+    0x00000000000003FFlu, /*  [9]  8192 bits aligned (   1KB @2^10) */
+    0x00000000000007FFlu, /* [10] 16384 bits aligned (   2KB @2^11) */
+    0x0000000000000FFFlu, /* [11] 32768 bits aligned (   4KB @2^12) */ /* RegularPage Size */
+    0x0000000000001FFFlu, /* [12] ***** bits aligned (   8KB @2^13) */
+    0x0000000000003FFFlu, /* [13] ***** bits aligned (  16KB @2^14) */
+    0x0000000000007FFFlu, /* [14] ***** bits aligned (  32KB @2^15) */
+    0x000000000000FFFFlu, /* [15] ***** bits aligned (  64KB @2^16) */
+    0x000000000001FFFFlu, /* [16] ***** bits aligned ( 128KB @2^17) */
+    0x000000000003FFFFlu, /* [17] ***** bits aligned ( 256KB @2^18) */
+    0x000000000007FFFFlu, /* [18] ***** bits aligned ( 512KB @2^19) */
+    0x00000000000FFFFFlu, /* [19] ***** bits aligned (   1MB @2^20) */
+    0x00000000001FFFFFlu, /* [20] ***** bits aligned (   2MB @2^21) */ /* RegularPageHugeTLB Size */
+    0x00000000003FFFFFlu, /* [21] ***** bits aligned (   4MB @2^22) */
+    0x00000000007FFFFFlu, /* [22] ***** bits aligned (   8MB @2^23) */
 };
 
 /*
@@ -232,7 +241,9 @@ GEM_INLINE mm_t* mm_bulk_mmalloc_temp(const uint64_t num_bytes) {
 #endif
 }
 GEM_INLINE void mm_bulk_free(mm_t* const mem_manager) {
-  MM_CHECK(mem_manager);
+  GEM_CHECK_NULL(mem_manager);
+  GEM_CHECK_NULL(mem_manager->memory);
+  GEM_CHECK_NULL(mem_manager->cursor);
   if (mem_manager->mem_type==MM_HEAP) { // Heap BulkMemory
     mm_free(mem_manager->memory);
   } else { // MMapped BulkMemory
@@ -399,6 +410,20 @@ GEM_INLINE void mm_skip_uint8(mm_t* const mem_manager) {
   mem_manager->cursor += 1;
   MM_CHECK_SEGMENT(mem_manager);
 }
+#ifdef MM_NO_MMAP
+GEM_INLINE void mm_skip_align(mm_t* const mem_manager,const uint64_t num_bytes) {
+  MM_CHECK(mem_manager);
+  GEM_CHECK_ZERO(num_bytes);
+  if (gem_expect_true(num_bytes > 1)) {
+    const uint64_t byte_position = mem_manager->cursor - mem_manager->memory;
+    const uint64_t bytes_mod = byte_position % num_bytes;
+    if (bytes_mod > 0) {
+      const uint64_t bytes_to_skip = num_bytes - bytes_mod;
+      mm_skip_forward(mem_manager,bytes_to_skip);
+    }
+  }
+}
+#else
 GEM_INLINE void mm_skip_align(mm_t* const mem_manager,const uint64_t num_bytes) {
   MM_CHECK(mem_manager);
   GEM_CHECK_ZERO(num_bytes);
@@ -409,54 +434,83 @@ GEM_INLINE void mm_skip_align(mm_t* const mem_manager,const uint64_t num_bytes) 
     gem_fatal_check(MM_CAST_ADDR(mem_manager->cursor)%num_bytes!=0,MEM_ALG_FAILED);
   }
 }
+#endif
 GEM_INLINE void mm_skip_align_16(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
+#ifdef MM_NO_MMAP
+  mm_skip_align(mem_manager,2);
+#else
   mem_manager->cursor = MM_CAST_PTR(
       (MM_CAST_ADDR(mem_manager->cursor)+MM_MEM_ALIGNED_MASK_16b) & (~MM_MEM_ALIGNED_MASK_16b));
   MM_CHECK_SEGMENT(mem_manager);
   MM_CHECK_ALIGNMENT(mem_manager,16b);
+#endif
 }
 GEM_INLINE void mm_skip_align_32(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
+#ifdef MM_NO_MMAP
+  mm_skip_align(mem_manager,4);
+#else
   mem_manager->cursor = MM_CAST_PTR(
       (MM_CAST_ADDR(mem_manager->cursor)+MM_MEM_ALIGNED_MASK_32b) & (~MM_MEM_ALIGNED_MASK_32b));
   MM_CHECK_SEGMENT(mem_manager);
   MM_CHECK_ALIGNMENT(mem_manager,32b);
+#endif
 }
 GEM_INLINE void mm_skip_align_64(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
+#ifdef MM_NO_MMAP
+  mm_skip_align(mem_manager,8);
+#else
   mem_manager->cursor = MM_CAST_PTR(
       (MM_CAST_ADDR(mem_manager->cursor)+MM_MEM_ALIGNED_MASK_64b) & (~MM_MEM_ALIGNED_MASK_64b));
   MM_CHECK_SEGMENT(mem_manager);
   MM_CHECK_ALIGNMENT(mem_manager,64b);
+#endif
 }
 GEM_INLINE void mm_skip_align_128(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
+#ifdef MM_NO_MMAP
+  mm_skip_align(mem_manager,16);
+#else
   mem_manager->cursor = MM_CAST_PTR(
       (MM_CAST_ADDR(mem_manager->cursor)+MM_MEM_ALIGNED_MASK_128b) & (~MM_MEM_ALIGNED_MASK_128b));
   MM_CHECK_SEGMENT(mem_manager);
   MM_CHECK_ALIGNMENT(mem_manager,128b);
+#endif
 }
 GEM_INLINE void mm_skip_align_512(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
+#ifdef MM_NO_MMAP
+  mm_skip_align(mem_manager,64);
+#else
   mem_manager->cursor = MM_CAST_PTR(
       (MM_CAST_ADDR(mem_manager->cursor)+MM_MEM_ALIGNED_MASK_512b) & (~MM_MEM_ALIGNED_MASK_512b));
   MM_CHECK_SEGMENT(mem_manager);
   MM_CHECK_ALIGNMENT(mem_manager,512b);
+#endif
 }
 GEM_INLINE void mm_skip_align_1024(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
+#ifdef MM_NO_MMAP
+  mm_skip_align(mem_manager,1024);
+#else
   mem_manager->cursor = MM_CAST_PTR(
-      (MM_CAST_ADDR(mem_manager->cursor)+MM_MEM_ALIGNED_MASK_1KB) & (~MM_MEM_ALIGNED_MASK_1KB));
+      (MM_CAST_ADDR(mem_manager->cursor)+MM_MEM_ALIGNED_MASK_1024b) & (~MM_MEM_ALIGNED_MASK_1024b));
   MM_CHECK_SEGMENT(mem_manager);
   MM_CHECK_ALIGNMENT(mem_manager,1KB);
+#endif
 }
 GEM_INLINE void mm_skip_align_4KB(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
+#ifdef MM_NO_MMAP
+  mm_skip_align(mem_manager,4096);
+#else
   mem_manager->cursor = MM_CAST_PTR(
       (MM_CAST_ADDR(mem_manager->cursor)+MM_MEM_ALIGNED_MASK_4KB) & (~MM_MEM_ALIGNED_MASK_4KB));
   MM_CHECK_SEGMENT(mem_manager);
   MM_CHECK_ALIGNMENT(mem_manager,4KB);
+#endif
 }
 GEM_INLINE void mm_skip_align_mempage(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);

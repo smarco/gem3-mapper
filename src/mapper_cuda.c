@@ -5,7 +5,6 @@
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  */
 
-#include "mapper.h"
 #include "mapper_cuda.h"
 
 
@@ -39,7 +38,6 @@ typedef struct {
   mapper_cuda_thread_type thread_type;
   /* Mapper parameters */
   mapper_parameters_t* mapper_parameters;
-  mapper_cuda_parameters_t* mapper_cuda_parameters;
   /* Archive search */
   archive_search_cache_t* archive_search_cache;
   archive_search_group_dispatcher_t* search_group_dispatcher;
@@ -72,9 +70,6 @@ GEM_INLINE archive_search_cache_t* archive_search_cache_new(mapper_parameters_t*
   archive_search_cache->archive_search_cache =
       vector_new(MAPPER_CUDA_ARCHIVE_SEARCH_CACHE_INIT_SIZE,archive_search_t*);
   MUTEX_INIT(archive_search_cache->mutex);
-  // Configure Parameters
-  mapper_configure_archive_search(mapper_parameters,
-      &archive_search_cache->search_parameters,&archive_search_cache->select_parameters);
   // Return
   return archive_search_cache;
 }
@@ -102,18 +97,49 @@ GEM_INLINE archive_search_t* archive_search_cache_alloc(archive_search_cache_t* 
           &archive_search_cache->search_parameters,&archive_search_cache->select_parameters);
     }
   } MUTEX_END_SECTION(archive_search_cache->mutex);
-  // Return
-  archive_search_clear(archive_search);
   return archive_search;
 }
 GEM_INLINE void archive_search_cache_free(
     archive_search_cache_t* const archive_search_cache,archive_search_t* const archive_search) {
-  // Clear archive search to save some space
-  archive_search_clear(archive_search);
   // Add it to the cache
   MUTEX_BEGIN_SECTION(archive_search_cache->mutex) {
     vector_insert(archive_search_cache->archive_search_cache,archive_search,archive_search_t*);
   } MUTEX_END_SECTION(archive_search_cache->mutex);
+}
+/*
+ * I/O
+ */
+GEM_INLINE error_code_t mapper_SE_CUDA_parse_sequences(
+    const mapper_parameters_t* const parameters,archive_search_cache_t* const archive_search_cache,
+    buffered_input_file_t* const buffered_fasta_input,archive_search_t** const archive_search_end1,
+    archive_search_t** const archive_search_end2) {
+  // Check the end_of_block (Reload buffer if needed)
+  if (buffered_input_file_eob(buffered_fasta_input)) {
+    if (buffered_input_file_get_lines_block(buffered_fasta_input,MAPPER_CUDA_NUM_LINES)==0) return INPUT_STATUS_EOF;
+  }
+  // Obtain a clean archive-search (end/1)
+  *archive_search_end1 = archive_search_cache_alloc(archive_search_cache);
+  // Parse Sequence (end/1)
+  error_code_t error_code;
+  error_code=input_fasta_parse_sequence(
+      buffered_fasta_input,archive_search_get_sequence(*archive_search_end1),
+      parameters->fastq_strictly_normalized,parameters->fastq_try_recovery);
+  gem_cond_fatal_error(error_code==INPUT_STATUS_FAIL,MAPPER_CUDA_ERROR_PARSING);
+  // Parse Sequence (end/2)
+  if (gem_expect_false(buffered_input_file_eob(buffered_fasta_input))) {
+    // Only one read left
+    archive_search_cache_free(archive_search_cache,*archive_search_end2);
+    *archive_search_end2 = NULL;
+  } else {
+    // Obtain a clean Archive-Search (end/2)
+    *archive_search_end2 = archive_search_cache_alloc(archive_search_cache);
+    error_code=input_fasta_parse_sequence(
+        buffered_fasta_input,archive_search_get_sequence(*archive_search_end2),
+        parameters->fastq_strictly_normalized,parameters->fastq_try_recovery);
+    gem_cond_fatal_error(error_code==INPUT_STATUS_FAIL,MAPPER_CUDA_ERROR_PARSING);
+  }
+  // OK
+  return INPUT_STATUS_OK;
 }
 /*
  * Utils
@@ -124,7 +150,7 @@ GEM_INLINE void mapper_SE_CUDA_calculate_query_dimensions(
   const bool index_complement = archive_is_indexed_complement(archive_search->archive);
   *num_patterns += (index_complement) ? 1 : 2;
   *total_pattern_length += (index_complement) ?
-      sequence_get_length(archive_search->sequence) : 2*sequence_get_length(archive_search->sequence);
+      sequence_get_length(&archive_search->sequence) : 2*sequence_get_length(&archive_search->sequence);
   *total_candidates += archive_search_get_num_potential_canditates(archive_search);
 }
 GEM_INLINE void mapper_SE_CUDA_calculate_query_dimensions_2a(
@@ -176,39 +202,19 @@ void* mapper_SE_CUDA_run_generate_candidates_uo(mapper_cuda_search_t* const mapp
 
   // FASTA/FASTQ reading loop
   while (true) {
-    // Check the end_of_block (Reload buffer if needed)
-    if (buffered_input_file_eob(buffered_fasta_input)) {
-      if (buffered_input_file_get_lines_block(buffered_fasta_input,MAPPER_CUDA_NUM_LINES)==0) break;
-    }
-    // Obtain a clean archive-search (end/1)
-    archive_search_end1 = archive_search_cache_alloc(archive_search_cache);
-    // Parse Sequence (end/1)
-    error_code_t error_code;
-    if ((error_code=input_fasta_parse_sequence(
-        buffered_fasta_input,archive_search_get_sequence(archive_search_end1),
-        parameters->fastq_strictly_normalized,parameters->fastq_try_recovery))==INPUT_STATUS_EOF) break;
-    if (error_code==INPUT_STATUS_FAIL) continue; // Skip this read & Restart
-    // Parse Sequence (end/2)
-    if (gem_expect_false(buffered_input_file_eob(buffered_fasta_input))) {
-      // Only one read left
-      archive_search_cache_free(archive_search_cache,archive_search_end2);
-      archive_search_end2 = NULL;
-    } else {
-      // Obtain a clean Archive-Search (end/2)
-      archive_search_end2 = archive_search_cache_alloc(archive_search_cache);
-      error_code_t error_code;
-      if ((error_code=input_fasta_parse_sequence(
-          buffered_fasta_input,archive_search_get_sequence(archive_search_end2),
-          parameters->fastq_strictly_normalized,parameters->fastq_try_recovery))==INPUT_STATUS_EOF) break;
-      if (error_code==INPUT_STATUS_FAIL) {
-        archive_search_cache_free(archive_search_cache,archive_search_end2);
-        archive_search_end2 = NULL;
-      }
+    // Parse Sequences (two ends)
+    const error_code_t error_code = mapper_SE_CUDA_parse_sequences(
+        parameters,archive_search_cache,buffered_fasta_input,&archive_search_end1,&archive_search_end2);
+    if (error_code==INPUT_STATUS_EOF) break;
+    // Init archive search
+    archive_search_configure(archive_search_end1,archive_search_group->mm_search_end1);
+    if (gem_expect_true(archive_search_end2!=NULL)) {
+      archive_search_configure(archive_search_end2,archive_search_group->mm_search_end2);
     }
     // Generate Candidates (Search into the archive)
-    archive_search_generate_candidates(archive_search_end1,archive_search_group->mm_search);
+    archive_search_generate_candidates(archive_search_end1);
     if (gem_expect_true(archive_search_end2!=NULL)) {
-      archive_search_generate_candidates(archive_search_end2,archive_search_group->mm_search);
+      archive_search_generate_candidates(archive_search_end2);
     }
     // Calculate query dimensions
     uint64_t num_patterns, total_pattern_length, total_candidates;
@@ -262,12 +268,14 @@ void* mapper_SE_CUDA_run_select_candidates_uo(mapper_cuda_search_t* const mapper
     // Process all archive_search from the group
     VECTOR_ITERATE_CONST(archive_search_group->archive_searches,archive_search_member,n,archive_search_member_t) {
       archive_search_t* const archive_search = archive_search_member->archive_search;
+      // Init
+      matches_configure(matches,archive_search->text_collection);
+      matches_clear(matches);
       // Select candidates
       archive_search_select_candidates(
           archive_search,archive_search_group->bpm_gpu_buffer,archive_search_member->results_buffer_offset);
       // Select matches
-      archive_select_matches(archive_search,matches,archive_search_group->mm_search);
-
+      archive_select_matches(archive_search,matches);
       // archive_search_score_matches(archive_search); // TODO
       // Output matches
       mapper_SE_output_matches(
@@ -290,14 +298,12 @@ void* mapper_SE_CUDA_run_select_candidates_uo(mapper_cuda_search_t* const mapper
  * SE-CUDA Mapper (Main RUN)
  */
 GEM_INLINE void mapper_SE_CUDA_run(
-    mapper_parameters_t* const mapper_parameters,
-    mapper_cuda_parameters_t* const mapper_cuda_parameters) {
+    mapper_parameters_t* const mapper_parameters,mapper_cuda_parameters_t* const cuda_parameters) {
   // Check CUDA-Support
   if (!bpm_gpu_support()) GEM_CUDA_NOT_SUPPORTED();
   // Setup Profiling (Add master thread)
   const uint64_t total_threads =
-      mapper_cuda_parameters->num_generating_threads +
-      mapper_cuda_parameters->num_selecting_threads;
+      cuda_parameters->num_generating_threads + cuda_parameters->num_selecting_threads;
   PROF_NEW(total_threads+1);
   // Prepare archive-search group dispatcher & cache
   archive_search_group_dispatcher_t* const search_group_dispatcher =
@@ -309,23 +315,22 @@ GEM_INLINE void mapper_SE_CUDA_run(
   g_mapper_cuda_search = mapper_cuda_search; // Set global searches for error reporting
   // Launch 'Generating Candidates' threads
   void* (*generate_candidates_thread_function)(void*) =
-      (mapper_cuda_parameters->output_file_type==SORTED_FILE) ?
+      (cuda_parameters->output_file_type==SORTED_FILE) ?
           (void* (*)(void*) ) mapper_SE_CUDA_run_generate_candidates_so :
           (void* (*)(void*) ) mapper_SE_CUDA_run_generate_candidates_so;
   void* (*select_candidates_thread_function)(void*) =
-      (mapper_cuda_parameters->output_file_type==SORTED_FILE) ?
+      (cuda_parameters->output_file_type==SORTED_FILE) ?
           (void* (*)(void*) ) mapper_SE_CUDA_run_select_candidates_uo :
           (void* (*)(void*) ) mapper_SE_CUDA_run_select_candidates_uo;
   uint64_t i = 0;
   archive_search_group_dispatcher_register_generating(
-      search_group_dispatcher,mapper_cuda_parameters->num_generating_threads);
-  for (;i<mapper_cuda_parameters->num_generating_threads;++i) {
+      search_group_dispatcher,cuda_parameters->num_generating_threads);
+  for (;i<cuda_parameters->num_generating_threads;++i) {
     // Setup Thread
     mapper_cuda_search[i].thread_id = i;
     mapper_cuda_search[i].thread_data = mm_alloc(pthread_t);
     mapper_cuda_search[i].thread_type = mapper_cuda_thread_generate_candidates;
     mapper_cuda_search[i].mapper_parameters = mapper_parameters;
-    mapper_cuda_search[i].mapper_cuda_parameters = mapper_cuda_parameters;
     mapper_cuda_search[i].archive_search_cache = archive_search_cache;
     mapper_cuda_search[i].search_group_dispatcher = search_group_dispatcher;
     // Launch thread
@@ -334,13 +339,12 @@ GEM_INLINE void mapper_SE_CUDA_run(
             generate_candidates_thread_function,(void* )(mapper_cuda_search + i)),SYS_THREAD_CREATE);
   }
   // Launch 'Selecting Candidates' threads
-  for (;i<mapper_cuda_parameters->num_selecting_threads;++i) {
+  for (;i<cuda_parameters->num_selecting_threads;++i) {
     // Setup Thread
     mapper_cuda_search[i].thread_id = i;
     mapper_cuda_search[i].thread_data = mm_alloc(pthread_t);
     mapper_cuda_search[i].thread_type = mapper_cuda_thread_select_candidates;
     mapper_cuda_search[i].mapper_parameters = mapper_parameters;
-    mapper_cuda_search[i].mapper_cuda_parameters = mapper_cuda_parameters;
     mapper_cuda_search[i].archive_search_cache = archive_search_cache;
     mapper_cuda_search[i].search_group_dispatcher = search_group_dispatcher;
     // Launch thread

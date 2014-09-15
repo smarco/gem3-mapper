@@ -19,15 +19,17 @@ GEM_INLINE archive_search_t* archive_search_new(
   // Archive
   archive_search->archive = archive;
   // Sequence
-  archive_search->sequence = sequence_new(); // Input
-  archive_search->rc_sequence = sequence_new(); // Generated
+  sequence_init(&archive_search->sequence);
+  sequence_init(&archive_search->rc_sequence);
   // Approximate Search
   archive_search->search_actual_parameters.search_parameters = search_parameters;
   archive_search->select_parameters = select_parameters;
-  archive_search->forward_search_state = approximate_search_new(
+  approximate_search_init(
+      &archive_search->forward_search_state,
       archive->locator,archive->graph,archive->enc_text,archive->fm_index,
       &archive_search->search_actual_parameters);
-  archive_search->reverse_search_state = approximate_search_new(
+  approximate_search_init(
+      &archive_search->reverse_search_state,
       archive->locator,archive->graph,archive->enc_text,archive->fm_index,
       &archive_search->search_actual_parameters);
   // Archive search control (Flow control) [DEFAULTS]
@@ -36,18 +38,58 @@ GEM_INLINE archive_search_t* archive_search_new(
   // Return
   return archive_search;
 }
-GEM_INLINE void archive_search_clear(archive_search_t* const archive_search) {
-  // Clear F/R search state
-  approximate_search_clear(archive_search->forward_search_state);
-  approximate_search_clear(archive_search->reverse_search_state);
+GEM_INLINE void archive_search_configure(
+    archive_search_t* const archive_search,mm_search_t* const mm_search) {
+  // Text-Collection
+  archive_search->text_collection = &mm_search->text_collection;
+  // Clear F/R search states
+  approximate_search_configure(
+      &archive_search->forward_search_state,&mm_search->text_collection,
+      &mm_search->filtering_candidates_forward,&mm_search->interval_set,
+      mm_search->mm_stack);
+  approximate_search_configure(
+      &archive_search->reverse_search_state,&mm_search->text_collection,
+      &mm_search->filtering_candidates_reverse,&mm_search->interval_set,
+      mm_search->mm_stack);
+  // MM
+  archive_search->mm_stack = mm_search->mm_stack;
+}
+GEM_INLINE void archive_search_prepare_sequence(archive_search_t* const archive_search) {
+  // Check the index characteristics & generate reverse-complement (if needed)
+  if (archive_search->archive->indexed_complement) {
+    archive_search->search_reverse = false;
+  } else {
+    if (archive_search->archive->filter_type == Iupac_colorspace_dna) {
+      sequence_generate_reverse_complement(&archive_search->sequence,&archive_search->rc_sequence);
+    } else {
+      sequence_generate_reverse(&archive_search->sequence,&archive_search->rc_sequence);
+    }
+    archive_search->search_reverse = !sequence_equals(&archive_search->sequence,&archive_search->rc_sequence);
+  }
+  // Generate the pattern(s)
+  approximate_search_prepare_pattern(
+      &archive_search->forward_search_state,&archive_search->sequence);
+  if (archive_search->search_reverse) {
+    approximate_search_prepare_pattern(
+        &archive_search->reverse_search_state,&archive_search->rc_sequence);
+  }
+}
+GEM_INLINE void archive_search_reset(archive_search_t* const archive_search,const uint64_t sequence_length) {
+  // Instantiate parameters actual-values
+  approximate_search_instantiate_values(&archive_search->search_actual_parameters,sequence_length);
+  // Clear F/R search states
+  approximate_search_reset(&archive_search->forward_search_state);
+  approximate_search_reset(&archive_search->reverse_search_state);
+  // Prepare for sequence
+  archive_search_prepare_sequence(archive_search);
 }
 GEM_INLINE void archive_search_delete(archive_search_t* const archive_search) {
   // Delete Sequence
-  sequence_delete(archive_search->sequence);
-  sequence_delete(archive_search->rc_sequence);
-  // Delete Approximate Search
-  approximate_search_delete(archive_search->forward_search_state);
-  approximate_search_delete(archive_search->reverse_search_state);
+  sequence_destroy(&archive_search->sequence);
+  sequence_destroy(&archive_search->rc_sequence);
+  // Destroy search states
+  approximate_search_destroy(&archive_search->forward_search_state);
+  approximate_search_destroy(&archive_search->reverse_search_state);
   // Free handler
   mm_free(archive_search);
 }
@@ -55,55 +97,30 @@ GEM_INLINE void archive_search_delete(archive_search_t* const archive_search) {
  * Archive Search [Accessors]
  */
 GEM_INLINE sequence_t* archive_search_get_sequence(const archive_search_t* const archive_search) {
-  return archive_search->sequence;
+  return (sequence_t*)&archive_search->sequence;
 }
 GEM_INLINE uint64_t archive_search_get_num_potential_canditates(const archive_search_t* const archive_search) {
   if (archive_search->archive->indexed_complement) {
-    return archive_search->forward_search_state->num_potential_candidates;
+    return archive_search->forward_search_state.num_potential_candidates;
   } else {
-    return archive_search->forward_search_state->num_potential_candidates +
-        archive_search->reverse_search_state->num_potential_candidates;
+    return archive_search->forward_search_state.num_potential_candidates +
+           archive_search->reverse_search_state.num_potential_candidates;
   }
 }
 /*
  * SingleEnd Indexed Search (SE Online Approximate String Search)
  */
-// [Initialize]
-GEM_INLINE void archive_search_prepare_sequence(archive_search_t* const archive_search,mm_stack_t* const mm_stack) {
-  // Check the index characteristics & generate reverse-complement (if needed)
-  if (archive_search->archive->indexed_complement) {
-    archive_search->search_reverse = false;
-  } else {
-    if (archive_search->archive->filter_type == Iupac_colorspace_dna) {
-      sequence_generate_reverse_complement(archive_search->sequence,archive_search->rc_sequence);
-    } else {
-      sequence_generate_reverse(archive_search->sequence,archive_search->rc_sequence);
-    }
-    archive_search->search_reverse =
-        !(string_equals(archive_search->sequence->read,archive_search->rc_sequence->read));
-  }
-  // Generate the pattern(s)
-  approximate_search_prepare_pattern(archive_search->forward_search_state,archive_search->sequence,mm_stack);
-  if (archive_search->search_reverse) {
-    approximate_search_prepare_pattern(archive_search->reverse_search_state,archive_search->rc_sequence,mm_stack);
-  }
-}
-GEM_INLINE void archive_search_single_end(
-    archive_search_t* const archive_search,matches_t* const matches,mm_search_t* const mm_search) {
+GEM_INLINE void archive_search_single_end(archive_search_t* const archive_search,matches_t* const matches) {
   ARCHIVE_SEARCH_CHECK(archive_search);
-  // Prepare pattern(s) & instantiate Search-Parameters values
-  approximate_search_instantiate_values(
-      &archive_search->search_actual_parameters,sequence_get_length(archive_search->sequence));
-  archive_search_prepare_sequence(archive_search,mm_search->mm_stack);
-  // Clean Matches
-  archive_search_clear(archive_search);
+  // Reset initial values (Prepare pattern(s), instantiate parameters values, ...)
+  archive_search_reset(archive_search,sequence_get_length(&archive_search->sequence));
   // Search the pattern(s)
-  approximate_search_t* const forward_asearch = archive_search->forward_search_state;
+  approximate_search_t* const forward_asearch = &archive_search->forward_search_state;
   if (!archive_search->search_reverse) {
     // Compute the full search
     forward_asearch->stop_search_stage = asearch_end; // Don't stop until search is done
     forward_asearch->search_strand = Forward;
-    approximate_search(forward_asearch,matches,mm_search);
+    approximate_search(forward_asearch,matches);
   } else {
     // Configure search stage to stop at
     forward_asearch->stop_search_stage =
@@ -111,20 +128,20 @@ GEM_INLINE void archive_search_single_end(
             && archive_search->probe_strand) ? asearch_neighborhood : asearch_end;
     // Run the search (FORWARD)
     forward_asearch->search_strand = Forward; // Configure forward search
-    approximate_search(forward_asearch,matches,mm_search);
+    approximate_search(forward_asearch,matches);
     // Check the number of matches & keep searching
     if (!forward_asearch->max_matches_reached) {
       // Keep on searching
-      approximate_search_t* const reverse_asearch = archive_search->reverse_search_state;
+      approximate_search_t* const reverse_asearch = &archive_search->reverse_search_state;
       reverse_asearch->stop_search_stage = asearch_end; // Force a full search
       // Run the search (REVERSE)
       reverse_asearch->search_strand = Reverse; // Configure reverse search
-      approximate_search(reverse_asearch,matches,mm_search);
+      approximate_search(reverse_asearch,matches);
       // Resume forward search (if not completed before)
       if (forward_asearch->current_search_stage != asearch_end && !forward_asearch->max_matches_reached) {
         forward_asearch->stop_search_stage = asearch_end;
         forward_asearch->search_strand = Forward; // Configure forward search
-        approximate_search(forward_asearch,matches,mm_search);
+        approximate_search(forward_asearch,matches);
       }
     }
   }

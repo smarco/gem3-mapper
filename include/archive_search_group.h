@@ -44,7 +44,8 @@ typedef struct {
   vector_t* archive_searches;                        // Vector of search members (archive_search_member_t)
   vector_t* archive_searches_attr;                   // TODO Vector of generic attr of the members (E.g related buffered_ouput)
   /* MM */
-  mm_search_t* mm_search;                            // Memory Managed Search
+  mm_search_t* mm_search_end1;                       // Memory Managed Search
+  mm_search_t* mm_search_end2;                       // Memory Managed Search
 } archive_search_group_t;
 typedef struct {
   /* Dispatcher State */
@@ -95,8 +96,7 @@ GEM_INLINE void archive_search_group_dispatcher_return_selecting(
 /*
  * Step-wise SE-Search
  */
-GEM_INLINE void archive_search_generate_candidates(
-    archive_search_t* const archive_search,mm_search_t* const mm_search);
+GEM_INLINE void archive_search_generate_candidates(archive_search_t* const archive_search);
 GEM_INLINE void archive_search_copy_candidates(
     archive_search_t* const archive_search,bpm_gpu_buffer_t* const bpm_gpu_buffer);
 GEM_INLINE void archive_search_select_candidates(

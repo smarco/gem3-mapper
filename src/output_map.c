@@ -14,18 +14,18 @@
 #define OUTPUT_MAP_COUNTERS_MIN_COMPACT_ZEROS 5
 
 GEM_INLINE void output_map_print_tag(
-    buffered_output_file_t* const buffered_output_file,const sequence_t* const seq_read) {
+    buffered_output_file_t* const buffered_output_file,sequence_t* const seq_read) {
   // Print Tag + End-Info
-  const uint64_t tag_length = string_get_length(seq_read->tag);
+  const uint64_t tag_length = string_get_length(&seq_read->tag);
   switch (sequence_get_end_info(seq_read)) {
     case SINGLE_END:
-      bofprintf_fixed(buffered_output_file,tag_length+1,"%"PRIs,PRIs_content(seq_read->tag));
+      bofprintf_fixed(buffered_output_file,tag_length+1,"%"PRIs,PRIs_content(&seq_read->tag));
       break;
     case PAIRED_END1:
-      bofprintf_fixed(buffered_output_file,tag_length+3,"%"PRIs"/1",PRIs_content(seq_read->tag));
+      bofprintf_fixed(buffered_output_file,tag_length+3,"%"PRIs"/1",PRIs_content(&seq_read->tag));
       break;
     case PAIRED_END2:
-      bofprintf_fixed(buffered_output_file,tag_length+3,"%"PRIs"/2",PRIs_content(seq_read->tag));
+      bofprintf_fixed(buffered_output_file,tag_length+3,"%"PRIs"/2",PRIs_content(&seq_read->tag));
       break;
     default:
       GEM_INVALID_CASE();
@@ -33,42 +33,48 @@ GEM_INLINE void output_map_print_tag(
   }
   // Print CASAVA Tag (if present)
   if (sequence_has_casava_tag(seq_read)) {
-    const uint64_t casava_tag_length = string_get_length(seq_read->attributes.casava_tag);
+    const uint64_t casava_tag_length = string_get_length(&seq_read->attributes.casava_tag);
     bofprintf_fixed(buffered_output_file,casava_tag_length+1,
-        " %"PRIs,casava_tag_length,string_get_buffer(seq_read->attributes.casava_tag));
+        " %"PRIs,casava_tag_length,string_get_buffer(&seq_read->attributes.casava_tag));
   }
   // Print Extra Tag (if present)
   if (sequence_has_extra_tag(seq_read)) {
-    const uint64_t extra_tag_length = string_get_length(seq_read->attributes.extra_tag);
+    const uint64_t extra_tag_length = string_get_length(&seq_read->attributes.extra_tag);
     bofprintf_fixed(buffered_output_file,extra_tag_length+1,
-        " %"PRIs,extra_tag_length,string_get_buffer(seq_read->attributes.extra_tag));
+        " %"PRIs,extra_tag_length,string_get_buffer(&seq_read->attributes.extra_tag));
   }
 }
 GEM_INLINE void output_map_print_read__qualities(
-    buffered_output_file_t* const buffered_output_file,const sequence_t* const seq_read) {
+    buffered_output_file_t* const buffered_output_file,sequence_t* const seq_read) {
   // Select proper case
-  const uint64_t read_length = string_get_length(seq_read->read);
+  const uint64_t read_length = string_get_length(&seq_read->read);
   if (sequence_has_qualities(seq_read)) {
-    const uint64_t qualities_length = string_get_length(seq_read->qualities);
+    const uint64_t qualities_length = string_get_length(&seq_read->qualities);
     bofprintf_fixed(buffered_output_file,read_length+qualities_length+2,"\t%"PRIs"\t%"PRIs,
-        read_length,string_get_buffer(seq_read->read),
-        qualities_length,string_get_buffer(seq_read->qualities));
+        read_length,string_get_buffer(&seq_read->read),
+        qualities_length,string_get_buffer(&seq_read->qualities));
   } else {
     bofprintf_fixed(buffered_output_file,read_length+1,"\t%"PRIs,
-        read_length,string_get_buffer(seq_read->read));
+        read_length,string_get_buffer(&seq_read->read));
   }
 }
 GEM_INLINE void output_map_print_counters(
     buffered_output_file_t* const buffered_output_file,matches_t* const matches) {
-  const uint64_t* counters = vector_get_mem(matches->counters,uint64_t);
   const uint64_t num_counters = vector_get_used(matches->counters);
+  // Zero counters
+  if (gem_expect_false(num_counters==0)) { // TODO Simple -> Use MCS to add zeros -> Or add them at search expanding counters !!!
+    bofprintf_fixed(buffered_output_file,2,"\t0");
+    return;
+  }
+  // Print counters
   uint64_t i = 0;
+  const uint64_t* counters = vector_get_mem(matches->counters,uint64_t);
   while (i < num_counters) {
     // Check zero counter
     if (*counters==0) {
       // Check ahead number of zeros
       uint64_t j = 1;
-      while (i+j < num_counters && counters[j]==0) ++j;
+      while (i+j < num_counters && counters[i+j]==0) ++j;
       // Check if zero-counters must be compacted
       if (j >= OUTPUT_MAP_COUNTERS_MIN_COMPACT_ZEROS) {
         bofprintf_fixed(buffered_output_file,INT_MAX_LENGTH+3,"%c0x%lu",(i > 0)?':':'\t',j);
@@ -80,10 +86,12 @@ GEM_INLINE void output_map_print_counters(
         }
       }
       i+=j; // Next (+j)
+      counters+=j;
     } else {
       // Print Counter
       bofprintf_fixed(buffered_output_file,INT_MAX_LENGTH+1,"%c%lu",(i > 0)?':':'\t',*counters);
       i++; // Next (+1)
+      ++counters;
     }
   }
 }
@@ -125,7 +133,7 @@ GEM_INLINE void output_map_print_match(
       (match_position > 0) ? ',' : '\t',
       match_trace->sequence_name,
       (match_trace->strand==Forward) ? '+' : '-',
-      match_trace->position);
+      match_trace->position+1 /* Base-1 */);
   // Print CIGAR
   output_map_print_cigar(buffered_output_file,
       match_trace_get_cigar_array(matches,match_trace),
@@ -133,7 +141,7 @@ GEM_INLINE void output_map_print_match(
 }
 GEM_INLINE void output_map_single_end_matches(
     buffered_output_file_t* const buffered_output_file,
-    const sequence_t* const seq_read,matches_t* const matches) {
+    sequence_t* const seq_read,matches_t* const matches) {
   BUFFERED_OUTPUT_FILE_CHECK(buffered_output_file);
   SEQUENCE_CHECK(seq_read);
   MATCHES_CHECK(matches);
@@ -144,10 +152,14 @@ GEM_INLINE void output_map_single_end_matches(
   // Print COUNTERS
   output_map_print_counters(buffered_output_file,matches);
   // Print MATCHES (Traverse all matches (Position-matches))
-  VECTOR_ITERATE(matches->global_matches,match_trace,match_position,match_trace_t) {
-    // Print match
-    output_map_print_match(buffered_output_file,matches,match_position,match_trace);
+  if (gem_expect_false(vector_get_used(matches->global_matches)==0)) {
+    bofprintf_fixed(buffered_output_file,3,"\t-\n");
+  } else {
+    VECTOR_ITERATE(matches->global_matches,match_trace,match_position,match_trace_t) {
+      // Print match
+      output_map_print_match(buffered_output_file,matches,match_position,match_trace);
+    }
+    // Next
+    bofprintf_fixed(buffered_output_file,1,"\n");
   }
-  // Next
-  bofprintf_fixed(buffered_output_file,1,"\n");
 }

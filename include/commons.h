@@ -268,6 +268,9 @@ GEM_INLINE void fprintf_uint64_footprint(FILE* const stream,const uint64_t word)
   #define PREFETCH(ADDR) __builtin_prefetch((ADDR),0,0)
 #endif
 
-
+/*
+ * Processor
+ */
+GEM_INLINE uint64_t proc_get_num_processors();
 
 #endif /* COMMONS_H_ */

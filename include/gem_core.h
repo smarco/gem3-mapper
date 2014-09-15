@@ -54,7 +54,6 @@
  * GEM Runtime
  */
 GEM_INLINE void gem_runtime_init(const uint64_t max_memory,char* const tmp_folder,report_function_t report_function);
-
-GEM_INLINE void gem_runtime_delete();
+GEM_INLINE void gem_runtime_destroy();
 
 #endif /* GEM_CORE_H_ */

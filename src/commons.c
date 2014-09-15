@@ -116,4 +116,10 @@ GEM_INLINE void fprintf_uint64_footprint(FILE* const stream,const uint64_t word)
       CHAR_TO_PRINTABLE(components[0]),CHAR_TO_PRINTABLE(components[1]),
       CHAR_TO_PRINTABLE(components[2]),CHAR_TO_PRINTABLE(components[3]));
 }
+/*
+ * Processor
+ */
+GEM_INLINE uint64_t proc_get_num_processors() {
+  return sysconf(_SC_NPROCESSORS_ONLN);
+}
 

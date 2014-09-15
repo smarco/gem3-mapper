@@ -62,16 +62,16 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
    */
   // Mapping strategy
   search_parameters->mapping_mode = mapping_adaptive_filtering;
-  search_parameters->fast_mapping_degree = 0;
+  search_parameters->mapping_degree = 0;
   // Qualities
   search_parameters->quality_model = quality_model_type_gem;
   search_parameters->quality_format = qualities_ignore;
   search_parameters->quality_threshold = 26;
   // Mismatch/Indels Parameters
   search_parameters->max_search_error = 0.04;
-  search_parameters->max_filtering_error = 0.2;
+  search_parameters->max_filtering_error = 0.20;
   search_parameters->complete_strata_after_best = 0.0;
-  search_parameters->min_matching_length = 0.2;
+  search_parameters->min_matching_length = 0.20;
   // Matches search
   search_parameters->max_search_matches = ALL;
   // Replacements
@@ -102,7 +102,7 @@ GEM_INLINE void approximate_search_configure_mapping_strategy(
     search_parameters_t* const search_parameters,
     const mapping_mode_t mapping_mode,const float mapping_degree) {
   search_parameters->mapping_mode = mapping_mode;
-  search_parameters->fast_mapping_degree = mapping_degree;
+  search_parameters->mapping_degree = mapping_degree;
 }
 GEM_INLINE void approximate_search_configure_quality_model(
     search_parameters_t* const search_parameters,
@@ -122,7 +122,7 @@ GEM_INLINE void approximate_search_configure_error_model(
 }
 GEM_INLINE void approximate_search_configure_replacements(
     search_parameters_t* const search_parameters,
-    char* const mismatch_alphabet,const uint64_t mismatch_alphabet_length) {
+    const char* const mismatch_alphabet,const uint64_t mismatch_alphabet_length) {
   // Reset
   approximate_search_initialize_replacements(search_parameters);
   // Filter replacements
@@ -146,7 +146,7 @@ GEM_INLINE void approximate_search_configure_matches(
 GEM_INLINE void approximate_search_instantiate_values(
     search_actual_parameters_t* const search_actual_parameters,const uint64_t pattern_length) {
   const search_parameters_t* const search_parameters = search_actual_parameters->search_parameters;
-  search_actual_parameters->fast_mapping_degree_nominal = integer_proportion(search_parameters->fast_mapping_degree,pattern_length);
+  search_actual_parameters->fast_mapping_degree_nominal = integer_proportion(search_parameters->mapping_degree,pattern_length);
   search_actual_parameters->max_search_error_nominal = integer_proportion(search_parameters->max_search_error,pattern_length);
   search_actual_parameters->max_filtering_error_nominal = integer_proportion(search_parameters->max_filtering_error,pattern_length);
   search_actual_parameters->complete_strata_after_best_nominal = integer_proportion(search_parameters->complete_strata_after_best,pattern_length);

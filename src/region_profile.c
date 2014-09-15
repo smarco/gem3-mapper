@@ -108,8 +108,8 @@ GEM_INLINE void region_profile_generate_adaptive(
     region_profile_t* const region_profile,
     fm_index_t* const fm_index,pattern_t* const pattern,const bool* const allowed_enc,
     const uint64_t rp_region_th,const uint64_t rp_max_steps,
-    const uint64_t rp_dec_factor,const uint64_t rp_region_type_th,const uint64_t max_regions) {
-  // FIXME: version that forces to have at least 1 candidate
+    const uint64_t rp_dec_factor,const uint64_t rp_region_type_th,
+    const uint64_t max_regions,const bool allow_zero_regions) {
   PROF_START_TIMER(GP_REGION_PROFILE_ADAPTIVE);
   filtering_region_t* const regions = region_profile->filtering_region;
   uint64_t num_regions = 0, num_standard_regions = 0, last_cut = 0;
@@ -138,7 +138,7 @@ GEM_INLINE void region_profile_generate_adaptive(
 
     // Rank query
     const uint8_t enc_char = key[key_len];
-    if (rank_mquery_is_exhausted(&rank_mquery)
+    if (!rank_mquery_is_exhausted(&rank_mquery)
         /* && lookupLevel > MIN_LOOKUP_FETCH(properLength/4) TODO */) {
       rank_mquery_add_char(rank_mtable,&rank_mquery,enc_char);
     } else {
@@ -150,27 +150,39 @@ GEM_INLINE void region_profile_generate_adaptive(
     const uint64_t num_candidates = hi-lo;
     if (gem_expect_true(num_candidates > rp_region_th)) continue;
 
-    // We have candidates // FIXME FIXME FIXME FIXME FIXME It's of no interest to have zero candidates
+    // Check number of candidates (any or none)
     if (num_candidates > 0) {
-      if (last_cut == 0) {
+      // We have candidate/s
+      if (gem_expect_false(key_len == 0)) {
+        // End-of-read
+        REGION_CLOSE(key_len,lo,hi);
+        REGION_RESTART(key_len);
+      } else if (last_cut == 0) {
+        // First Cut-Point
         REGION_SAVE_CUT_POINT();
-        expected_count = num_candidates; max_steps = rp_max_steps;
+        expected_count = num_candidates;
+        max_steps = rp_max_steps;
       } else {
+        // Check Cut-Point progress
         expected_count /= rp_dec_factor;
-        if (num_candidates <= expected_count || num_candidates<=rp_region_type_th) { // Store cut point
-          REGION_SAVE_CUT_POINT();
+        if (num_candidates <= expected_count || num_candidates<=rp_region_type_th) {
+          REGION_SAVE_CUT_POINT(); // Refresh cut point
         }
+        // Check maximum steps allowed for optimize region
         if (--max_steps == 0) {
           key_len = last_cut;
           REGION_CLOSE(key_len,lo_cut,hi_cut);
           REGION_RESTART(key_len);
-        } else if (key_len == 0) {
-          REGION_CLOSE(key_len, lo, hi);
-          REGION_RESTART(key_len);
         }
       }
+    } else if (gem_expect_false(allow_zero_regions || last_cut == 0)) {
+      // No candidates and/or no cut-point (we allow zero-regions)
+      REGION_CLOSE(key_len,lo,hi);
+      REGION_RESTART(key_len);
     } else {
-      REGION_CLOSE(key_len, lo, hi);
+      // We don't allow zero-regions (restore last cut-point)
+      key_len = last_cut;
+      REGION_CLOSE(key_len,lo_cut,hi_cut);
       REGION_RESTART(key_len);
     }
   }

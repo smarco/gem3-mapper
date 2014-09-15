@@ -17,6 +17,7 @@
 #include "archive.h"
 #include "archive_select_parameters.h"
 #include "approximate_search.h"
+#include "mm_search.h"
 
 /*
  * Checker
@@ -32,16 +33,20 @@ typedef struct {
   /* Archive */
   archive_t* archive;      // Archive
   /* Sequence */
-  sequence_t* sequence;    // Input
-  sequence_t* rc_sequence; // Generated
+  sequence_t sequence;    // Input
+  sequence_t rc_sequence; // Generated
   /* Parameters */
   bool search_reverse;     // Flow control
   bool probe_strand;       // Flow control
   search_actual_parameters_t search_actual_parameters; // Search parameters (evaluated to read-length)
   select_parameters_t* select_parameters;              // Select parameters
   /* Approximate Search */
-  approximate_search_t* forward_search_state; // Forward Search State
-  approximate_search_t* reverse_search_state; // Reverse Search State
+  approximate_search_t forward_search_state; // Forward Search State
+  approximate_search_t reverse_search_state; // Reverse Search State
+  /* Text-Collection */
+  text_collection_t* text_collection;
+  /* MM */
+  mm_stack_t* mm_stack;
 } archive_search_t;
 
 /*
@@ -50,7 +55,9 @@ typedef struct {
 GEM_INLINE archive_search_t* archive_search_new(
     archive_t* const archive,search_parameters_t* const search_parameters,
     select_parameters_t* const select_parameters);
-GEM_INLINE void archive_search_clear(archive_search_t* const archive_search);
+GEM_INLINE void archive_search_configure(
+    archive_search_t* const archive_search,mm_search_t* const mm_search);
+GEM_INLINE void archive_search_reset(archive_search_t* const archive_search,const uint64_t sequence_length);
 GEM_INLINE void archive_search_delete(archive_search_t* const archive_search);
 // [Accessors]
 GEM_INLINE sequence_t* archive_search_get_sequence(const archive_search_t* const archive_search);
@@ -59,10 +66,7 @@ GEM_INLINE uint64_t archive_search_get_num_potential_canditates(const archive_se
 /*
  * SingleEnd Indexed Search (SE Online Approximate String Search)
  */
-GEM_INLINE void archive_search_prepare_sequence(
-    archive_search_t* const archive_search,mm_stack_t* const mm_stack);
-GEM_INLINE void archive_search_single_end(
-    archive_search_t* const archive_search,matches_t* const matches,mm_search_t* const mm_search);
+GEM_INLINE void archive_search_single_end(archive_search_t* const archive_search,matches_t* const matches);
 
 ///*
 // * PE Pairing (based on SE matches)

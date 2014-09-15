@@ -34,10 +34,10 @@ FOLDER_TEST=$(ROOT_PATH)/test
 FOLDER_TOOLS=$(ROOT_PATH)/tools
 
 # Configure flags
-HAVE_ZLIB = 1
-HAVE_BZLIB = 1
-HAVE_OPENMP = 1
-HAVE_CUDA = 1
+HAVE_ZLIB = @HAVE_ZLIB@
+HAVE_BZLIB = @HAVE_BZLIB@
+HAVE_OPENMP = @HAVE_OPENMP@
+HAVE_CUDA = @HAVE_CUDA@
 
 # OpenMP Lib
 ifeq ($(HAVE_OPENMP),1)
@@ -57,7 +57,7 @@ endif
 # CUDA Lib
 ifeq ($(HAVE_CUDA),1)
   DEF_CUDA=-DHAVE_CUDA
-  CUDA_PATH=/usr/local/cuda
+  CUDA_PATH=@CUDA_PATH@
   NVCC=$(CUDA_PATH)/bin/nvcc
   LIBS_CUDA=-L$(CUDA_PATH)/lib64 -lcuda -lcudart
   # CUDA_LIBRARY_FLAGS=-I$(CUDA_PATH)/include

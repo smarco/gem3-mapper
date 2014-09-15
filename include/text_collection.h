@@ -42,9 +42,9 @@ typedef struct {
 /*
  * Setup
  */
-GEM_INLINE text_collection_t* text_collection_new();
+GEM_INLINE void text_collection_init(text_collection_t* const text_collection);
 GEM_INLINE void text_collection_clear(text_collection_t* const text_collection);
-GEM_INLINE void text_collection_delete(text_collection_t* const text_collection);
+GEM_INLINE void text_collection_destroy(text_collection_t* const text_collection);
 
 /*
  * Accessors

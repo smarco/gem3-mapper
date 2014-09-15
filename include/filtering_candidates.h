@@ -37,9 +37,9 @@ typedef struct {
   vector_t* regions_buffer;                   // Regions Buffer (region_t)
 } filtering_candidates_t;
 
-GEM_INLINE void filtering_candidates_new(filtering_candidates_t* const filtering_candidates);
+GEM_INLINE void filtering_candidates_init(filtering_candidates_t* const filtering_candidates);
 GEM_INLINE void filtering_candidates_clear(filtering_candidates_t* const filtering_candidates);
-GEM_INLINE void filtering_candidates_delete(filtering_candidates_t* const filtering_candidates);
+GEM_INLINE void filtering_candidates_destroy(filtering_candidates_t* const filtering_candidates);
 
 GEM_INLINE void filtering_candidates_set_max_candidates_accepted(
     filtering_candidates_t* const filtering_candidates,const uint64_t max_candidates_accepted);

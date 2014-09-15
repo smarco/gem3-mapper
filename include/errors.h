@@ -103,10 +103,12 @@ void gem_perror();
  */
 #ifdef GEM_DEBUG
   #define gem_fatal_check(condition,gem_error_name,args...) gem_cond_fatal_error(condition,gem_error_name,##args)
+  #define gem_fatal_check_msg(condition,error_msg,args...) gem_cond_fatal_error_msg(condition,error_msg,##args)
   #define gem_check(condition,gem_error_name,args...) gem_cond_error(condition,gem_error_name,##args)
   #define gem_check_block(condition) if (condition)
 #else
   #define gem_fatal_check(condition,gem_error_name,args...)
+  #define gem_fatal_check_msg(condition,error_msg,args...)
   #define gem_check(condition,gem_error_name,args...)
   #define gem_check_block(condition) if (0)
 #endif

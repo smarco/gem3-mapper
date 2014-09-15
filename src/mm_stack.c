@@ -140,11 +140,13 @@ GEM_INLINE void mm_stack_free(mm_stack_t* const mm_stack) {
   // Clear first Segment
   mm_stack_segment_clear(mm_stack,vector_get_elm(mm_stack->segments,0,mm_stack_segment_t));
   // Reap non-resident segments
-  mm_slab_lock(mm_stack->mm_slab);
-  VECTOR_ITERATE_OFFSET(mm_stack->segments,stack_segment,position,1,mm_stack_segment_t) {
-    mm_slab_put(mm_stack->mm_slab,stack_segment->slab_unit);
+  if (vector_get_used(mm_stack->segments) > 1) {
+    mm_slab_lock(mm_stack->mm_slab);
+    VECTOR_ITERATE_OFFSET(mm_stack->segments,stack_segment,position,1,mm_stack_segment_t) {
+      mm_slab_put(mm_stack->mm_slab,stack_segment->slab_unit);
+    }
+    mm_slab_unlock(mm_stack->mm_slab);
   }
-  mm_slab_unlock(mm_stack->mm_slab);
   vector_set_used(mm_stack->segments,1); // Set used to 1
   mm_stack->current_segment = 0; // Set current segment
 }

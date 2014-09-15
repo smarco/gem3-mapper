@@ -16,7 +16,7 @@ GEM_INLINE void gem_runtime_init(const uint64_t max_memory,char* const tmp_folde
   gem_handle_error_signals();
   // Register Master-Thread
   gem_thread_register_id(0);
-  // Configure Memory Limits // TODO
+  // Configure Memory Limits // TODO Configure Memory Limits
   if (max_memory==0) {
     // f(mm_get_available_mem();
   } else {
@@ -27,7 +27,7 @@ GEM_INLINE void gem_runtime_init(const uint64_t max_memory,char* const tmp_folde
   // Configure report function
   if (report_function!=NULL) gem_error_set_report_function(report_function);
 }
-GEM_INLINE void gem_runtime_delete() {
+GEM_INLINE void gem_runtime_destroy() {
   // Delete Memory-Pool
   mm_pool_delete();
 }

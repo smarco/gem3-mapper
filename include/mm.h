@@ -37,20 +37,18 @@
  * Memory Alignment Utils
  ******************************************************************************/
 // Check Memory Alignment
-#define MM_MEM_ALIGNED_MASK_16b  mm_mem_alignment_bits_mask[0]
-#define MM_MEM_ALIGNED_MASK_32b  mm_mem_alignment_bits_mask[1]
-#define MM_MEM_ALIGNED_MASK_64b  mm_mem_alignment_bits_mask[2]
-#define MM_MEM_ALIGNED_MASK_128b mm_mem_alignment_bits_mask[3]
-#define MM_MEM_ALIGNED_MASK_256b mm_mem_alignment_bits_mask[4]
-#define MM_MEM_ALIGNED_MASK_512b mm_mem_alignment_bits_mask[5]
-#define MM_MEM_ALIGNED_MASK_1KB  mm_mem_alignment_bits_mask[6]
-#define MM_MEM_ALIGNED_MASK_2KB  mm_mem_alignment_bits_mask[7]
-#define MM_MEM_ALIGNED_MASK_4KB  mm_mem_alignment_bits_mask[8]
-#define MM_MEM_ALIGNED_MASK_8KB  mm_mem_alignment_bits_mask[9]
-#define MM_MEM_ALIGNED_MASK_16KB mm_mem_alignment_bits_mask[10]
-#define MM_MEM_ALIGNED_MASK_32KB mm_mem_alignment_bits_mask[11]
-#define MM_MEM_ALIGNED_MASK_2MB  mm_mem_alignment_bits_mask[12]
-#define MM_MEM_ALIGNED_MASK_4MB  mm_mem_alignment_bits_mask[13]
+#define MM_MEM_ALIGNED_MASK_16b   mm_mem_alignment_bits_mask[0]
+#define MM_MEM_ALIGNED_MASK_32b   mm_mem_alignment_bits_mask[1]
+#define MM_MEM_ALIGNED_MASK_64b   mm_mem_alignment_bits_mask[2]
+#define MM_MEM_ALIGNED_MASK_128b  mm_mem_alignment_bits_mask[3]
+#define MM_MEM_ALIGNED_MASK_256b  mm_mem_alignment_bits_mask[4]
+#define MM_MEM_ALIGNED_MASK_512b  mm_mem_alignment_bits_mask[5]
+#define MM_MEM_ALIGNED_MASK_1024b mm_mem_alignment_bits_mask[6]
+/* (...) */
+#define MM_MEM_ALIGNED_MASK_1KB   mm_mem_alignment_bits_mask[9]
+#define MM_MEM_ALIGNED_MASK_2KB   mm_mem_alignment_bits_mask[10]
+#define MM_MEM_ALIGNED_MASK_4KB   mm_mem_alignment_bits_mask[11]
+#define MM_MEM_ALIGNED_MASK_2MB   mm_mem_alignment_bits_mask[20]
 // Check Memory Alignment Bits (Masks)
 extern const uint64_t mm_mem_alignment_bits_mask[];
 #define MM_MEM_IS_ALIGNED(memory_address,align) ((MM_CAST_ADDR(memory_address) & MM_MEM_ALIGNED_MASK_##align)==0)

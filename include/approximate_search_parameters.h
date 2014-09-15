@@ -28,7 +28,7 @@ typedef struct {
    */
   /* Mapping strategy (Mapping mode + properties) */
   mapping_mode_t mapping_mode;
-  float fast_mapping_degree;
+  float mapping_degree;
   /* Qualities */
   quality_model_t quality_model;
   quality_format_t quality_format;
@@ -105,7 +105,7 @@ GEM_INLINE void approximate_search_configure_error_model(
     float complete_strata_after_best,float min_matching_length);
 GEM_INLINE void approximate_search_configure_replacements(
     search_parameters_t* const search_parameters,
-    char* const mismatch_alphabet,const uint64_t mismatch_alphabet_length);
+    const char* const mismatch_alphabet,const uint64_t mismatch_alphabet_length);
 GEM_INLINE void approximate_search_configure_matches(
     search_parameters_t* const search_parameters,const uint64_t max_search_matches);
 

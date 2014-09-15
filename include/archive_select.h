@@ -18,8 +18,7 @@
  *   - 2. Expand interval-matches (compacted)
  *   - 3. Sort matches wrt distance
  */
-GEM_INLINE void archive_select_matches(
-    archive_search_t* const archive_search,matches_t* const matches,mm_search_t* const mm_search);
+GEM_INLINE void archive_select_matches(archive_search_t* const archive_search,matches_t* const matches);
 
 /*
  * Error Messages

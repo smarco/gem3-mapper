@@ -93,6 +93,7 @@ GEM_INLINE void archive_builder_generate_text_add_separator(archive_builder_t* c
   // Add to Index-Text
   archive_builder->parsing_state.last_char = ENC_DNA_CHAR_SEP;
   dna_text_set_char(archive_builder->enc_text,(archive_builder->parsing_state.index_position)++,ENC_DNA_CHAR_SEP);
+  locator_builder_skip_index(archive_builder->locator,1); // Skip Separator
 }
 GEM_INLINE void archive_builder_generate_text_add_Ns(archive_builder_t* const archive_builder) {
   // Below threshold, restore all Ns
@@ -116,7 +117,6 @@ GEM_INLINE void archive_builder_generate_text_close_sequence(archive_builder_t* 
         parsing_state->index_interval_length,locator_interval_regular);
     // Close sequence (Add 1 separator)
     archive_builder_generate_text_add_separator(archive_builder);
-    locator_builder_skip_index(locator,1);
     // Open new interval
     locator_builder_open_interval(locator,parsing_state->tag_id);
   }
@@ -139,7 +139,6 @@ GEM_INLINE void archive_builder_generate_text_process_unknowns(archive_builder_t
             parsing_state->index_interval_length,locator_interval_regular);
         // Close sequence (Add 1 separator)
         archive_builder_generate_text_add_separator(archive_builder);
-        locator_builder_skip_index(archive_builder->locator,1);
         // Open new interval
         locator_builder_open_interval(archive_builder->locator,parsing_state->tag_id);
       }
@@ -244,6 +243,7 @@ GEM_INLINE void archive_builder_generate_rc_text(archive_builder_t* const archiv
   ticker_t ticker_rc;
   ticker_percentage_reset(&ticker_rc,verbose,"Generating Text (explicit Reverse-Complement)",0,100,true);
   // Traverse all reference intervals (num_base_intervals are those from the graph file; not RC)
+  locator_builder_t* const locator = archive_builder->locator;
   const uint64_t num_intervals = locator_builder_get_num_intervals(archive_builder->locator);
   uint64_t i;
   for (i=0;i<num_intervals;++i) {
@@ -251,7 +251,7 @@ GEM_INLINE void archive_builder_generate_rc_text(archive_builder_t* const archiv
     locator_interval_t* const locator_interval = locator_builder_get_interval(archive_builder->locator,i);
     const uint64_t interval_length = locator_interval_get_index_length(locator_interval);
     // Add RC interval to locator
-    locator_builder_add_rc_interval(archive_builder->locator,locator_interval);
+    locator_builder_add_rc_interval(locator,locator_interval);
     // Generate RC-text
     uint64_t i = 0, text_position = locator_interval->end_position-1;
     for (i=0;i<interval_length;++i) {

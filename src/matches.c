@@ -22,14 +22,12 @@
 GEM_INLINE matches_t* matches_new() {
   // Allocate handler
   matches_t* const matches = mm_alloc(matches_t);
-  // Text Collection Buffer
-  matches->text_collection = text_collection_new();
   // Matches Counters
   matches->counters = vector_new(MATCHES_INIT_COUNTERS,uint64_t);
   // Interval Matches
   matches->interval_matches = vector_new(MATCHES_INIT_INTERVAL_MATCHES,match_interval_t);
   // Position Matches
-  matches->global_matches = vector_new(MATCHES_INIT_GLOBAL_MATCHES,match_trace_t);
+  matches->global_matches = vector_new(MATCHES_INIT_GLOBAL_MATCHES,match_trace_t); // TODO IF vectors -> iterator for HUGE datasets
   matches->start_gmatches = ihash_new();
   // CIGAR buffer
   matches->cigar_buffer = vector_new(MATCHES_INIT_CIGAR_OPS,cigar_element_t);
@@ -45,9 +43,12 @@ GEM_INLINE matches_t* matches_new() {
   // Return
   return matches;
 }
+GEM_INLINE void matches_configure(matches_t* const matches,text_collection_t* const text_collection) {
+  // Text Collection Buffer
+  matches->text_collection = text_collection;
+}
 GEM_INLINE void matches_clear(matches_t* const matches) {
   MATCHES_CHECK(matches);
-  text_collection_clear(matches->text_collection);
   vector_clear(matches->counters);
   vector_clear(matches->interval_matches);
   vector_clear(matches->global_matches);
@@ -60,12 +61,12 @@ GEM_INLINE void matches_clear(matches_t* const matches) {
 GEM_INLINE void matches_delete(matches_t* const matches) {
   MATCHES_CHECK(matches);
   // Delete all
-  text_collection_delete(matches->text_collection);
   vector_delete(matches->counters);
   vector_delete(matches->interval_matches);
   vector_delete(matches->global_matches);
   ihash_delete(matches->start_gmatches);
   vector_delete(matches->cigar_buffer);
+  vector_delete(matches->rp_counters);
   // Delete handler
   mm_free(matches);
 }
@@ -136,39 +137,43 @@ GEM_INLINE match_trace_t* matches_lookup_match(matches_t* const matches,const ui
   return ihash_get(matches->start_gmatches,position,match_trace_t);
 }
 GEM_INLINE void matches_add_match_trace_mark(
-    matches_t* const matches,const uint64_t trace_offset,const uint64_t position,const uint64_t distance,
-    const int64_t match_type,const uint64_t match_begin_offset,const uint64_t match_length,const strand_t strand) {
+    matches_t* const matches,const uint64_t trace_offset,const uint64_t position,
+    const uint64_t distance,const uint64_t match_begin_offset,const uint64_t match_length,
+    const strand_t strand,const bool update_counters) {
   // Check duplicates
-  if (matches_lookup_match(matches,position)!=NULL) {
+  if (matches_lookup_match(matches,position)==NULL) {
     // Add the match-trace mark (just a mark, not (re)aligned)
     match_trace_t* match_trace;
     vector_alloc_new(matches->global_matches,match_trace_t,match_trace);
     match_trace->trace_offset = trace_offset;
     match_trace->position = position;
-    match_trace->match_trace_type = match_type;
     match_trace->match_trace_begin_offset = match_begin_offset;
     match_trace->match_trace_length = match_length;
     match_trace->distance = distance;
     match_trace->strand = strand;
+    // Update counters
+    if (update_counters) matches_counters_add(matches,distance,1);
     // Index
     matches_index_match(matches,match_trace);
   }
 }
 GEM_INLINE void matches_add_match_trace_t(
-    matches_t* const matches,match_trace_t* const match_trace) {
+    matches_t* const matches,match_trace_t* const match_trace,const bool update_counters) {
   // Check duplicates
-  if (matches_lookup_match(matches,match_trace->position)!=NULL) {
+  if (matches_lookup_match(matches,match_trace->position)==NULL) {
     // Add the match-trace
     vector_insert(matches->global_matches,*match_trace,match_trace_t);
+    // Update counters
+    if (update_counters) matches_counters_add(matches,match_trace->distance,1);
     // Index
     matches_index_match(matches,match_trace);
   }
 }
 GEM_INLINE void matches_add_match_trace(
-    matches_t* const matches,const uint64_t trace_offset,
-    const uint64_t position,const uint64_t distance,const strand_t strand) {
+    matches_t* const matches,const uint64_t trace_offset,const uint64_t position,
+    const uint64_t distance,const strand_t strand,const bool update_counters) {
   // Check duplicates
-  if (matches_lookup_match(matches,position)!=NULL) {
+  if (matches_lookup_match(matches,position)==NULL) {
     // Add the match-trace
     match_trace_t* match_trace;
     vector_alloc_new(matches->global_matches,match_trace_t,match_trace);
@@ -177,6 +182,8 @@ GEM_INLINE void matches_add_match_trace(
     match_trace->distance = distance;
     match_trace->strand = strand;
     match_trace->score = 0;
+    // Update counters
+    if (update_counters) matches_counters_add(matches,distance,1);
     // Index
     matches_index_match(matches,match_trace);
   }

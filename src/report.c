@@ -7,6 +7,7 @@
  */
 
 #include "report.h"
+#include "errors.h"
 
 // ELD-Report function
 void gem_report_void(FILE* stream) {}
@@ -256,11 +257,11 @@ GEM_INLINE void ticker_percentage_finish(ticker_t* const ticker) {
   // Print
   if (ticker->timed) {
     clock_gettime(CLOCK_REALTIME,&ticker->end_timer);
-    tfprintf(gem_log_get_stream(),"%s 100%% %s ...done [%2.3f s]\n",
+    tfprintf(gem_log_get_stream(),"%s 100%% %s... done [%2.3f s]\n",
         ticker->finish_begin,ticker->finish_end,
         TIME_DIFF_S(ticker->begin_timer,ticker->end_timer));
   } else {
-    tfprintf(gem_log_get_stream(),"%s 100%% %s ...done.\n",ticker->finish_begin,ticker->finish_end);
+    tfprintf(gem_log_get_stream(),"%s 100%% %s... done\n",ticker->finish_begin,ticker->finish_end);
   }
 }
 GEM_INLINE void ticker_count_finish(ticker_t* const ticker) {
@@ -274,7 +275,7 @@ GEM_INLINE void ticker_count_finish(ticker_t* const ticker) {
         ticker->finish_begin,ticker->global_ticks,ticker->finish_end,
         TIME_DIFF_S(ticker->begin_timer,ticker->end_timer));
   } else {
-    tfprintf(gem_log_get_stream(),"%s %lu %s ...done.\n",ticker->finish_begin,ticker->global_ticks,ticker->finish_end);
+    tfprintf(gem_log_get_stream(),"%s %lu %s... done\n",ticker->finish_begin,ticker->global_ticks,ticker->finish_end);
   }
 }
 GEM_INLINE void ticker_update(ticker_t* const ticker,const uint64_t n) {
@@ -298,6 +299,11 @@ GEM_INLINE void ticker_update(ticker_t* const ticker,const uint64_t n) {
     }
   }
 }
+GEM_INLINE void ticker_update_mutex(ticker_t* const ticker,const uint64_t n) {
+  MUTEX_BEGIN_SECTION(ticker->mutex) {
+    ticker_update(ticker,n);
+  } MUTEX_END_SECTION(ticker->mutex);
+}
 GEM_INLINE void ticker_finish(ticker_t* const ticker) {
   if (!ticker->enabled) return;
   if (!ticker->finished) {
@@ -307,6 +313,11 @@ GEM_INLINE void ticker_finish(ticker_t* const ticker) {
       ticker_count_finish(ticker);
     }
   }
+}
+GEM_INLINE void ticker_finish_mutex(ticker_t* const ticker) {
+  MUTEX_BEGIN_SECTION(ticker->mutex) {
+    ticker_finish(ticker);
+  } MUTEX_END_SECTION(ticker->mutex);
 }
 // Adding labels
 GEM_INLINE void ticker_add_process_label(ticker_t* const ticker,char* const process_begin,char* const process_end) {
@@ -324,6 +335,13 @@ GEM_INLINE void ticker_set_status(ticker_t* const ticker,const bool enabled) {
 // Set granularity
 GEM_INLINE void ticker_set_step(ticker_t* const ticker,const uint64_t step) {
   ticker->step_ticks = step;
+}
+// Enable mutex
+GEM_INLINE void ticker_mutex_enable(ticker_t* const ticker) {
+  MUTEX_INIT(ticker->mutex);
+}
+GEM_INLINE void ticker_mutex_cleanup(ticker_t* const ticker) {
+  MUTEX_DESTROY(ticker->mutex);
 }
 /*
  * Print's template helpers

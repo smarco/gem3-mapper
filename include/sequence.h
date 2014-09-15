@@ -16,8 +16,8 @@
  */
 #define SEQUENCE_CHECK(sequence) \
   GEM_CHECK_NULL(sequence); \
-  STRING_CHECK(sequence->tag); \
-  STRING_CHECK(sequence->read)
+  STRING_CHECK(&sequence->tag); \
+  STRING_CHECK(&sequence->read)
 
 #define SEQUENCE_QUALITY_IS_VALID(character) (33 <= (character))
 
@@ -27,14 +27,14 @@
 typedef enum { SINGLE_END, PAIRED_END1, PAIRED_END2 } sequence_end_t;
 typedef struct {
   sequence_end_t end_info;
-  string_t* casava_tag;
-  string_t* extra_tag;
+  string_t casava_tag;
+  string_t extra_tag;
 } sequence_attributes_t;
 typedef struct {
   /* Sequence */
-  string_t* tag;
-  string_t* read;
-  string_t* qualities;
+  string_t tag;
+  string_t read;
+  string_t qualities;
   /* Attributes */
   sequence_attributes_t attributes;
 } sequence_t;
@@ -42,9 +42,10 @@ typedef struct {
 /*
  * Constructor
  */
-GEM_INLINE sequence_t* sequence_new(void);
+GEM_INLINE void sequence_init(sequence_t* const sequence);
+GEM_INLINE void sequence_init_mm(sequence_t* const sequence,mm_stack_t* const mm_stack);
 GEM_INLINE void sequence_clear(sequence_t* const sequence);
-GEM_INLINE void sequence_delete(sequence_t* const sequence);
+GEM_INLINE void sequence_destroy(sequence_t* const sequence);
 
 /*
  * Accessors
@@ -69,6 +70,7 @@ GEM_INLINE sequence_end_t sequence_get_end_info(const sequence_t* const sequence
 /*
  * Utils
  */
+GEM_INLINE bool sequence_equals(sequence_t* const sequence_a,sequence_t* const sequence_b);
 GEM_INLINE void sequence_generate_reverse(sequence_t* const sequence,sequence_t* const rev_sequence);
 GEM_INLINE void sequence_generate_reverse_complement(sequence_t* const sequence,sequence_t* const rc_sequence);
 

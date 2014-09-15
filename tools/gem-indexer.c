@@ -314,7 +314,11 @@ void parse_arguments(int argc,char** argv) {
       parameters.index_complement = (optarg) ? (options_parse_bool(optarg) ? index_complement_yes : index_complement_no ) : index_complement_yes;
       break;
     case 'N': // --strip-unknown-bases-threshold
-      parameters.ns_threshold = atol(optarg); // FIXME Disable
+      if (gem_strcaseeq(optarg,"disable")) {
+        parameters.ns_threshold = UINT64_MAX;
+      } else {
+        parameters.ns_threshold = atol(optarg);
+      }
       break;
     case 301: // --complement-size-threshold
       gem_cond_fatal_error(input_text_parse_size(optarg,&(parameters.complement_size_threshold)),PARSING_SIZE,"-complement-size-threshold",optarg);
@@ -438,7 +442,8 @@ void parse_arguments(int argc,char** argv) {
   /*
    * Free
    */
-  string_delete(getopt_short_string);
+  string_destroy(getopt_short_string);
+  mm_free(getopt_short_string);
   mm_free(getopt_options);
 }
 void indexer_cleanup(archive_builder_t* const archive_builder) {

@@ -120,7 +120,7 @@ GEM_INLINE void input_text_parse_field(const char** const text_line,const char d
   const char* const string_begin = *text_line;
   while (gem_expect_true(**text_line!=delimiter && !PARSER_IS_EOL(text_line))) PARSER_NEXT_CHAR(text_line);
   // Copy string
-  if (string) string_set_const_buffer(string,string_begin,(*text_line-string_begin));
+  if (string) string_set_buffer_const(string,string_begin,(*text_line-string_begin));
   // Skip delimiter
   if (**text_line==delimiter) PARSER_NEXT_CHAR(text_line);
 }
@@ -315,7 +315,7 @@ GEM_INLINE error_code_t input_text_parse_tag(
           break;
       }
       PARSER_READ_UNTIL(text_line,**text_line==TAB || **text_line==SPACE);
-      string_set_buffer(attributes->casava_tag,casava_tag_begin,(*text_line-casava_tag_begin));
+      string_set_buffer(&attributes->casava_tag,casava_tag_begin,(*text_line-casava_tag_begin));
       continue; // Next!
     }
     /*
@@ -323,7 +323,7 @@ GEM_INLINE error_code_t input_text_parse_tag(
      */
     char* const extra_tag_begin = *text_line;
     PARSER_READ_UNTIL(text_line,**text_line==TAB);
-    string_set_buffer(attributes->extra_tag,extra_tag_begin,*text_line-extra_tag_begin);
+    string_set_buffer(&attributes->extra_tag,extra_tag_begin,*text_line-extra_tag_begin);
     /*
      * Additional check to see if any extra attributes end in /1 /2 /3
      *     If no pair has been found yet, /1/2/3 is cut away
@@ -332,18 +332,18 @@ GEM_INLINE error_code_t input_text_parse_tag(
      *       @SRR384920.1 HWI-ST382_0049:1:1:1217:1879/1
      *       @SRR384920.1_HWI-ST382_0049:1:1:1217:1879
      */
-    const sequence_end_t end_info = input_text_parse_tag_chomp_pairend_info(attributes->extra_tag);
+    const sequence_end_t end_info = input_text_parse_tag_chomp_pairend_info(&attributes->extra_tag);
     if (end_info==PAIRED_END1 || end_info==PAIRED_END2) {
       // Append to the tag an '_' plus the extra information
       string_append_char(tag,UNDERSCORE);
-      string_append_string(tag,attributes->extra_tag);
+      string_append_string(tag,&attributes->extra_tag);
       // Replace all spaces
       const uint64_t tag_length = string_get_length(tag);
       for (i=0;i<tag_length;i++) {
         if (tag->buffer[i]==SPACE) tag->buffer[i] = UNDERSCORE;
       }
       string_append_eos(tag);
-      string_clear(attributes->extra_tag);
+      string_clear(&attributes->extra_tag);
       // Set pair info
       attributes->end_info = end_info;
     }
