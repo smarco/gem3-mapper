@@ -12,7 +12,6 @@
 #include "essentials.h"
 
 #include "bwt.h"
-#include "dna_text.h"
 #include "sampled_sa.h"
 #include "rank_mtable.h"
 

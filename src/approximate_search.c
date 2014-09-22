@@ -14,6 +14,8 @@
 #include "rank_mtable.h"
 #include "neighborhood_search.h"
 
+#include "mapper_profile.h"
+
 /*
  * Debug
  */
@@ -72,6 +74,7 @@ GEM_INLINE void approximate_search_reset(approximate_search_t* const search) {
   search->max_differences = search->search_actual_parameters->max_search_error_nominal;
   search->max_complete_stratum = ALL;
   search->max_matches_reached = false;
+  search->num_potential_candidates = 0;
 }
 GEM_INLINE void approximate_search_destroy(approximate_search_t* const search) {
   // NOP
@@ -256,7 +259,7 @@ GEM_INLINE void approximate_search_filter_regions(
     approximate_search_t* const search,
     const bool dynamic_scheduling,const uint64_t sensibility_error_length,
     const uint64_t filtering_threshold,matches_t* const matches) {
-  PROF_START_TIMER(GP_AS_FILTER_REGIONS);
+  PROF_START(GP_AS_FILTER_REGIONS);
   // Archive Data
   const search_actual_parameters_t* const actual_parameters = search->search_actual_parameters;
   const locator_t* const locator = search->locator;
@@ -359,11 +362,11 @@ GEM_INLINE void approximate_search_filter_regions(
 
     /* Check candidates (Dynamic filtering)*/
     if (dynamic_scheduling && actual_parameters->complete_strata_after_best_nominal < search->max_differences) {
-      PROF_PAUSE_TIMER(GP_AS_FILTER_REGIONS);
-      filtering_candidates_verify_pending(filtering_candidates,search->text_collection,
+      PROF_PAUSE(GP_AS_FILTER_REGIONS);
+      filtering_candidates_verify(filtering_candidates,search->text_collection,
           locator,fm_index,enc_text,pattern,search->search_strand,actual_parameters,matches);
       approximate_search_adjust_max_differences_using_strata(search,matches);
-      PROF_CONTINUE_TIMER(GP_AS_FILTER_REGIONS);
+      PROF_CONTINUE(GP_AS_FILTER_REGIONS);
     }
 
     /* Check misms condition */
@@ -374,6 +377,7 @@ GEM_INLINE void approximate_search_filter_regions(
   }
   // Set the minimum number of mismatches required
   region_profile->misms_required = misms_required;
+  PROF_STOP(GP_AS_FILTER_REGIONS);
 }
 ///////////////////////////////////////////////////////////////////////////////
 // [Mapping workflows 4.0]
@@ -386,7 +390,7 @@ GEM_INLINE void approximate_search_filter_regions(
  */
 GEM_INLINE void approximate_search_read_recovery(
     approximate_search_t* const search,const uint64_t max_complete_stratum_value,matches_t* const matches) {
-  PROF_START_TIMER(GP_AS_READ_RECOVERY);
+  PROF_START(GP_AS_READ_RECOVERY);
   search_actual_parameters_t* const actual_parameters = search->search_actual_parameters;
   search_parameters_t* const parameters = actual_parameters->search_parameters;
   // Compute the region profile
@@ -403,20 +407,20 @@ GEM_INLINE void approximate_search_read_recovery(
       search->filtering_candidates,&search->region_profile);
 
   // Verify !!
-  filtering_candidates_verify_pending(
+  filtering_candidates_verify(
       search->filtering_candidates,search->text_collection,search->locator,search->fm_index,
       search->enc_text,&search->pattern,search->search_strand,actual_parameters,matches);
 
   // Update MCS
   search->max_complete_stratum = MIN(max_complete_stratum_value,search->max_complete_stratum);
-  PROF_STOP_TIMER(GP_AS_READ_RECOVERY);
+  PROF_STOP(GP_AS_READ_RECOVERY);
 }
 /*
  * Exact search
  */
 GEM_INLINE void approximate_search_exact_search(
     approximate_search_t* const search,matches_t* const matches) {
-  PROF_START_TIMER(GP_AS_EXACT_SEARCH);
+  PROF_START(GP_AS_EXACT_SEARCH);
   pattern_t* const pattern = &search->pattern;
   // FM-Index basic exact search
   uint64_t hi, lo;
@@ -425,7 +429,7 @@ GEM_INLINE void approximate_search_exact_search(
   matches_add_interval_match(matches,hi,lo,pattern->key_length,0,search->search_strand);
   // Update MCS
   search->max_complete_stratum = 1;
-  PROF_STOP_TIMER(GP_AS_EXACT_SEARCH);
+  PROF_STOP(GP_AS_EXACT_SEARCH);
 }
 /*
  * Basic brute force search
@@ -467,13 +471,13 @@ GEM_INLINE bool approximate_search_scout_adaptive_filtering(
   //
   // Soft Region Profile
   //
-  PROF_START_TIMER(GP_REGION_PROFILE_SOFT);
+  PROF_START(GP_REGION_PROFILE_SOFT);
   region_profile_generate_adaptive(
       region_profile,fm_index,pattern,parameters->allowed_enc,
       parameters->srp_region_th,parameters->srp_max_steps,
       parameters->srp_dec_factor,parameters->srp_region_type_th,
       search->max_differences+1,false);
-  PROF_STOP_TIMER(GP_REGION_PROFILE_SOFT);
+  PROF_STOP(GP_REGION_PROFILE_SOFT);
 
   // FMI_SHOW_REGION_PROFILE(region_profile,"\nKEY:%s\n[STH]",key); TODO
 
@@ -508,18 +512,18 @@ GEM_INLINE bool approximate_search_scout_adaptive_filtering(
       }
 
 //      // Hard probing
-//      PROF_START_TIMER(SC_REGION_PROFILE);
+//      PROF_START(SC_REGION_PROFILE);
 //      fmi_region_profile(fmi,key,key_len,search_params->allowed_chars,
 //          PRP_REGION_THRESHOLD,PRP_MAX_STEPS,
 //          PRP_DEC_FACTOR,PRP_REGION_TYPE_THRESHOLD,
 //          search_params->max_mismatches+1,region_profile,mpool);
-//      PROF_STOP_TIMER(SC_REGION_PROFILE);
+//      PROF_STOP(SC_REGION_PROFILE);
 //      if (region_profile->num_filtering_regions > 0) {
-//        PROF_START_TIMER(SC_PROBING_DELTA);
+//        PROF_START(SC_PROBING_DELTA);
 //        fmi_region_profile_extend_last_region(fmi,key,key_len,
 //            search_params->allowed_repl,PRP_REGION_TYPE_THRESHOLD,region_profile);
 //        fmi_probe_matches(fmi,search_params,region_profile,true,matches,mpool);
-//        PROF_STOP_TIMER(SC_PROBING_DELTA);
+//        PROF_STOP(SC_PROBING_DELTA);
 //      }
 //      FMI_CLEAR_PROFILE__RETURN_FALSE();
     }
@@ -540,25 +544,25 @@ GEM_INLINE bool approximate_search_scout_adaptive_filtering(
 //
 //  // Soft Probing the matches to lower max_mismatches using delta
 //  if (search_params->delta < search_params->max_mismatches) {
-//    PROF_START_TIMER(SC_PROBING_DELTA);
+//    PROF_START(SC_PROBING_DELTA);
 //    fmi_probe_matches(fmi,search_params,region_profile,false,matches,mpool);
 //    if (region_profile->num_filtering_regions > search_params->max_mismatches) {
-//      PROF_INC_COUNTER(GSC_DELTA_PROBE_HIT); PROF_STOP_TIMER(SC_PROBING_DELTA);
+//      PROF_INC_COUNTER(GSC_DELTA_PROBE_HIT); PROF_STOP(SC_PROBING_DELTA);
 //      FMI_ZERO_FILTERING();
 //      return true; // Well done !
 //    }
-//    PROF_STOP_TIMER(SC_PROBING_DELTA);
+//    PROF_STOP(SC_PROBING_DELTA);
 //  }
 //
 //  //
 //  // Hard Region Profile
 //  //
-//  PROF_START_TIMER(SC_REGION_PROFILE);
+//  PROF_START(SC_REGION_PROFILE);
 //  fmi_region_profile(fmi,key,key_len,search_params->allowed_chars,
 //      internals->hrp_region_th,internals->hrp_max_steps,
 //      internals->hrp_dec_factor,internals->hrp_region_type_th,
 //      search_params->max_mismatches+1,region_profile,mpool);
-//  PROF_STOP_TIMER(SC_REGION_PROFILE);
+//  PROF_STOP(SC_REGION_PROFILE);
 //  FMI_SHOW_REGION_PROFILE(region_profile,"[ATH]");
 //  PROF_ADD_COUNTER(GSC_NUM_HARD_REGIONS,region_profile->num_filtering_regions);
 //  if (region_profile->num_filtering_regions == 0) return false; // Nothing to do here
@@ -568,21 +572,21 @@ GEM_INLINE bool approximate_search_scout_adaptive_filtering(
 //  }
 //
 //  // Filtering regions (Dynamic)
-//  PROF_START_TIMER(SC_ATH_QUERY);
+//  PROF_START(SC_ATH_QUERY);
 //  fmi_filter_regions(fmi,key,key_len,region_profile,DYNAMIC_SCHEDULING,
 //      internals->filtering_region_factor*fmi->proper_length,
 //      internals->filtering_threshold,search_params,matches,mpool);
 //  FMI_SHOW_REGION_PROFILE(region_profile,"  --> [Schedule]");
-//  PROF_STOP_TIMER(SC_ATH_QUERY);
+//  PROF_STOP(SC_ATH_QUERY);
 //
 //  // Check candidates
 //  PROF_ADD_COUNTER(GSC_ATH_FILTER_CAND,vector_get_used(mpool->fbuf1));
-//  PROF_START_TIMER(SC_ATH_FILTER);
+//  PROF_START(SC_ATH_FILTER);
 //  fmi_matches_filter__append_decoded(fmi,matches,search_params,
 //      mpool->fbuf1,mpool->ibuf1,mpool->ibuf2,true,true,mpool);
 //  GEM_SWAP(mpool->ibuf1,mpool->ibuf2);
 //  approximate_search_adjust_max_differences_using_strata(search_params,matches);
-//  PROF_STOP_TIMER(SC_ATH_FILTER);
+//  PROF_STOP(SC_ATH_FILTER);
 //  vector_clean(mpool->fbuf1);
 //
 //  if (region_profile->misms_required > search_params->max_mismatches) {
@@ -645,13 +649,13 @@ GEM_INLINE void approximate_search_adaptive_mapping(
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
   // Compute the region profile
   const bool allow_zero_regions = (actual_parameters->fast_mapping_degree_nominal>0);
-  PROF_START_TIMER(GP_REGION_PROFILE_SOFT);
+  PROF_START(GP_REGION_PROFILE_SOFT);
   region_profile_generate_adaptive(
       region_profile,fm_index,pattern,parameters->allowed_enc,
       parameters->srp_region_th,parameters->srp_max_steps,
       parameters->srp_dec_factor,parameters->srp_region_type_th,
       search->max_differences+1,allow_zero_regions);
-  PROF_STOP_TIMER(GP_REGION_PROFILE_SOFT);
+  PROF_STOP(GP_REGION_PROFILE_SOFT);
   // Zero-region reads
   const uint64_t num_wildcards = pattern->num_wildcards;
   if (region_profile->num_filtering_regions==0) {
@@ -667,7 +671,7 @@ GEM_INLINE void approximate_search_adaptive_mapping(
   gem_cond_debug_block(DEBUG_REGION_PROFILE_PRINT) {
     region_profile_print(stderr,region_profile,false,false); // DEBUG
   }
-  if (region_profile_has_exact_matches(region_profile)) {
+  if (region_profile_has_exact_matches(region_profile) && search->stop_search_stage!=asearch_filtering) { // FIXME Better interface
     const filtering_region_t* const first_region = region_profile->filtering_region;
     matches_add_interval_match(matches,first_region->hi,first_region->lo,
         pattern->key_length,0,search->search_strand);
@@ -697,7 +701,7 @@ GEM_INLINE void approximate_search_adaptive_mapping(
     search->current_search_stage = asearch_filtering;
     return;
   }
-  filtering_candidates_verify_pending(
+  filtering_candidates_verify(
       filtering_candidates,search->text_collection,search->locator,fm_index,
       search->enc_text,pattern,search->search_strand,actual_parameters,matches);
 
@@ -742,24 +746,24 @@ GEM_INLINE void approximate_search_incremental_mapping(
 //  // Very short reads (Neighborhood search)
 //  if (pattern->key_length <= RANK_MTABLE_SEARCH_DEPTH ||
 //      pattern->key_length < approximate_search->fm_index->proper_length) {
-//    PROF_START_TIMER(SC_SMALL_READS);
+//    PROF_START(SC_SMALL_READS);
 //    approximate_search_basic(approximate_search,matches);
 //    // Update search state
 //    approximate_search->current_search_stage = asearch_end;
-//    PROF_STOP_TIMER(SC_SMALL_READS);
+//    PROF_STOP(SC_SMALL_READS);
 //    return;
 //  }
 
   // TODO Implement
 //  // Adaptive Regions Filtering
-//  PROF_START_TIMER(SC_ATH);
+//  PROF_START(SC_ATH);
 //  if (fmi_adaptive_region_filtering(fmi,key,key_len,search_params,&region_profile,matches,mpool)) {
 //    // TODO: This should be adaptive, not fixed wrt region_profile.misms_required
 //    fm_matches_update_max_complete_stratum(matches,search_params->max_mismatches+search_params->num_wildcards+1);
-//    PROF_STOP_TIMER(SC_ATH);
+//    PROF_STOP(SC_ATH);
 //    return true; // Well done!
 //  }
-//  PROF_STOP_TIMER(SC_ATH);
+//  PROF_STOP(SC_ATH);
 //
 //  /* After filtering, if the required level of complete maximum stratum is not reached,
 //   * we fulfill the search by using a progressive scheme up to the maximum number of
@@ -789,18 +793,18 @@ GEM_INLINE void approximate_search_incremental_mapping(
 //  fm_matches_update_max_complete_stratum(matches,search_params->max_mismatches+1);
 
 //  // Progressive Adaptive Regions Filtering
-//  PROF_START_TIMER(SC_PROGRESSIVE);
+//  PROF_START(SC_PROGRESSIVE);
 //  fm_matches_update_max_complete_stratum(matches,search_params->max_mismatches+1);
 //  fmi_progressive_adaptive_region_filtering(fmi,key,
 //      key_len,search_params,&region_profile,matches,mpool);
-//  PROF_STOP_TIMER(SC_PROGRESSIVE);
+//  PROF_STOP(SC_PROGRESSIVE);
 }
 /*
  * Approximate String Matching using the FM-index.
  */
 GEM_INLINE void approximate_search(
     approximate_search_t* const search,matches_t* const matches) {
-  PROF_START_TIMER(GP_AS_MAIN);
+  PROF_START(GP_AS_MAIN);
   // Parameters
   const search_parameters_t* const parameters = search->search_actual_parameters->search_parameters;
   // Check if all characters are wildcards
@@ -832,7 +836,7 @@ GEM_INLINE void approximate_search(
       GEM_INVALID_CASE();
       break;
   }
-  PROF_STOP_TIMER(GP_AS_MAIN);
+  PROF_STOP(GP_AS_MAIN);
 }
 
 
@@ -896,10 +900,10 @@ GEM_INLINE void approximate_search(
 //  fmi_filter_regions(fmi,key,key_len,region_profile,STATIC_SCHEDULING,
 //      internals->filtering_region_factor*fmi->proper_length,
 //      internals->filtering_threshold,search_params,matches,mpool);
-//  PROF_ADD_COUNTER(GSC_ZERO_FILTER_CAND,vector_get_used(mpool->fbuf1)); PROF_START_TIMER(SC_ZERO_FILTER);
+//  PROF_ADD_COUNTER(GSC_ZERO_FILTER_CAND,vector_get_used(mpool->fbuf1)); PROF_START(SC_ZERO_FILTER);
 //  fmi_matches_filter__append_decoded(fmi,matches,search_params,
 //      mpool->fbuf1,mpool->ibuf1,mpool->ibuf2,true,true,mpool);
-//  PROF_STOP_TIMER(SC_ZERO_FILTER)
+//  PROF_STOP(SC_ZERO_FILTER)
 //#define FMI_CLEAR_PROFILE__RETURN_FALSE()
 //region_profile->num_filtering_regions = 0; return false
 //
@@ -1014,8 +1018,8 @@ GEM_INLINE void approximate_search(
 //  vector* result_set = mpool->rbuf1;
 //  uint64_t i, j, candidates, accum;
 //
-//  PROF_START_TIMER(SC_PA_FAIL);
-//  PROF_START_TIMER(SC_PAF_QUERY);
+//  PROF_START(SC_PA_FAIL);
+//  PROF_START(SC_PAF_QUERY);
 //  vector_init(exclusion_set,interval_t);
 //  vector_init(result_set,interval_t);
 //  filtering_region* filtering_reg = region_profile->filtering_region;
@@ -1037,7 +1041,7 @@ GEM_INLINE void approximate_search(
 //        fmi_base_mismatched_region_search(fmi,key,key_len,eff_max_mismatches,
 //            repls,repls_len,allowed_repl,region_profile,exclusion_set,mpool);
 //        fm_matches_append_search_results(search_params,matches,exclusion_set,num_wildcards);
-//        if (FMI_MATCHES_GET_NUM_MATCHES(matches)>unique) { PROF_STOP_TIMER(SC_PAF_QUERY);
+//        if (FMI_MATCHES_GET_NUM_MATCHES(matches)>unique) { PROF_STOP(SC_PAF_QUERY);
 //          fm_matches_update_max_complete_stratum(matches,0);
 //          return;
 //        }
@@ -1056,7 +1060,7 @@ GEM_INLINE void approximate_search(
 //          // Join the new matches to the previously found
 //          interval_set_union(exclusion_set,result_set);
 //        } else { // Skip to TLS approach using full PA profile
-//          PROF_START_TIMER(SC_PA_FULL);
+//          PROF_START(SC_PA_FULL);
 //          if (reg_num<10) { PROF_INC_COUNTER(GSC_PA_FAIL_LEVEL+reg_num); START_TIMER(TSC_PA_FAIL_LEVEL+reg_num);}
 //
 //          fmi_generate_full_progressive_profile(region_profile,misms_regions,reg_num,num_mismatch_region);
@@ -1068,7 +1072,7 @@ GEM_INLINE void approximate_search(
 //          fm_matches_append_search_results(search_params,matches,result_set,num_wildcards);
 //
 //          PROF_ADD_COUNTER(GSC_PA_INTERVALS+reg_num,result_set->used); COUNT_CANDIDATES(candidates,result_set);
-//          PROF_STOP_TIMER(SC_PA_FULL); PROF_STOP_TIMER(SC_PA_FAIL);
+//          PROF_STOP(SC_PA_FULL); PROF_STOP(SC_PA_FAIL);
 //          if (reg_num<10) { STOP_TIMER(TSC_PA_FAIL_LEVEL+reg_num); PROF_ADD_COUNTER(GSC_PA_FAIL_INT+reg_num,candidates); }
 //          keep_searching = false; break;
 //        }
@@ -1076,13 +1080,13 @@ GEM_INLINE void approximate_search(
 //    }
 //    accum += filtering_reg[i].degree;
 //  }
-//  PROF_STOP_TIMER(SC_PAF_QUERY);
+//  PROF_STOP(SC_PAF_QUERY);
 //
 //  // Filter all
-//  PROF_ADD_COUNTER(GSC_PAF_FILTER_CAND, vector_get_used(mpool->fbuf1)); PROF_START_TIMER(SC_PAF_FILTER);
+//  PROF_ADD_COUNTER(GSC_PAF_FILTER_CAND, vector_get_used(mpool->fbuf1)); PROF_START(SC_PAF_FILTER);
 //  fmi_matches_filter__append_decoded(fmi,matches,search_params,
 //      mpool->fbuf1,mpool->ibuf1,mpool->ibuf2,false,true,mpool);
-//  PROF_STOP_TIMER(SC_PAF_FILTER);
+//  PROF_STOP(SC_PAF_FILTER);
 //}
 //
 //
@@ -1140,12 +1144,12 @@ GEM_INLINE void approximate_search(
 ////  const uint64_t proposed_max_distance = extend_parameters->max_distance; // +bad_quality_bases;
 ////  const uint64_t max_align_diff = key_len-extend_parameters->min_anchor_size;
 ////  const uint64_t max_distance = (proposed_max_distance>max_align_diff)?max_align_diff:proposed_max_distance;
-////  PROF_START_TIMER(SC_ONLINE_ASM_SEARCH);
+////  PROF_START(SC_ONLINE_ASM_SEARCH);
 ////  const uint64_t found_matches =
 ////      fmi_matches_search(fmi,extend_parameters,init_position,end_position,
 ////        max_distance,extend_parameters->max_extended_matches,
 ////        extend_parameters->allowed_repl,matches,mpool);
-////  PROF_STOP_TIMER(SC_ONLINE_ASM_SEARCH);
+////  PROF_STOP(SC_ONLINE_ASM_SEARCH);
 ////  return found_matches;
 ////}
 //

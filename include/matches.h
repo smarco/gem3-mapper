@@ -10,7 +10,6 @@
 #define MATCHES_H_
 
 #include "essentials.h"
-#include "dna_string.h"
 #include "interval_set.h"
 #include "text_collection.h"
 
@@ -63,7 +62,7 @@ typedef struct {
 } match_trace_t;
 // Overloaded to (match_trace_mark_t)
 #define match_trace_begin_offset cigar_length
-#define match_trace_length       cigar_buffer_offset
+#define match_trace_end_offset   cigar_buffer_offset
 
 ///*
 // * Local Match // TODO
@@ -96,7 +95,7 @@ typedef struct {
   vector_t* interval_matches;               // (match_interval_t)
   /* Global Position Matches */
   vector_t* global_matches;                 // Global Matches (match_trace_t)
-  ihash_t* start_gmatches;                  // Starting position in the Text-space
+  ihash_t* end_gmatches;                    // End position (of the aligned match) in the Text-space
 //  /* Local Position Matches */ // TODO
 //  vector_t* local_matches;               // (match_trace_t)
 //  ihash_t* start_position_gmatches;      // Starting position in the Text-space
@@ -143,14 +142,15 @@ GEM_INLINE uint64_t match_trace_get_cigar_length(const match_trace_t* const matc
  */
 GEM_INLINE match_trace_t* matches_lookup_match(matches_t* const matches,const uint64_t position);
 GEM_INLINE void matches_add_match_trace_mark(
-    matches_t* const matches,const uint64_t trace_offset,const uint64_t position,
-    const uint64_t distance,const uint64_t match_begin_offset,const uint64_t match_length,
+    matches_t* const matches,const uint64_t trace_offset,const uint64_t position,const uint64_t distance,
+    const uint64_t match_begin_offset,const uint64_t match_end_offset,
     const strand_t strand,const bool update_counters);
 GEM_INLINE void matches_add_match_trace_t(
-    matches_t* const matches,match_trace_t* const match_trace,const bool update_counters);
-GEM_INLINE void matches_add_match_trace(
-    matches_t* const matches,const uint64_t trace_offset,const uint64_t position,
-    const uint64_t distance,const strand_t strand,const bool update_counters);
+    matches_t* const matches,match_trace_t* const match_trace,
+    const uint64_t match_length,const bool update_counters);
+//GEM_INLINE void matches_add_match_trace(
+//    matches_t* const matches,const uint64_t trace_offset,const uint64_t position,
+//    const uint64_t distance,const strand_t strand,const bool update_counters);
 
 GEM_INLINE void matches_add_interval_match(
     matches_t* const matches,

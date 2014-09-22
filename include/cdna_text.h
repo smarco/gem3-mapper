@@ -12,7 +12,6 @@
 
 #include "essentials.h"
 
-#include "dna_string.h"
 #include "segmented_vector.h"
 #include "cdna_bitwise_text.h"
 

@@ -27,13 +27,22 @@
 #include "mm_stack.h"
 #include "mm_pool.h"
 
-// Basic Profiling
-#include "profiler.h"
-
 // Basic Data Structures
 #include "vector.h"
+#include "priority_queue.h"
 #include "segmented_vector.h"
 #include "hash.h"
 #include "string_buffer.h"
+#include "dna_text.h"
+
+// Stats Structures
+#include "stats_vector.h"
+#include "stats_matrix.h"
+
+// Basic Profiling
+#include "profiler.h"
+
+// Mapper Profiling
+#include "mapper_profile.h"
 
 #endif /* ESSENTIALS_H_ */

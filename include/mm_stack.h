@@ -22,6 +22,13 @@
 #include "mm_slab.h"
 
 /*
+ * Debug
+ */
+#ifdef GEM_DEBUG
+#define MM_STACK_DEBUG
+#endif
+
+/*
  * Checkers
  */
 #define MM_STACK_CHECK(mm_stack) GEM_CHECK_NULL(mm_stack)
@@ -35,7 +42,8 @@ typedef struct {
   uint64_t memory_available;   // Total memory available
 } mm_stack_segment_t;
 typedef struct {
-  uint64_t segment_pos;            // Last segments being used
+  uint64_t current_segment;    // Last segments being used
+  void* memory;                // Pointer memory
   uint64_t memory_available;   // Total memory available (last segment)
 } mm_stack_state_t;
 typedef struct {

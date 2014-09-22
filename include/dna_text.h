@@ -10,52 +10,117 @@
 #ifndef DNA_TEXT_H_
 #define DNA_TEXT_H_
 
-#include "essentials.h"
-#include "dna_string.h"
+#include "commons.h"
+#include "fm.h"
+#include "mm.h"
 
-#include "stats_matrix.h"
-#include "stats_vector.h"
+/*
+ * Range of DNA Nucleotides
+ */
+#define DNA_RANGE     4
+#define DNA__N_RANGE  5
+#define DNA_EXT_RANGE 7
+
+#define DNA_RANGE_BITS 2
+#define DNA_EXT_RANGE_BITS 3
+
+/*
+ * DNA Nucleotides
+ */
+#define DNA_CHAR_A 'A'
+#define DNA_CHAR_C 'C'
+#define DNA_CHAR_G 'G'
+#define DNA_CHAR_T 'T'
+
+#define DNA_CHAR_N    'N'
+#define DNA_CHAR_SEP  '|'
+#define DNA_CHAR_JUMP 'J'
+
+/*
+ * Encoded DNA Nucleotides
+ */
+#define ENC_DNA_CHAR_A 0
+#define ENC_DNA_CHAR_C 1
+#define ENC_DNA_CHAR_G 2
+#define ENC_DNA_CHAR_T 3
+
+#define ENC_DNA_CHAR_N    4
+#define ENC_DNA_CHAR_SEP  5
+#define ENC_DNA_CHAR_JUMP 6
+
+/*
+ * Handy check functions
+ */
+extern const bool dna_table[256];
+extern const bool dna_encoded_table[DNA_EXT_RANGE];
+extern const bool extended_dna_table[256];
+extern const bool extended_dna_encoded_table[DNA_EXT_RANGE];
+extern const bool unmasked_dna_table[256];
+extern const bool iupac_code_table[256];
+
+extern const char dna_normalized_table[256];
+extern const char dna_strictly_normalized_table[256];
+extern const char dna_complement_table[256];
+extern const uint8_t dna_encoded_complement_table[DNA_EXT_RANGE];
+
+extern const uint8_t dna_encode_table[256];
+extern const char dna_decode_table[DNA_EXT_RANGE];
+
+extern const uint8_t dna_encoded_colorspace_table[DNA_EXT_RANGE][DNA_EXT_RANGE];
+
+#define is_dna(character)          (dna_table[(int)(character)])
+#define is_dna_encoded(character)  (dna_encoded_table[(int)(character)])
+#define is_extended_dna(character)         (extended_dna_table[(int)(character)])
+#define is_extended_dna_encoded(character) (extended_dna_encoded_table[(int)(character)])
+#define is_unmasked_dna(character) (unmasked_dna_table[(int)(character)])
+#define is_iupac_code(character)   (iupac_code_table[(int)(character)])
+
+#define dna_normalized(character)          (dna_normalized_table[(int)(character)])
+#define dna_strictly_normalized(character) (dna_strictly_normalized_table[(int)(character)])
+#define dna_complement(character)          (dna_complement_table[(int)(character)])
+#define dna_encoded_complement(character)  (dna_encoded_complement_table[(int)(character)])
+
+#define dna_encode(character) (dna_encode_table[(int)(character)])
+#define dna_decode(enc_char)  (dna_decode_table[(int)(enc_char)])
+
+#define dna_encoded_colorspace(enc_char_0,enc_char_1) (dna_encoded_colorspace_table[(int)(enc_char_0)][(int)(enc_char_1)])
 
 /*
  * Checkers
  */
-#define DNA_TEXT_CHECK(dna_text) \
-  GEM_CHECK_NULL(dna_text)
+#define DNA_TEXT_CHECK(dna_text) GEM_CHECK_NULL(dna_text)
 
 /*
- *#define DNA_TEXT_CHECK(dna_text) \
- *  GEM_CHECK_NULL(dna_text); \
- *  GEM_CHECK_NULL(dna_text->text)
+ * Orientation (strand)
  */
-
+typedef enum { Forward, Reverse } strand_t;
 /*
- * DNA Text
+ * DNA-Text
  */
 typedef struct _dna_text_t dna_text_t;
-/*
- * DNA Text Stats
- */
-typedef struct {
-  /* Nucleotides */
-  stats_vector_t* nucleotides;
-  stats_vector_t* dimers;
-  stats_vector_t* trimers;
-  stats_vector_t* tetramers;
-  /* Runs */
-  stats_vector_t* runs;
-  /* Distance between nucleotide repetitions */
-  uint64_t* last_position;
-  stats_vector_t* distance_nucleotides;
-  /* Abundance => How many different nucleotides are there in each @SIZE-bucket (@SIZE chars) */
-  stats_vector_t* abundance_256nt;
-  stats_vector_t* abundance_128nt;
-  stats_vector_t* abundance_64nt;
-  stats_vector_t* abundance_32nt;
-  stats_vector_t* abundance_16nt;
-  stats_vector_t* abundance_8nt;
-  /* Internals */
-  // TODO
-} dna_text_stats_t;
+///*
+// * DNA-Text Stats
+// */
+//typedef struct {
+//  /* Nucleotides */
+//  stats_vector_t* nucleotides;
+//  stats_vector_t* dimers;
+//  stats_vector_t* trimers;
+//  stats_vector_t* tetramers;
+//  /* Runs */
+//  stats_vector_t* runs;
+//  /* Distance between nucleotide repetitions */
+//  uint64_t* last_position;
+//  stats_vector_t* distance_nucleotides;
+//  /* Abundance => How many different nucleotides are there in each @SIZE-bucket (@SIZE chars) */
+//  stats_vector_t* abundance_256nt;
+//  stats_vector_t* abundance_128nt;
+//  stats_vector_t* abundance_64nt;
+//  stats_vector_t* abundance_32nt;
+//  stats_vector_t* abundance_16nt;
+//  stats_vector_t* abundance_8nt;
+//  /* Internals */ // TODO
+//} dna_text_stats_t;
 
 /*
  * DNA Text
@@ -82,17 +147,17 @@ GEM_INLINE void dna_text_print(FILE* const stream,dna_text_t* const dna_text);
 GEM_INLINE void dna_text_print_content(FILE* const stream,dna_text_t* const dna_text);
 GEM_INLINE void dna_text_pretty_print_content(FILE* const stream,dna_text_t* const dna_text,const uint64_t width);
 
-/*
- * DNA Text [Stats]
- */
-GEM_INLINE dna_text_stats_t* dna_text_stats_new();
-GEM_INLINE void dna_text_stats_delete(dna_text_stats_t* const dna_text_stats);
-
-// Calculate Stats
-GEM_INLINE void dna_text_stats_record(dna_text_stats_t* const dna_text_stats,const uint8_t char_enc);
-
-// Display
-GEM_INLINE void dna_text_stats_print(FILE* const stream,dna_text_stats_t* const dna_text_stats);
+///*
+// * DNA Text [Stats]
+// */
+//GEM_INLINE dna_text_stats_t* dna_text_stats_new();
+//GEM_INLINE void dna_text_stats_delete(dna_text_stats_t* const dna_text_stats);
+//
+//// Calculate Stats
+//GEM_INLINE void dna_text_stats_record(dna_text_stats_t* const dna_text_stats,const uint8_t char_enc);
+//
+//// Display
+//GEM_INLINE void dna_text_stats_print(FILE* const stream,dna_text_stats_t* const dna_text_stats);
 
 /*
  * Errors

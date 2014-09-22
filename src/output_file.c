@@ -11,77 +11,76 @@
 /*
  * Setup
  */
-GEM_INLINE void output_file_init_buffers(output_file_t* const out_file) {
+GEM_INLINE void output_file_init_buffers(output_file_t* const output_file,const uint64_t max_output_buffers) {
   /* Output Buffers */
   uint64_t i;
-  for (i=0;i<MAX_OUTPUT_BUFFERS;++i) {
-    out_file->buffer[i]=NULL;
+  output_file->num_buffers = max_output_buffers;
+  output_file->buffer = mm_calloc(max_output_buffers,output_buffer_t*,true);
+  for (i=0;i<output_file->num_buffers;++i) {
+    output_file->buffer[i]=NULL;
   }
-  out_file->buffer_busy=0;
-  out_file->buffer_write_pending=0;
-  /* Block ID (for synchronization purposes) */
-  out_file->mayor_block_id=0;
-  out_file->minor_block_id=0;
+  output_file->buffer_free=max_output_buffers;
+  output_file->buffer_write_pending=0;
+  /* Block ID prioritization (for synchronization purposes) */
+  output_file->buffer_requests = pqueue_new(max_output_buffers);
+  output_file->next_output_mayor_id=0;
+  output_file->next_output_minor_id=0;
   /* Mutexes */
-  CV_INIT(out_file->out_buffer_cond);
-  CV_INIT(out_file->out_write_cond);
-  MUTEX_INIT(out_file->out_file_mutex);
+  CV_INIT(output_file->request_buffer_cond);
+  MUTEX_INIT(output_file->output_file_mutex);
 }
-output_file_t* output_file_new(char* const file_name,const output_file_type output_file_type) {
+output_file_t* output_file_new(char* const file_name,const uint64_t max_output_buffers) {
   GEM_CHECK_NULL(file_name);
-  output_file_t* out_file = mm_alloc(output_file_t);
+  output_file_t* output_file = mm_alloc(output_file_t);
   // Output file
-  out_file->file_manager = fm_open_file(file_name,FM_WRITE);
-  out_file->file_type = output_file_type;
+  output_file->file_manager = fm_open_file(file_name,FM_WRITE);
   // Setup buffers
-  output_file_init_buffers(out_file);
-  return out_file;
+  output_file_init_buffers(output_file,max_output_buffers);
+  return output_file;
 }
-output_file_t* output_stream_new(FILE* const stream,const output_file_type output_file_type) {
+output_file_t* output_stream_new(FILE* const stream,const uint64_t max_output_buffers) {
   GEM_CHECK_NULL(stream);
-  output_file_t* out_file = mm_alloc(output_file_t);
+  output_file_t* output_file = mm_alloc(output_file_t);
   // Output file
-  out_file->file_manager = fm_open_FILE(stream,FM_WRITE);
-  out_file->file_type = output_file_type;
+  output_file->file_manager = fm_open_FILE(stream,FM_WRITE);
   // Setup buffers
-  output_file_init_buffers(out_file);
-  return out_file;
+  output_file_init_buffers(output_file,max_output_buffers);
+  return output_file;
 }
-output_file_t* output_gzip_stream_new(FILE* const stream,const output_file_type output_file_type) {
+output_file_t* output_gzip_stream_new(FILE* const stream,const uint64_t max_output_buffers) {
   GEM_CHECK_NULL(stream);
-  output_file_t* out_file = mm_alloc(output_file_t);
+  output_file_t* output_file = mm_alloc(output_file_t);
   // Output file
-  out_file->file_manager = fm_open_gzFILE(stream,FM_WRITE);
-  out_file->file_type = output_file_type;
+  output_file->file_manager = fm_open_gzFILE(stream,FM_WRITE);
   // Setup buffers
-  output_file_init_buffers(out_file);
-  return out_file;
+  output_file_init_buffers(output_file,max_output_buffers);
+  return output_file;
 }
-output_file_t* output_bzip_stream_new(FILE* const stream,const output_file_type output_file_type) {
+output_file_t* output_bzip_stream_new(FILE* const stream,const uint64_t max_output_buffers) {
   GEM_CHECK_NULL(stream);
-  output_file_t* out_file = mm_alloc(output_file_t);
+  output_file_t* output_file = mm_alloc(output_file_t);
   // Output file
-  out_file->file_manager = fm_open_bzFILE(stream,FM_WRITE);
-  out_file->file_type = output_file_type;
+  output_file->file_manager = fm_open_bzFILE(stream,FM_WRITE);
   // Setup buffers
-  output_file_init_buffers(out_file);
-  return out_file;
+  output_file_init_buffers(output_file,max_output_buffers);
+  return output_file;
 }
-void output_file_close(output_file_t* const out_file) {
-  OUTPUT_FILE_CONSISTENCY_CHECK(out_file);
+void output_file_close(output_file_t* const output_file) {
   // Output file
-  fm_close(out_file->file_manager);
+  fm_close(output_file->file_manager);
   // Delete allocated buffers
   uint64_t i;
-  for (i=0;i<MAX_OUTPUT_BUFFERS && out_file->buffer[i]!=NULL;++i) {
-    output_buffer_delete(out_file->buffer[i]);
+  for (i=0;i<output_file->num_buffers && output_file->buffer[i]!=NULL;++i) {
+    output_buffer_delete(output_file->buffer[i]);
   }
+  mm_free(output_file->buffer);
+  // Prioritization
+  pqueue_delete(output_file->buffer_requests);
   // Free mutex/CV
-  CV_DESTROY(out_file->out_buffer_cond);
-  CV_DESTROY(out_file->out_write_cond);
-  MUTEX_DESTROY(out_file->out_file_mutex);
+  CV_DESTROY(output_file->request_buffer_cond);
+  MUTEX_DESTROY(output_file->output_file_mutex);
   // Free handler
-  mm_free(out_file);
+  mm_free(output_file);
 }
 /*
  * Output File Printers
@@ -90,11 +89,11 @@ GEM_INLINE int vofprintf(output_file_t* const out_file,const char *template,va_l
   OUTPUT_FILE_CHECK(out_file);
   GEM_CHECK_NULL(template);
   int num_bytes;
-  MUTEX_BEGIN_SECTION(out_file->out_file_mutex)
+  MUTEX_BEGIN_SECTION(out_file->output_file_mutex)
   {
     num_bytes = vfmprintf(out_file->file_manager,template,v_args);
   }
-  MUTEX_END_SECTION(out_file->out_file_mutex);
+  MUTEX_END_SECTION(out_file->output_file_mutex);
   return num_bytes;
 }
 GEM_INLINE int ofprintf(output_file_t* const out_file,const char *template,...) {
@@ -107,161 +106,198 @@ GEM_INLINE int ofprintf(output_file_t* const out_file,const char *template,...) 
   return num_bytes;
 }
 /*
- * Internal Buffers Accessors
+ * Conditions
  */
-GEM_INLINE output_buffer_t* output_file_get_buffer(output_file_t* const out_file) {
-  OUTPUT_FILE_CONSISTENCY_CHECK(out_file);
-  // Conditional guard. Wait till there is any free buffer left
-  while (out_file->buffer_busy==MAX_OUTPUT_BUFFERS) {
-    CV_WAIT(out_file->out_buffer_cond,out_file->out_file_mutex);
+GEM_INLINE bool output_file_serve_buffer_cond(
+    output_file_t* const output_file,const uint64_t block_id) {
+  // 0. We need a buffer free to be served [Security check to make it more robust]
+  if (output_file->buffer_free==0) return false;
+  // 1. Serve if request is the next in-order (next_request_id)
+  const bool next_in_order = output_file->next_output_mayor_id==block_id;
+  if (next_in_order) return true;
+  // 2.1 Serve if we have at least one more buffer left to serve the next in-order (next_request_id)
+  // 2.2 and the request is the next in the priority queue
+  if (output_file->buffer_free>1 && pqueue_top_priority(output_file->buffer_requests)==block_id) {
+    return true;
+  } else {
+    return false;
   }
-  // There is at least one free buffer. Get it!
-  uint64_t i;
-  for (i=0;i<MAX_OUTPUT_BUFFERS&&out_file->buffer[i]!=NULL;++i) {
-    if (output_buffer_get_state(out_file->buffer[i])==OUTPUT_BUFFER_FREE) break;
-  }
-  if (out_file->buffer[i]==NULL) {
-    out_file->buffer[i] = output_buffer_new();
-  }
-  ++out_file->buffer_busy;
-  output_buffer_initiallize(out_file->buffer[i],OUTPUT_BUFFER_BUSY);
-  return out_file->buffer[i];
 }
-GEM_INLINE output_buffer_t* output_file_request_buffer(output_file_t* const out_file) {
-  OUTPUT_FILE_CONSISTENCY_CHECK(out_file);
-  output_buffer_t* fresh_buffer;
-  MUTEX_BEGIN_SECTION(out_file->out_file_mutex)
-  {
-    fresh_buffer = output_file_get_buffer(out_file);
+GEM_INLINE bool output_file_eligible_request_cond(output_file_t* const output_file) {
+  return !pqueue_is_empty(output_file->buffer_requests) && output_file->buffer_free>0;
+}
+GEM_INLINE bool output_file_write_victim_cond(
+    output_file_t* const output_file,output_buffer_t* const output_buffer) {
+  return (output_file->next_output_mayor_id==output_buffer->mayor_block_id &&
+          output_file->next_output_minor_id==output_buffer->minor_block_id);
+}
+/*
+ * Accessors
+ */
+GEM_INLINE output_buffer_t* output_file_get_free_buffer(output_file_t* const output_file) {
+  // There is at least one free buffer. Get it!
+  GEM_INTERNAL_CHECK(output_file->buffer_free > 0,"Output file. Cannot serve; no free buffers");
+  uint64_t i;
+  for (i=0;i<output_file->num_buffers && output_file->buffer[i]!=NULL;++i) {
+    if (output_buffer_get_state(output_file->buffer[i])==OUTPUT_BUFFER_FREE) {
+      return output_file->buffer[i];
+    }
   }
-  MUTEX_END_SECTION(out_file->out_file_mutex);
-  return fresh_buffer;
+  // Lazy allocation
+  if (i>=output_file->num_buffers) {
+    GEM_INTERNAL_CHECK(i<output_file->num_buffers,"Output file. Could not find free buffer");
+  }
+  GEM_INTERNAL_CHECK(i<output_file->num_buffers,"Output file. Could not find free buffer");
+  if (output_file->buffer[i]==NULL) output_file->buffer[i] = output_buffer_new();
+  // Return
+  return output_file->buffer[i];
+}
+GEM_INLINE output_buffer_t* output_file_get_next_buffer_to_write(output_file_t* const output_file) {
+  if (output_file->buffer_write_pending > 0) {
+    const uint32_t mayor_block_id = output_file->next_output_mayor_id;
+    const uint32_t minor_block_id = output_file->next_output_minor_id;
+    uint64_t i;
+    for (i=0;i<output_file->num_buffers && output_file->buffer[i]!=NULL;++i) {
+      if (output_buffer_get_state(output_file->buffer[i]) == OUTPUT_BUFFER_WRITE_PENDING &&
+          mayor_block_id==output_file->buffer[i]->mayor_block_id &&
+          minor_block_id==output_file->buffer[i]->minor_block_id) {
+        return output_file->buffer[i];
+      }
+    }
+  }
+  return NULL;
+}
+/*
+ * Utils
+ */
+GEM_INLINE void output_file_print_buffers(FILE* stream,output_file_t* const output_file) {
+  uint64_t i;
+  for (i=0;i<output_file->num_buffers;++i) {
+    if (output_file->buffer[i] == NULL) break;
+    fprintf(stream,"[(%u,%u),%s,%s]",
+        output_file->buffer[i]->mayor_block_id,
+        output_file->buffer[i]->minor_block_id,
+        output_file->buffer[i]->is_final_block ? "F":"I",
+        output_file->buffer[i]->buffer_state==OUTPUT_BUFFER_FREE ? "Free" :
+            (output_file->buffer[i]->buffer_state==OUTPUT_BUFFER_BUSY ? "Busy" : "PendW"));
+  }
+  fprintf(stream,"\n");
 }
 GEM_INLINE void output_file_release_buffer(
-    output_file_t* const out_file,output_buffer_t* const output_buffer) {
-  OUTPUT_FILE_CONSISTENCY_CHECK(out_file);
-  OUTPUT_BUFFER_CHECK(output_buffer);
-  // Broadcast. Wake up sleepy.
-  if (out_file->buffer_busy==MAX_OUTPUT_BUFFERS) {
-    CV_BROADCAST(out_file->out_buffer_cond);
-  }
+    output_file_t* const output_file,output_buffer_t* const output_buffer) {
   // Free buffer
   output_buffer_set_state(output_buffer,OUTPUT_BUFFER_FREE);
-  --out_file->buffer_busy;
   output_buffer_clear(output_buffer);
+  ++output_file->buffer_free; // Inc number of free buffers
 }
-GEM_INLINE void output_file_return_buffer(
-    output_file_t* const out_file,output_buffer_t* const output_buffer) {
-  OUTPUT_FILE_CONSISTENCY_CHECK(out_file);
-  OUTPUT_BUFFER_CHECK(output_buffer);
-  MUTEX_BEGIN_SECTION(out_file->out_file_mutex)
+GEM_INLINE output_buffer_t* output_file_request_buffer(
+    output_file_t* const output_file,const uint64_t block_id) {
+  PROF_INC_COUNTER(GP_OUTPUT_BUFFER_REQUESTS);
+  output_buffer_t* output_buffer = NULL;
+  MUTEX_BEGIN_SECTION(output_file->output_file_mutex)
   {
-    output_file_release_buffer(out_file,output_buffer);
-  }
-  MUTEX_END_SECTION(out_file->out_file_mutex);
-}
-GEM_INLINE output_buffer_t* output_file_write_buffer(
-    output_file_t* const out_file,output_buffer_t* const output_buffer) {
-  OUTPUT_FILE_CONSISTENCY_CHECK(out_file);
-  if (output_buffer_get_used(output_buffer) > 0) {
-    vector_t* const vbuffer = output_buffer_to_vchar(output_buffer);
-    MUTEX_BEGIN_SECTION(out_file->out_file_mutex)
-    {
-      fm_write_mem(out_file->file_manager,vector_get_mem(vbuffer,char),vector_get_used(vbuffer));
+    // Add request to queue
+    pqueue_push(output_file->buffer_requests,NULL,block_id);
+    while (!output_file_serve_buffer_cond(output_file,block_id)) {
+      PROF_INC_COUNTER(GP_OUTPUT_BUFFER_REQUESTS_STALLS);
+      PROF_BLOCK() {
+        if (output_file->buffer_free==0) {
+          PROF_INC_COUNTER(GP_OUTPUT_BUFFER_REQUESTS_STALLS_BUSY);
+        } else {
+          PROF_INC_COUNTER(GP_OUTPUT_BUFFER_REQUESTS_STALLS_NOT_PRIORITY);
+        }
+      }
+      CV_WAIT(output_file->request_buffer_cond,output_file->output_file_mutex);
     }
-    MUTEX_END_SECTION(out_file->out_file_mutex);
+    // Get a free buffer & set state busy
+    output_buffer = output_file_get_free_buffer(output_file);
+    output_buffer_clear(output_buffer);
+    output_buffer_set_state(output_buffer,OUTPUT_BUFFER_BUSY);
+    output_buffer->mayor_block_id = block_id;
+    output_buffer->minor_block_id = 0;
+    --output_file->buffer_free; // Dec number of free buffers
+    // Update next in-order (next_request_id) & priority-queue
+    pqueue_pop(output_file->buffer_requests,void);
+    // Broadcast if any there are requests possible eligible
+    if (output_file_eligible_request_cond(output_file)) {
+      CV_BROADCAST(output_file->request_buffer_cond);
+    }
   }
-  output_buffer_initiallize(output_buffer,OUTPUT_BUFFER_BUSY);
+  MUTEX_END_SECTION(output_file->output_file_mutex);
+  // Return buffer
   return output_buffer;
 }
-GEM_INLINE output_buffer_t* output_file_sorted_write_buffer_asynchronous(
-    output_file_t* const out_file,output_buffer_t* output_buffer,const bool asynchronous) {
-  OUTPUT_FILE_CONSISTENCY_CHECK(out_file);
+GEM_INLINE output_buffer_t* output_file_request_buffer_extension(
+    output_file_t* const output_file,output_buffer_t* const output_buffer) {
+  PROF_INC_COUNTER(GP_OUTPUT_BUFFER_EXTENSIONS);
+  // Set current output-buffer as incomplete
+  const uint64_t mayor_block_id = output_buffer->mayor_block_id;
+  const uint64_t minor_block_id = output_buffer->minor_block_id;
+  output_buffer_set_incomplete(output_buffer);
+  // Output current output-buffer
+  output_file_return_buffer(output_file,output_buffer);
+  // Request a new one
+  output_buffer_t* const output_buffer_extension =
+      output_file_request_buffer(output_file,mayor_block_id);
+  output_buffer_extension->minor_block_id = minor_block_id+1;
+  return output_buffer_extension;
+}
+GEM_INLINE void output_file_next_block_id(
+    output_file_t* const output_file,output_buffer_t* const output_buffer) {
+  if (output_buffer->is_final_block) {
+    ++output_file->next_output_mayor_id;
+    output_file->next_output_minor_id = 0;
+  } else {
+    ++output_file->next_output_minor_id;
+  }
+}
+GEM_INLINE void output_file_return_buffer(
+    output_file_t* const output_file,output_buffer_t* output_buffer) {
   // Set the block buffer as write pending and set the victim
-  bool victim;
-  uint32_t mayor_block_id, minor_block_id;
-  MUTEX_BEGIN_SECTION(out_file->out_file_mutex)
+  MUTEX_BEGIN_SECTION(output_file->output_file_mutex)
   {
-    victim = (out_file->mayor_block_id==output_buffer_get_mayor_block_id(output_buffer) &&
-              out_file->minor_block_id==output_buffer_get_minor_block_id(output_buffer));
-    while (!asynchronous && !victim) {
-      CV_WAIT(out_file->out_write_cond,out_file->out_file_mutex);
-      victim = (out_file->mayor_block_id==output_buffer_get_mayor_block_id(output_buffer) &&
-                out_file->minor_block_id==output_buffer_get_minor_block_id(output_buffer));
-    }
     // Set the buffer as write pending
-    ++out_file->buffer_write_pending;
+    ++output_file->buffer_write_pending;
     output_buffer_set_state(output_buffer,OUTPUT_BUFFER_WRITE_PENDING);
-    if (!victim) { // Enqueue the buffer and continue (someone else will do the writing)
-      output_buffer = output_file_get_buffer(out_file);
-      MUTEX_END_SECTION(out_file->out_file_mutex);
-      return output_buffer;
-    } else {
-      mayor_block_id = out_file->mayor_block_id;
-      minor_block_id = out_file->minor_block_id;
+    if (!output_file_write_victim_cond(output_file,output_buffer)) {
+      // Enqueue the buffer and continue (someone else will do the writing)
+      MUTEX_END_SECTION(output_file->output_file_mutex);
+      return;
     }
   }
-  MUTEX_END_SECTION(out_file->out_file_mutex);
-  // I'm the victim, I will output as much as I can
+  MUTEX_END_SECTION(output_file->output_file_mutex);
+  // I'm the victim (I will output as much as I can)
+  bool keep_on_writing = true;
   do {
     // Write the current buffer
     if (output_buffer_get_used(output_buffer) > 0) {
+      PROF_START_TIMER(GP_OUTPUT_WRITE_BUFFER);
       vector_t* const vbuffer = output_buffer_to_vchar(output_buffer);
-      fm_write_mem(out_file->file_manager,vector_get_mem(vbuffer,char),vector_get_used(vbuffer));
+      fm_write_mem(output_file->file_manager,vector_get_mem(vbuffer,char),vector_get_used(vbuffer));
+      PROF_ADD_COUNTER(GP_OUTPUT_BYTES_WRITTEN,vector_get_used(vbuffer));
+      PROF_STOP_TIMER(GP_OUTPUT_WRITE_BUFFER);
     }
     // Update buffers' state
-    MUTEX_BEGIN_SECTION(out_file->out_file_mutex) {
-      // Decrement write-pending blocks and update next block ID (mayorID,minorID)
-      --out_file->buffer_write_pending;
-      if (output_buffer->is_final_block) {
-        ++mayor_block_id;
-        minor_block_id = 0;
-      } else {
-        ++minor_block_id;
-      }
-      // Search for the next block buffer in order
-      bool next_found = false;
-      if (out_file->buffer_write_pending>0) {
-        uint64_t i;
-        for (i=0;i<MAX_OUTPUT_BUFFERS&&out_file->buffer[i]!=NULL;++i) {
-          if (mayor_block_id==output_buffer_get_mayor_block_id(out_file->buffer[i]) &&
-              minor_block_id==output_buffer_get_minor_block_id(out_file->buffer[i])) {
-            if (output_buffer_get_state(out_file->buffer[i])!=OUTPUT_BUFFER_WRITE_PENDING) {
-              break; // Cannot dump a busy buffer
-            } else {
-              // I'm still the victim, free the current buffer and output the new one
-              output_file_release_buffer(out_file,output_buffer);
-              next_found = true;
-              output_buffer = out_file->buffer[i];
-              break;
-            }
-          }
-        }
-      }
-      if (!next_found) {
+    MUTEX_BEGIN_SECTION(output_file->output_file_mutex) {
+      // Decrement write-pending blocks
+      --output_file->buffer_write_pending;
+      // Update next block ID (mayorID,minorID)
+      output_file_next_block_id(output_file,output_buffer);
+      // Release the current buffer
+      output_file_release_buffer(output_file,output_buffer);
+      // Search for the next output-buffer (in order)
+      output_buffer_t* const next_output_buffer = output_file_get_next_buffer_to_write(output_file);
+      if (next_output_buffer==NULL) {
         // Fine, I'm done, let's get out of here ASAP
-        out_file->mayor_block_id = mayor_block_id;
-        out_file->minor_block_id = minor_block_id;
-        output_buffer_initiallize(output_buffer,OUTPUT_BUFFER_BUSY);
-        CV_BROADCAST(out_file->out_write_cond);
-        MUTEX_END_SECTION(out_file->out_file_mutex);
-        return output_buffer;
+        keep_on_writing = false;
+        // Broadcast. Wake up sleepy.
+        if (output_file_eligible_request_cond(output_file)) {
+          CV_BROADCAST(output_file->request_buffer_cond);
+        }
+      } else {
+        output_buffer = next_output_buffer;
       }
-    } MUTEX_END_SECTION(out_file->out_file_mutex);
-  } while (true);
+    } MUTEX_END_SECTION(output_file->output_file_mutex);
+  } while (keep_on_writing);
 }
-GEM_INLINE output_buffer_t* output_file_dump_buffer(
-    output_file_t* const out_file,output_buffer_t* const output_buffer,const bool asynchronous) {
-  OUTPUT_FILE_CONSISTENCY_CHECK(out_file);
-  switch (out_file->file_type) {
-    case SORTED_FILE:
-      return output_file_sorted_write_buffer_asynchronous(out_file,output_buffer,asynchronous);
-      break;
-    case UNSORTED_FILE:
-      return output_file_write_buffer(out_file,output_buffer);
-      break;
-    default:
-      GEM_INVALID_CASE();
-      break;
-  }
-}
+

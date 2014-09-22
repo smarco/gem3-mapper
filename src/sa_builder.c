@@ -9,7 +9,6 @@
  */
 
 #include "sa_builder.h"
-#include "dna_string.h"
 #include "stats_vector.h"
 
 /*
@@ -422,10 +421,8 @@ GEM_INLINE void sa_builder_ds_shallow_mkq(uint64_t* const a,const uint64_t n,con
       // All values were equal to partval: make it simpler
       next_depth = text+4;
       if (next_depth >= ds_shallow_text_limit) {
-        PROF_START_TIMER(40);
         // helped_sort(a,n,next_depth-Text); // FIXME
         qsort(a,n,sizeof(uint64_t),(int (*)(const void *,const void *))sa_builder_suffix_cmp);
-        PROF_STOP_TIMER(40);
         return;
       } else {
         text = next_depth;
@@ -452,10 +449,8 @@ GEM_INLINE void sa_builder_ds_shallow_mkq(uint64_t* const a,const uint64_t n,con
   if (next_depth < ds_shallow_text_limit) {
     sa_builder_ds_shallow_mkq(a+r,pa-pd+n-1,next_depth);
   } else {
-    PROF_START_TIMER(40);
     // helped_sort(a+r,pa-pd+n-1,next_depth-Text); // FIXME
     qsort(a+r,pa-pd+n-1,sizeof(uint64_t),(int (*)(const void *,const void *))sa_builder_suffix_cmp);
-    PROF_STOP_TIMER(40);
   }
   // Sort greater strings (SA>)
   if ((r = pd-pc) > 1) {
@@ -596,7 +591,6 @@ GEM_INLINE void sa_builder_sort_suffixes(
     gem_cond_fatal_error(pthread_join(sa_builder->pthreads[i],0),SYS_THREAD_JOIN);
   }
   ticker_finish(&sa_builder->ticker);
-  gem_log("[Time.QS %2.4f]",PROF_GET_TIMER(40));
   // Free
   for (i=0;i<num_threads;++i) {
     fm_close(sa_builder->sa_file_reader[i]);

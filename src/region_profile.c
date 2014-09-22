@@ -8,6 +8,8 @@
 
 #include "region_profile.h"
 
+#include "mapper_profile.h"
+
 /*
  * Setup
  */
@@ -110,7 +112,7 @@ GEM_INLINE void region_profile_generate_adaptive(
     const uint64_t rp_region_th,const uint64_t rp_max_steps,
     const uint64_t rp_dec_factor,const uint64_t rp_region_type_th,
     const uint64_t max_regions,const bool allow_zero_regions) {
-  PROF_START_TIMER(GP_REGION_PROFILE_ADAPTIVE);
+  PROF_START(GP_REGION_PROFILE_ADAPTIVE);
   filtering_region_t* const regions = region_profile->filtering_region;
   uint64_t num_regions = 0, num_standard_regions = 0, last_cut = 0;
   uint64_t lo, hi, hi_cut, lo_cut, expected_count, max_steps;
@@ -141,6 +143,7 @@ GEM_INLINE void region_profile_generate_adaptive(
     if (!rank_mquery_is_exhausted(&rank_mquery)
         /* && lookupLevel > MIN_LOOKUP_FETCH(properLength/4) TODO */) {
       rank_mquery_add_char(rank_mtable,&rank_mquery,enc_char);
+      rank_mtable_fetch(rank_mtable,&rank_mquery,&lo,&hi);
     } else {
       lo = bwt_erank(fm_index->bwt,enc_char,lo);
       hi = bwt_erank(fm_index->bwt,enc_char,hi);
@@ -196,7 +199,7 @@ GEM_INLINE void region_profile_generate_adaptive(
   regions[num_regions].lo=lo;
   regions[num_regions].hi=hi;
 
-  PROF_STOP_TIMER(GP_REGION_PROFILE_ADAPTIVE);
+  PROF_STOP(GP_REGION_PROFILE_ADAPTIVE);
 }
 GEM_INLINE void region_profile_generate_full_progressive(
     region_profile_t* const region_profile,region_t* const base_region,

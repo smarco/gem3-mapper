@@ -32,16 +32,13 @@ typedef struct {
 /*
  * Checkers
  */
-#define OUTPUT_BUFFER_CHECK(output_buffer) \
-    GEM_CHECK_NULL(output_buffer); \
-    GEM_CHECK_NULL((output_buffer)->buffer)
+#define OUTPUT_BUFFER_CHECK(output_buffer) GEM_CHECK_NULL(output_buffer)
 
 /*
  * Setup
  */
 GEM_INLINE output_buffer_t* output_buffer_new(void);
 GEM_INLINE void output_buffer_clear(output_buffer_t* const out_buffer);
-GEM_INLINE void output_buffer_initiallize(output_buffer_t* const out_buffer,const output_buffer_state_t buffer_state);
 GEM_INLINE void output_buffer_delete(output_buffer_t* const out_buffer);
 
 /*
@@ -49,14 +46,7 @@ GEM_INLINE void output_buffer_delete(output_buffer_t* const out_buffer);
  */
 GEM_INLINE void output_buffer_set_state(output_buffer_t* const output_buffer,const output_buffer_state_t buffer_state);
 GEM_INLINE output_buffer_state_t output_buffer_get_state(output_buffer_t* const output_buffer);
-GEM_INLINE void output_buffer_set_partial_block(output_buffer_t* const output_buffer);
-
-GEM_INLINE void output_buffer_set_mayor_block_id(output_buffer_t* const output_buffer,const uint32_t mayor_block_id);
-GEM_INLINE uint32_t output_buffer_get_mayor_block_id(output_buffer_t* const output_buffer);
-GEM_INLINE void output_buffer_set_minor_block_id(output_buffer_t* const output_buffer,const uint32_t minor_block_id);
-GEM_INLINE uint32_t output_buffer_get_minor_block_id(output_buffer_t* const output_buffer);
-GEM_INLINE void output_buffer_inc_minor_block_id(output_buffer_t* const output_buffer);
-
+GEM_INLINE void output_buffer_set_incomplete(output_buffer_t* const output_buffer);
 GEM_INLINE uint64_t output_buffer_get_used(output_buffer_t* const output_buffer);
 
 /*

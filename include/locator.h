@@ -11,7 +11,6 @@
 
 #include "essentials.h"
 #include "segmented_vector.h"
-#include "dna_string.h"
 
 /*
  * Checkers

@@ -8,7 +8,7 @@
 
 #include "output_buffer.h"
 #include "vector.h"
-#define OUTPUT_BUFFER_INITIAL_SIZE BUFFER_SIZE_16M
+#define OUTPUT_BUFFER_INITIAL_SIZE BUFFER_SIZE_4M
 
 /*
  * Setup
@@ -16,20 +16,16 @@
 GEM_INLINE output_buffer_t* output_buffer_new(void) {
   output_buffer_t* out_buffer = mm_alloc(output_buffer_t);
   out_buffer->buffer = vector_new(OUTPUT_BUFFER_INITIAL_SIZE,char);
-  output_buffer_initiallize(out_buffer,OUTPUT_BUFFER_FREE);
+  output_buffer_clear(out_buffer);
+  output_buffer_set_state(out_buffer,OUTPUT_BUFFER_FREE);
   return out_buffer;
 }
 GEM_INLINE void output_buffer_clear(output_buffer_t* const out_buffer) {
   OUTPUT_BUFFER_CHECK(out_buffer);
-  out_buffer->mayor_block_id=UINT32_MAX;
+  out_buffer->mayor_block_id=0;
   out_buffer->minor_block_id=0;
   out_buffer->is_final_block=true;
   vector_clear(out_buffer->buffer);
-}
-GEM_INLINE void output_buffer_initiallize(output_buffer_t* const out_buffer,const output_buffer_state_t buffer_state) {
-  OUTPUT_BUFFER_CHECK(out_buffer);
-  output_buffer_clear(out_buffer);
-  output_buffer_set_state(out_buffer,buffer_state);
 }
 GEM_INLINE void output_buffer_delete(output_buffer_t* const out_buffer) {
   OUTPUT_BUFFER_CHECK(out_buffer);
@@ -47,29 +43,9 @@ GEM_INLINE output_buffer_state_t output_buffer_get_state(output_buffer_t* const 
   OUTPUT_BUFFER_CHECK(out_buffer);
   return out_buffer->buffer_state;
 }
-GEM_INLINE void output_buffer_set_partial_block(output_buffer_t* const out_buffer) {
+GEM_INLINE void output_buffer_set_incomplete(output_buffer_t* const out_buffer) {
   OUTPUT_BUFFER_CHECK(out_buffer);
   out_buffer->is_final_block=false;
-}
-GEM_INLINE void output_buffer_set_mayor_block_id(output_buffer_t* const out_buffer,const uint32_t mayor_block_id) {
-  OUTPUT_BUFFER_CHECK(out_buffer);
-  out_buffer->mayor_block_id=mayor_block_id;
-}
-GEM_INLINE uint32_t output_buffer_get_mayor_block_id(output_buffer_t* const out_buffer) {
-  OUTPUT_BUFFER_CHECK(out_buffer);
-  return out_buffer->mayor_block_id;
-}
-GEM_INLINE void output_buffer_set_minor_block_id(output_buffer_t* const out_buffer,const uint32_t minor_block_id) {
-  OUTPUT_BUFFER_CHECK(out_buffer);
-  out_buffer->minor_block_id=minor_block_id;
-}
-GEM_INLINE uint32_t output_buffer_get_minor_block_id(output_buffer_t* const out_buffer) {
-  OUTPUT_BUFFER_CHECK(out_buffer);
-  return out_buffer->minor_block_id;
-}
-GEM_INLINE void output_buffer_inc_minor_block_id(output_buffer_t* const out_buffer) {
-  OUTPUT_BUFFER_CHECK(out_buffer);
-  ++out_buffer->minor_block_id;
 }
 GEM_INLINE uint64_t output_buffer_get_used(output_buffer_t* const out_buffer) {
   OUTPUT_BUFFER_CHECK(out_buffer);

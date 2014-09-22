@@ -13,7 +13,7 @@ include ../Makefile.mk
 # Basic Modules
 MODULES =commons gthread profiler report errors gthread \
          fm mm mm_slab mm_stack mm_pool \
-         vector ihash shash string_buffer segmented_vector \
+         vector ihash shash priority_queue string_buffer segmented_vector \
          profiler stats_vector stats_matrix
 # I/O
 MODULES+=input_file buffered_input_file input_parser \
@@ -21,12 +21,9 @@ MODULES+=input_file buffered_input_file input_parser \
          output_file output_buffer buffered_output_file buffered_file_printer \
          output_map output_sam
 # Advance Data Structures
-MODULES+=sequence dna_string dna_text cdna_text cdna_bitwise_text \
+MODULES+=sequence dna_text cdna_text cdna_bitwise_text \
          sparse_bitmap sparse_array_locator packed_integer_array \
-         text_collection \
-         graph_text graph_text_builder
-# Misc
-MODULES+=options_menu 
+         text_collection graph_text graph_text_builder \
 # GEM Structures
 MODULES+=archive_builder archive_text_builder archive_hypertext_builder archive_index_builder sa_builder \
          bwt rank_mtable sampled_sa sampled_rl fm_index interval_set matches locator \
@@ -37,6 +34,8 @@ MODULES+=approximate_search_parameters approximate_search neighborhood_search \
          filtering_candidates region_profile bpm_align bpm_align_gpu quality_model
 # GEM Top-level Modules
 MODULES+=mapper mapper_cuda gem_core
+# Misc
+MODULES+=mapper_profile options_menu 
         
 SRCS=$(addsuffix .c, $(MODULES))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))

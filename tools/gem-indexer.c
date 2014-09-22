@@ -77,7 +77,7 @@ gem_indexer_parameters parameters = {
   .ns_threshold=50,
   .complement_size_threshold=BUFFER_SIZE_1G,
   /* FM-Index */
-  .sampling_rate=SAMPLING_RATE_16,
+  .sampling_rate=SAMPLING_RATE_4,
   .check_index = false,
   /* System */
   .num_threads=1,
@@ -245,7 +245,7 @@ option_t gem_indexer_options[] = {
   { 'N', "strip-unknown-bases-threshold", REQUIRED, TYPE_INT, 3 , true, "'disable'|<integer>" , "(default=50)" },
   { 301, "complement-size-threshold", REQUIRED, TYPE_INT, 3 , true, "<integer>" , "(default=2GB)" },
   /* FM-Index */
-  { 's', "sampling-rate", REQUIRED, TYPE_INT, 4 , true, "<sampling_rate>" , "{} (default=16)" },
+  { 's', "sampling-rate", REQUIRED, TYPE_INT, 4 , true, "<sampling_rate>" , "{} (default=4)" },
   { 400, "check-index", NO_ARGUMENT, TYPE_NONE, 4 , true, "", "(default=false)"},
   /* System */
   { 't', "threads", REQUIRED, TYPE_INT, 5 , true, "<number>" , "(default=1)" },
@@ -467,9 +467,8 @@ int main(int argc,char** argv) {
   parse_arguments(argc,argv);
 
   // GEM Runtime setup
-  gem_runtime_init(parameters.max_memory,parameters.tmp_folder,NULL);
+  gem_runtime_init(parameters.num_threads,parameters.max_memory,parameters.tmp_folder,NULL);
   gem_info_set_stream(fopen(parameters.info_file_name,"wb")); // Set INFO file
-  PROF_NEW(parameters.num_threads);
   TIMER_RESTART(&gem_indexer_timer); // Start global timer
 
   // GEM Archive Builder
@@ -504,13 +503,13 @@ int main(int argc,char** argv) {
   TIMER_STOP(&gem_indexer_timer);
   if (parameters.verbose) {
     tfprintf(stderr,"[GEM Index '%s' was successfully built in %2.3f min.] (see '%s.info' for further info)\n",
-        parameters.output_index_file_name,TIMER_GET_S(&gem_indexer_timer)/60.0,
+        parameters.output_index_file_name,TIMER_GET_TOTAL_M(&gem_indexer_timer),
         parameters.output_index_file_name_prefix);
   }
 
   // Free
   indexer_cleanup(archive_builder);
-  PROF_DELETE();
+  gem_runtime_destroy();
 
   return 0;
 }

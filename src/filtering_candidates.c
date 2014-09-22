@@ -12,7 +12,7 @@
  * Debug
  */
 #define DEBUG_ALIGN_CANDIDATES  false
-#define DEBUG_ALIGN_LEVENSHTEIN true
+#define DEBUG_ALIGN_LEVENSHTEIN false
 
 /*
  * Constants
@@ -216,7 +216,7 @@ GEM_INLINE void filtering_candidates_align_levenshtein(
     }
   }
 }
-GEM_INLINE void filtering_candidates_align(
+GEM_INLINE void filtering_candidates_verify_decoded(
     filtering_candidates_t* const filtering_candidates,text_collection_t* const candidates_collection,
     const pattern_t* const pattern,const strand_t search_strand,
     const search_actual_parameters_t* const search_actual_parameters,matches_t* const matches) {
@@ -301,45 +301,6 @@ GEM_INLINE void filtering_candidates_align(
   }
   // Update
   filtering_candidates->num_candidates_accepted = num_candidates_accepted;
-
-
-//          if (delta_position > position) { // Initial trim
-//            initial_trim = true;
-//            initial_trim_len = delta_position-position;
-//            offset_key += initial_trim_len;
-//            offset_key_len -= initial_trim_len;
-//          }
-//          if (delta_position+delta_decoded_len < position+key_len) { //  Final trim
-//            final_trim = true;
-//            final_trim_len = (position+key_len) - (delta_position+delta_decoded_len);
-//            offset_key_len -= final_trim_len;
-//          }
-
-//          if (offset_key_len<(int64_t)min_anchor_size) continue; // No enough anchor
-
-//
-//    //
-//    // Check single-indel distance
-//    //
-//    START_TIMER(TSC_CHECK_BIG_INDEL);
-//    const idx_t indel_delta = queries->f_gap_length;
-//    const uint64_t indel_key_len = key_len+2*indel_delta;
-//    if (indel_delta==0 || indel_delta<=max_distance || indel_delta>max_indel_len ||
-//        key_len < indel_key_len || position < indel_delta ||
-//        position+key_len+indel_delta >= a->text_length) continue;
-//    INC_COUNTER(GSC_CHECK_BIG_INDEL);
-//    if (fmi_decode(a,position-indel_delta,
-//        indel_key_len,decoded)!=indel_key_len) continue; // Gap found !
-//    correct = fmi_check_single_indel_candidate(a,key,position,decoded+indel_delta,
-//        key_len,indel_delta,allowed_chars,mismatch_mask,max_mismatches,
-//        &match_position,&match_end_position,&match_mismatches,misms);
-//    STOP_TIMER(TSC_CHECK_BIG_INDEL);
-//    if (correct) {  // CORRECT SBI, cool!!
-//      INC_COUNTER(GSC_BIG_INDEL);
-//      FMI_MATCHES_CHECK_DUPLICATES__STORE_MATCH(match_position,
-//          (match_end_position-match_position),match_mismatches);
-//    }
-//  }
 }
 /*
  * Retrieve all candidates(text) from the index
@@ -385,13 +346,13 @@ GEM_INLINE void filtering_candidates_adjust_position(
     effective_begin_position = locator_interval->begin_position;
   } else {
     effective_begin_position = (begin_position > boundary_error) ? begin_position-boundary_error : 0;
-    if (begin_position < locator_interval->begin_position) { // Adjust by locator-interval
+    if (effective_begin_position < locator_interval->begin_position) { // Adjust by locator-interval
       effective_begin_position = locator_interval->begin_position;
     }
   }
   uint64_t effective_end_position = candidate->cip_region_text_position + end_offset + boundary_error;
   if (effective_end_position >= locator_interval->end_position) { // Adjust by locator-interval
-    effective_end_position = locator_interval->begin_position; // Possible trim at the end
+    effective_end_position = locator_interval->end_position; // Possible trim at the end
   }
   candidate->cip_candidate_begin_position = begin_position;
   candidate->cip_eff_candidate_begin_position = effective_begin_position;
@@ -640,7 +601,11 @@ GEM_INLINE uint64_t filtering_candidates_discard_duplicates(
     // Check the position for duplicates (against previous position)
     const uint64_t position = text_candidate->cip_candidate_begin_position;
     const uint64_t delta = last_position<=position ? position-last_position : UINT64_MAX;
-    if (delta <= max_delta_difference) { // TODO delta=0 => Discard & delta>0 => Extend check
+    if (delta <= max_delta_difference) {
+      // FIXME
+      //  - delta=0 => Discard & delta>0 => Extend check
+      //  - Chained delta_discarded. Eg delta0 <=d delta1 <=d delta2 but delta0 </=d delta2
+      //  - Remove it instead of putting as FC_POSITION_DISCARDED
       text_candidate->cip_candidate_begin_position = FC_POSITION_DISCARDED;
       continue; // Repeated position
     }
@@ -655,19 +620,24 @@ GEM_INLINE uint64_t filtering_candidates_discard_duplicates(
  * Batch decode of all candidate positions (index-space -> text-space)
  *   (All the steps (CSA-lookup, rankQueries) are performed with prefetch-loops)
  */
-GEM_INLINE void filtering_candidates_verify_pending(
+GEM_INLINE void filtering_candidates_verify(
     filtering_candidates_t* const filtering_candidates,text_collection_t* const text_collection,
     const locator_t* const locator,const fm_index_t* const fm_index,
     const dna_text_t* const enc_text,const pattern_t* const pattern,const strand_t search_strand,
     const search_actual_parameters_t* const search_actual_parameters,matches_t* const matches) {
+  PROF_START(GP_FC_VERIFY);
 
   // Check non-empty pending candidates set
   uint64_t pending_candidates = filtering_candidates_get_pending_candidates(filtering_candidates);
-  if (pending_candidates==0) return; // Nothing to do
+  if (pending_candidates==0) {
+    PROF_STOP(GP_FC_VERIFY);
+    return; // Nothing to do
+  }
 
   // Batch decode+adjust of all positions of the candidates (cip_begin_position = decoded(cip_region_index_position))
+  PROF_START(GP_FC_DECODE);
   const uint64_t key_length = pattern->key_length;
-  const uint64_t boundary_error = search_actual_parameters->max_search_error_nominal;
+  const uint64_t boundary_error = search_actual_parameters->max_filtering_error_nominal;
 //  if (pending_candidates < FC_DECODE_NUM_POSITIONS_PREFETCHED) {
     filtering_candidates_decode_candidates_positions(
         locator,fm_index,filtering_candidates->candidate_positions,key_length,boundary_error);
@@ -675,26 +645,39 @@ GEM_INLINE void filtering_candidates_verify_pending(
 //    filtering_candidates_decode_candidates_positions_batch_prefetched(
 //        locator,fm_index,filtering_candidates->candidate_text_positions,key_length,boundary_error);
 //  }
+  PROF_STOP(GP_FC_DECODE);
 
   // Filter out duplicated positions (or already checked)
-  pending_candidates = filtering_candidates_discard_duplicates__add_to_verified(filtering_candidates,boundary_error);
-  if (pending_candidates==0) return;
+  pending_candidates =
+      filtering_candidates_discard_duplicates__add_to_verified(filtering_candidates,boundary_error);
+  if (pending_candidates==0) {
+    PROF_STOP(GP_FC_VERIFY);
+    return;
+  }
 
   // Retrieve text-candidates
   filtering_candidates_retrieve_candidates(filtering_candidates,text_collection,locator,enc_text);
 
   // Verify candidates
+  PROF_START(GP_FC_CHECK);
   matches_hint_add_match_trace(matches,pending_candidates); // Hint to matches
-  filtering_candidates_align(filtering_candidates,text_collection,pattern,search_strand,search_actual_parameters,matches);
+  filtering_candidates_verify_decoded(
+      filtering_candidates,text_collection,pattern,search_strand,search_actual_parameters,matches);
+  PROF_STOP(GP_FC_CHECK);
+
+  PROF_STOP(GP_FC_VERIFY);
 }
 GEM_INLINE uint64_t filtering_candidates_add_to_bpm_buffer(
     filtering_candidates_t* const filtering_candidates,
     const locator_t* const locator,const fm_index_t* const fm_index,
-    const dna_text_t* const enc_text,const pattern_t* const pattern,const strand_t search_strand,
+    const dna_text_t* const enc_text,pattern_t* const pattern,const strand_t search_strand,
     const search_actual_parameters_t* const search_actual_parameters,bpm_gpu_buffer_t* const bpm_gpu_buffer) {
+  PROF_START(GP_FC_VERIFY);
+
   // Batch decode+adjust of all positions of the candidates (cip_begin_position = decoded(cip_region_index_position))
+  PROF_START(GP_FC_DECODE);
   const uint64_t key_length = pattern->key_length;
-  const uint64_t boundary_error = search_actual_parameters->max_search_error_nominal;
+  const uint64_t boundary_error = search_actual_parameters->max_filtering_error_nominal;
 //  if (pending_candidates < FC_DECODE_NUM_POSITIONS_PREFETCHED) {
     filtering_candidates_decode_candidates_positions(
         locator,fm_index,filtering_candidates->candidate_positions,key_length,boundary_error);
@@ -702,30 +685,65 @@ GEM_INLINE uint64_t filtering_candidates_add_to_bpm_buffer(
 //    filtering_candidates_decode_candidates_positions_batch_prefetched(
 //        locator,fm_index,filtering_candidates->candidate_text_positions,key_length,boundary_error);
 //  }
+  PROF_STOP(GP_FC_DECODE);
 
   // Filter out duplicated positions
   const uint64_t pending_candidates =
       filtering_candidates_discard_duplicates(filtering_candidates,boundary_error);
-  if (pending_candidates==0) return 0;
+  if (pending_candidates==0) {
+    PROF_STOP(GP_FC_VERIFY);
+    return 0;
+  }
 
   // Add the pattern to the buffer (add a new query)
-  bpm_gpu_buffer_put_pattern(bpm_gpu_buffer,(bpm_pattern_t* const)&pattern->bpm_pattern);
+  bpm_gpu_buffer_put_pattern(bpm_gpu_buffer,pattern);
   // Traverse all candidates (text-space) & add them to the buffer
   const uint64_t num_candidates = vector_get_used(filtering_candidates->candidate_positions);
   candidate_position_t* text_candidate = vector_get_mem(filtering_candidates->candidate_positions,candidate_position_t);
-  uint64_t candidate_pos;
+  uint64_t candidate_pos, candidates_accepted=0;
   for (candidate_pos=0;candidate_pos<num_candidates;++candidate_pos,++text_candidate) {
+    if (text_candidate->cip_candidate_begin_position==FC_POSITION_DISCARDED) continue; // Skip Discarded
     const uint64_t eff_candidate_begin_position = text_candidate->cip_eff_candidate_begin_position;
     const uint64_t eff_text_length = text_candidate->cip_eff_candidate_end_position - eff_candidate_begin_position;
     bpm_gpu_buffer_put_candidate(bpm_gpu_buffer,eff_candidate_begin_position,eff_text_length);
+    ++candidates_accepted;
   }
 
-  // Clear candidates (makes no sense to keep storing anything)
-  filtering_candidates_clear(filtering_candidates);
-
   // Return the final number of candidates added to the buffer
-  return num_candidates;
+  PROF_STOP(GP_FC_VERIFY);
+  return candidates_accepted;
 }
-
+GEM_INLINE void filtering_candidates_verify_from_bpm_buffer(
+    const text_collection_t* const text_collection,const dna_text_t* const enc_text,
+    pattern_t* const pattern,const strand_t search_strand,
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t candidate_offset_begin,
+    const uint64_t candidate_offset_end, matches_t* const matches) {
+  // Count total candidates
+  const uint64_t total_candidates = candidate_offset_end-candidate_offset_begin;
+  if (gem_expect_false(total_candidates==0)) return;
+  // Hint to matches
+  matches_hint_add_match_trace(matches,total_candidates);
+  // Traverse all candidates
+  const uint64_t max_effective_filtering_error = pattern->max_effective_filtering_error;
+  uint64_t i;
+  for (i=candidate_offset_begin;i<candidate_offset_end;++i) {
+    uint32_t levenshtein_distance, levenshtein_match_pos;
+    bpm_gpu_buffer_get_candidate_result(bpm_gpu_buffer,i,&levenshtein_distance,&levenshtein_match_pos);
+    if (levenshtein_distance <= max_effective_filtering_error) {
+      // Get the accepted candidate
+      uint32_t candidate_text_position, candidate_length;
+      bpm_gpu_buffer_get_candidate(bpm_gpu_buffer,i,&candidate_text_position,&candidate_length);
+      // Allocate text-trace
+      const uint64_t text_trace_offset = text_collection_new_trace(text_collection);
+      text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
+      text_trace->text = dna_text_get_buffer(enc_text) + candidate_text_position;
+      PREFETCH(text_trace->text); // Prefetch text // TODO Hint later on (LLC)
+      text_trace->length = candidate_length;
+      // Store match
+      matches_add_match_trace_mark(matches,text_trace_offset,
+          candidate_text_position,levenshtein_distance,0,levenshtein_match_pos,search_strand,true);
+    }
+  }
+}
 
 

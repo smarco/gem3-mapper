@@ -51,6 +51,7 @@ GEM_INLINE bool buffered_input_file_eob(buffered_input_file_t* const buffered_in
 GEM_INLINE error_code_t buffered_input_file_get_lines_block(
     buffered_input_file_t* const buffered_input,const uint64_t num_lines) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input);
+  PROF_START_TIMER(GP_BUFFERED_INPUT_RELOAD);
   input_file_t* const in_file = buffered_input->input_file;
   // Read lines
   if (input_file_eof(in_file)) return INPUT_STATUS_EOF;
@@ -67,6 +68,8 @@ GEM_INLINE error_code_t buffered_input_file_get_lines_block(
   input_file_unlock(in_file);
   // Setup the block
   buffered_input->cursor = vector_get_mem(buffered_input->block_buffer,char);
+  PROF_ADD_COUNTER(GP_BUFFERED_INPUT_BUFFER_SIZE,vector_get_used(buffered_input->block_buffer));
+  PROF_STOP_TIMER(GP_BUFFERED_INPUT_RELOAD); // No need to stop it elsewhere (no time consumed)
   return buffered_input->lines_in_buffer;
 }
 GEM_INLINE error_code_t buffered_input_file_add_lines_to_block(
@@ -85,7 +88,29 @@ GEM_INLINE error_code_t buffered_input_file_add_lines_to_block(
   return lines_added;
 }
 /*
- * BufferedInputFile Utils
+ * Block Synchronization with Output
+ */
+GEM_INLINE void buffered_input_file_attach_buffered_output(
+    buffered_input_file_t* const buffered_input_file,buffered_output_file_t* const buffered_output_file) {
+  BUFFERED_INPUT_FILE_CHECK(buffered_input_file);
+  BUFFERED_OUTPUT_FILE_CHECK(buffered_output_file);
+  buffered_input_file->attached_buffered_output_file = buffered_output_file;
+}
+GEM_INLINE void buffered_input_file_dump_attached_buffered_output(buffered_input_file_t* const buffered_input_file) {
+  BUFFERED_INPUT_FILE_CHECK(buffered_input_file);
+  if (buffered_input_file->attached_buffered_output_file!=NULL) {
+    buffered_output_file_dump_buffer(buffered_input_file->attached_buffered_output_file);
+  }
+}
+GEM_INLINE void buffered_input_file_reload_attached_buffered_output(buffered_input_file_t* const buffered_input_file) {
+  BUFFERED_INPUT_FILE_CHECK(buffered_input_file);
+  if (buffered_input_file->attached_buffered_output_file!=NULL) {
+    buffered_output_file_request_buffer(
+        buffered_input_file->attached_buffered_output_file,buffered_input_file->block_id);
+  }
+}
+/*
+ * Utils
  */
 GEM_INLINE void buffered_input_file_skip_line(buffered_input_file_t* const buffered_input) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input);
@@ -101,34 +126,14 @@ GEM_INLINE void buffered_input_file_skip_line(buffered_input_file_t* const buffe
 GEM_INLINE error_code_t buffered_input_file_reload(
     buffered_input_file_t* const buffered_input,const uint64_t num_lines) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input);
-  // Dump buffer if BOF it attached to Map-input, and get new out block (always FIRST)
-  buffered_input_file_dump_attached_buffers(buffered_input);
+  // Dump buffer
+  buffered_input_file_dump_attached_buffered_output(buffered_input);
   // Read new input block
-  if (gem_expect_false(buffered_input_file_get_lines_block(buffered_input,num_lines)==0)) return INPUT_STATUS_EOF;
-  // Assign block ID
-  buffered_input_file_set_id_attached_buffers(buffered_input,buffered_input->block_id);
+  if (gem_expect_false(buffered_input_file_get_lines_block(buffered_input,num_lines)==0)) {
+    return INPUT_STATUS_EOF;
+  }
+  // Get output buffer (block ID)
+  buffered_input_file_reload_attached_buffered_output(buffered_input);
   // Return OK
   return INPUT_STATUS_OK;
 }
-/*
- * Block Synchronization with Output
- */
-GEM_INLINE void buffered_input_file_attach_buffered_output(
-    buffered_input_file_t* const buffered_input_file,buffered_output_file_t* const buffered_output_file) {
-  BUFFERED_INPUT_FILE_CHECK(buffered_input_file);
-  BUFFERED_OUTPUT_FILE_CHECK(buffered_output_file);
-  buffered_input_file->attached_buffered_output_file = buffered_output_file;
-}
-GEM_INLINE void buffered_input_file_dump_attached_buffers(buffered_input_file_t* const buffered_input_file) {
-  BUFFERED_INPUT_FILE_CHECK(buffered_input_file);
-  if (buffered_input_file->attached_buffered_output_file!=NULL) {
-    buffered_output_file_dump(buffered_input_file->attached_buffered_output_file);
-  }
-}
-GEM_INLINE void buffered_input_file_set_id_attached_buffers(buffered_input_file_t* const buffered_input_file,const uint64_t block_id) {
-  BUFFERED_INPUT_FILE_CHECK(buffered_input_file);
-  if (buffered_input_file->attached_buffered_output_file!=NULL) {
-    buffered_output_file_set_block_ids(buffered_input_file->attached_buffered_output_file,block_id,0);
-  }
-}
-

@@ -11,9 +11,13 @@
 /*
  * GEM Runtime
  */
-GEM_INLINE void gem_runtime_init(const uint64_t max_memory,char* const tmp_folder,report_function_t report_function) {
+GEM_INLINE void gem_runtime_init(
+    const uint64_t num_threads,const uint64_t max_memory,
+    char* const tmp_folder,report_function_t report_function) {
   // GEM error handler
   gem_handle_error_signals();
+  // Setup Profiling (Add master thread)
+  PROF_NEW(num_threads);
   // Register Master-Thread
   gem_thread_register_id(0);
   // Configure Memory Limits // TODO Configure Memory Limits
@@ -28,6 +32,9 @@ GEM_INLINE void gem_runtime_init(const uint64_t max_memory,char* const tmp_folde
   if (report_function!=NULL) gem_error_set_report_function(report_function);
 }
 GEM_INLINE void gem_runtime_destroy() {
+  // Clean-up Profiler
+  PROF_DELETE();
   // Delete Memory-Pool
   mm_pool_delete();
 }
+

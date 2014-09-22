@@ -63,12 +63,16 @@ GEM_INLINE void archive_delete(archive_t* const archive) {
 /*
  * Archive Accessors
  */
-GEM_INLINE bool archive_is_indexed_complement(const archive_t* const archive) {
-  return archive->indexed_complement;
+GEM_INLINE uint64_t archive_get_size(const archive_t* const archive) {
+  GEM_NOT_IMPLEMENTED(); // TODO
+  return 0;
 }
 GEM_INLINE uint64_t archive_get_index_length(const archive_t* const archive) {
   ARCHIVE_CHECK(archive);
   return fm_index_get_length(archive->fm_index);
+}
+GEM_INLINE bool archive_is_indexed_complement(const archive_t* const archive) {
+  return archive->indexed_complement;
 }
 /*
  * Display

@@ -185,7 +185,9 @@ GEM_INLINE uint64_t input_file_fill_buffer(input_file_t* const input_file) {
   input_file->buffer_begin = 0;
   // Check EOF
   if (!fm_eof(input_file->file_manager)) {
+    PROF_START_TIMER(GP_INPUT_FILL_BUFFER);
     input_file->buffer_size = fm_read_mem(input_file->file_manager,input_file->file_buffer,INPUT_BUFFER_SIZE);
+    PROF_STOP_TIMER(GP_INPUT_FILL_BUFFER);
     return input_file->buffer_size;
   } else {
     input_file->buffer_size = 0;
@@ -370,8 +372,8 @@ GEM_INLINE uint64_t input_file_get_lines(
 /*
  * Format detection (cascade of checkers)
  */
-/* Forward declarations (input_file_test_<FORMAT>() in each logic module) */
-GEM_INLINE bool input_file_test_fasta(input_file_t* const input_file,const bool show_errors);
+///* Forward declarations (input_file_test_<FORMAT>() in each logic module) */
+//GEM_INLINE bool input_file_test_fasta(input_file_t* const input_file,const bool show_errors);
 /* */
 file_format_t input_file_detect_file_format(input_file_t* const input_file) {
   INPUT_FILE_CHECK(input_file);

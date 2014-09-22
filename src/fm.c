@@ -59,7 +59,7 @@ struct _fm_t {
  * I/O Constants/Values
  */
 // Buffer Size
-#define FM_BULK_COPY_BLOCK_SIZE BUFFER_SIZE_2G
+#define FM_BULK_COPY_BLOCK_SIZE BUFFER_SIZE_1G // SSIZE_MAX
 #define FM_SKIP_BUFFER_SIZE     BUFFER_SIZE_2M
 // Open Flags
 const int fm_open_flags[3] = { O_RDONLY, O_WRONLY|O_CREAT|O_NOATIME|O_TRUNC, O_RDWR|O_CREAT|O_NOATIME };

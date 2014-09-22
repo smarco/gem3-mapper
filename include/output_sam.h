@@ -15,7 +15,7 @@
 #include "matches.h"
 
 GEM_INLINE void output_sam_single_end_matches(
-    output_buffer_t* const output_buffer,
-    const sequence_t* const seq_read,const matches_t* const matches);
+    buffered_output_file_t* const buffered_output_file,
+    sequence_t* const seq_read,matches_t* const matches);
 
 #endif /* OUTPUT_SAM_H_ */

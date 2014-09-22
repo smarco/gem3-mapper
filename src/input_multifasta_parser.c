@@ -7,7 +7,6 @@
  */
 
 #include "input_multifasta_parser.h"
-#include "dna_string.h"
 
 /*
  * MultiFASTA parsing state

@@ -31,6 +31,11 @@
 #include "quality_model.h"
 
 /*
+ * Constants
+ */
+#define MAPPER_TICKER_STEP 1000
+
+/*
  * Mapper Parameters
  */
 typedef enum { mapper_se, mapper_pe, mapper_se_cuda, mapper_graph } mapper_type;
@@ -49,6 +54,7 @@ typedef struct {
   input_file_t* input_file;
   FILE* output_stream;
   output_file_t* output_file;
+  uint64_t max_output_buffers;
   file_format_t output_format;
   /* I/O Attributes (qualities, ...) */
   bool fastq_strictly_normalized;
@@ -62,6 +68,7 @@ typedef struct {
   uint64_t max_memory;
   char* tmp_folder;
   /* Miscellaneous */
+  bool stats;
   bool verbose_user;
   bool verbose_dev;
   /* Extras */
@@ -71,6 +78,8 @@ typedef struct {
  * Mapper Parameters
  */
 GEM_INLINE void mapper_parameters_set_defaults(mapper_parameters_t* const mapper_parameters);
+GEM_INLINE void mapper_parameters_print(
+    FILE* const stream,mapper_parameters_t* const parameters,const bool dump_index_info);
 
 /*
  * I/O

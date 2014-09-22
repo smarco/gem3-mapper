@@ -14,7 +14,6 @@
 #include "locator.h"
 #include "sampled_rl.h"
 #include "graph_text.h"
-#include "dna_text.h"
 #include "fm_index.h"
 
 /*
@@ -69,8 +68,9 @@ GEM_INLINE void archive_delete(archive_t* const archive);
 /*
  * Archive Accessors
  */
-GEM_INLINE bool archive_is_indexed_complement(const archive_t* const archive);
+GEM_INLINE uint64_t archive_get_size(const archive_t* const archive);
 GEM_INLINE uint64_t archive_get_index_length(const archive_t* const archive);
+GEM_INLINE bool archive_is_indexed_complement(const archive_t* const archive);
 
 /*
  * Display

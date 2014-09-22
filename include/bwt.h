@@ -12,9 +12,6 @@
 
 #include "essentials.h"
 
-#include "dna_string.h"
-#include "dna_text.h"
-
 /*
  * Check
  */

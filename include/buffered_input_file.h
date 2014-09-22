@@ -51,17 +51,17 @@ GEM_INLINE error_code_t buffered_input_file_get_lines_block(buffered_input_file_
 GEM_INLINE error_code_t buffered_input_file_add_lines_to_block(buffered_input_file_t* const buffered_input,const uint64_t num_lines);
 
 /*
- * BufferedInputFile Utils
- */
-GEM_INLINE void buffered_input_file_skip_line(buffered_input_file_t* const buffered_input);
-GEM_INLINE error_code_t buffered_input_file_reload(buffered_input_file_t* const buffered_input,const uint64_t num_lines);
-
-/*
  * Block Synchronization with Output
  */
 GEM_INLINE void buffered_input_file_attach_buffered_output(
     buffered_input_file_t* const buffered_input_file,buffered_output_file_t* const buffered_output_file);
-GEM_INLINE void buffered_input_file_dump_attached_buffers(buffered_input_file_t* const buffered_input_file);
-GEM_INLINE void buffered_input_file_set_id_attached_buffers(buffered_input_file_t* const buffered_input_file,const uint64_t block_id);
+
+/*
+ * Utils
+ */
+GEM_INLINE void buffered_input_file_skip_line(buffered_input_file_t* const buffered_input);
+GEM_INLINE error_code_t buffered_input_file_reload(buffered_input_file_t* const buffered_input,const uint64_t num_lines);
+
+
 
 #endif /* BUFFERED_INPUT_FILE_H_ */

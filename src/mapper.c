@@ -9,11 +9,6 @@
 #include "archive_search.h"
 
 /*
- * Constants
- */
-#define MAPPER_TICKER_STEP 100000
-
-/*
  * Mapper Search
  */
 typedef struct {
@@ -38,6 +33,10 @@ typedef struct {
  */
 mapper_search_t* g_mapper_searches; // Global searches on going
 void mapper_error_report(FILE* stream) {
+
+  // TODO Implement 1 only call of this function, otherwise kill
+  // TODO Patch this with crazy checkers that nothing is null
+
   const uint64_t threads_id = gem_thread_get_thread_id();
   if (threads_id==0) {
     fprintf(stream,"GEM::RunnigThread (threadID = MASTER)\n");
@@ -88,44 +87,162 @@ GEM_INLINE void mapper_parameters_set_defaults(mapper_parameters_t* const mapper
   mapper_parameters->input_file = NULL;
   mapper_parameters->output_stream = NULL;
   mapper_parameters->output_file = NULL;
+  const uint64_t num_processors = proc_get_num_processors();
+  mapper_parameters->max_output_buffers = num_processors + (num_processors/2);
   mapper_parameters->output_format = MAP;
   /* Search Parameters */
   approximate_search_parameters_init(&mapper_parameters->search_parameters);
   /* Select Parameters */
   archive_select_parameters_init(&mapper_parameters->select_parameters);
   /* System */
-  mapper_parameters->num_threads=1; // FIXME
+  mapper_parameters->num_threads=num_processors;
   mapper_parameters->max_memory=0;
   mapper_parameters->tmp_folder=NULL;
   /* Miscellaneous */
-  mapper_parameters->verbose_user=false;
+  mapper_parameters->stats = false;
+  mapper_parameters->verbose_user=true;
   mapper_parameters->verbose_dev=false;
   /* Extras */
 }
-//GEM_INLINE void mapper_configure_archive_search(
-//    const mapper_parameters_t* const parameters,
-//    search_parameters_t* const search_parameters,select_parameters_t* const select_parameters) {
-//  // Init
-//  approximate_search_parameters_init(search_parameters);
-//  archive_select_parameters_init(select_parameters);
-//  // Configure ASM-search
-//  approximate_search_configure_mapping_strategy(search_parameters,
-//      parameters->mapping_mode,parameters->mapping_degree);
-//  approximate_search_configure_quality_model(search_parameters,
-//      parameters->quality_model,parameters->quality_format,
-//      parameters->quality_threshold);
-//  approximate_search_configure_error_model(search_parameters,
-//      parameters->max_search_error,parameters->max_filtering_error,
-//      parameters->complete_strata_after_best,parameters->min_matching_length);
-//  approximate_search_configure_replacements(search_parameters,
-//      parameters->mismatch_alphabet,gem_strlen(parameters->mismatch_alphabet));
-//  approximate_search_configure_matches(search_parameters,parameters->max_search_matches);
-//  // Configure select
-//  archive_select_configure_reporting(select_parameters,
-//      parameters->min_decoded_strata,parameters->max_decoded_matches,
-//      parameters->min_reported_matches,parameters->max_reported_matches);
-//  archive_select_configure_alignment_model(select_parameters,parameters->alignment_model);
-//}
+GEM_INLINE void mapper_parameters_print(
+    FILE* const stream,mapper_parameters_t* const parameters,const bool dump_index_info) {
+  tab_fprintf(stream,"[GEM]>Mapper.parameters\n");
+  /*
+   * Mapper Type
+   */
+  switch (parameters->mapper_type) {
+    case mapper_se:
+      tab_fprintf(stream,"  => Mapper.type\tMapperSE\n");
+      break;
+    case mapper_pe:
+      tab_fprintf(stream,"  => Mapper.type\ttMapperPE\n");
+      break;
+    case mapper_se_cuda:
+      tab_fprintf(stream,"  => Mapper.type\ttMapperSE-CUDA\n");
+      break;
+    case mapper_graph:
+      tab_fprintf(stream,"  => Mapper.type\tMapper-Graph\n");
+      break;
+    default:
+      GEM_INVALID_CASE();
+      break;
+  }
+  /*
+   * I/O
+   */
+  tab_fprintf(stream,"  => I/O\n");
+  // Index
+  if (dump_index_info) {
+    tab_global_inc();
+    archive_print(stream,parameters->archive);
+    tab_global_dec();
+  } else {
+    tab_fprintf(stream,"    => Index\t%s (size=%2.1fMB,length=%lu)\n",
+        parameters->index_file_name,CONVERT_B_TO_MB(archive_get_size(parameters->archive)),
+        archive_get_index_length(parameters->archive));
+  }
+
+  // Input // TODO PE
+  if (parameters->input_file_name!=NULL) {
+    tab_fprintf(stream,"    => Input\t%s (size=%2.1fMB)",
+        parameters->input_file_name,CONVERT_B_TO_MB(input_file_get_size(parameters->input_file)));
+  } else {
+    tab_fprintf(stream,"    => Input\t<<stdin>>");
+  }
+  if (parameters->fastq_strictly_normalized) fprintf(stream,"\t[Normalize=ON]");
+  if (parameters->fastq_try_recovery) fprintf(stream,"\t[Recovery=ON]");
+  fprintf(stream,"\n");
+  // Output
+  tab_fprintf(stream,"    => Output\t%s",
+      (parameters->output_file_name!=NULL) ? parameters->output_file_name : "<<stdout>>");
+  switch (parameters->output_compression) {
+    case FM_GZIPPED_FILE:
+      fprintf(stream,"\t\[GZIP]n");
+      break;
+    case FM_BZIPPED_FILE:
+      fprintf(stream,"\t[BZIP]\n");
+      break;
+    default:
+      fprintf(stream,"\n");
+      break;
+  }
+  /*
+   * Search Parameters
+   */
+  tab_fprintf(stream,"  => Search Parameters\n");
+  // Mapping Strategy
+
+  // Quality Model
+
+  // Error Model
+
+  // Replacements
+
+  // Reporting
+
+  // Alignment Model
+
+
+  /*
+   * Select Parameters
+   */
+  tab_fprintf(stream,"  => Select Parameters\n");
+
+  /*
+   * System
+   */
+  /* System */
+  tab_fprintf(stream,"  => System\n");
+  tab_fprintf(stream,"    => Num.Threads\t%lu\n",parameters->num_threads);
+  if (parameters->max_memory!=0) {
+    tab_fprintf(stream,"    => Max.Memory\t%lu\n",parameters->max_memory);
+  }
+  if (parameters->tmp_folder!=NULL) {
+    tab_fprintf(stream,"    => Tmp.path\t%s\n",parameters->tmp_folder);
+  }
+
+  // TODO All
+
+
+  /* Select Parameters */
+  /* Parameters */
+
+  /*
+  #define GEM_STATS_SHOW_SE_PARAMETERS(FILE,MAPPER_PARAMS) \
+    fprintf(FILE, "PARAMETERS.SE.Mapping\n"); \
+    if (MAPPER_PARAMS.percentage_mismatches<0.0) { \
+    fprintf(FILE, "  Mismatches          %ld\n", MAPPER_PARAMS.max_mismatches); \
+    } else { \
+    fprintf(FILE, "  Mismatches          %1.2f\n", MAPPER_PARAMS.percentage_mismatches); \
+    } \
+    if (MAPPER_PARAMS.percentage_differences<0.0) { \
+    fprintf(FILE, "  Differences         %ld\n", MAPPER_PARAMS.max_differences); \
+    } else { \
+    fprintf(FILE, "  Differences         %1.2f\n", MAPPER_PARAMS.percentage_differences); \
+    } \
+    fprintf(FILE, "  Delta               %lu\n", MAPPER_PARAMS.delta); \
+    fprintf(FILE, "  Max indel length    %lu\n", MAPPER_PARAMS.max_indel_length); \
+    fprintf(FILE, "  Replacements        {%s}\n", MAPPER_PARAMS.mismatch_alphabet); \
+    if (MAPPER_PARAMS.percentage_incomplete_strata<0.0) { \
+    fprintf(FILE, "  Incomplete Strata   %ld\n", MAPPER_PARAMS.incomplete_strata); \
+    } else { \
+    fprintf(FILE, "  Incomplete Strata   %1.2f\n", MAPPER_PARAMS.percentage_incomplete_strata); \
+    }
+
+  #define GEM_STATS_SHOW_PE_PARAMETERS(FILE,PAIR_PARAMS) \
+    fprintf(FILE, "PARAMETERS.PE.Mapping\n"); \
+    fprintf(FILE, "  Map.Both.Ends          %s\n", GEM_PRINT_BOOL(PAIR_PARAMS.map_both_ends)); \
+    if (PAIR_PARAMS.percentage_differences<0.0) \
+    fprintf(FILE, "  Mismatches             %ld\n", PAIR_PARAMS.max_differences); \
+    else \
+    fprintf(FILE, "  Mismatches             %1.2f\n", PAIR_PARAMS.percentage_differences); \
+    fprintf(FILE, "  Max.Insertion.Size     %lu\n", PAIR_PARAMS.max_ins_size); \
+    fprintf(FILE, "  Min.Insertion.Size     %lu\n", PAIR_PARAMS.min_ins_size); \
+    fprintf(FILE, "  Max.Number.Pairs       %lu\n", PAIR_PARAMS.max_extended_matches)
+    */
+
+
+}
 /*
  * I/O
  */
@@ -169,8 +286,7 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
   error_code_t error_code;
   while ((error_code=input_fasta_parse_sequence(
       mapper_search->buffered_fasta_input,archive_search_get_sequence(mapper_search->archive_search),
-      parameters->fastq_strictly_normalized,parameters->fastq_try_recovery))) {
-    // TODO: Check INPUT_STATUS_FAIL & check skip empty lines
+      parameters->fastq_strictly_normalized,parameters->fastq_try_recovery))) { // TODO: Check INPUT_STATUS_FAIL & check skip empty lines
 
     // Search into the archive
     archive_search_single_end(mapper_search->archive_search,mapper_search->matches);
@@ -209,7 +325,6 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
 GEM_INLINE void mapper_SE_run(mapper_parameters_t* const mapper_parameters) {
   // Setup threads & launch
   const uint64_t num_threads = mapper_parameters->num_threads;
-  PROF_NEW(num_threads+1); // Setup Profiling (Add master thread)
   mapper_search_t* const mapper_search = mm_calloc(num_threads,mapper_search_t,false); // Allocate mapper searches
   g_mapper_searches = mapper_search; // Set global searches for error reporting
   ticker_t ticker; // Ticker
@@ -238,7 +353,6 @@ GEM_INLINE void mapper_SE_run(mapper_parameters_t* const mapper_parameters) {
   ticker_mutex_cleanup(&ticker);
   // Clean up
   mm_free(mapper_search);
-  PROF_DELETE(); // Clean-up Profiler
 }
 /*
  * PE Mapper

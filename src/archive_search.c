@@ -112,6 +112,7 @@ GEM_INLINE uint64_t archive_search_get_num_potential_canditates(const archive_se
  */
 GEM_INLINE void archive_search_single_end(archive_search_t* const archive_search,matches_t* const matches) {
   ARCHIVE_SEARCH_CHECK(archive_search);
+  PROF_START(GP_ARCHIVE_SEARCH_SE);
   // Reset initial values (Prepare pattern(s), instantiate parameters values, ...)
   archive_search_reset(archive_search,sequence_get_length(&archive_search->sequence));
   // Search the pattern(s)
@@ -145,6 +146,7 @@ GEM_INLINE void archive_search_single_end(archive_search_t* const archive_search
       }
     }
   }
+  PROF_STOP(GP_ARCHIVE_SEARCH_SE);
 //  #ifdef GEM_MAPPER_DEBUG
 //   const uint64_t check_level = search_params->internal_parameters.check_alignments;
 //  extern bool keepon;

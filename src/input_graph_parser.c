@@ -8,6 +8,7 @@
 
 #include "input_graph_parser.h"
 #include "input_parser.h"
+#include "dna_text.h"
 
 /*
  * Error handler

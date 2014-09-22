@@ -4,8 +4,6 @@
  * DATE: 04/09/2014
  * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
  *            Santiago Marco-Sola <santiagomsola@gmail.com>
- * TODO
- *  - I need to understand the reason to store the pattern (qryEntry_t[]) in such interleaved fashion
  */
 
 #include "bpm_align_gpu.h"
@@ -43,7 +41,7 @@
       bpm_gpu_buffer_t* const bpm_gpu_buffer,
       const uint64_t num_patterns,const uint64_t total_pattern_length,const uint64_t total_candidates) { GEM_CUDA_NOT_SUPPORTED(); return false; }
   GEM_INLINE void bpm_gpu_buffer_put_pattern(
-      bpm_gpu_buffer_t* const bpm_gpu_buffer,bpm_pattern_t* const bpm_pattern) { GEM_CUDA_NOT_SUPPORTED(); }
+      bpm_gpu_buffer_t* const bpm_gpu_buffer,pattern_t* const pattern) { GEM_CUDA_NOT_SUPPORTED(); }
   GEM_INLINE void bpm_gpu_buffer_put_candidate(
       bpm_gpu_buffer_t* const bpm_gpu_buffer,
       const uint64_t candidate_text_position,const uint64_t candidate_length) { GEM_CUDA_NOT_SUPPORTED(); }
@@ -97,6 +95,12 @@ GEM_INLINE bool bpm_gpu_support() {
 /*
  * Buffer Accessors
  */
+GEM_INLINE void bpm_buffer_clear(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
+  bpm_gpu_buffer->num_PEQ_entries = 0;
+  bpm_gpu_buffer->num_queries = 0;
+  bpm_gpu_buffer->num_candidates = 0;
+  bpm_gpu_buffer->pattern_id = 0;
+}
 GEM_INLINE uint64_t bpm_gpu_buffer_get_max_candidates(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
   return bpm_gpu_buffer_get_max_candidates_(bpm_gpu_buffer->buffer);
 }
@@ -136,10 +140,28 @@ GEM_INLINE bool bpm_gpu_buffer_fits_in_buffer(
   // Ok, go on
   return true;
 }
+GEM_INLINE void bpm_gpu_buffer_get_candidate(
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t position,
+    uint32_t* const candidate_text_position,uint32_t* const candidate_length) {
+  // Get candidate
+  bpm_gpu_cand_info_t* const query_candidate =bpm_gpu_buffer_get_candidates_(bpm_gpu_buffer->buffer) + position;
+  *candidate_text_position = query_candidate->position;
+  *candidate_length = query_candidate->size;
+}
+GEM_INLINE void bpm_gpu_buffer_get_candidate_result(
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t position,
+    uint32_t* const levenshtein_distance,uint32_t* const levenshtein_match_pos) {
+  // Get candidate results
+  bpm_gpu_res_entry_t* const results_buffer =
+      bpm_gpu_buffer_get_results_(bpm_gpu_buffer->buffer) + position;
+  *levenshtein_distance = results_buffer->score;
+  *levenshtein_match_pos = results_buffer->column;
+}
 // Debug Guard
 # ifndef BPM_GPU_PATTERN_DEBUG
 GEM_INLINE void bpm_gpu_buffer_put_pattern(
-    bpm_gpu_buffer_t* const bpm_gpu_buffer,const bpm_pattern_t* const bpm_pattern) {
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,pattern_t* const pattern) {
+  bpm_pattern_t* const bpm_pattern = &pattern->bpm_pattern;
   // Calculate PEQ dimensions
   const uint64_t pattern_num_words = bpm_pattern->pattern_num_words;
   const uint64_t pattern_PEQ_length = bpm_pattern->PEQ_length;
@@ -192,36 +214,48 @@ GEM_INLINE void bpm_gpu_buffer_put_candidate(
  * Send/Receive Buffer
  */
 GEM_INLINE void bpm_gpu_buffer_send(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
+  PROF_START_TIMER(GP_BPM_GPU_BUFFER_SEND);
+  PROF_BLOCK() {
+    const uint64_t max_candidates = bpm_gpu_buffer_get_max_candidates_(bpm_gpu_buffer->buffer);
+    const uint64_t max_queries = bpm_gpu_buffer_get_max_queries_(bpm_gpu_buffer->buffer);
+    const uint64_t max_peq_entries = bpm_gpu_buffer_get_max_peq_entries_(bpm_gpu_buffer->buffer);
+    const uint64_t used_candidates = bpm_gpu_buffer->num_candidates;
+    const uint64_t used_queries = bpm_gpu_buffer->num_queries;
+    const uint64_t used_peq_entries = bpm_gpu_buffer->num_PEQ_entries;
+    PROF_ADD_COUNTER(GP_BPM_GPU_BUFFER_USAGE_CANDIDATES,(100*used_candidates)/max_candidates);
+    PROF_ADD_COUNTER(GP_BPM_GPU_BUFFER_USAGE_QUERIES,(100*used_queries)/max_queries);
+    PROF_ADD_COUNTER(GP_BPM_GPU_BUFFER_USAGE_PEQ_ENTRIES,(100*used_peq_entries)/max_peq_entries);
+  }
 	bpm_gpu_send_buffer_(bpm_gpu_buffer->buffer,
       bpm_gpu_buffer->num_PEQ_entries,bpm_gpu_buffer->num_queries,bpm_gpu_buffer->num_candidates);
+	PROF_STOP_TIMER(GP_BPM_GPU_BUFFER_SEND);
 }
 GEM_INLINE void bpm_gpu_buffer_receive(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
 	bpm_gpu_receive_buffer_(bpm_gpu_buffer->buffer);
 }
 # else /* BPM_GPU_PATTERN_DEBUG */
 GEM_INLINE void bpm_gpu_buffer_put_pattern(
-    bpm_gpu_buffer_t* const bpm_gpu_buffer,bpm_pattern_t* const bpm_pattern) {
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,pattern_t* const pattern) {
+  bpm_pattern_t* const bpm_pattern = &pattern->bpm_pattern;
   // Calculate PEQ dimensions
   const uint64_t pattern_PEQ_length = bpm_pattern->PEQ_length;
   const uint64_t pattern_PEQ_num_entries = DIV_CEIL(pattern_PEQ_length,BPM_GPU_PATTERN_ENTRY_LENGTH);
   // Insert query metadata
   bpm_gpu_buffer->pattern_id = bpm_gpu_buffer->num_queries;
   (bpm_gpu_buffer->num_queries)++;
-  bpm_gpu_qry_info_t* const query_info = bpm_gpu_buffer_get_peq_info_(bpm_gpu_buffer->buffer) + bpm_gpu_buffer->pattern_id;
-  query_info->posEntry = bpm_gpu_buffer->num_PEQ_entries;
-  query_info->size = pattern_PEQ_num_entries;
   // Insert query pattern
   bpm_gpu_buffer->num_PEQ_entries += pattern_PEQ_num_entries;
-  // [DEBUG] Insert pointer to bpm_pattern
-  bpm_pattern_t** const query_pattern =
-      (bpm_pattern_t**)bpm_gpu_buffer_get_peq_entries_(bpm_gpu_buffer->buffer) + bpm_gpu_buffer->pattern_id;
-  *query_pattern = bpm_pattern;
+  // [DEBUG] Insert pointer to pattern
+  pattern_t** const query_pattern =
+      (pattern_t**)bpm_gpu_buffer_get_peq_entries_(bpm_gpu_buffer->buffer) + bpm_gpu_buffer->pattern_id;
+  *query_pattern = pattern;
 }
 GEM_INLINE void bpm_gpu_buffer_put_candidate(
     bpm_gpu_buffer_t* const bpm_gpu_buffer,
     const uint64_t candidate_text_position,const uint64_t candidate_length) {
   // Insert candidate
-  bpm_gpu_cand_info_t* const query_candidate = bpm_gpu_buffer_get_candidates_(bpm_gpu_buffer->buffer) + bpm_gpu_buffer->num_candidates;
+  bpm_gpu_cand_info_t* const query_candidate =
+      bpm_gpu_buffer_get_candidates_(bpm_gpu_buffer->buffer) + bpm_gpu_buffer->num_candidates;
   query_candidate->query = bpm_gpu_buffer->pattern_id;
   query_candidate->position = candidate_text_position;
   query_candidate->size = candidate_length;
@@ -232,6 +266,18 @@ GEM_INLINE void bpm_gpu_buffer_put_candidate(
  */
 GEM_INLINE void bpm_gpu_buffer_send(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
   // [DEBUG] Solve all queries using CPU BPM-align
+  PROF_START_TIMER(GP_BPM_GPU_BUFFER_SEND);
+  PROF_BLOCK() {
+    const uint64_t max_candidates = bpm_gpu_buffer_get_max_candidates_(bpm_gpu_buffer->buffer);
+    const uint64_t max_queries = bpm_gpu_buffer_get_max_queries_(bpm_gpu_buffer->buffer);
+    const uint64_t max_peq_entries = bpm_gpu_buffer_get_max_peq_entries_(bpm_gpu_buffer->buffer);
+    const uint64_t used_candidates = bpm_gpu_buffer->num_candidates;
+    const uint64_t used_queries = bpm_gpu_buffer->num_queries;
+    const uint64_t used_peq_entries = bpm_gpu_buffer->num_PEQ_entries;
+    PROF_ADD_COUNTER(GP_BPM_GPU_BUFFER_USAGE_CANDIDATES,(100*used_candidates)/max_candidates);
+    PROF_ADD_COUNTER(GP_BPM_GPU_BUFFER_USAGE_QUERIES,(100*used_queries)/max_queries);
+    PROF_ADD_COUNTER(GP_BPM_GPU_BUFFER_USAGE_PEQ_ENTRIES,(100*used_peq_entries)/max_peq_entries);
+  }
   const uint64_t num_candidates = bpm_gpu_buffer->num_candidates;
   bpm_gpu_cand_info_t* query_candidate = bpm_gpu_buffer_get_candidates_(bpm_gpu_buffer->buffer);
   bpm_gpu_res_entry_t* query_result = bpm_gpu_buffer_get_results_(bpm_gpu_buffer->buffer);
@@ -239,13 +285,14 @@ GEM_INLINE void bpm_gpu_buffer_send(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
   uint64_t query_pos, candidate_pos;
   for (query_pos=0,candidate_pos=0;query_pos<num_queries;++query_pos) {
     // Get pattern
-    bpm_pattern_t* const query_pattern = *((bpm_pattern_t**)bpm_gpu_buffer_get_peq_entries_(bpm_gpu_buffer->buffer) + query_pos);
+    pattern_t* const query_pattern = *((pattern_t**)bpm_gpu_buffer_get_peq_entries_(bpm_gpu_buffer->buffer) + query_pos);
     // Traverse all candidates
     while (candidate_pos < num_candidates && query_candidate->query==query_pos) {
       // Run BPM
-      const char* const sequence = (char*)dna_text_get_buffer(bpm_gpu_buffer->enc_text) + query_candidate->position;
+      const uint8_t* const sequence = dna_text_get_buffer(bpm_gpu_buffer->enc_text) + query_candidate->position;
       uint64_t position, distance;
-      bpm_get_distance(query_pattern,sequence,query_candidate->size,&position,&distance);
+      bpm_get_distance__cutoff(&query_pattern->bpm_pattern,
+          sequence,query_candidate->size,&position,&distance,query_pattern->max_effective_filtering_error);
       // Copy results
       query_result->column = position;
       query_result->score = distance;
@@ -255,40 +302,9 @@ GEM_INLINE void bpm_gpu_buffer_send(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
       ++query_result;
     }
   }
+  PROF_STOP_TIMER(GP_BPM_GPU_BUFFER_SEND);
 }
 GEM_INLINE void bpm_gpu_buffer_receive(bpm_gpu_buffer_t* const bpm_gpu_buffer) { /* [DEBUG] Do nothing */ }
 # endif /* BPM_GPU_PATTERN_DEBUG */
 #endif /* HAVE_CUDA */
 
-/*
- * Stats/Profile
- */
-GEM_INLINE bpm_gpu_buffer_stats_t* bpm_gpu_buffer_stats_new() {
-  bpm_gpu_buffer_stats_t* bpm_gpu_buffer_stats = NULL;
-  PROF_BLOCK() {
-
-  }
-  return bpm_gpu_buffer_stats;
-}
-GEM_INLINE void bpm_gpu_buffer_stats_delete(bpm_gpu_buffer_stats_t* const bpm_gpu_buffer_stats) {
-  PROF_BLOCK() {
-
-  }
-}
-GEM_INLINE void bpm_gpu_buffer_stats_record(
-    bpm_gpu_buffer_stats_t* const bpm_gpu_buffer_stats,bpm_gpu_buffer_t* const bpm_gpu_buffer) {
-  PROF_BLOCK() {
-
-  }
-}
-GEM_INLINE void bpm_gpu_buffer_stats_print(
-    FILE* const stream,bpm_gpu_buffer_stats_t* const bpm_gpu_buffer_stats) {
-  PROF_BLOCK() {
-
-  }
-}
-GEM_INLINE void bpm_gpu_buffer_gprof_print(FILE* const stream) {
-  PROF_BLOCK() {
-
-  }
-}

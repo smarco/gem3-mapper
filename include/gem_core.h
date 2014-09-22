@@ -18,7 +18,6 @@
 #include "packed_integer_array.h"
 #include "rank_mtable.h"
 
-#include "dna_string.h"
 #include "cdna_text.h"
 #include "cdna_bitwise_text.h"
 #include "dna_text.h"
@@ -40,8 +39,9 @@
 #include "output_map.h"
 #include "output_sam.h"
 
-// Stats
-#include "stats_vector.h"
+// Profile
+#include "profiler.h"
+#include "mapper_profile.h"
 
 // Options Menu (Adaptors + Helpers)
 #include "options_menu.h"
@@ -53,7 +53,9 @@
 /*
  * GEM Runtime
  */
-GEM_INLINE void gem_runtime_init(const uint64_t max_memory,char* const tmp_folder,report_function_t report_function);
+GEM_INLINE void gem_runtime_init(
+    const uint64_t num_threads,const uint64_t max_memory,
+    char* const tmp_folder,report_function_t report_function);
 GEM_INLINE void gem_runtime_destroy();
 
 #endif /* GEM_CORE_H_ */

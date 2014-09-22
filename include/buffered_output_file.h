@@ -29,8 +29,7 @@ typedef struct {
  */
 #define BUFFERED_OUTPUT_FILE_CHECK(buffered_output_file) \
   GEM_CHECK_NULL(buffered_output_file); \
-  OUTPUT_FILE_CHECK((buffered_output_file)->output_file); \
-  OUTPUT_BUFFER_CHECK((buffered_output_file)->buffer)
+  OUTPUT_FILE_CHECK((buffered_output_file)->output_file)
 
 /*
  * Setup
@@ -39,24 +38,15 @@ buffered_output_file_t* buffered_output_file_new(output_file_t* const output_fil
 void buffered_output_file_close(buffered_output_file_t* const buffered_output);
 
 /*
- * Accessors
+ * Utils
  */
-GEM_INLINE void buffered_output_file_get_block_ids(
-    buffered_output_file_t* const buffered_output,uint32_t* const mayor_id,uint32_t* const minor_id);
-GEM_INLINE void buffered_output_file_set_block_ids(
-    buffered_output_file_t* const buffered_output,const uint32_t mayor_id,const uint32_t minor_id);
-GEM_INLINE output_buffer_t* buffered_output_file_get_buffer(buffered_output_file_t* const buffered_output_file);
-GEM_INLINE void buffered_output_file_set_buffer(
-    buffered_output_file_t* const buffered_output,output_buffer_t* const out_buffer);
+GEM_INLINE void buffered_output_file_request_buffer(
+    buffered_output_file_t* const buffered_output,const uint32_t block_id);
+GEM_INLINE void buffered_output_file_dump_buffer(buffered_output_file_t* const buffered_output);
+GEM_INLINE void buffered_output_file_safety_dump_buffer(buffered_output_file_t* const buffered_output);
 
 /*
- * Dump
- */
-GEM_INLINE void buffered_output_file_dump(buffered_output_file_t* const buffered_output);
-GEM_INLINE void buffered_output_file_safety_dump(buffered_output_file_t* const buffered_output);
-
-/*
- * Buffered Output File Printers
+ * Printers
  */
 GEM_INLINE int vbofprintf(buffered_output_file_t* const buffered_output,const char *template,va_list v_args);
 GEM_INLINE int bofprintf(buffered_output_file_t* const buffered_output,const char *template,...);
@@ -70,8 +60,7 @@ GEM_INLINE int bofprintf_fixed(
 /*
  * Error Messages
  */
-#define GEM_ERROR_BUFFER_DUMP "Output buffer. Could not perform dump"
-#define GEM_ERROR_BUFFER_SAFETY_DUMP "Output buffer. Could not perform safety dump"
+#define GEM_ERROR_BUFFER_SAFETY_DUMP "Output buffer. Could not perform safety dump (no buffer extension)"
 
 
 #endif /* BUFFERED_OUTPUT_FILE_H_ */

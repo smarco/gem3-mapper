@@ -8,7 +8,6 @@
 
 #include "rank_mtable.h"
 #include "bwt.h"
-#include "dna_string.h"
 
 #define RANK_MTABLE_SIZE(search_depth) ( (5*(POW4(search_depth)-1))/3 + 2 )  /* S := (5*(4^(n)-1))/3 + 2 */
 #define RANK_MTABLE_LEVEL_SIZE(level)  (5*POW4(level-1))

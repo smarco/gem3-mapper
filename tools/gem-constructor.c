@@ -501,18 +501,41 @@ GEM_INLINE void constructor_cdna_text__reverse() {
   }
 
 }
-
 GEM_INLINE void constructor_fast_mapper_setup() {
 
-//  // GEM Runtime setup
-//  gem_runtime_init(parameters.num_threads,0,NULL,NULL);
-//
-//  // Load GEM-archive
-//  archive_t* const gem_archive = archive_read(parameters.name_input_file,false,true);
+}
+GEM_INLINE void constructor_priority_queue() {
+  pqueue_t* const queue = pqueue_new(15);
 
+  pqueue_push(queue,NULL,3);
+  pqueue_push(queue,NULL,14);
+  pqueue_clear(queue);
 
+  pqueue_push(queue,NULL,3);
+  pqueue_push(queue,NULL,14);
+  pqueue_push(queue,NULL,1);
+  pqueue_push(queue,NULL,2);
+  pqueue_push(queue,NULL,4);
+  pqueue_push(queue,NULL,11);
+  pqueue_push(queue,NULL,15);
+  pqueue_push(queue,NULL,16);
+  pqueue_push(queue,NULL,5);
+  pqueue_push(queue,NULL,5);
+  pqueue_push(queue,NULL,6);
+  pqueue_push(queue,NULL,7);
+  pqueue_push(queue,NULL,13);
+  pqueue_push(queue,NULL,0);
+  pqueue_push(queue,NULL,12);
+  pqueue_push(queue,NULL,9);
+  pqueue_push(queue,NULL,10);
+  pqueue_push(queue,NULL,8);
 
+  while (!pqueue_is_empty(queue)) {
+    printf("Pqueue\t%lu\n",pqueue_top_priority(queue));
+    pqueue_pop(queue,void);
+  }
 
+  pqueue_delete(queue);
 }
 
 /*
@@ -632,7 +655,9 @@ int main(int argc,char** argv) {
 
   // constructor_packed_integer_arrays_test_bis();
 
-  constructor_fast_mapper_setup();
+  // constructor_fast_mapper_setup();
+
+  constructor_priority_queue();
 
   return 0;
 }

@@ -127,6 +127,7 @@ GEM_INLINE uint64_t fm_index_lookup(const fm_index_t* const fm_index,uint64_t bw
     bwt_position = bwt_LF(bwt,bwt_position);
     ++dist;
   }
+  PROF_ADD_COUNTER(GP_FMIDX_LOOKUP_DIST,dist);
   return (sampled_sa_get_sample(sampled_sa,bwt_position) + dist) % bwt_length;
 }
 // Compute SA^(-1)[i]

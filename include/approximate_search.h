@@ -10,7 +10,6 @@
 #define APPROXIMATE_SEARCH_H_
 
 #include "essentials.h"
-#include "dna_string.h"
 #include "quality_model.h"
 
 #include "locator.h"

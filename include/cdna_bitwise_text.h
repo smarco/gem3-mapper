@@ -12,7 +12,6 @@
 
 #include "essentials.h"
 
-#include "dna_string.h"
 #include "sparse_bitmap.h"
 
 /*

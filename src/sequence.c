@@ -7,7 +7,6 @@
  */
 
 #include "sequence.h"
-#include "dna_string.h"
 
 #define SEQUENCE_TAG_INITIAL_LENGTH 80
 #define SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH 40

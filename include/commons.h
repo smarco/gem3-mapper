@@ -39,6 +39,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <limits.h>
 
 #include <string.h>
 #include <math.h>

@@ -7,7 +7,6 @@
  */
 
 #include "graph_text.h"
-#include "dna_string.h"
 
 /*
  * Setup

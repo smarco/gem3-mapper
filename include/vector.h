@@ -4,9 +4,6 @@
  * DATE: 06/06/2012
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION: Simple linear vector for generic type elements
- *
- * COMPILATION_FLAGS:
- *   GEM_DEBUG
  */
 
 #ifndef VECTOR_H_

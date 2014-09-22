@@ -35,5 +35,6 @@ $(FOLDER_BIN)/gem-mapper: $(FOLDER_LIB)/libgemcore_c.a gem-mapper.c
 $(FOLDER_BIN)/gem-indexer: $(FOLDER_LIB)/libgemcore_c.a gem-indexer.c
 	$(CC) $(GEM_FLAGS) -o $@ $(notdir $@).c $(LIB_PATH_FLAGS) $(INCLUDE_FLAGS) $(LIBS)
 
-	
+# $(FOLDER_BIN)/gem-constructor: $(FOLDER_LIB)/libgemcore_c.a gem-constructor.c
+# 	$(CC) $(GEM_FLAGS) -o $@ $(notdir $@).c $(LIB_PATH_FLAGS) $(INCLUDE_FLAGS) $(LIBS)
 	

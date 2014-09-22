@@ -9,7 +9,9 @@
 #ifndef STATS_VECTOR_H_
 #define STATS_VECTOR_H_
 
-#include "essentials.h"
+#include "commons.h"
+#include "hash.h"
+#include "profiler.h"
 
 /*
  * Checkers

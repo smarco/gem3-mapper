@@ -120,6 +120,7 @@ GEM_INLINE void fprintf_uint64_footprint(FILE* const stream,const uint64_t word)
  * Processor
  */
 GEM_INLINE uint64_t proc_get_num_processors() {
-  return sysconf(_SC_NPROCESSORS_ONLN);
+  const uint64_t num_processors = sysconf(_SC_NPROCESSORS_ONLN);
+  return num_processors ? num_processors : 1;
 }
 

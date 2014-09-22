@@ -12,7 +12,6 @@
 #define SA_BUILDER_H_
 
 #include "essentials.h"
-#include "dna_text.h"
 #include "sampled_sa.h"
 
 /*

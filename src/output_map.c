@@ -59,7 +59,7 @@ GEM_INLINE void output_map_print_read__qualities(
   }
 }
 GEM_INLINE void output_map_print_counters(
-    buffered_output_file_t* const buffered_output_file,matches_t* const matches) {
+    buffered_output_file_t* const buffered_output_file,matches_t* const matches,const bool compact) {
   const uint64_t num_counters = vector_get_used(matches->counters);
   // Zero counters
   if (gem_expect_false(num_counters==0)) { // TODO Simple -> Use MCS to add zeros -> Or add them at search expanding counters !!!
@@ -71,7 +71,7 @@ GEM_INLINE void output_map_print_counters(
   const uint64_t* counters = vector_get_mem(matches->counters,uint64_t);
   while (i < num_counters) {
     // Check zero counter
-    if (*counters==0) {
+    if (compact && *counters==0) {
       // Check ahead number of zeros
       uint64_t j = 1;
       while (i+j < num_counters && counters[i+j]==0) ++j;
@@ -107,13 +107,13 @@ GEM_INLINE void output_map_print_cigar(
         bofprintf_fixed(buffered_output_file,INT_MAX_LENGTH,"%lu",(uint32_t)cigar_array->length);
         break;
       case cigar_mismatch:
-        bofprintf_fixed(buffered_output_file,1,"%c",(char)cigar_array->length);
+        bofprintf_fixed(buffered_output_file,1,"%c",dna_decode(cigar_array->mismatch));
         break;
       case cigar_ins:
         bofprintf_fixed(buffered_output_file,INT_MAX_LENGTH+2,">%lu+",cigar_array->length);
         break;
       case cigar_del:
-        bofprintf_fixed(buffered_output_file,INT_MAX_LENGTH+2,">%lu+",cigar_array->length);
+        bofprintf_fixed(buffered_output_file,INT_MAX_LENGTH+2,">%lu-",cigar_array->length);
         break;
       case cigar_soft_trim:
         bofprintf_fixed(buffered_output_file,INT_MAX_LENGTH+2,"(%lu)",cigar_array->length);
@@ -145,12 +145,13 @@ GEM_INLINE void output_map_single_end_matches(
   BUFFERED_OUTPUT_FILE_CHECK(buffered_output_file);
   SEQUENCE_CHECK(seq_read);
   MATCHES_CHECK(matches);
+  PROF_START_TIMER(GP_OUTPUT_MAP_SE);
   // Print TAG
   output_map_print_tag(buffered_output_file,seq_read);
   // Print READ & QUALITIES
   output_map_print_read__qualities(buffered_output_file,seq_read);
   // Print COUNTERS
-  output_map_print_counters(buffered_output_file,matches);
+  output_map_print_counters(buffered_output_file,matches,false);
   // Print MATCHES (Traverse all matches (Position-matches))
   if (gem_expect_false(vector_get_used(matches->global_matches)==0)) {
     bofprintf_fixed(buffered_output_file,3,"\t-\n");
@@ -162,4 +163,5 @@ GEM_INLINE void output_map_single_end_matches(
     // Next
     bofprintf_fixed(buffered_output_file,1,"\n");
   }
+  PROF_STOP_TIMER(GP_OUTPUT_MAP_SE);
 }

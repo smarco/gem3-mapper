@@ -8,7 +8,6 @@
 
 #include "input_fasta_parser.h"
 #include "input_parser.h"
-#include "dna_string.h"
 
 // Constants
 #define FASTA_BUFFER_NUM_LINES (2*4*NUM_LINES_5K) /* 2l-Paired x 4l-FASTQRecord x 5K-BufferSize */

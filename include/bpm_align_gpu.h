@@ -11,23 +11,13 @@
 
 #include "essentials.h"
 #include "archive.h"
+#include "pattern.h"
 #include "bpm_align.h"
 
 /*
  * Debug
  */
-#define BPM_GPU_PATTERN_DEBUG
-
-// BMP-GPU Buffer Stats
-typedef struct {
-  uint64_t num_uses;
-  gem_counter_t num_queries;
-  stats_vector_t* num_candidates;
-  stats_vector_t* queries_length;
-  gem_counter_t buffer_peq_usage;
-  gem_counter_t buffer_queries_usage;
-  gem_counter_t buffer_candidates_usage;
-} bpm_gpu_buffer_stats_t;
+//#define BPM_GPU_PATTERN_DEBUG
 
 /*
  * BMP-GPU Buffer & Collection
@@ -41,8 +31,6 @@ typedef struct {
   uint32_t num_candidates;
   /* Pattern ID generator */
   uint32_t pattern_id;
-  /* Stats */
-  bpm_gpu_buffer_stats_t bpm_gpu_buffer_stats;
   /* DEBUG */
 #ifdef BPM_GPU_PATTERN_DEBUG
   dna_text_t* enc_text;
@@ -67,6 +55,8 @@ GEM_INLINE bool bpm_gpu_support();
 /*
  * Buffer Accessors
  */
+GEM_INLINE void bpm_buffer_clear(bpm_gpu_buffer_t* const bpm_gpu_buffer);
+
 GEM_INLINE uint64_t bpm_gpu_buffer_get_max_candidates(bpm_gpu_buffer_t* const bpm_gpu_buffer);
 GEM_INLINE uint64_t bpm_gpu_buffer_get_max_queries(bpm_gpu_buffer_t* const bpm_gpu_buffer);
 
@@ -78,27 +68,22 @@ GEM_INLINE bool bpm_gpu_buffer_fits_in_buffer(
     const uint64_t num_patterns,const uint64_t total_pattern_length,const uint64_t total_candidates);
 
 GEM_INLINE void bpm_gpu_buffer_put_pattern(
-    bpm_gpu_buffer_t* const bpm_gpu_buffer,bpm_pattern_t* const bpm_pattern);
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,pattern_t* const pattern);
 GEM_INLINE void bpm_gpu_buffer_put_candidate(
     bpm_gpu_buffer_t* const bpm_gpu_buffer,
     const uint64_t candidate_text_position,const uint64_t candidate_length);
+GEM_INLINE void bpm_gpu_buffer_get_candidate(
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t position,
+    uint32_t* const candidate_text_position,uint32_t* const candidate_length);
+GEM_INLINE void bpm_gpu_buffer_get_candidate_result(
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t position,
+    uint32_t* const levenshtein_distance,uint32_t* const levenshtein_match_pos);
 
 /*
  * Send/Receive Buffer
  */
 GEM_INLINE void bpm_gpu_buffer_send(bpm_gpu_buffer_t* const bpm_gpu_buffer);
 GEM_INLINE void bpm_gpu_buffer_receive(bpm_gpu_buffer_t* const bpm_gpu_buffer);
-
-/*
- * Stats/Profile
- */
-GEM_INLINE bpm_gpu_buffer_stats_t* bpm_gpu_buffer_stats_new();
-GEM_INLINE void bpm_gpu_buffer_stats_delete(bpm_gpu_buffer_stats_t* const bpm_gpu_buffer_stats);
-GEM_INLINE void bpm_gpu_buffer_stats_record(
-    bpm_gpu_buffer_stats_t* const bpm_gpu_buffer_stats,bpm_gpu_buffer_t* const bpm_gpu_buffer);
-GEM_INLINE void bpm_gpu_buffer_stats_print(
-    FILE* const stream,bpm_gpu_buffer_stats_t* const bpm_gpu_buffer_stats);
-GEM_INLINE void bpm_gpu_buffer_gprof_print(FILE* const stream);
 
 /*
  * Errors

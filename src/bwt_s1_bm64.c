@@ -14,7 +14,7 @@
  */
 
 #include "bwt.h"
-#include "sparse_array_locator.h"
+#include "profiler.h"
 
 /*
  * Checkers
@@ -31,14 +31,15 @@
 /*
  * Profiler/Stats
  */
-#define BWT_CHAR_TICK()
-#define BWT_ERANK_TICK()
-#define BWT_ERANK_INTERVAL_TICK()
-#define BWT_LF_TICK()
+uint64_t _bwt_ranks = 0; // Bwt rank counter
 
-#define BWT_PREFETCH_TICK()
-#define BWT_PRECOMPUTE_TICK()
-#define BWT_PREFETCH__PRECOMPUTE_TICK()
+#define BWT_CHAR_TICK()                 PROF_BLOCK() { ++_bwt_ranks; }
+#define BWT_ERANK_TICK()                PROF_BLOCK() { ++_bwt_ranks; }
+#define BWT_ERANK_INTERVAL_TICK()       PROF_BLOCK() { ++_bwt_ranks; }
+#define BWT_LF_TICK()                   PROF_BLOCK() { ++_bwt_ranks; }
+
+#define BWT_PREFETCH_TICK()             PROF_BLOCK() { /* NOP */ }
+#define BWT_PRECOMPUTE_TICK()           PROF_BLOCK() { /* NOP */ }
 
 // BWT Structure
 struct _bwt_t {
@@ -517,7 +518,7 @@ GEM_INLINE uint64_t bwt_erank(const bwt_t* const bwt,const uint8_t char_enc,cons
 GEM_INLINE uint64_t bwt_erank_character(const bwt_t* const bwt,const char character,const uint64_t position) {
   return bwt_erank(bwt,dna_encode(character),position);
 }
-GEM_INLINE void bwt_erank_interval( // FIXME: Should return bool?
+GEM_INLINE void bwt_erank_interval( // TODO Should return bool?
     const bwt_t* const bwt,const uint8_t char_enc,
     const uint64_t lo_in,const uint64_t hi_in,uint64_t* const lo_out,uint64_t* const hi_out) {
   BWT_ERANK_INTERVAL_TICK();
@@ -540,7 +541,7 @@ GEM_INLINE uint64_t bwt_prefetched_erank(
       block_loc->block_pos,block_loc->block_mod,
       block_loc->mayor_counters,block_loc->block_mem);
 }
-GEM_INLINE void bwt_prefetched_erank_interval(  // FIXME: Should be returning bool
+GEM_INLINE void bwt_prefetched_erank_interval(  // TODo: Should be returning bool
     const bwt_t* const bwt,const uint8_t char_enc,
     const uint64_t lo_in,const uint64_t hi_in,uint64_t* const lo_out,uint64_t* const hi_out,
     const bwt_block_locator_t* const block_loc) {
@@ -565,14 +566,13 @@ GEM_INLINE void bwt_precompute(
 GEM_INLINE void bwt_precompute_interval(
     const bwt_t* const bwt,const uint64_t lo,const uint64_t hi,
     bwt_block_locator_t* const block_loc,bwt_block_elms_t* const block_elms) {
-  BWT_PRECOMPUTE_TICK();
   bwt_precompute(bwt,hi,block_loc,block_elms);
   block_elms->gap_mask = uint64_erank_inv_mask(lo % BWT_MINOR_BLOCK_LENGTH);
 }
 GEM_INLINE void bwt_prefetched_precompute(
     const bwt_t* const bwt,
     const bwt_block_locator_t* const block_loc,bwt_block_elms_t* const block_elms) {
-  BWT_PREFETCH__PRECOMPUTE_TICK();
+  BWT_PRECOMPUTE_TICK();
   bwt_precompute_(bwt,
       block_loc->block_pos,block_loc->block_mod,
       block_loc->mayor_counters,block_loc->block_mem,block_elms);
@@ -580,7 +580,6 @@ GEM_INLINE void bwt_prefetched_precompute(
 GEM_INLINE void bwt_prefetched_precompute_interval(
     const bwt_t* const bwt,const uint64_t lo,
     const bwt_block_locator_t* const block_loc,bwt_block_elms_t* const block_elms) {
-  BWT_PREFETCH__PRECOMPUTE_TICK();
   bwt_prefetched_precompute(bwt,block_loc,block_elms);
   block_elms->gap_mask = uint64_erank_inv_mask(lo % BWT_MINOR_BLOCK_LENGTH);
 }
@@ -628,7 +627,6 @@ GEM_INLINE uint64_t bwt_LF__enc(
 }
 GEM_INLINE uint64_t bwt_LF__character(
     const bwt_t* const bwt,const uint64_t position,char* const character) {
-  BWT_LF_TICK();
   uint8_t char_enc;
   const uint64_t rank_LF = bwt_LF__enc(bwt,position,&char_enc);
   *character = dna_decode(char_enc);

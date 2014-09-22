@@ -11,7 +11,6 @@
 
 #include "essentials.h"
 #include "quality_model.h"
-#include "dna_text.h"
 
 // Approximate Search Internals
 typedef enum { check_none, check_pmatches_correctness, check_imatches_correctness, check_correctness, check_completness } check_matches_t;

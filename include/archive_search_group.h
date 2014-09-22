@@ -12,86 +12,64 @@
 #include "essentials.h"
 #include "archive_search.h"
 #include "bpm_align_gpu.h"
+#include "buffered_output_file.h"
+#include "mapper.h"
 
-/*
- * Checker
- */
-// TODO
-
-/*
- * Mapper Search Dispatcher (Gathers all BPM-GPU buffers and related mapper searches)
- */
-typedef struct {
-  /* Search */
-  archive_search_t* archive_search;     // Archive search
-  /* Candidates verified */
-  uint64_t results_buffer_offset;       // Offset in the results vector
-} archive_search_member_t;
-typedef enum {
-  archive_search_group_free,
-  archive_search_group_generating_candidates,
-  archive_search_group_verifying_candidates,
-  archive_search_group_selecting_candidates
-} archive_search_group_state_t;
-typedef struct {
-  /* State */
-  uint32_t mayor_group_id; // TODO Group mayor ID (for input block)
-  uint32_t minor_group_id; // TODO Group minor ID (for segmented groups)
-  archive_search_group_state_t state;                // State of the search group
-  /* BPM-GPU candidates buffer */
-  bpm_gpu_buffer_t* bpm_gpu_buffer;                  // BPM-Buffer
-  /* Archive searches */
-  vector_t* archive_searches;                        // Vector of search members (archive_search_member_t)
-  vector_t* archive_searches_attr;                   // TODO Vector of generic attr of the members (E.g related buffered_ouput)
-  /* MM */
-  mm_search_t* mm_search_end1;                       // Memory Managed Search
-  mm_search_t* mm_search_end2;                       // Memory Managed Search
-} archive_search_group_t;
-typedef struct {
-  /* Dispatcher State */
-  uint64_t num_groups;                  // Total number of search-groups allocated
-  uint64_t num_groups_free;             // Free groups (ready to be filled & used)
-  uint64_t num_groups_generating;       // Groups dispatched for candidate generation
-  uint64_t num_groups_verifying;        // Groups being verified (BPM-CUDA)
-  uint64_t num_groups_selecting;        // Groups dispatched for candidate selection
-  /* Dispatcher Record */
-  uint64_t num_threads_generating;
-  /* Dispatcher Search Groups */
-  archive_search_group_t* search_group; // Search Groups
-  /* BPM-GPU Buffer*/
-  bpm_gpu_buffer_collection_t* bpm_gpu_buffer_collection; // BPM Buffers
-  /* Mutex/CV */
-  pthread_mutex_t dispatcher_mutex;
-  pthread_cond_t groups_free_cond;
-  pthread_cond_t groups_verifying_cond;
-} archive_search_group_dispatcher_t;
+typedef struct _search_group_t search_group_t;
+typedef struct _search_group_dispatcher_t search_group_dispatcher_t;
 
 /*
  * Archive-search group
  */
-GEM_INLINE void archive_search_group_add(
-    archive_search_group_t* const archive_search_group,
+GEM_INLINE void search_group_set_incomplete(search_group_t* const search_group);
+GEM_INLINE bool search_group_is_incomplete(search_group_t* const search_group);
+
+GEM_INLINE uint64_t search_group_get_group_id(search_group_t* const search_group);
+GEM_INLINE bpm_gpu_buffer_t* search_group_get_bpm_buffer(search_group_t* const search_group);
+GEM_INLINE uint64_t search_group_get_num_searches(search_group_t* const search_group);
+GEM_INLINE void search_group_get_search(
+    search_group_t* const search_group,const uint64_t position,
+    archive_search_t** const archive_search,uint64_t* const results_buffer_offset);
+
+GEM_INLINE void search_group_add_search(
+    search_group_t* const search_group,
     archive_search_t* const archive_search,const uint64_t results_buffer_offset);
+
+// Archive Search Group Allocator (Cache)
+GEM_INLINE archive_search_t* search_group_alloc(search_group_t* const archive_search_group);
+GEM_INLINE void search_group_release(
+    search_group_t* const archive_search_group,archive_search_t* const archive_search);
 
 /*
  * Dispatcher
  */
-GEM_INLINE archive_search_group_dispatcher_t* archive_search_group_dispatcher_new();
-GEM_INLINE void archive_search_group_dispatcher_delete(archive_search_group_dispatcher_t* const dispatcher);
+GEM_INLINE search_group_dispatcher_t* search_group_dispatcher_new(
+    mapper_parameters_t* const mapper_parameters,
+    archive_t* const archive,const uint64_t num_search_groups,
+    const uint64_t average_query_size,const uint64_t candidates_per_query);
+GEM_INLINE void search_group_dispatcher_delete(search_group_dispatcher_t* const dispatcher);
 
-GEM_INLINE void archive_search_group_dispatcher_register_generating(
-    archive_search_group_dispatcher_t* const dispatcher,const uint64_t num_threads);
-GEM_INLINE void archive_search_group_dispatcher_deregister_generating(
-    archive_search_group_dispatcher_t* const dispatcher,const uint64_t num_threads);
+// Register/Deregister Threads
+GEM_INLINE void search_group_dispatcher_register_generating(
+    search_group_dispatcher_t* const dispatcher,const uint64_t num_threads);
+GEM_INLINE void search_group_dispatcher_deregister_generating(
+    search_group_dispatcher_t* const dispatcher,const uint64_t num_threads);
 
-GEM_INLINE archive_search_group_t* archive_search_group_dispatcher_request_generating(
-    archive_search_group_dispatcher_t* const dispatcher);
-GEM_INLINE void archive_search_group_dispatcher_return_generating(
-    archive_search_group_dispatcher_t* const dispatcher,archive_search_group_t* const search_group);
-GEM_INLINE archive_search_group_t* archive_search_group_dispatcher_request_selecting(
-    archive_search_group_dispatcher_t* const dispatcher);
-GEM_INLINE void archive_search_group_dispatcher_return_selecting(
-    archive_search_group_dispatcher_t* const dispatcher,archive_search_group_t* const search_group);
+// Generating group
+GEM_INLINE search_group_t* search_group_dispatcher_request_generating(
+    search_group_dispatcher_t* const dispatcher,const uint32_t request_id);
+GEM_INLINE search_group_t* search_group_dispatcher_request_generating_extension(
+    search_group_dispatcher_t* const dispatcher,search_group_t* const search_group);
+GEM_INLINE void search_group_dispatcher_return_generating(
+    search_group_dispatcher_t* const dispatcher,search_group_t* const search_group);
+
+// Selecting group
+GEM_INLINE search_group_t* search_group_dispatcher_request_selecting(
+    search_group_dispatcher_t* const dispatcher);
+GEM_INLINE search_group_t* search_group_dispatcher_request_selecting_next(
+    search_group_dispatcher_t* const dispatcher,search_group_t* search_group);
+GEM_INLINE void search_group_dispatcher_return_selecting(
+    search_group_dispatcher_t* const dispatcher,search_group_t* const search_group);
 
 /*
  * Step-wise SE-Search
@@ -100,8 +78,8 @@ GEM_INLINE void archive_search_generate_candidates(archive_search_t* const archi
 GEM_INLINE void archive_search_copy_candidates(
     archive_search_t* const archive_search,bpm_gpu_buffer_t* const bpm_gpu_buffer);
 GEM_INLINE void archive_search_select_candidates(
-    archive_search_t* const archive_search,
-    bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t results_buffer_offset);
+    archive_search_t* const archive_search,bpm_gpu_buffer_t* const bpm_gpu_buffer,
+    const uint64_t results_buffer_offset,matches_t* const matches);
 
 /*
  * Error Messages
