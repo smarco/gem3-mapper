@@ -14,10 +14,10 @@ typedef struct {
 	uint32_t numQueries;
 	uint32_t numCandidates;
 	uint32_t numResults;
-	qryEntry_t	*queries;
-	candInfo_t	*candidates;
-	bmp_gpu_qryInfo_t	*qinfo;
-	resEntry_t	*results;
+	bpm_gpu_qry_entry_t	*queries;
+	bpm_gpu_cand_info_t	*candidates;
+	bpm_gpu_qry_info_t	*qinfo;
+	bpm_gpu_res_entry_t	*results;
 } test_t;
 
 double sampleTime()
@@ -48,19 +48,19 @@ uint32_t loadQueries(const char *fn, test_t *testData, uint32_t *averageQuerySiz
 	testData->candidates = NULL;
 	testData->qinfo = NULL;
 
-	testData->queries = (qryEntry_t *) malloc(testData->totalQueriesEntries * sizeof(qryEntry_t));
+	testData->queries = (bpm_gpu_qry_entry_t *) malloc(testData->totalQueriesEntries * sizeof(bpm_gpu_qry_entry_t));
 		if (testData->queries == NULL) return (11);
-	result = fread(testData->queries, sizeof(qryEntry_t), testData->totalQueriesEntries, fp);
+	result = fread(testData->queries, sizeof(bpm_gpu_qry_entry_t), testData->totalQueriesEntries, fp);
 		if (result != testData->totalQueriesEntries) return (12);
 
-	testData->candidates = (candInfo_t *) malloc(testData->numCandidates * sizeof(candInfo_t));
+	testData->candidates = (bpm_gpu_cand_info_t *) malloc(testData->numCandidates * sizeof(bpm_gpu_cand_info_t));
 		if (testData->candidates == NULL) return (13);
-	result = fread(testData->candidates , sizeof(candInfo_t), testData->numCandidates, fp);
+	result = fread(testData->candidates , sizeof(bpm_gpu_cand_info_t), testData->numCandidates, fp);
 		if (result != testData->numCandidates) return (14);
 
-	testData->qinfo = (bmp_gpu_qryInfo_t *) malloc(testData->numQueries * sizeof(bmp_gpu_qryInfo_t));
+	testData->qinfo = (bpm_gpu_qry_info_t *) malloc(testData->numQueries * sizeof(bpm_gpu_qry_info_t));
 		if (testData->qinfo == NULL) return (15);
-	result = fread(testData->qinfo , sizeof(bmp_gpu_qryInfo_t), testData->numQueries, fp);
+	result = fread(testData->qinfo , sizeof(bpm_gpu_qry_info_t), testData->numQueries, fp);
 		if (result != testData->numQueries) return (16);
 
 	fclose(fp);
@@ -100,14 +100,14 @@ uint32_t putIntoBuffer(void *buffer, test_t *testData)
 {
 	uint32_t i;
 
-	qryEntry_t * 	queries_buffer 		= getPEQBuffer(buffer);
-	candInfo_t *	candidates_buffer 	= getCandidatesBuffer(buffer);
-	bmp_gpu_qryInfo_t *		queryInfo_buffer	= getPEQInfoBuffer(buffer);
+	bpm_gpu_qry_entry_t * 	queries_buffer 		= bpm_gpu_buffer_get_peq_entries_(buffer);
+	bpm_gpu_cand_info_t *	candidates_buffer 	= bpm_gpu_buffer_get_candidates_(buffer);
+	bpm_gpu_qry_info_t *	queryInfo_buffer	= bpm_gpu_buffer_get_peq_info_(buffer);
 
-	testData->totalQueriesEntries = MIN(testData->totalQueriesEntries, getMaxPEQEntries(buffer));
-	testData->numCandidates 	  = MIN(testData->numCandidates, getMaxCandidates(buffer));
-	testData->numQueries 		  = MIN(testData->numQueries, getMaxQueries(buffer));
-	testData->numResults 		  = testData->numCandidates;
+	testData->totalQueriesEntries 	= MIN(testData->totalQueriesEntries, bpm_gpu_buffer_get_max_peq_entries_(buffer));
+	testData->numCandidates 	= MIN(testData->numCandidates, bpm_gpu_buffer_get_max_candidates_(buffer));
+	testData->numQueries 		= MIN(testData->numQueries, bpm_gpu_buffer_get_max_queries_(buffer));
+	testData->numResults 		= testData->numCandidates;
 
 	for(i = 0; i < testData->totalQueriesEntries; i++)
 		queries_buffer[i] = testData->queries[i];
@@ -122,7 +122,7 @@ uint32_t putIntoBuffer(void *buffer, test_t *testData)
 uint32_t getFromBuffer(void *buffer, test_t *testData)
 {
 	uint32_t i;
-	resEntry_t * results_buffer = getResultsBuffer(buffer);
+	bpm_gpu_res_entry_t * results_buffer = bpm_gpu_buffer_get_results_(buffer);
 
 	for(i = 0; i < testData->numResults; i++)
 		testData->results[i] = results_buffer[i];
@@ -136,7 +136,7 @@ uint32_t loadTestData(char *qryFile, test_t *testData, uint32_t *averageQuerySiz
 
 	error = loadQueries(qryFile, testData, averageQuerySize, averageCandidatesPerQuery);
 		if(error != 0){fprintf(stderr, "Error %d, loading queries \n", error); exit(EXIT_FAILURE);}
-	testData->results = (resEntry_t *) malloc(testData->numCandidates * sizeof(resEntry_t));
+	testData->results = (bpm_gpu_res_entry_t *) malloc(testData->numCandidates * sizeof(bpm_gpu_res_entry_t));
 		if (testData->queries == NULL){fprintf(stderr, "Error allocating results \n"); exit(EXIT_FAILURE);}
 	return (0);
 }
@@ -177,7 +177,7 @@ uint32_t main(int argc, char *argv[])
 	for(threadID = 0; threadID < numThreads; ++threadID)
 		loadTestData(qryFile, &testData[threadID], &averageQuerySize, &averageCandidatesPerQuery);
 
-	bpm_gpu_init(&buffer, numBuffers, maxMbPerBuffer, refFile, PROFILE_REFERENCE_FILE, 0, averageQuerySize,
+	bpm_gpu_init_(&buffer, numBuffers, maxMbPerBuffer, refFile, PROFILE_REFERENCE_FILE, 0, averageQuerySize,
 				averageCandidatesPerQuery, ARCH_SUPPORTED);
 
 	ts = sampleTime();
@@ -187,20 +187,20 @@ uint32_t main(int argc, char *argv[])
 				idBuffer = idTask % numBuffers;
 
 				//Trace the jobs
-				printf("Host thread %d \t sent job %d \t to buffer %d \t in device %d \n", omp_get_thread_num(), idTask, idBuffer, getIdDeviceBuffer(buffer[idBuffer]));
+				printf("Host thread %d \t sent job %d \t to buffer %d \t in device %d \n", omp_get_thread_num(), idTask, idBuffer, bpm_gpu_buffer_get_id_device_(buffer[idBuffer]));
 
 				//Fill the buffer (generate work)
 				putIntoBuffer(buffer[idBuffer], &testData[idBuffer]);
 
-				sendMyersBuffer(buffer[idBuffer], testData[idBuffer].totalQueriesEntries, testData[idBuffer].numQueries, testData[idBuffer].numCandidates);
-				receiveMyersBuffer(buffer[idBuffer]);
+				bpm_gpu_send_buffer_(buffer[idBuffer], testData[idBuffer].totalQueriesEntries, testData[idBuffer].numQueries, testData[idBuffer].numCandidates);
+				bpm_gpu_receive_buffer_(buffer[idBuffer]);
 
 				//Get the results from the buffer (consume results)
 				getFromBuffer(buffer[idBuffer], &testData[idBuffer]);
 		}
 
 	ts1 = sampleTime();
-	endMyers(&buffer);
+	bpm_gpu_destroy_(&buffer);
 
 	printf("TOTAL TIME: \t %f \n", ts1-ts);
 

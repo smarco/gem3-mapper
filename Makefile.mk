@@ -60,7 +60,7 @@ ifeq ($(HAVE_CUDA),1)
   CUDA_PATH=/usr/local/cuda
   NVCC=$(CUDA_PATH)/bin/nvcc
   LIBS_CUDA=-L$(CUDA_PATH)/lib64 -lcuda -lcudart
-  # CUDA_LIBRARY_FLAGS=-I$(CUDA_PATH)/include
+  INC_CUDA=-I$(CUDA_PATH)/include
 endif
 
 # Flags
