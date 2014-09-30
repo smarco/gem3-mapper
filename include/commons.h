@@ -154,6 +154,10 @@
 #define UINT64_ZERO_MASK       0xFFFFFFFFFFFFFFFEull
 #define UINT64_ONE_LAST_MASK   0x8000000000000000ull
 #define UINT64_ZERO_LAST_MASK  0x7FFFFFFFFFFFFFFFull
+#define UINT32_ONE_MASK        0x00000001ul
+#define UINT32_ZERO_MASK       0xFFFFFFFEul
+#define UINT32_ONE_LAST_MASK   0x80000000ul
+#define UINT32_ZERO_LAST_MASK  0x7FFFFFFFul
 // Counting Masks
 extern const uint64_t uint64_mask_ones[];
 extern const uint64_t uint64_mask_inverse_ones[];

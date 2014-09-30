@@ -265,7 +265,7 @@ GEM_INLINE int8_t bpm_advance_block(
  *   BMP[BitParalellMayers] - Myers' Fast Bit-Vector algorithm (Levenshtein)
  */
 GEM_INLINE bool bpm_get_distance(
-    bpm_pattern_t* const bpm_pattern,const char* const sequence,const uint64_t sequence_length,
+    bpm_pattern_t* const bpm_pattern,const uint8_t* const sequence,const uint64_t sequence_length,
     uint64_t* const position,uint64_t* const distance) {
   // Pattern variables
   const uint64_t* PEQ = (uint64_t*)bpm_pattern->PEQ;
@@ -284,7 +284,7 @@ GEM_INLINE bool bpm_get_distance(
   uint64_t sequence_position;
   for (sequence_position=0;sequence_position<sequence_length;++sequence_position) {
     // Fetch next character
-    const uint8_t enc_char = dna_encode(sequence[sequence_position]);
+    const uint8_t enc_char = sequence[sequence_position];
 
     // Advance all blocks
     int8_t carry;

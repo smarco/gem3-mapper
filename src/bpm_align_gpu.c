@@ -12,12 +12,12 @@
 /*
  * Constants
  */
-#define BPM_GPU_PATTERN_NUM_SUB_ENTRIES BMP_GPU_PEQ_SUBENTRIES
-#define BPM_GPU_PATTERN_ENTRY_LENGTH    (BMP_GPU_PEQ_SUBENTRIES*BMP_GPU_UINT32_LENGTH)
-#define BPM_GPU_PATTERN_ENTRY_SIZE      (BPM_GPU_PATTERN_ENTRY_LENGTH/UINT8_SIZE)
-#define BPM_GPU_PATTERN_ALPHABET_LENGTH BMP_GPU_PEQ_ALPHABET_SIZE
-#define BPM_GPU_BUFFER_SIZE             BUFFER_SIZE_32M
-
+#define BPM_GPU_PATTERN_NUM_SUB_ENTRIES  BMP_GPU_PEQ_SUBENTRIES
+#define BPM_GPU_PATTERN_ENTRY_LENGTH     BMP_GPU_PEQ_ENTRY_LENGTH
+#define BPM_GPU_PATTERN_SUBENTRY_LENGTH  BMP_GPU_PEQ_SUBENTRY_LENGTH
+#define BPM_GPU_PATTERN_ENTRY_SIZE       (BPM_GPU_PATTERN_ENTRY_LENGTH/UINT8_SIZE)
+#define BPM_GPU_PATTERN_ALPHABET_LENGTH  BMP_GPU_PEQ_ALPHABET_SIZE
+#define BPM_GPU_BUFFER_SIZE              BUFFER_SIZE_32M
 
 /*
  * No-CUDA Support
@@ -157,58 +157,76 @@ GEM_INLINE void bpm_gpu_buffer_get_candidate_result(
   *levenshtein_distance = results_buffer->score;
   *levenshtein_match_pos = results_buffer->column;
 }
-// Debug Guard
-# ifndef BPM_GPU_PATTERN_DEBUG
-GEM_INLINE void bpm_gpu_buffer_put_pattern(
-    bpm_gpu_buffer_t* const bpm_gpu_buffer,pattern_t* const pattern) {
-  bpm_pattern_t* const bpm_pattern = &pattern->bpm_pattern;
-  // Calculate PEQ dimensions
-  const uint64_t pattern_num_words = bpm_pattern->pattern_num_words;
-  const uint64_t pattern_PEQ_length = bpm_pattern->PEQ_length;
-  const uint64_t pattern_PEQ_num_entries = DIV_CEIL(pattern_PEQ_length,BPM_GPU_PATTERN_ENTRY_LENGTH);
-  // Insert query metadata
-  bpm_gpu_buffer->pattern_id = bpm_gpu_buffer->num_queries;
-  (bpm_gpu_buffer->num_queries)++;
-  bpm_gpu_qry_info_t* const query_info = bpm_gpu_buffer_get_peq_info_(bpm_gpu_buffer->buffer) + bpm_gpu_buffer->pattern_id;
-  query_info->posEntry = bpm_gpu_buffer->num_PEQ_entries;
-  query_info->size = pattern_PEQ_num_entries;
-  // Insert query pattern
-  bpm_gpu_qry_entry_t* const query_pattern = bpm_gpu_buffer_get_peq_entries_(bpm_gpu_buffer->buffer) + bpm_gpu_buffer->num_PEQ_entries;
-  const uint8_t* const pattern_PEQ = bpm_pattern->PEQ;
-  uint64_t entry, words8_offset;
-  // Iterate over all entries
-  for (entry=0,words8_offset=0;entry<pattern_PEQ_num_entries;++entry) {
-    bpm_gpu_qry_entry_t* const query_pattern_entry = query_pattern + entry;
-    // Iterate over all sub-entries
-    uint64_t enc_char, sub_entry;
-    for (enc_char=0;enc_char<BPM_GPU_PATTERN_ALPHABET_LENGTH;++enc_char) {
-      for (sub_entry=0;sub_entry<BPM_GPU_PATTERN_NUM_SUB_ENTRIES;++sub_entry) {
-        uint8_t* const bitmap = (uint8_t*) &(query_pattern_entry->bitmap[enc_char][sub_entry]);
-        // Fill subentry bitmap
-        uint64_t subentry_wp;
-        for (subentry_wp=0;subentry_wp<4;++subentry_wp) {
-          const uint64_t word8_pos = words8_offset + subentry_wp;
-          if (word8_pos < pattern_num_words) {
-            bitmap[subentry_wp] = pattern_PEQ[BPM_PATTERN_PEQ_IDX(enc_char,word8_pos,pattern_num_words)];
-          } else {
-            bitmap[subentry_wp] = 0;
-          }
-        }
-      }
-    }
-    words8_offset+=4; // Next entry
-  }
-  bpm_gpu_buffer->num_PEQ_entries += pattern_PEQ_num_entries;
-}
 GEM_INLINE void bpm_gpu_buffer_put_candidate(
     bpm_gpu_buffer_t* const bpm_gpu_buffer,
     const uint64_t candidate_text_position,const uint64_t candidate_length) {
   // Insert candidate
-  bpm_gpu_cand_info_t* const query_candidate = bpm_gpu_buffer_get_candidates_(bpm_gpu_buffer->buffer) + bpm_gpu_buffer->num_candidates;
+  bpm_gpu_cand_info_t* const query_candidate =
+      bpm_gpu_buffer_get_candidates_(bpm_gpu_buffer->buffer) + bpm_gpu_buffer->num_candidates;
   query_candidate->query = bpm_gpu_buffer->pattern_id;
   query_candidate->position = candidate_text_position;
   query_candidate->size = candidate_length;
   ++(bpm_gpu_buffer->num_candidates);
+}
+// Debug Guard
+# ifndef BPM_GPU_PATTERN_DEBUG
+GEM_INLINE void bpm_gpu_buffer_put_pattern(
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,pattern_t* const pattern) {
+  const uint8_t* const key = pattern->key;
+  const uint64_t key_length = pattern->key_length;
+  // Calculate PEQ dimensions
+  const uint64_t pattern_PEQ_num_entries = DIV_CEIL(key_length,BPM_GPU_PATTERN_ENTRY_LENGTH);
+  const uint64_t pattern_PEQ_length = pattern_PEQ_num_entries*BPM_GPU_PATTERN_ENTRY_LENGTH;
+  // Insert query metadata
+  bpm_gpu_buffer->pattern_id = bpm_gpu_buffer->num_queries;
+  (bpm_gpu_buffer->num_queries)++;
+  bpm_gpu_qry_info_t* const query_info =
+      bpm_gpu_buffer_get_peq_info_(bpm_gpu_buffer->buffer) + bpm_gpu_buffer->pattern_id;
+  query_info->posEntry = bpm_gpu_buffer->num_PEQ_entries;
+  query_info->size = key_length;
+  // Insert query pattern
+  bpm_gpu_qry_entry_t* const query_pattern =
+      bpm_gpu_buffer_get_peq_entries_(bpm_gpu_buffer->buffer) + bpm_gpu_buffer->num_PEQ_entries;
+  bpm_gpu_buffer->num_PEQ_entries += pattern_PEQ_num_entries;
+  // Clear PEQ pattern
+  uint64_t entry, subentry, alpha;
+  for (entry=0;entry<pattern_PEQ_num_entries;++entry) {
+    for (alpha=0;alpha<BPM_GPU_PATTERN_ALPHABET_LENGTH;++alpha) {
+      for (subentry=0;subentry<BPM_GPU_PATTERN_NUM_SUB_ENTRIES;++subentry) {
+        query_pattern[entry].bitmap[alpha][subentry] = 0;
+      }
+    }
+  }
+  // Compile PEQ pattern
+  uint64_t i, offset;
+  for (i=0,offset=0,entry=0,subentry=0;i<key_length;++i,++offset) {
+    // Update location
+    if (offset==BPM_GPU_PATTERN_SUBENTRY_LENGTH) {
+      offset = 0; ++subentry;
+      if (subentry==BPM_GPU_PATTERN_NUM_SUB_ENTRIES) {
+        subentry = 0; ++entry;
+      }
+    }
+    // Encode pattern char
+    const uint8_t enc_char = key[i];
+    const uint32_t mask = (UINT32_ONE_MASK<<offset);
+    query_pattern[entry].bitmap[enc_char][subentry] |= mask;
+  }
+  for (;i<pattern_PEQ_length;++i) {
+    // Update location
+    if (offset==BPM_GPU_PATTERN_SUBENTRY_LENGTH) {
+      offset = 0; ++subentry;
+      if (subentry==BPM_GPU_PATTERN_NUM_SUB_ENTRIES) {
+        subentry = 0; ++entry;
+      }
+    }
+    // Encode remaining chars
+    uint8_t enc_char;
+    const uint32_t mask = (UINT32_ONE_MASK<<offset);
+    for (enc_char=0;enc_char<DNA__N_RANGE;++enc_char) {
+      query_pattern[entry].bitmap[enc_char][subentry] |= mask;
+    }
+  }
 }
 /*
  * Send/Receive Buffer
@@ -249,17 +267,6 @@ GEM_INLINE void bpm_gpu_buffer_put_pattern(
   pattern_t** const query_pattern =
       (pattern_t**)bpm_gpu_buffer_get_peq_entries_(bpm_gpu_buffer->buffer) + bpm_gpu_buffer->pattern_id;
   *query_pattern = pattern;
-}
-GEM_INLINE void bpm_gpu_buffer_put_candidate(
-    bpm_gpu_buffer_t* const bpm_gpu_buffer,
-    const uint64_t candidate_text_position,const uint64_t candidate_length) {
-  // Insert candidate
-  bpm_gpu_cand_info_t* const query_candidate =
-      bpm_gpu_buffer_get_candidates_(bpm_gpu_buffer->buffer) + bpm_gpu_buffer->num_candidates;
-  query_candidate->query = bpm_gpu_buffer->pattern_id;
-  query_candidate->position = candidate_text_position;
-  query_candidate->size = candidate_length;
-  ++(bpm_gpu_buffer->num_candidates);
 }
 /*
  * Send/Receive Buffer
