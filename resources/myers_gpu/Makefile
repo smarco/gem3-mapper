@@ -16,6 +16,8 @@ NVCC_MINIMAL_VERSION = $(shell [[ ($(NVCC_VERSION) -ge "0")  && ($(NVCC_VERSION)
                                [[ ($(NVCC_VERSION) -ge "50") && ($(NVCC_VERSION) -le  "59") ]] && echo "50"; \
                                [[ ($(NVCC_VERSION) -ge "60") ]] && echo "60";)
 
+$(shell test -d $(FOLDER_BUILD) || mkdir $(FOLDER_BUILD))
+
 ifeq ($(NVCC_MINIMAL_VERSION), 10)
 	$(error CUDA SDK version $(NVCC_VERSION) NOT SUPPORTED - (At least CUDA SDK 3.0 is required))
 endif
@@ -52,7 +54,7 @@ debug: $(CUDA_OBJS) $(OBJS)
 test: NVCC_COMPILE_FLAGS=-O3 -m64
 test: GCC_COMPILE_FLAGS=-O3 -m64
 test: $(CUDA_OBJS) $(OBJS)
-	$(CC) $(GCC_COMPILE_FLAGS) $(CUDA_LIBRARY_FLAGS) test.c $(CUDA_OBJS) $(OBJS) -o $(FOLDER_BUILD)/test -fopenmp
+	$(CC) $(GCC_COMPILE_FLAGS) test.c $(CUDA_OBJS) $(OBJS) -o $(FOLDER_BUILD)/test -fopenmp $(CUDA_LIBRARY_FLAGS)
 	$(CC) $(GCC_COMPILE_FLAGS) genCandidate.c -o $(FOLDER_BUILD)/gcandidates
 	$(CC) $(GCC_COMPILE_FLAGS) genReference.c -o $(FOLDER_BUILD)/greference
 
@@ -60,7 +62,7 @@ test: $(CUDA_OBJS) $(OBJS)
 test-profile: NVCC_COMPILE_FLAGS=-O3 -m64 --ptxas-options=-v -lineinfo
 test-profile: GCC_COMPILE_FLAGS=-O3 -m64
 test-profile: $(CUDA_OBJS) $(OBJS)
-	$(CC) $(GCC_COMPILE_FLAGS) $(CUDA_LIBRARY_FLAGS) test.c $(CUDA_OBJS) $(OBJS) -o $(FOLDER_BUILD)/test-profile -fopenmp
+	$(CC) $(GCC_COMPILE_FLAGS) test.c $(CUDA_OBJS) $(OBJS) -o $(FOLDER_BUILD)/test-profile -fopenmp $(CUDA_LIBRARY_FLAGS)
 	$(CC) $(GCC_COMPILE_FLAGS) genCandidate.c -o $(FOLDER_BUILD)/gcandidates
 	$(CC) $(GCC_COMPILE_FLAGS) genReference.c -o $(FOLDER_BUILD)/greference
 
@@ -68,7 +70,7 @@ test-profile: $(CUDA_OBJS) $(OBJS)
 test-debug: NVCC_COMPILE_FLAGS=-O0 -G -m64 --ptxas-options=-v -lineinfo
 test-debug: GCC_COMPILE_FLAGS=-O0 -g -m64 --ptxas-options=-v -lineinfo
 test-debug: $(CUDA_OBJS) $(OBJS)
-	$(CC) $(GCC_COMPILE_FLAGS) $(CUDA_LIBRARY_FLAGS) test.c $(CUDA_OBJS) $(OBJS) -o $(FOLDER_BUILD)/test-debug -fopenmp
+	$(CC) $(GCC_COMPILE_FLAGS) test.c $(CUDA_OBJS) $(OBJS) -o $(FOLDER_BUILD)/test-debug -fopenmp $(CUDA_LIBRARY_FLAGS)
 	$(CC) $(GCC_COMPILE_FLAGS) genCandidate.c -o $(FOLDER_BUILD)/gcandidates
 	$(CC) $(GCC_COMPILE_FLAGS) genReference.c -o $(FOLDER_BUILD)/greference
 
