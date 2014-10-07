@@ -10,11 +10,6 @@
 #define COMMONS_H_
 
 /*
- * VERSION
- */
-#define GEM_CORE_VERSION "3.2.0"
-
-/*
  * SETUP
  */
 #define _GNU_SOURCE 1
@@ -40,6 +35,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <limits.h>
+#include <pwd.h>
 
 #include <string.h>
 #include <math.h>
@@ -219,6 +215,10 @@ GEM_INLINE uint64_t gem_rand_IID(const uint64_t min,const uint64_t max);
 
 #define POW4(number) (1<<((number)<<1))
 
+#define DIV_POW2(NUMERATOR,DENOMINATOR_LOG2) ((NUMERATOR)>>(DENOMINATOR_LOG2))
+extern const uint64_t uint64_mask_mod_pow2[];
+#define MOD_POW2(NUMERATOR,DENOMINATOR_LOG2) ((NUMERATOR) & uint64_mask_mod_pow2[DENOMINATOR_LOG2])
+
 GEM_INLINE uint64_t integer_proportion(const float proportion,const uint64_t length);
 GEM_INLINE uint64_t integer_lower_power_of_two(uint64_t number);
 GEM_INLINE uint64_t integer_upper_power_of_two(uint64_t number);
@@ -263,6 +263,7 @@ GEM_INLINE void fprintf_uint64_footprint(FILE* const stream,const uint64_t word)
   #define POPCOUNT_64(word64) __builtin_popcountll((word64))
   #define POPCOUNT_32(word32) __builtin_popcount((word32))
 #endif
+
 /*
  * Prefetch macros
  */
@@ -274,8 +275,11 @@ GEM_INLINE void fprintf_uint64_footprint(FILE* const stream,const uint64_t word)
 #endif
 
 /*
- * Processor
+ * System
  */
-GEM_INLINE uint64_t proc_get_num_processors();
+GEM_INLINE uint64_t system_get_num_processors();
+GEM_INLINE char* system_get_cwd();
+GEM_INLINE char* system_get_hostname();
+GEM_INLINE char* system_get_user_name();
 
 #endif /* COMMONS_H_ */

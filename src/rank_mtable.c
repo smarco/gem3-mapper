@@ -173,6 +173,7 @@ GEM_INLINE void rank_mtable_builder_delete(rank_mtable_t* const rank_mtable) {
   RANK_MTABLE_CHECK(rank_mtable);
   mm_free(rank_mtable->sa_ranks_levels[0]);
   mm_free(rank_mtable->sa_ranks_levels);
+  mm_free(rank_mtable->level_skip);
   mm_free(rank_mtable);
 }
 /*

@@ -16,11 +16,11 @@
  * Loader/Setup
  */
 GEM_INLINE packed_integer_array_t* packed_integer_array_new(
-    const uint64_t idx_begin,const uint64_t idx_end,const uint64_t integer_length_bits) {
+    const uint64_t num_elements,const uint64_t integer_length_bits) {
   // Allocate handler
   packed_integer_array_t* const array = mm_alloc(packed_integer_array_t);
   // Set Dimensions
-  array->num_elements = idx_end-idx_begin;
+  array->num_elements = num_elements;
   array->integer_length = integer_length_bits;
   // Array
   array->array_size = PACKED_INT_ARRAY_SIZE(array->num_elements,integer_length_bits);
@@ -28,6 +28,17 @@ GEM_INLINE packed_integer_array_t* packed_integer_array_new(
   array->mm_bitmap = (mm_t*)(-1); // Trick to guide deallocation
   // Return
   return array;
+}
+GEM_INLINE void packed_integer_array_delete(packed_integer_array_t* const array) {
+  PACKED_INTEGER_ARRAY_CHECK(array);
+  if (array->mm_bitmap!=NULL) {
+    if (array->mm_bitmap==(mm_t*)(-1)) {
+      mm_free(array->bitmap);
+    } else {
+      mm_bulk_free(array->mm_bitmap);
+    }
+  }
+  mm_free(array);
 }
 GEM_INLINE packed_integer_array_t* packed_integer_array_read(fm_t* const file_manager) {
   FM_CHECK(file_manager);
@@ -74,27 +85,156 @@ GEM_INLINE void packed_integer_array_write(fm_t* const file_manager,packed_integ
   // Write array
   fm_write_mem(file_manager,array->bitmap,array->array_size);
 }
-GEM_INLINE void packed_integer_array_write_adaptor(
-    fm_t* const file_manager,const uint64_t max_integer,const uint64_t num_integers,
-    const uint64_t* const raw_integer_array) {
+/*
+ * Builder
+ */
+GEM_INLINE packed_integer_array_builder_t* packed_integer_array_builder_new(
+    const uint64_t integer_length_bits,mm_slab_t* const mm_slab) {
+  // Allocate handler
+  packed_integer_array_builder_t* const array = mm_alloc(packed_integer_array_builder_t);
+  // Set Dimensions
+  array->num_elements = 0;
+  array->integer_length = integer_length_bits;
+  // Array
+  array->bitmap = svector_new(mm_slab,uint64_t);
+  // Writer
+  array->lo64_offset = 0;
+  svector_iterator_new(&array->bitmap_writer,array->bitmap,SVECTOR_WRITE_ITERATOR,0);
+  // Return
+  return array;
+}
+GEM_INLINE void packed_integer_array_builder_delete(packed_integer_array_builder_t* const array) {
+  svector_delete(array->bitmap);
+  mm_free(array);
+}
+GEM_INLINE void packed_integer_array_builder_store(
+    packed_integer_array_builder_t* const array,const uint64_t integer) {
+  uint64_t* next_word = svector_iterator_get_element(&array->bitmap_writer,uint64_t);
+  // Store LO part
+  *next_word |= (integer << array->lo64_offset);
+  // Store HI part
+  const uint64_t hi64_offset = UINT64_LENGTH-array->lo64_offset;
+  if (hi64_offset < array->integer_length) {
+    svector_write_iterator_next(&array->bitmap_writer);
+    uint64_t* next_word = svector_iterator_get_element(&array->bitmap_writer,uint64_t);
+    *next_word |= (integer >> hi64_offset);
+  } else if (hi64_offset == array->integer_length) {
+    svector_write_iterator_next(&array->bitmap_writer);
+  }
+  // Next
+  ++array->num_elements;
+  array->lo64_offset = (array->lo64_offset+array->integer_length) % UINT64_LENGTH;
+}
+typedef struct {
+  /* Packed Integer Arrays Builders */
+  uint64_t num_array_builders;
+  packed_integer_array_builder_t** array_builders;
+  uint64_t total_elements;
+  /* Iterator */
+  packed_integer_array_builder_t* current_array_builder;
+  uint64_t array_builder_position;
+  uint64_t array_builder_pending;
+  uint64_t lo64_offset;
+  svector_iterator_t bitmap_iterator;
+} array_builder_hub_t;
+
+GEM_INLINE void array_builder_hub_load_builder(
+    array_builder_hub_t* const array_builder_hub,const uint64_t array_builder_position) {
+  array_builder_hub->current_array_builder = array_builder_hub->array_builders[array_builder_position];
+  array_builder_hub->array_builder_pending = array_builder_hub->current_array_builder->num_elements;
+  if (array_builder_hub->array_builder_pending > 0) {
+    array_builder_hub->lo64_offset = 0;
+    svector_iterator_new(&array_builder_hub->bitmap_iterator,
+        array_builder_hub->current_array_builder->bitmap,SVECTOR_READ_ITERATOR,0);
+  } else {
+    ++(array_builder_hub->array_builder_position);
+    if (array_builder_hub->array_builder_position < array_builder_hub->num_array_builders) {
+      array_builder_hub_load_builder(array_builder_hub,array_builder_hub->array_builder_position);
+    } else {
+      array_builder_hub->array_builder_pending = 0;
+    }
+  }
+}
+GEM_INLINE void array_builder_hub_new(
+    array_builder_hub_t* const array_builder_hub,
+    packed_integer_array_builder_t** array_builders,const uint64_t num_array_builders) {
+  // Packed Integer Arrays Builders
+  array_builder_hub->num_array_builders = num_array_builders;
+  array_builder_hub->array_builders = array_builders;
+  // Calculate dimensions
+  array_builder_hub->total_elements = 0;
+  uint64_t i;
+  for (i=0;i<num_array_builders;++i) {
+    array_builder_hub->total_elements += array_builders[i]->num_elements;
+    if (array_builders[i]->lo64_offset > 0) svector_write_iterator_next(&(array_builders[i]->bitmap_writer));
+  }
+  // Iterator
+  array_builder_hub->array_builder_position = 0;
+  array_builder_hub_load_builder(array_builder_hub,0);
+}
+GEM_INLINE uint64_t array_builder_hub_get_num_elements(array_builder_hub_t* const array_builder_hub) {
+  return array_builder_hub->total_elements;
+}
+GEM_INLINE bool array_builder_hub_eoi(array_builder_hub_t* const array_builder_hub) {
+  return (array_builder_hub->array_builder_pending==0);
+}
+GEM_INLINE uint64_t array_builder_hub_next(array_builder_hub_t* const array_builder_hub) {
+  // Locate next integer
+  const uint64_t lo64_offset = array_builder_hub->lo64_offset;
+  const uint64_t hi64_offset = UINT64_LENGTH - lo64_offset;
+  const uint64_t current_word = *svector_iterator_get_element(&array_builder_hub->bitmap_iterator,uint64_t);
+  const uint64_t integer_length = array_builder_hub->current_array_builder->integer_length;
+  // Calculate the next integer
+  uint64_t next_integer;
+  if (hi64_offset >= integer_length) {
+    next_integer = uint64_mask_ones[integer_length] & (current_word >> lo64_offset);
+    if (hi64_offset==integer_length) {
+      svector_read_iterator_next(&array_builder_hub->bitmap_iterator);
+    }
+  } else {
+    svector_read_iterator_next(&array_builder_hub->bitmap_iterator);
+    const uint64_t next_word = *svector_iterator_get_element(&array_builder_hub->bitmap_iterator,uint64_t);
+    next_integer = uint64_mask_ones[integer_length] & ((current_word >> lo64_offset) | (next_word << hi64_offset));
+  }
+  // Update iterator
+  --(array_builder_hub->array_builder_pending);
+  if (array_builder_hub->array_builder_pending==0) {
+    ++(array_builder_hub->array_builder_position);
+    if (array_builder_hub->array_builder_position < array_builder_hub->num_array_builders) {
+      array_builder_hub_load_builder(array_builder_hub,array_builder_hub->array_builder_position);
+    }
+  } else {
+    array_builder_hub->lo64_offset = (array_builder_hub->lo64_offset+integer_length) % UINT64_LENGTH;
+  }
+  // Return
+  return next_integer;
+}
+GEM_INLINE void packed_integer_array_builder_write(
+    fm_t* const file_manager,
+    packed_integer_array_builder_t** array_builders,const uint64_t num_array_builders) {
+  // Create Hub
+  array_builder_hub_t array_builder_hub;
+  array_builder_hub_new(&array_builder_hub,array_builders,num_array_builders);
   // Write Meta-Data
-  const uint64_t sa_bit_length = integer_upper_power_of_two(max_integer);
-  const uint64_t array_size = PACKED_INT_ARRAY_SIZE(num_integers,sa_bit_length);
-  packed_integer_array_write_metadata(file_manager,num_integers,sa_bit_length,array_size);
+  const uint64_t integer_length = array_builders[0]->integer_length;
+  const uint64_t total_elements = array_builder_hub_get_num_elements(&array_builder_hub);
+  const uint64_t array_size = PACKED_INT_ARRAY_SIZE(total_elements,integer_length);
+  packed_integer_array_write_metadata(file_manager,total_elements,integer_length,array_size);
   // Write array
-  uint64_t i, offset, bitmap_word = 0;
-  for (i=0,offset=0;i<num_integers;++i) {
-    const uint64_t integer = raw_integer_array[i];
+  uint64_t i, offset=0, bitmap_word=0;
+  for (i=0;i<total_elements;++i) {
+    // Get next array element
+    const uint64_t integer = array_builder_hub_next(&array_builder_hub);
     // Store LO part
     bitmap_word |= (integer << offset);
     // Store HI part
-    offset += sa_bit_length;
+    offset += integer_length;
     if (offset >= UINT64_LENGTH) {
       fm_write_uint64(file_manager,bitmap_word);
       bitmap_word = 0;
       offset -= UINT64_LENGTH;
       if (offset > 0) {
-        bitmap_word |= (integer >> (sa_bit_length-offset));
+        bitmap_word |= (integer >> (integer_length-offset));
       }
     }
   }
@@ -105,20 +245,17 @@ GEM_INLINE void packed_integer_array_write_adaptor(
   // Write ((+8) padding)
   fm_write_uint64(file_manager,0);
 }
-GEM_INLINE void packed_integer_array_delete(packed_integer_array_t* const array) {
-  PACKED_INTEGER_ARRAY_CHECK(array);
-  if (array->mm_bitmap!=NULL) {
-    if (array->mm_bitmap==(mm_t*)(-1)) {
-      mm_free(array->bitmap);
-    } else {
-      mm_bulk_free(array->mm_bitmap);
-    }
-  }
-  mm_free(array);
-}
 /*
  * Accessors
  */
+GEM_INLINE uint64_t packed_integer_array_get_size(const packed_integer_array_t* const array) {
+  PACKED_INTEGER_ARRAY_CHECK(array);
+  return array->array_size;
+}
+GEM_INLINE uint64_t packed_integer_array_get_length(const packed_integer_array_t* const array) {
+  PACKED_INTEGER_ARRAY_CHECK(array);
+  return array->num_elements;
+}
 #define PACKED_INT_ARRAY_GET_LOCATION(lo64_bit_position,lo64_word_position,lo64_offset,hi64_offset) \
   const uint64_t lo64_bit_position = position*array->integer_length; \
   const uint64_t lo64_word_position = lo64_bit_position/UINT64_LENGTH; \
@@ -152,14 +289,6 @@ GEM_INLINE void packed_integer_array_store(packed_integer_array_t* const array,c
   if (hi64_offset < array->integer_length) {
     array->bitmap[lo64_word_position+1] |= (integer >> hi64_offset);
   }
-}
-GEM_INLINE uint64_t packed_integer_array_get_size(const packed_integer_array_t* const array) {
-  PACKED_INTEGER_ARRAY_CHECK(array);
-  return array->array_size;
-}
-GEM_INLINE uint64_t packed_integer_array_get_length(const packed_integer_array_t* const array) {
-  PACKED_INTEGER_ARRAY_CHECK(array);
-  return array->num_elements;
 }
 /*
  * Display

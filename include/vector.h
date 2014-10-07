@@ -102,9 +102,9 @@ GEM_INLINE void vector_delete(vector_t* const vector);
   for (counter=0;counter<vector_##element##_used;++element,++counter)
 #define VECTOR_ITERATE_OFFSET(vector,element,counter,offset,type) \
   const uint64_t vector_##element##_used = vector_get_used(vector); \
-  type* element = vector_get_elm(vector,offset,type); \
+  type* element = vector_get_mem(vector,type)+offset; \
   uint64_t counter; \
-  for (counter=offset;counter<vector_##element##_used;++element,++counter)
+  for (counter=offset;counter<vector_##element##_used;++counter,++element)
 #define VECTOR_ITERATE_CONST(vector,element,counter,type) \
   const uint64_t vector_##element##_used = vector_get_used(vector); \
   const type* element = vector_get_mem(vector,type); \

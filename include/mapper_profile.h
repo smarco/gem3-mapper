@@ -22,6 +22,7 @@
 #define GP_ARCHIVE_SEARCH_SE      2
 #define GP_ARCHIVE_SELECT_MATCHES 3
 #define GP_OUTPUT_MAP_SE          4
+#define GP_OUTPUT_SAM_SE          6
 
 /*
  * I/O
@@ -95,6 +96,7 @@
 #define GP_BPM_GPU_BUFFER_USAGE_CANDIDATES  161
 #define GP_BPM_GPU_BUFFER_USAGE_QUERIES     162
 #define GP_BPM_GPU_BUFFER_USAGE_PEQ_ENTRIES 163
+#define GP_BPM_GPU_BUFFER_CHECK_TIME        164
 
 /*
  * System

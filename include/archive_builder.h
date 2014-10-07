@@ -63,7 +63,7 @@ typedef struct {
   /* FM-Index */
   dna_text_t* enc_bwt;                      // BWT text
   sampling_rate_t sampling_rate;            // Sampling Rate
-  sampled_sa_builder_t* sampled_sa;         // Sampled SA
+  sampled_sa_builder_t* sampled_sa;         // Sampled SA Builder
   /* Output */
   char* output_file_name_prefix;            // Output Text FileName Prefix
   fm_t* output_file_manager;                // Output Manager

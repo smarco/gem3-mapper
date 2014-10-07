@@ -40,13 +40,13 @@ GEM_INLINE void mapper_cuda_parameters_set_defaults(mapper_cuda_parameters_t* co
   /* Paired-end Alignment */
   /* Reporting */
   /* BPM Buffers */
-  const uint64_t num_processors = proc_get_num_processors();
+  const uint64_t num_processors = system_get_num_processors();
   mapper_cuda_parameters->num_search_groups=num_processors+2;
   mapper_cuda_parameters->average_query_size=200;
   mapper_cuda_parameters->candidates_per_query=20;
   /* System */
-  mapper_cuda_parameters->num_generating_threads=num_processors;
-  mapper_cuda_parameters->num_selecting_threads=num_processors;
+  mapper_cuda_parameters->num_generating_threads=1;//num_processors;
+  mapper_cuda_parameters->num_selecting_threads=1;//num_processors;
   /* Miscellaneous */
   /* Extras */
 }
@@ -236,6 +236,11 @@ GEM_INLINE void mapper_SE_CUDA_run(
   search_group_dispatcher_t* const search_group_dispatcher = search_group_dispatcher_new(
       mapper_parameters,mapper_parameters->archive,cuda_parameters->num_search_groups,
       cuda_parameters->average_query_size,cuda_parameters->candidates_per_query);
+  // Prepare output file (SAM headers)
+  if (mapper_parameters->output_format==SAM) {
+    output_sam_print_header(mapper_parameters->output_file,
+        mapper_parameters->archive,mapper_parameters->argc,mapper_parameters->argv);
+  }
   // Ticker
   ticker_t ticker;
   ticker_count_reset(&ticker,mapper_parameters->verbose_user,"Mapping Sequences",0,MAPPER_TICKER_STEP,true);

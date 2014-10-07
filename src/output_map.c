@@ -126,11 +126,11 @@ GEM_INLINE void output_map_print_cigar(
 }
 GEM_INLINE void output_map_print_match(
     buffered_output_file_t* const buffered_output_file,const matches_t* const matches,
-    const uint64_t match_position,const match_trace_t* const match_trace) {
+    const uint64_t match_number,const match_trace_t* const match_trace) {
   // Print Sequence Name + Strand + Position
   bofprintf_fixed(buffered_output_file,gem_strlen(match_trace->sequence_name)+INT_MAX_LENGTH+5,
       "%c%s:%c:%lu:",
-      (match_position > 0) ? ',' : '\t',
+      (match_number > 0) ? ',' : '\t',
       match_trace->sequence_name,
       (match_trace->strand==Forward) ? '+' : '-',
       match_trace->position+1 /* Base-1 */);
@@ -156,9 +156,9 @@ GEM_INLINE void output_map_single_end_matches(
   if (gem_expect_false(vector_get_used(matches->global_matches)==0)) {
     bofprintf_fixed(buffered_output_file,3,"\t-\n");
   } else {
-    VECTOR_ITERATE(matches->global_matches,match_trace,match_position,match_trace_t) {
+    VECTOR_ITERATE(matches->global_matches,match_trace,match_number,match_trace_t) {
       // Print match
-      output_map_print_match(buffered_output_file,matches,match_position,match_trace);
+      output_map_print_match(buffered_output_file,matches,match_number,match_trace);
     }
     // Next
     bofprintf_fixed(buffered_output_file,1,"\n");

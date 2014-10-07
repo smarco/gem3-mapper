@@ -1,6 +1,6 @@
 /*
  * PROJECT: GEMMapper
- * FILE: bwt_s1_bm64.c
+ * FILE: bwt_s1_bm64_sampled.c
  * DATE: 06/06/2012
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION: Provides basic routines to encode a DNA text into a Burrows-Wheeler transform
@@ -15,8 +15,8 @@
 #include "bwt.h"
 #include "profiler.h"
 
-#ifndef SAMPLING_SA_INVERSE
-#error "BWT implementation only compatible with SAMPLING_SA_INVERSE ('sampling_sa.h')"
+#ifndef SAMPLING_SA_DIRECT
+#error "BWT implementation only compatible with SAMPLING_SA_DIRECT ('sampling_sa.h')"
 #endif
 
 /*
@@ -40,6 +40,7 @@ uint64_t _bwt_ranks = 0; // Bwt rank counter
 #define BWT_ERANK_TICK()                PROF_BLOCK() { ++_bwt_ranks; }
 #define BWT_ERANK_INTERVAL_TICK()       PROF_BLOCK() { ++_bwt_ranks; }
 #define BWT_LF_TICK()                   PROF_BLOCK() { ++_bwt_ranks; }
+#define BWT_SAMPLED_TICK()              PROF_BLOCK() { ++_bwt_ranks; }
 
 #define BWT_PREFETCH_TICK()             PROF_BLOCK() { /* NOP */ }
 #define BWT_PRECOMPUTE_TICK()           PROF_BLOCK() { /* NOP */ }
@@ -48,16 +49,15 @@ uint64_t _bwt_ranks = 0; // Bwt rank counter
 struct _bwt_t {
   /* Meta-Data */
   uint64_t length;                    // Length of the BWT
-  uint64_t sampling_rate_log2;        // Sampling Rate (2^n)
   uint64_t* c;                        // Occurrences of each character
   uint64_t* C;                        // The cumulative occurrences ("ranks") of the symbols of the string
   /* BWT Buckets-Structure */
   uint64_t num_minor_blocks;          // Total number of minor blocks
   uint64_t num_mayor_blocks;          // Total number of mayor blocks
-  uint64_t* mayor_counters;           // Pointer to the Mayor Counters
+  uint64_t* mayor_counters;           // Pointer to the Mayor Counters (Rank)
   uint64_t* bwt_mem;                  // Pointer to the BWT structure in memory
   /* MM */
-  mm_t* mm_mayor_counters;
+  mm_t* mm_counters;
   mm_t* mm_bwt_mem;
 };
 struct _bwt_builder_t {
@@ -65,10 +65,11 @@ struct _bwt_builder_t {
   struct _bwt_t bwt;
   /* Auxiliary variables */
   uint64_t mayor_counter;             // Current mayorCounter position
-  uint64_t minor_block;               // Current minorBlock position
   uint64_t* minor_block_mem;          // Pointer to current minorBlock position
   uint64_t* mayor_occ;                // Mayor accumulated counts
   uint64_t* minor_occ;                // Minor accumulated counts
+  uint64_t sampling_mayor_count;      // Sampling-Mayor accumulated count
+  uint64_t sampling_minor_count;      // Sampling-Minor accumulated count
 };
 // BWT Elements
 struct _bwt_block_locator_t {
@@ -90,19 +91,23 @@ struct _bwt_block_elms_t {
 /*
  * BWT Dimensions
  *   Alphabet = 3bits => 3 dense
- *   MinorBlock => 40B
- *   MayorBlock => 40KB (1024 MinorBlocks)
+ *   MinorBlock => 16B (minorCounters) + 24B (BM) + 8B (samplingBM) => 48B
+ *   MayorBlock => 48KB (1024 MinorBlocks)
  *   |MinorCounters| = 8*UINT16
  *   |MayorCounters| = 8*UINT64  (Stored separately)
  *   MinorBlock.BM = 3*UINT64
  *     - Bitmap-LayOut Bitwise (3 x 64word)
  *     - [64bits-Bit0-{LSB}][64bits-Bit1][64bits-Bit2-{MSB}]
+ *   SamplingBM = 1*UINT64
+ *     - Bitmap of sampled positions (UINT64 within each MinorBlock.BM[3])
+ *     - MayorCounters => UINT64 (Stored at MayorCounters[7]) [Piggybacking]
+ *     - MinorCounters => UINT16 (Stored at MinorBlock.MinorCounters[7]) [Piggybacking]
  * Remarks::
- *   Number of MayorBlocks (3GB genome) => 3*1024^3/65536 = 49152 MBlocks
+ *   Number of MayorBlocks (3GB genome) => 3*(1024^3)/65536 = 49152 MBlocks
  *   Assuming SysPage = 4KB =>
- *       1 SysPage => 102 minorBlocks (1 unaligned, will cause 2 Pagefaults)
- *       5 SysPage => 512 minorBlocks (4 unaligned) => ((512+4)/512) => 1,0078 PageFaults per access [OK]
- *       40KB/4KB = 10 SysPage per MayorBlock
+ *       1 SysPage => 85 minorBlocks (1 unaligned, will cause 2 Pagefaults)
+ *       3 SysPage => 256 minorBlocks (2 unaligned) => 1,011 PageFaults per access [OK]
+ *       48KB/4KB = 12 SysPage per MayorBlock
  */
 #define BWT_MINOR_COUNTER_RANGE         8
 #define BWT_MINOR_BLOCK_COUNTER_LENGTH 16
@@ -111,29 +116,33 @@ struct _bwt_block_elms_t {
 
 #define BWT_MINOR_BLOCK_SIZE \
   (BWT_MINOR_BLOCK_COUNTER_LENGTH*BWT_MINOR_COUNTER_RANGE + \
-   BWT_MINOR_BLOCK_LENGTH*BWT_MINOR_BLOCK_BITS)/8  /* 40B */
+   BWT_MINOR_BLOCK_LENGTH*BWT_MINOR_BLOCK_BITS + \
+   BWT_MINOR_BLOCK_LENGTH)/8                              /* 48B */
 #define BWT_MINOR_BLOCK_64WORDS (BWT_MINOR_BLOCK_SIZE/8)
 
 // #define BWT_MAYOR_BLOCK_NUM_MINOR_BLOCKS ((((1<<(16))-1)/BWT_MINOR_BLOCK_LENGTH) + 1) /* (((2^16)−1)÷64)+1 = 1024 */
 #define BWT_MAYOR_BLOCK_NUM_MINOR_BLOCKS (1<<10) /* 1024 */
 #define BWT_MAYOR_BLOCK_LENGTH (BWT_MAYOR_BLOCK_NUM_MINOR_BLOCKS*BWT_MINOR_BLOCK_LENGTH) /* 1024*64 = 65536 */
-#define BWT_MAYOR_BLOCK_SIZE   (BWT_MAYOR_BLOCK_NUM_MINOR_BLOCKS*BWT_MINOR_BLOCK_SIZE)   /* 1024*40B = 40960B = 40KB */
+#define BWT_MAYOR_BLOCK_SIZE   (BWT_MAYOR_BLOCK_NUM_MINOR_BLOCKS*BWT_MINOR_BLOCK_SIZE)   /* 1024*48B = 48KB */
 
 #define BWT_MAYOR_COUNTER_SIZE  UINT64_SIZE
 #define BWT_MAYOR_COUNTER_RANGE 8
+
+#define SAMPLING_MAYOR_COUNTER_SIZE  UINT64_SIZE
+#define SAMPLING_MINOR_COUNTERS_SIZE UINT16_SIZE
+#define SAMPLING_ENC_CHAR 7
 
 /*
  * BWT Builder Auxiliary functions
  */
 GEM_INLINE void bwt_builder_initialize(
     bwt_builder_t* const bwt_builder,const uint64_t bwt_text_length,
-    const uint64_t* const character_occurrences,sampled_sa_builder_t* const sampled_sa) {
+    const uint64_t* const character_occurrences) {
   struct _bwt_t* const bwt = &bwt_builder->bwt;
   /*
    * Meta-Data
    */
   bwt->length = bwt_text_length;
-  bwt->sampling_rate_log2 = (uint64_t)sampled_sa->sampling_rate;
   // Set characters count
   uint8_t i;
   bwt->c = mm_calloc(BWT_MAYOR_COUNTER_RANGE,uint64_t,true);
@@ -152,14 +161,16 @@ GEM_INLINE void bwt_builder_initialize(
   /*
    * Allocate BWT Structures
    */
+  // BWT Buckets-Structure
   bwt->mayor_counters = mm_calloc(bwt->num_mayor_blocks*BWT_MAYOR_COUNTER_RANGE,uint64_t,true);
   bwt->bwt_mem = (uint64_t*) mm_calloc(bwt->num_minor_blocks*BWT_MINOR_BLOCK_SIZE,uint8_t,true);
   // Auxiliary variables
   bwt_builder->mayor_counter = 0;
-  bwt_builder->minor_block = 0;
   bwt_builder->minor_block_mem = bwt->bwt_mem;
   bwt_builder->mayor_occ = mm_calloc(BWT_MAYOR_COUNTER_RANGE,uint64_t,true);
   bwt_builder->minor_occ = mm_calloc(BWT_MINOR_COUNTER_RANGE,uint64_t,true);
+  bwt_builder->sampling_mayor_count = 0;
+  bwt_builder->sampling_minor_count = 0;
 }
 #define bwt_builder_write_enc(enc,bit_mask,layer_0,layer_1,layer_2) \
   switch (enc) { \
@@ -207,34 +218,41 @@ GEM_INLINE void bwt_builder_initialize(
 GEM_INLINE void bwt_builder_write_mayor_counters(bwt_builder_t* const bwt_builder) {
   uint64_t* const mayor_counters = bwt_builder->bwt.mayor_counters + bwt_builder->mayor_counter;
   uint8_t i;
-  for (i=0;i<BWT_MAYOR_COUNTER_RANGE;++i) {
+  for (i=0;i<BWT_MAYOR_COUNTER_RANGE-1;++i) {
     // Update sentinel counters
     bwt_builder->mayor_occ[i] += bwt_builder->minor_occ[i];
     bwt_builder->minor_occ[i] = 0; // Reset
     // Dump counters
     mayor_counters[i] = bwt_builder->mayor_occ[i] + bwt_builder->bwt.C[i];
   }
+  // Update sentinel sampling-counters & Dump
+  bwt_builder->sampling_mayor_count += bwt_builder->sampling_minor_count;
+  bwt_builder->sampling_minor_count = 0; // Reset
+  mayor_counters[SAMPLING_ENC_CHAR] = bwt_builder->sampling_mayor_count;
   // Update MayorCounter position
   bwt_builder->mayor_counter += BWT_MAYOR_COUNTER_RANGE;
 }
 GEM_INLINE void bwt_builder_write_minor_counters(bwt_builder_t* const bwt_builder) {
   uint16_t* const minor_counters_mem = (uint16_t*) bwt_builder->minor_block_mem;
   uint8_t i;
-  // Dump main-4 counters
-  for (i=0;i<BWT_MINOR_COUNTER_RANGE;++i) {
+  // Dump counters
+  for (i=0;i<BWT_MINOR_COUNTER_RANGE-1;++i) {
     minor_counters_mem[i] = bwt_builder->minor_occ[i]; // Write minorCounter
   }
-  // Update minorBlock pointer
+  minor_counters_mem[SAMPLING_ENC_CHAR] = bwt_builder->sampling_minor_count;
+  // Update minorBlock pointer (Skip counters)
   bwt_builder->minor_block_mem += 2; // 2*64bits == 8*16bits
 }
 GEM_INLINE void bwt_builder_write_minor_block(
     bwt_builder_t* const bwt_builder,
-    const uint64_t layer_0,const uint64_t layer_1,const uint64_t layer_2) {
+    const uint64_t layer_0,const uint64_t layer_1,const uint64_t layer_2,
+    const uint64_t sampled_bitmap) {
   *bwt_builder->minor_block_mem = layer_0; ++(bwt_builder->minor_block_mem);
   *bwt_builder->minor_block_mem = layer_1; ++(bwt_builder->minor_block_mem);
   *bwt_builder->minor_block_mem = layer_2; ++(bwt_builder->minor_block_mem);
-  // Next
-  ++(bwt_builder->minor_block);
+  *bwt_builder->minor_block_mem = sampled_bitmap; ++(bwt_builder->minor_block_mem);
+  // Account Sampled Positions
+  bwt_builder->sampling_minor_count += POPCOUNT_64(sampled_bitmap);
 }
 /*
  * BWT Builder
@@ -242,22 +260,25 @@ GEM_INLINE void bwt_builder_write_minor_block(
 GEM_INLINE bwt_builder_t* bwt_builder_new(
     dna_text_t* const bwt_text,const uint64_t* const character_occurrences,
     sampled_sa_builder_t* const sampled_sa,const bool check,const bool verbose) {
-  // TODO Checks
   /*
    * Allocate & initialize builder
    */
   bwt_builder_t* const bwt_builder = mm_alloc(bwt_builder_t);
   const uint64_t bwt_length = dna_text_get_length(bwt_text);
-  bwt_builder_initialize(bwt_builder,bwt_length,character_occurrences,sampled_sa);
+  bwt_builder_initialize(bwt_builder,bwt_length,character_occurrences);
+  const uint64_t* sampled_positions_bitmap = sampled_sa_builder_get_sampled_bitmap(sampled_sa);
   /*
    * Compute BWT & write
    */
+  // Ticker
+  ticker_t ticker;
+  ticker_percentage_reset(&ticker,verbose,"Building-BWT::Generating BWT-Bitmap",bwt_length,10,true);
   // Cursors/Locators
   uint64_t mayorBlock_pos = BWT_MAYOR_BLOCK_LENGTH;
   uint64_t minorBlock_pos = BWT_MINOR_BLOCK_LENGTH;
   // BM Layers
   uint64_t layer_0=0, layer_1=0, layer_2=0, bit_mask=UINT64_ONE_MASK;
-  // Iterate over the BWT  // TODO Implement Ticker
+  // Iterate over the BWT
   const uint8_t* const bwt = dna_text_get_buffer(bwt_text);
   uint64_t bwt_pos = 0;
   while (bwt_pos < bwt_length) {
@@ -265,6 +286,7 @@ GEM_INLINE bwt_builder_t* bwt_builder_new(
     const uint8_t enc = bwt[bwt_pos++];
     // Print MayorCounters
     if (mayorBlock_pos==BWT_MAYOR_BLOCK_LENGTH) {
+      ticker_update(&ticker,mayorBlock_pos); // Update ticker
       bwt_builder_write_mayor_counters(bwt_builder);
       mayorBlock_pos = 0;
     }
@@ -280,7 +302,8 @@ GEM_INLINE bwt_builder_t* bwt_builder_new(
     ++minorBlock_pos; ++mayorBlock_pos;
     // Close MinorBlock (dump)
     if (minorBlock_pos==BWT_MINOR_BLOCK_LENGTH) {
-      bwt_builder_write_minor_block(bwt_builder,layer_0,layer_1,layer_2);
+      bwt_builder_write_minor_block(bwt_builder,layer_0,layer_1,layer_2,*sampled_positions_bitmap);
+      ++sampled_positions_bitmap;
       // Reset
       layer_0=0; layer_1=0; layer_2=0;
       bit_mask = UINT64_ONE_MASK;
@@ -288,20 +311,18 @@ GEM_INLINE bwt_builder_t* bwt_builder_new(
   }
   // Close last MinorBlock (dump)
   if (minorBlock_pos!=BWT_MINOR_BLOCK_LENGTH) {
-    bwt_builder_write_minor_block(bwt_builder,layer_0,layer_1,layer_2);
+    bwt_builder_write_minor_block(bwt_builder,layer_0,layer_1,layer_2,*sampled_positions_bitmap);
   }
+  // Ticker
+  ticker_finish(&ticker);
   // TODO: tests
   return bwt_builder;
-}
-GEM_INLINE bwt_t* bwt_builder_get_bwt(bwt_builder_t* const bwt_builder) {
-  return &bwt_builder->bwt;
 }
 GEM_INLINE void bwt_builder_write(fm_t* const file_manager,bwt_builder_t* const bwt_builder) {
   FM_CHECK(file_manager);
   BWT_BUILDER_CHECK(bwt_builder);
   /* Meta-Data */
   fm_write_uint64(file_manager,bwt_builder->bwt.length); // Length of the BWT
-  fm_write_uint64(file_manager,bwt_builder->bwt.sampling_rate_log2); // Sampling Rate (2^n)
   fm_write_mem(file_manager,bwt_builder->bwt.c,BWT_MAYOR_COUNTER_RANGE*UINT64_SIZE); // Occurrences of each character
   fm_write_mem(file_manager,bwt_builder->bwt.C,BWT_MAYOR_COUNTER_RANGE*UINT64_SIZE); // The cumulative occurrences
   /* BWT Buckets-Structure */
@@ -309,7 +330,8 @@ GEM_INLINE void bwt_builder_write(fm_t* const file_manager,bwt_builder_t* const 
   fm_write_uint64(file_manager,bwt_builder->bwt.num_mayor_blocks); // Total number of mayor blocks
   /* Mayor Counters [Aligned to 4KB] */
   fm_skip_align_4KB(file_manager);
-  fm_write_mem(file_manager,bwt_builder->bwt.mayor_counters,bwt_builder->bwt.num_mayor_blocks*BWT_MAYOR_COUNTER_RANGE*BWT_MAYOR_COUNTER_SIZE);
+  fm_write_mem(file_manager,bwt_builder->bwt.mayor_counters,
+      bwt_builder->bwt.num_mayor_blocks*BWT_MAYOR_COUNTER_RANGE*BWT_MAYOR_COUNTER_SIZE);
   /* BWT Structure [Aligned to 4KB] */
   fm_skip_align_4KB(file_manager);
   fm_write_mem(file_manager,bwt_builder->bwt.bwt_mem,bwt_builder->bwt.num_minor_blocks*BWT_MINOR_BLOCK_SIZE);
@@ -332,7 +354,6 @@ GEM_INLINE bwt_t* bwt_read(fm_t* const file_manager,const bool check) {
   bwt_t* const bwt = mm_alloc(struct _bwt_t);
   /* Meta-Data */
   bwt->length = fm_read_uint64(file_manager); // Length of the BWT
-  bwt->sampling_rate_log2 = fm_read_uint64(file_manager); // Sampling Rate (2^n)
   bwt->c = mm_calloc(BWT_MAYOR_COUNTER_RANGE,uint64_t,true);
   fm_read_mem(file_manager,bwt->c,BWT_MAYOR_COUNTER_RANGE*UINT64_SIZE); // Occurrences of each character
   bwt->C = mm_calloc(BWT_MAYOR_COUNTER_RANGE,uint64_t,true);
@@ -342,12 +363,13 @@ GEM_INLINE bwt_t* bwt_read(fm_t* const file_manager,const bool check) {
   bwt->num_mayor_blocks = fm_read_uint64(file_manager); // Total number of mayor blocks
   /* Mayor Counters [Aligned to 4KB] */
   fm_skip_align_4KB(file_manager);
-  bwt->mm_mayor_counters = fm_load_mem(file_manager,bwt->num_mayor_blocks*BWT_MAYOR_COUNTER_RANGE*BWT_MAYOR_COUNTER_SIZE);
-  bwt->mayor_counters = mm_get_base_mem(bwt->mm_mayor_counters);
+  const uint64_t mayor_counters_size = bwt->num_mayor_blocks*BWT_MAYOR_COUNTER_RANGE*BWT_MAYOR_COUNTER_SIZE;
+  bwt->mm_counters = fm_load_mem(file_manager,mayor_counters_size);
+  bwt->mayor_counters = mm_get_base_mem(bwt->mm_counters); // Rank Mayor Counters
   /* BWT Structure [Aligned to 4KB] */
   fm_skip_align_4KB(file_manager);
   bwt->mm_bwt_mem = fm_load_mem(file_manager,bwt->num_minor_blocks*BWT_MINOR_BLOCK_SIZE);
-  bwt->bwt_mem = mm_get_base_mem(bwt->mm_mayor_counters);
+  bwt->bwt_mem = mm_get_base_mem(bwt->mm_bwt_mem);
   // Return
   return bwt;
 }
@@ -356,7 +378,6 @@ GEM_INLINE bwt_t* bwt_read_mem(mm_t* const memory_manager,const bool check) {
   bwt_t* const bwt = mm_alloc(struct _bwt_t);
   /* Meta-Data */
   bwt->length = mm_read_uint64(memory_manager); // Length of the BWT
-  bwt->sampling_rate_log2 = mm_read_uint64(memory_manager); // Sampling Rate (2^n)
   bwt->c = mm_read_mem(memory_manager,BWT_MAYOR_COUNTER_RANGE*UINT64_SIZE); // Occurrences of each character
   bwt->C = mm_read_mem(memory_manager,BWT_MAYOR_COUNTER_RANGE*UINT64_SIZE); // The cumulative occurrences
   /* BWT Buckets-Structure */
@@ -364,7 +385,7 @@ GEM_INLINE bwt_t* bwt_read_mem(mm_t* const memory_manager,const bool check) {
   bwt->num_mayor_blocks = mm_read_uint64(memory_manager); // Total number of mayor blocks
   /* Mayor Counters [Aligned to 4KB] */
   mm_skip_align_4KB(memory_manager);
-  bwt->mm_mayor_counters = NULL;
+  bwt->mm_counters = NULL;
   bwt->mayor_counters = mm_read_mem(memory_manager,bwt->num_mayor_blocks*BWT_MAYOR_COUNTER_RANGE*BWT_MAYOR_COUNTER_SIZE);
   /* BWT Structure [Aligned to 4KB] */
   mm_skip_align_4KB(memory_manager);
@@ -376,10 +397,10 @@ GEM_INLINE bwt_t* bwt_read_mem(mm_t* const memory_manager,const bool check) {
 GEM_INLINE void bwt_delete(bwt_t* const bwt) {
   BWT_CHECK(bwt);
   // Free counters memory
-  if (bwt->mm_mayor_counters) {
+  if (bwt->mm_counters) {
     mm_free(bwt->c);
     mm_free(bwt->c);
-    mm_bulk_free(bwt->mm_mayor_counters);
+    mm_bulk_free(bwt->mm_counters);
   }
   // Free bwt memory
   if (bwt->mm_bwt_mem) mm_bulk_free(bwt->mm_bwt_mem);
@@ -395,8 +416,9 @@ GEM_INLINE uint64_t bwt_get_size_(bwt_t* const bwt) {
   const uint64_t mayor_counters_size = bwt->num_mayor_blocks*BWT_MAYOR_COUNTER_RANGE*UINT64_SIZE;
   return (BWT_MAYOR_COUNTER_RANGE*UINT64_SIZE) +   /* bwt->c */
          (BWT_MAYOR_COUNTER_RANGE*UINT64_SIZE) +   /* bwt->C */
-         minor_blocks_size +                       /* bwt->bwt_mem */
-         mayor_counters_size;                      /* bwt->mayor_counters */
+         mayor_counters_size +                     /* bwt->mayor_counters */
+         minor_blocks_size;                        /* bwt->bwt_mem */
+
 }
 GEM_INLINE uint64_t bwt_builder_get_size(bwt_builder_t* const bwt_builder) {
   BWT_BUILDER_CHECK(bwt_builder);
@@ -439,9 +461,7 @@ GEM_INLINE void bwt_get_block_location(
   PREFETCH(block_loc->mayor_counters); \
   PREFETCH(block_loc->block_mem)
 /* Computes and returns the encoded letter */
-GEM_INLINE uint8_t bwt_char_(
-    const bwt_t* const bwt,
-    const uint64_t block_pos,const uint64_t block_mod,const uint64_t* const block_mem) {
+GEM_INLINE uint8_t bwt_char_(const uint64_t block_mod,const uint64_t* const block_mem) {
   const uint64_t letter_mask = 1ull << block_mod;
   const uint8_t bit_1 = ((block_mem[2] & letter_mask) != 0);
   const uint8_t bit_2 = ((block_mem[3] & letter_mask) != 0);
@@ -449,11 +469,19 @@ GEM_INLINE uint8_t bwt_char_(
   return (bit_3 << 2) | (bit_2 << 1) | bit_1;
 }
 /* Computes and returns the rank */
+GEM_INLINE bool bwt_sampling_is_sampled_(const uint64_t block_mod,const uint64_t* const block_mem) {
+  return block_mem[5] & (UINT64_ONE_MASK<<block_mod); // Retrieve sampled_bit
+}
+GEM_INLINE uint64_t bwt_sampling_erank_(
+    const uint64_t block_mod,const uint64_t* const mayor_counters,const uint64_t* const block_mem) {
+  // Calculate the sampling exclusive rank (offset of the SA-sample)
+  const uint64_t sum_counters = mayor_counters[SAMPLING_ENC_CHAR] + ((uint16_t*)block_mem)[SAMPLING_ENC_CHAR];
+  return sum_counters + POPCOUNT_64(block_mem[5] & uint64_erank_mask(block_mod));
+}
 GEM_INLINE uint64_t bwt_erank_(
-    const bwt_t* const bwt,const uint8_t char_enc,
-    const uint64_t block_pos,const uint64_t block_mod,
+    const uint8_t char_enc,const uint64_t block_mod,
     const uint64_t* const mayor_counters,const uint64_t* const block_mem) {
-  // Fetching Regular DNA Characters
+  // Calculate the exclusive rank for the given DNA character
   const uint64_t sum_counters = mayor_counters[char_enc] + ((uint16_t*)block_mem)[char_enc];
   const uint64_t bitmap = (block_mem[2]^xor_table_3[char_enc]) &
                           (block_mem[3]^xor_table_2[char_enc]) &
@@ -463,8 +491,7 @@ GEM_INLINE uint64_t bwt_erank_(
 }
 /* Computes and returns the rank of an interval located in the same block */
 GEM_INLINE void bwt_erank_interval_(
-    const bwt_t* const bwt,const uint8_t char_enc,const uint64_t lo_value,
-    const uint64_t block_pos,const uint64_t block_mod,
+    const uint8_t char_enc,const uint64_t lo_value,const uint64_t block_mod,
     const uint64_t* const mayor_counters,const uint64_t* const block_mem,
     uint64_t* const lo,uint64_t* const hi) {
   // Fetching Regular DNA Characters
@@ -479,9 +506,7 @@ GEM_INLINE void bwt_erank_interval_(
 }
 /* Pre-computes the block elements (faster computation of all possible ranks) */
 GEM_INLINE void bwt_precompute_(
-    const bwt_t* const bwt,
-    const uint64_t block_pos,const uint64_t block_mod,
-    const uint64_t* const mayor_counters,const uint64_t* const block_mem,
+    const uint64_t block_mod,const uint64_t* const block_mem,
     bwt_block_elms_t* const bwt_block_elms) {
   const uint64_t erase_mask = uint64_erank_mask(block_mod);
   const uint64_t bitmap_1 = block_mem[2] & erase_mask;
@@ -505,7 +530,7 @@ GEM_INLINE uint8_t bwt_char(const bwt_t* const bwt,const uint64_t position) {
   const uint64_t block_pos = position / BWT_MINOR_BLOCK_LENGTH;
   const uint64_t block_mod = position % BWT_MINOR_BLOCK_LENGTH;
   const uint64_t* const block_mem = bwt->bwt_mem + block_pos*BWT_MINOR_BLOCK_64WORDS;
-  return bwt_char_(bwt,block_pos,block_mod,block_mem);
+  return bwt_char_(block_mod,block_mem);
 }
 GEM_INLINE char bwt_char_character(const bwt_t* const bwt,const uint64_t position) {
   return dna_decode(bwt_char(bwt,position));
@@ -516,12 +541,12 @@ GEM_INLINE char bwt_char_character(const bwt_t* const bwt,const uint64_t positio
 GEM_INLINE uint64_t bwt_builder_erank(const bwt_builder_t* const bwt_builder,const uint8_t char_enc,const uint64_t position) {
   BWT_ERANK_TICK();
   BWT_LOCATE_BLOCK((&bwt_builder->bwt),position,block_pos,block_mod,mayor_counters,block_mem);
-  return bwt_erank_(&bwt_builder->bwt,char_enc,block_pos,block_mod,mayor_counters,block_mem);
+  return bwt_erank_(char_enc,block_mod,mayor_counters,block_mem);
 }
 GEM_INLINE uint64_t bwt_erank(const bwt_t* const bwt,const uint8_t char_enc,const uint64_t position) {
   BWT_ERANK_TICK();
   BWT_LOCATE_BLOCK(bwt,position,block_pos,block_mod,mayor_counters,block_mem);
-  return bwt_erank_(bwt,char_enc,block_pos,block_mod,mayor_counters,block_mem);
+  return bwt_erank_(char_enc,block_mod,mayor_counters,block_mem);
 }
 GEM_INLINE uint64_t bwt_erank_character(const bwt_t* const bwt,const char character,const uint64_t position) {
   return bwt_erank(bwt,dna_encode(character),position);
@@ -531,7 +556,7 @@ GEM_INLINE void bwt_erank_interval( // TODO Should return bool?
     const uint64_t lo_in,const uint64_t hi_in,uint64_t* const lo_out,uint64_t* const hi_out) {
   BWT_ERANK_INTERVAL_TICK();
   BWT_LOCATE_BLOCK(bwt,hi_in,block_pos,block_mod,mayor_counters,block_mem);
-  bwt_erank_interval_(bwt,char_enc,lo_in,block_pos,block_mod,mayor_counters,block_mem,lo_out,hi_out);
+  bwt_erank_interval_(char_enc,lo_in,block_mod,mayor_counters,block_mem,lo_out,hi_out);
 }
 /*
  * BWT Prefetched ERank
@@ -545,19 +570,15 @@ GEM_INLINE uint64_t bwt_prefetched_erank(
     const bwt_t* const bwt,const uint8_t char_enc,
     const uint64_t position,const bwt_block_locator_t* const block_loc) {
   BWT_ERANK_TICK();
-  return bwt_erank_(bwt,char_enc,
-      block_loc->block_pos,block_loc->block_mod,
-      block_loc->mayor_counters,block_loc->block_mem);
+  return bwt_erank_(char_enc,block_loc->block_mod,block_loc->mayor_counters,block_loc->block_mem);
 }
 GEM_INLINE void bwt_prefetched_erank_interval(  // TODo: Should be returning bool
     const bwt_t* const bwt,const uint8_t char_enc,
     const uint64_t lo_in,const uint64_t hi_in,uint64_t* const lo_out,uint64_t* const hi_out,
     const bwt_block_locator_t* const block_loc) {
   BWT_ERANK_INTERVAL_TICK();
-  return bwt_erank_interval_(bwt,char_enc,lo_in,
-      block_loc->block_pos,block_loc->block_mod,
-      block_loc->mayor_counters,block_loc->block_mem,
-      lo_out,hi_out);
+  bwt_erank_interval_(char_enc,lo_in,block_loc->block_mod,
+      block_loc->mayor_counters,block_loc->block_mem,lo_out,hi_out);
 }
 /*
  *  BWT Precomputed ERank (Precomputation of the block's elements)
@@ -567,9 +588,7 @@ GEM_INLINE void bwt_precompute(
     bwt_block_locator_t* const block_loc,bwt_block_elms_t* const block_elms) {
   BWT_PRECOMPUTE_TICK();
   bwt_get_block_location(bwt,position,block_loc);
-  bwt_precompute_(bwt,
-      block_loc->block_pos,block_loc->block_mod,
-      block_loc->mayor_counters,block_loc->block_mem,block_elms);
+  bwt_precompute_(block_loc->block_mod,block_loc->block_mem,block_elms);
 }
 GEM_INLINE void bwt_precompute_interval(
     const bwt_t* const bwt,const uint64_t lo,const uint64_t hi,
@@ -581,9 +600,7 @@ GEM_INLINE void bwt_prefetched_precompute(
     const bwt_t* const bwt,
     const bwt_block_locator_t* const block_loc,bwt_block_elms_t* const block_elms) {
   BWT_PRECOMPUTE_TICK();
-  bwt_precompute_(bwt,
-      block_loc->block_pos,block_loc->block_mod,
-      block_loc->mayor_counters,block_loc->block_mem,block_elms);
+  bwt_precompute_(block_loc->block_mod,block_loc->block_mem,block_elms);
 }
 GEM_INLINE void bwt_prefetched_precompute_interval(
     const bwt_t* const bwt,const uint64_t lo,
@@ -615,6 +632,8 @@ GEM_INLINE bool bwt_precomputed_erank_interval(
 /*
  * BWT LF (Last to first)
  */
+
+
 GEM_INLINE uint64_t bwt_LF(
     const bwt_t* const bwt,const uint64_t position,bool* const is_sampled) {
   uint8_t char_enc;
@@ -628,14 +647,14 @@ GEM_INLINE uint64_t bwt_prefetched_LF(
 }
 GEM_INLINE uint64_t bwt_LF__enc(
     const bwt_t* const bwt,const uint64_t position,uint8_t* const char_enc,bool* const is_sampled) {
-  *is_sampled = MOD_POW2(position,bwt->sampling_rate_log2);
+  BWT_LF_TICK();
+  BWT_LOCATE_BLOCK(bwt,position,block_pos,block_mod,mayor_counters,block_mem);
+  *is_sampled = bwt_sampling_is_sampled_(block_mod,block_mem); // Retrieve sampled_bit
   if (*is_sampled) {
-    return DIV_POW2(position,bwt->sampling_rate_log2);
+    return bwt_sampling_erank_(block_mod,mayor_counters,block_mem);
   } else {
-    BWT_LF_TICK();
-    BWT_LOCATE_BLOCK(bwt,position,block_pos,block_mod,mayor_counters,block_mem);
-    *char_enc = bwt_char_(bwt,block_pos,block_mod,block_mem);
-    return bwt_erank_(bwt,*char_enc,block_pos,block_mod,mayor_counters,block_mem);
+    *char_enc = bwt_char_(block_mod,block_mem);  // Retrieve char_enc
+    return bwt_erank_(*char_enc,block_mod,mayor_counters,block_mem);
   }
 }
 GEM_INLINE uint64_t bwt_LF__character(
@@ -648,13 +667,13 @@ GEM_INLINE uint64_t bwt_LF__character(
 GEM_INLINE uint64_t bwt_prefetched_LF__enc(
     const bwt_t* const bwt,const uint64_t position,uint8_t* const char_enc,bool* const is_sampled,
     const bwt_block_locator_t* const block_loc) {
-  *is_sampled = MOD_POW2(position,bwt->sampling_rate_log2);
+  BWT_LF_TICK();
+  *is_sampled = bwt_sampling_is_sampled_(block_loc->block_mod,block_loc->block_mem); // Retrieve sampled_bit
   if (*is_sampled) {
-    return DIV_POW2(position,bwt->sampling_rate_log2);
+    return bwt_sampling_erank_(block_loc->block_mod,block_loc->mayor_counters,block_loc->block_mem);
   } else {
-    BWT_LF_TICK();
-    *char_enc = bwt_char_(bwt,block_loc->block_pos,block_loc->block_mod,block_loc->block_mem);
-    return bwt_erank_(bwt,*char_enc,block_loc->block_pos,block_loc->block_mod,block_loc->mayor_counters,block_loc->block_mem);
+    *char_enc = bwt_char_(block_loc->block_mod,block_loc->block_mem); // Retrieve char_enc
+    return bwt_erank_(*char_enc,block_loc->block_mod,block_loc->mayor_counters,block_loc->block_mem);
   }
 }
 /*
@@ -662,20 +681,27 @@ GEM_INLINE uint64_t bwt_prefetched_LF__enc(
  */
 GEM_INLINE void bwt_print_(FILE* const stream,bwt_t* const bwt) {
   // Compute sizes
-  const uint64_t minor_blocks_size = bwt->num_minor_blocks*BWT_MINOR_BLOCK_SIZE;
   const uint64_t mayor_counters_size = bwt->num_mayor_blocks*BWT_MAYOR_COUNTER_RANGE*UINT64_SIZE;
-  const uint64_t bwt_total_size = (BWT_MAYOR_COUNTER_RANGE*UINT64_SIZE)+(BWT_MAYOR_COUNTER_RANGE*UINT64_SIZE) +
-      minor_blocks_size+mayor_counters_size;
+  const uint64_t minor_blocks_size = bwt->num_minor_blocks*BWT_MINOR_BLOCK_SIZE;
+  const uint64_t bwt_total_size =
+      (BWT_MAYOR_COUNTER_RANGE*UINT64_SIZE) /* bwt->c */ +
+      (BWT_MAYOR_COUNTER_RANGE*UINT64_SIZE) /* bwt->C */ +
+      mayor_counters_size + minor_blocks_size;
   const uint64_t minor_counters_size = bwt->num_minor_blocks*BWT_MINOR_COUNTER_RANGE*BWT_MINOR_BLOCK_COUNTER_LENGTH/8;
   const uint64_t minor_bitmap_size = bwt->num_minor_blocks*BWT_MINOR_BLOCK_LENGTH*BWT_MINOR_BLOCK_BITS/8;
+  const uint64_t minor_sampling_size = bwt->num_minor_blocks*UINT64_SIZE;
   // Display BWT
   tab_fprintf(stream,"[GEM]>BWT\n");
-  tab_fprintf(stream,"  => Architecture\tGBWT.2l.1s.C64.c16.3bm64\n");
+  tab_fprintf(stream,"  => Architecture\tGBWT.2l.1s.C64.c16.3bm64.sampledBm64\n");
   tab_fprintf(stream,"    => Buckets 2-levels\n");
   tab_fprintf(stream,"    => Step    1-step\n");
   tab_fprintf(stream,"    => MayorCounters.length 64bits\n");
   tab_fprintf(stream,"    => MinorCounters.length 16bits\n");
   tab_fprintf(stream,"    => Bitmap.Bitwise 3x64bits\n");
+  tab_fprintf(stream,"    => Sampled.Positions\n");
+  tab_fprintf(stream,"      => Sampling.MayorCounters 64bits\n");
+  tab_fprintf(stream,"      => Sampling.MinorCounters 16bits\n");
+  tab_fprintf(stream,"      => Sampling.Bitmap        64bits\n");
   tab_fprintf(stream,"  => Total.length %lu\n",bwt->length);
   tab_fprintf(stream,"  => Total.Size %lu\n",bwt_total_size);
   tab_fprintf(stream,"    => Mayor.counters %lu (%lu MB) [%2.3f%%]\n",
@@ -690,6 +716,9 @@ GEM_INLINE void bwt_print_(FILE* const stream,bwt_t* const bwt) {
   tab_fprintf(stream,"      => Minor.Bitmap (%lu MB) [%2.3f%%]\n",
       CONVERT_B_TO_MB(minor_bitmap_size),
       PERCENTAGE(minor_bitmap_size,bwt_total_size));
+  tab_fprintf(stream,"      => Minor.Sampling (%lu MB) [%2.3f%%]\n",
+      CONVERT_B_TO_MB(minor_sampling_size),
+      PERCENTAGE(minor_sampling_size,bwt_total_size));
   tab_fprintf(stream,"  => Occurrences\tA=[%lu] C=[%lu] G=[%lu] T=[%lu] N=[%lu] |=[%lu]\n",
       bwt->c[ENC_DNA_CHAR_A],bwt->c[ENC_DNA_CHAR_C],bwt->c[ENC_DNA_CHAR_G],
       bwt->c[ENC_DNA_CHAR_T],bwt->c[ENC_DNA_CHAR_N],bwt->c[ENC_DNA_CHAR_SEP]);

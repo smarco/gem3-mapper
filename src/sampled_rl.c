@@ -17,7 +17,7 @@ GEM_INLINE sampled_rl_t* sampled_rl_new(
   sampled_rl_t* const sampled_rl = mm_alloc(sampled_rl_t);
   sampled_rl->sampling_rate = sampling_rate;
   // Allocate sampled RL
-  sampled_rl->packed_integer_array = packed_integer_array_new(0,num_samples,max_index);
+  sampled_rl->packed_integer_array = packed_integer_array_new(num_samples,max_index);
   // Return
   return sampled_rl;
 }

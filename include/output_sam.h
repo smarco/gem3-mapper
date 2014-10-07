@@ -11,11 +11,34 @@
 
 #include "essentials.h"
 #include "buffered_output_file.h"
+#include "archive.h"
 #include "sequence.h"
 #include "matches.h"
 
+/*
+ * SAM Parameters
+ */
+typedef struct {
+  bool compact_xa;
+  bool omit_secondary_read__qualities;
+  bool print_mismatches;
+} output_sam_parameters_t;
+
+GEM_INLINE void output_sam_parameters_set_defaults(output_sam_parameters_t* const sam_parameters);
+
+/*
+ * SAM Headers
+ */
+GEM_INLINE void output_sam_print_header(
+    output_file_t* const output_file,
+    archive_t* const archive,int argc,char** argv);
+
+/*
+ * SAM output SE
+ */
 GEM_INLINE void output_sam_single_end_matches(
     buffered_output_file_t* const buffered_output_file,
-    sequence_t* const seq_read,matches_t* const matches);
+    sequence_t* const seq_read,matches_t* const matches,
+    const output_sam_parameters_t* const output_sam_parameters);
 
 #endif /* OUTPUT_SAM_H_ */

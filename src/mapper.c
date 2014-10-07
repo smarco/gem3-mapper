@@ -73,6 +73,9 @@ void mapper_error_report(FILE* stream) {
  * Mapper Parameters
  */
 GEM_INLINE void mapper_parameters_set_defaults(mapper_parameters_t* const mapper_parameters) {
+  /* CMD line */
+  mapper_parameters->argc = 0;
+  mapper_parameters->argv = NULL;
   /* Mapper Type */
   mapper_parameters->mapper_type=mapper_se;
   /* I/O */
@@ -87,9 +90,10 @@ GEM_INLINE void mapper_parameters_set_defaults(mapper_parameters_t* const mapper
   mapper_parameters->input_file = NULL;
   mapper_parameters->output_stream = NULL;
   mapper_parameters->output_file = NULL;
-  const uint64_t num_processors = proc_get_num_processors();
+  const uint64_t num_processors = system_get_num_processors();
   mapper_parameters->max_output_buffers = num_processors + (num_processors/2);
   mapper_parameters->output_format = MAP;
+  output_sam_parameters_set_defaults(&mapper_parameters->sam_parameters);
   /* Search Parameters */
   approximate_search_parameters_init(&mapper_parameters->search_parameters);
   /* Select Parameters */
@@ -255,7 +259,8 @@ GEM_INLINE void mapper_SE_output_matches(
       output_map_single_end_matches(buffered_output_file,seq_read,matches);
       break;
     case SAM:
-      GEM_NOT_IMPLEMENTED();
+      output_sam_single_end_matches(buffered_output_file,seq_read,matches,
+          &parameters->sam_parameters);
       break;
     default:
       GEM_INVALID_CASE();
@@ -323,15 +328,22 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
   pthread_exit(0);
 }
 GEM_INLINE void mapper_SE_run(mapper_parameters_t* const mapper_parameters) {
-  // Setup threads & launch
+  // Setup threads
   const uint64_t num_threads = mapper_parameters->num_threads;
   mapper_search_t* const mapper_search = mm_calloc(num_threads,mapper_search_t,false); // Allocate mapper searches
   g_mapper_searches = mapper_search; // Set global searches for error reporting
-  ticker_t ticker; // Ticker
+  // Prepare output file (SAM headers)
+  if (mapper_parameters->output_format==SAM) {
+    output_sam_print_header(mapper_parameters->output_file,
+        mapper_parameters->archive,mapper_parameters->argc,mapper_parameters->argv);
+  }
+  // Setup Ticker
+  ticker_t ticker;
   ticker_count_reset(&ticker,mapper_parameters->verbose_user,"Mapping Sequences",0,MAPPER_TICKER_STEP,true);
   ticker_add_process_label(&ticker,"#","sequences processed");
   ticker_add_finish_label(&ticker,"Total","sequences processed");
   ticker_mutex_enable(&ticker);
+  // Launch threads
   uint64_t i;
   for (i=0;i<num_threads;++i) {
     // Setup thread

@@ -22,7 +22,7 @@
 /*
  * CIGAR (Mismatches/Indels)
  */
-typedef enum { cigar_match, cigar_mismatch, cigar_ins, cigar_del, cigar_soft_trim, cigar_null } cigar_t;
+typedef enum { cigar_match=0, cigar_mismatch=1, cigar_ins=2, cigar_del=3, cigar_soft_trim=4, cigar_null=5 } cigar_t;
 typedef struct {
   cigar_t type;              // Match, Mismatch, insertion or deletion
   union {

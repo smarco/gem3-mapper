@@ -64,12 +64,6 @@ $(FOLDER_BUILD)/fm.o : fm.c
 	$(CC) $(COMPILE_C_FLAGS) $(DEF_BZLIB) $(DEF_ZLIB) $(INCLUDE_FLAGS) -c $< -o $@
 $(FOLDER_BUILD)/bpm_align_gpu.o : bpm_align_gpu.c
 	$(CC) $(COMPILE_C_FLAGS) $(DEF_CUDA) $(INCLUDE_FLAGS) -c $< -o $@
-
-# Building Exceptions (Implementations)
-$(FOLDER_BUILD)/sampled_sa.o : sampled_sa_inverse.c
-	$(CC) $(COMPILE_C_FLAGS) $(INCLUDE_FLAGS) -c $< -o $@
-$(FOLDER_BUILD)/bwt.o : bwt_s1_bm64.c
-	$(CC) $(COMPILE_C_FLAGS) $(INCLUDE_FLAGS) -c $< -o $@
 	
 # General building rule
 $(FOLDER_BUILD)/%.o : %.c

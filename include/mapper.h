@@ -40,6 +40,9 @@
  */
 typedef enum { mapper_se, mapper_pe, mapper_se_cuda, mapper_graph } mapper_type;
 typedef struct {
+  /* CMD line */
+  int argc;
+  char** argv;
   /* Mapper Type */
   mapper_type mapper_type;
   /* I/O Parameters */
@@ -56,6 +59,7 @@ typedef struct {
   output_file_t* output_file;
   uint64_t max_output_buffers;
   file_format_t output_format;
+  output_sam_parameters_t sam_parameters;
   /* I/O Attributes (qualities, ...) */
   bool fastq_strictly_normalized;
   bool fastq_try_recovery;

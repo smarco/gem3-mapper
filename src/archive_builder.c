@@ -120,8 +120,8 @@ GEM_INLINE void archive_builder_build_index(
    * Create & write the FM-index
    */
   fm_index_builder(archive_builder->output_file_manager,
-      archive_builder->enc_bwt,archive_builder->character_occurrences,archive_builder->sampled_sa,
-      check_index,verbose,archive_builder->num_threads);
+      archive_builder->enc_bwt,archive_builder->character_occurrences,
+      archive_builder->sampled_sa,check_index,verbose,archive_builder->num_threads);
   fm_close(archive_builder->output_file_manager); // Close FM
 }
 

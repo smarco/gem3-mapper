@@ -60,6 +60,12 @@ GEM_INLINE void output_file_return_buffer(
     output_file_t* const output_file,output_buffer_t* const output_buffer);
 
 /*
+ * Output File Printers
+ */
+GEM_INLINE int vofprintf(output_file_t* const out_file,const char *template,va_list v_args);
+GEM_INLINE int ofprintf(output_file_t* const out_file,const char *template,...);
+
+/*
  * Error Messages
  */
 #define GEM_ERROR_OUTPUT_FILE_INCONSISTENCY "Output file state inconsistent"

@@ -3,14 +3,16 @@
  * FILE: bwt.h
  * DATE: 06/06/2012
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
- * DESCRIPTION: Provides basic routines to encode a DNA text into a Burrows-Wheeler transform
- *              using a compact bit representation and counter buckets as to enhance Occ/rank queries
+ * DESCRIPTION: Provides basic routines to encode a DNA text into a
+ *              Burrows-Wheeler transform using a compact bit representation
+ *              and counter buckets as to enhance Occ/rank queries
  */
 
 #ifndef BWT_H_
 #define BWT_H_
 
 #include "essentials.h"
+#include "sampled_sa.h"
 
 /*
  * Check
@@ -29,8 +31,7 @@ typedef struct {
  */
 GEM_INLINE bwt_builder_t* bwt_builder_new(
     dna_text_t* const bwt_text,const uint64_t* const character_occurrences,
-    const bool check,const bool verbose);
-GEM_INLINE bwt_t* bwt_builder_get_bwt(bwt_builder_t* const bwt_builder);
+    sampled_sa_builder_t* const sampled_sa,const bool check,const bool verbose);
 GEM_INLINE void bwt_builder_write(fm_t* const file_manager,bwt_builder_t* const bwt_builder);
 GEM_INLINE void bwt_builder_delete(bwt_builder_t* const bwt_builder);
 
@@ -107,17 +108,17 @@ GEM_INLINE bool bwt_precomputed_erank_interval(
  * BWT LF (Last to first)
  */
 GEM_INLINE uint64_t bwt_LF(
-    const bwt_t* const bwt,const uint64_t position);
+    const bwt_t* const bwt,const uint64_t position,bool* const is_sampled);
 GEM_INLINE uint64_t bwt_prefetched_LF(
-    const bwt_t* const bwt,const uint64_t position,
+    const bwt_t* const bwt,const uint64_t position,bool* const is_sampled,
     const bwt_block_locator_t* const block_loc);
 
 GEM_INLINE uint64_t bwt_LF__enc(
-    const bwt_t* const bwt,const uint64_t position,uint8_t* const char_enc);
+    const bwt_t* const bwt,const uint64_t position,uint8_t* const char_enc,bool* const is_sampled);
 GEM_INLINE uint64_t bwt_LF__character(
-    const bwt_t* const bwt,const uint64_t position,char* const character);
+    const bwt_t* const bwt,const uint64_t position,char* const character,bool* const is_sampled);
 GEM_INLINE uint64_t bwt_prefetched_LF__enc(
-    const bwt_t* const bwt,const uint64_t position,uint8_t* const char_enc,
+    const bwt_t* const bwt,const uint64_t position,uint8_t* const char_enc,bool* const is_sampled,
     const bwt_block_locator_t* const block_loc);
 
 /*

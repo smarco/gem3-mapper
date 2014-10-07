@@ -152,8 +152,7 @@ GEM_INLINE void sa_builder_delete(sa_builder_t* const sa_builder);
  */
 GEM_INLINE void sa_builder_count_suffixes(sa_builder_t* const sa_builder,uint64_t* const character_occurrences,const bool verbose);
 GEM_INLINE void sa_builder_store_suffixes(sa_builder_t* const sa_builder,const bool verbose);
-GEM_INLINE void sa_builder_sort_suffixes(
-    sa_builder_t* const sa_builder,dna_text_t* const enc_bwt,sampled_sa_builder_t* const sampled_sa,const bool verbose);
+GEM_INLINE void sa_builder_sort_suffixes(sa_builder_t* const sa_builder,dna_text_t* const enc_bwt,sampled_sa_builder_t* const sampled_sa,const bool verbose);
 
 /*
  * Stats

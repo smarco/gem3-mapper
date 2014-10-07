@@ -9,6 +9,12 @@
 #ifndef GEM_CORE_H_
 #define GEM_CORE_H_
 
+/*
+ * Version
+ */
+#define GEM_CORE_VERSION 3.1
+#define GEM_CORE_VERSION_STR "3.1"
+
 // GEM essentials
 #include "essentials.h"
 #include "segmented_vector.h"

@@ -33,6 +33,7 @@
   GEM_INLINE void bpm_gpu_destroy(bpm_gpu_buffer_collection_t* const buffer_collection) { GEM_CUDA_NOT_SUPPORTED(); }
   GEM_INLINE bool bpm_gpu_support() { return false; }
   // Buffer Accessors
+  GEM_INLINE void bpm_buffer_clear(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); }
   GEM_INLINE uint64_t bpm_gpu_buffer_get_max_candidates(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
   GEM_INLINE uint64_t bpm_gpu_buffer_get_max_queries(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
   GEM_INLINE uint64_t bpm_gpu_buffer_get_num_candidates(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
@@ -42,6 +43,12 @@
       const uint64_t num_patterns,const uint64_t total_pattern_length,const uint64_t total_candidates) { GEM_CUDA_NOT_SUPPORTED(); return false; }
   GEM_INLINE void bpm_gpu_buffer_put_pattern(
       bpm_gpu_buffer_t* const bpm_gpu_buffer,pattern_t* const pattern) { GEM_CUDA_NOT_SUPPORTED(); }
+  GEM_INLINE void bpm_gpu_buffer_get_candidate(
+      bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t position,
+      uint32_t* const candidate_text_position,uint32_t* const candidate_length) { GEM_CUDA_NOT_SUPPORTED(); }
+  GEM_INLINE void bpm_gpu_buffer_get_candidate_result(
+      bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t position,
+      uint32_t* const levenshtein_distance,uint32_t* const levenshtein_match_pos) { GEM_CUDA_NOT_SUPPORTED(); }
   GEM_INLINE void bpm_gpu_buffer_put_candidate(
       bpm_gpu_buffer_t* const bpm_gpu_buffer,
       const uint64_t candidate_text_position,const uint64_t candidate_length) { GEM_CUDA_NOT_SUPPORTED(); }
@@ -75,6 +82,7 @@ GEM_INLINE bpm_gpu_buffer_collection_t* bpm_gpu_init(
     bpm_gpu_buffer->num_queries = 0;
     bpm_gpu_buffer->num_candidates = 0;
     bpm_gpu_buffer->pattern_id = 0;
+    TIMER_RESET(&bpm_gpu_buffer->timer);
 #ifdef BPM_GPU_PATTERN_DEBUG
     bpm_gpu_buffer->enc_text = enc_text;
 #endif
@@ -243,6 +251,7 @@ GEM_INLINE void bpm_gpu_buffer_send(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
     PROF_ADD_COUNTER(GP_BPM_GPU_BUFFER_USAGE_CANDIDATES,(100*used_candidates)/max_candidates);
     PROF_ADD_COUNTER(GP_BPM_GPU_BUFFER_USAGE_QUERIES,(100*used_queries)/max_queries);
     PROF_ADD_COUNTER(GP_BPM_GPU_BUFFER_USAGE_PEQ_ENTRIES,(100*used_peq_entries)/max_peq_entries);
+    TIMER_START(&bpm_gpu_buffer->timer);
   }
 	bpm_gpu_send_buffer_(bpm_gpu_buffer->buffer,
       bpm_gpu_buffer->num_PEQ_entries,bpm_gpu_buffer->num_queries,bpm_gpu_buffer->num_candidates);
@@ -250,6 +259,10 @@ GEM_INLINE void bpm_gpu_buffer_send(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
 }
 GEM_INLINE void bpm_gpu_buffer_receive(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
 	bpm_gpu_receive_buffer_(bpm_gpu_buffer->buffer);
+  PROF_BLOCK() {
+    TIMER_STOP(&bpm_gpu_buffer->timer);
+    PROF_ADD_COUNTER(GP_BPM_GPU_BUFFER_CHECK_TIME,bpm_gpu_buffer->timer.accumulated);
+  }
 }
 # else /* BPM_GPU_PATTERN_DEBUG */
 GEM_INLINE void bpm_gpu_buffer_put_pattern(
@@ -274,6 +287,7 @@ GEM_INLINE void bpm_gpu_buffer_put_pattern(
 GEM_INLINE void bpm_gpu_buffer_send(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
   // [DEBUG] Solve all queries using CPU BPM-align
   PROF_START_TIMER(GP_BPM_GPU_BUFFER_SEND);
+  PROF_START_TIMER(GP_BPM_GPU_BUFFER_CHECK_TIME);
   PROF_BLOCK() {
     const uint64_t max_candidates = bpm_gpu_buffer_get_max_candidates_(bpm_gpu_buffer->buffer);
     const uint64_t max_queries = bpm_gpu_buffer_get_max_queries_(bpm_gpu_buffer->buffer);
@@ -309,6 +323,7 @@ GEM_INLINE void bpm_gpu_buffer_send(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
       ++query_result;
     }
   }
+  PROF_STOP_TIMER(GP_BPM_GPU_BUFFER_CHECK_TIME);
   PROF_STOP_TIMER(GP_BPM_GPU_BUFFER_SEND);
 }
 GEM_INLINE void bpm_gpu_buffer_receive(bpm_gpu_buffer_t* const bpm_gpu_buffer) { /* [DEBUG] Do nothing */ }

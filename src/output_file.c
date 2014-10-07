@@ -83,29 +83,6 @@ void output_file_close(output_file_t* const output_file) {
   mm_free(output_file);
 }
 /*
- * Output File Printers
- */
-GEM_INLINE int vofprintf(output_file_t* const out_file,const char *template,va_list v_args) {
-  OUTPUT_FILE_CHECK(out_file);
-  GEM_CHECK_NULL(template);
-  int num_bytes;
-  MUTEX_BEGIN_SECTION(out_file->output_file_mutex)
-  {
-    num_bytes = vfmprintf(out_file->file_manager,template,v_args);
-  }
-  MUTEX_END_SECTION(out_file->output_file_mutex);
-  return num_bytes;
-}
-GEM_INLINE int ofprintf(output_file_t* const out_file,const char *template,...) {
-  OUTPUT_FILE_CHECK(out_file);
-  GEM_CHECK_NULL(template);
-  va_list v_args;
-  va_start(v_args,template);
-  const int num_bytes = vofprintf(out_file,template,v_args);
-  va_end(v_args);
-  return num_bytes;
-}
-/*
  * Conditions
  */
 GEM_INLINE bool output_file_serve_buffer_cond(
@@ -299,5 +276,28 @@ GEM_INLINE void output_file_return_buffer(
       }
     } MUTEX_END_SECTION(output_file->output_file_mutex);
   } while (keep_on_writing);
+}
+/*
+ * Output File Printers
+ */
+GEM_INLINE int vofprintf(output_file_t* const out_file,const char *template,va_list v_args) {
+  OUTPUT_FILE_CHECK(out_file);
+  GEM_CHECK_NULL(template);
+  int num_bytes;
+  MUTEX_BEGIN_SECTION(out_file->output_file_mutex)
+  {
+    num_bytes = vfmprintf(out_file->file_manager,template,v_args);
+  }
+  MUTEX_END_SECTION(out_file->output_file_mutex);
+  return num_bytes;
+}
+GEM_INLINE int ofprintf(output_file_t* const out_file,const char *template,...) {
+  OUTPUT_FILE_CHECK(out_file);
+  GEM_CHECK_NULL(template);
+  va_list v_args;
+  va_start(v_args,template);
+  const int num_bytes = vofprintf(out_file,template,v_args);
+  va_end(v_args);
+  return num_bytes;
 }
 

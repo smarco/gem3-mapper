@@ -197,6 +197,9 @@ void parse_arguments(
     usage(false);
     exit(0);
   }
+  // Set CMD line
+  parameters->argc = argc;
+  parameters->argv = argv;
   // Parse parameters
   struct option* getopt_options = options_adaptor_getopt(gem_mapper_options);
   string_t* const getopt_short_string = options_adaptor_getopt_short(gem_mapper_options);

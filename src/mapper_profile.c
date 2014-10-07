@@ -323,6 +323,8 @@ GEM_INLINE void mapper_profile_print_archive_search_group(FILE* const stream) {
   tab_fprintf(stream,"  => BPM.Buffers\n");
   tab_fprintf(stream,"      --> TIME.Send.Buffer             ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_GPU_BUFFER_SEND),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"      --> TIME.Check.Buffer            ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_GPU_BUFFER_CHECK_TIME),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"      --> Buffer.usage\n");
   tab_fprintf(stream,"        --> Queries                    ");
   PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_BPM_GPU_BUFFER_USAGE_QUERIES));

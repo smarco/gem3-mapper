@@ -124,8 +124,8 @@ GEM_INLINE void archive_print(FILE* const stream,const archive_t* const archive)
     tab_fprintf(stream,"    => Graph.Size %lu MB (%2.3f%%)\n",
         CONVERT_B_TO_MB(graph_size),PERCENTAGE(graph_size,archive_size));
   }
-  tab_fprintf(stream,"    => FM.Index.Size %lu GB (%2.3f%%)\n",
-      CONVERT_B_TO_GB(fm_index_size),PERCENTAGE(fm_index_size,archive_size));
+  tab_fprintf(stream,"    => FM.Index.Size %lu MB (%2.3f%%)\n",
+      CONVERT_B_TO_MB(fm_index_size),PERCENTAGE(fm_index_size,archive_size));
   /*
    * Components Display
    */

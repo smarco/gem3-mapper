@@ -11,10 +11,8 @@
  * Builder
  */
 GEM_INLINE void fm_index_builder(
-    fm_t* const file_manager,
-    dna_text_t* const bwt_text,uint64_t* const character_occurrences,
-    sampled_sa_builder_t* const sampled_sa,
-    const bool check,const bool verbose,const uint64_t num_threads) {
+    fm_t* const file_manager,dna_text_t* const bwt_text,uint64_t* const character_occurrences,
+    sampled_sa_builder_t* const sampled_sa,const bool check,const bool verbose,const uint64_t num_threads) {
   /*
    * Write Header
    */
@@ -23,19 +21,20 @@ GEM_INLINE void fm_index_builder(
   fm_write_uint64(file_manager,text_length);
   fm_write_uint64(file_manager,proper_length);
   /*
-   * Write Sampled SA & Free
+   * Write Sampled-SA & Free
    */
   sampled_sa_builder_write(file_manager,sampled_sa);
   if (verbose) sampled_sa_builder_print(gem_info_get_stream(),sampled_sa);
-  sampled_sa_builder_delete(sampled_sa); // Free
+  sampled_sa_builder_delete_samples(sampled_sa); // Free Samples
   /*
    * Generate BWT & rank_mtable
    */
   bwt_builder_t* const bwt_builder =
-      bwt_builder_new(bwt_text,character_occurrences,check,verbose);
+      bwt_builder_new(bwt_text,character_occurrences,sampled_sa,check,verbose);
   if (verbose) bwt_builder_print(gem_info_get_stream(),bwt_builder);
-  // Free BWT-text
+  // Free BWT-text & Sampled-SA
   dna_text_delete(bwt_text);
+  sampled_sa_builder_delete(sampled_sa);
   // Build mrank table
   rank_mtable_t* const rank_mtable = rank_mtable_builder_new(bwt_builder,verbose);
   if (verbose) rank_mtable_print(gem_info_get_stream(),rank_mtable);
@@ -122,12 +121,16 @@ GEM_INLINE uint64_t fm_index_lookup(const fm_index_t* const fm_index,uint64_t bw
   gem_fatal_check(bwt_position>=bwt_length,FM_INDEX_INDEX_OOR,bwt_position,bwt_length);
   const bwt_t* const bwt = fm_index->bwt;
   const sampled_sa_t* const sampled_sa = fm_index->sampled_sa;
+  bool is_sampled = false;
   uint64_t dist=0;
-  while (!sampled_sa_is_sampled(sampled_sa,bwt_position)) {
-    bwt_position = bwt_LF(bwt,bwt_position);
+  // LF until we find a sampled position
+  bwt_position = bwt_LF(bwt,bwt_position,&is_sampled);
+  while (!is_sampled) {
     ++dist;
+    bwt_position = bwt_LF(bwt,bwt_position,&is_sampled);
   }
   PROF_ADD_COUNTER(GP_FMIDX_LOOKUP_DIST,dist);
+  // Recover sampled position & adjust
   return (sampled_sa_get_sample(sampled_sa,bwt_position) + dist) % bwt_length;
 }
 // Compute SA^(-1)[i]

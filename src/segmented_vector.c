@@ -236,21 +236,6 @@ GEM_INLINE void svector_read_iterator_seek(svector_iterator_t* const iterator,co
   iterator->eoi = (init_position>=svector->elements_used);
   if (!iterator->eoi) iterator->memory = svector_get_elm_memory(svector,segment,segment_pos);
 }
-//GEM_INLINE void svector_write_iterator_seek(svector_iterator_t* const iterator,const uint64_t init_position) {
-//  SEGMENTED_VECTOR_ITERATOR_CHECK(iterator);
-//  svector_t* const svector = iterator->svector;
-//  // Check out-of-range (no gaps allowed)
-//  if (gem_expect_false(init_position>=svector->elements_used)) {
-//    // Locate at the end (append)
-//    svector_set_iterator_location(iterator,svector,svector->elements_used,segment,segment_pos);
-//    if (segment==vector_get_used(svector->segments)) svector_add_segment(svector);
-//    iterator->memory = svector_get_elm_memory(svector,segment,segment_pos);
-//  } else {
-//    // Locate
-//    svector_set_iterator_location(iterator,svector,init_position,segment,segment_pos);
-//    iterator->memory = svector_get_elm_memory(svector,segment,segment_pos);
-//  }
-//}
 GEM_INLINE void* svector_iterator_get_elm(svector_iterator_t* const iterator) {
   SEGMENTED_VECTOR_ITERATOR_CHECK(iterator);
   return iterator->memory;

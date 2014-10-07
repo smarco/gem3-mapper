@@ -107,10 +107,8 @@ GEM_INLINE void mm_stack_pop_state(mm_stack_t* const mm_stack,const bool reap_se
   // Reap non-resident segments
   if (gem_expect_false(reap_segments)) {
     mm_slab_lock(mm_stack->mm_slab);
-    if (state->current_segment+1 < vector_get_used(mm_stack->segments)) {
-      VECTOR_ITERATE_OFFSET(mm_stack->segments,stack_segment,position,state->current_segment+1,mm_stack_segment_t) {
-        mm_stack_segment_free(mm_stack,stack_segment);
-      }
+    VECTOR_ITERATE_OFFSET(mm_stack->segments,stack_segment,position,state->current_segment+1,mm_stack_segment_t) {
+      mm_stack_segment_free(mm_stack,stack_segment);
     }
     mm_slab_unlock(mm_stack->mm_slab);
     vector_set_used(mm_stack->segments,state->current_segment+1); // Set segment available

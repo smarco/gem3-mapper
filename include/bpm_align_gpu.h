@@ -31,10 +31,9 @@ typedef struct {
   uint32_t num_candidates;
   /* Pattern ID generator */
   uint32_t pattern_id;
-  /* DEBUG */
-#ifdef BPM_GPU_PATTERN_DEBUG
-  dna_text_t* enc_text;
-#endif
+  /* Misc */
+  dna_text_t* enc_text; /* BPM_GPU_PATTERN_DEBUG */
+  gem_timer_t timer;    /* !GEM_NOPROFILE */
 } bpm_gpu_buffer_t;
 typedef struct {
   void** internal_buffers;            // Internal Buffers

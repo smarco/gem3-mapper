@@ -517,10 +517,10 @@ GEM_INLINE void sa_builder_ds_shallow_mkq_cached(uint64_t* const a,const uint64_
 void* sa_builder_sort_suffixes_thread(uint64_t thread_id) {
   gem_thread_register_id(thread_id);
   // SA sampling rate
-  const uint64_t sampling_rate = sampled_sa_builder_get_sampling_rate_value(global_sampled_sa);
+  const uint64_t sampling_rate_pow2 = global_sampled_sa->sampling_rate;
   // Retrieve SA chunks
   fm_t* const sa_file_reader = global_sa_builder->sa_file_reader[thread_id];
-  vector_t* const buffer = vector_new(global_sa_builder->max_thread_memory/8,uint64_t);
+  vector_t* const buffer = vector_new(global_sa_builder->block_size/8,uint64_t);
   uint64_t group_id;
   for (group_id=0;group_id<global_sa_builder->num_sa_groups;++group_id) {
     if (global_sa_builder->sa_groups[group_id].thread_responsible != thread_id) continue;
@@ -535,14 +535,23 @@ void* sa_builder_sort_suffixes_thread(uint64_t thread_id) {
     const uint64_t* const sa_chunk = vector_get_mem(buffer,uint64_t);
     uint64_t block_position;
     for (block_position=0;block_position<sa_group->num_sa_positions;++block_position) {
+      // Store BWT
       const uint64_t sa_idx = sa_group->sa_offset+block_position;
-      const uint64_t sa_value = SA_POS_MASK_GET_BWT1(sa_chunk[block_position]);
-      global_enc_bwt[sa_idx] = sa_value;
+      const uint8_t sa_char = SA_POS_MASK_GET_BWT1(sa_chunk[block_position]);
+      global_enc_bwt[sa_idx] = sa_char;
       // Store SA-samples
-      if ((sa_idx%sampling_rate) == 0) {
-        // FIXME fprintf(stderr," >> SApos %lu = TextPos %lu\n",sa_idx,SA_POS_MASK_POSITION(sa_chunk[block_position]));
-        sampled_sa_builder_set_sample(global_sampled_sa,sa_idx,SA_POS_MASK_POSITION(sa_chunk[block_position]));
+#ifdef SAMPLING_SA_INVERSE
+      if (MOD_POW2(sa_idx,sampling_rate_pow2) == 0) {
+        const uint64_t text_position = SA_POS_MASK_POSITION(sa_chunk[block_position]);
+        sampled_sa_builder_set_sample(global_sampled_sa,thread_id,sa_idx,text_position);
       }
+#endif
+#ifdef SAMPLING_SA_DIRECT
+      const uint64_t text_position = SA_POS_MASK_POSITION(sa_chunk[block_position]);
+      if (MOD_POW2(text_position,sampling_rate_pow2) == 0) {
+        sampled_sa_builder_set_sample(global_sampled_sa,thread_id,sa_idx,text_position);
+      }
+#endif
     }
     // Ticker update
     ticker_update(&global_sa_builder->ticker,1);
@@ -566,6 +575,9 @@ GEM_INLINE void sa_builder_sort_suffixes_prepare_groups(sa_builder_t* const sa_b
 //#include "libittnotify.h"
 GEM_INLINE void sa_builder_sort_suffixes(
     sa_builder_t* const sa_builder,dna_text_t* const enc_bwt,sampled_sa_builder_t* const sampled_sa,const bool verbose) {
+  /*
+   * Prepare
+   */
   // Store global information to all threads
   global_sa_builder = sa_builder;
   global_enc_text_length = dna_text_get_length(sa_builder->enc_text);
@@ -573,13 +585,14 @@ GEM_INLINE void sa_builder_sort_suffixes(
   global_enc_bwt = dna_text_get_buffer(enc_bwt);
   global_sampled_sa = sampled_sa;
   ds_shallow_text_limit = global_enc_text + DS_SHALLOW_LIMIT;
-  /*
-   * Sort sampled suffixes
-   */
   // Prepare ticket
   ticker_percentage_reset(&sa_builder->ticker,verbose,"Building-BWT::Sorting SA",sa_builder->num_sa_groups,1,true);
+  // Prepare sorting groups
+  sa_builder_sort_suffixes_prepare_groups(sa_builder);
+  /*
+   * Sort suffixes
+   */
   // Create & Spawn sorting-threads
-  sa_builder_sort_suffixes_prepare_groups(sa_builder); // Prepare sorting groups
   const uint64_t num_threads = sa_builder->num_threads;
   uint64_t i;
   for (i=0;i<num_threads;++i) {
@@ -590,8 +603,10 @@ GEM_INLINE void sa_builder_sort_suffixes(
   for (i=0;i<num_threads;++i) {
     gem_cond_fatal_error(pthread_join(sa_builder->pthreads[i],0),SYS_THREAD_JOIN);
   }
+  /*
+   * Free
+   */
   ticker_finish(&sa_builder->ticker);
-  // Free
   for (i=0;i<num_threads;++i) {
     fm_close(sa_builder->sa_file_reader[i]);
   }

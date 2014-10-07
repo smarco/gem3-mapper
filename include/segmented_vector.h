@@ -124,7 +124,6 @@ GEM_INLINE bool svector_read_iterator_eoi(svector_iterator_t* const svector_iter
 GEM_INLINE void svector_read_iterator_next(svector_iterator_t* const iterator);
 // Writing
 GEM_INLINE void svector_write_iterator_next(svector_iterator_t* const iterator);
-GEM_INLINE void svector_write_iterator_close(svector_iterator_t* const iterator);
 
 /*
  * Error Messages
