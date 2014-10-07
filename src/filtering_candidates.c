@@ -729,6 +729,13 @@ GEM_INLINE void filtering_candidates_verify_from_bpm_buffer(
   for (i=candidate_offset_begin;i<candidate_offset_end;++i) {
     uint32_t levenshtein_distance, levenshtein_match_pos;
     bpm_gpu_buffer_get_candidate_result(bpm_gpu_buffer,i,&levenshtein_distance,&levenshtein_match_pos);
+
+
+    uint32_t candidate_text_position, candidate_length;// FIXME
+    bpm_gpu_buffer_get_candidate(bpm_gpu_buffer,i,&candidate_text_position,&candidate_length); // FIXME
+    printf("p=%lu  e=%lu  c=%lu\n",candidate_text_position,levenshtein_distance,levenshtein_match_pos);// FIXME
+
+
     if (levenshtein_distance <= max_effective_filtering_error) {
       // Get the accepted candidate
       uint32_t candidate_text_position, candidate_length;

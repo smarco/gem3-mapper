@@ -312,8 +312,14 @@ GEM_INLINE void bpm_gpu_buffer_send(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
       // Run BPM
       const uint8_t* const sequence = dna_text_get_buffer(bpm_gpu_buffer->enc_text) + query_candidate->position;
       uint64_t position, distance;
-      bpm_get_distance__cutoff(&query_pattern->bpm_pattern,
-          sequence,query_candidate->size,&position,&distance,query_pattern->max_effective_filtering_error);
+
+//      bpm_get_distance__cutoff(&query_pattern->bpm_pattern,// FIXME
+//          sequence,query_candidate->size,&position,&distance,query_pattern->max_effective_filtering_error);// FIXME
+
+      bpm_get_distance(&query_pattern->bpm_pattern,// FIXME
+        sequence,query_candidate->size,&position,&distance);// FIXME
+      printf("p=%lu  e=%lu  c=%lu\n",query_candidate->position,distance,position);// FIXME
+
       // Copy results
       query_result->column = position;
       query_result->score = distance;

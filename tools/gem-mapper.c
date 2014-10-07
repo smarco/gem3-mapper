@@ -151,7 +151,7 @@ option_t gem_mapper_options[] = {
   /* Mapping Quality */
 
   /* Reporting */
-  { 'F', "output-format", REQUIRED, TYPE_STRING, 8 , false, "'MAP'|'SAM'" , "(default=MAP)" },
+  { 'F', "output-format", REQUIRED, TYPE_STRING, 8 , true, "'MAP'|'SAM'" , "(default=MAP)" },
   { 'D', "min-decoded-strata", REQUIRED, TYPE_INT, 8 , false, "<number>" , "(stratum-wise, default=0)" },
   { 'd', "max-decoded-matches", REQUIRED, TYPE_INT, 8 , false, "<number>|'all'" , "(stratum-wise, default=20)" },
   { 'm', "min-reported-matches", REQUIRED, TYPE_INT, 8 , false, "<number>|'all'" , "(default=1)" },
@@ -386,6 +386,8 @@ void parse_arguments(
    * Parameters Check
    */
   // I/O Parameters
+  gem_cond_fatal_error_msg(parameters->index_file_name==NULL,"Index file required");
+  gem_cond_fatal_error_msg(parameters->input_file_name==NULL,"Input file required");
   gem_cond_fatal_error_msg(parameters->output_file_name!=NULL &&
       gem_streq(parameters->input_file_name,parameters->output_file_name),
       "Input-file and output-file must be different");

@@ -12,8 +12,8 @@
 #include "essentials.h"
 #include "packed_integer_array.h"
 
-//#define SAMPLING_SA_DIRECT  // Text-sampling
-#define SAMPLING_SA_INVERSE // SA-sampling
+#define SAMPLING_SA_DIRECT  // Text-sampling
+//#define SAMPLING_SA_INVERSE // SA-sampling
 
 typedef enum { SAMPLING_RATE_1=0,  SAMPLING_RATE_2=1,   SAMPLING_RATE_4=2,
                SAMPLING_RATE_8=3,  SAMPLING_RATE_16=4,  SAMPLING_RATE_32=5,
