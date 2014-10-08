@@ -224,11 +224,11 @@ __device__ void myerslocalFermiKernel_CC20( const d_qryEntry_t *d_queries, const
 				minColumn = (score < minScore) ? idColumn : minColumn;
 				minScore  = (score < minScore) ? score    : minScore;
 			}
-		}
 
-		if(intraQueryThreadIdx  == (threadsPerQuery - 1)){
-    		d_reorderResults[idCandidate].column = minColumn;
-    		d_reorderResults[idCandidate].score = minScore;
+			if(intraQueryThreadIdx  == (threadsPerQuery - 1)){
+    				d_reorderResults[idCandidate].column = minColumn;
+    				d_reorderResults[idCandidate].score = minScore;
+			}
 		}
 	}
 }

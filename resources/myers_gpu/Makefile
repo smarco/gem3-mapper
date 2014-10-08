@@ -68,7 +68,8 @@ test-profile: $(CUDA_OBJS) $(OBJS)
 
 
 test-debug: NVCC_COMPILE_FLAGS=-O0 -G -m64 --ptxas-options=-v -lineinfo
-test-debug: GCC_COMPILE_FLAGS=-O0 -g -m64 --ptxas-options=-v -lineinfo
+test-debug: GCC_COMPILE_FLAGS=-O0 -g -m64
+test-debug: CUDA_LIBRARY_FLAGS+=-lstdc++
 test-debug: $(CUDA_OBJS) $(OBJS)
 	$(CC) $(GCC_COMPILE_FLAGS) test.c $(CUDA_OBJS) $(OBJS) -o $(FOLDER_BUILD)/test-debug -fopenmp $(CUDA_LIBRARY_FLAGS)
 	$(CC) $(GCC_COMPILE_FLAGS) genCandidate.c -o $(FOLDER_BUILD)/gcandidates
@@ -88,7 +89,7 @@ $(FOLDER_BUILD)/coreMyers-GPU50.o: coreMyersGPU-CC50.cu
 	$(NVCC) $(NVCC_COMPILE_FLAGS) -gencode arch=compute_50,code=\"sm_50,compute_50\" -c $< -o $@
 	
 $(OBJS): $(SRCS)
-	gcc $(GCC_COMPILE_FLAGS) $(CUDA_LIBRARY_FLAGS) -c $< -o $@
+	gcc $(GCC_COMPILE_FLAGS) -c $< -o $@ $(CUDA_LIBRARY_FLAGS)
 
 
 

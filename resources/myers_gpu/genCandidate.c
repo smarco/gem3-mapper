@@ -47,7 +47,8 @@ typedef struct {
 	uint32_t	numCandidates;
 	float		distance;
 
-	char *char_queries;
+	char 		*char_queries;
+	uint32_t 	*pos_queries;
 	qryEntry_t	*h_queries;
 	qryEntry_t	*d_queries;
 	candInfo_t	*h_candidates;
@@ -200,6 +201,8 @@ int loadQueries(const char *fn, void *queries)
 
 	qry->char_queries 	= (char *) malloc(qry->totalSizeQueries * sizeof(char));
 		if (qry->char_queries == NULL) return (31);
+	qry->pos_queries 	= (uint32_t *) malloc(qry->numQueries * sizeof(uint32_t));
+		if (qry->pos_queries == NULL) return (31);
 	qry->h_candidates 	= (candInfo_t *) malloc(qry->numCandidates * sizeof(candInfo_t));
 		if (qry->h_candidates == NULL) return (31);
 	qry->h_infoQueries 	= (qryInfo_t *) malloc(qry->numQueries * sizeof(qryInfo_t));
@@ -213,9 +216,11 @@ int loadQueries(const char *fn, void *queries)
 	processQuery(queryNumber, textLine, 
 				 qry->char_queries, qry->h_candidates, qry->h_results, 
 				 &sizeCurrentQuery, &numQueryCandidates);
+	
 	qry->h_infoQueries[queryNumber].size = sizeCurrentQuery;
 	processedBases = sizeCurrentQuery;
 	qry->h_infoQueries[queryNumber].posEntry = lastEntriesPerQuery;
+	qry->pos_queries[queryNumber] = 0;
 	lastEntriesPerQuery += (sizeCurrentQuery / NUM_BASES_ENTRY) + ((sizeCurrentQuery % NUM_BASES_ENTRY) ? 1 : 0);
 	processedCandidates += numQueryCandidates;
 	queryNumber++;
@@ -224,6 +229,8 @@ int loadQueries(const char *fn, void *queries)
 		processQuery(queryNumber, textLine,
 					 qry->char_queries + processedBases, qry->h_candidates + processedCandidates, qry->h_results + processedCandidates, 
 				     &sizeCurrentQuery, &numQueryCandidates);
+
+		qry->pos_queries[queryNumber] = processedBases;
 		qry->h_infoQueries[queryNumber].size = sizeCurrentQuery;
 		processedBases += sizeCurrentQuery;
 		qry->h_infoQueries[queryNumber].posEntry += lastEntriesPerQuery;
@@ -390,6 +397,7 @@ int saveQueries(const char *fn, void *query)
     fwrite(qry->h_infoQueries, 	sizeof(qryInfo_t), 		qry->numQueries, 			fp);
     fwrite(qry->h_results, 		sizeof(uint32_t), 		qry->numCandidates, 		fp);
     fwrite(qry->char_queries, 	sizeof(char),		 	qry->totalSizeQueries, 		fp);
+    fwrite(qry->pos_queries, 	sizeof(uint32_t),		qry->numQueries, 			fp);
 
 	free(candidates_GEM);
     fclose(fp);
