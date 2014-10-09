@@ -173,7 +173,7 @@ GEM_INLINE void filtering_candidates_align_levenshtein(
     candidate_position_t* const text_candidate,const pattern_t* const pattern,
     const uint8_t* const candidate_text,const uint64_t candidate_length,
     uint64_t* const levenshtein_distance,uint64_t* const levenshtein_match_pos,const uint64_t max_error) {
-  // TODO: Cut-off + Quick-abandon (if diagonal cannot reach max_error, then quit())
+  // Cut-off + Quick-abandon
   bpm_get_distance__cutoff(
       &pattern->bpm_pattern,candidate_text,candidate_length,
       levenshtein_match_pos,levenshtein_distance,max_error);
@@ -730,11 +730,9 @@ GEM_INLINE void filtering_candidates_verify_from_bpm_buffer(
     uint32_t levenshtein_distance, levenshtein_match_pos;
     bpm_gpu_buffer_get_candidate_result(bpm_gpu_buffer,i,&levenshtein_distance,&levenshtein_match_pos);
 
-
-    uint32_t candidate_text_position, candidate_length;// FIXME
-    bpm_gpu_buffer_get_candidate(bpm_gpu_buffer,i,&candidate_text_position,&candidate_length); // FIXME
-    printf("p=%lu  e=%lu  c=%lu\n",candidate_text_position,levenshtein_distance,levenshtein_match_pos);// FIXME
-
+//    uint32_t candidate_text_position, candidate_length;
+//    bpm_gpu_buffer_get_candidate(bpm_gpu_buffer,i,&candidate_text_position,&candidate_length);
+//    fprintf(stderr,"F p=%lu e=%lu c=%lu\n",candidate_text_position,levenshtein_distance,levenshtein_match_pos);
 
     if (levenshtein_distance <= max_effective_filtering_error) {
       // Get the accepted candidate

@@ -28,6 +28,7 @@ typedef struct {
   uint8_t* level_mask;
   int64_t* score;
   int64_t* init_score;
+  uint64_t* pattern_left;
 } bpm_pattern_t;
 
 /*

@@ -12,16 +12,18 @@
 #include "essentials.h"
 #include "packed_integer_array.h"
 
+/*
+ * Sampling-SA Model
+ */
 #define SAMPLING_SA_DIRECT  // Text-sampling
 //#define SAMPLING_SA_INVERSE // SA-sampling
 
+/*
+ * Sampled-SA
+ */
 typedef enum { SAMPLING_RATE_1=0,  SAMPLING_RATE_2=1,   SAMPLING_RATE_4=2,
                SAMPLING_RATE_8=3,  SAMPLING_RATE_16=4,  SAMPLING_RATE_32=5,
                SAMPLING_RATE_64=6, SAMPLING_RATE_128=7, SAMPLING_RATE_256=8 } sampling_rate_t;
-
-/*
- * Sampled SA
- */
 typedef struct {
   // Meta-data
   uint64_t index_length;
@@ -30,7 +32,7 @@ typedef struct {
   packed_integer_array_t* packed_integer_array;
 } sampled_sa_t;
 /*
- * Sampled SA Builder
+ * Sampled-SA Builder
  */
 typedef struct {
   // Meta-data

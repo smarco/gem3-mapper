@@ -18,6 +18,12 @@
  * Debug
  */
 //#define BPM_GPU_PATTERN_DEBUG
+//#define BPM_GPU_GENERATE_CANDIDATES_PROFILE
+
+#ifdef BPM_GPU_GENERATE_CANDIDATES_PROFILE
+#define BPM_GPU_PATTERN_DEBUG
+#endif
+
 
 /*
  * BMP-GPU Buffer & Collection

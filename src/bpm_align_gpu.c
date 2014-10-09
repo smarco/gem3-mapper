@@ -307,18 +307,28 @@ GEM_INLINE void bpm_gpu_buffer_send(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
   for (query_pos=0,candidate_pos=0;query_pos<num_queries;++query_pos) {
     // Get pattern
     pattern_t* const query_pattern = *((pattern_t**)bpm_gpu_buffer_get_peq_entries_(bpm_gpu_buffer->buffer) + query_pos);
+#ifdef BPM_GPU_GENERATE_CANDIDATES_PROFILE
+    uint64_t i;
+    for (i=0;i<query_pattern->key_length;++i) {
+      fprintf(stdout,"%c",dna_decode(query_pattern->key[i]));
+    }
+    fprintf(stdout,"\t");
+#endif
     // Traverse all candidates
     while (candidate_pos < num_candidates && query_candidate->query==query_pos) {
       // Run BPM
       const uint8_t* const sequence = dna_text_get_buffer(bpm_gpu_buffer->enc_text) + query_candidate->position;
       uint64_t position, distance;
 
-//      bpm_get_distance__cutoff(&query_pattern->bpm_pattern,// FIXME
-//          sequence,query_candidate->size,&position,&distance,query_pattern->max_effective_filtering_error);// FIXME
-
-      bpm_get_distance(&query_pattern->bpm_pattern,// FIXME
-        sequence,query_candidate->size,&position,&distance);// FIXME
-      printf("p=%lu  e=%lu  c=%lu\n",query_candidate->position,distance,position);// FIXME
+#ifdef BPM_GPU_GENERATE_CANDIDATES_PROFILE
+    bpm_get_distance(&query_pattern->bpm_pattern,
+      sequence,query_candidate->size,&position,&distance);
+    fprintf(stderr,"B p=%lu e=%lu c=%lu\n",query_candidate->position,distance,position);
+    fprintf(stdout,"\tchr1:+:%lu:%ld",query_candidate->position,distance);
+#else
+    bpm_get_distance__cutoff(&query_pattern->bpm_pattern,
+        sequence,query_candidate->size,&position,&distance,query_pattern->max_effective_filtering_error);
+#endif
 
       // Copy results
       query_result->column = position;
@@ -328,6 +338,9 @@ GEM_INLINE void bpm_gpu_buffer_send(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
       ++query_candidate;
       ++query_result;
     }
+#ifdef BPM_GPU_GENERATE_CANDIDATES_PROFILE
+    fprintf(stdout,"\n");
+#endif
   }
   PROF_STOP_TIMER(GP_BPM_GPU_BUFFER_CHECK_TIME);
   PROF_STOP_TIMER(GP_BPM_GPU_BUFFER_SEND);

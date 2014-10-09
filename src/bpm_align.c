@@ -154,6 +154,7 @@ GEM_INLINE void bpm_pattern_compile(
   bpm_pattern->level_mask = mm_stack_malloc(mm_stack,aux_vector_size);
   bpm_pattern->score = mm_stack_malloc(mm_stack,score_size);
   bpm_pattern->init_score = mm_stack_malloc(mm_stack,score_size);
+  bpm_pattern->pattern_left = mm_stack_malloc(mm_stack,(pattern_num_words+1)*UINT64_SIZE);
   // Init PEQ
   memset(bpm_pattern->PEQ,0,PEQ_size);
   uint64_t i;
@@ -172,11 +173,18 @@ GEM_INLINE void bpm_pattern_compile(
     }
   }
   // Init auxiliary data
+  uint64_t pattern_left = pattern_length;
   const uint64_t top = pattern_num_words-1;
   memset(bpm_pattern->level_mask,0,aux_vector_size);
   for (i=0;i<top;++i) {
     bpm_pattern->level_mask[i*word_size+(word_size-1)] = BMP_W8_MASK;
     bpm_pattern->init_score[i] = word_length;
+    bpm_pattern->pattern_left[i] = pattern_left;
+    pattern_left = (pattern_left > word_length) ? pattern_left-word_length : 0;
+  }
+  for (;i<=pattern_num_words;++i) {
+    bpm_pattern->pattern_left[i] = pattern_left;
+    pattern_left = (pattern_left > word_length) ? pattern_left-word_length : 0;
   }
   if (pattern_mod>0) {
     const uint64_t mask_shift = pattern_mod-1;
@@ -261,6 +269,31 @@ GEM_INLINE int8_t bpm_advance_block(
   return hout;
 }
 /*
+ * Advance block functions (Improved)
+ *   const @vector Eq,mask;
+ *   return (Pv,Mv,PHout,MHout);
+ */
+#define BPM_ADVANCE_BLOCK(Eq,mask,Pv,Mv,PHin,MHin,PHout,MHout) \
+  /* Computes modulator vector {Xv,Xh} ( cases A&C ) */ \
+  const uint64_t Xv = Eq | Mv; \
+  const uint64_t _Eq = Eq | MHin; \
+  const uint64_t Xh = (((_Eq & Pv) + Pv) ^ Pv) | _Eq; \
+  /* Calculate Hout */ \
+  uint64_t Ph = Mv | ~(Xh | Pv); \
+  uint64_t Mh = Pv & Xh; \
+  /* Account Hout that propagates for the next block */ \
+  PHout = (Ph & mask)!=0; \
+  MHout = (Mh & mask)!=0; \
+  /* Hout become the Hin of the next cell */ \
+  Ph <<= 1; \
+  Mh <<= 1; \
+  /* Account Hin coming from the previous block */ \
+  Ph |= PHin; \
+  Mh |= MHin; \
+  /* Finally, generate the Vout */ \
+  Pv = Mh | ~(Xv | Ph); \
+  Mv = Ph & Xv
+/*
  * Bit-compressed (Re)alignment
  *   BMP[BitParalellMayers] - Myers' Fast Bit-Vector algorithm (Levenshtein)
  */
@@ -326,56 +359,80 @@ GEM_INLINE bool bpm_get_distance__cutoff(
   const uint64_t* const level_mask = (uint64_t*)bpm_pattern->level_mask;
   int64_t* const score = (int64_t*)bpm_pattern->score;
   const int64_t* const init_score = (int64_t*)bpm_pattern->init_score;
+  const uint64_t* const pattern_left = bpm_pattern->pattern_left;
 
   // Initialize search
+  const uint64_t max_distance__1 = max_distance+1;
   const uint8_t top = num_words-1;
   uint8_t top_level;
   uint64_t min_score = UINT64_MAX, min_score_position = UINT64_MAX;
   bpm_reset_search__cutoff(&top_level,P,M,score,init_score,max_distance);
 
   // Advance in DP-bit_encoded matrix
-  uint64_t sequence_position;
-  for (sequence_position=0;sequence_position<sequence_length;++sequence_position) {
+  uint64_t sequence_position, sequence_left=sequence_length;
+  for (sequence_position=0;sequence_position<sequence_length;++sequence_position,--sequence_left) {
     // Fetch next character
     const uint8_t enc_char = sequence[sequence_position];
 
     // Advance all blocks
-    int8_t carry;
-    uint64_t i;
-    for (i=0,carry=0;i<top_level;++i) {
-      uint64_t* const Py = P+i;
-      uint64_t* const My = M+i;
-      carry = bpm_advance_block(
-          PEQ[BPM_PATTERN_PEQ_IDX(enc_char,i,num_words)],level_mask[i],*Py,*My,carry+1,Py,My);
-      score[i] += carry;
+    uint64_t i,PHin=0,MHin=0,PHout,MHout;
+    for (i=0;i<top_level;++i) {
+      uint64_t Pv = P[i];
+      uint64_t Mv = M[i];
+      const uint64_t mask = level_mask[i];
+      const uint64_t Eq = PEQ[BPM_PATTERN_PEQ_IDX(enc_char,i,num_words)];
+      /* Compute Block */
+      BPM_ADVANCE_BLOCK(Eq,mask,Pv,Mv,PHin,MHin,PHout,MHout);
+      /* Save Block Pv,Mv */
+      P[i]=Pv;
+      M[i]=Mv;
+      /* Adjust score and swap propagate Hv */
+      score[i] += PHout-MHout;
+      PHin=PHout;
+      MHin=MHout;
     }
 
     // Cut-off
     const uint8_t last = top_level-1;
-    if ((score[last]-carry)<=max_distance && last<top &&
-        ( (PEQ[BPM_PATTERN_PEQ_IDX(enc_char,top_level,num_words)] & 1) || (carry<0) )  ) {
-      // Init block V
-      P[top_level]=BMP_W64_ONES;
-      M[top_level]=0;
-
-      uint64_t* const Py = P+top_level;
-      uint64_t* const My = M+top_level;
-      score[top_level] = score[top_level-1] + init_score[top_level] - carry +
-          bpm_advance_block(PEQ[BPM_PATTERN_PEQ_IDX(enc_char,top_level,num_words)],
-              level_mask[top_level],*Py,*My,carry+1,Py,My);
-      ++top_level;
+    if (gem_expect_false(score[last]<=max_distance__1)) {
+      const uint64_t last_score = score[last]+(MHin-PHin);
+      const uint64_t Peq = PEQ[BPM_PATTERN_PEQ_IDX(enc_char,top_level,num_words)];
+      if (last_score<=max_distance && last<top && (MHin || (Peq & 1))) {
+        // Init block V
+        uint64_t Pv = BMP_W64_ONES;
+        uint64_t Mv = 0;
+        const uint64_t mask = level_mask[top_level];
+        /* Compute Block */
+        BPM_ADVANCE_BLOCK(Peq,mask,Pv,Mv,PHin,MHin,PHout,MHout);
+        /* Save Block Pv,Mv */
+        P[top_level]=Pv;
+        M[top_level]=Mv;
+        /* Set score & increment the top level block */
+        score[top_level] = last_score + init_score[top_level] + (PHout-MHout);
+        ++top_level;
+      } else {
+        while (score[top_level-1] > (max_distance+init_score[top_level-1])) {
+          --top_level;
+        }
+      }
     } else {
-      while (score[top_level-1]>max_distance+init_score[top_level-1]) {
+      while (score[top_level-1] > (max_distance+init_score[top_level-1])) {
         --top_level;
       }
     }
 
     // Check match
-    if (top_level==num_words && score[top_level-1]<=max_distance) {
-      if (score[top_level-1]<min_score)  {
+    const int64_t current_score = score[top_level-1];
+    if (top_level==num_words && current_score<=max_distance) {
+      if (current_score < min_score)  {
         min_score_position = sequence_position;
         min_score = score[top_level-1];
       }
+    } else if (min_score==UINT64_MAX && current_score+pattern_left[top_level] > sequence_left+max_distance) {
+      // Quick abandon, it doesn't match (bounded by best case scenario)
+      *distance = UINT64_MAX;
+      *position = UINT64_MAX;
+      return false;
     }
   }
   // Return results
@@ -510,9 +567,6 @@ GEM_INLINE bool bpm_get_distance__cutoff(
 //    return false;
 //  }
 //}
-
-
-
 /*
  * Recover CIGAR from a matching string
  */
@@ -543,6 +597,7 @@ GEM_INLINE void bpm_align_match(
   uint64_t* const Pv = (uint64_t*)mm_stack_malloc(mm_stack,aux_matrix_size);
   uint64_t* const Mv = (uint64_t*)mm_stack_malloc(mm_stack,aux_matrix_size);
   // Initialize search
+  const uint64_t matching_distance__1 = matching_distance+1;
   const uint8_t top = num_words-1;
   uint8_t top_level;
   bpm_reset_search__cutoff(&top_level,Pv,Mv,score,init_score,matching_distance);
@@ -553,40 +608,53 @@ GEM_INLINE void bpm_align_match(
     // Fetch next character
     const uint8_t enc_char = sequence[sequence_position];
     // Advance all blocks
-    int8_t carry;
-    uint64_t i;
-    for (i=0,carry=0;i<top_level;++i) {
+    uint64_t i,PHin=0,MHin=0,PHout,MHout;
+    for (i=0;i<top_level;++i) {
+      /* Calculate Step Data */
       const uint64_t bdp_idx = BPM_PATTERN_BDP_IDX(sequence_position,i,num_words);
       const uint64_t next_bdp_idx = bdp_idx+num_words;
-      uint64_t* const Pv_in = Pv + bdp_idx;
-      uint64_t* const Mv_in = Mv + bdp_idx;
-      uint64_t* const Pv_out = Pv + next_bdp_idx;
-      uint64_t* const Mv_out = Mv + next_bdp_idx;
-      carry = bpm_advance_block(
-          PEQ[BPM_PATTERN_PEQ_IDX(enc_char,i,num_words)],
-          level_mask[i],*Pv_in,*Mv_in,carry+1,Pv_out,Mv_out);
-      score[i] += carry;
+      uint64_t Pv_in = Pv[bdp_idx];
+      uint64_t Mv_in = Mv[bdp_idx];
+      const uint64_t mask = level_mask[i];
+      const uint64_t Eq = PEQ[BPM_PATTERN_PEQ_IDX(enc_char,i,num_words)];
+      /* Compute Block */
+      BPM_ADVANCE_BLOCK(Eq,mask,Pv_in,Mv_in,PHin,MHin,PHout,MHout);
+      /* Adjust score and swap propagate Hv */
+      score[i] += PHout-MHout;
+      Pv[next_bdp_idx] = Pv_in;
+      Mv[next_bdp_idx] = Mv_in;
+      PHin=PHout;
+      MHin=MHout;
     }
     // Cut-off
     const uint8_t last = top_level-1;
-    if ((score[last]-carry)<=matching_distance && last<top &&
-        ( (PEQ[BPM_PATTERN_PEQ_IDX(enc_char,top_level,num_words)] & 1) || (carry<0) )  ) {
-      // Init block V
-      const uint64_t bdp_idx = BPM_PATTERN_BDP_IDX(sequence_position,top_level,num_words);
-      const uint64_t next_bdp_idx = bdp_idx+num_words;
-      Pv[bdp_idx]=BMP_W64_ONES;
-      Mv[bdp_idx]=0;
-      // Advance block
-      uint64_t* const Pv_in = Pv + bdp_idx;
-      uint64_t* const Mv_in = Mv + bdp_idx;
-      uint64_t* const Pv_out = Pv + next_bdp_idx;
-      uint64_t* const Mv_out = Mv + next_bdp_idx;
-      score[top_level] = score[top_level-1] + init_score[top_level] - carry +
-          bpm_advance_block(PEQ[BPM_PATTERN_PEQ_IDX(enc_char,top_level,num_words)],
-              level_mask[top_level],*Pv_in,*Mv_in,carry+1,Pv_out,Mv_out);
-      ++top_level;
+    if (gem_expect_false(score[last]<=matching_distance__1)) {
+      const uint64_t last_score = score[last]+(MHin-PHin);
+      const uint64_t Peq = PEQ[BPM_PATTERN_PEQ_IDX(enc_char,top_level,num_words)];
+      if (last_score<=matching_distance && last<top && (MHin || (Peq & 1))) {
+        // Init block V
+        const uint64_t bdp_idx = BPM_PATTERN_BDP_IDX(sequence_position,top_level,num_words);
+        const uint64_t next_bdp_idx = bdp_idx+num_words;
+        uint64_t Pv_in = BMP_W64_ONES;
+        uint64_t Mv_in = 0;
+        Pv[bdp_idx] = BMP_W64_ONES;
+        Mv[bdp_idx] = 0;
+        const uint64_t mask = level_mask[top_level];
+        /* Compute Block */
+        BPM_ADVANCE_BLOCK(Peq,mask,Pv_in,Mv_in,PHin,MHin,PHout,MHout);
+        /* Save Block Pv,Mv */
+        Pv[next_bdp_idx]=Pv_in;
+        Mv[next_bdp_idx]=Mv_in;
+        /* Set score & increment the top level block */
+        score[top_level] = last_score + init_score[top_level] + (PHout-MHout);
+        ++top_level;
+      } else {
+        while (score[top_level-1] > (matching_distance+init_score[top_level-1])) {
+          --top_level;
+        }
+      }
     } else {
-      while (score[top_level-1]>matching_distance+init_score[top_level-1]) {
+      while (score[top_level-1] > (matching_distance+init_score[top_level-1])) {
         --top_level;
       }
     }

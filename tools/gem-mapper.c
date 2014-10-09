@@ -163,8 +163,9 @@ option_t gem_mapper_options[] = {
   /* Debug */
   /* Miscellaneous */
   { 1100, "stats", NO_ARGUMENT, TYPE_NONE, 11 , true, "" , "(disabled)" },
-  { 'v', "verbose", NO_ARGUMENT, TYPE_NONE, 11 , true, "" , "(disabled)" },
+  { 'v', "verbose", NO_ARGUMENT, TYPE_NONE, 11 , true, "" , "(enabled)" },
   { 'V', "developer-verbose", NO_ARGUMENT, TYPE_NONE, 11 , false, "" , "(disabled)" },
+  { 1101, "quiet", NO_ARGUMENT, TYPE_NONE, 11 , false, "" , "(disabled)" },
   { 'h', "help", NO_ARGUMENT, TYPE_NONE, 11 , true, "" , "(print usage)" },
   { 'H', "help", NO_ARGUMENT, TYPE_NONE, 11 , false, "" , "(print usage + extras)" },
   /* Extras */
@@ -370,6 +371,10 @@ void parse_arguments(
     case 'V':
       parameters->verbose_user = true;
       parameters->verbose_dev = true;
+      break;
+    case 1101: // --quiet
+      parameters->verbose_user = false;
+      parameters->verbose_dev = false;
       break;
     case 'h':
       usage(false);
