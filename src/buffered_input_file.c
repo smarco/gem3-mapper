@@ -8,8 +8,8 @@
 
 #include "buffered_input_file.h"
 
-#define BMI_BUFFER_SIZE BUFFER_SIZE_4M
-#define BMI_NUM_LINES   NUM_LINES_5K
+#define BUFFER_INPUT_FILE_INIT_SIZE BUFFER_SIZE_4M
+#define BUFFER_INPUT_FILE_NUM_LINES NUM_LINES_5K
 
 /*
  * Buffered map file handlers
@@ -21,7 +21,7 @@ buffered_input_file_t* buffered_input_file_new(input_file_t* const in_file) {
   buffered_input->input_file = in_file;
   /* Block buffer and cursors */
   buffered_input->block_id = UINT32_MAX;
-  buffered_input->block_buffer = vector_new(BMI_BUFFER_SIZE,sizeof(uint8_t));
+  buffered_input->block_buffer = vector_new(BUFFER_INPUT_FILE_INIT_SIZE,sizeof(uint8_t));
   buffered_input->cursor = (char*)vector_get_mem(buffered_input->block_buffer,uint8_t);
   buffered_input->current_line_num = UINT64_MAX;
   /* Attached output buffer */
@@ -64,7 +64,7 @@ GEM_INLINE error_code_t buffered_input_file_get_lines_block(
   buffered_input->current_line_num = in_file->processed_lines+1;
   buffered_input->lines_in_buffer =
       input_file_get_lines(in_file,buffered_input->block_buffer,
-          gem_expect_true(num_lines)?num_lines:BMI_NUM_LINES);
+          gem_expect_true(num_lines)?num_lines:BUFFER_INPUT_FILE_NUM_LINES);
   input_file_unlock(in_file);
   // Setup the block
   buffered_input->cursor = vector_get_mem(buffered_input->block_buffer,char);
@@ -82,7 +82,7 @@ GEM_INLINE error_code_t buffered_input_file_add_lines_to_block(
       buffered_input->cursor - vector_get_mem(buffered_input->block_buffer,char);
   const uint64_t lines_added =
       input_file_get_lines(input_file,buffered_input->block_buffer,
-          gem_expect_true(num_lines)?num_lines:BMI_NUM_LINES);
+          gem_expect_true(num_lines)?num_lines:BUFFER_INPUT_FILE_NUM_LINES);
   buffered_input->lines_in_buffer += lines_added;
   buffered_input->cursor = vector_get_elm(buffered_input->block_buffer,current_position,char);
   return lines_added;

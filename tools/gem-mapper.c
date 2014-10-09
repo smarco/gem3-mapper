@@ -392,11 +392,12 @@ void parse_arguments(
    */
   // I/O Parameters
   gem_cond_fatal_error_msg(parameters->index_file_name==NULL,"Index file required");
-  gem_cond_fatal_error_msg(parameters->input_file_name==NULL,"Input file required");
-  gem_cond_fatal_error_msg(parameters->output_file_name!=NULL &&
+  gem_cond_fatal_error_msg(parameters->output_file_name!=NULL && parameters->input_file_name!=NULL &&
       gem_streq(parameters->input_file_name,parameters->output_file_name),
       "Input-file and output-file must be different");
-  gem_cond_fatal_error_msg(gem_streq(parameters->index_file_name,parameters->input_file_name),
+  gem_cond_fatal_error_msg(
+      parameters->input_file_name!=NULL &&
+      gem_streq(parameters->index_file_name,parameters->input_file_name),
       "Index-file and input-file must be different");
   gem_cond_fatal_error_msg(parameters->output_file_name!=NULL &&
       gem_streq(parameters->index_file_name,parameters->output_file_name),

@@ -243,7 +243,7 @@ GEM_INLINE void search_group_dispatcher_delete(search_group_dispatcher_t* const 
   // Archive Search Groups
   uint64_t i;
   search_group_t* search_group = dispatcher->search_group;
-  for (i=0;i<dispatcher->num_groups;++i,++search_group) {
+  for (i=0;i<dispatcher->search_group_used;++i,++search_group) {
     search_group_destroy(search_group);
   }
   mm_free(dispatcher->search_group);

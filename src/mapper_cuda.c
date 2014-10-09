@@ -11,7 +11,7 @@
 /*
  * Constants
  */
-#define MAPPER_CUDA_NUM_LINES (2*4*NUM_LINES_5K)
+#define MAPPER_CUDA_NUM_LINES (2*4*NUM_LINES_10K)
 
 /*
  * Mapper-CUDA Search
@@ -45,8 +45,8 @@ GEM_INLINE void mapper_cuda_parameters_set_defaults(mapper_cuda_parameters_t* co
   mapper_cuda_parameters->average_query_size=200;
   mapper_cuda_parameters->candidates_per_query=20;
   /* System */
-  mapper_cuda_parameters->num_generating_threads=1;//num_processors;
-  mapper_cuda_parameters->num_selecting_threads=1;//num_processors;
+  mapper_cuda_parameters->num_generating_threads=num_processors;
+  mapper_cuda_parameters->num_selecting_threads=num_processors;
   /* Miscellaneous */
   /* Extras */
 }
