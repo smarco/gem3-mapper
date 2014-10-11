@@ -514,6 +514,7 @@ GEM_INLINE void search_group_dispatcher_return_selecting(
  */
 GEM_INLINE void archive_search_generate_candidates(archive_search_t* const archive_search) {
   ARCHIVE_SEARCH_CHECK(archive_search);
+  PROF_START(GP_ARCHIVE_SEARCH_GENERATE_CANDIDATES);
   // Reset initial values (Prepare pattern(s), instantiate parameters values, ...)
   archive_search_reset(archive_search,sequence_get_length(&archive_search->sequence));
   // Check mapping mode
@@ -532,9 +533,11 @@ GEM_INLINE void archive_search_generate_candidates(archive_search_t* const archi
     reverse_asearch->search_strand = Reverse; // Configure reverse search
     approximate_search(reverse_asearch,NULL);
   }
+  PROF_STOP(GP_ARCHIVE_SEARCH_GENERATE_CANDIDATES);
 }
 GEM_INLINE void archive_search_copy_candidates(
     archive_search_t* const archive_search,bpm_gpu_buffer_t* const bpm_gpu_buffer) {
+  PROF_START(GP_ARCHIVE_SEARCH_COPY_CANDIDATES);
   const archive_t* const archive = archive_search->archive;
   // Add candidates (FORWARD)
   approximate_search_t* const forward_asearch = &archive_search->forward_search_state;
@@ -548,22 +551,25 @@ GEM_INLINE void archive_search_copy_candidates(
         reverse_asearch->filtering_candidates,archive->locator,archive->fm_index,archive->enc_text,
         &reverse_asearch->pattern,reverse_asearch->search_strand,reverse_asearch->search_actual_parameters,bpm_gpu_buffer);
   }
+  PROF_STOP(GP_ARCHIVE_SEARCH_COPY_CANDIDATES);
 }
-GEM_INLINE void archive_search_select_candidates(
+GEM_INLINE void archive_search_retrieve_candidates(
     archive_search_t* const archive_search,bpm_gpu_buffer_t* const bpm_gpu_buffer,
     const uint64_t results_buffer_offset,matches_t* const matches) {
+  PROF_START(GP_ARCHIVE_SEARCH_RETRIEVE_CANDIDATES);
   // Verified candidates (FORWARD)
   approximate_search_t* const forward_asearch = &archive_search->forward_search_state;
   const uint64_t results_buffer_forward_top = results_buffer_offset+forward_asearch->num_potential_candidates;
   filtering_candidates_verify_from_bpm_buffer(
       archive_search->text_collection,archive_search->archive->enc_text,&forward_asearch->pattern,Forward,
-      bpm_gpu_buffer,results_buffer_offset,results_buffer_forward_top,matches);
+      bpm_gpu_buffer,results_buffer_offset,results_buffer_forward_top,matches,archive_search->mm_stack);
   if (archive_search->search_reverse) {
     // Verified candidates (REVERSE)
     approximate_search_t* const reverse_asearch = &archive_search->reverse_search_state;
     const uint64_t results_buffer_reverse_top = results_buffer_forward_top+reverse_asearch->num_potential_candidates;
     filtering_candidates_verify_from_bpm_buffer(
         archive_search->text_collection,archive_search->archive->enc_text,&reverse_asearch->pattern,Reverse,
-        bpm_gpu_buffer,results_buffer_forward_top,results_buffer_reverse_top,matches);
+        bpm_gpu_buffer,results_buffer_forward_top,results_buffer_reverse_top,matches,archive_search->mm_stack);
   }
+  PROF_STOP(GP_ARCHIVE_SEARCH_RETRIEVE_CANDIDATES);
 }

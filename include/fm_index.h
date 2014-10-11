@@ -35,7 +35,7 @@ typedef struct {
  * Builder
  */
 GEM_INLINE void fm_index_builder(
-    fm_t* const file_manager,dna_text_t* const bwt_text,uint64_t* const character_occurrences,
+    fm_t* const file_manager,dna_text_builder_t* const bwt_text,uint64_t* const character_occurrences,
     sampled_sa_builder_t* const sampled_sa,const bool check,const bool verbose,const uint64_t num_threads);
 
 /*

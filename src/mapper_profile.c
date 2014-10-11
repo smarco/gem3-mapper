@@ -39,10 +39,10 @@ GEM_INLINE void mapper_profile_print_io(FILE* const stream) {
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_OUTPUT_BUFFER_EXTENSIONS),PROF_GET_COUNTER(GP_OUTPUT_BUFFER_REQUESTS),"",false);
   tab_fprintf(stream,"        --> Stalls                  ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_OUTPUT_BUFFER_REQUESTS_STALLS),NULL,"",false);
-  tab_fprintf(stream,"          --> Stalls.all.busy       ");
+  tab_fprintf(stream,"          --> Stalls.allBusy        ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_OUTPUT_BUFFER_REQUESTS_STALLS_BUSY),
       PROF_GET_COUNTER(GP_OUTPUT_BUFFER_REQUESTS_STALLS),"",false);
-  tab_fprintf(stream,"          --> Stalls.low.prio       ");
+  tab_fprintf(stream,"          --> Stalls.freePreempted  ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_OUTPUT_BUFFER_REQUESTS_STALLS_NOT_PRIORITY),
       PROF_GET_COUNTER(GP_OUTPUT_BUFFER_REQUESTS_STALLS),"",false);
 }
@@ -73,22 +73,59 @@ GEM_INLINE void mapper_profile_print_mapper_adaptive(FILE* const stream) {
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SELECT_MATCHES),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"    => TIME.Output.MAP.SE     ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_OUTPUT_MAP_SE),PROF_GET_TIMER(GP_MAPPER_ALL));
-
-  ///* Time Statistics */
-  //#define GEM_STATS_SHOW_GENERAL_TIME_STATS(FILE,NAME,SC_GEM_APP)
-  //  fprintf(FILE, "TIME.GEM.Full.%s           %4.1f (%3.2f %%) n",NAME, GET_TIME(SC_GEM_APP), GET_TIME_PERCENTAGE(SC_GEM_APP,SC_GEM_APP));
-  //  fprintf(FILE, "  --> Load Index                %4.1f (%3.2f %%) n", GET_TIME(TSC_GEM_LOAD_INDEX), GET_TIME_PERCENTAGE(TSC_GEM_LOAD_INDEX,SC_GEM_APP));
-  //  fprintf(FILE, "  --> In Open                   %4.1f (%3.2f %%) n", GET_TIME(TSC_GEM_IN_OPEN), GET_TIME_PERCENTAGE(TSC_GEM_IN_OPEN,SC_GEM_APP));
-  //  fprintf(FILE, "  --> Out Open                  %4.1f (%3.2f %%) n", GET_TIME(TSC_GEM_OUT_OPEN), GET_TIME_PERCENTAGE(TSC_GEM_OUT_OPEN,SC_GEM_APP));
-  //  fprintf(FILE, "TIME.Input                      %4.1f (%3.2f %%) n", GET_TIME(TSC_INPUT), GET_TIME_PERCENTAGE(TSC_INPUT,SC_GEM_APP));
-  //  fprintf(FILE, "TIME.Output                     %4.1f (%3.2f %%) n", GET_TIME(TSC_OUTPUT), GET_TIME_PERCENTAGE(TSC_OUTPUT,SC_GEM_APP));
-  //  fprintf(FILE, "  --> DumpOutput                %4.1f (%3.2f %%) n", GET_TIME(TSC_DUMP_OUTPUT), GET_TIME_PERCENTAGE(TSC_DUMP_OUTPUT,SC_GEM_APP))
-
-  //#define GEM_STATS_SHOW_SE_TIME_STATS(FILE)
-  //  fprintf(FILE, "TIME.Mapper.Thread              %4.1f (%3.2f %%) n", GET_TIME(SC_MAPPER_TH), GET_TIME_PERCENTAGE(SC_MAPPER_TH,SC_GEM_MAPPER));
-  //  fprintf(FILE, "  --> Mismatched.Search         %4.1f (%3.2f %%) n", GET_TIME(SC_MISMS_SEARCH), GET_TIME_PERCENTAGE(SC_MISMS_SEARCH,SC_GEM_MAPPER));
-  //  fprintf(FILE, "  --> Decode.Matches            %4.1f (%3.2f %%) n", GET_TIME(SC_DECODE_MATCHES), GET_TIME_PERCENTAGE(SC_DECODE_MATCHES,SC_GEM_MAPPER))
 }
+GEM_INLINE void mapper_profile_print_mapper_adaptive_ranks(FILE* const stream) {
+  tab_fprintf(stream,"[GEM]>Profile.Mapper\n");
+  tab_fprintf(stream,"  => RANKS.Mapper              ");
+  COUNTER_PRINT(stream,PROF_GET_RANK(GP_MAPPER_ALL),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
+  tab_fprintf(stream,"    => RANKS.Archive.Search    ");
+  COUNTER_PRINT(stream,PROF_GET_RANK(GP_ARCHIVE_SEARCH_SE),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
+  tab_fprintf(stream,"      => RANKS.Region.Profile  ");
+  COUNTER_PRINT(stream,PROF_GET_RANK(GP_REGION_PROFILE_SOFT),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
+  tab_fprintf(stream,"      => RANKS.Generating      ");
+  COUNTER_PRINT(stream,PROF_GET_RANK(GP_AS_FILTER_REGIONS),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
+  tab_fprintf(stream,"      => RANKS.Verifying       ");
+  COUNTER_PRINT(stream,PROF_GET_RANK(GP_FC_VERIFY),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
+  tab_fprintf(stream,"        => RANKS.Decoding      ");
+  COUNTER_PRINT(stream,PROF_GET_RANK(GP_FC_DECODE),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
+  tab_fprintf(stream,"    => RANKS.Select.Matches    ");
+  COUNTER_PRINT(stream,PROF_GET_RANK(GP_ARCHIVE_SELECT_MATCHES),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
+}
+GEM_INLINE void mapper_profile_print_mapper_cuda_adaptive(FILE* const stream) {
+  tab_fprintf(stream,"[GEM]>Profile.CUDAMapper\n");
+  // General
+  tab_fprintf(stream,"  => TIME.Mapper                     ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_ALL),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"    => TIME.Load.Index               ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_LOAD_INDEX),PROF_GET_TIMER(GP_MAPPER_ALL));
+  // Generating
+  tab_fprintf(stream,"    => TIME.GENERATING\n");
+  tab_fprintf(stream,"        => TIME.Generate.Candidates  ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_GENERATE_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"          => TIME.Region.Profile     ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_REGION_PROFILE_SOFT),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"          => TIME.Generating         ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_FILTER_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"          => TIME.Verifying          ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_VERIFY),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"            => TIME.Decoding         ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_DECODE),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"              --> FM.lookup.dist     ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FMIDX_LOOKUP_DIST),NULL,"lf",true);
+  tab_fprintf(stream,"        => TIME.Put.BPMBuffer        ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_PUT_BPM_BUFFER),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"          => TIME.Copy.Candidates    ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_COPY_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
+  // Selecting
+  tab_fprintf(stream,"    => TIME.SELECTING\n");
+  tab_fprintf(stream,"        => TIME.Retrieve.BPMBuffer   ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_RETRIEVE_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"        => TIME.Select.Matches       ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SELECT_MATCHES),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"        => TIME.Output.MAP.SE        ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_OUTPUT_MAP_SE),PROF_GET_TIMER(GP_MAPPER_ALL));
+}
+
 GEM_INLINE void mapper_profile_print_mapper_efficiency_ratios(FILE* const stream) {
   ///* Efficiency Ratios */
   //#define GEM_STATS_SHOW_EFFICIENCY_RATIOS(FILE,GSC_NUM_READS,SC_TIME_TH,GSC_NUM_MAPS)
@@ -279,13 +316,13 @@ GEM_INLINE void mapper_profile_print_archive_select(FILE* const stream) {
  * Archive Search-Group (Dispatcher, BMP-Buffers, ...)
  */
 GEM_INLINE void mapper_profile_print_archive_search_group(FILE* const stream) {
-  tab_fprintf(stream,"[GEM]>Profile.IO\n");
+  tab_fprintf(stream,"[GEM]>Profile.CUDADispatcher\n");
   /*
    * Dispatcher
    */
   // Generating
   tab_fprintf(stream,"  => Dispatcher\n");
-  tab_fprintf(stream,"    --> SearchGroup.GENERATING\n");
+  tab_fprintf(stream,"    => SearchGroup.GENERATING\n");
   tab_fprintf(stream,"        --> Requests                   ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_GENERATING),NULL,"",false);
   tab_fprintf(stream,"        --> Extensions                 ");
@@ -293,14 +330,14 @@ GEM_INLINE void mapper_profile_print_archive_search_group(FILE* const stream) {
       PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_GENERATING),"",false);
   tab_fprintf(stream,"        --> Stalls                     ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_GENERATING_STALLS),NULL,"",false);
-  tab_fprintf(stream,"          --> Stalls.all.busy          ");
+  tab_fprintf(stream,"          --> Stalls.allBusy           ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_GENERATING_STALLS_BUSY),
       PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_GENERATING_STALLS),"",false);
-  tab_fprintf(stream,"          --> Stalls.low.prio          ");
+  tab_fprintf(stream,"          --> Stalls.freePreempted     ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_GENERATING_STALLS_NOT_PRIORITY),
       PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_GENERATING_STALLS),"",false);
   // Selecting
-  tab_fprintf(stream,"    --> SearchGroup.SELECTING\n");
+  tab_fprintf(stream,"    => SearchGroup.SELECTING\n");
   tab_fprintf(stream,"        --> Requests                   ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING),NULL,"",false);
   tab_fprintf(stream,"        --> Extensions                 ");
@@ -321,9 +358,9 @@ GEM_INLINE void mapper_profile_print_archive_search_group(FILE* const stream) {
    * BPM-Buffers
    */
   tab_fprintf(stream,"  => BPM.Buffers\n");
-  tab_fprintf(stream,"      --> TIME.Send.Buffer             ");
+  tab_fprintf(stream,"    => TIME.Send.Buffer             ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_GPU_BUFFER_SEND),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      --> TIME.Check.Buffer            ");
+  tab_fprintf(stream,"    => TIME.Check.Buffer            ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_GPU_BUFFER_CHECK_TIME),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"      --> Buffer.usage\n");
   tab_fprintf(stream,"        --> Queries                    ");

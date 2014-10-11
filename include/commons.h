@@ -223,6 +223,8 @@ GEM_INLINE uint64_t integer_proportion(const float proportion,const uint64_t len
 GEM_INLINE uint64_t integer_lower_power_of_two(uint64_t number);
 GEM_INLINE uint64_t integer_upper_power_of_two(uint64_t number);
 
+GEM_INLINE int integer_to_ascii(char* const buffer,uint64_t number);
+
 /*
  * CheckSum & BitDisplay
  */

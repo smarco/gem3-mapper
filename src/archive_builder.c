@@ -110,12 +110,12 @@ GEM_INLINE void archive_builder_build_index(
     // Store Sampled-RL
     // TODO
     // Delete RL-Text
-    dna_text_delete(archive_builder->enc_rl_text); // Free
+    dna_text_builder_delete(archive_builder->enc_rl_text); // Free
   }
   // Text
-  dna_text_write(archive_builder->output_file_manager,archive_builder->enc_text);
-  if (verbose) dna_text_print(gem_info_get_stream(),archive_builder->enc_text);
-  dna_text_delete(archive_builder->enc_text); // Free
+  dna_text_builder_write(archive_builder->output_file_manager,archive_builder->enc_text);
+  if (verbose) dna_text_builder_print(gem_info_get_stream(),archive_builder->enc_text);
+  dna_text_builder_delete(archive_builder->enc_text); // Free
   /*
    * Create & write the FM-index
    */

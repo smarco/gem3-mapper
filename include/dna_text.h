@@ -13,6 +13,13 @@
 #include "commons.h"
 #include "fm.h"
 #include "mm.h"
+#include "mm_stack.h"
+
+/*
+ * DNA-Text Model
+ */
+#define DNA_TEXT_RAW
+// #define DNA_TEXT_COMPACT
 
 /*
  * Range of DNA Nucleotides
@@ -98,6 +105,7 @@ typedef enum { Forward, Reverse } strand_t;
  * DNA-Text
  */
 typedef struct _dna_text_t dna_text_t;
+typedef struct _dna_text_builder_t dna_text_builder_t;
 ///*
 // * DNA-Text Stats
 // */
@@ -123,29 +131,44 @@ typedef struct _dna_text_t dna_text_t;
 //} dna_text_stats_t;
 
 /*
- * DNA Text
+ * Setup/Loader
  */
-GEM_INLINE dna_text_t* dna_text_new(const uint64_t dna_text_length);
-GEM_INLINE dna_text_t* dna_text_padded_new(
-    const uint64_t dna_text_length,const uint64_t init_padding,const uint64_t end_padding);
-GEM_INLINE void dna_text_delete(dna_text_t* const dna_text);
-
 GEM_INLINE dna_text_t* dna_text_read(fm_t* const file_manager);
 GEM_INLINE dna_text_t* dna_text_read_mem(mm_t* const memory_manager);
+GEM_INLINE void dna_text_delete(dna_text_t* const dna_text);
 
-GEM_INLINE void dna_text_write(fm_t* const output_file_manager,dna_text_t* const dna_text);
+/*
+ * Builder
+ */
+GEM_INLINE dna_text_builder_t* dna_text_builder_new(const uint64_t dna_text_length);
+GEM_INLINE dna_text_builder_t* dna_text_builder_padded_new(
+    const uint64_t dna_text_length,const uint64_t init_padding,const uint64_t end_padding);
+GEM_INLINE void dna_text_builder_write(
+    fm_t* const output_file_manager,dna_text_builder_t* const dna_text);
+GEM_INLINE void dna_text_builder_delete(dna_text_builder_t* const dna_text);
 
-// Accessors
+GEM_INLINE uint64_t dna_text_builder_get_length(const dna_text_builder_t* const dna_text);
+GEM_INLINE void dna_text_builder_set_length(dna_text_builder_t* const dna_text,const uint64_t length);
+GEM_INLINE uint8_t dna_text_builder_get_char(const dna_text_builder_t* const dna_text,const uint64_t position);
+GEM_INLINE void dna_text_builder_set_char(const dna_text_builder_t* const dna_text,const uint64_t position,const uint8_t enc_char);
+GEM_INLINE uint8_t* dna_text_builder_get_buffer(const dna_text_builder_t* const dna_text);
+
+/*
+ * Accessors
+ */
 GEM_INLINE uint64_t dna_text_get_length(const dna_text_t* const dna_text);
-GEM_INLINE void dna_text_set_length(dna_text_t* const dna_text,const uint64_t length);
 GEM_INLINE uint8_t* dna_text_get_buffer(const dna_text_t* const dna_text);
-GEM_INLINE uint8_t dna_text_get_char(const dna_text_t* const dna_text,const uint64_t position);
-GEM_INLINE void dna_text_set_char(const dna_text_t* const dna_text,const uint64_t position,const uint8_t enc_char);
+GEM_INLINE uint8_t* dna_text_retrieve_sequence(
+    const dna_text_t* const dna_text,const uint64_t position,const uint64_t length,
+    mm_stack_t* const mm_stack);
 
-// Display
+/*
+ * Display
+ */
 GEM_INLINE void dna_text_print(FILE* const stream,dna_text_t* const dna_text);
-GEM_INLINE void dna_text_print_content(FILE* const stream,dna_text_t* const dna_text);
-GEM_INLINE void dna_text_pretty_print_content(FILE* const stream,dna_text_t* const dna_text,const uint64_t width);
+GEM_INLINE void dna_text_builder_print(FILE* const stream,dna_text_builder_t* const dna_text);
+GEM_INLINE void dna_text_builder_print_content(FILE* const stream,dna_text_builder_t* const dna_text);
+GEM_INLINE void dna_text_builder_pretty_print_content(FILE* const stream,dna_text_builder_t* const dna_text,const uint64_t width);
 
 ///*
 // * DNA Text [Stats]
@@ -162,6 +185,6 @@ GEM_INLINE void dna_text_pretty_print_content(FILE* const stream,dna_text_t* con
 /*
  * Errors
  */
-#define GEM_ERROR_DNA_TEXT_OOR "dna-text. Requested position (%lu) out of range [0,%lu)"
+#define GEM_ERROR_DNA_TEXT_OOR "DNA-text. Requested position (%lu) out of range [0,%lu)"
 
 #endif /* DNA_TEXT_H_ */

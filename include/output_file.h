@@ -17,6 +17,7 @@ typedef struct {
   fm_t* file_manager;
   /* Output Buffers */
   uint64_t num_buffers;
+  uint64_t buffer_size;
   output_buffer_t** buffer;
   uint64_t buffer_free;
   uint64_t buffer_write_pending;
@@ -43,10 +44,10 @@ typedef struct {
 /*
  * Setup
  */
-output_file_t* output_file_new(char* const file_name,const uint64_t max_output_buffers);
-output_file_t* output_stream_new(FILE* const stream,const uint64_t max_output_buffers);
-output_file_t* output_gzip_stream_new(FILE* const stream,const uint64_t max_output_buffers);
-output_file_t* output_bzip_stream_new(FILE* const stream,const uint64_t max_output_buffers);
+output_file_t* output_file_new(char* const file_name,const uint64_t max_output_buffers,const uint64_t buffer_size);
+output_file_t* output_stream_new(FILE* const stream,const uint64_t max_output_buffers,const uint64_t buffer_size);
+output_file_t* output_gzip_stream_new(FILE* const stream,const uint64_t max_output_buffers,const uint64_t buffer_size);
+output_file_t* output_bzip_stream_new(FILE* const stream,const uint64_t max_output_buffers,const uint64_t buffer_size);
 void output_file_close(output_file_t* const out_file);
 
 /*

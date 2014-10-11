@@ -240,14 +240,14 @@ GEM_INLINE void bwt_builder_write_minor_block(
  * BWT Builder
  */
 GEM_INLINE bwt_builder_t* bwt_builder_new(
-    dna_text_t* const bwt_text,const uint64_t* const character_occurrences,
+    dna_text_builder_t* const bwt_text,const uint64_t* const character_occurrences,
     sampled_sa_builder_t* const sampled_sa,const bool check,const bool verbose) {
   // TODO Checks
   /*
    * Allocate & initialize builder
    */
   bwt_builder_t* const bwt_builder = mm_alloc(bwt_builder_t);
-  const uint64_t bwt_length = dna_text_get_length(bwt_text);
+  const uint64_t bwt_length = dna_text_builder_get_length(bwt_text);
   bwt_builder_initialize(bwt_builder,bwt_length,character_occurrences,sampled_sa);
   /*
    * Compute BWT & write
@@ -258,7 +258,7 @@ GEM_INLINE bwt_builder_t* bwt_builder_new(
   // BM Layers
   uint64_t layer_0=0, layer_1=0, layer_2=0, bit_mask=UINT64_ONE_MASK;
   // Iterate over the BWT  // TODO Implement Ticker
-  const uint8_t* const bwt = dna_text_get_buffer(bwt_text);
+  const uint8_t* const bwt = dna_text_builder_get_buffer(bwt_text);
   uint64_t bwt_pos = 0;
   while (bwt_pos < bwt_length) {
     // Get BWT character

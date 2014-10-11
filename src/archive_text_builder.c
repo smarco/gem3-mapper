@@ -21,7 +21,7 @@ GEM_INLINE void archive_builder_dump_index_text(archive_builder_t* const archive
   // Open file
   char* const indexed_text_file_name = gem_strcat(archive_builder->output_file_name_prefix,".text");
   FILE* const indexed_text_file = fopen(indexed_text_file_name,"w");
-  dna_text_pretty_print_content(indexed_text_file,archive_builder->enc_text,80);
+  dna_text_builder_pretty_print_content(indexed_text_file,archive_builder->enc_text,80);
   // Close & release
   fclose(indexed_text_file);
   free(indexed_text_file_name);
@@ -68,7 +68,7 @@ GEM_INLINE void archive_builder_inspect_text(
       (archive_builder->indexed_complement==index_complement_yes) ? "index_complement=yes" : "index_complement=no",
       CONVERT_B_TO_MB(enc_text_length));
   // Allocate Text (Circular BWT extra)
-  archive_builder->enc_text = dna_text_padded_new(enc_text_length,2,SA_BWT_PADDED_LENGTH);
+  archive_builder->enc_text = dna_text_builder_padded_new(enc_text_length,2,SA_BWT_PADDED_LENGTH);
 }
 /*
  * Archive Builder. Text Generation Low-Level Building-Blocks
@@ -78,7 +78,7 @@ GEM_INLINE void archive_builder_generate_text_add_character(archive_builder_t* c
   ++(archive_builder->parsing_state.text_interval_length);
   ++(archive_builder->parsing_state.index_interval_length);
   // Add to Index-Text
-  dna_text_set_char(archive_builder->enc_text,(archive_builder->parsing_state.index_position)++,char_enc);
+  dna_text_builder_set_char(archive_builder->enc_text,(archive_builder->parsing_state.index_position)++,char_enc);
 }
 GEM_INLINE void archive_builder_generate_text_filter__add_character(archive_builder_t* const archive_builder,const uint8_t char_enc) {
   uint8_t filtered_char_enc = char_enc;
@@ -92,7 +92,7 @@ GEM_INLINE void archive_builder_generate_text_filter__add_character(archive_buil
 GEM_INLINE void archive_builder_generate_text_add_separator(archive_builder_t* const archive_builder) {
   // Add to Index-Text
   archive_builder->parsing_state.last_char = ENC_DNA_CHAR_SEP;
-  dna_text_set_char(archive_builder->enc_text,(archive_builder->parsing_state.index_position)++,ENC_DNA_CHAR_SEP);
+  dna_text_builder_set_char(archive_builder->enc_text,(archive_builder->parsing_state.index_position)++,ENC_DNA_CHAR_SEP);
   locator_builder_skip_index(archive_builder->locator,1); // Skip Separator
 }
 GEM_INLINE void archive_builder_generate_text_add_Ns(archive_builder_t* const archive_builder) {
@@ -258,8 +258,8 @@ GEM_INLINE void archive_builder_generate_rc_text(archive_builder_t* const archiv
       // Add character (k-mer counting) [Check Colorspace]
       const uint8_t filtered_char_enc =
           (gem_expect_false(archive_builder->filter_type == Iupac_colorspace_dna)) ?
-              dna_text_get_char(archive_builder->enc_text,text_position) :
-              dna_encoded_complement(dna_text_get_char(archive_builder->enc_text,text_position));
+              dna_text_builder_get_char(archive_builder->enc_text,text_position) :
+              dna_encoded_complement(dna_text_builder_get_char(archive_builder->enc_text,text_position));
       archive_builder_generate_text_add_character(archive_builder,filtered_char_enc);
       --text_position; // Next
     }
@@ -298,7 +298,7 @@ GEM_INLINE void archive_builder_process_multifasta(
     archive_builder_generate_text_add_separator(archive_builder);
   }
   // Set the precise text-length
-  dna_text_set_length(archive_builder->enc_text,archive_builder->parsing_state.index_position);
+  dna_text_builder_set_length(archive_builder->enc_text,archive_builder->parsing_state.index_position);
   /*
    * DEBUG
    */
@@ -321,14 +321,14 @@ GEM_INLINE void archive_builder_process_multifasta(
 GEM_INLINE void archive_builder_process_run_length_text(
     archive_builder_t* const archive_builder,const bool dump_run_length_text,const bool verbose) {
   // Allocate RL-text (Circular BWT extra)
-  const uint64_t enc_text_length = dna_text_get_length(archive_builder->enc_text);
-  archive_builder->enc_rl_text = dna_text_padded_new(enc_text_length,2,SA_BWT_PADDED_LENGTH);
+  const uint64_t enc_text_length = dna_text_builder_get_length(archive_builder->enc_text);
+  archive_builder->enc_rl_text = dna_text_builder_padded_new(enc_text_length,2,SA_BWT_PADDED_LENGTH);
   const uint64_t max_num_samples = DIV_CEIL(enc_text_length,ARCHIVE_BUILDER_RL_SAMPLING_RATE);
   uint64_t* const sampled_rl_text = mm_calloc(max_num_samples,uint64_t,true);
   archive_builder->sampled_rl_text = sampled_rl_text;
   // Compact the text into the RL-text
-  const uint8_t* const enc_text = dna_text_get_buffer(archive_builder->enc_text);
-  uint8_t* const enc_rl_text = dna_text_get_buffer(archive_builder->enc_rl_text);
+  const uint8_t* const enc_text = dna_text_builder_get_buffer(archive_builder->enc_text);
+  uint8_t* const enc_rl_text = dna_text_builder_get_buffer(archive_builder->enc_rl_text);
   uint64_t text_position, rl_text_position;
   uint64_t run_length=1, num_rl_samples=0;
   uint8_t last_char_enc = enc_text[0]; // Get first character
@@ -361,7 +361,7 @@ GEM_INLINE void archive_builder_process_run_length_text(
   }
   // Print last run
   enc_rl_text[rl_text_position++] = last_char_enc;
-  dna_text_set_length(archive_builder->enc_rl_text,rl_text_position);
+  dna_text_builder_set_length(archive_builder->enc_rl_text,rl_text_position);
   // Swap text with rl-text (as to SA-index the rl-text)
   SWAP(archive_builder->enc_text,archive_builder->enc_rl_text);
 }

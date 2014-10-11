@@ -56,12 +56,12 @@ typedef struct {
   /* Locator */
   locator_builder_t* locator;               // Sequence locator (from MultiFASTA)
   /* Text */
-  dna_text_t* enc_text;                     // Encoded Input Text (from MultiFASTA)
-  dna_text_t* enc_rl_text;                  // Encoded Run-Length Compacted Input Text (from MultiFASTA)
+  dna_text_builder_t* enc_text;             // Encoded Input Text (from MultiFASTA)
+  dna_text_builder_t* enc_rl_text;          // Encoded Run-Length Compacted Input Text (from MultiFASTA)
   uint64_t* character_occurrences;          // Total occurrences of each character
   uint64_t* sampled_rl_text;                // Sampled RL-text (to retrieve approximate source text-positions)
   /* FM-Index */
-  dna_text_t* enc_bwt;                      // BWT text
+  dna_text_builder_t* enc_bwt;              // BWT text
   sampling_rate_t sampling_rate;            // Sampling Rate
   sampled_sa_builder_t* sampled_sa;         // Sampled SA Builder
   /* Output */

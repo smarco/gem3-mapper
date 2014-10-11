@@ -11,9 +11,11 @@
 /*
  * Setup
  */
-GEM_INLINE void output_file_init_buffers(output_file_t* const output_file,const uint64_t max_output_buffers) {
+GEM_INLINE void output_file_init_buffers(
+    output_file_t* const output_file,const uint64_t max_output_buffers,const uint64_t buffer_size) {
   /* Output Buffers */
   uint64_t i;
+  output_file->buffer_size = buffer_size;
   output_file->num_buffers = max_output_buffers;
   output_file->buffer = mm_calloc(max_output_buffers,output_buffer_t*,true);
   for (i=0;i<output_file->num_buffers;++i) {
@@ -29,40 +31,40 @@ GEM_INLINE void output_file_init_buffers(output_file_t* const output_file,const 
   CV_INIT(output_file->request_buffer_cond);
   MUTEX_INIT(output_file->output_file_mutex);
 }
-output_file_t* output_file_new(char* const file_name,const uint64_t max_output_buffers) {
+output_file_t* output_file_new(char* const file_name,const uint64_t max_output_buffers,const uint64_t buffer_size) {
   GEM_CHECK_NULL(file_name);
   output_file_t* output_file = mm_alloc(output_file_t);
   // Output file
   output_file->file_manager = fm_open_file(file_name,FM_WRITE);
   // Setup buffers
-  output_file_init_buffers(output_file,max_output_buffers);
+  output_file_init_buffers(output_file,max_output_buffers,buffer_size);
   return output_file;
 }
-output_file_t* output_stream_new(FILE* const stream,const uint64_t max_output_buffers) {
+output_file_t* output_stream_new(FILE* const stream,const uint64_t max_output_buffers,const uint64_t buffer_size) {
   GEM_CHECK_NULL(stream);
   output_file_t* output_file = mm_alloc(output_file_t);
   // Output file
   output_file->file_manager = fm_open_FILE(stream,FM_WRITE);
   // Setup buffers
-  output_file_init_buffers(output_file,max_output_buffers);
+  output_file_init_buffers(output_file,max_output_buffers,buffer_size);
   return output_file;
 }
-output_file_t* output_gzip_stream_new(FILE* const stream,const uint64_t max_output_buffers) {
+output_file_t* output_gzip_stream_new(FILE* const stream,const uint64_t max_output_buffers,const uint64_t buffer_size) {
   GEM_CHECK_NULL(stream);
   output_file_t* output_file = mm_alloc(output_file_t);
   // Output file
   output_file->file_manager = fm_open_gzFILE(stream,FM_WRITE);
   // Setup buffers
-  output_file_init_buffers(output_file,max_output_buffers);
+  output_file_init_buffers(output_file,max_output_buffers,buffer_size);
   return output_file;
 }
-output_file_t* output_bzip_stream_new(FILE* const stream,const uint64_t max_output_buffers) {
+output_file_t* output_bzip_stream_new(FILE* const stream,const uint64_t max_output_buffers,const uint64_t buffer_size) {
   GEM_CHECK_NULL(stream);
   output_file_t* output_file = mm_alloc(output_file_t);
   // Output file
   output_file->file_manager = fm_open_bzFILE(stream,FM_WRITE);
   // Setup buffers
-  output_file_init_buffers(output_file,max_output_buffers);
+  output_file_init_buffers(output_file,max_output_buffers,buffer_size);
   return output_file;
 }
 void output_file_close(output_file_t* const output_file) {
@@ -125,7 +127,7 @@ GEM_INLINE output_buffer_t* output_file_get_free_buffer(output_file_t* const out
     GEM_INTERNAL_CHECK(i<output_file->num_buffers,"Output file. Could not find free buffer");
   }
   GEM_INTERNAL_CHECK(i<output_file->num_buffers,"Output file. Could not find free buffer");
-  if (output_file->buffer[i]==NULL) output_file->buffer[i] = output_buffer_new();
+  if (output_file->buffer[i]==NULL) output_file->buffer[i] = output_buffer_new(output_file->buffer_size);
   // Return
   return output_file->buffer[i];
 }

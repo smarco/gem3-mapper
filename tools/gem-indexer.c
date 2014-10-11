@@ -125,17 +125,17 @@ int indexer_debug_suffix_cmp(const uint64_t* const a,const uint64_t* const b) {
     return indexer_debug_suffix_cmp(&offset_a,&offset_b);
   }
 }
-GEM_INLINE void indexer_debug_generate_sa(dna_text_t* const index_text) {
+GEM_INLINE void indexer_debug_generate_sa(dna_text_builder_t* const index_text) {
   // Allocate memory for SA
-  debug_char_text = (char*) dna_text_get_buffer(index_text);
-  debug_text_length = dna_text_get_length(index_text);
+  debug_char_text = (char*) dna_text_builder_get_buffer(index_text);
+  debug_text_length = dna_text_builder_get_length(index_text);
   debug_SA = mm_malloc(sizeof(uint64_t)*(debug_text_length));
   uint64_t i;
   for (i=0;i<debug_text_length;++i) debug_SA[i] = i;
   // Build SA
   qsort(debug_SA,debug_text_length,sizeof(uint64_t),(int (*)(const void *,const void *))indexer_debug_suffix_cmp);
 }
-GEM_INLINE void indexer_debug_check_sa(char* const file_name,dna_text_t* const index_text) {
+GEM_INLINE void indexer_debug_check_sa(char* const file_name,dna_text_builder_t* const index_text) {
   // Open file
   FILE* const bwt_file = fopen(file_name,"w");
   // Generate SA
@@ -158,7 +158,7 @@ GEM_INLINE void indexer_debug_check_sa(char* const file_name,dna_text_t* const i
   // Close
   fclose(bwt_file);
 }
-GEM_INLINE void indexer_debug_check_bwt(char* const file_name,dna_text_t* const index_text) {
+GEM_INLINE void indexer_debug_check_bwt(char* const file_name,dna_text_builder_t* const index_text) {
   // Open file
   FILE* const bwt_file = fopen(file_name,"w");
   // Generate SA
@@ -181,7 +181,8 @@ GEM_INLINE void indexer_process_multifasta(archive_builder_t* const archive_buil
    * Process input MultiFASTA
    */
   input_file_t* const input_multifasta = (parameters.input_multifasta_file_name==NULL) ?
-      input_stream_open(stdin) : input_file_open(parameters.input_multifasta_file_name,false);
+      input_stream_open(stdin,BUFFER_SIZE_32M) :
+      input_file_open(parameters.input_multifasta_file_name,BUFFER_SIZE_32M,false);
   switch (archive_builder->index_type) {
     case fm_dna_classic:
       archive_builder_process_multifasta(archive_builder,input_multifasta,
@@ -194,7 +195,7 @@ GEM_INLINE void indexer_process_multifasta(archive_builder_t* const archive_buil
           archive_builder,parameters.dump_run_length_text,parameters.verbose);
       break;
     case fm_dna_graph: {
-      input_file_t* const input_graph = input_file_open(parameters.input_graph_file_name,false);
+      input_file_t* const input_graph = input_file_open(parameters.input_graph_file_name,BUFFER_SIZE_32M,false);
       archive_builder_process_graph(archive_builder,input_graph,parameters.dump_graph_links,parameters.verbose);
       archive_builder_process_multifasta__graph(archive_builder,input_multifasta,
           parameters.dump_locator_intervals,parameters.dump_indexed_text,parameters.dump_graph_links,parameters.verbose);

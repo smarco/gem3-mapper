@@ -24,18 +24,18 @@ GEM_INLINE void gem_mapper_open_input(mapper_parameters_t* const parameters) {
     gem_cond_log(parameters->verbose_user,"[Reading input file from stdin]");
     switch (parameters->input_compression) {
       case FM_GZIPPED_FILE:
-        parameters->input_file = input_gzip_stream_open(stdin);
+        parameters->input_file = input_gzip_stream_open(stdin,parameters->input_block_size);
         break;
       case FM_BZIPPED_FILE:
-        parameters->input_file = input_bzip_stream_open(stdin);
+        parameters->input_file = input_bzip_stream_open(stdin,parameters->input_block_size);
         break;
       default:
-        parameters->input_file = input_stream_open(stdin);
+        parameters->input_file = input_stream_open(stdin,parameters->input_block_size);
         break;
     }
   } else {
     gem_cond_log(parameters->verbose_user,"[Opening input file '%s']",parameters->input_file_name);
-    parameters->input_file = input_file_open(parameters->input_file_name,false);
+    parameters->input_file = input_file_open(parameters->input_file_name,parameters->input_block_size,false);
   }
   // TODO: Checks
 }
@@ -54,13 +54,16 @@ GEM_INLINE void gem_mapper_open_output(mapper_parameters_t* const parameters) {
   // Open output file
   switch (parameters->output_compression) {
     case FM_GZIPPED_FILE:
-      parameters->output_file = output_gzip_stream_new(parameters->output_stream,parameters->max_output_buffers);
+      parameters->output_file = output_gzip_stream_new(
+          parameters->output_stream,parameters->max_output_buffers,parameters->output_buffer_size);
       break;
     case FM_BZIPPED_FILE:
-      parameters->output_file = output_bzip_stream_new(parameters->output_stream,parameters->max_output_buffers);
+      parameters->output_file = output_bzip_stream_new(
+          parameters->output_stream,parameters->max_output_buffers,parameters->output_buffer_size);
       break;
     default:
-      parameters->output_file = output_stream_new(parameters->output_stream,parameters->max_output_buffers);
+      parameters->output_file = output_stream_new(
+          parameters->output_stream,parameters->max_output_buffers,parameters->output_buffer_size);
       break;
   }
 }
@@ -69,7 +72,15 @@ GEM_INLINE void gem_mapper_close_output(mapper_parameters_t* const parameters) {
 }
 GEM_INLINE void gem_mapper_print_stats(
     mapper_parameters_t* const parameters,mapper_cuda_parameters_t* const cuda_parameters) {
-  PROF_SUM_REDUCE();
+  // Reduce Stats
+  switch (parameters->stats_reduce_type) {
+    case reduce_sum: PROF_REDUCE_SUM(); break;
+    case reduce_max: PROF_REDUCE_MAX(); break;
+    case reduce_min: PROF_REDUCE_MIN(); break;
+    case reduce_mean: PROF_REDUCE_MEAN(); break;
+    case reduce_sample: PROF_REDUCE_SAMPLE(); break;
+    default: GEM_INVALID_CASE(); break;
+  }
   // Sys
   // TODO
   mapper_profile_print_io(gem_info_get_stream());
@@ -81,6 +92,7 @@ GEM_INLINE void gem_mapper_print_stats(
     switch (parameters->search_parameters.mapping_mode) {
       case mapping_adaptive_filtering:
         mapper_profile_print_mapper_adaptive(gem_info_get_stream());
+        mapper_profile_print_mapper_adaptive_ranks(gem_info_get_stream());
         break;
       case mapping_incremental_mapping:
       case mapping_fixed_filtering:
@@ -95,7 +107,7 @@ GEM_INLINE void gem_mapper_print_stats(
   } else if (parameters->mapper_type==mapper_se_cuda) {
     switch (parameters->search_parameters.mapping_mode) {
       case mapping_adaptive_filtering:
-        mapper_profile_print_mapper_adaptive(gem_info_get_stream());
+        mapper_profile_print_mapper_cuda_adaptive(gem_info_get_stream());
         mapper_profile_print_archive_search_group(gem_info_get_stream());
         break;
       case mapping_incremental_mapping:
@@ -162,7 +174,7 @@ option_t gem_mapper_options[] = {
   { 901, "tmp-folder", REQUIRED, TYPE_STRING, 9 , true, "<temporal_dir_path>" , "(/tmp/)" },
   /* Debug */
   /* Miscellaneous */
-  { 1100, "stats", NO_ARGUMENT, TYPE_NONE, 11 , true, "" , "(disabled)" },
+  { 1100, "stats", OPTIONAL, TYPE_NONE, 11 , true, "'sum'|'min'|'max'|'mean'|'sample'" , "(disabled)" },
   { 'v', "verbose", NO_ARGUMENT, TYPE_NONE, 11 , true, "" , "(enabled)" },
   { 'V', "developer-verbose", NO_ARGUMENT, TYPE_NONE, 11 , false, "" , "(disabled)" },
   { 1101, "quiet", NO_ARGUMENT, TYPE_NONE, 11 , false, "" , "(disabled)" },
@@ -364,6 +376,21 @@ void parse_arguments(
     /* Misc */
     case 1100: // --stats
       parameters->stats = true;
+      if (optarg) {
+        if (gem_strcaseeq(optarg,"SUM")) {
+          parameters->stats_reduce_type = reduce_sum;
+        } else if (gem_strcaseeq(optarg,"MIN")) {
+          parameters->stats_reduce_type = reduce_min;
+        } else if (gem_strcaseeq(optarg,"MAX")) {
+          parameters->stats_reduce_type = reduce_max;
+        } else if (gem_strcaseeq(optarg,"MEAN")) {
+          parameters->stats_reduce_type = reduce_mean;
+        } else if (gem_strcaseeq(optarg,"SAMPLE")) {
+          parameters->stats_reduce_type = reduce_sample;
+        } else {
+          gem_fatal_error_msg("Option 'stats' must be 'sum'|'min'|'max'|'mean'|'sample'");
+        }
+      }
       break;
     case 'v':
       parameters->verbose_user = true;
@@ -459,7 +486,7 @@ int main(int argc,char** argv) {
       cuda_parameters.num_generating_threads + cuda_parameters.num_selecting_threads + 1:
       parameters.num_threads + 1;
   gem_runtime_init(total_threads,parameters.max_memory,parameters.tmp_folder,mapper_error_report);
-  PROF_START_TIMER(GP_MAPPER_ALL);
+  PROF_START(GP_MAPPER_ALL);
 
   // Open Input/Output File(s)
   gem_mapper_open_input(&parameters);
@@ -486,7 +513,7 @@ int main(int argc,char** argv) {
       GEM_INVALID_CASE();
       break;
   }
-  PROF_STOP_TIMER(GP_MAPPER_ALL);
+  PROF_STOP(GP_MAPPER_ALL);
 
   // Stats
   if (parameters.stats) gem_mapper_print_stats(&parameters,&cuda_parameters);
@@ -500,7 +527,7 @@ int main(int argc,char** argv) {
   // Display end banner
   TIMER_STOP(&mapper_timer);
   gem_cond_log(parameters.verbose_user,
-      "[GEMMapper terminated successfully in %2.3f min.]\n",TIMER_GET_TOTAL_M(&mapper_timer));
+      "[GEMMapper terminated successfully in %2.3f s.]\n",TIMER_GET_TOTAL_S(&mapper_timer));
 
   return 0;
 }

@@ -115,7 +115,7 @@ GEM_INLINE void region_profile_generate_adaptive(
   PROF_START(GP_REGION_PROFILE_ADAPTIVE);
   filtering_region_t* const regions = region_profile->filtering_region;
   uint64_t num_regions = 0, num_standard_regions = 0, last_cut = 0;
-  uint64_t lo, hi, hi_cut, lo_cut, expected_count, max_steps;
+  uint64_t lo, hi, hi_cut=0, lo_cut=0, expected_count, max_steps;
 
   // Prepare rank_query
   const rank_mtable_t* const rank_mtable = fm_index->rank_table;

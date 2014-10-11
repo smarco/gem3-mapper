@@ -325,6 +325,8 @@ GEM_INLINE void output_sam_print_match_cigar(
   // Get CIGAR buffer/length
   const uint64_t cigar_length = match->cigar_length;
   const cigar_element_t* cigar_array = vector_get_mem(matches->cigar_buffer,cigar_element_t)+match->cigar_buffer_offset;
+  // Reserve (upper-bound)
+  buffered_output_file_reserve(buffered_output_file,cigar_length*(INT_MAX_LENGTH+1));
   // Generate CIGAR
   if (output_sam_parameters->print_mismatches) {
     // Traverse all CIGAR elements
@@ -332,19 +334,23 @@ GEM_INLINE void output_sam_print_match_cigar(
     for (i=0;i<cigar_length;++i,++cigar_array) {
       switch (cigar_array->type) {
         case cigar_match:
-          bofprintf_fixed(buffered_output_file,INT_MAX_LENGTH,"%luM",(uint32_t)cigar_array->length);
+          bofprintf_uint64(buffered_output_file,(uint32_t)cigar_array->length);
+          bofprintf_char(buffered_output_file,'M');
           break;
         case cigar_mismatch:
-          bofprintf_fixed(buffered_output_file,1,"X");
+          bofprintf_char(buffered_output_file,'X');
           break;
         case cigar_ins:
-          bofprintf_fixed(buffered_output_file,INT_MAX_LENGTH+1,"%luD",cigar_array->length);
+          bofprintf_int64(buffered_output_file,cigar_array->length);
+          bofprintf_char(buffered_output_file,'D');
           break;
         case cigar_del:
-          bofprintf_fixed(buffered_output_file,INT_MAX_LENGTH+1,"%luI",cigar_array->length);
+          bofprintf_int64(buffered_output_file,cigar_array->length);
+          bofprintf_char(buffered_output_file,'I');
           break;
         case cigar_soft_trim:
-          bofprintf_fixed(buffered_output_file,INT_MAX_LENGTH+1,"%luS",cigar_array->length);
+          bofprintf_int64(buffered_output_file,cigar_array->length);
+          bofprintf_char(buffered_output_file,'S');
           break;
         default:
           GEM_INVALID_CASE();
@@ -361,18 +367,22 @@ GEM_INLINE void output_sam_print_match_cigar(
         ++match;
       } else {
         if (match > 0) {
-          bofprintf_fixed(buffered_output_file,INT_MAX_LENGTH+1,"%luM",match);
+          bofprintf_uint64(buffered_output_file,match);
+          bofprintf_char(buffered_output_file,'M');
           match = 0;
         }
         switch (cigar_array->type) {
           case cigar_ins:
-            bofprintf_fixed(buffered_output_file,INT_MAX_LENGTH+1,"%luD",cigar_array->length);
+            bofprintf_int64(buffered_output_file,cigar_array->length);
+            bofprintf_char(buffered_output_file,'D');
             break;
           case cigar_del:
-            bofprintf_fixed(buffered_output_file,INT_MAX_LENGTH+1,"%luI",cigar_array->length);
+            bofprintf_int64(buffered_output_file,cigar_array->length);
+            bofprintf_char(buffered_output_file,'I');
             break;
           case cigar_soft_trim:
-            bofprintf_fixed(buffered_output_file,INT_MAX_LENGTH+1,"%luS",cigar_array->length);
+            bofprintf_int64(buffered_output_file,cigar_array->length);
+            bofprintf_char(buffered_output_file,'S');
             break;
           default:
             GEM_INVALID_CASE();
@@ -380,7 +390,10 @@ GEM_INLINE void output_sam_print_match_cigar(
         }
       }
     }
-    if (match > 0) bofprintf_fixed(buffered_output_file,INT_MAX_LENGTH,"%luM",match);
+    if (match > 0) {
+      bofprintf_uint64(buffered_output_file,match);
+      bofprintf_char(buffered_output_file,'M');
+    }
   }
 }
 //  XA  Z  Alternative hits; format: (chr,pos,CIGAR,NM;)*
@@ -389,23 +402,33 @@ GEM_INLINE void output_sam_print_opt_field_tag_XA(
     const match_trace_t* const subdominant_match,const uint64_t num_matches,
     const output_sam_parameters_t* const output_sam_parameters) {
   if (num_matches==0) return;
+
   /*
    * XA maps (chr12,+91022,101M,0)
    *   XA:Z:chr10,+100306093,100M,0;chr2,+173184544,100M,0;chr2,+175137710,100M,0;
    */
-  bofprintf_fixed(buffered_output_file,10,"\tXA:Z:");
+  // Reserve
+  buffered_output_file_reserve(buffered_output_file,6);
+  bofprintf_string_literal(buffered_output_file,"\tXA:Z:");
   uint64_t i;
   for (i=0;i<num_matches;++i) {
     const uint64_t seq_length = gem_strlen(subdominant_match[i].sequence_name);
-    // Print the map
-    bofprintf_fixed(buffered_output_file,10+INT_MAX_LENGTH+seq_length,"%"PRIs",%c%lu,",
-        seq_length,subdominant_match[i].sequence_name,
-        (subdominant_match[i].strand==Forward)?'+':'-',
-        subdominant_match[i].position);
+    // Print SeqName
+    buffered_output_file_reserve(buffered_output_file,seq_length+INT_MAX_LENGTH+10);
+    bofprintf_string(buffered_output_file,seq_length,subdominant_match[i].sequence_name);
+    bofprintf_char(buffered_output_file,',');
+    // Print Strand
+    bofprintf_char(buffered_output_file,(subdominant_match[i].strand==Forward)?'+':'-');
+    // Print Position
+    bofprintf_uint64(buffered_output_file,subdominant_match[i].position);
     // Print CIGAR
+    bofprintf_char(buffered_output_file,',');
     output_sam_print_match_cigar(buffered_output_file,matches,subdominant_match+i,output_sam_parameters);
     // Print Distance
-    bofprintf_fixed(buffered_output_file,10+INT_MAX_LENGTH,",%"PRIu64";",subdominant_match[i].distance);
+    buffered_output_file_reserve(buffered_output_file,INT_MAX_LENGTH+10);
+    bofprintf_char(buffered_output_file,',');
+    bofprintf_uint64(buffered_output_file,subdominant_match[i].distance);
+    bofprintf_char(buffered_output_file,';');
   }
 }
 GEM_INLINE void output_sam_print_qname(
@@ -418,28 +441,33 @@ GEM_INLINE void output_sam_print_qname(
     if (tag_buffer[effective_tag_length]==SPACE) break;
   }
   // Print the plain tag (no read pair info, nor extra tag, ...nothing)
-  bofprintf_fixed(buffered_output_file,effective_tag_length,"%"PRIs,
-      effective_tag_length,string_get_buffer(read));
+  buffered_output_file_reserve(buffered_output_file,effective_tag_length);
+  bofprintf_string(buffered_output_file,effective_tag_length,string_get_buffer(read));
 }
 GEM_INLINE void output_sam_print_seq__qualities(
     buffered_output_file_t* const buffered_output_file,
     sequence_t* const seq_read,const bool secondary_alignment,
     const output_sam_parameters_t* const output_sam_parameters) {
   if (secondary_alignment && output_sam_parameters->omit_secondary_read__qualities) {
-    bofprintf_fixed(buffered_output_file,20,"\t*\t*");
+    buffered_output_file_reserve(buffered_output_file,4);
+    bofprintf_string_literal(buffered_output_file,"\t*\t*");
   } else {
     string_t* const read = &seq_read->read;
     string_t* const qualities = &seq_read->qualities;
     const uint64_t read_length = string_get_length(read);
     if (!string_is_null(read) && !string_is_null(qualities)) {
       const uint64_t qualities_length = string_get_length(qualities);
-      bofprintf_fixed(buffered_output_file,20+read_length+qualities_length,
-          "\t%"PRIs"\t%"PRIs,read_length,string_get_buffer(read),
-          qualities_length,string_get_buffer(qualities));
+      buffered_output_file_reserve(buffered_output_file,read_length+qualities_length+20);
+      bofprintf_char(buffered_output_file,'\t');
+      bofprintf_string(buffered_output_file,read_length,string_get_buffer(read));
+      bofprintf_char(buffered_output_file,'\t');
+      bofprintf_string(buffered_output_file,qualities_length,string_get_buffer(qualities));
     } else {
       GEM_INTERNAL_CHECK(!string_is_null(read),"Output SAM. Sequence read is null");
-      bofprintf_fixed(buffered_output_file,20+read_length,
-          "\t%"PRIs"\t*",read_length,string_get_buffer(read));
+      buffered_output_file_reserve(buffered_output_file,read_length+20);
+      bofprintf_char(buffered_output_file,'\t');
+      bofprintf_string(buffered_output_file,read_length,string_get_buffer(read));
+      bofprintf_string_literal(buffered_output_file,"\t*");
     }
   }
 }
@@ -455,23 +483,35 @@ GEM_INLINE void output_sam_print_core_fields_pe(
   const uint16_t flag = output_sam_calculate_flag_pe_map(
       match,mate,is_map_first_in_pair,secondary_alignment,
       supplementary_alignment,not_passing_QC,PCR_duplicate,paired);
-  bofprintf_fixed(buffered_output_file,10+INT_MAX_LENGTH,"\t%"PRId16,flag);
+  buffered_output_file_reserve(buffered_output_file,INT_MAX_LENGTH+1);
+  bofprintf_char(buffered_output_file,'\t');
+  bofprintf_uint64(buffered_output_file,flag);
   // (3) Print RNAME
   // (4) Print POS
   // (5) Print MAPQ
   // (6) Print CIGAR
   if (match!=NULL) {
     const uint64_t match_seq_name_length = gem_strlen(match->sequence_name);
-    bofprintf_fixed(buffered_output_file,10+2*INT_MAX_LENGTH+match_seq_name_length,
-        "\t%"PRIs"\t%"PRIu64"\t%"PRIu8"\t",match_seq_name_length,
-        match->sequence_name,match->position,match->score);
-    output_sam_print_match_cigar(buffered_output_file,matches,match,output_sam_parameters); // CIGAR
+    buffered_output_file_reserve(buffered_output_file,match_seq_name_length+2*INT_MAX_LENGTH+10);
+    bofprintf_char(buffered_output_file,'\t');
+    bofprintf_string(buffered_output_file,match_seq_name_length,match->sequence_name); // (3) RNAME
+    bofprintf_char(buffered_output_file,'\t');
+    bofprintf_uint64(buffered_output_file,match->position); // (4) POS
+    bofprintf_char(buffered_output_file,'\t');
+    bofprintf_int64(buffered_output_file,match->score); // (5) MAPQ
+    bofprintf_char(buffered_output_file,'\t');
+    output_sam_print_match_cigar(buffered_output_file,matches,match,output_sam_parameters); // (6) CIGAR
   } else if(mate!=NULL) {
     const uint64_t mate_seq_name_length = gem_strlen(mate->sequence_name);
-    bofprintf_fixed(buffered_output_file,10+INT_MAX_LENGTH+mate_seq_name_length,
-        "\t%"PRIs"\t%"PRIu64"\t0\t*",mate_seq_name_length,mate->sequence_name,mate->position);
+    buffered_output_file_reserve(buffered_output_file,mate_seq_name_length+INT_MAX_LENGTH+10);
+    bofprintf_char(buffered_output_file,'\t');
+    bofprintf_string(buffered_output_file,mate_seq_name_length,mate->sequence_name); // (3) RNAME
+    bofprintf_char(buffered_output_file,'\t');
+    bofprintf_uint64(buffered_output_file,mate->position); // (4) POS
+    bofprintf_string_literal(buffered_output_file,"\t0\t*");
   } else {
-    bofprintf_fixed(buffered_output_file,10,"\t*\t0\t0\t*");
+    buffered_output_file_reserve(buffered_output_file,10);
+    bofprintf_string_literal(buffered_output_file,"\t*\t0\t0\t*");
   }
   // (7) Print RNEXT
   // (8) Print PNEXT
@@ -479,17 +519,28 @@ GEM_INLINE void output_sam_print_core_fields_pe(
   if (mate!=NULL) {
     if (match!=NULL && !gem_streq(match->sequence_name,mate->sequence_name)) {
       const uint64_t mate_seq_name_length = gem_strlen(mate->sequence_name);
-      bofprintf_fixed(buffered_output_file,10+2*INT_MAX_LENGTH+mate_seq_name_length,
-          "\t"PRIs"\t%"PRIu64"\t%"PRId64,mate_seq_name_length,
-          mate->sequence_name,mate->position,template_length);
+      buffered_output_file_reserve(buffered_output_file,mate_seq_name_length+2*INT_MAX_LENGTH+10);
+      bofprintf_char(buffered_output_file,'\t');
+      bofprintf_string(buffered_output_file,mate_seq_name_length,mate->sequence_name);
+      bofprintf_char(buffered_output_file,'\t');
+      bofprintf_uint64(buffered_output_file,mate->position);
+      bofprintf_char(buffered_output_file,'\t');
+      bofprintf_int64(buffered_output_file,template_length);
     } else {
-      bofprintf_fixed(buffered_output_file,10+2*INT_MAX_LENGTH,
-          "\t=\t%"PRIu64"\t%"PRId64,mate->position,template_length);
+      buffered_output_file_reserve(buffered_output_file,2*INT_MAX_LENGTH+10);
+      bofprintf_string_literal(buffered_output_file,"\t=\t");
+      bofprintf_uint64(buffered_output_file,mate->position);
+      bofprintf_char(buffered_output_file,'\t');
+      bofprintf_int64(buffered_output_file,template_length);
     }
   } else if(!secondary_alignment && match!=NULL) {
-    bofprintf_fixed(buffered_output_file,10+INT_MAX_LENGTH,"\t=\t%"PRIu64"\t0",match->position);
+    buffered_output_file_reserve(buffered_output_file,2*INT_MAX_LENGTH);
+    bofprintf_string_literal(buffered_output_file,"\t=\t");
+    bofprintf_uint64(buffered_output_file,match->position);
+    bofprintf_string_literal(buffered_output_file,"\t0");
   } else {
-    bofprintf_fixed(buffered_output_file,10,"\t*\t0\t0");
+    buffered_output_file_reserve(buffered_output_file,10);
+    bofprintf_string_literal(buffered_output_file,"\t*\t0\t0");
   }
   // (10) Print SEQ
   // (11) Print QUAL
@@ -505,16 +556,23 @@ GEM_INLINE void output_sam_print_core_fields_se(
   // (2) Print FLAG
   const uint16_t flag = output_sam_calculate_flag_se_match(
       match,secondary_alignment,supplementary_alignment,not_passing_QC,PCR_duplicate);
-  bofprintf_fixed(buffered_output_file,10+INT_MAX_LENGTH,"\t%"PRId16,flag);
+  buffered_output_file_reserve(buffered_output_file,INT_MAX_LENGTH+1);
+  bofprintf_char(buffered_output_file,'\t');
+  bofprintf_uint64(buffered_output_file,flag);
   // Is mapped?
   if (match!=NULL) {
     // (3) Print RNAME
     // (4) Print POS
     // (5) Print MAPQ
     const uint64_t sequence_name_length = gem_strlen(match->sequence_name);
-    bofprintf_fixed(buffered_output_file,10+sequence_name_length+2*INT_MAX_LENGTH,
-        "\t%"PRIs"\t%"PRIu64"\t%"PRIu8"\t",
-        sequence_name_length,match->sequence_name,match->position,match->score);
+    buffered_output_file_reserve(buffered_output_file,sequence_name_length+2*INT_MAX_LENGTH+10);
+    bofprintf_char(buffered_output_file,'\t');
+    bofprintf_string(buffered_output_file,sequence_name_length,match->sequence_name);
+    bofprintf_char(buffered_output_file,'\t');
+    bofprintf_uint64(buffered_output_file,match->position);
+    bofprintf_char(buffered_output_file,'\t');
+    bofprintf_int64(buffered_output_file,match->score);
+    bofprintf_char(buffered_output_file,'\t');
     // (6) Print CIGAR
     output_sam_print_match_cigar(buffered_output_file,matches,match,output_sam_parameters);
   } else {
@@ -522,12 +580,14 @@ GEM_INLINE void output_sam_print_core_fields_se(
     // (4) Print POS
     // (5) Print MAPQ
     // (6) Print CIGAR
-    bofprintf_fixed(buffered_output_file,20,"\t*\t0\t0\t*");
+    buffered_output_file_reserve(buffered_output_file,20);
+    bofprintf_string_literal(buffered_output_file,"\t*\t0\t0\t*");
   }
   //  (7) Print RNEXT
   //  (8) Print PNEXT
   //  (9) Print TLEN
-  bofprintf_fixed(buffered_output_file,20,"\t*\t0\t0");
+  buffered_output_file_reserve(buffered_output_file,20);
+  bofprintf_string_literal(buffered_output_file,"\t*\t0\t0");
   // (10) Print SEQ
   // (11) Print QUAL
   output_sam_print_seq__qualities(buffered_output_file,seq_read,secondary_alignment,output_sam_parameters);
@@ -561,7 +621,8 @@ GEM_INLINE void output_sam_single_end_matches(
     // Print Optional Fields
     output_sam_print_optional_fields(buffered_output_file,matches,NULL);
     // EOL
-    bofprintf_fixed(buffered_output_file,1,"\n");
+    buffered_output_file_reserve(buffered_output_file,1);
+    bofprintf_char(buffered_output_file,'\n');
   } else {
     if (output_sam_parameters->compact_xa) {
       match_trace_t* const match_trace = vector_get_mem(matches->global_matches,match_trace_t);
@@ -574,7 +635,8 @@ GEM_INLINE void output_sam_single_end_matches(
       // Print Optional Fields
       output_sam_print_optional_fields(buffered_output_file,matches,match_trace);
       // EOL
-      bofprintf_fixed(buffered_output_file,1,"\n");
+      buffered_output_file_reserve(buffered_output_file,1);
+      bofprintf_char(buffered_output_file,'\n');
     } else {
       // Traverse all matches (Position-matches)
       VECTOR_ITERATE(matches->global_matches,match_trace,match_number,match_trace_t) {
@@ -584,11 +646,12 @@ GEM_INLINE void output_sam_single_end_matches(
         // Print Optional Fields
         output_sam_print_optional_fields(buffered_output_file,matches,match_trace);
         // EOL
-        bofprintf_fixed(buffered_output_file,1,"\n");
+        buffered_output_file_reserve(buffered_output_file,1);
+        bofprintf_char(buffered_output_file,'\n');
       }
     }
   }
-  PROF_STOP_TIMER(GP_OUTPUT_MAP_SE);
+  PROF_STOP_TIMER(GP_OUTPUT_SAM_SE);
 }
 
 

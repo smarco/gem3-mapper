@@ -9,9 +9,6 @@
 #include "input_fasta_parser.h"
 #include "input_parser.h"
 
-// Constants
-#define FASTA_BUFFER_NUM_LINES (2*4*NUM_LINES_5K) /* 2l-Paired x 4l-FASTQRecord x 5K-BufferSize */
-
 /*
  * FASTQ/FASTA File Format test
  */
@@ -299,7 +296,7 @@ GEM_INLINE error_code_t input_fasta_parse_sequence(
   // Check input file
   error_code_t error_code;
   if (buffered_input_file_eob(buffered_fasta_input)) { // Check the end_of_block. Reload buffer if needed
-    if ((error_code=buffered_input_file_reload(buffered_fasta_input,FASTA_BUFFER_NUM_LINES))!=INPUT_STATUS_OK) return error_code;
+    if ((error_code=buffered_input_file_reload(buffered_fasta_input))!=INPUT_STATUS_OK) return error_code;
   }
   //  // Check file format
   //  if (input_fasta_parser_check_fastq_file_format(buffered_fasta_input)) {

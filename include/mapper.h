@@ -33,7 +33,7 @@
 /*
  * Constants
  */
-#define MAPPER_TICKER_STEP 1000
+#define MAPPER_TICKER_STEP 100000
 
 /*
  * Mapper Parameters
@@ -50,6 +50,8 @@ typedef struct {
   bool check_index;
   char *input_file_name;
   fm_type input_compression;
+  uint64_t input_block_size;
+  uint64_t input_buffer_lines;
   char *output_file_name;
   fm_type output_compression;
   /* I/O Structures */
@@ -57,6 +59,7 @@ typedef struct {
   input_file_t* input_file;
   FILE* output_stream;
   output_file_t* output_file;
+  uint64_t output_buffer_size;
   uint64_t max_output_buffers;
   file_format_t output_format;
   output_sam_parameters_t sam_parameters;
@@ -73,6 +76,7 @@ typedef struct {
   char* tmp_folder;
   /* Miscellaneous */
   bool stats;
+  profile_reduce_type stats_reduce_type;
   bool verbose_user;
   bool verbose_dev;
   /* Extras */

@@ -110,7 +110,7 @@ typedef struct {
 typedef struct {
   /* Text */
   char* name_prefix;                 // Name Prefix
-  dna_text_t* enc_text;              // Encoded Text
+  dna_text_builder_t* enc_text;              // Encoded Text
   /* K-mer counting/splitting */
   uint64_t* kmer_count;              // K-mer Count Table (Boundaries of the SA)
   uint64_t num_kmers;                // Total number of possible k-mers
@@ -140,7 +140,7 @@ typedef struct {
  * Setup
  */
 GEM_INLINE sa_builder_t* sa_builder_new(
-    char* const name_prefix,dna_text_t* const enc_text,
+    char* const name_prefix,dna_text_builder_t* const enc_text,
     const uint64_t num_threads,const uint64_t max_memory);
 GEM_INLINE void sa_builder_delete(sa_builder_t* const sa_builder);
 
@@ -152,7 +152,9 @@ GEM_INLINE void sa_builder_delete(sa_builder_t* const sa_builder);
  */
 GEM_INLINE void sa_builder_count_suffixes(sa_builder_t* const sa_builder,uint64_t* const character_occurrences,const bool verbose);
 GEM_INLINE void sa_builder_store_suffixes(sa_builder_t* const sa_builder,const bool verbose);
-GEM_INLINE void sa_builder_sort_suffixes(sa_builder_t* const sa_builder,dna_text_t* const enc_bwt,sampled_sa_builder_t* const sampled_sa,const bool verbose);
+GEM_INLINE void sa_builder_sort_suffixes(
+    sa_builder_t* const sa_builder,dna_text_builder_t* const enc_bwt,
+    sampled_sa_builder_t* const sampled_sa,const bool verbose);
 
 /*
  * Stats

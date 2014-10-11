@@ -364,7 +364,7 @@ GEM_INLINE void approximate_search_filter_regions(
     if (dynamic_scheduling && actual_parameters->complete_strata_after_best_nominal < search->max_differences) {
       PROF_PAUSE(GP_AS_FILTER_REGIONS);
       filtering_candidates_verify(filtering_candidates,search->text_collection,
-          locator,fm_index,enc_text,pattern,search->search_strand,actual_parameters,matches);
+          locator,fm_index,enc_text,pattern,search->search_strand,actual_parameters,matches,search->mm_stack);
       approximate_search_adjust_max_differences_using_strata(search,matches);
       PROF_CONTINUE(GP_AS_FILTER_REGIONS);
     }
@@ -409,7 +409,7 @@ GEM_INLINE void approximate_search_read_recovery(
   // Verify !!
   filtering_candidates_verify(
       search->filtering_candidates,search->text_collection,search->locator,search->fm_index,
-      search->enc_text,&search->pattern,search->search_strand,actual_parameters,matches);
+      search->enc_text,&search->pattern,search->search_strand,actual_parameters,matches,search->mm_stack);
 
   // Update MCS
   search->max_complete_stratum = MIN(max_complete_stratum_value,search->max_complete_stratum);
@@ -703,7 +703,7 @@ GEM_INLINE void approximate_search_adaptive_mapping(
   }
   filtering_candidates_verify(
       filtering_candidates,search->text_collection,search->locator,fm_index,
-      search->enc_text,pattern,search->search_strand,actual_parameters,matches);
+      search->enc_text,pattern,search->search_strand,actual_parameters,matches,search->mm_stack);
 
   // Update MCS (maximum complete stratum)
   search->max_matches_reached = filtering_candidates_is_max_candidates_reached(filtering_candidates);

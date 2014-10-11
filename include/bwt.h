@@ -30,7 +30,7 @@ typedef struct {
  * BWT Builder
  */
 GEM_INLINE bwt_builder_t* bwt_builder_new(
-    dna_text_t* const bwt_text,const uint64_t* const character_occurrences,
+    dna_text_builder_t* const bwt_text,const uint64_t* const character_occurrences,
     sampled_sa_builder_t* const sampled_sa,const bool check,const bool verbose);
 GEM_INLINE void bwt_builder_write(fm_t* const file_manager,bwt_builder_t* const bwt_builder);
 GEM_INLINE void bwt_builder_delete(bwt_builder_t* const bwt_builder);

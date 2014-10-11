@@ -83,6 +83,8 @@ GEM_INLINE void mapper_parameters_set_defaults(mapper_parameters_t* const mapper
   mapper_parameters->check_index=false;
   mapper_parameters->input_file_name=NULL;
   mapper_parameters->input_compression=FM_REGULAR_FILE;
+  mapper_parameters->input_block_size = BUFFER_SIZE_64M;
+  mapper_parameters->input_buffer_lines = (2*4*NUM_LINES_5K); // 2l-Paired x 4l-FASTQRecord x 5K-BufferSize
   mapper_parameters->output_file_name=NULL;
   mapper_parameters->output_compression=FM_REGULAR_FILE;
   /* I/O */
@@ -91,7 +93,8 @@ GEM_INLINE void mapper_parameters_set_defaults(mapper_parameters_t* const mapper
   mapper_parameters->output_stream = NULL;
   mapper_parameters->output_file = NULL;
   const uint64_t num_processors = system_get_num_processors();
-  mapper_parameters->max_output_buffers = num_processors + (num_processors/2);
+  mapper_parameters->output_buffer_size = BUFFER_SIZE_8M;
+  mapper_parameters->max_output_buffers = 2*num_processors;
   mapper_parameters->output_format = MAP;
   output_sam_parameters_set_defaults(&mapper_parameters->sam_parameters);
   /* Search Parameters */
@@ -104,6 +107,7 @@ GEM_INLINE void mapper_parameters_set_defaults(mapper_parameters_t* const mapper
   mapper_parameters->tmp_folder=NULL;
   /* Miscellaneous */
   mapper_parameters->stats = false;
+  mapper_parameters->stats_reduce_type = reduce_max;
   mapper_parameters->verbose_user=true;
   mapper_parameters->verbose_dev=false;
   /* Extras */
@@ -273,7 +277,7 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
 
   // Create new buffered reader/writer
   const mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
-  mapper_search->buffered_fasta_input = buffered_input_file_new(parameters->input_file);
+  mapper_search->buffered_fasta_input = buffered_input_file_new(parameters->input_file,parameters->input_buffer_lines);
   mapper_search->buffered_output_file = buffered_output_file_new(parameters->output_file);
   buffered_input_file_attach_buffered_output(mapper_search->buffered_fasta_input,mapper_search->buffered_output_file);
 

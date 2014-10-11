@@ -19,11 +19,6 @@
 #define INPUT_STATUS_FAIL -1
 
 /*
- * File I/O constants
- */
-#define INPUT_BUFFER_SIZE BUFFER_SIZE_64M
-
-/*
  * Checkers
  */
 #define INPUT_FILE_CHECK(input_file) \
@@ -57,6 +52,7 @@ typedef struct {
     // sam_headers sam_headers;
   };
   /* Buffer (for synch purposes) */
+  uint64_t buffer_allocated;
   uint8_t* file_buffer;
   uint64_t buffer_size;
   uint64_t buffer_begin;
@@ -70,10 +66,10 @@ typedef struct {
 /*
  * Basic I/O functions
  */
-input_file_t* input_stream_open(FILE* stream);
-input_file_t* input_gzip_stream_open(FILE* stream);
-input_file_t* input_bzip_stream_open(FILE* stream);
-input_file_t* input_file_open(char* const file_name,const bool mmap_file);
+input_file_t* input_stream_open(FILE* stream,const uint64_t input_buffer_size);
+input_file_t* input_gzip_stream_open(FILE* stream,const uint64_t input_buffer_size);
+input_file_t* input_bzip_stream_open(FILE* stream,const uint64_t input_buffer_size);
+input_file_t* input_file_open(char* const file_name,const uint64_t input_buffer_size,const bool mmap_file);
 void input_file_rewind(input_file_t* const input_file);
 void input_file_close(input_file_t* const input_file);
 

@@ -258,13 +258,13 @@ GEM_INLINE void bwt_builder_write_minor_block(
  * BWT Builder
  */
 GEM_INLINE bwt_builder_t* bwt_builder_new(
-    dna_text_t* const bwt_text,const uint64_t* const character_occurrences,
+    dna_text_builder_t* const bwt_text,const uint64_t* const character_occurrences,
     sampled_sa_builder_t* const sampled_sa,const bool check,const bool verbose) {
   /*
    * Allocate & initialize builder
    */
   bwt_builder_t* const bwt_builder = mm_alloc(bwt_builder_t);
-  const uint64_t bwt_length = dna_text_get_length(bwt_text);
+  const uint64_t bwt_length = dna_text_builder_get_length(bwt_text);
   bwt_builder_initialize(bwt_builder,bwt_length,character_occurrences);
   const uint64_t* sampled_positions_bitmap = sampled_sa_builder_get_sampled_bitmap(sampled_sa);
   /*
@@ -279,7 +279,7 @@ GEM_INLINE bwt_builder_t* bwt_builder_new(
   // BM Layers
   uint64_t layer_0=0, layer_1=0, layer_2=0, bit_mask=UINT64_ONE_MASK;
   // Iterate over the BWT
-  const uint8_t* const bwt = dna_text_get_buffer(bwt_text);
+  const uint8_t* const bwt = dna_text_builder_get_buffer(bwt_text);
   uint64_t bwt_pos = 0;
   while (bwt_pos < bwt_length) {
     // Get BWT character
@@ -659,7 +659,7 @@ GEM_INLINE uint64_t bwt_LF__enc(
 }
 GEM_INLINE uint64_t bwt_LF__character(
     const bwt_t* const bwt,const uint64_t position,char* const character,bool* const is_sampled) {
-  uint8_t char_enc;
+  uint8_t char_enc = 0;
   const uint64_t rank_LF = bwt_LF__enc(bwt,position,&char_enc,is_sampled);
   *character = dna_decode(char_enc);
   return rank_LF;

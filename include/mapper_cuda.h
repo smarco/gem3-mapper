@@ -17,6 +17,8 @@
  * Mapper-CUDA Parameters
  */
 typedef struct {
+  /* I/O */
+  uint64_t buffer_num_lines;       // Number of lines per input buffer
   /* BPM Buffers */
   uint64_t num_search_groups;      // Total number of search-groups deployed
   uint64_t average_query_size;     // HINT on the average query size

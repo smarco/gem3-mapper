@@ -64,7 +64,8 @@ GEM_INLINE void filtering_candidates_verify(
     filtering_candidates_t* const filtering_candidates,text_collection_t* const text_collection,
     const locator_t* const locator,const fm_index_t* const fm_index,
     const dna_text_t* const enc_text,const pattern_t* const pattern,const strand_t search_strand,
-    const search_actual_parameters_t* const search_actual_parameters,matches_t* const matches);
+    const search_actual_parameters_t* const search_actual_parameters,
+    matches_t* const matches,mm_stack_t* const mm_stack);
 
 /*
  * Step-wise Verification
@@ -76,8 +77,8 @@ GEM_INLINE uint64_t filtering_candidates_add_to_bpm_buffer(
     const search_actual_parameters_t* const search_actual_parameters,bpm_gpu_buffer_t* const bpm_gpu_buffer);
 GEM_INLINE void filtering_candidates_verify_from_bpm_buffer(
     const text_collection_t* const text_collection,const dna_text_t* const enc_text,
-    pattern_t* const pattern,const strand_t search_strand,
-    bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t candidate_offset_begin,
-    const uint64_t candidate_offset_end, matches_t* const matches);
+    pattern_t* const pattern,const strand_t search_strand,bpm_gpu_buffer_t* const bpm_gpu_buffer,
+    const uint64_t candidate_offset_begin,const uint64_t candidate_offset_end,
+    matches_t* const matches,mm_stack_t* const mm_stack);
 
 #endif /* FILTERING_CANDIDATES_H_ */

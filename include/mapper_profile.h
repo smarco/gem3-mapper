@@ -19,24 +19,34 @@
  */
 #define GP_MAPPER_ALL             0
 #define GP_MAPPER_LOAD_INDEX      1
-#define GP_ARCHIVE_SEARCH_SE      2
-#define GP_ARCHIVE_SELECT_MATCHES 3
-#define GP_OUTPUT_MAP_SE          4
-#define GP_OUTPUT_SAM_SE          6
+#define GP_OUTPUT_MAP_SE          2
+#define GP_OUTPUT_SAM_SE          3
+
+#define GP_MAPPER_CUDA                4
+#define GP_MAPPER_CUDA_PUT_BPM_BUFFER 5
+
+/*
+ * Archive Search
+ */
+#define GP_ARCHIVE_SEARCH_SE                  10
+#define GP_ARCHIVE_SELECT_MATCHES             11
+#define GP_ARCHIVE_SEARCH_GENERATE_CANDIDATES 12
+#define GP_ARCHIVE_SEARCH_COPY_CANDIDATES     13
+#define GP_ARCHIVE_SEARCH_RETRIEVE_CANDIDATES 14
 
 /*
  * I/O
  */
-#define GP_INPUT_FILL_BUFFER                            10
-#define GP_BUFFERED_INPUT_RELOAD                        11
-#define GP_BUFFERED_INPUT_BUFFER_SIZE                   12
-#define GP_OUTPUT_WRITE_BUFFER                          13
-#define GP_OUTPUT_BYTES_WRITTEN                         14
-#define GP_OUTPUT_BUFFER_EXTENSIONS                     15
-#define GP_OUTPUT_BUFFER_REQUESTS                       16
-#define GP_OUTPUT_BUFFER_REQUESTS_STALLS                17
-#define GP_OUTPUT_BUFFER_REQUESTS_STALLS_BUSY           18
-#define GP_OUTPUT_BUFFER_REQUESTS_STALLS_NOT_PRIORITY   19
+#define GP_INPUT_FILL_BUFFER                            20
+#define GP_BUFFERED_INPUT_RELOAD                        21
+#define GP_BUFFERED_INPUT_BUFFER_SIZE                   22
+#define GP_OUTPUT_WRITE_BUFFER                          23
+#define GP_OUTPUT_BYTES_WRITTEN                         24
+#define GP_OUTPUT_BUFFER_EXTENSIONS                     25
+#define GP_OUTPUT_BUFFER_REQUESTS                       26
+#define GP_OUTPUT_BUFFER_REQUESTS_STALLS                27
+#define GP_OUTPUT_BUFFER_REQUESTS_STALLS_BUSY           28
+#define GP_OUTPUT_BUFFER_REQUESTS_STALLS_NOT_PRIORITY   29
 
 /*
  * Approximate search
@@ -107,6 +117,9 @@ GEM_INLINE void mapper_profile_print_io(FILE* const stream);
  * Global Mapper
  */
 GEM_INLINE void mapper_profile_print_mapper_adaptive(FILE* const stream);
+GEM_INLINE void mapper_profile_print_mapper_adaptive_ranks(FILE* const stream);
+GEM_INLINE void mapper_profile_print_mapper_cuda_adaptive(FILE* const stream);
+
 GEM_INLINE void mapper_profile_print_mapper_efficiency_ratios(FILE* const stream);
 /*
  * Approximate string search

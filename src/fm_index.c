@@ -11,12 +11,12 @@
  * Builder
  */
 GEM_INLINE void fm_index_builder(
-    fm_t* const file_manager,dna_text_t* const bwt_text,uint64_t* const character_occurrences,
+    fm_t* const file_manager,dna_text_builder_t* const bwt_text,uint64_t* const character_occurrences,
     sampled_sa_builder_t* const sampled_sa,const bool check,const bool verbose,const uint64_t num_threads) {
   /*
    * Write Header
    */
-  const uint64_t text_length = dna_text_get_length(bwt_text);
+  const uint64_t text_length = dna_text_builder_get_length(bwt_text);
   const uint64_t proper_length = log2(text_length)/2;
   fm_write_uint64(file_manager,text_length);
   fm_write_uint64(file_manager,proper_length);
@@ -33,7 +33,7 @@ GEM_INLINE void fm_index_builder(
       bwt_builder_new(bwt_text,character_occurrences,sampled_sa,check,verbose);
   if (verbose) bwt_builder_print(gem_info_get_stream(),bwt_builder);
   // Free BWT-text & Sampled-SA
-  dna_text_delete(bwt_text);
+  dna_text_builder_delete(bwt_text);
   sampled_sa_builder_delete(sampled_sa);
   // Build mrank table
   rank_mtable_t* const rank_mtable = rank_mtable_builder_new(bwt_builder,verbose);

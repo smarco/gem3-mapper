@@ -98,7 +98,7 @@ GEM_INLINE void bpm_gpu_destroy(bpm_gpu_buffer_collection_t* const buffer_collec
   mm_free(buffer_collection);
 }
 GEM_INLINE bool bpm_gpu_support() {
-  return true;
+  return bpm_gpu_get_num_supported_devices_()>0;
 }
 /*
  * Buffer Accessors

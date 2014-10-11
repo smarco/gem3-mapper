@@ -8,22 +8,20 @@
 
 #include "buffered_input_file.h"
 
-#define BUFFER_INPUT_FILE_INIT_SIZE BUFFER_SIZE_4M
-#define BUFFER_INPUT_FILE_NUM_LINES NUM_LINES_5K
-
 /*
  * Buffered map file handlers
  */
-buffered_input_file_t* buffered_input_file_new(input_file_t* const in_file) {
+buffered_input_file_t* buffered_input_file_new(input_file_t* const in_file,const uint64_t buffer_num_lines) {
   INPUT_FILE_CHECK(in_file);
   buffered_input_file_t* buffered_input = mm_alloc(buffered_input_file_t);
   /* Input file */
   buffered_input->input_file = in_file;
   /* Block buffer and cursors */
   buffered_input->block_id = UINT32_MAX;
-  buffered_input->block_buffer = vector_new(BUFFER_INPUT_FILE_INIT_SIZE,sizeof(uint8_t));
+  buffered_input->block_buffer = vector_new(1,sizeof(uint8_t));
   buffered_input->cursor = (char*)vector_get_mem(buffered_input->block_buffer,uint8_t);
   buffered_input->current_line_num = UINT64_MAX;
+  buffered_input->buffer_num_lines = buffer_num_lines;
   /* Attached output buffer */
   buffered_input->attached_buffered_output_file = NULL;
   return buffered_input;
@@ -48,8 +46,7 @@ GEM_INLINE bool buffered_input_file_eob(buffered_input_file_t* const buffered_in
   BUFFERED_INPUT_FILE_CHECK(buffered_input_file);
   return buffered_input_file_get_cursor_pos(buffered_input_file) >= vector_get_used(buffered_input_file->block_buffer);
 }
-GEM_INLINE error_code_t buffered_input_file_get_lines_block(
-    buffered_input_file_t* const buffered_input,const uint64_t num_lines) {
+GEM_INLINE error_code_t buffered_input_file_get_lines_block(buffered_input_file_t* const buffered_input) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input);
   PROF_START_TIMER(GP_BUFFERED_INPUT_RELOAD);
   input_file_t* const in_file = buffered_input->input_file;
@@ -63,8 +60,7 @@ GEM_INLINE error_code_t buffered_input_file_get_lines_block(
   buffered_input->block_id = input_file_get_next_id(in_file);
   buffered_input->current_line_num = in_file->processed_lines+1;
   buffered_input->lines_in_buffer =
-      input_file_get_lines(in_file,buffered_input->block_buffer,
-          gem_expect_true(num_lines)?num_lines:BUFFER_INPUT_FILE_NUM_LINES);
+      input_file_get_lines(in_file,buffered_input->block_buffer,buffered_input->buffer_num_lines);
   input_file_unlock(in_file);
   // Setup the block
   buffered_input->cursor = vector_get_mem(buffered_input->block_buffer,char);
@@ -72,8 +68,7 @@ GEM_INLINE error_code_t buffered_input_file_get_lines_block(
   PROF_STOP_TIMER(GP_BUFFERED_INPUT_RELOAD); // No need to stop it elsewhere (no time consumed)
   return buffered_input->lines_in_buffer;
 }
-GEM_INLINE error_code_t buffered_input_file_add_lines_to_block(
-    buffered_input_file_t* const buffered_input,const uint64_t num_lines) {
+GEM_INLINE error_code_t buffered_input_file_add_lines_to_block(buffered_input_file_t* const buffered_input) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input);
   input_file_t* const input_file = buffered_input->input_file;
   // Read lines
@@ -81,8 +76,7 @@ GEM_INLINE error_code_t buffered_input_file_add_lines_to_block(
   const uint64_t current_position =
       buffered_input->cursor - vector_get_mem(buffered_input->block_buffer,char);
   const uint64_t lines_added =
-      input_file_get_lines(input_file,buffered_input->block_buffer,
-          gem_expect_true(num_lines)?num_lines:BUFFER_INPUT_FILE_NUM_LINES);
+      input_file_get_lines(input_file,buffered_input->block_buffer,buffered_input->buffer_num_lines);
   buffered_input->lines_in_buffer += lines_added;
   buffered_input->cursor = vector_get_elm(buffered_input->block_buffer,current_position,char);
   return lines_added;
@@ -123,13 +117,12 @@ GEM_INLINE void buffered_input_file_skip_line(buffered_input_file_t* const buffe
     ++buffered_input->current_line_num;
   }
 }
-GEM_INLINE error_code_t buffered_input_file_reload(
-    buffered_input_file_t* const buffered_input,const uint64_t num_lines) {
+GEM_INLINE error_code_t buffered_input_file_reload(buffered_input_file_t* const buffered_input) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input);
   // Dump buffer
   buffered_input_file_dump_attached_buffered_output(buffered_input);
   // Read new input block
-  if (gem_expect_false(buffered_input_file_get_lines_block(buffered_input,num_lines)==0)) {
+  if (gem_expect_false(buffered_input_file_get_lines_block(buffered_input)==0)) {
     return INPUT_STATUS_EOF;
   }
   // Get output buffer (block ID)

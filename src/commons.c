@@ -71,7 +71,7 @@ const uint64_t uint64_mask_mod_pow2[] =
   0xFFFFFFFFFFFFFFFFull
 };
 /*
- * Helper functions (OPERATIVE)
+ * Common numerical data processing/formating
  */
 GEM_INLINE uint64_t integer_proportion(const float proportion,const uint64_t length) {
   if (proportion<=0.0) return 0;
@@ -88,6 +88,51 @@ GEM_INLINE uint64_t integer_lower_power_of_two(uint64_t number) {
 GEM_INLINE uint64_t integer_upper_power_of_two(uint64_t number) {
   const uint64_t lower_power_of_two = integer_lower_power_of_two(number);
   return (number | 1<<lower_power_of_two) ? lower_power_of_two+1 : lower_power_of_two;
+}
+GEM_INLINE int integer_to_ascii(char* const buffer,uint64_t number) {
+  // Calculate the number of digits of the number
+  const uint64_t num_digits =
+      (number >= 10000) ? 5 :
+      (number >= 1000) ? 4 :
+      (number >= 100) ? 3 :
+      (number >= 10) ? 2 : 1;
+  // Decompose number
+  char* centinel = buffer;
+  switch (num_digits) {
+    case 5: {
+      const uint64_t number_div10K = number / 10000;
+      number -= number_div10K * 10000;
+      centinel += integer_to_ascii(centinel,number_div10K);
+    }
+    // no break
+    case 4: {
+      const uint64_t div_1000 = (number * 8389UL) >> 23;
+      *centinel = '0' + (char) div_1000;
+      ++centinel;
+      number -= div_1000 * 1000;
+    }
+    // no break
+    case 3: {
+      const uint64_t div_100 = (number * 5243UL) >> 19;
+      *centinel = '0' + (char) div_100;
+      ++centinel;
+      number -= div_100 * 100;
+    }
+    // no break
+    case 2: {
+      const uint64_t div_10 = (number * 6554UL) >> 16;
+      *centinel = '0' + (char) div_10;
+      ++centinel;
+      number -= div_10 * 10;
+    }
+    // no break
+    case 1: {
+      *centinel = '0' + (char) number;
+      ++centinel;
+    }
+  }
+  // Return number of ciphers written
+  return centinel - buffer;
 }
 /*
  * Random number generator

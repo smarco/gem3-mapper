@@ -387,7 +387,7 @@ void constructor_locator_test() {
 
 }
 GEM_INLINE void constructor_packed_integer_array(const uint64_t int_length) {
-  packed_integer_array_t* const array = packed_integer_array_new(0,64,int_length);
+  packed_integer_array_t* const array = packed_integer_array_new(64,int_length);
   fprintf(stderr,">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n"
                  " Printing %lu bits-length\n",int_length);
   uint64_t i, integer;
@@ -537,6 +537,21 @@ GEM_INLINE void constructor_priority_queue() {
 
   pqueue_delete(queue);
 }
+GEM_INLINE void constructor_itoa() {
+  char buffer[200], check[200];
+  uint64_t i;
+  for (i=0;i<UINT64_MAX;++i) {
+    // GEM itoa
+    const uint64_t num_digits = integer_to_ascii(buffer,i);
+    // Check
+    sprintf(check,"%lu",i);
+    // CMP
+    if (strncmp(check,buffer,num_digits)!=0) {
+      fprintf(stderr,"Error at %lu (%s,%s)\n",i,check,buffer);
+    }
+  }
+  fprintf(stderr,"All good!!\n");
+}
 
 /*
  * Generic Menu
@@ -657,7 +672,9 @@ int main(int argc,char** argv) {
 
   // constructor_fast_mapper_setup();
 
-  constructor_priority_queue();
+  // constructor_priority_queue();
+
+  constructor_itoa();
 
   return 0;
 }

@@ -77,7 +77,7 @@ GEM_INLINE void search_group_dispatcher_return_selecting(
 GEM_INLINE void archive_search_generate_candidates(archive_search_t* const archive_search);
 GEM_INLINE void archive_search_copy_candidates(
     archive_search_t* const archive_search,bpm_gpu_buffer_t* const bpm_gpu_buffer);
-GEM_INLINE void archive_search_select_candidates(
+GEM_INLINE void archive_search_retrieve_candidates(
     archive_search_t* const archive_search,bpm_gpu_buffer_t* const bpm_gpu_buffer,
     const uint64_t results_buffer_offset,matches_t* const matches);
 

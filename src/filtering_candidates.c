@@ -307,7 +307,7 @@ GEM_INLINE void filtering_candidates_verify_decoded(
  */
 GEM_INLINE void filtering_candidates_retrieve_candidates(
     filtering_candidates_t* const filtering_candidates,text_collection_t* const candidates_collection,
-    const locator_t* const locator,const dna_text_t* const enc_text) {
+    const locator_t* const locator,const dna_text_t* const enc_text,mm_stack_t* const mm_stack) {
   // Traverse all candidates (text-space)
   VECTOR_ITERATE(filtering_candidates->candidate_positions,text_candidate,candidate_pos,candidate_position_t) {
     // Skip discarded candidates
@@ -316,10 +316,9 @@ GEM_INLINE void filtering_candidates_retrieve_candidates(
     const uint64_t text_trace_offset = text_collection_new_trace(candidates_collection);
     text_candidate->cip_text_trace_offset = text_trace_offset; // Link it with the candidate
     text_trace_t* const text_trace = text_collection_get_trace(candidates_collection,text_trace_offset);
-    text_trace->text = dna_text_get_buffer(enc_text) + text_candidate->cip_eff_candidate_begin_position;
-    PREFETCH(text_trace->text); // Prefetch text // TODO Hint later on (LLC)
     text_trace->length = text_candidate->cip_eff_candidate_end_position - text_candidate->cip_eff_candidate_begin_position;
-
+    text_trace->text = dna_text_retrieve_sequence(
+        enc_text,text_candidate->cip_eff_candidate_begin_position,text_trace->length,mm_stack);
 //    // Allocate trace-block [[ TODO GRAPH]]
 //    const uint64_t trace_block_offset = text_collection_allocate_trace_blocks(candidates_collection,1);
 //    text_trace->trace_blocks_offset = trace_block_offset;
@@ -624,7 +623,8 @@ GEM_INLINE void filtering_candidates_verify(
     filtering_candidates_t* const filtering_candidates,text_collection_t* const text_collection,
     const locator_t* const locator,const fm_index_t* const fm_index,
     const dna_text_t* const enc_text,const pattern_t* const pattern,const strand_t search_strand,
-    const search_actual_parameters_t* const search_actual_parameters,matches_t* const matches) {
+    const search_actual_parameters_t* const search_actual_parameters,
+    matches_t* const matches,mm_stack_t* const mm_stack) {
   PROF_START(GP_FC_VERIFY);
 
   // Check non-empty pending candidates set
@@ -656,7 +656,7 @@ GEM_INLINE void filtering_candidates_verify(
   }
 
   // Retrieve text-candidates
-  filtering_candidates_retrieve_candidates(filtering_candidates,text_collection,locator,enc_text);
+  filtering_candidates_retrieve_candidates(filtering_candidates,text_collection,locator,enc_text,mm_stack);
 
   // Verify candidates
   PROF_START(GP_FC_CHECK);
@@ -715,9 +715,9 @@ GEM_INLINE uint64_t filtering_candidates_add_to_bpm_buffer(
 }
 GEM_INLINE void filtering_candidates_verify_from_bpm_buffer(
     const text_collection_t* const text_collection,const dna_text_t* const enc_text,
-    pattern_t* const pattern,const strand_t search_strand,
-    bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t candidate_offset_begin,
-    const uint64_t candidate_offset_end, matches_t* const matches) {
+    pattern_t* const pattern,const strand_t search_strand,bpm_gpu_buffer_t* const bpm_gpu_buffer,
+    const uint64_t candidate_offset_begin,const uint64_t candidate_offset_end,
+    matches_t* const matches,mm_stack_t* const mm_stack) {
   // Count total candidates
   const uint64_t total_candidates = candidate_offset_end-candidate_offset_begin;
   if (gem_expect_false(total_candidates==0)) return;
@@ -741,8 +741,7 @@ GEM_INLINE void filtering_candidates_verify_from_bpm_buffer(
       // Allocate text-trace
       const uint64_t text_trace_offset = text_collection_new_trace(text_collection);
       text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
-      text_trace->text = dna_text_get_buffer(enc_text) + candidate_text_position;
-      PREFETCH(text_trace->text); // Prefetch text // TODO Hint later on (LLC)
+      text_trace->text = dna_text_retrieve_sequence(enc_text,candidate_text_position,candidate_length,mm_stack);
       text_trace->length = candidate_length;
       // Store match
       matches_add_match_trace_mark(matches,text_trace_offset,

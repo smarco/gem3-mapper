@@ -37,7 +37,7 @@ typedef struct {
 /*
  * Setup
  */
-GEM_INLINE output_buffer_t* output_buffer_new(void);
+GEM_INLINE output_buffer_t* output_buffer_new(const uint64_t output_buffer_size);
 GEM_INLINE void output_buffer_clear(output_buffer_t* const out_buffer);
 GEM_INLINE void output_buffer_delete(output_buffer_t* const out_buffer);
 
@@ -48,6 +48,7 @@ GEM_INLINE void output_buffer_set_state(output_buffer_t* const output_buffer,con
 GEM_INLINE output_buffer_state_t output_buffer_get_state(output_buffer_t* const output_buffer);
 GEM_INLINE void output_buffer_set_incomplete(output_buffer_t* const output_buffer);
 GEM_INLINE uint64_t output_buffer_get_used(output_buffer_t* const output_buffer);
+GEM_INLINE void output_buffer_reserve(output_buffer_t* const out_buffer,const uint64_t num_bytes);
 
 /*
  * Adaptors
@@ -56,15 +57,11 @@ GEM_INLINE char* output_buffer_to_char(output_buffer_t* const output_buffer);
 GEM_INLINE vector_t* output_buffer_to_vchar(output_buffer_t* const output_buffer);
 
 /*
- * Buffer printer
+ * Fast-printer functions
  */
-GEM_INLINE int vbprintf(output_buffer_t* const output_buffer,const char *template,va_list v_args);
-GEM_INLINE int bprintf(output_buffer_t* const output_buffer,const char *template,...);
-// If you know how much memory is going to be used
-GEM_INLINE int vbprintf_fixed(
-    output_buffer_t* const output_buffer,const uint64_t expected_mem_usage,
-    const char *template,va_list v_args);
-GEM_INLINE int bprintf_fixed(
-    output_buffer_t* const output_buffer,const uint64_t expected_mem_usage,const char *template,...);
+GEM_INLINE void bprintf_uint64(output_buffer_t* const out_buffer,const uint64_t number);
+GEM_INLINE void bprintf_int64(output_buffer_t* const out_buffer,const uint64_t number);
+GEM_INLINE void bprintf_char(output_buffer_t* const out_buffer,const char character);
+GEM_INLINE void bprintf_buffer(output_buffer_t* const out_buffer,const int string_length,const char* const string);
 
 #endif /* OUTPUT_BUFFER_H_ */

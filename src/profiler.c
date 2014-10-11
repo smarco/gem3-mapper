@@ -88,13 +88,58 @@ GEM_INLINE double COUNTER_GET_STDDEV(const gem_counter_t* const counter) {
   return 0.0;
 #endif
 }
-GEM_INLINE void COUNTER_COMBINE(gem_counter_t* const counter_dst,gem_counter_t* const counter_src) {
+GEM_INLINE void COUNTER_COMBINE_SUM(gem_counter_t* const counter_dst,gem_counter_t* const counter_src) {
   counter_dst->total += counter_src->total;
   counter_dst->samples += counter_src->samples;
 #ifdef GEM_PRECISE_COUNTER
   counter_dst->min = MIN(counter_dst->min,counter_src->min);
   counter_dst->max = MAX(counter_dst->max,counter_src->max);
   if (counter_src->m_newS!=0.0) counter_dst->m_newS = counter_src->m_newS; // FIXME
+  if (counter_src->m_newM!=0.0) counter_dst->m_newM = counter_src->m_newM;
+  if (counter_src->m_oldS!=0.0) counter_dst->m_oldS = counter_src->m_oldS;
+  if (counter_src->m_oldM!=0.0) counter_dst->m_oldM = counter_src->m_oldM;
+#endif
+}
+GEM_INLINE void COUNTER_COMBINE_MAX(gem_counter_t* const counter_dst,gem_counter_t* const counter_src) {
+  if (counter_dst->total < counter_src->total) {
+    counter_dst->total = counter_src->total;
+    counter_dst->samples = counter_src->samples;
+#ifdef GEM_PRECISE_COUNTER
+  if (counter_src->m_newS!=0.0) counter_dst->m_newS = counter_src->m_newS;
+  if (counter_src->m_newM!=0.0) counter_dst->m_newM = counter_src->m_newM;
+  if (counter_src->m_oldS!=0.0) counter_dst->m_oldS = counter_src->m_oldS;
+  if (counter_src->m_oldM!=0.0) counter_dst->m_oldM = counter_src->m_oldM;
+#endif
+  }
+#ifdef GEM_PRECISE_COUNTER
+  counter_dst->min = MIN(counter_dst->min,counter_src->min);
+  counter_dst->max = MAX(counter_dst->max,counter_src->max);
+#endif
+}
+GEM_INLINE void COUNTER_COMBINE_MIN(gem_counter_t* const counter_dst,gem_counter_t* const counter_src) {
+  if (counter_dst->samples==0 || counter_dst->total==0 || counter_dst->total > counter_src->total) {
+    counter_dst->total = counter_src->total;
+    counter_dst->samples = counter_src->samples;
+#ifdef GEM_PRECISE_COUNTER
+  if (counter_src->m_newS!=0.0) counter_dst->m_newS = counter_src->m_newS;
+  if (counter_src->m_newM!=0.0) counter_dst->m_newM = counter_src->m_newM;
+  if (counter_src->m_oldS!=0.0) counter_dst->m_oldS = counter_src->m_oldS;
+  if (counter_src->m_oldM!=0.0) counter_dst->m_oldM = counter_src->m_oldM;
+#endif
+  }
+#ifdef GEM_PRECISE_COUNTER
+  counter_dst->min = MIN(counter_dst->min,counter_src->min);
+  counter_dst->max = MAX(counter_dst->max,counter_src->max);
+#endif
+}
+GEM_INLINE void COUNTER_COMBINE_MEAN(gem_counter_t* const counter_dst,gem_counter_t* const counter_src) {
+  // FIXME Horrible, but listen! Now, I just want a roughly estimation
+  counter_dst->total = (counter_dst->total+counter_src->total)/2;
+  counter_dst->samples = (counter_dst->samples+counter_src->samples)/2;
+#ifdef GEM_PRECISE_COUNTER
+  counter_dst->min = MIN(counter_dst->min,counter_src->min);
+  counter_dst->max = MAX(counter_dst->max,counter_src->max);
+  if (counter_src->m_newS!=0.0) counter_dst->m_newS = counter_src->m_newS;
   if (counter_src->m_newM!=0.0) counter_dst->m_newM = counter_src->m_newM;
   if (counter_src->m_oldS!=0.0) counter_dst->m_oldS = counter_src->m_oldS;
   if (counter_src->m_oldM!=0.0) counter_dst->m_oldM = counter_src->m_oldM;
@@ -183,9 +228,27 @@ GEM_INLINE void COUNTER_PRINT(
   }
 #ifdef GEM_PRECISE_COUNTER
   // Print Variance
-  fprintf(stream,",Var%.2f",COUNTER_GET_VARIANCE(counter));
+  const uint64_t var = COUNTER_GET_VARIANCE(counter);
+  if (var >= BUFFER_SIZE_1G) {
+    fprintf(stream,",Var%.2fG",(double)var/BUFFER_SIZE_1G);
+  } else if (var >= BUFFER_SIZE_1M) {
+    fprintf(stream,",Var%.2fM",(double)var/BUFFER_SIZE_1M);
+  } else if (var >= BUFFER_SIZE_1K) {
+    fprintf(stream,",Var%.2fK",(double)var/BUFFER_SIZE_1K);
+  } else {
+    fprintf(stream,",Var%.2f",(double)var);
+  }
   // Print Standard Deviation
-  fprintf(stream,",StdDev%.2f)}\n",COUNTER_GET_STDDEV(counter));
+  const uint64_t stdDev = COUNTER_GET_STDDEV(counter);
+  if (stdDev >= BUFFER_SIZE_1G) {
+    fprintf(stream,",StdDev%.2fG)}\n",(double)stdDev/BUFFER_SIZE_1G);
+  } else if (stdDev >= BUFFER_SIZE_1M) {
+    fprintf(stream,",StdDev%.2fM)}\n",(double)stdDev/BUFFER_SIZE_1M);
+  } else if (stdDev >= BUFFER_SIZE_1K) {
+    fprintf(stream,",StdDev%.2fK)}\n",(double)stdDev/BUFFER_SIZE_1K);
+  } else {
+    fprintf(stream,",StdDev%.2f)}\n",(double)stdDev);
+  }
 #else
   fprintf(stream,")}\n");
 #endif
@@ -308,7 +371,8 @@ GEM_INLINE void TIMER_PRINT(
   }
   // Print time/call
   if (num_calls==0) {
-    fprintf(stream,",   n/a   s/call");
+    fprintf(stream,",   n/a   s/call)\n");
+    return;
   } else {
     const uint64_t ns_per_call = total_time_ns / num_calls;
     if (ns_per_call > 1000000000) {
@@ -547,15 +611,62 @@ GEM_INLINE double PROF_TIME_PER_CALL(const uint64_t timer) {
 /*
  * Utils
  */
-GEM_INLINE void PROF_SUM_REDUCE() {
+GEM_INLINE void PROF_REDUCE_SUM() {
   uint64_t i;
   for (i=1;i<gem_profile.num_threads;++i) {
     uint64_t j;
     for (j=0;j<GP_MAX_COUNTERS;++j) {
-      COUNTER_COMBINE(&gem_profile.profile[0].timers[j].time_ns,&gem_profile.profile[i].timers[j].time_ns);
-      COUNTER_COMBINE(gem_profile.profile[0].counters+j,gem_profile.profile[i].counters+j);
-      COUNTER_COMBINE(&gem_profile.profile[0].ranks[j].counter,&gem_profile.profile[i].ranks[j].counter);
+      COUNTER_COMBINE_SUM(&gem_profile.profile[0].timers[j].time_ns,&gem_profile.profile[i].timers[j].time_ns);
+      COUNTER_COMBINE_SUM(gem_profile.profile[0].counters+j,gem_profile.profile[i].counters+j);
+      COUNTER_COMBINE_SUM(&gem_profile.profile[0].ranks[j].counter,&gem_profile.profile[i].ranks[j].counter);
     }
+  }
+}
+GEM_INLINE void PROF_REDUCE_MAX() {
+  uint64_t i;
+  for (i=1;i<gem_profile.num_threads;++i) {
+    uint64_t j;
+    for (j=0;j<GP_MAX_COUNTERS;++j) {
+      COUNTER_COMBINE_MAX(&gem_profile.profile[0].timers[j].time_ns,&gem_profile.profile[i].timers[j].time_ns);
+      COUNTER_COMBINE_MAX(gem_profile.profile[0].counters+j,gem_profile.profile[i].counters+j);
+      COUNTER_COMBINE_MAX(&gem_profile.profile[0].ranks[j].counter,&gem_profile.profile[i].ranks[j].counter);
+    }
+  }
+}
+GEM_INLINE void PROF_REDUCE_MIN() {
+  uint64_t i;
+  for (i=1;i<gem_profile.num_threads;++i) {
+    uint64_t j;
+    for (j=0;j<GP_MAX_COUNTERS;++j) {
+      COUNTER_COMBINE_MIN(&gem_profile.profile[0].timers[j].time_ns,&gem_profile.profile[i].timers[j].time_ns);
+      COUNTER_COMBINE_MIN(gem_profile.profile[0].counters+j,gem_profile.profile[i].counters+j);
+      COUNTER_COMBINE_MIN(&gem_profile.profile[0].ranks[j].counter,&gem_profile.profile[i].ranks[j].counter);
+    }
+  }
+}
+GEM_INLINE void PROF_REDUCE_MEAN() {
+  uint64_t i;
+  for (i=1;i<gem_profile.num_threads;++i) {
+    uint64_t j;
+    for (j=0;j<GP_MAX_COUNTERS;++j) {
+      COUNTER_COMBINE_MEAN(&gem_profile.profile[0].timers[j].time_ns,&gem_profile.profile[i].timers[j].time_ns);
+      COUNTER_COMBINE_MEAN(gem_profile.profile[0].counters+j,gem_profile.profile[i].counters+j);
+      COUNTER_COMBINE_MEAN(&gem_profile.profile[0].ranks[j].counter,&gem_profile.profile[i].ranks[j].counter);
+    }
+  }
+}
+GEM_INLINE void PROF_REDUCE_SAMPLE() {
+  uint64_t i, j;
+  for (j=0;j<GP_MAX_COUNTERS;++j) {
+    i=0;
+    while (i<gem_profile.num_threads-1 && gem_profile.profile[i].timers[j].time_ns.total==0) i++;
+    gem_profile.profile[0].timers[j].time_ns = gem_profile.profile[i].timers[j].time_ns;
+    i=0;
+    while (i<gem_profile.num_threads-1 && gem_profile.profile[i].counters[j].total==0) i++;
+    gem_profile.profile[0].counters[j] = gem_profile.profile[i].counters[j];
+    i=0;
+    while (i<gem_profile.num_threads-1 && gem_profile.profile[i].ranks[j].accumulated==0) i++;
+    gem_profile.profile[0].ranks[j] = gem_profile.profile[i].ranks[j];
   }
 }
 #endif /* !GEM_NOPROFILE */

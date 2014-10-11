@@ -200,7 +200,12 @@ GEM_INLINE double PROF_TIME_PER_CALL(const uint64_t timer); // ms/call
 /*
  * Utils
  */
-GEM_INLINE void PROF_SUM_REDUCE();
+typedef enum { reduce_sum, reduce_max, reduce_min, reduce_mean, reduce_sample } profile_reduce_type;
+GEM_INLINE void PROF_REDUCE_SUM();
+GEM_INLINE void PROF_REDUCE_MAX();
+GEM_INLINE void PROF_REDUCE_MIN();
+GEM_INLINE void PROF_REDUCE_MEAN();
+GEM_INLINE void PROF_REDUCE_SAMPLE();
 
 #else /* GEM_PROFILE DISABLED */
 // Profile Block

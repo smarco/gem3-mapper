@@ -11,14 +11,15 @@
 /*
  * Basic I/O functions
  */
-GEM_INLINE void input_file_initialize(input_file_t* const input_file) {
+GEM_INLINE void input_file_initialize(input_file_t* const input_file,const uint64_t buffer_allocated) {
   GEM_CHECK_NULL(input_file);
   // Input file
   input_file->mmaped = false;
   input_file->memory_manager = NULL;
   gem_cond_fatal_error__perror(pthread_mutex_init(&input_file->input_mutex,NULL),SYS_MUTEX_INIT);
   // Auxiliary Buffer (for synch purposes)
-  input_file->file_buffer = mm_malloc(INPUT_BUFFER_SIZE);
+  input_file->buffer_allocated = buffer_allocated;
+  input_file->file_buffer = mm_malloc(buffer_allocated);
   input_file->buffer_size = 0;
   input_file->buffer_begin = 0;
   input_file->buffer_pos = 0;
@@ -30,44 +31,44 @@ GEM_INLINE void input_file_initialize(input_file_t* const input_file) {
   input_file->file_format = FILE_FORMAT_UNKNOWN;
   input_file_detect_file_format(input_file);
 }
-input_file_t* input_stream_open(FILE* stream) {
+input_file_t* input_stream_open(FILE* stream,const uint64_t input_buffer_size) {
   GEM_CHECK_NULL(stream);
   // Allocate handler
   input_file_t* const input_file = mm_alloc(input_file_t);
   // Create file manager
   input_file->file_manager = fm_open_FILE(stream,FM_READ);
   // Initialize input file
-  input_file_initialize(input_file);
+  input_file_initialize(input_file,input_buffer_size);
   return input_file;
 }
-input_file_t* input_gzip_stream_open(FILE* stream) {
+input_file_t* input_gzip_stream_open(FILE* stream,const uint64_t input_buffer_size) {
   GEM_CHECK_NULL(stream);
   // Allocate handler
   input_file_t* const input_file = mm_alloc(input_file_t);
   // Create file manager
   input_file->file_manager = fm_open_gzFILE(stream,FM_READ);
   // Initialize input file
-  input_file_initialize(input_file);
+  input_file_initialize(input_file,input_buffer_size);
   return input_file;
 }
-input_file_t* input_bzip_stream_open(FILE* stream) {
+input_file_t* input_bzip_stream_open(FILE* stream,const uint64_t input_buffer_size) {
   GEM_CHECK_NULL(stream);
   // Allocate handler
   input_file_t* const input_file = mm_alloc(input_file_t);
   // Create file manager
   input_file->file_manager = fm_open_bzFILE(stream,FM_READ);
   // Initialize input file
-  input_file_initialize(input_file);
+  input_file_initialize(input_file,input_buffer_size);
   return input_file;
 }
-input_file_t* input_file_open(char* const file_name,const bool mmap_file) {
+input_file_t* input_file_open(char* const file_name,const uint64_t input_buffer_size,const bool mmap_file) {
   GEM_CHECK_NULL(file_name);
   // Allocate handler
   input_file_t* const input_file = mm_alloc(input_file_t);
   // Prepare File
   if (!mmap_file) {
     input_file->file_manager = fm_open_file(file_name,FM_READ);
-    input_file_initialize(input_file);
+    input_file_initialize(input_file,input_buffer_size);
   } else {
     // Check it can be mapped
     struct stat stat_info;
@@ -93,7 +94,7 @@ input_file_t* input_file_open(char* const file_name,const bool mmap_file) {
     } else {
       // Cannot be mapped (sorry)
       input_file->file_manager = fm_open_file(file_name,FM_READ);
-      input_file_initialize(input_file);
+      input_file_initialize(input_file,input_buffer_size);
     }
   }
   return input_file;
@@ -186,7 +187,7 @@ GEM_INLINE uint64_t input_file_fill_buffer(input_file_t* const input_file) {
   // Check EOF
   if (!fm_eof(input_file->file_manager)) {
     PROF_START_TIMER(GP_INPUT_FILL_BUFFER);
-    input_file->buffer_size = fm_read_mem(input_file->file_manager,input_file->file_buffer,INPUT_BUFFER_SIZE);
+    input_file->buffer_size = fm_read_mem(input_file->file_manager,input_file->file_buffer,input_file->buffer_allocated);
     PROF_STOP_TIMER(GP_INPUT_FILL_BUFFER);
     return input_file->buffer_size;
   } else {
@@ -315,7 +316,7 @@ GEM_INLINE uint64_t input_file_next_line(input_file_t* const input_file,vector_t
         input_file->buffer_begin = 0;
         // Check EOF
         if (!fm_eof(input_file->file_manager)) {
-          input_file->buffer_size = fm_read_mem(input_file->file_manager,input_file->file_buffer,INPUT_BUFFER_SIZE);
+          input_file->buffer_size = fm_read_mem(input_file->file_manager,input_file->file_buffer,input_file->buffer_allocated);
         } else {
           input_file->buffer_size = 0;
         }
