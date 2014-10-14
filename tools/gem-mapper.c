@@ -92,7 +92,7 @@ GEM_INLINE void gem_mapper_print_stats(
     switch (parameters->search_parameters.mapping_mode) {
       case mapping_adaptive_filtering:
         mapper_profile_print_mapper_adaptive(gem_info_get_stream());
-        mapper_profile_print_mapper_adaptive_ranks(gem_info_get_stream());
+        if (parameters->num_threads==1) mapper_profile_print_mapper_adaptive_ranks(gem_info_get_stream());
         break;
       case mapping_incremental_mapping:
       case mapping_fixed_filtering:
@@ -175,9 +175,9 @@ option_t gem_mapper_options[] = {
   /* Debug */
   /* Miscellaneous */
   { 1100, "stats", OPTIONAL, TYPE_NONE, 11 , true, "'sum'|'min'|'max'|'mean'|'sample'" , "(disabled)" },
-  { 'v', "verbose", NO_ARGUMENT, TYPE_NONE, 11 , true, "" , "(enabled)" },
+//  { 'v', "verbose", NO_ARGUMENT, TYPE_NONE, 11 , true, "" , "(enabled)" },
   { 'V', "developer-verbose", NO_ARGUMENT, TYPE_NONE, 11 , false, "" , "(disabled)" },
-  { 1101, "quiet", NO_ARGUMENT, TYPE_NONE, 11 , false, "" , "(disabled)" },
+  { 1101, "quiet", NO_ARGUMENT, TYPE_NONE, 11 , true, "" , "(disabled)" },
   { 'h', "help", NO_ARGUMENT, TYPE_NONE, 11 , true, "" , "(print usage)" },
   { 'H', "help", NO_ARGUMENT, TYPE_NONE, 11 , false, "" , "(print usage + extras)" },
   /* Extras */
@@ -471,9 +471,6 @@ void parse_arguments(
  * Main
  */
 int main(int argc,char** argv) {
-  // Mapper timer
-  gem_timer_t mapper_timer;
-  TIMER_RESTART(&mapper_timer);
   // Parsing command-line options
   mapper_parameters_t parameters;
   mapper_cuda_parameters_t cuda_parameters;
@@ -485,7 +482,7 @@ int main(int argc,char** argv) {
   const uint64_t total_threads = (parameters.mapper_type==mapper_se_cuda) ?
       cuda_parameters.num_generating_threads + cuda_parameters.num_selecting_threads + 1:
       parameters.num_threads + 1;
-  gem_runtime_init(total_threads,parameters.max_memory,parameters.tmp_folder,mapper_error_report);
+  gem_runtime_init(total_threads,parameters.max_memory,parameters.tmp_folder);
   PROF_START(GP_MAPPER_ALL);
 
   // Open Input/Output File(s)
@@ -514,6 +511,7 @@ int main(int argc,char** argv) {
       break;
   }
   PROF_STOP(GP_MAPPER_ALL);
+  const uint64_t mapper_time_s = TIMER_GET_TOTAL_S(PROF_GET_TIMER(GP_MAPPER_ALL));
 
   // Stats
   if (parameters.stats) gem_mapper_print_stats(&parameters,&cuda_parameters);
@@ -525,9 +523,8 @@ int main(int argc,char** argv) {
   gem_runtime_destroy();
 
   // Display end banner
-  TIMER_STOP(&mapper_timer);
-  gem_cond_log(parameters.verbose_user,
-      "[GEMMapper terminated successfully in %2.3f s.]\n",TIMER_GET_TOTAL_S(&mapper_timer));
+  gem_cond_log(parameters.verbose_user,"[GEMMapper terminated successfully in %lu s.]\n",mapper_time_s);
 
+  // Done!
   return 0;
 }

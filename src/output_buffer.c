@@ -14,21 +14,24 @@
  */
 GEM_INLINE output_buffer_t* output_buffer_new(const uint64_t output_buffer_size) {
   output_buffer_t* out_buffer = mm_alloc(output_buffer_t);
-  out_buffer->buffer = vector_new(output_buffer_size,char);
+  out_buffer->buffer_mem = mm_calloc(output_buffer_size,char,false);
   output_buffer_clear(out_buffer);
   output_buffer_set_state(out_buffer,OUTPUT_BUFFER_FREE);
   return out_buffer;
 }
 GEM_INLINE void output_buffer_clear(output_buffer_t* const out_buffer) {
   OUTPUT_BUFFER_CHECK(out_buffer);
+  // Clear State
   out_buffer->mayor_block_id=0;
   out_buffer->minor_block_id=0;
   out_buffer->is_final_block=true;
-  vector_clear(out_buffer->buffer);
+  // Clear Buffer
+  out_buffer->buffer_used = 0;
+  out_buffer->buffer_cursor = out_buffer->buffer_mem;
 }
 GEM_INLINE void output_buffer_delete(output_buffer_t* const out_buffer) {
   OUTPUT_BUFFER_CHECK(out_buffer);
-  vector_delete(out_buffer->buffer);
+  mm_free(out_buffer->buffer_mem);
   mm_free(out_buffer);
 }
 /*
@@ -48,22 +51,11 @@ GEM_INLINE void output_buffer_set_incomplete(output_buffer_t* const out_buffer) 
 }
 GEM_INLINE uint64_t output_buffer_get_used(output_buffer_t* const out_buffer) {
   OUTPUT_BUFFER_CHECK(out_buffer);
-  return vector_get_used(out_buffer->buffer);
+  return out_buffer->buffer_used;
 }
-GEM_INLINE void output_buffer_reserve(output_buffer_t* const out_buffer,const uint64_t num_bytes) {
-  vector_reserve_additional(out_buffer->buffer,num_bytes);
-}
-/*
- * Adaptors
- */
-GEM_INLINE char* output_buffer_to_char(output_buffer_t* const out_buffer) {
+GEM_INLINE char* output_buffer_get_buffer(output_buffer_t* const out_buffer) {
   OUTPUT_BUFFER_CHECK(out_buffer);
-  vector_insert(out_buffer->buffer,EOS,char);
-  return vector_get_mem(out_buffer->buffer,char);
-}
-GEM_INLINE vector_t* output_buffer_to_vchar(output_buffer_t* const out_buffer) {
-  OUTPUT_BUFFER_CHECK(out_buffer);
-  return out_buffer->buffer;
+  return out_buffer->buffer_mem;
 }
 /*
  * Buffer printer (Disabled for performance issues)
@@ -114,25 +106,27 @@ GEM_INLINE vector_t* output_buffer_to_vchar(output_buffer_t* const out_buffer) {
  */
 GEM_INLINE void bprintf_uint64(output_buffer_t* const out_buffer,const uint64_t number) {
   OUTPUT_BUFFER_CHECK(out_buffer);
-  const int chars_printed = integer_to_ascii(vector_get_free_elm(out_buffer->buffer,char),number);
-  vector_add_used(out_buffer->buffer,chars_printed);
+  const int chars_printed = integer_to_ascii(out_buffer->buffer_cursor,number);
+  out_buffer->buffer_cursor += chars_printed;
+  out_buffer->buffer_used += chars_printed;
 }
 GEM_INLINE void bprintf_int64(output_buffer_t* const out_buffer,const uint64_t number) {
   OUTPUT_BUFFER_CHECK(out_buffer);
-  const int chars_printed = integer_to_ascii(vector_get_free_elm(out_buffer->buffer,char),number);
-  vector_add_used(out_buffer->buffer,chars_printed);
+  const int chars_printed = integer_to_ascii(out_buffer->buffer_cursor,number);
+  out_buffer->buffer_cursor += chars_printed;
+  out_buffer->buffer_used += chars_printed;
 }
 GEM_INLINE void bprintf_char(output_buffer_t* const out_buffer,const char character) {
   OUTPUT_BUFFER_CHECK(out_buffer);
-  *vector_get_free_elm(out_buffer->buffer,char) = character;
-  vector_add_used(out_buffer->buffer,1);
+  *(out_buffer->buffer_cursor) = character;
+  ++(out_buffer->buffer_cursor);
+  ++(out_buffer->buffer_used);
 }
 GEM_INLINE void bprintf_buffer(
     output_buffer_t* const out_buffer,const int string_length,const char* const string) {
   OUTPUT_BUFFER_CHECK(out_buffer);
-  memcpy(vector_get_free_elm(out_buffer->buffer,char),string,string_length);
-  vector_add_used(out_buffer->buffer,string_length);
+  memcpy(out_buffer->buffer_cursor,string,string_length);
+  out_buffer->buffer_cursor += string_length;
+  out_buffer->buffer_used += string_length;
 }
-
-
 

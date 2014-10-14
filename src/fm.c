@@ -562,6 +562,18 @@ GEM_INLINE mm_t* fm_load_mem(fm_t* const file_manager,const uint64_t num_bytes) 
   // Return
   return mm;
 }
+GEM_INLINE void fm_prefetch_next(fm_t* const file_manager,const uint64_t num_bytes) {
+  FM_CHECK(file_manager);
+  GEM_CHECK_ZERO(num_bytes);
+  // Read
+  switch (file_manager->file_type) {
+    case FM_REGULAR_FILE:
+      posix_fadvise(file_manager->fd,file_manager->byte_position,num_bytes,POSIX_FADV_WILLNEED);
+      break;
+    default:
+      break;
+  }
+}
 /*
  * Write
  */

@@ -60,6 +60,7 @@ GEM_INLINE void bofprintf_string(
  * Error Messages
  */
 #define GEM_ERROR_BUFFER_SAFETY_DUMP "Output buffer. Could not perform safety dump (no buffer extension)"
+#define GEM_ERROR_BUFFER_RESERVE "Output buffer. Could not reserve buffer-memory for dump"
 
 
 #endif /* BUFFERED_OUTPUT_FILE_H_ */

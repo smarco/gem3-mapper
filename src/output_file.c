@@ -251,9 +251,10 @@ GEM_INLINE void output_file_return_buffer(
     // Write the current buffer
     if (output_buffer_get_used(output_buffer) > 0) {
       PROF_START_TIMER(GP_OUTPUT_WRITE_BUFFER);
-      vector_t* const vbuffer = output_buffer_to_vchar(output_buffer);
-      fm_write_mem(output_file->file_manager,vector_get_mem(vbuffer,char),vector_get_used(vbuffer));
-      PROF_ADD_COUNTER(GP_OUTPUT_BYTES_WRITTEN,vector_get_used(vbuffer));
+      const uint64_t buffer_used = output_buffer_get_used(output_buffer);
+      const char* const buffer = output_buffer_get_buffer(output_buffer);
+      fm_write_mem(output_file->file_manager,buffer,buffer_used);
+      PROF_ADD_COUNTER(GP_OUTPUT_BYTES_WRITTEN,buffer_used);
       PROF_STOP_TIMER(GP_OUTPUT_WRITE_BUFFER);
     }
     // Update buffers' state

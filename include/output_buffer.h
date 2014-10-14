@@ -26,7 +26,9 @@ typedef struct {
   bool is_final_block;
   output_buffer_state_t buffer_state;
   /* Buffer */
-  vector_t* buffer;
+  char* buffer_mem;        // Buffer Memory
+  uint64_t buffer_used;    // Number of characters written
+  char* buffer_cursor;     // Pointer to the current char
 } output_buffer_t;
 
 /*
@@ -48,13 +50,7 @@ GEM_INLINE void output_buffer_set_state(output_buffer_t* const output_buffer,con
 GEM_INLINE output_buffer_state_t output_buffer_get_state(output_buffer_t* const output_buffer);
 GEM_INLINE void output_buffer_set_incomplete(output_buffer_t* const output_buffer);
 GEM_INLINE uint64_t output_buffer_get_used(output_buffer_t* const output_buffer);
-GEM_INLINE void output_buffer_reserve(output_buffer_t* const out_buffer,const uint64_t num_bytes);
-
-/*
- * Adaptors
- */
-GEM_INLINE char* output_buffer_to_char(output_buffer_t* const output_buffer);
-GEM_INLINE vector_t* output_buffer_to_vchar(output_buffer_t* const output_buffer);
+GEM_INLINE char* output_buffer_get_buffer(output_buffer_t* const out_buffer);
 
 /*
  * Fast-printer functions

@@ -53,7 +53,7 @@ typedef struct {
  */
 GEM_INLINE bpm_gpu_buffer_collection_t* bpm_gpu_init(
     dna_text_t* const enc_text,const uint32_t num_buffers,
-    const int32_t average_query_size,const int32_t candidates_per_query);
+    const int32_t average_query_size,const int32_t candidates_per_query,const bool verbose);
 GEM_INLINE void bpm_gpu_destroy(bpm_gpu_buffer_collection_t* const buffer_collection);
 GEM_INLINE bool bpm_gpu_support();
 
@@ -71,6 +71,7 @@ GEM_INLINE uint64_t bpm_gpu_buffer_get_num_queries(bpm_gpu_buffer_t* const bpm_g
 GEM_INLINE bool bpm_gpu_buffer_fits_in_buffer(
     bpm_gpu_buffer_t* const bpm_gpu_buffer,
     const uint64_t num_patterns,const uint64_t total_pattern_length,const uint64_t total_candidates);
+GEM_INLINE bool bpm_gpu_buffer_almost_full(bpm_gpu_buffer_t* const bpm_gpu_buffer);
 
 GEM_INLINE void bpm_gpu_buffer_put_pattern(
     bpm_gpu_buffer_t* const bpm_gpu_buffer,pattern_t* const pattern);

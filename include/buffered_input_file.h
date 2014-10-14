@@ -49,7 +49,6 @@ GEM_INLINE char** const buffered_input_file_get_text_line(buffered_input_file_t*
 GEM_INLINE uint64_t buffered_input_file_get_cursor_pos(buffered_input_file_t* const buffered_input);
 GEM_INLINE bool buffered_input_file_eob(buffered_input_file_t* const buffered_input);
 GEM_INLINE error_code_t buffered_input_file_get_lines_block(buffered_input_file_t* const buffered_input);
-GEM_INLINE error_code_t buffered_input_file_add_lines_to_block(buffered_input_file_t* const buffered_input);
 
 /*
  * Block Synchronization with Output

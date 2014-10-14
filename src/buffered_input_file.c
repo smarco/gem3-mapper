@@ -48,7 +48,6 @@ GEM_INLINE bool buffered_input_file_eob(buffered_input_file_t* const buffered_in
 }
 GEM_INLINE error_code_t buffered_input_file_get_lines_block(buffered_input_file_t* const buffered_input) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input);
-  PROF_START_TIMER(GP_BUFFERED_INPUT_RELOAD);
   input_file_t* const in_file = buffered_input->input_file;
   // Read lines
   if (input_file_eof(in_file)) return INPUT_STATUS_EOF;
@@ -65,21 +64,7 @@ GEM_INLINE error_code_t buffered_input_file_get_lines_block(buffered_input_file_
   // Setup the block
   buffered_input->cursor = vector_get_mem(buffered_input->block_buffer,char);
   PROF_ADD_COUNTER(GP_BUFFERED_INPUT_BUFFER_SIZE,vector_get_used(buffered_input->block_buffer));
-  PROF_STOP_TIMER(GP_BUFFERED_INPUT_RELOAD); // No need to stop it elsewhere (no time consumed)
   return buffered_input->lines_in_buffer;
-}
-GEM_INLINE error_code_t buffered_input_file_add_lines_to_block(buffered_input_file_t* const buffered_input) {
-  BUFFERED_INPUT_FILE_CHECK(buffered_input);
-  input_file_t* const input_file = buffered_input->input_file;
-  // Read lines
-  if (input_file_eof(input_file)) return INPUT_STATUS_EOF;
-  const uint64_t current_position =
-      buffered_input->cursor - vector_get_mem(buffered_input->block_buffer,char);
-  const uint64_t lines_added =
-      input_file_get_lines(input_file,buffered_input->block_buffer,buffered_input->buffer_num_lines);
-  buffered_input->lines_in_buffer += lines_added;
-  buffered_input->cursor = vector_get_elm(buffered_input->block_buffer,current_position,char);
-  return lines_added;
 }
 /*
  * Block Synchronization with Output
@@ -117,14 +102,20 @@ GEM_INLINE void buffered_input_file_skip_line(buffered_input_file_t* const buffe
     ++buffered_input->current_line_num;
   }
 }
+//#include "libittnotify.h"
+//__itt_resume();
+//__itt_pause();
 GEM_INLINE error_code_t buffered_input_file_reload(buffered_input_file_t* const buffered_input) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input);
   // Dump buffer
   buffered_input_file_dump_attached_buffered_output(buffered_input);
   // Read new input block
+  PROF_START(GP_BUFFERED_INPUT_RELOAD);
   if (gem_expect_false(buffered_input_file_get_lines_block(buffered_input)==0)) {
+    PROF_STOP(GP_BUFFERED_INPUT_RELOAD);
     return INPUT_STATUS_EOF;
   }
+  PROF_STOP(GP_BUFFERED_INPUT_RELOAD);
   // Get output buffer (block ID)
   buffered_input_file_reload_attached_buffered_output(buffered_input);
   // Return OK

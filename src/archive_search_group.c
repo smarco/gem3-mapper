@@ -17,17 +17,14 @@
  * Archive Search Cache
  */
 typedef struct {
-  /* Mapper parameters */
-  mapper_parameters_t* mapper_parameters;
-  /* Slab of archive_search_t */
-  vector_t* archive_search_cache;  // Already allocated & configured (archive_search_t*)
-  pthread_mutex_t mutex;           // Mutex to access the cache
+  mapper_parameters_t* mapper_parameters; // Mapper parameters
+  vector_t* archive_search_cache;         // Already allocated & configured Slab (archive_search_t*)
 } archive_search_cache_t;
 typedef struct {
   /* Search */
-  archive_search_t* archive_search;     // Archive search
+  archive_search_t* archive_search;       // Archive search
   /* Candidates verified */
-  uint64_t results_buffer_offset;       // Offset in the results vector
+  uint64_t results_buffer_offset;         // Offset in the results vector
 } search_group_member_t;
 typedef enum {
   archive_search_group_free,
@@ -46,29 +43,30 @@ struct _search_group_t {
   /* BPM-GPU candidates buffer */
   bpm_gpu_buffer_t* bpm_gpu_buffer;      // BPM-Buffer
   /* Archive searches */
-  vector_t* search_group_members;      // Vector of search members (search_group_member_t)
+  archive_search_cache_t* search_cache;  // Archive-search cache
+  vector_t* search_group_members;        // Vector of search members (search_group_member_t)
   /* MM */
   mm_search_t* mm_search;                // Memory Managed Search
 };
 struct _search_group_dispatcher_t {
   /* Dispatcher State */
-  uint64_t num_groups;                  // Total number of search-groups allocated
-  uint64_t num_groups_free;             // Free groups (ready to be filled & used)
-  uint64_t num_groups_generating;       // Groups dispatched for candidate generation
-  uint64_t num_groups_verifying;        // Groups being verified (BPM-CUDA)
-  uint64_t num_groups_selecting;        // Groups dispatched for candidate selection
-  uint64_t num_threads_generating;      // Dispatcher Record of Generating-Threads
-  uint32_t next_request_id;             // Block ID  (for synchronization purposes)
-  pqueue_t* requests;                   // Priority queue for the request
+  uint64_t num_groups;                   // Total number of search-groups allocated
+  uint64_t num_groups_free;              // Free groups (ready to be filled & used)
+  uint64_t num_groups_generating;        // Groups dispatched for candidate generation
+  uint64_t num_groups_verifying;         // Groups being verified (BPM-CUDA)
+  uint64_t num_groups_selecting;         // Groups dispatched for candidate selection
+  uint64_t num_threads_generating;       // Dispatcher Record of Generating-Threads
+  uint32_t next_request_id;              // Block ID  (for synchronization purposes)
+  pqueue_t* requests;                    // Priority queue for the request
   /* Search Groups */
-  uint64_t hint_queries_per_search;              // Hint: Expected number of queries per search-group
-  search_group_t* search_group;                  // Search Groups
-  uint64_t search_group_used;                    // Number of Search Groups Activated
-  archive_search_cache_t* archive_search_cache;  // Archive-search cache
+  mapper_parameters_t* parameters;       // Mapper parameters
+  uint64_t hint_queries_per_search;      // Hint: Expected number of queries per search-group
+  search_group_t* search_group;          // Search Groups
+  uint64_t search_group_used;            // Number of Search Groups Activated
   /* BPM-GPU Buffer*/
   bpm_gpu_buffer_collection_t* bpm_gpu_buffer_collection; // BPM Buffers
   /* Output File */
-  output_file_t* output_file;           // Output File
+  output_file_t* output_file;            // Output File
   /* Mutex/CV */
   pthread_mutex_t dispatcher_mutex;
   pthread_cond_t groups_free_cond;
@@ -78,54 +76,48 @@ struct _search_group_dispatcher_t {
 /*
  * Archive Search Cache
  */
-GEM_INLINE archive_search_cache_t* archive_search_cache_new(mapper_parameters_t* const mapper_parameters) {
+GEM_INLINE archive_search_cache_t* search_cache_new(mapper_parameters_t* const mapper_parameters) {
   // Alloc
   archive_search_cache_t* const archive_search_cache = mm_alloc(archive_search_cache_t);
   // Initialize cache
   archive_search_cache->mapper_parameters = mapper_parameters;
   archive_search_cache->archive_search_cache =
       vector_new(MAPPER_CUDA_ARCHIVE_SEARCH_CACHE_INIT_SIZE,archive_search_t*);
-  MUTEX_INIT(archive_search_cache->mutex);
   // Return
   return archive_search_cache;
 }
-GEM_INLINE void archive_search_cache_delete(archive_search_cache_t* const archive_search_cache) {
+GEM_INLINE void search_cache_delete(archive_search_cache_t* const archive_search_cache) {
   // Delete all archive_search_t objects in cache
   VECTOR_ITERATE(archive_search_cache->archive_search_cache,archive_search_ptr,n,archive_search_t*) {
     archive_search_delete(*archive_search_ptr);
   }
   // Free handlers
   vector_delete(archive_search_cache->archive_search_cache);
-  MUTEX_DESTROY(archive_search_cache->mutex);
   mm_free(archive_search_cache);
 }
-GEM_INLINE archive_search_t* archive_search_cache_alloc(
+GEM_INLINE archive_search_t* search_cache_alloc(
     archive_search_cache_t* const archive_search_cache,mm_search_t* const mm_search) {
   archive_search_t* archive_search = NULL;
-  MUTEX_BEGIN_SECTION(archive_search_cache->mutex) {
-    if (vector_get_used(archive_search_cache->archive_search_cache)>0) {
-      // Get from cache already prepared archive_search_t
-      archive_search = *vector_get_last_elm(archive_search_cache->archive_search_cache,archive_search_t*);
-      vector_dec_used(archive_search_cache->archive_search_cache);
-    } else {
-      // Allocate new one
-      archive_search = archive_search_new(
-          archive_search_cache->mapper_parameters->archive,
-          &archive_search_cache->mapper_parameters->search_parameters,
-          &archive_search_cache->mapper_parameters->select_parameters);
-    }
-  } MUTEX_END_SECTION(archive_search_cache->mutex);
+  if (vector_get_used(archive_search_cache->archive_search_cache)>0) {
+    // Get from cache already prepared archive_search_t
+    archive_search = *vector_get_last_elm(archive_search_cache->archive_search_cache,archive_search_t*);
+    vector_dec_used(archive_search_cache->archive_search_cache);
+  } else {
+    // Allocate new one
+    archive_search = archive_search_new(
+        archive_search_cache->mapper_parameters->archive,
+        &archive_search_cache->mapper_parameters->search_parameters,
+        &archive_search_cache->mapper_parameters->select_parameters);
+  }
   // Init archive search
   archive_search_configure(archive_search,mm_search);
   // Return
   return archive_search;
 }
-GEM_INLINE void archive_search_cache_free(
+GEM_INLINE void search_cache_free(
     archive_search_cache_t* const archive_search_cache,archive_search_t* const archive_search) {
-  MUTEX_BEGIN_SECTION(archive_search_cache->mutex) {
-    // Add it to the cache
-    vector_insert(archive_search_cache->archive_search_cache,archive_search,archive_search_t*);
-  } MUTEX_END_SECTION(archive_search_cache->mutex);
+  // Add it to the cache
+  vector_insert(archive_search_cache->archive_search_cache,archive_search,archive_search_t*);
 }
 /*
  * Archive-search group
@@ -141,6 +133,7 @@ GEM_INLINE void search_group_clear(search_group_t* const search_group) {
 GEM_INLINE void search_group_destroy(search_group_t* const search_group) {
   mm_search_delete(search_group->mm_search);
   vector_delete(search_group->search_group_members);
+  search_cache_delete(search_group->search_cache);
 }
 GEM_INLINE void search_group_set_incomplete(search_group_t* const search_group) {
   search_group->group_incomplete = true;
@@ -174,12 +167,14 @@ GEM_INLINE void search_group_add_search(
   search_group_member->results_buffer_offset = results_buffer_offset;
 }
 // Archive Search Group Allocator (Cache)
-GEM_INLINE archive_search_t* search_group_alloc(search_group_t* const archive_search_group) {
-  return archive_search_cache_alloc(archive_search_group->dispatcher->archive_search_cache,archive_search_group->mm_search);
+GEM_INLINE archive_search_t* search_group_alloc(search_group_t* const search_group) {
+  return search_cache_alloc(search_group->search_cache,search_group->mm_search);
 }
-GEM_INLINE void search_group_release(
-    search_group_t* const archive_search_group,archive_search_t* const archive_search) {
-  archive_search_cache_free(archive_search_group->dispatcher->archive_search_cache,archive_search);
+GEM_INLINE void search_group_release(search_group_t* const search_group,archive_search_t* const archive_search) {
+  search_cache_free(search_group->search_cache,archive_search);
+}
+GEM_INLINE void search_group_configure(search_group_t* const search_group,archive_search_t* const archive_search) {
+  archive_search_configure(archive_search,search_group->mm_search); // Init archive search
 }
 /*
  * Dispatcher
@@ -199,6 +194,7 @@ GEM_INLINE void search_group_dispatcher_init_search_group(
   bpm_gpu_buffer_t* const bpm_gpu_buffers = dispatcher->bpm_gpu_buffer_collection->bpm_gpu_buffers;
   search_group->bpm_gpu_buffer = bpm_gpu_buffers+search_group_position;
   // Archive searches
+  search_group->search_cache = search_cache_new(dispatcher->parameters);
   const uint64_t num_initial_searches =
       DIV_CEIL(bpm_gpu_buffer_get_max_queries(search_group->bpm_gpu_buffer),dispatcher->hint_queries_per_search);
   search_group->search_group_members = vector_new(num_initial_searches,search_group_member_t);
@@ -220,14 +216,13 @@ GEM_INLINE search_group_dispatcher_t* search_group_dispatcher_new(
   dispatcher->next_request_id = 0; // Next Block ID
   dispatcher->requests = pqueue_new(2*num_search_groups);
   // BPM-GPU Buffer
-  dispatcher->bpm_gpu_buffer_collection =
-      bpm_gpu_init(archive->enc_text,num_search_groups,average_query_size,candidates_per_query);
+  dispatcher->bpm_gpu_buffer_collection = bpm_gpu_init(archive->enc_text,num_search_groups,
+      average_query_size,candidates_per_query,mapper_parameters->verbose_dev);
   // Archive Search Groups
+  dispatcher->parameters = mapper_parameters;
   dispatcher->hint_queries_per_search = (archive_is_indexed_complement(archive)) ? 1 : 2;
   dispatcher->search_group = mm_calloc(num_search_groups,search_group_t,true);
   dispatcher->search_group_used = 0; // No search-group initialized
-  // Archive Search Cache
-  dispatcher->archive_search_cache = archive_search_cache_new(mapper_parameters);
   // Mutex/CV
   MUTEX_INIT(dispatcher->dispatcher_mutex);
   CV_INIT(dispatcher->groups_free_cond);
@@ -247,8 +242,6 @@ GEM_INLINE void search_group_dispatcher_delete(search_group_dispatcher_t* const 
     search_group_destroy(search_group);
   }
   mm_free(dispatcher->search_group);
-  // Archive Search Cache
-  archive_search_cache_delete(dispatcher->archive_search_cache);
   // Mutex/CV
   MUTEX_DESTROY(dispatcher->dispatcher_mutex);
   CV_DESTROY(dispatcher->groups_free_cond);
@@ -440,32 +433,28 @@ GEM_INLINE search_group_t* search_group_dispatcher_request_selecting_(
   PROF_INC_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING);
   search_group_t* search_group = NULL;
   MUTEX_BEGIN_SECTION(dispatcher->dispatcher_mutex) {
-    while (true) {
-      // Wait for one group being verified
-      while (dispatcher->num_groups_verifying==0 && dispatcher->num_threads_generating>0) {
-        PROF_INC_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING_STALLS);
-        PROF_INC_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING_STALLS_IDLE);
-        CV_WAIT(dispatcher->groups_verifying_cond,dispatcher->dispatcher_mutex);
-      }
-      // Check exit condition
-      if (dispatcher->num_groups_verifying==0 && dispatcher->num_threads_generating==0) break;
-      // Find a group being verified
-      if (multisearch_group) {
-        // Find the extension of a multisearch-group
-        search_group = search_group_dispatcher_generating_get_next_part(dispatcher,mayor_group_id,minor_group_id);
-        if (search_group!=NULL) break; // Found!
-        // Multisearch-groups extensions)
+    // Find a group being verified
+    if (multisearch_group) {
+      // Find the extension of a multisearch-group
+      search_group = search_group_dispatcher_generating_get_next_part(dispatcher,mayor_group_id,minor_group_id);
+      while (search_group==NULL) {
+        // Multisearch-groups extension not ready (yet ...)
         PROF_INC_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING_STALLS);
         PROF_INC_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING_STALLS_EXTENSION_NOT_READY);
         CV_WAIT(dispatcher->groups_verifying_cond,dispatcher->dispatcher_mutex);
-      } else {
-        // Find a single group (Not the extension of a multisearch-group; minor_group_id==0)
-        search_group = search_group_dispatcher_generating_get_new_verifying(dispatcher);
-        if (search_group!=NULL) break; // Found!
+        // Search again
+        search_group = search_group_dispatcher_generating_get_next_part(dispatcher,mayor_group_id,minor_group_id);
+      }
+    } else {
+      // Find a single group (Not the extension of a multisearch-group; minor_group_id==0)
+      search_group = search_group_dispatcher_generating_get_new_verifying(dispatcher);
+      while (search_group==NULL && dispatcher->num_threads_generating > 0) {
         // No group eligible (only multisearch-groups extensions)
         PROF_INC_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING_STALLS);
         PROF_INC_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING_STALLS_NO_SINGLE_GROUPS);
         CV_WAIT(dispatcher->groups_verifying_cond,dispatcher->dispatcher_mutex);
+        // Search again
+        search_group = search_group_dispatcher_generating_get_new_verifying(dispatcher);
       }
     }
     // Change state

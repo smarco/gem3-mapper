@@ -18,7 +18,10 @@
  */
 typedef struct {
   /* I/O */
-  uint64_t buffer_num_lines;       // Number of lines per input buffer
+  uint64_t input_block_size;
+  uint64_t buffer_num_lines;
+  uint64_t output_buffer_size;
+  uint64_t max_output_buffers;
   /* BPM Buffers */
   uint64_t num_search_groups;      // Total number of search-groups deployed
   uint64_t average_query_size;     // HINT on the average query size

@@ -24,20 +24,80 @@ typedef struct {
   /* Ticker */
   ticker_t* ticker;
 } mapper_cuda_search_t;
+
+/*
+ * Error report
+ */
 mapper_cuda_search_t* g_mapper_cuda_search; // Global searches on going
+
+void mapper_cuda_error_report(FILE* stream) {
+//
+//  // TODO Implement 1 only call of this function, otherwise kill
+//  // TODO Patch this with crazy checkers that nothing is null
+//
+//  const uint64_t threads_id = gem_thread_get_thread_id();
+//  if (threads_id==0) {
+//    fprintf(stream,"GEM::RunnigThread (threadID = MASTER)\n");
+//  } else {
+//    uint64_t i;
+//    // Display Generating threads
+//    const uint64_t num_generating_threads = g_mapper_cuda_search->cuda_parameters->num_generating_threads;
+//    for (i=0;i<num_generating_threads;++i) {
+//      mapper_cuda_search_t* const mapper_search = g_mapper_cuda_search + i;
+//      // Display Input State
+//      mapper_display_input_state();
+//    }
+//    // Display Selecting threads
+//    const uint64_t num_selecting_threads = g_mapper_cuda_search->cuda_parameters->num_selecting_threads;
+//    for (i=0;i<num_generating_threads;++i) {
+//      mapper_cuda_search_t* const mapper_search = g_mapper_cuda_search + (num_generating_threads+i);
+//
+//    }
+//
+//
+//    fprintf(stream,"GEM::RunnigThread (threadID = %lu)\n",mapper_search->thread_id);
+//    // Dump FASTA/FASTQ read
+//    const sequence_t* const sequence = archive_search_get_sequence(mapper_search->archive_search);
+//    if (!string_is_null(&sequence->tag) && !string_is_null(&sequence->read)) {
+//      const bool has_qualities = sequence_has_qualities(sequence);
+//      char* const end_tag =
+//          (sequence->attributes.end_info == PAIRED_END1) ? "/1" :
+//        ( (sequence->attributes.end_info == PAIRED_END2) ? "/2" : "" );
+//      fprintf(stream,"GEM::Sequence (File '%s' Line '%lu')\n",
+//          input_file_get_file_name(mapper_search->buffered_fasta_input->input_file),
+//          mapper_search->buffered_fasta_input->current_line_num - (has_qualities ? 4 : 2));
+//      if (has_qualities) {
+//        fprintf(stream,"@%"PRIs"%s\n%"PRIs"\n+\n%"PRIs"\n",
+//            PRIs_content(&sequence->tag),end_tag,
+//            PRIs_content(&sequence->read),
+//            PRIs_content(&sequence->qualities));
+//      } else {
+//        fprintf(stream,">%"PRIs"%s\n%"PRIs"\n",
+//            PRIs_content(&sequence->tag),end_tag,
+//            PRIs_content(&sequence->read));
+//      }
+//    } else {
+//      fprintf(stream,"GEM::Sequence <<Empty>>\n");
+//    }
+//    // TODO ... More useful info
+//  }
+}
 
 /*
  * CUDA Mapper parameters
  */
 GEM_INLINE void mapper_cuda_parameters_set_defaults(mapper_cuda_parameters_t* const mapper_cuda_parameters) {
+  const uint64_t num_processors = system_get_num_processors();
   /* I/O */
-  mapper_cuda_parameters->buffer_num_lines = (2*4*NUM_LINES_10K); // 2l-Paired x 4l-FASTQRecord x 5K-BufferSize
+  mapper_cuda_parameters->input_block_size = BUFFER_SIZE_64M; // FIXME: Not used
+  mapper_cuda_parameters->buffer_num_lines = (2*4*NUM_LINES_20K); // 2l-Paired x 4l-FASTQRecord x 5K-BufferSize // FIXME: Not used
+  mapper_cuda_parameters->output_buffer_size = BUFFER_SIZE_8M; // FIXME: Not used
+  mapper_cuda_parameters->max_output_buffers = 3*num_processors;  // Lazy allocation // FIXME: Not used
   /* Single-end Alignment */
   /* Paired-end Alignment */
   /* Reporting */
   /* BPM Buffers */
-  const uint64_t num_processors = system_get_num_processors();
-  mapper_cuda_parameters->num_search_groups=2*num_processors+2;
+  mapper_cuda_parameters->num_search_groups=3*num_processors;
   mapper_cuda_parameters->average_query_size=200;
   mapper_cuda_parameters->candidates_per_query=20;
   /* System */
@@ -61,6 +121,10 @@ GEM_INLINE error_code_t mapper_SE_CUDA_parse_sequence(
     if (*search_group) search_group_dispatcher_return_generating(dispatcher,*search_group);
     // Request a new search-group (ID=buffer_in->block_id)
     *search_group = search_group_dispatcher_request_generating(dispatcher,buffered_fasta_input->block_id);
+  } else if (bpm_gpu_buffer_almost_full(search_group_get_bpm_buffer(*search_group))) {
+    // Request an extension before running out of space
+    PROF_INC_COUNTER(GP_SGDISPATCHER_REQUESTS_GENERATING_EXTENSION_VOLUNTEER);
+    *search_group = search_group_dispatcher_request_generating_extension(dispatcher,*search_group);
   }
   // Request a clean archive-search
   *archive_search = search_group_alloc(*search_group);
@@ -126,6 +190,8 @@ void* mapper_SE_CUDA_run_generate_candidates(mapper_cuda_search_t* const mapper_
         search_group_get_bpm_buffer(search_group),num_patterns,total_pattern_length,total_candidates);
     if (!fits_in_buffer) { // Multiple BPM-Buffer
       search_group = search_group_dispatcher_request_generating_extension(dispatcher,search_group);
+      search_group_configure(search_group,archive_search);
+      archive_search_generate_candidates(archive_search); // Restate the search in the new group
     }
 
     // Put candidates in buffer
@@ -250,7 +316,9 @@ GEM_INLINE void mapper_SE_CUDA_run(
   // Prepare Mapper-CUDA searches
   mapper_cuda_search_t* const mapper_cuda_search =
       mm_malloc(total_threads*sizeof(mapper_cuda_search_t)); // Allocate mapper-CUDA searches
-  g_mapper_cuda_search = mapper_cuda_search; // Set global searches for error reporting
+  // Set error-report function
+  g_mapper_cuda_search = mapper_cuda_search;
+  gem_error_set_report_function(mapper_cuda_error_report);
   /*
    * Launch 'Generating Candidates' threads
    */

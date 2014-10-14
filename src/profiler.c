@@ -157,7 +157,7 @@ GEM_INLINE void COUNTER_PRINT(
   } else if (total >= BUFFER_SIZE_1K) {
     fprintf(stream,"%7.2f K%s",(double)total/BUFFER_SIZE_1K,units);
   } else {
-    fprintf(stream,"%7.2f %s ",(double)total,units);
+    fprintf(stream,"%7.2f %s  ",(double)total,units);
   }
   // Print percentage wrt reference
   if (ref_counter!=NULL) {
@@ -188,6 +188,10 @@ GEM_INLINE void COUNTER_PRINT(
     fprintf(stream," (samples=%luK",num_samples/BUFFER_SIZE_1K);
   } else {
     fprintf(stream," (samples=%lu",num_samples);
+    if (num_samples==0) {
+      fprintf(stream,",--n/a--)}\n");
+      return;
+    }
   }
   // Print Mean
   const double mean = COUNTER_GET_MEAN(counter);
@@ -202,10 +206,6 @@ GEM_INLINE void COUNTER_PRINT(
   }
   // Print Min
   const uint64_t min = COUNTER_GET_MIN(counter);
-  if (num_samples==0) {
-    fprintf(stream,",--n/a--)}\n");
-    return;
-  }
   if (min >= BUFFER_SIZE_1G) {
     fprintf(stream,",min%.2fG",(double)min/BUFFER_SIZE_1G);
   } else if (min >= BUFFER_SIZE_1M) {

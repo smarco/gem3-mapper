@@ -48,11 +48,12 @@ GEM_INLINE void buffered_output_file_safety_dump_buffer(buffered_output_file_t* 
 }
 GEM_INLINE void buffered_output_file_reserve(buffered_output_file_t* const buffered_output,const uint64_t num_chars) {
   BUFFERED_OUTPUT_FILE_CHECK(buffered_output);
+  const uint64_t buffer_size = buffered_output->output_file->buffer_size;
+  gem_cond_fatal_error(num_chars>buffer_size,BUFFER_RESERVE);
   const uint64_t buffer_used = output_buffer_get_used(buffered_output->buffer);
-  if (gem_expect_false(buffer_used+num_chars >= buffered_output->output_file->buffer_size)) {
+  if (gem_expect_false(buffer_used+num_chars > buffer_size)) {
     buffered_output_file_safety_dump_buffer(buffered_output);
   }
-  output_buffer_reserve(buffered_output->buffer,num_chars);
 }
 /*
  * Printers (Disabled for performance issues)

@@ -275,6 +275,7 @@ GEM_INLINE error_code_t input_fasta_parse_sequence_(
     const bool strictly_normalized,const bool try_recovery) {
   BUFFERED_INPUT_FILE_CHECK(buffered_fasta_input);
   SEQUENCE_CHECK(seq_read);
+  PROF_START(GP_INPUT_FASTA_PARSE_SEQUENCE);
   // Prepare read
   sequence_clear(seq_read);
   // Parse read
@@ -285,8 +286,10 @@ GEM_INLINE error_code_t input_fasta_parse_sequence_(
     const uint64_t column_pos = buffered_fasta_input->cursor-line_start;
     input_fasta_parser_prompt_error(buffered_fasta_input,line_num,column_pos,error_code);
     input_fasta_parser_next_record(buffered_fasta_input,line_start);
+    PROF_STOP(GP_INPUT_FASTA_PARSE_SEQUENCE);
     return INPUT_STATUS_FAIL;
   }
+  PROF_STOP(GP_INPUT_FASTA_PARSE_SEQUENCE);
   return INPUT_STATUS_OK;
 }
 GEM_INLINE error_code_t input_fasta_parse_sequence(

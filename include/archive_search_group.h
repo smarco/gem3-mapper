@@ -36,9 +36,9 @@ GEM_INLINE void search_group_add_search(
     archive_search_t* const archive_search,const uint64_t results_buffer_offset);
 
 // Archive Search Group Allocator (Cache)
-GEM_INLINE archive_search_t* search_group_alloc(search_group_t* const archive_search_group);
-GEM_INLINE void search_group_release(
-    search_group_t* const archive_search_group,archive_search_t* const archive_search);
+GEM_INLINE archive_search_t* search_group_alloc(search_group_t* const search_group);
+GEM_INLINE void search_group_release(search_group_t* const search_group,archive_search_t* const archive_search);
+GEM_INLINE void search_group_configure(search_group_t* const search_group,archive_search_t* const archive_search);
 
 /*
  * Dispatcher

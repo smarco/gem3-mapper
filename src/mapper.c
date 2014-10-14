@@ -29,44 +29,62 @@ typedef struct {
 } mapper_search_t;
 
 /*
- * Mapper error-report function
+ * Report
+ */
+GEM_INLINE void mapper_display_input_state(FILE* stream,buffered_input_file_t* const buffered_fasta_input,const sequence_t* const sequence) {
+  // Check NULL
+  if (sequence==NULL) { tab_fprintf(stream,"Sequence is NULL\n"); return; }
+  if (buffered_fasta_input==NULL) { tab_fprintf(stream,"Buffered_fasta_input is NULL\n"); return; }
+  // Dump FASTA/FASTQ read
+  if (!string_is_null(&sequence->tag) && !string_is_null(&sequence->read)) {
+    const bool has_qualities = sequence_has_qualities(sequence);
+    char* const end_tag =
+        (sequence->attributes.end_info == PAIRED_END1) ? "/1" :
+      ( (sequence->attributes.end_info == PAIRED_END2) ? "/2" : "" );
+    tab_fprintf(stream,"Sequence (File '%s' Line '%lu')\n",
+        input_file_get_file_name(buffered_fasta_input->input_file),
+        buffered_fasta_input->current_line_num - (has_qualities ? 4 : 2));
+    if (has_qualities) {
+      fprintf(stream,"@%"PRIs"%s\n%"PRIs"\n+\n%"PRIs"\n",
+          PRIs_content(&sequence->tag),end_tag,
+          PRIs_content(&sequence->read),
+          PRIs_content(&sequence->qualities));
+    } else {
+      fprintf(stream,">%"PRIs"%s\n%"PRIs"\n",
+          PRIs_content(&sequence->tag),end_tag,
+          PRIs_content(&sequence->read));
+    }
+  } else {
+    tab_fprintf(stream,"Sequence <<Empty>>\n");
+  }
+}
+/*
+ * Error Report
  */
 mapper_search_t* g_mapper_searches; // Global searches on going
 void mapper_error_report(FILE* stream) {
-
   // TODO Implement 1 only call of this function, otherwise kill
-  // TODO Patch this with crazy checkers that nothing is null
-
+  // Display thread info
   const uint64_t threads_id = gem_thread_get_thread_id();
   if (threads_id==0) {
     fprintf(stream,"GEM::RunnigThread (threadID = MASTER)\n");
   } else {
-    mapper_search_t* const mapper_search = g_mapper_searches + (threads_id-1);
-    fprintf(stream,"GEM::RunnigThread (threadID = %lu)\n",mapper_search->thread_id);
-    // Dump FASTA/FASTQ read
-    const sequence_t* const sequence = archive_search_get_sequence(mapper_search->archive_search);
-    if (!string_is_null(&sequence->tag) && !string_is_null(&sequence->read)) {
-      const bool has_qualities = sequence_has_qualities(sequence);
-      char* const end_tag =
-          (sequence->attributes.end_info == PAIRED_END1) ? "/1" :
-        ( (sequence->attributes.end_info == PAIRED_END2) ? "/2" : "" );
-      fprintf(stream,"GEM::Sequence (File '%s' Line '%lu')\n",
-          input_file_get_file_name(mapper_search->buffered_fasta_input->input_file),
-          mapper_search->buffered_fasta_input->current_line_num - (has_qualities ? 4 : 2));
-      if (has_qualities) {
-        fprintf(stream,"@%"PRIs"%s\n%"PRIs"\n+\n%"PRIs"\n",
-            PRIs_content(&sequence->tag),end_tag,
-            PRIs_content(&sequence->read),
-            PRIs_content(&sequence->qualities));
-      } else {
-        fprintf(stream,">%"PRIs"%s\n%"PRIs"\n",
-            PRIs_content(&sequence->tag),end_tag,
-            PRIs_content(&sequence->read));
-      }
-    } else {
-      fprintf(stream,"GEM::Sequence <<Empty>>\n");
+    uint64_t i;
+    // Display Generating threads
+    const uint64_t num_threads = g_mapper_searches->mapper_parameters->num_threads;
+    for (i=0;i<num_threads;++i) {
+      mapper_search_t* const mapper_search = g_mapper_searches + i;
+      // Thread
+      fprintf(stream,"GEM::RunnigThread (threadID = %lu)\n",mapper_search->thread_id);
+      // Display Input State
+      const sequence_t* const sequence = archive_search_get_sequence(mapper_search->archive_search);
+      tab_global_inc();
+      mapper_display_input_state(stream,mapper_search->buffered_fasta_input,sequence);
+      tab_global_dec();
+      // Display Output State
+      // Display Search State
+      // TODO ¿More useful info?
     }
-    // TODO ... More useful info
   }
 }
 /*
@@ -93,8 +111,8 @@ GEM_INLINE void mapper_parameters_set_defaults(mapper_parameters_t* const mapper
   mapper_parameters->output_stream = NULL;
   mapper_parameters->output_file = NULL;
   const uint64_t num_processors = system_get_num_processors();
-  mapper_parameters->output_buffer_size = BUFFER_SIZE_8M;
-  mapper_parameters->max_output_buffers = 2*num_processors;
+  mapper_parameters->output_buffer_size = BUFFER_SIZE_4M;
+  mapper_parameters->max_output_buffers = 3*num_processors; // Lazy allocation
   mapper_parameters->output_format = MAP;
   output_sam_parameters_set_defaults(&mapper_parameters->sam_parameters);
   /* Search Parameters */
@@ -335,7 +353,9 @@ GEM_INLINE void mapper_SE_run(mapper_parameters_t* const mapper_parameters) {
   // Setup threads
   const uint64_t num_threads = mapper_parameters->num_threads;
   mapper_search_t* const mapper_search = mm_calloc(num_threads,mapper_search_t,false); // Allocate mapper searches
-  g_mapper_searches = mapper_search; // Set global searches for error reporting
+  // Set error-report function
+  g_mapper_searches = mapper_search;
+  gem_error_set_report_function(mapper_error_report);
   // Prepare output file (SAM headers)
   if (mapper_parameters->output_format==SAM) {
     output_sam_print_header(mapper_parameters->output_file,

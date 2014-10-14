@@ -80,6 +80,8 @@ GEM_INLINE uint64_t fm_read_mem_parallel(
 
 GEM_INLINE mm_t* fm_load_mem(fm_t* const file_manager,const uint64_t num_bytes);
 
+GEM_INLINE void fm_prefetch_next(fm_t* const file_manager,const uint64_t num_bytes);
+
 /*
  * Write
  */

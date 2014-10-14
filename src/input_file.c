@@ -188,6 +188,7 @@ GEM_INLINE uint64_t input_file_fill_buffer(input_file_t* const input_file) {
   if (!fm_eof(input_file->file_manager)) {
     PROF_START_TIMER(GP_INPUT_FILL_BUFFER);
     input_file->buffer_size = fm_read_mem(input_file->file_manager,input_file->file_buffer,input_file->buffer_allocated);
+    fm_prefetch_next(input_file->file_manager,input_file->buffer_allocated);
     PROF_STOP_TIMER(GP_INPUT_FILL_BUFFER);
     return input_file->buffer_size;
   } else {
@@ -306,7 +307,8 @@ GEM_INLINE uint64_t input_file_next_line(input_file_t* const input_file,vector_t
         const uint64_t chunk_size = buffer_pos-input_file->buffer_begin;
         if (gem_expect_false(chunk_size!=0)) {
           vector_reserve_additional(buffer_dst,chunk_size);
-          memcpy(vector_get_mem(buffer_dst,uint8_t)+vector_get_used(buffer_dst),input_file->file_buffer+input_file->buffer_begin,chunk_size);
+          memcpy(vector_get_mem(buffer_dst,uint8_t)+vector_get_used(buffer_dst),
+              input_file->file_buffer+input_file->buffer_begin,chunk_size);
           vector_add_used(buffer_dst,chunk_size);
           // Update position
           input_file->buffer_begin=buffer_pos;
@@ -316,7 +318,10 @@ GEM_INLINE uint64_t input_file_next_line(input_file_t* const input_file,vector_t
         input_file->buffer_begin = 0;
         // Check EOF
         if (!fm_eof(input_file->file_manager)) {
+          PROF_START_TIMER(GP_INPUT_FILL_BUFFER);
           input_file->buffer_size = fm_read_mem(input_file->file_manager,input_file->file_buffer,input_file->buffer_allocated);
+          fm_prefetch_next(input_file->file_manager,input_file->buffer_allocated);
+          PROF_STOP_TIMER(GP_INPUT_FILL_BUFFER);
         } else {
           input_file->buffer_size = 0;
         }

@@ -291,6 +291,8 @@ GEM_INLINE uint64_t dna_text_get_length(const dna_text_t* const dna_text) {
 GEM_INLINE uint8_t* dna_text_retrieve_sequence(
     const dna_text_t* const dna_text,const uint64_t position,const uint64_t length,
     mm_stack_t* const mm_stack) {
+  uint8_t* const sequence = dna_text->buffer+position;
+  PREFETCH(sequence); // Prefetch text // TODO Hint later on (LLC)
   return dna_text->buffer+position;
 }
 GEM_INLINE uint8_t* dna_text_get_buffer(const dna_text_t* const dna_text) {

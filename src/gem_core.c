@@ -11,9 +11,7 @@
 /*
  * GEM Runtime
  */
-GEM_INLINE void gem_runtime_init(
-    const uint64_t num_threads,const uint64_t max_memory,
-    char* const tmp_folder,report_function_t report_function) {
+GEM_INLINE void gem_runtime_init(const uint64_t num_threads,const uint64_t max_memory,char* const tmp_folder) {
   // GEM error handler
   gem_handle_error_signals();
   // Setup Profiling (Add master thread)
@@ -28,8 +26,6 @@ GEM_INLINE void gem_runtime_init(
   }
   // Setup temporal folder
   if (tmp_folder!=NULL) mm_set_tmp_folder(tmp_folder);
-  // Configure report function
-  if (report_function!=NULL) gem_error_set_report_function(report_function);
 }
 GEM_INLINE void gem_runtime_destroy() {
   // Clean-up Profiler

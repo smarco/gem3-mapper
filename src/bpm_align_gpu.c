@@ -41,6 +41,7 @@
   GEM_INLINE bool bpm_gpu_buffer_fits_in_buffer(
       bpm_gpu_buffer_t* const bpm_gpu_buffer,
       const uint64_t num_patterns,const uint64_t total_pattern_length,const uint64_t total_candidates) { GEM_CUDA_NOT_SUPPORTED(); return false; }
+  GEM_INLINE bool bpm_gpu_buffer_almost_full(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); return false; }
   GEM_INLINE void bpm_gpu_buffer_put_pattern(
       bpm_gpu_buffer_t* const bpm_gpu_buffer,pattern_t* const pattern) { GEM_CUDA_NOT_SUPPORTED(); }
   GEM_INLINE void bpm_gpu_buffer_get_candidate(
@@ -61,7 +62,7 @@
  */
 GEM_INLINE bpm_gpu_buffer_collection_t* bpm_gpu_init(
     dna_text_t* const enc_text,const uint32_t num_buffers,
-    const int32_t average_query_size,const int32_t candidates_per_query) {
+    const int32_t average_query_size,const int32_t candidates_per_query,const bool verbose) {
   GEM_CHECK_POSITIVE(average_query_size); // TODO More checkers here
   GEM_CHECK_POSITIVE(candidates_per_query);
   // Allocate Buffer Collection
@@ -86,6 +87,14 @@ GEM_INLINE bpm_gpu_buffer_collection_t* bpm_gpu_init(
 #ifdef BPM_GPU_PATTERN_DEBUG
     bpm_gpu_buffer->enc_text = enc_text;
 #endif
+  }
+  // Display
+  if (verbose) { // FIXME: might be variable
+    const uint64_t max_queries = bpm_gpu_buffer_get_max_queries_(buffer_collection->bpm_gpu_buffers->buffer);
+    const uint64_t max_PEQ_entries = bpm_gpu_buffer_get_max_peq_entries_(buffer_collection->bpm_gpu_buffers->buffer);
+    const uint64_t max_candidates = bpm_gpu_buffer_get_max_candidates_(buffer_collection->bpm_gpu_buffers->buffer);
+    gem_log("[BPM-GPU Init] Total %lu buffers allocated (Each %lu MB {%lu queries,%lu PeqEntries,%lu candidates})",
+        num_buffers,CONVERT_B_TO_MB(BPM_GPU_BUFFER_SIZE),max_queries,max_PEQ_entries,max_candidates);
   }
   // Return
   return buffer_collection;
@@ -147,6 +156,15 @@ GEM_INLINE bool bpm_gpu_buffer_fits_in_buffer(
   }
   // Ok, go on
   return true;
+}
+GEM_INLINE bool bpm_gpu_buffer_almost_full(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
+  const uint64_t max_queries = bpm_gpu_buffer_get_max_queries_(bpm_gpu_buffer->buffer);
+  if (bpm_gpu_buffer->num_queries + 2 >= max_queries) return true;
+  const uint64_t max_PEQ_entries =  bpm_gpu_buffer_get_max_peq_entries_(bpm_gpu_buffer->buffer);
+  if (bpm_gpu_buffer->num_PEQ_entries + 20 >= max_PEQ_entries) return true;
+  const uint64_t max_candidates = bpm_gpu_buffer_get_max_candidates_(bpm_gpu_buffer->buffer);
+  if (bpm_gpu_buffer->num_candidates + 100 >= max_candidates) return true;
+  return false;
 }
 GEM_INLINE void bpm_gpu_buffer_get_candidate(
     bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t position,
