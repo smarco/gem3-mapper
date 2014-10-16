@@ -90,7 +90,7 @@ inline __device__ uint32_t funnelShiftL_CC35(const uint32_t currentCandidateEntr
 
 __device__ void myerslocalKeplerKernel_CC35( const d_qryEntry_t *d_queries, const uint32_t * __restrict d_reference, const bpm_gpu_cand_info_t *d_candidates,
 											 const uint32_t *d_reorderBuffer, bpm_gpu_res_entry_t *d_reorderResults, const bpm_gpu_qry_info_t *d_qinfo,
-								 			 const uint32_t idCandidate, const uint32_t sizeRef, const uint32_t numReorderedResults, 
+								 			 const uint32_t idCandidate, const uint64_t sizeRef, const uint32_t numReorderedResults, 
 											 const uint32_t intraQueryThreadIdx, const uint32_t threadsPerQuery)
 {
 	if (idCandidate < numReorderedResults){
@@ -226,7 +226,7 @@ __device__ void myerslocalKeplerKernel_CC35( const d_qryEntry_t *d_queries, cons
 }
 
 __global__ void myersKeplerKernel_CC35(const d_qryEntry_t *d_queries, const uint32_t * d_reference, const bpm_gpu_cand_info_t *d_candidates, const uint32_t *d_reorderBuffer,
-						    		   bpm_gpu_res_entry_t *d_reorderResults, const bpm_gpu_qry_info_t *d_qinfo, const uint32_t sizeRef,  const uint32_t numReorderedResults,
+						    		   bpm_gpu_res_entry_t *d_reorderResults, const bpm_gpu_qry_info_t *d_qinfo, const uint64_t sizeRef,  const uint32_t numReorderedResults,
 						    		   uint32_t *d_initPosPerBucket, uint32_t *d_initWarpPerBucket, uint32_t numWarps)
 {
 	uint32_t bucketIdx = 0;
