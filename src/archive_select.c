@@ -6,68 +6,54 @@
  */
 
 #include "archive_select.h"
+#include "archive_text_retrieve.h"
+#include "matches_align.h"
 
-/*
- * Curate Matches Alignment
- */
-GEM_INLINE void archive_select_curate_match(
-    select_parameters_t* const select_parameters,
-    matches_t* const matches,match_trace_t* const match_trace) {
-  // GEM_NOT_IMPLEMENTED(); // TODO
-}
 /*
  * Realigning Matches
  */
-GEM_INLINE void archive_select_realign_match(
-    archive_search_t* const archive_search,matches_t* const matches,match_trace_t* const match_trace,
-    const uint8_t* const text,const uint64_t text_length,const uint64_t edit_distance) {
-  select_parameters_t* const select_parameters = archive_search->select_parameters;
-  if (edit_distance==0 || select_parameters->alignment_model==alignment_model_none) {
+GEM_INLINE void archive_select_realign_match_interval(
+    archive_search_t* const archive_search,matches_t* const matches,
+    match_interval_t* const match_interval,match_trace_t* const match_trace,mm_stack_t* const mm_stack) {
+  const search_parameters_t* const search_parameters = archive_search->search_actual_parameters.search_parameters;
+  const alignment_model_t alignment_model = search_parameters->alignment_model;
+  if (match_interval->distance==0 || alignment_model==alignment_model_none) {
     const uint64_t key_length = sequence_get_length(&archive_search->sequence);
-    // Adjust position (if needed)
-    const uint64_t matching_column = match_trace->match_trace_end_offset;
-    if (edit_distance==0) match_trace->position += (matching_column+1)-key_length; // All bases matching
-    // Exact match
-    match_trace->cigar_buffer_offset = vector_get_used(matches->cigar_buffer);
-    match_trace->cigar_length = 1;
-    // Insert all-matching CIGAR
-    cigar_element_t cigar_element;
-    cigar_element.type = cigar_match;
-    cigar_element.length = key_length;
-    vector_insert(matches->cigar_buffer,cigar_element,cigar_element_t);
+    matches_align_exact(matches,match_trace,match_interval->strand,key_length,
+        match_trace->trace_offset,match_trace->position,
+        match_interval->distance,match_interval->length);
   } else {
-    switch (select_parameters->alignment_model) {
+    // Search-state (strand-based)
+    const approximate_search_t* search_state;
+    search_state = (match_interval->strand == Forward) ?
+        &archive_search->forward_search_state : &archive_search->reverse_search_state;
+    // Align
+    switch (alignment_model) {
       case alignment_model_hamming:
-        GEM_NOT_IMPLEMENTED(); // TODO
-        archive_select_curate_match(select_parameters,matches,match_trace);
+        matches_align_hamming(
+            matches,match_trace,match_interval->strand,search_parameters->allowed_enc,
+            search_state->pattern.key,search_state->pattern.key_length,
+            match_trace->trace_offset,match_trace->position,match_interval->text);
         break;
       case alignment_model_levenshtein:
-        if (match_trace->strand==Forward) {
-          approximate_search_t* const forward_search = &archive_search->forward_search_state;
-          bpm_align_match(forward_search->pattern.key,&forward_search->pattern.bpm_pattern,
-              text,&match_trace->position,edit_distance,match_trace->match_trace_end_offset,
-              matches->cigar_buffer,&match_trace->cigar_buffer_offset,&match_trace->cigar_length,archive_search->mm_stack);
-        } else { // Reverse
-          approximate_search_t* const reverse_search = &archive_search->reverse_search_state;
-          bpm_align_match(reverse_search->pattern.key,&reverse_search->pattern.bpm_pattern,
-              text,&match_trace->position,edit_distance,match_trace->match_trace_end_offset,
-              matches->cigar_buffer,&match_trace->cigar_buffer_offset,&match_trace->cigar_length,archive_search->mm_stack);
-        }
-        archive_select_curate_match(select_parameters,matches,match_trace);
+        matches_align_levenshtein(
+            matches,match_trace,
+            match_interval->strand,search_state->pattern.key,&search_state->pattern.bpm_pattern,
+            match_trace->trace_offset,match_trace->position,match_interval->distance,
+            match_interval->text,match_interval->length,NULL,0,mm_stack);
         break;
       case alignment_model_gap_affine:
-        GEM_NOT_IMPLEMENTED(); // TODO
-        archive_select_curate_match(select_parameters,matches,match_trace);
+        matches_align_smith_waterman_gotoh(
+            matches,match_trace,match_interval->strand,
+            search_state->pattern.key,search_state->pattern.key_length,
+            match_trace->trace_offset,match_trace->position,
+            match_interval->text,match_interval->length,NULL,0,mm_stack);
         break;
       default:
         GEM_INVALID_CASE();
         break;
     }
   }
-  // TODO
-  //  match_trace->distance = ?;
-  //  match_trace->cigar_length = ?;
-  //  match_trace->cigar_buffer_offset = ?;
 }
 /*
  * Calculate the number of matches to be decoded
@@ -124,7 +110,7 @@ GEM_INLINE void archive_select_calculate_matches_to_decode(
 }
 GEM_INLINE void archive_select_locate_match_trace(
     const archive_t* const archive,matches_t* const matches,match_trace_t* const match_trace,
-    const uint64_t seq_length,const uint64_t match_length,const strand_t match_strand) {
+    const uint64_t seq_length,const uint64_t match_length,const strand_t search_strand) {
   location_t location;
   locator_map(archive->locator,match_trace->position,&location);
   match_trace->position = location.position;
@@ -132,9 +118,11 @@ GEM_INLINE void archive_select_locate_match_trace(
   if (location.direction == Reverse) { // Adjust position by the effective length
     match_trace->position -= match_length;
     match_trace->strand = Reverse;
-    // TODO Check impossible (location.direction == Reverse) && (match_trace.strand == Reverse)
+    GEM_INTERNAL_CHECK(search_strand == Forward,
+        "Archive-Select. Locating match-trace. "
+        "Impossible combination (search_strand==Reverse-emulated searching FR-index)");
   } else {
-    match_trace->strand = match_strand;
+    match_trace->strand = search_strand;
   }
 }
 GEM_INLINE void archive_select_correct_CIGAR(
@@ -184,17 +172,13 @@ GEM_INLINE void archive_select_decode_matches(
           continue; // Too many matches decoded in the last stratum
         }
       }
-      // 1.- Realign match
-      text_trace_t* const text_trace = text_collection_get_trace(text_collection,match_trace->trace_offset);
-      archive_select_realign_match(archive_search,matches,
-          match_trace,text_trace->text,match_trace->match_trace_end_offset,match_trace->distance);
+      // 1.- (Re)Align match [Already DONE]
       // 2.- Correct CIGAR (Reverse it if the search was performed in the reverse strand, emulated)
       archive_select_correct_CIGAR(archive,matches,
           match_trace->strand,match_trace->cigar_buffer_offset,match_trace->cigar_length);
       // 3.- Locate-map the match
-      uint64_t match_length = matches_get_effective_length(  // FIXME match_length should be a match attribute
-          matches,seq_length,match_trace->cigar_buffer_offset,match_trace->cigar_length);
-      archive_select_locate_match_trace(archive,matches,match_trace,seq_length,match_length,match_trace->strand);
+      archive_select_locate_match_trace(archive,matches,match_trace,
+          seq_length,match_trace->effective_length,match_trace->strand);
       // 4.- Add the match (Store it in the vector, removing unwanted ones)
       if (global_matches_it != match_trace) *global_matches_it = *match_trace;
       ++global_matches_it;
@@ -213,25 +197,23 @@ GEM_INLINE void archive_select_decode_matches(
     match_trace_t match_trace;
     match_trace.position = fm_index_lookup(archive->fm_index,match_interval->lo);
     // 1.- (Re)Align match (retrieved with the seq-read(pattern))
-    if (match_interval->text == NULL) {
-      // // Retrieve CIGAR string
-      // archive_text_retrieve(archive,match_trace.position, // FIXME
-      //     match_interval->length /* + delta TODO*/,matches->text_collection);
-      // match_interval->text = *** // TODO
-      // match_trace.trace_offset = text_collection_get_num_traces(matches->text_collection); // TODO
-      match_trace.match_trace_end_offset = match_interval->length-1;
+    if (match_interval->distance > 0) {
+      archive_text_retrieve(archive->locator,archive->graph,archive->enc_text,text_collection,
+          match_trace.position,match_interval->length /* + delta TODO */ ,
+          &match_trace.trace_offset,archive_search->mm_stack);
+      // Set interval text
+      const text_trace_t* const text_trace = text_collection_get_trace(text_collection,match_trace.trace_offset);
+      match_interval->text = text_trace->text;
     }
-    archive_select_realign_match(archive_search,matches,
-        &match_trace,match_interval->text,match_interval->length,match_interval->distance);
+    archive_select_realign_match_interval(archive_search,matches,match_interval,&match_trace,archive_search->mm_stack);
     // 2.- Correct CIGAR (Reverse it if the search was performed in the reverse strand, emulated)
     archive_select_correct_CIGAR(archive,matches,
         match_interval->strand,match_trace.cigar_buffer_offset,match_trace.cigar_length);
     // 3.- Locate-map the match
-    const uint64_t match_length = matches_get_effective_length(  // FIXME match_length should be a match attribute
-        matches,seq_length,match_trace.cigar_buffer_offset,match_trace.cigar_length);
-    archive_select_locate_match_trace(archive,matches,&match_trace,seq_length,match_length,match_interval->strand);
+    archive_select_locate_match_trace(archive,matches,&match_trace,
+        seq_length,match_trace.effective_length,match_interval->strand);
     // 4.- Add the match
-    matches_add_match_trace_t(matches,&match_trace,match_length,false);
+    matches_add_match_trace_t(matches,&match_trace,false);
     const bool last_stratum_match = (match_interval->distance == last_stratum_distance);
     if (last_stratum_match) ++num_matches_last_stratum;
     // 5.- Build the rest of the interval
@@ -244,9 +226,10 @@ GEM_INLINE void archive_select_decode_matches(
       // 1.- (Re)Align the match [Already DONE]
       // 2.- Correct CIGAR [Already DONE]
       // 3.- Locate-map the match
-      archive_select_locate_match_trace(archive,matches,&match_trace,seq_length,match_length,match_interval->strand);
+      archive_select_locate_match_trace(archive,matches,&match_trace,
+          seq_length,match_trace.effective_length,match_interval->strand);
       // 4.- Add the match
-      matches_add_match_trace_t(matches,&match_trace,match_length,false);
+      matches_add_match_trace_t(matches,&match_trace,false);
     }
   }
 }

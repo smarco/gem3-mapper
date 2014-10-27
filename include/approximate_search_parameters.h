@@ -11,9 +11,9 @@
 
 #include "essentials.h"
 #include "quality_model.h"
+#include "matches_align.h"
 
 // Approximate Search Internals
-typedef enum { check_none, check_pmatches_correctness, check_imatches_correctness, check_correctness, check_completness } check_matches_t;
 typedef enum {
   mapping_incremental_mapping,
   mapping_adaptive_filtering,
@@ -44,7 +44,12 @@ typedef struct {
   uint64_t mismatch_alphabet_length;
   bool allowed_chars[256];
   bool allowed_enc[DNA_EXT_RANGE];
-  /* Alignment Score */
+  /* Alignment Model/Score */
+  alignment_model_t alignment_model;
+  uint64_t matching_score;
+  uint64_t mismatch_penalty;
+  uint64_t gap_open_penalty;
+  uint64_t gap_extension_penalty;
   /*
    * Internals
    */
@@ -67,8 +72,6 @@ typedef struct {
   uint64_t filtering_threshold;
   float filtering_region_factor;
   uint64_t pa_filtering_threshold;
-  /* Checkers */
-  check_matches_t check_matches;
 } search_parameters_t;
 typedef struct {
   /*
@@ -105,6 +108,8 @@ GEM_INLINE void approximate_search_configure_error_model(
 GEM_INLINE void approximate_search_configure_replacements(
     search_parameters_t* const search_parameters,
     const char* const mismatch_alphabet,const uint64_t mismatch_alphabet_length);
+GEM_INLINE void approximate_search_configure_alignment_model(
+    search_parameters_t* const search_parameters,const alignment_model_t alignment_model);
 GEM_INLINE void approximate_search_configure_matches(
     search_parameters_t* const search_parameters,const uint64_t max_search_matches);
 

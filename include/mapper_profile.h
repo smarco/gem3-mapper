@@ -57,6 +57,8 @@
 #define GP_AS_READ_RECOVERY    31
 #define GP_AS_EXACT_SEARCH     32
 
+#define GP_AS_ADAPTIVE_MCS     40
+
 #define GP_AS_FILTER_REGIONS                       60
 #define GP_AS_FILTER_REGIONS_NUM_ELEGIBLE_REGIONS  61
 #define GP_AS_FILTER_REGIONS_SEARCH_D2             62
@@ -74,12 +76,28 @@
 #define GP_REGION_PROFILE_ADAPTIVE      81
 #define GP_REGION_PROFILE_QUIT_PROFILE  82
 
+#define GP_REGION_PROFILE_SOFT_NUM_REGIONS       83
+#define GP_REGION_PROFILE_SOFT_REGION_LENGTH     84
+#define GP_REGION_PROFILE_SOFT_REGION_CANDIDATES 85
+#define GP_REGION_PROFILE_SOFT_TOTAL_CANDIDATES  86
+
 /*
  * Filtering Candidates (Verifying)
  */
-#define GP_FC_VERIFY  100
-#define GP_FC_DECODE  101
-#define GP_FC_CHECK   102
+#define GP_FC_VERIFY                     100
+#define GP_FC_DECODE_POSITIONS           101
+#define GP_FC_VERIFY_CANDIDATE_REGIONS   102
+#define GP_FC_REALIGN_CANDIDATE_REGIONS  103
+#define GP_FC_RETRIEVE_CANDIDATE_REGIONS 104
+
+#define GP_FC_NUM_CANDIDATE_POSITIONS         110
+#define GP_FC_NUM_CANDIDATE_REGIONS           111
+#define GP_FC_NUM_ACCEPTED_REGIONS            117
+#define GP_FC_CANDIDATE_REGIONS_COVERAGE      112
+#define GP_FC_CANDIDATE_REGIONS_EXT_COVERAGE  113
+#define GP_FC_LEVENSHTEIN_BPM                 114
+#define GP_FC_LEVENSHTEIN_ACCEPTED            115
+#define GP_FC_LEVENSHTEIN_BPM_QUICK_ABANDON   116
 
 /*
  * FM-Index
@@ -114,8 +132,8 @@
 /*
  * System
  */
-GEM_INLINE void mapper_profile_print_system_info(FILE* const stream);
 GEM_INLINE void mapper_profile_print_io(FILE* const stream);
+GEM_INLINE void mapper_profile_print_mem_structs(FILE* const stream);
 /*
  * Global Mapper
  */
@@ -130,6 +148,10 @@ GEM_INLINE void mapper_profile_print_mapper_efficiency_ratios(FILE* const stream
 GEM_INLINE void mapper_profile_print_approximate_search(FILE* const stream);
 GEM_INLINE void mapper_profile_print_approximate_search_ranks(FILE* const stream);
 /*
+ * Region Profile
+ */
+GEM_INLINE void mapper_profile_print_region_profile_soft(FILE* const stream);
+/*
  * Filtering Generating
  */
 GEM_INLINE void mapper_profile_print_filtering_generating(FILE* const stream);
@@ -137,7 +159,7 @@ GEM_INLINE void mapper_profile_print_filtering_generating_ranks(FILE* const stre
 /*
  * Filtering Verification
  */
-GEM_INLINE void mapper_profile_print_filtering_verifying(FILE* const stream);
+GEM_INLINE void mapper_profile_print_filtering_verifying(FILE* const stream,const bool verification_profile);
 GEM_INLINE void mapper_profile_print_filtering_verifying_ranks(FILE* const stream);
 /*
  * Neighborhood Search

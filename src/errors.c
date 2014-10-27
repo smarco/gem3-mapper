@@ -20,9 +20,10 @@
 void gem_print_stack_trace() {
   void *stack[STACK_TRACE_SIZE];
   size_t size = backtrace(stack,STACK_TRACE_SIZE);
-  fprintf(stderr,"<GT::StackTrace>\n");
+  fprintf(stderr,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+  fprintf(stderr,"<GEM::StackTrace>\n");
   backtrace_symbols_fd(stack,size,2);
-  fprintf(stderr,"<<<\n");
+  fprintf(stderr,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
 }
 
 #else
@@ -32,11 +33,23 @@ void gem_print_stack_trace() {}
 /*
  * Error Signal Handler
  */
+pthread_mutex_t gem_error_signal_handler_mutex = PTHREAD_MUTEX_INITIALIZER;
 void gem_error_signal_handler(int signal) {
-  FILE* const error_stream = gem_error_get_stream();
-  fprintf(error_stream,">>GEM:System.Error::Signal raised (no=%d) [%s (errno=%d)]\n",signal,strerror(errno),errno);
-  fflush(error_stream);
-  gem_print_stack_trace();
+  pthread_mutex_lock(&gem_error_signal_handler_mutex);
+    static bool reported = false;
+    if (!reported) {
+      FILE* const error_stream = gem_error_get_stream();
+      // Print stack trace
+      gem_print_stack_trace();
+      // Print custom error function
+      report_function_t report_function = gem_error_get_report_function();
+      if (report_function!=NULL) report_function(error_stream);
+      // Print signal label
+      fprintf(stderr,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+      fprintf(error_stream,">> GEM.System.Error::Signal raised (no=%d) [%s (errno=%d)]\n",signal,strerror(errno),errno);
+      fflush(error_stream);
+    }
+  pthread_mutex_unlock(&gem_error_signal_handler_mutex);
   exit(1);
 }
 void gem_handle_error_signals() {
@@ -47,13 +60,12 @@ void gem_handle_error_signals() {
   sigaction(SIGBUS,&error_signal_handler,NULL);
   sigaction(SIGSEGV,&error_signal_handler,NULL);
 }
-
 /*
  * Print ErrNo
  */
 void gem_perror() {
   FILE* const error_stream = gem_error_get_stream();
-  fprintf(error_stream,"> System.Error::%s (errno=%d)\n",strerror(errno),errno);
+  fprintf(error_stream,">> GEM.System.Error::%s (errno=%d)\n",strerror(errno),errno);
   fflush(error_stream);
 }
 

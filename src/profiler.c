@@ -12,7 +12,6 @@
 /*
  * Counters
  */
-
 GEM_INLINE void COUNTER_RESET(gem_counter_t* const counter) {
   counter->total = 0.0;
   counter->samples = 0;

@@ -17,107 +17,72 @@ buffered_input_file_t* buffered_input_file_new(input_file_t* const in_file,const
   /* Input file */
   buffered_input->input_file = in_file;
   /* Block buffer and cursors */
-  buffered_input->block_id = UINT32_MAX;
-  buffered_input->block_buffer = vector_new(1,sizeof(uint8_t));
-  buffered_input->cursor = (char*)vector_get_mem(buffered_input->block_buffer,uint8_t);
-  buffered_input->current_line_num = UINT64_MAX;
   buffered_input->buffer_num_lines = buffer_num_lines;
+  buffered_input->input_buffer = input_buffer_new();
   /* Attached output buffer */
   buffered_input->attached_buffered_output_file = NULL;
   return buffered_input;
 }
 void buffered_input_file_close(buffered_input_file_t* const buffered_input) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input);
-  vector_delete(buffered_input->block_buffer);
   mm_free(buffered_input);
 }
 /*
  * Accessors
  */
 GEM_INLINE char** const buffered_input_file_get_text_line(buffered_input_file_t* const buffered_input) {
-  return ((char** const)(&buffered_input->cursor));
+  BUFFERED_INPUT_FILE_CHECK(buffered_input);
+  return input_buffer_get_cursor(buffered_input->input_buffer);
 }
 GEM_INLINE uint64_t buffered_input_file_get_cursor_pos(buffered_input_file_t* const buffered_input) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input);
-  GEM_CHECK_NULL(buffered_input->cursor);
-  return buffered_input->cursor-vector_get_mem(buffered_input->block_buffer,char);
+  return input_buffer_get_cursor_pos(buffered_input->input_buffer);
 }
-GEM_INLINE bool buffered_input_file_eob(buffered_input_file_t* const buffered_input_file) {
-  BUFFERED_INPUT_FILE_CHECK(buffered_input_file);
-  return buffered_input_file_get_cursor_pos(buffered_input_file) >= vector_get_used(buffered_input_file->block_buffer);
-}
-GEM_INLINE error_code_t buffered_input_file_get_lines_block(buffered_input_file_t* const buffered_input) {
+GEM_INLINE uint64_t buffered_input_file_get_block_id(buffered_input_file_t* const buffered_input) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input);
-  input_file_t* const in_file = buffered_input->input_file;
-  // Read lines
-  if (input_file_eof(in_file)) return INPUT_STATUS_EOF;
-  input_file_lock(in_file);
-  if (input_file_eof(in_file)) {
-    input_file_unlock(in_file);
-    return INPUT_STATUS_EOF;
-  }
-  buffered_input->block_id = input_file_get_next_id(in_file);
-  buffered_input->current_line_num = in_file->processed_lines+1;
-  buffered_input->lines_in_buffer =
-      input_file_get_lines(in_file,buffered_input->block_buffer,buffered_input->buffer_num_lines);
-  input_file_unlock(in_file);
-  // Setup the block
-  buffered_input->cursor = vector_get_mem(buffered_input->block_buffer,char);
-  PROF_ADD_COUNTER(GP_BUFFERED_INPUT_BUFFER_SIZE,vector_get_used(buffered_input->block_buffer));
-  return buffered_input->lines_in_buffer;
+  return buffered_input->input_buffer->block_id;
 }
-/*
- * Block Synchronization with Output
- */
+GEM_INLINE bool buffered_input_file_eob(buffered_input_file_t* const buffered_input) {
+  BUFFERED_INPUT_FILE_CHECK(buffered_input);
+  return input_buffer_eob(buffered_input->input_buffer);
+}
 GEM_INLINE void buffered_input_file_attach_buffered_output(
     buffered_input_file_t* const buffered_input_file,buffered_output_file_t* const buffered_output_file) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input_file);
   BUFFERED_OUTPUT_FILE_CHECK(buffered_output_file);
   buffered_input_file->attached_buffered_output_file = buffered_output_file;
 }
-GEM_INLINE void buffered_input_file_dump_attached_buffered_output(buffered_input_file_t* const buffered_input_file) {
-  BUFFERED_INPUT_FILE_CHECK(buffered_input_file);
-  if (buffered_input_file->attached_buffered_output_file!=NULL) {
-    buffered_output_file_dump_buffer(buffered_input_file->attached_buffered_output_file);
-  }
-}
-GEM_INLINE void buffered_input_file_reload_attached_buffered_output(buffered_input_file_t* const buffered_input_file) {
-  BUFFERED_INPUT_FILE_CHECK(buffered_input_file);
-  if (buffered_input_file->attached_buffered_output_file!=NULL) {
-    buffered_output_file_request_buffer(
-        buffered_input_file->attached_buffered_output_file,buffered_input_file->block_id);
-  }
-}
 /*
  * Utils
  */
-GEM_INLINE void buffered_input_file_skip_line(buffered_input_file_t* const buffered_input) {
+GEM_INLINE uint64_t buffered_input_file_reload(buffered_input_file_t* const buffered_input) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input);
-  if (!buffered_input_file_eob(buffered_input)) {
-    while (buffered_input->cursor[0]!=EOL) {
-      ++buffered_input->cursor;
-    }
-    buffered_input->cursor[0]=EOS;
-    ++buffered_input->cursor;
-    ++buffered_input->current_line_num;
-  }
+  // Reload Buffer
+  return input_file_reload_buffer(buffered_input->input_file,
+      &(buffered_input->input_buffer),buffered_input->buffer_num_lines);
 }
 //#include "libittnotify.h"
 //__itt_resume();
 //__itt_pause();
-GEM_INLINE error_code_t buffered_input_file_reload(buffered_input_file_t* const buffered_input) {
+GEM_INLINE uint64_t buffered_input_file_reload__dump_attached(buffered_input_file_t* const buffered_input) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input);
   // Dump buffer
-  buffered_input_file_dump_attached_buffered_output(buffered_input);
+  if (buffered_input->attached_buffered_output_file!=NULL) {
+    buffered_output_file_dump_buffer(buffered_input->attached_buffered_output_file);
+  }
   // Read new input block
   PROF_START(GP_BUFFERED_INPUT_RELOAD);
-  if (gem_expect_false(buffered_input_file_get_lines_block(buffered_input)==0)) {
+  if (gem_expect_false(buffered_input_file_reload(buffered_input)==0)) {
     PROF_STOP(GP_BUFFERED_INPUT_RELOAD);
     return INPUT_STATUS_EOF;
   }
   PROF_STOP(GP_BUFFERED_INPUT_RELOAD);
   // Get output buffer (block ID)
-  buffered_input_file_reload_attached_buffered_output(buffered_input);
+  if (buffered_input->attached_buffered_output_file!=NULL) {
+    buffered_output_file_request_buffer(
+        buffered_input->attached_buffered_output_file,buffered_input->input_buffer->block_id);
+  }
   // Return OK
   return INPUT_STATUS_OK;
 }
+

@@ -204,4 +204,31 @@ GEM_INLINE char* system_get_user_name() {
   pw = getpwuid(uid);
   return pw ? (pw->pw_name ? pw->pw_name : "") : "";
 }
+GEM_INLINE void system_print_info(FILE* const stream) {
+  fprintf(stream,"[GEM]>System.Info\n");
+  // Current Date
+  time_t current_time=time(0);
+  struct tm local_time;
+  localtime_r(&current_time,&local_time);
+  fprintf(stream,"  => Date %4d/%d/%d %02d:%02d:%02d CET\n",
+      1900+local_time.tm_year,local_time.tm_mon+1,local_time.tm_mday,
+      local_time.tm_hour,local_time.tm_min,local_time.tm_sec);
+  char* cwd = system_get_cwd();
+  fprintf(stream,"  => CWD %s\n",cwd);
+  free(cwd);
+  // Host
+  char* hostname = system_get_hostname();
+  fprintf(stream,"  => Hostname %s\n",hostname);
+  free(hostname);
+  // User
+  const char* const user_name = system_get_user_name();
+  fprintf(stream,"  => Username %s\n",user_name);
+  // CPU
+  const uint64_t num_processors = system_get_num_processors();
+  fprintf(stream,"  => CPUs %lu\n",num_processors);
+  // Memory
+  // TODO
+  // Disk
+  // TODO
+}
 

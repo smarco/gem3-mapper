@@ -124,7 +124,7 @@ GEM_INLINE void input_text_parse_field(const char** const text_line,const char d
   // Skip delimiter
   if (**text_line==delimiter) PARSER_NEXT_CHAR(text_line);
 }
-GEM_INLINE error_code_t input_text_parse_integer(const char** const text_line,int64_t* const value) {
+GEM_INLINE int input_text_parse_integer(const char** const text_line,int64_t* const value) {
   GEM_CHECK_NULL(text_line);
   GEM_CHECK_NULL(value);
   int64_t number = 0;
@@ -157,7 +157,7 @@ GEM_INLINE error_code_t input_text_parse_integer(const char** const text_line,in
   *value = number;
   return 0;
 }
-GEM_INLINE error_code_t input_text_parse_double(const char** const text_line,double* const value) {
+GEM_INLINE int input_text_parse_double(const char** const text_line,double* const value) {
   GEM_CHECK_NULL(text_line);
   GEM_CHECK_NULL(value);
   /*
@@ -185,17 +185,19 @@ GEM_INLINE error_code_t input_text_parse_double(const char** const text_line,dou
     }
   }
   // Dot
+  double decimal = 0.0;
   if (gem_expect_true(**text_line==DOT)) { // .045
     PARSER_NEXT_CHAR(text_line);
     // Dot forces to have a decimal part
     if (gem_expect_false(!IS_DIGIT(**text_line))) return -1;
-  }
-  // Parse decimal
-  double decimal = 0.0;
-  if (gem_expect_true(IS_DIGIT(**text_line))) { // 45
-    while (gem_expect_true(IS_DIGIT(**text_line))) {
-      decimal = (decimal/10) + GET_DIGIT(**text_line);
-      PARSER_NEXT_CHAR(text_line);
+    // Parse decimal
+    double decimal_div = 10.0;
+    if (gem_expect_true(IS_DIGIT(**text_line))) { // 45
+      while (gem_expect_true(IS_DIGIT(**text_line))) {
+        decimal += (double)GET_DIGIT(**text_line)/decimal_div;
+        decimal_div *= 10.0;
+        PARSER_NEXT_CHAR(text_line);
+      }
     }
   }
   // Parse exponent
@@ -221,12 +223,12 @@ GEM_INLINE error_code_t input_text_parse_double(const char** const text_line,dou
   }
   // Compose number
   *value = integer + decimal;
-  if (exponent!=0) *value = *value * pow(10,exponent);
+  if (exponent!=0.0) *value = *value * pow(10,exponent);
   if (!positive) *value = -(*value);
   return 0;
 }
 // Parsing CMD-line options
-GEM_INLINE error_code_t input_text_parse_size(char* const size_text,uint64_t* const size) {
+GEM_INLINE int input_text_parse_size(char* const size_text,uint64_t* const size) {
   char* text_centinel = size_text;
   double parsed_size;
   // Parse number (double/interger)
@@ -265,6 +267,57 @@ GEM_INLINE error_code_t input_text_parse_size(char* const size_text,uint64_t* co
       break;
   }
   return 0;
+}
+GEM_INLINE int input_text_parse_csv_arguments(char* const arguments,const uint64_t num_arguments,...) {
+  uint64_t num_arguments_parsed = 0;
+  // Start va_args
+  va_list v_args;
+  va_start(v_args,num_arguments);
+  // Start parsing
+  char *opt = strtok(arguments,",");
+  while (opt!=NULL && num_arguments_parsed<num_arguments) {
+    char** const arg = va_arg(v_args,char**);
+    *arg = opt;
+    opt = strtok(NULL,",");
+    ++num_arguments_parsed;
+  }
+  // End va_args
+  va_end(v_args);
+  return num_arguments_parsed;
+}
+GEM_INLINE int input_text_parse_extended_uint64(char* const argument,uint64_t* const value) {
+  // Textual
+  if (gem_strcaseeq(argument,"all")) { *value = UINT64_MAX; return 0; }
+  if (gem_strcaseeq(argument,"inf")) { *value = UINT64_MAX; return 0; }
+  if (gem_strcaseeq(argument,"infinite")) { *value = UINT64_MAX; return 0; }
+  if (gem_strcaseeq(argument,"none")) { *value = 0; return 0; }
+  if (gem_strcaseeq(argument,"zero")) { *value = 0; return 0; }
+  // Number
+  return input_text_parse_integer((const char** const)&argument,(int64_t*)value);
+}
+GEM_INLINE int input_text_parse_extended_int64(char* const argument,int64_t* const value) {
+  // Textual
+  if (gem_strcaseeq(argument,"all")) { *value = INT64_MAX; return 0; }
+  if (gem_strcaseeq(argument,"inf")) { *value = INT64_MAX; return 0; }
+  if (gem_strcaseeq(argument,"infinite")) { *value = INT64_MAX; return 0; }
+  if (gem_strcaseeq(argument,"-inf")) { *value = INT64_MIN; return 0; }
+  if (gem_strcaseeq(argument,"-infinite")) { *value = INT64_MIN; return 0; }
+  if (gem_strcaseeq(argument,"none")) { *value = 0; return 0; }
+  if (gem_strcaseeq(argument,"zero")) { *value = 0; return 0; }
+  // Number
+  return input_text_parse_integer((const char** const)&argument,value);
+}
+GEM_INLINE int input_text_parse_extended_double(char* const argument,double* const value) {
+  // Textual (use int64_t limits)
+  if (gem_strcaseeq(argument,"all")) { *value = INT64_MAX; return 0; }
+  if (gem_strcaseeq(argument,"inf")) { *value = INT64_MAX; return 0; }
+  if (gem_strcaseeq(argument,"infinite")) { *value = INT64_MAX; return 0; }
+  if (gem_strcaseeq(argument,"-inf")) { *value = INT64_MIN; return 0; }
+  if (gem_strcaseeq(argument,"-infinite")) { *value = INT64_MIN; return 0; }
+  if (gem_strcaseeq(argument,"none")) { *value = 0; return 0; }
+  if (gem_strcaseeq(argument,"zero")) { *value = 0; return 0; }
+  // Number
+  return input_text_parse_double((const char** const)&argument,value);
 }
 /*
  * Tag parsing

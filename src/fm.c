@@ -697,6 +697,12 @@ GEM_INLINE bool gem_access(char* const path,const fm_mode mode) {
   }
   return true;
 }
+GEM_INLINE uint64_t gem_file_size(const char* const file_name) {
+  // Check FILE stats
+  struct stat stat_info;
+  gem_cond_fatal_error__perror(stat(file_name,&stat_info)==-1,FM_STAT,file_name);
+  return stat_info.st_size;
+}
 /*
  * FileManager Printers
  */

@@ -283,5 +283,6 @@ GEM_INLINE uint64_t system_get_num_processors();
 GEM_INLINE char* system_get_cwd();
 GEM_INLINE char* system_get_hostname();
 GEM_INLINE char* system_get_user_name();
+GEM_INLINE void system_print_info(FILE* const stream);
 
 #endif /* COMMONS_H_ */

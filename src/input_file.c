@@ -9,6 +9,16 @@
 #include "input_file.h"
 
 /*
+ * Format detection (cascade of checkers)
+ */
+file_format_t input_file_detect_file_format(input_file_t* const input_file) {
+  INPUT_FILE_CHECK(input_file);
+  if (input_file->file_format != FILE_FORMAT_UNKNOWN) return input_file->file_format;
+  // Try to determine the file format // TODO
+  input_file->file_format = FASTA;
+  return FASTA;
+}
+/*
  * Basic I/O functions
  */
 GEM_INLINE void input_file_initialize(input_file_t* const input_file,const uint64_t buffer_allocated) {
@@ -352,20 +362,6 @@ GEM_INLINE uint64_t input_file_add_lines(
   }
   return lines_read;
 }
-GEM_INLINE uint64_t input_file_get_line(input_file_t* const input_file,vector_t* buffer_dst) {
-  INPUT_FILE_CHECK(input_file);
-  VECTOR_CHECK(buffer_dst);
-  // Clear dst buffer
-  vector_clear(buffer_dst);
-  // Read lines
-  uint64_t lines_read = input_file_next_line(input_file,buffer_dst);
-  // Dump remaining content into the buffer
-  input_file_dump_to_buffer(input_file,buffer_dst);
-  if (lines_read > 0 && *vector_get_last_elm(buffer_dst,char) != EOL) {
-    vector_insert(buffer_dst,EOL,char);
-  }
-  return lines_read;
-}
 GEM_INLINE uint64_t input_file_get_lines(
     input_file_t* const input_file,vector_t* buffer_dst,const uint64_t num_lines) {
   INPUT_FILE_CHECK(input_file);
@@ -376,25 +372,25 @@ GEM_INLINE uint64_t input_file_get_lines(
   return input_file_add_lines(input_file,buffer_dst,num_lines);
 }
 /*
- * Format detection (cascade of checkers)
+ * Buffer reader
  */
-///* Forward declarations (input_file_test_<FORMAT>() in each logic module) */
-//GEM_INLINE bool input_file_test_fasta(input_file_t* const input_file,const bool show_errors);
-/* */
-file_format_t input_file_detect_file_format(input_file_t* const input_file) {
-  INPUT_FILE_CHECK(input_file);
-  if (input_file->file_format != FILE_FORMAT_UNKNOWN) return input_file->file_format;
-
-
-  input_file->file_format = FASTA;
-  return FASTA;
-
-//  // Try to determine the file format
-//  input_file_fill_buffer(input_file);
-//  // FASTA test
-//  if (input_file_test_fasta(input_file,false)) {
-//    input_file->file_format = FASTA;
-//    return FASTA;
-//  }
-//  gem_fatal_error(FILE_FORMAT,input_file_get_file_name(input_file));
+GEM_INLINE uint64_t input_file_reload_buffer(
+    input_file_t* const input_file,input_buffer_t** const input_buffer,const uint64_t num_lines) {
+  // Read lines
+  if (input_file_eof(input_file)) return INPUT_STATUS_EOF;
+  input_file_lock(input_file);
+  if (input_file_eof(input_file)) {
+    input_file_unlock(input_file);
+    return INPUT_STATUS_EOF;
+  }
+  (*input_buffer)->block_id = input_file_get_next_id(input_file);
+  (*input_buffer)->current_line_num = input_file->processed_lines+1;
+  (*input_buffer)->lines_in_buffer =
+      input_file_get_lines(input_file,(*input_buffer)->block_buffer,num_lines);
+  input_file_unlock(input_file);
+  // Setup the block
+  (*input_buffer)->cursor = vector_get_mem((*input_buffer)->block_buffer,char);
+  PROF_ADD_COUNTER(GP_BUFFERED_INPUT_BUFFER_SIZE,vector_get_used((*input_buffer)->block_buffer));
+  return (*input_buffer)->lines_in_buffer;
 }
+

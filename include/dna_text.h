@@ -151,13 +151,13 @@ GEM_INLINE uint64_t dna_text_builder_get_length(const dna_text_builder_t* const 
 GEM_INLINE void dna_text_builder_set_length(dna_text_builder_t* const dna_text,const uint64_t length);
 GEM_INLINE uint8_t dna_text_builder_get_char(const dna_text_builder_t* const dna_text,const uint64_t position);
 GEM_INLINE void dna_text_builder_set_char(const dna_text_builder_t* const dna_text,const uint64_t position,const uint8_t enc_char);
-GEM_INLINE uint8_t* dna_text_builder_get_buffer(const dna_text_builder_t* const dna_text);
+GEM_INLINE uint8_t* dna_text_builder_get_text(const dna_text_builder_t* const dna_text);
 
 /*
  * Accessors
  */
 GEM_INLINE uint64_t dna_text_get_length(const dna_text_t* const dna_text);
-GEM_INLINE uint8_t* dna_text_get_buffer(const dna_text_t* const dna_text);
+GEM_INLINE uint8_t* dna_text_get_text(const dna_text_t* const dna_text);
 GEM_INLINE uint8_t* dna_text_retrieve_sequence(
     const dna_text_t* const dna_text,const uint64_t position,const uint64_t length,
     mm_stack_t* const mm_stack);

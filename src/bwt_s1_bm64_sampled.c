@@ -279,7 +279,7 @@ GEM_INLINE bwt_builder_t* bwt_builder_new(
   // BM Layers
   uint64_t layer_0=0, layer_1=0, layer_2=0, bit_mask=UINT64_ONE_MASK;
   // Iterate over the BWT
-  const uint8_t* const bwt = dna_text_builder_get_buffer(bwt_text);
+  const uint8_t* const bwt = dna_text_builder_get_text(bwt_text);
   uint64_t bwt_pos = 0;
   while (bwt_pos < bwt_length) {
     // Get BWT character

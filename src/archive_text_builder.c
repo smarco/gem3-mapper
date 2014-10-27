@@ -39,7 +39,7 @@ GEM_INLINE void archive_builder_inspect_text(
   uint64_t enc_text_length = 0; // input_file_get_size(input_multifasta);
   while (!input_file_eof(input_multifasta)) {
     // Get line
-    input_file_get_line(input_multifasta,line_buffer);
+    input_file_get_lines(input_multifasta,line_buffer,1);
     const char line_begin = *vector_get_mem(line_buffer,char);
     if (gem_expect_true(line_begin!=FASTA_TAG_BEGIN)) {
       enc_text_length += vector_get_used(line_buffer)-1;
@@ -210,7 +210,7 @@ GEM_INLINE uint64_t archive_builder_generate_text(
   input_multifasta_state_t* const parsing_state = &(archive_builder->parsing_state);
   while (!input_file_eof(input_multifasta)) {
     // Get line
-    input_file_get_line(input_multifasta,line_buffer);
+    input_file_get_lines(input_multifasta,line_buffer,1);
     const uint64_t line_length = vector_get_used(line_buffer)-1;
     const char* const line = vector_get_mem(line_buffer,char);
     // Parse line
@@ -327,8 +327,8 @@ GEM_INLINE void archive_builder_process_run_length_text(
   uint64_t* const sampled_rl_text = mm_calloc(max_num_samples,uint64_t,true);
   archive_builder->sampled_rl_text = sampled_rl_text;
   // Compact the text into the RL-text
-  const uint8_t* const enc_text = dna_text_builder_get_buffer(archive_builder->enc_text);
-  uint8_t* const enc_rl_text = dna_text_builder_get_buffer(archive_builder->enc_rl_text);
+  const uint8_t* const enc_text = dna_text_builder_get_text(archive_builder->enc_text);
+  uint8_t* const enc_rl_text = dna_text_builder_get_text(archive_builder->enc_rl_text);
   uint64_t text_position, rl_text_position;
   uint64_t run_length=1, num_rl_samples=0;
   uint8_t last_char_enc = enc_text[0]; // Get first character

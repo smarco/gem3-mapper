@@ -64,9 +64,9 @@ GEM_INLINE bool bpm_get_distance__cutoff(
     uint64_t* const position,uint64_t* const distance,const uint64_t max_distance);
 GEM_INLINE void bpm_align_match(
     const uint8_t* const key,const bpm_pattern_t* const bpm_pattern,
-    const uint8_t* const sequence,uint64_t* const match_position,
-    const uint64_t matching_distance,const uint64_t matching_column,
+    uint64_t* const match_position,const uint8_t* const sequence,
+    const uint64_t sequence_length,const uint64_t max_distance,
     vector_t* const cigar_vector,uint64_t* const cigar_vector_offset,uint64_t* const cigar_length,
-    mm_stack_t* const mm_stack);
+    uint64_t* const distance,uint64_t* const effective_length,mm_stack_t* const mm_stack);
 
 #endif /* BPM_ALIGN_H_ */

@@ -140,10 +140,15 @@ GEM_INLINE uint64_t RCOUNTER_GET_STDDEV(gem_reference_counter_t* const rcounter)
 /*
  * Profiler
  */
-#ifndef GEM_NOPROFILE /* GEM_PROFILE ENABLED */
-// Constants
+// #define GEM_NOPROFILE /* Disables profile */
 #define GP_MAX_COUNTERS 1000
-// Profile Block
+typedef enum { reduce_sum, reduce_max, reduce_min, reduce_mean, reduce_sample } profile_reduce_type;
+
+#ifndef GEM_NOPROFILE /* GEM_PROFILE ENABLED */
+
+/*
+ * Profile Block
+ */
 #define PROF_BLOCK()
 
 /*
@@ -200,7 +205,6 @@ GEM_INLINE double PROF_TIME_PER_CALL(const uint64_t timer); // ms/call
 /*
  * Utils
  */
-typedef enum { reduce_sum, reduce_max, reduce_min, reduce_mean, reduce_sample } profile_reduce_type;
 GEM_INLINE void PROF_REDUCE_SUM();
 GEM_INLINE void PROF_REDUCE_MAX();
 GEM_INLINE void PROF_REDUCE_MIN();
@@ -210,7 +214,45 @@ GEM_INLINE void PROF_REDUCE_SAMPLE();
 #else /* GEM_PROFILE DISABLED */
 // Profile Block
 #define PROF_BLOCK() if (0)
-// TODO
+// Setup
+#define PROF_NEW(num_threads);
+#define PROF_DELETE();
+// PROFILE-TIME functions
+#define PROF_START_TIMER(timer);
+#define PROF_STOP_TIMER(timer);
+#define PROF_PAUSE_TIMER(timer);
+#define PROF_CONTINUE_TIMER(timer);
+#define PROF_RESET_TIMER(timer);
+#define PROF_GET_TIMER(timer);
+// PROFILE-COUNTERS functions
+#define PROF_RESET_COUNTER(counter);
+#define PROF_ADD_COUNTER(counter,value);
+#define PROF_INC_COUNTER(counter);
+#define PROF_GET_COUNTER(counter);
+// PROFILE-RANKS functions
+#define PROF_START_RANK(rank);
+#define PROF_STOP_RANK(rank);
+#define PROF_PAUSE_RANK(rank);
+#define PROF_CONTINUE_RANK(rank);
+#define PROF_RESET_RANK(rank);
+#define PROF_GET_RANK(rank);
+// PROFILE-COMBINED (TIME/RANKS) functions
+#define PROF_START(timer__ranks);
+#define PROF_STOP(timer__ranks);
+#define PROF_PAUSE(timer__ranks);
+#define PROF_CONTINUE(timer__ranks);
+#define PROF_RESET(timer__ranks);
+// Display statistics
+#define PROF_COUNT_PERCENTAGE(counter,total_counter)
+#define PROF_COUNT_DIV(counter1,counter2)
+#define PROF_TIME_PERCENTAGE(timer,total_timer)
+#define PROF_TIME_PER_CALL(timer)
+// Utils
+#define PROF_REDUCE_SUM();
+#define PROF_REDUCE_MAX();
+#define PROF_REDUCE_MIN();
+#define PROF_REDUCE_MEAN();
+#define PROF_REDUCE_SAMPLE();
 #endif /* GEM_NOPROFILE */
 
 #endif /* PROFILER_H_ */

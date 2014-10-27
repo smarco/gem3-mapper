@@ -48,7 +48,7 @@ GEM_INLINE sa_builder_t* sa_builder_new(
   sa_builder->name_prefix = name_prefix;
   // Fill the circular k-mers positions
   const uint64_t text_length = dna_text_builder_get_length(sa_builder->enc_text);
-  uint8_t* const enc_text_buffer = dna_text_builder_get_buffer(sa_builder->enc_text);
+  uint8_t* const enc_text_buffer = dna_text_builder_get_text(sa_builder->enc_text);
   uint64_t i;
   enc_text_buffer[-2] = ENC_DNA_CHAR_SEP;
   enc_text_buffer[-1] = ENC_DNA_CHAR_SEP;
@@ -94,7 +94,7 @@ GEM_INLINE void sa_builder_count_suffixes(sa_builder_t* const sa_builder,uint64_
   const uint64_t text_length = dna_text_builder_get_length(sa_builder->enc_text);
   gem_cond_fatal_error(text_length < SA_BUILDER_KMER_LENGTH,
       SA_BUILDER_SEQUENCE_MIN_LENGTH,text_length,(uint64_t)SA_BUILDER_KMER_LENGTH);
-  const uint8_t* const enc_text = dna_text_builder_get_buffer(sa_builder->enc_text);
+  const uint8_t* const enc_text = dna_text_builder_get_text(sa_builder->enc_text);
   uint64_t* const kmer_count = sa_builder->kmer_count;
   uint64_t i;
   uint64_t kmer_idx = 0;
@@ -245,7 +245,7 @@ GEM_INLINE void sa_builder_store_sa_pos(
   fm_write_uint64(group->sa_positions_file,sa_pos | SA_COMPACTED_TEXT_MASK_PIGGYBACKING(kmer_idx));
 }
 void* sa_builder_store_suffixes_thread(const uint8_t thread_id) {
-  const uint8_t* const enc_text = dna_text_builder_get_buffer(global_sa_builder->enc_text);
+  const uint8_t* const enc_text = dna_text_builder_get_text(global_sa_builder->enc_text);
   uint64_t i, kmer_idx=0, sa_pos=0;
   // Fill k-mer index
   kmer_idx = ENC_DNA_CHAR_SEP;
@@ -582,8 +582,8 @@ GEM_INLINE void sa_builder_sort_suffixes(
   // Store global information to all threads
   global_sa_builder = sa_builder;
   global_enc_text_length = dna_text_builder_get_length(sa_builder->enc_text);
-  global_enc_text = dna_text_builder_get_buffer(sa_builder->enc_text);
-  global_enc_bwt = dna_text_builder_get_buffer(enc_bwt);
+  global_enc_text = dna_text_builder_get_text(sa_builder->enc_text);
+  global_enc_bwt = dna_text_builder_get_text(enc_bwt);
   global_sampled_sa = sampled_sa;
   ds_shallow_text_limit = global_enc_text + DS_SHALLOW_LIMIT;
   // Prepare ticket
@@ -695,7 +695,7 @@ GEM_INLINE void sa_builder_display_stats(FILE* const stream,sa_builder_t* const 
 GEM_INLINE void sa_builder_debug_print_sa(
     FILE* stream,sa_builder_t* const sa_builder,
     const uint64_t sa_position,const uint64_t sa_suffix_length) {
-  const uint8_t* const enc_text = dna_text_builder_get_buffer(sa_builder->enc_text);
+  const uint8_t* const enc_text = dna_text_builder_get_text(sa_builder->enc_text);
   const uint64_t enc_text_length = dna_text_builder_get_length(sa_builder->enc_text);
   const uint64_t suffix_pos = SA_POS_MASK_POSITION(sa_position);
   // fprintf(stream,"Suffix=%011lu\t\t",suffix_pos);

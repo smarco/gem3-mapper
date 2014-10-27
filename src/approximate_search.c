@@ -418,8 +418,7 @@ GEM_INLINE void approximate_search_read_recovery(
 /*
  * Exact search
  */
-GEM_INLINE void approximate_search_exact_search(
-    approximate_search_t* const search,matches_t* const matches) {
+GEM_INLINE void approximate_search_exact_search(approximate_search_t* const search,matches_t* const matches) {
   PROF_START(GP_AS_EXACT_SEARCH);
   pattern_t* const pattern = &search->pattern;
   // FM-Index basic exact search
@@ -445,7 +444,7 @@ GEM_INLINE void approximate_search_basic(approximate_search_t* const search,matc
   // Add results
   matches_add_interval_set(matches,intervals_result);
   // Update MCS
-  search->max_complete_stratum = actual_parameters->max_search_error_nominal+1;
+  search->max_complete_stratum = actual_parameters->max_search_error_nominal + 1;
 }
 /*
  * Scout adaptive filtering
@@ -638,8 +637,7 @@ GEM_INLINE void approximate_search_neighborhood_search(
  *         However we don't unify the code because as this approach is constantly evolving
  *         we want to keep it separate to keep the main algorithm isolated
  */
-GEM_INLINE void approximate_search_adaptive_mapping(
-    approximate_search_t* const search,matches_t* const matches) {
+GEM_INLINE void approximate_search_adaptive_mapping(approximate_search_t* const search,matches_t* const matches) {
   // Parameters
   const search_actual_parameters_t* const actual_parameters = search->search_actual_parameters;
   const search_parameters_t* const parameters = actual_parameters->search_parameters;
@@ -656,10 +654,20 @@ GEM_INLINE void approximate_search_adaptive_mapping(
       parameters->srp_dec_factor,parameters->srp_region_type_th,
       search->max_differences+1,allow_zero_regions);
   PROF_STOP(GP_REGION_PROFILE_SOFT);
+  #ifndef GEM_NOPROFILE
+    uint64_t total_candidates = 0;
+    PROF_ADD_COUNTER(GP_REGION_PROFILE_SOFT_NUM_REGIONS,region_profile->num_filtering_regions);
+    REGION_PROFILE_ITERATE(region_profile,region,position) {
+      PROF_ADD_COUNTER(GP_REGION_PROFILE_SOFT_REGION_LENGTH,region->start-region->end);
+      const uint64_t candidates = region->hi-region->lo;
+      PROF_ADD_COUNTER(GP_REGION_PROFILE_SOFT_REGION_CANDIDATES,candidates);
+      total_candidates += candidates;
+    }
+    PROF_ADD_COUNTER(GP_REGION_PROFILE_SOFT_TOTAL_CANDIDATES,total_candidates);
+  #endif
   // Zero-region reads
-  const uint64_t num_wildcards = pattern->num_wildcards;
   if (region_profile->num_filtering_regions==0) {
-    search->max_complete_stratum = num_wildcards;
+    search->max_complete_stratum = pattern->num_wildcards;
     search->current_search_stage = asearch_end;
     return;
   }
@@ -671,13 +679,13 @@ GEM_INLINE void approximate_search_adaptive_mapping(
   gem_cond_debug_block(DEBUG_REGION_PROFILE_PRINT) {
     region_profile_print(stderr,region_profile,false,false); // DEBUG
   }
-  if (region_profile_has_exact_matches(region_profile) && search->stop_search_stage!=asearch_filtering) { // FIXME Better interface
+  if (region_profile_has_exact_matches(region_profile)) {
     const filtering_region_t* const first_region = region_profile->filtering_region;
-    matches_add_interval_match(matches,first_region->hi,first_region->lo,
-        pattern->key_length,0,search->search_strand);
+    if (matches) matches_add_interval_match(matches,first_region->hi,first_region->lo,pattern->key_length,0,search->search_strand);
     search->max_differences = actual_parameters->complete_strata_after_best_nominal; // Lower max-differences
     search->max_complete_stratum = 1;
     search->current_search_stage = asearch_end;
+    PROF_ADD_COUNTER(GP_AS_ADAPTIVE_MCS,1);
     return;
   }
   // Process the proper fast-mapping scheme
@@ -704,16 +712,16 @@ GEM_INLINE void approximate_search_adaptive_mapping(
   filtering_candidates_verify(
       filtering_candidates,search->text_collection,search->locator,fm_index,
       search->enc_text,pattern,search->search_strand,actual_parameters,matches,search->mm_stack);
-
   // Update MCS (maximum complete stratum)
-  search->max_matches_reached = filtering_candidates_is_max_candidates_reached(filtering_candidates);
+  search->max_matches_reached = filtering_candidates->num_candidates_accepted >= parameters->max_search_matches;
   if (gem_expect_false(search->max_matches_reached)) {
     search->max_complete_stratum = 0;
   } else {
-    const int64_t max_complete_stratum = region_profile->misms_required + num_wildcards;
+    const int64_t max_complete_stratum = region_profile->misms_required + pattern->num_wildcards;
     search->max_complete_stratum = MIN(max_complete_stratum,search->max_complete_stratum);
-    // TODO fast-maping-stats
   }
+  PROF_ADD_COUNTER(GP_AS_ADAPTIVE_MCS,search->max_complete_stratum);
+  search->current_search_stage = asearch_end; // Done
 }
 /*
  * [GEM-workflow 4.0] Incremental mapping (A.K.A. Complete mapping)
@@ -802,14 +810,13 @@ GEM_INLINE void approximate_search_incremental_mapping(
 /*
  * Approximate String Matching using the FM-index.
  */
-GEM_INLINE void approximate_search(
-    approximate_search_t* const search,matches_t* const matches) {
+GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t* const matches) {
   PROF_START(GP_AS_MAIN);
   // Parameters
   const search_parameters_t* const parameters = search->search_actual_parameters->search_parameters;
   // Check if all characters are wildcards
   if (search->pattern.key_length==search->pattern.num_wildcards) {
-    search->max_complete_stratum = search->pattern.key_length;
+    if (matches) matches->max_complete_stratum = MIN(matches->max_complete_stratum,search->pattern.key_length);
     search->current_search_stage = asearch_end;
     return;
   }
@@ -836,6 +843,8 @@ GEM_INLINE void approximate_search(
       GEM_INVALID_CASE();
       break;
   }
+  // Set MCS
+  if (matches) matches->max_complete_stratum = MIN(matches->max_complete_stratum,search->max_complete_stratum);
   PROF_STOP(GP_AS_MAIN);
 }
 

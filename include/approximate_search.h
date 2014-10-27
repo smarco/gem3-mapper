@@ -43,7 +43,7 @@ typedef struct {
   approximate_search_stage_t current_search_stage;      // Current Stage of the search
   approximate_search_stage_t stop_search_stage;         // Search stage to stop at
   uint64_t max_differences;
-  uint64_t max_complete_stratum;
+  uint64_t max_complete_stratum;                        // Maximum complete stratum reached by the search
   uint64_t max_matches_reached;                         // Quick abandon due to maximum matches found
   /* Search Auxiliary Structures */
   region_profile_t region_profile;                      // Region Profile

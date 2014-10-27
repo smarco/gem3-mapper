@@ -11,8 +11,6 @@
  * Select Parameters Setup
  */
 GEM_INLINE void archive_select_parameters_init(select_parameters_t* const select_parameters) {
-  // Alignment Score
-  select_parameters->alignment_model = alignment_model_levenshtein;
   // Reporting
   select_parameters->min_decoded_strata = 0;
   select_parameters->max_decoded_matches = 20;
@@ -29,9 +27,9 @@ GEM_INLINE void archive_select_configure_reporting(
   select_parameters->min_reported_matches = min_reported_matches;
   select_parameters->max_reported_matches = max_reported_matches;
 }
-GEM_INLINE void archive_select_configure_alignment_model(
-    select_parameters_t* const select_parameters,const alignment_model_t alignment_model) {
-  select_parameters->alignment_model = alignment_model;
+GEM_INLINE void archive_select_configure_check(
+    select_parameters_t* const select_parameters,const uint64_t check_matches_mask) {
+  select_parameters->check_matches_mask = check_matches_mask;
 }
 GEM_INLINE void archive_select_instantiate_values(
     select_parameters_t* const select_parameters,const uint64_t sequence_length) {

@@ -112,6 +112,7 @@ GEM_INLINE void gem_unlink(char* const file_name);
  * Utils
  */
 GEM_INLINE bool gem_access(char* const path,const fm_mode mode);
+GEM_INLINE uint64_t gem_file_size(const char* const file_name);
 
 /*
  * FileManager Printers

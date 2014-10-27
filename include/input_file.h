@@ -10,6 +10,12 @@
 #define INPUT_FILE_H_
 
 #include "essentials.h"
+#include "input_buffer.h"
+
+/*
+ * Input Buffer Scheme
+ */
+#define INPUT_FILE_READING_THREAD
 
 /*
  * Codes status
@@ -43,7 +49,6 @@ typedef struct {
   fm_t* file_manager;
   bool mmaped;
   mm_t* memory_manager;
-  pthread_mutex_t input_mutex;
   /* File format */
   file_format_t file_format;
   union {
@@ -51,7 +56,7 @@ typedef struct {
     // map_file_format map_type;
     // sam_headers sam_headers;
   };
-  /* Buffer (for synch purposes) */
+  /* Internal Buffer */
   uint64_t buffer_allocated;
   uint8_t* file_buffer;
   uint64_t buffer_size;
@@ -59,6 +64,10 @@ typedef struct {
   uint64_t buffer_pos;
   uint64_t global_pos;
   uint64_t processed_lines;
+  /* Input Buffer Queue */
+  pthread_mutex_t input_mutex;           // Mutex
+  pthread_cond_t requested_buffer_cond;  // CV (Reload input buffer)
+  input_buffer_t* input_buffer;          // Input-Buffers
   /* ID generator */
   uint64_t processed_id;
 } input_file_t;
@@ -72,9 +81,6 @@ input_file_t* input_bzip_stream_open(FILE* stream,const uint64_t input_buffer_si
 input_file_t* input_file_open(char* const file_name,const uint64_t input_buffer_size,const bool mmap_file);
 void input_file_rewind(input_file_t* const input_file);
 void input_file_close(input_file_t* const input_file);
-
-/* Format detection */
-file_format_t input_file_detect_file_format(input_file_t* const input_file);
 
 /*
  * Accessors
@@ -110,13 +116,18 @@ GEM_INLINE void input_file_skip_eol__dump(input_file_t* const input_file,vector_
 GEM_INLINE uint64_t input_file_next_line(input_file_t* const input_file,vector_t* const buffer_dst);
 
 /*
- * Line Readers (thread-unsafe, must call mutex functions before)
+ * Line Readers (thread-unsafe)
  */
 GEM_INLINE uint64_t input_file_add_lines(
     input_file_t* const input_file,vector_t* buffer_dst,const uint64_t num_lines);
-GEM_INLINE uint64_t input_file_get_line(input_file_t* const input_file,vector_t* buffer_dst);
 GEM_INLINE uint64_t input_file_get_lines(
     input_file_t* const input_file,vector_t* buffer_dst,const uint64_t num_lines);
+
+/*
+ * Buffer reader (thread-safe)
+ */
+GEM_INLINE uint64_t input_file_reload_buffer(
+    input_file_t* const input_file,input_buffer_t** const input_buffer,const uint64_t num_lines);
 
 /*
  * Printers

@@ -44,8 +44,8 @@ GEM_INLINE void search_group_configure(search_group_t* const search_group,archiv
  * Dispatcher
  */
 GEM_INLINE search_group_dispatcher_t* search_group_dispatcher_new(
-    mapper_parameters_t* const mapper_parameters,
-    archive_t* const archive,const uint64_t num_search_groups,
+    mapper_parameters_t* const mapper_parameters,archive_t* const archive,
+    const uint64_t num_search_groups,const uint64_t bpm_buffer_size,
     const uint64_t average_query_size,const uint64_t candidates_per_query);
 GEM_INLINE void search_group_dispatcher_delete(search_group_dispatcher_t* const dispatcher);
 

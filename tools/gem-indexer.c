@@ -93,7 +93,7 @@ gem_indexer_parameters parameters = {
   /* Miscellaneous */
   .info_file_name_provided=false,
   .info_file_name=NULL,
-  .verbose=false,
+  .verbose=true,
   /* Extras */
   .dev_generate_only_bwt=false
 };
@@ -127,7 +127,7 @@ int indexer_debug_suffix_cmp(const uint64_t* const a,const uint64_t* const b) {
 }
 GEM_INLINE void indexer_debug_generate_sa(dna_text_builder_t* const index_text) {
   // Allocate memory for SA
-  debug_char_text = (char*) dna_text_builder_get_buffer(index_text);
+  debug_char_text = (char*) dna_text_builder_get_text(index_text);
   debug_text_length = dna_text_builder_get_length(index_text);
   debug_SA = mm_malloc(sizeof(uint64_t)*(debug_text_length));
   uint64_t i;
@@ -262,6 +262,7 @@ option_t gem_indexer_options[] = {
   { 606, "debug", NO_ARGUMENT, TYPE_NONE, 6 , true, "" , "" },
   /* Miscellaneous */
   { 'v', "verbose", NO_ARGUMENT, TYPE_NONE, 7 ,true, "", "" },
+  { 'q', "quiet", NO_ARGUMENT, TYPE_NONE, 7 ,true, "", "" },
   { 700, "info-file", REQUIRED, TYPE_STRING, 7 ,false, "<info_file_path>", "" },
   { 'h', "help", NO_ARGUMENT, TYPE_NONE, 7 , true, "" , "(print usage)" },
   { 'H', "help", NO_ARGUMENT, TYPE_NONE, 7 , false, "" , "(print usage + extras)" },
@@ -393,6 +394,9 @@ void parse_arguments(int argc,char** argv) {
       exit(1);
     case 'v':
       parameters.verbose = true;
+      break;
+    case 'q':
+      parameters.verbose = false;
       break;
     case 700: // --info-file
       parameters.info_file_name_provided = true;

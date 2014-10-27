@@ -16,9 +16,9 @@ MODULES =commons gthread profiler report errors gthread \
          vector ihash shash priority_queue string_buffer segmented_vector \
          profiler stats_vector stats_matrix
 # I/O
-MODULES+=input_file buffered_input_file input_parser \
+MODULES+=input_file input_buffer buffered_input_file input_parser \
          input_fasta_parser input_multifasta_parser input_graph_parser \
-         output_file output_buffer buffered_output_file buffered_file_printer \
+         output_file output_buffer buffered_output_file \
          output_map output_sam
 # Advance Data Structures
 MODULES+=sequence dna_text cdna_text cdna_bitwise_text \
@@ -30,7 +30,7 @@ MODULES+=archive_builder archive_text_builder archive_hypertext_builder archive_
          archive archive_search archive_search_group mm_search \
          archive_select archive_select_parameters archive_text_retrieve 
 # GEM Search Modules
-MODULES+=approximate_search_parameters approximate_search neighborhood_search \
+MODULES+=approximate_search_parameters approximate_search neighborhood_search matches_align \
          filtering_candidates region_profile bpm_align bpm_align_gpu quality_model
 # GEM Top-level Modules
 MODULES+=mapper mapper_cuda gem_core

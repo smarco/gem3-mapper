@@ -12,7 +12,7 @@
  * Mapper Search
  */
 typedef struct {
-  // Thread Info
+  /* Thread Info */
   uint64_t thread_id;
   pthread_t* thread_data;
   /* I/O */
@@ -31,7 +31,8 @@ typedef struct {
 /*
  * Report
  */
-GEM_INLINE void mapper_display_input_state(FILE* stream,buffered_input_file_t* const buffered_fasta_input,const sequence_t* const sequence) {
+void mapper_display_input_state(
+    FILE* stream,buffered_input_file_t* const buffered_fasta_input,const sequence_t* const sequence) {
   // Check NULL
   if (sequence==NULL) { tab_fprintf(stream,"Sequence is NULL\n"); return; }
   if (buffered_fasta_input==NULL) { tab_fprintf(stream,"Buffered_fasta_input is NULL\n"); return; }
@@ -40,10 +41,10 @@ GEM_INLINE void mapper_display_input_state(FILE* stream,buffered_input_file_t* c
     const bool has_qualities = sequence_has_qualities(sequence);
     char* const end_tag =
         (sequence->attributes.end_info == PAIRED_END1) ? "/1" :
-      ( (sequence->attributes.end_info == PAIRED_END2) ? "/2" : "" );
+      ( (sequence->attributes.end_info == PAIRED_END2) ? "/2" : " " );
     tab_fprintf(stream,"Sequence (File '%s' Line '%lu')\n",
         input_file_get_file_name(buffered_fasta_input->input_file),
-        buffered_fasta_input->current_line_num - (has_qualities ? 4 : 2));
+        buffered_fasta_input->input_buffer->current_line_num - (has_qualities ? 4 : 2));
     if (has_qualities) {
       fprintf(stream,"@%"PRIs"%s\n%"PRIs"\n+\n%"PRIs"\n",
           PRIs_content(&sequence->tag),end_tag,
@@ -63,19 +64,18 @@ GEM_INLINE void mapper_display_input_state(FILE* stream,buffered_input_file_t* c
  */
 mapper_search_t* g_mapper_searches; // Global searches on going
 void mapper_error_report(FILE* stream) {
-  // TODO Implement 1 only call of this function, otherwise kill
   // Display thread info
   const uint64_t threads_id = gem_thread_get_thread_id();
   if (threads_id==0) {
-    fprintf(stream,"GEM::RunnigThread (threadID = MASTER)\n");
+    fprintf(stream,"GEM::Running-Thread (threadID = MASTER)\n");
   } else {
     uint64_t i;
-    // Display Generating threads
-    const uint64_t num_threads = g_mapper_searches->mapper_parameters->num_threads;
+    // Display Threads-Info
+    const uint64_t num_threads = g_mapper_searches->mapper_parameters->system.num_threads;
     for (i=0;i<num_threads;++i) {
       mapper_search_t* const mapper_search = g_mapper_searches + i;
       // Thread
-      fprintf(stream,"GEM::RunnigThread (threadID = %lu)\n",mapper_search->thread_id);
+      fprintf(stream,"GEM::Running-Thread (threadID = %lu)\n",mapper_search->thread_id);
       // Display Input State
       const sequence_t* const sequence = archive_search_get_sequence(mapper_search->archive_search);
       tab_global_inc();
@@ -85,189 +85,368 @@ void mapper_error_report(FILE* stream) {
       // Display Search State
       // TODO ¿More useful info?
     }
+    // Display stats until now (if possible)
+    PROF_BLOCK() {
+
+    }
   }
 }
 /*
  * Mapper Parameters
  */
+GEM_INLINE void mapper_parameters_set_defaults_io(mapper_parameters_io_t* const io) {
+  /* Input */
+  io->index_file_name=NULL;
+  io->check_index=false;
+  io->separated_input_files=false;
+  io->input_file_name=NULL;
+  io->input_file_name_end1=NULL;
+  io->input_file_name_end2=NULL;
+  io->input_compression=FM_REGULAR_FILE;
+  io->input_block_size = BUFFER_SIZE_64M;
+  io->input_buffer_lines = (2*4*NUM_LINES_5K); // 2l-Paired x 4l-FASTQRecord x 5K-BufferSize
+  io->output_file_name=NULL;
+  io->output_compression=FM_REGULAR_FILE;
+  /* I/O Attributes */
+  io->fastq_strictly_normalized = false;
+  io->fastq_try_recovery = false;
+  /* Output */
+  io->output_format = MAP;
+  output_sam_parameters_set_defaults(&io->sam_parameters);
+  const uint64_t num_processors = system_get_num_processors();
+  io->output_buffer_size = BUFFER_SIZE_4M;
+  io->output_num_buffers = 3*num_processors; // Lazy allocation
+}
+GEM_INLINE void mapper_parameters_set_defaults_paired_end(mapper_parameters_paired_end_t* const paired_end) {
+  /* Paired-end mode/alg */
+  paired_end->paired_end = false;
+  paired_end->map_both_ends = false;
+  paired_end->max_extendable_candidates = 20;
+  paired_end->max_matches_per_extension = 2;
+  /* Template allowed length */
+  paired_end->min_template_length = 0;
+  paired_end->max_template_length = UINT64_MAX;
+  /* Concordant Orientation */
+  paired_end->pair_orientation_FR = true;
+  paired_end->pair_orientation_RF = false;
+  paired_end->pair_orientation_FF = false;
+  paired_end->pair_orientation_RR = false;
+  /* Discordant Orientation */
+  paired_end->discordant_pair_orientation_FR = false;
+  paired_end->discordant_pair_orientation_RF = true;
+  paired_end->discordant_pair_orientation_FF = true;
+  paired_end->discordant_pair_orientation_RR = true;
+  /* Pair allowed lay-outs */
+  paired_end->pair_layout_separate = true;
+  paired_end->pair_layout_overlap = true;
+  paired_end->pair_layout_contain = true;
+  paired_end->pair_layout_dovetail = true;
+}
+
+GEM_INLINE void mapper_parameters_set_defaults_system(mapper_parameters_system_t* const system) {
+  /* System */
+  const uint64_t num_processors = system_get_num_processors();
+  system->num_threads=num_processors;
+  system->max_memory=0;
+  system->tmp_folder=NULL;
+}
+GEM_INLINE void mapper_parameters_set_defaults_cuda(mapper_parameters_cuda_t* const cuda) {
+  /* CUDA settings */
+  const uint64_t num_processors = system_get_num_processors();
+  /* CUDA */
+  cuda->cuda_enabled=false;
+  /* I/O */
+  cuda->input_block_size = BUFFER_SIZE_64M;
+  cuda->input_num_buffers = 2*num_processors;
+  cuda->input_buffer_lines = (2*4*NUM_LINES_5K); // 2l-Paired x 4l-FASTQRecord x 5K-BufferSize
+  cuda->output_buffer_size = BUFFER_SIZE_4M;
+  cuda->output_num_buffers = 4*num_processors; // Lazy allocation
+  /* BPM Buffers */
+  cuda->num_search_groups=3*num_processors;
+  cuda->bpm_buffer_size=BUFFER_SIZE_16M;
+  /* System */
+  cuda->num_generating_threads=num_processors;
+  cuda->num_selecting_threads=num_processors;
+}
+GEM_INLINE void mapper_parameters_set_defaults_hints(mapper_parameters_hints_t* const hints) {
+  /* Hints */
+  hints->avg_read_length=150;
+  hints->std_read_length=50;
+  hints->candidates_per_query=20;
+}
+GEM_INLINE void mapper_parameters_set_defaults_misc(mapper_parameters_misc_t* const misc) {
+  /* QC */
+  misc->quality_control = false;
+  misc->profile = false;
+  misc->profile_reduce_type = reduce_max;
+  /* Verbose */
+  misc->verbose_user=true;
+  misc->verbose_dev=false;
+}
 GEM_INLINE void mapper_parameters_set_defaults(mapper_parameters_t* const mapper_parameters) {
   /* CMD line */
   mapper_parameters->argc = 0;
   mapper_parameters->argv = NULL;
-  /* Mapper Type */
-  mapper_parameters->mapper_type=mapper_se;
-  /* I/O */
-  mapper_parameters->index_file_name=NULL;
-  mapper_parameters->check_index=false;
-  mapper_parameters->input_file_name=NULL;
-  mapper_parameters->input_compression=FM_REGULAR_FILE;
-  mapper_parameters->input_block_size = BUFFER_SIZE_64M;
-  mapper_parameters->input_buffer_lines = (2*4*NUM_LINES_5K); // 2l-Paired x 4l-FASTQRecord x 5K-BufferSize
-  mapper_parameters->output_file_name=NULL;
-  mapper_parameters->output_compression=FM_REGULAR_FILE;
-  /* I/O */
+  /* GEM Structures */
   mapper_parameters->archive = NULL;
   mapper_parameters->input_file = NULL;
   mapper_parameters->output_stream = NULL;
   mapper_parameters->output_file = NULL;
-  const uint64_t num_processors = system_get_num_processors();
-  mapper_parameters->output_buffer_size = BUFFER_SIZE_4M;
-  mapper_parameters->max_output_buffers = 3*num_processors; // Lazy allocation
-  mapper_parameters->output_format = MAP;
-  output_sam_parameters_set_defaults(&mapper_parameters->sam_parameters);
+  /* Mapper Type */
+  mapper_parameters->mapper_type = mapper_se;
+  /* I/O Parameters */
+  mapper_parameters_set_defaults_io(&mapper_parameters->io);
   /* Search Parameters */
   approximate_search_parameters_init(&mapper_parameters->search_parameters);
+  /* Paired-end Parameters */
+  mapper_parameters_set_defaults_paired_end(&mapper_parameters->paired_end);
   /* Select Parameters */
   archive_select_parameters_init(&mapper_parameters->select_parameters);
   /* System */
-  mapper_parameters->num_threads=num_processors;
-  mapper_parameters->max_memory=0;
-  mapper_parameters->tmp_folder=NULL;
+  mapper_parameters_set_defaults_system(&mapper_parameters->system);
+  /* CUDA settings */
+  mapper_parameters_set_defaults_cuda(&mapper_parameters->cuda);
+  /* Hints */
+  mapper_parameters_set_defaults_hints(&mapper_parameters->hints);
   /* Miscellaneous */
-  mapper_parameters->stats = false;
-  mapper_parameters->stats_reduce_type = reduce_max;
-  mapper_parameters->verbose_user=true;
-  mapper_parameters->verbose_dev=false;
-  /* Extras */
+  mapper_parameters_set_defaults_misc(&mapper_parameters->misc);
 }
-GEM_INLINE void mapper_parameters_print(
-    FILE* const stream,mapper_parameters_t* const parameters,const bool dump_index_info) {
-  tab_fprintf(stream,"[GEM]>Mapper.parameters\n");
-  /*
-   * Mapper Type
-   */
-  switch (parameters->mapper_type) {
+/*
+ * Mapper parameters display
+ */
+GEM_INLINE void mapper_parameters_print_mode(FILE* const stream,const mapper_type mapper_type,const bool cuda_enabled) {
+  /* Mapper Mode */
+  switch (mapper_type) {
     case mapper_se:
-      tab_fprintf(stream,"  => Mapper.type\tMapperSE\n");
+      tab_fprintf(stream,"  => Mapper.type\tMapperSE");
       break;
     case mapper_pe:
-      tab_fprintf(stream,"  => Mapper.type\ttMapperPE\n");
-      break;
-    case mapper_se_cuda:
-      tab_fprintf(stream,"  => Mapper.type\ttMapperSE-CUDA\n");
+      tab_fprintf(stream,"  => Mapper.type\ttMapperPE");
       break;
     case mapper_graph:
-      tab_fprintf(stream,"  => Mapper.type\tMapper-Graph\n");
+      tab_fprintf(stream,"  => Mapper.type\tMapper-Graph");
       break;
     default:
       GEM_INVALID_CASE();
       break;
   }
-  /*
-   * I/O
-   */
-  tab_fprintf(stream,"  => I/O\n");
-  // Index
-  if (dump_index_info) {
-    tab_global_inc();
-    archive_print(stream,parameters->archive);
-    tab_global_dec();
+  // Print CUDA enabled
+  fprintf(stream,"%s\n",cuda_enabled?"\t[CUDA]":" ");
+}
+GEM_INLINE void mapper_parameters_print_io_input_file(
+    FILE* const stream,const char* const label,const char* const input_file_name,
+    const bool fastq_strictly_normalized,const bool fastq_try_recovery) {
+  if (input_file_name!=NULL) {
+    tab_fprintf(stream,"      => %s\t%s (%luMB)%s%s\n",
+        label,input_file_name,CONVERT_B_TO_MB(gem_file_size(input_file_name)),
+        (fastq_strictly_normalized) ? "\t[Normalize=ON]" : " ",
+        (fastq_try_recovery) ? "\t[Recovery=ON]" : " ");
   } else {
-    tab_fprintf(stream,"    => Index\t%s (size=%2.1fMB,length=%lu)\n",
-        parameters->index_file_name,CONVERT_B_TO_MB(archive_get_size(parameters->archive)),
-        archive_get_index_length(parameters->archive));
+    tab_fprintf(stream,"      => %s\t<<stdin>>%s%s\n",label,
+        (fastq_strictly_normalized) ? "\t[Normalize=ON]" : " ",
+        (fastq_try_recovery) ? "\t[Recovery=ON]" : " ");
   }
-
-  // Input // TODO PE
-  if (parameters->input_file_name!=NULL) {
-    tab_fprintf(stream,"    => Input\t%s (size=%2.1fMB)",
-        parameters->input_file_name,CONVERT_B_TO_MB(input_file_get_size(parameters->input_file)));
+}
+GEM_INLINE void mapper_parameters_print_io(FILE* const stream,mapper_parameters_io_t* const io) {
+  /* Index */
+  tab_fprintf(stream,"    => Index\n");
+  tab_fprintf(stream,"      => File\t%s (%luMB) %s\n",
+      io->index_file_name,CONVERT_B_TO_MB(gem_file_size(io->index_file_name)),io->check_index?"[checked]":" ");
+  /* Input */
+  tab_fprintf(stream,"    => Input\n");
+  if (!io->separated_input_files) {
+    mapper_parameters_print_io_input_file(stream,"File",io->input_file_name,
+        io->fastq_strictly_normalized,io->fastq_try_recovery); // Single-File
   } else {
-    tab_fprintf(stream,"    => Input\t<<stdin>>");
+    mapper_parameters_print_io_input_file(stream,"File.End1",io->input_file_name,
+        io->fastq_strictly_normalized,io->fastq_try_recovery); // End-1
+    mapper_parameters_print_io_input_file(stream,"File.End2",io->input_file_name,
+        io->fastq_strictly_normalized,io->fastq_try_recovery); // End-2
   }
-  if (parameters->fastq_strictly_normalized) fprintf(stream,"\t[Normalize=ON]");
-  if (parameters->fastq_try_recovery) fprintf(stream,"\t[Recovery=ON]");
-  fprintf(stream,"\n");
-  // Output
-  tab_fprintf(stream,"    => Output\t%s",
-      (parameters->output_file_name!=NULL) ? parameters->output_file_name : "<<stdout>>");
-  switch (parameters->output_compression) {
-    case FM_GZIPPED_FILE:
-      fprintf(stream,"\t\[GZIP]n");
+  tab_fprintf(stream,"      => Block.size\t%luMB\n",CONVERT_B_TO_MB(io->input_block_size));
+//  tab_fprintf(stream,"    => Num.buffers\t%lu\n",io->input_num_buffers);
+  tab_fprintf(stream,"      => Buffer.lines\t%luKlines\n",io->input_buffer_lines/1000);
+  /* Output */
+  tab_fprintf(stream,"  => Output\n");
+  tab_fprintf(stream,"    => File\t%s",(io->output_file_name!=NULL) ? io->output_file_name : "<<stdout>>");
+  switch (io->output_compression) {
+    case FM_GZIPPED_FILE: fprintf(stream,"\t\[GZIP]n"); break;
+    case FM_BZIPPED_FILE: fprintf(stream,"\t[BZIP]\n"); break;
+    default: fprintf(stream,"\n"); break;
+  }
+  switch (io->output_format) {
+    case MAP:
+      tab_fprintf(stream,"    => Format\tMAP\n");
       break;
-    case FM_BZIPPED_FILE:
-      fprintf(stream,"\t[BZIP]\n");
+    case SAM:
+      tab_fprintf(stream,"    => Format\tSAM\n");
+//      output_sam_parameters_t sam_parameters; // TODO
       break;
     default:
-      fprintf(stream,"\n");
+      tab_fprintf(stream,"    => Format\tUNKNOWN?\n");
       break;
   }
-  /*
-   * Search Parameters
-   */
-  tab_fprintf(stream,"  => Search Parameters\n");
-  // Mapping Strategy
+  tab_fprintf(stream,"    => Buffer.size\t%luMB\n",CONVERT_B_TO_MB(io->output_buffer_size));
+  tab_fprintf(stream,"    => Buffer.size\t%luMB\n",CONVERT_B_TO_MB(io->output_buffer_size));
+  tab_fprintf(stream,"    => Num.buffers\t%lu\n",io->output_num_buffers);
+}
+GEM_INLINE void mapper_parameters_print_search_parameters(FILE* const stream,search_parameters_t* const search_parameters) {
+//  /*
+//   * Search parameters
+//   */
+//  /* Mapping strategy (Mapping mode + properties) */
+//  mapping_mode_t mapping_mode;
+//  float mapping_degree;
+//  /* Qualities */
+//  quality_model_t quality_model;
+//  quality_format_t quality_format;
+//  uint64_t quality_threshold;
+//  /* Error Model (Regulates the number of Mismatch/Indels) */
+//  float max_search_error;
+//  float max_filtering_error;
+//  float complete_strata_after_best;
+//  float min_matching_length;
+//  /* Matches search (Regulates the number of matches) */
+//  uint64_t max_search_matches;
+//  /* Replacements (Regulates the bases that can be replaced/mismatched) */
+//  char mismatch_alphabet[DNA_EXT_RANGE];
+//  uint64_t mismatch_alphabet_length;
+//  bool allowed_chars[256];
+//  bool allowed_enc[DNA_EXT_RANGE];
+//  /* Alignment Model/Score */
+//  alignment_model_t alignment_model;
+//  uint64_t matching_score;
+//  uint64_t mismatch_penalty;
+//  uint64_t gap_open_penalty;
+//  uint64_t gap_extension_penalty;
+//  /*
+//   * Internals
+//   */
+//  /* Soft Region Profile Parameters */
+//  uint64_t srp_region_th; // Max. number of candidates allowed per region
+//  uint64_t srp_max_steps; // Max. number of characters to explore to improve the region
+//  uint64_t srp_dec_factor; // Decreasing factor per step in region exploration
+//  uint64_t srp_region_type_th; // Threshold to classify regions {ZERO,NON_ZERO}
+//  /* Hard Region Profile Parameters */
+//  uint64_t hrp_region_th;
+//  uint64_t hrp_max_steps;
+//  uint64_t hrp_dec_factor;
+//  uint64_t hrp_region_type_th;
+//  /* Read recovery parameters */
+//  uint64_t rrp_region_th;
+//  uint64_t rrp_max_steps;
+//  uint64_t rrp_dec_factor;
+//  uint64_t rrp_region_type_th;
+//  /* Filtering parameters */
+//  uint64_t filtering_threshold;
+//  float filtering_region_factor;
+//  uint64_t pa_filtering_threshold;
+//  /* Checkers */
+//  check_matches_t check_matches;
+}
+GEM_INLINE void mapper_parameters_print_paired_end(FILE* const stream,mapper_parameters_paired_end_t* const paired_end) {
+//  /* Paired-end mode/alg */
+//  bool paired_end;
+//  bool map_both_ends;
+//  uint64_t max_extendable_candidates;
+//  uint64_t max_matches_per_extension;
+//  /* Template allowed length */
+//  uint64_t min_template_length;
+//  uint64_t max_template_length;
+//  /* Concordant Orientation */
+//  bool pair_orientation_FR;
+//  bool pair_orientation_RF;
+//  bool pair_orientation_FF;
+//  bool pair_orientation_RR;
+//  /* Discordant Orientation */
+//  bool discordant_pair_orientation_FR;
+//  bool discordant_pair_orientation_RF;
+//  bool discordant_pair_orientation_FF;
+//  bool discordant_pair_orientation_RR;
+//  /* Pair allowed lay-outs */
+//  bool pair_layout_separate;
+//  bool pair_layout_overlap;
+//  bool pair_layout_contain;
+//  bool pair_layout_dovetail;
+}
+GEM_INLINE void mapper_parameters_print_select_parameters(FILE* const stream,select_parameters_t* const select_parameters) {
+  /* Select Parameters */
+}
+GEM_INLINE void mapper_parameters_print_system(FILE* const stream,mapper_parameters_system_t* const system) {
+  /* System */
+  tab_fprintf(stream,"  => Num.Threads\t%lu\n",system->num_threads);
+  if (system->max_memory!=0) {
+    tab_fprintf(stream,"  => Max.Memory\t%lu\n",system->max_memory);
+  }
+  if (system->tmp_folder!=NULL) {
+    tab_fprintf(stream,"  => Tmp.path\t%s\n",system->tmp_folder);
+  }
+}
+GEM_INLINE void mapper_parameters_print_cuda(FILE* const stream,mapper_parameters_cuda_t* const cuda) {
+  /* CUDA settings */
+}
+GEM_INLINE void mapper_parameters_print_hints(FILE* const stream,mapper_parameters_hints_t* const hints) {
+  /* Hints */
+}
+GEM_INLINE void mapper_parameters_print_misc(FILE* const stream,mapper_parameters_misc_t* const misc) {
+  /* Miscellaneous */
 
-  // Quality Model
-
-  // Error Model
-
-  // Replacements
-
-  // Reporting
-
-  // Alignment Model
-
-
-  /*
-   * Select Parameters
-   */
-  tab_fprintf(stream,"  => Select Parameters\n");
-
-  /*
-   * System
-   */
+}
+GEM_INLINE void mapper_parameters_print(FILE* const stream,mapper_parameters_t* const parameters) {
+  tab_fprintf(stream,"[GEM]>Mapper.parameters\n");
+  /* CMD line */
+  uint64_t i;
+  tab_fprintf(stream,"  => Application %s\n",parameters->argv[0]);
+  tab_fprintf(stream,"  => Arguments   ");
+  for (i=1;i<parameters->argc;++i) {
+    fprintf(stream,"%s ",parameters->argv[i]);
+  }
+  fprintf(stream,"\n");
+  /* Mapper Mode */
+  tab_fprintf(stream,"  => Mapper.Mode\n");
+  tab_global_inc();
+  mapper_parameters_print_mode(stream,parameters->mapper_type,parameters->cuda.cuda_enabled);
+  tab_global_dec();
+  /* I/O Parameters */
+  tab_fprintf(stream,"  => I/O\n");
+  tab_global_inc();
+  mapper_parameters_print_io(stream,&parameters->io);
+  tab_global_dec();
+  /* Search Parameters */
+  tab_fprintf(stream,"  => Search.Parameters\n");
+  tab_global_inc();
+  mapper_parameters_print_search_parameters(stream,&parameters->search_parameters);
+  tab_global_dec();
+  /* Select Parameters */
+  tab_fprintf(stream,"  => Select.Parameters\n");
+  tab_global_inc();
+  mapper_parameters_print_select_parameters(stream,&parameters->select_parameters);
+  tab_global_dec();
+  /* Paired-end Parameters */
+  tab_fprintf(stream,"  => Paired.end.Parameters\n");
+  tab_global_inc();
+  mapper_parameters_print_paired_end(stream,&parameters->paired_end);
+  tab_global_dec();
   /* System */
   tab_fprintf(stream,"  => System\n");
-  tab_fprintf(stream,"    => Num.Threads\t%lu\n",parameters->num_threads);
-  if (parameters->max_memory!=0) {
-    tab_fprintf(stream,"    => Max.Memory\t%lu\n",parameters->max_memory);
-  }
-  if (parameters->tmp_folder!=NULL) {
-    tab_fprintf(stream,"    => Tmp.path\t%s\n",parameters->tmp_folder);
-  }
-
-  // TODO All
-
-
-  /* Select Parameters */
-  /* Parameters */
-
-  /*
-  #define GEM_STATS_SHOW_SE_PARAMETERS(FILE,MAPPER_PARAMS) \
-    fprintf(FILE, "PARAMETERS.SE.Mapping\n"); \
-    if (MAPPER_PARAMS.percentage_mismatches<0.0) { \
-    fprintf(FILE, "  Mismatches          %ld\n", MAPPER_PARAMS.max_mismatches); \
-    } else { \
-    fprintf(FILE, "  Mismatches          %1.2f\n", MAPPER_PARAMS.percentage_mismatches); \
-    } \
-    if (MAPPER_PARAMS.percentage_differences<0.0) { \
-    fprintf(FILE, "  Differences         %ld\n", MAPPER_PARAMS.max_differences); \
-    } else { \
-    fprintf(FILE, "  Differences         %1.2f\n", MAPPER_PARAMS.percentage_differences); \
-    } \
-    fprintf(FILE, "  Delta               %lu\n", MAPPER_PARAMS.delta); \
-    fprintf(FILE, "  Max indel length    %lu\n", MAPPER_PARAMS.max_indel_length); \
-    fprintf(FILE, "  Replacements        {%s}\n", MAPPER_PARAMS.mismatch_alphabet); \
-    if (MAPPER_PARAMS.percentage_incomplete_strata<0.0) { \
-    fprintf(FILE, "  Incomplete Strata   %ld\n", MAPPER_PARAMS.incomplete_strata); \
-    } else { \
-    fprintf(FILE, "  Incomplete Strata   %1.2f\n", MAPPER_PARAMS.percentage_incomplete_strata); \
-    }
-
-  #define GEM_STATS_SHOW_PE_PARAMETERS(FILE,PAIR_PARAMS) \
-    fprintf(FILE, "PARAMETERS.PE.Mapping\n"); \
-    fprintf(FILE, "  Map.Both.Ends          %s\n", GEM_PRINT_BOOL(PAIR_PARAMS.map_both_ends)); \
-    if (PAIR_PARAMS.percentage_differences<0.0) \
-    fprintf(FILE, "  Mismatches             %ld\n", PAIR_PARAMS.max_differences); \
-    else \
-    fprintf(FILE, "  Mismatches             %1.2f\n", PAIR_PARAMS.percentage_differences); \
-    fprintf(FILE, "  Max.Insertion.Size     %lu\n", PAIR_PARAMS.max_ins_size); \
-    fprintf(FILE, "  Min.Insertion.Size     %lu\n", PAIR_PARAMS.min_ins_size); \
-    fprintf(FILE, "  Max.Number.Pairs       %lu\n", PAIR_PARAMS.max_extended_matches)
-    */
-
-
+  tab_global_inc();
+  mapper_parameters_print_system(stream,&parameters->system);
+  tab_global_dec();
+  /* CUDA settings */
+  tab_fprintf(stream,"  => CUDA.Setttings\n");
+  tab_global_inc();
+  mapper_parameters_print_cuda(stream,&parameters->cuda);
+  tab_global_dec();
+  /* Hints */
+  tab_fprintf(stream,"  => Hints\n");
+  tab_global_inc();
+  mapper_parameters_print_hints(stream,&parameters->hints);
+  tab_global_dec();
+  /* Miscellaneous */
+  tab_fprintf(stream,"  => Misc\n");
+  tab_global_inc();
+  mapper_parameters_print_misc(stream,&parameters->misc);
+  tab_global_dec();
 }
 /*
  * I/O
@@ -276,13 +455,12 @@ GEM_INLINE void mapper_SE_output_matches(
     const mapper_parameters_t* const parameters,
     buffered_output_file_t* const buffered_output_file,
     sequence_t* const seq_read,matches_t* const matches) {
-  switch (parameters->output_format) {
+  switch (parameters->io.output_format) {
     case MAP:
       output_map_single_end_matches(buffered_output_file,seq_read,matches);
       break;
     case SAM:
-      output_sam_single_end_matches(buffered_output_file,seq_read,matches,
-          &parameters->sam_parameters);
+      output_sam_single_end_matches(buffered_output_file,seq_read,matches,&parameters->io.sam_parameters);
       break;
     default:
       GEM_INVALID_CASE();
@@ -295,7 +473,7 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
 
   // Create new buffered reader/writer
   const mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
-  mapper_search->buffered_fasta_input = buffered_input_file_new(parameters->input_file,parameters->input_buffer_lines);
+  mapper_search->buffered_fasta_input = buffered_input_file_new(parameters->input_file,parameters->io.input_buffer_lines);
   mapper_search->buffered_output_file = buffered_output_file_new(parameters->output_file);
   buffered_input_file_attach_buffered_output(mapper_search->buffered_fasta_input,mapper_search->buffered_output_file);
 
@@ -313,7 +491,8 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
   error_code_t error_code;
   while ((error_code=input_fasta_parse_sequence(
       mapper_search->buffered_fasta_input,archive_search_get_sequence(mapper_search->archive_search),
-      parameters->fastq_strictly_normalized,parameters->fastq_try_recovery))) { // TODO: Check INPUT_STATUS_FAIL & check skip empty lines
+      parameters->io.fastq_strictly_normalized,parameters->io.fastq_try_recovery,true))) {
+    // TODO: Check INPUT_STATUS_FAIL & check skip empty lines
 
     // Search into the archive
     archive_search_single_end(mapper_search->archive_search,mapper_search->matches);
@@ -351,19 +530,19 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
 }
 GEM_INLINE void mapper_SE_run(mapper_parameters_t* const mapper_parameters) {
   // Setup threads
-  const uint64_t num_threads = mapper_parameters->num_threads;
+  const uint64_t num_threads = mapper_parameters->system.num_threads;
   mapper_search_t* const mapper_search = mm_calloc(num_threads,mapper_search_t,false); // Allocate mapper searches
   // Set error-report function
   g_mapper_searches = mapper_search;
   gem_error_set_report_function(mapper_error_report);
   // Prepare output file (SAM headers)
-  if (mapper_parameters->output_format==SAM) {
+  if (mapper_parameters->io.output_format==SAM) {
     output_sam_print_header(mapper_parameters->output_file,
         mapper_parameters->archive,mapper_parameters->argc,mapper_parameters->argv);
   }
   // Setup Ticker
   ticker_t ticker;
-  ticker_count_reset(&ticker,mapper_parameters->verbose_user,"Mapping Sequences",0,MAPPER_TICKER_STEP,true);
+  ticker_count_reset(&ticker,mapper_parameters->misc.verbose_user,"Mapping Sequences",0,MAPPER_TICKER_STEP,true);
   ticker_add_process_label(&ticker,"#","sequences processed");
   ticker_add_finish_label(&ticker,"Total","sequences processed");
   ticker_mutex_enable(&ticker);
@@ -394,5 +573,27 @@ GEM_INLINE void mapper_SE_run(mapper_parameters_t* const mapper_parameters) {
  * PE Mapper
  */
 GEM_INLINE void mapper_PE_run(const mapper_parameters_t* const mapper_parameters) {
+
+
+
   GEM_NOT_IMPLEMENTED(); // TODO
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }

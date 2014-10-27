@@ -25,24 +25,18 @@
  * Filtering Candidates Vector
  */
 typedef struct {
-  /* Pending candidates */
+  /* Candidates */
   vector_t* candidate_positions;              // Candidates positions (candidate_position_t)
-  /* Checked Positions */
-  vector_t* verified_candidate_positions;     // Verified positions (uint64_t)
-  /* Candidates accepted */
+  vector_t* candidate_regions;                // Candidates regions (candidate_region_t)
+  vector_t* verified_positions;               // Verified positions (uint64_t)
   uint64_t num_candidates_accepted;           // Total number of candidates accepted
-  uint64_t max_candidates_accepted;           // Quick abandon due to maximum candidates accepted
-  /* Internals */
+  /* Region Buffer */
   vector_t* regions_buffer;                   // Regions Buffer (region_t)
 } filtering_candidates_t;
 
 GEM_INLINE void filtering_candidates_init(filtering_candidates_t* const filtering_candidates);
 GEM_INLINE void filtering_candidates_clear(filtering_candidates_t* const filtering_candidates);
 GEM_INLINE void filtering_candidates_destroy(filtering_candidates_t* const filtering_candidates);
-
-GEM_INLINE void filtering_candidates_set_max_candidates_accepted(
-    filtering_candidates_t* const filtering_candidates,const uint64_t max_candidates_accepted);
-GEM_INLINE bool filtering_candidates_is_max_candidates_reached(filtering_candidates_t* const filtering_candidates);
 
 GEM_INLINE void filtering_candidates_add_interval(
     filtering_candidates_t* const filtering_candidates,
@@ -74,11 +68,12 @@ GEM_INLINE uint64_t filtering_candidates_add_to_bpm_buffer(
     filtering_candidates_t* const filtering_candidates,
     const locator_t* const locator,const fm_index_t* const fm_index,
     const dna_text_t* const enc_text,pattern_t* const pattern,const strand_t search_strand,
-    const search_actual_parameters_t* const search_actual_parameters,bpm_gpu_buffer_t* const bpm_gpu_buffer);
+    const search_actual_parameters_t* const search_actual_parameters,
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,mm_stack_t* const mm_stack);
 GEM_INLINE void filtering_candidates_verify_from_bpm_buffer(
-    const text_collection_t* const text_collection,const dna_text_t* const enc_text,
-    pattern_t* const pattern,const strand_t search_strand,bpm_gpu_buffer_t* const bpm_gpu_buffer,
-    const uint64_t candidate_offset_begin,const uint64_t candidate_offset_end,
+    const text_collection_t* const text_collection,const dna_text_t* const enc_text,pattern_t* const pattern,
+    const strand_t search_strand,const search_actual_parameters_t* const search_actual_parameters,
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t candidate_offset_begin,const uint64_t candidate_offset_end,
     matches_t* const matches,mm_stack_t* const mm_stack);
 
 #endif /* FILTERING_CANDIDATES_H_ */

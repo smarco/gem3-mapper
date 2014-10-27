@@ -52,7 +52,7 @@ typedef struct {
  * BPM_GPU Setup
  */
 GEM_INLINE bpm_gpu_buffer_collection_t* bpm_gpu_init(
-    dna_text_t* const enc_text,const uint32_t num_buffers,
+    dna_text_t* const enc_text,const uint32_t num_buffers,const uint32_t buffer_size,
     const int32_t average_query_size,const int32_t candidates_per_query,const bool verbose);
 GEM_INLINE void bpm_gpu_destroy(bpm_gpu_buffer_collection_t* const buffer_collection);
 GEM_INLINE bool bpm_gpu_support();

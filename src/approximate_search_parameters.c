@@ -76,6 +76,12 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
   search_parameters->max_search_matches = ALL;
   // Replacements
   approximate_search_initialize_replacements(search_parameters);
+  // Alignment Model/Score
+  search_parameters->alignment_model = alignment_model_levenshtein;
+  search_parameters->matching_score = 1;
+  search_parameters->mismatch_penalty = 4;
+  search_parameters->gap_open_penalty = 6;
+  search_parameters->gap_extension_penalty = 1;
   // Soft RP
   search_parameters->srp_region_th = SRP_REGION_THRESHOLD;
   search_parameters->srp_max_steps = SRP_MAX_STEPS;
@@ -95,8 +101,6 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
   search_parameters->filtering_region_factor = FILTERING_REGION_FACTOR;
   search_parameters->filtering_threshold = FILTERING_THRESHOLD;
   search_parameters->pa_filtering_threshold = PA_FILTERING_THRESHOLD;
-  // Check alignments
-  search_parameters->check_matches = check_none;
 }
 GEM_INLINE void approximate_search_configure_mapping_strategy(
     search_parameters_t* const search_parameters,
@@ -138,6 +142,10 @@ GEM_INLINE void approximate_search_configure_replacements(
   }
   gem_cond_fatal_error(count==0,ASP_REPLACEMENT_EMPTY);
   search_parameters->mismatch_alphabet_length = count;
+}
+GEM_INLINE void approximate_search_configure_alignment_model(
+    search_parameters_t* const search_parameters,const alignment_model_t alignment_model) {
+  search_parameters->alignment_model = alignment_model;
 }
 GEM_INLINE void approximate_search_configure_matches(
     search_parameters_t* const search_parameters,const uint64_t max_search_matches) {

@@ -59,10 +59,8 @@ typedef struct {
   /* CIGAR */
   uint64_t cigar_buffer_offset;
   uint64_t cigar_length;
+  uint64_t effective_length;
 } match_trace_t;
-// Overloaded to (match_trace_mark_t)
-#define match_trace_begin_offset cigar_length
-#define match_trace_end_offset   cigar_buffer_offset
 
 ///*
 // * Local Match // TODO
@@ -87,6 +85,8 @@ typedef struct {
  * Matches
  */
 typedef struct {
+  /* Search-matches state */
+  uint64_t max_complete_stratum;
   /* Text Collection Buffer */
   text_collection_t* text_collection;       // Stores text-traces (candidates/matches/regions/...)
   /* Matches Counters */
@@ -141,16 +141,8 @@ GEM_INLINE uint64_t match_trace_get_cigar_length(const match_trace_t* const matc
  * Adding Matches
  */
 GEM_INLINE match_trace_t* matches_lookup_match(matches_t* const matches,const uint64_t position);
-GEM_INLINE void matches_add_match_trace_mark(
-    matches_t* const matches,const uint64_t trace_offset,const uint64_t position,const uint64_t distance,
-    const uint64_t match_begin_offset,const uint64_t match_end_offset,
-    const strand_t strand,const bool update_counters);
 GEM_INLINE void matches_add_match_trace_t(
-    matches_t* const matches,match_trace_t* const match_trace,
-    const uint64_t match_length,const bool update_counters);
-//GEM_INLINE void matches_add_match_trace(
-//    matches_t* const matches,const uint64_t trace_offset,const uint64_t position,
-//    const uint64_t distance,const strand_t strand,const bool update_counters);
+    matches_t* const matches,match_trace_t* const match_trace,const bool update_counters);
 
 GEM_INLINE void matches_add_interval_match(
     matches_t* const matches,

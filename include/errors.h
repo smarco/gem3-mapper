@@ -121,7 +121,6 @@ void gem_perror();
       gem_debug_msg(gem_debug_msg,##args); \
     } \
   } while (0)
-#define gem_cond_debug_block(condition) if (condition)
 #ifdef GEM_DEBUG
   #define gem_debug(gem_debug_msg,args...) \
     gem_report_raw_begin_block(GEM_LABEL_DEBUG,debug,gem_debug_msg,##args) \
@@ -133,11 +132,13 @@ void gem_perror();
     gem_debug_msg(gem_debug_msg,args...); \
     gem_print_stack_trace();
   #define gem_debug_block()
+  #define gem_cond_debug_block(condition) if (condition)
 #else
   #define gem_debug(gem_debug_msg,args...)
   #define gem_debug_msg(gem_debug_msg,args...)
   #define gem_debug_msg__stack(gem_debug_msg,args...)
   #define gem_debug_block() if (0)
+  #define gem_cond_debug_block(condition) if (0)
 #endif
 
 /*

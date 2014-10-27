@@ -261,8 +261,8 @@ GEM_INLINE void dna_text_builder_set_char(
   gem_fatal_check(position >= dna_text->allocated,DNA_TEXT_OOR,position,dna_text->allocated);
   dna_text->text[position] = enc_char;
 }
-GEM_INLINE uint8_t* dna_text_builder_get_buffer(const dna_text_builder_t* const dna_text) {
-  return dna_text->buffer;
+GEM_INLINE uint8_t* dna_text_builder_get_text(const dna_text_builder_t* const dna_text) {
+  return dna_text->text;
 }
 // Builder writer
 #ifdef DNA_TEXT_RAW
@@ -288,6 +288,9 @@ GEM_INLINE void dna_text_builder_write(
 GEM_INLINE uint64_t dna_text_get_length(const dna_text_t* const dna_text) {
   return dna_text->length;
 }
+GEM_INLINE uint8_t* dna_text_get_text(const dna_text_t* const dna_text) {
+  return dna_text->buffer;
+}
 GEM_INLINE uint8_t* dna_text_retrieve_sequence(
     const dna_text_t* const dna_text,const uint64_t position,const uint64_t length,
     mm_stack_t* const mm_stack) {
@@ -295,22 +298,19 @@ GEM_INLINE uint8_t* dna_text_retrieve_sequence(
   PREFETCH(sequence); // Prefetch text // TODO Hint later on (LLC)
   return dna_text->buffer+position;
 }
-GEM_INLINE uint8_t* dna_text_get_buffer(const dna_text_t* const dna_text) {
-  return dna_text->buffer;
-}
 #endif
 #ifdef DNA_TEXT_COMPACT
 GEM_INLINE uint64_t dna_text_get_length(const dna_text_t* const dna_text) {
   return dna_text->length;
+}
+GEM_INLINE uint8_t* dna_text_get_text(const dna_text_t* const dna_text) {
+  GEM_NOT_SUPPORTED();
 }
 GEM_INLINE uint8_t* dna_text_retrieve_sequence(
     const dna_text_t* const dna_text,const uint64_t position,const uint64_t length,
     mm_stack_t* const mm_stack) {
   GEM_NOT_IMPLEMENTED();
   return NULL;
-}
-GEM_INLINE uint8_t* dna_text_get_buffer(const dna_text_t* const dna_text) {
-  GEM_NOT_SUPPORTED();
 }
 #endif
 /*

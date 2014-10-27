@@ -14,33 +14,9 @@
 #include "archive_search_group.h"
 
 /*
- * Mapper-CUDA Parameters
- */
-typedef struct {
-  /* I/O */
-  uint64_t input_block_size;
-  uint64_t buffer_num_lines;
-  uint64_t output_buffer_size;
-  uint64_t max_output_buffers;
-  /* BPM Buffers */
-  uint64_t num_search_groups;      // Total number of search-groups deployed
-  uint64_t average_query_size;     // HINT on the average query size
-  uint64_t candidates_per_query;   // HINT on the number of candidates per query
-  /* System */
-  uint64_t num_generating_threads; // Total number of threads generating candidates
-  uint64_t num_selecting_threads;  // Total number of threads selecting candidates
-} mapper_cuda_parameters_t;
-
-/*
- * CUDA Mapper parameters
- */
-GEM_INLINE void mapper_cuda_parameters_set_defaults(mapper_cuda_parameters_t* const mapper_cuda_parameters);
-
-/*
  * SE-CUDA Mapper
  */
-GEM_INLINE void mapper_SE_CUDA_run(
-    mapper_parameters_t* const mapper_parameters,mapper_cuda_parameters_t* const cuda_parameters);
+GEM_INLINE void mapper_SE_CUDA_run(mapper_parameters_t* const mapper_parameters);
 
 /*
  * Error Messages

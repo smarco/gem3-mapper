@@ -22,6 +22,8 @@
 GEM_INLINE matches_t* matches_new() {
   // Allocate handler
   matches_t* const matches = mm_alloc(matches_t);
+  // Search-matches state
+  matches->max_complete_stratum = ALL;
   // Matches Counters
   matches->counters = vector_new(MATCHES_INIT_COUNTERS,uint64_t);
   // Interval Matches
@@ -49,6 +51,7 @@ GEM_INLINE void matches_configure(matches_t* const matches,text_collection_t* co
 }
 GEM_INLINE void matches_clear(matches_t* const matches) {
   MATCHES_CHECK(matches);
+  matches->max_complete_stratum = ALL;
   vector_clear(matches->counters);
   vector_clear(matches->interval_matches);
   vector_clear(matches->global_matches);
@@ -137,41 +140,40 @@ GEM_INLINE void matches_index_match(
 GEM_INLINE match_trace_t* matches_lookup_match(matches_t* const matches,const uint64_t end_position) {
   return ihash_get(matches->end_gmatches,end_position,match_trace_t);
 }
-GEM_INLINE void matches_add_match_trace_mark(
-    matches_t* const matches,const uint64_t trace_offset,const uint64_t position,const uint64_t distance,
-    const uint64_t match_begin_offset,const uint64_t match_end_offset,
-    const strand_t strand,const bool update_counters) {
+//GEM_INLINE void matches_add_match_trace_mark( // FIXME REMOVE-ME FIXME REMOVE-ME FIXME REMOVE-ME FIXME REMOVE-ME
+//    matches_t* const matches,const uint64_t trace_offset,const uint64_t position,const uint64_t distance,
+//    const uint64_t match_begin_offset,const uint64_t match_end_offset,
+//    const strand_t strand,const bool update_counters) {
 //  // Check duplicates
 //  const uint64_t match_end_position = position + match_end_offset;
 //  if (matches_lookup_match(matches,match_end_position)==NULL) {
-    // Add the match-trace mark (just a mark, not (re)aligned)
-    match_trace_t* match_trace;
-    vector_alloc_new(matches->global_matches,match_trace_t,match_trace);
-    match_trace->trace_offset = trace_offset;
-    match_trace->position = position;
-    match_trace->match_trace_begin_offset = match_begin_offset; // FIXME TO remove
-    match_trace->match_trace_end_offset = match_end_offset;
-    match_trace->distance = distance;
-    match_trace->strand = strand;
-    // Update counters
-    if (update_counters) matches_counters_add(matches,distance,1);
-    // Index
+//    // Add the match-trace mark (just a mark, not (re)aligned)
+//    match_trace_t* match_trace;
+//    vector_alloc_new(matches->global_matches,match_trace_t,match_trace);
+//    match_trace->trace_offset = trace_offset;
+//    match_trace->position = position;
+//    match_trace->match_trace_begin_offset = match_begin_offset; // FIXME TO remove
+//    match_trace->match_trace_end_offset = match_end_offset;
+//    match_trace->distance = distance;
+//    match_trace->strand = strand;
+//    // Update counters
+//    if (update_counters) matches_counters_add(matches,distance,1);
+//    // Index
 //    matches_index_match(matches,match_trace,match_end_position);
 //  }
-}
+//}
 GEM_INLINE void matches_add_match_trace_t(
-    matches_t* const matches,match_trace_t* const match_trace,
-    const uint64_t match_length,const bool update_counters) {
-//  // Check duplicates
-//  const uint64_t match_end_position = match_trace->position+match_length;
-//  if (matches_lookup_match(matches,match_end_position)==NULL) {
+    matches_t* const matches,match_trace_t* const match_trace,const bool update_counters) {
+  // Check duplicates
+  const uint64_t match_end_position = match_trace->position+match_trace->effective_length;
+  if (matches_lookup_match(matches,match_end_position)==NULL) {
     // Add the match-trace
     vector_insert(matches->global_matches,*match_trace,match_trace_t);
     // Update counters
     if (update_counters) matches_counters_add(matches,match_trace->distance,1);
     // Index
-//    matches_index_match(matches,match_trace,match_end_position);
-//  }
+    matches_index_match(matches,match_trace,match_end_position);
+  }
 }
 //GEM_INLINE void matches_add_match_trace(
 //    matches_t* const matches,const uint64_t trace_offset,const uint64_t position,
@@ -250,7 +252,7 @@ GEM_INLINE void matches_reverse_CIGAR_colorspace(
     matches_t* const matches,
     const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
   // Exact Match
-  if (cigar_length==0) return; // FIXME: Even all-matching matches have CIGAR=1
+  if (cigar_length==0) return; // Even all-matching matches have CIGAR=1
   // Reverse CIGAR
   cigar_element_t* const cigar_buffer = vector_get_elm(matches->cigar_buffer,cigar_buffer_offset,cigar_element_t);
   const uint64_t middle_point = cigar_length/2;
@@ -265,7 +267,7 @@ GEM_INLINE uint64_t matches_get_effective_length(
     matches_t* const matches,const uint64_t read_length,
     const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
   // Exact Match
-  if (cigar_length==0) return read_length; // FIXME: Even all-matching matches have CIGAR=1
+  if (cigar_length==0) return read_length; // Even all-matching matches have CIGAR=1
   // Traverse CIGAR
   const cigar_element_t* cigar_element = vector_get_elm(matches->cigar_buffer,cigar_buffer_offset,cigar_element_t);
   int64_t i, effective_length = read_length;

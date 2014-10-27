@@ -201,8 +201,8 @@ GEM_INLINE void search_group_dispatcher_init_search_group(
   search_group->mm_search = mm_search_new(mm_pool_get_slab(mm_pool_2MB)); // FIXME 8MB
 }
 GEM_INLINE search_group_dispatcher_t* search_group_dispatcher_new(
-    mapper_parameters_t* const mapper_parameters,
-    archive_t* const archive,const uint64_t num_search_groups,
+    mapper_parameters_t* const mapper_parameters,archive_t* const archive,
+    const uint64_t num_search_groups,const uint64_t bpm_buffer_size,
     const uint64_t average_query_size,const uint64_t candidates_per_query) {
   // Allocate
   search_group_dispatcher_t* const dispatcher = mm_alloc(search_group_dispatcher_t);
@@ -216,8 +216,8 @@ GEM_INLINE search_group_dispatcher_t* search_group_dispatcher_new(
   dispatcher->next_request_id = 0; // Next Block ID
   dispatcher->requests = pqueue_new(2*num_search_groups);
   // BPM-GPU Buffer
-  dispatcher->bpm_gpu_buffer_collection = bpm_gpu_init(archive->enc_text,num_search_groups,
-      average_query_size,candidates_per_query,mapper_parameters->verbose_dev);
+  dispatcher->bpm_gpu_buffer_collection = bpm_gpu_init(archive->enc_text,num_search_groups,bpm_buffer_size,
+      average_query_size,candidates_per_query,mapper_parameters->misc.verbose_dev);
   // Archive Search Groups
   dispatcher->parameters = mapper_parameters;
   dispatcher->hint_queries_per_search = (archive_is_indexed_complement(archive)) ? 1 : 2;
@@ -450,8 +450,14 @@ GEM_INLINE search_group_t* search_group_dispatcher_request_selecting_(
       search_group = search_group_dispatcher_generating_get_new_verifying(dispatcher);
       while (search_group==NULL && dispatcher->num_threads_generating > 0) {
         // No group eligible (only multisearch-groups extensions)
-        PROF_INC_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING_STALLS);
-        PROF_INC_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING_STALLS_NO_SINGLE_GROUPS);
+        PROF_BLOCK() {
+          PROF_INC_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING_STALLS);
+          if (dispatcher->num_groups_verifying > 0) {
+            PROF_INC_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING_STALLS_NO_SINGLE_GROUPS);
+          } else {
+            PROF_INC_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING_STALLS_IDLE);
+          }
+        }
         CV_WAIT(dispatcher->groups_verifying_cond,dispatcher->dispatcher_mutex);
         // Search again
         search_group = search_group_dispatcher_generating_get_new_verifying(dispatcher);
@@ -532,13 +538,15 @@ GEM_INLINE void archive_search_copy_candidates(
   approximate_search_t* const forward_asearch = &archive_search->forward_search_state;
   forward_asearch->num_potential_candidates = filtering_candidates_add_to_bpm_buffer(
       forward_asearch->filtering_candidates,archive->locator,archive->fm_index,archive->enc_text,
-      &forward_asearch->pattern,forward_asearch->search_strand,forward_asearch->search_actual_parameters,bpm_gpu_buffer);
+      &forward_asearch->pattern,forward_asearch->search_strand,
+      forward_asearch->search_actual_parameters,bpm_gpu_buffer,archive_search->mm_stack);
   if (archive_search->search_reverse) {
     // Add candidates (REVERSE)
     approximate_search_t* const reverse_asearch = &archive_search->reverse_search_state;
     reverse_asearch->num_potential_candidates = filtering_candidates_add_to_bpm_buffer(
         reverse_asearch->filtering_candidates,archive->locator,archive->fm_index,archive->enc_text,
-        &reverse_asearch->pattern,reverse_asearch->search_strand,reverse_asearch->search_actual_parameters,bpm_gpu_buffer);
+        &reverse_asearch->pattern,reverse_asearch->search_strand,
+        reverse_asearch->search_actual_parameters,bpm_gpu_buffer,archive_search->mm_stack);
   }
   PROF_STOP(GP_ARCHIVE_SEARCH_COPY_CANDIDATES);
 }
@@ -549,16 +557,40 @@ GEM_INLINE void archive_search_retrieve_candidates(
   // Verified candidates (FORWARD)
   approximate_search_t* const forward_asearch = &archive_search->forward_search_state;
   const uint64_t results_buffer_forward_top = results_buffer_offset+forward_asearch->num_potential_candidates;
-  filtering_candidates_verify_from_bpm_buffer(
-      archive_search->text_collection,archive_search->archive->enc_text,&forward_asearch->pattern,Forward,
-      bpm_gpu_buffer,results_buffer_offset,results_buffer_forward_top,matches,archive_search->mm_stack);
+  if (forward_asearch->current_search_stage==asearch_filtering) {
+    filtering_candidates_verify_from_bpm_buffer(
+        archive_search->text_collection,archive_search->archive->enc_text,&forward_asearch->pattern,Forward,
+        forward_asearch->search_actual_parameters,bpm_gpu_buffer,
+        results_buffer_offset,results_buffer_forward_top,matches,archive_search->mm_stack);
+  } else {
+    // FIXME Dirty trick to add interval matches => change to interval_set
+    if (forward_asearch->region_profile.num_filtering_regions!=0) {
+      const filtering_region_t* const first_region = forward_asearch->region_profile.filtering_region;
+      matches_add_interval_match(matches,first_region->hi,first_region->lo,
+          forward_asearch->pattern.key_length,0,forward_asearch->search_strand);
+    }
+  }
+  // Set MCS
+  matches->max_complete_stratum = MIN(matches->max_complete_stratum,forward_asearch->max_complete_stratum);
   if (archive_search->search_reverse) {
     // Verified candidates (REVERSE)
     approximate_search_t* const reverse_asearch = &archive_search->reverse_search_state;
-    const uint64_t results_buffer_reverse_top = results_buffer_forward_top+reverse_asearch->num_potential_candidates;
-    filtering_candidates_verify_from_bpm_buffer(
-        archive_search->text_collection,archive_search->archive->enc_text,&reverse_asearch->pattern,Reverse,
-        bpm_gpu_buffer,results_buffer_forward_top,results_buffer_reverse_top,matches,archive_search->mm_stack);
+    if (reverse_asearch->current_search_stage==asearch_filtering) {
+      const uint64_t results_buffer_reverse_top = results_buffer_forward_top+reverse_asearch->num_potential_candidates;
+      filtering_candidates_verify_from_bpm_buffer(
+          archive_search->text_collection,archive_search->archive->enc_text,&reverse_asearch->pattern,Reverse,
+          reverse_asearch->search_actual_parameters,bpm_gpu_buffer,
+          results_buffer_forward_top,results_buffer_reverse_top,matches,archive_search->mm_stack);
+    } else {
+      // FIXME Dirty trick to add interval matches => change to interval_set
+      if (reverse_asearch->region_profile.num_filtering_regions!=0) {
+        const filtering_region_t* const first_region = reverse_asearch->region_profile.filtering_region;
+        matches_add_interval_match(matches,first_region->hi,first_region->lo,
+            reverse_asearch->pattern.key_length,0,reverse_asearch->search_strand);
+      }
+    }
+    // Set MCS
+    matches->max_complete_stratum = MIN(matches->max_complete_stratum,reverse_asearch->max_complete_stratum);
   }
   PROF_STOP(GP_ARCHIVE_SEARCH_RETRIEVE_CANDIDATES);
 }

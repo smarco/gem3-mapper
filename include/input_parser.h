@@ -40,9 +40,13 @@ GEM_INLINE void input_text_parse_skip_chars(const char** const text_line,uint64_
 GEM_INLINE void input_text_parse_skip_line(const char** const text_line);
 GEM_INLINE bool input_text_parse_is_eol(const char** const text_line);
 GEM_INLINE void input_text_parse_field(const char** const text_line,const char delimiter,string_t* const string);
-GEM_INLINE error_code_t input_text_parse_integer(const char** const text_line,int64_t* const value);
-GEM_INLINE error_code_t input_text_parse_double(const char** const text_line,double* const value);
-GEM_INLINE error_code_t input_text_parse_size(char* const size_text,uint64_t* const size);
+GEM_INLINE int input_text_parse_integer(const char** const text_line,int64_t* const value);
+GEM_INLINE int input_text_parse_double(const char** const text_line,double* const value);
+GEM_INLINE int input_text_parse_size(char* const size_text,uint64_t* const size);
+GEM_INLINE int input_text_parse_csv_arguments(char* const arguments,const uint64_t num_arguments,...);
+GEM_INLINE int input_text_parse_extended_uint64(char* const argument,uint64_t* const value);
+GEM_INLINE int input_text_parse_extended_int64(char* const argument,int64_t* const value);
+GEM_INLINE int input_text_parse_extended_double(char* const argument,double* const value);
 
 /*
  * Tag Parser
