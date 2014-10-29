@@ -302,6 +302,8 @@ GEM_INLINE void mapper_profile_print_filtering_verifying(FILE* const stream,cons
   if (verification_profile) {
   tab_fprintf(stream,"    => TIME.Verify.Regions                     ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_VERIFY_CANDIDATE_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"      => TIME.Kmer.Counting                    ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_KMER_COUNTER_FILTER),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"      => TIME.LevenshteinBPM                   ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_LEVENSHTEIN_BPM),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"    => TIME.Realign.Accepted.Regions           ");
@@ -317,8 +319,10 @@ GEM_INLINE void mapper_profile_print_filtering_verifying(FILE* const stream,cons
   tab_fprintf(stream,"        --> FC.Regions.Coverage                     ");
   PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_FC_CANDIDATE_REGIONS_COVERAGE));
   if (verification_profile) {
-  tab_fprintf(stream,"        --> FC.Regions.Coverage.Extended            ");
-  PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_FC_CANDIDATE_REGIONS_EXT_COVERAGE));
+//  tab_fprintf(stream,"        --> FC.Regions.Coverage.Extended            ");
+//  PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_FC_CANDIDATE_REGIONS_EXT_COVERAGE));
+//  tab_fprintf(stream,"      --> FC.Kmer.Counting.Discarded                ");
+//  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_KMER_COUNTER_FILTER_DISCARDED),PROF_GET_COUNTER(GP_FC_NUM_CANDIDATE_REGIONS),"",true);
   tab_fprintf(stream,"      --> FC.LevenshteinBPM.Accepted                ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_LEVENSHTEIN_ACCEPTED),PROF_GET_COUNTER(GP_FC_NUM_CANDIDATE_REGIONS),"",true);
   tab_fprintf(stream,"        --> FC.LevenshteinBPM.Quick-Abandon         ");

@@ -31,7 +31,7 @@ MODULES+=archive_builder archive_text_builder archive_hypertext_builder archive_
          archive_select archive_select_parameters archive_text_retrieve 
 # GEM Search Modules
 MODULES+=approximate_search_parameters approximate_search neighborhood_search matches_align \
-         filtering_candidates region_profile bpm_align bpm_align_gpu quality_model
+         filtering_candidates region_profile bpm_align bpm_align_gpu kmer_counting quality_model
 # GEM Top-level Modules
 MODULES+=mapper mapper_cuda gem_core
 # Misc

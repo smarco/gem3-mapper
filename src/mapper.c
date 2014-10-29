@@ -287,7 +287,6 @@ GEM_INLINE void mapper_parameters_print_io(FILE* const stream,mapper_parameters_
       break;
   }
   tab_fprintf(stream,"    => Buffer.size\t%luMB\n",CONVERT_B_TO_MB(io->output_buffer_size));
-  tab_fprintf(stream,"    => Buffer.size\t%luMB\n",CONVERT_B_TO_MB(io->output_buffer_size));
   tab_fprintf(stream,"    => Num.buffers\t%lu\n",io->output_num_buffers);
 }
 GEM_INLINE void mapper_parameters_print_search_parameters(FILE* const stream,search_parameters_t* const search_parameters) {

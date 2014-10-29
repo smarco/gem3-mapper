@@ -68,10 +68,12 @@ GEM_INLINE void options_fprint_menu(
       fprintf(stream,"|-%c",short_option);
     }
     // Print extra command line syntax info
-    fprintf(stream," %s\n",options_menu[i].command_info);
+    fprintf(stream," %s",options_menu[i].command_info);
     // Print description (@print_description)
     if (print_description && !gem_streq(options_menu[i].description,"")) {
-      fprintf(stream,"%s",options_menu[i].description);
+      fprintf(stream," %s\n",options_menu[i].description);
+    } else {
+      fprintf(stream,"\n");
     }
   }
 }

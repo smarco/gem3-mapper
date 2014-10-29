@@ -62,6 +62,9 @@ void gem_perror();
 #define gem_warn(gem_warning_name,args...) \
   gem_report_error_begin_block(GEM_LABEL_WARNING,gem_warning_name,##args) \
   gem_report_end_block(0,0,0,0)
+#define gem_warn_msg(gem_warn_msg,args...) \
+  gem_report_begin_block(GEM_LABEL_ERROR,error,gem_warn_msg,##args) \
+  gem_report_end_block(0,0,0,0)
 /*
  * GEM-Exception handlers (conditional error handlers)
  */

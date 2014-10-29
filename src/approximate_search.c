@@ -152,6 +152,8 @@ GEM_INLINE void approximate_search_prepare_pattern(
   region_profile_new(&search->region_profile,read_length,mm_stack);
   // Prepare BPM pattern
   bpm_pattern_compile(&pattern->bpm_pattern,UINT64_SIZE,pattern->key,read_length,mm_stack);
+  // Prepare kmer-counting filter
+  kmer_counting_compile(&pattern->kmer_counting,(bool* const)parameters->allowed_enc,pattern->key,read_length,mm_stack);
 }
 ///////////////////////////////////////////////////////////////////////////////
 // [Approximate Search Control]

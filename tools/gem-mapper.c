@@ -212,9 +212,9 @@ option_t gem_mapper_options[] = {
   { 'm', "min-reported-matches", REQUIRED, TYPE_INT, 8, false, "<number>|'all'" , "(default=1)" },
   { 'M', "max-reported-matches", REQUIRED, TYPE_INT, 8, true, "<number>|'all'" , "(default=all)" },
   /* System */
-  { 't', "threads", REQUIRED, TYPE_STRING, 9, true, "<number>" , "(default=#cores)" },
+  { 't', "threads", REQUIRED, TYPE_STRING, 9, true, "<number>" , "(default=c)" },
   { 900, "max-memory", REQUIRED, TYPE_STRING, 9, true, "<maximum-memory>" , "(Eg 2GB)" },
-  { 901, "tmp-folder", REQUIRED, TYPE_STRING, 9, true, "<temporal_dir_path>" , "(/tmp/)" },
+  { 901, "tmp-folder", REQUIRED, TYPE_STRING, 9, true, "<temporal_dir_path>" , "(default=/tmp/)" },
   /* CUDA Settings */
   { 1000, "threads-cuda", REQUIRED, TYPE_STRING, 10, false, "<generating>,<selecting>" , "(default=1c,1c)" },
   { 1001, "cuda-search-groups", REQUIRED, TYPE_STRING, 10, false, "<num_groups,buffer_size>" , "(default=3c,16M)" },
@@ -228,8 +228,7 @@ option_t gem_mapper_options[] = {
   { 'v', "verbose", OPTIONAL, TYPE_NONE, 13, true, "'quiet'|'user'|'dev'" , "(default=user)" },
   { 'h', "help", NO_ARGUMENT, TYPE_NONE, 13, true, "" , "(print usage)" },
   { 'H', "help", NO_ARGUMENT, TYPE_NONE, 13, false, "" , "(print usage + extras)" },
-  /* EOM */
-  {  0, "", 0, 0, 0, false, "", ""}
+  { 0, NULL, 0, 0, 0, 0, NULL, NULL}
 };
 char* gem_mapper_groups[] = {
   /*  0 */ "Null",
@@ -243,13 +242,13 @@ char* gem_mapper_groups[] = {
   /*  8 */ "Reporting",
   /*  9 */ "System",
   /* 10 */ "CUDA Settings",
-  /* 11 */ "Presets/Hints"
+  /* 11 */ "Presets/Hints",
   /* 12 */ "Debug",
   /* 13 */ "Miscellaneous",
 };
 void usage(const bool print_inactive) {
   fprintf(stderr, "USAGE: ./gem-mapper [ARGS]...\n");
-  options_fprint_menu(stderr,gem_mapper_options,gem_mapper_groups,false,print_inactive);
+  options_fprint_menu(stderr,gem_mapper_options,gem_mapper_groups,true,print_inactive);
 }
 GEM_INLINE int parse_arguments_system_integer(char* const argument,uint64_t* const value) {
   char* argument_ptr = argument;
@@ -342,7 +341,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 207: { // --output-model=4M,4c
       char *buffer_size=NULL, *num_buffers=NULL;
       const int num_arguments = input_text_parse_csv_arguments(optarg,2,&buffer_size,&num_buffers);
-      gem_cond_fatal_error_msg(num_arguments!=3,"Option '--output-model' wrong number of arguments");
+      gem_cond_fatal_error_msg(num_arguments!=2,"Option '--output-model' wrong number of arguments");
       // Parse output-buffer size
       gem_cond_fatal_error_msg(input_text_parse_size(buffer_size,&parameters->io.output_buffer_size),
           "Option '--output-model'. Error parsing 'buffer_size'");
@@ -588,7 +587,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 1101: { // --reads-model <average_length>[,<std_length>]
       char *average_length, *std_length;
       const int num_arguments = input_text_parse_csv_arguments(optarg,2,&average_length,&std_length);
-      gem_cond_fatal_error_msg(num_arguments<1,"Option '--reads-model' wrong number of arguments");
+      gem_cond_fatal_error_msg(num_arguments==0,"Option '--reads-model' wrong number of arguments");
       // Average read length
       gem_cond_fatal_error_msg(input_text_parse_size(average_length,&parameters->hints.avg_read_length),
           "Option '--reads-model'. Error parsing 'average_length'");

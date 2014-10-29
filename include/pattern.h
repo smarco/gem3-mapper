@@ -11,6 +11,7 @@
 
 #include "essentials.h"
 #include "bpm_align.h"
+#include "kmer_counting.h"
 
 // Approximate Search Pattern
 typedef struct {
@@ -24,6 +25,8 @@ typedef struct {
   uint64_t max_effective_filtering_error;
   /* Pattern BitVector-Encoded (Myers-DP) */
   bpm_pattern_t bpm_pattern;
+  /* K-mers counting */
+  kmer_counting_t kmer_counting;
 } pattern_t;
 
 
