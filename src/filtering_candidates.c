@@ -220,10 +220,26 @@ GEM_INLINE void filtering_accepted_regions_align_region(
       case alignment_model_levenshtein: {
         // Add levenshtein match
         match_trace_t match_trace;
+
         matches_align_levenshtein(matches,&match_trace,search_strand,key,&pattern->bpm_pattern,
             accepted_region->candidate_text_trace_offset,accepted_region->candidate_begin_position,
             accepted_region->candidate_align_distance,text,accepted_region->candidate_align_match_column+1,
             accepted_region->regions_matching,accepted_region->num_regions_matching,mm_stack);
+
+//        printf("-> BEGIN Align_distance %lu\n",accepted_region->candidate_align_distance);
+//        printf("-> END Align_distance DISTANCE TRACE %lu\n",match_trace.distance);
+//
+//        printf("PATTERN\n");
+//        uint64_t n;
+//        for (n=0;n<pattern->key_length;++n) {
+//        	printf("%c",dna_decode(pattern->key[n]));
+//        }
+//        printf("\nTEXT\n");
+//        for (n=0;n<accepted_region->candidate_align_match_column+1;++n) {
+//        	printf("%c",dna_decode(text[n]));
+//        }
+//        printf("\n");
+
         matches_add_match_trace_t(matches,&match_trace,true);
         break;
       }
@@ -1072,7 +1088,8 @@ GEM_INLINE void filtering_candidates_verify_from_bpm_buffer(
 //    fprintf(stderr,"F p=%lu e=%lu c=%lu\n",candidate_text_position,levenshtein_distance,levenshtein_match_pos);
     if (levenshtein_distance <= max_effective_filtering_error) {
       // Get the accepted candidate
-      uint32_t candidate_text_position, candidate_length;
+      uint64_t candidate_text_position;
+      uint32_t candidate_length;
       bpm_gpu_buffer_get_candidate(bpm_gpu_buffer,i,&candidate_text_position,&candidate_length);
       // Allocate text-trace
       const uint64_t text_trace_offset = text_collection_new_trace(text_collection);

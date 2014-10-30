@@ -80,7 +80,7 @@ GEM_INLINE void bpm_gpu_buffer_put_candidate(
     const uint64_t candidate_text_position,const uint64_t candidate_length);
 GEM_INLINE void bpm_gpu_buffer_get_candidate(
     bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t position,
-    uint32_t* const candidate_text_position,uint32_t* const candidate_length);
+    uint64_t* const candidate_text_position,uint32_t* const candidate_length);
 GEM_INLINE void bpm_gpu_buffer_get_candidate_result(
     bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t position,
     uint32_t* const levenshtein_distance,uint32_t* const levenshtein_match_pos);

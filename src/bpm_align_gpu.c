@@ -45,7 +45,7 @@
       bpm_gpu_buffer_t* const bpm_gpu_buffer,pattern_t* const pattern) { GEM_CUDA_NOT_SUPPORTED(); }
   GEM_INLINE void bpm_gpu_buffer_get_candidate(
       bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t position,
-      uint32_t* const candidate_text_position,uint32_t* const candidate_length) { GEM_CUDA_NOT_SUPPORTED(); }
+      uint64_t* const candidate_text_position,uint32_t* const candidate_length) { GEM_CUDA_NOT_SUPPORTED(); }
   GEM_INLINE void bpm_gpu_buffer_get_candidate_result(
       bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t position,
       uint32_t* const levenshtein_distance,uint32_t* const levenshtein_match_pos) { GEM_CUDA_NOT_SUPPORTED(); }
@@ -167,7 +167,7 @@ GEM_INLINE bool bpm_gpu_buffer_almost_full(bpm_gpu_buffer_t* const bpm_gpu_buffe
 }
 GEM_INLINE void bpm_gpu_buffer_get_candidate(
     bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t position,
-    uint32_t* const candidate_text_position,uint32_t* const candidate_length) {
+    uint64_t* const candidate_text_position,uint32_t* const candidate_length) {
   // Get candidate
   bpm_gpu_cand_info_t* const query_candidate =bpm_gpu_buffer_get_candidates_(bpm_gpu_buffer->buffer) + position;
   *candidate_text_position = query_candidate->position;
@@ -336,7 +336,7 @@ GEM_INLINE void bpm_gpu_buffer_send(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
     // Traverse all candidates
     while (candidate_pos < num_candidates && query_candidate->query==query_pos) {
       // Run BPM
-      const uint8_t* const sequence = dna_text_get_buffer(bpm_gpu_buffer->enc_text) + query_candidate->position;
+      const uint8_t* const sequence = dna_text_get_text(bpm_gpu_buffer->enc_text) + query_candidate->position;
       uint64_t position, distance;
 
 #ifdef BPM_GPU_GENERATE_CANDIDATES_PROFILE
