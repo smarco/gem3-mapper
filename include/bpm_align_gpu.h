@@ -60,7 +60,7 @@ GEM_INLINE bool bpm_gpu_support();
 /*
  * Buffer Accessors
  */
-GEM_INLINE void bpm_buffer_clear(bpm_gpu_buffer_t* const bpm_gpu_buffer);
+GEM_INLINE void bpm_gpu_buffer_clear(bpm_gpu_buffer_t* const bpm_gpu_buffer);
 
 GEM_INLINE uint64_t bpm_gpu_buffer_get_max_candidates(bpm_gpu_buffer_t* const bpm_gpu_buffer);
 GEM_INLINE uint64_t bpm_gpu_buffer_get_max_queries(bpm_gpu_buffer_t* const bpm_gpu_buffer);

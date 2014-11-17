@@ -81,11 +81,11 @@ GEM_INLINE void mapper_profile_print_mapper_adaptive(FILE* const stream) {
   tab_fprintf(stream,"    => TIME.Archive.Search         ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_SE),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"      => TIME.Region.Profile       ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_REGION_PROFILE_SOFT),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.Generating           ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_REGION_PROFILE_ADAPTIVE),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"      => TIME.Generate.Candidates  ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_FILTER_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"      => TIME.Verifying            ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_VERIFY),PROF_GET_TIMER(GP_MAPPER_ALL));
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_VERIFICATION),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"    => TIME.Select.Matches         ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SELECT_MATCHES),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"    => TIME.Output.MAP.SE          ");
@@ -93,55 +93,65 @@ GEM_INLINE void mapper_profile_print_mapper_adaptive(FILE* const stream) {
 }
 GEM_INLINE void mapper_profile_print_mapper_adaptive_ranks(FILE* const stream) {
   tab_fprintf(stream,"[GEM]>Profile.Mapper\n");
-  tab_fprintf(stream,"  => RANKS.Mapper                 ");
+  tab_fprintf(stream,"  => RANKS.Mapper                  ");
   COUNTER_PRINT(stream,PROF_GET_RANK(GP_MAPPER_ALL),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
-  tab_fprintf(stream,"    => RANKS.Archive.Search       ");
+  tab_fprintf(stream,"    => RANKS.Archive.Search        ");
   COUNTER_PRINT(stream,PROF_GET_RANK(GP_ARCHIVE_SEARCH_SE),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
-  tab_fprintf(stream,"      => RANKS.Region.Profile     ");
-  COUNTER_PRINT(stream,PROF_GET_RANK(GP_REGION_PROFILE_SOFT),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
-  tab_fprintf(stream,"      => RANKS.Generating         ");
+  tab_fprintf(stream,"      => RANKS.Region.Profile      ");
+  COUNTER_PRINT(stream,PROF_GET_RANK(GP_REGION_PROFILE_ADAPTIVE),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
+  tab_fprintf(stream,"      => RANKS.Generate.Candidates ");
   COUNTER_PRINT(stream,PROF_GET_RANK(GP_AS_FILTER_REGIONS),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
-  tab_fprintf(stream,"      => RANKS.Verifying          ");
-  COUNTER_PRINT(stream,PROF_GET_RANK(GP_FC_VERIFY),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
-  tab_fprintf(stream,"        => RANKS.Decode.Positions ");
+  tab_fprintf(stream,"      => RANKS.Verifying           ");
+  COUNTER_PRINT(stream,PROF_GET_RANK(GP_FC_VERIFICATION),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
+  tab_fprintf(stream,"        => RANKS.Decode.Positions  ");
   COUNTER_PRINT(stream,PROF_GET_RANK(GP_FC_DECODE_POSITIONS),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
-  tab_fprintf(stream,"    => RANKS.Select.Matches       ");
+  tab_fprintf(stream,"    => RANKS.Select.Matches        ");
   COUNTER_PRINT(stream,PROF_GET_RANK(GP_ARCHIVE_SELECT_MATCHES),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
 }
 GEM_INLINE void mapper_profile_print_mapper_cuda_adaptive(FILE* const stream) {
   tab_fprintf(stream,"[GEM]>Profile.CUDAMapper\n");
   // General
-  tab_fprintf(stream,"  => TIME.Mapper                     ");
+  tab_fprintf(stream,"  => TIME.Mapper                             ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_ALL),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"    => TIME.Load.Index               ");
+  tab_fprintf(stream,"    => TIME.Load.Index                       ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_LOAD_INDEX),PROF_GET_TIMER(GP_MAPPER_ALL));
   // Generating
   tab_fprintf(stream,"    => TIME.GENERATING\n");
-  tab_fprintf(stream,"      => TIME.Parse.Input.FASTQ      ");
+  tab_fprintf(stream,"      => TIME.Parse.Input.FASTQ              ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_INPUT_FASTA_PARSE_SEQUENCE),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.BufferedInput.Reload   ");
+  tab_fprintf(stream,"      => TIME.BufferedInput.Reload           ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_BUFFERED_INPUT_RELOAD),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"        => TIME.Generate.Candidates  ");
+  tab_fprintf(stream,"        => TIME.Generate.Candidates          ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_GENERATE_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"          => TIME.Region.Profile     ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_REGION_PROFILE_SOFT),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"          => TIME.Generating         ");
+  tab_fprintf(stream,"          => TIME.Region.Profile             ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_REGION_PROFILE_ADAPTIVE),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"          => TIME.Generate.Candidates        ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_FILTER_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"          => TIME.Verifying          ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_VERIFY),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"            => TIME.Decode.Positions ");
+  tab_fprintf(stream,"          => TIME.Process.Candidates         ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_PROCESS_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"            => TIME.Decode.Positions         ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_DECODE_POSITIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"        => TIME.Put.BPMBuffer        ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_PUT_BPM_BUFFER),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"          => TIME.Copy.Candidates    ");
+  tab_fprintf(stream,"            => TIME.Compose.Regions          ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_COMPOSE_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"        => TIME.Copy.Candidates              ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_COPY_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
+  // Verifying
+  tab_fprintf(stream,"    => TIME.VERIFYING\n");
+  tab_fprintf(stream,"      => TIME.Send.BPMBuffer                 ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_GPU_BUFFER_SEND),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"      => TIME.CUDA.Verifying                 ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_GPU_BUFFER_CHECK_TIME),PROF_GET_TIMER(GP_MAPPER_ALL));
   // Selecting
   tab_fprintf(stream,"    => TIME.SELECTING\n");
-  tab_fprintf(stream,"        => TIME.Retrieve.BPMBuffer   ");
+  tab_fprintf(stream,"        => TIME.CUDA.Request.Retrieve.Delay  ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_RETRIEVE_CANDIDATES_DELAY),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"        => TIME.Retrieve.Candidates          ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_RETRIEVE_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"        => TIME.Select.Matches       ");
+  tab_fprintf(stream,"          => TIME.Realign.Accepted.Regions   ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_REALIGN_CANDIDATE_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"        => TIME.Select.Matches               ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SELECT_MATCHES),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"        => TIME.Output.MAP.SE        ");
+  tab_fprintf(stream,"        => TIME.Output.MAP.SE                ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_OUTPUT_MAP_SE),PROF_GET_TIMER(GP_MAPPER_ALL));
 }
 
@@ -257,9 +267,9 @@ GEM_INLINE void mapper_profile_print_approximate_search_ranks(FILE* const stream
 GEM_INLINE void mapper_profile_print_region_profile_soft(FILE* const stream) {
   tab_fprintf(stream,"[GEM]>Profile.Region.Profile {SOFT}\n");
   tab_fprintf(stream,"  --> Num.Regions              ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_SOFT_NUM_REGIONS),NULL,"",true);
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_SOFT_NUM_REGIONS),NULL,"    ",true);
   tab_fprintf(stream,"  --> Region.length            ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_SOFT_REGION_LENGTH),NULL,"nt",true);
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_SOFT_REGION_LENGTH),NULL,"nt  ",true);
   tab_fprintf(stream,"  --> Region.candidates        ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_SOFT_REGION_CANDIDATES),NULL,"cand",true);
   tab_fprintf(stream,"  --> Read.candidates          ");
@@ -296,13 +306,17 @@ GEM_INLINE void mapper_profile_print_filtering_generating_ranks(FILE* const stre
 GEM_INLINE void mapper_profile_print_filtering_verifying(FILE* const stream,const bool verification_profile) {
   tab_fprintf(stream,"[GEM]>Profile.Filtering.Verifying\n");
   tab_fprintf(stream,"  => TIME.Verifying                            ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_VERIFY),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"    => TIME.Decode.Positions                   ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_VERIFICATION),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"    => TIME.Process.Candidates                 ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_PROCESS_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"      => TIME.Decode.Positions                 ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_DECODE_POSITIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"      => TIME.Compose.Regions                  ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_COMPOSE_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
   if (verification_profile) {
-  tab_fprintf(stream,"    => TIME.Verify.Regions                     ");
+  tab_fprintf(stream,"    => TIME.Verify.Candidate.Regions           ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_VERIFY_CANDIDATE_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
-//  tab_fprintf(stream,"      => TIME.Kmer.Counting                    ");
+//  tab_fprintf(stream,"  => TIME.Kmer.Counting                      ");
 //  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_KMER_COUNTER_FILTER),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"      => TIME.LevenshteinBPM                   ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_LEVENSHTEIN_BPM),PROF_GET_TIMER(GP_MAPPER_ALL));
@@ -313,20 +327,20 @@ GEM_INLINE void mapper_profile_print_filtering_verifying(FILE* const stream,cons
   tab_fprintf(stream,"      --> FC.Candidate.Positions                    ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_NUM_CANDIDATE_POSITIONS),PROF_GET_COUNTER(GP_FC_NUM_CANDIDATE_POSITIONS),"positions",true);
   tab_fprintf(stream,"        --> FM.lookup.dist                          ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FMIDX_LOOKUP_DIST),NULL,"lf",true);
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FMIDX_LOOKUP_DIST),NULL,"lf       ",true);
   tab_fprintf(stream,"      --> FC.Candidate.Regions                      ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_NUM_CANDIDATE_REGIONS),PROF_GET_COUNTER(GP_FC_NUM_CANDIDATE_POSITIONS),"regions",true);
-  tab_fprintf(stream,"        --> FC.Regions.Coverage                     ");
-  PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_FC_CANDIDATE_REGIONS_COVERAGE));
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_NUM_CANDIDATE_REGIONS),PROF_GET_COUNTER(GP_FC_NUM_CANDIDATE_POSITIONS),"regions  ",true);
+//  tab_fprintf(stream,"        --> FC.Regions.Coverage                     ");
+//  PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_FC_CANDIDATE_REGIONS_COVERAGE));
   if (verification_profile) {
 //  tab_fprintf(stream,"        --> FC.Regions.Coverage.Extended            ");
 //  PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_FC_CANDIDATE_REGIONS_EXT_COVERAGE));
 //  tab_fprintf(stream,"      --> FC.Kmer.Counting.Discarded                ");
 //  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_KMER_COUNTER_FILTER_DISCARDED),PROF_GET_COUNTER(GP_FC_NUM_CANDIDATE_REGIONS),"",true);
   tab_fprintf(stream,"      --> FC.LevenshteinBPM.Accepted                ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_LEVENSHTEIN_ACCEPTED),PROF_GET_COUNTER(GP_FC_NUM_CANDIDATE_REGIONS),"",true);
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_LEVENSHTEIN_ACCEPTED),PROF_GET_COUNTER(GP_FC_NUM_CANDIDATE_REGIONS),"          ",true);
   tab_fprintf(stream,"        --> FC.LevenshteinBPM.Quick-Abandon         ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_LEVENSHTEIN_BPM_QUICK_ABANDON),PROF_GET_COUNTER(GP_FC_NUM_CANDIDATE_REGIONS),"",true);
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_LEVENSHTEIN_BPM_QUICK_ABANDON),PROF_GET_COUNTER(GP_FC_NUM_CANDIDATE_REGIONS),"         ",true);
   }
 }
 GEM_INLINE void mapper_profile_print_filtering_verifying_ranks(FILE* const stream) {
@@ -363,61 +377,19 @@ GEM_INLINE void mapper_profile_print_archive_select(FILE* const stream) {
  * Archive Search-Group (Dispatcher, BMP-Buffers, ...)
  */
 GEM_INLINE void mapper_profile_print_archive_search_group(FILE* const stream) {
-  tab_fprintf(stream,"[GEM]>Profile.CUDADispatcher\n");
-  /*
-   * Dispatcher
-   */
-  // Generating
-  tab_fprintf(stream,"  => Dispatcher\n");
-  tab_fprintf(stream,"    => SearchGroup.GENERATING\n");
-  tab_fprintf(stream,"        --> Requests                   ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_GENERATING),NULL,"",false);
-  tab_fprintf(stream,"        --> Extensions                 ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_GENERATING_EXTENSION),
-      PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_GENERATING),"",false);
-  tab_fprintf(stream,"          --> Extensions.Volunteer     ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_GENERATING_EXTENSION),
-      PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_GENERATING),"",false);
-  tab_fprintf(stream,"        --> Stalls                     ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_GENERATING_STALLS),NULL,"",false);
-  tab_fprintf(stream,"          --> Stalls.allBusy           ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_GENERATING_STALLS_BUSY),
-      PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_GENERATING_STALLS),"",false);
-  tab_fprintf(stream,"          --> Stalls.freePreempted     ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_GENERATING_STALLS_NOT_PRIORITY),
-      PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_GENERATING_STALLS),"",false);
-  // Selecting
-  tab_fprintf(stream,"    => SearchGroup.SELECTING\n");
-  tab_fprintf(stream,"        --> Requests                   ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING),NULL,"",false);
-  tab_fprintf(stream,"        --> Extensions                 ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING_EXTENSION),
-      PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING),"",false);
-  tab_fprintf(stream,"        --> Stalls                     ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING_STALLS),NULL,"",false);
-  tab_fprintf(stream,"          --> Stalls.idle              ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING_STALLS_IDLE),
-      PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING_STALLS),"",false);
-  tab_fprintf(stream,"          --> Stalls.noSingleGroups    ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING_STALLS_NO_SINGLE_GROUPS),
-      PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING_STALLS),"",false);
-  tab_fprintf(stream,"          --> Stalls.extensionNotReady ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING_STALLS_EXTENSION_NOT_READY),
-      PROF_GET_COUNTER(GP_SGDISPATCHER_REQUESTS_SELECTING_STALLS),"",false);
+  tab_fprintf(stream,"[GEM]>Profile.Archive.Search.Group\n");
+  tab_fprintf(stream,"  => Archive.Search.Group\n");
+  tab_fprintf(stream,"    --> Num.Buffers.Used           ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_GROUP_BUFFERS_USED),NULL,"buffers",true);
   /*
    * BPM-Buffers
    */
   tab_fprintf(stream,"  => BPM.Buffers\n");
-  tab_fprintf(stream,"    => TIME.Send.Buffer                ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_GPU_BUFFER_SEND),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"    => TIME.Check.Buffer               ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_GPU_BUFFER_CHECK_TIME),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      --> Buffer.usage\n");
-  tab_fprintf(stream,"        --> Queries                    ");
+  tab_fprintf(stream,"    --> Queries                    ");
   PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_BPM_GPU_BUFFER_USAGE_QUERIES));
-  tab_fprintf(stream,"        --> PeqEntries                 ");
+  tab_fprintf(stream,"    --> PeqEntries                 ");
   PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_BPM_GPU_BUFFER_USAGE_PEQ_ENTRIES));
-  tab_fprintf(stream,"        --> Candidates                 ");
+  tab_fprintf(stream,"    --> Candidates                 ");
   PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_BPM_GPU_BUFFER_USAGE_CANDIDATES));
 }
 
@@ -485,9 +457,10 @@ GEM_INLINE void mapper_profile_print_mapper_cuda_adaptive(FILE* const stream) {}
 GEM_INLINE void mapper_profile_print_mapper_efficiency_ratios(FILE* const stream) {}
 GEM_INLINE void mapper_profile_print_approximate_search(FILE* const stream) {}
 GEM_INLINE void mapper_profile_print_approximate_search_ranks(FILE* const stream) {}
+GEM_INLINE void mapper_profile_print_region_profile_soft(FILE* const stream) {}
 GEM_INLINE void mapper_profile_print_filtering_generating(FILE* const stream) {}
 GEM_INLINE void mapper_profile_print_filtering_generating_ranks(FILE* const stream) {}
-GEM_INLINE void mapper_profile_print_filtering_verifying(FILE* const stream) {}
+GEM_INLINE void mapper_profile_print_filtering_verifying(FILE* const stream,const bool verification_profile) {}
 GEM_INLINE void mapper_profile_print_filtering_verifying_ranks(FILE* const stream) {}
 GEM_INLINE void mapper_profile_print_neighborhood_search(FILE* const stream) {}
 GEM_INLINE void mapper_profile_print_neighborhood_search_ranks(FILE* const stream) {}

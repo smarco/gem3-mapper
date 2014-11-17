@@ -30,6 +30,12 @@
  *   - region_unique: Very few candidates or none. Can be filtered up to n-errors (n>=0)
  */
 typedef enum { region_unique, region_standard, region_gap } region_type;
+typedef struct {
+  uint64_t region_th;      // Max. number of candidates allowed per region
+  uint64_t max_steps;      // Max. number of characters to explore to improve the region
+  uint64_t dec_factor;     // Decreasing factor per step in region exploration
+  uint64_t region_type_th; // Threshold to classify regions {ZERO,NON_ZERO}
+} region_profile_model_t;
 // Filtering regions
 typedef struct {
   // Ranges of the region [end,start) (Yes!, backwards like the FM-search)
@@ -73,18 +79,6 @@ typedef struct {
   /* Locator for region sorting */
   region_locator_t* loc;
 } region_profile_t;
-/*
- * Region Profile Stats
- */
-typedef struct {
-  uint64_t num_profiles;                      // Number of samples
-  gem_counter_t total_regions;                // Total number of regions extracted
-  gem_counter_t total_unique_regions;         // Total number of unique regions extracted
-  gem_counter_t total_candidates;             // Total number of candidates determined
-  stats_vector_t* regions_per_read;           // Number of regions per read
-  stats_vector_t* candidates_per_read;        // Total candidates per read
-  stats_matrix_t* reglength_vs_regcandidates; // Number of candidates depending on the region length
-} region_profile_stats_t;
 
 /*
  * Setup
@@ -112,10 +106,9 @@ GEM_INLINE void region_profile_generate_overlapped(
     fm_index_t* const fm_index,pattern_t* const pattern,bool* const allowed_enc,
     const uint64_t region_length); // Much more todo
 GEM_INLINE void region_profile_generate_adaptive(
-    region_profile_t* const region_profile,
-    fm_index_t* const fm_index,pattern_t* const pattern,const bool* const allowed_enc,
-    const uint64_t rp_region_th,const uint64_t rp_max_steps,
-    const uint64_t rp_dec_factor,const uint64_t rp_region_type_th,
+    region_profile_t* const region_profile,fm_index_t* const fm_index,
+    pattern_t* const pattern,const bool* const allowed_enc,
+    const region_profile_model_t* const profile_model,
     const uint64_t max_regions,const bool allow_zero_regions);
 GEM_INLINE void region_profile_generate_full_progressive(
     region_profile_t* const region_profile,
@@ -128,12 +121,6 @@ GEM_INLINE void region_profile_sort_by_estimated_mappability(region_profile_t* c
 GEM_INLINE void region_profile_sort_by_candidates(region_profile_t* const region_profile);
 GEM_INLINE void region_profile_fill_gaps(
     region_profile_t* const region_profile,const uint64_t eff_mismatches);
-GEM_INLINE void region_profile_extend_first_region(
-    region_profile_t* const region_profile,fm_index_t* const fm_index,const uint64_t rp_region_type_th);
-GEM_INLINE void region_profile_extend_last_region(
-    region_profile_t* const region_profile,fm_index_t* const fm_index,
-    pattern_t* const pattern,const bool* const allowed_enc,
-    const uint64_t rp_region_type_th);
 
 /*
  * Display
@@ -141,16 +128,6 @@ GEM_INLINE void region_profile_extend_last_region(
 GEM_INLINE void region_profile_print(
     FILE* const stream,const region_profile_t* const region_profile,
     const bool sorted,const bool display_misms_regions);
-
-/*
- * Stats/Profile
- */
-GEM_INLINE region_profile_stats_t* region_profile_stats_new();
-GEM_INLINE void region_profile_stats_delete(region_profile_stats_t* const region_profile_stats);
-GEM_INLINE void region_profile_stats_record(
-    region_profile_stats_t* const region_profile_stats,region_profile_t* const region_profile);
-GEM_INLINE void region_profile_stats_print(FILE* const stream,region_profile_stats_t* const region_profile_stats);
-GEM_INLINE void region_profile_gprof_print(FILE* const stream);
 
 /*
  * Iterator

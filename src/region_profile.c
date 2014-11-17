@@ -57,6 +57,36 @@ GEM_INLINE void region_profile_generate_fixed(
   GEM_NOT_IMPLEMENTED(); // TODO
 }
 /*
+ * Tries to extend the last region of the profile to the end of the key (position 0)
+ */
+GEM_INLINE void region_profile_extend_last_region(
+    region_profile_t* const region_profile,fm_index_t* const fm_index,
+    pattern_t* const pattern,const bool* const allowed_enc,
+    const uint64_t rp_region_type_th) {
+  // Merge the tail with the last region
+  uint8_t* const key = pattern->key; // Pattern
+  filtering_region_t* const last_region = region_profile->filtering_region + (region_profile->num_filtering_regions-1);
+  if (last_region->end != 0) {
+    // Continue the search
+    while (last_region->end > 0) {
+      if (last_region->hi==last_region->lo) break;
+      // Query step
+      const uint8_t enc_char = key[--last_region->end];
+      if (!allowed_enc[enc_char]) break;
+      last_region->lo=bwt_erank(fm_index->bwt,enc_char,last_region->lo);
+      last_region->hi=bwt_erank(fm_index->bwt,enc_char,last_region->hi);
+    }
+    // Extend beyond zero interval
+    while (last_region->end > 0 && allowed_enc[key[--last_region->end]]);
+    // Adjust the region end (if needed) and type
+    const uint64_t count = last_region->hi-last_region->lo;
+    if (last_region->type==region_standard && count<=rp_region_type_th) {
+      last_region->type = region_unique;
+      --(region_profile->num_standard_regions);
+    }
+  }
+}
+/*
  * Region Profile Generation (Adaptive)
  *
  *   Extracts the adaptive region profile from the given read.
@@ -107,12 +137,15 @@ GEM_INLINE void region_profile_generate_fixed(
 }
 #define REGION_SAVE_CUT_POINT() last_cut = key_len; hi_cut = hi; lo_cut = lo
 GEM_INLINE void region_profile_generate_adaptive(
-    region_profile_t* const region_profile,
-    fm_index_t* const fm_index,pattern_t* const pattern,const bool* const allowed_enc,
-    const uint64_t rp_region_th,const uint64_t rp_max_steps,
-    const uint64_t rp_dec_factor,const uint64_t rp_region_type_th,
+    region_profile_t* const region_profile,fm_index_t* const fm_index,
+    pattern_t* const pattern,const bool* const allowed_enc,
+    const region_profile_model_t* const profile_model,
     const uint64_t max_regions,const bool allow_zero_regions) {
   PROF_START(GP_REGION_PROFILE_ADAPTIVE);
+  const uint64_t rp_region_th = profile_model->region_th;
+  const uint64_t rp_max_steps = profile_model->max_steps;
+  const uint64_t rp_dec_factor = profile_model->dec_factor;
+  const uint64_t rp_region_type_th = profile_model->region_type_th;
   filtering_region_t* const regions = region_profile->filtering_region;
   uint64_t num_regions = 0, num_standard_regions = 0, last_cut = 0;
   uint64_t lo, hi, hi_cut=0, lo_cut=0, expected_count, max_steps;
@@ -190,14 +223,27 @@ GEM_INLINE void region_profile_generate_adaptive(
     }
   }
 
-  // Store number of regions
-  region_profile->num_filtering_regions = num_regions;
-  region_profile->num_standard_regions = num_standard_regions;
-
-  // We leave a ghost region // FIXME: Why?
-  regions[num_regions].end=0;
-  regions[num_regions].lo=lo;
-  regions[num_regions].hi=hi;
+  // Check number of regions
+  if (num_regions == 0) {
+    if (regions[0].start == pattern->key_length) {
+      regions[0].end = 0;
+      regions[0].lo = lo;
+      regions[0].hi = hi;
+      region_profile->num_filtering_regions = 1;
+      region_profile->num_standard_regions = 1;
+    } else {
+      region_profile->num_filtering_regions = 0;
+      region_profile->num_standard_regions = 0;
+    }
+  } else {
+    // We extend the last region
+    region_profile->num_filtering_regions = num_regions;
+    region_profile->num_standard_regions = num_standard_regions;
+    if (allow_zero_regions) {
+      // NOTE Extending or not depending on the setup notably hits sensitivity
+      region_profile_extend_last_region(region_profile,fm_index,pattern,allowed_enc,rp_region_type_th);
+    }
+  }
 
   PROF_STOP(GP_REGION_PROFILE_ADAPTIVE);
 }
@@ -345,37 +391,6 @@ GEM_INLINE void region_profile_extend_first_region(
   GEM_NOT_IMPLEMENTED(); // TODO
 }
 /*
- * Tries to extend the last region of the profile to the end of the key (position 0)
- */
-GEM_INLINE void region_profile_extend_last_region(
-    region_profile_t* const region_profile,fm_index_t* const fm_index,
-    pattern_t* const pattern,const bool* const allowed_enc,
-    const uint64_t rp_region_type_th) {
-  GEM_INTERNAL_CHECK(region_profile->num_filtering_regions > 0,"RegionProfile. No last region to extend");
-  // Pattern
-  uint8_t* const key = pattern->key;
-  // Merge the tail with the last region
-  filtering_region_t* const last_region = region_profile->filtering_region + (region_profile->num_filtering_regions-1);
-  if (last_region->end != 0) {
-    // Continue the search
-    while (last_region->end > 0) {
-      if (last_region->hi==last_region->lo) break;
-      // Query step
-      const uint8_t enc_char = key[--last_region->end];
-      if (!allowed_enc[enc_char]) break;
-      last_region->lo=bwt_erank(fm_index->bwt,enc_char,last_region->lo);
-      last_region->hi=bwt_erank(fm_index->bwt,enc_char,last_region->hi);
-    }
-    // Adjust the region end (if needed) and type
-    const uint64_t count = last_region->hi-last_region->lo;
-    if (count==0) last_region->end = 0;
-    if (last_region->type==region_standard && count<=rp_region_type_th) {
-      last_region->type = region_unique;
-      --(region_profile->num_standard_regions);
-    }
-  }
-}
-/*
  * Display
  */
 GEM_INLINE void region_profile_print(
@@ -415,42 +430,6 @@ GEM_INLINE void region_profile_print(
     }
   }
   fflush(stream);
-}
-/*
- * Stats
- */
-GEM_INLINE region_profile_stats_t* region_profile_stats_new() {
-  region_profile_stats_t* const region_profile_stats = NULL;
-  GEM_NOT_IMPLEMENTED(); // TODO
-  PROF_BLOCK() {
-
-  }
-  return region_profile_stats;
-}
-GEM_INLINE void region_profile_stats_delete(region_profile_stats_t* const region_profile_stats) {
-  GEM_NOT_IMPLEMENTED(); // TODO
-  PROF_BLOCK() {
-
-  }
-}
-GEM_INLINE void region_profile_stats_record(
-    region_profile_stats_t* const region_profile_stats,region_profile_t* const region_profile) {
-  GEM_NOT_IMPLEMENTED(); // TODO
-  PROF_BLOCK() {
-
-  }
-}
-GEM_INLINE void region_profile_stats_print(FILE* const stream,region_profile_stats_t* const region_profile_stats) {
-  GEM_NOT_IMPLEMENTED(); // TODO
-  PROF_BLOCK() {
-    GEM_CHECK_NULL(stream);
-  }
-}
-GEM_INLINE void region_profile_gprof_print(FILE* const stream) {
-  GEM_NOT_IMPLEMENTED(); // TODO
-  PROF_BLOCK() {
-    GEM_CHECK_NULL(stream);
-  }
 }
 
 

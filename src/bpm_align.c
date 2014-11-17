@@ -9,74 +9,11 @@
  */
 
 #include "bpm_align.h"
+#include "swg_align.h"
 #include "matches.h"
 
 #define BPM_PATTERN_CHECK(bpm_pattern) GEM_CHECK_NULL(bpm_pattern->PEQ)
 
-/*
- * (Re)alignment Basic: Dynamic Programming - LEVENSHTEIN/EDIT
- */
-#define GT_DP(i,j) dp_array[(i)*pattern_len+(j)]
-GEM_INLINE void align_levenshtein_dp_matrix_print(
-    uint64_t* const dp_array,const uint64_t pattern_len,const uint64_t sequence_len,
-    const uint64_t pattern_limit,const uint64_t sequence_limit) {
-  uint64_t i, j;
-  for (j=0;j<pattern_limit;++j) {
-    for (i=0;i<sequence_limit;++i) {
-      fprintf(stdout,"%02"PRIu64" ",GT_DP(i,j));
-    }
-    fprintf(stdout,"\n");
-  }
-  fprintf(stdout,"\n");
-}
-GEM_INLINE int64_t align_levenshtein_get_distance(
-    const char* const pattern,const uint64_t pattern_length,
-    const char* const sequence,const uint64_t sequence_length,
-    const bool ends_free,uint64_t* const position) {
-  GEM_CHECK_NULL(pattern); GEM_CHECK_ZERO(pattern_length);
-  GEM_CHECK_NULL(sequence); GEM_CHECK_ZERO(sequence_length);
-  // Allocate DP-matrix
-  const uint64_t pattern_len = pattern_length+1;
-  const uint64_t sequence_len = sequence_length+1;
-  uint64_t* dp_array[2];
-  dp_array[0] = mm_calloc(2*pattern_len,uint64_t,false);
-  dp_array[1] = dp_array[0] + pattern_len;
-  // Init DP-Matrix
-  uint64_t min_val = UINT64_MAX, i_pos = UINT64_MAX;
-  uint64_t i, j, idx_a=0, idx_b=0;
-  for (j=0;j<pattern_len;++j) dp_array[0][j]=j;
-  // Calculate DP-Matrix
-  for (i=1;i<sequence_len;++i) {
-    // Fix indexes
-    idx_a = idx_b;
-    idx_b = i % 2;
-    // Fix first cell
-    dp_array[idx_b][0] = (ends_free) ? 0 : dp_array[idx_a][0]+1;
-    // Develop row
-    for (j=1;j<pattern_len;++j) {
-      const uint64_t ins = dp_array[idx_a][j]   + 1;
-      const uint64_t del = dp_array[idx_b][j-1] + 1;
-      const uint64_t sub = dp_array[idx_a][j-1] + ((sequence[i-1]==pattern[j-1]) ? 0 : 1);
-      dp_array[idx_b][j] = MIN(sub,MIN(ins,del));
-    }
-    // Check last cell value
-    if (ends_free && dp_array[idx_b][pattern_length] < min_val) {
-      min_val = dp_array[idx_b][pattern_length];
-      i_pos = i;
-    }
-  }
-  // Return results & Free
-  int64_t distance = INT64_MAX;
-  if (ends_free) {
-    *position = i_pos-1;
-    distance = min_val;
-  } else {
-    *position = pattern_length;
-    distance = dp_array[idx_b][pattern_length];
-  }
-  mm_free(dp_array[0]);
-  return distance;
-}
 //GEM_INLINE int64_t gt_map_block_realign_levenshtein(
 //    char* const pattern,const uint64_t pattern_length,
 //    char* const sequence,const uint64_t sequence_length,const bool ends_free) {
@@ -688,10 +625,10 @@ GEM_INLINE void bpm_align_match(
     const uint64_t bdp_idx = BPM_PATTERN_BDP_IDX(h+1,block,num_words);
     const uint64_t mask = 1L << (v % UINT64_LENGTH);
     if (Pv[bdp_idx] & mask) {
-      BPM_ALIGN_ADD_CIGAR_ELEMENT(cigar_buffer,cigar_del,1); // Deletion <-1>@v
+      ALIGN_ADD_CIGAR_ELEMENT(cigar_buffer,cigar_del,1); // Deletion <-1>@v
       --v; --match_effective_length;
     } else if (Mv[(bdp_idx-num_words)] & mask) {
-      BPM_ALIGN_ADD_CIGAR_ELEMENT(cigar_buffer,cigar_ins,1); // Insertion <+1>@v
+      ALIGN_ADD_CIGAR_ELEMENT(cigar_buffer,cigar_ins,1); // Insertion <+1>@v
       --h; ++match_effective_length;
     } else if (sequence[h] != key[v]) {
       // Mismatch
@@ -700,12 +637,12 @@ GEM_INLINE void bpm_align_match(
       cigar_buffer->mismatch = sequence[h];
       --h; --v;
     } else {
-      BPM_ALIGN_ADD_CIGAR_ELEMENT(cigar_buffer,cigar_match,1); // Match
+      ALIGN_ADD_CIGAR_ELEMENT(cigar_buffer,cigar_match,1); // Match
       --h; --v;
     }
   }
   if (v >= 0) {
-    BPM_ALIGN_ADD_CIGAR_ELEMENT(cigar_buffer,cigar_del,v+1); // <-(@v+1)>@v
+    ALIGN_ADD_CIGAR_ELEMENT(cigar_buffer,cigar_del,v+1); // <-(@v+1)>@v
     match_effective_length -= v+1;
   }
   if (h >= 0) {

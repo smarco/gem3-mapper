@@ -289,9 +289,11 @@ GEM_INLINE int input_text_parse_extended_uint64(char* const argument,uint64_t* c
   // Textual
   if (gem_strcaseeq(argument,"all")) { *value = UINT64_MAX; return 0; }
   if (gem_strcaseeq(argument,"inf")) { *value = UINT64_MAX; return 0; }
-  if (gem_strcaseeq(argument,"infinite")) { *value = UINT64_MAX; return 0; }
+  if (gem_strcaseeq(argument,"infinite"))  { *value = UINT64_MAX; return 0; }
+  if (gem_strcaseeq(argument,"unlimited")) { *value = UINT64_MAX; return 0; }
   if (gem_strcaseeq(argument,"none")) { *value = 0; return 0; }
   if (gem_strcaseeq(argument,"zero")) { *value = 0; return 0; }
+  if (gem_strcaseeq(argument,"null")) { *value = 0; return 0; }
   // Number
   return input_text_parse_integer((const char** const)&argument,(int64_t*)value);
 }
@@ -318,6 +320,19 @@ GEM_INLINE int input_text_parse_extended_double(char* const argument,double* con
   if (gem_strcaseeq(argument,"zero")) { *value = 0; return 0; }
   // Number
   return input_text_parse_double((const char** const)&argument,value);
+}
+GEM_INLINE bool input_text_parse_extended_bool(char* const argument) {
+  if (argument==NULL) {
+    return true;
+  } else {
+    if (gem_streq(argument,"true") ||
+        gem_streq(argument,"yes")  ||
+        gem_streq(argument,"allow")) {
+      return true;
+    } else {
+      return false;
+    }
+  }
 }
 /*
  * Tag parsing

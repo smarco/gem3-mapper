@@ -9,16 +9,26 @@
 ROOT_PATH=..
 include ../Makefile.mk
 
-all: release
+all: devel
 
 release: setup
 ifeq ($(HAVE_CUDA),1)
-	$(MAKE) --directory=myers_gpu
+	$(MAKE) --directory=myers_gpu release
+endif
+
+devel: setup
+ifeq ($(HAVE_CUDA),1)
+	$(MAKE) --directory=myers_gpu release
+endif
+
+profile: setup
+ifeq ($(HAVE_CUDA),1)
+	$(MAKE) --directory=myers_gpu profile
 endif
 
 debug: setup
 ifeq ($(HAVE_CUDA),1)
-	$(MAKE) --directory=myers_gpu all
+	$(MAKE) --directory=myers_gpu debug
 endif
 
 setup: 

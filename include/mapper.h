@@ -38,8 +38,6 @@
 /*
  * Mapper Parameters
  */
-
-
 /* Mapper Mode */
 typedef enum { mapper_se, mapper_pe, mapper_graph } mapper_type;
 /* I/O Parameters */
@@ -83,11 +81,8 @@ typedef struct {
   uint64_t output_buffer_size;
   uint64_t output_num_buffers;
   /* BPM Buffers */
-  uint64_t num_search_groups;      // Total number of search-groups deployed
-  uint64_t bpm_buffer_size;        // Size of each BPM-buffer
-  /* System */
-  uint64_t num_generating_threads; // Total number of threads generating candidates
-  uint64_t num_selecting_threads;  // Total number of threads selecting candidates
+  uint64_t num_search_groups_per_thread; // Total number of search-groups deployed
+  uint64_t bpm_buffer_size;              // Size of each BPM-buffer
 } mapper_parameters_cuda_t;
 /* Hints */
 typedef struct {
@@ -106,32 +101,6 @@ typedef struct {
   bool verbose_user;
   bool verbose_dev;
 } mapper_parameters_misc_t;
-/* Paired-end mode */
-typedef struct {
-  /* Paired-end mode/alg */
-  bool paired_end;
-  bool map_both_ends;
-  uint64_t max_extendable_candidates;
-  uint64_t max_matches_per_extension;
-  /* Template allowed length */
-  uint64_t min_template_length;
-  uint64_t max_template_length;
-  /* Concordant Orientation */
-  bool pair_orientation_FR;
-  bool pair_orientation_RF;
-  bool pair_orientation_FF;
-  bool pair_orientation_RR;
-  /* Discordant Orientation */
-  bool discordant_pair_orientation_FR;
-  bool discordant_pair_orientation_RF;
-  bool discordant_pair_orientation_FF;
-  bool discordant_pair_orientation_RR;
-  /* Pair allowed lay-outs */
-  bool pair_layout_separate;
-  bool pair_layout_overlap;
-  bool pair_layout_contain;
-  bool pair_layout_dovetail;
-} mapper_parameters_paired_end_t;
 /* Mapper Parameters */
 typedef struct {
   /* CMD line */
@@ -140,6 +109,8 @@ typedef struct {
   /* GEM Structures */
   archive_t* archive;
   input_file_t* input_file;
+  input_file_t* input_file_end1;
+  input_file_t* input_file_end2;
   FILE* output_stream;
   output_file_t* output_file;
   /* Mapper Type */
@@ -148,8 +119,6 @@ typedef struct {
   mapper_parameters_io_t io;
   /* Search Parameters */
   search_parameters_t search_parameters;
-  /* Paired-end Parameters */
-  mapper_parameters_paired_end_t paired_end;
   /* Select Parameters */
   select_parameters_t select_parameters;
   /* System */
@@ -161,6 +130,27 @@ typedef struct {
   /* Miscellaneous */
   mapper_parameters_misc_t misc;
 } mapper_parameters_t;
+/*
+ * Mapper Search
+ */
+typedef struct {
+  /* Thread Info */
+  uint64_t thread_id;
+  pthread_t* thread_data;
+  /* I/O */
+  buffered_input_file_t* buffered_fasta_input;
+  buffered_input_file_t* buffered_fasta_input_end1;
+  buffered_input_file_t* buffered_fasta_input_end2;
+  /* Mapper parameters */
+  mapper_parameters_t* mapper_parameters;
+  /* Archive-Search */
+  archive_search_t* archive_search;
+  archive_search_t* archive_search_end1;
+  archive_search_t* archive_search_end2;
+  paired_matches_t* paired_matches;
+  /* Ticker */
+  ticker_t* ticker;
+} mapper_search_t;
 
 /*
  * Report
@@ -191,7 +181,7 @@ GEM_INLINE void mapper_SE_run(mapper_parameters_t* const mapper_parameters);
 /*
  * PE Mapper
  */
-GEM_INLINE void mapper_PE_run(const mapper_parameters_t* const mapper_parameters);
+GEM_INLINE void mapper_PE_run(mapper_parameters_t* const mapper_parameters);
 
 
 #endif /* MAPPER_H_ */

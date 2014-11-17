@@ -44,9 +44,9 @@ GEM_INLINE void archive_select_realign_match_interval(
         break;
       case alignment_model_gap_affine:
         matches_align_smith_waterman_gotoh(
-            matches,match_trace,match_interval->strand,
+            matches,match_trace,match_interval->strand,&search_parameters->swg_penalties,
             search_state->pattern.key,search_state->pattern.key_length,
-            match_trace->trace_offset,match_trace->position,
+            match_trace->trace_offset,match_trace->position,match_interval->distance,
             match_interval->text,match_interval->length,NULL,0,mm_stack);
         break;
       default:
@@ -59,8 +59,7 @@ GEM_INLINE void archive_select_realign_match_interval(
  * Calculate the number of matches to be decoded
  */
 GEM_INLINE void archive_select_calculate_matches_to_decode(
-    matches_t* const matches,
-    const uint64_t max_decoded_matches,const uint64_t min_decoded_strata,
+    matches_t* const matches,const uint64_t max_decoded_matches,const uint64_t min_decoded_strata,
     const uint64_t min_reported_matches,const uint64_t max_reported_matches,
     uint64_t* const total_strata_to_decode,uint64_t* const matches_to_decode_last_stratum_out) {
   // Compact counters (Shrink the counters to the last non-zero stratum)

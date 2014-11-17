@@ -47,6 +47,7 @@ GEM_INLINE int input_text_parse_csv_arguments(char* const arguments,const uint64
 GEM_INLINE int input_text_parse_extended_uint64(char* const argument,uint64_t* const value);
 GEM_INLINE int input_text_parse_extended_int64(char* const argument,int64_t* const value);
 GEM_INLINE int input_text_parse_extended_double(char* const argument,double* const value);
+GEM_INLINE bool input_text_parse_extended_bool(char* const argument);
 
 /*
  * Tag Parser

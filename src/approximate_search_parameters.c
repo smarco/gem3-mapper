@@ -11,31 +11,6 @@
 /*
  * Region profile default parameters
  */
-// Probing Scheme = (500,1,8,2)
-#define PRP_REGION_THRESHOLD 1000
-#define PRP_MAX_STEPS 3
-#define PRP_DEC_FACTOR 3
-#define PRP_REGION_TYPE_THRESHOLD 2
-// Loose Scheme = (20,3,3,2)
-#define SRP_REGION_THRESHOLD 20
-#define SRP_MAX_STEPS 4
-#define SRP_DEC_FACTOR 2
-#define SRP_REGION_TYPE_THRESHOLD 2
-// Tight Scheme = (50,7,3,2)
-#define HRP_REGION_THRESHOLD 50
-#define HRP_MAX_STEPS 10
-#define HRP_DEC_FACTOR 4
-#define HRP_REGION_TYPE_THRESHOLD 2
-// Recovery Scheme = (20,4,2,2)
-#define RRP_REGION_THRESHOLD 200
-#define RRP_MAX_STEPS 1
-#define RRP_DEC_FACTOR 8
-#define RRP_REGION_TYPE_THRESHOLD 2
-// Filtering thresholds
-#define FILTERING_THRESHOLD 350
-#define PA_FILTERING_THRESHOLD 2500
-#define FILTERING_REGION_FACTOR ((double)1.0)
-
 GEM_INLINE void approximate_search_initialize_replacements(search_parameters_t* const search_parameters) {
   // Reset
   memset(search_parameters->allowed_chars,0,256*sizeof(bool));
@@ -58,11 +33,11 @@ GEM_INLINE void approximate_search_initialize_replacements(search_parameters_t* 
 }
 GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const search_parameters) {
   /*
-   * Initialize (DEFAULTS)
+   * Single End
    */
   // Mapping strategy
   search_parameters->mapping_mode = mapping_adaptive_filtering;
-  search_parameters->mapping_degree = 0;
+  search_parameters->filtering_degree = 0;
   // Qualities
   search_parameters->quality_model = quality_model_type_gem;
   search_parameters->quality_format = qualities_ignore;
@@ -76,37 +51,74 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
   search_parameters->max_search_matches = ALL;
   // Replacements
   approximate_search_initialize_replacements(search_parameters);
+  // Regions handling
+  search_parameters->candidate_chunk_max_length = UINT64_MAX;
+  search_parameters->allow_region_chaining = true;
   // Alignment Model/Score
   search_parameters->alignment_model = alignment_model_levenshtein;
-  search_parameters->matching_score = 1;
-  search_parameters->mismatch_penalty = 4;
-  search_parameters->gap_open_penalty = 6;
-  search_parameters->gap_extension_penalty = 1;
-  // Soft RP
-  search_parameters->srp_region_th = SRP_REGION_THRESHOLD;
-  search_parameters->srp_max_steps = SRP_MAX_STEPS;
-  search_parameters->srp_dec_factor = SRP_DEC_FACTOR;
-  search_parameters->srp_region_type_th = SRP_REGION_TYPE_THRESHOLD;
-  // Hard RP
-  search_parameters->hrp_region_th = HRP_REGION_THRESHOLD;
-  search_parameters->hrp_max_steps = HRP_MAX_STEPS;
-  search_parameters->hrp_dec_factor = HRP_DEC_FACTOR;
-  search_parameters->hrp_region_type_th = HRP_REGION_TYPE_THRESHOLD;
-  // Recover Read
-  search_parameters->rrp_region_th = RRP_REGION_THRESHOLD;
-  search_parameters->rrp_max_steps = RRP_MAX_STEPS;
-  search_parameters->rrp_dec_factor = RRP_DEC_FACTOR;
-  search_parameters->rrp_region_type_th = RRP_REGION_TYPE_THRESHOLD;
+  search_parameters->swg_penalties.matching_score = 1;
+  search_parameters->swg_penalties.mismatch_penalty = 4;
+  search_parameters->swg_penalties.gap_open_penalty = 6;
+  search_parameters->swg_penalties.gap_extension_penalty = 1;
+  /*
+   * Paired End
+   */
+  /* Paired-end mode/alg */
+  search_parameters->paired_end = false;
+  search_parameters->map_both_ends = false;
+  search_parameters->max_extendable_candidates = 20;
+  search_parameters->max_matches_per_extension = 2;
+  /* Template allowed length */
+  search_parameters->min_template_length = 0;
+  search_parameters->max_template_length = UINT64_MAX;
+  /* Concordant Orientation */
+  search_parameters->pair_orientation_FR = true;
+  search_parameters->pair_orientation_RF = false;
+  search_parameters->pair_orientation_FF = false;
+  search_parameters->pair_orientation_RR = false;
+  /* Discordant Orientation */
+  search_parameters->discordant_pair_orientation_FR = false;
+  search_parameters->discordant_pair_orientation_RF = true;
+  search_parameters->discordant_pair_orientation_FF = true;
+  search_parameters->discordant_pair_orientation_RR = true;
+  /* Pair allowed lay-outs */
+  search_parameters->pair_layout_separate = true;
+  search_parameters->pair_layout_overlap = true;
+  search_parameters->pair_layout_contain = true;
+  search_parameters->pair_layout_dovetail = true;
+  /*
+   * Internals
+   */
+  // Soft RP. Loose Scheme = (20,4,2,2)
+  search_parameters->rp_soft.region_th = 20;
+  search_parameters->rp_soft.max_steps = 4;
+  search_parameters->rp_soft.dec_factor = 2;
+  search_parameters->rp_soft.region_type_th = 2;
+  // Hard RP. Tight Scheme = (50,10,4,2)
+  search_parameters->rp_hard.region_th = 50;
+  search_parameters->rp_hard.max_steps = 10;
+  search_parameters->rp_hard.dec_factor = 4;
+  search_parameters->rp_hard.region_type_th = 2;
+//  // Probing RP. Probing Scheme = (1000,3,3,2)
+//  search_parameters->rp_probing.region_th = 1000;
+//  search_parameters->rp_probing.max_steps = 3;
+//  search_parameters->rp_probing.dec_factor = 3;
+//  search_parameters->rp_probing.region_type_th = 2;
+  // Recovery RP. Recovery Scheme = (200,1,8,2)
+  search_parameters->rp_recovery.region_th = 200;
+  search_parameters->rp_recovery.max_steps = 1;
+  search_parameters->rp_recovery.dec_factor = 8;
+  search_parameters->rp_recovery.region_type_th = 2;
   // Filtering Thresholds
-  search_parameters->filtering_region_factor = FILTERING_REGION_FACTOR;
-  search_parameters->filtering_threshold = FILTERING_THRESHOLD;
-  search_parameters->pa_filtering_threshold = PA_FILTERING_THRESHOLD;
+  search_parameters->filtering_region_factor = 1.0;
+  search_parameters->filtering_threshold = 350;
+  search_parameters->pa_filtering_threshold = 2500;
 }
 GEM_INLINE void approximate_search_configure_mapping_strategy(
     search_parameters_t* const search_parameters,
-    const mapping_mode_t mapping_mode,const float mapping_degree) {
+    const mapping_mode_t mapping_mode,const float filtering_degree) {
   search_parameters->mapping_mode = mapping_mode;
-  search_parameters->mapping_degree = mapping_degree;
+  search_parameters->filtering_degree = filtering_degree;
 }
 GEM_INLINE void approximate_search_configure_quality_model(
     search_parameters_t* const search_parameters,
@@ -123,6 +135,10 @@ GEM_INLINE void approximate_search_configure_error_model(
   search_parameters->max_filtering_error = max_filtering_error;
   search_parameters->complete_strata_after_best = complete_strata_after_best;
   search_parameters->min_matching_length = min_matching_length;
+}
+GEM_INLINE void approximate_search_configure_matches(
+    search_parameters_t* const search_parameters,const uint64_t max_search_matches) {
+  search_parameters->max_search_matches = max_search_matches;
 }
 GEM_INLINE void approximate_search_configure_replacements(
     search_parameters_t* const search_parameters,
@@ -143,18 +159,30 @@ GEM_INLINE void approximate_search_configure_replacements(
   gem_cond_fatal_error(count==0,ASP_REPLACEMENT_EMPTY);
   search_parameters->mismatch_alphabet_length = count;
 }
+GEM_INLINE void approximate_search_configure_region_handling(
+    search_parameters_t* const search_parameters,
+    const uint64_t candidate_chunk_max_length,const bool allow_region_chaining) {
+  // Regions treatment
+  search_parameters->candidate_chunk_max_length = candidate_chunk_max_length;
+  search_parameters->allow_region_chaining = allow_region_chaining;
+}
 GEM_INLINE void approximate_search_configure_alignment_model(
     search_parameters_t* const search_parameters,const alignment_model_t alignment_model) {
   search_parameters->alignment_model = alignment_model;
 }
-GEM_INLINE void approximate_search_configure_matches(
-    search_parameters_t* const search_parameters,const uint64_t max_search_matches) {
-  search_parameters->max_search_matches = max_search_matches;
+GEM_INLINE void approximate_search_configure_alignment_scores(
+    search_parameters_t* const search_parameters,
+    const uint64_t matching_score,const uint64_t mismatch_penalty,
+    const uint64_t gap_open_penalty,const uint64_t gap_extension_penalty) {
+  search_parameters->swg_penalties.matching_score = matching_score;
+  search_parameters->swg_penalties.mismatch_penalty = mismatch_penalty;
+  search_parameters->swg_penalties.gap_open_penalty = gap_open_penalty;
+  search_parameters->swg_penalties.gap_extension_penalty = gap_extension_penalty;
 }
 GEM_INLINE void approximate_search_instantiate_values(
     search_actual_parameters_t* const search_actual_parameters,const uint64_t pattern_length) {
   const search_parameters_t* const search_parameters = search_actual_parameters->search_parameters;
-  search_actual_parameters->fast_mapping_degree_nominal = integer_proportion(search_parameters->mapping_degree,pattern_length);
+  search_actual_parameters->filtering_degree_nominal = integer_proportion(search_parameters->filtering_degree,pattern_length);
   search_actual_parameters->max_search_error_nominal = integer_proportion(search_parameters->max_search_error,pattern_length);
   search_actual_parameters->max_filtering_error_nominal = integer_proportion(search_parameters->max_filtering_error,pattern_length);
   search_actual_parameters->complete_strata_after_best_nominal = integer_proportion(search_parameters->complete_strata_after_best,pattern_length);

@@ -26,12 +26,13 @@ MODULES+=sequence dna_text cdna_text cdna_bitwise_text \
          text_collection graph_text graph_text_builder \
 # GEM Structures
 MODULES+=archive_builder archive_text_builder archive_hypertext_builder archive_index_builder sa_builder \
-         bwt rank_mtable sampled_sa sampled_rl fm_index interval_set matches locator \
+         bwt rank_mtable sampled_sa sampled_rl fm_index interval_set matches paired_matches locator \
          archive archive_search archive_search_group mm_search \
          archive_select archive_select_parameters archive_text_retrieve 
 # GEM Search Modules
-MODULES+=approximate_search_parameters approximate_search neighborhood_search matches_align \
-         filtering_candidates region_profile bpm_align bpm_align_gpu kmer_counting quality_model
+MODULES+=approximate_search_parameters approximate_search neighborhood_search \
+         matches_align swg_align bpm_align bpm_align_gpu \
+         filtering_candidates region_profile kmer_counting quality_model
 # GEM Top-level Modules
 MODULES+=mapper mapper_cuda gem_core
 # Misc
@@ -41,12 +42,15 @@ SRCS=$(addsuffix .c, $(MODULES))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))
 GEM_CORE_LIB=$(FOLDER_LIB)/libgemcore_c.a
 
-all: release
+all: devel
 
 release: COMPILE_C_FLAGS=$(GENERAL_FLAGS) $(OPT_FLAGS) $(SUPPRESS_CHECKS)
 release: $(GEM_CORE_LIB)
 
-profile: COMPILE_C_FLAGS=$(GENERAL_FLAGS) $(OPT_FLAGS) $(SUPPRESS_CHECKS) -g -ggdb3 -I/opt/intel/vtune_amplifier_xe_2013/include/
+devel: COMPILE_C_FLAGS=$(GENERAL_FLAGS) $(OPT_FLAGS) $(DEBUG_FLAGS)
+devel: $(GEM_CORE_LIB)
+
+profile: COMPILE_C_FLAGS=$(GENERAL_FLAGS) $(OPT_FLAGS) $(DEBUG_FLAGS) -I/opt/intel/vtune_amplifier_xe_2013/include/
 profile: $(GEM_CORE_LIB)
 
 debug: COMPILE_C_FLAGS=-O0 $(GENERAL_FLAGS) $(DEBUG_FLAGS)

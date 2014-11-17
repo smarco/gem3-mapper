@@ -12,6 +12,7 @@
 #include "essentials.h"
 #include "quality_model.h"
 #include "matches_align.h"
+#include "region_profile.h"
 
 // Approximate Search Internals
 typedef enum {
@@ -27,7 +28,7 @@ typedef struct {
    */
   /* Mapping strategy (Mapping mode + properties) */
   mapping_mode_t mapping_mode;
-  float mapping_degree;
+  float filtering_degree;
   /* Qualities */
   quality_model_t quality_model;
   quality_format_t quality_format;
@@ -44,30 +45,47 @@ typedef struct {
   uint64_t mismatch_alphabet_length;
   bool allowed_chars[256];
   bool allowed_enc[DNA_EXT_RANGE];
+  /* Regions handling */
+  uint64_t candidate_chunk_max_length; // Maximum candidate chunk size to verify (otherwise, it will be split)
+  bool allow_region_chaining;          // Allows chaining regions to retrieve the alignment
   /* Alignment Model/Score */
   alignment_model_t alignment_model;
-  uint64_t matching_score;
-  uint64_t mismatch_penalty;
-  uint64_t gap_open_penalty;
-  uint64_t gap_extension_penalty;
+  swg_penalties_t swg_penalties;
+  /*
+   * Paired End
+   */
+  /* Paired-end mode/alg */
+  bool paired_end;
+  bool map_both_ends;
+  uint64_t max_extendable_candidates;
+  uint64_t max_matches_per_extension;
+  /* Template allowed length */
+  uint64_t min_template_length;
+  uint64_t max_template_length;
+  /* Concordant Orientation */
+  bool pair_orientation_FR;
+  bool pair_orientation_RF;
+  bool pair_orientation_FF;
+  bool pair_orientation_RR;
+  /* Discordant Orientation */
+  bool discordant_pair_orientation_FR;
+  bool discordant_pair_orientation_RF;
+  bool discordant_pair_orientation_FF;
+  bool discordant_pair_orientation_RR;
+  /* Pair allowed lay-outs */
+  bool pair_layout_separate;
+  bool pair_layout_overlap;
+  bool pair_layout_contain;
+  bool pair_layout_dovetail;
   /*
    * Internals
    */
-  /* Soft Region Profile Parameters */
-  uint64_t srp_region_th; // Max. number of candidates allowed per region
-  uint64_t srp_max_steps; // Max. number of characters to explore to improve the region
-  uint64_t srp_dec_factor; // Decreasing factor per step in region exploration
-  uint64_t srp_region_type_th; // Threshold to classify regions {ZERO,NON_ZERO}
-  /* Hard Region Profile Parameters */
-  uint64_t hrp_region_th;
-  uint64_t hrp_max_steps;
-  uint64_t hrp_dec_factor;
-  uint64_t hrp_region_type_th;
-  /* Read recovery parameters */
-  uint64_t rrp_region_th;
-  uint64_t rrp_max_steps;
-  uint64_t rrp_dec_factor;
-  uint64_t rrp_region_type_th;
+  /* Soft Region-Profile */
+  region_profile_model_t rp_soft;
+  /* Hard Region-Profile */
+  region_profile_model_t rp_hard;
+  /* Recovery Region-Profile */
+  region_profile_model_t rp_recovery;
   /* Filtering parameters */
   uint64_t filtering_threshold;
   float filtering_region_factor;
@@ -82,7 +100,7 @@ typedef struct {
    * Actual Search parameters (Evaluated to read-length)
    */
   /* Mapping strategy (Mapping mode + properties) */
-  uint64_t fast_mapping_degree_nominal;
+  uint64_t filtering_degree_nominal;
   /* Error Model (Regulates the number of Mismatch/Indels) */
   uint64_t max_search_error_nominal;           // Maximum number of error/differences while searching (edit distance)
   uint64_t max_filtering_error_nominal;        // Maximum tolerated error at filtering (verifying candidates)
@@ -97,7 +115,7 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
 
 GEM_INLINE void approximate_search_configure_mapping_strategy(
     search_parameters_t* const search_parameters,
-    const mapping_mode_t mapping_mode,const float mapping_degree);
+    const mapping_mode_t mapping_mode,const float filtering_degree);
 GEM_INLINE void approximate_search_configure_quality_model(
     search_parameters_t* const search_parameters,
     const quality_model_t quality_model,const quality_format_t quality_format,const uint64_t quality_threshold);
@@ -105,13 +123,20 @@ GEM_INLINE void approximate_search_configure_error_model(
     search_parameters_t* const search_parameters,
     float max_search_error,float max_filtering_error,
     float complete_strata_after_best,float min_matching_length);
+GEM_INLINE void approximate_search_configure_matches(
+    search_parameters_t* const search_parameters,const uint64_t max_search_matches);
 GEM_INLINE void approximate_search_configure_replacements(
     search_parameters_t* const search_parameters,
     const char* const mismatch_alphabet,const uint64_t mismatch_alphabet_length);
+GEM_INLINE void approximate_search_configure_region_handling(
+    search_parameters_t* const search_parameters,
+    const uint64_t candidate_chunk_max_length,const bool allow_region_chaining);
 GEM_INLINE void approximate_search_configure_alignment_model(
     search_parameters_t* const search_parameters,const alignment_model_t alignment_model);
-GEM_INLINE void approximate_search_configure_matches(
-    search_parameters_t* const search_parameters,const uint64_t max_search_matches);
+GEM_INLINE void approximate_search_configure_alignment_scores(
+    search_parameters_t* const search_parameters,
+    const uint64_t matching_score,const uint64_t mismatch_penalty,
+    const uint64_t gap_open_penalty,const uint64_t gap_extension_penalty);
 
 GEM_INLINE void approximate_search_instantiate_values(
     search_actual_parameters_t* const search_actual_parameters,const uint64_t pattern_length);

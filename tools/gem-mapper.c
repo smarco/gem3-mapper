@@ -19,28 +19,44 @@ GEM_INLINE void gem_mapper_load_index(mapper_parameters_t* const parameters) {
       parameters->io.check_index,parameters->misc.verbose_dev);
   PROF_STOP_TIMER(GP_MAPPER_LOAD_INDEX);
 }
-GEM_INLINE void gem_mapper_open_input(mapper_parameters_t* const parameters) {
+GEM_INLINE input_file_t* gem_mapper_open_input_file(
+    char* const input_file_name,const fm_type input_compression,
+    const uint64_t input_block_size,const bool verbose_user) {
   // Open input file
-  const mapper_parameters_cuda_t* const cuda = &parameters->cuda;
-  const uint64_t input_block_size = (cuda->cuda_enabled) ? cuda->input_block_size : parameters->io.input_block_size;
-  if (parameters->io.input_file_name==NULL) {
-    gem_cond_log(parameters->misc.verbose_user,"[Reading input file from stdin]");
-    switch (parameters->io.input_compression) {
+  input_file_t* input_file;
+  if (input_file_name==NULL) {
+    gem_cond_log(verbose_user,"[Reading input file from stdin]");
+    switch (input_compression) {
       case FM_GZIPPED_FILE:
-        parameters->input_file = input_gzip_stream_open(stdin,input_block_size);
+        input_file = input_gzip_stream_open(stdin,input_block_size);
         break;
       case FM_BZIPPED_FILE:
-        parameters->input_file = input_bzip_stream_open(stdin,input_block_size);
+        input_file = input_bzip_stream_open(stdin,input_block_size);
         break;
       default:
-        parameters->input_file = input_stream_open(stdin,input_block_size);
+        input_file = input_stream_open(stdin,input_block_size);
         break;
     }
   } else {
-    gem_cond_log(parameters->misc.verbose_user,"[Opening input file '%s']",parameters->io.input_file_name);
-    parameters->input_file = input_file_open(parameters->io.input_file_name,input_block_size,false);
+    gem_cond_log(verbose_user,"[Opening input file '%s']",input_file_name);
+    input_file = input_file_open(input_file_name,input_block_size,false);
   }
   // TODO: Checks
+  return input_file;
+}
+GEM_INLINE void gem_mapper_open_input(mapper_parameters_t* const parameters) {
+  if (parameters->io.separated_input_files) {
+    parameters->input_file_end1 = gem_mapper_open_input_file(
+        parameters->io.input_file_name,parameters->io.input_compression,
+        parameters->io.input_block_size,parameters->misc.verbose_user);
+    parameters->input_file_end2 = gem_mapper_open_input_file(
+        parameters->io.input_file_name,parameters->io.input_compression,
+        parameters->io.input_block_size,parameters->misc.verbose_user);
+  } else {
+    parameters->input_file = gem_mapper_open_input_file(
+        parameters->io.input_file_name,parameters->io.input_compression,
+        parameters->io.input_block_size,parameters->misc.verbose_user);
+  }
 }
 GEM_INLINE void gem_mapper_close_input(mapper_parameters_t* const parameters) {
   input_file_close(parameters->input_file);
@@ -169,16 +185,16 @@ option_t gem_mapper_options[] = {
   { 'o', "output", REQUIRED, TYPE_STRING, 2, true, "<output_prefix>" , "(default=stdout)" },
   { 205, "gzip-output", NO_ARGUMENT, TYPE_NONE, 2, true, "", "(gzip output)" },
   { 206, "bzip-output", NO_ARGUMENT, TYPE_NONE, 2, true, "", "(bzip output)" },
-  { 207, "output-model", REQUIRED, TYPE_STRING, 2, false, "<buffer_size,num_buffers>", "(default=4M,3c)" },
+  { 207, "output-model", REQUIRED, TYPE_STRING, 2, false, "<buffer_size,num_buffers>", "(default=4M,5c)" },
   /* Qualities */
   { 'q', "quality-format", REQUIRED, TYPE_STRING, 3, true, "'ignore'|'offset-33'|'offset-64'", "(default=offset-33)" },
   { 'Q', "quality-model", REQUIRED, TYPE_STRING, 3, false, "'gem'|'flat'", "(default=gem)" },
   { 300, "gem-quality-threshold", REQUIRED, TYPE_INT, 3, true, "<number>", "(default=26, that is e<=2e-3)" },
   /* Single-end Alignment */
   { 400, "mapping-mode", REQUIRED, TYPE_STRING, 4, false, "'incremental'|'adaptive'|'fixed'|'fast'|'brute-force'" , "(default=fast)" },
-  { 401, "mapping-degree", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0)" },
+  { 401, "filtering-degree", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0)" },
 #ifdef HAVE_CUDA
-  { 402, "cuda", NO_ARGUMENT, TYPE_NONE, 4, true, "", ""},
+  { 402, "cuda", OPTIONAL, TYPE_STRING, 4, true, "", ""},
 #endif
   { 'e', "max-search-error", REQUIRED, TYPE_FLOAT, 4, true, "<number|percentage>" , "(default=0.04, 4%)" },
   { 'E', "max-filtering-error", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0.2, 20%)" },
@@ -186,15 +202,18 @@ option_t gem_mapper_options[] = {
   { 403, "min-matching-length", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0.20, 20%)" },
   { 404, "max-search-matches", REQUIRED, TYPE_INT, 4, true, "<number>" , "(unlimited by default)" },
   { 405, "mismatch-alphabet", REQUIRED, TYPE_STRING, 4, false, "<symbols>" , "(default='ACGT')" },
+  { 406, "region-chaining", OPTIONAL, TYPE_STRING, 4, false, "" , "(default=true)" },
+  { 407, "candidate-chunk-length", REQUIRED, TYPE_INT, 4, false, "" , "(default=unlimited)" },
+  { 408, "region-model", REQUIRED, TYPE_FLOAT, 4, false, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "(default=20,4,2,2)" },
   /* Paired-end Alignment */
-  { 'p', "paired-end-alignment", NO_ARGUMENT, TYPE_NONE, 5, true, "" , "" },
+  { 'p', "paired-end-alignment", OPTIONAL, TYPE_STRING, 5, true, "" , "" },
   // { 500, "mate-pair-alignment", NO_ARGUMENT, TYPE_NONE, 5, true, "" , "" }, // TODO
   { 501, "min-template-length", REQUIRED, TYPE_INT, 5, true, "<number>" , "(default=0)" },
   { 502, "max-template-length", REQUIRED, TYPE_INT, 5, true, "<number>" , "(default=inf)" },
   { 503, "pair-orientation", REQUIRED, TYPE_STRING, 5, true, "'FR'|'RF'|'FF'|'RR'" , "(default=FR)" },
   { 504, "discordant-pair-orientation", REQUIRED, TYPE_STRING, 5, true, "'FR'|'RF'|'FF'|'RR'" , "(default=RF,FF,RR)" },
   { 505, "pair-layout", REQUIRED, TYPE_STRING, 5, true, "'separate'|'overlap'|'contain'|'dovetail'" , "(default=separated,overlap,contain,dovetail)" },
-  { 506, "map-both-ends", NO_ARGUMENT, TYPE_NONE, 5, false, "" , "(default=false)" },
+  { 506, "map-both-ends", OPTIONAL, TYPE_STRING, 5, false, "" , "(default=false)" },
   { 507, "max-extendable-candidates", REQUIRED, TYPE_INT, 5, false, "<number>" , "(default=20)" },
   { 508, "max-matches-per-extension", REQUIRED, TYPE_INT, 5, false, "<number>" , "(default=2)" },
   /* Alignment Score */
@@ -216,16 +235,15 @@ option_t gem_mapper_options[] = {
   { 900, "max-memory", REQUIRED, TYPE_STRING, 9, true, "<maximum-memory>" , "(Eg 2GB)" },
   { 901, "tmp-folder", REQUIRED, TYPE_STRING, 9, true, "<temporal_dir_path>" , "(default=/tmp/)" },
   /* CUDA Settings */
-  { 1000, "threads-cuda", REQUIRED, TYPE_STRING, 10, false, "<generating>,<selecting>" , "(default=1c,1c)" },
-  { 1001, "cuda-search-groups", REQUIRED, TYPE_STRING, 10, false, "<num_groups,buffer_size>" , "(default=3c,16M)" },
+  { 1000, "cuda-buffers-per-thread", REQUIRED, TYPE_STRING, 10, false, "<num_buffers,buffer_size>" , "(default=3,4M)" },
   /* Presets/Hints */
   { 1100, "technology", REQUIRED, TYPE_STRING, 11, false, "'hiseq'|'miseq'|'454'|'ion-torrent'|'pacbio'|'nanopore'|'moleculo'" , "(default=hiseq)" },
   { 1101, "reads-model", REQUIRED, TYPE_STRING, 11, false, "<average_length>[,<std_length>]" , "(default=150,50)" },
   /* Debug */
   { 1200, "check-alignments", REQUIRED, TYPE_STRING, 12, false, "'check-correct'|'check-best'|'check-complete'" , "(default=check-correct,check-best)" },
   /* Miscellaneous */
-  { 1300, "profile", OPTIONAL, TYPE_NONE, 13, false, "'sum'|'min'|'max'|'mean'|'sample'" , "(disabled)" },
-  { 'v', "verbose", OPTIONAL, TYPE_NONE, 13, true, "'quiet'|'user'|'dev'" , "(default=user)" },
+  { 1300, "profile", OPTIONAL, TYPE_STRING, 13, false, "'sum'|'min'|'max'|'mean'|'sample'" , "(disabled)" },
+  { 'v', "verbose", OPTIONAL, TYPE_STRING, 13, true, "'quiet'|'user'|'dev'" , "(default=user)" },
   { 'h', "help", NO_ARGUMENT, TYPE_NONE, 13, true, "" , "(print usage)" },
   { 'H', "help", NO_ARGUMENT, TYPE_NONE, 13, false, "" , "(print usage + extras)" },
   { 0, NULL, 0, 0, 0, 0, NULL, NULL}
@@ -295,12 +313,17 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       parameters->io.check_index = true;
       break;
     case 'i': // --input
+      parameters->io.separated_input_files = false;
       parameters->io.input_file_name = optarg; // TODO Multiple input files
       break;
     case '1': // --i1
+      parameters->search_parameters.paired_end = true;
+      parameters->io.separated_input_files = true;
       parameters->io.input_file_name_end1 = optarg;
       break;
     case '2': // --i2
+      parameters->search_parameters.paired_end = true;
+      parameters->io.separated_input_files = true;
       parameters->io.input_file_name_end2 = optarg;
       break;
     case 201: // --gzip-input
@@ -402,12 +425,12 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       }
       gem_fatal_error_msg("Option '--mapping-mode' must be 'incremental'|'adaptive'|'fixed'|'fast'|'brute-force'");
       break;
-    case 401: // --mapping-degree
-      parameters->search_parameters.mapping_degree = atof(optarg);
+    case 401: // --filtering-degree
+      parameters->search_parameters.filtering_degree = atof(optarg);
       break;
     case 402: // --cuda
       if (!bpm_gpu_support()) GEM_CUDA_NOT_SUPPORTED();
-      parameters->cuda.cuda_enabled = true;
+      parameters->cuda.cuda_enabled = input_text_parse_extended_bool(optarg);
       break;
     case 'e': // --max-search-error
       parameters->search_parameters.max_search_error = atof(optarg);
@@ -430,27 +453,47 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
           &parameters->search_parameters,mismatch_alphabet,gem_strlen(mismatch_alphabet));
       break;
     }
+    case 406: // --region-chaining
+      parameters->search_parameters.allow_region_chaining = input_text_parse_extended_bool(optarg);
+      break;
+    case 407: // --candidate-chunk-length
+      input_text_parse_extended_uint64(optarg,&parameters->search_parameters.candidate_chunk_max_length);
+      break;
+    case 408: { // --region-model
+      char *region_th=NULL, *max_steps=NULL, *dec_factor=NULL, *region_type_th=NULL;
+      const int num_arguments = input_text_parse_csv_arguments(optarg,4,&region_th,&max_steps,&dec_factor,&region_type_th);
+      gem_cond_fatal_error_msg(num_arguments!=4,"Option '--region-model' wrong number of arguments");
+      // Parse region_th
+      input_text_parse_extended_uint64(region_th,&parameters->search_parameters.rp_soft.region_th);
+      // Parse max_steps
+      input_text_parse_extended_uint64(max_steps,&parameters->search_parameters.rp_soft.max_steps);
+      // Parse dec_factor
+      input_text_parse_extended_uint64(dec_factor,&parameters->search_parameters.rp_soft.dec_factor);
+      // Parse region_type_th
+      input_text_parse_extended_uint64(region_type_th,&parameters->search_parameters.rp_soft.region_type_th);
+      break;
+    }
     /* Paired-end Alignment */
     case 'p': // --paired-end-alignment
-      parameters->paired_end.paired_end = true;
+      parameters->search_parameters.paired_end = input_text_parse_extended_bool(optarg);
       break;
 //    case 500: // --mate-pair-alignment
 //      input_text_parse_extended_uint64(optarg,&parameters->min_template_size);
 //      break;
     case 501: // --min-template-length
-      input_text_parse_extended_uint64(optarg,&parameters->paired_end.min_template_length);
+      input_text_parse_extended_uint64(optarg,&parameters->search_parameters.min_template_length);
       break;
     case 502: // --max-template-length
-      input_text_parse_extended_uint64(optarg,&parameters->paired_end.max_template_length);
+      input_text_parse_extended_uint64(optarg,&parameters->search_parameters.max_template_length);
       break;
     case 503: { // --pair-orientation in {'FR'|'RF'|'FF'|'RR'}
       // Start parsing
       char *pair_orientation = strtok(optarg,",");
       while (pair_orientation!=NULL) {
-        if (gem_strcaseeq(pair_orientation,"FR")) { parameters->paired_end.pair_orientation_FR = true; continue; }
-        if (gem_strcaseeq(pair_orientation,"RF")) { parameters->paired_end.pair_orientation_RF = true; continue; }
-        if (gem_strcaseeq(pair_orientation,"FF")) { parameters->paired_end.pair_orientation_FF = true; continue; }
-        if (gem_strcaseeq(pair_orientation,"RR")) { parameters->paired_end.pair_orientation_RR = true; continue; }
+        if (gem_strcaseeq(pair_orientation,"FR")) { parameters->search_parameters.pair_orientation_FR = true; continue; }
+        if (gem_strcaseeq(pair_orientation,"RF")) { parameters->search_parameters.pair_orientation_RF = true; continue; }
+        if (gem_strcaseeq(pair_orientation,"FF")) { parameters->search_parameters.pair_orientation_FF = true; continue; }
+        if (gem_strcaseeq(pair_orientation,"RR")) { parameters->search_parameters.pair_orientation_RR = true; continue; }
         gem_fatal_error_msg("Option '--pair-orientation' must be 'FR'|'RF'|'FF'|'RR'");
         pair_orientation = strtok(NULL,",");
       }
@@ -460,10 +503,10 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       // Start parsing
       char *discordant_pair_orientation = strtok(optarg,",");
       while (discordant_pair_orientation!=NULL) {
-        if (gem_strcaseeq(discordant_pair_orientation,"FR")) { parameters->paired_end.discordant_pair_orientation_FR = true; continue; }
-        if (gem_strcaseeq(discordant_pair_orientation,"RF")) { parameters->paired_end.discordant_pair_orientation_RF = true; continue; }
-        if (gem_strcaseeq(discordant_pair_orientation,"FF")) { parameters->paired_end.discordant_pair_orientation_FF = true; continue; }
-        if (gem_strcaseeq(discordant_pair_orientation,"RR")) { parameters->paired_end.discordant_pair_orientation_RR = true; continue; }
+        if (gem_strcaseeq(discordant_pair_orientation,"FR")) { parameters->search_parameters.discordant_pair_orientation_FR = true; continue; }
+        if (gem_strcaseeq(discordant_pair_orientation,"RF")) { parameters->search_parameters.discordant_pair_orientation_RF = true; continue; }
+        if (gem_strcaseeq(discordant_pair_orientation,"FF")) { parameters->search_parameters.discordant_pair_orientation_FF = true; continue; }
+        if (gem_strcaseeq(discordant_pair_orientation,"RR")) { parameters->search_parameters.discordant_pair_orientation_RR = true; continue; }
         gem_fatal_error_msg("Option '--discordant-pair-orientation' must be 'FR'|'RF'|'FF'|'RR'");
         discordant_pair_orientation = strtok(NULL,",");
       }
@@ -473,23 +516,23 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       // Start parsing
       char *pair_layout = strtok(optarg,",");
       while (pair_layout!=NULL) {
-        if (gem_strcaseeq(pair_layout,"separate")) { parameters->paired_end.pair_layout_separate = true; continue; }
-        if (gem_strcaseeq(pair_layout,"overlap"))  { parameters->paired_end.pair_layout_overlap = true; continue; }
-        if (gem_strcaseeq(pair_layout,"contain"))  { parameters->paired_end.pair_layout_contain = true; continue; }
-        if (gem_strcaseeq(pair_layout,"dovetail")) { parameters->paired_end.pair_layout_dovetail = true; continue; }
+        if (gem_strcaseeq(pair_layout,"separate")) { parameters->search_parameters.pair_layout_separate = true; continue; }
+        if (gem_strcaseeq(pair_layout,"overlap"))  { parameters->search_parameters.pair_layout_overlap = true; continue; }
+        if (gem_strcaseeq(pair_layout,"contain"))  { parameters->search_parameters.pair_layout_contain = true; continue; }
+        if (gem_strcaseeq(pair_layout,"dovetail")) { parameters->search_parameters.pair_layout_dovetail = true; continue; }
         gem_fatal_error_msg("Option '--pair-layout' must be 'separate'|'overlap'|'contain'|'dovetail'");
         pair_layout = strtok(NULL,",");
       }
       break;
     }
     case 506: // --map-both-ends
-      parameters->paired_end.map_both_ends = true;
+      parameters->search_parameters.map_both_ends = input_text_parse_extended_bool(optarg);
       break;
     case 507: // --max-extendable-candidates
-      input_text_parse_extended_uint64(optarg,&parameters->paired_end.max_extendable_candidates);
+      input_text_parse_extended_uint64(optarg,&parameters->search_parameters.max_extendable_candidates);
       break;
     case 508: // --max-matches-per-extension
-      input_text_parse_extended_uint64(optarg,&parameters->paired_end.max_matches_per_extension);
+      input_text_parse_extended_uint64(optarg,&parameters->search_parameters.max_matches_per_extension);
       break;
     /* Alignment Score */
     case 600: // --alignment-model
@@ -499,7 +542,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
         parameters->search_parameters.alignment_model = alignment_model_hamming;
       } else if (gem_strcaseeq(optarg,"edit") || gem_strcaseeq(optarg,"levenshtein") ) {
         parameters->search_parameters.alignment_model = alignment_model_levenshtein;
-      } else if (gem_strcaseeq(optarg,"gap-affine'")) {
+      } else if (gem_strcaseeq(optarg,"gap-affine")) {
         parameters->search_parameters.alignment_model = alignment_model_gap_affine;
       } else {
         gem_fatal_error_msg("Option '--alignment-model' must be 'none'|'hamming'|'edit'|'gap-affine'");
@@ -540,25 +583,14 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       parameters->system.tmp_folder = optarg;
       break;
     /* CUDA Settings */
-    case 1000: { // --threads-cuda=1c,1c
-      char *generating_threads=NULL, *selecting_threads=NULL;
-      const int num_arguments = input_text_parse_csv_arguments(optarg,2,&generating_threads,&selecting_threads);
-      gem_cond_fatal_error_msg(num_arguments!=2,"Option '--threads-cuda' wrong number of arguments");
-      // Generating threads
-      gem_cond_fatal_error_msg(parse_arguments_system_integer(generating_threads,&parameters->cuda.num_generating_threads),
-          "Option '--threads-cuda'. Error parsing 'num_generating_threads'");
-      // Selecting threads
-      gem_cond_fatal_error_msg(parse_arguments_system_integer(selecting_threads,&parameters->cuda.num_selecting_threads),
-          "Option '--threads-cuda'. Error parsing 'num_selecting_threads'");
-      break;
-    }
-    case 1001: { // --cuda-search-groups=3c,16M
-      char *num_groups=NULL, *buffer_size=NULL;
-      const int num_arguments = input_text_parse_csv_arguments(optarg,2,&num_groups,&buffer_size);
-      gem_cond_fatal_error_msg(num_arguments!=2,"Option '--cuda-search-groups' wrong number of arguments");
-      // Number of groups
-      gem_cond_fatal_error_msg(parse_arguments_system_integer(num_groups,&parameters->cuda.num_search_groups),
-          "Option '--cuda-search-groups'. Error parsing 'num_groups'");
+    case 1000: { // --cuda-buffers-per-thread=3,4M
+      char *num_buffers=NULL, *buffer_size=NULL;
+      const int num_arguments = input_text_parse_csv_arguments(optarg,2,&num_buffers,&buffer_size);
+      gem_cond_fatal_error_msg(num_arguments!=2,"Option '--cuda-buffers-per-thread' wrong number of arguments");
+      // Number of buffers per thread
+      gem_cond_fatal_error_msg(input_text_parse_integer(
+          (const char** const)&num_buffers,(int64_t*)&parameters->cuda.num_search_groups_per_thread),
+          "Option '--cuda-search-groups'. Error parsing 'num_buffers'");
       // Buffer size
       gem_cond_fatal_error_msg(input_text_parse_size(buffer_size,&parameters->cuda.bpm_buffer_size),
           "Option '--cuda-search-groups'. Error parsing 'buffer_size'");
@@ -667,21 +699,41 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
    * Parameters Check
    */
   // I/O Parameters
-  gem_cond_fatal_error_msg(parameters->io.index_file_name==NULL,"Index file required");
-  gem_cond_fatal_error_msg(parameters->io.output_file_name!=NULL && parameters->io.input_file_name!=NULL &&
-      gem_streq(parameters->io.input_file_name,parameters->io.output_file_name),
-      "Input-file and output-file must be different");
-  gem_cond_fatal_error_msg(
-      parameters->io.input_file_name!=NULL &&
-      gem_streq(parameters->io.index_file_name,parameters->io.input_file_name),
-      "Index-file and input-file must be different");
-  gem_cond_fatal_error_msg(parameters->io.output_file_name!=NULL &&
-      gem_streq(parameters->io.index_file_name,parameters->io.output_file_name),
-      "Index-file and output-file must be different");
+  const char* const pindex = parameters->io.index_file_name;
+  const char* const poutput = parameters->io.output_file_name;
+  gem_cond_fatal_error_msg(pindex==NULL,"Index file required");
+  if (!parameters->io.separated_input_files) {
+    const char* const pinput = parameters->io.input_file_name;
+    if (pinput!=NULL) {
+      gem_cond_fatal_error_msg(gem_streq(pindex,pinput), "Index and Input-file must be different");
+      if (poutput!=NULL) {
+        gem_cond_fatal_error_msg(gem_streq(pinput,poutput),"Input-file and Output-file must be different");
+        gem_cond_fatal_error_msg(gem_streq(pindex,poutput),"Index and Output-file must be different");
+      }
+    }
+  } else {
+    const char* const pinput_1 = parameters->io.input_file_name_end1;
+    const char* const pinput_2 = parameters->io.input_file_name_end2;
+    gem_cond_fatal_error_msg(pinput_1==NULL, "Missing Input-End1 (--i1)");
+    gem_cond_fatal_error_msg(pinput_2==NULL, "Missing Input-End2 (--i2)");
+    gem_cond_fatal_error_msg(gem_streq(pinput_1,pinput_2), "Input-End1 and Input-End2 must be different");
+    gem_cond_fatal_error_msg(gem_streq(pindex,pinput_1), "Index and Input-End1 must be different");
+    gem_cond_fatal_error_msg(gem_streq(pindex,pinput_2), "Index and Input-End2 must be different");
+    if (poutput!=NULL) {
+      gem_cond_fatal_error_msg(gem_streq(pinput_1,poutput),"Input-End1 and Output-file must be different");
+      gem_cond_fatal_error_msg(gem_streq(pinput_2,poutput),"Input-End2 and Output-file must be different");
+      gem_cond_fatal_error_msg(gem_streq(pindex,poutput),"Index and Output-file must be different");
+    }
+  }
   /*
    * Search Parameters
    */
   /* Mapping strategy (Mapping mode + properties) */
+  if (parameters->search_parameters.paired_end) {
+    parameters->mapper_type = mapper_pe;
+  } else {
+    parameters->mapper_type = mapper_se;
+  }
   /* Qualities */
 //  uint64_t quality_threshold;
   gem_cond_fatal_error_msg(parameters->search_parameters.quality_threshold > 94,
@@ -728,9 +780,7 @@ int main(int argc,char** argv) {
   // Runtime setup
   gem_timer_t mapper_time;
   const mapper_parameters_cuda_t* const cuda = &parameters.cuda;
-  const uint64_t total_threads = (cuda->cuda_enabled) ?
-      (cuda->num_generating_threads + cuda->num_selecting_threads + 1) : parameters.system.num_threads + 1;
-  gem_runtime_init(total_threads,parameters.system.max_memory,parameters.system.tmp_folder);
+  gem_runtime_init(parameters.system.num_threads+1,parameters.system.max_memory,parameters.system.tmp_folder);
   PROF_START(GP_MAPPER_ALL); TIMER_RESTART(&mapper_time);
 
   // Open Input/Output File(s)

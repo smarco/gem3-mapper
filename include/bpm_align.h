@@ -32,14 +32,6 @@ typedef struct {
 } bpm_pattern_t;
 
 /*
- * (Re)alignment Basic: Dynamic Programming - LEVENSHTEIN/EDIT
- */
-GEM_INLINE int64_t align_levenshtein_get_distance(
-    const char* const pattern,const uint64_t pattern_length,
-    const char* const sequence,const uint64_t sequence_length,
-    const bool ends_free,uint64_t* const position);
-
-/*
  * Pattern Accessors
  */
 #define BPM_PATTERN_PEQ_IDX(encoded_character,word_pos,num_words) ((encoded_character)*(num_words)+(word_pos))

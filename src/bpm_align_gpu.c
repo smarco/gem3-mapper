@@ -32,7 +32,7 @@
   GEM_INLINE void bpm_gpu_destroy(bpm_gpu_buffer_collection_t* const buffer_collection) { GEM_CUDA_NOT_SUPPORTED(); }
   GEM_INLINE bool bpm_gpu_support() { return false; }
   // Buffer Accessors
-  GEM_INLINE void bpm_buffer_clear(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); }
+  GEM_INLINE void bpm_gpu_buffer_clear(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); }
   GEM_INLINE uint64_t bpm_gpu_buffer_get_max_candidates(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
   GEM_INLINE uint64_t bpm_gpu_buffer_get_max_queries(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
   GEM_INLINE uint64_t bpm_gpu_buffer_get_num_candidates(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
@@ -111,7 +111,7 @@ GEM_INLINE bool bpm_gpu_support() {
 /*
  * Buffer Accessors
  */
-GEM_INLINE void bpm_buffer_clear(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
+GEM_INLINE void bpm_gpu_buffer_clear(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
   bpm_gpu_buffer->num_PEQ_entries = 0;
   bpm_gpu_buffer->num_queries = 0;
   bpm_gpu_buffer->num_candidates = 0;
@@ -156,7 +156,7 @@ GEM_INLINE bool bpm_gpu_buffer_fits_in_buffer(
   // Ok, go on
   return true;
 }
-GEM_INLINE bool bpm_gpu_buffer_almost_full(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
+GEM_INLINE bool bpm_gpu_buffer_almost_full(bpm_gpu_buffer_t* const bpm_gpu_buffer) { // FIXME Adapted to read lengths used
   const uint64_t max_queries = bpm_gpu_buffer_get_max_queries_(bpm_gpu_buffer->buffer);
   if (bpm_gpu_buffer->num_queries + 2 >= max_queries) return true;
   const uint64_t max_PEQ_entries =  bpm_gpu_buffer_get_max_peq_entries_(bpm_gpu_buffer->buffer);
@@ -279,8 +279,10 @@ GEM_INLINE void bpm_gpu_buffer_send(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
 GEM_INLINE void bpm_gpu_buffer_receive(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
 	bpm_gpu_receive_buffer_(bpm_gpu_buffer->buffer);
   PROF_BLOCK() {
+    #ifndef GEM_NOPROFILE
     TIMER_STOP(&bpm_gpu_buffer->timer);
-    PROF_ADD_COUNTER(GP_BPM_GPU_BUFFER_CHECK_TIME,bpm_gpu_buffer->timer.accumulated);
+    COUNTER_ADD(&PROF_GET_TIMER(GP_BPM_GPU_BUFFER_CHECK_TIME)->time_ns,bpm_gpu_buffer->timer.accumulated);
+    #endif
   }
 }
 # else /* BPM_GPU_PATTERN_DEBUG */

@@ -77,11 +77,20 @@ GEM_INLINE void matches_align_levenshtein(
       &match_trace->distance,&match_trace->effective_length,mm_stack);
 }
 GEM_INLINE void matches_align_smith_waterman_gotoh(
-    matches_t* const matches,match_trace_t* const match_trace,
-    const strand_t strand,const uint8_t* const key,const uint64_t key_length,
-    const uint64_t text_trace_offset,const uint64_t match_position,const uint8_t* const text,const uint64_t text_length,
-    const region_matching_t* const regions_matching,const uint64_t num_regions_matching,mm_stack_t* const mm_stack) {
-  GEM_NOT_IMPLEMENTED(); // TODO
+    matches_t* const matches,match_trace_t* const match_trace,const strand_t strand,
+    const swg_penalties_t* const swg_penalties,const uint8_t* const key,const uint64_t key_length,
+    const uint64_t text_trace_offset,const uint64_t match_position,const uint64_t max_score,
+    const uint8_t* const text,const uint64_t text_length,const region_matching_t* const regions_matching,
+    const uint64_t num_regions_matching,mm_stack_t* const mm_stack) {
+  // Configure match-trace
+  match_trace->trace_offset = text_trace_offset;
+  match_trace->position = match_position;
+  match_trace->strand = strand;
+  // Levenshtein Align
+  swg_align_match(key,key_length,swg_penalties,
+      &match_trace->position,text,text_length,max_score,
+      matches->cigar_buffer,&match_trace->cigar_buffer_offset,&match_trace->cigar_length,
+      &match_trace->distance,&match_trace->effective_length,mm_stack);
 }
 
 

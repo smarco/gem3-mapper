@@ -152,12 +152,12 @@ GEM_INLINE uint64_t input_file_get_next_id(input_file_t* const input_file) {
   input_file->processed_id = (input_file->processed_id+1) % UINT32_MAX;
   return id;
 }
-GEM_INLINE char* input_file_get_file_name(input_file_t* const input_file) {
+GEM_INLINE char* input_file_get_nonull_file_name(input_file_t* const input_file) {
   INPUT_FILE_CHECK(input_file);
   return (input_file->file_manager!=NULL) ?
       fm_get_file_name(input_file->file_manager) : mm_get_mfile_name(input_file->memory_manager);
 }
-GEM_INLINE char* input_file_get_nonull_file_name(input_file_t* const input_file) {
+GEM_INLINE char* input_file_get_file_name(input_file_t* const input_file) {
   INPUT_FILE_CHECK(input_file);
   char* const file_name = input_file_get_file_name(input_file);
   return (file_name!=NULL) ? file_name : STREAM_FILE_NAME;

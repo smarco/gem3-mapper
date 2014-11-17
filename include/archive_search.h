@@ -13,6 +13,7 @@
 
 #include "sequence.h"
 #include "matches.h"
+#include "paired_matches.h"
 
 #include "archive.h"
 #include "archive_select_parameters.h"
@@ -61,24 +62,27 @@ GEM_INLINE void archive_search_reset(archive_search_t* const archive_search,cons
 GEM_INLINE void archive_search_delete(archive_search_t* const archive_search);
 // [Accessors]
 GEM_INLINE sequence_t* archive_search_get_sequence(const archive_search_t* const archive_search);
-GEM_INLINE uint64_t archive_search_get_num_potential_canditates(const archive_search_t* const archive_search);
+GEM_INLINE uint64_t archive_search_get_search_canditates(const archive_search_t* const archive_search);
+
+/*
+ * Archive Search (Step-wise Search building-blocks)
+ */
+GEM_INLINE void archive_search_generate_candidates(archive_search_t* const archive_search);
+GEM_INLINE void archive_search_copy_candidates(
+    archive_search_t* const archive_search,bpm_gpu_buffer_t* const bpm_gpu_buffer);
+GEM_INLINE void archive_search_retrieve_candidates(
+    archive_search_t* const archive_search,bpm_gpu_buffer_t* const bpm_gpu_buffer,matches_t* const matches);
 
 /*
  * SingleEnd Indexed Search (SE Online Approximate String Search)
  */
 GEM_INLINE void archive_search_single_end(archive_search_t* const archive_search,matches_t* const matches);
 
-///*
-// * PE Pairing (based on SE matches)
-// */
-//GEM_INLINE void archive_extend__pair_matches(
-//    const archive_t* const archive,multimatches* const multimatches,
-//    const uint64_t max_stratum,const uint64_t id_matches_from,const uint64_t id_matches_to,
-//    fmi_extend_parameters* const extend_parameters,vector_pool* const mpool);
-
 /*
- * Error Messages
+ * PairedEnd Indexed Search (PE Online Approximate String Search)
  */
-//#define GEM_ERROR_ARCHIVE_SEARCH_
+GEM_INLINE void archive_search_paired_end(
+    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
+    paired_matches_t* const paired_matches);
 
 #endif /* ARCHIVE_SEARCH_H_ */

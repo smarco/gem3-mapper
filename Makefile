@@ -9,25 +9,30 @@
 ROOT_PATH=$(CURDIR)
 include Makefile.mk
 
-all: release
+all: devel
 
 release: setup
-	$(MAKE) --directory=resources
-	$(MAKE) --directory=src
-	$(MAKE) --directory=tools
+	$(MAKE) --directory=resources release
+	$(MAKE) --directory=src release
+	$(MAKE) --directory=tools release
+	
+static:	setup
+	$(MAKE) --directory=resources release
+	$(MAKE) --directory=src release
+	$(MAKE) --directory=tools static
+	
+devel: setup
+	$(MAKE) --directory=resources devel
+	$(MAKE) --directory=src devel
+	$(MAKE) --directory=tools devel
 	
 debug: setup
-	$(MAKE) --directory=resources
+	$(MAKE) --directory=resources debug
 	$(MAKE) --directory=src debug
 	$(MAKE) --directory=tools debug
 	
-static:	setup
-	$(MAKE) --directory=resources
-	$(MAKE) --directory=src
-	$(MAKE) --directory=tools static
-	
 profile: setup
-	$(MAKE) --directory=resources
+	$(MAKE) --directory=resources profile
 	$(MAKE) --directory=src profile
 	$(MAKE) --directory=tools profile
 
