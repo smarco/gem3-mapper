@@ -120,7 +120,7 @@ __device__ void myerslocalKeplerKernel_CC30( const d_qryEntry_t *d_queries, cons
 		const uint32_t sizeCandidate = d_candidates[originalCandidate].size; /* sizeQuery * (1 + 2 * distance)*/
 		const uint32_t candidateAlignment = (positionRef % REFERENCE_CHARS_PER_ENTRY) * REFERENCE_CHAR_LENGTH;
 
-		uint32_t candidate, lastCandidateEntry, currentCandidateEntry;
+		uint64_t candidate, lastCandidateEntry, currentCandidateEntry;
 
 		const uint32_t mask = ((sizeQuery % BMP_GPU_UINT32_LENGTH) == 0) ? UINT32_ONE_LAST_MASK : 1 << ((sizeQuery % BMP_GPU_UINT32_LENGTH) - 1);
 		int32_t  score = sizeQuery, minScore = sizeQuery;
