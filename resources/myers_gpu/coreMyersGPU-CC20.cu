@@ -83,24 +83,24 @@ inline __device__ uint32_t select_CC20(const uint32_t indexWord,
 	return value;
 }
 
-inline __device__ uint32_t funnelShiftL_CC20(const uint32_t currentCandidateEntry, 
-				    				   		const uint32_t lastCandidateEntry,
-				    				   		const uint32_t shiftedBits)
+inline __device__ uint64_t funnelShiftL_CC20(const uint64_t currentCandidateEntry, 
+				    				   		const uint64_t lastCandidateEntry,
+				    				   		const uint64_t shiftedBits)
 {
-	const uint32_t complementShiftedBits = BMP_GPU_UINT32_LENGTH - shiftedBits;
+	const uint32_t complementShiftedBits = BMP_GPU_UINT64_LENGTH - shiftedBits;
 	
 	return ((lastCandidateEntry >> shiftedBits) |
 			(currentCandidateEntry <<  complementShiftedBits));
 }
 
-__device__ void myerslocalFermiKernel_CC20( const d_qryEntry_t *d_queries, const uint32_t * d_reference, const bpm_gpu_cand_info_t *d_candidates,
+__device__ void myerslocalFermiKernel_CC20( const d_qryEntry_t *d_queries, const uint64_t * d_reference, const bpm_gpu_cand_info_t *d_candidates,
 											const uint32_t *d_reorderBuffer, bpm_gpu_res_entry_t *d_reorderResults, const bpm_gpu_qry_info_t *d_qinfo,
 								 			const uint32_t idCandidate, const uint64_t sizeRef, const uint32_t numReorderedResults, 
 											const uint32_t intraQueryThreadIdx, const uint32_t threadsPerQuery)
 {
 	if (idCandidate < numReorderedResults){
 
-		const uint32_t * localCandidate;
+		const uint64_t * localCandidate;
 
 		uint32_t Ph_A, Mh_A, Pv_A, Mv_A, Xv_A, Xh_A, Eq_A, tEq_A;
 		uint32_t Ph_B, Mh_B, Pv_B, Mv_B, Xv_B, Xh_B, Eq_B, tEq_B;
@@ -233,7 +233,7 @@ __device__ void myerslocalFermiKernel_CC20( const d_qryEntry_t *d_queries, const
 	}
 }
 
-__global__ void myersFermiKernel_CC20(const d_qryEntry_t *d_queries, const uint32_t * d_reference, const bpm_gpu_cand_info_t *d_candidates, const uint32_t *d_reorderBuffer,
+__global__ void myersFermiKernel_CC20(const d_qryEntry_t *d_queries, const uint64_t * d_reference, const bpm_gpu_cand_info_t *d_candidates, const uint32_t *d_reorderBuffer,
 						    		  bpm_gpu_res_entry_t *d_reorderResults, const bpm_gpu_qry_info_t *d_qinfo, const uint64_t sizeRef,  const uint32_t numReorderedResults,
 						    		  uint32_t *d_initPosPerBucket, uint32_t *d_initWarpPerBucket, uint32_t numWarps)
 {

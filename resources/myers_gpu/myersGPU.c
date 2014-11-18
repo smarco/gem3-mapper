@@ -1,3 +1,11 @@
+/*
+ * PROJECT: Bit-Parallel Myers on GPU
+ * FILE: myers-interface.h
+ * DATE: 4/7/2014
+ * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
+ * DESCRIPTION: Host scheduler for BPM on GPU
+ */
+
 #include <stdio.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -141,7 +149,7 @@ MYERS_INLINE myersError_t freeReferenceDevice(reference_buffer_t *reference, dev
     return(SUCCESS);
 }
 
-MYERS_INLINE uint32_t charToBinASCII(unsigned char base)
+MYERS_INLINE uint64_t charToBinASCII(unsigned char base)
 {
 	switch(base)
 	{
@@ -150,25 +158,25 @@ MYERS_INLINE uint32_t charToBinASCII(unsigned char base)
     	    return(ENC_DNA_CHAR_A);
     	case 'C':
     	case 'c':
-    	    return(ENC_DNA_CHAR_C << (BMP_GPU_UINT32_LENGTH- REFERENCE_CHAR_LENGTH));
+    	    return(ENC_DNA_CHAR_C << (BMP_GPU_UINT64_LENGTH - REFERENCE_CHAR_LENGTH));
     	case 'G':
     	case 'g':
-    	    return(ENC_DNA_CHAR_G << (BMP_GPU_UINT32_LENGTH- REFERENCE_CHAR_LENGTH));
+    	    return(ENC_DNA_CHAR_G << (BMP_GPU_UINT64_LENGTH - REFERENCE_CHAR_LENGTH));
     	case 'T':
     	case 't':
-    	    return(ENC_DNA_CHAR_T << (BMP_GPU_UINT32_LENGTH- REFERENCE_CHAR_LENGTH));
+    	    return(ENC_DNA_CHAR_T << (BMP_GPU_UINT64_LENGTH - REFERENCE_CHAR_LENGTH));
     	default :
-    	    return(ENC_DNA_CHAR_N << (BMP_GPU_UINT32_LENGTH- REFERENCE_CHAR_LENGTH));
+    	    return(ENC_DNA_CHAR_N << (BMP_GPU_UINT64_LENGTH - REFERENCE_CHAR_LENGTH));
 	}
 }
 
 MYERS_INLINE myersError_t transformReferenceASCII(const char *referenceASCII, reference_buffer_t *reference)
 {
-	uint32_t indexBase, bitmap;
+	uint64_t indexBase, bitmap;
 	uint64_t idEntry, i, referencePosition;
 	unsigned char referenceChar;
 
-	CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint32_t), cudaHostAllocMapped));
+	CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint64_t), cudaHostAllocMapped));
 
 	for(idEntry = 0; idEntry < reference->numEntries; ++idEntry){
 		bitmap = 0;
@@ -237,14 +245,27 @@ MYERS_INLINE myersError_t loadReferencePROFILE(const char *fn, reference_buffer_
     result = fread(&reference->size, sizeof(uint64_t), 1, fp);
 		if (result != 1) return (E_READING_FILE);
 
-	CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint32_t), cudaHostAllocMapped));
+	CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint64_t), cudaHostAllocMapped));
 
-	result = fread(reference->h_reference, sizeof(uint32_t), reference->numEntries, fp);
+	result = fread(reference->h_reference, sizeof(uint64_t), reference->numEntries, fp);
 		if (result != reference->numEntries) return (E_READING_FILE);
 
 	fclose(fp);
 	return (SUCCESS);
 }
+
+MYERS_INLINE myersError_t setDeviceLocalMemory(device_info_t **devices, enum cudaFuncCache cacheConfig)
+{
+	uint32_t idSupportedDevice, numSupportedDevices = devices[0]->numSupportedDevices;
+
+	for(idSupportedDevice = 0; idSupportedDevice < numSupportedDevices; ++idSupportedDevice){
+	    CUDA_ERROR(cudaSetDevice(devices[idSupportedDevice]->idDevice));
+		CUDA_ERROR(cudaDeviceSetCacheConfig(cacheConfig));
+	}
+
+	return (SUCCESS);
+}
+
 
 MYERS_INLINE myersError_t transferReferenceCPUtoGPUs(reference_buffer_t *reference, device_info_t **devices)
 {
@@ -253,17 +274,17 @@ MYERS_INLINE myersError_t transferReferenceCPUtoGPUs(reference_buffer_t *referen
 
 	printf("Loading Reference in devices .... \n");
 
-	reference->d_reference = (uint32_t **) malloc(numSupportedDevices * sizeof(uint32_t *));
+	reference->d_reference = (uint64_t **) malloc(numSupportedDevices * sizeof(uint64_t *));
 	if (reference->d_reference == NULL) MYERS_ERROR(E_ALLOCATE_MEM);
 
 	for(idSupportedDevice = 0; idSupportedDevice < numSupportedDevices; ++idSupportedDevice){
 		deviceFreeMemory = getDeviceFreeMemory(devices[idSupportedDevice]->idDevice);
-		if ((CONVERT_B_TO_MB(reference->numEntries * sizeof(uint32_t))) > deviceFreeMemory) return(E_INSUFFICIENT_MEM_GPU);
+		if ((CONVERT_B_TO_MB(reference->numEntries * sizeof(uint64_t))) > deviceFreeMemory) return(E_INSUFFICIENT_MEM_GPU);
 
 	    CUDA_ERROR(cudaSetDevice(devices[idSupportedDevice]->idDevice));
 		//Synchronous allocate & transfer Binary Reference to GPU
-		CUDA_ERROR(cudaMalloc((void**) &reference->d_reference[idSupportedDevice], reference->numEntries * sizeof(uint32_t)));
-		CUDA_ERROR(cudaMemcpy(reference->d_reference[idSupportedDevice], reference->h_reference, reference->numEntries * sizeof(uint32_t), cudaMemcpyHostToDevice));
+		CUDA_ERROR(cudaMalloc((void**) &reference->d_reference[idSupportedDevice], reference->numEntries * sizeof(uint64_t)));
+		CUDA_ERROR(cudaMemcpy(reference->d_reference[idSupportedDevice], reference->h_reference, reference->numEntries * sizeof(uint64_t), cudaMemcpyHostToDevice));
 	}
 
 	return (SUCCESS);
@@ -271,11 +292,11 @@ MYERS_INLINE myersError_t transferReferenceCPUtoGPUs(reference_buffer_t *referen
 
 MYERS_INLINE myersError_t transformReferenceGEM(const char *referenceGEM, reference_buffer_t *reference)
 {
-	uint32_t indexBase, bitmap;
+	uint64_t indexBase, bitmap;
 	uint64_t idEntry, i, referencePosition;
 	unsigned char referenceChar;
 
-	CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint32_t), cudaHostAllocMapped));
+	CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint64_t), cudaHostAllocMapped));
 
 	for(idEntry = 0; idEntry < reference->numEntries; ++idEntry){
 		bitmap = 0;
@@ -283,7 +304,7 @@ MYERS_INLINE myersError_t transformReferenceGEM(const char *referenceGEM, refere
 			referencePosition = idEntry * REFERENCE_CHARS_PER_ENTRY + i;
 			if (referencePosition < reference->size) referenceChar = referenceGEM[referencePosition];
 				else referenceChar = 'N'; //filling reference padding
-			indexBase = ((uint32_t) referenceChar) << (BMP_GPU_UINT32_LENGTH- REFERENCE_CHAR_LENGTH);
+			indexBase = ((uint64_t) referenceChar) << (BMP_GPU_UINT64_LENGTH - REFERENCE_CHAR_LENGTH);
 			bitmap = (bitmap >> REFERENCE_CHAR_LENGTH) | indexBase;
 		}
 		reference->h_reference[referencePosition / REFERENCE_CHARS_PER_ENTRY] = bitmap;
@@ -647,7 +668,7 @@ MYERS_INLINE uint32_t minMemorySizePerDevice(size_t *minimumMemorySize, referenc
 	float bytesPerCandidate;
 
 	averageNumPEQEntries = DIV_CEIL(averageQuerySize, BMP_GPU_PEQ_ENTRY_LENGTH);
-	mBytesPerReference = CONVERT_B_TO_MB(reference->numEntries * UINT32_SIZE);
+	mBytesPerReference = CONVERT_B_TO_MB(reference->numEntries * REFERENCE_BYTES_PER_ENTRY);
 	bytesPerCandidate = sizePerCandidate(averageNumPEQEntries, candidatesPerQuery);
 
 	/* Increased bytes per buffer taking account the padding*/
@@ -671,6 +692,7 @@ MYERS_INLINE void bpm_gpu_init_(void ***myersBuffer, uint32_t numBuffers, uint32
   MYERS_ERROR(initReference(&reference, referenceRaw, refSize, refCoding));
   MYERS_ERROR(minMemorySizePerDevice(&minimumMemorySize, reference, numBuffers, averageQuerySize, candidatesPerQuery));
   MYERS_ERROR(selectSupportedDevices(&devices, minimumMemorySize, selectedArchitectures));
+  MYERS_ERROR(setDeviceLocalMemory(devices, cudaFuncCachePreferL1));
 
   MYERS_ERROR(transferReferenceCPUtoGPUs(reference, devices)) ;
   MYERS_ERROR(initDeviceBuffers(&buffer, numBuffers, reference, devices, maxMbPerBuffer, averageQuerySize, candidatesPerQuery));

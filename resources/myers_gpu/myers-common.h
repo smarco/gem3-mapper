@@ -1,3 +1,11 @@
+/*
+ * PROJECT: Bit-Parallel Myers on GPU
+ * FILE: myers-interface.h
+ * DATE: 4/7/2014
+ * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
+ * DESCRIPTION: Common headers and data structures for BPM on GPU library
+ */
+
 #include "myers-interface.h"
 
 /********************************
@@ -8,6 +16,7 @@ Common constants for Device & Host
 #define UINT32_ONES  			0xFFFFFFFFu
 #define UINT32_ONE_LAST_MASK  	0x80000000u
 #define	UINT32_SIZE				4
+#define	UINT64_SIZE				8
 
 #define	CUDA_ERROR(error)		(CudaError(error, __FILE__, __LINE__ ))
 #define	MYERS_ERROR(error)		(MyersError(error, __FILE__, __LINE__ ))
@@ -15,8 +24,12 @@ Common constants for Device & Host
 
 /* Defines related to Reference representation */
 #define	REFERENCE_CHAR_LENGTH		4
-#define	REFERENCE_CHARS_PER_ENTRY	(BMP_GPU_UINT32_LENGTH / REFERENCE_CHAR_LENGTH)
-#define REFERENCE_END_PADDING		1250
+#define REFERENCE_CHARS_PER_UINT1	(BMP_GPU_UINT32_LENGTH / REFERENCE_CHAR_LENGTH)
+#define REFERENCE_CHARS_PER_UINT2	(REFERENCE_CHARS_PER_UINT1 * 2)
+#define REFERENCE_CHARS_PER_UINT4	(REFERENCE_CHARS_PER_UINT1 * 4)
+#define	REFERENCE_CHARS_PER_ENTRY	REFERENCE_CHARS_PER_UINT2
+#define REFERENCE_BYTES_PER_ENTRY	UINT64_SIZE
+#define REFERENCE_END_PADDING		625
 
 /* Defines related to GPU Architecture */
 #define	WARP_SIZE						32
@@ -44,14 +57,14 @@ Common constants for Device & Host
 #define FILE_SIZE_LINES				250
 
 /* Encoded DNA Nucleotides */
-#define ENC_DNA_CHAR_A 0
-#define ENC_DNA_CHAR_C 1
-#define ENC_DNA_CHAR_G 2
-#define ENC_DNA_CHAR_T 3
+#define ENC_DNA_CHAR_A 0LL
+#define ENC_DNA_CHAR_C 1LL
+#define ENC_DNA_CHAR_G 2LL
+#define ENC_DNA_CHAR_T 3LL
 
-#define ENC_DNA_CHAR_N    4
-#define ENC_DNA_CHAR_SEP  5
-#define ENC_DNA_CHAR_JUMP 6
+#define ENC_DNA_CHAR_N    4LL
+#define ENC_DNA_CHAR_SEP  5LL
+#define ENC_DNA_CHAR_JUMP 6LL
 
 typedef enum
 {
@@ -76,8 +89,8 @@ Internal Objects
 typedef struct {
 	uint64_t	size;
 	uint64_t	numEntries;
-	uint32_t	*h_reference;
-	uint32_t	**d_reference;
+	uint64_t	*h_reference;
+	uint64_t	**d_reference;
 } reference_buffer_t;
 
 typedef struct {
@@ -146,8 +159,8 @@ typedef struct {
 	uint32_t 				numQueries;
 	bpm_gpu_qry_entry_t 	*h_queries;
 	bpm_gpu_qry_entry_t 	*d_queries;
-	bpm_gpu_qry_info_t 				*h_qinfo;
-	bpm_gpu_qry_info_t 				*d_qinfo;
+	bpm_gpu_qry_info_t 		*h_qinfo;
+	bpm_gpu_qry_info_t 		*d_qinfo;
 } queries_buffer_t;
 
 

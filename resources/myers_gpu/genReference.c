@@ -5,8 +5,9 @@
 
 #define	REFERENCE_CHAR_LENGTH		4
 #define	UINT32_LENGTH				32
-#define	REFERENCE_CHARS_PER_ENTRY	(UINT32_LENGTH / REFERENCE_CHAR_LENGTH)
-#define REFERENCE_END_PADDING		1250
+#define	UINT64_LENGTH				64
+#define	REFERENCE_CHARS_PER_ENTRY	(UINT64_LENGTH / REFERENCE_CHAR_LENGTH)
+#define REFERENCE_END_PADDING		625
 #define FILE_SIZE_LINES				250
 
 #define CATCH_ERROR(error) {{if (error) { fprintf(stderr, "%s\n", processError(error)); exit(EXIT_FAILURE); }}}
@@ -14,25 +15,25 @@
 #define MIN(NUM_A, NUM_B) ((NUM_A < NUM_B) ? NUM_A : NUM_B)
 
 /* Encoded DNA Nucleotides */
-#define ENC_DNA_CHAR_A 0
-#define ENC_DNA_CHAR_C 1
-#define ENC_DNA_CHAR_G 2
-#define ENC_DNA_CHAR_T 3
+#define ENC_DNA_CHAR_A 0LL
+#define ENC_DNA_CHAR_C 1LL
+#define ENC_DNA_CHAR_G 2LL
+#define ENC_DNA_CHAR_T 3LL
 
-#define ENC_DNA_CHAR_N    4
-#define ENC_DNA_CHAR_SEP  5
-#define ENC_DNA_CHAR_JUMP 6
+#define ENC_DNA_CHAR_N    4LL
+#define ENC_DNA_CHAR_SEP  5LL
+#define ENC_DNA_CHAR_JUMP 6LL
 
 typedef struct {
 	uint64_t size;
 	uint64_t numEntries;
-	uint32_t *h_reference;
-	uint32_t *d_reference;
+	uint64_t *h_reference;
+	uint64_t *d_reference;
 	unsigned char *char_reference;
 } reference_buffer_t;
 
 
-uint32_t charToBinASCII(unsigned char base)
+uint64_t charToBinASCII(unsigned char base)
 {
 	switch(base)
 	{
@@ -41,21 +42,21 @@ uint32_t charToBinASCII(unsigned char base)
     	    return(ENC_DNA_CHAR_A);
     	case 'C':
     	case 'c':
-    	    return(ENC_DNA_CHAR_C << (UINT32_LENGTH - REFERENCE_CHAR_LENGTH));
+    	    return(ENC_DNA_CHAR_C << (UINT64_LENGTH - REFERENCE_CHAR_LENGTH));
     	case 'G':
     	case 'g':
-    	    return(ENC_DNA_CHAR_G << (UINT32_LENGTH - REFERENCE_CHAR_LENGTH));
+    	    return(ENC_DNA_CHAR_G << (UINT64_LENGTH - REFERENCE_CHAR_LENGTH));
     	case 'T':
     	case 't':
-    	    return(ENC_DNA_CHAR_T << (UINT32_LENGTH - REFERENCE_CHAR_LENGTH));
+    	    return(ENC_DNA_CHAR_T << (UINT64_LENGTH - REFERENCE_CHAR_LENGTH));
     	default :
-    	    return(ENC_DNA_CHAR_N << (UINT32_LENGTH - REFERENCE_CHAR_LENGTH));
+    	    return(ENC_DNA_CHAR_N << (UINT64_LENGTH - REFERENCE_CHAR_LENGTH));
 	}
 }
 
 uint32_t transformReferenceASCII(const char *referenceASCII, reference_buffer_t *reference)
 {
-	uint32_t indexBase, bitmap;
+	uint64_t indexBase, bitmap;
 	uint64_t idEntry, i, referencePosition;
 	unsigned char referenceChar;
 
@@ -108,7 +109,7 @@ uint32_t loadReferenceMFASTA(const char *fn, void *reference)
 	ref->numEntries = DIV_CEIL(ref->size, REFERENCE_CHARS_PER_ENTRY) + REFERENCE_END_PADDING;
 	printf("Reference size: %llu, Number of entries: %llu\n", ref->size, ref->numEntries);
 
-	ref->h_reference = (uint32_t *) malloc(ref->numEntries * sizeof(uint32_t));
+	ref->h_reference = (uint64_t *) malloc(ref->numEntries * sizeof(uint64_t));
 	if (ref->h_reference == NULL) return (31);
 
 	transformReferenceASCII(tmp_reference, ref);
@@ -135,7 +136,7 @@ uint32_t saveRef(const char *fn, void *reference)
     fwrite(&ref->numEntries, sizeof(uint64_t), 1, fp);
     fwrite(&ref->size, sizeof(uint64_t), 1, fp);
 
-    fwrite(ref->h_reference, sizeof(uint32_t), ref->numEntries, fp);
+    fwrite(ref->h_reference, sizeof(uint64_t), ref->numEntries, fp);
     fclose(fp);
     return (0);
 }

@@ -1,3 +1,11 @@
+/*
+ * PROJECT: Bit-Parallel Myers on GPU
+ * FILE: myers-interface.h
+ * DATE: 4/7/2014
+ * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
+ * DESCRIPTION: BPM implementation for CUDA GPUs with compute capability > 5.0 
+ */
+
 #include <stdio.h>
 #include "myers-common.h"
 
@@ -78,70 +86,58 @@ inline __device__ uint32_t select_CC50(const uint32_t indexWord,
 	return value;
 }
 
-inline __device__ uint32_t funnelShiftL_CC50(const uint32_t currentCandidateEntry, 
-				    				   		const uint32_t lastCandidateEntry,
-				    				   		const uint32_t shiftedBits)
+inline __device__ uint64_t funnelShiftL_CC50(const uint64_t currentCandidateEntry, 
+				    				   		const uint64_t lastCandidateEntry,
+				    				   		const uint64_t shiftedBits)
 {
-	const uint32_t complementShiftedBits = BMP_GPU_UINT32_LENGTH - shiftedBits;
+	const uint32_t complementShiftedBits = BMP_GPU_UINT64_LENGTH - shiftedBits;
 	
 	return ((lastCandidateEntry >> shiftedBits) |
 			(currentCandidateEntry <<  complementShiftedBits));
 }
 
-__device__ void myerslocalMaxwellKernel_CC50( const d_qryEntry_t *d_queries, const uint32_t * __restrict d_reference, const bpm_gpu_cand_info_t *d_candidates,
+__device__ void myerslocalMaxwellKernel_CC50(const d_qryEntry_t * __restrict d_queries, const uint64_t * __restrict d_reference, const bpm_gpu_cand_info_t *d_candidates,
 											 const uint32_t *d_reorderBuffer, bpm_gpu_res_entry_t *d_reorderResults, const bpm_gpu_qry_info_t *d_qinfo,
 								 			 const uint32_t idCandidate, const uint64_t sizeRef, const uint32_t numReorderedResults,
 											 const uint32_t intraQueryThreadIdx, const uint32_t threadsPerQuery)
 {
 	if (idCandidate < numReorderedResults){
 
-		const uint32_t * __restrict localCandidate;
+		const uint64_t * __restrict localCandidate;
 
-		uint32_t Ph_A, Mh_A, Pv_A, Mv_A, Xv_A, Xh_A, Eq_A, tEq_A;
-		uint32_t Ph_B, Mh_B, Pv_B, Mv_B, Xv_B, Xh_B, Eq_B, tEq_B;
-		uint32_t Ph_C, Mh_C, Pv_C, Mv_C, Xv_C, Xh_C, Eq_C, tEq_C;
-		uint32_t Ph_D, Mh_D, Pv_D, Mv_D, Xv_D, Xh_D, Eq_D, tEq_D;
-		uint4 	 Eq0, Eq1, Eq2, Eq3, Eq4;
+		uint4 	Ph, Mh, Pv, Mv, Xv, Xh, tEq, Eq, sum;
 		uint32_t PH, MH, indexWord;
-		uint32_t sum_A, sum_B, sum_C, sum_D;
 
 		const uint32_t originalCandidate = d_reorderBuffer[idCandidate];
 		const uint64_t positionRef = d_candidates[originalCandidate].position;
 		const uint32_t sizeQuery = d_qinfo[d_candidates[originalCandidate].query].size;
 		const uint32_t entry = d_qinfo[d_candidates[originalCandidate].query].posEntry + intraQueryThreadIdx;
-		const uint32_t sizeCandidate = d_candidates[originalCandidate].size; /* sizeQuery * (1 + 2 * distance)*/
-		//const uint32_t candidateAlignment = (REFERENCE_CHARS_PER_ENTRY - (positionRef % REFERENCE_CHARS_PER_ENTRY)) * REFERENCE_CHAR_LENGTH;
+		const uint32_t sizeCandidate = d_candidates[originalCandidate].size;
 		const uint32_t candidateAlignment = (positionRef % REFERENCE_CHARS_PER_ENTRY) * REFERENCE_CHAR_LENGTH;
 
-		uint32_t candidate, lastCandidateEntry, currentCandidateEntry;
+		uint64_t candidate, lastCandidateEntry, currentCandidateEntry;
 
 		const uint32_t mask = ((sizeQuery % BMP_GPU_UINT32_LENGTH) == 0) ? UINT32_ONE_LAST_MASK : 1 << ((sizeQuery % BMP_GPU_UINT32_LENGTH) - 1);
 		int32_t  score = sizeQuery, minScore = sizeQuery;
-		uint32_t idColumn = 0, minColumn = 0, indexBase, idEntry = 0;
-
+		uint32_t idColumn = 0, minColumn = 0, idEntry = 0;
+		
 		indexWord = ((sizeQuery - 1) & (PEQ_LENGTH_PER_CUDA_THREAD - 1)) / BMP_GPU_UINT32_LENGTH;
 
 		if((positionRef < sizeRef) && ((sizeRef - positionRef) > sizeCandidate)){
 
 			localCandidate = d_reference + (positionRef / REFERENCE_CHARS_PER_ENTRY);
 
-			Pv_A = UINT32_ONES;
-			Mv_A = 0;
+			Pv.x = UINT32_ONES;
+			Mv.x = 0;
 
-			Pv_B = UINT32_ONES;
-			Mv_B = 0;
+			Pv.y = UINT32_ONES;
+			Mv.y = 0;
 
-			Pv_C = UINT32_ONES;
-			Mv_C = 0;
+			Pv.z = UINT32_ONES;
+			Mv.z = 0;
 
-			Pv_D = UINT32_ONES;
-			Mv_D = 0;
-
-			Eq0 = d_queries[entry].bitmap[0];
-			Eq1 = d_queries[entry].bitmap[1];
-			Eq2 = d_queries[entry].bitmap[2];
-			Eq3 = d_queries[entry].bitmap[3];
-			Eq4 = d_queries[entry].bitmap[4];
+			Pv.w = UINT32_ONES;
+			Mv.w = 0;
 
 			lastCandidateEntry = localCandidate[idEntry];
 
@@ -155,61 +151,58 @@ __device__ void myerslocalMaxwellKernel_CC50( const d_qryEntry_t *d_queries, con
 						lastCandidateEntry = currentCandidateEntry;
 				}
 
-				indexBase = candidate & 0x07;
-				Eq_A = selectEq_CC50(indexBase, Eq0.x, Eq1.x, Eq2.x, Eq3.x, Eq4.x);
-				Eq_B = selectEq_CC50(indexBase, Eq0.y, Eq1.y, Eq2.y, Eq3.y, Eq4.y);
-				Eq_C = selectEq_CC50(indexBase, Eq0.z, Eq1.z, Eq2.z, Eq3.z, Eq4.z);
-				Eq_D = selectEq_CC50(indexBase, Eq0.w, Eq1.w, Eq2.w, Eq3.w, Eq4.w);
+				Eq = __ldg(&d_queries[entry].bitmap[candidate & 0x07]);
 
-				Xv_A = Eq_A | Mv_A;
-				Xv_B = Eq_B | Mv_B;
-				Xv_C = Eq_C | Mv_C;
-				Xv_D = Eq_D | Mv_D;
+				Xv.x = Eq.x | Mv.x;
+				Xv.y = Eq.y | Mv.y;
+				Xv.z = Eq.z | Mv.z;
+				Xv.w = Eq.w | Mv.w;
 
-				tEq_A = Eq_A & Pv_A;
-				tEq_B = Eq_B & Pv_B;
-				tEq_C = Eq_C & Pv_C;
-				tEq_D = Eq_D & Pv_D;
+				tEq.x = Eq.x & Pv.x;
+				tEq.y = Eq.y & Pv.y;
+				tEq.z = Eq.z & Pv.z;
+				tEq.w = Eq.w & Pv.w;
 
-				shuffle_collaborative_sum_CC50(tEq_A, tEq_B, tEq_C, tEq_D, Pv_A, Pv_B, Pv_C, Pv_D,
-										  	   intraQueryThreadIdx,
-										  	   &sum_A, &sum_B, &sum_C, &sum_D);
+				//TODO: Review nvcc code generation using inline functions + param. by reference
+				shuffle_collaborative_sum_CC50(tEq.x, tEq.y, tEq.z, tEq.w, Pv.x, Pv.y, Pv.z, Pv.w, 
+										  	   intraQueryThreadIdx, 
+										  	   &sum.x, &sum.y, &sum.z, &sum.w);
 
-				Xh_A = (sum_A ^ Pv_A) | Eq_A;
-				Xh_B = (sum_B ^ Pv_B) | Eq_B;
-				Xh_C = (sum_C ^ Pv_C) | Eq_C;
-				Xh_D = (sum_D ^ Pv_D) | Eq_D;
+				Xh.x = (sum.x ^ Pv.x) | Eq.x;
+				Xh.y = (sum.y ^ Pv.y) | Eq.y;
+				Xh.z = (sum.z ^ Pv.z) | Eq.z;
+				Xh.w = (sum.w ^ Pv.w) | Eq.w;
 
-				Ph_A = Mv_A | ~(Xh_A | Pv_A);
-				Ph_B = Mv_B | ~(Xh_B | Pv_B);
-				Ph_C = Mv_C | ~(Xh_C | Pv_C);
-				Ph_D = Mv_D | ~(Xh_D | Pv_D);
+				Ph.x = Mv.x | ~(Xh.x | Pv.x);
+				Ph.y = Mv.y | ~(Xh.y | Pv.y);
+				Ph.z = Mv.z | ~(Xh.z | Pv.z);
+				Ph.w = Mv.w | ~(Xh.w | Pv.w);
 
-				Mh_A = Pv_A & Xh_A;
-				Mh_B = Pv_B & Xh_B;
-				Mh_C = Pv_C & Xh_C;
-				Mh_D = Pv_D & Xh_D;
+				Mh.x = Pv.x & Xh.x;
+				Mh.y = Pv.y & Xh.y;
+				Mh.z = Pv.z & Xh.z;
+				Mh.w = Pv.w & Xh.w;
 
-				PH = select_CC50(indexWord, Ph_A, Ph_B, Ph_C, Ph_D);
-				MH = select_CC50(indexWord, Mh_A, Mh_B, Mh_C, Mh_D);
+				PH = select_CC50(indexWord, Ph.x, Ph.y, Ph.z, Ph.w);
+				MH = select_CC50(indexWord, Mh.x, Mh.y, Mh.z, Mh.w);
 				score += (((PH & mask) != 0) - ((MH & mask) != 0));
 
-				shuffle_collaborative_shift_CC50(Ph_A, Ph_B, Ph_C, Ph_D,
+				shuffle_collaborative_shift_CC50(Ph.x, Ph.y, Ph.z, Ph.w, 
 												 intraQueryThreadIdx,
-												 &Ph_A, &Ph_B, &Ph_C, &Ph_D);
-				shuffle_collaborative_shift_CC50(Mh_A, Mh_B, Mh_C, Mh_D,
+										   		 &Ph.x, &Ph.y, &Ph.z, &Ph.w);
+				shuffle_collaborative_shift_CC50(Mh.x, Mh.y, Mh.z, Mh.w,
 												 intraQueryThreadIdx,
-												 &Mh_A, &Mh_B, &Mh_C, &Mh_D);
+										   		 &Mh.x, &Mh.y, &Mh.z, &Mh.w);
 
-				Pv_A = Mh_A | ~(Xv_A | Ph_A);
-				Pv_B = Mh_B | ~(Xv_B | Ph_B);
-				Pv_C = Mh_C | ~(Xv_C | Ph_C);
-				Pv_D = Mh_D | ~(Xv_D | Ph_D);
+				Pv.x = Mh.x | ~(Xv.x | Ph.x);
+				Pv.y = Mh.y | ~(Xv.y | Ph.y);
+				Pv.z = Mh.z | ~(Xv.z | Ph.z);
+				Pv.w = Mh.w | ~(Xv.w | Ph.w);
 
-				Mv_A = Ph_A & Xv_A;
-				Mv_B = Ph_B & Xv_B;
-				Mv_C = Ph_C & Xv_C;
-				Mv_D = Ph_D & Xv_D;
+				Mv.x = Ph.x & Xv.x;
+				Mv.y = Ph.y & Xv.y;
+				Mv.z = Ph.z & Xv.z;
+				Mv.w = Ph.w & Xv.w;
 
 				candidate >>= REFERENCE_CHAR_LENGTH;
 				minColumn = (score < minScore) ? idColumn : minColumn;
@@ -224,7 +217,7 @@ __device__ void myerslocalMaxwellKernel_CC50( const d_qryEntry_t *d_queries, con
 	}
 }
 
-__global__ void myersMaxwellKernel_CC50(const d_qryEntry_t *d_queries, const uint32_t * d_reference, const bpm_gpu_cand_info_t *d_candidates, const uint32_t *d_reorderBuffer,
+__global__ void myersMaxwellKernel_CC50(const d_qryEntry_t *d_queries, const uint64_t * d_reference, const bpm_gpu_cand_info_t *d_candidates, const uint32_t *d_reorderBuffer,
 						    		   bpm_gpu_res_entry_t *d_reorderResults, const bpm_gpu_qry_info_t *d_qinfo, const uint64_t sizeRef,  const uint32_t numReorderedResults,
 						    		   uint32_t *d_initPosPerBucket, uint32_t *d_initWarpPerBucket, uint32_t numWarps)
 {
