@@ -6,6 +6,7 @@
  * DESCRIPTION: Host scheduler for BPM on GPU
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -272,8 +273,6 @@ MYERS_INLINE myersError_t transferReferenceCPUtoGPUs(reference_buffer_t *referen
 	uint32_t deviceFreeMemory, idSupportedDevice;
 	uint32_t numSupportedDevices = devices[0]->numSupportedDevices;
 
-	printf("Loading Reference in devices .... \n");
-
 	reference->d_reference = (uint64_t **) malloc(numSupportedDevices * sizeof(uint64_t *));
 	if (reference->d_reference == NULL) MYERS_ERROR(E_ALLOCATE_MEM);
 
@@ -485,7 +484,7 @@ MYERS_INLINE myersError_t initBuffer(buffer_t *buffer, uint32_t idBuffer, device
 
 MYERS_INLINE myersError_t initDeviceBuffers(buffer_t ***myersBuffer, uint32_t numBuffers, reference_buffer_t *reference,
 											device_info_t **device, uint32_t maxMbPerBuffer, uint32_t averageQuerySize,
-											uint32_t candidatesPerQuery)
+											uint32_t candidatesPerQuery, const bool verbose)
 {
 	uint32_t numSupportedDevices, idSupportedDevice, idDevice, idGlobalBuffer, numBuffersPerDevice, idLocalBuffer;
 	uint32_t freeDeviceMemory, bucketPaddingCandidates, averageNumPEQEntries, maxCandidates, maxPEQEntries, maxQueries, maxMbPerDevice;
@@ -495,8 +494,6 @@ MYERS_INLINE myersError_t initDeviceBuffers(buffer_t ***myersBuffer, uint32_t nu
 
 	buffer_t **buffer = (buffer_t **) malloc(numBuffers * sizeof(buffer_t *));
 		if (buffer == NULL) MYERS_ERROR(E_ALLOCATE_MEM);
-
-	printf("Allocating device buffers .... \n");
 
 	numSupportedDevices = device[0]->numSupportedDevices;
 	remainderBuffers = numBuffers;
@@ -525,11 +522,11 @@ MYERS_INLINE myersError_t initDeviceBuffers(buffer_t ***myersBuffer, uint32_t nu
 		maxPEQEntries = maxQueries * averageNumPEQEntries;
 
 		//TODO: Consider less buffers than GPUs!!
-		printf("Requested: %d - Available: %d \n", (int)CONVERT_B_TO_MB(bytesPerBuffer * numBuffersPerDevice), freeDeviceMemory);
-		if ((maxCandidates < 1) || (maxQueries < 1) || (CONVERT_B_TO_MB(bytesPerBuffer * numBuffersPerDevice) > freeDeviceMemory))
+		if(verbose) printf("Requested: %d - Available: %d \n", (int)CONVERT_B_TO_MB(bytesPerBuffer * numBuffersPerDevice), freeDeviceMemory);
+		if((maxCandidates < 1) || (maxQueries < 1) || (CONVERT_B_TO_MB(bytesPerBuffer * numBuffersPerDevice) > freeDeviceMemory))
 			MYERS_ERROR(E_INSUFFICIENT_MEM_GPU);
 
-		printf("Device %d: %d buffers x %d MBytes/buffer (max %d MB) = %d MBytes\n",
+		if(verbose) printf("Device %d: %d buffers x %d MBytes/buffer (max %d MB) = %d MBytes\n",
 				idDevice, numBuffersPerDevice, (int)CONVERT_B_TO_MB(bytesPerBuffer), maxMbPerBuffer,
 				(int)CONVERT_B_TO_MB(bytesPerBuffer) * numBuffersPerDevice);
 
@@ -603,15 +600,15 @@ MYERS_INLINE uint32_t getDeviceCudaCores(uint32_t idDevice)
 	return(devProp.multiProcessorCount * coresPerSM);
 }
 
-MYERS_INLINE myersError_t selectSupportedDevices(device_info_t ***devices, uint32_t minimumMemorySize, bpm_gpu_dev_arch_t selectedArchitectures)
+MYERS_INLINE myersError_t selectSupportedDevices(device_info_t ***devices, uint32_t minimumMemorySize, bpm_gpu_dev_arch_t selectedArchitectures, const bool verbose)
 {
 	uint32_t idDevice, idSupportedDevice, numSupportedDevices, memoryFree, totalSystemPerformance = 0;
 	int32_t numDevices;
 	bpm_gpu_dev_arch_t architecture;
 
 	CUDA_ERROR(cudaGetDeviceCount(&numDevices));
-	printf("There are %d visible devices: \n", numDevices);
-	printf("Compiled with CUDA SDK %d.%d \n", CUDA_VERSION/1000, CUDA_VERSION%1000);
+	if(verbose) printf("There are %d visible devices: \n", numDevices);
+	if(verbose) printf("Compiled with CUDA SDK %d.%d \n", CUDA_VERSION/1000, CUDA_VERSION%1000);
 
 	device_info_t **dev = (device_info_t **) malloc(numDevices * sizeof(device_info_t *));
 	if (dev == NULL) MYERS_ERROR(E_ALLOCATE_MEM);
@@ -619,17 +616,16 @@ MYERS_INLINE myersError_t selectSupportedDevices(device_info_t ***devices, uint3
 	for(idDevice = 0, idSupportedDevice = 0; idDevice < numDevices; ++idDevice){
 		struct cudaDeviceProp devProp;
 		cudaGetDeviceProperties(&devProp, idDevice);
-		printf("Device %d: %s", idDevice, devProp.name);
+		if(verbose) printf("Device %d: %s", idDevice, devProp.name);
 
 		architecture = getDeviceArchitecture(idDevice);
 		if((architecture & selectedArchitectures) == 0)
-			printf("\t \t Compute Capability UNSUITABLE");
+			if(verbose) printf("\t \t Compute Capability UNSUITABLE");
 
 		memoryFree = getDeviceFreeMemory(idDevice); /* in MB */
 		if(memoryFree < minimumMemorySize)
-			printf("\t \t INSUFFICIENT DEVICE MEMORY (Mem Req: %u MBytes - Mem Avail: %u MBytes)", minimumMemorySize, memoryFree);
-
-		printf("\n");
+			if(verbose) printf("\t \t INSUFFICIENT DEVICE MEMORY (Mem Req: %u MBytes - Mem Avail: %u MBytes)", minimumMemorySize, memoryFree);
+		if(verbose) printf("\n");
 
 		if((architecture & selectedArchitectures) && (memoryFree > minimumMemorySize)){
 			dev[idSupportedDevice] = NULL;
@@ -682,7 +678,8 @@ MYERS_INLINE uint32_t minMemorySizePerDevice(size_t *minimumMemorySize, referenc
 
 MYERS_INLINE void bpm_gpu_init_(void ***myersBuffer, uint32_t numBuffers, uint32_t maxMbPerBuffer,
 							const char *referenceRaw, bpm_gpu_ref_coding_t refCoding, const uint64_t refSize,
-							uint32_t averageQuerySize, uint32_t candidatesPerQuery, bpm_gpu_dev_arch_t selectedArchitectures)
+							uint32_t averageQuerySize, uint32_t candidatesPerQuery,
+							bpm_gpu_dev_arch_t selectedArchitectures, const bool verbose)
 {
   buffer_t				**buffer = NULL;
   reference_buffer_t 	*reference = NULL;
@@ -691,11 +688,11 @@ MYERS_INLINE void bpm_gpu_init_(void ***myersBuffer, uint32_t numBuffers, uint32
 
   MYERS_ERROR(initReference(&reference, referenceRaw, refSize, refCoding));
   MYERS_ERROR(minMemorySizePerDevice(&minimumMemorySize, reference, numBuffers, averageQuerySize, candidatesPerQuery));
-  MYERS_ERROR(selectSupportedDevices(&devices, minimumMemorySize, selectedArchitectures));
+  MYERS_ERROR(selectSupportedDevices(&devices, minimumMemorySize, selectedArchitectures, verbose));
   MYERS_ERROR(setDeviceLocalMemory(devices, cudaFuncCachePreferL1));
 
   MYERS_ERROR(transferReferenceCPUtoGPUs(reference, devices)) ;
-  MYERS_ERROR(initDeviceBuffers(&buffer, numBuffers, reference, devices, maxMbPerBuffer, averageQuerySize, candidatesPerQuery));
+  MYERS_ERROR(initDeviceBuffers(&buffer, numBuffers, reference, devices, maxMbPerBuffer, averageQuerySize, candidatesPerQuery, verbose));
 
   MYERS_ERROR(freeReferenceHost(reference));
   MYERS_ERROR(freeDevicesListHost(&devices));

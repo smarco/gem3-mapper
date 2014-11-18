@@ -3,6 +3,8 @@
 # FILE: Makefile
 # DATE: 4/9/2014
 # DESCRIPTION: makefile
+# AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
+#            Santiago Marco-Sola <santiagomsola@gmail.com>
 #============================================================================
 
 include ../../Makefile.mk

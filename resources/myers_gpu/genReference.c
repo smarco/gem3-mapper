@@ -1,3 +1,11 @@
+/*
+ * PROJECT: Bit-Parallel Myers on GPU
+ * FILE: myers-interface.h
+ * DATE: 4/7/2014
+ * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
+ * DESCRIPTION: Parser for "*.profile" GEM files (just for testing) 
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

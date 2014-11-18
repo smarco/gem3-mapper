@@ -1,3 +1,11 @@
+/*
+ * PROJECT: Bit-Parallel Myers on GPU
+ * FILE: myers-interface.h
+ * DATE: 4/7/2014
+ * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
+ * DESCRIPTION: Code example of using the BMP GPU interface 
+ */
+
 #include "myers-interface.h"
 #include <stdio.h>
 #include <time.h>

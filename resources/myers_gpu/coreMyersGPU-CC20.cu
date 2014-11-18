@@ -1,3 +1,11 @@
+/*
+ * PROJECT: Bit-Parallel Myers on GPU
+ * FILE: myers-interface.h
+ * DATE: 4/7/2014
+ * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
+ * DESCRIPTION: BPM implementation for CUDA GPUs with compute capability 2.0 & 2.1 
+ */
+
 #include <stdio.h>
 #include "myers-common.h"
 
