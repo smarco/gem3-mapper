@@ -33,6 +33,13 @@ typedef enum
 
 typedef enum
 {
+	LOCAL_REFERENCE,    /* Default */
+	REMOTE_REFERENCE,
+	LOCAL_OR_REMOTE_REFERENCE
+} bpm_gpu_ref_location_t;
+
+typedef enum
+{
   ARCH_TESLA      = BMP_GPU_UINT32_ONE_MASK << 0,
   ARCH_FERMI_1G   = BMP_GPU_UINT32_ONE_MASK << 1,
   ARCH_FERMI_2G   = BMP_GPU_UINT32_ONE_MASK << 2,
@@ -89,7 +96,8 @@ inline uint32_t bpm_gpu_buffer_get_id_device_(void* myersBuffer);
 void bpm_gpu_init_(void*** myersBuffer,uint32_t numBuffers,uint32_t maxMbPerBuffer,
     const char* referenceRaw,bpm_gpu_ref_coding_t refCoding,const uint64_t refSize,
     uint32_t averageQuerySize,uint32_t candidatesPerQuery,
-	bpm_gpu_dev_arch_t selectedArchitectures,const bool verbose);
+	bpm_gpu_dev_arch_t selectedArchitectures, bpm_gpu_ref_location_t userReferenceAllocOption,
+	const bool verbose);
 void bpm_gpu_send_buffer_(void* myersBuffer,uint32_t numPEQEntries,uint32_t numQueries,uint32_t numCandidates);
 void bpm_gpu_receive_buffer_(void* myersBuffer);
 void bpm_gpu_destroy_(void*** myersBuffer);

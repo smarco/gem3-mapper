@@ -73,7 +73,7 @@ GEM_INLINE bpm_gpu_buffer_collection_t* bpm_gpu_init(
   const char* const text = (const char* const) dna_text_get_text(enc_text);
   const uint64_t text_length = dna_text_get_length(enc_text);
   bpm_gpu_init_(&buffer_collection->internal_buffers,num_buffers,CONVERT_B_TO_MB(buffer_size),
-      text,GEM,text_length,average_query_size,candidates_per_query,ARCH_SUPPORTED,verbose);
+      text,GEM,text_length,average_query_size,candidates_per_query,ARCH_SUPPORTED,LOCAL_OR_REMOTE_REFERENCE,verbose);
   // Initialize Buffers
   uint64_t i;
   for (i=0;i<num_buffers;++i) {

@@ -76,10 +76,13 @@ typedef enum
 	E_INCOMPATIBLE_GPU,
 	E_NO_SUPPORTED_GPUS,
 	E_REFERENCE_CODING
-} _config_error;
+} myersError_t;
 
-/*Error type for the Myers API */
-typedef _config_error myersError_t;
+typedef enum
+{
+    HOST_MAPPED,
+    DEVICE_MAPPED
+} memory_alloc_t;
 
 
 /*****************************
@@ -129,6 +132,7 @@ typedef struct {
 	uint32_t			cudaCores;
 	uint32_t			frequency;   /*Mhz*/
 	float				relativePerformance;
+	memory_alloc_t		memorySpace;
 } device_info_t;
 
 
