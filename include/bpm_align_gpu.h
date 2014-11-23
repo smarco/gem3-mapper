@@ -86,6 +86,11 @@ GEM_INLINE void bpm_gpu_buffer_get_candidate_result(
     uint32_t* const levenshtein_distance,uint32_t* const levenshtein_match_pos);
 
 /*
+ * Init the local thread BMP Buffers
+ */
+GEM_INLINE void bpm_gpu_init_buffer(bpm_gpu_buffer_t* const bpm_gpu_buffer);
+
+/*
  * Send/Receive Buffer
  */
 GEM_INLINE void bpm_gpu_buffer_send(bpm_gpu_buffer_t* const bpm_gpu_buffer);

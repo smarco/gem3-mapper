@@ -81,6 +81,10 @@ void* mapper_SE_CUDA_thread(mapper_cuda_search_t* const mapper_search) {
 
   archive_search_t* archive_search_generate = NULL;
 
+
+  // Init the bpm cuda buffers of the search group
+  archive_search_group_init_bpm_buffers(search_group);
+
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
   while (true) {

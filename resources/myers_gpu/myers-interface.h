@@ -98,6 +98,7 @@ void bpm_gpu_init_(void*** myersBuffer,uint32_t numBuffers,uint32_t maxMbPerBuff
     uint32_t averageQuerySize,uint32_t candidatesPerQuery,
 	bpm_gpu_dev_arch_t selectedArchitectures, bpm_gpu_ref_location_t userReferenceAllocOption,
 	const bool verbose);
+void bpm_gpu_init_buffer_(void *myersBuffer);
 void bpm_gpu_send_buffer_(void* myersBuffer,uint32_t numPEQEntries,uint32_t numQueries,uint32_t numCandidates);
 void bpm_gpu_receive_buffer_(void* myersBuffer);
 void bpm_gpu_destroy_(void*** myersBuffer);

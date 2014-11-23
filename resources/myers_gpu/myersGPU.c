@@ -318,6 +318,7 @@ MYERS_INLINE myersError_t transformReferenceGEM(const char *referenceGEM, refere
 	uint64_t idEntry, i, referencePosition;
 	unsigned char referenceChar;
 
+	void *ptr = NULL;
 	CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint64_t), cudaHostAllocMapped));
 
 	for(idEntry = 0; idEntry < reference->numEntries; ++idEntry){
@@ -497,12 +498,20 @@ MYERS_INLINE myersError_t initBuffer(buffer_t *buffer, uint32_t idBuffer, device
 	//Create the CUDA stream per each buffer
 	CUDA_ERROR(cudaStreamCreate(&buffer->idStream));
 
+	return(SUCCESS);
+}
+
+MYERS_INLINE void bpm_gpu_init_buffer_(void *myersBuffer)
+{
+	buffer_t *buffer = (buffer_t *) myersBuffer;
+
+	//Set in which Device we create and initialize the internal buffers
+    CUDA_ERROR(cudaSetDevice(buffer->device->idDevice));
+
 	MYERS_ERROR(initQueries(buffer->queries, buffer->maxPEQEntries, buffer->maxQueries));
 	MYERS_ERROR(initCandidates(buffer->candidates, buffer->maxCandidates));
 	MYERS_ERROR(initReorderBuffer(buffer->reorderBuffer, buffer->maxReorderBuffer));
 	MYERS_ERROR(initResults(buffer->results, buffer->maxReorderBuffer, buffer->maxCandidates));
-
-	return(SUCCESS);
 }
 
 MYERS_INLINE myersError_t initDeviceBuffers(buffer_t ***myersBuffer, uint32_t numBuffers, reference_buffer_t *reference,
@@ -712,6 +721,14 @@ MYERS_INLINE uint32_t minMemorySizePerDevice(size_t *minimumMemorySize, referenc
 	return (SUCCESS);
 }
 
+MYERS_INLINE uint32_t fastDriverAwake()
+{
+	//Dummy call to the NVIDIA API to awake earlier the driver.
+	void* prt = NULL;
+	cudaMalloc(&prt, 0);
+	return(SUCCESS);
+}
+
 MYERS_INLINE void bpm_gpu_init_(void ***myersBuffer, uint32_t numBuffers, uint32_t maxMbPerBuffer,
 							const char *referenceRaw, bpm_gpu_ref_coding_t refCoding, const uint64_t refSize,
 							uint32_t averageQuerySize, uint32_t candidatesPerQuery,
@@ -723,6 +740,7 @@ MYERS_INLINE void bpm_gpu_init_(void ***myersBuffer, uint32_t numBuffers, uint32
   device_info_t			**devices = NULL;
   size_t				minimumMemorySize = 0; /*in MBytes */
 
+  MYERS_ERROR(fastDriverAwake());
   MYERS_ERROR(initReference(&reference, referenceRaw, refSize, refCoding));
   MYERS_ERROR(minMemorySizePerDevice(&minimumMemorySize, reference, numBuffers, averageQuerySize, candidatesPerQuery));
   MYERS_ERROR(selectSupportedDevices(&devices, minimumMemorySize, selectedArchitectures, userReferenceAllocOption, verbose));

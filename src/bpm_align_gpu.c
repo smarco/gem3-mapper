@@ -53,6 +53,8 @@
   GEM_INLINE void bpm_gpu_buffer_put_candidate(
       bpm_gpu_buffer_t* const bpm_gpu_buffer,
       const uint64_t candidate_text_position,const uint64_t candidate_length) { GEM_CUDA_NOT_SUPPORTED(); }
+  // Init Buffer
+  GEM_INLINE void bpm_gpu_init_buffer(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); }
   // Send/Receive Buffer
   GEM_INLINE void bpm_gpu_buffer_send(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); }
   GEM_INLINE void bpm_gpu_buffer_receive(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); }
@@ -253,6 +255,12 @@ GEM_INLINE void bpm_gpu_buffer_put_pattern(
       query_pattern[entry].bitmap[enc_char][subentry] |= mask;
     }
   }
+}
+/*
+ * Init the local thread BMP Buffers
+ */
+GEM_INLINE void bpm_gpu_init_buffer(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
+	bpm_gpu_init_buffer_(bpm_gpu_buffer->buffer);
 }
 /*
  * Send/Receive Buffer

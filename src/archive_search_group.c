@@ -116,6 +116,12 @@ GEM_INLINE archive_search_group_t* archive_search_group_new(
   // Return
   return archive_search_group;
 }
+GEM_INLINE void archive_search_group_init_bpm_buffers(archive_search_group_t* const archive_search_group) {
+  // Initialize
+  uint64_t i;
+  for (i=0;i<archive_search_group->total_search_groups;++i)
+	  bpm_gpu_init_buffer(archive_search_group->search_group_buffers[i].bpm_gpu_buffer);
+}
 GEM_INLINE void archive_search_group_clear(archive_search_group_t* const archive_search_group) {
   // Free all archive searches
   uint64_t i;

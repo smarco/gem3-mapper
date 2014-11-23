@@ -25,6 +25,7 @@ typedef struct _archive_search_group_t archive_search_group_t;
  */
 GEM_INLINE archive_search_group_t* archive_search_group_new(
     mapper_parameters_t* const mapper_parameters,bpm_gpu_buffer_t* const bpm_gpu_buffers,const uint64_t total_search_groups);
+GEM_INLINE void archive_search_group_init_bpm_buffers(archive_search_group_t* const archive_search_group);
 GEM_INLINE void archive_search_group_clear(archive_search_group_t* const archive_search_group);
 GEM_INLINE void archive_search_group_delete(archive_search_group_t* const archive_search_group);
 
