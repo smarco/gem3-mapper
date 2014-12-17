@@ -14,6 +14,13 @@
 #include "sequence.h"
 #include "matches.h"
 
+GEM_INLINE void output_map_cigar(
+    FILE* const stream,match_trace_t* const match_trace,matches_t* const matches);
+GEM_INLINE void output_map_alignment_pretty(
+    FILE* const stream,match_trace_t* const match_trace,matches_t* const matches,
+    uint8_t* const key,const uint64_t key_length,uint8_t* const text,
+    const uint64_t text_length,mm_stack_t* const mm_stack);
+
 GEM_INLINE void output_map_single_end_matches(
     buffered_output_file_t* const buffered_output_file,
     sequence_t* const seq_read,matches_t* const matches);

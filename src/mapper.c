@@ -56,19 +56,19 @@ void mapper_error_report(FILE* stream) {
       mapper_search_t* const mapper_search = g_mapper_searches + i;
       // Thread
       fprintf(stream,"GEM::Running-Thread (threadID = %lu)\n",mapper_search->thread_id);
-      // Display Input State
-      const sequence_t* const sequence = archive_search_get_sequence(mapper_search->archive_search);
-      tab_global_inc();
-      mapper_display_input_state(stream,mapper_search->buffered_fasta_input,sequence);
-      tab_global_dec();
+//      // Display Input State
+//      const sequence_t* const sequence = archive_search_get_sequence(mapper_search->archive_search);
+//      tab_global_inc();
+//      mapper_display_input_state(stream,mapper_search->buffered_fasta_input,sequence);
+//      tab_global_dec();
       // Display Output State
       // Display Search State
       // TODO ¿More useful info?
     }
-    // Display stats until now (if possible)
-    PROF_BLOCK() {
-
-    }
+//    // Display stats until now (if possible)
+//    PROF_BLOCK() {
+//
+//    }
   }
 }
 /*
@@ -399,6 +399,17 @@ GEM_INLINE void mapper_parameters_print(FILE* const stream,mapper_parameters_t* 
   tab_global_dec();
 }
 /*
+ * Index loader
+ */
+GEM_INLINE void mapper_load_index(mapper_parameters_t* const parameters) {
+  PROF_START_TIMER(GP_MAPPER_LOAD_INDEX);
+  // Load archive
+  gem_cond_log(parameters->misc.verbose_user,"[Loading GEM index '%s']",parameters->io.index_file_name);
+  parameters->archive = archive_read(parameters->io.index_file_name,
+      parameters->io.check_index,parameters->misc.verbose_dev);
+  PROF_STOP_TIMER(GP_MAPPER_LOAD_INDEX);
+}
+/*
  * I/O
  */
 GEM_INLINE void mapper_SE_output_matches(
@@ -467,7 +478,7 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
   buffered_input_file_attach_buffered_output(mapper_search->buffered_fasta_input,buffered_output_file);
 
   // Create an Archive-Search
-  mm_search_t* const mm_search = mm_search_new(mm_pool_get_slab(mm_pool_2MB));
+  mm_search_t* const mm_search = mm_search_new(mm_pool_get_slab(mm_pool_32MB));
   mapper_search->archive_search = archive_search_new(
       parameters->archive,&mapper_search->mapper_parameters->search_parameters,
       &mapper_search->mapper_parameters->select_parameters);
@@ -526,7 +537,7 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
   }
 
   // Create an Archive-Search
-  mm_search_t* const mm_search = mm_search_new(mm_pool_get_slab(mm_pool_2MB));
+  mm_search_t* const mm_search = mm_search_new(mm_pool_get_slab(mm_pool_32MB));
   mapper_search->archive_search_end1 = archive_search_new(
       parameters->archive,&mapper_search->mapper_parameters->search_parameters,
       &mapper_search->mapper_parameters->select_parameters);
@@ -582,6 +593,8 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
  * SE/PE runnable
  */
 GEM_INLINE void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_end) {
+  // Load GEM-Index
+  mapper_load_index(mapper_parameters);
   // Setup threads
   const uint64_t num_threads = mapper_parameters->system.num_threads;
   mapper_search_t* const mapper_search = mm_calloc(num_threads,mapper_search_t,false); // Allocate mapper searches

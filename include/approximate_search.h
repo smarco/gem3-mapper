@@ -68,14 +68,14 @@ typedef struct {
   uint64_t max_matches_reached;                         // Quick abandon due to maximum matches found
   uint64_t lo_exact_matches;                            // Interval Lo (Exact matching)
   uint64_t hi_exact_matches;                            // Interval Hi (Exact matching)
-  /* Search Auxiliary Structures */
+  /* Search Structures */
   region_profile_t region_profile;                      // Region Profile
+  filtering_candidates_t filtering_candidates;          // Filtering Candidates
   /* BPM Buffer */
   uint64_t bpm_buffer_offset;
   uint64_t bpm_buffer_candidates;
   /* Search Auxiliary Structures (external) */
   text_collection_t* text_collection;                   // Stores text-traces
-  filtering_candidates_t* filtering_candidates;         // Filtering Candidates
   interval_set_t* interval_set;                         // Interval Set
   /* MM */
   mm_stack_t* mm_stack;                                 // MM-Stack
@@ -90,8 +90,7 @@ GEM_INLINE void approximate_search_init(
     dna_text_t* const enc_text,fm_index_t* const fm_index,
     search_actual_parameters_t* const search_actual_parameters);
 GEM_INLINE void approximate_search_configure(
-    approximate_search_t* const search,
-    text_collection_t* text_collection,filtering_candidates_t* const filtering_candidates,
+    approximate_search_t* const search,text_collection_t* text_collection,
     interval_set_t* const interval_set,mm_stack_t* const mm_stack);
 GEM_INLINE void approximate_search_reset(approximate_search_t* const search);
 GEM_INLINE void approximate_search_destroy(approximate_search_t* const search);

@@ -52,12 +52,10 @@ GEM_INLINE void archive_search_configure(
   // Clear F/R search states
   approximate_search_configure(
       &archive_search->forward_search_state,&mm_search->text_collection,
-      &mm_search->filtering_candidates_forward,&mm_search->interval_set,
-      mm_search->mm_stack);
+      &mm_search->interval_set,mm_search->mm_stack);
   approximate_search_configure(
       &archive_search->reverse_search_state,&mm_search->text_collection,
-      &mm_search->filtering_candidates_reverse,&mm_search->interval_set,
-      mm_search->mm_stack);
+      &mm_search->interval_set,mm_search->mm_stack);
   // MM
   archive_search->mm_stack = mm_search->mm_stack;
 }
@@ -150,7 +148,7 @@ GEM_INLINE void archive_search_copy_candidates(
   approximate_search_t* const forward_asearch = &archive_search->forward_search_state;
   forward_asearch->bpm_buffer_offset = bpm_gpu_buffer_get_num_candidates(bpm_gpu_buffer);
   forward_asearch->bpm_buffer_candidates = filtering_candidates_bpm_buffer_add(
-      forward_asearch->filtering_candidates,archive->locator,archive->fm_index,archive->enc_text,
+      &forward_asearch->filtering_candidates,archive->locator,archive->fm_index,archive->enc_text,
       &forward_asearch->pattern,forward_asearch->search_strand,
       forward_asearch->search_actual_parameters,bpm_gpu_buffer,archive_search->mm_stack);
   if (archive_search->search_reverse) {
@@ -158,7 +156,7 @@ GEM_INLINE void archive_search_copy_candidates(
     approximate_search_t* const reverse_asearch = &archive_search->reverse_search_state;
     reverse_asearch->bpm_buffer_offset = bpm_gpu_buffer_get_num_candidates(bpm_gpu_buffer);
     reverse_asearch->bpm_buffer_candidates = filtering_candidates_bpm_buffer_add(
-        reverse_asearch->filtering_candidates,archive->locator,archive->fm_index,archive->enc_text,
+        &reverse_asearch->filtering_candidates,archive->locator,archive->fm_index,archive->enc_text,
         &reverse_asearch->pattern,reverse_asearch->search_strand,
         reverse_asearch->search_actual_parameters,bpm_gpu_buffer,archive_search->mm_stack);
   }
@@ -217,12 +215,23 @@ GEM_INLINE void archive_search_single_end(archive_search_t* const archive_search
       }
     }
   }
-  PROF_STOP(GP_ARCHIVE_SEARCH_SE);
   // Select matches
   archive_select_matches(archive_search,matches);
   // Score matches // TODO
   // archive_search_score_matches(archive_search);
   // Check matches // TODO
+  const uint64_t check_matches_mask = archive_search->select_parameters->check_matches_mask;
+  if (check_matches_mask & check_correctness) {
+    archive_check_matches_correctness(
+        archive_search->archive,&archive_search->sequence,matches,archive_search->mm_stack);
+  } else if (check_matches_mask & check_optimum) {
+    archive_check_matches_optimum(
+        archive_search->archive,&archive_search->sequence,matches,archive_search->mm_stack);
+  } else if (check_matches_mask & check_completness) {
+    archive_check_matches_completness(
+        archive_search->archive,&archive_search->sequence,matches,archive_search->mm_stack);
+  }
+  PROF_STOP(GP_ARCHIVE_SEARCH_SE);
 //  #ifdef GEM_MAPPER_DEBUG
 //   const uint64_t check_level = search_params->internal_parameters.check_alignments;
 //  extern bool keepon;

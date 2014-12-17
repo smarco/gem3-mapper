@@ -134,8 +134,7 @@ GEM_INLINE void approximate_search_configure_region_handling(
 GEM_INLINE void approximate_search_configure_alignment_model(
     search_parameters_t* const search_parameters,const alignment_model_t alignment_model);
 GEM_INLINE void approximate_search_configure_alignment_scores(
-    search_parameters_t* const search_parameters,
-    const uint64_t matching_score,const uint64_t mismatch_penalty,
+    search_parameters_t* const search_parameters,const uint64_t matching_score,
     const uint64_t gap_open_penalty,const uint64_t gap_extension_penalty);
 
 GEM_INLINE void approximate_search_instantiate_values(

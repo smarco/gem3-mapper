@@ -25,6 +25,7 @@ buffered_input_file_t* buffered_input_file_new(input_file_t* const in_file,const
 }
 void buffered_input_file_close(buffered_input_file_t* const buffered_input) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input);
+  input_buffer_delete(buffered_input->input_buffer);
   mm_free(buffered_input);
 }
 /*
@@ -66,23 +67,28 @@ GEM_INLINE uint64_t buffered_input_file_reload(buffered_input_file_t* const buff
 //__itt_pause();
 GEM_INLINE uint64_t buffered_input_file_reload__dump_attached(buffered_input_file_t* const buffered_input) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input);
+  PROF_START(GP_BUFFERED_INPUT_RELOAD__DUMP_ATTACHED);
   // Dump buffer
   if (buffered_input->attached_buffered_output_file!=NULL) {
+    PROF_START(GP_BUFFERED_OUTPUT_DUMP);
     buffered_output_file_dump_buffer(buffered_input->attached_buffered_output_file);
+    PROF_STOP(GP_BUFFERED_OUTPUT_DUMP);
   }
   // Read new input block
   PROF_START(GP_BUFFERED_INPUT_RELOAD);
   if (gem_expect_false(buffered_input_file_reload(buffered_input)==0)) {
     PROF_STOP(GP_BUFFERED_INPUT_RELOAD);
+    PROF_STOP(GP_BUFFERED_INPUT_RELOAD__DUMP_ATTACHED);
     return INPUT_STATUS_EOF;
   }
   PROF_STOP(GP_BUFFERED_INPUT_RELOAD);
   // Get output buffer (block ID)
   if (buffered_input->attached_buffered_output_file!=NULL) {
-    buffered_output_file_request_buffer(
-        buffered_input->attached_buffered_output_file,buffered_input->input_buffer->block_id);
+    PROF_START(GP_BUFFERED_OUTPUT_DUMP);
+    buffered_output_file_request_buffer(buffered_input->attached_buffered_output_file,buffered_input->input_buffer->block_id);
+    PROF_STOP(GP_BUFFERED_OUTPUT_DUMP);
   }
-  // Return OK
-  return INPUT_STATUS_OK;
+  PROF_STOP(GP_BUFFERED_INPUT_RELOAD__DUMP_ATTACHED);
+  return INPUT_STATUS_OK; // Return OK
 }
 

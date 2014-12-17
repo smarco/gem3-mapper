@@ -15,17 +15,6 @@
 #include "bpm_align.h"
 
 /*
- * Debug
- */
-//#define BPM_GPU_PATTERN_DEBUG
-//#define BPM_GPU_GENERATE_CANDIDATES_PROFILE
-
-#ifdef BPM_GPU_GENERATE_CANDIDATES_PROFILE
-#define BPM_GPU_PATTERN_DEBUG
-#endif
-
-
-/*
  * BMP-GPU Buffer & Collection
  */
 typedef struct {
@@ -35,7 +24,7 @@ typedef struct {
   uint32_t num_PEQ_entries;
   uint32_t num_queries;
   uint32_t num_candidates;
-  /* Pattern ID generator */
+  /* Pattern state */
   uint32_t pattern_id;
   /* Misc */
   dna_text_t* enc_text; /* BPM_GPU_PATTERN_DEBUG */
@@ -46,7 +35,6 @@ typedef struct {
   bpm_gpu_buffer_t* bpm_gpu_buffers;  // Wrapped Buffers
   uint64_t num_buffers;               // Total number of buffers allocated
 } bpm_gpu_buffer_collection_t;
-
 
 /*
  * BPM_GPU Setup
@@ -69,15 +57,14 @@ GEM_INLINE uint64_t bpm_gpu_buffer_get_num_candidates(bpm_gpu_buffer_t* const bp
 GEM_INLINE uint64_t bpm_gpu_buffer_get_num_queries(bpm_gpu_buffer_t* const bpm_gpu_buffer);
 
 GEM_INLINE bool bpm_gpu_buffer_fits_in_buffer(
-    bpm_gpu_buffer_t* const bpm_gpu_buffer,
-    const uint64_t num_patterns,const uint64_t total_pattern_length,const uint64_t total_candidates);
-GEM_INLINE bool bpm_gpu_buffer_almost_full(bpm_gpu_buffer_t* const bpm_gpu_buffer);
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,const pattern_t* const pattern,
+    const uint64_t num_pattern_dups,const uint64_t total_candidates);
 
 GEM_INLINE void bpm_gpu_buffer_put_pattern(
     bpm_gpu_buffer_t* const bpm_gpu_buffer,pattern_t* const pattern);
 GEM_INLINE void bpm_gpu_buffer_put_candidate(
-    bpm_gpu_buffer_t* const bpm_gpu_buffer,
-    const uint64_t candidate_text_position,const uint64_t candidate_length);
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t candidate_text_position,
+    const uint64_t candidate_length,const uint64_t pattern_chunk);
 GEM_INLINE void bpm_gpu_buffer_get_candidate(
     bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t position,
     uint64_t* const candidate_text_position,uint32_t* const candidate_length);

@@ -552,7 +552,25 @@ GEM_INLINE void constructor_itoa() {
   }
   fprintf(stderr,"All good!!\n");
 }
-
+GEM_INLINE void constructor_swg() {
+//  // Open input file
+//  FILE* file = fopen(parameters.name_input_file,"r");
+//
+//  // Read until EOF
+//  while (!feof(file)) {
+//    fscanf();
+//  }
+//
+//  uint64_t match_position=100, cigar_length=0;
+//  int64_t effective_length=0, alignment_score=0;
+//  vector_t* const cigar_vector = vector_new(100,cigar_element_t);
+//  swg_penalties_t swg_penalties = {1,4,6,1};
+//  mm_stack_t* mm_stack = mm_stack_new(mm_slab_new(BUFFER_SIZE_8M));
+//  swg_align_match_banded((uint8_t*)"ACGT",4,&swg_penalties,&match_position,
+//      (uint8_t*)"ACCGTGT",7,2,true,true,cigar_vector,&cigar_length,
+//      &effective_length,&alignment_score,mm_stack);
+//  vector_delete(cigar_vector);
+}
 /*
  * Generic Menu
  */
@@ -674,7 +692,9 @@ int main(int argc,char** argv) {
 
   // constructor_priority_queue();
 
-  constructor_itoa();
+  //  constructor_itoa();
+
+  constructor_swg();
 
   return 0;
 }

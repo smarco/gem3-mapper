@@ -16,6 +16,8 @@ GEM_INLINE void archive_select_parameters_init(select_parameters_t* const select
   select_parameters->max_decoded_matches = 20;
   select_parameters->min_reported_matches = 1;
   select_parameters->max_reported_matches = 100;
+  // Check
+  select_parameters->check_matches_mask = check_none;
 }
 GEM_INLINE void archive_select_configure_reporting(
     select_parameters_t* const select_parameters,

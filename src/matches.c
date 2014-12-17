@@ -30,6 +30,7 @@ GEM_INLINE matches_t* matches_new() {
   matches->interval_matches = vector_new(MATCHES_INIT_INTERVAL_MATCHES,match_interval_t);
   // Position Matches
   matches->global_matches = vector_new(MATCHES_INIT_GLOBAL_MATCHES,match_trace_t); // TODO IF vectors -> iterator for HUGE datasets
+  matches->begin_gmatches = ihash_new();
   matches->end_gmatches = ihash_new();
   // CIGAR buffer
   matches->cigar_buffer = vector_new(MATCHES_INIT_CIGAR_OPS,cigar_element_t);
@@ -55,6 +56,7 @@ GEM_INLINE void matches_clear(matches_t* const matches) {
   vector_clear(matches->counters);
   vector_clear(matches->interval_matches);
   vector_clear(matches->global_matches);
+  ihash_clear(matches->begin_gmatches);
   ihash_clear(matches->end_gmatches);
   vector_clear(matches->cigar_buffer);
   matches->total_matches = 0;
@@ -67,6 +69,7 @@ GEM_INLINE void matches_delete(matches_t* const matches) {
   vector_delete(matches->counters);
   vector_delete(matches->interval_matches);
   vector_delete(matches->global_matches);
+  ihash_delete(matches->begin_gmatches);
   ihash_delete(matches->end_gmatches);
   vector_delete(matches->cigar_buffer);
   vector_delete(matches->rp_counters);
@@ -129,71 +132,55 @@ GEM_INLINE void matches_counters_add(
     vector_reserve(counters,distance+1,true);
     vector_set_used(counters,distance+1);
   }
-  // Add matches
-  *vector_get_elm(counters,distance,uint64_t) += num_matches;
+  *vector_get_elm(counters,distance,uint64_t) += num_matches; // Add matches
+}
+GEM_INLINE void matches_counters_dec(
+    matches_t* const matches,const uint64_t distance,const uint64_t num_matches) {
+  vector_t* const counters = matches->counters;
+  *vector_get_elm(counters,distance,uint64_t) -= num_matches; // Dec matches
 }
 GEM_INLINE void matches_index_match(
-    matches_t* const matches,match_trace_t* const match_trace,const uint64_t end_position) {
-  // Store begin position of the match (as to fast index matches)
-  ihash_insert(matches->end_gmatches,end_position,match_trace);
+    matches_t* const matches, const uint64_t match_trace_offset,
+    const uint64_t begin_position,const uint64_t effective_length) {
+  // Store begin/end positions of the match (as to fast index matches)
+  mm_malloc_uint64(match_trace_offset_1,match_trace_offset);
+  ihash_insert(matches->begin_gmatches,begin_position,match_trace_offset_1);
+  mm_malloc_uint64(match_trace_offset_2,match_trace_offset);
+  ihash_insert(matches->end_gmatches,begin_position+effective_length,match_trace_offset_2);
 }
-GEM_INLINE match_trace_t* matches_lookup_match(matches_t* const matches,const uint64_t end_position) {
-  return ihash_get(matches->end_gmatches,end_position,match_trace_t);
+GEM_INLINE uint64_t* matches_lookup_match(
+    matches_t* const matches,const uint64_t begin_position,const uint64_t effective_length) {
+  uint64_t* match_trace_offset = ihash_get(matches->begin_gmatches,begin_position,uint64_t);
+  return (match_trace_offset!=NULL) ? match_trace_offset :
+      ihash_get(matches->end_gmatches,begin_position+effective_length,uint64_t);
 }
-//GEM_INLINE void matches_add_match_trace_mark( // FIXME REMOVE-ME FIXME REMOVE-ME FIXME REMOVE-ME FIXME REMOVE-ME
-//    matches_t* const matches,const uint64_t trace_offset,const uint64_t position,const uint64_t distance,
-//    const uint64_t match_begin_offset,const uint64_t match_end_offset,
-//    const strand_t strand,const bool update_counters) {
-//  // Check duplicates
-//  const uint64_t match_end_position = position + match_end_offset;
-//  if (matches_lookup_match(matches,match_end_position)==NULL) {
-//    // Add the match-trace mark (just a mark, not (re)aligned)
-//    match_trace_t* match_trace;
-//    vector_alloc_new(matches->global_matches,match_trace_t,match_trace);
-//    match_trace->trace_offset = trace_offset;
-//    match_trace->position = position;
-//    match_trace->match_trace_begin_offset = match_begin_offset; // FIXME TO remove
-//    match_trace->match_trace_end_offset = match_end_offset;
-//    match_trace->distance = distance;
-//    match_trace->strand = strand;
-//    // Update counters
-//    if (update_counters) matches_counters_add(matches,distance,1);
-//    // Index
-//    matches_index_match(matches,match_trace,match_end_position);
-//  }
-//}
 GEM_INLINE void matches_add_match_trace_t(
     matches_t* const matches,match_trace_t* const match_trace,const bool update_counters) {
   // Check duplicates
-  const uint64_t match_end_position = match_trace->position+match_trace->effective_length;
-  if (matches_lookup_match(matches,match_end_position)==NULL) {
+  uint64_t* dup_match_trace_offset = matches_lookup_match(matches,match_trace->position,match_trace->effective_length);
+  if (dup_match_trace_offset==NULL) {
     // Add the match-trace
-    vector_insert(matches->global_matches,*match_trace,match_trace_t);
+    const uint64_t new_match_trace_offset = vector_get_used(matches->global_matches);
+    match_trace_t* new_match_trace;
+    vector_alloc_new(matches->global_matches,match_trace_t,new_match_trace);
+    *new_match_trace = *match_trace;
+    // Index
+    matches_index_match(matches,new_match_trace_offset,new_match_trace->position,new_match_trace->effective_length);
     // Update counters
     if (update_counters) matches_counters_add(matches,match_trace->distance,1);
-    // Index
-    matches_index_match(matches,match_trace,match_end_position);
+  } else {
+    match_trace_t* const dup_match_trace = vector_get_elm(matches->global_matches,*dup_match_trace_offset,match_trace_t);
+    if (dup_match_trace->distance > match_trace->distance) {
+      // Pick up the least distant match
+      if (update_counters) {
+        matches_counters_dec(matches,dup_match_trace->distance,1);
+        matches_counters_add(matches,match_trace->distance,1);
+      }
+      // Add the match-trace
+      *dup_match_trace = *match_trace;
+    }
   }
 }
-//GEM_INLINE void matches_add_match_trace(
-//    matches_t* const matches,const uint64_t trace_offset,const uint64_t position,
-//    const uint64_t distance,const strand_t strand,const bool update_counters) {
-//  // Check duplicates
-//  if (matches_lookup_match(matches,position)==NULL) {
-//    // Add the match-trace
-//    match_trace_t* match_trace;
-//    vector_alloc_new(matches->global_matches,match_trace_t,match_trace);
-//    match_trace->position = position;
-//    match_trace->trace_offset = trace_offset;
-//    match_trace->distance = distance;
-//    match_trace->strand = strand;
-//    match_trace->score = 0;
-//    // Update counters
-//    if (update_counters) matches_counters_add(matches,distance,1);
-//    // Index
-//    matches_index_match(matches,match_trace); // FIXME
-//  }
-//}
 GEM_INLINE void matches_add_interval_match(
     matches_t* const matches,
     const uint64_t hi,const uint64_t lo,
@@ -223,6 +210,56 @@ GEM_INLINE void matches_hint_add_match_trace(matches_t* const matches,const uint
 }
 GEM_INLINE void matches_hint_add_match_interval(matches_t* const matches,const uint64_t num_matches_interval_to_add) {
   vector_reserve_additional(matches->interval_matches,num_matches_interval_to_add);
+}
+/*
+ * CIGAR Handling
+ */
+GEM_INLINE void matches_cigar_buffer_append_indel(
+    vector_t* const cigar_buffer,uint64_t* const current_cigar_length,
+    const cigar_t cigar_element_type,const uint64_t element_length) {
+  if (*current_cigar_length > 0) {
+    cigar_element_t* cigar_element = vector_get_last_elm(cigar_buffer,cigar_element_t);
+    if (cigar_element->type==cigar_element_type) {
+      cigar_element->length += element_length;
+      return;
+    }
+  }
+  // Append a new one
+  vector_reserve_additional(cigar_buffer,1); // Reserve
+  cigar_element_t* const cigar_element = vector_get_free_elm(cigar_buffer,cigar_element_t);// Add CIGAR element
+  cigar_element->type = cigar_element_type;
+  cigar_element->length = element_length;
+  vector_inc_used(cigar_buffer); // Increment used
+  *current_cigar_length += 1;
+}
+GEM_INLINE void matches_cigar_buffer_append_match(
+    vector_t* const cigar_buffer,uint64_t* const current_cigar_length,
+    const uint64_t match_length) {
+  // Check previous cigar-element (for merging)
+  if (*current_cigar_length > 0) {
+    cigar_element_t* cigar_element = vector_get_last_elm(cigar_buffer,cigar_element_t);
+    if (cigar_element->type==cigar_match) {
+      cigar_element->length += match_length;
+      return;
+    }
+  }
+  // Append a new one
+  vector_reserve_additional(cigar_buffer,1); // Reserve
+  cigar_element_t* const cigar_element = vector_get_free_elm(cigar_buffer,cigar_element_t);// Add CIGAR element
+  cigar_element->type = cigar_match;
+  cigar_element->length = match_length;
+  vector_inc_used(cigar_buffer); // Increment used
+  *current_cigar_length += 1;
+}
+GEM_INLINE void matches_cigar_buffer_append_mismatch(
+    vector_t* const cigar_buffer,uint64_t* const current_cigar_length,
+    const cigar_t cigar_element_type,const uint8_t mismatch) {
+  vector_reserve_additional(cigar_buffer,1); // Reserve
+  cigar_element_t* const cigar_element = vector_get_free_elm(cigar_buffer,cigar_element_t);// Add CIGAR element
+  cigar_element->type = cigar_element_type;
+  cigar_element->mismatch = mismatch;
+  vector_inc_used(cigar_buffer); // Increment used
+  *current_cigar_length += 1;
 }
 /*
  * Handling matches
@@ -263,7 +300,7 @@ GEM_INLINE void matches_reverse_CIGAR_colorspace(
     SWAP(*origin,*flipped);
   }
 }
-GEM_INLINE uint64_t matches_get_effective_length(
+GEM_INLINE int64_t matches_get_effective_length(
     matches_t* const matches,const uint64_t read_length,
     const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
   // Exact Match

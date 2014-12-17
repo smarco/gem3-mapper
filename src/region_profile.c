@@ -7,7 +7,6 @@
  */
 
 #include "region_profile.h"
-
 #include "mapper_profile.h"
 
 /*
@@ -19,12 +18,12 @@ GEM_INLINE void region_profile_new(
   // Allocate memory for the region profile
   region_profile->pattern_length = pattern_length;
   // Filtering regions
-  region_profile->filtering_region = mm_stack_calloc(mm_stack,pattern_length,filtering_region_t,false);
+  region_profile->filtering_region = mm_stack_calloc(mm_stack,pattern_length,region_search_t,false);
   region_profile->num_filtering_regions = 0;
   region_profile->num_standard_regions = 0;
   // Mismatch regions
-  region_profile->mismatch_region = mm_stack_calloc(mm_stack,pattern_length,region_t,false);
-  region_profile->num_mismatch_region = 0;
+  region_profile->search_region = mm_stack_calloc(mm_stack,pattern_length,region_search_t,false);
+  region_profile->num_search_regions = 0;
   // Region Partition Properties
   region_profile->misms_required = 0;
   // Locator for region sorting
@@ -65,7 +64,7 @@ GEM_INLINE void region_profile_extend_last_region(
     const uint64_t rp_region_type_th) {
   // Merge the tail with the last region
   uint8_t* const key = pattern->key; // Pattern
-  filtering_region_t* const last_region = region_profile->filtering_region + (region_profile->num_filtering_regions-1);
+  region_search_t* const last_region = region_profile->filtering_region + (region_profile->num_filtering_regions-1);
   if (last_region->end != 0) {
     // Continue the search
     while (last_region->end > 0) {
@@ -146,7 +145,7 @@ GEM_INLINE void region_profile_generate_adaptive(
   const uint64_t rp_max_steps = profile_model->max_steps;
   const uint64_t rp_dec_factor = profile_model->dec_factor;
   const uint64_t rp_region_type_th = profile_model->region_type_th;
-  filtering_region_t* const regions = region_profile->filtering_region;
+  region_search_t* const regions = region_profile->filtering_region;
   uint64_t num_regions = 0, num_standard_regions = 0, last_cut = 0;
   uint64_t lo, hi, hi_cut=0, lo_cut=0, expected_count, max_steps;
 
@@ -248,10 +247,10 @@ GEM_INLINE void region_profile_generate_adaptive(
   PROF_STOP(GP_REGION_PROFILE_ADAPTIVE);
 }
 GEM_INLINE void region_profile_generate_full_progressive(
-    region_profile_t* const region_profile,region_t* const base_region,
+    region_profile_t* const region_profile,region_search_t* const base_region,
     const uint64_t start_region,const uint64_t total_regions) {
-  region_profile->num_mismatch_region = total_regions;
-  region_profile->mismatch_region = base_region;
+  region_profile->num_search_regions = total_regions;
+  region_profile->search_region = base_region;
   // Sum the degree for the last regions and zero
   uint64_t i, degree_accum;
   for (i=start_region,degree_accum=0; i<total_regions; ++i) {
@@ -272,7 +271,7 @@ GEM_INLINE void region_profile_schedule_exact_filtering(
    *   to be filtered up to zero mismatches.
    */
   const uint64_t num_regions = region_profile->num_filtering_regions;
-  filtering_region_t* const filtering_region = region_profile->filtering_region;
+  region_search_t* const filtering_region = region_profile->filtering_region;
   region_locator_t* const loc = region_profile->loc;
   // Check the number of regions in the profile
   int64_t i;
@@ -317,7 +316,7 @@ GEM_INLINE void region_profile_locator_sort(region_locator_t* const loc,const ui
 GEM_INLINE void region_profile_sort_by_estimated_mappability(region_profile_t* const region_profile) {
   // Sort the regions w.r.t to the number of candidates
   const uint64_t num_regions = region_profile->num_filtering_regions;
-  filtering_region_t* const filtering_region = region_profile->filtering_region;
+  region_search_t* const filtering_region = region_profile->filtering_region;
   region_locator_t* const loc = region_profile->loc;
   uint64_t i;
   for (i=0;i<num_regions;++i) {
@@ -330,7 +329,7 @@ GEM_INLINE void region_profile_sort_by_estimated_mappability(region_profile_t* c
 GEM_INLINE void region_profile_sort_by_candidates(region_profile_t* const region_profile) {
   // Sort the regions w.r.t to the number of candidates
   const uint64_t num_regions = region_profile->num_filtering_regions;
-  filtering_region_t* const filtering_region = region_profile->filtering_region;
+  region_search_t* const filtering_region = region_profile->filtering_region;
   region_locator_t* const loc = region_profile->loc;
   uint64_t i;
   for (i=0;i<num_regions;++i) {
@@ -420,11 +419,11 @@ GEM_INLINE void region_profile_print(
     }
   }
   if (display_misms_regions) {
-    tab_fprintf(stream,"  => Num.Misms.regions %lu\n",region_profile->num_mismatch_region);
+    tab_fprintf(stream,"  => Num.Misms.regions %lu\n",region_profile->num_search_regions);
     tab_fprintf(stream,"  => Misms.Regions\n");
     uint64_t i;
-    for (i=0;i<region_profile->num_mismatch_region;++i) {
-      const region_t* const mismatch_region = region_profile->mismatch_region+i;
+    for (i=0;i<region_profile->num_search_regions;++i) {
+      const region_search_t* const mismatch_region = region_profile->search_region+i;
       tab_fprintf(stream,"       {%lu}\tloc=[%lu,%lu)\tdegree=%lu\n",
           i,mismatch_region->end,mismatch_region->start,mismatch_region->degree);
     }

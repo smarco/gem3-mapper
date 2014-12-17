@@ -169,7 +169,8 @@ GEM_INLINE locator_interval_t* locator_lookup_interval(const locator_t* const lo
 // [Direct Locator] (Position-to-location mapping)
 GEM_INLINE void locator_map(const locator_t* const locator,const uint64_t index_position,location_t* const location);
 // [Inverse Locator] (Location-to-position mapping)
-GEM_INLINE int64_t inverse_locator_map(locator_t* const locator,const uint8_t* const tag,const strand_t strand,const int64_t text_position);
+GEM_INLINE uint64_t inverse_locator_map(
+    locator_t* const locator,const uint8_t* const tag,const strand_t strand,const int64_t text_position);
 
 /*
  * Display
@@ -181,5 +182,6 @@ GEM_INLINE void locator_builder_print(FILE* const stream,locator_builder_t* cons
  * Error Messages
  */
 #define GEM_ERROR_LOCATOR_INTERVAL_INDEX_OOB "Locator. Requested locator-interval index (%lu) out-of-bounds [%lu,%lu)]"
+#define GEM_ERROR_LOCATOR_INVERSE_NOT_FOUND "Locator. Inverse location not found"
 
 #endif /* LOCATOR_H_ */

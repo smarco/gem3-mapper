@@ -44,7 +44,7 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
   search_parameters->quality_threshold = 26;
   // Mismatch/Indels Parameters
   search_parameters->max_search_error = 0.04;
-  search_parameters->max_filtering_error = 0.20;
+  search_parameters->max_filtering_error = 0.08;
   search_parameters->complete_strata_after_best = 0.0;
   search_parameters->min_matching_length = 0.20;
   // Matches search
@@ -55,9 +55,32 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
   search_parameters->candidate_chunk_max_length = UINT64_MAX;
   search_parameters->allow_region_chaining = true;
   // Alignment Model/Score
-  search_parameters->alignment_model = alignment_model_levenshtein;
-  search_parameters->swg_penalties.matching_score = 1;
-  search_parameters->swg_penalties.mismatch_penalty = 4;
+  search_parameters->alignment_model = alignment_model_gap_affine;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_A] = +1;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_C] = -4;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_G] = -4;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_T] = -4;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_N] = -4;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_C][ENC_DNA_CHAR_A] = -4;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_C][ENC_DNA_CHAR_C] = +1;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_C][ENC_DNA_CHAR_G] = -4;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_C][ENC_DNA_CHAR_T] = -4;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_C][ENC_DNA_CHAR_N] = -4;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_G][ENC_DNA_CHAR_A] = -4;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_G][ENC_DNA_CHAR_C] = -4;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_G][ENC_DNA_CHAR_G] = +1;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_G][ENC_DNA_CHAR_T] = -4;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_G][ENC_DNA_CHAR_N] = -4;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_T][ENC_DNA_CHAR_A] = -4;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_T][ENC_DNA_CHAR_C] = -4;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_T][ENC_DNA_CHAR_G] = -4;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_T][ENC_DNA_CHAR_T] = +1;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_T][ENC_DNA_CHAR_N] = -4;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_N][ENC_DNA_CHAR_A] = -4;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_N][ENC_DNA_CHAR_C] = -4;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_N][ENC_DNA_CHAR_G] = -4;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_N][ENC_DNA_CHAR_T] = -4;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_N][ENC_DNA_CHAR_N] = -4;
   search_parameters->swg_penalties.gap_open_penalty = 6;
   search_parameters->swg_penalties.gap_extension_penalty = 1;
   /*
@@ -171,11 +194,12 @@ GEM_INLINE void approximate_search_configure_alignment_model(
   search_parameters->alignment_model = alignment_model;
 }
 GEM_INLINE void approximate_search_configure_alignment_scores(
-    search_parameters_t* const search_parameters,
-    const uint64_t matching_score,const uint64_t mismatch_penalty,
+    search_parameters_t* const search_parameters,const uint64_t matching_score,
     const uint64_t gap_open_penalty,const uint64_t gap_extension_penalty) {
-  search_parameters->swg_penalties.matching_score = matching_score;
-  search_parameters->swg_penalties.mismatch_penalty = mismatch_penalty;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_A] = matching_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_C][ENC_DNA_CHAR_C] = matching_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_G][ENC_DNA_CHAR_G] = matching_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_T][ENC_DNA_CHAR_T] = matching_score;
   search_parameters->swg_penalties.gap_open_penalty = gap_open_penalty;
   search_parameters->swg_penalties.gap_extension_penalty = gap_extension_penalty;
 }

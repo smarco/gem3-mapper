@@ -69,25 +69,23 @@ void mapper_cuda_error_report(FILE* stream) {
 void* mapper_SE_CUDA_thread(mapper_cuda_search_t* const mapper_search) {
   // GEM-thread error handler
   gem_thread_register_id(mapper_search->thread_id+1);
+  PROF_START(GP_MAPPER_CUDA_THREAD);
 
   // Create new buffered reader/writer
   const mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
   const mapper_parameters_cuda_t* const cuda_parameters = &parameters->cuda;
   archive_search_group_t* const search_group = mapper_search->search_group;
+  archive_search_group_init_bpm_buffers(search_group); // Init BPM-buffers
   mapper_search->buffered_fasta_input = buffered_input_file_new(parameters->input_file,cuda_parameters->input_buffer_lines);
   buffered_output_file_t* const buffered_output_file = buffered_output_file_new(parameters->output_file);
   buffered_input_file_attach_buffered_output(mapper_search->buffered_fasta_input,buffered_output_file);
   matches_t* const matches = matches_new();
 
-  archive_search_t* archive_search_generate = NULL;
-
-
-  // Init the bpm cuda buffers of the search group
-  archive_search_group_init_bpm_buffers(search_group);
-
   // FASTA/FASTQ reading loop
+  archive_search_t* archive_search_generate = NULL;
   uint64_t reads_processed = 0;
   while (true) {
+    PROF_START(GP_MAPPER_CUDA_THREAD_GENERATING);
     // Check the end_of_block (Reload input-buffer if needed)
     if (buffered_input_file_eob(mapper_search->buffered_fasta_input)) {
       // We cannot reload input-buffer until all the searches of the previous block are solved
@@ -113,6 +111,8 @@ void* mapper_SE_CUDA_thread(mapper_cuda_search_t* const mapper_search) {
       if (!archive_search_group_add_search(search_group,archive_search_generate)) break; // Go to select-candidates
       archive_search_generate = NULL; // Last archive-search is in BPM-buffer
     }
+    PROF_STOP(GP_MAPPER_CUDA_THREAD_GENERATING);
+    PROF_START(GP_MAPPER_CUDA_THREAD_SELECTING);
     // Start retrieving
     archive_search_group_retrieve_begin(search_group);
     // Process all search-groups generated
@@ -137,11 +137,15 @@ void* mapper_SE_CUDA_thread(mapper_cuda_search_t* const mapper_search) {
       }
     }
     archive_search_group_clear(search_group); // Reset search-group
-    // Check if the last archive-search couldn't fit into the BPM-buffer (Put candidates in buffer if not)
+    // Check if the last archive-search couldn't fit into the BPM-buffer
     if (archive_search_generate!=NULL) {
+      // FIXME just archive_search_prepare_sequence(archive_search);
+      archive_search_generate_candidates(archive_search_generate);
+
       archive_search_group_add_search(search_group,archive_search_generate);
       archive_search_generate = NULL;
     }
+    PROF_STOP(GP_MAPPER_CUDA_THREAD_SELECTING);
   }
   // Update processed
   ticker_update_mutex(mapper_search->ticker,reads_processed);
@@ -151,6 +155,7 @@ void* mapper_SE_CUDA_thread(mapper_cuda_search_t* const mapper_search) {
   buffered_output_file_close(buffered_output_file);
   matches_delete(matches);
 
+  PROF_STOP(GP_MAPPER_CUDA_THREAD);
   pthread_exit(0);
 }
 /*
@@ -163,6 +168,8 @@ GEM_INLINE void mapper_SE_CUDA_run(mapper_parameters_t* const mapper_parameters)
   const uint64_t num_threads = mapper_parameters->system.num_threads;
   const uint64_t num_search_groups_per_thread = cuda_parameters->num_search_groups_per_thread;
   const uint64_t num_search_groups = num_search_groups_per_thread * num_threads;
+  // Load GEM-Index
+  mapper_load_index(mapper_parameters);
   // Prepare BPM-GPU Buffer
   bpm_gpu_buffer_collection_t* const bpm_gpu_buffer_collection =
       bpm_gpu_init(mapper_parameters->archive->enc_text,num_search_groups,cuda_parameters->bpm_buffer_size,
@@ -213,4 +220,5 @@ GEM_INLINE void mapper_SE_CUDA_run(mapper_parameters_t* const mapper_parameters)
   ticker_finish(&ticker);
   ticker_mutex_cleanup(&ticker);
   mm_free(mapper_search); // Delete mapper-CUDA searches
+  bpm_gpu_destroy(bpm_gpu_buffer_collection); // Delete GPU-buffer collection
 }

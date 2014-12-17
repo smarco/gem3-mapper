@@ -103,10 +103,14 @@ GEM_INLINE void mm_set_tmp_folder(char* const tmp_folder_path);
 #define mm_alloc(type) ((type*)mm_malloc_(1,sizeof(type),false,0))
 #define mm_malloc(num_bytes) (mm_malloc_(1,num_bytes,false,0))
 #define mm_calloc(num_elements,type,clear_mem) ((type*)mm_malloc_(num_elements,sizeof(type),clear_mem,0))
-#define mm_malloc_uint64() mm_malloc(sizeof(uint64_t))
-#define mm_malloc_uint32() mm_malloc(sizeof(uint32_t))
-#define mm_malloc_uint16() mm_malloc(sizeof(uint16_t))
-#define mm_malloc_uint8()  mm_malloc(sizeof(uint8_t))
+#define mm_malloc_uint64(variable_name,init_value) uint64_t* const variable_name = mm_malloc(sizeof(uint64_t)); *variable_name = init_value;
+#define mm_malloc_uint32(variable_name,init_value) uint32_t* const variable_name = mm_malloc(sizeof(uint32_t)); *variable_name = init_value;
+#define mm_malloc_uint16(variable_name,init_value) uint16_t* const variable_name = mm_malloc(sizeof(uint16_t)); *variable_name = init_value;
+#define mm_malloc_uint8(variable_name,init_value)  uint8_t*  const variable_name = mm_malloc(sizeof(uint8_t));  *variable_name = init_value;
+#define mm_malloc_int64(variable_name,init_value)  int64_t* const variable_name = mm_malloc(sizeof(int64_t)); *variable_name = init_value;
+#define mm_malloc_int32(variable_name,init_value)  int32_t* const variable_name = mm_malloc(sizeof(int32_t)); *variable_name = init_value;
+#define mm_malloc_int16(variable_name,init_value)  int16_t* const variable_name = mm_malloc(sizeof(int16_t)); *variable_name = init_value;
+#define mm_malloc_int8(variable_name,init_value)   int8_t*  const variable_name = mm_malloc(sizeof(int8_t));  *variable_name = init_value;
 GEM_INLINE void* mm_malloc_(uint64_t const num_elements,const uint64_t size_element,const bool init_mem,const int init_value);
 GEM_INLINE void* mm_malloc_nothrow(uint64_t const num_elements,const uint64_t size_element,const bool init_mem,const int init_value);
 GEM_INLINE void* mm_realloc(void* mem_addr,const uint64_t num_bytes);

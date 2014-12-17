@@ -166,6 +166,11 @@ GEM_INLINE void mapper_parameters_set_defaults(mapper_parameters_t* const mapper
 GEM_INLINE void mapper_parameters_print(FILE* const stream,mapper_parameters_t* const parameters);
 
 /*
+ * Index loader
+ */
+GEM_INLINE void mapper_load_index(mapper_parameters_t* const parameters);
+
+/*
  * I/O
  */
 GEM_INLINE void mapper_SE_output_matches(

@@ -27,9 +27,6 @@ typedef struct {
   mm_stack_t* mm_stack;               // Memory-Stack allocator
   /* Text-Collection Buffer */
   text_collection_t text_collection;  // Stores text-traces (candidates/matches/regions/...)
-  /* Filtering Candidates Buffers */
-  filtering_candidates_t filtering_candidates_forward; // Filtering candidates (Forward Buffer)
-  filtering_candidates_t filtering_candidates_reverse; // Filtering candidates (Reverse Buffer)
   /* Interval Set */
   interval_set_t interval_set;
 } mm_search_t;

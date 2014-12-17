@@ -55,11 +55,11 @@ typedef struct {
   uint64_t distance;     // Edit distance of the alignment
   strand_t strand;       // Mapping Strand
   /* Score */
-  int64_t score;
+  int32_t score;
   /* CIGAR */
   uint64_t cigar_buffer_offset;
   uint64_t cigar_length;
-  uint64_t effective_length;
+  int64_t effective_length;
 } match_trace_t;
 
 ///*
@@ -95,7 +95,8 @@ typedef struct {
   vector_t* interval_matches;               // (match_interval_t)
   /* Global Position Matches */
   vector_t* global_matches;                 // Global Matches (match_trace_t)
-  ihash_t* end_gmatches;                    // End position (of the aligned match) in the Text-space
+  ihash_t* begin_gmatches;                  // Begin position (of the aligned match) in the text-space
+  ihash_t* end_gmatches;                    // End position (of the aligned match) in the text-space
 //  /* Local Position Matches */ // TODO
 //  vector_t* local_matches;               // (match_trace_t)
 //  ihash_t* start_position_gmatches;      // Starting position in the Text-space
@@ -140,7 +141,8 @@ GEM_INLINE uint64_t match_trace_get_cigar_length(const match_trace_t* const matc
 /*
  * Adding Matches
  */
-GEM_INLINE match_trace_t* matches_lookup_match(matches_t* const matches,const uint64_t position);
+GEM_INLINE uint64_t* matches_lookup_match(
+    matches_t* const matches,const uint64_t begin_position,const uint64_t effective_length);
 GEM_INLINE void matches_add_match_trace_t(
     matches_t* const matches,match_trace_t* const match_trace,const bool update_counters);
 
@@ -155,6 +157,28 @@ GEM_INLINE void matches_hint_add_match_trace(matches_t* const matches,const uint
 GEM_INLINE void matches_hint_add_match_interval(matches_t* const matches,const uint64_t num_matches_interval_to_add);
 
 /*
+ * CIGAR Handling
+ */
+#define MATCHES_CIGAR_BUFFER_ADD_CIGAR_ELEMENT(cigar_buffer_sentinel,cigar_element_type,element_length) \
+  if (cigar_buffer_sentinel->type == cigar_element_type) { \
+    cigar_buffer_sentinel->length += element_length; \
+  } else { \
+    if (cigar_buffer_sentinel->type!=cigar_null) ++(cigar_buffer_sentinel); \
+    cigar_buffer_sentinel->type = cigar_element_type; \
+    cigar_buffer_sentinel->length = element_length; \
+  }
+
+GEM_INLINE void matches_cigar_buffer_append_indel(
+    vector_t* const cigar_buffer,uint64_t* const current_cigar_length,
+    const cigar_t cigar_element_type,const uint64_t element_length);
+GEM_INLINE void matches_cigar_buffer_append_match(
+    vector_t* const cigar_buffer,uint64_t* const current_cigar_length,
+    const uint64_t match_length);
+GEM_INLINE void matches_cigar_buffer_append_mismatch(
+    vector_t* const cigar_buffer,uint64_t* const current_cigar_length,
+    const cigar_t cigar_element_type,const uint8_t mismatch);
+
+/*
  * Handling matches
  */
 GEM_INLINE void matches_reverse_CIGAR(
@@ -163,7 +187,7 @@ GEM_INLINE void matches_reverse_CIGAR(
 GEM_INLINE void matches_reverse_CIGAR_colorspace(
     matches_t* const matches,
     const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
-GEM_INLINE uint64_t matches_get_effective_length(
+GEM_INLINE int64_t matches_get_effective_length(
     matches_t* const matches,const uint64_t read_length,
     const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
 

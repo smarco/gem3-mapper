@@ -7,6 +7,7 @@
  */
 
 #include "kmer_counting.h"
+#include "bpm_align.h"
 
 /*
  * Constants
@@ -88,7 +89,7 @@ GEM_INLINE uint64_t kmer_counting_filter(
   }
   // Check filter condition
   if (kmers_in_text >= kmers_required) return 0;
-  if (init_chunk == text_length) return UINT64_MAX;
+  if (init_chunk == text_length) return ALIGN_COLUMN_INF;
   /*
    * Synch begin-index
    */
@@ -158,7 +159,7 @@ GEM_INLINE uint64_t kmer_counting_filter(
     }
   }
   // Not passing the filter
-  return UINT64_MAX;
+  return ALIGN_COLUMN_INF;
 }
 ///*
 // * Filter text region
@@ -191,7 +192,7 @@ GEM_INLINE uint64_t kmer_counting_filter(
 //  }
 //  // Check filter condition
 //  if (kmers_in_text >= kmers_required) return 0;
-//  if (init_chunk == text_length) return UINT64_MAX;
+//  if (init_chunk == text_length) return BPM_ALIGN_DISTANCE_INF;
 //  /*
 //   * Synch begin-index
 //   */
@@ -223,7 +224,7 @@ GEM_INLINE uint64_t kmer_counting_filter(
 //    }
 //  }
 //  // Not passing the filter
-//  return UINT64_MAX;
+//  return BPM_ALIGN_DISTANCE_INF;
 //}
 
 

@@ -11,14 +11,6 @@
 /*
  * GEM-mapper I/O related functions
  */
-GEM_INLINE void gem_mapper_load_index(mapper_parameters_t* const parameters) {
-  PROF_START_TIMER(GP_MAPPER_LOAD_INDEX);
-  // Load archive
-  gem_cond_log(parameters->misc.verbose_user,"[Loading GEM index '%s']",parameters->io.index_file_name);
-  parameters->archive = archive_read(parameters->io.index_file_name,
-      parameters->io.check_index,parameters->misc.verbose_dev);
-  PROF_STOP_TIMER(GP_MAPPER_LOAD_INDEX);
-}
 GEM_INLINE input_file_t* gem_mapper_open_input_file(
     char* const input_file_name,const fm_type input_compression,
     const uint64_t input_block_size,const bool verbose_user) {
@@ -193,11 +185,8 @@ option_t gem_mapper_options[] = {
   /* Single-end Alignment */
   { 400, "mapping-mode", REQUIRED, TYPE_STRING, 4, false, "'incremental'|'adaptive'|'fixed'|'fast'|'brute-force'" , "(default=fast)" },
   { 401, "filtering-degree", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0)" },
-#ifdef HAVE_CUDA
-  { 402, "cuda", OPTIONAL, TYPE_STRING, 4, true, "", ""},
-#endif
   { 'e', "max-search-error", REQUIRED, TYPE_FLOAT, 4, true, "<number|percentage>" , "(default=0.04, 4%)" },
-  { 'E', "max-filtering-error", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0.2, 20%)" },
+  { 'E', "max-filtering-error", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0.08, 8%)" },
   { 's', "complete-strata-after-best", REQUIRED, TYPE_FLOAT, 4, true, "<number|percentage>" , "(default=0)" },
   { 403, "min-matching-length", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0.20, 20%)" },
   { 404, "max-search-matches", REQUIRED, TYPE_INT, 4, true, "<number>" , "(unlimited by default)" },
@@ -217,7 +206,7 @@ option_t gem_mapper_options[] = {
   { 507, "max-extendable-candidates", REQUIRED, TYPE_INT, 5, false, "<number>" , "(default=20)" },
   { 508, "max-matches-per-extension", REQUIRED, TYPE_INT, 5, false, "<number>" , "(default=2)" },
   /* Alignment Score */
-  { 600, "alignment-model", REQUIRED, TYPE_STRING, 6, false, "'none'|'hamming'|'edit'|'gap-affine'" , "(default=edit)" },
+  { 600, "alignment-model", REQUIRED, TYPE_STRING, 6, false, "'none'|'hamming'|'edit'|'gap-affine'" , "(default=gap-affine)" },
   { 601, "gap-affine-penalties", REQUIRED, TYPE_STRING, 6, false, "A,B,O,X" , "(default=1,4,6,1)" },
   { 'A', "matching-score", REQUIRED, TYPE_INT, 6, false, "" , "(default=1)" },
   { 'B', "mismatch-penalty", REQUIRED, TYPE_INT, 6, false, "" , "(default=4)" },
@@ -235,12 +224,15 @@ option_t gem_mapper_options[] = {
   { 900, "max-memory", REQUIRED, TYPE_STRING, 9, true, "<maximum-memory>" , "(Eg 2GB)" },
   { 901, "tmp-folder", REQUIRED, TYPE_STRING, 9, true, "<temporal_dir_path>" , "(default=/tmp/)" },
   /* CUDA Settings */
-  { 1000, "cuda-buffers-per-thread", REQUIRED, TYPE_STRING, 10, false, "<num_buffers,buffer_size>" , "(default=3,4M)" },
+#ifdef HAVE_CUDA
+  { 1000, "cuda", OPTIONAL, TYPE_STRING, 10, true, "", ""},
+  { 1001, "cuda-buffers-per-thread", REQUIRED, TYPE_STRING, 10, false, "<num_buffers,buffer_size>" , "(default=3,4M)" },
+#endif
   /* Presets/Hints */
   { 1100, "technology", REQUIRED, TYPE_STRING, 11, false, "'hiseq'|'miseq'|'454'|'ion-torrent'|'pacbio'|'nanopore'|'moleculo'" , "(default=hiseq)" },
   { 1101, "reads-model", REQUIRED, TYPE_STRING, 11, false, "<average_length>[,<std_length>]" , "(default=150,50)" },
   /* Debug */
-  { 1200, "check-alignments", REQUIRED, TYPE_STRING, 12, false, "'check-correct'|'check-best'|'check-complete'" , "(default=check-correct,check-best)" },
+  { 'c', "check-alignments", REQUIRED, OPTIONAL, 12, false, "'correct'|'best'|'complete'" , "" },
   /* Miscellaneous */
   { 1300, "profile", OPTIONAL, TYPE_STRING, 13, false, "'sum'|'min'|'max'|'mean'|'sample'" , "(disabled)" },
   { 'v', "verbose", OPTIONAL, TYPE_STRING, 13, true, "'quiet'|'user'|'dev'" , "(default=user)" },
@@ -259,7 +251,9 @@ char* gem_mapper_groups[] = {
   /*  7 */ "Mapping Quality",
   /*  8 */ "Reporting",
   /*  9 */ "System",
+#ifdef HAVE_CUDA
   /* 10 */ "CUDA Settings",
+#endif
   /* 11 */ "Presets/Hints",
   /* 12 */ "Debug",
   /* 13 */ "Miscellaneous",
@@ -428,10 +422,6 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 401: // --filtering-degree
       parameters->search_parameters.filtering_degree = atof(optarg);
       break;
-    case 402: // --cuda
-      if (!bpm_gpu_support()) GEM_CUDA_NOT_SUPPORTED();
-      parameters->cuda.cuda_enabled = input_text_parse_extended_bool(optarg);
-      break;
     case 'e': // --max-search-error
       parameters->search_parameters.max_search_error = atof(optarg);
       break;
@@ -583,17 +573,22 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       parameters->system.tmp_folder = optarg;
       break;
     /* CUDA Settings */
-    case 1000: { // --cuda-buffers-per-thread=3,4M
+    case 1000: // --cuda
+      if (!bpm_gpu_support()) GEM_CUDA_NOT_SUPPORTED();
+      parameters->cuda.cuda_enabled = input_text_parse_extended_bool(optarg);
+      break;
+    case 1001: { // --cuda-buffers-per-thread=3,4M
+      if (!bpm_gpu_support()) GEM_CUDA_NOT_SUPPORTED();
       char *num_buffers=NULL, *buffer_size=NULL;
       const int num_arguments = input_text_parse_csv_arguments(optarg,2,&num_buffers,&buffer_size);
       gem_cond_fatal_error_msg(num_arguments!=2,"Option '--cuda-buffers-per-thread' wrong number of arguments");
       // Number of buffers per thread
       gem_cond_fatal_error_msg(input_text_parse_integer(
           (const char** const)&num_buffers,(int64_t*)&parameters->cuda.num_search_groups_per_thread),
-          "Option '--cuda-search-groups'. Error parsing 'num_buffers'");
+          "Option '--cuda-buffers-per-thread'. Error parsing 'num_buffers'");
       // Buffer size
       gem_cond_fatal_error_msg(input_text_parse_size(buffer_size,&parameters->cuda.bpm_buffer_size),
-          "Option '--cuda-search-groups'. Error parsing 'buffer_size'");
+          "Option '--cuda-buffers-per-thread'. Error parsing 'buffer_size'");
       break;
     }
     /* Presets/Hints */
@@ -631,18 +626,21 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       break;
     }
     /* Debug */
-    case 1200: { // --check-alignments in {'check-correct'|'check-best'|'check-complete'}
+    case 'c': { // --check-alignments in {'correct'|'best'|'complete'}
       select_parameters_t* const select_parameters = &parameters->select_parameters;
       select_parameters->check_matches_mask = check_none; // Init
-      // Start parsing
-      char *check = strtok(optarg,",");
-      while (check!=NULL) {
-        if (gem_strcaseeq(check,"check-none"))     { select_parameters->check_matches_mask |= check_none; continue; }
-        if (gem_strcaseeq(check,"check-correct"))  { select_parameters->check_matches_mask |= check_correctness; continue; }
-        if (gem_strcaseeq(check,"check-best"))     { select_parameters->check_matches_mask |= check_optimum; continue; }
-        if (gem_strcaseeq(check,"check-complete")) { select_parameters->check_matches_mask |= check_completness; continue; }
-        gem_fatal_error_msg("Option '--check-alignments' must be 'check-correct'|'check-best'|'check-complete'");
-        check = strtok(NULL,",");
+      if (!optarg) {
+        select_parameters->check_matches_mask |= check_correctness;
+      } else {
+        char *check = strtok(optarg,","); // Start parsing
+        while (check!=NULL) {
+          if (gem_strcaseeq(check,"none"))     { select_parameters->check_matches_mask |= check_none; }
+          else if (gem_strcaseeq(check,"correct"))  { select_parameters->check_matches_mask |= check_correctness; }
+          else if (gem_strcaseeq(check,"best"))     { select_parameters->check_matches_mask |= check_optimum; }
+          else if (gem_strcaseeq(check,"complete")) { select_parameters->check_matches_mask |= check_completness; }
+          else { gem_fatal_error_msg("Option '--check-alignments' must be 'correct'|'best'|'complete'"); }
+          check = strtok(NULL,",");
+        }
       }
       break;
     }
@@ -673,7 +671,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
         } else if (gem_strcaseeq(optarg,"user")) {
           parameters->misc.verbose_user = true;
           parameters->misc.verbose_dev = false;
-        } else if (gem_strcaseeq(optarg,"dev")) {
+        } else if (gem_strcaseeq(optarg,"dev") || gem_strcaseeq(optarg,"debug")) {
           parameters->misc.verbose_user = true;
           parameters->misc.verbose_dev = true;
         } else {
@@ -787,9 +785,6 @@ int main(int argc,char** argv) {
   gem_mapper_open_input(&parameters);
   gem_mapper_open_output(&parameters);
 
-  // Load GEM-Index
-  gem_mapper_load_index(&parameters);
-
   // Launch mapper
   if (!cuda->cuda_enabled) {
     switch (parameters.mapper_type) {
@@ -834,8 +829,8 @@ int main(int argc,char** argv) {
   gem_runtime_destroy();
 
   // Display end banner
-  gem_cond_log(parameters.misc.verbose_user,
-      "[GEMMapper terminated successfully in %lu s.]\n",(uint64_t)TIMER_GET_TOTAL_S(&mapper_time));
+  const uint64_t mapper_time_sec = (uint64_t)TIMER_GET_TOTAL_S(&mapper_time);
+  gem_cond_log(parameters.misc.verbose_user,"[GEMMapper terminated successfully in %lu s.]\n",mapper_time_sec);
 
   // Done!
   return 0;

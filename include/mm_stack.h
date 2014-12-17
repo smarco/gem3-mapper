@@ -24,9 +24,13 @@
 /*
  * Debug
  */
-#ifdef GEM_DEBUG
+//#ifdef GEM_DEBUG
 #define MM_STACK_DEBUG
-#endif
+//#endif
+
+// TODO
+// Implement DEBUG/SECURITY mechanism with which we can say if memory has been
+// touched beyond limits (memsetting mem to sth and the checking after pop/push)
 
 /*
  * Checkers

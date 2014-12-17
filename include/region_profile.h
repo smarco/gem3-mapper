@@ -50,15 +50,7 @@ typedef struct {
   uint64_t lo;
   // Degree assigned to this region
   uint64_t degree;
-} filtering_region_t;
-// Mismatch regions
-typedef struct {
-  // Ranges of the region [end,start) (Yes!, backwards like the FM-search)
-  uint64_t start;
-  uint64_t end;
-  // Degree assigned to this region
-  uint64_t degree;
-} region_t;
+} region_search_t;
 // Region Profile
 typedef struct {
   uint64_t id;
@@ -68,12 +60,12 @@ typedef struct {
   /* Pattern */
   uint64_t pattern_length;
   /* Filtering regions */
-  filtering_region_t* filtering_region;
-  uint64_t num_filtering_regions;  // Total number of regions := region_unique + region_standard + region_gap
-  uint64_t num_standard_regions;   // Number of Standard Regions
+  region_search_t* filtering_region; // Filtering regions
+  uint64_t num_filtering_regions;    // Total number of filtering regions (region_unique + region_standard + region_gap)
+  uint64_t num_standard_regions;     // Number of Standard Regions
   /* Mismatch regions */
-  region_t* mismatch_region; // FIXME Change name -> search_regions eg
-  uint64_t num_mismatch_region;
+  region_search_t* search_region;    // Search regions
+  uint64_t num_search_regions;
   /* Region Partition Properties */
   uint64_t misms_required;         // Total mismatches required to get a new match
   /* Locator for region sorting */
@@ -112,7 +104,7 @@ GEM_INLINE void region_profile_generate_adaptive(
     const uint64_t max_regions,const bool allow_zero_regions);
 GEM_INLINE void region_profile_generate_full_progressive(
     region_profile_t* const region_profile,
-    region_t* const base_region,const uint64_t start_region,const uint64_t total_regions);
+    region_search_t* const base_region,const uint64_t start_region,const uint64_t total_regions);
 
 /*
  * Region Profile Utils
@@ -134,14 +126,14 @@ GEM_INLINE void region_profile_print(
  */
 #define REGION_PROFILE_ITERATE(region_profile,region,position) \
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions; \
-  filtering_region_t* region = region_profile->filtering_region; \
+  region_search_t* region = region_profile->filtering_region; \
   uint64_t position; \
   for (position=0;position<num_filtering_regions;++position,++region)
 #define REGION_LOCATOR_ITERATE(region_profile,region,position) \
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions; \
-  filtering_region_t* const filtering_region = region_profile->filtering_region; \
+  region_search_t* const filtering_region = region_profile->filtering_region; \
   region_locator_t* const loc = region_profile->loc; \
-  filtering_region_t* region; \
+  region_search_t* region; \
   uint64_t position; \
   for (position=0,region=filtering_region+loc[0].id; \
        position<num_filtering_regions; \

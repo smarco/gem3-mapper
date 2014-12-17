@@ -8,6 +8,7 @@
 #include "archive_select.h"
 #include "archive_text_retrieve.h"
 #include "matches_align.h"
+#include "output_map.h"
 
 /*
  * Realigning Matches
@@ -44,8 +45,8 @@ GEM_INLINE void archive_select_realign_match_interval(
         break;
       case alignment_model_gap_affine:
         matches_align_smith_waterman_gotoh(
-            matches,match_trace,match_interval->strand,&search_parameters->swg_penalties,
-            search_state->pattern.key,search_state->pattern.key_length,
+            matches,match_trace,match_interval->strand,search_parameters->allowed_enc,
+            &search_parameters->swg_penalties,search_state->pattern.key,search_state->pattern.key_length,
             match_trace->trace_offset,match_trace->position,match_interval->distance,
             match_interval->text,match_interval->length,NULL,0,mm_stack);
         break;
@@ -109,13 +110,14 @@ GEM_INLINE void archive_select_calculate_matches_to_decode(
 }
 GEM_INLINE void archive_select_locate_match_trace(
     const archive_t* const archive,matches_t* const matches,match_trace_t* const match_trace,
-    const uint64_t seq_length,const uint64_t match_length,const strand_t search_strand) {
+    const uint64_t seq_length,const int64_t match_length,const strand_t search_strand) {
+  GEM_INTERNAL_CHECK(match_length >= 0,"Match effective length must be positive");
   location_t location;
   locator_map(archive->locator,match_trace->position,&location);
   match_trace->position = location.position;
   match_trace->sequence_name = location.tag;
   if (location.direction == Reverse) { // Adjust position by the effective length
-    match_trace->position -= match_length;
+    match_trace->position -= (uint64_t) match_length;
     match_trace->strand = Reverse;
     GEM_INTERNAL_CHECK(search_strand == Forward,
         "Archive-Select. Locating match-trace. "
@@ -259,4 +261,69 @@ GEM_INLINE void archive_select_matches(archive_search_t* const archive_search,ma
   }
   PROF_STOP(GP_ARCHIVE_SELECT_MATCHES);
 }
+/*
+ * Check Matches
+ */
+GEM_INLINE void archive_check_matches_correctness(
+    archive_t* const archive,sequence_t* const sequence,
+    matches_t* const matches,mm_stack_t* const mm_stack) {
+  // Prepare key(s)
+  mm_stack_push_state(mm_stack);
+  FILE* const stream = gem_error_get_stream();
+  const char* const sequence_buffer = string_get_buffer(&sequence->read);
+  const uint64_t key_length = sequence_get_length(sequence);
+  uint8_t* const key = mm_stack_calloc(mm_stack,key_length,uint8_t,false);
+  uint64_t i;
+  for (i=0;i<key_length;++i) key[i] = dna_encode(sequence_buffer[i]);
+  // Traverse all matches and check their CIGAR
+  bool valid_alignment = true;
+  VECTOR_ITERATE(matches->global_matches,match_trace,match_trace_num,match_trace_t) {
+    // Retrieve text
+    bool valid_map;
+    const uint64_t position = inverse_locator_map(archive->locator,
+        (uint8_t*)match_trace->sequence_name,match_trace->strand,match_trace->position);
+    const uint64_t text_length = match_trace->effective_length;
+    uint8_t* reverse_text = NULL;
+    uint8_t* const forward_text = dna_text_retrieve_sequence(archive->enc_text,position,text_length,mm_stack);
+    if (match_trace->strand==Forward) { // Forward
+      valid_map = align_check_match(stream,key,key_length,forward_text,text_length,
+          matches->cigar_buffer,match_trace->cigar_buffer_offset,match_trace->cigar_length,true);
+    } else { // Reverse
+      reverse_text = mm_stack_calloc(mm_stack,text_length,uint8_t,false);
+      for (i=0;i<text_length;++i) reverse_text[text_length-i-1] = dna_encoded_complement(forward_text[i]);
+      valid_map = align_check_match(stream,key,key_length,reverse_text,text_length,
+          matches->cigar_buffer,match_trace->cigar_buffer_offset,match_trace->cigar_length,true);
+    }
+    // Check result
+    if(!valid_map) {
+      valid_alignment = false;
+      fprintf(stream,"Match check failed. Global Match alignment => ");
+      output_map_alignment_pretty(stream,match_trace,matches,key,key_length,
+          (match_trace->strand==Forward)?forward_text:reverse_text,text_length,mm_stack);
+    }
+  }
+  // Print Read
+  if (!valid_alignment) {
+    if (sequence_has_qualities(sequence)) {
+      fprintf(stream,"@%s\n",sequence_get_tag(sequence));
+      fprintf(stream,"%s\n+\n",sequence_get_read(sequence));
+      fprintf(stream,"%s\n",sequence_get_qualities(sequence));
+    } else {
+      fprintf(stream,">%s\n",sequence_get_tag(sequence));
+      fprintf(stream,"%s\n",sequence_get_read(sequence));
+    }
+  }
+  mm_stack_pop_state(mm_stack,false);
+}
+GEM_INLINE void archive_check_matches_optimum(
+    archive_t* const archive,sequence_t* const sequence,
+    matches_t* const matches,mm_stack_t* const mm_stack) {
+  GEM_NOT_IMPLEMENTED();
+}
+GEM_INLINE void archive_check_matches_completness(
+    archive_t* const archive,sequence_t* const sequence,
+    matches_t* const matches,mm_stack_t* const mm_stack) {
+  GEM_NOT_IMPLEMENTED();
+}
+
 
