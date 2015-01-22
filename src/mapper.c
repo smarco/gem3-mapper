@@ -428,6 +428,25 @@ GEM_INLINE void mapper_SE_output_matches(
       break;
   }
 }
+GEM_INLINE void mapper_PE_output_matches(
+    const mapper_parameters_t* const parameters,
+    buffered_output_file_t* const buffered_output_file,
+    sequence_t* const seq_read_end1,sequence_t* const seq_read_end2,
+    paired_matches_t* const paired_matches) {
+  switch (parameters->io.output_format) {
+    case MAP:
+      output_map_paired_end_matches(buffered_output_file,
+          seq_read_end1,seq_read_end2,paired_matches);
+      break;
+    case SAM:
+      output_sam_paired_end_matches(buffered_output_file,
+          seq_read_end1,seq_read_end2,paired_matches,&parameters->io.sam_parameters);
+      break;
+    default:
+      GEM_INVALID_CASE();
+      break;
+  }
+}
 GEM_INLINE error_code_t mapper_SE_parse_sequence(mapper_search_t* const mapper_search) {
   const mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
   const error_code_t error_code = input_fasta_parse_sequence(
@@ -547,7 +566,7 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
   archive_search_configure(mapper_search->archive_search_end1,mm_search);
   archive_search_configure(mapper_search->archive_search_end2,mm_search);
   mapper_search->paired_matches = paired_matches_new(mm_search->text_collection);
-  paired_matches_configure(mapper_search->paired_matches,mapper_search->archive_search->text_collection);
+  paired_matches_configure(mapper_search->paired_matches,mapper_search->archive_search_end1->text_collection);
 
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
@@ -556,10 +575,10 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
     archive_search_paired_end(mapper_search->archive_search_end1,
         mapper_search->archive_search_end2,mapper_search->paired_matches);
 
-//    // Output matches
-//    mapper_PE_output_matches(parameters,mapper_search->buffered_output_file,
-//        archive_search_get_sequence(mapper_search->archive_search_end1),
-//        archive_search_get_sequence(mapper_search->archive_search_end2),mapper_search->paired_matches);
+    // Output matches
+    mapper_PE_output_matches(parameters,buffered_output_file,
+        archive_search_get_sequence(mapper_search->archive_search_end1),
+        archive_search_get_sequence(mapper_search->archive_search_end2),mapper_search->paired_matches);
 
     // Update processed
     if (++reads_processed == MAPPER_TICKER_STEP) {

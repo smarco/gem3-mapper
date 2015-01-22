@@ -28,8 +28,8 @@ GEM_INLINE matches_t* matches_new() {
   matches->counters = vector_new(MATCHES_INIT_COUNTERS,uint64_t);
   // Interval Matches
   matches->interval_matches = vector_new(MATCHES_INIT_INTERVAL_MATCHES,match_interval_t);
-  // Position Matches
-  matches->global_matches = vector_new(MATCHES_INIT_GLOBAL_MATCHES,match_trace_t); // TODO IF vectors -> iterator for HUGE datasets
+  // Position Matches // TODO IF vectors -> iterator for HUGE datasets
+  matches->global_matches = vector_new(MATCHES_INIT_GLOBAL_MATCHES,match_trace_t);
   matches->begin_gmatches = ihash_new();
   matches->end_gmatches = ihash_new();
   // CIGAR buffer
@@ -120,6 +120,33 @@ GEM_INLINE cigar_element_t* match_trace_get_cigar_array(const matches_t* const m
 }
 GEM_INLINE uint64_t match_trace_get_cigar_length(const match_trace_t* const match_trace) {
   return match_trace->cigar_length;
+}
+GEM_INLINE uint64_t match_trace_get_distance(const match_trace_t* const match_trace) {
+  return match_trace->distance;
+}
+GEM_INLINE int64_t match_trace_get_effective_length(
+    matches_t* const matches,const uint64_t read_length,
+    const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
+  // Exact Match
+  if (cigar_length==0) return read_length; // Even all-matching matches have CIGAR=1
+  // Traverse CIGAR
+  const cigar_element_t* cigar_element = vector_get_elm(matches->cigar_buffer,cigar_buffer_offset,cigar_element_t);
+  int64_t i, effective_length = read_length;
+  for (i=0;i<cigar_length;++i,++cigar_element) {
+    switch (cigar_element->type) {
+      case cigar_ins:
+        effective_length += cigar_element->length;
+        break;
+      case cigar_del:
+      case cigar_soft_trim:
+        effective_length -= cigar_element->length;
+        break;
+      default:
+        break;
+    }
+  }
+  GEM_INTERNAL_CHECK(effective_length >= 0,"Match effective length must be positive");
+  return effective_length;
 }
 /*
  * Adding Matches
@@ -261,12 +288,8 @@ GEM_INLINE void matches_cigar_buffer_append_mismatch(
   vector_inc_used(cigar_buffer); // Increment used
   *current_cigar_length += 1;
 }
-/*
- * Handling matches
- */
-GEM_INLINE void matches_reverse_CIGAR(
-    matches_t* const matches,
-    const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
+GEM_INLINE void matches_cigar_reverse(
+    matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
   // Exact Match (Even all-matching matches have CIGAR=1)
   gem_fatal_check(cigar_length>0,MATCHES_CIGAR_ZERO_LENGTH);
   // Reverse CIGAR
@@ -285,9 +308,8 @@ GEM_INLINE void matches_reverse_CIGAR(
     if (middle->type == cigar_mismatch) middle->length = dna_complement(middle->length);
   }
 }
-GEM_INLINE void matches_reverse_CIGAR_colorspace(
-    matches_t* const matches,
-    const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
+GEM_INLINE void matches_cigar_reverse_colorspace(
+    matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
   // Exact Match
   if (cigar_length==0) return; // Even all-matching matches have CIGAR=1
   // Reverse CIGAR
@@ -300,43 +322,61 @@ GEM_INLINE void matches_reverse_CIGAR_colorspace(
     SWAP(*origin,*flipped);
   }
 }
-GEM_INLINE int64_t matches_get_effective_length(
-    matches_t* const matches,const uint64_t read_length,
-    const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
+GEM_INLINE uint64_t matches_cigar_calculate_edit_distance(
+    matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
   // Exact Match
-  if (cigar_length==0) return read_length; // Even all-matching matches have CIGAR=1
-  // Traverse CIGAR
-  const cigar_element_t* cigar_element = vector_get_elm(matches->cigar_buffer,cigar_buffer_offset,cigar_element_t);
-  int64_t i, effective_length = read_length;
-  for (i=0;i<cigar_length;++i,++cigar_element) {
-    switch (cigar_element->type) {
-      case cigar_ins:
-        effective_length += cigar_element->length;
+  if (cigar_length==0) return 0;
+  // Sum up all cigar elements
+  cigar_element_t* const cigar_buffer = vector_get_elm(matches->cigar_buffer,cigar_buffer_offset,cigar_element_t);
+  uint64_t i, edit_distance = 0;
+  for (i=0;i<cigar_length;++i) {
+    switch (cigar_buffer[i].type) {
+      case cigar_match: break;
+      case cigar_mismatch:
+        edit_distance += cigar_buffer[i].type;
         break;
+      case cigar_ins:
       case cigar_del:
       case cigar_soft_trim:
-        effective_length -= cigar_element->length;
+        edit_distance += cigar_buffer[i].length;
         break;
+      case cigar_null:
       default:
+        GEM_INVALID_CASE();
         break;
     }
   }
-  GEM_INTERNAL_CHECK(effective_length >= 0,"Match effective length must be positive");
-  return effective_length;
+  return edit_distance;
 }
 /*
  * Sorting Matches
  */
 int match_trace_cmp_distance(const match_trace_t* const a,const match_trace_t* const b) {
-  return a->distance - b->distance;
+  return (int)a->distance - (int)b->distance;
 }
 GEM_INLINE void matches_sort_by_distance(matches_t* const matches) {
-  // Sort global matches (match_trace_t) wrt distance
   qsort(vector_get_mem(matches->global_matches,match_trace_t),
       vector_get_used(matches->global_matches),sizeof(match_trace_t),
       (int (*)(const void *,const void *))match_trace_cmp_distance);
 }
-
+int match_trace_cmp_mapq_score(const match_trace_t* const a,const match_trace_t* const b) {
+  return (int)b->mapq_score - (int)a->mapq_score;
+}
+GEM_INLINE void matches_sort_by_mapq_score(matches_t* const matches) {
+  qsort(vector_get_mem(matches->global_matches,match_trace_t),
+      vector_get_used(matches->global_matches),sizeof(match_trace_t),
+      (int (*)(const void *,const void *))match_trace_cmp_mapq_score);
+}
+int match_trace_cmp_sequence_name__position(const match_trace_t* const a,const match_trace_t* const b) {
+  const int cmp = gem_strcmp(a->sequence_name,b->sequence_name);
+  return (cmp!=0) ? cmp : ((int)a->position - (int)b->position);
+}
+GEM_INLINE void matches_sort_by_sequence_name__position(matches_t* const matches) {
+  // Sort global matches (match_trace_t) wrt distance
+  qsort(vector_get_mem(matches->global_matches,match_trace_t),
+      vector_get_used(matches->global_matches),sizeof(match_trace_t),
+      (int (*)(const void *,const void *))match_trace_cmp_sequence_name__position);
+}
 
 
 ///////////////////////////////////////////////////////////////////////////////

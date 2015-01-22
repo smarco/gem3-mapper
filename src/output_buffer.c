@@ -110,11 +110,18 @@ GEM_INLINE void bprintf_uint64(output_buffer_t* const out_buffer,const uint64_t 
   out_buffer->buffer_cursor += chars_printed;
   out_buffer->buffer_used += chars_printed;
 }
-GEM_INLINE void bprintf_int64(output_buffer_t* const out_buffer,const uint64_t number) {
+GEM_INLINE void bprintf_int64(output_buffer_t* const out_buffer,const int64_t number) {
   OUTPUT_BUFFER_CHECK(out_buffer);
-  const int chars_printed = integer_to_ascii(out_buffer->buffer_cursor,number);
-  out_buffer->buffer_cursor += chars_printed;
-  out_buffer->buffer_used += chars_printed;
+  if (number >= 0) {
+    const int chars_printed = integer_to_ascii(out_buffer->buffer_cursor,number);
+    out_buffer->buffer_cursor += chars_printed;
+    out_buffer->buffer_used += chars_printed;
+  } else {
+    bprintf_char(out_buffer,'-');
+    const int chars_printed = integer_to_ascii(out_buffer->buffer_cursor,(-number));
+    out_buffer->buffer_cursor += chars_printed;
+    out_buffer->buffer_used += chars_printed;
+  }
 }
 GEM_INLINE void bprintf_char(output_buffer_t* const out_buffer,const char character) {
   OUTPUT_BUFFER_CHECK(out_buffer);

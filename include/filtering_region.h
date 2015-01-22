@@ -25,8 +25,8 @@
  * Filtering Region
  */
 typedef enum {
-  filtering_region_new,
-  filtering_region_verified,
+  filtering_region_unverified,
+  filtering_region_unpaired,
   filtering_region_accepted,
   filtering_region_accepted_subdominant,
   filtering_region_aligned,

@@ -33,9 +33,9 @@ typedef struct {
 
 GEM_INLINE void matches_align_exact(
     matches_t* const matches,match_trace_t* const match_trace,
-    const strand_t strand,const uint64_t key_length,
-    const uint64_t text_trace_offset,uint64_t match_position,
-    const uint64_t match_distance,const uint64_t match_length);
+    const strand_t strand,const swg_penalties_t* const swg_penalties,
+    const uint64_t key_length,const uint64_t text_trace_offset,
+    uint64_t match_position,const uint64_t match_distance,const uint64_t match_length);
 GEM_INLINE void matches_align_hamming(
     matches_t* const matches,match_trace_t* const match_trace,
     const strand_t strand,const bool* const allowed_enc,const uint8_t* const key,const uint64_t key_length,

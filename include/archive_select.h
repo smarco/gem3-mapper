@@ -16,9 +16,17 @@
  * Select Matches (Retrieving & Processing matches)
  *   - 1. Process CIGAR. (Eg Transform-reverse matches)
  *   - 2. Expand interval-matches (compacted)
- *   - 3. Sort matches wrt distance
+ *   - 3. Score matches
+ *   - 4. Sort matches wrt distance
  */
 GEM_INLINE void archive_select_matches(archive_search_t* const archive_search,matches_t* const matches);
+
+/*
+ * Select Paired-Matches
+ */
+GEM_INLINE void archive_select_paired_matches(
+    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
+    paired_matches_t* const paired_matches);
 
 /*
  * Check Matches

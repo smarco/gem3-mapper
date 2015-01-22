@@ -56,7 +56,7 @@ GEM_INLINE char* output_buffer_get_buffer(output_buffer_t* const out_buffer);
  * Fast-printer functions
  */
 GEM_INLINE void bprintf_uint64(output_buffer_t* const out_buffer,const uint64_t number);
-GEM_INLINE void bprintf_int64(output_buffer_t* const out_buffer,const uint64_t number);
+GEM_INLINE void bprintf_int64(output_buffer_t* const out_buffer,const int64_t number);
 GEM_INLINE void bprintf_char(output_buffer_t* const out_buffer,const char character);
 GEM_INLINE void bprintf_buffer(output_buffer_t* const out_buffer,const int string_length,const char* const string);
 

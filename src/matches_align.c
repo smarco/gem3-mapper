@@ -14,15 +14,16 @@
 
 GEM_INLINE void matches_align_exact(
     matches_t* const matches,match_trace_t* const match_trace,
-    const strand_t strand,const uint64_t key_length,
-    const uint64_t text_trace_offset,const uint64_t match_position,
-    const uint64_t match_distance,const uint64_t match_length) {
+    const strand_t strand,const swg_penalties_t* const swg_penalties,
+    const uint64_t key_length,const uint64_t text_trace_offset,
+    uint64_t match_position,const uint64_t match_distance,const uint64_t match_length) {
   PROF_START(GP_MATCHES_ALIGN_EXACT);
   // Configure match-trace
   match_trace->trace_offset = text_trace_offset;
   match_trace->position = (match_distance==0) ? // Adjust position (if needed)
       match_position + (match_length - key_length) : match_position;
   match_trace->distance = match_distance;
+  match_trace->swg_score = swg_penalties->generic_match_score*key_length;
   match_trace->strand = strand;
   // Exact match
   match_trace->cigar_buffer_offset = vector_get_used(matches->cigar_buffer);
@@ -96,7 +97,6 @@ GEM_INLINE void matches_align_smith_waterman_gotoh(
   match_trace->cigar_buffer_offset = vector_get_used(matches->cigar_buffer);
   match_trace->cigar_length = 0;
   match_trace->effective_length = 0;
-  match_trace->score = 0;
 
 //  swg_align_match_full_32b(key,key_length,swg_penalties,&match_trace->position,text,text_length,
 //      matches->cigar_buffer,&match_trace->cigar_length,&match_trace->effective_length,&match_trace->score,mm_stack);
@@ -108,9 +108,10 @@ GEM_INLINE void matches_align_smith_waterman_gotoh(
 //          &match_trace->cigar_length,&match_trace->effective_length,&match_trace->score,mm_stack);
 
   // SWG Align
+  int32_t score = 0; // Init
   if (num_regions_matching > 0) {
     // Initialize
-    const uint32_t matching_score = 1; // TODO swg_penalties->matching_score;
+    const uint32_t generic_match_score = swg_penalties->generic_match_score; // TODO Weighted Matrices
     uint64_t dummy;
     /*
      * Chain to FIRST matching region
@@ -120,7 +121,7 @@ GEM_INLINE void matches_align_smith_waterman_gotoh(
     const uint64_t text_chunk_length = first_region_matching->text_begin;
     swg_align_match(key,key_chunk_length,allowed_enc,swg_penalties,&match_trace->position,
         text,text_chunk_length,max_distance+1,true,false,matches->cigar_buffer,
-        &match_trace->cigar_length,&match_trace->effective_length,&match_trace->score,mm_stack);
+        &match_trace->cigar_length,&match_trace->effective_length,&score,mm_stack);
     PROF_ADD_COUNTER(GP_MATCHES_ALIGN_SWG_CELLS,key_chunk_length*text_chunk_length);
     /*
      * Chain matching regions
@@ -129,7 +130,7 @@ GEM_INLINE void matches_align_smith_waterman_gotoh(
     const uint64_t region_matching_length = first_region_matching->key_end-first_region_matching->key_begin;
     matches_cigar_buffer_append_match(matches->cigar_buffer,&match_trace->cigar_length,region_matching_length);
     match_trace->effective_length += region_matching_length;
-    match_trace->score += matching_score*region_matching_length;
+    score += generic_match_score*region_matching_length;
     uint64_t i;
     for (i=1;i<num_regions_matching;++i) {
       const region_matching_t* prev_region_matching = regions_matching + (i-1);
@@ -141,13 +142,13 @@ GEM_INLINE void matches_align_smith_waterman_gotoh(
       const uint64_t text_chunk_offset = prev_region_matching->text_end;
       swg_align_match(key+key_chunk_offset,key_gap_length,allowed_enc,swg_penalties,&dummy,
           text+text_chunk_offset,text_gap_length,max_distance+1,false,false,matches->cigar_buffer,
-          &match_trace->cigar_length,&match_trace->effective_length,&match_trace->score,mm_stack);
+          &match_trace->cigar_length,&match_trace->effective_length,&score,mm_stack);
       PROF_ADD_COUNTER(GP_MATCHES_ALIGN_SWG_CELLS,key_gap_length*text_gap_length);
       // Add matching region to CIGAR
       const uint64_t region_matching_length = regions_matching[i].key_end-regions_matching[i].key_begin;
       matches_cigar_buffer_append_match(matches->cigar_buffer,&match_trace->cigar_length,region_matching_length);
       match_trace->effective_length += region_matching_length;
-      match_trace->score += matching_score*region_matching_length;
+      score += generic_match_score*region_matching_length;
     }
     /*
      * Chain from LAST matching region
@@ -159,15 +160,23 @@ GEM_INLINE void matches_align_smith_waterman_gotoh(
     const uint64_t text_gap_offset = last_region_matching->text_end;
     swg_align_match(key+key_gap_offset,key_gap_length,allowed_enc,swg_penalties,&dummy,
         text+text_gap_offset,text_gap_length,max_distance+1,false,true,matches->cigar_buffer,
-        &match_trace->cigar_length,&match_trace->effective_length,&match_trace->score,mm_stack);
+        &match_trace->cigar_length,&match_trace->effective_length,&score,mm_stack);
     PROF_ADD_COUNTER(GP_MATCHES_ALIGN_SWG_CELLS,key_gap_length*text_gap_length);
   } else {
     swg_align_match(key,key_length,allowed_enc,swg_penalties,&match_trace->position,
         text,text_length,max_distance+1,true,true,matches->cigar_buffer,
-        &match_trace->cigar_length,&match_trace->effective_length,&match_trace->score,mm_stack);
+        &match_trace->cigar_length,&match_trace->effective_length,&score,mm_stack);
     PROF_ADD_COUNTER(GP_MATCHES_ALIGN_SWG_CELLS,key_length*text_length);
   }
-
+  // Update distance (SWG score)
+  if (score >= 0) {
+    match_trace->swg_score = score;
+    match_trace->distance = matches_cigar_calculate_edit_distance(
+        matches,match_trace->cigar_buffer_offset,match_trace->cigar_length); // Event distance
+  } else {
+    match_trace->swg_score = ALIGN_DISTANCE_INF;
+    match_trace->distance = ALIGN_DISTANCE_INF;
+  }
   PROF_STOP(GP_MATCHES_ALIGN_SWG);
   PROF_ADD_COUNTER(GP_MATCHES_ALIGN_SWG_CELLS_POTENTIAL,key_length*text_length);
 }

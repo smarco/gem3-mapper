@@ -23,9 +23,9 @@ typedef int32_t matching_score_t[DNA__N_RANGE][DNA__N_RANGE];
 typedef struct {
   int32_t gap_open_penalty;
   int32_t gap_extension_penalty;
+  int32_t generic_match_score;
+  int32_t generic_mismatch_score;
   matching_score_t matching_score;
-  // TODO
-  // Generic matching score for long matching chunks
 } swg_penalties_t;
 typedef struct {
   uint8_t* query_profile_uint8[DNA__N_RANGE];

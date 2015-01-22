@@ -20,13 +20,10 @@ typedef struct {
 } interval_t;
 
 typedef struct {
-  /* HI/LO Interval */
+  /* Just the interval */
   uint64_t lo;
   uint64_t hi;
-//  /* DP Column */
-//  interval_search_t* prev_....
-//  uint64_t* dp;
-} interval_search_t;
+} basic_interval_t;
 
 
 typedef struct {

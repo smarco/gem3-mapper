@@ -318,117 +318,174 @@ GEM_INLINE uint16_t output_sam_calculate_flag_pe_map(
  * SAM CORE fields
  *   (QNAME,FLAG,RNAME,POS,MAPQ,CIGAR,RNEXT,PNEXT,TLEN,SEQ,QUAL). No EOL is printed
  */
+GEM_INLINE void output_sam_print_match_cigar_element(buffered_output_file_t* const buffered_output_file,const cigar_element_t* const cigar_element) {
+  switch (cigar_element->type) {
+    case cigar_match:
+      bofprintf_uint64(buffered_output_file,(uint32_t)cigar_element->length);
+      bofprintf_char(buffered_output_file,'M');
+      break;
+    case cigar_mismatch:
+      bofprintf_char(buffered_output_file,'X');
+      break;
+    case cigar_ins:
+      bofprintf_int64(buffered_output_file,cigar_element->length);
+      bofprintf_char(buffered_output_file,'D');
+      break;
+    case cigar_del:
+      bofprintf_int64(buffered_output_file,cigar_element->length);
+      bofprintf_char(buffered_output_file,'I');
+      break;
+    case cigar_soft_trim:
+      bofprintf_int64(buffered_output_file,cigar_element->length);
+      bofprintf_char(buffered_output_file,'S');
+      break;
+    default:
+      GEM_INVALID_CASE();
+      break;
+  }
+}
 GEM_INLINE void output_sam_print_match_cigar(
     buffered_output_file_t* const buffered_output_file,
     const matches_t* const matches,const match_trace_t* const match,
     const output_sam_parameters_t* const output_sam_parameters) {
   // Get CIGAR buffer/length
   const uint64_t cigar_length = match->cigar_length;
-  const cigar_element_t* cigar_array = vector_get_mem(matches->cigar_buffer,cigar_element_t)+match->cigar_buffer_offset;
+  const cigar_element_t* const cigar_array = vector_get_mem(matches->cigar_buffer,cigar_element_t)+match->cigar_buffer_offset;
   // Reserve (upper-bound)
   buffered_output_file_reserve(buffered_output_file,cigar_length*(INT_MAX_LENGTH+1));
   // Generate CIGAR
   if (output_sam_parameters->print_mismatches) {
     // Traverse all CIGAR elements
-    uint64_t i;
-    for (i=0;i<cigar_length;++i,++cigar_array) {
-      switch (cigar_array->type) {
-        case cigar_match:
-          bofprintf_uint64(buffered_output_file,(uint32_t)cigar_array->length);
-          bofprintf_char(buffered_output_file,'M');
-          break;
-        case cigar_mismatch:
-          bofprintf_char(buffered_output_file,'X');
-          break;
-        case cigar_ins:
-          bofprintf_int64(buffered_output_file,cigar_array->length);
-          bofprintf_char(buffered_output_file,'D');
-          break;
-        case cigar_del:
-          bofprintf_int64(buffered_output_file,cigar_array->length);
-          bofprintf_char(buffered_output_file,'I');
-          break;
-        case cigar_soft_trim:
-          bofprintf_int64(buffered_output_file,cigar_array->length);
-          bofprintf_char(buffered_output_file,'S');
-          break;
-        default:
-          GEM_INVALID_CASE();
-          break;
+    int64_t i;
+    if (match->strand==Forward) {
+      for (i=0;i<cigar_length;++i) {
+        output_sam_print_match_cigar_element(buffered_output_file,cigar_array+i);
+      }
+    } else {
+      for (i=cigar_length-1;i>=0;--i) {
+        output_sam_print_match_cigar_element(buffered_output_file,cigar_array+i);
       }
     }
   } else {
     // Traverse all CIGAR elements
-    uint64_t i, match=0;
-    for (i=0;i<cigar_length;++i,++cigar_array) {
-      if (cigar_array->type==cigar_match) {
-        match += (uint32_t)cigar_array->length;
-      } else if (cigar_array->type==cigar_mismatch) {
-        ++match;
-      } else {
-        if (match > 0) {
-          bofprintf_uint64(buffered_output_file,match);
-          bofprintf_char(buffered_output_file,'M');
-          match = 0;
+    int64_t i, matching=0;
+    if (match->strand==Forward) {
+      for (i=0;i<cigar_length;++i) {
+        const cigar_element_t* const cigar_element = cigar_array+i;
+        if (cigar_element->type==cigar_match) {
+          matching += (uint32_t)cigar_element->length;
+        } else if (cigar_element->type==cigar_mismatch) {
+          ++matching;
+        } else {
+          if (matching > 0) {
+            bofprintf_uint64(buffered_output_file,matching);
+            bofprintf_char(buffered_output_file,'M');
+            matching = 0;
+          }
+          output_sam_print_match_cigar_element(buffered_output_file,cigar_element);
         }
-        switch (cigar_array->type) {
-          case cigar_ins:
-            bofprintf_int64(buffered_output_file,cigar_array->length);
-            bofprintf_char(buffered_output_file,'D');
-            break;
-          case cigar_del:
-            bofprintf_int64(buffered_output_file,cigar_array->length);
-            bofprintf_char(buffered_output_file,'I');
-            break;
-          case cigar_soft_trim:
-            bofprintf_int64(buffered_output_file,cigar_array->length);
-            bofprintf_char(buffered_output_file,'S');
-            break;
-          default:
-            GEM_INVALID_CASE();
-            break;
+      }
+    } else {
+      for (i=cigar_length-1;i>=0;--i) {
+        const cigar_element_t* const cigar_element = cigar_array+i;
+        if (cigar_element->type==cigar_match) {
+          matching += (uint32_t)cigar_element->length;
+        } else if (cigar_element->type==cigar_mismatch) {
+          ++matching;
+        } else {
+          if (matching > 0) {
+            bofprintf_uint64(buffered_output_file,matching);
+            bofprintf_char(buffered_output_file,'M');
+            matching = 0;
+          }
+          output_sam_print_match_cigar_element(buffered_output_file,cigar_element);
         }
       }
     }
-    if (match > 0) {
-      bofprintf_uint64(buffered_output_file,match);
+    if (matching > 0) {
+      bofprintf_uint64(buffered_output_file,matching);
       bofprintf_char(buffered_output_file,'M');
     }
   }
 }
-//  XA  Z  Alternative hits; format: (chr,pos,CIGAR,NM;)*
-GEM_INLINE void output_sam_print_opt_field_tag_XA(
-    buffered_output_file_t* const buffered_output_file,const matches_t* const matches,
-    const match_trace_t* const subdominant_match,const uint64_t num_matches,
+/*
+ * XA  Z  Alternative hits; format: (chr,pos,CIGAR,NM;)*
+ *   XA maps (chr12,+91022,101M,0) =>
+ *     XA:Z:chr10,+100306093,100M,0;chr2,+173184544,100M,0;chr2,+175137710,100M,0;
+ */
+GEM_INLINE void output_sam_print_opt_field_tag_XA_match(
+    buffered_output_file_t* const buffered_output_file,
+    const matches_t* const matches,const match_trace_t* const subdominant_match,
     const output_sam_parameters_t* const output_sam_parameters) {
-  if (num_matches==0) return;
-
-  /*
-   * XA maps (chr12,+91022,101M,0)
-   *   XA:Z:chr10,+100306093,100M,0;chr2,+173184544,100M,0;chr2,+175137710,100M,0;
-   */
-  // Reserve
-  buffered_output_file_reserve(buffered_output_file,6);
-  bofprintf_string_literal(buffered_output_file,"\tXA:Z:");
-  uint64_t i;
-  for (i=0;i<num_matches;++i) {
-    const uint64_t seq_length = gem_strlen(subdominant_match[i].sequence_name);
-    // Print SeqName
-    buffered_output_file_reserve(buffered_output_file,seq_length+INT_MAX_LENGTH+10);
-    bofprintf_string(buffered_output_file,seq_length,subdominant_match[i].sequence_name);
-    bofprintf_char(buffered_output_file,',');
-    // Print Strand
-    bofprintf_char(buffered_output_file,(subdominant_match[i].strand==Forward)?'+':'-');
-    // Print Position
-    bofprintf_uint64(buffered_output_file,subdominant_match[i].position);
-    // Print CIGAR
-    bofprintf_char(buffered_output_file,',');
-    output_sam_print_match_cigar(buffered_output_file,matches,subdominant_match+i,output_sam_parameters);
-    // Print Distance
-    buffered_output_file_reserve(buffered_output_file,INT_MAX_LENGTH+10);
-    bofprintf_char(buffered_output_file,',');
-    bofprintf_uint64(buffered_output_file,subdominant_match[i].distance);
-    bofprintf_char(buffered_output_file,';');
+  const uint64_t seq_length = gem_strlen(subdominant_match->sequence_name);
+  // Print SeqName
+  buffered_output_file_reserve(buffered_output_file,seq_length+INT_MAX_LENGTH+10);
+  bofprintf_string(buffered_output_file,seq_length,subdominant_match->sequence_name);
+  bofprintf_char(buffered_output_file,',');
+  // Print Strand
+  bofprintf_char(buffered_output_file,(subdominant_match->strand==Forward)?'+':'-');
+  // Print Position
+  bofprintf_uint64(buffered_output_file,subdominant_match->position+1);
+  // Print CIGAR
+  bofprintf_char(buffered_output_file,',');
+  output_sam_print_match_cigar(buffered_output_file,matches,subdominant_match,output_sam_parameters);
+  // Print Distance
+  buffered_output_file_reserve(buffered_output_file,INT_MAX_LENGTH+10);
+  bofprintf_char(buffered_output_file,',');
+  bofprintf_uint64(buffered_output_file,subdominant_match->distance);
+  bofprintf_char(buffered_output_file,';');
+}
+GEM_INLINE void output_sam_print_opt_field_tag_XA_se(
+    buffered_output_file_t* const buffered_output_file,const matches_t* const matches,
+    const output_sam_parameters_t* const output_sam_parameters) {
+  const uint64_t num_matches = vector_get_used(matches->global_matches);
+  if (num_matches > 1) {
+    match_trace_t* match_trace = vector_get_mem(matches->global_matches,match_trace_t);
+    ++match_trace; // Skip primary
+    // Reserve
+    buffered_output_file_reserve(buffered_output_file,6);
+    bofprintf_string_literal(buffered_output_file,"\tXA:Z:");
+    uint64_t i;
+    for (i=1;i<num_matches;++i,++match_trace) {
+      output_sam_print_opt_field_tag_XA_match(buffered_output_file,
+          matches,match_trace,output_sam_parameters);
+    }
+  }
+}
+GEM_INLINE void output_sam_print_opt_field_tag_XA_pe_end1(
+    buffered_output_file_t* const buffered_output_file,paired_matches_t* const paired_matches,
+    const output_sam_parameters_t* const output_sam_parameters) {
+  const uint64_t num_matches = vector_get_used(paired_matches->concordant_matches);
+  if (num_matches > 1) {
+    matches_t* const matches = paired_matches_end1(paired_matches);
+    paired_match_t* paired_match = vector_get_mem(paired_matches->concordant_matches,paired_match_t);
+    ++paired_match; // Skip primary
+    // Reserve
+    buffered_output_file_reserve(buffered_output_file,6);
+    bofprintf_string_literal(buffered_output_file,"\tXA:Z:");
+    uint64_t i;
+    for (i=1;i<num_matches;++i,++paired_match) {
+      output_sam_print_opt_field_tag_XA_match(buffered_output_file,
+          matches,paired_match->match_end1,output_sam_parameters);
+    }
+  }
+}
+GEM_INLINE void output_sam_print_opt_field_tag_XA_pe_end2(
+    buffered_output_file_t* const buffered_output_file,paired_matches_t* const paired_matches,
+    const output_sam_parameters_t* const output_sam_parameters) {
+  const uint64_t num_matches = vector_get_used(paired_matches->concordant_matches);
+  if (num_matches > 1) {
+    matches_t* const matches = paired_matches_end2(paired_matches);
+    paired_match_t* paired_match = vector_get_mem(paired_matches->concordant_matches,paired_match_t);
+    ++paired_match; // Skip primary
+    // Reserve
+    buffered_output_file_reserve(buffered_output_file,6);
+    bofprintf_string_literal(buffered_output_file,"\tXA:Z:");
+    uint64_t i;
+    for (i=1;i<num_matches;++i,++paired_match) {
+      output_sam_print_opt_field_tag_XA_match(buffered_output_file,
+          matches,paired_match->match_end2,output_sam_parameters);
+    }
   }
 }
 GEM_INLINE void output_sam_print_qname(
@@ -445,8 +502,8 @@ GEM_INLINE void output_sam_print_qname(
   bofprintf_string(buffered_output_file,effective_tag_length,string_get_buffer(read));
 }
 GEM_INLINE void output_sam_print_seq__qualities(
-    buffered_output_file_t* const buffered_output_file,
-    sequence_t* const seq_read,const bool secondary_alignment,
+    buffered_output_file_t* const buffered_output_file,sequence_t* const seq_read,
+    const match_trace_t* const match,const bool secondary_alignment,
     const output_sam_parameters_t* const output_sam_parameters) {
   if (secondary_alignment && output_sam_parameters->omit_secondary_read__qualities) {
     buffered_output_file_reserve(buffered_output_file,4);
@@ -458,15 +515,38 @@ GEM_INLINE void output_sam_print_seq__qualities(
     if (!string_is_null(read) && !string_is_null(qualities)) {
       const uint64_t qualities_length = string_get_length(qualities);
       buffered_output_file_reserve(buffered_output_file,read_length+qualities_length+20);
-      bofprintf_char(buffered_output_file,'\t');
-      bofprintf_string(buffered_output_file,read_length,string_get_buffer(read));
-      bofprintf_char(buffered_output_file,'\t');
-      bofprintf_string(buffered_output_file,qualities_length,string_get_buffer(qualities));
+      if (match==NULL || match->strand==Forward) {
+        bofprintf_char(buffered_output_file,'\t');
+        bofprintf_string(buffered_output_file,read_length,string_get_buffer(read));
+        bofprintf_char(buffered_output_file,'\t');
+        bofprintf_string(buffered_output_file,qualities_length,string_get_buffer(qualities));
+      } else {
+        int64_t i;
+        bofprintf_char(buffered_output_file,'\t');
+        const char* const read_buffer = string_get_buffer(read);
+        for (i=read_length-1;i>=0;--i) {
+          bofprintf_char(buffered_output_file,dna_complement(read_buffer[i]));
+        }
+        bofprintf_char(buffered_output_file,'\t');
+        const char* const qualities_buffer = string_get_buffer(qualities);
+        for (i=qualities_length-1;i>=0;--i) {
+          bofprintf_char(buffered_output_file,qualities_buffer[i]);
+        }
+      }
     } else {
       GEM_INTERNAL_CHECK(!string_is_null(read),"Output SAM. Sequence read is null");
       buffered_output_file_reserve(buffered_output_file,read_length+20);
-      bofprintf_char(buffered_output_file,'\t');
-      bofprintf_string(buffered_output_file,read_length,string_get_buffer(read));
+      if (match==NULL || match->strand==Forward) {
+        bofprintf_char(buffered_output_file,'\t');
+        bofprintf_string(buffered_output_file,read_length,string_get_buffer(read));
+      } else {
+        int64_t i;
+        bofprintf_char(buffered_output_file,'\t');
+        const char* const read_buffer = string_get_buffer(read);
+        for (i=read_length-1;i>=0;--i) {
+          bofprintf_char(buffered_output_file,dna_complement(read_buffer[i]));
+        }
+      }
       bofprintf_string_literal(buffered_output_file,"\t*");
     }
   }
@@ -496,9 +576,9 @@ GEM_INLINE void output_sam_print_core_fields_pe(
     bofprintf_char(buffered_output_file,'\t');
     bofprintf_string(buffered_output_file,match_seq_name_length,match->sequence_name); // (3) RNAME
     bofprintf_char(buffered_output_file,'\t');
-    bofprintf_uint64(buffered_output_file,match->position); // (4) POS
+    bofprintf_uint64(buffered_output_file,match->position+1); // (4) POS
     bofprintf_char(buffered_output_file,'\t');
-    bofprintf_int64(buffered_output_file,match->score); // (5) MAPQ
+    bofprintf_int64(buffered_output_file,match->mapq_score); // (5) MAPQ
     bofprintf_char(buffered_output_file,'\t');
     output_sam_print_match_cigar(buffered_output_file,matches,match,output_sam_parameters); // (6) CIGAR
   } else if(mate!=NULL) {
@@ -507,7 +587,7 @@ GEM_INLINE void output_sam_print_core_fields_pe(
     bofprintf_char(buffered_output_file,'\t');
     bofprintf_string(buffered_output_file,mate_seq_name_length,mate->sequence_name); // (3) RNAME
     bofprintf_char(buffered_output_file,'\t');
-    bofprintf_uint64(buffered_output_file,mate->position); // (4) POS
+    bofprintf_uint64(buffered_output_file,mate->position+1); // (4) POS
     bofprintf_string_literal(buffered_output_file,"\t0\t*");
   } else {
     buffered_output_file_reserve(buffered_output_file,10);
@@ -523,20 +603,19 @@ GEM_INLINE void output_sam_print_core_fields_pe(
       bofprintf_char(buffered_output_file,'\t');
       bofprintf_string(buffered_output_file,mate_seq_name_length,mate->sequence_name);
       bofprintf_char(buffered_output_file,'\t');
-      bofprintf_uint64(buffered_output_file,mate->position);
-      bofprintf_char(buffered_output_file,'\t');
-      bofprintf_int64(buffered_output_file,template_length);
+      bofprintf_uint64(buffered_output_file,mate->position+1);
     } else {
       buffered_output_file_reserve(buffered_output_file,2*INT_MAX_LENGTH+10);
       bofprintf_string_literal(buffered_output_file,"\t=\t");
-      bofprintf_uint64(buffered_output_file,mate->position);
-      bofprintf_char(buffered_output_file,'\t');
-      bofprintf_int64(buffered_output_file,template_length);
+      bofprintf_uint64(buffered_output_file,mate->position+1);
     }
+    bofprintf_char(buffered_output_file,'\t');
+    const bool leftmost_segment = (match==NULL || match->position <= mate->position);
+    bofprintf_int64(buffered_output_file,leftmost_segment ? template_length : -template_length);
   } else if(!secondary_alignment && match!=NULL) {
     buffered_output_file_reserve(buffered_output_file,2*INT_MAX_LENGTH);
     bofprintf_string_literal(buffered_output_file,"\t=\t");
-    bofprintf_uint64(buffered_output_file,match->position);
+    bofprintf_uint64(buffered_output_file,match->position+1);
     bofprintf_string_literal(buffered_output_file,"\t0");
   } else {
     buffered_output_file_reserve(buffered_output_file,10);
@@ -544,7 +623,7 @@ GEM_INLINE void output_sam_print_core_fields_pe(
   }
   // (10) Print SEQ
   // (11) Print QUAL
-  output_sam_print_seq__qualities(buffered_output_file,seq_read,secondary_alignment,output_sam_parameters);
+  output_sam_print_seq__qualities(buffered_output_file,seq_read,match,secondary_alignment,output_sam_parameters);
 }
 GEM_INLINE void output_sam_print_core_fields_se(
     buffered_output_file_t* const buffered_output_file,sequence_t* const seq_read,
@@ -569,9 +648,9 @@ GEM_INLINE void output_sam_print_core_fields_se(
     bofprintf_char(buffered_output_file,'\t');
     bofprintf_string(buffered_output_file,sequence_name_length,match->sequence_name);
     bofprintf_char(buffered_output_file,'\t');
-    bofprintf_uint64(buffered_output_file,match->position);
+    bofprintf_uint64(buffered_output_file,match->position+1);
     bofprintf_char(buffered_output_file,'\t');
-    bofprintf_int64(buffered_output_file,match->score);
+    bofprintf_int64(buffered_output_file,match->mapq_score);
     bofprintf_char(buffered_output_file,'\t');
     // (6) Print CIGAR
     output_sam_print_match_cigar(buffered_output_file,matches,match,output_sam_parameters);
@@ -590,13 +669,26 @@ GEM_INLINE void output_sam_print_core_fields_se(
   bofprintf_string_literal(buffered_output_file,"\t*\t0\t0");
   // (10) Print SEQ
   // (11) Print QUAL
-  output_sam_print_seq__qualities(buffered_output_file,seq_read,secondary_alignment,output_sam_parameters);
+  output_sam_print_seq__qualities(buffered_output_file,seq_read,match,secondary_alignment,output_sam_parameters);
 }
-GEM_INLINE void output_sam_print_optional_fields(
+GEM_INLINE void output_sam_print_optional_fields_se(
     buffered_output_file_t* const buffered_output_file,
     const matches_t* const matches,const match_trace_t* const match_trace) {
   // TODO
 }
+GEM_INLINE void output_sam_print_optional_fields_pe(
+    buffered_output_file_t* const buffered_output_file,const paired_matches_t* const paired_matches,
+    const paired_match_t* const paired_match,const match_trace_t* const match_end) {
+  // TODO
+  /*
+   * NM:i:2 MD:Z:98 AS:i:87 XS:i:47
+   */
+//  output_sam_print_opt_field_tag_NM();
+//  output_sam_print_opt_field_tag_MD();
+//  output_sam_print_opt_field_tag_AS();
+//  output_sam_print_opt_field_tag_XS();
+}
+
 /*
  * SAM output SE
  */
@@ -619,7 +711,7 @@ GEM_INLINE void output_sam_single_end_matches(
     output_sam_print_core_fields_se(buffered_output_file,seq_read,matches,NULL,false,
         supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
     // Print Optional Fields
-    output_sam_print_optional_fields(buffered_output_file,matches,NULL);
+    output_sam_print_optional_fields_se(buffered_output_file,matches,NULL);
     // EOL
     buffered_output_file_reserve(buffered_output_file,1);
     bofprintf_char(buffered_output_file,'\n');
@@ -630,10 +722,9 @@ GEM_INLINE void output_sam_single_end_matches(
       output_sam_print_core_fields_se(buffered_output_file,seq_read,matches,match_trace,false,
           supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
       // Print XA (sub-dominant alignments)
-      output_sam_print_opt_field_tag_XA(buffered_output_file,
-          matches,match_trace+1,vector_match_trace_used-1,output_sam_parameters);
+      output_sam_print_opt_field_tag_XA_se(buffered_output_file,matches,output_sam_parameters);
       // Print Optional Fields
-      output_sam_print_optional_fields(buffered_output_file,matches,match_trace);
+      output_sam_print_optional_fields_se(buffered_output_file,matches,match_trace);
       // EOL
       buffered_output_file_reserve(buffered_output_file,1);
       bofprintf_char(buffered_output_file,'\n');
@@ -644,7 +735,7 @@ GEM_INLINE void output_sam_single_end_matches(
         output_sam_print_core_fields_se(buffered_output_file,seq_read,matches,match_trace,(match_number>0),
             supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
         // Print Optional Fields
-        output_sam_print_optional_fields(buffered_output_file,matches,match_trace);
+        output_sam_print_optional_fields_se(buffered_output_file,matches,match_trace);
         // EOL
         buffered_output_file_reserve(buffered_output_file,1);
         bofprintf_char(buffered_output_file,'\n');
@@ -653,6 +744,87 @@ GEM_INLINE void output_sam_single_end_matches(
   }
   PROF_STOP_TIMER(GP_OUTPUT_SAM_SE);
 }
-
-
+GEM_INLINE void output_sam_paired_end_matches(
+    buffered_output_file_t* const buffered_output_file,
+    sequence_t* const seq_read_end1,sequence_t* const seq_read_end2,
+    paired_matches_t* const paired_matches,const output_sam_parameters_t* const output_sam_parameters) {
+  /*
+   * Read.00  83   chr1  86636017  60  16M1I77M1I5M  =  86635820  -295  ATGGGAG  HHIIGK  NM:i:2  MD:Z:98    AS:i:87  XS:i:47
+   * Read.00  163  chr1  86635820  60  100M          =  86636017   295  AGATTAG  IHHBEI  NM:i:1  MD:Z:68C31 AS:i:98  XS:i:19
+   */
+  BUFFERED_OUTPUT_FILE_CHECK(buffered_output_file);
+  SEQUENCE_CHECK(seq_read_end1);
+  SEQUENCE_CHECK(seq_read_end2);
+  PROF_START_TIMER(GP_OUTPUT_SAM_PE);
+  // TODO
+  const bool supplementary_alignment = false;
+  const bool not_passing_QC = false;
+  const bool PCR_duplicate = false;
+  // Print MATCHES
+  matches_t* const matches_end1 = paired_matches_end1(paired_matches);
+  matches_t* const matches_end2 = paired_matches_end2(paired_matches);
+  if (gem_expect_false(!paired_matches_is_mapped(paired_matches))) { // Print Unmapped
+    // Print Core Fields (End/1)
+    output_sam_print_core_fields_pe(buffered_output_file,
+        seq_read_end1,matches_end1,NULL,NULL,0,true,false,false,
+        supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
+    // Print Optional Fields
+    // output_sam_print_optional_fields_pe(buffered_output_file,paired_matches,paired_match,paired_match->match_end1);
+    // EOL
+    buffered_output_file_reserve(buffered_output_file,1);
+    bofprintf_char(buffered_output_file,'\n');
+    // Print Core Fields (End/2)
+    output_sam_print_core_fields_pe(buffered_output_file,
+        seq_read_end2,matches_end2,NULL,NULL,0,true,false,false,
+        supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
+    // Print Optional Fields
+    // output_sam_print_optional_fields_pe(buffered_output_file,paired_matches,paired_match,paired_match->match_end2);
+    // EOL
+    buffered_output_file_reserve(buffered_output_file,1);
+    bofprintf_char(buffered_output_file,'\n');
+  } else {
+    // Traverse all matches (Position-matches)
+    VECTOR_ITERATE(paired_matches->concordant_matches,paired_match,n,paired_match_t) {
+      /*
+       * End/1
+       */
+      // Print Core Fields
+      output_sam_print_core_fields_pe(buffered_output_file,
+          seq_read_end1,matches_end1,paired_match->match_end1,paired_match->match_end2,
+          paired_match->template_length,true,true,n>0,
+          supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
+      // Print Optional Fields
+      output_sam_print_optional_fields_pe(buffered_output_file,paired_matches,paired_match,paired_match->match_end1);
+      if (output_sam_parameters->compact_xa) {
+         // Print XA (sub-dominant alignments)
+         output_sam_print_opt_field_tag_XA_pe_end1(buffered_output_file,paired_matches,output_sam_parameters);
+      }
+      // EOL
+      buffered_output_file_reserve(buffered_output_file,1);
+      bofprintf_char(buffered_output_file,'\n');
+      /*
+       * End/2
+       */
+      // Print Core Fields
+      output_sam_print_core_fields_pe(buffered_output_file,
+          seq_read_end2,matches_end2,paired_match->match_end2,paired_match->match_end1,
+          paired_match->template_length,false,true,n>0,
+          supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
+      // Print Optional Fields
+      output_sam_print_optional_fields_pe(buffered_output_file,paired_matches,paired_match,paired_match->match_end2);
+      if (output_sam_parameters->compact_xa) {
+         // Print XA (sub-dominant alignments)
+         output_sam_print_opt_field_tag_XA_pe_end2(buffered_output_file,paired_matches,output_sam_parameters);
+         // EOL
+         buffered_output_file_reserve(buffered_output_file,1);
+         bofprintf_char(buffered_output_file,'\n');
+         break;
+      }
+      // EOL
+      buffered_output_file_reserve(buffered_output_file,1);
+      bofprintf_char(buffered_output_file,'\n');
+    }
+  }
+  PROF_STOP_TIMER(GP_OUTPUT_SAM_PE);
+}
 

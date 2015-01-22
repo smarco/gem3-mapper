@@ -18,8 +18,16 @@
 #define check_correctness 0x1ull  /* Check that the reported mappings are correct (position+CIGAR)*/
 #define check_optimum     0x2ull  /* Check that the reported CIGAR optimizes the aligment-model */
 #define check_completness 0x4ull  /* Check that within the MCS reported, no match is missing */
+typedef enum {
+  mapq_model_none,
+  mapq_model_li,
+  mapq_model_heath,
+  mapq_model_sm,
+  mapq_model_pr
+} mapq_model_t;
 typedef struct {
-  /* Mapping Quality */
+  /* MAPQ Score */
+  mapq_model_t mapq_model;
   /* Reporting */
   double min_decoded_strata;
   uint64_t min_decoded_strata_nominal;

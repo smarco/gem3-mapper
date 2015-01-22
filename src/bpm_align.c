@@ -618,51 +618,6 @@ GEM_INLINE void bpm_bound_distance_tiled(
 #endif
 }
 
-//// Myers DEBUG
-//bool fmi_matches_check_alignment(
-//    const ch_t* const key,const uint64_t key_length,
-//    const ch_t* const text,uint64_t alg_length,
-//    mismatch* misms,const int64_t num_misms) {
-//  register bool correct = true;
-//  register int64_t p_ref = 0, p_read = 0, misms_pos=0;
-//  while (correct && p_read<key_length && p_ref<alg_length) {
-//    if (misms_pos<num_misms && misms[misms_pos].position == p_read) {
-//      if (misms[misms_pos].mismatch>=256) {
-//        register const uint64_t tmp=misms[misms_pos].mismatch/256;
-//        register const bool is_del = tmp%2;
-//        register const uint64_t size = tmp/2;
-//        if (!is_del) p_ref+=size;
-//        else p_read+=size;
-//      } else {
-//        correct = (misms[misms_pos].mismatch == text[p_ref] && key[p_read] != text[p_ref]);
-//        p_read++; p_ref++;
-//      }
-//      ++misms_pos;
-//    } else {
-//      correct = key[p_read] == text[p_ref];
-//      p_read++; p_ref++;
-//    }
-//  }
-//  while (correct && p_read<key_length) {
-//    if (misms_pos>=0 && misms[misms_pos].position == p_read) {
-//      if (misms[misms_pos].mismatch>=256) {
-//        register const uint64_t tmp=misms[misms_pos].mismatch/256;
-//        register const bool is_del = tmp%2;
-//        register const uint64_t size = tmp/2;
-//        if (!is_del) correct = false;
-//        else p_read+=size;
-//      } else {
-//        correct = false;
-//      }
-//      ++misms_pos;
-//    } else {
-//      correct = key[p_read] == text[p_ref];
-//      p_read++; p_ref++;
-//    }
-//  }
-//  return correct && p_read==key_length && misms_pos==num_misms && p_ref==alg_length;
-//}
-
 
 //// DEBUG
 //gem_cond_debug_block(DEBUG_ALIGN_LEVENSHTEIN) {

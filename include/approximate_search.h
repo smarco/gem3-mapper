@@ -89,6 +89,7 @@ GEM_INLINE void approximate_search_init(
     locator_t* const locator,graph_text_t* const graph,
     dna_text_t* const enc_text,fm_index_t* const fm_index,
     search_actual_parameters_t* const search_actual_parameters);
+GEM_INLINE void approximate_search_init_paired_filtering(approximate_search_t* const search);
 GEM_INLINE void approximate_search_configure(
     approximate_search_t* const search,text_collection_t* text_collection,
     interval_set_t* const interval_set,mm_stack_t* const mm_stack);
@@ -110,10 +111,13 @@ GEM_INLINE void approximate_search_prepare_pattern(
  * ASM-Search!!
  */
 GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t* const matches);
-GEM_INLINE void approximate_search_bpm_buffer(
-    approximate_search_t* const search,matches_t* const matches,
-    bpm_gpu_buffer_t* const bpm_gpu_buffer,
+GEM_INLINE void approximate_search_verify_using_bpm_buffer(
+    approximate_search_t* const search,
+    matches_t* const matches,bpm_gpu_buffer_t* const bpm_gpu_buffer,
     const uint64_t candidate_offset_begin,const uint64_t candidate_offset_end);
+GEM_INLINE void approximate_search_verify_paired_process_candidates(
+    approximate_search_t* const search_end1,approximate_search_t* const search_end2,
+    const uint64_t min_template_length,const uint64_t max_template_length,const bool absolute_distance);
 
 
 //GEM_INLINE uint64_t fmi_mismatched_search_extend(

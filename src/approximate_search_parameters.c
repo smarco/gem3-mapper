@@ -81,6 +81,8 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_N][ENC_DNA_CHAR_G] = -4;
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_N][ENC_DNA_CHAR_T] = -4;
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_N][ENC_DNA_CHAR_N] = -4;
+  search_parameters->swg_penalties.generic_match_score = 1;
+  search_parameters->swg_penalties.generic_mismatch_score = -4;
   search_parameters->swg_penalties.gap_open_penalty = 6;
   search_parameters->swg_penalties.gap_extension_penalty = 1;
   /*
@@ -89,21 +91,21 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
   /* Paired-end mode/alg */
   search_parameters->paired_end = false;
   search_parameters->map_both_ends = false;
+  search_parameters->pair_discordant_search = pair_discordant_search_only_if_no_concordant;
   search_parameters->max_extendable_candidates = 20;
   search_parameters->max_matches_per_extension = 2;
   /* Template allowed length */
   search_parameters->min_template_length = 0;
-  search_parameters->max_template_length = UINT64_MAX;
+  search_parameters->max_template_length = 2000; // FIXME Autodetect
   /* Concordant Orientation */
-  search_parameters->pair_orientation_FR = true;
-  search_parameters->pair_orientation_RF = false;
-  search_parameters->pair_orientation_FF = false;
-  search_parameters->pair_orientation_RR = false;
-  /* Discordant Orientation */
-  search_parameters->discordant_pair_orientation_FR = false;
-  search_parameters->discordant_pair_orientation_RF = true;
-  search_parameters->discordant_pair_orientation_FF = true;
-  search_parameters->discordant_pair_orientation_RR = true;
+  search_parameters->pair_orientation_FR = pair_orientation_concordant;
+//  search_parameters->pair_orientation_RF = pair_orientation_discordant;
+//  search_parameters->pair_orientation_FF = pair_orientation_discordant;
+//  search_parameters->pair_orientation_RR = pair_orientation_discordant;
+  search_parameters->pair_discordant_search = pair_discordant_search_never;
+  search_parameters->pair_orientation_RF = pair_orientation_invalid;
+  search_parameters->pair_orientation_FF = pair_orientation_invalid;
+  search_parameters->pair_orientation_RR = pair_orientation_invalid;
   /* Pair allowed lay-outs */
   search_parameters->pair_layout_separate = true;
   search_parameters->pair_layout_overlap = true;
@@ -193,13 +195,46 @@ GEM_INLINE void approximate_search_configure_alignment_model(
     search_parameters_t* const search_parameters,const alignment_model_t alignment_model) {
   search_parameters->alignment_model = alignment_model;
 }
-GEM_INLINE void approximate_search_configure_alignment_scores(
-    search_parameters_t* const search_parameters,const uint64_t matching_score,
-    const uint64_t gap_open_penalty,const uint64_t gap_extension_penalty) {
+GEM_INLINE void approximate_search_configure_alignment_match_scores(
+    search_parameters_t* const search_parameters,const uint64_t matching_score) {
+  // Match
+  search_parameters->swg_penalties.generic_match_score = matching_score;
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_A] = matching_score;
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_C][ENC_DNA_CHAR_C] = matching_score;
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_G][ENC_DNA_CHAR_G] = matching_score;
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_T][ENC_DNA_CHAR_T] = matching_score;
+}
+GEM_INLINE void approximate_search_configure_alignment_mismatch_scores(
+    search_parameters_t* const search_parameters,const uint64_t mismatch_penalty) {
+  // Mismatch
+  const int64_t mismatch_score = -((int64_t)mismatch_penalty);
+  search_parameters->swg_penalties.generic_mismatch_score = mismatch_penalty;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_C] = mismatch_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_G] = mismatch_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_T] = mismatch_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_N] = mismatch_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_C][ENC_DNA_CHAR_A] = mismatch_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_C][ENC_DNA_CHAR_G] = mismatch_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_C][ENC_DNA_CHAR_T] = mismatch_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_C][ENC_DNA_CHAR_N] = mismatch_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_G][ENC_DNA_CHAR_A] = mismatch_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_G][ENC_DNA_CHAR_C] = mismatch_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_G][ENC_DNA_CHAR_T] = mismatch_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_G][ENC_DNA_CHAR_N] = mismatch_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_T][ENC_DNA_CHAR_A] = mismatch_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_T][ENC_DNA_CHAR_C] = mismatch_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_T][ENC_DNA_CHAR_G] = mismatch_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_T][ENC_DNA_CHAR_N] = mismatch_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_N][ENC_DNA_CHAR_A] = mismatch_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_N][ENC_DNA_CHAR_C] = mismatch_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_N][ENC_DNA_CHAR_G] = mismatch_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_N][ENC_DNA_CHAR_T] = mismatch_score;
+  search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_N][ENC_DNA_CHAR_N] = mismatch_score;
+}
+GEM_INLINE void approximate_search_configure_alignment_gap_scores(
+    search_parameters_t* const search_parameters,
+    const uint64_t gap_open_penalty,const uint64_t gap_extension_penalty) {
+  // Gaps
   search_parameters->swg_penalties.gap_open_penalty = gap_open_penalty;
   search_parameters->swg_penalties.gap_extension_penalty = gap_extension_penalty;
 }

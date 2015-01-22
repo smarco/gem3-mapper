@@ -13,11 +13,6 @@
 #include "mm.h"
 
 /*
- * Precise Counter (enables calculation of mean,var,stddev at the cost of a little overhead)
- */
-#define GEM_PRECISE_COUNTER
-
-/*
  * Profiler Printers
  */
 // Counters
@@ -25,16 +20,11 @@
 #define PRIcounterVal(counter) \
   COUNTER_GET_TOTAL(counter),COUNTER_GET_NUM_SAMPLES(counter), \
   COUNTER_GET_MIN(counter),COUNTER_GET_MAX(counter),COUNTER_GET_MEAN(counter)
-#ifdef GEM_PRECISE_COUNTER
 #define PRIcounterX "lu(#%lu,m%lu,M%lu,{%.2f,%.2f,%.2f})"
 #define PRIcounterXVal(counter) \
   COUNTER_GET_TOTAL(counter),COUNTER_GET_NUM_SAMPLES(counter), \
   COUNTER_GET_MIN(counter),COUNTER_GET_MAX(counter), \
   COUNTER_GET_MEAN(counter),COUNTER_GET_VARIANCE(counter),COUNTER_GET_STDDEV(counter)
-#else
-#define PRIcounterX             PRIcounter
-#define PRIcounterXVal(counter) PRIcounterVal(counter)
-#endif
 
 /*
  * Counters (from http://www.johndcook.com/standard_deviation.html)
@@ -42,14 +32,12 @@
 typedef struct {
   uint64_t total;
   uint64_t samples;
-#ifdef GEM_PRECISE_COUNTER
   uint64_t min;
   uint64_t max;
   double m_oldM;
   double m_newM;
   double m_oldS;
   double m_newS;
-#endif
 } gem_counter_t;
 
 GEM_INLINE void COUNTER_RESET(gem_counter_t* const counter);

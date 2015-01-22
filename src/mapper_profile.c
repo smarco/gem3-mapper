@@ -436,6 +436,17 @@ GEM_INLINE void mapper_profile_print_archive_search_group(FILE* const stream) {
   tab_fprintf(stream,"    --> Candidates                 ");
   PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_BPM_GPU_BUFFER_USAGE_CANDIDATES));
 }
+/*
+ * Archive Paired-End Search
+ */
+GEM_INLINE void mapper_profile_print_paired_end_search(FILE* const stream) {
+  tab_fprintf(stream,"[GEM]>Profile.Paired.End.Search\n");
+  tab_fprintf(stream,"  => Paired.Discard.filtering.Regions\n");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_PAIRED_DISCARD_FILTERING_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"    --> Filtering.Regions            ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_PAIRED_NOT_CONCORDANT_FILTERING_REGIONS),
+      PROF_GET_COUNTER(GP_PAIRED_ALL_FILTERING_REGIONS),"regions",true);
+}
 
 /*
  * GT.Stats like

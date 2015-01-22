@@ -142,7 +142,7 @@ GEM_INLINE void filtering_region_align(
     }
     // Add exact match
     match_trace_t match_trace;
-    matches_align_exact(matches,&match_trace,search_strand,key_length,
+    matches_align_exact(matches,&match_trace,search_strand,swg_penalties,key_length,
         filtering_region->text_trace_offset,filtering_region->begin_position,
         filtering_region->align_distance,filtering_region->align_match_column+1);
     matches_add_match_trace_t(matches,&match_trace,true);
@@ -191,8 +191,11 @@ GEM_INLINE void filtering_region_align(
         //const uint64_t offset = match_trace.position-accepted_region->begin_position;
         //output_map_alignment_pretty(stderr,&match_trace,matches,
         //    (uint8_t* const)key,key_length,(uint8_t* const)text+offset,match_trace.effective_length,mm_stack);
-        match_trace.distance = filtering_region->align_distance; // FIXME Ugly Hack
-        matches_add_match_trace_t(matches,&match_trace,true);
+        if (match_trace.distance!=ALIGN_DISTANCE_INF) { // Double check
+          matches_add_match_trace_t(matches,&match_trace,true);
+        } else {
+          filtering_region->align_distance = ALIGN_DISTANCE_INF;
+        }
         break;
       }
       default:

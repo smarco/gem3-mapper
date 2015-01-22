@@ -50,7 +50,7 @@ GEM_INLINE void buffered_output_file_reserve(buffered_output_file_t* const buffe
  * Fast-printer
  */
 GEM_INLINE void bofprintf_uint64(buffered_output_file_t* const buffered_output,const uint64_t number);
-GEM_INLINE void bofprintf_int64(buffered_output_file_t* const buffered_output,const uint64_t number);
+GEM_INLINE void bofprintf_int64(buffered_output_file_t* const buffered_output,const int64_t number);
 GEM_INLINE void bofprintf_char(buffered_output_file_t* const buffered_output,const char character);
 GEM_INLINE void bofprintf_string(
     buffered_output_file_t* const buffered_output,const int string_length,const char* const string);

@@ -20,11 +20,13 @@
 #define GP_MAPPER_ALL             0
 #define GP_MAPPER_LOAD_INDEX      1
 #define GP_OUTPUT_MAP_SE          2
-#define GP_OUTPUT_SAM_SE          3
+#define GP_OUTPUT_MAP_PE          3
+#define GP_OUTPUT_SAM_SE          4
+#define GP_OUTPUT_SAM_PE          5
 
-#define GP_MAPPER_CUDA_THREAD             4
-#define GP_MAPPER_CUDA_THREAD_GENERATING  5
-#define GP_MAPPER_CUDA_THREAD_SELECTING   6
+#define GP_MAPPER_CUDA_THREAD             6
+#define GP_MAPPER_CUDA_THREAD_GENERATING  7
+#define GP_MAPPER_CUDA_THREAD_SELECTING   8
 
 /*
  * Archive Search
@@ -145,6 +147,14 @@
 #define GP_FMIDX_LOOKUP_DIST                  160
 
 /*
+ * Paired Mode
+ */
+#define GP_PAIRED_DISCARD_FILTERING_REGIONS             180
+#define GP_PAIRED_ALL_FILTERING_REGIONS                 181
+#define GP_PAIRED_NOT_CONCORDANT_FILTERING_REGIONS      182
+
+
+/*
  * System
  */
 GEM_INLINE void mapper_profile_print_io(FILE* const stream);
@@ -193,6 +203,10 @@ GEM_INLINE void mapper_profile_print_archive_select(FILE* const stream);
  * Archive Search-Group (Dispatcher, BMP-Buffers, ...)
  */
 GEM_INLINE void mapper_profile_print_archive_search_group(FILE* const stream);
+/*
+ * Archive Paired-End Search
+ */
+GEM_INLINE void mapper_profile_print_paired_end_search(FILE* const stream);
 
 /*
  * Error Messages

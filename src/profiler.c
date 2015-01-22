@@ -20,7 +20,6 @@ GEM_INLINE void COUNTER_ADD(gem_counter_t* const counter,const uint64_t amount) 
   // Add to total & increment number of samples
   counter->total += amount;
   ++(counter->samples);
-#ifdef GEM_PRECISE_COUNTER
   // See Knuth TAOCP vol 2, 3rd edition, page 232
   if (counter->samples == 1) {
     counter->min = amount;
@@ -36,15 +35,6 @@ GEM_INLINE void COUNTER_ADD(gem_counter_t* const counter,const uint64_t amount) 
     counter->m_oldM = counter->m_newM;
     counter->m_oldS = counter->m_newS;
   }
-#else
-  if (counter->samples == 1) {
-    counter->min = amount;
-    counter->max = amount;
-  } else {
-    counter->min = MIN(counter->min,amount);
-    counter->max = MAX(counter->max,amount);
-  }
-#endif
 }
 GEM_INLINE uint64_t COUNTER_GET_TOTAL(const gem_counter_t* const counter) {
   return counter->total;
@@ -53,96 +43,64 @@ GEM_INLINE uint64_t COUNTER_GET_NUM_SAMPLES(const gem_counter_t* const counter) 
   return counter->samples;
 }
 GEM_INLINE uint64_t COUNTER_GET_MIN(const gem_counter_t* const counter) {
-#ifdef GEM_PRECISE_COUNTER
   return counter->min;
-#else
-  return 0;
-#endif
 }
 GEM_INLINE uint64_t COUNTER_GET_MAX(const gem_counter_t* const counter) {
-#ifdef GEM_PRECISE_COUNTER
   return counter->max;
-#else
-  return 0;
-#endif
 }
 GEM_INLINE double COUNTER_GET_MEAN(const gem_counter_t* const counter) {
-//#ifdef GEM_PRECISE_COUNTER
-//  return (counter->samples > 0) ? counter->m_newM : 0.0;
-//#else
   return (double)counter->total/(double)counter->samples;
-//#endif
 }
 GEM_INLINE double COUNTER_GET_VARIANCE(const gem_counter_t* const counter) {
-#ifdef GEM_PRECISE_COUNTER
   return ((counter->samples > 1) ? counter->m_newS/(double)(counter->samples - 1) : 0.0);
-#else
-  return 0.0;
-#endif
 }
 GEM_INLINE double COUNTER_GET_STDDEV(const gem_counter_t* const counter) {
-#ifdef GEM_PRECISE_COUNTER
   return sqrt(COUNTER_GET_VARIANCE(counter));
-#else
-  return 0.0;
-#endif
 }
 GEM_INLINE void COUNTER_COMBINE_SUM(gem_counter_t* const counter_dst,gem_counter_t* const counter_src) {
   counter_dst->total += counter_src->total;
   counter_dst->samples += counter_src->samples;
-#ifdef GEM_PRECISE_COUNTER
   counter_dst->min = MIN(counter_dst->min,counter_src->min);
   counter_dst->max = MAX(counter_dst->max,counter_src->max);
   if (counter_src->m_newS!=0.0) counter_dst->m_newS = counter_src->m_newS; // FIXME
   if (counter_src->m_newM!=0.0) counter_dst->m_newM = counter_src->m_newM;
   if (counter_src->m_oldS!=0.0) counter_dst->m_oldS = counter_src->m_oldS;
   if (counter_src->m_oldM!=0.0) counter_dst->m_oldM = counter_src->m_oldM;
-#endif
 }
 GEM_INLINE void COUNTER_COMBINE_MAX(gem_counter_t* const counter_dst,gem_counter_t* const counter_src) {
   if (counter_dst->total < counter_src->total) {
     counter_dst->total = counter_src->total;
     counter_dst->samples = counter_src->samples;
-#ifdef GEM_PRECISE_COUNTER
   if (counter_src->m_newS!=0.0) counter_dst->m_newS = counter_src->m_newS;
   if (counter_src->m_newM!=0.0) counter_dst->m_newM = counter_src->m_newM;
   if (counter_src->m_oldS!=0.0) counter_dst->m_oldS = counter_src->m_oldS;
   if (counter_src->m_oldM!=0.0) counter_dst->m_oldM = counter_src->m_oldM;
-#endif
   }
-#ifdef GEM_PRECISE_COUNTER
   counter_dst->min = MIN(counter_dst->min,counter_src->min);
   counter_dst->max = MAX(counter_dst->max,counter_src->max);
-#endif
 }
 GEM_INLINE void COUNTER_COMBINE_MIN(gem_counter_t* const counter_dst,gem_counter_t* const counter_src) {
   if (counter_dst->samples==0 || counter_dst->total==0 || counter_dst->total > counter_src->total) {
     counter_dst->total = counter_src->total;
     counter_dst->samples = counter_src->samples;
-#ifdef GEM_PRECISE_COUNTER
   if (counter_src->m_newS!=0.0) counter_dst->m_newS = counter_src->m_newS;
   if (counter_src->m_newM!=0.0) counter_dst->m_newM = counter_src->m_newM;
   if (counter_src->m_oldS!=0.0) counter_dst->m_oldS = counter_src->m_oldS;
   if (counter_src->m_oldM!=0.0) counter_dst->m_oldM = counter_src->m_oldM;
-#endif
   }
-#ifdef GEM_PRECISE_COUNTER
   counter_dst->min = MIN(counter_dst->min,counter_src->min);
   counter_dst->max = MAX(counter_dst->max,counter_src->max);
-#endif
 }
 GEM_INLINE void COUNTER_COMBINE_MEAN(gem_counter_t* const counter_dst,gem_counter_t* const counter_src) {
   // FIXME Horrible, but listen! Now, I just want a roughly estimation
   counter_dst->total = (counter_dst->total+counter_src->total)/2;
   counter_dst->samples = (counter_dst->samples+counter_src->samples)/2;
-#ifdef GEM_PRECISE_COUNTER
   counter_dst->min = MIN(counter_dst->min,counter_src->min);
   counter_dst->max = MAX(counter_dst->max,counter_src->max);
   if (counter_src->m_newS!=0.0) counter_dst->m_newS = counter_src->m_newS;
   if (counter_src->m_newM!=0.0) counter_dst->m_newM = counter_src->m_newM;
   if (counter_src->m_oldS!=0.0) counter_dst->m_oldS = counter_src->m_oldS;
   if (counter_src->m_oldM!=0.0) counter_dst->m_oldM = counter_src->m_oldM;
-#endif
 }
 GEM_INLINE void COUNTER_PRINT(
     FILE* const stream,const gem_counter_t* const counter,
@@ -225,7 +183,6 @@ GEM_INLINE void COUNTER_PRINT(
   } else {
     fprintf(stream,",Max%.2f",(double)max);
   }
-#ifdef GEM_PRECISE_COUNTER
   // Print Variance
   const uint64_t var = COUNTER_GET_VARIANCE(counter);
   if (var >= BUFFER_SIZE_1G) {
@@ -248,9 +205,6 @@ GEM_INLINE void COUNTER_PRINT(
   } else {
     fprintf(stream,",StdDev%.2f)}\n",(double)stdDev);
   }
-#else
-  fprintf(stream,")}\n");
-#endif
 }
 GEM_INLINE void PERCENTAGE_PRINT(FILE* const stream,const gem_counter_t* const counter) {
   // Print Mean
@@ -273,12 +227,8 @@ GEM_INLINE void PERCENTAGE_PRINT(FILE* const stream,const gem_counter_t* const c
   }
   // Print Min/Max
   fprintf(stream,",min%.2f%%,Max%.2f%%",(double)COUNTER_GET_MIN(counter),(double)COUNTER_GET_MAX(counter));
-#ifdef GEM_PRECISE_COUNTER
   // Print Variance/StandardDeviation
   fprintf(stream,",Var%.2f,StdDev%.2f)\n",COUNTER_GET_VARIANCE(counter),COUNTER_GET_STDDEV(counter));
-#else
-  fprintf(stream,")\n");
-#endif
 }
 /*
  * Timers

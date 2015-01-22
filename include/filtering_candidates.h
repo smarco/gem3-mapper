@@ -16,10 +16,10 @@
 #include "fm_index.h"
 #include "pattern.h"
 #include "bpm_align_gpu.h"
-
 #include "approximate_search_parameters.h"
 #include "region_profile.h"
 #include "interval_set.h"
+#include "filtering_region.h"
 #include "matches.h"
 #include "paired_matches.h"
 
@@ -47,6 +47,8 @@ GEM_INLINE void filtering_candidates_destroy(filtering_candidates_t* const filte
  * Accessors
  */
 GEM_INLINE uint64_t filtering_candidates_get_num_candidate_regions(const filtering_candidates_t* const filtering_candidates);
+GEM_INLINE uint64_t filtering_candidates_count_candidate_regions(
+    filtering_candidates_t* const filtering_candidates_end,const filtering_region_status_t filtering_region_status);
 
 /*
  * Adding candidate positions
@@ -68,8 +70,7 @@ GEM_INLINE void filtering_candidates_add_interval_set_thresholded(
 GEM_INLINE uint64_t filtering_candidates_process_candidates(
     filtering_candidates_t* const filtering_candidates,
     const locator_t* const locator,const fm_index_t* const fm_index,
-    const dna_text_t* const enc_text,const pattern_t* const pattern,
-    const search_actual_parameters_t* const search_actual_parameters,mm_stack_t* const mm_stack);
+    const dna_text_t* const enc_text,const pattern_t* const pattern,mm_stack_t* const mm_stack);
 GEM_INLINE uint64_t filtering_candidates_verify_candidates(
     filtering_candidates_t* const filtering_candidates,text_collection_t* const text_collection,
     const locator_t* const locator,const fm_index_t* const fm_index,
@@ -96,6 +97,10 @@ GEM_INLINE void filtering_candidates_bpm_buffer_align(
 /*
  * Paired Verification
  */
+GEM_INLINE void filtering_candidates_init_paired_filtering(filtering_candidates_t* const filtering_candidates);
+GEM_INLINE void filtering_candidates_paired_process_candidates(
+    filtering_candidates_t* const filtering_candidates_end1,filtering_candidates_t* const filtering_candidates_end2,
+    const uint64_t min_template_length,const uint64_t max_template_length,const bool absolute_distance);
 GEM_INLINE void filtering_candidates_extend_candidates(
     filtering_candidates_t* const filtering_candidates,
     archive_t* const archive,const strand_t search_strand,const uint64_t extended_end,

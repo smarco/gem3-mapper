@@ -30,32 +30,33 @@ typedef struct {
     uint8_t mismatch;  // Mismatch base
   };
 } cigar_element_t;
-
 /*
  * Interval Match
  */
 typedef struct {
   /* Index */
-  uint64_t lo;           // SA Lo-Position
-  uint64_t hi;           // SA Hi-Position
+  uint64_t lo;            // SA Lo-Position
+  uint64_t hi;            // SA Hi-Position
   /* Sequence */
-  uint8_t* text;         // Pointer to the matching-text
-  uint64_t length;       // Length of the matching-text
-  uint64_t distance;     // Levenshtein score of the alignment
-  strand_t strand;       // Mapping Strand (make a difference between matches found by searching F/R)
+  uint8_t* text;          // Pointer to the matching-text
+  uint64_t length;        // Length of the matching-text
+  uint64_t distance;      // Distance of the alignment
+  int32_t swg_score;      // SWG Distance (score) of the alignment
+  strand_t strand;        // Mapping Strand (make a difference between matches found by searching F/R)
 } match_interval_t;
 /*
  * Trace Match
  */
 typedef struct {
   /* Match */
-  char* sequence_name;   // Sequence name (After decoding)
-  uint64_t position;     // Position of the match
-  uint64_t trace_offset; // Chained list of matching blocks
-  uint64_t distance;     // Edit distance of the alignment
-  strand_t strand;       // Mapping Strand
+  char* sequence_name;    // Sequence name (After decoding)
+  uint64_t position;      // Position of the match
+  uint64_t trace_offset;  // Chained list of matching blocks
+  uint64_t distance;      // Distance of the alignment
+  int32_t swg_score;      // SWG Distance (score) of the alignment
+  strand_t strand;        // Mapping Strand
   /* Score */
-  int32_t score;
+  uint8_t mapq_score;     // MAPQ Score
   /* CIGAR */
   uint64_t cigar_buffer_offset;
   uint64_t cigar_length;
@@ -79,7 +80,6 @@ typedef struct {
 //  uint64_t cigar_buffer_offset;
 //  uint64_t cigar_length;
 //};
-
 
 /*
  * Matches
@@ -137,6 +137,10 @@ GEM_INLINE uint64_t matches_counters_get_min_matching_stratum(matches_t* const m
  */
 GEM_INLINE cigar_element_t* match_trace_get_cigar_array(const matches_t* const matches,const match_trace_t* const match_trace);
 GEM_INLINE uint64_t match_trace_get_cigar_length(const match_trace_t* const match_trace);
+GEM_INLINE uint64_t match_trace_get_distance(const match_trace_t* const match_trace);
+GEM_INLINE int64_t match_trace_get_effective_length(
+    matches_t* const matches,const uint64_t read_length,
+    const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
 
 /*
  * Adding Matches
@@ -177,24 +181,20 @@ GEM_INLINE void matches_cigar_buffer_append_match(
 GEM_INLINE void matches_cigar_buffer_append_mismatch(
     vector_t* const cigar_buffer,uint64_t* const current_cigar_length,
     const cigar_t cigar_element_type,const uint8_t mismatch);
+GEM_INLINE void matches_cigar_reverse(
+    matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
+GEM_INLINE void matches_cigar_reverse_colorspace(
+    matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
+GEM_INLINE uint64_t matches_cigar_calculate_edit_distance(
+    matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
 
-/*
- * Handling matches
- */
-GEM_INLINE void matches_reverse_CIGAR(
-    matches_t* const matches,
-    const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
-GEM_INLINE void matches_reverse_CIGAR_colorspace(
-    matches_t* const matches,
-    const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
-GEM_INLINE int64_t matches_get_effective_length(
-    matches_t* const matches,const uint64_t read_length,
-    const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
 
 /*
  * Sorting Matches
  */
 GEM_INLINE void matches_sort_by_distance(matches_t* const matches);
+GEM_INLINE void matches_sort_by_mapq_score(matches_t* const matches);
+GEM_INLINE void matches_sort_by_sequence_name__position(matches_t* const matches);
 
 /*
  * Restore Point

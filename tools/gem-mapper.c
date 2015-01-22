@@ -195,16 +195,17 @@ option_t gem_mapper_options[] = {
   { 407, "candidate-chunk-length", REQUIRED, TYPE_INT, 4, false, "" , "(default=unlimited)" },
   { 408, "region-model", REQUIRED, TYPE_FLOAT, 4, false, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "(default=20,4,2,2)" },
   /* Paired-end Alignment */
-  { 'p', "paired-end-alignment", OPTIONAL, TYPE_STRING, 5, true, "" , "" },
+  { 'p', "paired-end-alignment", NO_ARGUMENT, TYPE_NONE, 5, true, "" , "" },
   // { 500, "mate-pair-alignment", NO_ARGUMENT, TYPE_NONE, 5, true, "" , "" }, // TODO
-  { 501, "min-template-length", REQUIRED, TYPE_INT, 5, true, "<number>" , "(default=0)" },
-  { 502, "max-template-length", REQUIRED, TYPE_INT, 5, true, "<number>" , "(default=inf)" },
+  { 'l', "min-template-length", REQUIRED, TYPE_INT, 5, true, "<number>" , "(default=0)" },
+  { 'L', "max-template-length", REQUIRED, TYPE_INT, 5, true, "<number>" , "(default=inf)" },
   { 503, "pair-orientation", REQUIRED, TYPE_STRING, 5, true, "'FR'|'RF'|'FF'|'RR'" , "(default=FR)" },
-  { 504, "discordant-pair-orientation", REQUIRED, TYPE_STRING, 5, true, "'FR'|'RF'|'FF'|'RR'" , "(default=RF,FF,RR)" },
-  { 505, "pair-layout", REQUIRED, TYPE_STRING, 5, true, "'separate'|'overlap'|'contain'|'dovetail'" , "(default=separated,overlap,contain,dovetail)" },
-  { 506, "map-both-ends", OPTIONAL, TYPE_STRING, 5, false, "" , "(default=false)" },
-  { 507, "max-extendable-candidates", REQUIRED, TYPE_INT, 5, false, "<number>" , "(default=20)" },
-  { 508, "max-matches-per-extension", REQUIRED, TYPE_INT, 5, false, "<number>" , "(default=2)" },
+  { 504, "search-discordant", OPTIONAL, TYPE_STRING, 5, true, "'always'|'if-no-concordant'|'never'" , "(default=if-no-concordant)" },
+  { 505, "discordant-pair-orientation", REQUIRED, TYPE_STRING, 5, true, "'FR'|'RF'|'FF'|'RR'" , "(default=RF,FF,RR)" },
+  { 506, "pair-layout", REQUIRED, TYPE_STRING, 5, true, "'separate'|'overlap'|'contain'|'dovetail'" , "(default=separated,overlap,contain,dovetail)" },
+  { 507, "map-both-ends", NO_ARGUMENT, TYPE_NONE, 5, false, "" , "(default=false)" },
+  { 508, "max-extendable-candidates", REQUIRED, TYPE_INT, 5, false, "<number>" , "(default=20)" },
+  { 509, "max-matches-per-extension", REQUIRED, TYPE_INT, 5, false, "<number>" , "(default=2)" },
   /* Alignment Score */
   { 600, "alignment-model", REQUIRED, TYPE_STRING, 6, false, "'none'|'hamming'|'edit'|'gap-affine'" , "(default=gap-affine)" },
   { 601, "gap-affine-penalties", REQUIRED, TYPE_STRING, 6, false, "A,B,O,X" , "(default=1,4,6,1)" },
@@ -212,7 +213,8 @@ option_t gem_mapper_options[] = {
   { 'B', "mismatch-penalty", REQUIRED, TYPE_INT, 6, false, "" , "(default=4)" },
   { 'O', "gap-open-penalty", REQUIRED, TYPE_INT, 6, false, "" , "(default=6)" },
   { 'X', "gap-extension-penalty", REQUIRED, TYPE_INT, 6, false, "" , "(default=1)" },
-  /* Mapping Quality */
+  /* MAQ Score */
+  { 700, "mapq-model", REQUIRED, TYPE_STRING, 5, false, "'none'|'li'|'heath'|'sm'|'pr'" , "(default=sm)" },
   /* Reporting */
   { 'F', "output-format", REQUIRED, TYPE_STRING, 8, true, "'MAP'|'SAM'" , "(default=MAP)" },
   { 'D', "min-decoded-strata", REQUIRED, TYPE_FLOAT, 8, false, "<number|percentage>" , "(stratum-wise, default=0)" },
@@ -248,7 +250,7 @@ char* gem_mapper_groups[] = {
   /*  4 */ "Single-end Alignment",
   /*  5 */ "Paired-end Alignment",
   /*  6 */ "Alignment Score",
-  /*  7 */ "Mapping Quality",
+  /*  7 */ "MAPQ Score",
   /*  8 */ "Reporting",
   /*  9 */ "System",
 #ifdef HAVE_CUDA
@@ -465,44 +467,58 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     }
     /* Paired-end Alignment */
     case 'p': // --paired-end-alignment
-      parameters->search_parameters.paired_end = input_text_parse_extended_bool(optarg);
+      parameters->search_parameters.paired_end = true;
       break;
 //    case 500: // --mate-pair-alignment
 //      input_text_parse_extended_uint64(optarg,&parameters->min_template_size);
 //      break;
-    case 501: // --min-template-length
+    case 'l': // --min-template-length
       input_text_parse_extended_uint64(optarg,&parameters->search_parameters.min_template_length);
       break;
-    case 502: // --max-template-length
+    case 'L': // --max-template-length
       input_text_parse_extended_uint64(optarg,&parameters->search_parameters.max_template_length);
       break;
     case 503: { // --pair-orientation in {'FR'|'RF'|'FF'|'RR'}
+      // Init null
+      parameters->search_parameters.pair_orientation_FR = pair_orientation_invalid;
+      parameters->search_parameters.pair_orientation_RF = pair_orientation_invalid;
+      parameters->search_parameters.pair_orientation_FF = pair_orientation_invalid;
+      parameters->search_parameters.pair_orientation_RR = pair_orientation_invalid;
       // Start parsing
       char *pair_orientation = strtok(optarg,",");
       while (pair_orientation!=NULL) {
-        if (gem_strcaseeq(pair_orientation,"FR")) { parameters->search_parameters.pair_orientation_FR = true; continue; }
-        if (gem_strcaseeq(pair_orientation,"RF")) { parameters->search_parameters.pair_orientation_RF = true; continue; }
-        if (gem_strcaseeq(pair_orientation,"FF")) { parameters->search_parameters.pair_orientation_FF = true; continue; }
-        if (gem_strcaseeq(pair_orientation,"RR")) { parameters->search_parameters.pair_orientation_RR = true; continue; }
+        if (gem_strcaseeq(pair_orientation,"FR")) { parameters->search_parameters.pair_orientation_FR = pair_orientation_discordant; continue; }
+        if (gem_strcaseeq(pair_orientation,"RF")) { parameters->search_parameters.pair_orientation_RF = pair_orientation_discordant; continue; }
+        if (gem_strcaseeq(pair_orientation,"FF")) { parameters->search_parameters.pair_orientation_FF = pair_orientation_discordant; continue; }
+        if (gem_strcaseeq(pair_orientation,"RR")) { parameters->search_parameters.pair_orientation_RR = pair_orientation_discordant; continue; }
         gem_fatal_error_msg("Option '--pair-orientation' must be 'FR'|'RF'|'FF'|'RR'");
         pair_orientation = strtok(NULL,",");
       }
       break;
     }
-    case 504: { // --discordant-pair-orientation in {'FR'|'RF'|'FF'|'RR'}
+    case 504: // --search-discordant in 'always'|'if-no-concordant'|'never'
+      if (gem_strcaseeq(optarg,"always")) {
+        parameters->search_parameters.pair_discordant_search = pair_discordant_search_always;
+      } else if (gem_strcaseeq(optarg,"if-no-concordant")) {
+        parameters->search_parameters.pair_discordant_search = pair_discordant_search_only_if_no_concordant;
+      } else if (gem_strcaseeq(optarg,"never")) {
+        parameters->search_parameters.pair_discordant_search = pair_discordant_search_never;
+      }
+      break;
+    case 505: { // --discordant-pair-orientation in {'FR'|'RF'|'FF'|'RR'}
       // Start parsing
       char *discordant_pair_orientation = strtok(optarg,",");
       while (discordant_pair_orientation!=NULL) {
-        if (gem_strcaseeq(discordant_pair_orientation,"FR")) { parameters->search_parameters.discordant_pair_orientation_FR = true; continue; }
-        if (gem_strcaseeq(discordant_pair_orientation,"RF")) { parameters->search_parameters.discordant_pair_orientation_RF = true; continue; }
-        if (gem_strcaseeq(discordant_pair_orientation,"FF")) { parameters->search_parameters.discordant_pair_orientation_FF = true; continue; }
-        if (gem_strcaseeq(discordant_pair_orientation,"RR")) { parameters->search_parameters.discordant_pair_orientation_RR = true; continue; }
+        if (gem_strcaseeq(discordant_pair_orientation,"FR")) { parameters->search_parameters.pair_orientation_FR = pair_orientation_concordant; continue; }
+        if (gem_strcaseeq(discordant_pair_orientation,"RF")) { parameters->search_parameters.pair_orientation_RF = pair_orientation_concordant; continue; }
+        if (gem_strcaseeq(discordant_pair_orientation,"FF")) { parameters->search_parameters.pair_orientation_FF = pair_orientation_concordant; continue; }
+        if (gem_strcaseeq(discordant_pair_orientation,"RR")) { parameters->search_parameters.pair_orientation_RR = pair_orientation_concordant; continue; }
         gem_fatal_error_msg("Option '--discordant-pair-orientation' must be 'FR'|'RF'|'FF'|'RR'");
         discordant_pair_orientation = strtok(NULL,",");
       }
       break;
     }
-    case 505: { // --pair-layout in {'separate'|'overlap'|'contain'|'dovetail'}
+    case 506: { // --pair-layout in {'separate'|'overlap'|'contain'|'dovetail'}
       // Start parsing
       char *pair_layout = strtok(optarg,",");
       while (pair_layout!=NULL) {
@@ -515,13 +531,13 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       }
       break;
     }
-    case 506: // --map-both-ends
+    case 507: // --map-both-ends
       parameters->search_parameters.map_both_ends = input_text_parse_extended_bool(optarg);
       break;
-    case 507: // --max-extendable-candidates
+    case 508: // --max-extendable-candidates
       input_text_parse_extended_uint64(optarg,&parameters->search_parameters.max_extendable_candidates);
       break;
-    case 508: // --max-matches-per-extension
+    case 509: // --max-matches-per-extension
       input_text_parse_extended_uint64(optarg,&parameters->search_parameters.max_matches_per_extension);
       break;
     /* Alignment Score */
@@ -538,7 +554,67 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
         gem_fatal_error_msg("Option '--alignment-model' must be 'none'|'hamming'|'edit'|'gap-affine'");
       }
       break;
-    /* Mapping Quality */
+    case 601: { // --gap-affine-penalties (A,B,O,X) (default=1,4,6,1)
+      char *matching=NULL, *mismatch=NULL, *gap_open=NULL, *gap_extension=NULL;
+      const int num_arguments = input_text_parse_csv_arguments(optarg,4,&matching,&mismatch,&gap_open,&gap_extension);
+      gem_cond_fatal_error_msg(num_arguments!=4,"Option '--gap-affine-penalties' wrong number of arguments");
+      uint64_t matching_score, mismatch_penalty, gap_open_penalty, gap_extension_penalty;
+      // Parse matching-score
+      input_text_parse_extended_uint64(matching,&matching_score);
+      // Parse mismatch-penalty
+      input_text_parse_extended_uint64(mismatch,&mismatch_penalty);
+      // Parse gap-open-penalty
+      input_text_parse_extended_uint64(gap_open,&gap_open_penalty);
+      // Parse gap-extension-penalty
+      input_text_parse_extended_uint64(gap_extension,&gap_extension_penalty);
+      // Configure scores
+      approximate_search_configure_alignment_match_scores(&parameters->search_parameters,matching_score);
+      approximate_search_configure_alignment_mismatch_scores(&parameters->search_parameters,mismatch_penalty);
+      approximate_search_configure_alignment_gap_scores(&parameters->search_parameters,gap_open_penalty,gap_extension_penalty);
+      break;
+    }
+    case 'A': { // --matching-score (default=1)
+      uint64_t matching_score;
+      input_text_parse_extended_uint64(optarg,&matching_score);
+      approximate_search_configure_alignment_match_scores(&parameters->search_parameters,matching_score);
+      break;
+    }
+    case 'B': { // --mismatch-penalty (default=4)
+      uint64_t mismatch_penalty;
+      input_text_parse_extended_uint64(optarg,&mismatch_penalty);
+      approximate_search_configure_alignment_mismatch_scores(&parameters->search_parameters,mismatch_penalty);
+      break;
+    }
+    case 'O': { // --gap-open-penalty (default=6)
+      uint64_t gap_open_penalty;
+      input_text_parse_extended_uint64(optarg,&gap_open_penalty);
+      approximate_search_configure_alignment_gap_scores(&parameters->search_parameters,
+          gap_open_penalty,parameters->search_parameters.swg_penalties.gap_extension_penalty);
+      break;
+    }
+    case 'X': { // --gap-extension-penalty (default=1)
+      uint64_t gap_extension_penalty;
+      input_text_parse_extended_uint64(optarg,&gap_extension_penalty);
+      approximate_search_configure_alignment_gap_scores(&parameters->search_parameters,
+          parameters->search_parameters.swg_penalties.gap_open_penalty,gap_extension_penalty);
+      break;
+    }
+    /* MAQ Score */
+    case 700: // --mapq-model in {'none'|'li'|'heath'|'sm'|'pr'} (default=sm)
+      if (gem_strcaseeq(optarg,"none")) {
+        parameters->select_parameters.mapq_model = mapq_model_none;
+      } else if (gem_strcaseeq(optarg,"li")) {
+        parameters->select_parameters.mapq_model = mapq_model_li;
+      } else if (gem_strcaseeq(optarg,"heath")) {
+        parameters->select_parameters.mapq_model = mapq_model_heath;
+      } else if (gem_strcaseeq(optarg,"sm")) {
+        parameters->select_parameters.mapq_model = mapq_model_sm;
+      } else if (gem_strcaseeq(optarg,"pr")) {
+        parameters->select_parameters.mapq_model = mapq_model_pr;
+      } else {
+        gem_fatal_error_msg("Option '--mapq-model' must be in {'none'|'li'|'heath'|'sm'|'pr'}");
+      }
+      break;
     /* Reporting */
     case 'F': // --output-format
       if (gem_strcaseeq(optarg,"MAP")) {
@@ -807,7 +883,7 @@ int main(int argc,char** argv) {
         mapper_SE_CUDA_run(&parameters); // SE-CUDA mapping threads (Producer-Consumer)
         break;
       case mapper_pe:
-        GEM_NOT_IMPLEMENTED(); // TODO
+        // mapper_PE_CUDA_run(&parameters); // SE-CUDA mapping threads (Producer-Consumer)
         break;
       case mapper_graph:
         GEM_NOT_IMPLEMENTED(); // TODO

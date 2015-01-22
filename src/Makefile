@@ -28,7 +28,7 @@ MODULES+=sequence dna_text cdna_text cdna_bitwise_text \
 MODULES+=archive_builder archive_text_builder archive_hypertext_builder archive_index_builder sa_builder \
          bwt rank_mtable sampled_sa sampled_rl fm_index interval_set matches paired_matches locator \
          archive archive_search archive_search_group mm_search \
-         archive_select archive_select_parameters archive_text_retrieve 
+         archive_select archive_score archive_select_parameters archive_text_retrieve 
 # GEM Search Modules
 MODULES+=approximate_search_parameters approximate_search neighborhood_search \
          pattern matches_align swg_align bpm_align bpm_align_gpu \

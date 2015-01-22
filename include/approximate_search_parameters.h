@@ -22,6 +22,23 @@ typedef enum {
   mapping_fast,
   mapping_neighborhood_search
 } mapping_mode_t;
+typedef enum {
+  pair_layout_separate,
+  pair_layout_overlap,
+  pair_layout_contain,
+  pair_layout_dovetail,
+  pair_layout_invalid
+} pair_layout_t;
+typedef enum {
+  pair_orientation_concordant,
+  pair_orientation_discordant,
+  pair_orientation_invalid
+} pair_orientation_t;
+typedef enum {
+  pair_discordant_search_always,
+  pair_discordant_search_only_if_no_concordant,
+  pair_discordant_search_never
+} pair_discordant_search_t;
 typedef struct {
   /*
    * Search parameters
@@ -57,21 +74,17 @@ typedef struct {
   /* Paired-end mode/alg */
   bool paired_end;
   bool map_both_ends;
+  pair_discordant_search_t pair_discordant_search;
   uint64_t max_extendable_candidates;
   uint64_t max_matches_per_extension;
   /* Template allowed length */
   uint64_t min_template_length;
   uint64_t max_template_length;
-  /* Concordant Orientation */
-  bool pair_orientation_FR;
-  bool pair_orientation_RF;
-  bool pair_orientation_FF;
-  bool pair_orientation_RR;
-  /* Discordant Orientation */
-  bool discordant_pair_orientation_FR;
-  bool discordant_pair_orientation_RF;
-  bool discordant_pair_orientation_FF;
-  bool discordant_pair_orientation_RR;
+  /* Pair Orientation */
+  pair_orientation_t pair_orientation_FR;
+  pair_orientation_t pair_orientation_RF;
+  pair_orientation_t pair_orientation_FF;
+  pair_orientation_t pair_orientation_RR;
   /* Pair allowed lay-outs */
   bool pair_layout_separate;
   bool pair_layout_overlap;
@@ -133,8 +146,12 @@ GEM_INLINE void approximate_search_configure_region_handling(
     const uint64_t candidate_chunk_max_length,const bool allow_region_chaining);
 GEM_INLINE void approximate_search_configure_alignment_model(
     search_parameters_t* const search_parameters,const alignment_model_t alignment_model);
-GEM_INLINE void approximate_search_configure_alignment_scores(
-    search_parameters_t* const search_parameters,const uint64_t matching_score,
+GEM_INLINE void approximate_search_configure_alignment_match_scores(
+    search_parameters_t* const search_parameters,const uint64_t matching_score);
+GEM_INLINE void approximate_search_configure_alignment_mismatch_scores(
+    search_parameters_t* const search_parameters,const uint64_t mismatch_penalty);
+GEM_INLINE void approximate_search_configure_alignment_gap_scores(
+    search_parameters_t* const search_parameters,
     const uint64_t gap_open_penalty,const uint64_t gap_extension_penalty);
 
 GEM_INLINE void approximate_search_instantiate_values(

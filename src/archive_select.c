@@ -6,6 +6,7 @@
  */
 
 #include "archive_select.h"
+#include "archive_score.h"
 #include "archive_text_retrieve.h"
 #include "matches_align.h"
 #include "output_map.h"
@@ -20,8 +21,9 @@ GEM_INLINE void archive_select_realign_match_interval(
   const alignment_model_t alignment_model = search_parameters->alignment_model;
   if (match_interval->distance==0 || alignment_model==alignment_model_none) {
     const uint64_t key_length = sequence_get_length(&archive_search->sequence);
-    matches_align_exact(matches,match_trace,match_interval->strand,key_length,
-        match_trace->trace_offset,match_trace->position,
+    matches_align_exact(matches,match_trace,
+        match_interval->strand,&search_parameters->swg_penalties,
+        key_length,match_trace->trace_offset,match_trace->position,
         match_interval->distance,match_interval->length);
   } else {
     // Search-state (strand-based)
@@ -131,9 +133,9 @@ GEM_INLINE void archive_select_correct_CIGAR(
     const strand_t strand,const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
   if (strand == Reverse) {
     if (archive->filter_type==Iupac_dna) {
-      matches_reverse_CIGAR(matches,cigar_buffer_offset,cigar_length);
+      matches_cigar_reverse(matches,cigar_buffer_offset,cigar_length);
     } else { // Iupac_colorspace_dna
-      matches_reverse_CIGAR_colorspace(matches,cigar_buffer_offset,cigar_length);
+      matches_cigar_reverse_colorspace(matches,cigar_buffer_offset,cigar_length);
 //    /* In this case, we also have to re-encode the mismatches */
 //    if (in_colorspace) { // TODO
 //      for (i=0;i<mism_num;++i) {
@@ -253,13 +255,43 @@ GEM_INLINE void archive_select_matches(archive_search_t* const archive_search,ma
   // Decode matches
   if (strata_to_decode > 0) {
     archive_select_decode_matches(archive_search,matches,strata_to_decode,matches_to_decode_last_stratum);
-    // Sort all matches
-    matches_sort_by_distance(matches);
+    // Score matches
+    archive_score_matches_se(archive_search,matches);
+    // Sort all matches // TODO Adapt to handle zillions of maps
+    if (archive_search->select_parameters->mapq_model == mapq_model_none) {
+      matches_sort_by_distance(matches);
+    } else {
+      matches_sort_by_mapq_score(matches);
+    }
   } else {
     // Remove all matches
     vector_clear(matches->global_matches);
   }
   PROF_STOP(GP_ARCHIVE_SELECT_MATCHES);
+}
+/*
+ * Select Paired-Matches
+ */
+GEM_INLINE void archive_select_paired_matches(
+    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
+    paired_matches_t* const paired_matches) {
+  // Update stats (Check number of paired-matches)
+  const uint64_t num_matches = vector_get_used(paired_matches->concordant_matches);
+  if (num_matches==1) {
+    const paired_match_t* const paired_match = vector_get_mem(paired_matches->concordant_matches,paired_match_t);
+    COUNTER_ADD(&paired_matches->unique_template_size,paired_match->template_length);
+  }
+  if (num_matches > 1) {
+    // Score matches
+    archive_score_matches_pe(archive_search_end1,archive_search_end2,paired_matches);
+    // Sort paired-matches // TODO Adapt to handle zillions of maps
+    const select_parameters_t* const select_parameters = archive_search_end1->select_parameters;
+    if (select_parameters->mapq_model == mapq_model_none) {
+      paired_matches_sort_by_distance(paired_matches);
+    } else {
+      paired_matches_sort_by_mapq_score(paired_matches);
+    }
+  }
 }
 /*
  * Check Matches

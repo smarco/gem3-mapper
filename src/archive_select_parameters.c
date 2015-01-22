@@ -11,6 +11,8 @@
  * Select Parameters Setup
  */
 GEM_INLINE void archive_select_parameters_init(select_parameters_t* const select_parameters) {
+  // MAPQ Score
+  select_parameters->mapq_model = mapq_model_sm;
   // Reporting
   select_parameters->min_decoded_strata = 0;
   select_parameters->max_decoded_matches = 20;
