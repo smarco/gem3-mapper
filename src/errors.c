@@ -47,6 +47,7 @@ void gem_error_signal_handler(int signal) {
       // Print signal label
       fprintf(stderr,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
       fprintf(error_stream,">> GEM.System.Error::Signal raised (no=%d) [%s (errno=%d)]\n",signal,strerror(errno),errno);
+      fprintf(stderr,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
       fflush(error_stream);
     }
   pthread_mutex_unlock(&gem_error_signal_handler_mutex);

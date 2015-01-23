@@ -44,32 +44,32 @@ void mapper_display_input_state(
  */
 mapper_search_t* g_mapper_searches; // Global searches on going
 void mapper_error_report(FILE* stream) {
-  // Display thread info
-  const uint64_t threads_id = gem_thread_get_thread_id();
-  if (threads_id==0) {
-    fprintf(stream,"GEM::Running-Thread (threadID = MASTER)\n");
-  } else {
-    uint64_t i;
-    // Display Threads-Info
-    const uint64_t num_threads = g_mapper_searches->mapper_parameters->system.num_threads;
-    for (i=0;i<num_threads;++i) {
-      mapper_search_t* const mapper_search = g_mapper_searches + i;
-      // Thread
-      fprintf(stream,"GEM::Running-Thread (threadID = %lu)\n",mapper_search->thread_id);
-//      // Display Input State
-//      const sequence_t* const sequence = archive_search_get_sequence(mapper_search->archive_search);
-//      tab_global_inc();
-//      mapper_display_input_state(stream,mapper_search->buffered_fasta_input,sequence);
-//      tab_global_dec();
-      // Display Output State
-      // Display Search State
-      // TODO ¿More useful info?
-    }
-//    // Display stats until now (if possible)
-//    PROF_BLOCK() {
-//
+//  // Display thread info
+//  const uint64_t threads_id = gem_thread_get_thread_id();
+//  if (threads_id==0) {
+//    fprintf(stream,"GEM::Running-Thread (threadID = MASTER)\n");
+//  } else {
+//    uint64_t i;
+//    // Display Threads-Info
+//    const uint64_t num_threads = g_mapper_searches->mapper_parameters->system.num_threads;
+//    for (i=0;i<num_threads;++i) {
+//      mapper_search_t* const mapper_search = g_mapper_searches + i;
+//      // Thread
+//      fprintf(stream,"GEM::Running-Thread (threadID = %lu)\n",mapper_search->thread_id);
+////      // Display Input State
+////      const sequence_t* const sequence = archive_search_get_sequence(mapper_search->archive_search);
+////      tab_global_inc();
+////      mapper_display_input_state(stream,mapper_search->buffered_fasta_input,sequence);
+////      tab_global_dec();
+//      // Display Output State
+//      // Display Search State
+//      // TODO ¿More useful info?
 //    }
-  }
+////    // Display stats until now (if possible)
+////    PROF_BLOCK() {
+////
+////    }
+//  }
 }
 /*
  * Mapper Parameters

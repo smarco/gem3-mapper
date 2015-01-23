@@ -695,9 +695,7 @@ GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t*
   const search_parameters_t* const parameters = search->search_actual_parameters->search_parameters;
   switch (parameters->mapping_mode) {
     case mapping_adaptive_filtering: // fast-mapping
-      if (approximate_search_adaptive_mapping(search,region_profile_adaptive,region_filter_fixed,matches)) {
-        PROF_STOP(GP_AS_MAIN); return;
-      }
+      approximate_search_adaptive_mapping(search,region_profile_adaptive,region_filter_fixed,matches);
       break;
 //    case mapping_neighborhood_search:
 //      approximate_search_neighborhood_search(search,matches); // A.K.A. brute-force mapping
@@ -716,7 +714,9 @@ GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t*
       break;
   }
   // Set MCS
-  matches->max_complete_stratum = MIN(matches->max_complete_stratum,search->max_complete_stratum);
+  if (matches) {
+    matches->max_complete_stratum = MIN(matches->max_complete_stratum,search->max_complete_stratum);
+  }
   PROF_STOP(GP_AS_MAIN);
 }
 GEM_INLINE void approximate_search_verify_using_bpm_buffer(

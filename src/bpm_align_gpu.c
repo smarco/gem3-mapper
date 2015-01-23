@@ -246,8 +246,8 @@ GEM_INLINE void bpm_gpu_buffer_put_pattern(bpm_gpu_buffer_t* const bpm_gpu_buffe
  */
 GEM_INLINE void bpm_gpu_init_buffer(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
   PROF_START(GP_BPM_GPU_BUFFER_INIT);
-	bpm_gpu_init_buffer_(bpm_gpu_buffer->buffer);
-	PROF_STOP(GP_BPM_GPU_BUFFER_INIT);
+  bpm_gpu_init_buffer_(bpm_gpu_buffer->buffer);
+  PROF_STOP(GP_BPM_GPU_BUFFER_INIT);
 }
 /*
  * Send/Receive Buffer
