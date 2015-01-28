@@ -4,6 +4,21 @@
  * DATE: 06/06/2012
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
+ *
+ * TODO
+ *   Trick:
+ *     Check for Ns, if it doesn't have N's then make a much simpler check of the candidate read
+ *
+ *   Title: "Verification tests"
+ *     Can be heuristic, like discarding a candidate region if
+ *     if doesn't have enough seed supporting it. Can be exact like k-mer counting.
+ *     Both can give an upper/lower bound on the matching distance.
+ *       Seed-counting => At least 1 error per seed not matching (it needs at least
+ *                        MismsRegions to make a match)
+ *       K-mer counting => ...
+ *
+ *   Title: "Sorting candidate regions towards aligning only the best"
+ *
  */
 
 #include "kmer_counting.h"

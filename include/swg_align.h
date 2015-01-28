@@ -61,26 +61,24 @@ GEM_INLINE void swg_compile_query_profile(
  */
 GEM_INLINE void swg_align_match(
     const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
-    const swg_penalties_t* swg_penalties,uint64_t* const match_position,const uint8_t* const text,
+    const swg_penalties_t* swg_penalties,uint64_t* const match_position,uint8_t* const text,
     const uint64_t text_length,uint64_t max_bandwidth,const bool begin_free,const bool end_free,
     vector_t* const cigar_buffer,uint64_t* const cigar_length,int64_t* const effective_length,
     int32_t* const alignment_score,mm_stack_t* const mm_stack);
-
 
 /*
  * TMP
  */
 GEM_INLINE void swg_align_match_full_32b(
     const uint8_t* const key,const uint64_t key_length,const swg_penalties_t* swg_penalties,
-    uint64_t* const match_position,const uint8_t* const text,const uint64_t text_length,
+    uint64_t* const match_position,uint8_t* const text,const uint64_t text_length,
     vector_t* const cigar_buffer,uint64_t* const cigar_length,int64_t* const effective_length,
     int32_t* const alignment_score,mm_stack_t* const mm_stack);
 GEM_INLINE void swg_align_match_banded_32b(
     const uint8_t* const key,const uint64_t key_length,const swg_penalties_t* swg_penalties,
-    uint64_t* const match_position,const uint8_t* const text,const uint64_t text_length,
+    uint64_t* const match_position,uint8_t* const text,const uint64_t text_length,
     uint64_t max_bandwidth,const bool begin_free,const bool end_free,
     vector_t* const cigar_buffer,uint64_t* const cigar_length,int64_t* const effective_length,
     int32_t* const alignment_score,mm_stack_t* const mm_stack);
-
 
 #endif /* SWG_ALIGN_H_ */

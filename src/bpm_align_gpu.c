@@ -14,7 +14,7 @@
 #ifndef HAVE_CUDA
   // BPM_GPU Setup
   GEM_INLINE bpm_gpu_buffer_collection_t* bpm_gpu_init(
-      dna_text_t* const enc_text,const uint32_t num_buffers,
+      dna_text_t* const enc_text,const uint32_t num_buffers,const uint32_t buffer_size,
       const int32_t average_query_size,const int32_t candidates_per_query,const bool verbose) {
     GEM_CUDA_NOT_SUPPORTED();
     return NULL;
@@ -39,8 +39,8 @@
       bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t position,
       uint32_t* const levenshtein_distance,uint32_t* const levenshtein_match_pos) { GEM_CUDA_NOT_SUPPORTED(); }
   GEM_INLINE void bpm_gpu_buffer_put_candidate(
-      bpm_gpu_buffer_t* const bpm_gpu_buffer,
-      const uint64_t candidate_text_position,const uint64_t candidate_length) { GEM_CUDA_NOT_SUPPORTED(); }
+      bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t candidate_text_position,
+          const uint64_t candidate_length,const uint64_t pattern_chunk) { GEM_CUDA_NOT_SUPPORTED(); }
   // Init Buffer
   GEM_INLINE void bpm_gpu_init_buffer(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); }
   // Send/Receive Buffer

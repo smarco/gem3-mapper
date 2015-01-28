@@ -19,6 +19,11 @@
 GEM_INLINE void mapper_SE_CUDA_run(mapper_parameters_t* const mapper_parameters);
 
 /*
+ * PE-CUDA Mapper
+ */
+GEM_INLINE void mapper_PE_CUDA_run(mapper_parameters_t* const mapper_parameters);
+
+/*
  * Error Messages
  */
 #define GEM_ERROR_MAPPER_CUDA_ERROR_PARSING "Error parsing sequence"

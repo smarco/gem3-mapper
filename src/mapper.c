@@ -91,7 +91,7 @@ GEM_INLINE void mapper_parameters_set_defaults_io(mapper_parameters_io_t* const 
   io->fastq_strictly_normalized = false;
   io->fastq_try_recovery = false;
   /* Output */
-  io->output_format = MAP;
+  io->output_format = SAM;
   output_sam_parameters_set_defaults(&io->sam_parameters);
   const uint64_t num_processors = system_get_num_processors();
   io->output_buffer_size = BUFFER_SIZE_4M;
@@ -415,13 +415,13 @@ GEM_INLINE void mapper_load_index(mapper_parameters_t* const parameters) {
 GEM_INLINE void mapper_SE_output_matches(
     const mapper_parameters_t* const parameters,
     buffered_output_file_t* const buffered_output_file,
-    sequence_t* const seq_read,matches_t* const matches) {
+    archive_search_t* const archive_search,matches_t* const matches) {
   switch (parameters->io.output_format) {
     case MAP:
-      output_map_single_end_matches(buffered_output_file,seq_read,matches);
+      output_map_single_end_matches(buffered_output_file,archive_search,matches);
       break;
     case SAM:
-      output_sam_single_end_matches(buffered_output_file,seq_read,matches,&parameters->io.sam_parameters);
+      output_sam_single_end_matches(buffered_output_file,archive_search,matches,&parameters->io.sam_parameters);
       break;
     default:
       GEM_INVALID_CASE();
@@ -430,17 +430,17 @@ GEM_INLINE void mapper_SE_output_matches(
 }
 GEM_INLINE void mapper_PE_output_matches(
     const mapper_parameters_t* const parameters,
-    buffered_output_file_t* const buffered_output_file,
-    sequence_t* const seq_read_end1,sequence_t* const seq_read_end2,
-    paired_matches_t* const paired_matches) {
+    buffered_output_file_t* const buffered_output_file,archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2,paired_matches_t* const paired_matches) {
   switch (parameters->io.output_format) {
     case MAP:
       output_map_paired_end_matches(buffered_output_file,
-          seq_read_end1,seq_read_end2,paired_matches);
+          archive_search_end1,archive_search_end2,paired_matches);
       break;
     case SAM:
       output_sam_paired_end_matches(buffered_output_file,
-          seq_read_end1,seq_read_end2,paired_matches,&parameters->io.sam_parameters);
+          archive_search_end1,archive_search_end2,
+          paired_matches,&parameters->io.sam_parameters);
       break;
     default:
       GEM_INVALID_CASE();
@@ -512,7 +512,8 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
     archive_search_single_end(mapper_search->archive_search,matches);
 
     // Output matches
-    mapper_SE_output_matches(parameters,buffered_output_file,archive_search_get_sequence(mapper_search->archive_search),matches);
+    mapper_SE_output_matches(parameters,buffered_output_file,
+        mapper_search->archive_search,matches);
 
     // Update processed
     if (++reads_processed == MAPPER_TICKER_STEP) {
@@ -576,9 +577,8 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
         mapper_search->archive_search_end2,mapper_search->paired_matches);
 
     // Output matches
-    mapper_PE_output_matches(parameters,buffered_output_file,
-        archive_search_get_sequence(mapper_search->archive_search_end1),
-        archive_search_get_sequence(mapper_search->archive_search_end2),mapper_search->paired_matches);
+    mapper_PE_output_matches(parameters,buffered_output_file,mapper_search->archive_search_end1,
+        mapper_search->archive_search_end2,mapper_search->paired_matches);
 
     // Update processed
     if (++reads_processed == MAPPER_TICKER_STEP) {

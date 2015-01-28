@@ -51,7 +51,7 @@ GEM_INLINE bool align_check_match(
       case cigar_match: {
         // Check all matching characters
         uint64_t j;
-        for (j=0;j<cigar_element->length;++j) {
+        for (j=0;j<cigar_element->match_length;++j) {
           if (key[read_pos] != text[text_pos]) {
             if (verbose) {
               fprintf(stream,"Align Check. Alignment not matching (key[%lu]=%c != text[%lu]=%c)\n",
@@ -83,11 +83,11 @@ GEM_INLINE bool align_check_match(
         ++text_pos;
         break;
       case cigar_ins:
-        text_pos += cigar_element->length;
+        text_pos += cigar_element->indel.indel_length;
         break;
       case cigar_del:
       case cigar_soft_trim:
-        read_pos += cigar_element->length;
+        read_pos += cigar_element->indel.indel_length;
         break;
       case cigar_null:
         gem_cond_error_msg(verbose,"Align Check. CIGAR Null");
@@ -215,7 +215,7 @@ GEM_INLINE void swg_align_dp_matrix_print(swg_cell_t** const dp,const uint64_t n
 GEM_INLINE void swg_align_match_traceback_32b(
     swg_cell_t** const dp,const int32_t max_score,const uint64_t max_score_column,
     const int32_t single_gap,const int32_t gap_extension,const uint8_t* const key,
-    const uint64_t key_length,uint64_t* const match_position,const uint8_t* const text,
+    const uint64_t key_length,uint64_t* const match_position,uint8_t* const text,
     const bool begin_free,vector_t* const cigar_buffer,uint64_t* const cigar_length,
     int64_t* const effective_length,int32_t* const alignment_score) {
   // Allocate CIGAR string memory (worst case)
@@ -233,13 +233,13 @@ GEM_INLINE void swg_align_match_traceback_32b(
     switch (traceback_matrix) {
       case cigar_del:
         // Traceback D-matrix
-        MATCHES_CIGAR_BUFFER_ADD_CIGAR_ELEMENT(cigar_buffer_sentinel,cigar_del,1); // Deletion <-1>@v
+        matches_cigar_buffer_add_cigar_element(&cigar_buffer_sentinel,cigar_del,1,NULL); // Deletion <-1>@v
         if (dp[h][v].D == dp[h][v-1].M + single_gap) traceback_matrix = cigar_match;
         --v; --match_effective_length;
         break;
       case cigar_ins:
         // Traceback I-matrix
-        MATCHES_CIGAR_BUFFER_ADD_CIGAR_ELEMENT(cigar_buffer_sentinel,cigar_ins,1); // Insertion <+1>@v
+        matches_cigar_buffer_add_cigar_element(&cigar_buffer_sentinel,cigar_ins,1,text+(h-1)); // Insertion <+1>@v
         if (dp[h][v].I == dp[h-1][v].M + single_gap) traceback_matrix = cigar_match;
         --h; ++match_effective_length;
         break;
@@ -250,14 +250,14 @@ GEM_INLINE void swg_align_match_traceback_32b(
         } else if (dp[h][v].M == dp[h][v].I) {
           traceback_matrix = cigar_ins;
         } else {
-          if (text[h-1] != key[v-1]) {
+          if (key[v-1] != text[h-1]) {
             // Mismatch
             if (cigar_buffer_sentinel->type!=cigar_null) ++(cigar_buffer_sentinel);
             cigar_buffer_sentinel->type = cigar_mismatch;
             cigar_buffer_sentinel->mismatch = text[h-1];
             --h; --v;
           } else {
-            MATCHES_CIGAR_BUFFER_ADD_CIGAR_ELEMENT(cigar_buffer_sentinel,cigar_match,1); // Match
+            matches_cigar_buffer_add_cigar_element(&cigar_buffer_sentinel,cigar_match,1,NULL); // Match
             --h; --v;
           }
         }
@@ -265,14 +265,14 @@ GEM_INLINE void swg_align_match_traceback_32b(
     }
   }
   if (v > 0) {
-    MATCHES_CIGAR_BUFFER_ADD_CIGAR_ELEMENT(cigar_buffer_sentinel,cigar_del,v); // <-(@v+1)>@v
+    matches_cigar_buffer_add_cigar_element(&cigar_buffer_sentinel,cigar_del,v,NULL); // <-(@v+1)>@v
     match_effective_length -= v;
   }
   if (h > 0) {
     if (begin_free) {
       *match_position += h; // We need to correct the matching_position
     } else {
-      MATCHES_CIGAR_BUFFER_ADD_CIGAR_ELEMENT(cigar_buffer_sentinel,cigar_ins,h); // <-(@h+1)>@h
+      matches_cigar_buffer_add_cigar_element(&cigar_buffer_sentinel,cigar_ins,h,text); // <-(@h+1)>@h
       match_effective_length += h;
       if (h==1) {
         match_alignment_score += single_gap;
@@ -300,7 +300,7 @@ GEM_INLINE void swg_align_match_traceback_32b(
 }
 GEM_INLINE void swg_align_match_full_32b(
     const uint8_t* const key,const uint64_t key_length,const swg_penalties_t* swg_penalties,
-    uint64_t* const match_position,const uint8_t* const text,const uint64_t text_length,
+    uint64_t* const match_position,uint8_t* const text,const uint64_t text_length,
     vector_t* const cigar_buffer,uint64_t* const cigar_length,int64_t* const effective_length,
     int32_t* const alignment_score,mm_stack_t* const mm_stack) {
   /*
@@ -368,7 +368,7 @@ GEM_INLINE void swg_align_match_full_32b(
 }
 GEM_INLINE void swg_align_match_banded_32b(
     const uint8_t* const key,const uint64_t key_length,const swg_penalties_t* swg_penalties,
-    uint64_t* const match_position,const uint8_t* const text,const uint64_t text_length,
+    uint64_t* const match_position,uint8_t* const text,const uint64_t text_length,
     uint64_t max_bandwidth,const bool begin_free,const bool end_free,
     vector_t* const cigar_buffer,uint64_t* const cigar_length,int64_t* const effective_length,
     int32_t* const alignment_score,mm_stack_t* const mm_stack) {
@@ -476,7 +476,7 @@ GEM_INLINE void swg_align_match_banded_32b(
 }
 GEM_INLINE void swg_align_match(
     const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
-    const swg_penalties_t* swg_penalties,uint64_t* const match_position,const uint8_t* const text,
+    const swg_penalties_t* swg_penalties,uint64_t* const match_position,uint8_t* const text,
     const uint64_t text_length,uint64_t max_bandwidth,const bool begin_free,const bool end_free,
     vector_t* const cigar_buffer,uint64_t* const cigar_length,int64_t* const effective_length,
     int32_t* const alignment_score,mm_stack_t* const mm_stack) {
@@ -488,14 +488,14 @@ GEM_INLINE void swg_align_match(
       *match_position += text_length;
     } else if (!end_free) {
       // Insertion <+@text_length>
-      matches_cigar_buffer_append_indel(cigar_buffer,cigar_length,cigar_ins,text_length);
+      matches_cigar_buffer_append_indel(cigar_buffer,cigar_length,cigar_ins,text_length,text);
       *alignment_score += -swg_penalties->gap_open_penalty - swg_penalties->gap_extension_penalty*text_length;
       *effective_length += text_length;
     }
   } else if (text_length == 0) {
     if (key_length > 0) {
       // Deletion <-@key_length>
-      matches_cigar_buffer_append_indel(cigar_buffer,cigar_length,cigar_del,key_length);
+      matches_cigar_buffer_append_indel(cigar_buffer,cigar_length,cigar_del,key_length,NULL);
       *alignment_score += -swg_penalties->gap_open_penalty - swg_penalties->gap_extension_penalty*key_length;
     }
   } else {
@@ -523,7 +523,7 @@ GEM_INLINE void swg_align_match(
 }
 GEM_INLINE void swg_align_match_banded_32b_opt(
     const uint8_t* const key,const uint64_t key_length,const swg_penalties_t* swg_penalties,
-    uint64_t* const match_position,const uint8_t* const text,const uint64_t text_length,
+    uint64_t* const match_position,uint8_t* const text,const uint64_t text_length,
     uint64_t max_bandwidth,const bool begin_free,const bool end_free,
     vector_t* const cigar_buffer,uint64_t* const cigar_length,int64_t* const effective_length,
     int32_t* const alignment_score,mm_stack_t* const mm_stack) {

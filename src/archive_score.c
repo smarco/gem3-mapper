@@ -68,10 +68,10 @@ GEM_INLINE void archive_score_matches_pe_sm(
     paired_match_t* const paired_match = vector_get_mem(paired_matches->concordant_matches,paired_match_t);
     uint64_t i;
     // COUNTER_PRINT(stderr,&paired_matches->unique_template_size,NULL,"bp",true);
-    for (i=0;i<num_matches;++i) { // TODO
+    for (i=0;i<num_matches;++i) { // TODOq
 //      const uint64_t num_samples = COUNTER_GET_NUM_SAMPLES(&paired_matches->unique_template_size);
 //      const uint64_t mean = (num_samples > 1000) ?
-//          COUNTER_GET_MEAN() : (search_parameters->max_template_length-search_parameters->min_template_length)/2;
+//          : (search_parameters->max_template_length-search_parameters->min_template_length)/2;
       paired_match[i].mapq_score =
           (paired_match[i].match_end1->mapq_score+paired_match[i].match_end2->mapq_score)/2;
     }
@@ -83,33 +83,14 @@ GEM_INLINE void archive_score_matches_pe_sm(
  * PR Scoring
  */
 GEM_INLINE void archive_score_matches_se_pr(archive_search_t* const archive_search,matches_t* const matches) {
+  // Matches
   const uint64_t num_matches = vector_get_used(matches->global_matches);
+  if (num_matches==0) return;
   match_trace_t* const match = vector_get_mem(matches->global_matches,match_trace_t);
-  // Count same distance matches
-//  uint64_t i, count = 1, next = UINT64_MAX;
-//  const uint64_t reference_distance = match[0].distance;
-//  for (i=1;i<num_matches;++i,++count) {
-//    if (reference_distance != match[i].distance) {
-//      next = match[i].distance;
-//      break;
-//    }
-//  }
 
-/////////////
-  // Assign MAP
-//  if (reference_distance==0) {
-//
-//  } else {
-//    sequence_t* const sequence = archive_search->sequence;
-//    uint8_t mapq = 128;
-//    const uint64_t cigar_length = match->cigar_length;
-//    cigar_element_t* const cigar = vector_get_elm(matches->cigar_buffer,match->cigar_buffer_offset,cigar_element_t);
-//    for (i=0;i<cigar_length;++i) {
-//      if (cigar[i].)
-//    }
-//  }
-/////////
-
+  /*
+   * Tr1
+   */
 //  const uint8_t mapq = (40./sqrt((double)count));
 //  match[0].mapq_score = mapq;
 //  for (i=1;i<num_matches;++i,++count) {
@@ -121,7 +102,9 @@ GEM_INLINE void archive_score_matches_se_pr(archive_search_t* const archive_sear
 //  }
 
 
-//  // Tr2
+  /*
+   * Tr2
+   */
 //  if (count==1) {
 //    if (num_matches==1) {
 //      match[0].mapq_score = 60;
@@ -134,12 +117,74 @@ GEM_INLINE void archive_score_matches_se_pr(archive_search_t* const archive_sear
 //    match[0].mapq_score = 0;
 //  }
 
-  // Tr3
-  if (num_matches==1) {
-    match[0].mapq_score = 10 + (match[0].swg_score*(100-match[0].distance))/200;
-  } else {
-    match[0].mapq_score = 0;
+  /*
+   * Tr3
+   */
+//  if (num_matches==1) {
+//    match[0].mapq_score = 10 + (match[0].swg_score*(100-match[0].distance))/200;
+//  } else {
+//    match[0].mapq_score = 0;
+//  }
+
+  /*
+   * SW is the Smith-Waterman scheme,
+   * L the read length,
+   * n_matches the total number of matches,
+   * n_first the number of matches in the first stratum
+   * n_sub the number of matches in the second stratum
+   */
+  const double l = archive_search->sequence.read.length;
+  const double n_matches = vector_get_used(matches->global_matches);
+  double n_first = 1.0;
+  double n_sub = 0.0;
+  // Count same distance matches
+  uint64_t i = 1;
+  uint64_t s0_distance = match[0].distance, s1_distance = 0;
+  if (i<num_matches) {
+    for (;i<num_matches;++i) {
+      if (s0_distance != match[i].distance) break;
+      n_first = n_first + 1.;
+    }
+    if (i<num_matches) {
+      s1_distance = match[i].distance;
+      for (;i<num_matches;++i) {
+        if (s1_distance != match[i].distance) break;
+        n_sub = n_sub + 1.;
+      }
+    }
   }
+
+  /*
+   * Tr4
+   */
+  for (i=0;i<num_matches;++i) {
+    const double SW = match[i].swg_score;
+    //  1. (SW / L * 60) / (n_matches * n_matches)
+    //match[i].mapq_score =  ((double)SW/l * 60.)/(n_matches*n_matches);
+    //  2. (SW / L * 60) / (n_first * (1 + n_sub))
+    //match[i].mapq_score =  ((double)SW/l * 60.)/(n_first*(1. + n_sub));
+    //  3. (SW / L * 60) / (n_matches * n_first)
+    //match[i].mapq_score =  ((double)SW/l * 60.)/(n_matches*n_first);
+    //  4. (SW / L * 60) / (n_matches * n_matches * n_matches)
+    //match[i].mapq_score =  ((double)SW/l * 60.)/(n_matches*n_matches*n_matches);
+    //  5. (SW / L * 60) / (n_matches * n_first * (1 + n_sub))
+    //match[i].mapq_score =  ((double)SW/l * 60.)/(n_matches*n_first*(1.+n_sub));
+    //  6. (SW * 60) / (L* n_matches * n_matches)
+    //match[i].mapq_score = ((double)SW*60.) / (l*n_matches*n_matches);
+    //  7. (SW * 60) / (L * n_first * (1 + n_sub))
+    //match[i].mapq_score = ((double)SW*60.) / (l*n_first*(1.+n_sub));
+    //  8. (SW * 60) / (L * n_matches * n_first)
+    //match[i].mapq_score = ((double)SW*60.) / (l*n_matches*n_first);
+    //  9. (SW * 60) / (L * n_matches * n_matches * n_matches)
+    //match[i].mapq_score = ((double)SW*60.) / (l*n_matches*n_matches*n_matches);
+    // 10. (SW * 60) / (L * n_matches * n_first * (1 + n_sub))
+     match[i].mapq_score = ((double)SW*60.) / (l*n_matches*n_first*(1.+n_sub));
+  }
+
+
+
+
+
 }
 GEM_INLINE void archive_score_matches_pe_pr(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,

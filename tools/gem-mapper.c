@@ -216,27 +216,30 @@ option_t gem_mapper_options[] = {
   /* MAQ Score */
   { 700, "mapq-model", REQUIRED, TYPE_STRING, 5, false, "'none'|'li'|'heath'|'sm'|'pr'" , "(default=sm)" },
   /* Reporting */
-  { 'F', "output-format", REQUIRED, TYPE_STRING, 8, true, "'MAP'|'SAM'" , "(default=MAP)" },
   { 'D', "min-decoded-strata", REQUIRED, TYPE_FLOAT, 8, false, "<number|percentage>" , "(stratum-wise, default=0)" },
   { 'd', "max-decoded-matches", REQUIRED, TYPE_INT, 8, false, "<number>|'all'" , "(stratum-wise, default=20)" },
   { 'm', "min-reported-matches", REQUIRED, TYPE_INT, 8, false, "<number>|'all'" , "(default=1)" },
   { 'M', "max-reported-matches", REQUIRED, TYPE_INT, 8, true, "<number>|'all'" , "(default=all)" },
+  /* Output Format */
+  { 'F', "output-format", REQUIRED, TYPE_STRING, 8, true, "'MAP'|'SAM'" , "(default=SAM)" },
+  { 900, "sam-compact", OPTIONAL, TYPE_STRING, 8, true, "'true'|'false'" , "(default=false)" },
+  { 901, "sam-quality-threshold", REQUIRED, TYPE_INT, 8, true, "<number>" , "(default=0)" },
   /* System */
   { 't', "threads", REQUIRED, TYPE_STRING, 9, true, "<number>" , "(default=c)" },
-  { 900, "max-memory", REQUIRED, TYPE_STRING, 9, true, "<maximum-memory>" , "(Eg 2GB)" },
-  { 901, "tmp-folder", REQUIRED, TYPE_STRING, 9, true, "<temporal_dir_path>" , "(default=/tmp/)" },
+  { 1000, "max-memory", REQUIRED, TYPE_STRING, 9, true, "<maximum-memory>" , "(Eg 2GB)" },
+  { 1001, "tmp-folder", REQUIRED, TYPE_STRING, 9, true, "<temporal_dir_path>" , "(default=/tmp/)" },
   /* CUDA Settings */
 #ifdef HAVE_CUDA
-  { 1000, "cuda", OPTIONAL, TYPE_STRING, 10, true, "", ""},
-  { 1001, "cuda-buffers-per-thread", REQUIRED, TYPE_STRING, 10, false, "<num_buffers,buffer_size>" , "(default=3,4M)" },
+  { 1100, "cuda", OPTIONAL, TYPE_STRING, 10, true, "", ""},
+  { 1101, "cuda-buffers-per-thread", REQUIRED, TYPE_STRING, 10, false, "<num_buffers,buffer_size>" , "(default=3,4M)" },
 #endif
   /* Presets/Hints */
-  { 1100, "technology", REQUIRED, TYPE_STRING, 11, false, "'hiseq'|'miseq'|'454'|'ion-torrent'|'pacbio'|'nanopore'|'moleculo'" , "(default=hiseq)" },
-  { 1101, "reads-model", REQUIRED, TYPE_STRING, 11, false, "<average_length>[,<std_length>]" , "(default=150,50)" },
+  { 1200, "technology", REQUIRED, TYPE_STRING, 11, false, "'hiseq'|'miseq'|'454'|'ion-torrent'|'pacbio'|'nanopore'|'moleculo'" , "(default=hiseq)" },
+  { 1201, "reads-model", REQUIRED, TYPE_STRING, 11, false, "<average_length>[,<std_length>]" , "(default=150,50)" },
   /* Debug */
   { 'c', "check-alignments", REQUIRED, OPTIONAL, 12, false, "'correct'|'best'|'complete'" , "" },
   /* Miscellaneous */
-  { 1300, "profile", OPTIONAL, TYPE_STRING, 13, false, "'sum'|'min'|'max'|'mean'|'sample'" , "(disabled)" },
+  { 1400, "profile", OPTIONAL, TYPE_STRING, 13, false, "'sum'|'min'|'max'|'mean'|'sample'" , "(disabled)" },
   { 'v', "verbose", OPTIONAL, TYPE_STRING, 13, true, "'quiet'|'user'|'dev'" , "(default=user)" },
   { 'h', "help", NO_ARGUMENT, TYPE_NONE, 13, true, "" , "(print usage)" },
   { 'H', "help", NO_ARGUMENT, TYPE_NONE, 13, false, "" , "(print usage + extras)" },
@@ -252,13 +255,14 @@ char* gem_mapper_groups[] = {
   /*  6 */ "Alignment Score",
   /*  7 */ "MAPQ Score",
   /*  8 */ "Reporting",
-  /*  9 */ "System",
+  /*  9 */ "Output-format",
+  /* 10 */ "System",
 #ifdef HAVE_CUDA
-  /* 10 */ "CUDA Settings",
+  /* 11 */ "CUDA Settings",
 #endif
-  /* 11 */ "Presets/Hints",
-  /* 12 */ "Debug",
-  /* 13 */ "Miscellaneous",
+  /* 12 */ "Presets/Hints",
+  /* 13 */ "Debug",
+  /* 14 */ "Miscellaneous",
 };
 void usage(const bool print_inactive) {
   fprintf(stderr, "USAGE: ./gem-mapper [ARGS]...\n");
@@ -616,15 +620,6 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       }
       break;
     /* Reporting */
-    case 'F': // --output-format
-      if (gem_strcaseeq(optarg,"MAP")) {
-        parameters->io.output_format = MAP;
-      } else if (gem_strcaseeq(optarg,"SAM")) {
-        parameters->io.output_format = SAM;
-      } else {
-        gem_fatal_error_msg("Option '-F|--output-format' must be 'MAP' or 'SAM'");
-      }
-      break;
     case 'D': // --min-decoded-strata
       input_text_parse_extended_double(optarg,&parameters->select_parameters.min_decoded_strata);
       break;
@@ -637,23 +632,42 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 'M': // --max-reported-matches
       input_text_parse_extended_uint64(optarg,&parameters->select_parameters.max_reported_matches);
       break;
+    /*  Output-format */
+    case 'F': // --output-format
+      if (gem_strcaseeq(optarg,"MAP")) {
+        parameters->io.output_format = MAP;
+      } else if (gem_strcaseeq(optarg,"SAM")) {
+        parameters->io.output_format = SAM;
+      } else {
+        gem_fatal_error_msg("Option '-F|--output-format' must be 'MAP' or 'SAM'");
+      }
+      break;
+    case 900: // --sam-compact in {'true'|'false'} (default=true)
+      parameters->io.sam_parameters.compact_xa = (optarg==NULL) ? true : input_text_parse_extended_bool(optarg);
+      break;
+    case 901: { // --sam-quality-threshold
+      uint64_t mapq_threshold;
+      input_text_parse_extended_uint64(optarg,&mapq_threshold);
+      parameters->io.sam_parameters.mapq_threshold = MIN(255,mapq_threshold);
+      break;
+    }
     /* System */
     case 't': // --threads
       gem_cond_fatal_error_msg(parse_arguments_system_integer(optarg,&parameters->system.num_threads),
           "Option '--threads-cuda'. Error parsing 'num_selecting_threads'");
       break;
-    case 900: // --max-memory
+    case 1000: // --max-memory
       gem_cond_fatal_error(input_text_parse_size(optarg,&(parameters->system.max_memory)),PARSING_SIZE,"--max-memory",optarg);
       break;
-    case 901: // --tmp-folder
+    case 1001: // --tmp-folder
       parameters->system.tmp_folder = optarg;
       break;
     /* CUDA Settings */
-    case 1000: // --cuda
+    case 1100: // --cuda
       if (!bpm_gpu_support()) GEM_CUDA_NOT_SUPPORTED();
       parameters->cuda.cuda_enabled = input_text_parse_extended_bool(optarg);
       break;
-    case 1001: { // --cuda-buffers-per-thread=3,4M
+    case 1101: { // --cuda-buffers-per-thread=3,4M
       if (!bpm_gpu_support()) GEM_CUDA_NOT_SUPPORTED();
       char *num_buffers=NULL, *buffer_size=NULL;
       const int num_arguments = input_text_parse_csv_arguments(optarg,2,&num_buffers,&buffer_size);
@@ -668,7 +682,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       break;
     }
     /* Presets/Hints */
-    case 1100: // --technology in {'hiseq'|'miseq'|'454'|'ion-torrent'|'pacbio'|'nanopore'|'moleculo'}
+    case 1200: // --technology in {'hiseq'|'miseq'|'454'|'ion-torrent'|'pacbio'|'nanopore'|'moleculo'}
       if (gem_strcaseeq(optarg,"hiseq")) {
         // TODO Presets for alignment mode, read-length, candidates, ...
       } else if (gem_strcaseeq(optarg,"miseq")) {
@@ -687,7 +701,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
         gem_fatal_error_msg("Option '--technology' must be in {'hiseq'|'miseq'|'454'|'ion-torrent'|'pacbio'|'nanopore'|'moleculo'}");
       }
       break;
-    case 1101: { // --reads-model <average_length>[,<std_length>]
+    case 1201: { // --reads-model <average_length>[,<std_length>]
       char *average_length, *std_length;
       const int num_arguments = input_text_parse_csv_arguments(optarg,2,&average_length,&std_length);
       gem_cond_fatal_error_msg(num_arguments==0,"Option '--reads-model' wrong number of arguments");
@@ -721,7 +735,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       break;
     }
     /* Misc */
-    case 1300: // --profile in {'sum'|'min'|'max'|'mean'|'sample'}
+    case 1400: // --profile in {'sum'|'min'|'max'|'mean'|'sample'}
       parameters->misc.profile = true;
       if (optarg) {
         if (gem_strcaseeq(optarg,"SUM")) {
@@ -883,7 +897,7 @@ int main(int argc,char** argv) {
         mapper_SE_CUDA_run(&parameters); // SE-CUDA mapping threads (Producer-Consumer)
         break;
       case mapper_pe:
-        // mapper_PE_CUDA_run(&parameters); // SE-CUDA mapping threads (Producer-Consumer)
+        mapper_PE_CUDA_run(&parameters); // SE-CUDA mapping threads (Producer-Consumer)
         break;
       case mapper_graph:
         GEM_NOT_IMPLEMENTED(); // TODO

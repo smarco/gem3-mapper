@@ -149,7 +149,7 @@ GEM_INLINE void filtering_region_align(
   } else {
     // Candidate
     const text_trace_t* const text_trace = filtering_region_get_text_trace(filtering_region,candidates_collection);
-    const uint8_t* const text = text_trace->text;
+    uint8_t* const text = text_trace->text;
     // Select alignment model
     switch (alignment_model) {
       case alignment_model_hamming: {

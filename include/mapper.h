@@ -176,7 +176,11 @@ GEM_INLINE void mapper_load_index(mapper_parameters_t* const parameters);
 GEM_INLINE void mapper_SE_output_matches(
     const mapper_parameters_t* const parameters,
     buffered_output_file_t* const buffered_output_file,
-    sequence_t* const seq_read,matches_t* const matches);
+    archive_search_t* const archive_search,matches_t* const matches);
+GEM_INLINE void mapper_PE_output_matches(
+    const mapper_parameters_t* const parameters,
+    buffered_output_file_t* const buffered_output_file,archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2,paired_matches_t* const paired_matches);
 
 /*
  * SE Mapper

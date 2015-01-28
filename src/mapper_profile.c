@@ -96,6 +96,12 @@ GEM_INLINE void mapper_profile_print_mapper_adaptive(FILE* const stream) {
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SELECT_MATCHES),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"    => TIME.Output.MAP.SE            ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_OUTPUT_MAP_SE),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"    => TIME.Output.SAM.SE            ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_OUTPUT_SAM_SE),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"    => TIME.Output.MAP.PE            ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_OUTPUT_MAP_PE),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"    => TIME.Output.SAM.PE            ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_OUTPUT_SAM_PE),PROF_GET_TIMER(GP_MAPPER_ALL));
 }
 GEM_INLINE void mapper_profile_print_mapper_adaptive_ranks(FILE* const stream) {
   tab_fprintf(stream,"[GEM]>Profile.Mapper\n");

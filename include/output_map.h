@@ -12,6 +12,8 @@
 #include "essentials.h"
 #include "buffered_output_file.h"
 #include "sequence.h"
+#include "archive.h"
+#include "archive_search.h"
 #include "matches.h"
 #include "paired_matches.h"
 
@@ -30,13 +32,13 @@ GEM_INLINE void output_map_alignment_pretty(
  */
 GEM_INLINE void output_map_single_end_matches(
     buffered_output_file_t* const buffered_output_file,
-    sequence_t* const seq_read,matches_t* const matches);
+    archive_search_t* const archive_search,matches_t* const matches);
 
 /*
  * MAP PairedEnd
  */
 GEM_INLINE void output_map_paired_end_matches(
-    buffered_output_file_t* const buffered_output_file,sequence_t* const seq_read_end1,
-    sequence_t* const seq_read_end2,paired_matches_t* const paired_matches);
+    buffered_output_file_t* const buffered_output_file,archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2,paired_matches_t* const paired_matches);
 
 #endif /* OUTPUT_MAP_H_ */

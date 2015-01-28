@@ -395,7 +395,7 @@ GEM_INLINE bool bpm_get_distance__cutoff(
   }
 GEM_INLINE void bpm_align_match(
     const uint8_t* const key,const bpm_pattern_t* const bpm_pattern,
-    uint64_t* const match_position,const uint8_t* const sequence,
+    uint64_t* const match_position,uint8_t* const sequence,
     const uint64_t sequence_length,const uint64_t max_distance,
     vector_t* const cigar_vector,uint64_t* const cigar_vector_offset,uint64_t* const cigar_length,
     uint64_t* const distance,int64_t* const effective_length,mm_stack_t* const mm_stack) {
@@ -508,10 +508,10 @@ GEM_INLINE void bpm_align_match(
     const uint64_t bdp_idx = BPM_PATTERN_BDP_IDX(h+1,num_words,block);
     const uint64_t mask = 1L << (v % UINT64_LENGTH);
     if (Pv[bdp_idx] & mask) {
-      MATCHES_CIGAR_BUFFER_ADD_CIGAR_ELEMENT(cigar_buffer,cigar_del,1); // Deletion <-1>@v
+      matches_cigar_buffer_add_cigar_element(&cigar_buffer,cigar_del,1,NULL); // Deletion <-1>@v
       --v; --match_effective_length;
     } else if (Mv[(bdp_idx-num_words)] & mask) {
-      MATCHES_CIGAR_BUFFER_ADD_CIGAR_ELEMENT(cigar_buffer,cigar_ins,1); // Insertion <+1>@v
+      matches_cigar_buffer_add_cigar_element(&cigar_buffer,cigar_ins,1,sequence+v); // Insertion <+1>@v
       --h; ++match_effective_length;
     } else if (sequence[h] != key[v]) {
       // Mismatch
@@ -520,12 +520,12 @@ GEM_INLINE void bpm_align_match(
       cigar_buffer->mismatch = sequence[h];
       --h; --v;
     } else {
-      MATCHES_CIGAR_BUFFER_ADD_CIGAR_ELEMENT(cigar_buffer,cigar_match,1); // Match
+      matches_cigar_buffer_add_cigar_element(&cigar_buffer,cigar_match,1,NULL); // Match
       --h; --v;
     }
   }
   if (v >= 0) {
-    MATCHES_CIGAR_BUFFER_ADD_CIGAR_ELEMENT(cigar_buffer,cigar_del,v+1); // <-(@v+1)>@v
+    matches_cigar_buffer_add_cigar_element(&cigar_buffer,cigar_del,v+1,NULL); // <-(@v+1)>@v
     match_effective_length -= v+1;
   }
   if (h >= 0) {

@@ -135,11 +135,11 @@ GEM_INLINE int64_t match_trace_get_effective_length(
   for (i=0;i<cigar_length;++i,++cigar_element) {
     switch (cigar_element->type) {
       case cigar_ins:
-        effective_length += cigar_element->length;
+        effective_length += cigar_element->indel.indel_length;
         break;
       case cigar_del:
       case cigar_soft_trim:
-        effective_length -= cigar_element->length;
+        effective_length -= cigar_element->indel.indel_length;
         break;
       default:
         break;
@@ -241,13 +241,39 @@ GEM_INLINE void matches_hint_add_match_interval(matches_t* const matches,const u
 /*
  * CIGAR Handling
  */
+GEM_INLINE void matches_cigar_buffer_add_cigar_element(
+    cigar_element_t** const cigar_buffer_sentinel,const cigar_t cigar_element_type,
+    const uint64_t element_length,uint8_t* const indel_text) {
+  if ((*cigar_buffer_sentinel)->type == cigar_element_type) {
+    if ((*cigar_buffer_sentinel)->type == cigar_match) {
+      (*cigar_buffer_sentinel)->match_length += element_length;
+    } else {
+      (*cigar_buffer_sentinel)->indel.indel_length += element_length;
+      if ((*cigar_buffer_sentinel)->type == cigar_ins) {
+        (*cigar_buffer_sentinel)->indel.indel_text = indel_text;
+      }
+    }
+  } else {
+    if ((*cigar_buffer_sentinel)->type != cigar_null) ++(*cigar_buffer_sentinel);
+    (*cigar_buffer_sentinel)->type = cigar_element_type;
+    if ((*cigar_buffer_sentinel)->type == cigar_match) {
+      (*cigar_buffer_sentinel)->match_length = element_length;
+    } else {
+      (*cigar_buffer_sentinel)->indel.indel_length = element_length;
+      if ((*cigar_buffer_sentinel)->type == cigar_ins) {
+        (*cigar_buffer_sentinel)->indel.indel_text = indel_text;
+      }
+    }
+  }
+}
 GEM_INLINE void matches_cigar_buffer_append_indel(
     vector_t* const cigar_buffer,uint64_t* const current_cigar_length,
-    const cigar_t cigar_element_type,const uint64_t element_length) {
+    const cigar_t cigar_element_type,const uint64_t element_length,uint8_t* const indel_text) {
   if (*current_cigar_length > 0) {
     cigar_element_t* cigar_element = vector_get_last_elm(cigar_buffer,cigar_element_t);
     if (cigar_element->type==cigar_element_type) {
-      cigar_element->length += element_length;
+      cigar_element->indel.indel_length += element_length;
+      cigar_element->indel.indel_text = indel_text;
       return;
     }
   }
@@ -255,7 +281,8 @@ GEM_INLINE void matches_cigar_buffer_append_indel(
   vector_reserve_additional(cigar_buffer,1); // Reserve
   cigar_element_t* const cigar_element = vector_get_free_elm(cigar_buffer,cigar_element_t);// Add CIGAR element
   cigar_element->type = cigar_element_type;
-  cigar_element->length = element_length;
+  cigar_element->indel.indel_length = element_length;
+  cigar_element->indel.indel_text = indel_text;
   vector_inc_used(cigar_buffer); // Increment used
   *current_cigar_length += 1;
 }
@@ -266,7 +293,7 @@ GEM_INLINE void matches_cigar_buffer_append_match(
   if (*current_cigar_length > 0) {
     cigar_element_t* cigar_element = vector_get_last_elm(cigar_buffer,cigar_element_t);
     if (cigar_element->type==cigar_match) {
-      cigar_element->length += match_length;
+      cigar_element->match_length += match_length;
       return;
     }
   }
@@ -274,7 +301,7 @@ GEM_INLINE void matches_cigar_buffer_append_match(
   vector_reserve_additional(cigar_buffer,1); // Reserve
   cigar_element_t* const cigar_element = vector_get_free_elm(cigar_buffer,cigar_element_t);// Add CIGAR element
   cigar_element->type = cigar_match;
-  cigar_element->length = match_length;
+  cigar_element->match_length = match_length;
   vector_inc_used(cigar_buffer); // Increment used
   *current_cigar_length += 1;
 }
@@ -300,12 +327,14 @@ GEM_INLINE void matches_cigar_reverse(
     cigar_element_t* const origin = cigar_buffer + i;
     cigar_element_t* const flipped = cigar_buffer + (cigar_length-1-i);
     SWAP(*origin,*flipped);
-    if (origin->type == cigar_mismatch) origin->length = dna_complement(origin->length);
-    if (origin->type == cigar_mismatch) origin->length = dna_complement(origin->length);
+    if (origin->type == cigar_mismatch) origin->mismatch = dna_encoded_complement(origin->mismatch);
+    if (flipped->type == cigar_mismatch) flipped->mismatch = dna_encoded_complement(origin->mismatch);
+    // FIXME In case of indel, flip @origin->indel.indel_text (only SAM.MD field is using it)
   }
   if (cigar_length%2) {
     cigar_element_t* const middle = cigar_buffer + middle_point;
-    if (middle->type == cigar_mismatch) middle->length = dna_complement(middle->length);
+    if (middle->type == cigar_mismatch) middle->mismatch = dna_encoded_complement(middle->mismatch);
+    // FIXME In case of indel, flip @origin->indel.indel_text (only SAM.MD field is using it)
   }
 }
 GEM_INLINE void matches_cigar_reverse_colorspace(
@@ -323,11 +352,11 @@ GEM_INLINE void matches_cigar_reverse_colorspace(
   }
 }
 GEM_INLINE uint64_t matches_cigar_calculate_edit_distance(
-    matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
+    const matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
   // Exact Match
   if (cigar_length==0) return 0;
   // Sum up all cigar elements
-  cigar_element_t* const cigar_buffer = vector_get_elm(matches->cigar_buffer,cigar_buffer_offset,cigar_element_t);
+  const cigar_element_t* const cigar_buffer = vector_get_elm(matches->cigar_buffer,cigar_buffer_offset,cigar_element_t);
   uint64_t i, edit_distance = 0;
   for (i=0;i<cigar_length;++i) {
     switch (cigar_buffer[i].type) {
@@ -338,7 +367,35 @@ GEM_INLINE uint64_t matches_cigar_calculate_edit_distance(
       case cigar_ins:
       case cigar_del:
       case cigar_soft_trim:
-        edit_distance += cigar_buffer[i].length;
+        edit_distance += cigar_buffer[i].indel.indel_length;
+        break;
+      case cigar_null:
+      default:
+        GEM_INVALID_CASE();
+        break;
+    }
+  }
+  return edit_distance;
+}
+GEM_INLINE uint64_t matches_cigar_calculate_edit_distance__excluding_clipping(
+    const matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
+  // Exact Match
+  if (cigar_length==0) return 0;
+  // Sum up all cigar elements
+  const cigar_element_t* const cigar_buffer = vector_get_elm(matches->cigar_buffer,cigar_buffer_offset,cigar_element_t);
+  uint64_t i, edit_distance = 0;
+  for (i=0;i<cigar_length;++i) {
+    switch (cigar_buffer[i].type) {
+      case cigar_match: break;
+      case cigar_mismatch:
+        edit_distance += cigar_buffer[i].type;
+        break;
+      case cigar_del:
+      case cigar_soft_trim:
+        if (i==0 || i==cigar_length-1) break;
+      // No break
+      case cigar_ins:
+        edit_distance += cigar_buffer[i].indel.indel_length;
         break;
       case cigar_null:
       default:

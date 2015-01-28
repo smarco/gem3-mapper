@@ -246,7 +246,7 @@ option_t gem_indexer_options[] = {
   { 'N', "strip-unknown-bases-threshold", REQUIRED, TYPE_INT, 3 , true, "'disable'|<integer>" , "(default=50)" },
   { 301, "complement-size-threshold", REQUIRED, TYPE_INT, 3 , true, "<integer>" , "(default=2GB)" },
   /* FM-Index */
-  { 's', "sampling-rate", REQUIRED, TYPE_INT, 4 , true, "<sampling_rate>" , "{} (default=4)" },
+  { 's', "sampling-rate", REQUIRED, TYPE_INT, 4 , true, "<sampling_rate>" , "(default=4)" },
   { 400, "check-index", NO_ARGUMENT, TYPE_NONE, 4 , true, "", "(default=false)"},
   /* System */
   { 't', "threads", REQUIRED, TYPE_INT, 5 , true, "<number>" , "(default=1)" },
@@ -284,7 +284,7 @@ char* gem_indexer_groups[] = {
 };
 void usage(const bool print_inactive) {
   fprintf(stderr, "USAGE: ./gem-indexer [ARGS]...\n");
-  options_fprint_menu(stderr,gem_indexer_options,gem_indexer_groups,false,print_inactive);
+  options_fprint_menu(stderr,gem_indexer_options,gem_indexer_groups,true,print_inactive);
 }
 void parse_arguments(int argc,char** argv) {
   struct option* getopt_options = options_adaptor_getopt(gem_indexer_options);

@@ -24,10 +24,15 @@
  */
 typedef enum { cigar_match=0, cigar_mismatch=1, cigar_ins=2, cigar_del=3, cigar_soft_trim=4, cigar_null=5 } cigar_t;
 typedef struct {
-  cigar_t type;              // Match, Mismatch, insertion or deletion
+  int32_t indel_length;   // Indel length
+  uint8_t* indel_text;    // Indel-text (Reference text in case of insertion, NULL otherwise)
+} cigar_indel_t;
+typedef struct {
+  cigar_t type;           // Match, Mismatch, insertion or deletion
   union {
-    int32_t length;    // Match length or indel length
-    uint8_t mismatch;  // Mismatch base
+    int32_t match_length; // Match length
+    uint8_t mismatch;     // Mismatch base
+    cigar_indel_t indel;  // Pointer to the insert
   };
 } cigar_element_t;
 /*
@@ -163,30 +168,30 @@ GEM_INLINE void matches_hint_add_match_interval(matches_t* const matches,const u
 /*
  * CIGAR Handling
  */
-#define MATCHES_CIGAR_BUFFER_ADD_CIGAR_ELEMENT(cigar_buffer_sentinel,cigar_element_type,element_length) \
-  if (cigar_buffer_sentinel->type == cigar_element_type) { \
-    cigar_buffer_sentinel->length += element_length; \
-  } else { \
-    if (cigar_buffer_sentinel->type!=cigar_null) ++(cigar_buffer_sentinel); \
-    cigar_buffer_sentinel->type = cigar_element_type; \
-    cigar_buffer_sentinel->length = element_length; \
-  }
+
+GEM_INLINE void matches_cigar_buffer_add_cigar_element(
+    cigar_element_t** const cigar_buffer_sentinel,const cigar_t cigar_element_type,
+    const uint64_t element_length,uint8_t* const indel_text);
 
 GEM_INLINE void matches_cigar_buffer_append_indel(
     vector_t* const cigar_buffer,uint64_t* const current_cigar_length,
-    const cigar_t cigar_element_type,const uint64_t element_length);
+    const cigar_t cigar_element_type,const uint64_t element_length,uint8_t* const indel_text);
 GEM_INLINE void matches_cigar_buffer_append_match(
     vector_t* const cigar_buffer,uint64_t* const current_cigar_length,
     const uint64_t match_length);
 GEM_INLINE void matches_cigar_buffer_append_mismatch(
     vector_t* const cigar_buffer,uint64_t* const current_cigar_length,
     const cigar_t cigar_element_type,const uint8_t mismatch);
+
 GEM_INLINE void matches_cigar_reverse(
     matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
 GEM_INLINE void matches_cigar_reverse_colorspace(
     matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
+
 GEM_INLINE uint64_t matches_cigar_calculate_edit_distance(
-    matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
+    const matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
+GEM_INLINE uint64_t matches_cigar_calculate_edit_distance__excluding_clipping(
+    const matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
 
 
 /*

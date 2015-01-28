@@ -11,31 +11,36 @@ include Makefile.mk
 
 all: devel
 
+# Optimized 
 release: setup
 	$(MAKE) --directory=resources release
 	$(MAKE) --directory=src release
 	$(MAKE) --directory=tools release
 	
+# Optimized + Static
 static:	setup
 	$(MAKE) --directory=resources release
 	$(MAKE) --directory=src release
 	$(MAKE) --directory=tools static
 	
+# Optimized + DebugSymbols + GEMProfile
 devel: setup
 	$(MAKE) --directory=resources devel
 	$(MAKE) --directory=src devel
 	$(MAKE) --directory=tools devel
 	
+# Optimized + DebugSymbols + GEMProfile + VtuneLib
+profile: setup
+	$(MAKE) --directory=resources profile
+	$(MAKE) --directory=src profile
+	$(MAKE) --directory=tools profile
+	
+# DebugSymbols + GEMDebug + GEMProfile
 debug: setup
 	$(MAKE) --directory=resources debug
 	$(MAKE) --directory=src debug
 	$(MAKE) --directory=tools debug
 	
-profile: setup
-	$(MAKE) --directory=resources profile
-	$(MAKE) --directory=src profile
-	$(MAKE) --directory=tools profile
-
 check: setup debug
 	$(MAKE) --directory=test check
 	
