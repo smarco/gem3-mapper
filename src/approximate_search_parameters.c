@@ -36,7 +36,7 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
    * Single End
    */
   // Mapping strategy
-  search_parameters->mapping_mode = mapping_adaptive_filtering;
+  search_parameters->mapping_mode = mapping_adaptive_filtering_match;
   search_parameters->filtering_degree = 0;
   // Qualities
   search_parameters->quality_model = quality_model_type_gem;
@@ -45,6 +45,8 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
   // Mismatch/Indels Parameters
   search_parameters->max_search_error = 0.04;
   search_parameters->max_filtering_error = 0.08;
+  search_parameters->max_filtering_strata_after_best = 0.04;
+  search_parameters->max_bandwidth = 0.20;
   search_parameters->complete_strata_after_best = 0.0;
   search_parameters->min_matching_length = 0.20;
   // Matches search
@@ -83,17 +85,18 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_N][ENC_DNA_CHAR_N] = -4;
   search_parameters->swg_penalties.generic_match_score = 1;
   search_parameters->swg_penalties.generic_mismatch_score = -4;
-  search_parameters->swg_penalties.gap_open_penalty = 6;
-  search_parameters->swg_penalties.gap_extension_penalty = 1;
+  search_parameters->swg_penalties.gap_open_score = -6;
+  search_parameters->swg_penalties.gap_extension_score = -1;
   /*
    * Paired End
    */
   /* Paired-end mode/alg */
   search_parameters->paired_end = false;
-  search_parameters->map_both_ends = false;
+  search_parameters->paired_mapping_mode = paired_mapping_map_extension;
   search_parameters->pair_discordant_search = pair_discordant_search_only_if_no_concordant;
   search_parameters->max_extendable_candidates = 20;
   search_parameters->max_matches_per_extension = 2;
+  search_parameters->min_unique_pair_samples = 1000;
   /* Template allowed length */
   search_parameters->min_template_length = 0;
   search_parameters->max_template_length = 2000; // FIXME Autodetect
@@ -114,22 +117,17 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
   /*
    * Internals
    */
-  // Soft RP. Loose Scheme = (20,4,2,2)
-  search_parameters->rp_soft.region_th = 20;
-  search_parameters->rp_soft.max_steps = 4;
-  search_parameters->rp_soft.dec_factor = 2;
-  search_parameters->rp_soft.region_type_th = 2;
-  // Hard RP. Tight Scheme = (50,10,4,2)
-  search_parameters->rp_hard.region_th = 50;
-  search_parameters->rp_hard.max_steps = 10;
-  search_parameters->rp_hard.dec_factor = 4;
-  search_parameters->rp_hard.region_type_th = 2;
-//  // Probing RP. Probing Scheme = (1000,3,3,2)
-//  search_parameters->rp_probing.region_th = 1000;
-//  search_parameters->rp_probing.max_steps = 3;
-//  search_parameters->rp_probing.dec_factor = 3;
-//  search_parameters->rp_probing.region_type_th = 2;
-  // Recovery RP. Recovery Scheme = (200,1,8,2)
+  // Region-Minimal Scheme = (20,4,2,2)
+  search_parameters->rp_minimal.region_th = 20;
+  search_parameters->rp_minimal.max_steps = 4;
+  search_parameters->rp_minimal.dec_factor = 2;
+  search_parameters->rp_minimal.region_type_th = 2;
+  // Region-Delimit Scheme = (50,10,4,2)
+  search_parameters->rp_delimit.region_th = 100;
+  search_parameters->rp_delimit.max_steps = 4;
+  search_parameters->rp_delimit.dec_factor = 2;
+  search_parameters->rp_delimit.region_type_th = 2;
+  // Region-Recovery Scheme = (200,1,8,2)
   search_parameters->rp_recovery.region_th = 200;
   search_parameters->rp_recovery.max_steps = 1;
   search_parameters->rp_recovery.dec_factor = 8;
@@ -153,11 +151,13 @@ GEM_INLINE void approximate_search_configure_quality_model(
   search_parameters->quality_threshold = quality_threshold;
 }
 GEM_INLINE void approximate_search_configure_error_model(
-    search_parameters_t* const search_parameters,
-    float max_search_error,float max_filtering_error,
-    float complete_strata_after_best,float min_matching_length) {
+    search_parameters_t* const search_parameters,float max_search_error,
+    float max_filtering_error,float max_filtering_strata_after_best,
+    float max_bandwidth,float complete_strata_after_best,float min_matching_length) {
   search_parameters->max_search_error = max_search_error;
   search_parameters->max_filtering_error = max_filtering_error;
+  search_parameters->max_filtering_strata_after_best = max_filtering_strata_after_best;
+  search_parameters->max_bandwidth = max_bandwidth;
   search_parameters->complete_strata_after_best = complete_strata_after_best;
   search_parameters->min_matching_length = min_matching_length;
 }
@@ -235,8 +235,8 @@ GEM_INLINE void approximate_search_configure_alignment_gap_scores(
     search_parameters_t* const search_parameters,
     const uint64_t gap_open_penalty,const uint64_t gap_extension_penalty) {
   // Gaps
-  search_parameters->swg_penalties.gap_open_penalty = gap_open_penalty;
-  search_parameters->swg_penalties.gap_extension_penalty = gap_extension_penalty;
+  search_parameters->swg_penalties.gap_open_score = -((int32_t)gap_open_penalty);
+  search_parameters->swg_penalties.gap_extension_score = -((int32_t)gap_extension_penalty);
 }
 GEM_INLINE void approximate_search_instantiate_values(
     search_actual_parameters_t* const search_actual_parameters,const uint64_t pattern_length) {
@@ -244,6 +244,8 @@ GEM_INLINE void approximate_search_instantiate_values(
   search_actual_parameters->filtering_degree_nominal = integer_proportion(search_parameters->filtering_degree,pattern_length);
   search_actual_parameters->max_search_error_nominal = integer_proportion(search_parameters->max_search_error,pattern_length);
   search_actual_parameters->max_filtering_error_nominal = integer_proportion(search_parameters->max_filtering_error,pattern_length);
+  search_actual_parameters->max_filtering_strata_after_best_nominal = integer_proportion(search_parameters->max_filtering_strata_after_best,pattern_length);
+  search_actual_parameters->max_bandwidth_nominal = integer_proportion(search_parameters->max_bandwidth,pattern_length);
   search_actual_parameters->complete_strata_after_best_nominal = integer_proportion(search_parameters->complete_strata_after_best,pattern_length);
   search_actual_parameters->min_matching_length_nominal = integer_proportion(search_parameters->min_matching_length,pattern_length);
 }

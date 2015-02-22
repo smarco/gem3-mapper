@@ -30,16 +30,16 @@
  */
 //typedef enum { asearch_init, asearch_filtering, asearch_neighborhood, asearch_end } approximate_search_stage_t;
 typedef enum {
-  asearch_begin,                 // Beginning of the search
-  asearch_no_regions,            // While doing the region profile no regions were found
-  asearch_exact_matches,         // One maximum region was found (exact results)
-  asearch_region_profile,        // Region Profile
-  asearch_probe_candidates,      // Probe candidates (try to lower max-differences)
-  asearch_generate_candidates,   // Generate candidates
-  asearch_verify_candidates,     // Verify candidates
-  asearch_candidates_verified,   // Candidates verified
-  asearch_neighborhood,          // Neighborhood search
-  asearch_end                    // End of the current workflow
+  asearch_begin,                // Beginning of the search
+  asearch_no_regions,           // While doing the region profile no regions were found
+  asearch_exact_matches,        // One maximum region was found (exact results)
+  asearch_exact_filtering,      // Region-Minimal Profile + Exact candidate generation
+  asearch_verify_candidates,    // Verify candidates
+  asearch_candidates_verified,  // Candidates verified
+  asearch_inexact_filtering,    // Region-Delimit Profile + Approximate candidate generation
+  asearch_neighborhood,         // Neighborhood search
+  asearch_end,                  // End of the current workflow
+  asearch_probe_candidates      // Probe candidates (try to lower max-differences) // TODO
 } approximate_search_state_t;
 typedef enum {
   region_profile_fixed,
@@ -51,18 +51,16 @@ typedef enum {
   region_filter_adaptive_dynamic
 } region_filter_type;
 typedef struct {
-  /* Index Structures & Parameters */
-  locator_t* locator;                                   // Sequence Locator
-  graph_text_t* graph;                                  // Graph (text + graph = hypertext)
-  dna_text_t* enc_text;                                 // Index-Text (Encoded)
-  fm_index_t* fm_index;                                 // FM-Index
+  /* Index Structures, Pattern & Parameters */
+  archive_t* archive;                                   // Archive
   pattern_t pattern;                                    // Search Pattern
   search_actual_parameters_t* search_actual_parameters; // Search Parameters (Evaluated to read-length)
   /* Search State */
   strand_t search_strand;                               // Current search strand
   bool do_quality_search;                               // Quality search
   approximate_search_state_t search_state;              // Current State of the search
-  approximate_search_state_t stop_before_state;         // Search State to stop before
+  bool verify_candidates;                               // Compute candidate verification
+  bool stop_before_neighborhood_search;                 // Stop before Neighborhood Search
   uint64_t max_differences;
   uint64_t max_complete_stratum;                        // Maximum complete stratum reached by the search
   uint64_t max_matches_reached;                         // Quick abandon due to maximum matches found
@@ -85,11 +83,8 @@ typedef struct {
  * Setup
  */
 GEM_INLINE void approximate_search_init(
-    approximate_search_t* const search,
-    locator_t* const locator,graph_text_t* const graph,
-    dna_text_t* const enc_text,fm_index_t* const fm_index,
+    approximate_search_t* const search,archive_t* const archive,
     search_actual_parameters_t* const search_actual_parameters);
-GEM_INLINE void approximate_search_init_paired_filtering(approximate_search_t* const search);
 GEM_INLINE void approximate_search_configure(
     approximate_search_t* const search,text_collection_t* text_collection,
     interval_set_t* const interval_set,mm_stack_t* const mm_stack);
@@ -104,8 +99,10 @@ GEM_INLINE uint64_t approximate_search_get_num_potential_candidates(const approx
 /*
  * Pattern
  */
-GEM_INLINE void approximate_search_prepare_pattern(
+GEM_INLINE void approximate_search_pattern_prepare(
     approximate_search_t* const search,sequence_t* const sequence);
+GEM_INLINE void approximate_search_pattern_clear(approximate_search_t* const search);
+GEM_INLINE bool approximate_search_pattern_is_null(approximate_search_t* const search);
 
 /*
  * ASM-Search!!
@@ -115,26 +112,6 @@ GEM_INLINE void approximate_search_verify_using_bpm_buffer(
     approximate_search_t* const search,
     matches_t* const matches,bpm_gpu_buffer_t* const bpm_gpu_buffer,
     const uint64_t candidate_offset_begin,const uint64_t candidate_offset_end);
-GEM_INLINE void approximate_search_verify_paired_process_candidates(
-    approximate_search_t* const search_end1,approximate_search_t* const search_end2,
-    const uint64_t min_template_length,const uint64_t max_template_length,const bool absolute_distance);
-
-
-//GEM_INLINE uint64_t fmi_mismatched_search_extend(
-//    const fm_index_t* const fm_index,
-//    fmi_extend_parameters* const extend_parameters,
-//    const idx_t init_position,const idx_t end_position,
-//    matches_t* const matches,vector_pool* const mpool);
-
-//void fmi_check_pos_correctness(
-//    const _FMI_* const fmi,fmi_search_parameters* const search_params,
-//    matches* const matches,bool dump_results,vector_pool* const mpool);
-//void fmi_check_int_correctness(
-//    const _FMI_* const fmi,fmi_search_parameters* const search_params,
-//    matches* const matches,bool dump_results,vector_pool* const mpool);
-//void fmi_check_completeness(
-//    const _FMI_* const fmi,fmi_search_parameters* const search_params,
-//    matches* const matches,bool dump_results,vector_pool* const mpool);
 
 /*
  * Error Msg

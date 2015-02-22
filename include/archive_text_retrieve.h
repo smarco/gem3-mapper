@@ -25,8 +25,8 @@
  * Text Retriever
  */
 GEM_INLINE uint64_t archive_text_retrieve(
-    const locator_t* const locator,graph_text_t* const graph,const dna_text_t* const enc_text,
-    text_collection_t* const text_collection,const uint64_t text_position,const uint64_t length,
+    const archive_t* const archive,text_collection_t* const text_collection,
+    const uint64_t index_position,const uint64_t length,const bool reverse_complement_text,
     uint64_t* const text_trace_first_offset,mm_stack_t* const mm_stack);
 
 

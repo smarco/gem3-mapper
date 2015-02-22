@@ -15,12 +15,12 @@
 #include "sampled_sa.h"
 
 /*
- * Check
+ * Text-sampling
  */
-typedef struct _bwt_t bwt_t;
-typedef struct _bwt_builder_t bwt_builder_t;
-typedef struct _bwt_block_locator_t bwt_block_locator_t;
-typedef struct _bwt_block_elms_t bwt_block_elms_t;
+#ifdef SAMPLING_SA_DIRECT
+#include "bwt_s1_bm64_sampled.h"
+#endif
+
 typedef struct {
   uint64_t lo;
   uint64_t hi;
@@ -51,6 +51,8 @@ GEM_INLINE uint64_t bwt_builder_get_size(bwt_builder_t* const bwt_builder);
 
 GEM_INLINE uint64_t bwt_get_length(const bwt_t* const bwt);
 GEM_INLINE uint64_t bwt_get_size(bwt_t* const bwt);
+
+GEM_INLINE bool bwt_is_same_bucket(const uint64_t lo,const uint64_t hi);
 
 /*
  * BWT Character Accessors
@@ -99,7 +101,7 @@ GEM_INLINE void bwt_prefetched_precompute_interval(
 GEM_INLINE uint64_t bwt_precomputed_erank(
     const bwt_t* const bwt,const uint8_t char_enc,
     const bwt_block_locator_t* const block_loc,const bwt_block_elms_t* const block_elms);
-GEM_INLINE bool bwt_precomputed_erank_interval(
+GEM_INLINE void bwt_precomputed_erank_interval(
     const bwt_t* const bwt,const uint8_t char_enc,
     uint64_t* const lo_out,uint64_t* const hi_out,
     const bwt_block_locator_t* const block_loc,const bwt_block_elms_t* const block_elms);

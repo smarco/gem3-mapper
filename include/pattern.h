@@ -26,6 +26,7 @@ typedef struct {
   uint64_t num_wildcards;
   uint64_t num_low_quality_bases;
   uint64_t max_effective_filtering_error;
+  uint64_t max_effective_bandwidth;
   /* K-mers counting */
   kmer_counting_t kmer_counting;
   /* Pattern BitVector-Encoded (Myers-DP) */

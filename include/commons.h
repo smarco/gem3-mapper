@@ -210,6 +210,9 @@ GEM_INLINE uint64_t gem_rand_IID(const uint64_t min,const uint64_t max);
 #define IS_ALPHANUMERIC(character) (IS_NUMBER(character) || IS_LETTER(character))
 #define IS_BETWEEN(number,a,b) ((a)<=(number) && (number)<=(b))
 
+#define BOUNDED_SUBTRACTION(minuend,subtrahend,limit) (((minuend)>(limit)+(subtrahend)) ? (minuend)-(subtrahend):(limit))
+#define BOUNDED_ADDITION(summand_A,summand_B,limit) (((summand_A)+(summand_B)<(limit)) ? (summand_A)+(summand_B):(limit))
+
 #define PERCENTAGE(AMOUNT,TOTAL) ((TOTAL)?100.0*(float)(AMOUNT)/(float)(TOTAL):0.0)
 #define DIV(NUMERATOR,DENOMINATOR) ((DENOMINATOR)?(NUMERATOR)/(DENOMINATOR):(0))
 #define DIV_CEIL(NUMERATOR,DENOMINATOR) (((NUMERATOR)+((DENOMINATOR)-1))/(DENOMINATOR))

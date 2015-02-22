@@ -553,23 +553,67 @@ GEM_INLINE void constructor_itoa() {
   fprintf(stderr,"All good!!\n");
 }
 GEM_INLINE void constructor_swg() {
-//  // Open input file
-//  FILE* file = fopen(parameters.name_input_file,"r");
-//
-//  // Read until EOF
-//  while (!feof(file)) {
-//    fscanf();
-//  }
-//
-//  uint64_t match_position=100, cigar_length=0;
-//  int64_t effective_length=0, alignment_score=0;
-//  vector_t* const cigar_vector = vector_new(100,cigar_element_t);
-//  swg_penalties_t swg_penalties = {1,4,6,1};
-//  mm_stack_t* mm_stack = mm_stack_new(mm_slab_new(BUFFER_SIZE_8M));
-//  swg_align_match_banded((uint8_t*)"ACGT",4,&swg_penalties,&match_position,
-//      (uint8_t*)"ACCGTGT",7,2,true,true,cigar_vector,&cigar_length,
+  uint64_t match_position=100, cigar_length=0;
+  int64_t effective_length=0;
+  int32_t alignment_score=0;
+  vector_t* const cigar_vector = vector_new(100,cigar_element_t);
+  swg_penalties_t swg_penalties;
+  mm_stack_t* mm_stack = mm_stack_new(mm_slab_new(BUFFER_SIZE_8M));
+  swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_A] = +1;
+  swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_C] = -4;
+  swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_G] = -4;
+  swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_T] = -4;
+  swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_N] = -4;
+  swg_penalties.matching_score[ENC_DNA_CHAR_C][ENC_DNA_CHAR_A] = -4;
+  swg_penalties.matching_score[ENC_DNA_CHAR_C][ENC_DNA_CHAR_C] = +1;
+  swg_penalties.matching_score[ENC_DNA_CHAR_C][ENC_DNA_CHAR_G] = -4;
+  swg_penalties.matching_score[ENC_DNA_CHAR_C][ENC_DNA_CHAR_T] = -4;
+  swg_penalties.matching_score[ENC_DNA_CHAR_C][ENC_DNA_CHAR_N] = -4;
+  swg_penalties.matching_score[ENC_DNA_CHAR_G][ENC_DNA_CHAR_A] = -4;
+  swg_penalties.matching_score[ENC_DNA_CHAR_G][ENC_DNA_CHAR_C] = -4;
+  swg_penalties.matching_score[ENC_DNA_CHAR_G][ENC_DNA_CHAR_G] = +1;
+  swg_penalties.matching_score[ENC_DNA_CHAR_G][ENC_DNA_CHAR_T] = -4;
+  swg_penalties.matching_score[ENC_DNA_CHAR_G][ENC_DNA_CHAR_N] = -4;
+  swg_penalties.matching_score[ENC_DNA_CHAR_T][ENC_DNA_CHAR_A] = -4;
+  swg_penalties.matching_score[ENC_DNA_CHAR_T][ENC_DNA_CHAR_C] = -4;
+  swg_penalties.matching_score[ENC_DNA_CHAR_T][ENC_DNA_CHAR_G] = -4;
+  swg_penalties.matching_score[ENC_DNA_CHAR_T][ENC_DNA_CHAR_T] = +1;
+  swg_penalties.matching_score[ENC_DNA_CHAR_T][ENC_DNA_CHAR_N] = -4;
+  swg_penalties.matching_score[ENC_DNA_CHAR_N][ENC_DNA_CHAR_A] = -4;
+  swg_penalties.matching_score[ENC_DNA_CHAR_N][ENC_DNA_CHAR_C] = -4;
+  swg_penalties.matching_score[ENC_DNA_CHAR_N][ENC_DNA_CHAR_G] = -4;
+  swg_penalties.matching_score[ENC_DNA_CHAR_N][ENC_DNA_CHAR_T] = -4;
+  swg_penalties.matching_score[ENC_DNA_CHAR_N][ENC_DNA_CHAR_N] = -4;
+  swg_penalties.generic_match_score = 1;
+  swg_penalties.generic_mismatch_score = -4;
+  swg_penalties.gap_open_score = -6;
+  swg_penalties.gap_extension_score = -1;
+  // Regular
+  uint8_t* const key = (uint8_t*)"ACGTACGT";
+  uint8_t* const text = (uint8_t*)"ACGTACGT";
+  const uint64_t key_length = strlen((char*)key);
+  const uint64_t text_length = strlen((char*)text);
+  uint8_t* const key_enc = malloc(key_length*sizeof(char));
+  uint8_t* const text_enc = malloc(text_length*sizeof(char));
+  uint64_t i;
+  for (i=0;i<key_length;++i) key_enc[i] = dna_encode(key[i]);
+  for (i=0;i<text_length;++i) text_enc[i] = dna_encode(text[i]);
+  // SWG
+  swg_align_match_base(key_enc,key_length,&swg_penalties,&match_position,
+      text_enc,text_length,cigar_vector,&cigar_length,
+      &effective_length,&alignment_score,mm_stack);
+  printf("\n");
+  // SWG SIMD
+  swg_query_profile_t swg_query_profile;
+  swg_init_query_profile(&swg_query_profile,&swg_penalties,key_length,mm_stack);
+  swg_align_match_int16_simd128(key_enc,key_length,&swg_query_profile,&swg_penalties,
+      &match_position,text_enc,text_length,true,true,cigar_vector,&cigar_length,
+      &effective_length,&alignment_score,mm_stack);
+//  swg_align_match_int16_simd128(key_enc,key_length,&swg_query_profile,&swg_penalties,
+//      &match_position,text_enc,text_length,true,true,cigar_vector,&cigar_length,
 //      &effective_length,&alignment_score,mm_stack);
-//  vector_delete(cigar_vector);
+  // Free
+  vector_delete(cigar_vector);
 }
 /*
  * Generic Menu

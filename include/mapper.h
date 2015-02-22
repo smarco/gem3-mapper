@@ -171,7 +171,26 @@ GEM_INLINE void mapper_parameters_print(FILE* const stream,mapper_parameters_t* 
 GEM_INLINE void mapper_load_index(mapper_parameters_t* const parameters);
 
 /*
- * I/O
+ * Input
+ */
+GEM_INLINE void mapper_PE_prepare_io_buffers(
+    const mapper_parameters_t* const parameters,const uint64_t input_buffer_lines,
+    buffered_input_file_t** const buffered_fasta_input_end1,
+    buffered_input_file_t** const buffered_fasta_input_end2,
+    buffered_output_file_t* const buffered_output_file);
+GEM_INLINE uint64_t mapper_PE_reload_buffers(
+    const mapper_parameters_t* const parameters,
+    buffered_input_file_t* const buffered_fasta_input_end1,
+    buffered_input_file_t* const buffered_fasta_input_end2);
+GEM_INLINE error_code_t mapper_PE_parse_paired_sequences(
+    const mapper_parameters_t* const parameters,
+    buffered_input_file_t* const buffered_fasta_input_end1,
+    buffered_input_file_t* const buffered_fasta_input_end2,
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2);
+
+/*
+ * Output
  */
 GEM_INLINE void mapper_SE_output_matches(
     const mapper_parameters_t* const parameters,
@@ -191,6 +210,25 @@ GEM_INLINE void mapper_SE_run(mapper_parameters_t* const mapper_parameters);
  * PE Mapper
  */
 GEM_INLINE void mapper_PE_run(mapper_parameters_t* const mapper_parameters);
+
+/*
+ * Error Messages
+ */
+#define GEM_ERROR_MAPPER_PE_PARSE_UNSYNCH_INPUT_FILES_PAIR "Parsing Input Files. Files '%s,%s' doesn't contain the same number of reads (cannot pair)"
+#define GEM_ERROR_MAPPER_PE_PARSE_UNSYNCH_INPUT_FILES_SINGLE "Parsing Input File. File '%s' doesn't contain a pair number of reads (cannot pair)"
+
+/*
+ * Error Macros
+ */
+#define MAPPER_ERROR_PE_PARSE_UNSYNCH_INPUT_FILES(mapper_parameters) \
+  if (mapper_parameters->io.separated_input_files) { \
+    gem_fatal_error(MAPPER_PE_PARSE_UNSYNCH_INPUT_FILES_PAIR, \
+        input_file_get_file_name(mapper_parameters->input_file_end1), \
+        input_file_get_file_name(mapper_parameters->input_file_end2)); \
+  } else { \
+    gem_fatal_error(MAPPER_PE_PARSE_UNSYNCH_INPUT_FILES_SINGLE, \
+        input_file_get_file_name(mapper_parameters->input_file)); \
+  }
 
 
 #endif /* MAPPER_H_ */

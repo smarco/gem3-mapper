@@ -74,14 +74,19 @@ GEM_INLINE void mm_stack_push_state(mm_stack_t* const mm_stack);
 GEM_INLINE void mm_stack_pop_state(mm_stack_t* const mm_stack,const bool reap_segments);
 
 /*
+ * Align stack memory
+ */
+GEM_INLINE void mm_stack_skip_align(mm_stack_t* const mm_stack,const uint64_t num_bytes);
+
+/*
  * Allocators
  */
 GEM_INLINE void* mm_stack_memory_allocate(mm_stack_t* const mm_stack,const uint64_t num_bytes,const bool zero_mem);
 GEM_INLINE void mm_stack_free(mm_stack_t* const mm_stack);
 
 #define mm_stack_alloc(mm_stack,type)                         ((type*)mm_stack_memory_allocate(mm_stack,sizeof(type),false))
-#define mm_stack_malloc(mm_stack,num_bytes)                   (       mm_stack_memory_allocate(mm_stack,num_bytes,false))
-#define mm_stack_calloc(mm_stack,num_elements,type,clear_mem) ((type*)mm_stack_memory_allocate(mm_stack,num_elements*sizeof(type),clear_mem))
+#define mm_stack_malloc(mm_stack,num_bytes)                   (       mm_stack_memory_allocate(mm_stack,(num_bytes),false))
+#define mm_stack_calloc(mm_stack,num_elements,type,clear_mem) ((type*)mm_stack_memory_allocate(mm_stack,(num_elements)*sizeof(type),clear_mem))
 
 #define mm_stack_malloc_uint64(mm_stack) mm_stack_malloc(mm_stack,sizeof(uint64_t))
 #define mm_stack_malloc_uint32(mm_stack) mm_stack_malloc(mm_stack,sizeof(uint32_t))

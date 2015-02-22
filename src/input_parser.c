@@ -372,14 +372,14 @@ GEM_INLINE error_code_t input_text_parse_tag(
       char* const casava_tag_begin = *text_line;
       switch (casava_tag_begin[0]) {
         case '1':
-          attributes->end_info = PAIRED_END1;
+          attributes->end_info = paired_end1;
           break;
         case '2':
         case '3':
-          attributes->end_info = PAIRED_END2;
+          attributes->end_info = paired_end2;
           break;
         default:
-          attributes->end_info = SINGLE_END;
+          attributes->end_info = single_end;
           break;
       }
       PARSER_READ_UNTIL(text_line,**text_line==TAB || **text_line==SPACE);
@@ -401,7 +401,7 @@ GEM_INLINE error_code_t input_text_parse_tag(
      *       @SRR384920.1_HWI-ST382_0049:1:1:1217:1879
      */
     const sequence_end_t end_info = input_text_parse_tag_chomp_pairend_info(&attributes->extra_tag);
-    if (end_info==PAIRED_END1 || end_info==PAIRED_END2) {
+    if (end_info==paired_end1 || end_info==paired_end2) {
       // Append to the tag an '_' plus the extra information
       string_append_char(tag,UNDERSCORE);
       string_append_string(tag,&attributes->extra_tag);
@@ -429,16 +429,16 @@ GEM_INLINE uint64_t input_text_parse_tag_chomp_pairend_info(string_t* const tag)
     switch (*string_char_at(tag,tag_length-1)) {
       case '1':
         string_set_length(tag,tag_length-2);
-        return PAIRED_END1;
+        return paired_end1;
         break;
       case '2':
       case '3':
         string_set_length(tag,tag_length-2);
-        return PAIRED_END2;
+        return paired_end2;
         break;
       default:
         break;
     }
   }
-  return SINGLE_END;
+  return single_end;
 }

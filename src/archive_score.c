@@ -57,8 +57,8 @@ GEM_INLINE void archive_score_matches_pe_sm(
   // Switch alignment model
   const search_parameters_t* const search_parameters = archive_search_end1->search_actual_parameters.search_parameters;
   if (search_parameters->alignment_model == alignment_model_gap_affine) {
-    matches_t* const matches_end1 = paired_matches_end1(paired_matches);
-    matches_t* const matches_end2 = paired_matches_end2(paired_matches);
+    matches_t* const matches_end1 = paired_matches->matches_end1;
+    matches_t* const matches_end2 = paired_matches->matches_end2;
     // Score end1
     archive_score_matches_se_sm(archive_search_end1,matches_end1);
     // Score end2
@@ -218,6 +218,7 @@ GEM_INLINE void archive_score_matches_pe_heath(
  */
 GEM_INLINE void archive_score_matches_se(
     archive_search_t* const archive_search,matches_t* const matches) {
+  PROF_START(GP_ARCHIVE_SCORE_MATCHES);
   switch (archive_search->select_parameters->mapq_model) {
     case mapq_model_none:
       break;
@@ -237,6 +238,7 @@ GEM_INLINE void archive_score_matches_se(
       GEM_INVALID_CASE();
       break;
   }
+  PROF_STOP(GP_ARCHIVE_SCORE_MATCHES);
 }
 /*
  * PE Scoring
@@ -244,6 +246,7 @@ GEM_INLINE void archive_score_matches_se(
 GEM_INLINE void archive_score_matches_pe(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches) {
+  PROF_START(GP_ARCHIVE_SCORE_MATCHES);
   switch (archive_search_end1->select_parameters->mapq_model) {
     case mapq_model_none:
       break;
@@ -263,4 +266,5 @@ GEM_INLINE void archive_score_matches_pe(
       GEM_INVALID_CASE();
       break;
   }
+  PROF_STOP(GP_ARCHIVE_SCORE_MATCHES);
 }

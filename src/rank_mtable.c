@@ -213,7 +213,6 @@ GEM_INLINE void rank_mtable_fetch(
     uint64_t* const lo,uint64_t* const hi) {
   RANK_MTABLE_CHECK(rank_mtable);
   RANK_MQUERY_CHECK(query);
-  // RANK_MTABLE_QUERY_CHECK(rank_table,); // TODO
   *hi = rank_mtable->sa_ranks_levels[query->level][query->hi_position];
   *lo = rank_mtable->sa_ranks_levels[query->level][query->hi_position-1];
 }

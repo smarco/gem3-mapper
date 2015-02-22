@@ -51,11 +51,16 @@ GEM_INLINE double COUNTER_GET_MEAN(const gem_counter_t* const counter);
 GEM_INLINE double COUNTER_GET_VARIANCE(const gem_counter_t* const counter);
 GEM_INLINE double COUNTER_GET_STDDEV(const gem_counter_t* const counter);
 
-GEM_INLINE void COUNTER_COMBINE(gem_counter_t* const counter_dst,gem_counter_t* const counter_src);
+GEM_INLINE void COUNTER_COMBINE_MAX(gem_counter_t* const counter_dst,gem_counter_t* const counter_src);
+GEM_INLINE void COUNTER_COMBINE_MIN(gem_counter_t* const counter_dst,gem_counter_t* const counter_src);
+GEM_INLINE void COUNTER_COMBINE_MEAN(gem_counter_t* const counter_dst,gem_counter_t* const counter_src);
 
 GEM_INLINE void COUNTER_PRINT(
     FILE* const stream,const gem_counter_t* const counter,
     const gem_counter_t* const ref_counter,const char* const units,const bool full_report);
+GEM_INLINE void SAMPLER_PRINT(
+    FILE* const stream,const gem_counter_t* const counter,
+    const gem_counter_t* const ref_counter,const char* const units);
 GEM_INLINE void PERCENTAGE_PRINT(FILE* const stream,const gem_counter_t* const counter);
 
 /*

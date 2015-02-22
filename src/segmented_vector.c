@@ -145,7 +145,7 @@ GEM_INLINE void svector_write(fm_t* const file_manager,svector_t* const svector)
   VECTOR_ITERATE(svector->segments,segment,position,vector_segment_t) {
     if (pending_elements > svector->elements_per_segment) {
       // Write the whole segment
-      fm_write_mem(file_manager,segment->memory,svector->segment_size);
+      fm_write_mem(file_manager,segment->memory,svector->elements_per_segment*svector->element_size);
       pending_elements -= svector->elements_per_segment;
     } else {
       // Write the remaining part of the vector

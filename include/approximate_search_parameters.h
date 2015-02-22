@@ -16,12 +16,17 @@
 
 // Approximate Search Internals
 typedef enum {
-  mapping_incremental_mapping,
-  mapping_adaptive_filtering,
-  mapping_fixed_filtering,
-  mapping_fast,
-  mapping_neighborhood_search
+  mapping_adaptive_filtering_fast,     // Fast Adaptive Filtering (First filtering stage)
+  mapping_adaptive_filtering_match,    // Adaptive Filtering until a match is found (Never going into full-NS)
+  mapping_adaptive_filtering_complete, // Full search (From Adaptive Filtering to Pure Neighborhood Search)
+  mapping_neighborhood_search,         // Pure Neighborhood Search (brute-force)
+  mapping_lab_testing                  // Debug/Testing
 } mapping_mode_t;
+typedef enum {
+  paired_mapping_map_both_ends,
+  paired_mapping_paired_filtering,
+  paired_mapping_map_extension
+} paired_mapping_mode_t;
 typedef enum {
   pair_layout_separate,
   pair_layout_overlap,
@@ -53,6 +58,8 @@ typedef struct {
   /* Error Model (Regulates the number of Mismatch/Indels) */
   float max_search_error;
   float max_filtering_error;
+  float max_filtering_strata_after_best;
+  float max_bandwidth;
   float complete_strata_after_best;
   float min_matching_length;
   /* Matches search (Regulates the number of matches) */
@@ -73,10 +80,11 @@ typedef struct {
    */
   /* Paired-end mode/alg */
   bool paired_end;
-  bool map_both_ends;
+  paired_mapping_mode_t paired_mapping_mode;
   pair_discordant_search_t pair_discordant_search;
   uint64_t max_extendable_candidates;
   uint64_t max_matches_per_extension;
+  uint64_t min_unique_pair_samples;
   /* Template allowed length */
   uint64_t min_template_length;
   uint64_t max_template_length;
@@ -93,11 +101,11 @@ typedef struct {
   /*
    * Internals
    */
-  /* Soft Region-Profile */
-  region_profile_model_t rp_soft;
-  /* Hard Region-Profile */
-  region_profile_model_t rp_hard;
-  /* Recovery Region-Profile */
+  /* Region-Minimal Profile */
+  region_profile_model_t rp_minimal;
+  /* Region-Delimit Profile */
+  region_profile_model_t rp_delimit;
+  /* Region-Recovery Profile */
   region_profile_model_t rp_recovery;
   /* Filtering parameters */
   uint64_t filtering_threshold;
@@ -115,10 +123,12 @@ typedef struct {
   /* Mapping strategy (Mapping mode + properties) */
   uint64_t filtering_degree_nominal;
   /* Error Model (Regulates the number of Mismatch/Indels) */
-  uint64_t max_search_error_nominal;           // Maximum number of error/differences while searching (edit distance)
-  uint64_t max_filtering_error_nominal;        // Maximum tolerated error at filtering (verifying candidates)
-  uint64_t complete_strata_after_best_nominal; // Maximum complete strata from first matching stratum
-  uint64_t min_matching_length_nominal;        // Minimum mapping segment size (verifying candidates)
+  uint64_t max_search_error_nominal;                // Maximum number of error/differences while searching (edit distance)
+  uint64_t max_filtering_error_nominal;             // Maximum tolerated error at filtering (verifying candidates)
+  uint64_t max_filtering_strata_after_best_nominal; // Maximum distance allow from the first matching stratum (at filtering)
+  uint64_t max_bandwidth_nominal;                   // Maximum band allowed
+  uint64_t complete_strata_after_best_nominal;      // Maximum complete strata from the first matching stratum
+  uint64_t min_matching_length_nominal;             // Minimum mapping segment size (verifying candidates)
 } search_actual_parameters_t;
 
 /*
@@ -133,9 +143,9 @@ GEM_INLINE void approximate_search_configure_quality_model(
     search_parameters_t* const search_parameters,
     const quality_model_t quality_model,const quality_format_t quality_format,const uint64_t quality_threshold);
 GEM_INLINE void approximate_search_configure_error_model(
-    search_parameters_t* const search_parameters,
-    float max_search_error,float max_filtering_error,
-    float complete_strata_after_best,float min_matching_length);
+    search_parameters_t* const search_parameters,float max_search_error,
+    float max_filtering_error,float max_filtering_strata_after_best,
+    float max_bandwidth,float complete_strata_after_best,float min_matching_length);
 GEM_INLINE void approximate_search_configure_matches(
     search_parameters_t* const search_parameters,const uint64_t max_search_matches);
 GEM_INLINE void approximate_search_configure_replacements(
@@ -150,9 +160,6 @@ GEM_INLINE void approximate_search_configure_alignment_match_scores(
     search_parameters_t* const search_parameters,const uint64_t matching_score);
 GEM_INLINE void approximate_search_configure_alignment_mismatch_scores(
     search_parameters_t* const search_parameters,const uint64_t mismatch_penalty);
-GEM_INLINE void approximate_search_configure_alignment_gap_scores(
-    search_parameters_t* const search_parameters,
-    const uint64_t gap_open_penalty,const uint64_t gap_extension_penalty);
 
 GEM_INLINE void approximate_search_instantiate_values(
     search_actual_parameters_t* const search_actual_parameters,const uint64_t pattern_length);
@@ -163,37 +170,3 @@ GEM_INLINE void approximate_search_instantiate_values(
 #define GEM_ERROR_ASP_REPLACEMENT_EMPTY "Approximate Search Parameters. Valid replacements set cannot be empty"
 
 #endif /* APPROXIMATE_SEARCH_PARAMETERS_H_ */
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-//typedef struct {
-//  ch_t *forward_key;
-//  ch_t *reverse_key;
-//  uint64_t key_len;
-//  ch_t *mismatch_mask;
-//  direction_t search_direction;
-//  /* Mismatch constraints */
-//  uint64_t max_distance;
-//  uint64_t min_ins_size;
-//  uint64_t max_ins_size;
-//  uint64_t base_key_len;
-//  uint64_t max_extended_matches;
-//  uint64_t min_anchor_size;
-//  bool check_duplicates;
-//  uint64_t unique_pairing;
-//  /* Replacements */
-//  slch_t repls[CH_T_RANGE];
-//  uint64_t repls_len;
-//  bool allowed_chars[CH_T_RANGE];
-//  bool allowed_repl[CH_T_RANGE];
-//  uint64_t num_wildcards;
-//  /* Bit vector for Myers-DP */
-//  uint64_t *forward_peq;
-//  uint64_t *reverse_peq;
-//  /* Key tracking id */
-//  uint64_t key_id;
-//  /* Internals */
-//  uint64_t check_alignments;
-//} fm_asm_pe_extend_parameters;

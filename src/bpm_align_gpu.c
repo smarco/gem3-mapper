@@ -53,7 +53,7 @@
 GEM_INLINE bpm_gpu_buffer_collection_t* bpm_gpu_init(
     dna_text_t* const enc_text,const uint32_t num_buffers,const uint32_t buffer_size,
     const int32_t average_query_size,const int32_t candidates_per_query,const bool verbose) {
-  GEM_CHECK_POSITIVE(average_query_size); // TODO More checkers here
+  GEM_CHECK_POSITIVE(average_query_size);
   GEM_CHECK_POSITIVE(candidates_per_query);
   PROF_START(GP_BPM_GPU_INIT);
   // Allocate Buffer Collection
@@ -80,7 +80,7 @@ GEM_INLINE bpm_gpu_buffer_collection_t* bpm_gpu_init(
 #endif
   }
   // Display
-  if (verbose) { // FIXME: might be variable
+  if (verbose) {
     const uint64_t max_queries = bpm_gpu_buffer_get_max_queries_(buffer_collection->bpm_gpu_buffers->buffer);
     const uint64_t max_PEQ_entries = bpm_gpu_buffer_get_max_peq_entries_(buffer_collection->bpm_gpu_buffers->buffer);
     const uint64_t max_candidates = bpm_gpu_buffer_get_max_candidates_(buffer_collection->bpm_gpu_buffers->buffer);

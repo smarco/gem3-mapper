@@ -159,7 +159,7 @@ GEM_INLINE char* input_file_get_nonull_file_name(input_file_t* const input_file)
 }
 GEM_INLINE char* input_file_get_file_name(input_file_t* const input_file) {
   INPUT_FILE_CHECK(input_file);
-  char* const file_name = input_file_get_file_name(input_file);
+  char* const file_name = input_file_get_nonull_file_name(input_file);
   return (file_name!=NULL) ? file_name : STREAM_FILE_NAME;
 }
 GEM_INLINE uint64_t input_file_get_size(input_file_t* const input_file) {
@@ -385,8 +385,7 @@ GEM_INLINE uint64_t input_file_reload_buffer(
   }
   (*input_buffer)->block_id = input_file_get_next_id(input_file);
   (*input_buffer)->current_line_num = input_file->processed_lines+1;
-  (*input_buffer)->lines_in_buffer =
-      input_file_get_lines(input_file,(*input_buffer)->block_buffer,num_lines);
+  (*input_buffer)->lines_in_buffer = input_file_get_lines(input_file,(*input_buffer)->block_buffer,num_lines);
   input_file_unlock(input_file);
   // Setup the block
   (*input_buffer)->cursor = vector_get_mem((*input_buffer)->block_buffer,char);

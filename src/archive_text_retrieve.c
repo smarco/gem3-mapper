@@ -175,9 +175,13 @@
 //
 //
 //}
+
+/*
+ * Archive Text Retriever
+ */
 GEM_INLINE uint64_t archive_text_retrieve(
-    const locator_t* const locator,graph_text_t* const graph,const dna_text_t* const enc_text,
-    text_collection_t* const text_collection,const uint64_t text_position,const uint64_t length,
+    const archive_t* const archive,text_collection_t* const text_collection,
+    const uint64_t index_position,const uint64_t length,const bool reverse_complement_text,
     uint64_t* const text_trace_first_offset,mm_stack_t* const mm_stack) {
   // Allocate text-trace
   const uint64_t text_trace_offset = text_collection_new_trace(text_collection);
@@ -185,14 +189,21 @@ GEM_INLINE uint64_t archive_text_retrieve(
   // Retrieve sequence
   text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
   text_trace->length = length;
-  text_trace->text = dna_text_retrieve_sequence(enc_text,text_position,text_trace->length,mm_stack);
-  // [[ TODO GRAPH COMPILANT]]
+  text_trace->text = dna_text_retrieve_sequence(archive->enc_text,index_position,text_trace->length,mm_stack);
+  // Reverse-Complement
+  if (reverse_complement_text) {
+    // Allocate memory for the RC-text
+    const uint8_t* const text = text_trace->text;
+    text_trace->text = mm_stack_calloc(mm_stack,length,uint8_t,false);
+    // Reverse-Complement the text
+    uint64_t i_forward, i_backward;
+    for (i_forward=0,i_backward=length-1;i_forward<length;++i_forward,--i_backward) {
+      text_trace->text[i_forward] = dna_encoded_complement(text[i_backward]);
+    }
+  }
+  // [[ TODO GRAPH COMPILANT ]]
   // Return
   return 1; // Number of traces retrieved
 }
-
-
-
-
 
 

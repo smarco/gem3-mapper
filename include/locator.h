@@ -30,7 +30,11 @@ typedef struct {
   uint64_t offset;
 } locator_tag_t;
 // Interval-Locator (Stored into the index)
-typedef enum { locator_interval_regular, locator_interval_unknown, locator_interval_variant } locator_interval_type;
+typedef enum {
+  locator_interval_regular = 0,
+  locator_interval_unknown = 1,
+  locator_interval_variant = UINT64_MAX
+} locator_interval_type;
 typedef struct {
   /*
    * Interval type

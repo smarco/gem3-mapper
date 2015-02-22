@@ -19,7 +19,7 @@ GEM_INLINE void sequence_init(sequence_t* const sequence) {
   string_init(&sequence->tag,SEQUENCE_TAG_INITIAL_LENGTH);
   string_init(&sequence->read,SEQUENCE_INITIAL_LENGTH);
   string_init(&sequence->qualities,SEQUENCE_INITIAL_LENGTH);
-  sequence->attributes.end_info = SINGLE_END;
+  sequence->attributes.end_info = single_end;
   string_init(&sequence->attributes.casava_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH);
   string_init(&sequence->attributes.extra_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH);
 }
@@ -27,7 +27,7 @@ GEM_INLINE void sequence_init_mm(sequence_t* const sequence,mm_stack_t* const mm
   string_init_mm(&sequence->tag,SEQUENCE_TAG_INITIAL_LENGTH,mm_stack);
   string_init_mm(&sequence->read,SEQUENCE_INITIAL_LENGTH,mm_stack);
   string_init_mm(&sequence->qualities,SEQUENCE_INITIAL_LENGTH,mm_stack);
-  sequence->attributes.end_info = SINGLE_END;
+  sequence->attributes.end_info = single_end;
   string_init_mm(&sequence->attributes.casava_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH,mm_stack);
   string_init_mm(&sequence->attributes.extra_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH,mm_stack);
 }
@@ -36,7 +36,7 @@ GEM_INLINE void sequence_clear(sequence_t* const sequence) {
   string_clear(&sequence->tag);
   string_clear(&sequence->read);
   string_clear(&sequence->qualities);
-  sequence->attributes.end_info = SINGLE_END;
+  sequence->attributes.end_info = single_end;
   string_clear(&sequence->attributes.casava_tag);
   string_clear(&sequence->attributes.extra_tag);
 }

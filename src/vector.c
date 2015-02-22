@@ -31,7 +31,9 @@ GEM_INLINE void vector_reserve(vector_t* const vector,const uint64_t num_element
     const uint64_t proposed=(float)vector->elements_allocated*VECTOR_EXPAND_FACTOR;
     vector->elements_allocated=num_elements>proposed?num_elements:proposed;
     vector->memory=mm_realloc_nothrow(vector->memory,vector->elements_allocated*vector->element_size);
-    gem_cond_fatal_error(!vector->memory,VECTOR_RESERVE,vector->elements_allocated*vector->element_size);
+    if (!vector->memory) {
+      gem_cond_fatal_error(!vector->memory,VECTOR_RESERVE,vector->elements_allocated*vector->element_size);
+    }
   }
   if (gem_expect_false(zero_mem)) {
     memset(vector->memory+vector->used*vector->element_size,0,(vector->elements_allocated-vector->used)*vector->element_size);
@@ -69,6 +71,9 @@ GEM_INLINE void vector_delete(vector_t* const vector) {
 GEM_INLINE void* vector_get_mem_element(vector_t* const vector,const uint64_t position,const uint64_t element_size) {
   VECTOR_CHECK(vector);
   GEM_CHECK_ZERO(element_size);
+  if (position>=(vector)->used||position<0) {
+    VECTOR_RANGE_CHECK(vector,position);
+  }
   VECTOR_RANGE_CHECK(vector,position);
   return vector->memory+(position*element_size);
 }

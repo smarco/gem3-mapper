@@ -21,16 +21,24 @@ typedef struct {
 } swg_cell_t;
 typedef int32_t matching_score_t[DNA__N_RANGE][DNA__N_RANGE];
 typedef struct {
-  int32_t gap_open_penalty;
-  int32_t gap_extension_penalty;
+  int32_t gap_open_score;
+  int32_t gap_extension_score;
   int32_t generic_match_score;
   int32_t generic_mismatch_score;
   matching_score_t matching_score;
 } swg_penalties_t;
 typedef struct {
+  // 8-bits cells
+  uint8_t match_bias_uint8;  // Query Profile Bias
+  uint8_t matrix_bias_uint8; // Full matrix Bias
+  bool overflow_uint8;
+  uint64_t segment_length_uint8;
+  uint64_t key_effective_length_uint8;
   uint8_t* query_profile_uint8[DNA__N_RANGE];
+  // 16-bits cells
+  uint64_t segment_length_int16;
+  uint64_t key_effective_length_int16;
   int16_t* query_profile_int16[DNA__N_RANGE];
-  uint8_t weight_bias;
 } swg_query_profile_t;
 
 /*
@@ -50,35 +58,43 @@ GEM_INLINE int64_t align_levenshtein_get_distance(
     const bool ends_free,uint64_t* const position);
 
 /*
- * Compile SWG Query Profile
+ * Init SWG Query Profile
  */
-GEM_INLINE void swg_compile_query_profile(
+GEM_INLINE void swg_init_query_profile(
+    swg_query_profile_t* const swg_query_profile,const swg_penalties_t* swg_penalties,
+    const uint64_t max_expected_key_length,mm_stack_t* const mm_stack);
+GEM_INLINE bool swg_compile_query_profile_uint8(
+    swg_query_profile_t* const swg_query_profile,const swg_penalties_t* swg_penalties,
+    const uint8_t* const key,const uint64_t key_length,mm_stack_t* const mm_stack);
+GEM_INLINE bool swg_compile_query_profile_int16(
     swg_query_profile_t* const swg_query_profile,const swg_penalties_t* swg_penalties,
     const uint8_t* const key,const uint64_t key_length,mm_stack_t* const mm_stack);
 
 /*
  * Smith-waterman-gotoh Alignment
  */
-GEM_INLINE void swg_align_match(
-    const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
-    const swg_penalties_t* swg_penalties,uint64_t* const match_position,uint8_t* const text,
-    const uint64_t text_length,uint64_t max_bandwidth,const bool begin_free,const bool end_free,
+GEM_INLINE void swg_align_match_base(
+    const uint8_t* const key,const uint64_t key_length,const swg_penalties_t* swg_penalties,
+    uint64_t* const match_position,uint8_t* const text,const uint64_t text_length,
     vector_t* const cigar_buffer,uint64_t* const cigar_length,int64_t* const effective_length,
     int32_t* const alignment_score,mm_stack_t* const mm_stack);
+GEM_INLINE void swg_align_match(
+    const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
+    const swg_query_profile_t* const swg_query_profile,const swg_penalties_t* swg_penalties,
+    uint64_t* const match_position,uint8_t* const text,uint64_t text_length,
+    const uint64_t max_bandwidth,const bool begin_free,const bool end_free,vector_t* const cigar_buffer,
+    uint64_t* const cigar_length,int64_t* const effective_length,int32_t* const alignment_score,
+    mm_stack_t* const mm_stack);
 
 /*
  * TMP
  */
-GEM_INLINE void swg_align_match_full_32b(
-    const uint8_t* const key,const uint64_t key_length,const swg_penalties_t* swg_penalties,
-    uint64_t* const match_position,uint8_t* const text,const uint64_t text_length,
-    vector_t* const cigar_buffer,uint64_t* const cigar_length,int64_t* const effective_length,
-    int32_t* const alignment_score,mm_stack_t* const mm_stack);
-GEM_INLINE void swg_align_match_banded_32b(
-    const uint8_t* const key,const uint64_t key_length,const swg_penalties_t* swg_penalties,
-    uint64_t* const match_position,uint8_t* const text,const uint64_t text_length,
-    uint64_t max_bandwidth,const bool begin_free,const bool end_free,
-    vector_t* const cigar_buffer,uint64_t* const cigar_length,int64_t* const effective_length,
-    int32_t* const alignment_score,mm_stack_t* const mm_stack);
+GEM_INLINE void swg_align_match_int16_simd128(
+    const uint8_t* const key,const uint64_t key_length,swg_query_profile_t* const swg_query_profile,
+    const swg_penalties_t* swg_penalties,uint64_t* const match_position,uint8_t* const text,
+    const uint64_t text_length,const bool begin_free,const bool end_free,vector_t* const cigar_buffer,
+    uint64_t* const cigar_length,int64_t* const effective_length,int32_t* const alignment_score,
+    mm_stack_t* const mm_stack);
+
 
 #endif /* SWG_ALIGN_H_ */

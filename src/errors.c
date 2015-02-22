@@ -14,18 +14,20 @@
 #ifdef GEM_DEBUG
 #include <execinfo.h>
 #include <stdlib.h>
-
 #define STACK_TRACE_SIZE 15
-
+pthread_mutex_t gem_print_stack_trace_mutex = PTHREAD_MUTEX_INITIALIZER;
 void gem_print_stack_trace() {
-  void *stack[STACK_TRACE_SIZE];
-  size_t size = backtrace(stack,STACK_TRACE_SIZE);
-  fprintf(stderr,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
-  fprintf(stderr,"<GEM::StackTrace>\n");
-  backtrace_symbols_fd(stack,size,2);
-  fprintf(stderr,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+  pthread_mutex_lock(&gem_print_stack_trace_mutex);
+  {
+    void *stack[STACK_TRACE_SIZE];
+    size_t size = backtrace(stack,STACK_TRACE_SIZE);
+    fprintf(stderr,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+    fprintf(stderr,"<GEM::StackTrace>\n");
+    backtrace_symbols_fd(stack,size,2);
+    fprintf(stderr,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+  }
+  pthread_mutex_unlock(&gem_print_stack_trace_mutex);
 }
-
 #else
 void gem_print_stack_trace() {}
 #endif
@@ -50,8 +52,8 @@ void gem_error_signal_handler(int signal) {
       fprintf(stderr,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
       fflush(error_stream);
     }
-  pthread_mutex_unlock(&gem_error_signal_handler_mutex);
   exit(1);
+  // pthread_mutex_unlock(&gem_error_signal_handler_mutex);
 }
 void gem_handle_error_signals() {
   struct sigaction error_signal_handler;

@@ -14,27 +14,16 @@
 #include "interval_set.h"
 
 /*
- * TLS related structures
+ * PROF
  */
-//typedef struct {
-//  idx_t lo;
-//  idx_t hi;
-//  idx_t misms;
-//} interval_t;
-//typedef struct {
-//  idx_t lo;
-//  idx_t hi;
-//} basic_interval_t;
-//typedef struct {
-//  idx_t begin;
-//  idx_t count;
-//  idx_t state;
-//} group_intervals_t;
+extern gem_counter_t _ns_nodes_closed_depth;
 
-// GEM_INLINE uint64_t neighborhood_search();
-
+/*
+ * Neighborhood Search
+ */
 GEM_INLINE void neighborhood_search(
-    const fm_index_t* const fm_index,const uint8_t* const key,const uint64_t length,
-    const uint64_t max_error,interval_set_t* const intervals_result,mm_stack_t* const mm_stack);
+    fm_index_t* const fm_index,
+    uint8_t* const key,const uint64_t key_length,const uint64_t max_error,
+    interval_set_t* const intervals_result,mm_stack_t* const mm_stack);
 
 #endif /* NEIGHBORHOOD_SEARCH_H_ */

@@ -10,6 +10,11 @@
 #include "mapper_profile.h"
 
 /*
+ * Debug
+ */
+#define REGION_PROFILE_DEBUG_PRINT_PROFILE false
+
+/*
  * Setup
  */
 GEM_INLINE void region_profile_new(
@@ -25,7 +30,7 @@ GEM_INLINE void region_profile_new(
   region_profile->search_region = mm_stack_calloc(mm_stack,pattern_length,region_search_t,false);
   region_profile->num_search_regions = 0;
   // Region Partition Properties
-  region_profile->misms_required = 0;
+  region_profile->errors_allowed = 0;
   // Locator for region sorting
   region_profile->loc = mm_stack_calloc(mm_stack,pattern_length,region_locator_t,false);
 }
@@ -141,6 +146,7 @@ GEM_INLINE void region_profile_generate_adaptive(
     const region_profile_model_t* const profile_model,
     const uint64_t max_regions,const bool allow_zero_regions) {
   PROF_START(GP_REGION_PROFILE_ADAPTIVE);
+  const uint64_t rank_mquery_min_fetch_level = 0; // fm_index->proper_length/2; // FIXME => Change index
   const uint64_t rp_region_th = profile_model->region_th;
   const uint64_t rp_max_steps = profile_model->max_steps;
   const uint64_t rp_dec_factor = profile_model->dec_factor;
@@ -148,6 +154,15 @@ GEM_INLINE void region_profile_generate_adaptive(
   region_search_t* const regions = region_profile->filtering_region;
   uint64_t num_regions = 0, num_standard_regions = 0, last_cut = 0;
   uint64_t lo, hi, hi_cut=0, lo_cut=0, expected_count, max_steps;
+
+  // DEBUG
+  gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
+    static uint64_t region_profile_num = 0;
+    fprintf(stderr,"[%lu]",region_profile_num++);
+    uint64_t i;
+    for (i=0;i<pattern->key_length;++i) fprintf(stderr,"%c",dna_decode(pattern->key[i]));
+    fprintf(stderr,"\n");
+  }
 
   // Prepare rank_query
   const rank_mtable_t* const rank_mtable = fm_index->rank_table;
@@ -161,7 +176,6 @@ GEM_INLINE void region_profile_generate_adaptive(
   REGION_RESTART(key_len);
   while (key_len > 0) {
     --key_len;
-
     // Handling wildcards
     if (!allowed_enc[key[key_len]]) {
       if (last_cut != 0) REGION_CLOSE(key_len+1,lo,hi);
@@ -172,17 +186,24 @@ GEM_INLINE void region_profile_generate_adaptive(
 
     // Rank query
     const uint8_t enc_char = key[key_len];
-    if (!rank_mquery_is_exhausted(&rank_mquery)
-        /* && lookupLevel > MIN_LOOKUP_FETCH(properLength/4) TODO */) {
+    if (!rank_mquery_is_exhausted(&rank_mquery)) {
       rank_mquery_add_char(rank_mtable,&rank_mquery,enc_char);
-      rank_mtable_fetch(rank_mtable,&rank_mquery,&lo,&hi);
+      if (rank_mquery.level > rank_mquery_min_fetch_level) {
+        rank_mtable_fetch(rank_mtable,&rank_mquery,&lo,&hi);
+      }
     } else {
-      lo = bwt_erank(fm_index->bwt,enc_char,lo);
-      hi = bwt_erank(fm_index->bwt,enc_char,hi);
+      if (gem_expect_false(bwt_is_same_bucket(lo,hi))) {
+        bwt_erank_interval(fm_index->bwt,enc_char,lo,hi,&lo,&hi);
+      } else {
+        lo = bwt_erank(fm_index->bwt,enc_char,lo);
+        hi = bwt_erank(fm_index->bwt,enc_char,hi);
+      }
     }
-
     // Determine region scope
     const uint64_t num_candidates = hi-lo;
+    gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
+      fprintf(stderr," %lu",num_candidates);
+    }
     if (gem_expect_true(num_candidates > rp_region_th)) continue;
 
     // Check number of candidates (any or none)
@@ -221,7 +242,6 @@ GEM_INLINE void region_profile_generate_adaptive(
       REGION_RESTART(key_len);
     }
   }
-
   // Check number of regions
   if (num_regions == 0) {
     if (regions[0].start == pattern->key_length) {
@@ -243,7 +263,9 @@ GEM_INLINE void region_profile_generate_adaptive(
       region_profile_extend_last_region(region_profile,fm_index,pattern,allowed_enc,rp_region_type_th);
     }
   }
-
+  gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
+    fprintf(stderr,"\n");
+  }
   PROF_STOP(GP_REGION_PROFILE_ADAPTIVE);
 }
 GEM_INLINE void region_profile_generate_full_progressive(
@@ -301,17 +323,11 @@ GEM_INLINE void region_profile_schedule_exact_filtering(
 /*
  * Region Profile Utils
  */
+int region_profile_locator_cmp(const region_locator_t* const a,const region_locator_t* const b) {
+  return (int)a->value - (int)b->value;
+}
 GEM_INLINE void region_profile_locator_sort(region_locator_t* const loc,const uint64_t num_regions) {
-  // Very simple sort function for region locator based on its value
-  int64_t i, j;
-  region_locator_t elm;
-  for (i=1; i<num_regions; ++i) {
-    elm = loc[i]; j=i-1;
-    while (j>=0 && (elm.value > loc[j].value)) {
-      loc[j+1] = loc[j]; --j;
-    }
-    if (j<i-1) loc[j+1] = elm;
-  }
+  qsort(loc,num_regions,sizeof(region_locator_t),(int (*)(const void *,const void *))region_profile_locator_cmp);
 }
 GEM_INLINE void region_profile_sort_by_estimated_mappability(region_profile_t* const region_profile) {
   // Sort the regions w.r.t to the number of candidates
@@ -322,7 +338,8 @@ GEM_INLINE void region_profile_sort_by_estimated_mappability(region_profile_t* c
   for (i=0;i<num_regions;++i) {
     loc[i].id = i;
     loc[i].value = (filtering_region[i].type == region_standard) ?
-        filtering_region[i].start-filtering_region[i].end : 0;
+        (filtering_region[i].start-filtering_region[i].end)<<16 :
+        (filtering_region[i].end-filtering_region[i].start);
   }
   region_profile_locator_sort(loc,num_regions);
 }
@@ -383,13 +400,6 @@ GEM_INLINE void region_profile_fill_gaps(
 //  region_profile->num_filtering_regions = num_regions;
 }
 /*
- *
- */
-GEM_INLINE void region_profile_extend_first_region(
-    region_profile_t* const region_profile,fm_index_t* const fm_index,const uint64_t rp_region_type_th) {
-  GEM_NOT_IMPLEMENTED(); // TODO
-}
-/*
  * Display
  */
 GEM_INLINE void region_profile_print(
@@ -399,23 +409,23 @@ GEM_INLINE void region_profile_print(
   tab_fprintf(stream,"  => Pattern.length %lu\n",region_profile->pattern_length);
   tab_fprintf(stream,"  => Num.Filtering.Regions %lu\n",region_profile->num_filtering_regions);
   tab_fprintf(stream,"  => Num.Standard.Regions %lu\n",region_profile->num_standard_regions);
-  tab_fprintf(stream,"  => Misms.required %lu\n",region_profile->misms_required);
+  tab_fprintf(stream,"  => Errors.allowed %lu\n",region_profile->errors_allowed);
   tab_fprintf(stream,"  => Filtering.Regions\n");
   if (!sorted) {
     REGION_PROFILE_ITERATE(region_profile,region,position) {
-      tab_fprintf(stream,"       [%lu]\ttype=%s\tregion=[%lu,%lu)\tcand=%lu\tdegree=%lu\n",
+      tab_fprintf(stream,"    [%lu]\ttype=%s\tregion=[%lu,%lu)\tcand=%lu\n",
           position,
           region->type==region_unique ? "region_unique" :
               (region->type==region_standard ? "region_standard" : "region_gap"),
-          region->end,region->start,region->hi-region->lo,region->degree);
+          region->end,region->start,region->hi-region->lo);
     }
   } else {
     REGION_LOCATOR_ITERATE(region_profile,region,position) {
-      tab_fprintf(stream,"       [%lu]\ttype=%s\tregion=[%lu,%lu)\t%cand=lu\t%degree=lu\n",
+      tab_fprintf(stream,"    [%lu]\ttype=%s\tregion=[%lu,%lu)\tcand=%lu\t\n",
           position,
           region->type==region_unique ? "region_unique" :
               (region->type==region_standard ? "region_standard" : "region_gap"),
-          region->end,region->start,region->hi-region->lo,region->degree);
+          region->end,region->start,region->hi-region->lo);
     }
   }
   if (display_misms_regions) {

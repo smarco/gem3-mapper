@@ -24,7 +24,7 @@
 /*
  * Sequence
  */
-typedef enum { SINGLE_END, PAIRED_END1, PAIRED_END2 } sequence_end_t;
+typedef enum { single_end=0, paired_end1=1, paired_end2=2 } sequence_end_t;
 typedef struct {
   sequence_end_t end_info;
   string_t casava_tag;

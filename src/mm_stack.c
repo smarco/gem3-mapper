@@ -115,6 +115,21 @@ GEM_INLINE void mm_stack_pop_state(mm_stack_t* const mm_stack,const bool reap_se
   }
 }
 /*
+ * Align stack memory
+ */
+GEM_INLINE void mm_stack_skip_align(mm_stack_t* const mm_stack,const uint64_t num_bytes) {
+  GEM_CHECK_ZERO(num_bytes);
+  if (gem_expect_true(num_bytes > 1)) {
+    // Get last stack segment
+    mm_stack_segment_t* const current_segment = vector_get_elm(mm_stack->segments,mm_stack->current_segment,mm_stack_segment_t);
+    // Get current memory position
+    void* const current_memory = current_segment->memory + (num_bytes-1);
+    // Calculate the number of bytes to skip
+    const uint64_t num_bytes_to_skip = (num_bytes-1) - (MM_CAST_ADDR(current_memory)%num_bytes);
+    mm_stack_memory_allocate(mm_stack,num_bytes_to_skip,false);
+  }
+}
+/*
  * Allocators
  */
 GEM_INLINE mm_stack_segment_t* mm_stack_add_segment(mm_stack_t* const mm_stack) {
@@ -142,7 +157,9 @@ GEM_INLINE void* mm_stack_memory_allocate(mm_stack_t* const mm_stack,const uint6
   // Check if there is enough free memory in the segment
   if (gem_expect_false(num_bytes > current_segment->memory_available)) {
     // Check we can fit the request into a slab unit
-    gem_cond_fatal_error(num_bytes > mm_stack->segment_size,MM_STACK_CANNOT_ALLOCATE,num_bytes,mm_stack->segment_size);
+    if (num_bytes > mm_stack->segment_size) {
+      gem_cond_fatal_error(num_bytes > mm_stack->segment_size,MM_STACK_CANNOT_ALLOCATE,num_bytes,mm_stack->segment_size);
+    }
     current_segment = mm_stack_add_segment(mm_stack); // Use new segment
   }
   // Serve Memory Request

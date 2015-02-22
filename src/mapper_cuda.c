@@ -70,62 +70,64 @@ void* mapper_SE_CUDA_thread(mapper_cuda_search_t* const mapper_search) {
   // GEM-thread error handler
   gem_thread_register_id(mapper_search->thread_id+1);
   PROF_START(GP_MAPPER_CUDA_THREAD);
-
-  // Create new buffered reader/writer
+  // Parameters
   const mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
   const mapper_parameters_cuda_t* const cuda_parameters = &parameters->cuda;
-  archive_search_group_t* const search_group = mapper_search->search_group;
-  archive_search_group_init_bpm_buffers(search_group); // Init BPM-buffers
+  // Create new buffered reader/writer
   mapper_search->buffered_fasta_input = buffered_input_file_new(parameters->input_file,cuda_parameters->input_buffer_lines);
   buffered_output_file_t* const buffered_output_file = buffered_output_file_new(parameters->output_file);
   buffered_input_file_attach_buffered_output(mapper_search->buffered_fasta_input,buffered_output_file);
+  // Create search-group & matches
+  archive_search_group_t* const search_group = mapper_search->search_group;
+  archive_search_group_init_bpm_buffers(search_group); // Init BPM-buffers
   matches_t* const matches = matches_new();
-
   // FASTA/FASTQ reading loop
   archive_search_t* archive_search_generate = NULL;
+  bpm_gpu_buffer_t* bpm_gpu_buffer;
+  archive_search_t* archive_search_select;
   uint64_t reads_processed = 0;
   while (true) {
     PROF_START(GP_MAPPER_CUDA_THREAD_GENERATING);
-    // Check the end_of_block (Reload input-buffer if needed)
-    if (buffered_input_file_eob(mapper_search->buffered_fasta_input)) {
-      // We cannot reload input-buffer until all the searches of the previous block are solved
-      if (archive_search_group_is_empty(search_group)) {
-        if (buffered_input_file_reload__dump_attached(mapper_search->buffered_fasta_input)==INPUT_STATUS_EOF) break;
+    // Check the end_of_block (We cannot reload input-buffer until all the searches of the previous block are solved)
+    if (buffered_input_file_eob(mapper_search->buffered_fasta_input) && archive_search_group_is_empty(search_group)) {
+      if (buffered_input_file_reload__dump_attached(mapper_search->buffered_fasta_input)==INPUT_STATUS_EOF) {
+        PROF_STOP(GP_MAPPER_CUDA_THREAD_GENERATING);
+        break;
       }
     }
-    // Keep processing the current input-block
+    /*
+     * First-stage: Generation. Keep processing the current input-block
+     */
     while (!buffered_input_file_eob(mapper_search->buffered_fasta_input)) {
       // Request a clean archive-search
       archive_search_generate = archive_search_group_alloc(search_group);
-
       // Parse Sequence
       const error_code_t error_code = input_fasta_parse_sequence(
           mapper_search->buffered_fasta_input,archive_search_get_sequence(archive_search_generate),
           parameters->io.fastq_strictly_normalized,parameters->io.fastq_try_recovery,false);
       gem_cond_fatal_error(error_code==INPUT_STATUS_FAIL,MAPPER_CUDA_ERROR_PARSING);
-
       // Generate Candidates (Search into the archive)
-      archive_search_generate_candidates(archive_search_generate);
-
+      archive_search_reset(archive_search_generate,sequence_get_length(&archive_search_generate->sequence)); // Reset
+      archive_search_generate_candidates(archive_search_generate,NULL);
       // Add archive-search to group (Put candidates in buffer)
       if (!archive_search_group_add_search(search_group,archive_search_generate)) break; // Go to select-candidates
       archive_search_generate = NULL; // Last archive-search is in BPM-buffer
     }
     PROF_STOP(GP_MAPPER_CUDA_THREAD_GENERATING);
+    /*
+     * Second-stage: Retrieval (Select & Output)
+     */
     PROF_START(GP_MAPPER_CUDA_THREAD_SELECTING);
-    // Start retrieving
-    archive_search_group_retrieve_begin(search_group);
     // Process all search-groups generated
-    bpm_gpu_buffer_t* bpm_gpu_buffer;
-    archive_search_t* archive_search_select;
+    archive_search_group_retrieve_begin(search_group); // Start retrieving
     while (archive_search_group_get_search(search_group,&archive_search_select,&bpm_gpu_buffer)) {
-      // Init
+      // Initialize Matches
       matches_configure(matches,archive_search_select->text_collection);
       matches_clear(matches);
-      // Select candidates
+      // Retrieve candidates
       archive_search_retrieve_candidates(archive_search_select,bpm_gpu_buffer,matches);
-      // Select matches
-      archive_select_matches(archive_search_select,matches);
+      // Finish Search
+      archive_search_finish_search(archive_search_select,matches);
       // Output matches
       mapper_SE_output_matches(parameters,buffered_output_file,archive_search_select,matches);
       // Update processed
@@ -137,22 +139,18 @@ void* mapper_SE_CUDA_thread(mapper_cuda_search_t* const mapper_search) {
     archive_search_group_clear(search_group); // Reset search-group
     // Check if the last archive-search couldn't fit into the BPM-buffer
     if (archive_search_generate!=NULL) {
-      // FIXME just archive_search_prepare_sequence(archive_search);
-      archive_search_generate_candidates(archive_search_generate);
-
+      archive_search_reset(archive_search_generate,sequence_get_length(&archive_search_generate->sequence)); // Reset
+      archive_search_generate_candidates(archive_search_generate,NULL); // FIXME just archive_search_prepare_sequence();
       archive_search_group_add_search(search_group,archive_search_generate);
       archive_search_generate = NULL;
     }
     PROF_STOP(GP_MAPPER_CUDA_THREAD_SELECTING);
   }
-  // Update processed
-  ticker_update_mutex(mapper_search->ticker,reads_processed);
-
   // Clean up
+  ticker_update_mutex(mapper_search->ticker,reads_processed); // Update processed
   buffered_input_file_close(mapper_search->buffered_fasta_input);
   buffered_output_file_close(buffered_output_file);
   matches_delete(matches);
-
   PROF_STOP(GP_MAPPER_CUDA_THREAD);
   pthread_exit(0);
 }
@@ -163,85 +161,76 @@ void* mapper_PE_CUDA_thread(mapper_cuda_search_t* const mapper_search) {
 //  // GEM-thread error handler
 //  gem_thread_register_id(mapper_search->thread_id+1);
 //  PROF_START(GP_MAPPER_CUDA_THREAD);
-//
-//  // Create new buffered reader/writer
+//  // Parameters
 //  const mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
 //  const mapper_parameters_cuda_t* const cuda_parameters = &parameters->cuda;
+//  // Create new buffered reader/writer
+//  buffered_output_file_t* const buffered_output_file = buffered_output_file_new(parameters->output_file);
+//  mapper_PE_prepare_io_buffers(parameters,cuda_parameters->input_buffer_lines,
+//      &mapper_search->buffered_fasta_input_end1,&mapper_search->buffered_fasta_input_end2,buffered_output_file);
+//  buffered_input_file_t* buffered_fasta_input_end1 = mapper_search->buffered_fasta_input_end1;
+//  buffered_input_file_t* buffered_fasta_input_end2 = mapper_search->buffered_fasta_input_end2;
+//  // Create search-group, archive_search pointers & paired-end matches
 //  archive_search_group_t* const search_group = mapper_search->search_group;
 //  archive_search_group_init_bpm_buffers(search_group); // Init BPM-buffers
-//  buffered_output_file_t* const buffered_output_file = buffered_output_file_new(parameters->output_file);
-//  mapper_search->buffered_fasta_input_end1 = buffered_input_file_new(parameters->input_file,cuda_parameters->input_buffer_lines);
-//  if (parameters->io.separated_input_files) {
-//    mapper_search->buffered_fasta_input_end2 = buffered_input_file_new(parameters->input_file_end2,cuda_parameters->input_buffer_lines);
-//    buffered_input_file_attach_buffered_output(mapper_search->buffered_fasta_input_end1,buffered_output_file); // Just end1
-//  }
-//  buffered_input_file_attach_buffered_output(mapper_search->buffered_fasta_input_end1,buffered_output_file);
-//
+//  paired_matches_t* const paired_matches = paired_matches_new();
+//  archive_search_t *archive_search_generate_end1 = NULL, *archive_search_generate_end2 = NULL;
+//  archive_search_t *archive_search_select_end1, *archive_search_select_end2;
+//  bpm_gpu_buffer_t *bpm_gpu_buffer_end1, *bpm_gpu_buffer_end2;
 //  // FASTA/FASTQ reading loop
-//  archive_search_t* archive_search_generate_end1 = NULL;
-//  archive_search_t* archive_search_generate_end2 = NULL;
+//  error_code_t error_code;
 //  uint64_t reads_processed = 0;
 //  while (true) {
 //    PROF_START(GP_MAPPER_CUDA_THREAD_GENERATING);
-//    // Check the end_of_block (Reload input-buffer if needed)
-//    if (buffered_input_file_eob(mapper_search->buffered_fasta_input_end1)) {
-//      // We cannot reload input-buffer until all the searches of the previous block are solved
-//      if (archive_search_group_is_empty(search_group)) {
-//        if (buffered_input_file_reload__dump_attached(mapper_search->buffered_fasta_input_end1)==INPUT_STATUS_EOF) break;
-//      }
+//    // Check the end_of_block (We cannot reload input-buffer until all the searches of the previous block are solved)
+//    if (buffered_input_file_eob(mapper_search->buffered_fasta_input_end1) && archive_search_group_is_empty(search_group)) {
+//      error_code = mapper_PE_reload_buffers(parameters,buffered_fasta_input_end1,buffered_fasta_input_end2);
+//      if (error_code==INPUT_STATUS_EOF) break;
 //    }
-//    // Keep processing the current input-block
+//    /*
+//     * First-stage: Generation. Keep processing the current input-block
+//     */
 //    while (!buffered_input_file_eob(mapper_search->buffered_fasta_input_end1)) {
+//      if (buffered_input_file_eob(mapper_search->buffered_fasta_input_end2)) {
+//        MAPPER_ERROR_PE_PARSE_UNSYNCH_INPUT_FILES(parameters);
+//      }
 //      // Request a clean archive-search
 //      archive_search_generate_end1 = archive_search_group_alloc(search_group);
 //      archive_search_generate_end2 = archive_search_group_alloc(search_group);
-//
 //      // Parse Sequence
-//      error_code_t error_code = input_fasta_parse_sequence(
-//          mapper_search->buffered_fasta_input_end1,archive_search_get_sequence(archive_search_generate_end1),
-//          parameters->io.fastq_strictly_normalized,parameters->io.fastq_try_recovery,false);
+//      mapper_PE_parse_paired_sequences(parameters,
+//          buffered_fasta_input_end1,buffered_fasta_input_end2,
+//          archive_search_generate_end1,archive_search_generate_end2);
 //      gem_cond_fatal_error(error_code==INPUT_STATUS_FAIL,MAPPER_CUDA_ERROR_PARSING);
-//      if (parameters->io.separated_input_files) {
-//        error_code = input_fasta_parse_sequence(
-//          mapper_search->buffered_fasta_input_end2,archive_search_get_sequence(archive_search_generate_end2),
-//          parameters->io.fastq_strictly_normalized,parameters->io.fastq_try_recovery,false);
-//      } else {
-//        error_code = input_fasta_parse_sequence(
-//          mapper_search->buffered_fasta_input_end1,archive_search_get_sequence(archive_search_generate_end2),
-//          parameters->io.fastq_strictly_normalized,parameters->io.fastq_try_recovery,false);
-//      }
-//      gem_cond_fatal_error(error_code==INPUT_STATUS_FAIL,MAPPER_CUDA_ERROR_PARSING);
-//
-//      // Generate Candidates (Search into the archive)
-//      archive_search_generate_candidates(archive_search_generate_end1);
-//      archive_search_generate_candidates(archive_search_generate_end2);
-//
+//      // Begin Search
+//      archive_search_generate_end1->pe_search_state = archive_search_pe_begin;
+//      archive_search_generate_end2->pe_search_state = archive_search_pe_begin;
+//      archive_search_paired_end_continue(archive_search_generate_end1,archive_search_generate_end2,true,NULL);
 //      // Add archive-search to group (Put candidates in buffer)
-//      if (!archive_search_group_add_paired_search(
-//          search_group,archive_search_generate_end1,archive_search_generate_end2)) break; // Go to select-candidates
+//      if (!archive_search_group_add_paired_search(search_group,
+//          archive_search_generate_end1,archive_search_generate_end2)) break; // Go to select-candidates
 //      archive_search_generate_end1 = NULL; // Last archive-search is in BPM-buffer
-//      archive_search_generate_end2 = NULL; // Last archive-search is in BPM-buffer
 //    }
 //    PROF_STOP(GP_MAPPER_CUDA_THREAD_GENERATING);
-
+//    /*
+//     * Second-stage: Retrieval (Select & Output)
+//     */
 //    PROF_START(GP_MAPPER_CUDA_THREAD_SELECTING);
 //    // Start retrieving
 //    archive_search_group_retrieve_begin(search_group);
 //    // Process all search-groups generated
-//    bpm_gpu_buffer_t* bpm_gpu_buffer;
-//    archive_search_t* archive_search_select;
-//    while (archive_search_group_get_search(search_group,&archive_search_select,&bpm_gpu_buffer)) {
-//      // Init
-//      matches_configure(matches,archive_search_select->text_collection);
-//      matches_clear(matches);
+//    while (archive_search_group_get_paired_search(search_group,
+//        &archive_search_select_end1,&bpm_gpu_buffer_end1,&archive_search_select_end2,&bpm_gpu_buffer_end2)) {
+//      // Initialize Paired Matches
+//      paired_matches_configure(paired_matches,archive_search_select_end1->text_collection); // TODO Why???
+//      paired_matches_clear(paired_matches);
 //      // Select candidates
-//      archive_search_retrieve_candidates(archive_search_select,bpm_gpu_buffer,matches);
-//      // Select matches
-//      archive_select_matches(archive_search_select,matches);
-//      // Score matches // TODO
-//      // archive_search_score_matches(archive_search,matches); // TODO
+//      archive_search_paired_end_retrieve_candidates(
+//          archive_search_select_end1,bpm_gpu_buffer_end1,
+//          archive_search_select_end2,bpm_gpu_buffer_end2,paired_matches);
 //      // Output matches
-//      mapper_SE_output_matches(parameters,buffered_output_file,archive_search_get_sequence(archive_search_select),matches);
+//      mapper_PE_output_matches(parameters,buffered_output_file,
+//          archive_search_select_end1,archive_search_select_end2,paired_matches);
 //      // Update processed
 //      if (++reads_processed == MAPPER_TICKER_STEP) {
 //        ticker_update_mutex(mapper_search->ticker,reads_processed);
@@ -250,22 +239,21 @@ void* mapper_PE_CUDA_thread(mapper_cuda_search_t* const mapper_search) {
 //    }
 //    archive_search_group_clear(search_group); // Reset search-group
 //    // Check if the last archive-search couldn't fit into the BPM-buffer
-//    if (archive_search_generate!=NULL) {
+//    if (archive_search_generate_end1!=NULL) {
 //      // FIXME just archive_search_prepare_sequence(archive_search);
-//      archive_search_generate_candidates(archive_search_generate);
-//
-//      archive_search_group_add_search(search_group,archive_search_generate);
-//      archive_search_generate = NULL;
+//      archive_search_generate_end1->pe_search_state = archive_search_pe_begin;
+//      archive_search_generate_end2->pe_search_state = archive_search_pe_begin;
+//      archive_search_paired_end_continue(archive_search_generate_end1,archive_search_generate_end2,true,NULL);
+//      archive_search_group_add_paired_search(search_group,archive_search_generate_end1,archive_search_generate_end2);
+//      archive_search_generate_end1 = NULL;
 //    }
 //    PROF_STOP(GP_MAPPER_CUDA_THREAD_SELECTING);
 //  }
-//  // Update processed
-//  ticker_update_mutex(mapper_search->ticker,reads_processed);
-//
-//  // Clean up
+//  // Clean up & Quit
+//  ticker_update_mutex(mapper_search->ticker,reads_processed); // Update processed
 //  buffered_input_file_close(mapper_search->buffered_fasta_input);
 //  buffered_output_file_close(buffered_output_file);
-//
+//  paired_matches_delete(paired_matches);
 //  PROF_STOP(GP_MAPPER_CUDA_THREAD);
   pthread_exit(0);
 }

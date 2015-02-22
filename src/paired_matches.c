@@ -15,7 +15,6 @@
 #define PAIRED_MATCHES_INIT_MATCHES   50
 #define PAIRED_MATCHES_INIT_MATCHES   50
 
-
 /*
  * Setup
  */
@@ -73,12 +72,6 @@ GEM_INLINE void paired_matches_delete(paired_matches_t* const paired_matches) {
 /*
  * Accessors
  */
-GEM_INLINE matches_t* paired_matches_end1(paired_matches_t* const paired_matches) {
-  return paired_matches->matches_end1;
-}
-GEM_INLINE matches_t* paired_matches_end2(paired_matches_t* const paired_matches) {
-  return paired_matches->matches_end2;
-}
 GEM_INLINE bool paired_matches_is_mapped(paired_matches_t* const paired_matches) {
   return vector_get_used(paired_matches->concordant_matches) > 0;
 }
@@ -101,23 +94,23 @@ GEM_INLINE void paired_matches_add(
     match_trace_t* const match_trace_end1,match_trace_t* const match_trace_end2,
     const pair_orientation_t pair_orientation,const uint64_t template_length) {
   // Alloc paired match & add counters
+  const uint64_t pair_distance = paired_match_calculate_distance(match_trace_end1,match_trace_end2);
   paired_match_t* paired_match;
   switch (pair_orientation) {
     case pair_orientation_concordant:
       // Alloc
       vector_alloc_new(paired_matches->concordant_matches,paired_match_t,paired_match);
+      paired_matches_counters_add(paired_matches->concordant_counters,pair_distance); // Update counters
       break;
     case pair_orientation_discordant:
       // Alloc
       vector_alloc_new(paired_matches->discordant_matches,paired_match_t,paired_match);
+      paired_matches_counters_add(paired_matches->discordant_counters,pair_distance); // Update counters
       break;
     default:
       GEM_INVALID_CASE();
       break;
   }
-  // Update counters
-  const uint64_t pair_distance = paired_match_calculate_distance(match_trace_end1,match_trace_end2);
-  paired_matches_counters_add(paired_matches->discordant_counters,pair_distance);
   // Setup
   paired_match->match_end1 = match_trace_end1;
   paired_match->match_end2 = match_trace_end2;
@@ -131,9 +124,9 @@ GEM_INLINE pair_layout_t paired_matches_get_layout(
     const match_trace_t* const match_trace_end1,const match_trace_t* const match_trace_end2,
     search_parameters_t* const search_parameters,uint64_t* const template_length) {
   // Get template observed length
-  const uint64_t begin_position_1 = match_trace_end1->position;
+  const uint64_t begin_position_1 = match_trace_end1->text_position;
   const uint64_t end_position_1 = begin_position_1 + match_trace_end1->effective_length;
-  const uint64_t begin_position_2 = match_trace_end2->position;
+  const uint64_t begin_position_2 = match_trace_end2->text_position;
   const uint64_t end_position_2 = begin_position_2 + match_trace_end2->effective_length;
   const uint64_t template_observed_length = paired_match_get_template_observed_length(
       begin_position_1,end_position_1,begin_position_2,end_position_2);
@@ -166,6 +159,32 @@ GEM_INLINE pair_layout_t paired_matches_get_layout(
     return pair_layout_invalid;
   }
 }
+GEM_INLINE bool paired_matches_check_layout(
+    paired_matches_t* const paired_matches,search_parameters_t* const search_parameters,
+    match_trace_t* const match_trace_end1,match_trace_t* const match_trace_end2,
+    uint64_t* const template_length) {
+  const pair_layout_t pair_layout = paired_matches_get_layout(
+      match_trace_end1,match_trace_end2,search_parameters,template_length);
+  switch (pair_layout) {
+    case pair_layout_separate:
+      if (search_parameters->pair_layout_separate) return true;
+      break;
+    case pair_layout_overlap:
+      if (search_parameters->pair_layout_overlap) return true;
+      break;
+    case pair_layout_contain:
+      if (search_parameters->pair_layout_contain) return true;
+      break;
+    case pair_layout_dovetail:
+      if (search_parameters->pair_layout_dovetail) return true;
+      break;
+    case pair_layout_invalid:
+    default:
+      break;
+  }
+  // Not allowed
+  return false;
+}
 GEM_INLINE pair_orientation_t paired_matches_get_orientation(
     const match_trace_t* const match_trace_end1,const match_trace_t* const match_trace_end2,
     search_parameters_t* const search_parameters) {
@@ -174,7 +193,7 @@ GEM_INLINE pair_orientation_t paired_matches_get_orientation(
       // F/F
       return search_parameters->pair_orientation_FF;
     } else { // match_trace_end2->strand == Reverse
-      if (match_trace_end1->position <= match_trace_end2->position+match_trace_end2->effective_length) {
+      if (match_trace_end1->text_position <= match_trace_end2->text_position+match_trace_end2->effective_length) {
         // F/R
         return search_parameters->pair_orientation_FR;
       } else {
@@ -187,7 +206,7 @@ GEM_INLINE pair_orientation_t paired_matches_get_orientation(
       // R/R
       return search_parameters->pair_orientation_RR;
     } else { // match_trace_end2->strand == Forward
-      if (match_trace_end2->position <= match_trace_end1->position+match_trace_end1->effective_length) {
+      if (match_trace_end2->text_position <= match_trace_end1->text_position+match_trace_end1->effective_length) {
         // F/R
         return search_parameters->pair_orientation_FR;
       } else {
@@ -208,7 +227,30 @@ GEM_INLINE match_trace_t* paired_matches_find_pairs_locate_by_sequence_name(
   }
   return NULL;
 }
+GEM_INLINE void paired_matches_pair_match_with_mates(
+    paired_matches_t* const paired_matches,search_parameters_t* const search_parameters,
+    const pair_orientation_t pair_orientation,match_trace_t* const match_trace,
+    const sequence_end_t mate_end,match_trace_t* const mates_array,
+    const uint64_t num_mates_trace) {
+  // Traverse all mates
+  uint64_t mate_pos;
+  for (mate_pos=0;mate_pos<num_mates_trace;++mate_pos) {
+    match_trace_t* const mate_trace = mates_array+mate_pos;
+    // Check layout & add
+    uint64_t template_length;
+    const bool allowed_layout = paired_matches_check_layout(paired_matches,
+        search_parameters,match_trace,mate_trace,&template_length);
+    if (allowed_layout) {
+      if (mate_end==paired_end2) {
+        paired_matches_add(paired_matches,match_trace,mate_trace,pair_orientation_concordant,template_length);
+      } else {
+        paired_matches_add(paired_matches,mate_trace,match_trace,pair_orientation_concordant,template_length);
+      }
+    }
+  }
+}
 GEM_INLINE void paired_matches_find_pairs(paired_matches_t* const paired_matches,search_parameters_t* const search_parameters) {
+  PROF_START(GP_PAIRED_MATCHES_FIND_PAIRS);
   // Matches
   matches_t* const matches_end1 = paired_matches->matches_end1;
   matches_t* const matches_end2 = paired_matches->matches_end2;
@@ -238,32 +280,10 @@ GEM_INLINE void paired_matches_find_pairs(paired_matches_t* const paired_matches
           // No break
           case pair_orientation_concordant: {
             uint64_t template_length;
-            const pair_layout_t pair_layout =
-                paired_matches_get_layout(match_trace_end1,match_trace_end2,search_parameters,&template_length);
-            switch (pair_layout) {
-              case pair_layout_separate:
-                if (search_parameters->pair_layout_separate) {
-                  paired_matches_add(paired_matches,match_trace_end1,match_trace_end2,pair_orientation,template_length);
-                }
-                break;
-              case pair_layout_overlap:
-                if (search_parameters->pair_layout_overlap) {
-                  paired_matches_add(paired_matches,match_trace_end1,match_trace_end2,pair_orientation,template_length);
-                }
-                break;
-              case pair_layout_contain:
-                if (search_parameters->pair_layout_contain) {
-                  paired_matches_add(paired_matches,match_trace_end1,match_trace_end2,pair_orientation,template_length);
-                }
-                break;
-              case pair_layout_dovetail:
-                if (search_parameters->pair_layout_dovetail) {
-                  paired_matches_add(paired_matches,match_trace_end1,match_trace_end2,pair_orientation,template_length);
-                }
-                break;
-              case pair_layout_invalid:
-              default:
-                break;
+            const bool allowed_layout = paired_matches_check_layout(paired_matches,
+                search_parameters,match_trace_end1,match_trace_end2,&template_length);
+            if (allowed_layout) {
+              paired_matches_add(paired_matches,match_trace_end1,match_trace_end2,pair_orientation,template_length);
             }
             break;
           }
@@ -278,6 +298,7 @@ GEM_INLINE void paired_matches_find_pairs(paired_matches_t* const paired_matches
   }
   // Update MCS
   paired_matches->max_complete_stratum = MIN(matches_end1->max_complete_stratum,matches_end2->max_complete_stratum);
+  PROF_STOP(GP_PAIRED_MATCHES_FIND_PAIRS);
 }
 GEM_INLINE void paired_matches_find_discordant_pairs(
     paired_matches_t* const paired_matches,search_parameters_t* const search_parameters) {

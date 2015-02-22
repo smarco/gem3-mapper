@@ -67,7 +67,7 @@ typedef struct {
   region_search_t* search_region;    // Search regions
   uint64_t num_search_regions;
   /* Region Partition Properties */
-  uint64_t misms_required;         // Total mismatches required to get a new match
+  uint64_t errors_allowed;           // Total error allowed (minimum required to get a novel match)
   /* Locator for region sorting */
   region_locator_t* loc;
 } region_profile_t;
@@ -78,7 +78,6 @@ typedef struct {
 GEM_INLINE void region_profile_new(
     region_profile_t* const region_profile,const uint64_t pattern_length,
     mm_stack_t* const mm_stack);
-
 
 /*
  * Accessors

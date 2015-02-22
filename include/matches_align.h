@@ -21,36 +21,31 @@ typedef enum {
   alignment_model_gap_affine
 } alignment_model_t;
 
-typedef struct {
-  // Error degree of the region matching
-  uint64_t error; // TODO
-  // Coordinates of the region
-  uint64_t key_begin;
-  uint64_t key_end;
-  uint64_t text_begin;
-  uint64_t text_end;
-} region_matching_t;
-
 GEM_INLINE void matches_align_exact(
     matches_t* const matches,match_trace_t* const match_trace,
     const strand_t strand,const swg_penalties_t* const swg_penalties,
-    const uint64_t key_length,const uint64_t text_trace_offset,
-    uint64_t match_position,const uint64_t match_distance,const uint64_t match_length);
+    const uint64_t key_length,const uint64_t text_trace_offset,const uint64_t match_position,
+    const uint64_t text_begin_offset,const uint64_t text_end_offset,const uint64_t match_distance);
 GEM_INLINE void matches_align_hamming(
     matches_t* const matches,match_trace_t* const match_trace,
-    const strand_t strand,const bool* const allowed_enc,const uint8_t* const key,const uint64_t key_length,
-    const uint64_t text_trace_offset,const uint64_t match_position,const uint8_t* const text);
+    const strand_t strand,const bool* const allowed_enc,
+    const uint8_t* const key,const uint64_t key_length,
+    const uint64_t text_trace_offset,const uint64_t match_position,
+    const uint8_t* const text,const uint64_t text_begin_offset);
 GEM_INLINE void matches_align_levenshtein(
-    matches_t* const matches,match_trace_t* const match_trace,
-    const strand_t strand,const uint8_t* const key,const bpm_pattern_t* const bpm_pattern,
-    const uint64_t text_trace_offset,const uint64_t match_position,const uint64_t max_bandwidth,
-    uint8_t* const text,const uint64_t text_length,const region_matching_t* const regions_matching,
+    matches_t* const matches,match_trace_t* const match_trace,const strand_t strand,
+    const uint8_t* const key,const bpm_pattern_t* const bpm_pattern,
+    const uint64_t text_trace_offset,const uint64_t match_position,
+    uint8_t* const text,const uint64_t text_begin_offset,const uint64_t text_end_offset,
+    const uint64_t max_distance,const region_matching_t* const regions_matching,
     const uint64_t num_regions_matching,mm_stack_t* const mm_stack);
 GEM_INLINE void matches_align_smith_waterman_gotoh(
     matches_t* const matches,match_trace_t* const match_trace,const strand_t strand,const bool* const allowed_enc,
-    const swg_penalties_t* const swg_penalties,const uint8_t* const key,const uint64_t key_length,
-    const uint64_t text_trace_offset,const uint64_t match_position,const uint64_t max_score,
-    uint8_t* const text,const uint64_t text_length,const region_matching_t* const regions_matching,
+    const swg_query_profile_t* const swg_query_profile,const swg_penalties_t* swg_penalties,
+    const uint8_t* const key,const uint64_t key_length,const uint64_t text_trace_offset,
+    const uint64_t match_position,uint8_t* const text,const uint64_t text_length,
+    const uint64_t text_begin_offset,const uint64_t text_end_offset,
+    const uint64_t max_bandwidth,const region_matching_t* const regions_matching,
     const uint64_t num_regions_matching,mm_stack_t* const mm_stack);
 
 #endif /* MATCHES_ALIGN_H_ */

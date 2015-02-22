@@ -61,18 +61,17 @@ GEM_INLINE void pattern_tiled_calculate_next(pattern_tiled_t* const pattern_tile
 }
 GEM_INLINE uint64_t pattern_tiled_bound_matching_path(pattern_tiled_t* const pattern_tiled) {
   if (pattern_tiled->prev_tile_match_position!=UINT64_MAX) {
+    const int64_t prev_tile_match_position = pattern_tiled->prev_tile_match_position;
     const int64_t tile_match_position = pattern_tiled->tile_match_column + pattern_tiled->tile_offset;
     const int64_t tile_match_position_proyection = tile_match_position - pattern_tiled->tile_tall;
     // Calculate plausible match-band limits
-    int64_t tile_match_band_begin = tile_match_position_proyection - pattern_tiled->tile_distance;
-    if (tile_match_band_begin < 0) tile_match_band_begin = 0;
-    int64_t tile_match_band_end = tile_match_position_proyection + pattern_tiled->tile_distance;
-    if (tile_match_band_end >= pattern_tiled->sequence_length) tile_match_band_end = pattern_tiled->sequence_length-1;
+    const int64_t tile_match_band_begin =
+        BOUNDED_SUBTRACTION(tile_match_position_proyection,pattern_tiled->tile_distance,0);
+    const int64_t tile_match_band_end =
+        BOUNDED_ADDITION(tile_match_position_proyection,pattern_tiled->tile_distance,pattern_tiled->sequence_length-1);
     // Calculate differences
-    int64_t band_begin_difference = (int64_t)pattern_tiled->prev_tile_match_position - tile_match_band_begin;
-    band_begin_difference = ABS(band_begin_difference);
-    int64_t band_end_difference = (int64_t)pattern_tiled->prev_tile_match_position - tile_match_band_end;
-    band_end_difference = ABS(band_end_difference);
+    const int64_t band_begin_difference = ABS(prev_tile_match_position - tile_match_band_begin);
+    const int64_t band_end_difference = ABS(prev_tile_match_position - tile_match_band_end);
     // Keep matching column
     pattern_tiled->prev_tile_match_position = tile_match_position;
     // Return bound

@@ -19,7 +19,9 @@ GEM_INLINE void archive_select_parameters_init(select_parameters_t* const select
   select_parameters->min_reported_matches = 1;
   select_parameters->max_reported_matches = 100;
   // Check
-  select_parameters->check_matches_mask = check_none;
+  select_parameters->check_correct = false;
+  select_parameters->check_optimum = false;
+  select_parameters->check_complete = false;
 }
 GEM_INLINE void archive_select_configure_reporting(
     select_parameters_t* const select_parameters,
@@ -30,10 +32,6 @@ GEM_INLINE void archive_select_configure_reporting(
   select_parameters->max_decoded_matches = max_decoded_matches;
   select_parameters->min_reported_matches = min_reported_matches;
   select_parameters->max_reported_matches = max_reported_matches;
-}
-GEM_INLINE void archive_select_configure_check(
-    select_parameters_t* const select_parameters,const uint64_t check_matches_mask) {
-  select_parameters->check_matches_mask = check_matches_mask;
 }
 GEM_INLINE void archive_select_instantiate_values(
     select_parameters_t* const select_parameters,const uint64_t sequence_length) {

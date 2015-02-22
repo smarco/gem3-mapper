@@ -348,6 +348,8 @@ GEM_INLINE uint64_t inverse_locator_map(
 //      }
 //    }
 //  }
+  // TODO Improve by doing binary search
+  // TODO Improve by doing stranded search
   for (i=0;i<num_intervals;++i) {
     if (intervals[i].sequence_offset <= text_position &&
         text_position < intervals[i].sequence_offset+intervals[i].sequence_length) {

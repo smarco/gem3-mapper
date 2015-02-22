@@ -66,7 +66,7 @@ GEM_INLINE uint64_t fm_index_psi(const fm_index_t* const fm_index,const uint64_t
 GEM_INLINE uint64_t fm_index_decode(
     const fm_index_t* const fm_index,const uint64_t bwt_position,const uint64_t length,char* const buffer);
 // Basic backward search.
-GEM_INLINE void fm_index_bsearch_pure(
+GEM_INLINE void fm_index_bsearch_debug(
     const fm_index_t* const fm_index,
     const uint8_t* const key,uint64_t key_length,
     uint64_t* const hi_out,uint64_t* const lo_out);

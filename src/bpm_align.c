@@ -11,7 +11,9 @@
 #include "pattern.h"
 #include "bpm_align.h"
 #include "swg_align.h"
+#include "filtering_region.h"
 #include "matches.h"
+
 
 /*
  * Checks
@@ -125,10 +127,10 @@ GEM_INLINE void bpm_pattern_compile(
     bpm_pattern->level_mask[top] = BMP_W64_MASK;
     bpm_pattern->init_score[top] = word_length;
   }
-//#ifdef BPM_TILED
+#ifdef BPM_TILED
   // Init BPM chunks
   bpm_pattern_compile_chunks(bpm_pattern,pattern,pattern_length,max_error,mm_stack);
-//#endif
+#endif
   // Init BPM-GPU Dimensions
   bpm_pattern->gpu_num_entries = DIV_CEIL(pattern_length,BPM_GPU_PATTERN_ENTRY_LENGTH);
   bpm_pattern->gpu_entries_per_chunk = DIV_CEIL(max_error,BPM_GPU_PATTERN_ENTRY_LENGTH);
@@ -231,8 +233,7 @@ GEM_INLINE int8_t bpm_advance_block(
   Pv = Mh | ~(Xv | Ph); \
   Mv = Ph & Xv
 /*
- * Bit-compressed (Re)alignment
- *   BMP[BitParalellMayers] - Myers' Fast Bit-Vector algorithm (Levenshtein)
+ * BMP
  */
 GEM_INLINE bool bpm_get_distance(
     bpm_pattern_t* const bpm_pattern,const uint8_t* const sequence,const uint64_t sequence_length,
@@ -284,8 +285,10 @@ GEM_INLINE bool bpm_get_distance(
   }
 }
 GEM_INLINE bool bpm_get_distance__cutoff(
-    const bpm_pattern_t* const bpm_pattern,const uint8_t* const sequence,const uint64_t sequence_length,
-    uint64_t* const position,uint64_t* const distance,const uint64_t max_distance,const bool quick_abandon) {
+    const bpm_pattern_t* const bpm_pattern,
+    const uint8_t* const sequence,const uint64_t sequence_length,
+    uint64_t* const match_end_column,uint64_t* const distance,
+    const uint64_t max_distance,const bool quick_abandon) {
   // Pattern variables
   const uint64_t* PEQ = bpm_pattern->PEQ;
   const uint64_t num_words = bpm_pattern->pattern_num_words;
@@ -361,7 +364,7 @@ GEM_INLINE bool bpm_get_distance__cutoff(
     if (top_level==num_words && current_score<=max_distance) {
       if (current_score < min_score)  {
         min_score_column = sequence_position;
-        min_score = score[top_level-1];
+        min_score = current_score;
       }
     } else if (quick_abandon && min_score==ALIGN_DISTANCE_INF &&
         current_score+pattern_left[top_level] > sequence_left+max_distance) {
@@ -375,7 +378,7 @@ GEM_INLINE bool bpm_get_distance__cutoff(
   // Return results
   if (min_score!=ALIGN_DISTANCE_INF) {
     *distance = min_score;
-    *position = min_score_column;
+    *match_end_column = min_score_column; // Exact
     return true;
   } else {
     *distance = ALIGN_DISTANCE_INF;
@@ -385,14 +388,6 @@ GEM_INLINE bool bpm_get_distance__cutoff(
 /*
  * Recover CIGAR from a matching string
  */
-#define BPM_MATCHES_CIGAR_BUFFER_ADD_CIGAR_ELEMENT(cigar_buffer,cigar_element_type,element_length) \
-  if (cigar_buffer->type == cigar_element_type) { \
-    cigar_buffer->length += element_length; \
-  } else { \
-    if (cigar_buffer->type!=cigar_null) ++(cigar_buffer); \
-    cigar_buffer->type = cigar_element_type; \
-    cigar_buffer->length = element_length; \
-  }
 GEM_INLINE void bpm_align_match(
     const uint8_t* const key,const bpm_pattern_t* const bpm_pattern,
     uint64_t* const match_position,uint8_t* const sequence,
@@ -479,7 +474,7 @@ GEM_INLINE void bpm_align_match(
     if (top_level==num_words && current_score<=max_distance) {
       if (current_score < min_score)  {
         min_score_column = sequence_position;
-        min_score = score[top_level-1];
+        min_score = current_score;
       }
     }
   }
@@ -495,7 +490,7 @@ GEM_INLINE void bpm_align_match(
   // Allocate CIGAR string memory (worst case)
   const uint64_t pattern_length = bpm_pattern->pattern_length;
   *cigar_vector_offset = vector_get_used(cigar_vector); // Set CIGAR offset
-  vector_reserve_additional(cigar_vector,pattern_length); // Reserve // FIXME Why so much?
+  vector_reserve_additional(cigar_vector,min_score+1); // Reserve
   cigar_element_t* cigar_buffer = vector_get_free_elm(cigar_vector,cigar_element_t); // Sentinel
   cigar_element_t* const cigar_buffer_base = cigar_buffer;
   cigar_buffer->type = cigar_null; // Trick
@@ -553,14 +548,164 @@ GEM_INLINE void bpm_align_match(
 //      sequence+(h+1),matching_column-(h+1),
 //      cigar_buffer,*cigar_buffer_offset,*cigar_length);
 }
+/*
+ * BPM all matches
+ */
+#define BPM_ADVANCE_COLUMN(P,M,score,PEQ,enc_char,top_level,PHin,MHin,PHout,MHout) { \
+  uint64_t i; \
+  for (i=0;i<top_level;++i) { \
+    uint64_t Pv = P[i]; \
+    uint64_t Mv = M[i]; \
+    const uint64_t mask = level_mask[i]; \
+    const uint64_t Eq = PEQ[BPM_PATTERN_PEQ_IDX(i,enc_char)]; \
+    /* Compute Block */ \
+    BPM_ADVANCE_BLOCK(Eq,mask,Pv,Mv,PHin,MHin,PHout,MHout); \
+    /* Save Block Pv,Mv */ \
+    P[i]=Pv; \
+    M[i]=Mv; \
+    /* Adjust score and swap propagate Hv */ \
+    score[i] += PHout-MHout; \
+    PHin=PHout; \
+    MHin=MHout; \
+  } \
+}
+#define BPM_CUT_OFF(P,M,score,PEQ,enc_char,top_level,PHin,MHin,PHout,MHout) { \
+  const uint8_t last = top_level-1; \
+  if (gem_expect_false(score[last]<=max_distance__1)) { \
+    const uint64_t last_score = score[last]+(MHin-PHin); \
+    const uint64_t Peq = PEQ[BPM_PATTERN_PEQ_IDX(top_level,enc_char)]; \
+    if (last_score<=max_distance && last<top && (MHin || (Peq & 1))) { \
+      /* Init block V */ \
+      uint64_t Pv = BMP_W64_ONES; \
+      uint64_t Mv = 0; \
+      const uint64_t mask = level_mask[top_level]; \
+      /* Compute Block */ \
+      BPM_ADVANCE_BLOCK(Peq,mask,Pv,Mv,PHin,MHin,PHout,MHout); \
+      /* Save Block Pv,Mv */ \
+      P[top_level]=Pv; \
+      M[top_level]=Mv; \
+      /* Set score & increment the top level block */ \
+      score[top_level] = last_score + init_score[top_level] + (PHout-MHout); \
+      ++top_level; \
+    } else { \
+      while (score[top_level-1] > (max_distance+init_score[top_level-1])) { \
+        --top_level; \
+      } \
+    } \
+  } else { \
+    while (score[top_level-1] > (max_distance+init_score[top_level-1])) { \
+      --top_level; \
+    } \
+  } \
+}
+#define BPM_ADD_FILTERING_REGION(text_trace_offset,begin_position,end_position,min_score_column,min_score,num_matches_found) { \
+  filtering_region_t* filtering_region; \
+  vector_alloc_new(filtering_regions,filtering_region_t,filtering_region); \
+  /* State */ \
+  filtering_region->status = filtering_region_accepted; \
+  /* Text-trace */ \
+  filtering_region->text_trace_offset = text_trace_offset; \
+  /* Location */ \
+  filtering_region->begin_position = begin_position; \
+  filtering_region->effective_begin_position = begin_position; \
+  filtering_region->effective_end_position = end_position; \
+  /* Regions Matching */ \
+  filtering_region->num_regions_matching = 0; \
+  filtering_region->regions_matching = NULL; \
+  /* Alignment distance */ \
+  filtering_region->align_distance = min_score; \
+  filtering_region->align_match_end_column = min_score_column; \
+  /* Increment the number of matches found */ \
+  ++num_matches_found; \
+}
+GEM_INLINE uint64_t bpm_get_distance__cutoff_all(
+    const bpm_pattern_t* const bpm_pattern,vector_t* const filtering_regions,
+    const uint64_t text_trace_offset,const uint64_t begin_position,
+    const uint8_t* const sequence,const uint64_t sequence_length,const uint64_t max_distance) {
+  PROF_START(GP_BPM_ALL);
+  // Pattern variables
+  const uint64_t* PEQ = bpm_pattern->PEQ;
+  const uint64_t num_words = bpm_pattern->pattern_num_words;
+  uint64_t* const P = bpm_pattern->P;
+  uint64_t* const M = bpm_pattern->M;
+  const uint64_t* const level_mask = bpm_pattern->level_mask;
+  int64_t* const score = bpm_pattern->score;
+  const int64_t* const init_score = bpm_pattern->init_score;
+  const uint64_t* const pattern_left = bpm_pattern->pattern_left;
+
+  // Initialize search
+  const uint64_t max_distance__1 = max_distance+1;
+  const uint8_t top = num_words-1;
+  uint8_t top_level;
+  uint64_t min_score = ALIGN_DISTANCE_INF, min_score_column = ALIGN_COLUMN_INF, opt_steps_left;
+  bpm_reset_search__cutoff(&top_level,P,M,score,init_score,max_distance);
+
+  // Advance in DP-bit_encoded matrix
+  const uint64_t end_position = begin_position + sequence_length;
+  bool match_found = false;
+  uint64_t sequence_position, sequence_left=sequence_length, num_matches_found=0;
+  for (sequence_position=0;sequence_position<sequence_length;++sequence_position,--sequence_left) {
+    // Fetch next character and advance all blocks
+    uint64_t PHin=0,MHin=0,PHout,MHout;
+    const uint8_t enc_char = sequence[sequence_position];
+    BPM_ADVANCE_COLUMN(P,M,score,PEQ,enc_char,top_level,PHin,MHin,PHout,MHout);
+
+    // Cut-off
+    BPM_CUT_OFF(P,M,score,PEQ,enc_char,top_level,PHin,MHin,PHout,MHout);
+
+    // Check match
+    const int64_t current_score = score[top_level-1];
+    if (!match_found) {
+      if (top_level==num_words && current_score<=max_distance) {
+        if (current_score < min_score)  { // Founded match, Update minimum
+          min_score_column = sequence_position;
+          min_score = current_score;
+          if (current_score==0) { // Don't try to optimize, carry on
+            match_found = false;
+            BPM_ADD_FILTERING_REGION(text_trace_offset,begin_position,end_position,min_score_column,min_score,num_matches_found);
+          } else {
+            match_found = true;
+            opt_steps_left = max_distance; // Setup optimization steps
+          }
+        }
+      }
+    } else {
+      if (top_level==num_words && current_score<min_score) { // Update minimum
+        min_score_column = sequence_position;
+        min_score = current_score;
+      }
+      if (opt_steps_left==0) {
+        match_found = false;
+        BPM_ADD_FILTERING_REGION(text_trace_offset,begin_position,end_position,min_score_column,min_score,num_matches_found);
+      } else {
+        --opt_steps_left;
+      }
+    }
+    // Quick abandon
+    if (min_score==ALIGN_DISTANCE_INF && current_score+pattern_left[top_level] > sequence_left+max_distance) {
+      // Quick abandon, it doesn't match (bounded by best case scenario)
+      PROF_INC_COUNTER(GP_BPM_ALL_QUICK_ABANDON);
+      break;
+    }
+  }
+  if (match_found) {
+    BPM_ADD_FILTERING_REGION(text_trace_offset,begin_position,end_position,min_score_column,min_score,num_matches_found);
+  }
+  PROF_INC_COUNTER(GP_BPM_ALL_MATCHES_FOUND);
+  PROF_STOP(GP_BPM_ALL);
+  return num_matches_found;
+}
+/*
+ * BPM Tiled (bound)
+ */
 GEM_INLINE void bpm_bound_distance_tiled(
     bpm_pattern_t* const bpm_pattern,const uint8_t* const sequence,const uint64_t sequence_length,
-    uint64_t* const levenshtein_distance,uint64_t* const levenshtein_match_pos,const uint64_t max_error) {
+    uint64_t* const levenshtein_distance,uint64_t* const levenshtein_match_end_column,const uint64_t max_error) {
 #ifndef BPM_TILED
   PROF_START(GP_BPM_TILED);
   // BPM Cut-off + Quick-abandon
-  bpm_get_distance__cutoff(bpm_pattern,sequence,
-      sequence_length,levenshtein_match_pos,levenshtein_distance,max_error,true);
+  bpm_get_distance__cutoff(bpm_pattern,sequence,sequence_length,
+      levenshtein_match_end_column,levenshtein_distance,max_error,true);
   PROF_ADD_COUNTER(GP_BMP_TILED_NUM_TILES,1);
   PROF_ADD_COUNTER(GP_BMP_TILED_NUM_TILES_VERIFIED,1);
   PROF_STOP(GP_BPM_TILED);
@@ -576,7 +721,7 @@ GEM_INLINE void bpm_bound_distance_tiled(
       bpm_pattern->pattern_length,words_per_chunk*BPM_ALIGN_WORD_LENGTH,sequence_length,max_error);
   if (!pattern_can_align) {
     *levenshtein_distance = ALIGN_DISTANCE_INF;
-    *levenshtein_match_pos = ALIGN_COLUMN_INF;
+    *levenshtein_match_end_column = ALIGN_COLUMN_INF; // FIXME Needed?
     PROF_STOP(GP_BPM_TILED);
     return;
   }
@@ -592,7 +737,7 @@ GEM_INLINE void bpm_bound_distance_tiled(
     global_distance += pattern_tiled.tile_distance;
     if (global_distance > max_error) {
       *levenshtein_distance = ALIGN_DISTANCE_INF;
-      *levenshtein_match_pos = ALIGN_COLUMN_INF;
+      *levenshtein_match_end_column = ALIGN_COLUMN_INF; // FIXME Needed?
       PROF_STOP(GP_BPM_TILED);
       return;
     }
@@ -601,12 +746,15 @@ GEM_INLINE void bpm_bound_distance_tiled(
     // Calculate next tile
     pattern_tiled_calculate_next(&pattern_tiled);
   }
-
-  uint64_t check_pos, check_distance;
-  bpm_get_distance__cutoff(bpm_pattern,sequence,sequence_length,&check_pos,&check_distance,max_error,true);
-
-  *levenshtein_distance = global_distance + distance_link_tiles;
-  *levenshtein_match_pos = (*levenshtein_distance==0) ? pattern_tiled.prev_tile_match_position : sequence_length-1;
+  *levenshtein_distance = global_distance + distance_link_tiles; // Bound
+  if (*levenshtein_distance==0) {
+    *levenshtein_match_end_column = pattern_tiled.prev_tile_match_position;
+  } else { // No reduction, we use the whole sequence
+    *levenshtein_match_end_column = sequence_length-1;
+    //    if (*levenshtein_distance > max_filtering_error) { // FIXME: Remove me
+    //      *levenshtein_distance = max_filtering_error; // Adjust bound overestimations
+    //    }
+  }
   // DEBUG
   gem_cond_debug_block(DEBUG_BPM_TILED) {
     uint64_t check_pos, check_distance;
@@ -617,36 +765,3 @@ GEM_INLINE void bpm_bound_distance_tiled(
   PROF_STOP(GP_BPM_TILED);
 #endif
 }
-
-
-//// DEBUG
-//gem_cond_debug_block(DEBUG_ALIGN_LEVENSHTEIN) {
-//  uint64_t dp_position;
-//  const int64_t dp_distance = align_levenshtein_get_distance(
-//      (const char * const)pattern->key,pattern->key_length,
-//      (const char * const)candidate_text,candidate_length,true,&dp_position);
-//  if (dp_distance<=max_error && (dp_distance!=*levenshtein_distance || dp_position!=*levenshtein_match_pos)) {
-//    gem_slog("[BPM]Levenshtein-Alignment\n");
-//    // Print Pattern
-//    uint64_t i;
-//    gem_slog("\tPattern(%lu bases): ",pattern->key_length);
-//    for (i=0;i<pattern->key_length;++i) gem_slog("%c",dna_decode(pattern->key[i]));
-//    // Print Candidate
-//    gem_slog("\n\tCandidate: ");
-//    for (i=0;i<candidate_length;++i) gem_slog("%c",dna_decode(candidate_text[i]));
-//    gem_slog("\n\t\tDP-Alignment=(%lu,%lu)\tBPM-Alignment=(%lu,%lu)\n",
-//        dp_distance,dp_position,*levenshtein_distance,*levenshtein_match_pos);
-//    if (dp_distance<=max_error) {
-//      gem_cond_fatal_error_msg(dp_distance!=*levenshtein_distance,"Alignment distances don't match");
-//      gem_cond_fatal_error_msg(dp_position!=*levenshtein_match_pos,"Alignment positions don't match");
-//    }
-//  }
-//}
-
-
-
-
-
-
-
-

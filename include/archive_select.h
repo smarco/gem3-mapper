@@ -20,6 +20,9 @@
  *   - 4. Sort matches wrt distance
  */
 GEM_INLINE void archive_select_matches(archive_search_t* const archive_search,matches_t* const matches);
+GEM_INLINE void archive_select_extended_matches(
+    archive_search_t* const archive_search,matches_t* const matches,
+    match_trace_t* const mates_array,const uint64_t num_mates_trace);
 
 /*
  * Select Paired-Matches
@@ -31,12 +34,11 @@ GEM_INLINE void archive_select_paired_matches(
 /*
  * Check Matches
  */
-GEM_INLINE void archive_check_matches_correctness(
-    archive_t* const archive,sequence_t* const sequence,
-    matches_t* const matches,mm_stack_t* const mm_stack);
-GEM_INLINE void archive_check_matches_optimum(
-    archive_t* const archive,sequence_t* const sequence,
-    matches_t* const matches,mm_stack_t* const mm_stack);
+GEM_INLINE void archive_check_matches_correct(
+    archive_t* const archive,const alignment_model_t alignment_model,
+    const swg_penalties_t* swg_penalties,sequence_t* const sequence,
+    matches_t* const matches,const bool check_optimum_alignment,
+    mm_stack_t* const mm_stack);
 GEM_INLINE void archive_check_matches_completness(
     archive_t* const archive,sequence_t* const sequence,
     matches_t* const matches,mm_stack_t* const mm_stack);

@@ -53,19 +53,33 @@ typedef struct {
  * Trace Match
  */
 typedef struct {
+  // Error degree of the region matching
+  uint64_t error; // TODO
+  // Coordinates of the region
+  uint64_t key_begin;
+  uint64_t key_end;
+  uint64_t text_begin;
+  uint64_t text_end;
+} region_matching_t;
+typedef struct {
   /* Match */
-  char* sequence_name;    // Sequence name (After decoding)
-  uint64_t position;      // Position of the match
-  uint64_t trace_offset;  // Chained list of matching blocks
-  uint64_t distance;      // Distance of the alignment
-  int32_t swg_score;      // SWG Distance (score) of the alignment
-  strand_t strand;        // Mapping Strand
+  char* sequence_name;     // Sequence name (After decoding)
+  uint64_t index_position; // Position of the match in the index. Global index => (seq1|seq2|...|)
+  uint64_t text_position;  // Position of the match in the text. Local text => seq15
+  uint64_t trace_offset;   // Chained list of matching blocks
+  uint64_t distance;       // Distance of the alignment
+  int32_t swg_score;       // SWG Distance (score) of the alignment
+  strand_t strand;         // Mapping Strand
   /* Score */
-  uint8_t mapq_score;     // MAPQ Score
+  uint8_t mapq_score;      // MAPQ Score
   /* CIGAR */
   uint64_t cigar_buffer_offset;
   uint64_t cigar_length;
   int64_t effective_length;
+#ifdef GEM_DEBUG
+  uint64_t num_regions_matching;
+  region_matching_t* regions_matching;
+#endif
 } match_trace_t;
 
 ///*
@@ -96,6 +110,8 @@ typedef struct {
   text_collection_t* text_collection;       // Stores text-traces (candidates/matches/regions/...)
   /* Matches Counters */
   vector_t* counters;                       // Global counters
+  uint64_t min_counter_value;
+  uint64_t max_counter_value;
   /* Interval Matches */
   vector_t* interval_matches;               // (match_interval_t)
   /* Global Position Matches */
@@ -115,10 +131,6 @@ typedef struct {
   uint64_t rp_global_matches_used;
   // uint64_t rp_local_matches_used; // TODO
   uint64_t rp_cigar_buffer_used;
-  /* Pre-computed Data */
-  uint64_t total_matches;
-  uint64_t last_computed_interval_matches_used;
-  uint64_t last_computed_global_matches_used;
 } matches_t;
 
 /*
@@ -132,10 +144,9 @@ GEM_INLINE void matches_delete(matches_t* const matches);
 /*
  * Counters
  */
-GEM_INLINE void matches_counters_add(matches_t* const matches,const uint64_t distance,const uint64_t num_matches);
-GEM_INLINE uint64_t matches_get_num_matches(matches_t* const matches);
+GEM_INLINE uint64_t matches_counters_get_min(matches_t* const matches);
+GEM_INLINE uint64_t matches_counters_get_max(matches_t* const matches);
 GEM_INLINE uint64_t matches_counters_compact(matches_t* const matches);
-GEM_INLINE uint64_t matches_counters_get_min_matching_stratum(matches_t* const matches);
 
 /*
  * Trace-Matches
@@ -153,22 +164,22 @@ GEM_INLINE int64_t match_trace_get_effective_length(
 GEM_INLINE uint64_t* matches_lookup_match(
     matches_t* const matches,const uint64_t begin_position,const uint64_t effective_length);
 GEM_INLINE void matches_add_match_trace_t(
-    matches_t* const matches,match_trace_t* const match_trace,const bool update_counters);
+    matches_t* const matches,match_trace_t* const match_trace,
+    const bool update_counters,mm_stack_t* const mm_stack);
 
 GEM_INLINE void matches_add_interval_match(
-    matches_t* const matches,
-    const uint64_t hi,const uint64_t lo,
+    matches_t* const matches,const uint64_t lo,const uint64_t hi,
     const uint64_t length,const uint64_t distance,const strand_t strand);
 GEM_INLINE void matches_add_interval_set(
-    matches_t* const matches,interval_set_t* const interval_set);
+    matches_t* const matches,interval_set_t* const interval_set,
+    const uint64_t length,const strand_t strand);
 
-GEM_INLINE void matches_hint_add_match_trace(matches_t* const matches,const uint64_t num_matches_trace_to_add);
-GEM_INLINE void matches_hint_add_match_interval(matches_t* const matches,const uint64_t num_matches_interval_to_add);
+GEM_INLINE void matches_hint_allocate_match_trace(matches_t* const matches,const uint64_t num_matches_trace_to_add);
+GEM_INLINE void matches_hint_allocate_match_interval(matches_t* const matches,const uint64_t num_matches_interval_to_add);
 
 /*
  * CIGAR Handling
  */
-
 GEM_INLINE void matches_cigar_buffer_add_cigar_element(
     cigar_element_t** const cigar_buffer_sentinel,const cigar_t cigar_element_type,
     const uint64_t element_length,uint8_t* const indel_text);
@@ -193,6 +204,10 @@ GEM_INLINE uint64_t matches_cigar_calculate_edit_distance(
 GEM_INLINE uint64_t matches_cigar_calculate_edit_distance__excluding_clipping(
     const matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
 
+/*
+ * Status
+ */
+GEM_INLINE bool matches_is_mapped(const matches_t* const matches);
 
 /*
  * Sorting Matches

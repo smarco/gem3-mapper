@@ -202,7 +202,7 @@ GEM_INLINE uint64_t archive_builder_generate_text(
       MULTIFASTA_BEGINNING_TAG,PRI_input_file_content(input_multifasta));
   // Prepare ticket
   ticker_t ticker;
-  ticker_count_reset(&ticker,verbose,"Reading MultiFASTA",0,10000000,true);
+  ticker_count_reset(&ticker,verbose,"Reading MultiFASTA",0,100000000,true);
   ticker_add_process_label(&ticker,"","bases parsed");
   ticker_add_finish_label(&ticker,"Total","bases parsed");
   // MultiFASTA Read cycle

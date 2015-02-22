@@ -74,12 +74,16 @@ GEM_INLINE void output_map_print_match(
   bofprintf_char(buffered_output_file,(match_trace->strand==Forward) ? '+' : '-');
   // Print Position
   bofprintf_char(buffered_output_file,':');
-  bofprintf_uint64(buffered_output_file,match_trace->position+1); /* Base-1 */
+  bofprintf_uint64(buffered_output_file,match_trace->text_position+1); /* Base-1 */
   // Print CIGAR
   bofprintf_char(buffered_output_file,':');
   output_map_print_cigar(buffered_output_file,
       match_trace_get_cigar_array(matches,match_trace),
       match_trace_get_cigar_length(match_trace));
+//  bofprintf_char(buffered_output_file,':'); // FIXME
+//  bofprintf_char(buffered_output_file,':');
+//  bofprintf_char(buffered_output_file,':');
+//  bofprintf_uint64(buffered_output_file,match_trace->mapq_score);
 }
 GEM_INLINE void output_map_print_paired_match(
     buffered_output_file_t* const buffered_output_file,
@@ -90,10 +94,10 @@ GEM_INLINE void output_map_print_paired_match(
   bofprintf_char(buffered_output_file,':');
   bofprintf_char(buffered_output_file,':');
   output_map_print_match(buffered_output_file,matches_end2,UINT64_MAX,paired_match->match_end2);
-  bofprintf_char(buffered_output_file,':');
-  bofprintf_char(buffered_output_file,':');
-  bofprintf_char(buffered_output_file,':');
-  bofprintf_uint64(buffered_output_file,paired_match->mapq_score);
+//  bofprintf_char(buffered_output_file,':'); // FIXME
+//  bofprintf_char(buffered_output_file,':');
+//  bofprintf_char(buffered_output_file,':');
+//  bofprintf_uint64(buffered_output_file,paired_match->mapq_score);
 }
 /*
  * MAP Alignment pretty
@@ -103,7 +107,8 @@ GEM_INLINE void output_map_alignment_pretty(
     uint8_t* const key,const uint64_t key_length,uint8_t* const text,
     const uint64_t text_length,mm_stack_t* const mm_stack) {
   mm_stack_push_state(mm_stack);
-  fprintf(stream,"%s:%lu:%c:",match_trace->sequence_name,match_trace->position,(match_trace->strand==Forward)?'+':'-');
+  fprintf(stream,"%s:%lu:%c:",match_trace->sequence_name,
+      match_trace->text_position,(match_trace->strand==Forward)?'+':'-');
   char* const key_alg = mm_stack_calloc(mm_stack,2*key_length,char,true);
   char* const ops_alg = mm_stack_calloc(mm_stack,2*key_length,char,true);
   char* const text_alg = mm_stack_calloc(mm_stack,2*key_length,char,true);
@@ -181,14 +186,14 @@ GEM_INLINE void output_map_single_end_print_tag(
   const uint64_t tag_length = string_get_length(&seq_read->tag);
   buffered_output_file_reserve(buffered_output_file,tag_length+3);
   switch (sequence_get_end_info(seq_read)) {
-    case SINGLE_END:
+    case single_end:
       bofprintf_string(buffered_output_file,PRIs_content(&seq_read->tag));
       break;
-    case PAIRED_END1:
+    case paired_end1:
       bofprintf_string(buffered_output_file,PRIs_content(&seq_read->tag));
       bofprintf_string_literal(buffered_output_file,"/1");
       break;
-    case PAIRED_END2:
+    case paired_end2:
       bofprintf_string(buffered_output_file,PRIs_content(&seq_read->tag));
       bofprintf_string_literal(buffered_output_file,"/2");
       break;
@@ -357,6 +362,8 @@ GEM_INLINE void output_map_single_end_matches(
   BUFFERED_OUTPUT_FILE_CHECK(buffered_output_file);
   MATCHES_CHECK(matches);
   PROF_START_TIMER(GP_OUTPUT_MAP_SE);
+  // Sort matches
+  matches_sort_by_distance(matches);
   // Print TAG
   output_map_single_end_print_tag(buffered_output_file,&archive_search->sequence);
   // Print READ & QUALITIES
@@ -385,12 +392,14 @@ GEM_INLINE void output_map_paired_end_matches(
     archive_search_t* const archive_search_end2,paired_matches_t* const paired_matches) {
   BUFFERED_OUTPUT_FILE_CHECK(buffered_output_file);
   PROF_START_TIMER(GP_OUTPUT_MAP_PE);
-  matches_t* const matches_end1 = paired_matches_end1(paired_matches);
-  matches_t* const matches_end2 = paired_matches_end2(paired_matches);
+  matches_t* const matches_end1 = paired_matches->matches_end1;
+  matches_t* const matches_end2 = paired_matches->matches_end2;
   if (!paired_matches_is_mapped(paired_matches)) {
     output_map_single_end_matches(buffered_output_file,archive_search_end1,matches_end1);
     output_map_single_end_matches(buffered_output_file,archive_search_end2,matches_end2);
   } else {
+    // Sort matches
+    paired_matches_sort_by_distance(paired_matches);
     // Print TAG
     output_map_paired_end_print_tag(buffered_output_file,
         &archive_search_end1->sequence,&archive_search_end2->sequence);

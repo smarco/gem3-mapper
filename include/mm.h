@@ -86,6 +86,32 @@ extern const uint64_t mm_mem_alignment_bits_mask[];
   } else if (MM_MEM_IS_ALIGNED(memory_address,16b)) { \
     debug_msg("Memory aligned to 16 bits (%p)",(void*)memory_address); \
   }
+// Align Memory Macros
+#define MM_MEM_ALIGNED_MASK_16b   mm_mem_alignment_bits_mask[0]
+#define MM_MEM_ALIGNED_MASK_32b   mm_mem_alignment_bits_mask[1]
+#define MM_MEM_ALIGNED_MASK_64b   mm_mem_alignment_bits_mask[2]
+#define MM_MEM_ALIGNED_MASK_128b  mm_mem_alignment_bits_mask[3]
+#define MM_MEM_ALIGNED_MASK_256b  mm_mem_alignment_bits_mask[4]
+#define MM_MEM_ALIGNED_MASK_512b  mm_mem_alignment_bits_mask[5]
+#define MM_MEM_ALIGNED_MASK_1024b mm_mem_alignment_bits_mask[6]
+/* (...) */
+#define MM_MEM_ALIGNED_MASK_1KB   mm_mem_alignment_bits_mask[9]
+#define MM_MEM_ALIGNED_MASK_2KB   mm_mem_alignment_bits_mask[10]
+#define MM_MEM_ALIGNED_MASK_4KB   mm_mem_alignment_bits_mask[11]
+#define MM_MEM_ALIGNED_MASK_2MB   mm_mem_alignment_bits_mask[20]
+
+#define MM_MEM_ALIGN_16b(mem)   MM_CAST_PTR((MM_CAST_ADDR(mem)+MM_MEM_ALIGNED_MASK_16b)&(~MM_MEM_ALIGNED_MASK_16b))
+#define MM_MEM_ALIGN_32b(mem)   MM_CAST_PTR((MM_CAST_ADDR(mem)+MM_MEM_ALIGNED_MASK_32b)&(~MM_MEM_ALIGNED_MASK_32b))
+#define MM_MEM_ALIGN_64b(mem)   MM_CAST_PTR((MM_CAST_ADDR(mem)+MM_MEM_ALIGNED_MASK_64b)&(~MM_MEM_ALIGNED_MASK_64b))
+#define MM_MEM_ALIGN_128b(mem)  MM_CAST_PTR((MM_CAST_ADDR(mem)+MM_MEM_ALIGNED_MASK_128b)&(~MM_MEM_ALIGNED_MASK_128b))
+#define MM_MEM_ALIGN_256b(mem)  MM_CAST_PTR((MM_CAST_ADDR(mem)+MM_MEM_ALIGNED_MASK_256b)&(~MM_MEM_ALIGNED_MASK_256b))
+#define MM_MEM_ALIGN_512b(mem)  MM_CAST_PTR((MM_CAST_ADDR(mem)+MM_MEM_ALIGNED_MASK_512b)&(~MM_MEM_ALIGNED_MASK_512b))
+#define MM_MEM_ALIGN_1024b(mem) MM_CAST_PTR((MM_CAST_ADDR(mem)+MM_MEM_ALIGNED_MASK_1024b)&(~MM_MEM_ALIGNED_MASK_1024b))
+/* (...) */
+#define MM_MEM_ALIGN_1KB(mem)   MM_CAST_PTR((MM_CAST_ADDR(mem)+MM_MEM_ALIGNED_MASK_1KB)&(~MM_MEM_ALIGNED_MASK_1KB))
+#define MM_MEM_ALIGN_2KB(mem)   MM_CAST_PTR((MM_CAST_ADDR(mem)+MM_MEM_ALIGNED_MASK_2KB)&(~MM_MEM_ALIGNED_MASK_2KB))
+#define MM_MEM_ALIGN_4KB(mem)   MM_CAST_PTR((MM_CAST_ADDR(mem)+MM_MEM_ALIGNED_MASK_4KB)&(~MM_MEM_ALIGNED_MASK_4KB))
+#define MM_MEM_ALIGN_2MB(mem)   MM_CAST_PTR((MM_CAST_ADDR(mem)+MM_MEM_ALIGNED_MASK_2MB)&(~MM_MEM_ALIGNED_MASK_2MB))
 
 /*
  * Temporal folder path

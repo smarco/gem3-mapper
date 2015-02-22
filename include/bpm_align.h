@@ -66,14 +66,17 @@ GEM_INLINE void bpm_pattern_compile(
     const uint64_t pattern_length,const uint64_t max_error,mm_stack_t* const mm_stack);
 
 /*
- * Bit-compressed Alignment BMP (BitParalellMyers) - Myers' Fast Bit-Vector algorithm (Levenshtein)
+ * BPM (BitParalellMyers, Bit-compressed Alignment)
+ *   Myers' Fast Bit-Vector algorithm (Levenshtein)
  */
 GEM_INLINE bool bpm_get_distance(
     bpm_pattern_t* const bpm_pattern,const uint8_t* const sequence,const uint64_t sequence_length,
     uint64_t* const position,uint64_t* const distance);
 GEM_INLINE bool bpm_get_distance__cutoff(
-    const bpm_pattern_t* const bpm_pattern,const uint8_t* const sequence,const uint64_t sequence_length,
-    uint64_t* const position,uint64_t* const distance,const uint64_t max_distance,const bool quick_abandon);
+    const bpm_pattern_t* const bpm_pattern,
+    const uint8_t* const sequence,const uint64_t sequence_length,
+    uint64_t* const match_end_column,uint64_t* const distance,
+    const uint64_t max_distance,const bool quick_abandon);
 GEM_INLINE void bpm_align_match(
     const uint8_t* const key,const bpm_pattern_t* const bpm_pattern,
     uint64_t* const match_position,uint8_t* const sequence,
@@ -81,11 +84,17 @@ GEM_INLINE void bpm_align_match(
     vector_t* const cigar_vector,uint64_t* const cigar_vector_offset,uint64_t* const cigar_length,
     uint64_t* const distance,int64_t* const effective_length,mm_stack_t* const mm_stack);
 
+// Find all local minimums
+GEM_INLINE uint64_t bpm_get_distance__cutoff_all(
+    const bpm_pattern_t* const bpm_pattern,vector_t* const filtering_regions,
+    const uint64_t text_trace_offset,const uint64_t index_position,
+    const uint8_t* const sequence,const uint64_t sequence_length,const uint64_t max_distance);
+
 /*
- * BMP Tiled (bound)
+ * BPM Tiled (bound)
  */
 GEM_INLINE void bpm_bound_distance_tiled(
     bpm_pattern_t* const bpm_pattern,const uint8_t* const sequence,const uint64_t sequence_length,
-    uint64_t* const levenshtein_distance,uint64_t* const levenshtein_match_pos,const uint64_t max_error);
+    uint64_t* const levenshtein_distance,uint64_t* const levenshtein_match_end_column,const uint64_t max_error);
 
 #endif /* BPM_ALIGN_H_ */

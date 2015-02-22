@@ -92,7 +92,7 @@ GEM_INLINE void COUNTER_COMBINE_MIN(gem_counter_t* const counter_dst,gem_counter
   counter_dst->max = MAX(counter_dst->max,counter_src->max);
 }
 GEM_INLINE void COUNTER_COMBINE_MEAN(gem_counter_t* const counter_dst,gem_counter_t* const counter_src) {
-  // FIXME Horrible, but listen! Now, I just want a roughly estimation
+  // FIXME Horrible, but listen! Now, I just want a rough estimation
   counter_dst->total = (counter_dst->total+counter_src->total)/2;
   counter_dst->samples = (counter_dst->samples+counter_src->samples)/2;
   counter_dst->min = MIN(counter_dst->min,counter_src->min);
@@ -102,39 +102,9 @@ GEM_INLINE void COUNTER_COMBINE_MEAN(gem_counter_t* const counter_dst,gem_counte
   if (counter_src->m_oldS!=0.0) counter_dst->m_oldS = counter_src->m_oldS;
   if (counter_src->m_oldM!=0.0) counter_dst->m_oldM = counter_src->m_oldM;
 }
-GEM_INLINE void COUNTER_PRINT(
+GEM_INLINE void COUNTER_PRINT_STATS(
     FILE* const stream,const gem_counter_t* const counter,
-    const gem_counter_t* const ref_counter,const char* const units,const bool full_report) {
-  const uint64_t total = COUNTER_GET_TOTAL(counter);
-  // Print Total
-  if (total >= BUFFER_SIZE_1G) {
-    fprintf(stream,"%7.2f G%s",(double)total/BUFFER_SIZE_1G,units);
-  } else if (total >= BUFFER_SIZE_1M) {
-    fprintf(stream,"%7.2f M%s ",(double)total/BUFFER_SIZE_1M,units);
-  } else if (total >= BUFFER_SIZE_1K) {
-    fprintf(stream,"%7.2f K%s",(double)total/BUFFER_SIZE_1K,units);
-  } else {
-    fprintf(stream,"%7.2f %s  ",(double)total,units);
-  }
-  // Print percentage wrt reference
-  if (ref_counter!=NULL) {
-    if (total==0) {
-        fprintf(stream," (  0.00 %%)");
-    } else {
-      const uint64_t total_ref = COUNTER_GET_TOTAL(ref_counter);
-      if (total_ref==0) {
-        fprintf(stream," (  n/a  %%)");
-      } else {
-        const double percentage = (double)(total*100)/(double)total_ref;
-        fprintf(stream," (%6.02f %%)",percentage);
-      }
-    }
-  }
-  // Full report
-  if (!full_report) {
-    fprintf(stream,"\n");
-    return;
-  }
+    const gem_counter_t* const ref_counter,const char* const units) {
   // Print Samples
   const uint64_t num_samples = COUNTER_GET_NUM_SAMPLES(counter);
   if (num_samples >= BUFFER_SIZE_1G) {
@@ -206,10 +176,54 @@ GEM_INLINE void COUNTER_PRINT(
     fprintf(stream,",StdDev%.2f)}\n",(double)stdDev);
   }
 }
+GEM_INLINE void COUNTER_PRINT(
+    FILE* const stream,const gem_counter_t* const counter,
+    const gem_counter_t* const ref_counter,const char* const units,const bool full_report) {
+  const uint64_t total = COUNTER_GET_TOTAL(counter);
+  // Print Total
+  if (total >= BUFFER_SIZE_1G) {
+    fprintf(stream,"%7.2f G%s",(double)total/BUFFER_SIZE_1G,units);
+  } else if (total >= BUFFER_SIZE_1M) {
+    fprintf(stream,"%7.2f M%s",(double)total/BUFFER_SIZE_1M,units);
+  } else if (total >= BUFFER_SIZE_1K) {
+    fprintf(stream,"%7.2f K%s",(double)total/BUFFER_SIZE_1K,units);
+  } else {
+    fprintf(stream,"%7.2f %s ",(double)total,units);
+  }
+  // Print percentage wrt reference
+  if (ref_counter!=NULL) {
+    if (total==0) {
+        fprintf(stream," (  0.00 %%)");
+    } else {
+      const uint64_t total_ref = COUNTER_GET_TOTAL(ref_counter);
+      if (total_ref==0) {
+        fprintf(stream," (  n/a  %%)");
+      } else {
+        const double percentage = (double)(total*100)/(double)total_ref;
+        fprintf(stream," (%6.02f %%)",percentage);
+      }
+    }
+  } else {
+    fprintf(stream,"           ");
+  }
+  // Full report
+  if (!full_report) {
+    fprintf(stream,"\n");
+    return;
+  } else {
+    COUNTER_PRINT_STATS(stream,counter,ref_counter,units);
+  }
+}
+GEM_INLINE void SAMPLER_PRINT(
+    FILE* const stream,const gem_counter_t* const counter,
+    const gem_counter_t* const ref_counter,const char* const units) {
+  fprintf(stream,"\t\t\t\t");
+  COUNTER_PRINT_STATS(stream,counter,ref_counter,units);
+}
 GEM_INLINE void PERCENTAGE_PRINT(FILE* const stream,const gem_counter_t* const counter) {
   // Print Mean
   const double mean = COUNTER_GET_MEAN(counter);
-  fprintf(stream,"%7.2f%%",mean);
+  fprintf(stream,"%7.2f%%\t\t",mean);
   // Print Samples
   const uint64_t num_samples = COUNTER_GET_NUM_SAMPLES(counter);
   if (num_samples >= BUFFER_SIZE_1G) {

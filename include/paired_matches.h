@@ -59,8 +59,6 @@ GEM_INLINE void paired_matches_delete(paired_matches_t* const paired_matches);
 /*
  * Accessors
  */
-GEM_INLINE matches_t* paired_matches_end1(paired_matches_t* const paired_matches);
-GEM_INLINE matches_t* paired_matches_end2(paired_matches_t* const paired_matches);
 GEM_INLINE bool paired_matches_is_mapped(paired_matches_t* const paired_matches);
 
 /*
@@ -74,9 +72,13 @@ GEM_INLINE void paired_matches_add(
 /*
  * Finding Pairs
  */
+GEM_INLINE void paired_matches_pair_match_with_mates(
+    paired_matches_t* const paired_matches,search_parameters_t* const search_parameters,
+    const pair_orientation_t pair_orientation,match_trace_t* const match_trace,
+    const sequence_end_t mate_end,match_trace_t* const mates_array,
+    const uint64_t num_mates_trace);
 GEM_INLINE void paired_matches_find_pairs(
     paired_matches_t* const paired_matches,search_parameters_t* const search_parameters);
-
 GEM_INLINE void paired_matches_find_discordant_pairs(
     paired_matches_t* const paired_matches,search_parameters_t* const search_parameters);
 

@@ -53,7 +53,7 @@ devel: $(GEM_CORE_LIB)
 profile: COMPILE_C_FLAGS=$(GENERAL_FLAGS) $(OPT_FLAGS) $(DEBUG_FLAGS) -I/opt/intel/vtune_amplifier_xe_2013/include/
 profile: $(GEM_CORE_LIB)
 
-debug: COMPILE_C_FLAGS=-O0 $(GENERAL_FLAGS) $(DEBUG_FLAGS)
+debug: COMPILE_C_FLAGS=-O0 $(GENERAL_FLAGS) $(DEBUG_FLAGS) $(GEM_DEBUG_FLAGS)
 debug: $(GEM_CORE_LIB)
 
 $(GEM_CORE_LIB): $(OBJS)

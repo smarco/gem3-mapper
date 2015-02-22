@@ -33,16 +33,15 @@ GEM_INLINE input_file_t* gem_mapper_open_input_file(
     gem_cond_log(verbose_user,"[Opening input file '%s']",input_file_name);
     input_file = input_file_open(input_file_name,input_block_size,false);
   }
-  // TODO: Checks
   return input_file;
 }
 GEM_INLINE void gem_mapper_open_input(mapper_parameters_t* const parameters) {
   if (parameters->io.separated_input_files) {
     parameters->input_file_end1 = gem_mapper_open_input_file(
-        parameters->io.input_file_name,parameters->io.input_compression,
+        parameters->io.input_file_name_end1,parameters->io.input_compression,
         parameters->io.input_block_size,parameters->misc.verbose_user);
     parameters->input_file_end2 = gem_mapper_open_input_file(
-        parameters->io.input_file_name,parameters->io.input_compression,
+        parameters->io.input_file_name_end2,parameters->io.input_compression,
         parameters->io.input_block_size,parameters->misc.verbose_user);
   } else {
     parameters->input_file = gem_mapper_open_input_file(
@@ -51,7 +50,12 @@ GEM_INLINE void gem_mapper_open_input(mapper_parameters_t* const parameters) {
   }
 }
 GEM_INLINE void gem_mapper_close_input(mapper_parameters_t* const parameters) {
-  input_file_close(parameters->input_file);
+  if (parameters->io.separated_input_files) {
+    input_file_close(parameters->input_file_end1);
+    input_file_close(parameters->input_file_end2);
+  } else {
+    input_file_close(parameters->input_file);
+  }
 }
 GEM_INLINE void gem_mapper_open_output(mapper_parameters_t* const parameters) {
   // Open output stream
@@ -91,39 +95,21 @@ GEM_INLINE void gem_mapper_print_profile(mapper_parameters_t* const parameters) 
     case reduce_sample: PROF_REDUCE_SAMPLE(); break;
     default: GEM_INVALID_CASE(); break;
   }
-  // Sys
+  // System
   system_print_info(gem_info_get_stream());
   // Parameters
-  mapper_parameters_print(gem_info_get_stream(),parameters);
-  // I/O
-  mapper_profile_print_io(gem_info_get_stream());
+  // mapper_parameters_print(gem_info_get_stream(),parameters);
   // Mapper
   if (!parameters->cuda.cuda_enabled) {
-    /*
-     * CPU Mapper
-     */
+    // CPU Mapper
     switch (parameters->mapper_type) {
       case mapper_se:
-        switch (parameters->search_parameters.mapping_mode) {
-          case mapping_adaptive_filtering:
-            mapper_profile_print_mapper_adaptive(gem_info_get_stream());
-            if (parameters->system.num_threads==1) {
-              mapper_profile_print_mapper_adaptive_ranks(gem_info_get_stream());
-            }
-            mapper_profile_print_region_profile_soft(gem_info_get_stream());
-            mapper_profile_print_filtering_verifying(gem_info_get_stream(),true);
-            break;
-          case mapping_incremental_mapping:
-          case mapping_fixed_filtering:
-          case mapping_fast:
-          case mapping_neighborhood_search:
-            break;
-          default:
-            GEM_INVALID_CASE();
-            break;
-        }
+        mapper_profile_print_mapper_single_end(gem_info_get_stream(),
+            parameters->io.output_format,parameters->system.num_threads);
         break;
       case mapper_pe:
+        mapper_profile_print_mapper_paired_end(gem_info_get_stream(),
+            parameters->io.output_format,parameters->system.num_threads);
         break;
       case mapper_graph:
         break;
@@ -131,26 +117,11 @@ GEM_INLINE void gem_mapper_print_profile(mapper_parameters_t* const parameters) 
         break;
     }
   } else {
-    /*
-     * CUDA Mapper
-     */
+    // CUDA Mapper
     switch (parameters->mapper_type) {
       case mapper_se:
-        switch (parameters->search_parameters.mapping_mode) {
-          case mapping_adaptive_filtering:
-            mapper_profile_print_mapper_cuda_adaptive(gem_info_get_stream());
-            mapper_profile_print_region_profile_soft(gem_info_get_stream());
-            mapper_profile_print_filtering_verifying(gem_info_get_stream(),false);
-            mapper_profile_print_archive_search_group(gem_info_get_stream());
-            break;
-          case mapping_incremental_mapping:
-          case mapping_fixed_filtering:
-          case mapping_fast:
-          case mapping_neighborhood_search:
-          default:
-            GEM_INVALID_CASE();
-            break;
-        }
+        mapper_profile_print_mapper_single_end_cuda(gem_info_get_stream(),
+            parameters->io.output_format,parameters->system.num_threads);
         break;
       case mapper_pe:
         break;
@@ -183,17 +154,19 @@ option_t gem_mapper_options[] = {
   { 'Q', "quality-model", REQUIRED, TYPE_STRING, 3, false, "'gem'|'flat'", "(default=gem)" },
   { 300, "gem-quality-threshold", REQUIRED, TYPE_INT, 3, true, "<number>", "(default=26, that is e<=2e-3)" },
   /* Single-end Alignment */
-  { 400, "mapping-mode", REQUIRED, TYPE_STRING, 4, false, "'incremental'|'adaptive'|'fixed'|'fast'|'brute-force'" , "(default=fast)" },
+  { 400, "mapping-mode", REQUIRED, TYPE_STRING, 4, false, "'fast'|'match'|'complete'|'brute-force'" , "(default=match)" },
   { 401, "filtering-degree", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0)" },
   { 'e', "max-search-error", REQUIRED, TYPE_FLOAT, 4, true, "<number|percentage>" , "(default=0.04, 4%)" },
   { 'E', "max-filtering-error", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0.08, 8%)" },
+  { 402, "max-bandwidth", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0.20, 20%)" },
   { 's', "complete-strata-after-best", REQUIRED, TYPE_FLOAT, 4, true, "<number|percentage>" , "(default=0)" },
   { 403, "min-matching-length", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0.20, 20%)" },
   { 404, "max-search-matches", REQUIRED, TYPE_INT, 4, true, "<number>" , "(unlimited by default)" },
   { 405, "mismatch-alphabet", REQUIRED, TYPE_STRING, 4, false, "<symbols>" , "(default='ACGT')" },
   { 406, "region-chaining", OPTIONAL, TYPE_STRING, 4, false, "" , "(default=true)" },
   { 407, "candidate-chunk-length", REQUIRED, TYPE_INT, 4, false, "" , "(default=unlimited)" },
-  { 408, "region-model", REQUIRED, TYPE_FLOAT, 4, false, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "(default=20,4,2,2)" },
+  { 408, "region-model-minimal", REQUIRED, TYPE_FLOAT, 4, false, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "(default=20,4,2,2)" },
+  { 409, "region-model-delimit", REQUIRED, TYPE_FLOAT, 4, false, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "(default=50,10,4,2)" },
   /* Paired-end Alignment */
   { 'p', "paired-end-alignment", NO_ARGUMENT, TYPE_NONE, 5, true, "" , "" },
   // { 500, "mate-pair-alignment", NO_ARGUMENT, TYPE_NONE, 5, true, "" , "" }, // TODO
@@ -203,7 +176,7 @@ option_t gem_mapper_options[] = {
   { 504, "search-discordant", OPTIONAL, TYPE_STRING, 5, true, "'always'|'if-no-concordant'|'never'" , "(default=if-no-concordant)" },
   { 505, "discordant-pair-orientation", REQUIRED, TYPE_STRING, 5, true, "'FR'|'RF'|'FF'|'RR'" , "(default=RF,FF,RR)" },
   { 506, "pair-layout", REQUIRED, TYPE_STRING, 5, true, "'separate'|'overlap'|'contain'|'dovetail'" , "(default=separated,overlap,contain,dovetail)" },
-  { 507, "map-both-ends", NO_ARGUMENT, TYPE_NONE, 5, false, "" , "(default=false)" },
+  { 507, "paired-mapping-mode", REQUIRED, TYPE_STRING, 5, false, "'map-both-ends'|'paired-filtering'|'map-extension'" , "(default=map-extension)" },
   { 508, "max-extendable-candidates", REQUIRED, TYPE_INT, 5, false, "<number>" , "(default=20)" },
   { 509, "max-matches-per-extension", REQUIRED, TYPE_INT, 5, false, "<number>" , "(default=2)" },
   /* Alignment Score */
@@ -403,27 +376,27 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       break;
     /* Single-end Alignment */
     case 400: // --mapping-mode
-      if (gem_strcaseeq(optarg,"incremental")) {
-        parameters->search_parameters.mapping_mode = mapping_incremental_mapping;
-        break;
-      }
-      if (gem_strcaseeq(optarg,"adaptive")) {
-        parameters->search_parameters.mapping_mode = mapping_adaptive_filtering;
-        break;
-      }
-      if (gem_strcaseeq(optarg,"fixed")) {
-        parameters->search_parameters.mapping_mode = mapping_fixed_filtering;
-        break;
-      }
       if (gem_strcaseeq(optarg,"fast")) {
-        parameters->search_parameters.mapping_mode = mapping_fast;
+        parameters->search_parameters.mapping_mode = mapping_adaptive_filtering_fast;
+        break;
+      }
+      if (gem_strcaseeq(optarg,"match")) {
+        parameters->search_parameters.mapping_mode = mapping_adaptive_filtering_match;
+        break;
+      }
+      if (gem_strcaseeq(optarg,"complete")) {
+        parameters->search_parameters.mapping_mode = mapping_adaptive_filtering_complete;
         break;
       }
       if (gem_strcaseeq(optarg,"brute-force")) {
         parameters->search_parameters.mapping_mode = mapping_neighborhood_search;
         break;
       }
-      gem_fatal_error_msg("Option '--mapping-mode' must be 'incremental'|'adaptive'|'fixed'|'fast'|'brute-force'");
+      if (gem_strcaseeq(optarg,"lab")) {
+        parameters->search_parameters.mapping_mode = mapping_lab_testing;
+        break;
+      }
+      gem_fatal_error_msg("Option '--mapping-mode' must be 'fast'|'match'|'complete'|'brute-force'|'lab'");
       break;
     case 401: // --filtering-degree
       parameters->search_parameters.filtering_degree = atof(optarg);
@@ -433,6 +406,9 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       break;
     case 'E': // --max-filtering-error
       parameters->search_parameters.max_filtering_error = atof(optarg);
+      break;
+    case 402: // --max-bandwidth
+      parameters->search_parameters.max_bandwidth = atof(optarg);
       break;
     case 's': // --complete-strata-after-best
       input_text_parse_extended_double(optarg,(double*)&parameters->search_parameters.complete_strata_after_best);
@@ -455,18 +431,32 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 407: // --candidate-chunk-length
       input_text_parse_extended_uint64(optarg,&parameters->search_parameters.candidate_chunk_max_length);
       break;
-    case 408: { // --region-model
+    case 408: { // --region-model-minimal <region_th>,<max_steps>,<dec_factor>,<region_type_th>
       char *region_th=NULL, *max_steps=NULL, *dec_factor=NULL, *region_type_th=NULL;
       const int num_arguments = input_text_parse_csv_arguments(optarg,4,&region_th,&max_steps,&dec_factor,&region_type_th);
       gem_cond_fatal_error_msg(num_arguments!=4,"Option '--region-model' wrong number of arguments");
       // Parse region_th
-      input_text_parse_extended_uint64(region_th,&parameters->search_parameters.rp_soft.region_th);
+      input_text_parse_extended_uint64(region_th,&parameters->search_parameters.rp_minimal.region_th);
       // Parse max_steps
-      input_text_parse_extended_uint64(max_steps,&parameters->search_parameters.rp_soft.max_steps);
+      input_text_parse_extended_uint64(max_steps,&parameters->search_parameters.rp_minimal.max_steps);
       // Parse dec_factor
-      input_text_parse_extended_uint64(dec_factor,&parameters->search_parameters.rp_soft.dec_factor);
+      input_text_parse_extended_uint64(dec_factor,&parameters->search_parameters.rp_minimal.dec_factor);
       // Parse region_type_th
-      input_text_parse_extended_uint64(region_type_th,&parameters->search_parameters.rp_soft.region_type_th);
+      input_text_parse_extended_uint64(region_type_th,&parameters->search_parameters.rp_minimal.region_type_th);
+      break;
+    }
+    case 409: { // --region-model-delimit <region_th>,<max_steps>,<dec_factor>,<region_type_th>
+      char *region_th=NULL, *max_steps=NULL, *dec_factor=NULL, *region_type_th=NULL;
+      const int num_arguments = input_text_parse_csv_arguments(optarg,4,&region_th,&max_steps,&dec_factor,&region_type_th);
+      gem_cond_fatal_error_msg(num_arguments!=4,"Option '--region-model' wrong number of arguments");
+      // Parse region_th
+      input_text_parse_extended_uint64(region_th,&parameters->search_parameters.rp_delimit.region_th);
+      // Parse max_steps
+      input_text_parse_extended_uint64(max_steps,&parameters->search_parameters.rp_delimit.max_steps);
+      // Parse dec_factor
+      input_text_parse_extended_uint64(dec_factor,&parameters->search_parameters.rp_delimit.dec_factor);
+      // Parse region_type_th
+      input_text_parse_extended_uint64(region_type_th,&parameters->search_parameters.rp_delimit.region_type_th);
       break;
     }
     /* Paired-end Alignment */
@@ -535,8 +525,16 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       }
       break;
     }
-    case 507: // --map-both-ends
-      parameters->search_parameters.map_both_ends = input_text_parse_extended_bool(optarg);
+    case 507: // --paired-mapping-mode in {'map-both-ends'|'paired-filtering'|'map-extension'} (default=map-extension)
+      if (gem_strcaseeq(optarg,"map-both-ends")) {
+        parameters->search_parameters.paired_mapping_mode = paired_mapping_map_both_ends;
+      } else if (gem_strcaseeq(optarg,"paired-filtering")) {
+        parameters->search_parameters.paired_mapping_mode = paired_mapping_paired_filtering;
+      } else if (gem_strcaseeq(optarg,"map-extension")) {
+        parameters->search_parameters.paired_mapping_mode = paired_mapping_map_extension;
+      } else {
+        gem_fatal_error_msg("Option '--paired-mapping-mode' must be 'map-both-ends'|'paired-filtering'|'map-extension'");
+      }
       break;
     case 508: // --max-extendable-candidates
       input_text_parse_extended_uint64(optarg,&parameters->search_parameters.max_extendable_candidates);
@@ -574,7 +572,8 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       // Configure scores
       approximate_search_configure_alignment_match_scores(&parameters->search_parameters,matching_score);
       approximate_search_configure_alignment_mismatch_scores(&parameters->search_parameters,mismatch_penalty);
-      approximate_search_configure_alignment_gap_scores(&parameters->search_parameters,gap_open_penalty,gap_extension_penalty);
+      parameters->search_parameters.swg_penalties.gap_open_score = -((int32_t)gap_open_penalty);
+      parameters->search_parameters.swg_penalties.gap_extension_score = -((int32_t)gap_extension_penalty);
       break;
     }
     case 'A': { // --matching-score (default=1)
@@ -592,15 +591,13 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 'O': { // --gap-open-penalty (default=6)
       uint64_t gap_open_penalty;
       input_text_parse_extended_uint64(optarg,&gap_open_penalty);
-      approximate_search_configure_alignment_gap_scores(&parameters->search_parameters,
-          gap_open_penalty,parameters->search_parameters.swg_penalties.gap_extension_penalty);
+      parameters->search_parameters.swg_penalties.gap_open_score = -((int32_t)gap_open_penalty);
       break;
     }
     case 'X': { // --gap-extension-penalty (default=1)
       uint64_t gap_extension_penalty;
       input_text_parse_extended_uint64(optarg,&gap_extension_penalty);
-      approximate_search_configure_alignment_gap_scores(&parameters->search_parameters,
-          parameters->search_parameters.swg_penalties.gap_open_penalty,gap_extension_penalty);
+      parameters->search_parameters.swg_penalties.gap_extension_score = -((int32_t)gap_extension_penalty);
       break;
     }
     /* MAQ Score */
@@ -718,17 +715,30 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     /* Debug */
     case 'c': { // --check-alignments in {'correct'|'best'|'complete'}
       select_parameters_t* const select_parameters = &parameters->select_parameters;
-      select_parameters->check_matches_mask = check_none; // Init
       if (!optarg) {
-        select_parameters->check_matches_mask |= check_correctness;
+        select_parameters->check_correct = true;
       } else {
         char *check = strtok(optarg,","); // Start parsing
         while (check!=NULL) {
-          if (gem_strcaseeq(check,"none"))     { select_parameters->check_matches_mask |= check_none; }
-          else if (gem_strcaseeq(check,"correct"))  { select_parameters->check_matches_mask |= check_correctness; }
-          else if (gem_strcaseeq(check,"best"))     { select_parameters->check_matches_mask |= check_optimum; }
-          else if (gem_strcaseeq(check,"complete")) { select_parameters->check_matches_mask |= check_completness; }
-          else { gem_fatal_error_msg("Option '--check-alignments' must be 'correct'|'best'|'complete'"); }
+          if (gem_strcaseeq(check, "none")) {
+            select_parameters->check_correct = false;
+            select_parameters->check_optimum = false;
+            select_parameters->check_complete = false;
+          } else if (gem_strcaseeq(check, "correct")) {
+            select_parameters->check_correct = true;
+            select_parameters->check_optimum = false;
+            select_parameters->check_complete = false;
+          } else if (gem_strcaseeq(check, "best")) {
+            select_parameters->check_correct = true;
+            select_parameters->check_optimum = true;
+            select_parameters->check_complete = false;
+          } else if (gem_strcaseeq(check, "complete")) {
+            select_parameters->check_correct = true;
+            select_parameters->check_optimum = true;
+            select_parameters->check_complete = true;
+          } else {
+            gem_fatal_error_msg("Option '--check-alignments' must be 'correct'|'best'|'complete'");
+          }
           check = strtok(NULL,",");
         }
       }
