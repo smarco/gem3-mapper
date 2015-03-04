@@ -150,6 +150,26 @@ GEM_INLINE uint64_t gem_rand_IID(const uint64_t min,const uint64_t max) {
   }
 }
 /*
+ * Statistical Utils
+ */
+GEM_INLINE double standard_normal_CDF(double x) {
+  // CDF Constants
+  const double a1 =  0.254829592;
+  const double a2 = -0.284496736;
+  const double a3 =  1.421413741;
+  const double a4 = -1.453152027;
+  const double a5 =  1.061405429;
+  const double p  =  0.3275911;
+  // Sign of x
+  int sign = 1;
+  if (x < 0) sign = -1;
+  x = fabs(x)/sqrt(2.0);
+  // A&S formula 7.1.26
+  double t = 1.0/(1.0 + p*x);
+  double y = 1.0 - (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*exp(-x*x);
+  return 0.5*(1.0 + sign*y);
+}
+/*
  * CheckSum & BitDisplay
  */
 GEM_INLINE uint64_t checksum_uint64(uint64_t* mem,const uint64_t num_words) {

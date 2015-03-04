@@ -34,14 +34,16 @@ GEM_INLINE void archive_select_paired_matches(
 /*
  * Check Matches
  */
-GEM_INLINE void archive_check_matches_correct(
+GEM_INLINE void archive_check_matches(
     archive_t* const archive,const alignment_model_t alignment_model,
     const swg_penalties_t* swg_penalties,sequence_t* const sequence,
     matches_t* const matches,const bool check_optimum_alignment,
-    mm_stack_t* const mm_stack);
-GEM_INLINE void archive_check_matches_completness(
-    archive_t* const archive,sequence_t* const sequence,
-    matches_t* const matches,mm_stack_t* const mm_stack);
+    const bool check_complete,mm_stack_t* const mm_stack);
+GEM_INLINE void archive_check_paired_matches(
+    archive_t* const archive,const alignment_model_t alignment_model,
+    const swg_penalties_t* swg_penalties,sequence_t* const sequence_end1,
+    sequence_t* const sequence_end2,paired_matches_t* const paired_matches,
+    const bool check_optimum_alignment,const bool check_complete,mm_stack_t* const mm_stack);
 
 /*
  * Error Messages

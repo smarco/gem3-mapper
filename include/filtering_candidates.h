@@ -73,6 +73,7 @@ GEM_INLINE void filtering_candidates_add_interval_set_thresholded(
 GEM_INLINE uint64_t filtering_candidates_process_candidates(
     filtering_candidates_t* const filtering_candidates,
     archive_t* const archive,const pattern_t* const pattern,
+    const search_actual_parameters_t* const search_actual_parameters,
     mm_stack_t* const mm_stack);
 GEM_INLINE uint64_t filtering_candidates_verify_candidates(
     filtering_candidates_t* const filtering_candidates,
@@ -102,8 +103,9 @@ GEM_INLINE void filtering_candidates_bpm_buffer_align(
 GEM_INLINE void filtering_candidates_set_all_regions_pending(filtering_candidates_t* const filtering_candidates);
 GEM_INLINE void filtering_candidates_set_all_regions_unverified(filtering_candidates_t* const filtering_candidates);
 GEM_INLINE void filtering_candidates_paired_regions_filtering(
-    filtering_candidates_t* const filtering_candidates_end1,filtering_candidates_t* const filtering_candidates_end2,
-    const uint64_t min_template_length,const uint64_t max_template_length,const bool absolute_distance);
+    filtering_candidates_t* const filtering_candidates_end1,
+    filtering_candidates_t* const filtering_candidates_end2,
+    archive_t* const archive,const search_parameters_t* const search_parameters);
 GEM_INLINE uint64_t filtering_candidates_extend_match(
     filtering_candidates_t* const filtering_candidates,
     archive_t* const archive,text_collection_t* const text_collection,

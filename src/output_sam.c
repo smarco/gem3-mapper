@@ -263,7 +263,7 @@ GEM_INLINE void output_sam_print_opt_field_tag_NM(
     const matches_t* const matches,const match_trace_t* const match_trace) {
   // Calculate edit-distance
   const uint64_t edit_distance =
-      matches_cigar_calculate_edit_distance__excluding_clipping(
+      matches_cigar_compute_edit_distance__excluding_clipping(
           matches,match_trace->cigar_buffer_offset,match_trace->cigar_length);
   bofprintf_string_literal(buffered_output_file,"\tNM:i:");
   bofprintf_uint64(buffered_output_file,edit_distance);

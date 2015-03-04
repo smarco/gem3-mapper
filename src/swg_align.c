@@ -277,6 +277,47 @@ GEM_INLINE bool swg_compile_query_profile_int16(
   return true;
 }
 /*
+ * SWG Score
+ */
+GEM_INLINE int32_t swg_score_deletion(const swg_penalties_t* const swg_penalties,const int32_t length) {
+  const int32_t gap_open_score = swg_penalties->gap_open_score;
+  const int32_t gap_extension = swg_penalties->gap_extension_score;
+  return gap_open_score + gap_extension*length;
+}
+GEM_INLINE int32_t swg_score_insertion(const swg_penalties_t* const swg_penalties,const int32_t length) {
+  const int32_t gap_open_score = swg_penalties->gap_open_score;
+  const int32_t gap_extension = swg_penalties->gap_extension_score;
+  return gap_open_score + gap_extension*length;
+}
+GEM_INLINE int32_t swg_score_mismatch(const swg_penalties_t* const swg_penalties) {
+  return swg_penalties->generic_mismatch_score;
+}
+GEM_INLINE int32_t swg_score_match(const swg_penalties_t* const swg_penalties,const int32_t match_length) {
+  return swg_penalties->generic_match_score * match_length;
+}
+GEM_INLINE int32_t swg_score(const swg_penalties_t* const swg_penalties,cigar_element_t* const cigar_element) {
+  switch (cigar_element->type) {
+    case cigar_match:
+      return swg_score_match(swg_penalties,cigar_element->match_length);
+      break;
+    case cigar_mismatch:
+      return swg_score_mismatch(swg_penalties);
+      break;
+    case cigar_ins:
+      return swg_score_insertion(swg_penalties,cigar_element->indel.indel_length);
+      break;
+    case cigar_del:
+      return swg_score_deletion(swg_penalties,cigar_element->indel.indel_length);
+      break;
+    case cigar_soft_trim:
+    case cigar_null:
+    default:
+      GEM_INVALID_CASE();
+      break;
+  }
+  return 0;
+}
+/*
  * SWG - Debug
  */
 GEM_INLINE void swg_align_match_table_print(swg_cell_t** const dp,const uint64_t num_columns,const uint64_t num_rows) {
@@ -305,8 +346,8 @@ GEM_INLINE void swg_align_match_traceback(
   // Start Backtrace
   int64_t match_effective_length = key_length;
   int32_t match_alignment_score = max_score;
-  uint64_t h = max_score_column;
-  uint64_t v = key_length;
+  int64_t h = max_score_column;
+  int64_t v = key_length;
   cigar_t traceback_matrix = cigar_match;
   while (v > 0 && h > 0) {
     switch (traceback_matrix) {
@@ -706,30 +747,33 @@ GEM_INLINE void swg_align_match(
       *match_position += text_length;
     } else if (!end_free) {
       // Insertion <+@text_length>
-      matches_cigar_buffer_append_indel(cigar_buffer,cigar_length,cigar_ins,text_length,text);
-      *alignment_score += swg_penalties->gap_open_score + swg_penalties->gap_extension_score*(int32_t)text_length;
+      matches_cigar_vector_append_insertion(cigar_buffer,cigar_length,text_length,text);
+      *alignment_score += swg_score_insertion(swg_penalties,text_length);
       *effective_length += text_length;
     }
   } else if (text_length == 0) {
     if (key_length > 0) {
       // Deletion <-@key_length>
-      matches_cigar_buffer_append_indel(cigar_buffer,cigar_length,cigar_del,key_length,NULL);
-      *alignment_score += swg_penalties->gap_open_score + swg_penalties->gap_extension_score*(int32_t)key_length;
+      matches_cigar_vector_append_deletion(cigar_buffer,cigar_length,key_length);
+      *alignment_score += swg_score_deletion(swg_penalties,key_length);
     }
   } else if (key_length==1 && text_length==1) {
     // Mismatch/Match
     const uint8_t key_enc = key[0];
     const uint8_t text_enc = text[0];
     if (!allowed_enc[text_enc] || text_enc != key_enc) {
-      matches_cigar_buffer_append_mismatch(cigar_buffer,cigar_length,cigar_mismatch,text_enc);
-      *alignment_score += swg_penalties->matching_score[text_enc][key_enc];
+      matches_cigar_vector_append_mismatch(cigar_buffer,cigar_length,text_enc);
+      *alignment_score += swg_score_mismatch(swg_penalties);
     } else {
-      matches_cigar_buffer_append_match(cigar_buffer,cigar_length,1);
-      *alignment_score += swg_penalties->matching_score[text_enc][key_enc];
+      matches_cigar_vector_append_match(cigar_buffer,cigar_length,1);
+      *alignment_score += swg_score_match(swg_penalties,1);
     }
     *effective_length += 1;
   } else {
     PROF_ADD_COUNTER(GP_SWG_ALIGN_BANDED_LENGTH,text_length);
+//    if (text_length>=100) {
+//      printf("Oddddddddd\n"); // TODO
+//    }
     swg_align_match_banded(
         key,key_length,swg_penalties,match_position,text,text_length,
         max_bandwidth,begin_free,end_free,cigar_buffer,cigar_length,

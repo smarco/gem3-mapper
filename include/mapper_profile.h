@@ -159,27 +159,27 @@
 #define GP_KMER_COUNTER_FILTER_DISCARDED            146
 #define GP_LEVENSHTEIN_ACCEPTED                     147
 
-#define GP_ACCEPTED_REGIONS                         155
-#define GP_ACCEPTED_REGIONS_CHAINED                 156
-#define GP_ACCEPTED_REGIONS_COVERAGE                157
-#define GP_ACCEPTED_REGIONS_EXT_COVERAGE            158
-#define GP_ACCEPTED_REGIONS_LENGTH                  159
+#define GP_ACCEPTED_REGIONS                         150
+#define GP_ACCEPTED_EXACT                           151
+#define GP_ACCEPTED_INEXACT                         152
+#define GP_ACCEPTED_REGIONS_LENGTH                  153
 
-#define GP_BPM_TILED                                160
-#define GP_BMP_TILED_NUM_TILES                      161
-#define GP_BMP_TILED_NUM_TILES_VERIFIED             162
-#define GP_BPM_QUICK_ABANDON                        164
-#define GP_BPM_ALL                                  163
-#define GP_BPM_ALL_QUICK_ABANDON                    165
-#define GP_BPM_ALL_MATCHES_FOUND                    166
+#define GP_MATCHING_REGIONS_CHAIN                   160
+#define GP_MATCHING_REGIONS_CHAIN_SUCCESS           161
+#define GP_MATCHING_REGIONS_CHAIN_COVERAGE          162
+#define GP_MATCHING_REGIONS_EXTEND                  163
+#define GP_MATCHING_REGIONS_EXTEND_COVERAGE         164
+#define GP_MATCHING_REGIONS_SCAFFOLD                165
+#define GP_MATCHING_REGIONS_SCAFFOLDED              166
+#define GP_MATCHING_REGIONS_SCAFFOLD_COVERAGE       167
 
-/*
- * Matches Align
- */
-#define GP_MATCHES_ALIGN_EXACT                      170
-#define GP_MATCHES_ALIGN_HAMMING                    171
-#define GP_MATCHES_ALIGN_LEVENSHTEIN                172
-#define GP_MATCHES_ALIGN_SWG                        173
+#define GP_BPM_TILED                                170
+#define GP_BMP_TILED_NUM_TILES                      171
+#define GP_BMP_TILED_NUM_TILES_VERIFIED             172
+#define GP_BPM_QUICK_ABANDON                        173
+#define GP_BPM_ALL                                  174
+#define GP_BPM_ALL_QUICK_ABANDON                    175
+#define GP_BPM_ALL_MATCHES_FOUND                    176
 
 /*
  * BPM-GPU
@@ -195,7 +195,15 @@
 /*
  * FM-Index
  */
-#define GP_FMIDX_LOOKUP_DIST                        190
+#define GP_FMIDX_LOOKUP_DIST          190
+
+/*
+ * Matches Align
+ */
+#define GP_MATCHES_ALIGN_EXACT        200
+#define GP_MATCHES_ALIGN_HAMMING      201
+#define GP_MATCHES_ALIGN_LEVENSHTEIN  202
+#define GP_MATCHES_ALIGN_SWG          203
 
 /*
  * SWG
@@ -220,13 +228,14 @@
 /*
  * Checks
  */
-#define GP_CHECK_NUM_READS            400
-#define GP_CHECK_NUM_MAPS             401
-#define GP_CHECK_INCORRECT            402
-#define GP_CHECK_SUBOPTIMAL           403
-#define GP_CHECK_SUBOPTIMAL_DIFF      404
-#define GP_CHECK_SUBOPTIMAL_SCORE     405
-#define GP_CHECK_SUBOPTIMAL_DISTANCE  406
+#define GP_CHECK_NUM_READS              400
+#define GP_CHECK_NUM_MAPS               401
+#define GP_CHECK_INCORRECT              402
+#define GP_CHECK_SUBOPTIMAL             403
+#define GP_CHECK_SUBOPTIMAL_SUBDOMINANT 404
+#define GP_CHECK_SUBOPTIMAL_DIFF        405
+#define GP_CHECK_SUBOPTIMAL_SCORE       406
+#define GP_CHECK_SUBOPTIMAL_DISTANCE    407
 
 /*
  * Dummy

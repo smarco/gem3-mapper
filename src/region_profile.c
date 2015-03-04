@@ -50,17 +50,6 @@ GEM_INLINE bool region_profile_has_exact_matches(region_profile_t* const region_
        (region_profile->filtering_region[0].hi-region_profile->filtering_region[0].lo) > 0);
 }
 /*
- * Region Profile Generation (Fixed)
- *
- *   Extracts a region profile ...
- */
-GEM_INLINE void region_profile_generate_fixed(
-    region_profile_t* const region_profile,
-    fm_index_t* const fm_index,pattern_t* const pattern,
-    bool* const allowed_enc,const uint64_t num_regions) {
-  GEM_NOT_IMPLEMENTED(); // TODO
-}
-/*
  * Tries to extend the last region of the profile to the end of the key (position 0)
  */
 GEM_INLINE void region_profile_extend_last_region(
@@ -91,30 +80,7 @@ GEM_INLINE void region_profile_extend_last_region(
   }
 }
 /*
- * Region Profile Generation (Adaptive)
- *
- *   Extracts the adaptive region profile from the given read.
- *   That it's, tries to determine regions of the read which have few matches in the index.
- *
- *   rp_region_th :: Maximum number of matches to consider a region
- *   rp_max_steps :: Maximum number of characters that will be explored trying
- *       to reduce the number of candidates belonging to that region
- *   rp_dec_factor :: Since a region is considered as so, we explore one character a
- *       a time considering if its worth to add that character to that region.
- *       The tradeoff is that we are willing to add that character provided that
- *       the number of candidates gets reduced by 1/rp_dec_factor
- *   rp_region_type_th :: Depending on this threshold there would be 2 kinds of regions
- *       - Zero Regions: Those regions which generates some few results in a exact search (> rp_region_type_th)
- *       - Non-Zero Regions: Those regions which generates very few matches or none (<= rp_region_type_th)
- *   max_regions :: No more than max_regions will be extracted
- *
- *   NOTE that if there are no regions this implies that:
- *        (1) There are wildcards which prevents regions generation
- *        (2) There are exact matches
- *      Also note that:
- *        (region_profile->num_filtering_regions==0 && wildcards==0) => ExactMatches
- *      But it could be that:
- *        (region_profile->num_filtering_regions>0) AND ExactMatches
+ * Region Profile Generation
  */
 #define REGION_CLOSE(pos,loPos,hiPos) { \
   regions[num_regions].end=pos; \
@@ -140,6 +106,128 @@ GEM_INLINE void region_profile_extend_last_region(
   last_cut=0; \
 }
 #define REGION_SAVE_CUT_POINT() last_cut = key_len; hi_cut = hi; lo_cut = lo
+///*
+// *
+// */
+//GEM_INLINE void region_profile_generate_overlapped(
+//    region_profile_t* const region_profile,
+//    fm_index_t* const fm_index,pattern_t* const pattern,bool* const allowed_enc,
+//    const uint64_t region_length); // Much more todo
+/*
+ * Region Profile Generation (Fixed)
+ */
+GEM_INLINE void region_profile_generate_fixed(
+    region_profile_t* const region_profile,fm_index_t* const fm_index,
+    pattern_t* const pattern,const bool* const allowed_enc,
+    const region_profile_model_t* const profile_model,const uint64_t min_regions) {
+  PROF_START(GP_REGION_PROFILE_ADAPTIVE);
+  // Parameters
+  const uint64_t rp_region_th = profile_model->region_th;
+  const uint64_t rp_region_type_th = profile_model->region_type_th;
+  const uint64_t bwt_length = fm_index_get_length(fm_index);
+  region_search_t* const regions = region_profile->filtering_region;
+  uint8_t* const key = pattern->key;
+  uint64_t key_len = pattern->key_length;
+  const uint64_t max_region_length = key_len/min_regions;
+
+  // DEBUG
+  gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
+    static uint64_t region_profile_num = 0;
+    fprintf(stderr,"[%lu]",region_profile_num++);
+    uint64_t i;
+    for (i=0;i<pattern->key_length;++i) fprintf(stderr,"%c",dna_decode(pattern->key[i]));
+    fprintf(stderr,"\n");
+  }
+
+  // Prepare rank_query
+  const rank_mtable_t* const rank_mtable = fm_index->rank_table;
+  rank_mquery_t rank_mquery;
+  rank_mquery_new(&rank_mquery);
+
+  // Initial region
+  uint64_t num_regions = 0, num_standard_regions = 0, region_length = 0;
+  uint64_t lo, hi, last_cut=0, max_regions=UINT64_MAX;
+  REGION_RESTART(key_len);
+  while (key_len > 0) {
+    --key_len;
+    // Handling wildcards
+    if (!allowed_enc[key[key_len]]) {
+      while (key_len > 0 && !allowed_enc[key[key_len-1]]) --key_len;
+      REGION_RESTART(key_len); region_length = 0; ++last_cut;
+      continue;
+    }
+
+    // Rank query
+    const uint8_t enc_char = key[key_len];
+    if (!rank_mquery_is_exhausted(&rank_mquery)) {
+      rank_mquery_add_char(rank_mtable,&rank_mquery,enc_char);
+      rank_mtable_fetch(rank_mtable,&rank_mquery,&lo,&hi);
+    } else {
+      if (gem_expect_false(bwt_is_same_bucket(lo,hi))) {
+        bwt_erank_interval(fm_index->bwt,enc_char,lo,hi,&lo,&hi);
+      } else {
+        lo = bwt_erank(fm_index->bwt,enc_char,lo);
+        hi = bwt_erank(fm_index->bwt,enc_char,hi);
+      }
+    }
+    ++region_length;
+
+    // Determine region scope
+    const uint64_t num_candidates = hi-lo;
+    gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) { fprintf(stderr," %lu",num_candidates); }
+    if (gem_expect_true(num_candidates <= rp_region_th || region_length >= max_region_length)) {
+      REGION_CLOSE(key_len,lo,hi);
+      REGION_RESTART(key_len); region_length = 0;
+    }
+  }
+  // Check number of regions
+  if (num_regions == 0) {
+    if (regions[0].start == pattern->key_length) {
+      regions[0].end = 0;
+      regions[0].lo = lo;
+      regions[0].hi = hi;
+      region_profile->num_filtering_regions = 1;
+      region_profile->num_standard_regions = 1;
+    } else {
+      region_profile->num_filtering_regions = 0;
+      region_profile->num_standard_regions = 0;
+    }
+  } else {
+    // We extend the last region
+    region_profile->num_filtering_regions = num_regions;
+    region_profile->num_standard_regions = num_standard_regions;
+  }
+  gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
+    fprintf(stderr,"\n");
+  }
+  PROF_STOP(GP_REGION_PROFILE_ADAPTIVE);
+}
+/*
+ * Region Profile Adaptive
+ *
+ *   Extracts the adaptive region profile from the given read.
+ *   That it's, tries to determine regions of the read which have few matches in the index.
+ *
+ *   rp_region_th :: Maximum number of matches to consider a region
+ *   rp_max_steps :: Maximum number of characters that will be explored trying
+ *       to reduce the number of candidates belonging to that region
+ *   rp_dec_factor :: Since a region is considered as so, we explore one character a
+ *       a time considering if its worth to add that character to that region.
+ *       The tradeoff is that we are willing to add that character provided that
+ *       the number of candidates gets reduced by 1/rp_dec_factor
+ *   rp_region_type_th :: Depending on this threshold there would be 2 kinds of regions
+ *       - Regular Regions: Those regions which generates some few results in a exact search (> rp_region_type_th)
+ *       - Unique Regions: Those regions which generates very few matches or none (<= rp_region_type_th)
+ *   max_regions :: No more than max_regions will be extracted
+ *
+ *   NOTE that if there are no regions this implies that:
+ *        (1) There are wildcards which prevents regions generation
+ *        (2) There are exact matches
+ *      Also note that:
+ *        (region_profile->num_filtering_regions==0 && wildcards==0) => ExactMatches
+ *      But it could be that:
+ *        (region_profile->num_filtering_regions>0) AND ExactMatches
+ */
 GEM_INLINE void region_profile_generate_adaptive(
     region_profile_t* const region_profile,fm_index_t* const fm_index,
     pattern_t* const pattern,const bool* const allowed_enc,
@@ -281,44 +369,6 @@ GEM_INLINE void region_profile_generate_full_progressive(
   }
   // Correct the first region degree
   base_region[0].degree += degree_accum;
-}
-/*
- * Region Profile Scheduling
- */
-GEM_INLINE void region_profile_schedule_exact_filtering(
-    region_profile_t* const region_profile,const uint64_t regions_required) {
-  /*
-   * PRE: (region_profile->num_filtering_regions >= regions_required)
-   * Schedules the @regions_required regions with fewer number of candidates
-   *   to be filtered up to zero mismatches.
-   */
-  const uint64_t num_regions = region_profile->num_filtering_regions;
-  region_search_t* const filtering_region = region_profile->filtering_region;
-  region_locator_t* const loc = region_profile->loc;
-  // Check the number of regions in the profile
-  int64_t i;
-  if (num_regions > regions_required) {
-    /*
-     * More regions than required (2 strategies)
-     *   (*) - Filter only those required which have the less number of candidates
-     *       - Filter all of them, but only check those
-     *           candidates which more than 1 region (H-samples)  // TODO
-     */
-    // Sort by number of candidates
-    region_profile_sort_by_candidates(region_profile);
-    // Filter up to 0-mismatches those regions with the less number of candidates
-    for (i=num_regions-1;i>=(num_regions-regions_required);--i) {
-      filtering_region[loc[i].id].min = REGION_FILTER_DEGREE_ZERO;
-    }
-    for (;i>=0;--i) {
-      filtering_region[loc[i].id].min = REGION_FILTER_NONE;
-    }
-  } else {
-    for (i=0;i<num_regions;++i) {
-      loc[i].id = i; // Fill locator to guide the filtering
-      filtering_region[i].min = REGION_FILTER_DEGREE_ZERO;
-    }
-  }
 }
 /*
  * Region Profile Utils

@@ -54,7 +54,9 @@ typedef struct {
  */
 typedef struct {
   // Error degree of the region matching
-  uint64_t error; // TODO
+  uint64_t error;
+  uint64_t cigar_buffer_offset;
+  uint64_t cigar_length;
   // Coordinates of the region
   uint64_t key_begin;
   uint64_t key_end;
@@ -163,7 +165,7 @@ GEM_INLINE int64_t match_trace_get_effective_length(
  */
 GEM_INLINE uint64_t* matches_lookup_match(
     matches_t* const matches,const uint64_t begin_position,const uint64_t effective_length);
-GEM_INLINE void matches_add_match_trace_t(
+GEM_INLINE bool matches_add_match_trace_t(
     matches_t* const matches,match_trace_t* const match_trace,
     const bool update_counters,mm_stack_t* const mm_stack);
 
@@ -184,25 +186,27 @@ GEM_INLINE void matches_cigar_buffer_add_cigar_element(
     cigar_element_t** const cigar_buffer_sentinel,const cigar_t cigar_element_type,
     const uint64_t element_length,uint8_t* const indel_text);
 
-GEM_INLINE void matches_cigar_buffer_append_indel(
-    vector_t* const cigar_buffer,uint64_t* const current_cigar_length,
-    const cigar_t cigar_element_type,const uint64_t element_length,uint8_t* const indel_text);
-GEM_INLINE void matches_cigar_buffer_append_match(
-    vector_t* const cigar_buffer,uint64_t* const current_cigar_length,
-    const uint64_t match_length);
-GEM_INLINE void matches_cigar_buffer_append_mismatch(
-    vector_t* const cigar_buffer,uint64_t* const current_cigar_length,
-    const cigar_t cigar_element_type,const uint8_t mismatch);
+GEM_INLINE void matches_cigar_vector_append_insertion(
+    vector_t* const cigar_vector,uint64_t* const current_cigar_length,
+    const uint64_t indel_length,uint8_t* const indel_text);
+GEM_INLINE void matches_cigar_vector_append_deletion(
+    vector_t* const cigar_vector,uint64_t* const current_cigar_length,const uint64_t indel_length);
+GEM_INLINE void matches_cigar_vector_append_match(
+    vector_t* const cigar_vector,uint64_t* const current_cigar_length,const uint64_t match_length);
+GEM_INLINE void matches_cigar_vector_append_mismatch(
+    vector_t* const cigar_vector,uint64_t* const current_cigar_length,const uint8_t mismatch);
 
 GEM_INLINE void matches_cigar_reverse(
     matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
 GEM_INLINE void matches_cigar_reverse_colorspace(
     matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
 
-GEM_INLINE uint64_t matches_cigar_calculate_edit_distance(
+GEM_INLINE uint64_t matches_cigar_compute_edit_distance(
     const matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
-GEM_INLINE uint64_t matches_cigar_calculate_edit_distance__excluding_clipping(
+GEM_INLINE uint64_t matches_cigar_compute_edit_distance__excluding_clipping(
     const matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
+
+GEM_INLINE int64_t matches_cigar_element_effective_length(const cigar_element_t* const cigar_element);
 
 /*
  * Status
@@ -226,11 +230,5 @@ GEM_INLINE void matches_restore_point_rollback(matches_t* const matches);
  * Error Messages
  */
 #define GEM_ERROR_MATCHES_CIGAR_ZERO_LENGTH "Matches. CIGAR length cannot be zero"
-
-//
-//#define MATCHES_GET_KEY_INFO(POS_MATCH,MATCHES) ((keys_info*)vector_get_mem(MATCHES->qbuf_keys_info)+POS_MATCH->key_id)
-//#define FMI_MATCHES_GET_NUM_MATCHES(matches) (vector_get_used(matches->rbuf_pos) + matches->num_int_matches)
-//#define MATCHES_IS_DUPLICATED(mA_pos,mB_pos,mA_len,mB_len,mA_key_id,mB_key_id) ((mA_key_id==mB_key_id) && ((mA_pos)==(mB_pos) || (mA_pos)+(mA_len)==(mB_pos)+(mB_len)))
-
 
 #endif /* MATCHES_H_ */

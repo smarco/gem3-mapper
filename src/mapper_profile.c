@@ -106,19 +106,21 @@ GEM_INLINE void mapper_profile_print_io(
 GEM_INLINE void mapper_profile_print_checks(FILE* const stream) {
   tab_fprintf(stream,"[GEM]>Profile.Checks\n");
   tab_fprintf(stream,"  --> Num.Reads.Checked              ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CHECK_NUM_READS),NULL,"reads",true);
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CHECK_NUM_READS),PROF_GET_COUNTER(GP_CHECK_NUM_READS),"reads",true);
   tab_fprintf(stream,"  --> Num.Maps.Checked               ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CHECK_NUM_MAPS),NULL,"maps ",true);
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CHECK_NUM_MAPS),PROF_GET_COUNTER(GP_CHECK_NUM_MAPS),"maps ",true);
   tab_fprintf(stream,"    --> Num.Maps.Incorrect           ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CHECK_INCORRECT),NULL,"maps ",true);
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CHECK_INCORRECT),PROF_GET_COUNTER(GP_CHECK_NUM_MAPS),"maps ",true);
   tab_fprintf(stream,"    --> Num.Maps.Suboptimal          ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CHECK_SUBOPTIMAL),NULL,"maps ",true);
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CHECK_SUBOPTIMAL),PROF_GET_COUNTER(GP_CHECK_NUM_MAPS),"maps ",true);
+  tab_fprintf(stream,"      --> Num.Maps.Subdominant       ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CHECK_SUBOPTIMAL_SUBDOMINANT),PROF_GET_COUNTER(GP_CHECK_NUM_MAPS),"maps ",true);
   tab_fprintf(stream,"      --> Num.Maps.Distance          ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CHECK_SUBOPTIMAL_DISTANCE),NULL,"     ",true);
   tab_fprintf(stream,"      --> Num.Maps.Score             ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CHECK_SUBOPTIMAL_SCORE),NULL,"     ",true);
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CHECK_SUBOPTIMAL_SCORE),PROF_GET_COUNTER(GP_CHECK_SUBOPTIMAL_SCORE),"     ",true);
   tab_fprintf(stream,"      --> Num.Maps.ScoreDiff         ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CHECK_SUBOPTIMAL_DIFF),NULL,"     ",true);
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CHECK_SUBOPTIMAL_DIFF),PROF_GET_COUNTER(GP_CHECK_SUBOPTIMAL_SCORE),"     ",true);
 }
 /*
  * Region Profile
@@ -177,64 +179,10 @@ GEM_INLINE void mapper_profile_print_approximate_search(FILE* const stream) {
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_FILTERING_EXACT_MAPPED),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
   tab_fprintf(stream,"    --> Filtering.Inexact.Mapped              ");
     COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_FILTERING_INEXACT_MAPPED),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
-//#define GEM_STATS_SHOW_MISMS_SEARCH_TIME_STATS(FILE)
-//  fprintf(FILE, "TIME.Exact.Search               %4.1f (%3.2f %%) n", GET_TIME(SC_EXACT_SEARCH), GET_TIME_PERCENTAGE(SC_EXACT_SEARCH,SC_MISMS_SEARCH));
-//  fprintf(FILE, "TIME.Small.Reads                %4.1f (%3.2f %%) n", GET_TIME(SC_SMALL_READS), GET_TIME_PERCENTAGE(SC_SMALL_READS,SC_MISMS_SEARCH));
-//  fprintf(FILE, "TIME.Read.Recovery              %4.1f (%3.2f %%) n", GET_TIME(SC_READ_RECOVERY), GET_TIME_PERCENTAGE(SC_READ_RECOVERY,SC_MISMS_SEARCH));
-//  fprintf(FILE, "TIME.ATH-filter                 %4.1f (%3.2f %%) n", GET_TIME(SC_ATH), GET_TIME_PERCENTAGE(SC_ATH,SC_MISMS_SEARCH));
-//  fprintf(FILE, "  --> ATH.Extract.Profile       %4.1f (%3.2f %%) n", GET_TIME(SC_REGION_PROFILE), GET_TIME_PERCENTAGE(SC_REGION_PROFILE,SC_MISMS_SEARCH));
+
 //  fprintf(FILE, "  --> ATH.ZERO-filter           %4.1f (%3.2f %%) n", GET_TIME(SC_ZERO_FILTER), GET_TIME_PERCENTAGE(SC_ZERO_FILTER,SC_MISMS_SEARCH));
 //  fprintf(FILE, "  --> ATH.PMS                   %4.1f (%3.2f %%) n", GET_TIME(SC_PROBING_DELTA), GET_TIME_PERCENTAGE(SC_PROBING_DELTA,SC_MISMS_SEARCH));
-//  fprintf(FILE, "  --> ATH.Query.Stage           %4.1f (%3.2f %%) n", GET_TIME(SC_ATH_QUERY), GET_TIME_PERCENTAGE(SC_ATH_QUERY,SC_MISMS_SEARCH));
-//  fprintf(FILE, "  --> ATH.Filter.Stage          %4.1f (%3.2f %%) n", GET_TIME(SC_ATH_FILTER), GET_TIME_PERCENTAGE(SC_ATH_FILTER,SC_MISMS_SEARCH));
-//  fprintf(FILE, "TIME.PA-filter                  %4.1f (%3.2f %%) n", GET_TIME(SC_PROGRESSIVE), GET_TIME_PERCENTAGE(SC_PROGRESSIVE,SC_MISMS_SEARCH));
-//  fprintf(FILE, "  --> PA.Query.Stage            %4.1f (%3.2f %%) n", GET_TIME(SC_PAF_QUERY), GET_TIME_PERCENTAGE(SC_PAF_QUERY,SC_MISMS_SEARCH));
-//  fprintf(FILE, "    --> PA.Fails                %4.1f (%3.2f %%) n", GET_TIME(SC_PA_FAIL), GET_TIME_PERCENTAGE(SC_PA_FAIL,SC_MISMS_SEARCH));
-//  fprintf(FILE, "      --> PA.Full               %4.1f (%3.2f %%) n", GET_TIME(SC_PA_FULL), GET_TIME_PERCENTAGE(SC_PA_FULL,SC_MISMS_SEARCH));
-//  fprintf(FILE, "  --> PA.Filter.Stage           %4.1f (%3.2f %%) n", GET_TIME(SC_PAF_FILTER), GET_TIME_PERCENTAGE(SC_PAF_FILTER,SC_MISMS_SEARCH))
-//
-//#define GEM_STATS_SHOW_FAST_MAPPING_TIME_STATS(FILE)
-//  fprintf(FILE, "TIME.Exact.Search               %4.1f (%3.2f %%) n", GET_TIME(SC_EXACT_SEARCH), GET_TIME_PERCENTAGE(SC_EXACT_SEARCH,SC_MISMS_SEARCH));
-//  fprintf(FILE, "TIME.Small.Reads                %4.1f (%3.2f %%) n", GET_TIME(SC_SMALL_READS), GET_TIME_PERCENTAGE(SC_SMALL_READS,SC_MISMS_SEARCH));
-//  fprintf(FILE, "TIME.Fast-filter                %4.1f (%3.2f %%) n", GET_TIME(SC_ATH), GET_TIME_PERCENTAGE(SC_ATH,SC_MISMS_SEARCH));
-//  fprintf(FILE, "  --> Fast.Extract.Profile      %4.1f (%3.2f %%) n", GET_TIME(SC_REGION_PROFILE), GET_TIME_PERCENTAGE(SC_REGION_PROFILE,SC_MISMS_SEARCH));
-//  fprintf(FILE, "  --> Fast.ZERO-filter          %4.1f (%3.2f %%) n", GET_TIME(SC_ZERO_FILTER), GET_TIME_PERCENTAGE(SC_ZERO_FILTER,SC_MISMS_SEARCH));
-//  fprintf(FILE, "  --> Fast.Query.Stage          %4.1f (%3.2f %%) n", GET_TIME(SC_FILTER_REGIONS), GET_TIME_PERCENTAGE(SC_FILTER_REGIONS,SC_MISMS_SEARCH));
-//  fprintf(FILE, "  --> Fast.Filter.Stage         %4.1f (%3.2f %%) n", GET_TIME(SC_ATH_FILTER), GET_TIME_PERCENTAGE(SC_ATH_FILTER,SC_MISMS_SEARCH))
 
-
-///* Calls Statistics */
-//#define GEM_STATS_SHOW_CALLS_STATS(FILE)
-//  fprintf(FILE, "Calls.Mismatched.Search           %10lu  (%3.2f %%) {%1.4f ms/call} n", GET_COUNTER(GSC_ASM_FUNC),
-//                                                                                        GET_COUNT_PERCENTAGE(GSC_ASM_FUNC,GSC_ASM_FUNC),
-//                                                                                        GET_MS_TIME_PER_CALL(SC_MISMS_SEARCH,GSC_ASM_FUNC));
-//  fprintf(FILE, "Calls.Exact.Search                %10lu  (%3.2f %%) {%1.4f ms/call} n", GET_COUNTER(SC_EXACT_SEARCH),
-//                                                                                        GET_COUNT_PERCENTAGE(SC_EXACT_SEARCH,GSC_ASM_FUNC),
-//                                                                                        GET_MS_TIME_PER_CALL(SC_EXACT_SEARCH,SC_EXACT_SEARCH));
-//  fprintf(FILE, "Calls.Small.Reads                 %10lu  (%3.2f %%) {%1.4f ms/call} n", GET_COUNTER(SC_SMALL_READS),
-//                                                                                        GET_COUNT_PERCENTAGE(SC_SMALL_READS,GSC_ASM_FUNC),
-//                                                                                        GET_MS_TIME_PER_CALL(SC_SMALL_READS,SC_SMALL_READS));
-//  fprintf(FILE, "Calls.ATH-filter                  %10lu  (%3.2f %%) {%1.4f ms/call} n", GET_COUNTER(SC_ATH),
-//                                                                                        GET_COUNT_PERCENTAGE(SC_ATH,GSC_ASM_FUNC),
-//                                                                                        GET_MS_TIME_PER_CALL(SC_ATH,SC_ATH));
-//  fprintf(FILE, "  --> ATH.ZERO-filter.Hit         %10lu  (%3.2f %%) (%3.2f filters/call) {%1.4f ms/call} n", GET_COUNTER(SC_ZERO_FILTER),
-//                                                                                                             GET_COUNT_PERCENTAGE(SC_ZERO_FILTER,GSC_ASM_FUNC),
-//                                                                                                             GET_COUNT_DIV(GSC_ZERO_FILTER_CAND,SC_ZERO_FILTER),
-//                                                                                                             GET_MS_TIME_PER_CALL(SC_ZERO_FILTER,SC_ZERO_FILTER));
-//  fprintf(FILE, "  --> ATH.PMS                     %10lu  (%3.2f %%) (%3.2f filters/call) {%1.4f ms/call} n", GET_COUNTER(SC_PROBING_DELTA),
-//                                                                                                             GET_COUNT_PERCENTAGE(SC_PROBING_DELTA,GSC_ASM_FUNC),
-//                                                                                                             GET_COUNT_DIV(GSC_DELTA_PROBE_CAND,SC_PROBING_DELTA),
-//                                                                                                             GET_MS_TIME_PER_CALL(SC_PROBING_DELTA,SC_PROBING_DELTA));
-//  fprintf(FILE, "    --> ATH.PMS.Hit               %10lu  (%3.2f %%) n", GET_COUNTER(GSC_DELTA_PROBE_HIT),
-//                                                                        GET_COUNT_PERCENTAGE(GSC_DELTA_PROBE_HIT,GSC_ASM_FUNC));
-//  fprintf(FILE, "  --> ATH.Hit                     %10lu  (%3.2f %%) (%3.2f filters/call) n", GET_COUNTER(GSC_ATH_HIT),
-//                                                                                             GET_COUNT_PERCENTAGE(GSC_ATH_HIT,GSC_ASM_FUNC),
-//                                                                                             GET_COUNT_DIV(GSC_ATH_FILTER_CAND,GSC_ATH_HIT));
-//  fprintf(FILE, "Calls.PA-filter                   %10lu  (%3.2f %%) (%3.2f filters/call) {%1.4f ms/call} n", GET_COUNTER(SC_PROGRESSIVE),
-//                                                                                                             GET_COUNT_PERCENTAGE(SC_PROGRESSIVE,GSC_ASM_FUNC),
-//                                                                                                             GET_COUNT_DIV(GSC_PAF_FILTER_CAND,SC_PROGRESSIVE),
-//                                                                                                             GET_MS_TIME_PER_CALL(SC_PROGRESSIVE,SC_PROGRESSIVE))
-//
 //#define GEM_STATS_FAST_MAPPING_SCOPE(FILE) {
 //  fprintf(FILE, "Fast-mapping scope n");
 //  register uint64_t i;
@@ -383,11 +331,7 @@ GEM_INLINE void mapper_profile_print_verifying(FILE* const stream,const bool ver
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_BPM_QUICK_ABANDON),PROF_GET_COUNTER(GP_BMP_TILED_NUM_TILES_VERIFIED),"         ",true);
   tab_fprintf(stream,"    --> Accepted.Regions                          ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ACCEPTED_REGIONS),PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"regions  ",true);
-  tab_fprintf(stream,"      --> Accepted.Regions.Length                 ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ACCEPTED_REGIONS_LENGTH),PROF_GET_COUNTER(GP_CANDIDATE_REGION_LENGTH),"regions  ",true);
   }
-  //  tab_fprintf(stream,"        --> FC.Regions.Coverage.Extended            ");
-  //  PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_FC_CANDIDATE_REGIONS_EXT_COVERAGE));
   //  tab_fprintf(stream,"      --> FC.Kmer.Counting.Discarded                ");
   //  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_KMER_COUNTER_FILTER_DISCARDED),PROF_GET_COUNTER(GP_FC_NUM_CANDIDATE_REGIONS),"",true);
 }
@@ -397,37 +341,42 @@ GEM_INLINE void mapper_profile_print_realign(FILE* const stream) {
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_REALIGN_CANDIDATE_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"    => TIME.Realign.Exact                         ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_MATCHES_ALIGN_EXACT),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"    => TIME.Realign.Hamming                       ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MATCHES_ALIGN_HAMMING),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"    => TIME.Realign.Levenshtein                   ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MATCHES_ALIGN_LEVENSHTEIN),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"    => TIME.Chain.Matching.Regions                ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MATCHING_REGIONS_CHAIN),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"    => TIME.Extend.Matching.Regions               ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MATCHING_REGIONS_EXTEND),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"    => TIME.Scaffold.Matching.Regions             ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MATCHING_REGIONS_SCAFFOLD),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"    => TIME.Realign.SWG                           ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_MATCHES_ALIGN_SWG),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"      => TIME.SWG.Core.Banded                     ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_SWG_ALIGN_BANDED),PROF_GET_TIMER(GP_MAPPER_ALL));
-//  tab_fprintf(stream,"      => TIME.SWG.Core.Full                       ");
-//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_SWG_ALIGN_FULL),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"  |> Realign\n");
+  tab_fprintf(stream,"  |> Realign.Regions\n");
   tab_fprintf(stream,"    --> Candidate.Positions                       ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"positions",true);
   tab_fprintf(stream,"    --> Candidate.Regions                         ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CANDIDATE_REGIONS),PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"regions  ",true);
-  tab_fprintf(stream,"    --> Candidate.Regions.Accepted                ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ACCEPTED_REGIONS),PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"regions  ",true);
-  tab_fprintf(stream,"      --> Regions.Accepted.Coverage               ");
-  PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_ACCEPTED_REGIONS_COVERAGE));
-  tab_fprintf(stream,"      --> Regions.Accepted.Coverage.Extended      ");
-  PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_ACCEPTED_REGIONS_EXT_COVERAGE));
-  tab_fprintf(stream,"    --> Candidate.Regions.Chained                 ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ACCEPTED_REGIONS_CHAINED),PROF_GET_COUNTER(GP_ACCEPTED_REGIONS),"         ",true);
-  tab_fprintf(stream,"      --> Candidate.Regions.Length                ");
+  tab_fprintf(stream,"    --> Candidate.Regions.Accepted.Exact          ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ACCEPTED_EXACT),PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"regions  ",true);
+  tab_fprintf(stream,"    --> Candidate.Regions.Accepted.Inexact        ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ACCEPTED_INEXACT),PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"regions  ",true);
+  tab_fprintf(stream,"      --> Matching.Regions.Chain.Success          ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCHING_REGIONS_CHAIN_SUCCESS),PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"regions  ",true);
+  tab_fprintf(stream,"        --> Matching.Regions.Coverage             ");
+  PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_MATCHING_REGIONS_CHAIN_COVERAGE));
+  tab_fprintf(stream,"        --> Matching.Regions.Extended.Coverage    ");
+  PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_MATCHING_REGIONS_EXTEND_COVERAGE));
+  tab_fprintf(stream,"      --> Matching.Regions.Scaffolded             ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCHING_REGIONS_SCAFFOLDED),PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"regions  ",true);
+  tab_fprintf(stream,"        --> Matching.Regions.Scaffolded.Coverage  ");
+  PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_MATCHING_REGIONS_SCAFFOLD_COVERAGE));
+  tab_fprintf(stream,"  |> Realign.Length\n");
+  tab_fprintf(stream,"    --> Candidate.Regions.Length                  ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CANDIDATE_REGION_LENGTH),PROF_GET_COUNTER(GP_CANDIDATE_REGION_LENGTH),"nt       ",true);
-  tab_fprintf(stream,"      --> Accepted.Regions.Length                 ");
+  tab_fprintf(stream,"    --> Accepted.Regions.Length                   ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ACCEPTED_REGIONS_LENGTH),PROF_GET_COUNTER(GP_CANDIDATE_REGION_LENGTH),"nt       ",true);
-  tab_fprintf(stream,"      --> Aligned.Regions.SWG.Banded.Length       ");
+  tab_fprintf(stream,"    --> SWG.Banded.Aligned.Length                 ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SWG_ALIGN_BANDED_LENGTH),PROF_GET_COUNTER(GP_CANDIDATE_REGION_LENGTH),"nt       ",true);
-//  tab_fprintf(stream,"      --> Aligned.Regions.SWG.Full.Length         ");
-//  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SWG_ALIGN_FULL_LENGTH),PROF_GET_COUNTER(GP_CANDIDATE_REGION_LENGTH),"nt       ",true);
 }
 GEM_INLINE void mapper_profile_print_filtering(FILE* const stream,const bool verification_profile) {
   // Verifying
@@ -682,6 +631,8 @@ GEM_INLINE void mapper_profile_print_mapper_paired_end(
     // Ranks
     mapper_profile_print_mapper_ranks(stream);
   }
+  // Checks
+  mapper_profile_print_checks(stream);
 }
 #else /* GEM_PROFILE DISABLED */
 GEM_INLINE void mapper_profile_print_mapper_single_end(

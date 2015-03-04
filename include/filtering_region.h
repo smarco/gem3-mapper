@@ -15,7 +15,6 @@
 #include "approximate_search_parameters.h"
 #include "matches_align.h"
 #include "pattern.h"
-#include "bpm_align.h"
 
 /*
  * Debug
@@ -90,7 +89,7 @@ GEM_INLINE void filtering_region_chain_matching_regions(
  */
 GEM_INLINE bool filtering_region_align(
     filtering_region_t* const filtering_region,const text_collection_t* const candidates_collection,
-    search_parameters_t* const search_parameters,const strand_t search_strand,
+    const search_actual_parameters_t* const search_actual_parameters,const strand_t search_strand,
     const pattern_t* const pattern,matches_t* const matches,match_trace_t* const match_trace,
     mm_stack_t* const mm_stack);
 
@@ -110,8 +109,6 @@ GEM_INLINE uint64_t filtering_region_verify_extension(
 /*
  * Display
  */
-GEM_INLINE void filtering_region_print_matching_regions(
-    FILE* const stream,region_matching_t* const regions_matching,const uint64_t num_regions_matching,
-    const uint64_t begin_position,const uint64_t end_position,const uint64_t filtering_region_idx);
+GEM_INLINE void filtering_region_print_matching_regions(FILE* const stream,filtering_region_t* const filtering_region);
 
 #endif /* FILTERING_REGION_H_ */

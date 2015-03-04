@@ -310,11 +310,11 @@ GEM_INLINE void archive_select_paired_matches(
 /*
  * Check Matches
  */
-GEM_INLINE void archive_check_matches_correct(
+GEM_INLINE void archive_check_matches(
     archive_t* const archive,const alignment_model_t alignment_model,
     const swg_penalties_t* swg_penalties,sequence_t* const sequence,
     matches_t* const matches,const bool check_optimum_alignment,
-    mm_stack_t* const mm_stack) {
+    const bool check_complete,mm_stack_t* const mm_stack) {
   PROF_INC_COUNTER(GP_CHECK_NUM_READS);
   // Prepare key(s)
   mm_stack_push_state(mm_stack);
@@ -389,7 +389,8 @@ GEM_INLINE void archive_check_matches_correct(
       // Check result
       if(!best_alignment) {
         PROF_INC_COUNTER(GP_CHECK_SUBOPTIMAL);
-        PROF_ADD_COUNTER(GP_CHECK_SUBOPTIMAL_DIFF,match_trace->swg_score-opt_match_trace.swg_score);
+        if (match_trace_num > 0) PROF_INC_COUNTER(GP_CHECK_SUBOPTIMAL_SUBDOMINANT);
+        PROF_ADD_COUNTER(GP_CHECK_SUBOPTIMAL_DIFF,ABS(match_trace->swg_score-opt_match_trace.swg_score));
         PROF_ADD_COUNTER(GP_CHECK_SUBOPTIMAL_SCORE,match_trace->swg_score);
         PROF_ADD_COUNTER(GP_CHECK_SUBOPTIMAL_DISTANCE,match_trace->distance);
         break;
@@ -417,9 +418,10 @@ GEM_INLINE void archive_check_matches_correct(
     }
 #ifdef GEM_DEBUG
     fprintf(stream,"SUPPORTING EXACT REGIONS => \n");
-    filtering_region_print_matching_regions(stderr,
-        match_trace->regions_matching,match_trace->num_regions_matching,
-        opt_match_trace.text_position,opt_match_trace.text_position+opt_match_trace.effective_length,0);
+    filtering_region_t filterin_region;
+    filterin_region.num_regions_matching = match_trace->num_regions_matching;
+    filterin_region.regions_matching = match_trace->regions_matching;
+    filtering_region_print_matching_regions(stderr,&filterin_region);
 #endif
     fprintf(stream,"READ => \n");
     if (sequence_has_qualities(sequence)) {
@@ -430,14 +432,21 @@ GEM_INLINE void archive_check_matches_correct(
       fprintf(stream,">%s\n",sequence_get_tag(sequence));
       fprintf(stream,"%s\n",sequence_get_read(sequence));
     }
-    fflush(stream);
+    fflush(stream); // exit(1);
   }
   mm_stack_pop_state(mm_stack,false);
 }
-GEM_INLINE void archive_check_matches_completness(
-    archive_t* const archive,sequence_t* const sequence,
-    matches_t* const matches,mm_stack_t* const mm_stack) {
-  GEM_NOT_IMPLEMENTED();
+GEM_INLINE void archive_check_paired_matches(
+    archive_t* const archive,const alignment_model_t alignment_model,
+    const swg_penalties_t* swg_penalties,sequence_t* const sequence_end1,
+    sequence_t* const sequence_end2,paired_matches_t* const paired_matches,
+    const bool check_optimum_alignment,const bool check_complete,mm_stack_t* const mm_stack) {
+  // Check individually end1
+  archive_check_matches(archive,alignment_model,swg_penalties,sequence_end1,
+      paired_matches->matches_end1,check_optimum_alignment,check_complete,mm_stack);
+  // Check individually end2
+  archive_check_matches(archive,alignment_model,swg_penalties,sequence_end2,
+      paired_matches->matches_end2,check_optimum_alignment,check_complete,mm_stack);
+  // TODO More checks related with template-size orientation, etc (But this might be stats better)
 }
-
 

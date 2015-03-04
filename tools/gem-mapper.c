@@ -154,19 +154,20 @@ option_t gem_mapper_options[] = {
   { 'Q', "quality-model", REQUIRED, TYPE_STRING, 3, false, "'gem'|'flat'", "(default=gem)" },
   { 300, "gem-quality-threshold", REQUIRED, TYPE_INT, 3, true, "<number>", "(default=26, that is e<=2e-3)" },
   /* Single-end Alignment */
-  { 400, "mapping-mode", REQUIRED, TYPE_STRING, 4, false, "'fast'|'match'|'complete'|'brute-force'" , "(default=match)" },
+  { 400, "mapping-mode", REQUIRED, TYPE_STRING, 4, false, "'fast'|'match'|'complete'" , "(default=match)" },
   { 401, "filtering-degree", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0)" },
   { 'e', "max-search-error", REQUIRED, TYPE_FLOAT, 4, true, "<number|percentage>" , "(default=0.04, 4%)" },
-  { 'E', "max-filtering-error", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0.08, 8%)" },
+  { 'E', "max-filtering-error", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0.20, 20%)" },
   { 402, "max-bandwidth", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0.20, 20%)" },
   { 's', "complete-strata-after-best", REQUIRED, TYPE_FLOAT, 4, true, "<number|percentage>" , "(default=0)" },
   { 403, "min-matching-length", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0.20, 20%)" },
   { 404, "max-search-matches", REQUIRED, TYPE_INT, 4, true, "<number>" , "(unlimited by default)" },
   { 405, "mismatch-alphabet", REQUIRED, TYPE_STRING, 4, false, "<symbols>" , "(default='ACGT')" },
   { 406, "region-chaining", OPTIONAL, TYPE_STRING, 4, false, "" , "(default=true)" },
-  { 407, "candidate-chunk-length", REQUIRED, TYPE_INT, 4, false, "" , "(default=unlimited)" },
-  { 408, "region-model-minimal", REQUIRED, TYPE_FLOAT, 4, false, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "(default=20,4,2,2)" },
-  { 409, "region-model-delimit", REQUIRED, TYPE_FLOAT, 4, false, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "(default=50,10,4,2)" },
+  { 407, "region-scaffolding-min-length", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=20%)" },
+  { 408, "region-scaffolding-coverage-threshold", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=80%)" },
+  { 409, "region-model-minimal", REQUIRED, TYPE_FLOAT, 4, false, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "(default=20,4,2,2)" },
+  { 410, "region-model-delimit", REQUIRED, TYPE_FLOAT, 4, false, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "(default=50,10,4,2)" },
   /* Paired-end Alignment */
   { 'p', "paired-end-alignment", NO_ARGUMENT, TYPE_NONE, 5, true, "" , "" },
   // { 500, "mate-pair-alignment", NO_ARGUMENT, TYPE_NONE, 5, true, "" , "" }, // TODO
@@ -187,7 +188,7 @@ option_t gem_mapper_options[] = {
   { 'O', "gap-open-penalty", REQUIRED, TYPE_INT, 6, false, "" , "(default=6)" },
   { 'X', "gap-extension-penalty", REQUIRED, TYPE_INT, 6, false, "" , "(default=1)" },
   /* MAQ Score */
-  { 700, "mapq-model", REQUIRED, TYPE_STRING, 5, false, "'none'|'li'|'heath'|'sm'|'pr'" , "(default=sm)" },
+  { 700, "mapq-model", REQUIRED, TYPE_STRING, 5, false, "'none'|'exp-distance'|'exp-score'" , "(default=exp-distance)" },
   /* Reporting */
   { 'D', "min-decoded-strata", REQUIRED, TYPE_FLOAT, 8, false, "<number|percentage>" , "(stratum-wise, default=0)" },
   { 'd', "max-decoded-matches", REQUIRED, TYPE_INT, 8, false, "<number>|'all'" , "(stratum-wise, default=20)" },
@@ -392,11 +393,11 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
         parameters->search_parameters.mapping_mode = mapping_neighborhood_search;
         break;
       }
-      if (gem_strcaseeq(optarg,"lab")) {
-        parameters->search_parameters.mapping_mode = mapping_lab_testing;
+      if (gem_strcaseeq(optarg,"filtering-complete")) {
+        parameters->search_parameters.mapping_mode = mapping_filtering_complete;
         break;
       }
-      gem_fatal_error_msg("Option '--mapping-mode' must be 'fast'|'match'|'complete'|'brute-force'|'lab'");
+      gem_fatal_error_msg("Option '--mapping-mode' must be 'fast'|'match'|'complete'");
       break;
     case 401: // --filtering-degree
       parameters->search_parameters.filtering_degree = atof(optarg);
@@ -428,10 +429,13 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 406: // --region-chaining
       parameters->search_parameters.allow_region_chaining = input_text_parse_extended_bool(optarg);
       break;
-    case 407: // --candidate-chunk-length
-      input_text_parse_extended_uint64(optarg,&parameters->search_parameters.candidate_chunk_max_length);
+    case 407: // --region-scaffolding-min-length
+      parameters->search_parameters.region_scaffolding_min_length = atol(optarg);
       break;
-    case 408: { // --region-model-minimal <region_th>,<max_steps>,<dec_factor>,<region_type_th>
+    case 408: // --region-scaffolding-coverage-threshold
+      parameters->search_parameters.region_scaffolding_coverage_threshold = atol(optarg);
+      break;
+    case 409: { // --region-model-minimal <region_th>,<max_steps>,<dec_factor>,<region_type_th>
       char *region_th=NULL, *max_steps=NULL, *dec_factor=NULL, *region_type_th=NULL;
       const int num_arguments = input_text_parse_csv_arguments(optarg,4,&region_th,&max_steps,&dec_factor,&region_type_th);
       gem_cond_fatal_error_msg(num_arguments!=4,"Option '--region-model' wrong number of arguments");
@@ -445,7 +449,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       input_text_parse_extended_uint64(region_type_th,&parameters->search_parameters.rp_minimal.region_type_th);
       break;
     }
-    case 409: { // --region-model-delimit <region_th>,<max_steps>,<dec_factor>,<region_type_th>
+    case 410: { // --region-model-delimit <region_th>,<max_steps>,<dec_factor>,<region_type_th>
       char *region_th=NULL, *max_steps=NULL, *dec_factor=NULL, *region_type_th=NULL;
       const int num_arguments = input_text_parse_csv_arguments(optarg,4,&region_th,&max_steps,&dec_factor,&region_type_th);
       gem_cond_fatal_error_msg(num_arguments!=4,"Option '--region-model' wrong number of arguments");
@@ -526,11 +530,11 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       break;
     }
     case 507: // --paired-mapping-mode in {'map-both-ends'|'paired-filtering'|'map-extension'} (default=map-extension)
-      if (gem_strcaseeq(optarg,"map-both-ends")) {
+      if (gem_strcaseeq(optarg,"map-both-ends") || gem_strcaseeq(optarg,"0")) {
         parameters->search_parameters.paired_mapping_mode = paired_mapping_map_both_ends;
-      } else if (gem_strcaseeq(optarg,"paired-filtering")) {
+      } else if (gem_strcaseeq(optarg,"paired-filtering") || gem_strcaseeq(optarg,"1")) {
         parameters->search_parameters.paired_mapping_mode = paired_mapping_paired_filtering;
-      } else if (gem_strcaseeq(optarg,"map-extension")) {
+      } else if (gem_strcaseeq(optarg,"map-extension") || gem_strcaseeq(optarg,"2")) {
         parameters->search_parameters.paired_mapping_mode = paired_mapping_map_extension;
       } else {
         gem_fatal_error_msg("Option '--paired-mapping-mode' must be 'map-both-ends'|'paired-filtering'|'map-extension'");
@@ -601,19 +605,17 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       break;
     }
     /* MAQ Score */
-    case 700: // --mapq-model in {'none'|'li'|'heath'|'sm'|'pr'} (default=sm)
+    case 700: // --mapq-model in {'none'|'exp-distance'|'exp-score'} (default=exp-distance)
       if (gem_strcaseeq(optarg,"none")) {
         parameters->select_parameters.mapq_model = mapq_model_none;
-      } else if (gem_strcaseeq(optarg,"li")) {
-        parameters->select_parameters.mapq_model = mapq_model_li;
-      } else if (gem_strcaseeq(optarg,"heath")) {
-        parameters->select_parameters.mapq_model = mapq_model_heath;
-      } else if (gem_strcaseeq(optarg,"sm")) {
-        parameters->select_parameters.mapq_model = mapq_model_sm;
-      } else if (gem_strcaseeq(optarg,"pr")) {
-        parameters->select_parameters.mapq_model = mapq_model_pr;
+      } else if (gem_strcaseeq(optarg,"exp-distance")) {
+        parameters->select_parameters.mapq_model = mapq_model_exp_relative_distance;
+      } else if (gem_strcaseeq(optarg,"exp-score")) {
+        parameters->select_parameters.mapq_model = mapq_model_exp_relative_score;
+      } else if (gem_strcaseeq(optarg,"test")) {
+        parameters->select_parameters.mapq_model = mapq_model_test;
       } else {
-        gem_fatal_error_msg("Option '--mapq-model' must be in {'none'|'li'|'heath'|'sm'|'pr'}");
+        gem_fatal_error_msg("Option '--mapq-model' must be in {'none'|'exp-distance'|'exp-score'}");
       }
       break;
     /* Reporting */

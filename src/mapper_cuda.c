@@ -108,7 +108,7 @@ void* mapper_SE_CUDA_thread(mapper_cuda_search_t* const mapper_search) {
       gem_cond_fatal_error(error_code==INPUT_STATUS_FAIL,MAPPER_CUDA_ERROR_PARSING);
       // Generate Candidates (Search into the archive)
       archive_search_reset(archive_search_generate,sequence_get_length(&archive_search_generate->sequence)); // Reset
-      archive_search_generate_candidates(archive_search_generate,NULL);
+      archive_search_generate_candidates(archive_search_generate);
       // Add archive-search to group (Put candidates in buffer)
       if (!archive_search_group_add_search(search_group,archive_search_generate)) break; // Go to select-candidates
       archive_search_generate = NULL; // Last archive-search is in BPM-buffer
@@ -140,7 +140,7 @@ void* mapper_SE_CUDA_thread(mapper_cuda_search_t* const mapper_search) {
     // Check if the last archive-search couldn't fit into the BPM-buffer
     if (archive_search_generate!=NULL) {
       archive_search_reset(archive_search_generate,sequence_get_length(&archive_search_generate->sequence)); // Reset
-      archive_search_generate_candidates(archive_search_generate,NULL); // FIXME just archive_search_prepare_sequence();
+      archive_search_generate_candidates(archive_search_generate); // FIXME just archive_search_prepare_sequence();
       archive_search_group_add_search(search_group,archive_search_generate);
       archive_search_generate = NULL;
     }
@@ -168,8 +168,8 @@ void* mapper_PE_CUDA_thread(mapper_cuda_search_t* const mapper_search) {
 //  buffered_output_file_t* const buffered_output_file = buffered_output_file_new(parameters->output_file);
 //  mapper_PE_prepare_io_buffers(parameters,cuda_parameters->input_buffer_lines,
 //      &mapper_search->buffered_fasta_input_end1,&mapper_search->buffered_fasta_input_end2,buffered_output_file);
-//  buffered_input_file_t* buffered_fasta_input_end1 = mapper_search->buffered_fasta_input_end1;
-//  buffered_input_file_t* buffered_fasta_input_end2 = mapper_search->buffered_fasta_input_end2;
+//  buffered_input_file_t* const buffered_fasta_input_end1 = mapper_search->buffered_fasta_input_end1;
+//  buffered_input_file_t* const buffered_fasta_input_end2 = mapper_search->buffered_fasta_input_end2;
 //  // Create search-group, archive_search pointers & paired-end matches
 //  archive_search_group_t* const search_group = mapper_search->search_group;
 //  archive_search_group_init_bpm_buffers(search_group); // Init BPM-buffers
@@ -203,9 +203,7 @@ void* mapper_PE_CUDA_thread(mapper_cuda_search_t* const mapper_search) {
 //          archive_search_generate_end1,archive_search_generate_end2);
 //      gem_cond_fatal_error(error_code==INPUT_STATUS_FAIL,MAPPER_CUDA_ERROR_PARSING);
 //      // Begin Search
-//      archive_search_generate_end1->pe_search_state = archive_search_pe_begin;
-//      archive_search_generate_end2->pe_search_state = archive_search_pe_begin;
-//      archive_search_paired_end_continue(archive_search_generate_end1,archive_search_generate_end2,true,NULL);
+//      archive_search_pe_generate_candidates(archive_search_generate_end1,archive_search_generate_end2,paired_matches);
 //      // Add archive-search to group (Put candidates in buffer)
 //      if (!archive_search_group_add_paired_search(search_group,
 //          archive_search_generate_end1,archive_search_generate_end2)) break; // Go to select-candidates

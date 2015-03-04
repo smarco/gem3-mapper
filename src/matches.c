@@ -183,7 +183,7 @@ GEM_INLINE uint64_t* matches_lookup_match(
   return (match_trace_offset!=NULL) ? match_trace_offset :
       ihash_get(matches->end_gmatches,begin_position+effective_length,uint64_t);
 }
-GEM_INLINE void matches_add_match_trace_t(
+GEM_INLINE bool matches_add_match_trace_t(
     matches_t* const matches,match_trace_t* const match_trace,
     const bool update_counters,mm_stack_t* const mm_stack) {
   // Check duplicates
@@ -199,6 +199,7 @@ GEM_INLINE void matches_add_match_trace_t(
         new_match_trace->index_position,new_match_trace->effective_length,mm_stack);
     // Update counters
     if (update_counters) matches_counters_add(matches,match_trace->distance,1);
+    return true;
   } else {
     match_trace_t* const dup_match_trace = vector_get_elm(matches->global_matches,*dup_match_trace_offset,match_trace_t);
     if (dup_match_trace->distance > match_trace->distance) {
@@ -210,6 +211,7 @@ GEM_INLINE void matches_add_match_trace_t(
       // Add the match-trace
       *dup_match_trace = *match_trace;
     }
+    return false;
   }
 }
 GEM_INLINE void matches_add_interval_match(
@@ -273,53 +275,70 @@ GEM_INLINE void matches_cigar_buffer_add_cigar_element(
     }
   }
 }
-GEM_INLINE void matches_cigar_buffer_append_indel(
-    vector_t* const cigar_buffer,uint64_t* const current_cigar_length,
-    const cigar_t cigar_element_type,const uint64_t element_length,uint8_t* const indel_text) {
+GEM_INLINE void matches_cigar_vector_append_insertion(
+    vector_t* const cigar_vector,uint64_t* const current_cigar_length,
+    const uint64_t indel_length,uint8_t* const indel_text) {
   if (*current_cigar_length > 0) {
-    cigar_element_t* cigar_element = vector_get_last_elm(cigar_buffer,cigar_element_t);
-    if (cigar_element->type==cigar_element_type) {
-      cigar_element->indel.indel_length += element_length;
-      cigar_element->indel.indel_text = indel_text;
+    cigar_element_t* cigar_element = vector_get_last_elm(cigar_vector,cigar_element_t);
+    if (cigar_element->type==cigar_ins) {
+      cigar_element->indel.indel_length += indel_length;
+      cigar_element->indel.indel_text = indel_text; // FIXME Combine indel text !!
       return;
     }
   }
   // Append a new one
-  vector_reserve_additional(cigar_buffer,1); // Reserve
-  cigar_element_t* const cigar_element = vector_get_free_elm(cigar_buffer,cigar_element_t);// Add CIGAR element
-  cigar_element->type = cigar_element_type;
-  cigar_element->indel.indel_length = element_length;
+  vector_reserve_additional(cigar_vector,1); // Reserve
+  cigar_element_t* const cigar_element = vector_get_free_elm(cigar_vector,cigar_element_t);// Add CIGAR element
+  cigar_element->type = cigar_ins;
+  cigar_element->indel.indel_length = indel_length;
   cigar_element->indel.indel_text = indel_text;
-  vector_inc_used(cigar_buffer); // Increment used
+  vector_inc_used(cigar_vector); // Increment used
   *current_cigar_length += 1;
 }
-GEM_INLINE void matches_cigar_buffer_append_match(
-    vector_t* const cigar_buffer,uint64_t* const current_cigar_length,
-    const uint64_t match_length) {
+GEM_INLINE void matches_cigar_vector_append_deletion(
+    vector_t* const cigar_vector,uint64_t* const current_cigar_length,const uint64_t indel_length) {
+  if (*current_cigar_length > 0) {
+    cigar_element_t* cigar_element = vector_get_last_elm(cigar_vector,cigar_element_t);
+    if (cigar_element->type==cigar_del) {
+      cigar_element->indel.indel_length += indel_length;
+      cigar_element->indel.indel_text = NULL;
+      return;
+    }
+  }
+  // Append a new one
+  vector_reserve_additional(cigar_vector,1); // Reserve
+  cigar_element_t* const cigar_element = vector_get_free_elm(cigar_vector,cigar_element_t);// Add CIGAR element
+  cigar_element->type = cigar_del;
+  cigar_element->indel.indel_length = indel_length;
+  cigar_element->indel.indel_text = NULL;
+  vector_inc_used(cigar_vector); // Increment used
+  *current_cigar_length += 1;
+}
+GEM_INLINE void matches_cigar_vector_append_match(
+    vector_t* const cigar_vector,uint64_t* const current_cigar_length,const uint64_t match_length) {
   // Check previous cigar-element (for merging)
   if (*current_cigar_length > 0) {
-    cigar_element_t* cigar_element = vector_get_last_elm(cigar_buffer,cigar_element_t);
+    cigar_element_t* cigar_element = vector_get_last_elm(cigar_vector,cigar_element_t);
     if (cigar_element->type==cigar_match) {
       cigar_element->match_length += match_length;
       return;
     }
   }
   // Append a new one
-  vector_reserve_additional(cigar_buffer,1); // Reserve
-  cigar_element_t* const cigar_element = vector_get_free_elm(cigar_buffer,cigar_element_t);// Add CIGAR element
+  vector_reserve_additional(cigar_vector,1); // Reserve
+  cigar_element_t* const cigar_element = vector_get_free_elm(cigar_vector,cigar_element_t);// Add CIGAR element
   cigar_element->type = cigar_match;
   cigar_element->match_length = match_length;
-  vector_inc_used(cigar_buffer); // Increment used
+  vector_inc_used(cigar_vector); // Increment used
   *current_cigar_length += 1;
 }
-GEM_INLINE void matches_cigar_buffer_append_mismatch(
-    vector_t* const cigar_buffer,uint64_t* const current_cigar_length,
-    const cigar_t cigar_element_type,const uint8_t mismatch) {
-  vector_reserve_additional(cigar_buffer,1); // Reserve
-  cigar_element_t* const cigar_element = vector_get_free_elm(cigar_buffer,cigar_element_t);// Add CIGAR element
-  cigar_element->type = cigar_element_type;
+GEM_INLINE void matches_cigar_vector_append_mismatch(
+    vector_t* const cigar_vector,uint64_t* const current_cigar_length,const uint8_t mismatch) {
+  vector_reserve_additional(cigar_vector,1); // Reserve
+  cigar_element_t* const cigar_element = vector_get_free_elm(cigar_vector,cigar_element_t);// Add CIGAR element
+  cigar_element->type = cigar_mismatch;
   cigar_element->mismatch = mismatch;
-  vector_inc_used(cigar_buffer); // Increment used
+  vector_inc_used(cigar_vector); // Increment used
   *current_cigar_length += 1;
 }
 GEM_INLINE void matches_cigar_reverse(
@@ -358,7 +377,7 @@ GEM_INLINE void matches_cigar_reverse_colorspace(
     SWAP(*origin,*flipped);
   }
 }
-GEM_INLINE uint64_t matches_cigar_calculate_edit_distance(
+GEM_INLINE uint64_t matches_cigar_compute_edit_distance(
     const matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
   // Exact Match
   if (cigar_length==0) return 0;
@@ -384,7 +403,7 @@ GEM_INLINE uint64_t matches_cigar_calculate_edit_distance(
   }
   return edit_distance;
 }
-GEM_INLINE uint64_t matches_cigar_calculate_edit_distance__excluding_clipping(
+GEM_INLINE uint64_t matches_cigar_compute_edit_distance__excluding_clipping(
     const matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
   // Exact Match
   if (cigar_length==0) return 0;
@@ -411,6 +430,28 @@ GEM_INLINE uint64_t matches_cigar_calculate_edit_distance__excluding_clipping(
     }
   }
   return edit_distance;
+}
+GEM_INLINE int64_t matches_cigar_element_effective_length(const cigar_element_t* const cigar_element) {
+  switch (cigar_element->type) {
+    case cigar_match:
+      return cigar_element->match_length;
+      break;
+    case cigar_mismatch:
+      return 1;
+      break;
+    case cigar_del:
+    case cigar_soft_trim:
+      return -(cigar_element->indel.indel_length);
+      break;
+    case cigar_ins:
+      return cigar_element->indel.indel_length;
+      break;
+    case cigar_null:
+    default:
+      GEM_INVALID_CASE();
+      break;
+  }
+  return 0;
 }
 /*
  * Status

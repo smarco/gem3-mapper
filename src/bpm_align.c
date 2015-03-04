@@ -153,7 +153,7 @@ GEM_INLINE void bpm_reset_search(
     score[i] = score[i-1] + init_score[i];
   }
 }
-GEM_INLINE void bpm_reset_search__cutoff(
+GEM_INLINE void bpm_reset_search_cutoff(
     uint8_t* const top_level,uint64_t* const P,uint64_t* const M,int64_t* const score,
     const int64_t* const init_score,const uint64_t max_distance) {
   // Calculate the top level (maximum bit-word for cut-off purposes)
@@ -191,7 +191,7 @@ GEM_INLINE int8_t bpm_advance_block(
   Ph = Mv | ~(Xh | Pv);
   Mh = Pv & Xh;
 
-  hout += T_hout_64[(Ph & mask)!=0][(Mh & mask)!=0]; // FIXME
+  hout += T_hout_64[(Ph & mask)!=0][(Mh & mask)!=0];
 
   Ph <<= 1;
   Mh <<= 1;
@@ -206,6 +206,58 @@ GEM_INLINE int8_t bpm_advance_block(
   *Mv_out=Mv;
 
   return hout;
+}
+/*
+ * BMP
+ */
+GEM_INLINE bool bpm_get_distance_raw(
+    bpm_pattern_t* const bpm_pattern,const uint8_t* const text,const uint64_t text_length,
+    uint64_t* const position,uint64_t* const distance) {
+  // Pattern variables
+  const uint64_t* PEQ = bpm_pattern->PEQ;
+  const uint64_t num_words = bpm_pattern->pattern_num_words;
+  uint64_t* const P = bpm_pattern->P;
+  uint64_t* const M = bpm_pattern->M;
+  const uint64_t* const level_mask = bpm_pattern->level_mask;
+  int64_t* const score = bpm_pattern->score;
+  const int64_t* const init_score = bpm_pattern->init_score;
+
+  // Initialize search
+  uint64_t min_score = ALIGN_DISTANCE_INF, min_score_column = ALIGN_COLUMN_INF;
+  bpm_reset_search(num_words,P,M,score,init_score);
+
+  // Advance in DP-bit_encoded matrix
+  uint64_t text_position;
+  for (text_position=0;text_position<text_length;++text_position) {
+    // Fetch next character
+    const uint8_t enc_char = text[text_position];
+
+    // Advance all blocks
+    int8_t carry;
+    uint64_t i;
+    for (i=0,carry=0;i<num_words;++i) {
+      uint64_t* const Py = P+i;
+      uint64_t* const My = M+i;
+      carry = bpm_advance_block(PEQ[BPM_PATTERN_PEQ_IDX(i,enc_char)],level_mask[i],*Py,*My,carry+1,Py,My);
+      score[i] += carry;
+    }
+
+    // Check match
+    if (score[num_words-1] < min_score) {
+      min_score_column = text_position;
+      min_score = score[num_words-1];
+    }
+  }
+  // Return results
+  if (min_score!=ALIGN_DISTANCE_INF) {
+    *distance = min_score;
+    *position = min_score_column;
+    return true;
+  } else {
+    *distance = ALIGN_DISTANCE_INF;
+    *position = ALIGN_COLUMN_INF;
+    return false;
+  }
 }
 /*
  * Advance block functions (Improved)
@@ -232,61 +284,9 @@ GEM_INLINE int8_t bpm_advance_block(
   /* Finally, generate the Vout */ \
   Pv = Mh | ~(Xv | Ph); \
   Mv = Ph & Xv
-/*
- * BMP
- */
-GEM_INLINE bool bpm_get_distance(
-    bpm_pattern_t* const bpm_pattern,const uint8_t* const sequence,const uint64_t sequence_length,
-    uint64_t* const position,uint64_t* const distance) {
-  // Pattern variables
-  const uint64_t* PEQ = bpm_pattern->PEQ;
-  const uint64_t num_words = bpm_pattern->pattern_num_words;
-  uint64_t* const P = bpm_pattern->P;
-  uint64_t* const M = bpm_pattern->M;
-  const uint64_t* const level_mask = bpm_pattern->level_mask;
-  int64_t* const score = bpm_pattern->score;
-  const int64_t* const init_score = bpm_pattern->init_score;
-
-  // Initialize search
-  uint64_t min_score = ALIGN_DISTANCE_INF, min_score_column = ALIGN_COLUMN_INF;
-  bpm_reset_search(num_words,P,M,score,init_score);
-
-  // Advance in DP-bit_encoded matrix
-  uint64_t sequence_position;
-  for (sequence_position=0;sequence_position<sequence_length;++sequence_position) {
-    // Fetch next character
-    const uint8_t enc_char = sequence[sequence_position];
-
-    // Advance all blocks
-    int8_t carry;
-    uint64_t i;
-    for (i=0,carry=0;i<num_words;++i) {
-      uint64_t* const Py = P+i;
-      uint64_t* const My = M+i;
-      carry = bpm_advance_block(PEQ[BPM_PATTERN_PEQ_IDX(i,enc_char)],level_mask[i],*Py,*My,carry+1,Py,My);
-      score[i] += carry;
-    }
-
-    // Check match
-    if (score[num_words-1] < min_score) {
-      min_score_column = sequence_position;
-      min_score = score[num_words-1];
-    }
-  }
-  // Return results
-  if (min_score!=ALIGN_DISTANCE_INF) {
-    *distance = min_score;
-    *position = min_score_column;
-    return true;
-  } else {
-    *distance = ALIGN_DISTANCE_INF;
-    *position = ALIGN_COLUMN_INF;
-    return false;
-  }
-}
-GEM_INLINE bool bpm_get_distance__cutoff(
+GEM_INLINE bool bpm_get_distance_cutoff(
     const bpm_pattern_t* const bpm_pattern,
-    const uint8_t* const sequence,const uint64_t sequence_length,
+    const uint8_t* const text,const uint64_t text_length,
     uint64_t* const match_end_column,uint64_t* const distance,
     const uint64_t max_distance,const bool quick_abandon) {
   // Pattern variables
@@ -304,13 +304,13 @@ GEM_INLINE bool bpm_get_distance__cutoff(
   const uint8_t top = num_words-1;
   uint8_t top_level;
   uint64_t min_score = ALIGN_DISTANCE_INF, min_score_column = ALIGN_COLUMN_INF;
-  bpm_reset_search__cutoff(&top_level,P,M,score,init_score,max_distance);
+  bpm_reset_search_cutoff(&top_level,P,M,score,init_score,max_distance);
 
   // Advance in DP-bit_encoded matrix
-  uint64_t sequence_position, sequence_left=sequence_length;
-  for (sequence_position=0;sequence_position<sequence_length;++sequence_position,--sequence_left) {
+  uint64_t text_position, text_left=text_length;
+  for (text_position=0;text_position<text_length;++text_position,--text_left) {
     // Fetch next character
-    const uint8_t enc_char = sequence[sequence_position];
+    const uint8_t enc_char = text[text_position];
 
     // Advance all blocks
     uint64_t i,PHin=0,MHin=0,PHout,MHout;
@@ -363,11 +363,11 @@ GEM_INLINE bool bpm_get_distance__cutoff(
     const int64_t current_score = score[top_level-1];
     if (top_level==num_words && current_score<=max_distance) {
       if (current_score < min_score)  {
-        min_score_column = sequence_position;
+        min_score_column = text_position;
         min_score = current_score;
       }
     } else if (quick_abandon && min_score==ALIGN_DISTANCE_INF &&
-        current_score+pattern_left[top_level] > sequence_left+max_distance) {
+        current_score+pattern_left[top_level] > text_left+max_distance) {
       // Quick abandon, it doesn't match (bounded by best case scenario)
       // TODO Test if (abandon_cond() && min_score!=ALIGN_DISTANCE_INF) return best_distace_score;
       PROF_INC_COUNTER(GP_BPM_QUICK_ABANDON);
@@ -386,167 +386,75 @@ GEM_INLINE bool bpm_get_distance__cutoff(
   }
 }
 /*
- * Recover CIGAR from a matching string
+ * BPM Tiled (bound)
  */
-GEM_INLINE void bpm_align_match(
-    const uint8_t* const key,const bpm_pattern_t* const bpm_pattern,
-    uint64_t* const match_position,uint8_t* const sequence,
-    const uint64_t sequence_length,const uint64_t max_distance,
-    vector_t* const cigar_vector,uint64_t* const cigar_vector_offset,uint64_t* const cigar_length,
-    uint64_t* const distance,int64_t* const effective_length,mm_stack_t* const mm_stack) {
-  // Pattern variables
-  const uint64_t* PEQ = bpm_pattern->PEQ;
-  const uint64_t num_words = bpm_pattern->pattern_num_words;
-  const uint64_t* const level_mask = bpm_pattern->level_mask;
-  int64_t* const score = bpm_pattern->score;
-  const int64_t* const init_score = bpm_pattern->init_score;
-  // Allocate auxiliary matrix
-  const uint64_t aux_matrix_size =
-      bpm_pattern->pattern_num_words*bpm_pattern->pattern_word_size*(sequence_length+1); /* (+1 base-column) */
-  mm_stack_push_state(mm_stack); // Save stack state
-  uint64_t* const Pv = (uint64_t*)mm_stack_malloc(mm_stack,aux_matrix_size);
-  uint64_t* const Mv = (uint64_t*)mm_stack_malloc(mm_stack,aux_matrix_size);
-  // Initialize search
-  const uint64_t max_distance__1 = max_distance+1;
-  const uint8_t top = num_words-1;
-  uint64_t min_score = ALIGN_DISTANCE_INF, min_score_column = ALIGN_COLUMN_INF;
-  uint8_t top_level;
-  bpm_reset_search__cutoff(&top_level,Pv,Mv,score,init_score,max_distance);
-
-  // Advance in DP-bit_encoded matrix
-  uint64_t sequence_position;
-  for (sequence_position=0;sequence_position<sequence_length;++sequence_position) {
-    // Fetch next character
-    const uint8_t enc_char = sequence[sequence_position];
-    // Advance all blocks
-    uint64_t i,PHin=0,MHin=0,PHout,MHout;
-    for (i=0;i<top_level;++i) {
-      /* Calculate Step Data */
-      const uint64_t bdp_idx = BPM_PATTERN_BDP_IDX(sequence_position,num_words,i);
-      const uint64_t next_bdp_idx = bdp_idx+num_words;
-      uint64_t Pv_in = Pv[bdp_idx];
-      uint64_t Mv_in = Mv[bdp_idx];
-      const uint64_t mask = level_mask[i];
-      const uint64_t Eq = PEQ[BPM_PATTERN_PEQ_IDX(i,enc_char)];
-      /* Compute Block */
-      BPM_ADVANCE_BLOCK(Eq,mask,Pv_in,Mv_in,PHin,MHin,PHout,MHout);
-      /* Adjust score and swap propagate Hv */
-      score[i] += PHout-MHout;
-      Pv[next_bdp_idx] = Pv_in;
-      Mv[next_bdp_idx] = Mv_in;
-      PHin=PHout;
-      MHin=MHout;
-    }
-    // Cut-off
-    const uint8_t last = top_level-1;
-    if (gem_expect_false(score[last]<=max_distance__1)) {
-      const uint64_t last_score = score[last]+(MHin-PHin);
-      const uint64_t Peq = PEQ[BPM_PATTERN_PEQ_IDX(top_level,enc_char)];
-      if (last_score<=max_distance && last<top && (MHin || (Peq & 1))) {
-        // Init block V
-        const uint64_t bdp_idx = BPM_PATTERN_BDP_IDX(sequence_position,num_words,top_level);
-        const uint64_t next_bdp_idx = bdp_idx+num_words;
-        uint64_t Pv_in = BMP_W64_ONES;
-        uint64_t Mv_in = 0;
-        Pv[bdp_idx] = BMP_W64_ONES;
-        Mv[bdp_idx] = 0;
-        const uint64_t mask = level_mask[top_level];
-        /* Compute Block */
-        BPM_ADVANCE_BLOCK(Peq,mask,Pv_in,Mv_in,PHin,MHin,PHout,MHout);
-        /* Save Block Pv,Mv */
-        Pv[next_bdp_idx]=Pv_in;
-        Mv[next_bdp_idx]=Mv_in;
-        /* Set score & increment the top level block */
-        score[top_level] = last_score + init_score[top_level] + (PHout-MHout);
-        ++top_level;
-      } else {
-        while (score[top_level-1] > (max_distance+init_score[top_level-1])) {
-          --top_level;
-        }
-      }
-    } else {
-      while (score[top_level-1] > (max_distance+init_score[top_level-1])) {
-        --top_level;
-      }
-    }
-    // Check match
-    const int64_t current_score = score[top_level-1];
-    if (top_level==num_words && current_score<=max_distance) {
-      if (current_score < min_score)  {
-        min_score_column = sequence_position;
-        min_score = current_score;
-      }
-    }
-  }
-  /*
-   * Retrieve the alignment. Store the match (Backtrace and generate CIGAR)
-   */
-  // Set distance
-  *distance = min_score;
-  if (min_score == ALIGN_DISTANCE_INF) {
-    mm_stack_pop_state(mm_stack,false); // Free
+GEM_INLINE void bpm_get_distance_cutoff_tiled(
+    bpm_pattern_t* const bpm_pattern,const uint8_t* const text,const uint64_t text_length,
+    uint64_t* const levenshtein_distance,uint64_t* const levenshtein_match_end_column,
+    const uint64_t max_error) {
+#ifndef BPM_TILED
+  PROF_START(GP_BPM_TILED);
+  // BPM Cut-off + Quick-abandon
+  bpm_get_distance_cutoff(bpm_pattern,text,text_length,
+      levenshtein_match_end_column,levenshtein_distance,max_error,true);
+  PROF_ADD_COUNTER(GP_BMP_TILED_NUM_TILES,1);
+  PROF_ADD_COUNTER(GP_BMP_TILED_NUM_TILES_VERIFIED,1);
+  PROF_STOP(GP_BPM_TILED);
+#else
+  PROF_START(GP_BPM_TILED);
+  // Fetch pattern dimensions
+  const uint64_t num_pattern_chunks = bpm_pattern->num_pattern_chunks;
+  const uint64_t words_per_chunk =  bpm_pattern->words_per_chunk;
+  PROF_ADD_COUNTER(GP_BMP_TILED_NUM_TILES,num_pattern_chunks);
+  // Calculate tile dimensions
+  pattern_tiled_t pattern_tiled;
+  const bool pattern_can_align = pattern_tiled_init(&pattern_tiled,
+      bpm_pattern->pattern_length,words_per_chunk*BPM_ALIGN_WORD_LENGTH,text_length,max_error);
+  if (!pattern_can_align) {
+    *levenshtein_distance = ALIGN_DISTANCE_INF;
+    *levenshtein_match_end_column = ALIGN_COLUMN_INF; // FIXME Needed?
+    PROF_STOP(GP_BPM_TILED);
     return;
   }
-  // Allocate CIGAR string memory (worst case)
-  const uint64_t pattern_length = bpm_pattern->pattern_length;
-  *cigar_vector_offset = vector_get_used(cigar_vector); // Set CIGAR offset
-  vector_reserve_additional(cigar_vector,min_score+1); // Reserve
-  cigar_element_t* cigar_buffer = vector_get_free_elm(cigar_vector,cigar_element_t); // Sentinel
-  cigar_element_t* const cigar_buffer_base = cigar_buffer;
-  cigar_buffer->type = cigar_null; // Trick
-  // Start Backtrace
-  int64_t match_effective_length = pattern_length;
-  int64_t h = min_score_column;
-  int64_t v = pattern_length - 1;
-  while (v >= 0 && h >= 0) {
-    const uint8_t block = v / UINT64_LENGTH;
-    const uint64_t bdp_idx = BPM_PATTERN_BDP_IDX(h+1,num_words,block);
-    const uint64_t mask = 1L << (v % UINT64_LENGTH);
-    if (Pv[bdp_idx] & mask) {
-      matches_cigar_buffer_add_cigar_element(&cigar_buffer,cigar_del,1,NULL); // Deletion <-1>@v
-      --v; --match_effective_length;
-    } else if (Mv[(bdp_idx-num_words)] & mask) {
-      matches_cigar_buffer_add_cigar_element(&cigar_buffer,cigar_ins,1,sequence+v); // Insertion <+1>@v
-      --h; ++match_effective_length;
-    } else if (sequence[h] != key[v]) {
-      // Mismatch
-      if (cigar_buffer->type!=cigar_null) ++(cigar_buffer);
-      cigar_buffer->type = cigar_mismatch;
-      cigar_buffer->mismatch = sequence[h];
-      --h; --v;
-    } else {
-      matches_cigar_buffer_add_cigar_element(&cigar_buffer,cigar_match,1,NULL); // Match
-      --h; --v;
+  // Initialize current tile variables
+  uint64_t pattern_chunk, global_distance = 0, distance_link_tiles = 0;
+  for (pattern_chunk=0;pattern_chunk<num_pattern_chunks;++pattern_chunk) {
+    PROF_ADD_COUNTER(GP_BMP_TILED_NUM_TILES_VERIFIED,1);
+    // BPM Cut-off
+    bpm_get_distance_cutoff(bpm_pattern->bpm_pattern_chunks+pattern_chunk,
+        text+pattern_tiled.tile_offset,pattern_tiled.tile_wide,
+        &pattern_tiled.tile_match_column,&pattern_tiled.tile_distance,max_error,false);
+    // Update global distance
+    global_distance += pattern_tiled.tile_distance;
+    if (global_distance > max_error) {
+      *levenshtein_distance = ALIGN_DISTANCE_INF;
+      *levenshtein_match_end_column = ALIGN_COLUMN_INF; // FIXME Needed?
+      PROF_STOP(GP_BPM_TILED);
+      return;
     }
+    // Bound the joint distance by estimating the cost of connecting the path through the tiles
+    distance_link_tiles += pattern_tiled_bound_matching_path(&pattern_tiled);
+    // Calculate next tile
+    pattern_tiled_calculate_next(&pattern_tiled);
   }
-  if (v >= 0) {
-    matches_cigar_buffer_add_cigar_element(&cigar_buffer,cigar_del,v+1,NULL); // <-(@v+1)>@v
-    match_effective_length -= v+1;
+  *levenshtein_distance = global_distance + distance_link_tiles; // Bound
+  if (*levenshtein_distance==0) {
+    *levenshtein_match_end_column = pattern_tiled.prev_tile_match_position;
+  } else { // No reduction, we use the whole text
+    *levenshtein_match_end_column = text_length-1;
+    //    if (*levenshtein_distance > max_filtering_error) { // FIXME: Remove me
+    //      *levenshtein_distance = max_filtering_error; // Adjust bound overestimations
+    //    }
   }
-  if (h >= 0) {
-    *match_position += h+1; // We need to correct the matching_position
+  // DEBUG
+  gem_cond_debug_block(DEBUG_BPM_TILED) {
+    uint64_t check_pos, check_distance;
+    bpm_get_distance_cutoff(bpm_pattern,text,text_length,&check_pos,&check_distance,max_error,true);
+    gem_cond_fatal_error_msg(check_distance < *levenshtein_distance,
+        "Pattern-chunk verification failed (SUM(d(P_i))=%lu <= d(P)=%lu)",check_distance,*levenshtein_distance);
   }
-  // Set effective length
-  *effective_length = match_effective_length;
-  // Set CIGAR buffer used
-  if (cigar_buffer->type!=cigar_null) ++(cigar_buffer);
-  const uint64_t num_cigar_elements = cigar_buffer - cigar_buffer_base;
-  vector_add_used(cigar_vector,num_cigar_elements);
-  *cigar_length = num_cigar_elements; // Set CIGAR length
-  // Reverse CIGAR Elements
-  if (num_cigar_elements > 0) {
-    const uint64_t middle_point = num_cigar_elements/2;
-    uint64_t i;
-    for (i=0;i<middle_point;++i) {
-      SWAP(cigar_buffer_base[i],cigar_buffer_base[num_cigar_elements-i-1]);
-    }
-  }
-  mm_stack_pop_state(mm_stack,false); // Free
-//  // Check // TODO
-//  gem_check(!align_check(
-//      key,bpm_pattern->pattern_length,
-//      sequence+(h+1),matching_column-(h+1),
-//      cigar_buffer,*cigar_buffer_offset,*cigar_length);
+  PROF_STOP(GP_BPM_TILED);
+#endif
 }
 /*
  * BPM all matches
@@ -611,6 +519,7 @@ GEM_INLINE void bpm_align_match(
   filtering_region->effective_end_position = end_position; \
   /* Regions Matching */ \
   filtering_region->num_regions_matching = 0; \
+  filtering_region->coverage = 0; \
   filtering_region->regions_matching = NULL; \
   /* Alignment distance */ \
   filtering_region->align_distance = min_score; \
@@ -618,10 +527,10 @@ GEM_INLINE void bpm_align_match(
   /* Increment the number of matches found */ \
   ++num_matches_found; \
 }
-GEM_INLINE uint64_t bpm_get_distance__cutoff_all(
+GEM_INLINE uint64_t bpm_search_all(
     const bpm_pattern_t* const bpm_pattern,vector_t* const filtering_regions,
     const uint64_t text_trace_offset,const uint64_t begin_position,
-    const uint8_t* const sequence,const uint64_t sequence_length,const uint64_t max_distance) {
+    const uint8_t* const text,const uint64_t text_length,const uint64_t max_distance) {
   PROF_START(GP_BPM_ALL);
   // Pattern variables
   const uint64_t* PEQ = bpm_pattern->PEQ;
@@ -632,33 +541,29 @@ GEM_INLINE uint64_t bpm_get_distance__cutoff_all(
   int64_t* const score = bpm_pattern->score;
   const int64_t* const init_score = bpm_pattern->init_score;
   const uint64_t* const pattern_left = bpm_pattern->pattern_left;
-
   // Initialize search
   const uint64_t max_distance__1 = max_distance+1;
   const uint8_t top = num_words-1;
   uint8_t top_level;
   uint64_t min_score = ALIGN_DISTANCE_INF, min_score_column = ALIGN_COLUMN_INF, opt_steps_left;
-  bpm_reset_search__cutoff(&top_level,P,M,score,init_score,max_distance);
-
+  bpm_reset_search_cutoff(&top_level,P,M,score,init_score,max_distance);
   // Advance in DP-bit_encoded matrix
-  const uint64_t end_position = begin_position + sequence_length;
+  const uint64_t end_position = begin_position + text_length;
   bool match_found = false;
-  uint64_t sequence_position, sequence_left=sequence_length, num_matches_found=0;
-  for (sequence_position=0;sequence_position<sequence_length;++sequence_position,--sequence_left) {
+  uint64_t text_position, text_left=text_length, num_matches_found=0;
+  for (text_position=0;text_position<text_length;++text_position,--text_left) {
     // Fetch next character and advance all blocks
     uint64_t PHin=0,MHin=0,PHout,MHout;
-    const uint8_t enc_char = sequence[sequence_position];
+    const uint8_t enc_char = text[text_position];
     BPM_ADVANCE_COLUMN(P,M,score,PEQ,enc_char,top_level,PHin,MHin,PHout,MHout);
-
     // Cut-off
     BPM_CUT_OFF(P,M,score,PEQ,enc_char,top_level,PHin,MHin,PHout,MHout);
-
     // Check match
     const int64_t current_score = score[top_level-1];
     if (!match_found) {
       if (top_level==num_words && current_score<=max_distance) {
         if (current_score < min_score)  { // Founded match, Update minimum
-          min_score_column = sequence_position;
+          min_score_column = text_position;
           min_score = current_score;
           if (current_score==0) { // Don't try to optimize, carry on
             match_found = false;
@@ -671,7 +576,7 @@ GEM_INLINE uint64_t bpm_get_distance__cutoff_all(
       }
     } else {
       if (top_level==num_words && current_score<min_score) { // Update minimum
-        min_score_column = sequence_position;
+        min_score_column = text_position;
         min_score = current_score;
       }
       if (opt_steps_left==0) {
@@ -682,7 +587,7 @@ GEM_INLINE uint64_t bpm_get_distance__cutoff_all(
       }
     }
     // Quick abandon
-    if (min_score==ALIGN_DISTANCE_INF && current_score+pattern_left[top_level] > sequence_left+max_distance) {
+    if (min_score==ALIGN_DISTANCE_INF && current_score+pattern_left[top_level] > text_left+max_distance) {
       // Quick abandon, it doesn't match (bounded by best case scenario)
       PROF_INC_COUNTER(GP_BPM_ALL_QUICK_ABANDON);
       break;
@@ -696,72 +601,286 @@ GEM_INLINE uint64_t bpm_get_distance__cutoff_all(
   return num_matches_found;
 }
 /*
- * BPM Tiled (bound)
+ * Recover CIGAR from a matching string
  */
-GEM_INLINE void bpm_bound_distance_tiled(
-    bpm_pattern_t* const bpm_pattern,const uint8_t* const sequence,const uint64_t sequence_length,
-    uint64_t* const levenshtein_distance,uint64_t* const levenshtein_match_end_column,const uint64_t max_error) {
-#ifndef BPM_TILED
-  PROF_START(GP_BPM_TILED);
-  // BPM Cut-off + Quick-abandon
-  bpm_get_distance__cutoff(bpm_pattern,sequence,sequence_length,
-      levenshtein_match_end_column,levenshtein_distance,max_error,true);
-  PROF_ADD_COUNTER(GP_BMP_TILED_NUM_TILES,1);
-  PROF_ADD_COUNTER(GP_BMP_TILED_NUM_TILES_VERIFIED,1);
-  PROF_STOP(GP_BPM_TILED);
-#else
-  PROF_START(GP_BPM_TILED);
-  // Fetch pattern dimensions
-  const uint64_t num_pattern_chunks = bpm_pattern->num_pattern_chunks;
-  const uint64_t words_per_chunk =  bpm_pattern->words_per_chunk;
-  PROF_ADD_COUNTER(GP_BMP_TILED_NUM_TILES,num_pattern_chunks);
-  // Calculate tile dimensions
-  pattern_tiled_t pattern_tiled;
-  const bool pattern_can_align = pattern_tiled_init(&pattern_tiled,
-      bpm_pattern->pattern_length,words_per_chunk*BPM_ALIGN_WORD_LENGTH,sequence_length,max_error);
-  if (!pattern_can_align) {
-    *levenshtein_distance = ALIGN_DISTANCE_INF;
-    *levenshtein_match_end_column = ALIGN_COLUMN_INF; // FIXME Needed?
-    PROF_STOP(GP_BPM_TILED);
+GEM_INLINE void bpm_align_compute_matrix(
+    const uint8_t* const key,const bpm_pattern_t* const bpm_pattern,uint8_t* const text,
+    const uint64_t text_length,const uint64_t max_distance,uint64_t** const Pv_out,
+    uint64_t** const Mv_out,uint64_t* const min_score_out,uint64_t* const min_score_column_out,
+    mm_stack_t* const mm_stack) {
+  // Pattern variables
+  const uint64_t* PEQ = bpm_pattern->PEQ;
+  const uint64_t num_words = bpm_pattern->pattern_num_words;
+  const uint64_t* const level_mask = bpm_pattern->level_mask;
+  int64_t* const score = bpm_pattern->score;
+  const int64_t* const init_score = bpm_pattern->init_score;
+  // Allocate auxiliary matrix
+  const uint64_t aux_matrix_size = num_words*bpm_pattern->pattern_word_size*(text_length+1); /* (+1 base-column) */
+  uint64_t* const Pv = (uint64_t*)mm_stack_malloc(mm_stack,aux_matrix_size);
+  uint64_t* const Mv = (uint64_t*)mm_stack_malloc(mm_stack,aux_matrix_size);
+  *Mv_out = Mv;
+  *Pv_out = Pv;
+  // Initialize search
+  const uint64_t max_distance__1 = max_distance+1;
+  const uint8_t top = num_words-1;
+  uint64_t min_score = ALIGN_DISTANCE_INF, min_score_column = ALIGN_COLUMN_INF;
+  uint8_t top_level;
+  bpm_reset_search_cutoff(&top_level,Pv,Mv,score,init_score,max_distance);
+  // Advance in DP-bit_encoded matrix
+  uint64_t text_position;
+  for (text_position=0;text_position<text_length;++text_position) {
+    // Fetch next character
+    const uint8_t enc_char = text[text_position];
+    // Advance all blocks
+    uint64_t i,PHin=0,MHin=0,PHout,MHout;
+    for (i=0;i<top_level;++i) {
+      /* Calculate Step Data */
+      const uint64_t bdp_idx = BPM_PATTERN_BDP_IDX(text_position,num_words,i);
+      const uint64_t next_bdp_idx = bdp_idx+num_words;
+      uint64_t Pv_in = Pv[bdp_idx];
+      uint64_t Mv_in = Mv[bdp_idx];
+      const uint64_t mask = level_mask[i];
+      const uint64_t Eq = PEQ[BPM_PATTERN_PEQ_IDX(i,enc_char)];
+      /* Compute Block */
+      BPM_ADVANCE_BLOCK(Eq,mask,Pv_in,Mv_in,PHin,MHin,PHout,MHout);
+      /* Adjust score and swap propagate Hv */
+      score[i] += PHout-MHout;
+      Pv[next_bdp_idx] = Pv_in;
+      Mv[next_bdp_idx] = Mv_in;
+      PHin=PHout;
+      MHin=MHout;
+    }
+    // Cut-off
+    const uint8_t last = top_level-1;
+    if (gem_expect_false(score[last]<=max_distance__1)) {
+      const uint64_t last_score = score[last]+(MHin-PHin);
+      const uint64_t Peq = PEQ[BPM_PATTERN_PEQ_IDX(top_level,enc_char)];
+      if (last_score<=max_distance && last<top && (MHin || (Peq & 1))) {
+        // Init block V
+        const uint64_t bdp_idx = BPM_PATTERN_BDP_IDX(text_position,num_words,top_level);
+        const uint64_t next_bdp_idx = bdp_idx+num_words;
+        uint64_t Pv_in = BMP_W64_ONES;
+        uint64_t Mv_in = 0;
+        Pv[bdp_idx] = BMP_W64_ONES;
+        Mv[bdp_idx] = 0;
+        const uint64_t mask = level_mask[top_level];
+        /* Compute Block */
+        BPM_ADVANCE_BLOCK(Peq,mask,Pv_in,Mv_in,PHin,MHin,PHout,MHout);
+        /* Save Block Pv,Mv */
+        Pv[next_bdp_idx]=Pv_in;
+        Mv[next_bdp_idx]=Mv_in;
+        /* Set score & increment the top level block */
+        score[top_level] = last_score + init_score[top_level] + (PHout-MHout);
+        ++top_level;
+      } else {
+        while (score[top_level-1] > (max_distance+init_score[top_level-1])) {
+          --top_level;
+        }
+      }
+    } else {
+      while (score[top_level-1] > (max_distance+init_score[top_level-1])) {
+        --top_level;
+      }
+    }
+    // Check match
+    const int64_t current_score = score[top_level-1];
+    if (top_level==num_words && current_score<=max_distance) {
+      if (current_score < min_score)  {
+        min_score_column = text_position;
+        min_score = current_score;
+      }
+    }
+  }
+  // Return optimal column/distance
+  *min_score_out = min_score;
+  *min_score_column_out = min_score_column;
+}
+GEM_INLINE void bpm_align_backtrack_matrix(
+    const uint8_t* const key,const bpm_pattern_t* const bpm_pattern,
+    uint64_t* const match_position,uint8_t* const text,const uint64_t text_length,
+    const uint64_t min_score,const uint64_t min_score_column,uint64_t* const Pv,
+    uint64_t* const Mv,vector_t* const cigar_vector,uint64_t* const cigar_vector_offset,
+    uint64_t* const cigar_length,int64_t* const effective_length) {
+  // Allocate CIGAR string memory (worst case)
+  const uint64_t pattern_length = bpm_pattern->pattern_length;
+  *cigar_vector_offset = vector_get_used(cigar_vector); // Set CIGAR offset
+  vector_reserve_additional(cigar_vector,MIN(pattern_length,2*min_score+1)); // Reserve
+  cigar_element_t* cigar_buffer = vector_get_free_elm(cigar_vector,cigar_element_t); // Sentinel
+  cigar_element_t* const cigar_buffer_base = cigar_buffer;
+  cigar_buffer->type = cigar_null; // Trick
+  // Retrieve the alignment. Store the match
+  const uint64_t num_words = bpm_pattern->pattern_num_words;
+  int64_t match_effective_length = pattern_length;
+  int64_t h = min_score_column;
+  int64_t v = pattern_length - 1;
+  while (v >= 0 && h >= 0) {
+    const uint8_t block = v / UINT64_LENGTH;
+    const uint64_t bdp_idx = BPM_PATTERN_BDP_IDX(h+1,num_words,block);
+    const uint64_t mask = 1L << (v % UINT64_LENGTH);
+    if (Pv[bdp_idx] & mask) {
+      matches_cigar_buffer_add_cigar_element(&cigar_buffer,cigar_del,1,NULL); // Deletion <-1>@v
+      --v; --match_effective_length;
+    } else if (Mv[(bdp_idx-num_words)] & mask) {
+      matches_cigar_buffer_add_cigar_element(&cigar_buffer,cigar_ins,1,text+v); // Insertion <+1>@v
+      --h; ++match_effective_length;
+    } else if (text[h] != key[v]) {
+      // Mismatch
+      if (cigar_buffer->type!=cigar_null) ++(cigar_buffer);
+      cigar_buffer->type = cigar_mismatch;
+      cigar_buffer->mismatch = text[h];
+      --h; --v;
+    } else {
+      matches_cigar_buffer_add_cigar_element(&cigar_buffer,cigar_match,1,NULL); // Match
+      --h; --v;
+    }
+  }
+  if (v >= 0) {
+    matches_cigar_buffer_add_cigar_element(&cigar_buffer,cigar_del,v+1,NULL); // <-(@v+1)>@v
+    match_effective_length -= v+1;
+  }
+  if (h >= 0) {
+    *match_position += h+1; // We need to correct the matching_position
+  }
+  // Set effective length
+  *effective_length = match_effective_length;
+  // Set CIGAR buffer used
+  if (cigar_buffer->type!=cigar_null) ++(cigar_buffer);
+  const uint64_t num_cigar_elements = cigar_buffer - cigar_buffer_base;
+  *cigar_length = num_cigar_elements; // Set CIGAR length
+  // Reverse CIGAR Elements
+  if (num_cigar_elements > 0) {
+    const uint64_t middle_point = num_cigar_elements/2;
+    uint64_t i;
+    for (i=0;i<middle_point;++i) {
+      SWAP(cigar_buffer_base[i],cigar_buffer_base[num_cigar_elements-i-1]);
+    }
+  }
+  // Set used
+  vector_add_used(cigar_vector,num_cigar_elements);
+}
+GEM_INLINE void bpm_align_match(
+    const uint8_t* const key,const bpm_pattern_t* const bpm_pattern,uint64_t* const match_position,
+    uint8_t* const text,const uint64_t text_length,const uint64_t max_distance,
+    vector_t* const cigar_vector,uint64_t* const cigar_vector_offset,uint64_t* const cigar_length,
+    uint64_t* const distance,int64_t* const effective_length,mm_stack_t* const mm_stack) {
+  // Fill Matrix (Pv,Mv)
+  mm_stack_push_state(mm_stack); // Save stack state
+  uint64_t *Pv, *Mv;
+  uint64_t min_score, min_score_column;
+  bpm_align_compute_matrix(key,bpm_pattern,text,text_length,max_distance,
+      &Pv,&Mv,&min_score,&min_score_column,mm_stack);
+  // Set distance
+  *distance = min_score;
+  if (min_score == ALIGN_DISTANCE_INF) {
+    mm_stack_pop_state(mm_stack,false); // Free
     return;
   }
-  // Initialize current tile variables
-  uint64_t pattern_chunk, global_distance = 0, distance_link_tiles = 0;
-  for (pattern_chunk=0;pattern_chunk<num_pattern_chunks;++pattern_chunk) {
-    PROF_ADD_COUNTER(GP_BMP_TILED_NUM_TILES_VERIFIED,1);
-    // BPM Cut-off
-    bpm_get_distance__cutoff(bpm_pattern->bpm_pattern_chunks+pattern_chunk,
-        sequence+pattern_tiled.tile_offset,pattern_tiled.tile_wide,
-        &pattern_tiled.tile_match_column,&pattern_tiled.tile_distance,max_error,false);
-    // Update global distance
-    global_distance += pattern_tiled.tile_distance;
-    if (global_distance > max_error) {
-      *levenshtein_distance = ALIGN_DISTANCE_INF;
-      *levenshtein_match_end_column = ALIGN_COLUMN_INF; // FIXME Needed?
-      PROF_STOP(GP_BPM_TILED);
-      return;
-    }
-    // Bound the joint distance by estimating the cost of connecting the path through the tiles
-    distance_link_tiles += pattern_tiled_bound_matching_path(&pattern_tiled);
-    // Calculate next tile
-    pattern_tiled_calculate_next(&pattern_tiled);
-  }
-  *levenshtein_distance = global_distance + distance_link_tiles; // Bound
-  if (*levenshtein_distance==0) {
-    *levenshtein_match_end_column = pattern_tiled.prev_tile_match_position;
-  } else { // No reduction, we use the whole sequence
-    *levenshtein_match_end_column = sequence_length-1;
-    //    if (*levenshtein_distance > max_filtering_error) { // FIXME: Remove me
-    //      *levenshtein_distance = max_filtering_error; // Adjust bound overestimations
-    //    }
-  }
-  // DEBUG
-  gem_cond_debug_block(DEBUG_BPM_TILED) {
-    uint64_t check_pos, check_distance;
-    bpm_get_distance__cutoff(bpm_pattern,sequence,sequence_length,&check_pos,&check_distance,max_error,true);
-    gem_cond_fatal_error_msg(check_distance < *levenshtein_distance,
-        "Pattern-chunk verification failed (SUM(d(P_i))=%lu <= d(P)=%lu)",check_distance,*levenshtein_distance);
-  }
-  PROF_STOP(GP_BPM_TILED);
-#endif
+  // Backtrace and generate CIGAR
+  bpm_align_backtrack_matrix(key,bpm_pattern,match_position,text,text_length,min_score,
+      min_score_column,Pv,Mv,cigar_vector,cigar_vector_offset,cigar_length,effective_length);
+  // Free
+  mm_stack_pop_state(mm_stack,false);
 }
+GEM_INLINE void bpm_scafold_match(
+    const uint8_t* const key,const bpm_pattern_t* const bpm_pattern,
+    uint8_t* const text,const uint64_t text_begin_offset,const uint64_t text_end_offset,
+    const uint64_t max_distance,const uint64_t min_matching_length,
+    region_matching_t** const regions_matching,uint64_t* const num_regions_matching,
+    uint64_t* const coverage,vector_t* const cigar_vector,mm_stack_t* const mm_stack) {
+  // Fill Matrix (Pv,Mv)
+  mm_stack_push_state(mm_stack); // Save stack state
+  uint8_t* const effective_text = text+text_begin_offset;
+  const uint64_t effective_text_length = text_end_offset-text_begin_offset;
+  uint64_t *Pv, *Mv;
+  uint64_t min_score, min_score_column;
+  bpm_align_compute_matrix(key,bpm_pattern,effective_text,effective_text_length,
+      max_distance,&Pv,&Mv,&min_score,&min_score_column,mm_stack);
+  // Set distance
+  if (min_score == ALIGN_DISTANCE_INF) {
+    *regions_matching = NULL;
+    *num_regions_matching = 0;
+    *coverage = 0;
+    mm_stack_pop_state(mm_stack,false); // Free
+    return;
+  }
+  // Backtrace and generate CIGAR
+  uint64_t key_pos = 0, text_pos = text_begin_offset; // Sentinels
+  uint64_t cigar_vector_offset, cigar_length;
+  int64_t effective_length;
+  bpm_align_backtrack_matrix(key,bpm_pattern,&text_pos,effective_text,effective_text_length,min_score,
+      min_score_column,Pv,Mv,cigar_vector,&cigar_vector_offset,&cigar_length,&effective_length);
+  mm_stack_pop_state(mm_stack,false); // Free
+  if (cigar_length==0) {
+    *regions_matching = NULL;
+    *num_regions_matching = 0;
+    *coverage = 0;
+    return;
+  }
+  // Traverse CIGAR elements and compose scaffolding
+  cigar_element_t* const cigar_buffer = vector_get_elm(cigar_vector,cigar_vector_offset,cigar_element_t);
+  region_matching_t* rmatching = mm_stack_calloc(mm_stack,cigar_length,region_matching_t,false);
+  *regions_matching = rmatching;
+  uint64_t i, total_regions_matching = 0, total_coverage = 0;
+  for (i=0;i<cigar_length;) {
+    switch (cigar_buffer[i].type) {
+      case cigar_match:
+        if (cigar_buffer[i].match_length < min_matching_length) {
+          text_pos += cigar_buffer[i].match_length;
+          key_pos += cigar_buffer[i].match_length;
+          i++;
+        } else {
+          rmatching->key_begin = key_pos;
+          rmatching->text_begin = text_pos;
+          rmatching->error = 0;
+          rmatching->cigar_buffer_offset = cigar_vector_offset + i;
+          rmatching->cigar_length = 1;
+          text_pos += cigar_buffer[i].match_length;
+          key_pos += cigar_buffer[i].match_length;
+          ++i;
+          while (i < cigar_length) {
+            if (cigar_buffer[i].type == cigar_match) {
+              // Cool! Another matching chunk
+              ++rmatching->cigar_length;
+              text_pos += cigar_buffer[i].match_length;
+              key_pos += cigar_buffer[i].match_length;
+              ++i;
+            } else if (cigar_buffer[i].type == cigar_mismatch) {
+              // Tolerate mismatches if well delimited between exact matching regions
+              if (i+1<cigar_length && cigar_buffer[i+1].type==cigar_match &&
+                  cigar_buffer[i+1].match_length >= min_matching_length) {
+                ++rmatching->error;
+                rmatching->cigar_length += 2;
+                text_pos += cigar_buffer[i+1].match_length + 1;
+                key_pos += cigar_buffer[i+1].match_length + 1;
+                i+=2;
+              } else {
+                break;
+              }
+            } else {
+              break; // TODO Tolerate single homopolymer indel
+            }
+          }
+          rmatching->key_end = key_pos;
+          rmatching->text_end = text_pos;
+          total_coverage += rmatching->key_end - rmatching->key_begin;
+          ++rmatching;
+          ++total_regions_matching;
+        }
+        break;
+      case cigar_mismatch: ++text_pos; ++key_pos; ++i; break;
+      case cigar_ins: text_pos += cigar_buffer[i].indel.indel_length; ++i; break;
+      case cigar_del: key_pos += cigar_buffer[i].indel.indel_length; ++i; break;
+      default:
+        GEM_INVALID_CASE();
+        break;
+    }
+  }
+  *num_regions_matching = total_regions_matching;
+  *coverage = total_coverage;
+}
+
+
+
+
+
+

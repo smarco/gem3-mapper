@@ -206,7 +206,6 @@ GEM_INLINE uint64_t filtering_candidates_align_accepted_regions(
     const bool extended_matches,const uint64_t extension_candidate_length,
     const bool approximated_distance,matches_t* const matches,mm_stack_t* const mm_stack) {
   // Parameters
-  search_parameters_t* const search_parameters = search_actual_parameters->search_parameters;
   const uint64_t max_delta = search_actual_parameters->max_filtering_strata_after_best_nominal;
   // Sort filtering regions (wrt align_distance)
   filtering_regions_align_distance(filtering_candidates->filtering_regions);
@@ -239,8 +238,7 @@ GEM_INLINE uint64_t filtering_candidates_align_accepted_regions(
         // Align the region
         match_trace_t match_trace;
         if (filtering_region_align(regions_in,candidates_collection,
-              search_parameters,search_strand,pattern,matches,&match_trace,mm_stack)) {
-          ++num_accepted_regions;
+            search_actual_parameters,search_strand,pattern,matches,&match_trace,mm_stack)) {
           // Correct match position
           if (extended_matches && search_strand==Reverse) {
             match_trace.index_position = 2*regions_in->begin_position -
@@ -250,7 +248,8 @@ GEM_INLINE uint64_t filtering_candidates_align_accepted_regions(
           match_trace.regions_matching = regions_in->regions_matching;
           match_trace.num_regions_matching = regions_in->num_regions_matching;
           #endif
-          matches_add_match_trace_t(matches,&match_trace,true,mm_stack);
+          // Add to matches
+          if (matches_add_match_trace_t(matches,&match_trace,true,mm_stack)) ++num_accepted_regions;
           verified_regions->status = filtering_region_aligned;
         } else {
           verified_regions->status = filtering_region_aligned_subdominant;
@@ -335,11 +334,10 @@ GEM_INLINE void filtering_candidates_retrieve_filtering_regions(
  * Compose filtering regions
  */
 GEM_INLINE void filtering_candidates_compose_matching_regions(
-    filtering_candidates_t* const filtering_candidates,
-    const uint64_t first_candidate_idx,const uint64_t last_candidate_idx,mm_stack_t* const mm_stack) {
+    filtering_candidates_t* const filtering_candidates,const uint64_t first_candidate_idx,
+    const uint64_t last_candidate_idx,const bool allow_region_chaining,mm_stack_t* const mm_stack) {
   // Fetch candidate-positions
   filtering_position_t* const candidate_positions = vector_get_mem(filtering_candidates->filtering_positions,filtering_position_t);
-  const uint64_t num_regions_matching = last_candidate_idx-first_candidate_idx+1;
   // Allow new matching candidate-region
   filtering_region_t* filtering_region;
   vector_alloc_new(filtering_candidates->filtering_regions,filtering_region_t,filtering_region);
@@ -347,29 +345,51 @@ GEM_INLINE void filtering_candidates_compose_matching_regions(
   filtering_region->begin_position = candidate_positions[first_candidate_idx].begin_position;
   filtering_region->effective_begin_position = candidate_positions[first_candidate_idx].effective_begin_position;
   filtering_region->effective_end_position = candidate_positions[last_candidate_idx].effective_end_position;
-  filtering_region->regions_matching = mm_stack_calloc(mm_stack,num_regions_matching,region_matching_t,false);
-  filtering_region->num_regions_matching = num_regions_matching;
   PROF_ADD_COUNTER(GP_CANDIDATE_REGION_LENGTH,filtering_region->effective_end_position-filtering_region->effective_begin_position);
-  uint64_t i;
-  for (i=0;i<num_regions_matching;++i) {
-    region_matching_t* const region_matching = filtering_region->regions_matching + i;
-    filtering_position_t* const candidate_position = candidate_positions + first_candidate_idx + i;
-    region_search_t* const source_region = vector_get_elm(
-        filtering_candidates->regions_buffer,candidate_position->source_region_offset,region_search_t);
-    // Region error
-    region_matching->error = source_region->degree;
-    // Read coordinates
-    region_matching->key_begin = source_region->end;
-    region_matching->key_end = source_region->start;
-    // Text coordinates (relative to the effective begin position)
-    const uint64_t region_length = region_matching->key_end - region_matching->key_begin;
-    region_matching->text_begin = candidate_position->region_text_position - filtering_region->effective_begin_position;
-    region_matching->text_end = region_matching->text_begin + region_length;
+  // Compose regions matching
+  if (allow_region_chaining) {
+    const uint64_t num_regions_matching = last_candidate_idx-first_candidate_idx+1;
+    filtering_region->regions_matching = mm_stack_calloc(mm_stack,num_regions_matching,region_matching_t,false);
+    filtering_region->num_regions_matching = num_regions_matching;
+    filtering_region->coverage = 0;
+    uint64_t i;
+    for (i=0;i<num_regions_matching;++i) {
+      region_matching_t* const region_matching = filtering_region->regions_matching + i;
+      filtering_position_t* const candidate_position = candidate_positions + first_candidate_idx + i;
+      region_search_t* const source_region = vector_get_elm(
+          filtering_candidates->regions_buffer,candidate_position->source_region_offset,region_search_t);
+      // Region error
+      region_matching->error = source_region->degree;
+      region_matching->cigar_length = 0;
+      // Read coordinates
+      region_matching->key_begin = source_region->end;
+      region_matching->key_end = source_region->start;
+      // Text coordinates (relative to the effective begin position)
+      const uint64_t region_length = region_matching->key_end - region_matching->key_begin;
+      region_matching->text_begin = candidate_position->region_text_position - filtering_region->effective_begin_position;
+      region_matching->text_end = region_matching->text_begin + region_length;
+      // Coverage
+      filtering_region->coverage += region_length;
+    }
+  } else {
+    filtering_region->regions_matching = NULL;
+    filtering_region->num_regions_matching = 0;
+    filtering_region->coverage = 0;
+  }
+  // DEBUG
+  gem_cond_debug_block(DEBUG_FILTERING_REGIONS) {
+    filtering_region_t* filtering_region = vector_get_last_elm(filtering_candidates->filtering_regions,filtering_region_t);
+    gem_slog("  Region-found => [%lu,%lu)=%lu bases (regMatch=%lu)\n",
+        filtering_region->effective_begin_position,filtering_region->effective_end_position,
+        filtering_region->effective_end_position-filtering_region->effective_begin_position,
+        filtering_region->num_regions_matching);
   }
 }
 GEM_INLINE uint64_t filtering_candidates_compose_filtering_regions(
-    filtering_candidates_t* const filtering_candidates,const dna_text_t* const enc_text,
-    const uint64_t key_length,const uint64_t max_delta_difference,mm_stack_t* const mm_stack) {
+    filtering_candidates_t* const filtering_candidates,
+    const dna_text_t* const enc_text,const uint64_t key_length,
+    const uint64_t max_delta_difference,const bool allow_region_chaining,
+    mm_stack_t* const mm_stack) {
   // Sort candidate positions (text-space)
   filtering_positions_sort_positions(filtering_candidates->filtering_positions);
   // Sort verified regions
@@ -413,14 +433,8 @@ GEM_INLINE uint64_t filtering_candidates_compose_filtering_regions(
     }
     if (!is_already_verified) {
       // Create a region candidate with the positions from [candidate_idx] to [group_idx-1]
-      filtering_candidates_compose_matching_regions(filtering_candidates,candidate_idx,group_idx-1,mm_stack);
-      gem_cond_debug_block(DEBUG_FILTERING_REGIONS) {
-        filtering_region_t* filtering_region = vector_get_last_elm(filtering_candidates->filtering_regions,filtering_region_t);
-        gem_slog("  Region-found => [%lu,%lu)=%lu bases (regMatch=%lu)\n",
-            filtering_region->effective_begin_position,filtering_region->effective_end_position,
-            filtering_region->effective_end_position-filtering_region->effective_begin_position,
-            filtering_region->num_regions_matching);
-      }
+      filtering_candidates_compose_matching_regions(filtering_candidates,
+          candidate_idx,group_idx-1,allow_region_chaining,mm_stack);
     }
     // Next group
     const uint64_t num_regions_matching = group_idx-candidate_idx;
@@ -432,14 +446,6 @@ GEM_INLINE uint64_t filtering_candidates_compose_filtering_regions(
   gem_cond_debug_block(DEBUG_REGIONS_MATCHING) {
     filtering_candidates_print_matching_regions(stderr,filtering_candidates);
   }
-
-//  // Add to verified positions // TODO
-//  uint64_t candidate_idx = 0, verified_idx = 0;
-//  const uint64_t num_verified_positions = vector_get_used(filtering_candidates->verified_positions);
-//  const uint64_t* const verified_positions = vector_get_mem(filtering_candidates->verified_positions,uint64_t);
-//  // Merge verified candidate positions with accepted positions
-//  filtering_candidates_add_verified_positions(filtering_candidates,num_accepted_positions);
-
   // Return number of filtering regions generated
   return vector_get_used(filtering_candidates->filtering_regions);
 }
@@ -614,6 +620,7 @@ GEM_INLINE void filtering_candidates_decode_filtering_position_batch_prefetched(
 GEM_INLINE uint64_t filtering_candidates_process_candidates(
     filtering_candidates_t* const filtering_candidates,
     archive_t* const archive,const pattern_t* const pattern,
+    const search_actual_parameters_t* const search_actual_parameters,
     mm_stack_t* const mm_stack) {
   // Check non-empty pending candidates set
   uint64_t pending_candidates = vector_get_used(filtering_candidates->filtering_positions);
@@ -635,8 +642,9 @@ GEM_INLINE uint64_t filtering_candidates_process_candidates(
 
   // Compose matching regions into candidate regions (also filter out duplicated positions or already checked)
   PROF_START(GP_FC_COMPOSE_REGIONS);
-  pending_candidates = filtering_candidates_compose_filtering_regions(
-      filtering_candidates,archive->enc_text,key_length,pattern->max_effective_bandwidth,mm_stack);
+  search_parameters_t* const search_parameters = search_actual_parameters->search_parameters;
+  pending_candidates = filtering_candidates_compose_filtering_regions(filtering_candidates,archive->enc_text,
+      key_length,pattern->max_effective_bandwidth,search_parameters->allow_region_chaining,mm_stack);
   PROF_STOP(GP_FC_COMPOSE_REGIONS);
   PROF_ADD_COUNTER(GP_CANDIDATE_REGIONS,pending_candidates);
 
@@ -845,47 +853,51 @@ GEM_INLINE void filtering_candidates_set_all_regions_unverified(filtering_candid
   }
 }
 GEM_INLINE void filtering_candidates_paired_regions_filtering(
-    filtering_candidates_t* const filtering_candidates_end1,filtering_candidates_t* const filtering_candidates_end2,
-    const uint64_t min_template_length,const uint64_t max_template_length,const bool absolute_distance) {
-  // Locate compatible filtering regions
-  const uint64_t num_candidates_end1 = vector_get_used(filtering_candidates_end1->filtering_regions);
-  filtering_region_t* candidate_end1 = vector_get_mem(filtering_candidates_end1->filtering_regions,filtering_region_t);
-  const uint64_t num_candidates_end2 = vector_get_used(filtering_candidates_end2->filtering_regions);
-  filtering_region_t* candidate_end2 = vector_get_mem(filtering_candidates_end2->filtering_regions,filtering_region_t);
-  uint64_t pos_candidates_end1 = 0, pos_candidates_end2 = 0;
-  while (pos_candidates_end1 < num_candidates_end1 && pos_candidates_end2 < num_candidates_end2) {
-    // Use an auxiliary sentinel to check compatible filtering regions
-    filtering_region_t* candidate_aux = candidate_end2;
-    uint64_t pos_candidates_aux = pos_candidates_end2;
-    while (pos_candidates_aux < num_candidates_end2) {
-      // Calculate template length
-      const uint64_t template_length = paired_match_get_template_observed_length(
-          candidate_end1->effective_begin_position,candidate_end1->effective_end_position,
-          candidate_end2->effective_begin_position,candidate_end2->effective_end_position);
-      // Check relative position
-      if (candidate_end2->effective_begin_position < candidate_end1->effective_begin_position) {
-        if (absolute_distance && min_template_length <= template_length && template_length <= max_template_length) {
-          // Accepted
-          candidate_end1->status = filtering_region_unverified;
-          candidate_end2->status = filtering_region_unverified;
-        } else {
-          ++candidate_end2; ++pos_candidates_end2; // Increase base-end2 sentinel
-        }
-      } else {
-        if (min_template_length <= template_length && template_length <= max_template_length) {
-          // Accepted
-          candidate_end1->status = filtering_region_unverified;
-          candidate_end2->status = filtering_region_unverified;
-        } else if (template_length > max_template_length) {
-          break; // Passed the limit nothing is compatible
-        }
-      }
-      // Increase auxiliary sentinel
-      ++candidate_aux; ++pos_candidates_aux;
-    }
-    // Increase end1 sentinel
-    ++candidate_end1; ++pos_candidates_end1;
-  }
+    filtering_candidates_t* const filtering_candidates_end1,
+    filtering_candidates_t* const filtering_candidates_end2,
+    archive_t* const archive,const search_parameters_t* const search_parameters) {
+  // TODO
+//  // Locate compatible filtering regions
+//  const uint64_t min_template_length = search_parameters->min_template_length;
+//  const uint64_t max_template_length = search_parameters->max_template_length;
+//  const uint64_t num_candidates_end1 = vector_get_used(filtering_candidates_end1->filtering_regions);
+//  filtering_region_t* candidate_end1 = vector_get_mem(filtering_candidates_end1->filtering_regions,filtering_region_t);
+//  const uint64_t num_candidates_end2 = vector_get_used(filtering_candidates_end2->filtering_regions);
+//  filtering_region_t* candidate_end2 = vector_get_mem(filtering_candidates_end2->filtering_regions,filtering_region_t);
+//  uint64_t pos_candidates_end1 = 0, pos_candidates_end2 = 0;
+//  while (pos_candidates_end1 < num_candidates_end1 && pos_candidates_end2 < num_candidates_end2) {
+//    // Use an auxiliary sentinel to check compatible filtering regions
+//    filtering_region_t* candidate_aux = candidate_end2;
+//    uint64_t pos_candidates_aux = pos_candidates_end2;
+//    while (pos_candidates_aux < num_candidates_end2) {
+//      // Calculate template length
+//      const uint64_t template_length = paired_match_get_template_observed_length(
+//          candidate_end1->effective_begin_position,candidate_end1->effective_end_position,
+//          candidate_end2->effective_begin_position,candidate_end2->effective_end_position);
+//      // Check relative position
+//      if (candidate_end2->effective_begin_position < candidate_end1->effective_begin_position) {
+//        if (absolute_distance && min_template_length <= template_length && template_length <= max_template_length) {
+//          // Accepted
+//          candidate_end1->status = filtering_region_unverified;
+//          candidate_end2->status = filtering_region_unverified;
+//        } else {
+//          ++candidate_end2; ++pos_candidates_end2; // Increase base-end2 sentinel
+//        }
+//      } else {
+//        if (min_template_length <= template_length && template_length <= max_template_length) {
+//          // Accepted
+//          candidate_end1->status = filtering_region_unverified;
+//          candidate_end2->status = filtering_region_unverified;
+//        } else if (template_length > max_template_length) {
+//          break; // Passed the limit nothing is compatible
+//        }
+//      }
+//      // Increase auxiliary sentinel
+//      ++candidate_aux; ++pos_candidates_aux;
+//    }
+//    // Increase end1 sentinel
+//    ++candidate_end1; ++pos_candidates_end1;
+//  }
 }
 GEM_INLINE uint64_t filtering_candidates_extend_match(
     filtering_candidates_t* const filtering_candidates,
@@ -964,11 +976,9 @@ GEM_INLINE void filtering_candidates_print_matching_regions(
   }
   fprintf(stream,"  => Matching.Regions\n");
   const uint64_t num_candidate_regions = vector_get_used(filtering_candidates->filtering_regions);
-  filtering_region_t* const candidate_regions = vector_get_mem(filtering_candidates->filtering_regions,filtering_region_t);
+  filtering_region_t* const filtering_region = vector_get_mem(filtering_candidates->filtering_regions,filtering_region_t);
   for (i=0;i<num_candidate_regions;++i) {
-    filtering_region_print_matching_regions(stream,
-        candidate_regions[i].regions_matching,candidate_regions[i].num_regions_matching,
-        candidate_regions[i].effective_begin_position,candidate_regions[i].effective_end_position,i);
+    filtering_region_print_matching_regions(stream,filtering_region);
   }
 }
 

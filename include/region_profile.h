@@ -89,13 +89,9 @@ GEM_INLINE bool region_profile_has_exact_matches(region_profile_t* const region_
  * Region Profile Generation
  */
 GEM_INLINE void region_profile_generate_fixed(
-    region_profile_t* const region_profile,
-    fm_index_t* const fm_index,pattern_t* const pattern,bool* const allowed_enc,
-    const uint64_t num_regions);
-GEM_INLINE void region_profile_generate_overlapped(
-    region_profile_t* const region_profile,
-    fm_index_t* const fm_index,pattern_t* const pattern,bool* const allowed_enc,
-    const uint64_t region_length); // Much more todo
+    region_profile_t* const region_profile,fm_index_t* const fm_index,
+    pattern_t* const pattern,const bool* const allowed_enc,
+    const region_profile_model_t* const profile_model,const uint64_t min_regions);
 GEM_INLINE void region_profile_generate_adaptive(
     region_profile_t* const region_profile,fm_index_t* const fm_index,
     pattern_t* const pattern,const bool* const allowed_enc,

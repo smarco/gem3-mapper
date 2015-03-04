@@ -16,10 +16,9 @@
  */
 typedef enum {
   mapq_model_none,
-  mapq_model_li,
-  mapq_model_heath,
-  mapq_model_sm,
-  mapq_model_pr
+  mapq_model_exp_relative_distance,
+  mapq_model_exp_relative_score,
+  mapq_model_test
 } mapq_model_t;
 typedef struct {
   /* MAPQ Score */

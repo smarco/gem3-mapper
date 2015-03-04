@@ -231,6 +231,11 @@ GEM_INLINE uint64_t integer_upper_power_of_two(uint64_t number);
 GEM_INLINE int integer_to_ascii(char* const buffer,uint64_t number);
 
 /*
+ * Statistical Utils
+ */
+GEM_INLINE double standard_normal_CDF(double x);
+
+/*
  * CheckSum & BitDisplay
  */
 GEM_INLINE uint64_t checksum_uint64(uint64_t* mem,const uint64_t num_words);

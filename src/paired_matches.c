@@ -190,27 +190,21 @@ GEM_INLINE pair_orientation_t paired_matches_get_orientation(
     search_parameters_t* const search_parameters) {
   if (match_trace_end1->strand == Forward) {
     if (match_trace_end2->strand == Forward) {
-      // F/F
       return search_parameters->pair_orientation_FF;
     } else { // match_trace_end2->strand == Reverse
-      if (match_trace_end1->text_position <= match_trace_end2->text_position+match_trace_end2->effective_length) {
-        // F/R
+      if (match_trace_end1->text_position <= match_trace_end2->text_position) {
         return search_parameters->pair_orientation_FR;
       } else {
-        // R/F
         return search_parameters->pair_orientation_RF;
       }
     }
   } else { // match_trace_end1->strand == Reverse
     if (match_trace_end2->strand == Reverse) {
-      // R/R
       return search_parameters->pair_orientation_RR;
     } else { // match_trace_end2->strand == Forward
-      if (match_trace_end2->text_position <= match_trace_end1->text_position+match_trace_end1->effective_length) {
-        // F/R
+      if (match_trace_end2->text_position <= match_trace_end1->text_position) {
         return search_parameters->pair_orientation_FR;
       } else {
-        // R/F
         return search_parameters->pair_orientation_RF;
       }
     }

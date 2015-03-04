@@ -432,9 +432,10 @@ GEM_INLINE uint64_t mapper_PE_reload_buffers(
     buffered_input_file_t* const buffered_fasta_input_end1,
     buffered_input_file_t* const buffered_fasta_input_end2) {
   /// Check end-of-block
+  error_code_t error_code;
   if (buffered_input_file_eob(buffered_fasta_input_end1)) {
     if (!parameters->io.separated_input_files) {
-      error_code_t error_code = buffered_input_file_reload__dump_attached(buffered_fasta_input_end1);
+      error_code = buffered_input_file_reload__dump_attached(buffered_fasta_input_end1);
       if (error_code==INPUT_STATUS_EOF) return INPUT_STATUS_EOF;
     } else {
       // Check in-synch
@@ -442,7 +443,7 @@ GEM_INLINE uint64_t mapper_PE_reload_buffers(
         MAPPER_ERROR_PE_PARSE_UNSYNCH_INPUT_FILES(parameters);
       }
       // Reload end1
-      error_code_t error_code = buffered_input_file_reload__dump_attached(buffered_fasta_input_end1);
+      error_code = buffered_input_file_reload__dump_attached(buffered_fasta_input_end1);
       if (error_code==INPUT_STATUS_EOF) {
         if (!input_file_eof(buffered_fasta_input_end2->input_file)) {
           MAPPER_ERROR_PE_PARSE_UNSYNCH_INPUT_FILES(parameters);
@@ -624,6 +625,11 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
   uint64_t reads_processed = 0;
   while (mapper_PE_read_paired_sequences(mapper_search)) {
     PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
+
+//    if (gem_streq("H.Sapiens.1M.Illumina.l100.low.000001080",mapper_search->archive_search_end1->sequence.tag.buffer)) {
+//      printf("Here\n");
+//    }
+
     // Search into the archive
     archive_search_paired_end(mapper_search->archive_search_end1,
         mapper_search->archive_search_end2,mapper_search->paired_matches);

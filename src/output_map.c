@@ -60,7 +60,7 @@ GEM_INLINE void output_map_print_cigar(
 }
 GEM_INLINE void output_map_print_match(
     buffered_output_file_t* const buffered_output_file,const matches_t* const matches,
-    const uint64_t match_number,const match_trace_t* const match_trace) {
+    const uint64_t match_number,const match_trace_t* const match_trace,const bool print_mapq) {
   // Reserve
   const uint64_t sequence_length = gem_strlen(match_trace->sequence_name);
   buffered_output_file_reserve(buffered_output_file,sequence_length+INT_MAX_LENGTH+7);
@@ -80,24 +80,26 @@ GEM_INLINE void output_map_print_match(
   output_map_print_cigar(buffered_output_file,
       match_trace_get_cigar_array(matches,match_trace),
       match_trace_get_cigar_length(match_trace));
-//  bofprintf_char(buffered_output_file,':'); // FIXME
-//  bofprintf_char(buffered_output_file,':');
-//  bofprintf_char(buffered_output_file,':');
-//  bofprintf_uint64(buffered_output_file,match_trace->mapq_score);
+  if (print_mapq) {
+    bofprintf_char(buffered_output_file,':');
+    bofprintf_char(buffered_output_file,':');
+    bofprintf_char(buffered_output_file,':');
+    bofprintf_uint64(buffered_output_file,match_trace->mapq_score);
+  }
 }
 GEM_INLINE void output_map_print_paired_match(
     buffered_output_file_t* const buffered_output_file,
     const matches_t* const matches_end1,const matches_t* const matches_end2,
     const uint64_t match_number,const paired_match_t* const paired_match) {
-  output_map_print_match(buffered_output_file,matches_end1,match_number,paired_match->match_end1);
+  output_map_print_match(buffered_output_file,matches_end1,match_number,paired_match->match_end1,false);
   buffered_output_file_reserve(buffered_output_file,2);
   bofprintf_char(buffered_output_file,':');
   bofprintf_char(buffered_output_file,':');
-  output_map_print_match(buffered_output_file,matches_end2,UINT64_MAX,paired_match->match_end2);
-//  bofprintf_char(buffered_output_file,':'); // FIXME
-//  bofprintf_char(buffered_output_file,':');
-//  bofprintf_char(buffered_output_file,':');
-//  bofprintf_uint64(buffered_output_file,paired_match->mapq_score);
+  output_map_print_match(buffered_output_file,matches_end2,UINT64_MAX,paired_match->match_end2,false);
+  bofprintf_char(buffered_output_file,':');
+  bofprintf_char(buffered_output_file,':');
+  bofprintf_char(buffered_output_file,':');
+  bofprintf_uint64(buffered_output_file,paired_match->mapq_score);
 }
 /*
  * MAP Alignment pretty
@@ -363,7 +365,7 @@ GEM_INLINE void output_map_single_end_matches(
   MATCHES_CHECK(matches);
   PROF_START_TIMER(GP_OUTPUT_MAP_SE);
   // Sort matches
-  matches_sort_by_distance(matches);
+  matches_sort_by_mapq_score(matches); // FIXME matches_sort_by_distance(matches);
   // Print TAG
   output_map_single_end_print_tag(buffered_output_file,&archive_search->sequence);
   // Print READ & QUALITIES
@@ -376,7 +378,7 @@ GEM_INLINE void output_map_single_end_matches(
     bofprintf_string_literal(buffered_output_file,"\t-\n");
   } else {
     VECTOR_ITERATE(matches->global_matches,match_trace,match_number,match_trace_t) {
-      output_map_print_match(buffered_output_file,matches,match_number,match_trace); // Print match
+      output_map_print_match(buffered_output_file,matches,match_number,match_trace,true); // Print match
     }
     // Next
     buffered_output_file_reserve(buffered_output_file,1);

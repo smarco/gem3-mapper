@@ -39,6 +39,7 @@ GEM_INLINE void filtering_region_exact_extend(
     filtering_region_t* const filtering_region,
     const uint8_t* const key,const uint64_t key_length,
     const uint8_t* const text,const bool* const allowed_enc) {
+  PROF_START(GP_MATCHING_REGIONS_EXTEND);
   // Extend all matching regions
   const uint64_t num_regions_matching = filtering_region->num_regions_matching;
   const uint64_t text_length = filtering_region->effective_end_position - filtering_region->effective_begin_position;
@@ -78,6 +79,7 @@ GEM_INLINE void filtering_region_exact_extend(
     region_matching->text_end = right_text;
   }
   filtering_region->coverage += inc_coverage;
+  PROF_STOP(GP_MATCHING_REGIONS_EXTEND);
 }
 GEM_INLINE void filtering_region_chain_matching_regions(
     filtering_region_t* const filtering_region,
@@ -95,10 +97,10 @@ GEM_INLINE void filtering_region_chain_matching_regions(
     region_matching_t* const region_matching = filtering_region->regions_matching + i;
     if (last_region_matching!=NULL) {
       if (last_region_matching->text_end > region_matching->text_begin) {
-        overlapping_text = true; break; // TODO Can be fixed
+        overlapping_text = true; break; // Might be an deletion in the reference
       }
       if (last_region_matching->key_end > region_matching->key_begin) {
-        unsorted_read = true; break;
+        unsorted_read = true; break;  // Might be a deletion in the read
       }
       const int64_t text_gap = region_matching->text_begin - last_region_matching->text_end;
       const int64_t key_gap = region_matching->key_begin - last_region_matching->key_end;
@@ -111,19 +113,59 @@ GEM_INLINE void filtering_region_chain_matching_regions(
     last_region_matching = region_matching;
   }
   if (overlapping_text || unsorted_read || max_diff) {
-//    if (overlapping_text) fprintf(stderr,"> Overlapping-matches\n");
-//    if (unsorted_read) fprintf(stderr,"> Unsorted-regions\n");
-//    filtering_region_print_matching_regions(stderr,candidate_region,0);
     filtering_region->num_regions_matching = 0; // Disable region chaining
+    filtering_region->coverage = 0;
   } else {
-    PROF_INC_COUNTER(GP_ACCEPTED_REGIONS_CHAINED);
-    // Extend matching-regions
     filtering_region->coverage = coverage;
-    PROF_ADD_COUNTER(GP_ACCEPTED_REGIONS_COVERAGE,(100*filtering_region->coverage)/key_length);
-    if (coverage < key_length) {
-      filtering_region_exact_extend(filtering_region,key,key_length,text,allowed_enc);
+  }
+}
+GEM_INLINE void filtering_region_find_scaffolding(
+    filtering_region_t* const filtering_region,const search_actual_parameters_t* const search_actual_parameters,
+    const pattern_t* const pattern,uint8_t* const text,matches_t* const matches,mm_stack_t* const mm_stack) {
+  // DEBUG
+  gem_cond_debug_block(DEBUG_MATCHING_REGIONS) {
+    gem_slog("[GEM]>Matching.Regions\n"); filtering_region_print_matching_regions(stderr,filtering_region);
+  }
+  // Check number of matching regions (Try to extend matching regions)
+  search_parameters_t* const search_parameters = search_actual_parameters->search_parameters;
+  const uint64_t max_error = pattern->max_effective_filtering_error;
+  const uint8_t* const key = pattern->key;
+  if (filtering_region->num_regions_matching > 0) {
+    const uint64_t key_length = pattern->key_length;
+    const bool* const allowed_enc = search_parameters->allowed_enc;
+    // Find a compatible chain of matching-regions
+    PROF_START(GP_MATCHING_REGIONS_CHAIN);
+    filtering_region_chain_matching_regions(filtering_region,key,key_length,text,allowed_enc,max_error,mm_stack);
+    PROF_STOP(GP_MATCHING_REGIONS_CHAIN);
+    // Extend matching-regions as to maximize coverge
+    if (filtering_region->num_regions_matching > 0) {
+      PROF_INC_COUNTER(GP_MATCHING_REGIONS_CHAIN_SUCCESS);
+      PROF_ADD_COUNTER(GP_MATCHING_REGIONS_CHAIN_COVERAGE,(100*filtering_region->coverage)/key_length);
+      if (filtering_region->coverage < key_length) {
+        filtering_region_exact_extend(filtering_region,key,key_length,text,allowed_enc);
+      }
+      PROF_ADD_COUNTER(GP_MATCHING_REGIONS_EXTEND_COVERAGE,(100*filtering_region->coverage)/key_length);
     }
-    PROF_ADD_COUNTER(GP_ACCEPTED_REGIONS_EXT_COVERAGE,(100*filtering_region->coverage)/key_length);
+    // DEBUG
+    gem_cond_debug_block(DEBUG_MATCHING_REGIONS) {
+      gem_slog("[GEM]>Matching.Extended.Regions\n"); filtering_region_print_matching_regions(stderr,filtering_region);
+    }
+  }
+  // Create a new scaffold
+  const uint64_t min_coverage = search_actual_parameters->region_scaffolding_coverage_threshold_nominal;
+  if (filtering_region->coverage < min_coverage) {
+    const uint64_t min_matching_length = search_actual_parameters->region_scaffolding_min_length_nominal;
+    PROF_INC_COUNTER(GP_MATCHING_REGIONS_SCAFFOLDED);
+    PROF_START(GP_MATCHING_REGIONS_SCAFFOLD);
+    bpm_scafold_match(key,&pattern->bpm_pattern,text,filtering_region->align_match_begin_column,
+        filtering_region->align_match_end_column+1,max_error,min_matching_length,&filtering_region->regions_matching,
+        &filtering_region->num_regions_matching,&filtering_region->coverage,matches->cigar_buffer,mm_stack);
+    PROF_STOP(GP_MATCHING_REGIONS_SCAFFOLD);
+    // DEBUG
+    gem_cond_debug_block(DEBUG_MATCHING_REGIONS) {
+      gem_slog("[GEM]>Matching.Scaffolded.Regions\n"); filtering_region_print_matching_regions(stderr,filtering_region);
+    }
+    PROF_ADD_COUNTER(GP_MATCHING_REGIONS_SCAFFOLD_COVERAGE,(100*filtering_region->coverage)/pattern->key_length);
   }
 }
 /*
@@ -131,11 +173,12 @@ GEM_INLINE void filtering_region_chain_matching_regions(
  */
 GEM_INLINE bool filtering_region_align(
     filtering_region_t* const filtering_region,const text_collection_t* const candidates_collection,
-    search_parameters_t* const search_parameters,const strand_t search_strand,
+    const search_actual_parameters_t* const search_actual_parameters,const strand_t search_strand,
     const pattern_t* const pattern,matches_t* const matches,match_trace_t* const match_trace,
     mm_stack_t* const mm_stack) {
   PROF_INC_COUNTER(GP_ACCEPTED_REGIONS);
   // Parameters
+  search_parameters_t* const search_parameters = search_actual_parameters->search_parameters;
   const alignment_model_t alignment_model = search_parameters->alignment_model;
   const uint8_t* const key = pattern->key;
   const uint64_t key_length = pattern->key_length;
@@ -144,6 +187,7 @@ GEM_INLINE bool filtering_region_align(
   // Select Model
   if (filtering_region->align_distance==0 || alignment_model==alignment_model_none) {
     // Add exact match
+    PROF_INC_COUNTER(GP_ACCEPTED_EXACT);
     matches_align_exact(matches,match_trace,search_strand,
         swg_penalties,key_length,filtering_region->text_trace_offset,
         filtering_region->begin_position,filtering_region->align_match_begin_column,
@@ -151,6 +195,7 @@ GEM_INLINE bool filtering_region_align(
     filtering_region->status = filtering_region_aligned; // Set status
     return true; // OK
   } else {
+    PROF_INC_COUNTER(GP_ACCEPTED_INEXACT);
     // Candidate
     const text_trace_t* const text_trace = filtering_region_get_text_trace(filtering_region,candidates_collection);
     uint8_t* const text = text_trace->text;
@@ -179,27 +224,20 @@ GEM_INLINE bool filtering_region_align(
         break;
       }
       case alignment_model_gap_affine: {
-        const uint64_t max_error = pattern->max_effective_filtering_error;
-        const uint64_t max_bandwidth = pattern->max_effective_bandwidth;
-        // Check matching-regions arrangement & find a region-chain
-        gem_cond_debug_block(DEBUG_MATCHING_REGIONS) {
-          gem_slog("[GEM]>Matching.Regions\n");
-          filtering_region_print_matching_regions(stderr,filtering_region->regions_matching,
-              filtering_region->num_regions_matching,0,100,0);
-        }
-        filtering_region_chain_matching_regions(filtering_region,key,key_length,text,allowed_enc,max_error,mm_stack);
-        gem_cond_debug_block(DEBUG_MATCHING_REGIONS) {
-          gem_slog("[GEM]>Matching.Extended.Regions\n");
-          filtering_region_print_matching_regions(stderr,filtering_region->regions_matching,
-              filtering_region->num_regions_matching,0,100,1);
-        }
         // Adjust alignment boundaries (to allow optimization)
         const uint64_t text_length = filtering_region->effective_end_position-filtering_region->begin_position;
+        const uint64_t max_bandwidth = pattern->max_effective_bandwidth;
         const uint64_t match_effective_range = key_length + 2*filtering_region->align_distance + max_bandwidth;
         filtering_region->align_match_begin_column =
             BOUNDED_SUBTRACTION(filtering_region->align_match_end_column,match_effective_range,0);
         filtering_region->align_match_end_column =
             BOUNDED_ADDITION(filtering_region->align_match_end_column,max_bandwidth,text_length-1);
+        PROF_ADD_COUNTER(GP_ACCEPTED_REGIONS_LENGTH,
+            filtering_region->align_match_end_column-filtering_region->align_match_begin_column);
+        // Check matching-regions arrangement & find a region-chain
+        if (search_parameters->allow_region_chaining) {
+          filtering_region_find_scaffolding(filtering_region,search_actual_parameters,pattern,text,matches,mm_stack);
+        }
         // Add Smith-Waterman-Gotoh match (affine-gap)
         matches_align_smith_waterman_gotoh(matches,match_trace,search_strand,allowed_enc,
             &pattern->swg_query_profile,swg_penalties,key,key_length,filtering_region->text_trace_offset,
@@ -318,7 +356,7 @@ GEM_INLINE bool filtering_region_verify(
       // const uint64_t test_positive = kmer_counting_filter(&pattern->kmer_counting,text,eff_text_length,max_filtering_error);
       // PROF_STOP(GP_FC_KMER_COUNTER_FILTER);
       // 3. Myers's BPM algorithm
-      bpm_bound_distance_tiled(
+      bpm_get_distance_cutoff_tiled(
           (bpm_pattern_t* const)&pattern->bpm_pattern,text,eff_text_length,&filtering_region->align_distance,
           &filtering_region->align_match_end_column,max_filtering_error);
       if (filtering_region->align_distance != ALIGN_DISTANCE_INF) {
@@ -355,7 +393,7 @@ GEM_INLINE uint64_t filtering_region_verify_extension(
   // 2. Generalized Counting filter
   // TODO
   // 3. Myers's BPM algorithm
-  const uint64_t num_matches_found = bpm_get_distance__cutoff_all(
+  const uint64_t num_matches_found = bpm_search_all(
       (bpm_pattern_t* const)&pattern->bpm_pattern,filtering_regions,
       text_trace_offset,index_position,text,text_length,max_filtering_error);
   // 4. Local match
@@ -366,15 +404,13 @@ GEM_INLINE uint64_t filtering_region_verify_extension(
 /*
  * Display
  */
-GEM_INLINE void filtering_region_print_matching_regions(
-    FILE* const stream,region_matching_t* const regions_matching,const uint64_t num_regions_matching,
-    const uint64_t begin_position,const uint64_t end_position,const uint64_t filtering_region_idx) {
-  fprintf(stream,"    #%lu -> [%lu,+%lu) \n",filtering_region_idx,begin_position,end_position-begin_position);
+GEM_INLINE void filtering_region_print_matching_regions(FILE* const stream,filtering_region_t* const filtering_region) {
+  const uint64_t num_regions_matching = filtering_region->num_regions_matching;
   uint64_t j;
   for (j=0;j<num_regions_matching;++j) {
-    region_matching_t* const region_matching = regions_matching + j;
-    fprintf(stream,"      %lu.%lu) -> [%lu,%lu) ~> [+%lu,+%lu) \n",
-        filtering_region_idx,j,region_matching->key_begin,region_matching->key_end,
+    region_matching_t* const region_matching = filtering_region->regions_matching + j;
+    fprintf(stream,"      %lu) -> [%lu,%lu) ~> [+%lu,+%lu) \n",
+        j,region_matching->key_begin,region_matching->key_end,
         region_matching->text_begin,region_matching->text_end);
   }
 }

@@ -44,18 +44,19 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
   search_parameters->quality_threshold = 26;
   // Mismatch/Indels Parameters
   search_parameters->max_search_error = 0.04;
-  search_parameters->max_filtering_error = 0.08;
+  search_parameters->max_filtering_error = 0.20;
   search_parameters->max_filtering_strata_after_best = 0.04;
   search_parameters->max_bandwidth = 0.20;
   search_parameters->complete_strata_after_best = 0.0;
-  search_parameters->min_matching_length = 0.20;
   // Matches search
   search_parameters->max_search_matches = ALL;
   // Replacements
   approximate_search_initialize_replacements(search_parameters);
   // Regions handling
-  search_parameters->candidate_chunk_max_length = UINT64_MAX;
   search_parameters->allow_region_chaining = true;
+  search_parameters->min_matching_length = 0.20;
+  search_parameters->region_scaffolding_min_length = 10;
+  search_parameters->region_scaffolding_coverage_threshold = 0.80;
   // Alignment Model/Score
   search_parameters->alignment_model = alignment_model_gap_affine;
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_A] = +1;
@@ -98,14 +99,11 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
   search_parameters->max_matches_per_extension = 2;
   search_parameters->min_unique_pair_samples = 1000;
   /* Template allowed length */
-  search_parameters->min_template_length = 0;
-  search_parameters->max_template_length = 2000; // FIXME Autodetect
+  search_parameters->min_template_length = 0;    // Automatically adjusted in runtime
+  search_parameters->max_template_length = 2000; // Automatically adjusted in runtime
   /* Concordant Orientation */
-  search_parameters->pair_orientation_FR = pair_orientation_concordant;
-//  search_parameters->pair_orientation_RF = pair_orientation_discordant;
-//  search_parameters->pair_orientation_FF = pair_orientation_discordant;
-//  search_parameters->pair_orientation_RR = pair_orientation_discordant;
   search_parameters->pair_discordant_search = pair_discordant_search_never;
+  search_parameters->pair_orientation_FR = pair_orientation_concordant;
   search_parameters->pair_orientation_RF = pair_orientation_invalid;
   search_parameters->pair_orientation_FF = pair_orientation_invalid;
   search_parameters->pair_orientation_RR = pair_orientation_invalid;
@@ -153,13 +151,12 @@ GEM_INLINE void approximate_search_configure_quality_model(
 GEM_INLINE void approximate_search_configure_error_model(
     search_parameters_t* const search_parameters,float max_search_error,
     float max_filtering_error,float max_filtering_strata_after_best,
-    float max_bandwidth,float complete_strata_after_best,float min_matching_length) {
+    float max_bandwidth,float complete_strata_after_best) {
   search_parameters->max_search_error = max_search_error;
   search_parameters->max_filtering_error = max_filtering_error;
   search_parameters->max_filtering_strata_after_best = max_filtering_strata_after_best;
   search_parameters->max_bandwidth = max_bandwidth;
   search_parameters->complete_strata_after_best = complete_strata_after_best;
-  search_parameters->min_matching_length = min_matching_length;
 }
 GEM_INLINE void approximate_search_configure_matches(
     search_parameters_t* const search_parameters,const uint64_t max_search_matches) {
@@ -186,10 +183,12 @@ GEM_INLINE void approximate_search_configure_replacements(
 }
 GEM_INLINE void approximate_search_configure_region_handling(
     search_parameters_t* const search_parameters,
-    const uint64_t candidate_chunk_max_length,const bool allow_region_chaining) {
-  // Regions treatment
-  search_parameters->candidate_chunk_max_length = candidate_chunk_max_length;
+    const float min_matching_length,const bool allow_region_chaining,
+    const float region_scaffolding_min_length,const float region_scaffolding_coverage_threshold) {
   search_parameters->allow_region_chaining = allow_region_chaining;
+  search_parameters->min_matching_length = min_matching_length;
+  search_parameters->region_scaffolding_min_length = region_scaffolding_min_length;
+  search_parameters->region_scaffolding_coverage_threshold = region_scaffolding_coverage_threshold;
 }
 GEM_INLINE void approximate_search_configure_alignment_model(
     search_parameters_t* const search_parameters,const alignment_model_t alignment_model) {
@@ -248,4 +247,6 @@ GEM_INLINE void approximate_search_instantiate_values(
   search_actual_parameters->max_bandwidth_nominal = integer_proportion(search_parameters->max_bandwidth,pattern_length);
   search_actual_parameters->complete_strata_after_best_nominal = integer_proportion(search_parameters->complete_strata_after_best,pattern_length);
   search_actual_parameters->min_matching_length_nominal = integer_proportion(search_parameters->min_matching_length,pattern_length);
+  search_actual_parameters->region_scaffolding_min_length_nominal = integer_proportion(search_parameters->region_scaffolding_min_length,pattern_length);
+  search_actual_parameters->region_scaffolding_coverage_threshold_nominal = integer_proportion(search_parameters->region_scaffolding_coverage_threshold,pattern_length);
 }

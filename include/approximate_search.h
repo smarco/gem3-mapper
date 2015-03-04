@@ -42,10 +42,6 @@ typedef enum {
   asearch_probe_candidates      // Probe candidates (try to lower max-differences) // TODO
 } approximate_search_state_t;
 typedef enum {
-  region_profile_fixed,
-  region_profile_adaptive
-} region_profile_type;
-typedef enum {
   region_filter_fixed,
   region_filter_adaptive_static,
   region_filter_adaptive_dynamic

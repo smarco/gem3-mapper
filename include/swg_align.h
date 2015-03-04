@@ -10,6 +10,7 @@
 #define SWG_ALIGN_H_
 
 #include "essentials.h"
+#include "matches.h"
 
 /*
  * SWG Query Profile
@@ -69,6 +70,15 @@ GEM_INLINE bool swg_compile_query_profile_uint8(
 GEM_INLINE bool swg_compile_query_profile_int16(
     swg_query_profile_t* const swg_query_profile,const swg_penalties_t* swg_penalties,
     const uint8_t* const key,const uint64_t key_length,mm_stack_t* const mm_stack);
+
+/*
+ * SWG Score
+ */
+GEM_INLINE int32_t swg_score_deletion(const swg_penalties_t* const swg_penalties,const int32_t length);
+GEM_INLINE int32_t swg_score_insertion(const swg_penalties_t* const swg_penalties,const int32_t length);
+GEM_INLINE int32_t swg_score_mismatch(const swg_penalties_t* const swg_penalties);
+GEM_INLINE int32_t swg_score_match(const swg_penalties_t* const swg_penalties,const int32_t match_length);
+GEM_INLINE int32_t swg_score(const swg_penalties_t* const swg_penalties,cigar_element_t* const cigar_element);
 
 /*
  * Smith-waterman-gotoh Alignment

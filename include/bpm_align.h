@@ -11,6 +11,7 @@
 
 #include "essentials.h"
 #include "../resources/myers_gpu/myers-interface.h"
+#include "matches.h"
 
 /*
  * Constants
@@ -66,35 +67,44 @@ GEM_INLINE void bpm_pattern_compile(
     const uint64_t pattern_length,const uint64_t max_error,mm_stack_t* const mm_stack);
 
 /*
- * BPM (BitParalellMyers, Bit-compressed Alignment)
- *   Myers' Fast Bit-Vector algorithm (Levenshtein)
+ * BPM-distance (BitParalellMyers, Bit-compressed Alignment)
+ *   Myers' Fast Bit-Vector algorithm to compute levenshtein distance
  */
-GEM_INLINE bool bpm_get_distance(
-    bpm_pattern_t* const bpm_pattern,const uint8_t* const sequence,const uint64_t sequence_length,
+// Raw
+GEM_INLINE bool bpm_get_distance_raw(
+    bpm_pattern_t* const bpm_pattern,const uint8_t* const text,const uint64_t text_length,
     uint64_t* const position,uint64_t* const distance);
-GEM_INLINE bool bpm_get_distance__cutoff(
+// Cut-off
+GEM_INLINE bool bpm_get_distance_cutoff(
     const bpm_pattern_t* const bpm_pattern,
-    const uint8_t* const sequence,const uint64_t sequence_length,
+    const uint8_t* const text,const uint64_t text_length,
     uint64_t* const match_end_column,uint64_t* const distance,
     const uint64_t max_distance,const bool quick_abandon);
-GEM_INLINE void bpm_align_match(
-    const uint8_t* const key,const bpm_pattern_t* const bpm_pattern,
-    uint64_t* const match_position,uint8_t* const sequence,
-    const uint64_t sequence_length,const uint64_t max_distance,
-    vector_t* const cigar_vector,uint64_t* const cigar_vector_offset,uint64_t* const cigar_length,
-    uint64_t* const distance,int64_t* const effective_length,mm_stack_t* const mm_stack);
-
+// BPM Tiled (bound)
+GEM_INLINE void bpm_get_distance_cutoff_tiled(
+    bpm_pattern_t* const bpm_pattern,const uint8_t* const text,const uint64_t text_length,
+    uint64_t* const levenshtein_distance,uint64_t* const levenshtein_match_end_column,
+    const uint64_t max_error);
 // Find all local minimums
-GEM_INLINE uint64_t bpm_get_distance__cutoff_all(
+GEM_INLINE uint64_t bpm_search_all(
     const bpm_pattern_t* const bpm_pattern,vector_t* const filtering_regions,
     const uint64_t text_trace_offset,const uint64_t index_position,
-    const uint8_t* const sequence,const uint64_t sequence_length,const uint64_t max_distance);
+    const uint8_t* const text,const uint64_t text_length,const uint64_t max_distance);
 
 /*
- * BPM Tiled (bound)
+ * BPM-alignment (BitParalellMyers, Bit-compressed Alignment)
+ *   Myers' Fast Bit-Vector algorithm to compute levenshtein alignment (CIGAR)
  */
-GEM_INLINE void bpm_bound_distance_tiled(
-    bpm_pattern_t* const bpm_pattern,const uint8_t* const sequence,const uint64_t sequence_length,
-    uint64_t* const levenshtein_distance,uint64_t* const levenshtein_match_end_column,const uint64_t max_error);
+GEM_INLINE void bpm_align_match(
+    const uint8_t* const key,const bpm_pattern_t* const bpm_pattern,
+    uint64_t* const match_position,uint8_t* const text,const uint64_t text_length,
+    const uint64_t max_distance,vector_t* const cigar_vector,uint64_t* const cigar_vector_offset,
+    uint64_t* const cigar_length,uint64_t* const distance,int64_t* const effective_length,mm_stack_t* const mm_stack);
+GEM_INLINE void bpm_scafold_match(
+    const uint8_t* const key,const bpm_pattern_t* const bpm_pattern,
+    uint8_t* const text,const uint64_t text_begin_offset,const uint64_t text_end_offset,
+    const uint64_t max_distance,const uint64_t min_matching_length,
+    region_matching_t** const regions_matching,uint64_t* const num_regions_matching,
+    uint64_t* const coverage,vector_t* const cigar_vector,mm_stack_t* const mm_stack);
 
 #endif /* BPM_ALIGN_H_ */

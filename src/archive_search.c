@@ -7,6 +7,7 @@
 
 #include "archive_search.h"
 #include "archive_select.h"
+#include "archive_score.h"
 
 /*
  * Archive Search Setup
@@ -119,7 +120,7 @@ GEM_INLINE uint64_t archive_search_get_search_canditates(const archive_search_t*
   }
 }
 /*
- * Archive Search (Step-wise Search building-blocks)
+ * SingleEnd Indexed Search (Step-wise)
  */
 GEM_INLINE void archive_search_continue(
     archive_search_t* const archive_search,const bool verify_candidates,matches_t* const matches) {
@@ -136,7 +137,7 @@ GEM_INLINE void archive_search_continue(
     approximate_search(reverse_asearch,matches);
   }
 }
-GEM_INLINE void archive_search_generate_candidates(archive_search_t* const archive_search,matches_t* const matches) {
+GEM_INLINE void archive_search_generate_candidates(archive_search_t* const archive_search) {
   ARCHIVE_SEARCH_CHECK(archive_search);
   PROF_START(GP_ARCHIVE_SEARCH_GENERATE_CANDIDATES);
   archive_search_continue(archive_search,false,NULL); // Run the search (stop before filtering)
@@ -237,16 +238,13 @@ GEM_INLINE void archive_search_single_end(archive_search_t* const archive_search
   archive_select_matches(archive_search,matches);
   // Check matches
   select_parameters_t* const select_parameters = archive_search->select_parameters;
-  if (select_parameters->check_correct || select_parameters->check_optimum) {
+  if (select_parameters->check_correct || select_parameters->check_optimum || select_parameters->check_complete) {
     search_parameters_t* const search_parameters = archive_search->search_actual_parameters.search_parameters;
-    archive_check_matches_correct(
+    archive_check_matches(
         archive_search->archive,search_parameters->alignment_model,
         &search_parameters->swg_penalties,&archive_search->sequence,
-        matches,select_parameters->check_optimum,archive_search->mm_stack);
-  }
-  if (select_parameters->check_complete) {
-    archive_check_matches_completness( // TODO
-        archive_search->archive,&archive_search->sequence,matches,archive_search->mm_stack);
+        matches,select_parameters->check_optimum,select_parameters->check_complete,
+        archive_search->mm_stack);
   }
   PROF_STOP(GP_ARCHIVE_SEARCH_SE);
 }
@@ -319,62 +317,59 @@ GEM_INLINE void archive_search_paired_end_extend_candidates(
 GEM_INLINE void archive_search_paired_end_discard_filtering_regions(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2) {
   PROF_START(GP_ARCHIVE_SEARCH_PE_DISCARD_FILTERING_REGIONS);
-  // Check the index type
-  if (!archive_search_end1->archive->indexed_complement) { // TODO For RC-indexes
-    // Reduce the number of search candidates (paired selection of regions)
-    approximate_search_t* const forward_search_end1 = &archive_search_end1->forward_search_state;
-    approximate_search_t* const reverse_search_end1 = &archive_search_end1->reverse_search_state;
-    approximate_search_t* const forward_search_end2 = &archive_search_end2->forward_search_state;
-    approximate_search_t* const reverse_search_end2 = &archive_search_end2->reverse_search_state;
-    if (forward_search_end1->search_state == asearch_verify_candidates &&
-        reverse_search_end1->search_state == asearch_verify_candidates &&
-        forward_search_end2->search_state == asearch_verify_candidates &&
-        reverse_search_end2->search_state == asearch_verify_candidates) {
-      // Initialize (Invalidates all candidate-regions as lacking mate)
-      filtering_candidates_set_all_regions_pending(&forward_search_end1->filtering_candidates);
+  // Filtering candidates
+  archive_t* const archive = archive_search_end1->archive;
+  approximate_search_t* forward_search_end1 = &archive_search_end1->forward_search_state;
+  approximate_search_t* forward_search_end2 = &archive_search_end2->forward_search_state;
+  approximate_search_t* reverse_search_end1;
+  approximate_search_t* reverse_search_end2;
+  const bool indexed_complement = archive_search_end1->archive->indexed_complement;
+  bool verify_candidates_both_ends;
+  if (indexed_complement) {
+    reverse_search_end1 = &archive_search_end1->forward_search_state;
+    reverse_search_end2 = &archive_search_end2->forward_search_state;
+    verify_candidates_both_ends =
+        (forward_search_end1->search_state == asearch_verify_candidates &&
+         forward_search_end2->search_state == asearch_verify_candidates);
+  } else {
+    reverse_search_end1 = &archive_search_end1->reverse_search_state;
+    reverse_search_end2 = &archive_search_end2->reverse_search_state;
+    verify_candidates_both_ends =
+        (forward_search_end1->search_state == asearch_verify_candidates &&
+         reverse_search_end1->search_state == asearch_verify_candidates &&
+         forward_search_end2->search_state == asearch_verify_candidates &&
+         reverse_search_end2->search_state == asearch_verify_candidates);
+  }
+  // Reduce the number of search candidates (paired selection of regions)
+  if (verify_candidates_both_ends) {
+    // Initialize (Invalidates all candidate-regions as lacking mate)
+    filtering_candidates_set_all_regions_pending(&forward_search_end1->filtering_candidates);
+    filtering_candidates_set_all_regions_pending(&forward_search_end2->filtering_candidates);
+    if (!indexed_complement) {
       filtering_candidates_set_all_regions_pending(&reverse_search_end1->filtering_candidates);
-      filtering_candidates_set_all_regions_pending(&forward_search_end2->filtering_candidates);
       filtering_candidates_set_all_regions_pending(&reverse_search_end2->filtering_candidates);
-      // Search for compatible pairs (Validates candidate-regions)
-      const search_parameters_t* const parameters = archive_search_end1->search_actual_parameters.search_parameters;
-      if (parameters->pair_orientation_FR != pair_orientation_invalid) {
-        filtering_candidates_paired_regions_filtering(
-            &forward_search_end1->filtering_candidates,&reverse_search_end2->filtering_candidates,
-            parameters->min_template_length,parameters->max_template_length,false);
-      }
-      if (parameters->pair_orientation_RF != pair_orientation_invalid) {
-        filtering_candidates_paired_regions_filtering(
-            &reverse_search_end1->filtering_candidates,&forward_search_end2->filtering_candidates,
-            parameters->min_template_length,parameters->max_template_length,false);
-      }
-      if (parameters->pair_orientation_FF != pair_orientation_invalid) {
-        filtering_candidates_paired_regions_filtering(
-            &forward_search_end1->filtering_candidates,&forward_search_end2->filtering_candidates,
-            parameters->min_template_length,parameters->max_template_length,true);
-      }
-      if (parameters->pair_orientation_RR != pair_orientation_invalid) {
-        filtering_candidates_paired_regions_filtering(
-            &reverse_search_end1->filtering_candidates,&reverse_search_end2->filtering_candidates,
-            parameters->min_template_length,parameters->max_template_length,true);
-      }
-      // Profile (Count the number of discarded filtering regions)
-      PROF_BLOCK() {
-        uint64_t num_regions = 0, num_regions_discarded = 0;
-        num_regions_discarded += filtering_candidates_count_candidate_regions(
-            &forward_search_end1->filtering_candidates,filtering_region_pending);
-        num_regions_discarded += filtering_candidates_count_candidate_regions(
-            &reverse_search_end1->filtering_candidates,filtering_region_pending);
-        num_regions_discarded += filtering_candidates_count_candidate_regions(
-            &forward_search_end2->filtering_candidates,filtering_region_pending);
-        num_regions_discarded += filtering_candidates_count_candidate_regions(
-            &reverse_search_end2->filtering_candidates,filtering_region_pending);
-        num_regions += filtering_candidates_get_num_candidate_regions(&forward_search_end1->filtering_candidates);
-        num_regions += filtering_candidates_get_num_candidate_regions(&reverse_search_end1->filtering_candidates);
-        num_regions += filtering_candidates_get_num_candidate_regions(&forward_search_end2->filtering_candidates);
-        num_regions += filtering_candidates_get_num_candidate_regions(&reverse_search_end2->filtering_candidates);
-        PROF_ADD_COUNTER(GP_ARCHIVE_SEARCH_PE_DISCARD_FILTERING_REGIONS_NOT_CONCORDANT,num_regions_discarded);
-        PROF_ADD_COUNTER(GP_ARCHIVE_SEARCH_PE_DISCARD_FILTERING_REGIONS_TOTAL,num_regions);
-      }
+    }
+    // Search for compatible pairs (Validates candidate-regions)
+    search_parameters_t* const search_parameters = archive_search_end1->search_actual_parameters.search_parameters;
+    filtering_candidates_paired_regions_filtering(&forward_search_end1->filtering_candidates,
+        &reverse_search_end2->filtering_candidates,archive,search_parameters);
+    // Profile (Count the number of discarded filtering regions)
+    PROF_BLOCK() {
+      uint64_t num_regions = 0, num_regions_discarded = 0;
+      num_regions_discarded += filtering_candidates_count_candidate_regions(
+          &forward_search_end1->filtering_candidates,filtering_region_pending);
+      num_regions_discarded += filtering_candidates_count_candidate_regions(
+          &reverse_search_end1->filtering_candidates,filtering_region_pending);
+      num_regions_discarded += filtering_candidates_count_candidate_regions(
+          &forward_search_end2->filtering_candidates,filtering_region_pending);
+      num_regions_discarded += filtering_candidates_count_candidate_regions(
+          &reverse_search_end2->filtering_candidates,filtering_region_pending);
+      num_regions += filtering_candidates_get_num_candidate_regions(&forward_search_end1->filtering_candidates);
+      num_regions += filtering_candidates_get_num_candidate_regions(&reverse_search_end1->filtering_candidates);
+      num_regions += filtering_candidates_get_num_candidate_regions(&forward_search_end2->filtering_candidates);
+      num_regions += filtering_candidates_get_num_candidate_regions(&reverse_search_end2->filtering_candidates);
+      PROF_ADD_COUNTER(GP_ARCHIVE_SEARCH_PE_DISCARD_FILTERING_REGIONS_NOT_CONCORDANT,num_regions_discarded);
+      PROF_ADD_COUNTER(GP_ARCHIVE_SEARCH_PE_DISCARD_FILTERING_REGIONS_TOTAL,num_regions);
     }
   }
   PROF_STOP(GP_ARCHIVE_SEARCH_PE_DISCARD_FILTERING_REGIONS);
@@ -384,6 +379,17 @@ GEM_INLINE bool archive_search_paired_end_fulfilled(
     archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches) {
   return vector_get_used(paired_matches->concordant_matches) > 0;
+}
+GEM_INLINE bool archive_search_paired_end_use_paired_filtering(
+    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
+    const paired_matches_t* const paired_matches) {
+  return false; // TODO
+//  search_parameters_t* const search_parameters = archive_search_end1->search_actual_parameters.search_parameters;
+//  // Check mapping parameters
+//  if (search_parameters->paired_mapping_mode == paired_mapping_map_both_ends) return false;
+//  // Check the number of samples to derive the expected insert size
+//  const uint64_t num_samples = COUNTER_GET_NUM_SAMPLES(&paired_matches->unique_template_size);
+//  return (num_samples < search_parameters->min_unique_pair_samples);
 }
 GEM_INLINE bool archive_search_paired_end_use_extension(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
@@ -409,10 +415,55 @@ GEM_INLINE bool archive_search_paired_end_use_extension(
 /*
  * PairedEnd Indexed Search (PE Online Approximate String Search)
  */
-GEM_INLINE void archive_search_paired_end_continue(
+GEM_INLINE void archive_search_pe_generate_candidates(
+    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
+    const paired_matches_t* const paired_matches) {
+  PROF_START(GP_ARCHIVE_SEARCH_PE);
+  // Init
+  archive_search_end1->pe_search_state = archive_search_pe_begin;
+  archive_search_end2->pe_search_state = archive_search_pe_begin;
+  // Beginning of the search (Init)
+  archive_search_reset(archive_search_end1,sequence_get_length(&archive_search_end1->sequence));
+  archive_search_reset(archive_search_end2,sequence_get_length(&archive_search_end2->sequence));
+  // Select PE-mapping-mode
+  search_parameters_t* const search_parameters = archive_search_end1->search_actual_parameters.search_parameters;
+  if (search_parameters->paired_mapping_mode == paired_mapping_map_both_ends ||
+      search_parameters->paired_mapping_mode == paired_mapping_paired_filtering) {
+    // Generate candidates (End/1 & End/2)
+    archive_search_generate_candidates(archive_search_end1);
+    archive_search_generate_candidates(archive_search_end2);
+    archive_search_end1->pe_search_state = archive_search_pe_verify_both_ends;
+  } else { // search_parameters->paired_mapping_mode == paired_mapping_map_extension
+    archive_search_generate_candidates(archive_search_end1);
+    const bool try_extending_end1 = archive_search_paired_end_use_extension(
+        archive_search_end1,archive_search_end2,paired_end2,paired_matches);
+    if (try_extending_end1) {
+      PROF_INC_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_END1);
+      // TODO
+
+      archive_search_end1->pe_search_state = archive_search_pe_search_end1;
+    } else {
+      archive_search_generate_candidates(archive_search_end2);
+      archive_search_end1->pe_search_state = archive_search_pe_verify_both_ends;
+    }
+  }
+  PROF_STOP(GP_ARCHIVE_SEARCH_PE);
+}
+GEM_INLINE void archive_search_pe_finish_search(
+    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
+    paired_matches_t* const paired_matches) {
+
+}
+/*
+ * PE Online Approximate String Search
+ */
+GEM_INLINE void archive_search_paired_end(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches) {
   PROF_START(GP_ARCHIVE_SEARCH_PE);
+  // Init
+  archive_search_end1->pe_search_state = archive_search_pe_begin;
+  archive_search_end2->pe_search_state = archive_search_pe_begin;
   // Matches
   matches_t* const matches_end1 = (paired_matches!=NULL) ? paired_matches->matches_end1 : NULL;
   matches_t* const matches_end2 = (paired_matches!=NULL) ? paired_matches->matches_end2 : NULL;
@@ -426,7 +477,7 @@ GEM_INLINE void archive_search_paired_end_continue(
     // No break
     case archive_search_pe_search_end1:
       // Generate candidates (End/1)
-      archive_search_generate_candidates(archive_search_end1,matches_end1);
+      archive_search_generate_candidates(archive_search_end1);
       // Try extension (End/1)
       try_extending_end1 = archive_search_paired_end_use_extension(
           archive_search_end1,archive_search_end2,paired_end2,paired_matches);
@@ -442,10 +493,7 @@ GEM_INLINE void archive_search_paired_end_continue(
     // No break
     case archive_search_pe_search_end2:
       // Generate candidates (End/2)
-      archive_search_generate_candidates(archive_search_end2,matches_end2);
-      // Verify candidates. Combined filtering
-      //   // TODO Activate => archive_search_paired_end_discard_filtering_regions
-      //   // TODO Finish search considering all candidates, even the discarded ones
+      archive_search_generate_candidates(archive_search_end2);
       // Try extension (End/2)
       try_extending_end2 = archive_search_paired_end_use_extension(
           archive_search_end1,archive_search_end2,paired_end1,paired_matches);
@@ -462,8 +510,7 @@ GEM_INLINE void archive_search_paired_end_continue(
       }
     // No break
     case archive_search_pe_verify_both_ends: { // Verify candidates for both ends
-      search_parameters_t* const search_parameters = archive_search_end1->search_actual_parameters.search_parameters;
-      if (search_parameters->paired_mapping_mode == paired_mapping_paired_filtering) {
+      if (archive_search_paired_end_use_paired_filtering(archive_search_end1,archive_search_end2,paired_matches)) {
         archive_search_paired_end_discard_filtering_regions(archive_search_end1,archive_search_end2);
       }
       archive_search_finish_search(archive_search_end1,matches_end1); // Finish search (End/1)
@@ -477,10 +524,12 @@ GEM_INLINE void archive_search_paired_end_continue(
     // No break
     case archive_search_pe_extended_end1: // End1 extended
       if (archive_search_paired_end_fulfilled(archive_search_end1,archive_search_end2,paired_matches)) {
-        paired_matches->max_complete_stratum = 0; // No algorithmic guarantee
         PROF_INC_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_END1_SUCCESS);
+        paired_matches->max_complete_stratum = 0; // No algorithmic guarantee
+        archive_score_matches_se(archive_search_end2,matches_end2); // Score matches (End/2)
+        // Callback end
         archive_search_end1->pe_search_state = archive_search_pe_end;
-        PROF_STOP(GP_ARCHIVE_SEARCH_PE); return; // Enough
+        goto archive_search_paired_end_callback;
       }
       /*
        * Extension failed because
@@ -499,7 +548,10 @@ GEM_INLINE void archive_search_paired_end_continue(
       if (archive_search_paired_end_fulfilled(archive_search_end1,archive_search_end2,paired_matches)) {
         PROF_INC_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_END2_SUCCESS);
         paired_matches->max_complete_stratum = 0; // No algorithmic guarantee
-        PROF_STOP(GP_ARCHIVE_SEARCH_PE); return; // Enough
+        archive_score_matches_se(archive_search_end1,matches_end1); // Score matches (End/1)
+        // Callback end
+        archive_search_end1->pe_search_state = archive_search_pe_end;
+        goto archive_search_paired_end_callback;
       }
       /*
        * Extension failed because
@@ -514,35 +566,40 @@ GEM_INLINE void archive_search_paired_end_continue(
       // Check number of matches found
       const uint64_t num_matches_end1 = vector_get_used(paired_matches->matches_end1->global_matches);
       const uint64_t num_matches_end2 = vector_get_used(paired_matches->matches_end2->global_matches);
-//      if (!try_extending_end1 && num_matches_end1==0) {
-//        // Rescue last resort // TODO
-//      }
-//      if (!try_extending_end2 && num_matches_end2==0) {
-//        // Rescue last resort // TODO
-//      }
+//      if (!try_extending_end1 && num_matches_end1==0) { // Rescue last resort // TODO }
+//      if (!try_extending_end2 && num_matches_end2==0) { // Rescue last resort // TODO }
       if (num_matches_end1 > 0 || num_matches_end2 > 0) {
         // Pair matches (Cross-link matches from both ends)
         paired_matches_find_pairs(paired_matches,archive_search_end1->search_actual_parameters.search_parameters);
         // Find discordant (if required)
         // paired_matches_find_discordant_pairs(paired_matches,search_parameters); // TODO Activate
-        // Select matches
-        archive_select_paired_matches(archive_search_end1,archive_search_end2,paired_matches);
       }
       archive_search_end1->pe_search_state = archive_search_pe_end;
     }
     // No break
-    case archive_search_pe_end: break; // End of the current workflow
+    case archive_search_pe_end: {
+      const uint64_t num_matches_end1 = vector_get_used(paired_matches->matches_end1->global_matches);
+      const uint64_t num_matches_end2 = vector_get_used(paired_matches->matches_end2->global_matches);
+      // Select matches
+      if (num_matches_end1 > 0 || num_matches_end2 > 0) {
+        archive_select_paired_matches(archive_search_end1,archive_search_end2,paired_matches);
+        // Check matches
+        select_parameters_t* const select_parameters = archive_search_end1->select_parameters;
+        if (select_parameters->check_correct || select_parameters->check_optimum || select_parameters->check_complete) {
+          search_parameters_t* const search_parameters = archive_search_end1->search_actual_parameters.search_parameters;
+          archive_check_paired_matches(
+              archive_search_end1->archive,search_parameters->alignment_model,
+              &search_parameters->swg_penalties,&archive_search_end1->sequence,
+              &archive_search_end2->sequence,paired_matches,select_parameters->check_optimum,
+              select_parameters->check_complete,archive_search_end1->mm_stack);
+        }
+      }
+      break; // End of the current workflow
+    }
     default:
       GEM_INVALID_CASE();
       break;
   }
   PROF_STOP(GP_ARCHIVE_SEARCH_PE);
-}
-GEM_INLINE void archive_search_paired_end(
-    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches) {
-  archive_search_end1->pe_search_state = archive_search_pe_begin;
-  archive_search_end2->pe_search_state = archive_search_pe_begin;
-  archive_search_paired_end_continue(archive_search_end1,archive_search_end2,paired_matches);
 }
 

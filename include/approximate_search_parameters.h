@@ -20,7 +20,7 @@ typedef enum {
   mapping_adaptive_filtering_match,    // Adaptive Filtering until a match is found (Never going into full-NS)
   mapping_adaptive_filtering_complete, // Full search (From Adaptive Filtering to Pure Neighborhood Search)
   mapping_neighborhood_search,         // Pure Neighborhood Search (brute-force)
-  mapping_lab_testing                  // Debug/Testing
+  mapping_filtering_complete           // Pure Filtering Complete
 } mapping_mode_t;
 typedef enum {
   paired_mapping_map_both_ends,
@@ -61,7 +61,6 @@ typedef struct {
   float max_filtering_strata_after_best;
   float max_bandwidth;
   float complete_strata_after_best;
-  float min_matching_length;
   /* Matches search (Regulates the number of matches) */
   uint64_t max_search_matches;
   /* Replacements (Regulates the bases that can be replaced/mismatched) */
@@ -69,9 +68,11 @@ typedef struct {
   uint64_t mismatch_alphabet_length;
   bool allowed_chars[256];
   bool allowed_enc[DNA_EXT_RANGE];
-  /* Regions handling */
-  uint64_t candidate_chunk_max_length; // Maximum candidate chunk size to verify (otherwise, it will be split)
-  bool allow_region_chaining;          // Allows chaining regions to retrieve the alignment
+  /* Regions matching */
+  float min_matching_length;                   // Minimum length of the read required to match (dangling ends)
+  bool allow_region_chaining;                  // Allows chaining regions to compute the alignment
+  float region_scaffolding_min_length;         // Minimum length of the matching region (chaining regions)
+  float region_scaffolding_coverage_threshold; // Minimum coverage not to resort to scaffolding
   /* Alignment Model/Score */
   alignment_model_t alignment_model;
   swg_penalties_t swg_penalties;
@@ -128,7 +129,10 @@ typedef struct {
   uint64_t max_filtering_strata_after_best_nominal; // Maximum distance allow from the first matching stratum (at filtering)
   uint64_t max_bandwidth_nominal;                   // Maximum band allowed
   uint64_t complete_strata_after_best_nominal;      // Maximum complete strata from the first matching stratum
-  uint64_t min_matching_length_nominal;             // Minimum mapping segment size (verifying candidates)
+  /* Regions Matching */
+  uint64_t min_matching_length_nominal;                   // Minimum length of the read required to match (dangling ends)
+  uint64_t region_scaffolding_min_length_nominal;         // Minimum length of the matching region (chaining regions)
+  uint64_t region_scaffolding_coverage_threshold_nominal; // Minimum coverage not to resort to scaffolding
 } search_actual_parameters_t;
 
 /*
@@ -145,7 +149,7 @@ GEM_INLINE void approximate_search_configure_quality_model(
 GEM_INLINE void approximate_search_configure_error_model(
     search_parameters_t* const search_parameters,float max_search_error,
     float max_filtering_error,float max_filtering_strata_after_best,
-    float max_bandwidth,float complete_strata_after_best,float min_matching_length);
+    float max_bandwidth,float complete_strata_after_best);
 GEM_INLINE void approximate_search_configure_matches(
     search_parameters_t* const search_parameters,const uint64_t max_search_matches);
 GEM_INLINE void approximate_search_configure_replacements(
@@ -153,7 +157,8 @@ GEM_INLINE void approximate_search_configure_replacements(
     const char* const mismatch_alphabet,const uint64_t mismatch_alphabet_length);
 GEM_INLINE void approximate_search_configure_region_handling(
     search_parameters_t* const search_parameters,
-    const uint64_t candidate_chunk_max_length,const bool allow_region_chaining);
+    const float min_matching_length,const bool allow_region_chaining,
+    const float region_scaffolding_min_length,const float region_scaffolding_coverage_threshold);
 GEM_INLINE void approximate_search_configure_alignment_model(
     search_parameters_t* const search_parameters,const alignment_model_t alignment_model);
 GEM_INLINE void approximate_search_configure_alignment_match_scores(
