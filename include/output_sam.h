@@ -25,6 +25,8 @@ typedef struct {
   uint8_t mapq_threshold;
   bool omit_secondary_read__qualities;
   bool print_mismatches;
+  bool bisulfite_mode;
+  string_t bisulfite_suffix[2];
 } output_sam_parameters_t;
 
 GEM_INLINE void output_sam_parameters_set_defaults(output_sam_parameters_t* const sam_parameters);
@@ -33,8 +35,9 @@ GEM_INLINE void output_sam_parameters_set_defaults(output_sam_parameters_t* cons
  * SAM Headers
  */
 GEM_INLINE void output_sam_print_header(
-    output_file_t* const output_file,
-    archive_t* const archive,int argc,char** argv);
+    output_file_t* const output_file,archive_t* const archive,
+			bool bisulfite_mode,string_t *bisulfite_suffix,
+			int argc,char** argv);
 
 /*
  * SAM output SE

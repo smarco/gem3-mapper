@@ -274,8 +274,9 @@ GEM_INLINE void mapper_CUDA_run(mapper_parameters_t* const mapper_parameters,con
           mapper_parameters->misc.verbose_dev);
   // Prepare output file (SAM headers)
   if (mapper_parameters->io.output_format==SAM) {
-    output_sam_print_header(mapper_parameters->output_file,
-        mapper_parameters->archive,mapper_parameters->argc,mapper_parameters->argv);
+    output_sam_print_header(mapper_parameters->output_file,mapper_parameters->archive,
+			mapper_parameters->io.sam_parameters.bisulfite_mode,mapper_parameters->io.sam_parameters.bisulfite_suffix,
+			mapper_parameters->argc,mapper_parameters->argv);
   }
   // Ticker
   ticker_t ticker;

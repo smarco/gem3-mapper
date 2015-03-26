@@ -72,6 +72,8 @@ typedef struct {
   uint64_t distance;       // Distance of the alignment
   int32_t swg_score;       // SWG Distance (score) of the alignment
   strand_t strand;         // Mapping Strand
+  bs_strand_t bs_strand;   // Bisulfite Strand
+
   /* Score */
   uint8_t mapq_score;      // MAPQ Score
   /* CIGAR */

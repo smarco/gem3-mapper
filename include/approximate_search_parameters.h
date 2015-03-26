@@ -44,6 +44,13 @@ typedef enum {
   pair_discordant_search_only_if_no_concordant,
   pair_discordant_search_never
 } pair_discordant_search_t;
+typedef enum {
+	bisulfite_read_inferred,
+	bisulfite_read_1,
+	bisulfite_read_2,
+	bisulfite_read_interleaved
+} bisulfite_read_t;
+	 
 typedef struct {
   /*
    * Search parameters
@@ -76,6 +83,9 @@ typedef struct {
   /* Alignment Model/Score */
   alignment_model_t alignment_model;
   swg_penalties_t swg_penalties;
+  /* Bisulfite mode */
+  bool bisulfite_mode;
+	bisulfite_read_t bisulfite_read;
   /*
    * Paired End
    */

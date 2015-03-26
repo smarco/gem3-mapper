@@ -88,6 +88,9 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
   search_parameters->swg_penalties.generic_mismatch_score = -4;
   search_parameters->swg_penalties.gap_open_score = -6;
   search_parameters->swg_penalties.gap_extension_score = -1;
+	// Bisulfite mode
+  search_parameters->bisulfite_mode = false;
+  search_parameters->bisulfite_read = bisulfite_read_inferred;
   /*
    * Paired End
    */

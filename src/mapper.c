@@ -540,6 +540,20 @@ GEM_INLINE void mapper_PE_output_matches(
       break;
   }
 }
+GEM_INLINE string_t *mapper_bs_process(string_t *orig,const archive_search_t *end,const char *BS_table) {
+	string_t *seq=&archive_search_get_sequence(end)->read;
+	string_copy(orig,seq);
+	uint64_t len = string_get_length(seq);
+	char * seq_buffer= string_get_buffer(seq);
+	int64_t pos;
+	for(pos=0;pos<len;pos++) {
+		seq_buffer[pos]=BS_table[(int)seq_buffer[pos]];
+	}
+	return seq;
+}
+
+#define SEQUENCE_INITIAL_LENGTH 200
+
 /*
  * SE Mapper
  */
@@ -564,40 +578,96 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
 
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
-  while (mapper_SE_read_single_sequence(mapper_search)) {
-    PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
-    // Search into the archive
-    archive_search_single_end(mapper_search->archive_search,matches);
+  if(parameters->search_parameters.bisulfite_mode) {
+	  
+	  // Temporary storage for original reads before bisulfite conversion
+	  string_t orig_end;
+	  string_init(&orig_end,SEQUENCE_INITIAL_LENGTH);
+		
+		bisulfite_read_t bs_read_mode = parameters->search_parameters.bisulfite_read;
+		sequence_end_t read_end=(bs_read_mode==bisulfite_read_2)?paired_end2:paired_end1;
+		
+	  while (mapper_SE_read_single_sequence(mapper_search)) {
+		 PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
 
-    // Output matches
-    mapper_SE_output_matches(parameters,buffered_output_file,
-        mapper_search->archive_search,matches);
+		 // Fully convert reads before searching into archive, making a copy of the original
+		 if(bs_read_mode==bisulfite_read_inferred) { 
+		   read_end = sequence_get_end_info(&mapper_search->archive_search->sequence);
+		 }
+		 string_t *seq_end = NULL;
+		 switch(read_end) {
+		  case paired_end1:
+			 seq_end=mapper_bs_process(&orig_end,mapper_search->archive_search,dna_bisulfite_C2T_table);
+			 break;
+		  case paired_end2:
+			 seq_end=mapper_bs_process(&orig_end,mapper_search->archive_search,dna_bisulfite_G2A_table);
+			 break;
+		  default:
+				break;
+		 }
+		 if(bs_read_mode==bisulfite_read_interleaved) {
+				read_end=(read_end==paired_end1)?paired_end2:paired_end1;
+		 }
+		 // Search into the archive
+		 archive_search_single_end(mapper_search->archive_search,matches);
+		  
+  	    // Copy back original read
+		 if(seq_end != NULL)  string_copy(seq_end,&orig_end);
+		  
+		 // Output matches
+		 mapper_SE_output_matches(parameters,buffered_output_file,
+         mapper_search->archive_search,matches);
+		  
+		 // Update processed
+		 if (++reads_processed == MAPPER_TICKER_STEP) {
+			ticker_update_mutex(mapper_search->ticker,reads_processed);
+			reads_processed=0;
+		 }
+		  
+		 // Clear
+		 mm_search_clear(mm_search);
+		 matches_clear(matches);
+	  }
+	  // Free up bisulfite temporary storage
+	  string_destroy(&orig_end);
+  } else {
+		 while (mapper_SE_read_single_sequence(mapper_search)) {
+				PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
+				// Search into the archive
+				archive_search_single_end(mapper_search->archive_search,matches);
+				
+				// Output matches
+				mapper_SE_output_matches(parameters,buffered_output_file,
+																 mapper_search->archive_search,matches);
+				
+				// Update processed
+				if (++reads_processed == MAPPER_TICKER_STEP) {
+					 ticker_update_mutex(mapper_search->ticker,reads_processed);
+					 reads_processed=0;
+				}
 
-    // Update processed
-    if (++reads_processed == MAPPER_TICKER_STEP) {
-      ticker_update_mutex(mapper_search->ticker,reads_processed);
-      reads_processed=0;
-    }
-
-    // Clear
-    mm_search_clear(mm_search);
-    matches_clear(matches);
-  }
-  // Update processed
-  ticker_update_mutex(mapper_search->ticker,reads_processed);
-
-  // Clean up
-  buffered_input_file_close(mapper_search->buffered_fasta_input);
-  buffered_output_file_close(buffered_output_file);
-  archive_search_delete(mapper_search->archive_search);
-  matches_delete(matches);
-  mm_search_delete(mm_search);
-
-  pthread_exit(0);
+				// Clear
+				mm_search_clear(mm_search);
+				matches_clear(matches);
+		 }
+	}
+	// Update processed
+	 ticker_update_mutex(mapper_search->ticker,reads_processed);
+		 
+	 // Clean up
+	 buffered_input_file_close(mapper_search->buffered_fasta_input);
+	 buffered_output_file_close(buffered_output_file);
+	 archive_search_delete(mapper_search->archive_search);
+	 matches_delete(matches);
+	 mm_search_delete(mm_search);
+	 
+	 pthread_exit(0);
 }
+
 /*
  * PE Mapper
  */
+
 void* mapper_PE_thread(mapper_search_t* const mapper_search) {
   // GEM-thread error handler
   gem_thread_register_id(mapper_search->thread_id+1);
@@ -623,30 +693,72 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
 
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
-  while (mapper_PE_read_paired_sequences(mapper_search)) {
-    PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
+
+  if(parameters->search_parameters.bisulfite_mode) {
+	  
+	  // Temporary storage for original reads before bisulfite conversion
+	  string_t orig_end1,orig_end2;
+	  string_init(&orig_end1,SEQUENCE_INITIAL_LENGTH);
+	  string_init(&orig_end2,SEQUENCE_INITIAL_LENGTH);
+	  
+	  while (mapper_PE_read_paired_sequences(mapper_search)) {
+		  PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
+
+		  // Fully convert reads before searching into archive, making a copy of the original
+		  string_t *seq_end1=mapper_bs_process(&orig_end1,mapper_search->archive_search_end1,dna_bisulfite_C2T_table);
+		  string_t *seq_end2=mapper_bs_process(&orig_end2,mapper_search->archive_search_end2,dna_bisulfite_G2A_table);
+
+		  // Search into the archive
+		  archive_search_paired_end(mapper_search->archive_search_end1,
+											 mapper_search->archive_search_end2,mapper_search->paired_matches);
+		  
+		  // Copy back original read
+		  string_copy(seq_end1,&orig_end1);
+		  string_copy(seq_end2,&orig_end2);
+		  
+		  // Output matches
+		  mapper_PE_output_matches(parameters,buffered_output_file,mapper_search->archive_search_end1,
+											mapper_search->archive_search_end2,mapper_search->paired_matches);
+
+		  // Update processed
+		  if (++reads_processed == MAPPER_TICKER_STEP) {
+			  ticker_update_mutex(mapper_search->ticker,reads_processed);
+			  reads_processed=0;
+		  }
+
+	  	  // Clear
+		  mm_search_clear(mm_search);
+		  paired_matches_clear(mapper_search->paired_matches);
+	  }
+	  // Free up bisulfite temporary storage
+	  string_destroy(&orig_end1);
+	  string_destroy(&orig_end2);
+  } else {
+	  while (mapper_PE_read_paired_sequences(mapper_search)) {
+		  PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
 
 //    if (gem_streq("H.Sapiens.1M.Illumina.l100.low.000001080",mapper_search->archive_search_end1->sequence.tag.buffer)) {
 //      printf("Here\n");
 //    }
 
-    // Search into the archive
-    archive_search_paired_end(mapper_search->archive_search_end1,
-        mapper_search->archive_search_end2,mapper_search->paired_matches);
+		  // Search into the archive
+		  archive_search_paired_end(mapper_search->archive_search_end1,
+											 mapper_search->archive_search_end2,mapper_search->paired_matches);
 
-    // Output matches
-    mapper_PE_output_matches(parameters,buffered_output_file,mapper_search->archive_search_end1,
-        mapper_search->archive_search_end2,mapper_search->paired_matches);
+		  // Output matches
+		  mapper_PE_output_matches(parameters,buffered_output_file,mapper_search->archive_search_end1,
+											mapper_search->archive_search_end2,mapper_search->paired_matches);
 
-    // Update processed
-    if (++reads_processed == MAPPER_TICKER_STEP) {
-      ticker_update_mutex(mapper_search->ticker,reads_processed);
-      reads_processed=0;
-    }
+		  // Update processed
+		  if (++reads_processed == MAPPER_TICKER_STEP) {
+			  ticker_update_mutex(mapper_search->ticker,reads_processed);
+			  reads_processed=0;
+		  }
 
-    // Clear
-    mm_search_clear(mm_search);
-    paired_matches_clear(mapper_search->paired_matches);
+		  // Clear
+		  mm_search_clear(mm_search);
+		  paired_matches_clear(mapper_search->paired_matches);
+	  }	  
   }
   // Update processed
   ticker_update_mutex(mapper_search->ticker,reads_processed);
@@ -678,8 +790,9 @@ GEM_INLINE void mapper_run(mapper_parameters_t* const mapper_parameters,const bo
   gem_error_set_report_function(mapper_error_report);
   // Prepare output file (SAM headers)
   if (mapper_parameters->io.output_format==SAM) {
-    output_sam_print_header(mapper_parameters->output_file,
-        mapper_parameters->archive,mapper_parameters->argc,mapper_parameters->argv);
+    output_sam_print_header(mapper_parameters->output_file,mapper_parameters->archive,
+			mapper_parameters->io.sam_parameters.bisulfite_mode,mapper_parameters->io.sam_parameters.bisulfite_suffix,
+			mapper_parameters->argc,mapper_parameters->argv);
   }
   // Setup Ticker
   ticker_t ticker;

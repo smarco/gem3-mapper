@@ -142,8 +142,8 @@ option_t gem_mapper_options[] = {
   { 'i', "input", REQUIRED, TYPE_STRING, 2, true, "<file>" , "(FASTA/FASTQ, default=stdin)" },
   { '1', "i1", REQUIRED, TYPE_STRING, 2, true, "<file>" , "(paired-end, end-1)" },
   { '2', "i2", REQUIRED, TYPE_STRING, 2, true, "<file>" , "(paired-end, end-2)" },
-  { 201, "gzip-input", NO_ARGUMENT, TYPE_NONE, 2, true, "", "(gzip input)" },
-  { 202, "bzip-input", NO_ARGUMENT, TYPE_NONE, 2, true, "", "(bzip input)" },
+  { 'z', "gzip-input", NO_ARGUMENT, TYPE_NONE, 2, true, "", "(gzip input)" },
+  { 'j', "bzip-input", NO_ARGUMENT, TYPE_NONE, 2, true, "", "(bzip input)" },
   { 203, "input-model", REQUIRED, TYPE_STRING, 2, false, "<input_block_size,num_buffers,num_records>", "(default=64M,2c,5K)" },
   { 'o', "output", REQUIRED, TYPE_STRING, 2, true, "<output_prefix>" , "(default=stdout)" },
   { 205, "gzip-output", NO_ARGUMENT, TYPE_NONE, 2, true, "", "(gzip output)" },
@@ -168,6 +168,9 @@ option_t gem_mapper_options[] = {
   { 408, "region-scaffolding-coverage-threshold", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=80%)" },
   { 409, "region-model-minimal", REQUIRED, TYPE_FLOAT, 4, false, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "(default=20,4,2,2)" },
   { 410, "region-model-delimit", REQUIRED, TYPE_FLOAT, 4, false, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "(default=50,10,4,2)" },
+  { 411, "bisulfite-mode", OPTIONAL, TYPE_STRING, 4, true, "", "(default=false)" },
+  { 412, "bisulfite-read", REQUIRED, TYPE_STRING, 4, true, "'inferred','1','2','interleaved'",  "(default=inferred)" },
+  { 413, "bisulfite-suffix", REQUIRED, TYPE_STRING, 4, false, "<C2T suffix, G2A suffix>" , "(default=#C2T,#G2A)" },
   /* Paired-end Alignment */
   { 'p', "paired-end-alignment", NO_ARGUMENT, TYPE_NONE, 5, true, "" , "" },
   // { 500, "mate-pair-alignment", NO_ARGUMENT, TYPE_NONE, 5, true, "" , "" }, // TODO
@@ -274,6 +277,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
   struct option* getopt_options = options_adaptor_getopt(gem_mapper_options);
   string_t* const getopt_short_string = options_adaptor_getopt_short(gem_mapper_options);
   char* const getopt_short = string_get_buffer(getopt_short_string);
+  char *bs_suffix1=0, *bs_suffix2=0;
   int option, option_index;
   while (true) {
     // Get option &  Select case
@@ -300,10 +304,10 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       parameters->io.separated_input_files = true;
       parameters->io.input_file_name_end2 = optarg;
       break;
-    case 201: // --gzip-input
+    case 'z': // --gzip-input
       parameters->io.input_compression = FM_GZIPPED_FILE;
       break;
-    case 202: // --bzip-input
+    case 'j': // --bzip-input
       parameters->io.input_compression = FM_BZIPPED_FILE;
       break;
     case 203: { // --input-model=64M,2c,5K
@@ -463,6 +467,34 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       input_text_parse_extended_uint64(region_type_th,&parameters->search_parameters.rp_delimit.region_type_th);
       break;
     }
+    case 411: // --bisulfite_mode
+      parameters->search_parameters.bisulfite_mode = input_text_parse_extended_bool(optarg);
+      break;
+    case 412: // --bisulfite_read
+      if (gem_strcaseeq(optarg,"inferred")) {
+        parameters->search_parameters.bisulfite_read = bisulfite_read_inferred;
+        break;
+			}
+      if (gem_strcaseeq(optarg,"1")) {
+        parameters->search_parameters.bisulfite_read = bisulfite_read_1;
+        break;
+			}
+      if (gem_strcaseeq(optarg,"2")) {
+        parameters->search_parameters.bisulfite_read = bisulfite_read_2;
+        break;
+			}
+      if (gem_strcaseeq(optarg,"interleaved")) {
+        parameters->search_parameters.bisulfite_read = bisulfite_read_interleaved;
+        break;
+			}
+      gem_fatal_error_msg("Option '--bisulfite_read' must be '1'|'2'|'interleaved'|'inferred'");
+      break;
+	 case 413: { // --bisulfite_suffix
+		const int num_arguments = input_text_parse_csv_arguments(optarg,2,bs_suffix1,bs_suffix2);
+      gem_cond_fatal_error_msg(num_arguments!=2,"Option '--bisulfite_suffix' wrong number of arguments");
+	   parameters->search_parameters.bisulfite_mode = true;
+		break;
+	 }
     /* Paired-end Alignment */
     case 'p': // --paired-end-alignment
       parameters->search_parameters.paired_end = true;
@@ -814,7 +846,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
   } else {
     const char* const pinput_1 = parameters->io.input_file_name_end1;
     const char* const pinput_2 = parameters->io.input_file_name_end2;
-    gem_cond_fatal_error_msg(pinput_1==NULL, "Missing Input-End1 (--i1)");
+		gem_cond_fatal_error_msg(pinput_1==NULL, "Missing Input-End1 (--i1)");
     gem_cond_fatal_error_msg(pinput_2==NULL, "Missing Input-End2 (--i2)");
     gem_cond_fatal_error_msg(gem_streq(pinput_1,pinput_2), "Input-End1 and Input-End2 must be different");
     gem_cond_fatal_error_msg(gem_streq(pindex,pinput_1), "Index and Input-End1 must be different");
@@ -831,8 +863,23 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
   /* Mapping strategy (Mapping mode + properties) */
   if (parameters->search_parameters.paired_end) {
     parameters->mapper_type = mapper_pe;
+		if(parameters->search_parameters.bisulfite_read != bisulfite_read_inferred) {
+			 gem_warn_msg("Option '--bisulfite_read' ignored with paired end mode");
+		}
   } else {
     parameters->mapper_type = mapper_se;
+  }
+  /* Bisulfite mode */
+  if(parameters->search_parameters.bisulfite_mode) {
+	  if(parameters->io.output_format == SAM) {
+		  parameters->io.sam_parameters.bisulfite_mode = true;
+		  if(!bs_suffix1) {
+			 bs_suffix1="#C2T";
+			 bs_suffix2="#G2A";
+		  }
+		  string_init_static(parameters->io.sam_parameters.bisulfite_suffix,strdup(bs_suffix1));
+		  string_init_static(parameters->io.sam_parameters.bisulfite_suffix+1,strdup(bs_suffix2));
+	  }
   }
   /* Qualities */
 //  uint64_t quality_threshold;
