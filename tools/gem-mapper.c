@@ -198,9 +198,10 @@ option_t gem_mapper_options[] = {
   { 'm', "min-reported-matches", REQUIRED, TYPE_INT, 8, false, "<number>|'all'" , "(default=1)" },
   { 'M', "max-reported-matches", REQUIRED, TYPE_INT, 8, true, "<number>|'all'" , "(default=all)" },
   /* Output Format */
-  { 'F', "output-format", REQUIRED, TYPE_STRING, 8, true, "'MAP'|'SAM'" , "(default=SAM)" },
-  { 900, "sam-compact", OPTIONAL, TYPE_STRING, 8, true, "'true'|'false'" , "(default=false)" },
-  { 901, "sam-quality-threshold", REQUIRED, TYPE_INT, 8, true, "<number>" , "(default=0)" },
+  { 'F', "output-format", REQUIRED, TYPE_STRING, 9, true, "'MAP'|'SAM'" , "(default=SAM)" },
+  { 900, "sam-compact", OPTIONAL, TYPE_STRING, 9, true, "'true'|'false'" , "(default=false)" },
+  { 901, "sam-quality-threshold", REQUIRED, TYPE_INT, 9, true, "<number>" , "(default=0)" },
+  { 'r', "sam-read-group-header", REQUIRED, TYPE_STRING, 9, true, "read group header i.e., '@RG\\tID:xx\\tSM:yy'" , "(default=NULL)" },
   /* System */
   { 't', "threads", REQUIRED, TYPE_STRING, 9, true, "<number>" , "(default=c)" },
   { 1000, "max-memory", REQUIRED, TYPE_STRING, 9, true, "<maximum-memory>" , "(Eg 2GB)" },
@@ -681,6 +682,9 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       input_text_parse_extended_uint64(optarg,&mapq_threshold);
       parameters->io.sam_parameters.mapq_threshold = MIN(255,mapq_threshold);
       break;
+		 case 'r': // --sam-read-group-header
+			 output_sam_parse_read_group_header(optarg,&parameters->io.sam_parameters);
+			 break;
     }
     /* System */
     case 't': // --threads

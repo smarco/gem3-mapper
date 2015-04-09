@@ -27,16 +27,19 @@ typedef struct {
   bool print_mismatches;
   bool bisulfite_mode;
   string_t bisulfite_suffix[2];
+	char *read_group_header;
+	string_t *read_group_id;
 } output_sam_parameters_t;
 
 GEM_INLINE void output_sam_parameters_set_defaults(output_sam_parameters_t* const sam_parameters);
+GEM_INLINE void output_sam_parse_read_group_header(char *rg,output_sam_parameters_t* const sam_parameters);
 
 /*
  * SAM Headers
  */
 GEM_INLINE void output_sam_print_header(
     output_file_t* const output_file,archive_t* const archive,
-			bool bisulfite_mode,string_t *bisulfite_suffix,
+			output_sam_parameters_t* const sam_parameters,
 			int argc,char** argv);
 
 /*

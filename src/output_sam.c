@@ -38,6 +38,8 @@ GEM_INLINE void output_sam_parameters_set_defaults(output_sam_parameters_t* cons
   sam_parameters->omit_secondary_read__qualities = true;
   sam_parameters->print_mismatches = false;
   sam_parameters->bisulfite_mode = false;
+  sam_parameters->read_group_header = NULL;
+  sam_parameters->read_group_id = NULL;
 }
 /*
  * SAM Headers
@@ -55,11 +57,10 @@ GEM_INLINE void output_sam_parameters_set_defaults(output_sam_parameters_t* cons
  */
 GEM_INLINE void output_sam_print_header(
     output_file_t* const output_file,archive_t* const archive,
-			bool bisulfite_mode,string_t *bisulfite_suffix,
+			output_sam_parameters_t* const sam_parameters,
 			int argc,char** argv) {
   /*
    * TODO
-   *   Enable read-groups
    *   Other options like BWA/Bowtie2
    */
   // Print all @HD lines (Header line)
@@ -83,19 +84,19 @@ GEM_INLINE void output_sam_print_header(
     const char* const tag = locator_interval_get_tag(locator,intervals+i);
 	 size_t tag_len = gem_strlen(tag);
 	 // Handle bisulfite mode contig name conversion	 
-	 if(bisulfite_mode) {
+	 if(sam_parameters->bisulfite_mode) {
 		 const char *p = tag;
 		 while(*p++);
 		 int ix;
 		 for(ix=0;ix<2;ix++) {
 			 const char *tp = p-2;
 			 uint64_t pos;
-			 char *suff = string_get_buffer(bisulfite_suffix+ix);
-			 for(pos=string_get_length(bisulfite_suffix+ix);pos>0 && tp>tag;) {
+			 char *suff = string_get_buffer(sam_parameters->bisulfite_suffix+ix);
+			 for(pos=string_get_length(sam_parameters->bisulfite_suffix+ix);pos>0 && tp>tag;) {
 				 if(suff[--pos] != *tp--) break;
 			 }
 			 if(!pos) {
-				 tag_len -= string_get_length(bisulfite_suffix+ix);
+				 tag_len -= string_get_length(sam_parameters->bisulfite_suffix+ix);
 				 break;
 			 }
 		 }
@@ -109,8 +110,8 @@ GEM_INLINE void output_sam_print_header(
     // Next
     ++i;
   }
-  // Print all @RG lines (Read group)
-  //   // TODO
+  // Print @RG line (Read group)
+  if(sam_parameters->read_group_header) ofprintf(output_file,"%s\n",sam_parameters->read_group_header);
   // Print all @PG lines (Program)
   //   @PG  ID:GEM PN:gem-2-sam  VN:3.0.0 CL:gem-mapper -I /home/u/hsapiens_v37 -i /h/uu.fastq -e 0.08
   ofprintf(output_file,"@PG\tID:GEM\tPN:gem-mapper\tVN:"GEM_CORE_VERSION_STR);
@@ -233,6 +234,49 @@ GEM_INLINE void output_sam_print_md_cigar_element(
       break;
   }
 }
+
+GEM_INLINE void output_sam_parse_read_group_header(char *rg, output_sam_parameters_t* const sam_parameters)
+{
+	 if(strncmp(rg,"@RG",3))
+		 gem_fatal_error_msg("Option '-r|--sam-read-group-header' must start with '@RG'");
+	 char *p = rg;
+	 char *q = mm_malloc(strlen(rg)+1);
+	 char *r= q;
+	 // Translate tab and new line escape sequences
+	 while(*p) {
+			if(*p == '\\') {
+				 p++;
+				 switch (*p) {
+					case 't':
+						*q++ = '\t';
+						break;
+					case 'n':
+						*q++ = '\n';
+						break;
+					default:
+						*q++ = *p;
+						break;
+				 }
+			} else *q++ = *p;
+			p++;
+	 }
+	 // Strip of trailing new line if present
+	 if(q != r && *(q-1) == '\n') q--;
+	 *q = 0;
+	 p = strstr(r, "\tID:");
+	 if(p == NULL) 
+		 gem_fatal_error_msg("Option '-r|--sam-read-group-header' must contain ID field");
+	 p+=4;
+	 q = p;
+	 while(*q && *q != '\n' && *q != '\t') q++;
+	 if(q - p  > 255) 
+		 gem_fatal_error_msg("Option '-r|--sam-read-group-header' has ID longer than 255 characters");
+	 sam_parameters->read_group_header = r;
+	 sam_parameters->read_group_id = mm_malloc(sizeof(string_t));
+	 string_init(sam_parameters->read_group_id, q - p + 1);
+	 string_set_buffer(sam_parameters->read_group_id, p, q - p + 1);
+}
+
 /*
  * Optional fields
  */
@@ -303,7 +347,13 @@ GEM_INLINE void output_sam_print_opt_field_tag_PQ() {}
 //  Q2  Z  Phred quality of the mate/next segment. Same encoding as QUAL.
 //  R2  Z  Sequence of the mate/next segment in the template.
 //  RG  Z  Read group. Value matches the header RG-ID tag if @RG is present in the header.
-GEM_INLINE void output_sam_print_opt_field_tag_RG() {}
+GEM_INLINE void output_sam_print_opt_field_tag_RG(
+		buffered_output_file_t* const buffered_output_file,
+		string_t *read_group) {
+	 bofprintf_string_literal(buffered_output_file,"\tRG:Z:");
+	 bofprintf_string(buffered_output_file,string_get_length(read_group),string_get_buffer(read_group));
+}
+
 //  SM  i  Template-independent mapping quality
 //  TC  i  The number of segments in the template.
 //  U2  Z  Phred probability of the 2nd call being wrong conditional on the best being wrong. The same encoding as QUAL.
@@ -861,7 +911,11 @@ GEM_INLINE void output_sam_print_core_fields_se(
 GEM_INLINE void output_sam_print_optional_fields_se(
     buffered_output_file_t* const buffered_output_file,
     archive_search_t* const archive_search,const matches_t* const matches,
-    const match_trace_t* const match_trace,const uint64_t match_number,bool bisulfite_mode) {
+    const match_trace_t* const match_trace,const uint64_t match_number,const output_sam_parameters_t* const sam_parameters) {
+	 
+	// RG
+	if(sam_parameters->read_group_id) 
+		 output_sam_print_opt_field_tag_RG(buffered_output_file,sam_parameters->read_group_id);
   /*
    * NM:i:2 MD:Z:98 AS:i:87 XS:i:47
    */
@@ -872,7 +926,7 @@ GEM_INLINE void output_sam_print_optional_fields_se(
   // reference and (b) if we calculated them correctly they would be large as they show all mismatches
   
   // XB
-  if(bisulfite_mode) {
+  if(sam_parameters->bisulfite_mode) {
 	  output_sam_print_opt_field_tag_XB(buffered_output_file,match_trace);
   } else {
 	  // MD
@@ -932,7 +986,7 @@ GEM_INLINE void output_sam_single_end_matches(
       // Print XA (sub-dominant alignments)
       output_sam_print_opt_field_tag_XA_se(buffered_output_file,matches,output_sam_parameters);
       // Print Optional Fields
-      output_sam_print_optional_fields_se(buffered_output_file,archive_search,matches,match_trace,0,output_sam_parameters->bisulfite_mode);
+      output_sam_print_optional_fields_se(buffered_output_file,archive_search,matches,match_trace,0,output_sam_parameters);
       // EOL
       buffered_output_file_reserve(buffered_output_file,1);
       bofprintf_char(buffered_output_file,'\n');
@@ -943,7 +997,7 @@ GEM_INLINE void output_sam_single_end_matches(
         output_sam_print_core_fields_se(buffered_output_file,&archive_search->sequence,matches,match_trace,(match_number>0),
             supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
         // Print Optional Fields
-        output_sam_print_optional_fields_se(buffered_output_file,archive_search,matches,match_trace,match_number,output_sam_parameters->bisulfite_mode);
+        output_sam_print_optional_fields_se(buffered_output_file,archive_search,matches,match_trace,match_number,output_sam_parameters);
         // EOL
         buffered_output_file_reserve(buffered_output_file,1);
         bofprintf_char(buffered_output_file,'\n');
@@ -1000,7 +1054,7 @@ GEM_INLINE void output_sam_paired_end_matches(
           supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
       // Print Optional Fields
       output_sam_print_optional_fields_se(buffered_output_file,
-          archive_search_end1,matches_end1,paired_match->match_end1,match_number,output_sam_parameters->bisulfite_mode);
+          archive_search_end1,matches_end1,paired_match->match_end1,match_number,output_sam_parameters);
       // output_sam_print_optional_fields_pe(buffered_output_file,
       //  archive_search_end1,matches_end1,paired_match->match_end1,match_number);
       if (output_sam_parameters->compact_xa) {
@@ -1020,7 +1074,7 @@ GEM_INLINE void output_sam_paired_end_matches(
           supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
       // Print Optional Fields
       output_sam_print_optional_fields_se(buffered_output_file,
-          archive_search_end2,matches_end2,paired_match->match_end2,match_number,output_sam_parameters->bisulfite_mode);
+          archive_search_end2,matches_end2,paired_match->match_end2,match_number,output_sam_parameters);
       // output_sam_print_optional_fields_pe(buffered_output_file,
       //  archive_search_end2,matches_end2,paired_match->match_end2,match_number);
       if (output_sam_parameters->compact_xa) {
