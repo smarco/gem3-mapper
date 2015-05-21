@@ -21,9 +21,12 @@
 /*
  * Sampled-SA
  */
-typedef enum { SAMPLING_RATE_1=0,  SAMPLING_RATE_2=1,   SAMPLING_RATE_4=2,
-               SAMPLING_RATE_8=3,  SAMPLING_RATE_16=4,  SAMPLING_RATE_32=5,
-               SAMPLING_RATE_64=6, SAMPLING_RATE_128=7, SAMPLING_RATE_256=8 } sampling_rate_t;
+typedef enum {
+  SAMPLING_RATE_1=0,  SAMPLING_RATE_2=1,   SAMPLING_RATE_4=2,
+  SAMPLING_RATE_8=3,  SAMPLING_RATE_16=4,  SAMPLING_RATE_32=5,
+  SAMPLING_RATE_64=6, SAMPLING_RATE_128=7, SAMPLING_RATE_256=8,
+  SAMPLING_RATE_RANGE=UINT64_MAX
+} sampling_rate_t;
 typedef struct {
   // Meta-data
   uint64_t index_length;
@@ -53,7 +56,6 @@ typedef struct {
  * Loader
  */
 GEM_INLINE sampled_sa_t* sampled_sa_new(const uint64_t index_length,const sampling_rate_t sampling_rate);
-GEM_INLINE sampled_sa_t* sampled_sa_read(fm_t* const file_manager);
 GEM_INLINE sampled_sa_t* sampled_sa_read_mem(mm_t* const memory_manager);
 GEM_INLINE void sampled_sa_write(fm_t* const file_manager,sampled_sa_t* const sampled_sa);
 GEM_INLINE void sampled_sa_delete(sampled_sa_t* const sampled_sa);
@@ -90,5 +92,10 @@ GEM_INLINE void sampled_sa_set_sample(sampled_sa_t* const sampled_sa,const uint6
  */
 GEM_INLINE void sampled_sa_print(FILE* const stream,sampled_sa_t* const sampled_sa,const bool display_data);
 GEM_INLINE void sampled_sa_builder_print(FILE* const stream,sampled_sa_builder_t* const sampled_sa);
+
+/*
+ * Errors
+ */
+#define GEM_ERROR_SAMPLED_SA_WRONG_MODEL_NO "Sampled-SA error. Wrong Sampled-SA Model %lu (Expected model %lu)"
 
 #endif /* SAMPLED_SA_H_ */

@@ -149,8 +149,12 @@ GEM_INLINE fm_t* fm_open_file(char* const file_name,const fm_mode mode) {
   gem_cond_fatal_error__perror(file_manager->fd==-1,FM_OPEN,file_name);
   file_manager->file = fdopen(file_manager->fd,fm_file_open_flags[mode]);
   gem_cond_fatal_error__perror(file_manager->file==NULL,FM_FDOPEN,file_name);
+#ifdef HAVE_BZLIB
   file_manager->gz_file = NULL;
+#endif
+#ifdef HAVE_BZLIB
   file_manager->bz_file = NULL;
+#endif
   // Attributes
   file_manager->mode = mode;
   file_manager->file_name = strdup(file_name);
@@ -180,8 +184,12 @@ GEM_INLINE fm_t* fm_open_temp_file() {
   // File
   file_manager->file = fdopen(file_manager->fd,fm_file_open_flags[FM_READ_WRITE]);
   gem_cond_fatal_error__perror(file_manager->file==NULL,FM_FDOPEN,file_manager->file_name);
+#ifdef HAVE_BZLIB
   file_manager->gz_file = NULL;
+#endif
+#ifdef HAVE_BZLIB
   file_manager->bz_file = NULL;
+#endif
   // Attributes
   file_manager->mode = FM_READ_WRITE;
   file_manager->file_size = UINT64_MAX;
@@ -198,8 +206,12 @@ GEM_INLINE fm_t* fm_open_FILE(FILE* const stream,const fm_mode mode) {
   // File
   file_manager->fd = 0;
   file_manager->file = stream;
+#ifdef HAVE_BZLIB
   file_manager->gz_file = NULL;
+#endif
+#ifdef HAVE_BZLIB
   file_manager->bz_file = NULL;
+#endif
   // Attributes
   file_manager->mode = mode;
   file_manager->file_name = STREAM_FILE_NAME;
@@ -221,8 +233,12 @@ GEM_INLINE fm_t* fm_open_gzFILE(FILE* const stream,const fm_mode mode) {
   // File
   file_manager->fd = 0;
   file_manager->file = stream;
+#ifdef HAVE_BZLIB
   file_manager->gz_file = NULL;
+#endif
+#ifdef HAVE_BZLIB
   file_manager->bz_file = NULL;
+#endif
   // Attributes
   file_manager->mode = mode;
   file_manager->file_name = STREAM_FILE_NAME;

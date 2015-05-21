@@ -4,10 +4,6 @@
  * DATE: 1/10/2013
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION: Encodes a Multi-FASTA file (.fa) into a GEM index
- *   // TODO
- *   - Pending 2-step by no sorting subdominant kmers
- *   --force-fmi-general-index       (default: deduced from content)\n"
- *   --filter-function 'iupac-dna'|'iupac-colorspace-dna'|'none'\n"
  */
 
 #include <pthread.h>
@@ -62,42 +58,41 @@ typedef struct {
   bool verbose;
   /* Extras */
   bool dev_generate_only_bwt;
-} gem_indexer_parameters;
+} indexer_parameters_t;
 // Defaults
-gem_indexer_parameters parameters = {
+GEM_INLINE void indexer_parameters_set_defaults(indexer_parameters_t* const parameters) {
   /* I/O */
-  .input_multifasta_file_name=NULL,
-  .input_graph_file_name=NULL,
-  .output_index_file_name=NULL,
-  .output_index_file_name_prefix=NULL,
+  parameters->input_multifasta_file_name=NULL;
+  parameters->input_graph_file_name=NULL;
+  parameters->output_index_file_name=NULL;
+  parameters->output_index_file_name_prefix=NULL;
   /* MultiFasta Processing */
-  .index_colorspace=false,
-  .index_run_length=false,
-  .index_complement=index_complement_auto,
-  .ns_threshold=50,
-  .complement_size_threshold=BUFFER_SIZE_1G,
+  parameters->index_colorspace=false;
+  parameters->index_run_length=false;
+  parameters->index_complement=index_complement_auto;
+  parameters->ns_threshold=50;
+  parameters->complement_size_threshold=BUFFER_SIZE_8G;
   /* FM-Index */
-  .sampling_rate=SAMPLING_RATE_4,
-  .check_index = false,
+  parameters->sampling_rate=SAMPLING_RATE_4;
+  parameters->check_index=false;
   /* System */
-  .num_threads=1,
-  .max_memory=0,
-  .tmp_folder=NULL,
+  parameters->num_threads=system_get_num_processors();
+  parameters->max_memory=0;
+  parameters->tmp_folder=NULL;
   /* Debug */
-  .dump_locator_intervals=true,
-  .dump_indexed_text=false,
-  .dump_explicit_sa=false,
-  .dump_bwt=false,
-  .dump_run_length_text=false,
-  .dump_graph_links=false,
+  parameters->dump_locator_intervals=true;
+  parameters->dump_indexed_text=false;
+  parameters->dump_explicit_sa=false;
+  parameters->dump_bwt=false;
+  parameters->dump_run_length_text=false;
+  parameters->dump_graph_links=false;
   /* Miscellaneous */
-  .info_file_name_provided=false,
-  .info_file_name=NULL,
-  .verbose=true,
+  parameters->info_file_name_provided=false;
+  parameters->info_file_name=NULL;
+  parameters->verbose=true;
   /* Extras */
-  .dev_generate_only_bwt=false
-};
-gem_timer_t gem_indexer_timer; // Global Indexer Timer
+  parameters->dev_generate_only_bwt=false;
+}
 /*
  * Debug
  *   Simple function to build the SA of a text using qsort
@@ -125,17 +120,17 @@ int indexer_debug_suffix_cmp(const uint64_t* const a,const uint64_t* const b) {
     return indexer_debug_suffix_cmp(&offset_a,&offset_b);
   }
 }
-GEM_INLINE void indexer_debug_generate_sa(dna_text_builder_t* const index_text) {
+GEM_INLINE void indexer_debug_generate_sa(dna_text_t* const index_text) {
   // Allocate memory for SA
-  debug_char_text = (char*) dna_text_builder_get_text(index_text);
-  debug_text_length = dna_text_builder_get_length(index_text);
+  debug_char_text = (char*) dna_text_get_text(index_text);
+  debug_text_length = dna_text_get_length(index_text);
   debug_SA = mm_malloc(sizeof(uint64_t)*(debug_text_length));
   uint64_t i;
   for (i=0;i<debug_text_length;++i) debug_SA[i] = i;
   // Build SA
   qsort(debug_SA,debug_text_length,sizeof(uint64_t),(int (*)(const void *,const void *))indexer_debug_suffix_cmp);
 }
-GEM_INLINE void indexer_debug_check_sa(char* const file_name,dna_text_builder_t* const index_text) {
+GEM_INLINE void indexer_debug_check_sa(char* const file_name,dna_text_t* const index_text) {
   // Open file
   FILE* const bwt_file = fopen(file_name,"w");
   // Generate SA
@@ -158,7 +153,7 @@ GEM_INLINE void indexer_debug_check_sa(char* const file_name,dna_text_builder_t*
   // Close
   fclose(bwt_file);
 }
-GEM_INLINE void indexer_debug_check_bwt(char* const file_name,dna_text_builder_t* const index_text) {
+GEM_INLINE void indexer_debug_check_bwt(char* const file_name,dna_text_t* const index_text) {
   // Open file
   FILE* const bwt_file = fopen(file_name,"w");
   // Generate SA
@@ -176,60 +171,58 @@ GEM_INLINE void indexer_debug_check_bwt(char* const file_name,dna_text_builder_t
 /*
  * GEM-Indexer Build Archive
  */
-GEM_INLINE void indexer_process_multifasta(archive_builder_t* const archive_builder) {
-  /*
-   * Process input MultiFASTA
-   */
-  input_file_t* const input_multifasta = (parameters.input_multifasta_file_name==NULL) ?
+GEM_INLINE void indexer_process_multifasta(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
+  // Process input MultiFASTA
+  input_file_t* const input_multifasta = (parameters->input_multifasta_file_name==NULL) ?
       input_stream_open(stdin,BUFFER_SIZE_32M) :
-      input_file_open(parameters.input_multifasta_file_name,BUFFER_SIZE_32M,false);
-  switch (archive_builder->index_type) {
-    case fm_dna_classic:
-      archive_builder_process_multifasta(archive_builder,input_multifasta,
-          parameters.dump_locator_intervals,parameters.dump_indexed_text,parameters.verbose);
-      break;
-    case fm_dna_run_length:
-      archive_builder_process_multifasta(archive_builder,input_multifasta,
-          parameters.dump_locator_intervals,parameters.dump_indexed_text,parameters.verbose);
-      archive_builder_process_run_length_text(
-          archive_builder,parameters.dump_run_length_text,parameters.verbose);
-      break;
-    case fm_dna_graph: {
-      input_file_t* const input_graph = input_file_open(parameters.input_graph_file_name,BUFFER_SIZE_32M,false);
-      archive_builder_process_graph(archive_builder,input_graph,parameters.dump_graph_links,parameters.verbose);
-      archive_builder_process_multifasta__graph(archive_builder,input_multifasta,
-          parameters.dump_locator_intervals,parameters.dump_indexed_text,parameters.dump_graph_links,parameters.verbose);
-      input_file_close(input_graph); // Close MultiFASTA
-      break;
-    }
-    default:
-      GEM_INVALID_CASE();
-      break;
+      input_file_open(parameters->input_multifasta_file_name,BUFFER_SIZE_32M,false);
+  if (parameters->input_graph_file_name!=NULL) {
+    input_file_t* const input_graph = input_file_open(parameters->input_graph_file_name,BUFFER_SIZE_32M,false);
+//    archive_builder_process_graph(archive_builder,input_graph,parameters->dump_graph_links,parameters->verbose);
+//    archive_builder_process_multifasta__graph(archive_builder,input_multifasta,
+//        parameters->dump_locator_intervals,parameters->dump_indexed_text,parameters->dump_graph_links,parameters->verbose);
+    input_file_close(input_graph); // Close MultiFASTA
+  } else if (parameters->index_run_length) {
+    archive_builder_process_multifasta(archive_builder,input_multifasta,
+        parameters->dump_locator_intervals,parameters->dump_indexed_text,parameters->verbose);
+    archive_builder_process_run_length_text(
+        archive_builder,parameters->dump_run_length_text,parameters->verbose);
+  } else {
+    archive_builder_process_multifasta(archive_builder,input_multifasta,
+        parameters->dump_locator_intervals,parameters->dump_indexed_text,parameters->verbose);
   }
   input_file_close(input_multifasta); // Close MultiFASTA
 }
-GEM_INLINE void indexer_generate_bwt(archive_builder_t* const archive_builder) {
+GEM_INLINE void indexer_generate_bwt(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
   // Build BWT
-  archive_builder_build_bwt(archive_builder,parameters.dump_explicit_sa,parameters.dump_bwt,parameters.verbose);
-  // DEBUG: Print Explicit Checked-SA => (SApos,SA[SApos...SApos+SAFixLength])
+  tfprintf(gem_log_get_stream(),"[Generating BWT Forward-Text]\n");
+  archive_builder_build_bwt(archive_builder,parameters->dump_bwt,parameters->dump_explicit_sa,parameters->verbose);
+  // DEBUG. Print Explicit Checked-SA => (SApos,SA[SApos...SApos+SAFixLength])
   gem_cond_debug_block(GEM_INDEXER_DEBUG_DUMP_EXPLICIT_CHECKED_SA) {
-    indexer_debug_check_sa(gem_strcat(parameters.output_index_file_name_prefix,".check.sa"),archive_builder->enc_text);
+    indexer_debug_check_sa(gem_strcat(parameters->output_index_file_name_prefix,".check.sa"),archive_builder->enc_text);
   }
-  // DEBUG: Print Checked-BWT
+  // DEBUG. Print Checked-BWT (Generate SA-BWT (to compare with))
   gem_cond_debug_block(GEM_INDEXER_DEBUG_DUMP_CHECKED_BWT) {
-    // Generate SA-BWT (to compare with)
-    indexer_debug_check_bwt(gem_strcat(parameters.output_index_file_name_prefix,".check.bwt"),archive_builder->enc_text);
-    // Free
-    if (debug_SA) mm_free(debug_SA);
+    indexer_debug_check_bwt(gem_strcat(parameters->output_index_file_name_prefix,".check.bwt"),archive_builder->enc_text);
+    if (debug_SA) mm_free(debug_SA); // Free
   }
-  // DEVEL: Skip the FM-index generation
-  if (parameters.dev_generate_only_bwt) exit(0);
+  // DEBUG. Skip the FM-index generation
+  if (parameters->dev_generate_only_bwt) exit(0);
 }
-GEM_INLINE void indexer_build_index(archive_builder_t* const archive_builder) {
-  /*
-   * Build Index
-   */
-  archive_builder_build_index(archive_builder,parameters.check_index,parameters.verbose);
+GEM_INLINE void indexer_generate_bwt_reverse(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
+  // Build BWT of the reverse text
+  tfprintf(gem_log_get_stream(),"[Generating BWT Reverse-Text]\n");
+  archive_builder_build_bwt_reverse(archive_builder,parameters->dump_indexed_text,
+      parameters->dump_bwt,parameters->dump_explicit_sa,parameters->verbose);
+}
+GEM_INLINE void indexer_write_index(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
+  // Write Text & FM-Index
+  archive_builder_write_text(archive_builder,parameters->verbose);
+  archive_builder_write_index(archive_builder,parameters->check_index,parameters->verbose);
+}
+GEM_INLINE void indexer_write_index_reverse(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
+  // Write FM-Index Reverse
+  archive_builder_write_index_reverse(archive_builder,parameters->check_index,parameters->verbose);
 }
 /*
  * GEM-Indexer options Menu
@@ -244,12 +237,13 @@ option_t gem_indexer_options[] = {
   { 'r', "index-run-length", NO_ARGUMENT, TYPE_NONE, 3 , true, "" , "(default=false)" },
   { 300, "index-complement", OPTIONAL, TYPE_STRING, 3 , true, "" , "(default=false, simulated at mapping)" },
   { 'N', "strip-unknown-bases-threshold", REQUIRED, TYPE_INT, 3 , true, "'disable'|<integer>" , "(default=50)" },
-  { 301, "complement-size-threshold", REQUIRED, TYPE_INT, 3 , true, "<integer>" , "(default=2GB)" },
+  { 301, "complement-size-threshold", REQUIRED, TYPE_INT, 3 , true, "<integer>" , "(default=8GB)" },
   /* FM-Index */
   { 's', "sampling-rate", REQUIRED, TYPE_INT, 4 , true, "<sampling_rate>" , "(default=4)" },
   { 400, "check-index", NO_ARGUMENT, TYPE_NONE, 4 , true, "", "(default=false)"},
+  // TODO { 401, "generate-reverse", NO_ARGUMENT, TYPE_NONE, 4 , true, "", "(default=true)"},
   /* System */
-  { 't', "threads", REQUIRED, TYPE_INT, 5 , true, "<number>" , "(default=1)" },
+  { 't', "threads", REQUIRED, TYPE_INT, 5 , true, "<number>" , "(default=#cores)" },
   { 500, "max-memory", REQUIRED, TYPE_STRING, 5 , true, "<maximum-memory>" , "(Eg 2GB)" },
   { 501, "tmp-folder", REQUIRED, TYPE_STRING, 5 , true, "<temporal_dir_path>" , "(/tmp/)" },
   /* Debug/Temporal */
@@ -286,7 +280,7 @@ void usage(const bool print_inactive) {
   fprintf(stderr, "USAGE: ./gem-indexer [ARGS]...\n");
   options_fprint_menu(stderr,gem_indexer_options,gem_indexer_groups,true,print_inactive);
 }
-void parse_arguments(int argc,char** argv) {
+void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters) {
   struct option* getopt_options = options_adaptor_getopt(gem_indexer_options);
   string_t* const getopt_short_string = options_adaptor_getopt_short(gem_indexer_options);
   char* const getopt_short = string_get_buffer(getopt_short_string);
@@ -297,47 +291,47 @@ void parse_arguments(int argc,char** argv) {
     switch (option) {
     /* I/O */
     case 'i': // --input
-      parameters.input_multifasta_file_name = optarg;
+      parameters->input_multifasta_file_name = optarg;
       break;
     case 'g': // --graph
-      parameters.input_graph_file_name = optarg;
+      parameters->input_graph_file_name = optarg;
       break;
     case 'o': // --output
-      parameters.output_index_file_name = optarg;
+      parameters->output_index_file_name = optarg;
       break;
     /* MultiFasta Processing */
     case 'c': // --index-colorspace
-      parameters.index_colorspace = true;
+      parameters->index_colorspace = true;
       break;
     case 'r': // --index-run-length
-      parameters.index_run_length = true;
+      parameters->index_run_length = true;
       break;
     case 300: // --index-complement
-      parameters.index_complement = (optarg) ? (options_parse_bool(optarg) ? index_complement_yes : index_complement_no ) : index_complement_yes;
+      parameters->index_complement = (optarg) ? (options_parse_bool(optarg) ? index_complement_yes : index_complement_no ) : index_complement_yes;
       break;
     case 'N': // --strip-unknown-bases-threshold
       if (gem_strcaseeq(optarg,"disable")) {
-        parameters.ns_threshold = UINT64_MAX;
+        parameters->ns_threshold = UINT64_MAX;
       } else {
-        parameters.ns_threshold = atol(optarg);
+        parameters->ns_threshold = atol(optarg);
       }
       break;
     case 301: // --complement-size-threshold
-      gem_cond_fatal_error(input_text_parse_size(optarg,&(parameters.complement_size_threshold)),PARSING_SIZE,"-complement-size-threshold",optarg);
+      gem_cond_fatal_error(input_text_parse_size(optarg,&(parameters->complement_size_threshold)),PARSING_SIZE,"-complement-size-threshold",optarg);
       break;
     /* FM-Index */
     case 's': { // --sampling-rate
       const uint64_t sampling = atol(optarg);
       switch (sampling) {
-        case 1:   parameters.sampling_rate=SAMPLING_RATE_1; break;
-        case 2:   parameters.sampling_rate=SAMPLING_RATE_2; break;
-        case 4:   parameters.sampling_rate=SAMPLING_RATE_4; break;
-        case 8:   parameters.sampling_rate=SAMPLING_RATE_8; break;
-        case 16:  parameters.sampling_rate=SAMPLING_RATE_16; break;
-        case 32:  parameters.sampling_rate=SAMPLING_RATE_32; break;
-        case 64:  parameters.sampling_rate=SAMPLING_RATE_64; break;
-        case 128: parameters.sampling_rate=SAMPLING_RATE_128; break;
-        case 256: parameters.sampling_rate=SAMPLING_RATE_256; break;
+        case 1:   parameters->sampling_rate=SAMPLING_RATE_1; break;
+        case 2:   parameters->sampling_rate=SAMPLING_RATE_2; break;
+        case 4:   parameters->sampling_rate=SAMPLING_RATE_4; break;
+        case 8:   parameters->sampling_rate=SAMPLING_RATE_8; break;
+        case 16:  parameters->sampling_rate=SAMPLING_RATE_16; break;
+        case 32:  parameters->sampling_rate=SAMPLING_RATE_32; break;
+        case 64:  parameters->sampling_rate=SAMPLING_RATE_64; break;
+        case 128: parameters->sampling_rate=SAMPLING_RATE_128; break;
+        case 256: parameters->sampling_rate=SAMPLING_RATE_256; break;
         default:
           gem_error_msg("Sampling rate argument not valid. Reset to default (--sampling-rate 16)");
           break;
@@ -345,45 +339,45 @@ void parse_arguments(int argc,char** argv) {
     }
     break;
     case 400: // --check-index
-      parameters.check_index = true;
+      parameters->check_index = true;
       break;
     /* System */
     case 't': // --threads
-      parameters.num_threads = atol(optarg);
+      parameters->num_threads = atol(optarg);
       break;
     case 500: // --max-memory
-      gem_cond_fatal_error(input_text_parse_size(optarg,&(parameters.max_memory)),PARSING_SIZE,"--max-memory",optarg);
+      gem_cond_fatal_error(input_text_parse_size(optarg,&(parameters->max_memory)),PARSING_SIZE,"--max-memory",optarg);
       break;
     case 501: // --tmp-folder
-      parameters.tmp_folder = optarg;
+      parameters->tmp_folder = optarg;
       break;
     /* Debug/Temporal */
     case 600: // --dump-locator-intervals
-      parameters.dump_locator_intervals = (optarg) ? options_parse_bool(optarg) : true;
+      parameters->dump_locator_intervals = (optarg) ? options_parse_bool(optarg) : true;
       break;
     case 601: // --dump-indexed-text
-      parameters.dump_indexed_text = (optarg) ? options_parse_bool(optarg) : true;
+      parameters->dump_indexed_text = (optarg) ? options_parse_bool(optarg) : true;
       break;
     case 602: // --dump-explicit-sa
-      parameters.dump_explicit_sa = (optarg) ? options_parse_bool(optarg) : true;
+      parameters->dump_explicit_sa = (optarg) ? options_parse_bool(optarg) : true;
       break;
     case 603: // --dump-bwt
-      parameters.dump_bwt = (optarg) ? options_parse_bool(optarg) : true;
+      parameters->dump_bwt = (optarg) ? options_parse_bool(optarg) : true;
       break;
     case 604:
-      parameters.dump_run_length_text = (optarg) ? options_parse_bool(optarg) : true;
+      parameters->dump_run_length_text = (optarg) ? options_parse_bool(optarg) : true;
       break;
     case 605: // --dump-graph-links
-      parameters.dump_graph_links = (optarg) ? options_parse_bool(optarg) : true;
+      parameters->dump_graph_links = (optarg) ? options_parse_bool(optarg) : true;
       break;
     case 606: // --debug
-      parameters.dump_locator_intervals = true;
-      parameters.dump_indexed_text = true;
-      parameters.dump_explicit_sa = true;
-      parameters.dump_bwt = true;
-      parameters.dump_graph_links = true;
-      parameters.dump_run_length_text = true;
-      parameters.verbose = true;
+      parameters->dump_locator_intervals = true;
+      parameters->dump_indexed_text = true;
+      parameters->dump_explicit_sa = true;
+      parameters->dump_bwt = true;
+      parameters->dump_graph_links = true;
+      parameters->dump_run_length_text = true;
+      parameters->verbose = true;
       break;
     /* Miscellaneous */
     case 'h':
@@ -393,20 +387,20 @@ void parse_arguments(int argc,char** argv) {
       usage(true);
       exit(1);
     case 'v':
-      parameters.verbose = true;
+      parameters->verbose = true;
       break;
     case 'q':
-      parameters.verbose = false;
+      parameters->verbose = false;
       break;
     case 700: // --info-file
-      parameters.info_file_name_provided = true;
-      parameters.info_file_name = optarg;
+      parameters->info_file_name_provided = true;
+      parameters->info_file_name = optarg;
       break;
     /* Extras/Develop */
     case 800: // --bwt
-      parameters.dev_generate_only_bwt = true;
-      parameters.dump_bwt = true;
-      parameters.verbose = true;
+      parameters->dev_generate_only_bwt = true;
+      parameters->dump_bwt = true;
+      parameters->verbose = true;
       break;
     case '?':
     default:
@@ -417,32 +411,32 @@ void parse_arguments(int argc,char** argv) {
    * Parameters Check
    */
   // Index type incompatibility list
-  if (parameters.input_graph_file_name!=NULL) {
-    gem_cond_fatal_error_msg(parameters.index_colorspace,
+  if (parameters->input_graph_file_name!=NULL) {
+    gem_cond_fatal_error_msg(parameters->index_colorspace,
             "Index-Type. Graph generation is not compatible with colorspace");
-    gem_cond_fatal_error_msg(parameters.index_run_length,
+    gem_cond_fatal_error_msg(parameters->index_run_length,
             "Index-Type. Graph generation is not compatible with RL-index");
-  } else if (parameters.index_colorspace!=parameters.index_run_length) {
-    gem_cond_fatal_error_msg(parameters.index_run_length,
+  } else if (parameters->index_colorspace && parameters->index_run_length) {
+    gem_cond_fatal_error_msg(parameters->index_run_length,
             "Index-Type. Colorspace is not compatible with RL-index");
   }
   // Output file name
-  if (parameters.output_index_file_name==NULL) {
-    gem_cond_fatal_error_msg(parameters.input_multifasta_file_name==NULL,
+  if (parameters->output_index_file_name==NULL) {
+    gem_cond_fatal_error_msg(parameters->input_multifasta_file_name==NULL,
         "Parsing arguments. Please specify an output file name (--output)");
-    parameters.output_index_file_name_prefix = gem_strrmext(gem_strbasename(parameters.input_multifasta_file_name));
-    parameters.output_index_file_name = gem_strcat(parameters.output_index_file_name_prefix,".gem");
+    parameters->output_index_file_name_prefix = gem_strrmext(gem_strbasename(parameters->input_multifasta_file_name));
+    parameters->output_index_file_name = gem_strcat(parameters->output_index_file_name_prefix,".gem");
   } else {
-    parameters.output_index_file_name_prefix = parameters.output_index_file_name;
-    parameters.output_index_file_name = gem_strcat(parameters.output_index_file_name_prefix,".gem");
+    parameters->output_index_file_name_prefix = parameters->output_index_file_name;
+    parameters->output_index_file_name = gem_strcat(parameters->output_index_file_name_prefix,".gem");
   }
   // Info file
-  if (!parameters.info_file_name_provided)  {
-    parameters.info_file_name = gem_strcat(parameters.output_index_file_name_prefix,".info");
+  if (!parameters->info_file_name_provided)  {
+    parameters->info_file_name = gem_strcat(parameters->output_index_file_name_prefix,".info");
   }
   // System
-  if (parameters.max_memory==0) {
-    parameters.max_memory = mm_get_available_mem();
+  if (parameters->max_memory==0) {
+    parameters->max_memory = mm_get_available_mem();
   }
   /*
    * Free
@@ -451,17 +445,14 @@ void parse_arguments(int argc,char** argv) {
   mm_free(getopt_short_string);
   mm_free(getopt_options);
 }
-void indexer_cleanup(archive_builder_t* const archive_builder) {
+void indexer_cleanup(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
   // Archive Builder
   archive_builder_delete(archive_builder);
   // Output file name
-//  if (parameters.output_index_file_name_prefix!=parameters.output_index_file_name) {
-//    mm_free(parameters.output_index_file_name_prefix);
-//  }
-  mm_free(parameters.output_index_file_name);
+  mm_free(parameters->output_index_file_name);
   // Info File Name
-  if (!parameters.info_file_name_provided)  {
-    mm_free(parameters.info_file_name);
+  if (!parameters->info_file_name_provided)  {
+    mm_free(parameters->info_file_name);
   }
 }
 /*
@@ -469,7 +460,10 @@ void indexer_cleanup(archive_builder_t* const archive_builder) {
  */
 int main(int argc,char** argv) {
   // Parsing command-line options
-  parse_arguments(argc,argv);
+  gem_timer_t gem_indexer_timer; // Global Indexer Timer
+  indexer_parameters_t parameters;
+  indexer_parameters_set_defaults(&parameters);
+  parse_arguments(argc,argv,&parameters);
 
   // GEM Runtime setup
   gem_runtime_init(parameters.num_threads,parameters.max_memory,parameters.tmp_folder);
@@ -478,29 +472,22 @@ int main(int argc,char** argv) {
 
   // GEM Archive Builder
   fm_t* const index_file = fm_open_file(parameters.output_index_file_name,FM_WRITE);
-  const filter_t filter_type = (parameters.index_colorspace) ? Iupac_colorspace_dna : Iupac_dna;
-  const index_t index_type =
-      (parameters.input_graph_file_name!=NULL) ? fm_dna_graph :
-          (parameters.index_run_length ? fm_dna_run_length : fm_dna_classic);
+  const archive_filter_type filter_type = (parameters.index_colorspace) ? Iupac_colorspace_dna : Iupac_dna;
   archive_builder_t* const archive_builder = archive_builder_new(
-      index_file,parameters.output_index_file_name_prefix,index_type,filter_type,
-      parameters.index_complement,parameters.complement_size_threshold,
-      parameters.ns_threshold,parameters.sampling_rate,parameters.num_threads,parameters.max_memory);
+      index_file,parameters.output_index_file_name_prefix,filter_type,
+      parameters.index_complement,parameters.complement_size_threshold,parameters.ns_threshold,
+      parameters.sampling_rate,parameters.num_threads,parameters.max_memory);
 
-  /*
-   * Process MultiFASTA
-   */
-  indexer_process_multifasta(archive_builder);
+  // Process MultiFASTA
+  indexer_process_multifasta(archive_builder,&parameters);
 
-  /*
-   * Generate BWT
-   */
-  indexer_generate_bwt(archive_builder);
+  // Generate BWT
+  indexer_generate_bwt(archive_builder,&parameters);
+  indexer_write_index(archive_builder,&parameters); // Write Index
 
-  /*
-   * Create FM-Index
-   */
-  indexer_build_index(archive_builder);
+  // Generate BWT reverse
+  indexer_generate_bwt_reverse(archive_builder,&parameters);
+  indexer_write_index_reverse(archive_builder,&parameters); // Write Index Reverse
 
   /*
    * Display end banner
@@ -513,7 +500,7 @@ int main(int argc,char** argv) {
   }
 
   // Free
-  indexer_cleanup(archive_builder);
+  indexer_cleanup(archive_builder,&parameters);
   gem_runtime_destroy();
 
   return 0;

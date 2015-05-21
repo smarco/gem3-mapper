@@ -7,6 +7,16 @@
  *   Provides functionality to handle a compact representation of a 8-alphabet text
  */
 
+/*
+ * Pragmas
+ */
+#ifdef __clang__
+#pragma GCC diagnostic ignored "-Winitializer-overrides"
+#endif
+
+/*
+ * Include
+ */
 #include "dna_text.h"
 
 /*
@@ -89,22 +99,6 @@ const char dna_complement_table[256] =
   [DNA_CHAR_SEP] = DNA_CHAR_SEP,
   [DNA_CHAR_JUMP] = DNA_CHAR_JUMP
 };
-const char dna_bisulfite_C2T_table[256] =
-{
-  [0 ... 255] = '~',
-  ['A'] = 'A', ['C'] = 'T', ['G'] = 'G',  ['T'] = 'T', ['N'] = 'N',
-  ['a'] = 'A', ['c'] = 'T', ['g'] = 'G',  ['t'] = 'T', ['n'] = 'N',
-  [DNA_CHAR_SEP] = DNA_CHAR_SEP,
-  [DNA_CHAR_JUMP] = DNA_CHAR_JUMP
-};
-const char dna_bisulfite_G2A_table[256] =
-{
-  [0 ... 255] = '~',
-  ['A'] = 'A', ['C'] = 'C', ['G'] = 'A',  ['T'] = 'T', ['N'] = 'N',
-  ['a'] = 'A', ['c'] = 'C', ['g'] = 'A',  ['t'] = 'T', ['n'] = 'N',
-  [DNA_CHAR_SEP] = DNA_CHAR_SEP,
-  [DNA_CHAR_JUMP] = DNA_CHAR_JUMP
-};
 const uint8_t dna_encoded_complement_table[DNA_EXT_RANGE] =
 {
   [ENC_DNA_CHAR_A] = ENC_DNA_CHAR_T,
@@ -142,11 +136,17 @@ const uint8_t dna_encoded_colorspace_table[DNA_EXT_RANGE][DNA_EXT_RANGE] = {
   /* SEP */ {ENC_DNA_CHAR_SEP, ENC_DNA_CHAR_SEP, ENC_DNA_CHAR_SEP, ENC_DNA_CHAR_SEP, ENC_DNA_CHAR_SEP, ENC_DNA_CHAR_SEP},
    /* N */  {ENC_DNA_CHAR_N,   ENC_DNA_CHAR_N,   ENC_DNA_CHAR_N,   ENC_DNA_CHAR_N,   ENC_DNA_CHAR_SEP, ENC_DNA_CHAR_N}
 };
-
+/*
+ * DNA-Text Model & Version
+ */
+#define DNA_TEXT_MODEL_NO  5002ul
 /*
  * DNA-Text
  */
-struct _dna_text_builder_t {
+typedef enum { dna_text_raw = 0, dna_text_compact=UINT64_MAX } dna_text_type;
+struct _dna_text_t {
+  /* Metadata */
+  dna_text_type type;
   /* Text */
   uint8_t* buffer;
   uint8_t* text;
@@ -156,45 +156,16 @@ struct _dna_text_builder_t {
   mm_t* mm_text;
   bool mm_extern;
 };
-#ifdef DNA_TEXT_RAW
-struct _dna_text_t {
-  /* Text */
-  uint8_t* buffer;
-  uint8_t* text;
-  uint64_t length;
-  uint64_t allocated;
-  /* MM */
-  mm_t* mm_text;
-  bool mm_extern;
-};
-#endif
-#ifdef DNA_TEXT_COMPACT
-struct _dna_text_t {
-  // TODO
-};
-#endif
 /*
  * Setup/Loader
  */
-#ifdef DNA_TEXT_RAW
-GEM_INLINE dna_text_t* dna_text_read(fm_t* const file_manager) {
-  // Alloc
-  dna_text_t* const dna_text = mm_alloc(dna_text_t);
-  // Read header
-  dna_text->length = fm_read_uint64(file_manager);
-  dna_text->allocated = dna_text->length;
-  // Read Text
-  dna_text->mm_extern = false;
-  dna_text->mm_text = fm_load_mem(file_manager,dna_text->length*UINT8_SIZE);
-  dna_text->buffer = mm_get_base_mem(dna_text->mm_text);
-  dna_text->text = dna_text->buffer;
-  // Return
-  return dna_text;
-}
 GEM_INLINE dna_text_t* dna_text_read_mem(mm_t* const memory_manager) {
   // Alloc
   dna_text_t* const dna_text = mm_alloc(dna_text_t);
   // Read header
+  const uint64_t dna_text_model_no = mm_read_uint64(memory_manager);
+  gem_cond_fatal_error(dna_text_model_no!=DNA_TEXT_MODEL_NO,DNA_TEXT_WRONG_MODEL_NO,dna_text_model_no,DNA_TEXT_MODEL_NO);
+  dna_text->type = mm_read_uint64(memory_manager);
   dna_text->length = mm_read_uint64(memory_manager);
   dna_text->allocated = dna_text->length;
   // Read Text
@@ -214,23 +185,12 @@ GEM_INLINE void dna_text_delete(dna_text_t* const dna_text) {
   }
   mm_free(dna_text);
 }
-#endif
-#ifdef DNA_TEXT_COMPACT
-GEM_INLINE dna_text_t* dna_text_read(fm_t* const file_manager) {
-
-}
-GEM_INLINE dna_text_t* dna_text_read_mem(mm_t* const memory_manager) {
-
-}
-GEM_INLINE void dna_text_delete(dna_text_t* const dna_text) {
-
-}
-#endif
 /*
  * Builder
  */
-GEM_INLINE dna_text_builder_t* dna_text_builder_new(const uint64_t dna_text_length) {
-  dna_text_builder_t* const dna_text = mm_alloc(dna_text_builder_t);
+GEM_INLINE dna_text_t* dna_text_new(const uint64_t dna_text_length) {
+  dna_text_t* const dna_text = mm_alloc(dna_text_t);
+  dna_text->type = dna_text_raw;
   dna_text->allocated = dna_text_length;
   dna_text->buffer = mm_calloc(dna_text->allocated,uint8_t,false);
   dna_text->text = dna_text->buffer;
@@ -239,9 +199,9 @@ GEM_INLINE dna_text_builder_t* dna_text_builder_new(const uint64_t dna_text_leng
   dna_text->mm_extern = false;
   return dna_text;
 }
-GEM_INLINE dna_text_builder_t* dna_text_builder_padded_new(
-    const uint64_t dna_text_length,const uint64_t init_padding,const uint64_t end_padding) {
-  dna_text_builder_t* const dna_text = mm_alloc(dna_text_builder_t);
+GEM_INLINE dna_text_t* dna_text_padded_new(const uint64_t dna_text_length,const uint64_t init_padding,const uint64_t end_padding) {
+  dna_text_t* const dna_text = mm_alloc(dna_text_t);
+  dna_text->type = dna_text_raw;
   dna_text->allocated = dna_text_length+init_padding+end_padding;
   dna_text->buffer = mm_calloc(dna_text->allocated,uint8_t,false);
   dna_text->text = dna_text->buffer + init_padding;
@@ -250,118 +210,80 @@ GEM_INLINE dna_text_builder_t* dna_text_builder_padded_new(
   dna_text->mm_extern = false;
   return dna_text;
 }
-GEM_INLINE void dna_text_builder_delete(dna_text_builder_t* const dna_text) {
-  DNA_TEXT_CHECK(dna_text);
-  if (dna_text->mm_text!=NULL) {
-    mm_bulk_free(dna_text->mm_text);
-  } else if (!dna_text->mm_extern) {
-    mm_free(dna_text->buffer);
-  }
-  mm_free(dna_text);
-}
-// Builder Accessors
-GEM_INLINE uint64_t dna_text_builder_get_length(const dna_text_builder_t* const dna_text) {
-  DNA_TEXT_CHECK(dna_text);
-  return dna_text->length;
-}
-GEM_INLINE void dna_text_builder_set_length(dna_text_builder_t* const dna_text,const uint64_t length) {
-  DNA_TEXT_CHECK(dna_text);
-  dna_text->length = length;
-}
-GEM_INLINE uint8_t dna_text_builder_get_char(const dna_text_builder_t* const dna_text,const uint64_t position) {
-  gem_fatal_check(position >= dna_text->allocated,DNA_TEXT_OOR,position,dna_text->allocated);
-  return dna_text->text[position];
-}
-GEM_INLINE void dna_text_builder_set_char(
-    const dna_text_builder_t* const dna_text,const uint64_t position,const uint8_t enc_char) {
-  gem_fatal_check(position >= dna_text->allocated,DNA_TEXT_OOR,position,dna_text->allocated);
-  dna_text->text[position] = enc_char;
-}
-GEM_INLINE uint8_t* dna_text_builder_get_text(const dna_text_builder_t* const dna_text) {
-  return dna_text->text;
-}
 // Builder writer
-#ifdef DNA_TEXT_RAW
-GEM_INLINE void dna_text_builder_write(
-    fm_t* const output_file_manager,dna_text_builder_t* const dna_text) {
+GEM_INLINE void dna_text_write_chunk(fm_t* const output_file_manager,dna_text_t* const dna_text,const uint64_t chunk_length) {
   FM_CHECK(output_file_manager);
   DNA_TEXT_CHECK(dna_text);
-  fm_write_uint64(output_file_manager,dna_text->length);
-  fm_write_mem(output_file_manager,dna_text->text,dna_text->length*UINT8_SIZE);
+  fm_write_uint64(output_file_manager,DNA_TEXT_MODEL_NO);
+  fm_write_uint64(output_file_manager,dna_text->type);
+  fm_write_uint64(output_file_manager,chunk_length);
+  fm_write_mem(output_file_manager,dna_text->text,chunk_length*UINT8_SIZE);
 }
-#endif
-#ifdef DNA_TEXT_COMPACT
-GEM_INLINE void dna_text_builder_write(
-    fm_t* const output_file_manager,dna_text_builder_t* const dna_text) {
-  // Adaptor
-
+GEM_INLINE void dna_text_write(fm_t* const output_file_manager,dna_text_t* const dna_text) {
+  FM_CHECK(output_file_manager);
+  DNA_TEXT_CHECK(dna_text);
+  dna_text_write_chunk(output_file_manager,dna_text,dna_text->length);
 }
-#endif
 /*
  * Accessors
  */
-#ifdef DNA_TEXT_RAW
 GEM_INLINE uint64_t dna_text_get_length(const dna_text_t* const dna_text) {
   return dna_text->length;
 }
+GEM_INLINE void dna_text_set_length(dna_text_t* const dna_text,const uint64_t length) {
+  DNA_TEXT_CHECK(dna_text);
+  dna_text->length = length;
+}
+GEM_INLINE uint64_t dna_text_get_size(const dna_text_t* const dna_text) {
+  DNA_TEXT_CHECK(dna_text);
+  return dna_text->length;
+}
+GEM_INLINE uint8_t dna_text_get_char(const dna_text_t* const dna_text,const uint64_t position) {
+  gem_fatal_check(position >= dna_text->allocated,DNA_TEXT_OOR,position,dna_text->allocated);
+  return dna_text->text[position];
+}
+GEM_INLINE void dna_text_set_char(const dna_text_t* const dna_text,const uint64_t position,const uint8_t enc_char) {
+  gem_fatal_check(position >= dna_text->allocated,DNA_TEXT_OOR,position,dna_text->allocated);
+  dna_text->text[position] = enc_char;
+}
 GEM_INLINE uint8_t* dna_text_get_text(const dna_text_t* const dna_text) {
-  return dna_text->buffer;
+  return dna_text->text;
 }
 GEM_INLINE uint8_t* dna_text_retrieve_sequence(
-    const dna_text_t* const dna_text,const uint64_t position,const uint64_t length,
-    mm_stack_t* const mm_stack) {
-  uint8_t* const sequence = dna_text->buffer+position;
+    const dna_text_t* const dna_text,const uint64_t position,
+    const uint64_t length,mm_stack_t* const mm_stack) {
+  uint8_t* const sequence = dna_text->text+position;
   PREFETCH(sequence); // Prefetch text // TODO Hint later on (LLC)
-  return dna_text->buffer+position;
+  return dna_text->text+position;
 }
-#endif
-#ifdef DNA_TEXT_COMPACT
-GEM_INLINE uint64_t dna_text_get_length(const dna_text_t* const dna_text) {
-  return dna_text->length;
-}
-GEM_INLINE uint8_t* dna_text_get_text(const dna_text_t* const dna_text) {
-  GEM_NOT_SUPPORTED();
-}
-GEM_INLINE uint8_t* dna_text_retrieve_sequence(
-    const dna_text_t* const dna_text,const uint64_t position,const uint64_t length,
-    mm_stack_t* const mm_stack) {
-  GEM_NOT_IMPLEMENTED();
-  return NULL;
-}
-#endif
 /*
  * Display
  */
-#ifdef DNA_TEXT_RAW
-GEM_INLINE void dna_text_print(FILE* const stream,dna_text_t* const dna_text) {
+GEM_INLINE void dna_text_print(FILE* const stream,dna_text_t* const dna_text,const uint64_t length) {
   DNA_TEXT_CHECK(dna_text);
   fprintf(stream,"[GEM]>DNA-text\n");
-  fprintf(stream,"  => Architecture Raw.encoded\n");
+  switch (dna_text->type) {
+    case dna_text_raw:
+      fprintf(stream,"  => Architecture Plain.encoded\n");
+      break;
+    case dna_text_compact:
+      fprintf(stream,"  => Architecture Compact.encoded\n");
+      break;
+    default:
+      GEM_INVALID_CASE();
+      break;
+  }
   fprintf(stream,"  => Text.Length %lu\n",dna_text->length);
   fprintf(stream,"  => Text.Size %lu MB\n",CONVERT_B_TO_MB(dna_text->length*UINT8_SIZE));
   fflush(stream); // Flush
 }
-#endif
-#ifdef DNA_TEXT_COMPACT
-GEM_INLINE void dna_text_print(FILE* const stream,dna_text_builder_t* const dna_text) {
-  GEM_NOT_IMPLEMENTED();
-}
-#endif
-GEM_INLINE void dna_text_builder_print(FILE* const stream,dna_text_builder_t* const dna_text) {
-  DNA_TEXT_CHECK(dna_text);
-  fprintf(stream,"[GEM]>DNA-text\n");
-  fprintf(stream,"  => Architecture Raw.encoded\n");
-  fprintf(stream,"  => Text.Length %lu\n",dna_text->length);
-  fprintf(stream,"  => Text.Size %lu MB\n",CONVERT_B_TO_MB(dna_text->length*UINT8_SIZE));
-  fflush(stream); // Flush
-}
-GEM_INLINE void dna_text_builder_print_content(FILE* const stream,dna_text_builder_t* const dna_text) {
+GEM_INLINE void dna_text_print_content(FILE* const stream,dna_text_t* const dna_text) {
   DNA_TEXT_CHECK(dna_text);
   const uint8_t* const enc_text = dna_text->text;
   const uint64_t text_length = dna_text->length;
   fwrite(enc_text,1,text_length,stream);
 }
-GEM_INLINE void dna_text_builder_pretty_print_content(FILE* const stream,dna_text_builder_t* const dna_text,const uint64_t width) {
+GEM_INLINE void dna_text_pretty_print_content(FILE* const stream,dna_text_t* const dna_text,const uint64_t width) {
   DNA_TEXT_CHECK(dna_text);
   // Iterate over all indexed text
   const uint8_t* const enc_text = dna_text->text;
@@ -380,6 +302,29 @@ GEM_INLINE void dna_text_builder_pretty_print_content(FILE* const stream,dna_tex
 ///*
 // * DNA Text [Stats]
 // */
+///*
+// * DNA-Text Stats
+// */
+//typedef struct {
+//  /* Nucleotides */
+//  stats_vector_t* nucleotides;
+//  stats_vector_t* dimers;
+//  stats_vector_t* trimers;
+//  stats_vector_t* tetramers;
+//  /* Runs */
+//  stats_vector_t* runs;
+//  /* Distance between nucleotide repetitions */
+//  uint64_t* last_position;
+//  stats_vector_t* distance_nucleotides;
+//  /* Abundance => How many different nucleotides are there in each @SIZE-bucket (@SIZE chars) */
+//  stats_vector_t* abundance_256nt;
+//  stats_vector_t* abundance_128nt;
+//  stats_vector_t* abundance_64nt;
+//  stats_vector_t* abundance_32nt;
+//  stats_vector_t* abundance_16nt;
+//  stats_vector_t* abundance_8nt;
+//  /* Internals */ // TODO
+//} dna_text_stats_t;
 //GEM_INLINE dna_text_stats_t* dna_text_stats_new() {
 //  // TODO
 //}

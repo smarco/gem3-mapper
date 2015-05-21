@@ -275,7 +275,7 @@ GEM_INLINE void archive_builder_process_graph(
   // Check if graph is needed
   if (graph_text_builder_get_num_links(archive_builder->graph) > 0) {
     // Set graph type
-    archive_builder->index_type = fm_dna_graph; // This index has a graph
+//    archive_builder->index_type = fm_dna_graph; // This index has a graph // FIXME: Graph
     // DEBUG: Print parsed links
     graph_text_builder_print(gem_info_get_stream(),archive_builder->graph,archive_builder->locator,dump_graph_links);
     // Sort table
@@ -512,11 +512,11 @@ GEM_INLINE void archive_builder_process_multifasta__graph(
   // DEBUG locator
   locator_builder_print(gem_info_get_stream(),archive_builder->locator,dump_locator_intervals); // Locator
   // DEBUG index_text
-  if (dump_indexed_text) archive_builder_dump_index_text(archive_builder);
+  if (dump_indexed_text) archive_builder_dump_index_text(archive_builder,".text");
   /*
    * Write (1/3) :: Header & Locator
    */
   archive_builder_write_header(archive_builder);
   archive_builder_write_locator(archive_builder);
-  archive_builder_write_graph__jump_table(archive_builder,dump_graph_links);
+  // FIXME archive_builder_write_graph__jump_table(archive_builder,dump_graph_links);
 }

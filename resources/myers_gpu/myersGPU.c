@@ -312,7 +312,7 @@ MYERS_INLINE myersError_t transferReferenceCPUtoGPUs(reference_buffer_t *referen
 	return (SUCCESS);
 }
 
-MYERS_INLINE myersError_t transformReferenceGEM(const char *referenceGEM, reference_buffer_t *reference)
+MYERS_INLINE myersError_t transformReferenceGEMFR(const char *referenceGEM, reference_buffer_t *reference)
 {
 	uint64_t indexBase, bitmap;
 	uint64_t idEntry, i, referencePosition;
@@ -334,6 +334,46 @@ MYERS_INLINE myersError_t transformReferenceGEM(const char *referenceGEM, refere
 	}
 	return(SUCCESS);
 }
+MYERS_INLINE myersError_t transformReferenceGEMF(const char *referenceGEM, reference_buffer_t *reference)
+{
+  uint64_t indexBase, bitmap;
+  uint64_t idEntry, i, referencePosition;
+  unsigned char referenceChar;
+  // Recompute size of the full reference (forward + reverse-complement)
+  const uint64_t forward_ref_size = reference->size;
+  const uint64_t total_ref_size = 2*forward_ref_size;
+  reference->size = total_ref_size;
+  reference->numEntries = DIV_CEIL(total_ref_size, REFERENCE_CHARS_PER_ENTRY) + REFERENCE_END_PADDING;
+  // Allocate CUDA-HostMem
+  void *ptr = NULL;
+  CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint64_t), cudaHostAllocMapped));
+  // Copy reference
+  for(idEntry = 0; idEntry < reference->numEntries; ++idEntry){
+    bitmap = 0;
+    for(i = 0; i < REFERENCE_CHARS_PER_ENTRY; i++){
+      referencePosition = idEntry * REFERENCE_CHARS_PER_ENTRY + i;
+      if (referencePosition < forward_ref_size) {
+        referenceChar = referenceGEM[referencePosition];
+      } else if (referencePosition < reference->size) {
+        const char character = referenceGEM[2*forward_ref_size-referencePosition-2]; // Unitary projection
+        switch (character) {
+          case ENC_DNA_CHAR_A: referenceChar = ENC_DNA_CHAR_T; break;
+          case ENC_DNA_CHAR_C: referenceChar = ENC_DNA_CHAR_G; break;
+          case ENC_DNA_CHAR_G: referenceChar = ENC_DNA_CHAR_C; break;
+          case ENC_DNA_CHAR_T: referenceChar = ENC_DNA_CHAR_A; break;
+          default: referenceChar = character; break;
+        }
+      } else {
+        referenceChar = 'N'; //filling reference padding
+      }
+      indexBase = ((uint64_t) referenceChar) << (BMP_GPU_UINT64_LENGTH - REFERENCE_CHAR_LENGTH);
+      bitmap = (bitmap >> REFERENCE_CHAR_LENGTH) | indexBase;
+    }
+    reference->h_reference[referencePosition / REFERENCE_CHARS_PER_ENTRY] = bitmap;
+  }
+  // Return
+  return(SUCCESS);
+}
 
 MYERS_INLINE myersError_t initReference(reference_buffer_t **reference, const char *referenceRaw, uint64_t refSize, bpm_gpu_ref_coding_t refCoding)
 {
@@ -345,15 +385,24 @@ MYERS_INLINE myersError_t initReference(reference_buffer_t **reference, const ch
 	ref->numEntries = DIV_CEIL(ref->size, REFERENCE_CHARS_PER_ENTRY) + REFERENCE_END_PADDING;
 
 	switch(refCoding){
-    	case ASCII:						MYERS_ERROR(transformReferenceASCII(referenceRaw, ref));
+    	case ASCII:
+    	  MYERS_ERROR(transformReferenceASCII(referenceRaw, ref));
     		break;
-    	case GEM:						MYERS_ERROR(transformReferenceGEM(referenceRaw, ref));
+    	case GEM_FULL:
+    	  MYERS_ERROR(transformReferenceGEMFR(referenceRaw, ref));
     		break;
-    	case MFASTA_FILE:				MYERS_ERROR(loadReferenceMFASTA(referenceRaw, ref));
+      case GEM_ONLY_FORWARD:
+        MYERS_ERROR(transformReferenceGEMF(referenceRaw, ref));
+        break;
+    	case MFASTA_FILE:
+    	  MYERS_ERROR(loadReferenceMFASTA(referenceRaw, ref));
     		break;
-    	case PROFILE_REFERENCE_FILE:	MYERS_ERROR(loadReferencePROFILE(referenceRaw, ref));
+    	case PROFILE_REFERENCE_FILE:
+    	  MYERS_ERROR(loadReferencePROFILE(referenceRaw, ref));
     		break;
-    	default:						MYERS_ERROR(E_REFERENCE_CODING);
+    	default:
+    	  MYERS_ERROR(E_REFERENCE_CODING);
+    	  break;
 	}
 
 	(* reference) = ref;

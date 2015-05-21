@@ -104,12 +104,11 @@ GEM_INLINE void input_fasta_parser_prompt_error(
   const char* const file_name = input_file_get_file_name(buffered_fasta_input->input_file);
   switch (error_code) {
     case 0: /* No error */ break;
-    case FASTA_ERROR_TAG_BEGINNING: gem_error(FASTA_TAG_BEGINNING,file_name,line_num); break;
-    case FASTA_ERROR_SEPARATOR_BAD_CHARACTER: gem_error(FASTA_SEPARATOR_BAD_CHARACTER,file_name,line_num); break;
-    case FASTA_ERROR_LENGTHS: gem_error(FASTA_LENGTHS,file_name,line_num); break;
-    default:
-      gem_error(PARSE_FASTA,file_name,line_num,column_pos);
-      break;
+    case FASTA_ERROR_PREMATURE_EOF: gem_error(PARSE_FASTQ_PREMATURE_EOF,file_name,line_num); break;
+    case FASTA_ERROR_TAG_BEGINNING: gem_error(PARSE_FASTQ_TAG_BEGINNING,file_name,line_num); break;
+    case FASTA_ERROR_SEPARATOR_BAD_CHARACTER: gem_error(PARSE_FASTQ_SEPARATOR_BAD_CHARACTER,file_name,line_num); break;
+    case FASTA_ERROR_LENGTHS: gem_error(PARSE_FASTQ_LENGTHS,file_name,line_num); break;
+    default: gem_error(PARSE_FASTQ,file_name,line_num,column_pos); break;
   }
 }
 /*
@@ -191,6 +190,7 @@ GEM_INLINE error_code_t ifp_parse_tag(
 GEM_INLINE error_code_t ifp_parse_read(
     input_file_t* const input_file,input_buffer_t* const input_buffer,
     string_t* const read,const bool strictly_normalized,const bool correct_sequence) {
+  if (input_buffer_eob(input_buffer)) return FASTA_ERROR_PREMATURE_EOF;
   char** const text_line = input_buffer_get_cursor(input_buffer);
   char* const read_begin = *text_line;
   bool bad_character_warn = false;
@@ -219,6 +219,7 @@ GEM_INLINE error_code_t ifp_parse_read(
 GEM_INLINE error_code_t ifp_parse_qualities(
     input_file_t* const input_file,input_buffer_t* const input_buffer,
     string_t* const qualities,const bool try_recovery) {
+  if (input_buffer_eob(input_buffer)) return FASTA_ERROR_PREMATURE_EOF;
   char** const text_line = input_buffer_get_cursor(input_buffer);
   char* const quals_begin = *text_line;
   while (!PARSER_IS_EOL(text_line)) {
@@ -255,7 +256,9 @@ GEM_INLINE error_code_t ifp_parse_sequence(
   if (has_qualities) {
     // Skip '+'
     char** const text_line = input_buffer_get_cursor(input_buffer);
-    if (**text_line!=FASTQ_SEP) return FASTA_ERROR_SEPARATOR_BAD_CHARACTER;
+    if (**text_line!=FASTQ_SEP) {
+      return input_buffer_eob(input_buffer) ? FASTA_ERROR_PREMATURE_EOF : FASTA_ERROR_SEPARATOR_BAD_CHARACTER;
+    }
     PARSER_SKIP_LINE(text_line); PARSER_NEXT_CHAR(text_line);
     // Parse qualities string
     if ((error_code=ifp_parse_qualities(input_file,input_buffer,&seq_read->qualities,try_recovery))) return error_code;

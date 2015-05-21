@@ -67,8 +67,7 @@ GEM_INLINE void archive_search_cache_delete(archive_search_cache_t* const archiv
   vector_delete(archive_search_cache->archive_search_cache);
   mm_free(archive_search_cache);
 }
-GEM_INLINE archive_search_t* archive_search_cache_alloc(
-    archive_search_cache_t* const archive_search_cache,mm_search_t* const mm_search) {
+GEM_INLINE archive_search_t* archive_search_cache_alloc(archive_search_cache_t* const archive_search_cache) {
   archive_search_t* archive_search = NULL;
   if (vector_get_used(archive_search_cache->archive_search_cache)>0) {
     // Get from cache already prepared archive_search_t
@@ -81,8 +80,6 @@ GEM_INLINE archive_search_t* archive_search_cache_alloc(
         &archive_search_cache->mapper_parameters->search_parameters,
         &archive_search_cache->mapper_parameters->select_parameters);
   }
-  // Init archive search
-  archive_search_configure(archive_search,mm_search);
   // Return
   return archive_search;
 }
@@ -100,9 +97,8 @@ GEM_INLINE archive_search_group_t* archive_search_group_new(
   archive_search_group_t* archive_search_group = mm_alloc(archive_search_group_t);
   // Initialize
   archive_search_group->total_search_groups = total_search_groups;
-  const uint64_t hint_patterns_per_search = (archive_is_indexed_complement(mapper_parameters->archive)) ? 1 : 2;
-  archive_search_group->hint_patterns_per_search = hint_patterns_per_search;
-  const uint64_t num_initial_searches = DIV_CEIL(bpm_gpu_buffer_get_max_queries(bpm_gpu_buffers),hint_patterns_per_search);
+  archive_search_group->hint_patterns_per_search = 1;
+  const uint64_t num_initial_searches = bpm_gpu_buffer_get_max_queries(bpm_gpu_buffers);
   archive_search_group->search_group_buffers = mm_calloc(total_search_groups,archive_search_group_buffer_t,true);
   uint64_t i;
   for (i=0;i<total_search_groups;++i) {
@@ -152,28 +148,53 @@ GEM_INLINE void archive_search_group_delete(archive_search_group_t* const archiv
   mm_search_delete(archive_search_group->mm_search);
   mm_free(archive_search_group);
 }
-GEM_INLINE archive_search_t* archive_search_group_alloc(archive_search_group_t* const archive_search_group) {
-  return archive_search_cache_alloc(archive_search_group->archive_search_cache,archive_search_group->mm_search);
+GEM_INLINE archive_search_t* archive_search_group_allocate(archive_search_group_t* const archive_search_group) {
+  // Alloc
+  archive_search_t* const archive_search = archive_search_cache_alloc(archive_search_group->archive_search_cache);
+  // Init archive search
+  archive_search_configure(archive_search,archive_search_group->mm_search);
+  text_collection_clear(&archive_search_group->mm_search->text_collection); // Clear text-collection
+  // Return
+  return archive_search;
+}
+GEM_INLINE void archive_search_group_allocate_pe(
+    archive_search_group_t* const archive_search_group,
+    archive_search_t** const archive_search_end1,archive_search_t** const archive_search_end2) {
+  // Alloca
+  *archive_search_end1 = archive_search_cache_alloc(archive_search_group->archive_search_cache);
+  *archive_search_end2 = archive_search_cache_alloc(archive_search_group->archive_search_cache);
+  // Init archive search
+  archive_search_pe_configure(*archive_search_end1,*archive_search_end2,archive_search_group->mm_search);
+  text_collection_clear(&archive_search_group->mm_search->text_collection); // Clear text-collection
 }
 GEM_INLINE bool archive_search_group_is_empty(archive_search_group_t* const archive_search_group) {
   return vector_is_empty(archive_search_group->current_search_group->archive_searches);
 }
 GEM_INLINE bool archive_search_group_fits_in_buffer(
-    archive_search_group_t* const archive_search_group,archive_search_t* const archive_search) {
-  // Calculate dimensions
-  const bool index_complement = archive_is_indexed_complement(archive_search->archive);
-  const uint64_t num_pattern_dups = (index_complement) ? 1 : 2;
-  const uint64_t total_candidates = archive_search_get_search_canditates(archive_search);
-  const pattern_t* const pattern = &archive_search->forward_search_state.pattern;
+    archive_search_group_t* const archive_search_group,
+    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2) {
   bpm_gpu_buffer_t* const bpm_gpu_buffer = archive_search_group->current_search_group->bpm_gpu_buffer;
+  // Compute dimensions
+  uint64_t total_entries = 0,total_query_chunks = 0,total_candidate_chunks = 0;
+  bpm_gpu_buffer_compute_dimensions(bpm_gpu_buffer,
+      &archive_search_end1->forward_search_state.pattern,
+      archive_search_get_search_canditates(archive_search_end1),
+      &total_entries,&total_query_chunks,&total_candidate_chunks);
+  if (archive_search_end2!=NULL) {
+    bpm_gpu_buffer_compute_dimensions(bpm_gpu_buffer,
+        &archive_search_end2->forward_search_state.pattern,
+        archive_search_get_search_canditates(archive_search_end2),
+        &total_entries,&total_query_chunks,&total_candidate_chunks);
+  }
   // Check if current search fits in buffer
-  return bpm_gpu_buffer_fits_in_buffer(bpm_gpu_buffer,pattern,num_pattern_dups,total_candidates);
+  return bpm_gpu_buffer_fits_in_buffer(bpm_gpu_buffer,total_entries,total_query_chunks,total_candidate_chunks);
 }
 GEM_INLINE bool archive_search_group_add_search(
     archive_search_group_t* const archive_search_group,archive_search_t* const archive_search) {
   // Check if it fits in current buffer
-  while (!archive_search_group_fits_in_buffer(archive_search_group,archive_search)) {
-    gem_cond_fatal_error(vector_is_empty(archive_search_group->current_search_group->archive_searches),ARCHIVE_SEARCH_GROUP_QUERY_TOO_BIG);
+  while (!archive_search_group_fits_in_buffer(archive_search_group,archive_search,NULL)) {
+    const bool empty_group = vector_is_empty(archive_search_group->current_search_group->archive_searches);
+    gem_cond_fatal_error(empty_group,ARCHIVE_SEARCH_GROUP_QUERY_TOO_BIG);
     // Change group
     if (archive_search_group->current_search_group_idx < archive_search_group->total_search_groups - 1) {
       // Send the current group to verification
@@ -192,6 +213,33 @@ GEM_INLINE bool archive_search_group_add_search(
   // Return ok
   return true;
 }
+GEM_INLINE bool archive_search_group_add_paired_search(
+    archive_search_group_t* const archive_search_group,
+    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2) {
+  // Check if it fits in current buffer
+  while (!archive_search_group_fits_in_buffer(archive_search_group,archive_search_end1,archive_search_end2)) {
+    const bool empty_group = vector_is_empty(archive_search_group->current_search_group->archive_searches);
+    gem_cond_fatal_error(empty_group,ARCHIVE_SEARCH_GROUP_QUERY_TOO_BIG);
+    // Change group
+    if (archive_search_group->current_search_group_idx < archive_search_group->total_search_groups - 1) {
+      // Send the current group to verification
+      bpm_gpu_buffer_send(archive_search_group->current_search_group->bpm_gpu_buffer);
+      // Next group
+      ++(archive_search_group->current_search_group_idx);
+      ++(archive_search_group->current_search_group);
+    } else {
+      return false;
+    }
+  }
+  // Copy the candidates to the buffer
+  archive_search_copy_candidates(archive_search_end1,archive_search_group->current_search_group->bpm_gpu_buffer);
+  archive_search_copy_candidates(archive_search_end2,archive_search_group->current_search_group->bpm_gpu_buffer);
+  // Add the search to the current group
+  vector_insert(archive_search_group->current_search_group->archive_searches,archive_search_end1,archive_search_t*);
+  vector_insert(archive_search_group->current_search_group->archive_searches,archive_search_end2,archive_search_t*);
+  // Return ok
+  return true;
+}
 GEM_INLINE void archive_search_group_retrieve_begin(archive_search_group_t* const archive_search_group) {
   // Send the current group to verification
   PROF_ADD_COUNTER(GP_ARCHIVE_SEARCH_GROUP_BUFFERS_USED,archive_search_group->current_search_group_idx);
@@ -204,9 +252,9 @@ GEM_INLINE void archive_search_group_retrieve_begin(archive_search_group_t* cons
   archive_search_group->total_archive_searches = vector_get_used(archive_search_group->current_search_group->archive_searches);
   // Fetch first group
   if (archive_search_group->total_archive_searches > 0) {
-    PROF_START(GP_ARCHIVE_SEARCH_RETRIEVE_CANDIDATES_DELAY);
+    PROF_START(GP_ARCHIVE_SEARCH_GROUP_RETRIEVE_CANDIDATES_DELAY);
     bpm_gpu_buffer_receive(archive_search_group->current_search_group->bpm_gpu_buffer);
-    PROF_STOP(GP_ARCHIVE_SEARCH_RETRIEVE_CANDIDATES_DELAY);
+    PROF_STOP(GP_ARCHIVE_SEARCH_GROUP_RETRIEVE_CANDIDATES_DELAY);
   }
 }
 GEM_INLINE bool archive_search_group_get_search(
@@ -224,9 +272,9 @@ GEM_INLINE bool archive_search_group_get_search(
     archive_search_group->total_archive_searches = vector_get_used(archive_search_group->current_search_group->archive_searches);
     if (archive_search_group->total_archive_searches==0) return false;
     // Fetch group
-    PROF_START(GP_ARCHIVE_SEARCH_RETRIEVE_CANDIDATES_DELAY);
+    PROF_START(GP_ARCHIVE_SEARCH_GROUP_RETRIEVE_CANDIDATES_DELAY);
     bpm_gpu_buffer_receive(archive_search_group->current_search_group->bpm_gpu_buffer);
-    PROF_STOP(GP_ARCHIVE_SEARCH_RETRIEVE_CANDIDATES_DELAY);
+    PROF_STOP(GP_ARCHIVE_SEARCH_GROUP_RETRIEVE_CANDIDATES_DELAY);
   }
   // Return next archive-search
   *archive_search = *archive_search_group->current_archive_search;
@@ -236,5 +284,22 @@ GEM_INLINE bool archive_search_group_get_search(
   ++(archive_search_group->current_archive_search);
   // Return ok
   return true;
+}
+GEM_INLINE bool archive_search_group_get_paired_search(
+    archive_search_group_t* const archive_search_group,
+    archive_search_t** const archive_search_end1,bpm_gpu_buffer_t** const bpm_gpu_buffer_end1,
+    archive_search_t** const archive_search_end2,bpm_gpu_buffer_t** const bpm_gpu_buffer_end2) {
+  bool success;
+  // Get End/1
+  success = archive_search_group_get_search(archive_search_group,archive_search_end1,bpm_gpu_buffer_end1);
+  if (!success) return false;
+  // Get End/2
+  success = archive_search_group_get_search(archive_search_group,archive_search_end2,bpm_gpu_buffer_end2);
+  gem_cond_fatal_error(!success,ARCHIVE_SEARCH_GROUP_UNPAIRED_QUERY);
+  // Return ok
+  return true;
+}
+GEM_INLINE text_collection_t* archive_search_group_get_text_collection(archive_search_group_t* const archive_search_group) {
+  return &archive_search_group->mm_search->text_collection;
 }
 

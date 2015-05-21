@@ -8,33 +8,30 @@
 #include "fm_index.h"
 
 /*
+ * FM-Index Model & Version
+ */
+#define FM_INDEX_MODEL_NO  1004ul
+
+/*
  * Builder
  */
-GEM_INLINE void fm_index_builder(
-    fm_t* const file_manager,dna_text_builder_t* const bwt_text,uint64_t* const character_occurrences,
-    sampled_sa_builder_t* const sampled_sa,const bool check,const bool verbose,const uint64_t num_threads) {
-  /*
-   * Write Header
-   */
-  const uint64_t text_length = dna_text_builder_get_length(bwt_text);
+GEM_INLINE void fm_index_write(
+    fm_t* const file_manager,dna_text_t* const bwt_text,uint64_t* const character_occurrences,
+    sampled_sa_builder_t* const sampled_sa,const bool check,const bool verbose) {
+  // Write Header
+  const uint64_t text_length = dna_text_get_length(bwt_text);
   const uint64_t proper_length = log2(text_length)/2;
+  fm_write_uint64(file_manager,FM_INDEX_MODEL_NO);
   fm_write_uint64(file_manager,text_length);
   fm_write_uint64(file_manager,proper_length);
-  /*
-   * Write Sampled-SA & Free
-   */
+  // Write Sampled-SA & Free Samples
   sampled_sa_builder_write(file_manager,sampled_sa);
   if (verbose) sampled_sa_builder_print(gem_info_get_stream(),sampled_sa);
-  sampled_sa_builder_delete_samples(sampled_sa); // Free Samples
-  /*
-   * Generate BWT & rank_mtable
-   */
-  bwt_builder_t* const bwt_builder =
-      bwt_builder_new(bwt_text,character_occurrences,sampled_sa,check,verbose);
+  sampled_sa_builder_delete_samples(sampled_sa); // Free Samples (Just the samples)
+  // Generate BWT-Bitmap & rank_mtable
+  bwt_builder_t* const bwt_builder = bwt_builder_new(bwt_text,character_occurrences,sampled_sa,check,verbose);
   if (verbose) bwt_builder_print(gem_info_get_stream(),bwt_builder);
-  // Free BWT-text & Sampled-SA
-  dna_text_builder_delete(bwt_text);
-  sampled_sa_builder_delete(sampled_sa);
+  sampled_sa_builder_delete(sampled_sa); // Free Sampled-SA
   // Build mrank table
   rank_mtable_t* const rank_mtable = rank_mtable_builder_new(bwt_builder,verbose);
   if (verbose) rank_mtable_print(gem_info_get_stream(),rank_mtable);
@@ -45,28 +42,26 @@ GEM_INLINE void fm_index_builder(
   bwt_builder_write(file_manager,bwt_builder);
   bwt_builder_delete(bwt_builder); // Free
 }
+GEM_INLINE void fm_index_reverse_write(
+    fm_t* const file_manager,dna_text_t* const bwt_reverse_text,
+    uint64_t* const character_occurrences,const bool check,const bool verbose) {
+  // Generate BWT-Bitmap Reverse
+  bwt_reverse_builder_t* const bwt_reverse_builder =
+      bwt_reverse_builder_new(bwt_reverse_text,character_occurrences,check,verbose);
+  if (verbose) bwt_reverse_builder_print(gem_info_get_stream(),bwt_reverse_builder);
+  // Write BWT
+  bwt_reverse_builder_write(file_manager,bwt_reverse_builder);
+  bwt_reverse_builder_delete(bwt_reverse_builder); // Free
+}
 /*
  * Loader
  */
-GEM_INLINE fm_index_t* fm_index_read(fm_t* const file_manager,const bool check) {
-  // Allocate handler
-  fm_index_t* const fm_index = mm_alloc(fm_index_t);
-  // Read Header
-  fm_index->text_length = fm_read_uint64(file_manager);
-  fm_index->proper_length = fm_read_uint64(file_manager);
-  // Load Sampled SA
-  fm_index->sampled_sa = sampled_sa_read(file_manager);
-  // Load rank_mtable
-  fm_index->rank_table = rank_mtable_read(file_manager);
-  // Load BWT
-  fm_index->bwt = bwt_read(file_manager,check);
-  // Return
-  return fm_index;
-}
 GEM_INLINE fm_index_t* fm_index_read_mem(mm_t* const memory_manager,const bool check) {
   // Allocate handler
   fm_index_t* const fm_index = mm_alloc(fm_index_t);
   // Read Header
+  const uint64_t fm_index_model_no = mm_read_uint64(memory_manager);
+  gem_cond_fatal_error(fm_index_model_no!=FM_INDEX_MODEL_NO,FM_INDEX_WRONG_MODEL_NO,fm_index_model_no,FM_INDEX_MODEL_NO);
   fm_index->text_length = mm_read_uint64(memory_manager);
   fm_index->proper_length = mm_read_uint64(memory_manager);
   // Load Sampled SA
@@ -75,6 +70,7 @@ GEM_INLINE fm_index_t* fm_index_read_mem(mm_t* const memory_manager,const bool c
   fm_index->rank_table = rank_mtable_read_mem(memory_manager);
   // Load BWT
   fm_index->bwt = bwt_read_mem(memory_manager,check);
+  fm_index->bwt_reverse = bwt_reverse_read_mem(memory_manager,check);
   // Return
   return fm_index;
 }
@@ -91,6 +87,7 @@ GEM_INLINE void fm_index_delete(fm_index_t* const fm_index) {
   rank_mtable_delete(fm_index->rank_table);
   // Delete BWT
   bwt_delete(fm_index->bwt);
+  bwt_reverse_delete(fm_index->bwt_reverse);
   // Free handler
   mm_free(fm_index);
 }
@@ -109,11 +106,156 @@ GEM_INLINE double fm_index_get_proper_length(const fm_index_t* const fm_index) {
 GEM_INLINE uint64_t fm_index_get_size(const fm_index_t* const fm_index) {
   const uint64_t sampled_sa_size = sampled_sa_get_size(fm_index->sampled_sa); // Sampled SuffixArray positions
   const uint64_t bwt_size = bwt_get_size(fm_index->bwt); // BWT structure
+  const uint64_t bwt_reverse_size = bwt_reverse_get_size(fm_index->bwt_reverse); // BWT Reverse structure
   const uint64_t rank_table_size = rank_mtable_get_size(fm_index->rank_table); // Memoizated intervals
-  return sampled_sa_size + bwt_size + rank_table_size;
+  return sampled_sa_size + bwt_size + bwt_reverse_size + rank_table_size;
 }
 /*
- * FM-Index Operators
+ * FM-Index Bidirectional Operators
+ */
+GEM_INLINE void fm_index_precompute_2erank_forward(
+    const fm_index_t* const fm_index,fm_2erank_elms_t* const fm_2erank_elms,const uint64_t position) {
+  // Compute all exclusive ranks
+  bwt_block_locator_t block_loc;
+  bwt_block_elms_t block_elms;
+  bwt_reverse_t* const bwt_reverse = fm_index->bwt_reverse;
+  bwt_reverse_precompute(bwt_reverse,position,&block_loc,&block_elms);
+  // Store eranks
+  fm_2erank_elms->pranks[ENC_DNA_CHAR_A] = bwt_reverse_precomputed_erank(bwt_reverse,ENC_DNA_CHAR_A,&block_loc,&block_elms);
+  fm_2erank_elms->pranks[ENC_DNA_CHAR_C] = bwt_reverse_precomputed_erank(bwt_reverse,ENC_DNA_CHAR_C,&block_loc,&block_elms);
+  fm_2erank_elms->pranks[ENC_DNA_CHAR_G] = bwt_reverse_precomputed_erank(bwt_reverse,ENC_DNA_CHAR_G,&block_loc,&block_elms);
+  fm_2erank_elms->pranks[ENC_DNA_CHAR_T] = bwt_reverse_precomputed_erank(bwt_reverse,ENC_DNA_CHAR_T,&block_loc,&block_elms);
+  fm_2erank_elms->pranks[ENC_DNA_CHAR_N] = bwt_reverse_precomputed_erank(bwt_reverse,ENC_DNA_CHAR_N,&block_loc,&block_elms);
+  fm_2erank_elms->pranks[ENC_DNA_CHAR_SEP] = bwt_reverse_precomputed_erank(bwt_reverse,ENC_DNA_CHAR_SEP,&block_loc,&block_elms);
+}
+GEM_INLINE void fm_index_precompute_2erank_backward(
+    const fm_index_t* const fm_index,fm_2erank_elms_t* const fm_2erank_elms,const uint64_t position) {
+  // Compute all exclusive ranks
+  bwt_block_locator_t block_loc;
+  bwt_block_elms_t block_elms;
+  bwt_t* const bwt = fm_index->bwt;
+  bwt_precompute(bwt,position,&block_loc,&block_elms);
+  // Store eranks
+  fm_2erank_elms->pranks[ENC_DNA_CHAR_A] = bwt_precomputed_erank(bwt,ENC_DNA_CHAR_A,&block_loc,&block_elms);
+  fm_2erank_elms->pranks[ENC_DNA_CHAR_C] = bwt_precomputed_erank(bwt,ENC_DNA_CHAR_C,&block_loc,&block_elms);
+  fm_2erank_elms->pranks[ENC_DNA_CHAR_G] = bwt_precomputed_erank(bwt,ENC_DNA_CHAR_G,&block_loc,&block_elms);
+  fm_2erank_elms->pranks[ENC_DNA_CHAR_T] = bwt_precomputed_erank(bwt,ENC_DNA_CHAR_T,&block_loc,&block_elms);
+  fm_2erank_elms->pranks[ENC_DNA_CHAR_N] = bwt_precomputed_erank(bwt,ENC_DNA_CHAR_N,&block_loc,&block_elms);
+  fm_2erank_elms->pranks[ENC_DNA_CHAR_SEP] = bwt_precomputed_erank(bwt,ENC_DNA_CHAR_SEP,&block_loc,&block_elms);
+}
+/*
+ * Compute the lo-delta/hi-delta difference as to maintain coherence between forward & backward search interval
+ * Eg. char_enc == C
+ *    +---+ -\
+ *    | A |  | > lo-delta
+ *    +---+ -/
+ *    | C |
+ *    +---+ -\
+ *    | G |  |
+ *    +---+  |
+ *    | T |  | > hi-delta
+ *    +---+  |
+ *    | N |  |
+ *    +---+ -/
+ */
+GEM_INLINE uint64_t fm_2erank_elms_compute_reverse_erank_lo_delta(
+    fm_2erank_elms_t* const lo_2erank_elms,fm_2erank_elms_t* const hi_2erank_elms,const uint8_t char_enc) {
+  // Switch character
+  uint64_t acc = 0;
+  switch (char_enc) {
+    case ENC_DNA_CHAR_SEP:
+      acc += hi_2erank_elms->pranks[ENC_DNA_CHAR_N]-lo_2erank_elms->pranks[ENC_DNA_CHAR_N];
+      // no break
+    case ENC_DNA_CHAR_N:
+      acc += hi_2erank_elms->pranks[ENC_DNA_CHAR_T]-lo_2erank_elms->pranks[ENC_DNA_CHAR_T];
+      // no break
+    case ENC_DNA_CHAR_T:
+      acc += hi_2erank_elms->pranks[ENC_DNA_CHAR_G]-lo_2erank_elms->pranks[ENC_DNA_CHAR_G];
+      // no break
+    case ENC_DNA_CHAR_G:
+      acc += hi_2erank_elms->pranks[ENC_DNA_CHAR_C]-lo_2erank_elms->pranks[ENC_DNA_CHAR_C];
+      // no break
+    case ENC_DNA_CHAR_C:
+      acc += hi_2erank_elms->pranks[ENC_DNA_CHAR_A]-lo_2erank_elms->pranks[ENC_DNA_CHAR_A];
+      // no break
+    case ENC_DNA_CHAR_A:
+      break;
+    default:
+      GEM_INVALID_CASE();
+      break;
+  }
+  // Return
+  return acc;
+}
+GEM_INLINE uint64_t fm_2erank_elms_compute_reverse_erank_hi_delta(
+    fm_2erank_elms_t* const lo_2erank_elms,fm_2erank_elms_t* const hi_2erank_elms,const uint8_t char_enc) {
+  // Switch character
+  uint64_t acc = 0;
+  switch (char_enc) {
+    case ENC_DNA_CHAR_A:
+      acc += hi_2erank_elms->pranks[ENC_DNA_CHAR_C]-lo_2erank_elms->pranks[ENC_DNA_CHAR_C];
+      // no break
+    case ENC_DNA_CHAR_C:
+      acc += hi_2erank_elms->pranks[ENC_DNA_CHAR_G]-lo_2erank_elms->pranks[ENC_DNA_CHAR_G];
+      // no break
+    case ENC_DNA_CHAR_G:
+      acc += hi_2erank_elms->pranks[ENC_DNA_CHAR_T]-lo_2erank_elms->pranks[ENC_DNA_CHAR_T];
+      // no break
+    case ENC_DNA_CHAR_T:
+      acc += hi_2erank_elms->pranks[ENC_DNA_CHAR_N]-lo_2erank_elms->pranks[ENC_DNA_CHAR_N];
+      // no break
+    case ENC_DNA_CHAR_N:
+      acc += hi_2erank_elms->pranks[ENC_DNA_CHAR_SEP]-lo_2erank_elms->pranks[ENC_DNA_CHAR_SEP];
+      // no break
+    case ENC_DNA_CHAR_SEP:
+      break;
+    default:
+      GEM_INVALID_CASE();
+      break;
+  }
+  // Return
+  return acc;
+}
+GEM_INLINE void fm_index_precomputed_2query_forward(
+    fm_2interval_t* const fm_2interval,fm_2erank_elms_t* const lo_2erank_elms,
+    fm_2erank_elms_t* const hi_2erank_elms,const uint8_t char_enc) {
+  // Assign forward values (eranks computed forward)
+  fm_2interval->forward_lo = lo_2erank_elms->pranks[char_enc];
+  fm_2interval->forward_hi = hi_2erank_elms->pranks[char_enc];
+  // Assign backward values (eranks computed forward)
+  fm_2interval->backward_lo += fm_2erank_elms_compute_reverse_erank_lo_delta(lo_2erank_elms,hi_2erank_elms,char_enc);
+  fm_2interval->backward_hi -= fm_2erank_elms_compute_reverse_erank_hi_delta(lo_2erank_elms,hi_2erank_elms,char_enc);
+}
+GEM_INLINE void fm_index_precomputed_2query_backward(
+    fm_2interval_t* const fm_2interval,fm_2erank_elms_t* const lo_2erank_elms,
+    fm_2erank_elms_t* const hi_2erank_elms,const uint8_t char_enc) {
+  // Assign backward values (eranks computed backward)
+  fm_2interval->backward_lo = lo_2erank_elms->pranks[char_enc];
+  fm_2interval->backward_hi = hi_2erank_elms->pranks[char_enc];
+  // Assign forward values (eranks computed backward)
+  fm_2interval->forward_lo += fm_2erank_elms_compute_reverse_erank_lo_delta(lo_2erank_elms,hi_2erank_elms,char_enc);
+  fm_2interval->forward_hi -= fm_2erank_elms_compute_reverse_erank_hi_delta(lo_2erank_elms,hi_2erank_elms,char_enc);
+}
+GEM_INLINE void fm_index_2query_forward(
+    const fm_index_t* const fm_index,fm_2interval_t* const fm_2interval,const uint8_t char_enc) {
+  // Precompute erank
+  fm_2erank_elms_t lo_2erank_elms, hi_2erank_elms;
+  fm_index_precompute_2erank_forward(fm_index,&lo_2erank_elms,fm_2interval->forward_lo);
+  fm_index_precompute_2erank_forward(fm_index,&hi_2erank_elms,fm_2interval->forward_hi);
+  // Compute next 2interval
+  fm_index_precomputed_2query_forward(fm_2interval,&lo_2erank_elms,&hi_2erank_elms,char_enc);
+}
+GEM_INLINE void fm_index_2query_backward(
+    const fm_index_t* const fm_index,fm_2interval_t* const fm_2interval,const uint8_t char_enc) {
+  // Precompute erank
+  fm_2erank_elms_t lo_2erank_elms, hi_2erank_elms;
+  fm_index_precompute_2erank_backward(fm_index,&lo_2erank_elms,fm_2interval->forward_lo);
+  fm_index_precompute_2erank_backward(fm_index,&hi_2erank_elms,fm_2interval->forward_hi);
+  // Compute next 2interval
+  fm_index_precomputed_2query_backward(fm_2interval,&lo_2erank_elms,&hi_2erank_elms,char_enc);
+}
+/*
+ * FM-Index High-level Operators
  */
 // Compute SA[i]
 GEM_INLINE uint64_t fm_index_lookup(const fm_index_t* const fm_index,uint64_t bwt_position) {
@@ -136,8 +278,6 @@ GEM_INLINE uint64_t fm_index_lookup(const fm_index_t* const fm_index,uint64_t bw
 // Compute SA^(-1)[i]
 GEM_INLINE uint64_t fm_index_inverse_lookup(const fm_index_t* const fm_index,const uint64_t text_position) {
   GEM_NOT_IMPLEMENTED(); // TODO Implement
-
-
 //#ifndef SUPPRESS_CHECKS
 //  gem_cond_fatal_error(i<0||i>a->text_length,BWT_INDEX,i);
 //#endif
@@ -148,14 +288,11 @@ GEM_INLINE uint64_t fm_index_inverse_lookup(const fm_index_t* const fm_index,con
 //  while (sam_rem--)
 //    pos=bwt_LF(a->bwt,pos);
 //  return pos;
-
   return 0;
 }
 // Compute Psi[i]
 GEM_INLINE uint64_t fm_index_psi(const fm_index_t* const fm_index,const uint64_t bwt_position) {
   GEM_NOT_IMPLEMENTED(); // TODO Implement
-
-  // Pseudocode for a possible implementation follows, please do NOT delete it:
   /*
   if (!i)
     return a->last;
@@ -174,8 +311,6 @@ GEM_INLINE uint64_t fm_index_psi(const fm_index_t* const fm_index,const uint64_t
   }
   return res;
   */
-
-
   // return fmi_inverse(a,(fmi_lookup(a,i)+1)%a->bwt->n);
   return 0;
 }
@@ -183,12 +318,6 @@ GEM_INLINE uint64_t fm_index_psi(const fm_index_t* const fm_index,const uint64_t
 GEM_INLINE uint64_t fm_index_decode(
     const fm_index_t* const fm_index,const uint64_t bwt_position,const uint64_t length,char* const buffer) {
   GEM_NOT_IMPLEMENTED(); // TODO Implement
-
-//#ifndef SUPPRESS_CHECKS
-//  gem_cond_fatal_error(i<0||i>a->text_length,BWT_INDEX,i);
-//  gem_cond_fatal_error(len<0||len>a->text_length,BWT_LEN,len);
-//  gem_cond_fatal_error(i+len>a->text_length,PARAM_INV);
-//#endif
 //  if (__builtin_expect(a->bed!=0,1)) {
 //    return be_decode(a->bed,i,len,p);
 //  } else {
@@ -209,8 +338,6 @@ GEM_INLINE uint64_t fm_index_decode(
 GEM_INLINE uint64_t fm_index_decode_raw(
     const fm_index_t* const fm_index,const uint64_t bwt_position,const uint64_t length,char* const buffer) {
   GEM_NOT_IMPLEMENTED(); // TODO Implement
-
-
 //#ifndef SUPPRESS_CHECKS
 //  gem_cond_fatal_error(i<0||i>a->text_length,BWT_INDEX,i);
 //  gem_cond_fatal_error(len<0||len>a->text_length,BWT_LEN,len);
@@ -227,14 +354,12 @@ GEM_INLINE uint64_t fm_index_decode_raw(
 //    p[len]=0;
 //    return len;
 //  }
-
   return 0;
 }
 // Basic backward search
 GEM_INLINE void fm_index_bsearch_pure(
-    const fm_index_t* const fm_index,
-    const uint8_t* const key,uint64_t key_length,
-    uint64_t* const hi_out,uint64_t* const lo_out) {
+    const fm_index_t* const fm_index,const uint8_t* const key,
+    uint64_t key_length,uint64_t* const hi_out,uint64_t* const lo_out) {
   FM_INDEX_CHECK(fm_index);
   GEM_CHECK_NULL(key);
   GEM_CHECK_POSITIVE(key_length);
@@ -242,14 +367,42 @@ GEM_INLINE void fm_index_bsearch_pure(
   // Query lookup table
   uint64_t lo=0, hi=fm_index_get_length(fm_index);
   // Continue with ranks against the FM-Index
+//  uint64_t j; for (j=0;j<key_length;++j) printf("%c",dna_decode(key[j])); printf("\n");;
   while (key_length > 0 && hi > lo) {
     const uint8_t c = key[--key_length];
     lo = bwt_erank(fm_index->bwt,c,lo);
     hi = bwt_erank(fm_index->bwt,c,hi);
+//    printf("%lu  %lu\n",lo,hi);
   }
+//  printf("\n");
   // Return results
   *hi_out=hi;
   *lo_out=lo;
+}
+GEM_INLINE void fm_index_reverse_bsearch_pure(
+    const fm_index_t* const fm_index,const uint8_t* const key,
+    const uint64_t key_length,uint64_t* const hi_out,uint64_t* const lo_out) {
+  FM_INDEX_CHECK(fm_index);
+  GEM_CHECK_NULL(key);
+  GEM_CHECK_POSITIVE(key_length);
+  GEM_CHECK_NULL(hi_out); GEM_CHECK_NULL(lo_out);
+  // Init
+  fm_2interval_t fm_2interval;
+  fm_2interval.backward_lo = 0;
+  fm_2interval.backward_hi = fm_index_get_length(fm_index);
+  fm_2interval.forward_lo = 0;
+  fm_2interval.forward_hi = fm_index_get_length(fm_index);
+  // Search using 2interval and eranks against the FM-Index
+//  uint64_t j; for (j=0;j<key_length;++j) printf("%c",dna_decode(key[j])); printf("\n");
+  uint64_t i = 0;
+  while (i < key_length && fm_2interval.forward_lo < fm_2interval.forward_hi) {
+    fm_index_2query_forward(fm_index,&fm_2interval,key[i++]);
+//    printf("%lu  %lu\n",fm_2interval.backward_lo,fm_2interval.backward_hi);
+  }
+//  printf("\n");
+  // Return results
+  *lo_out = fm_2interval.backward_lo;
+  *hi_out = fm_2interval.backward_hi;
 }
 GEM_INLINE void fm_index_bsearch_debug(
     const fm_index_t* const fm_index,
@@ -284,23 +437,27 @@ GEM_INLINE void fm_index_bsearch_debug(
   *lo_out=lo;
 }
 GEM_INLINE void fm_index_bsearch(
-    const fm_index_t* const fm_index,
-    const uint8_t* const key,uint64_t key_length,
-    uint64_t* const hi_out,uint64_t* const lo_out) {
+    const fm_index_t* const fm_index,const uint8_t* const key,
+    uint64_t key_length,uint64_t* const hi_out,uint64_t* const lo_out) {
   FM_INDEX_CHECK(fm_index);
   GEM_CHECK_NULL(key);
   GEM_CHECK_POSITIVE(key_length);
   GEM_CHECK_NULL(hi_out); GEM_CHECK_NULL(lo_out);
+  uint64_t lo, hi;
   // Rank queries against the lookup table
   const rank_mtable_t* const rank_mtable = fm_index->rank_table;
   rank_mquery_t query;
   rank_mquery_new(&query);
+  //rank_mtable_fetch(rank_mtable,&query,&lo,&hi); printf("> %lu\t%lu\n",lo,hi);
   while (key_length > 0 && !rank_mquery_is_exhausted(&query)) {
-    rank_mquery_add_char(rank_mtable,&query,key[--key_length]); // Rank query (calculate offsets)
+    const uint8_t c = key[key_length-1];
+    if (c >= ENC_DNA_CHAR_N) break;
+    rank_mquery_add_char(rank_mtable,&query,c); // Rank query (calculate offsets)
+    --key_length;
+    //rank_mtable_fetch(rank_mtable,&query,&lo,&hi); printf("> %lu\t%lu\n",lo,hi);
   }
   // Query lookup table
-  uint64_t lo, hi;
-  rank_mtable_fetch(fm_index->rank_table,&query,&lo,&hi);
+  rank_mtable_fetch(rank_mtable,&query,&lo,&hi);
   // Check zero interval
   if (hi==lo || key_length==0) {
     *hi_out=hi;
@@ -311,23 +468,18 @@ GEM_INLINE void fm_index_bsearch(
       const uint8_t c = key[--key_length];
       lo = bwt_erank(fm_index->bwt,c,lo);
       hi = bwt_erank(fm_index->bwt,c,hi);
+      //printf("> %lu\t%lu\n",lo,hi);
     }
     // Return results
     *hi_out=hi;
     *lo_out=lo;
   }
 }
-/*
- * Extends the exact search of a key from a given position and interval
- */
 GEM_INLINE uint64_t fm_index_bsearch_continue(
-    const fm_index_t* const fm_index,
-    const char* const key,const uint64_t key_length,
-    const bool* const allowed_repl,
-    uint64_t last_hi,uint64_t last_lo,
-    uint64_t begin_pos,const uint64_t end_pos,
-    uint64_t* const res_hi,uint64_t* const res_lo) {
-  // BWT
+    const fm_index_t* const fm_index,const char* const key,const uint64_t key_length,
+    const bool* const allowed_repl,uint64_t last_hi,uint64_t last_lo,uint64_t begin_pos,
+    const uint64_t end_pos,uint64_t* const res_hi,uint64_t* const res_lo) {
+  // Extends the exact search of a key from a given position and interval
   const bwt_t* const bwt = fm_index->bwt;
   // Continue search
   while (begin_pos > end_pos) {
@@ -356,12 +508,14 @@ GEM_INLINE void fm_index_print(FILE* const stream,const fm_index_t* const fm_ind
   const uint64_t sampled_sa_size = sampled_sa_get_size(fm_index->sampled_sa); // Sampled SuffixArray positions
   const uint64_t rank_table_size = rank_mtable_get_size(fm_index->rank_table); // Memoizated intervals
   const uint64_t bwt_size = bwt_get_size(fm_index->bwt); // BWT structure
+  const uint64_t bwt_reverse_size = bwt_reverse_get_size(fm_index->bwt_reverse); // BWT Reverse structure
   const uint64_t fm_index_size = sampled_sa_size+bwt_size+rank_table_size;
   tab_fprintf(stream,"[GEM]>FM.Index\n");
-  tab_fprintf(stream,"  => FM.Index.Size %lu MB\n",CONVERT_B_TO_MB(fm_index_size));
-  tab_fprintf(stream,"    => Sampled.SA %lu MB (%2.3f%%)\n",CONVERT_B_TO_MB(sampled_sa_size),PERCENTAGE(sampled_sa_size,fm_index_size));
-  tab_fprintf(stream,"    => Rank.mTable %lu MB (%2.3f%%)\n",CONVERT_B_TO_MB(rank_table_size),PERCENTAGE(rank_table_size,fm_index_size));
-  tab_fprintf(stream,"    => BWT %lu MB (%2.3f%%)\n",CONVERT_B_TO_MB(bwt_size),PERCENTAGE(bwt_size,fm_index_size));
+  tab_fprintf(stream,"  => FM.Index.Size  %lu MB (100%%)\n",CONVERT_B_TO_MB(fm_index_size));
+  tab_fprintf(stream,"    => Sampled.SA   %lu MB (%2.3f%%)\n",CONVERT_B_TO_MB(sampled_sa_size),PERCENTAGE(sampled_sa_size,fm_index_size));
+  tab_fprintf(stream,"    => Rank.mTable  %lu MB (%2.3f%%)\n",CONVERT_B_TO_MB(rank_table_size),PERCENTAGE(rank_table_size,fm_index_size));
+  tab_fprintf(stream,"    => BWT          %lu MB (%2.3f%%)\n",CONVERT_B_TO_MB(bwt_size),PERCENTAGE(bwt_size,fm_index_size));
+  tab_fprintf(stream,"    => BWT-Reverse  %lu MB (%2.3f%%)\n",CONVERT_B_TO_MB(bwt_reverse_size),PERCENTAGE(bwt_reverse_size,fm_index_size));
   tab_global_inc();
   // Sampled SuffixArray positions
   sampled_sa_print(stream,fm_index->sampled_sa,false);
@@ -369,7 +523,10 @@ GEM_INLINE void fm_index_print(FILE* const stream,const fm_index_t* const fm_ind
   rank_mtable_print(stream,fm_index->rank_table);
   // BWT structure
   bwt_print(stream,fm_index->bwt);
+  // BWT-Reverse structure
+  bwt_reverse_print(stream,fm_index->bwt_reverse);
   tab_global_dec();
   // Flush
   fflush(stream);
 }
+

@@ -50,6 +50,7 @@ GEM_INLINE error_code_t input_fasta_parse_sequence(
  * Error codes
  */
 //#define FASTA_ERROR_WRONG_FILE_FORMAT 10   /**/
+#define FASTA_ERROR_PREMATURE_EOF 10
 #define FASTA_ERROR_TAG_BEGINNING 20
 #define FASTA_ERROR_READ_BAD_CHARACTER 30
 #define FASTA_ERROR_SEPARATOR_BAD_CHARACTER 40
@@ -59,15 +60,12 @@ GEM_INLINE error_code_t input_fasta_parse_sequence(
 /*
  * Error Messages
  */
+#define GEM_ERROR_PARSE_FASTQ "Parsing FASTA/FASTQ error(%s:%"PRIu64":%"PRIu64")"
+#define GEM_ERROR_PARSE_FASTQ_PREMATURE_EOF "Parsing FASTA/FASTQ error(%s:%"PRIu64"). Premature end-of-file"
 #define GEM_ERROR_PARSE_FASTQ_READ_BAD_CHARACTER "Parsing FASTA/FASTQ error(%s:%"PRIu64":%"PRIu64"). Input read sequence contains bad character %s"
 #define GEM_ERROR_PARSE_FASTQ_QUALITIES_BAD_CHARACTER "Parsing FASTA/FASTQ error(%s:%"PRIu64":%"PRIu64"). Input read qualities contains invalid quality value"
-
-//#define GEM_ERROR_PARSE_FASTQ_BAD_FILE_FORMAT "Input file format is not FASTQ/FASTA"
-
-#define GEM_ERROR_PARSE_FASTA "Parsing FASTA/FASTQ error(%s:%"PRIu64":%"PRIu64")"
-//#define GEM_ERROR_WRONG_FILE_FORMAT "Parsing FASTA/FASTQ error(%s:%"PRIu64"). Wrong FASTA/FASTQ syntax"
-#define GEM_ERROR_FASTA_TAG_BEGINNING "Parsing FASTA/FASTQ error(%s:%"PRIu64"). Beginning Symbol ('>' or '@') not found. Bad syntax"
-#define GEM_ERROR_FASTA_SEPARATOR_BAD_CHARACTER "Parsing FASTA/FASTQ error(%s:%"PRIu64"). Wrong separator symbol ('+'). Bad syntax"
-#define GEM_ERROR_FASTA_LENGTHS "Parsing FASTA/FASTQ error(%s:%"PRIu64"). Different read and qualities lengths"
+#define GEM_ERROR_PARSE_FASTQ_TAG_BEGINNING "Parsing FASTA/FASTQ error(%s:%"PRIu64"). Beginning Symbol ('>' or '@') not found. Bad syntax"
+#define GEM_ERROR_PARSE_FASTQ_SEPARATOR_BAD_CHARACTER "Parsing FASTA/FASTQ error(%s:%"PRIu64"). Wrong separator symbol ('+'). Bad syntax"
+#define GEM_ERROR_PARSE_FASTQ_LENGTHS "Parsing FASTA/FASTQ error(%s:%"PRIu64"). Different read and qualities lengths"
 
 #endif /* INPUT_FASTA_PARSER_H_ */

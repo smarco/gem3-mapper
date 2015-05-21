@@ -39,8 +39,7 @@ typedef struct {
   /*
    * Meta-information
    */
-  index_t index_type;                      // Index/Archive type (architecture)
-  filter_t filter_type;                    // Filter applied to the original text (MFasta)
+  archive_filter_type filter_type;         // Filter applied to the original text (MFasta)
   indexed_complement_t indexed_complement; // Forces the storage of the RC
   uint64_t complement_size_threshold;      // Maximum text size allowed to store the RC
   uint64_t ns_threshold;                   // Minimum length of a stretch of Ns to be removed
@@ -51,17 +50,18 @@ typedef struct {
   input_multifasta_state_t parsing_state;   // Text-Building state
   /* SA-Builder */
   sa_builder_t* sa_builder;                 // SA-Builder
-  /* Graph Components */
-  graph_text_builder_t* graph;              // Graph structure
   /* Locator */
   locator_builder_t* locator;               // Sequence locator (from MultiFASTA)
+  /* Graph Components */
+  graph_text_builder_t* graph;              // Graph structure
   /* Text */
-  dna_text_builder_t* enc_text;             // Encoded Input Text (from MultiFASTA)
-  dna_text_builder_t* enc_rl_text;          // Encoded Run-Length Compacted Input Text (from MultiFASTA)
+  uint64_t forward_text_length;             // Length of the forward text
+  dna_text_t* enc_text;                     // Encoded Input Text (from MultiFASTA)
+  dna_text_t* enc_rl_text;                  // Encoded Run-Length Compacted Input Text (from MultiFASTA)
   uint64_t* character_occurrences;          // Total occurrences of each character
-  uint64_t* sampled_rl_text;                // Sampled RL-text (to retrieve approximate source text-positions)
+  sampled_rl_t* sampled_rl;                 // Sampled RL-text (to retrieve approximate source text-positions)
   /* FM-Index */
-  dna_text_builder_t* enc_bwt;              // BWT text
+  dna_text_t* enc_bwt;                      // BWT text
   sampling_rate_t sampling_rate;            // Sampling Rate
   sampled_sa_builder_t* sampled_sa;         // Sampled SA Builder
   /* Output */
@@ -82,48 +82,41 @@ typedef struct {
  */
 GEM_INLINE archive_builder_t* archive_builder_new(
     fm_t* const output_file,char* const output_file_name_prefix,
-    const index_t index_type,const filter_t filter_type,
-    const indexed_complement_t indexed_complement,const uint64_t complement_size_threshold,
-    const uint64_t ns_threshold,const sampling_rate_t sampling_rate,
-    const uint64_t num_threads,const uint64_t max_memory);
+    const archive_filter_type filter_type,const indexed_complement_t indexed_complement,
+    const uint64_t complement_size_threshold,const uint64_t ns_threshold,
+    const sampling_rate_t sampling_rate,const uint64_t num_threads,const uint64_t max_memory);
 GEM_INLINE void archive_builder_delete(archive_builder_t* const archive_builder);
 
 /*
- * Archive Write
- *   // 1. archive_builder_write_header()
- *   // 2. archive_builder_write_locator()
- *   // 3. archive_builder_build_index()
+ * STEP1 Archive Build :: Process MultiFASTA file(s)
  */
-GEM_INLINE void archive_builder_write_header(archive_builder_t* const archive_builder);
-GEM_INLINE void archive_builder_write_locator(archive_builder_t* const archive_builder);
-GEM_INLINE void archive_builder_write_graph__jump_table(archive_builder_t* const archive_builder,const bool display_links);
-
-/*
- * STEP1 Archive Build :: Process MultiFASTA,GRAPH file(s)
- */
-GEM_INLINE void archive_builder_process_graph(
-    archive_builder_t* const archive_builder,input_file_t* const input_graph,
-    const bool dump_graph_links,const bool verbose);
 GEM_INLINE void archive_builder_process_multifasta(
     archive_builder_t* const archive_builder,input_file_t* const input_multifasta,
     const bool dump_locator_intervals,const bool dump_indexed_text,const bool verbose);
 GEM_INLINE void archive_builder_process_run_length_text(
     archive_builder_t* const archive_builder,const bool dump_run_length_text,const bool verbose);
-GEM_INLINE void archive_builder_process_multifasta__graph(
-    archive_builder_t* const archive_builder,input_file_t* const input_multifasta,
-    const bool dump_locator_intervals,const bool dump_indexed_text,const bool dump_graph_links,const bool verbose);
 
 /*
  * STEP2 Archive Build :: Build BWT (SA)
  */
 GEM_INLINE void archive_builder_build_bwt(
     archive_builder_t* const archive_builder,
-    const bool dump_explicit_sa,const bool dump_bwt,const bool verbose);
+    const bool dump_bwt,const bool dump_explicit_sa,const bool verbose);
+GEM_INLINE void archive_builder_build_bwt_reverse(
+    archive_builder_t* const archive_builder,
+    const bool dump_reverse_indexed_text,const bool dump_bwt,
+    const bool dump_explicit_sa,const bool verbose);
 
 /*
  * STEP3 Archive Build :: Create Index (FM-Index)
  */
-GEM_INLINE void archive_builder_build_index(
+GEM_INLINE void archive_builder_write_header(archive_builder_t* const archive_builder);
+GEM_INLINE void archive_builder_write_locator(archive_builder_t* const archive_builder);
+GEM_INLINE void archive_builder_write_text(
+    archive_builder_t* const archive_builder,const bool verbose);
+GEM_INLINE void archive_builder_write_index(
+    archive_builder_t* const archive_builder,const bool check_index,const bool verbose);
+GEM_INLINE void archive_builder_write_index_reverse(
     archive_builder_t* const archive_builder,const bool check_index,const bool verbose);
 
 #endif /* ARCHIVE_BUILDER_H_ */

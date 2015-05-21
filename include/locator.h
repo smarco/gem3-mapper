@@ -115,7 +115,6 @@ typedef struct {
 /*
  * Loader/Setup
  */
-GEM_INLINE locator_t* locator_read(fm_t* const file_manager);
 GEM_INLINE locator_t* locator_read_mem(mm_t* const memory_manager);
 GEM_INLINE void locator_setup_inverse_locator(locator_t* const locator);
 GEM_INLINE void locator_delete(locator_t* const locator);
@@ -185,7 +184,8 @@ GEM_INLINE void locator_builder_print(FILE* const stream,locator_builder_t* cons
 /*
  * Error Messages
  */
-#define GEM_ERROR_LOCATOR_INTERVAL_INDEX_OOB "Locator. Requested locator-interval index (%lu) out-of-bounds [%lu,%lu)]"
-#define GEM_ERROR_LOCATOR_INVERSE_NOT_FOUND "Locator. Inverse location not found"
+#define GEM_ERROR_LOCATOR_WRONG_MODEL_NO "Locator error. Wrong Locator Model %lu (Expected model %lu)"
+#define GEM_ERROR_LOCATOR_INTERVAL_INDEX_OOB "Locator error. Requested locator-interval index (%lu) out-of-bounds [%lu,%lu)]"
+#define GEM_ERROR_LOCATOR_INVERSE_NOT_FOUND "Locator error. Inverse location not found"
 
 #endif /* LOCATOR_H_ */

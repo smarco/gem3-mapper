@@ -9,19 +9,13 @@
 #include "archive_text_builder.h"
 
 /*
- * Constants
- */
-#define ARCHIVE_BUILDER_RL_MAX_RUN_LENGTH 5
-#define ARCHIVE_BUILDER_RL_SAMPLING_RATE  (1<<6) /* 2^6=64 (HG => 460 MB)*/
-
-/*
  * DEBUG
  */
-GEM_INLINE void archive_builder_dump_index_text(archive_builder_t* const archive_builder) {
+GEM_INLINE void archive_builder_dump_index_text(archive_builder_t* const archive_builder,const char* const extension) {
   // Open file
-  char* const indexed_text_file_name = gem_strcat(archive_builder->output_file_name_prefix,".text");
+  char* const indexed_text_file_name = gem_strcat(archive_builder->output_file_name_prefix,extension);
   FILE* const indexed_text_file = fopen(indexed_text_file_name,"w");
-  dna_text_builder_pretty_print_content(indexed_text_file,archive_builder->enc_text,80);
+  dna_text_pretty_print_content(indexed_text_file,archive_builder->enc_text,80);
   // Close & release
   fclose(indexed_text_file);
   free(indexed_text_file_name);
@@ -68,7 +62,7 @@ GEM_INLINE void archive_builder_inspect_text(
       (archive_builder->indexed_complement==index_complement_yes) ? "index_complement=yes" : "index_complement=no",
       CONVERT_B_TO_MB(enc_text_length));
   // Allocate Text (Circular BWT extra)
-  archive_builder->enc_text = dna_text_builder_padded_new(enc_text_length,2,SA_BWT_PADDED_LENGTH);
+  archive_builder->enc_text = dna_text_padded_new(enc_text_length,2,SA_BWT_PADDED_LENGTH);
 }
 /*
  * Archive Builder. Text Generation Low-Level Building-Blocks
@@ -78,7 +72,7 @@ GEM_INLINE void archive_builder_generate_text_add_character(archive_builder_t* c
   ++(archive_builder->parsing_state.text_interval_length);
   ++(archive_builder->parsing_state.index_interval_length);
   // Add to Index-Text
-  dna_text_builder_set_char(archive_builder->enc_text,(archive_builder->parsing_state.index_position)++,char_enc);
+  dna_text_set_char(archive_builder->enc_text,(archive_builder->parsing_state.index_position)++,char_enc);
 }
 GEM_INLINE void archive_builder_generate_text_filter__add_character(archive_builder_t* const archive_builder,const uint8_t char_enc) {
   uint8_t filtered_char_enc = char_enc;
@@ -92,7 +86,7 @@ GEM_INLINE void archive_builder_generate_text_filter__add_character(archive_buil
 GEM_INLINE void archive_builder_generate_text_add_separator(archive_builder_t* const archive_builder) {
   // Add to Index-Text
   archive_builder->parsing_state.last_char = ENC_DNA_CHAR_SEP;
-  dna_text_builder_set_char(archive_builder->enc_text,(archive_builder->parsing_state.index_position)++,ENC_DNA_CHAR_SEP);
+  dna_text_set_char(archive_builder->enc_text,(archive_builder->parsing_state.index_position)++,ENC_DNA_CHAR_SEP);
   locator_builder_skip_index(archive_builder->locator,1); // Skip Separator
 }
 GEM_INLINE void archive_builder_generate_text_add_Ns(archive_builder_t* const archive_builder) {
@@ -230,7 +224,7 @@ GEM_INLINE uint64_t archive_builder_generate_text(
   // Close sequence
   archive_builder_generate_text_close_sequence(archive_builder);
   gem_cond_fatal_error(input_multifasta_get_text_sequence_length(&archive_builder->parsing_state)==0,
-      MULTIFASTA_SEQ_EMPTY,PRI_input_file_content(input_multifasta)); // Check sequence not null // FIXME
+      MULTIFASTA_SEQ_EMPTY,PRI_input_file_content(input_multifasta)); // Check sequence not null
   // Free
   vector_delete(line_buffer);
   // Ticker banner
@@ -245,29 +239,29 @@ GEM_INLINE void archive_builder_generate_rc_text(archive_builder_t* const archiv
   // Traverse all reference intervals (num_base_intervals are those from the graph file; not RC)
   locator_builder_t* const locator = archive_builder->locator;
   const uint64_t num_intervals = locator_builder_get_num_intervals(archive_builder->locator);
-  uint64_t i;
-  for (i=0;i<num_intervals;++i) {
+  int64_t i;
+  for (i=num_intervals-1;i>=0;--i) {
     // Retrieve interval
     locator_interval_t* const locator_interval = locator_builder_get_interval(archive_builder->locator,i);
     const uint64_t interval_length = locator_interval_get_index_length(locator_interval);
     // Add RC interval to locator
     locator_builder_add_rc_interval(locator,locator_interval);
     // Generate RC-text
-    uint64_t i = 0, text_position = locator_interval->end_position-1;
-    for (i=0;i<interval_length;++i) {
+    uint64_t j = 0, text_position = locator_interval->end_position-1;
+    for (j=0;j<interval_length;++j) {
       // Add character (k-mer counting) [Check Colorspace]
       const uint8_t filtered_char_enc =
           (gem_expect_false(archive_builder->filter_type == Iupac_colorspace_dna)) ?
-              dna_text_builder_get_char(archive_builder->enc_text,text_position) :
-              dna_encoded_complement(dna_text_builder_get_char(archive_builder->enc_text,text_position));
+              dna_text_get_char(archive_builder->enc_text,text_position) :
+              dna_encoded_complement(dna_text_get_char(archive_builder->enc_text,text_position));
       archive_builder_generate_text_add_character(archive_builder,filtered_char_enc);
       --text_position; // Next
     }
     // Add Separator
-    archive_builder_generate_text_add_separator(archive_builder);
+    if (locator_interval->end_position-locator_interval->begin_position > 0) {
+      archive_builder_generate_text_add_separator(archive_builder);
+    }
   }
-  // Add extra separator (Close text)
-  archive_builder_generate_text_add_separator(archive_builder);
   ticker_finish(&ticker_rc);
 }
 /*
@@ -277,7 +271,7 @@ GEM_INLINE void archive_builder_generate_rc_text(archive_builder_t* const archiv
  *     1.2 Strip Ns
  *   2. Generate Locator
  *   3. Generate Index-Text
- *   4. Write (1/4) :: Header & Locator
+ *   4. Write Header & Locator
  */
 GEM_INLINE void archive_builder_process_multifasta(
     archive_builder_t* const archive_builder,input_file_t* const input_multifasta,
@@ -291,23 +285,23 @@ GEM_INLINE void archive_builder_process_multifasta(
    */
   // Generate Text (Forward)
   archive_builder_generate_text(archive_builder,input_multifasta,verbose);
+  archive_builder->forward_text_length = archive_builder->parsing_state.index_position;
   // Generate RC-Text (Reverse)
   if (archive_builder->indexed_complement == index_complement_yes) {
     archive_builder_generate_rc_text(archive_builder,verbose);
-  } else {
-    archive_builder_generate_text_add_separator(archive_builder);
   }
+  archive_builder_generate_text_add_separator(archive_builder); // Add extra separator (Close full-text)
   // Set the precise text-length
-  dna_text_builder_set_length(archive_builder->enc_text,archive_builder->parsing_state.index_position);
+  dna_text_set_length(archive_builder->enc_text,archive_builder->parsing_state.index_position);
   /*
    * DEBUG
    */
   // DEBUG locator
   locator_builder_print(gem_info_get_stream(),archive_builder->locator,dump_locator_intervals); // Locator
   // DEBUG index_text
-  if (dump_indexed_text) archive_builder_dump_index_text(archive_builder);
+  if (dump_indexed_text) archive_builder_dump_index_text(archive_builder,".text");
   /*
-   * Write (1/3) :: Header & Locator
+   * Write Header & Locator
    */
   archive_builder_write_header(archive_builder);
   archive_builder_write_locator(archive_builder);
@@ -316,52 +310,37 @@ GEM_INLINE void archive_builder_process_multifasta(
 /*
  * STEP1 Archive Build :: Process MultiFASTA file
  *  ...
- *   6. Generate the RL-text
+ *   5. Generate the RL-text
  */
 GEM_INLINE void archive_builder_process_run_length_text(
     archive_builder_t* const archive_builder,const bool dump_run_length_text,const bool verbose) {
   // Allocate RL-text (Circular BWT extra)
-  const uint64_t enc_text_length = dna_text_builder_get_length(archive_builder->enc_text);
-  archive_builder->enc_rl_text = dna_text_builder_padded_new(enc_text_length,2,SA_BWT_PADDED_LENGTH);
-  const uint64_t max_num_samples = DIV_CEIL(enc_text_length,ARCHIVE_BUILDER_RL_SAMPLING_RATE);
-  uint64_t* const sampled_rl_text = mm_calloc(max_num_samples,uint64_t,true);
-  archive_builder->sampled_rl_text = sampled_rl_text;
+  const uint64_t enc_text_length = dna_text_get_length(archive_builder->enc_text);
+  archive_builder->enc_rl_text = dna_text_padded_new(enc_text_length,2,SA_BWT_PADDED_LENGTH);
+  const uint64_t max_num_samples = DIV_CEIL(enc_text_length,SAMPLED_RL_SAMPLING_RATE);
+  archive_builder->sampled_rl = sampled_rl_new(SAMPLED_RL_SAMPLING_RATE,max_num_samples,enc_text_length);
   // Compact the text into the RL-text
-  const uint8_t* const enc_text = dna_text_builder_get_text(archive_builder->enc_text);
-  uint8_t* const enc_rl_text = dna_text_builder_get_text(archive_builder->enc_rl_text);
-  uint64_t text_position, rl_text_position;
-  uint64_t run_length=1, num_rl_samples=0;
-  uint8_t last_char_enc = enc_text[0]; // Get first character
-  for (text_position=1,rl_text_position=0;text_position<enc_text_length;++text_position) {
-    const uint8_t char_enc = enc_text[text_position]; // Get character
-    if (char_enc == last_char_enc) {
-      if (gem_expect_false(run_length == ARCHIVE_BUILDER_RL_MAX_RUN_LENGTH)) {
-        // Store RL samples
-        if (rl_text_position%ARCHIVE_BUILDER_RL_SAMPLING_RATE==0) {
-          sampled_rl_text[num_rl_samples++] = text_position;
-        }
-        // Add character
-        enc_rl_text[rl_text_position++] = last_char_enc;
-        // Reset RL-counter
-        run_length = 1;
-      } else {
-        ++run_length;
-      }
+  const uint8_t* const enc_text = dna_text_get_text(archive_builder->enc_text);
+  uint8_t* const enc_rl_text = dna_text_get_text(archive_builder->enc_rl_text);
+  uint64_t text_position, rl_text_position=1;
+  uint64_t run_length=1, num_rl_samples=1;
+  enc_rl_text[0] = enc_text[0]; // Add character
+  sampled_rl_sample(archive_builder->sampled_rl,0,0);
+  for (text_position=1;text_position<enc_text_length;++text_position) {
+    if (enc_text[text_position] == enc_text[text_position-1] && run_length < SAMPLED_RL_MAX_RUN_LENGTH) {
+      ++run_length; // Add RL-counter
     } else {
+      enc_rl_text[rl_text_position] = enc_text[text_position]; // Add character
+      run_length = 1; // Reset RL-counter
       // Store RL samples
-      if (rl_text_position%ARCHIVE_BUILDER_RL_SAMPLING_RATE==0) {
-        sampled_rl_text[num_rl_samples++] = text_position;
+      if (rl_text_position%SAMPLED_RL_SAMPLING_RATE==0) {
+        sampled_rl_sample(archive_builder->sampled_rl,num_rl_samples++,text_position);
       }
-      // Add character
-      enc_rl_text[rl_text_position++] = last_char_enc;
-      // Reset RL-counter
-      run_length = 1;
-      last_char_enc = char_enc;
+      ++rl_text_position;
     }
   }
   // Print last run
-  enc_rl_text[rl_text_position++] = last_char_enc;
-  dna_text_builder_set_length(archive_builder->enc_rl_text,rl_text_position);
+  dna_text_set_length(archive_builder->enc_rl_text,rl_text_position);
   // Swap text with rl-text (as to SA-index the rl-text)
   SWAP(archive_builder->enc_text,archive_builder->enc_rl_text);
 }

@@ -40,7 +40,10 @@ GEM_INLINE string_t* options_adaptor_getopt_short(const option_t* const options_
     const char short_option = options_menu[i].option_id;
     if (options_menu[i].option_id<128 && IS_ALPHANUMERIC(short_option)) {
       string_append_char(getopt_menu_short,short_option);
-      if (options_menu[i].option_type==REQUIRED || options_menu[i].option_type==OPTIONAL) {
+      if (options_menu[i].option_type==REQUIRED) {
+        string_append_char(getopt_menu_short,COLON);
+      } else if (options_menu[i].option_type==OPTIONAL) {
+        string_append_char(getopt_menu_short,COLON);
         string_append_char(getopt_menu_short,COLON);
       }
     }

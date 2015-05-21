@@ -12,7 +12,6 @@
 #include "essentials.h"
 
 #include "fm_index.h"
-#include "pattern.h"
 
 #include "stats_vector.h"
 #include "stats_matrix.h"
@@ -67,7 +66,7 @@ typedef struct {
   region_search_t* search_region;    // Search regions
   uint64_t num_search_regions;
   /* Region Partition Properties */
-  uint64_t errors_allowed;           // Total error allowed (minimum required to get a novel match)
+  uint64_t errors_allowed;           // Total error allowed (the minimum required to get a novel match)
   /* Locator for region sorting */
   region_locator_t* loc;
 } region_profile_t;
@@ -90,11 +89,11 @@ GEM_INLINE bool region_profile_has_exact_matches(region_profile_t* const region_
  */
 GEM_INLINE void region_profile_generate_fixed(
     region_profile_t* const region_profile,fm_index_t* const fm_index,
-    pattern_t* const pattern,const bool* const allowed_enc,
+    const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
     const region_profile_model_t* const profile_model,const uint64_t min_regions);
 GEM_INLINE void region_profile_generate_adaptive(
     region_profile_t* const region_profile,fm_index_t* const fm_index,
-    pattern_t* const pattern,const bool* const allowed_enc,
+    const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
     const region_profile_model_t* const profile_model,
     const uint64_t max_regions,const bool allow_zero_regions);
 GEM_INLINE void region_profile_generate_full_progressive(

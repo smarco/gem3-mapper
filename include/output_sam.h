@@ -21,26 +21,29 @@
  * SAM Parameters
  */
 typedef struct {
-  bool compact_xa;
-  uint8_t mapq_threshold;
+  /* Header & RG  */
+  char *read_group_header;
+  string_t *read_group_id;
+  /* Read & Qualities */
   bool omit_secondary_read__qualities;
+  /* CIGAR */
   bool print_mismatches;
-  bool bisulfite_mode;
-  string_t bisulfite_suffix[2];
-	char *read_group_header;
-	string_t *read_group_id;
+  /* XA */
+  bool compact_xa;
+  /* GEM compatibility */
+  bool print_gem_fields;
 } output_sam_parameters_t;
 
 GEM_INLINE void output_sam_parameters_set_defaults(output_sam_parameters_t* const sam_parameters);
-GEM_INLINE void output_sam_parse_read_group_header(char *rg,output_sam_parameters_t* const sam_parameters);
+GEM_INLINE void output_sam_parse_read_group_header(char* const read_group_buffer,output_sam_parameters_t* const sam_parameters);
 
 /*
  * SAM Headers
  */
 GEM_INLINE void output_sam_print_header(
     output_file_t* const output_file,archive_t* const archive,
-			output_sam_parameters_t* const sam_parameters,
-			int argc,char** argv);
+    output_sam_parameters_t* const sam_parameters,int argc,char** argv);
+			
 
 /*
  * SAM output SE

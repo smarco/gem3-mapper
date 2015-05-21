@@ -13,7 +13,9 @@
 
 #include "text_collection.h"
 #include "approximate_search_parameters.h"
-#include "matches_align.h"
+#include "matches.h"
+#include "match_elements.h"
+#include "match_scaffold.h"
 #include "pattern.h"
 
 /*
@@ -34,30 +36,34 @@ typedef enum {
   filtering_region_discarded              // Region discarded
 } filtering_region_status_t;
 typedef struct {
-  // State
+  /* State */
   filtering_region_status_t status;
-  // Text-trace
+  /* Text-trace */
   uint64_t text_trace_offset;
-  // Location
-  uint64_t begin_position;
-  uint64_t effective_begin_position;
-  uint64_t effective_end_position;
-  // Regions Matching
-  uint64_t num_regions_matching;
-  region_matching_t* regions_matching;
-  uint64_t coverage;
-  // Alignment distance
-  uint64_t align_distance;            // Distance (In case of approximate: max-bound)
-  uint64_t align_distance_min_bound;  // Approximated distance (min-bound)
-  uint64_t align_match_begin_column;  // Match begin column (inclusive)
-  uint64_t align_match_end_column;    // Matching column (inclusive)
+  /* Location */
+  uint64_t begin_position;             // Region effective begin position (adjusted to error boundaries)
+  uint64_t end_position;               // Region effective end position   (adjusted to error boundaries)
+  uint64_t base_position_offset;       // Offset to base filtering position (Begin position without error boundary correction)
+  /* Regions Matching */
+  match_scaffold_t match_scaffold;     // Matching regions supporting the filtering region (Scaffolding)
+  /* Alignment distance */
+  uint64_t align_distance;             // Distance (In case of approximate: max-bound)
+  uint64_t align_distance_min_bound;   // Approximated distance (min-bound)
+  uint64_t align_match_begin_column;   // Match begin column (inclusive)
+  uint64_t align_match_end_column;     // Matching column (inclusive)
 } filtering_region_t;
 typedef struct {
-  // State
-  filtering_region_status_t status;
-  // Location
-  uint64_t effective_begin_position;
-  uint64_t effective_end_position;
+  /* Filtering region */
+  filtering_region_t* filtering_region;
+  /* Location */
+  sequence_end_t sequence_end;
+  strand_t strand;
+  uint64_t position;
+} filtering_region_locator_t;
+typedef struct {
+  /* Location */
+  uint64_t begin_position;
+  uint64_t end_position;
 } verified_region_t;
 
 /*
@@ -70,6 +76,7 @@ GEM_INLINE text_trace_t* filtering_region_get_text_trace(
  * Sorting
  */
 GEM_INLINE void filtering_region_sort_regions_matching(const filtering_region_t* const filtering_region);
+GEM_INLINE void filtering_region_locator_sort_positions(vector_t* const filtering_region_locators);
 
 /*
  * Matching regions
@@ -89,9 +96,9 @@ GEM_INLINE void filtering_region_chain_matching_regions(
  */
 GEM_INLINE bool filtering_region_align(
     filtering_region_t* const filtering_region,const text_collection_t* const candidates_collection,
-    const search_actual_parameters_t* const search_actual_parameters,const strand_t search_strand,
-    const pattern_t* const pattern,matches_t* const matches,match_trace_t* const match_trace,
-    mm_stack_t* const mm_stack);
+    const search_actual_parameters_t* const search_actual_parameters,const bool emulated_rc_search,
+    const bool left_gap_alignment,pattern_t* const pattern,matches_t* const matches,
+    match_trace_t* const match_trace,mm_stack_t* const mm_stack);
 
 /*
  * Verify
@@ -101,14 +108,9 @@ GEM_INLINE bool filtering_region_verify(
     const text_collection_t* const candidates_collection,
     search_parameters_t* const search_parameters,const pattern_t* const pattern);
 GEM_INLINE uint64_t filtering_region_verify_extension(
-    vector_t* const filtering_regions,
+    vector_t* const filtering_regions,vector_t* const verified_regions,
     const text_collection_t* const candidates_collection,
     const uint64_t const text_trace_offset,const uint64_t index_position,
     search_parameters_t* const search_parameters,const pattern_t* const pattern);
-
-/*
- * Display
- */
-GEM_INLINE void filtering_region_print_matching_regions(FILE* const stream,filtering_region_t* const filtering_region);
 
 #endif /* FILTERING_REGION_H_ */

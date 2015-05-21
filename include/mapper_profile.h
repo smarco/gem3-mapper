@@ -33,67 +33,80 @@
 /*
  * Archive Search
  */
-#define GP_ARCHIVE_SEARCH_SE                             10
-#define GP_ARCHIVE_SEARCH_GENERATE_CANDIDATES            11
-#define GP_ARCHIVE_SEARCH_COPY_CANDIDATES                12
-#define GP_ARCHIVE_SEARCH_RETRIEVE_CANDIDATES            13
-#define GP_ARCHIVE_SEARCH_RETRIEVE_CANDIDATES_DELAY      14
-#define GP_ARCHIVE_SEARCH_FINISH_SEARCH                  15
-#define GP_ARCHIVE_SELECT_MATCHES                        16
-#define GP_ARCHIVE_SCORE_MATCHES                         17
-#define GP_ARCHIVE_SEARCH_PREPARE_SEQUENCE               18
+#define GP_ARCHIVE_SEARCH_SE                               10
+#define GP_ARCHIVE_SEARCH_SE_INIT                          11
+#define GP_ARCHIVE_SEARCH_PREPARE_SEQUENCE                 12
+#define GP_ARCHIVE_SEARCH_SE_GENERATE_CANDIDATES           13
+#define GP_ARCHIVE_SEARCH_SE_VERIFY_CANDIDATES             14
+#define GP_ARCHIVE_SEARCH_SE_FINISH_SEARCH                 15
+#define GP_ARCHIVE_SELECT_SE_MATCHES                       16
+#define GP_ARCHIVE_SCORE_SE_MATCHES                        17
+
+// Copy/Retrieve candidates
+#define GP_ARCHIVE_SEARCH_COPY_CANDIDATES                  18
+#define GP_ARCHIVE_SEARCH_RETRIEVE_CANDIDATES              19
 
 // Search Group
-#define GP_ARCHIVE_SEARCH_GROUP_BUFFERS_USED             19
+#define GP_ARCHIVE_SEARCH_GROUP_BUFFERS_USED               20
+#define GP_ARCHIVE_SEARCH_GROUP_RETRIEVE_CANDIDATES_DELAY  21
 
 // Paired Mode
-#define GP_ARCHIVE_SEARCH_PE                             20
-#define GP_ARCHIVE_SEARCH_PE_EXTEND_END1                 21
-#define GP_ARCHIVE_SEARCH_PE_EXTEND_END1_SUCCESS         22
-#define GP_ARCHIVE_SEARCH_PE_EXTEND_END2                 23
-#define GP_ARCHIVE_SEARCH_PE_EXTEND_END2_SUCCESS         24
-#define GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES           25
-#define GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES_FOUND     26
-#define GP_ARCHIVE_SELECT_PE_MATCHES                     27
+#define GP_ARCHIVE_SEARCH_PE                                          22
+#define GP_ARCHIVE_SEARCH_PE_EXTENSION                                23
+#define GP_ARCHIVE_SEARCH_PE_EXTEND_END1                              24
+#define GP_ARCHIVE_SEARCH_PE_EXTEND_END1_SUCCESS                      25
+#define GP_ARCHIVE_SEARCH_PE_EXTEND_END2                              26
+#define GP_ARCHIVE_SEARCH_PE_EXTEND_END2_SUCCESS                      27
+#define GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES                        28
+#define GP_ARCHIVE_SEARCH_PE_RECOVER_BY_EXTENSION                     30
+#define GP_ARCHIVE_SEARCH_PE_RECOVER_BY_EXTENSION_END1                31
+#define GP_ARCHIVE_SEARCH_PE_RECOVER_BY_EXTENSION_END2                32
+#define GP_ARCHIVE_SEARCH_PE_RECOVER_BY_EXTENSION_HIT                 33
+#define GP_ARCHIVE_SEARCH_PE_PAIRED_FILTERED                          34
+#define GP_ARCHIVE_SEARCH_PE_PAIRED_FILTERING_SUCCESS                 35
+#define GP_ARCHIVE_SEARCH_PE_DISCARD_FILTERING_REGIONS                36
+#define GP_ARCHIVE_SEARCH_PE_DISCARD_FILTERING_REGIONS_TOTAL          37
+#define GP_ARCHIVE_SEARCH_PE_DISCARD_FILTERING_REGIONS_NOT_CONCORDANT 38
 
-#define GP_ARCHIVE_SEARCH_PE_DISCARD_FILTERING_REGIONS                28
-#define GP_ARCHIVE_SEARCH_PE_DISCARD_FILTERING_REGIONS_TOTAL          29
-#define GP_ARCHIVE_SEARCH_PE_DISCARD_FILTERING_REGIONS_NOT_CONCORDANT 30
+#define GP_ARCHIVE_SEARCH_PE_GENERATE_CANDIDATES                      39
+#define GP_ARCHIVE_SEARCH_PE_FINISH_SEARCH                            40
 
-#define GP_PAIRED_MATCHES_FIND_PAIRS                                  31
+#define GP_ARCHIVE_SELECT_PE_MATCHES                                  42
+#define GP_ARCHIVE_SCORE_PE_MATCHES                                   43
+#define GP_PAIRED_MATCHES_FIND_PAIRS                                  44
 
 /*
  * I/O
  */
-#define GP_INPUT_FASTA_PARSE_SEQUENCE                   40
-#define GP_INPUT_FILL_BUFFER                            41
-#define GP_BUFFERED_INPUT_RELOAD                        42
-#define GP_BUFFERED_INPUT_RELOAD__DUMP_ATTACHED         43
-#define GP_BUFFERED_INPUT_BUFFER_SIZE                   44
-#define GP_BUFFERED_OUTPUT_DUMP                         45
-#define GP_OUTPUT_WRITE_BUFFER                          46
-#define GP_OUTPUT_BYTES_WRITTEN                         47
-#define GP_OUTPUT_BUFFER_EXTENSIONS                     48
-#define GP_OUTPUT_BUFFER_REQUESTS                       49
-#define GP_OUTPUT_BUFFER_REQUESTS_STALLS                50
-#define GP_OUTPUT_BUFFER_REQUESTS_STALLS_BUSY           51
-#define GP_OUTPUT_BUFFER_REQUESTS_STALLS_NOT_PRIORITY   52
+#define GP_INPUT_FASTA_PARSE_SEQUENCE                   45
+#define GP_INPUT_FILL_BUFFER                            46
+#define GP_BUFFERED_INPUT_RELOAD                        47
+#define GP_BUFFERED_INPUT_RELOAD__DUMP_ATTACHED         48
+#define GP_BUFFERED_INPUT_BUFFER_SIZE                   49
+#define GP_BUFFERED_OUTPUT_DUMP                         50
+#define GP_OUTPUT_WRITE_BUFFER                          51
+#define GP_OUTPUT_BYTES_WRITTEN                         52
+#define GP_OUTPUT_BUFFER_EXTENSIONS                     53
+#define GP_OUTPUT_BUFFER_REQUESTS                       54
+#define GP_OUTPUT_BUFFER_REQUESTS_STALLS                55
+#define GP_OUTPUT_BUFFER_REQUESTS_STALLS_BUSY           56
+#define GP_OUTPUT_BUFFER_REQUESTS_STALLS_NOT_PRIORITY   57
 
 /*
  * Approximate search
  */
-#define GP_AS_MAIN              60
-#define GP_AS_BASIC             61
-#define GP_AS_READ_RECOVERY     62
-#define GP_AS_EXACT_SEARCH      63
-#define GP_AS_SMALL_READS       64
+#define GP_AS_MAIN                 60
+#define GP_AS_READ_RECOVERY        62
+#define GP_AS_EXACT_SEARCH         63
+#define GP_AS_NEIGHBORHOOD_SEARCH  64
 
-#define GP_AS_ADAPTIVE_MCS      70
+#define GP_AS_ADAPTIVE_MCS         70
 
 #define GP_AS_FILTERING_EXACT                   75
 #define GP_AS_FILTERING_EXACT_MAPPED            76
-#define GP_AS_FILTERING_INEXACT                 77
-#define GP_AS_FILTERING_INEXACT_MAPPED          78
+#define GP_AS_FILTERING_EXACT_BOOST             77
+#define GP_AS_FILTERING_INEXACT                 78
+#define GP_AS_FILTERING_INEXACT_MAPPED          79
 
 #define GP_AS_GENERATE_CANDIDATES                           80
 #define GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS      81
@@ -142,8 +155,9 @@
 #define GP_FC_VERIFY_CANDIDATE_REGIONS              123
 #define GP_FC_RETRIEVE_BPM_BUFFER_CANDIDATE_REGIONS 125
 #define GP_FC_REALIGN_CANDIDATE_REGIONS             126
-#define GP_FC_RETRIEVE_CANDIDATE_REGIONS            127
-#define GP_FC_COMPOSE_REGIONS                       128
+#define GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS  127
+#define GP_FC_RETRIEVE_CANDIDATE_REGIONS            128
+#define GP_FC_COMPOSE_REGIONS                       129
 
 #define GP_FC_EXTEND_MATCH                          130
 #define GP_FC_EXTEND_RETRIEVE_CANDIDATE_REGIONS     131
@@ -187,10 +201,12 @@
 #define GP_BPM_GPU_INIT                             180
 #define GP_BPM_GPU_BUFFER_INIT                      181
 #define GP_BPM_GPU_BUFFER_SEND                      182
-#define GP_BPM_GPU_BUFFER_USAGE_CANDIDATES          183
-#define GP_BPM_GPU_BUFFER_USAGE_QUERIES             184
-#define GP_BPM_GPU_BUFFER_USAGE_PEQ_ENTRIES         185
-#define GP_BPM_GPU_BUFFER_CHECK_TIME                186
+#define GP_BPM_GPU_BUFFER_CHECK_TIME                183
+#define GP_BPM_GPU_BUFFER_NUM_CANDIDATES            184
+#define GP_BPM_GPU_BUFFER_CANDIDATES_LENGTH         185
+#define GP_BPM_GPU_BUFFER_USAGE_CANDIDATES          186
+#define GP_BPM_GPU_BUFFER_USAGE_QUERIES             187
+#define GP_BPM_GPU_BUFFER_USAGE_PEQ_ENTRIES         188
 
 /*
  * FM-Index
@@ -255,6 +271,8 @@ GEM_INLINE void mapper_profile_print_mapper_single_end_cuda(
  * Mapper PE
  */
 GEM_INLINE void mapper_profile_print_mapper_paired_end(
+    FILE* const stream,const bool map_output,const uint64_t num_threads);
+GEM_INLINE void mapper_profile_print_mapper_paired_end_cuda(
     FILE* const stream,const bool map_output,const uint64_t num_threads);
 
 /*

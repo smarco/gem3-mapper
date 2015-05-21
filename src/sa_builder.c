@@ -39,7 +39,7 @@ GEM_INLINE void sa_builder_record_kmer_count_stats(sa_builder_t* const sa_builde
  * Setup
  */
 GEM_INLINE sa_builder_t* sa_builder_new(
-    char* const name_prefix,dna_text_builder_t* const enc_text,
+    char* const name_prefix,dna_text_t* const enc_text,
     const uint64_t num_threads,const uint64_t max_memory) {
   // Allocate sa_builder
   sa_builder_t* const sa_builder = mm_alloc(sa_builder_t);
@@ -47,11 +47,11 @@ GEM_INLINE sa_builder_t* sa_builder_new(
   sa_builder->enc_text = enc_text;
   sa_builder->name_prefix = name_prefix;
   // Fill the circular k-mers positions
-  const uint64_t text_length = dna_text_builder_get_length(sa_builder->enc_text);
-  uint8_t* const enc_text_buffer = dna_text_builder_get_text(sa_builder->enc_text);
+  const uint64_t text_length = dna_text_get_length(sa_builder->enc_text);
+  uint8_t* const enc_text_buffer = dna_text_get_text(sa_builder->enc_text);
   uint64_t i;
-  enc_text_buffer[-2] = ENC_DNA_CHAR_SEP;
-  enc_text_buffer[-1] = ENC_DNA_CHAR_SEP;
+  enc_text_buffer[-2] = enc_text_buffer[text_length-2];
+  enc_text_buffer[-1] = enc_text_buffer[text_length-1];
   for (i=0;i<SA_BWT_PADDED_LENGTH;++i) {
     enc_text_buffer[text_length+i] = enc_text_buffer[i];
   }
@@ -85,16 +85,17 @@ GEM_INLINE void sa_builder_delete(sa_builder_t* const sa_builder) {
 /*
  * 1.- Count all suffixes
  */
-GEM_INLINE void sa_builder_count_suffixes(sa_builder_t* const sa_builder,uint64_t* const character_occurrences,const bool verbose) {
+GEM_INLINE void sa_builder_count_suffixes(sa_builder_t* const sa_builder,
+    uint64_t* const character_occurrences,const bool verbose) {
   SA_BUILDER_CHECK(sa_builder);
   // Ticker
   ticker_t ticker;
   ticker_percentage_reset(&ticker,verbose,"Building-BWT::Counting K-mers",1,1,true);
   // Init
-  const uint64_t text_length = dna_text_builder_get_length(sa_builder->enc_text);
+  const uint64_t text_length = dna_text_get_length(sa_builder->enc_text);
   gem_cond_fatal_error(text_length < SA_BUILDER_KMER_LENGTH,
       SA_BUILDER_SEQUENCE_MIN_LENGTH,text_length,(uint64_t)SA_BUILDER_KMER_LENGTH);
-  const uint8_t* const enc_text = dna_text_builder_get_text(sa_builder->enc_text);
+  const uint8_t* const enc_text = dna_text_get_text(sa_builder->enc_text);
   uint64_t* const kmer_count = sa_builder->kmer_count;
   uint64_t i;
   uint64_t kmer_idx = 0;
@@ -220,7 +221,7 @@ GEM_INLINE void sa_builder_store_suffixes_prepare(sa_builder_t* const sa_builder
   gem_cond_fatal_error(sa_builder->max_thread_memory < max_bucket_size,SA_BUILDER_LIMIT_MAX_BLOCK_MEM,
       CONVERT_B_TO_GB(max_bucket_size),CONVERT_B_TO_GB(sa_builder->max_thread_memory));
   // Calculate SA-block size (for sorting)
-  const uint64_t sa_length = dna_text_builder_get_length(sa_builder->enc_text);
+  const uint64_t sa_length = dna_text_get_length(sa_builder->enc_text);
   const uint64_t preferred_block_size = (sa_length*UINT64_SIZE)/SA_BUILDER_NUM_WRITTERS;
   const uint64_t block_size = MIN(sa_builder->max_thread_memory,preferred_block_size);
   sa_builder->block_size = block_size;
@@ -245,16 +246,17 @@ GEM_INLINE void sa_builder_store_sa_pos(
   fm_write_uint64(group->sa_positions_file,sa_pos | SA_COMPACTED_TEXT_MASK_PIGGYBACKING(kmer_idx));
 }
 void* sa_builder_store_suffixes_thread(const uint8_t thread_id) {
-  const uint8_t* const enc_text = dna_text_builder_get_text(global_sa_builder->enc_text);
+  const uint64_t text_length = dna_text_get_length(global_sa_builder->enc_text);
+  const uint8_t* const enc_text = dna_text_get_text(global_sa_builder->enc_text);
   uint64_t i, kmer_idx=0, sa_pos=0;
   // Fill k-mer index
-  kmer_idx = ENC_DNA_CHAR_SEP;
-  kmer_idx = (kmer_idx<<DNA_EXT_RANGE_BITS) | ENC_DNA_CHAR_SEP;
+  kmer_idx = enc_text[text_length-2];
+  kmer_idx = (kmer_idx<<DNA_EXT_RANGE_BITS) | enc_text[text_length-1];
   for (i=0;i<SA_BWT_CYCLIC_LENGTH;++i) {
     kmer_idx = (kmer_idx<<DNA_EXT_RANGE_BITS) | enc_text[i];
   }
   // Count suffixes of all text
-  const uint64_t extended_text_length = dna_text_builder_get_length(global_sa_builder->enc_text)+SA_BWT_CYCLIC_LENGTH;
+  const uint64_t extended_text_length = dna_text_get_length(global_sa_builder->enc_text)+SA_BWT_CYCLIC_LENGTH;
   const uint64_t* const kmer_count = global_sa_builder->kmer_count;
   sa_group_t* const sa_groups = global_sa_builder->sa_groups;
   for (sa_pos=0;i<extended_text_length;++i,++sa_pos) {
@@ -517,7 +519,7 @@ GEM_INLINE void sa_builder_ds_shallow_mkq_cached(uint64_t* const a,const uint64_
 void* sa_builder_sort_suffixes_thread(uint64_t thread_id) {
   gem_thread_register_id(thread_id);
   // SA sampling rate
-  const uint64_t sampling_rate_pow2 = global_sampled_sa->sampling_rate;
+  const uint64_t sampling_rate_pow2 = global_sampled_sa!=NULL ? global_sampled_sa->sampling_rate : 0;
   // Retrieve SA chunks
   fm_t* const sa_file_reader = global_sa_builder->sa_file_reader[thread_id];
   vector_t* const buffer = vector_new(global_sa_builder->block_size/8,uint64_t);
@@ -540,21 +542,23 @@ void* sa_builder_sort_suffixes_thread(uint64_t thread_id) {
       const uint8_t sa_char = SA_POS_MASK_GET_BWT1(sa_chunk[block_position]);
       global_enc_bwt[sa_idx] = sa_char;
       // Store SA-samples
-#ifdef SAMPLING_SA_INVERSE
-      if (MOD_POW2(sa_idx,sampling_rate_pow2) == 0) {
+      if (global_sampled_sa!=NULL) {
+        #ifdef SAMPLING_SA_INVERSE
+        if (MOD_POW2(sa_idx,sampling_rate_pow2) == 0) {
+          const uint64_t text_position = SA_POS_MASK_POSITION(sa_chunk[block_position]);
+          sampled_sa_builder_set_sample(global_sampled_sa,thread_id,sa_idx,text_position);
+        }
+        #endif
+        #ifdef SAMPLING_SA_DIRECT
         const uint64_t text_position = SA_POS_MASK_POSITION(sa_chunk[block_position]);
-        sampled_sa_builder_set_sample(global_sampled_sa,thread_id,sa_idx,text_position);
+        if (MOD_POW2(text_position,sampling_rate_pow2) == 0) {
+          sampled_sa_builder_set_sample(global_sampled_sa,thread_id,sa_idx,text_position);
+        }
+        #endif
       }
-#endif
-#ifdef SAMPLING_SA_DIRECT
-      const uint64_t text_position = SA_POS_MASK_POSITION(sa_chunk[block_position]);
-      if (MOD_POW2(text_position,sampling_rate_pow2) == 0) {
-        sampled_sa_builder_set_sample(global_sampled_sa,thread_id,sa_idx,text_position);
-      }
-#endif
     }
     // Ticker update
-    ticker_update(&global_sa_builder->ticker,1);
+    // FIXME ticker_update(&global_sa_builder->ticker,1);
   }
   // Free
   vector_delete(buffer);
@@ -574,16 +578,16 @@ GEM_INLINE void sa_builder_sort_suffixes_prepare_groups(sa_builder_t* const sa_b
 }
 //#include "libittnotify.h"
 GEM_INLINE void sa_builder_sort_suffixes(
-    sa_builder_t* const sa_builder,dna_text_builder_t* const enc_bwt,
+    sa_builder_t* const sa_builder,dna_text_t* const enc_bwt,
     sampled_sa_builder_t* const sampled_sa,const bool verbose) {
   /*
    * Prepare
    */
   // Store global information to all threads
   global_sa_builder = sa_builder;
-  global_enc_text_length = dna_text_builder_get_length(sa_builder->enc_text);
-  global_enc_text = dna_text_builder_get_text(sa_builder->enc_text);
-  global_enc_bwt = dna_text_builder_get_text(enc_bwt);
+  global_enc_text_length = dna_text_get_length(sa_builder->enc_text);
+  global_enc_text = dna_text_get_text(sa_builder->enc_text);
+  global_enc_bwt = dna_text_get_text(enc_bwt);
   global_sampled_sa = sampled_sa;
   ds_shallow_text_limit = global_enc_text + DS_SHALLOW_LIMIT;
   // Prepare ticket
@@ -631,14 +635,14 @@ GEM_INLINE void sa_builder_record_kmer_count_stats(sa_builder_t* const sa_builde
 GEM_INLINE void sa_builder_display_stats(FILE* const stream,sa_builder_t* const sa_builder,const bool display_groups) {
   SA_BUILDER_CHECK(sa_builder);
   tab_fprintf(stream,"[GEM]>SA.Builder.Stats\n");
-  tab_fprintf(stream,"  => Text.Length %lu\n",dna_text_builder_get_length(sa_builder->enc_text));
+  tab_fprintf(stream,"  => Text.Length %lu\n",dna_text_get_length(sa_builder->enc_text));
   tab_fprintf(stream,"  => Total.Kmers %lu\n",sa_builder->num_kmers);
   tab_fprintf(stream,"    => Kmers.distribution\n");
   tab_global_add(4);
   stats_vector_display(stream,sa_builder->kmer_count_stats,false,true,NULL);
   tab_global_subtract(4);
   // Block Stats
-  const uint64_t sa_length = dna_text_builder_get_length(sa_builder->enc_text);
+  const uint64_t sa_length = dna_text_get_length(sa_builder->enc_text);
   const uint64_t sa_size = sa_length*UINT64_SIZE;
   const uint64_t preferred_block_size = (sa_length*UINT64_SIZE)/SA_BUILDER_NUM_WRITTERS;
   tab_fprintf(stream,"  => Block.File.Size %lu MB\n",CONVERT_B_TO_MB(sa_size));
@@ -695,8 +699,8 @@ GEM_INLINE void sa_builder_display_stats(FILE* const stream,sa_builder_t* const 
 GEM_INLINE void sa_builder_debug_print_sa(
     FILE* stream,sa_builder_t* const sa_builder,
     const uint64_t sa_position,const uint64_t sa_suffix_length) {
-  const uint8_t* const enc_text = dna_text_builder_get_text(sa_builder->enc_text);
-  const uint64_t enc_text_length = dna_text_builder_get_length(sa_builder->enc_text);
+  const uint8_t* const enc_text = dna_text_get_text(sa_builder->enc_text);
+  const uint64_t enc_text_length = dna_text_get_length(sa_builder->enc_text);
   const uint64_t suffix_pos = SA_POS_MASK_POSITION(sa_position);
   // fprintf(stream,"Suffix=%011lu\t\t",suffix_pos);
   fprintf(stream,"Suffix=%011lu\t%c%c\t",suffix_pos,

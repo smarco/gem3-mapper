@@ -27,15 +27,16 @@
  * Filtering Candidates Vector
  */
 typedef struct {
-  /* Filtering Status */
-  uint64_t total_candidates_accepted;         // Total number of candidates accepted
   /* Region Buffer */
   vector_t* regions_buffer;                   // Regions Buffer (region_t)
   /* Candidates */
   vector_t* filtering_positions;              // Candidate positions (filtering_position_t)
   ihash_t* verified_positions;                // Verified positions (uint64_t)
   vector_t* filtering_regions;                // Candidate regions (filtering_region_t)
+  vector_t* discarded_regions;                // Discarded regions (filtering_region_t)
   vector_t* verified_regions;                 // Verified regions (verified_region_t)
+  /* Auxiliary */
+  vector_t* filtering_regions_locator;
 } filtering_candidates_t;
 
 /*
@@ -51,6 +52,9 @@ GEM_INLINE void filtering_candidates_destroy(filtering_candidates_t* const filte
 GEM_INLINE uint64_t filtering_candidates_get_num_candidate_regions(const filtering_candidates_t* const filtering_candidates);
 GEM_INLINE uint64_t filtering_candidates_count_candidate_regions(
     filtering_candidates_t* const filtering_candidates_end,const filtering_region_status_t filtering_region_status);
+
+GEM_INLINE void filtering_candidates_set_all_regions_pending(filtering_candidates_t* const filtering_candidates);
+GEM_INLINE void filtering_candidates_set_all_regions_unverified(filtering_candidates_t* const filtering_candidates);
 
 /*
  * Adding candidate positions
@@ -74,46 +78,66 @@ GEM_INLINE uint64_t filtering_candidates_process_candidates(
     filtering_candidates_t* const filtering_candidates,
     archive_t* const archive,const pattern_t* const pattern,
     const search_actual_parameters_t* const search_actual_parameters,
-    mm_stack_t* const mm_stack);
+    const bool compose_region_chaining,mm_stack_t* const mm_stack);
 GEM_INLINE uint64_t filtering_candidates_verify_candidates(
-    filtering_candidates_t* const filtering_candidates,
-    archive_t* const archive,text_collection_t* const text_collection,
-    const pattern_t* const pattern,const strand_t search_strand,
+    filtering_candidates_t* const filtering_candidates,archive_t* const archive,
+    text_collection_t* const text_collection,const pattern_t* const pattern,
     const search_actual_parameters_t* const search_actual_parameters,
     matches_t* const matches,mm_stack_t* const mm_stack);
+GEM_INLINE uint64_t filtering_candidates_align_candidates(
+    filtering_candidates_t* const filtering_candidates,
+    text_collection_t* const text_collection,pattern_t* const pattern,
+    const bool emulated_rc_search,const search_actual_parameters_t* const search_actual_parameters,
+    const bool approximated_distance,matches_t* const matches,mm_stack_t* const mm_stack);
+
+/*
+ * Search for local-alignments
+ */
+GEM_INLINE uint64_t filtering_candidates_align_local_candidates(
+    filtering_candidates_t* const filtering_candidates,
+    text_collection_t* const text_collection,const pattern_t* const pattern,
+    const bool emulated_rc_search,const search_actual_parameters_t* const search_actual_parameters,
+    const bool approximated_distance,matches_t* const matches,mm_stack_t* const mm_stack);
 
 /*
  * BPM-Buffer API (Verification)
  */
 GEM_INLINE uint64_t filtering_candidates_bpm_buffer_add(
     filtering_candidates_t* const filtering_candidates,
-    archive_t* const archive,pattern_t* const pattern,const strand_t search_strand,
-    const search_actual_parameters_t* const search_actual_parameters,
-    bpm_gpu_buffer_t* const bpm_gpu_buffer,mm_stack_t* const mm_stack);
-GEM_INLINE void filtering_candidates_bpm_buffer_align(
-    filtering_candidates_t* const filtering_candidates,
-    archive_t* const archive,text_collection_t* const text_collection,
-    pattern_t* const pattern,const strand_t search_strand,const search_actual_parameters_t* const search_actual_parameters,
-    bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t candidate_offset_begin,const uint64_t candidate_offset_end,
-    matches_t* const matches,mm_stack_t* const mm_stack);
+    pattern_t* const pattern,bpm_gpu_buffer_t* const bpm_gpu_buffer);
+GEM_INLINE uint64_t filtering_candidates_bpm_buffer_retrieve(
+    filtering_candidates_t* const filtering_candidates,archive_text_t* const archive_text,
+    text_collection_t* const text_collection,pattern_t* const pattern,
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t candidate_offset_begin,
+    const uint64_t candidate_offset_end,mm_stack_t* const mm_stack);
 
 /*
- * Paired Verification
+ * Pair Extension
  */
-GEM_INLINE void filtering_candidates_set_all_regions_pending(filtering_candidates_t* const filtering_candidates);
-GEM_INLINE void filtering_candidates_set_all_regions_unverified(filtering_candidates_t* const filtering_candidates);
-GEM_INLINE void filtering_candidates_paired_regions_filtering(
-    filtering_candidates_t* const filtering_candidates_end1,
-    filtering_candidates_t* const filtering_candidates_end2,
-    archive_t* const archive,const search_parameters_t* const search_parameters);
 GEM_INLINE uint64_t filtering_candidates_extend_match(
     filtering_candidates_t* const filtering_candidates,
     archive_t* const archive,text_collection_t* const text_collection,
-    const match_trace_t* const extended_match,const pattern_t* const candidate_pattern,
-    const strand_t candidate_search_strand,const bool search_onward,
+    const match_trace_t* const extended_match,pattern_t* const candidate_pattern,
+    const bool candidate_emulated_rc_search,const bool search_onward,
     const search_actual_parameters_t* const candidate_actual_parameters,
-    paired_matches_t* const paired_matches,const sequence_end_t candidate_end,
-    mm_stack_t* const mm_stack);
+    mapper_stats_t* const mapper_stats,paired_matches_t* const paired_matches,
+    const sequence_end_t candidate_end,mm_stack_t* const mm_stack);
+GEM_INLINE void filtering_candidates_process_extension_candidates(
+    filtering_candidates_t* const extended_filtering_candidates,
+    filtering_candidates_t* const candidate_filtering_candidates,
+    archive_t* const archive,text_collection_t* const text_collection,
+    const pattern_t* const extended_pattern,const pattern_t* const candidate_pattern,
+    const search_parameters_t* const search_parameters,mapper_stats_t* const mapper_stats,
+    paired_matches_t* const paired_matches,mm_stack_t* const mm_stack);
+
+/*
+ * Paired Filtering
+ */
+GEM_INLINE void filtering_candidates_paired_regions_filtering(
+    filtering_candidates_t* const filtering_candidates_end1,
+    filtering_candidates_t* const filtering_candidates_end2,
+    archive_text_t* const archive_text,const search_parameters_t* const search_parameters,
+    mapper_stats_t* const mapper_stats,paired_matches_t* const paired_matches);
 
 /*
  * Display

@@ -10,7 +10,7 @@
 PLATFORM=$(shell uname)
 
 # Utilities
-CC=gcc
+CC=@CC@
 AR=ar
 
 # Folders
@@ -59,20 +59,38 @@ ifeq ($(HAVE_CUDA),1)
   DEF_CUDA=-DHAVE_CUDA
   CUDA_PATH=@CUDA_PATH@
   NVCC=$(CUDA_PATH)/bin/nvcc
-  LIBS_CUDA=-L$(CUDA_PATH)/lib64 -lcuda -lcudart
+  LIBS_CUDA=-L$(CUDA_PATH)/lib64 -lcuda -lcudart -lstdc++
   INC_CUDA=-I$(CUDA_PATH)/include
 endif
 
 # Flags
-ARCH_FLAGS=-D__LINUX__
-GENERAL_FLAGS=-fPIC -Wall $(ARCH_FLAGS)
-
-ARCH_OPT_FLAGS=-msse3 -mssse3 -msse4.2
-OPT_FLAGS=-Ofast $(ARCH_OPT_FLAGS) # -fomit-frame-pointer -ftree-vectorize 
-
 INCLUDE_FLAGS=-I$(FOLDER_INCLUDE) -I$(FOLDER_RESOURCES_INCLUDE)
 LIB_PATH_FLAGS=-L$(FOLDER_LIB) -L$(FOLDER_RESOURCES_LIB)
 
+GENERAL_FLAGS=-fPIC -Wall $(ARCH_FLAGS)
 SUPPRESS_CHECKS=-DNDEBUG -DGEM_NOPROFILE
-DEBUG_FLAGS=-g -ggdb3 -rdynamic
 GEM_DEBUG_FLAGS=-DGEM_DEBUG 
+
+ARCH_FLAGS=-D__LINUX__
+ARCH_OPT_FLAGS=-msse4.2 # -msse3 -mssse3
+
+# Compiler dependent flags
+ifeq ($(CC),gcc)
+## GCC Compiler
+OPT_FLAGS=-Ofast $(ARCH_OPT_FLAGS)
+DEBUG_FLAGS=-g -ggdb3 -rdynamic
+##
+endif
+ifeq ($(CC),icc)
+## ICC Compiler
+OPT_FLAGS=-Ofast $(ARCH_OPT_FLAGS)
+DEBUG_FLAGS=-g 
+##
+else
+## Other Compiler
+OPT_FLAGS=-O4
+DEBUG_FLAGS=-g
+##
+endif
+
+

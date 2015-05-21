@@ -140,7 +140,7 @@ GEM_INLINE uint64_t graph_text_lookup_next_vertex_index(
 #define edge_attributes_snv_encode(character) (edge_attributes_snv_encode_table[(int)(character)])
 const edge_attributes_t edge_attributes_snv_encode_table[256] =
 {
-    [0 ... 255] = 0,
+//    [0 ... 255] = 0, // FIXME
     [0] = EDGE_SVN_DEL,
     [DNA_CHAR_A] = EDGE_SVN_A, [DNA_CHAR_C] = EDGE_SVN_C,
     [DNA_CHAR_G] = EDGE_SVN_G, [DNA_CHAR_T] = EDGE_SVN_T,
@@ -149,7 +149,7 @@ const edge_attributes_t edge_attributes_snv_encode_table[256] =
 #define edge_attributes_reference_encode(character) (edge_attributes_reference_encode_table[(int)(character)])
 const edge_attributes_t edge_attributes_reference_encode_table[256] =
 {
-    [0 ... 255] = 0,
+//    [0 ... 255] = 0, // FIXME
     [DNA_CHAR_A] = EDGE_REFERENCE_A, [DNA_CHAR_C] = EDGE_REFERENCE_C,
     [DNA_CHAR_G] = EDGE_REFERENCE_G, [DNA_CHAR_T] = EDGE_REFERENCE_T,
     [DNA_CHAR_N] = EDGE_REFERENCE_N

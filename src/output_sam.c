@@ -33,13 +33,17 @@
  * SAM Parameters
  */
 GEM_INLINE void output_sam_parameters_set_defaults(output_sam_parameters_t* const sam_parameters) {
-  sam_parameters->compact_xa = false;
-  sam_parameters->mapq_threshold = 0;
-  sam_parameters->omit_secondary_read__qualities = true;
-  sam_parameters->print_mismatches = false;
-  sam_parameters->bisulfite_mode = false;
+  /* Header & RG  */
   sam_parameters->read_group_header = NULL;
   sam_parameters->read_group_id = NULL;
+  /* Read & Qualities */
+  sam_parameters->omit_secondary_read__qualities = true;
+  /* CIGAR */
+  sam_parameters->print_mismatches = false;
+  /* XA */
+  sam_parameters->compact_xa = true;
+  /* GEM compatibility */
+  sam_parameters->print_gem_fields = false;
 }
 /*
  * SAM Headers
@@ -57,8 +61,7 @@ GEM_INLINE void output_sam_parameters_set_defaults(output_sam_parameters_t* cons
  */
 GEM_INLINE void output_sam_print_header(
     output_file_t* const output_file,archive_t* const archive,
-			output_sam_parameters_t* const sam_parameters,
-			int argc,char** argv) {
+    output_sam_parameters_t* const sam_parameters,int argc,char** argv) {
   /*
    * TODO
    *   Other options like BWA/Bowtie2
@@ -82,36 +85,14 @@ GEM_INLINE void output_sam_print_header(
     while (i+1<num_intervals && intervals[i+1].tag_id==tag_id) ++i; // Go to the last
     uint64_t total_length = intervals[i].sequence_offset+intervals[i].sequence_length;
     const char* const tag = locator_interval_get_tag(locator,intervals+i);
-	 size_t tag_len = gem_strlen(tag);
-	 // Handle bisulfite mode contig name conversion	 
-	 if(sam_parameters->bisulfite_mode) {
-		 const char *p = tag;
-		 while(*p++);
-		 int ix;
-		 for(ix=0;ix<2;ix++) {
-			 const char *tp = p-2;
-			 uint64_t pos;
-			 char *suff = string_get_buffer(sam_parameters->bisulfite_suffix+ix);
-			 for(pos=string_get_length(sam_parameters->bisulfite_suffix+ix);pos>0 && tp>tag;) {
-				 if(suff[--pos] != *tp--) break;
-			 }
-			 if(!pos) {
-				 tag_len -= string_get_length(sam_parameters->bisulfite_suffix+ix);
-				 break;
-			 }
-		 }
-		 // Skip G2A contigs
-		 if(ix==1) {
-			 ++i; continue;
-		 }
-	 }
+    uint64_t tag_len = gem_strlen(tag);
     // Print SQ
     ofprintf(output_file,"@SQ\tSN:%"PRIs"\tLN:%lu\n",tag_len,tag,total_length);
     // Next
     ++i;
   }
   // Print @RG line (Read group)
-  if(sam_parameters->read_group_header) ofprintf(output_file,"%s\n",sam_parameters->read_group_header);
+  if (sam_parameters->read_group_header) ofprintf(output_file,"%s\n",sam_parameters->read_group_header);
   // Print all @PG lines (Program)
   //   @PG  ID:GEM PN:gem-2-sam  VN:3.0.0 CL:gem-mapper -I /home/u/hsapiens_v37 -i /h/uu.fastq -e 0.08
   ofprintf(output_file,"@PG\tID:GEM\tPN:gem-mapper\tVN:"GEM_CORE_VERSION_STR);
@@ -202,7 +183,7 @@ GEM_INLINE void output_sam_print_md_cigar_element(
       }
       // Print Indel
       switch (cigar_element->type) {
-        case cigar_ins:
+        case cigar_ins: {
           bofprintf_char(buffered_output_file,'^');
           const uint64_t length = cigar_element->indel.indel_length;
           int64_t i; // Print inserted text (text from the reference)
@@ -216,6 +197,7 @@ GEM_INLINE void output_sam_print_md_cigar_element(
             }
           }
           break;
+        }
         case cigar_mismatch:
           if (match_strand==Forward) {
             bofprintf_char(buffered_output_file,dna_decode(cigar_element->mismatch));
@@ -234,49 +216,50 @@ GEM_INLINE void output_sam_print_md_cigar_element(
       break;
   }
 }
-
-GEM_INLINE void output_sam_parse_read_group_header(char *rg, output_sam_parameters_t* const sam_parameters)
-{
-	 if(strncmp(rg,"@RG",3))
-		 gem_fatal_error_msg("Option '-r|--sam-read-group-header' must start with '@RG'");
-	 char *p = rg;
-	 char *q = mm_malloc(strlen(rg)+1);
-	 char *r= q;
-	 // Translate tab and new line escape sequences
-	 while(*p) {
-			if(*p == '\\') {
-				 p++;
-				 switch (*p) {
-					case 't':
-						*q++ = '\t';
-						break;
-					case 'n':
-						*q++ = '\n';
-						break;
-					default:
-						*q++ = *p;
-						break;
-				 }
-			} else *q++ = *p;
-			p++;
-	 }
-	 // Strip of trailing new line if present
-	 if(q != r && *(q-1) == '\n') q--;
-	 *q = 0;
-	 p = strstr(r, "\tID:");
-	 if(p == NULL) 
-		 gem_fatal_error_msg("Option '-r|--sam-read-group-header' must contain ID field");
-	 p+=4;
-	 q = p;
-	 while(*q && *q != '\n' && *q != '\t') q++;
-	 if(q - p  > 255) 
-		 gem_fatal_error_msg("Option '-r|--sam-read-group-header' has ID longer than 255 characters");
-	 sam_parameters->read_group_header = r;
-	 sam_parameters->read_group_id = mm_malloc(sizeof(string_t));
-	 string_init(sam_parameters->read_group_id, q - p + 1);
-	 string_set_buffer(sam_parameters->read_group_id, p, q - p + 1);
+GEM_INLINE void output_sam_parse_read_group_header(char* const read_group_buffer,output_sam_parameters_t* const sam_parameters) {
+  // Check TAG RG
+  gem_cond_fatal_error_msg(strncmp(read_group_buffer,"@RG",3),"Option '-r|--sam-read-group-header' must start with '@RG'");
+  // Translate tab and new line escape sequences
+  char *p = read_group_buffer;
+  char *q = mm_malloc(strlen(read_group_buffer) + 1);
+  char *r = q;
+  while (*p) {
+    if (*p == '\\') {
+      p++;
+      switch (*p) {
+      case 't':
+        *q++ = '\t';
+        break;
+      case 'n':
+        *q++ = '\n';
+        break;
+      default:
+        *q++ = *p;
+        break;
+      }
+    } else {
+      *q++ = *p;
+    }
+    p++;
+  }
+  // Strip of trailing new line if present
+  if (q != r && *(q - 1) == '\n') {
+    q--;
+  }
+  *q = 0;
+  p = strstr(r,"\tID:");
+  gem_cond_fatal_error_msg(p == NULL,"Option '-r|--sam-read-group-header' must contain ID field");
+  p += 4;
+  q = p;
+  while (*q && *q != '\n' && *q != '\t') {
+    q++;
+  }
+  gem_cond_fatal_error_msg(q - p > 255,"Option '-r|--sam-read-group-header' has ID longer than 255 characters");
+  sam_parameters->read_group_header = r;
+  sam_parameters->read_group_id = mm_malloc(sizeof(string_t));
+  string_init(sam_parameters->read_group_id, q - p + 1);
+  string_set_buffer(sam_parameters->read_group_id, p, q - p);
 }
-
 /*
  * Optional fields
  */
@@ -286,6 +269,7 @@ GEM_INLINE void output_sam_print_opt_field_tag_AS(
     buffered_output_file_t* const buffered_output_file,
     const alignment_model_t alignment_model,const match_trace_t* const match_trace) {
   // Switch alignment model
+  buffered_output_file_reserve(buffered_output_file,6+INT_MAX_LENGTH);
   switch (alignment_model) {
     case alignment_model_none: break;
     case alignment_model_hamming:
@@ -310,6 +294,8 @@ GEM_INLINE void output_sam_print_opt_field_tag_AS(
 //  CP  i  Leftmost coordinate of the next hit
 //  CQ  Z  Color read quality on the original strand of the read. Same encoding as QUAL; same length as CS.
 //  CS  Z  Color read sequence on the original strand of the read. The primer base must be included.
+//  cs  Z  Casava TAG (if any)
+GEM_INLINE void output_sam_print_opt_field_tag_cs() {}
 //  E2  Z  The 2nd most likely base calls. Same encoding and same length as QUAL.
 //  FI  i  The index of segment in the template.
 //  FS  Z  Segment suffix.
@@ -321,7 +307,34 @@ GEM_INLINE void output_sam_print_opt_field_tag_LB() {}
 //  H2  i  Number of 2-difference hits
 //  HI  i  Query hit index, indicating the alignment record is the i-th one stored in SAM
 //  IH  i  Number of stored alignments in SAM that contains the query in the current record
-//  MD  Z  String for mismatching positions. Regex : [0-9]+(([A-Z]|\^[A-Z]+)[0-9]+)*
+//  MD  Z  String for mismatching positions (complementary to CIGAR string). Regex : [0-9]+(([A-Z]|\^[A-Z]+)[0-9]+)*
+GEM_INLINE void output_sam_print_opt_field_tag_MD(
+    buffered_output_file_t* const buffered_output_file,
+    const matches_t* const matches,const match_trace_t* const match_trace) {
+  // Match CIGAR
+  const uint64_t cigar_length = match_trace->match_alignment.cigar_length;
+  const cigar_element_t* const cigar_array =
+      vector_get_mem(matches->cigar_vector,cigar_element_t) + match_trace->match_alignment.cigar_offset;
+  // Reserve (upper bound)
+  buffered_output_file_reserve(buffered_output_file,6+cigar_length*(INT_MAX_LENGTH+1));
+  // Print MD
+  bofprintf_string_literal(buffered_output_file,"\tMD:Z:");
+  // Print MD CIGAR
+  int64_t i;
+  uint64_t matching_length = 0;
+  if (match_trace->strand==Forward) {
+    for (i=0;i<cigar_length;++i) {
+      output_sam_print_md_cigar_element(buffered_output_file,Forward,cigar_array+i,&matching_length);
+    }
+  } else {
+    for (i=cigar_length-1;i>=0;--i) {
+      output_sam_print_md_cigar_element(buffered_output_file,Reverse,cigar_array+i,&matching_length);
+    }
+  }
+  if (matching_length > 0) bofprintf_uint64(buffered_output_file,matching_length);
+}
+//  md  Z  GEM CIGAR String
+GEM_INLINE void output_sam_print_opt_field_tag_md() {}
 //  MQ  i  Mapping quality of the mate/next segment
 GEM_INLINE void output_sam_print_opt_field_tag_MQ() {}
 //  NH  i  Number of reported alignments that contains the query in the current record
@@ -330,10 +343,12 @@ GEM_INLINE void output_sam_print_opt_field_tag_NH() {}
 GEM_INLINE void output_sam_print_opt_field_tag_NM(
     buffered_output_file_t* const buffered_output_file,
     const matches_t* const matches,const match_trace_t* const match_trace) {
+  // Reserve
+  buffered_output_file_reserve(buffered_output_file,6+INT_MAX_LENGTH);
   // Calculate edit-distance
   const uint64_t edit_distance =
-      matches_cigar_compute_edit_distance__excluding_clipping(
-          matches,match_trace->cigar_buffer_offset,match_trace->cigar_length);
+      matches_cigar_compute_edit_distance__excluding_clipping(matches,
+          match_trace->match_alignment.cigar_offset,match_trace->match_alignment.cigar_length);
   bofprintf_string_literal(buffered_output_file,"\tNM:i:");
   bofprintf_uint64(buffered_output_file,edit_distance);
 }
@@ -347,13 +362,29 @@ GEM_INLINE void output_sam_print_opt_field_tag_PQ() {}
 //  Q2  Z  Phred quality of the mate/next segment. Same encoding as QUAL.
 //  R2  Z  Sequence of the mate/next segment in the template.
 //  RG  Z  Read group. Value matches the header RG-ID tag if @RG is present in the header.
-GEM_INLINE void output_sam_print_opt_field_tag_RG(
-		buffered_output_file_t* const buffered_output_file,
-		string_t *read_group) {
-	 bofprintf_string_literal(buffered_output_file,"\tRG:Z:");
-	 bofprintf_string(buffered_output_file,string_get_length(read_group),string_get_buffer(read_group));
+GEM_INLINE void output_sam_print_opt_field_tag_RG(buffered_output_file_t* const buffered_output_file,string_t* const read_group) {
+  const uint64_t rg_length = string_get_length(read_group);
+  // Reserve
+  buffered_output_file_reserve(buffered_output_file,6+rg_length);
+  // Print Field
+  bofprintf_string_literal(buffered_output_file,"\tRG:Z:");
+  bofprintf_string(buffered_output_file,rg_length,string_get_buffer(read_group));
 }
-
+//  SA  Z  Supplementary alignment information for chimeric alignments
+GEM_INLINE void output_sam_print_opt_field_tag_SA() {
+// TODO
+  /*
+   * H.Sapiens.1M.Illumina.l100.low.000433219  0 chr1  162259007 0 64M2I13M21S * 0 0
+   *   CGTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTTTGCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCC
+   *   XF@BMCCLECD>K@ZMGADO=HFFNLAHFIOHLH?GILGOODFCGIIFFIMFOJEQCEGJHIGNFLFHHJIKGEHHKHIJHIIHHIIIGIHHHIHHIIII
+   *   NM:i:3  MD:Z:1T75 AS:i:67 XS:i:65 SA:Z:chr1,38528339,+,64S36M,0,0;
+   *
+   * H.Sapiens.1M.Illumina.l100.low.000433219  2048  chr1  38528339  0 64H36M  * 0 0
+   *   TGCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCC
+   *   FLFHHJIKGEHHKHIJHIIHHIIIGIHHHIHHIIII
+   *   NM:i:0  MD:Z:36 AS:i:36 XS:i:36 SA:Z:chr1,162259007,+,64M2I13M21S,0,3;
+   */
+}
 //  SM  i  Template-independent mapping quality
 //  TC  i  The number of segments in the template.
 //  U2  Z  Phred probability of the 2nd call being wrong conditional on the best being wrong. The same encoding as QUAL.
@@ -374,11 +405,11 @@ GEM_INLINE void output_sam_print_opt_field_tag_TP() {}
 //  XG  i  Number of gap extentions
 /*
  *  XT  A  Type: Unique/Repeat/N/Mate-sw
- * i.e.
- *   XT:A:U => Unique alignment
- *   XT:A:R => Repeat
- *   XT:A:N => Not mapped
- *   XT:A:M => Mate-sw (Read is fixed due to paired end rescue)
+ *  i.e.
+ *    XT:A:U => Unique alignment
+ *    XT:A:R => Repeat
+ *    XT:A:N => Not mapped
+ *    XT:A:M => Mate-sw (Read is fixed due to paired end rescue)
  */
 GEM_INLINE void output_sam_print_opt_field_tag_XT() {}
 /* Similar to XT, but for a template */
@@ -387,6 +418,8 @@ GEM_INLINE void output_sam_print_opt_field_tag_XP() {}
 GEM_INLINE void output_sam_print_opt_field_tag_XS(
     buffered_output_file_t* const buffered_output_file,
     const alignment_model_t alignment_model,const match_trace_t* const match_trace) {
+  // Reserve
+  buffered_output_file_reserve(buffered_output_file,6+INT_MAX_LENGTH);
   // Switch alignment model
   switch (alignment_model) {
     case alignment_model_none: break;
@@ -406,63 +439,6 @@ GEM_INLINE void output_sam_print_opt_field_tag_XS(
 }
 //  XF  ?  Support from forward/reverse alignment
 //  XE  i  Number of supporting seeds
-//  cs  Z  Casava TAG (if any)
-GEM_INLINE void output_sam_print_opt_field_tag_cs() {}
-//  md  Z  GEM CIGAR String
-GEM_INLINE void output_sam_print_opt_field_tag_md() {}
-//  SA  Z  Supplementary alignment information for chimeric alignments
-GEM_INLINE void output_sam_print_opt_field_tag_SA() {
-// TODO
-  /*
-   * H.Sapiens.1M.Illumina.l100.low.000433219  0 chr1  162259007 0 64M2I13M21S * 0 0
-   *   CGTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTTTGCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCC
-   *   XF@BMCCLECD>K@ZMGADO=HFFNLAHFIOHLH?GILGOODFCGIIFFIMFOJEQCEGJHIGNFLFHHJIKGEHHKHIJHIIHHIIIGIHHHIHHIIII
-   *   NM:i:3  MD:Z:1T75 AS:i:67 XS:i:65 SA:Z:chr1,38528339,+,64S36M,0,0;
-   *
-   * H.Sapiens.1M.Illumina.l100.low.000433219  2048  chr1  38528339  0 64H36M  * 0 0
-   *   TGCCTTCCTTCCTTCCTTCCTTCCTTCCTTCCTTCC
-   *   FLFHHJIKGEHHKHIJHIIHHIIIGIHHHIHHIIII
-   *   NM:i:0  MD:Z:36 AS:i:36 XS:i:36 SA:Z:chr1,162259007,+,64M2I13M21S,0,3;
-   *
-   */
-}
-
-/* Gives conversion type for bisulfite reads:
- * XB:A:U => non_converted
- * XB:A:C => C2T strand
- * XB:A:G => G2A strand
- * XB:A:M => Mixed (invalid)
- */
-GEM_INLINE void output_sam_print_opt_field_tag_XB(
-    buffered_output_file_t* buffered_output_file,const match_trace_t* const match_trace) {
-  bofprintf_string_literal(buffered_output_file,"\tXB:A:");
-  bofprintf_char(buffered_output_file,"UCGM"[match_trace->bs_strand]);
-}
-
-//  MD  Z  Mismatch information (complementary to CIGAR string)
-GEM_INLINE void output_sam_print_opt_field_tag_MD(
-    buffered_output_file_t* const buffered_output_file,
-    const matches_t* const matches,const match_trace_t* const match_trace) {
-  // Match CIGAR
-  const uint64_t cigar_length = match_trace->cigar_length;
-  const cigar_element_t* const cigar_array =
-      vector_get_mem(matches->cigar_buffer,cigar_element_t) + match_trace->cigar_buffer_offset;
-  // Print MD
-  bofprintf_string_literal(buffered_output_file,"\tMD:Z:");
-  // Print MD CIGAR
-  int64_t i;
-  uint64_t matching_length = 0;
-  if (match_trace->strand==Forward) {
-    for (i=0;i<cigar_length;++i) {
-      output_sam_print_md_cigar_element(buffered_output_file,Forward,cigar_array+i,&matching_length);
-    }
-  } else {
-    for (i=cigar_length-1;i>=0;--i) {
-      output_sam_print_md_cigar_element(buffered_output_file,Reverse,cigar_array+i,&matching_length);
-    }
-  }
-  if (matching_length > 0) bofprintf_uint64(buffered_output_file,matching_length);
-}
 /*
  * SAM Flag
  *
@@ -569,7 +545,6 @@ GEM_INLINE uint16_t output_sam_calculate_flag_pe_map(
       !is_map_first_in_pair,                             /* last_in_pair  */
       secondary_alignment,supplementary_alignment,not_passing_QC,PCR_duplicate);
 }
-
 /*
  * SAM CORE fields
  *   (QNAME,FLAG,RNAME,POS,MAPQ,CIGAR,RNEXT,PNEXT,TLEN,SEQ,QUAL). No EOL is printed
@@ -579,9 +554,9 @@ GEM_INLINE void output_sam_print_match_cigar(
     const matches_t* const matches,const match_trace_t* const match,
     const output_sam_parameters_t* const output_sam_parameters) {
   // Get CIGAR buffer/length
-  const uint64_t cigar_length = match->cigar_length;
+  const uint64_t cigar_length = match->match_alignment.cigar_length;
   const cigar_element_t* const cigar_array =
-      vector_get_mem(matches->cigar_buffer,cigar_element_t) + match->cigar_buffer_offset;
+      vector_get_mem(matches->cigar_vector,cigar_element_t) + match->match_alignment.cigar_offset;
   // Reserve (upper-bound)
   buffered_output_file_reserve(buffered_output_file,cigar_length*(INT_MAX_LENGTH+1));
   // Generate CIGAR
@@ -616,6 +591,78 @@ GEM_INLINE void output_sam_print_match_cigar(
   }
 }
 /*
+ * X4/X5  Z  GEM-Compatibility Flags
+ *   X4  Column 4 of GEM output (MAP) => MAP Counters
+ *   X5  Column 5 of GEM output (MAP) => MAPs
+ */
+GEM_INLINE void output_sam_print_opt_field_tag_X4(
+    buffered_output_file_t* const buffered_output_file,const matches_t* const matches) {
+  // Print TAG
+  buffered_output_file_reserve(buffered_output_file,6); // Reserve
+  bofprintf_string_literal(buffered_output_file,"\tX4:Z:");
+  // Print COUNTERS
+  output_map_print_counters(buffered_output_file,matches->counters,matches->max_complete_stratum,false);
+}
+GEM_INLINE void output_sam_print_opt_field_tag_X4_pe(
+    buffered_output_file_t* const buffered_output_file,paired_matches_t* const paired_matches) {
+  // Print TAG
+  buffered_output_file_reserve(buffered_output_file,6); // Reserve
+  bofprintf_string_literal(buffered_output_file,"\tX4:Z:");
+  // Print COUNTERS
+  output_map_print_counters(buffered_output_file,paired_matches->counters,paired_matches->max_complete_stratum,false);
+}
+GEM_INLINE void output_sam_print_opt_field_tag_X5(
+    buffered_output_file_t* const buffered_output_file,const matches_t* const matches) {
+  // Print TAG
+  buffered_output_file_reserve(buffered_output_file,6); // Reserve
+  bofprintf_string_literal(buffered_output_file,"\tX5:Z:");
+  // Print MAPs
+  if (gem_expect_false(matches_get_num_match_traces(matches)==0)) {
+    buffered_output_file_reserve(buffered_output_file,1);
+    bofprintf_char(buffered_output_file,'-');
+  } else {
+    VECTOR_ITERATE(matches->position_matches,match_trace,match_number,match_trace_t) {
+      // Separator
+      buffered_output_file_reserve(buffered_output_file,1);
+      if (match_number > 0) bofprintf_char(buffered_output_file,',');
+      // Print Match
+      output_map_print_match(buffered_output_file,matches,match_trace,true);
+    }
+  }
+}
+GEM_INLINE void output_sam_print_opt_field_tag_X5_pe(
+    buffered_output_file_t* const buffered_output_file,
+    paired_matches_t* const paired_matches,const sequence_end_t sequence_end) {
+  // Print TAG
+  buffered_output_file_reserve(buffered_output_file,6); // Reserve
+  bofprintf_string_literal(buffered_output_file,"\tX5:Z:");
+  // Print PE-MAPs
+  if (gem_expect_false(vector_get_used(paired_matches->matches)==0)) {
+    buffered_output_file_reserve(buffered_output_file,1);
+    bofprintf_char(buffered_output_file,'-');
+  } else {
+    if (sequence_end == paired_end1) {
+      matches_t* const matches_end1 = paired_matches->matches_end1;
+      VECTOR_ITERATE_CONST(paired_matches->matches,paired_match,paired_match_number,paired_match_t) {
+        // Separator
+        buffered_output_file_reserve(buffered_output_file,1);
+        if (paired_match_number > 0) bofprintf_char(buffered_output_file,',');
+        // Print Match
+        output_map_print_match(buffered_output_file,matches_end1,paired_match->match_end1,true);
+      }
+    } else {
+      matches_t* const matches_end2 = paired_matches->matches_end2;
+      VECTOR_ITERATE_CONST(paired_matches->matches,paired_match,paired_match_number,paired_match_t) {
+        // Separator
+        buffered_output_file_reserve(buffered_output_file,1);
+        if (paired_match_number > 0) bofprintf_char(buffered_output_file,',');
+        // Print Match
+        output_map_print_match(buffered_output_file,matches_end2,paired_match->match_end2,true);
+      }
+    }
+  }
+}
+/*
  * XA  Z  Alternative hits; format: (chr,pos,CIGAR,NM;)*
  *   XA maps (chr12,+91022,101M,0) =>
  *     XA:Z:chr10,+100306093,100M,0;chr2,+173184544,100M,0;chr2,+175137710,100M,0;
@@ -624,7 +671,7 @@ GEM_INLINE void output_sam_print_opt_field_tag_XA_match(
     buffered_output_file_t* const buffered_output_file,
     const matches_t* const matches,const match_trace_t* const subdominant_match,
     const output_sam_parameters_t* const output_sam_parameters) {
-  const uint64_t seq_length = gem_strlen(subdominant_match->sequence_name);
+  uint64_t seq_length = gem_strlen(subdominant_match->sequence_name);
   // Print SeqName
   buffered_output_file_reserve(buffered_output_file,seq_length+INT_MAX_LENGTH+10);
   bofprintf_string(buffered_output_file,seq_length,subdominant_match->sequence_name);
@@ -645,9 +692,9 @@ GEM_INLINE void output_sam_print_opt_field_tag_XA_match(
 GEM_INLINE void output_sam_print_opt_field_tag_XA_se(
     buffered_output_file_t* const buffered_output_file,const matches_t* const matches,
     const output_sam_parameters_t* const output_sam_parameters) {
-  const uint64_t num_matches = vector_get_used(matches->global_matches);
+  const uint64_t num_matches = matches_get_num_match_traces(matches);
   if (num_matches > 1) {
-    match_trace_t* match_trace = vector_get_mem(matches->global_matches,match_trace_t);
+    match_trace_t* match_trace = matches_get_match_traces(matches);
     ++match_trace; // Skip primary
     // Reserve
     buffered_output_file_reserve(buffered_output_file,6);
@@ -662,10 +709,10 @@ GEM_INLINE void output_sam_print_opt_field_tag_XA_se(
 GEM_INLINE void output_sam_print_opt_field_tag_XA_pe_end1(
     buffered_output_file_t* const buffered_output_file,paired_matches_t* const paired_matches,
     const output_sam_parameters_t* const output_sam_parameters) {
-  const uint64_t num_matches = vector_get_used(paired_matches->concordant_matches);
+  const uint64_t num_matches = vector_get_used(paired_matches->matches);
   if (num_matches > 1) {
     matches_t* const matches = paired_matches->matches_end1;
-    paired_match_t* paired_match = vector_get_mem(paired_matches->concordant_matches,paired_match_t);
+    paired_match_t* paired_match = vector_get_mem(paired_matches->matches,paired_match_t);
     ++paired_match; // Skip primary
     // Reserve
     buffered_output_file_reserve(buffered_output_file,6);
@@ -680,10 +727,10 @@ GEM_INLINE void output_sam_print_opt_field_tag_XA_pe_end1(
 GEM_INLINE void output_sam_print_opt_field_tag_XA_pe_end2(
     buffered_output_file_t* const buffered_output_file,paired_matches_t* const paired_matches,
     const output_sam_parameters_t* const output_sam_parameters) {
-  const uint64_t num_matches = vector_get_used(paired_matches->concordant_matches);
+  const uint64_t num_matches = vector_get_used(paired_matches->matches);
   if (num_matches > 1) {
     matches_t* const matches = paired_matches->matches_end2;
-    paired_match_t* paired_match = vector_get_mem(paired_matches->concordant_matches,paired_match_t);
+    paired_match_t* paired_match = vector_get_mem(paired_matches->matches,paired_match_t);
     ++paired_match; // Skip primary
     // Reserve
     buffered_output_file_reserve(buffered_output_file,6);
@@ -758,30 +805,11 @@ GEM_INLINE void output_sam_print_seq__qualities(
     }
   }
 }
-GEM_INLINE bs_strand_t output_sam_handle_BS_names(const char *seq_name,uint64_t *len,const string_t *bisulfite_suffix)
-{
-	bs_strand_t bs_strand = None;
-	int ix;
-	for(ix=0;ix<2;ix++) {
-		const char *tp = seq_name + *len - 1;
-		uint64_t pos;
-		const char *suff = bisulfite_suffix[ix].buffer;
-		for(pos=bisulfite_suffix[ix].length;pos>0 && tp>seq_name;) {
-			if(suff[--pos] != *tp--) break;
-		}
-		if(!pos) {
-			*len -= bisulfite_suffix[ix].length;
-			break;
-		}
-	}
-	if(ix<2) bs_strand = !ix ? C2T:G2A;
-	return bs_strand;
-}
-
 GEM_INLINE void output_sam_print_core_fields_pe(
     buffered_output_file_t* const buffered_output_file,sequence_t* const seq_read,
     const matches_t* const matches,match_trace_t* const match,match_trace_t* const mate,
-    const int64_t template_length,const bool is_map_first_in_pair,const bool paired,const bool secondary_alignment,
+    const uint8_t template_mapq_score,const int64_t template_length,
+    const bool is_map_first_in_pair,const bool paired,const bool secondary_alignment,
     const bool supplementary_alignment,const bool not_passing_QC,const bool PCR_duplicate,
     const output_sam_parameters_t* const output_sam_parameters) {
   // (1) Print QNAME
@@ -801,21 +829,17 @@ GEM_INLINE void output_sam_print_core_fields_pe(
     uint64_t match_seq_name_length = gem_strlen(match->sequence_name);
     buffered_output_file_reserve(buffered_output_file,match_seq_name_length+2*INT_MAX_LENGTH+10);
     bofprintf_char(buffered_output_file,'\t');
-	 if(output_sam_parameters->bisulfite_mode) 
-		 match->bs_strand=output_sam_handle_BS_names(match->sequence_name,&match_seq_name_length,output_sam_parameters->bisulfite_suffix);
     bofprintf_string(buffered_output_file,match_seq_name_length,match->sequence_name); // (3) RNAME
     bofprintf_char(buffered_output_file,'\t');
     bofprintf_uint64(buffered_output_file,match->text_position+1); // (4) POS
     bofprintf_char(buffered_output_file,'\t');
-    bofprintf_int64(buffered_output_file,match->mapq_score); // (5) MAPQ
+    bofprintf_int64(buffered_output_file,template_mapq_score); // (5) MAPQ
     bofprintf_char(buffered_output_file,'\t');
     output_sam_print_match_cigar(buffered_output_file,matches,match,output_sam_parameters); // (6) CIGAR
   } else if(mate!=NULL) {
     uint64_t mate_seq_name_length = gem_strlen(mate->sequence_name);
     buffered_output_file_reserve(buffered_output_file,mate_seq_name_length+INT_MAX_LENGTH+10);
     bofprintf_char(buffered_output_file,'\t');
-	 if(output_sam_parameters->bisulfite_mode) 
-		 match->bs_strand=output_sam_handle_BS_names(mate->sequence_name,&mate_seq_name_length,output_sam_parameters->bisulfite_suffix);
     bofprintf_string(buffered_output_file,mate_seq_name_length,mate->sequence_name); // (3) RNAME
     bofprintf_char(buffered_output_file,'\t');
     bofprintf_uint64(buffered_output_file,mate->text_position+1); // (4) POS
@@ -828,19 +852,15 @@ GEM_INLINE void output_sam_print_core_fields_pe(
   // (8) Print PNEXT
   // (9) Print TLEN
   if (mate!=NULL) {
-    if (match!=NULL && !gem_streq(match->sequence_name,mate->sequence_name)) {
+    if (match==NULL || !gem_streq(match->sequence_name,mate->sequence_name)) {
       uint64_t mate_seq_name_length = gem_strlen(mate->sequence_name);
       buffered_output_file_reserve(buffered_output_file,mate_seq_name_length+2*INT_MAX_LENGTH+10);
       bofprintf_char(buffered_output_file,'\t');
-		if(output_sam_parameters->bisulfite_mode) {
-			mate->bs_strand=output_sam_handle_BS_names(mate->sequence_name,&mate_seq_name_length,output_sam_parameters->bisulfite_suffix);
-			if(mate->bs_strand != match->bs_strand) match->bs_strand = mate->bs_strand = Mixed;
-		}
       bofprintf_string(buffered_output_file,mate_seq_name_length,mate->sequence_name);
       bofprintf_char(buffered_output_file,'\t');
       bofprintf_uint64(buffered_output_file,mate->text_position+1);
     } else {
-		buffered_output_file_reserve(buffered_output_file,2*INT_MAX_LENGTH+10);
+      buffered_output_file_reserve(buffered_output_file,2*INT_MAX_LENGTH+10);
       bofprintf_string_literal(buffered_output_file,"\t=\t");
       bofprintf_uint64(buffered_output_file,mate->text_position+1);
     }
@@ -881,8 +901,6 @@ GEM_INLINE void output_sam_print_core_fields_se(
     uint64_t sequence_name_length = gem_strlen(match->sequence_name);
     buffered_output_file_reserve(buffered_output_file,sequence_name_length+2*INT_MAX_LENGTH+10);
     bofprintf_char(buffered_output_file,'\t');
-	  if(output_sam_parameters->bisulfite_mode) 
-		  match->bs_strand=output_sam_handle_BS_names(match->sequence_name,&sequence_name_length,output_sam_parameters->bisulfite_suffix);
     bofprintf_string(buffered_output_file,sequence_name_length,match->sequence_name);
     bofprintf_char(buffered_output_file,'\t');
     bofprintf_uint64(buffered_output_file,match->text_position+1);
@@ -911,50 +929,57 @@ GEM_INLINE void output_sam_print_core_fields_se(
 GEM_INLINE void output_sam_print_optional_fields_se(
     buffered_output_file_t* const buffered_output_file,
     archive_search_t* const archive_search,const matches_t* const matches,
-    const match_trace_t* const match_trace,const uint64_t match_number,const output_sam_parameters_t* const sam_parameters) {
-	 
-	// RG
-	if(sam_parameters->read_group_id) 
-		 output_sam_print_opt_field_tag_RG(buffered_output_file,sam_parameters->read_group_id);
+    const match_trace_t* const match_trace,const uint64_t match_number,
+    const bool print_tag_XS,const output_sam_parameters_t* const sam_parameters) {
   /*
-   * NM:i:2 MD:Z:98 AS:i:87 XS:i:47
+   * RG:Z:ReadGroup NM:i:2 MD:Z:98 AS:i:87 XS:i:47
    */
+  const uint64_t num_matches = matches_get_num_match_traces(matches);
+	// RG
+	if (sam_parameters->read_group_id) {
+	  output_sam_print_opt_field_tag_RG(buffered_output_file,sam_parameters->read_group_id);
+	}
   // NM
-  output_sam_print_opt_field_tag_NM(buffered_output_file,matches,match_trace);
-	
-  // We don't output MD flags in bisulfite mode because (a) they are not correct w.r.t. the stated
-  // reference and (b) if we calculated them correctly they would be large as they show all mismatches
-  
-  // XB
-  if(sam_parameters->bisulfite_mode) {
-	  output_sam_print_opt_field_tag_XB(buffered_output_file,match_trace);
-  } else {
-	  // MD
-	  output_sam_print_opt_field_tag_MD(buffered_output_file,matches,match_trace);
-  }
-	
+  if (match_trace) output_sam_print_opt_field_tag_NM(buffered_output_file,matches,match_trace);
+  // MD
+  if (match_trace) output_sam_print_opt_field_tag_MD(buffered_output_file,matches,match_trace);
   // AS
   const alignment_model_t alignment_model = archive_search->search_actual_parameters.search_parameters->alignment_model;
-  output_sam_print_opt_field_tag_AS(buffered_output_file,alignment_model,match_trace);
+  if (match_trace) output_sam_print_opt_field_tag_AS(buffered_output_file,alignment_model,match_trace);
   // XS
-  if (vector_get_used(matches->global_matches) > match_number+1) {
-    const match_trace_t* const next_match_trace = vector_get_elm(matches->global_matches,match_number+1,match_trace_t);
+  if (print_tag_XS && match_number+1 < num_matches) {
+    const match_trace_t* const next_match_trace = matches_get_match_traces(matches) + (match_number+1);
     output_sam_print_opt_field_tag_XS(buffered_output_file,alignment_model,next_match_trace);
   }
 }
 GEM_INLINE void output_sam_print_optional_fields_pe(
-    buffered_output_file_t* const buffered_output_file,const paired_matches_t* const paired_matches,
-    const paired_match_t* const paired_match,const match_trace_t* const match_end) {
-  // TODO
+    buffered_output_file_t* const buffered_output_file,
+    archive_search_t* const archive_search,const paired_matches_t* const paired_matches,
+    const sequence_end_t sequence_end,const match_trace_t* const match_trace,
+    const uint64_t match_number,const bool print_tag_XS,
+    const output_sam_parameters_t* const sam_parameters) {
   /*
-   * NM:i:2 MD:Z:98 AS:i:87 XS:i:47
+   * RG:Z:ReadGroup NM:i:2 MD:Z:98 AS:i:87 XS:i:47
    */
-//  output_sam_print_opt_field_tag_NM();
-//  output_sam_print_opt_field_tag_MD();
-//  output_sam_print_opt_field_tag_AS();
-//  output_sam_print_opt_field_tag_XS();
+  const uint64_t num_matches = vector_get_used(paired_matches->matches);
+  matches_t* const matches = (sequence_end==paired_end1) ? paired_matches->matches_end1 : paired_matches->matches_end2;
+  // RG
+  if (sam_parameters->read_group_id) {
+    output_sam_print_opt_field_tag_RG(buffered_output_file,sam_parameters->read_group_id);
+  }
+  // NM
+  if (match_trace) output_sam_print_opt_field_tag_NM(buffered_output_file,matches,match_trace);
+  // MD
+  if (match_trace) output_sam_print_opt_field_tag_MD(buffered_output_file,matches,match_trace);
+  // AS
+  const alignment_model_t alignment_model = archive_search->search_actual_parameters.search_parameters->alignment_model;
+  if (match_trace) output_sam_print_opt_field_tag_AS(buffered_output_file,alignment_model,match_trace);
+  // XS
+  if (print_tag_XS && match_number+1 < num_matches) {
+    const match_trace_t* const next_match_trace = matches_get_match_traces(matches) + (match_number+1);
+    output_sam_print_opt_field_tag_XS(buffered_output_file,alignment_model,next_match_trace);
+  }
 }
-
 /*
  * SAM output SE
  */
@@ -966,129 +991,234 @@ GEM_INLINE void output_sam_single_end_matches(
   const bool supplementary_alignment = false; // TODO
   const bool not_passing_QC = false; // TODO
   const bool PCR_duplicate = false; // TODO
-  // Sort matches
-  matches_sort_by_mapq_score(matches);
   // Print MATCHES
-  const uint64_t vector_match_trace_used = vector_get_used(matches->global_matches);
+  const uint64_t vector_match_trace_used = matches_get_num_match_traces(matches);
   if (gem_expect_false(vector_match_trace_used==0)) {
     // Print Unmapped
     output_sam_print_core_fields_se(buffered_output_file,&archive_search->sequence,matches,NULL,false,
         supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
-    // EOL
-    buffered_output_file_reserve(buffered_output_file,1);
-    bofprintf_char(buffered_output_file,'\n');
-  } else {
-    if (output_sam_parameters->compact_xa) {
-      match_trace_t* const match_trace = vector_get_mem(matches->global_matches,match_trace_t);
-      // Print primary alignment
-      output_sam_print_core_fields_se(buffered_output_file,&archive_search->sequence,matches,match_trace,false,
-          supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
-      // Print XA (sub-dominant alignments)
-      output_sam_print_opt_field_tag_XA_se(buffered_output_file,matches,output_sam_parameters);
-      // Print Optional Fields
-      output_sam_print_optional_fields_se(buffered_output_file,archive_search,matches,match_trace,0,output_sam_parameters);
-      // EOL
-      buffered_output_file_reserve(buffered_output_file,1);
-      bofprintf_char(buffered_output_file,'\n');
-    } else {
-      // Traverse all matches (Position-matches)
-      VECTOR_ITERATE(matches->global_matches,match_trace,match_number,match_trace_t) {
-        // Print Core Fields
-        output_sam_print_core_fields_se(buffered_output_file,&archive_search->sequence,matches,match_trace,(match_number>0),
-            supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
-        // Print Optional Fields
-        output_sam_print_optional_fields_se(buffered_output_file,archive_search,matches,match_trace,match_number,output_sam_parameters);
-        // EOL
-        buffered_output_file_reserve(buffered_output_file,1);
-        bofprintf_char(buffered_output_file,'\n');
-      }
-    }
-  }
-  PROF_STOP_TIMER(GP_OUTPUT_SAM_SE);
-}
-GEM_INLINE void output_sam_paired_end_matches(
-    buffered_output_file_t* const buffered_output_file,
-    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches,const output_sam_parameters_t* const output_sam_parameters) {
-  /*
-   * Read.00  83   chr1  86636017  60  16M1I77M1I5M  =  86635820  -295  ATGGGAG  HHIIGK  NM:i:2  MD:Z:98    AS:i:87  XS:i:47
-   * Read.00  163  chr1  86635820  60  100M          =  86636017   295  AGATTAG  IHHBEI  NM:i:1  MD:Z:68C31 AS:i:98  XS:i:19
-   */
-  PROF_START_TIMER(GP_OUTPUT_SAM_PE);
-  // TODO
-  const bool supplementary_alignment = false;
-  const bool not_passing_QC = false;
-  const bool PCR_duplicate = false;
-  // Sort matches
-  paired_matches_sort_by_mapq_score(paired_matches);
-  // Print MATCHES
-  matches_t* const matches_end1 = paired_matches->matches_end1;
-  matches_t* const matches_end2 = paired_matches->matches_end2;
-  if (gem_expect_false(!paired_matches_is_mapped(paired_matches))) { // Print Unmapped
-    // Print Core Fields (End/1)
-    output_sam_print_core_fields_pe(buffered_output_file,
-        &archive_search_end1->sequence,matches_end1,NULL,NULL,0,true,false,false,
-        supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
     // Print Optional Fields
-    // output_sam_print_optional_fields_pe(buffered_output_file,paired_matches,paired_match,paired_match->match_end1);
-    // EOL
-    buffered_output_file_reserve(buffered_output_file,1);
-    bofprintf_char(buffered_output_file,'\n');
-    // Print Core Fields (End/2)
-    output_sam_print_core_fields_pe(buffered_output_file,
-        &archive_search_end2->sequence,matches_end2,NULL,NULL,0,true,false,false,
-        supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
+    output_sam_print_optional_fields_se(buffered_output_file,archive_search,matches,NULL,0,false,output_sam_parameters);
+    // GEM compatibility
+    if (output_sam_parameters->print_gem_fields) {
+      output_sam_print_opt_field_tag_X4(buffered_output_file,matches);
+      output_sam_print_opt_field_tag_X5(buffered_output_file,matches);
+    }
     // EOL
     buffered_output_file_reserve(buffered_output_file,1);
     bofprintf_char(buffered_output_file,'\n');
   } else {
     // Traverse all matches (Position-matches)
-    VECTOR_ITERATE(paired_matches->concordant_matches,paired_match,match_number,paired_match_t) {
-      /*
-       * End/1
-       */
+    VECTOR_ITERATE(matches->position_matches,match_trace,match_number,match_trace_t) {
       // Print Core Fields
-      output_sam_print_core_fields_pe(buffered_output_file,
-          &archive_search_end1->sequence,matches_end1,paired_match->match_end1,paired_match->match_end2,
-          paired_match->template_length,true,true,match_number>0,
-          supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
+      const bool secondary_alignment = (match_number>0);
+      output_sam_print_core_fields_se(buffered_output_file,&archive_search->sequence,matches,match_trace,
+          secondary_alignment,supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
       // Print Optional Fields
-      output_sam_print_optional_fields_se(buffered_output_file,
-          archive_search_end1,matches_end1,paired_match->match_end1,match_number,output_sam_parameters);
-      // output_sam_print_optional_fields_pe(buffered_output_file,
-      //  archive_search_end1,matches_end1,paired_match->match_end1,match_number);
-      if (output_sam_parameters->compact_xa) {
-         // Print XA (sub-dominant alignments)
-         output_sam_print_opt_field_tag_XA_pe_end1(buffered_output_file,paired_matches,output_sam_parameters);
-      }
-      // EOL
-      buffered_output_file_reserve(buffered_output_file,1);
-      bofprintf_char(buffered_output_file,'\n');
-      /*
-       * End/2
-       */
-      // Print Core Fields
-      output_sam_print_core_fields_pe(buffered_output_file,
-          &archive_search_end2->sequence,matches_end2,paired_match->match_end2,paired_match->match_end1,
-          paired_match->template_length,false,true,match_number>0,
-          supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
-      // Print Optional Fields
-      output_sam_print_optional_fields_se(buffered_output_file,
-          archive_search_end2,matches_end2,paired_match->match_end2,match_number,output_sam_parameters);
-      // output_sam_print_optional_fields_pe(buffered_output_file,
-      //  archive_search_end2,matches_end2,paired_match->match_end2,match_number);
-      if (output_sam_parameters->compact_xa) {
-         // Print XA (sub-dominant alignments)
-         output_sam_print_opt_field_tag_XA_pe_end2(buffered_output_file,paired_matches,output_sam_parameters);
-         // EOL
-         buffered_output_file_reserve(buffered_output_file,1);
-         bofprintf_char(buffered_output_file,'\n');
-         break;
+      output_sam_print_optional_fields_se(buffered_output_file,archive_search,
+          matches,match_trace,match_number,false,output_sam_parameters);
+      // GEM compatibility
+      if (!secondary_alignment) {
+        if (output_sam_parameters->print_gem_fields) {
+          output_sam_print_opt_field_tag_X4(buffered_output_file,matches);
+          output_sam_print_opt_field_tag_X5(buffered_output_file,matches);
+        } else if (output_sam_parameters->compact_xa) {
+          // Print XA (sub-dominant alignments)
+          output_sam_print_opt_field_tag_XA_se(buffered_output_file,matches,output_sam_parameters);
+          // EOL
+          buffered_output_file_reserve(buffered_output_file,1);
+          bofprintf_char(buffered_output_file,'\n');
+          // Exit
+          break;
+        }
       }
       // EOL
       buffered_output_file_reserve(buffered_output_file,1);
       bofprintf_char(buffered_output_file,'\n');
     }
+  }
+  PROF_STOP_TIMER(GP_OUTPUT_SAM_SE);
+}
+GEM_INLINE void output_sam_paired_end_matches_unpaired(
+    buffered_output_file_t* const buffered_output_file,
+    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
+    paired_matches_t* const paired_matches,const output_sam_parameters_t* const output_sam_parameters) {
+  // Parameters
+  const bool supplementary_alignment = false;   // TODO
+  const bool not_passing_QC = false;   // TODO
+  const bool PCR_duplicate = false;  // TODO
+  matches_t* const matches_end1 = paired_matches->matches_end1;
+  matches_t* const matches_end2 = paired_matches->matches_end2;
+  const uint64_t vector_match_trace_used_end1 = vector_get_used(matches_end1->position_matches);
+  const uint64_t vector_match_trace_used_end2 = vector_get_used(matches_end2->position_matches);
+  match_trace_t* prim_match_end1 = vector_match_trace_used_end1 ? vector_get_mem(matches_end1->position_matches,match_trace_t) : NULL;
+  match_trace_t* prim_match_end2 = vector_match_trace_used_end2 ? vector_get_mem(matches_end2->position_matches,match_trace_t) : NULL;
+  if (vector_match_trace_used_end1 == 0) { // End1 Unmapped
+     // Print Core Fields (End/1)
+     output_sam_print_core_fields_pe(buffered_output_file,
+        &archive_search_end1->sequence,matches_end1,NULL,prim_match_end2,0,0,true,false,false,
+        supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
+     // Print Optional Fields
+     output_sam_print_optional_fields_se(buffered_output_file,archive_search_end1,matches_end1,NULL,0,false,output_sam_parameters);
+     // GEM compatibility
+     if (output_sam_parameters->print_gem_fields) {
+        output_sam_print_opt_field_tag_X4(buffered_output_file,matches_end1);
+        output_sam_print_opt_field_tag_X5(buffered_output_file,matches_end1);
+     }
+     // EOL
+     buffered_output_file_reserve(buffered_output_file,1);
+     bofprintf_char(buffered_output_file,'\n');
+  } else { // End1 Mapped
+     VECTOR_ITERATE(matches_end1->position_matches,match_trace,match_number,match_trace_t) {
+        // Print Core Fields
+        const bool secondary_alignment = (match_number>0);
+        output_sam_print_core_fields_pe(buffered_output_file,
+           &archive_search_end1->sequence,matches_end1,match_trace,match_number==0?prim_match_end2:NULL,0,0,true,false,false,
+           supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
+        // Print Optional Fields
+        output_sam_print_optional_fields_se(buffered_output_file,archive_search_end1,
+           matches_end1,match_trace,match_number,false,output_sam_parameters);
+        // GEM compatibility
+        if (!secondary_alignment) {
+           if (output_sam_parameters->print_gem_fields) {
+              output_sam_print_opt_field_tag_X4(buffered_output_file,matches_end1);
+              output_sam_print_opt_field_tag_X5(buffered_output_file,matches_end1);
+           } else if (output_sam_parameters->compact_xa) {
+              output_sam_print_opt_field_tag_XA_se(buffered_output_file,matches_end1,output_sam_parameters); // Print XA
+              // EOL
+              buffered_output_file_reserve(buffered_output_file,1);
+              bofprintf_char(buffered_output_file,'\n');
+              // Exit
+              break;
+           }
+        }
+        // EOL
+        buffered_output_file_reserve(buffered_output_file,1);
+        bofprintf_char(buffered_output_file,'\n');
+     }
+  }
+  if(vector_match_trace_used_end2 == 0) { // End2 Unmapped
+     // Print Core Fields (End/2)
+     output_sam_print_core_fields_pe(buffered_output_file,
+        &archive_search_end2->sequence,matches_end2,NULL,prim_match_end1,0,0,false,false,false,
+        supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
+     // Print Optional Fields
+     output_sam_print_optional_fields_se(buffered_output_file,archive_search_end2,matches_end2,NULL,0,false,output_sam_parameters);
+     // GEM compatibility
+     if (output_sam_parameters->print_gem_fields) {
+        output_sam_print_opt_field_tag_X4(buffered_output_file,matches_end2);
+        output_sam_print_opt_field_tag_X5(buffered_output_file,matches_end2);
+     }
+     // EOL
+     buffered_output_file_reserve(buffered_output_file,1);
+     bofprintf_char(buffered_output_file,'\n');
+  } else { // End2 Mapped
+     VECTOR_ITERATE(matches_end2->position_matches,match_trace,match_number,match_trace_t) {
+        // Print Core Fields
+        const bool secondary_alignment = (match_number>0);
+        output_sam_print_core_fields_pe(buffered_output_file,
+           &archive_search_end2->sequence,matches_end2,match_trace,match_number==0?prim_match_end1:NULL,0,0,false,false,false,
+           supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
+        // Print Optional Fields
+        output_sam_print_optional_fields_se(buffered_output_file,archive_search_end2,
+           matches_end2,match_trace,match_number,false,output_sam_parameters);
+        // GEM compatibility
+        if (!secondary_alignment) {
+           if (output_sam_parameters->print_gem_fields) {
+              output_sam_print_opt_field_tag_X4(buffered_output_file,matches_end2);
+              output_sam_print_opt_field_tag_X5(buffered_output_file,matches_end2);
+           } else if (output_sam_parameters->compact_xa) {
+              output_sam_print_opt_field_tag_XA_se(buffered_output_file,matches_end2,output_sam_parameters); // Print XA
+              // EOL
+              buffered_output_file_reserve(buffered_output_file,1);
+              bofprintf_char(buffered_output_file,'\n');
+              // Exit
+              break;
+           }
+        }
+        // EOL
+        buffered_output_file_reserve(buffered_output_file,1);
+        bofprintf_char(buffered_output_file,'\n');
+     }
+  }
+}
+GEM_INLINE void output_sam_paired_end_matches_paired(
+    buffered_output_file_t* const buffered_output_file,
+    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
+    paired_matches_t* const paired_matches,const output_sam_parameters_t* const output_sam_parameters) {
+  // Parameters
+  const bool supplementary_alignment = false;   // TODO
+  const bool not_passing_QC = false;   // TODO
+  const bool PCR_duplicate = false;  // TODO
+  matches_t* const matches_end1 = paired_matches->matches_end1;
+  matches_t* const matches_end2 = paired_matches->matches_end2;
+  // Traverse all matches (Position-matches)
+  VECTOR_ITERATE(paired_matches->matches,paired_match,match_number,paired_match_t) {
+    const bool secondary_alignment = (match_number>0);
+    /*
+     * End/1
+     */
+    // Print Core Fields
+    output_sam_print_core_fields_pe(buffered_output_file,&archive_search_end1->sequence,
+        matches_end1,paired_match->match_end1,paired_match->match_end2,
+        paired_match->mapq_score,paired_match->template_length,true,true,secondary_alignment,
+        supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
+    // Print Optional Fields
+    output_sam_print_optional_fields_pe(buffered_output_file,archive_search_end1,paired_matches,
+        paired_end1,paired_match->match_end1,match_number,!output_sam_parameters->compact_xa,output_sam_parameters);
+    // GEM compatibility
+    if (!secondary_alignment) {
+      if (output_sam_parameters->print_gem_fields) {
+        output_sam_print_opt_field_tag_X4_pe(buffered_output_file,paired_matches);
+        output_sam_print_opt_field_tag_X5_pe(buffered_output_file,paired_matches,paired_end1);
+      } else if (output_sam_parameters->compact_xa) {
+        output_sam_print_opt_field_tag_XA_pe_end1(buffered_output_file,paired_matches,output_sam_parameters); // Print XA
+      }
+    }
+    // EOL
+    buffered_output_file_reserve(buffered_output_file,1);
+    bofprintf_char(buffered_output_file,'\n');
+    /*
+     * End/2
+     */
+    // Print Core Fields
+    output_sam_print_core_fields_pe(buffered_output_file,&archive_search_end2->sequence,
+      matches_end2,paired_match->match_end2,paired_match->match_end1,
+      paired_match->mapq_score,paired_match->template_length,false,true,secondary_alignment,
+      supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
+    // Print Optional Fields
+    output_sam_print_optional_fields_pe(buffered_output_file,archive_search_end2,paired_matches,
+        paired_end2,paired_match->match_end2,match_number,!output_sam_parameters->compact_xa,output_sam_parameters);
+    // GEM compatibility
+    if (!secondary_alignment) {
+      if (output_sam_parameters->print_gem_fields) {
+        output_sam_print_opt_field_tag_X4_pe(buffered_output_file,paired_matches);
+        output_sam_print_opt_field_tag_X5_pe(buffered_output_file,paired_matches,paired_end2);
+      } else if (output_sam_parameters->compact_xa) {
+        output_sam_print_opt_field_tag_XA_pe_end2(buffered_output_file,paired_matches,output_sam_parameters); // Print XA
+        // EOL
+        buffered_output_file_reserve(buffered_output_file,1);
+        bofprintf_char(buffered_output_file,'\n');
+        // Exit
+        break;
+      }
+    }
+    // EOL
+    buffered_output_file_reserve(buffered_output_file,1);
+    bofprintf_char(buffered_output_file,'\n');
+  }
+}
+GEM_INLINE void output_sam_paired_end_matches(
+    buffered_output_file_t* const buffered_output_file,
+    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
+    paired_matches_t* const paired_matches,const output_sam_parameters_t* const output_sam_parameters) {
+  PROF_START_TIMER(GP_OUTPUT_SAM_PE);
+  if (gem_expect_false(!paired_matches_is_mapped(paired_matches))) {
+    output_sam_paired_end_matches_unpaired(buffered_output_file,
+        archive_search_end1,archive_search_end2,paired_matches,output_sam_parameters);
+  } else {
+    output_sam_paired_end_matches_paired(buffered_output_file,
+        archive_search_end1,archive_search_end2,paired_matches,output_sam_parameters);
   }
   PROF_STOP_TIMER(GP_OUTPUT_SAM_PE);
 }

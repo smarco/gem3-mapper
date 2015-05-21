@@ -49,14 +49,17 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
   search_parameters->max_bandwidth = 0.20;
   search_parameters->complete_strata_after_best = 0.0;
   // Matches search
-  search_parameters->max_search_matches = ALL;
+  search_parameters->max_search_matches = 1000000;
   // Replacements
   approximate_search_initialize_replacements(search_parameters);
   // Regions handling
   search_parameters->allow_region_chaining = true;
-  search_parameters->min_matching_length = 0.20;
   search_parameters->region_scaffolding_min_length = 10;
+  search_parameters->region_scaffolding_min_context_length = 2;
   search_parameters->region_scaffolding_coverage_threshold = 0.80;
+  // Local alignment
+  search_parameters->local_alignment = local_alignment_only_if_no_global;
+  search_parameters->local_min_identity = 0.40;
   // Alignment Model/Score
   search_parameters->alignment_model = alignment_model_gap_affine;
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_A] = +1;
@@ -88,24 +91,20 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
   search_parameters->swg_penalties.generic_mismatch_score = -4;
   search_parameters->swg_penalties.gap_open_score = -6;
   search_parameters->swg_penalties.gap_extension_score = -1;
-	// Bisulfite mode
-  search_parameters->bisulfite_mode = false;
-  search_parameters->bisulfite_read = bisulfite_read_inferred;
   /*
    * Paired End
    */
   /* Paired-end mode/alg */
   search_parameters->paired_end = false;
   search_parameters->paired_mapping_mode = paired_mapping_map_extension;
-  search_parameters->pair_discordant_search = pair_discordant_search_only_if_no_concordant;
+  search_parameters->recovery_by_extension = true;
   search_parameters->max_extendable_candidates = 20;
   search_parameters->max_matches_per_extension = 2;
-  search_parameters->min_unique_pair_samples = 1000;
   /* Template allowed length */
-  search_parameters->min_template_length = 0;    // Automatically adjusted in runtime
-  search_parameters->max_template_length = 2000; // Automatically adjusted in runtime
+  search_parameters->min_template_length = 0;
+  search_parameters->max_template_length = 10000;
   /* Concordant Orientation */
-  search_parameters->pair_discordant_search = pair_discordant_search_never;
+  search_parameters->pair_discordant_search = pair_discordant_search_only_if_no_concordant;
   search_parameters->pair_orientation_FR = pair_orientation_concordant;
   search_parameters->pair_orientation_RF = pair_orientation_invalid;
   search_parameters->pair_orientation_FF = pair_orientation_invalid;
@@ -185,11 +184,9 @@ GEM_INLINE void approximate_search_configure_replacements(
   search_parameters->mismatch_alphabet_length = count;
 }
 GEM_INLINE void approximate_search_configure_region_handling(
-    search_parameters_t* const search_parameters,
-    const float min_matching_length,const bool allow_region_chaining,
+    search_parameters_t* const search_parameters,const bool allow_region_chaining,
     const float region_scaffolding_min_length,const float region_scaffolding_coverage_threshold) {
   search_parameters->allow_region_chaining = allow_region_chaining;
-  search_parameters->min_matching_length = min_matching_length;
   search_parameters->region_scaffolding_min_length = region_scaffolding_min_length;
   search_parameters->region_scaffolding_coverage_threshold = region_scaffolding_coverage_threshold;
 }
@@ -249,7 +246,8 @@ GEM_INLINE void approximate_search_instantiate_values(
   search_actual_parameters->max_filtering_strata_after_best_nominal = integer_proportion(search_parameters->max_filtering_strata_after_best,pattern_length);
   search_actual_parameters->max_bandwidth_nominal = integer_proportion(search_parameters->max_bandwidth,pattern_length);
   search_actual_parameters->complete_strata_after_best_nominal = integer_proportion(search_parameters->complete_strata_after_best,pattern_length);
-  search_actual_parameters->min_matching_length_nominal = integer_proportion(search_parameters->min_matching_length,pattern_length);
+  search_actual_parameters->local_min_identity_nominal = integer_proportion(search_parameters->local_min_identity,pattern_length);
   search_actual_parameters->region_scaffolding_min_length_nominal = integer_proportion(search_parameters->region_scaffolding_min_length,pattern_length);
   search_actual_parameters->region_scaffolding_coverage_threshold_nominal = integer_proportion(search_parameters->region_scaffolding_coverage_threshold,pattern_length);
+  search_actual_parameters->region_scaffolding_min_context_length_nominal = integer_proportion(search_parameters->region_scaffolding_min_context_length,pattern_length);
 }

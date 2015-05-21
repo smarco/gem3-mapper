@@ -37,7 +37,7 @@ void buffered_input_file_close(buffered_input_file_t* const buffered_input);
 /*
  * Accessors
  */
-GEM_INLINE char** const buffered_input_file_get_text_line(buffered_input_file_t* const buffered_input);
+GEM_INLINE char** buffered_input_file_get_text_line(buffered_input_file_t* const buffered_input);
 GEM_INLINE uint64_t buffered_input_file_get_cursor_pos(buffered_input_file_t* const buffered_input);
 GEM_INLINE uint64_t buffered_input_file_get_block_id(buffered_input_file_t* const buffered_input);
 GEM_INLINE bool buffered_input_file_eob(buffered_input_file_t* const buffered_input);

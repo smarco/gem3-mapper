@@ -16,6 +16,7 @@
  * Debug
  */
 #define MM_SLAB_DEBUG_REQUESTED_SEGMENTS  false
+#define MM_SLAB_LOG                       false
 
 /*
  * Constants
@@ -62,6 +63,8 @@ GEM_INLINE void mm_slab_add_new_segment(mm_slab_t* const mm_slab) {
   gem_cond_log(MM_SLAB_DEBUG_REQUESTED_SEGMENTS,
       "[Slab:%lu-%s]Has allocated %lu MB",mm_slab->slab_id,mm_slab->description,
       (vector_get_used(mm_slab->slabs_segments)*mm_slab->slab_segment_size)/1024/1024);
+  gem_cond_log(MM_SLAB_LOG,"[GEM]> mm_slab(%lu).addSegment(%lu MB)",
+      mm_slab->slab_id,CONVERT_B_TO_MB(mm_slab->slab_segment_size));
 }
 GEM_INLINE mm_slab_t* mm_slab_new_(
     const uint64_t slab_size,const uint64_t slab_segment_size,
@@ -69,6 +72,7 @@ GEM_INLINE mm_slab_t* mm_slab_new_(
   gem_cond_fatal_error(slab_segment_size < slab_size,MM_SLAB_WRONG_DIMENSIONS,slab_segment_size,slab_size);
   mm_slab_t* const mm_slab = mm_alloc(mm_slab_t);
   mm_slab->slab_id = gem_rand_IID(0,UINT16_MAX);
+  gem_cond_log(MM_SLAB_LOG,"[GEM]> mm_slab(%lu).new()",mm_slab->slab_id);
   mm_slab->description = description;
   mm_slab->max_memory = max_allocatable_memory;
   mm_slab->requested_memory = 0;

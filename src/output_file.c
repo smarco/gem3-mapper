@@ -196,7 +196,7 @@ GEM_INLINE output_buffer_t* output_file_request_buffer(
     output_buffer->minor_block_id = 0;
     --output_file->buffer_free; // Dec number of free buffers
     // Update next in-order (next_request_id) & priority-queue
-    pqueue_pop(output_file->buffer_requests,void);
+    pqueue_pop_(output_file->buffer_requests);
     // Broadcast if any there are requests possible eligible
     if (output_file_eligible_request_cond(output_file)) {
       CV_BROADCAST(output_file->request_buffer_cond);

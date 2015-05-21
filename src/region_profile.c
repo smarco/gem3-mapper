@@ -54,10 +54,9 @@ GEM_INLINE bool region_profile_has_exact_matches(region_profile_t* const region_
  */
 GEM_INLINE void region_profile_extend_last_region(
     region_profile_t* const region_profile,fm_index_t* const fm_index,
-    pattern_t* const pattern,const bool* const allowed_enc,
+    const uint8_t* const key,const bool* const allowed_enc,
     const uint64_t rp_region_type_th) {
   // Merge the tail with the last region
-  uint8_t* const key = pattern->key; // Pattern
   region_search_t* const last_region = region_profile->filtering_region + (region_profile->num_filtering_regions-1);
   if (last_region->end != 0) {
     // Continue the search
@@ -105,7 +104,7 @@ GEM_INLINE void region_profile_extend_last_region(
   rank_mquery_new(&rank_mquery); \
   last_cut=0; \
 }
-#define REGION_SAVE_CUT_POINT() last_cut = key_len; hi_cut = hi; lo_cut = lo
+#define REGION_SAVE_CUT_POINT(pos,hi,lo) last_cut = pos; hi_cut = hi; lo_cut = lo
 ///*
 // *
 // */
@@ -118,7 +117,7 @@ GEM_INLINE void region_profile_extend_last_region(
  */
 GEM_INLINE void region_profile_generate_fixed(
     region_profile_t* const region_profile,fm_index_t* const fm_index,
-    pattern_t* const pattern,const bool* const allowed_enc,
+    const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
     const region_profile_model_t* const profile_model,const uint64_t min_regions) {
   PROF_START(GP_REGION_PROFILE_ADAPTIVE);
   // Parameters
@@ -126,16 +125,14 @@ GEM_INLINE void region_profile_generate_fixed(
   const uint64_t rp_region_type_th = profile_model->region_type_th;
   const uint64_t bwt_length = fm_index_get_length(fm_index);
   region_search_t* const regions = region_profile->filtering_region;
-  uint8_t* const key = pattern->key;
-  uint64_t key_len = pattern->key_length;
-  const uint64_t max_region_length = key_len/min_regions;
+  const uint64_t max_region_length = key_length/min_regions;
 
   // DEBUG
   gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
     static uint64_t region_profile_num = 0;
     fprintf(stderr,"[%lu]",region_profile_num++);
     uint64_t i;
-    for (i=0;i<pattern->key_length;++i) fprintf(stderr,"%c",dna_decode(pattern->key[i]));
+    for (i=0;i<key_length;++i) fprintf(stderr,"%c",dna_decode(key[i]));
     fprintf(stderr,"\n");
   }
 
@@ -147,18 +144,19 @@ GEM_INLINE void region_profile_generate_fixed(
   // Initial region
   uint64_t num_regions = 0, num_standard_regions = 0, region_length = 0;
   uint64_t lo, hi, last_cut=0, max_regions=UINT64_MAX;
-  REGION_RESTART(key_len);
-  while (key_len > 0) {
-    --key_len;
+  uint64_t key_position = key_length;
+  REGION_RESTART(key_position);
+  while (key_position > 0) {
+    --key_position;
     // Handling wildcards
-    if (!allowed_enc[key[key_len]]) {
-      while (key_len > 0 && !allowed_enc[key[key_len-1]]) --key_len;
-      REGION_RESTART(key_len); region_length = 0; ++last_cut;
+    if (!allowed_enc[key[key_position]]) {
+      while (key_position > 0 && !allowed_enc[key[key_position-1]]) --key_position;
+      REGION_RESTART(key_position); region_length = 0; ++last_cut;
       continue;
     }
 
     // Rank query
-    const uint8_t enc_char = key[key_len];
+    const uint8_t enc_char = key[key_position];
     if (!rank_mquery_is_exhausted(&rank_mquery)) {
       rank_mquery_add_char(rank_mtable,&rank_mquery,enc_char);
       rank_mtable_fetch(rank_mtable,&rank_mquery,&lo,&hi);
@@ -176,13 +174,13 @@ GEM_INLINE void region_profile_generate_fixed(
     const uint64_t num_candidates = hi-lo;
     gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) { fprintf(stderr," %lu",num_candidates); }
     if (gem_expect_true(num_candidates <= rp_region_th || region_length >= max_region_length)) {
-      REGION_CLOSE(key_len,lo,hi);
-      REGION_RESTART(key_len); region_length = 0;
+      REGION_CLOSE(key_position,lo,hi);
+      REGION_RESTART(key_position); region_length = 0;
     }
   }
   // Check number of regions
   if (num_regions == 0) {
-    if (regions[0].start == pattern->key_length) {
+    if (regions[0].start == key_position) {
       regions[0].end = 0;
       regions[0].lo = lo;
       regions[0].hi = hi;
@@ -230,7 +228,7 @@ GEM_INLINE void region_profile_generate_fixed(
  */
 GEM_INLINE void region_profile_generate_adaptive(
     region_profile_t* const region_profile,fm_index_t* const fm_index,
-    pattern_t* const pattern,const bool* const allowed_enc,
+    const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
     const region_profile_model_t* const profile_model,
     const uint64_t max_regions,const bool allow_zero_regions) {
   PROF_START(GP_REGION_PROFILE_ADAPTIVE);
@@ -248,7 +246,7 @@ GEM_INLINE void region_profile_generate_adaptive(
     static uint64_t region_profile_num = 0;
     fprintf(stderr,"[%lu]",region_profile_num++);
     uint64_t i;
-    for (i=0;i<pattern->key_length;++i) fprintf(stderr,"%c",dna_decode(pattern->key[i]));
+    for (i=0;i<key_length;++i) fprintf(stderr,"%c",dna_decode(key[i]));
     fprintf(stderr,"\n");
   }
 
@@ -259,21 +257,20 @@ GEM_INLINE void region_profile_generate_adaptive(
 
   // Initial region
   const uint64_t bwt_length = fm_index_get_length(fm_index);
-  uint8_t* const key = pattern->key;
-  uint64_t key_len = pattern->key_length;
-  REGION_RESTART(key_len);
-  while (key_len > 0) {
-    --key_len;
+  uint64_t key_position = key_length;
+  REGION_RESTART(key_position);
+  while (key_position > 0) {
+    --key_position;
     // Handling wildcards
-    if (!allowed_enc[key[key_len]]) {
-      if (last_cut != 0) REGION_CLOSE(key_len+1,lo,hi);
-      while (key_len > 0 && !allowed_enc[key[key_len-1]]) --key_len;
-      REGION_RESTART(key_len);
+    if (!allowed_enc[key[key_position]]) {
+      if (last_cut != 0) REGION_CLOSE(key_position+1,lo,hi);
+      while (key_position > 0 && !allowed_enc[key[key_position-1]]) --key_position;
+      REGION_RESTART(key_position);
       continue;
     }
 
     // Rank query
-    const uint8_t enc_char = key[key_len];
+    const uint8_t enc_char = key[key_position];
     if (!rank_mquery_is_exhausted(&rank_mquery)) {
       rank_mquery_add_char(rank_mtable,&rank_mquery,enc_char);
       if (rank_mquery.level > rank_mquery_min_fetch_level) {
@@ -297,42 +294,42 @@ GEM_INLINE void region_profile_generate_adaptive(
     // Check number of candidates (any or none)
     if (num_candidates > 0) {
       // We have candidate/s
-      if (gem_expect_false(key_len == 0)) {
+      if (gem_expect_false(key_position == 0)) {
         // End-of-read
-        REGION_CLOSE(key_len,lo,hi);
-        REGION_RESTART(key_len);
+        REGION_CLOSE(key_position,lo,hi);
+        REGION_RESTART(key_position);
       } else if (last_cut == 0) {
         // First Cut-Point
-        REGION_SAVE_CUT_POINT();
+        REGION_SAVE_CUT_POINT(key_position,hi,lo);
         expected_count = num_candidates;
         max_steps = rp_max_steps;
       } else {
         // Check Cut-Point progress
         expected_count /= rp_dec_factor;
         if (num_candidates <= expected_count || num_candidates<=rp_region_type_th) {
-          REGION_SAVE_CUT_POINT(); // Refresh cut point
+          REGION_SAVE_CUT_POINT(key_position,hi,lo); // Refresh cut point
         }
         // Check maximum steps allowed for optimize region
         if (--max_steps == 0) {
-          key_len = last_cut;
-          REGION_CLOSE(key_len,lo_cut,hi_cut);
-          REGION_RESTART(key_len);
+          key_position = last_cut;
+          REGION_CLOSE(key_position,lo_cut,hi_cut);
+          REGION_RESTART(key_position);
         }
       }
     } else if (gem_expect_false(allow_zero_regions || last_cut == 0)) {
       // No candidates and/or no cut-point (we allow zero-regions)
-      REGION_CLOSE(key_len,lo,hi);
-      REGION_RESTART(key_len);
+      REGION_CLOSE(key_position,lo,hi);
+      REGION_RESTART(key_position);
     } else {
       // We don't allow zero-regions (restore last cut-point)
-      key_len = last_cut;
-      REGION_CLOSE(key_len,lo_cut,hi_cut);
-      REGION_RESTART(key_len);
+      key_position = last_cut;
+      REGION_CLOSE(key_position,lo_cut,hi_cut);
+      REGION_RESTART(key_position);
     }
   }
   // Check number of regions
   if (num_regions == 0) {
-    if (regions[0].start == pattern->key_length) {
+    if (regions[0].start == key_length) {
       regions[0].end = 0;
       regions[0].lo = lo;
       regions[0].hi = hi;
@@ -348,7 +345,7 @@ GEM_INLINE void region_profile_generate_adaptive(
     region_profile->num_standard_regions = num_standard_regions;
     if (allow_zero_regions) {
       // NOTE Extending or not depending on the setup notably hits sensitivity
-      region_profile_extend_last_region(region_profile,fm_index,pattern,allowed_enc,rp_region_type_th);
+      region_profile_extend_last_region(region_profile,fm_index,key,allowed_enc,rp_region_type_th);
     }
   }
   gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {

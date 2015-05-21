@@ -9,7 +9,7 @@
 ROOT_PATH=$(CURDIR)
 include Makefile.mk
 
-all: devel
+all: release
 
 # Optimized 
 release: setup
@@ -43,6 +43,9 @@ debug: setup
 	
 check: setup debug
 	$(MAKE) --directory=test check
+	
+complexity:
+	pmccabe -vt include/*.h src/*.c tools/*.c
 	
 setup: 
 	@mkdir -p $(FOLDER_BIN) $(FOLDER_BUILD) $(FOLDER_LIB)

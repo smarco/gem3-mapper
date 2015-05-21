@@ -11,122 +11,138 @@
 #ifndef BWT_H_
 #define BWT_H_
 
-#include "essentials.h"
-#include "sampled_sa.h"
+/*
+ * BWT-Models
+ */
+#include "bwt_sbasic.h"
+#include "bwt_basic.h"
 
 /*
- * Text-sampling
+ * Instantiate BWT Models
  */
-#ifdef SAMPLING_SA_DIRECT
-#include "bwt_s1_bm64_sampled.h"
-#endif
-
-typedef struct {
-  uint64_t lo;
-  uint64_t hi;
-} bwt_interval_t;
+// Forward
+typedef bwt_sbasic_t bwt_t;
+typedef bwt_sbasic_builder_t bwt_builder_t;
+// Reverse
+typedef bwt_basic_t bwt_reverse_t;
+typedef bwt_basic_builder_t bwt_reverse_builder_t;
 
 /*
  * BWT Builder
  */
-GEM_INLINE bwt_builder_t* bwt_builder_new(
-    dna_text_builder_t* const bwt_text,const uint64_t* const character_occurrences,
-    sampled_sa_builder_t* const sampled_sa,const bool check,const bool verbose);
-GEM_INLINE void bwt_builder_write(fm_t* const file_manager,bwt_builder_t* const bwt_builder);
-GEM_INLINE void bwt_builder_delete(bwt_builder_t* const bwt_builder);
+// Forward
+#define bwt_builder_new bwt_sbasic_builder_new
+#define bwt_builder_write bwt_sbasic_builder_write
+#define bwt_builder_delete bwt_sbasic_builder_delete
+// Reverse
+#define bwt_reverse_builder_new bwt_basic_builder_new
+#define bwt_reverse_builder_write bwt_basic_builder_write
+#define bwt_reverse_builder_delete bwt_basic_builder_delete
 
 /*
  * BWT Loader
  */
-GEM_INLINE bwt_t* bwt_read(fm_t* const file_manager,const bool check);
-GEM_INLINE bwt_t* bwt_read_mem(mm_t* const memory_manager,const bool check);
-GEM_INLINE void bwt_write(bwt_t* const bwt,fm_t* const file_manager);
-GEM_INLINE void bwt_delete(bwt_t* const bwt);
+// Forward
+#define bwt_read_mem bwt_sbasic_read_mem
+#define bwt_delete bwt_sbasic_delete
+// Reverse
+#define bwt_reverse_read_mem bwt_basic_read_mem
+#define bwt_reverse_delete bwt_basic_delete
 
 /*
  * BWT General Accessors
  */
-GEM_INLINE uint64_t bwt_builder_get_length(const bwt_builder_t* const bwt_builder);
-GEM_INLINE uint64_t bwt_builder_get_size(bwt_builder_t* const bwt_builder);
-
-GEM_INLINE uint64_t bwt_get_length(const bwt_t* const bwt);
-GEM_INLINE uint64_t bwt_get_size(bwt_t* const bwt);
-
-GEM_INLINE bool bwt_is_same_bucket(const uint64_t lo,const uint64_t hi);
+// Forward
+#define bwt_builder_get_length bwt_sbasic_builder_get_length
+#define bwt_builder_get_size bwt_sbasic_builder_get_size
+#define bwt_get_length bwt_sbasic_get_length
+#define bwt_get_size bwt_sbasic_get_size
+#define bwt_is_same_bucket bwt_sbasic_is_same_bucket
+// Reverse
+#define bwt_reverse_builder_get_length bwt_basic_builder_get_length
+#define bwt_reverse_builder_get_size bwt_basic_builder_get_size
+#define bwt_reverse_get_length bwt_basic_get_length
+#define bwt_reverse_get_size bwt_basic_get_size
+#define bwt_reverse_is_same_bucket bwt_basic_is_same_bucket
 
 /*
  * BWT Character Accessors
  */
-GEM_INLINE uint8_t bwt_char(const bwt_t* const bwt,const uint64_t position);
-GEM_INLINE char bwt_char_character(const bwt_t* const bwt,const uint64_t position);
+// Forward
+#define bwt_char bwt_sbasic_char
+#define bwt_char_character bwt_sbasic_char_character
+// Reverse
+#define bwt_reverse_char bwt_basic_char
+#define bwt_reverse_char_character bwt_basic_char_character
 
 /*
  * BWT ERank (Exclusive Rank Function)
  */
-GEM_INLINE uint64_t bwt_builder_erank(const bwt_builder_t* const bwt_builder,const uint8_t char_enc,const uint64_t position);
-GEM_INLINE uint64_t bwt_erank(const bwt_t* const bwt,const uint8_t char_enc,const uint64_t position);
-GEM_INLINE uint64_t bwt_erank_character(const bwt_t* const bwt,const char character,const uint64_t position);
-GEM_INLINE void bwt_erank_interval(
-    const bwt_t* const bwt,const uint8_t char_enc,
-    const uint64_t lo_in,const uint64_t hi_in,uint64_t* const lo_out,uint64_t* const hi_out);
+// Forward
+#define bwt_builder_erank bwt_sbasic_builder_erank
+#define bwt_erank bwt_sbasic_erank
+#define bwt_erank_character bwt_sbasic_erank_character
+#define bwt_erank_interval bwt_sbasic_erank_interval
+// Reverse
+#define bwt_reverse_builder_erank bwt_basic_builder_erank
+#define bwt_reverse_erank bwt_basic_erank
+#define bwt_reverse_erank_character bwt_basic_erank_character
+#define bwt_reverse_erank_interval bwt_basic_erank_interval
 
 /*
  * BWT Prefetched ERank
  */
-GEM_INLINE void bwt_prefetch(const bwt_t* const bwt,const uint64_t position,bwt_block_locator_t* const block_loc);
-GEM_INLINE uint64_t bwt_prefetched_erank(
-    const bwt_t* const bwt,const uint8_t char_enc,
-    const uint64_t position,const bwt_block_locator_t* const block_loc);
-GEM_INLINE void bwt_prefetched_erank_interval(
-    const bwt_t* const bwt,const uint8_t char_enc,
-    const uint64_t lo_in,const uint64_t hi_in,uint64_t* const lo_out,uint64_t* const hi_out,
-    const bwt_block_locator_t* const block_loc);
+// Forward
+#define bwt_prefetch bwt_sbasic_prefetch
+#define bwt_prefetched_erank bwt_sbasic_prefetched_erank
+#define bwt_prefetched_erank_interval bwt_sbasic_prefetched_erank_interval
+// Reverse
+#define bwt_reverse_prefetch bwt_basic_prefetch
+#define bwt_reverse_prefetched_erank bwt_basic_prefetched_erank
+#define bwt_reverse_prefetched_erank_interval bwt_basic_prefetched_erank_interval
 
 /*
- *  BWT Precomputed ERank (Precomputation of the block's elements)
+ * BWT Precomputed ERank (Precomputation of the block's elements)
  */
-GEM_INLINE void bwt_precompute(
-    const bwt_t* const bwt,const uint64_t position,
-    bwt_block_locator_t* const block_loc,bwt_block_elms_t* const block_elms);
-GEM_INLINE void bwt_precompute_interval(
-    const bwt_t* const bwt,const uint64_t lo,const uint64_t hi,
-    bwt_block_locator_t* const block_loc,bwt_block_elms_t* const block_elms);
-GEM_INLINE void bwt_prefetched_precompute(
-    const bwt_t* const bwt,
-    const bwt_block_locator_t* const block_loc,bwt_block_elms_t* const block_elms);
-GEM_INLINE void bwt_prefetched_precompute_interval(
-    const bwt_t* const bwt,const uint64_t lo,
-    const bwt_block_locator_t* const block_loc,bwt_block_elms_t* const block_elms);
-
-GEM_INLINE uint64_t bwt_precomputed_erank(
-    const bwt_t* const bwt,const uint8_t char_enc,
-    const bwt_block_locator_t* const block_loc,const bwt_block_elms_t* const block_elms);
-GEM_INLINE void bwt_precomputed_erank_interval(
-    const bwt_t* const bwt,const uint8_t char_enc,
-    uint64_t* const lo_out,uint64_t* const hi_out,
-    const bwt_block_locator_t* const block_loc,const bwt_block_elms_t* const block_elms);
+// Forward
+#define bwt_precompute bwt_sbasic_precompute
+#define bwt_precompute_interval bwt_sbasic_precompute_interval
+#define bwt_prefetched_precompute bwt_sbasic_prefetched_precompute
+#define bwt_prefetched_precompute_interval bwt_sbasic_prefetched_precompute_interval
+#define bwt_precomputed_erank bwt_sbasic_precomputed_erank
+#define bwt_precomputed_erank_interval bwt_sbasic_precomputed_erank_interval
+// Reverse
+#define bwt_reverse_precompute bwt_basic_precompute
+#define bwt_reverse_precompute_interval bwt_basic_precompute_interval
+#define bwt_reverse_prefetched_precompute bwt_basic_prefetched_precompute
+#define bwt_reverse_prefetched_precompute_interval bwt_basic_prefetched_precompute_interval
+#define bwt_reverse_precomputed_erank bwt_basic_precomputed_erank
+#define bwt_reverse_precomputed_erank_interval bwt_basic_precomputed_erank_interval
 
 /*
  * BWT LF (Last to first)
  */
-GEM_INLINE uint64_t bwt_LF(
-    const bwt_t* const bwt,const uint64_t position,bool* const is_sampled);
-GEM_INLINE uint64_t bwt_prefetched_LF(
-    const bwt_t* const bwt,const uint64_t position,bool* const is_sampled,
-    const bwt_block_locator_t* const block_loc);
-
-GEM_INLINE uint64_t bwt_LF__enc(
-    const bwt_t* const bwt,const uint64_t position,uint8_t* const char_enc,bool* const is_sampled);
-GEM_INLINE uint64_t bwt_LF__character(
-    const bwt_t* const bwt,const uint64_t position,char* const character,bool* const is_sampled);
-GEM_INLINE uint64_t bwt_prefetched_LF__enc(
-    const bwt_t* const bwt,const uint64_t position,uint8_t* const char_enc,bool* const is_sampled,
-    const bwt_block_locator_t* const block_loc);
+// Forward
+#define bwt_LF bwt_sbasic_LF
+#define bwt_prefetched_LF bwt_sbasic_prefetched_LF
+#define bwt_LF__enc bwt_sbasic_LF__enc
+#define bwt_LF__character bwt_sbasic_LF__character
+#define bwt_prefetched_LF__enc bwt_sbasic_prefetched_LF__enc
+// Reverse
+#define bwt_reverse_LF bwt_basic_LF
+#define bwt_reverse_prefetched_LF bwt_basic_prefetched_LF
+#define bwt_reverse_LF__enc bwt_basic_LF__enc
+#define bwt_reverse_LF__character bwt_basic_LF__character
+#define bwt_reverse_prefetched_LF__enc bwt_basic_prefetched_LF__enc
 
 /*
  * Display
  */
-GEM_INLINE void bwt_builder_print(FILE* const stream,bwt_builder_t* const bwt_builder);
-GEM_INLINE void bwt_print(FILE* const stream,bwt_t* const bwt);
+// Forward
+#define bwt_builder_print bwt_sbasic_builder_print
+#define bwt_print bwt_sbasic_print
+// Reverse
+#define bwt_reverse_builder_print bwt_basic_builder_print
+#define bwt_reverse_print bwt_basic_print
 
 #endif /* BWT_H_ */

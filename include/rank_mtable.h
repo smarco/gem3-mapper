@@ -18,6 +18,8 @@
 #define RANK_MTABLE_SEARCH_DEPTH  11                          // Number of character that can be searched up in the table
 #define RANK_MTABLE_LEVELS       (RANK_MTABLE_SEARCH_DEPTH+1) // One fake level (zero-HI)
 
+#define RANK_MTABLE_MMD_THRESHOLD 20                          // Minimum Matching Depth (MMD)
+
 /*
  * Check
  */
@@ -31,6 +33,8 @@ typedef struct {
   // Table
   uint64_t* level_skip;        // Skip from levels-to-level (Pre-computed)
   uint64_t** sa_ranks_levels;  // Pointers to the levels
+  // Optimization info
+  uint64_t min_matching_depth; // Minimum depth to achieve less than MMD_THRESHOLD matches
   /* MM */
   mm_t* mm_sa_ranks;
 } rank_mtable_t;
@@ -78,5 +82,6 @@ GEM_INLINE void rank_mtable_fetch(
  * Display
  */
 GEM_INLINE void rank_mtable_print(FILE* const stream,rank_mtable_t* const rank_mtable);
+GEM_INLINE void rank_mtable_print_content(FILE* const stream,rank_mtable_t* const rank_mtable,const uint64_t text_length);
 
 #endif /* RANK_MTABLE_H_ */

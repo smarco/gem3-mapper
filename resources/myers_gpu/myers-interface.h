@@ -28,7 +28,8 @@ typedef enum
  MFASTA_FILE,
  PROFILE_REFERENCE_FILE,
  ASCII,
- GEM
+ GEM_FULL,
+ GEM_ONLY_FORWARD
 } bpm_gpu_ref_coding_t;
 
 typedef enum

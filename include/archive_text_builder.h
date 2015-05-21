@@ -16,7 +16,7 @@
 /*
  * DEBUG
  */
-GEM_INLINE void archive_builder_dump_index_text(archive_builder_t* const archive_builder);
+GEM_INLINE void archive_builder_dump_index_text(archive_builder_t* const archive_builder,const char* const extension);
 
 /*
  * Archive Builder. Text Generation Building-Blocks

@@ -12,12 +12,15 @@
  */
 GEM_INLINE void archive_select_parameters_init(select_parameters_t* const select_parameters) {
   // MAPQ Score
-  select_parameters->mapq_model = mapq_model_exp_relative_score;
+  select_parameters->mapq_model = mapq_model_gem;
+  select_parameters->mapq_threshold = 0;
   // Reporting
   select_parameters->min_decoded_strata = 0;
   select_parameters->max_decoded_matches = 20;
   select_parameters->min_reported_matches = 1;
   select_parameters->max_reported_matches = 100;
+  // Sorting
+  select_parameters->sorting = matches_sorting_mapq;
   // Check
   select_parameters->check_correct = false;
   select_parameters->check_optimum = false;

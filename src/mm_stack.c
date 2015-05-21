@@ -13,6 +13,14 @@
 
 #include "mm_stack.h"
 
+/*
+ * Debug
+ */
+#define MM_STACK_LOG false
+
+/*
+ * Constants
+ */
 #define MM_STACK_INITIAL_SEGMENTS 10
 #define MM_STACK_INITIAL_SEGMENTS_ALLOCATED 1
 #define MM_STACK_INITIAL_STATES 10
@@ -51,8 +59,11 @@ GEM_INLINE void mm_stack_segment_free(mm_stack_t* const mm_stack,mm_stack_segmen
  */
 GEM_INLINE mm_stack_t* mm_stack_new(mm_slab_t* const mm_slab) {
   MM_SLAB_CHECK(mm_slab);
+  static int no = 0;
   // Allocate handler
   mm_stack_t* const mm_stack = mm_alloc(mm_stack_t);
+  mm_stack->id = no++;
+  gem_cond_log(MM_STACK_LOG,"[GEM]> mm_stack(%lu).new()",mm_stack->id);
   // Initialize slab
   mm_stack->mm_slab = mm_slab;
   mm_stack->state = vector_new(MM_STACK_INITIAL_STATES,mm_stack_state_t); // Initialize stack state & dimensions
@@ -145,6 +156,8 @@ GEM_INLINE mm_stack_segment_t* mm_stack_add_segment(mm_stack_t* const mm_stack) 
     stack_segment = vector_get_last_elm(mm_stack->segments,mm_stack_segment_t);
     // Init segment
     mm_stack_segment_allocate(mm_stack,stack_segment);
+    gem_cond_log(MM_STACK_LOG,"[GEM]> mm_stack(%lu).addSegment(%lu x %lu MB)",
+        mm_stack->id,vector_get_used(mm_stack->segments),CONVERT_B_TO_MB(mm_stack->segment_size));
   }
   // Clear segment
   mm_stack_segment_reset(mm_stack,stack_segment);
@@ -157,9 +170,7 @@ GEM_INLINE void* mm_stack_memory_allocate(mm_stack_t* const mm_stack,const uint6
   // Check if there is enough free memory in the segment
   if (gem_expect_false(num_bytes > current_segment->memory_available)) {
     // Check we can fit the request into a slab unit
-    if (num_bytes > mm_stack->segment_size) {
-      gem_cond_fatal_error(num_bytes > mm_stack->segment_size,MM_STACK_CANNOT_ALLOCATE,num_bytes,mm_stack->segment_size);
-    }
+    gem_cond_fatal_error(num_bytes > mm_stack->segment_size,MM_STACK_CANNOT_ALLOCATE,num_bytes,mm_stack->segment_size);
     current_segment = mm_stack_add_segment(mm_stack); // Use new segment
   }
   // Serve Memory Request
@@ -177,15 +188,15 @@ GEM_INLINE void mm_stack_free(mm_stack_t* const mm_stack) {
   vector_clear(mm_stack->state);
   // Clear first Segment
   mm_stack_segment_reset(mm_stack,vector_get_elm(mm_stack->segments,0,mm_stack_segment_t));
-  // Reap non-resident segments
-  if (vector_get_used(mm_stack->segments) > 1) {
-    mm_slab_lock(mm_stack->mm_slab);
-    VECTOR_ITERATE_OFFSET(mm_stack->segments,stack_segment,position,1,mm_stack_segment_t) {
-      mm_stack_segment_free(mm_stack,stack_segment);
-    }
-    mm_slab_unlock(mm_stack->mm_slab);
-  }
-  vector_set_used(mm_stack->segments,1); // Set used to 1
+  // Reap non-resident segments // TODO
+//  if (vector_get_used(mm_stack->segments) > 1) {
+//    mm_slab_lock(mm_stack->mm_slab);
+//    VECTOR_ITERATE_OFFSET(mm_stack->segments,stack_segment,position,1,mm_stack_segment_t) {
+//      mm_stack_segment_free(mm_stack,stack_segment);
+//    }
+//    mm_slab_unlock(mm_stack->mm_slab);
+//  }
+//  vector_set_used(mm_stack->segments,1); // Set used to 1
   mm_stack->current_segment = 0; // Set current segment
 }
 

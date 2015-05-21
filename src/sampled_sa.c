@@ -9,6 +9,11 @@
 #include "packed_integer_array.h"
 
 /*
+ * Sampled-SA Model & Version
+ */
+#define SAMPLED_SA_MODEL_NO  1000ul
+
+/*
  * Checkers
  */
 #define SAMPLED_SA_CHECK(sampled_sa) GEM_CHECK_NULL(sampled_sa)
@@ -28,21 +33,12 @@ GEM_INLINE sampled_sa_t* sampled_sa_new(const uint64_t index_length,const sampli
   // Return
   return sampled_sa;
 }
-GEM_INLINE sampled_sa_t* sampled_sa_read(fm_t* const file_manager) {
-  // Allocate handler
-  sampled_sa_t* const sampled_sa = mm_alloc(sampled_sa_t);
-  // Read Meta-Data
-  sampled_sa->index_length = fm_read_uint64(file_manager);
-  sampled_sa->sampling_rate = fm_read_uint64(file_manager);
-  // Read PackedIntegerArray
-  sampled_sa->packed_integer_array = packed_integer_array_read(file_manager);
-  // Return
-  return sampled_sa;
-}
 GEM_INLINE sampled_sa_t* sampled_sa_read_mem(mm_t* const memory_manager) {
   // Allocate handler
   sampled_sa_t* const sampled_sa = mm_alloc(sampled_sa_t);
   // Read Meta-Data
+  const uint64_t sampled_sa_model_no = mm_read_uint64(memory_manager);
+  gem_cond_fatal_error(sampled_sa_model_no!=SAMPLED_SA_MODEL_NO,SAMPLED_SA_WRONG_MODEL_NO,sampled_sa_model_no,SAMPLED_SA_MODEL_NO);
   sampled_sa->index_length = mm_read_uint64(memory_manager);
   sampled_sa->sampling_rate = mm_read_uint64(memory_manager);
   // Read PackedIntegerArray
@@ -53,6 +49,7 @@ GEM_INLINE sampled_sa_t* sampled_sa_read_mem(mm_t* const memory_manager) {
 GEM_INLINE void sampled_sa_write(fm_t* const file_manager,sampled_sa_t* const sampled_sa) {
   SAMPLED_SA_CHECK(sampled_sa);
   // Write Meta-Data
+  fm_write_uint64(file_manager,SAMPLED_SA_MODEL_NO);
   fm_write_uint64(file_manager,sampled_sa->index_length);
   fm_write_uint64(file_manager,sampled_sa->sampling_rate);
   // Write PackedIntegerArray
@@ -124,6 +121,7 @@ GEM_INLINE void sampled_sa_builder_set_sample(
 }
 GEM_INLINE void sampled_sa_builder_write(fm_t* const file_manager,sampled_sa_builder_t* const sampled_sa) {
   // Write Meta-Data
+  fm_write_uint64(file_manager,SAMPLED_SA_MODEL_NO);
   fm_write_uint64(file_manager,sampled_sa->index_length);
   fm_write_uint64(file_manager,sampled_sa->sampling_rate);
   // Write PackedIntegerArray
@@ -199,8 +197,8 @@ GEM_INLINE void sampled_sa_print(FILE* const stream,sampled_sa_t* const sampled_
 GEM_INLINE void sampled_sa_builder_print(FILE* const stream,sampled_sa_builder_t* const sampled_sa) {
   SAMPLED_SA_CHECK(sampled_sa);
   // Print Sampled-SA
-  sampled_sa_print_(stream,sampled_sa->sampling_rate,
-      sampled_sa_builder_get_sampling_rate(sampled_sa),sampled_sa->index_length,0);
+  sampled_sa_print_(stream,sampled_sa->sampling_rate,sampled_sa_builder_get_sampling_rate(sampled_sa),
+      sampled_sa->index_length,0);
   // Flush
   fflush(stream);
 }

@@ -34,6 +34,7 @@ GEM_INLINE rank_mtable_t* rank_mtable_read(fm_t* const file_manager) {
   // Read Meta-info
   rank_mtable->num_levels = fm_read_uint64(file_manager);
   rank_mtable->table_size = fm_read_uint64(file_manager);
+  rank_mtable->min_matching_depth = fm_read_uint64(file_manager);
   // Read ranks
   fm_skip_align_4KB(file_manager);
   rank_mtable->mm_sa_ranks = fm_load_mem(file_manager,rank_mtable->table_size*UINT64_SIZE);
@@ -52,6 +53,7 @@ GEM_INLINE rank_mtable_t* rank_mtable_read_mem(mm_t* const memory_manager) {
   // Read Meta-info
   rank_mtable->num_levels = mm_read_uint64(memory_manager);
   rank_mtable->table_size = mm_read_uint64(memory_manager);
+  rank_mtable->min_matching_depth = mm_read_uint64(memory_manager);
   // Read intervals
   mm_skip_align_4KB(memory_manager);
   rank_mtable->mm_sa_ranks = NULL;
@@ -68,6 +70,7 @@ GEM_INLINE void rank_mtable_write(fm_t* const file_manager,rank_mtable_t* const 
   // Write Meta-info
   fm_write_uint64(file_manager,rank_mtable->num_levels);
   fm_write_uint64(file_manager,rank_mtable->table_size);
+  fm_write_uint64(file_manager,rank_mtable->min_matching_depth);
   // Write table
   fm_skip_align_4KB(file_manager);
   fm_write_mem(file_manager,rank_mtable->sa_ranks_levels[0],rank_mtable->table_size*UINT64_SIZE);
@@ -140,6 +143,34 @@ GEM_INLINE void rank_mtable_builder_fill_ranks_hi(
     ticker_update(ticker,4);
   }
 }
+GEM_INLINE void rank_mtable_builder_find_mmd(
+    const bwt_builder_t* const bwt_builder,rank_mtable_t* const rank_mtable,
+    const uint64_t level,rank_mquery_t* const query,uint64_t* const min_matching_depth) {
+  // Check number of matches
+  uint64_t lo, hi;
+  rank_mtable_fetch(rank_mtable,query,&lo,&hi);
+  if (hi-lo <= RANK_MTABLE_MMD_THRESHOLD) {
+    *min_matching_depth = MIN(*min_matching_depth,level);
+  } else if (gem_expect_false(level+1 < rank_mtable->num_levels)) { // Control recursion level
+    rank_mquery_t next_query;
+    // Update 'A'
+    next_query = *query;
+    rank_mquery_add_char(rank_mtable,&next_query,ENC_DNA_CHAR_A);
+    rank_mtable_builder_find_mmd(bwt_builder,rank_mtable,level+1,&next_query,min_matching_depth);
+    // Update 'C'
+    next_query = *query;
+    rank_mquery_add_char(rank_mtable,&next_query,ENC_DNA_CHAR_C);
+    rank_mtable_builder_find_mmd(bwt_builder,rank_mtable,level+1,&next_query,min_matching_depth);
+    // Update 'G'
+    next_query = *query;
+    rank_mquery_add_char(rank_mtable,&next_query,ENC_DNA_CHAR_G);
+    rank_mtable_builder_find_mmd(bwt_builder,rank_mtable,level+1,&next_query,min_matching_depth);
+    // Update 'T'
+    next_query = *query;
+    rank_mquery_add_char(rank_mtable,&next_query,ENC_DNA_CHAR_T);
+    rank_mtable_builder_find_mmd(bwt_builder,rank_mtable,level+1,&next_query,min_matching_depth);
+  }
+}
 GEM_INLINE void rank_mtable_builder_fill_ranks(
     const bwt_builder_t* const bwt_builder,rank_mtable_t* const rank_mtable,ticker_t* const ticker) {
   rank_mtable->sa_ranks_levels[0][1] = bwt_builder_get_length(bwt_builder); // Init_hi
@@ -147,6 +178,12 @@ GEM_INLINE void rank_mtable_builder_fill_ranks(
   rank_mtable->sa_ranks_levels[0][0] = 0; // Init_lo
   rank_mtable->sa_ranks_levels[1][0] = 0; // 'A'
   rank_mtable_builder_fill_ranks_lo(bwt_builder,rank_mtable,0,0,2,ticker);
+  // Find Minimum Matching Depth
+  rank_mquery_t query;
+  rank_mquery_new(&query);
+  uint64_t min_matching_depth = UINT64_MAX;
+  rank_mtable_builder_find_mmd(bwt_builder,rank_mtable,0,&query,&min_matching_depth);
+  rank_mtable->min_matching_depth = min_matching_depth;
 }
 GEM_INLINE rank_mtable_t* rank_mtable_builder_new(const bwt_builder_t* const bwt_builder,const bool verbose) {
   // Alloc
@@ -221,10 +258,19 @@ GEM_INLINE void rank_mtable_fetch(
  */
 GEM_INLINE void rank_mtable_print(FILE* const stream,rank_mtable_t* const rank_mtable) {
   tab_fprintf(stream,"[GEM]>Rank.Table\n");
-  tab_fprintf(stream,"  => Total.Cells %lu\n",rank_mtable->table_size);
-  tab_fprintf(stream,"  => Total.Size %lu MB\n",CONVERT_B_TO_MB(rank_mtable->table_size*UINT64_SIZE));
-  tab_fprintf(stream,"  => Num.Levels %lu\n",rank_mtable->num_levels);
+  tab_fprintf(stream,"  => Total.Cells        %lu\n",rank_mtable->table_size);
+  tab_fprintf(stream,"  => Total.Size         %lu MB\n",CONVERT_B_TO_MB(rank_mtable->table_size*UINT64_SIZE));
+  tab_fprintf(stream,"  => Num.Levels         %lu\n",rank_mtable->num_levels);
+  tab_fprintf(stream,"  => Min.matching.depth %lu\n",rank_mtable->min_matching_depth);
   // Flush
   fflush(stream);
 }
-
+GEM_INLINE void rank_mtable_print_content(FILE* const stream,rank_mtable_t* const rank_mtable,const uint64_t text_length) {
+  uint64_t i;
+  for (i=0;i<rank_mtable->table_size;++i) {
+    if (rank_mtable->sa_ranks_levels[0][i] > text_length) {
+      printf("Here\n");
+    }
+    fprintf(stream,"%lu\n",rank_mtable->sa_ranks_levels[0][i]);
+  }
+}

@@ -54,6 +54,10 @@ GEM_INLINE text_trace_t* text_collection_get_trace(
   TEXT_COLLECTION_CHECK(text_collection);
   return vector_get_elm(text_collection->text_traces,text_trace_offset,text_trace_t);
 }
+GEM_INLINE uint64_t text_collection_get_num_traces(const text_collection_t* const text_collection) {
+  TEXT_COLLECTION_CHECK(text_collection);
+  return vector_get_used(text_collection->text_traces);
+}
 // [Trace-Blocks]
 GEM_INLINE uint64_t text_collection_allocate_trace_blocks(
     const text_collection_t* const text_collection,const uint64_t num_trace_blocks) {

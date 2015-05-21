@@ -51,6 +51,11 @@
 #include "gthread.h"
 
 /*
+ * Debug
+ */
+#define GEM_DEEP_DEBUG false
+
+/*
  * Common constants
  */
 #define STREAM_FILE_NAME "stream"
@@ -281,9 +286,9 @@ GEM_INLINE void fprintf_uint64_footprint(FILE* const stream,const uint64_t word)
  */
 #ifdef __SSE__
   #include <xmmintrin.h>
-  #define PREFETCH(ADDR) _mm_prefetch((ADDR),_MM_HINT_NTA)
+  #define PREFETCH(ADDR) _mm_prefetch(((const char*)ADDR),_MM_HINT_NTA)
 #else
-  #define PREFETCH(ADDR) __builtin_prefetch((ADDR),0,0)
+  #define PREFETCH(ADDR) __builtin_prefetch(((const char*)ADDR),0,0)
 #endif
 
 /*

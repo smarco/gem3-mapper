@@ -14,8 +14,8 @@
 #ifndef HAVE_CUDA
   // BPM_GPU Setup
   GEM_INLINE bpm_gpu_buffer_collection_t* bpm_gpu_init(
-      dna_text_t* const enc_text,const uint32_t num_buffers,const uint32_t buffer_size,
-      const int32_t average_query_size,const int32_t candidates_per_query,const bool verbose) {
+      archive_text_t* const archive_text,const uint32_t num_buffers,const uint32_t buffer_size,
+              const int32_t average_query_size,const int32_t candidates_per_query,const bool verbose) {
     GEM_CUDA_NOT_SUPPORTED();
     return NULL;
   }
@@ -27,9 +27,13 @@
   GEM_INLINE uint64_t bpm_gpu_buffer_get_max_queries(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
   GEM_INLINE uint64_t bpm_gpu_buffer_get_num_candidates(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
   GEM_INLINE uint64_t bpm_gpu_buffer_get_num_queries(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
-  GEM_INLINE bool bpm_gpu_buffer_fits_in_buffer(
+  GEM_INLINE void bpm_gpu_buffer_compute_dimensions(
       bpm_gpu_buffer_t* const bpm_gpu_buffer,const pattern_t* const pattern,
-      const uint64_t num_pattern_dups,const uint64_t total_candidates) { GEM_CUDA_NOT_SUPPORTED(); return false; }
+      const uint64_t total_candidates,uint64_t* const total_entries,
+      uint64_t* const total_query_chunks,uint64_t* const total_candidate_chunks) { GEM_CUDA_NOT_SUPPORTED(); }
+  GEM_INLINE bool bpm_gpu_buffer_fits_in_buffer(
+      bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t total_entries,
+      const uint64_t total_query_chunks,const uint64_t total_candidate_chunks) { GEM_CUDA_NOT_SUPPORTED(); return false; }
   GEM_INLINE void bpm_gpu_buffer_put_pattern(
       bpm_gpu_buffer_t* const bpm_gpu_buffer,pattern_t* const pattern) { GEM_CUDA_NOT_SUPPORTED(); }
   GEM_INLINE void bpm_gpu_buffer_get_candidate(
@@ -51,7 +55,7 @@
  * BPM-GPU Setup
  */
 GEM_INLINE bpm_gpu_buffer_collection_t* bpm_gpu_init(
-    dna_text_t* const enc_text,const uint32_t num_buffers,const uint32_t buffer_size,
+    archive_text_t* const archive_text,const uint32_t num_buffers,const uint32_t buffer_size,
     const int32_t average_query_size,const int32_t candidates_per_query,const bool verbose) {
   GEM_CHECK_POSITIVE(average_query_size);
   GEM_CHECK_POSITIVE(candidates_per_query);
@@ -61,10 +65,11 @@ GEM_INLINE bpm_gpu_buffer_collection_t* bpm_gpu_init(
   buffer_collection->bpm_gpu_buffers = mm_calloc(num_buffers,bpm_gpu_buffer_t,true);
   buffer_collection->num_buffers = num_buffers;
   // Initialize Myers
-  const char* const text = (const char* const) dna_text_get_text(enc_text);
-  const uint64_t text_length = dna_text_get_length(enc_text);
-  bpm_gpu_init_(&buffer_collection->internal_buffers,num_buffers,CONVERT_B_TO_MB(buffer_size),
-      text,GEM,text_length,average_query_size,candidates_per_query,ARCH_SUPPORTED,LOCAL_OR_REMOTE_REFERENCE,verbose);
+  const char* const text = (const char* const) dna_text_get_text(archive_text->enc_text);
+  const uint64_t text_length = dna_text_get_length(archive_text->enc_text);
+  const bpm_gpu_ref_coding_t reference_encoding = (archive_text->explicit_complement) ? GEM_FULL : GEM_ONLY_FORWARD;
+  bpm_gpu_init_(&buffer_collection->internal_buffers,num_buffers,CONVERT_B_TO_MB(buffer_size),text,reference_encoding,
+      text_length,average_query_size,candidates_per_query,ARCH_SUPPORTED,LOCAL_OR_REMOTE_REFERENCE,verbose);
   // Initialize Buffers
   uint64_t i;
   for (i=0;i<num_buffers;++i) {
@@ -122,21 +127,26 @@ GEM_INLINE uint64_t bpm_gpu_buffer_get_num_candidates(bpm_gpu_buffer_t* const bp
 GEM_INLINE uint64_t bpm_gpu_buffer_get_num_queries(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
   return bpm_gpu_buffer->num_queries;
 }
-GEM_INLINE bool bpm_gpu_buffer_fits_in_buffer(
+GEM_INLINE void bpm_gpu_buffer_compute_dimensions(
     bpm_gpu_buffer_t* const bpm_gpu_buffer,const pattern_t* const pattern,
-    const uint64_t num_pattern_dups,const uint64_t total_candidates) {
+    const uint64_t total_candidates,uint64_t* const total_entries,
+    uint64_t* const total_query_chunks,uint64_t* const total_candidate_chunks) {
   const bpm_pattern_t* const bpm_pattern = &pattern->bpm_pattern;
   // Calculate dimensions
   const uint64_t pattern_num_entries = bpm_pattern->gpu_num_entries;
-  const uint64_t total_entries = num_pattern_dups*pattern_num_entries;
   const uint64_t pattern_num_chunks = bpm_pattern->gpu_num_chunks;
-  const uint64_t total_chunks = num_pattern_dups*pattern_num_chunks;
-  const uint64_t total_candidate_chunks = pattern_num_chunks*total_candidates;
+  *total_entries += pattern_num_entries;
+  *total_query_chunks += pattern_num_chunks;
+  *total_candidate_chunks += pattern_num_chunks*total_candidates;
+}
+GEM_INLINE bool bpm_gpu_buffer_fits_in_buffer(
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t total_entries,
+    const uint64_t total_query_chunks,const uint64_t total_candidate_chunks) {
   // Get Limits
   const uint64_t max_PEQ_entries =  bpm_gpu_buffer_get_max_peq_entries_(bpm_gpu_buffer->buffer);
   const uint64_t max_queries = bpm_gpu_buffer_get_max_queries_(bpm_gpu_buffer->buffer);
   // Check available space in buffer for the pattern
-  if (bpm_gpu_buffer->num_queries+total_chunks > max_queries ||
+  if (bpm_gpu_buffer->num_queries+total_query_chunks > max_queries ||
       bpm_gpu_buffer->num_PEQ_entries+total_entries > max_PEQ_entries) {
     // Check if the pattern can fit into an empty buffer
     gem_cond_fatal_error(total_entries > max_PEQ_entries,BPM_GPU_MAX_PATTERN_LENGTH,total_entries,max_PEQ_entries);
@@ -156,6 +166,8 @@ GEM_INLINE void bpm_gpu_buffer_put_candidate(
     bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t candidate_text_position,
     const uint64_t candidate_length,const uint64_t pattern_chunk) {
   // Insert candidate
+  PROF_INC_COUNTER(GP_BPM_GPU_BUFFER_NUM_CANDIDATES);
+  PROF_ADD_COUNTER(GP_BPM_GPU_BUFFER_CANDIDATES_LENGTH,candidate_length);
   const uint64_t candidate_offset = bpm_gpu_buffer->num_candidates;
   bpm_gpu_cand_info_t* const query_candidate = bpm_gpu_buffer_get_candidates_(bpm_gpu_buffer->buffer) + candidate_offset;
   query_candidate->query = bpm_gpu_buffer->pattern_id + pattern_chunk;

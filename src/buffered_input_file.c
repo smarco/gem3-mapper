@@ -31,7 +31,7 @@ void buffered_input_file_close(buffered_input_file_t* const buffered_input) {
 /*
  * Accessors
  */
-GEM_INLINE char** const buffered_input_file_get_text_line(buffered_input_file_t* const buffered_input) {
+GEM_INLINE char** buffered_input_file_get_text_line(buffered_input_file_t* const buffered_input) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input);
   return input_buffer_get_cursor(buffered_input->input_buffer);
 }

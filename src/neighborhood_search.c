@@ -440,11 +440,13 @@ GEM_INLINE void neighborhood_search(
     interval_set_t* const intervals_result,mm_stack_t* const mm_stack) {
   // DEBUG/PROF
   gem_cond_debug_block(NS_PRINT_STRING) { if (ns_string==NULL) ns_string = malloc(1000); }
+#ifndef GEM_NOPROFILE
   const uint64_t _ns_nodes_start = _ns_nodes;
   const uint64_t _ns_nodes_mtable_start = _ns_nodes_mtable;
   const uint64_t _ns_nodes_success_start = _ns_nodes_success;
   const uint64_t _ns_nodes_closed_start = _ns_nodes_closed;
   const uint64_t _ns_nodes_fail_optimize_start = _ns_nodes_fail_optimize;
+#endif
   // Create neighborhood search DTO
   neighborhood_search_t neighborhood_search;
   neighborhood_search.fm_index = fm_index;
@@ -455,6 +457,7 @@ GEM_INLINE void neighborhood_search(
   neighborhood_search.max_text_length = key_length + max_error;
   neighborhood_search.intervals_result = intervals_result;
   neighborhood_search.mm_stack = mm_stack;
+
 //  // Allocate columns
 //  mm_stack_push_state(mm_stack);
 //  uint64_t** const dp_columns = mm_stack_calloc(mm_stack,neighborhood_search.max_text_length+2,uint64_t*,false);
@@ -462,17 +465,18 @@ GEM_INLINE void neighborhood_search(
 //  for (i=0;i<=neighborhood_search.max_text_length;++i) {
 //    dp_columns[i] = mm_stack_calloc(mm_stack,neighborhood_search.column_length,uint64_t,false);
 //  }
+
 //  // Condensed
 //  for (i=0;i<=key_length;++i) dp_columns[0][i] = i;
 //  neighborhood_condensed_search(&neighborhood_search,dp_columns,0,0,fm_index_get_length(fm_index));
+
 //  // Supercondensed
 //  for (i=0;i<=key_length;++i) dp_columns[0][i] = i;
 //  neighborhood_supercondensed_search(&neighborhood_search,dp_columns,0,0,fm_index_get_length(fm_index));
 
-  mm_stack_push_state(mm_stack);
-
   // Best-match
   PROF_START(GP_NS_BEST_MATCH);
+  mm_stack_push_state(mm_stack);
   rank_mquery_t query;
   dp_column_t* const dp_columns = neighborhood_best_matches_search_init(&neighborhood_search);
   rank_mquery_new(&query);
@@ -484,7 +488,6 @@ GEM_INLINE void neighborhood_search(
   PROF_ADD_COUNTER(GP_NS_NODE_SUCCESS,(_ns_nodes_success-_ns_nodes_success_start));
   PROF_ADD_COUNTER(GP_NS_FAILED_OPT,(_ns_nodes_fail_optimize-_ns_nodes_fail_optimize_start));
   PROF_ADD_COUNTER(GP_NS_NODE_CLOSED,(_ns_nodes_closed-_ns_nodes_closed_start));
-
   // Free
   mm_stack_pop_state(mm_stack,false);
 }

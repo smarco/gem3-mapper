@@ -6,8 +6,12 @@
  * DESCRIPTION:
  */
 
+
 #include "swg_align.h"
 #include "bpm_align.h"
+#include "match_elements.h"
+#include "match_scaffold.h"
+#include "match_align_dto.h"
 #include "matches.h"
 
 /*
@@ -15,34 +19,15 @@
  */
 #define SWG_SCORE_INT32_MIN (INT16_MIN)
 
-//uint32_t sadd32(uint32_t a, uint32_t b)
-//{
-//#if defined IA32
-//  __asm
-//  {
-//    mov eax,a
-//    xor edx,edx
-//    add eax,b
-//    setnc dl
-//    dec edx
-//    or eax,edx
-//  }
-//#elif defined ARM
-//  // ARM code
-//#else
-//  return (a > 0xFFFFFFFF - b) ? 0xFFFFFFFF : a + b;
-//#endif
-//}
-
 /*
  * Check CIGAR string
  */
 GEM_INLINE bool align_check_match(
     FILE* const stream,const uint8_t* const key,const uint64_t key_length,const uint8_t* const text,
-    const uint64_t text_length,vector_t* const cigar_buffer,uint64_t const cigar_offset,
+    const uint64_t text_length,vector_t* const cigar_vector,uint64_t const cigar_offset,
     uint64_t const cigar_length,const bool verbose) {
   // Traverse CIGAR
-  cigar_element_t* const cigar_base = vector_get_elm(cigar_buffer,cigar_offset,cigar_element_t);
+  cigar_element_t* const cigar_base = vector_get_elm(cigar_vector,cigar_offset,cigar_element_t);
   uint64_t read_pos=0, text_pos=0;
   uint64_t i;
   for (i=0;i<cigar_length;++i) {
@@ -96,6 +81,19 @@ GEM_INLINE bool align_check_match(
       default:
         break;
     }
+  }
+  // Check alignment length
+  if (read_pos != key_length) {
+    if (verbose) {
+      fprintf(stream,"Align Check. Alignment incorrect length (key-aligned=%lu,key-length=%lu)\n",read_pos,key_length);
+    }
+    return false;
+  }
+  if (text_pos != text_length) {
+    if (verbose) {
+      fprintf(stream,"Align Check. Alignment incorrect length (text-aligned=%lu,text-length=%lu)\n",text_pos,text_length);
+    }
+    return false;
   }
   return true;
 }
@@ -191,7 +189,7 @@ GEM_INLINE void swg_allocate_query_profile_int16(
   mm_stack_skip_align(mm_stack,UINT128_SIZE); // Align mm-stack & allocate
   uint8_t enc;
   for (enc=0;enc<DNA__N_RANGE;++enc) {
-    swg_query_profile->query_profile_int16[enc] = mm_stack_calloc(mm_stack,key_effective_length_uint16,int16_t,true);
+    swg_query_profile->query_profile_int16[enc] = (int16_t*) mm_stack_calloc(mm_stack,key_effective_length_uint16,uint8_t,true);
   }
 }
 GEM_INLINE void swg_init_query_profile(
@@ -295,7 +293,8 @@ GEM_INLINE int32_t swg_score_mismatch(const swg_penalties_t* const swg_penalties
 GEM_INLINE int32_t swg_score_match(const swg_penalties_t* const swg_penalties,const int32_t match_length) {
   return swg_penalties->generic_match_score * match_length;
 }
-GEM_INLINE int32_t swg_score(const swg_penalties_t* const swg_penalties,cigar_element_t* const cigar_element) {
+GEM_INLINE int32_t swg_score_cigar_element(
+    const swg_penalties_t* const swg_penalties,const cigar_element_t* const cigar_element) {
   switch (cigar_element->type) {
     case cigar_match:
       return swg_score_match(swg_penalties,cigar_element->match_length);
@@ -307,15 +306,28 @@ GEM_INLINE int32_t swg_score(const swg_penalties_t* const swg_penalties,cigar_el
       return swg_score_insertion(swg_penalties,cigar_element->indel.indel_length);
       break;
     case cigar_del:
+    case cigar_soft_trim:
       return swg_score_deletion(swg_penalties,cigar_element->indel.indel_length);
       break;
-    case cigar_soft_trim:
     case cigar_null:
     default:
       GEM_INVALID_CASE();
       break;
   }
   return 0;
+}
+GEM_INLINE int32_t swg_score_cigar(
+    const swg_penalties_t* const swg_penalties,vector_t* const cigar_vector,
+    const uint64_t cigar_offset,const uint64_t cigar_length) {
+  int32_t score = 0;
+  // Traverse all CIGAR elements
+  const cigar_element_t* const cigar_buffer = vector_get_elm(cigar_vector,cigar_offset,cigar_element_t);
+  uint64_t i;
+  for (i=0;i<cigar_length;++i) {
+    score += swg_score_cigar_element(swg_penalties,cigar_buffer+i);
+  }
+  // Return score
+  return score;
 }
 /*
  * SWG - Debug
@@ -329,18 +341,38 @@ GEM_INLINE void swg_align_match_table_print(swg_cell_t** const dp,const uint64_t
     printf("\n");
   }
 }
+GEM_INLINE void swg_align_match_input_print(
+    const uint8_t* const key,const uint64_t key_length,
+    const uint8_t* const text,const uint64_t text_length) {
+  uint64_t i;
+  printf("KEY> ");
+  for (i=0;i<key_length;++i) printf("%c",dna_decode(key[i]));
+  printf("\n");
+  printf("TXT> ");
+  for (i=0;i<text_length;++i) printf("%c",dna_decode(text[i]));
+  printf("\n");
+}
 /*
  * SWG - BackTrace
+ *   @align_input->key
+ *   @align_input->key_length
+ *   @align_input->text
+ *   @align_input->text_length
+ *   @match_alignment->match_position (Correction)
+ *   @match_alignment->cigar_length (Cumulative)
  */
 GEM_INLINE void swg_align_match_traceback(
-    swg_cell_t** const dp,const int32_t max_score,const uint64_t max_score_column,
-    const int32_t single_gap,const int32_t gap_extension,const uint8_t* const key,
-    const uint64_t key_length,uint64_t* const match_position,uint8_t* const text,
-    const bool begin_free,vector_t* const cigar_buffer,uint64_t* const cigar_length,
-    int64_t* const effective_length,int32_t* const alignment_score) {
+    match_align_input_t* const align_input,swg_cell_t** const dp,
+    const int32_t max_score,const uint64_t max_score_column,
+    const int32_t single_gap,const int32_t gap_extension,const bool begin_free,
+    match_alignment_t* const match_alignment,vector_t* const cigar_vector) {
+  // Parameters
+  const uint8_t* const key = align_input->key;
+  const uint64_t key_length = align_input->key_length;
+  uint8_t* const text = align_input->text;
   // Allocate CIGAR string memory (worst case)
-  vector_reserve_additional(cigar_buffer,key_length); // Reserve
-  cigar_element_t* cigar_buffer_sentinel = vector_get_free_elm(cigar_buffer,cigar_element_t); // Sentinel
+  vector_reserve_additional(cigar_vector,key_length); // Reserve
+  cigar_element_t* cigar_buffer_sentinel = vector_get_free_elm(cigar_vector,cigar_element_t); // Sentinel
   cigar_element_t* const cigar_buffer_base = cigar_buffer_sentinel;
   cigar_buffer_sentinel->type = cigar_null; // Trick
   // Start Backtrace
@@ -390,7 +422,7 @@ GEM_INLINE void swg_align_match_traceback(
   }
   if (h > 0) {
     if (begin_free) {
-      *match_position += h; // We need to correct the matching_position
+      match_alignment->match_position += h; // We need to correct the matching_position
     } else {
       matches_cigar_buffer_add_cigar_element(&cigar_buffer_sentinel,cigar_ins,h,text); // <-(@h+1)>@h
       match_effective_length += h;
@@ -399,7 +431,7 @@ GEM_INLINE void swg_align_match_traceback(
   // Set CIGAR buffer used
   if (cigar_buffer_sentinel->type!=cigar_null) ++(cigar_buffer_sentinel);
   const uint64_t num_cigar_elements = cigar_buffer_sentinel - cigar_buffer_base;
-  vector_add_used(cigar_buffer,num_cigar_elements);
+  vector_add_used(cigar_vector,num_cigar_elements);
   // Reverse CIGAR Elements
   if (num_cigar_elements > 0) {
     const uint64_t middle_point = num_cigar_elements/2;
@@ -409,9 +441,9 @@ GEM_INLINE void swg_align_match_traceback(
     }
   }
   // Update CIGAR/Score values
-  *cigar_length += num_cigar_elements; // Update CIGAR length
-  *effective_length += match_effective_length; // Update effective length
-  *alignment_score += match_alignment_score; // Update alignment-score
+  match_alignment->cigar_length += num_cigar_elements; // Update CIGAR length
+  match_alignment->effective_length = match_effective_length; // Update effective length
+  match_alignment->score = match_alignment_score; // Update alignment-score
 }
 /*
  * SWG - Init
@@ -508,16 +540,24 @@ GEM_INLINE void swg_align_match_init_table_banded_opt(
   }
 }
 /*
- * Smith-waterman-gotoh Alignment (Base => no-optimizations)
+ * Smith-waterman-gotoh Base (ie. no-optimizations)
+ *   @align_input->key
+ *   @align_input->key_length
+ *   @align_input->text
+ *   @align_input->text_length
+ *   @align_parameters->swg_penalties
+ *   @match_alignment->match_position (Adjusted)
  */
 GEM_INLINE void swg_align_match_base(
-    const uint8_t* const key,const uint64_t key_length,const swg_penalties_t* swg_penalties,
-    uint64_t* const match_position,uint8_t* const text,const uint64_t text_length,
-    vector_t* const cigar_buffer,uint64_t* const cigar_length,int64_t* const effective_length,
-    int32_t* const alignment_score,mm_stack_t* const mm_stack) {
-  /*
-   * Initialize
-   */
+    match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
+    match_alignment_t* const match_alignment,vector_t* const cigar_vector,mm_stack_t* const mm_stack) {
+  // Parameters
+  const uint8_t* const key = align_input->key;
+  const uint64_t key_length = align_input->key_length;
+  uint8_t* const text = align_input->text;
+  const uint64_t text_length = align_input->text_length;
+  const swg_penalties_t* swg_penalties = align_parameters->swg_penalties;
+  // Initialize
   mm_stack_push_state(mm_stack); // Save stack state
   const uint64_t num_rows = (key_length+1);
   const uint64_t num_columns = (text_length+1);
@@ -528,9 +568,7 @@ GEM_INLINE void swg_align_match_base(
   const int32_t single_gap = swg_penalties->gap_open_score + swg_penalties->gap_extension_score; // g(1)
   const int32_t gap_extension = swg_penalties->gap_extension_score;
   swg_align_match_init_table(dp,num_columns,num_rows,single_gap,gap_extension);
-  /*
-   * Compute DP-matrix
-   */
+  // Compute DP-matrix
   int32_t max_score = SWG_SCORE_INT32_MIN;
   uint64_t max_score_column = UINT64_MAX;
   for (column=1;column<num_columns;++column) {
@@ -558,28 +596,38 @@ GEM_INLINE void swg_align_match_base(
     }
   }
   // DEBUG
-  // swg_align_match_table_print(dp,MIN(10,key_length),MIN(10,key_length));
+    // swg_align_match_table_print(dp,MIN(10,key_length),MIN(10,key_length));
   // Init Match
-  *cigar_length = 0;
-  *effective_length = 0;
-  *alignment_score = 0;
+  match_alignment->cigar_length = 0;
+  match_alignment->effective_length = 0;
+  match_alignment->score = 0;
   // Retrieve the alignment. Store the match (Backtrace and generate CIGAR)
-  swg_align_match_traceback(dp,max_score,
-      max_score_column,single_gap,gap_extension,key,key_length,
-      match_position,text,true,cigar_buffer,cigar_length,effective_length,alignment_score);
+  swg_align_match_traceback(align_input,dp,max_score,max_score_column,
+      single_gap,gap_extension,true,match_alignment,cigar_vector);
   // Clean-up
   mm_stack_pop_state(mm_stack,false); // Free
 }
 /*
- * Smith-waterman-gotoh Alignment
+ * SWG Full (Computes full DP-matrix)
+ *   @align_input->key
+ *   @align_input->key_length
+ *   @align_input->text
+ *   @align_input->text_length
+ *   @align_parameters->swg_penalties
+ *   @match_alignment->match_position (Correction)
+ *   @match_alignment->cigar_length (Cumulative)
  */
 GEM_INLINE void swg_align_match_full(
-    const uint8_t* const key,const uint64_t key_length,const swg_penalties_t* swg_penalties,
-    uint64_t* const match_position,uint8_t* const text,const uint64_t text_length,
-    uint64_t max_bandwidth,const bool begin_free,const bool end_free,
-    vector_t* const cigar_buffer,uint64_t* const cigar_length,int64_t* const effective_length,
-    int32_t* const alignment_score,mm_stack_t* const mm_stack) {
+    match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
+    const bool begin_free,const bool end_free,match_alignment_t* const match_alignment,
+    vector_t* const cigar_vector,mm_stack_t* const mm_stack) {
   PROF_START(GP_SWG_ALIGN_FULL);
+  // Parameters
+  const uint8_t* const key = align_input->key;
+  const uint64_t key_length = align_input->key_length;
+  uint8_t* const text = align_input->text;
+  const uint64_t text_length = align_input->text_length;
+  const swg_penalties_t* swg_penalties = align_parameters->swg_penalties;
   // Allocate memory
   mm_stack_push_state(mm_stack); // Save stack state
   const uint64_t num_rows = (key_length+1);
@@ -631,26 +679,41 @@ GEM_INLINE void swg_align_match_full(
     max_score_column = num_columns-1;
   }
   // Retrieve the alignment. Store the match (Backtrace and generate CIGAR)
-  swg_align_match_traceback(dp,max_score,max_score_column,
-      single_gap,gap_extension,key,key_length,match_position,
-      text,begin_free,cigar_buffer,cigar_length,effective_length,alignment_score);
+  swg_align_match_traceback(align_input,dp,max_score,max_score_column,
+      single_gap,gap_extension,begin_free,match_alignment,cigar_vector);
   // Clean-up
   mm_stack_pop_state(mm_stack,false); // Free
   PROF_STOP(GP_SWG_ALIGN_FULL);
 }
+/*
+ * SWG Banded
+ *   @align_input->key
+ *   @align_input->key_length
+ *   @align_input->text
+ *   @align_input->text_length
+ *   @align_parameters->swg_penalties
+ *   @align_parameters->max_bandwidth
+ *   @match_alignment->match_position (Correction)
+ *   @match_alignment->cigar_length (Cumulative)
+ */
 GEM_INLINE void swg_align_match_banded(
-    const uint8_t* const key,const uint64_t key_length,const swg_penalties_t* swg_penalties,
-    uint64_t* const match_position,uint8_t* const text,uint64_t text_length,
-    uint64_t max_bandwidth,const bool begin_free,const bool end_free,
-    vector_t* const cigar_buffer,uint64_t* const cigar_length,int64_t* const effective_length,
-    int32_t* const alignment_score,mm_stack_t* const mm_stack) {
+    match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
+    const bool begin_free,const bool end_free,match_alignment_t* const match_alignment,
+    vector_t* const cigar_vector,mm_stack_t* const mm_stack) {
+  // Parameters
+  const uint8_t* const key = align_input->key;
+  const uint64_t key_length = align_input->key_length;
+  uint8_t* const text = align_input->text;
+  uint64_t text_length = align_input->text_length;
+  const swg_penalties_t* swg_penalties = align_parameters->swg_penalties;
+  const uint64_t max_bandwidth = align_parameters->max_bandwidth;
   // Initialize band-limits
   if (text_length > key_length + max_bandwidth) { // Text too long for band
-    if (!begin_free && !end_free) { *alignment_score = ALIGN_DISTANCE_INF; return; }
+    if (!begin_free && !end_free) { match_alignment->score = ALIGN_DISTANCE_INF; return; }
     if (!begin_free) text_length = key_length + max_bandwidth;
   }
   if (text_length + max_bandwidth <= key_length) { // Text too short for band
-    *alignment_score = ALIGN_DISTANCE_INF; return;
+    match_alignment->score = ALIGN_DISTANCE_INF; return;
   }
   PROF_START(GP_SWG_ALIGN_BANDED);
   // Allocate memory
@@ -723,226 +786,243 @@ GEM_INLINE void swg_align_match_banded(
     max_score_column = num_columns-1;
   }
   // Retrieve the alignment. Store the match (Backtrace and generate CIGAR)
-  swg_align_match_traceback(dp,max_score,max_score_column,
-      single_gap,gap_extension,key,key_length,match_position,
-      text,begin_free,cigar_buffer,cigar_length,effective_length,alignment_score);
+  swg_align_match_traceback(align_input,dp,max_score,max_score_column,
+      single_gap,gap_extension,begin_free,match_alignment,cigar_vector);
   // Clean-up
   mm_stack_pop_state(mm_stack,false); // Free
   PROF_STOP(GP_SWG_ALIGN_BANDED);
 }
 /*
- * SWG - Main procedure (Dispatcher)
+ * Smith-Waterman-Gotoh - Main procedure (Dispatcher)
+ *   @align_input->key
+ *   @align_input->key_length
+ *   @align_input->text
+ *   @align_input->text_length
+ *   @align_parameters->swg_penalties
+ *   @align_parameters->allowed_enc
+ *   @align_parameters->max_bandwidth
+ *   @match_alignment->match_position (Adjusted)
+ *   @match_alignment->cigar_length (Cumulative)
  */
 GEM_INLINE void swg_align_match(
-    const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
-    const swg_query_profile_t* const swg_query_profile,const swg_penalties_t* swg_penalties,
-    uint64_t* const match_position,uint8_t* const text,uint64_t text_length,
-    const uint64_t max_bandwidth,const bool begin_free,const bool end_free,vector_t* const cigar_buffer,
-    uint64_t* const cigar_length,int64_t* const effective_length,int32_t* const alignment_score,
-    mm_stack_t* const mm_stack) {
+    match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
+    const bool begin_free,const bool end_free,match_alignment_t* const match_alignment,
+    vector_t* const cigar_vector,mm_stack_t* const mm_stack) {
+  // Parameters
+  const uint8_t* const key = align_input->key;
+  const uint64_t key_length = align_input->key_length;
+  uint8_t* const text = align_input->text;
+  const uint64_t text_length = align_input->text_length;
+  const swg_penalties_t* swg_penalties = align_parameters->swg_penalties;
+  const bool* const allowed_enc = align_parameters->allowed_enc;
   // Check lengths
   if (key_length == 0 && text_length > 0) {
     if (begin_free) {
       // Adjust position
-      *match_position += text_length;
+      match_alignment->match_position += text_length;
+      match_alignment->score = 0;
+      match_alignment->effective_length = 0;
     } else if (!end_free) {
       // Insertion <+@text_length>
-      matches_cigar_vector_append_insertion(cigar_buffer,cigar_length,text_length,text);
-      *alignment_score += swg_score_insertion(swg_penalties,text_length);
-      *effective_length += text_length;
+      matches_cigar_vector_append_insertion(cigar_vector,&match_alignment->cigar_length,text_length,text);
+      match_alignment->score = swg_score_insertion(swg_penalties,text_length);
+      match_alignment->effective_length = text_length;
+    } else {
+      match_alignment->score = 0;
+      match_alignment->effective_length = 0;
     }
   } else if (text_length == 0) {
     if (key_length > 0) {
       // Deletion <-@key_length>
-      matches_cigar_vector_append_deletion(cigar_buffer,cigar_length,key_length);
-      *alignment_score += swg_score_deletion(swg_penalties,key_length);
+      matches_cigar_vector_append_deletion(cigar_vector,&match_alignment->cigar_length,key_length);
+      match_alignment->score = swg_score_deletion(swg_penalties,key_length);
     }
   } else if (key_length==1 && text_length==1) {
     // Mismatch/Match
     const uint8_t key_enc = key[0];
     const uint8_t text_enc = text[0];
     if (!allowed_enc[text_enc] || text_enc != key_enc) {
-      matches_cigar_vector_append_mismatch(cigar_buffer,cigar_length,text_enc);
-      *alignment_score += swg_score_mismatch(swg_penalties);
+      matches_cigar_vector_append_mismatch(cigar_vector,&match_alignment->cigar_length,text_enc);
+      match_alignment->score = swg_score_mismatch(swg_penalties);
     } else {
-      matches_cigar_vector_append_match(cigar_buffer,cigar_length,1);
-      *alignment_score += swg_score_match(swg_penalties,1);
+      matches_cigar_vector_append_match(cigar_vector,&match_alignment->cigar_length,1);
+      match_alignment->score = swg_score_match(swg_penalties,1);
     }
-    *effective_length += 1;
+    match_alignment->effective_length = 1;
   } else {
     PROF_ADD_COUNTER(GP_SWG_ALIGN_BANDED_LENGTH,text_length);
-//    if (text_length>=100) {
-//      printf("Oddddddddd\n"); // TODO
+    swg_align_match_banded(align_input,align_parameters,
+        begin_free,end_free,match_alignment,cigar_vector,mm_stack);
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+
+//GEM_INLINE void swg_align_match_table_print_int16(
+//    int16_t** const dp_m,const uint64_t num_columns,
+//    const uint64_t num_rows,const uint64_t segment_length) {
+//  const uint64_t num_segments = UINT128_SIZE/UINT16_SIZE; // Vector length
+//  uint64_t i, j;
+//  for (i=0;i<=num_rows;++i) {
+//    const uint64_t position = (i%segment_length)*num_segments+i/segment_length;
+//    for (j=0;j<=num_columns;++j) {
+//      printf("%4d ",(int)dp_m[j][position]);
 //    }
-    swg_align_match_banded(
-        key,key_length,swg_penalties,match_position,text,text_length,
-        max_bandwidth,begin_free,end_free,cigar_buffer,cigar_length,
-        effective_length,alignment_score,mm_stack);
-  }
-}
-////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////
-GEM_INLINE void swg_align_match_table_print_int16(
-    int16_t** const dp_m,const uint64_t num_columns,
-    const uint64_t num_rows,const uint64_t segment_length) {
-  const uint64_t num_segments = UINT128_SIZE/UINT16_SIZE; // Vector length
-  uint64_t i, j;
-  for (i=0;i<=num_rows;++i) {
-    const uint64_t position = (i%segment_length)*num_segments+i/segment_length;
-    for (j=0;j<=num_columns;++j) {
-      printf("%4d ",(int)dp_m[j][position]);
-    }
-    printf("\n");
-  }
-}
-GEM_INLINE int16_t** swg_align_match_allocate_table_int16(
-    const uint64_t num_columns,const uint64_t num_rows,mm_stack_t* const mm_stack) {
-  // Allocate the pointers
-  int16_t** const dp = mm_stack_malloc(mm_stack,num_columns*sizeof(int16_t*));
-  // Allocate all the columns
-  mm_stack_skip_align(mm_stack,UINT128_SIZE); // Align Stack Memory
-  const uint64_t row_size = num_rows*sizeof(int16_t);
-  uint64_t column;
-  for (column=0;column<num_columns;++column) {
-    dp[column] = mm_stack_malloc(mm_stack,row_size);
-  }
-  return dp;
-}
-GEM_INLINE void swg_align_match_init_table_int16(
-    int16_t** const dp_M,int16_t** const dp_I,const uint64_t num_columns,
-    const uint64_t num_rows,const uint64_t key_length,const bool begin_free,
-    const uint16_t single_gap,const uint16_t gap_extension) {
-  uint64_t row;
-  // Initialize first column
-  dp_M[0][0] = -single_gap;
-  dp_I[0][0] = INT16_MIN; // Not used
-  dp_I[1][0] = dp_M[0][0] - single_gap;
-  for (row=1;row<key_length;++row) {
-    dp_M[0][row] = dp_M[0][row-1] - gap_extension; // g(row)
-    dp_I[0][row] = INT16_MIN;
-    dp_I[1][row] = dp_M[0][row] - single_gap;
-  }
-  for (;row<num_rows;++row) {
-    dp_M[0][row] = INT16_MIN;
-    dp_I[0][row] = INT16_MIN;
-    dp_I[1][row] = INT16_MIN;
-  }
-}
+//    printf("\n");
+//  }
+//}
+//GEM_INLINE int16_t** swg_align_match_allocate_table_int16(
+//    const uint64_t num_columns,const uint64_t num_rows,mm_stack_t* const mm_stack) {
+//  // Allocate the pointers
+//  int16_t** const dp = mm_stack_malloc(mm_stack,num_columns*sizeof(int16_t*));
+//  // Allocate all the columns
+//  mm_stack_skip_align(mm_stack,UINT128_SIZE); // Align Stack Memory
+//  const uint64_t row_size = num_rows*sizeof(int16_t);
+//  uint64_t column;
+//  for (column=0;column<num_columns;++column) {
+//    dp[column] = mm_stack_malloc(mm_stack,row_size);
+//  }
+//  return dp;
+//}
+//GEM_INLINE void swg_align_match_init_table_int16(
+//    int16_t** const dp_M,int16_t** const dp_I,const uint64_t num_columns,
+//    const uint64_t num_rows,const uint64_t key_length,const bool begin_free,
+//    const uint16_t single_gap,const uint16_t gap_extension) {
+//  uint64_t row;
+//  // Initialize first column
+//  dp_M[0][0] = -single_gap;
+//  dp_I[0][0] = INT16_MIN; // Not used
+//  dp_I[1][0] = dp_M[0][0] - single_gap;
+//  for (row=1;row<key_length;++row) {
+//    dp_M[0][row] = dp_M[0][row-1] - gap_extension; // g(row)
+//    dp_I[0][row] = INT16_MIN;
+//    dp_I[1][row] = dp_M[0][row] - single_gap;
+//  }
+//  for (;row<num_rows;++row) {
+//    dp_M[0][row] = INT16_MIN;
+//    dp_I[0][row] = INT16_MIN;
+//    dp_I[1][row] = INT16_MIN;
+//  }
+//}
+
 #define _mm_extract_max_epi16(result,v128) \
   v128 = _mm_max_epi16(v128,_mm_srli_si128(v128, 8)); \
   v128 = _mm_max_epi16(v128,_mm_srli_si128(v128, 4)); \
   v128 = _mm_max_epi16(v128,_mm_srli_si128(v128, 2)); \
   result = _mm_extract_epi16(v128, 0)
-GEM_INLINE void swg_align_match_int16_simd128(
-    const uint8_t* const key,const uint64_t key_length,swg_query_profile_t* const swg_query_profile,
-    const swg_penalties_t* swg_penalties,uint64_t* const match_position,uint8_t* const text,
-    const uint64_t text_length,const bool begin_free,const bool end_free,vector_t* const cigar_buffer,
-    uint64_t* const cigar_length,int64_t* const effective_length,int32_t* const alignment_score,
-    mm_stack_t* const mm_stack) {
-  // Compile query profile
-  swg_compile_query_profile_int16(swg_query_profile,swg_penalties,key,key_length,mm_stack);
-  // Allocate memory
-  mm_stack_push_state(mm_stack); // Save stack state
-  const uint64_t num_segments_16b = UINT128_SIZE/UINT16_SIZE; // Elements in each SIMD-vectors
-  const uint64_t segment_length = swg_query_profile->segment_length_int16; // Number of SIMD-vectors
-  const uint64_t key_effective_length = swg_query_profile->key_effective_length_int16; // Number of SIMD-vectors
-  const uint64_t num_columns = (text_length+1);
-  const uint64_t num_rows = key_effective_length;
-  int16_t** const dp_M = swg_align_match_allocate_table_int16(num_columns,num_rows,mm_stack);
-  int16_t** const dp_I = swg_align_match_allocate_table_int16(num_columns+1,num_rows,mm_stack);
-  int16_t** const dp_D = swg_align_match_allocate_table_int16(num_columns,num_rows,mm_stack);
-  // Initialize DP-matrix
-  const int16_t gap_extension = (-swg_penalties->gap_extension_score);
-  const int16_t gap_open = (-swg_penalties->gap_open_score);
-  const int16_t single_gap = gap_open + gap_extension; // g(1)
-  swg_align_match_init_table_int16(dp_M,dp_I,num_columns,num_rows,key_length,begin_free,single_gap,gap_extension);
-  __m128i* M_in = (__m128i*)dp_M[0], *M_out;
-  __m128i* I_in = (__m128i*)dp_I[1], *I_out;
-  __m128i* D_out;
-  __m128i* current_profile;
-  __m128i zero_v = _mm_set1_epi32(INT16_MIN);
-  __m128i gap_extension_v = _mm_set1_epi16(gap_extension);
-  __m128i single_gap_v = _mm_set1_epi16(single_gap);
-  __m128i max_score_v = zero_v, Mv, Iv, Dv, vTmp;
-  // Traverse the text
-  uint64_t i, j, max_score_column = 0;
-  int16_t max_score_local, max_score_global = 0, Mv_0 = 0;
-  for(j=0;j<text_length;j++) {
-    // Load M-in/M-out
-    M_out = (__m128i*)dp_M[j+1]; // Set M-out memory column
-    D_out = (__m128i*)dp_D[j+1]; // Set D-out memory column
-    I_out = (__m128i*)dp_I[j+2]; // Set I-out memory column
-    Dv = zero_v; // Set D-column to zero (later on corrected)
-    int16_t* Mv_mem = (int16_t*)(M_in+segment_length-1);
-    Mv = _mm_set_epi16(Mv_mem[6], Mv_mem[5], Mv_mem[4], Mv_mem[3],
-                       Mv_mem[2], Mv_mem[1], Mv_mem[0], Mv_0);
-    if (!begin_free) Mv_0 = Mv_0 - ((j==0) ? single_gap : gap_extension);
-    // Load current profile
-    current_profile = (__m128i*)swg_query_profile->query_profile_uint8[text[j]];
-    for (i=0;i<segment_length;i++) {
-      // Add the profile to Mv
-      Mv = _mm_adds_epi16(Mv,*(current_profile+i));
-      // Update Mv
-      Iv = _mm_load_si128(I_in+i); // Load Iv
-      Mv = _mm_max_epi16(Mv,Dv);
-      Mv = _mm_max_epi16(Mv,Iv);
-      max_score_v = _mm_max_epi16(max_score_v,Mv); // Pre-calculate max-score (gaps only decrease score)
-      _mm_store_si128(M_out+i,Mv); // Store Mv_i
-      // Update next Iv
-      Iv = _mm_subs_epu16(Iv,gap_extension_v);
-      vTmp = _mm_subs_epu16(Mv,single_gap_v);
-      Iv = _mm_max_epi16(Iv,vTmp);
-      _mm_store_si128(I_out+i,Iv); // Store Iv_i
-      // Update next Dv (partially)
-      Dv = _mm_subs_epu16(Dv,gap_extension_v);
-      Dv = _mm_max_epi16(Dv,vTmp);
-      _mm_store_si128(D_out+i,Dv); // Store Dv_i
-      // Load Mv for next iteration
-      Mv = _mm_load_si128(M_in+i);
-    }
-    // Lazy-F Loop
-    for (i=0;i<num_segments_16b;++i) {
-      uint64_t k;
-      // Compute the gap extend penalty for the current cell
-      Dv = _mm_slli_si128(Dv,2);
-      for (k=0;k<segment_length;++k) {
-        // Compute the current optimal value of the cell
-        vTmp = _mm_load_si128(M_out+k);
-        Mv = _mm_max_epi16(vTmp,Dv);
-        _mm_store_si128(M_out+k,Mv);
-        Mv = _mm_subs_epu16(Mv,single_gap_v);
-        Dv = _mm_subs_epu16(Mv,gap_extension_v);
-        // Check Mv unchanged
-        if(!_mm_movemask_epi8(_mm_cmpgt_epi16(Mv,Dv))) {
-          goto exit_lazy_f_loop;
-        }
-        // Compute the scores for the next cell
-        _mm_store_si128(D_out+k,Dv);
-      }
-    }
-exit_lazy_f_loop: // Exit Lazy-F Loop
-    // Max score in the column
-    _mm_extract_max_epi16(max_score_local,max_score_v);
-    if (max_score_local >= max_score_global) {
-      max_score_global = max_score_local;
-      max_score_column = j;
-    }
-    // Swap M memory
-    M_in = M_out;
-    I_in = I_out;
-  }
-  // DEBUG
-  swg_align_match_table_print_int16(dp_M,MIN(10,key_length),MIN(10,key_length),segment_length);
-  // Clean & return
-  mm_stack_pop_state(mm_stack,false); // Free
-  *alignment_score = max_score_column; // FIXME
-  *alignment_score = max_score_global; // FIXME
-}
 
-
-
+//GEM_INLINE void swg_align_match_int16_simd128(
+//    const uint8_t* const key,const uint64_t key_length,swg_query_profile_t* const swg_query_profile,
+//    const swg_penalties_t* swg_penalties,uint64_t* const match_position,uint8_t* const text,
+//    const uint64_t text_length,const bool begin_free,const bool end_free,vector_t* const cigar_vector,
+//    uint64_t* const cigar_length,int64_t* const effective_length,int32_t* const alignment_score,
+//    mm_stack_t* const mm_stack) {
+//  // Compile query profile
+//  swg_compile_query_profile_int16(swg_query_profile,swg_penalties,key,key_length,mm_stack);
+//  // Allocate memory
+//  mm_stack_push_state(mm_stack); // Save stack state
+//  const uint64_t num_segments_16b = UINT128_SIZE/UINT16_SIZE; // Elements in each SIMD-vectors
+//  const uint64_t segment_length = swg_query_profile->segment_length_int16; // Number of SIMD-vectors
+//  const uint64_t key_effective_length = swg_query_profile->key_effective_length_int16; // Number of SIMD-vectors
+//  const uint64_t num_columns = (text_length+1);
+//  const uint64_t num_rows = key_effective_length;
+//  int16_t** const dp_M = swg_align_match_allocate_table_int16(num_columns,num_rows,mm_stack);
+//  int16_t** const dp_I = swg_align_match_allocate_table_int16(num_columns+1,num_rows,mm_stack);
+//  int16_t** const dp_D = swg_align_match_allocate_table_int16(num_columns,num_rows,mm_stack);
+//  // Initialize DP-matrix
+//  const int16_t gap_extension = (-swg_penalties->gap_extension_score);
+//  const int16_t gap_open = (-swg_penalties->gap_open_score);
+//  const int16_t single_gap = gap_open + gap_extension; // g(1)
+//  swg_align_match_init_table_int16(dp_M,dp_I,num_columns,num_rows,key_length,begin_free,single_gap,gap_extension);
+//  __m128i* M_in = (__m128i*)dp_M[0], *M_out;
+//  __m128i* I_in = (__m128i*)dp_I[1], *I_out;
+//  __m128i* D_out;
+//  __m128i* current_profile;
+//  __m128i zero_v = _mm_set1_epi32(INT16_MIN);
+//  __m128i gap_extension_v = _mm_set1_epi16(gap_extension);
+//  __m128i single_gap_v = _mm_set1_epi16(single_gap);
+//  __m128i max_score_v = zero_v, Mv, Iv, Dv, vTmp;
+//  // Traverse the text
+//  uint64_t i, j, max_score_column = 0;
+//  int16_t max_score_local, max_score_global = 0, Mv_0 = 0;
+//  for(j=0;j<text_length;j++) {
+//    // Load M-in/M-out
+//    M_out = (__m128i*)dp_M[j+1]; // Set M-out memory column
+//    D_out = (__m128i*)dp_D[j+1]; // Set D-out memory column
+//    I_out = (__m128i*)dp_I[j+2]; // Set I-out memory column
+//    Dv = zero_v; // Set D-column to zero (later on corrected)
+//    int16_t* Mv_mem = (int16_t*)(M_in+segment_length-1);
+//    Mv = _mm_set_epi16(Mv_mem[6], Mv_mem[5], Mv_mem[4], Mv_mem[3],
+//                       Mv_mem[2], Mv_mem[1], Mv_mem[0], Mv_0);
+//    if (!begin_free) Mv_0 = Mv_0 - ((j==0) ? single_gap : gap_extension);
+//    // Load current profile
+//    current_profile = (__m128i*)swg_query_profile->query_profile_uint8[text[j]];
+//    for (i=0;i<segment_length;i++) {
+//      // Add the profile to Mv
+//      Mv = _mm_adds_epi16(Mv,*(current_profile+i));
+//      // Update Mv
+//      Iv = _mm_load_si128(I_in+i); // Load Iv
+//      Mv = _mm_max_epi16(Mv,Dv);
+//      Mv = _mm_max_epi16(Mv,Iv);
+//      max_score_v = _mm_max_epi16(max_score_v,Mv); // Pre-calculate max-score (gaps only decrease score)
+//      _mm_store_si128(M_out+i,Mv); // Store Mv_i
+//      // Update next Iv
+//      Iv = _mm_subs_epu16(Iv,gap_extension_v);
+//      vTmp = _mm_subs_epu16(Mv,single_gap_v);
+//      Iv = _mm_max_epi16(Iv,vTmp);
+//      _mm_store_si128(I_out+i,Iv); // Store Iv_i
+//      // Update next Dv (partially)
+//      Dv = _mm_subs_epu16(Dv,gap_extension_v);
+//      Dv = _mm_max_epi16(Dv,vTmp);
+//      _mm_store_si128(D_out+i,Dv); // Store Dv_i
+//      // Load Mv for next iteration
+//      Mv = _mm_load_si128(M_in+i);
+//    }
+//    // Lazy-F Loop
+//    for (i=0;i<num_segments_16b;++i) {
+//      uint64_t k;
+//      // Compute the gap extend penalty for the current cell
+//      Dv = _mm_slli_si128(Dv,2);
+//      for (k=0;k<segment_length;++k) {
+//        // Compute the current optimal value of the cell
+//        vTmp = _mm_load_si128(M_out+k);
+//        Mv = _mm_max_epi16(vTmp,Dv);
+//        _mm_store_si128(M_out+k,Mv);
+//        Mv = _mm_subs_epu16(Mv,single_gap_v);
+//        Dv = _mm_subs_epu16(Mv,gap_extension_v);
+//        // Check Mv unchanged
+//        if(!_mm_movemask_epi8(_mm_cmpgt_epi16(Mv,Dv))) {
+//          goto exit_lazy_f_loop;
+//        }
+//        // Compute the scores for the next cell
+//        _mm_store_si128(D_out+k,Dv);
+//      }
+//    }
+//exit_lazy_f_loop: // Exit Lazy-F Loop
+//    // Max score in the column
+//    _mm_extract_max_epi16(max_score_local,max_score_v);
+//    if (max_score_local >= max_score_global) {
+//      max_score_global = max_score_local;
+//      max_score_column = j;
+//    }
+//    // Swap M memory
+//    M_in = M_out;
+//    I_in = I_out;
+//  }
+//  // DEBUG
+//  swg_align_match_table_print_int16(dp_M,MIN(10,key_length),MIN(10,key_length),segment_length);
+//  // Clean & return
+//  mm_stack_pop_state(mm_stack,false); // Free
+//  *alignment_score = max_score_column; // FIXME
+//  *alignment_score = max_score_global; // FIXME
+//}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1004,7 +1084,7 @@ exit_lazy_f_loop: // Exit Lazy-F Loop
 //GEM_INLINE bool swg_align_match_uint8_simd128(
 //    const uint8_t* const key,const uint64_t key_length,swg_query_profile_t* const swg_query_profile,
 //    const swg_penalties_t* swg_penalties,uint64_t* const match_position,uint8_t* const text,
-//    const uint64_t text_length,const bool begin_free,const bool end_free,vector_t* const cigar_buffer,
+//    const uint64_t text_length,const bool begin_free,const bool end_free,vector_t* const cigar_vector,
 //    uint64_t* const cigar_length,int64_t* const effective_length,int32_t* const alignment_score,
 //    mm_stack_t* const mm_stack) {
 //  // Compile query profile

@@ -8,6 +8,14 @@
 
 #include "locator.h"
 
+/*
+ * FM-Inde Model & Version
+ */
+#define LOCATOR_MODEL_NO  3000ul
+
+/*
+ * Constants
+ */
 #define LOCATOR_NUM_INITIAL_TAGS 128
 
 /*
@@ -17,33 +25,13 @@
   const uint64_t intervals_locator_size = locator->num_intervals*sizeof(locator_interval_t); \
   const uint64_t tag_locator_size = locator->num_tags*sizeof(locator_tag_t); \
   const uint64_t tag_buffer_size = locator->tags_buffer_size;
-GEM_INLINE locator_t* locator_read(fm_t* const file_manager) {
-  FM_CHECK(file_manager);
-  // Allocate locator
-  locator_t* const locator = mm_alloc(locator_t);
-  // MetaData
-  locator->num_intervals = fm_read_uint64(file_manager);
-  locator->num_tags = fm_read_uint64(file_manager);
-  locator->tags_buffer_size = fm_read_uint64(file_manager);
-  // Calculate sizes
-  LOCATOR_CALCULATE_SIZES(locator);
-  const uint64_t total_size = intervals_locator_size + tag_locator_size + tag_buffer_size;
-  // Read Locator memory
-  locator->mm = fm_load_mem(file_manager,total_size);
-  // Read intervals
-  locator->intervals = mm_read_mem(locator->mm,intervals_locator_size);
-  // Read tags
-  locator->tags_dictionary = NULL;
-  locator->tag_locator = mm_read_mem(locator->mm,tag_locator_size);
-  locator->tags_buffer = mm_read_mem(locator->mm,tag_buffer_size);
-  // Return
-  return locator;
-}
 GEM_INLINE locator_t* locator_read_mem(mm_t* const memory_manager) {
   MM_CHECK(memory_manager);
   // Allocate locator
   locator_t* const locator = mm_alloc(locator_t);
   // Read locator
+  const uint64_t locator_model_no = mm_read_uint64(memory_manager);
+  gem_cond_fatal_error(locator_model_no!=LOCATOR_MODEL_NO,LOCATOR_WRONG_MODEL_NO,locator_model_no,LOCATOR_MODEL_NO);
   locator->num_intervals = mm_read_uint64(memory_manager);
   locator->num_tags = mm_read_uint64(memory_manager);
   locator->tags_buffer_size = mm_read_uint64(memory_manager);
@@ -149,6 +137,7 @@ GEM_INLINE void locator_builder_write(fm_t* const file_manager,locator_builder_t
   FM_CHECK(file_manager);
   LOCATOR_BUILDER_CHECK(locator_builder);
   // Write Locator header
+  fm_write_uint64(file_manager,LOCATOR_MODEL_NO);
   fm_write_uint64(file_manager,svector_get_used(locator_builder->intervals)); // num_intervals
   fm_write_uint64(file_manager,svector_get_used(locator_builder->tag_locator)); // num_tags
   fm_write_uint64(file_manager,locator_builder->tags_buffer_size); // tags_buffer_size
@@ -293,8 +282,10 @@ GEM_INLINE uint64_t locator_lookup_interval_index(const locator_t* const locator
     }
   } while (hi > lo);
   // Return Interval
-  GEM_INTERNAL_CHECK(intervals[lo].begin_position <= index_position &&
-      index_position < intervals[lo].end_position,"Locator-Interval Binary Search. Wrong Boundaries");
+  if (!(intervals[lo].begin_position <= index_position && index_position < intervals[lo].end_position)) {
+    GEM_INTERNAL_CHECK(intervals[lo].begin_position <= index_position &&
+        index_position < intervals[lo].end_position,"Locator-Interval Binary Search. Wrong Boundaries");
+  }
   return lo;
 }
 GEM_INLINE locator_interval_t* locator_lookup_interval(const locator_t* const locator,const uint64_t index_position) {

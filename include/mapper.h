@@ -60,6 +60,7 @@ typedef struct {
   char* output_file_name;
   file_format_t output_format;
   output_sam_parameters_t sam_parameters;
+  output_map_parameters_t map_parameters;
   fm_type output_compression;
   uint64_t output_buffer_size;
   uint64_t output_num_buffers;
@@ -111,6 +112,7 @@ typedef struct {
   input_file_t* input_file;
   input_file_t* input_file_end1;
   input_file_t* input_file_end2;
+  pthread_mutex_t input_file_mutex;
   FILE* output_stream;
   output_file_t* output_file;
   /* Mapper Type */
@@ -138,6 +140,7 @@ typedef struct {
   uint64_t thread_id;
   pthread_t* thread_data;
   /* I/O */
+  bool paired_end;
   buffered_input_file_t* buffered_fasta_input;
   buffered_input_file_t* buffered_fasta_input_end1;
   buffered_input_file_t* buffered_fasta_input_end2;
@@ -156,8 +159,8 @@ typedef struct {
  * Report
  */
 void mapper_display_input_state(
-    FILE* stream,buffered_input_file_t* const buffered_fasta_input,const sequence_t* const sequence);
-void mapper_error_report(FILE* stream); // Mapper error-report function
+    FILE* stream,buffered_input_file_t* const buffered_fasta_input,
+    const sequence_t* const sequence);
 
 /*
  * Mapper Parameters
@@ -179,7 +182,7 @@ GEM_INLINE void mapper_PE_prepare_io_buffers(
     buffered_input_file_t** const buffered_fasta_input_end2,
     buffered_output_file_t* const buffered_output_file);
 GEM_INLINE uint64_t mapper_PE_reload_buffers(
-    const mapper_parameters_t* const parameters,
+    mapper_parameters_t* const parameters,
     buffered_input_file_t* const buffered_fasta_input_end1,
     buffered_input_file_t* const buffered_fasta_input_end2);
 GEM_INLINE error_code_t mapper_PE_parse_paired_sequences(
@@ -193,13 +196,12 @@ GEM_INLINE error_code_t mapper_PE_parse_paired_sequences(
  * Output
  */
 GEM_INLINE void mapper_SE_output_matches(
-    const mapper_parameters_t* const parameters,
-    buffered_output_file_t* const buffered_output_file,
+    mapper_parameters_t* const parameters,buffered_output_file_t* const buffered_output_file,
     archive_search_t* const archive_search,matches_t* const matches);
 GEM_INLINE void mapper_PE_output_matches(
-    const mapper_parameters_t* const parameters,
-    buffered_output_file_t* const buffered_output_file,archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2,paired_matches_t* const paired_matches);
+    mapper_parameters_t* const parameters,buffered_output_file_t* const buffered_output_file,
+    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
+    paired_matches_t* const paired_matches);
 
 /*
  * SE Mapper
@@ -216,6 +218,8 @@ GEM_INLINE void mapper_PE_run(mapper_parameters_t* const mapper_parameters);
  */
 #define GEM_ERROR_MAPPER_PE_PARSE_UNSYNCH_INPUT_FILES_PAIR "Parsing Input Files. Files '%s,%s' doesn't contain the same number of reads (cannot pair)"
 #define GEM_ERROR_MAPPER_PE_PARSE_UNSYNCH_INPUT_FILES_SINGLE "Parsing Input File. File '%s' doesn't contain a pair number of reads (cannot pair)"
+#define GEM_ERROR_MAPPER_PE_PARSE_UNSYNCH_INPUT_FILES_EOF "Parsing Input Files. File '%s' could not read second end (unexpected end-of-file)"
+#define GEM_ERROR_MAPPER_PE_PARSE_UNSYNCH_INPUT_FILES_NOT_EOF "Parsing Input Files. File '%s' has too many reads (expected end-of-file)"
 
 /*
  * Error Macros

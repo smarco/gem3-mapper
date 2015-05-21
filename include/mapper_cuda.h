@@ -26,6 +26,6 @@ GEM_INLINE void mapper_PE_CUDA_run(mapper_parameters_t* const mapper_parameters)
 /*
  * Error Messages
  */
-#define GEM_ERROR_MAPPER_CUDA_ERROR_PARSING "Error parsing sequence"
+#define GEM_ERROR_MAPPER_CUDA_ERROR_PARSING "Mapper-CUDA. Error parsing sequence"
 
 #endif /* MAPPER_CUDA_H_ */

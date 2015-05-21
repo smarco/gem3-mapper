@@ -13,6 +13,7 @@
 #include "essentials.h"
 #include "text_collection.h"
 #include "filtering_candidates.h"
+#include "mapper_stats.h"
 
 /*
  * Checkers
@@ -23,12 +24,19 @@
  * MM Search
  */
 typedef struct {
-  /* MM-Stack */
-  mm_stack_t* mm_stack;               // Memory-Stack allocator
+  /* Filtering candidates */
+  filtering_candidates_t filtering_candidates_forward_end1;
+  filtering_candidates_t filtering_candidates_reverse_end1;
+  filtering_candidates_t filtering_candidates_forward_end2;
+  filtering_candidates_t filtering_candidates_reverse_end2;
   /* Text-Collection Buffer */
-  text_collection_t text_collection;  // Stores text-traces (candidates/matches/regions/...)
+  text_collection_t text_collection;    // Stores text-traces (candidates/matches/regions/...)
   /* Interval Set */
-  interval_set_t interval_set;
+  interval_set_t interval_set;          // Interval-Set
+  /* Stats */
+  mapper_stats_t* mapper_stats;       // Mapping Statistics
+  /* MM-Stack */
+  mm_stack_t* mm_stack;                 // Memory-Stack allocator
 } mm_search_t;
 
 /*

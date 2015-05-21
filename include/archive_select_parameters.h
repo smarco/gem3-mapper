@@ -15,20 +15,27 @@
  * Select Parameters
  */
 typedef enum {
-  mapq_model_none,
-  mapq_model_exp_relative_distance,
-  mapq_model_exp_relative_score,
-  mapq_model_test
+  mapq_model_none,     // None
+  mapq_model_gem,      // Exponential Relative Score
+  mapq_model_gem_case, // Case stratification
+  mapq_model_logit     // Logistic Regression
 } mapq_model_t;
+typedef enum {
+  matches_sorting_distance,
+  matches_sorting_mapq
+} matches_sorting_t;
 typedef struct {
   /* MAPQ Score */
   mapq_model_t mapq_model;
+  uint8_t mapq_threshold;
   /* Reporting */
   double min_decoded_strata;
   uint64_t min_decoded_strata_nominal;
   uint64_t max_decoded_matches;
   uint64_t min_reported_matches;
   uint64_t max_reported_matches;
+  /* Sorting */
+  matches_sorting_t sorting;
   /* Check */
   bool check_correct;
   bool check_optimum;

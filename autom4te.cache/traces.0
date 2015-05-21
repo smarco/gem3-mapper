@@ -236,7 +236,7 @@ m4trace:configure.ac:12: -1- m4_pattern_allow([^HAVE_OMP_H$])
 m4trace:configure.ac:13: -1- AC_SUBST([HAVE_OPENMP])
 m4trace:configure.ac:13: -1- AC_SUBST_TRACE([HAVE_OPENMP])
 m4trace:configure.ac:13: -1- m4_pattern_allow([^HAVE_OPENMP$])
-m4trace:configure.ac:35: -1- _m4_warn([cross], [cannot check for file existence when cross compiling], [../../lib/autoconf/general.m4:2777: AC_CHECK_FILE is expanded from...
+m4trace:configure.ac:35: -1- _m4_warn([cross], [cannot check for file existence when cross compiling], [../../lib/autoconf/general.m4:2778: AC_CHECK_FILE is expanded from...
 configure.ac:35: the top level])
 m4trace:configure.ac:35: -1- AH_OUTPUT([HAVE_LIBCUDA], [/* Define to 1 if you have the `cuda\' library (-lcuda). */
 @%:@undef HAVE_LIBCUDA])
@@ -246,7 +246,7 @@ m4trace:configure.ac:35: -1- AH_OUTPUT([HAVE_LIBCUDART], [/* Define to 1 if you 
 @%:@undef HAVE_LIBCUDART])
 m4trace:configure.ac:35: -1- AC_DEFINE_TRACE_LITERAL([HAVE_LIBCUDART])
 m4trace:configure.ac:35: -1- m4_pattern_allow([^HAVE_LIBCUDART$])
-m4trace:configure.ac:45: -1- _m4_warn([cross], [cannot check for file existence when cross compiling], [../../lib/autoconf/general.m4:2777: AC_CHECK_FILE is expanded from...
+m4trace:configure.ac:45: -1- _m4_warn([cross], [cannot check for file existence when cross compiling], [../../lib/autoconf/general.m4:2778: AC_CHECK_FILE is expanded from...
 configure.ac:45: the top level])
 m4trace:configure.ac:45: -1- AH_OUTPUT([HAVE_CUDA_H], [/* Define to 1 if you have the <cuda.h> header file. */
 @%:@undef HAVE_CUDA_H])

@@ -501,7 +501,7 @@ GEM_INLINE gem_counter_t* PROF_GET_COUNTER(const uint64_t counter) {
 /*
  * PROFILE-RANKS functions
  */
-extern uint64_t _bwt_ranks;
+extern uint64_t _bwt_ranks; // Bwt rank counter
 GEM_INLINE void PROF_START_RANK(const uint64_t rank) {
   RCOUNTER_START(gem_profile.profile[gtid()].ranks+rank,_bwt_ranks);
 }

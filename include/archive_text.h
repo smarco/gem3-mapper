@@ -1,0 +1,85 @@
+/*
+ * PROJECT: GEMMapper
+ * FILE: archive_text_retrieve.h
+ * DATE: 06/06/2013
+ * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
+ * DESCRIPTION:
+ */
+
+#ifndef ARCHIVE_TEXT_RETRIEVE_H_
+#define ARCHIVE_TEXT_RETRIEVE_H_
+
+#include "essentials.h"
+#include "sampled_rl.h"
+#include "graph_text.h"
+#include "graph_text_builder.h"
+#include "text_collection.h"
+
+/*
+ * Checker
+ */
+#define ARCHIVE_TEXT_CHECK(archive_text) \
+  GEM_CHECK_NULL(archive_text); \
+  DNA_TEXT_CHECK(archive_text->enc_text)
+
+typedef enum {
+  archive_text_regular=0,
+  archive_text_run_length=1,
+  archive_hypertext=2
+} archive_text_type;
+typedef struct {
+  // Meta-information
+  bool hypertext;                   // Stores hypertext (text + graph = hypertext)
+  bool run_length;                  // Archive-Text type
+  bool explicit_complement;         // Stores explicit RC-text
+  uint64_t forward_text_length;     // Total length of the forward text
+  // Indexed text
+  graph_text_t* graph;              // Graph
+  dna_text_t* enc_text;             // Index-Text
+  sampled_rl_t* sampled_rl;         // Sampled RL-Index Positions
+} archive_text_t;
+
+/*
+ * Builder
+ */
+GEM_INLINE void archive_text_write(
+    fm_t* const file_manager,dna_text_t* const enc_text,
+    const bool explicit_complement,const uint64_t forward_text_length,
+    sampled_rl_t* const sampled_rl,graph_text_builder_t* const graph,const bool verbose);
+
+/*
+ * Setup/Loader
+ */
+GEM_INLINE archive_text_t* archive_text_read_mem(mm_t* const memory_manager);
+GEM_INLINE void archive_text_delete(archive_text_t* const archive_text);
+
+/*
+ * Accessors
+ */
+GEM_INLINE uint64_t archive_text_get_size(archive_text_t* const archive_text);
+GEM_INLINE strand_t archive_text_get_position_strand(
+    archive_text_t* const archive_text,const uint64_t index_position);
+GEM_INLINE uint64_t archive_text_get_unitary_projection(
+    archive_text_t* const archive_text,const uint64_t index_position);
+GEM_INLINE uint64_t archive_text_get_projection(
+    archive_text_t* const archive_text,const uint64_t index_position,const uint64_t length);
+
+/*
+ * Text Retriever
+ */
+GEM_INLINE uint64_t archive_text_retrieve(
+    archive_text_t* const archive_text,text_collection_t* const text_collection,
+    const uint64_t index_position,const uint64_t length,
+    const bool reverse_complement_text,mm_stack_t* const mm_stack);
+
+/*
+ * Display
+ */
+GEM_INLINE void archive_text_print(FILE* const stream,const archive_text_t* const archive_text);
+
+/*
+ * Errors
+ */
+#define GEM_ERROR_ARCHIVE_TEXT_WRONG_MODEL_NO "Archive-Text error. Wrong Archive-Text Model %lu (Expected model %lu)"
+
+#endif /* ARCHIVE_TEXT_RETRIEVE_H_ */

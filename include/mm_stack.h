@@ -24,9 +24,9 @@
 /*
  * Debug
  */
-//#ifdef GEM_DEBUG
+#ifdef GEM_DEBUG
 #define MM_STACK_DEBUG
-//#endif
+#endif
 
 // TODO
 // Implement DEBUG/SECURITY mechanism with which we can say if memory has been
@@ -52,6 +52,7 @@ typedef struct {
 } mm_stack_state_t;
 typedef struct {
   /* Stack state(s) */
+  uint64_t id;
   vector_t* state;             // Vector of states (mm_stack_state_t)
   uint64_t segment_size;       // Total size of each memory segment
   uint64_t current_segment;    // Last segment being used

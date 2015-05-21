@@ -10,7 +10,7 @@
 #define SWG_ALIGN_H_
 
 #include "essentials.h"
-#include "matches.h"
+#include "match_elements.h"
 
 /*
  * SWG Query Profile
@@ -47,7 +47,7 @@ typedef struct {
  */
 GEM_INLINE bool align_check_match(
     FILE* const stream,const uint8_t* const key,const uint64_t key_length,const uint8_t* const text,
-    const uint64_t text_length,vector_t* const cigar_buffer,uint64_t const cigar_offset,
+    const uint64_t text_length,vector_t* const cigar_vector,uint64_t const cigar_offset,
     uint64_t const cigar_length,const bool verbose);
 
 /*
@@ -78,33 +78,46 @@ GEM_INLINE int32_t swg_score_deletion(const swg_penalties_t* const swg_penalties
 GEM_INLINE int32_t swg_score_insertion(const swg_penalties_t* const swg_penalties,const int32_t length);
 GEM_INLINE int32_t swg_score_mismatch(const swg_penalties_t* const swg_penalties);
 GEM_INLINE int32_t swg_score_match(const swg_penalties_t* const swg_penalties,const int32_t match_length);
-GEM_INLINE int32_t swg_score(const swg_penalties_t* const swg_penalties,cigar_element_t* const cigar_element);
+GEM_INLINE int32_t swg_score_cigar_element(
+    const swg_penalties_t* const swg_penalties,const cigar_element_t* const cigar_element);
+GEM_INLINE int32_t swg_score_cigar(
+    const swg_penalties_t* const swg_penalties,vector_t* const cigar_vector,
+    const uint64_t cigar_offset,const uint64_t cigar_length);
 
 /*
  * Smith-waterman-gotoh Alignment
  */
-GEM_INLINE void swg_align_match_base(
-    const uint8_t* const key,const uint64_t key_length,const swg_penalties_t* swg_penalties,
-    uint64_t* const match_position,uint8_t* const text,const uint64_t text_length,
-    vector_t* const cigar_buffer,uint64_t* const cigar_length,int64_t* const effective_length,
-    int32_t* const alignment_score,mm_stack_t* const mm_stack);
-GEM_INLINE void swg_align_match(
-    const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
-    const swg_query_profile_t* const swg_query_profile,const swg_penalties_t* swg_penalties,
-    uint64_t* const match_position,uint8_t* const text,uint64_t text_length,
-    const uint64_t max_bandwidth,const bool begin_free,const bool end_free,vector_t* const cigar_buffer,
-    uint64_t* const cigar_length,int64_t* const effective_length,int32_t* const alignment_score,
-    mm_stack_t* const mm_stack);
+//typedef struct match_align_input_t match_align_input_t;
+//typedef struct match_align_parameters_t match_align_parameters_t;
+#include "match_align_dto.h"
 
 /*
- * TMP
+ * Smith-waterman-gotoh Base (ie. no-optimizations)
+ *   @align_input->key
+ *   @align_input->key_length
+ *   @align_input->text
+ *   @align_input->text_length
+ *   @align_parameters->swg_penalties
+ *   @match_alignment->match_position (Adjusted)
  */
-GEM_INLINE void swg_align_match_int16_simd128(
-    const uint8_t* const key,const uint64_t key_length,swg_query_profile_t* const swg_query_profile,
-    const swg_penalties_t* swg_penalties,uint64_t* const match_position,uint8_t* const text,
-    const uint64_t text_length,const bool begin_free,const bool end_free,vector_t* const cigar_buffer,
-    uint64_t* const cigar_length,int64_t* const effective_length,int32_t* const alignment_score,
-    mm_stack_t* const mm_stack);
-
+GEM_INLINE void swg_align_match_base(
+    match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
+    match_alignment_t* const match_alignment,vector_t* const cigar_vector,mm_stack_t* const mm_stack);
+/*
+ * Smith-Waterman-Gotoh - Main procedure (Dispatcher)
+ *   @align_input->key
+ *   @align_input->key_length
+ *   @align_input->text
+ *   @align_input->text_length
+ *   @align_parameters->swg_penalties
+ *   @align_parameters->allowed_enc
+ *   @align_parameters->max_bandwidth
+ *   @match_alignment->match_position (Adjusted)
+ *   @match_alignment->cigar_length (Cumulative)
+ */
+GEM_INLINE void swg_align_match(
+    match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
+    const bool begin_free,const bool end_free,match_alignment_t* const match_alignment,
+    vector_t* const cigar_vector,mm_stack_t* const mm_stack);
 
 #endif /* SWG_ALIGN_H_ */

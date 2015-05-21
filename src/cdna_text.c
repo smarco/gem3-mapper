@@ -7,6 +7,16 @@
  *   Provides functionality to handle a compact representation of a 8-alphabet text // TODO
  */
 
+/*
+ * Pragmas
+ */
+#ifdef __clang__
+#pragma GCC diagnostic ignored "-Winitializer-overrides"
+#endif
+
+/*
+ * Include
+ */
 #include "cdna_text.h"
 
 /*

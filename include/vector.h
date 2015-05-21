@@ -20,7 +20,7 @@
   GEM_CHECK_ZERO(vector->element_size)
 #define VECTOR_RANGE_CHECK(vector,position) \
   VECTOR_CHECK(vector); \
-  gem_fatal_check(position>=(vector)->used||position<0,POSITION_OUT_OF_RANGE, \
+  gem_fatal_check(position>=(vector)->used,POSITION_OUT_OF_RANGE, \
       (uint64_t)position,(uint64_t)0,((int64_t)(vector)->used)-1);
 /*
  * Data Structures

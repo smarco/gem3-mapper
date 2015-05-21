@@ -124,6 +124,8 @@ GEM_INLINE void gem_mapper_print_profile(mapper_parameters_t* const parameters) 
             parameters->io.output_format,parameters->system.num_threads);
         break;
       case mapper_pe:
+        mapper_profile_print_mapper_paired_end_cuda(gem_info_get_stream(),
+            parameters->io.output_format,parameters->system.num_threads);
         break;
       case mapper_graph:
         break;
@@ -142,17 +144,17 @@ option_t gem_mapper_options[] = {
   { 'i', "input", REQUIRED, TYPE_STRING, 2, true, "<file>" , "(FASTA/FASTQ, default=stdin)" },
   { '1', "i1", REQUIRED, TYPE_STRING, 2, true, "<file>" , "(paired-end, end-1)" },
   { '2', "i2", REQUIRED, TYPE_STRING, 2, true, "<file>" , "(paired-end, end-2)" },
-  { 'z', "gzip-input", NO_ARGUMENT, TYPE_NONE, 2, true, "", "(gzip input)" },
-  { 'j', "bzip-input", NO_ARGUMENT, TYPE_NONE, 2, true, "", "(bzip input)" },
+  { 'z', "gzip-input", NO_ARGUMENT, TYPE_NONE, 2, false, "", "(gzip input)" },
+  { 'j', "bzip-input", NO_ARGUMENT, TYPE_NONE, 2, false, "", "(bzip input)" },
   { 203, "input-model", REQUIRED, TYPE_STRING, 2, false, "<input_block_size,num_buffers,num_records>", "(default=64M,2c,5K)" },
   { 'o', "output", REQUIRED, TYPE_STRING, 2, true, "<output_prefix>" , "(default=stdout)" },
-  { 205, "gzip-output", NO_ARGUMENT, TYPE_NONE, 2, true, "", "(gzip output)" },
-  { 206, "bzip-output", NO_ARGUMENT, TYPE_NONE, 2, true, "", "(bzip output)" },
+  { 205, "gzip-output", NO_ARGUMENT, TYPE_NONE, 2, false, "", "(gzip output)" },
+  { 206, "bzip-output", NO_ARGUMENT, TYPE_NONE, 2, false, "", "(bzip output)" },
   { 207, "output-model", REQUIRED, TYPE_STRING, 2, false, "<buffer_size,num_buffers>", "(default=4M,5c)" },
   /* Qualities */
   { 'q', "quality-format", REQUIRED, TYPE_STRING, 3, true, "'ignore'|'offset-33'|'offset-64'", "(default=offset-33)" },
   { 'Q', "quality-model", REQUIRED, TYPE_STRING, 3, false, "'gem'|'flat'", "(default=gem)" },
-  { 300, "gem-quality-threshold", REQUIRED, TYPE_INT, 3, true, "<number>", "(default=26, that is e<=2e-3)" },
+  { 300, "gem-quality-threshold", REQUIRED, TYPE_INT, 3, false, "<number>", "(default=26, that is e<=2e-3)" },
   /* Single-end Alignment */
   { 400, "mapping-mode", REQUIRED, TYPE_STRING, 4, false, "'fast'|'match'|'complete'" , "(default=match)" },
   { 401, "filtering-degree", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0)" },
@@ -160,67 +162,68 @@ option_t gem_mapper_options[] = {
   { 'E', "max-filtering-error", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0.20, 20%)" },
   { 402, "max-bandwidth", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0.20, 20%)" },
   { 's', "complete-strata-after-best", REQUIRED, TYPE_FLOAT, 4, true, "<number|percentage>" , "(default=0)" },
-  { 403, "min-matching-length", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0.20, 20%)" },
-  { 404, "max-search-matches", REQUIRED, TYPE_INT, 4, true, "<number>" , "(unlimited by default)" },
+  { 404, "max-search-matches", REQUIRED, TYPE_INT, 4, true, "<number>" , "(10M by default)" },
   { 405, "mismatch-alphabet", REQUIRED, TYPE_STRING, 4, false, "<symbols>" , "(default='ACGT')" },
   { 406, "region-chaining", OPTIONAL, TYPE_STRING, 4, false, "" , "(default=true)" },
   { 407, "region-scaffolding-min-length", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=20%)" },
   { 408, "region-scaffolding-coverage-threshold", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=80%)" },
   { 409, "region-model-minimal", REQUIRED, TYPE_FLOAT, 4, false, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "(default=20,4,2,2)" },
   { 410, "region-model-delimit", REQUIRED, TYPE_FLOAT, 4, false, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "(default=50,10,4,2)" },
-  { 411, "bisulfite-mode", OPTIONAL, TYPE_STRING, 4, true, "", "(default=false)" },
-  { 412, "bisulfite-read", REQUIRED, TYPE_STRING, 4, true, "'inferred','1','2','interleaved'",  "(default=inferred)" },
-  { 413, "bisulfite-suffix", REQUIRED, TYPE_STRING, 4, false, "<C2T suffix, G2A suffix>" , "(default=#C2T,#G2A)" },
+  { 411, "local-alignment", OPTIONAL, TYPE_STRING, 4, false, "'always'|'if-no-global'|'never'" , "(default=if-no-global)" },
+  { 412, "local-alignment-min-identity", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=40%)" },
   /* Paired-end Alignment */
   { 'p', "paired-end-alignment", NO_ARGUMENT, TYPE_NONE, 5, true, "" , "" },
   // { 500, "mate-pair-alignment", NO_ARGUMENT, TYPE_NONE, 5, true, "" , "" }, // TODO
-  { 'l', "min-template-length", REQUIRED, TYPE_INT, 5, true, "<number>" , "(default=0)" },
-  { 'L', "max-template-length", REQUIRED, TYPE_INT, 5, true, "<number>" , "(default=inf)" },
+  { 'l', "min-template-length", REQUIRED, TYPE_INT, 5, false, "<number>" , "(default=disabled)" },
+  { 'L', "max-template-length", REQUIRED, TYPE_INT, 5, false, "<number>" , "(default=10000)" },
   { 503, "pair-orientation", REQUIRED, TYPE_STRING, 5, true, "'FR'|'RF'|'FF'|'RR'" , "(default=FR)" },
-  { 504, "search-discordant", OPTIONAL, TYPE_STRING, 5, true, "'always'|'if-no-concordant'|'never'" , "(default=if-no-concordant)" },
+  { 504, "search-discordant", REQUIRED, TYPE_STRING, 5, true, "'always'|'if-no-concordant'|'never'" , "(default=if-no-concordant)" },
   { 505, "discordant-pair-orientation", REQUIRED, TYPE_STRING, 5, true, "'FR'|'RF'|'FF'|'RR'" , "(default=RF,FF,RR)" },
   { 506, "pair-layout", REQUIRED, TYPE_STRING, 5, true, "'separate'|'overlap'|'contain'|'dovetail'" , "(default=separated,overlap,contain,dovetail)" },
   { 507, "paired-mapping-mode", REQUIRED, TYPE_STRING, 5, false, "'map-both-ends'|'paired-filtering'|'map-extension'" , "(default=map-extension)" },
-  { 508, "max-extendable-candidates", REQUIRED, TYPE_INT, 5, false, "<number>" , "(default=20)" },
-  { 509, "max-matches-per-extension", REQUIRED, TYPE_INT, 5, false, "<number>" , "(default=2)" },
+  { 508, "recovery-by-extension", REQUIRED, TYPE_STRING, 5, false, "'true'|'false'" , "(default=true)" },
+  { 509, "max-extendable-candidates", REQUIRED, TYPE_INT, 5, false, "<number>" , "(default=20)" },
+  { 510, "max-matches-per-extension", REQUIRED, TYPE_INT, 5, false, "<number>" , "(default=2)" },
   /* Alignment Score */
   { 600, "alignment-model", REQUIRED, TYPE_STRING, 6, false, "'none'|'hamming'|'edit'|'gap-affine'" , "(default=gap-affine)" },
-  { 601, "gap-affine-penalties", REQUIRED, TYPE_STRING, 6, false, "A,B,O,X" , "(default=1,4,6,1)" },
+  { 601, "gap-affine-penalties", REQUIRED, TYPE_STRING, 6, true, "A,B,O,X" , "(default=1,4,6,1)" },
   { 'A', "matching-score", REQUIRED, TYPE_INT, 6, false, "" , "(default=1)" },
   { 'B', "mismatch-penalty", REQUIRED, TYPE_INT, 6, false, "" , "(default=4)" },
   { 'O', "gap-open-penalty", REQUIRED, TYPE_INT, 6, false, "" , "(default=6)" },
   { 'X', "gap-extension-penalty", REQUIRED, TYPE_INT, 6, false, "" , "(default=1)" },
   /* MAQ Score */
-  { 700, "mapq-model", REQUIRED, TYPE_STRING, 5, false, "'none'|'exp-distance'|'exp-score'" , "(default=exp-distance)" },
+  { 700, "mapq-model", REQUIRED, TYPE_STRING, 7, false, "'none'|'gem'|'logit'" , "(default=gem)" },
+  { 701, "mapq-threshold", REQUIRED, TYPE_INT, 7, false, "<number>" , "(default=0)" },
   /* Reporting */
   { 'D', "min-decoded-strata", REQUIRED, TYPE_FLOAT, 8, false, "<number|percentage>" , "(stratum-wise, default=0)" },
   { 'd', "max-decoded-matches", REQUIRED, TYPE_INT, 8, false, "<number>|'all'" , "(stratum-wise, default=20)" },
   { 'm', "min-reported-matches", REQUIRED, TYPE_INT, 8, false, "<number>|'all'" , "(default=1)" },
-  { 'M', "max-reported-matches", REQUIRED, TYPE_INT, 8, true, "<number>|'all'" , "(default=all)" },
+  { 'M', "max-reported-matches", REQUIRED, TYPE_INT, 8, true, "<number>|'all'" , "(default=100)" },
   /* Output Format */
   { 'F', "output-format", REQUIRED, TYPE_STRING, 9, true, "'MAP'|'SAM'" , "(default=SAM)" },
-  { 900, "sam-compact", OPTIONAL, TYPE_STRING, 9, true, "'true'|'false'" , "(default=false)" },
-  { 901, "sam-quality-threshold", REQUIRED, TYPE_INT, 9, true, "<number>" , "(default=0)" },
-  { 'r', "sam-read-group-header", REQUIRED, TYPE_STRING, 9, true, "read group header i.e., '@RG\\tID:xx\\tSM:yy'" , "(default=NULL)" },
+  { 900, "sam-compact", OPTIONAL, TYPE_STRING, 9, false, "'true'|'false'" , "(default=true)" },
+  { 'r', "sam-read-group-header", REQUIRED, TYPE_STRING, 9, true, "<read_group_header> (i.e. '@RG\\tID:xx\\tSM:yy')" , "(default=NULL)" },
+  { 901, "sam-gem-compatible", OPTIONAL, TYPE_STRING, 9, false, "'true'|'false'" , "(default=false)" },
+  { 902, "map-format", REQUIRED, TYPE_INT, 9, false, "'1'|'2'|'3'" , "(default=1)" },
   /* System */
-  { 't', "threads", REQUIRED, TYPE_STRING, 9, true, "<number>" , "(default=c)" },
-  { 1000, "max-memory", REQUIRED, TYPE_STRING, 9, true, "<maximum-memory>" , "(Eg 2GB)" },
-  { 1001, "tmp-folder", REQUIRED, TYPE_STRING, 9, true, "<temporal_dir_path>" , "(default=/tmp/)" },
+  { 't', "threads", REQUIRED, TYPE_STRING, 10, true, "<number>" , "(default=#cores)" },
+  { 1000, "max-memory", REQUIRED, TYPE_STRING, 10, false, "<maximum-memory>" , "(Eg 2GB)" },
+  { 1001, "tmp-folder", REQUIRED, TYPE_STRING, 10, false, "<temporal_dir_path>" , "(default=/tmp/)" },
   /* CUDA Settings */
 #ifdef HAVE_CUDA
-  { 1100, "cuda", OPTIONAL, TYPE_STRING, 10, true, "", ""},
+  { 1100, "cuda", OPTIONAL, TYPE_STRING, 11, true, "", ""},
   { 1101, "cuda-buffers-per-thread", REQUIRED, TYPE_STRING, 10, false, "<num_buffers,buffer_size>" , "(default=3,4M)" },
 #endif
   /* Presets/Hints */
-  { 1200, "technology", REQUIRED, TYPE_STRING, 11, false, "'hiseq'|'miseq'|'454'|'ion-torrent'|'pacbio'|'nanopore'|'moleculo'" , "(default=hiseq)" },
-  { 1201, "reads-model", REQUIRED, TYPE_STRING, 11, false, "<average_length>[,<std_length>]" , "(default=150,50)" },
+  { 1200, "technology", REQUIRED, TYPE_STRING, 12, false, "'hiseq'|'miseq'|'454'|'ion-torrent'|'pacbio'|'nanopore'|'moleculo'" , "(default=hiseq)" },
+  { 1201, "reads-model", REQUIRED, TYPE_STRING, 12, false, "<average_length>[,<std_length>]" , "(default=150,50)" },
   /* Debug */
-  { 'c', "check-alignments", REQUIRED, OPTIONAL, 12, false, "'correct'|'best'|'complete'" , "" },
+  { 'c', "check-alignments", REQUIRED, TYPE_STRING, 13, false, "'correct'|'best'|'complete'" , "" },
   /* Miscellaneous */
-  { 1400, "profile", OPTIONAL, TYPE_STRING, 13, false, "'sum'|'min'|'max'|'mean'|'sample'" , "(disabled)" },
-  { 'v', "verbose", OPTIONAL, TYPE_STRING, 13, true, "'quiet'|'user'|'dev'" , "(default=user)" },
-  { 'h', "help", NO_ARGUMENT, TYPE_NONE, 13, true, "" , "(print usage)" },
-  { 'H', "help", NO_ARGUMENT, TYPE_NONE, 13, false, "" , "(print usage + extras)" },
+  { 1400, "profile", OPTIONAL, TYPE_STRING, 14, false, "'sum'|'min'|'max'|'mean'|'sample'" , "(disabled)" },
+  { 'v', "verbose", OPTIONAL, TYPE_STRING, 14, false, "'quiet'|'user'|'dev'" , "(default=user)" },
+  { 'h', "help", NO_ARGUMENT, TYPE_NONE, 14, true, "" , "(print usage)" },
+  { 'H', "help", NO_ARGUMENT, TYPE_NONE, 14, false, "" , "(print usage + extras)" },
   { 0, NULL, 0, 0, 0, 0, NULL, NULL}
 };
 char* gem_mapper_groups[] = {
@@ -235,9 +238,7 @@ char* gem_mapper_groups[] = {
   /*  8 */ "Reporting",
   /*  9 */ "Output-format",
   /* 10 */ "System",
-#ifdef HAVE_CUDA
   /* 11 */ "CUDA Settings",
-#endif
   /* 12 */ "Presets/Hints",
   /* 13 */ "Debug",
   /* 14 */ "Miscellaneous",
@@ -278,7 +279,6 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
   struct option* getopt_options = options_adaptor_getopt(gem_mapper_options);
   string_t* const getopt_short_string = options_adaptor_getopt_short(gem_mapper_options);
   char* const getopt_short = string_get_buffer(getopt_short_string);
-  char *bs_suffix1=0, *bs_suffix2=0;
   int option, option_index;
   while (true) {
     // Get option &  Select case
@@ -419,11 +419,8 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 's': // --complete-strata-after-best
       input_text_parse_extended_double(optarg,(double*)&parameters->search_parameters.complete_strata_after_best);
       break;
-    case 403: // --min-matching-length
-      parameters->search_parameters.min_matching_length = atof(optarg);
-      break;
     case 404: // --max-search-matches
-      parameters->search_parameters.max_search_matches = atol(optarg);
+      input_text_parse_extended_uint64(optarg,&parameters->search_parameters.max_search_matches);
       break;
     case 405: { // --mismatch-alphabet
       const char* const mismatch_alphabet = optarg;
@@ -468,34 +465,20 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       input_text_parse_extended_uint64(region_type_th,&parameters->search_parameters.rp_delimit.region_type_th);
       break;
     }
-    case 411: // --bisulfite_mode
-      parameters->search_parameters.bisulfite_mode = input_text_parse_extended_bool(optarg);
+    case 411: // --local-alignment in {'always'|'if-no-global'|'never'} (default=if-no-global)
+      if (gem_strcaseeq(optarg,"always")) {
+        parameters->search_parameters.local_alignment = local_alignment_always;
+      } else if (gem_strcaseeq(optarg,"if-no-global")) {
+        parameters->search_parameters.local_alignment = local_alignment_only_if_no_global;
+      } else if (gem_strcaseeq(optarg,"never")) {
+        parameters->search_parameters.local_alignment = local_alignment_never;
+      } else {
+        gem_fatal_error_msg("Option '--local-alignment' must be 'always'|'if-no-global'|'never'");
+      }
       break;
-    case 412: // --bisulfite_read
-      if (gem_strcaseeq(optarg,"inferred")) {
-        parameters->search_parameters.bisulfite_read = bisulfite_read_inferred;
-        break;
-			}
-      if (gem_strcaseeq(optarg,"1")) {
-        parameters->search_parameters.bisulfite_read = bisulfite_read_1;
-        break;
-			}
-      if (gem_strcaseeq(optarg,"2")) {
-        parameters->search_parameters.bisulfite_read = bisulfite_read_2;
-        break;
-			}
-      if (gem_strcaseeq(optarg,"interleaved")) {
-        parameters->search_parameters.bisulfite_read = bisulfite_read_interleaved;
-        break;
-			}
-      gem_fatal_error_msg("Option '--bisulfite_read' must be '1'|'2'|'interleaved'|'inferred'");
+    case 412: // --local-alignment-min-identity <number|percentage> (default=40%)
+      parameters->search_parameters.local_min_identity = atol(optarg);
       break;
-	 case 413: { // --bisulfite_suffix
-		const int num_arguments = input_text_parse_csv_arguments(optarg,2,bs_suffix1,bs_suffix2);
-      gem_cond_fatal_error_msg(num_arguments!=2,"Option '--bisulfite_suffix' wrong number of arguments");
-	   parameters->search_parameters.bisulfite_mode = true;
-		break;
-	 }
     /* Paired-end Alignment */
     case 'p': // --paired-end-alignment
       parameters->search_parameters.paired_end = true;
@@ -534,6 +517,8 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
         parameters->search_parameters.pair_discordant_search = pair_discordant_search_only_if_no_concordant;
       } else if (gem_strcaseeq(optarg,"never")) {
         parameters->search_parameters.pair_discordant_search = pair_discordant_search_never;
+      } else {
+        gem_fatal_error_msg("Option '--search-discordant' must be 'always'|'if-no-concordant'|'never'");
       }
       break;
     case 505: { // --discordant-pair-orientation in {'FR'|'RF'|'FF'|'RR'}
@@ -573,10 +558,13 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
         gem_fatal_error_msg("Option '--paired-mapping-mode' must be 'map-both-ends'|'paired-filtering'|'map-extension'");
       }
       break;
-    case 508: // --max-extendable-candidates
+    case 508: // --recovery-by-extension
+      parameters->search_parameters.recovery_by_extension = input_text_parse_extended_bool(optarg);
+      break;
+    case 509: // --max-extendable-candidates
       input_text_parse_extended_uint64(optarg,&parameters->search_parameters.max_extendable_candidates);
       break;
-    case 509: // --max-matches-per-extension
+    case 510: // --max-matches-per-extension
       input_text_parse_extended_uint64(optarg,&parameters->search_parameters.max_matches_per_extension);
       break;
     /* Alignment Score */
@@ -638,19 +626,25 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       break;
     }
     /* MAQ Score */
-    case 700: // --mapq-model in {'none'|'exp-distance'|'exp-score'} (default=exp-distance)
+    case 700: // --mapq-model in {'none'|'gem'|'logit'} (default=gem)
       if (gem_strcaseeq(optarg,"none")) {
         parameters->select_parameters.mapq_model = mapq_model_none;
-      } else if (gem_strcaseeq(optarg,"exp-distance")) {
-        parameters->select_parameters.mapq_model = mapq_model_exp_relative_distance;
-      } else if (gem_strcaseeq(optarg,"exp-score")) {
-        parameters->select_parameters.mapq_model = mapq_model_exp_relative_score;
-      } else if (gem_strcaseeq(optarg,"test")) {
-        parameters->select_parameters.mapq_model = mapq_model_test;
+      } else if (gem_strcaseeq(optarg,"gem")) {
+        parameters->select_parameters.mapq_model = mapq_model_gem;
+      } else if (gem_strcaseeq(optarg,"gem-case")) {
+        parameters->select_parameters.mapq_model = mapq_model_gem_case;
+      } else if (gem_strcaseeq(optarg,"logit")) {
+        parameters->select_parameters.mapq_model = mapq_model_logit;
       } else {
-        gem_fatal_error_msg("Option '--mapq-model' must be in {'none'|'exp-distance'|'exp-score'}");
+        gem_fatal_error_msg("Option '--mapq-model' must be in {'none'|'gem'|'logit'}");
       }
       break;
+    case 701: { // --mapq-threshold <number>
+      uint64_t mapq_threshold;
+      input_text_parse_extended_uint64(optarg,&mapq_threshold);
+      parameters->select_parameters.mapq_threshold = MIN(255,mapq_threshold);
+      break;
+    }
     /* Reporting */
     case 'D': // --min-decoded-strata
       input_text_parse_extended_double(optarg,&parameters->select_parameters.min_decoded_strata);
@@ -668,8 +662,10 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 'F': // --output-format
       if (gem_strcaseeq(optarg,"MAP")) {
         parameters->io.output_format = MAP;
+        parameters->select_parameters.sorting = matches_sorting_distance;
       } else if (gem_strcaseeq(optarg,"SAM")) {
         parameters->io.output_format = SAM;
+        parameters->select_parameters.sorting = matches_sorting_mapq;
       } else {
         gem_fatal_error_msg("Option '-F|--output-format' must be 'MAP' or 'SAM'");
       }
@@ -677,15 +673,15 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 900: // --sam-compact in {'true'|'false'} (default=true)
       parameters->io.sam_parameters.compact_xa = (optarg==NULL) ? true : input_text_parse_extended_bool(optarg);
       break;
-    case 901: { // --sam-quality-threshold
-      uint64_t mapq_threshold;
-      input_text_parse_extended_uint64(optarg,&mapq_threshold);
-      parameters->io.sam_parameters.mapq_threshold = MIN(255,mapq_threshold);
+		case 'r': // --sam-read-group-header
+			output_sam_parse_read_group_header(optarg,&parameters->io.sam_parameters);
+		  break;
+    case 901: // --sam-gem-compatible in {'true'|'false'} (default=true)
+      parameters->io.sam_parameters.print_gem_fields = (optarg==NULL) ? true : input_text_parse_extended_bool(optarg);
       break;
-		 case 'r': // --sam-read-group-header
-			 output_sam_parse_read_group_header(optarg,&parameters->io.sam_parameters);
-			 break;
-    }
+    case 902: // --map-format in {'1'|'2'|'3'} (default=1)
+      parameters->io.map_parameters.format_version = atol(optarg);
+      break;
     /* System */
     case 't': // --threads
       gem_cond_fatal_error_msg(parse_arguments_system_integer(optarg,&parameters->system.num_threads),
@@ -850,7 +846,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
   } else {
     const char* const pinput_1 = parameters->io.input_file_name_end1;
     const char* const pinput_2 = parameters->io.input_file_name_end2;
-		gem_cond_fatal_error_msg(pinput_1==NULL, "Missing Input-End1 (--i1)");
+    gem_cond_fatal_error_msg(pinput_1==NULL, "Missing Input-End1 (--i1)");
     gem_cond_fatal_error_msg(pinput_2==NULL, "Missing Input-End2 (--i2)");
     gem_cond_fatal_error_msg(gem_streq(pinput_1,pinput_2), "Input-End1 and Input-End2 must be different");
     gem_cond_fatal_error_msg(gem_streq(pindex,pinput_1), "Index and Input-End1 must be different");
@@ -867,23 +863,8 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
   /* Mapping strategy (Mapping mode + properties) */
   if (parameters->search_parameters.paired_end) {
     parameters->mapper_type = mapper_pe;
-		if(parameters->search_parameters.bisulfite_read != bisulfite_read_inferred) {
-			 gem_warn_msg("Option '--bisulfite_read' ignored with paired end mode");
-		}
   } else {
     parameters->mapper_type = mapper_se;
-  }
-  /* Bisulfite mode */
-  if(parameters->search_parameters.bisulfite_mode) {
-	  if(parameters->io.output_format == SAM) {
-		  parameters->io.sam_parameters.bisulfite_mode = true;
-		  if(!bs_suffix1) {
-			 bs_suffix1="#C2T";
-			 bs_suffix2="#G2A";
-		  }
-		  string_init_static(parameters->io.sam_parameters.bisulfite_suffix,strdup(bs_suffix1));
-		  string_init_static(parameters->io.sam_parameters.bisulfite_suffix+1,strdup(bs_suffix2));
-	  }
   }
   /* Qualities */
 //  uint64_t quality_threshold;

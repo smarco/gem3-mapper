@@ -11,7 +11,7 @@
 
 #include "essentials.h"
 #include "../resources/myers_gpu/myers-interface.h"
-#include "matches.h"
+#include "match_elements.h"
 
 /*
  * Constants
@@ -58,6 +58,12 @@ struct _bpm_pattern_t {
   uint64_t gpu_num_chunks;
   bpm_pattern_t* bpm_pattern_chunks;
 };
+typedef struct {
+  uint64_t* Pv;
+  uint64_t* Mv;
+  uint64_t min_score;
+  uint64_t min_score_column;
+} bpm_align_matrix_t;
 
 /*
  * Compile Pattern
@@ -95,16 +101,44 @@ GEM_INLINE uint64_t bpm_search_all(
  * BPM-alignment (BitParalellMyers, Bit-compressed Alignment)
  *   Myers' Fast Bit-Vector algorithm to compute levenshtein alignment (CIGAR)
  */
+#include "match_align_dto.h"
+
+/*
+ * BPM. Compute BPM-DP-Matrix
+ *   @align_input->key
+ *   @align_input->bpm_pattern
+ *   @align_input->text
+ *   @align_input->text_length
+ */
+GEM_INLINE void bpm_align_compute_matrix(
+    match_align_input_t* const align_input,const uint64_t max_distance,
+    bpm_align_matrix_t* const bpm_align_matrix,mm_stack_t* const mm_stack);
+/*
+ * BPM. Recover CIGAR from a matching string
+ *   @align_input->key
+ *   @align_input->key_length
+ *   @align_input->bpm_pattern
+ *   @align_input->text
+ *   @bpm_align_matrix->Pv
+ *   @bpm_align_matrix->Mv
+ *   @bpm_align_matrix->min_score
+ *   @match_alignment->match_position (Adjusted)
+ */
+GEM_INLINE void bpm_align_backtrack_matrix(
+    match_align_input_t* const align_input,const bool left_gap_alignment,
+    bpm_align_matrix_t* const bpm_align_matrix,match_alignment_t* const match_alignment,
+    vector_t* const cigar_vector);
+/*
+ * BPM Align match
+ *   @align_input->key
+ *   @align_input->bpm_pattern
+ *   @align_input->text
+ *   @align_input->text_length
+ *   @match_alignment->match_position (Adjusted)
+ */
 GEM_INLINE void bpm_align_match(
-    const uint8_t* const key,const bpm_pattern_t* const bpm_pattern,
-    uint64_t* const match_position,uint8_t* const text,const uint64_t text_length,
-    const uint64_t max_distance,vector_t* const cigar_vector,uint64_t* const cigar_vector_offset,
-    uint64_t* const cigar_length,uint64_t* const distance,int64_t* const effective_length,mm_stack_t* const mm_stack);
-GEM_INLINE void bpm_scafold_match(
-    const uint8_t* const key,const bpm_pattern_t* const bpm_pattern,
-    uint8_t* const text,const uint64_t text_begin_offset,const uint64_t text_end_offset,
-    const uint64_t max_distance,const uint64_t min_matching_length,
-    region_matching_t** const regions_matching,uint64_t* const num_regions_matching,
-    uint64_t* const coverage,vector_t* const cigar_vector,mm_stack_t* const mm_stack);
+    match_align_input_t* const align_input,const uint64_t max_distance,
+    const bool left_gap_alignment,match_alignment_t* const match_alignment,
+    vector_t* const cigar_vector,mm_stack_t* const mm_stack);
 
 #endif /* BPM_ALIGN_H_ */

@@ -40,7 +40,7 @@ typedef struct {
  * BPM_GPU Setup
  */
 GEM_INLINE bpm_gpu_buffer_collection_t* bpm_gpu_init(
-    dna_text_t* const enc_text,const uint32_t num_buffers,const uint32_t buffer_size,
+    archive_text_t* const archive_text,const uint32_t num_buffers,const uint32_t buffer_size,
     const int32_t average_query_size,const int32_t candidates_per_query,const bool verbose);
 GEM_INLINE void bpm_gpu_destroy(bpm_gpu_buffer_collection_t* const buffer_collection);
 GEM_INLINE bool bpm_gpu_support();
@@ -56,9 +56,13 @@ GEM_INLINE uint64_t bpm_gpu_buffer_get_max_queries(bpm_gpu_buffer_t* const bpm_g
 GEM_INLINE uint64_t bpm_gpu_buffer_get_num_candidates(bpm_gpu_buffer_t* const bpm_gpu_buffer);
 GEM_INLINE uint64_t bpm_gpu_buffer_get_num_queries(bpm_gpu_buffer_t* const bpm_gpu_buffer);
 
-GEM_INLINE bool bpm_gpu_buffer_fits_in_buffer(
+GEM_INLINE void bpm_gpu_buffer_compute_dimensions(
     bpm_gpu_buffer_t* const bpm_gpu_buffer,const pattern_t* const pattern,
-    const uint64_t num_pattern_dups,const uint64_t total_candidates);
+    const uint64_t total_candidates,uint64_t* const total_entries,
+    uint64_t* const total_query_chunks,uint64_t* const total_candidate_chunks);
+GEM_INLINE bool bpm_gpu_buffer_fits_in_buffer(
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t total_entries,
+    const uint64_t total_query_chunks,const uint64_t total_candidate_chunks);
 
 GEM_INLINE void bpm_gpu_buffer_put_pattern(
     bpm_gpu_buffer_t* const bpm_gpu_buffer,pattern_t* const pattern);
