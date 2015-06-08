@@ -51,7 +51,7 @@ typedef struct {
   archive_t* archive;                        // Archive
   /* Archive Paired-End-Search (Only end/1 used in PE search) */
   archive_search_pe_state_t pe_search_state; // Search State
-  bool try_extending_end;                    // Tried extension
+  bool paired_extending;                     // Used paired-extension
   bool paired_filtering;                     // Used paired-filtering
   /* Sequence */
   sequence_t sequence;                       // Input
@@ -59,8 +59,8 @@ typedef struct {
   /* Parameters */
   bool emulate_rc_search;                    // Flow control
   bool probe_strand;                         // Flow control
-  search_actual_parameters_t search_actual_parameters; // Search parameters (evaluated to read-length)
-  select_parameters_t* select_parameters;              // Select parameters
+  as_parameters_t as_parameters;             // Approximated-Search parameters (evaluated to read-length)
+  select_parameters_t* select_parameters;    // Select parameters
   /* Approximate Search */
   approximate_search_t forward_search_state; // Forward Search State
   approximate_search_t reverse_search_state; // Reverse Search State
@@ -87,6 +87,7 @@ GEM_INLINE void archive_search_delete(archive_search_t* const archive_search);
 // [Accessors]
 GEM_INLINE sequence_t* archive_search_get_sequence(const archive_search_t* const archive_search);
 GEM_INLINE uint64_t archive_search_get_search_canditates(const archive_search_t* const archive_search);
+GEM_INLINE uint64_t archive_search_get_search_exact_matches(const archive_search_t* const archive_search);
 
 /*
  * SingleEnd Indexed Search

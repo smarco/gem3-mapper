@@ -72,6 +72,7 @@ typedef struct {
   uint64_t min_counter_value;
   uint64_t max_counter_value;
   uint64_t total_matches_count;             // Total number of matches (Interval+Position)
+  int32_t max_swg_score;
   /* Interval Matches */
   vector_t* interval_matches;               // Interval Matches (match_interval_t)
   /* Position Matches */
@@ -92,11 +93,18 @@ GEM_INLINE void matches_clear(matches_t* const matches);
 GEM_INLINE void matches_delete(matches_t* const matches);
 
 /*
+ * Accessors
+ */
+GEM_INLINE bool matches_is_mapped(const matches_t* const matches);
+
+/*
  * Counters
  */
-GEM_INLINE uint64_t matches_counters_get_min(matches_t* const matches);
-GEM_INLINE uint64_t matches_counters_get_max(matches_t* const matches);
+GEM_INLINE uint64_t matches_counters_get_min_distance(matches_t* const matches);
+GEM_INLINE uint64_t matches_counters_get_max_distance(matches_t* const matches);
+GEM_INLINE int32_t matches_counters_get_max_swg_score(matches_t* const matches);
 GEM_INLINE uint64_t matches_counters_compact(matches_t* const matches);
+GEM_INLINE uint64_t matches_counters_get_count(matches_t* const matches,const uint64_t distance);
 GEM_INLINE uint64_t matches_counters_get_total_count(matches_t* const matches);
 
 /*
@@ -167,11 +175,6 @@ GEM_INLINE int64_t matches_cigar_effective_length(
     vector_t* const cigar_vector,const uint64_t cigar_offset,const uint64_t cigar_length);
 
 /*
- * Status
- */
-GEM_INLINE bool matches_is_mapped(const matches_t* const matches);
-
-/*
  * Sorting Matches
  */
 GEM_INLINE void matches_sort_by_distance(matches_t* const matches);
@@ -180,17 +183,24 @@ GEM_INLINE void matches_sort_by_mapq_score(matches_t* const matches);
 GEM_INLINE void matches_sort_by_sequence_name__position(matches_t* const matches);
 
 /*
+ * Curation
+ */
+GEM_INLINE void matches_curate(matches_t* const matches,const double swg_score_difference);
+
+/*
+ * Score
+ */
+GEM_INLINE double matches_classify_unique(matches_t* const matches,const uint64_t mcs);
+GEM_INLINE double matches_classify_ambiguous(matches_t* const matches,const uint64_t mcs);
+GEM_INLINE double matches_classify_mmaps(matches_t* const matches,const uint64_t mcs);
+
+/*
  * Display
  */
 GEM_INLINE void match_cigar_print(
     FILE* const stream,vector_t* const cigar_vector,
     const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
-
-/*
- * Restore Point
- */
-GEM_INLINE void matches_restore_point_save(matches_t* const matches);
-GEM_INLINE void matches_restore_point_rollback(matches_t* const matches);
+GEM_INLINE void matches_metrics_print(matches_t* const matches);
 
 /*
  * Error Messages

@@ -68,7 +68,7 @@ GEM_INLINE uint64_t archive_text_get_projection(
  * Text Retriever
  */
 GEM_INLINE uint64_t archive_text_retrieve(
-    archive_text_t* const archive_text,text_collection_t* const text_collection,
+    archive_text_t* const archive_text,const text_collection_t* const text_collection,
     const uint64_t index_position,const uint64_t length,
     const bool reverse_complement_text,mm_stack_t* const mm_stack);
 

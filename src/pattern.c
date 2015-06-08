@@ -19,7 +19,7 @@
  */
 GEM_INLINE void pattern_prepare(
     sequence_t* const sequence,pattern_t* const pattern,region_profile_t* const region_profile,
-    const search_actual_parameters_t* const actual_parameters,const bool prepare_rl_pattern,
+    const as_parameters_t* const actual_parameters,const bool prepare_rl_pattern,
     bool* const do_quality_search,mm_stack_t* const mm_stack) {
   // Parameters
   const search_parameters_t* const parameters = actual_parameters->search_parameters;
@@ -180,5 +180,14 @@ GEM_INLINE uint64_t pattern_tiled_bound_matching_path(pattern_tiled_t* const pat
     // Keep matching column
     pattern_tiled->prev_tile_match_position = pattern_tiled->tile_match_column;
     return 0;
+  }
+}
+/*
+ * Display
+ */
+GEM_INLINE void pattern_enc_print(FILE* const stream,const uint8_t* const key,const uint64_t key_length) {
+  uint64_t i;
+  for (i=0;i<key_length;++i) {
+    fprintf(stream,"%c",dna_decode(key[i]));
   }
 }

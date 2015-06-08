@@ -40,6 +40,7 @@ struct match_align_parameters_t {
   uint64_t min_coverage;
   bool left_gap_alignment;
   uint64_t local_min_identity;
+  bool cigar_curation;
 };
 
 #endif /* MATCH_ALIGN_DTO_H_ */

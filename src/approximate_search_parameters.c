@@ -36,7 +36,7 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
    * Single End
    */
   // Mapping strategy
-  search_parameters->mapping_mode = mapping_adaptive_filtering_match;
+  search_parameters->mapping_mode = mapping_adaptive_filtering_fast;
   search_parameters->filtering_degree = 0;
   // Qualities
   search_parameters->quality_model = quality_model_type_gem;
@@ -49,17 +49,9 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
   search_parameters->max_bandwidth = 0.20;
   search_parameters->complete_strata_after_best = 0.0;
   // Matches search
-  search_parameters->max_search_matches = 1000000;
+  search_parameters->max_search_matches = 1000;
   // Replacements
   approximate_search_initialize_replacements(search_parameters);
-  // Regions handling
-  search_parameters->allow_region_chaining = true;
-  search_parameters->region_scaffolding_min_length = 10;
-  search_parameters->region_scaffolding_min_context_length = 2;
-  search_parameters->region_scaffolding_coverage_threshold = 0.80;
-  // Local alignment
-  search_parameters->local_alignment = local_alignment_only_if_no_global;
-  search_parameters->local_min_identity = 0.40;
   // Alignment Model/Score
   search_parameters->alignment_model = alignment_model_gap_affine;
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_A] = +1;
@@ -91,6 +83,16 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
   search_parameters->swg_penalties.generic_mismatch_score = -4;
   search_parameters->swg_penalties.gap_open_score = -6;
   search_parameters->swg_penalties.gap_extension_score = -1;
+  search_parameters->allow_cigar_curation = true;
+  search_parameters->allow_matches_curation = true;
+  // Regions handling
+  search_parameters->allow_region_chaining = true;
+  search_parameters->region_scaffolding_min_length = 10;
+  search_parameters->region_scaffolding_min_context_length = 2;
+  search_parameters->region_scaffolding_coverage_threshold = 0.80;
+  // Local alignment
+  search_parameters->local_alignment = local_alignment_only_if_no_global;
+  search_parameters->local_min_identity = 0.40;
   /*
    * Paired End
    */
@@ -122,7 +124,12 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
   search_parameters->rp_minimal.max_steps = 4;
   search_parameters->rp_minimal.dec_factor = 2;
   search_parameters->rp_minimal.region_type_th = 2;
-  // Region-Delimit Scheme = (50,10,4,2)
+  // Region-Boost Scheme = (100,4,2,20)
+  search_parameters->rp_boost.region_th = 1000;
+  search_parameters->rp_boost.max_steps = 5;
+  search_parameters->rp_boost.dec_factor = 4;
+  search_parameters->rp_boost.region_type_th = 20;
+  // Region-Delimit Scheme = (100,4,2,2)
   search_parameters->rp_delimit.region_th = 100;
   search_parameters->rp_delimit.max_steps = 4;
   search_parameters->rp_delimit.dec_factor = 2;
@@ -134,7 +141,7 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
   search_parameters->rp_recovery.region_type_th = 2;
   // Filtering Thresholds
   search_parameters->filtering_region_factor = 1.0;
-  search_parameters->filtering_threshold = 350;
+  search_parameters->filtering_threshold = 1000;//350;
   search_parameters->pa_filtering_threshold = 2500;
 }
 GEM_INLINE void approximate_search_configure_mapping_strategy(
@@ -238,16 +245,16 @@ GEM_INLINE void approximate_search_configure_alignment_gap_scores(
   search_parameters->swg_penalties.gap_extension_score = -((int32_t)gap_extension_penalty);
 }
 GEM_INLINE void approximate_search_instantiate_values(
-    search_actual_parameters_t* const search_actual_parameters,const uint64_t pattern_length) {
-  const search_parameters_t* const search_parameters = search_actual_parameters->search_parameters;
-  search_actual_parameters->filtering_degree_nominal = integer_proportion(search_parameters->filtering_degree,pattern_length);
-  search_actual_parameters->max_search_error_nominal = integer_proportion(search_parameters->max_search_error,pattern_length);
-  search_actual_parameters->max_filtering_error_nominal = integer_proportion(search_parameters->max_filtering_error,pattern_length);
-  search_actual_parameters->max_filtering_strata_after_best_nominal = integer_proportion(search_parameters->max_filtering_strata_after_best,pattern_length);
-  search_actual_parameters->max_bandwidth_nominal = integer_proportion(search_parameters->max_bandwidth,pattern_length);
-  search_actual_parameters->complete_strata_after_best_nominal = integer_proportion(search_parameters->complete_strata_after_best,pattern_length);
-  search_actual_parameters->local_min_identity_nominal = integer_proportion(search_parameters->local_min_identity,pattern_length);
-  search_actual_parameters->region_scaffolding_min_length_nominal = integer_proportion(search_parameters->region_scaffolding_min_length,pattern_length);
-  search_actual_parameters->region_scaffolding_coverage_threshold_nominal = integer_proportion(search_parameters->region_scaffolding_coverage_threshold,pattern_length);
-  search_actual_parameters->region_scaffolding_min_context_length_nominal = integer_proportion(search_parameters->region_scaffolding_min_context_length,pattern_length);
+    as_parameters_t* const as_parameters,const uint64_t pattern_length) {
+  const search_parameters_t* const search_parameters = as_parameters->search_parameters;
+  as_parameters->filtering_degree_nominal = integer_proportion(search_parameters->filtering_degree,pattern_length);
+  as_parameters->max_search_error_nominal = integer_proportion(search_parameters->max_search_error,pattern_length);
+  as_parameters->max_filtering_error_nominal = integer_proportion(search_parameters->max_filtering_error,pattern_length);
+  as_parameters->max_filtering_strata_after_best_nominal = integer_proportion(search_parameters->max_filtering_strata_after_best,pattern_length);
+  as_parameters->max_bandwidth_nominal = integer_proportion(search_parameters->max_bandwidth,pattern_length);
+  as_parameters->complete_strata_after_best_nominal = integer_proportion(search_parameters->complete_strata_after_best,pattern_length);
+  as_parameters->local_min_identity_nominal = integer_proportion(search_parameters->local_min_identity,pattern_length);
+  as_parameters->region_scaffolding_min_length_nominal = integer_proportion(search_parameters->region_scaffolding_min_length,pattern_length);
+  as_parameters->region_scaffolding_coverage_threshold_nominal = integer_proportion(search_parameters->region_scaffolding_coverage_threshold,pattern_length);
+  as_parameters->region_scaffolding_min_context_length_nominal = integer_proportion(search_parameters->region_scaffolding_min_context_length,pattern_length);
 }

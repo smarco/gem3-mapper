@@ -18,8 +18,8 @@
 GEM_INLINE void archive_select_realign_match_interval(
     archive_search_t* const archive_search,matches_t* const matches,
     match_interval_t* const match_interval,match_trace_t* const match_trace,mm_stack_t* const mm_stack) {
-  search_actual_parameters_t* const search_actual_parameters = &archive_search->search_actual_parameters;
-  search_parameters_t* const search_parameters = archive_search->search_actual_parameters.search_parameters;
+  as_parameters_t* const as_parameters = &archive_search->as_parameters;
+  search_parameters_t* const search_parameters = archive_search->as_parameters.search_parameters;
   const alignment_model_t alignment_model = search_parameters->alignment_model;
   match_align_input_t align_input;
   match_align_parameters_t align_parameters;
@@ -80,9 +80,9 @@ GEM_INLINE void archive_select_realign_match_interval(
         align_parameters.max_error = match_interval->distance;
         align_parameters.max_bandwidth = match_interval->distance;
         align_parameters.left_gap_alignment = left_gap_alignment;
-        align_parameters.min_coverage = search_actual_parameters->region_scaffolding_coverage_threshold_nominal,
-        align_parameters.min_matching_length = search_actual_parameters->region_scaffolding_min_length_nominal,
-        align_parameters.min_context_length = search_actual_parameters->region_scaffolding_min_context_length_nominal,
+        align_parameters.min_coverage = as_parameters->region_scaffolding_coverage_threshold_nominal,
+        align_parameters.min_matching_length = as_parameters->region_scaffolding_min_length_nominal,
+        align_parameters.min_context_length = as_parameters->region_scaffolding_min_context_length_nominal,
         align_parameters.allowed_enc = search_parameters->allowed_enc;
         align_parameters.swg_penalties = &search_parameters->swg_penalties;
         // Scaffold the alignment
@@ -320,7 +320,7 @@ GEM_INLINE void archive_select_calculate_matches_to_decode(
   }
   // Maximum stratum to decode (increased by @min_decoded_strata)
   if (min_decoded_strata > 0) {
-    const uint64_t min_nz_stratum = matches_counters_get_min(matches);
+    const uint64_t min_nz_stratum = matches_counters_get_min_distance(matches);
     const uint64_t mandatory_strata = min_nz_stratum + min_decoded_strata;
     for (;strata_to_decode<max_nz_stratum && strata_to_decode<mandatory_strata;++strata_to_decode) {
       total_matches += counters[strata_to_decode];
@@ -350,7 +350,9 @@ GEM_INLINE void archive_select_calculate_matches_to_decode(
     *matches_to_decode_last_stratum_out = 0;
   }
 }
-GEM_INLINE void archive_select_matches(archive_search_t* const archive_search,matches_t* const matches) {
+GEM_INLINE void archive_select_matches(
+    archive_search_t* const archive_search,const bool curate_matches,
+    const bool score_matches,const bool sort_matches,matches_t* const matches) {
   PROF_START(GP_ARCHIVE_SELECT_SE_MATCHES);
   // Instantiate Search Parameters Values
   select_parameters_t* const select_parameters = archive_search->select_parameters;
@@ -370,16 +372,20 @@ GEM_INLINE void archive_select_matches(archive_search_t* const archive_search,ma
     // Decode matches
     archive_select_decode_matches(archive_search,matches,strata_to_decode,matches_to_decode_last_stratum);
     // Score matches
-    archive_score_matches_se(archive_search,matches);
+    if (score_matches) archive_score_matches_se(archive_search,matches);
+    // Curate matches
+    if (curate_matches) matches_curate(matches,0.20);
     // Filter by score
     if (select_parameters->mapq_threshold > 0) {
       archive_select_filter_matches_mapq(matches,select_parameters->mapq_threshold);
     }
     // Sort matches
-    switch (archive_search->select_parameters->sorting) {
-      case matches_sorting_mapq: matches_sort_by_mapq_score(matches); break;
-      case matches_sorting_distance: matches_sort_by_distance(matches); break;
-      default: GEM_INVALID_CASE(); break;
+    if (sort_matches) {
+      switch (archive_search->select_parameters->sorting) {
+        case matches_sorting_mapq: matches_sort_by_mapq_score(matches); break;
+        case matches_sorting_distance: matches_sort_by_distance(matches); break;
+        default: GEM_INVALID_CASE(); break;
+      }
     }
   } else {
     // Remove all matches

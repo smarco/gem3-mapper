@@ -55,7 +55,6 @@ typedef struct {
 typedef enum {
   region_matching_exact,
   region_matching_approximate,
-  region_clipped
 } region_matching_type;
 typedef struct {
   /* Region matching type */

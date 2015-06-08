@@ -51,10 +51,10 @@
  */
 GEM_INLINE void approximate_search_init(
     approximate_search_t* const search,archive_t* const archive,
-    search_actual_parameters_t* const search_actual_parameters,const bool emulated_rc_search) {
+    as_parameters_t* const as_parameters,const bool emulated_rc_search) {
   // Index Structures & Parameters
   search->archive = archive;
-  search->search_actual_parameters = search_actual_parameters;
+  search->as_parameters = as_parameters;
   search->emulated_rc_search = emulated_rc_search;
 }
 GEM_INLINE void approximate_search_configure(
@@ -71,7 +71,7 @@ GEM_INLINE void approximate_search_reset(approximate_search_t* const search) {
   search->search_state = asearch_begin;
   search->verify_candidates = true;
   search->stop_before_neighborhood_search = false;
-  const uint64_t max_search_error = search->search_actual_parameters->max_search_error_nominal;
+  const uint64_t max_search_error = search->as_parameters->max_search_error_nominal;
   const uint64_t max_effective_filtering_error = search->pattern.max_effective_filtering_error;
   search->max_differences = MIN(max_search_error,max_effective_filtering_error);
   search->max_complete_stratum = ALL;
@@ -83,13 +83,20 @@ GEM_INLINE void approximate_search_reset(approximate_search_t* const search) {
     region_profile_new(&search->region_profile,search->pattern.key_length,search->mm_stack);
   }
 }
-GEM_INLINE void approximate_search_destroy(approximate_search_t* const search) { /* NOP */}
+GEM_INLINE void approximate_search_destroy(approximate_search_t* const search) { /* NOP */ }
 /*
  * Accessors
  */
-GEM_INLINE uint64_t approximate_search_get_num_potential_candidates(const approximate_search_t* const search) {
-  const filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
-  return filtering_candidates_get_num_candidate_regions(filtering_candidates);
+GEM_INLINE uint64_t approximate_search_get_num_filtering_candidates(const approximate_search_t* const search) {
+  if (search->search_state == asearch_exact_matches) {
+    return search->hi_exact_matches - search->lo_exact_matches;
+  } else {
+    const filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
+    return filtering_candidates_get_num_candidate_regions(filtering_candidates);
+  }
+}
+GEM_INLINE uint64_t approximate_search_get_num_exact_filtering_candidates(const approximate_search_t* const search) {
+  return (search->search_state == asearch_exact_matches) ? search->hi_exact_matches - search->lo_exact_matches : 0;
 }
 GEM_INLINE void approximate_search_update_mcs(approximate_search_t* const search,const uint64_t max_complete_stratum) {
   search->max_complete_stratum = max_complete_stratum;
@@ -111,6 +118,22 @@ GEM_INLINE void approximate_search_generate_region_profile_minimal_stats(approxi
     total_candidates += (region->hi-region->lo);
   }
   PROF_ADD_COUNTER(GP_REGION_PROFILE_MINIMAL_TOTAL_CANDIDATES,total_candidates);
+#endif
+}
+GEM_INLINE void approximate_search_generate_region_profile_boost_stats(approximate_search_t* const search) {
+#ifndef GEM_NOPROFILE
+  PROF_INC_COUNTER(GP_REGION_PROFILE_BOOST);
+  region_profile_t* const region_profile = &search->region_profile;
+  uint64_t total_candidates = 0;
+  PROF_ADD_COUNTER(GP_REGION_PROFILE_BOOST_NUM_REGIONS,region_profile->num_filtering_regions);
+  PROF_ADD_COUNTER(GP_REGION_PROFILE_BOOST_NUM_REGIONS_STANDARD,region_profile->num_standard_regions);
+  PROF_ADD_COUNTER(GP_REGION_PROFILE_BOOST_NUM_REGIONS_UNIQUE,region_profile->num_filtering_regions-region_profile->num_standard_regions);
+  REGION_PROFILE_ITERATE(region_profile,region,position) {
+    PROF_ADD_COUNTER(GP_REGION_PROFILE_BOOST_REGION_LENGTH,region->start-region->end);
+    PROF_ADD_COUNTER(GP_REGION_PROFILE_BOOST_REGION_CANDIDATES,(region->hi-region->lo));
+    total_candidates += (region->hi-region->lo);
+  }
+  PROF_ADD_COUNTER(GP_REGION_PROFILE_BOOST_TOTAL_CANDIDATES,total_candidates);
 #endif
 }
 GEM_INLINE void approximate_search_generate_region_profile_delimit_stats(approximate_search_t* const search) {
@@ -135,58 +158,51 @@ GEM_INLINE void approximate_search_generate_region_profile_delimit_stats(approxi
 GEM_INLINE void approximate_search_adjust_max_differences_using_strata(
     approximate_search_t* const search,matches_t* const matches) {
   const uint64_t max_differences = search->max_differences;
-  const uint64_t delta = search->search_actual_parameters->complete_strata_after_best_nominal;
+  const uint64_t delta = search->as_parameters->complete_strata_after_best_nominal;
   /*
    * If delta parameter is set (and is below the maximum number of mismatches),
    * finds the minimum non zero stratum (mnzs) and adjusts
    * the maximum number of mismatches to (mnzs+delta)
    */
   if (delta < max_differences) {
-    const int64_t fms = matches_counters_get_min(matches);
+    const int64_t fms = matches_counters_get_min_distance(matches);
     if (fms>=0 && fms+delta < max_differences) {
       search->max_differences = fms+delta;
     }
   }
 }
 // Control Fulfilled-search
-GEM_INLINE bool asearch_fast_fulfilled(const uint64_t num_matches) {
-  return num_matches > 0;
-}
-GEM_INLINE bool asearch_match_fulfilled(
-    const uint64_t num_matches,const uint64_t min_counter_value,const uint64_t max_complete_stratum) {
-  if (num_matches == 0) { // No match is found
-    return false;
-  }
-  if (num_matches == 1) {
-    if (max_complete_stratum >= 5) return true;
-    if (min_counter_value >= max_complete_stratum) { // Beyond complete strata (0+1:0:0 || 0:0+1:0)
-      return false;
-    }
-    if (min_counter_value < max_complete_stratum) { // Inside complete strata (0:1+0:0)
-      if (max_complete_stratum - (min_counter_value+1) > 0) return true;
-      return false;
-    }
-  }
-  return true;
-}
-GEM_INLINE bool asearch_complete_fulfilled(const uint64_t max_differences,const uint64_t max_complete_stratum) {
-  return max_complete_stratum > max_differences;
-}
 GEM_INLINE bool asearch_fulfilled(approximate_search_t* const search,matches_t* const matches) {
   // Parameters
-  const search_parameters_t* const search_parameters = search->search_actual_parameters->search_parameters;
+  const search_parameters_t* const search_parameters = search->as_parameters->search_parameters;
+  if (matches==NULL) return false;
   // Determines when the search is done following the mapping criteria
   switch (search_parameters->mapping_mode) {
-    case mapping_adaptive_filtering_fast:
-      return asearch_fast_fulfilled(matches_get_num_match_traces(matches));
+    case mapping_adaptive_filtering_fast: {
+      // Unmapped
+      if (matches_counters_get_total_count(matches)==0) return false;
+      // Ties
+      const uint64_t min_distance = matches_counters_get_min_distance(matches);
+      if (matches_counters_get_count(matches,min_distance) > 1) return true;
+      // Detect signal
+      double pr = matches_classify_ambiguous(matches,search->max_complete_stratum);
+      if (pr <= 0.98) return false;
+      pr = matches_classify_unique(matches,search->max_complete_stratum);
+      if (pr >= 0.999) return true;
+      // Otherwise
+      return false;
+    }
     case mapping_adaptive_filtering_match: {
-      const uint64_t num_matches = matches_get_num_match_traces(matches);
-      const uint64_t min_counter_value = matches_counters_get_min(matches);
-      const uint64_t max_complete_stratum = search->max_complete_stratum;
-      return asearch_match_fulfilled(num_matches,min_counter_value,max_complete_stratum);
+      // Unmapped
+      if (matches_counters_get_total_count(matches)==0) return false;
+      // Ties
+      const uint64_t min_distance = matches_counters_get_min_distance(matches);
+      if (matches_counters_get_count(matches,min_distance) > 1) return true;
+      // Otherwise
+      return false;
     }
     case mapping_adaptive_filtering_complete:
-      return asearch_complete_fulfilled(search->max_differences,matches->max_complete_stratum);
+      return search->max_complete_stratum > search->max_differences;
     default:
       GEM_INVALID_CASE();
       break;
@@ -196,7 +212,7 @@ GEM_INLINE bool asearch_fulfilled(approximate_search_t* const search,matches_t* 
 // Control Filter-ahead
 GEM_INLINE bool asearch_filter_ahead_candidates(approximate_search_t* const search,matches_t* const matches) {
   // Parameters
-  const search_actual_parameters_t* const actual_parameters = search->search_actual_parameters;
+  const as_parameters_t* const actual_parameters = search->as_parameters;
   const search_parameters_t* const search_parameters = actual_parameters->search_parameters;
   // Determines when the search is done following the mapping criteria
   switch (search_parameters->mapping_mode) {
@@ -212,73 +228,54 @@ GEM_INLINE bool asearch_filter_ahead_candidates(approximate_search_t* const sear
   }
   return true;
 }
-// Control Fast
+// Control Filtering-Fast
 GEM_INLINE void asearch_control_fast_next_state(
     approximate_search_t* const search,const approximate_search_state_t processing_step,matches_t* const matches) {
-  /*
-   * Filtering-Fast: Almost anything is good
-   */
+  // Filtering-Fast: Best efficiency, keeping good-quality results (search for a "good" match)
+  search_parameters_t* const search_parameters = search->as_parameters->search_parameters;
   switch (processing_step) {
     case asearch_exact_filtering_adaptive:
-      if (search->search_state!=asearch_no_regions && search->search_state!=asearch_exact_matches) {
-        search->search_state = asearch_end;
-      }
+      if (search->search_state==asearch_no_regions) return;
+      if (search->search_state==asearch_exact_matches) return;
+      search->search_state = (matches_get_num_match_traces(matches)==0) ?
+          (search_parameters->local_alignment == local_alignment_never) ? asearch_end : asearch_local_alignment:
+          (search_parameters->local_alignment == local_alignment_always) ? asearch_local_alignment : asearch_end;
       break;
-    case asearch_inexact_filtering:
-    case asearch_neighborhood:
+    case asearch_local_alignment:
+      search->search_state = asearch_end;
+      break;
     default:
       GEM_INVALID_CASE();
       break;
   }
 }
-// Control Match
-GEM_INLINE void asearch_control_match_after_efiltering_adaptive(
-    approximate_search_t* const search,matches_t* const matches) {
-  switch (search->search_state) {
-    case asearch_no_regions: break;
-    case asearch_exact_matches: {
-      // Keep searching on (1+0:0:0)
-      region_search_t* const filtering_region = search->region_profile.filtering_region;
-      const uint64_t num_matches = filtering_region->hi-filtering_region->lo;
-      if (!asearch_match_fulfilled(num_matches,0,1)) {
-        search->search_state = asearch_exact_filtering_boost;
-      }
-      break;
-    }
-    default: {
-      const uint64_t num_matches = matches_get_num_match_traces(matches);
-      const uint64_t min_counter_value = matches_counters_get_min(matches);
-      const uint64_t max_complete_stratum = search->max_complete_stratum;
-      if (!asearch_match_fulfilled(num_matches,min_counter_value,max_complete_stratum)) {
-        search->search_state = asearch_exact_filtering_boost;
-      } else {
-        search->search_state = asearch_end;
-      }
-      break;
-    }
-  }
-}
+// Control Filtering-Match
 GEM_INLINE void asearch_control_match_next_state(
     approximate_search_t* const search,
     const approximate_search_state_t processing_step,matches_t* const matches) {
-  /*
-   * Filtering-Match: We need a "good" match (or any evidence that we will get a match)
-   */
+  // Filtering-Match: Spend more computing resources as to guarantee good-quality (increasing likelihood of results)
+  search_parameters_t* const search_parameters = search->as_parameters->search_parameters;
   switch (processing_step) {
     case asearch_exact_filtering_adaptive:
-      asearch_control_match_after_efiltering_adaptive(search,matches);
+      if (search->search_state==asearch_exact_matches) return;
+      if (search->search_state==asearch_no_regions) {
+        search->search_state = asearch_exact_filtering_boost;
+        return;
+      }
+      if (asearch_fulfilled(search,matches)) {
+        search->search_state = asearch_end;
+      } else {
+        search->search_state = asearch_exact_filtering_boost;
+      }
       break;
     case asearch_exact_filtering_boost:
-      if (search->search_state!=asearch_no_regions && search->search_state!=asearch_exact_matches) {
-        search->search_state = asearch_end;
-      }
+      search->search_state = (matches_get_num_match_traces(matches)==0) ?
+          (search_parameters->local_alignment == local_alignment_never) ? asearch_end : asearch_local_alignment:
+          (search_parameters->local_alignment == local_alignment_always) ? asearch_local_alignment : asearch_end;
       break;
-    case asearch_inexact_filtering:
-      if (search->search_state!=asearch_no_regions && search->search_state!=asearch_exact_matches) {
-        search->search_state = asearch_end;
-      }
+    case asearch_local_alignment:
+      search->search_state = asearch_end;
       break;
-    case asearch_neighborhood:
     default:
       GEM_INVALID_CASE();
       break;
@@ -290,12 +287,12 @@ GEM_INLINE void asearch_control_complete_next_state(
     matches_t* const matches) {
   GEM_NOT_IMPLEMENTED();
 }
-// Control ALL
+// Control HUB
 GEM_INLINE void asearch_control_next_state(
     approximate_search_t* const search,const approximate_search_state_t processing_step,
     matches_t* const matches) {
   // Parameters
-  const search_parameters_t* const search_parameters = search->search_actual_parameters->search_parameters;
+  const search_parameters_t* const search_parameters = search->as_parameters->search_parameters;
   // Determines when the search is done following the mapping criteria
   switch (search_parameters->mapping_mode) {
     case mapping_adaptive_filtering_fast:
@@ -315,11 +312,17 @@ GEM_INLINE void asearch_control_next_state(
 /*
  * Region Profile
  */
+typedef enum {
+  region_profile_adaptive_lightweight, // Adaptive Profile stopping whenever any cut-off cond. is reached
+  region_profile_adaptive_limited,     // Adaptive Profile limiting the max. length of a region (max-region-length)
+  region_profile_adaptive_extensive,   // Adaptive Profile extensive extracting all possible regions
+} region_profile_generation_strategy_t;
 GEM_INLINE void approximate_search_generate_region_profile(
     approximate_search_t* const search,const region_profile_model_t* const profile_model,
-    const bool force_min_regions,const uint64_t min_regions) {
+    const region_profile_generation_strategy_t region_profile_generation_strategy,
+    const uint64_t min_regions,const bool allow_zero_regions) {
   // Parameters
-  const search_actual_parameters_t* const actual_parameters = search->search_actual_parameters;
+  const as_parameters_t* const actual_parameters = search->as_parameters;
   const search_parameters_t* const parameters = actual_parameters->search_parameters;
   const archive_t* archive = search->archive;
   fm_index_t* const fm_index = search->archive->fm_index;
@@ -336,12 +339,22 @@ GEM_INLINE void approximate_search_generate_region_profile(
     key_length = pattern->rl_key_length;
   }
   // Compute the region profile
-  if (!force_min_regions) {
-    region_profile_generate_adaptive(region_profile,fm_index,key,key_length,
-        parameters->allowed_enc,profile_model,search->max_differences+1,false);
-  } else {
-    region_profile_generate_fixed(region_profile,fm_index,key,key_length,
-        parameters->allowed_enc,profile_model,min_regions);
+  switch (region_profile_generation_strategy) {
+    case region_profile_adaptive_lightweight:
+      region_profile_generate_adaptive(region_profile,fm_index,key,key_length,
+          parameters->allowed_enc,profile_model,search->max_differences+1,allow_zero_regions);
+      break;
+    case region_profile_adaptive_limited:
+      region_profile_generate_adaptive_limited(region_profile,fm_index,key,key_length,
+          parameters->allowed_enc,profile_model,min_regions);
+      break;
+    case region_profile_adaptive_extensive:
+      region_profile_generate_adaptive(region_profile,fm_index,key,key_length,
+          parameters->allowed_enc,profile_model,UINT64_MAX,allow_zero_regions);
+      break;
+    default:
+      GEM_INVALID_CASE();
+      break;
   }
   gem_cond_debug_block(DEBUG_REGION_PROFILE_PRINT) { region_profile_print(stderr,region_profile,false,false); }
   // Check Zero-Region & Exact-Matches
@@ -384,7 +397,7 @@ GEM_INLINE void approximate_search_region_profile_generate_candidates(
    *  - Verify Ahead: Verifies candidates each queried region. Thus, it can reduce the scope of the search
    */
   // Data
-  const search_actual_parameters_t* const actual_parameters = search->search_actual_parameters;
+  const as_parameters_t* const actual_parameters = search->as_parameters;
   mm_stack_t* const mm_stack = search->mm_stack;
   // Approximate Search Data
   fm_index_t* const fm_index = search->archive->fm_index;
@@ -486,15 +499,15 @@ GEM_INLINE void approximate_search_region_profile_generate_candidates(
       filtering_candidates_process_candidates(filtering_candidates,search->archive,pattern,actual_parameters,true,mm_stack);
       filtering_candidates_verify_candidates(filtering_candidates,search->archive,
           search->text_collection,pattern,actual_parameters,matches,mm_stack);
-      filtering_candidates_align_candidates(filtering_candidates,search->text_collection,
-          pattern,search->emulated_rc_search,actual_parameters,false,matches,mm_stack);
+      filtering_candidates_align_candidates(filtering_candidates,search->archive->text,
+          search->text_collection,pattern,search->emulated_rc_search,actual_parameters,false,matches,mm_stack);
       approximate_search_adjust_max_differences_using_strata(search,matches);
       PROF_STOP(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING);
       PROF_CONTINUE(GP_AS_GENERATE_CANDIDATES);
     }
     // Check cut-off condition
     approximate_search_update_mcs(search,errors_allowed + num_wildcards);
-    if (false && asearch_fulfilled(search,matches)) {
+    if (asearch_fulfilled(search,matches)) {
       PROF_ADD_COUNTER(GP_AS_GENERATE_CANDIDATES_SKIPPED,num_regions-(position+1));
       break;
     }
@@ -508,7 +521,7 @@ GEM_INLINE void approximate_search_generate_candidates(
     const region_filter_type filter_type,const uint64_t filtering_degree,
     const bool dynamic_scheduling,const bool verify_ahead) {
   // Parameters
-  const search_actual_parameters_t* const actual_parameters = search->search_actual_parameters;
+  const as_parameters_t* const actual_parameters = search->as_parameters;
   const search_parameters_t* const parameters = actual_parameters->search_parameters;
   pattern_t* const pattern = &search->pattern;
   region_profile_t* const region_profile = &search->region_profile;
@@ -542,14 +555,14 @@ GEM_INLINE void approximate_search_generate_candidates(
  */
 GEM_INLINE void approximate_search_verify_candidates(approximate_search_t* const search,matches_t* const matches) {
   // Parameters
-  const search_actual_parameters_t* const actual_parameters = search->search_actual_parameters;
+  const as_parameters_t* const actual_parameters = search->as_parameters;
   const search_parameters_t* const parameters = actual_parameters->search_parameters;
   pattern_t* const pattern = &search->pattern;
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
   // Verify Candidates
   filtering_candidates_verify_candidates(filtering_candidates,search->archive,
       search->text_collection,pattern,actual_parameters,matches,search->mm_stack);
-  filtering_candidates_align_candidates(filtering_candidates,search->text_collection,
+  filtering_candidates_align_candidates(filtering_candidates,search->archive->text,search->text_collection,
       pattern,search->emulated_rc_search,actual_parameters,false,matches,search->mm_stack);
   // Adjust max-differences
   approximate_search_adjust_max_differences_using_strata(search,matches);
@@ -586,7 +599,7 @@ GEM_INLINE void approximate_search_neighborhood_exact_search(approximate_search_
 }
 GEM_INLINE void approximate_search_neighborhood_inexact_search(approximate_search_t* const search,matches_t* const matches) {
   // Parameters, pattern & interval-set
-  const search_actual_parameters_t* const actual_parameters = search->search_actual_parameters;
+  const as_parameters_t* const actual_parameters = search->as_parameters;
   pattern_t* const pattern = &search->pattern;
   interval_set_t* const intervals_result = search->interval_set;
   // Basic search (Brute force mitigated by mrank_table)
@@ -622,7 +635,7 @@ GEM_INLINE void approximate_search_read_recovery(
    * out of bad quality reads.
    */
   // Parameters
-  search_actual_parameters_t* const actual_parameters = search->search_actual_parameters;
+  as_parameters_t* const actual_parameters = search->as_parameters;
   search_parameters_t* const parameters = actual_parameters->search_parameters;
   pattern_t* const pattern = &search->pattern;
   region_profile_t* const region_profile = &search->region_profile;
@@ -658,62 +671,135 @@ GEM_INLINE void approximate_search_read_recovery(
   }
   PROF_STOP(GP_AS_READ_RECOVERY);
 }
-GEM_INLINE void approximate_search_filtering_complete_search(approximate_search_t* const search,matches_t* const matches) {
+GEM_INLINE void approximate_search_exact_filtering_adaptive(
+    approximate_search_t* const search,const bool verify_candidates,matches_t* const matches) {
   PROF_START(GP_AS_FILTERING_EXACT);
-  if (search->max_differences==0) {
-    approximate_search_neighborhood_exact_search(search,matches); // Exact Search
+  // Parameters
+  const as_parameters_t* const actual_parameters = search->as_parameters;
+  const search_parameters_t* const parameters = actual_parameters->search_parameters;
+  pattern_t* const pattern = &search->pattern;
+  // Region-Minimal Profile (Reduce the number of candidates per region and maximize number of regions)
+  approximate_search_generate_region_profile(search,
+      &parameters->rp_minimal,region_profile_adaptive_lightweight,0,false);
+  // Check corner cases
+  if (search->search_state==asearch_no_regions || search->search_state==asearch_exact_matches) {
+    asearch_control_next_state(search,asearch_exact_filtering_adaptive,matches);
   } else {
-    // Parameters
-    const search_actual_parameters_t* const actual_parameters = search->search_actual_parameters;
-    search_parameters_t* const parameters = actual_parameters->search_parameters;
-    fm_index_t* const fm_index = search->archive->fm_index;
-    pattern_t* const pattern = &search->pattern;
-    region_profile_t* const region_profile = &search->region_profile;
-    // Select proper key
-    const archive_t* archive = search->archive;
-    const uint8_t* key;
-    uint64_t key_length;
-    if (!archive->text->run_length) {
-      key = pattern->key;
-      key_length = pattern->key_length;
+    // Region-Minimal Profile Stats
+    approximate_search_generate_region_profile_minimal_stats(search);
+    // Generate exact-candidates
+    approximate_search_generate_candidates(search,matches,region_filter_adaptive_exact,0,false,verify_candidates);
+    // Process candidates (just prepare to verification)
+    filtering_candidates_process_candidates(search->filtering_candidates,
+        search->archive,pattern,actual_parameters,verify_candidates,search->mm_stack);
+    // Verify Candidates (if needed)
+    if (verify_candidates) {
+      approximate_search_verify_candidates(search,matches);
     } else {
-      key = pattern->rl_key;
-      key_length = pattern->rl_key_length;
-    }
-    // Compute the region profile
-    region_profile_generate_fixed(region_profile,fm_index,key,key_length,
-        parameters->allowed_enc,&parameters->rp_minimal,search->max_differences+1);
-    if (region_profile_has_exact_matches(region_profile)) {
-      const region_search_t* const first_region = region_profile->filtering_region;
-      matches_add_interval_match(matches,first_region->lo,
-          first_region->hi,pattern->key_length,0,search->emulated_rc_search);
-      approximate_search_update_mcs(search,1); // Update MCS
-    } else {
-      approximate_search_generate_region_profile_minimal_stats(search); // Stats
-      // Generate exact-candidates
-      parameters->filtering_threshold = ALL; // No restriction
-      approximate_search_generate_candidates(search,
-          matches,region_filter_fixed,REGION_FILTER_DEGREE_ZERO,false,false);
-      // Process candidates (just prepare to verification)
-      filtering_candidates_process_candidates(search->filtering_candidates,
-          search->archive,pattern,actual_parameters,true,search->mm_stack);
-      // Verify candidates
-      filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
-      filtering_candidates_verify_candidates(
-          filtering_candidates,search->archive,search->text_collection,
-          pattern,actual_parameters,matches,search->mm_stack);
-      // Align candidates
-      filtering_candidates_align_candidates(filtering_candidates,search->text_collection,
-          pattern,search->emulated_rc_search,actual_parameters,false,matches,search->mm_stack);
-      approximate_search_update_mcs(search,search->region_profile.errors_allowed + pattern->num_wildcards); // Update MCS
+      search->search_state = asearch_verify_candidates;
     }
   }
   PROF_STOP(GP_AS_FILTERING_EXACT);
 }
+GEM_INLINE void approximate_search_exact_filtering_boost(approximate_search_t* const search,matches_t* const matches) {
+  PROF_START(GP_AS_FILTERING_EXACT_BOOST);
+  // Parameters
+  const as_parameters_t* const actual_parameters = search->as_parameters;
+  const search_parameters_t* const parameters = actual_parameters->search_parameters;
+  pattern_t* const pattern = &search->pattern;
+  // Region-Boost Profile
+//  fm_index_t* const fm_index = search->archive->fm_index;
+//  const uint64_t base_num_regions = search->region_profile.num_filtering_regions;
+//  const uint64_t potential_num_regions = pattern->key_length/(fm_index->proper_length);
+//  if (base_num_regions+1 >= potential_num_regions) {
+//    asearch_control_next_state(search,asearch_exact_filtering_boost,matches);
+//    PROF_STOP(GP_AS_FILTERING_EXACT_BOOST);
+//  }
+
+
+  approximate_search_generate_region_profile(search,
+      &parameters->rp_boost,region_profile_adaptive_extensive,0,false);
+//  if (//base_num_regions <= search->region_profile.num_filtering_regions ||
+//      search->search_state == asearch_no_regions || search->search_state == asearch_exact_matches) {
+//    asearch_control_next_state(search,asearch_exact_filtering_boost,matches);
+//    PROF_STOP(GP_AS_FILTERING_EXACT_BOOST);
+//    return;
+//  }
+
+  approximate_search_generate_region_profile_boost_stats(search); // Stats
+  // Generate exact-candidates (Dynamic filtering incorporated)
+  approximate_search_generate_candidates(search,matches,region_filter_adaptive_exact,0,true,true);
+  // Process candidates (just prepare to verification)
+  filtering_candidates_process_candidates(search->filtering_candidates,
+      search->archive,pattern,actual_parameters,true,search->mm_stack);
+  // Verify candidates
+  approximate_search_verify_candidates(search,matches);
+  search->search_state = asearch_exact_filtering_boost; // Correct State
+
+
+  // Next State
+  asearch_control_next_state(search,asearch_exact_filtering_boost,matches);
+  PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_BOOST_MAPPED,matches_is_mapped(matches)?1:0);
+  PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_BOOST_MCS,search->max_complete_stratum);
+  PROF_STOP(GP_AS_FILTERING_EXACT_BOOST);
+}
+GEM_INLINE void approximate_search_inexact_filtering(approximate_search_t* const search,matches_t* const matches) {
+  PROF_START(GP_AS_FILTERING_INEXACT);
+  // Parameters
+  const as_parameters_t* const actual_parameters = search->as_parameters;
+  const search_parameters_t* const parameters = actual_parameters->search_parameters;
+  pattern_t* const pattern = &search->pattern;
+  // Region-Delimit Profile (Maximize number of unique-regions and try to isolate standard/repetitive regions)
+  approximate_search_generate_region_profile(search,
+      &parameters->rp_delimit,region_profile_adaptive_lightweight,0,true);
+  if (search->region_profile.num_filtering_regions <= 1) {
+    asearch_control_next_state(search,asearch_inexact_filtering,matches);
+    PROF_STOP(GP_AS_FILTERING_INEXACT);
+    return;
+  }
+  if (search->search_state == asearch_no_regions || search->search_state == asearch_exact_matches) {
+    PROF_STOP(GP_AS_FILTERING_INEXACT);
+    return;
+  }
+  approximate_search_generate_region_profile_delimit_stats(search); // Stats
+  // Generate exact-candidates (Dynamic filtering incorporated)
+  approximate_search_generate_candidates(search,matches,region_filter_adaptive_dynamic,0,true,true);
+  // Process candidates (just prepare to verification)
+  filtering_candidates_process_candidates(search->filtering_candidates,
+      search->archive,pattern,actual_parameters,true,search->mm_stack);
+  // Verify candidates
+  approximate_search_verify_candidates(search,matches);
+  search->search_state = asearch_inexact_filtering; // Correct State
+  // Next State
+  asearch_control_next_state(search,asearch_inexact_filtering,matches);
+  PROF_ADD_COUNTER(GP_AS_FILTERING_INEXACT_MAPPED,matches_is_mapped(matches)?1:0);
+  PROF_ADD_COUNTER(GP_AS_FILTERING_INEXACT_MCS,search->max_complete_stratum);
+  PROF_STOP(GP_AS_FILTERING_INEXACT);
+}
+GEM_INLINE void approximate_search_local_alignments_filtering(approximate_search_t* const search,matches_t* const matches) {
+  PROF_START(GP_AS_FILTERING_LOCAL_ALIGNMENTS);
+  // Local-Align discarded candidates
+  filtering_candidates_local_alignment(
+      search->filtering_candidates,search->archive,search->text_collection,
+      &search->pattern,search->emulated_rc_search,search->as_parameters,
+      matches,search->mm_stack);
+  // Next State
+  asearch_control_next_state(search,asearch_local_alignment,matches);
+  PROF_ADD_COUNTER(GP_AS_FILTERING_LOCAL_ALIGNMENTS_MAPPED,matches_is_mapped(matches)?1:0);
+  PROF_ADD_COUNTER(GP_AS_FILTERING_LOCAL_ALIGNMENTS_MCS,search->max_complete_stratum);
+  PROF_STOP(GP_AS_FILTERING_LOCAL_ALIGNMENTS);
+}
 /*
- * Basic Cases
+ * [GEM-workflow 4.0] Adaptive mapping
+ *
+ *   Filtering-only approach indented to adjust the degree of filtering w.r.t
+ *   the structure of the read. Thus, in general terms, a read with many regions
+ *   will enable this approach to align the read up to more mismatches than a read
+ *   with less number of regions.
+ *   Fast-mapping (in all its kinds) tries to detect the proper degree of filtering
+ *   to achieve a compromise between speed and depth of the search (max_mismatches)
  */
-GEM_INLINE void approximate_search_basic_cases(
+GEM_INLINE void approximate_search_adaptive_mapping_basic_cases(
     approximate_search_t* const search,const bool verify_candidates,matches_t* const matches) {
   // Parameters
   pattern_t* const pattern = &search->pattern;
@@ -746,85 +832,9 @@ GEM_INLINE void approximate_search_basic_cases(
   search->search_state = asearch_exact_filtering_adaptive;
   return;
 }
-GEM_INLINE void approximate_search_exact_filtering_adaptive(
-    approximate_search_t* const search,const bool verify_candidates,matches_t* const matches) {
-  PROF_START(GP_AS_FILTERING_EXACT);
-  // Parameters
-  const search_actual_parameters_t* const actual_parameters = search->search_actual_parameters;
-  const search_parameters_t* const parameters = actual_parameters->search_parameters;
-  pattern_t* const pattern = &search->pattern;
-  // Region-Minimal Profile (Reduce the number of candidates per region and maximize number of regions)
-  approximate_search_generate_region_profile(search,&parameters->rp_minimal,false,0);
-  // Check corner cases
-  if (search->search_state==asearch_no_regions || search->search_state==asearch_exact_matches) {
-    asearch_control_next_state(search,asearch_exact_filtering_adaptive,matches);
-    PROF_STOP(GP_AS_FILTERING_EXACT);
-    return;
-  }
-  // Region-Minimal Profile Stats
-  approximate_search_generate_region_profile_minimal_stats(search);
-  // Generate exact-candidates
-  approximate_search_generate_candidates(search,matches,region_filter_adaptive_exact,0,false,verify_candidates);
-  // Process candidates (just prepare to verification)
-  filtering_candidates_process_candidates(search->filtering_candidates,
-      search->archive,pattern,actual_parameters,verify_candidates,search->mm_stack);
-  // Verify Candidates (if needed)
-  if (verify_candidates) {
-    approximate_search_verify_candidates(search,matches);
-  } else {
-    search->search_state = asearch_verify_candidates;
-  }
-  PROF_STOP(GP_AS_FILTERING_EXACT);
-}
-GEM_INLINE void approximate_search_exact_filtering_boost(approximate_search_t* const search,matches_t* const matches) {
-  PROF_START(GP_AS_FILTERING_EXACT_BOOST);
-  asearch_control_next_state(search,asearch_exact_filtering_boost,matches);
-  PROF_STOP(GP_AS_FILTERING_EXACT_BOOST);
-}
-GEM_INLINE void approximate_search_inexact_filtering(approximate_search_t* const search,matches_t* const matches) {
-  PROF_START(GP_AS_FILTERING_INEXACT);
-  // Parameters
-  const search_actual_parameters_t* const actual_parameters = search->search_actual_parameters;
-  const search_parameters_t* const parameters = actual_parameters->search_parameters;
-  pattern_t* const pattern = &search->pattern;
-  // Region-Delimit Profile (Maximize number of unique-regions and try to isolate standard/repetitive regions)
-  approximate_search_generate_region_profile(search,&parameters->rp_delimit,false,0);
-  if (search->region_profile.num_filtering_regions <= 1) {
-    asearch_control_next_state(search,asearch_inexact_filtering,matches);
-    PROF_STOP(GP_AS_FILTERING_INEXACT);
-    return;
-  }
-  if (search->search_state == asearch_no_regions || search->search_state == asearch_exact_matches) {
-    PROF_STOP(GP_AS_FILTERING_INEXACT);
-    return;
-  }
-  approximate_search_generate_region_profile_delimit_stats(search); // Stats
-  // Generate exact-candidates (Dynamic filtering incorporated)
-  approximate_search_generate_candidates(search,matches,region_filter_adaptive_dynamic,0,true,true);
-  // Process candidates (just prepare to verification)
-  filtering_candidates_process_candidates(search->filtering_candidates,
-      search->archive,pattern,actual_parameters,true,search->mm_stack);
-  // Verify candidates
-  approximate_search_verify_candidates(search,matches);
-  search->search_state = asearch_inexact_filtering; // Correct State
-  // Next State
-  asearch_control_next_state(search,asearch_inexact_filtering,matches);
-  PROF_ADD_COUNTER(GP_AS_FILTERING_INEXACT_MAPPED,matches_is_mapped(matches)?1:0);
-  PROF_STOP(GP_AS_FILTERING_INEXACT);
-}
-/*
- * [GEM-workflow 4.0] Adaptive mapping (Formerly known as fast-mapping)
- *
- *   Filtering-only approach indented to adjust the degree of filtering w.r.t
- *   the structure of the read. Thus, in general terms, a read with many regions
- *   will enable this approach to align the read up to more mismatches than a read
- *   with less number of regions.
- *   Fast-mapping (in all its kinds) tries to detect the proper degree of filtering
- *   to achieve a compromise between speed and depth of the search (max_mismatches)
- */
 GEM_INLINE void approximate_search_adaptive_mapping(approximate_search_t* const search,matches_t* const matches) {
   // Parameters
-  const search_actual_parameters_t* const actual_parameters = search->search_actual_parameters;
+  const as_parameters_t* const actual_parameters = search->as_parameters;
   pattern_t* const pattern = &search->pattern;
   const bool verify_candidates = search->verify_candidates;
   // Process proper search-stage
@@ -832,7 +842,7 @@ GEM_INLINE void approximate_search_adaptive_mapping(approximate_search_t* const 
     switch (search->search_state) {
       case asearch_begin:
         // Search Start. Check basic cases
-        approximate_search_basic_cases(search,verify_candidates,matches);
+        approximate_search_adaptive_mapping_basic_cases(search,verify_candidates,matches);
         if (search->search_state==asearch_verify_candidates && !verify_candidates) return; // Return if no-filtering
         break;
       case asearch_read_recovery:
@@ -852,6 +862,7 @@ GEM_INLINE void approximate_search_adaptive_mapping(approximate_search_t* const 
       case asearch_candidates_verified:
         // Next State
         PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MAPPED,matches_is_mapped(matches)?1:0);
+        PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,search->max_complete_stratum);
         asearch_control_next_state(search,asearch_exact_filtering_adaptive,matches);
         break;
       case asearch_exact_filtering_boost:
@@ -873,6 +884,9 @@ GEM_INLINE void approximate_search_adaptive_mapping(approximate_search_t* const 
         approximate_search_update_mcs(search,1);
         search->search_state = asearch_end;
         break;
+      case asearch_local_alignment: // Local alignments
+        approximate_search_local_alignments_filtering(search,matches);
+        break;
       case asearch_no_regions: // No regions found
         approximate_search_update_mcs(search,pattern->num_wildcards);
         search->search_state = asearch_end;
@@ -886,14 +900,69 @@ GEM_INLINE void approximate_search_adaptive_mapping(approximate_search_t* const 
   PROF_ADD_COUNTER(GP_AS_ADAPTIVE_MCS,search->max_complete_stratum);
 }
 /*
- * Approximate String Matching using the FM-index.
+ * Complete Search
+ */
+GEM_INLINE void approximate_search_filtering_complete_search(approximate_search_t* const search,matches_t* const matches) {
+  PROF_START(GP_AS_FILTERING_EXACT);
+  if (search->max_differences==0) {
+    approximate_search_neighborhood_exact_search(search,matches); // Exact Search
+  } else {
+    // Parameters
+    const as_parameters_t* const actual_parameters = search->as_parameters;
+    search_parameters_t* const parameters = actual_parameters->search_parameters;
+    fm_index_t* const fm_index = search->archive->fm_index;
+    pattern_t* const pattern = &search->pattern;
+    region_profile_t* const region_profile = &search->region_profile;
+    // Select proper key
+    const archive_t* archive = search->archive;
+    const uint8_t* key;
+    uint64_t key_length;
+    if (!archive->text->run_length) {
+      key = pattern->key;
+      key_length = pattern->key_length;
+    } else {
+      key = pattern->rl_key;
+      key_length = pattern->rl_key_length;
+    }
+    // Compute the region profile
+    region_profile_generate_adaptive_limited(region_profile,fm_index,key,key_length,
+        parameters->allowed_enc,&parameters->rp_minimal,search->max_differences+1);
+    if (region_profile_has_exact_matches(region_profile)) {
+      const region_search_t* const first_region = region_profile->filtering_region;
+      matches_add_interval_match(matches,first_region->lo,
+          first_region->hi,pattern->key_length,0,search->emulated_rc_search);
+      approximate_search_update_mcs(search,1); // Update MCS
+    } else {
+      approximate_search_generate_region_profile_minimal_stats(search); // Stats
+      // Generate exact-candidates
+      parameters->filtering_threshold = ALL; // No restriction
+      approximate_search_generate_candidates(search,
+          matches,region_filter_fixed,REGION_FILTER_DEGREE_ZERO,false,false);
+      // Process candidates (just prepare to verification)
+      filtering_candidates_process_candidates(search->filtering_candidates,
+          search->archive,pattern,actual_parameters,true,search->mm_stack);
+      // Verify candidates
+      filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
+      filtering_candidates_verify_candidates(
+          filtering_candidates,search->archive,search->text_collection,
+          pattern,actual_parameters,matches,search->mm_stack);
+      // Align candidates
+      filtering_candidates_align_candidates(filtering_candidates,search->archive->text,search->text_collection,
+          pattern,search->emulated_rc_search,actual_parameters,false,matches,search->mm_stack);
+      approximate_search_update_mcs(search,search->region_profile.errors_allowed + pattern->num_wildcards); // Update MCS
+    }
+  }
+  PROF_STOP(GP_AS_FILTERING_EXACT);
+}
+/*
+ * Approximate String Matching using the FM-index
  */
 GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t* const matches) {
   PROF_START(GP_AS_MAIN);
   /*
    * Select mapping strategy
    */
-  const search_parameters_t* const parameters = search->search_actual_parameters->search_parameters;
+  const search_parameters_t* const parameters = search->as_parameters->search_parameters;
   switch (parameters->mapping_mode) {
     case mapping_adaptive_filtering_fast:
     case mapping_adaptive_filtering_match:
@@ -914,16 +983,19 @@ GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t*
   if (matches) matches->max_complete_stratum = MIN(matches->max_complete_stratum,search->max_complete_stratum);
   PROF_STOP(GP_AS_MAIN);
 }
+/*
+ * Approximate String Matching using the FM-index (Verification)
+ */
 GEM_INLINE void approximate_search_verify(approximate_search_t* const search,matches_t* const matches) {
   // Verify
   const uint64_t num_accepted_regions = filtering_candidates_verify_candidates(
       search->filtering_candidates,search->archive,search->text_collection,
-      &search->pattern,search->search_actual_parameters,matches,search->mm_stack);
+      &search->pattern,search->as_parameters,matches,search->mm_stack);
   if (num_accepted_regions > 0) {
     // Realign
-    filtering_candidates_align_candidates(search->filtering_candidates,
+    filtering_candidates_align_candidates(search->filtering_candidates,search->archive->text,
         search->text_collection,&search->pattern,search->emulated_rc_search,
-        search->search_actual_parameters,true,matches,search->mm_stack);
+        search->as_parameters,true,matches,search->mm_stack);
   }
   // Update state
   if (search->search_state==asearch_verify_candidates) {
@@ -941,9 +1013,9 @@ GEM_INLINE void approximate_search_verify_using_bpm_buffer(
   if (num_accepted_regions > 0) {
     // Realign
     PROF_START(GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS);
-    filtering_candidates_align_candidates(search->filtering_candidates,
+    filtering_candidates_align_candidates(search->filtering_candidates,search->archive->text,
         search->text_collection,&search->pattern,search->emulated_rc_search,
-        search->search_actual_parameters,true,matches,search->mm_stack);
+        search->as_parameters,true,matches,search->mm_stack);
     PROF_STOP(GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS);
   }
   // Update state

@@ -162,7 +162,7 @@ option_t gem_mapper_options[] = {
   { 'E', "max-filtering-error", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0.20, 20%)" },
   { 402, "max-bandwidth", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=0.20, 20%)" },
   { 's', "complete-strata-after-best", REQUIRED, TYPE_FLOAT, 4, true, "<number|percentage>" , "(default=0)" },
-  { 404, "max-search-matches", REQUIRED, TYPE_INT, 4, true, "<number>" , "(10M by default)" },
+  { 404, "max-search-matches", REQUIRED, TYPE_INT, 4, true, "<number>" , "(1K by default)" },
   { 405, "mismatch-alphabet", REQUIRED, TYPE_STRING, 4, false, "<symbols>" , "(default='ACGT')" },
   { 406, "region-chaining", OPTIONAL, TYPE_STRING, 4, false, "" , "(default=true)" },
   { 407, "region-scaffolding-min-length", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=20%)" },
@@ -171,6 +171,8 @@ option_t gem_mapper_options[] = {
   { 410, "region-model-delimit", REQUIRED, TYPE_FLOAT, 4, false, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "(default=50,10,4,2)" },
   { 411, "local-alignment", OPTIONAL, TYPE_STRING, 4, false, "'always'|'if-no-global'|'never'" , "(default=if-no-global)" },
   { 412, "local-alignment-min-identity", REQUIRED, TYPE_FLOAT, 4, false, "<number|percentage>" , "(default=40%)" },
+  { 413, "cigar-curation", OPTIONAL, TYPE_STRING, 4, false, "" , "(default=true)" },
+  { 414, "matches-curation", OPTIONAL, TYPE_STRING, 4, false, "" , "(default=true)" },
   /* Paired-end Alignment */
   { 'p', "paired-end-alignment", NO_ARGUMENT, TYPE_NONE, 5, true, "" , "" },
   // { 500, "mate-pair-alignment", NO_ARGUMENT, TYPE_NONE, 5, true, "" , "" }, // TODO
@@ -478,6 +480,12 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       break;
     case 412: // --local-alignment-min-identity <number|percentage> (default=40%)
       parameters->search_parameters.local_min_identity = atol(optarg);
+      break;
+    case 413: // --cigar-curation (default=true)
+      parameters->search_parameters.allow_cigar_curation = input_text_parse_extended_bool(optarg);
+      break;
+    case 414: // --matches-curation (default=true)
+      parameters->search_parameters.allow_matches_curation = input_text_parse_extended_bool(optarg);
       break;
     /* Paired-end Alignment */
     case 'p': // --paired-end-alignment

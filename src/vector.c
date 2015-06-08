@@ -71,8 +71,9 @@ GEM_INLINE void vector_delete(vector_t* const vector) {
 GEM_INLINE void* vector_get_mem_element(vector_t* const vector,const uint64_t position,const uint64_t element_size) {
   VECTOR_CHECK(vector);
   GEM_CHECK_ZERO(element_size);
-  VECTOR_RANGE_CHECK(vector,position);
-  VECTOR_RANGE_CHECK(vector,position);
+  if (position >= (vector)->used) {
+    VECTOR_RANGE_CHECK(vector,position);
+  }
   return vector->memory+(position*element_size);
 }
 #endif

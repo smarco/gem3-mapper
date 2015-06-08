@@ -562,16 +562,13 @@ GEM_INLINE uint64_t bpm_search_all(
     const int64_t current_score = score[top_level-1];
     if (!match_found) {
       if (top_level==num_words && current_score<=max_distance) {
-        if (current_score < min_score)  { // Founded match, Update minimum
-          min_score_column = text_position;
-          min_score = current_score;
-          if (current_score==0) { // Don't try to optimize, carry on
-            match_found = false;
-            BPM_ADD_FILTERING_REGION(text_trace_offset,begin_position,end_position,min_score_column,min_score,num_matches_found);
-          } else {
-            match_found = true;
-            opt_steps_left = max_distance; // Setup optimization steps
-          }
+        min_score_column = text_position;
+        min_score = current_score;
+        if (current_score==0) { // Don't try to optimize (exact match)
+          BPM_ADD_FILTERING_REGION(text_trace_offset,begin_position,end_position,min_score_column,min_score,num_matches_found);
+        } else {
+          match_found = true;
+          opt_steps_left = max_distance; // Setup optimization steps
         }
       }
     } else {
@@ -580,8 +577,8 @@ GEM_INLINE uint64_t bpm_search_all(
         min_score = current_score;
       }
       if (opt_steps_left==0) {
-        match_found = false;
         BPM_ADD_FILTERING_REGION(text_trace_offset,begin_position,end_position,min_score_column,min_score,num_matches_found);
+        match_found = false;
       } else {
         --opt_steps_left;
       }
@@ -724,6 +721,7 @@ GEM_INLINE void bpm_align_backtrack_matrix(
   const uint64_t* const Pv = bpm_align_matrix->Pv;
   const uint64_t* const Mv = bpm_align_matrix->Mv;
   // Allocate CIGAR string memory (worst case)
+  match_alignment->score = bpm_align_matrix->min_score;
   match_alignment->cigar_offset = vector_get_used(cigar_vector); // Set CIGAR offset
   vector_reserve_additional(cigar_vector,MIN(key_length,2*bpm_align_matrix->min_score+1)); // Reserve
   cigar_element_t* cigar_buffer = vector_get_free_elm(cigar_vector,cigar_element_t); // Sentinel

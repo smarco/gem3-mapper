@@ -130,11 +130,11 @@ GEM_INLINE void mapper_parameters_set_defaults_cuda(mapper_parameters_cuda_t* co
   /* I/O */
   cuda->input_block_size = BUFFER_SIZE_64M;
   cuda->input_num_buffers = 2*num_processors;
-  cuda->input_buffer_lines = (2*4*NUM_LINES_5K); // 2l-Paired x 4l-FASTQRecord x 5K-BufferSize
+  cuda->input_buffer_lines = (2*4*NUM_LINES_20K); // 2l-Paired x 4l-FASTQRecord x 5K-BufferSize
   cuda->output_buffer_size = BUFFER_SIZE_4M;
   cuda->output_num_buffers = 5*num_processors; // Lazy allocation
   /* BPM Buffers */
-  cuda->num_search_groups_per_thread = 2;
+  cuda->num_search_groups_per_thread = 4;
   cuda->bpm_buffer_size = BUFFER_SIZE_2M;
 }
 GEM_INLINE void mapper_parameters_set_defaults_hints(mapper_parameters_hints_t* const hints) {
@@ -372,6 +372,10 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
   while (mapper_SE_read_single_sequence(mapper_search)) {
+//    if (gem_streq(mapper_search->archive_search->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000000002")) {
+//      printf("HERE\n");
+//    }
+
     // Search into the archive
     archive_search_single_end(mapper_search->archive_search,matches);
 
@@ -429,7 +433,7 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
   uint64_t reads_processed = 0;
   while (mapper_PE_read_paired_sequences(mapper_search)) {
 
-//    if (gem_streq(mapper_search->archive_search_end1->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000109453")) {
+//    if (gem_streq(mapper_search->archive_search_end1->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000020269")) {
 //      printf("HERE\n");
 //    } // H.Sapiens.1M.Illumina.l100.low.000000607
 

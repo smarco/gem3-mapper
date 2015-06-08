@@ -72,6 +72,11 @@ typedef struct {
   uint64_t mismatch_alphabet_length;
   bool allowed_chars[256];
   bool allowed_enc[DNA_EXT_RANGE];
+  /* Alignment Model/Score */
+  alignment_model_t alignment_model;
+  swg_penalties_t swg_penalties;
+  bool allow_cigar_curation;
+  bool allow_matches_curation;
   /* Regions matching */
   bool allow_region_chaining;                  // Allows chaining regions to compute the alignment
   float region_scaffolding_min_length;         // Minimum length of the matching region (chaining regions)
@@ -80,9 +85,6 @@ typedef struct {
   /* Local alignment */
   local_alignment_mode_t local_alignment;      // Local-alignment mode
   float local_min_identity;                    // Minimum identity of the read (dangling ends & local alignment)
-  /* Alignment Model/Score */
-  alignment_model_t alignment_model;
-  swg_penalties_t swg_penalties;
   /*
    * Paired End
    */
@@ -109,12 +111,11 @@ typedef struct {
   /*
    * Internals
    */
-  /* Region-Minimal Profile */
-  region_profile_model_t rp_minimal;
-  /* Region-Delimit Profile */
-  region_profile_model_t rp_delimit;
-  /* Region-Recovery Profile */
-  region_profile_model_t rp_recovery;
+  /* Region Profiles */
+  region_profile_model_t rp_minimal;  // Region-Minimal
+  region_profile_model_t rp_boost;    // Region-Boost
+  region_profile_model_t rp_delimit;  // Region-Delimit
+  region_profile_model_t rp_recovery; // Region-Recovery
   /* Filtering parameters */
   uint64_t filtering_threshold;
   float filtering_region_factor;
@@ -140,7 +141,7 @@ typedef struct {
   uint64_t region_scaffolding_coverage_threshold_nominal; // Minimum coverage not to resort to scaffolding
   /* Local Alignment */
   uint64_t local_min_identity_nominal;                    // Minimum identity of the read (dangling ends & local alignment)
-} search_actual_parameters_t;
+} as_parameters_t;
 
 /*
  * Approximate Search Parameters
@@ -173,7 +174,7 @@ GEM_INLINE void approximate_search_configure_alignment_mismatch_scores(
     search_parameters_t* const search_parameters,const uint64_t mismatch_penalty);
 
 GEM_INLINE void approximate_search_instantiate_values(
-    search_actual_parameters_t* const search_actual_parameters,const uint64_t pattern_length);
+    as_parameters_t* const as_parameters,const uint64_t pattern_length);
 
 /*
  * Error Msg

@@ -41,6 +41,7 @@ typedef enum {
   asearch_neighborhood,              // Neighborhood search
   asearch_end,                       // End of the current workflow
   asearch_read_recovery,             // Read recovery
+  asearch_local_alignment,           // Local Alignment Search
   asearch_probe_candidates           // Probe candidates (try to lower max-differences) // TODO
 } approximate_search_state_t;
 typedef enum {
@@ -52,7 +53,7 @@ typedef struct {
   /* Index Structures, Pattern & Parameters */
   archive_t* archive;                                   // Archive
   pattern_t pattern;                                    // Search Pattern
-  search_actual_parameters_t* search_actual_parameters; // Search Parameters (Evaluated to read-length)
+  as_parameters_t* as_parameters; // Search Parameters (Evaluated to read-length)
   /* Search State */
   bool emulated_rc_search;                              // Currently searching on the RC (emulated on the forward strand)
   bool do_quality_search;                               // Quality search
@@ -83,7 +84,7 @@ typedef struct {
  */
 GEM_INLINE void approximate_search_init(
     approximate_search_t* const search,archive_t* const archive,
-    search_actual_parameters_t* const search_actual_parameters,const bool emulated_rc_search);
+    as_parameters_t* const as_parameters,const bool emulated_rc_search);
 GEM_INLINE void approximate_search_configure(
     approximate_search_t* const search,filtering_candidates_t* const filtering_candidates,
     text_collection_t* text_collection,interval_set_t* const interval_set,mm_stack_t* const mm_stack);
@@ -93,7 +94,8 @@ GEM_INLINE void approximate_search_destroy(approximate_search_t* const search);
 /*
  * Accessors
  */
-GEM_INLINE uint64_t approximate_search_get_num_potential_candidates(const approximate_search_t* const search);
+GEM_INLINE uint64_t approximate_search_get_num_filtering_candidates(const approximate_search_t* const search);
+GEM_INLINE uint64_t approximate_search_get_num_exact_filtering_candidates(const approximate_search_t* const search);
 GEM_INLINE void approximate_search_update_mcs(approximate_search_t* const search,const uint64_t max_complete_stratum);
 
 /*
@@ -108,6 +110,7 @@ GEM_INLINE bool approximate_search_pattern_is_null(approximate_search_t* const s
  * ASM-Search!!
  */
 GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t* const matches);
+// Verification
 GEM_INLINE void approximate_search_verify(approximate_search_t* const search,matches_t* const matches);
 GEM_INLINE void approximate_search_verify_using_bpm_buffer(
     approximate_search_t* const search,

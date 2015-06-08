@@ -62,6 +62,7 @@ typedef struct {
   region_search_t* filtering_region; // Filtering regions
   uint64_t num_filtering_regions;    // Total number of filtering regions (region_unique + region_standard + region_gap)
   uint64_t num_standard_regions;     // Number of Standard Regions
+  uint64_t total_candidates;         // Total number of candidates (from exact matching regions)
   /* Mismatch regions */
   region_search_t* search_region;    // Search regions
   uint64_t num_search_regions;
@@ -85,28 +86,28 @@ GEM_INLINE uint64_t region_get_num_regions(region_profile_t* const region_profil
 GEM_INLINE bool region_profile_has_exact_matches(region_profile_t* const region_profile);
 
 /*
- * Region Profile Generation
- */
-GEM_INLINE void region_profile_generate_fixed(
-    region_profile_t* const region_profile,fm_index_t* const fm_index,
-    const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
-    const region_profile_model_t* const profile_model,const uint64_t min_regions);
-GEM_INLINE void region_profile_generate_adaptive(
-    region_profile_t* const region_profile,fm_index_t* const fm_index,
-    const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
-    const region_profile_model_t* const profile_model,
-    const uint64_t max_regions,const bool allow_zero_regions);
-GEM_INLINE void region_profile_generate_full_progressive(
-    region_profile_t* const region_profile,
-    region_search_t* const base_region,const uint64_t start_region,const uint64_t total_regions);
-
-/*
- * Region Profile Utils
+ * Utils
  */
 GEM_INLINE void region_profile_sort_by_estimated_mappability(region_profile_t* const region_profile);
 GEM_INLINE void region_profile_sort_by_candidates(region_profile_t* const region_profile);
 GEM_INLINE void region_profile_fill_gaps(
     region_profile_t* const region_profile,const uint64_t eff_mismatches);
+
+/*
+ * Region Profile Generation
+ */
+GEM_INLINE void region_profile_generate_adaptive(
+    region_profile_t* const region_profile,fm_index_t* const fm_index,
+    const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
+    const region_profile_model_t* const profile_model,const uint64_t max_regions,
+    const bool allow_zero_regions);
+GEM_INLINE void region_profile_generate_adaptive_limited(
+    region_profile_t* const region_profile,fm_index_t* const fm_index,
+    const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
+    const region_profile_model_t* const profile_model,const uint64_t min_regions);
+GEM_INLINE void region_profile_generate_full_progressive(
+    region_profile_t* const region_profile,
+    region_search_t* const base_region,const uint64_t start_region,const uint64_t total_regions);
 
 /*
  * Display

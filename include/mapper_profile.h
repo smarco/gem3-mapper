@@ -102,25 +102,34 @@
 
 #define GP_AS_ADAPTIVE_MCS         70
 
-#define GP_AS_FILTERING_EXACT                   75
-#define GP_AS_FILTERING_EXACT_MAPPED            76
-#define GP_AS_FILTERING_EXACT_BOOST             77
-#define GP_AS_FILTERING_INEXACT                 78
-#define GP_AS_FILTERING_INEXACT_MAPPED          79
+#define GP_AS_FILTERING_EXACT                               71
+#define GP_AS_FILTERING_EXACT_BOOST                         72
+#define GP_AS_FILTERING_INEXACT                             73
+#define GP_AS_FILTERING_LOCAL_ALIGNMENTS                    74
 
-#define GP_AS_GENERATE_CANDIDATES                           80
-#define GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS      81
-#define GP_AS_GENERATE_CANDIDATES_SEARCH_D2                 82
-#define GP_AS_GENERATE_CANDIDATES_SEARCH_D2_HIT             83
-#define GP_AS_GENERATE_CANDIDATES_SEARCH_D2_HIT_CANDIDATES  84
-#define GP_AS_GENERATE_CANDIDATES_SEARCH_D1                 85
-#define GP_AS_GENERATE_CANDIDATES_SEARCH_D1_HIT             86
-#define GP_AS_GENERATE_CANDIDATES_SEARCH_D1_HIT_CANDIDATES  87
-#define GP_AS_GENERATE_CANDIDATES_SEARCH_D0_HIT             88
-#define GP_AS_GENERATE_CANDIDATES_SEARCH_D0_HIT_CANDIDATES  89
-#define GP_AS_GENERATE_CANDIDATES_PROCESSED                 90
-#define GP_AS_GENERATE_CANDIDATES_SKIPPED                   91
-#define GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING         92
+#define GP_AS_FILTERING_EXACT_MAPPED                        75
+#define GP_AS_FILTERING_EXACT_BOOST_MAPPED                  76
+#define GP_AS_FILTERING_INEXACT_MAPPED                      77
+#define GP_AS_FILTERING_LOCAL_ALIGNMENTS_MAPPED             78
+
+#define GP_AS_FILTERING_EXACT_MCS                           79
+#define GP_AS_FILTERING_EXACT_BOOST_MCS                     80
+#define GP_AS_FILTERING_INEXACT_MCS                         81
+#define GP_AS_FILTERING_LOCAL_ALIGNMENTS_MCS                82
+
+#define GP_AS_GENERATE_CANDIDATES                           85
+#define GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS      86
+#define GP_AS_GENERATE_CANDIDATES_SEARCH_D2                 87
+#define GP_AS_GENERATE_CANDIDATES_SEARCH_D2_HIT             88
+#define GP_AS_GENERATE_CANDIDATES_SEARCH_D2_HIT_CANDIDATES  89
+#define GP_AS_GENERATE_CANDIDATES_SEARCH_D1                 90
+#define GP_AS_GENERATE_CANDIDATES_SEARCH_D1_HIT             91
+#define GP_AS_GENERATE_CANDIDATES_SEARCH_D1_HIT_CANDIDATES  92
+#define GP_AS_GENERATE_CANDIDATES_SEARCH_D0_HIT             93
+#define GP_AS_GENERATE_CANDIDATES_SEARCH_D0_HIT_CANDIDATES  94
+#define GP_AS_GENERATE_CANDIDATES_PROCESSED                 95
+#define GP_AS_GENERATE_CANDIDATES_SKIPPED                   96
+#define GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING         97
 
 /*
  * Region Profile
@@ -144,120 +153,130 @@
 #define GP_REGION_PROFILE_DELIMIT_REGION_CANDIDATES    117
 #define GP_REGION_PROFILE_DELIMIT_TOTAL_CANDIDATES     118
 
+#define GP_REGION_PROFILE_BOOST                        112
+#define GP_REGION_PROFILE_BOOST_NUM_REGIONS            113
+#define GP_REGION_PROFILE_BOOST_NUM_REGIONS_UNIQUE     114
+#define GP_REGION_PROFILE_BOOST_NUM_REGIONS_STANDARD   115
+#define GP_REGION_PROFILE_BOOST_REGION_LENGTH          116
+#define GP_REGION_PROFILE_BOOST_REGION_CANDIDATES      117
+#define GP_REGION_PROFILE_BOOST_TOTAL_CANDIDATES       118
+
 #define GP_REGION_PROFILE_MIN_REGION_LENGTH            119
 
 /*
  * Filtering Candidates (Verifying)
  */
-#define GP_FC_VERIFICATION                          120
-#define GP_FC_PROCESS_CANDIDATES                    121
-#define GP_FC_DECODE_POSITIONS                      122
-#define GP_FC_VERIFY_CANDIDATE_REGIONS              123
-#define GP_FC_RETRIEVE_BPM_BUFFER_CANDIDATE_REGIONS 125
-#define GP_FC_REALIGN_CANDIDATE_REGIONS             126
-#define GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS  127
-#define GP_FC_RETRIEVE_CANDIDATE_REGIONS            128
-#define GP_FC_COMPOSE_REGIONS                       129
+#define GP_FC_VERIFICATION                          220
+#define GP_FC_PROCESS_CANDIDATES                    221
+#define GP_FC_DECODE_POSITIONS                      222
+#define GP_FC_VERIFY_CANDIDATE_REGIONS              223
+#define GP_FC_RETRIEVE_BPM_BUFFER_CANDIDATE_REGIONS 224
+#define GP_FC_REALIGN_CANDIDATE_REGIONS             225
+#define GP_FC_LOCAL_ALIGNMENT                       226
+#define GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS  227
+#define GP_FC_RETRIEVE_CANDIDATE_REGIONS            228
+#define GP_FC_COMPOSE_REGIONS                       229
 
-#define GP_FC_EXTEND_MATCH                          130
-#define GP_FC_EXTEND_RETRIEVE_CANDIDATE_REGIONS     131
-#define GP_FC_EXTEND_VERIFY_CANDIDATE_REGIONS       132
-#define GP_FC_EXTEND_REALIGN_CANDIDATE_REGIONS      133
+#define GP_FC_EXTEND_MATCH                          250
+#define GP_FC_EXTEND_RETRIEVE_CANDIDATE_REGIONS     251
+#define GP_FC_EXTEND_VERIFY_CANDIDATE_REGIONS       252
+#define GP_FC_EXTEND_VERIFY_CANDIDATE_LENGTH        253
+#define GP_FC_EXTEND_REALIGN_CANDIDATE_REGIONS      254
 
-#define GP_CANDIDATE_POSITIONS                      140
-#define GP_CANDIDATE_POSITIONS_DUPLICATED           141
-#define GP_CANDIDATE_REGIONS                        142
-#define GP_CANDIDATE_REGIONS_DUPLICATED             143
-#define GP_CANDIDATE_REGION_LENGTH                  144
-#define GP_KMER_COUNTER_FILTER                      145
-#define GP_KMER_COUNTER_FILTER_DISCARDED            146
-#define GP_LEVENSHTEIN_ACCEPTED                     147
+#define GP_CANDIDATE_POSITIONS                      300
+#define GP_CANDIDATE_POSITIONS_DUPLICATED           301
+#define GP_CANDIDATE_REGIONS                        302
+#define GP_CANDIDATE_REGIONS_DUPLICATED             303
+#define GP_CANDIDATE_REGION_LENGTH                  304
+#define GP_KMER_COUNTER_FILTER                      305
+#define GP_KMER_COUNTER_FILTER_DISCARDED            306
+#define GP_LEVENSHTEIN_ACCEPTED                     307
 
-#define GP_ACCEPTED_REGIONS                         150
-#define GP_ACCEPTED_EXACT                           151
-#define GP_ACCEPTED_INEXACT                         152
-#define GP_ACCEPTED_REGIONS_LENGTH                  153
+#define GP_ACCEPTED_REGIONS                         325
+#define GP_ACCEPTED_EXACT                           326
+#define GP_ACCEPTED_INEXACT                         327
+#define GP_ACCEPTED_REGIONS_LENGTH                  328
 
-#define GP_MATCHING_REGIONS_CHAIN                   160
-#define GP_MATCHING_REGIONS_CHAIN_SUCCESS           161
-#define GP_MATCHING_REGIONS_CHAIN_COVERAGE          162
-#define GP_MATCHING_REGIONS_EXTEND                  163
-#define GP_MATCHING_REGIONS_EXTEND_COVERAGE         164
-#define GP_MATCHING_REGIONS_SCAFFOLD                165
-#define GP_MATCHING_REGIONS_SCAFFOLDED              166
-#define GP_MATCHING_REGIONS_SCAFFOLD_COVERAGE       167
+#define GP_MATCHING_REGIONS_CHAIN                   350
+#define GP_MATCHING_REGIONS_CHAIN_SUCCESS           351
+#define GP_MATCHING_REGIONS_CHAIN_COVERAGE          352
+#define GP_MATCHING_REGIONS_EXTEND                  353
+#define GP_MATCHING_REGIONS_EXTEND_COVERAGE         354
+#define GP_MATCHING_REGIONS_SCAFFOLD                355
+#define GP_MATCHING_REGIONS_SCAFFOLDED              356
+#define GP_MATCHING_REGIONS_SCAFFOLD_COVERAGE       357
 
-#define GP_BPM_TILED                                170
-#define GP_BMP_TILED_NUM_TILES                      171
-#define GP_BMP_TILED_NUM_TILES_VERIFIED             172
-#define GP_BPM_QUICK_ABANDON                        173
-#define GP_BPM_ALL                                  174
-#define GP_BPM_ALL_QUICK_ABANDON                    175
-#define GP_BPM_ALL_MATCHES_FOUND                    176
+#define GP_BPM_TILED                                370
+#define GP_BMP_TILED_NUM_TILES                      371
+#define GP_BMP_TILED_NUM_TILES_VERIFIED             372
+#define GP_BPM_QUICK_ABANDON                        373
+#define GP_BPM_ALL                                  374
+#define GP_BPM_ALL_QUICK_ABANDON                    375
+#define GP_BPM_ALL_MATCHES_FOUND                    376
 
 /*
  * BPM-GPU
  */
-#define GP_BPM_GPU_INIT                             180
-#define GP_BPM_GPU_BUFFER_INIT                      181
-#define GP_BPM_GPU_BUFFER_SEND                      182
-#define GP_BPM_GPU_BUFFER_CHECK_TIME                183
-#define GP_BPM_GPU_BUFFER_NUM_CANDIDATES            184
-#define GP_BPM_GPU_BUFFER_CANDIDATES_LENGTH         185
-#define GP_BPM_GPU_BUFFER_USAGE_CANDIDATES          186
-#define GP_BPM_GPU_BUFFER_USAGE_QUERIES             187
-#define GP_BPM_GPU_BUFFER_USAGE_PEQ_ENTRIES         188
+#define GP_BPM_GPU_INIT                             401
+#define GP_BPM_GPU_BUFFER_INIT                      402
+#define GP_BPM_GPU_BUFFER_SEND                      403
+#define GP_BPM_GPU_BUFFER_CHECK_TIME                404
+#define GP_BPM_GPU_BUFFER_NUM_CANDIDATES            405
+#define GP_BPM_GPU_BUFFER_CANDIDATES_LENGTH         406
+#define GP_BPM_GPU_BUFFER_USAGE_CANDIDATES          407
+#define GP_BPM_GPU_BUFFER_USAGE_QUERIES             408
+#define GP_BPM_GPU_BUFFER_USAGE_PEQ_ENTRIES         409
 
 /*
  * FM-Index
  */
-#define GP_FMIDX_LOOKUP_DIST          190
+#define GP_FMIDX_LOOKUP_DIST                        450
 
 /*
  * Matches Align
  */
-#define GP_MATCHES_ALIGN_EXACT        200
-#define GP_MATCHES_ALIGN_HAMMING      201
-#define GP_MATCHES_ALIGN_LEVENSHTEIN  202
-#define GP_MATCHES_ALIGN_SWG          203
+#define GP_MATCHES_ALIGN_EXACT                      480
+#define GP_MATCHES_ALIGN_HAMMING                    481
+#define GP_MATCHES_ALIGN_LEVENSHTEIN                482
+#define GP_MATCHES_ALIGN_SWG                        483
 
 /*
  * SWG
  */
-#define GP_SWG_ALIGN_FULL             230
-#define GP_SWG_ALIGN_FULL_LENGTH      231
-#define GP_SWG_ALIGN_BANDED           232
-#define GP_SWG_ALIGN_BANDED_LENGTH    233
+#define GP_SWG_ALIGN_FULL                           500
+#define GP_SWG_ALIGN_FULL_LENGTH                    501
+#define GP_SWG_ALIGN_BANDED                         502
+#define GP_SWG_ALIGN_BANDED_LENGTH                  503
 
 /*
  * Neighborhood Search
  */
-#define GP_NS_BEST_MATCH              250
+#define GP_NS_BEST_MATCH                            520
 
-#define GP_NS_NODES_EXPLORED          255
-#define GP_NS_NODES_EXPLORED_MTABLE   256
-#define GP_NS_NODE_SUCCESS            257
-#define GP_NS_FAILED_OPT              258
-#define GP_NS_NODE_CLOSED             259
-#define GP_NS_NODE_CLOSED_DEPTH       260
+#define GP_NS_NODES_EXPLORED                        521
+#define GP_NS_NODES_EXPLORED_MTABLE                 522
+#define GP_NS_NODE_SUCCESS                          523
+#define GP_NS_FAILED_OPT                            524
+#define GP_NS_NODE_CLOSED                           525
+#define GP_NS_NODE_CLOSED_DEPTH                     526
 
 /*
  * Checks
  */
-#define GP_CHECK_NUM_READS              400
-#define GP_CHECK_NUM_MAPS               401
-#define GP_CHECK_INCORRECT              402
-#define GP_CHECK_SUBOPTIMAL             403
-#define GP_CHECK_SUBOPTIMAL_SUBDOMINANT 404
-#define GP_CHECK_SUBOPTIMAL_DIFF        405
-#define GP_CHECK_SUBOPTIMAL_SCORE       406
-#define GP_CHECK_SUBOPTIMAL_DISTANCE    407
+#define GP_CHECK_NUM_READS                          550
+#define GP_CHECK_NUM_MAPS                           551
+#define GP_CHECK_INCORRECT                          552
+#define GP_CHECK_SUBOPTIMAL                         553
+#define GP_CHECK_SUBOPTIMAL_SUBDOMINANT             554
+#define GP_CHECK_SUBOPTIMAL_DIFF                    555
+#define GP_CHECK_SUBOPTIMAL_SCORE                   556
+#define GP_CHECK_SUBOPTIMAL_DISTANCE                557
 
 /*
  * Dummy
  */
-#define GP_DUMMY1                     500
-#define GP_DUMMY2                     501
+#define GP_DUMMY1                                   600
+#define GP_DUMMY2                                   601
 
 /*
  * Mapper SE

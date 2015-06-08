@@ -32,6 +32,25 @@ typedef struct {
 GEM_INLINE void match_scaffold_init(match_scaffold_t* const match_scaffold);
 
 /*
+ * Scaffold the alignment (based on levenshtein alignment)
+ *   @align_input->key
+ *   @align_input->key_length
+ *   @align_input->bpm_pattern
+ *   @align_input->text_position
+ *   @align_input->text
+ *   @align_input->text_length
+ *   @align_input->text_offset_begin
+ *   @align_input->text_offset_end
+ *   @align_parameters->left_gap_alignment
+ *   @align_parameters->min_matching_length
+ *   @align_parameters->min_context_length
+ */
+GEM_INLINE bool match_scaffold_levenshtein(
+    matches_t* const matches,match_align_input_t* const align_input,
+    match_align_parameters_t* const align_parameters,
+    match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack);
+
+/*
  * Compute an scaffold for the alignment
  *   @align_input->key
  *   @align_input->key_length
@@ -50,30 +69,6 @@ GEM_INLINE void match_scaffold_init(match_scaffold_t* const match_scaffold);
  *   @match_scaffold->scaffold_regions
  */
 GEM_INLINE void match_scaffold_alignment(
-    matches_t* const matches,match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
-    match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack);
-
-/*
- * Local-Scaffold Match (find all local-alignment regions)
- *   @align_input->key
- *   @align_input->key_length
- *   @align_input->bpm_pattern
- *   @align_input->text_position
- *   @align_input->text
- *   @align_input->text_length
- *   @align_input->text_offset_begin
- *   @align_input->text_offset_end
- *   @align_parameters->max_error
- *   @align_parameters->left_gap_alignment
- *   @align_parameters->min_coverage
- *   @align_parameters->min_matching_length
- *   @align_parameters->min_context_length
- *   @align_parameters->local_min_identity
- *   @match_scaffold->num_scaffold_regions
- *   @match_scaffold->scaffold_regions
- */
-GEM_INLINE void match_scaffold_local_alignment(
     matches_t* const matches,match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
     match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack);

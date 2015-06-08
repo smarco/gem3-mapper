@@ -7,16 +7,10 @@
  */
 
 #include "filtering_region.h"
+
 #include "match_scaffold.h"
 #include "match_align_dto.h"
 
-/*
- * Accessors
- */
-GEM_INLINE text_trace_t* filtering_region_get_text_trace(
-    const filtering_region_t* const filtering_region,const text_collection_t* const candidates_collection) {
-  return text_collection_get_trace(candidates_collection,filtering_region->text_trace_offset);
-}
 /*
  * Sorting
  */
@@ -32,13 +26,14 @@ GEM_INLINE void filtering_region_locator_sort_positions(vector_t* const filterin
  * (Re)Align
  */
 GEM_INLINE bool filtering_region_align(
-    filtering_region_t* const filtering_region,const text_collection_t* const candidates_collection,
-    const search_actual_parameters_t* const search_actual_parameters,const bool emulated_rc_search,
-    const bool left_gap_alignment,pattern_t* const pattern,matches_t* const matches,
+    filtering_region_t* const filtering_region,archive_text_t* const archive_text,
+    const text_collection_t* const text_collection,const as_parameters_t* const as_parameters,
+    const bool emulated_rc_search,const bool left_gap_alignment,
+    pattern_t* const pattern,matches_t* const matches,
     match_trace_t* const match_trace,mm_stack_t* const mm_stack) {
   PROF_INC_COUNTER(GP_ACCEPTED_REGIONS);
   // Parameters
-  search_parameters_t* const search_parameters = search_actual_parameters->search_parameters;
+  search_parameters_t* const search_parameters = as_parameters->search_parameters;
   const alignment_model_t alignment_model = search_parameters->alignment_model;
   uint8_t* const key = pattern->key;
   const uint64_t key_length = pattern->key_length;
@@ -64,8 +59,13 @@ GEM_INLINE bool filtering_region_align(
     return true; // OK
   } else {
     PROF_INC_COUNTER(GP_ACCEPTED_INEXACT);
-    // Candidate
-    const text_trace_t* const text_trace = filtering_region_get_text_trace(filtering_region,candidates_collection);
+    // Retrieve Candidate (fetch text-trace if needed)
+    const uint64_t text_length = filtering_region->end_position-filtering_region->begin_position;
+    if (filtering_region->text_trace_offset == UINT64_MAX) {
+      filtering_region->text_trace_offset = archive_text_retrieve(archive_text,text_collection,
+          filtering_region->begin_position,text_length,false,mm_stack);
+    }
+    const text_trace_t* const text_trace = text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
     uint8_t* const text = text_trace->text;
     // Select alignment model
     switch (alignment_model) {
@@ -110,7 +110,6 @@ GEM_INLINE bool filtering_region_align(
       }
       case alignment_model_gap_affine: {
         // Adjust alignment boundaries (to allow optimization)
-        const uint64_t text_length = filtering_region->end_position-filtering_region->begin_position;
         const uint64_t max_bandwidth = pattern->max_effective_bandwidth;
         const uint64_t match_effective_range = key_length + 2*filtering_region->align_distance + max_bandwidth;
         const uint64_t text_offset_begin = BOUNDED_SUBTRACTION(filtering_region->align_match_end_column,match_effective_range,0);
@@ -132,11 +131,12 @@ GEM_INLINE bool filtering_region_align(
             .max_error = pattern->max_effective_filtering_error,
             .max_bandwidth = max_bandwidth,
             .left_gap_alignment = left_gap_alignment,
-            .min_coverage = search_actual_parameters->region_scaffolding_coverage_threshold_nominal,
-            .min_matching_length = search_actual_parameters->region_scaffolding_min_length_nominal,
-            .min_context_length = search_actual_parameters->region_scaffolding_min_context_length_nominal,
+            .min_coverage = as_parameters->region_scaffolding_coverage_threshold_nominal,
+            .min_matching_length = as_parameters->region_scaffolding_min_length_nominal,
+            .min_context_length = as_parameters->region_scaffolding_min_context_length_nominal,
             .allowed_enc = allowed_enc,
             .swg_penalties = swg_penalties,
+            .cigar_curation = search_parameters->allow_cigar_curation,
         };
         match_scaffold_t* const match_scaffold = &filtering_region->match_scaffold;
         // Scaffold the alignment
@@ -153,7 +153,7 @@ GEM_INLINE bool filtering_region_align(
     }
   }
   // Check (re)alignment result
-  if (match_trace->distance!=ALIGN_DISTANCE_INF) {
+  if (match_trace->distance!=ALIGN_DISTANCE_INF && match_trace->swg_score >= 0) {
     filtering_region->status = filtering_region_aligned;
     return true; // OK
   } else {
@@ -161,6 +161,84 @@ GEM_INLINE bool filtering_region_align(
     filtering_region->status = filtering_region_aligned_subdominant;
     return false; // Discarded
   }
+}
+GEM_INLINE bool filtering_region_local_align(
+    filtering_region_t* const filtering_region,archive_text_t* const archive_text,
+    const text_collection_t* const text_collection,const as_parameters_t* const as_parameters,
+    const bool emulated_rc_search,const bool left_gap_alignment,
+    pattern_t* const pattern,matches_t* const matches,
+    match_trace_t* const match_trace,mm_stack_t* const mm_stack) {
+  PROF_INC_COUNTER(GP_ACCEPTED_REGIONS);
+  // Parameters
+  search_parameters_t* const search_parameters = as_parameters->search_parameters;
+  const alignment_model_t alignment_model = search_parameters->alignment_model;
+  uint8_t* const key = pattern->key;
+  const uint64_t key_length = pattern->key_length;
+  bool* const allowed_enc = search_parameters->allowed_enc;
+  swg_penalties_t* const swg_penalties = &search_parameters->swg_penalties;
+  // Select alignment model
+  switch (alignment_model) {
+    case alignment_model_hamming:
+    case alignment_model_levenshtein:
+      // There is no such a thing as local-alignment in these strict models
+      return false;
+      break;
+    case alignment_model_gap_affine: {
+      // Retrieve Candidate (fetch text-trace if needed)
+      const uint64_t text_length = filtering_region->end_position-filtering_region->begin_position;
+      if (filtering_region->text_trace_offset == UINT64_MAX) {
+        filtering_region->text_trace_offset = archive_text_retrieve(archive_text,text_collection,
+            filtering_region->begin_position,text_length,false,mm_stack);
+      }
+      const text_trace_t* const text_trace = text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
+      uint8_t* const text = text_trace->text;
+      // Adjust alignment boundaries (to allow optimization)
+      const uint64_t max_bandwidth = pattern->max_effective_bandwidth;
+      const uint64_t text_offset_begin = 0;
+      const uint64_t text_offset_end = text_length-1;
+      PROF_ADD_COUNTER(GP_ACCEPTED_REGIONS_LENGTH,text_offset_end-text_offset_begin);
+      match_align_input_t align_input = {
+          .key = key,
+          .key_length = key_length,
+          .bpm_pattern = &pattern->bpm_pattern,
+          .text_trace_offset = filtering_region->text_trace_offset,
+          .text_position = filtering_region->begin_position,
+          .text = text,
+          .text_length = text_length,
+          .text_offset_begin = text_offset_begin,
+          .text_offset_end = text_offset_end,
+      };
+      match_align_parameters_t align_parameters = {
+          .emulated_rc_search = emulated_rc_search,
+          .max_error = BOUNDED_SUBTRACTION(key_length,as_parameters->local_min_identity_nominal,0),
+          .max_bandwidth = max_bandwidth,
+          .left_gap_alignment = left_gap_alignment,
+          .local_min_identity = as_parameters->local_min_identity_nominal,
+          .min_coverage = as_parameters->region_scaffolding_coverage_threshold_nominal,
+          .min_matching_length = as_parameters->region_scaffolding_min_length_nominal,
+          .min_context_length = as_parameters->region_scaffolding_min_context_length_nominal,
+          .allowed_enc = allowed_enc,
+          .swg_penalties = swg_penalties,
+          .cigar_curation = search_parameters->allow_cigar_curation,
+      };
+      match_scaffold_t* const match_scaffold = &filtering_region->match_scaffold;
+      // Scaffold from Levenshtein-alignment
+      PROF_INC_COUNTER(GP_MATCHING_REGIONS_SCAFFOLDED);
+      PROF_START(GP_MATCHING_REGIONS_SCAFFOLD);
+      const bool valid_scaffold = match_scaffold_levenshtein(matches,&align_input,&align_parameters,match_scaffold,mm_stack);
+      PROF_STOP(GP_MATCHING_REGIONS_SCAFFOLD);
+      PROF_ADD_COUNTER(GP_MATCHING_REGIONS_SCAFFOLD_COVERAGE,(100*match_scaffold->scaffolding_coverage)/key_length);
+      if (!valid_scaffold) return false;
+      // Smith-Waterman-Gotoh Alignment (Gap-affine)
+      match_align_smith_waterman_gotoh(matches,match_trace,&align_input,&align_parameters,match_scaffold,mm_stack);
+      return (match_trace->distance!=ALIGN_DISTANCE_INF); // (Re)alignment result
+      break;
+    }
+    default:
+      GEM_INVALID_CASE();
+      break;
+  }
+  return false;
 }
 /*
  * Verify
@@ -190,14 +268,14 @@ GEM_INLINE void filtering_region_verify_hamming(
 }
 GEM_INLINE int64_t filtering_region_verify_levenshtein(
     filtering_region_t* const candidate_region,
-    const text_collection_t* const candidates_collection,
+    const text_collection_t* const text_collection,
     const uint8_t* const key,const uint64_t key_length) {
   // USAGE DEBUG
   // gem_cond_debug_block(DEBUG_ALIGN_CANDIDATES) {
-  //   filtering_region_verify_levenshtein(filtering_region,candidates_collection,key,key_length);
+  //   filtering_region_verify_levenshtein(filtering_region,text_collection,key,key_length);
   // }
   // Candidate
-  const text_trace_t* const text_trace = filtering_region_get_text_trace(candidate_region,candidates_collection);
+  const text_trace_t* const text_trace = text_collection_get_trace(text_collection,candidate_region->text_trace_offset);
   const uint8_t* const text = text_trace->text;
   // Check
   const uint64_t base_position = candidate_region->begin_position+candidate_region->base_position_offset;
@@ -220,11 +298,10 @@ GEM_INLINE int64_t filtering_region_verify_levenshtein(
   return dp_distance;
 }
 GEM_INLINE bool filtering_region_verify(
-    filtering_region_t* const filtering_region,
-    const text_collection_t* const candidates_collection,
+    filtering_region_t* const filtering_region,const text_collection_t* const text_collection,
     search_parameters_t* const search_parameters,const pattern_t* const pattern) {
   // Parameters
-  const text_trace_t* const text_trace = filtering_region_get_text_trace(filtering_region,candidates_collection);
+  const text_trace_t* const text_trace = text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
   const uint8_t* const text = text_trace->text; // Candidate
   const uint64_t max_filtering_error = pattern->max_effective_filtering_error;
   // Select alignment model
@@ -257,6 +334,12 @@ GEM_INLINE bool filtering_region_verify(
       // PROF_START(GP_FC_KMER_COUNTER_FILTER);
       // const uint64_t test_positive = kmer_counting_filter(&pattern->kmer_counting,text,eff_text_length,max_filtering_error);
       // PROF_STOP(GP_FC_KMER_COUNTER_FILTER);
+
+//      // 3. Multiple Myers's BPM algorithm
+//      const uint64_t num_matches_found = bpm_search_all(
+//          (bpm_pattern_t* const)&pattern->bpm_pattern,filtering_regions,
+//          text_trace_offset,index_position,text,text_length,max_filtering_error);
+
       // 3. Myers's BPM algorithm
       bpm_get_distance_cutoff_tiled(
           (bpm_pattern_t* const)&pattern->bpm_pattern,text,eff_text_length,&filtering_region->align_distance,
@@ -279,13 +362,43 @@ GEM_INLINE bool filtering_region_verify(
   // Return fail
   return false;
 }
+GEM_INLINE uint64_t filtering_region_verify_multiple_hits(
+    vector_t* const filtering_regions,filtering_region_t* const filtering_region,
+    const text_collection_t* const text_collection,search_parameters_t* const search_parameters,
+    const pattern_t* const pattern) {
+  // Text (candidate)
+  text_trace_t* const text_trace = text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
+  const uint8_t* const text = text_trace->text;
+  const uint64_t text_length = text_trace->length;
+  // Pattern
+  const bpm_pattern_t* const bpm_pattern = &pattern->bpm_pattern;
+  const uint64_t max_filtering_error = pattern->max_effective_filtering_error;
+  // Select alignment model
+  uint64_t num_matches_found;
+  switch (search_parameters->alignment_model) {
+//    case alignment_model_hamming:
+    case alignment_model_levenshtein:
+    case alignment_model_gap_affine:
+      // 3. Myers's BPM algorithm
+      num_matches_found = bpm_search_all(bpm_pattern,filtering_regions,
+          filtering_region->text_trace_offset,filtering_region->begin_position,
+          text,text_length,max_filtering_error);
+      break;
+    case alignment_model_none:
+    default:
+      GEM_INVALID_CASE();
+      break;
+  }
+  // Return number of filtering regions added (accepted)
+  return num_matches_found;
+}
 GEM_INLINE uint64_t filtering_region_verify_extension(
     vector_t* const filtering_regions,vector_t* const verified_regions,
-    const text_collection_t* const candidates_collection,
+    const text_collection_t* const text_collection,
     const uint64_t const text_trace_offset,const uint64_t index_position,
     search_parameters_t* const search_parameters,const pattern_t* const pattern) {
   // Text (candidate)
-  text_trace_t* const text_trace = text_collection_get_trace(candidates_collection,text_trace_offset);
+  text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
   const uint8_t* const text = text_trace->text;
   const uint64_t text_length = text_trace->length;
   // Pattern

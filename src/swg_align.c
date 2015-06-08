@@ -816,7 +816,10 @@ GEM_INLINE void swg_align_match(
   const swg_penalties_t* swg_penalties = align_parameters->swg_penalties;
   const bool* const allowed_enc = align_parameters->allowed_enc;
   // Check lengths
-  if (key_length == 0 && text_length > 0) {
+  if (key_length == 0 && text_length == 0) {
+    match_alignment->score = 0;
+    match_alignment->effective_length = 0;
+  } else if (key_length == 0 && text_length > 0) {
     if (begin_free) {
       // Adjust position
       match_alignment->match_position += text_length;
@@ -831,12 +834,10 @@ GEM_INLINE void swg_align_match(
       match_alignment->score = 0;
       match_alignment->effective_length = 0;
     }
-  } else if (text_length == 0) {
-    if (key_length > 0) {
-      // Deletion <-@key_length>
-      matches_cigar_vector_append_deletion(cigar_vector,&match_alignment->cigar_length,key_length);
-      match_alignment->score = swg_score_deletion(swg_penalties,key_length);
-    }
+  } else if (key_length > 0 && text_length == 0) {
+    // Deletion <-@key_length>
+    matches_cigar_vector_append_deletion(cigar_vector,&match_alignment->cigar_length,key_length);
+    match_alignment->score = swg_score_deletion(swg_penalties,key_length);
   } else if (key_length==1 && text_length==1) {
     // Mismatch/Match
     const uint8_t key_enc = key[0];

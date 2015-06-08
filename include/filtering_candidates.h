@@ -77,27 +77,27 @@ GEM_INLINE void filtering_candidates_add_interval_set_thresholded(
 GEM_INLINE uint64_t filtering_candidates_process_candidates(
     filtering_candidates_t* const filtering_candidates,
     archive_t* const archive,const pattern_t* const pattern,
-    const search_actual_parameters_t* const search_actual_parameters,
+    const as_parameters_t* const as_parameters,
     const bool compose_region_chaining,mm_stack_t* const mm_stack);
 GEM_INLINE uint64_t filtering_candidates_verify_candidates(
     filtering_candidates_t* const filtering_candidates,archive_t* const archive,
     text_collection_t* const text_collection,const pattern_t* const pattern,
-    const search_actual_parameters_t* const search_actual_parameters,
+    const as_parameters_t* const as_parameters,
     matches_t* const matches,mm_stack_t* const mm_stack);
 GEM_INLINE uint64_t filtering_candidates_align_candidates(
-    filtering_candidates_t* const filtering_candidates,
+    filtering_candidates_t* const filtering_candidates,archive_text_t* const archive_text,
     text_collection_t* const text_collection,pattern_t* const pattern,
-    const bool emulated_rc_search,const search_actual_parameters_t* const search_actual_parameters,
+    const bool emulated_rc_search,const as_parameters_t* const as_parameters,
     const bool approximated_distance,matches_t* const matches,mm_stack_t* const mm_stack);
 
 /*
  * Search for local-alignments
  */
-GEM_INLINE uint64_t filtering_candidates_align_local_candidates(
-    filtering_candidates_t* const filtering_candidates,
-    text_collection_t* const text_collection,const pattern_t* const pattern,
-    const bool emulated_rc_search,const search_actual_parameters_t* const search_actual_parameters,
-    const bool approximated_distance,matches_t* const matches,mm_stack_t* const mm_stack);
+GEM_INLINE uint64_t filtering_candidates_local_alignment(
+    filtering_candidates_t* const filtering_candidates,archive_t* const archive,
+    text_collection_t* const text_collection,pattern_t* const pattern,
+    const bool emulated_rc_search,const as_parameters_t* const as_parameters,
+    matches_t* const matches,mm_stack_t* const mm_stack);
 
 /*
  * BPM-Buffer API (Verification)
@@ -119,7 +119,7 @@ GEM_INLINE uint64_t filtering_candidates_extend_match(
     archive_t* const archive,text_collection_t* const text_collection,
     const match_trace_t* const extended_match,pattern_t* const candidate_pattern,
     const bool candidate_emulated_rc_search,const bool search_onward,
-    const search_actual_parameters_t* const candidate_actual_parameters,
+    const as_parameters_t* const candidate_actual_parameters,
     mapper_stats_t* const mapper_stats,paired_matches_t* const paired_matches,
     const sequence_end_t candidate_end,mm_stack_t* const mm_stack);
 GEM_INLINE void filtering_candidates_process_extension_candidates(

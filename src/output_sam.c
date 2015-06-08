@@ -944,7 +944,7 @@ GEM_INLINE void output_sam_print_optional_fields_se(
   // MD
   if (match_trace) output_sam_print_opt_field_tag_MD(buffered_output_file,matches,match_trace);
   // AS
-  const alignment_model_t alignment_model = archive_search->search_actual_parameters.search_parameters->alignment_model;
+  const alignment_model_t alignment_model = archive_search->as_parameters.search_parameters->alignment_model;
   if (match_trace) output_sam_print_opt_field_tag_AS(buffered_output_file,alignment_model,match_trace);
   // XS
   if (print_tag_XS && match_number+1 < num_matches) {
@@ -972,7 +972,7 @@ GEM_INLINE void output_sam_print_optional_fields_pe(
   // MD
   if (match_trace) output_sam_print_opt_field_tag_MD(buffered_output_file,matches,match_trace);
   // AS
-  const alignment_model_t alignment_model = archive_search->search_actual_parameters.search_parameters->alignment_model;
+  const alignment_model_t alignment_model = archive_search->as_parameters.search_parameters->alignment_model;
   if (match_trace) output_sam_print_opt_field_tag_AS(buffered_output_file,alignment_model,match_trace);
   // XS
   if (print_tag_XS && match_number+1 < num_matches) {
