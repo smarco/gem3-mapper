@@ -418,6 +418,8 @@ GEM_INLINE void mapper_profile_print_archive_search_pe_cuda(FILE* const stream,c
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"        => TIME.Archive.Finish.Search        ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_PE_FINISH_SEARCH),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"        => TIME.Restart.Unfit.Searches       ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_THREAD_RESTART_UNFIT),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"        "); mapper_profile_print_output(stream,false,map_output);
   // Archive Search Groups
   mapper_profile_print_archive_search_group(stream);
