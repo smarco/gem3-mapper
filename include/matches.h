@@ -13,6 +13,7 @@
 #include "interval_set.h"
 #include "text_collection.h"
 #include "match_elements.h"
+#include "swg_align.h"
 
 /*
  * Checkers
@@ -190,9 +191,15 @@ GEM_INLINE void matches_curate(matches_t* const matches,const double swg_score_d
 /*
  * Score
  */
-GEM_INLINE double matches_classify_unique(matches_t* const matches,const uint64_t mcs);
-GEM_INLINE double matches_classify_ambiguous(matches_t* const matches,const uint64_t mcs);
-GEM_INLINE double matches_classify_mmaps(matches_t* const matches,const uint64_t mcs);
+GEM_INLINE double matches_classify_unique(
+    matches_t* const matches,const uint64_t mcs,
+    const swg_penalties_t* const swg_penalties,const uint64_t read_length);
+GEM_INLINE double matches_classify_ambiguous(
+    matches_t* const matches,const uint64_t mcs,
+    const swg_penalties_t* const swg_penalties,const uint64_t read_length);
+GEM_INLINE double matches_classify_mmaps(
+    matches_t* const matches,const uint64_t mcs,
+    const swg_penalties_t* const swg_penalties,const uint64_t read_length);
 GEM_INLINE double matches_classify_ties(matches_t* const matches);
 
 /*
@@ -201,7 +208,8 @@ GEM_INLINE double matches_classify_ties(matches_t* const matches);
 GEM_INLINE void match_cigar_print(
     FILE* const stream,vector_t* const cigar_vector,
     const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
-GEM_INLINE void matches_metrics_print(matches_t* const matches);
+GEM_INLINE void matches_metrics_print(
+    matches_t* const matches,const swg_penalties_t* const swg_penalties,const uint64_t read_length);
 
 /*
  * Error Messages

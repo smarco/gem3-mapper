@@ -514,8 +514,11 @@ GEM_INLINE bool archive_search_paired_end_feasible_extension(
 //    return candidates_end2>0 && candidates_end2<=search_parameters->max_extendable_candidates;
   }
 }
-GEM_INLINE bool archive_search_paired_end_use_extension(matches_t* const matches) {
-  return matches_classify_unique(matches,matches->max_complete_stratum) > 0.98;
+GEM_INLINE bool archive_search_paired_end_use_extension(
+    archive_search_t* const archive_search,matches_t* const matches) {
+  return matches_classify_unique(matches,matches->max_complete_stratum,
+      &archive_search->as_parameters.search_parameters->swg_penalties,
+      sequence_get_length(&archive_search->sequence)) > 0.98;
 }
 GEM_INLINE bool archive_search_paired_end_use_recovery_by_extension(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
@@ -564,7 +567,8 @@ GEM_INLINE void archive_search_paired_end_continue(
       const bool feasible_extension_end1 = archive_search_paired_end_feasible_extension(
           archive_search_end1,archive_search_end2,paired_end2,paired_matches);
       if (feasible_extension_end1) {
-        archive_search_end1->paired_extending = archive_search_paired_end_use_extension(matches_end1);
+        archive_search_end1->paired_extending =
+            archive_search_paired_end_use_extension(archive_search_end1,matches_end1);
         if (archive_search_end1->paired_extending) {
           // Go for extending (End/1)
           PROF_INC_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_END1);

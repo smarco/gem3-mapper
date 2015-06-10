@@ -598,9 +598,8 @@ GEM_INLINE void matches_curate(matches_t* const matches,const double swg_score_d
  * Logistic Regression
  */
 GEM_INLINE void matches_metrics_compute(
-    matches_t* const matches,const uint64_t read_length,
-    double* const id,double* const sub_id,
-    double* const swg_ratio,double* const sub_swg_ratio,
+    matches_t* const matches,const swg_penalties_t* const swg_penalties,const uint64_t read_length,
+    double* const id,double* const sub_id,double* const swg_ratio,double* const sub_swg_ratio,
     uint64_t* const mcs,uint64_t* const fs_matches,uint64_t* const sub_matches) {
   // Compute identities
   const uint64_t num_counters = vector_get_used(matches->counters);
@@ -632,14 +631,17 @@ GEM_INLINE void matches_metrics_compute(
       max2_swg = match[i].swg_score;
     }
   }
-  *swg_ratio = (double)max1_swg/(double)read_length;
-  *sub_swg_ratio = (double)max2_swg/(double)read_length;
+  const double swg_norm = swg_penalties->generic_match_score*read_length;
+  *swg_ratio = (double)max1_swg/swg_norm;
+  *sub_swg_ratio = (double)max2_swg/swg_norm;
   // Others
   *mcs = matches->max_complete_stratum;
   *fs_matches = matches_counters_get_count(matches,matches_counters_get_min_distance(matches));
   *sub_matches = matches_counters_get_total_count(matches) - *fs_matches;
 }
-GEM_INLINE double matches_classify_unique(matches_t* const matches,const uint64_t mcs) {
+GEM_INLINE double matches_classify_unique(
+    matches_t* const matches,const uint64_t mcs,
+    const swg_penalties_t* const swg_penalties,const uint64_t read_length) {
   /*
    * Trivially discards mmaps & ties and returns the probability of
    * the first position-match (primary match) of being a true positive
@@ -649,7 +651,7 @@ GEM_INLINE double matches_classify_unique(matches_t* const matches,const uint64_
   // Metrics
   double id, sub_id, swg_ratio, sub_swg_ratio;
   uint64_t fs_matches, sub_matches, dummy;
-  matches_metrics_compute(matches,100,
+  matches_metrics_compute(matches,swg_penalties,read_length,
       &id,&sub_id,&swg_ratio,&sub_swg_ratio,&dummy,&fs_matches,&sub_matches);
   // Remove ties & mmaps
   if (fs_matches > 1 || sub_matches > 0) return 0.0;
@@ -657,7 +659,9 @@ GEM_INLINE double matches_classify_unique(matches_t* const matches,const uint64_
   const double lr_factor = -31.886 + swg_ratio * 29.617 + (double)mcs * 4.695;
   return 1.0 / (1.0 + (1.0/exp(lr_factor)));
 }
-GEM_INLINE double matches_classify_ambiguous(matches_t* const matches,const uint64_t mcs) {
+GEM_INLINE double matches_classify_ambiguous(
+    matches_t* const matches,const uint64_t mcs,
+    const swg_penalties_t* const swg_penalties,const uint64_t read_length) {
   /*
    * Trivially discards ties and returns the (1-probability) of
    * the first position-match (primary match) of being a false positive (ambiguous map)
@@ -667,7 +671,7 @@ GEM_INLINE double matches_classify_ambiguous(matches_t* const matches,const uint
   // Metrics
   double id, sub_id, swg_ratio, sub_swg_ratio;
   uint64_t fs_matches, sub_matches, dummy;
-  matches_metrics_compute(matches,100,
+  matches_metrics_compute(matches,swg_penalties,read_length,
       &id,&sub_id,&swg_ratio,&sub_swg_ratio,&dummy,&fs_matches,&sub_matches);
   // Remove ties
   if (fs_matches > 1) return 0.0;
@@ -676,7 +680,9 @@ GEM_INLINE double matches_classify_ambiguous(matches_t* const matches,const uint
       sub_swg_ratio * -2.73863 + (double)mcs * 2.30287 + (double)sub_matches * -0.01749;
   return 1.0 / (1.0 + (1.0/exp(lr_factor)));
 }
-GEM_INLINE double matches_classify_mmaps(matches_t* const matches,const uint64_t mcs) {
+GEM_INLINE double matches_classify_mmaps(
+    matches_t* const matches,const uint64_t mcs,
+    const swg_penalties_t* const swg_penalties,const uint64_t read_length) {
   /*
    * Trivially discards ties and returns the probability of
    * the first position-match (primary match) of being a true positive
@@ -686,7 +692,7 @@ GEM_INLINE double matches_classify_mmaps(matches_t* const matches,const uint64_t
   // Metrics
   double id, sub_id, swg_ratio, sub_swg_ratio;
   uint64_t fs_matches, sub_matches, dummy;
-  matches_metrics_compute(matches,100,
+  matches_metrics_compute(matches,swg_penalties,read_length,
       &id,&sub_id,&swg_ratio,&sub_swg_ratio,&dummy,&fs_matches,&sub_matches);
   // Remove ties
   if (fs_matches > 1) return 0.0;
@@ -745,11 +751,12 @@ GEM_INLINE void match_cigar_print(
     }
   }
 }
-GEM_INLINE void matches_metrics_print(matches_t* const matches) {
+GEM_INLINE void matches_metrics_print(
+    matches_t* const matches,const swg_penalties_t* const swg_penalties,const uint64_t read_length) {
   // Metrics
   double id, sub_id, swg_ratio, sub_swg_ratio;
   uint64_t mcs, fs_matches, sub_matches;
-  matches_metrics_compute(matches,100,
+  matches_metrics_compute(matches,swg_penalties,read_length,
       &id,&sub_id,&swg_ratio,&sub_swg_ratio,&mcs,&fs_matches,&sub_matches);
   // id
   fprintf(stdout,"%f\t",id);

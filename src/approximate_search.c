@@ -185,9 +185,11 @@ GEM_INLINE bool asearch_fulfilled(approximate_search_t* const search,matches_t* 
       const uint64_t min_distance = matches_counters_get_min_distance(matches);
       if (matches_counters_get_count(matches,min_distance) > 1) return true;
       // Detect signal
-      double pr = matches_classify_ambiguous(matches,search->max_complete_stratum);
+      const uint64_t key_length = search->pattern.key_length;
+      const swg_penalties_t* const swg_penalties = &search->as_parameters->search_parameters->swg_penalties;
+      double pr = matches_classify_ambiguous(matches,search->max_complete_stratum,swg_penalties,key_length);
       if (pr <= 0.98) return false;
-      pr = matches_classify_unique(matches,search->max_complete_stratum);
+      pr = matches_classify_unique(matches,search->max_complete_stratum,swg_penalties,key_length);
       if (pr >= 0.999) return true;
       // Otherwise
       return false;

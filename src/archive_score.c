@@ -134,7 +134,11 @@ GEM_INLINE uint8_t archive_score_probability_to_mapq(const double probability,co
 //  if (match[0].mapq_score > 57) match[0].mapq_score = 57;
 //  for (i=1;i<num_matches;++i) match[i].mapq_score = 0;
 //}
-GEM_INLINE int64_t archive_score_matches_gem_se_cases(matches_t* const matches) {
+GEM_INLINE int64_t archive_score_matches_gem_se_cases(
+    archive_search_t* const archive_search,matches_t* const matches) {
+  // Parameters
+  const uint64_t read_length = sequence_get_length(&archive_search->sequence);
+  const swg_penalties_t* const swg_penalties = &archive_search->as_parameters.search_parameters->swg_penalties;
   /*
    * Score Scale
    *
@@ -149,13 +153,13 @@ GEM_INLINE int64_t archive_score_matches_gem_se_cases(matches_t* const matches) 
   double pr = matches_classify_ties(matches);
   if (pr == 1.0) return 1;
   // Classify Ambiguous (Remove hard/fuzzy to classify)
-  pr = matches_classify_ambiguous(matches,matches->max_complete_stratum);
+  pr = matches_classify_ambiguous(matches,matches->max_complete_stratum,swg_penalties,read_length);
   if (pr <= 0.98) return 2;
   // Classify unique matches (num_matches==1)
-  pr = matches_classify_unique(matches,matches->max_complete_stratum);
+  pr = matches_classify_unique(matches,matches->max_complete_stratum,swg_penalties,read_length);
   if (pr >= 0.999) return 60;
   // Classify remaining multimaps
-  pr = matches_classify_mmaps(matches,matches->max_complete_stratum);
+  pr = matches_classify_mmaps(matches,matches->max_complete_stratum,swg_penalties,read_length);
   if (pr >= 0.98) return (int64_t)(round((pr-0.98)*2500.0))+10;
   return 3;
 }
@@ -167,7 +171,7 @@ GEM_INLINE void archive_score_matches_gem_se(archive_search_t* const archive_sea
   matches_sort_by_swg_score(matches);
   // matches_metrics_print(matches);
   uint64_t i = 0;
-  match[0].mapq_score = archive_score_matches_gem_se_cases(matches);
+  match[0].mapq_score = archive_score_matches_gem_se_cases(archive_search,matches);
   for (i=1;i<num_matches;++i) match[i].mapq_score = 0;
 }
 GEM_INLINE void archive_score_matches_gem_pe(
@@ -225,6 +229,8 @@ GEM_INLINE void archive_score_matches_logit_values_se(archive_search_t* const ar
   // Parameters
   match_trace_t* const match = matches_get_match_traces(matches);
   const uint64_t num_matches = matches_get_num_match_traces(matches);
+  const uint64_t read_length = sequence_get_length(&archive_search->sequence);
+  const swg_penalties_t* const swg_penalties = &archive_search->as_parameters.search_parameters->swg_penalties;
   // Sort
   matches_sort_by_swg_score(matches);
   /*
@@ -244,33 +250,33 @@ GEM_INLINE void archive_score_matches_logit_values_se(archive_search_t* const ar
   double pr = matches_classify_ties(matches);
   if (pr == 1.0) {
     match[0].mapq_score = 1;
-    matches_metrics_print(matches);
+    matches_metrics_print(matches,swg_penalties,read_length);
     return;
   }
   // Classify Ambiguous (Remove hard/fuzzy to classify)
-  pr = matches_classify_ambiguous(matches,matches->max_complete_stratum);
+  pr = matches_classify_ambiguous(matches,matches->max_complete_stratum,swg_penalties,read_length);
   if (pr <= 0.98) {
     match[0].mapq_score = 50 + archive_score_probability_to_mapq(pr-0.98,0.02);
-    matches_metrics_print(matches);
+    matches_metrics_print(matches,swg_penalties,read_length);
     return;
   }
   // Classify unique matches (num_matches==1)
-  pr = matches_classify_unique(matches,matches->max_complete_stratum);
+  pr = matches_classify_unique(matches,matches->max_complete_stratum,swg_penalties,read_length);
   if (pr >= 0.999) {
     match[0].mapq_score = 190 + archive_score_probability_to_mapq(pr-0.999,0.001);
-    matches_metrics_print(matches);
+    matches_metrics_print(matches,swg_penalties,read_length);
     return;
   }
   // Classify remaining multimaps
-  pr = matches_classify_mmaps(matches,matches->max_complete_stratum);
+  pr = matches_classify_mmaps(matches,matches->max_complete_stratum,swg_penalties,read_length);
   if (pr >= 0.98) {
     match[0].mapq_score = 120 + archive_score_probability_to_mapq(pr-0.98,0.001);
-    matches_metrics_print(matches);
+    matches_metrics_print(matches,swg_penalties,read_length);
     return;
   }
   // Otherwise Ambiguous
   match[0].mapq_score = 2;
-  matches_metrics_print(matches);
+  matches_metrics_print(matches,swg_penalties,read_length);
 }
 GEM_INLINE void archive_score_matches_logit_values_pe(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
