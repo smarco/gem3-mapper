@@ -100,8 +100,11 @@ GEM_INLINE void mapper_parameters_set_defaults_io(mapper_parameters_io_t* const 
   io->input_file_name_end1=NULL;
   io->input_file_name_end2=NULL;
   io->input_compression=FM_REGULAR_FILE;
+  /* I/O */
   io->input_block_size = BUFFER_SIZE_64M;
-  io->input_buffer_lines = (2*4*NUM_LINES_5K); // 2l-Paired x 4l-FASTQRecord x 5K-BufferSize
+  const uint64_t num_processors = system_get_num_processors();
+  io->input_num_buffers = 2*num_processors;
+  io->input_buffer_lines = (2*4*NUM_LINES_10K); // 2l-Paired x 4l-FASTQRecord x BufferSize
   io->output_file_name=NULL;
   io->output_compression=FM_REGULAR_FILE;
   /* I/O Attributes */
@@ -111,9 +114,8 @@ GEM_INLINE void mapper_parameters_set_defaults_io(mapper_parameters_io_t* const 
   io->output_format = SAM;
   output_sam_parameters_set_defaults(&io->sam_parameters);
   output_map_parameters_set_defaults(&io->map_parameters);
-  const uint64_t num_processors = system_get_num_processors();
   io->output_buffer_size = BUFFER_SIZE_4M;
-  io->output_num_buffers = 5*num_processors; // Lazy allocation
+  io->output_num_buffers = 10*num_processors; // Lazy allocation
 }
 GEM_INLINE void mapper_parameters_set_defaults_system(mapper_parameters_system_t* const system) {
   /* System */
@@ -130,12 +132,12 @@ GEM_INLINE void mapper_parameters_set_defaults_cuda(mapper_parameters_cuda_t* co
   /* I/O */
   cuda->input_block_size = BUFFER_SIZE_64M;
   cuda->input_num_buffers = 2*num_processors;
-  cuda->input_buffer_lines = (2*4*NUM_LINES_20K); // 2l-Paired x 4l-FASTQRecord x 5K-BufferSize
-  cuda->output_buffer_size = BUFFER_SIZE_8M;
-  cuda->output_num_buffers = 5*num_processors; // Lazy allocation
+  cuda->input_buffer_lines = (2*4*NUM_LINES_10K); // 2l-Paired x 4l-FASTQRecord x 5K-BufferSize
+  cuda->output_buffer_size = BUFFER_SIZE_4M;
+  cuda->output_num_buffers = 10*num_processors; // Lazy allocation
   /* BPM Buffers */
   cuda->num_search_groups_per_thread = 4;
-  cuda->bpm_buffer_size = BUFFER_SIZE_2M;
+  cuda->bpm_buffer_size = BUFFER_SIZE_1M;
 }
 GEM_INLINE void mapper_parameters_set_defaults_hints(mapper_parameters_hints_t* const hints) {
   /* Hints */
@@ -302,6 +304,7 @@ GEM_INLINE error_code_t mapper_PE_read_paired_sequences(mapper_search_t* const m
   error_code = mapper_PE_reload_buffers(mapper_search->mapper_parameters,
       mapper_search->buffered_fasta_input_end1,mapper_search->buffered_fasta_input_end2);
   if (error_code==INPUT_STATUS_EOF) return INPUT_STATUS_EOF;
+  if (gem_expect_false(error_code==INPUT_STATUS_FAIL)) pthread_exit(0); // Abort
   // Read end1 & end2
   error_code = mapper_PE_parse_paired_sequences(mapper_search->mapper_parameters,
       mapper_search->buffered_fasta_input_end1,mapper_search->buffered_fasta_input_end2,

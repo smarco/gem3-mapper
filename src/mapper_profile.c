@@ -356,7 +356,8 @@ GEM_INLINE void mapper_profile_print_archive_search_cuda(FILE* const stream,cons
   tab_fprintf(stream,"      => TIME.Archive.Copy.Candidates        ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_COPY_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
   // Verifying
-  tab_fprintf(stream,"    => 2.TIME.CUDA.Verifying\n");
+  tab_fprintf(stream,"    => 2.TIME.CUDA.Verifying                 ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_THREAD_SELECTING),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"      => {GPU}\n");
   tab_fprintf(stream,"        => TIME.CUDA.Send.Delay              ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_GPU_BUFFER_SEND),PROF_GET_TIMER(GP_MAPPER_ALL));
@@ -365,7 +366,6 @@ GEM_INLINE void mapper_profile_print_archive_search_cuda(FILE* const stream,cons
   tab_fprintf(stream,"        => TIME.CUDA.Retrieve.Delay          ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_GROUP_RETRIEVE_CANDIDATES_DELAY),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"      => {CPU}\n");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_THREAD_SELECTING),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"        => TIME.Archive.Retrieve.Candidates  ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_RETRIEVE_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"          => TIME.Retrieve.Candidates        ");

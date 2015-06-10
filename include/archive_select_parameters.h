@@ -16,9 +16,8 @@
  */
 typedef enum {
   mapq_model_none,     // None
-  mapq_model_gem,      // Exponential Relative Score
-  mapq_model_gem_case, // Case stratification
-  mapq_model_logit     // Logistic Regression
+  mapq_model_gem,      // GEM Score (Case stratification + Logistic Regression)
+  mapq_model_logit     // Logistic Regression Recalibration
 } mapq_model_t;
 typedef enum {
   matches_sorting_distance,

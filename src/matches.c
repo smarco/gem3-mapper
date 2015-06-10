@@ -699,6 +699,20 @@ GEM_INLINE double matches_classify_mmaps(matches_t* const matches,const uint64_t
       (double)mcs * 0.452;
   return 1.0 / (1.0 + (1.0/exp(lr_factor)));
 }
+GEM_INLINE double matches_classify_ties(matches_t* const matches) {
+  /*
+   * Trivially discards mmaps & ties and returns the probability of
+   * the first position-match (primary match) of being a true positive
+   */
+  // No matches
+  if (matches_counters_get_total_count(matches)==0) return 0.0;
+  const uint64_t fs_matches = matches_counters_get_count(matches,matches_counters_get_min_distance(matches));
+  if (fs_matches > 1) return 1.0;
+  match_trace_t* const match = matches_get_match_traces(matches);
+  const uint64_t num_matches = matches_get_num_match_traces(matches);
+  if (num_matches > 1 && match[0].swg_score==match[1].swg_score) return 1.0;
+  return 0.0;
+}
 //GEM_INLINE bool matches_resolved_as_signal(matches_t* const matches,const uint64_t mcs) {
 //  // Isolate Pure-Signal
 //  const double pr = matches_logit_psignal(matches,mcs);
@@ -752,6 +766,14 @@ GEM_INLINE void matches_metrics_print(matches_t* const matches) {
   // fs_matches
   fprintf(stdout,"%lu\t",fs_matches);
   // sub_matches
-  fprintf(stdout,"%lu\n",sub_matches);
+  fprintf(stdout,"%lu\t",sub_matches);
+  // mapq_score
+  const uint64_t num_matches = matches_get_num_match_traces(matches);
+  if (num_matches > 0) {
+    match_trace_t* const match = matches_get_match_traces(matches);
+    fprintf(stdout,"%d\n",match[0].mapq_score);
+  } else {
+    fprintf(stdout,"\n");
+  }
 }
 

@@ -12,7 +12,7 @@
  */
 GEM_INLINE void archive_select_parameters_init(select_parameters_t* const select_parameters) {
   // MAPQ Score
-  select_parameters->mapq_model = mapq_model_gem_case;
+  select_parameters->mapq_model = mapq_model_gem;
   select_parameters->mapq_threshold = 0;
   // Reporting
   select_parameters->min_decoded_strata = 0;

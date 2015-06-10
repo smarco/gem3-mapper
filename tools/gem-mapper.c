@@ -194,7 +194,7 @@ option_t gem_mapper_options[] = {
   { 'O', "gap-open-penalty", REQUIRED, TYPE_INT, 6, false, "" , "(default=6)" },
   { 'X', "gap-extension-penalty", REQUIRED, TYPE_INT, 6, false, "" , "(default=1)" },
   /* MAQ Score */
-  { 700, "mapq-model", REQUIRED, TYPE_STRING, 7, false, "'none'|'gem'|'logit'" , "(default=gem)" },
+  { 700, "mapq-model", REQUIRED, TYPE_STRING, 7, false, "'none'|'gem'" , "(default=gem)" },
   { 701, "mapq-threshold", REQUIRED, TYPE_INT, 7, false, "<number>" , "(default=0)" },
   /* Reporting */
   { 'D', "min-decoded-strata", REQUIRED, TYPE_FLOAT, 8, false, "<number|percentage>" , "(stratum-wise, default=0)" },
@@ -639,8 +639,6 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
         parameters->select_parameters.mapq_model = mapq_model_none;
       } else if (gem_strcaseeq(optarg,"gem")) {
         parameters->select_parameters.mapq_model = mapq_model_gem;
-      } else if (gem_strcaseeq(optarg,"gem-case")) {
-        parameters->select_parameters.mapq_model = mapq_model_gem_case;
       } else if (gem_strcaseeq(optarg,"logit")) {
         parameters->select_parameters.mapq_model = mapq_model_logit;
       } else {

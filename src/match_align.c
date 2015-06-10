@@ -92,6 +92,7 @@ GEM_INLINE void match_align_curate_cigar(
         break;
       case cigar_del:
       case cigar_soft_trim:
+        // Check previous element
         if (last_curated_element!=NULL && (last_curated_element->type==cigar_del || last_curated_element->type==cigar_soft_trim)) {
           last_curated_element->indel.indel_length += cigar_element->indel.indel_length;
           ++i;
@@ -100,6 +101,11 @@ GEM_INLINE void match_align_curate_cigar(
         last_curated_element = curated_element;
         break;
       case cigar_ins:
+        // Check Insertion/Deletion proper order
+        if (i+1<cigar_length && (cigar_buffer[i+1].type==cigar_del || cigar_buffer[i+1].type==cigar_soft_trim)) {
+          SWAP(cigar_buffer[i],cigar_buffer[i+1]); continue;
+        }
+        // Check previous element
         if (last_curated_element!=NULL && last_curated_element->type==cigar_ins) {
           last_curated_element->indel.indel_length += cigar_element->indel.indel_length; // FIXME Combine indel text !!
           ++i;

@@ -193,6 +193,7 @@ GEM_INLINE void matches_curate(matches_t* const matches,const double swg_score_d
 GEM_INLINE double matches_classify_unique(matches_t* const matches,const uint64_t mcs);
 GEM_INLINE double matches_classify_ambiguous(matches_t* const matches,const uint64_t mcs);
 GEM_INLINE double matches_classify_mmaps(matches_t* const matches,const uint64_t mcs);
+GEM_INLINE double matches_classify_ties(matches_t* const matches);
 
 /*
  * Display
