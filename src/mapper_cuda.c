@@ -231,11 +231,13 @@ void* mapper_PE_CUDA_thread(mapper_cuda_search_t* const mapper_search) {
     }
     archive_search_group_clear(search_group); // Reset search-group
     // Check if the last archive-search couldn't fit into the BPM-buffer
+    PROF_START(GP_MAPPER_CUDA_THREAD_RESTART_UNFIT);
     if (archive_search_generate_end1!=NULL) {
       archive_search_pe_generate_candidates(archive_search_generate_end1,archive_search_generate_end2,paired_matches);
       archive_search_group_add_paired_search(search_group,archive_search_generate_end1,archive_search_generate_end2);
       archive_search_generate_end1 = NULL;
     }
+    PROF_STOP(GP_MAPPER_CUDA_THREAD_RESTART_UNFIT);
     PROF_STOP(GP_MAPPER_CUDA_THREAD_SELECTING);
   }
   // Clean up & Quit

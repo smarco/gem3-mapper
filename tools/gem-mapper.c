@@ -105,11 +105,11 @@ GEM_INLINE void gem_mapper_print_profile(mapper_parameters_t* const parameters) 
     switch (parameters->mapper_type) {
       case mapper_se:
         mapper_profile_print_mapper_single_end(gem_info_get_stream(),
-            parameters->io.output_format,parameters->system.num_threads);
+            parameters->io.output_format==MAP,parameters->system.num_threads);
         break;
       case mapper_pe:
         mapper_profile_print_mapper_paired_end(gem_info_get_stream(),
-            parameters->io.output_format,parameters->system.num_threads);
+            parameters->io.output_format==MAP,parameters->system.num_threads);
         break;
       case mapper_graph:
         break;
@@ -121,11 +121,11 @@ GEM_INLINE void gem_mapper_print_profile(mapper_parameters_t* const parameters) 
     switch (parameters->mapper_type) {
       case mapper_se:
         mapper_profile_print_mapper_single_end_cuda(gem_info_get_stream(),
-            parameters->io.output_format,parameters->system.num_threads);
+            parameters->io.output_format==MAP,parameters->system.num_threads);
         break;
       case mapper_pe:
         mapper_profile_print_mapper_paired_end_cuda(gem_info_get_stream(),
-            parameters->io.output_format,parameters->system.num_threads);
+            parameters->io.output_format==MAP,parameters->system.num_threads);
         break;
       case mapper_graph:
         break;

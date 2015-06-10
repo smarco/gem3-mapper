@@ -131,7 +131,7 @@ GEM_INLINE void mapper_parameters_set_defaults_cuda(mapper_parameters_cuda_t* co
   cuda->input_block_size = BUFFER_SIZE_64M;
   cuda->input_num_buffers = 2*num_processors;
   cuda->input_buffer_lines = (2*4*NUM_LINES_20K); // 2l-Paired x 4l-FASTQRecord x 5K-BufferSize
-  cuda->output_buffer_size = BUFFER_SIZE_4M;
+  cuda->output_buffer_size = BUFFER_SIZE_8M;
   cuda->output_num_buffers = 5*num_processors; // Lazy allocation
   /* BPM Buffers */
   cuda->num_search_groups_per_thread = 4;

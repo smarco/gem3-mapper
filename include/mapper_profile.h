@@ -17,18 +17,19 @@
 /*
  * Mapper
  */
-#define GP_MAPPER_ALL                     0
-#define GP_MAPPER_LOAD_INDEX              1
-#define GP_OUTPUT_MAP_SE                  2
-#define GP_OUTPUT_MAP_PE                  3
-#define GP_OUTPUT_SAM_SE                  4
-#define GP_OUTPUT_SAM_PE                  5
+#define GP_MAPPER_ALL                       0
+#define GP_MAPPER_LOAD_INDEX                1
+#define GP_OUTPUT_MAP_SE                    2
+#define GP_OUTPUT_MAP_PE                    3
+#define GP_OUTPUT_SAM_SE                    4
+#define GP_OUTPUT_SAM_PE                    5
 
-#define GP_MAPPER_CUDA_THREAD             6
-#define GP_MAPPER_CUDA_THREAD_GENERATING  7
-#define GP_MAPPER_CUDA_THREAD_SELECTING   8
+#define GP_MAPPER_CUDA_THREAD               6
+#define GP_MAPPER_CUDA_THREAD_GENERATING    7
+#define GP_MAPPER_CUDA_THREAD_SELECTING     8
+#define GP_MAPPER_CUDA_THREAD_RESTART_UNFIT 260
 
-#define GP_MAPPER_NUM_READS               9
+#define GP_MAPPER_NUM_READS                 9
 
 /*
  * Archive Search
