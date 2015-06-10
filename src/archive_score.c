@@ -230,12 +230,12 @@ GEM_INLINE void archive_score_matches_logit_values_se(archive_search_t* const ar
   /*
    * Score Scale
    *
-   *   200-260 - Unique mappings
-   *   100-160 - MMaps range
-   *   3 - Ambiguous Mapping (Coudn't be classified with confidence)
-   *   2 - Ambiguous Mapping (High confidence that the TP cannot be resolved)
-   *   1 - Ties (SWG-ties or EditDistance-ties)
-   *   0 - Sub-dominant matches (wrt SWG score)
+   *   190-250 - Unique mappings
+   *   120-180 - MMaps range
+   *    50-110 - Ambiguous Mappings
+   *         2 - Coudn't be classified (with confidence)
+   *         1 - Ties (SWG-ties or EditDistance-ties)
+   *         0 - Sub-dominant matches (wrt SWG score)
    */
   // Sub-dominant matches
   uint64_t i;
@@ -250,26 +250,26 @@ GEM_INLINE void archive_score_matches_logit_values_se(archive_search_t* const ar
   // Classify Ambiguous (Remove hard/fuzzy to classify)
   pr = matches_classify_ambiguous(matches,matches->max_complete_stratum);
   if (pr <= 0.98) {
-    match[0].mapq_score = 2;
+    match[0].mapq_score = 50 + archive_score_probability_to_mapq(pr-0.98,0.02);
     matches_metrics_print(matches);
     return;
   }
   // Classify unique matches (num_matches==1)
   pr = matches_classify_unique(matches,matches->max_complete_stratum);
   if (pr >= 0.999) {
-    match[0].mapq_score = 200 + archive_score_probability_to_mapq(pr-0.999,1.0);
+    match[0].mapq_score = 190 + archive_score_probability_to_mapq(pr-0.999,0.001);
     matches_metrics_print(matches);
     return;
   }
   // Classify remaining multimaps
   pr = matches_classify_mmaps(matches,matches->max_complete_stratum);
   if (pr >= 0.98) {
-    match[0].mapq_score = 100 + archive_score_probability_to_mapq(pr-0.98,1.0);
+    match[0].mapq_score = 120 + archive_score_probability_to_mapq(pr-0.98,0.001);
     matches_metrics_print(matches);
     return;
   }
   // Otherwise Ambiguous
-  match[0].mapq_score = 3;
+  match[0].mapq_score = 2;
   matches_metrics_print(matches);
 }
 GEM_INLINE void archive_score_matches_logit_values_pe(
