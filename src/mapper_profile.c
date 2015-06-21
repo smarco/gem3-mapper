@@ -211,13 +211,13 @@ GEM_INLINE void mapper_profile_print_approximate_search(FILE* const stream) {
   tab_fprintf(stream,"    --> MCS.Achieved                          ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_ADAPTIVE_MCS),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"mcs  ",true);
   tab_fprintf(stream,"      --> MCS.Filtering.Exact                 ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_FILTERING_EXACT_MCS),PROF_GET_TIMER(GP_MAPPER_ALL));
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_FILTERING_EXACT_MCS),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"mcs  ",true);
   tab_fprintf(stream,"      --> MCS.Filtering.ExactBoost            ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_FILTERING_EXACT_BOOST_MCS),PROF_GET_TIMER(GP_MAPPER_ALL));
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_FILTERING_EXACT_BOOST_MCS),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"mcs  ",true);
   tab_fprintf(stream,"      --> MCS.Filtering.Inexact               ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_FILTERING_INEXACT_MCS),PROF_GET_TIMER(GP_MAPPER_ALL));
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_FILTERING_INEXACT_MCS),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"mcs  ",true);
   tab_fprintf(stream,"      --> MCS.Filtering.Local                 ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_FILTERING_LOCAL_ALIGNMENTS_MCS),PROF_GET_TIMER(GP_MAPPER_ALL));
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_FILTERING_LOCAL_ALIGNMENTS_MCS),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"mcs  ",true);
 }
 GEM_INLINE void mapper_profile_print_approximate_search_ranks(FILE* const stream) { /* TODO */ }
 /*
@@ -451,8 +451,6 @@ GEM_INLINE void mapper_profile_print_verifying(FILE* const stream,const bool ver
   tab_fprintf(stream,"  |> Filtering.Candidates\n");
   tab_fprintf(stream,"    --> Candidate.Positions                       ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"positions",true);
-  tab_fprintf(stream,"      --> Duplicates.Removed                      ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS_DUPLICATED),PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"positions",true);
   tab_fprintf(stream,"      --> Decode.LF.Dist                          ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FMIDX_LOOKUP_DIST),NULL,"lf       ",true);
   tab_fprintf(stream,"    --> Candidate.Regions                         ");

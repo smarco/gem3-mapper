@@ -63,6 +63,7 @@ typedef struct {
   uint64_t num_filtering_regions;    // Total number of filtering regions (region_unique + region_standard + region_gap)
   uint64_t num_standard_regions;     // Number of Standard Regions
   uint64_t total_candidates;         // Total number of candidates (from exact matching regions)
+  uint64_t max_region_length;        // Largest region length
   /* Mismatch regions */
   region_search_t* search_region;    // Search regions
   uint64_t num_search_regions;

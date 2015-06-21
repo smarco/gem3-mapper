@@ -185,7 +185,6 @@
 #define GP_FC_EXTEND_REALIGN_CANDIDATE_REGIONS      254
 
 #define GP_CANDIDATE_POSITIONS                      300
-#define GP_CANDIDATE_POSITIONS_DUPLICATED           301
 #define GP_CANDIDATE_REGIONS                        302
 #define GP_CANDIDATE_REGIONS_DUPLICATED             303
 #define GP_CANDIDATE_REGION_LENGTH                  304

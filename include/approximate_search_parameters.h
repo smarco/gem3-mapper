@@ -19,8 +19,8 @@ typedef enum {
   mapping_adaptive_filtering_fast,     // Fast Adaptive Filtering (First filtering stage)
   mapping_adaptive_filtering_match,    // Adaptive Filtering until a match is found (Never going into full-NS)
   mapping_adaptive_filtering_complete, // Full search (From Adaptive Filtering to Pure Neighborhood Search)
+  mapping_fixed_filtering_complete,    // Pure Filtering Complete
   mapping_neighborhood_search,         // Pure Neighborhood Search (brute-force)
-  mapping_filtering_complete           // Pure Filtering Complete
 } mapping_mode_t;
 typedef enum {
   local_alignment_always,
@@ -76,7 +76,7 @@ typedef struct {
   alignment_model_t alignment_model;
   swg_penalties_t swg_penalties;
   bool allow_cigar_curation;
-  bool allow_matches_curation;
+  double swg_threshold;
   /* Regions matching */
   bool allow_region_chaining;                  // Allows chaining regions to compute the alignment
   float region_scaffolding_min_length;         // Minimum length of the matching region (chaining regions)

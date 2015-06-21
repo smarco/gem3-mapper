@@ -29,16 +29,18 @@ MODULES+=bwt_commons bwt_sbasic bwt_basic
 # GEM Structures
 MODULES+=archive_builder archive_text_builder archive_hypertext_builder archive_index_builder sa_builder \
          locator rank_mtable sampled_sa sampled_rl fm_index interval_set  \
-         matches paired_matches mapper_stats \
-         archive archive_text archive_search archive_search_group \
+         matches matches_classify paired_matches \
+         archive archive_text archive_search archive_search_group archive_search_se archive_search_pe \
          archive_select archive_select_parameters archive_score mm_search
 # GEM Search Modules
-MODULES+=approximate_search_parameters approximate_search neighborhood_search \
+MODULES+=approximate_search_parameters approximate_search approximate_search_filtering \
+         approximate_search_filtering_base approximate_search_filtering_control \
+         approximate_search_neighborhood neighborhood_search \
          pattern match_scaffold match_align swg_align bpm_align bpm_align_gpu \
          filtering_candidates filtering_region region_profile region_profile_schedule \
-         kmer_counting quality_model
+         kmer_counting quality_model 
 # GEM Top-level Modules
-MODULES+=mapper mapper_cuda gem_core
+MODULES+=mapper mapper_cuda mapper_stats gem_core
 # Misc
 MODULES+=mapper_profile options_menu 
         

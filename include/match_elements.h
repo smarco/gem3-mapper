@@ -19,17 +19,24 @@
 /*
  * Alignment CIGAR (Mismatches/Indels/...)
  */
-typedef enum { cigar_match=0, cigar_mismatch=1, cigar_ins=2, cigar_del=3, cigar_soft_trim=4, cigar_null=5 } cigar_t;
+typedef enum {
+  cigar_null = 0,
+  cigar_match = 1,
+  cigar_mismatch = 2,
+  cigar_ins = 3,
+  cigar_del = 4,
+} cigar_t;
+typedef enum {
+  cigar_attr_none = 0,
+  cigar_attr_trim = 1,
+  cigar_attr_homopolymer = 2,
+} cigar_attr_t;
 typedef struct {
-  int32_t indel_length;   // Indel length
-  uint8_t* indel_text;    // Indel-text (Reference text in case of insertion, NULL otherwise)
-} cigar_indel_t;
-typedef struct {
-  cigar_t type;           // Match, Mismatch, insertion or deletion
+  cigar_t type;            // Match, Mismatch, insertion or deletion
+  cigar_attr_t attributes; // Attributes
   union {
-    int32_t match_length; // Match length
+    int32_t length; // Match length
     uint8_t mismatch;     // Mismatch base
-    cigar_indel_t indel;  // Pointer to the insert
   };
 } cigar_element_t;
 typedef struct {

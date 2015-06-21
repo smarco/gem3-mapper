@@ -7,9 +7,10 @@
  */
 
 #include "filtering_candidates.h"
-#include "match_align.h"
 #include "archive_text.h"
 #include "filtering_region.h"
+#include "match_align.h"
+#include "matches_classify.h"
 
 /*
  * Debug
@@ -58,7 +59,6 @@ GEM_INLINE void filtering_candidates_init(filtering_candidates_t* const filterin
   filtering_candidates->regions_buffer = vector_new(REGIONS_BUFFER_INIT,region_search_t);
   // Candidates
   filtering_candidates->filtering_positions = vector_new(CANDIDATE_POSITIONS_INIT,filtering_position_t);
-  filtering_candidates->verified_positions = ihash_new();
   filtering_candidates->filtering_regions = vector_new(CANDIDATE_POSITIONS_INIT,filtering_region_t);
   filtering_candidates->discarded_regions = vector_new(CANDIDATE_POSITIONS_INIT,filtering_region_t);
   filtering_candidates->verified_regions = vector_new(CANDIDATE_POSITIONS_INIT,verified_region_t);
@@ -69,7 +69,6 @@ GEM_INLINE void filtering_candidates_clear(filtering_candidates_t* const filteri
   vector_clear(filtering_candidates->regions_buffer);
   // Candidates
   vector_clear(filtering_candidates->filtering_positions);
-  ihash_clear(filtering_candidates->verified_positions);
   vector_clear(filtering_candidates->filtering_regions);
   vector_clear(filtering_candidates->discarded_regions);
   vector_clear(filtering_candidates->verified_regions);
@@ -78,7 +77,6 @@ GEM_INLINE void filtering_candidates_clear(filtering_candidates_t* const filteri
 GEM_INLINE void filtering_candidates_destroy(filtering_candidates_t* const filtering_candidates) {
   vector_delete(filtering_candidates->regions_buffer);
   vector_delete(filtering_candidates->filtering_positions);
-  ihash_delete(filtering_candidates->verified_positions);
   vector_delete(filtering_candidates->filtering_regions);
   vector_delete(filtering_candidates->discarded_regions);
   vector_delete(filtering_candidates->verified_regions);
@@ -124,17 +122,6 @@ GEM_INLINE uint64_t filtering_candidates_add_region(
   region->degree = region_errors;
   return vector_get_used(filtering_candidates->regions_buffer)-1;
 }
-GEM_INLINE void filtering_candidates_index_candidate_position(
-    filtering_candidates_t* const filtering_candidates,
-    const uint64_t index_position,mm_stack_t* const mm_stack) {
-  ihash_insert(filtering_candidates->verified_positions,index_position,1);
-}
-GEM_INLINE bool filtering_candidates_lookup_candidate_position(
-    filtering_candidates_t* const filtering_candidates,const uint64_t index_position) {
-  uint64_t* const verified_index_position =
-      ihash_get(filtering_candidates->verified_positions,index_position,uint64_t);
-  return (verified_index_position!=NULL);
-}
 GEM_INLINE void filtering_candidates_add_interval(
     filtering_candidates_t* const filtering_candidates,
     const uint64_t interval_lo,const uint64_t interval_hi,const uint64_t region_start_pos,
@@ -149,11 +136,6 @@ GEM_INLINE void filtering_candidates_add_interval(
   filtering_position_t* position_index = vector_get_free_elm(filtering_candidates->filtering_positions,filtering_position_t);
   uint64_t index_position;
   for (index_position=interval_lo;index_position<interval_hi;++index_position) {
-    if (filtering_candidates_lookup_candidate_position(filtering_candidates,index_position)) {
-      PROF_INC_COUNTER(GP_CANDIDATE_POSITIONS_DUPLICATED);
-      continue;
-    }
-    filtering_candidates_index_candidate_position(filtering_candidates,index_position,mm_stack);
     position_index->source_region_offset = region_offset;
     position_index->region_index_position = index_position;
     ++position_index;
@@ -185,7 +167,7 @@ GEM_INLINE void filtering_candidates_add_interval_set_thresholded(
 int filtering_position_cmp_position(const filtering_position_t* const a,const filtering_position_t* const b) {
   return a->begin_position - b->begin_position;
 }
-int filtering_region_cmp_align_distance(const filtering_region_t* const a,const filtering_region_t* const b) {
+int filtering_region_cmp_sort_align_distance(const filtering_region_t* const a,const filtering_region_t* const b) {
   return a->align_distance - b->align_distance;
 }
 int verified_region_cmp_position(const verified_region_t* const a,const verified_region_t* const b) {
@@ -196,10 +178,10 @@ GEM_INLINE void filtering_positions_sort_positions(vector_t* const filtering_pos
   const size_t count = vector_get_used(filtering_positions);
   qsort(array,count,sizeof(filtering_position_t),(int (*)(const void *,const void *))filtering_position_cmp_position);
 }
-GEM_INLINE void filtering_regions_align_distance(vector_t* const filtering_regions) {
+GEM_INLINE void filtering_regions_sort_align_distance(vector_t* const filtering_regions) {
   void* array = vector_get_mem(filtering_regions,filtering_region_t);
   const size_t count = vector_get_used(filtering_regions);
-  qsort(array,count,sizeof(filtering_region_t),(int (*)(const void *,const void *))filtering_region_cmp_align_distance);
+  qsort(array,count,sizeof(filtering_region_t),(int (*)(const void *,const void *))filtering_region_cmp_sort_align_distance);
 }
 GEM_INLINE void verified_regions_sort_positions(vector_t* const verified_regions) {
   void* array = vector_get_mem(verified_regions,verified_region_t);
@@ -219,7 +201,7 @@ GEM_INLINE uint64_t filtering_candidates_align_accepted_regions(
   // Parameters
   const uint64_t max_delta = as_parameters->max_filtering_strata_after_best_nominal;
   // Sort filtering regions (wrt align_distance)
-  filtering_regions_align_distance(filtering_candidates->filtering_regions);
+  filtering_regions_sort_align_distance(filtering_candidates->filtering_regions);
   // Prepare candidate vectors
   const uint64_t num_filtering_regions = vector_get_used(filtering_candidates->filtering_regions);
   vector_reserve_additional(filtering_candidates->discarded_regions,num_filtering_regions);
@@ -228,23 +210,29 @@ GEM_INLINE uint64_t filtering_candidates_align_accepted_regions(
   filtering_region_t* regions_out = regions_in;
   // Traverse all accepted candidates (text-space)
   uint64_t n, num_accepted_regions = 0;
-  gem_cond_debug_block(DEBUG_ACCEPTED_REGIONS) { gem_slog("[GEM]>Accepted.Regions\n"); }
   for (n=0;n<num_filtering_regions;++n,++regions_in) {
     if (regions_in->status != filtering_region_accepted) { // Skip other regions
       *regions_out = *regions_in;
       ++regions_out;
     } else {
       // Check filtering strata-after-best
-      const uint64_t min_counters_value = matches_counters_get_min_distance(matches);
+      const uint64_t min_edit_distance = matches_classify_metrics_get_min_edit_distance(matches);
       const uint64_t distance_bound = (approximated_distance) ?
           regions_in->align_distance_min_bound : regions_in->align_distance;
-      if (distance_bound > min_counters_value+max_delta) {
+      if (distance_bound > min_edit_distance+max_delta) {
+        gem_cond_debug_block(DEBUG_ACCEPTED_REGIONS) {
+          gem_slog("[GEM]>Accepted.Regions\n");
+          gem_slog("  => Region [%lu,%lu) discarded (Edit-bound=%lu,Edit-min=%lu,Margin=%lu)\n",
+              regions_in->begin_position,regions_in->end_position,
+              distance_bound,min_edit_distance,max_delta);
+        }
         *regions_discarded = *regions_in;
         regions_discarded->status = filtering_region_accepted_subdominant;
         ++regions_discarded;
       } else {
         // DEBUG
         gem_cond_debug_block(DEBUG_ACCEPTED_REGIONS) {
+          gem_slog("[GEM]>Accepted.Regions\n");
           gem_slog("  => Region [%lu,%lu) (dist=%lu,matching-regions=%lu)\n",
               regions_in->begin_position,regions_in->end_position,
               regions_in->align_distance,regions_in->match_scaffold.num_scaffold_regions);
@@ -260,7 +248,7 @@ GEM_INLINE uint64_t filtering_candidates_align_accepted_regions(
                 match_trace.match_alignment.effective_length;
           }
           // Add to matches
-          if (matches_add_match_trace_t(matches,&match_trace,true,mm_stack)) ++num_accepted_regions;
+          if (matches_add_match_trace(matches,&match_trace,true,mm_stack)) ++num_accepted_regions;
         } else {
           *regions_discarded = *regions_in;
           ++regions_discarded;
@@ -291,7 +279,7 @@ GEM_INLINE uint64_t filtering_candidates_local_align_discarded_regions(
     if (filtering_region_local_align(regions_discarded,archive_text,text_collection,as_parameters,
         emulated_rc_search,left_gap_alignment,pattern,matches,&match_trace,mm_stack)) {
       // Add to matches
-      if (matches_add_match_trace_t(matches,&match_trace,true,mm_stack)) ++num_local_alignments;
+      if (matches_add_match_trace(matches,&match_trace,true,mm_stack)) ++num_local_alignments;
     }
   }
   // Clear discarded vector

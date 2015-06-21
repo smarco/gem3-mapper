@@ -30,11 +30,8 @@ typedef struct {
   /* Reporting */
   double min_decoded_strata;
   uint64_t min_decoded_strata_nominal;
-  uint64_t max_decoded_matches;
   uint64_t min_reported_matches;
   uint64_t max_reported_matches;
-  /* Sorting */
-  matches_sorting_t sorting;
   /* Check */
   bool check_correct;
   bool check_optimum;
@@ -47,9 +44,8 @@ typedef struct {
 GEM_INLINE void archive_select_parameters_init(select_parameters_t* const select_parameters);
 
 GEM_INLINE void archive_select_configure_reporting(
-    select_parameters_t* const select_parameters,
-    float min_decoded_strata,uint64_t max_decoded_matches,
-    uint64_t min_reported_matches,uint64_t max_reported_matches);
+    select_parameters_t* const select_parameters,const float min_decoded_strata,
+    const uint64_t min_reported_matches,const uint64_t max_reported_matches);
 
 GEM_INLINE void archive_select_instantiate_values(
     select_parameters_t* const select_parameters,const uint64_t sequence_length);

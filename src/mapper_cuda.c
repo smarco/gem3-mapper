@@ -6,6 +6,8 @@
  */
 
 #include "mapper_cuda.h"
+#include "archive_search_se.h"
+#include "archive_search_pe.h"
 
 /*
  * Mapper-CUDA Search

@@ -6,6 +6,8 @@
  */
 
 #include "archive_search_group.h"
+#include "archive_search_se.h"
+#include "archive_search_pe.h"
 #include "bpm_align_gpu.h"
 
 /*
@@ -152,7 +154,7 @@ GEM_INLINE archive_search_t* archive_search_group_allocate(archive_search_group_
   // Alloc
   archive_search_t* const archive_search = archive_search_cache_alloc(archive_search_group->archive_search_cache);
   // Init archive search
-  archive_search_configure(archive_search,archive_search_group->mm_search);
+  archive_search_single_end_configure(archive_search,archive_search_group->mm_search);
   text_collection_clear(&archive_search_group->mm_search->text_collection); // Clear text-collection
   // Return
   return archive_search;
@@ -164,7 +166,7 @@ GEM_INLINE void archive_search_group_allocate_pe(
   *archive_search_end1 = archive_search_cache_alloc(archive_search_group->archive_search_cache);
   *archive_search_end2 = archive_search_cache_alloc(archive_search_group->archive_search_cache);
   // Init archive search
-  archive_search_pe_configure(*archive_search_end1,*archive_search_end2,archive_search_group->mm_search);
+  archive_search_paired_end_configure(*archive_search_end1,*archive_search_end2,archive_search_group->mm_search);
   text_collection_clear(&archive_search_group->mm_search->text_collection); // Clear text-collection
 }
 GEM_INLINE bool archive_search_group_is_empty(archive_search_group_t* const archive_search_group) {

@@ -31,7 +31,6 @@ typedef struct {
   vector_t* regions_buffer;                   // Regions Buffer (region_t)
   /* Candidates */
   vector_t* filtering_positions;              // Candidate positions (filtering_position_t)
-  ihash_t* verified_positions;                // Verified positions (uint64_t)
   vector_t* filtering_regions;                // Candidate regions (filtering_region_t)
   vector_t* discarded_regions;                // Discarded regions (filtering_region_t)
   vector_t* verified_regions;                 // Verified regions (verified_region_t)

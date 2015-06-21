@@ -13,7 +13,7 @@
 /*
  * Debug
  */
-#define REGION_PROFILE_DEBUG_PRINT_PROFILE false
+#define REGION_PROFILE_DEBUG_PRINT_PROFILE GEM_DEEP_DEBUG
 
 /*
  * Region Profile Generator & Query
@@ -32,6 +32,8 @@ typedef struct {
   uint64_t hi_cut;
   uint64_t expected_count;
   uint64_t max_steps;
+  // Max region length
+  uint64_t max_region_length;
 } region_profile_generator_t;
 typedef struct {
   fm_index_t* const fm_index;
@@ -84,7 +86,11 @@ GEM_INLINE void region_profile_generator_close(
     region_profile_query_t* const rp_query,
     const uint64_t lo,const uint64_t hi) {
   region_search_t* const current_region = rp_generator->region_search + rp_generator->num_regions;
+  // Set range
   current_region->end = rp_query->key_position;
+  const uint64_t region_length = current_region->start-current_region->end;
+  rp_generator->max_region_length = MAX(rp_generator->max_region_length,region_length);
+  // Set interval
   current_region->lo = lo;
   current_region->hi = hi;
   const uint64_t candidates_region = hi - lo;
@@ -94,6 +100,7 @@ GEM_INLINE void region_profile_generator_close(
     current_region->type = region_standard;
     ++(rp_generator->num_standard_regions);
   }
+  // Set candidates
   rp_generator->total_candidates += candidates_region;
   ++(rp_generator->num_regions);
 }
@@ -311,6 +318,7 @@ GEM_INLINE void region_profile_compose(
     const region_profile_model_t* const profile_model,region_profile_query_t* const rp_query,
     const uint8_t* const key,const uint64_t key_length,
     const bool* const allowed_enc,const bool extend_last_region) {
+  region_profile->max_region_length = rp_generator->max_region_length;
   region_profile->total_candidates = rp_generator->total_candidates;
   if (rp_generator->num_regions == 0) {
     region_search_t* const first_region = rp_generator->region_search;
@@ -382,7 +390,9 @@ GEM_INLINE void region_profile_generate_adaptive(
       .lo_cut = 0,
       .hi_cut = 0,
       .expected_count = 0,
-      .max_steps = 0};
+      .max_steps = 0,
+      .max_region_length = 0,
+  };
   region_profile_query_t rp_query = {
       .fm_index = fm_index,
       .key_position = key_length,
@@ -523,45 +533,4 @@ GEM_INLINE void region_profile_print(
   }
   fflush(stream);
 }
-
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-
-
-
-/*
- * Assigns to @filtered_region profile a continuous set of regions,
- * handling wildcards and regions in-between filtered regions
- */
-/*
-#define FMI_REGION_GET_NUMBER_BASES(region) (region)->hi
-#define FMI_REGION_SET_NUMBER_BASES(region,number_bases) (region)->hi = number_bases;
-#define FMI_REGION_PROFILE_COUNT_BASES(key,region) { \
-  uint64_t z, count = 0; \
-  for (z=region->end; z<region->start; z++)  { \
-    if (allowed_chars[key[z]]) ++count; \
-  } \
-  FMI_REGION_SET_NUMBER_BASES(region,count); \
-}
-
-#define FMI_ADD_MISMS_REGION(i,last_pos,size_chunk) \
-  misms_region[i].start = last_pos; \
-  last_pos -= size_chunk; \
-  misms_region[i].end = last_pos
-
-*/
-
-
-
 

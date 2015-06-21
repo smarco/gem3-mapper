@@ -765,21 +765,19 @@ GEM_INLINE void bpm_align_backtrack_matrix(
     // Add selected CIGAR operation
     switch (operation) {
       case cigar_del:
-        matches_cigar_buffer_add_cigar_element(&cigar_buffer,cigar_del,1,NULL); // Deletion <-1>@v
+        matches_cigar_buffer_add_cigar_element(&cigar_buffer,cigar_del,1); // Deletion <-1>@v
         --v; --match_effective_length;
         break;
       case cigar_ins:
-        matches_cigar_buffer_add_cigar_element(&cigar_buffer,cigar_ins,1,text+v); // Insertion <+1>@v
+        matches_cigar_buffer_add_cigar_element(&cigar_buffer,cigar_ins,1); // Insertion <+1>@v
         --h; ++match_effective_length;
         break;
       case cigar_mismatch:
-        if (cigar_buffer->type!=cigar_null) ++(cigar_buffer);
-        cigar_buffer->type = cigar_mismatch;
-        cigar_buffer->mismatch = text[h]; // Mismatch
+        matches_cigar_buffer_add_mismatch(&cigar_buffer,text[h]);
         --h; --v;
         break;
       case cigar_match:
-        matches_cigar_buffer_add_cigar_element(&cigar_buffer,cigar_match,1,NULL); // Match
+        matches_cigar_buffer_add_cigar_element(&cigar_buffer,cigar_match,1); // Match
         --h; --v;
         break;
       default:
@@ -788,7 +786,7 @@ GEM_INLINE void bpm_align_backtrack_matrix(
     }
   }
   if (v >= 0) {
-    matches_cigar_buffer_add_cigar_element(&cigar_buffer,cigar_del,v+1,NULL); // <-(@v+1)>@v
+    matches_cigar_buffer_add_cigar_element(&cigar_buffer,cigar_del,v+1); // <-(@v+1)>@v
     match_effective_length -= v+1;
   }
   if (h >= 0) {

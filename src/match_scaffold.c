@@ -146,7 +146,7 @@ GEM_INLINE void match_scaffold_compose_matching_regions(
     switch (cigar_buffer[i].type) {
       case cigar_match: {
         // Check matching length
-        const uint64_t match_length = cigar_buffer[i].match_length;
+        const uint64_t match_length = cigar_buffer[i].length;
         if (match_length < min_matching_length) {
           text_pos += match_length;
           key_pos += match_length;
@@ -161,9 +161,9 @@ GEM_INLINE void match_scaffold_compose_matching_regions(
       case cigar_mismatch:
         // Tolerate mismatches if well delimited between exact matching regions
         if (last_scaffold_region!=NULL && i+1<cigar_length &&
-            cigar_buffer[i+1].type==cigar_match && cigar_buffer[i+1].match_length >= min_matching_length) {
+            cigar_buffer[i+1].type==cigar_match && cigar_buffer[i+1].length >= min_matching_length) {
           match_scaffold_match_add_mismatch(&key_pos,&text_pos,
-              cigar_buffer[i+1].match_length+1,match_scaffold,last_scaffold_region);
+              cigar_buffer[i+1].length+1,match_scaffold,last_scaffold_region);
           i += 2;
         } else {
           last_scaffold_region = NULL; // Nullify last region-matching
@@ -172,33 +172,37 @@ GEM_INLINE void match_scaffold_compose_matching_regions(
         }
         break;
       case cigar_ins:
-        if (i>0 && cigar_buffer[i-1].type==cigar_match && cigar_buffer[i-1].match_length >= min_context_length) {
+        if (i>0 && cigar_buffer[i-1].type==cigar_match && cigar_buffer[i-1].length >= min_context_length) {
           // Check homopolymer
-          const uint64_t indel_length = cigar_buffer[i].indel.indel_length;
+          const uint64_t indel_length = cigar_buffer[i].length;
           if (match_scaffold_match_is_homopolymer(text,text_pos,min_context_length,text+text_pos,indel_length)) {
+            // Add homopolymer insertion
+            cigar_buffer[i].attributes = cigar_attr_homopolymer;
             match_scaffold_match_add_homopolymer(text,&key_pos,&text_pos,cigar_offset+(i-1),
-                cigar_buffer[i-1].match_length,cigar_ins,indel_length,match_scaffold,last_scaffold_region); // Add homopolymer insertion
+                cigar_buffer[i-1].length,cigar_ins,indel_length,match_scaffold,last_scaffold_region);
           } else {
-            text_pos += cigar_buffer[i].indel.indel_length; // Regular insertion
+            text_pos += cigar_buffer[i].length; // Regular insertion
           }
         } else {
-          text_pos += cigar_buffer[i].indel.indel_length; // Regular insertion
+          text_pos += cigar_buffer[i].length; // Regular insertion
         }
         last_scaffold_region = NULL; // Nullify last region-matching
         ++i;
         break;
       case cigar_del:
-        if (i>0 && cigar_buffer[i-1].type==cigar_match && cigar_buffer[i-1].match_length >= min_context_length) {
+        if (i>0 && cigar_buffer[i-1].type==cigar_match && cigar_buffer[i-1].length >= min_context_length) {
           // Check homopolymer
-          const uint64_t indel_length = cigar_buffer[i].indel.indel_length;
+          const uint64_t indel_length = cigar_buffer[i].length;
           if (match_scaffold_match_is_homopolymer(text,text_pos,min_context_length,key+key_pos,indel_length)) {
+            // Add homopolymer deletion
+            cigar_buffer[i].attributes = cigar_attr_homopolymer;
             match_scaffold_match_add_homopolymer(text,&key_pos,&text_pos,cigar_offset+(i-1),
-                cigar_buffer[i-1].match_length,cigar_del,indel_length,match_scaffold,last_scaffold_region); // Add homopolymer deletion
+                cigar_buffer[i-1].length,cigar_del,indel_length,match_scaffold,last_scaffold_region);
           } else {
-            key_pos += cigar_buffer[i].indel.indel_length; // Regular insertion
+            key_pos += cigar_buffer[i].length; // Regular insertion
           }
         } else {
-          key_pos += cigar_buffer[i].indel.indel_length; // Regular insertion
+          key_pos += cigar_buffer[i].length; // Regular insertion
         }
         last_scaffold_region = NULL; // Nullify last region-matching
         ++i;

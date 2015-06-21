@@ -128,23 +128,24 @@ GEM_INLINE void output_sam_print_cigar_element(
     buffered_output_file_t* const buffered_output_file,const cigar_element_t* const cigar_element) {
   switch (cigar_element->type) {
     case cigar_match:
-      bofprintf_uint64(buffered_output_file,(uint32_t)cigar_element->match_length);
+      bofprintf_uint64(buffered_output_file,(uint32_t)cigar_element->length);
       bofprintf_char(buffered_output_file,'M');
       break;
     case cigar_mismatch:
       bofprintf_char(buffered_output_file,'X');
       break;
     case cigar_ins:
-      bofprintf_int64(buffered_output_file,cigar_element->indel.indel_length);
+      bofprintf_int64(buffered_output_file,cigar_element->length);
       bofprintf_char(buffered_output_file,'D');
       break;
     case cigar_del:
-      bofprintf_int64(buffered_output_file,cigar_element->indel.indel_length);
-      bofprintf_char(buffered_output_file,'I');
-      break;
-    case cigar_soft_trim:
-      bofprintf_int64(buffered_output_file,cigar_element->indel.indel_length);
-      bofprintf_char(buffered_output_file,'S');
+      if (cigar_element->attributes == cigar_attr_trim) {
+        bofprintf_int64(buffered_output_file,cigar_element->length);
+        bofprintf_char(buffered_output_file,'S');
+      } else {
+        bofprintf_int64(buffered_output_file,cigar_element->length);
+        bofprintf_char(buffered_output_file,'I');
+      }
       break;
     default:
       GEM_INVALID_CASE();
@@ -155,7 +156,7 @@ GEM_INLINE void output_sam_print_reduced_cigar_element(
     buffered_output_file_t* const buffered_output_file,
     const cigar_element_t* const cigar_element,uint64_t* const matching) {
   if (cigar_element->type==cigar_match) {
-    *matching += (uint32_t)cigar_element->match_length;
+    *matching += (uint32_t)cigar_element->length;
   } else if (cigar_element->type==cigar_mismatch) {
     ++(*matching);
   } else {
@@ -168,48 +169,48 @@ GEM_INLINE void output_sam_print_reduced_cigar_element(
   }
 }
 GEM_INLINE void output_sam_print_md_cigar_element(
-    buffered_output_file_t* const buffered_output_file,const strand_t match_strand,
+    buffered_output_file_t* const buffered_output_file,
+    const uint8_t* const text,uint64_t* const text_pos,const strand_t match_strand,
     const cigar_element_t* const cigar_element,uint64_t* const matching_length) {
   // Handle Matches/Mismatches
   switch (cigar_element->type) {
     case cigar_match:
-      *matching_length += (uint32_t)cigar_element->match_length;
+      *matching_length += cigar_element->length;
+      *text_pos += cigar_element->length;
       break;
     case cigar_ins:
-    case cigar_mismatch:
       if (*matching_length > 0) {
         bofprintf_uint64(buffered_output_file,*matching_length);
         *matching_length = 0;
       }
       // Print Indel
-      switch (cigar_element->type) {
-        case cigar_ins: {
-          bofprintf_char(buffered_output_file,'^');
-          const uint64_t length = cigar_element->indel.indel_length;
-          int64_t i; // Print inserted text (text from the reference)
-          if (match_strand==Forward) {
-            for (i=0;i<length;++i) {
-              bofprintf_char(buffered_output_file,dna_decode(cigar_element->indel.indel_text[i]));
-            }
-          } else {
-            for (i=length-1;i>=0;--i) {
-              bofprintf_char(buffered_output_file,dna_complement(dna_decode(cigar_element->indel.indel_text[i])));
-            }
-          }
-          break;
+      bofprintf_char(buffered_output_file,'^');
+      const uint64_t length = cigar_element->length;
+      int64_t i; // Print inserted text (text from the reference)
+      if (match_strand==Forward) {
+        for (i=0;i<length;++i) {
+          bofprintf_char(buffered_output_file,dna_decode(text[*text_pos+i]));
         }
-        case cigar_mismatch:
-          if (match_strand==Forward) {
-            bofprintf_char(buffered_output_file,dna_decode(cigar_element->mismatch));
-          } else {
-            bofprintf_char(buffered_output_file,dna_complement(dna_decode(cigar_element->mismatch)));
-          }
-          break;
-        default: break;
+      } else {
+        for (i=length-1;i>=0;--i) {
+          bofprintf_char(buffered_output_file,dna_complement(dna_decode(text[*text_pos+i])));
+        }
       }
+      *text_pos += length;
+      break;
+    case cigar_mismatch:
+      if (*matching_length > 0) {
+        bofprintf_uint64(buffered_output_file,*matching_length);
+        *matching_length = 0;
+      }
+      if (match_strand==Forward) {
+        bofprintf_char(buffered_output_file,dna_decode(cigar_element->mismatch));
+      } else {
+        bofprintf_char(buffered_output_file,dna_complement(dna_decode(cigar_element->mismatch)));
+      }
+      ++(*text_pos);
       break;
     case cigar_del:
-    case cigar_soft_trim:
       break;
     default:
       GEM_INVALID_CASE();
@@ -320,15 +321,16 @@ GEM_INLINE void output_sam_print_opt_field_tag_MD(
   // Print MD
   bofprintf_string_literal(buffered_output_file,"\tMD:Z:");
   // Print MD CIGAR
+  const uint8_t* const text = match_trace->text;
   int64_t i;
-  uint64_t matching_length = 0;
+  uint64_t matching_length = 0, text_pos = 0;
   if (match_trace->strand==Forward) {
     for (i=0;i<cigar_length;++i) {
-      output_sam_print_md_cigar_element(buffered_output_file,Forward,cigar_array+i,&matching_length);
+      output_sam_print_md_cigar_element(buffered_output_file,text,&text_pos,Forward,cigar_array+i,&matching_length);
     }
   } else {
     for (i=cigar_length-1;i>=0;--i) {
-      output_sam_print_md_cigar_element(buffered_output_file,Reverse,cigar_array+i,&matching_length);
+      output_sam_print_md_cigar_element(buffered_output_file,text,&text_pos,Reverse,cigar_array+i,&matching_length);
     }
   }
   if (matching_length > 0) bofprintf_uint64(buffered_output_file,matching_length);
@@ -626,7 +628,7 @@ GEM_INLINE void output_sam_print_opt_field_tag_X5(
       buffered_output_file_reserve(buffered_output_file,1);
       if (match_number > 0) bofprintf_char(buffered_output_file,',');
       // Print Match
-      output_map_print_match(buffered_output_file,matches,match_trace,true);
+      output_map_print_match(buffered_output_file,matches,match_trace,true,map_format_v2);
     }
   }
 }
@@ -648,7 +650,7 @@ GEM_INLINE void output_sam_print_opt_field_tag_X5_pe(
         buffered_output_file_reserve(buffered_output_file,1);
         if (paired_match_number > 0) bofprintf_char(buffered_output_file,',');
         // Print Match
-        output_map_print_match(buffered_output_file,matches_end1,paired_match->match_end1,true);
+        output_map_print_match(buffered_output_file,matches_end1,paired_match->match_end1,true,map_format_v2);
       }
     } else {
       matches_t* const matches_end2 = paired_matches->matches_end2;
@@ -657,7 +659,7 @@ GEM_INLINE void output_sam_print_opt_field_tag_X5_pe(
         buffered_output_file_reserve(buffered_output_file,1);
         if (paired_match_number > 0) bofprintf_char(buffered_output_file,',');
         // Print Match
-        output_map_print_match(buffered_output_file,matches_end2,paired_match->match_end2,true);
+        output_map_print_match(buffered_output_file,matches_end2,paired_match->match_end2,true,map_format_v2);
       }
     }
   }

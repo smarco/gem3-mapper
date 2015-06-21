@@ -84,7 +84,7 @@ GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const se
   search_parameters->swg_penalties.gap_open_score = -6;
   search_parameters->swg_penalties.gap_extension_score = -1;
   search_parameters->allow_cigar_curation = true;
-  search_parameters->allow_matches_curation = true;
+  search_parameters->swg_threshold = 0.20;
   // Regions handling
   search_parameters->allow_region_chaining = true;
   search_parameters->region_scaffolding_min_length = 10;

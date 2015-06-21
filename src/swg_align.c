@@ -36,7 +36,7 @@ GEM_INLINE bool align_check_match(
       case cigar_match: {
         // Check all matching characters
         uint64_t j;
-        for (j=0;j<cigar_element->match_length;++j) {
+        for (j=0;j<cigar_element->length;++j) {
           if (key[read_pos] != text[text_pos]) {
             if (verbose) {
               fprintf(stream,"Align Check. Alignment not matching (key[%lu]=%c != text[%lu]=%c)\n",
@@ -68,11 +68,10 @@ GEM_INLINE bool align_check_match(
         ++text_pos;
         break;
       case cigar_ins:
-        text_pos += cigar_element->indel.indel_length;
+        text_pos += cigar_element->length;
         break;
       case cigar_del:
-      case cigar_soft_trim:
-        read_pos += cigar_element->indel.indel_length;
+        read_pos += cigar_element->length;
         break;
       case cigar_null:
         gem_cond_error_msg(verbose,"Align Check. CIGAR Null");
@@ -297,17 +296,16 @@ GEM_INLINE int32_t swg_score_cigar_element(
     const swg_penalties_t* const swg_penalties,const cigar_element_t* const cigar_element) {
   switch (cigar_element->type) {
     case cigar_match:
-      return swg_score_match(swg_penalties,cigar_element->match_length);
+      return swg_score_match(swg_penalties,cigar_element->length);
       break;
     case cigar_mismatch:
       return swg_score_mismatch(swg_penalties);
       break;
     case cigar_ins:
-      return swg_score_insertion(swg_penalties,cigar_element->indel.indel_length);
+      return swg_score_insertion(swg_penalties,cigar_element->length);
       break;
     case cigar_del:
-    case cigar_soft_trim:
-      return swg_score_deletion(swg_penalties,cigar_element->indel.indel_length);
+      return swg_score_deletion(swg_penalties,cigar_element->length);
       break;
     case cigar_null:
     default:
@@ -385,13 +383,13 @@ GEM_INLINE void swg_align_match_traceback(
     switch (traceback_matrix) {
       case cigar_del:
         // Traceback D-matrix
-        matches_cigar_buffer_add_cigar_element(&cigar_buffer_sentinel,cigar_del,1,NULL); // Deletion <-1>@v
+        matches_cigar_buffer_add_cigar_element(&cigar_buffer_sentinel,cigar_del,1); // Deletion <-1>@v
         if (dp[h][v].D == dp[h][v-1].M + single_gap) traceback_matrix = cigar_match;
         --v; --match_effective_length;
         break;
       case cigar_ins:
         // Traceback I-matrix
-        matches_cigar_buffer_add_cigar_element(&cigar_buffer_sentinel,cigar_ins,1,text+(h-1)); // Insertion <+1>@v
+        matches_cigar_buffer_add_cigar_element(&cigar_buffer_sentinel,cigar_ins,1); // Insertion <+1>@v
         if (dp[h][v].I == dp[h-1][v].M + single_gap) traceback_matrix = cigar_match;
         --h; ++match_effective_length;
         break;
@@ -404,12 +402,10 @@ GEM_INLINE void swg_align_match_traceback(
         } else {
           if (key[v-1] != text[h-1]) {
             // Mismatch
-            if (cigar_buffer_sentinel->type!=cigar_null) ++(cigar_buffer_sentinel);
-            cigar_buffer_sentinel->type = cigar_mismatch;
-            cigar_buffer_sentinel->mismatch = text[h-1];
+            matches_cigar_buffer_add_mismatch(&cigar_buffer_sentinel,text[h-1]);
             --h; --v;
           } else {
-            matches_cigar_buffer_add_cigar_element(&cigar_buffer_sentinel,cigar_match,1,NULL); // Match
+            matches_cigar_buffer_add_cigar_element(&cigar_buffer_sentinel,cigar_match,1); // Match
             --h; --v;
           }
         }
@@ -417,14 +413,14 @@ GEM_INLINE void swg_align_match_traceback(
     }
   }
   if (v > 0) {
-    matches_cigar_buffer_add_cigar_element(&cigar_buffer_sentinel,cigar_del,v,NULL); // <-(@v+1)>@v
+    matches_cigar_buffer_add_cigar_element(&cigar_buffer_sentinel,cigar_del,v); // <-(@v+1)>@v
     match_effective_length -= v;
   }
   if (h > 0) {
     if (begin_free) {
       match_alignment->match_position += h; // We need to correct the matching_position
     } else {
-      matches_cigar_buffer_add_cigar_element(&cigar_buffer_sentinel,cigar_ins,h,text); // <-(@h+1)>@h
+      matches_cigar_buffer_add_cigar_element(&cigar_buffer_sentinel,cigar_ins,h); // <-(@h+1)>@h
       match_effective_length += h;
     }
   }
@@ -827,7 +823,7 @@ GEM_INLINE void swg_align_match(
       match_alignment->effective_length = 0;
     } else if (!end_free) {
       // Insertion <+@text_length>
-      matches_cigar_vector_append_insertion(cigar_vector,&match_alignment->cigar_length,text_length,text);
+      matches_cigar_vector_append_insertion(cigar_vector,&match_alignment->cigar_length,text_length,cigar_attr_none);
       match_alignment->score = swg_score_insertion(swg_penalties,text_length);
       match_alignment->effective_length = text_length;
     } else {
@@ -836,17 +832,17 @@ GEM_INLINE void swg_align_match(
     }
   } else if (key_length > 0 && text_length == 0) {
     // Deletion <-@key_length>
-    matches_cigar_vector_append_deletion(cigar_vector,&match_alignment->cigar_length,key_length);
+    matches_cigar_vector_append_deletion(cigar_vector,&match_alignment->cigar_length,key_length,cigar_attr_none);
     match_alignment->score = swg_score_deletion(swg_penalties,key_length);
   } else if (key_length==1 && text_length==1) {
     // Mismatch/Match
     const uint8_t key_enc = key[0];
     const uint8_t text_enc = text[0];
     if (!allowed_enc[text_enc] || text_enc != key_enc) {
-      matches_cigar_vector_append_mismatch(cigar_vector,&match_alignment->cigar_length,text_enc);
+      matches_cigar_vector_append_mismatch(cigar_vector,&match_alignment->cigar_length,text_enc,cigar_attr_none);
       match_alignment->score = swg_score_mismatch(swg_penalties);
     } else {
-      matches_cigar_vector_append_match(cigar_vector,&match_alignment->cigar_length,1);
+      matches_cigar_vector_append_match(cigar_vector,&match_alignment->cigar_length,1,cigar_attr_none);
       match_alignment->score = swg_score_match(swg_penalties,1);
     }
     match_alignment->effective_length = 1;

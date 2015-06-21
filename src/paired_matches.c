@@ -385,6 +385,6 @@ GEM_INLINE uint64_t paired_match_get_template_observed_length(
 }
 GEM_INLINE uint64_t paired_match_calculate_distance(
     const match_trace_t* const match_trace_end1,const match_trace_t* const match_trace_end2) {
-  return match_trace_get_distance(match_trace_end1)+match_trace_get_distance(match_trace_end2);
+  return match_trace_end1->distance+match_trace_end2->distance;
 }
 

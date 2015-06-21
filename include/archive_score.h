@@ -15,8 +15,7 @@
 /*
  * SE Scoring
  */
-GEM_INLINE void archive_score_matches_se(
-    archive_search_t* const archive_search,matches_t* const matches);
+GEM_INLINE void archive_score_matches_se(archive_search_t* const archive_search,matches_t* const matches);
 
 /*
  * PE Scoring

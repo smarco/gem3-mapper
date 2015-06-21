@@ -20,9 +20,14 @@
 /*
  * MAP Parameters
  */
+typedef enum {
+  map_format_v1 = 1, // GEMv1
+  map_format_v2 = 2, // GEMv2
+  map_format_v3 = 3, // GEMv3
+} output_map_format_t;
 typedef struct {
   /* MAP format  */
-  uint64_t format_version;
+  output_map_format_t format_version;
 } output_map_parameters_t;
 
 /*
@@ -46,12 +51,13 @@ GEM_INLINE void output_map_print_counters(
     buffered_output_file_t* const buffered_output_file,
     const vector_t* const counters_vector,const uint64_t mcs,const bool compact);
 GEM_INLINE void output_map_print_match(
-    buffered_output_file_t* const buffered_output_file,const matches_t* const matches,
-    const match_trace_t* const match_trace,const bool print_mapq);
+    buffered_output_file_t* const buffered_output_file,
+    const matches_t* const matches,const match_trace_t* const match_trace,
+    const bool print_mapq,const output_map_format_t output_map_format);
 GEM_INLINE void output_map_print_paired_match(
     buffered_output_file_t* const buffered_output_file,
     const matches_t* const matches_end1,const matches_t* const matches_end2,
-    const paired_match_t* const paired_match);
+    const paired_match_t* const paired_match,const output_map_format_t output_map_format);
 
 /*
  * MAP SingleEnd

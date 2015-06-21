@@ -3,7 +3,7 @@
  * FILE: archive_search.h
  * DATE: 06/06/2012
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
- * DESCRIPTION: // TODO
+ * DESCRIPTION:
  */
 
 #ifndef ARCHIVE_SEARCH_H_
@@ -11,13 +11,10 @@
 
 #include "essentials.h"
 
-#include "sequence.h"
-#include "matches.h"
-#include "paired_matches.h"
-
 #include "archive.h"
 #include "archive_select_parameters.h"
 #include "approximate_search.h"
+#include "sequence.h"
 #include "mm_search.h"
 
 /*
@@ -28,7 +25,7 @@
   ARCHIVE_CHECK(archive_search->archive)
 
 /*
- * Archive Approximate-Search
+ * Archive Search State
  */
 typedef enum {
   archive_search_pe_begin,                     // Beginning of the search
@@ -46,6 +43,10 @@ typedef enum {
   archive_search_pe_recovery,                  // Paired-end recovery by extension
   archive_search_pe_end                        // End of the current workflow
 } archive_search_pe_state_t;
+
+/*
+ * Archive Search
+ */
 typedef struct {
   /* Archive */
   archive_t* archive;                        // Archive
@@ -67,60 +68,37 @@ typedef struct {
   /* Text-Collection */
   text_collection_t* text_collection;
   /* Stats */
-  mapper_stats_t* mapper_stats;            // Mapping statistics
+  mapper_stats_t* mapper_stats;              // Mapping statistics
   /* MM */
   mm_stack_t* mm_stack;                      // MM-Stack
 } archive_search_t;
 
 /*
- * Archive Search Setup
+ * Setup
  */
 GEM_INLINE archive_search_t* archive_search_new(
     archive_t* const archive,search_parameters_t* const search_parameters,
     select_parameters_t* const select_parameters);
-GEM_INLINE void archive_search_configure(archive_search_t* const archive_search,mm_search_t* const mm_search);
-GEM_INLINE void archive_search_pe_configure(
-    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
+GEM_INLINE void archive_search_configure(
+    archive_search_t* const archive_search,const sequence_end_t sequence_end,
     mm_search_t* const mm_search);
 GEM_INLINE void archive_search_reset(archive_search_t* const archive_search);
 GEM_INLINE void archive_search_delete(archive_search_t* const archive_search);
-// [Accessors]
+
+/*
+ * Accessors
+ */
 GEM_INLINE sequence_t* archive_search_get_sequence(const archive_search_t* const archive_search);
 GEM_INLINE uint64_t archive_search_get_search_canditates(const archive_search_t* const archive_search);
 GEM_INLINE uint64_t archive_search_get_search_exact_matches(const archive_search_t* const archive_search);
+GEM_INLINE uint64_t archive_search_get_max_region_length(const archive_search_t* const archive_search);
+
+GEM_INLINE bool archive_search_finished(const archive_search_t* const archive_search);
 
 /*
- * SingleEnd Indexed Search
+ * Utils
  */
-// Step-wise
-GEM_INLINE void archive_search_generate_candidates(archive_search_t* const archive_search);
-GEM_INLINE void archive_search_verify_candidates(archive_search_t* const archive_search,matches_t* const matches);
-GEM_INLINE void archive_search_finish_search(archive_search_t* const archive_search,matches_t* const matches);
-GEM_INLINE void archive_search_copy_candidates(
-    archive_search_t* const archive_search,bpm_gpu_buffer_t* const bpm_gpu_buffer);
-GEM_INLINE void archive_search_retrieve_candidates(
-    archive_search_t* const archive_search,bpm_gpu_buffer_t* const bpm_gpu_buffer,matches_t* const matches);
-// SE Online Approximate String Search
-GEM_INLINE void archive_search_single_end(archive_search_t* const archive_search,matches_t* const matches);
-
-/*
- * PairedEnd Indexed Search
- */
-// Step-wise
-GEM_INLINE void archive_search_pe_generate_candidates(
-    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches);
-GEM_INLINE void archive_search_pe_finish_search(
-    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches);
-// PE Online Approximate String Search
-GEM_INLINE void archive_search_paired_end(
-    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches);
-
-/*
- * Errors
- */
-#define GEM_ERROR_ARCHIVE_SEARCH_INDEX_COMPLEMENT_REQUIRED "Archive Search. Explicit indexed complement required"
+GEM_INLINE void archive_search_hold_verification_candidates(archive_search_t* const archive_search);
+GEM_INLINE void archive_search_release_verification_candidates(archive_search_t* const archive_search);
 
 #endif /* ARCHIVE_SEARCH_H_ */

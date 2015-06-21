@@ -10,6 +10,7 @@
 #include "archive_text.h"
 #include "match_align.h"
 #include "match_align_dto.h"
+#include "matches_classify.h"
 #include "output_map.h"
 
 /*
@@ -25,12 +26,12 @@ GEM_INLINE void archive_select_realign_match_interval(
   match_align_parameters_t align_parameters;
   match_scaffold_t match_scaffold = { .scaffold_regions = 0, .num_scaffold_regions = 0 };
   if (match_interval->distance==0 || alignment_model==alignment_model_none) {
-    align_input.key_length = sequence_get_length(&archive_search->sequence);
     align_input.text_trace_offset = match_trace->trace_offset;
-    align_input.text_position = match_trace->match_alignment.match_position;
     align_input.text = match_interval->text;
     align_input.text_offset_begin = 0;
-    align_input.text_offset_end = match_interval->length;
+    align_input.text_offset_end = match_interval->text_length;
+    align_input.key_length = sequence_get_length(&archive_search->sequence);
+    align_input.text_position = match_trace->match_alignment.match_position;
     align_parameters.emulated_rc_search = match_interval->emulated_rc_search;
     align_parameters.max_error = match_interval->distance;
     align_parameters.swg_penalties = &search_parameters->swg_penalties;
@@ -49,6 +50,7 @@ GEM_INLINE void archive_select_realign_match_interval(
         align_input.text_position = match_trace->match_alignment.match_position;
         align_input.text = match_interval->text;
         align_input.text_offset_begin = 0;
+        align_input.text_offset_end = search_state->pattern.key_length;
         align_parameters.emulated_rc_search = match_interval->emulated_rc_search;
         align_parameters.allowed_enc = search_parameters->allowed_enc;
         match_align_hamming(matches,match_trace,&align_input,&align_parameters);
@@ -60,7 +62,8 @@ GEM_INLINE void archive_select_realign_match_interval(
         align_input.text_position = match_trace->match_alignment.match_position;
         align_input.text = match_interval->text;
         align_input.text_offset_begin = 0;
-        align_input.text_length = match_interval->length;
+        align_input.text_offset_end = match_interval->text_length;
+        align_input.text_length = match_interval->text_length;
         align_parameters.emulated_rc_search = match_interval->emulated_rc_search;
         align_parameters.max_error = match_interval->distance;
         align_parameters.left_gap_alignment = left_gap_alignment;
@@ -73,9 +76,9 @@ GEM_INLINE void archive_select_realign_match_interval(
         align_input.text_trace_offset = match_trace->trace_offset;
         align_input.text_position = match_trace->match_alignment.match_position;
         align_input.text = match_interval->text;
-        align_input.text_length = match_interval->length;
+        align_input.text_length = match_interval->text_length;
         align_input.text_offset_begin = 0;
-        align_input.text_offset_end = match_interval->length;
+        align_input.text_offset_end = match_interval->text_length;
         align_parameters.emulated_rc_search = match_interval->emulated_rc_search;
         align_parameters.max_error = match_interval->distance;
         align_parameters.max_bandwidth = match_interval->distance;
@@ -135,59 +138,62 @@ GEM_INLINE void archive_select_locate_match_trace(
     match_trace->strand = emulated_rc_search ? Reverse : Forward;
   }
 }
-GEM_INLINE uint64_t archive_select_process_trace_matches(
+GEM_INLINE void archive_select_process_trace_matches(
     archive_search_t* const archive_search,matches_t* const matches,
-    const uint64_t strata_to_decode,const uint64_t matches_to_decode_last_stratum) {
+    const uint64_t strata_to_decode,uint64_t* const matches_to_decode_last_stratum) {
   const archive_t* const archive = archive_search->archive;
   const uint64_t seq_length = sequence_get_length(&archive_search->sequence);
   const uint64_t last_stratum_distance = strata_to_decode-1;
-  /*
-   * Match-Trace
-   *   Count already decoded matches & discard unwanted matches
-   */
+  // Count already decoded matches & discard unwanted matches
+  bool reallocated = false;
   uint64_t num_matches_last_stratum = 0;
   match_trace_t* position_matches_it = matches_get_match_traces(matches);
   VECTOR_ITERATE(matches->position_matches,match_trace,match_trace_num,match_trace_t) {
     if (match_trace->distance <= last_stratum_distance) {
       // Count matches last stratum
       if (match_trace->distance == last_stratum_distance) {
-        if (num_matches_last_stratum < matches_to_decode_last_stratum) {
-          ++num_matches_last_stratum;
-        } else {
+        if (num_matches_last_stratum >= *matches_to_decode_last_stratum) {
           continue; // Too many matches decoded in the last stratum
         }
+        ++num_matches_last_stratum;
       }
       if (match_trace->text_position == UINT64_MAX) { // Not decoded yet
-        // 1.- (Re)Align match [Already DONE]
-        // 2.- Correct CIGAR (Reverse it if the search was performed in the reverse strand, emulated)
+        // Correct CIGAR (Reverse it if the search was performed in the reverse strand, emulated)
         if (match_trace->emulated_rc_search) {
           archive_select_correct_cigar(archive,matches,
               match_trace->match_alignment.cigar_offset,match_trace->match_alignment.cigar_length);
         }
-        // 3.- Locate-map the match
+        // Locate-map the match
         archive_select_locate_match_trace(archive,matches,match_trace,seq_length,
             match_trace->match_alignment.effective_length,match_trace->emulated_rc_search);
       }
-      // 4.- Add the match (Store it in the vector, removing unwanted ones)
-      if (position_matches_it != match_trace) *position_matches_it = *match_trace;
-      ++position_matches_it; // TODO regenerate matches-index on the fly
+      // Add the match (Store it in the vector, removing unwanted ones)
+      if (position_matches_it != match_trace) {
+        *position_matches_it = *match_trace;
+        reallocated = true;
+      }
+      ++position_matches_it;
     }
   }
   vector_update_used(matches->position_matches,position_matches_it); // Update used
-  matches_clear_index(matches);
-  // Return matches in the last stratum
-  return num_matches_last_stratum;
+  // Because the matches had been reallocated, the indexed-positions are no longer valid
+  if (reallocated) {
+    matches_index_rebuild(matches,archive_search->mm_stack);
+    matches_classify_metrics_recompute(matches);
+  }
+  // Return matches to decode in the last stratum
+  *matches_to_decode_last_stratum -= num_matches_last_stratum;
 }
 GEM_INLINE void archive_select_process_interval_matches(
     archive_search_t* const archive_search,matches_t* const matches,
-    const uint64_t strata_to_decode,const uint64_t matches_to_decode_last_stratum,
-    uint64_t num_matches_last_stratum) {
+    const uint64_t strata_to_decode,const uint64_t matches_to_decode_last_stratum) {
   // Parameters
   const archive_t* const archive = archive_search->archive;
   text_collection_t* const text_collection = archive_search->text_collection;
   const uint64_t seq_length = sequence_get_length(&archive_search->sequence);
   const uint64_t last_stratum_distance = strata_to_decode-1;
   // Traverse all interval-matches
+  uint64_t num_matches_last_stratum = 0;
   VECTOR_ITERATE(matches->interval_matches,match_interval,match_interval_num,match_interval_t) {
     if (num_matches_last_stratum >= matches_to_decode_last_stratum) break;
     // Get next match-interval
@@ -199,7 +205,7 @@ GEM_INLINE void archive_select_process_interval_matches(
     // 1.- (Re)Align match (retrieved with the seq-read(pattern))
     if (match_interval->distance > 0) {
       match_trace.trace_offset = archive_text_retrieve(archive->text,text_collection,
-          match_trace.match_alignment.match_position,match_interval->length, /* + delta TODO */
+          match_trace.match_alignment.match_position,match_interval->text_length, /* + delta TODO */
           false,archive_search->mm_stack);
       // Set interval text
       const text_trace_t* const text_trace = text_collection_get_trace(text_collection,match_trace.trace_offset);
@@ -215,7 +221,7 @@ GEM_INLINE void archive_select_process_interval_matches(
     archive_select_locate_match_trace(archive,matches,&match_trace,
         seq_length,match_trace.match_alignment.effective_length,match_interval->emulated_rc_search);
     // 4.- Add the match
-    matches_add_match_trace_t(matches,&match_trace,false,archive_search->mm_stack);
+    matches_add_match_trace(matches,&match_trace,false,archive_search->mm_stack);
     const bool last_stratum_match = (match_interval->distance == last_stratum_distance);
     if (last_stratum_match) ++num_matches_last_stratum;
     // 5.- Build the rest of the interval
@@ -231,19 +237,19 @@ GEM_INLINE void archive_select_process_interval_matches(
       archive_select_locate_match_trace(archive,matches,&match_trace,
           seq_length,match_trace.match_alignment.effective_length,match_interval->emulated_rc_search);
       // 4.- Add the match
-      matches_add_match_trace_t(matches,&match_trace,false,archive_search->mm_stack);
+      matches_add_match_trace(matches,&match_trace,false,archive_search->mm_stack);
     }
   }
 }
 GEM_INLINE void archive_select_decode_matches(
     archive_search_t* const archive_search,matches_t* const matches,
-    const uint64_t strata_to_decode,const uint64_t matches_to_decode_last_stratum) {
+    const uint64_t strata_to_decode,uint64_t matches_to_decode_last_stratum) {
   // Decode trace-matches. Count already decoded matches & discard unwanted matches
-  const uint64_t num_matches_last_stratum =
-      archive_select_process_trace_matches(archive_search,matches,strata_to_decode,matches_to_decode_last_stratum);
-  // Decode interval.matches (until we reach @max_decoded_matches)
+  archive_select_process_trace_matches(
+      archive_search,matches,strata_to_decode,&matches_to_decode_last_stratum);
+  // Decode interval-matches
   archive_select_process_interval_matches(
-      archive_search,matches,strata_to_decode,matches_to_decode_last_stratum,num_matches_last_stratum);
+      archive_search,matches,strata_to_decode,matches_to_decode_last_stratum);
 }
 GEM_INLINE void archive_select_decode_trace_matches(
     archive_search_t* const archive_search,matches_t* const matches,
@@ -276,17 +282,6 @@ GEM_INLINE void archive_select_decode_trace_matches_all(
 /*
  * Filters
  */
-GEM_INLINE void archive_select_filter_matches_mapq(
-    matches_t* const matches,const uint8_t mapq_threshold) {
-  match_trace_t* match_trace_out = matches_get_match_traces(matches);
-  VECTOR_ITERATE(matches->position_matches,match_trace_in,n,match_trace_t) {
-    if (match_trace_in->mapq_score >= mapq_threshold) {
-      *match_trace_out = *match_trace_in;
-      ++match_trace_out;
-    }
-  }
-  vector_update_used(matches->position_matches,match_trace_out);
-}
 GEM_INLINE void archive_select_filter_paired_matches_mapq(
     paired_matches_t* const paired_matches,const uint8_t mapq_threshold) {
   paired_match_t* paired_match_out = vector_get_mem(paired_matches->matches,paired_match_t);
@@ -302,94 +297,90 @@ GEM_INLINE void archive_select_filter_paired_matches_mapq(
  * Select Paired-Matches
  */
 GEM_INLINE void archive_select_calculate_matches_to_decode(
-    matches_t* const matches,const uint64_t max_decoded_matches,const uint64_t min_decoded_strata,
+    matches_t* const matches,const uint64_t min_decoded_strata,
     const uint64_t min_reported_matches,const uint64_t max_reported_matches,
-    uint64_t* const total_strata_to_decode,uint64_t* const matches_to_decode_last_stratum_out) {
+    uint64_t* const strata_to_decode,uint64_t* const matches_to_decode_from_last_stratum) {
   // Compact counters (Shrink the counters to the last non-zero stratum)
-  const uint64_t max_nz_stratum = matches_counters_compact(matches); // Maximum reachable stratum w.r.t counters
-  if (max_nz_stratum==0) return;
-  // Maximum stratum to decode (increased by @max_decoded_matches)
+  const uint64_t max_strata = matches_counters_compact(matches); // Strata is one based
+  if (max_strata==0) return;
   const uint64_t* const counters = vector_get_mem(matches->counters,uint64_t);
-  uint64_t strata_to_decode, total_matches;
-  for (strata_to_decode=0,total_matches=0;strata_to_decode<max_nz_stratum;++strata_to_decode) {
-    total_matches += counters[strata_to_decode];
-    if (total_matches > max_decoded_matches) {
-      total_matches -= counters[strata_to_decode];
+  uint64_t current_stratum=0, total_matches=0, total_complete_strata=0;
+  // Maximum stratum to decode (increased by @min_decoded_strata & @max_reported_matches)
+  while (current_stratum < max_strata && (total_complete_strata < min_decoded_strata || total_matches < max_reported_matches)) {
+    total_matches += counters[current_stratum];
+    if (total_matches > max_reported_matches) {
+      total_matches -= counters[current_stratum];
       break;
     }
-  }
-  // Maximum stratum to decode (increased by @min_decoded_strata)
-  if (min_decoded_strata > 0) {
-    const uint64_t min_nz_stratum = matches_counters_get_min_distance(matches);
-    const uint64_t mandatory_strata = min_nz_stratum + min_decoded_strata;
-    for (;strata_to_decode<max_nz_stratum && strata_to_decode<mandatory_strata;++strata_to_decode) {
-      total_matches += counters[strata_to_decode];
-    }
+    ++current_stratum;
+    if (total_matches > 0) ++total_complete_strata;
   }
   // Maximum stratum to decode (increased by @min_reported_matches)
-  for (;strata_to_decode<max_nz_stratum && total_matches<min_reported_matches;++strata_to_decode) {
-    total_matches += counters[strata_to_decode];
-  }
-  // Maximum stratum to decode (lowered by @max_reported_matches & @min_reported_matches)
-  for (;strata_to_decode>0;--strata_to_decode) {
-    const uint64_t prev_acc = total_matches - counters[strata_to_decode-1];
-    if (total_matches <= max_reported_matches || prev_acc < min_reported_matches) break;
-    total_matches = prev_acc;
-  }
-  // Decode matches
-  if (total_matches!=0) { // => (strata_to_decode > 0)
-    *total_strata_to_decode = strata_to_decode;
-    *matches_to_decode_last_stratum_out = UINT64_MAX;
-    if (total_matches > max_reported_matches) {
-      const uint64_t prev_acc = total_matches - counters[strata_to_decode-1];
-      const uint64_t max_matches_from_last_stratum = max_reported_matches - prev_acc;
-      *matches_to_decode_last_stratum_out = max_matches_from_last_stratum;
-    }
+  if (current_stratum < max_strata && total_matches < min_reported_matches) {
+    total_matches += counters[current_stratum];
+    ++current_stratum;
+    // Decode partial stratum
+    *matches_to_decode_from_last_stratum = min_reported_matches - total_matches;
   } else {
-    *total_strata_to_decode = 0;
-    *matches_to_decode_last_stratum_out = 0;
+    // Decode full stratum
+    *matches_to_decode_from_last_stratum = UINT64_MAX;
   }
+  *strata_to_decode = (total_matches!=0) ? current_stratum : 0;
 }
-GEM_INLINE void archive_select_matches(
-    archive_search_t* const archive_search,const bool curate_matches,
-    const bool score_matches,const bool sort_matches,matches_t* const matches) {
+GEM_INLINE void archive_select_matches(archive_search_t* const archive_search,matches_t* const matches) {
   PROF_START(GP_ARCHIVE_SELECT_SE_MATCHES);
   // Instantiate Search Parameters Values
   select_parameters_t* const select_parameters = archive_search->select_parameters;
   archive_select_instantiate_values(select_parameters,sequence_get_length(&archive_search->sequence));
-  // Check if we need to decode sth
-  if (select_parameters->max_decoded_matches==0 &&
-      select_parameters->min_decoded_strata==0 &&
-      select_parameters->min_reported_matches==0) return;
-  if (select_parameters->min_reported_matches==0 && select_parameters->max_reported_matches==0) return;
   // Calculate the number of matches to decode wrt input parameters
-  uint64_t strata_to_decode = 0, matches_to_decode_last_stratum = 0;
+  uint64_t strata_to_decode = 0, matches_to_decode_from_last_stratum = 0;
   archive_select_calculate_matches_to_decode(
-      matches,select_parameters->max_decoded_matches,
-      select_parameters->min_decoded_strata,select_parameters->min_reported_matches,
-      select_parameters->max_reported_matches,&strata_to_decode,&matches_to_decode_last_stratum);
+      matches,select_parameters->min_decoded_strata,select_parameters->min_reported_matches,
+      select_parameters->max_reported_matches,&strata_to_decode,&matches_to_decode_from_last_stratum);
+  // Decode matches
   if (strata_to_decode > 0) {
-    // Decode matches
-    archive_select_decode_matches(archive_search,matches,strata_to_decode,matches_to_decode_last_stratum);
-    // Score matches
-    if (score_matches) archive_score_matches_se(archive_search,matches);
-    // Curate matches
-    if (curate_matches) matches_curate(matches,0.20);
-    // Filter by score
-    if (select_parameters->mapq_threshold > 0) {
-      archive_select_filter_matches_mapq(matches,select_parameters->mapq_threshold);
-    }
-    // Sort matches
-    if (sort_matches) {
-      switch (archive_search->select_parameters->sorting) {
-        case matches_sorting_mapq: matches_sort_by_mapq_score(matches); break;
-        case matches_sorting_distance: matches_sort_by_distance(matches); break;
-        default: GEM_INVALID_CASE(); break;
-      }
-    }
+    archive_select_decode_matches(archive_search,matches,strata_to_decode,matches_to_decode_from_last_stratum);
   } else {
     // Remove all matches
     matches_get_clear_match_traces(matches);
+    PROF_STOP(GP_ARCHIVE_SELECT_SE_MATCHES);
+    return;
+  }
+  // Select alignment-Model and process accordingly
+  search_parameters_t* const search_parameters = archive_search->as_parameters.search_parameters;
+  switch (search_parameters->alignment_model) {
+    case alignment_model_none:
+      break;
+    case alignment_model_hamming:
+    case alignment_model_levenshtein:
+      matches_sort_by_distance(matches); // Just sort by distance (whichever is selected)
+      break;
+    case alignment_model_gap_affine:
+      // Score & Filter
+      if (select_parameters->mapq_model != mapq_model_none) {
+        // Sort
+//        matches_sort_by_swg_score(matches);
+        matches_sort_by_distance(matches);
+        // Score matches
+        archive_score_matches_se(archive_search,matches);
+        // Filter by SWG-score
+        const double swg_threshold = archive_search->as_parameters.search_parameters->swg_threshold;
+        if (swg_threshold != 0.0) {
+          matches_filter_by_swg_score(matches,swg_threshold,archive_search->mm_stack);
+        }
+        // Filter by score
+//        if (select_parameters->mapq_threshold > 0) {
+//          matches_filter_by_mapq(matches,select_parameters->mapq_threshold);
+//        }
+        // Sort by score
+        // matches_sort_by_mapq_score(matches); [Implicitly done]
+      } else {
+        matches_sort_by_distance(matches); // Just sort by distance (whichever is selected)
+      }
+      break;
+    default:
+      GEM_INVALID_CASE();
+      break;
   }
   PROF_STOP(GP_ARCHIVE_SELECT_SE_MATCHES);
 }
@@ -400,13 +391,19 @@ GEM_INLINE void archive_select_paired_matches(
   PROF_START(GP_ARCHIVE_SELECT_PE_MATCHES);
   const uint64_t num_matches = vector_get_used(paired_matches->matches);
   if (num_matches > 0) {
-    // Sample if unique
-    if (num_matches==1) {
-      const paired_match_t* const paired_match = vector_get_mem(paired_matches->matches,paired_match_t);
-      if (paired_match->pair_orientation==pair_orientation_concordant) {
-        mapper_stats_template_length_sample(archive_search_end1->mapper_stats,paired_match->template_length);
-      }
+    PROF_STOP(GP_ARCHIVE_SELECT_PE_MATCHES);
+    return;
+  }
+  // Sample if unique
+  if (num_matches==1) {
+    const paired_match_t* const paired_match = vector_get_mem(paired_matches->matches,paired_match_t);
+    if (paired_match->pair_orientation==pair_orientation_concordant) {
+      mapper_stats_template_length_sample(archive_search_end1->mapper_stats,paired_match->template_length);
     }
+  }
+  // Scoring
+  select_parameters_t* const select_parameters = archive_search_end1->select_parameters;
+  if (select_parameters->mapq_model != mapq_model_none) {
     // Score matches
     archive_score_matches_pe(archive_search_end1,archive_search_end2,paired_matches);
     // Filter by score
@@ -414,17 +411,15 @@ GEM_INLINE void archive_select_paired_matches(
     if (select_parameters->mapq_threshold > 0)  {
       archive_select_filter_paired_matches_mapq(paired_matches,select_parameters->mapq_threshold);
     }
-    // Sort paired-matches
-    switch (select_parameters->sorting) {
-      case matches_sorting_mapq: paired_matches_sort_by_mapq_score(paired_matches); break;
-      case matches_sorting_distance: paired_matches_sort_by_distance(paired_matches); break;
-      default: GEM_INVALID_CASE(); break;
-    }
-    // Discard surplus
-    const uint64_t num_paired_matches = vector_get_used(paired_matches->matches);
-    if (num_paired_matches > select_parameters->max_reported_matches) {
-      vector_set_used(paired_matches->matches,select_parameters->max_reported_matches);
-    }
+    // Sort by MAPQ
+    // paired_matches_sort_by_mapq_score(paired_matches); // [Implicitly done]
+  } else {
+    paired_matches_sort_by_distance(paired_matches);
+  }
+  // Discard surplus
+  const uint64_t num_paired_matches = vector_get_used(paired_matches->matches);
+  if (num_paired_matches > select_parameters->max_reported_matches) {
+    vector_set_used(paired_matches->matches,select_parameters->max_reported_matches);
   }
   PROF_STOP(GP_ARCHIVE_SELECT_PE_MATCHES);
 }

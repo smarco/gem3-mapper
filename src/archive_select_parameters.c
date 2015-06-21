@@ -16,23 +16,18 @@ GEM_INLINE void archive_select_parameters_init(select_parameters_t* const select
   select_parameters->mapq_threshold = 0;
   // Reporting
   select_parameters->min_decoded_strata = 0;
-  select_parameters->max_decoded_matches = 20;
-  select_parameters->min_reported_matches = 1;
-  select_parameters->max_reported_matches = 100;
-  // Sorting
-  select_parameters->sorting = matches_sorting_mapq;
+  select_parameters->min_reported_matches = 2;
+  select_parameters->max_reported_matches = 20;
   // Check
   select_parameters->check_correct = false;
   select_parameters->check_optimum = false;
   select_parameters->check_complete = false;
 }
 GEM_INLINE void archive_select_configure_reporting(
-    select_parameters_t* const select_parameters,
-    float min_decoded_strata,uint64_t max_decoded_matches,
-    uint64_t min_reported_matches,uint64_t max_reported_matches) {
+    select_parameters_t* const select_parameters,const float min_decoded_strata,
+    const uint64_t min_reported_matches,const uint64_t max_reported_matches) {
   // Reporting
   select_parameters->min_decoded_strata = min_decoded_strata;
-  select_parameters->max_decoded_matches = max_decoded_matches;
   select_parameters->min_reported_matches = min_reported_matches;
   select_parameters->max_reported_matches = max_reported_matches;
 }

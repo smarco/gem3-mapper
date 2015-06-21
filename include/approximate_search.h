@@ -9,22 +9,20 @@
 #ifndef APPROXIMATE_SEARCH_H_
 #define APPROXIMATE_SEARCH_H_
 
-#include "essentials.h"
-#include "quality_model.h"
-
-#include "locator.h"
-#include "graph_text.h"
-#include "fm_index.h"
-#include "matches.h"
-#include "sequence.h"
+#include "approximate_search_parameters.h"
+#include "archive.h"
 #include "pattern.h"
-
 #include "region_profile.h"
-#include "region_profile_schedule.h"
 #include "interval_set.h"
 #include "filtering_candidates.h"
+#include "mapper_profile.h"
 
-#include "approximate_search_parameters.h"
+/*
+ * Debug
+ */
+#define DEBUG_SEARCH_STATE          GEM_DEEP_DEBUG
+#define DEBUG_REGION_PROFILE_PRINT  GEM_DEEP_DEBUG
+#define DEBUG_REGION_SCHEDULE_PRINT GEM_DEEP_DEBUG
 
 /*
  * Approximate Search
@@ -44,11 +42,6 @@ typedef enum {
   asearch_local_alignment,           // Local Alignment Search
   asearch_probe_candidates           // Probe candidates (try to lower max-differences) // TODO
 } approximate_search_state_t;
-typedef enum {
-  region_filter_fixed,
-  region_filter_adaptive_exact,
-  region_filter_adaptive_dynamic
-} region_filter_type;
 typedef struct {
   /* Index Structures, Pattern & Parameters */
   archive_t* archive;                                   // Archive
@@ -107,7 +100,7 @@ GEM_INLINE void approximate_search_pattern_clear(approximate_search_t* const sea
 GEM_INLINE bool approximate_search_pattern_is_null(approximate_search_t* const search);
 
 /*
- * ASM-Search!!
+ * Aproximate String Search
  */
 GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t* const matches);
 // Verification
@@ -118,10 +111,5 @@ GEM_INLINE void approximate_search_verify_using_bpm_buffer(
     const uint64_t candidate_offset_begin,const uint64_t candidate_offset_end);
 GEM_INLINE void approximate_search_hold_verification_candidates(approximate_search_t* const search);
 GEM_INLINE void approximate_search_release_verification_candidates(approximate_search_t* const search);
-
-/*
- * Error Msg
- */
-//#define GEM_ERROR_ASM_
 
 #endif /* APPROXIMATE_SEARCH_H_ */

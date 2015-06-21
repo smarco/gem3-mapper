@@ -47,6 +47,8 @@ GEM_INLINE bool filtering_region_align(
         .key_length = key_length,
         .text_position = filtering_region->begin_position,
         .text_trace_offset = filtering_region->text_trace_offset,
+        .text = NULL, // Explicitly nullify (no need to use it afterwards)
+        .text_offset_begin = filtering_region->align_match_end_column+1 - key_length,
         .text_offset_end = filtering_region->align_match_end_column+1,
     };
     match_align_parameters_t align_parameters = {
@@ -77,6 +79,7 @@ GEM_INLINE bool filtering_region_align(
             .text_position = filtering_region->begin_position + filtering_region->base_position_offset, // Base position
             .text = text,
             .text_offset_begin = filtering_region->align_match_begin_column,
+            .text_offset_end = filtering_region->align_match_begin_column + key_length,
         };
         match_align_parameters_t align_parameters = {
             .emulated_rc_search = emulated_rc_search,
@@ -89,7 +92,8 @@ GEM_INLINE bool filtering_region_align(
       case alignment_model_levenshtein: {
         const uint64_t match_effective_range = key_length + 2*filtering_region->align_distance;
         const uint64_t match_begin_column = BOUNDED_SUBTRACTION(filtering_region->align_match_end_column,match_effective_range,0);
-        const uint64_t match_region_length = filtering_region->align_match_end_column-match_begin_column;
+        const uint64_t match_end_column = BOUNDED_ADDITION(filtering_region->align_match_end_column,filtering_region->align_distance,text_length);
+        const uint64_t match_region_length = match_end_column-match_end_column;
         PROF_ADD_COUNTER(GP_ACCEPTED_REGIONS_LENGTH,match_region_length);
         match_align_input_t align_input = {
             .key = key,
@@ -98,7 +102,8 @@ GEM_INLINE bool filtering_region_align(
             .text_position = filtering_region->begin_position,
             .text = text,
             .text_offset_begin = match_begin_column,
-            .text_length = match_region_length,
+            .text_offset_end = match_end_column,
+            .text_length = text_length,
         };
         match_align_parameters_t align_parameters = {
             .emulated_rc_search = emulated_rc_search,

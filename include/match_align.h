@@ -28,6 +28,8 @@ typedef enum {
  *   @align_input->key_length
  *   @align_input->text_position
  *   @align_input->text_trace_offset
+ *   @align_input->text
+ *   @align_input->text_offset_begin
  *   @align_input->text_offset_end
  *   @align_parameters->emulated_rc_search
  *   @align_parameters->swg_penalties
@@ -41,10 +43,11 @@ GEM_INLINE void match_align_exact(
  * Hamming Alignment (Only mismatches)
  *   @align_input->key
  *   @align_input->key_length
- *   @align_input->text_trace_offset
  *   @align_input->text_position
+ *   @align_input->text_trace_offset
  *   @align_input->text
  *   @align_input->text_offset_begin
+ *   @align_input->text_offset_end
  *   @align_parameters->emulated_rc_search
  *   @align_parameters->allowed_enc
  */
@@ -60,6 +63,7 @@ GEM_INLINE void match_align_hamming(
  *   @align_input->text_position
  *   @align_input->text
  *   @align_input->text_offset_begin
+ *   @align_input->text_offset_end
  *   @align_input->text_length
  *   @align_parameters->emulated_rc_search
  *   @align_parameters->max_error
