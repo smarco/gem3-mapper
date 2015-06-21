@@ -1,0 +1,3 @@
+#!/bin/bash
+
+diff -y <(./smap $1) <(./smap $2)
