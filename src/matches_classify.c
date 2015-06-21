@@ -170,36 +170,39 @@ GEM_INLINE bool matches_classify_is_unique(matches_t* const matches) {
 GEM_INLINE double matches_classify_unique(matches_t* const matches) {
   // Unique: Probability of the first position-match (primary match) of being a true positive
   matches_metrics_t* const metrics = &matches->metrics;
-  const double lr_factor = -255.967 +
-      (double)metrics->first_map_event_distance_norm * 231.389 +
-      (double)metrics->first_map_swg_score_norm * 18.675 +
-      (double)metrics->mcs * 7.154;
+  const double lr_factor = -204.9124 +
+      (double)metrics->first_map_event_distance_norm * 187.6882 +
+      (double)metrics->first_map_swg_score_norm * 18.1521 +
+      (double)metrics->mcs * 5.1507 +
+      (double)metrics->max_region_length_norm * -0.6575;
   return 1.0 / (1.0 + (1.0/exp(lr_factor)));
 }
 GEM_INLINE double matches_classify_mmaps(matches_t* const matches) {
   // Classify MMaps wrt the probability of the first position-match (primary match) of being a true positive
   matches_metrics_t* const metrics = &matches->metrics;
-  const double lr_factor = -236.236 +
-      (double)metrics->first_map_event_distance_norm * 222.176 +
-      (double)metrics->first_map_swg_score_norm * 20.739 +
-      (double)metrics->subdominant_swg_score_norm * -8.452 +
-      (double)metrics->mcs * 4.019;
+  const double lr_factor = -196.3411 +
+      (double)metrics->first_map_event_distance_norm * 202.4395 +
+      (double)metrics->subdominant_event_distance_norm * -20.9556 +
+      (double)metrics->first_map_swg_score_norm * 21.1421 +
+      (double)metrics->subdominant_swg_score_norm * -7.9429 +
+      (double)metrics->mcs * 3.5875 +
+      (double)metrics->subdominant_stratum_matches * 0.0844;
   return 1.0 / (1.0 + (1.0/exp(lr_factor)));
 }
 GEM_INLINE double matches_classify_delta1(matches_t* const matches) {
   // Classify ties wrt the probability of being a true positive
   matches_metrics_t* const metrics = &matches->metrics;
-  const double lr_factor = -162.01867 +
-      (double)metrics->first_map_edit_distance_norm * 22.97214 +
-      (double)metrics->subdominant_edit_distance_norm * -5.35383 +
-      (double)metrics->first_map_event_distance_norm * 265.71726 +
-      (double)metrics->subdominant_event_distance_norm * -118.39328 +
-      (double)metrics->first_map_swg_score_norm * 9.23348 +
-      (double)metrics->subdominant_swg_score_norm * -13.41825 +
-      (double)metrics->mcs * 1.31682 +
-      (double)metrics->max_region_length_norm * 0.24327 +
-      (double)metrics->first_stratum_matches * -0.16529 +
-      (double)metrics->subdominant_stratum_matches * 0.03782;
+  const double lr_factor = -161.35009 +
+      (double)metrics->first_map_edit_distance_norm * 16.98019 +
+      (double)metrics->subdominant_edit_distance_norm * -5.63140 +
+      (double)metrics->first_map_event_distance_norm * 261.40959 +
+      (double)metrics->subdominant_event_distance_norm * -112.04288 +
+      (double)metrics->first_map_swg_score_norm * 12.54211 +
+      (double)metrics->subdominant_swg_score_norm * -13.87366 +
+      (double)metrics->mcs * 1.52146 +
+      (double)metrics->max_region_length_norm * 0.30583 +
+      (double)metrics->first_stratum_matches * -0.10691 +
+      (double)metrics->subdominant_stratum_matches * 0.01256;
   return 1.0 / (1.0 + (1.0/exp(lr_factor)));
 }
 /*

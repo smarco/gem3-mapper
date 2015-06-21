@@ -570,7 +570,7 @@ GEM_INLINE void matches_filter_by_swg_score(matches_t* const matches,const doubl
   // Delete matches with lower swg-score than the best
   const int32_t max_swg_score = matches_classify_metrics_get_max_swg_score(matches);
   const int32_t min_swg_score = (swg_threshold >= 1.0) ?
-      (int32_t)swg_threshold : max_swg_score - (int32_t)(swg_threshold*(double)max_swg_score);
+      (int32_t)swg_threshold : max_swg_score - (int32_t)(swg_threshold*(double)(ABS(max_swg_score)));
   bool reallocated = false;
   uint64_t i;
   for (i=0;i<num_matches;++i,++match_in) {

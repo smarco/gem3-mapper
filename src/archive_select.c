@@ -358,22 +358,19 @@ GEM_INLINE void archive_select_matches(archive_search_t* const archive_search,ma
     case alignment_model_gap_affine:
       // Score & Filter
       if (select_parameters->mapq_model != mapq_model_none) {
-        // Sort
-//        matches_sort_by_swg_score(matches);
-        matches_sort_by_distance(matches);
-        // Score matches
-        archive_score_matches_se(archive_search,matches);
         // Filter by SWG-score
         const double swg_threshold = archive_search->as_parameters.search_parameters->swg_threshold;
         if (swg_threshold != 0.0) {
           matches_filter_by_swg_score(matches,swg_threshold,archive_search->mm_stack);
         }
-        // Filter by score
+        // Sort
+        matches_sort_by_distance(matches);
+        // Score matches
+        archive_score_matches_se(archive_search,matches);
+        // Filter by MAPQ-score
 //        if (select_parameters->mapq_threshold > 0) {
 //          matches_filter_by_mapq(matches,select_parameters->mapq_threshold);
 //        }
-        // Sort by score
-        // matches_sort_by_mapq_score(matches); [Implicitly done]
       } else {
         matches_sort_by_distance(matches); // Just sort by distance (whichever is selected)
       }
@@ -406,13 +403,11 @@ GEM_INLINE void archive_select_paired_matches(
   if (select_parameters->mapq_model != mapq_model_none) {
     // Score matches
     archive_score_matches_pe(archive_search_end1,archive_search_end2,paired_matches);
-    // Filter by score
-    const select_parameters_t* const select_parameters = archive_search_end1->select_parameters;
-    if (select_parameters->mapq_threshold > 0)  {
-      archive_select_filter_paired_matches_mapq(paired_matches,select_parameters->mapq_threshold);
-    }
-    // Sort by MAPQ
-    // paired_matches_sort_by_mapq_score(paired_matches); // [Implicitly done]
+//    // Filter by score
+//    const select_parameters_t* const select_parameters = archive_search_end1->select_parameters;
+//    if (select_parameters->mapq_threshold > 0)  {
+//      archive_select_filter_paired_matches_mapq(paired_matches,select_parameters->mapq_threshold);
+//    }
   } else {
     paired_matches_sort_by_distance(paired_matches);
   }
