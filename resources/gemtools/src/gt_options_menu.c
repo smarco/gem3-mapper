@@ -177,7 +177,8 @@ gt_option gt_mapset_options[] = {
   { 's', "files-with-same-reads", GT_OPT_NO_ARGUMENT, GT_OPT_NONE, 4 , true, "" , "" },
   { 400, "eq-th", GT_OPT_REQUIRED, GT_OPT_FLOAT, 4 , true, "<integer>|<float> (Difference tolerated between positions)" , "(default=20%)" },
   { 401, "strict", GT_OPT_NO_ARGUMENT, GT_OPT_NONE, 4 , true, "(Strict comparison of mappings)" , "(default=false)" },
-  { 'q', "mapq", GT_OPT_REQUIRED, GT_OPT_INT, 4 , true, "<integer>" , "(default=0)" },
+  { 'q', "mapq-min", GT_OPT_REQUIRED, GT_OPT_INT, 4 , true, "<integer>" , "(default=0)" },
+  { 'Q', "mapq-max", GT_OPT_REQUIRED, GT_OPT_INT, 4 , true, "<integer>" , "(default=255)" },
   /* Misc */
   { 'v', "verbose", GT_OPT_NO_ARGUMENT, GT_OPT_NONE, 5, true, "", ""},
 #ifdef HAVE_OPENMP

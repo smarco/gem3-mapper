@@ -521,7 +521,8 @@ GT_INLINE gt_status gt_isp_parse_sam_alignment(
   // Process flags
   const bool reverse_strand = (*alignment_flag&GT_SAM_FLAG_REVERSE_COMPLEMENT);
   is_mapped = !(*alignment_flag&GT_SAM_FLAG_UNMAPPED);
-  is_single_segment = override_pairing || !(*alignment_flag&GT_SAM_FLAG_MULTIPLE_SEGMENTS);
+  is_single_segment = override_pairing || // TODO NovoAlign Doesn't need extra 3rd cnd
+      !(*alignment_flag&GT_SAM_FLAG_MULTIPLE_SEGMENTS) || !(*alignment_flag&GT_SAM_FLAG_PROPERLY_ALIGNED);
   pending->end_position = (is_single_segment) ? 0 : ((*alignment_flag&GT_SAM_FLAG_FIRST_SEGMENT)?0:1);
   if (reverse_strand)  {
     gt_map_set_strand(map,REVERSE);
