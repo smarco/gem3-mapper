@@ -13,6 +13,8 @@
 #include "interval_set.h"
 #include "text_collection.h"
 #include "match_elements.h"
+#include "matches_counters.h"
+#include "matches_metrics.h"
 #include "swg_align.h"
 
 /*
@@ -64,65 +66,25 @@ typedef struct {
 } match_trace_t;
 
 /*
- * Matches-Metrics
- */
-typedef struct {
-  /*
-   * Matches current metrics status (always being updated)
-   */
-  uint64_t min1_counter_value; // Minimum non-zero counter position (for the distance metric the counters use)
-  uint64_t min2_counter_value; // Second minimum non-zero counter position (for the distance metric the counters use)
-  uint64_t max_counter_value;  // Maximum non-zero counter position (for the distance metric the counters use)
-  uint64_t min1_edit_distance; // Minimum edit distance among all found matches
-  uint64_t min2_edit_distance; // Second minimum edit distance among all found matches
-  int32_t max1_swg_score;      // Maximum smith-waterman-gotoh score among all found matches
-  int32_t max2_swg_score;      // Second maximum smith-waterman-gotoh score among all found matches
-  /*
-   * Calculated metrics (from a given set of matches & sorting)
-   */
-  // First Map (Primary Match)
-  uint64_t first_map_edit_distance;
-  uint64_t first_map_event_distance;
-  int32_t first_map_swg_score;
-  double first_map_edit_distance_norm;
-  double first_map_event_distance_norm;
-  double first_map_swg_score_norm;
-  // Sub-dominant Matches (best in each distance metric)
-  uint64_t subdominant_edit_distance;
-  uint64_t subdominant_event_distance;
-  int32_t subdominant_swg_score;
-  double subdominant_edit_distance_norm;
-  double subdominant_event_distance_norm;
-  double subdominant_swg_score_norm;
-  // Search Scope
-  uint64_t first_stratum_matches;
-  uint64_t subdominant_stratum_matches;
-  uint64_t mcs;
-  uint64_t max_region_length;
-  double max_region_length_norm;
-} matches_metrics_t;
-
-/*
  * Matches
  */
 typedef struct {
   /* Search-matches state */
   uint64_t max_complete_stratum;
   /* Text Collection Buffer */
-  text_collection_t* text_collection;       // Stores text-traces (candidates/matches/regions/...)
+  text_collection_t* text_collection;  // Stores text-traces (candidates/matches/regions/...)
   /* Matches Counters */
-  vector_t* counters;                       // Global counters
-  uint64_t total_matches_count;             // Number of matches reflected in the counters (Interval+Position)
+  matches_counters_t* counters;        // Global counters
   /* Interval Matches */
-  vector_t* interval_matches;               // Interval Matches (match_interval_t)
+  vector_t* interval_matches;          // Interval Matches (match_interval_t)
   /* Position Matches */
-  vector_t* position_matches;               // Position Matches (match_trace_t)
-  ihash_t* begin_pos_matches;               // Begin position (of the aligned match) in the text-space
-  ihash_t* end_pos_matches;                 // End position (of the aligned match) in the text-space
+  vector_t* position_matches;          // Position Matches (match_trace_t)
+  ihash_t* begin_pos_matches;          // Begin position (of the aligned match) in the text-space
+  ihash_t* end_pos_matches;            // End position (of the aligned match) in the text-space
   /* CIGAR */
-  vector_t* cigar_vector;                   // CIGAR operations storage (cigar_element_t)
-  /* Stats/Metrics */
-  matches_metrics_t metrics;
+  vector_t* cigar_vector;              // CIGAR operations storage (cigar_element_t)
+  /* Metrics */
+  matches_metrics_t metrics;           // Metrics
 } matches_t;
 
 /*
@@ -137,13 +99,9 @@ GEM_INLINE void matches_delete(matches_t* const matches);
  * Accessors
  */
 GEM_INLINE bool matches_is_mapped(const matches_t* const matches);
-
-/*
- * Counters
- */
-GEM_INLINE uint64_t matches_counters_compact(matches_t* const matches);
-GEM_INLINE uint64_t matches_counters_get_count(matches_t* const matches,const uint64_t distance);
-GEM_INLINE uint64_t matches_counters_get_total_count(matches_t* const matches);
+GEM_INLINE void matches_recompute_metrics(matches_t* const matches);
+GEM_INLINE uint64_t matches_get_first_stratum_matches(matches_t* const matches);
+GEM_INLINE uint64_t matches_get_subdominant_stratum_matches(matches_t* const matches);
 
 /*
  * Index
@@ -154,7 +112,8 @@ GEM_INLINE void matches_index_clear(matches_t* const matches);
 /*
  * Matches
  */
-GEM_INLINE match_trace_t* matches_get_match_traces(const matches_t* const matches);
+GEM_INLINE match_trace_t* matches_get_match_trace_buffer(const matches_t* const matches);
+GEM_INLINE match_trace_t* matches_get_match_trace(const matches_t* const matches,const uint64_t offset);
 GEM_INLINE uint64_t matches_get_num_match_traces(const matches_t* const matches);
 GEM_INLINE void matches_get_clear_match_traces(const matches_t* const matches);
 
@@ -204,6 +163,10 @@ GEM_INLINE void matches_cigar_vector_append_mismatch(
     const uint8_t mismatch,const cigar_attr_t attributes);
 GEM_INLINE void matches_cigar_vector_append_cigar_element(
     vector_t* const cigar_vector,uint64_t* const cigar_length,cigar_element_t* const cigar_element);
+
+GEM_INLINE int matches_cigar_cmp(
+    vector_t* const cigar_vector_match0,match_trace_t* const match0,
+    vector_t* const cigar_vector_match1,match_trace_t* const match1);
 
 GEM_INLINE void matches_cigar_reverse(
     matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length);

@@ -12,9 +12,10 @@
 #include "essentials.h"
 
 #include "archive.h"
-#include "archive_select_parameters.h"
+#include "select_parameters.h"
 #include "approximate_search.h"
 #include "sequence.h"
+#include "matches_classify.h"
 #include "mm_search.h"
 
 /*
@@ -31,16 +32,8 @@ typedef enum {
   archive_search_pe_begin,                     // Beginning of the search
   archive_search_pe_search_end1,               // Generate candidates for end1
   archive_search_pe_search_end2,               // Generate candidates for end2
-  archive_search_pe_extend_end1,               // Try to extend end1
-  archive_search_pe_extended_end1,             // End1 extended
-  archive_search_pe_extend_end2,               // Try to extend end2
-  archive_search_pe_extended_end2,             // End2 extended
-  archive_search_pe_paired_filtering_discard,  // Discard paired-filtering candidates
-  archive_search_pe_paired_filtering_verify,   // Verify paired-filtering candidates
-  archive_search_pe_paired_filtering_verified, // Paired-filtering candidates had been verified
-  archive_search_pe_both_ends_verify,          // Verify candidates for both ends
-  archive_search_pe_both_ends_verified,        // Candidates of both ends had been verified
-  archive_search_pe_recovery,                  // Paired-end recovery by extension
+  archive_search_pe_recovery,                  // Recover by extension when needed
+  archive_search_pe_find_pairs,                // Cross-link matches from both ends
   archive_search_pe_end                        // End of the current workflow
 } archive_search_pe_state_t;
 
@@ -52,8 +45,9 @@ typedef struct {
   archive_t* archive;                        // Archive
   /* Archive Paired-End-Search (Only end/1 used in PE search) */
   archive_search_pe_state_t pe_search_state; // Search State
-  bool paired_extending;                     // Used paired-extension
-  bool paired_filtering;                     // Used paired-filtering
+  bool pair_searched;                        // Paired search performed
+  bool pair_extended;                        // Paired estension performed
+  matches_class_t end_class;
   /* Sequence */
   sequence_t sequence;                       // Input
   sequence_t rc_sequence;                    // Generated

@@ -13,7 +13,7 @@
 
 #include "archive_text.h"
 #include "text_collection.h"
-#include "approximate_search_parameters.h"
+#include "search_parameters.h"
 #include "matches.h"
 #include "match_elements.h"
 #include "match_scaffold.h"

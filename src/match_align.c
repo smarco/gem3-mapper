@@ -369,7 +369,7 @@ GEM_INLINE void match_align_smith_waterman_gotoh_chained(
   match_begin_position = match_alignment->match_position;
   swg_align_match(&align_chunk_input,align_parameters,true,false,match_alignment,matches->cigar_vector,mm_stack);
   // Check alignment (Rollback & trim if needed)
-  if (match_alignment->score == ALIGN_DISTANCE_INF || match_alignment->score < 0) {
+  if (match_alignment->score == SWG_SCORE_MIN) { // TODO  || match_alignment->score < 0 (not sure)
     // Restore the CIGAR
     match_alignment->cigar_length = cigar_length;
     vector_set_used(matches->cigar_vector,cigar_vector_used);
@@ -405,7 +405,7 @@ GEM_INLINE void match_align_smith_waterman_gotoh_chained(
     cigar_vector_used = vector_get_used(matches->cigar_vector);
     swg_align_match(&align_chunk_input,align_parameters,false,false,match_alignment,matches->cigar_vector,mm_stack);
     // Check alignment result
-    if (match_alignment->score == ALIGN_DISTANCE_INF /* || TODO */ ) {
+    if (match_alignment->score == SWG_SCORE_MIN) { // TODO Revise cond.
       // Restore the CIGAR
       match_alignment->cigar_length = cigar_length;
       vector_set_used(matches->cigar_vector,cigar_vector_used);
@@ -444,7 +444,7 @@ GEM_INLINE void match_align_smith_waterman_gotoh_chained(
   cigar_vector_used = vector_get_used(matches->cigar_vector);
   swg_align_match(&align_chunk_input,align_parameters,false,true,match_alignment,matches->cigar_vector,mm_stack);
   // Check alignment (Rollback & trim if needed)
-  if (match_alignment->score == ALIGN_DISTANCE_INF || match_alignment->score < 0) {
+  if (match_alignment->score == SWG_SCORE_MIN) { // TODO Revise cond.
     // Restore the CIGAR
     match_alignment->cigar_length = cigar_length;
     vector_set_used(matches->cigar_vector,cigar_vector_used);
@@ -510,8 +510,8 @@ GEM_INLINE void match_align_smith_waterman_gotoh(
         &match_trace->match_alignment,matches->cigar_vector,mm_stack);
   }
   // Check for Bad alignment (discarded)
-  if (match_alignment->score == ALIGN_DISTANCE_INF) {
-    match_trace->swg_score = ALIGN_DISTANCE_INF;
+  if (match_alignment->score == SWG_SCORE_MIN) {
+    match_trace->swg_score = SWG_SCORE_MIN;
     match_trace->distance = ALIGN_DISTANCE_INF;
     PROF_STOP(GP_MATCHES_ALIGN_SWG);
     return;

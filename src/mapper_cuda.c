@@ -123,6 +123,7 @@ void* mapper_SE_CUDA_thread(mapper_cuda_search_t* const mapper_search) {
       archive_search_retrieve_candidates(archive_search_select,bpm_gpu_buffer,matches);
       // Finish Search
       archive_search_finish_search(archive_search_select,matches);
+      archive_select_matches(archive_search_select,false,matches);
       // Output matches
       mapper_SE_output_matches(parameters,buffered_output_file,archive_search_select,matches);
       // Update processed

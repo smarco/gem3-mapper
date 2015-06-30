@@ -318,8 +318,6 @@ GEM_INLINE void region_profile_compose(
     const region_profile_model_t* const profile_model,region_profile_query_t* const rp_query,
     const uint8_t* const key,const uint64_t key_length,
     const bool* const allowed_enc,const bool extend_last_region) {
-  region_profile->max_region_length = rp_generator->max_region_length;
-  region_profile->total_candidates = rp_generator->total_candidates;
   if (rp_generator->num_regions == 0) {
     region_search_t* const first_region = rp_generator->region_search;
     if (first_region->start == key_length) {
@@ -333,14 +331,19 @@ GEM_INLINE void region_profile_compose(
       region_profile->num_standard_regions = 0;
     }
   } else {
-    // We extend the last region
     region_profile->num_filtering_regions = rp_generator->num_regions;
     region_profile->num_standard_regions = rp_generator->num_standard_regions;
+    // Add information about the last region
+    region_search_t* const last_region = region_profile->filtering_region + (region_profile->num_filtering_regions-1);
+    rp_generator->max_region_length = MAX(rp_generator->max_region_length,last_region->end);
     if (extend_last_region) {
+      // We extend the last region
       region_profile_extend_last_region(region_profile,rp_query->fm_index,
           key,allowed_enc,profile_model->region_type_th);
     }
   }
+  region_profile->max_region_length = rp_generator->max_region_length;
+  region_profile->total_candidates = rp_generator->total_candidates;
 }
 /*
  * Region Profile Adaptive

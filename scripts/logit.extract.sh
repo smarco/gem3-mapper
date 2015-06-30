@@ -15,9 +15,9 @@ rm tmp
 # echo "PARTS: logit.uniq logit.mmaps logit.ties"
 # wc -l logit.uniq logit.mmaps logit.ties
 
-awk '{if (NR==1 || (199<=$14 && $14<=250)) print}' logit.all > logit.uniq
-awk '{if (NR==1 || (139<=$14 && $14<=190)) print}' logit.all > logit.mmaps
-awk '{if (NR==1 || (9<=$14 && $14<=60)) print}' logit.all > logit.ties
+awk '{if (NR==1 || (199<=$3 && $3<=250)) print}' logit.all > logit.uniq
+awk '{if (NR==1 || (139<=$3 && $3<=190)) print}' logit.all > logit.mmaps
+awk '{if (NR==1 || (79<=$3 && $3<=130)) print}' logit.all > logit.ties
 
 echo "PARTS: logit.uniq logit.mmaps logit.ties"
 wc -l logit.uniq logit.mmaps logit.ties

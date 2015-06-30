@@ -407,36 +407,36 @@ GEM_INLINE void match_scaffold_alignment(
   // DEBUG
   gem_cond_debug_block(DEBUG_MATCHING_REGIONS) { match_scaffold_print(stderr,matches,match_scaffold); }
   // Parameters
-  const uint8_t* const key = align_input->key;
+//  const uint8_t* const key = align_input->key;
   const uint64_t key_length = align_input->key_length;
-  const uint8_t* const text = align_input->text;
-  const uint64_t text_length = align_input->text_length;
-  const uint64_t max_error = align_parameters->max_error;
-  // Chain matching regions
-  if (match_scaffold->num_scaffold_regions > 0) {
-    const bool* const allowed_enc = align_parameters->allowed_enc;
-    // Find a compatible chain of matching-regions
-    PROF_START(GP_MATCHING_REGIONS_CHAIN);
-    match_scaffold_chain_matching_regions(matches,match_scaffold,key,key_length,text,allowed_enc,max_error,mm_stack);
-    PROF_STOP(GP_MATCHING_REGIONS_CHAIN);
-    // Extend matching-regions as to maximize coverage
-    if (match_scaffold->num_scaffold_regions > 0) {
-      PROF_INC_COUNTER(GP_MATCHING_REGIONS_CHAIN_SUCCESS);
-      PROF_ADD_COUNTER(GP_MATCHING_REGIONS_CHAIN_COVERAGE,(100*match_scaffold->scaffolding_coverage)/key_length);
-      if (match_scaffold->scaffolding_coverage < key_length) {
-        match_scaffold_exact_extend(matches,match_scaffold,key,key_length,text,text_length,allowed_enc);
-      }
-      PROF_ADD_COUNTER(GP_MATCHING_REGIONS_EXTEND_COVERAGE,(100*match_scaffold->scaffolding_coverage)/key_length);
-    }
-  }
-  // Scaffold from Levenshtein-alignment
-  if (match_scaffold->scaffolding_coverage < align_parameters->min_coverage) {
+//  const uint8_t* const text = align_input->text;
+//  const uint64_t text_length = align_input->text_length;
+//  const uint64_t max_error = align_parameters->max_error;
+//  // Chain matching regions
+//  if (match_scaffold->num_scaffold_regions > 0) {
+//    const bool* const allowed_enc = align_parameters->allowed_enc;
+//    // Find a compatible chain of matching-regions
+//    PROF_START(GP_MATCHING_REGIONS_CHAIN);
+//    match_scaffold_chain_matching_regions(matches,match_scaffold,key,key_length,text,allowed_enc,max_error,mm_stack);
+//    PROF_STOP(GP_MATCHING_REGIONS_CHAIN);
+//    // Extend matching-regions as to maximize coverage
+//    if (match_scaffold->num_scaffold_regions > 0) {
+//      PROF_INC_COUNTER(GP_MATCHING_REGIONS_CHAIN_SUCCESS);
+//      PROF_ADD_COUNTER(GP_MATCHING_REGIONS_CHAIN_COVERAGE,(100*match_scaffold->scaffolding_coverage)/key_length);
+//      if (match_scaffold->scaffolding_coverage < key_length) {
+//        match_scaffold_exact_extend(matches,match_scaffold,key,key_length,text,text_length,allowed_enc);
+//      }
+//      PROF_ADD_COUNTER(GP_MATCHING_REGIONS_EXTEND_COVERAGE,(100*match_scaffold->scaffolding_coverage)/key_length);
+//    }
+//  }
+//  // Scaffold from Levenshtein-alignment
+//  if (match_scaffold->scaffolding_coverage < align_parameters->min_coverage) {
     PROF_INC_COUNTER(GP_MATCHING_REGIONS_SCAFFOLDED);
     PROF_START(GP_MATCHING_REGIONS_SCAFFOLD);
     match_scaffold_levenshtein(matches,align_input,align_parameters,match_scaffold,mm_stack);
     PROF_STOP(GP_MATCHING_REGIONS_SCAFFOLD);
     PROF_ADD_COUNTER(GP_MATCHING_REGIONS_SCAFFOLD_COVERAGE,(100*match_scaffold->scaffolding_coverage)/key_length);
-  }
+//  }
   // DEBUG
   gem_cond_debug_block(DEBUG_MATCHING_REGIONS) { match_scaffold_print(stderr,matches,match_scaffold); }
 }

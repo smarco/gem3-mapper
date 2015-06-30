@@ -10,7 +10,7 @@
 #define ARCHIVE_SELECT_H_
 
 #include "archive_search.h"
-#include "archive_select_parameters.h"
+#include "select_parameters.h"
 
 /*
  * Decoding Matches (Retrieving & Processing matches)
@@ -26,9 +26,12 @@ GEM_INLINE void archive_select_decode_trace_matches_all(
 /*
  * Select Paired-Matches
  */
-GEM_INLINE void archive_select_matches(archive_search_t* const archive_search,matches_t* const matches);
+GEM_INLINE void archive_select_matches(
+    archive_search_t* const archive_search,
+    const bool paired_mapping,matches_t* const matches);
 GEM_INLINE void archive_select_paired_matches(
-    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches);
 
 /*

@@ -13,6 +13,11 @@
 #include "match_elements.h"
 
 /*
+ * Constants
+ */
+#define SWG_SCORE_MIN (INT16_MIN)
+
+/*
  * SWG Query Profile
  */
 typedef struct {

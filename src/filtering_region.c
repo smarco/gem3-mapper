@@ -135,7 +135,7 @@ GEM_INLINE bool filtering_region_align(
             .emulated_rc_search = emulated_rc_search,
             .max_error = pattern->max_effective_filtering_error,
             .max_bandwidth = max_bandwidth,
-            .left_gap_alignment = left_gap_alignment,
+            .left_gap_alignment = false, // FIXME left_gap_alignment
             .min_coverage = as_parameters->region_scaffolding_coverage_threshold_nominal,
             .min_matching_length = as_parameters->region_scaffolding_min_length_nominal,
             .min_context_length = as_parameters->region_scaffolding_min_context_length_nominal,
@@ -158,7 +158,7 @@ GEM_INLINE bool filtering_region_align(
     }
   }
   // Check (re)alignment result
-  if (match_trace->distance!=ALIGN_DISTANCE_INF && match_trace->swg_score >= 0) {
+  if (match_trace->distance!=ALIGN_DISTANCE_INF && match_trace->swg_score >= 0) { // TODO Check
     filtering_region->status = filtering_region_aligned;
     return true; // OK
   } else {

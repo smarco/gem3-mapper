@@ -46,7 +46,7 @@ GEM_INLINE void mapper_stats_template_length_sample(
       mapper_stats_template_length_get_mean(search_stats),
       mapper_stats_template_length_get_stddev(search_stats),
       mapper_stats_template_length_get_num_samples(search_stats),
-      mapper_stats_template_length_get_ci_min_samples(search_stats,MS_TEMPLATE_LENGTH_DEFAULT_MOE));
+      mapper_stats_template_length_get_ci_min_samples(search_stats,20));
 }
 GEM_INLINE uint64_t mapper_stats_template_length_get_num_samples(mapper_stats_t* const search_stats) {
   return COUNTER_GET_NUM_SAMPLES(&search_stats->unique_template_size);
@@ -75,13 +75,21 @@ GEM_INLINE double mapper_stats_template_length_get_stddev(mapper_stats_t* const 
 GEM_INLINE uint64_t mapper_stats_template_length_get_expected_max(mapper_stats_t* const search_stats) {
   // Mean - 3 * StdDev
   const double mean = mapper_stats_template_length_get_mean(search_stats);
-  const double max_dev = 3.0*mapper_stats_template_length_get_stddev(search_stats);
+  const double max_dev = 4.0*mapper_stats_template_length_get_stddev(search_stats);
   return mean + max_dev;
 }
 GEM_INLINE uint64_t mapper_stats_template_length_get_expected_min(mapper_stats_t* const search_stats) {
   // Mean - 3 * StdDev
   const double mean = mapper_stats_template_length_get_mean(search_stats);
-  const double max_dev = 3.0*mapper_stats_template_length_get_stddev(search_stats);
+  const double max_dev = 4.0*mapper_stats_template_length_get_stddev(search_stats);
   return BOUNDED_SUBTRACTION(mean,max_dev,0.0);
+}
+GEM_INLINE double mapper_stats_template_length_get_sigma_dev(
+    mapper_stats_t* const search_stats,const uint64_t template_length) {
+  // Mean - 3 * StdDev
+  const double mean = mapper_stats_template_length_get_mean(search_stats);
+  const double dev = fabs((double)template_length-mean);
+  const double stddev = mapper_stats_template_length_get_stddev(search_stats);
+  return dev/stddev;
 }
 

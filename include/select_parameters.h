@@ -1,13 +1,13 @@
 /*
  * PROJECT: GEMMapper
- * FILE: archive_select_parameters.h
+ * FILE: select_parameters.h
  * DATE: 06/06/2012
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION: // TODO
  */
 
-#ifndef ARCHIVE_SELECT_PARAMETERS_H_
-#define ARCHIVE_SELECT_PARAMETERS_H_
+#ifndef SELECT_PARAMETERS_H_
+#define SELECT_PARAMETERS_H_
 
 #include "essentials.h"
 
@@ -17,7 +17,7 @@
 typedef enum {
   mapq_model_none,     // None
   mapq_model_gem,      // GEM Score (Case stratification + Logistic Regression)
-  mapq_model_logit     // Logistic Regression Recalibration
+  mapq_model_classify, // GEM Classification towards score calibration
 } mapq_model_t;
 typedef enum {
   matches_sorting_distance,
@@ -41,17 +41,13 @@ typedef struct {
 /*
  * Select Parameters Setup
  */
-GEM_INLINE void archive_select_parameters_init(select_parameters_t* const select_parameters);
+GEM_INLINE void select_parameters_init(select_parameters_t* const select_parameters);
 
-GEM_INLINE void archive_select_configure_reporting(
+GEM_INLINE void select_configure_reporting(
     select_parameters_t* const select_parameters,const float min_decoded_strata,
     const uint64_t min_reported_matches,const uint64_t max_reported_matches);
 
-GEM_INLINE void archive_select_instantiate_values(
+GEM_INLINE void select_instantiate_values(
     select_parameters_t* const select_parameters,const uint64_t sequence_length);
-/*
- * Error Messages
- */
-//#define GEM_ERROR_ARCHIVE_SELECT_PARAMETERS_
 
-#endif /* ARCHIVE_SELECT_PARAMETERS_H_ */
+#endif /* SELECT_PARAMETERS_H_ */

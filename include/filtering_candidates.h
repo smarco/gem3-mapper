@@ -16,7 +16,7 @@
 #include "fm_index.h"
 #include "pattern.h"
 #include "bpm_align_gpu.h"
-#include "approximate_search_parameters.h"
+#include "search_parameters.h"
 #include "region_profile.h"
 #include "interval_set.h"
 #include "filtering_region.h"

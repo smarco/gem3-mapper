@@ -170,7 +170,9 @@ GEM_INLINE void* mm_stack_memory_allocate(mm_stack_t* const mm_stack,const uint6
   // Check if there is enough free memory in the segment
   if (gem_expect_false(num_bytes > current_segment->memory_available)) {
     // Check we can fit the request into a slab unit
-    gem_cond_fatal_error(num_bytes > mm_stack->segment_size,MM_STACK_CANNOT_ALLOCATE,num_bytes,mm_stack->segment_size);
+    if (num_bytes > mm_stack->segment_size) {
+      gem_cond_fatal_error(num_bytes > mm_stack->segment_size,MM_STACK_CANNOT_ALLOCATE,num_bytes,mm_stack->segment_size);
+    }
     current_segment = mm_stack_add_segment(mm_stack); // Use new segment
   }
   // Serve Memory Request

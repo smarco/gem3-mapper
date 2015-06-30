@@ -7,6 +7,7 @@
  */
 
 #include "approximate_search_filtering.h"
+#include "archive_score.h"
 #include "matches_classify.h"
 
 /*
@@ -22,7 +23,7 @@ GEM_INLINE void approximate_search_adjust_max_differences_using_strata(
    * the maximum number of mismatches to (mnzs+delta)
    */
   if (delta < max_differences) {
-    const int64_t fms = matches_classify_metrics_get_min_distance(matches);
+    const int64_t fms = matches_metrics_get_min_edit_distance(&matches->metrics);
     if (fms>=0 && fms+delta < max_differences) {
       search->max_differences = fms+delta;
     }
@@ -36,33 +37,32 @@ GEM_INLINE bool asearch_fulfilled(approximate_search_t* const search,matches_t* 
   // Determines when the search is done following the mapping criteria
   switch (search_parameters->mapping_mode) {
     case mapping_adaptive_filtering_fast: {
-
-      // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
-      // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
-      // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
-      // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
-//      // Unmapped
-//      if (matches_counters_get_total_count(matches)==0) return false;
-//      // Ties
-//      const swg_penalties_t* const swg_penalties = &search->as_parameters->search_parameters->swg_penalties;
-//      const uint64_t key_length = search->pattern.key_length;
-//      const uint64_t max_region_length = search->region_profile.max_region_length;
-//      const uint64_t proper_length = fm_index_get_proper_length(search->archive->fm_index);
-//      matches_compute_metrics(matches,swg_penalties,key_length,max_region_length,proper_length,search->max_complete_stratum);
-//      if (matches_is_tie(matches)) return true;
-//      // Detect intractable cases
-//      double pr = matches_classify_intractable(matches);
-//      if (pr >= 0.02) return false;
-//      pr = matches_classify_unique(matches);
-//      if (pr >= 0.999) return true;
-      // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
-      // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
-      // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
-      // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
-
-
-      // Otherwise
-      return false;
+      if (!matches) return false;
+      // Classify
+      const matches_class_t matches_class = matches_classify(matches);
+      switch (matches_class) {
+        case matches_class_unmapped:
+          return false;
+        case matches_class_tie_swg_score:
+        case matches_class_tie_edit_distance:
+        case matches_class_tie_event_distance:
+          return (matches->metrics.min1_edit_distance <= 1);
+        case matches_class_mmap:
+          return false;
+        case matches_class_unique: {
+          const uint64_t read_length = search->pattern.key_length;
+          const swg_penalties_t* const swg_penalties = &search->as_parameters->search_parameters->swg_penalties;
+          const uint64_t max_region_length = search->region_profile.max_region_length;
+          const uint64_t proper_length = fm_index_get_proper_length(search->archive->fm_index);
+          matches_predictors_t predictors;
+          matches_classify_compute_predictors(matches,&predictors,swg_penalties,
+              read_length,max_region_length,proper_length,search->max_complete_stratum);
+          return (archive_score_matches_gem_se_unique(&predictors)>=55);
+        }
+        default:
+          return false;
+      }
+      break;
     }
     case mapping_adaptive_filtering_match: {
       // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
@@ -96,27 +96,24 @@ GEM_INLINE bool asearch_filter_ahead_candidates(approximate_search_t* const sear
     case mapping_adaptive_filtering_fast:
       return true;
     case mapping_adaptive_filtering_match:
-      return true;
+      return false;
     case mapping_adaptive_filtering_complete:
       return actual_parameters->complete_strata_after_best_nominal < search->max_differences;
     default:
       GEM_INVALID_CASE();
       break;
   }
-  return true;
+  return false;
 }
 // Control Filtering-Fast
 GEM_INLINE void asearch_control_fast_next_state(
     approximate_search_t* const search,const approximate_search_state_t processing_step,matches_t* const matches) {
   // Filtering-Fast: Best efficiency, keeping good-quality results (search for a "good" match)
-  search_parameters_t* const search_parameters = search->as_parameters->search_parameters;
   switch (processing_step) {
     case asearch_exact_filtering_adaptive:
       if (search->search_state==asearch_no_regions) return;
       if (search->search_state==asearch_exact_matches) return;
-      search->search_state = (matches_get_num_match_traces(matches)==0) ?
-          (search_parameters->local_alignment == local_alignment_never) ? asearch_end : asearch_local_alignment:
-          (search_parameters->local_alignment == local_alignment_always) ? asearch_local_alignment : asearch_end;
+      search->search_state = (matches_get_num_match_traces(matches)==0) ? asearch_local_alignment : asearch_end;
       break;
     case asearch_local_alignment:
       search->search_state = asearch_end;
@@ -131,7 +128,6 @@ GEM_INLINE void asearch_control_match_next_state(
     approximate_search_t* const search,
     const approximate_search_state_t processing_step,matches_t* const matches) {
   // Filtering-Match: Spend more computing resources as to guarantee good-quality (increasing likelihood of results)
-  search_parameters_t* const search_parameters = search->as_parameters->search_parameters;
   switch (processing_step) {
     case asearch_exact_filtering_adaptive:
       if (search->search_state==asearch_exact_matches) return;
@@ -146,9 +142,7 @@ GEM_INLINE void asearch_control_match_next_state(
       }
       break;
     case asearch_exact_filtering_boost:
-      search->search_state = (matches_get_num_match_traces(matches)==0) ?
-          (search_parameters->local_alignment == local_alignment_never) ? asearch_end : asearch_local_alignment:
-          (search_parameters->local_alignment == local_alignment_always) ? asearch_local_alignment : asearch_end;
+      search->search_state = (matches_get_num_match_traces(matches)==0) ? asearch_local_alignment : asearch_end;
       break;
     case asearch_local_alignment:
       search->search_state = asearch_end;

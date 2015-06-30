@@ -35,7 +35,7 @@
 #include "locator.h"
 #include "archive.h"
 #include "archive_builder.h"
-#include "archive_select_parameters.h"
+#include "select_parameters.h"
 #include "archive_select.h"
 
 // I/O

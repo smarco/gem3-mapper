@@ -12,11 +12,6 @@
 #include "essentials.h"
 
 /*
- * Constants
- */
-#define MS_TEMPLATE_LENGTH_DEFAULT_MOE 20
-
-/*
  * Archive Search Stats
  */
 typedef struct {
@@ -53,6 +48,8 @@ GEM_INLINE double mapper_stats_template_length_get_mean(mapper_stats_t* const se
 GEM_INLINE double mapper_stats_template_length_get_stddev(mapper_stats_t* const search_stats);
 GEM_INLINE uint64_t mapper_stats_template_length_get_expected_max(mapper_stats_t* const search_stats);
 GEM_INLINE uint64_t mapper_stats_template_length_get_expected_min(mapper_stats_t* const search_stats);
+GEM_INLINE double mapper_stats_template_length_get_sigma_dev(
+    mapper_stats_t* const search_stats,const uint64_t template_length);
 
 
 #endif /* MAPPER_STATS_H_ */

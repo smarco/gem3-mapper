@@ -154,21 +154,23 @@ GEM_INLINE void output_map_print_match(
 GEM_INLINE void output_map_print_paired_match(
     buffered_output_file_t* const buffered_output_file,
     const matches_t* const matches_end1,const matches_t* const matches_end2,
-    const paired_match_t* const paired_match,const output_map_format_t output_map_format) {
+    const paired_map_t* const paired_map,const output_map_format_t output_map_format) {
   // Map end/1
-  output_map_print_match(buffered_output_file,matches_end1,paired_match->match_end1,false,output_map_format);
+  match_trace_t* const match_end1 = matches_get_match_trace(matches_end1,paired_map->match_end1_offset);
+  output_map_print_match(buffered_output_file,matches_end1,match_end1,false,output_map_format);
   buffered_output_file_reserve(buffered_output_file,2);
   // Paired-end Separator
   bofprintf_char(buffered_output_file,':');
   bofprintf_char(buffered_output_file,':');
   // Map end/2
-  output_map_print_match(buffered_output_file,matches_end2,paired_match->match_end2,false,output_map_format);
+  match_trace_t* const match_end2 = matches_get_match_trace(matches_end2,paired_map->match_end2_offset);
+  output_map_print_match(buffered_output_file,matches_end2,match_end2,false,output_map_format);
   // MAPQ Score Separator
   bofprintf_char(buffered_output_file,':');
   bofprintf_char(buffered_output_file,':');
   bofprintf_char(buffered_output_file,':');
   // Print Paired-end MAPQ Score
-  bofprintf_uint64(buffered_output_file,paired_match->mapq_score);
+  bofprintf_uint64(buffered_output_file,paired_map->mapq_score);
 }
 /*
  * MAP Alignment pretty
@@ -376,8 +378,9 @@ GEM_INLINE void output_map_print_counters_account_mcs(
 }
 GEM_INLINE void output_map_print_counters(
     buffered_output_file_t* const buffered_output_file,
-    const vector_t* const counters_vector,const uint64_t mcs,const bool compact) {
-  const uint64_t num_counters = vector_get_used(counters_vector);
+    matches_counters_t* const matches_counter,
+    const uint64_t mcs,const bool compact) {
+  const uint64_t num_counters = matches_counters_get_num_counters(matches_counter);
   buffered_output_file_reserve(buffered_output_file,(num_counters+1)*(INT_MAX_LENGTH+1));
   // Zero counters
   if (gem_expect_false(num_counters==0)) {
@@ -390,7 +393,7 @@ GEM_INLINE void output_map_print_counters(
   }
   // Print counters
   uint64_t i = 0;
-  const uint64_t* counters = vector_get_mem(counters_vector,uint64_t);
+  const uint64_t* counters = matches_counters_get_counts(matches_counter);
   while (i < num_counters) {
     // Check zero counter
     if (compact && *counters==0) {
@@ -484,18 +487,20 @@ GEM_INLINE void output_map_paired_end_matches(
     // Print COUNTERS
     output_map_print_separator(buffered_output_file,'\t'); // Separator
     output_map_print_counters(buffered_output_file,paired_matches->counters,paired_matches->max_complete_stratum,false);
-    if (gem_expect_false(vector_get_used(paired_matches->matches)==0)) {
+    if (paired_matches_get_num_maps(paired_matches)==0) {
       buffered_output_file_reserve(buffered_output_file,3);
       bofprintf_string_literal(buffered_output_file,"\t-\n");
     } else {
       // Print PAIRED MATCHES (Traverse all matches (Position-matches))
-      VECTOR_ITERATE_CONST(paired_matches->matches,paired_match,paired_match_number,paired_match_t) {
+      const uint64_t num_paired_map = paired_matches_get_num_maps(paired_matches);
+      paired_map_t* const paired_map = paired_matches_get_maps(paired_matches);
+      uint64_t i;
+      for (i=0;i<num_paired_map;++i) {
         // Separator
-        if (paired_match_number==0) output_map_print_separator(buffered_output_file,'\t');
-        else output_map_print_separator(buffered_output_file,',');
+        output_map_print_separator(buffered_output_file,(i==0) ? '\t' : ',');
         // Paired-Map
-        output_map_print_paired_match(buffered_output_file,
-            matches_end1,matches_end2,paired_match,output_map_parameters->format_version);
+        output_map_print_paired_match(buffered_output_file,matches_end1,
+            matches_end2,paired_map+i,output_map_parameters->format_version);
       }
     }
     output_map_print_separator(buffered_output_file,'\n');

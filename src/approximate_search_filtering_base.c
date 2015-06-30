@@ -8,7 +8,7 @@
 
 #include "approximate_search_filtering_base.h"
 #include "approximate_search_filtering_control.h"
-#include "approximate_search_parameters.h"
+#include "search_parameters.h"
 
 #include "neighborhood_search.h"
 #include "region_profile_schedule.h"

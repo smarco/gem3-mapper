@@ -25,7 +25,7 @@
 #include "archive_select.h"
 
 // ASM
-#include "approximate_search_parameters.h"
+#include "search_parameters.h"
 
 // Qualities
 #include "quality_model.h"

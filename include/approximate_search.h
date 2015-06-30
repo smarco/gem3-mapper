@@ -9,7 +9,7 @@
 #ifndef APPROXIMATE_SEARCH_H_
 #define APPROXIMATE_SEARCH_H_
 
-#include "approximate_search_parameters.h"
+#include "search_parameters.h"
 #include "archive.h"
 #include "pattern.h"
 #include "region_profile.h"

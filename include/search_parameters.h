@@ -1,18 +1,19 @@
 /*
  * PROJECT: GEMMapper
- * FILE: approximate_search_parameters.h
+ * FILE: search_parameters.h
  * DATE: 06/06/2012
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
  */
 
-#ifndef APPROXIMATE_SEARCH_PARAMETERS_H_
-#define APPROXIMATE_SEARCH_PARAMETERS_H_
+#ifndef SEARCH_PARAMETERS_H_
+#define SEARCH_PARAMETERS_H_
 
 #include "essentials.h"
 #include "quality_model.h"
 #include "match_align.h"
 #include "region_profile.h"
+#include "paired_search_parameters.h"
 
 // Approximate Search Internals
 typedef enum {
@@ -22,32 +23,6 @@ typedef enum {
   mapping_fixed_filtering_complete,    // Pure Filtering Complete
   mapping_neighborhood_search,         // Pure Neighborhood Search (brute-force)
 } mapping_mode_t;
-typedef enum {
-  local_alignment_always,
-  local_alignment_only_if_no_global,
-  local_alignment_never
-} local_alignment_mode_t;
-typedef enum {
-  paired_mapping_map_both_ends,
-  paired_mapping_paired_filtering,
-  paired_mapping_map_extension
-} paired_mapping_mode_t;
-typedef enum {
-  pair_layout_separate,
-  pair_layout_overlap,
-  pair_layout_contain,
-  pair_layout_dovetail,
-} pair_layout_t;
-typedef enum {
-  pair_orientation_concordant,
-  pair_orientation_discordant,
-  pair_orientation_invalid
-} pair_orientation_t;
-typedef enum {
-  pair_discordant_search_always,
-  pair_discordant_search_only_if_no_concordant,
-  pair_discordant_search_never
-} pair_discordant_search_t;
 typedef struct {
   /*
    * Search parameters
@@ -83,31 +58,13 @@ typedef struct {
   float region_scaffolding_min_context_length; // Minimum matching length to support a homopolymer error
   float region_scaffolding_coverage_threshold; // Minimum coverage not to resort to scaffolding
   /* Local alignment */
-  local_alignment_mode_t local_alignment;      // Local-alignment mode
   float local_min_identity;                    // Minimum identity of the read (dangling ends & local alignment)
   /*
    * Paired End
    */
   /* Paired-end mode/alg */
   bool paired_end;
-  paired_mapping_mode_t paired_mapping_mode;
-  bool recovery_by_extension;
-  pair_discordant_search_t pair_discordant_search;
-  uint64_t max_extendable_candidates;
-  uint64_t max_matches_per_extension;
-  /* Template allowed length */
-  uint64_t min_template_length;
-  uint64_t max_template_length;
-  /* Pair Orientation */
-  pair_orientation_t pair_orientation_FR;
-  pair_orientation_t pair_orientation_RF;
-  pair_orientation_t pair_orientation_FF;
-  pair_orientation_t pair_orientation_RR;
-  /* Pair allowed lay-outs */
-  bool pair_layout_separate;
-  bool pair_layout_overlap;
-  bool pair_layout_contain;
-  bool pair_layout_dovetail;
+  paired_search_parameters_t paired_search_parameters;
   /*
    * Internals
    */
@@ -144,36 +101,36 @@ typedef struct {
 } as_parameters_t;
 
 /*
- * Approximate Search Parameters
+ * Search Parameters
  */
-GEM_INLINE void approximate_search_parameters_init(search_parameters_t* const search_parameters);
+GEM_INLINE void search_parameters_init(search_parameters_t* const search_parameters);
 
-GEM_INLINE void approximate_search_configure_mapping_strategy(
+GEM_INLINE void search_configure_mapping_strategy(
     search_parameters_t* const search_parameters,
     const mapping_mode_t mapping_mode,const float filtering_degree);
-GEM_INLINE void approximate_search_configure_quality_model(
+GEM_INLINE void search_configure_quality_model(
     search_parameters_t* const search_parameters,
     const quality_model_t quality_model,const quality_format_t quality_format,const uint64_t quality_threshold);
-GEM_INLINE void approximate_search_configure_error_model(
+GEM_INLINE void search_configure_error_model(
     search_parameters_t* const search_parameters,float max_search_error,
     float max_filtering_error,float max_filtering_strata_after_best,
     float max_bandwidth,float complete_strata_after_best);
-GEM_INLINE void approximate_search_configure_matches(
+GEM_INLINE void search_configure_matches(
     search_parameters_t* const search_parameters,const uint64_t max_search_matches);
-GEM_INLINE void approximate_search_configure_replacements(
+GEM_INLINE void search_configure_replacements(
     search_parameters_t* const search_parameters,
     const char* const mismatch_alphabet,const uint64_t mismatch_alphabet_length);
-GEM_INLINE void approximate_search_configure_region_handling(
+GEM_INLINE void search_configure_region_handling(
     search_parameters_t* const search_parameters,const bool allow_region_chaining,
     const float region_scaffolding_min_length,const float region_scaffolding_coverage_threshold);
-GEM_INLINE void approximate_search_configure_alignment_model(
+GEM_INLINE void search_configure_alignment_model(
     search_parameters_t* const search_parameters,const alignment_model_t alignment_model);
-GEM_INLINE void approximate_search_configure_alignment_match_scores(
+GEM_INLINE void search_configure_alignment_match_scores(
     search_parameters_t* const search_parameters,const uint64_t matching_score);
-GEM_INLINE void approximate_search_configure_alignment_mismatch_scores(
+GEM_INLINE void search_configure_alignment_mismatch_scores(
     search_parameters_t* const search_parameters,const uint64_t mismatch_penalty);
 
-GEM_INLINE void approximate_search_instantiate_values(
+GEM_INLINE void search_instantiate_values(
     as_parameters_t* const as_parameters,const uint64_t pattern_length);
 
 /*
@@ -181,4 +138,4 @@ GEM_INLINE void approximate_search_instantiate_values(
  */
 #define GEM_ERROR_ASP_REPLACEMENT_EMPTY "Approximate Search Parameters. Valid replacements set cannot be empty"
 
-#endif /* APPROXIMATE_SEARCH_PARAMETERS_H_ */
+#endif /* SEARCH_PARAMETERS_H_ */

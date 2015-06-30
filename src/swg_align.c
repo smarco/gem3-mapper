@@ -15,11 +15,6 @@
 #include "matches.h"
 
 /*
- * Constants
- */
-#define SWG_SCORE_INT32_MIN (INT16_MIN)
-
-/*
  * Check CIGAR string
  */
 GEM_INLINE bool align_check_match(
@@ -125,7 +120,7 @@ GEM_INLINE int64_t align_levenshtein_get_distance(
   dp_array[0] = mm_calloc(2*key_len,uint64_t,false);
   dp_array[1] = dp_array[0] + key_len;
   // Init DP-Matrix
-  uint64_t min_val = ALIGN_DISTANCE_INF, i_pos = ALIGN_COLUMN_INF;
+  uint64_t min_val = UINT64_MAX, i_pos = UINT64_MAX;
   uint64_t i, j, idx_a=0, idx_b=0;
   for (j=0;j<key_len;++j) dp_array[0][j]=j;
   // Calculate DP-Matrix
@@ -459,14 +454,14 @@ GEM_INLINE void swg_align_match_init_table(
     const int32_t single_gap,const int32_t gap_extension) {
   uint64_t column, row;
   for (column=0;column<num_columns;++column) {
-    dp[column][0].D = SWG_SCORE_INT32_MIN;
+    dp[column][0].D = SWG_SCORE_MIN;
     dp[column][0].M = 0;
   }
-  dp[0][0].I = SWG_SCORE_INT32_MIN;
-  dp[0][1].I = SWG_SCORE_INT32_MIN;
+  dp[0][0].I = SWG_SCORE_MIN;
+  dp[0][1].I = SWG_SCORE_MIN;
   dp[0][1].M = single_gap; // g(1)
   for (row=2;row<num_rows;++row) {
-    dp[0][row].I = SWG_SCORE_INT32_MIN;
+    dp[0][row].I = SWG_SCORE_MIN;
     dp[0][row].M = dp[0][row-1].M + gap_extension; // g(row)
   }
 }
@@ -476,27 +471,27 @@ GEM_INLINE void swg_align_match_init_table_banded(
     const bool begin_free,const int32_t single_gap,const int32_t gap_extension) {
   uint64_t column, row;
   // Initialize first column
-  dp[0][0].D = SWG_SCORE_INT32_MIN; // Not used
-  dp[0][0].I = SWG_SCORE_INT32_MIN; // Not used
+  dp[0][0].D = SWG_SCORE_MIN; // Not used
+  dp[0][0].I = SWG_SCORE_MIN; // Not used
   dp[0][0].M = 0;
   dp[0][1].M = single_gap; // g(1)
-  dp[0][1].I = SWG_SCORE_INT32_MIN;
+  dp[0][1].I = SWG_SCORE_MIN;
   for (row=2;row<band_low_offset;++row) {
     dp[0][row].M = dp[0][row-1].M + gap_extension; // g(row)
-    dp[0][row].I = SWG_SCORE_INT32_MIN;
+    dp[0][row].I = SWG_SCORE_MIN;
   }
   // Initialize first row
   if (begin_free) {
     for (column=1;column<num_columns;++column) {
       dp[column][0].M = 0;
-      dp[column][0].D = SWG_SCORE_INT32_MIN;
+      dp[column][0].D = SWG_SCORE_MIN;
     }
   } else {
     dp[1][0].M = single_gap;
-    dp[1][0].D = SWG_SCORE_INT32_MIN;
+    dp[1][0].D = SWG_SCORE_MIN;
     for (column=2;column<column_start_band;++column) {
       dp[column][0].M = dp[column-1][0].M + gap_extension;
-      dp[column][0].D = SWG_SCORE_INT32_MIN;
+      dp[column][0].D = SWG_SCORE_MIN;
     }
   }
 }
@@ -504,33 +499,33 @@ GEM_INLINE void swg_align_match_init_table_banded_opt(
     swg_cell_t** const dp,const uint64_t num_columns,const uint64_t num_rows,
     const uint64_t column_start_band,const uint64_t band_low_offset,
     const bool begin_free,const int32_t single_gap,const int32_t gap_extension) {
-  dp[0][0].D = SWG_SCORE_INT32_MIN; // Not used
-  dp[0][0].I = SWG_SCORE_INT32_MIN; // Not used
+  dp[0][0].D = SWG_SCORE_MIN; // Not used
+  dp[0][0].I = SWG_SCORE_MIN; // Not used
   dp[0][0].M = 0;
   dp[0][1].M = single_gap; // g(1)
-  dp[0][1].I = SWG_SCORE_INT32_MIN;
-  dp[1][1].I = SWG_SCORE_INT32_MIN;
+  dp[0][1].I = SWG_SCORE_MIN;
+  dp[1][1].I = SWG_SCORE_MIN;
   uint64_t column, row;
   // Initialize first/second column
   for (row=2;row<band_low_offset;++row) {
     dp[0][row].M = dp[0][row-1].M + gap_extension; // g(row)
-    dp[0][row].I = SWG_SCORE_INT32_MIN;
+    dp[0][row].I = SWG_SCORE_MIN;
     dp[1][row].I = dp[0][row].M + single_gap;
   }
   // Initialize first/second row
   if (begin_free) {
     for (column=1;column<num_columns;++column) {
       dp[column][0].M = 0;
-      dp[column][0].D = SWG_SCORE_INT32_MIN;
+      dp[column][0].D = SWG_SCORE_MIN;
       dp[column][1].D = dp[column][0].M + single_gap;
     }
   } else {
     dp[1][0].M = single_gap;
-    dp[1][0].D = SWG_SCORE_INT32_MIN;
+    dp[1][0].D = SWG_SCORE_MIN;
     dp[1][1].D = single_gap + single_gap;
     for (column=2;column<column_start_band;++column) {
       dp[column][0].M = dp[column-1][0].M + gap_extension;
-      dp[column][0].D = SWG_SCORE_INT32_MIN;
+      dp[column][0].D = SWG_SCORE_MIN;
       dp[column][1].D = dp[column][0].M + single_gap;
     }
   }
@@ -565,7 +560,7 @@ GEM_INLINE void swg_align_match_base(
   const int32_t gap_extension = swg_penalties->gap_extension_score;
   swg_align_match_init_table(dp,num_columns,num_rows,single_gap,gap_extension);
   // Compute DP-matrix
-  int32_t max_score = SWG_SCORE_INT32_MIN;
+  int32_t max_score = SWG_SCORE_MIN;
   uint64_t max_score_column = UINT64_MAX;
   for (column=1;column<num_columns;++column) {
     for (row=1;row<num_rows;++row) {
@@ -705,11 +700,11 @@ GEM_INLINE void swg_align_match_banded(
   const uint64_t max_bandwidth = align_parameters->max_bandwidth;
   // Initialize band-limits
   if (text_length > key_length + max_bandwidth) { // Text too long for band
-    if (!begin_free && !end_free) { match_alignment->score = ALIGN_DISTANCE_INF; return; }
+    if (!begin_free && !end_free) { match_alignment->score = SWG_SCORE_MIN; return; }
     if (!begin_free) text_length = key_length + max_bandwidth;
   }
   if (text_length + max_bandwidth <= key_length) { // Text too short for band
-    match_alignment->score = ALIGN_DISTANCE_INF; return;
+    match_alignment->score = SWG_SCORE_MIN; return;
   }
   PROF_START(GP_SWG_ALIGN_BANDED);
   // Allocate memory
@@ -741,14 +736,14 @@ GEM_INLINE void swg_align_match_banded(
   for (column=1;column<num_columns;++column) {
     // Initialize band boundaries & update band limits
     if (band_low_offset < num_rows) { //  Below band
-      dp[column][band_low_offset].I = SWG_SCORE_INT32_MIN;
-      dp[column-1][band_low_offset].I = SWG_SCORE_INT32_MIN;
+      dp[column][band_low_offset].I = SWG_SCORE_MIN;
+      dp[column-1][band_low_offset].I = SWG_SCORE_MIN;
       ++band_low_offset; // Swift band
     }
     // Initialize band boundaries & update band limits
     if (column >= column_start_band) {
       ++band_high_offset; // Swift band
-      dp[column][band_high_offset+1].D = SWG_SCORE_INT32_MIN;
+      dp[column][band_high_offset+1].D = SWG_SCORE_MIN;
     }
     // Locate the cursor at the proper cell & calculate DP
     for (row=band_high_offset+1;row<band_low_offset;++row) {

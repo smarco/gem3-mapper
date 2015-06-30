@@ -110,7 +110,7 @@ GEM_INLINE void archive_search_reset(archive_search_t* const archive_search) {
   PROF_START(GP_ARCHIVE_SEARCH_SE_INIT);
   // Instantiate parameters actual-values
   const uint64_t sequence_length = sequence_get_length(&archive_search->sequence);
-  approximate_search_instantiate_values(&archive_search->as_parameters,sequence_length);
+  search_instantiate_values(&archive_search->as_parameters,sequence_length);
   // Prepare for sequence
   archive_search_prepare_sequence(archive_search);
   // Clear F/R search states

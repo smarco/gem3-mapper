@@ -9,7 +9,7 @@
 ROOT_PATH=..
 include ../Makefile.mk
 
-GEM_TOOLS=gem-mapper gem-indexer gem-constructor # gem-filtering 
+GEM_TOOLS=gem-mapper gem-indexer gem-constructor
 GEM_TOOLS_SRC=$(addsuffix .c, $(GEM_TOOLS))
 GEM_TOOLS_BIN=$(addprefix $(FOLDER_BIN)/, $(GEM_TOOLS))
 LIBS=-lgemcore_c -lpthread -lm -lrt $(LIBS_ZLIB) $(LIBS_BZLIB)

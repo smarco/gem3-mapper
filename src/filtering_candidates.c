@@ -216,10 +216,10 @@ GEM_INLINE uint64_t filtering_candidates_align_accepted_regions(
       ++regions_out;
     } else {
       // Check filtering strata-after-best
-      const uint64_t min_edit_distance = matches_classify_metrics_get_min_edit_distance(matches);
+      const uint64_t min_edit_distance = matches_metrics_get_min_edit_distance(&matches->metrics);
       const uint64_t distance_bound = (approximated_distance) ?
           regions_in->align_distance_min_bound : regions_in->align_distance;
-      if (distance_bound > min_edit_distance+max_delta) {
+      if (distance_bound > min_edit_distance+max_delta) { // FIXME
         gem_cond_debug_block(DEBUG_ACCEPTED_REGIONS) {
           gem_slog("[GEM]>Accepted.Regions\n");
           gem_slog("  => Region [%lu,%lu) discarded (Edit-bound=%lu,Edit-min=%lu,Margin=%lu)\n",
@@ -228,6 +228,7 @@ GEM_INLINE uint64_t filtering_candidates_align_accepted_regions(
         }
         *regions_discarded = *regions_in;
         regions_discarded->status = filtering_region_accepted_subdominant;
+        matches_metrics_inc_subdominant_candidates(&matches->metrics);
         ++regions_discarded;
       } else {
         // DEBUG
@@ -246,6 +247,9 @@ GEM_INLINE uint64_t filtering_candidates_align_accepted_regions(
             match_trace.match_alignment.match_position = 2*regions_in->begin_position -
                 match_trace.match_alignment.match_position + extension_candidate_length  -
                 match_trace.match_alignment.effective_length;
+            match_trace.match_alignment.match_position = archive_text_get_projection(archive_text,
+                match_trace.match_alignment.match_position,match_trace.match_alignment.effective_length);
+            match_trace.emulated_rc_search = false;
           }
           // Add to matches
           if (matches_add_match_trace(matches,&match_trace,true,mm_stack)) ++num_accepted_regions;
@@ -279,6 +283,9 @@ GEM_INLINE uint64_t filtering_candidates_local_align_discarded_regions(
     if (filtering_region_local_align(regions_discarded,archive_text,text_collection,as_parameters,
         emulated_rc_search,left_gap_alignment,pattern,matches,&match_trace,mm_stack)) {
       // Add to matches
+      if (regions_discarded->status == filtering_region_accepted_subdominant) {
+        matches_metrics_dec_subdominant_candidates(&matches->metrics);
+      }
       if (matches_add_match_trace(matches,&match_trace,true,mm_stack)) ++num_local_alignments;
     }
   }
@@ -575,23 +582,20 @@ GEM_INLINE void filtering_candidates_compute_extension_region(
     locator_t* const locator,const bool extension_onward,
     const uint64_t extended_begin_position,const uint64_t extended_effective_length,
     const uint64_t candidate_key_length,const uint64_t max_filtering_error,
-    const uint64_t max_expected_template_length,uint64_t* const candidate_begin_position,
+    const uint64_t max_template_size,uint64_t* const candidate_begin_position,
     uint64_t* const candidate_end_position) {
   locator_interval_t* const locator_interval = locator_lookup_interval(locator,extended_begin_position);
   if (extension_onward) {
-    *candidate_begin_position = extended_begin_position;
-    *candidate_end_position = extended_begin_position + extended_effective_length +
-        max_expected_template_length + candidate_key_length + max_filtering_error;
+    *candidate_begin_position = BOUNDED_SUBTRACTION(extended_begin_position,max_filtering_error,locator_interval->begin_position);
+    const uint64_t end_offset = extended_effective_length + max_template_size + candidate_key_length + max_filtering_error;
+    *candidate_end_position = BOUNDED_ADDITION(extended_begin_position,end_offset,locator_interval->end_position);
+  } else {
+    *candidate_end_position = extended_begin_position + extended_effective_length + max_filtering_error;
     if (*candidate_end_position > locator_interval->end_position) {
       *candidate_end_position = locator_interval->end_position;
     }
-  } else {
-    *candidate_end_position = extended_begin_position + extended_effective_length;
-    const uint64_t offset = max_expected_template_length + candidate_key_length + max_filtering_error;
-    *candidate_begin_position = (extended_begin_position > offset) ? extended_begin_position - offset : 0 ;
-    if (*candidate_begin_position < locator_interval->begin_position) {
-      *candidate_begin_position = locator_interval->begin_position;
-    }
+    const uint64_t begin_offset = max_template_size + candidate_key_length + max_filtering_error;
+    *candidate_begin_position = BOUNDED_SUBTRACTION(extended_begin_position,begin_offset,locator_interval->begin_position);
   }
 }
 /*
@@ -1006,11 +1010,11 @@ GEM_INLINE uint64_t filtering_candidates_extend_match(
    * Retrieve text-candidate
    */
   PROF_START(GP_FC_EXTEND_RETRIEVE_CANDIDATE_REGIONS);
-  const uint64_t max_expected_template_length = mapper_stats_template_length_get_expected_max(mapper_stats);
+  const uint64_t max_template_size = mapper_stats_template_length_get_expected_max(mapper_stats);
   uint64_t candidate_begin_position, candidate_end_position;
   filtering_candidates_compute_extension_region(archive->locator,search_onward,
       extended_match->match_alignment.match_position,extended_match->match_alignment.effective_length,
-      candidate_pattern->key_length,max_filtering_error,max_expected_template_length,
+      candidate_pattern->key_length,max_filtering_error,max_template_size,
       &candidate_begin_position,&candidate_end_position);
   const uint64_t candidate_length = candidate_end_position-candidate_begin_position;
   const uint64_t text_trace_offset = archive_text_retrieve(archive->text,text_collection,
@@ -1051,7 +1055,7 @@ GEM_INLINE void filtering_candidates_process_extension_candidates(
     const search_parameters_t* const search_parameters,mapper_stats_t* const mapper_stats,
     paired_matches_t* const paired_matches,mm_stack_t* const mm_stack) {
   // Parameters
-  const uint64_t max_expected_template_length = mapper_stats_template_length_get_expected_max(mapper_stats);
+  const uint64_t max_template_size = mapper_stats_template_length_get_expected_max(mapper_stats);
   // Allocate candidate filtering regions
   const uint64_t num_filtering_regions = vector_get_used(extended_filtering_candidates->filtering_regions);
   filtering_region_t* regions_extended = vector_get_mem(extended_filtering_candidates->filtering_regions,filtering_region_t);
@@ -1066,7 +1070,7 @@ GEM_INLINE void filtering_candidates_process_extension_candidates(
         archive->locator,true,extended_eff_begin_position,
         extended_pattern->key_length+extended_pattern->max_effective_filtering_error,
         candidate_pattern->key_length,candidate_pattern->max_effective_filtering_error,
-        max_expected_template_length,&candidate_begin_position,&candidate_end_position);
+        max_template_size,&candidate_begin_position,&candidate_end_position);
     const uint64_t candidate_length = candidate_end_position-candidate_begin_position;
     // Add candidate region
     const uint64_t max_error = candidate_pattern->max_effective_filtering_error;
@@ -1118,7 +1122,8 @@ GEM_INLINE void filtering_candidates_process_extension_candidates(
     const pattern_t* const candidate_pattern,const search_parameters_t* const search_parameters,
     paired_matches_t* const paired_matches,mm_stack_t* const mm_stack) {
   // Parameters
-  const uint64_t max_expected_template_length = paired_matches_get_max_expected_template_length(paired_matches);
+  const uint64_t min_template_size = mapper_stats_template_length_get_expected_min(mapper_stats);
+  const uint64_t max_template_size = mapper_stats_template_length_get_expected_max(mapper_stats);
   // Allocate candidate filtering regions
   const uint64_t num_filtering_regions = vector_get_used(extended_filtering_candidates->filtering_regions);
   filtering_region_t* regions_extended = vector_get_mem(extended_filtering_candidates->filtering_regions,filtering_region_t);
@@ -1134,7 +1139,7 @@ GEM_INLINE void filtering_candidates_process_extension_candidates(
         archive->locator,true,extended_eff_begin_position,
         extended_pattern->key_length+extended_pattern->max_effective_filtering_error,
         candidate_pattern->key_length,candidate_pattern->max_effective_filtering_error,
-        max_expected_template_length,&candidate_begin_position,&candidate_end_position);
+        min_template_size,max_template_size,&candidate_begin_position,&candidate_end_position);
     const uint64_t candidate_length = candidate_end_position-candidate_begin_position;
     // Add candidate region
     regions_candidate->status = filtering_region_unverified; // Newly created region (unverified)

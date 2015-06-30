@@ -49,7 +49,8 @@ GEM_INLINE void output_map_alignment_pretty(
  */
 GEM_INLINE void output_map_print_counters(
     buffered_output_file_t* const buffered_output_file,
-    const vector_t* const counters_vector,const uint64_t mcs,const bool compact);
+    matches_counters_t* const matches_counter,
+    const uint64_t mcs,const bool compact);
 GEM_INLINE void output_map_print_match(
     buffered_output_file_t* const buffered_output_file,
     const matches_t* const matches,const match_trace_t* const match_trace,
@@ -57,7 +58,7 @@ GEM_INLINE void output_map_print_match(
 GEM_INLINE void output_map_print_paired_match(
     buffered_output_file_t* const buffered_output_file,
     const matches_t* const matches_end1,const matches_t* const matches_end2,
-    const paired_match_t* const paired_match,const output_map_format_t output_map_format);
+    const paired_map_t* const paired_map,const output_map_format_t output_map_format);
 
 /*
  * MAP SingleEnd

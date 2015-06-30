@@ -173,9 +173,9 @@ GEM_INLINE void mapper_parameters_set_defaults(mapper_parameters_t* const mapper
   /* I/O Parameters */
   mapper_parameters_set_defaults_io(&mapper_parameters->io);
   /* Search Parameters (single-end/paired-end) */
-  approximate_search_parameters_init(&mapper_parameters->search_parameters);
+  search_parameters_init(&mapper_parameters->search_parameters);
   /* Select Parameters */
-  archive_select_parameters_init(&mapper_parameters->select_parameters);
+  select_parameters_init(&mapper_parameters->select_parameters);
   /* System */
   mapper_parameters_set_defaults_system(&mapper_parameters->system);
   /* CUDA settings */
@@ -377,12 +377,13 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
   while (mapper_SE_read_single_sequence(mapper_search)) {
-//    if (gem_streq(mapper_search->archive_search->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000018898")) {
+//    if (gem_streq(mapper_search->archive_search->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000437571")) {
 //      printf("HERE\n");
 //    }
 
     // Search into the archive
     archive_search_single_end(mapper_search->archive_search,matches);
+    archive_select_matches(mapper_search->archive_search,false,matches); // Select matches
 
     // Output matches
     mapper_SE_output_matches(parameters,buffered_output_file,mapper_search->archive_search,matches);
@@ -437,10 +438,9 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
   while (mapper_PE_read_paired_sequences(mapper_search)) {
-
-//    if (gem_streq(mapper_search->archive_search_end1->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000020269")) {
-//      printf("HERE\n");
-//    } // H.Sapiens.1M.Illumina.l100.low.000000607
+//    if (gem_streq(mapper_search->archive_search_end1->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000380755")) {
+//      printf("HERE\n"); // H.Sapiens.1M.Illumina.l100.low.000000607
+//    }
 
     // Search into the archive
     archive_search_paired_end(mapper_search->archive_search_end1,

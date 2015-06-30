@@ -11,54 +11,54 @@
 
 #include "essentials.h"
 #include "matches.h"
+#include "paired_matches.h"
 
+/*
+ * Constants
+ */
+#define MATCHES_UNIQUE_CI 0.998
+#define MATCHES_MMAPS_CI  0.995
+#define MATCHES_TIES_CI   0.95
+
+/*
+ * Matches Classes
+ */
 typedef enum {
-  matches_tie_none = 0,
-  matches_tie_event_distance_delta0,
-  matches_tie_event_distance_delta1,
-  matches_tie_swg_score,
-  matches_tie_edit_distance,
-} matches_tie_type;
+  matches_class_unmapped,
+  matches_class_tie_indistinguishable,
+  matches_class_tie_swg_score,
+  matches_class_tie_edit_distance,
+  matches_class_tie_event_distance,
+  matches_class_mmap,
+  matches_class_unique,
+} matches_class_t;
 
 /*
- * Setup
+ * Compute predictors
  */
-GEM_INLINE void matches_classify_metrics_init(matches_metrics_t* const matches_metrics);
-
-/*
- * Accessors
- */
-GEM_INLINE uint64_t matches_classify_metrics_get_min_distance(matches_t* const matches);
-GEM_INLINE uint64_t matches_classify_metrics_get_max_distance(matches_t* const matches);
-GEM_INLINE uint64_t matches_classify_metrics_get_min_edit_distance(matches_t* const matches);
-GEM_INLINE int32_t matches_classify_metrics_get_max_swg_score(matches_t* const matches);
-
-/*
- * Metrics
- */
-GEM_INLINE void matches_classify_metrics_update(
-    matches_metrics_t* const matches_metrics,const uint64_t distance,
-    const uint64_t edit_distance,const int32_t swg_score);
-GEM_INLINE void matches_classify_metrics_recompute(matches_t* const matches);
-
-GEM_INLINE void matches_classify_compute_mvalues(
-    matches_t* const matches,const swg_penalties_t* const swg_penalties,
+GEM_INLINE void matches_classify_compute_predictors_unmapped(
+    matches_predictors_t* const predictors,matches_metrics_t* const metrics,
     const uint64_t read_length,const uint64_t max_region_length,
-    uint64_t const proper_length,uint64_t const overriding_mcs);
+    const uint64_t proper_length,const uint64_t max_complete_stratum);
+GEM_INLINE void matches_classify_compute_predictors_mapped(
+    matches_predictors_t* const predictors,matches_metrics_t* const metrics,
+    const uint64_t primary_map_distance,const uint64_t primary_map_edit_distance,
+    const int32_t primary_map_swg_score,const swg_penalties_t* const swg_penalties,
+    const uint64_t read_length,const uint64_t max_region_length,
+    const uint64_t proper_length,const uint64_t max_complete_stratum);
 
 /*
- * Classifier
+ * SE Classify
  */
-GEM_INLINE matches_tie_type matches_classify_is_tie(matches_t* const matches);
-GEM_INLINE bool matches_classify_is_unique(matches_t* const matches);
+GEM_INLINE matches_class_t matches_classify(matches_t* const matches);
+GEM_INLINE void matches_classify_compute_predictors(
+    matches_t* const matches,matches_predictors_t* const predictors,
+    const swg_penalties_t* const swg_penalties,const uint64_t read_length,
+    const uint64_t max_region_length,uint64_t const proper_length,
+    uint64_t const overriding_mcs);
 
-GEM_INLINE double matches_classify_unique(matches_t* const matches);
-GEM_INLINE double matches_classify_mmaps(matches_t* const matches);
-GEM_INLINE double matches_classify_delta1(matches_t* const matches);
-
-/*
- * Display
- */
-GEM_INLINE void matches_classify_metrics_print(const char* const read_tag,matches_t* const matches);
+GEM_INLINE double matches_classify_unique(matches_predictors_t* const predictors);
+GEM_INLINE double matches_classify_mmaps(matches_predictors_t* const predictors);
+GEM_INLINE double matches_classify_ties(matches_predictors_t* const predictors);
 
 #endif /* MATCHES_CLASSIFY_H_ */

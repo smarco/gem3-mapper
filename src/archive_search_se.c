@@ -62,8 +62,6 @@ GEM_INLINE void archive_search_finish_search(archive_search_t* const archive_sea
   PROF_START(GP_ARCHIVE_SEARCH_SE_FINISH_SEARCH);
   archive_search_continue(archive_search,true,matches);
   PROF_STOP(GP_ARCHIVE_SEARCH_SE_FINISH_SEARCH);
-  // Select matches
-  archive_select_matches(archive_search,matches);
 }
 GEM_INLINE void archive_search_copy_candidates(
     archive_search_t* const archive_search,bpm_gpu_buffer_t* const bpm_gpu_buffer) {
@@ -131,18 +129,6 @@ GEM_INLINE void archive_search_single_end(archive_search_t* const archive_search
         approximate_search(forward_asearch,matches);
       }
     }
-  }
-  // Select matches
-  archive_select_matches(archive_search,matches);
-  // Check matches
-  select_parameters_t* const select_parameters = archive_search->select_parameters;
-  if (select_parameters->check_correct || select_parameters->check_optimum || select_parameters->check_complete) {
-    search_parameters_t* const search_parameters = archive_search->as_parameters.search_parameters;
-    archive_check_matches(
-        archive_search->archive,search_parameters->alignment_model,
-        &search_parameters->swg_penalties,&archive_search->sequence,
-        matches,select_parameters->check_optimum,select_parameters->check_complete,
-        archive_search->mm_stack);
   }
   PROF_STOP(GP_ARCHIVE_SEARCH_SE);
 }

@@ -269,13 +269,13 @@ GEM_INLINE void mapper_profile_print_archive_search_pe(FILE* const stream) {
   tab_fprintf(stream,"        => TIME.Archive.Verify.Filtering.Regions    ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_SE_VERIFY_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"    (C) Map.Extension\n");
-  tab_fprintf(stream,"        => TIME.Archive.Extension                   ");
+  tab_fprintf(stream,"        => TIME.Archive.Extend.Candidates           ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"          => TIME.Filtering.Pair.By.Extension       ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_PE_EXTENSION),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"          => TIME.Filtering.Recovery.By.Extension   ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_PE_RECOVER_BY_EXTENSION),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"          => TIME.Archive.Extend.Candidates\n");
+  tab_fprintf(stream,"          => TIME.Extend.Shortcut                   ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_PE_EXTENSION_SHORTCUT),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"          => TIME.Extend.Recovery                   ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_PE_EXTENSION_RECOVERY),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"          => TIME.Filtering.Extend.Candidates\n");
   tab_fprintf(stream,"            => TIME.Filtering.Extend.Match          ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_EXTEND_MATCH),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"              => TIME.Filtering.Retrieve.Candidates ");
@@ -297,26 +297,8 @@ GEM_INLINE void mapper_profile_print_archive_search_pe(FILE* const stream) {
   tab_fprintf(stream,"    |> Archive.Extend.Candidates (Including Recovery)\n");
   tab_fprintf(stream,"      --> Candidate.Regions.Length                ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_EXTEND_VERIFY_CANDIDATE_LENGTH),NULL,"nt",true);
-  tab_fprintf(stream,"      --> Num.Extended.End1                       ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_END1),
-                       PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"ext",true);
-  tab_fprintf(stream,"        --> Extended.End1.Success                 ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_END1_SUCCESS),
-                       PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"ext",true);
-  tab_fprintf(stream,"      --> Num.Extended.End2                       ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_END2),
-                       PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"ext",true);
-  tab_fprintf(stream,"        --> Extended.End2.Success                 ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_END2_SUCCESS),
-                       PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"ext",true);
-  tab_fprintf(stream,"      --> Num.Recovered.By.Extension              ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_PE_RECOVER_BY_EXTENSION_HIT),
-                       PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"ext",true);
-  tab_fprintf(stream,"        --> Recovered.By.Extension.End1           ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_PE_RECOVER_BY_EXTENSION_END1),
-                       PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"ext",true);
-  tab_fprintf(stream,"        --> Recovered.By.Extension.End2           ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_PE_RECOVER_BY_EXTENSION_END2),
+  tab_fprintf(stream,"      --> Extended.Shortcut.Success               ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTENSION_SHORTCUT_SUCCESS),
                        PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"ext",true);
 }
 GEM_INLINE void mapper_profile_print_archive_search_group(FILE* const stream) {

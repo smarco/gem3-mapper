@@ -12,7 +12,6 @@
 /*
  * Constants
  */
-#define MATCHES_INIT_COUNTERS          200
 #define MATCHES_INIT_INTERVAL_MATCHES  100
 #define MATCHES_INIT_GLOBAL_MATCHES   1000
 #define MATCHES_INIT_CIGAR_OPS        5000
@@ -26,8 +25,7 @@ GEM_INLINE matches_t* matches_new() {
   // Search-matches state
   matches->max_complete_stratum = ALL;
   // Matches Counters
-  matches->counters = vector_new(MATCHES_INIT_COUNTERS,uint64_t);
-  matches->total_matches_count = 0;
+  matches->counters = matches_counters_new();
   // Interval Matches
   matches->interval_matches = vector_new(MATCHES_INIT_INTERVAL_MATCHES,match_interval_t);
   // Position Matches
@@ -37,7 +35,7 @@ GEM_INLINE matches_t* matches_new() {
   // CIGAR buffer
   matches->cigar_vector = vector_new(MATCHES_INIT_CIGAR_OPS,cigar_element_t);
   // Init metrics
-  matches_classify_metrics_init(&matches->metrics);
+  matches_metrics_init(&matches->metrics);
   // Return
   return matches;
 }
@@ -48,9 +46,8 @@ GEM_INLINE void matches_configure(matches_t* const matches,text_collection_t* co
 GEM_INLINE void matches_clear(matches_t* const matches) {
   MATCHES_CHECK(matches);
   matches->max_complete_stratum = ALL;
-  vector_clear(matches->counters);
-  matches->total_matches_count = 0;
-  matches_classify_metrics_init(&matches->metrics);
+  matches_counters_clear(matches->counters);
+  matches_metrics_init(&matches->metrics);
   vector_clear(matches->interval_matches);
   vector_clear(matches->position_matches);
   matches_index_clear(matches);
@@ -59,7 +56,7 @@ GEM_INLINE void matches_clear(matches_t* const matches) {
 GEM_INLINE void matches_delete(matches_t* const matches) {
   MATCHES_CHECK(matches);
   // Delete all
-  vector_delete(matches->counters);
+  matches_counters_delete(matches->counters);
   vector_delete(matches->interval_matches);
   vector_delete(matches->position_matches);
   ihash_delete(matches->begin_pos_matches);
@@ -74,45 +71,30 @@ GEM_INLINE void matches_delete(matches_t* const matches) {
 GEM_INLINE bool matches_is_mapped(const matches_t* const matches) {
   return vector_get_used(matches->position_matches) > 0 || vector_get_used(matches->interval_matches) > 0;
 }
+GEM_INLINE void matches_recompute_metrics(matches_t* const matches) {
+  // Parameters
+  matches_metrics_t* const metrics = &matches->metrics;
+  // ReCompute distance metrics
+  const match_trace_t* match = matches_get_match_trace_buffer(matches);
+  const uint64_t num_matches = matches_get_num_match_traces(matches);
+  matches_metrics_init(metrics);
+  uint64_t i;
+  for (i=0;i<num_matches;++i,++match) {
+    matches_metrics_update(metrics,match->distance,match->edit_distance,match->swg_score);
+  }
+}
+GEM_INLINE uint64_t matches_get_first_stratum_matches(matches_t* const matches) {
+  const uint64_t min_distance = matches_metrics_get_min_distance(&matches->metrics);
+  return (min_distance==UINT32_MAX) ? 0 : matches_counters_get_count(matches->counters,min_distance);
+}
+GEM_INLINE uint64_t matches_get_subdominant_stratum_matches(matches_t* const matches) {
+  const uint64_t first_stratum_matches = matches_get_first_stratum_matches(matches);
+  return matches_counters_get_total_count(matches->counters) - first_stratum_matches;
+}
 /*
  * Counters
  */
-GEM_INLINE void matches_counters_add(
-    matches_t* const matches,const uint64_t distance,
-    const uint64_t edit_distance,const int32_t swg_score,const uint64_t num_matches) {
-  vector_t* const counters = matches->counters;
-  // Reserve Memory
-  if (distance >= vector_get_used(counters)) {
-    vector_reserve(counters,distance+1,true);
-    vector_set_used(counters,distance+1);
-  }
-  // Add matches
-  *vector_get_elm(counters,distance,uint64_t) += num_matches;
-  matches->total_matches_count += num_matches;
-  // Update Metrics
-  matches_classify_metrics_update(&matches->metrics,distance,edit_distance,swg_score);
-}
-GEM_INLINE void matches_counters_dec(
-    matches_t* const matches,const uint64_t distance,const uint64_t num_matches) {
-  uint64_t* const counter = vector_get_elm(matches->counters,distance,uint64_t);
-  *counter -= num_matches; // Dec matches
-  matches->total_matches_count -= num_matches;
-  matches_classify_metrics_recompute(matches);
-}
-GEM_INLINE uint64_t matches_counters_compact(matches_t* const matches) {
-  const uint64_t* const counters = vector_get_mem(matches->counters,uint64_t);
-  int64_t i = vector_get_used(matches->counters)-1;
-  while (i>=0 && counters[i]==0) --i;
-  vector_set_used(matches->counters,++i);
-  return i;
-}
-GEM_INLINE uint64_t matches_counters_get_count(matches_t* const matches,const uint64_t distance) {
-  const uint64_t* const counters = vector_get_mem(matches->counters,uint64_t);
-  return counters[distance];
-}
-GEM_INLINE uint64_t matches_counters_get_total_count(matches_t* const matches) {
-  return matches->total_matches_count;
-}
+//GEM_INLINE void matches_counters_add(
 /*
  * Index
  */
@@ -142,7 +124,7 @@ GEM_INLINE void matches_index_rebuild(matches_t* const matches,mm_stack_t* const
   // Clear
   matches_index_clear(matches);
   // Re-index positions
-  match_trace_t* const match = matches_get_match_traces(matches);
+  match_trace_t* const match = matches_get_match_trace_buffer(matches);
   const uint64_t num_matches = matches_get_num_match_traces(matches);
   uint64_t i;
   for (i=0;i<num_matches;++i) {
@@ -153,8 +135,11 @@ GEM_INLINE void matches_index_rebuild(matches_t* const matches,mm_stack_t* const
 /*
  * Matches
  */
-GEM_INLINE match_trace_t* matches_get_match_traces(const matches_t* const matches) {
+GEM_INLINE match_trace_t* matches_get_match_trace_buffer(const matches_t* const matches) {
   return vector_get_mem(matches->position_matches,match_trace_t);
+}
+GEM_INLINE match_trace_t* matches_get_match_trace(const matches_t* const matches,const uint64_t offset) {
+  return vector_get_elm(matches->position_matches,offset,match_trace_t);
 }
 GEM_INLINE uint64_t matches_get_num_match_traces(const matches_t* const matches) {
   return vector_get_used(matches->position_matches);
@@ -214,7 +199,9 @@ GEM_INLINE bool matches_add_match_trace(
         new_match_trace->match_alignment.effective_length,mm_stack);
     // Update counters
     if (update_counters) {
-      matches_counters_add(matches,match_trace->distance,match_trace->edit_distance,match_trace->swg_score,1);
+      matches_counters_add(matches->counters,match_trace->distance,1);
+      matches_metrics_update(&matches->metrics,
+          match_trace->distance,match_trace->edit_distance,match_trace->swg_score); // Update Metrics
     }
     return true;
   } else {
@@ -222,11 +209,15 @@ GEM_INLINE bool matches_add_match_trace(
     if (dup_match_trace->distance > match_trace->distance) {
       // Pick up the least distant match
       if (update_counters) {
-        matches_counters_dec(matches,dup_match_trace->distance,1);
-        matches_counters_add(matches,match_trace->distance,match_trace->edit_distance,match_trace->swg_score,1);
+        matches_counters_sub(matches->counters,dup_match_trace->distance,1);
+        matches_counters_add(matches->counters,match_trace->distance,1);
       }
       // Add the match-trace
       *dup_match_trace = *match_trace;
+      // Recompute metrics
+      if (update_counters) {
+        matches_recompute_metrics(matches);
+      }
     }
     return false;
   }
@@ -246,7 +237,9 @@ GEM_INLINE void matches_add_interval_match(
   match_interval.distance = distance;
   match_interval.emulated_rc_search = emulated_rc_search;
   // Update counters
-  matches_counters_add(matches,distance,distance,BOUNDED_SUBTRACTION(length,distance,0),num_matches); // FIXME Revise
+  matches_counters_add(matches->counters,distance,num_matches); // FIXME Revise
+  // Update Metrics
+  matches_metrics_update(&matches->metrics,distance,distance,BOUNDED_SUBTRACTION(length,distance,0)); // FIXME Revise
   // Add the interval
   vector_insert(matches->interval_matches,match_interval,match_interval_t);
 }
@@ -378,6 +371,36 @@ GEM_INLINE void matches_cigar_vector_append_cigar_element(
       GEM_INVALID_CASE();
       break;
   }
+}
+GEM_INLINE int matches_cigar_cmp(
+    vector_t* const cigar_vector_match0,match_trace_t* const match0,
+    vector_t* const cigar_vector_match1,match_trace_t* const match1) {
+  const uint64_t match0_cigar_length = match0->match_alignment.cigar_length;
+  const uint64_t match1_cigar_length = match1->match_alignment.cigar_length;
+  if (match0_cigar_length != match1_cigar_length) return -1;
+  // Locate CIGARs
+  cigar_element_t* const match0_cigar = vector_get_elm(cigar_vector_match0,match0->match_alignment.cigar_offset,cigar_element_t);
+  cigar_element_t* const match1_cigar = vector_get_elm(cigar_vector_match1,match1->match_alignment.cigar_offset,cigar_element_t);
+  // Compare
+  uint64_t i;
+  for (i=0;i<match0_cigar_length;++i) {
+    if (match0_cigar[i].type != match1_cigar[i].type) return -1;
+    if (match0_cigar[i].attributes != match1_cigar[i].attributes) return -1;
+    switch (match0_cigar[i].type) {
+      case cigar_match:
+      case cigar_ins:
+      case cigar_del:
+        if (match0_cigar[i].length != match1_cigar[i].length) return -1;
+        break;
+      case cigar_mismatch:
+        if (match0_cigar[i].mismatch != match1_cigar[i].mismatch) return -1;
+        break;
+      default:
+        GEM_INVALID_CASE();
+        break;
+    }
+  }
+  return 0;
 }
 GEM_INLINE void matches_cigar_reverse(
     matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
@@ -565,33 +588,31 @@ GEM_INLINE void matches_sort_by_sequence_name__position(matches_t* const matches
  */
 GEM_INLINE void matches_filter_by_swg_score(matches_t* const matches,const double swg_threshold,mm_stack_t* const mm_stack) {
   const uint64_t num_matches = matches_get_num_match_traces(matches);
-  match_trace_t* match_in = matches_get_match_traces(matches);
+  match_trace_t* match_in = matches_get_match_trace_buffer(matches);
   match_trace_t* match_out = match_in;
   // Delete matches with lower swg-score than the best
-  const int32_t max_swg_score = matches_classify_metrics_get_max_swg_score(matches);
+  const int32_t max_swg_score = matches_metrics_get_max_swg_score(&matches->metrics);
   const int32_t min_swg_score = (swg_threshold >= 1.0) ?
       (int32_t)swg_threshold : max_swg_score - (int32_t)(swg_threshold*(double)(ABS(max_swg_score)));
-  bool reallocated = false;
   uint64_t i;
   for (i=0;i<num_matches;++i,++match_in) {
     if (match_in->swg_score >= min_swg_score) {
       if (match_out != match_in) *match_out = *match_in;
       ++match_out;
     } else {
-      matches_counters_dec(matches,match_in->distance,1);
-      reallocated = true;
+      matches_counters_sub(matches->counters,match_in->distance,1);
     }
   }
   vector_update_used(matches->position_matches,match_out);
   // Because the matches had been reallocated, the indexed-positions are no longer valid
-  if (reallocated) {
+  if (matches_get_num_match_traces(matches)!=num_matches) {
     matches_index_rebuild(matches,mm_stack);
-    matches_classify_metrics_recompute(matches);
+    matches_recompute_metrics(matches);
   }
 }
 GEM_INLINE void matches_filter_by_mapq(matches_t* const matches,const uint8_t mapq_threshold,mm_stack_t* const mm_stack) {
   const uint64_t num_matches = matches_get_num_match_traces(matches);
-  match_trace_t* match_in = matches_get_match_traces(matches);
+  match_trace_t* match_in = matches_get_match_trace_buffer(matches);
   match_trace_t* match_out = match_in;
   bool reallocated = false;
   uint64_t i;
@@ -608,7 +629,7 @@ GEM_INLINE void matches_filter_by_mapq(matches_t* const matches,const uint8_t ma
   // Because the matches had been reallocated, the indexed-positions are no longer valid
   if (reallocated) {
     matches_index_rebuild(matches,mm_stack);
-    matches_classify_metrics_recompute(matches);
+    matches_recompute_metrics(matches);
   }
 }
 /*

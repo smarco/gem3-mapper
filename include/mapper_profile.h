@@ -53,16 +53,12 @@
 
 // Paired Mode
 #define GP_ARCHIVE_SEARCH_PE                                          22
-#define GP_ARCHIVE_SEARCH_PE_EXTENSION                                23
-#define GP_ARCHIVE_SEARCH_PE_EXTEND_END1                              24
-#define GP_ARCHIVE_SEARCH_PE_EXTEND_END1_SUCCESS                      25
-#define GP_ARCHIVE_SEARCH_PE_EXTEND_END2                              26
-#define GP_ARCHIVE_SEARCH_PE_EXTEND_END2_SUCCESS                      27
-#define GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES                        28
-#define GP_ARCHIVE_SEARCH_PE_RECOVER_BY_EXTENSION                     30
-#define GP_ARCHIVE_SEARCH_PE_RECOVER_BY_EXTENSION_END1                31
-#define GP_ARCHIVE_SEARCH_PE_RECOVER_BY_EXTENSION_END2                32
-#define GP_ARCHIVE_SEARCH_PE_RECOVER_BY_EXTENSION_HIT                 33
+
+#define GP_ARCHIVE_SEARCH_PE_EXTENSION_SHORTCUT                       23
+#define GP_ARCHIVE_SEARCH_PE_EXTENSION_SHORTCUT_SUCCESS               24
+#define GP_ARCHIVE_SEARCH_PE_EXTENSION_RECOVERY                       25
+#define GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES                        26
+
 #define GP_ARCHIVE_SEARCH_PE_PAIRED_FILTERED                          34
 #define GP_ARCHIVE_SEARCH_PE_PAIRED_FILTERING_SUCCESS                 35
 #define GP_ARCHIVE_SEARCH_PE_DISCARD_FILTERING_REGIONS                36
