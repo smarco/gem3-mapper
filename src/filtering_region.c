@@ -136,6 +136,7 @@ GEM_INLINE bool filtering_region_align(
             .max_error = pattern->max_effective_filtering_error,
             .max_bandwidth = max_bandwidth,
             .left_gap_alignment = false, // FIXME left_gap_alignment
+            .local_min_identity = as_parameters->local_min_identity_nominal,
             .min_coverage = as_parameters->region_scaffolding_coverage_threshold_nominal,
             .min_matching_length = as_parameters->region_scaffolding_min_length_nominal,
             .min_context_length = as_parameters->region_scaffolding_min_context_length_nominal,

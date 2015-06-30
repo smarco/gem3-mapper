@@ -470,6 +470,7 @@ GEM_INLINE void match_align_smith_waterman_gotoh_chained(
  *   @align_input->text_offset_end
  *   @align_parameters->emulated_rc_search
  *   @align_parameters->swg_penalties
+ *   @align_parameters->local_min_identity
  *   @align_parameters->left_gap_alignment
  *   @align_parameters->allowed_enc
  *   @align_parameters->max_bandwidth
@@ -509,7 +510,7 @@ GEM_INLINE void match_align_smith_waterman_gotoh(
     swg_align_match(align_input,align_parameters,true,true,
         &match_trace->match_alignment,matches->cigar_vector,mm_stack);
   }
-  // Check for Bad alignment (discarded)
+  // Check for bad alignments (discarded)
   if (match_alignment->score == SWG_SCORE_MIN) {
     match_trace->swg_score = SWG_SCORE_MIN;
     match_trace->distance = ALIGN_DISTANCE_INF;
@@ -520,14 +521,21 @@ GEM_INLINE void match_align_smith_waterman_gotoh(
   if (align_parameters->cigar_curation) {
     match_align_curate_cigar(match_trace,matches->cigar_vector,align_parameters);
   }
-  // Compute Score + Effective-Length
+  // Compute edit distance & discard bad alignments
+  match_trace->edit_distance = matches_cigar_compute_edit_distance(
+      matches,match_alignment->cigar_offset,match_alignment->cigar_length);
+  if (align_input->key_length - match_trace->edit_distance < align_parameters->local_min_identity) {
+    match_trace->swg_score = SWG_SCORE_MIN;
+    match_trace->distance = ALIGN_DISTANCE_INF;
+    PROF_STOP(GP_MATCHES_ALIGN_SWG);
+    return;
+  }
+  // Compute score + effective-length
   match_alignment->effective_length = matches_cigar_effective_length(
       matches->cigar_vector,match_alignment->cigar_offset,match_alignment->cigar_length);
   match_trace->swg_score = swg_score_cigar(align_parameters->swg_penalties,
       matches->cigar_vector,match_alignment->cigar_offset,match_alignment->cigar_length);
   match_trace->distance = matches_cigar_compute_event_distance(
-      matches,match_alignment->cigar_offset,match_alignment->cigar_length);
-  match_trace->edit_distance = matches_cigar_compute_edit_distance(
       matches,match_alignment->cigar_offset,match_alignment->cigar_length);
   match_trace->text = align_input->text + (match_alignment->match_position - match_position);
   match_trace->text_length = match_alignment->effective_length;
