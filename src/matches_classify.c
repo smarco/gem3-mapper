@@ -144,34 +144,37 @@ GEM_INLINE void matches_classify_compute_predictors(
 }
 GEM_INLINE double matches_classify_unique(matches_predictors_t* const predictors) {
   // Unique: Probability of the first position-match (primary match) of being a true positive
-  const double lr_factor = -246.7264 +
-      (double)predictors->first_map_event_distance_norm * 227.9141 +
-      (double)predictors->first_map_swg_score_norm * 14.4037 +
-      (double)predictors->mcs * 6.4052 +
-      (double)predictors->max_region_length_norm * -0.2600 +
-      (double)predictors->subdominant_candidates_end1 * 0.4366;
+  const double lr_factor = -222.2971 +
+      (double)predictors->first_map_event_distance_norm * 207.3658 +
+      (double)predictors->first_map_swg_score_norm * 17.8461 +
+      (double)predictors->mcs * 4.7404 +
+      (double)predictors->max_region_length_norm * -0.9996 +
+      (double)predictors->subdominant_candidates_end1 * 0.2964;
   return 1.0 / (1.0 + (1.0/exp(lr_factor)));
 }
 GEM_INLINE double matches_classify_mmaps(matches_predictors_t* const predictors) {
   // Classify MMaps wrt the probability of the first position-match (primary match) of being a true positive
-  const double lr_factor = -207.141 +
-      (double)predictors->first_map_event_distance_norm * 188.729 +
-      (double)predictors->subdominant_event_distance_norm * -1.423 +
-      (double)predictors->first_map_swg_score_norm * 18.972 +
-      (double)predictors->mcs * 4.173;
+  const double lr_factor = -209.7885 +
+      (double)predictors->first_map_event_distance_norm * 191.0935 +
+      (double)predictors->subdominant_event_distance_norm * 2.7940 +
+      (double)predictors->first_map_swg_score_norm * 23.3503 +
+      (double)predictors->subdominant_swg_score_norm * -6.2635 +
+      (double)predictors->mcs * 3.9139 +
+      (double)predictors->max_region_length_norm * -0.5801 +
+      (double)predictors->subdominant_candidates_end1 * 0.1275;
   return 1.0 / (1.0 + (1.0/exp(lr_factor)));
 }
 GEM_INLINE double matches_classify_ties(matches_predictors_t* const predictors) {
   // Classify ties wrt the probability of being a true positive
-  const double lr_factor = -136.08714 +
-      (double)predictors->first_map_edit_distance_norm * 64.74128 +
-      (double)predictors->subdominant_edit_distance_norm * -48.67315 +
-      (double)predictors->first_map_event_distance_norm * 258.18206 +
-      (double)predictors->subdominant_event_distance_norm * -142.15447 +
-      (double)predictors->first_map_swg_score_norm * 22.27621 +
-      (double)predictors->subdominant_swg_score_norm * -21.75234 +
-      (double)predictors->mcs * 1.52357 +
-      (double)predictors->max_region_length_norm * 0.32521 +
-      (double)predictors->subdominant_stratum_matches * 0.06355;
+  const double lr_factor = -158.99528 +
+      (double)predictors->first_map_edit_distance_norm * 72.02521 +
+      (double)predictors->subdominant_edit_distance_norm * -62.02260 +
+      (double)predictors->first_map_event_distance_norm * 229.73507 +
+      (double)predictors->subdominant_event_distance_norm * -85.95881 +
+      (double)predictors->first_map_swg_score_norm * 22.06638 +
+      (double)predictors->subdominant_swg_score_norm * -18.74157 +
+      (double)predictors->mcs * 1.66582 +
+      (double)predictors->subdominant_stratum_matches * 0.01094 +
+      (double)predictors->subdominant_candidates_end1 * 0.03268;
   return 1.0 / (1.0 + (1.0/exp(lr_factor)));
 }
