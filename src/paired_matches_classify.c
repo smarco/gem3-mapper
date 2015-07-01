@@ -80,29 +80,39 @@ GEM_INLINE void paired_matches_classify_compute_predictors(
   predictors->subdominant_candidates_end2 = paired_matches->matches_end2->metrics.subdominant_candidates;
 }
 GEM_INLINE double paired_matches_classify_unique(matches_predictors_t* const predictors) {
-  const double lr_factor = -497.9049 +
-      (double)predictors->first_map_event_distance_norm * 502.8675 +
-      (double)predictors->mcs * 3.1560 +
-      (double)predictors->max_region_length_norm * -0.7561 +
-      (double)predictors->mapq_end1 * 0.2025;
+  const double lr_factor = -343.3571 +
+      (double)predictors->first_map_edit_distance_norm * 46.6914 +
+      (double)predictors->first_map_event_distance_norm * 301.8511 +
+      (double)predictors->mcs * 2.3967 +
+      (double)predictors->max_region_length_norm * -0.5880 +
+      (double)predictors->first_map_template_size_sigma * -0.5061 +
+      (double)predictors->mapq_end1 * 0.1308;
   return 1.0 / (1.0 + (1.0/exp(lr_factor)));
 }
 GEM_INLINE double paired_matches_classify_mmaps(matches_predictors_t* const predictors) {
-  const double lr_factor = -323.0142 +
-      (double)predictors->first_map_event_distance_norm * 441.1827 +
-      (double)predictors->subdominant_event_distance_norm * -116.2899 +
-      (double)predictors->mcs * 1.0239 +
-      (double)predictors->subdominant_stratum_matches * 0.3808;
+  const double lr_factor = -421.36852 +
+      (double)predictors->first_map_edit_distance_norm * 75.46711 +
+      (double)predictors->subdominant_edit_distance_norm * -54.84610 +
+      (double)predictors->first_map_event_distance_norm * 382.99138 +
+      (double)predictors->first_map_swg_score_norm * 18.25120 +
+      (double)predictors->mcs * 3.13206 +
+      (double)predictors->max_region_length_norm * -0.21534 +
+      (double)predictors->mapq_end1 * 0.06624;
   return 1.0 / (1.0 + (1.0/exp(lr_factor)));
 }
 GEM_INLINE double paired_matches_classify_ties(matches_predictors_t* const predictors) {
-  const double lr_factor = -93.56 +
-      (double)predictors->first_map_edit_distance_norm * 225.85 +
-      (double)predictors->subdominant_edit_distance_norm * -170.98 +
-      (double)predictors->first_map_event_distance_norm * 548.20 +
-      (double)predictors->subdominant_event_distance_norm * -517.02 +
-      (double)predictors->first_map_swg_score_norm * 71.28 +
-      (double)predictors->subdominant_swg_score_norm * -65.43 +
-      (double)predictors->mcs * 0.37;
+  const double lr_factor = -2.093e+02 +
+      (double)predictors->first_map_edit_distance_norm * 1.465e+02 +
+      (double)predictors->subdominant_edit_distance_norm * -1.316e+02 +
+      (double)predictors->first_map_event_distance_norm * 6.239e+02 +
+      (double)predictors->subdominant_event_distance_norm * -4.275e+02 +
+      (double)predictors->first_map_swg_score_norm * 4.753e+01 +
+      (double)predictors->subdominant_swg_score_norm * -5.058e+01 +
+      (double)predictors->mcs * 5.029e-01 +
+      (double)predictors->max_region_length_norm * -1.069e-01 +
+      (double)predictors->subdominant_stratum_matches * -1.142e-03 +
+      (double)predictors->first_map_template_size_sigma * -8.142e-01 +
+      (double)predictors->subdominant_template_size_sigma * 7.452e-01 +
+      (double)predictors->mapq_end1 * 1.818e-02;
   return 1.0 / (1.0 + (1.0/exp(lr_factor)));
 }
