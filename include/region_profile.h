@@ -10,14 +10,17 @@
 #define REGION_PROFILE_H_
 
 #include "essentials.h"
-
 #include "fm_index.h"
-
 #include "stats_vector.h"
 #include "stats_matrix.h"
 
+/*
+ * Constants
+ */
+#define REGION_MAX_LENGTH_PL_FACTOR 2.0
+
 // Degree to filter region
-#define REGION_FILTER_NONE 0
+#define REGION_FILTER_NONE        0
 #define REGION_FILTER_DEGREE_ZERO 1
 #define REGION_FILTER_DEGREE_ONE  2
 #define REGION_FILTER_DEGREE_TWO  3
@@ -37,9 +40,9 @@ typedef struct {
 } region_profile_model_t;
 // Filtering regions
 typedef struct {
-  // Ranges of the region [end,start) (Yes!, backwards like the FM-search)
-  uint64_t start;
+  // Ranges of the region [begin,end)
   uint64_t end;
+  uint64_t begin;
   region_type type;
   // Mismatches required to match the region
   uint64_t max;
@@ -56,20 +59,18 @@ typedef struct {
   uint64_t value;
 } region_locator_t;
 typedef struct {
-  /* Pattern */
-  uint64_t pattern_length;
-  /* Filtering regions */
+  /* Regions */
   region_search_t* filtering_region; // Filtering regions
-  uint64_t num_filtering_regions;    // Total number of filtering regions (region_unique + region_standard + region_gap)
-  uint64_t num_standard_regions;     // Number of Standard Regions
+  uint64_t num_filtering_regions;    // Total number of filtering regions
+  /* Stats */
+  uint64_t pattern_length;           // Length of the patter
   uint64_t total_candidates;         // Total number of candidates (from exact matching regions)
-  uint64_t max_region_length;        // Largest region length
-  /* Mismatch regions */
-  region_search_t* search_region;    // Search regions
-  uint64_t num_search_regions;
-  /* Region Partition Properties */
   uint64_t errors_allowed;           // Total error allowed (the minimum required to get a novel match)
-  /* Locator for region sorting */
+  uint64_t max_region_length;        // Largest region length
+  uint64_t num_standard_regions;     // Number of Standard Regions
+  uint64_t num_unique_regions;       // Number of Unique Regions
+  uint64_t num_zero_regions;         // Number of Zero candidate Regions
+  /* Locator (region sorting) */
   region_locator_t* loc;
 } region_profile_t;
 
@@ -99,23 +100,23 @@ GEM_INLINE void region_profile_fill_gaps(
  */
 GEM_INLINE void region_profile_generate_adaptive(
     region_profile_t* const region_profile,fm_index_t* const fm_index,
-    const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
-    const region_profile_model_t* const profile_model,const uint64_t max_regions,
-    const bool allow_zero_regions);
+    const uint8_t* const key,const uint64_t key_length,
+    const bool* const allowed_enc,const region_profile_model_t* const profile_model,
+    const uint64_t max_regions,const bool allow_zero_regions);
 GEM_INLINE void region_profile_generate_adaptive_limited(
     region_profile_t* const region_profile,fm_index_t* const fm_index,
     const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
     const region_profile_model_t* const profile_model,const uint64_t min_regions);
-GEM_INLINE void region_profile_generate_full_progressive(
-    region_profile_t* const region_profile,
-    region_search_t* const base_region,const uint64_t start_region,const uint64_t total_regions);
+GEM_INLINE void region_profile_generate_adaptive_boost(
+    region_profile_t* const region_profile,fm_index_t* const fm_index,
+    const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
+    const region_profile_model_t* const profile_model,mm_stack_t* const mm_stack);
 
 /*
  * Display
  */
 GEM_INLINE void region_profile_print(
-    FILE* const stream,const region_profile_t* const region_profile,
-    const bool sorted,const bool display_misms_regions);
+    FILE* const stream,const region_profile_t* const region_profile,const bool sorted);
 
 /*
  * Iterator

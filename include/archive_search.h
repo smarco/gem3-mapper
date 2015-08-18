@@ -86,6 +86,7 @@ GEM_INLINE sequence_t* archive_search_get_sequence(const archive_search_t* const
 GEM_INLINE uint64_t archive_search_get_search_canditates(const archive_search_t* const archive_search);
 GEM_INLINE uint64_t archive_search_get_search_exact_matches(const archive_search_t* const archive_search);
 GEM_INLINE uint64_t archive_search_get_max_region_length(const archive_search_t* const archive_search);
+GEM_INLINE uint64_t archive_search_get_num_zero_regions(const archive_search_t* const archive_search);
 
 GEM_INLINE bool archive_search_finished(const archive_search_t* const archive_search);
 

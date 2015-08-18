@@ -30,11 +30,11 @@ GEM_INLINE void match_scaffold_init(match_scaffold_t* const match_scaffold) {
  */
 GEM_INLINE bool match_scaffold_match_is_homopolymer(
     const uint8_t* const text,const uint64_t text_pos,
-    const uint64_t min_context_length,const uint8_t* indel_text,
+    const uint64_t homopolymer_min_context,const uint8_t* indel_text,
     const uint64_t indel_length) {
-  if (text_pos < min_context_length) return false;
+  if (text_pos < homopolymer_min_context) return false;
   // Search for minimum context support for an homopolymer event
-  const uint64_t context_init_position = text_pos - min_context_length;
+  const uint64_t context_init_position = text_pos - homopolymer_min_context;
   const uint64_t context_end_position = text_pos;
   const uint8_t monomer = text[context_init_position];
   // Check context
@@ -51,7 +51,7 @@ GEM_INLINE bool match_scaffold_match_is_homopolymer(
 GEM_INLINE region_matching_t* match_scaffold_match_add_match(
     uint8_t* const text,uint64_t* const key_pos,uint64_t* const text_pos,
     const uint64_t cigar_offset,const uint64_t match_length,
-    const uint64_t min_matching_length,match_scaffold_t* const match_scaffold) {
+    match_scaffold_t* const match_scaffold) {
   // Add matching region
   region_matching_t* const region_matching = match_scaffold->scaffold_regions + match_scaffold->num_scaffold_regions;
   ++match_scaffold->num_scaffold_regions;
@@ -136,8 +136,8 @@ GEM_INLINE void match_scaffold_compose_matching_regions(
   // Parameters
   const uint8_t* const key = align_input->key;
   uint8_t* const text = align_input->text;
-  const uint64_t min_matching_length = align_parameters->min_matching_length;
-  const uint64_t min_context_length = align_parameters->min_context_length;
+  const uint64_t matching_min_length = align_parameters->scaffolding_matching_min_length;
+  const uint64_t homopolymer_min_context = align_parameters->scaffolding_homopolymer_min_context;
   cigar_element_t* const cigar_buffer = vector_get_elm(matches->cigar_vector,cigar_offset,cigar_element_t);
   // Traverse CIGAR elements and compose scaffolding
   region_matching_t* last_scaffold_region = NULL;
@@ -147,13 +147,13 @@ GEM_INLINE void match_scaffold_compose_matching_regions(
       case cigar_match: {
         // Check matching length
         const uint64_t match_length = cigar_buffer[i].length;
-        if (match_length < min_matching_length) {
+        if (match_length < matching_min_length) {
           text_pos += match_length;
           key_pos += match_length;
           last_scaffold_region = NULL; // Nullify last region-matching
         } else {
           last_scaffold_region = match_scaffold_match_add_match(text,&key_pos,&text_pos,
-              cigar_offset + i,match_length,min_matching_length,match_scaffold); // Add Match
+              cigar_offset + i,match_length,match_scaffold); // Add Match
         }
         ++i;
         break;
@@ -161,7 +161,7 @@ GEM_INLINE void match_scaffold_compose_matching_regions(
       case cigar_mismatch:
         // Tolerate mismatches if well delimited between exact matching regions
         if (last_scaffold_region!=NULL && i+1<cigar_length &&
-            cigar_buffer[i+1].type==cigar_match && cigar_buffer[i+1].length >= min_matching_length) {
+            cigar_buffer[i+1].type==cigar_match && cigar_buffer[i+1].length >= matching_min_length) {
           match_scaffold_match_add_mismatch(&key_pos,&text_pos,
               cigar_buffer[i+1].length+1,match_scaffold,last_scaffold_region);
           i += 2;
@@ -171,11 +171,11 @@ GEM_INLINE void match_scaffold_compose_matching_regions(
           ++i;
         }
         break;
-      case cigar_ins:
-        if (i>0 && cigar_buffer[i-1].type==cigar_match && cigar_buffer[i-1].length >= min_context_length) {
+      case cigar_ins: // TODO
+        if (false && i>0 && cigar_buffer[i-1].type==cigar_match && cigar_buffer[i-1].length >= homopolymer_min_context) {
           // Check homopolymer
           const uint64_t indel_length = cigar_buffer[i].length;
-          if (match_scaffold_match_is_homopolymer(text,text_pos,min_context_length,text+text_pos,indel_length)) {
+          if (match_scaffold_match_is_homopolymer(text,text_pos,homopolymer_min_context,text+text_pos,indel_length)) {
             // Add homopolymer insertion
             cigar_buffer[i].attributes = cigar_attr_homopolymer;
             match_scaffold_match_add_homopolymer(text,&key_pos,&text_pos,cigar_offset+(i-1),
@@ -189,11 +189,11 @@ GEM_INLINE void match_scaffold_compose_matching_regions(
         last_scaffold_region = NULL; // Nullify last region-matching
         ++i;
         break;
-      case cigar_del:
-        if (i>0 && cigar_buffer[i-1].type==cigar_match && cigar_buffer[i-1].length >= min_context_length) {
+      case cigar_del: // TODO
+        if (false && i>0 && cigar_buffer[i-1].type==cigar_match && cigar_buffer[i-1].length >= homopolymer_min_context) {
           // Check homopolymer
           const uint64_t indel_length = cigar_buffer[i].length;
-          if (match_scaffold_match_is_homopolymer(text,text_pos,min_context_length,key+key_pos,indel_length)) {
+          if (match_scaffold_match_is_homopolymer(text,text_pos,homopolymer_min_context,key+key_pos,indel_length)) {
             // Add homopolymer deletion
             cigar_buffer[i].attributes = cigar_attr_homopolymer;
             match_scaffold_match_add_homopolymer(text,&key_pos,&text_pos,cigar_offset+(i-1),
@@ -224,6 +224,7 @@ GEM_INLINE void match_scaffold_compose_matching_regions(
  *   @align_input->text_offset_begin
  *   @align_input->text_offset_end
  *   @align_parameters->left_gap_alignment
+ *   @align_parameters->max_error
  */
 GEM_INLINE void match_scaffold_levenshtein_alignment(
     matches_t* const matches,match_align_input_t* const align_input,
@@ -239,9 +240,10 @@ GEM_INLINE void match_scaffold_levenshtein_alignment(
       .text_length = align_input->text_offset_end - align_input->text_offset_begin,
   };
   bpm_align_matrix_t bpm_align_matrix;
-  bpm_align_compute_matrix(&bpm_align_input,align_input->key_length,&bpm_align_matrix,mm_stack);
+  bpm_align_compute_matrix(&bpm_align_input,align_parameters->max_error,&bpm_align_matrix,mm_stack);
   // Set distance
   if (bpm_align_matrix.min_score == ALIGN_DISTANCE_INF) {
+    match_scaffold->match_alignment.score = ALIGN_DISTANCE_INF;
     mm_stack_pop_state(mm_stack,false); // Free
     return;
   }
@@ -252,7 +254,6 @@ GEM_INLINE void match_scaffold_levenshtein_alignment(
   bpm_align_backtrack_matrix(&bpm_align_input,align_parameters->left_gap_alignment,
       &bpm_align_matrix,match_alignment,matches->cigar_vector);
   mm_stack_pop_state(mm_stack,false); // Free
-  if (match_alignment->cigar_length==0) return;
   // Store the offset
   match_alignment->match_position = (match_alignment->match_position - match_position) + align_input->text_offset_begin;
 }
@@ -277,7 +278,8 @@ GEM_INLINE bool match_scaffold_levenshtein(
   // Compute the levenshtein alignment (CIGAR)
   match_scaffold_levenshtein_alignment(matches,align_input,align_parameters,match_scaffold,mm_stack);
   match_alignment_t* const match_alignment = &match_scaffold->match_alignment;
-  if (match_alignment->cigar_length==0 || match_alignment->score < align_parameters->local_min_identity) {
+  if (match_alignment->score==ALIGN_DISTANCE_INF ||
+      align_parameters->min_identity + match_alignment->score > align_input->key_length) {
     match_scaffold->num_scaffold_regions = 0;
     match_scaffold->scaffolding_coverage = 0;
     return false;
@@ -407,36 +409,36 @@ GEM_INLINE void match_scaffold_alignment(
   // DEBUG
   gem_cond_debug_block(DEBUG_MATCHING_REGIONS) { match_scaffold_print(stderr,matches,match_scaffold); }
   // Parameters
-//  const uint8_t* const key = align_input->key;
+  const uint8_t* const key = align_input->key;
   const uint64_t key_length = align_input->key_length;
-//  const uint8_t* const text = align_input->text;
-//  const uint64_t text_length = align_input->text_length;
-//  const uint64_t max_error = align_parameters->max_error;
-//  // Chain matching regions
-//  if (match_scaffold->num_scaffold_regions > 0) {
-//    const bool* const allowed_enc = align_parameters->allowed_enc;
-//    // Find a compatible chain of matching-regions
-//    PROF_START(GP_MATCHING_REGIONS_CHAIN);
-//    match_scaffold_chain_matching_regions(matches,match_scaffold,key,key_length,text,allowed_enc,max_error,mm_stack);
-//    PROF_STOP(GP_MATCHING_REGIONS_CHAIN);
-//    // Extend matching-regions as to maximize coverage
-//    if (match_scaffold->num_scaffold_regions > 0) {
-//      PROF_INC_COUNTER(GP_MATCHING_REGIONS_CHAIN_SUCCESS);
-//      PROF_ADD_COUNTER(GP_MATCHING_REGIONS_CHAIN_COVERAGE,(100*match_scaffold->scaffolding_coverage)/key_length);
-//      if (match_scaffold->scaffolding_coverage < key_length) {
-//        match_scaffold_exact_extend(matches,match_scaffold,key,key_length,text,text_length,allowed_enc);
-//      }
-//      PROF_ADD_COUNTER(GP_MATCHING_REGIONS_EXTEND_COVERAGE,(100*match_scaffold->scaffolding_coverage)/key_length);
-//    }
-//  }
-//  // Scaffold from Levenshtein-alignment
-//  if (match_scaffold->scaffolding_coverage < align_parameters->min_coverage) {
+  const uint8_t* const text = align_input->text;
+  const uint64_t text_length = align_input->text_length;
+  const uint64_t max_error = align_parameters->max_error;
+  // Chain matching regions
+  if (match_scaffold->num_scaffold_regions > 0) {
+    const bool* const allowed_enc = align_parameters->allowed_enc;
+    // Find a compatible chain of matching-regions
+    PROF_START(GP_MATCHING_REGIONS_CHAIN);
+    match_scaffold_chain_matching_regions(matches,match_scaffold,key,key_length,text,allowed_enc,max_error,mm_stack);
+    PROF_STOP(GP_MATCHING_REGIONS_CHAIN);
+    // Extend matching-regions as to maximize coverage
+    if (match_scaffold->num_scaffold_regions > 0) {
+      PROF_INC_COUNTER(GP_MATCHING_REGIONS_CHAIN_SUCCESS);
+      PROF_ADD_COUNTER(GP_MATCHING_REGIONS_CHAIN_COVERAGE,(100*match_scaffold->scaffolding_coverage)/key_length);
+      if (match_scaffold->scaffolding_coverage < key_length) {
+        match_scaffold_exact_extend(matches,match_scaffold,key,key_length,text,text_length,allowed_enc);
+      }
+      PROF_ADD_COUNTER(GP_MATCHING_REGIONS_EXTEND_COVERAGE,(100*match_scaffold->scaffolding_coverage)/key_length);
+    }
+  }
+  // Scaffold from Levenshtein-alignment
+  if (match_scaffold->scaffolding_coverage < align_parameters->scaffolding_min_coverage) {
     PROF_INC_COUNTER(GP_MATCHING_REGIONS_SCAFFOLDED);
     PROF_START(GP_MATCHING_REGIONS_SCAFFOLD);
     match_scaffold_levenshtein(matches,align_input,align_parameters,match_scaffold,mm_stack);
     PROF_STOP(GP_MATCHING_REGIONS_SCAFFOLD);
     PROF_ADD_COUNTER(GP_MATCHING_REGIONS_SCAFFOLD_COVERAGE,(100*match_scaffold->scaffolding_coverage)/key_length);
-//  }
+  }
   // DEBUG
   gem_cond_debug_block(DEBUG_MATCHING_REGIONS) { match_scaffold_print(stderr,matches,match_scaffold); }
 }

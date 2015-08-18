@@ -9,6 +9,12 @@
 #include "search_parameters.h"
 
 /*
+ * Macro Utils
+ */
+#define SEARCH_INSTANTIATE_VALUE(parameters,field_name,pattern_length) \
+  parameters->field_name##_nominal = integer_proportion(parameters->search_parameters->field_name,pattern_length)
+
+/*
  * Region profile default parameters
  */
 GEM_INLINE void search_parameters_init_replacements(search_parameters_t* const search_parameters) {
@@ -30,6 +36,22 @@ GEM_INLINE void search_parameters_init_replacements(search_parameters_t* const s
   search_parameters->allowed_enc[ENC_DNA_CHAR_G] = true;
   search_parameters->allowed_enc[ENC_DNA_CHAR_T] = true;
   search_parameters->allowed_enc[ENC_DNA_CHAR_N] = false;
+}
+GEM_INLINE void search_parameters_init_error_model(search_parameters_t* const search_parameters) {
+  search_parameters->search_max_matches = 1000;
+  search_parameters->complete_search_error = 0.04;
+  search_parameters->complete_strata_after_best = 1.0;
+  search_parameters->alignment_max_error = 0.20;
+  search_parameters->alignment_max_error_after_best = 0.04;
+  search_parameters->unbounded_alignment = unbounded_alignment_if_unmapped;
+  search_parameters->max_bandwidth = 0.20;
+  search_parameters->alignment_min_identity = 0.40;
+  search_parameters->alignment_scaffolding = true;
+  search_parameters->alignment_scaffolding_min_coverage = 0.80;
+  search_parameters->alignment_scaffolding_homopolymer_min_context = 2;
+  search_parameters->alignment_scaffolding_min_matching_length = 10;
+  search_parameters->cigar_curation = true;
+  search_parameters->cigar_curation_min_end_context = 2;
 }
 GEM_INLINE void search_parameters_init_alignment_model(search_parameters_t* const search_parameters) {
   search_parameters->alignment_model = alignment_model_gap_affine;
@@ -62,7 +84,6 @@ GEM_INLINE void search_parameters_init_alignment_model(search_parameters_t* cons
   search_parameters->swg_penalties.generic_mismatch_score = -4;
   search_parameters->swg_penalties.gap_open_score = -6;
   search_parameters->swg_penalties.gap_extension_score = -1;
-  search_parameters->allow_cigar_curation = true;
   search_parameters->swg_threshold = 0.20;
 }
 GEM_INLINE void search_parameters_init_internals(search_parameters_t* const search_parameters) {
@@ -71,85 +92,55 @@ GEM_INLINE void search_parameters_init_internals(search_parameters_t* const sear
   search_parameters->rp_minimal.max_steps = 4;
   search_parameters->rp_minimal.dec_factor = 2;
   search_parameters->rp_minimal.region_type_th = 2;
-  // Region-Boost Scheme = (100,4,2,20)
-  search_parameters->rp_boost.region_th = 1000;
-  search_parameters->rp_boost.max_steps = 5;
-  search_parameters->rp_boost.dec_factor = 4;
-  search_parameters->rp_boost.region_type_th = 20;
+  // Region-Boost Scheme = (500,1,8,50)
+  search_parameters->rp_boost.region_th = 500;
+  search_parameters->rp_boost.max_steps = 1;
+  search_parameters->rp_boost.dec_factor = 8;
+  search_parameters->rp_boost.region_type_th = 50;
   // Region-Delimit Scheme = (100,4,2,2)
   search_parameters->rp_delimit.region_th = 100;
   search_parameters->rp_delimit.max_steps = 4;
   search_parameters->rp_delimit.dec_factor = 2;
   search_parameters->rp_delimit.region_type_th = 2;
-  // Region-Recovery Scheme = (200,1,8,2)
-  search_parameters->rp_recovery.region_th = 200;
-  search_parameters->rp_recovery.max_steps = 1;
-  search_parameters->rp_recovery.dec_factor = 8;
-  search_parameters->rp_recovery.region_type_th = 2;
   // Filtering Thresholds
   search_parameters->filtering_region_factor = 1.0;
-  search_parameters->filtering_threshold = 1000;//350;
-  search_parameters->pa_filtering_threshold = 2500;
+  search_parameters->filtering_threshold = 1000;
 }
 GEM_INLINE void search_parameters_init(search_parameters_t* const search_parameters) {
   // Mapping strategy
-  search_parameters->mapping_mode = mapping_adaptive_filtering_fast;
-  search_parameters->filtering_degree = 0;
+  search_parameters->mapping_mode = mapping_adaptive_filtering_thorough;
   // Qualities
   search_parameters->quality_model = quality_model_type_gem;
   search_parameters->quality_format = qualities_ignore;
   search_parameters->quality_threshold = 26;
-  // Mismatch/Indels Parameters
-  search_parameters->max_search_error = 0.04;
-  search_parameters->max_filtering_error = 0.20;
-  search_parameters->max_filtering_strata_after_best = 0.04;
-  search_parameters->max_bandwidth = 0.20;
-  search_parameters->complete_strata_after_best = 0.0;
-  // Matches search
-  search_parameters->max_search_matches = 1000;
   // Replacements
   search_parameters_init_replacements(search_parameters);
+  // Search error model
+  search_parameters_init_error_model(search_parameters);
   // Alignment Model/Score
   search_parameters_init_alignment_model(search_parameters);
-  // Regions handling
-  search_parameters->allow_region_chaining = true;
-  search_parameters->region_scaffolding_min_length = 10;
-  search_parameters->region_scaffolding_min_context_length = 2;
-  search_parameters->region_scaffolding_coverage_threshold = 0.80;
-  // Local alignment
-  search_parameters->local_min_identity = 0.40;
   // Paired End
-  search_parameters->paired_end = false;
   paired_search_parameters_init(&search_parameters->paired_search_parameters);
+  // Bisulfite
+  search_parameters->bisulfite_mode = false;
+  search_parameters->bisulfite_read = bisulfite_read_inferred;
   // Internals
   search_parameters_init_internals(search_parameters);
 }
 GEM_INLINE void search_configure_mapping_strategy(
-    search_parameters_t* const search_parameters,
-    const mapping_mode_t mapping_mode,const float filtering_degree) {
+    search_parameters_t* const search_parameters,const mapping_mode_t mapping_mode) {
   search_parameters->mapping_mode = mapping_mode;
-  search_parameters->filtering_degree = filtering_degree;
 }
 GEM_INLINE void search_configure_quality_model(
-    search_parameters_t* const search_parameters,
-    const quality_model_t quality_model,const quality_format_t quality_format,const uint64_t quality_threshold) {
+    search_parameters_t* const search_parameters,const quality_model_t quality_model,
+    const quality_format_t quality_format,const uint64_t quality_threshold) {
   search_parameters->quality_model = quality_model;
   search_parameters->quality_format = quality_format;
   search_parameters->quality_threshold = quality_threshold;
 }
-GEM_INLINE void search_configure_error_model(
-    search_parameters_t* const search_parameters,float max_search_error,
-    float max_filtering_error,float max_filtering_strata_after_best,
-    float max_bandwidth,float complete_strata_after_best) {
-  search_parameters->max_search_error = max_search_error;
-  search_parameters->max_filtering_error = max_filtering_error;
-  search_parameters->max_filtering_strata_after_best = max_filtering_strata_after_best;
-  search_parameters->max_bandwidth = max_bandwidth;
-  search_parameters->complete_strata_after_best = complete_strata_after_best;
-}
 GEM_INLINE void search_configure_matches(
-    search_parameters_t* const search_parameters,const uint64_t max_search_matches) {
-  search_parameters->max_search_matches = max_search_matches;
+    search_parameters_t* const search_parameters,const uint64_t search_max_matches) {
+  search_parameters->search_max_matches = search_max_matches;
 }
 GEM_INLINE void search_configure_replacements(
     search_parameters_t* const search_parameters,
@@ -169,13 +160,6 @@ GEM_INLINE void search_configure_replacements(
   }
   gem_cond_fatal_error(count==0,ASP_REPLACEMENT_EMPTY);
   search_parameters->mismatch_alphabet_length = count;
-}
-GEM_INLINE void search_configure_region_handling(
-    search_parameters_t* const search_parameters,const bool allow_region_chaining,
-    const float region_scaffolding_min_length,const float region_scaffolding_coverage_threshold) {
-  search_parameters->allow_region_chaining = allow_region_chaining;
-  search_parameters->region_scaffolding_min_length = region_scaffolding_min_length;
-  search_parameters->region_scaffolding_coverage_threshold = region_scaffolding_coverage_threshold;
 }
 GEM_INLINE void search_configure_alignment_model(
     search_parameters_t* const search_parameters,const alignment_model_t alignment_model) {
@@ -224,17 +208,24 @@ GEM_INLINE void search_configure_alignment_gap_scores(
   search_parameters->swg_penalties.gap_open_score = -((int32_t)gap_open_penalty);
   search_parameters->swg_penalties.gap_extension_score = -((int32_t)gap_extension_penalty);
 }
-GEM_INLINE void search_instantiate_values(
-    as_parameters_t* const as_parameters,const uint64_t pattern_length) {
-  const search_parameters_t* const search_parameters = as_parameters->search_parameters;
-  as_parameters->filtering_degree_nominal = integer_proportion(search_parameters->filtering_degree,pattern_length);
-  as_parameters->max_search_error_nominal = integer_proportion(search_parameters->max_search_error,pattern_length);
-  as_parameters->max_filtering_error_nominal = integer_proportion(search_parameters->max_filtering_error,pattern_length);
-  as_parameters->max_filtering_strata_after_best_nominal = integer_proportion(search_parameters->max_filtering_strata_after_best,pattern_length);
-  as_parameters->max_bandwidth_nominal = integer_proportion(search_parameters->max_bandwidth,pattern_length);
-  as_parameters->complete_strata_after_best_nominal = integer_proportion(search_parameters->complete_strata_after_best,pattern_length);
-  as_parameters->local_min_identity_nominal = integer_proportion(search_parameters->local_min_identity,pattern_length);
-  as_parameters->region_scaffolding_min_length_nominal = integer_proportion(search_parameters->region_scaffolding_min_length,pattern_length);
-  as_parameters->region_scaffolding_coverage_threshold_nominal = integer_proportion(search_parameters->region_scaffolding_coverage_threshold,pattern_length);
-  as_parameters->region_scaffolding_min_context_length_nominal = integer_proportion(search_parameters->region_scaffolding_min_context_length,pattern_length);
+GEM_INLINE void search_instantiate_values(as_parameters_t* const parameters,const uint64_t pattern_length) {
+  /* Nominal search parameters (Evaluated to read-length) */
+  SEARCH_INSTANTIATE_VALUE(parameters,complete_search_error,pattern_length);
+  SEARCH_INSTANTIATE_VALUE(parameters,complete_strata_after_best,pattern_length);
+  SEARCH_INSTANTIATE_VALUE(parameters,alignment_max_error,pattern_length);
+  SEARCH_INSTANTIATE_VALUE(parameters,alignment_max_error_after_best,pattern_length);
+  SEARCH_INSTANTIATE_VALUE(parameters,max_bandwidth,pattern_length);
+  SEARCH_INSTANTIATE_VALUE(parameters,alignment_min_identity,pattern_length);
+  SEARCH_INSTANTIATE_VALUE(parameters,alignment_scaffolding_min_coverage,pattern_length);
+  SEARCH_INSTANTIATE_VALUE(parameters,alignment_scaffolding_homopolymer_min_context,pattern_length);
+  SEARCH_INSTANTIATE_VALUE(parameters,alignment_scaffolding_min_matching_length,pattern_length);
+  SEARCH_INSTANTIATE_VALUE(parameters,cigar_curation_min_end_context,pattern_length);
+  SEARCH_INSTANTIATE_VALUE(parameters,swg_threshold,pattern_length);
+  if (parameters->search_parameters->swg_threshold <= 0.0 || parameters->search_parameters->swg_threshold >= 1.0) {
+    parameters->swg_threshold_nominal = parameters->search_parameters->swg_threshold;
+  } else {
+    swg_penalties_t* const swg_penalties = &parameters->search_parameters->swg_penalties;
+    parameters->swg_threshold_nominal =
+        (int64_t)(parameters->search_parameters->swg_threshold*(double)pattern_length) * swg_penalties->generic_match_score;
+  }
 }

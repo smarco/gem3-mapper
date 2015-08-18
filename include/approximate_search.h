@@ -21,8 +21,6 @@
  * Debug
  */
 #define DEBUG_SEARCH_STATE          GEM_DEEP_DEBUG
-#define DEBUG_REGION_PROFILE_PRINT  GEM_DEEP_DEBUG
-#define DEBUG_REGION_SCHEDULE_PRINT GEM_DEEP_DEBUG
 
 /*
  * Approximate Search
@@ -39,7 +37,7 @@ typedef enum {
   asearch_neighborhood,              // Neighborhood search
   asearch_end,                       // End of the current workflow
   asearch_read_recovery,             // Read recovery
-  asearch_local_alignment,           // Local Alignment Search
+  asearch_unbounded_alignment,       // Unbounded Alignment Search
   asearch_probe_candidates           // Probe candidates (try to lower max-differences) // TODO
 } approximate_search_state_t;
 typedef struct {
@@ -53,12 +51,11 @@ typedef struct {
   approximate_search_state_t search_state;              // Current State of the search
   bool verify_candidates;                               // Compute candidate verification
   bool stop_before_neighborhood_search;                 // Stop before Neighborhood Search
+  uint64_t max_complete_error;
   uint64_t max_complete_stratum;                        // Maximum complete stratum reached by the search
   uint64_t max_matches_reached;                         // Quick abandon due to maximum matches found
   uint64_t lo_exact_matches;                            // Interval Lo (Exact matching)
   uint64_t hi_exact_matches;                            // Interval Hi (Exact matching)
-  /* Error */
-  uint64_t max_differences;
   /* Search Structures */
   region_profile_t region_profile;                      // Region Profile
   filtering_candidates_t* filtering_candidates;         // Filtering Candidates

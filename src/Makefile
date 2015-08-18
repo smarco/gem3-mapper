@@ -60,7 +60,7 @@ MODULES+=output_sam output_map
 # GEM Support Modules
 MODULES+=options_menu
 # GEM Main Modules
-MODULES+=mapper mapper_cuda mapper_stats mapper_profile gem_core
+MODULES+=mapper mapper_cuda mapper_bisulfite mapper_stats mapper_profile gem_core
         
 SRCS=$(addsuffix .c, $(MODULES))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))

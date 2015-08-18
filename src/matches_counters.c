@@ -76,33 +76,38 @@ GEM_INLINE uint64_t matches_counters_compact(matches_counters_t* const counters)
   return i;
 }
 GEM_INLINE void matches_counters_compute_matches_to_decode(
-    matches_counters_t* const counters,const uint64_t min_decoded_strata,
+    matches_counters_t* const counters,const uint64_t min_reported_strata,
     const uint64_t min_reported_matches,const uint64_t max_reported_matches,
-    uint64_t* const strata_to_decode,uint64_t* const matches_to_decode_from_last_stratum) {
+    uint64_t* const reported_strata,uint64_t* const last_stratum_reported_matches) {
   // Compact counters (Shrink the counters to the last non-zero stratum)
   const uint64_t max_strata = matches_counters_compact(counters); // Strata is one based
   if (max_strata==0) return;
   const uint64_t* const counts = vector_get_mem(counters->counts,uint64_t);
   uint64_t current_stratum=0, total_matches=0, total_complete_strata=0;
-  // Maximum stratum to decode (increased by @min_decoded_strata & @max_reported_matches)
-  while (current_stratum < max_strata && (total_complete_strata < min_decoded_strata || total_matches < max_reported_matches)) {
+  // Maximum stratum to decode (increased by @min_reported_strata)
+  while (current_stratum < max_strata && total_complete_strata < min_reported_strata) {
+    total_matches += counts[current_stratum];
+    if (total_matches > 0) ++total_complete_strata;
+    ++current_stratum;
+  }
+  // Maximum stratum to decode (increased by @max_reported_matches)
+  while (current_stratum < max_strata && total_matches < max_reported_matches) {
     total_matches += counts[current_stratum];
     if (total_matches > max_reported_matches) {
       total_matches -= counts[current_stratum];
       break;
     }
     ++current_stratum;
-    if (total_matches > 0) ++total_complete_strata;
   }
   // Maximum stratum to decode (increased by @min_reported_matches)
   if (current_stratum < max_strata && total_matches < min_reported_matches) {
-    total_matches += counts[current_stratum];
+    const uint64_t remaining_matches = min_reported_matches - total_matches;
+    const uint64_t report_last_stratum = MIN(remaining_matches,counts[current_stratum]);
+    *last_stratum_reported_matches = report_last_stratum; // Decode partial stratum
     ++current_stratum;
-    // Decode partial stratum
-    *matches_to_decode_from_last_stratum = min_reported_matches - total_matches;
+    total_matches += report_last_stratum;
   } else {
-    // Decode full stratum
-    *matches_to_decode_from_last_stratum = UINT64_MAX;
+    *last_stratum_reported_matches = UINT64_MAX; // Decode full stratum
   }
-  *strata_to_decode = (total_matches!=0) ? current_stratum : 0;
+  *reported_strata = (total_matches!=0) ? current_stratum : 0;
 }

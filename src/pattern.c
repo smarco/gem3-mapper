@@ -80,13 +80,13 @@ GEM_INLINE void pattern_prepare(
     pattern->rl_key_length = rl_key_length;
   }
   // Compute the effective number of differences
-  const int64_t max_allowed_error = (int64_t)read_length - (int64_t)actual_parameters->local_min_identity_nominal;
+  const int64_t max_allowed_error = (int64_t)read_length - (int64_t)actual_parameters->alignment_min_identity_nominal;
   uint64_t effective_filtering_max_error;
   if (gem_expect_false(max_allowed_error<=0)) { // Constrained by min_matching_length_nominal
     effective_filtering_max_error = 0;
   } else {
     // Constrained by num_low_quality_bases
-    effective_filtering_max_error = actual_parameters->max_filtering_error_nominal + pattern->num_low_quality_bases;
+    effective_filtering_max_error = actual_parameters->alignment_max_error_nominal + pattern->num_low_quality_bases;
     if (effective_filtering_max_error > max_allowed_error) {
       effective_filtering_max_error = max_allowed_error;
     }

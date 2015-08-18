@@ -225,6 +225,7 @@ void* mapper_PE_CUDA_thread(mapper_cuda_search_t* const mapper_search) {
       archive_search_retrieve_candidates(archive_search_select_end2,bpm_gpu_buffer_end2,paired_matches->matches_end2);
       // Finish Search
       archive_search_pe_finish_search(archive_search_select_end1,archive_search_select_end2,paired_matches);
+      archive_select_paired_matches(archive_search_select_end1,archive_search_select_end2,paired_matches);
       // Output matches
       mapper_PE_output_matches(parameters,buffered_output_file,
           archive_search_select_end1,archive_search_select_end2,paired_matches);

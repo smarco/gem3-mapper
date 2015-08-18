@@ -191,6 +191,8 @@ GEM_INLINE error_code_t mapper_PE_parse_paired_sequences(
     buffered_input_file_t* const buffered_fasta_input_end2,
     archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2);
+GEM_INLINE error_code_t mapper_SE_read_single_sequence(mapper_search_t* const mapper_search);
+GEM_INLINE error_code_t mapper_PE_read_paired_sequences(mapper_search_t* const mapper_search);
 
 /*
  * Output

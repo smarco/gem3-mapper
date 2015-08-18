@@ -182,13 +182,38 @@ GEM_INLINE int64_t match_trace_get_effective_length(
 /*
  * Adding Matches
  */
+GEM_INLINE void match_trace_locate(match_trace_t* const match_trace,const locator_t* const locator) {
+  GEM_INTERNAL_CHECK(match_trace->match_alignment.effective_length >= 0,"Match effective length must be positive");
+  location_t location;
+  locator_map(locator,match_trace->match_alignment.match_position,&location);
+  match_trace->text_position = location.position;
+  match_trace->sequence_name = location.tag;
+  if (location.direction == Reverse) { // Adjust position by the effective length
+    match_trace->text_position -= (uint64_t) match_trace->match_alignment.effective_length;
+    match_trace->strand = Reverse;
+    GEM_INTERNAL_CHECK(!match_trace->emulated_rc_search,
+        "Archive-Select. Locating match-trace. "
+        "Impossible combination (search_strand==Reverse while emulated searching FR-index)");
+  } else {
+    match_trace->strand = match_trace->emulated_rc_search ? Reverse : Forward;
+  }
+}
 GEM_INLINE bool matches_add_match_trace(
     matches_t* const matches,match_trace_t* const match_trace,
-    const bool update_counters,mm_stack_t* const mm_stack) {
+    const bool update_counters,const locator_t* const locator,
+    mm_stack_t* const mm_stack) {
   // Check duplicates
   uint64_t* dup_match_trace_offset = matches_lookup_match(matches,
       match_trace->match_alignment.match_position,match_trace->match_alignment.effective_length);
   if (dup_match_trace_offset==NULL) {
+    // Correct CIGAR (Reverse it if the search was performed in the reverse strand, emulated)
+    if (match_trace->emulated_rc_search) {
+      matches_cigar_reverse(matches,match_trace->match_alignment.cigar_offset,
+          match_trace->match_alignment.cigar_length);
+      match_trace->emulated_rc_search = false;
+    }
+    // Locate-map the match
+    match_trace_locate(match_trace,locator);
     // Add the match-trace
     const uint64_t new_match_trace_offset = vector_get_used(matches->position_matches);
     match_trace_t* new_match_trace;
@@ -200,14 +225,23 @@ GEM_INLINE bool matches_add_match_trace(
     // Update counters
     if (update_counters) {
       matches_counters_add(matches->counters,match_trace->distance,1);
-      matches_metrics_update(&matches->metrics,
-          match_trace->distance,match_trace->edit_distance,match_trace->swg_score); // Update Metrics
     }
+    matches_metrics_update(&matches->metrics,
+        match_trace->distance,match_trace->edit_distance,match_trace->swg_score); // Update Metrics
     return true;
   } else {
     match_trace_t* const dup_match_trace = vector_get_elm(matches->position_matches,*dup_match_trace_offset,match_trace_t);
+    // Pick up the least distant match
     if (dup_match_trace->distance > match_trace->distance) {
-      // Pick up the least distant match
+      // Correct CIGAR (Reverse it if the search was performed in the reverse strand, emulated)
+      if (match_trace->emulated_rc_search) {
+        matches_cigar_reverse(matches,match_trace->match_alignment.cigar_offset,
+            match_trace->match_alignment.cigar_length);
+        match_trace->emulated_rc_search = false;
+      }
+      // Locate-map the match
+      match_trace_locate(match_trace,locator);
+      // Update counters
       if (update_counters) {
         matches_counters_sub(matches->counters,dup_match_trace->distance,1);
         matches_counters_add(matches->counters,match_trace->distance,1);
@@ -215,9 +249,7 @@ GEM_INLINE bool matches_add_match_trace(
       // Add the match-trace
       *dup_match_trace = *match_trace;
       // Recompute metrics
-      if (update_counters) {
-        matches_recompute_metrics(matches);
-      }
+      matches_recompute_metrics(matches);
     }
     return false;
   }
@@ -238,8 +270,6 @@ GEM_INLINE void matches_add_interval_match(
   match_interval.emulated_rc_search = emulated_rc_search;
   // Update counters
   matches_counters_add(matches->counters,distance,num_matches); // FIXME Revise
-  // Update Metrics
-  matches_metrics_update(&matches->metrics,distance,distance,BOUNDED_SUBTRACTION(length,distance,0)); // FIXME Revise
   // Add the interval
   vector_insert(matches->interval_matches,match_interval,match_interval_t);
 }
@@ -404,8 +434,6 @@ GEM_INLINE int matches_cigar_cmp(
 }
 GEM_INLINE void matches_cigar_reverse(
     matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
-  // Exact Match (Even all-matching matches have CIGAR=1)
-  gem_fatal_check(cigar_length==0,MATCHES_CIGAR_ZERO_LENGTH);
   // Reverse CIGAR
   cigar_element_t* const cigar_buffer = vector_get_elm(matches->cigar_vector,cigar_buffer_offset,cigar_element_t);
   const uint64_t middle_point = cigar_length/2;
@@ -426,8 +454,6 @@ GEM_INLINE void matches_cigar_reverse(
 }
 GEM_INLINE void matches_cigar_reverse_colorspace(
     matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
-  // Exact Match
-  if (cigar_length==0) return; // Even all-matching matches have CIGAR=1
   // Reverse CIGAR
   cigar_element_t* const cigar_buffer = vector_get_elm(matches->cigar_vector,cigar_buffer_offset,cigar_element_t);
   const uint64_t middle_point = cigar_length/2;
@@ -440,8 +466,6 @@ GEM_INLINE void matches_cigar_reverse_colorspace(
 }
 GEM_INLINE uint64_t matches_cigar_compute_event_distance(
     const matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
-  // Exact Match
-  if (cigar_length==0) return 0;
   // Sum up all cigar elements
   const cigar_element_t* const cigar_buffer = vector_get_elm(matches->cigar_vector,cigar_buffer_offset,cigar_element_t);
   uint64_t i, event_distance = 0;
@@ -463,8 +487,6 @@ GEM_INLINE uint64_t matches_cigar_compute_event_distance(
 }
 GEM_INLINE uint64_t matches_cigar_compute_edit_distance(
     const matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
-  // Exact Match
-  if (cigar_length==0) return 0;
   // Sum up all cigar elements
   const cigar_element_t* const cigar_buffer = vector_get_elm(matches->cigar_vector,cigar_buffer_offset,cigar_element_t);
   uint64_t i, edit_distance = 0;
@@ -487,8 +509,6 @@ GEM_INLINE uint64_t matches_cigar_compute_edit_distance(
 }
 GEM_INLINE uint64_t matches_cigar_compute_edit_distance__excluding_clipping(
     const matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
-  // Exact Match
-  if (cigar_length==0) return 0;
   // Sum up all cigar elements
   const cigar_element_t* const cigar_buffer = vector_get_elm(matches->cigar_vector,cigar_buffer_offset,cigar_element_t);
   uint64_t i, edit_distance = 0;
@@ -510,6 +530,27 @@ GEM_INLINE uint64_t matches_cigar_compute_edit_distance__excluding_clipping(
     }
   }
   return edit_distance;
+}
+GEM_INLINE uint64_t matches_cigar_compute_matching_bases(
+    const matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
+  // Sum up all cigar elements
+  const cigar_element_t* const cigar_buffer = vector_get_elm(matches->cigar_vector,cigar_buffer_offset,cigar_element_t);
+  uint64_t i, matching_bases = 0;
+  for (i=0;i<cigar_length;++i) {
+    switch (cigar_buffer[i].type) {
+      case cigar_match:
+        matching_bases += cigar_buffer[i].length;
+        break;
+      case cigar_mismatch:
+      case cigar_ins:
+      case cigar_del:
+        break;
+      default:
+        GEM_INVALID_CASE();
+        break;
+    }
+  }
+  return matching_bases;
 }
 GEM_INLINE int64_t matches_cigar_element_effective_length(const cigar_element_t* const cigar_element) {
   switch (cigar_element->type) {
@@ -586,17 +627,14 @@ GEM_INLINE void matches_sort_by_sequence_name__position(matches_t* const matches
 /*
  * Filters
  */
-GEM_INLINE void matches_filter_by_swg_score(matches_t* const matches,const double swg_threshold,mm_stack_t* const mm_stack) {
+GEM_INLINE void matches_filter_by_swg_score(matches_t* const matches,const int32_t swg_threshold,mm_stack_t* const mm_stack) {
   const uint64_t num_matches = matches_get_num_match_traces(matches);
   match_trace_t* match_in = matches_get_match_trace_buffer(matches);
   match_trace_t* match_out = match_in;
-  // Delete matches with lower swg-score than the best
-  const int32_t max_swg_score = matches_metrics_get_max_swg_score(&matches->metrics);
-  const int32_t min_swg_score = (swg_threshold >= 1.0) ?
-      (int32_t)swg_threshold : max_swg_score - (int32_t)(swg_threshold*(double)(ABS(max_swg_score)));
+  // Delete matches with lower swg-score than the swg_threshold
   uint64_t i;
   for (i=0;i<num_matches;++i,++match_in) {
-    if (match_in->swg_score >= min_swg_score) {
+    if (match_in->swg_score >= swg_threshold) {
       if (match_out != match_in) *match_out = *match_in;
       ++match_out;
     } else {

@@ -28,8 +28,7 @@ GEM_INLINE void filtering_region_locator_sort_positions(vector_t* const filterin
 GEM_INLINE bool filtering_region_align(
     filtering_region_t* const filtering_region,archive_text_t* const archive_text,
     const text_collection_t* const text_collection,const as_parameters_t* const as_parameters,
-    const bool emulated_rc_search,const bool left_gap_alignment,
-    pattern_t* const pattern,matches_t* const matches,
+    const bool emulated_rc_search,pattern_t* const pattern,matches_t* const matches,
     match_trace_t* const match_trace,mm_stack_t* const mm_stack) {
   PROF_INC_COUNTER(GP_ACCEPTED_REGIONS);
   // Parameters
@@ -97,6 +96,7 @@ GEM_INLINE bool filtering_region_align(
         PROF_ADD_COUNTER(GP_ACCEPTED_REGIONS_LENGTH,match_region_length);
         match_align_input_t align_input = {
             .key = key,
+            .key_length = key_length,
             .bpm_pattern = &pattern->bpm_pattern,
             .text_trace_offset = filtering_region->text_trace_offset,
             .text_position = filtering_region->begin_position,
@@ -108,7 +108,8 @@ GEM_INLINE bool filtering_region_align(
         match_align_parameters_t align_parameters = {
             .emulated_rc_search = emulated_rc_search,
             .max_error = filtering_region->align_distance,
-            .left_gap_alignment = left_gap_alignment,
+            .left_gap_alignment = archive_text_get_position_strand(archive_text,align_input.text_position)==Forward,
+            .swg_penalties = swg_penalties,
         };
         match_align_levenshtein(matches,match_trace,&align_input,&align_parameters,mm_stack);
         break;
@@ -135,18 +136,19 @@ GEM_INLINE bool filtering_region_align(
             .emulated_rc_search = emulated_rc_search,
             .max_error = pattern->max_effective_filtering_error,
             .max_bandwidth = max_bandwidth,
-            .left_gap_alignment = false, // FIXME left_gap_alignment
-            .local_min_identity = as_parameters->local_min_identity_nominal,
-            .min_coverage = as_parameters->region_scaffolding_coverage_threshold_nominal,
-            .min_matching_length = as_parameters->region_scaffolding_min_length_nominal,
-            .min_context_length = as_parameters->region_scaffolding_min_context_length_nominal,
+            .left_gap_alignment = archive_text_get_position_strand(archive_text,align_input.text_position)==Forward,
+            .min_identity = as_parameters->alignment_min_identity_nominal,
+            .scaffolding_min_coverage = as_parameters->alignment_scaffolding_min_coverage_nominal,
+            .scaffolding_matching_min_length = as_parameters->alignment_scaffolding_min_matching_length_nominal,
+            .scaffolding_homopolymer_min_context = as_parameters->alignment_scaffolding_homopolymer_min_context_nominal,
             .allowed_enc = allowed_enc,
             .swg_penalties = swg_penalties,
-            .cigar_curation = search_parameters->allow_cigar_curation,
+            .cigar_curation = search_parameters->cigar_curation,
+            .cigar_curation_min_end_context = as_parameters->cigar_curation_min_end_context_nominal,
         };
         match_scaffold_t* const match_scaffold = &filtering_region->match_scaffold;
         // Scaffold the alignment
-        if (search_parameters->allow_region_chaining) {
+        if (search_parameters->alignment_scaffolding) {
           match_scaffold_alignment(matches,&align_input,&align_parameters,match_scaffold,mm_stack);
         }
         // Smith-Waterman-Gotoh Alignment (Gap-affine)
@@ -163,16 +165,14 @@ GEM_INLINE bool filtering_region_align(
     filtering_region->status = filtering_region_aligned;
     return true; // OK
   } else {
-    filtering_region->align_distance = ALIGN_DISTANCE_INF;
     filtering_region->status = filtering_region_aligned_subdominant;
     return false; // Discarded
   }
 }
-GEM_INLINE bool filtering_region_local_align(
+GEM_INLINE bool filtering_region_align_unbounded(
     filtering_region_t* const filtering_region,archive_text_t* const archive_text,
     const text_collection_t* const text_collection,const as_parameters_t* const as_parameters,
-    const bool emulated_rc_search,const bool left_gap_alignment,
-    pattern_t* const pattern,matches_t* const matches,
+    const bool emulated_rc_search,pattern_t* const pattern,matches_t* const matches,
     match_trace_t* const match_trace,mm_stack_t* const mm_stack) {
   PROF_INC_COUNTER(GP_ACCEPTED_REGIONS);
   // Parameters
@@ -186,7 +186,7 @@ GEM_INLINE bool filtering_region_local_align(
   switch (alignment_model) {
     case alignment_model_hamming:
     case alignment_model_levenshtein:
-      // There is no such a thing as local-alignment in these strict models
+      // TODO
       return false;
       break;
     case alignment_model_gap_affine: {
@@ -199,7 +199,6 @@ GEM_INLINE bool filtering_region_local_align(
       const text_trace_t* const text_trace = text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
       uint8_t* const text = text_trace->text;
       // Adjust alignment boundaries (to allow optimization)
-      const uint64_t max_bandwidth = pattern->max_effective_bandwidth;
       const uint64_t text_offset_begin = 0;
       const uint64_t text_offset_end = text_length-1;
       PROF_ADD_COUNTER(GP_ACCEPTED_REGIONS_LENGTH,text_offset_end-text_offset_begin);
@@ -216,16 +215,17 @@ GEM_INLINE bool filtering_region_local_align(
       };
       match_align_parameters_t align_parameters = {
           .emulated_rc_search = emulated_rc_search,
-          .max_error = BOUNDED_SUBTRACTION(key_length,as_parameters->local_min_identity_nominal,0),
-          .max_bandwidth = max_bandwidth,
-          .left_gap_alignment = left_gap_alignment,
-          .local_min_identity = as_parameters->local_min_identity_nominal,
-          .min_coverage = as_parameters->region_scaffolding_coverage_threshold_nominal,
-          .min_matching_length = as_parameters->region_scaffolding_min_length_nominal,
-          .min_context_length = as_parameters->region_scaffolding_min_context_length_nominal,
+          .max_error = BOUNDED_SUBTRACTION(key_length,as_parameters->alignment_min_identity_nominal,0),
+          .max_bandwidth = pattern->max_effective_bandwidth,
+          .left_gap_alignment = archive_text_get_position_strand(archive_text,align_input.text_position)==Forward,
+          .min_identity = as_parameters->alignment_min_identity_nominal,
+          .scaffolding_min_coverage = as_parameters->alignment_scaffolding_min_coverage_nominal,
+          .scaffolding_matching_min_length = as_parameters->alignment_scaffolding_min_matching_length_nominal,
+          .scaffolding_homopolymer_min_context = as_parameters->alignment_scaffolding_homopolymer_min_context_nominal,
           .allowed_enc = allowed_enc,
           .swg_penalties = swg_penalties,
-          .cigar_curation = search_parameters->allow_cigar_curation,
+          .cigar_curation = search_parameters->cigar_curation,
+          .cigar_curation_min_end_context = as_parameters->cigar_curation_min_end_context_nominal,
       };
       match_scaffold_t* const match_scaffold = &filtering_region->match_scaffold;
       // Scaffold from Levenshtein-alignment
@@ -237,14 +237,14 @@ GEM_INLINE bool filtering_region_local_align(
       if (!valid_scaffold) return false;
       // Smith-Waterman-Gotoh Alignment (Gap-affine)
       match_align_smith_waterman_gotoh(matches,match_trace,&align_input,&align_parameters,match_scaffold,mm_stack);
-      return (match_trace->distance!=ALIGN_DISTANCE_INF); // (Re)alignment result
       break;
     }
     default:
       GEM_INVALID_CASE();
       break;
   }
-  return false;
+  // Check (re)alignment result
+  return (match_trace->distance!=ALIGN_DISTANCE_INF);
 }
 /*
  * Verify
@@ -417,6 +417,12 @@ GEM_INLINE uint64_t filtering_region_verify_extension(
   const uint64_t num_matches_found = bpm_search_all(
       (bpm_pattern_t* const)&pattern->bpm_pattern,filtering_regions,
       text_trace_offset,index_position,text,text_length,max_filtering_error);
+
+  // Filter out already verified regions
+  // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+  // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+  // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+
   // Add to verified regions
   verified_region_t* verified_region;
   vector_alloc_new(verified_regions,verified_region_t,verified_region);

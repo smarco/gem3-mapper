@@ -15,23 +15,23 @@ GEM_INLINE void select_parameters_init(select_parameters_t* const select_paramet
   select_parameters->mapq_model = mapq_model_gem;
   select_parameters->mapq_threshold = 0;
   // Reporting
-  select_parameters->min_decoded_strata = 0;
-  select_parameters->min_reported_matches = 2;
-  select_parameters->max_reported_matches = 20;
+  select_parameters->min_reported_strata = 0;
+  select_parameters->min_reported_matches = 10;
+  select_parameters->max_reported_matches = 100;
   // Check
   select_parameters->check_correct = false;
   select_parameters->check_optimum = false;
   select_parameters->check_complete = false;
 }
 GEM_INLINE void select_configure_reporting(
-    select_parameters_t* const select_parameters,const float min_decoded_strata,
+    select_parameters_t* const select_parameters,const float min_reported_strata,
     const uint64_t min_reported_matches,const uint64_t max_reported_matches) {
   // Reporting
-  select_parameters->min_decoded_strata = min_decoded_strata;
+  select_parameters->min_reported_strata = min_reported_strata;
   select_parameters->min_reported_matches = min_reported_matches;
   select_parameters->max_reported_matches = max_reported_matches;
 }
 GEM_INLINE void select_instantiate_values(
     select_parameters_t* const select_parameters,const uint64_t sequence_length) {
-  select_parameters->min_decoded_strata_nominal = integer_proportion(select_parameters->min_decoded_strata,sequence_length);
+  select_parameters->min_reported_strata_nominal = integer_proportion(select_parameters->min_reported_strata,sequence_length);
 }

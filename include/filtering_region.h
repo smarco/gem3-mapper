@@ -92,14 +92,12 @@ GEM_INLINE void filtering_region_chain_matching_regions(
 GEM_INLINE bool filtering_region_align(
     filtering_region_t* const filtering_region,archive_text_t* const archive_text,
     const text_collection_t* const text_collection,const as_parameters_t* const as_parameters,
-    const bool emulated_rc_search,const bool left_gap_alignment,
-    pattern_t* const pattern,matches_t* const matches,
+    const bool emulated_rc_search,pattern_t* const pattern,matches_t* const matches,
     match_trace_t* const match_trace,mm_stack_t* const mm_stack);
-GEM_INLINE bool filtering_region_local_align(
+GEM_INLINE bool filtering_region_align_unbounded(
     filtering_region_t* const filtering_region,archive_text_t* const archive_text,
     const text_collection_t* const text_collection,const as_parameters_t* const as_parameters,
-    const bool emulated_rc_search,const bool left_gap_alignment,
-    pattern_t* const pattern,matches_t* const matches,
+    const bool emulated_rc_search,pattern_t* const pattern,matches_t* const matches,
     match_trace_t* const match_trace,mm_stack_t* const mm_stack);
 
 /*

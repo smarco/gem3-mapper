@@ -15,25 +15,19 @@
  * Region profile generation
  */
 typedef enum {
-  region_profile_adaptive_lightweight, // Adaptive Profile stopping whenever any cut-off cond. is reached
+  region_profile_adaptive_lightweight, // Adaptive Profile reducing the total number of candidates and using cut-off conditions
+  region_profile_adaptive_boost,       // Adaptive Profile on not-covered and excessive long regions (to boost sensitivity)
   region_profile_adaptive_limited,     // Adaptive Profile limiting the max. length of a region (max-region-length)
-  region_profile_adaptive_extensive,   // Adaptive Profile extensive extracting all possible regions
-} region_profile_generation_strategy_t;
-
-/*
- * Stats
- */
-GEM_INLINE void approximate_search_generate_region_profile_minimal_stats(approximate_search_t* const search);
-GEM_INLINE void approximate_search_generate_region_profile_boost_stats(approximate_search_t* const search);
-GEM_INLINE void approximate_search_generate_region_profile_delimit_stats(approximate_search_t* const search);
+  region_profile_adaptive_delimit,     // Adaptive Profile extracting all possible unique regions (least candidates possible)
+  region_profile_adaptive_recovery,    // Adaptive Profile with less strict thresholds as to recover as much as feasible from the read
+} region_profiling_strategy_t;
 
 /*
  * Region profile generation
  */
 GEM_INLINE void approximate_search_generate_region_profile(
-    approximate_search_t* const search,const region_profile_model_t* const profile_model,
-    const region_profile_generation_strategy_t region_profile_generation_strategy,
-    const uint64_t min_regions,const bool allow_zero_regions);
+    approximate_search_t* const search,const region_profiling_strategy_t rp_strategy,
+    mm_stack_t* const mm_stack);
 
 /*
  * Generate Candidates

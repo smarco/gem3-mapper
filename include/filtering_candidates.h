@@ -60,15 +60,16 @@ GEM_INLINE void filtering_candidates_set_all_regions_unverified(filtering_candid
  */
 GEM_INLINE void filtering_candidates_add_interval(
     filtering_candidates_t* const filtering_candidates,
-    const uint64_t interval_lo,const uint64_t interval_hi,const uint64_t region_start_pos,
-    const uint64_t region_end_pos,const uint64_t region_errors,mm_stack_t* const mm_stack);
+    const uint64_t interval_lo,const uint64_t interval_hi,
+    const uint64_t region_begin_pos,const uint64_t region_end_pos,
+    const uint64_t region_errors,mm_stack_t* const mm_stack);
 GEM_INLINE void filtering_candidates_add_interval_set(
     filtering_candidates_t* const filtering_candidates,interval_set_t* const interval_set,
-    const uint64_t region_start_pos,const uint64_t region_end_pos,mm_stack_t* const mm_stack);
+    const uint64_t region_begin_pos,const uint64_t region_end_pos,mm_stack_t* const mm_stack);
 GEM_INLINE void filtering_candidates_add_interval_set_thresholded(
     filtering_candidates_t* const filtering_candidates,interval_set_t* const interval_set,
-    const uint64_t region_start_pos,const uint64_t region_end_pos,const uint64_t max_error,
-    mm_stack_t* const mm_stack);
+    const uint64_t region_begin_pos,const uint64_t region_end_pos,
+    const uint64_t max_error,mm_stack_t* const mm_stack);
 
 /*
  * Processing & Verification
@@ -84,16 +85,18 @@ GEM_INLINE uint64_t filtering_candidates_verify_candidates(
     const as_parameters_t* const as_parameters,
     matches_t* const matches,mm_stack_t* const mm_stack);
 GEM_INLINE uint64_t filtering_candidates_align_candidates(
-    filtering_candidates_t* const filtering_candidates,archive_text_t* const archive_text,
+    filtering_candidates_t* const filtering_candidates,
+    archive_text_t* const archive_text,const locator_t* const locator,
     text_collection_t* const text_collection,pattern_t* const pattern,
     const bool emulated_rc_search,const as_parameters_t* const as_parameters,
     const bool approximated_distance,matches_t* const matches,mm_stack_t* const mm_stack);
 
 /*
- * Search for local-alignments
+ * Search for unbounded-alignments
  */
-GEM_INLINE uint64_t filtering_candidates_local_alignment(
-    filtering_candidates_t* const filtering_candidates,archive_t* const archive,
+GEM_INLINE uint64_t filtering_candidates_align_unbounded(
+    filtering_candidates_t* const filtering_candidates,
+    archive_text_t* const archive_text,const locator_t* const locator,
     text_collection_t* const text_collection,pattern_t* const pattern,
     const bool emulated_rc_search,const as_parameters_t* const as_parameters,
     matches_t* const matches,mm_stack_t* const mm_stack);
@@ -115,10 +118,9 @@ GEM_INLINE uint64_t filtering_candidates_bpm_buffer_retrieve(
  */
 GEM_INLINE uint64_t filtering_candidates_extend_match(
     filtering_candidates_t* const filtering_candidates,
-    archive_t* const archive,text_collection_t* const text_collection,
-    const match_trace_t* const extended_match,pattern_t* const candidate_pattern,
-    const bool candidate_emulated_rc_search,const bool search_onward,
-    const as_parameters_t* const candidate_actual_parameters,
+    archive_text_t* const archive_text,const locator_t* const locator,
+    text_collection_t* const text_collection,const match_trace_t* const extended_match,
+    pattern_t* const candidate_pattern,const as_parameters_t* const candidate_actual_parameters,
     mapper_stats_t* const mapper_stats,paired_matches_t* const paired_matches,
     const sequence_end_t candidate_end,mm_stack_t* const mm_stack);
 GEM_INLINE void filtering_candidates_process_extension_candidates(
@@ -128,15 +130,6 @@ GEM_INLINE void filtering_candidates_process_extension_candidates(
     const pattern_t* const extended_pattern,const pattern_t* const candidate_pattern,
     const search_parameters_t* const search_parameters,mapper_stats_t* const mapper_stats,
     paired_matches_t* const paired_matches,mm_stack_t* const mm_stack);
-
-/*
- * Paired Filtering
- */
-GEM_INLINE void filtering_candidates_paired_regions_filtering(
-    filtering_candidates_t* const filtering_candidates_end1,
-    filtering_candidates_t* const filtering_candidates_end2,
-    archive_text_t* const archive_text,const search_parameters_t* const search_parameters,
-    mapper_stats_t* const mapper_stats,paired_matches_t* const paired_matches);
 
 /*
  * Display

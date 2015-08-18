@@ -28,8 +28,8 @@ typedef struct {
   mapq_model_t mapq_model;
   uint8_t mapq_threshold;
   /* Reporting */
-  double min_decoded_strata;
-  uint64_t min_decoded_strata_nominal;
+  double min_reported_strata;
+  uint64_t min_reported_strata_nominal;
   uint64_t min_reported_matches;
   uint64_t max_reported_matches;
   /* Check */

@@ -15,6 +15,10 @@
 GEM_INLINE void approximate_search_adjust_max_differences_using_strata(
     approximate_search_t* const search,matches_t* const matches) ;
 
+GEM_INLINE void asearch_compute_predictors(
+    approximate_search_t* const search,matches_t* const matches,
+    matches_predictors_t* const predictors);
+
 GEM_INLINE bool asearch_fulfilled(approximate_search_t* const search,matches_t* const matches);
 
 GEM_INLINE bool asearch_filter_ahead_candidates(approximate_search_t* const search,matches_t* const matches);

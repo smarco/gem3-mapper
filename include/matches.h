@@ -10,6 +10,7 @@
 #define MATCHES_H_
 
 #include "essentials.h"
+#include "locator.h"
 #include "interval_set.h"
 #include "text_collection.h"
 #include "match_elements.h"
@@ -51,6 +52,7 @@ typedef struct {
   /* Match */
   char* sequence_name;     // Sequence name (After decoding.Eg Chr1)
   strand_t strand;         // Mapping Strand
+  bs_strand_t bs_strand;   // Bisulfite Strand
   uint64_t text_position;  // Position of the match in the text. Local text (Eg wrt Chr1)
   bool emulated_rc_search; // Match resulting from a RC-emulated search (using the forward-strand)
   /* Score */
@@ -129,7 +131,8 @@ GEM_INLINE int64_t match_trace_get_effective_length(
  */
 GEM_INLINE bool matches_add_match_trace(
     matches_t* const matches,match_trace_t* const match_trace,
-    const bool update_counters,mm_stack_t* const mm_stack);
+    const bool update_counters,const locator_t* const locator,
+    mm_stack_t* const mm_stack);
 GEM_INLINE void matches_add_interval_match(
     matches_t* const matches,const uint64_t lo,const uint64_t hi,
     const uint64_t length,const uint64_t distance,const bool emulated_rc_search);
@@ -179,6 +182,8 @@ GEM_INLINE uint64_t matches_cigar_compute_edit_distance(
     const matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
 GEM_INLINE uint64_t matches_cigar_compute_edit_distance__excluding_clipping(
     const matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
+GEM_INLINE uint64_t matches_cigar_compute_matching_bases(
+    const matches_t* const matches,const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
 
 GEM_INLINE int64_t matches_cigar_element_effective_length(const cigar_element_t* const cigar_element);
 GEM_INLINE int64_t matches_cigar_effective_length(
@@ -195,7 +200,7 @@ GEM_INLINE void matches_sort_by_sequence_name__position(matches_t* const matches
 /*
  * Filters
  */
-GEM_INLINE void matches_filter_by_swg_score(matches_t* const matches,const double swg_threshold,mm_stack_t* const mm_stack);
+GEM_INLINE void matches_filter_by_swg_score(matches_t* const matches,const int32_t swg_threshold,mm_stack_t* const mm_stack);
 GEM_INLINE void matches_filter_by_mapq(matches_t* const matches,const uint8_t mapq_threshold,mm_stack_t* const mm_stack);
 
 /*

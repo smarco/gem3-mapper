@@ -15,10 +15,10 @@
 /*
  * Constants
  */
+#define PAIRED_MATCHES_MIN_CI          0.5
 #define PAIRED_MATCHES_UNIQUE_CI       0.998
 #define PAIRED_MATCHES_MMAPS_CI        0.995
 #define PAIRED_MATCHES_TIES_CI         0.90
-#define PAIRED_MATCHES_PREFECT_TIES_CI 0.90
 
 /*
  * PE Classify
@@ -28,7 +28,7 @@ GEM_INLINE void paired_matches_classify_compute_predictors(
     paired_matches_t* const paired_matches,matches_predictors_t* const predictors,
     const swg_penalties_t* const swg_penalties,const uint64_t total_read_length,
     const uint64_t max_region_length,uint64_t const proper_length,
-    uint64_t const overriding_mcs);
+    uint64_t const overriding_mcs,const uint64_t num_zero_regions);
 
 GEM_INLINE double paired_matches_classify_unique(matches_predictors_t* const predictors);
 GEM_INLINE double paired_matches_classify_mmaps(matches_predictors_t* const predictors);

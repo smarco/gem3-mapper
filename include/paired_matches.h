@@ -72,18 +72,13 @@ GEM_INLINE match_trace_t* paired_map_get_match_end2(
  */
 GEM_INLINE void paired_matches_add(
     paired_matches_t* const paired_matches,match_trace_t* const match_trace_end1,
-    match_trace_t* const match_trace_end2,const pair_orientation_t pair_orientation,
+    match_trace_t* const match_trace_end2,const pair_relation_t pair_relation,
+    const pair_orientation_t pair_orientation,const pair_layout_t pair_layout,
     const uint64_t template_length,const double template_length_sigma);
 
 /*
  * Finding Pairs
  */
-GEM_INLINE void paired_matches_pair_match_with_mates(
-    paired_matches_t* const paired_matches,
-    const paired_search_parameters_t* const paired_search_parameters,
-    mapper_stats_t* const mapper_stats,const pair_orientation_t pair_orientation,
-    match_trace_t* const match_trace,const sequence_end_t mate_end,
-    match_trace_t* const mates_array,const uint64_t num_mates_trace);
 GEM_INLINE void paired_matches_find_pairs(
     paired_matches_t* const paired_matches,
     const paired_search_parameters_t* const paired_search_parameters,

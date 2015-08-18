@@ -18,7 +18,7 @@ GEM_INLINE bool match_align_curate_cigar_trim(
   switch (cigar_element->type) {
     case cigar_match:
       // Small Match
-      if (cigar_element->length < align_parameters->min_context_length) {
+      if (cigar_element->length < align_parameters->cigar_curation_min_end_context) {
         *trim_length += cigar_element->length;
         if (match_position!=NULL) *match_position += cigar_element->length;
         return true;
@@ -47,8 +47,8 @@ GEM_INLINE void match_align_curate_cigar(
     match_trace_t* const match_trace,vector_t* const cigar_vector,
     match_align_parameters_t* const align_parameters) {
   // Parameters
+  const bool left_gap_alignment = align_parameters->left_gap_alignment;
   match_alignment_t* const match_alignment = &match_trace->match_alignment;
-  // Prepare CIGAR-buffer to curate
   const uint64_t cigar_length = match_alignment->cigar_length;
   cigar_element_t* const cigar_buffer = vector_get_elm(cigar_vector,match_alignment->cigar_offset,cigar_element_t);
   uint64_t curated_cigar_length = 0, indel_length = 0, i = 0, j = 0;
@@ -66,42 +66,54 @@ GEM_INLINE void match_align_curate_cigar(
   }
   // Traverse all CIGAR elements
   while (i < cigar_length) {
-    cigar_element_t* const cigar_element = cigar_buffer + i;
+    cigar_element_t* cigar_element = cigar_buffer + i;
     switch (cigar_element->type) {
-      case cigar_match: break;
-      case cigar_mismatch: break;
-      case cigar_del:
-        // Check next element & Merge deletion operations
-        if (i+1<cigar_length && cigar_buffer[i+1].type==cigar_del) {
+      case cigar_mismatch:
+        cigar_buffer[curated_cigar_length++] = *cigar_element;
+        ++i;
+        break;
+      case cigar_match:
+        if (i+1<cigar_length && cigar_buffer[i+1].type == cigar_match) {
           cigar_buffer[i+1].length += cigar_element->length;
-          cigar_buffer[i+1].attributes = (cigar_element->attributes==cigar_attr_trim) ? cigar_attr_trim : cigar_attr_none;
-          ++i; continue;
+        } else {
+          cigar_buffer[curated_cigar_length++] = *cigar_element;
+        }
+        ++i;
+        break;
+      case cigar_del:
+      case cigar_ins: {
+        cigar_element_t accum_del = { .type = cigar_del, .attributes = cigar_attr_none, .length = 0 };
+        cigar_element_t accum_ins = { .type = cigar_ins, .attributes = cigar_attr_none, .length = 0 };
+        if (cigar_element->type==cigar_del && cigar_element->attributes==cigar_attr_trim) {
+          accum_del.attributes = cigar_attr_trim;
+        }
+        // Compact all deletions/insertions in a row
+        while (i<cigar_length) {
+          cigar_element = cigar_buffer + i;
+          if (cigar_element->type == cigar_del) {
+            accum_del.length += cigar_element->length;
+            ++i;
+          } else if (cigar_element->type == cigar_ins) {
+            accum_ins.length += cigar_element->length;
+            ++i;
+          } else {
+            break;
+          }
+        }
+        // Copy curated Ins/Del
+        if (left_gap_alignment) {
+          if (accum_del.length > 0) cigar_buffer[curated_cigar_length++] = accum_del;
+          if (accum_ins.length > 0) cigar_buffer[curated_cigar_length++] = accum_ins;
+        } else {
+          if (accum_ins.length > 0) cigar_buffer[curated_cigar_length++] = accum_ins;
+          if (accum_del.length > 0) cigar_buffer[curated_cigar_length++] = accum_del;
         }
         break;
-      case cigar_ins:
-        // Check next element
-        if (i+1<cigar_length) {
-          // Check Insertion/Deletion proper order
-          if (cigar_buffer[i+1].type==cigar_del) {
-            SWAP(cigar_buffer[i],cigar_buffer[i+1]);
-            continue;
-          }
-          // Merge insertion operations
-          if (cigar_buffer[i+1].type==cigar_ins) {
-            cigar_buffer[i+1].length += cigar_element->length;
-            cigar_buffer[i+1].attributes = cigar_attr_none;
-            ++i; continue;
-          }
-        }
-        break;
+      }
       default:
         GEM_INVALID_CASE();
         break;
     }
-    // Copy Curated CIGAR-element
-    cigar_buffer[curated_cigar_length] = *cigar_element;
-    ++curated_cigar_length;
-    ++i;
   }
   // Handle last CIGAR element(s)
   if (curated_cigar_length > 0) {
@@ -120,6 +132,7 @@ GEM_INLINE void match_align_curate_cigar(
       last_cigar_element->type = cigar_del;
       last_cigar_element->attributes = cigar_attr_trim;
       last_cigar_element->length = indel_length;
+      if (indel_length==0) --curated_cigar_length;
     }
   }
   // Set curated-CIGAR length
@@ -220,6 +233,7 @@ GEM_INLINE void match_align_hamming(
 /*
  * Levenshtein
  *   @align_input->key
+ *   @align_input->key_length
  *   @align_input->bpm_pattern
  *   @align_input->text_trace_offset
  *   @align_input->text_position
@@ -227,6 +241,7 @@ GEM_INLINE void match_align_hamming(
  *   @align_input->text_offset_begin
  *   @align_input->text_offset_end
  *   @align_input->text_length
+ *   @align_parameters->swg_penalties
  *   @align_parameters->emulated_rc_search
  *   @align_parameters->max_error
  *   @align_parameters->left_gap_alignment
@@ -470,11 +485,12 @@ GEM_INLINE void match_align_smith_waterman_gotoh_chained(
  *   @align_input->text_offset_end
  *   @align_parameters->emulated_rc_search
  *   @align_parameters->swg_penalties
- *   @align_parameters->local_min_identity
+ *   @align_parameters->min_identity
  *   @align_parameters->left_gap_alignment
  *   @align_parameters->allowed_enc
  *   @align_parameters->max_bandwidth
  *   @align_parameters->cigar_curation
+ *   @align_parameters->cigar_curation_min_end_context
  *   @match_scaffold->scaffold_regions
  *   @match_scaffold->num_scaffold_regions
  */
@@ -489,8 +505,8 @@ GEM_INLINE void match_align_smith_waterman_gotoh(
   match_trace->text_position = UINT64_MAX;
   match_trace->emulated_rc_search = align_parameters->emulated_rc_search;
   match_alignment_t* const match_alignment = &match_trace->match_alignment;
-  const uint64_t match_position = align_input->text_position;
-  match_alignment->match_position = match_position;
+  const uint64_t base_match_position = align_input->text_position;
+  match_alignment->match_position = base_match_position;
   match_alignment->cigar_offset = vector_get_used(matches->cigar_vector);
   match_alignment->cigar_length = 0;
   const uint64_t num_scaffold_regions = match_scaffold->num_scaffold_regions;
@@ -504,10 +520,13 @@ GEM_INLINE void match_align_smith_waterman_gotoh(
         align_input,align_parameters,match_scaffold,matches->cigar_vector,mm_stack);
   } else {
     // Full SWG
-    align_input->text = align_input->text + align_input->text_offset_begin;
-    align_input->text_length = align_input->text_offset_end - align_input->text_offset_begin;
+    match_align_input_t align_chunk_input;
+    align_chunk_input.key = align_input->key;
+    align_chunk_input.key_length = align_input->key_length;
+    align_chunk_input.text = align_input->text + align_input->text_offset_begin;
+    align_chunk_input.text_length = align_input->text_offset_end - align_input->text_offset_begin;
     match_alignment->match_position += align_input->text_offset_begin;
-    swg_align_match(align_input,align_parameters,true,true,
+    swg_align_match(&align_chunk_input,align_parameters,true,true,
         &match_trace->match_alignment,matches->cigar_vector,mm_stack);
   }
   // Check for bad alignments (discarded)
@@ -522,22 +541,21 @@ GEM_INLINE void match_align_smith_waterman_gotoh(
     match_align_curate_cigar(match_trace,matches->cigar_vector,align_parameters);
   }
   // Compute edit distance & discard bad alignments
-  match_trace->edit_distance = matches_cigar_compute_edit_distance(
-      matches,match_alignment->cigar_offset,match_alignment->cigar_length);
-  if (align_input->key_length - match_trace->edit_distance < align_parameters->local_min_identity) {
+  const uint64_t cigar_offset = match_alignment->cigar_offset;
+  const uint64_t cigar_length = match_alignment->cigar_length;
+  const uint64_t matching_bases = matches_cigar_compute_matching_bases(matches,cigar_offset,cigar_length);
+  if (matching_bases < align_parameters->min_identity) {
     match_trace->swg_score = SWG_SCORE_MIN;
     match_trace->distance = ALIGN_DISTANCE_INF;
     PROF_STOP(GP_MATCHES_ALIGN_SWG);
     return;
   }
   // Compute score + effective-length
-  match_alignment->effective_length = matches_cigar_effective_length(
-      matches->cigar_vector,match_alignment->cigar_offset,match_alignment->cigar_length);
-  match_trace->swg_score = swg_score_cigar(align_parameters->swg_penalties,
-      matches->cigar_vector,match_alignment->cigar_offset,match_alignment->cigar_length);
-  match_trace->distance = matches_cigar_compute_event_distance(
-      matches,match_alignment->cigar_offset,match_alignment->cigar_length);
-  match_trace->text = align_input->text + (match_alignment->match_position - match_position);
+  match_trace->edit_distance = matches_cigar_compute_edit_distance(matches,cigar_offset,cigar_length);
+  match_trace->swg_score = swg_score_cigar(align_parameters->swg_penalties,matches->cigar_vector,cigar_offset,cigar_length);
+  match_trace->distance = matches_cigar_compute_event_distance(matches,cigar_offset,cigar_length);
+  match_alignment->effective_length = matches_cigar_effective_length(matches->cigar_vector,cigar_offset,cigar_length);
+  match_trace->text = align_input->text + (match_alignment->match_position - base_match_position);
   match_trace->text_length = match_alignment->effective_length;
   PROF_STOP(GP_MATCHES_ALIGN_SWG);
 }

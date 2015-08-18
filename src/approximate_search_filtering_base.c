@@ -14,6 +14,12 @@
 #include "region_profile_schedule.h"
 
 /*
+ * Debug
+ */
+#define DEBUG_REGION_PROFILE_PRINT  GEM_DEEP_DEBUG
+#define DEBUG_REGION_SCHEDULE_PRINT GEM_DEEP_DEBUG
+
+/*
  * Constants
  */
 #define ZERO_ERRORS 0
@@ -23,61 +29,56 @@
 /*
  * Stats
  */
-GEM_INLINE void approximate_search_generate_region_profile_minimal_stats(approximate_search_t* const search) {
 #ifndef GEM_NOPROFILE
-  PROF_INC_COUNTER(GP_REGION_PROFILE_MINIMAL);
-  region_profile_t* const region_profile = &search->region_profile;
+GEM_INLINE void region_profile_lightweight_stats(region_profile_t* const region_profile) {
+  PROF_INC_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT);
   uint64_t total_candidates = 0;
-  PROF_ADD_COUNTER(GP_REGION_PROFILE_MINIMAL_NUM_REGIONS,region_profile->num_filtering_regions);
-  PROF_ADD_COUNTER(GP_REGION_PROFILE_MINIMAL_NUM_REGIONS_STANDARD,region_profile->num_standard_regions);
-  PROF_ADD_COUNTER(GP_REGION_PROFILE_MINIMAL_NUM_REGIONS_UNIQUE,region_profile->num_filtering_regions-region_profile->num_standard_regions);
+  PROF_ADD_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT_NUM_REGIONS,region_profile->num_filtering_regions);
+  PROF_ADD_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT_NUM_REGIONS_STANDARD,region_profile->num_standard_regions);
+  PROF_ADD_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT_NUM_REGIONS_UNIQUE,
+      region_profile->num_filtering_regions-region_profile->num_standard_regions);
   REGION_PROFILE_ITERATE(region_profile,region,position) {
-    PROF_ADD_COUNTER(GP_REGION_PROFILE_MINIMAL_REGION_LENGTH,region->start-region->end);
-    PROF_ADD_COUNTER(GP_REGION_PROFILE_MINIMAL_REGION_CANDIDATES,(region->hi-region->lo));
+    PROF_ADD_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT_REGION_LENGTH,region->end-region->begin);
+    PROF_ADD_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT_REGION_CANDIDATES,(region->hi-region->lo));
     total_candidates += (region->hi-region->lo);
   }
-  PROF_ADD_COUNTER(GP_REGION_PROFILE_MINIMAL_TOTAL_CANDIDATES,total_candidates);
-#endif
+  PROF_ADD_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT_TOTAL_CANDIDATES,total_candidates);
 }
-GEM_INLINE void approximate_search_generate_region_profile_boost_stats(approximate_search_t* const search) {
-#ifndef GEM_NOPROFILE
+GEM_INLINE void region_profile_boost_stats(region_profile_t* const region_profile) {
   PROF_INC_COUNTER(GP_REGION_PROFILE_BOOST);
-  region_profile_t* const region_profile = &search->region_profile;
   uint64_t total_candidates = 0;
   PROF_ADD_COUNTER(GP_REGION_PROFILE_BOOST_NUM_REGIONS,region_profile->num_filtering_regions);
   PROF_ADD_COUNTER(GP_REGION_PROFILE_BOOST_NUM_REGIONS_STANDARD,region_profile->num_standard_regions);
-  PROF_ADD_COUNTER(GP_REGION_PROFILE_BOOST_NUM_REGIONS_UNIQUE,region_profile->num_filtering_regions-region_profile->num_standard_regions);
+  PROF_ADD_COUNTER(GP_REGION_PROFILE_BOOST_NUM_REGIONS_UNIQUE,
+      region_profile->num_filtering_regions-region_profile->num_standard_regions);
   REGION_PROFILE_ITERATE(region_profile,region,position) {
-    PROF_ADD_COUNTER(GP_REGION_PROFILE_BOOST_REGION_LENGTH,region->start-region->end);
+    PROF_ADD_COUNTER(GP_REGION_PROFILE_BOOST_REGION_LENGTH,region->end-region->begin);
     PROF_ADD_COUNTER(GP_REGION_PROFILE_BOOST_REGION_CANDIDATES,(region->hi-region->lo));
     total_candidates += (region->hi-region->lo);
   }
   PROF_ADD_COUNTER(GP_REGION_PROFILE_BOOST_TOTAL_CANDIDATES,total_candidates);
-#endif
 }
-GEM_INLINE void approximate_search_generate_region_profile_delimit_stats(approximate_search_t* const search) {
-#ifndef GEM_NOPROFILE
+GEM_INLINE void region_profile_delimit_stats(region_profile_t* const region_profile) {
   PROF_INC_COUNTER(GP_REGION_PROFILE_DELIMIT);
-  region_profile_t* const region_profile = &search->region_profile;
   uint64_t total_candidates = 0;
   PROF_ADD_COUNTER(GP_REGION_PROFILE_DELIMIT_NUM_REGIONS,region_profile->num_filtering_regions);
   PROF_ADD_COUNTER(GP_REGION_PROFILE_DELIMIT_NUM_REGIONS_STANDARD,region_profile->num_standard_regions);
-  PROF_ADD_COUNTER(GP_REGION_PROFILE_DELIMIT_NUM_REGIONS_UNIQUE,region_profile->num_filtering_regions-region_profile->num_standard_regions);
+  PROF_ADD_COUNTER(GP_REGION_PROFILE_DELIMIT_NUM_REGIONS_UNIQUE,
+      region_profile->num_filtering_regions-region_profile->num_standard_regions);
   REGION_PROFILE_ITERATE(region_profile,region,position) {
-    PROF_ADD_COUNTER(GP_REGION_PROFILE_DELIMIT_REGION_LENGTH,region->start-region->end);
+    PROF_ADD_COUNTER(GP_REGION_PROFILE_DELIMIT_REGION_LENGTH,region->end-region->begin);
     PROF_ADD_COUNTER(GP_REGION_PROFILE_DELIMIT_REGION_CANDIDATES,(region->hi-region->lo));
     total_candidates += (region->hi-region->lo);
   }
   PROF_ADD_COUNTER(GP_REGION_PROFILE_DELIMIT_TOTAL_CANDIDATES,total_candidates);
-#endif
 }
+#endif
 /*
  * Region profile generation
  */
 GEM_INLINE void approximate_search_generate_region_profile(
-    approximate_search_t* const search,const region_profile_model_t* const profile_model,
-    const region_profile_generation_strategy_t region_profile_generation_strategy,
-    const uint64_t min_regions,const bool allow_zero_regions) {
+    approximate_search_t* const search,const region_profiling_strategy_t rp_strategy,
+    mm_stack_t* const mm_stack) {
   // Parameters
   const as_parameters_t* const actual_parameters = search->as_parameters;
   const search_parameters_t* const parameters = actual_parameters->search_parameters;
@@ -96,24 +97,28 @@ GEM_INLINE void approximate_search_generate_region_profile(
     key_length = pattern->rl_key_length;
   }
   // Compute the region profile
-  switch (region_profile_generation_strategy) {
+  switch (rp_strategy) {
     case region_profile_adaptive_lightweight:
       region_profile_generate_adaptive(region_profile,fm_index,key,key_length,
-          parameters->allowed_enc,profile_model,search->max_differences+1,allow_zero_regions);
+          parameters->allowed_enc,&parameters->rp_minimal,ALL,false);
+      break;
+    case region_profile_adaptive_boost:
+      region_profile_generate_adaptive_boost(region_profile,fm_index,key,key_length,
+          parameters->allowed_enc,&parameters->rp_boost,mm_stack);
       break;
     case region_profile_adaptive_limited:
       region_profile_generate_adaptive_limited(region_profile,fm_index,key,key_length,
-          parameters->allowed_enc,profile_model,min_regions);
+          parameters->allowed_enc,&parameters->rp_minimal,search->max_complete_error+1);
       break;
-    case region_profile_adaptive_extensive:
+    case region_profile_adaptive_delimit:
       region_profile_generate_adaptive(region_profile,fm_index,key,key_length,
-          parameters->allowed_enc,profile_model,UINT64_MAX,allow_zero_regions);
+          parameters->allowed_enc,&parameters->rp_delimit,UINT64_MAX,true);
       break;
     default:
       GEM_INVALID_CASE();
       break;
   }
-  gem_cond_debug_block(DEBUG_REGION_PROFILE_PRINT) { region_profile_print(stderr,region_profile,false,false); }
+  gem_cond_debug_block(DEBUG_REGION_PROFILE_PRINT) { region_profile_print(stderr,region_profile,false); }
   // Check Zero-Region & Exact-Matches
   if (region_profile->num_filtering_regions==0) {
     approximate_search_update_mcs(search,pattern->num_wildcards);
@@ -127,6 +132,26 @@ GEM_INLINE void approximate_search_generate_region_profile(
     search->search_state = asearch_exact_matches;
     return;
   }
+  // Stats
+#ifndef GEM_NOPROFILE
+  switch (rp_strategy) {
+    case region_profile_adaptive_lightweight:
+      region_profile_lightweight_stats(region_profile);
+      break;
+    case region_profile_adaptive_boost:
+      region_profile_boost_stats(region_profile);
+      break;
+    case region_profile_adaptive_limited:
+      region_profile_lightweight_stats(region_profile);
+      break;
+    case region_profile_adaptive_delimit:
+      region_profile_delimit_stats(region_profile);
+      break;
+    default:
+      GEM_INVALID_CASE();
+      break;
+  }
+#endif
 }
 /*
  * Generate Candidates
@@ -143,7 +168,7 @@ GEM_INLINE uint64_t approximate_search_generate_region_candidates(
     PROF_INC_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D2);
     if (perform_search) {
       interval_set_clear(intervals_result);
-      neighborhood_search(fm_index,key+region->end,region->start-region->end,region->min-1,intervals_result,mm_stack);
+      neighborhood_search(fm_index,key+region->begin,region->end-region->begin,region->min-1,intervals_result,mm_stack);
       perform_search = false;
     }
     PROF_STOP(GP_AS_GENERATE_CANDIDATES_SEARCH_D2);
@@ -151,7 +176,7 @@ GEM_INLINE uint64_t approximate_search_generate_region_candidates(
     if (candidates <= filtering_threshold) {
       PROF_INC_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D2_HIT);
       PROF_ADD_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D2_HIT_CANDIDATES,candidates);
-      filtering_candidates_add_interval_set(filtering_candidates,intervals_result,region->start,region->end,mm_stack);
+      filtering_candidates_add_interval_set(filtering_candidates,intervals_result,region->begin,region->end,mm_stack);
       return region->min; // Return filtered-degree (errors-allowed)
     }
     --(region->min);
@@ -162,7 +187,7 @@ GEM_INLINE uint64_t approximate_search_generate_region_candidates(
     PROF_INC_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D1);
     if (perform_search) {
       interval_set_clear(intervals_result);
-      neighborhood_search(fm_index,key+region->end,region->start-region->end,ONE_ERROR,intervals_result,mm_stack);
+      neighborhood_search(fm_index,key+region->begin,region->end-region->begin,ONE_ERROR,intervals_result,mm_stack);
       perform_search = false;
     }
     PROF_STOP(GP_AS_GENERATE_CANDIDATES_SEARCH_D1);
@@ -171,7 +196,7 @@ GEM_INLINE uint64_t approximate_search_generate_region_candidates(
       PROF_INC_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D1_HIT);
       PROF_ADD_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D1_HIT_CANDIDATES,candidates);
       filtering_candidates_add_interval_set_thresholded(filtering_candidates,
-          intervals_result,region->start,region->end,ONE_ERROR,mm_stack);
+          intervals_result,region->begin,region->end,ONE_ERROR,mm_stack);
       return REGION_FILTER_DEGREE_ONE; // Return filtered-degree (errors-allowed)
     }
     --(region->min);
@@ -181,7 +206,7 @@ GEM_INLINE uint64_t approximate_search_generate_region_candidates(
     PROF_INC_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D0_HIT);
     PROF_ADD_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D0_HIT_CANDIDATES,region->hi-region->lo);
     filtering_candidates_add_interval(filtering_candidates,
-        region->lo,region->hi,region->start,region->end,ZERO_ERRORS,mm_stack);
+        region->lo,region->hi,region->begin,region->end,ZERO_ERRORS,mm_stack);
     return REGION_FILTER_DEGREE_ZERO; // Return filtered-degree (errors-allowed)
   }
   /*
@@ -202,7 +227,7 @@ GEM_INLINE void approximate_search_generate_exact_candidates(approximate_search_
   const uint64_t num_regions = region_profile->num_filtering_regions;
   uint64_t errors_allowed = 0; // Number of errors allowed/generated/applied so far
   // Generate candidates for each region
-  PROF_ADD_COUNTER(GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS,MIN(search->max_differences+1,num_regions));
+  PROF_ADD_COUNTER(GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS,num_regions);
   REGION_LOCATOR_ITERATE(region_profile,region,position) {
     PROF_INC_COUNTER(GP_AS_GENERATE_CANDIDATES_PROCESSED);
     // Generate exact-candidates for the region
@@ -210,17 +235,12 @@ GEM_INLINE void approximate_search_generate_exact_candidates(approximate_search_
       PROF_INC_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D0_HIT);
       PROF_ADD_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D0_HIT_CANDIDATES,region->hi-region->lo);
       filtering_candidates_add_interval(filtering_candidates,
-          region->lo,region->hi,region->start,region->end,ZERO_ERRORS,mm_stack);
+          region->lo,region->hi,region->begin,region->end,ZERO_ERRORS,mm_stack);
       ++errors_allowed; // Increase errors-allowed
-      // Check cut-off condition
-      approximate_search_update_mcs(search,errors_allowed + num_wildcards);
-      if (asearch_fulfilled(search,matches)) {
-        PROF_ADD_COUNTER(GP_AS_GENERATE_CANDIDATES_SKIPPED,num_regions-(position+1));
-        break;
-      }
     }
   }
   // Set the minimum number of mismatches required
+  approximate_search_update_mcs(search,errors_allowed + num_wildcards);
   region_profile->errors_allowed = errors_allowed;
   PROF_STOP(GP_AS_GENERATE_CANDIDATES);
 }
@@ -260,12 +280,12 @@ GEM_INLINE void approximate_search_generate_inexact_candidates(
   if (dynamic_scheduling) {
     region_profile_sort_by_estimated_mappability(&search->region_profile);
     gem_cond_debug_block(DEBUG_REGION_SCHEDULE_PRINT) {
-      region_profile_schedule_filtering_adaptive(region_profile,search->max_differences,sensibility_error_length);
-      region_profile_schedule_print(region_profile,search->max_differences,sensibility_error_length);
+      region_profile_schedule_filtering_adaptive(region_profile,search->max_complete_error,sensibility_error_length);
+      region_profile_schedule_print(region_profile,search->max_complete_error,sensibility_error_length);
     }
   }
   // Generate candidates for each region
-  PROF_ADD_COUNTER(GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS,MIN(search->max_differences+1,num_regions));
+  PROF_ADD_COUNTER(GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS,MIN(search->max_complete_error+1,num_regions));
   REGION_LOCATOR_ITERATE(region_profile,region,position) {
     PROF_INC_COUNTER(GP_AS_GENERATE_CANDIDATES_PROCESSED);
     // Dynamic Schedule
@@ -277,7 +297,7 @@ GEM_INLINE void approximate_search_generate_inexact_candidates(
       }
       region_schedule_filtering_adaptive(
           region,num_standard_regions_left,num_unique_regions_left,
-          search->max_differences,sensibility_error_length,errors_allowed);
+          search->max_complete_error,sensibility_error_length,errors_allowed);
     }
     // Generate candidates for the region
     errors_allowed += approximate_search_generate_region_candidates(fm_index,
@@ -289,7 +309,8 @@ GEM_INLINE void approximate_search_generate_inexact_candidates(
       filtering_candidates_process_candidates(filtering_candidates,search->archive,pattern,as_parameters,true,mm_stack);
       filtering_candidates_verify_candidates(filtering_candidates,search->archive,
           search->text_collection,pattern,as_parameters,matches,mm_stack);
-      filtering_candidates_align_candidates(filtering_candidates,search->archive->text,
+      filtering_candidates_align_candidates(
+          filtering_candidates,search->archive->text,search->archive->locator,
           search->text_collection,pattern,search->emulated_rc_search,as_parameters,false,matches,mm_stack);
       approximate_search_adjust_max_differences_using_strata(search,matches);
       PROF_STOP(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING);
@@ -318,13 +339,14 @@ GEM_INLINE void approximate_search_verify_candidates(approximate_search_t* const
   // Verify Candidates
   filtering_candidates_verify_candidates(filtering_candidates,search->archive,
       search->text_collection,pattern,actual_parameters,matches,search->mm_stack);
-  filtering_candidates_align_candidates(filtering_candidates,search->archive->text,search->text_collection,
+  filtering_candidates_align_candidates(
+      filtering_candidates,search->archive->text,search->archive->locator,search->text_collection,
       pattern,search->emulated_rc_search,actual_parameters,false,matches,search->mm_stack);
   // Adjust max-differences
   approximate_search_adjust_max_differences_using_strata(search,matches);
   // Update MCS (maximum complete stratum)
   const uint64_t num_matches = matches_get_num_match_traces(matches);
-  search->max_matches_reached = num_matches >= parameters->max_search_matches;
+  search->max_matches_reached = num_matches >= parameters->search_max_matches;
   if (search->max_matches_reached) approximate_search_update_mcs(search,0);
   // Next State
   search->search_state = asearch_candidates_verified;

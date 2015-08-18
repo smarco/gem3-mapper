@@ -38,17 +38,16 @@ GEM_INLINE void approximate_search_neighborhood_exact_search(approximate_search_
  */
 GEM_INLINE void approximate_search_neighborhood_inexact_search(approximate_search_t* const search,matches_t* const matches) {
   // Parameters, pattern & interval-set
-  const as_parameters_t* const actual_parameters = search->as_parameters;
   pattern_t* const pattern = &search->pattern;
   interval_set_t* const intervals_result = search->interval_set;
   // Basic search (Brute force mitigated by mrank_table)
   interval_set_clear(search->interval_set); // Clear
   neighborhood_search(search->archive->fm_index,pattern->key,pattern->key_length,
-      actual_parameters->max_search_error_nominal,intervals_result,search->mm_stack);
+      search->max_complete_error,intervals_result,search->mm_stack);
   // Add results
   matches_add_interval_set(matches,intervals_result,pattern->key_length,search->emulated_rc_search);
   // Update MCS
-  approximate_search_update_mcs(search,actual_parameters->max_search_error_nominal + 1);
+  approximate_search_update_mcs(search,search->max_complete_error+1);
   // Update next state
   search->search_state = asearch_end;
 }
@@ -57,7 +56,7 @@ GEM_INLINE void approximate_search_neighborhood_inexact_search(approximate_searc
  */
 GEM_INLINE void approximate_search_neighborhood_search(approximate_search_t* const search,matches_t* const matches) {
   // Check max-differences allowed
-  if (search->max_differences==0) {
+  if (search->max_complete_error==0) {
     approximate_search_neighborhood_exact_search(search,matches);   // Exact Search
   } else {
     approximate_search_neighborhood_inexact_search(search,matches); // Basic brute force search

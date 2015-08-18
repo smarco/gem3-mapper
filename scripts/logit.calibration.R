@@ -29,7 +29,7 @@ mylogit <- glm(tp ~ edit+sub_edit+event+sub_event+swg+sub_swg+mcs+max_region+fs_
 
 // Uniq (chr1,HS)
 mylogit <- glm(tp ~ event+swg+mcs, data = data1, family = "binomial")
-mylogit <- glm(tp ~ event+swg+mcs+max_region, data = data1, family = "binomial")
+mylogit <- glm(tp ~ event+swg+mcs+max_region+sub_cand, data = data1, family = "binomial")
 
 // Mmaps (chr1,HS)
 mylogit <- glm(tp ~ event+swg+sub_swg+mcs, data = data1, family = "binomial")

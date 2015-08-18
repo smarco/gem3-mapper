@@ -38,6 +38,13 @@ GEM_INLINE void archive_search_paired_end(
     paired_matches_t* const paired_matches);
 
 /*
+ * Compute Predictors
+ */
+GEM_INLINE void archive_search_paired_end_compute_predictors(
+    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
+    paired_matches_t* const paired_matches,matches_predictors_t* const predictors);
+
+/*
  * Errors
  */
 #define GEM_ERROR_ARCHIVE_SEARCH_INDEX_COMPLEMENT_REQUIRED "Archive Search. Explicit indexed complement required"

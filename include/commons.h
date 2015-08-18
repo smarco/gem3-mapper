@@ -46,7 +46,9 @@
 #include <assert.h>
 #include <signal.h>
 
-#include <endian.h>
+//#ifndef __APPLE__
+//#include <endian.h>
+//#endif
 
 #include "gthread.h"
 
@@ -299,5 +301,7 @@ GEM_INLINE char* system_get_cwd();
 GEM_INLINE char* system_get_hostname();
 GEM_INLINE char* system_get_user_name();
 GEM_INLINE void system_print_info(FILE* const stream);
+
+GEM_INLINE void system_get_time(struct timespec *ts);
 
 #endif /* COMMONS_H_ */

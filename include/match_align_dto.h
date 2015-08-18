@@ -34,13 +34,14 @@ struct match_align_parameters_t {
   bool* allowed_enc;
   swg_penalties_t* swg_penalties;
   uint64_t max_error;
+  uint64_t min_identity;
   uint64_t max_bandwidth;
-  uint64_t min_matching_length;
-  uint64_t min_context_length;
-  uint64_t min_coverage;
   bool left_gap_alignment;
-  uint64_t local_min_identity;
+  uint64_t scaffolding_matching_min_length;
+  uint64_t scaffolding_homopolymer_min_context;
+  uint64_t scaffolding_min_coverage;
   bool cigar_curation;
+  uint64_t cigar_curation_min_end_context;
 };
 
 #endif /* MATCH_ALIGN_DTO_H_ */

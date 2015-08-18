@@ -9,7 +9,8 @@
 #include "archive_search_se.h"
 #include "archive_select.h"
 #include "archive_score.h"
-#include "matches_classify.h"
+#include "approximate_search_filtering_control.h"
+#include "paired_matches_classify.h"
 
 /*
  * Debug
@@ -48,7 +49,6 @@ GEM_INLINE uint64_t archive_search_paired_end_extend_matches(
    *   the extension is done using @forward_search_state (matches contain all the strand needed info)
    */
   archive_search_t* candidate_archive_search;
-  matches_t* candidate_matches;
   matches_t* extended_matches;
   as_parameters_t* as_parameters;
   if (candidate_end==paired_end2) {
@@ -56,46 +56,24 @@ GEM_INLINE uint64_t archive_search_paired_end_extend_matches(
     candidate_archive_search = archive_search_end2;
     as_parameters = &candidate_archive_search->as_parameters;
     extended_matches = matches_end1;
-    candidate_matches = matches_end2;
   } else {
     // Extend towards end/1
     candidate_archive_search = archive_search_end1;
     as_parameters = &candidate_archive_search->as_parameters;
     extended_matches = matches_end2;
-    candidate_matches = matches_end1;
   }
   filtering_candidates_t* const filtering_candidates = candidate_archive_search->forward_search_state.filtering_candidates;
   pattern_t* const pattern = &candidate_archive_search->forward_search_state.pattern;
   text_collection_t* const text_collection = candidate_archive_search->text_collection;
   mm_stack_t* const mm_stack = candidate_archive_search->mm_stack;
-  const uint64_t num_base_candidate_matches = matches_get_num_match_traces(candidate_matches);
-  uint64_t matches_found = 0, total_matches_found = 0;
+  uint64_t total_matches_found = 0;
   // Iterate over all matches of the extended end
   VECTOR_ITERATE(extended_matches->position_matches,extended_match,en,match_trace_t) {
-    if (paired_search_parameters->pair_orientation_FR == pair_orientation_concordant) {
+    if (paired_search_parameters->pair_orientation[pair_orientation_FR] == pair_relation_concordant) {
       // Extend (filter nearby region)
-      strand_t candidate_strand;
-      if (extended_match->strand==Forward) {
-        candidate_strand = Reverse;
-        matches_found = filtering_candidates_extend_match(
-            filtering_candidates,archive,text_collection,extended_match,pattern,true,true,
-            as_parameters,mapper_stats,paired_matches,candidate_end,mm_stack);
-      } else { // end2==Reverse
-        candidate_strand = Forward;
-        // TODO improve using Text-Dimensions
-        extended_match->match_alignment.match_position =  // Locates against forward strand
-            inverse_locator_map(archive->locator,(uint8_t*)extended_match->sequence_name,
-            extended_match->strand,extended_match->text_position);
-        matches_found = filtering_candidates_extend_match(
-            filtering_candidates,archive,text_collection,extended_match,pattern,false,false,
-            as_parameters,mapper_stats,paired_matches,candidate_end,mm_stack);
-      }
-      // Decode & Pair found matches
-      total_matches_found += matches_found;
-	    match_trace_t* const mates_array = matches_get_match_trace_buffer(candidate_matches);
-	    // TODO Do the decode once at pairing & carry the proper strand at matches insertion
-      archive_select_decode_trace_matches(candidate_archive_search,candidate_matches,mates_array,
-          total_matches_found+num_base_candidate_matches,true,candidate_strand);
+      total_matches_found += filtering_candidates_extend_match(filtering_candidates,
+          archive->text,archive->locator,text_collection,extended_match,pattern,
+          as_parameters,mapper_stats,paired_matches,candidate_end,mm_stack);
     }
   }
   PROF_STOP(GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES);
@@ -132,65 +110,37 @@ GEM_INLINE void archive_search_paired_end_generate_extension_candidates(
  */
 GEM_INLINE bool archive_search_paired_end_feasible_extension(archive_search_t* const archive_search) {
   // Check the number of samples to derive the expected template size
-  const uint64_t ts_margin_error = archive_search->as_parameters.max_filtering_error_nominal;
+  const uint64_t ts_margin_error = archive_search->as_parameters.alignment_max_error_nominal;
   return mapper_stats_template_length_estimation_within_ci(archive_search->mapper_stats,ts_margin_error);
 }
 GEM_INLINE bool archive_search_paired_end_use_shortcut_extension(archive_search_t* const archive_search,matches_t* const matches) {
-//  // Check mapping-mode
-//  if (archive_search->as_parameters.search_parameters->mapping_mode!=mapping_adaptive_filtering_fast) return false;
   // Check the number of samples to derive the expected template size
-  const uint64_t ts_margin_error = archive_search->as_parameters.max_filtering_error_nominal;
+  const uint64_t ts_margin_error = archive_search->as_parameters.alignment_max_error_nominal;
   if (!mapper_stats_template_length_estimation_within_ci(archive_search->mapper_stats,ts_margin_error)) return false;
   // Test if the end can be classify as unique with enough confidence
   if (matches->max_complete_stratum <= 1) return false;
   if (matches_classify(matches)==matches_class_unique) {
-    const swg_penalties_t* const swg_penalties = &archive_search->as_parameters.search_parameters->swg_penalties;
-    const uint64_t read_length = sequence_get_length(&archive_search->sequence);
-    const uint64_t max_region_length = archive_search_get_max_region_length(archive_search);
-    const uint64_t proper_length = fm_index_get_proper_length(archive_search->archive->fm_index);
     matches_predictors_t predictors;
-    matches_classify_compute_predictors(matches,&predictors,
-        swg_penalties,read_length,max_region_length,proper_length,UINT64_MAX);
+    archive_search_compute_predictors(archive_search,matches,&predictors);
     return matches_classify_unique(&predictors) >= MATCHES_UNIQUE_CI;
   }
   return false;
 }
 GEM_INLINE bool archive_search_paired_end_use_recovery_extension(archive_search_t* const archive_search,matches_t* const matches) {
   // Check the number of samples to derive the expected template size
-  const uint64_t ts_margin_error = archive_search->as_parameters.max_filtering_error_nominal;
+  const uint64_t ts_margin_error = archive_search->as_parameters.alignment_max_error_nominal;
   if (!mapper_stats_template_length_estimation_within_ci(archive_search->mapper_stats,ts_margin_error)) return false;
   // Test if the end can be classify as ambiguous with enough confidence (as to rescue it)
   if (matches->max_complete_stratum <= 1) return true;
   const matches_class_t matches_class = matches_classify(matches);
   switch (matches_class) {
-    case matches_class_unmapped:
-      return true;
-    case matches_class_tie_indistinguishable:
-    case matches_class_tie_swg_score:
-    case matches_class_tie_edit_distance:
-      return true;
-    default: {
-      const swg_penalties_t* const swg_penalties = &archive_search->as_parameters.search_parameters->swg_penalties;
-      const uint64_t read_length = sequence_get_length(&archive_search->sequence);
-      const uint64_t max_region_length = archive_search_get_max_region_length(archive_search);
-      const uint64_t proper_length = fm_index_get_proper_length(archive_search->archive->fm_index);
+    case matches_class_unique: {
       matches_predictors_t predictors;
-      matches_classify_compute_predictors(matches,&predictors,
-          swg_penalties,read_length,max_region_length,proper_length,UINT64_MAX);
-      switch (matches_class) {
-        case matches_class_tie_event_distance:
-          return true;
-//          return matches_classify_ties(&predictors) < MATCHES_TIES_CI;
-        case matches_class_mmap:
-          return true;
-//          return matches_classify_mmaps(&predictors) < MATCHES_MMAPS_CI;
-        case matches_class_unique:
-          return matches_classify_unique(&predictors) < MATCHES_UNIQUE_CI;
-        default:
-          GEM_INVALID_CASE();
-          break;
-      }
+      archive_search_compute_predictors(archive_search,matches,&predictors);
+      return matches_classify_unique(&predictors) < MATCHES_UNIQUE_CI;
     }
+    default:
+      return true;
   }
   return false;
 }
@@ -293,7 +243,6 @@ GEM_INLINE void archive_search_paired_end_continue(
         paired_matches->max_complete_stratum =
             ((matches_end1->max_complete_stratum!=ALL) ? matches_end1->max_complete_stratum : 0) +
             ((matches_end2->max_complete_stratum!=ALL) ? matches_end2->max_complete_stratum : 0);
-        archive_select_paired_matches(archive_search_end1,archive_search_end2,paired_matches);
         archive_search_end1->pe_search_state = archive_search_pe_end; // End of the workflow
         break;
       }
@@ -349,14 +298,6 @@ GEM_INLINE void archive_search_pe_finish_search(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches) {
   PROF_START(GP_ARCHIVE_SEARCH_PE_FINISH_SEARCH);
-  // Decode trace-matches found
-  const uint64_t num_matches_end1 = matches_get_num_match_traces(paired_matches->matches_end1);
-  const uint64_t num_matches_end2 = matches_get_num_match_traces(paired_matches->matches_end2);
-  if (num_matches_end1 > 0 && num_matches_end2 > 0) {
-    // TODO Revise this
-    archive_select_decode_trace_matches_all(archive_search_end1,paired_matches->matches_end1,false,Forward);
-    archive_select_decode_trace_matches_all(archive_search_end2,paired_matches->matches_end2,false,Forward);
-  }
   // PE search (continue search until the end)
   archive_search_paired_end_continue(archive_search_end1,archive_search_end2,paired_matches);
   PROF_STOP(GP_ARCHIVE_SEARCH_PE_FINISH_SEARCH);
@@ -372,5 +313,25 @@ GEM_INLINE void archive_search_paired_end(
   archive_search_end2->pe_search_state = archive_search_pe_begin;
   // PE search
   archive_search_paired_end_continue(archive_search_end1,archive_search_end2,paired_matches);
+}
+/*
+ * Compute Predictors
+ */
+GEM_INLINE void archive_search_paired_end_compute_predictors(
+    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
+    paired_matches_t* const paired_matches,matches_predictors_t* const predictors) {
+  const uint64_t read_length_end1 = sequence_get_length(&archive_search_end1->sequence);
+  const uint64_t read_length_end2 = sequence_get_length(&archive_search_end2->sequence);
+  const uint64_t total_read_length = read_length_end1 + read_length_end2;
+  const swg_penalties_t* const swg_penalties = &archive_search_end1->as_parameters.search_parameters->swg_penalties;
+  const uint64_t max_region_length_end1 = archive_search_get_max_region_length(archive_search_end1);
+  const uint64_t max_region_length_end2 = archive_search_get_max_region_length(archive_search_end2);
+  const uint64_t max_region_length = MAX(max_region_length_end1,max_region_length_end2);
+  const uint64_t num_zero_regions_end1 = archive_search_get_num_zero_regions(archive_search_end1);
+  const uint64_t num_zero_regions_end2 = archive_search_get_num_zero_regions(archive_search_end2);
+  const uint64_t num_zero_regions = num_zero_regions_end1 + num_zero_regions_end2;
+  const uint64_t proper_length = fm_index_get_proper_length(archive_search_end1->archive->fm_index);
+  paired_matches_classify_compute_predictors(paired_matches,predictors,
+      swg_penalties,total_read_length,max_region_length,proper_length,UINT64_MAX,num_zero_regions);
 }
 

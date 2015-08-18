@@ -128,6 +128,22 @@ const char dna_decode_table[DNA_EXT_RANGE] =
   [ENC_DNA_CHAR_SEP] = DNA_CHAR_SEP,
   [ENC_DNA_CHAR_JUMP] = DNA_CHAR_JUMP
 };
+const char dna_bisulfite_C2T_table[256] =
+{
+  [0 ... 255] = '~',
+  ['A'] = 'A', ['C'] = 'T', ['G'] = 'G',  ['T'] = 'T', ['N'] = 'N',
+  ['a'] = 'A', ['c'] = 'T', ['g'] = 'G',  ['t'] = 'T', ['n'] = 'N',
+  [DNA_CHAR_SEP] = DNA_CHAR_SEP,
+  [DNA_CHAR_JUMP] = DNA_CHAR_JUMP
+};
+const char dna_bisulfite_G2A_table[256] =
+{
+  [0 ... 255] = '~',
+  ['A'] = 'A', ['C'] = 'C', ['G'] = 'A',  ['T'] = 'T', ['N'] = 'N',
+  ['a'] = 'A', ['c'] = 'C', ['g'] = 'A',  ['t'] = 'T', ['n'] = 'N',
+  [DNA_CHAR_SEP] = DNA_CHAR_SEP,
+  [DNA_CHAR_JUMP] = DNA_CHAR_JUMP
+};
 const uint8_t dna_encoded_colorspace_table[DNA_EXT_RANGE][DNA_EXT_RANGE] = {
    /* A */  {ENC_DNA_CHAR_A,   ENC_DNA_CHAR_C,   ENC_DNA_CHAR_G,   ENC_DNA_CHAR_T,   ENC_DNA_CHAR_SEP, ENC_DNA_CHAR_N},
    /* C */  {ENC_DNA_CHAR_C,   ENC_DNA_CHAR_A,   ENC_DNA_CHAR_T,   ENC_DNA_CHAR_G,   ENC_DNA_CHAR_SEP, ENC_DNA_CHAR_N},

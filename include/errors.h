@@ -35,8 +35,12 @@ void gem_handle_error_signals();
 void gem_perror();
 
 /*
- * GEM-Error handlers
+ * Handlers
  */
+// Error Code
+#define gem_error(gem_error_name,args...) \
+  gem_report_error_begin_block(GEM_LABEL_ERROR,gem_error_name,##args) \
+  gem_report_end_block(1,0,0,0)
 #define gem_fatal_error(gem_error_name,args...) \
   gem_report_error_begin_block(GEM_LABEL_FATAL_ERROR,gem_error_name,##args) \
   gem_report_end_block(1,1,1,1)
@@ -44,65 +48,76 @@ void gem_perror();
   gem_report_error_begin_block(GEM_LABEL_FATAL_ERROR,gem_error_name,##args) \
   gem_perror(); \
   gem_report_end_block(1,1,1,1)
-#define gem_error(gem_error_name,args...) \
-  gem_report_error_begin_block(GEM_LABEL_ERROR,gem_error_name,##args) \
-  gem_report_end_block(1,0,0,0)
-/*
- * ErrorMsg handlers
- */
-#define gem_fatal_error_msg(gem_error_msg,args...) \
-  gem_report_begin_block(GEM_LABEL_FATAL_ERROR,error,gem_error_msg,##args) \
-  gem_report_end_block(1,1,1,1)
+// Error Message
 #define gem_error_msg(gem_error_msg,args...) \
   gem_report_begin_block(GEM_LABEL_ERROR,error,gem_error_msg,##args) \
   gem_report_end_block(1,0,0,0)
-/*
- * GEM-Warning handler
- */
+#define gem_fatal_error_msg(gem_error_msg,args...) \
+  gem_report_begin_block(GEM_LABEL_FATAL_ERROR,error,gem_error_msg,##args) \
+  gem_report_end_block(1,1,1,1)
+#define gem_fatal_error_msg__perror(gem_error_msg,args...) \
+  gem_report_begin_block(GEM_LABEL_FATAL_ERROR,error,gem_error_msg,##args) \
+  gem_perror(); \
+  gem_report_end_block(1,1,1,1)
+// Warning
 #define gem_warn(gem_warning_name,args...) \
   gem_report_error_begin_block(GEM_LABEL_WARNING,gem_warning_name,##args) \
   gem_report_end_block(0,0,0,0)
 #define gem_warn_msg(gem_warn_msg,args...) \
-  gem_report_begin_block(GEM_LABEL_ERROR,error,gem_warn_msg,##args) \
+  gem_report_begin_block(GEM_LABEL_WARNING,error,gem_warn_msg,##args) \
   gem_report_end_block(0,0,0,0)
+// Debug
+#ifdef GEM_DEBUG
+  #define gem_debug(gem_debug_msg,args...) \
+    gem_report_raw_begin_block(GEM_LABEL_DEBUG,debug,gem_debug_msg,##args) \
+    gem_report_end_block(1,0,0,0)
+  #define gem_debug_msg(gem_debug_msg,args...) \
+    gem_report_begin_block(GEM_LABEL_DEBUG,debug,gem_debug_msg,##args) \
+    gem_report_end_block(1,0,0,0)
+  #define gem_debug_msg__stack(gem_debug_msg,args...) \
+    gem_debug_msg(gem_debug_msg,args...); \
+    gem_print_stack_trace();
+#else
+  #define gem_debug(gem_debug_msg,args...)
+  #define gem_debug_msg(gem_debug_msg,args...)
+  #define gem_debug_msg__stack(gem_debug_msg,args...)
+#endif
+
 /*
- * GEM-Exception handlers (conditional error handlers)
+ * Conditional Handlers
  */
+// Error Code
 #define gem_cond_error(condition,gem_error_name,args...) \
-  do { \
-    if (__builtin_expect((condition),0)){ \
-      gem_error(gem_error_name,##args); \
-    } \
-  } while (0)
+  do { if (__builtin_expect((condition),0)) { gem_error(gem_error_name,##args); } } while (0)
 #define gem_cond_fatal_error(condition,gem_error_name,args...) \
-  do { \
-    if (__builtin_expect((condition),0)){ \
-      gem_fatal_error(gem_error_name,##args); \
-    } \
-  } while (0)
+  do { if (__builtin_expect((condition),0)) { gem_fatal_error(gem_error_name,##args); } } while (0)
 #define gem_cond_fatal_error__perror(condition,gem_error_name,args...) \
-  do { \
-    if (__builtin_expect((condition),0)){ \
-      gem_fatal_error__perror(gem_error_name,##args); \
-    } \
-  } while (0)
-/*
- * Exception handlers (conditional error handlers)
- */
-#define gem_cond_fatal_error_msg(condition,error_msg,args...) \
-  do { \
-    if (__builtin_expect((condition),0)){ \
-      gem_fatal_error_msg(error_msg,##args); \
-    } \
-  } while (0)
+  do { if (__builtin_expect((condition),0)) { gem_fatal_error__perror(gem_error_name,##args); } } while (0)
+// Error Message
 #define gem_cond_error_msg(condition,error_msg,args...) \
-  do { \
-    if (__builtin_expect((condition),0)){ \
-      gem_error_msg(error_msg,##args); \
-    } \
-  } while (0)
+  do { if (__builtin_expect((condition),0)) { gem_error_msg(error_msg,##args); } } while (0)
+#define gem_cond_fatal_error_msg(condition,error_msg,args...) \
+  do { if (__builtin_expect((condition),0)) { gem_fatal_error_msg(error_msg,##args); } } while (0)
+#define gem_cond_fatal_error_msg__perror(condition,error_msg,args...) \
+  do { if (__builtin_expect((condition),0)) { gem_fatal_error_msg__perror(error_msg,##args); } } while (0)
+// Warning
+#define gem_cond_warn(condition,warning_name,args...) \
+  do { if (__builtin_expect((condition),0)) { gem_warn(warning_name,##args); } } while (0)
+#define gem_cond_warn_msg(condition,warn_msg,args...) \
+  do { if (__builtin_expect((condition),0)) { gem_warn_msg(warn_msg,##args); } } while (0)
+// Debug
+#define gem_cond_debug_msg(condition,debug_msg,args...) \
+  do { if (__builtin_expect((condition),0)) { gem_debug_msg(debug_msg,##args); } } while (0)
+#ifdef GEM_DEBUG
+  #define gem_debug_block()
+  #define gem_cond_debug_block(condition) if (condition)
+#else
+  #define gem_debug_block() if (0)
+  #define gem_cond_debug_block(condition) if (0)
+#endif
+
 /*
- * Robust checkers
+ * Checkers (Robustness check)
  */
 #ifdef GEM_DEBUG
   #define gem_fatal_check(condition,gem_error_name,args...) gem_cond_fatal_error(condition,gem_error_name,##args)
@@ -115,42 +130,12 @@ void gem_perror();
   #define gem_check(condition,gem_error_name,args...)
   #define gem_check_block(condition) if (0)
 #endif
-/*
- * Debug Utilities
- */
-#define gem_cond_debug_msg(condition,gem_debug_msg,args...) \
-  do { \
-    if (__builtin_expect((condition),0)){ \
-      gem_debug_msg(gem_debug_msg,##args); \
-    } \
-  } while (0)
-#ifdef GEM_DEBUG
-  #define gem_debug(gem_debug_msg,args...) \
-    gem_report_raw_begin_block(GEM_LABEL_DEBUG,debug,gem_debug_msg,##args) \
-    gem_report_end_block(1,0,0,0)
-  #define gem_debug_msg(gem_debug_msg,args...) \
-    gem_report_begin_block(GEM_LABEL_DEBUG,debug,gem_debug_msg,##args) \
-    gem_report_end_block(1,0,0,0)
-  #define gem_debug_msg__stack(gem_debug_msg,args...) \
-    gem_debug_msg(gem_debug_msg,args...); \
-    gem_print_stack_trace();
-  #define gem_debug_block()
-  #define gem_cond_debug_block(condition) if (condition)
-#else
-  #define gem_debug(gem_debug_msg,args...)
-  #define gem_debug_msg(gem_debug_msg,args...)
-  #define gem_debug_msg__stack(gem_debug_msg,args...)
-  #define gem_debug_block() if (0)
-  #define gem_cond_debug_block(condition) if (0)
-#endif
 
 /*
  * ERROR CODES/MSG
  *   #define GEM_ERROR_<CODE> "<MSG>"
  */
-/*
- * General purpose checkers/errors
- */
+// General checkers
 #define GEM_CHECK_NULL(object) gem_fatal_check((object)==NULL,NULL_HANDLER_INFO,((char*)QUOTE(object)))
 #define GEM_CHECK_ZERO(object) gem_fatal_check((object)==0,NOT_ZERO,((char*)QUOTE(object)))
 #define GEM_CHECK_NOT_NEGATIVE(object) gem_fatal_check((object)<0,NOT_NEGATIVE,((char*)QUOTE(object)))
@@ -161,8 +146,6 @@ void gem_perror();
 #define GEM_CUDA_NOT_SUPPORTED() gem_fatal_error(CUDA_NOT_SUPPORTED)
 #define GEM_UNREACHABLE_CODE() gem_fatal_error(UNREACHABLE_CODE)
 #define GEM_INTERNAL_CHECK(cond,msg) gem_fatal_check(!(cond),INTERNAL_CHECK,msg)
-/* Eclipse debugging definitions */
-  // #define GEM_CHECK_NULL(object) if ((object)==NULL) { printf("%d\n",(*(int*)object)); }
 // General errors
 #define GEM_ERROR_NULL_HANDLER "Null handler or fields not properly allocated"
 #define GEM_ERROR_NULL_HANDLER_INFO "Null handler %s"
@@ -178,11 +161,9 @@ void gem_perror();
 #define GEM_ERROR_POSITION_OUT_OF_RANGE "Requested position (%"PRIu64") out of range [%"PRIu64",%"PRId64"]"
 #define GEM_ERROR_ALG_INCONSISNTENCY "Algorithmic inconsistency, please report (Sorry for the inconvenience)"
 #define GEM_ERROR_INTERNAL_CHECK "Internal check failed, please report '%s'"
-
 // String
 #define GEM_ERROR_STRDUP "strdup error"
 #define GEM_ERROR_PRINT_FORMAT "Incorrect print format. Expected format character"
-
 // System errors
 #define GEM_ERROR_SYS_ERROR "System error signal raised"
 #define GEM_ERROR_SYS_MMAP "Mmap call error"

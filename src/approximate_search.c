@@ -35,15 +35,14 @@ GEM_INLINE void approximate_search_reset(approximate_search_t* const search) {
   search->search_state = asearch_begin;
   search->verify_candidates = true;
   search->stop_before_neighborhood_search = false;
-  const uint64_t max_search_error = search->as_parameters->max_search_error_nominal;
-  const uint64_t max_effective_filtering_error = search->pattern.max_effective_filtering_error;
-  search->max_differences = MIN(max_search_error,max_effective_filtering_error);
+  const uint64_t max_complete_error = search->as_parameters->complete_search_error_nominal + search->pattern.num_low_quality_bases;
+  search->max_complete_error = MIN(max_complete_error,search->pattern.max_effective_filtering_error);
   search->max_complete_stratum = ALL;
   search->max_matches_reached = false;
   // Prepare filtering candidates
   filtering_candidates_clear(search->filtering_candidates);
   // Prepare region profile
-  if (search->max_differences > 0) {
+  if (search->max_complete_error > 0) {
     region_profile_new(&search->region_profile,search->pattern.key_length,search->mm_stack);
   }
 }
@@ -76,7 +75,7 @@ GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t*
   const search_parameters_t* const parameters = search->as_parameters->search_parameters;
   switch (parameters->mapping_mode) {
     case mapping_adaptive_filtering_fast:
-    case mapping_adaptive_filtering_match:
+    case mapping_adaptive_filtering_thorough:
     case mapping_adaptive_filtering_complete:
       approximate_search_filtering_adaptive(search,matches); // Adaptive & incremental mapping
       break;
@@ -104,7 +103,8 @@ GEM_INLINE void approximate_search_verify(approximate_search_t* const search,mat
       &search->pattern,search->as_parameters,matches,search->mm_stack);
   if (num_accepted_regions > 0) {
     // Realign
-    filtering_candidates_align_candidates(search->filtering_candidates,search->archive->text,
+    filtering_candidates_align_candidates(search->filtering_candidates,
+        search->archive->text,search->archive->locator,
         search->text_collection,&search->pattern,search->emulated_rc_search,
         search->as_parameters,true,matches,search->mm_stack);
   }
@@ -124,7 +124,8 @@ GEM_INLINE void approximate_search_verify_using_bpm_buffer(
   if (num_accepted_regions > 0) {
     // Realign
     PROF_START(GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS);
-    filtering_candidates_align_candidates(search->filtering_candidates,search->archive->text,
+    filtering_candidates_align_candidates(search->filtering_candidates,
+        search->archive->text,search->archive->locator,
         search->text_collection,&search->pattern,search->emulated_rc_search,
         search->as_parameters,true,matches,search->mm_stack);
     PROF_STOP(GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS);

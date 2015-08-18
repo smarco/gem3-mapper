@@ -25,7 +25,9 @@ typedef struct {
   uint64_t distance;                   // Distance of the paired-alignment
   uint64_t edit_distance;              // Edit Distance of the paired-alignment
   int32_t swg_score;                   // Distance of the paired-alignment
-  pair_orientation_t pair_orientation; // Pair orientation (concordant/discordant)
+  pair_relation_t pair_relation;       // Pair relation (concordant/discordant)
+  pair_orientation_t pair_orientation; // Pair orientation (FR,RF,FF,RR)
+  pair_layout_t pair_layout;           // Pair layout (pair_layout_separate,pair_layout_overlap,pair_layout_contain)
 } paired_map_t;
 
 /*
@@ -41,12 +43,5 @@ GEM_INLINE uint64_t paired_map_compute_swg_score(
 GEM_INLINE uint64_t paired_map_get_distance(paired_map_t* const paired_map);
 GEM_INLINE uint64_t paired_map_get_edit_distance(paired_map_t* const paired_map);
 GEM_INLINE int32_t paired_map_get_swg_score(paired_map_t* const paired_map);
-
-/*
- * Utils
- */
-GEM_INLINE uint64_t paired_map_get_template_observed_length(
-    const uint64_t begin_position_1,const uint64_t end_position_1,
-    const uint64_t begin_position_2,const uint64_t end_position_2);
 
 #endif /* PAIRED_MAP_H_ */

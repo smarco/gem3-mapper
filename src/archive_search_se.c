@@ -114,7 +114,8 @@ GEM_INLINE void archive_search_single_end(archive_search_t* const archive_search
   } else {
     // Configure search stage to stop at
     const as_parameters_t* const actual_parameters = &archive_search->as_parameters;
-    const bool lower_max_difference = actual_parameters->complete_strata_after_best_nominal < forward_asearch->max_differences;
+    const bool lower_max_difference =
+        actual_parameters->complete_strata_after_best_nominal < forward_asearch->max_complete_error;
     if (lower_max_difference && archive_search->probe_strand) forward_asearch->stop_before_neighborhood_search = true;
     // Run the search (FORWARD)
     approximate_search(forward_asearch,matches); // Forward search
@@ -131,4 +132,19 @@ GEM_INLINE void archive_search_single_end(archive_search_t* const archive_search
     }
   }
   PROF_STOP(GP_ARCHIVE_SEARCH_SE);
+}
+/*
+ * Compute Predictors
+ */
+GEM_INLINE void archive_search_compute_predictors(
+    archive_search_t* const archive_search,matches_t* const matches,
+    matches_predictors_t* const predictors) {
+  const uint64_t read_length = sequence_get_length(&archive_search->sequence);
+  const swg_penalties_t* const swg_penalties = &archive_search->as_parameters.search_parameters->swg_penalties;
+  const uint64_t max_region_length = archive_search_get_max_region_length(archive_search);
+  const uint64_t num_zero_regions = archive_search_get_num_zero_regions(archive_search);
+  const uint64_t proper_length = fm_index_get_proper_length(archive_search->archive->fm_index);
+  matches_classify_compute_predictors(matches,predictors,
+      swg_penalties,read_length,max_region_length,proper_length,
+      matches->max_complete_stratum==ALL ? 0 : matches->max_complete_stratum,num_zero_regions);
 }

@@ -69,7 +69,7 @@ GEM_INLINE void indexer_parameters_set_defaults(indexer_parameters_t* const para
   /* MultiFasta Processing */
   parameters->index_colorspace=false;
   parameters->index_run_length=false;
-  parameters->index_complement=index_complement_auto;
+  parameters->index_complement=index_complement_yes;
   parameters->ns_threshold=50;
   parameters->complement_size_threshold=BUFFER_SIZE_8G;
   /* FM-Index */
@@ -235,9 +235,9 @@ option_t gem_indexer_options[] = {
   /* MultiFasta Processing */
   { 'c', "index-colorspace", NO_ARGUMENT, TYPE_NONE, 3 , true, "" , "(default=false)" },
   { 'r', "index-run-length", NO_ARGUMENT, TYPE_NONE, 3 , true, "" , "(default=false)" },
-  { 300, "index-complement", OPTIONAL, TYPE_STRING, 3 , true, "" , "(default=false, simulated at mapping)" },
+  // { 300, "index-complement", OPTIONAL, TYPE_STRING, 3 , true, "" , "(default=false, simulated at mapping)" },
   { 'N', "strip-unknown-bases-threshold", REQUIRED, TYPE_INT, 3 , true, "'disable'|<integer>" , "(default=50)" },
-  { 301, "complement-size-threshold", REQUIRED, TYPE_INT, 3 , true, "<integer>" , "(default=8GB)" },
+  // { 301, "complement-size-threshold", REQUIRED, TYPE_INT, 3 , true, "<integer>" , "(default=8GB)" },
   /* FM-Index */
   { 's', "sampling-rate", REQUIRED, TYPE_INT, 4 , true, "<sampling_rate>" , "(default=4)" },
   { 400, "check-index", NO_ARGUMENT, TYPE_NONE, 4 , true, "", "(default=false)"},
@@ -306,9 +306,6 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
     case 'r': // --index-run-length
       parameters->index_run_length = true;
       break;
-    case 300: // --index-complement
-      parameters->index_complement = (optarg) ? (options_parse_bool(optarg) ? index_complement_yes : index_complement_no ) : index_complement_yes;
-      break;
     case 'N': // --strip-unknown-bases-threshold
       if (gem_strcaseeq(optarg,"disable")) {
         parameters->ns_threshold = UINT64_MAX;
@@ -316,9 +313,12 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
         parameters->ns_threshold = atol(optarg);
       }
       break;
-    case 301: // --complement-size-threshold
-      gem_cond_fatal_error(input_text_parse_size(optarg,&(parameters->complement_size_threshold)),PARSING_SIZE,"-complement-size-threshold",optarg);
-      break;
+//    case 300: // --index-complement // TODO Deprecated (until sb needs it) => index_complement_yes
+//      parameters->index_complement = (optarg) ? (options_parse_bool(optarg) ? index_complement_yes : index_complement_no ) : index_complement_yes;
+//      break;
+//    case 301: // --complement-size-threshold
+//      gem_cond_fatal_error(input_text_parse_size(optarg,&(parameters->complement_size_threshold)),PARSING_SIZE,"-complement-size-threshold",optarg);
+//      break;
     /* FM-Index */
     case 's': { // --sampling-rate
       const uint64_t sampling = atol(optarg);

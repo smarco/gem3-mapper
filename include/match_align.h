@@ -86,10 +86,12 @@ GEM_INLINE void match_align_levenshtein(
  *   @align_input->text_offset_end
  *   @align_parameters->emulated_rc_search
  *   @align_parameters->swg_penalties
- *   @align_parameters->local_min_identity
+ *   @align_parameters->min_identity
  *   @align_parameters->left_gap_alignment
  *   @align_parameters->allowed_enc
  *   @align_parameters->max_bandwidth
+ *   @align_parameters->cigar_curation
+ *   @align_parameters->cigar_curation_min_end_context
  *   @match_scaffold->scaffold_regions
  *   @match_scaffold->num_scaffold_regions
  */

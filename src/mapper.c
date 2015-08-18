@@ -6,6 +6,7 @@
  */
 
 #include "mapper.h"
+#include "mapper_bisulfite.h"
 #include "archive_search.h"
 #include "archive_search_se.h"
 #include "archive_search_pe.h"
@@ -377,7 +378,7 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
   while (mapper_SE_read_single_sequence(mapper_search)) {
-//    if (gem_streq(mapper_search->archive_search->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000437571")) {
+//    if (gem_streq(mapper_search->archive_search->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000869733")) { //99
 //      printf("HERE\n");
 //    }
 
@@ -436,20 +437,21 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
   paired_matches_configure(mapper_search->paired_matches,mapper_search->archive_search_end1->text_collection);
 
   // FASTA/FASTQ reading loop
+  archive_search_t* const archive_search_end1 = mapper_search->archive_search_end1;
+  archive_search_t* const archive_search_end2 = mapper_search->archive_search_end2;
+  paired_matches_t* const paired_matches = mapper_search->paired_matches;
   uint64_t reads_processed = 0;
   while (mapper_PE_read_paired_sequences(mapper_search)) {
-//    if (gem_streq(mapper_search->archive_search_end1->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000380755")) {
-//      printf("HERE\n"); // H.Sapiens.1M.Illumina.l100.low.000000607
+//    if (gem_streq(mapper_search->archive_search_end1->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000000444")) {
+//      printf("HERE\n");
 //    }
 
     // Search into the archive
-    archive_search_paired_end(mapper_search->archive_search_end1,
-        mapper_search->archive_search_end2,mapper_search->paired_matches);
+    archive_search_paired_end(archive_search_end1,archive_search_end2,paired_matches);
+    archive_select_paired_matches(archive_search_end1,archive_search_end2,paired_matches);
 
     // Output matches
-    mapper_PE_output_matches(parameters,buffered_output_file,
-        mapper_search->archive_search_end1,mapper_search->archive_search_end2,
-        mapper_search->paired_matches);
+    mapper_PE_output_matches(parameters,buffered_output_file,archive_search_end1,archive_search_end2,paired_matches);
 
     // Update processed
     if (++reads_processed == MAPPER_TICKER_STEP) {
@@ -459,16 +461,14 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
 
     // Clear
     mm_search_clear(mm_search);
-    paired_matches_clear(mapper_search->paired_matches);
+    paired_matches_clear(paired_matches);
   }
   // Update processed
   ticker_update_mutex(mapper_search->ticker,reads_processed);
 
   // Clean up
   buffered_input_file_close(mapper_search->buffered_fasta_input_end1);
-  if (parameters->io.separated_input_files) {
-    buffered_input_file_close(mapper_search->buffered_fasta_input_end2);
-  }
+  if (parameters->io.separated_input_files) buffered_input_file_close(mapper_search->buffered_fasta_input_end2);
   buffered_output_file_close(buffered_output_file);
   archive_search_delete(mapper_search->archive_search_end1);
   archive_search_delete(mapper_search->archive_search_end2);
@@ -502,6 +502,13 @@ GEM_INLINE void mapper_run(mapper_parameters_t* const mapper_parameters,const bo
   ticker_add_finish_label(&ticker,"Total","sequences processed");
   ticker_mutex_enable(&ticker);
   // Launch threads
+  pthread_handler_t mapper_thread;
+  const bool bisulfite_mode = mapper_parameters->search_parameters.bisulfite_mode;
+  if (paired_end) {
+    mapper_thread = (bisulfite_mode) ? (pthread_handler_t) mapper_PE_thread : (pthread_handler_t) mapper_PE_bisulfite_thread;
+  } else {
+    mapper_thread = (bisulfite_mode) ? (pthread_handler_t) mapper_SE_thread : (pthread_handler_t) mapper_SE_bisulfite_thread;
+  }
   uint64_t i;
   for (i=0;i<num_threads;++i) {
     // Setup thread
@@ -512,9 +519,7 @@ GEM_INLINE void mapper_run(mapper_parameters_t* const mapper_parameters,const bo
     mapper_search[i].ticker = &ticker;
     // Launch thread
     gem_cond_fatal_error__perror(
-        pthread_create(mapper_search[i].thread_data,0,
-            (void* (*)(void*))(paired_end ? mapper_PE_thread : mapper_SE_thread),(void*)(mapper_search+i)),
-        SYS_THREAD_CREATE);
+        pthread_create(mapper_search[i].thread_data,0,mapper_thread,(void*)(mapper_search+i)),SYS_THREAD_CREATE);
   }
   // Join all threads
   for (i=0;i<num_threads;++i) {

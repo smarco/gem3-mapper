@@ -13,9 +13,9 @@
  */
 GEM_INLINE void region_schedule_filtering_adaptive(
     region_search_t* const region,const uint64_t num_standard_regions_left,
-    const uint64_t num_unique_regions_left,const uint64_t max_differences,
+    const uint64_t num_unique_regions_left,const uint64_t max_complete_error,
     const uint64_t sensibility_error_length,const uint64_t errors_allowed) {
-  if (errors_allowed > max_differences) {
+  if (errors_allowed > max_complete_error) {
     region->min = REGION_FILTER_NONE; // Search is fulfilled. Don't filter
     return;
   }
@@ -25,19 +25,19 @@ GEM_INLINE void region_schedule_filtering_adaptive(
   }
   // Compute the scope of the search using zero-filter
   const uint64_t total_errors_zero_filter = errors_allowed + num_standard_regions_left + num_unique_regions_left + 1;
-  if (total_errors_zero_filter >= max_differences+1) {
+  if (total_errors_zero_filter >= max_complete_error+1) {
     region->min = REGION_FILTER_DEGREE_ZERO; // Search is fulfilled just by filtering-zero
   } else {
     // Compute number of errors left to be assigned to unique-regions
-    const uint64_t region_length = region->start-region->end;
-    const uint64_t pending_errors_at_unique_regions = (max_differences+1) - errors_allowed - num_standard_regions_left;
+    const uint64_t region_length = region->end-region->begin;
+    const uint64_t pending_errors_at_unique_regions = (max_complete_error+1) - errors_allowed - num_standard_regions_left;
     if (num_unique_regions_left >= pending_errors_at_unique_regions  // Enough Regions to filter-zero
         || region_length < sensibility_error_length                  // Region is too small for other degree
-        || max_differences==1) {                                     // Search doesn't require to allow more errors
+        || max_complete_error==1) {                                  // Search doesn't require to allow more errors
       region->min=REGION_FILTER_DEGREE_ZERO;
     } else if (2*num_unique_regions_left >= pending_errors_at_unique_regions // Enough Regions to filter-one
         || region_length < 2*sensibility_error_length                // Region is too small for other degree
-        || max_differences==2) {                                     // Search doesn't require to allow more errors
+        || max_complete_error==2) {                                  // Search doesn't require to allow more errors
       region->min=REGION_FILTER_DEGREE_ONE;
     } else {                                                         // Maximum degree reached
       region->min=REGION_FILTER_DEGREE_ONE;
@@ -93,7 +93,7 @@ GEM_INLINE void region_profile_schedule_filtering_fixed(
   }
 }
 GEM_INLINE void region_profile_schedule_filtering_adaptive(
-    region_profile_t* const region_profile,const uint64_t max_differences,
+    region_profile_t* const region_profile,const uint64_t max_complete_error,
     const uint64_t sensibility_misms_length) {
   /*
    * PRE: (region_profile->num_filtering_regions <= max_mismatches)
@@ -117,7 +117,7 @@ GEM_INLINE void region_profile_schedule_filtering_adaptive(
     }
     region_schedule_filtering_adaptive(
         region,num_standard_regions_left,num_unique_regions_left,
-        max_differences,sensibility_misms_length,errors_allowed);
+        max_complete_error,sensibility_misms_length,errors_allowed);
     errors_allowed += region->min;
   }
 }
@@ -135,7 +135,7 @@ GEM_INLINE void region_profile_schedule_print(
   REGION_LOCATOR_ITERATE(region_profile,region,position) {
     gem_slog("    [%lu] Region-%s\t(%3lu,%3lu]\t\t(Length,Cand)=(%3lu,%4lu)",
         position,region->type==region_unique ? "unique" : "standard",
-        region->end,region->start,region->start-region->end,region->hi-region->lo);
+        region->begin,region->end,region->end-region->begin,region->hi-region->lo);
     if (region->min==0) {
       gem_slog("\tDegree=none\n");
     } else {

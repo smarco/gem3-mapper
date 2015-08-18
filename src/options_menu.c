@@ -53,11 +53,11 @@ GEM_INLINE string_t* options_adaptor_getopt_short(const option_t* const options_
 }
 GEM_INLINE void options_fprint_menu(
     FILE* const stream,const option_t* const options_menu,char* groups_menu[],
-    const bool print_description,const bool print_inactive) {
+    const bool print_description,const option_visibility_t visibility_level) {
   const uint64_t num_options = options_get_num_options(options_menu);
   int64_t i, last_group = -1;
   for (i=0;i<num_options;++i) {
-    if (!print_inactive && !options_menu[i].active) continue;
+    if (options_menu[i].option_visibility > visibility_level) continue;
     // Print group (if not printed yet)
     if (last_group!=options_menu[i].group_id) {
       fprintf(stream,"    [%s]\n",groups_menu[options_menu[i].group_id]);

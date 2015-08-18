@@ -256,11 +256,11 @@ GEM_INLINE void TIMER_STOP(gem_timer_t* const timer) {
   COUNTER_ADD(&timer->time_ns,timer->accumulated);
 }
 GEM_INLINE void TIMER_PAUSE(gem_timer_t* const timer) {
-  clock_gettime(CLOCK_REALTIME,&timer->end_timer);
+  system_get_time(&timer->end_timer);
   timer->accumulated += TIME_DIFF_NS(timer->begin_timer,timer->end_timer);
 }
 GEM_INLINE void TIMER_CONTINUE(gem_timer_t* const timer) {
-  clock_gettime(CLOCK_REALTIME,&timer->begin_timer);
+  system_get_time(&timer->begin_timer);
 }
 GEM_INLINE void TIMER_RESET(gem_timer_t* const timer) {
   COUNTER_RESET(&timer->time_ns);

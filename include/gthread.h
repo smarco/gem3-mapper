@@ -13,6 +13,11 @@
 #include <inttypes.h>
 
 /*
+ * Types
+ */
+typedef void* (*pthread_handler_t)(void*);
+
+/*
  * Thread ID Locator
  */
 inline void gem_thread_register_id(const uint64_t thread_id);

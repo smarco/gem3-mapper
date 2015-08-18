@@ -17,15 +17,16 @@
  */
 typedef enum { NO_ARGUMENT=no_argument, REQUIRED=required_argument, OPTIONAL=optional_argument } option_type;
 typedef enum { TYPE_NONE, TYPE_INT, TYPE_FLOAT, TYPE_CHAR, TYPE_STRING, TYPE_BOOL } option_data_t;
+typedef enum { VISIBILITY_USER=0, VISIBILITY_ADVANCED=1, VISIBILITY_DEVELOPER=2 } option_visibility_t;
 typedef struct {
-  int option_id;       // Integer ID or short character option
-  char* long_option;   // Long string option
-  option_type option_type;      // Argument type
-  option_data_t argument_type;  // Argument Data type
-  uint64_t group_id;   // Label of the group it belongs to (zero if none)
-  bool active;         // Enable/Disable option
-  char* command_info;  // Extra command line syntax info
-  char* description;   // Brief description
+  int option_id;                         // Integer ID or short character option
+  char* long_option;                     // Long string option
+  option_type option_type;               // Argument type
+  option_data_t argument_type;           // Argument Data type
+  uint64_t group_id;                     // Label of the group it belongs to (zero if none)
+  option_visibility_t option_visibility; // Enable/Disable option
+  char* command_info;                    // Extra command line syntax info
+  char* description;                     // Brief description
 } option_t;
 
 GEM_INLINE uint64_t options_get_num_options(const option_t* const options_menu);
@@ -33,7 +34,7 @@ GEM_INLINE struct option* options_adaptor_getopt(const option_t* const options_m
 GEM_INLINE string_t* options_adaptor_getopt_short(const option_t* const options_menu);
 GEM_INLINE void options_fprint_menu(
     FILE* const stream,const option_t* const options_menu,char* groups_menu[],
-    const bool print_description,const bool print_inactive);
+    const bool print_description,const option_visibility_t visibility_level);
 
 #define GEM_OPTIONS_ITERATE_BEGIN(tool_options,option_id) \
   struct option* __getopt = gt_options_adaptor_getopt(tool_options); \

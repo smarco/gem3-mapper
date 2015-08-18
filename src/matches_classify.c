@@ -14,7 +14,8 @@
 GEM_INLINE void matches_classify_compute_predictors_unmapped(
     matches_predictors_t* const predictors,matches_metrics_t* const metrics,
     const uint64_t read_length,const uint64_t max_region_length,
-    const uint64_t proper_length,const uint64_t max_complete_stratum) {
+    const uint64_t proper_length,const uint64_t max_complete_stratum,
+    const uint64_t num_zero_regions) {
   // Compute event distances
   predictors->first_map_event_distance = read_length;
   predictors->subdominant_event_distance = read_length;
@@ -35,14 +36,15 @@ GEM_INLINE void matches_classify_compute_predictors_unmapped(
   predictors->max_region_length = max_region_length;
   predictors->max_region_length_norm = (double)max_region_length/(double)proper_length;
   // Maximum complete stratum
-  predictors->mcs = max_complete_stratum;
+  predictors->mcs = max_complete_stratum-num_zero_regions;
 }
 GEM_INLINE void matches_classify_compute_predictors_mapped(
     matches_predictors_t* const predictors,matches_metrics_t* const metrics,
     const uint64_t primary_map_distance,const uint64_t primary_map_edit_distance,
     const int32_t primary_map_swg_score,const swg_penalties_t* const swg_penalties,
     const uint64_t read_length,const uint64_t max_region_length,
-    const uint64_t proper_length,const uint64_t max_complete_stratum) {
+    const uint64_t proper_length,const uint64_t max_complete_stratum,
+    const uint64_t num_zero_regions) {
   // Compute primary/subdominant event distance
   predictors->first_map_event_distance = primary_map_distance;
   if (primary_map_distance!=metrics->min1_counter_value) {
@@ -90,7 +92,7 @@ GEM_INLINE void matches_classify_compute_predictors_mapped(
   predictors->max_region_length = max_region_length;
   predictors->max_region_length_norm = (double)max_region_length/(double)proper_length;
   // Maximum complete stratum
-  predictors->mcs = max_complete_stratum;
+  predictors->mcs = max_complete_stratum-num_zero_regions;
 }
 /*
  * SE Classify
@@ -121,12 +123,12 @@ GEM_INLINE void matches_classify_compute_predictors(
     matches_t* const matches,matches_predictors_t* const predictors,
     const swg_penalties_t* const swg_penalties,const uint64_t read_length,
     const uint64_t max_region_length,uint64_t const proper_length,
-    uint64_t const overriding_mcs) {
+    uint64_t const overriding_mcs,const uint64_t num_zero_regions) {
   const uint64_t mcs = (overriding_mcs!=UINT64_MAX) ? overriding_mcs : matches->max_complete_stratum;
   const uint64_t num_matches = matches_get_num_match_traces(matches);
   if (num_matches==0) {
-    matches_classify_compute_predictors_unmapped(
-        predictors,&matches->metrics,read_length,max_region_length,proper_length,mcs);
+    matches_classify_compute_predictors_unmapped(predictors,&matches->metrics,
+        read_length,max_region_length,proper_length,mcs,num_zero_regions);
     // First/Subdominant strata
     predictors->first_stratum_matches = 0;
     predictors->subdominant_stratum_matches = 0;
@@ -134,7 +136,7 @@ GEM_INLINE void matches_classify_compute_predictors(
     match_trace_t* const match = matches_get_match_trace_buffer(matches);
     matches_classify_compute_predictors_mapped(
         predictors,&matches->metrics,match->distance,match->edit_distance,match->swg_score,
-        swg_penalties,read_length,max_region_length,proper_length,mcs);
+        swg_penalties,read_length,max_region_length,proper_length,mcs,num_zero_regions);
     // First/Subdominant strata
     predictors->first_stratum_matches = matches_get_first_stratum_matches(matches);
     predictors->subdominant_stratum_matches = matches_get_subdominant_stratum_matches(matches);

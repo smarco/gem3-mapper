@@ -43,8 +43,8 @@ GEM_INLINE void matches_counters_sub(matches_counters_t* const counters,const ui
  */
 GEM_INLINE uint64_t matches_counters_compact(matches_counters_t* const counters);
 GEM_INLINE void matches_counters_compute_matches_to_decode(
-    matches_counters_t* const counters,const uint64_t min_decoded_strata,
+    matches_counters_t* const counters,const uint64_t min_reported_strata,
     const uint64_t min_reported_matches,const uint64_t max_reported_matches,
-    uint64_t* const strata_to_decode,uint64_t* const matches_to_decode_from_last_stratum);
+    uint64_t* const reported_strata,uint64_t* const last_stratum_reported_matches);
 
 #endif /* MATCHES_COUNTERS_H_ */

@@ -67,6 +67,9 @@ extern const uint8_t dna_encoded_complement_table[DNA_EXT_RANGE];
 extern const uint8_t dna_encode_table[256];
 extern const char dna_decode_table[DNA_EXT_RANGE];
 
+extern const char dna_bisulfite_C2T_table[256];
+extern const char dna_bisulfite_G2A_table[256];
+
 extern const uint8_t dna_encoded_colorspace_table[DNA_EXT_RANGE][DNA_EXT_RANGE];
 
 #define is_dna(character)          (dna_table[(int)(character)])
@@ -95,6 +98,8 @@ extern const uint8_t dna_encoded_colorspace_table[DNA_EXT_RANGE][DNA_EXT_RANGE];
  * Orientation (strand)
  */
 typedef enum { Forward, Reverse } strand_t;
+typedef enum { None = 0, C2T, G2A, Mixed } bs_strand_t; // Bisulfite strand type
+
 /*
  * DNA-Text
  */

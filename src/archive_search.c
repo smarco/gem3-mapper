@@ -160,6 +160,14 @@ GEM_INLINE uint64_t archive_search_get_max_region_length(const archive_search_t*
                archive_search->reverse_search_state.region_profile.max_region_length);
   }
 }
+GEM_INLINE uint64_t archive_search_get_num_zero_regions(const archive_search_t* const archive_search) {
+  if (archive_search->archive->indexed_complement) {
+    return archive_search->forward_search_state.region_profile.num_zero_regions;
+  } else {
+    return MAX(archive_search->forward_search_state.region_profile.num_zero_regions,
+               archive_search->reverse_search_state.region_profile.num_zero_regions);
+  }
+}
 GEM_INLINE bool archive_search_finished(const archive_search_t* const archive_search) {
   if (archive_search->archive->indexed_complement) {
     return archive_search->forward_search_state.search_state == asearch_end;
@@ -183,5 +191,3 @@ GEM_INLINE void archive_search_release_verification_candidates(archive_search_t*
     approximate_search_release_verification_candidates(&archive_search->reverse_search_state);
   }
 }
-
-

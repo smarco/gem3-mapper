@@ -75,13 +75,13 @@ GEM_INLINE double mapper_stats_template_length_get_stddev(mapper_stats_t* const 
 GEM_INLINE uint64_t mapper_stats_template_length_get_expected_max(mapper_stats_t* const search_stats) {
   // Mean - 3 * StdDev
   const double mean = mapper_stats_template_length_get_mean(search_stats);
-  const double max_dev = 4.0*mapper_stats_template_length_get_stddev(search_stats);
+  const double max_dev = 6.0*mapper_stats_template_length_get_stddev(search_stats);
   return mean + max_dev;
 }
 GEM_INLINE uint64_t mapper_stats_template_length_get_expected_min(mapper_stats_t* const search_stats) {
   // Mean - 3 * StdDev
   const double mean = mapper_stats_template_length_get_mean(search_stats);
-  const double max_dev = 4.0*mapper_stats_template_length_get_stddev(search_stats);
+  const double max_dev = 6.0*mapper_stats_template_length_get_stddev(search_stats);
   return BOUNDED_SUBTRACTION(mean,max_dev,0.0);
 }
 GEM_INLINE double mapper_stats_template_length_get_sigma_dev(
