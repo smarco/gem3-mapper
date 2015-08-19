@@ -93,14 +93,14 @@ GEM_INLINE void archive_print(FILE* const stream,const archive_t* const archive)
   // Index-Complement
   tab_fprintf(stream,"  => Indexed.Complement %s\n",(archive->indexed_complement) ? "YES" : "NO");
   // Ns-Threshold
-  tab_fprintf(stream,"  => Ns.Threshold %lu\n",archive->ns_threshold);
+  tab_fprintf(stream,"  => Ns.Threshold %"PRIu64"\n",archive->ns_threshold);
   /*
    * Size Display
    */
-  tab_fprintf(stream,"  => Archive.Size %lu MB\n",CONVERT_B_TO_MB(archive_size));
-  tab_fprintf(stream,"    => Locator.Size %lu MB (%2.3f%%)\n",CONVERT_B_TO_MB(locator_size),PERCENTAGE(locator_size,archive_size));
-  tab_fprintf(stream,"    => Text.Size %lu MB (%2.3f%%)\n",CONVERT_B_TO_MB(archive_text_size),PERCENTAGE(archive_text_size,archive_size));
-  tab_fprintf(stream,"    => FM.Index.Size %lu MB (%2.3f%%)\n",CONVERT_B_TO_MB(fm_index_size),PERCENTAGE(fm_index_size,archive_size));
+  tab_fprintf(stream,"  => Archive.Size %"PRIu64" MB\n",CONVERT_B_TO_MB(archive_size));
+  tab_fprintf(stream,"    => Locator.Size %"PRIu64" MB (%2.3f%%)\n",CONVERT_B_TO_MB(locator_size),PERCENTAGE(locator_size,archive_size));
+  tab_fprintf(stream,"    => Text.Size %"PRIu64" MB (%2.3f%%)\n",CONVERT_B_TO_MB(archive_text_size),PERCENTAGE(archive_text_size,archive_size));
+  tab_fprintf(stream,"    => FM.Index.Size %"PRIu64" MB (%2.3f%%)\n",CONVERT_B_TO_MB(fm_index_size),PERCENTAGE(fm_index_size,archive_size));
   /*
    * Components Display
    */

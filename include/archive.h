@@ -18,7 +18,7 @@
 /*
  * Archive Model & Version
  */
-#define ARCHIVE_MODEL_NO 5000ul
+#define ARCHIVE_MODEL_NO 5000ull
 
 /*
  * Checker
@@ -59,24 +59,24 @@ typedef struct {
 /*
  * Archive Loader
  */
-GEM_INLINE archive_t* archive_read(char* const file_name,const bool do_tests,const bool verbose);
-GEM_INLINE void archive_delete(archive_t* const archive);
+archive_t* archive_read(char* const file_name,const bool do_tests,const bool verbose);
+void archive_delete(archive_t* const archive);
 
 /*
  * Archive Accessors
  */
-GEM_INLINE uint64_t archive_get_size(const archive_t* const archive);
-GEM_INLINE uint64_t archive_get_index_length(const archive_t* const archive);
+uint64_t archive_get_size(const archive_t* const archive);
+uint64_t archive_get_index_length(const archive_t* const archive);
 
 /*
  * Display
  */
-GEM_INLINE void archive_print(FILE* const stream,const archive_t* const archive);
+void archive_print(FILE* const stream,const archive_t* const archive);
 
 /*
  * Error Messages
  */
-#define GEM_ERROR_ARCHIVE_WRONG_MODEL_NO "Archive error. Wrong GEM-Index Model %lu (Expected model %lu). Please rebuild index (gem-indexer)"
-#define GEM_ERROR_ARCHIVE_INDEX_OOB "Archive error. Index position (%lu) out-of-bounds [0,%lu)]"
+#define GEM_ERROR_ARCHIVE_WRONG_MODEL_NO "Archive error. Wrong GEM-Index Model %"PRIu64" (Expected model %"PRIu64"). Please rebuild index (gem-indexer)"
+#define GEM_ERROR_ARCHIVE_INDEX_OOB "Archive error. Index position (%"PRIu64") out-of-bounds [0,%"PRIu64")]"
 
 #endif /* ARCHIVE_H_ */

@@ -24,7 +24,7 @@
 /*
  * GEM-mapper Parsing
  */
-GEM_INLINE int parse_arguments_system_integer(char* const argument,uint64_t* const value) {
+int parse_arguments_system_integer(char* const argument,uint64_t* const value) {
   char* argument_ptr = argument;
   // Textual
   if (gem_strcaseeq(argument_ptr,"c")) {
@@ -46,7 +46,7 @@ GEM_INLINE int parse_arguments_system_integer(char* const argument,uint64_t* con
 /*
  * GEM-mapper I/O related functions
  */
-GEM_INLINE input_file_t* gem_mapper_open_input_file(
+input_file_t* gem_mapper_open_input_file(
     char* const input_file_name,const fm_type input_compression,
     const uint64_t input_block_size,const bool verbose_user) {
   // Open input file
@@ -70,7 +70,7 @@ GEM_INLINE input_file_t* gem_mapper_open_input_file(
   }
   return input_file;
 }
-GEM_INLINE void gem_mapper_open_input(mapper_parameters_t* const parameters) {
+void gem_mapper_open_input(mapper_parameters_t* const parameters) {
   if (parameters->io.separated_input_files) {
     parameters->input_file_end1 = gem_mapper_open_input_file(
         parameters->io.input_file_name_end1,parameters->io.input_compression,
@@ -84,7 +84,7 @@ GEM_INLINE void gem_mapper_open_input(mapper_parameters_t* const parameters) {
         parameters->io.input_block_size,parameters->misc.verbose_user);
   }
 }
-GEM_INLINE void gem_mapper_close_input(mapper_parameters_t* const parameters) {
+void gem_mapper_close_input(mapper_parameters_t* const parameters) {
   if (parameters->io.separated_input_files) {
     input_file_close(parameters->input_file_end1);
     input_file_close(parameters->input_file_end2);
@@ -92,7 +92,7 @@ GEM_INLINE void gem_mapper_close_input(mapper_parameters_t* const parameters) {
     input_file_close(parameters->input_file);
   }
 }
-GEM_INLINE void gem_mapper_open_output(mapper_parameters_t* const parameters) {
+void gem_mapper_open_output(mapper_parameters_t* const parameters) {
   // Open output stream
   if (parameters->io.output_file_name==NULL) {
     gem_cond_log(parameters->misc.verbose_user,"[Outputting to stdout]");
@@ -117,10 +117,10 @@ GEM_INLINE void gem_mapper_open_output(mapper_parameters_t* const parameters) {
       break;
   }
 }
-GEM_INLINE void gem_mapper_close_output(mapper_parameters_t* const parameters) {
+void gem_mapper_close_output(mapper_parameters_t* const parameters) {
   output_file_close(parameters->output_file);
 }
-GEM_INLINE void gem_mapper_print_profile(mapper_parameters_t* const parameters) {
+void gem_mapper_print_profile(mapper_parameters_t* const parameters) {
   // Reduce Stats
   switch (parameters->misc.profile_reduce_type) {
     case reduce_sum: PROF_REDUCE_SUM(); break;
@@ -1025,7 +1025,7 @@ int main(int argc,char** argv) {
 
   // Display end banner
   const uint64_t mapper_time_sec = (uint64_t)TIMER_GET_TOTAL_S(&mapper_time);
-  gem_cond_log(parameters.misc.verbose_user,"[GEMMapper terminated successfully in %lu s.]\n",mapper_time_sec);
+  gem_cond_log(parameters.misc.verbose_user,"[GEMMapper terminated successfully in %"PRIu64" s.]\n",mapper_time_sec);
 
   // Done!
   return 0;

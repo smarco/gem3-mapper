@@ -36,17 +36,17 @@ typedef struct {
 /*
  * Constructor
  */
-GEM_INLINE ihash_t* ihash_new(void);
-GEM_INLINE void ihash_clear(ihash_t* const ihash);
-GEM_INLINE void ihash_delete(ihash_t* const ihash);
+ihash_t* ihash_new(void);
+void ihash_clear(ihash_t* const ihash);
+void ihash_delete(ihash_t* const ihash);
 
 /*
  * Basic (Type-unsafe) Accessors
  */
-GEM_INLINE ihash_element_t* ihash_get_ihash_element(ihash_t* const ihash,const int64_t key);
-GEM_INLINE void ihash_insert_element(ihash_t* const ihash,const int64_t key,void* const element);
-GEM_INLINE void ihash_remove_element(ihash_t* const ihash,const int64_t key);
-GEM_INLINE void* ihash_get_element(ihash_t* const ihash,const int64_t key);
+ihash_element_t* ihash_get_ihash_element(ihash_t* const ihash,const int64_t key);
+void ihash_insert_element(ihash_t* const ihash,const int64_t key,void* const element);
+void ihash_remove_element(ihash_t* const ihash,const int64_t key);
+void* ihash_get_element(ihash_t* const ihash,const int64_t key);
 
 /*
  * Type-safe Accessors
@@ -54,14 +54,14 @@ GEM_INLINE void* ihash_get_element(ihash_t* const ihash,const int64_t key);
 #define ihash_insert(ihash,key,element) ihash_insert_element(ihash,key,(void*)(element))
 #define ihash_remove(ihash,key) ihash_remove_element(ihash,key)
 #define ihash_get(ihash,key,type) ((type*)ihash_get_element(ihash,key))
-GEM_INLINE bool ihash_is_contained(ihash_t* const ihash,const int64_t key);
-GEM_INLINE uint64_t ihash_get_num_elements(ihash_t* const ihash);
-GEM_INLINE uint64_t ihash_get_size(ihash_t* const ihash);
+bool ihash_is_contained(ihash_t* const ihash,const int64_t key);
+uint64_t ihash_get_num_elements(ihash_t* const ihash);
+uint64_t ihash_get_size(ihash_t* const ihash);
 
 /*
  * Miscellaneous
  */
-GEM_INLINE void ihash_sort_by_key(ihash_t* const ihash);
+void ihash_sort_by_key(ihash_t* const ihash);
 
 /*
  * Iterator
@@ -73,12 +73,12 @@ GEM_INLINE void ihash_sort_by_key(ihash_t* const ihash);
     int64_t const it_ikey = ihash_##ih_element->key;
 #define GT_IHASH_END_ITERATE }}
 
-GEM_INLINE ihash_iterator_t* ihash_iterator_new(ihash_t* const ihash);
-GEM_INLINE void ihash_iterator_delete(ihash_iterator_t* const ihash_iterator);
+ihash_iterator_t* ihash_iterator_new(ihash_t* const ihash);
+void ihash_iterator_delete(ihash_iterator_t* const ihash_iterator);
 
-GEM_INLINE bool ihash_iterator_eoi(ihash_iterator_t* const iterator);
-GEM_INLINE bool ihash_iterator_next(ihash_iterator_t* const ihash_iterator);
-GEM_INLINE int64_t ihash_iterator_get_key(ihash_iterator_t* const ihash_iterator);
-GEM_INLINE void* ihash_iterator_get_element(ihash_iterator_t* const ihash_iterator);
+bool ihash_iterator_eoi(ihash_iterator_t* const iterator);
+bool ihash_iterator_next(ihash_iterator_t* const ihash_iterator);
+int64_t ihash_iterator_get_key(ihash_iterator_t* const ihash_iterator);
+void* ihash_iterator_get_element(ihash_iterator_t* const ihash_iterator);
 
 #endif /* IHASH_H_ */

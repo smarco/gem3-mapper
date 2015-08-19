@@ -29,10 +29,10 @@ typedef struct {
   char* description;                     // Brief description
 } option_t;
 
-GEM_INLINE uint64_t options_get_num_options(const option_t* const options_menu);
-GEM_INLINE struct option* options_adaptor_getopt(const option_t* const options_menu);
-GEM_INLINE string_t* options_adaptor_getopt_short(const option_t* const options_menu);
-GEM_INLINE void options_fprint_menu(
+uint64_t options_get_num_options(const option_t* const options_menu);
+struct option* options_adaptor_getopt(const option_t* const options_menu);
+string_t* options_adaptor_getopt_short(const option_t* const options_menu);
+void options_fprint_menu(
     FILE* const stream,const option_t* const options_menu,char* groups_menu[],
     const bool print_description,const option_visibility_t visibility_level);
 

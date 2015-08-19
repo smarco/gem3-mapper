@@ -10,7 +10,7 @@
 /*
  * FM-Index Model & Version
  */
-#define FM_INDEX_MODEL_NO  1004ul
+#define FM_INDEX_MODEL_NO  1004ull
 
 /*
  * Builder
@@ -372,7 +372,7 @@ GEM_INLINE void fm_index_bsearch_pure(
     const uint8_t c = key[--key_length];
     lo = bwt_erank(fm_index->bwt,c,lo);
     hi = bwt_erank(fm_index->bwt,c,hi);
-//    printf("%lu  %lu\n",lo,hi);
+//    printf("%"PRIu64"  %"PRIu64"\n",lo,hi);
   }
 //  printf("\n");
   // Return results
@@ -397,7 +397,7 @@ GEM_INLINE void fm_index_reverse_bsearch_pure(
   uint64_t i = 0;
   while (i < key_length && fm_2interval.forward_lo < fm_2interval.forward_hi) {
     fm_index_2query_forward(fm_index,&fm_2interval,key[i++]);
-//    printf("%lu  %lu\n",fm_2interval.backward_lo,fm_2interval.backward_hi);
+//    printf("%"PRIu64"  %"PRIu64"\n",fm_2interval.backward_lo,fm_2interval.backward_hi);
   }
 //  printf("\n");
   // Return results
@@ -430,7 +430,7 @@ GEM_INLINE void fm_index_bsearch_debug(
 //    }
     lo = bwt_erank(fm_index->bwt,c,lo);
     hi = bwt_erank(fm_index->bwt,c,hi);
-    printf("> %lu\t%lu\n",lo,hi);
+    printf("> %"PRIu64"\t%"PRIu64"\n",lo,hi);
   }
   // Return results
   *hi_out=hi;
@@ -448,13 +448,13 @@ GEM_INLINE void fm_index_bsearch(
   const rank_mtable_t* const rank_mtable = fm_index->rank_table;
   rank_mquery_t query;
   rank_mquery_new(&query);
-  //rank_mtable_fetch(rank_mtable,&query,&lo,&hi); printf("> %lu\t%lu\n",lo,hi);
+  //rank_mtable_fetch(rank_mtable,&query,&lo,&hi); printf("> %"PRIu64"\t%"PRIu64"\n",lo,hi);
   while (key_length > 0 && !rank_mquery_is_exhausted(&query)) {
     const uint8_t c = key[key_length-1];
     if (c >= ENC_DNA_CHAR_N) break;
     rank_mquery_add_char(rank_mtable,&query,c); // Rank query (calculate offsets)
     --key_length;
-    //rank_mtable_fetch(rank_mtable,&query,&lo,&hi); printf("> %lu\t%lu\n",lo,hi);
+    //rank_mtable_fetch(rank_mtable,&query,&lo,&hi); printf("> %"PRIu64"\t%"PRIu64"\n",lo,hi);
   }
   // Query lookup table
   rank_mtable_fetch(rank_mtable,&query,&lo,&hi);
@@ -468,7 +468,7 @@ GEM_INLINE void fm_index_bsearch(
       const uint8_t c = key[--key_length];
       lo = bwt_erank(fm_index->bwt,c,lo);
       hi = bwt_erank(fm_index->bwt,c,hi);
-      //printf("> %lu\t%lu\n",lo,hi);
+      //printf("> %"PRIu64"\t%"PRIu64"\n",lo,hi);
     }
     // Return results
     *hi_out=hi;
@@ -511,11 +511,11 @@ GEM_INLINE void fm_index_print(FILE* const stream,const fm_index_t* const fm_ind
   const uint64_t bwt_reverse_size = bwt_reverse_get_size(fm_index->bwt_reverse); // BWT Reverse structure
   const uint64_t fm_index_size = sampled_sa_size+bwt_size+rank_table_size;
   tab_fprintf(stream,"[GEM]>FM.Index\n");
-  tab_fprintf(stream,"  => FM.Index.Size  %lu MB (100%%)\n",CONVERT_B_TO_MB(fm_index_size));
-  tab_fprintf(stream,"    => Sampled.SA   %lu MB (%2.3f%%)\n",CONVERT_B_TO_MB(sampled_sa_size),PERCENTAGE(sampled_sa_size,fm_index_size));
-  tab_fprintf(stream,"    => Rank.mTable  %lu MB (%2.3f%%)\n",CONVERT_B_TO_MB(rank_table_size),PERCENTAGE(rank_table_size,fm_index_size));
-  tab_fprintf(stream,"    => BWT          %lu MB (%2.3f%%)\n",CONVERT_B_TO_MB(bwt_size),PERCENTAGE(bwt_size,fm_index_size));
-  tab_fprintf(stream,"    => BWT-Reverse  %lu MB (%2.3f%%)\n",CONVERT_B_TO_MB(bwt_reverse_size),PERCENTAGE(bwt_reverse_size,fm_index_size));
+  tab_fprintf(stream,"  => FM.Index.Size  %"PRIu64" MB (100%%)\n",CONVERT_B_TO_MB(fm_index_size));
+  tab_fprintf(stream,"    => Sampled.SA   %"PRIu64" MB (%2.3f%%)\n",CONVERT_B_TO_MB(sampled_sa_size),PERCENTAGE(sampled_sa_size,fm_index_size));
+  tab_fprintf(stream,"    => Rank.mTable  %"PRIu64" MB (%2.3f%%)\n",CONVERT_B_TO_MB(rank_table_size),PERCENTAGE(rank_table_size,fm_index_size));
+  tab_fprintf(stream,"    => BWT          %"PRIu64" MB (%2.3f%%)\n",CONVERT_B_TO_MB(bwt_size),PERCENTAGE(bwt_size,fm_index_size));
+  tab_fprintf(stream,"    => BWT-Reverse  %"PRIu64" MB (%2.3f%%)\n",CONVERT_B_TO_MB(bwt_reverse_size),PERCENTAGE(bwt_reverse_size,fm_index_size));
   tab_global_inc();
   // Sampled SuffixArray positions
   sampled_sa_print(stream,fm_index->sampled_sa,false);

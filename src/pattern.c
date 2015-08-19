@@ -143,7 +143,7 @@ GEM_INLINE bool pattern_tiled_init(
 GEM_INLINE void pattern_tiled_calculate_next(pattern_tiled_t* const pattern_tiled) {
   // DEBUG
 //  gem_cond_debug_block(DEBUG_PATTERN_TILE_POSITION) {
-//    fprintf(stderr,">Tile (pos=%lu,len=%lu,tall=%lu) [distance=%lu,match_col=%lu]\n",
+//    fprintf(stderr,">Tile (pos=%"PRIu64",len=%"PRIu64",tall=%"PRIu64") [distance=%"PRIu64",match_col=%"PRIu64"]\n",
 //        pattern_tiled->tile_offset,pattern_tiled->tile_wide,pattern_tiled->tile_tall,
 //        pattern_tiled->tile_distance,pattern_tiled->tile_match_column+pattern_tiled->tile_offset);
 //  }

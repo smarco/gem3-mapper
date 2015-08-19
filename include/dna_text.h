@@ -108,40 +108,40 @@ typedef struct _dna_text_t dna_text_t;
 /*
  * Setup/Loader
  */
-GEM_INLINE dna_text_t* dna_text_read_mem(mm_t* const memory_manager);
-GEM_INLINE void dna_text_delete(dna_text_t* const dna_text);
+dna_text_t* dna_text_read_mem(mm_t* const memory_manager);
+void dna_text_delete(dna_text_t* const dna_text);
 
 /*
  * Builder
  */
-GEM_INLINE dna_text_t* dna_text_new(const uint64_t dna_text_length);
-GEM_INLINE dna_text_t* dna_text_padded_new(const uint64_t dna_text_length,const uint64_t init_padding,const uint64_t end_padding);
-GEM_INLINE void dna_text_write_chunk(fm_t* const output_file_manager,dna_text_t* const dna_text,const uint64_t chunk_length);
-GEM_INLINE void dna_text_write(fm_t* const output_file_manager,dna_text_t* const dna_text);
+dna_text_t* dna_text_new(const uint64_t dna_text_length);
+dna_text_t* dna_text_padded_new(const uint64_t dna_text_length,const uint64_t init_padding,const uint64_t end_padding);
+void dna_text_write_chunk(fm_t* const output_file_manager,dna_text_t* const dna_text,const uint64_t chunk_length);
+void dna_text_write(fm_t* const output_file_manager,dna_text_t* const dna_text);
 /*
  * Accessors
  */
-GEM_INLINE uint64_t dna_text_get_length(const dna_text_t* const dna_text);
-GEM_INLINE void dna_text_set_length(dna_text_t* const dna_text,const uint64_t length);
-GEM_INLINE uint64_t dna_text_get_size(const dna_text_t* const dna_text);
-GEM_INLINE uint8_t dna_text_get_char(const dna_text_t* const dna_text,const uint64_t position);
-GEM_INLINE void dna_text_set_char(const dna_text_t* const dna_text,const uint64_t position,const uint8_t enc_char);
-GEM_INLINE uint8_t* dna_text_get_text(const dna_text_t* const dna_text);
-GEM_INLINE uint8_t* dna_text_retrieve_sequence(
+uint64_t dna_text_get_length(const dna_text_t* const dna_text);
+void dna_text_set_length(dna_text_t* const dna_text,const uint64_t length);
+uint64_t dna_text_get_size(const dna_text_t* const dna_text);
+uint8_t dna_text_get_char(const dna_text_t* const dna_text,const uint64_t position);
+void dna_text_set_char(const dna_text_t* const dna_text,const uint64_t position,const uint8_t enc_char);
+uint8_t* dna_text_get_text(const dna_text_t* const dna_text);
+uint8_t* dna_text_retrieve_sequence(
     const dna_text_t* const dna_text,const uint64_t position,
     const uint64_t length,mm_stack_t* const mm_stack);
 
 /*
  * Display
  */
-GEM_INLINE void dna_text_print(FILE* const stream,dna_text_t* const dna_text,const uint64_t length);
-GEM_INLINE void dna_text_print_content(FILE* const stream,dna_text_t* const dna_text);
-GEM_INLINE void dna_text_pretty_print_content(FILE* const stream,dna_text_t* const dna_text,const uint64_t width);
+void dna_text_print(FILE* const stream,dna_text_t* const dna_text,const uint64_t length);
+void dna_text_print_content(FILE* const stream,dna_text_t* const dna_text);
+void dna_text_pretty_print_content(FILE* const stream,dna_text_t* const dna_text,const uint64_t width);
 
 /*
  * Errors
  */
-#define GEM_ERROR_DNA_TEXT_WRONG_MODEL_NO "DNA-text. Wrong DNA-text Model %lu (Expected model %lu)"
-#define GEM_ERROR_DNA_TEXT_OOR "DNA-text. Requested position (%lu) out of range [0,%lu)"
+#define GEM_ERROR_DNA_TEXT_WRONG_MODEL_NO "DNA-text. Wrong DNA-text Model %"PRIu64" (Expected model %"PRIu64")"
+#define GEM_ERROR_DNA_TEXT_OOR "DNA-text. Requested position (%"PRIu64") out of range [0,%"PRIu64")"
 
 #endif /* DNA_TEXT_H_ */

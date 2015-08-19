@@ -223,7 +223,7 @@ GEM_INLINE uint64_t filtering_candidates_align_accepted_regions(
       if (distance_bound > min_edit_distance+max_delta) { // FIXME
         gem_cond_debug_block(DEBUG_ACCEPTED_REGIONS) {
           gem_slog("[GEM]>Accepted.Regions\n");
-          gem_slog("  => Region [%lu,%lu) discarded (Edit-bound=%lu,Edit-min=%lu,Margin=%lu)\n",
+          gem_slog("  => Region [%"PRIu64",%"PRIu64") discarded (Edit-bound=%"PRIu64",Edit-min=%"PRIu64",Margin=%"PRIu64")\n",
               regions_in->begin_position,regions_in->end_position,
               distance_bound,min_edit_distance,max_delta);
         }
@@ -235,7 +235,7 @@ GEM_INLINE uint64_t filtering_candidates_align_accepted_regions(
         // DEBUG
         gem_cond_debug_block(DEBUG_ACCEPTED_REGIONS) {
           gem_slog("[GEM]>Accepted.Regions\n");
-          gem_slog("  => Region [%lu,%lu) (dist=%lu,matching-regions=%lu)\n",
+          gem_slog("  => Region [%"PRIu64",%"PRIu64") (dist=%"PRIu64",matching-regions=%"PRIu64")\n",
               regions_in->begin_position,regions_in->end_position,
               regions_in->align_distance,regions_in->match_scaffold.num_scaffold_regions);
         }
@@ -327,7 +327,7 @@ GEM_INLINE uint64_t filtering_candidates_verify_filtering_regions(
     }
     // DEBUG
     gem_cond_debug_block(DEBUG_VERIFY_REGIONS) {
-      gem_slog("  => Region [%lu,%lu) (distance=%lu,matching-regions=%lu) Status=%s\n",
+      gem_slog("  => Region [%"PRIu64",%"PRIu64") (distance=%"PRIu64",matching-regions=%"PRIu64") Status=%s\n",
           regions_in->begin_position,regions_in->end_position,
           regions_in->align_distance,regions_in->match_scaffold.num_scaffold_regions,
           regions_in->status==filtering_region_discarded ? "Discarded" :
@@ -382,12 +382,12 @@ GEM_INLINE uint64_t filtering_candidates_verify_filtering_regions_multiple_hits(
         uint64_t i;
         for (i=total_regions_accepted-num_regions_accepted;i<total_regions_accepted;++i) {
           filtering_region_t* regions_it = vector_get_elm(filtering_candidates->filtering_regions,i,filtering_region_t);
-          gem_slog("  => Region [%lu,%lu) (distance=%lu,matching-regions=%lu) Status=Accepted\n",
+          gem_slog("  => Region [%"PRIu64",%"PRIu64") (distance=%"PRIu64",matching-regions=%"PRIu64") Status=Accepted\n",
               regions_it->begin_position,regions_it->end_position,
               regions_it->align_distance,regions_it->match_scaffold.num_scaffold_regions);
         }
       } else {
-        gem_slog("  => Region [%lu,%lu) Status=Discarded\n",regions_in->begin_position,regions_in->end_position);
+        gem_slog("  => Region [%"PRIu64",%"PRIu64") Status=Discarded\n",regions_in->begin_position,regions_in->end_position);
       }
       num_regions_accepted = 0;
     }
@@ -465,7 +465,7 @@ GEM_INLINE void filtering_candidates_compose_matching_regions(
   // DEBUG
   gem_cond_debug_block(DEBUG_FILTERING_REGIONS) {
     filtering_region_t* filtering_region = vector_get_last_elm(filtering_candidates->filtering_regions,filtering_region_t);
-    gem_slog("  Region-found => [%lu,%lu)=%lu bases (matching-regions=%lu)\n",
+    gem_slog("  Region-found => [%"PRIu64",%"PRIu64")=%"PRIu64" bases (matching-regions=%"PRIu64")\n",
         filtering_region->begin_position,filtering_region->end_position,
         filtering_region->end_position-filtering_region->begin_position,
         filtering_region->match_scaffold.num_scaffold_regions);
@@ -951,7 +951,7 @@ GEM_INLINE uint64_t filtering_candidates_bpm_buffer_retrieve(
           BOUNDED_ADDITION(pattern_tiled.prev_tile_match_position,regions_accepted->align_distance,candidate_length-1);
       ++regions_accepted; ++num_accepted_regions;
       gem_cond_debug_block(DEBUG_VERIFY_REGIONS) {
-        gem_slog("  => Region [%lu,%lu) (dist=%lu,regMatch=none) Status=OK\n",
+        gem_slog("  => Region [%"PRIu64",%"PRIu64") (dist=%"PRIu64",regMatch=none) Status=OK\n",
             regions_accepted->begin_position,regions_accepted->end_position,regions_accepted->align_distance);
       }
     } else {
@@ -967,7 +967,7 @@ GEM_INLINE uint64_t filtering_candidates_bpm_buffer_retrieve(
       match_scaffold_init(&regions_discarded->match_scaffold);
       ++regions_discarded;
       gem_cond_debug_block(DEBUG_VERIFY_REGIONS) {
-        gem_slog("  => Region [%lu,%lu) (dist=inf,regMatch=none) Status=DISCARDED\n",
+        gem_slog("  => Region [%"PRIu64",%"PRIu64") (dist=inf,regMatch=none) Status=DISCARDED\n",
             regions_discarded->begin_position,regions_discarded->end_position);
       }
     }
@@ -1161,7 +1161,7 @@ GEM_INLINE void filtering_candidates_print_matching_regions(
   const uint64_t num_regions = vector_get_used(filtering_candidates->regions_buffer);
   region_search_t* const regions = vector_get_mem(filtering_candidates->regions_buffer,region_search_t);
   for (i=num_regions-1;i>=0;--i) {
-    fprintf(stream,"    #%lu -> [%lu,%lu) \n",num_regions-i-1,regions[i].begin,regions[i].end);
+    fprintf(stream,"    #%"PRIu64" -> [%"PRIu64",%"PRIu64") \n",num_regions-i-1,regions[i].begin,regions[i].end);
   }
   fprintf(stream,"  => Matching.Regions\n");
   const uint64_t num_candidate_regions = vector_get_used(filtering_candidates->filtering_regions);

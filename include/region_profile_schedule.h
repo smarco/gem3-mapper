@@ -15,7 +15,7 @@
 /*
  * Region Scheduling
  */
-GEM_INLINE void region_schedule_filtering_adaptive(
+void region_schedule_filtering_adaptive(
     region_search_t* const region,const uint64_t num_standard_regions_left,
     const uint64_t num_unique_regions_left,const uint64_t max_complete_error,
     const uint64_t sensibility_error_length,const uint64_t errors_allowed);
@@ -23,16 +23,16 @@ GEM_INLINE void region_schedule_filtering_adaptive(
 /*
  * Region Profile Scheduling
  */
-GEM_INLINE void region_profile_schedule_filtering_fixed(
+void region_profile_schedule_filtering_fixed(
     region_profile_t* const region_profile,const uint64_t regions_required,
     const uint64_t filtering_degree,const uint64_t filtering_threshold);
-GEM_INLINE void region_profile_schedule_filtering_adaptive(
+void region_profile_schedule_filtering_adaptive(
     region_profile_t* const region_profile,const uint64_t max_complete_error,
     const uint64_t sensibility_misms_length);
 /*
  * Display
  */
-GEM_INLINE void region_profile_schedule_print(
+void region_profile_schedule_print(
     region_profile_t* const region_profile,const uint64_t max_differences,
     const uint64_t sensibility_error_length);
 

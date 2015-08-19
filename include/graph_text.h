@@ -50,24 +50,24 @@ typedef struct {
 /*
  * Setup
  */
-GEM_INLINE graph_text_t* graph_text_read(fm_t* const file_manager);
-GEM_INLINE graph_text_t* graph_text_read_mem(mm_t* const memory_manager);
-GEM_INLINE void graph_text_delete(graph_text_t* const graph);
+graph_text_t* graph_text_read(fm_t* const file_manager);
+graph_text_t* graph_text_read_mem(mm_t* const memory_manager);
+void graph_text_delete(graph_text_t* const graph);
 
 /*
  * Accessors
  */
-GEM_INLINE uint64_t graph_text_get_size(graph_text_t* const graph);
-GEM_INLINE vertex_t* graph_text_get_vertex(graph_text_t* const graph,const uint64_t vertex_index);
-GEM_INLINE edge_t* graph_text_get_edge(graph_text_t* const graph,const uint64_t edge_index);
+uint64_t graph_text_get_size(graph_text_t* const graph);
+vertex_t* graph_text_get_vertex(graph_text_t* const graph,const uint64_t vertex_index);
+edge_t* graph_text_get_edge(graph_text_t* const graph,const uint64_t edge_index);
 
 /*
  * Lookup vertex
  */
-GEM_INLINE uint64_t graph_text_lookup_vertex_index(graph_text_t* const graph,const uint64_t index_position);
-GEM_INLINE uint64_t graph_text_lookup_previous_vertex_index(
+uint64_t graph_text_lookup_vertex_index(graph_text_t* const graph,const uint64_t index_position);
+uint64_t graph_text_lookup_previous_vertex_index(
     graph_text_t* const graph,const uint64_t index_position,const uint64_t max_distance);
-GEM_INLINE uint64_t graph_text_lookup_next_vertex_index(
+uint64_t graph_text_lookup_next_vertex_index(
     graph_text_t* const graph,const uint64_t index_position,const uint64_t max_distance);
 
 /*
@@ -100,31 +100,31 @@ GEM_INLINE uint64_t graph_text_lookup_next_vertex_index(
 #define EDGE_SOURCE                (1ull<<12)
 #define EDGE_DESTINY               (1ull<<13)
 
-GEM_INLINE edge_attributes_t edge_attributes_snv_new(const char snv_character);
-GEM_INLINE edge_attributes_t edge_attributes_snv_add(const edge_attributes_t attributes,const char snv_character);
+edge_attributes_t edge_attributes_snv_new(const char snv_character);
+edge_attributes_t edge_attributes_snv_add(const edge_attributes_t attributes,const char snv_character);
 
-GEM_INLINE edge_attributes_t edge_attributes_set_overlapping(const edge_attributes_t attributes);
-GEM_INLINE edge_attributes_t edge_attributes_snv_set_reference(const edge_attributes_t attributes,const char reference_character);
-GEM_INLINE char edge_attributes_snv_get_reference(const edge_attributes_t attributes);
+edge_attributes_t edge_attributes_set_overlapping(const edge_attributes_t attributes);
+edge_attributes_t edge_attributes_snv_set_reference(const edge_attributes_t attributes,const char reference_character);
+char edge_attributes_snv_get_reference(const edge_attributes_t attributes);
 
-GEM_INLINE bool edge_attributes_is_jump(const edge_attributes_t attributes);
-GEM_INLINE bool edge_attributes_is_jump_source(const edge_attributes_t attributes);
-GEM_INLINE bool edge_attributes_is_jump_destiny(const edge_attributes_t attributes);
-GEM_INLINE bool edge_attributes_is_svn(const edge_attributes_t attributes);
-GEM_INLINE bool edge_attributes_is_overlapping(const edge_attributes_t attributes);
+bool edge_attributes_is_jump(const edge_attributes_t attributes);
+bool edge_attributes_is_jump_source(const edge_attributes_t attributes);
+bool edge_attributes_is_jump_destiny(const edge_attributes_t attributes);
+bool edge_attributes_is_svn(const edge_attributes_t attributes);
+bool edge_attributes_is_overlapping(const edge_attributes_t attributes);
 
 /*
  * Display
  */
-GEM_INLINE void graph_text_print(FILE* const stream,graph_text_t* const graph,const bool full_dump);
+void graph_text_print(FILE* const stream,graph_text_t* const graph,const bool full_dump);
 
-GEM_INLINE void edge_print(FILE* const stream,const edge_t* const edge);
-GEM_INLINE void edge_attributes_print(FILE* const stream,const edge_attributes_t attributes);
+void edge_print(FILE* const stream,const edge_t* const edge);
+void edge_attributes_print(FILE* const stream,const edge_attributes_t attributes);
 
 /*
  * Error Messages
  */
-#define GEM_ERROR_GRAPH_TEXT_EDGE_GROUP_OOB "Graph-Text. Requested edge-group index (%lu) out-of-bounds [0,%lu)]"
-#define GEM_ERROR_GRAPH_TEXT_EDGE_OOB "Graph-Text. Requested edge index (%lu) out-of-bounds [0,%lu)]"
+#define GEM_ERROR_GRAPH_TEXT_EDGE_GROUP_OOB "Graph-Text. Requested edge-group index (%"PRIu64") out-of-bounds [0,%"PRIu64")]"
+#define GEM_ERROR_GRAPH_TEXT_EDGE_OOB "Graph-Text. Requested edge index (%"PRIu64") out-of-bounds [0,%"PRIu64")]"
 
 #endif /* GRAPH_TEXT_H_ */

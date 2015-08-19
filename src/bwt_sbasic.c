@@ -21,7 +21,7 @@
 /*
  * BWT Model & Version
  */
-#define BWT_SBASIC_MODEL_NO  1005ul
+#define BWT_SBASIC_MODEL_NO  1005ull
 
 /*
  * BWT Dimensions
@@ -604,27 +604,27 @@ GEM_INLINE void bwt_sbasic_print_(FILE* const stream,bwt_sbasic_t* const bwt) {
   tab_fprintf(stream,"      => Sampling.MayorCounters 64bits\n");
   tab_fprintf(stream,"      => Sampling.MinorCounters 16bits\n");
   tab_fprintf(stream,"      => Sampling.Bitmap        64bits\n");
-  tab_fprintf(stream,"  => Total.length %lu\n",bwt->length);
-  tab_fprintf(stream,"  => Total.Size %lu MB\n",CONVERT_B_TO_MB(bwt_sbasic_total_size));
-  tab_fprintf(stream,"    => Mayor.counters %lu (%lu MB) [%2.3f%%]\n",
+  tab_fprintf(stream,"  => Total.length %"PRIu64"\n",bwt->length);
+  tab_fprintf(stream,"  => Total.Size %"PRIu64" MB\n",CONVERT_B_TO_MB(bwt_sbasic_total_size));
+  tab_fprintf(stream,"    => Mayor.counters %"PRIu64" (%"PRIu64" MB) [%2.3f%%]\n",
       bwt->num_mayor_blocks,CONVERT_B_TO_MB(mayor_counters_size),
       PERCENTAGE(mayor_counters_size,bwt_sbasic_total_size));
-  tab_fprintf(stream,"    => Minor.Blocks %lu (%lu MB) [%2.3f%%]\n",
+  tab_fprintf(stream,"    => Minor.Blocks %"PRIu64" (%"PRIu64" MB) [%2.3f%%]\n",
       bwt->num_minor_blocks,CONVERT_B_TO_MB(minor_blocks_size),
       PERCENTAGE(minor_blocks_size,bwt_sbasic_total_size));
-  tab_fprintf(stream,"      => Minor.Counters (%lu MB) [%2.3f%%]\n",
+  tab_fprintf(stream,"      => Minor.Counters (%"PRIu64" MB) [%2.3f%%]\n",
       CONVERT_B_TO_MB(minor_counters_size),
       PERCENTAGE(minor_counters_size,bwt_sbasic_total_size));
-  tab_fprintf(stream,"      => Minor.Bitmap (%lu MB) [%2.3f%%]\n",
+  tab_fprintf(stream,"      => Minor.Bitmap (%"PRIu64" MB) [%2.3f%%]\n",
       CONVERT_B_TO_MB(minor_bitmap_size),
       PERCENTAGE(minor_bitmap_size,bwt_sbasic_total_size));
-  tab_fprintf(stream,"      => Minor.Sampling (%lu MB) [%2.3f%%]\n",
+  tab_fprintf(stream,"      => Minor.Sampling (%"PRIu64" MB) [%2.3f%%]\n",
       CONVERT_B_TO_MB(minor_sampling_size),
       PERCENTAGE(minor_sampling_size,bwt_sbasic_total_size));
-  tab_fprintf(stream,"  => Occurrences\tA=[%lu] C=[%lu] G=[%lu] T=[%lu] N=[%lu] |=[%lu]\n",
+  tab_fprintf(stream,"  => Occurrences\tA=[%"PRIu64"] C=[%"PRIu64"] G=[%"PRIu64"] T=[%"PRIu64"] N=[%"PRIu64"] |=[%"PRIu64"]\n",
       bwt->c[ENC_DNA_CHAR_A],bwt->c[ENC_DNA_CHAR_C],bwt->c[ENC_DNA_CHAR_G],
       bwt->c[ENC_DNA_CHAR_T],bwt->c[ENC_DNA_CHAR_N],bwt->c[ENC_DNA_CHAR_SEP]);
-  tab_fprintf(stream,"  => Cumulative.Occ\tA=[%lu] C=[%lu] G=[%lu] T=[%lu] N=[%lu] |=[%lu]\n",
+  tab_fprintf(stream,"  => Cumulative.Occ\tA=[%"PRIu64"] C=[%"PRIu64"] G=[%"PRIu64"] T=[%"PRIu64"] N=[%"PRIu64"] |=[%"PRIu64"]\n",
       bwt->C[ENC_DNA_CHAR_A],bwt->C[ENC_DNA_CHAR_C],bwt->C[ENC_DNA_CHAR_G],
       bwt->C[ENC_DNA_CHAR_T],bwt->C[ENC_DNA_CHAR_N],bwt->C[ENC_DNA_CHAR_SEP]);
   /*

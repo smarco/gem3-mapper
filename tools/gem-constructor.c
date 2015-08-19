@@ -135,13 +135,13 @@ void constructor_svector_load() {
   i=0;
   while (!svector_read_iterator_eoi(&iterator)) {
     test_t* const test = svector_iterator_get_element(&iterator,test_t);
-    gem_cond_fatal_error_msg(test->count!=i,"Invalid count at %lu :: count=%lu\n",i,test->count);
-    gem_cond_fatal_error_msg(test->div_17!=i/17,"Invalid DIV at %lu :: div_17=%lu\n",i,test->div_17);
+    gem_cond_fatal_error_msg(test->count!=i,"Invalid count at %"PRIu64" :: count=%"PRIu64"\n",i,test->count);
+    gem_cond_fatal_error_msg(test->div_17!=i/17,"Invalid DIV at %"PRIu64" :: div_17=%"PRIu64"\n",i,test->div_17);
     // Next!
     ++i;
     svector_read_iterator_next(&iterator);
   }
-  gem_cond_fatal_error_msg(i!=parameters.number,"Wrong number of iterations (done %lu, should be %lu)",i,parameters.number);
+  gem_cond_fatal_error_msg(i!=parameters.number,"Wrong number of iterations (done %"PRIu64", should be %"PRIu64")",i,parameters.number);
 }
 //const uint64_t cdna_text_block_mask_left[256] =
 //{
@@ -281,10 +281,12 @@ void constructor_sparse_bitmap_test() {
   /*
    * Show a random element
    */
-  fprintf(stderr,"Pos %lu Contained %lu, bitmap %lu\n",
-      63ul,(uint64_t)sparse_bitmap_is_contained(sparse_bitmap,63),sparse_bitmap_get_bitmap(sparse_bitmap,63));
-  fprintf(stderr,"Pos %lu Contained %lu, bitmap %lu\n",
-      2ul, (uint64_t)sparse_bitmap_is_contained(sparse_bitmap,2),sparse_bitmap_get_bitmap(sparse_bitmap,2));
+  fprintf(stderr,"Pos %"PRIu64" Contained %"PRIu64", bitmap %"PRIu64"\n",
+      63ull,(uint64_t)sparse_bitmap_is_contained(sparse_bitmap,63),
+	  (uint64_t)sparse_bitmap_get_bitmap(sparse_bitmap,63));
+  fprintf(stderr,"Pos %"PRIu64" Contained %"PRIu64", bitmap %"PRIu64"\n",
+      2ull, (uint64_t)sparse_bitmap_is_contained(sparse_bitmap,2),
+	  (uint64_t)sparse_bitmap_get_bitmap(sparse_bitmap,2));
 }
 void constructor_cdna_test() {
   mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
@@ -386,19 +388,19 @@ void constructor_locator_test() {
 //  locator_print(stderr,locator,true);
 
 }
-GEM_INLINE void constructor_packed_integer_array(const uint64_t int_length) {
+void constructor_packed_integer_array(const uint64_t int_length) {
   packed_integer_array_t* const array = packed_integer_array_new(64,int_length);
   fprintf(stderr,">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n"
-                 " Printing %lu bits-length\n",int_length);
+                 " Printing %"PRIu64" bits-length\n",int_length);
   uint64_t i, integer;
   for (i=1,integer=1;i<int_length;++i,integer<<=1) {
-    fprintf(stderr,"%lu\n",integer);
+    fprintf(stderr,"%"PRIu64"\n",integer);
     packed_integer_array_store(array,i-1,integer);
   }
   packed_integer_array_print(stderr,array,true);
   packed_integer_array_delete(array);
 }
-GEM_INLINE void constructor_packed_integer_array_test() {
+void constructor_packed_integer_array_test() {
   constructor_packed_integer_array(12);
   constructor_packed_integer_array(13);
   constructor_packed_integer_array(18);
@@ -408,7 +410,7 @@ GEM_INLINE void constructor_packed_integer_array_test() {
   constructor_packed_integer_array(63);
   constructor_packed_integer_array(64);
 }
-GEM_INLINE void constructor_sparse_array_locator_test() {
+void constructor_sparse_array_locator_test() {
   sparse_array_locator_t* sal[2];
 
   sal[0] = sparse_array_locator_new(0,64);
@@ -442,11 +444,11 @@ GEM_INLINE void constructor_sparse_array_locator_test() {
       sparse_array_locator_is_marked(locator,64) &&
       sparse_array_locator_is_marked(locator,66) &&
       sparse_array_locator_is_marked(locator,80)) {
-    fprintf(stderr,"OK - passed (%lu == 7)",sparse_array_locator_get_erank(locator,80));
+    fprintf(stderr,"OK - passed (%"PRIu64" == 7)",sparse_array_locator_get_erank(locator,80));
   }
   sparse_array_locator_delete(locator);
 }
-GEM_INLINE void constructor_cdna_text__reverse() {
+void constructor_cdna_text__reverse() {
   mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
   cdna_text_t* const text = cdna_text_new(slab);
 
@@ -490,7 +492,7 @@ GEM_INLINE void constructor_cdna_text__reverse() {
 
   int64_t i;
   for (i=text->text_length-1;i>=0;--i) {
-    fprintf(stderr,"[%03lu]Reverse  ",i);
+    fprintf(stderr,"[%03"PRIu64"]Reverse  ",i);
     cdna_text_reverse_iterator_init(&it,text,i);
     while (!cdna_text_reverse_iterator_eoi(&it)) {
       const uint8_t enc = cdna_text_reverse_iterator_get_char_encoded(&it);
@@ -501,10 +503,10 @@ GEM_INLINE void constructor_cdna_text__reverse() {
   }
 
 }
-GEM_INLINE void constructor_fast_mapper_setup() {
+void constructor_fast_mapper_setup() {
 
 }
-GEM_INLINE void constructor_priority_queue() {
+void constructor_priority_queue() {
   pqueue_t* const queue = pqueue_new(15);
 
   pqueue_push(queue,NULL,3);
@@ -531,28 +533,28 @@ GEM_INLINE void constructor_priority_queue() {
   pqueue_push(queue,NULL,8);
 
   while (!pqueue_is_empty(queue)) {
-    printf("Pqueue\t%lu\n",pqueue_top_priority(queue));
+    printf("Pqueue\t%"PRIu64"\n",pqueue_top_priority(queue));
     pqueue_pop(queue,void);
   }
 
   pqueue_delete(queue);
 }
-GEM_INLINE void constructor_itoa() {
+void constructor_itoa() {
   char buffer[200], check[200];
   uint64_t i;
   for (i=0;i<UINT64_MAX;++i) {
     // GEM itoa
     const uint64_t num_digits = integer_to_ascii(buffer,i);
     // Check
-    sprintf(check,"%lu",i);
+    sprintf(check,"%"PRIu64"",i);
     // CMP
     if (strncmp(check,buffer,num_digits)!=0) {
-      fprintf(stderr,"Error at %lu (%s,%s)\n",i,check,buffer);
+      fprintf(stderr,"Error at %"PRIu64" (%s,%s)\n",i,check,buffer);
     }
   }
   fprintf(stderr,"All good!!\n");
 }
-GEM_INLINE void constructor_swg() {
+void constructor_swg() {
 //  uint64_t match_position=100, cigar_length=0;
 //  int64_t effective_length=0;
 //  int32_t alignment_score=0;

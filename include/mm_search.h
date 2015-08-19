@@ -42,9 +42,9 @@ typedef struct {
 /*
  * Setup
  */
-GEM_INLINE mm_search_t* mm_search_new();
-GEM_INLINE void mm_search_clear(mm_search_t* const mm_search);
-GEM_INLINE void mm_search_delete(mm_search_t* const mm_search);
+mm_search_t* mm_search_new();
+void mm_search_clear(mm_search_t* const mm_search);
+void mm_search_delete(mm_search_t* const mm_search);
 
 /*
  * Errors

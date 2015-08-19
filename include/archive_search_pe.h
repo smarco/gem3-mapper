@@ -16,31 +16,31 @@
 /*
  * Setup
  */
-GEM_INLINE void archive_search_paired_end_configure(
+void archive_search_paired_end_configure(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     mm_search_t* const mm_search);
 
 /*
  * PE Archive Search building blocks
  */
-GEM_INLINE void archive_search_pe_generate_candidates(
+void archive_search_pe_generate_candidates(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches);
-GEM_INLINE void archive_search_pe_finish_search(
+void archive_search_pe_finish_search(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches);
 
 /*
  * Paired-End Indexed Search (PE Online Approximate String Search)
  */
-GEM_INLINE void archive_search_paired_end(
+void archive_search_paired_end(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches);
 
 /*
  * Compute Predictors
  */
-GEM_INLINE void archive_search_paired_end_compute_predictors(
+void archive_search_paired_end_compute_predictors(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches,matches_predictors_t* const predictors);
 

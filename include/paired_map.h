@@ -33,15 +33,15 @@ typedef struct {
 /*
  * Accessors
  */
-GEM_INLINE uint64_t paired_map_compute_distance(
+uint64_t paired_map_compute_distance(
     const match_trace_t* const match_end1,const match_trace_t* const match_end2);
-GEM_INLINE uint64_t paired_map_compute_edit_distance(
+uint64_t paired_map_compute_edit_distance(
     const match_trace_t* const match_end1,const match_trace_t* const match_end2);
-GEM_INLINE uint64_t paired_map_compute_swg_score(
+uint64_t paired_map_compute_swg_score(
     const match_trace_t* const match_end1,const match_trace_t* const match_end2);
 
-GEM_INLINE uint64_t paired_map_get_distance(paired_map_t* const paired_map);
-GEM_INLINE uint64_t paired_map_get_edit_distance(paired_map_t* const paired_map);
-GEM_INLINE int32_t paired_map_get_swg_score(paired_map_t* const paired_map);
+uint64_t paired_map_get_distance(paired_map_t* const paired_map);
+uint64_t paired_map_get_edit_distance(paired_map_t* const paired_map);
+int32_t paired_map_get_swg_score(paired_map_t* const paired_map);
 
 #endif /* PAIRED_MAP_H_ */

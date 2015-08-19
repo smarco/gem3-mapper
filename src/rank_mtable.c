@@ -258,10 +258,10 @@ GEM_INLINE void rank_mtable_fetch(
  */
 GEM_INLINE void rank_mtable_print(FILE* const stream,rank_mtable_t* const rank_mtable) {
   tab_fprintf(stream,"[GEM]>Rank.Table\n");
-  tab_fprintf(stream,"  => Total.Cells        %lu\n",rank_mtable->table_size);
-  tab_fprintf(stream,"  => Total.Size         %lu MB\n",CONVERT_B_TO_MB(rank_mtable->table_size*UINT64_SIZE));
-  tab_fprintf(stream,"  => Num.Levels         %lu\n",rank_mtable->num_levels);
-  tab_fprintf(stream,"  => Min.matching.depth %lu\n",rank_mtable->min_matching_depth);
+  tab_fprintf(stream,"  => Total.Cells        %"PRIu64"\n",rank_mtable->table_size);
+  tab_fprintf(stream,"  => Total.Size         %"PRIu64" MB\n",CONVERT_B_TO_MB(rank_mtable->table_size*UINT64_SIZE));
+  tab_fprintf(stream,"  => Num.Levels         %"PRIu64"\n",rank_mtable->num_levels);
+  tab_fprintf(stream,"  => Min.matching.depth %"PRIu64"\n",rank_mtable->min_matching_depth);
   // Flush
   fflush(stream);
 }
@@ -271,6 +271,6 @@ GEM_INLINE void rank_mtable_print_content(FILE* const stream,rank_mtable_t* cons
     if (rank_mtable->sa_ranks_levels[0][i] > text_length) {
       printf("Here\n");
     }
-    fprintf(stream,"%lu\n",rank_mtable->sa_ranks_levels[0][i]);
+    fprintf(stream,"%"PRIu64"\n",rank_mtable->sa_ranks_levels[0][i]);
   }
 }

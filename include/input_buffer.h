@@ -22,20 +22,20 @@ typedef struct {
 /*
  * Setup
  */
-GEM_INLINE input_buffer_t* input_buffer_new();
-GEM_INLINE void input_buffer_clear(input_buffer_t* const input_buffer);
-GEM_INLINE void input_buffer_delete(input_buffer_t* const input_buffer);
+input_buffer_t* input_buffer_new();
+void input_buffer_clear(input_buffer_t* const input_buffer);
+void input_buffer_delete(input_buffer_t* const input_buffer);
 
 /*
  * Accessors
  */
-GEM_INLINE char** input_buffer_get_cursor(input_buffer_t* const input_buffer);
-GEM_INLINE uint64_t input_buffer_get_cursor_pos(input_buffer_t* const input_buffer);
-GEM_INLINE bool input_buffer_eob(input_buffer_t* const input_buffer);
+char** input_buffer_get_cursor(input_buffer_t* const input_buffer);
+uint64_t input_buffer_get_cursor_pos(input_buffer_t* const input_buffer);
+bool input_buffer_eob(input_buffer_t* const input_buffer);
 
 /*
  * Utils
  */
-GEM_INLINE void input_buffer_skip_line(input_buffer_t* const input_buffer);
+void input_buffer_skip_line(input_buffer_t* const input_buffer);
 
 #endif /* INPUT_BUFFER_H_ */

@@ -25,19 +25,19 @@ typedef enum { qm_real=0, qm_pseudo=1 } quality_type_t;
 /*
  * Quality Model
  */
-GEM_INLINE void quality_model(
+void quality_model(
     sequence_t* const sequence,const quality_model_t quality_model,
     const quality_format_t quality_format,const uint64_t quality_threshold,uint8_t* const quality_mask);
-GEM_INLINE void quality_model_flat(
+void quality_model_flat(
     sequence_t* const sequence,
     const quality_format_t quality_format,const uint64_t quality_threshold,uint8_t* const quality_mask);
-GEM_INLINE void quality_model_gem(
+void quality_model_gem(
     sequence_t* const sequence,
     const quality_format_t quality_format,const uint64_t quality_threshold,uint8_t* const quality_mask);
 
 /*
  * Error Msg
  */
-#define GEM_ERROR_QUALITY_NEGATIVE "Negative quality ('%c') at position %lu"
+#define GEM_ERROR_QUALITY_NEGATIVE "Negative quality ('%c') at position %"PRIu64""
 
 #endif /* QUALITY_MODEL_H_ */

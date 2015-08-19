@@ -69,36 +69,36 @@ typedef struct {
  * Setup
  */
 #define mm_slab_new(slab_size) mm_slab_new_(slab_size,MM_SLAB_SEGMENT_INITIAL_SIZE,MM_UNLIMITED_MEM,"")
-GEM_INLINE mm_slab_t* mm_slab_new_(
+mm_slab_t* mm_slab_new_(
     const uint64_t slab_size,const uint64_t slab_segment_size,
     const uint64_t max_allocatable_memory,char* const description);
-GEM_INLINE void mm_slab_reap_empty(mm_slab_t* const mm_slab,const uint64_t num_resident_segments);
-GEM_INLINE void mm_slab_delete(mm_slab_t* const mm_slab);
+void mm_slab_reap_empty(mm_slab_t* const mm_slab,const uint64_t num_resident_segments);
+void mm_slab_delete(mm_slab_t* const mm_slab);
 
 /*
  *  Accessors
  */
-GEM_INLINE void mm_slab_lock(mm_slab_t* const mm_slab);
-GEM_INLINE void mm_slab_unlock(mm_slab_t* const mm_slab);
-GEM_INLINE mm_slab_unit_t* mm_slab_get(mm_slab_t* const mm_slab);
-GEM_INLINE void mm_slab_put(mm_slab_t* const mm_slab,mm_slab_unit_t* const mm_slab_unit);
+void mm_slab_lock(mm_slab_t* const mm_slab);
+void mm_slab_unlock(mm_slab_t* const mm_slab);
+mm_slab_unit_t* mm_slab_get(mm_slab_t* const mm_slab);
+void mm_slab_put(mm_slab_t* const mm_slab,mm_slab_unit_t* const mm_slab_unit);
 
 /*
  *  Accessors (ThreadSafe)
  */
-GEM_INLINE mm_slab_unit_t* mm_slab_request(mm_slab_t* const mm_slab);
-GEM_INLINE void mm_slab_return(mm_slab_t* const mm_slab,mm_slab_unit_t* const mm_slab_unit);
-GEM_INLINE uint64_t mm_slab_get_slab_size(mm_slab_t* const mm_slab);
+mm_slab_unit_t* mm_slab_request(mm_slab_t* const mm_slab);
+void mm_slab_return(mm_slab_t* const mm_slab,mm_slab_unit_t* const mm_slab_unit);
+uint64_t mm_slab_get_slab_size(mm_slab_t* const mm_slab);
 
 /*
  * Defragment Slab
  */
-GEM_INLINE void mm_slab_defragment(mm_slab_t* const mm_slab);
+void mm_slab_defragment(mm_slab_t* const mm_slab);
 
 /*
  * Display/Profile
  */
-GEM_INLINE void mm_slab_print(FILE* const stream,mm_slab_t* const mm_slab,const bool show_internals);
+void mm_slab_print(FILE* const stream,mm_slab_t* const mm_slab,const bool show_internals);
 
 /*
  * Error Messages

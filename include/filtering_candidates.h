@@ -41,32 +41,32 @@ typedef struct {
 /*
  * Setup
  */
-GEM_INLINE void filtering_candidates_init(filtering_candidates_t* const filtering_candidates);
-GEM_INLINE void filtering_candidates_clear(filtering_candidates_t* const filtering_candidates);
-GEM_INLINE void filtering_candidates_destroy(filtering_candidates_t* const filtering_candidates);
+void filtering_candidates_init(filtering_candidates_t* const filtering_candidates);
+void filtering_candidates_clear(filtering_candidates_t* const filtering_candidates);
+void filtering_candidates_destroy(filtering_candidates_t* const filtering_candidates);
 
 /*
  * Accessors
  */
-GEM_INLINE uint64_t filtering_candidates_get_num_candidate_regions(const filtering_candidates_t* const filtering_candidates);
-GEM_INLINE uint64_t filtering_candidates_count_candidate_regions(
+uint64_t filtering_candidates_get_num_candidate_regions(const filtering_candidates_t* const filtering_candidates);
+uint64_t filtering_candidates_count_candidate_regions(
     filtering_candidates_t* const filtering_candidates_end,const filtering_region_status_t filtering_region_status);
 
-GEM_INLINE void filtering_candidates_set_all_regions_pending(filtering_candidates_t* const filtering_candidates);
-GEM_INLINE void filtering_candidates_set_all_regions_unverified(filtering_candidates_t* const filtering_candidates);
+void filtering_candidates_set_all_regions_pending(filtering_candidates_t* const filtering_candidates);
+void filtering_candidates_set_all_regions_unverified(filtering_candidates_t* const filtering_candidates);
 
 /*
  * Adding candidate positions
  */
-GEM_INLINE void filtering_candidates_add_interval(
+void filtering_candidates_add_interval(
     filtering_candidates_t* const filtering_candidates,
     const uint64_t interval_lo,const uint64_t interval_hi,
     const uint64_t region_begin_pos,const uint64_t region_end_pos,
     const uint64_t region_errors,mm_stack_t* const mm_stack);
-GEM_INLINE void filtering_candidates_add_interval_set(
+void filtering_candidates_add_interval_set(
     filtering_candidates_t* const filtering_candidates,interval_set_t* const interval_set,
     const uint64_t region_begin_pos,const uint64_t region_end_pos,mm_stack_t* const mm_stack);
-GEM_INLINE void filtering_candidates_add_interval_set_thresholded(
+void filtering_candidates_add_interval_set_thresholded(
     filtering_candidates_t* const filtering_candidates,interval_set_t* const interval_set,
     const uint64_t region_begin_pos,const uint64_t region_end_pos,
     const uint64_t max_error,mm_stack_t* const mm_stack);
@@ -74,17 +74,17 @@ GEM_INLINE void filtering_candidates_add_interval_set_thresholded(
 /*
  * Processing & Verification
  */
-GEM_INLINE uint64_t filtering_candidates_process_candidates(
+uint64_t filtering_candidates_process_candidates(
     filtering_candidates_t* const filtering_candidates,
     archive_t* const archive,const pattern_t* const pattern,
     const as_parameters_t* const as_parameters,
     const bool compose_region_chaining,mm_stack_t* const mm_stack);
-GEM_INLINE uint64_t filtering_candidates_verify_candidates(
+uint64_t filtering_candidates_verify_candidates(
     filtering_candidates_t* const filtering_candidates,archive_t* const archive,
     text_collection_t* const text_collection,const pattern_t* const pattern,
     const as_parameters_t* const as_parameters,
     matches_t* const matches,mm_stack_t* const mm_stack);
-GEM_INLINE uint64_t filtering_candidates_align_candidates(
+uint64_t filtering_candidates_align_candidates(
     filtering_candidates_t* const filtering_candidates,
     archive_text_t* const archive_text,const locator_t* const locator,
     text_collection_t* const text_collection,pattern_t* const pattern,
@@ -94,7 +94,7 @@ GEM_INLINE uint64_t filtering_candidates_align_candidates(
 /*
  * Search for unbounded-alignments
  */
-GEM_INLINE uint64_t filtering_candidates_align_unbounded(
+uint64_t filtering_candidates_align_unbounded(
     filtering_candidates_t* const filtering_candidates,
     archive_text_t* const archive_text,const locator_t* const locator,
     text_collection_t* const text_collection,pattern_t* const pattern,
@@ -104,10 +104,10 @@ GEM_INLINE uint64_t filtering_candidates_align_unbounded(
 /*
  * BPM-Buffer API (Verification)
  */
-GEM_INLINE uint64_t filtering_candidates_bpm_buffer_add(
+uint64_t filtering_candidates_bpm_buffer_add(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const pattern,bpm_gpu_buffer_t* const bpm_gpu_buffer);
-GEM_INLINE uint64_t filtering_candidates_bpm_buffer_retrieve(
+uint64_t filtering_candidates_bpm_buffer_retrieve(
     filtering_candidates_t* const filtering_candidates,archive_text_t* const archive_text,
     text_collection_t* const text_collection,pattern_t* const pattern,
     bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t candidate_offset_begin,
@@ -116,14 +116,14 @@ GEM_INLINE uint64_t filtering_candidates_bpm_buffer_retrieve(
 /*
  * Pair Extension
  */
-GEM_INLINE uint64_t filtering_candidates_extend_match(
+uint64_t filtering_candidates_extend_match(
     filtering_candidates_t* const filtering_candidates,
     archive_text_t* const archive_text,const locator_t* const locator,
     text_collection_t* const text_collection,const match_trace_t* const extended_match,
     pattern_t* const candidate_pattern,const as_parameters_t* const candidate_actual_parameters,
     mapper_stats_t* const mapper_stats,paired_matches_t* const paired_matches,
     const sequence_end_t candidate_end,mm_stack_t* const mm_stack);
-GEM_INLINE void filtering_candidates_process_extension_candidates(
+void filtering_candidates_process_extension_candidates(
     filtering_candidates_t* const extended_filtering_candidates,
     filtering_candidates_t* const candidate_filtering_candidates,
     archive_t* const archive,text_collection_t* const text_collection,
@@ -134,7 +134,7 @@ GEM_INLINE void filtering_candidates_process_extension_candidates(
 /*
  * Display
  */
-GEM_INLINE void filtering_candidates_print_matching_regions(
+void filtering_candidates_print_matching_regions(
     FILE* const stream,filtering_candidates_t* const filtering_candidates);
 
 #endif /* FILTERING_CANDIDATES_H_ */

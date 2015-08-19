@@ -22,11 +22,11 @@
  *   Fast-mapping (in all its kinds) tries to detect the proper degree of filtering
  *   to achieve a compromise between speed and depth of the search (max_mismatches)
  */
-GEM_INLINE void approximate_search_filtering_adaptive(approximate_search_t* const search,matches_t* const matches);
+void approximate_search_filtering_adaptive(approximate_search_t* const search,matches_t* const matches);
 
 /*
  * Complete Search
  */
-GEM_INLINE void approximate_search_filtering_complete(approximate_search_t* const search,matches_t* const matches);
+void approximate_search_filtering_complete(approximate_search_t* const search,matches_t* const matches);
 
 #endif /* APPROXIMATE_SEARCH_FILTERING_H_ */

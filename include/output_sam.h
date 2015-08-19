@@ -36,13 +36,13 @@ typedef struct {
   bool print_gem_fields;
 } output_sam_parameters_t;
 
-GEM_INLINE void output_sam_parameters_set_defaults(output_sam_parameters_t* const sam_parameters);
-GEM_INLINE void output_sam_parse_read_group_header(char* const read_group_buffer,output_sam_parameters_t* const sam_parameters);
+void output_sam_parameters_set_defaults(output_sam_parameters_t* const sam_parameters);
+void output_sam_parse_read_group_header(char* const read_group_buffer,output_sam_parameters_t* const sam_parameters);
 
 /*
  * SAM Headers
  */
-GEM_INLINE void output_sam_print_header(
+void output_sam_print_header(
     output_file_t* const output_file,archive_t* const archive,
     output_sam_parameters_t* const sam_parameters,int argc,char** argv);
 			
@@ -50,7 +50,7 @@ GEM_INLINE void output_sam_print_header(
 /*
  * SAM output SE
  */
-GEM_INLINE void output_sam_single_end_matches(
+void output_sam_single_end_matches(
     buffered_output_file_t* const buffered_output_file,
     archive_search_t* const archive_search,matches_t* const matches,
     const output_sam_parameters_t* const output_sam_parameters);
@@ -58,7 +58,7 @@ GEM_INLINE void output_sam_single_end_matches(
 /*
  * SAM output PE
  */
-GEM_INLINE void output_sam_paired_end_matches(
+void output_sam_paired_end_matches(
     buffered_output_file_t* const buffered_output_file,
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches,const output_sam_parameters_t* const output_sam_parameters);

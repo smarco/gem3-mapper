@@ -108,13 +108,13 @@ GEM_INLINE void COUNTER_PRINT_STATS(
   // Print Samples
   const uint64_t num_samples = COUNTER_GET_NUM_SAMPLES(counter);
   if (num_samples >= BUFFER_SIZE_1G) {
-    fprintf(stream," (samples=%luG",num_samples/BUFFER_SIZE_1G);
+    fprintf(stream," (samples=%"PRIu64"G",num_samples/BUFFER_SIZE_1G);
   } else if (num_samples >= BUFFER_SIZE_1M) {
-    fprintf(stream," (samples=%luM",num_samples/BUFFER_SIZE_1M);
+    fprintf(stream," (samples=%"PRIu64"M",num_samples/BUFFER_SIZE_1M);
   } else if (num_samples >= BUFFER_SIZE_1K) {
-    fprintf(stream," (samples=%luK",num_samples/BUFFER_SIZE_1K);
+    fprintf(stream," (samples=%"PRIu64"K",num_samples/BUFFER_SIZE_1K);
   } else {
-    fprintf(stream," (samples=%lu",num_samples);
+    fprintf(stream," (samples=%"PRIu64"",num_samples);
     if (num_samples==0) {
       fprintf(stream,",--n/a--)}\n");
       return;
@@ -227,13 +227,13 @@ GEM_INLINE void PERCENTAGE_PRINT(FILE* const stream,const gem_counter_t* const c
   // Print Samples
   const uint64_t num_samples = COUNTER_GET_NUM_SAMPLES(counter);
   if (num_samples >= BUFFER_SIZE_1G) {
-    fprintf(stream," (samples=%luG",num_samples/BUFFER_SIZE_1G);
+    fprintf(stream," (samples=%"PRIu64"G",num_samples/BUFFER_SIZE_1G);
   } else if (num_samples >= BUFFER_SIZE_1M) {
-    fprintf(stream," (samples=%luM",num_samples/BUFFER_SIZE_1M);
+    fprintf(stream," (samples=%"PRIu64"M",num_samples/BUFFER_SIZE_1M);
   } else if (num_samples >= BUFFER_SIZE_1K) {
-    fprintf(stream," (samples=%luK",num_samples/BUFFER_SIZE_1K);
+    fprintf(stream," (samples=%"PRIu64"K",num_samples/BUFFER_SIZE_1K);
   } else {
-    fprintf(stream," (samples=%lu",num_samples);
+    fprintf(stream," (samples=%"PRIu64"",num_samples);
   }
   if (num_samples == 0) {
     fprintf(stream,")\n");
@@ -303,7 +303,7 @@ GEM_INLINE void TIMER_PRINT(
   } else if (total_time_ns >= 1000) {
     fprintf(stream,"%7.2f us",TIMER_CONVERT_NS_TO_US(total_time_ns));
   } else {
-    fprintf(stream,"%7lu ns",total_time_ns);
+    fprintf(stream,"%7"PRIu64" ns",total_time_ns);
   }
   // Print percentage wrt reference
   if (ref_timer!=NULL) {
@@ -322,15 +322,15 @@ GEM_INLINE void TIMER_PRINT(
   // Print Calls
   const uint64_t num_calls = TIMER_GET_NUM_SAMPLES(timer);
   if (num_calls >= 1000000000) {
-    fprintf(stream," (%5lu Gcalls",num_calls/1000000000);
+    fprintf(stream," (%5"PRIu64" Gcalls",num_calls/1000000000);
   } else if (num_calls >= 1000000) {
-    fprintf(stream," (%5lu Mcalls",num_calls/1000000);
+    fprintf(stream," (%5"PRIu64" Mcalls",num_calls/1000000);
   } else if (num_calls >= 1000) {
-    fprintf(stream," (%5lu Kcalls",num_calls/1000);
+    fprintf(stream," (%5"PRIu64" Kcalls",num_calls/1000);
   } else if (num_calls > 1 || num_calls == 0) {
-    fprintf(stream," (%5lu  calls",num_calls);
+    fprintf(stream," (%5"PRIu64"  calls",num_calls);
   } else {
-    fprintf(stream," (%5lu   call",num_calls);
+    fprintf(stream," (%5"PRIu64"   call",num_calls);
   }
   // Print time/call
   if (num_calls==0) {
@@ -345,7 +345,7 @@ GEM_INLINE void TIMER_PRINT(
     } else if (ns_per_call > 1000) {
       fprintf(stream,",%7.2f us/call",TIMER_CONVERT_NS_TO_US(ns_per_call));
     } else {
-      fprintf(stream,",%7lu ns/call",ns_per_call);
+      fprintf(stream,",%7"PRIu64" ns/call",ns_per_call);
     }
   }
   // Print Max
@@ -357,7 +357,7 @@ GEM_INLINE void TIMER_PRINT(
   } else if (min_ns > 1000) {
     fprintf(stream," {min%.2fus",TIMER_CONVERT_NS_TO_US(min_ns));
   } else {
-    fprintf(stream," {min%luns",min_ns);
+    fprintf(stream," {min%"PRIu64"ns",min_ns);
   }
   // Print Min
   const uint64_t max_ns = TIMER_GET_MAX_NS(timer);
@@ -368,7 +368,7 @@ GEM_INLINE void TIMER_PRINT(
   } else if (max_ns > 1000) {
     fprintf(stream,",Max%.2fus})\n",TIMER_CONVERT_NS_TO_US(max_ns));
   } else {
-    fprintf(stream,",Max%luns})\n",max_ns);
+    fprintf(stream,",Max%"PRIu64"ns})\n",max_ns);
   }
 }
 /*

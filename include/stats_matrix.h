@@ -29,25 +29,25 @@ typedef struct {
 /*
  * Setup
  */
-GEM_INLINE stats_matrix_t* stats_matrix_new(stats_vector_t* const dimension_x,stats_vector_t* const dimension_y);
-GEM_INLINE void stats_matrix_clear(stats_matrix_t* const stats_matrix);
-GEM_INLINE void stats_matrix_delete(stats_matrix_t* const stats_matrix);
+stats_matrix_t* stats_matrix_new(stats_vector_t* const dimension_x,stats_vector_t* const dimension_y);
+void stats_matrix_clear(stats_matrix_t* const stats_matrix);
+void stats_matrix_delete(stats_matrix_t* const stats_matrix);
 
 /*
  * Increment/Add bucket counter
  */
-GEM_INLINE void stats_matrix_inc(stats_matrix_t* const stats_matrix,const uint64_t value_x,const uint64_t value_y);
-GEM_INLINE void stats_matrix_add(stats_matrix_t* const stats_matrix,const uint64_t value_x,const uint64_t value_y,const uint64_t amount);
+void stats_matrix_inc(stats_matrix_t* const stats_matrix,const uint64_t value_x,const uint64_t value_y);
+void stats_matrix_add(stats_matrix_t* const stats_matrix,const uint64_t value_x,const uint64_t value_y,const uint64_t amount);
 
 /*
  * Bucket counters getters (Individual buckets)
  */
-GEM_INLINE uint64_t stats_matrix_get_count(stats_matrix_t* const stats_matrix,const uint64_t value_x,const uint64_t value_y);
+uint64_t stats_matrix_get_count(stats_matrix_t* const stats_matrix,const uint64_t value_x,const uint64_t value_y);
 
 /*
  * Display (Printers)
  */
-GEM_INLINE void stats_matrix_display(
+void stats_matrix_display(
     FILE* const stream,stats_matrix_t* const stats_matrix,
     const bool display_percentage,void (*print_label)(uint64_t));
 

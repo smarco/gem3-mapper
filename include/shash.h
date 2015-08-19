@@ -36,17 +36,17 @@ typedef struct {
 /*
  * Constructor
  */
-GEM_INLINE shash_t* shash_new(void);
-GEM_INLINE void shash_clear(shash_t* const shash);
-GEM_INLINE void shash_delete(shash_t* const shash);
+shash_t* shash_new(void);
+void shash_clear(shash_t* const shash);
+void shash_delete(shash_t* const shash);
 
 /*
  * Basic (Type-unsafe) Accessors
  */
-GEM_INLINE shash_element_t* shash_get_shash_element(shash_t* const shash,char* const key);
-GEM_INLINE void shash_insert_element(shash_t* const shash,char* const key,const uint64_t key_length,void* const element);
-GEM_INLINE void shash_remove_element(shash_t* const shash,char* const key);
-GEM_INLINE void* shash_get_element(shash_t* const shash,char* const key);
+shash_element_t* shash_get_shash_element(shash_t* const shash,char* const key);
+void shash_insert_element(shash_t* const shash,char* const key,const uint64_t key_length,void* const element);
+void shash_remove_element(shash_t* const shash,char* const key);
+void* shash_get_element(shash_t* const shash,char* const key);
 
 /*
  * Type-safe Accessors
@@ -54,8 +54,8 @@ GEM_INLINE void* shash_get_element(shash_t* const shash,char* const key);
 #define shash_insert(shash,key,key_length,element) shash_insert_element(shash,key,key_length,(void*)element)
 #define shash_remove_element(shash,key) shash_remove_element(shash,key)
 #define shash_get(shash,key,type) ((type*)shash_get_element(shash,key))
-GEM_INLINE bool shash_is_contained(shash_t* const shash,char* const key);
-GEM_INLINE uint64_t shash_get_num_elements(shash_t* const shash);
+bool shash_is_contained(shash_t* const shash,char* const key);
+uint64_t shash_get_num_elements(shash_t* const shash);
 
 /*
  * Iterator
@@ -78,13 +78,13 @@ GEM_INLINE uint64_t shash_get_num_elements(shash_t* const shash);
 
 #define GT_SHASH_END_ITERATE }}
 
-GEM_INLINE shash_iterator_t* shash_iterator_new(shash_t* const shash);
-GEM_INLINE void shash_iterator_delete(shash_iterator_t* const iterator);
+shash_iterator_t* shash_iterator_new(shash_t* const shash);
+void shash_iterator_delete(shash_iterator_t* const iterator);
 
-GEM_INLINE bool shash_iterator_eoi(shash_iterator_t* const iterator);
-GEM_INLINE bool shash_iterator_next(shash_iterator_t* const iterator);
-GEM_INLINE char* shash_iterator_get_key(shash_iterator_t* const iterator);
-GEM_INLINE void* shash_iterator_get_element(shash_iterator_t* const iterator);
+bool shash_iterator_eoi(shash_iterator_t* const iterator);
+bool shash_iterator_next(shash_iterator_t* const iterator);
+char* shash_iterator_get_key(shash_iterator_t* const iterator);
+void* shash_iterator_get_element(shash_iterator_t* const iterator);
 
 
 #endif /* SHASH_H_ */

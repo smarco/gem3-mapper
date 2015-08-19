@@ -42,22 +42,22 @@ typedef struct {
 /*
  * Setup
  */
-GEM_INLINE void text_collection_init(text_collection_t* const text_collection);
-GEM_INLINE void text_collection_clear(text_collection_t* const text_collection);
-GEM_INLINE void text_collection_destroy(text_collection_t* const text_collection);
+void text_collection_init(text_collection_t* const text_collection);
+void text_collection_clear(text_collection_t* const text_collection);
+void text_collection_destroy(text_collection_t* const text_collection);
 
 /*
  * Accessors
  */
 // [Text-Block]
-GEM_INLINE uint64_t text_collection_new_trace(const text_collection_t* const text_collection);
-GEM_INLINE text_trace_t* text_collection_get_trace(
+uint64_t text_collection_new_trace(const text_collection_t* const text_collection);
+text_trace_t* text_collection_get_trace(
     const text_collection_t* const text_collection,const uint64_t text_trace_offset);
-GEM_INLINE uint64_t text_collection_get_num_traces(const text_collection_t* const text_collection);
+uint64_t text_collection_get_num_traces(const text_collection_t* const text_collection);
 // [Text-Trace]
-GEM_INLINE uint64_t text_collection_allocate_trace_blocks(
+uint64_t text_collection_allocate_trace_blocks(
     const text_collection_t* const text_collection,const uint64_t num_trace_blocks);
-GEM_INLINE trace_block_t* text_collection_get_trace_block(
+trace_block_t* text_collection_get_trace_block(
     const text_collection_t* const text_collection,const uint64_t trace_block_offset);
 
 /*

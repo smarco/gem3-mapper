@@ -168,7 +168,7 @@ GEM_INLINE uint64_t kmer_counting_filter(
 //      }
 //      fprintf(stderr,"\n");
 //      for (n=0;n<KMER_COUNTING_NUM_KMERS;++n) {
-//        fprintf(stderr,"(%lu/%lu)[%lu] Pattern=%u Text=%u \n",total,kmers_ot,n,kmer_count_pattern[n],kmer_count_text[n]);
+//        fprintf(stderr,"(%"PRIu64"/%"PRIu64")[%"PRIu64"] Pattern=%u Text=%u \n",total,kmers_ot,n,kmer_count_pattern[n],kmer_count_text[n]);
 //      }
       return begin_pos - (KMER_COUNTING_LENGTH-1);
     }

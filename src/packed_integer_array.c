@@ -297,15 +297,15 @@ GEM_INLINE void packed_integer_array_print(FILE* const stream,const packed_integ
   PACKED_INTEGER_ARRAY_CHECK(array);
   // Print meta-info
   tab_fprintf(stream,"[GEM]>PackedArray.info\n");
-  tab_fprintf(stream,"  => PackedArray.Size %lu MB\n",CONVERT_B_TO_MB(array->array_size));
-  tab_fprintf(stream,"  => PackedArray.Length %lu\n",array->num_elements);
-  tab_fprintf(stream,"  => PackedArray.Integer %lu bits\n",array->integer_length);
+  tab_fprintf(stream,"  => PackedArray.Size %"PRIu64" MB\n",CONVERT_B_TO_MB(array->array_size));
+  tab_fprintf(stream,"  => PackedArray.Length %"PRIu64"\n",array->num_elements);
+  tab_fprintf(stream,"  => PackedArray.Integer %"PRIu64" bits\n",array->integer_length);
   // Print data
   if (display_data) {
     tab_fprintf(stream,"  => PackedArray.Data\n");
     uint64_t i;
     for (i=0;i<array->num_elements;++i) {
-      fprintf(stream,"%8lu",packed_integer_array_load(array,i));
+      fprintf(stream,"%8"PRIu64,packed_integer_array_load(array,i));
       PRINT_COLUMN(stream,i,10,"\t");
     }
     PRINT_COLUMN_CLOSE(stream,i,10);

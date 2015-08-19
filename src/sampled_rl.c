@@ -11,7 +11,7 @@
 /*
  * Sampled-RL Model & Version
  */
-#define SAMPLED_RL_MODEL_NO  1000ul
+#define SAMPLED_RL_MODEL_NO  1000ull
 
 /*
  * Loader/Setup
@@ -80,8 +80,8 @@ GEM_INLINE void sampled_rl_print(FILE* const stream,sampled_rl_t* const sampled_
   tab_fprintf(stream,"  => Architecture sRL.pck\n");
   tab_fprintf(stream,"    => RunLength-Space RL \n");
   tab_fprintf(stream,"    => ArrayImpl       Packed-Array \n");
-  tab_fprintf(stream,"  => SamplingRate 2^%lu\n",(uint64_t)sampled_rl->sampling_rate);
-  tab_fprintf(stream,"  => Size %lu MB\n",CONVERT_B_TO_MB(sampled_rl_get_size(sampled_rl)));
+  tab_fprintf(stream,"  => SamplingRate 2^%"PRIu64"\n",(uint64_t)sampled_rl->sampling_rate);
+  tab_fprintf(stream,"  => Size %"PRIu64" MB\n",CONVERT_B_TO_MB(sampled_rl_get_size(sampled_rl)));
   tab_global_inc();
   packed_integer_array_print(stream,sampled_rl->packed_integer_array,false);
   tab_global_dec();

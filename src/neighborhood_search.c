@@ -74,7 +74,7 @@ GEM_INLINE void neighborhood_dp_column_print(
   const uint64_t key_length = neighborhood_search->key_length;
   uint64_t i, min = UINT64_MAX;
   for (i=0;i<=key_length;++i) min = MIN(min,dp_column[i]);
-  gem_slog(">> [%lu](#%lu){min=%lu,last=%lu}\n",column_position,hi-lo,min,dp_column[key_length]);
+  gem_slog(">> [%"PRIu64"](#%"PRIu64"){min=%"PRIu64",last=%"PRIu64"}\n",column_position,hi-lo,min,dp_column[key_length]);
 }
 GEM_INLINE void neighborhood_dp_matrix_print(
     neighborhood_search_t* const neighborhood_search,
@@ -127,11 +127,11 @@ GEM_INLINE void neighborhood_search_debug_match(
   const uint64_t key_length = neighborhood_search->key_length;
   dp_column_t* const next_column = dp_columns + column_position;
   uint64_t i;
-  for (i=0;i<=key_length;++i) gem_slog("%ld ",next_column->cells[i]>1000 ? -1 : (int64_t)next_column->cells[i]);
+  for (i=0;i<=key_length;++i) gem_slog("%"PRId64" ",next_column->cells[i]>1000 ? -1 : (int64_t)next_column->cells[i]);
   gem_slog("\n");
   neighborhood_dp_matrix_traceback(neighborhood_search,dp_columns,column_position);
   gem_cond_debug_block(NS_PRINT_MATRIX) { neighborhood_dp_matrix_print(neighborhood_search,dp_columns,10,10); }
-  gem_slog("\n[%02lu](%03lu)> %.*s\n",min_val,num_matches_found,(int)column_position,ns_string);
+  gem_slog("\n[%02"PRIu64"](%03"PRIu64")> %.*s\n",min_val,num_matches_found,(int)column_position,ns_string);
 }
 /*
  * Condensed Neighborhood

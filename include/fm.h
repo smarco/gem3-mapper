@@ -31,94 +31,94 @@ typedef struct _fm_t fm_t;
 /*
  * Setup
  */
-GEM_INLINE fm_t* fm_open_file(char* const file_name,const fm_mode mode);
-GEM_INLINE fm_t* fm_open_FILE(FILE* const stream,const fm_mode mode);
-GEM_INLINE fm_t* fm_open_gzFILE(FILE* const stream,const fm_mode mode);
-GEM_INLINE fm_t* fm_open_bzFILE(FILE* const stream,const fm_mode mode);
-GEM_INLINE fm_t* fm_open_temp_file();
-GEM_INLINE void fm_close(fm_t* const file_manager);
+fm_t* fm_open_file(char* const file_name,const fm_mode mode);
+fm_t* fm_open_FILE(FILE* const stream,const fm_mode mode);
+fm_t* fm_open_gzFILE(FILE* const stream,const fm_mode mode);
+fm_t* fm_open_bzFILE(FILE* const stream,const fm_mode mode);
+fm_t* fm_open_temp_file();
+void fm_close(fm_t* const file_manager);
 
 /*
  * Accessors
  */
-GEM_INLINE uint64_t fm_get_current_position(fm_t* const file_manager);
-GEM_INLINE bool fm_eof(fm_t* const file_manager);
-GEM_INLINE char* fm_get_file_name(fm_t* const file_manager);
-GEM_INLINE uint64_t fm_get_file_size(fm_t* const file_manager);
+uint64_t fm_get_current_position(fm_t* const file_manager);
+bool fm_eof(fm_t* const file_manager);
+char* fm_get_file_name(fm_t* const file_manager);
+uint64_t fm_get_file_size(fm_t* const file_manager);
 
 /*
  * Seek
  */
-GEM_INLINE void fm_seek(fm_t* const file_manager,const uint64_t position);
+void fm_seek(fm_t* const file_manager,const uint64_t position);
 
-GEM_INLINE void fm_skip_forward(fm_t* const file_manager,const uint64_t num_bytes);
-GEM_INLINE void fm_skip_uint64(fm_t* const file_manager);
-GEM_INLINE void fm_skip_uint32(fm_t* const file_manager);
-GEM_INLINE void fm_skip_uint16(fm_t* const file_manager);
-GEM_INLINE void fm_skip_uint8(fm_t* const file_manager);
-GEM_INLINE void fm_skip_align(fm_t* const file_manager,const uint64_t num_bytes);
-GEM_INLINE void fm_skip_align_16(fm_t* const file_manager);
-GEM_INLINE void fm_skip_align_32(fm_t* const file_manager);
-GEM_INLINE void fm_skip_align_64(fm_t* const file_manager);
-GEM_INLINE void fm_skip_align_128(fm_t* const file_manager);
-GEM_INLINE void fm_skip_align_512(fm_t* const file_manager);
-GEM_INLINE void fm_skip_align_1024(fm_t* const file_manager);
-GEM_INLINE void fm_skip_align_4KB(fm_t* const file_manager);
-GEM_INLINE void fm_skip_align_mempage(fm_t* const file_manager);
+void fm_skip_forward(fm_t* const file_manager,const uint64_t num_bytes);
+void fm_skip_uint64(fm_t* const file_manager);
+void fm_skip_uint32(fm_t* const file_manager);
+void fm_skip_uint16(fm_t* const file_manager);
+void fm_skip_uint8(fm_t* const file_manager);
+void fm_skip_align(fm_t* const file_manager,const uint64_t num_bytes);
+void fm_skip_align_16(fm_t* const file_manager);
+void fm_skip_align_32(fm_t* const file_manager);
+void fm_skip_align_64(fm_t* const file_manager);
+void fm_skip_align_128(fm_t* const file_manager);
+void fm_skip_align_512(fm_t* const file_manager);
+void fm_skip_align_1024(fm_t* const file_manager);
+void fm_skip_align_4KB(fm_t* const file_manager);
+void fm_skip_align_mempage(fm_t* const file_manager);
 
 /*
  * Read
  */
 #define fm_read(file_manager,var) fm_copy_mem(file_manager,&var,sizeof(var))
-GEM_INLINE uint64_t fm_read_uint64(fm_t* const file_manager);
-GEM_INLINE uint32_t fm_read_uint32(fm_t* const file_manager);
-GEM_INLINE uint16_t fm_read_uint16(fm_t* const file_manager);
-GEM_INLINE uint8_t fm_read_uint8(fm_t* const file_manager);
-GEM_INLINE uint64_t fm_read_mem(fm_t* const file_manager,void* const dst,const uint64_t num_bytes);
-GEM_INLINE uint64_t fm_read_mem_parallel(
+uint64_t fm_read_uint64(fm_t* const file_manager);
+uint32_t fm_read_uint32(fm_t* const file_manager);
+uint16_t fm_read_uint16(fm_t* const file_manager);
+uint8_t fm_read_uint8(fm_t* const file_manager);
+uint64_t fm_read_mem(fm_t* const file_manager,void* const dst,const uint64_t num_bytes);
+uint64_t fm_read_mem_parallel(
     fm_t* const file_manager,void* const dst,const uint64_t num_bytes,const uint64_t num_threads);
 
-GEM_INLINE mm_t* fm_load_mem(fm_t* const file_manager,const uint64_t num_bytes);
+mm_t* fm_load_mem(fm_t* const file_manager,const uint64_t num_bytes);
 
-GEM_INLINE void fm_prefetch_next(fm_t* const file_manager,const uint64_t num_bytes);
+void fm_prefetch_next(fm_t* const file_manager,const uint64_t num_bytes);
 
 /*
  * Write
  */
 #define fm_write(file_manager,var) fm_write_mem(file_manager,&var,sizeof(var))
-GEM_INLINE void fm_write_uint64(fm_t* const file_manager,const uint64_t data);
-GEM_INLINE void fm_write_uint32(fm_t* const file_manager,const uint32_t data);
-GEM_INLINE void fm_write_uint16(fm_t* const file_manager,const uint16_t data);
-GEM_INLINE void fm_write_uint8(fm_t* const file_manager,const uint8_t data);
-GEM_INLINE void fm_write_mem(fm_t* const file_manager,const void* const src,const uint64_t num_bytes);
+void fm_write_uint64(fm_t* const file_manager,const uint64_t data);
+void fm_write_uint32(fm_t* const file_manager,const uint32_t data);
+void fm_write_uint16(fm_t* const file_manager,const uint16_t data);
+void fm_write_uint8(fm_t* const file_manager,const uint8_t data);
+void fm_write_mem(fm_t* const file_manager,const void* const src,const uint64_t num_bytes);
 
 /*
  * Bulk Read of file
  */
-GEM_INLINE void fm_bulk_read_fd(const int fd,void* const dst,const uint64_t size);
-GEM_INLINE void fm_bulk_read_file(char* const file_name,void* const dst,const uint64_t offset,const uint64_t size);
-GEM_INLINE void fm_bulk_read_file_parallel(
+void fm_bulk_read_fd(const int fd,void* const dst,const uint64_t size);
+void fm_bulk_read_file(char* const file_name,void* const dst,const uint64_t offset,const uint64_t size);
+void fm_bulk_read_file_parallel(
     char* const file_name,void* const dst,const uint64_t offset,const uint64_t size,const uint64_t num_threads);
 
 /*
  * FileManager Wrappers
  */
-GEM_INLINE void gem_stat(char* const file_name,struct stat *stat_info);
-GEM_INLINE int gem_open_fd(char* const file_name,const int flags,const mode_t mode);
-GEM_INLINE FILE* gem_open_FILE(char* const file_name,const char* opentype);
-GEM_INLINE void gem_unlink(char* const file_name);
+void gem_stat(char* const file_name,struct stat *stat_info);
+int gem_open_fd(char* const file_name,const int flags,const mode_t mode);
+FILE* gem_open_FILE(char* const file_name,const char* opentype);
+void gem_unlink(char* const file_name);
 
 /*
  * Utils
  */
-GEM_INLINE bool gem_access(char* const path,const fm_mode mode);
-GEM_INLINE uint64_t gem_file_size(const char* const file_name);
+bool gem_access(char* const path,const fm_mode mode);
+uint64_t gem_file_size(const char* const file_name);
 
 /*
  * FileManager Printers
  */
-GEM_INLINE int vfmprintf(fm_t* const file_manager,const char *template,va_list v_args);
-GEM_INLINE int fmprintf(fm_t* const file_manager,const char *template,...);
+int vfmprintf(fm_t* const file_manager,const char *template,va_list v_args);
+int fmprintf(fm_t* const file_manager,const char *template,...);
 
 /*
  * Error Messages
@@ -152,7 +152,7 @@ GEM_INLINE int fmprintf(fm_t* const file_manager,const char *template,...);
 #define GEM_ERROR_FM_INVALID_MODE_READ "Invalid file mode. File '%s' cannot be read"
 #define GEM_ERROR_FM_NOT_SEEKABLE "Cannot seek file '%s' "
 
-#define GEM_ERROR_FM_LOAD "Could not load memory chunk (size=%lu,read=%lu)"
+#define GEM_ERROR_FM_LOAD "Could not load memory chunk (size=%"PRIu64",read=%"PRIu64")"
 #define GEM_ERROR_FM_DUP  "Could not duplicate file '%s' (not regular FILE or stream)"
 
 #endif /* FILE_MANAGEMENT_H_ */

@@ -20,11 +20,11 @@
 /*
  * Error handler
  */
-GEM_INLINE void input_graph_link_parse_prompt_error(input_file_t* const input_graph,const error_code_t error_code);
+void input_graph_link_parse_prompt_error(input_file_t* const input_graph,const error_code_t error_code);
 /*
  * Graph Parser
  */
-GEM_INLINE error_code_t input_graph_link_parse(
+error_code_t input_graph_link_parse(
     input_file_t* const input_graph,string_t* const tag,
     string_t* const sequence_name_from,graph_link_t* const graph_link_from,
     string_t* const sequence_name_to,graph_link_t* const graph_link_to,string_t* const sequence);

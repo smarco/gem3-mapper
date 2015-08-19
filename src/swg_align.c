@@ -34,7 +34,7 @@ GEM_INLINE bool align_check_match(
         for (j=0;j<cigar_element->length;++j) {
           if (key[read_pos] != text[text_pos]) {
             if (verbose) {
-              fprintf(stream,"Align Check. Alignment not matching (key[%lu]=%c != text[%lu]=%c)\n",
+              fprintf(stream,"Align Check. Alignment not matching (key[%"PRIu64"]=%c != text[%"PRIu64"]=%c)\n",
                   read_pos,dna_decode(key[read_pos]),text_pos,dna_decode(text[text_pos]));
             }
             return false;
@@ -48,13 +48,13 @@ GEM_INLINE bool align_check_match(
         // Check mismatch
         if (key[read_pos] == text[text_pos]) {
           if (verbose) {
-            fprintf(stream,"Align Check. Alignment not mismatching (key[%lu]=%c == text[%lu]=%c, CIGAR=%c)\n",
+            fprintf(stream,"Align Check. Alignment not mismatching (key[%"PRIu64"]=%c == text[%"PRIu64"]=%c, CIGAR=%c)\n",
               read_pos,dna_decode(key[read_pos]),text_pos,dna_decode(text[text_pos]),dna_decode(cigar_element->mismatch));
           }
           return false;
         } else if (cigar_element->mismatch != text[text_pos]) {
           if (verbose) {
-            fprintf(stream,"Align Check. Alignment not mismatching as CIGAR states (key[%lu]=%c == text[%lu]=%c, CIGAR=%c)\n",
+            fprintf(stream,"Align Check. Alignment not mismatching as CIGAR states (key[%"PRIu64"]=%c == text[%"PRIu64"]=%c, CIGAR=%c)\n",
               read_pos,dna_decode(key[read_pos]),text_pos,dna_decode(text[text_pos]),dna_decode(cigar_element->mismatch));
           }
           return false;
@@ -79,13 +79,13 @@ GEM_INLINE bool align_check_match(
   // Check alignment length
   if (read_pos != key_length) {
     if (verbose) {
-      fprintf(stream,"Align Check. Alignment incorrect length (key-aligned=%lu,key-length=%lu)\n",read_pos,key_length);
+      fprintf(stream,"Align Check. Alignment incorrect length (key-aligned=%"PRIu64",key-length=%"PRIu64")\n",read_pos,key_length);
     }
     return false;
   }
   if (text_pos != text_length) {
     if (verbose) {
-      fprintf(stream,"Align Check. Alignment incorrect length (text-aligned=%lu,text-length=%lu)\n",text_pos,text_length);
+      fprintf(stream,"Align Check. Alignment incorrect length (text-aligned=%"PRIu64",text-length=%"PRIu64")\n",text_pos,text_length);
     }
     return false;
   }

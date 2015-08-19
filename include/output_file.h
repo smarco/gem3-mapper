@@ -53,18 +53,18 @@ void output_file_close(output_file_t* const out_file);
 /*
  * Utils
  */
-GEM_INLINE output_buffer_t* output_file_request_buffer(
+output_buffer_t* output_file_request_buffer(
     output_file_t* const output_file,const uint64_t block_id);
-GEM_INLINE output_buffer_t* output_file_request_buffer_extension(
+output_buffer_t* output_file_request_buffer_extension(
     output_file_t* const output_file,output_buffer_t* const output_buffer);
-GEM_INLINE void output_file_return_buffer(
+void output_file_return_buffer(
     output_file_t* const output_file,output_buffer_t* const output_buffer);
 
 /*
  * Output File Printers
  */
-GEM_INLINE int vofprintf(output_file_t* const out_file,const char *template,va_list v_args);
-GEM_INLINE int ofprintf(output_file_t* const out_file,const char *template,...);
+int vofprintf(output_file_t* const out_file,const char *template,va_list v_args);
+int ofprintf(output_file_t* const out_file,const char *template,...);
 
 /*
  * Error Messages

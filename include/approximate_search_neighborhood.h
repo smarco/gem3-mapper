@@ -12,6 +12,6 @@
 #include "essentials.h"
 #include "approximate_search.h"
 
-GEM_INLINE void approximate_search_neighborhood_search(approximate_search_t* const search,matches_t* const matches);
+void approximate_search_neighborhood_search(approximate_search_t* const search,matches_t* const matches);
 
 #endif /* APPROXIMATE_SEARCH_NEIGHBORHOOD_H_ */

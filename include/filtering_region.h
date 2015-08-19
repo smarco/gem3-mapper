@@ -70,17 +70,17 @@ typedef struct {
 /*
  * Sorting
  */
-GEM_INLINE void filtering_region_sort_regions_matching(const filtering_region_t* const filtering_region);
-GEM_INLINE void filtering_region_locator_sort_positions(vector_t* const filtering_region_locators);
+void filtering_region_sort_regions_matching(const filtering_region_t* const filtering_region);
+void filtering_region_locator_sort_positions(vector_t* const filtering_region_locators);
 
 /*
  * Matching regions
  */
-GEM_INLINE void filtering_region_exact_extend(
+void filtering_region_exact_extend(
     filtering_region_t* const filtering_region,
     const uint8_t* const key,const uint64_t key_length,
     const uint8_t* const text,const bool* const allowed_enc);
-GEM_INLINE void filtering_region_chain_matching_regions(
+void filtering_region_chain_matching_regions(
     filtering_region_t* const filtering_region,
     const uint8_t* const key,const uint64_t key_length,
     const uint8_t* const text,const bool* const allowed_enc,
@@ -89,12 +89,12 @@ GEM_INLINE void filtering_region_chain_matching_regions(
 /*
  * (Re)Align
  */
-GEM_INLINE bool filtering_region_align(
+bool filtering_region_align(
     filtering_region_t* const filtering_region,archive_text_t* const archive_text,
     const text_collection_t* const text_collection,const as_parameters_t* const as_parameters,
     const bool emulated_rc_search,pattern_t* const pattern,matches_t* const matches,
     match_trace_t* const match_trace,mm_stack_t* const mm_stack);
-GEM_INLINE bool filtering_region_align_unbounded(
+bool filtering_region_align_unbounded(
     filtering_region_t* const filtering_region,archive_text_t* const archive_text,
     const text_collection_t* const text_collection,const as_parameters_t* const as_parameters,
     const bool emulated_rc_search,pattern_t* const pattern,matches_t* const matches,
@@ -103,19 +103,19 @@ GEM_INLINE bool filtering_region_align_unbounded(
 /*
  * Verify
  */
-GEM_INLINE bool filtering_region_verify(
+bool filtering_region_verify(
     filtering_region_t* const filtering_region,
     const text_collection_t* const text_collection,
     search_parameters_t* const search_parameters,const pattern_t* const pattern);
-GEM_INLINE uint64_t filtering_region_verify_multiple_hits(
+uint64_t filtering_region_verify_multiple_hits(
     vector_t* const filtering_regions,filtering_region_t* const filtering_region,
     const text_collection_t* const text_collection,search_parameters_t* const search_parameters,
     const pattern_t* const pattern);
 
-GEM_INLINE uint64_t filtering_region_verify_extension(
+uint64_t filtering_region_verify_extension(
     vector_t* const filtering_regions,vector_t* const verified_regions,
     const text_collection_t* const text_collection,
-    const uint64_t const text_trace_offset,const uint64_t index_position,
+    const uint64_t text_trace_offset,const uint64_t index_position,
     search_parameters_t* const search_parameters,const pattern_t* const pattern);
 
 #endif /* FILTERING_REGION_H_ */

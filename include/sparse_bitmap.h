@@ -55,37 +55,37 @@ typedef struct {
 /*
  * Loader/Setup
  */
-GEM_INLINE sparse_bitmap_t* sparse_bitmap_read(fm_t* const file_manager);
-GEM_INLINE sparse_bitmap_t* sparse_bitmap_read_mem(mm_t* const memory_manager);
-GEM_INLINE void sparse_bitmap_delete(sparse_bitmap_t* const sparse_bitmap);
+sparse_bitmap_t* sparse_bitmap_read(fm_t* const file_manager);
+sparse_bitmap_t* sparse_bitmap_read_mem(mm_t* const memory_manager);
+void sparse_bitmap_delete(sparse_bitmap_t* const sparse_bitmap);
 
 /*
  * Accessors
  */
-GEM_INLINE uint64_t sparse_bitmap_get_size(sparse_bitmap_t* const sparse_bitmap);
+uint64_t sparse_bitmap_get_size(sparse_bitmap_t* const sparse_bitmap);
 
-GEM_INLINE bool sparse_bitmap_is_contained(sparse_bitmap_t* const sparse_bitmap,const uint64_t position);
-GEM_INLINE uint64_t sparse_bitmap_get_bitmap(sparse_bitmap_t* const sparse_bitmap,const uint64_t position);
-GEM_INLINE bool sparse_bitmap_get_bitmap_if_contained(sparse_bitmap_t* const sparse_bitmap,const uint64_t position);
+bool sparse_bitmap_is_contained(sparse_bitmap_t* const sparse_bitmap,const uint64_t position);
+uint64_t sparse_bitmap_get_bitmap(sparse_bitmap_t* const sparse_bitmap,const uint64_t position);
+bool sparse_bitmap_get_bitmap_if_contained(sparse_bitmap_t* const sparse_bitmap,const uint64_t position);
 
 
 /*
  * Builder
  */
-GEM_INLINE sparse_bitmap_builder_t* sparse_bitmap_builder_new(mm_slab_t* const mm_slab);
-GEM_INLINE void sparse_bitmap_builder_delete(sparse_bitmap_builder_t* const sparse_bitmap_builder);
-GEM_INLINE void sparse_bitmap_builder_add_bitmap(sparse_bitmap_builder_t* const sparse_bitmap_builder,const uint64_t bitmap);
-GEM_INLINE void sparse_bitmap_builder_skip_bitmap(sparse_bitmap_builder_t* const sparse_bitmap_builder);
-GEM_INLINE void sparse_bitmap_builder_write(fm_t* const file_manager,sparse_bitmap_builder_t* const sparse_bitmap_builder);
+sparse_bitmap_builder_t* sparse_bitmap_builder_new(mm_slab_t* const mm_slab);
+void sparse_bitmap_builder_delete(sparse_bitmap_builder_t* const sparse_bitmap_builder);
+void sparse_bitmap_builder_add_bitmap(sparse_bitmap_builder_t* const sparse_bitmap_builder,const uint64_t bitmap);
+void sparse_bitmap_builder_skip_bitmap(sparse_bitmap_builder_t* const sparse_bitmap_builder);
+void sparse_bitmap_builder_write(fm_t* const file_manager,sparse_bitmap_builder_t* const sparse_bitmap_builder);
 
 /*
  * Display
  */
-GEM_INLINE void sparse_bitmap_print(FILE* const stream,sparse_bitmap_t* const sparse_bitmap,const bool display_content);
+void sparse_bitmap_print(FILE* const stream,sparse_bitmap_t* const sparse_bitmap,const bool display_content);
 
 /*
  * Errors
  */
-#define GEM_ERROR_SPARSE_BITMAP_OUT_OF_RANGE "SparseBitmap. Requested position (%lu) out of range [0,%lu)"
+#define GEM_ERROR_SPARSE_BITMAP_OUT_OF_RANGE "SparseBitmap. Requested position (%"PRIu64") out of range [0,%"PRIu64")"
 
 #endif /* SPARSE_BITMAP_H_ */

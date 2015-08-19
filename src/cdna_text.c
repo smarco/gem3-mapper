@@ -429,9 +429,9 @@ GEM_INLINE void cdna_text_iterator_hub_next_char(cdna_text_iterator_hub_t* const
 GEM_INLINE void cdna_text_print(FILE* const stream,cdna_text_t* const cdna_text) {
   fprintf(stream,"[GEM]>Compacted DNA-text\n");
   fprintf(stream,"  => Architecture 3b.1bm64.21c\n");
-  fprintf(stream,"  => Text.Length %lu\n",cdna_text->text_length);
+  fprintf(stream,"  => Text.Length %"PRIu64"\n",cdna_text->text_length);
   const uint64_t cdna_text_size = DIV_CEIL(cdna_text->text_length,CDNA_BLOCK_CHARS);
-  fprintf(stream,"  => Text.Size %lu MB\n",CONVERT_B_TO_MB(cdna_text_size*UINT64_SIZE));
+  fprintf(stream,"  => Text.Size %"PRIu64" MB\n",CONVERT_B_TO_MB(cdna_text_size*UINT64_SIZE));
   // Flush
   fflush(stream);
 }

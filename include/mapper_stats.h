@@ -28,27 +28,27 @@ typedef struct {
 /*
  * Setup
  */
-GEM_INLINE mapper_stats_t* mapper_stats_new();
-GEM_INLINE void mapper_stats_clear(mapper_stats_t* const mapper_stats);
-GEM_INLINE void mapper_stats_delete(mapper_stats_t* const mapper_stats);
+mapper_stats_t* mapper_stats_new();
+void mapper_stats_clear(mapper_stats_t* const mapper_stats);
+void mapper_stats_delete(mapper_stats_t* const mapper_stats);
 
 /*
  * Template Size
  */
-GEM_INLINE void mapper_stats_template_length_sample(
+void mapper_stats_template_length_sample(
     mapper_stats_t* const search_stats,const uint64_t template_length);
 
-GEM_INLINE uint64_t mapper_stats_template_length_get_num_samples(mapper_stats_t* const search_stats);
-GEM_INLINE uint64_t mapper_stats_template_length_get_ci_min_samples(
+uint64_t mapper_stats_template_length_get_num_samples(mapper_stats_t* const search_stats);
+uint64_t mapper_stats_template_length_get_ci_min_samples(
     mapper_stats_t* const search_stats,const uint64_t margin_error);
-GEM_INLINE bool mapper_stats_template_length_estimation_within_ci(
+bool mapper_stats_template_length_estimation_within_ci(
     mapper_stats_t* const search_stats,const uint64_t margin_error);
 
-GEM_INLINE double mapper_stats_template_length_get_mean(mapper_stats_t* const search_stats);
-GEM_INLINE double mapper_stats_template_length_get_stddev(mapper_stats_t* const search_stats);
-GEM_INLINE uint64_t mapper_stats_template_length_get_expected_max(mapper_stats_t* const search_stats);
-GEM_INLINE uint64_t mapper_stats_template_length_get_expected_min(mapper_stats_t* const search_stats);
-GEM_INLINE double mapper_stats_template_length_get_sigma_dev(
+double mapper_stats_template_length_get_mean(mapper_stats_t* const search_stats);
+double mapper_stats_template_length_get_stddev(mapper_stats_t* const search_stats);
+uint64_t mapper_stats_template_length_get_expected_max(mapper_stats_t* const search_stats);
+uint64_t mapper_stats_template_length_get_expected_min(mapper_stats_t* const search_stats);
+double mapper_stats_template_length_get_sigma_dev(
     mapper_stats_t* const search_stats,const uint64_t template_length);
 
 

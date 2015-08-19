@@ -58,7 +58,7 @@ GEM_INLINE void archive_builder_inspect_text(
   input_file_rewind(input_multifasta);
   input_multifasta_state_clear(&(archive_builder->parsing_state));
   // Log
-  gem_info("Inspected text %lu characters (%s). Requesting %lu MB (enc_text)",enc_text_length,
+  gem_info("Inspected text %"PRIu64" characters (%s). Requesting %"PRIu64" MB (enc_text)",enc_text_length,
       (archive_builder->indexed_complement==index_complement_yes) ? "index_complement=yes" : "index_complement=no",
       CONVERT_B_TO_MB(enc_text_length));
   // Allocate Text (Circular BWT extra)

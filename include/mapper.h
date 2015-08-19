@@ -165,42 +165,42 @@ void mapper_display_input_state(
 /*
  * Mapper Parameters
  */
-GEM_INLINE void mapper_parameters_set_defaults(mapper_parameters_t* const mapper_parameters);
-GEM_INLINE void mapper_parameters_print(FILE* const stream,mapper_parameters_t* const parameters);
+void mapper_parameters_set_defaults(mapper_parameters_t* const mapper_parameters);
+void mapper_parameters_print(FILE* const stream,mapper_parameters_t* const parameters);
 
 /*
  * Index loader
  */
-GEM_INLINE void mapper_load_index(mapper_parameters_t* const parameters);
+void mapper_load_index(mapper_parameters_t* const parameters);
 
 /*
  * Input
  */
-GEM_INLINE void mapper_PE_prepare_io_buffers(
+void mapper_PE_prepare_io_buffers(
     const mapper_parameters_t* const parameters,const uint64_t input_buffer_lines,
     buffered_input_file_t** const buffered_fasta_input_end1,
     buffered_input_file_t** const buffered_fasta_input_end2,
     buffered_output_file_t* const buffered_output_file);
-GEM_INLINE uint64_t mapper_PE_reload_buffers(
+uint64_t mapper_PE_reload_buffers(
     mapper_parameters_t* const parameters,
     buffered_input_file_t* const buffered_fasta_input_end1,
     buffered_input_file_t* const buffered_fasta_input_end2);
-GEM_INLINE error_code_t mapper_PE_parse_paired_sequences(
+error_code_t mapper_PE_parse_paired_sequences(
     const mapper_parameters_t* const parameters,
     buffered_input_file_t* const buffered_fasta_input_end1,
     buffered_input_file_t* const buffered_fasta_input_end2,
     archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2);
-GEM_INLINE error_code_t mapper_SE_read_single_sequence(mapper_search_t* const mapper_search);
-GEM_INLINE error_code_t mapper_PE_read_paired_sequences(mapper_search_t* const mapper_search);
+error_code_t mapper_SE_read_single_sequence(mapper_search_t* const mapper_search);
+error_code_t mapper_PE_read_paired_sequences(mapper_search_t* const mapper_search);
 
 /*
  * Output
  */
-GEM_INLINE void mapper_SE_output_matches(
+void mapper_SE_output_matches(
     mapper_parameters_t* const parameters,buffered_output_file_t* const buffered_output_file,
     archive_search_t* const archive_search,matches_t* const matches);
-GEM_INLINE void mapper_PE_output_matches(
+void mapper_PE_output_matches(
     mapper_parameters_t* const parameters,buffered_output_file_t* const buffered_output_file,
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches);
@@ -208,12 +208,12 @@ GEM_INLINE void mapper_PE_output_matches(
 /*
  * SE Mapper
  */
-GEM_INLINE void mapper_SE_run(mapper_parameters_t* const mapper_parameters);
+void mapper_SE_run(mapper_parameters_t* const mapper_parameters);
 
 /*
  * PE Mapper
  */
-GEM_INLINE void mapper_PE_run(mapper_parameters_t* const mapper_parameters);
+void mapper_PE_run(mapper_parameters_t* const mapper_parameters);
 
 /*
  * Error Messages

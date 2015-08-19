@@ -11,7 +11,7 @@
 /*
  * FM-Inde Model & Version
  */
-#define LOCATOR_MODEL_NO  3000ul
+#define LOCATOR_MODEL_NO  3000ull
 
 /*
  * Constants
@@ -72,7 +72,7 @@ GEM_INLINE uint64_t locator_get_size(locator_t* const locator) {
 GEM_INLINE locator_interval_t* locator_get_interval(const locator_t* const locator,const uint64_t interval_index) {
   LOCATOR_CHECK(locator);
   gem_fatal_check(interval_index >= locator->num_intervals,
-      LOCATOR_INTERVAL_INDEX_OOB,interval_index,0ul,locator->num_intervals);
+      LOCATOR_INTERVAL_INDEX_OOB,interval_index,0ull,locator->num_intervals);
   return locator->intervals + interval_index;
 }
 /*
@@ -359,19 +359,19 @@ GEM_INLINE void locator_interval_print(FILE* const stream,const char* const tag,
   // Print interval information
   switch (interval->type) {
     case locator_interval_regular:
-      fprintf(stream,"Interval\tIdx=[%lu,%lu)\tText=%s:%c:[%lu,%lu)\n",
+      fprintf(stream,"Interval\tIdx=[%"PRIu64",%"PRIu64")\tText=%s:%c:[%"PRIu64",%"PRIu64")\n",
           interval->begin_position,interval->end_position,
           tag,locator_interval_is_forward(interval) ? '+' : '-',
           interval->sequence_offset,interval->sequence_offset+locator_interval_get_text_length(interval));
       break;
     case locator_interval_unknown:
-      fprintf(stream,"Unknown\tIdx=[%lu,%lu)\tText=%s:%c:[%lu,%lu)\n",
+      fprintf(stream,"Unknown\tIdx=[%"PRIu64",%"PRIu64")\tText=%s:%c:[%"PRIu64",%"PRIu64")\n",
           interval->begin_position,interval->end_position,
           tag,locator_interval_is_forward(interval) ? '+' : '-',
           interval->sequence_offset,interval->sequence_offset+locator_interval_get_text_length(interval));
       break;
     case locator_interval_variant:
-      fprintf(stream,"Variant\tIdx=[%lu,%lu)\tText=%s:%c:[%lu,%lu)\n",
+      fprintf(stream,"Variant\tIdx=[%"PRIu64",%"PRIu64")\tText=%s:%c:[%"PRIu64",%"PRIu64")\n",
           interval->begin_position,interval->end_position,
           tag,locator_interval_is_forward(interval) ? '+' : '-',
           interval->sequence_offset,interval->sequence_offset+locator_interval_get_text_length(interval));
@@ -383,11 +383,11 @@ GEM_INLINE void locator_interval_print(FILE* const stream,const char* const tag,
 }
 GEM_INLINE void locator_print_(FILE* const stream,const uint64_t num_intervals,const uint64_t num_tags,const uint64_t tags_buffer_size) {
   // Print locator info
-  tab_fprintf(stream,"  => Intervals.Size %lu MB (%lu intervals x %luB per interval)\n",
+  tab_fprintf(stream,"  => Intervals.Size %"PRIu64" MB (%"PRIu64" intervals x %"PRIu64"B per interval)\n",
       CONVERT_B_TO_MB(sizeof(locator_interval_t)*num_intervals),num_intervals,sizeof(locator_interval_t));
-  tab_fprintf(stream,"  => Tags.Locator.Size %lu B (%lu locators x %luB per locator)\n",
+  tab_fprintf(stream,"  => Tags.Locator.Size %"PRIu64" B (%"PRIu64" locators x %"PRIu64"B per locator)\n",
       CONVERT_B_TO_MB(sizeof(locator_tag_t)*num_tags),num_tags,sizeof(locator_tag_t));
-  tab_fprintf(stream,"  => Tags.Buffer.Size %lu B\n",tags_buffer_size);
+  tab_fprintf(stream,"  => Tags.Buffer.Size %"PRIu64" B\n",tags_buffer_size);
 }
 GEM_INLINE void locator_print(FILE* const stream,const locator_t* const locator,const bool display_intervals) {
   GEM_CHECK_NULL(stream);
@@ -404,7 +404,7 @@ GEM_INLINE void locator_print(FILE* const stream,const locator_t* const locator,
       locator_interval_t* const interval = locator->intervals + i;
       char* const tag = locator_interval_get_tag(locator,interval);
       // Print interval information
-      tab_fprintf(stream,"       [%lu] ",i);
+      tab_fprintf(stream,"       [%"PRIu64"] ",i);
       locator_interval_print(stream,tag,interval);
     }
   }
@@ -430,7 +430,7 @@ GEM_INLINE void locator_builder_print(FILE* const stream,locator_builder_t* cons
       locator_interval_t* const interval = svector_iterator_get_element(&(locator_builder->intervals_iterator),locator_interval_t);
       locator_tag_t* const tag = locator_builder_interval_get_tag(locator_builder,interval);
       // Print interval information
-      tab_fprintf(stream,"       [%lu] ",i);
+      tab_fprintf(stream,"       [%"PRIu64"] ",i);
       locator_interval_print(stream,tag->tag,interval);
       // Next!
       ++i;

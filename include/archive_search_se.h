@@ -15,28 +15,28 @@
 /*
  * Setup
  */
-GEM_INLINE void archive_search_single_end_configure(archive_search_t* const archive_search,mm_search_t* const mm_search);
+void archive_search_single_end_configure(archive_search_t* const archive_search,mm_search_t* const mm_search);
 
 /*
  * SE Archive Search building blocks
  */
-GEM_INLINE void archive_search_generate_candidates(archive_search_t* const archive_search);
-GEM_INLINE void archive_search_verify_candidates(archive_search_t* const archive_search,matches_t* const matches);
-GEM_INLINE void archive_search_finish_search(archive_search_t* const archive_search,matches_t* const matches);
-GEM_INLINE void archive_search_copy_candidates(
+void archive_search_generate_candidates(archive_search_t* const archive_search);
+void archive_search_verify_candidates(archive_search_t* const archive_search,matches_t* const matches);
+void archive_search_finish_search(archive_search_t* const archive_search,matches_t* const matches);
+void archive_search_copy_candidates(
     archive_search_t* const archive_search,bpm_gpu_buffer_t* const bpm_gpu_buffer);
-GEM_INLINE void archive_search_retrieve_candidates(
+void archive_search_retrieve_candidates(
     archive_search_t* const archive_search,bpm_gpu_buffer_t* const bpm_gpu_buffer,matches_t* const matches);
 
 /*
  * Single-End Indexed Search (SE Online Approximate String Search)
  */
-GEM_INLINE void archive_search_single_end(archive_search_t* const archive_search,matches_t* const matches);
+void archive_search_single_end(archive_search_t* const archive_search,matches_t* const matches);
 
 /*
  * Compute Predictors
  */
-GEM_INLINE void archive_search_compute_predictors(
+void archive_search_compute_predictors(
     archive_search_t* const archive_search,matches_t* const matches,
     matches_predictors_t* const predictors);
 

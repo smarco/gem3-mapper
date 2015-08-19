@@ -26,7 +26,7 @@ void mapper_display_input_state(
     char* const end_tag =
         (sequence->attributes.end_info == paired_end1) ? "/1" :
       ( (sequence->attributes.end_info == paired_end2) ? "/2" : " " );
-    tab_fprintf(stream,"Sequence (File '%s' Line '%lu')\n",
+    tab_fprintf(stream,"Sequence (File '%s' Line '%"PRIu64"')\n",
         input_file_get_file_name(buffered_fasta_input->input_file),
         buffered_fasta_input->input_buffer->current_line_num - (has_qualities ? 4 : 2));
     if (has_qualities) {
@@ -68,7 +68,7 @@ void mapper_error_report(FILE* stream) {
       mapper_search_t* const mapper_search = g_mapper_searches + i; // Thread
       if (mapper_search->paired_end) {
         if (mapper_search->buffered_fasta_input == NULL) continue;
-        fprintf(stream,"GEM::Running-Thread (threadID = %lu) currently processing\n",mapper_search->thread_id);
+        fprintf(stream,"GEM::Running-Thread (threadID = %"PRIu64") currently processing\n",mapper_search->thread_id);
         // Display Input State
         const sequence_t* const sequence = archive_search_get_sequence(mapper_search->archive_search);
         tab_global_inc();
@@ -76,7 +76,7 @@ void mapper_error_report(FILE* stream) {
         tab_global_dec();
       } else {
         if (mapper_search->buffered_fasta_input_end1 == NULL || mapper_search->buffered_fasta_input_end2) continue;
-        fprintf(stream,"GEM::Running-Thread (threadID = %lu) currently processing\n",mapper_search->thread_id);
+        fprintf(stream,"GEM::Running-Thread (threadID = %"PRIu64") currently processing\n",mapper_search->thread_id);
         // Display Input State
         const sequence_t* const sequence_end1 = archive_search_get_sequence(mapper_search->archive_search_end1);
         const sequence_t* const sequence_end2 = archive_search_get_sequence(mapper_search->archive_search_end2);

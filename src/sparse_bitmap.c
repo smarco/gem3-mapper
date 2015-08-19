@@ -11,6 +11,8 @@
  */
 
 #include "sparse_bitmap.h"
+#include "mm.h"
+#include "fm.h"
 
 #define SPARSE_BITMAP_BLOCK_LENGTH UINT128_LENGTH
 #define SPARSE_BITMAP_BLOCK_MOD UINT64_LENGTH
@@ -123,9 +125,9 @@ GEM_INLINE void sparse_bitmap_print(FILE* const stream,sparse_bitmap_t* const sp
   const uint64_t bitmaps_size = sparse_bitmap->num_bitmaps*UINT64_SIZE;
   const uint64_t total_size = sparse_array_locator_get_size(sparse_bitmap->locator) + bitmaps_size;
   tab_fprintf(stream,"[GEM]>SparseBitmap\n");
-  tab_fprintf(stream,"  => Total.Size %lu (%2.3f%%)\n",total_size,PERCENTAGE(total_size,total_size));
-  tab_fprintf(stream,"  => Bitmaps.Num %lu\n",sparse_bitmap->num_bitmaps);
-  tab_fprintf(stream,"  => Bitmaps.Size %lu (%2.3f%%)\n",bitmaps_size,PERCENTAGE(bitmaps_size,total_size));
+  tab_fprintf(stream,"  => Total.Size %"PRIu64" (%2.3f%%)\n",total_size,PERCENTAGE(total_size,total_size));
+  tab_fprintf(stream,"  => Bitmaps.Num %"PRIu64"\n",sparse_bitmap->num_bitmaps);
+  tab_fprintf(stream,"  => Bitmaps.Size %"PRIu64" (%2.3f%%)\n",bitmaps_size,PERCENTAGE(bitmaps_size,total_size));
   sparse_array_locator_print(stream,sparse_bitmap->locator,display_content);
   if (display_content) {
     tab_fprintf(stream,"  => SparseBitmap.Content\n");
@@ -133,7 +135,7 @@ GEM_INLINE void sparse_bitmap_print(FILE* const stream,sparse_bitmap_t* const sp
     uint64_t i;
     const uint64_t num_bitmaps = sparse_bitmap->num_bitmaps;
     for (i=0;i<num_bitmaps;++i) {
-      fprintf(stream," %8lu",sparse_bitmap->bitmaps[i]); // Print bitmap
+      fprintf(stream," %8"PRIu64,sparse_bitmap->bitmaps[i]); // Print bitmap
       PRINT_COLUMN(stream,i,6," "); // Display in columns
     }
     PRINT_COLUMN_CLOSE(stream,i,6);

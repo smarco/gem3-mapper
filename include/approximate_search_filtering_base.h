@@ -25,29 +25,29 @@ typedef enum {
 /*
  * Region profile generation
  */
-GEM_INLINE void approximate_search_generate_region_profile(
+void approximate_search_generate_region_profile(
     approximate_search_t* const search,const region_profiling_strategy_t rp_strategy,
     mm_stack_t* const mm_stack);
 
 /*
  * Generate Candidates
  */
-GEM_INLINE void approximate_search_generate_exact_candidates(
+void approximate_search_generate_exact_candidates(
     approximate_search_t* const search,matches_t* const matches);
-GEM_INLINE void approximate_search_generate_inexact_candidates(
+void approximate_search_generate_inexact_candidates(
     approximate_search_t* const search,const bool dynamic_scheduling,
     const bool verify_ahead,matches_t* const matches);
 
 /*
  * Verify Candidates
  */
-GEM_INLINE void approximate_search_verify_candidates(approximate_search_t* const search,matches_t* const matches);
+void approximate_search_verify_candidates(approximate_search_t* const search,matches_t* const matches);
 
 /*
  * Neighborhood Generation (Inexact Search)
  */
-GEM_INLINE void approximate_search_neighborhood_exact_search(approximate_search_t* const search,matches_t* const matches);
-GEM_INLINE void approximate_search_neighborhood_inexact_search(approximate_search_t* const search,matches_t* const matches);
+void approximate_search_neighborhood_exact_search(approximate_search_t* const search,matches_t* const matches);
+void approximate_search_neighborhood_inexact_search(approximate_search_t* const search,matches_t* const matches);
 
 
 #endif /* APPROXIMATE_SEARCH_FILTERING_BASE_H_ */

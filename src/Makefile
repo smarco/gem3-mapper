@@ -64,7 +64,6 @@ MODULES+=mapper mapper_cuda mapper_bisulfite mapper_stats mapper_profile gem_cor
         
 SRCS=$(addsuffix .c, $(MODULES))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))
-GEM_CORE_LIB=$(FOLDER_LIB)/libgemcore_c.a
 
 all: devel
 

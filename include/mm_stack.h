@@ -65,25 +65,25 @@ typedef struct {
 /*
  * Setup
  */
-GEM_INLINE mm_stack_t* mm_stack_new(mm_slab_t* const mm_slab);
-GEM_INLINE void mm_stack_delete(mm_stack_t* const mm_stack);
+mm_stack_t* mm_stack_new(mm_slab_t* const mm_slab);
+void mm_stack_delete(mm_stack_t* const mm_stack);
 
 /*
  * State
  */
-GEM_INLINE void mm_stack_push_state(mm_stack_t* const mm_stack);
-GEM_INLINE void mm_stack_pop_state(mm_stack_t* const mm_stack,const bool reap_segments);
+void mm_stack_push_state(mm_stack_t* const mm_stack);
+void mm_stack_pop_state(mm_stack_t* const mm_stack,const bool reap_segments);
 
 /*
  * Align stack memory
  */
-GEM_INLINE void mm_stack_skip_align(mm_stack_t* const mm_stack,const uint64_t num_bytes);
+void mm_stack_skip_align(mm_stack_t* const mm_stack,const uint64_t num_bytes);
 
 /*
  * Allocators
  */
-GEM_INLINE void* mm_stack_memory_allocate(mm_stack_t* const mm_stack,const uint64_t num_bytes,const bool zero_mem);
-GEM_INLINE void mm_stack_free(mm_stack_t* const mm_stack);
+void* mm_stack_memory_allocate(mm_stack_t* const mm_stack,const uint64_t num_bytes,const bool zero_mem);
+void mm_stack_free(mm_stack_t* const mm_stack);
 
 #define mm_stack_alloc(mm_stack,type)                         ((type*)mm_stack_memory_allocate(mm_stack,sizeof(type),false))
 #define mm_stack_malloc(mm_stack,num_bytes)                   (       mm_stack_memory_allocate(mm_stack,(num_bytes),false))

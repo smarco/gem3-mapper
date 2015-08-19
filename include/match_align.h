@@ -35,7 +35,7 @@ typedef enum {
  *   @align_parameters->swg_penalties
  *   @match_trace->match_alignment.score
  */
-GEM_INLINE void match_align_exact(
+void match_align_exact(
     matches_t* const matches,match_trace_t* const match_trace,
     match_align_input_t* const align_input,match_align_parameters_t* const align_parameters);
 
@@ -51,7 +51,7 @@ GEM_INLINE void match_align_exact(
  *   @align_parameters->emulated_rc_search
  *   @align_parameters->allowed_enc
  */
-GEM_INLINE void match_align_hamming(
+void match_align_hamming(
     matches_t* const matches,match_trace_t* const match_trace,
     match_align_input_t* const align_input,match_align_parameters_t* const align_parameters);
 
@@ -69,7 +69,7 @@ GEM_INLINE void match_align_hamming(
  *   @align_parameters->max_error
  *   @align_parameters->left_gap_alignment
  */
-GEM_INLINE void match_align_levenshtein(
+void match_align_levenshtein(
     matches_t* const matches,match_trace_t* const match_trace,
     match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
     mm_stack_t* const mm_stack);
@@ -95,7 +95,7 @@ GEM_INLINE void match_align_levenshtein(
  *   @match_scaffold->scaffold_regions
  *   @match_scaffold->num_scaffold_regions
  */
-GEM_INLINE void match_align_smith_waterman_gotoh(
+void match_align_smith_waterman_gotoh(
     matches_t* const matches,match_trace_t* const match_trace,
     match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
     match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack);

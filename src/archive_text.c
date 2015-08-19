@@ -11,7 +11,7 @@
 /*
  * Archive-Text Model & Version
  */
-#define ARCHIVE_TEXT_MODEL_NO  1002ul
+#define ARCHIVE_TEXT_MODEL_NO  1002ull
 
 /*
  * Builder
@@ -154,12 +154,12 @@ GEM_INLINE void archive_text_print(FILE* const stream,const archive_text_t* cons
   tab_fprintf(stream,"  => Archive.HyperText           %s\n",(archive_text->hypertext)?"Yes":"No");
   tab_fprintf(stream,"  => Archive.RL.Text             %s\n",(archive_text->run_length)?"Yes":"No");
   tab_fprintf(stream,"  => Archive.ExplicitComplement  %s\n",(archive_text->explicit_complement)?"Yes":"No");
-  tab_fprintf(stream,"  => Archive.Length              %lu\n",dna_text_get_length(archive_text->enc_text));
-  tab_fprintf(stream,"    => Archive.Forward.Length    %lu\n",archive_text->forward_text_length);
-  tab_fprintf(stream,"  => Archive.Text.Size %lu MB (100%%)\n",CONVERT_B_TO_MB(archive_text_size));
-  tab_fprintf(stream,"    => Graph.Size      %lu MB (%2.3f%%)\n",CONVERT_B_TO_MB(graph_size),PERCENTAGE(graph_size,archive_text_size));
-  tab_fprintf(stream,"    => Text.Size       %lu MB (%2.3f%%)\n",CONVERT_B_TO_MB(text_size),PERCENTAGE(text_size,archive_text_size));
-  tab_fprintf(stream,"    => SampledRL.Size  %lu MB (%2.3f%%)\n",CONVERT_B_TO_MB(sampled_rl_size),PERCENTAGE(sampled_rl_size,archive_text_size));
+  tab_fprintf(stream,"  => Archive.Length              %"PRIu64"\n",dna_text_get_length(archive_text->enc_text));
+  tab_fprintf(stream,"    => Archive.Forward.Length    %"PRIu64"\n",archive_text->forward_text_length);
+  tab_fprintf(stream,"  => Archive.Text.Size %"PRIu64" MB (100%%)\n",CONVERT_B_TO_MB(archive_text_size));
+  tab_fprintf(stream,"    => Graph.Size      %"PRIu64" MB (%2.3f%%)\n",CONVERT_B_TO_MB(graph_size),PERCENTAGE(graph_size,archive_text_size));
+  tab_fprintf(stream,"    => Text.Size       %"PRIu64" MB (%2.3f%%)\n",CONVERT_B_TO_MB(text_size),PERCENTAGE(text_size,archive_text_size));
+  tab_fprintf(stream,"    => SampledRL.Size  %"PRIu64" MB (%2.3f%%)\n",CONVERT_B_TO_MB(sampled_rl_size),PERCENTAGE(sampled_rl_size,archive_text_size));
   /*
    * Components Display
    */

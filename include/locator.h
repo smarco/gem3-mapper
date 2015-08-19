@@ -115,77 +115,77 @@ typedef struct {
 /*
  * Loader/Setup
  */
-GEM_INLINE locator_t* locator_read_mem(mm_t* const memory_manager);
-GEM_INLINE void locator_setup_inverse_locator(locator_t* const locator);
-GEM_INLINE void locator_delete(locator_t* const locator);
+locator_t* locator_read_mem(mm_t* const memory_manager);
+void locator_setup_inverse_locator(locator_t* const locator);
+void locator_delete(locator_t* const locator);
 
 /*
  * Accessors
  */
 // [Locator]
-GEM_INLINE uint64_t locator_get_size(locator_t* const locator);
-GEM_INLINE locator_interval_t* locator_get_interval(const locator_t* const locator,const uint64_t interval_index);
+uint64_t locator_get_size(locator_t* const locator);
+locator_interval_t* locator_get_interval(const locator_t* const locator,const uint64_t interval_index);
 // [Locator Interval]
-GEM_INLINE char* locator_interval_get_tag(const locator_t* const locator,const locator_interval_t* const interval);
-GEM_INLINE uint64_t locator_interval_get_index_length(const locator_interval_t* const interval);
-GEM_INLINE uint64_t locator_interval_get_text_length(const locator_interval_t* const interval);
-GEM_INLINE bool locator_interval_is_forward(const locator_interval_t* const interval);
+char* locator_interval_get_tag(const locator_t* const locator,const locator_interval_t* const interval);
+uint64_t locator_interval_get_index_length(const locator_interval_t* const interval);
+uint64_t locator_interval_get_text_length(const locator_interval_t* const interval);
+bool locator_interval_is_forward(const locator_interval_t* const interval);
 
 /*
  * Builder
  */
-GEM_INLINE locator_builder_t* locator_builder_new(mm_slab_t* const mm_slab);
-GEM_INLINE void locator_builder_delete(locator_builder_t* const locator_builder);
-GEM_INLINE void locator_builder_write(fm_t* const file_manager,locator_builder_t* const locator_builder);
+locator_builder_t* locator_builder_new(mm_slab_t* const mm_slab);
+void locator_builder_delete(locator_builder_t* const locator_builder);
+void locator_builder_write(fm_t* const file_manager,locator_builder_t* const locator_builder);
 // [Builder accessors]
-GEM_INLINE uint64_t locator_builder_get_num_intervals(locator_builder_t* const locator_builder);
-GEM_INLINE uint64_t locator_builder_get_num_tags(locator_builder_t* const locator_builder);
-GEM_INLINE locator_interval_t* locator_builder_get_interval(locator_builder_t* const locator_builder,const uint64_t interval_index);
-GEM_INLINE locator_tag_t* locator_builder_get_tag(locator_builder_t* const locator_builder,const int64_t tag_id);
-GEM_INLINE locator_tag_t* locator_builder_locate_tag(locator_builder_t* const locator_builder,char* const tag);
-GEM_INLINE locator_tag_t* locator_builder_interval_get_tag(
+uint64_t locator_builder_get_num_intervals(locator_builder_t* const locator_builder);
+uint64_t locator_builder_get_num_tags(locator_builder_t* const locator_builder);
+locator_interval_t* locator_builder_get_interval(locator_builder_t* const locator_builder,const uint64_t interval_index);
+locator_tag_t* locator_builder_get_tag(locator_builder_t* const locator_builder,const int64_t tag_id);
+locator_tag_t* locator_builder_locate_tag(locator_builder_t* const locator_builder,char* const tag);
+locator_tag_t* locator_builder_interval_get_tag(
     locator_builder_t* const locator_builder,locator_interval_t* const interval);
 // [Builder intervals]
-GEM_INLINE void locator_builder_add_interval(
+void locator_builder_add_interval(
     locator_builder_t* const locator_builder,const int64_t tag_id,const uint64_t sequence_offset,
     const uint64_t interval_text_length,const uint64_t interval_index_length,const locator_interval_type type);
-GEM_INLINE void locator_builder_add_rc_interval(
+void locator_builder_add_rc_interval(
     locator_builder_t* const locator_builder,locator_interval_t* const locator_interval);
-GEM_INLINE int64_t locator_builder_add_sequence(
+int64_t locator_builder_add_sequence(
     locator_builder_t* const locator_builder,char* const tag,const uint64_t tag_length);
-GEM_INLINE void locator_builder_open_interval(locator_builder_t* const locator_builder,const int64_t tag_id);
-GEM_INLINE void locator_builder_close_interval(
+void locator_builder_open_interval(locator_builder_t* const locator_builder,const int64_t tag_id);
+void locator_builder_close_interval(
     locator_builder_t* const locator_builder,
     const uint64_t interval_text_length,const uint64_t interval_index_length,const locator_interval_type type);
 // [Builder skip text/index]
-GEM_INLINE void locator_builder_skip_index(locator_builder_t* const locator_builder,const uint64_t length);
+void locator_builder_skip_index(locator_builder_t* const locator_builder,const uint64_t length);
 
 /*
  * Locating functions
  */
-GEM_INLINE uint64_t locator_lookup_interval_index(const locator_t* const locator,const uint64_t index_position);
-GEM_INLINE locator_interval_t* locator_lookup_interval(const locator_t* const locator,const uint64_t index_position);
+uint64_t locator_lookup_interval_index(const locator_t* const locator,const uint64_t index_position);
+locator_interval_t* locator_lookup_interval(const locator_t* const locator,const uint64_t index_position);
 
 /*
  * Map functions (High level mapping)
  */
 // [Direct Locator] (Position-to-location mapping)
-GEM_INLINE void locator_map(const locator_t* const locator,const uint64_t index_position,location_t* const location);
+void locator_map(const locator_t* const locator,const uint64_t index_position,location_t* const location);
 // [Inverse Locator] (Location-to-position mapping)
-GEM_INLINE uint64_t inverse_locator_map(
+uint64_t inverse_locator_map(
     locator_t* const locator,const uint8_t* const tag,const strand_t strand,const int64_t text_position);
 
 /*
  * Display
  */
-GEM_INLINE void locator_print(FILE* const stream,const locator_t* const locator,const bool display_intervals);
-GEM_INLINE void locator_builder_print(FILE* const stream,locator_builder_t* const locator_builder,const bool display_intervals);
+void locator_print(FILE* const stream,const locator_t* const locator,const bool display_intervals);
+void locator_builder_print(FILE* const stream,locator_builder_t* const locator_builder,const bool display_intervals);
 
 /*
  * Error Messages
  */
-#define GEM_ERROR_LOCATOR_WRONG_MODEL_NO "Locator error. Wrong Locator Model %lu (Expected model %lu)"
-#define GEM_ERROR_LOCATOR_INTERVAL_INDEX_OOB "Locator error. Requested locator-interval index (%lu) out-of-bounds [%lu,%lu)]"
+#define GEM_ERROR_LOCATOR_WRONG_MODEL_NO "Locator error. Wrong Locator Model %"PRIu64" (Expected model %"PRIu64")"
+#define GEM_ERROR_LOCATOR_INTERVAL_INDEX_OOB "Locator error. Requested locator-interval index (%"PRIu64") out-of-bounds [%"PRIu64",%"PRIu64")]"
 #define GEM_ERROR_LOCATOR_INVERSE_NOT_FOUND "Locator error. Inverse location not found"
 
 #endif /* LOCATOR_H_ */

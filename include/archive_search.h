@@ -70,30 +70,30 @@ typedef struct {
 /*
  * Setup
  */
-GEM_INLINE archive_search_t* archive_search_new(
+archive_search_t* archive_search_new(
     archive_t* const archive,search_parameters_t* const search_parameters,
     select_parameters_t* const select_parameters);
-GEM_INLINE void archive_search_configure(
+void archive_search_configure(
     archive_search_t* const archive_search,const sequence_end_t sequence_end,
     mm_search_t* const mm_search);
-GEM_INLINE void archive_search_reset(archive_search_t* const archive_search);
-GEM_INLINE void archive_search_delete(archive_search_t* const archive_search);
+void archive_search_reset(archive_search_t* const archive_search);
+void archive_search_delete(archive_search_t* const archive_search);
 
 /*
  * Accessors
  */
-GEM_INLINE sequence_t* archive_search_get_sequence(const archive_search_t* const archive_search);
-GEM_INLINE uint64_t archive_search_get_search_canditates(const archive_search_t* const archive_search);
-GEM_INLINE uint64_t archive_search_get_search_exact_matches(const archive_search_t* const archive_search);
-GEM_INLINE uint64_t archive_search_get_max_region_length(const archive_search_t* const archive_search);
-GEM_INLINE uint64_t archive_search_get_num_zero_regions(const archive_search_t* const archive_search);
+sequence_t* archive_search_get_sequence(const archive_search_t* const archive_search);
+uint64_t archive_search_get_search_canditates(const archive_search_t* const archive_search);
+uint64_t archive_search_get_search_exact_matches(const archive_search_t* const archive_search);
+uint64_t archive_search_get_max_region_length(const archive_search_t* const archive_search);
+uint64_t archive_search_get_num_zero_regions(const archive_search_t* const archive_search);
 
-GEM_INLINE bool archive_search_finished(const archive_search_t* const archive_search);
+bool archive_search_finished(const archive_search_t* const archive_search);
 
 /*
  * Utils
  */
-GEM_INLINE void archive_search_hold_verification_candidates(archive_search_t* const archive_search);
-GEM_INLINE void archive_search_release_verification_candidates(archive_search_t* const archive_search);
+void archive_search_hold_verification_candidates(archive_search_t* const archive_search);
+void archive_search_release_verification_candidates(archive_search_t* const archive_search);
 
 #endif /* ARCHIVE_SEARCH_H_ */

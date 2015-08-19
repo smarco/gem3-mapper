@@ -63,7 +63,7 @@ GEM_INLINE mm_stack_t* mm_stack_new(mm_slab_t* const mm_slab) {
   // Allocate handler
   mm_stack_t* const mm_stack = mm_alloc(mm_stack_t);
   mm_stack->id = no++;
-  gem_cond_log(MM_STACK_LOG,"[GEM]> mm_stack(%lu).new()",mm_stack->id);
+  gem_cond_log(MM_STACK_LOG,"[GEM]> mm_stack(%"PRIu64").new()",mm_stack->id);
   // Initialize slab
   mm_stack->mm_slab = mm_slab;
   mm_stack->state = vector_new(MM_STACK_INITIAL_STATES,mm_stack_state_t); // Initialize stack state & dimensions
@@ -156,7 +156,7 @@ GEM_INLINE mm_stack_segment_t* mm_stack_add_segment(mm_stack_t* const mm_stack) 
     stack_segment = vector_get_last_elm(mm_stack->segments,mm_stack_segment_t);
     // Init segment
     mm_stack_segment_allocate(mm_stack,stack_segment);
-    gem_cond_log(MM_STACK_LOG,"[GEM]> mm_stack(%lu).addSegment(%lu x %lu MB)",
+    gem_cond_log(MM_STACK_LOG,"[GEM]> mm_stack(%"PRIu64").addSegment(%"PRIu64" x %"PRIu64" MB)",
         mm_stack->id,vector_get_used(mm_stack->segments),CONVERT_B_TO_MB(mm_stack->segment_size));
   }
   // Clear segment

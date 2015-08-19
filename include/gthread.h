@@ -20,8 +20,8 @@ typedef void* (*pthread_handler_t)(void*);
 /*
  * Thread ID Locator
  */
-inline void gem_thread_register_id(const uint64_t thread_id);
-inline int64_t gem_thread_get_thread_id();
+void gem_thread_register_id(const uint64_t thread_id);
+int64_t gem_thread_get_thread_id();
 #define gtid() gem_thread_get_thread_id()
 
 /*

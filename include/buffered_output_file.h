@@ -40,19 +40,19 @@ void buffered_output_file_close(buffered_output_file_t* const buffered_output);
 /*
  * Utils
  */
-GEM_INLINE void buffered_output_file_request_buffer(
+void buffered_output_file_request_buffer(
     buffered_output_file_t* const buffered_output,const uint32_t block_id);
-GEM_INLINE void buffered_output_file_dump_buffer(buffered_output_file_t* const buffered_output);
-GEM_INLINE void buffered_output_file_safety_dump_buffer(buffered_output_file_t* const buffered_output);
-GEM_INLINE void buffered_output_file_reserve(buffered_output_file_t* const buffered_output,const uint64_t num_chars);
+void buffered_output_file_dump_buffer(buffered_output_file_t* const buffered_output);
+void buffered_output_file_safety_dump_buffer(buffered_output_file_t* const buffered_output);
+void buffered_output_file_reserve(buffered_output_file_t* const buffered_output,const uint64_t num_chars);
 
 /*
  * Fast-printer
  */
-GEM_INLINE void bofprintf_uint64(buffered_output_file_t* const buffered_output,const uint64_t number);
-GEM_INLINE void bofprintf_int64(buffered_output_file_t* const buffered_output,const int64_t number);
-GEM_INLINE void bofprintf_char(buffered_output_file_t* const buffered_output,const char character);
-GEM_INLINE void bofprintf_string(
+void bofprintf_uint64(buffered_output_file_t* const buffered_output,const uint64_t number);
+void bofprintf_int64(buffered_output_file_t* const buffered_output,const int64_t number);
+void bofprintf_char(buffered_output_file_t* const buffered_output,const char character);
+void bofprintf_string(
     buffered_output_file_t* const buffered_output,const int string_length,const char* const string);
 #define bofprintf_string_literal(buffered_output,string) bofprintf_string(buffered_output,sizeof(string)-1,string)
 

@@ -212,7 +212,7 @@ GEM_INLINE mm_t* mm_bulk_mmalloc_temp(const uint64_t num_bytes) {
   mem_manager->fd = mkstemp(mem_manager->file_name);
   gem_cond_fatal_error__perror(mem_manager->fd==-1,SYS_MKSTEMP,mem_manager->file_name);
   gem_cond_fatal_error__perror(unlink(mem_manager->file_name),SYS_HANDLE_TMP); // Make it temporary
-  gem_log("Allocating memory mapped to disk: %s (%lu MBytes) [PhysicalMem Available %lu MBytes]",
+  gem_log("Allocating memory mapped to disk: %s (%"PRIu64" MBytes) [PhysicalMem Available %"PRIu64" MBytes]",
       mem_manager->file_name,num_bytes/1024/1024,mm_get_available_mem()/1024/1024);
   // Set the size of the temporary file (disk allocation)
   gem_cond_fatal_error__perror(lseek(mem_manager->fd,num_bytes-1,SEEK_SET)==-1,SYS_HANDLE_TMP);
@@ -615,10 +615,11 @@ GEM_INLINE int64_t mm_get_stat_meminfo(const char* const label,const uint64_t la
   gem_cond_fatal_error__perror(meminfo == NULL,MEM_STAT_MEMINFO,"no such file");
   // Parse /proc/meminfo
   char *line = NULL;
-  uint64_t size=0,line_length=0,chars_read=0;
+  uint64_t chars_read=0, size=0;
+  size_t line_length=0;
   while ((chars_read=getline(&line,&line_length,meminfo))!=-1) {
     if (strncmp(line,"Cached:",7)==0) {
-      sscanf(line,"%*s %lu",&size);
+      sscanf(line,"%*s %"PRIu64"",&size);
       free(line); fclose(meminfo);
       return size*1024; // Bytes
     }
@@ -644,7 +645,7 @@ GEM_INLINE int64_t mm_get_available_virtual_mem() {
   // Get Total Program Size
   uint64_t vm_size = 0;
   FILE *statm = fopen("/proc/self/statm", "r");
-  gem_cond_fatal_error(fscanf(statm,"%ld", &vm_size)==-1,MEM_PARSE_STATM);
+  gem_cond_fatal_error(fscanf(statm,"%"PRIu64,&vm_size)==-1,MEM_PARSE_STATM);
   vm_size = (vm_size + 1) * 1024;
   fclose(statm);
   // Get Virtual Memory Limit

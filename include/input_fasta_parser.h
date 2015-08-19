@@ -25,24 +25,24 @@
 /*
  * FASTQ File basics
  */
-GEM_INLINE bool input_file_test_fasta(
+bool input_file_test_fasta(
     input_file_t* const input_file,fasta_file_format_t* const fasta_file_format,const bool show_errors);
-GEM_INLINE void input_fasta_parser_prompt_error(
+void input_fasta_parser_prompt_error(
     buffered_input_file_t* const buffered_fasta_input,
     uint64_t line_num,uint64_t column_pos,const error_code_t error_code);
-GEM_INLINE void input_fasta_parser_next_record(
+void input_fasta_parser_next_record(
     buffered_input_file_t* const buffered_fasta_input,char* const line_start);
 
 /*
  * Accessors
  */
-GEM_INLINE bool input_fasta_is_fasta(input_file_t* const input_file);
-GEM_INLINE bool input_fasta_is_fastq(input_file_t* const input_file);
+bool input_fasta_is_fasta(input_file_t* const input_file);
+bool input_fasta_is_fastq(input_file_t* const input_file);
 
 /*
  * Read Parser
  */
-GEM_INLINE error_code_t input_fasta_parse_sequence(
+error_code_t input_fasta_parse_sequence(
     buffered_input_file_t* const buffered_fasta_input,sequence_t* const seq_read,
     const bool strictly_normalized,const bool try_recovery,const bool check_input_buffer);
 

@@ -584,7 +584,11 @@ GEM_INLINE void fm_prefetch_next(fm_t* const file_manager,const uint64_t num_byt
   // Read
   switch (file_manager->file_type) {
     case FM_REGULAR_FILE:
+#ifdef __MACH__
+      // NOP
+#else
       posix_fadvise(file_manager->fd,file_manager->byte_position,num_bytes,POSIX_FADV_WILLNEED);
+#endif
       break;
     default:
       break;

@@ -475,18 +475,18 @@ GEM_INLINE void graph_text_builder_text_link_print(
     FILE* const stream,graph_link_t* const graph_link,locator_builder_t* const locator) {
   if (graph_link->link==NULL) { // SNVs
     fprintf(stream,"{"); edge_attributes_print(stream,graph_link->attributes); fprintf(stream,"}");
-    fprintf(stream,"(%s:%c:%lu)",
+    fprintf(stream,"(%s:%c:%"PRIu64")",
         locator_builder_get_tag(locator,graph_link->tag_id)->tag,
         (graph_link->tag_id > 0) ? '+' : '-',graph_link->position_text);
   } else { // General Link
     graph_link_t* link = graph_link;
     fprintf(stream,"{"); edge_attributes_print(stream,link->attributes); fprintf(stream,"}");
-    fprintf(stream,"(%s:%c:%lu)",
+    fprintf(stream,"(%s:%c:%"PRIu64")",
         locator_builder_get_tag(locator,link->tag_id)->tag,
         (link->tag_id > 0) ? '+' : '-',link->position_text);
     link = graph_link->link;
     fprintf(stream,"\t{"); edge_attributes_print(stream,link->attributes); fprintf(stream,"}");
-    fprintf(stream,"(%s:%c:%lu)",
+    fprintf(stream,"(%s:%c:%"PRIu64")",
         locator_builder_get_tag(locator,link->tag_id)->tag,
         (link->tag_id > 0) ? '+' : '-',link->position_text);
   }
@@ -494,14 +494,14 @@ GEM_INLINE void graph_text_builder_text_link_print(
 GEM_INLINE void graph_text_builder_index_link_print(FILE* const stream,graph_link_t* const graph_link) {
   if (graph_link->link==NULL) { // SNVs
     fprintf(stream,"{"); edge_attributes_print(stream,graph_link->attributes); fprintf(stream,"}");
-    fprintf(stream,"(idx:%lu)",graph_link->position_index);
+    fprintf(stream,"(idx:%"PRIu64")",graph_link->position_index);
   } else { // General Link
     graph_link_t* link = graph_link;
     fprintf(stream,"{"); edge_attributes_print(stream,link->attributes); fprintf(stream,"}");
-    fprintf(stream,"(idx:%lu)",link->position_index);
+    fprintf(stream,"(idx:%"PRIu64")",link->position_index);
     link = graph_link->link;
     fprintf(stream,"\t{"); edge_attributes_print(stream,link->attributes); fprintf(stream,"}");
-    fprintf(stream,"(idx:%lu)",link->position_index);
+    fprintf(stream,"(idx:%"PRIu64")",link->position_index);
   }
 }
 GEM_INLINE void graph_text_builder_print(
@@ -511,9 +511,9 @@ GEM_INLINE void graph_text_builder_print(
   GRAPH_TEXT_BUILDER_CHECK(graph_builder);
   // Print graph info
   tab_fprintf(stream,"[GEM]>Graph.Builder\n");
-  tab_fprintf(stream,"  => Num.Links  %lu\n",svector_get_used(graph_builder->graph_links));
-  tab_fprintf(stream,"  => Size.Links %lu MB\n",CONVERT_B_TO_MB(graph_builder->link_table_length*sizeof(graph_link_t)));
-  tab_fprintf(stream,"  => Size.Edges %lu MB\n",CONVERT_B_TO_MB(graph_builder->link_table_length*sizeof(edge_t)));
+  tab_fprintf(stream,"  => Num.Links  %"PRIu64"\n",svector_get_used(graph_builder->graph_links));
+  tab_fprintf(stream,"  => Size.Links %"PRIu64" MB\n",CONVERT_B_TO_MB(graph_builder->link_table_length*sizeof(graph_link_t)));
+  tab_fprintf(stream,"  => Size.Edges %"PRIu64" MB\n",CONVERT_B_TO_MB(graph_builder->link_table_length*sizeof(edge_t)));
   // Display all links
   if (display_links) {
     tab_fprintf(stream,"  => Graph.Builder.links\n");
@@ -542,9 +542,9 @@ GEM_INLINE void graph_text_builder_link_table_print(
   // Print graph info
   const uint64_t graph_links_table_size = svector_get_used(graph_builder->graph_links);
   tab_fprintf(stream,"[GEM]>Graph.Builder {Sorted}\n");
-  tab_fprintf(stream,"  => Num.Links  %lu\n",graph_links_table_size);
-  tab_fprintf(stream,"  => Size.Links %lu MB\n",CONVERT_B_TO_MB(graph_builder->link_table_length*sizeof(graph_link_t)));
-  tab_fprintf(stream,"  => Size.Edges %lu MB\n",CONVERT_B_TO_MB(graph_builder->link_table_length*sizeof(edge_t)));
+  tab_fprintf(stream,"  => Num.Links  %"PRIu64"\n",graph_links_table_size);
+  tab_fprintf(stream,"  => Size.Links %"PRIu64" MB\n",CONVERT_B_TO_MB(graph_builder->link_table_length*sizeof(graph_link_t)));
+  tab_fprintf(stream,"  => Size.Edges %"PRIu64" MB\n",CONVERT_B_TO_MB(graph_builder->link_table_length*sizeof(edge_t)));
   // Display all links
   if (display_links) {
     tab_fprintf(stream,"  => Graph.Builder.links\n");

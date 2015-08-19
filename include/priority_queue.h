@@ -28,9 +28,9 @@ typedef struct {
 /*
  * Setup
  */
-GEM_INLINE pqueue_t* pqueue_new(uint64_t num_initial_elements);
-GEM_INLINE void pqueue_clear(pqueue_t* const pqueue);
-GEM_INLINE void pqueue_delete(pqueue_t* const pqueue);
+pqueue_t* pqueue_new(uint64_t num_initial_elements);
+void pqueue_clear(pqueue_t* const pqueue);
+void pqueue_delete(pqueue_t* const pqueue);
 
 /*
  * Accessors
@@ -38,13 +38,13 @@ GEM_INLINE void pqueue_delete(pqueue_t* const pqueue);
 #define pqueue_get_num_elements(pqueue) ((pqueue)->num_elements-1)
 #define pqueue_is_empty(pqueue) (pqueue_get_num_elements(pqueue)==0)
 
-GEM_INLINE uint64_t pqueue_top_priority(pqueue_t* const pqueue);
-GEM_INLINE void* pqueue_top_priority_element(pqueue_t* const pqueue);
+uint64_t pqueue_top_priority(pqueue_t* const pqueue);
+void* pqueue_top_priority_element(pqueue_t* const pqueue);
 
 #define pqueue_push(pqueue,element,priority) pqueue_push_(pqueue,(void* const)element,priority)
 #define pqueue_pop(pqueue,type) ((type*)pqueue_pop_(pqueue))
-GEM_INLINE void pqueue_push_(pqueue_t* const pqueue,void* const element,const uint64_t priority);
-GEM_INLINE void* pqueue_pop_(pqueue_t* const pqueue);
+void pqueue_push_(pqueue_t* const pqueue,void* const element,const uint64_t priority);
+void* pqueue_pop_(pqueue_t* const pqueue);
 
 
 #endif /* PRIORITY_QUEUE_H_ */

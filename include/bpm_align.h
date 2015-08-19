@@ -68,7 +68,7 @@ typedef struct {
 /*
  * Compile Pattern
  */
-GEM_INLINE void bpm_pattern_compile(
+void bpm_pattern_compile(
     bpm_pattern_t* const bpm_pattern,uint8_t* const pattern,
     const uint64_t pattern_length,const uint64_t max_error,mm_stack_t* const mm_stack);
 
@@ -77,22 +77,22 @@ GEM_INLINE void bpm_pattern_compile(
  *   Myers' Fast Bit-Vector algorithm to compute levenshtein distance
  */
 // Raw
-GEM_INLINE bool bpm_get_distance_raw(
+bool bpm_get_distance_raw(
     bpm_pattern_t* const bpm_pattern,const uint8_t* const text,const uint64_t text_length,
     uint64_t* const position,uint64_t* const distance);
 // Cut-off
-GEM_INLINE bool bpm_get_distance_cutoff(
+bool bpm_get_distance_cutoff(
     const bpm_pattern_t* const bpm_pattern,
     const uint8_t* const text,const uint64_t text_length,
     uint64_t* const match_end_column,uint64_t* const distance,
     const uint64_t max_distance,const bool quick_abandon);
 // BPM Tiled (bound)
-GEM_INLINE void bpm_get_distance_cutoff_tiled(
+void bpm_get_distance_cutoff_tiled(
     bpm_pattern_t* const bpm_pattern,const uint8_t* const text,const uint64_t text_length,
     uint64_t* const levenshtein_distance,uint64_t* const levenshtein_match_end_column,
     const uint64_t max_error);
 // Find all local minimums
-GEM_INLINE uint64_t bpm_search_all(
+uint64_t bpm_search_all(
     const bpm_pattern_t* const bpm_pattern,vector_t* const filtering_regions,
     const uint64_t text_trace_offset,const uint64_t index_position,
     const uint8_t* const text,const uint64_t text_length,const uint64_t max_distance);
@@ -110,7 +110,7 @@ GEM_INLINE uint64_t bpm_search_all(
  *   @align_input->text
  *   @align_input->text_length
  */
-GEM_INLINE void bpm_align_compute_matrix(
+void bpm_align_compute_matrix(
     match_align_input_t* const align_input,const uint64_t max_distance,
     bpm_align_matrix_t* const bpm_align_matrix,mm_stack_t* const mm_stack);
 /*
@@ -124,7 +124,7 @@ GEM_INLINE void bpm_align_compute_matrix(
  *   @bpm_align_matrix->min_score
  *   @match_alignment->match_position (Adjusted)
  */
-GEM_INLINE void bpm_align_backtrack_matrix(
+void bpm_align_backtrack_matrix(
     match_align_input_t* const align_input,const bool left_gap_alignment,
     bpm_align_matrix_t* const bpm_align_matrix,match_alignment_t* const match_alignment,
     vector_t* const cigar_vector);
@@ -136,7 +136,7 @@ GEM_INLINE void bpm_align_backtrack_matrix(
  *   @align_input->text_length
  *   @match_alignment->match_position (Adjusted)
  */
-GEM_INLINE void bpm_align_match(
+void bpm_align_match(
     match_align_input_t* const align_input,const uint64_t max_distance,
     const bool left_gap_alignment,match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,mm_stack_t* const mm_stack);

@@ -16,11 +16,11 @@
  * Profiler Printers
  */
 // Counters
-#define PRIcounter "lu(#%lu,m%lu,M%lu,{%.2f})"
+#define PRIcounter "lu(#%"PRIu64",m%"PRIu64",M%"PRIu64",{%.2f})"
 #define PRIcounterVal(counter) \
   COUNTER_GET_TOTAL(counter),COUNTER_GET_NUM_SAMPLES(counter), \
   COUNTER_GET_MIN(counter),COUNTER_GET_MAX(counter),COUNTER_GET_MEAN(counter)
-#define PRIcounterX "lu(#%lu,m%lu,M%lu,{%.2f,%.2f,%.2f})"
+#define PRIcounterX "lu(#%"PRIu64",m%"PRIu64",M%"PRIu64",{%.2f,%.2f,%.2f})"
 #define PRIcounterXVal(counter) \
   COUNTER_GET_TOTAL(counter),COUNTER_GET_NUM_SAMPLES(counter), \
   COUNTER_GET_MIN(counter),COUNTER_GET_MAX(counter), \
@@ -40,28 +40,28 @@ typedef struct {
   double m_newS;
 } gem_counter_t;
 
-GEM_INLINE void COUNTER_RESET(gem_counter_t* const counter);
-GEM_INLINE void COUNTER_ADD(gem_counter_t* const counter,const uint64_t amount);
+void COUNTER_RESET(gem_counter_t* const counter);
+void COUNTER_ADD(gem_counter_t* const counter,const uint64_t amount);
 
-GEM_INLINE uint64_t COUNTER_GET_TOTAL(const gem_counter_t* const counter);
-GEM_INLINE uint64_t COUNTER_GET_NUM_SAMPLES(const gem_counter_t* const counter);
-GEM_INLINE uint64_t COUNTER_GET_MIN(const gem_counter_t* const counter);
-GEM_INLINE uint64_t COUNTER_GET_MAX(const gem_counter_t* const counter);
-GEM_INLINE double COUNTER_GET_MEAN(const gem_counter_t* const counter);
-GEM_INLINE double COUNTER_GET_VARIANCE(const gem_counter_t* const counter);
-GEM_INLINE double COUNTER_GET_STDDEV(const gem_counter_t* const counter);
+uint64_t COUNTER_GET_TOTAL(const gem_counter_t* const counter);
+uint64_t COUNTER_GET_NUM_SAMPLES(const gem_counter_t* const counter);
+uint64_t COUNTER_GET_MIN(const gem_counter_t* const counter);
+uint64_t COUNTER_GET_MAX(const gem_counter_t* const counter);
+double COUNTER_GET_MEAN(const gem_counter_t* const counter);
+double COUNTER_GET_VARIANCE(const gem_counter_t* const counter);
+double COUNTER_GET_STDDEV(const gem_counter_t* const counter);
 
-GEM_INLINE void COUNTER_COMBINE_MAX(gem_counter_t* const counter_dst,gem_counter_t* const counter_src);
-GEM_INLINE void COUNTER_COMBINE_MIN(gem_counter_t* const counter_dst,gem_counter_t* const counter_src);
-GEM_INLINE void COUNTER_COMBINE_MEAN(gem_counter_t* const counter_dst,gem_counter_t* const counter_src);
+void COUNTER_COMBINE_MAX(gem_counter_t* const counter_dst,gem_counter_t* const counter_src);
+void COUNTER_COMBINE_MIN(gem_counter_t* const counter_dst,gem_counter_t* const counter_src);
+void COUNTER_COMBINE_MEAN(gem_counter_t* const counter_dst,gem_counter_t* const counter_src);
 
-GEM_INLINE void COUNTER_PRINT(
+void COUNTER_PRINT(
     FILE* const stream,const gem_counter_t* const counter,
     const gem_counter_t* const ref_counter,const char* const units,const bool full_report);
-GEM_INLINE void SAMPLER_PRINT(
+void SAMPLER_PRINT(
     FILE* const stream,const gem_counter_t* const counter,
     const gem_counter_t* const ref_counter,const char* const units);
-GEM_INLINE void PERCENTAGE_PRINT(FILE* const stream,const gem_counter_t* const counter);
+void PERCENTAGE_PRINT(FILE* const stream,const gem_counter_t* const counter);
 
 /*
  * Timers
@@ -81,22 +81,22 @@ typedef struct {
 #define TIMER_CONVERT_NS_TO_M(time_ns)  ((double)(time_ns)/1E9/60.0)
 #define TIMER_CONVERT_NS_TO_H(time_ns)  ((double)(time_ns)/1E9/3600.0)
 
-GEM_INLINE void TIMER_START(gem_timer_t* const timer);
-GEM_INLINE void TIMER_STOP(gem_timer_t* const timer);
-GEM_INLINE void TIMER_PAUSE(gem_timer_t* const timer);
-GEM_INLINE void TIMER_CONTINUE(gem_timer_t* const timer);
-GEM_INLINE void TIMER_RESET(gem_timer_t* const timer);
-GEM_INLINE void TIMER_RESTART(gem_timer_t* const timer);
+void TIMER_START(gem_timer_t* const timer);
+void TIMER_STOP(gem_timer_t* const timer);
+void TIMER_PAUSE(gem_timer_t* const timer);
+void TIMER_CONTINUE(gem_timer_t* const timer);
+void TIMER_RESET(gem_timer_t* const timer);
+void TIMER_RESTART(gem_timer_t* const timer);
 
-GEM_INLINE uint64_t TIMER_GET_TOTAL_NS(const gem_timer_t* const timer);
-GEM_INLINE uint64_t TIMER_GET_NUM_SAMPLES(const gem_timer_t* const timer);
-GEM_INLINE uint64_t TIMER_GET_MIN_NS(const gem_timer_t* const timer);
-GEM_INLINE uint64_t TIMER_GET_MAX_NS(const gem_timer_t* const timer);
-GEM_INLINE uint64_t TIMER_GET_MEAN(const gem_timer_t* const timer);
-GEM_INLINE uint64_t TIMER_GET_VARIANCE(const gem_timer_t* const timer);
-GEM_INLINE uint64_t TIMER_GET_STDDEV(const gem_timer_t* const timer);
+uint64_t TIMER_GET_TOTAL_NS(const gem_timer_t* const timer);
+uint64_t TIMER_GET_NUM_SAMPLES(const gem_timer_t* const timer);
+uint64_t TIMER_GET_MIN_NS(const gem_timer_t* const timer);
+uint64_t TIMER_GET_MAX_NS(const gem_timer_t* const timer);
+uint64_t TIMER_GET_MEAN(const gem_timer_t* const timer);
+uint64_t TIMER_GET_VARIANCE(const gem_timer_t* const timer);
+uint64_t TIMER_GET_STDDEV(const gem_timer_t* const timer);
 
-GEM_INLINE void TIMER_PRINT(
+void TIMER_PRINT(
     FILE* const stream,const gem_timer_t* const timer,const gem_timer_t* const ref_timer);
 
 #define TIMER_GET_TOTAL_US(timer) TIMER_CONVERT_NS_TO_US(TIMER_GET_TOTAL_NS(timer))
@@ -116,19 +116,19 @@ typedef struct {
   uint64_t accumulated;
 } gem_reference_counter_t;
 
-GEM_INLINE void RCOUNTER_START(gem_reference_counter_t* const rcounter,const uint64_t reference);
-GEM_INLINE void RCOUNTER_STOP(gem_reference_counter_t* const rcounter,const uint64_t reference);
-GEM_INLINE void RCOUNTER_PAUSE(gem_reference_counter_t* const rcounter,const uint64_t reference);
-GEM_INLINE void RCOUNTER_CONTINUE(gem_reference_counter_t* const rcounter,const uint64_t reference);
-GEM_INLINE void RCOUNTER_RESET(gem_reference_counter_t* const rcounter);
-GEM_INLINE void RCOUNTER_RESTART(gem_reference_counter_t* const rcounter);
-GEM_INLINE uint64_t RCOUNTER_GET_TOTAL(gem_reference_counter_t* const rcounter);
-GEM_INLINE uint64_t RCOUNTER_GET_NUM_SAMPLES(gem_reference_counter_t* const rcounter);
-GEM_INLINE uint64_t RCOUNTER_GET_MIN(gem_reference_counter_t* const rcounter);
-GEM_INLINE uint64_t RCOUNTER_GET_MAX(gem_reference_counter_t* const rcounter);
-GEM_INLINE uint64_t RCOUNTER_GET_MEAN(gem_reference_counter_t* const rcounter);
-GEM_INLINE uint64_t RCOUNTER_GET_VARIANCE(gem_reference_counter_t* const rcounter);
-GEM_INLINE uint64_t RCOUNTER_GET_STDDEV(gem_reference_counter_t* const rcounter);
+void RCOUNTER_START(gem_reference_counter_t* const rcounter,const uint64_t reference);
+void RCOUNTER_STOP(gem_reference_counter_t* const rcounter,const uint64_t reference);
+void RCOUNTER_PAUSE(gem_reference_counter_t* const rcounter,const uint64_t reference);
+void RCOUNTER_CONTINUE(gem_reference_counter_t* const rcounter,const uint64_t reference);
+void RCOUNTER_RESET(gem_reference_counter_t* const rcounter);
+void RCOUNTER_RESTART(gem_reference_counter_t* const rcounter);
+uint64_t RCOUNTER_GET_TOTAL(gem_reference_counter_t* const rcounter);
+uint64_t RCOUNTER_GET_NUM_SAMPLES(gem_reference_counter_t* const rcounter);
+uint64_t RCOUNTER_GET_MIN(gem_reference_counter_t* const rcounter);
+uint64_t RCOUNTER_GET_MAX(gem_reference_counter_t* const rcounter);
+uint64_t RCOUNTER_GET_MEAN(gem_reference_counter_t* const rcounter);
+uint64_t RCOUNTER_GET_VARIANCE(gem_reference_counter_t* const rcounter);
+uint64_t RCOUNTER_GET_STDDEV(gem_reference_counter_t* const rcounter);
 
 /*
  * Profiler
@@ -147,62 +147,62 @@ typedef enum { reduce_sum, reduce_max, reduce_min, reduce_mean, reduce_sample } 
 /*
  * Setup
  */
-GEM_INLINE void PROF_NEW(const uint64_t num_threads);
-GEM_INLINE void PROF_DELETE();
+void PROF_NEW(const uint64_t num_threads);
+void PROF_DELETE();
 
 /*
  * PROFILE-TIME functions
  */
-GEM_INLINE void PROF_START_TIMER(const uint64_t timer);
-GEM_INLINE void PROF_STOP_TIMER(const uint64_t timer);
-GEM_INLINE void PROF_PAUSE_TIMER(const uint64_t timer);
-GEM_INLINE void PROF_CONTINUE_TIMER(const uint64_t timer);
-GEM_INLINE void PROF_RESET_TIMER(const uint64_t timer);
-GEM_INLINE gem_timer_t* PROF_GET_TIMER(const uint64_t timer);
+void PROF_START_TIMER(const uint64_t timer);
+void PROF_STOP_TIMER(const uint64_t timer);
+void PROF_PAUSE_TIMER(const uint64_t timer);
+void PROF_CONTINUE_TIMER(const uint64_t timer);
+void PROF_RESET_TIMER(const uint64_t timer);
+gem_timer_t* PROF_GET_TIMER(const uint64_t timer);
 
 /*
  * PROFILE-COUNTERS functions
  */
-GEM_INLINE void PROF_RESET_COUNTER(const uint64_t counter);
-GEM_INLINE void PROF_ADD_COUNTER(const uint64_t counter,const uint64_t value);
-GEM_INLINE void PROF_INC_COUNTER(const uint64_t counter);
-GEM_INLINE gem_counter_t* PROF_GET_COUNTER(const uint64_t counter);
+void PROF_RESET_COUNTER(const uint64_t counter);
+void PROF_ADD_COUNTER(const uint64_t counter,const uint64_t value);
+void PROF_INC_COUNTER(const uint64_t counter);
+gem_counter_t* PROF_GET_COUNTER(const uint64_t counter);
 
 /*
  * PROFILE-RANKS functions
  */
-GEM_INLINE void PROF_START_RANK(const uint64_t rank);
-GEM_INLINE void PROF_STOP_RANK(const uint64_t rank);
-GEM_INLINE void PROF_PAUSE_RANK(const uint64_t rank);
-GEM_INLINE void PROF_CONTINUE_RANK(const uint64_t rank);
-GEM_INLINE void PROF_RESET_RANK(const uint64_t rank);
-GEM_INLINE gem_counter_t* PROF_GET_RANK(const uint64_t rank);
+void PROF_START_RANK(const uint64_t rank);
+void PROF_STOP_RANK(const uint64_t rank);
+void PROF_PAUSE_RANK(const uint64_t rank);
+void PROF_CONTINUE_RANK(const uint64_t rank);
+void PROF_RESET_RANK(const uint64_t rank);
+gem_counter_t* PROF_GET_RANK(const uint64_t rank);
 
 /*
  * PROFILE-COMBINED (TIME/RANKS) functions
  */
-GEM_INLINE void PROF_START(const uint64_t timer__ranks);
-GEM_INLINE void PROF_STOP(const uint64_t timer__ranks);
-GEM_INLINE void PROF_PAUSE(const uint64_t timer__ranks);
-GEM_INLINE void PROF_CONTINUE(const uint64_t timer__ranks);
-GEM_INLINE void PROF_RESET(const uint64_t timer__ranks);
+void PROF_START(const uint64_t timer__ranks);
+void PROF_STOP(const uint64_t timer__ranks);
+void PROF_PAUSE(const uint64_t timer__ranks);
+void PROF_CONTINUE(const uint64_t timer__ranks);
+void PROF_RESET(const uint64_t timer__ranks);
 
 /*
  * Display statistics
  */
-GEM_INLINE uint64_t PROF_COUNT_PERCENTAGE(const uint64_t counter,const uint64_t total_counter);
-GEM_INLINE double PROF_COUNT_DIV(const uint64_t counter1,const uint64_t counter2);
-GEM_INLINE double PROF_TIME_PERCENTAGE(const uint64_t timer,const uint64_t total_timer);
-GEM_INLINE double PROF_TIME_PER_CALL(const uint64_t timer); // ms/call
+uint64_t PROF_COUNT_PERCENTAGE(const uint64_t counter,const uint64_t total_counter);
+double PROF_COUNT_DIV(const uint64_t counter1,const uint64_t counter2);
+double PROF_TIME_PERCENTAGE(const uint64_t timer,const uint64_t total_timer);
+double PROF_TIME_PER_CALL(const uint64_t timer); // ms/call
 
 /*
  * Utils
  */
-GEM_INLINE void PROF_REDUCE_SUM();
-GEM_INLINE void PROF_REDUCE_MAX();
-GEM_INLINE void PROF_REDUCE_MIN();
-GEM_INLINE void PROF_REDUCE_MEAN();
-GEM_INLINE void PROF_REDUCE_SAMPLE();
+void PROF_REDUCE_SUM();
+void PROF_REDUCE_MAX();
+void PROF_REDUCE_MIN();
+void PROF_REDUCE_MEAN();
+void PROF_REDUCE_SAMPLE();
 
 #else /* GEM_PROFILE DISABLED */
 // Profile Block

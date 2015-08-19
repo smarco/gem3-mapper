@@ -180,7 +180,7 @@ GEM_INLINE void output_map_alignment_pretty(
     uint8_t* const key,const uint64_t key_length,uint8_t* const text,
     const uint64_t text_length,mm_stack_t* const mm_stack) {
   mm_stack_push_state(mm_stack);
-  fprintf(stream,"%s:%lu:%c:",match_trace->sequence_name,
+  fprintf(stream,"%s:%"PRIu64":%c:",match_trace->sequence_name,
       match_trace->text_position,(match_trace->strand==Forward)?'+':'-');
   char* const key_alg = mm_stack_calloc(mm_stack,2*key_length,char,true);
   char* const ops_alg = mm_stack_calloc(mm_stack,2*key_length,char,true);

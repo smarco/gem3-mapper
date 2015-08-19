@@ -20,7 +20,7 @@
 
 typedef enum { mm_pool_128KB , mm_pool_2MB , mm_pool_8MB, mm_pool_32MB, mm_pool_128MB } mm_pool_type_t;
 
-GEM_INLINE mm_slab_t* mm_pool_get_slab(const mm_pool_type_t mm_pool_type);
-GEM_INLINE void mm_pool_delete();
+mm_slab_t* mm_pool_get_slab(const mm_pool_type_t mm_pool_type);
+void mm_pool_delete();
 
 #endif /* MM_POOL_H_ */

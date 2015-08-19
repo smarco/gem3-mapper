@@ -108,7 +108,7 @@ GEM_INLINE bool sparse_array_locator_get_erank_if_marked(
   SPARSE_ARRAY_LOCATOR_CHECK(locator);
   SPARSE_ARRAY_LOCATOR_GET_MINOR_BLOCK_LOCATION(position,block_pos,block_mod);
   const uint64_t* const block_addr = locator->bitmap + block_pos;
-  const uint64_t  const block = *block_addr;
+  const uint64_t block = *block_addr;
   // Check if marked
   if ((block & (UINT64_ONE_MASK << block_mod))) {
     const uint16_t* const block_counter = ((uint16_t*)block_addr) + 3;
@@ -126,7 +126,7 @@ GEM_INLINE bool sparse_array_locator_get_erank__marked(
   SPARSE_ARRAY_LOCATOR_CHECK(locator);
   SPARSE_ARRAY_LOCATOR_GET_MINOR_BLOCK_LOCATION(position,block_pos,block_mod);
   const uint64_t* const block_addr = locator->bitmap + block_pos;
-  const uint64_t  const block = *block_addr;
+  const uint64_t block = *block_addr;
   // Check if marked
   const uint16_t* const block_counter = ((uint16_t*)block_addr) + 3;
   const uint64_t block_masked = block & uint64_erank_mask(block_mod);
@@ -375,26 +375,26 @@ GEM_INLINE void sparse_array_locator_print(
   // Display Meta-Data information
   const uint64_t total_size = locator->total_size;
   tab_fprintf(stream,"[GEM]>SparseArrayLocator\n");
-  tab_fprintf(stream,"  => Length %lu\n",locator->total_length);
-  tab_fprintf(stream,"  => Blocks.Mayor %lu\n",locator->num_mayor_blocks);
-  tab_fprintf(stream,"  => Blocks.Minor %lu\n",locator->num_minor_blocks);
-  tab_fprintf(stream,"  => Total.Size %lu MB (%2.3f%%)\n",CONVERT_B_TO_MB(total_size),PERCENTAGE(total_size,total_size));
+  tab_fprintf(stream,"  => Length %"PRIu64"\n",locator->total_length);
+  tab_fprintf(stream,"  => Blocks.Mayor %"PRIu64"\n",locator->num_mayor_blocks);
+  tab_fprintf(stream,"  => Blocks.Minor %"PRIu64"\n",locator->num_minor_blocks);
+  tab_fprintf(stream,"  => Total.Size %"PRIu64" MB (%2.3f%%)\n",CONVERT_B_TO_MB(total_size),PERCENTAGE(total_size,total_size));
   const uint64_t mayor_counters_size = locator->num_mayor_blocks*SAL_MAYOR_COUNTER_SIZE;
-  tab_fprintf(stream,"    => MayorCounter.Size %lu MB (%2.3f%%)\n",
+  tab_fprintf(stream,"    => MayorCounter.Size %"PRIu64" MB (%2.3f%%)\n",
       CONVERT_B_TO_MB(mayor_counters_size),PERCENTAGE(mayor_counters_size,total_size));
   const uint64_t minor_counters_size = locator->num_minor_blocks*SAL_MINOR_COUNTER_LENGTH/8;
-  tab_fprintf(stream,"    => MinorCounter.Size %lu MB (%2.3f%%)\n",
+  tab_fprintf(stream,"    => MinorCounter.Size %"PRIu64" MB (%2.3f%%)\n",
       CONVERT_B_TO_MB(minor_counters_size),PERCENTAGE(minor_counters_size,total_size));
   const uint64_t bitmap_size = locator->num_minor_blocks*SAL_MINOR_BLOCK_LENGTH/8;
-  tab_fprintf(stream,"    => Bitmap.Size %lu MB (%2.3f%%)\n",
+  tab_fprintf(stream,"    => Bitmap.Size %"PRIu64" MB (%2.3f%%)\n",
       CONVERT_B_TO_MB(bitmap_size),PERCENTAGE(bitmap_size,total_size));
   // Display checksums
   uint64_t i, bitmap_checksum=0, mayor_counters_checksum=0;
   for (i=0;i<locator->num_minor_blocks;++i) checksum_incremental_uint64(&bitmap_checksum,locator->bitmap[i]);
   for (i=0;i<locator->num_mayor_blocks;++i) checksum_incremental_uint64(&mayor_counters_checksum,locator->mayor_counters[i]);
   tab_fprintf(stream,"  => Checksums\n");
-  tab_fprintf(stream,"  =>   CS.Bitmaps %lu\n",bitmap_checksum);
-  tab_fprintf(stream,"  =>   CS.MayorCounters %lu\n",mayor_counters_checksum);
+  tab_fprintf(stream,"  =>   CS.Bitmaps %"PRIu64"\n",bitmap_checksum);
+  tab_fprintf(stream,"  =>   CS.MayorCounters %"PRIu64"\n",mayor_counters_checksum);
   // Display content
   if (display_content) {
     for (i=0;i<locator->num_minor_blocks;++i) {
@@ -447,7 +447,7 @@ GEM_INLINE void sparse_array_locator_stats_print(
   SPARSE_ARRAY_LOCATOR_STATS_CHECK(locator_stats);
   // Display Statistics
   fprintf(stream,"SparseArrayLocator.Stats %s\n",sparse_array_locator_stats_tag);
-  fprintf(stream,"  => Locator.Marked %lu (%2.3f%%)\n",
+  fprintf(stream,"  => Locator.Marked %"PRIu64" (%2.3f%%)\n",
       locator_stats->marked_positions,
       PERCENTAGE(locator_stats->marked_positions,locator_stats->locator_length));
   fprintf(stream,"  => Bitmaps.48b.OnesDensity\n");

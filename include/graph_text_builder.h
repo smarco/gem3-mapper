@@ -69,69 +69,69 @@ typedef struct {
 /*
  * Setup
  */
-GEM_INLINE graph_text_builder_t* graph_text_builder_new(mm_slab_t* const mm_slab);
-GEM_INLINE void graph_text_builder_delete(graph_text_builder_t* const graph_builder);
+graph_text_builder_t* graph_text_builder_new(mm_slab_t* const mm_slab);
+void graph_text_builder_delete(graph_text_builder_t* const graph_builder);
 
 /*
  * Step-0:: Adding links {Jumps/SNVs}
  */
-GEM_INLINE uint64_t graph_text_builder_get_num_links(graph_text_builder_t* const graph_builder);
+uint64_t graph_text_builder_get_num_links(graph_text_builder_t* const graph_builder);
 
-GEM_INLINE void graph_text_builder_add_general_link(
+void graph_text_builder_add_general_link(
     graph_text_builder_t* const graph_builder,
     graph_link_t* const graph_link_from,graph_link_t* const graph_link_to);
-GEM_INLINE void graph_text_builder_add_snv_link(
+void graph_text_builder_add_snv_link(
     graph_text_builder_t* const graph_builder,
     graph_link_t* const graph_link,const char character,const bool overlaps_reference);
 
 /*
  * Step-1:: Sort all links (as to solve pending text-positions => index-positions)
  */
-GEM_INLINE void graph_text_builder_link_table_sort(graph_text_builder_t* const graph_builder,const uint64_t total_tags);
-GEM_INLINE uint64_t graph_text_builder_link_table_get_length(graph_text_builder_t* const graph_builder,const int64_t tag_id);
+void graph_text_builder_link_table_sort(graph_text_builder_t* const graph_builder,const uint64_t total_tags);
+uint64_t graph_text_builder_link_table_get_length(graph_text_builder_t* const graph_builder,const int64_t tag_id);
 
 /*
  * Step-2:: Locate links (as to solve pending index-positions)
  */
-GEM_INLINE void graph_text_builder_link_locator_iterate_forward(
+void graph_text_builder_link_locator_iterate_forward(
     graph_text_builder_t* const graph_builder,
     graph_sorted_link_locator_t* const link_locator,const int64_t tag_id);
-GEM_INLINE void graph_text_builder_link_locator_iterate_backward(
+void graph_text_builder_link_locator_iterate_backward(
     graph_text_builder_t* const graph_builder,
     graph_sorted_link_locator_t* const link_locator,const int64_t tag_id);
-GEM_INLINE bool graph_text_builder_link_locator_find(
+bool graph_text_builder_link_locator_find(
     graph_text_builder_t* const graph_builder,
     graph_sorted_link_locator_t* const link_locator,const int64_t tag_id,const uint64_t text_position);
-GEM_INLINE bool graph_text_builder_link_locator_cmp(graph_sorted_link_locator_t* const link_locator,const uint64_t text_position);
+bool graph_text_builder_link_locator_cmp(graph_sorted_link_locator_t* const link_locator,const uint64_t text_position);
 
-GEM_INLINE bool graph_text_builder_link_locator_has_jump_non_overlapping(graph_sorted_link_locator_t* const link_locator);
-GEM_INLINE bool graph_text_builder_link_locator_has_jump_overlapping(graph_sorted_link_locator_t* const link_locator);
-GEM_INLINE char graph_text_builder_link_locator_jump_overlapping_get_reference_char(graph_sorted_link_locator_t* const link_locator);
-GEM_INLINE void graph_text_builder_link_locator_solve_jump_non_overlapping(
+bool graph_text_builder_link_locator_has_jump_non_overlapping(graph_sorted_link_locator_t* const link_locator);
+bool graph_text_builder_link_locator_has_jump_overlapping(graph_sorted_link_locator_t* const link_locator);
+char graph_text_builder_link_locator_jump_overlapping_get_reference_char(graph_sorted_link_locator_t* const link_locator);
+void graph_text_builder_link_locator_solve_jump_non_overlapping(
     graph_sorted_link_locator_t* const link_locator,const uint64_t index_position);
-GEM_INLINE void graph_text_builder_link_locator_solve_jump_overlapping(
+void graph_text_builder_link_locator_solve_jump_overlapping(
     graph_sorted_link_locator_t* const link_locator,const uint64_t index_position,const char reference_char);
 
 /*
  * Step-3:: Write
  */
-GEM_INLINE void graph_text_builder_write(
+void graph_text_builder_write(
     fm_t* const file_manager,graph_text_builder_t* const graph_builder,locator_builder_t* const locator);
 
 /*
  * Display
  */
-GEM_INLINE void graph_text_builder_print(
+void graph_text_builder_print(
     FILE* const stream,graph_text_builder_t* const graph_builder,
     locator_builder_t* const locator,const bool display_links);
-GEM_INLINE void graph_text_builder_link_table_print(
+void graph_text_builder_link_table_print(
     FILE* const stream,graph_text_builder_t* const graph_builder,
     locator_builder_t* const locator,const bool display_links);
 
 /*
  * Errors
  */
-#define GEM_ERROR_GRAPH_TEXT_BUILDER_POSITION_UNSOLVED "Building Graph-Text. Position unsolved (%s:%c:%lu)"
+#define GEM_ERROR_GRAPH_TEXT_BUILDER_POSITION_UNSOLVED "Building Graph-Text. Position unsolved (%s:%c:%"PRIu64")"
 #define GEM_ERROR_GRAPH_TEXT_BUILDER_SNV_UNKNOWN_REFERENCE_CHAR "Building Graph-Text. Unknown reference char"
 
 #endif /* GRAPH_TEXT_BUILDER_H_ */

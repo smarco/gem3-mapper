@@ -76,53 +76,53 @@ typedef struct {
 /*
  * Loader/Setup
  */
-GEM_INLINE sparse_array_locator_t* sparse_array_locator_read(fm_t* const file_manager);
-GEM_INLINE sparse_array_locator_t* sparse_array_locator_read_mem(mm_t* const memory_manager);
-GEM_INLINE void sparse_array_locator_delete(sparse_array_locator_t* const locator);
+sparse_array_locator_t* sparse_array_locator_read(fm_t* const file_manager);
+sparse_array_locator_t* sparse_array_locator_read_mem(mm_t* const memory_manager);
+void sparse_array_locator_delete(sparse_array_locator_t* const locator);
 
 /*
  * Accessors
  */
-GEM_INLINE uint64_t sparse_array_locator_get_size(sparse_array_locator_t* const locator);
+uint64_t sparse_array_locator_get_size(sparse_array_locator_t* const locator);
 
-GEM_INLINE bool sparse_array_locator_is_marked(sparse_array_locator_t* const locator,const uint64_t position);
-GEM_INLINE uint64_t sparse_array_locator_get_erank(sparse_array_locator_t* const locator,const uint64_t position);
-GEM_INLINE bool sparse_array_locator_get_erank_if_marked(
+bool sparse_array_locator_is_marked(sparse_array_locator_t* const locator,const uint64_t position);
+uint64_t sparse_array_locator_get_erank(sparse_array_locator_t* const locator,const uint64_t position);
+bool sparse_array_locator_get_erank_if_marked(
     sparse_array_locator_t* const locator,const uint64_t position,uint64_t* const erank);
-GEM_INLINE bool sparse_array_locator_get_erank__marked(
+bool sparse_array_locator_get_erank__marked(
     sparse_array_locator_t* const locator,const uint64_t position,uint64_t* const erank);
 
 /*
  * Builder
  */
 // Static builder
-GEM_INLINE sparse_array_locator_t* sparse_array_locator_new(const uint64_t idx_begin,const uint64_t idx_end);
-GEM_INLINE void sparse_array_locator_mark(sparse_array_locator_t* const locator,const uint64_t position);
-GEM_INLINE void sparse_array_locator_write(fm_t* const file_manager,sparse_array_locator_t* const locator);
-GEM_INLINE void sparse_array_locator_merge__write(
+sparse_array_locator_t* sparse_array_locator_new(const uint64_t idx_begin,const uint64_t idx_end);
+void sparse_array_locator_mark(sparse_array_locator_t* const locator,const uint64_t position);
+void sparse_array_locator_write(fm_t* const file_manager,sparse_array_locator_t* const locator);
+void sparse_array_locator_merge__write(
     fm_t* const file_manager,sparse_array_locator_t** const locator,const uint64_t num_locators);
 // Dynamic Builder
-GEM_INLINE sparse_array_locator_builder_t* sparse_array_locator_builder_new(mm_slab_t* const mm_slab);
-GEM_INLINE void sparse_array_locator_builder_delete(sparse_array_locator_builder_t* const locator_builder);
-GEM_INLINE void sparse_array_locator_builder_next(
+sparse_array_locator_builder_t* sparse_array_locator_builder_new(mm_slab_t* const mm_slab);
+void sparse_array_locator_builder_delete(sparse_array_locator_builder_t* const locator_builder);
+void sparse_array_locator_builder_next(
     sparse_array_locator_builder_t* const locator_builder,const bool mark_position);
-GEM_INLINE void sparse_array_locator_builder_write(
+void sparse_array_locator_builder_write(
     fm_t* const file_manager,sparse_array_locator_builder_t* const locator_builder);
 
 /*
  * Display
  */
-GEM_INLINE void sparse_array_locator_print(
+void sparse_array_locator_print(
     FILE* const stream,const sparse_array_locator_t* const locator,const bool display_content);
 
 /*
  * Stats // TODO Enhance
  */
-GEM_INLINE sparse_array_locator_stats_t* sparse_array_locator_stats_new();
-GEM_INLINE void sparse_array_locator_stats_delete(sparse_array_locator_stats_t* const sparse_array_locator_stats);
-GEM_INLINE void sparse_array_locator_stats_calculate(
+sparse_array_locator_stats_t* sparse_array_locator_stats_new();
+void sparse_array_locator_stats_delete(sparse_array_locator_stats_t* const sparse_array_locator_stats);
+void sparse_array_locator_stats_calculate(
     sparse_array_locator_stats_t* const sparse_array_locator_stats,sparse_array_locator_t* const locator);
-GEM_INLINE void sparse_array_locator_stats_print(
+void sparse_array_locator_stats_print(
     FILE* const stream,const char* const sparse_array_locator_stats_tag,
     sparse_array_locator_stats_t* const locator_stats);
 

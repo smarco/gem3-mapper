@@ -680,22 +680,22 @@ GEM_INLINE void match_cigar_print(
   for (j=0;j<cigar_length;++j) {
     cigar_element_t* const cigar_element = vector_get_elm(cigar_vector,cigar_buffer_offset+j,cigar_element_t);
     switch (cigar_element->type) {
-      case cigar_match: tab_fprintf(stream,"%luM",cigar_element->length); break;
+      case cigar_match: tab_fprintf(stream,"%"PRIu64"M",cigar_element->length); break;
       case cigar_mismatch: tab_fprintf(stream,"1X"); break;
       case cigar_ins:
         if (cigar_element->attributes == cigar_attr_homopolymer) {
-          tab_fprintf(stream,"%lui",cigar_element->length);
+          tab_fprintf(stream,"%"PRIu64"i",cigar_element->length);
         } else {
-          tab_fprintf(stream,"%luI",cigar_element->length);
+          tab_fprintf(stream,"%"PRIu64"I",cigar_element->length);
         }
         break;
       case cigar_del:
         if (cigar_element->attributes == cigar_attr_homopolymer) {
-          tab_fprintf(stream,"%lud",cigar_element->length);
+          tab_fprintf(stream,"%"PRIu64"d",cigar_element->length);
         } else if (cigar_element->attributes == cigar_attr_trim) {
-          tab_fprintf(stream,"%luS",cigar_element->length);
+          tab_fprintf(stream,"%"PRIu64"S",cigar_element->length);
         } else {
-          tab_fprintf(stream,"%luD",cigar_element->length);
+          tab_fprintf(stream,"%"PRIu64"D",cigar_element->length);
         }
         break;
       default:

@@ -21,7 +21,7 @@
 #define SEGMENTED_VECTOR_RANGE_CHECK(segmented_vector,position) \
   SEGMENTED_VECTOR_CHECK(segmented_vector); \
   gem_fatal_check(position >= svector_get_used(segmented_vector),POSITION_OUT_OF_RANGE, \
-    position,0ul,svector_get_used(segmented_vector)-1)
+    position,0ull,svector_get_used(segmented_vector)-1)
 
 #define SEGMENTED_VECTOR_ITERATOR_CHECK(iterator) \
   GEM_CHECK_NULL(iterator); \
@@ -78,19 +78,19 @@ typedef struct {
  */
 #define svector_new(mm_slab,type) svector_new_(mm_slab,sizeof(type))
 
-GEM_INLINE svector_t* svector_new_(mm_slab_t* const mm_slab,const uint64_t element_size);
-GEM_INLINE void svector_delete(svector_t* const svector);
-GEM_INLINE void svector_clear(svector_t* const svector);
-GEM_INLINE void svector_reap(svector_t* const svector);
+svector_t* svector_new_(mm_slab_t* const mm_slab,const uint64_t element_size);
+void svector_delete(svector_t* const svector);
+void svector_clear(svector_t* const svector);
+void svector_reap(svector_t* const svector);
 
 /*
  * Accessors
  */
-GEM_INLINE uint64_t svector_get_used(svector_t* const svector);
-GEM_INLINE void* svector_get_elm(svector_t* const svector,const uint64_t position);
-GEM_INLINE void* svector_get_free_elm(svector_t* const svector);
-GEM_INLINE char* svector_request_char_buffer(svector_t* const svector,const uint64_t length);
-GEM_INLINE char* svector_insert_char_buffer(svector_t* const svector,const char* const buffer,const uint64_t length);
+uint64_t svector_get_used(svector_t* const svector);
+void* svector_get_elm(svector_t* const svector,const uint64_t position);
+void* svector_get_free_elm(svector_t* const svector);
+char* svector_request_char_buffer(svector_t* const svector,const uint64_t length);
+char* svector_insert_char_buffer(svector_t* const svector,const char* const buffer,const uint64_t length);
 
 #define svector_is_empty(svector) (svector_get_used(vector)==0)
 #define svector_get_element(svector,position,type) ((type*)svector_get_elm(svector,position))
@@ -101,35 +101,35 @@ GEM_INLINE char* svector_insert_char_buffer(svector_t* const svector,const char*
 /*
  * Writer
  */
-GEM_INLINE void svector_write(fm_t* const file_manager,svector_t* const svector);
+void svector_write(fm_t* const file_manager,svector_t* const svector);
 
 /*
  * Display/Profile
  */
-GEM_INLINE void svector_print(FILE* const stream,svector_t* const svector);
-GEM_INLINE void svector_record_stats(svector_t* const svector);
-GEM_INLINE void svector_display_stats(FILE* const stream,svector_t* const svector);
+void svector_print(FILE* const stream,svector_t* const svector);
+void svector_record_stats(svector_t* const svector);
+void svector_display_stats(FILE* const stream,svector_t* const svector);
 
 /*
  * Iterators
  */
-GEM_INLINE void svector_iterator_new(
+void svector_iterator_new(
     svector_iterator_t* const iterator,svector_t* const svector,
     const svector_iterator_type iterator_type,const uint64_t init_position);
 #define svector_iterator_get_element(iterator,type) ((type*)svector_iterator_get_elm(iterator))
-GEM_INLINE void* svector_iterator_get_elm(svector_iterator_t* const iterator);
+void* svector_iterator_get_elm(svector_iterator_t* const iterator);
 // Reading
-GEM_INLINE void svector_read_iterator_seek(svector_iterator_t* const iterator,const uint64_t init_position);
-GEM_INLINE bool svector_read_iterator_eoi(svector_iterator_t* const svector_iterator);
-GEM_INLINE void svector_read_iterator_next(svector_iterator_t* const iterator);
+void svector_read_iterator_seek(svector_iterator_t* const iterator,const uint64_t init_position);
+bool svector_read_iterator_eoi(svector_iterator_t* const svector_iterator);
+void svector_read_iterator_next(svector_iterator_t* const iterator);
 // Writing
-GEM_INLINE void svector_write_iterator_next(svector_iterator_t* const iterator);
+void svector_write_iterator_next(svector_iterator_t* const iterator);
 
 /*
  * Error Messages
  */
-#define GEM_ERROR_SVECTOR_INDEX_OUT_OF_RANGE "SVector. Requested element (%lu) out of range [0,%lu)"
-#define GEM_ERROR_SVECTOR_INSERT_CHAR_BUFFER_TOO_LONG "String is too long to fit in one vector-segment (%lu characters)"
+#define GEM_ERROR_SVECTOR_INDEX_OUT_OF_RANGE "SVector. Requested element (%"PRIu64") out of range [0,%"PRIu64")"
+#define GEM_ERROR_SVECTOR_INSERT_CHAR_BUFFER_TOO_LONG "String is too long to fit in one vector-segment (%"PRIu64" characters)"
 #define GEM_ERROR_SVECTOR_ITERATOR_WRONG_MODE "SVector-Iterator wrong mode. Iterator is for %s only"
 
 #endif /* SEGMENTED_VECTOR_H_ */

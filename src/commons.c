@@ -250,7 +250,7 @@ GEM_INLINE void system_print_info(FILE* const stream) {
   fprintf(stream,"  => Username %s\n",user_name);
   // CPU
   const uint64_t num_processors = system_get_num_processors();
-  fprintf(stream,"  => CPUs %lu\n",num_processors);
+  fprintf(stream,"  => CPUs %"PRIu64"\n",num_processors);
   // Memory
   // TODO
   // Disk
@@ -263,8 +263,8 @@ GEM_INLINE void system_get_time(struct timespec *ts) {
   host_get_clock_service(mach_host_self(),CALENDAR_CLOCK,&cclock);
   clock_get_time(cclock,&mts);
   mach_port_deallocate(mach_task_self(),cclock);
-  ts.tv_sec = mts.tv_sec;
-  ts.tv_nsec = mts.tv_nsec;
+  ts->tv_sec = mts.tv_sec;
+  ts->tv_nsec = mts.tv_nsec;
 #else
   clock_gettime(CLOCK_REALTIME,ts);
 #endif

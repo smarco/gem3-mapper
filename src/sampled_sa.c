@@ -11,7 +11,7 @@
 /*
  * Sampled-SA Model & Version
  */
-#define SAMPLED_SA_MODEL_NO  1000ul
+#define SAMPLED_SA_MODEL_NO  1000ull
 
 /*
  * Checkers
@@ -170,15 +170,15 @@ GEM_INLINE void sampled_sa_print_(
   tab_fprintf(stream,"[GEM]>Sampled-SA\n");
   tab_fprintf(stream,"  => Architecture sSA.pck\n");
   tab_fprintf(stream,"    => ArrayImpl  Packed-Array \n");
-  tab_fprintf(stream,"  => SamplingRate 2^%lu (%lu)\n",sampling_rate,sampling_rate_value);
+  tab_fprintf(stream,"  => SamplingRate 2^%"PRIu64" (%"PRIu64")\n",sampling_rate,sampling_rate_value);
 #ifdef SAMPLING_SA_DIRECT
   tab_fprintf(stream,"    => Sampling.Direct (Text-Space)\n");
 #endif
 #ifdef SAMPLING_SA_INVERSE
   tab_fprintf(stream,"    => Sampling.Inverse (SA-Space)\n");
 #endif
-  if (index_size) tab_fprintf(stream,"  => Length %lu\n",index_length);
-  tab_fprintf(stream,"  => Size %lu MB\n",index_size);
+  if (index_size) tab_fprintf(stream,"  => Length %"PRIu64"\n",index_length);
+  tab_fprintf(stream,"  => Size %"PRIu64" MB\n",index_size);
   // Flush
   fflush(stream);
 }

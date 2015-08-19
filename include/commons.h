@@ -180,7 +180,12 @@ extern const uint64_t uint64_mask_inverse_ones[];
  * Compilation/Code Miscellaneous
  */
 // GemTools Inline
+#ifdef __clang__
+#define GEM_INLINE
+#else
 #define GEM_INLINE inline
+#endif
+
 // Conditional expect
 #define gem_expect_true(condition)  __builtin_expect(condition,1)
 #define gem_expect_false(condition) __builtin_expect(condition,0)
@@ -201,7 +206,7 @@ extern const uint64_t uint64_mask_inverse_ones[];
 // Pseudo-random numbers in [min, max]
 #define gem_rand(min,max)   ( min + ( rand()%(max-min+1) ) )
 #define gem_rand_f(min,max) ( min + ((double)rand()/(double)(RAND_MAX+1)) * (max-min+1) )
-GEM_INLINE uint64_t gem_rand_IID(const uint64_t min,const uint64_t max);
+uint64_t gem_rand_IID(const uint64_t min,const uint64_t max);
 // Pseudo-random numbers in [0, 1)
 #define gem_drand() (double)rand()/(double)(RAND_MAX+1)
 
@@ -231,26 +236,26 @@ GEM_INLINE uint64_t gem_rand_IID(const uint64_t min,const uint64_t max);
 extern const uint64_t uint64_mask_mod_pow2[];
 #define MOD_POW2(NUMERATOR,DENOMINATOR_LOG2) ((NUMERATOR) & uint64_mask_mod_pow2[DENOMINATOR_LOG2])
 
-GEM_INLINE uint64_t integer_proportion(const float proportion,const uint64_t length);
-GEM_INLINE uint64_t integer_lower_power_of_two(uint64_t number);
-GEM_INLINE uint64_t integer_upper_power_of_two(uint64_t number);
+uint64_t integer_proportion(const float proportion,const uint64_t length);
+uint64_t integer_lower_power_of_two(uint64_t number);
+uint64_t integer_upper_power_of_two(uint64_t number);
 
-GEM_INLINE int integer_to_ascii(char* const buffer,uint64_t number);
+int integer_to_ascii(char* const buffer,uint64_t number);
 
 /*
  * Statistical Utils
  */
-GEM_INLINE double standard_normal_CDF(double x);
+double standard_normal_CDF(double x);
 
 /*
  * CheckSum & BitDisplay
  */
-GEM_INLINE uint64_t checksum_uint64(uint64_t* mem,const uint64_t num_words);
-GEM_INLINE void checksum_incremental_uint64(uint64_t* const checksum,const uint64_t word);
+uint64_t checksum_uint64(uint64_t* mem,const uint64_t num_words);
+void checksum_incremental_uint64(uint64_t* const checksum,const uint64_t word);
 
 #define CHAR_TO_PRINTABLE(character) ( ('!' <= (character) && (character) <= '~') ? (character) : '#')
-GEM_INLINE void fprintf_uint64_binary(FILE* const stream,const uint64_t word);
-GEM_INLINE void fprintf_uint64_footprint(FILE* const stream,const uint64_t word);
+void fprintf_uint64_binary(FILE* const stream,const uint64_t word);
+void fprintf_uint64_footprint(FILE* const stream,const uint64_t word);
 
 /*
  * Common parsing
@@ -296,12 +301,12 @@ GEM_INLINE void fprintf_uint64_footprint(FILE* const stream,const uint64_t word)
 /*
  * System
  */
-GEM_INLINE uint64_t system_get_num_processors();
-GEM_INLINE char* system_get_cwd();
-GEM_INLINE char* system_get_hostname();
-GEM_INLINE char* system_get_user_name();
-GEM_INLINE void system_print_info(FILE* const stream);
+uint64_t system_get_num_processors();
+char* system_get_cwd();
+char* system_get_hostname();
+char* system_get_user_name();
+void system_print_info(FILE* const stream);
 
-GEM_INLINE void system_get_time(struct timespec *ts);
+void system_get_time(struct timespec *ts);
 
 #endif /* COMMONS_H_ */

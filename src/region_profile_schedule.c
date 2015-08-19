@@ -129,17 +129,18 @@ GEM_INLINE void region_profile_schedule_print(
     const uint64_t sensibility_error_length) {
   // Header
   gem_slog("[GEM]>Region.Filtering.Schedule\n");
-  gem_slog("  => Max.Differences %lu\n",max_differences);
-  gem_slog("  => Min.Sensibility.Region.Length %lu\n",sensibility_error_length);
+  gem_slog("  => Max.Differences %"PRIu64"\n",max_differences);
+  gem_slog("  => Min.Sensibility.Region.Length %"PRIu64"\n",sensibility_error_length);
   gem_slog("  => Regions\n");
   REGION_LOCATOR_ITERATE(region_profile,region,position) {
-    gem_slog("    [%lu] Region-%s\t(%3lu,%3lu]\t\t(Length,Cand)=(%3lu,%4lu)",
+    gem_slog("    [%"PRIu64"] Region-%s\t(%3"PRIu64",%3"PRIu64"]"
+    		"\t\t(Length,Cand)=(%3"PRIu64",%4"PRIu64")",
         position,region->type==region_unique ? "unique" : "standard",
         region->begin,region->end,region->end-region->begin,region->hi-region->lo);
     if (region->min==0) {
       gem_slog("\tDegree=none\n");
     } else {
-      gem_slog("\tDegree=%lu\n",region->min-1);
+      gem_slog("\tDegree=%"PRIu64"\n",region->min-1);
     }
   }
 }

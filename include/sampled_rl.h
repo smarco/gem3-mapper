@@ -36,26 +36,26 @@ typedef struct {
 /*
  * Loader/Setup
  */
-GEM_INLINE sampled_rl_t* sampled_rl_new(
+sampled_rl_t* sampled_rl_new(
     const sampling_rate_t sampling_rate,const uint64_t num_samples,const uint64_t max_index);
-GEM_INLINE sampled_rl_t* sampled_rl_read_mem(mm_t* const memory_manager);
-GEM_INLINE void sampled_rl_write(fm_t* const file_manager,sampled_rl_t* const sampled_rl);
-GEM_INLINE void sampled_rl_delete(sampled_rl_t* const sampled_rl);
+sampled_rl_t* sampled_rl_read_mem(mm_t* const memory_manager);
+void sampled_rl_write(fm_t* const file_manager,sampled_rl_t* const sampled_rl);
+void sampled_rl_delete(sampled_rl_t* const sampled_rl);
 
 /*
  * Accessors
  */
-GEM_INLINE uint64_t sampled_rl_get_size(sampled_rl_t* const sampled_rl);
-GEM_INLINE void sampled_rl_sample(sampled_rl_t* const sampled_rl,const uint64_t array_position,const uint64_t rl_position);
-GEM_INLINE uint64_t sampled_rl_get_sample(sampled_rl_t* const sampled_rl,const uint64_t array_position);
+uint64_t sampled_rl_get_size(sampled_rl_t* const sampled_rl);
+void sampled_rl_sample(sampled_rl_t* const sampled_rl,const uint64_t array_position,const uint64_t rl_position);
+uint64_t sampled_rl_get_sample(sampled_rl_t* const sampled_rl,const uint64_t array_position);
 /*
  * Display/Stats
  */
-GEM_INLINE void sampled_rl_print(FILE* const stream,sampled_rl_t* const sampled_rl);
+void sampled_rl_print(FILE* const stream,sampled_rl_t* const sampled_rl);
 
 /*
  * Errors
  */
-#define GEM_ERROR_SAMPLED_RL_WRONG_MODEL_NO "Sampled-RL error. Wrong Sampled-RL Model %lu (Expected model %lu)"
+#define GEM_ERROR_SAMPLED_RL_WRONG_MODEL_NO "Sampled-RL error. Wrong Sampled-RL Model %"PRIu64" (Expected model %"PRIu64")"
 
 #endif /* SAMPLED_RL_H_ */

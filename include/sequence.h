@@ -42,36 +42,36 @@ typedef struct {
 /*
  * Constructor
  */
-GEM_INLINE void sequence_init(sequence_t* const sequence);
-GEM_INLINE void sequence_init_mm(sequence_t* const sequence,mm_stack_t* const mm_stack);
-GEM_INLINE void sequence_clear(sequence_t* const sequence);
-GEM_INLINE void sequence_destroy(sequence_t* const sequence);
+void sequence_init(sequence_t* const sequence);
+void sequence_init_mm(sequence_t* const sequence,mm_stack_t* const mm_stack);
+void sequence_clear(sequence_t* const sequence);
+void sequence_destroy(sequence_t* const sequence);
 
 /*
  * Accessors
  */
-GEM_INLINE uint64_t sequence_get_length(sequence_t* const sequence);
+uint64_t sequence_get_length(sequence_t* const sequence);
 
-GEM_INLINE void sequence_set_tag(sequence_t* const sequence,char* const text,const uint64_t length);
-GEM_INLINE char* sequence_get_tag(sequence_t* const sequence);
+void sequence_set_tag(sequence_t* const sequence,char* const text,const uint64_t length);
+char* sequence_get_tag(sequence_t* const sequence);
 
-GEM_INLINE void sequence_set_read(sequence_t* const sequence,char* const text,const uint64_t length);
-GEM_INLINE char* sequence_get_read(sequence_t* const sequence);
+void sequence_set_read(sequence_t* const sequence,char* const text,const uint64_t length);
+char* sequence_get_read(sequence_t* const sequence);
 
-GEM_INLINE void sequence_set_qualities(sequence_t* const sequence,char* const text,const uint64_t length);
-GEM_INLINE char* sequence_get_qualities(sequence_t* const sequence);
+void sequence_set_qualities(sequence_t* const sequence,char* const text,const uint64_t length);
+char* sequence_get_qualities(sequence_t* const sequence);
 
-GEM_INLINE bool sequence_has_qualities(const sequence_t* const sequence);
-GEM_INLINE bool sequence_has_casava_tag(const sequence_t* const sequence);
-GEM_INLINE bool sequence_has_extra_tag(const sequence_t* const sequence);
+bool sequence_has_qualities(const sequence_t* const sequence);
+bool sequence_has_casava_tag(const sequence_t* const sequence);
+bool sequence_has_extra_tag(const sequence_t* const sequence);
 
-GEM_INLINE sequence_end_t sequence_get_end_info(const sequence_t* const sequence);
+sequence_end_t sequence_get_end_info(const sequence_t* const sequence);
 
 /*
  * Utils
  */
-GEM_INLINE bool sequence_equals(sequence_t* const sequence_a,sequence_t* const sequence_b);
-GEM_INLINE void sequence_generate_reverse(sequence_t* const sequence,sequence_t* const rev_sequence);
-GEM_INLINE void sequence_generate_reverse_complement(sequence_t* const sequence,sequence_t* const rc_sequence);
+bool sequence_equals(sequence_t* const sequence_a,sequence_t* const sequence_b);
+void sequence_generate_reverse(sequence_t* const sequence,sequence_t* const rev_sequence);
+void sequence_generate_reverse_complement(sequence_t* const sequence,sequence_t* const rc_sequence);
 
 #endif /* SEQUENCE_H_ */

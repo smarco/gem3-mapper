@@ -33,29 +33,29 @@ typedef struct {
 /*
  * Setup
  */
-GEM_INLINE void output_map_parameters_set_defaults(output_map_parameters_t* const output_map_parameters);
+void output_map_parameters_set_defaults(output_map_parameters_t* const output_map_parameters);
 
 /*
  * Utils
  */
-GEM_INLINE void output_map_cigar(
+void output_map_cigar(
     FILE* const stream,match_trace_t* const match_trace,matches_t* const matches);
-GEM_INLINE void output_map_alignment_pretty(
+void output_map_alignment_pretty(
     FILE* const stream,match_trace_t* const match_trace,matches_t* const matches,
     uint8_t* const key,const uint64_t key_length,uint8_t* const text,
     const uint64_t text_length,mm_stack_t* const mm_stack);
 /*
  * MAP fields
  */
-GEM_INLINE void output_map_print_counters(
+void output_map_print_counters(
     buffered_output_file_t* const buffered_output_file,
     matches_counters_t* const matches_counter,
     const uint64_t mcs,const bool compact);
-GEM_INLINE void output_map_print_match(
+void output_map_print_match(
     buffered_output_file_t* const buffered_output_file,
     const matches_t* const matches,const match_trace_t* const match_trace,
     const bool print_mapq,const output_map_format_t output_map_format);
-GEM_INLINE void output_map_print_paired_match(
+void output_map_print_paired_match(
     buffered_output_file_t* const buffered_output_file,
     const matches_t* const matches_end1,const matches_t* const matches_end2,
     const paired_map_t* const paired_map,const output_map_format_t output_map_format);
@@ -63,14 +63,14 @@ GEM_INLINE void output_map_print_paired_match(
 /*
  * MAP SingleEnd
  */
-GEM_INLINE void output_map_single_end_matches(
+void output_map_single_end_matches(
     buffered_output_file_t* const buffered_output_file,archive_search_t* const archive_search,
     matches_t* const matches,output_map_parameters_t* const output_map_parameters);
 
 /*
  * MAP PairedEnd
  */
-GEM_INLINE void output_map_paired_end_matches(
+void output_map_paired_end_matches(
     buffered_output_file_t* const buffered_output_file,
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches,output_map_parameters_t* const output_map_parameters);

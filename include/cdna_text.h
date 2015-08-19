@@ -67,26 +67,26 @@ extern const uint64_t cdna_text_block_mask_left[256];
 /*
  * CDNA Text (Builder incorporated)
  */
-GEM_INLINE cdna_text_t* cdna_text_new(mm_slab_t* const mm_slab);
-GEM_INLINE void cdna_text_delete(cdna_text_t* const cdna_text);
-GEM_INLINE void cdna_text_add_char(cdna_text_t* const cdna_text,const uint8_t enc_char);
-GEM_INLINE void cdna_text_close(cdna_text_t* const cdna_text);
+cdna_text_t* cdna_text_new(mm_slab_t* const mm_slab);
+void cdna_text_delete(cdna_text_t* const cdna_text);
+void cdna_text_add_char(cdna_text_t* const cdna_text,const uint8_t enc_char);
+void cdna_text_close(cdna_text_t* const cdna_text);
 
-GEM_INLINE void cdna_text_write_as_bitwise_text(fm_t* const file_manager,cdna_text_t* const cdna_text);
+void cdna_text_write_as_bitwise_text(fm_t* const file_manager,cdna_text_t* const cdna_text);
 
 /*
  * CDNA Accessors
  */
-GEM_INLINE uint64_t cdna_text_get_length(cdna_text_t* const cdna_text);
+uint64_t cdna_text_get_length(cdna_text_t* const cdna_text);
 
 /*
  * CDNA Text Iterator
  */
-GEM_INLINE void cdna_text_iterator_init(
+void cdna_text_iterator_init(
     cdna_text_iterator_t* const iterator,cdna_text_t* const cdna_text,const uint64_t position);
-GEM_INLINE bool cdna_text_iterator_eoi(cdna_text_iterator_t* const iterator);
-GEM_INLINE uint8_t cdna_text_iterator_get_char_encoded(cdna_text_iterator_t* const iterator);
-GEM_INLINE void cdna_text_iterator_next_char(cdna_text_iterator_t* const iterator);
+bool cdna_text_iterator_eoi(cdna_text_iterator_t* const iterator);
+uint8_t cdna_text_iterator_get_char_encoded(cdna_text_iterator_t* const iterator);
+void cdna_text_iterator_next_char(cdna_text_iterator_t* const iterator);
 
 /*
  * CDNA Text Reverse Iterator
@@ -94,40 +94,40 @@ GEM_INLINE void cdna_text_iterator_next_char(cdna_text_iterator_t* const iterato
  *    - Only works with an open cdna_text (cdna_text_close(.) not called)
  *    - Traverses the text from last added character until the first
  */
-GEM_INLINE void cdna_text_reverse_iterator_init(
+void cdna_text_reverse_iterator_init(
     cdna_text_iterator_t* const iterator,cdna_text_t* const cdna_text,const uint64_t position);
-GEM_INLINE bool cdna_text_reverse_iterator_eoi(cdna_text_iterator_t* const iterator);
-GEM_INLINE uint8_t cdna_text_reverse_iterator_get_char_encoded(cdna_text_iterator_t* const iterator);
-GEM_INLINE void cdna_text_reverse_iterator_next_char(cdna_text_iterator_t* const iterator);
+bool cdna_text_reverse_iterator_eoi(cdna_text_iterator_t* const iterator);
+uint8_t cdna_text_reverse_iterator_get_char_encoded(cdna_text_iterator_t* const iterator);
+void cdna_text_reverse_iterator_next_char(cdna_text_iterator_t* const iterator);
 
 /*
  * CDNA Text Compare
  */
-GEM_INLINE void cdna_text_block_iterator_init(cdna_text_iterator_t* const iterator,cdna_text_t* const cdna_text,const uint64_t position);
-GEM_INLINE void cdna_text_block_iterator_next_block(cdna_text_iterator_t* const iterator);
-GEM_INLINE uint64_t cdna_text_block_iterator_get_block(cdna_text_iterator_t* const iterator);
-GEM_INLINE int cdna_text_block_cmp(cdna_text_iterator_t* const iterator_a,cdna_text_iterator_t* const iterator_b);
+void cdna_text_block_iterator_init(cdna_text_iterator_t* const iterator,cdna_text_t* const cdna_text,const uint64_t position);
+void cdna_text_block_iterator_next_block(cdna_text_iterator_t* const iterator);
+uint64_t cdna_text_block_iterator_get_block(cdna_text_iterator_t* const iterator);
+int cdna_text_block_cmp(cdna_text_iterator_t* const iterator_a,cdna_text_iterator_t* const iterator_b);
 
 /*
  * CDNA Text (Iterator-HUB)
  */
-GEM_INLINE cdna_text_iterator_hub_t* cdna_text_iterator_hub_new(
+cdna_text_iterator_hub_t* cdna_text_iterator_hub_new(
     cdna_text_t** cdna_texts,const uint64_t num_texts,
     const uint64_t starting_position);
-GEM_INLINE void cdna_text_iterator_hub_delete(cdna_text_iterator_hub_t* const iterator_hub);
-GEM_INLINE bool cdna_text_iterator_hub_eoi(cdna_text_iterator_hub_t* const iterator_hub);
-GEM_INLINE uint8_t cdna_text_iterator_hub_get_char_encoded(cdna_text_iterator_hub_t* const iterator_hub);
-GEM_INLINE void cdna_text_iterator_hub_next_char(cdna_text_iterator_hub_t* const iterator_hub);
+void cdna_text_iterator_hub_delete(cdna_text_iterator_hub_t* const iterator_hub);
+bool cdna_text_iterator_hub_eoi(cdna_text_iterator_hub_t* const iterator_hub);
+uint8_t cdna_text_iterator_hub_get_char_encoded(cdna_text_iterator_hub_t* const iterator_hub);
+void cdna_text_iterator_hub_next_char(cdna_text_iterator_hub_t* const iterator_hub);
 
 /*
  * Display
  */
-GEM_INLINE void cdna_text_print(FILE* const stream,cdna_text_t* const cdna_text);
+void cdna_text_print(FILE* const stream,cdna_text_t* const cdna_text);
 
 /*
  * Errors
  */
-#define GEM_ERROR_CDNA_INDEX_OUT_OF_RANGE "Compact DNA-Text. Requested index (%lu) out of range [0,%lu)"
+#define GEM_ERROR_CDNA_INDEX_OUT_OF_RANGE "Compact DNA-Text. Requested index (%"PRIu64") out of range [0,%"PRIu64")"
 #define GEM_ERROR_CDNA_NOT_VALID_CHARACTER "Compact DNA-Text Builder. Invalid character provided ASCII='%d'"
 
 #endif /* CDNA_TEXT_H_ */

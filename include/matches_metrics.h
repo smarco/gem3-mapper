@@ -71,37 +71,37 @@ typedef struct {
 /*
  * Setup
  */
-GEM_INLINE void matches_metrics_init(matches_metrics_t* const metrics);
+void matches_metrics_init(matches_metrics_t* const metrics);
 
 /*
  * Accessors
  */
-GEM_INLINE uint64_t matches_metrics_get_min_distance(matches_metrics_t* const metrics);
-GEM_INLINE uint64_t matches_metrics_get_max_distance(matches_metrics_t* const metrics);
-GEM_INLINE uint64_t matches_metrics_get_min_edit_distance(matches_metrics_t* const metrics);
-GEM_INLINE int32_t matches_metrics_get_max_swg_score(matches_metrics_t* const metrics);
+uint64_t matches_metrics_get_min_distance(matches_metrics_t* const metrics);
+uint64_t matches_metrics_get_max_distance(matches_metrics_t* const metrics);
+uint64_t matches_metrics_get_min_edit_distance(matches_metrics_t* const metrics);
+int32_t matches_metrics_get_max_swg_score(matches_metrics_t* const metrics);
 
 /*
  * Update
  */
-GEM_INLINE void matches_metrics_update(
+void matches_metrics_update(
     matches_metrics_t* const matches_metrics,const uint64_t distance,
     const uint64_t edit_distance,const int32_t swg_score);
-GEM_INLINE void matches_metrics_pe_update(
+void matches_metrics_pe_update(
     matches_metrics_t* const matches_metrics,const uint64_t distance,
     const uint64_t edit_distance,const int32_t swg_score,
     const double template_length_sigma);
 
-GEM_INLINE void matches_metrics_inc_subdominant_candidates(matches_metrics_t* const metrics);
-GEM_INLINE void matches_metrics_dec_subdominant_candidates(matches_metrics_t* const metrics);
+void matches_metrics_inc_subdominant_candidates(matches_metrics_t* const metrics);
+void matches_metrics_dec_subdominant_candidates(matches_metrics_t* const metrics);
 
 /*
  * Display
  */
-GEM_INLINE void matches_predictors_print(
+void matches_predictors_print(
     matches_predictors_t* const predictors,
     const char* const read_tag,const uint8_t mapq_score);
-GEM_INLINE void paired_matches_predictors_print(
+void paired_matches_predictors_print(
     matches_predictors_t* const predictors,
     const char* const read_tag,const uint8_t mapq_score_pair,
     const uint8_t mapq_score_end1,const uint8_t mapq_score_end2);

@@ -36,13 +36,13 @@ typedef struct {
  * Vector Setup (Initialization & Allocation)
  */
 #define vector_new(num_initial_elements,type) vector_new_(num_initial_elements,sizeof(type))
-GEM_INLINE vector_t* vector_new_(const uint64_t num_initial_elements,const uint64_t element_size);
-GEM_INLINE void vector_reserve(vector_t* const vector,const uint64_t num_elements,const bool zero_mem);
-GEM_INLINE void vector_resize__clear(vector_t* const vector,const uint64_t num_elements);
+vector_t* vector_new_(const uint64_t num_initial_elements,const uint64_t element_size);
+void vector_reserve(vector_t* const vector,const uint64_t num_elements,const bool zero_mem);
+void vector_resize__clear(vector_t* const vector,const uint64_t num_elements);
 #define vector_cast__clear(vector,type) vector_cast__clear_s(vector,sizeof(type))
-GEM_INLINE void vector_cast__clear_(vector_t* const vector,const uint64_t element_size);
+void vector_cast__clear_(vector_t* const vector,const uint64_t element_size);
 #define vector_clear(vector) (vector)->used=0   // TODO Implement a REAP mechanism
-GEM_INLINE void vector_delete(vector_t* const vector);
+void vector_delete(vector_t* const vector);
 #define vector_is_empty(vector) (vector_get_used(vector)==0)
 #define vector_reserve_additional(vector,additional) vector_reserve(vector,vector_get_used(vector)+additional,false)
 #define vector_prepare(vector,num_elements,type) \
@@ -58,7 +58,7 @@ GEM_INLINE void vector_delete(vector_t* const vector);
 #ifndef GEM_DEBUG
   #define vector_get_elm(vector,position,type) (vector_get_mem(vector,type)+position)
 #else
-  GEM_INLINE void* vector_get_mem_element(vector_t* const vector,const uint64_t position,const uint64_t element_size);
+  void* vector_get_mem_element(vector_t* const vector,const uint64_t position,const uint64_t element_size);
   #define vector_get_elm(vector,position,type) ((type*)vector_get_mem_element(vector,position,sizeof(type)))
 #endif
 #define vector_set_elm(vector,position,type,elm) *vector_get_elm(vector,position,type) = elm
@@ -118,8 +118,8 @@ GEM_INLINE void vector_delete(vector_t* const vector);
 /*
  * Miscellaneous
  */
-GEM_INLINE void vector_copy(vector_t* const vector_to,vector_t* const vector_from);
-GEM_INLINE vector_t* vector_dup(vector_t* const vector_src);
+void vector_copy(vector_t* const vector_to,vector_t* const vector_from);
+vector_t* vector_dup(vector_t* const vector_src);
 
 /*
  * Error Messages

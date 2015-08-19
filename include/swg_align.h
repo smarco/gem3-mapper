@@ -50,7 +50,7 @@ typedef struct {
 /*
  * Check CIGAR string
  */
-GEM_INLINE bool align_check_match(
+bool align_check_match(
     FILE* const stream,const uint8_t* const key,const uint64_t key_length,const uint8_t* const text,
     const uint64_t text_length,vector_t* const cigar_vector,uint64_t const cigar_offset,
     uint64_t const cigar_length,const bool verbose);
@@ -58,7 +58,7 @@ GEM_INLINE bool align_check_match(
 /*
  * Levenshtein Alignment
  */
-GEM_INLINE int64_t align_levenshtein_get_distance(
+int64_t align_levenshtein_get_distance(
     const char* const key,const uint64_t key_length,
     const char* const text,const uint64_t text_length,
     const bool ends_free,uint64_t* const position);
@@ -66,26 +66,26 @@ GEM_INLINE int64_t align_levenshtein_get_distance(
 /*
  * Init SWG Query Profile
  */
-GEM_INLINE void swg_init_query_profile(
+void swg_init_query_profile(
     swg_query_profile_t* const swg_query_profile,const swg_penalties_t* swg_penalties,
     const uint64_t max_expected_key_length,mm_stack_t* const mm_stack);
-GEM_INLINE bool swg_compile_query_profile_uint8(
+bool swg_compile_query_profile_uint8(
     swg_query_profile_t* const swg_query_profile,const swg_penalties_t* swg_penalties,
     const uint8_t* const key,const uint64_t key_length,mm_stack_t* const mm_stack);
-GEM_INLINE bool swg_compile_query_profile_int16(
+bool swg_compile_query_profile_int16(
     swg_query_profile_t* const swg_query_profile,const swg_penalties_t* swg_penalties,
     const uint8_t* const key,const uint64_t key_length,mm_stack_t* const mm_stack);
 
 /*
  * SWG Score
  */
-GEM_INLINE int32_t swg_score_deletion(const swg_penalties_t* const swg_penalties,const int32_t length);
-GEM_INLINE int32_t swg_score_insertion(const swg_penalties_t* const swg_penalties,const int32_t length);
-GEM_INLINE int32_t swg_score_mismatch(const swg_penalties_t* const swg_penalties);
-GEM_INLINE int32_t swg_score_match(const swg_penalties_t* const swg_penalties,const int32_t match_length);
-GEM_INLINE int32_t swg_score_cigar_element(
+int32_t swg_score_deletion(const swg_penalties_t* const swg_penalties,const int32_t length);
+int32_t swg_score_insertion(const swg_penalties_t* const swg_penalties,const int32_t length);
+int32_t swg_score_mismatch(const swg_penalties_t* const swg_penalties);
+int32_t swg_score_match(const swg_penalties_t* const swg_penalties,const int32_t match_length);
+int32_t swg_score_cigar_element(
     const swg_penalties_t* const swg_penalties,const cigar_element_t* const cigar_element);
-GEM_INLINE int32_t swg_score_cigar(
+int32_t swg_score_cigar(
     const swg_penalties_t* const swg_penalties,vector_t* const cigar_vector,
     const uint64_t cigar_offset,const uint64_t cigar_length);
 
@@ -105,7 +105,7 @@ GEM_INLINE int32_t swg_score_cigar(
  *   @align_parameters->swg_penalties
  *   @match_alignment->match_position (Adjusted)
  */
-GEM_INLINE void swg_align_match_base(
+void swg_align_match_base(
     match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
     match_alignment_t* const match_alignment,vector_t* const cigar_vector,mm_stack_t* const mm_stack);
 /*
@@ -120,7 +120,7 @@ GEM_INLINE void swg_align_match_base(
  *   @match_alignment->match_position (Adjusted)
  *   @match_alignment->cigar_length (Cumulative)
  */
-GEM_INLINE void swg_align_match(
+void swg_align_match(
     match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
     const bool begin_free,const bool end_free,match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,mm_stack_t* const mm_stack);

@@ -118,8 +118,8 @@ extern const uint64_t mm_mem_alignment_bits_mask[];
  */
 #define MM_DEFAULT_TMP_FOLDER "./"
 
-GEM_INLINE char* mm_get_tmp_folder();
-GEM_INLINE void mm_set_tmp_folder(char* const tmp_folder_path);
+char* mm_get_tmp_folder();
+void mm_set_tmp_folder(char* const tmp_folder_path);
 
 /******************************************************************************
  * UnitMemory
@@ -137,11 +137,11 @@ GEM_INLINE void mm_set_tmp_folder(char* const tmp_folder_path);
 #define mm_malloc_int32(variable_name,init_value)  int32_t* const variable_name = mm_malloc(sizeof(int32_t)); *variable_name = init_value;
 #define mm_malloc_int16(variable_name,init_value)  int16_t* const variable_name = mm_malloc(sizeof(int16_t)); *variable_name = init_value;
 #define mm_malloc_int8(variable_name,init_value)   int8_t*  const variable_name = mm_malloc(sizeof(int8_t));  *variable_name = init_value;
-GEM_INLINE void* mm_malloc_(uint64_t const num_elements,const uint64_t size_element,const bool init_mem,const int init_value);
-GEM_INLINE void* mm_malloc_nothrow(uint64_t const num_elements,const uint64_t size_element,const bool init_mem,const int init_value);
-GEM_INLINE void* mm_realloc(void* mem_addr,const uint64_t num_bytes);
-GEM_INLINE void* mm_realloc_nothrow(void* mem_addr,const uint64_t num_bytes);
-GEM_INLINE void mm_free(void* mem_addr);
+void* mm_malloc_(uint64_t const num_elements,const uint64_t size_element,const bool init_mem,const int init_value);
+void* mm_malloc_nothrow(uint64_t const num_elements,const uint64_t size_element,const bool init_mem,const int init_value);
+void* mm_realloc(void* mem_addr,const uint64_t num_bytes);
+void* mm_realloc_nothrow(void* mem_addr,const uint64_t num_bytes);
+void mm_free(void* mem_addr);
 
 /******************************************************************************
  * BulkMemory
@@ -189,67 +189,67 @@ typedef struct {
 }
 
 // Memory/MFile Allocators/Handlers
-GEM_INLINE mm_t* mm_bulk_malloc(const uint64_t num_bytes,const bool init_mem);
-GEM_INLINE mm_t* mm_bulk_mmalloc(const uint64_t num_bytes,const bool use_huge_pages);
-GEM_INLINE mm_t* mm_bulk_mmalloc_temp(const uint64_t num_bytes);
-GEM_INLINE void mm_bulk_free(mm_t* const mem_manager);
+mm_t* mm_bulk_malloc(const uint64_t num_bytes,const bool init_mem);
+mm_t* mm_bulk_mmalloc(const uint64_t num_bytes,const bool use_huge_pages);
+mm_t* mm_bulk_mmalloc_temp(const uint64_t num_bytes);
+void mm_bulk_free(mm_t* const mem_manager);
 
-GEM_INLINE mm_t* mm_bulk_mmap_file(char* const file_name,const mm_mode mode,const bool populate_page_tables);
-GEM_INLINE mm_t* mm_bulk_load_file(char* const file_name,const uint64_t num_threads);
-GEM_INLINE mm_t* mm_bulk_mload_file(char* const file_name,const uint64_t num_threads);
+mm_t* mm_bulk_mmap_file(char* const file_name,const mm_mode mode,const bool populate_page_tables);
+mm_t* mm_bulk_load_file(char* const file_name,const uint64_t num_threads);
+mm_t* mm_bulk_mload_file(char* const file_name,const uint64_t num_threads);
 
 // Accessors
-GEM_INLINE void* mm_get_mem(mm_t* const mem_manager);
-GEM_INLINE void* mm_get_base_mem(mm_t* const mem_manager);
-GEM_INLINE mm_mode mm_get_mode(mm_t* const mem_manager);
-GEM_INLINE uint64_t mm_get_allocated(mm_t* const mem_manager);
-GEM_INLINE char* mm_get_mfile_name(mm_t* const mem_manager);
+void* mm_get_mem(mm_t* const mem_manager);
+void* mm_get_base_mem(mm_t* const mem_manager);
+mm_mode mm_get_mode(mm_t* const mem_manager);
+uint64_t mm_get_allocated(mm_t* const mem_manager);
+char* mm_get_mfile_name(mm_t* const mem_manager);
 
 // Seek
-GEM_INLINE uint64_t mm_get_current_position(mm_t* const mem_manager);
-GEM_INLINE bool mm_eom(mm_t* const mem_manager);
-GEM_INLINE void mm_seek(mm_t* const mem_manager,const uint64_t byte_position);
+uint64_t mm_get_current_position(mm_t* const mem_manager);
+bool mm_eom(mm_t* const mem_manager);
+void mm_seek(mm_t* const mem_manager,const uint64_t byte_position);
 
-GEM_INLINE void mm_skip_forward(mm_t* const mem_manager,const uint64_t num_bytes);
-GEM_INLINE void mm_skip_backward(mm_t* const mem_manager,const uint64_t num_bytes);
-GEM_INLINE void mm_skip_uint64(mm_t* const mem_manager);
-GEM_INLINE void mm_skip_uint32(mm_t* const mem_manager);
-GEM_INLINE void mm_skip_uint16(mm_t* const mem_manager);
-GEM_INLINE void mm_skip_uint8(mm_t* const mem_manager);
-GEM_INLINE void mm_skip_align(mm_t* const mem_manager,const uint64_t num_bytes);
-GEM_INLINE void mm_skip_align_16(mm_t* const mem_manager);
-GEM_INLINE void mm_skip_align_32(mm_t* const mem_manager);
-GEM_INLINE void mm_skip_align_64(mm_t* const mem_manager);
-GEM_INLINE void mm_skip_align_128(mm_t* const mem_manager);
-GEM_INLINE void mm_skip_align_512(mm_t* const mem_manager);
-GEM_INLINE void mm_skip_align_1024(mm_t* const mem_manager);
-GEM_INLINE void mm_skip_align_4KB(mm_t* const mem_manager);
-GEM_INLINE void mm_skip_align_mempage(mm_t* const mem_manager);
+void mm_skip_forward(mm_t* const mem_manager,const uint64_t num_bytes);
+void mm_skip_backward(mm_t* const mem_manager,const uint64_t num_bytes);
+void mm_skip_uint64(mm_t* const mem_manager);
+void mm_skip_uint32(mm_t* const mem_manager);
+void mm_skip_uint16(mm_t* const mem_manager);
+void mm_skip_uint8(mm_t* const mem_manager);
+void mm_skip_align(mm_t* const mem_manager,const uint64_t num_bytes);
+void mm_skip_align_16(mm_t* const mem_manager);
+void mm_skip_align_32(mm_t* const mem_manager);
+void mm_skip_align_64(mm_t* const mem_manager);
+void mm_skip_align_128(mm_t* const mem_manager);
+void mm_skip_align_512(mm_t* const mem_manager);
+void mm_skip_align_1024(mm_t* const mem_manager);
+void mm_skip_align_4KB(mm_t* const mem_manager);
+void mm_skip_align_mempage(mm_t* const mem_manager);
 
 // Read
 #define mm_read(mem_manager,var) mm_copy_mem(mem_manager,&var,sizeof(var))
-GEM_INLINE uint64_t mm_read_uint64(mm_t* const mem_manager);
-GEM_INLINE uint32_t mm_read_uint32(mm_t* const mem_manager);
-GEM_INLINE uint16_t mm_read_uint16(mm_t* const mem_manager);
-GEM_INLINE uint8_t mm_read_uint8(mm_t* const mem_manager);
-GEM_INLINE void* mm_read_mem(mm_t* const mem_manager,const uint64_t num_bytes);
-GEM_INLINE void mm_copy_mem(mm_t* const mem_manager,void* const dst,const uint64_t num_bytes);
-GEM_INLINE void mm_copy_mem_parallel(mm_t* const mem_manager,void* const dst,const uint64_t num_bytes,const uint64_t num_threads);
+uint64_t mm_read_uint64(mm_t* const mem_manager);
+uint32_t mm_read_uint32(mm_t* const mem_manager);
+uint16_t mm_read_uint16(mm_t* const mem_manager);
+uint8_t mm_read_uint8(mm_t* const mem_manager);
+void* mm_read_mem(mm_t* const mem_manager,const uint64_t num_bytes);
+void mm_copy_mem(mm_t* const mem_manager,void* const dst,const uint64_t num_bytes);
+void mm_copy_mem_parallel(mm_t* const mem_manager,void* const dst,const uint64_t num_bytes,const uint64_t num_threads);
 
 // Write
 #define mm_write(mem_manager,var) mm_write_mem(mem_manager,&var,sizeof(var))
-GEM_INLINE void mm_write_uint64(mm_t* const mem_manager,const uint64_t data);
-GEM_INLINE void mm_write_uint32(mm_t* const mem_manager,const uint32_t data);
-GEM_INLINE void mm_write_uint16(mm_t* const mem_manager,const uint16_t data);
-GEM_INLINE void mm_write_uint8(mm_t* const mem_manager,const uint8_t data);
-GEM_INLINE void mm_write_mem(mm_t* const mem_manager,void* const src,const uint64_t num_bytes);
+void mm_write_uint64(mm_t* const mem_manager,const uint64_t data);
+void mm_write_uint32(mm_t* const mem_manager,const uint32_t data);
+void mm_write_uint16(mm_t* const mem_manager,const uint16_t data);
+void mm_write_uint8(mm_t* const mem_manager,const uint8_t data);
+void mm_write_mem(mm_t* const mem_manager,void* const src,const uint64_t num_bytes);
 
 // Status
-GEM_INLINE int64_t mm_get_page_size();
-GEM_INLINE int64_t mm_get_available_cached_mem();
-GEM_INLINE int64_t mm_get_available_free_mem();
-GEM_INLINE int64_t mm_get_available_mem();
-GEM_INLINE int64_t mm_get_available_virtual_mem();
+int64_t mm_get_page_size();
+int64_t mm_get_available_cached_mem();
+int64_t mm_get_available_free_mem();
+int64_t mm_get_available_mem();
+int64_t mm_get_available_virtual_mem();
 
 /*
  * Error Messages

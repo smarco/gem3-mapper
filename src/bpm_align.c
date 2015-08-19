@@ -451,7 +451,7 @@ GEM_INLINE void bpm_get_distance_cutoff_tiled(
     uint64_t check_pos, check_distance;
     bpm_get_distance_cutoff(bpm_pattern,text,text_length,&check_pos,&check_distance,max_error,true);
     gem_cond_fatal_error_msg(check_distance < *levenshtein_distance,
-        "Pattern-chunk verification failed (SUM(d(P_i))=%lu <= d(P)=%lu)",check_distance,*levenshtein_distance);
+        "Pattern-chunk verification failed (SUM(d(P_i))=%"PRIu64" <= d(P)=%"PRIu64")",check_distance,*levenshtein_distance);
   }
   PROF_STOP(GP_BPM_TILED);
 #endif

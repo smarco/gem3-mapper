@@ -112,7 +112,7 @@ GEM_INLINE void output_sam_print_header(
       }
     }
     // Print SQ
-    ofprintf(output_file,"@SQ\tSN:%"PRIs"\tLN:%lu\n",tag_len,tag,total_length);
+    ofprintf(output_file,"@SQ\tSN:%"PRIs"\tLN:%"PRIu64"\n",tag_len,tag,total_length);
     // Next
     ++i;
   }

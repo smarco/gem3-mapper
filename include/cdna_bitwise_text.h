@@ -61,37 +61,37 @@ typedef struct {
 /*
  * CDNA Bitwise Text (Loader/Setup)
  */
-GEM_INLINE cdna_bitwise_text_t* cdna_bitwise_text_read(fm_t* const file_manager);
-GEM_INLINE cdna_bitwise_text_t* cdna_bitwise_text_read_mem(mm_t* const memory_manager);
-GEM_INLINE void cdna_bitwise_text_delete(cdna_bitwise_text_t* const cdna_text);
+cdna_bitwise_text_t* cdna_bitwise_text_read(fm_t* const file_manager);
+cdna_bitwise_text_t* cdna_bitwise_text_read_mem(mm_t* const memory_manager);
+void cdna_bitwise_text_delete(cdna_bitwise_text_t* const cdna_text);
 
 // Iterator
-GEM_INLINE void cdna_bitwise_text_iterator_new(
+void cdna_bitwise_text_iterator_new(
     cdna_bitwise_text_iterator_t* const cdna_bitwise_text_iterator,
     cdna_bitwise_text_t* const cdna_text,const uint64_t position,const traversal_direction_t text_traversal);
-GEM_INLINE char cdna_bitwise_text_iterator_get_char(
+char cdna_bitwise_text_iterator_get_char(
     cdna_bitwise_text_iterator_t* const cdna_bitwise_text_iterator);
-GEM_INLINE uint8_t cdna_bitwise_text_iterator_get_enc(
+uint8_t cdna_bitwise_text_iterator_get_enc(
     cdna_bitwise_text_iterator_t* const cdna_bitwise_text_iterator);
 
 /*
  * CDNA Bitwise Text (Builder)
  */
-GEM_INLINE cdna_bitwise_text_builder_t* cdna_bitwise_text_builder_new(
+cdna_bitwise_text_builder_t* cdna_bitwise_text_builder_new(
     fm_t* const file_manager,const uint64_t text_length,mm_slab_t* const mm_slab);
-GEM_INLINE void cdna_bitwise_text_builder_delete(cdna_bitwise_text_builder_t* const cdna_text);
-GEM_INLINE void cdna_bitwise_text_builder_add_char(cdna_bitwise_text_builder_t* const cdna_text,const uint8_t enc_char);
-GEM_INLINE void cdna_bitwise_text_builder_close(cdna_bitwise_text_builder_t* const cdna_text);
+void cdna_bitwise_text_builder_delete(cdna_bitwise_text_builder_t* const cdna_text);
+void cdna_bitwise_text_builder_add_char(cdna_bitwise_text_builder_t* const cdna_text,const uint8_t enc_char);
+void cdna_bitwise_text_builder_close(cdna_bitwise_text_builder_t* const cdna_text);
 
 /*
  * Accessors
  */
-GEM_INLINE uint64_t cdna_bitwise_text_get_size(cdna_bitwise_text_t* const cdna_text);
+uint64_t cdna_bitwise_text_get_size(cdna_bitwise_text_t* const cdna_text);
 
 /*
  * Display
  */
-GEM_INLINE void cdna_bitwise_text_print(FILE* const stream,cdna_bitwise_text_t* const cdna_text);
+void cdna_bitwise_text_print(FILE* const stream,cdna_bitwise_text_t* const cdna_text);
 
 /*
  * Errors

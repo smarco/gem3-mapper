@@ -22,27 +22,27 @@ typedef struct {
 /*
  * Setup
  */
-GEM_INLINE matches_counters_t* matches_counters_new();
-GEM_INLINE void matches_counters_clear(matches_counters_t* const counters);
-GEM_INLINE void matches_counters_delete(matches_counters_t* const counters);
+matches_counters_t* matches_counters_new();
+void matches_counters_clear(matches_counters_t* const counters);
+void matches_counters_delete(matches_counters_t* const counters);
 
 /*
  * Counters
  */
-GEM_INLINE uint64_t matches_counters_get_num_counters(matches_counters_t* const counters);
-GEM_INLINE uint64_t* matches_counters_get_counts(matches_counters_t* const counters);
+uint64_t matches_counters_get_num_counters(matches_counters_t* const counters);
+uint64_t* matches_counters_get_counts(matches_counters_t* const counters);
 
-GEM_INLINE uint64_t matches_counters_get_count(matches_counters_t* const counters,const uint64_t distance);
-GEM_INLINE uint64_t matches_counters_get_total_count(matches_counters_t* const counters);
+uint64_t matches_counters_get_count(matches_counters_t* const counters,const uint64_t distance);
+uint64_t matches_counters_get_total_count(matches_counters_t* const counters);
 
-GEM_INLINE void matches_counters_add(matches_counters_t* const counters,const uint64_t distance,const uint64_t num_matches);
-GEM_INLINE void matches_counters_sub(matches_counters_t* const counters,const uint64_t distance,const uint64_t num_matches);
+void matches_counters_add(matches_counters_t* const counters,const uint64_t distance,const uint64_t num_matches);
+void matches_counters_sub(matches_counters_t* const counters,const uint64_t distance,const uint64_t num_matches);
 
 /*
  * Utils
  */
-GEM_INLINE uint64_t matches_counters_compact(matches_counters_t* const counters);
-GEM_INLINE void matches_counters_compute_matches_to_decode(
+uint64_t matches_counters_compact(matches_counters_t* const counters);
+void matches_counters_compute_matches_to_decode(
     matches_counters_t* const counters,const uint64_t min_reported_strata,
     const uint64_t min_reported_matches,const uint64_t max_reported_matches,
     uint64_t* const reported_strata,uint64_t* const last_stratum_reported_matches);

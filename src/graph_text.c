@@ -208,15 +208,15 @@ GEM_INLINE void graph_text_print(FILE* const stream,graph_text_t* const graph,co
   const uint64_t total_size = edge_table_size + edge_hash_size;
   // Display graph info
   tab_fprintf(stream,"[GEM]>Graph.Text\n");
-  tab_fprintf(stream,"  => Edges %lu\n",graph->num_edges);
-  tab_fprintf(stream,"    => Edges.Size %lu MB (%2.3f%%)\n",CONVERT_B_TO_MB(edge_table_size),PERCENTAGE(edge_table_size,total_size));
-  tab_fprintf(stream,"    => Edges.Hash.Size %lu MB (%2.3f%%)\n",CONVERT_B_TO_MB(edge_hash_size),PERCENTAGE(edge_hash_size,total_size));
+  tab_fprintf(stream,"  => Edges %"PRIu64"\n",graph->num_edges);
+  tab_fprintf(stream,"    => Edges.Size %"PRIu64" MB (%2.3f%%)\n",CONVERT_B_TO_MB(edge_table_size),PERCENTAGE(edge_table_size,total_size));
+  tab_fprintf(stream,"    => Edges.Hash.Size %"PRIu64" MB (%2.3f%%)\n",CONVERT_B_TO_MB(edge_hash_size),PERCENTAGE(edge_hash_size,total_size));
   // Dump
   if (full_dump) {
     tab_fprintf(stream,"  => Edges.Groups\n");
     uint64_t i;
     for (i=0;i<graph->num_vertices;++i) {
-      tab_fprintf(stream,"    #%ld [%lu,%lu)\t{",
+      tab_fprintf(stream,"    #%ld [%"PRIu64",%"PRIu64")\t{",
           graph->vertices[i].non_overlapping_id,
           graph->vertices[i].edge_begin_idx,graph->vertices[i].edge_end_idx);
       edge_attributes_print(stream,graph->vertices[i].edge_attributes);
@@ -227,7 +227,7 @@ GEM_INLINE void graph_text_print(FILE* const stream,graph_text_t* const graph,co
     tab_fprintf(stream,"  => Edges.List\n");
     uint64_t i;
     for (i=0;i<graph->num_edges;++i) {
-      tab_fprintf(stream,"    [%lu]\t",i);
+      tab_fprintf(stream,"    [%"PRIu64"]\t",i);
       edge_print(stream,graph->edges+i);
       fprintf(stream,"\n");
     }
@@ -238,12 +238,12 @@ GEM_INLINE void graph_text_print(FILE* const stream,graph_text_t* const graph,co
 GEM_INLINE void edge_print(FILE* const stream,const edge_t* const edge) {
   if (edge_attributes_is_svn(edge->attributes)) { // SNVs
     fprintf(stream,"{"); edge_attributes_print(stream,edge->attributes); fprintf(stream,"}");
-    fprintf(stream,"(idx:%lu)",edge->position_src);
+    fprintf(stream,"(idx:%"PRIu64")",edge->position_src);
   } else { // General Link
     if (edge->attributes==EDGE_SOURCE) {
-      fprintf(stream,"{Source}\t(idx:%lu)->(idx:%lu)",edge->position_src,edge->position_dst);
+      fprintf(stream,"{Source}\t(idx:%"PRIu64")->(idx:%"PRIu64")",edge->position_src,edge->position_dst);
     } else {
-      fprintf(stream,"{Destiny}\t(idx:%lu)<-(idx:%lu)",edge->position_src,edge->position_dst);
+      fprintf(stream,"{Destiny}\t(idx:%"PRIu64")<-(idx:%"PRIu64")",edge->position_src,edge->position_dst);
     }
   }
 }

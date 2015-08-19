@@ -139,10 +139,10 @@ typedef struct {
 /*
  * Setup
  */
-GEM_INLINE sa_builder_t* sa_builder_new(
+sa_builder_t* sa_builder_new(
     char* const name_prefix,dna_text_t* const enc_text,
     const uint64_t num_threads,const uint64_t max_memory);
-GEM_INLINE void sa_builder_delete(sa_builder_t* const sa_builder);
+void sa_builder_delete(sa_builder_t* const sa_builder);
 
 /*
  * Sorting Suffixes
@@ -150,30 +150,30 @@ GEM_INLINE void sa_builder_delete(sa_builder_t* const sa_builder);
  *   2.- Store all suffixes
  *   3.- Sort all suffixes
  */
-GEM_INLINE void sa_builder_count_suffixes(sa_builder_t* const sa_builder,uint64_t* const character_occurrences,const bool verbose);
-GEM_INLINE void sa_builder_store_suffixes(sa_builder_t* const sa_builder,const bool verbose);
-GEM_INLINE void sa_builder_sort_suffixes(
+void sa_builder_count_suffixes(sa_builder_t* const sa_builder,uint64_t* const character_occurrences,const bool verbose);
+void sa_builder_store_suffixes(sa_builder_t* const sa_builder,const bool verbose);
+void sa_builder_sort_suffixes(
     sa_builder_t* const sa_builder,dna_text_t* const enc_bwt,
     sampled_sa_builder_t* const sampled_sa,const bool verbose);
 
 /*
  * Stats
  */
-GEM_INLINE void sa_builder_display_stats(FILE* const stream,sa_builder_t* const sa_builder,const bool display_groups);
+void sa_builder_display_stats(FILE* const stream,sa_builder_t* const sa_builder,const bool display_groups);
 
 /*
  * Debug
  */
-GEM_INLINE void sa_builder_debug_print_sa(
+void sa_builder_debug_print_sa(
     FILE* stream,sa_builder_t* const sa_builder,
     const uint64_t sa_position,const uint64_t sa_suffix_length);
 
 /*
  * Errors
  */
-#define GEM_ERROR_SA_BUILDER_LIMIT_MAX_BLOCK_MEM "SA Builder. Maximum SA-bucket (%lu GB) larger than max-memory-block allowed (%lu GB)"
-#define GEM_ERROR_SA_BUILDER_LIMIT_MAX_BLOCK_ADDRESSED "SA Builder. Maximum SA-block (%lu GB) cannot be addressed (%lu GB)"
+#define GEM_ERROR_SA_BUILDER_LIMIT_MAX_BLOCK_MEM "SA Builder. Maximum SA-bucket (%"PRIu64" GB) larger than max-memory-block allowed (%"PRIu64" GB)"
+#define GEM_ERROR_SA_BUILDER_LIMIT_MAX_BLOCK_ADDRESSED "SA Builder. Maximum SA-block (%"PRIu64" GB) cannot be addressed (%"PRIu64" GB)"
 #define GEM_ERROR_SA_BUILDER_STORE_BLOCK_NOT_FILLED "SA Builder. K-mer block not filled according to previous counting"
-#define GEM_ERROR_SA_BUILDER_SEQUENCE_MIN_LENGTH "SA Builder. Index total length (%lu) is below minimum threshold (%lu)"
+#define GEM_ERROR_SA_BUILDER_SEQUENCE_MIN_LENGTH "SA Builder. Index total length (%"PRIu64") is below minimum threshold (%"PRIu64")"
 
 #endif /* SA_BUILDER_H_ */

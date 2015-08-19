@@ -51,52 +51,52 @@ typedef struct {
 /*
  * BWT Builder
  */
-GEM_INLINE bwt_basic_builder_t* bwt_basic_builder_new(dna_text_t* const bwt_text,
+bwt_basic_builder_t* bwt_basic_builder_new(dna_text_t* const bwt_text,
     const uint64_t* const character_occurrences,const bool check,const bool verbose);
-GEM_INLINE void bwt_basic_builder_write(fm_t* const file_manager,bwt_basic_builder_t* const bwt_builder);
-GEM_INLINE void bwt_basic_builder_delete(bwt_basic_builder_t* const bwt_builder);
+void bwt_basic_builder_write(fm_t* const file_manager,bwt_basic_builder_t* const bwt_builder);
+void bwt_basic_builder_delete(bwt_basic_builder_t* const bwt_builder);
 
 /*
  * BWT Loader
  */
-GEM_INLINE bwt_basic_t* bwt_basic_read_mem(mm_t* const memory_manager,const bool check);
-GEM_INLINE void bwt_basic_delete(bwt_basic_t* const bwt);
+bwt_basic_t* bwt_basic_read_mem(mm_t* const memory_manager,const bool check);
+void bwt_basic_delete(bwt_basic_t* const bwt);
 
 /*
  * BWT General Accessors
  */
-GEM_INLINE uint64_t bwt_basic_builder_get_length(const bwt_basic_builder_t* const bwt_builder);
-GEM_INLINE uint64_t bwt_basic_builder_get_size(bwt_basic_builder_t* const bwt_builder);
+uint64_t bwt_basic_builder_get_length(const bwt_basic_builder_t* const bwt_builder);
+uint64_t bwt_basic_builder_get_size(bwt_basic_builder_t* const bwt_builder);
 
-GEM_INLINE uint64_t bwt_basic_get_length(const bwt_basic_t* const bwt);
-GEM_INLINE uint64_t bwt_basic_get_size(bwt_basic_t* const bwt);
+uint64_t bwt_basic_get_length(const bwt_basic_t* const bwt);
+uint64_t bwt_basic_get_size(bwt_basic_t* const bwt);
 
-GEM_INLINE bool bwt_basic_is_same_bucket(const uint64_t lo,const uint64_t hi);
+bool bwt_basic_is_same_bucket(const uint64_t lo,const uint64_t hi);
 
 /*
  * BWT Character Accessors
  */
-GEM_INLINE uint8_t bwt_basic_char(const bwt_basic_t* const bwt,const uint64_t position);
-GEM_INLINE char bwt_basic_char_character(const bwt_basic_t* const bwt,const uint64_t position);
+uint8_t bwt_basic_char(const bwt_basic_t* const bwt,const uint64_t position);
+char bwt_basic_char_character(const bwt_basic_t* const bwt,const uint64_t position);
 
 /*
  * BWT ERank (Exclusive Rank Function)
  */
-GEM_INLINE uint64_t bwt_basic_builder_erank(const bwt_basic_builder_t* const bwt_builder,const uint8_t char_enc,const uint64_t position);
-GEM_INLINE uint64_t bwt_basic_erank(const bwt_basic_t* const bwt,const uint8_t char_enc,const uint64_t position);
-GEM_INLINE uint64_t bwt_basic_erank_character(const bwt_basic_t* const bwt,const char character,const uint64_t position);
-GEM_INLINE void bwt_basic_erank_interval(
+uint64_t bwt_basic_builder_erank(const bwt_basic_builder_t* const bwt_builder,const uint8_t char_enc,const uint64_t position);
+uint64_t bwt_basic_erank(const bwt_basic_t* const bwt,const uint8_t char_enc,const uint64_t position);
+uint64_t bwt_basic_erank_character(const bwt_basic_t* const bwt,const char character,const uint64_t position);
+void bwt_basic_erank_interval(
     const bwt_basic_t* const bwt,const uint8_t char_enc,
     const uint64_t lo_in,const uint64_t hi_in,uint64_t* const lo_out,uint64_t* const hi_out);
 
 /*
  * BWT Prefetched ERank
  */
-GEM_INLINE void bwt_basic_prefetch(const bwt_basic_t* const bwt,const uint64_t position,bwt_block_locator_t* const block_loc);
-GEM_INLINE uint64_t bwt_basic_prefetched_erank(
+void bwt_basic_prefetch(const bwt_basic_t* const bwt,const uint64_t position,bwt_block_locator_t* const block_loc);
+uint64_t bwt_basic_prefetched_erank(
     const bwt_basic_t* const bwt,const uint8_t char_enc,
     const uint64_t position,const bwt_block_locator_t* const block_loc);
-GEM_INLINE void bwt_basic_prefetched_erank_interval(
+void bwt_basic_prefetched_erank_interval(
     const bwt_basic_t* const bwt,const uint8_t char_enc,
     const uint64_t lo_in,const uint64_t hi_in,uint64_t* const lo_out,uint64_t* const hi_out,
     const bwt_block_locator_t* const block_loc);
@@ -104,23 +104,23 @@ GEM_INLINE void bwt_basic_prefetched_erank_interval(
 /*
  *  BWT Precomputed ERank (Precomputation of the block's elements)
  */
-GEM_INLINE void bwt_basic_precompute(
+void bwt_basic_precompute(
     const bwt_basic_t* const bwt,const uint64_t position,
     bwt_block_locator_t* const block_loc,bwt_block_elms_t* const block_elms);
-GEM_INLINE void bwt_basic_precompute_interval(
+void bwt_basic_precompute_interval(
     const bwt_basic_t* const bwt,const uint64_t lo,const uint64_t hi,
     bwt_block_locator_t* const block_loc,bwt_block_elms_t* const block_elms);
-GEM_INLINE void bwt_basic_prefetched_precompute(
+void bwt_basic_prefetched_precompute(
     const bwt_basic_t* const bwt,
     const bwt_block_locator_t* const block_loc,bwt_block_elms_t* const block_elms);
-GEM_INLINE void bwt_basic_prefetched_precompute_interval(
+void bwt_basic_prefetched_precompute_interval(
     const bwt_basic_t* const bwt,const uint64_t lo,
     const bwt_block_locator_t* const block_loc,bwt_block_elms_t* const block_elms);
 
-GEM_INLINE uint64_t bwt_basic_precomputed_erank(
+uint64_t bwt_basic_precomputed_erank(
     const bwt_basic_t* const bwt,const uint8_t char_enc,
     const bwt_block_locator_t* const block_loc,const bwt_block_elms_t* const block_elms);
-GEM_INLINE void bwt_basic_precomputed_erank_interval(
+void bwt_basic_precomputed_erank_interval(
     const bwt_basic_t* const bwt,const uint8_t char_enc,
     uint64_t* const lo_out,uint64_t* const hi_out,
     const bwt_block_locator_t* const block_loc,const bwt_block_elms_t* const block_elms);
@@ -128,23 +128,23 @@ GEM_INLINE void bwt_basic_precomputed_erank_interval(
 /*
  * BWT LF (Last to first)
  */
-GEM_INLINE uint64_t bwt_basic_LF(const bwt_basic_t* const bwt,const uint64_t position);
-GEM_INLINE uint64_t bwt_basic_prefetched_LF(
+uint64_t bwt_basic_LF(const bwt_basic_t* const bwt,const uint64_t position);
+uint64_t bwt_basic_prefetched_LF(
     const bwt_basic_t* const bwt,const uint64_t position,
     const bwt_block_locator_t* const block_loc);
 
-GEM_INLINE uint64_t bwt_basic_LF__enc(
+uint64_t bwt_basic_LF__enc(
     const bwt_basic_t* const bwt,const uint64_t position,uint8_t* const char_enc);
-GEM_INLINE uint64_t bwt_basic_LF__character(
+uint64_t bwt_basic_LF__character(
     const bwt_basic_t* const bwt,const uint64_t position,char* const character);
-GEM_INLINE uint64_t bwt_basic_prefetched_LF__enc(
+uint64_t bwt_basic_prefetched_LF__enc(
     const bwt_basic_t* const bwt,const uint64_t position,
     uint8_t* const char_enc,const bwt_block_locator_t* const block_loc);
 
 /*
  * Display
  */
-GEM_INLINE void bwt_basic_builder_print(FILE* const stream,bwt_basic_builder_t* const bwt_builder);
-GEM_INLINE void bwt_basic_print(FILE* const stream,bwt_basic_t* const bwt);
+void bwt_basic_builder_print(FILE* const stream,bwt_basic_builder_t* const bwt_builder);
+void bwt_basic_print(FILE* const stream,bwt_basic_t* const bwt);
 
 #endif /* BWT_BASIC_H_ */

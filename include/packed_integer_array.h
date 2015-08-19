@@ -53,40 +53,40 @@ typedef struct {
 /*
  * Loader/Setup
  */
-GEM_INLINE packed_integer_array_t* packed_integer_array_new(
+packed_integer_array_t* packed_integer_array_new(
     const uint64_t num_elements,const uint64_t integer_length_bits);
-GEM_INLINE void packed_integer_array_delete(packed_integer_array_t* const array);
-GEM_INLINE packed_integer_array_t* packed_integer_array_read(fm_t* const file_manager);
-GEM_INLINE packed_integer_array_t* packed_integer_array_read_mem(mm_t* const memory_manager);
-GEM_INLINE void packed_integer_array_write(
+void packed_integer_array_delete(packed_integer_array_t* const array);
+packed_integer_array_t* packed_integer_array_read(fm_t* const file_manager);
+packed_integer_array_t* packed_integer_array_read_mem(mm_t* const memory_manager);
+void packed_integer_array_write(
     fm_t* const file_manager,packed_integer_array_t* const array);
 
 /*
  * Builder
  */
-GEM_INLINE packed_integer_array_builder_t* packed_integer_array_builder_new(
+packed_integer_array_builder_t* packed_integer_array_builder_new(
     const uint64_t integer_length_bits,mm_slab_t* const mm_slab);
-GEM_INLINE void packed_integer_array_builder_delete(packed_integer_array_builder_t* const array);
-GEM_INLINE void packed_integer_array_builder_store(
+void packed_integer_array_builder_delete(packed_integer_array_builder_t* const array);
+void packed_integer_array_builder_store(
     packed_integer_array_builder_t* const array,const uint64_t integer);
-GEM_INLINE void packed_integer_array_builder_write(
+void packed_integer_array_builder_write(
     fm_t* const file_manager,
     packed_integer_array_builder_t** array_builders,const uint64_t num_array_builders);
 
 /*
  * Accessors
  */
-GEM_INLINE uint64_t packed_integer_array_get_size(const packed_integer_array_t* const array);
-GEM_INLINE uint64_t packed_integer_array_get_length(const packed_integer_array_t* const array);
+uint64_t packed_integer_array_get_size(const packed_integer_array_t* const array);
+uint64_t packed_integer_array_get_length(const packed_integer_array_t* const array);
 
-GEM_INLINE void packed_integer_array_prefetch(const packed_integer_array_t* const array,const uint64_t position);
-GEM_INLINE uint64_t packed_integer_array_load(const packed_integer_array_t* const array,const uint64_t position);
+void packed_integer_array_prefetch(const packed_integer_array_t* const array,const uint64_t position);
+uint64_t packed_integer_array_load(const packed_integer_array_t* const array,const uint64_t position);
 
-GEM_INLINE void packed_integer_array_store(packed_integer_array_t* const array,const uint64_t position,const uint64_t integer);
+void packed_integer_array_store(packed_integer_array_t* const array,const uint64_t position,const uint64_t integer);
 
 /*
  * Display
  */
-GEM_INLINE void packed_integer_array_print(FILE* const stream,const packed_integer_array_t* const array,const bool display_data);
+void packed_integer_array_print(FILE* const stream,const packed_integer_array_t* const array,const bool display_data);
 
 #endif /* PACKED_INTEGER_ARRAY_H_ */

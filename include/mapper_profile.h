@@ -266,17 +266,17 @@
 /*
  * Mapper SE
  */
-GEM_INLINE void mapper_profile_print_mapper_single_end(
+void mapper_profile_print_mapper_single_end(
     FILE* const stream,const bool map_output,const uint64_t num_threads);
-GEM_INLINE void mapper_profile_print_mapper_single_end_cuda(
+void mapper_profile_print_mapper_single_end_cuda(
     FILE* const stream,const bool map_output,const uint64_t num_threads);
 
 /*
  * Mapper PE
  */
-GEM_INLINE void mapper_profile_print_mapper_paired_end(
+void mapper_profile_print_mapper_paired_end(
     FILE* const stream,const bool map_output,const uint64_t num_threads);
-GEM_INLINE void mapper_profile_print_mapper_paired_end_cuda(
+void mapper_profile_print_mapper_paired_end_cuda(
     FILE* const stream,const bool map_output,const uint64_t num_threads);
 
 /*

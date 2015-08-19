@@ -89,7 +89,7 @@ GEM_INLINE bpm_gpu_buffer_collection_t* bpm_gpu_init(
     const uint64_t max_queries = bpm_gpu_buffer_get_max_queries_(buffer_collection->bpm_gpu_buffers->buffer);
     const uint64_t max_PEQ_entries = bpm_gpu_buffer_get_max_peq_entries_(buffer_collection->bpm_gpu_buffers->buffer);
     const uint64_t max_candidates = bpm_gpu_buffer_get_max_candidates_(buffer_collection->bpm_gpu_buffers->buffer);
-    gem_log("[BPM-GPU Init] Total %lu buffers allocated (Each %lu MB {%lu queries,%lu PeqEntries,%lu candidates})",
+    gem_log("[BPM-GPU Init] Total %"PRIu64" buffers allocated (Each %"PRIu64" MB {%"PRIu64" queries,%"PRIu64" PeqEntries,%"PRIu64" candidates})",
         num_buffers,CONVERT_B_TO_MB(buffer_size),max_queries,max_PEQ_entries,max_candidates);
   }
   // Return

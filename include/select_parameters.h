@@ -41,13 +41,13 @@ typedef struct {
 /*
  * Select Parameters Setup
  */
-GEM_INLINE void select_parameters_init(select_parameters_t* const select_parameters);
+void select_parameters_init(select_parameters_t* const select_parameters);
 
-GEM_INLINE void select_configure_reporting(
+void select_configure_reporting(
     select_parameters_t* const select_parameters,const float min_decoded_strata,
     const uint64_t min_reported_matches,const uint64_t max_reported_matches);
 
-GEM_INLINE void select_instantiate_values(
+void select_instantiate_values(
     select_parameters_t* const select_parameters,const uint64_t sequence_length);
 
 #endif /* SELECT_PARAMETERS_H_ */

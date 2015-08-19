@@ -80,29 +80,29 @@ typedef struct {
 /*
  * Archive Builder
  */
-GEM_INLINE archive_builder_t* archive_builder_new(
+archive_builder_t* archive_builder_new(
     fm_t* const output_file,char* const output_file_name_prefix,
     const archive_filter_type filter_type,const indexed_complement_t indexed_complement,
     const uint64_t complement_size_threshold,const uint64_t ns_threshold,
     const sampling_rate_t sampling_rate,const uint64_t num_threads,const uint64_t max_memory);
-GEM_INLINE void archive_builder_delete(archive_builder_t* const archive_builder);
+void archive_builder_delete(archive_builder_t* const archive_builder);
 
 /*
  * STEP1 Archive Build :: Process MultiFASTA file(s)
  */
-GEM_INLINE void archive_builder_process_multifasta(
+void archive_builder_process_multifasta(
     archive_builder_t* const archive_builder,input_file_t* const input_multifasta,
     const bool dump_locator_intervals,const bool dump_indexed_text,const bool verbose);
-GEM_INLINE void archive_builder_process_run_length_text(
+void archive_builder_process_run_length_text(
     archive_builder_t* const archive_builder,const bool dump_run_length_text,const bool verbose);
 
 /*
  * STEP2 Archive Build :: Build BWT (SA)
  */
-GEM_INLINE void archive_builder_build_bwt(
+void archive_builder_build_bwt(
     archive_builder_t* const archive_builder,
     const bool dump_bwt,const bool dump_explicit_sa,const bool verbose);
-GEM_INLINE void archive_builder_build_bwt_reverse(
+void archive_builder_build_bwt_reverse(
     archive_builder_t* const archive_builder,
     const bool dump_reverse_indexed_text,const bool dump_bwt,
     const bool dump_explicit_sa,const bool verbose);
@@ -110,13 +110,13 @@ GEM_INLINE void archive_builder_build_bwt_reverse(
 /*
  * STEP3 Archive Build :: Create Index (FM-Index)
  */
-GEM_INLINE void archive_builder_write_header(archive_builder_t* const archive_builder);
-GEM_INLINE void archive_builder_write_locator(archive_builder_t* const archive_builder);
-GEM_INLINE void archive_builder_write_text(
+void archive_builder_write_header(archive_builder_t* const archive_builder);
+void archive_builder_write_locator(archive_builder_t* const archive_builder);
+void archive_builder_write_text(
     archive_builder_t* const archive_builder,const bool verbose);
-GEM_INLINE void archive_builder_write_index(
+void archive_builder_write_index(
     archive_builder_t* const archive_builder,const bool check_index,const bool verbose);
-GEM_INLINE void archive_builder_write_index_reverse(
+void archive_builder_write_index_reverse(
     archive_builder_t* const archive_builder,const bool check_index,const bool verbose);
 
 #endif /* ARCHIVE_BUILDER_H_ */

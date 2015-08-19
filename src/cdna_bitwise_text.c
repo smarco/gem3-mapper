@@ -221,12 +221,12 @@ GEM_INLINE void cdna_bitwise_text_print(FILE* const stream,cdna_bitwise_text_t* 
   CDNA_BITWISE_TEXT_CHECK(cdna_text);
   tab_fprintf(stream,"[GEM]>Compacted DNA-text\n");
   tab_fprintf(stream,"  => Architecture CDNA.3b.2bm64.xl\n");
-  tab_fprintf(stream,"  => Text.length %lu\n",cdna_text->text_length);
+  tab_fprintf(stream,"  => Text.length %"PRIu64"\n",cdna_text->text_length);
   const uint64_t sparse_bitmap_size = sparse_bitmap_get_size(cdna_text->sparse_bitmap);
   const uint64_t total_size = cdna_text->text_size + sparse_bitmap_size;
-  tab_fprintf(stream,"  => Text.size %lu MB (100 %)\n",total_size);
-  tab_fprintf(stream,"    => Text.size %lu MB (%2.3f%%)\n",cdna_text->text_size,PERCENTAGE(cdna_text->text_size,total_size));
-  tab_fprintf(stream,"    => SpaceBitmap.size %lu MB (%2.3f%%)\n",sparse_bitmap_size,PERCENTAGE(sparse_bitmap_size,total_size));
+  tab_fprintf(stream,"  => Text.size %"PRIu64" MB (100 %)\n",total_size);
+  tab_fprintf(stream,"    => Text.size %"PRIu64" MB (%2.3f%%)\n",cdna_text->text_size,PERCENTAGE(cdna_text->text_size,total_size));
+  tab_fprintf(stream,"    => SpaceBitmap.size %"PRIu64" MB (%2.3f%%)\n",sparse_bitmap_size,PERCENTAGE(sparse_bitmap_size,total_size));
   sparse_bitmap_print(stream,cdna_text->sparse_bitmap,false);
   // Flush
   fflush(stream);

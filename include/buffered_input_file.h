@@ -37,18 +37,18 @@ void buffered_input_file_close(buffered_input_file_t* const buffered_input);
 /*
  * Accessors
  */
-GEM_INLINE char** buffered_input_file_get_text_line(buffered_input_file_t* const buffered_input);
-GEM_INLINE uint64_t buffered_input_file_get_cursor_pos(buffered_input_file_t* const buffered_input);
-GEM_INLINE uint64_t buffered_input_file_get_block_id(buffered_input_file_t* const buffered_input);
-GEM_INLINE bool buffered_input_file_eob(buffered_input_file_t* const buffered_input);
-GEM_INLINE void buffered_input_file_attach_buffered_output(
+char** buffered_input_file_get_text_line(buffered_input_file_t* const buffered_input);
+uint64_t buffered_input_file_get_cursor_pos(buffered_input_file_t* const buffered_input);
+uint64_t buffered_input_file_get_block_id(buffered_input_file_t* const buffered_input);
+bool buffered_input_file_eob(buffered_input_file_t* const buffered_input);
+void buffered_input_file_attach_buffered_output(
     buffered_input_file_t* const buffered_input_file,buffered_output_file_t* const buffered_output_file);
 
 /*
  * Utils
  */
-GEM_INLINE void buffered_input_file_skip_line(buffered_input_file_t* const buffered_input);
-GEM_INLINE uint64_t buffered_input_file_reload(buffered_input_file_t* const buffered_input);
-GEM_INLINE uint64_t buffered_input_file_reload__dump_attached(buffered_input_file_t* const buffered_input);
+void buffered_input_file_skip_line(buffered_input_file_t* const buffered_input);
+uint64_t buffered_input_file_reload(buffered_input_file_t* const buffered_input);
+uint64_t buffered_input_file_reload__dump_attached(buffered_input_file_t* const buffered_input);
 
 #endif /* BUFFERED_INPUT_FILE_H_ */

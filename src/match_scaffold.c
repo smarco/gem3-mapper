@@ -461,18 +461,18 @@ GEM_INLINE void match_scaffold_print(
     FILE* const stream,matches_t* const matches,match_scaffold_t* const match_scaffold) {
   const uint64_t num_scaffold_regions = match_scaffold->num_scaffold_regions;
   tab_fprintf(stream,"[GEM]>Matching.Scaffolded.Regions\n");
-  tab_fprintf(stream,"  => Num.scaffold.regions %lu\n",num_scaffold_regions);
-  tab_fprintf(stream,"  => Scaffold.coverage %lu\n",match_scaffold->scaffolding_coverage);
+  tab_fprintf(stream,"  => Num.scaffold.regions %"PRIu64"\n",num_scaffold_regions);
+  tab_fprintf(stream,"  => Scaffold.coverage %"PRIu64"\n",match_scaffold->scaffolding_coverage);
   uint64_t i;
   for (i=0;i<num_scaffold_regions;++i) {
     region_matching_t* const region_matching = match_scaffold->scaffold_regions + i;
     // Print matching region
     switch (region_matching->matching_type) {
-      case region_matching_exact: tab_fprintf(stream,"    %lu[exact]\t",i); break;
-      case region_matching_approximate: tab_fprintf(stream,"    %lu[approximate]\t",i); break;
+      case region_matching_exact: tab_fprintf(stream,"    %"PRIu64"[exact]\t",i); break;
+      case region_matching_approximate: tab_fprintf(stream,"    %"PRIu64"[approximate]\t",i); break;
       default: GEM_INVALID_CASE(); break;
     }
-    tab_fprintf(stream,"-> [%lu,%lu) ~> [+%lu,+%lu)",
+    tab_fprintf(stream,"-> [%"PRIu64",%"PRIu64") ~> [+%"PRIu64",+%"PRIu64")",
         region_matching->key_begin,region_matching->key_end,
         region_matching->text_begin,region_matching->text_end);
     // Print CIGAR

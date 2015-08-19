@@ -27,30 +27,30 @@ typedef struct {
 /*
  * Setup
  */
-GEM_INLINE void interval_set_init(interval_set_t* const interval_set);
-GEM_INLINE void interval_set_clear(interval_set_t* const interval_set);
-GEM_INLINE void interval_set_destroy(interval_set_t* const interval_set);
+void interval_set_init(interval_set_t* const interval_set);
+void interval_set_clear(interval_set_t* const interval_set);
+void interval_set_destroy(interval_set_t* const interval_set);
 
 /*
  * Counting
  */
-GEM_INLINE uint64_t interval_set_count_intervals(interval_set_t* const interval_set);
-GEM_INLINE uint64_t interval_set_count_intervals_length(interval_set_t* const interval_set);
-GEM_INLINE uint64_t interval_set_count_intervals_length_thresholded(
+uint64_t interval_set_count_intervals(interval_set_t* const interval_set);
+uint64_t interval_set_count_intervals_length(interval_set_t* const interval_set);
+uint64_t interval_set_count_intervals_length_thresholded(
     interval_set_t* const interval_set,const uint64_t max_error);
 
 /*
  * Adding
  */
-GEM_INLINE void interval_set_add(
+void interval_set_add(
     interval_set_t* const interval_set,const uint64_t lo,const uint64_t hi,
     const uint64_t distance,const uint64_t length);
 
 /*
  * Set Operators
  */
-GEM_INLINE void interval_set_union(interval_set_t* const interval_set_a,interval_set_t* const interval_set_b);
-GEM_INLINE void interval_set_subtract(interval_set_t* const result_set,interval_set_t* const exclusion_set);
+void interval_set_union(interval_set_t* const interval_set_a,interval_set_t* const interval_set_b);
+void interval_set_subtract(interval_set_t* const result_set,interval_set_t* const exclusion_set);
 
 /*
  * Macro iterator

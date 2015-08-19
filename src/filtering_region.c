@@ -285,16 +285,16 @@ GEM_INLINE int64_t filtering_region_verify_levenshtein(
   const uint8_t* const text = text_trace->text;
   // Check
   const uint64_t base_position = candidate_region->begin_position+candidate_region->base_position_offset;
-  gem_slog("[Checking position %lu]\n",base_position);
-  gem_slog("\tRange [%lu,%lu]\n",base_position,candidate_region->end_position);
-  gem_slog("\tEffective Range [%lu,%lu]\n",
+  gem_slog("[Checking position %"PRIu64"]\n",base_position);
+  gem_slog("\tRange [%"PRIu64",%"PRIu64"]\n",base_position,candidate_region->end_position);
+  gem_slog("\tEffective Range [%"PRIu64",%"PRIu64"]\n",
       candidate_region->begin_position,candidate_region->end_position);
   const uint64_t eff_text_length =
       candidate_region->end_position - candidate_region->begin_position;
   uint64_t i, dp_position;
   const int64_t dp_distance = align_levenshtein_get_distance(
       (const char * const)key,key_length,(const char * const)text,eff_text_length,true,&dp_position);
-  gem_slog("\tDP-Alignment (distance=%lu,position=%lu)\n",dp_distance,dp_position);
+  gem_slog("\tDP-Alignment (distance=%"PRIu64",position=%"PRIu64")\n",dp_distance,dp_position);
   gem_slog("\tPattern: ");
   for (i=0;i<key_length;++i) gem_slog("%c",dna_decode(key[i]));
   gem_slog("\n\tText: ");
@@ -401,7 +401,7 @@ GEM_INLINE uint64_t filtering_region_verify_multiple_hits(
 GEM_INLINE uint64_t filtering_region_verify_extension(
     vector_t* const filtering_regions,vector_t* const verified_regions,
     const text_collection_t* const text_collection,
-    const uint64_t const text_trace_offset,const uint64_t index_position,
+    const uint64_t text_trace_offset,const uint64_t index_position,
     search_parameters_t* const search_parameters,const pattern_t* const pattern) {
   // Text (candidate)
   text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);

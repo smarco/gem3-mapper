@@ -114,15 +114,15 @@ GEM_INLINE void matches_predictors_print_basic_fields(
   // sub_swg
   fprintf(stdout,"%f\t",predictors->subdominant_swg_score_norm);
   // mcs
-  fprintf(stdout,"%lu\t",predictors->mcs);
+  fprintf(stdout,"%"PRIu64"\t",predictors->mcs);
   // max_region_length
   fprintf(stdout,"%f\t",predictors->max_region_length_norm);
   // fs_matches
-  fprintf(stdout,"%lu\t",predictors->first_stratum_matches);
+  fprintf(stdout,"%"PRIu64"\t",predictors->first_stratum_matches);
   // sub_matches
-  fprintf(stdout,"%lu\t",predictors->subdominant_stratum_matches);
+  fprintf(stdout,"%"PRIu64"\t",predictors->subdominant_stratum_matches);
   // delta
-  fprintf(stdout,"%lu",predictors->subdominant_event_distance-predictors->first_map_event_distance);
+  fprintf(stdout,"%"PRIu64"",predictors->subdominant_event_distance-predictors->first_map_event_distance);
 }
 GEM_INLINE void matches_predictors_print(
     matches_predictors_t* const predictors,
@@ -130,7 +130,7 @@ GEM_INLINE void matches_predictors_print(
   // Print base predictors
   matches_predictors_print_basic_fields(predictors,read_tag,mapq_score);
   // sub_cand
-  fprintf(stdout,"\t%lu\n",predictors->subdominant_candidates_end1);
+  fprintf(stdout,"\t%"PRIu64"\n",predictors->subdominant_candidates_end1);
 }
 GEM_INLINE void paired_matches_predictors_print(
     matches_predictors_t* const predictors,
@@ -139,9 +139,9 @@ GEM_INLINE void paired_matches_predictors_print(
   // Print base predictors
   matches_predictors_print_basic_fields(predictors,read_tag,mapq_score_pair);
   // sub_cand_end1
-  fprintf(stdout,"\t%lu\t",predictors->subdominant_candidates_end1);
+  fprintf(stdout,"\t%"PRIu64"\t",predictors->subdominant_candidates_end1);
   // sub_cand_end2
-  fprintf(stdout,"%lu\t",predictors->subdominant_candidates_end2);
+  fprintf(stdout,"%"PRIu64"\t",predictors->subdominant_candidates_end2);
   // sigma
   fprintf(stdout,"%f\t",predictors->first_map_template_size_sigma);
   // sub_sigma

@@ -129,7 +129,7 @@ GEM_INLINE void region_profile_generator_add_character(
   const uint64_t key_position = rp_query->key_position;
   const uint64_t num_candidates = hi-lo;
   // Check number of candidates
-  gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) { fprintf(stderr," %lu",num_candidates); }
+  gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) { fprintf(stderr," %"PRIu64"",num_candidates); }
   if (gem_expect_true(num_candidates > profile_model->region_th)) return;
   if (num_candidates > 0) {
     // End of the read reached
@@ -342,7 +342,7 @@ GEM_INLINE void region_profile_generate_adaptive(
   // DEBUG
   gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
     static uint64_t region_profile_num = 0;
-    fprintf(stderr,"[%lu]",region_profile_num++);
+    fprintf(stderr,"[%"PRIu64"]",region_profile_num++);
     uint64_t i;
     for (i=0;i<key_length;++i) fprintf(stderr,"%c",dna_decode(key[i]));
     fprintf(stderr,"\n");
@@ -361,7 +361,6 @@ GEM_INLINE void region_profile_generate_adaptive(
       .num_standard_regions = 0,
       .num_unique_regions = 0,
       .num_zero_regions = 0,
-      .total_candidates = 0,
       .max_region_length = 0,
   };
   region_profile_query_t rp_query = {
@@ -404,7 +403,7 @@ GEM_INLINE void region_profile_generate_adaptive_limited(
   // DEBUG
   gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
     static uint64_t region_profile_num = 0;
-    fprintf(stderr,"[%lu]",region_profile_num++);
+    fprintf(stderr,"[%"PRIu64"]",region_profile_num++);
     pattern_enc_print(stderr,key,key_length);
     fprintf(stderr,"\n");
   }
@@ -520,7 +519,7 @@ GEM_INLINE void region_profile_generate_adaptive_boost(
   // DEBUG
   gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
     static uint64_t region_profile_num = 0;
-    fprintf(stderr,"[%lu]",region_profile_num++);
+    fprintf(stderr,"[%"PRIu64"]",region_profile_num++);
     pattern_enc_print(stderr,key,key_length);
     fprintf(stderr,"\n");
   }
@@ -583,14 +582,14 @@ GEM_INLINE void region_profile_generate_adaptive_boost(
 GEM_INLINE void region_profile_print(
     FILE* const stream,const region_profile_t* const region_profile,const bool sorted) {
   tab_fprintf(stream,"[GEM]>Region.Profile\n");
-  tab_fprintf(stream,"  => Pattern.length %lu\n",region_profile->pattern_length);
-  tab_fprintf(stream,"  => Num.Filtering.Regions %lu\n",region_profile->num_filtering_regions);
-  tab_fprintf(stream,"  => Num.Standard.Regions %lu\n",region_profile->num_standard_regions);
-  tab_fprintf(stream,"  => Errors.allowed %lu\n",region_profile->errors_allowed);
+  tab_fprintf(stream,"  => Pattern.length %"PRIu64"\n",region_profile->pattern_length);
+  tab_fprintf(stream,"  => Num.Filtering.Regions %"PRIu64"\n",region_profile->num_filtering_regions);
+  tab_fprintf(stream,"  => Num.Standard.Regions %"PRIu64"\n",region_profile->num_standard_regions);
+  tab_fprintf(stream,"  => Errors.allowed %"PRIu64"\n",region_profile->errors_allowed);
   tab_fprintf(stream,"  => Filtering.Regions\n");
   if (!sorted) {
     REGION_PROFILE_ITERATE(region_profile,region,position) {
-      tab_fprintf(stream,"    [%lu]\ttype=%s\tregion=[%lu,%lu)\tcand=%lu\n",
+      tab_fprintf(stream,"    [%"PRIu64"]\ttype=%s\tregion=[%"PRIu64",%"PRIu64")\tcand=%"PRIu64"\n",
           position,
           region->type==region_unique ? "region_unique" :
               (region->type==region_standard ? "region_standard" : "region_gap"),
@@ -598,7 +597,7 @@ GEM_INLINE void region_profile_print(
     }
   } else {
     REGION_LOCATOR_ITERATE(region_profile,region,position) {
-      tab_fprintf(stream,"    [%lu]\ttype=%s\tregion=[%lu,%lu)\tcand=%lu\t\n",
+      tab_fprintf(stream,"    [%"PRIu64"]\ttype=%s\tregion=[%"PRIu64",%"PRIu64")\tcand=%"PRIu64"\t\n",
           position,
           region->type==region_unique ? "region_unique" :
               (region->type==region_standard ? "region_standard" : "region_gap"),

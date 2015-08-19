@@ -46,7 +46,7 @@ void mapper_cuda_error_report(FILE* stream) {
 //    uint64_t i;
 //    for (i=0;i<num_threads;++i) {
 //      mapper_cuda_search_t* const mapper_cuda_search = g_mapper_cuda_search + i; // Thread
-//      fprintf(stream,"GEM::Running-Thread (threadID = %lu)\n",mapper_cuda_search->thread_id);
+//      fprintf(stream,"GEM::Running-Thread (threadID = %"PRIu64")\n",mapper_cuda_search->thread_id);
 //      // Display Input State
 //      const sequence_t* const sequence = archive_search_get_sequence(mapper_cuda_search->);
 //      tab_global_inc();

@@ -80,7 +80,7 @@ typedef struct {
  *     @stats_vector_t[1] => [1,2)
  *     @stats_vector_t[2] => [2,3)
  */
-GEM_INLINE stats_vector_t* stats_vector_customed_range_new(
+stats_vector_t* stats_vector_customed_range_new(
     uint64_t* const customed_range_values,const uint64_t num_ranges,
     const uint64_t out_of_range_bucket_size);
 /*
@@ -92,7 +92,7 @@ GEM_INLINE stats_vector_t* stats_vector_customed_range_new(
  *     @stats_vector_t[1] => {3,4,5}
  *     @stats_vector_t[2] => {6,7,8}
  */
-GEM_INLINE stats_vector_t* stats_vector_step_range_new(
+stats_vector_t* stats_vector_step_range_new(
     const uint64_t max_value,const uint64_t step,
     const uint64_t out_of_range_bucket_size);
 /*
@@ -102,71 +102,71 @@ GEM_INLINE stats_vector_t* stats_vector_step_range_new(
  *     @stats_vector_t[1] => {1}
  *     @stats_vector_t[2] => {2}
  */
-GEM_INLINE stats_vector_t* stats_vector_raw_new(
+stats_vector_t* stats_vector_raw_new(
     const uint64_t num_values,const uint64_t out_of_range_bucket_size);
 /*
  * Create from template copy (just structure, not actual data)
  */
-GEM_INLINE stats_vector_t* stats_vector_new_from_template(stats_vector_t* const stats_vector_template);
+stats_vector_t* stats_vector_new_from_template(stats_vector_t* const stats_vector_template);
 
 /* Setup */
-GEM_INLINE void stats_vector_clear(stats_vector_t* const stats_vector);
-GEM_INLINE void stats_vector_delete(stats_vector_t* const stats_vector);
+void stats_vector_clear(stats_vector_t* const stats_vector);
+void stats_vector_delete(stats_vector_t* const stats_vector);
 
 /*
  * Increment/Add bucket counter
  */
-GEM_INLINE void stats_vector_inc(stats_vector_t* const stats_vector,const uint64_t value);
-GEM_INLINE void stats_vector_add(stats_vector_t* const stats_vector,const uint64_t value,const uint64_t amount);
+void stats_vector_inc(stats_vector_t* const stats_vector,const uint64_t value);
+void stats_vector_add(stats_vector_t* const stats_vector,const uint64_t value,const uint64_t amount);
 
 /*
  * Bucket counters getters (Individual buckets)
  */
-GEM_INLINE uint64_t* stats_vector_get_counter(stats_vector_t* const stats_vector,const uint64_t value);
-GEM_INLINE uint64_t stats_vector_get_count(stats_vector_t* const stats_vector,const uint64_t value);
+uint64_t* stats_vector_get_counter(stats_vector_t* const stats_vector,const uint64_t value);
+uint64_t stats_vector_get_count(stats_vector_t* const stats_vector,const uint64_t value);
 
 /*
  * Bucket counters getters (Accumulated ranges)
  */
-GEM_INLINE uint64_t stats_vector_get_accumulated_count(stats_vector_t* const stats_vector);
-GEM_INLINE uint64_t stats_vector_get_range_accumulated_count(
+uint64_t stats_vector_get_accumulated_count(stats_vector_t* const stats_vector);
+uint64_t stats_vector_get_range_accumulated_count(
     stats_vector_t* const stats_vector,const uint64_t value_from,const uint64_t value_to);
 
 /*
  * Inverse. Given the stats_vector_t index returns the corresponding value/range.
  */
-GEM_INLINE void stats_vector_get_value_range(
+void stats_vector_get_value_range(
     stats_vector_t* const stats_vector,const uint64_t index,
     uint64_t* const lo_value,uint64_t* const hi_value);
 
 /*
  * Merge 2 stats-vector (adding bucket counting)
  */
-GEM_INLINE void stats_vector_merge(stats_vector_t* const stats_dst,stats_vector_t* const stats_src);
+void stats_vector_merge(stats_vector_t* const stats_dst,stats_vector_t* const stats_src);
 
 /*
  * Display (Printers)
  */
-GEM_INLINE void stats_vector_display(
+void stats_vector_display(
     FILE* const stream,stats_vector_t* const stats_vector,
     const bool display_zeros,const bool display_percentage,void (*print_label)(uint64_t));
-GEM_INLINE void stats_vector_print_ranges(FILE* const stream,stats_vector_t* const stats_vector);
-GEM_INLINE void stats_vector_print_values(FILE* const stream,stats_vector_t* const stats_vector,const bool display_percentage);
+void stats_vector_print_ranges(FILE* const stream,stats_vector_t* const stats_vector);
+void stats_vector_print_values(FILE* const stream,stats_vector_t* const stats_vector,const bool display_percentage);
 
 
 /*
  * Iterator
  */
-GEM_INLINE stats_vector_iterator_t* stats_vector_iterator_new(stats_vector_t* const stats_vector);
-GEM_INLINE stats_vector_iterator_t* stats_vector_iterator_range_new(
+stats_vector_iterator_t* stats_vector_iterator_new(stats_vector_t* const stats_vector);
+stats_vector_iterator_t* stats_vector_iterator_range_new(
     stats_vector_t* const stats_vector,const uint64_t value_from,const uint64_t value_to);
-GEM_INLINE void stats_vector_iterator_delete(stats_vector_iterator_t* const sv_iterator);
+void stats_vector_iterator_delete(stats_vector_iterator_t* const sv_iterator);
 
-GEM_INLINE bool stats_vector_iterator_eoi(stats_vector_iterator_t* const sv_iterator);
-GEM_INLINE void stats_vector_iterator_next(stats_vector_iterator_t* const sv_iterator);
-GEM_INLINE uint64_t stats_vector_iterator_get_index(stats_vector_iterator_t* const sv_iterator);
-GEM_INLINE uint64_t stats_vector_iterator_get_count(stats_vector_iterator_t* const sv_iterator);
-GEM_INLINE void stats_vector_iterator_get_range(
+bool stats_vector_iterator_eoi(stats_vector_iterator_t* const sv_iterator);
+void stats_vector_iterator_next(stats_vector_iterator_t* const sv_iterator);
+uint64_t stats_vector_iterator_get_index(stats_vector_iterator_t* const sv_iterator);
+uint64_t stats_vector_iterator_get_count(stats_vector_iterator_t* const sv_iterator);
+void stats_vector_iterator_get_range(
     stats_vector_iterator_t* const sv_iterator,uint64_t* const lo_value,uint64_t* const hi_value);
 
 /*

@@ -344,17 +344,21 @@ GEM_INLINE uint8_t sa_builder_get_char(const uint64_t* const sa_position) {
   return SA_POS_MASK_FIRST_CHARACTER(*sa_position);
 }
 GEM_INLINE uint64_t sa_builder_word64(const uint8_t* const text,const uint64_t* const sa_position) {
-  const uint64_t word64 = *((uint64_t*)(text + SA_POS_MASK_POSITION(*sa_position)));
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-  //  _int64 _bswap64(__int64 x);
-  //    Reverses the byte order of x. Swaps 8 bytes; bits 0-7 are swapped with bits 56-63,
-  //    bits 8-15 are swapped with bits 48-55, bits 16-23 are swapped with bits 40-47, and bits 24-31 are swapped with bits 32-39.
-  return __bswap_64(word64);
-  //  return (uint64_t)text[SA_POS_MASK_POSITION(*sa_position)]   << 9 |
-  //         (uint64_t)text[SA_POS_MASK_POSITION(*sa_position)+1] << 6 |
-  //         (uint64_t)text[SA_POS_MASK_POSITION(*sa_position)+2] << 3 |
-  //         (uint64_t)text[SA_POS_MASK_POSITION(*sa_position)+3];
+  #ifdef __MACH__ // OS X
+    return (uint64_t)text[SA_POS_MASK_POSITION(*sa_position)]   << 9 |
+           (uint64_t)text[SA_POS_MASK_POSITION(*sa_position)+1] << 6 |
+           (uint64_t)text[SA_POS_MASK_POSITION(*sa_position)+2] << 3 |
+           (uint64_t)text[SA_POS_MASK_POSITION(*sa_position)+3];
+  #else
+    //  _int64 _bswap64(__int64 x);
+    //    Reverses the byte order of x. Swaps 8 bytes; bits 0-7 are swapped with bits 56-63,
+    //    bits 8-15 are swapped with bits 48-55, bits 16-23 are swapped with bits 40-47, and bits 24-31 are swapped with bits 32-39.
+    const uint64_t word64 = *((uint64_t*)(text + SA_POS_MASK_POSITION(*sa_position)));
+    return __bswap_64(word64);
+  #endif
 #else
+  const uint64_t word64 = *((uint64_t*)(text + SA_POS_MASK_POSITION(*sa_position)));
   return word64;
 #endif
 }
@@ -635,8 +639,8 @@ GEM_INLINE void sa_builder_record_kmer_count_stats(sa_builder_t* const sa_builde
 GEM_INLINE void sa_builder_display_stats(FILE* const stream,sa_builder_t* const sa_builder,const bool display_groups) {
   SA_BUILDER_CHECK(sa_builder);
   tab_fprintf(stream,"[GEM]>SA.Builder.Stats\n");
-  tab_fprintf(stream,"  => Text.Length %lu\n",dna_text_get_length(sa_builder->enc_text));
-  tab_fprintf(stream,"  => Total.Kmers %lu\n",sa_builder->num_kmers);
+  tab_fprintf(stream,"  => Text.Length %"PRIu64"\n",dna_text_get_length(sa_builder->enc_text));
+  tab_fprintf(stream,"  => Total.Kmers %"PRIu64"\n",sa_builder->num_kmers);
   tab_fprintf(stream,"    => Kmers.distribution\n");
   tab_global_add(4);
   stats_vector_display(stream,sa_builder->kmer_count_stats,false,true,NULL);
@@ -645,19 +649,19 @@ GEM_INLINE void sa_builder_display_stats(FILE* const stream,sa_builder_t* const 
   const uint64_t sa_length = dna_text_get_length(sa_builder->enc_text);
   const uint64_t sa_size = sa_length*UINT64_SIZE;
   const uint64_t preferred_block_size = (sa_length*UINT64_SIZE)/SA_BUILDER_NUM_WRITTERS;
-  tab_fprintf(stream,"  => Block.File.Size %lu MB\n",CONVERT_B_TO_MB(sa_size));
-  tab_fprintf(stream,"    => Block.Max %lu MB (%2.3f%%)\n",
+  tab_fprintf(stream,"  => Block.File.Size %"PRIu64" MB\n",CONVERT_B_TO_MB(sa_size));
+  tab_fprintf(stream,"    => Block.Max %"PRIu64" MB (%2.3f%%)\n",
       CONVERT_B_TO_MB(sa_builder->max_bucket_size),PERCENTAGE(sa_builder->max_bucket_size,sa_size));
-  tab_fprintf(stream,"    => Block.Prefered %lu MB for %lu writers (%2.3f%%)\n",
+  tab_fprintf(stream,"    => Block.Prefered %"PRIu64" MB for %"PRIu64" writers (%2.3f%%)\n",
       CONVERT_B_TO_MB(preferred_block_size),SA_BUILDER_NUM_WRITTERS,PERCENTAGE(preferred_block_size,sa_size));
-  tab_fprintf(stream,"    => Block.Size %lu MB\n",
+  tab_fprintf(stream,"    => Block.Size %"PRIu64" MB\n",
       CONVERT_B_TO_MB(sa_builder->block_size),PERCENTAGE(sa_builder->block_size,sa_size));
   uint64_t i;
   // Groups Stats
-  tab_fprintf(stream,"  => Num.Groups %lu \n",sa_builder->num_sa_groups);
+  tab_fprintf(stream,"  => Num.Groups %"PRIu64" \n",sa_builder->num_sa_groups);
   if (display_groups) {
     for (i=0;i<sa_builder->num_sa_groups;++i) {
-      tab_fprintf(stream,"    => Group[%04lu]\tRange=[%8lu,%8lu)\t%lu kmers\n",
+      tab_fprintf(stream,"    => Group[%04lu]\tRange=[%8lu,%8lu)\t%"PRIu64" kmers\n",
           i,sa_builder->sa_groups[i].sa_offset,
           sa_builder->sa_groups[i].sa_offset+sa_builder->sa_groups[i].num_sa_positions,
           sa_builder->sa_groups[i].num_sa_positions);
@@ -684,7 +688,7 @@ GEM_INLINE void sa_builder_display_stats(FILE* const stream,sa_builder_t* const 
   }
   tab_fprintf(stream,"  => Load.Balance (NumKmers / NumBlocks / NumSubBuckets)\n");
   for (i=0;i<sa_builder->num_threads;++i) {
-    tab_fprintf(stream,"    => Thread[%lu] \t %lu(%2.3f%%) \t %lu(%2.3f%%)\n",i,
+    tab_fprintf(stream,"    => Thread[%"PRIu64"] \t %"PRIu64"(%2.3f%%) \t %"PRIu64"(%2.3f%%)\n",i,
         kmers_per_thread[i],PERCENTAGE(kmers_per_thread[i],sa_length),
         groups_per_thread[i],PERCENTAGE(groups_per_thread[i],sa_builder->num_sa_groups));
   }
@@ -703,8 +707,9 @@ GEM_INLINE void sa_builder_debug_print_sa(
   const uint64_t enc_text_length = dna_text_get_length(sa_builder->enc_text);
   const uint64_t suffix_pos = SA_POS_MASK_POSITION(sa_position);
   // fprintf(stream,"Suffix=%011lu\t\t",suffix_pos);
-  fprintf(stream,"Suffix=%011lu\t%c%c\t",suffix_pos,
-      dna_decode(SA_POS_MASK_GET_BWT2(sa_position)),dna_decode(SA_POS_MASK_GET_BWT1(sa_position)));
+  fprintf(stream,"Suffix=%011"PRIu64"\t%c%c\t",suffix_pos,
+      dna_decode(SA_POS_MASK_GET_BWT2(sa_position)),
+	  dna_decode(SA_POS_MASK_GET_BWT1(sa_position)));
   // Print begin-suffix
   uint64_t num_printed_chars = 0;
   uint64_t i = suffix_pos;

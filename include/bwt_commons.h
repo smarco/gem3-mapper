@@ -80,6 +80,6 @@ typedef struct {
 /*
  * Errors
  */
-#define GEM_ERROR_BWT_WRONG_MODEL_NO "BWT error. Wrong BWT-Index Model %lu (Expected model %lu)"
+#define GEM_ERROR_BWT_WRONG_MODEL_NO "BWT error. Wrong BWT-Index Model %"PRIu64" (Expected model %"PRIu64")"
 
 #endif /* BWT_COMMONS_H_ */

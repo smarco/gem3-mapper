@@ -271,11 +271,11 @@ GEM_INLINE void ticker_count_finish(ticker_t* const ticker) {
   // Print
   if (ticker->timed) {
     system_get_time(&ticker->end_timer);
-    tfprintf(gem_log_get_stream(),"%s %lu %s ...done [%2.3f s]\n",
+    tfprintf(gem_log_get_stream(),"%s %"PRIu64" %s ...done [%2.3f s]\n",
         ticker->finish_begin,ticker->global_ticks,ticker->finish_end,
         TIME_DIFF_S(ticker->begin_timer,ticker->end_timer));
   } else {
-    tfprintf(gem_log_get_stream(),"%s %lu %s... done\n",ticker->finish_begin,ticker->global_ticks,ticker->finish_end);
+    tfprintf(gem_log_get_stream(),"%s %"PRIu64" %s... done\n",ticker->finish_begin,ticker->global_ticks,ticker->finish_end);
   }
 }
 GEM_INLINE void ticker_update(ticker_t* const ticker,const uint64_t n) {
@@ -294,7 +294,7 @@ GEM_INLINE void ticker_update(ticker_t* const ticker,const uint64_t n) {
       const uint64_t percentage = (ticker->global_ticks>=ticker->max) ? 100 : PERCENTAGE(ticker->global_ticks,ticker->max);
       tfprintf(gem_log_get_stream(),"%s %3d%% %s\n",ticker->process_begin,percentage,ticker->process_end);
     } else { // ticker->ticker_type == ticker_count
-      tfprintf(gem_log_get_stream(),"%s %lu %s\n",
+      tfprintf(gem_log_get_stream(),"%s %"PRIu64" %s\n",
           ticker->process_begin,(ticker->global_ticks/ticker->step_ticks)*ticker->step_ticks,ticker->process_end);
     }
   }

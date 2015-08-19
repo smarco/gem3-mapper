@@ -48,6 +48,6 @@ typedef struct {
 /*
  * Paired-Search Parameters
  */
-GEM_INLINE void paired_search_parameters_init(paired_search_parameters_t* const paired_search_parameters);
+void paired_search_parameters_init(paired_search_parameters_t* const paired_search_parameters);
 
 #endif /* PAIRED_SEARCH_PARAMETERS_H_ */

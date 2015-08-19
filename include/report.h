@@ -25,26 +25,26 @@
 
 // Getters/Setters ELD-function
 typedef void (*report_function_t)(FILE*);
-inline report_function_t gem_error_get_report_function();
-inline void gem_error_set_report_function(report_function_t report_function);
+report_function_t gem_error_get_report_function();
+void gem_error_set_report_function(report_function_t report_function);
 
 // Getters/Setters ELD-streams
 #define GEM_DEFAULT_REPORT_STREAM stderr
-inline FILE* gem_error_get_stream();
-inline void gem_error_set_stream(FILE* const stream);
-inline FILE* gem_log_get_stream();
-inline void gem_log_set_stream(FILE* const stream);
-inline FILE* gem_info_get_stream();
-inline void gem_info_set_stream(FILE* const stream);
-inline FILE* gem_debug_get_stream();
-inline void gem_debug_set_stream(FILE* const stream);
+FILE* gem_error_get_stream();
+void gem_error_set_stream(FILE* const stream);
+FILE* gem_log_get_stream();
+void gem_log_set_stream(FILE* const stream);
+FILE* gem_info_get_stream();
+void gem_info_set_stream(FILE* const stream);
+FILE* gem_debug_get_stream();
+void gem_debug_set_stream(FILE* const stream);
 // Mute/Articulate ELD-streams
-inline void gem_mute_error_stream();
-inline void gem_mute_report_stream();
-inline void gem_articulate_error_stream();
-inline void gem_articulate_report_stream();
-inline bool gem_is_mute_error_stream();
-inline bool gem_is_mute_report_stream();
+void gem_mute_error_stream();
+void gem_mute_report_stream();
+void gem_articulate_error_stream();
+void gem_articulate_report_stream();
+bool gem_is_mute_error_stream();
+bool gem_is_mute_report_stream();
 /*
  * Low-level code report functions
  *
@@ -176,13 +176,13 @@ int tab_printf(const char* format,...);
 /*
  * Tabulate Data
  */
-inline void fprintf_tabs(FILE* const stream,const int num_spaces);
-inline void tab_global_print(FILE* const stream);
-inline void tab_global_inc();
-inline void tab_global_add(const uint64_t amount);
-inline void tab_global_dec();
-inline void tab_global_subtract(const uint64_t amount);
-inline void tab_global_reset();
+void fprintf_tabs(FILE* const stream,const int num_spaces);
+void tab_global_print(FILE* const stream);
+void tab_global_inc();
+void tab_global_add(const uint64_t amount);
+void tab_global_dec();
+void tab_global_subtract(const uint64_t amount);
+void tab_global_reset();
 /*
  * Ticker
  */
@@ -211,27 +211,27 @@ typedef struct {
   pthread_mutex_t mutex;
 } ticker_t;
 // Percentage based
-GEM_INLINE void ticker_percentage_reset(
+void ticker_percentage_reset(
     ticker_t* const ticker,const bool enabled,const char* const label,
     const uint64_t max,const uint64_t step,const bool timed);
 // Count based
-GEM_INLINE void ticker_count_reset(
+void ticker_count_reset(
     ticker_t* const ticker,const bool enabled,const char* const label,
     const uint64_t top,const uint64_t each,const bool timed);
-GEM_INLINE void ticker_update(ticker_t* const ticker,const uint64_t n);
-GEM_INLINE void ticker_update_mutex(ticker_t* const ticker,const uint64_t n);
-GEM_INLINE void ticker_finish(ticker_t* const ticker);
-GEM_INLINE void ticker_finish_mutex(ticker_t* const ticker);
+void ticker_update(ticker_t* const ticker,const uint64_t n);
+void ticker_update_mutex(ticker_t* const ticker,const uint64_t n);
+void ticker_finish(ticker_t* const ticker);
+void ticker_finish_mutex(ticker_t* const ticker);
 // Adding labels
-GEM_INLINE void ticker_add_process_label(ticker_t* const ticker,char* const process_begin,char* const process_end);
-GEM_INLINE void ticker_add_finish_label(ticker_t* const ticker,char* const finish_begin,char* const finish_end);
+void ticker_add_process_label(ticker_t* const ticker,char* const process_begin,char* const process_end);
+void ticker_add_finish_label(ticker_t* const ticker,char* const finish_begin,char* const finish_end);
 // Enable/Disable ticker
-GEM_INLINE void ticker_set_status(ticker_t* const ticker,const bool enabled);
+void ticker_set_status(ticker_t* const ticker,const bool enabled);
 // Set granularity
-GEM_INLINE void ticker_set_step(ticker_t* const ticker,const uint64_t step);
+void ticker_set_step(ticker_t* const ticker,const uint64_t step);
 // Enable mutex
-GEM_INLINE void ticker_mutex_enable(ticker_t* const ticker);
-GEM_INLINE void ticker_mutex_cleanup(ticker_t* const ticker);
+void ticker_mutex_enable(ticker_t* const ticker);
+void ticker_mutex_cleanup(ticker_t* const ticker);
 // Percentage/Count Ticker Macros
 #define TICKER_COND_BEGIN(condition,maximum,msg,timed) \
   ticker_t __ticker; \
@@ -248,7 +248,7 @@ GEM_INLINE void ticker_mutex_cleanup(ticker_t* const ticker);
 /*
  * Print's template helpers
  */
-GEM_INLINE uint64_t calculate_memory_required_v(const char *template,va_list v_args);
-GEM_INLINE uint64_t calculate_memory_required_va(const char *template,...);
+uint64_t calculate_memory_required_v(const char *template,va_list v_args);
+uint64_t calculate_memory_required_va(const char *template,...);
 
 #endif /* REPORT_H_ */

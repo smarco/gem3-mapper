@@ -26,14 +26,14 @@ typedef struct {
 /*
  * Compile Pattern
  */
-GEM_INLINE void kmer_counting_compile(
+void kmer_counting_compile(
     kmer_counting_t* const kmer_counting,bool* const allowed_enc,
     uint8_t* const pattern,const uint64_t pattern_length,mm_stack_t* const mm_stack);
 
 /*
  * Filter text region
  */
-GEM_INLINE uint64_t kmer_counting_filter(
+uint64_t kmer_counting_filter(
     const kmer_counting_t* const kmer_counting,
     const uint8_t* const text,const uint64_t text_length,const uint64_t max_error);
 

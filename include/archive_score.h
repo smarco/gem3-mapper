@@ -15,21 +15,21 @@
 /*
  * GEM Score
  */
-GEM_INLINE uint8_t archive_score_matches_gem_se_ties(matches_predictors_t* const predictors);
-GEM_INLINE uint8_t archive_score_matches_gem_se_mmap(matches_predictors_t* const predictors);
-GEM_INLINE uint8_t archive_score_matches_gem_se_unique(matches_predictors_t* const predictors);
+uint8_t archive_score_matches_gem_se_ties(matches_predictors_t* const predictors);
+uint8_t archive_score_matches_gem_se_mmap(matches_predictors_t* const predictors);
+uint8_t archive_score_matches_gem_se_unique(matches_predictors_t* const predictors);
 
 /*
  * SE Scoring
  */
-GEM_INLINE void archive_score_matches_se(
+void archive_score_matches_se(
     archive_search_t* const archive_search,
     const bool paired_mapping,matches_t* const matches);
 
 /*
  * PE Scoring
  */
-GEM_INLINE void archive_score_matches_pe(
+void archive_score_matches_pe(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches);
 

@@ -155,7 +155,7 @@ const uint8_t dna_encoded_colorspace_table[DNA_EXT_RANGE][DNA_EXT_RANGE] = {
 /*
  * DNA-Text Model & Version
  */
-#define DNA_TEXT_MODEL_NO  5002ul
+#define DNA_TEXT_MODEL_NO  5002ull
 /*
  * DNA-Text
  */
@@ -289,8 +289,8 @@ GEM_INLINE void dna_text_print(FILE* const stream,dna_text_t* const dna_text,con
       GEM_INVALID_CASE();
       break;
   }
-  fprintf(stream,"  => Text.Length %lu\n",dna_text->length);
-  fprintf(stream,"  => Text.Size %lu MB\n",CONVERT_B_TO_MB(dna_text->length*UINT8_SIZE));
+  fprintf(stream,"  => Text.Length %"PRIu64"\n",dna_text->length);
+  fprintf(stream,"  => Text.Size %"PRIu64" MB\n",CONVERT_B_TO_MB(dna_text->length*UINT8_SIZE));
   fflush(stream); // Flush
 }
 GEM_INLINE void dna_text_print_content(FILE* const stream,dna_text_t* const dna_text) {

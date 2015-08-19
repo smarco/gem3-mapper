@@ -42,7 +42,7 @@ GEM_INLINE void mapper_stats_delete(mapper_stats_t* const mapper_stats) {
 GEM_INLINE void mapper_stats_template_length_sample(
     mapper_stats_t* const search_stats,const uint64_t template_length) {
   COUNTER_ADD(&search_stats->unique_template_size,template_length);
-  gem_cond_log(MAPPING_STATS_LOG,"[GEM]> MappingStats.templateLength {mean=%f,std_dev=%f} (samples=%lu,samples_ci=%lu)",
+  gem_cond_log(MAPPING_STATS_LOG,"[GEM]> MappingStats.templateLength {mean=%f,std_dev=%f} (samples=%"PRIu64",samples_ci=%"PRIu64")",
       mapper_stats_template_length_get_mean(search_stats),
       mapper_stats_template_length_get_stddev(search_stats),
       mapper_stats_template_length_get_num_samples(search_stats),

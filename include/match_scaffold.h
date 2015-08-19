@@ -29,7 +29,7 @@ typedef struct {
 /*
  * Setup
  */
-GEM_INLINE void match_scaffold_init(match_scaffold_t* const match_scaffold);
+void match_scaffold_init(match_scaffold_t* const match_scaffold);
 
 /*
  * Scaffold the alignment (based on levenshtein alignment)
@@ -45,7 +45,7 @@ GEM_INLINE void match_scaffold_init(match_scaffold_t* const match_scaffold);
  *   @align_parameters->min_matching_length
  *   @align_parameters->min_context_length
  */
-GEM_INLINE bool match_scaffold_levenshtein(
+bool match_scaffold_levenshtein(
     matches_t* const matches,match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
     match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack);
@@ -68,7 +68,7 @@ GEM_INLINE bool match_scaffold_levenshtein(
  *   @match_scaffold->num_scaffold_regions
  *   @match_scaffold->scaffold_regions
  */
-GEM_INLINE void match_scaffold_alignment(
+void match_scaffold_alignment(
     matches_t* const matches,match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
     match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack);
@@ -76,12 +76,12 @@ GEM_INLINE void match_scaffold_alignment(
 /*
  * Sorting
  */
-GEM_INLINE void match_scaffold_sort_regions_matching(match_scaffold_t* const match_scaffold);
+void match_scaffold_sort_regions_matching(match_scaffold_t* const match_scaffold);
 
 /*
  * Display
  */
-GEM_INLINE void match_scaffold_print(
+void match_scaffold_print(
     FILE* const stream,matches_t* const matches,match_scaffold_t* const match_scaffold);
 
 #endif /* MATCH_SCAFFOLD_H_ */

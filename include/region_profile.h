@@ -77,37 +77,37 @@ typedef struct {
 /*
  * Setup
  */
-GEM_INLINE void region_profile_new(
+void region_profile_new(
     region_profile_t* const region_profile,const uint64_t pattern_length,
     mm_stack_t* const mm_stack);
 
 /*
  * Accessors
  */
-GEM_INLINE uint64_t region_get_num_regions(region_profile_t* const region_profile);
-GEM_INLINE bool region_profile_has_exact_matches(region_profile_t* const region_profile);
+uint64_t region_get_num_regions(region_profile_t* const region_profile);
+bool region_profile_has_exact_matches(region_profile_t* const region_profile);
 
 /*
  * Utils
  */
-GEM_INLINE void region_profile_sort_by_estimated_mappability(region_profile_t* const region_profile);
-GEM_INLINE void region_profile_sort_by_candidates(region_profile_t* const region_profile);
-GEM_INLINE void region_profile_fill_gaps(
+void region_profile_sort_by_estimated_mappability(region_profile_t* const region_profile);
+void region_profile_sort_by_candidates(region_profile_t* const region_profile);
+void region_profile_fill_gaps(
     region_profile_t* const region_profile,const uint64_t eff_mismatches);
 
 /*
  * Region Profile Generation
  */
-GEM_INLINE void region_profile_generate_adaptive(
+void region_profile_generate_adaptive(
     region_profile_t* const region_profile,fm_index_t* const fm_index,
     const uint8_t* const key,const uint64_t key_length,
     const bool* const allowed_enc,const region_profile_model_t* const profile_model,
     const uint64_t max_regions,const bool allow_zero_regions);
-GEM_INLINE void region_profile_generate_adaptive_limited(
+void region_profile_generate_adaptive_limited(
     region_profile_t* const region_profile,fm_index_t* const fm_index,
     const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
     const region_profile_model_t* const profile_model,const uint64_t min_regions);
-GEM_INLINE void region_profile_generate_adaptive_boost(
+void region_profile_generate_adaptive_boost(
     region_profile_t* const region_profile,fm_index_t* const fm_index,
     const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
     const region_profile_model_t* const profile_model,mm_stack_t* const mm_stack);
@@ -115,7 +115,7 @@ GEM_INLINE void region_profile_generate_adaptive_boost(
 /*
  * Display
  */
-GEM_INLINE void region_profile_print(
+void region_profile_print(
     FILE* const stream,const region_profile_t* const region_profile,const bool sorted);
 
 /*

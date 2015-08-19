@@ -226,7 +226,7 @@ GEM_INLINE error_code_t ifp_parse_qualities(
     if (gem_expect_false(!SEQUENCE_QUALITY_IS_VALID(**text_line))) {
       if (try_recovery) {
         gem_warn(PARSE_FASTQ_QUALITIES_BAD_CHARACTER,input_file_get_file_name(input_file),
-            input_buffer->current_line_num,*text_line-quals_begin);
+            (uint64_t)input_buffer->current_line_num,(uint64_t)(*text_line-quals_begin));
         string_clear(qualities);
         return 0;
       }
