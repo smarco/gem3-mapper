@@ -200,7 +200,6 @@ void matches_sort_by_sequence_name__position(matches_t* const matches);
 /*
  * Filters
  */
-void matches_filter_by_swg_score(matches_t* const matches,const int32_t swg_threshold,mm_stack_t* const mm_stack);
 void matches_filter_by_mapq(matches_t* const matches,const uint8_t mapq_threshold,mm_stack_t* const mm_stack);
 
 /*

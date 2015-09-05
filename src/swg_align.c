@@ -312,11 +312,29 @@ GEM_INLINE int32_t swg_score_cigar_element(
 GEM_INLINE int32_t swg_score_cigar(
     const swg_penalties_t* const swg_penalties,vector_t* const cigar_vector,
     const uint64_t cigar_offset,const uint64_t cigar_length) {
-  int32_t score = 0;
-  // Traverse all CIGAR elements
+  // Parameters
   const cigar_element_t* const cigar_buffer = vector_get_elm(cigar_vector,cigar_offset,cigar_element_t);
-  uint64_t i;
+  // Traverse all CIGAR elements
+  int32_t score = 0, i;
   for (i=0;i<cigar_length;++i) {
+    score += swg_score_cigar_element(swg_penalties,cigar_buffer+i);
+  }
+  // Return score
+  return score;
+}
+GEM_INLINE int32_t swg_score_cigar__excluding_clipping(
+    const swg_penalties_t* const swg_penalties,vector_t* const cigar_vector,
+    const uint64_t cigar_offset,const uint64_t cigar_length) {
+  // Parameters
+  const cigar_element_t* const cigar_buffer = vector_get_elm(cigar_vector,cigar_offset,cigar_element_t);
+  // Ignore trims
+  if (cigar_length==0) return 0;
+  const int64_t last_cigar_element = cigar_length-1;
+  const int64_t begin_element = (cigar_buffer[0].type==cigar_del) ? 1 : 0;
+  const int64_t last_element = (cigar_buffer[last_cigar_element].type==cigar_del) ? last_cigar_element-1 : last_cigar_element;
+  // Traverse all CIGAR elements
+  int32_t score = 0, i;
+  for (i=begin_element;i<=last_element;++i) {
     score += swg_score_cigar_element(swg_penalties,cigar_buffer+i);
   }
   // Return score

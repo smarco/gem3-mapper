@@ -289,7 +289,7 @@ GEM_INLINE bwt_sbasic_t* bwt_sbasic_read_mem(mm_t* const memory_manager,const bo
   bwt_sbasic_t* const bwt = mm_alloc(bwt_sbasic_t);
   /* Meta-Data */
   const uint64_t bwt_serial_no = mm_read_uint64(memory_manager); // Serial Number
-  gem_cond_fatal_error(bwt_serial_no!=BWT_SBASIC_MODEL_NO,BWT_WRONG_MODEL_NO,bwt_serial_no,BWT_SBASIC_MODEL_NO);
+  gem_cond_fatal_error(bwt_serial_no!=BWT_SBASIC_MODEL_NO,BWT_WRONG_MODEL_NO,bwt_serial_no,(uint64_t)BWT_SBASIC_MODEL_NO);
   bwt->length = mm_read_uint64(memory_manager); // Length of the BWT
   bwt->c = mm_read_mem(memory_manager,BWT_MAYOR_COUNTER_RANGE*UINT64_SIZE); // Occurrences of each character
   bwt->C = mm_read_mem(memory_manager,BWT_MAYOR_COUNTER_RANGE*UINT64_SIZE); // The cumulative occurrences

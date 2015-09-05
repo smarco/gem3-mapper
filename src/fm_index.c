@@ -61,7 +61,7 @@ GEM_INLINE fm_index_t* fm_index_read_mem(mm_t* const memory_manager,const bool c
   fm_index_t* const fm_index = mm_alloc(fm_index_t);
   // Read Header
   const uint64_t fm_index_model_no = mm_read_uint64(memory_manager);
-  gem_cond_fatal_error(fm_index_model_no!=FM_INDEX_MODEL_NO,FM_INDEX_WRONG_MODEL_NO,fm_index_model_no,FM_INDEX_MODEL_NO);
+  gem_cond_fatal_error(fm_index_model_no!=FM_INDEX_MODEL_NO,FM_INDEX_WRONG_MODEL_NO,fm_index_model_no,(uint64_t)FM_INDEX_MODEL_NO);
   fm_index->text_length = mm_read_uint64(memory_manager);
   fm_index->proper_length = mm_read_uint64(memory_manager);
   // Load Sampled SA

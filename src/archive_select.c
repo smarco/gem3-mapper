@@ -35,6 +35,7 @@ GEM_INLINE void archive_select_realign_match_interval(
     align_parameters.emulated_rc_search = match_interval->emulated_rc_search;
     align_parameters.max_error = match_interval->distance;
     align_parameters.swg_penalties = &search_parameters->swg_penalties;
+    align_parameters.swg_threshold = as_parameters->swg_threshold_nominal;
     match_align_exact(matches,match_trace,&align_input,&align_parameters);
   } else {
     // Search-state (strand-based)
@@ -85,6 +86,7 @@ GEM_INLINE void archive_select_realign_match_interval(
         align_parameters.max_error = match_interval->distance;
         align_parameters.max_bandwidth = match_interval->distance;
         align_parameters.left_gap_alignment = left_gap_alignment;
+        align_parameters.scaffolding = search_parameters->alignment_scaffolding,
         align_parameters.scaffolding_min_coverage = as_parameters->alignment_scaffolding_min_coverage_nominal;
         align_parameters.scaffolding_matching_min_length = as_parameters->alignment_scaffolding_min_matching_length_nominal;
         align_parameters.scaffolding_homopolymer_min_context = as_parameters->alignment_scaffolding_homopolymer_min_context_nominal;
@@ -92,10 +94,6 @@ GEM_INLINE void archive_select_realign_match_interval(
         align_parameters.swg_penalties = &search_parameters->swg_penalties;
         align_parameters.cigar_curation = search_parameters->cigar_curation;
         align_parameters.cigar_curation_min_end_context = as_parameters->cigar_curation_min_end_context_nominal;
-        // Scaffold the alignment
-        if (search_parameters->alignment_scaffolding) {
-          match_scaffold_alignment(matches,&align_input,&align_parameters,&match_scaffold,mm_stack);
-        }
         // Smith-Waterman-Gotoh Alignment (Gap-affine)
         match_align_smith_waterman_gotoh(matches,match_trace,&align_input,&align_parameters,&match_scaffold,mm_stack);
         break;

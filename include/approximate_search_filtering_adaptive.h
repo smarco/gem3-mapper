@@ -1,13 +1,13 @@
 /*
  * PROJECT: GEMMapper
- * FILE: approximate_search_filtering.h
+ * FILE: approximate_search_filtering_adaptive.h
  * DATE: 06/06/2012
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
  */
 
-#ifndef APPROXIMATE_SEARCH_FILTERING_H_
-#define APPROXIMATE_SEARCH_FILTERING_H_
+#ifndef APPROXIMATE_SEARCH_FILTERING_ADAPTIVE_H_
+#define APPROXIMATE_SEARCH_FILTERING_ADAPTIVE_H_
 
 #include "essentials.h"
 #include "approximate_search.h"
@@ -24,9 +24,8 @@
  */
 void approximate_search_filtering_adaptive(approximate_search_t* const search,matches_t* const matches);
 
-/*
- * Complete Search
- */
-void approximate_search_filtering_complete(approximate_search_t* const search,matches_t* const matches);
+// Reduced workflows (step-wise as to use callbacks)
+void approximate_search_filtering_adaptive_generate_regions(approximate_search_t* const search);
+void approximate_search_filtering_adaptive_generate_candidates(approximate_search_t* const search);
 
-#endif /* APPROXIMATE_SEARCH_FILTERING_H_ */
+#endif /* APPROXIMATE_SEARCH_FILTERING_ADAPTIVE_H_ */

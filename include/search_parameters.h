@@ -21,6 +21,7 @@ typedef enum {
   mapping_adaptive_filtering_complete, // Full complete search (using neighborhood search if needed)
   mapping_fixed_filtering_complete,    // Pure Filtering Complete
   mapping_neighborhood_search,         // Pure Neighborhood Search (brute-force)
+  mapping_region_profile_fixed,
 } mapping_mode_t;
 typedef enum {
   unbounded_alignment_never,
@@ -89,7 +90,7 @@ typedef struct {
   uint64_t alignment_scaffolding_homopolymer_min_context_nominal;
   uint64_t alignment_scaffolding_min_matching_length_nominal;
   uint64_t cigar_curation_min_end_context_nominal;
-  uint64_t swg_threshold_nominal;
+  int64_t swg_threshold_nominal;
 } as_parameters_t;
 
 /*

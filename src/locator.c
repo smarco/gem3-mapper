@@ -31,7 +31,7 @@ GEM_INLINE locator_t* locator_read_mem(mm_t* const memory_manager) {
   locator_t* const locator = mm_alloc(locator_t);
   // Read locator
   const uint64_t locator_model_no = mm_read_uint64(memory_manager);
-  gem_cond_fatal_error(locator_model_no!=LOCATOR_MODEL_NO,LOCATOR_WRONG_MODEL_NO,locator_model_no,LOCATOR_MODEL_NO);
+  gem_cond_fatal_error(locator_model_no!=LOCATOR_MODEL_NO,LOCATOR_WRONG_MODEL_NO,locator_model_no,(uint64_t)LOCATOR_MODEL_NO);
   locator->num_intervals = mm_read_uint64(memory_manager);
   locator->num_tags = mm_read_uint64(memory_manager);
   locator->tags_buffer_size = mm_read_uint64(memory_manager);
@@ -72,7 +72,7 @@ GEM_INLINE uint64_t locator_get_size(locator_t* const locator) {
 GEM_INLINE locator_interval_t* locator_get_interval(const locator_t* const locator,const uint64_t interval_index) {
   LOCATOR_CHECK(locator);
   gem_fatal_check(interval_index >= locator->num_intervals,
-      LOCATOR_INTERVAL_INDEX_OOB,interval_index,0ull,locator->num_intervals);
+      LOCATOR_INTERVAL_INDEX_OOB,interval_index,(uint64_t)0,locator->num_intervals);
   return locator->intervals + interval_index;
 }
 /*

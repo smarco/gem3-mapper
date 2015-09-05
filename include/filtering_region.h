@@ -20,22 +20,19 @@
 #include "pattern.h"
 
 /*
- * Debug
- */
-#define DEBUG_ALIGN_CANDIDATES  false
-
-/*
  * Filtering Region
  */
 typedef enum {
-  filtering_region_pending,               // On-hold state (unverified)
-  filtering_region_unverified,            // Region still unverified
-  filtering_region_accepted,              // Region accepted by pre-filters
-  filtering_region_accepted_subdominant,  // Region accepted by pre-filters but sub-dominant
-  filtering_region_aligned,               // Region aligned
-  filtering_region_aligned_subdominant,   // Region aligned but sub-dominant in the end
-  filtering_region_discarded              // Region discarded
+  filtering_region_pending=0,               // On-hold state (unverified)
+  filtering_region_unverified=1,            // Region still unverified
+  filtering_region_verified_discarded=2,    // Region verified but too distant
+  filtering_region_accepted=3,              // Region accepted by pre-filters
+  filtering_region_accepted_subdominant=4,  // Region accepted by pre-filters but sub-dominant
+  filtering_region_aligned=5,               // Region aligned
+  filtering_region_aligned_subdominant=6,   // Region aligned but sub-dominant in the end
+  filtering_region_aligned_unbounded=7,     // Region aligned usign unbounded alignment
 } filtering_region_status_t;
+extern const char* filtering_region_status_label[8];
 typedef struct {
   /* State */
   filtering_region_status_t status;
@@ -117,5 +114,10 @@ uint64_t filtering_region_verify_extension(
     const text_collection_t* const text_collection,
     const uint64_t text_trace_offset,const uint64_t index_position,
     search_parameters_t* const search_parameters,const pattern_t* const pattern);
+
+/*
+ * Display
+ */
+void filtering_region_print(FILE* const stream,filtering_region_t* const region,const bool print_matching_regions);
 
 #endif /* FILTERING_REGION_H_ */

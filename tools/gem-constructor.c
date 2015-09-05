@@ -281,12 +281,10 @@ void constructor_sparse_bitmap_test() {
   /*
    * Show a random element
    */
-  fprintf(stderr,"Pos %"PRIu64" Contained %"PRIu64", bitmap %"PRIu64"\n",
-      63ull,(uint64_t)sparse_bitmap_is_contained(sparse_bitmap,63),
-	  (uint64_t)sparse_bitmap_get_bitmap(sparse_bitmap,63));
-  fprintf(stderr,"Pos %"PRIu64" Contained %"PRIu64", bitmap %"PRIu64"\n",
-      2ull, (uint64_t)sparse_bitmap_is_contained(sparse_bitmap,2),
-	  (uint64_t)sparse_bitmap_get_bitmap(sparse_bitmap,2));
+//  fprintf(stderr,"Pos %"PRIu64" Contained %"PRIu64", bitmap %"PRIu64"\n",
+//      63ull,sparse_bitmap_is_contained(sparse_bitmap,63ull),sparse_bitmap_get_bitmap(sparse_bitmap,63ull));
+//  fprintf(stderr,"Pos %"PRIu64" Contained %"PRIu64", bitmap %"PRIu64"\n",
+//      2ull,sparse_bitmap_is_contained(sparse_bitmap,2ull),sparse_bitmap_get_bitmap(sparse_bitmap,2ull));
 }
 void constructor_cdna_test() {
   mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
@@ -617,6 +615,28 @@ void constructor_swg() {
 //  // Free
 //  vector_delete(cigar_vector);
 }
+#include "neighborhood_search_hamming.h"
+void constructor_neighbourhood_hamming_bidirectional() {
+  // Key
+  const char* const key = "AAAAA";
+  const uint64_t key_length = strlen(key);
+  // Encode key
+  uint8_t* const enc_key = malloc(key_length+1);
+  uint64_t i;
+  for (i=0;i<key_length;++i) enc_key[i] = dna_encode(key[i]);
+  enc_key[key_length] = '\0';
+  // Select
+  if (parameters.option==0) {
+    // Search
+    neighborhood_search_hamming_brute_force(enc_key,key_length,parameters.number);
+  } else {
+    // MM-Stack
+    mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
+    mm_stack_t* const mm_stack = mm_stack_new(slab);
+    // Search
+    neighborhood_search_hamming_bidirectional(NULL,enc_key,key_length,parameters.number,NULL,mm_stack);
+  }
+}
 /*
  * Generic Menu
  */
@@ -731,16 +751,13 @@ int main(int argc,char** argv) {
   // constructor_packed_integer_arrays_test();
   // constructor_sparse_array_locator_test();
   // constructor_cdna_text__reverse();
-
   // constructor_packed_integer_arrays_test_bis();
-
   // constructor_fast_mapper_setup();
-
   // constructor_priority_queue();
-
   //  constructor_itoa();
+  // constructor_swg();
 
-  constructor_swg();
+  constructor_neighbourhood_hamming_bidirectional();
 
   return 0;
 }

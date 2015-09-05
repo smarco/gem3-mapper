@@ -23,11 +23,17 @@ typedef enum {
 } region_profiling_strategy_t;
 
 /*
+ * Adaptive region-profile generation
+ */
+void approximate_search_generate_region_profile_fixed(
+    approximate_search_t* const search,mm_stack_t* const mm_stack);
+
+/*
  * Region profile generation
  */
-void approximate_search_generate_region_profile(
-    approximate_search_t* const search,const region_profiling_strategy_t rp_strategy,
-    mm_stack_t* const mm_stack);
+void approximate_search_generate_region_profile_adaptive(
+    approximate_search_t* const search,const region_profiling_strategy_t strategy,mm_stack_t* const mm_stack);
+
 
 /*
  * Generate Candidates

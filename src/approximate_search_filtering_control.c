@@ -1,12 +1,12 @@
 /*
  * PROJECT: GEMMapper
- * FILE: approximate_search_filtering.h
+ * FILE: approximate_search_filtering_control.h
  * DATE: 06/06/2012
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
  */
 
-#include "approximate_search_filtering.h"
+#include "approximate_search_filtering_control.h"
 #include "archive_score.h"
 #include "matches_classify.h"
 
@@ -133,7 +133,13 @@ GEM_INLINE void asearch_control_fast_next_state(
     approximate_search_t* const search,const approximate_search_state_t processing_step,matches_t* const matches) {
   switch (processing_step) {
     case asearch_exact_filtering_adaptive:
-      if (search->search_state==asearch_exact_matches) return;
+      if (search->search_state==asearch_exact_matches) {
+        PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MAPPED,1);
+        PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,1);
+        return;
+      }
+      PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MAPPED,matches_is_mapped(matches)?1:0);
+      PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,search->max_complete_stratum);
       // Boost?
       if (search->search_state==asearch_no_regions) {
         search->search_state = asearch_exact_filtering_boost;
@@ -169,7 +175,13 @@ GEM_INLINE void asearch_control_thorough_next_state(
     const approximate_search_state_t processing_step,matches_t* const matches) {
   switch (processing_step) {
     case asearch_exact_filtering_adaptive:
-      if (search->search_state==asearch_exact_matches) return;
+      if (search->search_state==asearch_exact_matches) {
+        PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MAPPED,1);
+        PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,1);
+        return;
+      }
+      PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MAPPED,matches_is_mapped(matches)?1:0);
+      PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,search->max_complete_stratum);
       // Boost
       if (search->search_state==asearch_no_regions) {
         search->search_state = asearch_exact_filtering_boost;

@@ -41,7 +41,7 @@ GEM_INLINE void search_parameters_init_error_model(search_parameters_t* const se
   search_parameters->search_max_matches = 1000;
   search_parameters->complete_search_error = 0.04;
   search_parameters->complete_strata_after_best = 1.0;
-  search_parameters->alignment_max_error = 0.20;
+  search_parameters->alignment_max_error = 0.08;
   search_parameters->alignment_max_error_after_best = 0.04;
   search_parameters->unbounded_alignment = unbounded_alignment_if_unmapped;
   search_parameters->max_bandwidth = 0.20;
@@ -84,7 +84,7 @@ GEM_INLINE void search_parameters_init_alignment_model(search_parameters_t* cons
   search_parameters->swg_penalties.generic_mismatch_score = -4;
   search_parameters->swg_penalties.gap_open_score = -6;
   search_parameters->swg_penalties.gap_extension_score = -1;
-  search_parameters->swg_threshold = 0.20;
+  search_parameters->swg_threshold = 0.20; // 0.20*read_length*match_score
 }
 GEM_INLINE void search_parameters_init_internals(search_parameters_t* const search_parameters) {
   // Region-Minimal Scheme = (20,4,2,2)
@@ -221,11 +221,12 @@ GEM_INLINE void search_instantiate_values(as_parameters_t* const parameters,cons
   SEARCH_INSTANTIATE_VALUE(parameters,alignment_scaffolding_min_matching_length,pattern_length);
   SEARCH_INSTANTIATE_VALUE(parameters,cigar_curation_min_end_context,pattern_length);
   SEARCH_INSTANTIATE_VALUE(parameters,swg_threshold,pattern_length);
-  if (parameters->search_parameters->swg_threshold <= 0.0 || parameters->search_parameters->swg_threshold >= 1.0) {
-    parameters->swg_threshold_nominal = parameters->search_parameters->swg_threshold;
+  search_parameters_t* const search_parameters = parameters->search_parameters;
+  if (search_parameters->swg_threshold <= 0.0 || search_parameters->swg_threshold >= 1.0) {
+    parameters->swg_threshold_nominal = search_parameters->swg_threshold;
   } else {
-    swg_penalties_t* const swg_penalties = &parameters->search_parameters->swg_penalties;
-    parameters->swg_threshold_nominal =
-        (int64_t)(parameters->search_parameters->swg_threshold*(double)pattern_length) * swg_penalties->generic_match_score;
+    swg_penalties_t* const swg_penalties = &search_parameters->swg_penalties;
+    const int64_t pattern_identity_th = search_parameters->swg_threshold*(double)pattern_length;
+    parameters->swg_threshold_nominal = pattern_identity_th * swg_penalties->generic_match_score;
   }
 }

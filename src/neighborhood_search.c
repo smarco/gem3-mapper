@@ -395,9 +395,8 @@ GEM_INLINE uint64_t neighborhood_best_matches_search_bwt(
   return total_matches_found;
 }
 GEM_INLINE uint64_t neighborhood_best_matches_search_mtable(
-    neighborhood_search_t* const neighborhood_search,
-    dp_column_t* const dp_columns,const uint64_t current_column,
-    rank_mquery_t* const query) {
+    neighborhood_search_t* const neighborhood_search,dp_column_t* const dp_columns,
+    const uint64_t current_column,rank_mquery_t* const query) {
   // Profiler
   PROF_BLOCK() { ++_ns_nodes; ++_ns_nodes_mtable; }
   // Parameters
@@ -435,8 +434,8 @@ GEM_INLINE uint64_t neighborhood_best_matches_search_mtable(
  * Main
  */
 GEM_INLINE void neighborhood_search(
-    fm_index_t* const fm_index,
-    uint8_t* const key,const uint64_t key_length,const uint64_t max_error,
+    fm_index_t* const fm_index,uint8_t* const key,
+    const uint64_t key_length,const uint64_t max_error,
     interval_set_t* const intervals_result,mm_stack_t* const mm_stack) {
   // DEBUG/PROF
   gem_cond_debug_block(NS_PRINT_STRING) { if (ns_string==NULL) ns_string = malloc(1000); }

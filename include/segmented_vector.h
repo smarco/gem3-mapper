@@ -21,7 +21,7 @@
 #define SEGMENTED_VECTOR_RANGE_CHECK(segmented_vector,position) \
   SEGMENTED_VECTOR_CHECK(segmented_vector); \
   gem_fatal_check(position >= svector_get_used(segmented_vector),POSITION_OUT_OF_RANGE, \
-    position,0ull,svector_get_used(segmented_vector)-1)
+    position,(uint64_t)0,svector_get_used(segmented_vector)-1)
 
 #define SEGMENTED_VECTOR_ITERATOR_CHECK(iterator) \
   GEM_CHECK_NULL(iterator); \

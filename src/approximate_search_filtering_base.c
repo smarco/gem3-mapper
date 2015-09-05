@@ -11,12 +11,16 @@
 #include "search_parameters.h"
 
 #include "neighborhood_search.h"
+#include "region_profile.h"
+#include "region_profile_adaptive.h"
+#include "region_profile_boost.h"
+#include "region_profile_fixed.h"
 #include "region_profile_schedule.h"
 
 /*
  * Debug
  */
-#define DEBUG_REGION_PROFILE_PRINT  GEM_DEEP_DEBUG
+#define DEBUG_REGION_PROFILE_PRINT  true //GEM_DEEP_DEBUG
 #define DEBUG_REGION_SCHEDULE_PRINT GEM_DEEP_DEBUG
 
 /*
@@ -74,11 +78,61 @@ GEM_INLINE void region_profile_delimit_stats(region_profile_t* const region_prof
 }
 #endif
 /*
- * Region profile generation
+ * Adaptive region-profile generation
  */
-GEM_INLINE void approximate_search_generate_region_profile(
-    approximate_search_t* const search,const region_profiling_strategy_t rp_strategy,
-    mm_stack_t* const mm_stack) {
+GEM_INLINE void approximate_search_generate_region_profile_fixed(
+    approximate_search_t* const search,mm_stack_t* const mm_stack) {
+  // Parameters
+  const as_parameters_t* const actual_parameters = search->as_parameters;
+  const search_parameters_t* const parameters = actual_parameters->search_parameters;
+  const archive_t* archive = search->archive;
+  fm_index_t* const fm_index = search->archive->fm_index;
+  pattern_t* const pattern = &search->pattern;
+  region_profile_t* const region_profile = &search->region_profile;
+  // Select proper key
+  const uint8_t* key;
+  uint64_t key_length;
+  if (!archive->text->run_length) {
+    key = pattern->key;
+    key_length = pattern->key_length;
+  } else {
+    key = pattern->rl_key;
+    key_length = pattern->rl_key_length;
+  }
+  // Schedule the region profile
+  const uint64_t proper_length = fm_index_get_proper_length(fm_index);
+  const uint64_t region_length = proper_length; // FIXME tune
+  region_profile_generate_fixed_schedule(region_profile,key,key_length,parameters->allowed_enc,region_length);
+  // Search the region profile
+  region_profile_generate_fixed_query(region_profile,fm_index,key);
+  // DEBUG
+  gem_cond_debug_block(DEBUG_REGION_PROFILE_PRINT) {
+    region_profile_print(stderr,region_profile,false);
+    region_profile_print_fixed_regions(stdout,region_profile,key);
+  }
+  // Check Zero-Region & Exact-Matches
+  if (region_profile->num_filtering_regions==0) {
+    approximate_search_update_mcs(search,pattern->num_wildcards);
+    search->search_state = asearch_no_regions;
+    return;
+  } else if (region_profile_has_exact_matches(region_profile)) {
+    const region_search_t* const first_region = region_profile->filtering_region;
+    search->hi_exact_matches = first_region->hi;
+    search->lo_exact_matches = first_region->lo;
+    approximate_search_update_mcs(search,1);
+    search->search_state = asearch_exact_matches;
+    return;
+  }
+  // Stats
+#ifndef GEM_NOPROFILE
+  // region_profile_fixed_stats(region_profile); // TODO
+#endif
+}
+/*
+ * Adaptive region-profile generation
+ */
+GEM_INLINE void approximate_search_generate_region_profile_adaptive(
+    approximate_search_t* const search,const region_profiling_strategy_t strategy,mm_stack_t* const mm_stack) {
   // Parameters
   const as_parameters_t* const actual_parameters = search->as_parameters;
   const search_parameters_t* const parameters = actual_parameters->search_parameters;
@@ -97,7 +151,7 @@ GEM_INLINE void approximate_search_generate_region_profile(
     key_length = pattern->rl_key_length;
   }
   // Compute the region profile
-  switch (rp_strategy) {
+  switch (strategy) {
     case region_profile_adaptive_lightweight:
       region_profile_generate_adaptive(region_profile,fm_index,key,key_length,
           parameters->allowed_enc,&parameters->rp_minimal,ALL,false);
@@ -113,6 +167,10 @@ GEM_INLINE void approximate_search_generate_region_profile(
     case region_profile_adaptive_delimit:
       region_profile_generate_adaptive(region_profile,fm_index,key,key_length,
           parameters->allowed_enc,&parameters->rp_delimit,UINT64_MAX,true);
+      break;
+    case region_profile_adaptive_recovery:
+      region_profile_generate_adaptive(region_profile,fm_index,key,key_length,
+          parameters->allowed_enc,&parameters->rp_boost,UINT64_MAX,true);
       break;
     default:
       GEM_INVALID_CASE();
@@ -134,18 +192,19 @@ GEM_INLINE void approximate_search_generate_region_profile(
   }
   // Stats
 #ifndef GEM_NOPROFILE
-  switch (rp_strategy) {
+  switch (strategy) {
     case region_profile_adaptive_lightweight:
       region_profile_lightweight_stats(region_profile);
       break;
     case region_profile_adaptive_boost:
       region_profile_boost_stats(region_profile);
       break;
-    case region_profile_adaptive_limited:
-      region_profile_lightweight_stats(region_profile);
-      break;
     case region_profile_adaptive_delimit:
       region_profile_delimit_stats(region_profile);
+      break;
+    case region_profile_adaptive_limited:
+    case region_profile_adaptive_recovery:
+      region_profile_lightweight_stats(region_profile);
       break;
     default:
       GEM_INVALID_CASE();
@@ -351,4 +410,3 @@ GEM_INLINE void approximate_search_verify_candidates(approximate_search_t* const
   // Next State
   search->search_state = asearch_candidates_verified;
 }
-

@@ -627,27 +627,6 @@ GEM_INLINE void matches_sort_by_sequence_name__position(matches_t* const matches
 /*
  * Filters
  */
-GEM_INLINE void matches_filter_by_swg_score(matches_t* const matches,const int32_t swg_threshold,mm_stack_t* const mm_stack) {
-  const uint64_t num_matches = matches_get_num_match_traces(matches);
-  match_trace_t* match_in = matches_get_match_trace_buffer(matches);
-  match_trace_t* match_out = match_in;
-  // Delete matches with lower swg-score than the swg_threshold
-  uint64_t i;
-  for (i=0;i<num_matches;++i,++match_in) {
-    if (match_in->swg_score >= swg_threshold) {
-      if (match_out != match_in) *match_out = *match_in;
-      ++match_out;
-    } else {
-      matches_counters_sub(matches->counters,match_in->distance,1);
-    }
-  }
-  vector_update_used(matches->position_matches,match_out);
-  // Because the matches had been reallocated, the indexed-positions are no longer valid
-  if (matches_get_num_match_traces(matches)!=num_matches) {
-    matches_index_rebuild(matches,mm_stack);
-    matches_recompute_metrics(matches);
-  }
-}
 GEM_INLINE void matches_filter_by_mapq(matches_t* const matches,const uint8_t mapq_threshold,mm_stack_t* const mm_stack) {
   const uint64_t num_matches = matches_get_num_match_traces(matches);
   match_trace_t* match_in = matches_get_match_trace_buffer(matches);

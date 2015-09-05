@@ -22,6 +22,22 @@
 /*
  * Tables/Conversions Implementation
  */
+const bool dna_canonical_table[256] =
+{
+    [0 ... 255] = false,
+    ['A'] = true, ['C'] = true, ['G'] = true, ['T'] = true,
+    ['a'] = true, ['c'] = true, ['g'] = true, ['t'] = true,
+};
+const bool dna_canonical_encoded_table[DNA_EXT_RANGE] =
+{
+  [ENC_DNA_CHAR_A] = true,
+  [ENC_DNA_CHAR_C] = true,
+  [ENC_DNA_CHAR_G] = true,
+  [ENC_DNA_CHAR_T] = true,
+  [ENC_DNA_CHAR_N] = false,
+  [ENC_DNA_CHAR_SEP] = false,
+  [ENC_DNA_CHAR_JUMP] = false
+};
 const bool dna_table[256] =
 {
     [0 ... 255] = false,
@@ -34,7 +50,7 @@ const bool dna_encoded_table[DNA_EXT_RANGE] =
   [ENC_DNA_CHAR_C] = true,
   [ENC_DNA_CHAR_G] = true,
   [ENC_DNA_CHAR_T] = true,
-  [ENC_DNA_CHAR_N] = false,
+  [ENC_DNA_CHAR_N] = true,
   [ENC_DNA_CHAR_SEP] = false,
   [ENC_DNA_CHAR_JUMP] = false
 };
@@ -180,7 +196,7 @@ GEM_INLINE dna_text_t* dna_text_read_mem(mm_t* const memory_manager) {
   dna_text_t* const dna_text = mm_alloc(dna_text_t);
   // Read header
   const uint64_t dna_text_model_no = mm_read_uint64(memory_manager);
-  gem_cond_fatal_error(dna_text_model_no!=DNA_TEXT_MODEL_NO,DNA_TEXT_WRONG_MODEL_NO,dna_text_model_no,DNA_TEXT_MODEL_NO);
+  gem_cond_fatal_error(dna_text_model_no!=DNA_TEXT_MODEL_NO,DNA_TEXT_WRONG_MODEL_NO,dna_text_model_no,(uint64_t)DNA_TEXT_MODEL_NO);
   dna_text->type = mm_read_uint64(memory_manager);
   dna_text->length = mm_read_uint64(memory_manager);
   dna_text->allocated = dna_text->length;

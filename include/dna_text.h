@@ -52,6 +52,8 @@
 /*
  * Handy check functions
  */
+extern const bool dna_canonical_table[256];
+extern const bool dna_canonical_encoded_table[DNA_EXT_RANGE];
 extern const bool dna_table[256];
 extern const bool dna_encoded_table[DNA_EXT_RANGE];
 extern const bool extended_dna_table[256];
@@ -72,12 +74,14 @@ extern const char dna_bisulfite_G2A_table[256];
 
 extern const uint8_t dna_encoded_colorspace_table[DNA_EXT_RANGE][DNA_EXT_RANGE];
 
-#define is_dna(character)          (dna_table[(int)(character)])
-#define is_dna_encoded(character)  (dna_encoded_table[(int)(character)])
-#define is_extended_dna(character)         (extended_dna_table[(int)(character)])
-#define is_extended_dna_encoded(character) (extended_dna_encoded_table[(int)(character)])
-#define is_unmasked_dna(character) (unmasked_dna_table[(int)(character)])
-#define is_iupac_code(character)   (iupac_code_table[(int)(character)])
+#define is_dna_canonical(character)          (dna_canonical_table[(int)(character)])
+#define is_dna_canonical_encoded(character)  (dna_canonical_encoded_table[(int)(character)])
+#define is_dna(character)                    (dna_table[(int)(character)])
+#define is_dna_encoded(character)            (dna_encoded_table[(int)(character)])
+#define is_extended_dna(character)           (extended_dna_table[(int)(character)])
+#define is_extended_dna_encoded(character)   (extended_dna_encoded_table[(int)(character)])
+#define is_unmasked_dna(character)           (unmasked_dna_table[(int)(character)])
+#define is_iupac_code(character)             (iupac_code_table[(int)(character)])
 
 #define dna_normalized(character)          (dna_normalized_table[(int)(character)])
 #define dna_strictly_normalized(character) (dna_strictly_normalized_table[(int)(character)])

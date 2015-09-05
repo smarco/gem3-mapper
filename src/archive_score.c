@@ -19,7 +19,7 @@ GEM_INLINE double archive_score_diff_exponential(
   return (double)reference_score*exp((double)(match_score-reference_score)*exp_coefficient);
 }
 GEM_INLINE uint8_t archive_score_probability_to_mapq(const double probability,const double sum_probability) {
-   const double mapq = -10. * log10(1.-(probability/sum_probability));
+  const double mapq = -10. * log10(1.-(probability/sum_probability));
   if (mapq > 60.) {
     return 60;
   } else if (mapq < 0.) {
@@ -36,7 +36,7 @@ GEM_INLINE uint8_t archive_score_scale_probability(
 //  if (mapq_pr >= 60.0) return ceil;
 //  return floor + (uint8_t)((mapq_pr*(double)(ceil-floor))/60.);
   const double range = ceil-floor;
-  return floor + (uint8_t)((range*probability)/sum_probability);
+  return floor + (uint8_t)round((range*probability)/sum_probability);
 }
 /*
  * GEM Score
@@ -317,9 +317,6 @@ GEM_INLINE void archive_score_matches_se(
           matches_sort_by_distance(matches); // Sort
           break;
         case mapq_model_classify: {
-          // Filter by SWG-score
-          const int32_t swg_threshold = archive_search->as_parameters.swg_threshold_nominal;
-          matches_filter_by_swg_score(matches,swg_threshold,archive_search->mm_stack);
           matches_sort_by_distance(matches); // Sort
           if (paired_mapping) {
             archive_score_matches_gem_se(archive_search,matches);
@@ -329,9 +326,6 @@ GEM_INLINE void archive_score_matches_se(
           break;
         }
         case mapq_model_gem: {
-          // Filter by SWG-score
-          const int32_t swg_threshold = archive_search->as_parameters.swg_threshold_nominal;
-          matches_filter_by_swg_score(matches,swg_threshold,archive_search->mm_stack);
           matches_sort_by_distance(matches); // Sort
           archive_score_matches_gem_se(archive_search,matches);
 //          // Filter by MAPQ-score
@@ -378,11 +372,6 @@ GEM_INLINE void archive_score_matches_pe(
         case mapq_model_gem:
           paired_matches_sort_by_distance(paired_matches); // Sort
           archive_score_matches_gem_pe(archive_search_end1,archive_search_end2,paired_matches);
-//        // Filter by SWG-score
-//        const double swg_threshold = archive_search->as_parameters.search_parameters->swg_threshold;
-//        if (swg_threshold != 0.0) {
-//          matches_filter_by_swg_score(matches,swg_threshold,archive_search->mm_stack);
-//        }
 //        // Filter by MAPQ-score
 //        if (select_parameters->mapq_threshold > 0) {
 //          matches_filter_by_mapq(matches,select_parameters->mapq_threshold);

@@ -163,6 +163,9 @@
 #define GP_FC_RETRIEVE_CANDIDATE_REGIONS                    338
 #define GP_FC_COMPOSE_REGIONS                               339
 
+#define GP_FC_KMER_COUNTER_FILTER                           340
+#define GP_FC_KMER_COUNTER_FILTER_DISCARDED                 341
+
 #define GP_FC_EXTEND_MATCH                                  350
 #define GP_FC_EXTEND_RETRIEVE_CANDIDATE_REGIONS             351
 #define GP_FC_EXTEND_VERIFY_CANDIDATE_REGIONS               352
@@ -187,9 +190,11 @@
 #define GP_MATCHING_REGIONS_CHAIN_COVERAGE                  452
 #define GP_MATCHING_REGIONS_EXTEND                          453
 #define GP_MATCHING_REGIONS_EXTEND_COVERAGE                 454
-#define GP_MATCHING_REGIONS_SCAFFOLD                        455
-#define GP_MATCHING_REGIONS_SCAFFOLDED                      456
-#define GP_MATCHING_REGIONS_SCAFFOLD_COVERAGE               457
+#define GP_MATCHING_REGIONS_EDIT_SCAFFOLD                   455
+#define GP_MATCHING_REGIONS_EDIT_SCAFFOLDED                 456
+#define GP_MATCHING_REGIONS_EDIT_SCAFFOLD_COVERAGE          457
+#define GP_MATCHING_REGIONS_SWG_SCAFFOLD                    458
+#define GP_MATCHING_REGIONS_SWG_SCAFFOLDED                  459
 
 #define GP_BPM_TILED                                        470
 #define GP_BMP_TILED_NUM_TILES                              471
@@ -224,6 +229,7 @@
 #define GP_MATCHES_ALIGN_HAMMING                            581
 #define GP_MATCHES_ALIGN_LEVENSHTEIN                        582
 #define GP_MATCHES_ALIGN_SWG                                583
+#define GP_MATCHES_ALIGN_LOCAL_SWG                          584
 
 /*
  * SWG

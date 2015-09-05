@@ -51,6 +51,14 @@ bool match_scaffold_levenshtein(
     match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack);
 
 /*
+ * Scaffold the alignment (based on SWG-distance)
+ */
+bool match_scaffold_smith_waterman_gotoh(
+    matches_t* const matches,match_align_input_t* const align_input,
+    match_align_parameters_t* const align_parameters,
+    match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack);
+
+/*
  * Compute an scaffold for the alignment
  *   @align_input->key
  *   @align_input->key_length
@@ -62,9 +70,9 @@ bool match_scaffold_levenshtein(
  *   @align_input->text_offset_end
  *   @align_parameters->max_error
  *   @align_parameters->left_gap_alignment
- *   @align_parameters->min_coverage
- *   @align_parameters->min_matching_length
- *   @align_parameters->min_context_length
+ *   @align_parameters->scaffolding_min_coverage
+ *   @align_parameters->scaffolding_matching_min_length
+ *   @align_parameters->scaffolding_homopolymer_min_context
  *   @match_scaffold->num_scaffold_regions
  *   @match_scaffold->scaffold_regions
  */
@@ -81,7 +89,6 @@ void match_scaffold_sort_regions_matching(match_scaffold_t* const match_scaffold
 /*
  * Display
  */
-void match_scaffold_print(
-    FILE* const stream,matches_t* const matches,match_scaffold_t* const match_scaffold);
+void match_scaffold_print(FILE* const stream,matches_t* const matches,match_scaffold_t* const match_scaffold);
 
 #endif /* MATCH_SCAFFOLD_H_ */

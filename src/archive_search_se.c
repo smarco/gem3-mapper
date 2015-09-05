@@ -9,6 +9,7 @@
 #include "archive_select.h"
 #include "archive_score.h"
 #include "matches_classify.h"
+#include "approximate_search_filtering_stages.h"
 
 /*
  * Debug
@@ -29,12 +30,10 @@ GEM_INLINE void archive_search_continue(
     archive_search_t* const archive_search,const bool verify_candidates,matches_t* const matches) {
   // Run the search (FORWARD)
   approximate_search_t* const forward_asearch = &archive_search->forward_search_state;
-  forward_asearch->verify_candidates = verify_candidates;
   approximate_search(forward_asearch,matches); // Forward search
   if (archive_search->emulate_rc_search) {
     // Run the search (REVERSE)
     approximate_search_t* const reverse_asearch = &archive_search->reverse_search_state;
-    reverse_asearch->verify_candidates = verify_candidates;
     approximate_search(reverse_asearch,matches); // Reverse emulated-search
   }
 }
@@ -85,13 +84,13 @@ GEM_INLINE void archive_search_retrieve_candidates(
   PROF_START(GP_ARCHIVE_SEARCH_RETRIEVE_CANDIDATES);
   // Verified candidates (FORWARD)
   approximate_search_t* const forward_asearch = &archive_search->forward_search_state;
-  approximate_search_verify_using_bpm_buffer(forward_asearch,matches,bpm_gpu_buffer,
-      forward_asearch->bpm_buffer_offset,forward_asearch->bpm_buffer_offset+forward_asearch->bpm_buffer_candidates);
+  approximate_search_verify_using_bpm_buffer(forward_asearch,bpm_gpu_buffer,forward_asearch->bpm_buffer_offset,
+      forward_asearch->bpm_buffer_offset+forward_asearch->bpm_buffer_candidates,matches);
   if (archive_search->emulate_rc_search) {
     // Verified candidates (REVERSE)
     approximate_search_t* const reverse_asearch = &archive_search->reverse_search_state;
-    approximate_search_verify_using_bpm_buffer(reverse_asearch,matches,bpm_gpu_buffer,
-        reverse_asearch->bpm_buffer_offset,reverse_asearch->bpm_buffer_offset+reverse_asearch->bpm_buffer_candidates);
+    approximate_search_verify_using_bpm_buffer(reverse_asearch,bpm_gpu_buffer,reverse_asearch->bpm_buffer_offset,
+        reverse_asearch->bpm_buffer_offset+reverse_asearch->bpm_buffer_candidates,matches);
   }
   PROF_STOP(GP_ARCHIVE_SEARCH_RETRIEVE_CANDIDATES);
 }

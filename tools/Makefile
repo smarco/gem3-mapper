@@ -9,11 +9,14 @@
 ROOT_PATH=..
 include ../Makefile.mk
 
+# Tools
 GEM_TOOLS=gem-mapper gem-indexer gem-constructor
 GEM_TOOLS_SRC=$(addsuffix .c, $(GEM_TOOLS))
 GEM_TOOLS_BIN=$(addprefix $(FOLDER_BIN)/, $(GEM_TOOLS))
+
+# Libs
 LIBS=-lgemcore_c -lpthread -lm $(LIBS_ZLIB) $(LIBS_BZLIB)
-ifeq ($(OS),Linux)
+ifeq ($(PLATFORM),Linux)
 LIBS+=-lrt
 endif
 

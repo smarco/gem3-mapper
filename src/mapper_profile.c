@@ -406,8 +406,8 @@ GEM_INLINE void mapper_profile_print_verifying(FILE* const stream,const bool ver
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_RETRIEVE_CANDIDATE_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"    => TIME.Verify.Candidate.Regions           ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_VERIFY_CANDIDATE_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
-  //tab_fprintf(stream,"  => TIME.Kmer.Counting                      ");
-  //TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_KMER_COUNTER_FILTER),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"    => TIME.Kmer.Counting                      ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_KMER_COUNTER_FILTER),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"      => TIME.BPM.Align                        ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_TILED),PROF_GET_TIMER(GP_MAPPER_ALL));
   }
@@ -427,13 +427,13 @@ GEM_INLINE void mapper_profile_print_verifying(FILE* const stream,const bool ver
   tab_fprintf(stream,"        --> Candidate.Tiles.Verified              ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_BMP_TILED_NUM_TILES_VERIFIED),PROF_GET_COUNTER(GP_BMP_TILED_NUM_TILES),"tiles    ",true);
   if (verification_profile) {
-  tab_fprintf(stream,"        --> BPM.Accepted                          ");
+  tab_fprintf(stream,"      --> Kmer.Counting.Discarded                 ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_KMER_COUNTER_FILTER_DISCARDED),PROF_GET_COUNTER(GP_CANDIDATE_REGIONS),"         ",true);
+  tab_fprintf(stream,"      --> BPM.Accepted                            ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_LEVENSHTEIN_ACCEPTED),PROF_GET_COUNTER(GP_CANDIDATE_REGIONS),"         ",true);
-  tab_fprintf(stream,"          --> BPM.Quick-Abandon                   ");
+  tab_fprintf(stream,"        --> BPM.Quick-Abandon                     ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_BPM_QUICK_ABANDON),PROF_GET_COUNTER(GP_BMP_TILED_NUM_TILES_VERIFIED),"         ",true);
   }
-  //  tab_fprintf(stream,"      --> FC.Kmer.Counting.Discarded                ");
-  //  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_KMER_COUNTER_FILTER_DISCARDED),PROF_GET_COUNTER(GP_FC_NUM_CANDIDATE_REGIONS),"",true);
 }
 GEM_INLINE void mapper_profile_print_realign(FILE* const stream) {
   tab_fprintf(stream,"[GEM]>Profile.Realign\n");
@@ -446,7 +446,7 @@ GEM_INLINE void mapper_profile_print_realign(FILE* const stream) {
   tab_fprintf(stream,"    => TIME.Extend.Matching.Regions                ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_MATCHING_REGIONS_EXTEND),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"    => TIME.Scaffold.Matching.Regions              ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MATCHING_REGIONS_SCAFFOLD),PROF_GET_TIMER(GP_MAPPER_ALL));
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MATCHING_REGIONS_EDIT_SCAFFOLD),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"    => TIME.Realign.SWG                            ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_MATCHES_ALIGN_SWG),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"      => TIME.SWG.Core.Banded                      ");
@@ -469,9 +469,9 @@ GEM_INLINE void mapper_profile_print_realign(FILE* const stream) {
   tab_fprintf(stream,"          --> Matching.Regions.Extended.Coverage   ");
   PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_MATCHING_REGIONS_EXTEND_COVERAGE));
   tab_fprintf(stream,"        --> Matching.Regions.Scaffolded            ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCHING_REGIONS_SCAFFOLDED),PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"regions  ",true);
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCHING_REGIONS_EDIT_SCAFFOLDED),PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"regions  ",true);
   tab_fprintf(stream,"          --> Matching.Regions.Scaffolded.Coverage ");
-  PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_MATCHING_REGIONS_SCAFFOLD_COVERAGE));
+  PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_MATCHING_REGIONS_EDIT_SCAFFOLD_COVERAGE));
   tab_fprintf(stream,"  |> Realign.Length\n");
   tab_fprintf(stream,"    --> Candidate.Regions.Length                   ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CANDIDATE_REGION_LENGTH),PROF_GET_COUNTER(GP_CANDIDATE_REGION_LENGTH),"nt       ",true);

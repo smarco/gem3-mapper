@@ -1,0 +1,89 @@
+/*
+ * PROJECT: GEMMapper
+ * FILE: region_profile_fixed.c
+ * DATE: 06/06/2012
+ * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
+ * DESCRIPTION:
+ *
+ */
+#include "region_profile.h"
+#include "region_profile_fixed.h"
+
+#include "pattern.h"
+
+/*
+ * Region Profile Schedule (generate the region partition)
+ */
+void region_profile_generate_fixed_schedule(
+    region_profile_t* const region_profile,const uint8_t* const key,
+    const uint64_t key_length,const bool* const allowed_enc,
+    const uint64_t region_length) {
+  // Init
+  region_profile_clear(region_profile);
+  // Profile
+  region_search_t* region_search = region_profile->filtering_region;
+  uint64_t num_filtering_regions = 0;
+  // Traverse the key & delimit regions of @region_length (skip bad characters)
+  uint64_t i, accum = 0;
+  region_search->begin = 0;
+  for (i=0;i<key_length;++i) {
+    // Get next character & check allowed
+    const uint8_t enc_char = key[i];
+    if (!allowed_enc[enc_char]) {
+      // Reset region
+      region_search->begin = i+1;
+      accum = 0;
+    }
+    // Add character
+    if ((++accum) == region_length) {
+      // Close region
+      region_search->end = i+1;
+      ++region_search;
+      ++num_filtering_regions;
+      // Start new region
+      region_search->begin = i+1;
+      accum = 0;
+    }
+  }
+  // Extend last region
+  if (accum>0 && num_filtering_regions>0) {
+    region_search_t* const last_region_search = region_profile->filtering_region + (num_filtering_regions-1);
+    if (region_search->begin==last_region_search->end) {
+      last_region_search->end = key_length;
+    }
+  }
+  // Close profile
+  region_profile->num_filtering_regions = num_filtering_regions;
+}
+
+/*
+ * Region Profile Schedule (query the region partition into the index)
+ */
+void region_profile_generate_fixed_query(
+    region_profile_t* const region_profile,fm_index_t* const fm_index,const uint8_t* const key) {
+  // Iterate over all regions
+  const uint64_t fm_index_length = fm_index_get_length(fm_index);
+  REGION_PROFILE_ITERATE(region_profile,region,position) {
+    // Init
+    uint64_t lo = 0, hi = fm_index_length;
+    rank_mquery_t rank_mquery;
+    rank_mquery_new(&rank_mquery);
+    // Search region
+    const int64_t region_begin = region->begin;
+    const int64_t region_end = region->end;
+    int64_t position;
+    region->min = 0;
+    for (position=region_end-1;position>=region_begin;--position) {
+      const uint8_t enc_char = key[position];
+      region_profile_query_character(fm_index,&rank_mquery,&lo,&hi,enc_char);
+      if (hi - lo == 0) {
+        region->min = region_end-position; // FIXME Field nzSteps
+        break;
+      }
+    }
+    // Store results
+    if (region->min==0) region->min = region_end-region_begin; // FIXME Field nzSteps
+    region->lo = lo;
+    region->hi = hi;
+  }
+}

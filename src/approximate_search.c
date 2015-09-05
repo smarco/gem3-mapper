@@ -7,7 +7,8 @@
  */
 
 #include "approximate_search.h"
-#include "approximate_search_filtering.h"
+#include "approximate_search_filtering_adaptive.h"
+#include "approximate_search_filtering_complete.h"
 #include "approximate_search_neighborhood.h"
 
 /*
@@ -33,7 +34,6 @@ GEM_INLINE void approximate_search_configure(
 GEM_INLINE void approximate_search_reset(approximate_search_t* const search) {
   // Reset Approximate Search State
   search->search_state = asearch_begin;
-  search->verify_candidates = true;
   search->stop_before_neighborhood_search = false;
   const uint64_t max_complete_error = search->as_parameters->complete_search_error_nominal + search->pattern.num_low_quality_bases;
   search->max_complete_error = MIN(max_complete_error,search->pattern.max_effective_filtering_error);
@@ -65,6 +65,18 @@ GEM_INLINE void approximate_search_update_mcs(approximate_search_t* const search
   search->max_complete_stratum = max_complete_stratum;
 }
 /*
+ * Modifiers
+ */
+GEM_INLINE void approximate_search_hold_verification_candidates(approximate_search_t* const search) {
+  filtering_candidates_set_all_regions_pending(search->filtering_candidates);
+}
+GEM_INLINE void approximate_search_release_verification_candidates(approximate_search_t* const search) {
+  filtering_candidates_set_all_regions_unverified(search->filtering_candidates);
+  if (search->search_state==asearch_candidates_verified) {
+    search->search_state = asearch_verify_candidates;
+  }
+}
+/*
  * Approximate String Matching using the FM-index
  */
 GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t* const matches) {
@@ -85,6 +97,10 @@ GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t*
     case mapping_neighborhood_search:
       approximate_search_neighborhood_search(search,matches); // Brute-force mapping
       break;
+    case mapping_region_profile_fixed:
+      approximate_search_filtering_adaptive_generate_regions(search);
+      matches->max_complete_stratum = 0; PROF_STOP(GP_AS_MAIN); return;
+      break;
     default:
       GEM_INVALID_CASE();
       break;
@@ -92,55 +108,4 @@ GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t*
   // Set matches-MCS
   if (matches) matches->max_complete_stratum = MIN(matches->max_complete_stratum,search->max_complete_stratum);
   PROF_STOP(GP_AS_MAIN);
-}
-/*
- * Approximate String Matching using the FM-index (Verification)
- */
-GEM_INLINE void approximate_search_verify(approximate_search_t* const search,matches_t* const matches) {
-  // Verify
-  const uint64_t num_accepted_regions = filtering_candidates_verify_candidates(
-      search->filtering_candidates,search->archive,search->text_collection,
-      &search->pattern,search->as_parameters,matches,search->mm_stack);
-  if (num_accepted_regions > 0) {
-    // Realign
-    filtering_candidates_align_candidates(search->filtering_candidates,
-        search->archive->text,search->archive->locator,
-        search->text_collection,&search->pattern,search->emulated_rc_search,
-        search->as_parameters,true,matches,search->mm_stack);
-  }
-  // Update state
-  if (search->search_state==asearch_verify_candidates) {
-    search->search_state = asearch_candidates_verified;
-  }
-}
-GEM_INLINE void approximate_search_verify_using_bpm_buffer(
-    approximate_search_t* const search,
-    matches_t* const matches,bpm_gpu_buffer_t* const bpm_gpu_buffer,
-    const uint64_t candidate_offset_begin,const uint64_t candidate_offset_end) {
-  // Retrieve
-  const uint64_t num_accepted_regions = filtering_candidates_bpm_buffer_retrieve(
-      search->filtering_candidates,search->archive->text,search->text_collection,
-      &search->pattern,bpm_gpu_buffer,candidate_offset_begin,candidate_offset_end,search->mm_stack);
-  if (num_accepted_regions > 0) {
-    // Realign
-    PROF_START(GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS);
-    filtering_candidates_align_candidates(search->filtering_candidates,
-        search->archive->text,search->archive->locator,
-        search->text_collection,&search->pattern,search->emulated_rc_search,
-        search->as_parameters,true,matches,search->mm_stack);
-    PROF_STOP(GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS);
-  }
-  // Update state
-  if (search->search_state==asearch_verify_candidates) {
-    search->search_state = asearch_candidates_verified;
-  }
-}
-GEM_INLINE void approximate_search_hold_verification_candidates(approximate_search_t* const search) {
-  filtering_candidates_set_all_regions_pending(search->filtering_candidates);
-}
-GEM_INLINE void approximate_search_release_verification_candidates(approximate_search_t* const search) {
-  filtering_candidates_set_all_regions_unverified(search->filtering_candidates);
-  if (search->search_state==asearch_candidates_verified) {
-    search->search_state = asearch_verify_candidates;
-  }
 }

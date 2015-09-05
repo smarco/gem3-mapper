@@ -196,7 +196,7 @@ option_t gem_mapper_options[] = {
   { 401, "search-max-matches", REQUIRED, TYPE_INT, 4, VISIBILITY_ADVANCED, "<number>" , "(default=1K)" },
   { 'E', "complete-search-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=0.04, 4%)" },
   { 's', "complete-strata-after-best", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=1)" },
-  { 'e', "alignment-max-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=0.20, 20%)" },
+  { 'e', "alignment-max-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=0.08, 8%)" },
   { 402, "alignment-override-max-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "'never'|'if-unmapped'" , "(default=if-unmapped)" },
   { 403, "alignment-max-bandwidth", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=0.20, 20%)" },
   { 404, "alignment-min-identity", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=40%)" },
@@ -427,6 +427,8 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
         search->mapping_mode = mapping_neighborhood_search;
       } else if (gem_strcaseeq(optarg,"filtering-complete")) {
         search->mapping_mode = mapping_fixed_filtering_complete;
+      } else if (gem_strcaseeq(optarg,"region-profile")) {
+        search->mapping_mode = mapping_region_profile_fixed;
       } else {
         gem_mapper_error_msg("Option '--mapping-mode' must be 'fast'|'thorough'|'complete'");
       }
@@ -441,7 +443,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 's': // --complete-strata-after-best (default=1)
       input_text_parse_extended_double(optarg,(double*)&search->complete_strata_after_best);
       break;
-    case 'e': // --alignment-max-error (default=0.20, 20%)
+    case 'e': // --alignment-max-error (default=0.08, 8%)
       search->alignment_max_error = atof(optarg);
       break;
     case 402: // --alignment-override-max-error in {'never'|'if-unmapped'} (default=if-no-match)

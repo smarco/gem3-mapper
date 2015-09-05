@@ -31,22 +31,27 @@ MODULES+=graph_text graph_text_builder
 # BWT Structures
 MODULES+=bwt_commons bwt_sbasic bwt_basic
 # FM-Index Structures
-MODULES+=fm_index locator rank_mtable sampled_sa sampled_rl sa_builder interval_set
+MODULES+=fm_index locator rank_mtable sampled_sa sampled_rl sa_builder interval_set region_set
 # GEM Matches
 MODULES+=matches matches_counters matches_metrics matches_classify 
 # GEM paired-Matches
 MODULES+=paired_matches paired_map paired_matches_classify
 # GEM Pattern Alignment
 MODULES+=pattern bpm_align swg_align bpm_align_gpu match_scaffold match_align
+# GEM Region Profile
+MODULES+=region_profile region_profile_adaptive \
+         region_profile_boost region_profile_schedule \
+         region_profile_fixed
 # GEM Filtering
-MODULES+=filtering_candidates filtering_region kmer_counting region_profile region_profile_schedule
+MODULES+=filtering_candidates filtering_region kmer_counting 
 # GEM Search Support Modules
 MODULES+=search_parameters paired_search_parameters select_parameters quality_model mm_search
 # GEM Approximate Search
-MODULES+=approximate_search \
-         approximate_search_filtering approximate_search_filtering_base \
-         approximate_search_filtering_control approximate_search_neighborhood \
-         neighborhood_search 
+MODULES+=approximate_search approximate_search_filtering_base \
+         approximate_search_filtering_stages approximate_search_filtering_control \
+         approximate_search_filtering_adaptive approximate_search_neighborhood \
+         approximate_search_filtering_complete neighborhood_search \
+         neighborhood_search_hamming
 # GEM Archive
 MODULES+=archive archive_builder archive_index_builder \
          archive_text archive_text_builder archive_hypertext_builder \

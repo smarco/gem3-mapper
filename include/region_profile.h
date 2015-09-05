@@ -62,10 +62,11 @@ typedef struct {
   /* Regions */
   region_search_t* filtering_region; // Filtering regions
   uint64_t num_filtering_regions;    // Total number of filtering regions
-  /* Stats */
+  /* Pattern Stats */
   uint64_t pattern_length;           // Length of the patter
-  uint64_t total_candidates;         // Total number of candidates (from exact matching regions)
   uint64_t errors_allowed;           // Total error allowed (the minimum required to get a novel match)
+  // Profile Stats
+  uint64_t total_candidates;         // Total number of candidates (from exact matching regions)
   uint64_t max_region_length;        // Largest region length
   uint64_t num_standard_regions;     // Number of Standard Regions
   uint64_t num_unique_regions;       // Number of Unique Regions
@@ -80,6 +81,7 @@ typedef struct {
 void region_profile_new(
     region_profile_t* const region_profile,const uint64_t pattern_length,
     mm_stack_t* const mm_stack);
+void region_profile_clear(region_profile_t* const region_profile);
 
 /*
  * Accessors
@@ -90,33 +92,25 @@ bool region_profile_has_exact_matches(region_profile_t* const region_profile);
 /*
  * Utils
  */
-void region_profile_sort_by_estimated_mappability(region_profile_t* const region_profile);
-void region_profile_sort_by_candidates(region_profile_t* const region_profile);
-void region_profile_fill_gaps(
-    region_profile_t* const region_profile,const uint64_t eff_mismatches);
+void region_profile_query_character(
+    fm_index_t* const fm_index,rank_mquery_t* const rank_mquery,
+    uint64_t* const lo,uint64_t* const hi,const uint8_t enc_char);
+void region_profile_extend_last_region(
+    region_profile_t* const region_profile,fm_index_t* const fm_index,
+    const uint8_t* const key,const bool* const allowed_enc,
+    const uint64_t rp_region_type_th);
 
 /*
- * Region Profile Generation
+ * Sort
  */
-void region_profile_generate_adaptive(
-    region_profile_t* const region_profile,fm_index_t* const fm_index,
-    const uint8_t* const key,const uint64_t key_length,
-    const bool* const allowed_enc,const region_profile_model_t* const profile_model,
-    const uint64_t max_regions,const bool allow_zero_regions);
-void region_profile_generate_adaptive_limited(
-    region_profile_t* const region_profile,fm_index_t* const fm_index,
-    const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
-    const region_profile_model_t* const profile_model,const uint64_t min_regions);
-void region_profile_generate_adaptive_boost(
-    region_profile_t* const region_profile,fm_index_t* const fm_index,
-    const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
-    const region_profile_model_t* const profile_model,mm_stack_t* const mm_stack);
+void region_profile_sort_by_estimated_mappability(region_profile_t* const region_profile);
+void region_profile_sort_by_candidates(region_profile_t* const region_profile);
 
 /*
  * Display
  */
-void region_profile_print(
-    FILE* const stream,const region_profile_t* const region_profile,const bool sorted);
+void region_profile_print(FILE* const stream,const region_profile_t* const region_profile,const bool sorted);
+void region_profile_print_fixed_regions(FILE* const stream,const region_profile_t* const region_profile,const uint8_t* key);
 
 /*
  * Iterator

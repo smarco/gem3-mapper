@@ -33,10 +33,12 @@ struct match_align_parameters_t {
   bool emulated_rc_search;
   bool* allowed_enc;
   swg_penalties_t* swg_penalties;
+  int64_t swg_threshold;
   uint64_t max_error;
   uint64_t min_identity;
   uint64_t max_bandwidth;
   bool left_gap_alignment;
+  bool scaffolding;
   uint64_t scaffolding_matching_min_length;
   uint64_t scaffolding_homopolymer_min_context;
   uint64_t scaffolding_min_coverage;

@@ -12,6 +12,26 @@
 #include "match_align_dto.h"
 
 /*
+ * Flags
+ */
+#define KMER_COUNTER_FILTER
+
+/*
+ * Data Types & Tables
+ */
+const char* filtering_region_status_label[] =
+{
+    [0] = "pending",
+    [1] = "unverified",
+    [2] = "verified-discarded",
+    [3] = "accepted",
+    [4] = "accepted-subdominant",
+    [5] = "aligned",
+    [6] = "aligned-subdominant",
+    [7] = "aligned-unbounded"
+};
+
+/*
  * Sorting
  */
 int filtering_region_locator_cmp_position(const filtering_region_locator_t* const a,const filtering_region_locator_t* const b) {
@@ -138,21 +158,19 @@ GEM_INLINE bool filtering_region_align(
             .max_bandwidth = max_bandwidth,
             .left_gap_alignment = archive_text_get_position_strand(archive_text,align_input.text_position)==Forward,
             .min_identity = as_parameters->alignment_min_identity_nominal,
+            .scaffolding = search_parameters->alignment_scaffolding,
             .scaffolding_min_coverage = as_parameters->alignment_scaffolding_min_coverage_nominal,
             .scaffolding_matching_min_length = as_parameters->alignment_scaffolding_min_matching_length_nominal,
             .scaffolding_homopolymer_min_context = as_parameters->alignment_scaffolding_homopolymer_min_context_nominal,
             .allowed_enc = allowed_enc,
             .swg_penalties = swg_penalties,
+            .swg_threshold = as_parameters->swg_threshold_nominal,
             .cigar_curation = search_parameters->cigar_curation,
             .cigar_curation_min_end_context = as_parameters->cigar_curation_min_end_context_nominal,
         };
-        match_scaffold_t* const match_scaffold = &filtering_region->match_scaffold;
-        // Scaffold the alignment
-        if (search_parameters->alignment_scaffolding) {
-          match_scaffold_alignment(matches,&align_input,&align_parameters,match_scaffold,mm_stack);
-        }
         // Smith-Waterman-Gotoh Alignment (Gap-affine)
-        match_align_smith_waterman_gotoh(matches,match_trace,&align_input,&align_parameters,match_scaffold,mm_stack);
+        match_align_smith_waterman_gotoh(matches,match_trace,
+            &align_input,&align_parameters,&filtering_region->match_scaffold,mm_stack);
         break;
       }
       default:
@@ -219,24 +237,19 @@ GEM_INLINE bool filtering_region_align_unbounded(
           .max_bandwidth = pattern->max_effective_bandwidth,
           .left_gap_alignment = archive_text_get_position_strand(archive_text,align_input.text_position)==Forward,
           .min_identity = as_parameters->alignment_min_identity_nominal,
+          .scaffolding = true,
           .scaffolding_min_coverage = as_parameters->alignment_scaffolding_min_coverage_nominal,
           .scaffolding_matching_min_length = as_parameters->alignment_scaffolding_min_matching_length_nominal,
           .scaffolding_homopolymer_min_context = as_parameters->alignment_scaffolding_homopolymer_min_context_nominal,
           .allowed_enc = allowed_enc,
           .swg_penalties = swg_penalties,
+          .swg_threshold = as_parameters->swg_threshold_nominal,
           .cigar_curation = search_parameters->cigar_curation,
           .cigar_curation_min_end_context = as_parameters->cigar_curation_min_end_context_nominal,
       };
-      match_scaffold_t* const match_scaffold = &filtering_region->match_scaffold;
-      // Scaffold from Levenshtein-alignment
-      PROF_INC_COUNTER(GP_MATCHING_REGIONS_SCAFFOLDED);
-      PROF_START(GP_MATCHING_REGIONS_SCAFFOLD);
-      const bool valid_scaffold = match_scaffold_levenshtein(matches,&align_input,&align_parameters,match_scaffold,mm_stack);
-      PROF_STOP(GP_MATCHING_REGIONS_SCAFFOLD);
-      PROF_ADD_COUNTER(GP_MATCHING_REGIONS_SCAFFOLD_COVERAGE,(100*match_scaffold->scaffolding_coverage)/key_length);
-      if (!valid_scaffold) return false;
       // Smith-Waterman-Gotoh Alignment (Gap-affine)
-      match_align_smith_waterman_gotoh(matches,match_trace,&align_input,&align_parameters,match_scaffold,mm_stack);
+      match_align_local_smith_waterman_gotoh(matches,match_trace,
+          &align_input,&align_parameters,&filtering_region->match_scaffold,mm_stack);
       break;
     }
     default:
@@ -276,10 +289,6 @@ GEM_INLINE int64_t filtering_region_verify_levenshtein(
     filtering_region_t* const candidate_region,
     const text_collection_t* const text_collection,
     const uint8_t* const key,const uint64_t key_length) {
-  // USAGE DEBUG
-  // gem_cond_debug_block(DEBUG_ALIGN_CANDIDATES) {
-  //   filtering_region_verify_levenshtein(filtering_region,text_collection,key,key_length);
-  // }
   // Candidate
   const text_trace_t* const text_trace = text_collection_get_trace(text_collection,candidate_region->text_trace_offset);
   const uint8_t* const text = text_trace->text;
@@ -329,33 +338,45 @@ GEM_INLINE bool filtering_region_verify(
           return true;
         }
       }
-      filtering_region->status = filtering_region_discarded;
+      filtering_region->status = filtering_region_verified_discarded;
       return false;
       break;
     }
     case alignment_model_levenshtein:
     case alignment_model_gap_affine: {
       const uint64_t eff_text_length = filtering_region->end_position - filtering_region->begin_position;
-      // 2. Generalized Counting filter
-      // PROF_START(GP_FC_KMER_COUNTER_FILTER);
-      // const uint64_t test_positive = kmer_counting_filter(&pattern->kmer_counting,text,eff_text_length,max_filtering_error);
-      // PROF_STOP(GP_FC_KMER_COUNTER_FILTER);
+#ifdef KMER_COUNTER_FILTER
+      // Generalized Counting filter
+      const uint64_t test_positive = kmer_counting_filter(&pattern->kmer_counting,text,eff_text_length,max_filtering_error);
+      if (test_positive==ALIGN_DISTANCE_INF) {
+        PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_DISCARDED);
+        filtering_region->status = filtering_region_verified_discarded;
+        return false;
+      }
+#endif
+//       // DEBUG
+//       if (test_positive==ALIGN_COLUMN_INF) {
+//         bpm_get_distance_cutoff_tiled((bpm_pattern_t* const)&pattern->bpm_pattern,text,eff_text_length,
+//             &filtering_region->align_distance,&filtering_region->align_match_end_column,max_filtering_error);
+//         if (filtering_region->align_distance != ALIGN_DISTANCE_INF) {
+//           printf("error\n");
+//         }
+//       }
 
 //      // 3. Multiple Myers's BPM algorithm
 //      const uint64_t num_matches_found = bpm_search_all(
 //          (bpm_pattern_t* const)&pattern->bpm_pattern,filtering_regions,
 //          text_trace_offset,index_position,text,text_length,max_filtering_error);
 
-      // 3. Myers's BPM algorithm
-      bpm_get_distance_cutoff_tiled(
-          (bpm_pattern_t* const)&pattern->bpm_pattern,text,eff_text_length,&filtering_region->align_distance,
-          &filtering_region->align_match_end_column,max_filtering_error);
+      // Myers's BPM algorithm
+      bpm_get_distance_cutoff_tiled((bpm_pattern_t* const)&pattern->bpm_pattern,text,eff_text_length,
+          &filtering_region->align_distance,&filtering_region->align_match_end_column,max_filtering_error);
       if (filtering_region->align_distance != ALIGN_DISTANCE_INF) {
         PROF_INC_COUNTER(GP_LEVENSHTEIN_ACCEPTED);
         filtering_region->status = filtering_region_accepted;
         return true;
       } else {
-        filtering_region->status = filtering_region_discarded;
+        filtering_region->status = filtering_region_verified_discarded;
         return false;
       }
       break;
@@ -430,4 +451,21 @@ GEM_INLINE uint64_t filtering_region_verify_extension(
   verified_region->end_position = index_position + text_length;
   // Return number of filtering regions added (accepted)
   return num_matches_found;
+}
+/*
+ * Display
+ */
+void filtering_region_print(FILE* const stream,filtering_region_t* const region,const bool print_matching_regions) {
+  tab_fprintf(stream,"  => Region %s [%"PRIu64",%"PRIu64") "
+      "(total-bases=%"PRIu64",align-distance=%"PRId64","
+      "matching-regions=%"PRIu64",align-match=%"PRIu64",%"PRIu64")\n",
+      filtering_region_status_label[region->status],
+      region->begin_position,region->end_position,region->end_position-region->begin_position,
+      region->align_distance==ALIGN_DISTANCE_INF ? (int64_t)-1 : (int64_t)region->align_distance,
+      region->match_scaffold.num_scaffold_regions,region->align_match_begin_column,region->align_match_end_column);
+  if (print_matching_regions) {
+    tab_global_inc();
+    match_scaffold_print(stream,NULL,&region->match_scaffold);
+    tab_global_dec();
+  }
 }

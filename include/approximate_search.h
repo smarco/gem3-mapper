@@ -49,7 +49,6 @@ typedef struct {
   bool emulated_rc_search;                              // Currently searching on the RC (emulated on the forward strand)
   bool do_quality_search;                               // Quality search
   approximate_search_state_t search_state;              // Current State of the search
-  bool verify_candidates;                               // Compute candidate verification
   bool stop_before_neighborhood_search;                 // Stop before Neighborhood Search
   uint64_t max_complete_error;
   uint64_t max_complete_stratum;                        // Maximum complete stratum reached by the search
@@ -89,24 +88,14 @@ uint64_t approximate_search_get_num_exact_filtering_candidates(const approximate
 void approximate_search_update_mcs(approximate_search_t* const search,const uint64_t max_complete_stratum);
 
 /*
- * Pattern
+ * Modifiers
  */
-void approximate_search_pattern_prepare(
-    approximate_search_t* const search,sequence_t* const sequence);
-void approximate_search_pattern_clear(approximate_search_t* const search);
-bool approximate_search_pattern_is_null(approximate_search_t* const search);
+void approximate_search_hold_verification_candidates(approximate_search_t* const search);
+void approximate_search_release_verification_candidates(approximate_search_t* const search);
 
 /*
  * Aproximate String Search
  */
 void approximate_search(approximate_search_t* const search,matches_t* const matches);
-// Verification
-void approximate_search_verify(approximate_search_t* const search,matches_t* const matches);
-void approximate_search_verify_using_bpm_buffer(
-    approximate_search_t* const search,
-    matches_t* const matches,bpm_gpu_buffer_t* const bpm_gpu_buffer,
-    const uint64_t candidate_offset_begin,const uint64_t candidate_offset_end);
-void approximate_search_hold_verification_candidates(approximate_search_t* const search);
-void approximate_search_release_verification_candidates(approximate_search_t* const search);
 
 #endif /* APPROXIMATE_SEARCH_H_ */

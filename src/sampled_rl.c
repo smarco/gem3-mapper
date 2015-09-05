@@ -32,7 +32,8 @@ GEM_INLINE sampled_rl_t* sampled_rl_read_mem(mm_t* const memory_manager) {
   sampled_rl_t* const sampled_rl = mm_alloc(sampled_rl_t);
   // Read Meta-Data
   const uint64_t sampled_rl_model_no = mm_read_uint64(memory_manager);
-  gem_cond_fatal_error(sampled_rl_model_no!=SAMPLED_RL_MODEL_NO,SAMPLED_RL_WRONG_MODEL_NO,sampled_rl_model_no,SAMPLED_RL_MODEL_NO);
+  gem_cond_fatal_error(sampled_rl_model_no!=SAMPLED_RL_MODEL_NO,SAMPLED_RL_WRONG_MODEL_NO,
+      sampled_rl_model_no,(uint64_t)SAMPLED_RL_MODEL_NO);
   sampled_rl->sampling_rate = mm_read_uint64(memory_manager);
   // Read PackedIntegerArray
   sampled_rl->packed_integer_array = packed_integer_array_read_mem(memory_manager);

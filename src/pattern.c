@@ -44,12 +44,13 @@ GEM_INLINE void pattern_prepare(
    * Check all characters in the key & encode key
    * Counts the number of wildcards(characters not allowed as replacements) & low_quality_bases
    */
-  uint64_t i, num_wildcards=0, num_low_quality_bases=0;
+  uint64_t i, num_wildcards=0, num_low_quality_bases=0, num_non_canonical_bases = 0;
   const char* const read = sequence_get_read(sequence);
   if (pattern->quality_mask == NULL) {
     for (i=0;i<read_length;++i) {
       const char character = read[i];
       if (!parameters->allowed_chars[(uint8_t)character]) ++num_wildcards;
+      if (!is_dna_canonical(character)) ++num_non_canonical_bases;
       pattern->key[i] = dna_encode(character);
     }
   } else {
@@ -60,6 +61,7 @@ GEM_INLINE void pattern_prepare(
       } else if (pattern->quality_mask[i]!=qm_real) {
         ++num_low_quality_bases;
       }
+      if (!is_dna_canonical(character)) ++num_non_canonical_bases;
       pattern->key[i] = dna_encode(character);
     }
   }
@@ -94,8 +96,9 @@ GEM_INLINE void pattern_prepare(
   pattern->max_effective_filtering_error = effective_filtering_max_error;
   pattern->max_effective_bandwidth = actual_parameters->max_bandwidth_nominal + pattern->num_low_quality_bases;
   if (effective_filtering_max_error > 0) {
-//    // Prepare kmer-counting filter
-//    kmer_counting_compile(&pattern->kmer_counting,(bool* const)parameters->allowed_enc,pattern->key,read_length,mm_stack);
+    // Prepare kmer-counting filter
+    kmer_counting_compile(&pattern->kmer_counting,
+        pattern->key,read_length,num_non_canonical_bases,effective_filtering_max_error,mm_stack);
     // Prepare BPM pattern
     bpm_pattern_compile(&pattern->bpm_pattern,pattern->key,read_length,effective_filtering_max_error,mm_stack);
 //    // Prepare SWG query-profile

@@ -378,7 +378,7 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
   while (mapper_SE_read_single_sequence(mapper_search)) {
-//    if (gem_streq(mapper_search->archive_search->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000869733")) { //99
+//    if (gem_streq(mapper_search->archive_search->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000184558")) {
 //      printf("HERE\n");
 //    }
 
@@ -505,9 +505,9 @@ GEM_INLINE void mapper_run(mapper_parameters_t* const mapper_parameters,const bo
   pthread_handler_t mapper_thread;
   const bool bisulfite_mode = mapper_parameters->search_parameters.bisulfite_mode;
   if (paired_end) {
-    mapper_thread = (bisulfite_mode) ? (pthread_handler_t) mapper_PE_thread : (pthread_handler_t) mapper_PE_bisulfite_thread;
+    mapper_thread = (bisulfite_mode) ? (pthread_handler_t) mapper_PE_bisulfite_thread : (pthread_handler_t) mapper_PE_thread;
   } else {
-    mapper_thread = (bisulfite_mode) ? (pthread_handler_t) mapper_SE_thread : (pthread_handler_t) mapper_SE_bisulfite_thread;
+    mapper_thread = (bisulfite_mode) ? (pthread_handler_t) mapper_SE_bisulfite_thread : (pthread_handler_t) mapper_SE_thread;
   }
   uint64_t i;
   for (i=0;i<num_threads;++i) {
