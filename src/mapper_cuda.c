@@ -8,6 +8,7 @@
 #include "mapper_cuda.h"
 #include "archive_search_se.h"
 #include "archive_search_pe.h"
+#include "report_stats.h"
 
 /*
  * Mapper-CUDA Search
@@ -23,6 +24,8 @@ typedef struct {
   buffered_input_file_t* buffered_fasta_input_end2;
   /* Mapper parameters */
   mapper_parameters_t* mapper_parameters;
+	/* Per thread stats report structures */
+	mapping_stats_t* mapping_stats;
   /* Archive-Search group */
   archive_search_group_t* search_group;
   /* Ticker */
@@ -125,7 +128,7 @@ void* mapper_SE_CUDA_thread(mapper_cuda_search_t* const mapper_search) {
       archive_search_finish_search(archive_search_select,matches);
       archive_select_matches(archive_search_select,false,matches);
       // Output matches
-      mapper_SE_output_matches(parameters,buffered_output_file,archive_search_select,matches);
+      mapper_SE_output_matches(parameters,buffered_output_file,archive_search_select,matches,mapper_search->mapping_stats);
       // Update processed
       if (++reads_processed == MAPPER_TICKER_STEP) {
         ticker_update_mutex(mapper_search->ticker,reads_processed);
@@ -228,7 +231,7 @@ void* mapper_PE_CUDA_thread(mapper_cuda_search_t* const mapper_search) {
       archive_select_paired_matches(archive_search_select_end1,archive_search_select_end2,paired_matches);
       // Output matches
       mapper_PE_output_matches(parameters,buffered_output_file,
-          archive_search_select_end1,archive_search_select_end2,paired_matches);
+          archive_search_select_end1,archive_search_select_end2,paired_matches,mapper_search->mapping_stats);
       // Update processed
       if (++reads_processed == MAPPER_TICKER_STEP) {
         ticker_update_mutex(mapper_search->ticker,reads_processed);
@@ -272,10 +275,13 @@ GEM_INLINE void mapper_CUDA_run(mapper_parameters_t* const mapper_parameters,con
       bpm_gpu_init(mapper_parameters->archive->text,num_search_groups,cuda_parameters->bpm_buffer_size,
           mapper_parameters->hints.avg_read_length,mapper_parameters->hints.candidates_per_query,
           mapper_parameters->misc.verbose_dev);
-  // Prepare output file (SAM headers)
+  // Prepare output file/parameters (SAM headers)
+  archive_t* const archive = mapper_parameters->archive;
+  const bool bisulfite_index = (archive->type == archive_dna_bisulfite);
   if (mapper_parameters->io.output_format==SAM) {
-    output_sam_print_header(mapper_parameters->output_file,mapper_parameters->archive,
+    output_sam_print_header(mapper_parameters->output_file,archive,
         &mapper_parameters->io.sam_parameters,mapper_parameters->argc,mapper_parameters->argv);
+    mapper_parameters->io.sam_parameters.bisulfite_output = bisulfite_index;
   }
   // Ticker
   ticker_t ticker;
@@ -284,6 +290,8 @@ GEM_INLINE void mapper_CUDA_run(mapper_parameters_t* const mapper_parameters,con
   ticker_add_process_label(&ticker,"#","sequences processed");
   ticker_add_finish_label(&ticker,"Total","sequences processed");
   ticker_mutex_enable(&ticker);
+  // Allocate per thread mapping stats
+  mapping_stats_t *mstats = mapper_parameters->global_mapping_stats ? mm_calloc(num_threads,mapping_stats_t,false) : NULL; 
   // Prepare Mapper searches
   mapper_cuda_search_t* const mapper_search = mm_malloc(num_threads*sizeof(mapper_cuda_search_t));
   // Set error-report function
@@ -304,6 +312,10 @@ GEM_INLINE void mapper_CUDA_run(mapper_parameters_t* const mapper_parameters,con
         mapper_parameters,bpm_gpu_buffers+bpm_gpu_buffer_pos,num_search_groups_per_thread);
     bpm_gpu_buffer_pos += num_search_groups_per_thread;
     mapper_search[i].ticker = &ticker;
+  	if(mstats)	{
+			 mapper_search[i].mapping_stats = mstats + i;
+			 init_mapping_stats(mstats + i);
+		} else mapper_search[i].mapping_stats = NULL;
     // Launch thread
     gem_cond_fatal_error__perror(
         pthread_create(mapper_search[i].thread_data,0,
@@ -319,6 +331,11 @@ GEM_INLINE void mapper_CUDA_run(mapper_parameters_t* const mapper_parameters,con
   // Clean up
   ticker_finish(&ticker);
   ticker_mutex_cleanup(&ticker);
+	// Merge report stats
+	if(mstats) {
+		 merge_mapping_stats(mapper_parameters->global_mapping_stats,mstats,num_threads);
+		 mm_free(mstats);
+	}
   mm_free(mapper_search); // Delete mapper-CUDA searches
   bpm_gpu_destroy(bpm_gpu_buffer_collection); // Delete GPU-buffer collection
 }

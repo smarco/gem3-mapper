@@ -18,17 +18,11 @@
 /*
  * Archive Model & Version
  */
-#define ARCHIVE_MODEL_NO 5000ull
+#define ARCHIVE_MODEL_NO 5002ull
 
 /*
  * Checker
  */
-#define ARCHIVE_CHECK(archive) \
-  GEM_CHECK_NULL(archive); \
-  LOCATOR_CHECK(archive->locator); \
-  ARCHIVE_TEXT_CHECK(archive->text); \
-  FM_INDEX_CHECK(archive->fm_index)
-
 #define ARCHIVE_CHECK_INDEX_POSITION(archive,index_position) \
   gem_fatal_check((int64_t)index_position < 0 || (int64_t)index_position >= archive_get_index_length(archive), \
       ARCHIVE_INDEX_OOB,index_position,archive_get_index_length(archive))
@@ -37,15 +31,14 @@
  * Archive
  */
 typedef enum {
-  Iupac_dna=0,
-  Iupac_colorspace_dna=1,
-  Iupac_range=UINT64_MAX
-} archive_filter_type;
+  archive_dna=0,
+  archive_dna_bisulfite=UINT64_MAX,
+} archive_type;
 typedef struct {
   // Meta-information
-  archive_filter_type filter_type;  // Filter applied to the original text (MFasta)
+  archive_type type;                // Archive type
   bool indexed_complement;          // RC indexed explicitly
-  uint64_t ns_threshold;            // Stretches of Ns equal or larger than the threshold have not been indexed
+  uint64_t ns_threshold;            // Stretches of Ns (|Ns| >= ns_threshold) are not indexed
   // Locator
   locator_t* locator;               // Sequence Locator
   // Text

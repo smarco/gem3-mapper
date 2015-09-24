@@ -6,7 +6,8 @@
  * DESCRIPTION:
  */
 
-#include "neighborhood_search.h"
+#include "nsearch.h"
+#include "dp_matrix.h"
 
 /*
  * DEBUG
@@ -17,6 +18,12 @@
 char *ns_string = NULL;
 
 /*
+ * Constants
+ */
+#define NSC_PROPER_CELL_SET_MASK      UINT64_ONE_LAST_MASK
+#define NSC_PROPER_CELL_EXTRACT_MASK  (~UINT64_ONE_LAST_MASK)
+
+/*
  * Profiler/Stats
  */
 uint64_t _ns_nodes = 0;
@@ -25,18 +32,6 @@ uint64_t _ns_nodes_success = 0;
 uint64_t _ns_nodes_closed = 0;
 uint64_t _ns_nodes_fail_optimize = 0;
 gem_counter_t _ns_nodes_closed_depth;
-
-/*
- * Constants
- */
-#define NSC_PROPER_CELL_SET_MASK      UINT64_ONE_LAST_MASK
-#define NSC_PROPER_CELL_EXTRACT_MASK  (~UINT64_ONE_LAST_MASK)
-
-#define NS_INF                              (UINT32_MAX-1)
-#define NS_ENCODE_DISTANCE(distance)        ((distance)<<1)
-#define NS_DECODE_DISTANCE(distance)        ((distance)>>1)
-#define NS_SET_SOURCE_PATH(cell_distance)   ((uint64_t)(cell_distance) | 1ull)
-#define NS_IS_SOURCE_PATH(cell_distance)    ((cell_distance)%2)
 
 /*
  * DTO
@@ -56,13 +51,6 @@ typedef struct {
   // MM
   mm_stack_t* mm_stack;
 } neighborhood_search_t;
-typedef struct {
-  // Cells
-  uint64_t* cells;
-  // Band
-  uint64_t band_high_offset;
-  uint64_t band_low_offset;
-} dp_column_t;
 
 /*
  * Debug
@@ -318,9 +306,9 @@ GEM_INLINE void ns_best_matches_compute_dp_column_banded(
     const uint64_t min2 = MIN(del,sub);
     const uint64_t min3 = MIN(min2,ins);
     next_column->cells[i] = min3;
-    if (NS_IS_SOURCE_PATH(min3)) column_min = MIN(column_min,min3);
+    if (NS_HAS_PRIORITY(min3,0)) column_min = MIN(column_min,min3);
   }
-  *min_val = NS_IS_SOURCE_PATH(column_min) ? NS_DECODE_DISTANCE(column_min) : NS_INF;
+  *min_val = NS_HAS_PRIORITY(column_min,0) ? NS_DECODE_DISTANCE(column_min) : NS_INF;
   *align_distance = NS_DECODE_DISTANCE(next_column->cells[key_length]);
 }
 GEM_INLINE uint64_t neighborhood_best_matches_search_continue(
@@ -377,7 +365,8 @@ GEM_INLINE uint64_t neighborhood_best_matches_search_bwt(
     gem_cond_debug_block(NS_PRINT_STRING) { ns_string[current_column-1] = dna_decode(enc); }
     // Compute DP-next
     uint64_t min_val, align_distance;
-    ns_best_matches_compute_dp_column_banded(neighborhood_search,dp_columns,current_column,max_error,enc,&min_val,&align_distance);
+    ns_best_matches_compute_dp_column_banded(
+        neighborhood_search,dp_columns,current_column,max_error,enc,&min_val,&align_distance);
     if (min_val <= max_error) {
       // Compute erank
       const uint64_t next_lo = bwt_precomputed_erank(bwt,enc,&bwt_block_locator_lo,&bwt_block_elms_lo);

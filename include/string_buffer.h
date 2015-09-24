@@ -128,9 +128,11 @@ bool gem_strneq(const char* const buffer_a,const char* const buffer_b,const uint
 char* gem_strcat(const char* const buffer_a,const char* const buffer_b);
 uint64_t gem_strlen(const char* const buffer);
 
+void gem_strrev(char* const buffer,const uint64_t length);
+void gem_encrev(uint8_t* const buffer,const uint64_t length);
+
 char* gem_strrmext(char* const buffer);
 char* gem_strbasename(char* const buffer);
-
 
 /*
  * Error Messages

@@ -7,7 +7,8 @@
  */
 
 #include "approximate_search_neighborhood.h"
-#include "neighborhood_search.h"
+#include "nsearch.h"
+#include "fm_index_search.h"
 
 /*
  * Neighborhood Generation (Exact Search)

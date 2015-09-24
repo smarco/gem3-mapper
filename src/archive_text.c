@@ -19,10 +19,10 @@
 GEM_INLINE void archive_text_write(
     fm_t* const file_manager,dna_text_t* const enc_text,
     const bool explicit_complement,const uint64_t forward_text_length,
-    sampled_rl_t* const sampled_rl,graph_text_builder_t* const graph,const bool verbose) {
+    sampled_rl_t* const sampled_rl,const bool verbose) {
   // Write Header (Meta-data)
   fm_write_uint64(file_manager,ARCHIVE_TEXT_MODEL_NO);
-  fm_write_uint64(file_manager,(graph!=NULL) ? 1ul : 0ul); // Hypertext
+  fm_write_uint64(file_manager,0ul); // fm_write_uint64(file_manager,(graph!=NULL) ? 1ul : 0ul); // TODO Hypertext
   fm_write_uint64(file_manager,(sampled_rl!=NULL) ? 1ul : 0ul); // RL-Text
   fm_write_uint64(file_manager,(explicit_complement) ? 1ul : 0ul); // Explicit RC-text
   fm_write_uint64(file_manager,forward_text_length); // Total length of the forward text
@@ -51,7 +51,7 @@ GEM_INLINE archive_text_t* archive_text_read_mem(mm_t* const memory_manager) {
   const uint64_t archive_text_model_no = mm_read_uint64(memory_manager);
   gem_cond_fatal_error(archive_text_model_no!=ARCHIVE_TEXT_MODEL_NO,
       ARCHIVE_TEXT_WRONG_MODEL_NO,archive_text_model_no,(uint64_t)ARCHIVE_TEXT_MODEL_NO);
-  archive_text->hypertext = (mm_read_uint64(memory_manager)==1); // Hypertext
+  mm_read_uint64(memory_manager); // TODO archive_text->hypertext = (mm_read_uint64(memory_manager)==1); // Hypertext
   archive_text->run_length = (mm_read_uint64(memory_manager)==1); // RL-Text
   archive_text->explicit_complement = (mm_read_uint64(memory_manager)==1); // Explicit RC-text
   archive_text->forward_text_length = mm_read_uint64(memory_manager); // Total length of the forward text
@@ -77,7 +77,7 @@ GEM_INLINE void archive_text_delete(archive_text_t* const archive_text) {
  * Accessors
  */
 GEM_INLINE uint64_t archive_text_get_size(archive_text_t* const archive_text) {
-  const uint64_t graph_size = archive_text->hypertext ? graph_text_get_size(archive_text->graph) : 0;
+  const uint64_t graph_size = 0; // TODO archive_text->hypertext ? graph_text_get_size(archive_text->graph) : 0;
   const uint64_t text_size = dna_text_get_size(archive_text->enc_text);
   const uint64_t sampled_rl_size = 0; // TODO
   return graph_size+text_size+sampled_rl_size;
@@ -145,13 +145,13 @@ GEM_INLINE uint64_t archive_text_retrieve(
  * Display
  */
 GEM_INLINE void archive_text_print(FILE* const stream,const archive_text_t* const archive_text) {
-  const uint64_t graph_size = archive_text->hypertext ? graph_text_get_size(archive_text->graph) : 0;
+  const uint64_t graph_size = 0; // TODO archive_text->hypertext ? graph_text_get_size(archive_text->graph) : 0;
   const uint64_t text_size = dna_text_get_size(archive_text->enc_text);
   const uint64_t sampled_rl_size = 0; // TODO
   const uint64_t archive_text_size = graph_size + text_size + sampled_rl_size;
   // Display
   tab_fprintf(stream,"[GEM]>Archive.Text\n");
-  tab_fprintf(stream,"  => Archive.HyperText           %s\n",(archive_text->hypertext)?"Yes":"No");
+  // TODO tab_fprintf(stream,"  => Archive.HyperText           %s\n",(archive_text->hypertext)?"Yes":"No");
   tab_fprintf(stream,"  => Archive.RL.Text             %s\n",(archive_text->run_length)?"Yes":"No");
   tab_fprintf(stream,"  => Archive.ExplicitComplement  %s\n",(archive_text->explicit_complement)?"Yes":"No");
   tab_fprintf(stream,"  => Archive.Length              %"PRIu64"\n",dna_text_get_length(archive_text->enc_text));

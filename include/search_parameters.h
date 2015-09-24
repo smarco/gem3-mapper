@@ -22,6 +22,7 @@ typedef enum {
   mapping_fixed_filtering_complete,    // Pure Filtering Complete
   mapping_neighborhood_search,         // Pure Neighborhood Search (brute-force)
   mapping_region_profile_fixed,
+  mapping_test
 } mapping_mode_t;
 typedef enum {
   unbounded_alignment_never,
@@ -65,7 +66,6 @@ typedef struct {
   swg_penalties_t swg_penalties;
   double swg_threshold;
   /* Bisulfite mode */
-  bool bisulfite_mode;
   bisulfite_read_t bisulfite_read;
   /* Paired-end */
   paired_search_parameters_t paired_search_parameters;

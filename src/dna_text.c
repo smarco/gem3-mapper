@@ -135,7 +135,6 @@ const uint8_t dna_encode_table[256] =
 };
 const char dna_decode_table[DNA_EXT_RANGE] =
 {
-
   [ENC_DNA_CHAR_A] = DNA_CHAR_A,
   [ENC_DNA_CHAR_C] = DNA_CHAR_C,
   [ENC_DNA_CHAR_G] = DNA_CHAR_G,
@@ -159,6 +158,26 @@ const char dna_bisulfite_G2A_table[256] =
   ['a'] = 'A', ['c'] = 'C', ['g'] = 'A',  ['t'] = 'T', ['n'] = 'N',
   [DNA_CHAR_SEP] = DNA_CHAR_SEP,
   [DNA_CHAR_JUMP] = DNA_CHAR_JUMP
+};
+const uint8_t dna_encoded_bisulfite_C2T_table[DNA_EXT_RANGE] =
+{
+  [ENC_DNA_CHAR_A] = ENC_DNA_CHAR_A,
+  [ENC_DNA_CHAR_C] = ENC_DNA_CHAR_T,
+  [ENC_DNA_CHAR_G] = ENC_DNA_CHAR_G,
+  [ENC_DNA_CHAR_T] = ENC_DNA_CHAR_T,
+  [ENC_DNA_CHAR_N] = ENC_DNA_CHAR_N,
+  [ENC_DNA_CHAR_SEP] = ENC_DNA_CHAR_SEP,
+  [ENC_DNA_CHAR_JUMP] = ENC_DNA_CHAR_JUMP
+};
+const uint8_t dna_encoded_bisulfite_G2A_table[DNA_EXT_RANGE] =
+{
+  [ENC_DNA_CHAR_A] = ENC_DNA_CHAR_A,
+  [ENC_DNA_CHAR_C] = ENC_DNA_CHAR_C,
+  [ENC_DNA_CHAR_G] = ENC_DNA_CHAR_A,
+  [ENC_DNA_CHAR_T] = ENC_DNA_CHAR_T,
+  [ENC_DNA_CHAR_N] = ENC_DNA_CHAR_N,
+  [ENC_DNA_CHAR_SEP] = ENC_DNA_CHAR_SEP,
+  [ENC_DNA_CHAR_JUMP] = ENC_DNA_CHAR_JUMP
 };
 const uint8_t dna_encoded_colorspace_table[DNA_EXT_RANGE][DNA_EXT_RANGE] = {
    /* A */  {ENC_DNA_CHAR_A,   ENC_DNA_CHAR_C,   ENC_DNA_CHAR_G,   ENC_DNA_CHAR_T,   ENC_DNA_CHAR_SEP, ENC_DNA_CHAR_N},
@@ -289,6 +308,12 @@ GEM_INLINE uint8_t* dna_text_retrieve_sequence(
   return dna_text->text+position;
 }
 /*
+ * Utils
+ */
+GEM_INLINE strand_t dna_strand_get_complement(const strand_t strand) {
+  return (strand==Forward ? Reverse : Forward);
+}
+/*
  * Display
  */
 GEM_INLINE void dna_text_print(FILE* const stream,dna_text_t* const dna_text,const uint64_t length) {
@@ -331,44 +356,17 @@ GEM_INLINE void dna_text_pretty_print_content(FILE* const stream,dna_text_t* con
   }
   if (imod!=width) fprintf(stream,"\n");
 }
-///*
-// * DNA Text [Stats]
-// */
-///*
-// * DNA-Text Stats
-// */
-//typedef struct {
-//  /* Nucleotides */
-//  stats_vector_t* nucleotides;
-//  stats_vector_t* dimers;
-//  stats_vector_t* trimers;
-//  stats_vector_t* tetramers;
-//  /* Runs */
-//  stats_vector_t* runs;
-//  /* Distance between nucleotide repetitions */
-//  uint64_t* last_position;
-//  stats_vector_t* distance_nucleotides;
-//  /* Abundance => How many different nucleotides are there in each @SIZE-bucket (@SIZE chars) */
-//  stats_vector_t* abundance_256nt;
-//  stats_vector_t* abundance_128nt;
-//  stats_vector_t* abundance_64nt;
-//  stats_vector_t* abundance_32nt;
-//  stats_vector_t* abundance_16nt;
-//  stats_vector_t* abundance_8nt;
-//  /* Internals */ // TODO
-//} dna_text_stats_t;
-//GEM_INLINE dna_text_stats_t* dna_text_stats_new() {
-//  // TODO
-//}
-//GEM_INLINE void dna_text_stats_delete(dna_text_stats_t* const dna_text_stats) {
-//  // TODO
-//}
-//// Calculate Stats
-//GEM_INLINE void dna_text_stats_record(dna_text_stats_t* const dna_text_stats,const uint8_t char_enc) {
-//  // TODO
-//}
-//// Display
-//GEM_INLINE void dna_text_stats_print(FILE* const stream,dna_text_stats_t* const dna_text_stats) {
-//  // TODO
-//}
+/*
+ * Buffer Display
+ */
+GEM_INLINE void dna_buffer_print(
+    FILE* const stream,const uint8_t* const dna_buffer,
+    const uint64_t dna_buffer_length,const bool print_reverse) {
+  int64_t i;
+  if (print_reverse) {
+    for (i=dna_buffer_length-1;i>=0;--i) fprintf(stream,"%c",dna_decode(dna_buffer[i]));
+  } else {
+    for (i=0;i<dna_buffer_length;++i) fprintf(stream,"%c",dna_decode(dna_buffer[i]));
+  }
+}
 

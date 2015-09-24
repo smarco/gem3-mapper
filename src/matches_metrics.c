@@ -95,60 +95,79 @@ GEM_INLINE void matches_metrics_dec_subdominant_candidates(matches_metrics_t* co
 /*
  * Display
  */
+GEM_INLINE void matches_metrics_print(
+    FILE* const stream,matches_metrics_t* const matches_metrics,
+    const bool print_paired_metrics) {
+  tab_fprintf(stream,"[GEM]>Metrics\n");
+  tab_fprintf(stream,"  => Total.matches.sampled %lu\n",matches_metrics->total_matches_sampled);
+  tab_fprintf(stream,"  => Total.subdominant.matches %lu\n",matches_metrics->subdominant_candidates);
+  tab_fprintf(stream,"  => Min1.counter.value %lu\n",matches_metrics->min1_counter_value);
+  tab_fprintf(stream,"  => Min2.counter.value %lu\n",matches_metrics->min2_counter_value);
+  tab_fprintf(stream,"  => Max.counter.value %lu\n",matches_metrics->max_counter_value);
+  tab_fprintf(stream,"  => Min1.edit.distance %lu\n",matches_metrics->min1_edit_distance);
+  tab_fprintf(stream,"  => Min2.edit.distance %lu\n",matches_metrics->min2_edit_distance);
+  tab_fprintf(stream,"  => Max1.swg.score %ld\n",matches_metrics->max1_swg_score);
+  tab_fprintf(stream,"  => Max2.swg.score %ld\n",matches_metrics->max2_swg_score);
+  if (print_paired_metrics) {
+  tab_fprintf(stream,"  => Min1.template.sigma %f\n",matches_metrics->min1_template_length_sigma);
+  tab_fprintf(stream,"  => Min2.template.sigma %f\n",matches_metrics->min2_template_length_sigma);
+  }
+}
 GEM_INLINE void matches_predictors_print_basic_fields(
-    matches_predictors_t* const predictors,const char* const tag,const uint8_t mapq_score) {
+    FILE* const stream,matches_predictors_t* const predictors,
+    const char* const tag,const uint8_t mapq_score) {
   // tag
-  fprintf(stdout,"%s\t",tag);
+  fprintf(stream,"%s\t",tag);
   // mapq_score
-  fprintf(stdout,"%d\t",mapq_score);
+  fprintf(stream,"%d\t",mapq_score);
   // edit
-  fprintf(stdout,"%f\t",predictors->first_map_edit_distance_norm);
+  fprintf(stream,"%f\t",predictors->first_map_edit_distance_norm);
   // sub_edit
-  fprintf(stdout,"%f\t",predictors->subdominant_edit_distance_norm);
+  fprintf(stream,"%f\t",predictors->subdominant_edit_distance_norm);
   // event
-  fprintf(stdout,"%f\t",predictors->first_map_event_distance_norm);
+  fprintf(stream,"%f\t",predictors->first_map_event_distance_norm);
   // sub_event
-  fprintf(stdout,"%f\t",predictors->subdominant_event_distance_norm);
+  fprintf(stream,"%f\t",predictors->subdominant_event_distance_norm);
   // swg
-  fprintf(stdout,"%f\t",predictors->first_map_swg_score_norm);
+  fprintf(stream,"%f\t",predictors->first_map_swg_score_norm);
   // sub_swg
-  fprintf(stdout,"%f\t",predictors->subdominant_swg_score_norm);
+  fprintf(stream,"%f\t",predictors->subdominant_swg_score_norm);
   // mcs
-  fprintf(stdout,"%"PRIu64"\t",predictors->mcs);
+  fprintf(stream,"%"PRIu64"\t",predictors->mcs);
   // max_region_length
-  fprintf(stdout,"%f\t",predictors->max_region_length_norm);
+  fprintf(stream,"%f\t",predictors->max_region_length_norm);
   // fs_matches
-  fprintf(stdout,"%"PRIu64"\t",predictors->first_stratum_matches);
+  fprintf(stream,"%"PRIu64"\t",predictors->first_stratum_matches);
   // sub_matches
-  fprintf(stdout,"%"PRIu64"\t",predictors->subdominant_stratum_matches);
+  fprintf(stream,"%"PRIu64"\t",predictors->subdominant_stratum_matches);
   // delta
-  fprintf(stdout,"%"PRIu64"",predictors->subdominant_event_distance-predictors->first_map_event_distance);
+  fprintf(stream,"%"PRIu64"",predictors->subdominant_event_distance-predictors->first_map_event_distance);
 }
 GEM_INLINE void matches_predictors_print(
-    matches_predictors_t* const predictors,
+    FILE* const stream,matches_predictors_t* const predictors,
     const char* const read_tag,const uint8_t mapq_score) {
   // Print base predictors
-  matches_predictors_print_basic_fields(predictors,read_tag,mapq_score);
+  matches_predictors_print_basic_fields(stream,predictors,read_tag,mapq_score);
   // sub_cand
-  fprintf(stdout,"\t%"PRIu64"\n",predictors->subdominant_candidates_end1);
+  fprintf(stream,"\t%"PRIu64"\n",predictors->subdominant_candidates_end1);
 }
 GEM_INLINE void paired_matches_predictors_print(
-    matches_predictors_t* const predictors,
+    FILE* const stream,matches_predictors_t* const predictors,
     const char* const read_tag,const uint8_t mapq_score_pair,
     const uint8_t mapq_score_end1,const uint8_t mapq_score_end2) {
   // Print base predictors
-  matches_predictors_print_basic_fields(predictors,read_tag,mapq_score_pair);
+  matches_predictors_print_basic_fields(stream,predictors,read_tag,mapq_score_pair);
   // sub_cand_end1
-  fprintf(stdout,"\t%"PRIu64"\t",predictors->subdominant_candidates_end1);
+  fprintf(stream,"\t%"PRIu64"\t",predictors->subdominant_candidates_end1);
   // sub_cand_end2
-  fprintf(stdout,"%"PRIu64"\t",predictors->subdominant_candidates_end2);
+  fprintf(stream,"%"PRIu64"\t",predictors->subdominant_candidates_end2);
   // sigma
-  fprintf(stdout,"%f\t",predictors->first_map_template_size_sigma);
+  fprintf(stream,"%f\t",predictors->first_map_template_size_sigma);
   // sub_sigma
-  fprintf(stdout,"%f\t",predictors->subdominant_template_size_sigma);
+  fprintf(stream,"%f\t",predictors->subdominant_template_size_sigma);
   // mapq_score_end1
-  fprintf(stdout,"%d\t",mapq_score_end1);
+  fprintf(stream,"%d\t",mapq_score_end1);
   // mapq_score_end2
-  fprintf(stdout,"%d\n",mapq_score_end2);
+  fprintf(stream,"%d\n",mapq_score_end2);
 }
 

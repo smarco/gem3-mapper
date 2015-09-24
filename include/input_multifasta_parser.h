@@ -10,8 +10,8 @@
 #define INPUT_MULTIFASTA_PARSER_H_
 
 #include "essentials.h"
+#include "locator.h"
 #include "input_file.h"
-
 #include "input_fasta_parser.h"
 
 /*
@@ -28,17 +28,20 @@ typedef struct {
   /* Parsing State */
   multifasta_read_state_t multifasta_read_state;
   /* Sequence components */
-  int64_t tag_id;                 // Current sequence TAG-ID
-  uint64_t text_position;         // Current position of the current sequence (from MultiFASTA)
-  uint64_t index_position;        // Current position of generated index
+  int64_t tag_id;                      // Current sequence TAG-ID
+  uint64_t text_position;              // Current position of the current sequence (from MultiFASTA)
+  uint64_t index_position;             // Current position of generated index
   /* Text */
-  uint64_t ns_pending;            // Accumulated Ns
-  uint64_t text_interval_length;  // Length of the text-interval
-  uint64_t text_sequence_length;  // Length of the text-sequence (Sum of intervals)
+  uint64_t ns_pending;                 // Accumulated Ns
+  uint64_t text_interval_length;       // Length of the text-interval
+  uint64_t text_sequence_length;       // Length of the text-sequence (Sum of intervals)
   /* Index */
-  uint64_t index_interval_length; // Length of the index-interval
-  uint64_t index_sequence_length; // Length of the index-sequence (Sum of intervals)
-  char last_char;                 // Last character dumped in the index
+  uint64_t index_interval_length;      // Length of the index-interval
+  uint64_t index_sequence_length;      // Length of the index-sequence (Sum of intervals)
+  char last_char;                      // Last character dumped in the index
+  locator_interval_type interval_type; // Current interval type
+  strand_t strand;                     // Current strand
+  bs_strand_t bs_strand;               // Current BS-Strand
 } input_multifasta_state_t;
 
 /*

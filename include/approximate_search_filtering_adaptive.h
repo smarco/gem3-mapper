@@ -28,4 +28,7 @@ void approximate_search_filtering_adaptive(approximate_search_t* const search,ma
 void approximate_search_filtering_adaptive_generate_regions(approximate_search_t* const search);
 void approximate_search_filtering_adaptive_generate_candidates(approximate_search_t* const search);
 
+// Test
+void approximate_search_test(approximate_search_t* const search,matches_t* const matches);
+
 #endif /* APPROXIMATE_SEARCH_FILTERING_ADAPTIVE_H_ */

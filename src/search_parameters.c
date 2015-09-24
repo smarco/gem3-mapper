@@ -122,7 +122,6 @@ GEM_INLINE void search_parameters_init(search_parameters_t* const search_paramet
   // Paired End
   paired_search_parameters_init(&search_parameters->paired_search_parameters);
   // Bisulfite
-  search_parameters->bisulfite_mode = false;
   search_parameters->bisulfite_read = bisulfite_read_inferred;
   // Internals
   search_parameters_init_internals(search_parameters);

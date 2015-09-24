@@ -16,35 +16,34 @@
 #define GEM_INDEXER_DEBUG_DUMP_CHECKED_BWT          false
 
 /*
+ * GEM-mapper Error Handling
+ */
+#define gem_indexer_error_msg(error_msg,args...) \
+  fprintf(stderr,"GEM-Mapper error:\n> "error_msg"\n",##args); \
+  exit(1)
+#define gem_indexer_cond_error_msg(condition,error_msg,args...) \
+  do { \
+    if (__builtin_expect((condition),0)){ \
+      gem_indexer_error_msg(error_msg,##args); \
+    } \
+  } while (0)
+
+/*
  * GEM-indexer Parameters
  */
-//  /* 0 */ "Null",
-//  /* 1 */ "Unclassified",
-//  /* 2 */ "I/O",
-//  /* 3 */ "MultiFasta Processing",
-//  /* 4 */ "Index Generation",
-//  /* 5 */ "System"
-//  /* 6 */ "Miscellaneous",
-//  /* 7 */ "Extras"
 typedef struct {
   /* I/O */
   char* input_multifasta_file_name;
   char* input_graph_file_name;
   char* output_index_file_name;
   char* output_index_file_name_prefix;
-  /* MultiFasta Processing */
-  bool index_colorspace;
-  bool index_run_length;
-  indexed_complement_t index_complement;
   uint64_t ns_threshold;
+  indexed_complement_t index_complement;
   uint64_t complement_size_threshold;
-  /* FM-Index */
+  /* Index */
   sampling_rate_t sampling_rate;
-  bool check_index;
-  /* System */
-  uint64_t num_threads;
-  uint64_t max_memory;
-  char* tmp_folder;
+  bool run_length_index;
+  bool bisulfite_index;
   /* Debug */
   bool dump_locator_intervals;
   bool dump_indexed_text;
@@ -52,12 +51,16 @@ typedef struct {
   bool dump_bwt;
   bool dump_run_length_text;
   bool dump_graph_links;
+  bool check_index;
+  bool dev_generate_only_bwt;
+  /* System */
+  uint64_t num_threads;
+  uint64_t max_memory;
+  char* tmp_folder;
   /* Miscellaneous */
   bool info_file_name_provided;
   char* info_file_name;
   bool verbose;
-  /* Extras */
-  bool dev_generate_only_bwt;
 } indexer_parameters_t;
 // Defaults
 void indexer_parameters_set_defaults(indexer_parameters_t* const parameters) {
@@ -67,18 +70,13 @@ void indexer_parameters_set_defaults(indexer_parameters_t* const parameters) {
   parameters->output_index_file_name=NULL;
   parameters->output_index_file_name_prefix=NULL;
   /* MultiFasta Processing */
-  parameters->index_colorspace=false;
-  parameters->index_run_length=false;
-  parameters->index_complement=index_complement_yes;
   parameters->ns_threshold=50;
+  parameters->index_complement=index_complement_yes;
   parameters->complement_size_threshold=BUFFER_SIZE_8G;
-  /* FM-Index */
+  /* Index */
   parameters->sampling_rate=SAMPLING_RATE_4;
-  parameters->check_index=false;
-  /* System */
-  parameters->num_threads=system_get_num_processors();
-  parameters->max_memory=0;
-  parameters->tmp_folder=NULL;
+  parameters->run_length_index = false;
+  parameters->bisulfite_index = false;
   /* Debug */
   parameters->dump_locator_intervals=true;
   parameters->dump_indexed_text=false;
@@ -86,12 +84,16 @@ void indexer_parameters_set_defaults(indexer_parameters_t* const parameters) {
   parameters->dump_bwt=false;
   parameters->dump_run_length_text=false;
   parameters->dump_graph_links=false;
+  parameters->check_index=false;
+  parameters->dev_generate_only_bwt=false;
+  /* System */
+  parameters->num_threads=system_get_num_processors();
+  parameters->max_memory=0;
+  parameters->tmp_folder=NULL;
   /* Miscellaneous */
   parameters->info_file_name_provided=false;
   parameters->info_file_name=NULL;
   parameters->verbose=true;
-  /* Extras */
-  parameters->dev_generate_only_bwt=false;
 }
 /*
  * Debug
@@ -173,30 +175,28 @@ void indexer_debug_check_bwt(char* const file_name,dna_text_t* const index_text)
  */
 void indexer_process_multifasta(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
   // Process input MultiFASTA
-  input_file_t* const input_multifasta = (parameters->input_multifasta_file_name==NULL) ?
-      input_stream_open(stdin,BUFFER_SIZE_32M) :
-      input_file_open(parameters->input_multifasta_file_name,BUFFER_SIZE_32M,false);
-  if (parameters->input_graph_file_name!=NULL) {
-    input_file_t* const input_graph = input_file_open(parameters->input_graph_file_name,BUFFER_SIZE_32M,false);
-//    archive_builder_process_graph(archive_builder,input_graph,parameters->dump_graph_links,parameters->verbose);
-//    archive_builder_process_multifasta__graph(archive_builder,input_multifasta,
-//        parameters->dump_locator_intervals,parameters->dump_indexed_text,parameters->dump_graph_links,parameters->verbose);
-    input_file_close(input_graph); // Close MultiFASTA
-  } else if (parameters->index_run_length) {
-    archive_builder_process_multifasta(archive_builder,input_multifasta,
-        parameters->dump_locator_intervals,parameters->dump_indexed_text,parameters->verbose);
-    archive_builder_process_run_length_text(
+  input_file_t* const input_multifasta = input_file_open(parameters->input_multifasta_file_name,BUFFER_SIZE_32M,false);
+//  if (parameters->input_graph_file_name!=NULL) {
+//    input_file_t* const input_graph = input_file_open(parameters->input_graph_file_name,BUFFER_SIZE_32M,false);
+////    archive_builder_process_graph(archive_builder,input_graph,parameters->dump_graph_links,parameters->verbose);
+////    archive_builder_process_multifasta__graph(archive_builder,input_multifasta,
+////        parameters->dump_locator_intervals,parameters->dump_indexed_text,parameters->dump_graph_links,parameters->verbose);
+//    input_file_close(input_graph); // Close MultiFASTA
+//  }
+  // Process MFASTA
+  archive_builder_text_process(archive_builder,input_multifasta,
+      parameters->dump_locator_intervals,parameters->dump_indexed_text,parameters->verbose);
+  // RL-Index
+  if (parameters->run_length_index) {
+    archive_builder_text_apply_run_length(
         archive_builder,parameters->dump_run_length_text,parameters->verbose);
-  } else {
-    archive_builder_process_multifasta(archive_builder,input_multifasta,
-        parameters->dump_locator_intervals,parameters->dump_indexed_text,parameters->verbose);
   }
   input_file_close(input_multifasta); // Close MultiFASTA
 }
 void indexer_generate_bwt(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
   // Build BWT
   tfprintf(gem_log_get_stream(),"[Generating BWT Forward-Text]\n");
-  archive_builder_build_bwt(archive_builder,parameters->dump_bwt,parameters->dump_explicit_sa,parameters->verbose);
+  archive_builder_index_build_bwt(archive_builder,parameters->dump_bwt,parameters->dump_explicit_sa,parameters->verbose);
   // DEBUG. Print Explicit Checked-SA => (SApos,SA[SApos...SApos+SAFixLength])
   gem_cond_debug_block(GEM_INDEXER_DEBUG_DUMP_EXPLICIT_CHECKED_SA) {
     indexer_debug_check_sa(gem_strcat(parameters->output_index_file_name_prefix,".check.sa"),archive_builder->enc_text);
@@ -212,7 +212,7 @@ void indexer_generate_bwt(archive_builder_t* const archive_builder,indexer_param
 void indexer_generate_bwt_reverse(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
   // Build BWT of the reverse text
   tfprintf(gem_log_get_stream(),"[Generating BWT Reverse-Text]\n");
-  archive_builder_build_bwt_reverse(archive_builder,parameters->dump_indexed_text,
+  archive_builder_index_build_bwt_reverse(archive_builder,parameters->dump_indexed_text,
       parameters->dump_bwt,parameters->dump_explicit_sa,parameters->verbose);
 }
 void indexer_write_index(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
@@ -227,58 +227,54 @@ void indexer_write_index_reverse(archive_builder_t* const archive_builder,indexe
 /*
  * GEM-Indexer options Menu
  */
+// TODO { 'g', "graph", REQUIRED, TYPE_STRING, 2 , VISIBILITY_USER, "<graph_file>" , "(GRAPH-File)" },
+// TODO { 'c', "index-colorspace", NO_ARGUMENT, TYPE_NONE, 2 , true, "" , "(default=false)" },
+// TODO { 200, "index-complement", OPTIONAL, TYPE_STRING, 2 , true, "" , "(default=false, simulated at mapping)" },
+// TODO { 201, "complement-size-threshold", REQUIRED, TYPE_INT, 2 , true, "<integer>" , "(default=8GB)" },
+// TODO { 202, "generate-reverse", NO_ARGUMENT, TYPE_NONE, 3 , true, "", "(default=true)"},
+// TODO { 405, "dump-graph-links", OPTIONAL, TYPE_NONE, 4 , true, "" , "" },
 option_t gem_indexer_options[] = {
   /* I/O */
-  { 'i', "input", REQUIRED, TYPE_STRING, 2 , true, "<input_file>" , "(Multi-FASTA, default=stdin)" },
-  { 'g', "graph", REQUIRED, TYPE_STRING, 2 , true, "<graph_file>" , "(GRAPH-File)" },
-  { 'o', "output", REQUIRED, TYPE_STRING, 2 , true, "<output_prefix>" , "" },
-  /* MultiFasta Processing */
-  { 'c', "index-colorspace", NO_ARGUMENT, TYPE_NONE, 3 , true, "" , "(default=false)" },
-  { 'r', "index-run-length", NO_ARGUMENT, TYPE_NONE, 3 , true, "" , "(default=false)" },
-  // { 300, "index-complement", OPTIONAL, TYPE_STRING, 3 , true, "" , "(default=false, simulated at mapping)" },
-  { 'N', "strip-unknown-bases-threshold", REQUIRED, TYPE_INT, 3 , true, "'disable'|<integer>" , "(default=50)" },
-  // { 301, "complement-size-threshold", REQUIRED, TYPE_INT, 3 , true, "<integer>" , "(default=8GB)" },
-  /* FM-Index */
-  { 's', "sampling-rate", REQUIRED, TYPE_INT, 4 , true, "<sampling_rate>" , "(default=4)" },
-  { 400, "check-index", NO_ARGUMENT, TYPE_NONE, 4 , true, "", "(default=false)"},
-  // TODO { 401, "generate-reverse", NO_ARGUMENT, TYPE_NONE, 4 , true, "", "(default=true)"},
+  { 'i', "input", REQUIRED, TYPE_STRING, 2 , VISIBILITY_USER, "<input_file>" , "(Multi-FASTA)" },
+  { 'o', "output", REQUIRED, TYPE_STRING, 2 , VISIBILITY_USER, "<output_prefix>" , "" },
+  { 'N', "strip-unknown-bases-threshold", REQUIRED, TYPE_INT, 2 , VISIBILITY_ADVANCED, "'disable'|<integer>" , "(default=50)" },
+  /* Index */
+  { 'r', "run-length-index", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_USER, "" , "(default=false)" },
+  { 'b', "bisulfite-index", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_USER, "" , "(default=false)" },
+  { 's', "sampling-rate", REQUIRED, TYPE_INT, 3 , VISIBILITY_ADVANCED, "<sampling_rate>" , "(default=4)" },
+  // TODO { 300, "autotune-index-size", REQUIRED, TYPE_STRING, 5 , VISIBILITY_USER, "<index-size>" , "(Eg 2GB)" },
+  /* Debug */
+  { 400, "dump-locator-intervals", OPTIONAL, TYPE_NONE, 4 , VISIBILITY_ADVANCED, "" , "" },
+  { 401, "dump-indexed-text", OPTIONAL, TYPE_NONE, 4 , VISIBILITY_ADVANCED, "" , "" },
+  { 402, "dump-explicit-sa", OPTIONAL, TYPE_NONE, 4 , VISIBILITY_ADVANCED, "" , "" },
+  { 403, "dump-bwt", OPTIONAL, TYPE_NONE, 4 , VISIBILITY_ADVANCED, "" , "" },
+  { 404, "dump-run-length-text", OPTIONAL, TYPE_NONE, 4 , VISIBILITY_ADVANCED, "" , "" },
+  { 405, "debug", NO_ARGUMENT, TYPE_NONE, 4 , VISIBILITY_ADVANCED, "" , "" },
+  { 406, "check-index", OPTIONAL, TYPE_NONE, 4 , VISIBILITY_ADVANCED, "", "(default=false)"},
+  { 407, "bwt", NO_ARGUMENT, TYPE_NONE, 4 ,VISIBILITY_ADVANCED, "", "(only generate BWT for benchmarking)" },
   /* System */
-  { 't', "threads", REQUIRED, TYPE_INT, 5 , true, "<number>" , "(default=#cores)" },
-  { 500, "max-memory", REQUIRED, TYPE_STRING, 5 , true, "<maximum-memory>" , "(Eg 2GB)" },
-  { 501, "tmp-folder", REQUIRED, TYPE_STRING, 5 , true, "<temporal_dir_path>" , "(/tmp/)" },
-  /* Debug/Temporal */
-  { 600, "dump-locator-intervals", OPTIONAL, TYPE_NONE, 6 , true, "" , "" },
-  { 601, "dump-indexed-text", OPTIONAL, TYPE_NONE, 6 , true, "" , "" },
-  { 602, "dump-explicit-sa", OPTIONAL, TYPE_NONE, 6 , true, "" , "" },
-  { 603, "dump-bwt", OPTIONAL, TYPE_NONE, 6 , true, "" , "" },
-  { 604, "dump-run-length-text", OPTIONAL, TYPE_NONE, 6 , true, "" , "" },
-  { 605, "dump-graph-links", OPTIONAL, TYPE_NONE, 6 , true, "" , "" },
-  { 606, "debug", NO_ARGUMENT, TYPE_NONE, 6 , true, "" , "" },
+  { 't', "threads", REQUIRED, TYPE_INT, 5 , VISIBILITY_USER, "<number>" , "(default=#cores)" },
+  { 500, "max-memory", REQUIRED, TYPE_STRING, 5 , VISIBILITY_ADVANCED, "<maximum-memory>" , "(Eg 2GB)" },
+  { 501, "tmp-folder", REQUIRED, TYPE_STRING, 5 , VISIBILITY_ADVANCED, "<temporal_dir_path>" , "(/tmp/)" },
   /* Miscellaneous */
-  { 'v', "verbose", NO_ARGUMENT, TYPE_NONE, 7 ,true, "", "" },
-  { 'q', "quiet", NO_ARGUMENT, TYPE_NONE, 7 ,true, "", "" },
-  { 700, "info-file", REQUIRED, TYPE_STRING, 7 ,false, "<info_file_path>", "" },
-  { 'h', "help", NO_ARGUMENT, TYPE_NONE, 7 , true, "" , "(print usage)" },
-  { 'H', "help", NO_ARGUMENT, TYPE_NONE, 7 , false, "" , "(print usage + extras)" },
-  { 701, "show-license", NO_ARGUMENT, TYPE_NONE, 7 ,true, "", "(print license and exit)"},
-  /* Extras/Develop */
-  { 800, "bwt", NO_ARGUMENT, TYPE_NONE, 8 ,false, "", "(only generate BWT for benchmarking)" },
+  { 'v', "verbose", NO_ARGUMENT, TYPE_NONE, 6 ,VISIBILITY_USER, "", "" },
+  { 'q', "quiet", NO_ARGUMENT, TYPE_NONE, 6 ,VISIBILITY_USER, "", "" },
+  { 600, "info-file", REQUIRED, TYPE_STRING, 6 ,VISIBILITY_ADVANCED, "<info_file_path>", "" },
+  { 'h', "help", OPTIONAL, TYPE_NONE, 6 , VISIBILITY_USER, "" , "(print usage)" },
   {  0, "", 0, 0, 0, false, "", ""}
 };
 char* gem_indexer_groups[] = {
   /* 0 */ "Null",
   /* 1 */ "Unclassified",
   /* 2 */ "I/O",
-  /* 3 */ "MultiFasta Processing",
-  /* 4 */ "Index Generation",
+  /* 3 */ "Index",
+  /* 4 */ "Debug",
   /* 5 */ "System",
-  /* 6 */ "Debug",
-  /* 7 */ "Miscellaneous",
-  /* 8 */ "Extras"
+  /* 6 */ "Miscellaneous"
 };
-void usage(const bool print_inactive) {
+void usage(const option_visibility_t visibility_level) {
   fprintf(stderr, "USAGE: ./gem-indexer [ARGS]...\n");
-  options_fprint_menu(stderr,gem_indexer_options,gem_indexer_groups,true,print_inactive);
+  options_fprint_menu(stderr,gem_indexer_options,gem_indexer_groups,true,visibility_level);
 }
 void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters) {
   struct option* getopt_options = options_adaptor_getopt(gem_indexer_options);
@@ -293,18 +289,8 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
     case 'i': // --input
       parameters->input_multifasta_file_name = optarg;
       break;
-    case 'g': // --graph
-      parameters->input_graph_file_name = optarg;
-      break;
     case 'o': // --output
       parameters->output_index_file_name = optarg;
-      break;
-    /* MultiFasta Processing */
-    case 'c': // --index-colorspace
-      parameters->index_colorspace = true;
-      break;
-    case 'r': // --index-run-length
-      parameters->index_run_length = true;
       break;
     case 'N': // --strip-unknown-bases-threshold
       if (gem_strcaseeq(optarg,"disable")) {
@@ -313,13 +299,7 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
         parameters->ns_threshold = atol(optarg);
       }
       break;
-//    case 300: // --index-complement // TODO Deprecated (until sb needs it) => index_complement_yes
-//      parameters->index_complement = (optarg) ? (options_parse_bool(optarg) ? index_complement_yes : index_complement_no ) : index_complement_yes;
-//      break;
-//    case 301: // --complement-size-threshold
-//      gem_cond_fatal_error(input_text_parse_size(optarg,&(parameters->complement_size_threshold)),PARSING_SIZE,"-complement-size-threshold",optarg);
-//      break;
-    /* FM-Index */
+    /* Index */
     case 's': { // --sampling-rate
       const uint64_t sampling = atol(optarg);
       switch (sampling) {
@@ -333,44 +313,37 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
         case 128: parameters->sampling_rate=SAMPLING_RATE_128; break;
         case 256: parameters->sampling_rate=SAMPLING_RATE_256; break;
         default:
-          gem_error_msg("Sampling rate argument not valid. Reset to default (--sampling-rate 16)");
+          gem_indexer_error_msg("Sampling rate argument not valid. Reset to default (--sampling-rate 16)");
           break;
       }
     }
     break;
-    case 400: // --check-index
-      parameters->check_index = true;
+    case 'r': // --run-length-index
+      parameters->run_length_index = (optarg) ? options_parse_bool(optarg) : true;
       break;
-    /* System */
-    case 't': // --threads
-      parameters->num_threads = atol(optarg);
-      break;
-    case 500: // --max-memory
-      gem_cond_fatal_error(input_text_parse_size(optarg,&(parameters->max_memory)),PARSING_SIZE,"--max-memory",optarg);
-      break;
-    case 501: // --tmp-folder
-      parameters->tmp_folder = optarg;
+    case 'b': // --bisulfite-index
+      parameters->bisulfite_index = (optarg) ? options_parse_bool(optarg) : true;
       break;
     /* Debug/Temporal */
-    case 600: // --dump-locator-intervals
+    case 400: // --dump-locator-intervals
       parameters->dump_locator_intervals = (optarg) ? options_parse_bool(optarg) : true;
       break;
-    case 601: // --dump-indexed-text
+    case 401: // --dump-indexed-text
       parameters->dump_indexed_text = (optarg) ? options_parse_bool(optarg) : true;
       break;
-    case 602: // --dump-explicit-sa
+    case 402: // --dump-explicit-sa
       parameters->dump_explicit_sa = (optarg) ? options_parse_bool(optarg) : true;
       break;
-    case 603: // --dump-bwt
+    case 403: // --dump-bwt
       parameters->dump_bwt = (optarg) ? options_parse_bool(optarg) : true;
       break;
-    case 604:
+    case 404:
       parameters->dump_run_length_text = (optarg) ? options_parse_bool(optarg) : true;
       break;
-    case 605: // --dump-graph-links
-      parameters->dump_graph_links = (optarg) ? options_parse_bool(optarg) : true;
-      break;
-    case 606: // --debug
+//    case 405: // --dump-graph-links
+//      parameters->dump_graph_links = (optarg) ? options_parse_bool(optarg) : true;
+//      break;
+    case 405: // --debug
       parameters->dump_locator_intervals = true;
       parameters->dump_indexed_text = true;
       parameters->dump_explicit_sa = true;
@@ -379,51 +352,68 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
       parameters->dump_run_length_text = true;
       parameters->verbose = true;
       break;
+    case 406: // --check-index
+      parameters->check_index = (optarg) ? options_parse_bool(optarg) : true;
+      break;
+    case 407: // --bwt
+      parameters->dev_generate_only_bwt = true;
+      parameters->dump_bwt = true;
+      parameters->verbose = true;
+      break;
+    /* System */
+    case 't': // --threads
+      parameters->num_threads = atol(optarg);
+      break;
+    case 500: // --max-memory
+      gem_indexer_cond_error_msg(input_text_parse_size(optarg,&(parameters->max_memory)),
+          "Error parsing --max-memory. '%s' not a valid size (Eg. 2GB)",optarg);
+      break;
+    case 501: // --tmp-folder
+      parameters->tmp_folder = optarg;
+      break;
     /* Miscellaneous */
-    case 'h':
-      usage(false);
-      exit(1);
-    case 'H':
-      usage(true);
-      exit(1);
     case 'v':
       parameters->verbose = true;
       break;
     case 'q':
       parameters->verbose = false;
       break;
-    case 700: // --info-file
+    case 600: // --info-file
       parameters->info_file_name_provided = true;
       parameters->info_file_name = optarg;
       break;
-    /* Extras/Develop */
-    case 800: // --bwt
-      parameters->dev_generate_only_bwt = true;
-      parameters->dump_bwt = true;
-      parameters->verbose = true;
-      break;
+    case 'h':
+      if (optarg==NULL || gem_strcaseeq(optarg,"user")) {
+        usage(VISIBILITY_USER);
+      } else if (gem_strcaseeq(optarg,"advanced")) {
+        usage(VISIBILITY_ADVANCED);
+      } else if (gem_strcaseeq(optarg,"developer")) {
+        usage(VISIBILITY_DEVELOPER);
+      } else {
+        gem_indexer_error_msg("Help argument not valid {'user','advanced'}");
+      }
+      exit(0);
+    /* */
     case '?':
     default:
-      gem_fatal_error_msg("Option not recognized");
+      gem_indexer_error_msg("Option not recognized");
     }
   }
   /*
    * Parameters Check
    */
-  // Index type incompatibility list
-  if (parameters->input_graph_file_name!=NULL) {
-    gem_cond_fatal_error_msg(parameters->index_colorspace,
-            "Index-Type. Graph generation is not compatible with colorspace");
-    gem_cond_fatal_error_msg(parameters->index_run_length,
-            "Index-Type. Graph generation is not compatible with RL-index");
-  } else if (parameters->index_colorspace && parameters->index_run_length) {
-    gem_cond_fatal_error_msg(parameters->index_run_length,
-            "Index-Type. Colorspace is not compatible with RL-index");
-  }
+//  // Index type incompatibility list
+//  if (parameters->input_graph_file_name!=NULL) {
+//    gem_indexer_cond_error_msg_msg(parameters->index_colorspace,
+//            "Index-Type. Graph generation is not compatible with colorspace");
+//    gem_indexer_cond_error_msg_msg(parameters->index_run_length,
+//            "Index-Type. Graph generation is not compatible with RL-index");
+//  }
+  // Input file name
+  gem_indexer_cond_error_msg(parameters->input_multifasta_file_name==NULL,
+      "Parsing arguments. Please specify an input filename (--input)");
   // Output file name
   if (parameters->output_index_file_name==NULL) {
-    gem_cond_fatal_error_msg(parameters->input_multifasta_file_name==NULL,
-        "Parsing arguments. Please specify an output file name (--output)");
     parameters->output_index_file_name_prefix = gem_strrmext(gem_strbasename(parameters->input_multifasta_file_name));
     parameters->output_index_file_name = gem_strcat(parameters->output_index_file_name_prefix,".gem");
   } else {
@@ -472,9 +462,9 @@ int main(int argc,char** argv) {
 
   // GEM Archive Builder
   fm_t* const index_file = fm_open_file(parameters.output_index_file_name,FM_WRITE);
-  const archive_filter_type filter_type = (parameters.index_colorspace) ? Iupac_colorspace_dna : Iupac_dna;
+  const archive_type type = (parameters.bisulfite_index) ? archive_dna_bisulfite : archive_dna;
   archive_builder_t* const archive_builder = archive_builder_new(
-      index_file,parameters.output_index_file_name_prefix,filter_type,
+      index_file,parameters.output_index_file_name_prefix,type,
       parameters.index_complement,parameters.complement_size_threshold,parameters.ns_threshold,
       parameters.sampling_rate,parameters.num_threads,parameters.max_memory);
 

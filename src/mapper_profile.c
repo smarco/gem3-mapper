@@ -6,7 +6,7 @@
  */
 
 #include "mapper_profile.h"
-#include "neighborhood_search.h"
+#include "nsearch.h"
 
 #ifndef GEM_NOPROFILE /* GEM_PROFILE ENABLED */
 

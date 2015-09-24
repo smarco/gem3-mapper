@@ -260,6 +260,8 @@ GEM_INLINE pair_relation_t paired_matches_compute_relation(
     pair_orientation_t* const pair_orientation,pair_layout_t* const pair_layout,
     uint64_t* const template_length,double* const template_length_sigma) {
   pair_relation_t pair_relation = pair_relation_concordant; // Init
+  // Compute BS-orientation
+  if (match_trace_end1->bs_strand!=match_trace_end2->bs_strand) return pair_relation_invalid;
   // Compute orientation
   *pair_orientation = paired_matches_compute_orientation(match_trace_end1,match_trace_end2);
   if (parameters->pair_orientation[*pair_orientation]==pair_relation_invalid) return pair_relation_invalid;
@@ -442,5 +444,30 @@ GEM_INLINE void paired_matches_sort_by_mapq_score(paired_matches_t* const paired
   qsort(vector_get_mem(paired_matches->paired_maps,paired_map_t),
       vector_get_used(paired_matches->paired_maps),sizeof(paired_map_t),
       (int (*)(const void *,const void *))paired_matches_cmp_mapq_score);
+}
+/*
+ * Display
+ */
+GEM_INLINE void paired_matches_print(FILE* const stream,paired_matches_t* const paired_matches) {
+  tab_fprintf(stream,"[GEM]>Paired.Matches\n");
+  tab_global_inc();
+  tab_fprintf(stream,"=> Counters\t");
+  matches_counters_print(stream,paired_matches->counters,paired_matches->max_complete_stratum);
+  fprintf(stream,"\n");
+  tab_fprintf(stream,"=> Paired.Maps %lu\n",vector_get_used(paired_matches->paired_maps));
+  tab_fprintf(stream,"=> Discordant.Paired.Maps %lu\n",vector_get_used(paired_matches->discordant_paired_maps));
+  tab_fprintf(stream,"=> Matches.end/1\n");
+  tab_global_inc();
+  matches_print(stream,paired_matches->matches_end1);
+  tab_global_dec();
+  tab_fprintf(stream,"=> Matches.end/2\n");
+  tab_global_inc();
+  matches_print(stream,paired_matches->matches_end2);
+  tab_global_dec();
+  tab_fprintf(stream,"=> Metrics.PE\n");
+  tab_global_inc();
+  matches_metrics_print(stream,&paired_matches->metrics,true);
+  tab_global_dec();
+  tab_global_dec();
 }
 

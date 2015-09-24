@@ -15,7 +15,7 @@
 /*
  * Debug
  */
-#define DEBUG_ARCHIVE_SEARCH_READ_NAME GEM_DEEP_DEBUG
+#define FULL_DEBUG_ARCHIVE_SEARCH_PE true // GEM_DEEP_DEBUG
 
 /*
  * Setup
@@ -163,6 +163,7 @@ GEM_INLINE void archive_search_paired_end_continue(
       case archive_search_pe_begin: // Beginning of the search (Init)
         archive_search_end1->pair_searched = false;
         archive_search_end1->pair_extended = false;
+        archive_search_end1->pair_extended_shortcut = false;
         archive_search_end2->pair_searched = false;
         archive_search_end2->pair_extended = false;
         archive_search_reset(archive_search_end1); // Init (End/1)
@@ -179,6 +180,7 @@ GEM_INLINE void archive_search_paired_end_continue(
             archive_search_paired_end_use_shortcut_extension(archive_search_end1,matches_end1);
         if (archive_search_end1->pair_extended) {
           // Extend End/1
+          archive_search_end1->pair_extended_shortcut = true; // Debug
           PROF_START(GP_ARCHIVE_SEARCH_PE_EXTENSION_SHORTCUT);
           const uint64_t num_matches_found = archive_search_paired_end_extend_matches(
               archive_search_end1,archive_search_end2,paired_matches,paired_end2);
@@ -216,7 +218,7 @@ GEM_INLINE void archive_search_paired_end_continue(
         }
         if (!archive_search_end2->pair_extended) {
           if (archive_search_paired_end_use_recovery_extension(archive_search_end1,matches_end1)) {
-            // Extend End/1
+            // Extend End/2
             PROF_START(GP_ARCHIVE_SEARCH_PE_EXTENSION_RECOVERY);
             archive_search_paired_end_extend_matches(archive_search_end1,archive_search_end2,paired_matches,paired_end1);
             archive_search_end2->pair_extended = true;
@@ -225,7 +227,7 @@ GEM_INLINE void archive_search_paired_end_continue(
         }
         // No break
       case archive_search_pe_find_pairs: {
-        // Pair matches (Cross-link matches from both ends)
+        // Pair matches (cross-link matches from both ends)
         const uint64_t num_matches_end1 = matches_get_num_match_traces(paired_matches->matches_end1);
         const uint64_t num_matches_end2 = matches_get_num_match_traces(paired_matches->matches_end2);
         if (num_matches_end1 > 0 && num_matches_end2 > 0) {
@@ -239,11 +241,14 @@ GEM_INLINE void archive_search_paired_end_continue(
             break; // Callback
           }
         }
-        // Select matches
+        // Set MCS
         paired_matches->max_complete_stratum =
             ((matches_end1->max_complete_stratum!=ALL) ? matches_end1->max_complete_stratum : 0) +
             ((matches_end2->max_complete_stratum!=ALL) ? matches_end2->max_complete_stratum : 0);
         archive_search_end1->pe_search_state = archive_search_pe_end; // End of the workflow
+        gem_cond_debug_block(FULL_DEBUG_ARCHIVE_SEARCH_PE) {
+          archive_search_pe_print(stderr,archive_search_end1,archive_search_end2,paired_matches);
+        }
         break;
       }
       default:
@@ -262,6 +267,7 @@ GEM_INLINE void archive_search_pe_generate_candidates(
   archive_search_end1->pe_search_state = archive_search_pe_begin;
   archive_search_end1->pair_searched = false;
   archive_search_end1->pair_extended = false;
+  archive_search_end1->pair_extended_shortcut = false;
   archive_search_end2->pe_search_state = archive_search_pe_begin;
   archive_search_end2->pair_searched = false;
   archive_search_end2->pair_extended = false;
@@ -333,5 +339,47 @@ GEM_INLINE void archive_search_paired_end_compute_predictors(
   const uint64_t proper_length = fm_index_get_proper_length(archive_search_end1->archive->fm_index);
   paired_matches_classify_compute_predictors(paired_matches,predictors,
       swg_penalties,total_read_length,max_region_length,proper_length,UINT64_MAX,num_zero_regions);
+}
+/*
+ * Display
+ */
+GEM_INLINE void archive_search_pe_print(
+    FILE* const stream,archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2,paired_matches_t* const paired_matches) {
+  tab_fprintf(stream,"[GEM]>ArchiveSearch.PE\n");
+  tab_global_inc();
+  tab_fprintf(stream,"=> Read.tag %s\n",archive_search_end1->sequence.tag.buffer);
+  tab_fprintf(stream,"=> PE.Search.State %s\n",archive_search_pe_state_label[archive_search_end1->pe_search_state]);
+  tab_fprintf(stream,"=> End/1\n");
+  tab_fprintf(stream,"  => Searched %s\n",archive_search_end1->pair_searched ? "yes" : "no");
+  tab_fprintf(stream,"  => Extended %s (shortcut-extension=%s)\n",
+      archive_search_end1->pair_extended ? "yes" : "no",
+      archive_search_end1->pair_extended_shortcut ? "yes" : "no");
+  tab_fprintf(stream,"=> End/2\n");
+  tab_fprintf(stream,"  => Searched %s\n",archive_search_end2->pair_searched ? "yes" : "no");
+  tab_fprintf(stream,"  => Extended %s\n",archive_search_end2->pair_extended ? "yes" : "no");
+  if (!archive_search_paired_end_feasible_extension(archive_search_end1)) {
+    tab_fprintf(stream,"=> Template-length 'n/a'\n");
+  } else {
+    const double template_length_mean = mapper_stats_template_length_get_mean(archive_search_end1->mapper_stats);
+    const double template_length_stddev = mapper_stats_template_length_get_stddev(archive_search_end1->mapper_stats);
+    const uint64_t template_length_expected_max = mapper_stats_template_length_get_expected_max(archive_search_end1->mapper_stats);
+    const uint64_t template_length_expected_min = mapper_stats_template_length_get_expected_min(archive_search_end1->mapper_stats);
+    tab_fprintf(stream,"=> Template-length {min=%lu,max=%lu,mean=%2.1f,stddev==%2.1f}\n",
+        template_length_expected_min,template_length_expected_max,template_length_mean,template_length_stddev);
+  }
+  tab_fprintf(stream,"=> Archive.Search.End/1\n");
+  tab_global_inc();
+  archive_search_print(stream,archive_search_end1,NULL);
+  tab_global_dec();
+  tab_fprintf(stream,"=> Archive.Search.End/2\n");
+  tab_global_inc();
+  archive_search_print(stream,archive_search_end2,NULL);
+  tab_global_dec();
+  tab_fprintf(stream,"=> Paired.Matches\n");
+  tab_global_inc();
+  paired_matches_print(stream,paired_matches);
+  tab_global_dec();
+  tab_global_dec();
 }
 

@@ -99,4 +99,9 @@ void paired_matches_filter_by_mapq(
 void paired_matches_sort_by_distance(paired_matches_t* const paired_matches);
 void paired_matches_sort_by_mapq_score(paired_matches_t* const paired_matches);
 
+/*
+ * Display
+ */
+void paired_matches_print(FILE* const stream,paired_matches_t* const paired_matches);
+
 #endif /* PAIRED_MATCHES_H_ */

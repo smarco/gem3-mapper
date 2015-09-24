@@ -38,7 +38,6 @@ GEM_INLINE void archive_search_continue(
   }
 }
 GEM_INLINE void archive_search_generate_candidates(archive_search_t* const archive_search) {
-  ARCHIVE_SEARCH_CHECK(archive_search);
   // Reset initial values (Prepare pattern(s), instantiate parameters values, ...)
   archive_search_reset(archive_search);
   // Run the search (stop before filtering)
@@ -146,4 +145,29 @@ GEM_INLINE void archive_search_compute_predictors(
   matches_classify_compute_predictors(matches,predictors,
       swg_penalties,read_length,max_region_length,proper_length,
       matches->max_complete_stratum==ALL ? 0 : matches->max_complete_stratum,num_zero_regions);
+}
+/*
+ * Display
+ */
+GEM_INLINE void archive_search_print(
+    FILE* const stream,archive_search_t* const archive_search,matches_t* const matches) {
+  tab_fprintf(stream,"[GEM]>ArchiveSearch.PE\n");
+  tab_global_inc();
+  tab_fprintf(stream,"=> Search.Forward\n");
+  tab_global_inc();
+  approximate_search_print(stream,&archive_search->forward_search_state);
+  tab_global_dec();
+  if (archive_search->emulate_rc_search) {
+    tab_fprintf(stream,"=> Search.Reverse\n");
+    tab_global_inc();
+    approximate_search_print(stream,&archive_search->reverse_search_state);
+    tab_global_dec();
+  }
+  if (matches!=NULL) {
+    tab_fprintf(stream,"=> Matches.end\n");
+    tab_global_inc();
+    matches_print(stream,matches);
+    tab_global_dec();
+  }
+  tab_global_dec();
 }

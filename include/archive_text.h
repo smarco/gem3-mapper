@@ -11,8 +11,6 @@
 
 #include "essentials.h"
 #include "sampled_rl.h"
-#include "graph_text.h"
-#include "graph_text_builder.h"
 #include "text_collection.h"
 
 /*
@@ -29,12 +27,12 @@ typedef enum {
 } archive_text_type;
 typedef struct {
   // Meta-information
-  bool hypertext;                   // Stores hypertext (text + graph = hypertext)
+  // bool hypertext;                   // Stores hypertext (text + graph = hypertext)
   bool run_length;                  // Archive-Text type
   bool explicit_complement;         // Stores explicit RC-text
   uint64_t forward_text_length;     // Total length of the forward text
   // Indexed text
-  graph_text_t* graph;              // Graph
+  // graph_text_t* graph;              // Graph
   dna_text_t* enc_text;             // Index-Text
   sampled_rl_t* sampled_rl;         // Sampled RL-Index Positions
 } archive_text_t;
@@ -45,7 +43,7 @@ typedef struct {
 void archive_text_write(
     fm_t* const file_manager,dna_text_t* const enc_text,
     const bool explicit_complement,const uint64_t forward_text_length,
-    sampled_rl_t* const sampled_rl,graph_text_builder_t* const graph,const bool verbose);
+    sampled_rl_t* const sampled_rl,const bool verbose);
 
 /*
  * Setup/Loader

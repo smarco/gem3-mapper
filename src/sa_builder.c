@@ -521,7 +521,7 @@ GEM_INLINE void sa_builder_ds_shallow_mkq_cached(uint64_t* const a,const uint64_
   }
 }
 void* sa_builder_sort_suffixes_thread(uint64_t thread_id) {
-  gem_thread_register_id(thread_id);
+  gem_thread_register_id(thread_id+1);
   // SA sampling rate
   const uint64_t sampling_rate_pow2 = global_sampled_sa!=NULL ? global_sampled_sa->sampling_rate : 0;
   // Retrieve SA chunks

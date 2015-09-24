@@ -111,3 +111,42 @@ GEM_INLINE void matches_counters_compute_matches_to_decode(
   }
   *reported_strata = (total_matches!=0) ? current_stratum : 0;
 }
+/*
+ * Display
+ */
+GEM_INLINE void matches_counters_print_account_mcs(
+    FILE* const stream,const uint64_t current_counter_pos,const uint64_t num_zeros) {
+  uint64_t i = 0;
+  if (current_counter_pos==0) {
+    fprintf(stream,"0");
+    i=1;
+  }
+  for (;i<num_zeros;++i) {
+    fprintf(stream,":0");
+  }
+  fprintf(stream,"+0");
+}
+GEM_INLINE void matches_counters_print(FILE* const stream,matches_counters_t* const matches_counter,const uint64_t mcs) {
+  const uint64_t num_counters = matches_counters_get_num_counters(matches_counter);
+  // Zero counters
+  if (gem_expect_false(num_counters==0)) {
+    if (mcs==0 || mcs==ALL) {
+      fprintf(stream,"0");
+    } else {
+      matches_counters_print_account_mcs(stream,0,mcs);
+    }
+    return;
+  }
+  // Print counters
+  uint64_t i = 0;
+  const uint64_t* counters = matches_counters_get_counts(matches_counter);
+  while (i < num_counters) {
+    // Print Counter
+    if (i>0) fprintf(stream,(mcs==i?"+":":"));
+    fprintf(stream,"%lu",*counters);
+    i++; // Next (+1)
+    ++counters;
+  }
+  // Account for MCS
+  if (i<=mcs) matches_counters_print_account_mcs(stream,i,mcs-i);
+}

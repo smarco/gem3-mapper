@@ -35,8 +35,15 @@
 #include "locator.h"
 #include "archive.h"
 #include "archive_builder.h"
+#include "archive_builder_text.h"
+#include "archive_builder_text_parser.h"
+#include "archive_builder_index.h"
 #include "select_parameters.h"
 #include "archive_select.h"
+
+// NS
+#include "nsearch_hamming.h"
+#include "nsearch_levenshtein.h"
 
 // I/O
 #include "input_file.h"
@@ -55,6 +62,9 @@
 // Mapper
 #include "mapper.h"
 #include "mapper_cuda.h"
+
+// Report Stats
+#include "report_stats.h"
 
 /*
  * GEM Runtime

@@ -188,7 +188,7 @@ GEM_INLINE void match_trace_locate(match_trace_t* const match_trace,const locato
   locator_map(locator,match_trace->match_alignment.match_position,&location);
   match_trace->text_position = location.position;
   match_trace->sequence_name = location.tag;
-  if (location.direction == Reverse) { // Adjust position by the effective length
+  if (location.strand == Reverse) { // Adjust position by the effective length
     match_trace->text_position -= (uint64_t) match_trace->match_alignment.effective_length;
     match_trace->strand = Reverse;
     GEM_INTERNAL_CHECK(!match_trace->emulated_rc_search,
@@ -197,6 +197,7 @@ GEM_INLINE void match_trace_locate(match_trace_t* const match_trace,const locato
   } else {
     match_trace->strand = match_trace->emulated_rc_search ? Reverse : Forward;
   }
+  match_trace->bs_strand = location.bs_strand;
 }
 GEM_INLINE bool matches_add_match_trace(
     matches_t* const matches,match_trace_t* const match_trace,
@@ -683,4 +684,23 @@ GEM_INLINE void match_cigar_print(
     }
   }
 }
+GEM_INLINE void matches_print(FILE* const stream,matches_t* const matches) {
+  tab_fprintf(stream,"[GEM]>Matches\n");
+  tab_global_inc();
+  const matches_class_t matches_class = matches_classify(matches);
+  tab_fprintf(stream,"=> Class %s\n",matches_class_label[matches_class]);
+  tab_fprintf(stream,"=> Counters\t");
+  matches_counters_print(stream,matches->counters,matches->max_complete_stratum);
+  fprintf(stream,"\n");
+  tab_fprintf(stream,"=> Interval.Matches %lu\n",vector_get_used(matches->interval_matches));
+  tab_fprintf(stream,"=> Position.Matches %lu\n",vector_get_used(matches->position_matches));
+  tab_fprintf(stream,"  => Positions.Hashed.Begin %lu\n",ihash_get_num_elements(matches->begin_pos_matches));
+  tab_fprintf(stream,"  => Positions.Hashed.End %lu\n",ihash_get_num_elements(matches->end_pos_matches));
+  tab_fprintf(stream,"=> Metrics.SE\t");
+  tab_global_inc();
+  matches_metrics_print(stream,&matches->metrics,false);
+  tab_global_dec();
+  tab_global_dec();
+}
+
 

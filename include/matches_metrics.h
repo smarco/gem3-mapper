@@ -98,11 +98,15 @@ void matches_metrics_dec_subdominant_candidates(matches_metrics_t* const metrics
 /*
  * Display
  */
+void matches_metrics_print(
+    FILE* const stream,matches_metrics_t* const matches_metrics,
+    const bool print_paired_metrics);
+
 void matches_predictors_print(
-    matches_predictors_t* const predictors,
+    FILE* const stream,matches_predictors_t* const predictors,
     const char* const read_tag,const uint8_t mapq_score);
 void paired_matches_predictors_print(
-    matches_predictors_t* const predictors,
+    FILE* const stream,matches_predictors_t* const predictors,
     const char* const read_tag,const uint8_t mapq_score_pair,
     const uint8_t mapq_score_end1,const uint8_t mapq_score_end2);
 

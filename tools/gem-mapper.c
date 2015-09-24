@@ -5,7 +5,7 @@
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION: Genomic Read Mapper
  */
-#define GEM_BISULFITE
+#define REPORT_STATS
 
 #include "gem_core.h"
 
@@ -186,6 +186,7 @@ option_t gem_mapper_options[] = {
   { 202, "gzip-output", NO_ARGUMENT, TYPE_NONE, 2, VISIBILITY_USER, "", "(gzip output)" },
   { 203, "bzip-output", NO_ARGUMENT, TYPE_NONE, 2, VISIBILITY_USER, "", "(bzip output)" },
   { 204, "output-model", REQUIRED, TYPE_STRING, 2, VISIBILITY_DEVELOPER, "<buffer_size,num_buffers>", "(default=4M,5c)" },
+	{ 205, "report-file", REQUIRED, TYPE_STRING, 2, VISIBILITY_USER, "<file_name>", "(default=NULL)" },
   /* Qualities */
   { 'q', "quality-format", REQUIRED, TYPE_STRING, 3, VISIBILITY_ADVANCED, "'ignore'|'offset-33'|'offset-64'", "(default=offset-33)" },
   { 'Q', "quality-model", REQUIRED, TYPE_STRING, 3, VISIBILITY_ADVANCED, "'gem'|'flat'", "(default=gem)" },
@@ -219,11 +220,8 @@ option_t gem_mapper_options[] = {
   { 503, "pair-layout", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "'separate'|'overlap'|'contain'" , "(default=separated,overlap)" },
   { 504, "discordant-pair-layout", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "'separate'|'overlap'|'contain'" , "(default=contain)" },
   /* Bisulfite Alignment */
-#ifdef GEM_BISULFITE
-  { 600, "bisulfite-mode", OPTIONAL, TYPE_STRING, 6, VISIBILITY_USER, "", "(default=false)" },
   { 601, "bisulfite-read", REQUIRED, TYPE_STRING, 6, VISIBILITY_ADVANCED, "'inferred','1','2','interleaved'",  "(default=inferred)" },
-  { 602, "bisulfite-suffix", REQUIRED, TYPE_STRING, 6, VISIBILITY_ADVANCED, "<C2T suffix, G2A suffix>" , "(default=#C2T,#G2A)" },
-#endif
+  // { 602, "bisulfite-suffix", REQUIRED, TYPE_STRING, 6, VISIBILITY_ADVANCED, "<C2T suffix, G2A suffix>" , "(default=#C2T,#G2A)" },
   /* Alignment Score */
   { 700, "alignment-model", REQUIRED, TYPE_STRING, 7, VISIBILITY_ADVANCED, "'none'|'hamming'|'edit'|'gap-affine'" , "(default=gap-affine)" },
   { 701, "gap-affine-penalties", REQUIRED, TYPE_STRING, 7, VISIBILITY_USER, "A,B,O,X" , "(default=1,4,6,1)" },
@@ -261,9 +259,7 @@ option_t gem_mapper_options[] = {
   /* Miscellaneous */
   { 1500, "profile", OPTIONAL, TYPE_STRING, 15, VISIBILITY_DEVELOPER, "'sum'|'min'|'max'|'mean'|'sample'" , "(disabled)" },
   { 'v',  "verbose", OPTIONAL, TYPE_STRING, 15, VISIBILITY_USER, "'quiet'|'user'|'dev'" , "(default=user)" },
-  { 'h',  "help", NO_ARGUMENT, TYPE_NONE, 15, VISIBILITY_USER, "" , "(print usage)" },
-  { 1501, "help-adv", NO_ARGUMENT, TYPE_NONE, 15, VISIBILITY_USER, "" , "(print advanced options)" },
-  { 1502, "help-dev", NO_ARGUMENT, TYPE_NONE, 15, VISIBILITY_DEVELOPER, "" , "(print developer options)" },
+  { 'h',  "help", OPTIONAL, TYPE_NONE, 15, VISIBILITY_USER, "" , "(print usage)" },
   { 0, NULL, 0, 0, 0, 0, NULL, NULL}
 };
 char* gem_mapper_groups[] = {
@@ -384,6 +380,9 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       cuda->output_num_buffers = io->output_num_buffers;
       break;
     }
+		 case 205: // --report-file
+			 io->report_file_name = optarg;
+			 break;
     /* Qualities */
     case 'q': // --quality-format
       if (gem_strcaseeq(optarg,"ignore")) {
@@ -429,6 +428,8 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
         search->mapping_mode = mapping_fixed_filtering_complete;
       } else if (gem_strcaseeq(optarg,"region-profile")) {
         search->mapping_mode = mapping_region_profile_fixed;
+      } else if (gem_strcaseeq(optarg,"test")) {
+        search->mapping_mode = mapping_test;
       } else {
         gem_mapper_error_msg("Option '--mapping-mode' must be 'fast'|'thorough'|'complete'");
       }
@@ -616,9 +617,6 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       break;
     }
     /* Bisulfite Alignment */
-    case 600: // --bisulfite_mode
-      parameters->search_parameters.bisulfite_mode = input_text_parse_extended_bool(optarg);
-      break;
     case 601: // --bisulfite_read
       if (gem_strcaseeq(optarg,"inferred")) {
         parameters->search_parameters.bisulfite_read = bisulfite_read_inferred;
@@ -641,7 +639,6 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 602: { // --bisulfite_suffix
       const int num_arguments = input_text_parse_csv_arguments(optarg,2,bs_suffix1,bs_suffix2);
       gem_cond_fatal_error_msg(num_arguments!=2,"Option '--bisulfite_suffix' wrong number of arguments");
-      parameters->search_parameters.bisulfite_mode = true;
       break;
     }
     /* Alignment Score */
@@ -881,13 +878,15 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       }
       break;
     case 'h':
-      gem_mapper_print_usage(VISIBILITY_USER);
-      exit(0);
-    case 1501: // --help-adv
-      gem_mapper_print_usage(VISIBILITY_ADVANCED);
-      exit(0);
-    case 1502: // --help-dev
-      gem_mapper_print_usage(VISIBILITY_DEVELOPER);
+      if (optarg==NULL || gem_strcaseeq(optarg,"user")) {
+        gem_mapper_print_usage(VISIBILITY_USER);
+      } else if (gem_strcaseeq(optarg,"advanced")) {
+        gem_mapper_print_usage(VISIBILITY_ADVANCED);
+      } else if (gem_strcaseeq(optarg,"developer")) {
+        gem_mapper_print_usage(VISIBILITY_DEVELOPER);
+      } else {
+        gem_mapper_error_msg("Help argument not valid {'user','advanced'}");
+      }
       exit(0);
     case '?':
     default:
@@ -935,18 +934,6 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
   } else {
     parameters->mapper_type = mapper_se;
   }
-  /* Bisulfite mode */
-  if (parameters->search_parameters.bisulfite_mode) {
-    if (parameters->io.output_format == SAM) {
-      parameters->io.sam_parameters.bisulfite_mode = true;
-      if (!bs_suffix1) {
-        bs_suffix1 = "#C2T";
-        bs_suffix2 = "#G2A";
-      }
-      string_init_static(parameters->io.sam_parameters.bisulfite_suffix,strdup(bs_suffix1));
-      string_init_static(parameters->io.sam_parameters.bisulfite_suffix+1,strdup(bs_suffix2));
-    }
-  }
   /* Qualities */
   gem_mapper_cond_error_msg(search->quality_threshold > 94,
       "Quality threshold is too high (please consider lowering it or run ignoring qualities)");
@@ -982,6 +969,9 @@ int main(int argc,char** argv) {
   gem_mapper_open_input(&parameters);
   gem_mapper_open_output(&parameters);
 
+  // Initialize Statistics Report
+	if(parameters.io.report_file_name) parameters.global_mapping_stats=mm_alloc(mapping_stats_t);
+		 
   // Launch mapper
   if (!cuda->cuda_enabled) {
     switch (parameters.mapper_type) {
@@ -1019,7 +1009,12 @@ int main(int argc,char** argv) {
   // Profile
   if (parameters.misc.profile) gem_mapper_print_profile(&parameters);
 
-  // CleanUP
+	// Mapping Statistics Report
+	if(parameters.io.report_file_name) {
+		 output_mapping_stats(&parameters,parameters.global_mapping_stats);
+	}										 
+
+	// CleanUP
   archive_delete(parameters.archive); // Delete archive
   gem_mapper_close_input(&parameters); // Close I/O files
   gem_mapper_close_output(&parameters); // Close I/O files

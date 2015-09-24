@@ -41,6 +41,11 @@ void archive_search_compute_predictors(
     matches_predictors_t* const predictors);
 
 /*
+ * Display
+ */
+void archive_search_print(FILE* const stream,archive_search_t* const archive_search,matches_t* const matches);
+
+/*
  * Errors
  */
 #define GEM_ERROR_ARCHIVE_SEARCH_INDEX_COMPLEMENT_REQUIRED "Archive Search. Explicit indexed complement required"

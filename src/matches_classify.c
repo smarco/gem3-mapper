@@ -9,6 +9,20 @@
 #include "matches_classify.h"
 
 /*
+ * Matches Classes
+ */
+const char* matches_class_label[] =
+{
+    [0] = "unmapped",
+    [1] = "tie-indistinguishable",
+    [2] = "tie-swg-score",
+    [3] = "tie-edit-distance",
+    [4] = "tie-event-distance",
+    [5] = "mmap",
+    [6] = "unique"
+};
+
+/*
  * Classify
  */
 GEM_INLINE void matches_classify_compute_predictors_unmapped(

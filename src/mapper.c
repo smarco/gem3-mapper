@@ -10,6 +10,7 @@
 #include "archive_search.h"
 #include "archive_search_se.h"
 #include "archive_search_pe.h"
+#include "report_stats.h"
 
 /*
  * Report
@@ -171,6 +172,8 @@ GEM_INLINE void mapper_parameters_set_defaults(mapper_parameters_t* const mapper
   mapper_parameters->output_file = NULL;
   /* Mapper Type */
   mapper_parameters->mapper_type = mapper_se;
+	/* Stats Report */
+	mapper_parameters->global_mapping_stats = NULL;
   /* I/O Parameters */
   mapper_parameters_set_defaults_io(&mapper_parameters->io);
   /* Search Parameters (single-end/paired-end) */
@@ -321,7 +324,7 @@ GEM_INLINE error_code_t mapper_PE_read_paired_sequences(mapper_search_t* const m
  */
 GEM_INLINE void mapper_SE_output_matches(
     mapper_parameters_t* const parameters,buffered_output_file_t* const buffered_output_file,
-    archive_search_t* const archive_search,matches_t* const matches) {
+    archive_search_t* const archive_search,matches_t* const matches, mapping_stats_t *mstats) {
   switch (parameters->io.output_format) {
     case MAP:
       output_map_single_end_matches(buffered_output_file,archive_search,matches,&parameters->io.map_parameters);
@@ -333,11 +336,12 @@ GEM_INLINE void mapper_SE_output_matches(
       GEM_INVALID_CASE();
       break;
   }
+	if(mstats) collect_SE_mapping_stats(archive_search,matches,mstats);
 }
 GEM_INLINE void mapper_PE_output_matches(
     mapper_parameters_t* const parameters,buffered_output_file_t* const buffered_output_file,
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches) {
+    paired_matches_t* const paired_matches, mapping_stats_t *mstats) {
   switch (parameters->io.output_format) {
     case MAP:
       output_map_paired_end_matches(buffered_output_file,archive_search_end1,
@@ -352,6 +356,7 @@ GEM_INLINE void mapper_PE_output_matches(
       GEM_INVALID_CASE();
       break;
   }
+	if(mstats) collect_PE_mapping_stats(archive_search_end1,archive_search_end2,paired_matches,mstats);
 }
 /*
  * SE Mapper
@@ -378,7 +383,7 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
   while (mapper_SE_read_single_sequence(mapper_search)) {
-//    if (gem_streq(mapper_search->archive_search->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000184558")) {
+//    if (gem_streq(mapper_search->archive_search->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000869733")) { 
 //      printf("HERE\n");
 //    }
 
@@ -387,7 +392,7 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
     archive_select_matches(mapper_search->archive_search,false,matches); // Select matches
 
     // Output matches
-    mapper_SE_output_matches(parameters,buffered_output_file,mapper_search->archive_search,matches);
+    mapper_SE_output_matches(parameters,buffered_output_file,mapper_search->archive_search,matches,mapper_search->mapping_stats);
 
     // Update processed
     if (++reads_processed == MAPPER_TICKER_STEP) {
@@ -451,7 +456,7 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
     archive_select_paired_matches(archive_search_end1,archive_search_end2,paired_matches);
 
     // Output matches
-    mapper_PE_output_matches(parameters,buffered_output_file,archive_search_end1,archive_search_end2,paired_matches);
+    mapper_PE_output_matches(parameters,buffered_output_file,archive_search_end1,archive_search_end2,paired_matches,mapper_search->mapping_stats);
 
     // Update processed
     if (++reads_processed == MAPPER_TICKER_STEP) {
@@ -489,10 +494,13 @@ GEM_INLINE void mapper_run(mapper_parameters_t* const mapper_parameters,const bo
   // Set error-report function
   g_mapper_searches = mapper_search;
   gem_error_set_report_function(mapper_error_report);
-  // Prepare output file (SAM headers)
+  // Prepare output file/parameters (SAM headers)
+  archive_t* const archive = mapper_parameters->archive;
+  const bool bisulfite_index = (archive->type == archive_dna_bisulfite);
   if (mapper_parameters->io.output_format==SAM) {
-    output_sam_print_header(mapper_parameters->output_file,mapper_parameters->archive,
+    output_sam_print_header(mapper_parameters->output_file,archive,
         &mapper_parameters->io.sam_parameters,mapper_parameters->argc,mapper_parameters->argv);
+    mapper_parameters->io.sam_parameters.bisulfite_output = bisulfite_index;
   }
   // Setup Ticker
   ticker_t ticker;
@@ -501,13 +509,16 @@ GEM_INLINE void mapper_run(mapper_parameters_t* const mapper_parameters,const bo
   ticker_add_process_label(&ticker,"#","sequences processed");
   ticker_add_finish_label(&ticker,"Total","sequences processed");
   ticker_mutex_enable(&ticker);
+	// Allocate per thread mapping stats
+  mapping_stats_t *mstats = mapper_parameters->global_mapping_stats ? mm_calloc(num_threads,mapping_stats_t,false) : NULL; 
   // Launch threads
   pthread_handler_t mapper_thread;
-  const bool bisulfite_mode = mapper_parameters->search_parameters.bisulfite_mode;
   if (paired_end) {
-    mapper_thread = (bisulfite_mode) ? (pthread_handler_t) mapper_PE_bisulfite_thread : (pthread_handler_t) mapper_PE_thread;
+    mapper_thread = (bisulfite_index) ?
+        (pthread_handler_t) mapper_PE_bisulfite_thread : (pthread_handler_t) mapper_PE_thread;
   } else {
-    mapper_thread = (bisulfite_mode) ? (pthread_handler_t) mapper_SE_bisulfite_thread : (pthread_handler_t) mapper_SE_thread;
+    mapper_thread = (bisulfite_index) ?
+        (pthread_handler_t) mapper_SE_bisulfite_thread : (pthread_handler_t) mapper_SE_thread;
   }
   uint64_t i;
   for (i=0;i<num_threads;++i) {
@@ -517,6 +528,10 @@ GEM_INLINE void mapper_run(mapper_parameters_t* const mapper_parameters,const bo
     mapper_search[i].thread_data = mm_alloc(pthread_t);
     mapper_search[i].mapper_parameters = mapper_parameters;
     mapper_search[i].ticker = &ticker;
+		if(mstats)	{
+			 mapper_search[i].mapping_stats = mstats + i;
+			 init_mapping_stats(mstats + i);
+		} else mapper_search[i].mapping_stats = NULL;
     // Launch thread
     gem_cond_fatal_error__perror(
         pthread_create(mapper_search[i].thread_data,0,mapper_thread,(void*)(mapper_search+i)),SYS_THREAD_CREATE);
@@ -528,6 +543,11 @@ GEM_INLINE void mapper_run(mapper_parameters_t* const mapper_parameters,const bo
   }
   ticker_finish(&ticker);
   ticker_mutex_cleanup(&ticker);
+	// Merge report stats
+	if(mstats) {
+		 merge_mapping_stats(mapper_parameters->global_mapping_stats,mstats,num_threads);
+		 mm_free(mstats);
+	}
   // Clean up
   mm_free(mapper_search);
 }

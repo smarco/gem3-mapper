@@ -368,6 +368,35 @@ GEM_INLINE void fm_seek(fm_t* const file_manager,const uint64_t position) {
       file_manager->byte_position = position;
       file_manager->eof = position >= file_manager->file_size;
     }
+#ifdef HAVE_ZLIB
+	} else if(FM_IS_READING(file_manager->mode) && file_manager->file_type==FM_GZIPPED_FILE) {
+      gem_cond_fatal_error__perror(gzseek(file_manager->gz_file,position,SEEK_SET)<0,FM_SEEK,
+          file_manager->file_name,file_manager->byte_position+position);
+      // Update locator
+      file_manager->byte_position = position;
+      file_manager->eof = position >= file_manager->file_size;
+#endif
+#ifdef HAVE_BZLIB
+	} else if(FM_IS_READING(file_manager->mode) && file_manager->file_type==FM_BZIPPED_FILE && position == 0) {
+		 // libbz2 has no seek function, but if we are seeking to the beginning (when reading) we can just
+		 // close and reopen the file
+     int bzerr;
+		 BZ2_bzReadClose(&bzerr,file_manager->bz_file);
+		 gem_cond_fatal_error(bzerr!=BZ_OK,FM_BZCLOSE,file_manager->file_name);
+		 if (file_manager->skip_read_buffer!=NULL)  {
+				mm_free(file_manager->skip_read_buffer);
+				file_manager->skip_read_buffer=NULL;
+		 }
+		 file_manager->fd = open(file_manager->file_name,fm_open_flags[file_manager->mode],S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+		 gem_cond_fatal_error__perror(file_manager->fd==-1,FM_OPEN,file_manager->file_name);
+		 file_manager->file = fdopen(file_manager->fd,fm_file_open_flags[file_manager->mode]);
+		 gem_cond_fatal_error__perror(file_manager->file==NULL,FM_FDOPEN,file_manager->file_name);
+		 int bzerror;
+		 file_manager->bz_file = BZ2_bzReadOpen(&bzerror,file_manager->file,0,0,NULL,0);
+		 gem_cond_fatal_error(bzerror!=BZ_OK,FM_BZOPEN);
+     file_manager->byte_position = 0;
+     file_manager->eof = false;
+#endif
   } else {
     GEM_NOT_SUPPORTED();
   }

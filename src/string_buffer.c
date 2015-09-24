@@ -405,8 +405,20 @@ GEM_INLINE uint64_t gem_strlen(const char* const buffer) {
   GEM_CHECK_NULL(buffer);
   return strlen(buffer);
 }
+void gem_strrev(char* const buffer,const uint64_t length) {
+  const uint64_t last_idx = length-1;
+  const uint64_t middle = length/2;
+  uint64_t i;
+  for (i=0;i<middle;++i) buffer[i] = buffer[last_idx-i];
+}
+void gem_encrev(uint8_t* const buffer,const uint64_t length) {
+  const uint64_t last_idx = length-1;
+  const uint64_t middle = length/2;
+  uint64_t i;
+  for (i=0;i<middle;++i) buffer[i] = buffer[last_idx-i];
+}
 GEM_INLINE char* gem_strrmext(char* const buffer) {
-  const uint64_t total_length = strlen(buffer);
+  const int64_t total_length = strlen(buffer);
   int64_t i = total_length-1;
   while (i>=0) {
     if (buffer[i]==DOT) {buffer[i]=EOS; break;}
@@ -415,7 +427,7 @@ GEM_INLINE char* gem_strrmext(char* const buffer) {
   return buffer;
 }
 GEM_INLINE char* gem_strbasename(char* const buffer) {
-  const uint64_t total_length = strlen(buffer);
+  const int64_t total_length = strlen(buffer);
   int64_t i = total_length-1;
   while (i>=0) {
     if (buffer[i]==SLASH) {

@@ -739,15 +739,15 @@ GEM_INLINE uint64_t filtering_candidates_process_candidates(
   PROF_START(GP_FC_PROCESS_CANDIDATES);
   PROF_START(GP_FC_DECODE_POSITIONS);
   const uint64_t key_length = pattern->key_length;
-  if (pending_candidates < DECODE_NUM_POSITIONS_PREFETCHED) {
+//  if (pending_candidates < DECODE_NUM_POSITIONS_PREFETCHED) {
     filtering_candidates_decode_filtering_positions(
         filtering_candidates,archive->locator,archive->text,
         archive->fm_index,key_length,pattern->max_effective_bandwidth);
-  } else {
-    filtering_candidates_decode_filtering_position_batch_prefetched(
-        filtering_candidates,archive->locator,archive->text,
-        archive->fm_index,key_length,pattern->max_effective_bandwidth);
-  }
+//  } else {
+//    filtering_candidates_decode_filtering_position_batch_prefetched(
+//        filtering_candidates,archive->locator,archive->text,
+//        archive->fm_index,key_length,pattern->max_effective_bandwidth);
+//  }
   PROF_STOP(GP_FC_DECODE_POSITIONS);
 
   // Compose matching regions into candidate regions (also filter out duplicated positions or already checked)

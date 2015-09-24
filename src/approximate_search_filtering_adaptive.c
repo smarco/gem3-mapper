@@ -105,3 +105,25 @@ GEM_INLINE void approximate_search_filtering_adaptive_generate_candidates(approx
   // Done!!
   PROF_ADD_COUNTER(GP_AS_ADAPTIVE_MCS,search->max_complete_stratum);
 }
+/*
+ * Test
+ */
+GEM_INLINE void approximate_search_test(approximate_search_t* const search,matches_t* const matches) {
+  pattern_t* const pattern = &search->pattern;
+  // FM-Index basic exact search
+//  fm_index_bsearch(search->archive->fm_index,pattern->key,
+//    pattern->key_length,&search->hi_exact_matches,&search->lo_exact_matches);
+//  fm_index_reverse_bsearch(search->archive->fm_index,pattern->key,
+//      pattern->key_length,&search->hi_exact_matches,&search->lo_exact_matches);
+//  fm_index_bsearch_pure(search->archive->fm_index,pattern->key,
+//      pattern->key_length,&search->hi_exact_matches,&search->lo_exact_matches);
+//  fm_index_reverse_bsearch_pure(search->archive->fm_index,pattern->key,
+//      pattern->key_length,&search->hi_exact_matches,&search->lo_exact_matches);
+  // Add to matches
+  matches_add_interval_match(matches,search->lo_exact_matches,
+      search->hi_exact_matches,pattern->key_length,0,search->emulated_rc_search);
+  // Update MCS
+  approximate_search_update_mcs(search,1);
+  // Update next state
+  search->search_state = asearch_end;
+}

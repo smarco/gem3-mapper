@@ -288,7 +288,7 @@ GEM_INLINE void archive_check_matches(
     // Retrieve location
     locator_t* const locator = archive->locator;
     const uint8_t* const tag = (uint8_t*)match_trace->sequence_name;
-    const uint64_t index_position = inverse_locator_map(locator,tag,match_trace->strand,match_trace->text_position);
+    const uint64_t index_position = locator_inverse_map(locator,tag,match_trace->strand,match_trace->text_position);
     // Expand text-range
     locator_interval_t* const locator_interval = locator_lookup_interval(archive->locator,index_position);
     match_effective_length = match_trace->match_alignment.effective_length;

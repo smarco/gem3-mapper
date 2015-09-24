@@ -10,7 +10,7 @@
 #include "approximate_search_filtering_control.h"
 #include "search_parameters.h"
 
-#include "neighborhood_search.h"
+#include "nsearch.h"
 #include "region_profile.h"
 #include "region_profile_adaptive.h"
 #include "region_profile_boost.h"
@@ -20,7 +20,7 @@
 /*
  * Debug
  */
-#define DEBUG_REGION_PROFILE_PRINT  true //GEM_DEEP_DEBUG
+#define DEBUG_REGION_PROFILE_PRINT  GEM_DEEP_DEBUG
 #define DEBUG_REGION_SCHEDULE_PRINT GEM_DEEP_DEBUG
 
 /*

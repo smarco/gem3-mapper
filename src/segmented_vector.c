@@ -110,12 +110,12 @@ GEM_INLINE char* svector_request_char_buffer(svector_t* const svector,const uint
   const uint64_t total_length = length+1;
   vector_segment_t* segment;
   if (gem_expect_false(num_segment >= vector_get_used(svector->segments))) {
-    gem_cond_fatal_error(length>svector->segment_size,SVECTOR_INSERT_CHAR_BUFFER_TOO_LONG,total_length);
+    gem_cond_fatal_error(total_length>svector->segment_size,SVECTOR_INSERT_CHAR_BUFFER_TOO_LONG,total_length);
     segment = svector_add_segment(svector); // Add new segment
     svector->elements_used += total_length; // Update used
     return segment->memory; // Return
   } else if (gem_expect_false(remaining < total_length)) {
-    gem_cond_fatal_error(length>svector->segment_size,SVECTOR_INSERT_CHAR_BUFFER_TOO_LONG,total_length);
+    gem_cond_fatal_error(total_length>svector->segment_size,SVECTOR_INSERT_CHAR_BUFFER_TOO_LONG,total_length);
     segment = svector_add_segment(svector); // Add new segment
     svector->elements_used += remaining+total_length; // Update used
     return segment->memory; // Return
@@ -130,8 +130,9 @@ GEM_INLINE char* svector_insert_char_buffer(svector_t* const svector,const char*
   // Request char buffer
   char* const dst_memory = svector_request_char_buffer(svector,length);
   // Copy buffer
-  memcpy(dst_memory,buffer,length);
-  *(((char*)dst_memory)+length) = '\0';
+  memcpy(dst_memory,buffer,length+1);
+  dst_memory[length] = '\0';
+  // *(((char*)dst_memory)+(length+1)) = '\0';
   return dst_memory;
 }
 /*

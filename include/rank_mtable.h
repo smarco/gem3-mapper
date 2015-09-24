@@ -20,6 +20,9 @@
 
 #define RANK_MTABLE_MMD_THRESHOLD 20                          // Minimum Matching Depth (MMD)
 
+#define RANK_MTABLE_SIZE(search_depth) ( (5*(POW4(search_depth)-1))/3 + 2 )  /* S := (5*(4^(n)-1))/3 + 2 */
+#define RANK_MTABLE_LEVEL_SIZE(level)  (5*POW4(level-1))
+
 /*
  * Check
  */
@@ -45,18 +48,12 @@ typedef struct {
 } rank_mquery_t;
 
 /*
- * Loader/Setup
+ * Setup
  */
+void rank_mtable_init_levels(rank_mtable_t* const rank_mtable);
 rank_mtable_t* rank_mtable_read(fm_t* const file_manager);
 rank_mtable_t* rank_mtable_read_mem(mm_t* const memory_manager);
-void rank_mtable_write(fm_t* const file_manager,rank_mtable_t* const rank_mtable);
 void rank_mtable_delete(rank_mtable_t* const rank_mtable);
-
-/*
- * Builder
- */
-rank_mtable_t* rank_mtable_builder_new(const bwt_builder_t* const bwt_builder,const bool verbose);
-void rank_mtable_builder_delete(rank_mtable_t* const rank_mtable);
 
 /*
  * Accessors

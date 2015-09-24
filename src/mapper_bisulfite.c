@@ -80,7 +80,7 @@ void* mapper_SE_bisulfite_thread(mapper_search_t* const mapper_search) {
 
    // Output matches
    mapper_SE_output_matches(parameters,buffered_output_file,
-       mapper_search->archive_search,matches);
+       mapper_search->archive_search,matches,mapper_search->mapping_stats);
 
    // Update processed
    if (++reads_processed == MAPPER_TICKER_STEP) {
@@ -156,7 +156,7 @@ void* mapper_PE_bisulfite_thread(mapper_search_t* const mapper_search) {
     string_copy(seq_end2,&orig_end2);
 
     // Output matches
-    mapper_PE_output_matches(parameters,buffered_output_file,archive_search_end1,archive_search_end2,paired_matches);
+    mapper_PE_output_matches(parameters,buffered_output_file,archive_search_end1,archive_search_end2,paired_matches,mapper_search->mapping_stats);
 
     // Update processed
     if (++reads_processed == MAPPER_TICKER_STEP) {

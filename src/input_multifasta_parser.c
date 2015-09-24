@@ -15,17 +15,20 @@ GEM_INLINE void input_multifasta_state_clear(input_multifasta_state_t* const par
   /* Parsing State */
   parsing_state->multifasta_read_state = Expecting_tag;
   /* Sequence components */
-  parsing_state->tag_id = 0;                // Current sequence TAG-ID
-  parsing_state->text_position = 0;         // Current position of the current sequence (from MultiFASTA)
-  parsing_state->index_position = 0;        // Current position of generated index
+  parsing_state->tag_id = 0;                 // Current sequence TAG-ID
+  parsing_state->text_position = 0;          // Current position of the current sequence (from MultiFASTA)
+  parsing_state->index_position = 0;         // Current position of generated index
   /* Text */
-  parsing_state->ns_pending = 0;            // Accumulated Ns
-  parsing_state->text_interval_length = 0;  // Length of the text-interval
-  parsing_state->text_sequence_length = 0;  // Length of the text-sequence (Sum of intervals)
+  parsing_state->ns_pending = 0;             // Accumulated Ns
+  parsing_state->text_interval_length = 0;   // Length of the text-interval
+  parsing_state->text_sequence_length = 0;   // Length of the text-sequence (Sum of intervals)
   /* Index */
-  parsing_state->index_interval_length = 0; // Length of the index-interval
-  parsing_state->index_sequence_length = 0; // Length of the index-sequence (Sum of intervals)
-  parsing_state->last_char = DNA_CHAR_SEP;  // Last character printed in the index
+  parsing_state->index_interval_length = 0;  // Length of the index-interval
+  parsing_state->index_sequence_length = 0;  // Length of the index-sequence (Sum of intervals)
+  parsing_state->last_char = DNA_CHAR_SEP;   // Last character printed in the index
+  parsing_state->interval_type = locator_interval_chromosomal_assembly; // Current interval type
+  parsing_state->strand = Forward;           // Current strand
+  parsing_state->bs_strand = bs_strand_none; // Current BS-Strand
 }
 GEM_INLINE void input_multifasta_state_reset_interval(input_multifasta_state_t* const parsing_state) {
   /* Text */

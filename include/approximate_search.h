@@ -23,23 +23,28 @@
 #define DEBUG_SEARCH_STATE          GEM_DEEP_DEBUG
 
 /*
- * Approximate Search
+ * Approximate Search State
  */
 typedef enum {
-  asearch_begin,                     // Beginning of the search
-  asearch_no_regions,                // While doing the region profile no regions were found
-  asearch_exact_matches,             // One maximum region was found (exact results)
-  asearch_exact_filtering_adaptive,  // Region-Minimal Profile (Adaptive) + Exact candidate generation
-  asearch_verify_candidates,         // Verify candidates
-  asearch_candidates_verified,       // Candidates verified
-  asearch_exact_filtering_boost,     // Boost Region-Profile + Exact candidate generation
-  asearch_inexact_filtering,         // Region-Delimit Profile (Adaptive) + Approximate candidate generation
-  asearch_neighborhood,              // Neighborhood search
-  asearch_end,                       // End of the current workflow
-  asearch_read_recovery,             // Read recovery
-  asearch_unbounded_alignment,       // Unbounded Alignment Search
-  asearch_probe_candidates           // Probe candidates (try to lower max-differences) // TODO
+  asearch_begin = 0,                     // Beginning of the search
+  asearch_no_regions = 1,                // While doing the region profile no regions were found
+  asearch_exact_matches = 2,             // One maximum region was found (exact results)
+  asearch_exact_filtering_adaptive = 3,  // Region-Minimal Profile (Adaptive) + Exact candidate generation
+  asearch_verify_candidates = 4,         // Verify candidates
+  asearch_candidates_verified = 5,       // Candidates verified
+  asearch_exact_filtering_boost = 6,     // Boost Region-Profile + Exact candidate generation
+  asearch_inexact_filtering = 7,         // Region-Delimit Profile (Adaptive) + Approximate candidate generation
+  asearch_neighborhood = 8,              // Neighborhood search
+  asearch_end = 9,                       // End of the current workflow
+  asearch_read_recovery = 10,            // Read recovery
+  asearch_unbounded_alignment = 11,      // Unbounded Alignment Search
+  asearch_probe_candidates = 12          // Probe candidates (try to lower max-differences) // TODO
 } approximate_search_state_t;
+extern const char* approximate_search_state_label[13];
+
+/*
+ * Approximate Search
+ */
 typedef struct {
   /* Index Structures, Pattern & Parameters */
   archive_t* archive;                                   // Archive
@@ -97,5 +102,10 @@ void approximate_search_release_verification_candidates(approximate_search_t* co
  * Aproximate String Search
  */
 void approximate_search(approximate_search_t* const search,matches_t* const matches);
+
+/*
+ * Display
+ */
+void approximate_search_print(FILE* const stream,approximate_search_t* const search);
 
 #endif /* APPROXIMATE_SEARCH_H_ */

@@ -1,24 +1,17 @@
 /*
  * PROJECT: GEMMapper
- * FILE: archive_builder.c
+ * FILE: archive_builder_index.c
  * DATE: 06/06/2012
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  */
 
-#include "archive_builder.h"
-#include "archive_text_builder.h"
-#include "input_fasta_parser.h"
+#include "archive_builder_index.h"
+#include "archive_builder_text.h"
 
 /*
- * Suffix Sort
+ * Build BWT (SA)
  */
-// Sort Suffixes Debug prototypes
-GEM_INLINE void archive_builder_debug_print_explicit_sa(archive_builder_t* const archive_builder,const char* const extension);
-GEM_INLINE void archive_builder_debug_print_bwt(archive_builder_t* const archive_builder,const char* const extension,const bool verbose);
-/*
- * STEP2 Archive Build :: Build BWT (SA)
- */
-GEM_INLINE void archive_builder_build_bwt(
+GEM_INLINE void archive_builder_index_build_bwt(
     archive_builder_t* const archive_builder,
     const bool dump_bwt,const bool dump_explicit_sa,const bool verbose) {
   // Allocate BWT-text
@@ -41,12 +34,12 @@ GEM_INLINE void archive_builder_build_bwt(
       archive_builder->num_threads,mm_pool_get_slab(mm_pool_32MB)); // Allocate Sampled-SA
   sa_builder_sort_suffixes(archive_builder->sa_builder,archive_builder->enc_bwt,archive_builder->sampled_sa,verbose);
   // DEBUG
-  if (dump_bwt) archive_builder_debug_print_bwt(archive_builder,".bwt",true);
-//  if (dump_explicit_sa) archive_builder_debug_print_explicit_sa(archive_builder,".sa"); // No full sort (only hash-sort)
+  if (dump_bwt) archive_builder_index_print_bwt(archive_builder,".bwt",true);
+//  if (dump_explicit_sa) archive_builder_index_print_explicit_sa(archive_builder,".sa"); // No full sort (only hash-sort)
   // Free
   sa_builder_delete(archive_builder->sa_builder); // Delete SA-Builder
 }
-GEM_INLINE void archive_builder_build_bwt_reverse(
+GEM_INLINE void archive_builder_index_build_bwt_reverse(
     archive_builder_t* const archive_builder,
     const bool dump_reverse_indexed_text,const bool dump_bwt,
     const bool dump_explicit_sa,const bool verbose) {
@@ -61,7 +54,7 @@ GEM_INLINE void archive_builder_build_bwt_reverse(
     SWAP(enc_text_buffer[i],enc_text_buffer[text_length-i-1]);
   }
   // DEBUG index_text
-  if (dump_reverse_indexed_text) archive_builder_dump_index_text(archive_builder,".rev.text");
+  if (dump_reverse_indexed_text) archive_builder_text_dump(archive_builder,".rev.text");
   memset(archive_builder->character_occurrences,0,DNA_EXT_RANGE*DNA_EXT_RANGE*UINT64_SIZE);
   // SA-Builder (SA-sorting)
   archive_builder->sa_builder = sa_builder_new(
@@ -74,15 +67,15 @@ GEM_INLINE void archive_builder_build_bwt_reverse(
   // Sort suffixes & sample SA
   sa_builder_sort_suffixes(archive_builder->sa_builder,archive_builder->enc_bwt,NULL,verbose);
   // DEBUG
-  if (dump_bwt) archive_builder_debug_print_bwt(archive_builder,".rev.bwt",true);
-//  if (dump_explicit_sa) archive_builder_debug_print_explicit_sa(archive_builder,".rev.sa"); // No full sort (only hash-sort)
+  if (dump_bwt) archive_builder_index_print_bwt(archive_builder,".rev.bwt",true);
+//  if (dump_explicit_sa) archive_builder_index_print_explicit_sa(archive_builder,".rev.sa"); // No full sort (only hash-sort)
   // Free
   sa_builder_delete(archive_builder->sa_builder); // Delete SA-Builder
 }
 /*
- * Debug functions
+ * Display
  */
-GEM_INLINE void archive_builder_debug_print_explicit_sa(
+GEM_INLINE void archive_builder_index_print_explicit_sa(
     archive_builder_t* const archive_builder,const char* const extension) {
   // Open File
   char* const debug_explicit_sa_file_name = gem_strcat(archive_builder->output_file_name_prefix,extension);
@@ -101,7 +94,7 @@ GEM_INLINE void archive_builder_debug_print_explicit_sa(
   fclose(debug_explicit_sa_file);
   mm_free(debug_explicit_sa_file_name);
 }
-GEM_INLINE void archive_builder_debug_print_bwt(
+GEM_INLINE void archive_builder_index_print_bwt(
     archive_builder_t* const archive_builder,const char* const extension,const bool verbose) {
   ticker_t ticker;
   ticker_percentage_reset(&ticker,verbose,"Building-BWT::Dumping BWT",1,1,true);

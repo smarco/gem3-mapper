@@ -47,4 +47,9 @@ void matches_counters_compute_matches_to_decode(
     const uint64_t min_reported_matches,const uint64_t max_reported_matches,
     uint64_t* const reported_strata,uint64_t* const last_stratum_reported_matches);
 
+/*
+ * Display
+ */
+void matches_counters_print(FILE* const stream,matches_counters_t* const matches_counter,const uint64_t mcs);
+
 #endif /* MATCHES_COUNTERS_H_ */

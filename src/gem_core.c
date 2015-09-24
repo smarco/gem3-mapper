@@ -30,6 +30,8 @@ GEM_INLINE void gem_runtime_init(const uint64_t num_threads,const uint64_t max_m
 GEM_INLINE void gem_runtime_destroy() {
   // Clean-up Profiler
   PROF_DELETE();
+  // Clean-up Thread Info
+  gem_thread_cleanup();
   // Delete Memory-Pool
   mm_pool_delete();
 }

@@ -14,11 +14,7 @@
 #include "bwt.h"
 #include "sampled_sa.h"
 #include "rank_mtable.h"
-
-/*
- * Checks
- */
-#define FM_INDEX_CHECK(fm_index) GEM_CHECK_NULL(fm_index)
+#include "rank_mtable_builder.h"
 
 /*
  * FM-Index
@@ -32,20 +28,9 @@ typedef struct {
   /* BWT */
   rank_mtable_t* rank_table;              // Memoizated intervals
   bwt_t* bwt;                             // BWT forward text
+  rank_mtable_t* rank_table_reverse;      // Memoizated reverse intervals
   bwt_reverse_t* bwt_reverse;             // BWT reverse text
 } fm_index_t;
-// Bi-Directional queries
-typedef struct {
-  /* Forward Interval (searching forward) */
-  uint64_t forward_lo;
-  uint64_t forward_hi;
-  /* Backward Interval (searching backwards) */
-  uint64_t backward_lo;
-  uint64_t backward_hi;
-} fm_2interval_t;
-typedef struct {
-  uint64_t pranks[DNA_EXT_RANGE];         // Precomputed eranks
-} fm_2erank_elms_t;
 
 /*
  * Builder
@@ -72,24 +57,6 @@ double fm_index_get_proper_length(const fm_index_t* const fm_index);
 uint64_t fm_index_get_size(const fm_index_t* const fm_index);
 
 /*
- * FM-Index Bidirectional Operators
- */
-void fm_index_precompute_2erank_forward(
-    const fm_index_t* const fm_index,fm_2erank_elms_t* const fm_2erank_elms,const uint64_t position);
-void fm_index_precompute_2erank_backward(
-    const fm_index_t* const fm_index,fm_2erank_elms_t* const fm_2erank_elms,const uint64_t position);
-void fm_index_precomputed_2query_forward(
-    fm_2interval_t* const fm_2interval,fm_2erank_elms_t* const lo_2erank_elms,
-    fm_2erank_elms_t* const hi_2erank_elms,const uint8_t char_enc);
-void fm_index_precomputed_2query_backward(
-    fm_2interval_t* const fm_2interval,fm_2erank_elms_t* const lo_2erank_elms,
-    fm_2erank_elms_t* const hi_2erank_elms,const uint8_t char_enc);
-void fm_index_2query_forward(
-    const fm_index_t* const fm_index,fm_2interval_t* const fm_2interval,const uint8_t char_enc);
-void fm_index_2query_backward(
-    const fm_index_t* const fm_index,fm_2interval_t* const fm_2interval,const uint8_t char_enc);
-
-/*
  * FM-Index Operators
  */
 // Compute SA[i]
@@ -101,23 +68,6 @@ uint64_t fm_index_psi(const fm_index_t* const fm_index,const uint64_t bwt_positi
 // Decode fm_index->text[bwt_position..bwt_position+length-1] into @buffer.
 uint64_t fm_index_decode(
     const fm_index_t* const fm_index,const uint64_t bwt_position,const uint64_t length,char* const buffer);
-
-/*
- * Basic FM-Index search (backwards/forward)
- */
-void fm_index_bsearch_pure(
-    const fm_index_t* const fm_index,const uint8_t* const key,
-    uint64_t key_length,uint64_t* const hi_out,uint64_t* const lo_out);
-void fm_index_reverse_bsearch_pure(
-    const fm_index_t* const fm_index,const uint8_t* const key,
-    const uint64_t key_length,uint64_t* const hi_out,uint64_t* const lo_out);
-void fm_index_bsearch(
-    const fm_index_t* const fm_index,const uint8_t* const key,
-    uint64_t key_length,uint64_t* const hi_out,uint64_t* const lo_out);
-uint64_t fm_index_bsearch_continue(
-    const fm_index_t* const fm_index,const char* const key,const uint64_t key_length,
-    const bool* const allowed_repl,uint64_t last_hi,uint64_t last_lo,uint64_t begin_pos,
-    const uint64_t end_pos,uint64_t* const res_hi,uint64_t* const res_lo);
 
 /*
  * Display

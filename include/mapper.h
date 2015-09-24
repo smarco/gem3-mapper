@@ -30,6 +30,9 @@
 // Qualities
 #include "quality_model.h"
 
+// Report Stats
+#include "report_stats_mstats.h"
+
 /*
  * Constants
  */
@@ -58,6 +61,7 @@ typedef struct {
   bool fastq_try_recovery;
   /* Output */
   char* output_file_name;
+	char* report_file_name;
   file_format_t output_format;
   output_sam_parameters_t sam_parameters;
   output_map_parameters_t map_parameters;
@@ -115,6 +119,8 @@ typedef struct {
   pthread_mutex_t input_file_mutex;
   FILE* output_stream;
   output_file_t* output_file;
+	/* Stats report structures */
+	mapping_stats_t* global_mapping_stats;
   /* Mapper Type */
   mapper_type mapper_type;
   /* I/O Parameters */
@@ -146,6 +152,8 @@ typedef struct {
   buffered_input_file_t* buffered_fasta_input_end2;
   /* Mapper parameters */
   mapper_parameters_t* mapper_parameters;
+	/* Per thread stats report structures */
+	mapping_stats_t* mapping_stats;
   /* Archive-Search */
   archive_search_t* archive_search;
   archive_search_t* archive_search_end1;
@@ -199,11 +207,11 @@ error_code_t mapper_PE_read_paired_sequences(mapper_search_t* const mapper_searc
  */
 void mapper_SE_output_matches(
     mapper_parameters_t* const parameters,buffered_output_file_t* const buffered_output_file,
-    archive_search_t* const archive_search,matches_t* const matches);
+    archive_search_t* const archive_search,matches_t* const matches,mapping_stats_t* mstats);
 void mapper_PE_output_matches(
     mapper_parameters_t* const parameters,buffered_output_file_t* const buffered_output_file,
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches);
+    paired_matches_t* const paired_matches,mapping_stats_t* mstats);
 
 /*
  * SE Mapper

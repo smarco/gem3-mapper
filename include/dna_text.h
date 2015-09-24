@@ -50,7 +50,7 @@
 #define ENC_DNA_CHAR_JUMP 6
 
 /*
- * Handy check functions
+ * Translation tables
  */
 extern const bool dna_canonical_table[256];
 extern const bool dna_canonical_encoded_table[DNA_EXT_RANGE];
@@ -71,25 +71,35 @@ extern const char dna_decode_table[DNA_EXT_RANGE];
 
 extern const char dna_bisulfite_C2T_table[256];
 extern const char dna_bisulfite_G2A_table[256];
+extern const uint8_t dna_encoded_bisulfite_C2T_table[DNA_EXT_RANGE];
+extern const uint8_t dna_encoded_bisulfite_G2A_table[DNA_EXT_RANGE];
 
 extern const uint8_t dna_encoded_colorspace_table[DNA_EXT_RANGE][DNA_EXT_RANGE];
 
+/*
+ * Translation functions
+ */
 #define is_dna_canonical(character)          (dna_canonical_table[(int)(character)])
 #define is_dna_canonical_encoded(character)  (dna_canonical_encoded_table[(int)(character)])
 #define is_dna(character)                    (dna_table[(int)(character)])
 #define is_dna_encoded(character)            (dna_encoded_table[(int)(character)])
 #define is_extended_dna(character)           (extended_dna_table[(int)(character)])
-#define is_extended_dna_encoded(character)   (extended_dna_encoded_table[(int)(character)])
+#define is_extended_dna_encoded(enc_char)    (extended_dna_encoded_table[(int)(enc_char)])
 #define is_unmasked_dna(character)           (unmasked_dna_table[(int)(character)])
 #define is_iupac_code(character)             (iupac_code_table[(int)(character)])
 
-#define dna_normalized(character)          (dna_normalized_table[(int)(character)])
-#define dna_strictly_normalized(character) (dna_strictly_normalized_table[(int)(character)])
-#define dna_complement(character)          (dna_complement_table[(int)(character)])
-#define dna_encoded_complement(character)  (dna_encoded_complement_table[(int)(character)])
+#define dna_normalized(character)            (dna_normalized_table[(int)(character)])
+#define dna_strictly_normalized(character)   (dna_strictly_normalized_table[(int)(character)])
+#define dna_complement(character)            (dna_complement_table[(int)(character)])
+#define dna_encoded_complement(enc_char)     (dna_encoded_complement_table[(int)(enc_char)])
 
-#define dna_encode(character) (dna_encode_table[(int)(character)])
-#define dna_decode(enc_char)  (dna_decode_table[(int)(enc_char)])
+#define dna_bisulfite_C2T(character)         (dna_bisulfite_C2T_table[(int)(character)])
+#define dna_bisulfite_G2A(character)         (dna_bisulfite_G2A_table[(int)(character)])
+#define dna_encoded_bisulfite_C2T(enc_char)  (dna_encoded_bisulfite_C2T_table[(int)(enc_char)])
+#define dna_encoded_bisulfite_G2A(enc_char)  (dna_encoded_bisulfite_G2A_table[(int)(enc_char)])
+
+#define dna_encode(character)                (dna_encode_table[(int)(character)])
+#define dna_decode(enc_char)                 (dna_decode_table[(int)(enc_char)])
 
 #define dna_encoded_colorspace(enc_char_0,enc_char_1) (dna_encoded_colorspace_table[(int)(enc_char_0)][(int)(enc_char_1)])
 
@@ -101,8 +111,13 @@ extern const uint8_t dna_encoded_colorspace_table[DNA_EXT_RANGE][DNA_EXT_RANGE];
 /*
  * Orientation (strand)
  */
-typedef enum { Forward, Reverse } strand_t;
-typedef enum { None = 0, C2T, G2A, Mixed } bs_strand_t; // Bisulfite strand type
+typedef enum { Forward=0, Reverse=UINT64_MAX } strand_t;             // DNA strand type
+typedef enum {
+  bs_strand_none = 0,
+  bs_strand_C2T = 1,
+  bs_strand_G2A = 2,
+  bs_strand_mixed = UINT64_MAX
+} bs_strand_t; // Bisulfite strand type
 
 /*
  * DNA-Text
@@ -122,6 +137,7 @@ dna_text_t* dna_text_new(const uint64_t dna_text_length);
 dna_text_t* dna_text_padded_new(const uint64_t dna_text_length,const uint64_t init_padding,const uint64_t end_padding);
 void dna_text_write_chunk(fm_t* const output_file_manager,dna_text_t* const dna_text,const uint64_t chunk_length);
 void dna_text_write(fm_t* const output_file_manager,dna_text_t* const dna_text);
+
 /*
  * Accessors
  */
@@ -136,11 +152,21 @@ uint8_t* dna_text_retrieve_sequence(
     const uint64_t length,mm_stack_t* const mm_stack);
 
 /*
+ * Utils
+ */
+strand_t dna_strand_get_complement(const strand_t strand);
+
+/*
  * Display
  */
 void dna_text_print(FILE* const stream,dna_text_t* const dna_text,const uint64_t length);
 void dna_text_print_content(FILE* const stream,dna_text_t* const dna_text);
 void dna_text_pretty_print_content(FILE* const stream,dna_text_t* const dna_text,const uint64_t width);
+
+// Buffer Display
+void dna_buffer_print(
+    FILE* const stream,const uint8_t* const dna_buffer,
+    const uint64_t dna_buffer_length,const bool print_reverse);
 
 /*
  * Errors

@@ -37,13 +37,14 @@ GEM_INLINE void output_sam_parameters_set_defaults(output_sam_parameters_t* cons
   /* Header & RG  */
   sam_parameters->read_group_header = NULL;
   sam_parameters->read_group_id = NULL;
-  sam_parameters->bisulfite_mode = false;
   /* Read & Qualities */
   sam_parameters->omit_secondary_read__qualities = true;
   /* CIGAR */
   sam_parameters->print_mismatches = false;
   /* XA */
   sam_parameters->compact_xa = true;
+  /* Bisulfite */
+  sam_parameters->bisulfite_output = false;
   /* GEM compatibility */
   sam_parameters->print_gem_fields = false;
 }
@@ -79,8 +80,8 @@ GEM_INLINE void output_sam_print_header(
   uint64_t i = 0;
   while (i<num_intervals) {
     const int64_t tag_id = intervals[i].tag_id;
-    // Skip reverse intervals
-    if (tag_id < 0) {
+    // Skip Reverse or G2A contigs
+    if (intervals[i].strand==Reverse || intervals[i].bs_strand==bs_strand_G2A) {
       ++i; continue;
     }
     // Calculate the length of the sequence (compose by several intervals)
@@ -88,29 +89,6 @@ GEM_INLINE void output_sam_print_header(
     uint64_t total_length = intervals[i].sequence_offset+intervals[i].sequence_length;
     const char* const tag = locator_interval_get_tag(locator,intervals+i);
     uint64_t tag_len = gem_strlen(tag);
-    // Handle bisulfite mode contig name conversion
-    if (sam_parameters->bisulfite_mode) {
-      const char *p = tag;
-      while (*p++);
-      int ix;
-      for (ix = 0; ix < 2; ix++) {
-        const char *tp = p - 2;
-        uint64_t pos;
-        char *suff = string_get_buffer(sam_parameters->bisulfite_suffix + ix);
-        for (pos = string_get_length(sam_parameters->bisulfite_suffix + ix);pos > 0 && tp > tag;) {
-          if (suff[--pos] != *tp--) break;
-        }
-        if (!pos) {
-          tag_len -= string_get_length(sam_parameters->bisulfite_suffix + ix);
-          break;
-        }
-      }
-      // Skip G2A contigs
-      if (ix == 1) {
-        ++i;
-        continue;
-      }
-    }
     // Print SQ
     ofprintf(output_file,"@SQ\tSN:%"PRIs"\tLN:%"PRIu64"\n",tag_len,tag,total_length);
     // Next
@@ -272,25 +250,6 @@ GEM_INLINE void output_sam_print_md_cigar_element(
       GEM_INVALID_CASE();
       break;
   }
-}
-GEM_INLINE bs_strand_t output_sam_handle_BS_names(const char *seq_name,uint64_t *len,const string_t *bisulfite_suffix)
-{
-	bs_strand_t bs_strand = None;
-	int ix;
-	for(ix=0;ix<2;ix++) {
-		const char *tp = seq_name + *len - 1;
-		uint64_t pos;
-		const char *suff = bisulfite_suffix[ix].buffer;
-		for(pos=bisulfite_suffix[ix].length;pos>0 && tp>seq_name;) {
-			if(suff[--pos] != *tp--) break;
-		}
-		if(!pos) {
-			*len -= bisulfite_suffix[ix].length;
-			break;
-		}
-	}
-	if(ix<2) bs_strand = !ix ? C2T:G2A;
-	return bs_strand;
 }
 GEM_INLINE void output_sam_parse_read_group_header(char* const read_group_buffer,output_sam_parameters_t* const sam_parameters) {
   // Check TAG RG
@@ -493,8 +452,11 @@ GEM_INLINE void output_sam_print_opt_field_tag_TP() {}
  */
 GEM_INLINE void output_sam_print_opt_field_tag_XB(
     buffered_output_file_t* buffered_output_file,const match_trace_t* const match_trace) {
-  bofprintf_string_literal(buffered_output_file,"\tXB:A:");
-  bofprintf_char(buffered_output_file,"UCGM"[match_trace->bs_strand]);
+	if (match_trace->bs_strand == bs_strand_C2T) {
+	  bofprintf_string_literal(buffered_output_file,"\tXB:A:C");
+	} else if (match_trace->bs_strand == bs_strand_G2A) {
+	  bofprintf_string_literal(buffered_output_file,"\tXB:A:G");
+	}
 }
 /*
  *  XT  A  Type: Unique/Repeat/N/Mate-sw
@@ -766,23 +728,20 @@ GEM_INLINE void output_sam_print_opt_field_tag_X5_pe(
  *     XA:Z:chr10,+100306093,100M,0;chr2,+173184544,100M,0;chr2,+175137710,100M,0;
  */
 GEM_INLINE void output_sam_print_opt_field_tag_XA_match(
-    buffered_output_file_t* const buffered_output_file,
-    const matches_t* const matches,match_trace_t* const subdominant_match,
-    const output_sam_parameters_t* const output_sam_parameters) {
+    buffered_output_file_t* const buffered_output_file,const matches_t* const matches,
+    match_trace_t* const subdominant_match,const output_sam_parameters_t* const output_sam_parameters) {
   uint64_t seq_length = gem_strlen(subdominant_match->sequence_name);
   // Print SeqName
   buffered_output_file_reserve(buffered_output_file,seq_length+INT_MAX_LENGTH+10);
-  if (output_sam_parameters->bisulfite_mode) {
-	  subdominant_match->bs_strand = output_sam_handle_BS_names(
-	      subdominant_match->sequence_name,&seq_length,output_sam_parameters->bisulfite_suffix);
-	}
   bofprintf_string(buffered_output_file,seq_length,subdominant_match->sequence_name);
   bofprintf_char(buffered_output_file,',');
   // Print Strand
   bofprintf_char(buffered_output_file,(subdominant_match->strand==Forward)?'+':'-');
-  if (output_sam_parameters->bisulfite_mode) {
-	  bofprintf_char(buffered_output_file,"UCGM"[subdominant_match->bs_strand]);
-	}
+  if (subdominant_match->bs_strand==bs_strand_C2T) {
+    bofprintf_char(buffered_output_file,'C');
+  } else if (subdominant_match->bs_strand==bs_strand_G2A) {
+    bofprintf_char(buffered_output_file,'G');
+  }
   // Print Position
   bofprintf_uint64(buffered_output_file,subdominant_match->text_position+1);
   // Print CIGAR
@@ -934,8 +893,6 @@ GEM_INLINE void output_sam_print_core_fields_pe(
     uint64_t match_seq_name_length = gem_strlen(match->sequence_name);
     buffered_output_file_reserve(buffered_output_file,match_seq_name_length+2*INT_MAX_LENGTH+10);
     bofprintf_char(buffered_output_file,'\t');
-	 if(output_sam_parameters->bisulfite_mode) 
-		 match->bs_strand=output_sam_handle_BS_names(match->sequence_name,&match_seq_name_length,output_sam_parameters->bisulfite_suffix);
     bofprintf_string(buffered_output_file,match_seq_name_length,match->sequence_name); // (3) RNAME
     bofprintf_char(buffered_output_file,'\t');
     bofprintf_uint64(buffered_output_file,match->text_position+1); // (4) POS
@@ -947,9 +904,6 @@ GEM_INLINE void output_sam_print_core_fields_pe(
     uint64_t mate_seq_name_length = gem_strlen(mate->sequence_name);
     buffered_output_file_reserve(buffered_output_file,mate_seq_name_length+INT_MAX_LENGTH+10);
     bofprintf_char(buffered_output_file,'\t');
-    if(output_sam_parameters->bisulfite_mode) {
-      output_sam_handle_BS_names(mate->sequence_name,&mate_seq_name_length,output_sam_parameters->bisulfite_suffix);
-    }
     bofprintf_string(buffered_output_file,mate_seq_name_length,mate->sequence_name); // (3) RNAME
     bofprintf_char(buffered_output_file,'\t');
     bofprintf_uint64(buffered_output_file,mate->text_position+1); // (4) POS
@@ -966,12 +920,6 @@ GEM_INLINE void output_sam_print_core_fields_pe(
       uint64_t mate_seq_name_length = gem_strlen(mate->sequence_name);
       buffered_output_file_reserve(buffered_output_file,mate_seq_name_length+2*INT_MAX_LENGTH+10);
       bofprintf_char(buffered_output_file,'\t');
-      if(output_sam_parameters->bisulfite_mode) {
-        mate->bs_strand=output_sam_handle_BS_names(mate->sequence_name,&mate_seq_name_length,output_sam_parameters->bisulfite_suffix);
-        if(match != NULL && mate->bs_strand != match->bs_strand) {
-          match->bs_strand = mate->bs_strand = Mixed;
-        }
-      }
       bofprintf_string(buffered_output_file,mate_seq_name_length,mate->sequence_name);
       bofprintf_char(buffered_output_file,'\t');
       bofprintf_uint64(buffered_output_file,mate->text_position+1);
@@ -1017,9 +965,6 @@ GEM_INLINE void output_sam_print_core_fields_se(
     uint64_t sequence_name_length = gem_strlen(match->sequence_name);
     buffered_output_file_reserve(buffered_output_file,sequence_name_length+2*INT_MAX_LENGTH+10);
     bofprintf_char(buffered_output_file,'\t');
-	  if (output_sam_parameters->bisulfite_mode) {
-	    match->bs_strand=output_sam_handle_BS_names(match->sequence_name,&sequence_name_length,output_sam_parameters->bisulfite_suffix);
-		}
     bofprintf_string(buffered_output_file,sequence_name_length,match->sequence_name);
     bofprintf_char(buffered_output_file,'\t');
     bofprintf_uint64(buffered_output_file,match->text_position+1);
@@ -1061,12 +1006,12 @@ GEM_INLINE void output_sam_print_optional_fields_se(
   // NM
   if (match_trace) output_sam_print_opt_field_tag_NM(buffered_output_file,matches,match_trace);
   /*
-   * MD. We don't output MD flags in bisulfite mode because 
+   * MD. We don't output MD flags for bisulfite matches because 
    *   (a) they are not correct w.r.t. the stated reference
    *   (b) if we calculated them correctly they would be large as they show all mismatches  
    */
   if (match_trace) {
-    if(sam_parameters->bisulfite_mode) {
+    if (sam_parameters->bisulfite_output) {
 	    output_sam_print_opt_field_tag_XB(buffered_output_file,match_trace); // XB
     } else {
 	    output_sam_print_opt_field_tag_MD(buffered_output_file,matches,match_trace); // MD
@@ -1099,12 +1044,12 @@ GEM_INLINE void output_sam_print_optional_fields_pe(
   // NM
   if (match_trace) output_sam_print_opt_field_tag_NM(buffered_output_file,matches,match_trace);
   /* 
-   * MD We don't output MD flags in bisulfite mode because 
+   * MD We don't output MD flags for bisulfite matches because
    *   (a) they are not correct w.r.t. the stated reference
-   *   (b) if we calculated them correctly they would be large as they show all and mismatches
+   *   (b) if we calculated them correctly they would be large as they would show all mismatches
    */
   if (match_trace) {
-    if(sam_parameters->bisulfite_mode) {
+    if (sam_parameters->bisulfite_output) {
 	    output_sam_print_opt_field_tag_XB(buffered_output_file,match_trace); // XB
     } else {
 	    output_sam_print_opt_field_tag_MD(buffered_output_file,matches,match_trace); // MD

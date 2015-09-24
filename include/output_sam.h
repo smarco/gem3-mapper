@@ -24,14 +24,14 @@ typedef struct {
   /* Header & RG */
   char *read_group_header;
   string_t *read_group_id;
-  bool bisulfite_mode;
-  string_t bisulfite_suffix[2];
   /* Read & Qualities */
   bool omit_secondary_read__qualities;
   /* CIGAR */
   bool print_mismatches;
   /* XA */
   bool compact_xa;
+  /* Bisulfite */
+  bool bisulfite_output;
   /* GEM compatibility */
   bool print_gem_fields;
 } output_sam_parameters_t;

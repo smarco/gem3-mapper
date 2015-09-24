@@ -12,6 +12,26 @@
 #include "approximate_search_neighborhood.h"
 
 /*
+ * Approximate Search State
+ */
+const char* approximate_search_state_label[] =
+{
+    [0]  = "begin",
+    [1]  = "no_regions",
+    [2]  = "exact_matches",
+    [3]  = "exact_filtering_adaptive",
+    [4]  = "verify_candidates",
+    [5]  = "candidates_verified",
+    [6]  = "exact_filtering_boost",
+    [7]  = "inexact_filtering",
+    [8]  = "neighborhood",
+    [9]  = "end",
+    [10] = "read_recovery",
+    [11] = "unbounded_alignment",
+    [12] = "probe_candidates",
+};
+
+/*
  * Setup
  */
 GEM_INLINE void approximate_search_init(
@@ -35,7 +55,7 @@ GEM_INLINE void approximate_search_reset(approximate_search_t* const search) {
   // Reset Approximate Search State
   search->search_state = asearch_begin;
   search->stop_before_neighborhood_search = false;
-  const uint64_t max_complete_error = search->as_parameters->complete_search_error_nominal + search->pattern.num_low_quality_bases;
+  const uint64_t max_complete_error = search->as_parameters->complete_search_error_nominal; // FIXME + search->pattern.num_low_quality_bases;
   search->max_complete_error = MIN(max_complete_error,search->pattern.max_effective_filtering_error);
   search->max_complete_stratum = ALL;
   search->max_matches_reached = false;
@@ -88,9 +108,9 @@ GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t*
   switch (parameters->mapping_mode) {
     case mapping_adaptive_filtering_fast:
     case mapping_adaptive_filtering_thorough:
-    case mapping_adaptive_filtering_complete:
       approximate_search_filtering_adaptive(search,matches); // Adaptive & incremental mapping
       break;
+    case mapping_adaptive_filtering_complete:
     case mapping_fixed_filtering_complete:
       approximate_search_filtering_complete(search,matches); // Filtering Complete
       break;
@@ -101,6 +121,9 @@ GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t*
       approximate_search_filtering_adaptive_generate_regions(search);
       matches->max_complete_stratum = 0; PROF_STOP(GP_AS_MAIN); return;
       break;
+    case mapping_test:
+      approximate_search_test(search,matches);
+      break;
     default:
       GEM_INVALID_CASE();
       break;
@@ -108,4 +131,22 @@ GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t*
   // Set matches-MCS
   if (matches) matches->max_complete_stratum = MIN(matches->max_complete_stratum,search->max_complete_stratum);
   PROF_STOP(GP_AS_MAIN);
+}
+/*
+ * Display
+ */
+GEM_INLINE void approximate_search_print(FILE* const stream,approximate_search_t* const search) {
+  tab_fprintf(stream,"[GEM]>ApproximateSearch\n");
+  tab_global_inc();
+  tab_fprintf(stream,"=> Search.State %s\n",search->search_state);
+  tab_fprintf(stream,"=> Max.complete.error %lu\n",search->max_complete_error);
+  tab_fprintf(stream,"=> MCS %lu\n",search->max_complete_stratum);
+  tab_fprintf(stream,"=> Max.matches.reached %lu\n",search->max_matches_reached);
+  tab_fprintf(stream,"=> Exact.lo %lu\n",search->lo_exact_matches);
+  tab_fprintf(stream,"=> Exact.hi %lu\n",search->hi_exact_matches);
+  tab_fprintf(stream,"=> Region.Profile\n");
+  tab_global_inc();
+  region_profile_print(stream,&search->region_profile,false);
+  tab_global_dec();
+  tab_global_dec();
 }

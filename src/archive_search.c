@@ -16,12 +16,24 @@
 #define DEBUG_ARCHIVE_SEARCH_READ_NAME GEM_DEEP_DEBUG
 
 /*
+ * Archive Search State
+ */
+const char* archive_search_pe_state_label[] =
+{
+    [0] = "begin",
+    [1] = "search-end1",
+    [2] = "search-end2",
+    [3] = "recovery",
+    [4] = "find-pairs",
+    [5] = "end",
+};
+
+/*
  * Setup
  */
 GEM_INLINE archive_search_t* archive_search_new(
     archive_t* const archive,search_parameters_t* const search_parameters,
     select_parameters_t* const select_parameters) {
-  ARCHIVE_CHECK(archive);
   // Allocate handler
   archive_search_t* const archive_search = mm_alloc(archive_search_t);
   // Archive
@@ -83,11 +95,7 @@ GEM_INLINE void archive_search_prepare_sequence(archive_search_t* const archive_
   if (archive_search->archive->indexed_complement) {
     archive_search->emulate_rc_search = false;
   } else {
-    if (archive_search->archive->filter_type == Iupac_dna) {
-      sequence_generate_reverse_complement(&archive_search->sequence,&archive_search->rc_sequence);
-    } else {
-      sequence_generate_reverse(&archive_search->sequence,&archive_search->rc_sequence);
-    }
+    sequence_generate_reverse_complement(&archive_search->sequence,&archive_search->rc_sequence);
     archive_search->emulate_rc_search = !sequence_equals(&archive_search->sequence,&archive_search->rc_sequence);
   }
   // Generate the pattern(s)

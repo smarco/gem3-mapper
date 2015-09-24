@@ -8,8 +8,8 @@
 
 #include "region_profile.h"
 #include "region_profile_boost.h"
-
 #include "pattern.h"
+#include "fm_index_query.h"
 
 /*
  * Debug

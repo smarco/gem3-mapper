@@ -208,6 +208,7 @@ void matches_filter_by_mapq(matches_t* const matches,const uint8_t mapq_threshol
 void match_cigar_print(
     FILE* const stream,vector_t* const cigar_vector,
     const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
+void matches_print(FILE* const stream,matches_t* const matches);
 
 /*
  * Error Messages

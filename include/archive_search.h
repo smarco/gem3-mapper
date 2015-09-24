@@ -19,23 +19,17 @@
 #include "mm_search.h"
 
 /*
- * Checker
- */
-#define ARCHIVE_SEARCH_CHECK(archive_search) \
-  GEM_CHECK_NULL(archive_search); \
-  ARCHIVE_CHECK(archive_search->archive)
-
-/*
  * Archive Search State
  */
 typedef enum {
-  archive_search_pe_begin,                     // Beginning of the search
-  archive_search_pe_search_end1,               // Generate candidates for end1
-  archive_search_pe_search_end2,               // Generate candidates for end2
-  archive_search_pe_recovery,                  // Recover by extension when needed
-  archive_search_pe_find_pairs,                // Cross-link matches from both ends
-  archive_search_pe_end                        // End of the current workflow
+  archive_search_pe_begin = 0,                     // Beginning of the search
+  archive_search_pe_search_end1 = 1,               // Generate candidates for end1
+  archive_search_pe_search_end2 = 2,               // Generate candidates for end2
+  archive_search_pe_recovery = 3,                  // Recover by extension when needed
+  archive_search_pe_find_pairs = 4,                // Cross-link matches from both ends
+  archive_search_pe_end = 5                        // End of the current workflow
 } archive_search_pe_state_t;
+extern const char* archive_search_pe_state_label[7];
 
 /*
  * Archive Search
@@ -46,7 +40,8 @@ typedef struct {
   /* Archive Paired-End-Search (Only end/1 used in PE search) */
   archive_search_pe_state_t pe_search_state; // Search State
   bool pair_searched;                        // Paired search performed
-  bool pair_extended;                        // Paired estension performed
+  bool pair_extended;                        // Paired extension performed
+  bool pair_extended_shortcut;               // Paired extension performed (to shortcut)
   matches_class_t end_class;
   /* Sequence */
   sequence_t sequence;                       // Input

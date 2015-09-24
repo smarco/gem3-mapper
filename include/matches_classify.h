@@ -25,14 +25,15 @@
  * Matches Classes
  */
 typedef enum {
-  matches_class_unmapped,
-  matches_class_tie_indistinguishable,
-  matches_class_tie_swg_score,
-  matches_class_tie_edit_distance,
-  matches_class_tie_event_distance,
-  matches_class_mmap,
-  matches_class_unique,
+  matches_class_unmapped = 0,
+  matches_class_tie_indistinguishable = 1,
+  matches_class_tie_swg_score = 2,
+  matches_class_tie_edit_distance = 3,
+  matches_class_tie_event_distance = 4,
+  matches_class_mmap = 5,
+  matches_class_unique = 6,
 } matches_class_t;
+extern const char* matches_class_label[7];
 
 /*
  * Compute predictors

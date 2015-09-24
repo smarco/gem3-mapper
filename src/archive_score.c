@@ -219,7 +219,7 @@ GEM_INLINE void archive_score_matches_stratify_se(archive_search_t* const archiv
       GEM_INVALID_CASE();
       break;
   }
-  matches_predictors_print(&predictors,sequence_get_tag(&archive_search->sequence),match[0].mapq_score);
+  matches_predictors_print(stdout,&predictors,sequence_get_tag(&archive_search->sequence),match[0].mapq_score);
 }
 GEM_INLINE void archive_score_matches_stratify_pe(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
@@ -289,7 +289,7 @@ GEM_INLINE void archive_score_matches_stratify_pe(
   const uint8_t mapq_score_end1 = (archive_search_end1->pair_searched) ? match_end1->mapq_score : 0;
   const uint8_t mapq_score_end2 = (archive_search_end2->pair_searched) ? match_end2->mapq_score : 0;
   paired_matches_predictors_print(
-      &predictors,sequence_get_tag(&archive_search_end1->sequence),
+      stdout,&predictors,sequence_get_tag(&archive_search_end1->sequence),
       paired_map[0].mapq_score,mapq_score_end1,mapq_score_end2);
 }
 /*
