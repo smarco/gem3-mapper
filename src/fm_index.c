@@ -134,19 +134,26 @@ GEM_INLINE uint64_t fm_index_lookup(const fm_index_t* const fm_index,uint64_t bw
   const uint64_t bwt_position_base = bwt_position;
   const bool elegible_bwt_pos = (bwt_position%4!=0);
   bool printed = false;
+  uint8_t char_enc;
+  uint64_t num_chars[5] = {0,0,0,0,0};
 #endif
   uint64_t dist=0;
   // LF until we find a sampled position
-  bwt_position = bwt_LF(bwt,bwt_position,&is_sampled);
+  // bwt_position = bwt_LF(bwt,bwt_position,&is_sampled);
+  bwt_position = bwt_LF__enc(bwt,bwt_position,&char_enc,&is_sampled);
+  ++num_chars[char_enc];
   while (!is_sampled) {
     ++dist;
 #ifdef FM_INDEX_LOOKUP_PROFILE
     if (elegible_bwt_pos && !printed && (bwt_position%4==0)) {
-      fprintf(stdout,"%lu\t%lu\t%lu\n",bwt_position_base,bwt_position,dist);
+      fprintf(stdout,"%lu\t%lu\t%lu\t|\t%lu\t%lu\t%lu\t%lu\t%lu\n",bwt_position_base,bwt_position,dist,
+          num_chars[0],num_chars[1],num_chars[2],num_chars[3],num_chars[4]);
       printed = true;
     }
 #endif
-    bwt_position = bwt_LF(bwt,bwt_position,&is_sampled);
+    // bwt_position = bwt_LF(bwt,bwt_position,&is_sampled);
+    bwt_position = bwt_LF__enc(bwt,bwt_position,&char_enc,&is_sampled);
+    ++num_chars[char_enc];
   }
   PROF_ADD_COUNTER(GP_FMIDX_LOOKUP_DIST,dist);
   // Recover sampled position & adjust
