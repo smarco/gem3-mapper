@@ -132,20 +132,23 @@ GEM_INLINE uint64_t fm_index_lookup(const fm_index_t* const fm_index,uint64_t bw
   bool is_sampled = false;
 #ifdef FM_INDEX_LOOKUP_PROFILE
   const uint64_t bwt_position_base = bwt_position;
+  const bool elegible_bwt_pos = (bwt_position%4!=0);
+  bool printed = false;
 #endif
   uint64_t dist=0;
   // LF until we find a sampled position
   bwt_position = bwt_LF(bwt,bwt_position,&is_sampled);
   while (!is_sampled) {
     ++dist;
+#ifdef FM_INDEX_LOOKUP_PROFILE
+    if (elegible_bwt_pos && !printed && (bwt_position%4==0)) {
+      fprintf(stdout,"%lu\t%lu\t%lu\n",bwt_position_base,bwt_position,dist);
+      printed = true;
+    }
+#endif
     bwt_position = bwt_LF(bwt,bwt_position,&is_sampled);
   }
   PROF_ADD_COUNTER(GP_FMIDX_LOOKUP_DIST,dist);
-#ifdef FM_INDEX_LOOKUP_PROFILE
-  if (bwt_position%4==0) {
-    fprintf(stdout,"%lu\t%lu\t%lu\n",bwt_position_base,bwt_position,dist);
-  }
-#endif
   // Recover sampled position & adjust
   return (sampled_sa_get_sample(sampled_sa,bwt_position) + dist) % bwt_length;
 }
