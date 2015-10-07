@@ -47,7 +47,6 @@ typedef enum { mapper_se, mapper_pe, mapper_graph } mapper_type;
 typedef struct {
   /* Input */
   char* index_file_name;
-  bool check_index;
   bool separated_input_files;
   char* input_file_name;
   char* input_file_name_end1;

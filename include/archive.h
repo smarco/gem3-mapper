@@ -18,7 +18,7 @@
 /*
  * Archive Model & Version
  */
-#define ARCHIVE_MODEL_NO 5002ull
+#define ARCHIVE_MODEL_NO 5003ull
 
 /*
  * Checker
@@ -52,7 +52,7 @@ typedef struct {
 /*
  * Archive Loader
  */
-archive_t* archive_read(char* const file_name,const bool do_tests,const bool verbose);
+archive_t* archive_read(char* const file_name,const bool read_text_only);
 void archive_delete(archive_t* const archive);
 
 /*

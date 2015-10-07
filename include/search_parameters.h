@@ -119,6 +119,12 @@ void search_instantiate_values(
     as_parameters_t* const as_parameters,const uint64_t pattern_length);
 
 /*
+ * Display
+ */
+void search_parameters_print(FILE* const stream,search_parameters_t* const search_parameters);
+void as_parameters_print(FILE* const stream,as_parameters_t* const parameters);
+
+/*
  * Error Msg
  */
 #define GEM_ERROR_ASP_REPLACEMENT_EMPTY "Approximate Search Parameters. Valid replacements set cannot be empty"

@@ -13,7 +13,7 @@ include ../Makefile.mk
 # Basic Modules
 MODULES=commons gthread report errors
 # Basic Data Structures
-MODULES+=vector ihash shash priority_queue string_buffer segmented_vector 
+MODULES+=vector ihash shash priority_queue string_buffer segmented_vector
 # Stats Data Structures
 MODULES+=profiler stats_vector stats_matrix
 # Memory/Files Modules
@@ -39,8 +39,7 @@ MODULES+=matches matches_counters matches_metrics matches_classify
 # GEM paired-Matches
 MODULES+=paired_matches paired_map paired_matches_classify
 # GEM Pattern Alignment
-MODULES+=pattern bpm_align swg_align bpm_align_gpu \
-         match_scaffold match_align dp_matrix
+MODULES+=pattern bpm_align swg_align bpm_align_gpu match_scaffold match_align
 # GEM Region Profile
 MODULES+=region_profile region_profile_adaptive \
          region_profile_boost region_profile_schedule \
@@ -55,8 +54,7 @@ MODULES+=approximate_search approximate_search_filtering_base \
          approximate_search_filtering_adaptive approximate_search_neighborhood \
          approximate_search_filtering_complete
 # GEM Approximate Search (Neighborhood Search)
-MODULES+=nsearch nsearch_partition nsearch_schedule \
-         nsearch_hamming nsearch_levenshtein nsearch_levenshtein_state
+MODULES+=nsearch nsearch_hamming nsearch_levenshtein nsearch_partition nsearch_schedule
 # GEM Archive
 MODULES+=archive archive_builder archive_builder_index \
          archive_builder_text archive_builder_text_parser \

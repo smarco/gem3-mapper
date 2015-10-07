@@ -13,6 +13,12 @@
 #define MAPPING_STATS_LOG false
 
 /*
+ * Constants
+ */
+#define MAPPER_STATS_TEMPLATE_LENGTH_MIN_SAMPLES  1000
+#define MAPPER_STATS_TEMPLATE_LENGTH_MARGIN_ERROR   20
+
+/*
  * Setup
  */
 GEM_INLINE mapper_stats_t* mapper_stats_new() {
@@ -37,7 +43,7 @@ GEM_INLINE void mapper_stats_delete(mapper_stats_t* const mapper_stats) {
   mm_free(mapper_stats);
 }
 /*
- * Template Size
+ * Template Length
  */
 GEM_INLINE void mapper_stats_template_length_sample(
     mapper_stats_t* const search_stats,const uint64_t template_length) {
@@ -60,11 +66,11 @@ GEM_INLINE uint64_t mapper_stats_template_length_get_ci_min_samples(
   const uint64_t min_samples = (uint64_t)(factor*factor)+1;
   return MAX(1000,min_samples);
 }
-GEM_INLINE bool mapper_stats_template_length_estimation_within_ci(
-    mapper_stats_t* const search_stats,const uint64_t margin_error) {
+GEM_INLINE bool mapper_stats_template_length_is_reliable(mapper_stats_t* const search_stats) {
   const uint64_t num_samples = mapper_stats_template_length_get_num_samples(search_stats);
-  const uint64_t num_ci_min_samples = mapper_stats_template_length_get_ci_min_samples(search_stats,margin_error);
-  return num_samples > num_ci_min_samples;
+  const uint64_t num_ci_min_samples =
+      mapper_stats_template_length_get_ci_min_samples(search_stats,MAPPER_STATS_TEMPLATE_LENGTH_MARGIN_ERROR);
+  return num_samples > num_ci_min_samples && num_samples > MAPPER_STATS_TEMPLATE_LENGTH_MIN_SAMPLES;
 }
 GEM_INLINE double mapper_stats_template_length_get_mean(mapper_stats_t* const search_stats) {
   return COUNTER_GET_MEAN(&search_stats->unique_template_size);

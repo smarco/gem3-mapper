@@ -14,7 +14,7 @@
 /*
  * Debug
  */
-#define DEBUG_ARCHIVE_SEARCH_READ_NAME GEM_DEEP_DEBUG
+#define DEBUG_ARCHIVE_SEARCH_SE GEM_DEEP_DEBUG
 
 /*
  * Setup
@@ -38,12 +38,20 @@ GEM_INLINE void archive_search_continue(
   }
 }
 GEM_INLINE void archive_search_generate_candidates(archive_search_t* const archive_search) {
+  gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE) {
+    tab_fprintf(stderr,"[GEM]>ArchiveSearch.Generate.Candidates\n");
+    tab_fprintf(gem_log_get_stream(),"  => Tag %s\n",archive_search->sequence.tag.buffer);
+    tab_fprintf(gem_log_get_stream(),"  => Sequence %s\n",archive_search->sequence.read.buffer);
+    tab_global_inc();
+  }
   // Reset initial values (Prepare pattern(s), instantiate parameters values, ...)
   archive_search_reset(archive_search);
   // Run the search (stop before filtering)
   PROF_START(GP_ARCHIVE_SEARCH_SE_GENERATE_CANDIDATES);
   archive_search_continue(archive_search,false,NULL);
   PROF_STOP(GP_ARCHIVE_SEARCH_SE_GENERATE_CANDIDATES);
+  // DEBUG
+  gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE) { tab_global_dec(); }
 }
 GEM_INLINE void archive_search_verify_candidates(archive_search_t* const archive_search,matches_t* const matches) {
   PROF_START(GP_ARCHIVE_SEARCH_SE_VERIFY_CANDIDATES);
@@ -56,10 +64,20 @@ GEM_INLINE void archive_search_verify_candidates(archive_search_t* const archive
   PROF_STOP(GP_ARCHIVE_SEARCH_SE_VERIFY_CANDIDATES);
 }
 GEM_INLINE void archive_search_finish_search(archive_search_t* const archive_search,matches_t* const matches) {
+  gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE) {
+    tab_fprintf(stderr,"[GEM]>ArchiveSearch.Finish.Search\n");
+  }
   // Run the search up to the end
   PROF_START(GP_ARCHIVE_SEARCH_SE_FINISH_SEARCH);
   archive_search_continue(archive_search,true,matches);
   PROF_STOP(GP_ARCHIVE_SEARCH_SE_FINISH_SEARCH);
+  // DEBUG
+  gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE) {
+    tab_global_inc();
+    archive_search_print(gem_log_get_stream(),archive_search,matches);
+    tab_global_dec();
+    tab_global_dec();
+  }
 }
 GEM_INLINE void archive_search_copy_candidates(
     archive_search_t* const archive_search,bpm_gpu_buffer_t* const bpm_gpu_buffer) {
@@ -98,9 +116,11 @@ GEM_INLINE void archive_search_retrieve_candidates(
  */
 GEM_INLINE void archive_search_single_end(archive_search_t* const archive_search,matches_t* const matches) {
   PROF_START(GP_ARCHIVE_SEARCH_SE);
-  gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_READ_NAME) {
-    tab_fprintf(stderr,">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-    tab_fprintf(stderr,">ArchiveSearch::%s\n",sequence_get_tag(&archive_search->sequence));
+  gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE) {
+    tab_fprintf(stderr,"[GEM]>ArchiveSearch.SE\n");
+    tab_fprintf(gem_log_get_stream(),"  => Tag %s\n",archive_search->sequence.tag.buffer);
+    tab_fprintf(gem_log_get_stream(),"  => Sequence %s\n",archive_search->sequence.read.buffer);
+    tab_global_inc();
   }
   // Reset initial values (Prepare pattern(s), instantiate parameters values, ...)
   archive_search_reset(archive_search);
@@ -130,6 +150,12 @@ GEM_INLINE void archive_search_single_end(archive_search_t* const archive_search
     }
   }
   PROF_STOP(GP_ARCHIVE_SEARCH_SE);
+  gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE) {
+    tab_global_inc();
+    archive_search_print(gem_log_get_stream(),archive_search,matches);
+    tab_global_dec();
+    tab_global_dec();
+  }
 }
 /*
  * Compute Predictors
@@ -151,7 +177,7 @@ GEM_INLINE void archive_search_compute_predictors(
  */
 GEM_INLINE void archive_search_print(
     FILE* const stream,archive_search_t* const archive_search,matches_t* const matches) {
-  tab_fprintf(stream,"[GEM]>ArchiveSearch.PE\n");
+  tab_fprintf(stream,"[GEM]>ArchiveSearch.SE\n");
   tab_global_inc();
   tab_fprintf(stream,"=> Search.Forward\n");
   tab_global_inc();

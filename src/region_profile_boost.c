@@ -98,9 +98,10 @@ GEM_INLINE void region_profile_generate_adaptive_boost(
   // DEBUG
   gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
     static uint64_t region_profile_num = 0;
-    fprintf(stderr,"[%"PRIu64"]",region_profile_num++);
+    tab_fprintf(gem_log_get_stream(),"[GEM]>Region.Profile.Generate.Boost\n");
+    tab_fprintf(gem_log_get_stream(),"[#%"PRIu64"]",region_profile_num++);
     pattern_enc_print(stderr,key,key_length);
-    fprintf(stderr,"\n");
+    fprintf(gem_log_get_stream(),"\n");
   }
   // Allocate regions boosted
   mm_stack_push_state(mm_stack);

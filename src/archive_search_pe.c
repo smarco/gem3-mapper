@@ -15,7 +15,7 @@
 /*
  * Debug
  */
-#define FULL_DEBUG_ARCHIVE_SEARCH_PE true // GEM_DEEP_DEBUG
+#define DEBUG_ARCHIVE_SEARCH_PE GEM_DEEP_DEBUG
 
 /*
  * Setup
@@ -108,15 +108,13 @@ GEM_INLINE void archive_search_paired_end_generate_extension_candidates(
 /*
  * PE Extension Control
  */
-GEM_INLINE bool archive_search_paired_end_feasible_extension(archive_search_t* const archive_search) {
+GEM_INLINE bool archive_search_paired_end_is_extension_feasible(archive_search_t* const archive_search) {
   // Check the number of samples to derive the expected template size
-  const uint64_t ts_margin_error = archive_search->as_parameters.alignment_max_error_nominal;
-  return mapper_stats_template_length_estimation_within_ci(archive_search->mapper_stats,ts_margin_error);
+  return mapper_stats_template_length_is_reliable(archive_search->mapper_stats);
 }
 GEM_INLINE bool archive_search_paired_end_use_shortcut_extension(archive_search_t* const archive_search,matches_t* const matches) {
   // Check the number of samples to derive the expected template size
-  const uint64_t ts_margin_error = archive_search->as_parameters.alignment_max_error_nominal;
-  if (!mapper_stats_template_length_estimation_within_ci(archive_search->mapper_stats,ts_margin_error)) return false;
+  if (!mapper_stats_template_length_is_reliable(archive_search->mapper_stats)) return false;
   // Test if the end can be classify as unique with enough confidence
   if (matches->max_complete_stratum <= 1) return false;
   if (matches_classify(matches)==matches_class_unique) {
@@ -128,8 +126,7 @@ GEM_INLINE bool archive_search_paired_end_use_shortcut_extension(archive_search_
 }
 GEM_INLINE bool archive_search_paired_end_use_recovery_extension(archive_search_t* const archive_search,matches_t* const matches) {
   // Check the number of samples to derive the expected template size
-  const uint64_t ts_margin_error = archive_search->as_parameters.alignment_max_error_nominal;
-  if (!mapper_stats_template_length_estimation_within_ci(archive_search->mapper_stats,ts_margin_error)) return false;
+  if (!mapper_stats_template_length_is_reliable(archive_search->mapper_stats)) return false;
   // Test if the end can be classify as ambiguous with enough confidence (as to rescue it)
   if (matches->max_complete_stratum <= 1) return true;
   const matches_class_t matches_class = matches_classify(matches);
@@ -227,7 +224,7 @@ GEM_INLINE void archive_search_paired_end_continue(
         }
         // No break
       case archive_search_pe_find_pairs: {
-        // Pair matches (cross-link matches from both ends)
+        // Pair matches (Cross-link matches from both ends)
         const uint64_t num_matches_end1 = matches_get_num_match_traces(paired_matches->matches_end1);
         const uint64_t num_matches_end2 = matches_get_num_match_traces(paired_matches->matches_end2);
         if (num_matches_end1 > 0 && num_matches_end2 > 0) {
@@ -246,7 +243,7 @@ GEM_INLINE void archive_search_paired_end_continue(
             ((matches_end1->max_complete_stratum!=ALL) ? matches_end1->max_complete_stratum : 0) +
             ((matches_end2->max_complete_stratum!=ALL) ? matches_end2->max_complete_stratum : 0);
         archive_search_end1->pe_search_state = archive_search_pe_end; // End of the workflow
-        gem_cond_debug_block(FULL_DEBUG_ARCHIVE_SEARCH_PE) {
+        gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_PE) {
           archive_search_pe_print(stderr,archive_search_end1,archive_search_end2,paired_matches);
         }
         break;
@@ -274,7 +271,7 @@ GEM_INLINE void archive_search_pe_generate_candidates(
   // Generate Candidates (End/1)
   archive_search_generate_candidates(archive_search_end1);
   archive_search_end1->pair_searched = true;
-  archive_search_end1->pair_extended = archive_search_paired_end_feasible_extension(archive_search_end1);
+  archive_search_end1->pair_extended = archive_search_paired_end_is_extension_feasible(archive_search_end1);
   if (archive_search_end1->pair_extended) {
     // Extension of end/1
     PROF_START(GP_ARCHIVE_SEARCH_PE_EXTENSION_SHORTCUT);
@@ -287,7 +284,7 @@ GEM_INLINE void archive_search_pe_generate_candidates(
     // Generate Candidates (End/2)
     archive_search_generate_candidates(archive_search_end2);
     archive_search_end2->pair_searched = true;
-    archive_search_end2->pair_extended = archive_search_paired_end_feasible_extension(archive_search_end2);
+    archive_search_end2->pair_extended = archive_search_paired_end_is_extension_feasible(archive_search_end2);
     if (archive_search_end2->pair_extended) {
       // Extension of end/1
       PROF_START(GP_ARCHIVE_SEARCH_PE_EXTENSION_SHORTCUT);
@@ -314,11 +311,24 @@ GEM_INLINE void archive_search_pe_finish_search(
 GEM_INLINE void archive_search_paired_end(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches) {
+  gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_PE) {
+    tab_fprintf(stderr,"[GEM]>ArchiveSearch.PE\n");
+    tab_fprintf(gem_log_get_stream(),"  => Tag %s\n",archive_search_end1->sequence.tag.buffer);
+    tab_fprintf(gem_log_get_stream(),"  => Sequence/1 %s\n",archive_search_end1->sequence.read.buffer);
+    tab_fprintf(gem_log_get_stream(),"  => Sequence/2 %s\n",archive_search_end2->sequence.read.buffer);
+    tab_global_inc();
+  }
   // Init
   archive_search_end1->pe_search_state = archive_search_pe_begin;
   archive_search_end2->pe_search_state = archive_search_pe_begin;
   // PE search
   archive_search_paired_end_continue(archive_search_end1,archive_search_end2,paired_matches);
+  gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_PE) {
+    tab_global_inc();
+    archive_search_pe_print(gem_log_get_stream(),archive_search_end1,archive_search_end2,paired_matches);
+    tab_global_dec();
+    tab_global_dec();
+  }
 }
 /*
  * Compute Predictors
@@ -343,13 +353,22 @@ GEM_INLINE void archive_search_paired_end_compute_predictors(
 /*
  * Display
  */
+pthread_mutex_t archive_mutex = PTHREAD_MUTEX_INITIALIZER;
 GEM_INLINE void archive_search_pe_print(
     FILE* const stream,archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2,paired_matches_t* const paired_matches) {
+  MUTEX_BEGIN_SECTION(archive_mutex);
   tab_fprintf(stream,"[GEM]>ArchiveSearch.PE\n");
   tab_global_inc();
-  tab_fprintf(stream,"=> Read.tag %s\n",archive_search_end1->sequence.tag.buffer);
-  tab_fprintf(stream,"=> PE.Search.State %s\n",archive_search_pe_state_label[archive_search_end1->pe_search_state]);
+  tab_fprintf(stream,"=> PE.Input\n");
+  tab_fprintf(stream,"=>   Tag %s\n",archive_search_end1->sequence.tag.buffer);
+  tab_fprintf(stream,"=>   Sequence/1 %s\n",archive_search_end1->sequence.read.buffer);
+  tab_fprintf(stream,"=>   Sequence/2 %s\n",archive_search_end2->sequence.read.buffer);
+  tab_fprintf(stream,"=>   Search.State %s\n",archive_search_pe_state_label[archive_search_end1->pe_search_state]);
+  tab_fprintf(stream,"=> ASM.Parameters\n");
+  tab_global_inc();
+  as_parameters_print(stream,&archive_search_end1->as_parameters);
+  tab_global_dec();
   tab_fprintf(stream,"=> End/1\n");
   tab_fprintf(stream,"  => Searched %s\n",archive_search_end1->pair_searched ? "yes" : "no");
   tab_fprintf(stream,"  => Extended %s (shortcut-extension=%s)\n",
@@ -358,7 +377,7 @@ GEM_INLINE void archive_search_pe_print(
   tab_fprintf(stream,"=> End/2\n");
   tab_fprintf(stream,"  => Searched %s\n",archive_search_end2->pair_searched ? "yes" : "no");
   tab_fprintf(stream,"  => Extended %s\n",archive_search_end2->pair_extended ? "yes" : "no");
-  if (!archive_search_paired_end_feasible_extension(archive_search_end1)) {
+  if (!mapper_stats_template_length_is_reliable(archive_search_end1->mapper_stats)) {
     tab_fprintf(stream,"=> Template-length 'n/a'\n");
   } else {
     const double template_length_mean = mapper_stats_template_length_get_mean(archive_search_end1->mapper_stats);
@@ -368,18 +387,21 @@ GEM_INLINE void archive_search_pe_print(
     tab_fprintf(stream,"=> Template-length {min=%lu,max=%lu,mean=%2.1f,stddev==%2.1f}\n",
         template_length_expected_min,template_length_expected_max,template_length_mean,template_length_stddev);
   }
-  tab_fprintf(stream,"=> Archive.Search.End/1\n");
-  tab_global_inc();
-  archive_search_print(stream,archive_search_end1,NULL);
-  tab_global_dec();
-  tab_fprintf(stream,"=> Archive.Search.End/2\n");
-  tab_global_inc();
-  archive_search_print(stream,archive_search_end2,NULL);
-  tab_global_dec();
+  // Archive Search
+//  tab_fprintf(stream,"=> Archive.Search.End/1\n");
+//  tab_global_inc();
+//  archive_search_print(stream,archive_search_end1,NULL);
+//  tab_global_dec();
+//  tab_fprintf(stream,"=> Archive.Search.End/2\n");
+//  tab_global_inc();
+//  archive_search_print(stream,archive_search_end2,NULL);
+//  tab_global_dec();
+  // Paired Matches
   tab_fprintf(stream,"=> Paired.Matches\n");
   tab_global_inc();
   paired_matches_print(stream,paired_matches);
   tab_global_dec();
   tab_global_dec();
+  MUTEX_END_SECTION(archive_mutex);
 }
 

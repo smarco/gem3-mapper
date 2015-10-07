@@ -147,7 +147,9 @@ GEM_INLINE bool region_profile_generator_add_character(
   const uint64_t hi = generator->hi;
   const uint64_t num_candidates = hi-lo;
   // Check number of candidates
-  gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) { fprintf(stderr," %"PRIu64"",num_candidates); }
+  gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
+    fprintf(gem_log_get_stream()," %"PRIu64,num_candidates);
+  }
   if (num_candidates > profile_model->region_th) return false;
   if (num_candidates > 0) {
     // End of the read reached
@@ -252,10 +254,11 @@ GEM_INLINE void region_profile_generate_adaptive(
   // DEBUG
   gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
     static uint64_t region_profile_num = 0;
-    fprintf(stderr,"[%"PRIu64"]",region_profile_num++);
-    uint64_t i;
-    for (i=0;i<key_length;++i) fprintf(stderr,"%c",dna_decode(key[i]));
-    fprintf(stderr,"\n");
+    tab_fprintf(gem_log_get_stream(),"[GEM]>Region.Profile.Generate.Adaptive\n");
+    tab_fprintf(gem_log_get_stream(),"[#%"PRIu64"]",region_profile_num++);
+    pattern_enc_print(stderr,key,key_length);
+    fprintf(gem_log_get_stream(),"\n");
+    tab_fprintf(gem_log_get_stream(),"[Trace]");
   }
   // Init
   region_profile_generator_t generator;
@@ -282,8 +285,10 @@ GEM_INLINE void region_profile_generate_adaptive(
   }
   region_profile_generator_close_profile(&generator,profile_model);
   // DEBUG
-  gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) { fprintf(stderr,"\n"); }
   PROF_STOP(GP_REGION_PROFILE_ADAPTIVE);
+  gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
+    fprintf(gem_log_get_stream(),"\n");
+  }
 }
 /*
  * Region Profile Adaptive (limited to extract a minimum number of regions)
@@ -296,9 +301,11 @@ GEM_INLINE void region_profile_generate_adaptive_limited(
   // DEBUG
   gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
     static uint64_t region_profile_num = 0;
-    fprintf(stderr,"[%"PRIu64"]",region_profile_num++);
+    tab_fprintf(gem_log_get_stream(),"[GEM]>Region.Profile.Generate.Adaptive\n");
+    tab_fprintf(gem_log_get_stream(),"[#%"PRIu64"]",region_profile_num++);
     pattern_enc_print(stderr,key,key_length);
-    fprintf(stderr,"\n");
+    fprintf(gem_log_get_stream(),"\n");
+    tab_fprintf(gem_log_get_stream(),"[Trace]");
   }
   // Init
   const uint64_t max_region_length = key_length/min_regions;

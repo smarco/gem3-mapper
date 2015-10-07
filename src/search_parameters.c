@@ -229,3 +229,32 @@ GEM_INLINE void search_instantiate_values(as_parameters_t* const parameters,cons
     parameters->swg_threshold_nominal = pattern_identity_th * swg_penalties->generic_match_score;
   }
 }
+/*
+ * Display
+ */
+GEM_INLINE void search_parameters_print(FILE* const stream,search_parameters_t* const search_parameters) {
+  // TODO
+  // TODO
+  // TODO
+}
+GEM_INLINE void as_parameters_print(FILE* const stream,as_parameters_t* const parameters) {
+  tab_fprintf(stream,"[GEM]>AS.Parameters\n");
+  tab_fprintf(stream,"=> Search.Parameters\n"); // TODO
+//  tab_global_inc(); // TODO
+//  search_parameters_print(stream,parameters->search_parameters); // TODO
+//  tab_global_dec(); // TODO
+  tab_global_inc();
+  tab_fprintf(stream,"=> Nominal.Parameters\n");
+  tab_fprintf(stream,"  => Complete.search.error %lu\n",parameters->complete_search_error_nominal);
+  tab_fprintf(stream,"  => Complete.strata.after.best %lu\n",parameters->complete_strata_after_best_nominal);
+  tab_fprintf(stream,"  => Alingment.max.error %lu\n",parameters->alignment_max_error_nominal);
+  tab_fprintf(stream,"  => Alingment.max.error.after.best %lu\n",parameters->alignment_max_error_after_best_nominal);
+  tab_fprintf(stream,"  => Alignment_min.identity %lu\n",parameters->alignment_min_identity_nominal);
+  tab_fprintf(stream,"  => Alignment.scaffolding.min.coverage %lu\n",parameters->alignment_scaffolding_min_coverage_nominal);
+  tab_fprintf(stream,"  => Alignment.scaffolding.homopolymer.min_context %lu\n",parameters->alignment_scaffolding_homopolymer_min_context_nominal);
+  tab_fprintf(stream,"  => Alignment.scaffolding.min.matching.length %lu\n",parameters->alignment_scaffolding_min_matching_length_nominal);
+  tab_fprintf(stream,"  => Max.bandwidth %lu\n",parameters->max_bandwidth_nominal);
+  tab_fprintf(stream,"  => Cigar.curation.min.end.context %lu\n",parameters->cigar_curation_min_end_context_nominal);
+  tab_fprintf(stream,"  => Swg.threshold %lu\n",parameters->swg_threshold_nominal);
+  tab_global_dec();
+}

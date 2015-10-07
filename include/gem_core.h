@@ -41,10 +41,6 @@
 #include "select_parameters.h"
 #include "archive_select.h"
 
-// NS
-#include "nsearch_hamming.h"
-#include "nsearch_levenshtein.h"
-
 // I/O
 #include "input_file.h"
 #include "input_parser.h"

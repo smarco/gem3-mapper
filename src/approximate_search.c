@@ -138,7 +138,7 @@ GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t*
 GEM_INLINE void approximate_search_print(FILE* const stream,approximate_search_t* const search) {
   tab_fprintf(stream,"[GEM]>ApproximateSearch\n");
   tab_global_inc();
-  tab_fprintf(stream,"=> Search.State %s\n",search->search_state);
+  tab_fprintf(stream,"=> Search.State %s\n",approximate_search_state_label[search->search_state]);
   tab_fprintf(stream,"=> Max.complete.error %lu\n",search->max_complete_error);
   tab_fprintf(stream,"=> MCS %lu\n",search->max_complete_stratum);
   tab_fprintf(stream,"=> Max.matches.reached %lu\n",search->max_matches_reached);

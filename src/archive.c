@@ -8,9 +8,14 @@
 #include "archive.h"
 
 /*
+ * DEBUG
+ */
+#define ARCHIVE_DEBUG_CHECK_INDEX false
+
+/*
  * Setup/Loader
  */
-GEM_INLINE archive_t* archive_read_mem(mm_t* const memory_manager,const bool do_tests,const bool verbose) {
+GEM_INLINE archive_t* archive_read_mem(mm_t* const memory_manager,const bool read_text_only) {
   // Allocate handler
   archive_t* const archive = mm_alloc(archive_t);
   // Set the memory source
@@ -25,18 +30,17 @@ GEM_INLINE archive_t* archive_read_mem(mm_t* const memory_manager,const bool do_
   archive->locator = locator_read_mem(archive->mm);
   // Load archive::text
   archive->text = archive_text_read_mem(archive->mm);
+  if (read_text_only) return archive;
   // Load archive::fm-index
-  archive->fm_index = fm_index_read_mem(archive->mm,do_tests);
-  // Verbose
-  if (verbose) archive_print(gem_info_get_stream(),archive);
+  archive->fm_index = fm_index_read_mem(archive->mm,ARCHIVE_DEBUG_CHECK_INDEX);
   // Return
   return archive;
 }
-GEM_INLINE archive_t* archive_read(char* const file_name,const bool do_tests,const bool verbose) {
+GEM_INLINE archive_t* archive_read(char* const file_name,const bool read_text_only) {
   // Load the whole archive in memory at once
   mm_t* const mm = mm_bulk_mload_file(file_name,1);
   // Return the loaded archive
-  return archive_read_mem(mm,do_tests,verbose);
+  return archive_read_mem(mm,read_text_only);
 }
 GEM_INLINE void archive_delete(archive_t* const archive) {
   // Delete Locator

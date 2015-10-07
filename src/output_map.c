@@ -180,7 +180,7 @@ GEM_INLINE void output_map_alignment_pretty(
     uint8_t* const key,const uint64_t key_length,uint8_t* const text,
     const uint64_t text_length,mm_stack_t* const mm_stack) {
   mm_stack_push_state(mm_stack);
-  fprintf(stream,"%s:%"PRIu64":%c:",match_trace->sequence_name,
+  tab_fprintf(stream,"%s:%"PRIu64":%c:",match_trace->sequence_name,
       match_trace->text_position,(match_trace->strand==Forward)?'+':'-');
   char* const key_alg = mm_stack_calloc(mm_stack,2*key_length,char,true);
   char* const ops_alg = mm_stack_calloc(mm_stack,2*key_length,char,true);
@@ -244,9 +244,10 @@ GEM_INLINE void output_map_alignment_pretty(
   key_alg[alg_pos] = '\0';
   ops_alg[alg_pos] = '\0';
   text_alg[alg_pos] = '\0';
-  fprintf(stream,"\nKEY--%s--\n",key_alg);
-  fprintf(stream,"     %s  \n",ops_alg);
-  fprintf(stream,"TXT--%s--\n",text_alg);
+  fprintf(stream,"\n");
+  tab_fprintf(stream,"KEY--%s--\n",key_alg);
+  tab_fprintf(stream,"     %s  \n",ops_alg);
+  tab_fprintf(stream,"TXT--%s--\n",text_alg);
   mm_stack_pop_state(mm_stack,false);
 }
 /*

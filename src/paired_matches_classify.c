@@ -56,6 +56,8 @@ GEM_INLINE void paired_matches_classify_compute_predictors(
     // Compute PE specific predictors
     predictors->first_map_template_size_sigma = MAX_TEMPLATE_LENGTH_SIGMAS;
     predictors->subdominant_template_size_sigma = MAX_TEMPLATE_LENGTH_SIGMAS;
+    predictors->mapq_end1 = 0;
+    predictors->mapq_end2 = 0;
   } else {
     paired_map_t* const paired_map = paired_matches_get_maps(paired_matches);
     const uint64_t primary_map_distance = paired_map[0].distance;

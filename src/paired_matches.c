@@ -15,8 +15,6 @@
 #define PAIRED_MATCHES_INIT_MATCHES   50
 #define PAIRED_MATCHES_INIT_MATCHES   50
 
-#define PAIRED_MATCHES_TEMPLATE_LENGTH_DEFAULT_MOE 20
-
 /*
  * Setup
  */
@@ -276,7 +274,7 @@ GEM_INLINE pair_relation_t paired_matches_compute_relation(
     *template_length_sigma = MAX_TEMPLATE_LENGTH_SIGMAS;
     return pair_relation_invalid;
   }
-  if (mapper_stats_template_length_estimation_within_ci(mapper_stats,PAIRED_MATCHES_TEMPLATE_LENGTH_DEFAULT_MOE)) {
+  if (mapper_stats_template_length_is_reliable(mapper_stats)) {
     const uint64_t tl_expected_max = mapper_stats_template_length_get_expected_max(mapper_stats);
     const uint64_t tl_expected_min = mapper_stats_template_length_get_expected_min(mapper_stats);
     *template_length_sigma = mapper_stats_template_length_get_sigma_dev(mapper_stats,*template_length);
@@ -284,7 +282,7 @@ GEM_INLINE pair_relation_t paired_matches_compute_relation(
       pair_relation = pair_relation_discordant;
     }
   } else {
-    *template_length_sigma = MAX_TEMPLATE_LENGTH_SIGMAS;
+    *template_length_sigma = 0.0; // Don't know (positive assumption)
   }
   return pair_relation;
 }
@@ -364,32 +362,33 @@ GEM_INLINE void paired_matches_find_pairs(
 GEM_INLINE void paired_matches_find_discordant_pairs(
     paired_matches_t* const paired_matches,
     const paired_search_parameters_t* const paired_search_parameters) {
+  // Check number of discordant pairs
+  if (vector_get_used(paired_matches->discordant_paired_maps) > 0) return;
+  // Check discordant mode
   switch (paired_search_parameters->pair_discordant_search) {
-    case pair_discordant_search_never: break;
+    case pair_discordant_search_never: return;
     case pair_discordant_search_only_if_no_concordant:
-      if (vector_get_used(paired_matches->paired_maps) > 0) break;
+      if (vector_get_used(paired_matches->paired_maps) > 0) return;
     // No break
-    case pair_discordant_search_always:
-      // Add discordant matches
-      if (vector_get_used(paired_matches->discordant_paired_maps) > 0) {
-        // Merge discordant paired-matches
-        const uint64_t num_discordant_matches = vector_get_used(paired_matches->discordant_paired_maps);
-        vector_reserve_additional(paired_matches->paired_maps,num_discordant_matches);
-        paired_map_t* const concordant_map = vector_get_free_elm(paired_matches->paired_maps,paired_map_t);
-        VECTOR_ITERATE_CONST(paired_matches->discordant_paired_maps,discordant_map,dn,paired_map_t) {
-          // Add the discordant match
-          concordant_map[dn] = *discordant_map;
-          // Update counters
-          matches_counters_add(paired_matches->counters,discordant_map->distance,1);
-          matches_metrics_pe_update(&paired_matches->metrics,discordant_map->distance,
-              discordant_map->edit_distance,discordant_map->swg_score,discordant_map->template_length_sigma);
-        }
-        // Add to used
-        vector_add_used(paired_matches->paired_maps,num_discordant_matches);
-        // Clear discordant
-        vector_clear(paired_matches->discordant_paired_maps);
+    case pair_discordant_search_always: {
+      // Merge discordant paired-matches
+      const uint64_t num_discordant_matches = vector_get_used(paired_matches->discordant_paired_maps);
+      vector_reserve_additional(paired_matches->paired_maps,num_discordant_matches);
+      paired_map_t* const concordant_map = vector_get_free_elm(paired_matches->paired_maps,paired_map_t);
+      VECTOR_ITERATE_CONST(paired_matches->discordant_paired_maps,discordant_map,dn,paired_map_t) {
+        // Add the discordant match
+        concordant_map[dn] = *discordant_map;
+        // Update counters
+        matches_counters_add(paired_matches->counters,discordant_map->distance,1);
+        matches_metrics_pe_update(&paired_matches->metrics,discordant_map->distance,
+            discordant_map->edit_distance,discordant_map->swg_score,discordant_map->template_length_sigma);
       }
+      // Add to used
+      vector_add_used(paired_matches->paired_maps,num_discordant_matches);
+      // Clear discordant
+      vector_clear(paired_matches->discordant_paired_maps);
       break;
+    }
     default:
       GEM_INVALID_CASE();
       break;

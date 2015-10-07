@@ -21,9 +21,9 @@ GEM_INLINE void matches_metrics_init(matches_metrics_t* const metrics) {
   metrics->min2_edit_distance = UINT32_MAX;
   metrics->max1_swg_score = INT32_MIN;
   metrics->max2_swg_score = INT32_MIN;
+  metrics->subdominant_candidates = 0;
   metrics->min1_template_length_sigma = MAX_TEMPLATE_LENGTH_SIGMAS;
   metrics->min2_template_length_sigma = MAX_TEMPLATE_LENGTH_SIGMAS;
-  metrics->subdominant_candidates = 0;
 }
 /*
  * Accessors

@@ -203,6 +203,8 @@ GEM_INLINE bool matches_add_match_trace(
     matches_t* const matches,match_trace_t* const match_trace,
     const bool update_counters,const locator_t* const locator,
     mm_stack_t* const mm_stack) {
+  // Init
+  match_trace->mapq_score = 0;
   // Check duplicates
   uint64_t* dup_match_trace_offset = matches_lookup_match(matches,
       match_trace->match_alignment.match_position,match_trace->match_alignment.effective_length);
@@ -660,22 +662,22 @@ GEM_INLINE void match_cigar_print(
   for (j=0;j<cigar_length;++j) {
     cigar_element_t* const cigar_element = vector_get_elm(cigar_vector,cigar_buffer_offset+j,cigar_element_t);
     switch (cigar_element->type) {
-      case cigar_match: tab_fprintf(stream,"%"PRIu64"M",cigar_element->length); break;
-      case cigar_mismatch: tab_fprintf(stream,"1X"); break;
+      case cigar_match: fprintf(stream,"%dM",cigar_element->length); break;
+      case cigar_mismatch: fprintf(stream,"1X"); break;
       case cigar_ins:
         if (cigar_element->attributes == cigar_attr_homopolymer) {
-          tab_fprintf(stream,"%"PRIu64"i",cigar_element->length);
+          fprintf(stream,"%di",cigar_element->length);
         } else {
-          tab_fprintf(stream,"%"PRIu64"I",cigar_element->length);
+          fprintf(stream,"%dI",cigar_element->length);
         }
         break;
       case cigar_del:
         if (cigar_element->attributes == cigar_attr_homopolymer) {
-          tab_fprintf(stream,"%"PRIu64"d",cigar_element->length);
+          fprintf(stream,"%dd",cigar_element->length);
         } else if (cigar_element->attributes == cigar_attr_trim) {
-          tab_fprintf(stream,"%"PRIu64"S",cigar_element->length);
+          fprintf(stream,"%dS",cigar_element->length);
         } else {
-          tab_fprintf(stream,"%"PRIu64"D",cigar_element->length);
+          fprintf(stream,"%dD",cigar_element->length);
         }
         break;
       default:
@@ -696,7 +698,7 @@ GEM_INLINE void matches_print(FILE* const stream,matches_t* const matches) {
   tab_fprintf(stream,"=> Position.Matches %lu\n",vector_get_used(matches->position_matches));
   tab_fprintf(stream,"  => Positions.Hashed.Begin %lu\n",ihash_get_num_elements(matches->begin_pos_matches));
   tab_fprintf(stream,"  => Positions.Hashed.End %lu\n",ihash_get_num_elements(matches->end_pos_matches));
-  tab_fprintf(stream,"=> Metrics.SE\t");
+  tab_fprintf(stream,"=> Metrics.SE\n");
   tab_global_inc();
   matches_metrics_print(stream,&matches->metrics,false);
   tab_global_dec();

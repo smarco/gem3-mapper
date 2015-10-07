@@ -175,7 +175,6 @@ void gem_mapper_print_profile(mapper_parameters_t* const parameters) {
 option_t gem_mapper_options[] = {
   /* I/O */
   { 'I', "index", REQUIRED, TYPE_STRING, 2, VISIBILITY_USER, "<index_file.gem>", "" },
-  { 200, "check-index", NO_ARGUMENT, TYPE_NONE, 2, VISIBILITY_DEVELOPER, "", "" },
   { 'i', "input", REQUIRED, TYPE_STRING, 2, VISIBILITY_USER, "<file>", "(FASTA/FASTQ, default=stdin)" },
   { '1', "i1", REQUIRED, TYPE_STRING, 2, VISIBILITY_USER, "<file>", "(paired-end, end-1)" },
   { '2', "i2", REQUIRED, TYPE_STRING, 2, VISIBILITY_USER, "<file>", "(paired-end, end-2)" },
@@ -186,7 +185,7 @@ option_t gem_mapper_options[] = {
   { 202, "gzip-output", NO_ARGUMENT, TYPE_NONE, 2, VISIBILITY_USER, "", "(gzip output)" },
   { 203, "bzip-output", NO_ARGUMENT, TYPE_NONE, 2, VISIBILITY_USER, "", "(bzip output)" },
   { 204, "output-model", REQUIRED, TYPE_STRING, 2, VISIBILITY_DEVELOPER, "<buffer_size,num_buffers>", "(default=4M,5c)" },
-	{ 205, "report-file", REQUIRED, TYPE_STRING, 2, VISIBILITY_USER, "<file_name>", "(default=NULL)" },
+  { 205, "report-file", REQUIRED, TYPE_STRING, 2, VISIBILITY_USER, "<file_name>", "(default=NULL)" },
   /* Qualities */
   { 'q', "quality-format", REQUIRED, TYPE_STRING, 3, VISIBILITY_ADVANCED, "'ignore'|'offset-33'|'offset-64'", "(default=offset-33)" },
   { 'Q', "quality-model", REQUIRED, TYPE_STRING, 3, VISIBILITY_ADVANCED, "'gem'|'flat'", "(default=gem)" },
@@ -260,7 +259,7 @@ option_t gem_mapper_options[] = {
   { 1500, "profile", OPTIONAL, TYPE_STRING, 15, VISIBILITY_DEVELOPER, "'sum'|'min'|'max'|'mean'|'sample'" , "(disabled)" },
   { 'v',  "verbose", OPTIONAL, TYPE_STRING, 15, VISIBILITY_USER, "'quiet'|'user'|'dev'" , "(default=user)" },
   { 'h',  "help", OPTIONAL, TYPE_NONE, 15, VISIBILITY_USER, "" , "(print usage)" },
-  { 0, NULL, 0, 0, 0, 0, NULL, NULL}
+  {  0, "", 0, 0, 0, false, "", ""}
 };
 char* gem_mapper_groups[] = {
   /*  0 */ "Null",
@@ -311,9 +310,6 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     /* I/O */
     case 'I': // --index
       io->index_file_name = optarg;
-      break;
-    case 200: // --check-index
-      io->check_index = true;
       break;
     case 'i': // --input
       io->separated_input_files = false;

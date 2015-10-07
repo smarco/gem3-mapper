@@ -14,7 +14,7 @@
 typedef struct {
   char *name_input_file;
   char *name_output_file;
-  char *option;
+  uint64_t option;
   uint64_t number;
   uint64_t param1;
   uint64_t param2;
@@ -31,7 +31,7 @@ typedef struct {
 gem_map_filter_args parameters = {
     .name_input_file=NULL,
     .name_output_file=NULL,
-    .option="",
+    .option=0,
     .number=0,
     .num_threads=1,
     .max_memory=0,
@@ -615,6 +615,7 @@ void constructor_swg() {
 //  // Free
 //  vector_delete(cigar_vector);
 }
+#include "nsearch_hamming.h"
 /*
  *
  */
@@ -676,7 +677,7 @@ void constructor_nsearch_region_permutations() {
 /*
  *
  */
-void constructor_ns_hamming_brute() {
+void constructor_neighbourhood_hamming_bidirectional() {
   // MM-Stack
   mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
   mm_stack_t* const mm_stack = mm_stack_new(slab);
@@ -689,105 +690,35 @@ void constructor_ns_hamming_brute() {
   uint64_t i;
   for (i=0;i<key_length;++i) enc_key[i] = dna_encode(key[i]);
   enc_key[key_length] = '\0';
-  // Search
-  nsearch_hamming_brute_force(NULL,enc_key,key_length,max_error,NULL,mm_stack);
-}
-void constructor_ns_hamming() {
-  // MM-Stack
-  mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_stack_t* const mm_stack = mm_stack_new(slab);
-  // Search Parameters
-  const uint64_t max_error = parameters.number;
-  const char* const key = parameters.name_input_file; // "ACGGTGACAAACGTCACGGTGGCACATGCAACCAAAAGCTG";//"AAAAAAA";
-  const uint64_t key_length = strlen(key);
-  // Encode key
-  uint8_t* const enc_key = malloc(key_length+1);
-  uint64_t i;
-  for (i=0;i<key_length;++i) enc_key[i] = dna_encode(key[i]);
-  enc_key[key_length] = '\0';
-  // Search
-  nsearch_hamming(NULL,enc_key,key_length,max_error,NULL,mm_stack);
-}
-void constructor_ns_hamming_2regions() {
-  // MM-Stack
-  mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_stack_t* const mm_stack = mm_stack_new(slab);
-  // Search Parameters
-  const uint64_t max_error = parameters.number;
-  const char* const key = parameters.name_input_file; // "ACGGTGACAAACGTCACGGTGGCACATGCAACCAAAAGCTG";//"AAAAAAA";
-  const uint64_t key_length = strlen(key);
-  // Encode key
-  uint8_t* const enc_key = malloc(key_length+1);
-  uint64_t i;
-  for (i=0;i<key_length;++i) enc_key[i] = dna_encode(key[i]);
-  enc_key[key_length] = '\0';
-  // Configure Region Profile
-  region_profile_t region_profile;
-  region_profile.filtering_region = mm_stack_calloc(mm_stack,2,region_search_t,true);
-  region_profile.filtering_region[0].begin = 0;
-  region_profile.filtering_region[0].end = 4;
-  region_profile.filtering_region[0].min = 1;
-  region_profile.filtering_region[0].max = max_error;
-  region_profile.filtering_region[1].begin = 4;
-  region_profile.filtering_region[1].end = key_length;
-  region_profile.filtering_region[1].min = 0;
-  region_profile.filtering_region[1].max = max_error-1;
-  region_profile.num_filtering_regions = 2;
-  // Search
-  nsearch_hamming_preconditioned(NULL,&region_profile,enc_key,key_length,max_error,NULL,mm_stack);
-}
-void constructor_ns_hamming_permutations() {
-  // MM-Stack
-  mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_stack_t* const mm_stack = mm_stack_new(slab);
-  // Search Parameters
-  const uint64_t max_error = parameters.number;
-  const char* const key = parameters.name_input_file; // "ACGGTGACAAACGTCACGGTGGCACATGCAACCAAAAGCTG";//"AAAAAAA";
-  const uint64_t key_length = strlen(key);
-  // Encode key
-  uint8_t* const enc_key = malloc(key_length+1);
-  uint64_t i;
-  for (i=0;i<key_length;++i) enc_key[i] = dna_encode(key[i]);
-  enc_key[key_length] = '\0';
-  // Configure Region Profile
-  const uint64_t num_filtering_regions = parameters.param1;
-  region_profile_t region_profile;
-  region_profile.num_filtering_regions = num_filtering_regions;
-  region_profile.filtering_region = mm_stack_calloc(mm_stack,num_filtering_regions,region_search_t,true);
-  // Generate all possible partitions
-  constructor_nsearch_region_permutations_n(&region_profile,0,0,key_length,enc_key,key_length,max_error,mm_stack);
-}
-void constructor_ns_edit_brute() {
-  // MM-Stack
-  mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_stack_t* const mm_stack = mm_stack_new(slab);
-  // Search Parameters
-  const uint64_t max_error = parameters.number;
-  const char* const key = parameters.name_input_file;
-  const uint64_t key_length = strlen(key);
-  // Encode key
-  uint8_t* const enc_key = malloc(key_length+1);
-  uint64_t i;
-  for (i=0;i<key_length;++i) enc_key[i] = dna_encode(key[i]);
-  enc_key[key_length] = '\0';
-  // Search
-  nsearch_levenshtein_brute_force(NULL,enc_key,key_length,max_error,NULL,mm_stack);
-}
-void constructor_ns_edit_partition() {
-  // MM-Stack
-  mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_stack_t* const mm_stack = mm_stack_new(slab);
-  // Search Parameters
-  const uint64_t max_error = parameters.number;
-  const char* const key = parameters.name_input_file;
-  const uint64_t key_length = strlen(key);
-  // Encode key
-  uint8_t* const enc_key = malloc(key_length+1);
-  uint64_t i;
-  for (i=0;i<key_length;++i) enc_key[i] = dna_encode(key[i]);
-  enc_key[key_length] = '\0';
-  // Search
-  nsearch_levenshtein(NULL,enc_key,key_length,max_error,NULL,mm_stack);
+  // Select
+  if (parameters.option==0) {
+    nsearch_hamming_brute_force(NULL,enc_key,key_length,max_error,NULL,mm_stack);
+  } else if (parameters.option==1) {
+    nsearch_hamming(NULL,enc_key,key_length,max_error,NULL,mm_stack);
+  } else if (parameters.option==2) {
+    // Configure Region Profile
+    region_profile_t region_profile;
+    region_profile.filtering_region = mm_stack_calloc(mm_stack,2,region_search_t,true);
+    region_profile.filtering_region[0].begin = 0;
+    region_profile.filtering_region[0].end = 4;
+    region_profile.filtering_region[0].min = 1;
+    region_profile.filtering_region[0].max = max_error;
+    region_profile.filtering_region[1].begin = 4;
+    region_profile.filtering_region[1].end = key_length;
+    region_profile.filtering_region[1].min = 0;
+    region_profile.filtering_region[1].max = max_error-1;
+    region_profile.num_filtering_regions = 2;
+    // Search
+    nsearch_hamming_preconditioned(NULL,&region_profile,enc_key,key_length,max_error,NULL,mm_stack);
+  } else if (parameters.option==3) {
+    // Configure Region Profile
+    const uint64_t num_filtering_regions = parameters.param1;
+    region_profile_t region_profile;
+    region_profile.num_filtering_regions = num_filtering_regions;
+    region_profile.filtering_region = mm_stack_calloc(mm_stack,num_filtering_regions,region_search_t,true);
+    // Generate all possible partitions
+    constructor_nsearch_region_permutations_n(&region_profile,0,0,key_length,enc_key,key_length,max_error,mm_stack);
+  }
 }
 /*
  * Generic Menu
@@ -832,7 +763,7 @@ void parse_arguments(int argc,char** argv) {
       parameters.name_output_file = optarg;
       break;
     case 's':
-      parameters.option = optarg;
+      parameters.option = atol(optarg);
       break;
     case 'n':
      parameters.number = atol(optarg);
@@ -909,27 +840,8 @@ int main(int argc,char** argv) {
   //  constructor_itoa();
   // constructor_swg();
 
-  if (gem_strcaseeq(parameters.option,"hamming-brute")) {
-    constructor_ns_hamming_brute();
-  }
-  if (gem_strcaseeq(parameters.option,"hamming-partition")) {
-    constructor_ns_hamming();
-  }
-  if (gem_strcaseeq(parameters.option,"hamming-regions")) {
-    constructor_ns_hamming_2regions();
-  }
-  if (gem_strcaseeq(parameters.option,"hamming-permutations")) {
-    constructor_ns_hamming_permutations();
-  }
-  if (gem_strcaseeq(parameters.option,"edit-brute")) {
-    constructor_ns_edit_brute();
-  }
-  if (gem_strcaseeq(parameters.option,"edit-partition")) {
-    constructor_ns_edit_partition();
-  }
-//  if (gem_strcaseeq(parameters.option,"")) {
-//
-//  }
+  constructor_neighbourhood_hamming_bidirectional();
+  //constructor_nsearch_region_permutations();
 
   return 0;
 }

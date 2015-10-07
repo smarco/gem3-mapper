@@ -390,6 +390,10 @@ GEM_INLINE void approximate_search_generate_inexact_candidates(
  * Verify Candidates
  */
 GEM_INLINE void approximate_search_verify_candidates(approximate_search_t* const search,matches_t* const matches) {
+  gem_cond_debug_block(DEBUG_SEARCH_STATE) {
+    tab_fprintf(stderr,"[GEM]>ASM::Verify Candidates\n");
+    tab_global_inc();
+  }
   // Parameters
   const as_parameters_t* const actual_parameters = search->as_parameters;
   const search_parameters_t* const parameters = actual_parameters->search_parameters;
@@ -409,4 +413,5 @@ GEM_INLINE void approximate_search_verify_candidates(approximate_search_t* const
   if (search->max_matches_reached) approximate_search_update_mcs(search,0);
   // Next State
   search->search_state = asearch_candidates_verified;
+  gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
 }

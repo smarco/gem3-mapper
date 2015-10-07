@@ -56,6 +56,10 @@ GEM_INLINE void approximate_search_neighborhood_inexact_search(approximate_searc
  * Neighborhood Search
  */
 GEM_INLINE void approximate_search_neighborhood_search(approximate_search_t* const search,matches_t* const matches) {
+  gem_cond_debug_block(DEBUG_SEARCH_STATE) {
+    tab_fprintf(stderr,"[GEM]>ASM::Neighborhood Search\n");
+    tab_global_inc();
+  }
   // Check max-differences allowed
   if (search->max_complete_error==0) {
     approximate_search_neighborhood_exact_search(search,matches);   // Exact Search
@@ -63,4 +67,5 @@ GEM_INLINE void approximate_search_neighborhood_search(approximate_search_t* con
     approximate_search_neighborhood_inexact_search(search,matches); // Basic brute force search
   }
   search->search_state = asearch_end; // Update search state
+  gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
 }

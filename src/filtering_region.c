@@ -7,9 +7,15 @@
  */
 
 #include "filtering_region.h"
-
 #include "match_scaffold.h"
 #include "match_align_dto.h"
+#include "output_map.h"
+
+/*
+ * Debug
+ */
+#define DEBUG_FILTERING_REGION                                GEM_DEEP_DEBUG
+#define DEBUG_FILTERING_REGION_DISPLAY_TEXT_MATCHING_REGIONS
 
 /*
  * Flags
@@ -51,6 +57,10 @@ GEM_INLINE bool filtering_region_align(
     const bool emulated_rc_search,pattern_t* const pattern,matches_t* const matches,
     match_trace_t* const match_trace,mm_stack_t* const mm_stack) {
   PROF_INC_COUNTER(GP_ACCEPTED_REGIONS);
+  gem_cond_debug_block(DEBUG_FILTERING_REGION) {
+    tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Region (region_align)\n");
+    tab_global_inc();
+  }
   // Parameters
   search_parameters_t* const search_parameters = as_parameters->search_parameters;
   const alignment_model_t alignment_model = search_parameters->alignment_model;
@@ -58,6 +68,9 @@ GEM_INLINE bool filtering_region_align(
   const uint64_t key_length = pattern->key_length;
   bool* const allowed_enc = search_parameters->allowed_enc;
   swg_penalties_t* const swg_penalties = &search_parameters->swg_penalties;
+  // Text
+  uint64_t text_length;
+  uint8_t* text;
   // Select Model
   if (filtering_region->align_distance==0 || alignment_model==alignment_model_none) {
     // Add exact match
@@ -81,13 +94,13 @@ GEM_INLINE bool filtering_region_align(
   } else {
     PROF_INC_COUNTER(GP_ACCEPTED_INEXACT);
     // Retrieve Candidate (fetch text-trace if needed)
-    const uint64_t text_length = filtering_region->end_position-filtering_region->begin_position;
+    text_length = filtering_region->end_position-filtering_region->begin_position;
     if (filtering_region->text_trace_offset == UINT64_MAX) {
       filtering_region->text_trace_offset = archive_text_retrieve(archive_text,text_collection,
           filtering_region->begin_position,text_length,false,mm_stack);
     }
     const text_trace_t* const text_trace = text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
-    uint8_t* const text = text_trace->text;
+    text = text_trace->text;
     // Select alignment model
     switch (alignment_model) {
       case alignment_model_hamming: {
@@ -181,9 +194,26 @@ GEM_INLINE bool filtering_region_align(
   // Check (re)alignment result
   if (match_trace->distance!=ALIGN_DISTANCE_INF && match_trace->swg_score >= 0) { // TODO Check
     filtering_region->status = filtering_region_aligned;
+    // DEBUG
+    gem_cond_debug_block(DEBUG_FILTERING_REGION) {
+      tab_fprintf(gem_log_get_stream(),"=> Region ALIGNED (distance=%lu,swg_score=%ld)\n",
+          match_trace->distance,match_trace->swg_score);
+      tab_global_inc();
+      output_map_alignment_pretty(gem_log_get_stream(),match_trace,matches,key,key_length,
+          text+(match_trace->match_alignment.match_position - filtering_region->begin_position),
+          match_trace->match_alignment.effective_length,mm_stack);
+      tab_global_dec();
+      tab_global_dec();
+    }
     return true; // OK
   } else {
     filtering_region->status = filtering_region_aligned_subdominant;
+    // DEBUG
+    gem_cond_debug_block(DEBUG_FILTERING_REGION) {
+      tab_fprintf(gem_log_get_stream(),"=> Region SUBDOMINANT (distance=%lu,swg_score=%ld)\n",
+          match_trace->distance,match_trace->swg_score);
+      tab_global_dec();
+    }
     return false; // Discarded
   }
 }
@@ -193,6 +223,11 @@ GEM_INLINE bool filtering_region_align_unbounded(
     const bool emulated_rc_search,pattern_t* const pattern,matches_t* const matches,
     match_trace_t* const match_trace,mm_stack_t* const mm_stack) {
   PROF_INC_COUNTER(GP_ACCEPTED_REGIONS);
+  gem_cond_debug_block(DEBUG_FILTERING_REGION) {
+    tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Region (align_unbounded)\n");
+    tab_global_inc();
+    filtering_region_print(gem_log_get_stream(),filtering_region,text_collection,false);
+  }
   // Parameters
   search_parameters_t* const search_parameters = as_parameters->search_parameters;
   const alignment_model_t alignment_model = search_parameters->alignment_model;
@@ -200,6 +235,8 @@ GEM_INLINE bool filtering_region_align_unbounded(
   const uint64_t key_length = pattern->key_length;
   bool* const allowed_enc = search_parameters->allowed_enc;
   swg_penalties_t* const swg_penalties = &search_parameters->swg_penalties;
+  // Text
+  uint8_t* text;
   // Select alignment model
   switch (alignment_model) {
     case alignment_model_hamming:
@@ -215,7 +252,7 @@ GEM_INLINE bool filtering_region_align_unbounded(
             filtering_region->begin_position,text_length,false,mm_stack);
       }
       const text_trace_t* const text_trace = text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
-      uint8_t* const text = text_trace->text;
+      text = text_trace->text;
       // Adjust alignment boundaries (to allow optimization)
       const uint64_t text_offset_begin = 0;
       const uint64_t text_offset_end = text_length-1;
@@ -257,7 +294,28 @@ GEM_INLINE bool filtering_region_align_unbounded(
       break;
   }
   // Check (re)alignment result
-  return (match_trace->distance!=ALIGN_DISTANCE_INF);
+  if (match_trace->distance!=ALIGN_DISTANCE_INF) {
+    // DEBUG
+    gem_cond_debug_block(DEBUG_FILTERING_REGION) {
+      tab_fprintf(gem_log_get_stream(),"=> Region ALIGNED (distance=%lu,swg_score=%ld)\n",
+          match_trace->distance,match_trace->swg_score);
+      tab_global_inc();
+      output_map_alignment_pretty(gem_log_get_stream(),match_trace,matches,key,key_length,
+          text+(match_trace->match_alignment.match_position - filtering_region->begin_position),
+          match_trace->match_alignment.effective_length,mm_stack);
+      tab_global_dec();
+      tab_global_dec();
+    }
+    return true;
+  } else {
+    // DEBUG
+    gem_cond_debug_block(DEBUG_FILTERING_REGION) {
+      tab_fprintf(gem_log_get_stream(),"=> Region SUBDOMINANT (distance=%lu,swg_score=%ld)\n",
+          match_trace->distance,match_trace->swg_score);
+      tab_global_dec();
+    }
+    return false;
+  }
 }
 /*
  * Verify
@@ -455,7 +513,9 @@ GEM_INLINE uint64_t filtering_region_verify_extension(
 /*
  * Display
  */
-void filtering_region_print(FILE* const stream,filtering_region_t* const region,const bool print_matching_regions) {
+void filtering_region_print(
+    FILE* const stream,filtering_region_t* const region,
+    const text_collection_t* const text_collection,const bool print_matching_regions) {
   tab_fprintf(stream,"  => Region %s [%"PRIu64",%"PRIu64") "
       "(total-bases=%"PRIu64",align-distance=%"PRId64","
       "matching-regions=%"PRIu64",align-match=%"PRIu64",%"PRIu64")\n",
@@ -463,6 +523,41 @@ void filtering_region_print(FILE* const stream,filtering_region_t* const region,
       region->begin_position,region->end_position,region->end_position-region->begin_position,
       region->align_distance==ALIGN_DISTANCE_INF ? (int64_t)-1 : (int64_t)region->align_distance,
       region->match_scaffold.num_scaffold_regions,region->align_match_begin_column,region->align_match_end_column);
+  if (text_collection!=NULL) {
+    if (region->text_trace_offset == UINT64_MAX) {
+      tab_fprintf(stream,"    => Text 'n/a'\n");
+    } else {
+      // Retrieve text
+      const uint64_t text_length = region->end_position-region->begin_position;
+      const text_trace_t* const text_trace = text_collection_get_trace(text_collection,region->text_trace_offset);
+      uint8_t* const text = text_trace->text;
+      // Allocate display text
+      const uint64_t max_printed_length = MIN(200,text_length);
+      uint64_t i;
+#ifdef DEBUG_FILTERING_REGION_DISPLAY_TEXT_MATCHING_REGIONS
+      char* const display_text = malloc(max_printed_length);
+      uint64_t s, p;
+      for (i=0;i<max_printed_length;++i) display_text[i] = 'a'+(dna_decode(text[i])-'A');
+      // Upper-case matching regions
+      match_scaffold_t* const match_scaffold = &region->match_scaffold;
+      for (s=0;s<match_scaffold->num_scaffold_regions;++s) {
+        region_matching_t* const region_matching = match_scaffold->scaffold_regions + s;
+        const uint64_t max_text_scope = MIN(max_printed_length,region_matching->text_end);
+        for (p=region_matching->text_begin;p<max_text_scope;++p) display_text[p] = dna_decode(text[p]);
+      }
+      // Display
+      tab_fprintf(stream,"    => Text %.*s\n",max_printed_length,display_text);
+      // Free
+      free(display_text);
+#else
+      tab_fprintf(stream,"    => Text ");
+      for (i=0;i<max_printed_length;++i) {
+        fprintf(stream,"%c",dna_decode(text[i]));
+      }
+      fprintf(stream,"\n");
+#endif
+    }
+  }
   if (print_matching_regions) {
     tab_global_inc();
     match_scaffold_print(stream,NULL,&region->match_scaffold);

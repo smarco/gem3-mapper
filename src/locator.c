@@ -120,43 +120,36 @@ GEM_INLINE void locator_map(const locator_t* const locator,const uint64_t index_
   location->bs_strand = interval->bs_strand;
 }
 // Inverse Locator (Location-to-position mapping)
-GEM_INLINE uint64_t locator_inverse_map(
+GEM_INLINE locator_interval_t* locator_inverse_map(
     locator_t* const locator,const uint8_t* const tag,
-    const strand_t strand,const int64_t text_position) {
+    const strand_t strand,const bs_strand_t bs_strand,
+    const uint64_t text_position) {
   locator_interval_t* const intervals = locator->intervals;
   const uint64_t num_intervals = locator->num_intervals;
+  // TODO Improve by hashing all tags (or doing binary search)
   uint64_t i;
-//  if (strand==Forward) {
-//    for (i=0;i<num_intervals;++i) {
-//      if (intervals[i].tag_id > 0 && intervals[i].sequence_offset <= text_position &&
-//          text_position < intervals[i].sequence_offset+intervals[i].sequence_length) {
-//        if (gem_streq((char*)tag,locator_interval_get_tag(locator,intervals+i))) {
-//          return intervals[i].begin_position + (text_position-intervals[i].sequence_offset);
-//        }
-//      }
-//    }
-//  } else {
-//    for (i=0;i<num_intervals;++i) {
-//      if (intervals[i].tag_id < 0 && intervals[i].sequence_offset <= text_position &&
-//          text_position < intervals[i].sequence_offset+intervals[i].sequence_length) {
-//        if (gem_streq((char*)tag,locator_interval_get_tag(locator,intervals+i))) {
-//          return intervals[i].end_position - (text_position-intervals[i].sequence_offset);
-//        }
-//      }
-//    }
-//  }
-  // TODO Improve by doing binary search
-  // TODO Improve by doing stranded search
   for (i=0;i<num_intervals;++i) {
-    if (intervals[i].sequence_offset <= text_position &&
-        text_position < intervals[i].sequence_offset+intervals[i].sequence_length) {
+    // Check strand
+    if (intervals[i].strand != strand) continue;
+    if (intervals[i].bs_strand != bs_strand) continue;
+    // Check position
+    const uint64_t sequence_begin = intervals[i].sequence_offset;
+    if (sequence_begin <= text_position && text_position < sequence_begin+intervals[i].sequence_length) {
       if (gem_streq((char*)tag,locator_interval_get_tag(locator,intervals+i))) {
-        return intervals[i].begin_position + (text_position-intervals[i].sequence_offset);
+        // return intervals[i].begin_position + (text_position-intervals[i].sequence_offset);
+        return intervals + i;
       }
     }
   }
   gem_fatal_error(LOCATOR_INVERSE_NOT_FOUND);
-  return 0;
+  return NULL;
+}
+GEM_INLINE uint64_t locator_inverse_map_position(
+    locator_t* const locator,const uint8_t* const tag,
+    const strand_t strand,const bs_strand_t bs_strand,
+    const uint64_t text_position) {
+  locator_interval_t* const locator_interval = locator_inverse_map(locator,tag,strand,bs_strand,text_position);
+  return locator_interval->begin_position + (text_position-locator_interval->sequence_offset);
 }
 /*
  * Display

@@ -80,13 +80,16 @@ GEM_INLINE void output_sam_print_header(
   uint64_t i = 0;
   while (i<num_intervals) {
     const int64_t tag_id = intervals[i].tag_id;
+    const strand_t strand = intervals[i].strand;
+    const bs_strand_t bs_strand = intervals[i].bs_strand;
     // Skip Reverse or G2A contigs
-    if (intervals[i].strand==Reverse || intervals[i].bs_strand==bs_strand_G2A) {
+    if (strand==Reverse || bs_strand==bs_strand_G2A) {
       ++i; continue;
     }
     // Calculate the length of the sequence (compose by several intervals)
-    while (i+1<num_intervals && intervals[i+1].tag_id==tag_id) ++i; // Go to the last
-    uint64_t total_length = intervals[i].sequence_offset+intervals[i].sequence_length;
+    while (i+1<num_intervals && intervals[i+1].tag_id==tag_id &&
+        intervals[i+1].strand==strand && intervals[i+1].bs_strand==bs_strand) ++i; // Go to the last
+    const uint64_t total_length = intervals[i].sequence_offset+intervals[i].sequence_length;
     const char* const tag = locator_interval_get_tag(locator,intervals+i);
     uint64_t tag_len = gem_strlen(tag);
     // Print SQ

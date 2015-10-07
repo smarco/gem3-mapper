@@ -9,8 +9,6 @@
 #include "nsearch_schedule.h"
 #include "nsearch_partition.h"
 #include "nsearch_hamming.h"
-#include "nsearch_levenshtein.h"
-#include "nsearch_levenshtein_state.h"
 
 /*
  * Setup
@@ -23,29 +21,19 @@ GEM_INLINE void nsearch_schedule_init(
   // Search
   nsearch_schedule->fm_index = fm_index;
   nsearch_schedule->nsearch_model = nsearch_model;
+  nsearch_schedule->max_error = max_error;
   nsearch_schedule->key = key;
   nsearch_schedule->key_length = key_length;
   nsearch_schedule->region_profile = region_profile;
-  nsearch_schedule->max_error = max_error;
-  const uint64_t max_text_length = key_length + max_error;
-  nsearch_schedule->max_text_length = max_text_length;
   nsearch_schedule->intervals_result = intervals_result;
   nsearch_schedule->mm_stack = mm_stack;
   // Pending Search Operations
-  const uint64_t max_pending_ops = max_error+1; // TODO Shrink
-  nsearch_operation_t* const pending_searches = mm_stack_calloc(mm_stack,max_pending_ops,nsearch_operation_t,false);
-  nsearch_schedule->pending_searches = pending_searches;
-  if (nsearch_model==nsearch_model_levenshtein) {
-    const uint64_t num_columns = max_text_length + 3;
-    const uint64_t column_length = key_length + 1;
-    uint64_t i;
-    for (i=0;i<max_pending_ops;++i) {
-      nsearch_levenshtein_state_init(&pending_searches[i].nsearch_state,num_columns,column_length,mm_stack);
-    }
-  }
+  const uint64_t max_pending_ops = max_error+1;
+  nsearch_schedule->pending_searches = mm_stack_calloc(mm_stack,max_pending_ops,nsearch_operation_t,false);
   nsearch_schedule->num_pending_searches = 0;
-  nsearch_schedule->search_id = 0;
-  nsearch_schedule->search_string = mm_stack_calloc(mm_stack,max_text_length,char,true);
+  // Debug
+  nsearch_schedule->search_string = mm_stack_calloc(mm_stack,key_length+1,char,true);
+  nsearch_schedule->search_string_id = 0;
   // Profiler
   nsearch_schedule->ns_nodes = 0;
   nsearch_schedule->ns_nodes_mtable = 0;
@@ -74,7 +62,6 @@ GEM_INLINE bool nsearch_schedule_add_pending_search(
   nsearch_schedule->pending_searches[num_op].max_local_error = max_local_error;
   nsearch_schedule->pending_searches[num_op].min_global_error = min_global_error;
   nsearch_schedule->pending_searches[num_op].max_global_error = max_global_error;
-  nsearch_schedule->pending_searches[num_op].max_text_length = length+max_local_error;
   ++(nsearch_schedule->num_pending_searches);
   // Return
   return true;
@@ -95,7 +82,7 @@ GEM_INLINE void nsearch_schedule_search_step(
         chunk_min_error,chunk_max_error,chunk_min_error,chunk_max_error);
     if (!feasible_search) return; // Impossible search
     // Perform the search (Solve pending extensions)
-    nsearch_schedule_print_pretty(stderr,nsearch_schedule); // DEBUG
+    // nsearch_schedule_print_pretty(stderr,nsearch_schedule); // DEBUG
     const uint64_t num_pending_searches = nsearch_schedule->num_pending_searches - 1;
     nsearch_operation_t* const nsearch_operation = nsearch_schedule->pending_searches + num_pending_searches;
     // Select nsearch-alignment model
@@ -104,16 +91,9 @@ GEM_INLINE void nsearch_schedule_search_step(
         nsearch_hamming_perform_scheduled_search(nsearch_schedule,
             num_pending_searches,nsearch_operation,nsearch_operation->begin,0,0);
         break;
-      case nsearch_model_levenshtein: {
-        nsearch_levenshtein_state_t* const nsearch_state = &nsearch_operation->nsearch_state;
-        nsearch_state->key_begin = nsearch_operation->begin;
-        nsearch_state->key_end = nsearch_operation->end;
-        nsearch_state->global_text_length = 0;
-        nsearch_state->local_text_length = 0;
-        nsearch_levenshtein_state_prepare_supercondensed(nsearch_state,nsearch_operation->max_local_error);
-        nsearch_levenshtein_perform_scheduled_search(nsearch_schedule,num_pending_searches,nsearch_operation,0);
+      case nsearch_model_levenshtein:
+        GEM_NOT_IMPLEMENTED();
         break;
-      }
       default:
         GEM_INVALID_CASE();
         break;
@@ -307,7 +287,7 @@ GEM_INLINE void nsearch_schedule_print_pretty(FILE* const stream,nsearch_schedul
     }
   }
   // Print Header & local min/max limits
-  fprintf(stream,"[GEM]>NSearch[%lu]\n",nsearch_schedule->search_id++);
+  fprintf(stream,"[GEM]>NSearch[%lu]\n",nsearch_schedule->search_string_id++);
   for (i=0;i<nsearch_schedule->num_pending_searches;++i) {
     nsearch_schedule_print_data_t* const operation_data = print_data + i;
     nsearch_operation_t* const pending_search = pending_searches + operation_data->nsearch_schedule_pos;
@@ -318,9 +298,7 @@ GEM_INLINE void nsearch_schedule_print_pretty(FILE* const stream,nsearch_schedul
   // Print intervals
   for (i=0;i<num_pending_searches;++i) {
     nsearch_schedule_print_data_t* const operation_data = print_data + i;
-    nsearch_operation_t* const pending_search = pending_searches + operation_data->nsearch_schedule_pos;
-    const char direcction_char = (pending_search->search_direction==direction_forward) ? '>' : '<';
-    nsearch_schedule_print_region_segment(stream,operation_data->plength,'{',direcction_char,'}');
+    nsearch_schedule_print_region_segment(stream,operation_data->plength,'<','-','>');
   }
   fprintf(stream,"\n");
   // Print regions
@@ -347,7 +325,4 @@ GEM_INLINE void nsearch_schedule_print_pretty(FILE* const stream,nsearch_schedul
 GEM_INLINE void nsearch_schedule_print_profile(FILE* const stream,nsearch_schedule_t* const nsearch_schedule) {
   fprintf(stderr,"%lu\t%lu\t%2.3f\n",nsearch_schedule->ns_nodes_success,
       nsearch_schedule->ns_nodes,TIMER_GET_TOTAL_S(&nsearch_schedule->ns_timer));
-}
-GEM_INLINE void nsearch_schedule_print_search_string(FILE* const stream,nsearch_schedule_t* const nsearch_schedule) {
-  fprintf(stream,"%s",nsearch_schedule->search_string);
 }

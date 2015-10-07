@@ -135,6 +135,7 @@ GEM_INLINE void archive_score_matches_gem_pe(
   if (num_paired_map>0 && paired_map[0].pair_relation==pair_relation_discordant) return;
   // Classify
   matches_predictors_t predictors;
+  memset(&predictors,0,sizeof(predictors));
   archive_search_paired_end_compute_predictors(archive_search_end1,archive_search_end2,paired_matches,&predictors);
   const matches_class_t matches_class = paired_matches_classify(paired_matches);
   switch (matches_class) {

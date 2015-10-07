@@ -33,7 +33,7 @@ void mapper_stats_clear(mapper_stats_t* const mapper_stats);
 void mapper_stats_delete(mapper_stats_t* const mapper_stats);
 
 /*
- * Template Size
+ * Template Length
  */
 void mapper_stats_template_length_sample(
     mapper_stats_t* const search_stats,const uint64_t template_length);
@@ -41,8 +41,7 @@ void mapper_stats_template_length_sample(
 uint64_t mapper_stats_template_length_get_num_samples(mapper_stats_t* const search_stats);
 uint64_t mapper_stats_template_length_get_ci_min_samples(
     mapper_stats_t* const search_stats,const uint64_t margin_error);
-bool mapper_stats_template_length_estimation_within_ci(
-    mapper_stats_t* const search_stats,const uint64_t margin_error);
+bool mapper_stats_template_length_is_reliable(mapper_stats_t* const search_stats);
 
 double mapper_stats_template_length_get_mean(mapper_stats_t* const search_stats);
 double mapper_stats_template_length_get_stddev(mapper_stats_t* const search_stats);

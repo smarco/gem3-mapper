@@ -83,13 +83,14 @@ GEM_INLINE void region_profile_extend_last_region(
     while (last_region->begin > 0) {
       if (last_region->hi==last_region->lo) break;
       // Query step
-      const uint8_t enc_char = key[--last_region->begin];
+      const uint8_t enc_char = key[last_region->begin-1];
       if (!allowed_enc[enc_char]) break;
       last_region->lo=bwt_erank(fm_index->bwt,enc_char,last_region->lo);
       last_region->hi=bwt_erank(fm_index->bwt,enc_char,last_region->hi);
+      --last_region->begin;
     }
-    // Extend beyond zero interval
-    while (last_region->begin > 0 && allowed_enc[key[--last_region->begin]]);
+    // Extend beyond zero interval // TODO
+    // while (last_region->begin > 0 && allowed_enc[key[--last_region->begin]]);
     // Adjust the region end (if needed) and type
     const uint64_t count = last_region->hi-last_region->lo;
     if (last_region->type==region_standard && count<=rp_region_type_th) {

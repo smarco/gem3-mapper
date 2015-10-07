@@ -37,7 +37,7 @@ FOLDER_TOOLS=$(ROOT_PATH)/tools
 HAVE_ZLIB = 1
 HAVE_BZLIB = 1
 HAVE_OPENMP = 1
-HAVE_CUDA = 1
+HAVE_CUDA = 
 
 # GEM-Core Libs
 GEM_CORE_LIB=$(FOLDER_LIB)/libgemcore_c.a
@@ -59,7 +59,7 @@ endif
 # CUDA Lib
 ifeq ($(HAVE_CUDA),1)
   DEF_CUDA=-DHAVE_CUDA
-  CUDA_PATH=/usr/local/cuda
+  CUDA_PATH=
   NVCC=$(CUDA_PATH)/bin/nvcc
   LIBS_CUDA=-L$(CUDA_PATH)/lib64 -lcuda -lcudart -lstdc++
   INC_CUDA=-I$(CUDA_PATH)/include

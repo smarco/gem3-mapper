@@ -98,7 +98,6 @@ void mapper_error_report(FILE* stream) {
 GEM_INLINE void mapper_parameters_set_defaults_io(mapper_parameters_io_t* const io) {
   /* Input */
   io->index_file_name=NULL;
-  io->check_index=false;
   io->separated_input_files=false;
   io->input_file_name=NULL;
   io->input_file_name_end1=NULL;
@@ -120,6 +119,7 @@ GEM_INLINE void mapper_parameters_set_defaults_io(mapper_parameters_io_t* const 
   output_map_parameters_set_defaults(&io->map_parameters);
   io->output_buffer_size = BUFFER_SIZE_4M;
   io->output_num_buffers = 10*num_processors; // Lazy allocation
+  io->report_file_name = NULL;
 }
 GEM_INLINE void mapper_parameters_set_defaults_system(mapper_parameters_system_t* const system) {
   /* System */
@@ -210,8 +210,8 @@ GEM_INLINE void mapper_load_index(mapper_parameters_t* const parameters) {
   PROF_START_TIMER(GP_MAPPER_LOAD_INDEX);
   // Load archive
   gem_cond_log(parameters->misc.verbose_user,"[Loading GEM index '%s']",parameters->io.index_file_name);
-  parameters->archive = archive_read(parameters->io.index_file_name,
-      parameters->io.check_index,parameters->misc.verbose_dev);
+  parameters->archive = archive_read(parameters->io.index_file_name,false);
+  if (parameters->misc.verbose_dev) archive_print(gem_error_get_stream(),parameters->archive);
   PROF_STOP_TIMER(GP_MAPPER_LOAD_INDEX);
 }
 /*

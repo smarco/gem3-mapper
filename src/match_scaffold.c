@@ -375,8 +375,10 @@ GEM_INLINE bool match_scaffold_levenshtein(
       (100*match_scaffold->scaffolding_coverage)/align_input->key_length);
   // DEBUG
   gem_cond_debug_block(DEBUG_MATCH_SCAFFOLD_EDIT) {
-    gem_slog("[GEM]>Match.Scaffold.Edit\n");
+    tab_fprintf(gem_log_get_stream(),"[GEM]>Match.Scaffold.Edit\n");
+    tab_global_inc();
     match_scaffold_print(gem_log_get_stream(),matches,match_scaffold);
+    tab_global_dec();
   }
   return match_scaffold->num_scaffold_regions > 0;
 }
@@ -405,7 +407,7 @@ GEM_INLINE bool match_scaffold_smith_waterman_gotoh(
   PROF_STOP(GP_MATCHING_REGIONS_SWG_SCAFFOLD);
   // DEBUG
   gem_cond_debug_block(DEBUG_MATCH_SCAFFOLD_SWG) {
-    gem_slog("[GEM]>Match.Scaffold.SWG\n");
+    tab_fprintf(gem_log_get_stream(),"[GEM]>Match.Scaffold.SWG\n");
     match_scaffold_print(gem_log_get_stream(),matches,match_scaffold);
   }
   return match_scaffold->num_scaffold_regions > 0;
@@ -524,8 +526,6 @@ GEM_INLINE void match_scaffold_alignment(
     matches_t* const matches,match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
     match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack) {
-  // DEBUG
-  gem_cond_debug_block(DEBUG_MATCH_SCAFFOLD) { match_scaffold_print(stderr,matches,match_scaffold); }
   // Parameters
   const uint8_t* const key = align_input->key;
   const uint64_t key_length = align_input->key_length;
@@ -556,7 +556,12 @@ GEM_INLINE void match_scaffold_alignment(
     match_scaffold_levenshtein(matches,align_input,align_parameters,match_scaffold,mm_stack);
   }
   // DEBUG
-  gem_cond_debug_block(DEBUG_MATCH_SCAFFOLD) { match_scaffold_print(stderr,matches,match_scaffold); }
+  gem_cond_debug_block(DEBUG_MATCH_SCAFFOLD) {
+    tab_fprintf(gem_log_get_stream(),"[GEM]>Match.Scaffold (scaffold alignment)\n");
+    tab_global_inc();
+    match_scaffold_print(stderr,matches,match_scaffold);
+    tab_global_dec();
+  }
 }
 /*
  * Sorting

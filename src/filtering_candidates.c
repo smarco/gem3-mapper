@@ -16,7 +16,7 @@
  * Debug
  */
 #define DEBUG_FILTERING_CANDIDATES                     GEM_DEEP_DEBUG
-#define DEBUG_FILTERING_CANDIDATES_REGIONS_MATCHING    GEM_DEEP_DEBUG
+#define DEBUG_FILTERING_CANDIDATES_REGIONS_MATCHING    false // GEM_DEEP_DEBUG too verbose
 
 /*
  * Mode
@@ -197,6 +197,11 @@ GEM_INLINE uint64_t filtering_candidates_align_accepted_regions(
     text_collection_t* const text_collection,pattern_t* const pattern,
     const bool emulated_rc_search,const as_parameters_t* const as_parameters,
     const bool approximated_distance,matches_t* const matches,mm_stack_t* const mm_stack) {
+  // DEBUG
+  gem_cond_debug_block(DEBUG_FILTERING_CANDIDATES) {
+    tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Candidates (align_acepted_regions)\n");
+    tab_global_inc();
+  }
   // Parameters
   const uint64_t max_error_after_best = as_parameters->alignment_max_error_after_best_nominal;
   // Sort filtering regions (wrt align_distance)
@@ -242,7 +247,11 @@ GEM_INLINE uint64_t filtering_candidates_align_accepted_regions(
   vector_update_used(filtering_candidates->filtering_regions,regions_out);
   // DEBUG
   gem_cond_debug_block(DEBUG_FILTERING_CANDIDATES) {
-    filtering_candidates_print_regions(gem_log_get_stream(),filtering_candidates,false,false);
+    tab_global_dec();
+    tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Candidates (align_acepted_regions - aftermath)\n");
+    tab_global_inc();
+    filtering_candidates_print_regions(gem_log_get_stream(),filtering_candidates,text_collection,false,false);
+    tab_global_dec();
   }
   // Return total accepted regions
   return num_accepted_regions;
@@ -262,7 +271,9 @@ GEM_INLINE uint64_t filtering_candidates_unbounded_align_regions_by_status(
     match_trace_t match_trace;
     if (filtering_region_align_unbounded(regions+n,archive_text,text_collection,
         as_parameters,emulated_rc_search,pattern,matches,&match_trace,mm_stack)) {
-      matches_metrics_dec_subdominant_candidates(&matches->metrics);
+      if (regions[n].status==filtering_region_accepted_subdominant) {
+        matches_metrics_dec_subdominant_candidates(&matches->metrics);
+      }
       regions[n].status = filtering_region_aligned_unbounded;
       if (matches_add_match_trace(matches,&match_trace,true,locator,mm_stack)) ++num_unbounded_alignments;
     }
@@ -295,8 +306,10 @@ GEM_INLINE uint64_t filtering_candidates_unbounded_align_regions(
   }
   // DEBUG
   gem_cond_debug_block(DEBUG_FILTERING_CANDIDATES) {
-    gem_slog("[GEM]>Candidate.Regions (unbounded_align)\n");
-    filtering_candidates_print_regions(gem_log_get_stream(),filtering_candidates,false,false);
+    tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Candidates (unbounded_align)\n");
+    tab_global_inc();
+    filtering_candidates_print_regions(gem_log_get_stream(),filtering_candidates,text_collection,false,false);
+    tab_global_dec();
   }
   // Clear discarded vector
   vector_clear(filtering_candidates->discarded_regions);
@@ -307,7 +320,7 @@ GEM_INLINE uint64_t filtering_candidates_unbounded_align_regions(
  * Candidate Verification
  */
 GEM_INLINE uint64_t filtering_candidates_verify_filtering_regions(
-    filtering_candidates_t* const filtering_candidates,text_collection_t* const candidates_collection,
+    filtering_candidates_t* const filtering_candidates,text_collection_t* const text_collection,
     const pattern_t* const pattern,const as_parameters_t* const as_parameters,
     matches_t* const matches) {
   // Parameters
@@ -328,7 +341,7 @@ GEM_INLINE uint64_t filtering_candidates_verify_filtering_regions(
       ++regions_out;
     } else {
       // Verify region
-      if (filtering_region_verify(regions_in,candidates_collection,search_parameters,pattern)) {
+      if (filtering_region_verify(regions_in,text_collection,search_parameters,pattern)) {
         *regions_out = *regions_in;
         ++regions_out;
         ++num_regions_accepted;
@@ -348,8 +361,10 @@ GEM_INLINE uint64_t filtering_candidates_verify_filtering_regions(
   vector_update_used(filtering_candidates->verified_regions,regions_verified);
   // DEBUG
   gem_cond_debug_block(DEBUG_FILTERING_CANDIDATES) {
-    gem_slog("[GEM]>Candidate.Regions (verify_regions)\n");
-    filtering_candidates_print_regions(gem_log_get_stream(),filtering_candidates,false,false);
+    tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Candidates (verify_regions)\n");
+    tab_global_inc();
+    filtering_candidates_print_regions(gem_log_get_stream(),filtering_candidates,text_collection,false,false);
+    tab_global_dec();
   }
   return num_regions_accepted;
 }
@@ -394,8 +409,10 @@ GEM_INLINE uint64_t filtering_candidates_verify_filtering_regions_multiple_hits(
   vector_update_used(filtering_candidates->verified_regions,regions_verified);
   // DEBUG
   gem_cond_debug_block(DEBUG_FILTERING_CANDIDATES) {
-    gem_slog("[GEM]>Candidate.Regions (verify_regions_multiple_hits)\n");
-    filtering_candidates_print_regions(gem_log_get_stream(),filtering_candidates,false,false);
+    tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Candidates (verify_regions_multiple_hits)\n");
+    tab_global_inc();
+    filtering_candidates_print_regions(gem_log_get_stream(),filtering_candidates,text_collection,false,false);
+    tab_global_dec();
   }
   return total_regions_accepted;
 }
@@ -519,8 +536,11 @@ GEM_INLINE uint64_t filtering_candidates_compose_filtering_regions(
   vector_clear(filtering_candidates->filtering_positions);
   // DEBUG
   gem_cond_debug_block(DEBUG_FILTERING_CANDIDATES) {
-    gem_slog("[GEM]>Candidate.Regions (compose_filtering_regions)\n");
-    filtering_candidates_print_regions(stderr,filtering_candidates,true,DEBUG_FILTERING_CANDIDATES_REGIONS_MATCHING);
+    tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Candidates (compose_filtering_regions)\n");
+    tab_global_inc();
+    filtering_candidates_print_regions(gem_log_get_stream(),
+        filtering_candidates,false,true,DEBUG_FILTERING_CANDIDATES_REGIONS_MATCHING);
+    tab_global_dec();
   }
   // Return number of filtering regions generated
   return vector_get_used(filtering_candidates->filtering_regions);
@@ -739,15 +759,15 @@ GEM_INLINE uint64_t filtering_candidates_process_candidates(
   PROF_START(GP_FC_PROCESS_CANDIDATES);
   PROF_START(GP_FC_DECODE_POSITIONS);
   const uint64_t key_length = pattern->key_length;
-//  if (pending_candidates < DECODE_NUM_POSITIONS_PREFETCHED) {
+  if (pending_candidates < DECODE_NUM_POSITIONS_PREFETCHED) {
     filtering_candidates_decode_filtering_positions(
         filtering_candidates,archive->locator,archive->text,
         archive->fm_index,key_length,pattern->max_effective_bandwidth);
-//  } else {
-//    filtering_candidates_decode_filtering_position_batch_prefetched(
-//        filtering_candidates,archive->locator,archive->text,
-//        archive->fm_index,key_length,pattern->max_effective_bandwidth);
-//  }
+  } else {
+    filtering_candidates_decode_filtering_position_batch_prefetched(
+        filtering_candidates,archive->locator,archive->text,
+        archive->fm_index,key_length,pattern->max_effective_bandwidth);
+  }
   PROF_STOP(GP_FC_DECODE_POSITIONS);
 
   // Compose matching regions into candidate regions (also filter out duplicated positions or already checked)
@@ -968,8 +988,10 @@ GEM_INLINE uint64_t filtering_candidates_bpm_buffer_retrieve(
   PROF_STOP(GP_FC_RETRIEVE_BPM_BUFFER_CANDIDATE_REGIONS);
   // DEBUG
   gem_cond_debug_block(DEBUG_FILTERING_CANDIDATES) {
-    gem_slog("[GEM]>Candidate.Regions (verify_regions_BPM_buffer)\n");
-    filtering_candidates_print_regions(gem_log_get_stream(),filtering_candidates,false,false);
+    tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Candidates (verify_regions_BPM_buffer)\n");
+    tab_global_inc();
+    filtering_candidates_print_regions(gem_log_get_stream(),filtering_candidates,text_collection,false,false);
+    tab_global_dec();
   }
   // Return number of accepted regions
   return num_accepted_regions;
@@ -1144,14 +1166,14 @@ GEM_INLINE void filtering_candidates_process_extension_candidates(
  * Display
  */
 GEM_INLINE void filtering_candidates_print_regions_by_status(
-    FILE* const stream,vector_t* const filtering_regions,
-    const filtering_region_status_t status,const bool print_matching_regions) {
+    FILE* const stream,vector_t* const filtering_regions,const filtering_region_status_t status,
+    const text_collection_t* const text_collection,const bool print_matching_regions) {
   uint64_t i, total_printed = 0;
   const uint64_t num_regions = vector_get_used(filtering_regions);
   filtering_region_t* const fregion = vector_get_mem(filtering_regions,filtering_region_t);
   // Count
   for (i=0;i<num_regions;++i) {
-    if (fregion->status!=status) continue;
+    if (fregion[i].status!=status) continue;
     ++total_printed;
   }
   if (total_printed == 0) return;
@@ -1159,14 +1181,15 @@ GEM_INLINE void filtering_candidates_print_regions_by_status(
   // Print
   tab_global_inc();
   for (i=0;i<num_regions;++i) {
-    if (fregion->status!=status) continue;
-    filtering_region_print(stream,fregion,print_matching_regions);
+    if (fregion[i].status!=status) continue;
+    filtering_region_print(stream,fregion+i,text_collection,print_matching_regions);
   }
   tab_global_dec();
 }
 GEM_INLINE void filtering_candidates_print_regions(
     FILE* const stream,filtering_candidates_t* const filtering_candidates,
-    const bool print_base_regions,const bool print_matching_regions) {
+    const text_collection_t* const text_collection,const bool print_base_regions,
+    const bool print_matching_regions) {
   tab_fprintf(stream,"[GEM]>Filtering.Regions\n");
   int64_t i;
   if (print_base_regions) {
@@ -1179,13 +1202,20 @@ GEM_INLINE void filtering_candidates_print_regions(
   }
   vector_t* const filtering_regions = filtering_candidates->filtering_regions;
   vector_t* const discarded_regions = filtering_candidates->discarded_regions;
-  filtering_candidates_print_regions_by_status(stream,filtering_regions,filtering_region_pending,print_matching_regions);
-  filtering_candidates_print_regions_by_status(stream,filtering_regions,filtering_region_unverified,print_matching_regions);
-  filtering_candidates_print_regions_by_status(stream,discarded_regions,filtering_region_verified_discarded,print_matching_regions);
-  filtering_candidates_print_regions_by_status(stream,filtering_regions,filtering_region_accepted,print_matching_regions);
-  filtering_candidates_print_regions_by_status(stream,discarded_regions,filtering_region_accepted_subdominant,print_matching_regions);
-  filtering_candidates_print_regions_by_status(stream,filtering_regions,filtering_region_aligned,print_matching_regions);
-  filtering_candidates_print_regions_by_status(stream,discarded_regions,filtering_region_aligned_subdominant,print_matching_regions);
+  filtering_candidates_print_regions_by_status(
+      stream,filtering_regions,filtering_region_pending,text_collection,print_matching_regions);
+  filtering_candidates_print_regions_by_status(
+      stream,filtering_regions,filtering_region_unverified,text_collection,print_matching_regions);
+  filtering_candidates_print_regions_by_status(
+      stream,discarded_regions,filtering_region_verified_discarded,text_collection,print_matching_regions);
+  filtering_candidates_print_regions_by_status(
+      stream,filtering_regions,filtering_region_accepted,text_collection,print_matching_regions);
+  filtering_candidates_print_regions_by_status(
+      stream,discarded_regions,filtering_region_accepted_subdominant,text_collection,print_matching_regions);
+  filtering_candidates_print_regions_by_status(
+      stream,filtering_regions,filtering_region_aligned,text_collection,print_matching_regions);
+  filtering_candidates_print_regions_by_status(
+      stream,discarded_regions,filtering_region_aligned_subdominant,text_collection,print_matching_regions);
   const uint64_t total_regions =
       vector_get_used(filtering_candidates->filtering_regions) +
       vector_get_used(filtering_candidates->discarded_regions);

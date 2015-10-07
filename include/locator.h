@@ -105,9 +105,14 @@ locator_interval_t* locator_lookup_interval(const locator_t* const locator,const
 // [Direct Locator] (Position-to-location mapping)
 void locator_map(const locator_t* const locator,const uint64_t index_position,location_t* const location);
 // [Inverse Locator] (Location-to-position mapping)
-uint64_t locator_inverse_map(
+locator_interval_t* locator_inverse_map(
     locator_t* const locator,const uint8_t* const tag,
-    const strand_t strand,const int64_t text_position);
+    const strand_t strand,const bs_strand_t bs_strand,
+    const uint64_t text_position);
+uint64_t locator_inverse_map_position(
+    locator_t* const locator,const uint8_t* const tag,
+    const strand_t strand,const bs_strand_t bs_strand,
+    const uint64_t text_position);
 
 
 /*

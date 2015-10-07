@@ -156,7 +156,7 @@ GEM_INLINE void locator_builder_add_rc_interval(
   const uint64_t interval_length = locator_interval_get_index_length(locator_interval);
   const strand_t rc_strand = dna_strand_get_complement(locator_interval->strand);
   locator_builder_add_interval(locator_builder,locator_interval->tag_id,locator_interval->sequence_offset,
-      interval_length,interval_length,locator_interval->type,rc_strand,locator_interval->bs_strand);
+      locator_interval->sequence_length,interval_length,locator_interval->type,rc_strand,locator_interval->bs_strand);
 }
 GEM_INLINE int64_t locator_builder_add_sequence(
     locator_builder_t* const locator_builder,char* const tag,const uint64_t tag_length) {

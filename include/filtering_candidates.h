@@ -136,6 +136,7 @@ void filtering_candidates_process_extension_candidates(
  */
 void filtering_candidates_print_regions(
     FILE* const stream,filtering_candidates_t* const filtering_candidates,
-    const bool print_base_regions,const bool print_matching_regions);
+    const text_collection_t* const text_collection,const bool print_base_regions,
+    const bool print_matching_regions);
 
 #endif /* FILTERING_CANDIDATES_H_ */

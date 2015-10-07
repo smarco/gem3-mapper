@@ -52,6 +52,7 @@ GEM_INLINE void approximate_search_filtering_adaptive(approximate_search_t* cons
         approximate_search_neighborhood_search(search,matches);
         break;
       case asearch_exact_matches: // Exact Matches
+        gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_fprintf(stderr,"[GEM]>ASM::Exact-Matches\n"); }
         matches_add_interval_match(matches,search->lo_exact_matches,
             search->hi_exact_matches,pattern->key_length,0,search->emulated_rc_search); // Add interval
         approximate_search_update_mcs(search,1);
@@ -61,6 +62,7 @@ GEM_INLINE void approximate_search_filtering_adaptive(approximate_search_t* cons
         approximate_search_unbounded_align(search,matches);
         break;
       case asearch_no_regions: // No regions found
+        gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_fprintf(stderr,"[GEM]>ASM::No-Regions\n"); }
         approximate_search_update_mcs(search,pattern->num_wildcards);
         search->search_state = asearch_end;
         break;
@@ -70,6 +72,11 @@ GEM_INLINE void approximate_search_filtering_adaptive(approximate_search_t* cons
     }
   }
   // Done!!
+  gem_cond_debug_block(DEBUG_SEARCH_STATE) {
+    if (search->search_state == asearch_end) {
+      tab_fprintf(stderr,"[GEM]>ASM::END ASM +++\n");
+    }
+  }
   PROF_ADD_COUNTER(GP_AS_ADAPTIVE_MCS,search->max_complete_stratum);
 }
 GEM_INLINE void approximate_search_filtering_adaptive_generate_regions(approximate_search_t* const search) {

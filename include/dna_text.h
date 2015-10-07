@@ -163,11 +163,6 @@ void dna_text_print(FILE* const stream,dna_text_t* const dna_text,const uint64_t
 void dna_text_print_content(FILE* const stream,dna_text_t* const dna_text);
 void dna_text_pretty_print_content(FILE* const stream,dna_text_t* const dna_text,const uint64_t width);
 
-// Buffer Display
-void dna_buffer_print(
-    FILE* const stream,const uint8_t* const dna_buffer,
-    const uint64_t dna_buffer_length,const bool print_reverse);
-
 /*
  * Errors
  */

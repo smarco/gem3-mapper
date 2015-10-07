@@ -10,7 +10,7 @@ ROOT_PATH=..
 include ../Makefile.mk
 
 # Tools
-GEM_TOOLS=gem-mapper gem-indexer gem-constructor
+GEM_TOOLS=gem-mapper gem-indexer gem-constructor gem-retriever
 GEM_TOOLS_SRC=$(addsuffix .c, $(GEM_TOOLS))
 GEM_TOOLS_BIN=$(addprefix $(FOLDER_BIN)/, $(GEM_TOOLS))
 
@@ -43,10 +43,10 @@ $(FOLDER_BIN)/gem-mapper: $(GEM_CORE_LIB) gem-mapper.c
 
 $(FOLDER_BIN)/gem-indexer: $(GEM_CORE_LIB) gem-indexer.c
 	$(CC) $(GEM_FLAGS) $(notdir $@).c -o $@ $(LIB_PATH_FLAGS) $(INCLUDE_FLAGS) $(LIBS)
+	
+$(FOLDER_BIN)/gem-retriever: $(GEM_CORE_LIB) gem-retriever.c
+	$(CC) $(GEM_FLAGS) $(notdir $@).c -o $@ $(LIB_PATH_FLAGS) $(INCLUDE_FLAGS) $(LIBS)
 
 $(FOLDER_BIN)/gem-constructor: $(GEM_CORE_LIB) gem-constructor.c
-	$(CC) $(GEM_FLAGS) $(notdir $@).c -o $@ $(LIB_PATH_FLAGS) $(INCLUDE_FLAGS) $(LIBS)
-	
-$(FOLDER_BIN)/gem-filtering: $(GEM_CORE_LIB) gem-filtering.c
 	$(CC) $(GEM_FLAGS) $(notdir $@).c -o $@ $(LIB_PATH_FLAGS) $(INCLUDE_FLAGS) $(LIBS)
 	

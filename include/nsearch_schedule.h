@@ -10,18 +10,17 @@
 #define NSEARCH_SCHEDULE_H_
 
 #include "essentials.h"
-#include "dp_matrix.h"
+
 #include "fm_index.h"
 #include "interval_set.h"
 #include "region_profile.h"
-#include "nsearch_levenshtein_state.h"
 
 /*
  * Neighborhood Search Metric
  */
 typedef enum {
   nsearch_model_hamming,
-  nsearch_model_levenshtein
+  nsearch_model_levenshtein,
 } nsearch_model_t;
 
 /*
@@ -39,9 +38,6 @@ typedef struct {
   uint64_t min_local_error;
   uint64_t max_global_error;
   uint64_t min_global_error;
-  uint64_t max_text_length;
-  // Search State
-  nsearch_levenshtein_state_t nsearch_state;
 } nsearch_operation_t;
 
 /*
@@ -52,15 +48,13 @@ typedef struct {
   fm_index_t* fm_index;
   // Search Parameters
   nsearch_model_t nsearch_model;
+  uint64_t max_error;
   uint8_t* key;
   uint64_t key_length;
   region_profile_t* region_profile;
-  uint64_t max_error;
-  uint64_t max_text_length;
-  // Scheduler Progress
-  nsearch_operation_t* pending_searches; // Pending search operations
-  uint64_t num_pending_searches;         // Total pending operations
-  uint64_t search_id;                    // Search ID
+  // Pending Search Operations
+  nsearch_operation_t* pending_searches;
+  uint64_t num_pending_searches;
   // Output results
   interval_set_t* intervals_result;
   // Profiler/Stats
@@ -71,10 +65,11 @@ typedef struct {
   uint64_t ns_nodes_fail_optimize;
   gem_counter_t ns_nodes_closed_depth;
   gem_timer_t ns_timer;
-  // MM
-  mm_stack_t* mm_stack;
   // Debug
   char* search_string;
+  uint64_t search_string_id;
+  // MM
+  mm_stack_t* mm_stack;
 } nsearch_schedule_t;
 
 /*
@@ -97,8 +92,7 @@ GEM_INLINE void nsearch_schedule_search_preconditioned(nsearch_schedule_t* const
  */
 void nsearch_schedule_print(FILE* const stream,nsearch_schedule_t* const nsearch_schedule);
 void nsearch_schedule_print_pretty(FILE* const stream,nsearch_schedule_t* const nsearch_schedule);
-void nsearch_schedule_print_profile(FILE* const stream,nsearch_schedule_t* const nsearch_schedule);
 
-void nsearch_schedule_print_search_string(FILE* const stream,nsearch_schedule_t* const nsearch_schedule);
+void nsearch_schedule_print_profile(FILE* const stream,nsearch_schedule_t* const nsearch_schedule);
 
 #endif /* NSEARCH_SCHEDULE_H_ */

@@ -8,11 +8,6 @@
 #include "fm_index.h"
 
 /*
- * Debug
- */
-#define FM_INDEX_LOOKUP_PROFILE true
-
-/*
  * FM-Index Model & Version
  */
 #define FM_INDEX_MODEL_NO  1005ull
@@ -124,41 +119,25 @@ GEM_INLINE uint64_t fm_index_get_size(const fm_index_t* const fm_index) {
 /*
  * FM-Index High-level Operators
  */
+// Compute SA[i]
 GEM_INLINE uint64_t fm_index_lookup(const fm_index_t* const fm_index,uint64_t bwt_position) {
   const uint64_t bwt_length = fm_index_get_length(fm_index);
   gem_fatal_check(bwt_position>=bwt_length,FM_INDEX_INDEX_OOR,bwt_position,bwt_length);
   const bwt_t* const bwt = fm_index->bwt;
   const sampled_sa_t* const sampled_sa = fm_index->sampled_sa;
   bool is_sampled = false;
-#ifdef FM_INDEX_LOOKUP_PROFILE
-  const uint64_t bwt_position_base = bwt_position;
-  const bool elegible_bwt_pos = (bwt_position%4!=0);
-  bool printed = false;
-  uint8_t char_enc;
-  uint64_t num_chars[5] = {0,0,0,0,0};
-#endif
   uint64_t dist=0;
   // LF until we find a sampled position
-  // bwt_position = bwt_LF(bwt,bwt_position,&is_sampled);
-  bwt_position = bwt_LF__enc(bwt,bwt_position,&char_enc,&is_sampled);
-  ++num_chars[char_enc];
+  bwt_position = bwt_LF(bwt,bwt_position,&is_sampled);
   while (!is_sampled) {
     ++dist;
-#ifdef FM_INDEX_LOOKUP_PROFILE
-    if (elegible_bwt_pos && !printed && (bwt_position%4==0)) {
-      fprintf(stdout,"%lu\t%lu\t%lu\t|\t%lu\t%lu\t%lu\t%lu\t%lu\n",bwt_position_base,bwt_position,dist,
-          num_chars[0],num_chars[1],num_chars[2],num_chars[3],num_chars[4]);
-      printed = true;
-    }
-#endif
-    // bwt_position = bwt_LF(bwt,bwt_position,&is_sampled);
-    bwt_position = bwt_LF__enc(bwt,bwt_position,&char_enc,&is_sampled);
-    ++num_chars[char_enc];
+    bwt_position = bwt_LF(bwt,bwt_position,&is_sampled);
   }
   PROF_ADD_COUNTER(GP_FMIDX_LOOKUP_DIST,dist);
   // Recover sampled position & adjust
   return (sampled_sa_get_sample(sampled_sa,bwt_position) + dist) % bwt_length;
 }
+// Compute SA^(-1)[i]
 GEM_INLINE uint64_t fm_index_inverse_lookup(const fm_index_t* const fm_index,const uint64_t text_position) {
   GEM_NOT_IMPLEMENTED(); // TODO Implement
 //#ifndef SUPPRESS_CHECKS
