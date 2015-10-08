@@ -27,13 +27,13 @@ GEM_INLINE void approximate_search_filtering_adaptive(approximate_search_t* cons
         approximate_search_adaptive_mapping_basic_cases(search);
         break;
       case asearch_read_recovery: // Read recovery
-        approximate_search_exact_filtering_adaptive_recovery(search,true,matches);
+        approximate_search_exact_filtering_adaptive_recovery(search,matches);
         break;
       case asearch_exact_filtering_adaptive: // Exact-Filtering (Adaptive)
         if (search_parameters->mapping_mode==mapping_adaptive_filtering_fast) {
           approximate_search_exact_filtering_adaptive_cutoff(search,matches);
         } else {
-          approximate_search_exact_filtering_adaptive_lightweight(search,true,matches);
+          approximate_search_exact_filtering_adaptive_lightweight(search,matches);
         }
         break;
       case asearch_verify_candidates: // Verify Candidates
@@ -90,10 +90,10 @@ GEM_INLINE void approximate_search_filtering_adaptive_generate_candidates(approx
         approximate_search_adaptive_mapping_basic_cases(search);
         break;
       case asearch_read_recovery: // Read recovery
-        approximate_search_exact_filtering_adaptive_recovery(search,false,NULL);
+        approximate_search_exact_filtering_adaptive_recovery(search,NULL);
         return; // Return (candidates generated)
       case asearch_exact_filtering_adaptive: // Exact-Filtering (Adaptive)
-        approximate_search_exact_filtering_adaptive_lightweight(search,false,NULL);
+        approximate_search_exact_filtering_adaptive_lightweight(search,NULL);
         return; // Return (candidates generated)
       case asearch_no_regions:
       case asearch_exact_matches:

@@ -180,7 +180,7 @@ GEM_INLINE void asearch_control_thorough_next_state(
         PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,1);
         return;
       }
-      PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MAPPED,matches_is_mapped(matches)?1:0);
+      PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MAPPED,(matches!=NULL && matches_is_mapped(matches))?1:0);
       PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,search->max_complete_stratum);
       // Boost
       if (search->search_state==asearch_no_regions) {

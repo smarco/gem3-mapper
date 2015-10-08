@@ -27,9 +27,9 @@ void approximate_search_exact_filtering_fixed(approximate_search_t* const search
  * Exact Filtering Adaptive
  */
 void approximate_search_exact_filtering_adaptive_lightweight(
-    approximate_search_t* const search,const bool verify_candidates,matches_t* const matches);
+    approximate_search_t* const search,matches_t* const matches);
 void approximate_search_exact_filtering_adaptive_recovery(
-    approximate_search_t* const search,const bool verify_candidates,matches_t* const matches);
+    approximate_search_t* const search,matches_t* const matches);
 void approximate_search_exact_filtering_adaptive_cutoff(
     approximate_search_t* const search,matches_t* const matches);
 

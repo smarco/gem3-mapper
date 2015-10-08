@@ -9,6 +9,7 @@
 #include "archive_select.h"
 #include "archive_score.h"
 #include "matches_classify.h"
+#include "approximate_search_filtering_adaptive.h"
 #include "approximate_search_filtering_stages.h"
 
 /*
@@ -48,7 +49,14 @@ GEM_INLINE void archive_search_generate_candidates(archive_search_t* const archi
   archive_search_reset(archive_search);
   // Run the search (stop before filtering)
   PROF_START(GP_ARCHIVE_SEARCH_SE_GENERATE_CANDIDATES);
-  archive_search_continue(archive_search,false,NULL);
+  // Run the search (FORWARD)
+  approximate_search_t* const forward_asearch = &archive_search->forward_search_state;
+  approximate_search_filtering_adaptive_generate_candidates(forward_asearch); // Forward search
+  if (archive_search->emulate_rc_search) {
+    // Run the search (REVERSE)
+    approximate_search_t* const reverse_asearch = &archive_search->reverse_search_state;
+    approximate_search_filtering_adaptive_generate_candidates(reverse_asearch); // Reverse emulated-search
+  }
   PROF_STOP(GP_ARCHIVE_SEARCH_SE_GENERATE_CANDIDATES);
   // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE) { tab_global_dec(); }

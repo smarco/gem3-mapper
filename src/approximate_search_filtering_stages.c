@@ -107,8 +107,8 @@ GEM_INLINE void approximate_search_exact_filtering_fixed(approximate_search_t* c
  * Exact Filtering Adaptive
  */
 GEM_INLINE void approximate_search_exact_filtering_adaptive(
-    approximate_search_t* const search,const region_profiling_strategy_t profiling_strategy,
-    const bool verify_candidates,matches_t* const matches) {
+    approximate_search_t* const search,
+    const region_profiling_strategy_t profiling_strategy,matches_t* const matches) {
   // Region-Minimal Profile (Reduce the number of candidates per region and maximize number of regions)
   approximate_search_generate_region_profile_adaptive(search,profiling_strategy,search->mm_stack);
   if (search->search_state==asearch_no_regions || search->search_state==asearch_exact_matches) { // Check corner cases
@@ -122,6 +122,7 @@ GEM_INLINE void approximate_search_exact_filtering_adaptive(
       REGION_FILTER_DEGREE_ZERO,search_parameters->filtering_threshold);
   approximate_search_generate_exact_candidates(search,matches);
   // Process candidates (just prepare to verification)
+  const bool verify_candidates = (matches != NULL);
   filtering_candidates_process_candidates(search->filtering_candidates,
       search->archive,&search->pattern,actual_parameters,verify_candidates,search->mm_stack);
   // Verify Candidates (if needed)
@@ -132,24 +133,24 @@ GEM_INLINE void approximate_search_exact_filtering_adaptive(
   }
 }
 GEM_INLINE void approximate_search_exact_filtering_adaptive_lightweight(
-    approximate_search_t* const search,const bool verify_candidates,matches_t* const matches) {
+    approximate_search_t* const search,matches_t* const matches) {
   PROF_START(GP_AS_FILTERING_EXACT);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Adaptive Filtering (Exact)\n");
     tab_global_inc();
   }
-  approximate_search_exact_filtering_adaptive(search,region_profile_adaptive_lightweight,verify_candidates,matches);
+  approximate_search_exact_filtering_adaptive(search,region_profile_adaptive_lightweight,matches);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
   PROF_STOP(GP_AS_FILTERING_EXACT);
 }
 GEM_INLINE void approximate_search_exact_filtering_adaptive_recovery(
-    approximate_search_t* const search,const bool verify_candidates,matches_t* const matches) {
+    approximate_search_t* const search,matches_t* const matches) {
   PROF_START(GP_AS_READ_RECOVERY);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Recovery Adaptive Filtering (Exact)\n");
     tab_global_inc();
   }
-  approximate_search_exact_filtering_adaptive(search,region_profile_adaptive_recovery,verify_candidates,matches);
+  approximate_search_exact_filtering_adaptive(search,region_profile_adaptive_recovery,matches);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
   PROF_STOP(GP_AS_READ_RECOVERY);
 }
