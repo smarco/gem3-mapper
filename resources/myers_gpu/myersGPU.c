@@ -320,7 +320,6 @@ MYERS_INLINE myersError_t transformReferenceGEMFR(const char *referenceGEM, refe
 
 	void *ptr = NULL;
 	CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint64_t), cudaHostAllocMapped));
-
 	for(idEntry = 0; idEntry < reference->numEntries; ++idEntry){
 		bitmap = 0;
 		for(i = 0; i < REFERENCE_CHARS_PER_ENTRY; i++){

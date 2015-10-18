@@ -15,7 +15,7 @@ MODULES=commons gthread report errors
 # Basic Data Structures
 MODULES+=vector ihash shash priority_queue string_buffer segmented_vector
 # Stats Data Structures
-MODULES+=profiler stats_vector stats_matrix
+MODULES+=profiler stats_vector stats_matrix profiler_cuda
 # Memory/Files Modules
 MODULES+=fm mm mm_slab mm_stack mm_pool
 # Input Data Structures

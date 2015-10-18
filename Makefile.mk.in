@@ -61,7 +61,7 @@ ifeq ($(HAVE_CUDA),1)
   DEF_CUDA=-DHAVE_CUDA
   CUDA_PATH=@CUDA_PATH@
   NVCC=$(CUDA_PATH)/bin/nvcc
-  LIBS_CUDA=-L$(CUDA_PATH)/lib64 -lcuda -lcudart -lstdc++
+  LIBS_CUDA=-L$(CUDA_PATH)/lib64 -lcuda -lcudart -lstdc++ -lnvToolsExt
   INC_CUDA=-I$(CUDA_PATH)/include
 endif
 

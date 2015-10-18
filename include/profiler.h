@@ -11,6 +11,7 @@
 
 #include "commons.h"
 #include "mm.h"
+#include "profiler_cuda.h"
 
 /*
  * Profiler Printers
@@ -181,8 +182,14 @@ gem_counter_t* PROF_GET_RANK(const uint64_t rank);
 /*
  * PROFILE-COMBINED (TIME/RANKS) functions
  */
-void PROF_START(const uint64_t timer__ranks);
-void PROF_STOP(const uint64_t timer__ranks);
+#define PROF_START(TAG) \
+  PROFILE_CUDA_START(#TAG,TAG%6); \
+  _PROF_START(TAG)
+#define PROF_STOP(TAG) \
+  PROFILE_CUDA_STOP; \
+  _PROF_STOP(TAG)
+void _PROF_START(const uint64_t timer__ranks);
+void _PROF_STOP(const uint64_t timer__ranks);
 void PROF_PAUSE(const uint64_t timer__ranks);
 void PROF_CONTINUE(const uint64_t timer__ranks);
 void PROF_RESET(const uint64_t timer__ranks);

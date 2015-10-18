@@ -523,11 +523,11 @@ GEM_INLINE gem_counter_t* PROF_GET_RANK(const uint64_t rank) {
 /*
  * PROFILE-COMBINED (TIME/RANKS) functions
  */
-GEM_INLINE void PROF_START(const uint64_t timer__ranks) {
+GEM_INLINE void _PROF_START(const uint64_t timer__ranks) {
   TIMER_START(gem_profile.profile[gtid()].timers+timer__ranks);
   RCOUNTER_START(gem_profile.profile[gtid()].ranks+timer__ranks,_bwt_ranks);
 }
-GEM_INLINE void PROF_STOP(const uint64_t timer__ranks) {
+GEM_INLINE void _PROF_STOP(const uint64_t timer__ranks) {
   TIMER_STOP(gem_profile.profile[gtid()].timers+timer__ranks);
   RCOUNTER_STOP(gem_profile.profile[gtid()].ranks+timer__ranks,_bwt_ranks);
 }
