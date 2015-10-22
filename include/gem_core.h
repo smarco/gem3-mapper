@@ -41,6 +41,14 @@
 #include "select_parameters.h"
 #include "archive_select.h"
 
+// GEM align
+#include "align.h"
+#include "align_ond.h"
+
+// NS
+#include "nsearch_hamming.h"
+#include "nsearch_levenshtein.h"
+
 // I/O
 #include "input_file.h"
 #include "input_parser.h"

@@ -23,19 +23,19 @@ static:	setup
 	$(MAKE) --directory=src release
 	$(MAKE) --directory=tools static
 	
-# Optimized + DebugSymbols + GEMProfile
+# Optimized + DebugSymbols
 devel: setup
 	$(MAKE) --directory=resources devel
 	$(MAKE) --directory=src devel
 	$(MAKE) --directory=tools devel
 	
-# Optimized + DebugSymbols + GEMProfile + VtuneLib
+# Optimized + DebugSymbols + GEMProfile
 profile: setup
 	$(MAKE) --directory=resources profile
 	$(MAKE) --directory=src profile
 	$(MAKE) --directory=tools profile
 	
-# DebugSymbols + GEMDebug + GEMProfile
+# DebugSymbols + GEMProfile + GEMDebug
 debug: setup
 	$(MAKE) --directory=resources debug
 	$(MAKE) --directory=src debug

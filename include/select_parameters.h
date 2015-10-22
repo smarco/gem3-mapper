@@ -10,6 +10,7 @@
 #define SELECT_PARAMETERS_H_
 
 #include "essentials.h"
+#include "archive_check.h"
 
 /*
  * Select Parameters
@@ -33,9 +34,7 @@ typedef struct {
   uint64_t min_reported_matches;
   uint64_t max_reported_matches;
   /* Check */
-  bool check_correct;
-  bool check_optimum;
-  bool check_complete;
+  archive_check_type check_type;
 } select_parameters_t;
 
 /*

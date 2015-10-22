@@ -10,6 +10,11 @@
 #include "input_parser.h"
 
 /*
+ * Profile
+ */
+#define PROFILE_LEVEL PLOW
+
+/*
  * FASTQ/FASTA File Format test
  */
 /*
@@ -278,10 +283,11 @@ GEM_INLINE error_code_t input_fasta_parse_sequence(
     const bool strictly_normalized,const bool try_recovery,const bool check_input_buffer) {
   BUFFERED_INPUT_FILE_CHECK(buffered_fasta_input);
   SEQUENCE_CHECK(seq_read);
-  PROF_START(GP_INPUT_FASTA_PARSE_SEQUENCE);
+  PROFILE_START(GP_INPUT_FASTA_PARSE_SEQUENCE,PROFILE_LEVEL);
   error_code_t error_code;
   if (check_input_buffer && buffered_input_file_eob(buffered_fasta_input)) {
     if ((error_code=buffered_input_file_reload__dump_attached(buffered_fasta_input))!=INPUT_STATUS_OK) {
+      PROFILE_STOP(GP_INPUT_FASTA_PARSE_SEQUENCE,PROFILE_LEVEL);
       return error_code;
     }
   }
@@ -295,9 +301,9 @@ GEM_INLINE error_code_t input_fasta_parse_sequence(
     const uint64_t column_pos = input_buffer->cursor-line_start;
     input_fasta_parser_prompt_error(buffered_fasta_input,line_num,column_pos,error_code);
     input_fasta_parser_next_record(buffered_fasta_input,line_start);
-    PROF_STOP(GP_INPUT_FASTA_PARSE_SEQUENCE);
+    PROFILE_STOP(GP_INPUT_FASTA_PARSE_SEQUENCE,PROFILE_LEVEL);
     return INPUT_STATUS_FAIL;
   }
-  PROF_STOP(GP_INPUT_FASTA_PARSE_SEQUENCE);
+  PROFILE_STOP(GP_INPUT_FASTA_PARSE_SEQUENCE,PROFILE_LEVEL);
   return INPUT_STATUS_OK;
 }

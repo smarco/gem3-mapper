@@ -250,7 +250,7 @@ option_t gem_mapper_options[] = {
 #ifdef HAVE_CUDA
   { 1200, "cuda", OPTIONAL, TYPE_STRING, 12, VISIBILITY_USER, "", "(default=disabled)"},
   { 1201, "cuda-buffers-per-thread", REQUIRED, TYPE_STRING, 12, VISIBILITY_DEVELOPER, "<num_buffers,buffer_size>" , "(default=3,4M)" },
-#endif
+#endif /* HAVE_CUDA */
   /* Presets/Hints */
   { 1300, "reads-model", REQUIRED, TYPE_STRING, 13, VISIBILITY_DEVELOPER, "<average_length>[,<std_length>]" , "(default=150,50)" },
   /* Debug */
@@ -422,8 +422,6 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
         search->mapping_mode = mapping_neighborhood_search;
       } else if (gem_strcaseeq(optarg,"filtering-complete")) {
         search->mapping_mode = mapping_fixed_filtering_complete;
-      } else if (gem_strcaseeq(optarg,"region-profile")) {
-        search->mapping_mode = mapping_region_profile_fixed;
       } else if (gem_strcaseeq(optarg,"test")) {
         search->mapping_mode = mapping_test;
       } else {
@@ -772,7 +770,14 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     /* CUDA Settings */
     case 1200: // --cuda
       if (!bpm_gpu_support()) GEM_CUDA_NOT_SUPPORTED();
-      parameters->cuda.cuda_enabled = input_text_parse_extended_bool(optarg);
+      parameters->cuda.cuda_enabled = true;
+      if (optarg) {
+        if (gem_strcaseeq(optarg,"emulated")) {
+          parameters->cuda.cpu_emulated = true;
+        } else {
+          gem_mapper_error_msg("Option '--cuda' invalid argument '%s'",optarg);
+        }
+      }
       break;
     case 1201: { // --cuda-buffers-per-thread=3,4M
       if (!bpm_gpu_support()) GEM_CUDA_NOT_SUPPORTED();
@@ -807,31 +812,19 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 'c': { // --check-alignments in {'correct'|'best'|'complete'}
       select_parameters_t* const select_parameters = &parameters->select_parameters;
       if (!optarg) {
-        select_parameters->check_correct = true;
+        select_parameters->check_type = archive_check_correct;
+      } else if (gem_strcaseeq(optarg,"none")) {
+        select_parameters->check_type = archive_check_nothing;
+      } else if (gem_strcaseeq(optarg,"correct")) {
+        select_parameters->check_type = archive_check_correct;
+      } else if (gem_strcaseeq(optarg,"first-best") || gem_strcaseeq(optarg,"best")) {
+        select_parameters->check_type = archive_check_correct__first_optimum;
+      } else if (gem_strcaseeq(optarg,"all-best")) {
+        select_parameters->check_type = archive_check_correct__all_optimum;
+      } else if (gem_strcaseeq(optarg,"complete")) {
+        select_parameters->check_type = archive_check_correct__complete;
       } else {
-        char *check = strtok(optarg,","); // Start parsing
-        while (check!=NULL) {
-          if (gem_strcaseeq(check, "none")) {
-            select_parameters->check_correct = false;
-            select_parameters->check_optimum = false;
-            select_parameters->check_complete = false;
-          } else if (gem_strcaseeq(check, "correct")) {
-            select_parameters->check_correct = true;
-            select_parameters->check_optimum = false;
-            select_parameters->check_complete = false;
-          } else if (gem_strcaseeq(check, "best")) {
-            select_parameters->check_correct = true;
-            select_parameters->check_optimum = true;
-            select_parameters->check_complete = false;
-          } else if (gem_strcaseeq(check, "complete")) {
-            select_parameters->check_correct = true;
-            select_parameters->check_optimum = true;
-            select_parameters->check_complete = true;
-          } else {
-            gem_mapper_error_msg("Option '--check-alignments' must be 'correct'|'best'|'complete'");
-          }
-          check = strtok(NULL,",");
-        }
+        gem_mapper_error_msg("Option '--check-alignments' must be 'correct'|'first-best'|'all-best'|'complete'");
       }
       break;
     }
@@ -959,7 +952,7 @@ int main(int argc,char** argv) {
   gem_timer_t mapper_time;
   const mapper_parameters_cuda_t* const cuda = &parameters.cuda;
   gem_runtime_init(parameters.system.num_threads+1,parameters.system.max_memory,parameters.system.tmp_folder);
-  PROF_START(GP_MAPPER_ALL); TIMER_RESTART(&mapper_time);
+  PROFILE_START(GP_MAPPER_ALL,PHIGH); TIMER_RESTART(&mapper_time);
 
   // Open Input/Output File(s)
   gem_mapper_open_input(&parameters);
@@ -967,7 +960,7 @@ int main(int argc,char** argv) {
 
   // Initialize Statistics Report
 	if(parameters.io.report_file_name) parameters.global_mapping_stats=mm_alloc(mapping_stats_t);
-		 
+
   // Launch mapper
   if (!cuda->cuda_enabled) {
     switch (parameters.mapper_type) {
@@ -987,10 +980,10 @@ int main(int argc,char** argv) {
   } else {
     switch (parameters.mapper_type) {
       case mapper_se:
-        mapper_SE_CUDA_run(&parameters);
+        mapper_cuda_se_run(&parameters);
         break;
       case mapper_pe:
-        mapper_PE_CUDA_run(&parameters);
+        mapper_cuda_pe_run(&parameters);
         break;
       case mapper_graph:
         GEM_NOT_IMPLEMENTED(); // TODO
@@ -1000,7 +993,7 @@ int main(int argc,char** argv) {
         break;
     }
   }
-  PROF_STOP(GP_MAPPER_ALL); TIMER_STOP(&mapper_time);
+  PROFILE_STOP(GP_MAPPER_ALL,PHIGH); TIMER_STOP(&mapper_time);
 
   // Profile
   if (parameters.misc.profile) gem_mapper_print_profile(&parameters);
@@ -1008,7 +1001,7 @@ int main(int argc,char** argv) {
 	// Mapping Statistics Report
 	if(parameters.io.report_file_name) {
 		 output_mapping_stats(&parameters,parameters.global_mapping_stats);
-	}										 
+	}
 
 	// CleanUP
   archive_delete(parameters.archive); // Delete archive

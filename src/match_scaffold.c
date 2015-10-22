@@ -8,6 +8,10 @@
 
 #include "match_scaffold.h"
 #include "match_align_dto.h"
+#include "matches_cigar.h"
+#include "align.h"
+#include "align_bpm.h"
+#include "align_ond.h"
 
 /*
  * Debug
@@ -15,6 +19,11 @@
 #define DEBUG_MATCH_SCAFFOLD       GEM_DEEP_DEBUG
 #define DEBUG_MATCH_SCAFFOLD_EDIT  GEM_DEEP_DEBUG
 #define DEBUG_MATCH_SCAFFOLD_SWG   GEM_DEEP_DEBUG
+
+/*
+ * Profile
+ */
+#define PROFILE_LEVEL PLOW
 
 /*
  * Setup
@@ -233,25 +242,25 @@ GEM_INLINE void match_scaffold_smith_waterman_gotoh_compose_matching_regions(
     switch (cigar_buffer[i].type) {
       case cigar_match: {
         const int32_t match_length = cigar_buffer[i].length;
-        local_score += swg_score_match(swg_penalties,match_length);
+        local_score += align_swg_score_match(swg_penalties,match_length);
         text_pos += match_length;
         key_pos += match_length;
         break;
       }
       case cigar_mismatch:
-        local_score += swg_score_mismatch(swg_penalties);
+        local_score += align_swg_score_mismatch(swg_penalties);
         ++text_pos;
         ++key_pos;
         break;
       case cigar_ins: {
         const int32_t indel_length = cigar_buffer[i].length;
-        local_score += swg_score_insertion(swg_penalties,indel_length);
+        local_score += align_swg_score_insertion(swg_penalties,indel_length);
         text_pos += indel_length;
         break;
       }
       case cigar_del: {
         const int32_t indel_length = cigar_buffer[i].length;
-        local_score += swg_score_deletion(swg_penalties,indel_length);
+        local_score += align_swg_score_deletion(swg_penalties,indel_length);
         key_pos += indel_length;
         break;
       }
@@ -320,10 +329,11 @@ GEM_INLINE void match_scaffold_levenshtein_alignment(
       .text_length = align_input->text_offset_end - align_input->text_offset_begin,
   };
   bpm_align_matrix_t bpm_align_matrix;
-  bpm_align_compute_matrix(&bpm_align_input,align_parameters->max_error,&bpm_align_matrix,mm_stack);
+  align_bpm_compute_matrix(&bpm_align_input,align_parameters->max_error,&bpm_align_matrix,mm_stack);
   // Set distance
+  match_scaffold->match_alignment.score = bpm_align_matrix.min_score;
   if (bpm_align_matrix.min_score == ALIGN_DISTANCE_INF) {
-    match_scaffold->match_alignment.score = ALIGN_DISTANCE_INF;
+    match_scaffold->match_alignment.cigar_length = 0;
     mm_stack_pop_state(mm_stack,false); // Free
     return;
   }
@@ -331,7 +341,7 @@ GEM_INLINE void match_scaffold_levenshtein_alignment(
   match_alignment_t* const match_alignment = &match_scaffold->match_alignment;
   const uint64_t match_position = align_input->text_position + align_input->text_offset_begin;
   match_alignment->match_position = match_position; // Sentinel
-  bpm_align_backtrack_matrix(&bpm_align_input,align_parameters->left_gap_alignment,
+  align_bpm_backtrace_matrix(&bpm_align_input,align_parameters->left_gap_alignment,
       &bpm_align_matrix,match_alignment,matches->cigar_vector);
   mm_stack_pop_state(mm_stack,false); // Free
   // Store the offset
@@ -355,23 +365,23 @@ GEM_INLINE bool match_scaffold_levenshtein(
     matches_t* const matches,match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
     match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack) {
-  PROF_INC_COUNTER(GP_MATCHING_REGIONS_EDIT_SCAFFOLDED);
-  PROF_START(GP_MATCHING_REGIONS_EDIT_SCAFFOLD);
+  PROF_INC_COUNTER(GP_MATCH_SCAFFOLD_EDIT_SCAFFOLDS);
+  PROFILE_START(GP_MATCH_SCAFFOLD_EDIT,PROFILE_LEVEL);
   // Compute the levenshtein alignment (CIGAR)
   match_scaffold_levenshtein_alignment(matches,align_input,align_parameters,match_scaffold,mm_stack);
   match_alignment_t* const match_alignment = &match_scaffold->match_alignment;
   if (match_alignment->score==ALIGN_DISTANCE_INF) {
     match_scaffold->num_scaffold_regions = 0;
     match_scaffold->scaffolding_coverage = 0;
-    PROF_STOP(GP_MATCHING_REGIONS_EDIT_SCAFFOLD);
+    PROFILE_STOP(GP_MATCH_SCAFFOLD_EDIT,PROFILE_LEVEL);
     return false;
   }
   // Compose matching region of the scaffolding
   match_scaffold_levenshtein_compose_matching_regions(matches,
       align_input,0,match_alignment->match_position,match_alignment->cigar_offset,
       match_alignment->cigar_length,align_parameters,match_scaffold,mm_stack);
-  PROF_STOP(GP_MATCHING_REGIONS_EDIT_SCAFFOLD);
-  PROF_ADD_COUNTER(GP_MATCHING_REGIONS_EDIT_SCAFFOLD_COVERAGE,
+  PROFILE_STOP(GP_MATCH_SCAFFOLD_EDIT,PROFILE_LEVEL);
+  PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_COVERAGE,
       (100*match_scaffold->scaffolding_coverage)/align_input->key_length);
   // DEBUG
   gem_cond_debug_block(DEBUG_MATCH_SCAFFOLD_EDIT) {
@@ -379,6 +389,28 @@ GEM_INLINE bool match_scaffold_levenshtein(
     tab_global_inc();
     match_scaffold_print(gem_log_get_stream(),matches,match_scaffold);
     tab_global_dec();
+    /*
+     * Debug
+     */
+    /*
+    match_alignment_t ond_match_alignment;
+    ond_match_alignment.match_position = 0;
+    match_align_input_t ond_align_input;
+    ond_align_input.key = align_input->key;
+    ond_align_input.key_length = align_input->key_length;
+    ond_align_input.text = align_input->text; //  + align_input->align_match_begin_column;
+    ond_align_input.text_length = align_input->text_length; // align_input->align_match_end_column - align_input->align_match_begin_column;
+    align_ond_match(&ond_align_input,ond_align_input.text_length,
+        &ond_match_alignment,matches->cigar_vector,mm_stack);
+    // Display
+    match_alignment_print_pretty(stderr,&ond_match_alignment,
+        matches->cigar_vector,ond_align_input.key,ond_align_input.key_length,
+        ond_align_input.text,ond_align_input.text_length,mm_stack);
+    return match_scaffold->num_scaffold_regions > 0;
+    */
+    /*
+     * Debug
+     */
   }
   return match_scaffold->num_scaffold_regions > 0;
 }
@@ -389,22 +421,22 @@ GEM_INLINE bool match_scaffold_smith_waterman_gotoh(
     matches_t* const matches,match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
     match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack) {
-  PROF_INC_COUNTER(GP_MATCHING_REGIONS_SWG_SCAFFOLDED);
-  PROF_START(GP_MATCHING_REGIONS_SWG_SCAFFOLD);
+  PROF_INC_COUNTER(GP_MATCH_SCAFFOLD_SWG_SCAFFOLDS);
+  PROFILE_START(GP_MATCH_SCAFFOLD_SWG,PROFILE_LEVEL);
   // Compute the levenshtein alignment (CIGAR)
   match_scaffold_levenshtein_alignment(matches,align_input,align_parameters,match_scaffold,mm_stack);
   match_alignment_t* const match_alignment = &match_scaffold->match_alignment;
   if (match_alignment->score==ALIGN_DISTANCE_INF) {
     match_scaffold->num_scaffold_regions = 0;
     match_scaffold->scaffolding_coverage = 0;
-    PROF_STOP(GP_MATCHING_REGIONS_SWG_SCAFFOLD);
+    PROFILE_STOP(GP_MATCH_SCAFFOLD_SWG,PROFILE_LEVEL);
     return false;
   }
   // Compose matching region of the scaffolding
   match_scaffold_smith_waterman_gotoh_compose_matching_regions(matches,
       align_input,0,match_alignment->match_position,match_alignment->cigar_offset,
       match_alignment->cigar_length,align_parameters,match_scaffold,mm_stack);
-  PROF_STOP(GP_MATCHING_REGIONS_SWG_SCAFFOLD);
+  PROFILE_STOP(GP_MATCH_SCAFFOLD_SWG,PROFILE_LEVEL);
   // DEBUG
   gem_cond_debug_block(DEBUG_MATCH_SCAFFOLD_SWG) {
     tab_fprintf(gem_log_get_stream(),"[GEM]>Match.Scaffold.SWG\n");
@@ -420,7 +452,7 @@ GEM_INLINE void match_scaffold_exact_extend(
     const uint8_t* const key,const uint64_t key_length,
     const uint8_t* const text,const uint64_t text_length,
     const bool* const allowed_enc) {
-  PROF_START(GP_MATCHING_REGIONS_EXTEND);
+  PROFILE_START(GP_MATCH_SCAFFOLD_EXTEND_REGIONS,PROFILE_LEVEL);
   // Extend all matching regions
   const uint64_t num_scaffold_regions = match_scaffold->num_scaffold_regions;
   const uint64_t last_region = num_scaffold_regions-1;
@@ -459,7 +491,7 @@ GEM_INLINE void match_scaffold_exact_extend(
     region_matching->text_end = right_text;
   }
   match_scaffold->scaffolding_coverage += inc_coverage;
-  PROF_STOP(GP_MATCHING_REGIONS_EXTEND);
+  PROFILE_STOP(GP_MATCH_SCAFFOLD_EXTEND_REGIONS,PROFILE_LEVEL);
 }
 /*
  * Chain matching regions
@@ -471,6 +503,7 @@ GEM_INLINE void match_scaffold_chain_matching_regions(
     const uint8_t* const key,const uint64_t key_length,
     const uint8_t* const text,const bool* const allowed_enc,
     const uint64_t max_error,mm_stack_t* const stack) {
+  PROFILE_START(GP_MATCH_SCAFFOLD_CHAIN_REGIONS,PROFILE_LEVEL);
   const uint64_t num_scaffold_regions = match_scaffold->num_scaffold_regions;
   // Sort matching regions
   match_scaffold_sort_regions_matching(match_scaffold);
@@ -503,6 +536,7 @@ GEM_INLINE void match_scaffold_chain_matching_regions(
   } else {
     match_scaffold->scaffolding_coverage = coverage;
   }
+  PROFILE_STOP(GP_MATCH_SCAFFOLD_CHAIN_REGIONS,PROFILE_LEVEL);
 }
 /*
  * Compute an scaffold for the alignment
@@ -526,6 +560,7 @@ GEM_INLINE void match_scaffold_alignment(
     matches_t* const matches,match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
     match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack) {
+  PROFILE_START(GP_MATCH_SCAFFOLD_ALIGNMENT,PROFILE_LEVEL);
   // Parameters
   const uint8_t* const key = align_input->key;
   const uint64_t key_length = align_input->key_length;
@@ -536,17 +571,15 @@ GEM_INLINE void match_scaffold_alignment(
   if (match_scaffold->num_scaffold_regions > 0) {
     const bool* const allowed_enc = align_parameters->allowed_enc;
     // Find a compatible chain of matching-regions
-    PROF_START(GP_MATCHING_REGIONS_CHAIN);
     match_scaffold_chain_matching_regions(matches,match_scaffold,key,key_length,text,allowed_enc,max_error,mm_stack);
-    PROF_STOP(GP_MATCHING_REGIONS_CHAIN);
     // Extend matching-regions as to maximize coverage
     if (match_scaffold->num_scaffold_regions > 0) {
-      PROF_INC_COUNTER(GP_MATCHING_REGIONS_CHAIN_SUCCESS);
-      PROF_ADD_COUNTER(GP_MATCHING_REGIONS_CHAIN_COVERAGE,(100*match_scaffold->scaffolding_coverage)/key_length);
+      PROF_INC_COUNTER(GP_MATCH_SCAFFOLD_CHAIN_REGIONS_SUCCESS);
+      PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_CHAIN_REGIONS_COVERAGE,(100*match_scaffold->scaffolding_coverage)/key_length);
       if (match_scaffold->scaffolding_coverage < key_length) {
         match_scaffold_exact_extend(matches,match_scaffold,key,key_length,text,text_length,allowed_enc);
       }
-      PROF_ADD_COUNTER(GP_MATCHING_REGIONS_EXTEND_COVERAGE,(100*match_scaffold->scaffolding_coverage)/key_length);
+      PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EXTEND_REGIONS_COVERAGE,(100*match_scaffold->scaffolding_coverage)/key_length);
     }
     // Set score as matching bases
     match_scaffold->match_alignment.score = key_length - match_scaffold->scaffolding_coverage;
@@ -562,6 +595,7 @@ GEM_INLINE void match_scaffold_alignment(
     match_scaffold_print(stderr,matches,match_scaffold);
     tab_global_dec();
   }
+  PROFILE_STOP(GP_MATCH_SCAFFOLD_ALIGNMENT,PROFILE_LEVEL);
 }
 /*
  * Sorting

@@ -13,6 +13,11 @@
 #include "report_stats.h"
 
 /*
+ * Profile Level
+ */
+#define PROFILE_LEVEL PHIGH
+
+/*
  * Report
  */
 void mapper_display_input_state(
@@ -133,6 +138,7 @@ GEM_INLINE void mapper_parameters_set_defaults_cuda(mapper_parameters_cuda_t* co
   const uint64_t num_processors = system_get_num_processors();
   /* CUDA */
   cuda->cuda_enabled=false;
+  cuda->cpu_emulated=false;
   /* I/O */
   cuda->input_block_size = BUFFER_SIZE_64M;
   cuda->input_num_buffers = 2*num_processors;
@@ -207,12 +213,12 @@ GEM_INLINE void mapper_parameters_print(FILE* const stream,mapper_parameters_t* 
  * Index loader
  */
 GEM_INLINE void mapper_load_index(mapper_parameters_t* const parameters) {
-  PROF_START_TIMER(GP_MAPPER_LOAD_INDEX);
+  PROFILE_START(GP_MAPPER_LOAD_INDEX,PROFILE_LEVEL);
   // Load archive
   gem_cond_log(parameters->misc.verbose_user,"[Loading GEM index '%s']",parameters->io.index_file_name);
   parameters->archive = archive_read(parameters->io.index_file_name,false);
   if (parameters->misc.verbose_dev) archive_print(gem_error_get_stream(),parameters->archive);
-  PROF_STOP_TIMER(GP_MAPPER_LOAD_INDEX);
+  PROFILE_STOP(GP_MAPPER_LOAD_INDEX,PROFILE_LEVEL);
 }
 /*
  * Input
@@ -244,9 +250,7 @@ GEM_INLINE uint64_t mapper_PE_reload_buffers(
       if (error_code==INPUT_STATUS_EOF) return INPUT_STATUS_EOF;
     } else {
       // Dump buffer (explicitly before synch-reload)
-      PROF_START(GP_BUFFERED_OUTPUT_DUMP);
       buffered_output_file_dump_buffer(buffered_fasta_input_end1->attached_buffered_output_file);
-      PROF_STOP(GP_BUFFERED_OUTPUT_DUMP);
       // Reload buffers (in synch)
       MUTEX_BEGIN_SECTION(parameters->input_file_mutex) {
         // Check in-synch
@@ -336,12 +340,12 @@ GEM_INLINE void mapper_SE_output_matches(
       GEM_INVALID_CASE();
       break;
   }
-	if(mstats) collect_SE_mapping_stats(archive_search,matches,mstats);
+	if (mstats) collect_SE_mapping_stats(archive_search,matches,mstats);
 }
 GEM_INLINE void mapper_PE_output_matches(
     mapper_parameters_t* const parameters,buffered_output_file_t* const buffered_output_file,
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches, mapping_stats_t *mstats) {
+    paired_matches_t* const paired_matches,mapping_stats_t* const mstats) {
   switch (parameters->io.output_format) {
     case MAP:
       output_map_paired_end_matches(buffered_output_file,archive_search_end1,
@@ -356,7 +360,7 @@ GEM_INLINE void mapper_PE_output_matches(
       GEM_INVALID_CASE();
       break;
   }
-	if(mstats) collect_PE_mapping_stats(archive_search_end1,archive_search_end2,paired_matches,mstats);
+	if (mstats) collect_PE_mapping_stats(archive_search_end1,archive_search_end2,paired_matches,mstats);
 }
 /*
  * SE Mapper
@@ -376,7 +380,7 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
   mapper_search->archive_search = archive_search_new(
       parameters->archive,&mapper_search->mapper_parameters->search_parameters,
       &mapper_search->mapper_parameters->select_parameters);
-  archive_search_single_end_configure(mapper_search->archive_search,mm_search);
+  archive_search_se_configure(mapper_search->archive_search,mm_search);
   matches_t* const matches = matches_new();
   matches_configure(matches,mapper_search->archive_search->text_collection);
 
@@ -388,8 +392,8 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
 //    }
 
     // Search into the archive
-    archive_search_single_end(mapper_search->archive_search,matches);
-    archive_select_matches(mapper_search->archive_search,false,matches); // Select matches
+    archive_search_se(mapper_search->archive_search,matches);
+    archive_select_se_matches(mapper_search->archive_search,false,matches); // Select matches
 
     // Output matches
     mapper_SE_output_matches(parameters,buffered_output_file,mapper_search->archive_search,matches,mapper_search->mapping_stats);
@@ -437,7 +441,7 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
   mapper_search->archive_search_end2 = archive_search_new(
       parameters->archive,&mapper_search->mapper_parameters->search_parameters,
       &mapper_search->mapper_parameters->select_parameters);
-  archive_search_paired_end_configure(mapper_search->archive_search_end1,mapper_search->archive_search_end2,mm_search);
+  archive_search_pe_configure(mapper_search->archive_search_end1,mapper_search->archive_search_end2,mm_search);
   mapper_search->paired_matches = paired_matches_new(mm_search->text_collection);
   paired_matches_configure(mapper_search->paired_matches,mapper_search->archive_search_end1->text_collection);
 
@@ -452,8 +456,8 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
 //    }
 
     // Search into the archive
-    archive_search_paired_end(archive_search_end1,archive_search_end2,paired_matches);
-    archive_select_paired_matches(archive_search_end1,archive_search_end2,paired_matches);
+    archive_search_pe(archive_search_end1,archive_search_end2,paired_matches);
+    archive_select_pe_matches(archive_search_end1,archive_search_end2,paired_matches);
 
     // Output matches
     mapper_PE_output_matches(parameters,buffered_output_file,archive_search_end1,archive_search_end2,paired_matches,mapper_search->mapping_stats);
@@ -528,7 +532,7 @@ GEM_INLINE void mapper_run(mapper_parameters_t* const mapper_parameters,const bo
     mapper_search[i].thread_data = mm_alloc(pthread_t);
     mapper_search[i].mapper_parameters = mapper_parameters;
     mapper_search[i].ticker = &ticker;
-		if(mstats)	{
+		if (mstats)	{
 			 mapper_search[i].mapping_stats = mstats + i;
 			 init_mapping_stats(mstats + i);
 		} else mapper_search[i].mapping_stats = NULL;

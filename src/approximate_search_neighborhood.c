@@ -11,10 +11,15 @@
 #include "fm_index_search.h"
 
 /*
+ * Profile
+ */
+#define PROFILE_LEVEL PMED
+
+/*
  * Neighborhood Generation (Exact Search)
  */
 GEM_INLINE void approximate_search_neighborhood_exact_search(approximate_search_t* const search,matches_t* const matches) {
-  PROF_START(GP_AS_EXACT_SEARCH);
+  PROFILE_START(GP_AS_EXACT_SEARCH,PROFILE_LEVEL);
   pattern_t* const pattern = &search->pattern;
   // FM-Index basic exact search
 //  fm_index_bsearch(search->archive->fm_index,pattern->key,
@@ -30,9 +35,7 @@ GEM_INLINE void approximate_search_neighborhood_exact_search(approximate_search_
       search->hi_exact_matches,pattern->key_length,0,search->emulated_rc_search);
   // Update MCS
   approximate_search_update_mcs(search,1);
-  // Update next state
-  search->search_state = asearch_end;
-  PROF_STOP(GP_AS_EXACT_SEARCH);
+  PROFILE_STOP(GP_AS_EXACT_SEARCH,PROFILE_LEVEL);
 }
 /*
  * Neighborhood Generation (Inexact Search)
@@ -49,8 +52,6 @@ GEM_INLINE void approximate_search_neighborhood_inexact_search(approximate_searc
   matches_add_interval_set(matches,intervals_result,pattern->key_length,search->emulated_rc_search);
   // Update MCS
   approximate_search_update_mcs(search,search->max_complete_error+1);
-  // Update next state
-  search->search_state = asearch_end;
 }
 /*
  * Neighborhood Search
@@ -66,6 +67,5 @@ GEM_INLINE void approximate_search_neighborhood_search(approximate_search_t* con
   } else {
     approximate_search_neighborhood_inexact_search(search,matches); // Basic brute force search
   }
-  search->search_state = asearch_end; // Update search state
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
 }

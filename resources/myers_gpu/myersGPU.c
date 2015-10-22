@@ -648,7 +648,7 @@ MYERS_INLINE uint32_t bpm_gpu_get_num_supported_devices_()
 
 	for(idDevice = 0; idDevice < numDevices; ++idDevice){
 		deviceArch = getDeviceArchitecture(idDevice);
-	    if(deviceArch & ARCH_SUPPORTED) numSupportedDevices++;
+		if(deviceArch & ARCH_SUPPORTED) numSupportedDevices++;
 	}
 
 	return(numSupportedDevices);

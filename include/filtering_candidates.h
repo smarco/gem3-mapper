@@ -10,21 +10,32 @@
 #define FILTERING_CANDIDATES_H_
 
 #include "essentials.h"
-
-#include "archive.h"
-#include "locator.h"
-#include "fm_index.h"
-#include "pattern.h"
-#include "bpm_align_gpu.h"
-#include "search_parameters.h"
-#include "region_profile.h"
 #include "interval_set.h"
+#include "locator.h"
 #include "filtering_region.h"
-#include "matches.h"
-#include "paired_matches.h"
+#include "filtering_region_cache.h"
 
 /*
- * Filtering Candidates Vector
+ * Candidate Position
+ */
+typedef struct {
+  // Source Region
+  uint64_t source_region_offset;
+  locator_interval_t* locator_interval;
+  // Decode data
+  uint64_t decode_distance;
+  uint64_t decode_sampled_pos;
+  // Region location
+  uint64_t region_index_position;
+  uint64_t region_text_position;
+  // Final position
+  uint64_t begin_position;       // Region effective begin position (adjusted to error boundaries)
+  uint64_t end_position;         // Region effective end position (adjusted to error boundaries)
+  uint64_t base_position_offset; // Offset to base filtering position (Begin position without error boundary correction)
+} filtering_position_t;
+
+/*
+ * Filtering Candidates
  */
 typedef struct {
   /* Region Buffer */
@@ -34,8 +45,8 @@ typedef struct {
   vector_t* filtering_regions;                // Candidate regions (filtering_region_t)
   vector_t* discarded_regions;                // Discarded regions (filtering_region_t)
   vector_t* verified_regions;                 // Verified regions (verified_region_t)
-  /* Auxiliary */
-  vector_t* filtering_regions_locator;
+  /* Cache */
+  filtering_region_cache_t filtering_region_cache;
 } filtering_candidates_t;
 
 /*
@@ -50,7 +61,8 @@ void filtering_candidates_destroy(filtering_candidates_t* const filtering_candid
  */
 uint64_t filtering_candidates_get_num_candidate_regions(const filtering_candidates_t* const filtering_candidates);
 uint64_t filtering_candidates_count_candidate_regions(
-    filtering_candidates_t* const filtering_candidates_end,const filtering_region_status_t filtering_region_status);
+    filtering_candidates_t* const filtering_candidates_end,
+    const filtering_region_status_t filtering_region_status);
 
 void filtering_candidates_set_all_regions_pending(filtering_candidates_t* const filtering_candidates);
 void filtering_candidates_set_all_regions_unverified(filtering_candidates_t* const filtering_candidates);
@@ -72,64 +84,11 @@ void filtering_candidates_add_interval_set_thresholded(
     const uint64_t max_error,mm_stack_t* const mm_stack);
 
 /*
- * Processing & Verification
+ * Sorting
  */
-uint64_t filtering_candidates_process_candidates(
-    filtering_candidates_t* const filtering_candidates,
-    archive_t* const archive,const pattern_t* const pattern,
-    const as_parameters_t* const as_parameters,
-    const bool compose_region_chaining,mm_stack_t* const mm_stack);
-uint64_t filtering_candidates_verify_candidates(
-    filtering_candidates_t* const filtering_candidates,archive_t* const archive,
-    text_collection_t* const text_collection,const pattern_t* const pattern,
-    const as_parameters_t* const as_parameters,
-    matches_t* const matches,mm_stack_t* const mm_stack);
-uint64_t filtering_candidates_align_candidates(
-    filtering_candidates_t* const filtering_candidates,
-    archive_text_t* const archive_text,const locator_t* const locator,
-    text_collection_t* const text_collection,pattern_t* const pattern,
-    const bool emulated_rc_search,const as_parameters_t* const as_parameters,
-    const bool approximated_distance,matches_t* const matches,mm_stack_t* const mm_stack);
-
-/*
- * Search for unbounded-alignments
- */
-uint64_t filtering_candidates_align_unbounded(
-    filtering_candidates_t* const filtering_candidates,
-    archive_text_t* const archive_text,const locator_t* const locator,
-    text_collection_t* const text_collection,pattern_t* const pattern,
-    const bool emulated_rc_search,const as_parameters_t* const as_parameters,
-    matches_t* const matches,mm_stack_t* const mm_stack);
-
-/*
- * BPM-Buffer API (Verification)
- */
-uint64_t filtering_candidates_bpm_buffer_add(
-    filtering_candidates_t* const filtering_candidates,
-    pattern_t* const pattern,bpm_gpu_buffer_t* const bpm_gpu_buffer);
-uint64_t filtering_candidates_bpm_buffer_retrieve(
-    filtering_candidates_t* const filtering_candidates,archive_text_t* const archive_text,
-    text_collection_t* const text_collection,pattern_t* const pattern,
-    bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t candidate_offset_begin,
-    const uint64_t candidate_offset_end,mm_stack_t* const mm_stack);
-
-/*
- * Pair Extension
- */
-uint64_t filtering_candidates_extend_match(
-    filtering_candidates_t* const filtering_candidates,
-    archive_text_t* const archive_text,const locator_t* const locator,
-    text_collection_t* const text_collection,const match_trace_t* const extended_match,
-    pattern_t* const candidate_pattern,const as_parameters_t* const candidate_actual_parameters,
-    mapper_stats_t* const mapper_stats,paired_matches_t* const paired_matches,
-    const sequence_end_t candidate_end,mm_stack_t* const mm_stack);
-void filtering_candidates_process_extension_candidates(
-    filtering_candidates_t* const extended_filtering_candidates,
-    filtering_candidates_t* const candidate_filtering_candidates,
-    archive_t* const archive,text_collection_t* const text_collection,
-    const pattern_t* const extended_pattern,const pattern_t* const candidate_pattern,
-    const search_parameters_t* const search_parameters,mapper_stats_t* const mapper_stats,
-    paired_matches_t* const paired_matches,mm_stack_t* const mm_stack);
+void filtering_positions_sort_positions(vector_t* const filtering_positions);
+void filtering_regions_sort_align_distance(vector_t* const filtering_regions);
+void verified_regions_sort_positions(vector_t* const verified_regions);
 
 /*
  * Display

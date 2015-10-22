@@ -7,6 +7,8 @@
  */
 
 #include "stats_vector.h"
+#include "mm.h"
+#include "errors.h"
 
 /*
  * Constructors

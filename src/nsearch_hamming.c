@@ -16,19 +16,20 @@
 GEM_INLINE void nsearch_hamming_brute_force_step(
     nsearch_schedule_t* const nsearch_schedule,
     const uint64_t current_position,const uint64_t current_error) {
-  // Expand node
+  char* const search_string = nsearch_schedule->search_string; // Use first
   uint8_t enc;
   for (enc=0;enc<DNA_RANGE;++enc) {
     const uint64_t next_error = current_error + (enc!=(nsearch_schedule->key[current_position]) ? 1 : 0);
     if (next_error <= nsearch_schedule->max_error) {
-      nsearch_schedule->search_string[current_position] = dna_decode(enc);
+      search_string[current_position] = dna_decode(enc);
+      search_string[current_position+1] = '\0';
       ++(nsearch_schedule->ns_nodes); // PROFILING
       const uint64_t next_position = current_position + 1;
       if (next_position < nsearch_schedule->key_length) {
         nsearch_hamming_brute_force_step(nsearch_schedule,next_position,next_error);
       } else {
         ++(nsearch_schedule->ns_nodes_success);
-        fprintf(stdout,"%s\n",nsearch_schedule->search_string);
+        fprintf(stdout,"%s\n",search_string);
       }
     }
   }
@@ -54,7 +55,6 @@ GEM_INLINE void nsearch_hamming_perform_scheduled_search(
     nsearch_schedule_t* const nsearch_schedule,const uint64_t pending_searches,
     nsearch_operation_t* const nsearch_operation,const uint64_t position,
     const uint64_t local_error,const uint64_t global_error) {
-  // Expand node
   const uint64_t next_position = position + 1;
   uint8_t enc;
   for (enc=0;enc<DNA_RANGE;++enc) {
@@ -67,7 +67,9 @@ GEM_INLINE void nsearch_hamming_perform_scheduled_search(
       if (next_local_error+global_error < nsearch_operation->min_global_error) continue;
     }
     // Search character
-    nsearch_schedule->search_string[position] = dna_decode(enc);
+    const uint64_t search_string_pos = position-nsearch_operation->begin;
+    nsearch_schedule->search_string[nsearch_operation->begin+search_string_pos] = dna_decode(enc);
+    nsearch_schedule->search_string[nsearch_operation->begin+search_string_pos+1] = '\0';
     ++(nsearch_schedule->ns_nodes); // PROFILING
     // Keep searching
     if (next_position < nsearch_operation->end) {
@@ -78,7 +80,7 @@ GEM_INLINE void nsearch_hamming_perform_scheduled_search(
       if (pending_searches==0) {
         // End of the search (Print search-string)
         ++(nsearch_schedule->ns_nodes_success);
-        fprintf(stdout,"%s\n",nsearch_schedule->search_string);
+        nsearch_schedule_print_search_string(stdout,nsearch_schedule);
       } else {
         // Search next chunk
         const uint64_t next_pending_searches = pending_searches-1;
@@ -124,6 +126,4 @@ GEM_INLINE void nsearch_hamming_preconditioned(
   nsearch_schedule_print_profile(stderr,&nsearch_schedule); // PROFILE
   // Free
   mm_stack_pop_state(mm_stack,false);
-
-
 }

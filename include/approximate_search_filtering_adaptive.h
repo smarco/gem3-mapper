@@ -13,7 +13,12 @@
 #include "approximate_search.h"
 
 /*
- * [GEM-workflow 4.0] Adaptive mapping
+ * Adaptive mapping Initial Basic Cases Selector
+ */
+void approximate_search_filtering_adaptive_basic_cases(approximate_search_t* const search);
+
+/*
+ * Adaptive mapping [GEM-workflow 4.0]
  *
  *   Filtering-only approach indented to adjust the degree of filtering w.r.t
  *   the structure of the read. Thus, in general terms, a read with many regions
@@ -23,10 +28,6 @@
  *   to achieve a compromise between speed and depth of the search (max_mismatches)
  */
 void approximate_search_filtering_adaptive(approximate_search_t* const search,matches_t* const matches);
-
-// Reduced workflows (step-wise as to use callbacks)
-void approximate_search_filtering_adaptive_generate_regions(approximate_search_t* const search);
-void approximate_search_filtering_adaptive_generate_candidates(approximate_search_t* const search);
 
 // Test
 void approximate_search_test(approximate_search_t* const search,matches_t* const matches);

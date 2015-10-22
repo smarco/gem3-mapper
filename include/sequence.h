@@ -74,4 +74,9 @@ bool sequence_equals(sequence_t* const sequence_a,sequence_t* const sequence_b);
 void sequence_generate_reverse(sequence_t* const sequence,sequence_t* const rev_sequence);
 void sequence_generate_reverse_complement(sequence_t* const sequence,sequence_t* const rc_sequence);
 
+/*
+ * Display
+ */
+void sequence_print(FILE* const stream,sequence_t* const sequence);
+
 #endif /* SEQUENCE_H_ */

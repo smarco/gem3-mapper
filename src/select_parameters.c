@@ -19,9 +19,7 @@ GEM_INLINE void select_parameters_init(select_parameters_t* const select_paramet
   select_parameters->min_reported_matches = 10;
   select_parameters->max_reported_matches = 100;
   // Check
-  select_parameters->check_correct = false;
-  select_parameters->check_optimum = false;
-  select_parameters->check_complete = false;
+  select_parameters->check_type = archive_check_nothing;
 }
 GEM_INLINE void select_configure_reporting(
     select_parameters_t* const select_parameters,const float min_reported_strata,

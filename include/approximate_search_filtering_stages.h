@@ -12,11 +12,7 @@
 #include "essentials.h"
 #include "approximate_search.h"
 #include "approximate_search_filtering_base.h"
-
-/*
- * Basic Cases
- */
-void approximate_search_adaptive_mapping_basic_cases(approximate_search_t* const search);
+#include "align_bpm_gpu.h"
 
 /*
  * Exact Filtering Fixed

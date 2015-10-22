@@ -1,56 +1,17 @@
 /*
  * PROJECT: GEMMapper
- * FILE: bpm_align_gpu.c
+ * FILE: align_bpm_gpu.c
  * DATE: 04/09/2014
  * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
  *            Santiago Marco-Sola <santiagomsola@gmail.com>
  */
 
-#include "bpm_align_gpu.h"
+#include "align_bpm_gpu.h"
 
 /*
  * No-CUDA Support
  */
-#ifndef HAVE_CUDA
-  // BPM_GPU Setup
-  GEM_INLINE bpm_gpu_buffer_collection_t* bpm_gpu_init(
-      archive_text_t* const archive_text,const uint32_t num_buffers,const uint32_t buffer_size,
-              const int32_t average_query_size,const int32_t candidates_per_query,const bool verbose) {
-    GEM_CUDA_NOT_SUPPORTED();
-    return NULL;
-  }
-  GEM_INLINE void bpm_gpu_destroy(bpm_gpu_buffer_collection_t* const buffer_collection) { GEM_CUDA_NOT_SUPPORTED(); }
-  GEM_INLINE bool bpm_gpu_support() { return false; }
-  // Buffer Accessors
-  GEM_INLINE void bpm_gpu_buffer_clear(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); }
-  GEM_INLINE uint64_t bpm_gpu_buffer_get_max_candidates(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
-  GEM_INLINE uint64_t bpm_gpu_buffer_get_max_queries(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
-  GEM_INLINE uint64_t bpm_gpu_buffer_get_num_candidates(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
-  GEM_INLINE uint64_t bpm_gpu_buffer_get_num_queries(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
-  GEM_INLINE void bpm_gpu_buffer_compute_dimensions(
-      bpm_gpu_buffer_t* const bpm_gpu_buffer,const pattern_t* const pattern,
-      const uint64_t total_candidates,uint64_t* const total_entries,
-      uint64_t* const total_query_chunks,uint64_t* const total_candidate_chunks) { GEM_CUDA_NOT_SUPPORTED(); }
-  GEM_INLINE bool bpm_gpu_buffer_fits_in_buffer(
-      bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t total_entries,
-      const uint64_t total_query_chunks,const uint64_t total_candidate_chunks) { GEM_CUDA_NOT_SUPPORTED(); return false; }
-  GEM_INLINE void bpm_gpu_buffer_put_pattern(
-      bpm_gpu_buffer_t* const bpm_gpu_buffer,pattern_t* const pattern) { GEM_CUDA_NOT_SUPPORTED(); }
-  GEM_INLINE void bpm_gpu_buffer_get_candidate(
-      bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t position,
-      uint64_t* const candidate_text_position,uint32_t* const candidate_length) { GEM_CUDA_NOT_SUPPORTED(); }
-  GEM_INLINE void bpm_gpu_buffer_get_candidate_result(
-      bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t position,
-      uint32_t* const levenshtein_distance,uint32_t* const levenshtein_match_pos) { GEM_CUDA_NOT_SUPPORTED(); }
-  GEM_INLINE void bpm_gpu_buffer_put_candidate(
-      bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t candidate_text_position,
-          const uint64_t candidate_length,const uint64_t pattern_chunk) { GEM_CUDA_NOT_SUPPORTED(); }
-  // Init Buffer
-  GEM_INLINE void bpm_gpu_init_buffer(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); }
-  // Send/Receive Buffer
-  GEM_INLINE void bpm_gpu_buffer_send(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); }
-  GEM_INLINE void bpm_gpu_buffer_receive(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); }
-#else
+#ifdef HAVE_CUDA
 /*
  * BPM-GPU Setup
  */
@@ -293,5 +254,44 @@ GEM_INLINE void bpm_gpu_buffer_receive(bpm_gpu_buffer_t* const bpm_gpu_buffer) {
     #endif
   }
 }
+#else
+// BPM_GPU Setup
+GEM_INLINE bpm_gpu_buffer_collection_t* bpm_gpu_init(
+    archive_text_t* const archive_text,const uint32_t num_buffers,const uint32_t buffer_size,
+            const int32_t average_query_size,const int32_t candidates_per_query,const bool verbose) {
+  GEM_CUDA_NOT_SUPPORTED();
+  return NULL;
+}
+GEM_INLINE void bpm_gpu_destroy(bpm_gpu_buffer_collection_t* const buffer_collection) { GEM_CUDA_NOT_SUPPORTED(); }
+GEM_INLINE bool bpm_gpu_support() { return false; }
+// Buffer Accessors
+GEM_INLINE void bpm_gpu_buffer_clear(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); }
+GEM_INLINE uint64_t bpm_gpu_buffer_get_max_candidates(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
+GEM_INLINE uint64_t bpm_gpu_buffer_get_max_queries(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
+GEM_INLINE uint64_t bpm_gpu_buffer_get_num_candidates(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
+GEM_INLINE uint64_t bpm_gpu_buffer_get_num_queries(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
+GEM_INLINE void bpm_gpu_buffer_compute_dimensions(
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,const pattern_t* const pattern,
+    const uint64_t total_candidates,uint64_t* const total_entries,
+    uint64_t* const total_query_chunks,uint64_t* const total_candidate_chunks) { GEM_CUDA_NOT_SUPPORTED(); }
+GEM_INLINE bool bpm_gpu_buffer_fits_in_buffer(
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t total_entries,
+    const uint64_t total_query_chunks,const uint64_t total_candidate_chunks) { GEM_CUDA_NOT_SUPPORTED(); return false; }
+GEM_INLINE void bpm_gpu_buffer_put_pattern(
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,pattern_t* const pattern) { GEM_CUDA_NOT_SUPPORTED(); }
+GEM_INLINE void bpm_gpu_buffer_get_candidate(
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t position,
+    uint64_t* const candidate_text_position,uint32_t* const candidate_length) { GEM_CUDA_NOT_SUPPORTED(); }
+GEM_INLINE void bpm_gpu_buffer_get_candidate_result(
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t position,
+    uint32_t* const levenshtein_distance,uint32_t* const levenshtein_match_pos) { GEM_CUDA_NOT_SUPPORTED(); }
+GEM_INLINE void bpm_gpu_buffer_put_candidate(
+    bpm_gpu_buffer_t* const bpm_gpu_buffer,const uint64_t candidate_text_position,
+        const uint64_t candidate_length,const uint64_t pattern_chunk) { GEM_CUDA_NOT_SUPPORTED(); }
+// Init Buffer
+GEM_INLINE void bpm_gpu_init_buffer(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); }
+// Send/Receive Buffer
+GEM_INLINE void bpm_gpu_buffer_send(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); }
+GEM_INLINE void bpm_gpu_buffer_receive(bpm_gpu_buffer_t* const bpm_gpu_buffer) { GEM_CUDA_NOT_SUPPORTED(); }
 #endif /* HAVE_CUDA */
 

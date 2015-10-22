@@ -179,76 +179,10 @@ GEM_INLINE void output_map_alignment_pretty(
     FILE* const stream,match_trace_t* const match_trace,matches_t* const matches,
     uint8_t* const key,const uint64_t key_length,uint8_t* const text,
     const uint64_t text_length,mm_stack_t* const mm_stack) {
-  mm_stack_push_state(mm_stack);
   tab_fprintf(stream,"%s:%"PRIu64":%c:",match_trace->sequence_name,
       match_trace->text_position,(match_trace->strand==Forward)?'+':'-');
-  char* const key_alg = mm_stack_calloc(mm_stack,2*key_length,char,true);
-  char* const ops_alg = mm_stack_calloc(mm_stack,2*key_length,char,true);
-  char* const text_alg = mm_stack_calloc(mm_stack,2*key_length,char,true);
-  cigar_element_t* cigar_element = vector_get_elm(matches->cigar_vector,match_trace->match_alignment.cigar_offset,cigar_element_t);
-  uint64_t i, j, alg_pos = 0, read_pos = 0, text_pos = 0;
-  for (i=0;i<match_trace->match_alignment.cigar_length;++i,++cigar_element) {
-    switch (cigar_element->type) {
-      case cigar_match:
-        fprintf(stream,"%d",(uint32_t)cigar_element->length);
-        for (j=0;j<cigar_element->length;++j) {
-          if (key[read_pos] != text[text_pos]) {
-            key_alg[alg_pos] = dna_decode(key[read_pos]);
-            ops_alg[alg_pos] = '*';
-            text_alg[alg_pos++] = dna_decode(text[text_pos]);
-          } else {
-            key_alg[alg_pos] = dna_decode(key[read_pos]);
-            ops_alg[alg_pos] = '|';
-            text_alg[alg_pos++] = dna_decode(text[text_pos]);
-          }
-          read_pos++; text_pos++;
-        }
-        break;
-      case cigar_mismatch:
-        fprintf(stream,"%c",dna_decode(cigar_element->mismatch));
-        if (key[read_pos] != text[text_pos]) {
-          key_alg[alg_pos] = dna_decode(key[read_pos++]);
-          ops_alg[alg_pos] = 'M';
-          text_alg[alg_pos++] = dna_decode(text[text_pos++]);
-        } else {
-          key_alg[alg_pos] = dna_decode(key[read_pos++]);
-          ops_alg[alg_pos] = '*';
-          text_alg[alg_pos++] = dna_decode(text[text_pos++]);
-        }
-        break;
-      case cigar_ins:
-        fprintf(stream,">%u+",cigar_element->length);
-        for (j=0;j<cigar_element->length;++j) {
-          key_alg[alg_pos] = '-';
-          ops_alg[alg_pos] = ' ';
-          text_alg[alg_pos++] = dna_decode(text[text_pos++]);
-        }
-        break;
-      case cigar_del:
-        for (j=0;j<cigar_element->length;++j) {
-          key_alg[alg_pos] = dna_decode(key[read_pos++]);
-          ops_alg[alg_pos] = ' ';
-          text_alg[alg_pos++] = '-';
-        }
-        if (cigar_element->attributes==cigar_attr_trim) {
-          fprintf(stream,"(%u)",cigar_element->length);
-        } else {
-          fprintf(stream,">%u-",cigar_element->length);
-        }
-        break;
-      default:
-        GEM_INVALID_CASE();
-        break;
-    }
-  }
-  key_alg[alg_pos] = '\0';
-  ops_alg[alg_pos] = '\0';
-  text_alg[alg_pos] = '\0';
-  fprintf(stream,"\n");
-  tab_fprintf(stream,"KEY--%s--\n",key_alg);
-  tab_fprintf(stream,"     %s  \n",ops_alg);
-  tab_fprintf(stream,"TXT--%s--\n",text_alg);
-  mm_stack_pop_state(mm_stack,false);
+  match_alignment_print_pretty(stream,&match_trace->match_alignment,
+      matches->cigar_vector,key,key_length,text,text_length,mm_stack);
 }
 /*
  * Separator
@@ -436,7 +370,6 @@ GEM_INLINE void output_map_single_end_matches(
     buffered_output_file_t* const buffered_output_file,archive_search_t* const archive_search,
     matches_t* const matches,output_map_parameters_t* const output_map_parameters) {
   BUFFERED_OUTPUT_FILE_CHECK(buffered_output_file);
-  MATCHES_CHECK(matches);
   PROF_START_TIMER(GP_OUTPUT_MAP_SE);
   // Print TAG
   output_map_single_end_print_tag(buffered_output_file,&archive_search->sequence);

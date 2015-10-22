@@ -11,7 +11,7 @@
 
 #include "commons.h"
 #include "hash.h"
-#include "profiler.h"
+#include "stats_counter.h"
 
 /*
  * Checkers

@@ -16,6 +16,11 @@
 #define DEBUG_ARCHIVE_SEARCH_READ_NAME GEM_DEEP_DEBUG
 
 /*
+ * Profile
+ */
+#define PROFILE_LEVEL PHIGH
+
+/*
  * Archive Search State
  */
 const char* archive_search_pe_state_label[] =
@@ -90,7 +95,7 @@ GEM_INLINE void archive_search_configure(
   archive_search->mm_stack = mm_search->mm_stack;
 }
 GEM_INLINE void archive_search_prepare_sequence(archive_search_t* const archive_search) {
-  PROF_START(GP_ARCHIVE_SEARCH_PREPARE_SEQUENCE);
+  PROFILE_START(GP_ARCHIVE_SEARCH_PREPARE_SEQUENCE,PROFILE_LEVEL);
   // Check the index characteristics & generate reverse-complement (if needed)
   if (archive_search->archive->indexed_complement) {
     archive_search->emulate_rc_search = false;
@@ -112,10 +117,10 @@ GEM_INLINE void archive_search_prepare_sequence(archive_search_t* const archive_
   } else {
     pattern_clear(&archive_search->reverse_search_state.pattern);
   }
-  PROF_STOP(GP_ARCHIVE_SEARCH_PREPARE_SEQUENCE);
+  PROFILE_STOP(GP_ARCHIVE_SEARCH_PREPARE_SEQUENCE,PROFILE_LEVEL);
 }
 GEM_INLINE void archive_search_reset(archive_search_t* const archive_search) {
-  PROF_START(GP_ARCHIVE_SEARCH_SE_INIT);
+  PROFILE_START(GP_ARCHIVE_SEARCH_SE_INIT,PROFILE_LEVEL);
   // Instantiate parameters actual-values
   const uint64_t sequence_length = sequence_get_length(&archive_search->sequence);
   search_instantiate_values(&archive_search->as_parameters,sequence_length);
@@ -126,7 +131,7 @@ GEM_INLINE void archive_search_reset(archive_search_t* const archive_search) {
   if (archive_search->emulate_rc_search) {
     approximate_search_reset(&archive_search->reverse_search_state);
   }
-  PROF_STOP(GP_ARCHIVE_SEARCH_SE_INIT);
+  PROFILE_STOP(GP_ARCHIVE_SEARCH_SE_INIT,PROFILE_LEVEL);
 }
 GEM_INLINE void archive_search_delete(archive_search_t* const archive_search) {
   // Delete Sequence

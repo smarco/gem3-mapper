@@ -26,31 +26,12 @@ void archive_select_decode_trace_matches_all(
 /*
  * Select Paired-Matches
  */
-void archive_select_matches(
+void archive_select_se_matches(
     archive_search_t* const archive_search,
     const bool paired_mapping,matches_t* const matches);
-void archive_select_paired_matches(
+void archive_select_pe_matches(
     archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches);
-
-/*
- * Check Matches
- */
-void archive_check_matches(
-    archive_t* const archive,const alignment_model_t alignment_model,
-    swg_penalties_t* swg_penalties,sequence_t* const sequence,
-    matches_t* const matches,const bool check_optimum_alignment,
-    const bool check_complete,mm_stack_t* const mm_stack);
-void archive_check_paired_matches(
-    archive_t* const archive,const alignment_model_t alignment_model,
-    swg_penalties_t* swg_penalties,sequence_t* const sequence_end1,
-    sequence_t* const sequence_end2,paired_matches_t* const paired_matches,
-    const bool check_optimum_alignment,const bool check_complete,mm_stack_t* const mm_stack);
-
-/*
- * Error Messages
- */
-//#define GEM_ERROR_ARCHIVE_SELECT_
 
 #endif /* ARCHIVE_SELECT_H_ */

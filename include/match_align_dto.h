@@ -12,8 +12,9 @@ typedef struct match_align_input_t match_align_input_t;
 typedef struct match_align_parameters_t match_align_parameters_t;
 
 #include "essentials.h"
-#include "bpm_align.h"
-#include "swg_align.h"
+#include "align_bpm_pattern.h"
+#include "align_swg_score.h"
+#include "align_swg_simd.h"
 
 struct match_align_input_t {
   /* Key */
@@ -28,6 +29,9 @@ struct match_align_input_t {
   uint64_t text_length;
   uint64_t text_offset_begin;
   uint64_t text_offset_end;
+  uint64_t align_distance_bound;
+  uint64_t align_match_begin_column;
+  uint64_t align_match_end_column;
 };
 struct match_align_parameters_t {
   bool emulated_rc_search;

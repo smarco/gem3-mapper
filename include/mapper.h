@@ -11,26 +11,17 @@
 
 // GEM essentials
 #include "essentials.h"
-
-// I/O
 #include "input_file.h"
 #include "input_parser.h"
 #include "input_fasta_parser.h"
 #include "output_map.h"
 #include "output_sam.h"
-
-// GEM Index
 #include "archive.h"
 #include "archive_search.h"
 #include "archive_select.h"
-
-// ASM
 #include "search_parameters.h"
-
-// Qualities
 #include "quality_model.h"
-
-// Report Stats
+#include "profiler.h"
 #include "report_stats_mstats.h"
 
 /*
@@ -78,6 +69,7 @@ typedef struct {
 typedef struct {
   /* CUDA */
   bool cuda_enabled;
+  bool cpu_emulated;
   /* I/O */
   uint64_t input_block_size;
   uint64_t input_num_buffers;

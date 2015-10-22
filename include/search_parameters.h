@@ -21,7 +21,6 @@ typedef enum {
   mapping_adaptive_filtering_complete, // Full complete search (using neighborhood search if needed)
   mapping_fixed_filtering_complete,    // Pure Filtering Complete
   mapping_neighborhood_search,         // Pure Neighborhood Search (brute-force)
-  mapping_region_profile_fixed,
   mapping_test
 } mapping_mode_t;
 typedef enum {

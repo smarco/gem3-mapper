@@ -301,7 +301,6 @@ GEM_INLINE void paired_matches_find_pairs(
     paired_matches_t* const paired_matches,
     const paired_search_parameters_t* const paired_search_parameters,
     mapper_stats_t* const mapper_stats) {
-  PROF_START(GP_PAIRED_MATCHES_FIND_PAIRS);
   // Matches
   matches_t* const matches_end1 = paired_matches->matches_end1;
   matches_t* const matches_end2 = paired_matches->matches_end2;
@@ -356,8 +355,6 @@ GEM_INLINE void paired_matches_find_pairs(
     }
     ++match_trace_end1;
   }
-  // Update MCS
-  PROF_STOP(GP_PAIRED_MATCHES_FIND_PAIRS);
 }
 GEM_INLINE void paired_matches_find_discordant_pairs(
     paired_matches_t* const paired_matches,

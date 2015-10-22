@@ -7,6 +7,7 @@
  */
 
 #include "matches_classify.h"
+#include "matches_cigar.h"
 
 /*
  * Matches Classes

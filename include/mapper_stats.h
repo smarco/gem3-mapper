@@ -10,6 +10,7 @@
 #define MAPPER_STATS_H_
 
 #include "essentials.h"
+#include "profiler_timer.h"
 
 /*
  * Archive Search Stats

@@ -17,6 +17,11 @@
 #define REGION_PROFILE_DEBUG_PRINT_PROFILE GEM_DEEP_DEBUG
 
 /*
+ * Profile
+ */
+#define PROFILE_LEVEL PLOW
+
+/*
  * Region Profile Generator & Query
  */
 typedef struct {
@@ -91,7 +96,7 @@ GEM_INLINE void region_profile_generate_adaptive_boost(
     region_profile_t* const region_profile,fm_index_t* const fm_index,
     const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
     const region_profile_model_t* const profile_model,mm_stack_t* const mm_stack) {
-  PROF_START(GP_REGION_PROFILE_ADAPTIVE);
+  PROFILE_START(GP_REGION_PROFILE_ADAPTIVE,PROFILE_LEVEL);
   // Parameters
   const double proper_length = fm_index->proper_length;
   const uint64_t min_region_length = (uint64_t)(REGION_MAX_LENGTH_PL_FACTOR*proper_length);
@@ -154,5 +159,5 @@ GEM_INLINE void region_profile_generate_adaptive_boost(
   region_profile->num_zero_regions = 0;
   region_profile->max_region_length = max_region_length;
   mm_stack_pop_state(mm_stack,false); // Free
-  PROF_STOP(GP_REGION_PROFILE_ADAPTIVE);
+  PROFILE_STOP(GP_REGION_PROFILE_ADAPTIVE,PROFILE_LEVEL);
 }

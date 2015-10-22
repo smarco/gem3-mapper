@@ -9,19 +9,26 @@
 #include "approximate_search_filtering_base.h"
 #include "approximate_search_filtering_control.h"
 #include "search_parameters.h"
-
-#include "nsearch.h"
 #include "region_profile.h"
 #include "region_profile_adaptive.h"
 #include "region_profile_boost.h"
 #include "region_profile_fixed.h"
 #include "region_profile_schedule.h"
+#include "filtering_candidates_process.h"
+#include "filtering_candidates_verify.h"
+#include "filtering_candidates_align.h"
+#include "nsearch.h"
 
 /*
  * Debug
  */
 #define DEBUG_REGION_PROFILE_PRINT  GEM_DEEP_DEBUG
 #define DEBUG_REGION_SCHEDULE_PRINT GEM_DEEP_DEBUG
+
+/*
+ * Profile
+ */
+#define PROFILE_LEVEL PMED
 
 /*
  * Constants
@@ -33,7 +40,7 @@
 /*
  * Stats
  */
-#ifndef GEM_NOPROFILE
+#ifdef GEM_PROFILE
 GEM_INLINE void region_profile_lightweight_stats(region_profile_t* const region_profile) {
   PROF_INC_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT);
   uint64_t total_candidates = 0;
@@ -124,7 +131,7 @@ GEM_INLINE void approximate_search_generate_region_profile_fixed(
     return;
   }
   // Stats
-#ifndef GEM_NOPROFILE
+#ifdef GEM_PROFILE
   // region_profile_fixed_stats(region_profile); // TODO
 #endif
 }
@@ -191,7 +198,7 @@ GEM_INLINE void approximate_search_generate_region_profile_adaptive(
     return;
   }
   // Stats
-#ifndef GEM_NOPROFILE
+#ifdef GEM_PROFILE
   switch (strategy) {
     case region_profile_adaptive_lightweight:
       region_profile_lightweight_stats(region_profile);
@@ -223,14 +230,14 @@ GEM_INLINE uint64_t approximate_search_generate_region_candidates(
   uint64_t candidates;
   // Filter up to n errors (n>=2)
   while (region->min >= REGION_FILTER_DEGREE_TWO) {
-    PROF_START(GP_AS_GENERATE_CANDIDATES_SEARCH_D2);
+    PROFILE_START(GP_AS_GENERATE_CANDIDATES_SEARCH_D2,PROFILE_LEVEL);
     PROF_INC_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D2);
     if (perform_search) {
       interval_set_clear(intervals_result);
       neighborhood_search(fm_index,key+region->begin,region->end-region->begin,region->min-1,intervals_result,mm_stack);
       perform_search = false;
     }
-    PROF_STOP(GP_AS_GENERATE_CANDIDATES_SEARCH_D2);
+    PROFILE_STOP(GP_AS_GENERATE_CANDIDATES_SEARCH_D2,PROFILE_LEVEL);
     candidates = interval_set_count_intervals_length(intervals_result);
     if (candidates <= filtering_threshold) {
       PROF_INC_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D2_HIT);
@@ -242,14 +249,14 @@ GEM_INLINE uint64_t approximate_search_generate_region_candidates(
   }
   // Filter up to 1 errors
   if (region->min == REGION_FILTER_DEGREE_ONE) {
-    PROF_START(GP_AS_GENERATE_CANDIDATES_SEARCH_D1);
+    PROFILE_START(GP_AS_GENERATE_CANDIDATES_SEARCH_D1,PROFILE_LEVEL);
     PROF_INC_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D1);
     if (perform_search) {
       interval_set_clear(intervals_result);
       neighborhood_search(fm_index,key+region->begin,region->end-region->begin,ONE_ERROR,intervals_result,mm_stack);
       perform_search = false;
     }
-    PROF_STOP(GP_AS_GENERATE_CANDIDATES_SEARCH_D1);
+    PROFILE_STOP(GP_AS_GENERATE_CANDIDATES_SEARCH_D1,PROFILE_LEVEL);
     candidates = interval_set_count_intervals_length_thresholded(intervals_result,ONE_ERROR);
     if (candidates <= filtering_threshold) {
       PROF_INC_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D1_HIT);
@@ -274,7 +281,7 @@ GEM_INLINE uint64_t approximate_search_generate_region_candidates(
   return 0; // Return filtered-degree (errors-allowed)
 }
 GEM_INLINE void approximate_search_generate_exact_candidates(approximate_search_t* const search,matches_t* const matches) {
-  PROF_START(GP_AS_GENERATE_CANDIDATES);
+  PROFILE_START(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
   // Parameters
   region_profile_t* const region_profile = &search->region_profile;
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
@@ -282,11 +289,9 @@ GEM_INLINE void approximate_search_generate_exact_candidates(approximate_search_
   // Pattern
   pattern_t* const pattern = &search->pattern;
   const uint64_t num_wildcards = pattern->num_wildcards;
-  // Region profile
-  const uint64_t num_regions = region_profile->num_filtering_regions;
-  uint64_t errors_allowed = 0; // Number of errors allowed/generated/applied so far
   // Generate candidates for each region
-  PROF_ADD_COUNTER(GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS,num_regions);
+  uint64_t errors_allowed = 0; // Number of errors allowed/generated/applied so far
+  PROF_ADD_COUNTER(GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS,region_profile->num_filtering_regions);
   REGION_LOCATOR_ITERATE(region_profile,region,position) {
     PROF_INC_COUNTER(GP_AS_GENERATE_CANDIDATES_PROCESSED);
     // Generate exact-candidates for the region
@@ -301,12 +306,12 @@ GEM_INLINE void approximate_search_generate_exact_candidates(approximate_search_
   // Set the minimum number of mismatches required
   approximate_search_update_mcs(search,errors_allowed + num_wildcards);
   region_profile->errors_allowed = errors_allowed;
-  PROF_STOP(GP_AS_GENERATE_CANDIDATES);
+  PROFILE_STOP(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
 }
 GEM_INLINE void approximate_search_generate_inexact_candidates(
     approximate_search_t* const search,const bool dynamic_scheduling,
     const bool verify_ahead,matches_t* const matches) {
-  PROF_START(GP_AS_GENERATE_CANDIDATES);
+  PROFILE_START(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
   /*
    * Filters all the regions up to the scheduled degree
    *  - Dynamic Scheduling: Assigns a filtering degree to each region as the search goes on
@@ -363,8 +368,8 @@ GEM_INLINE void approximate_search_generate_inexact_candidates(
         key,region,filtering_threshold,filtering_candidates,intervals_result,mm_stack);
     // Check candidates ahead (Dynamic scheduling+filtering)
     if (verify_ahead && asearch_filter_ahead_candidates(search,matches)) {
-      PROF_PAUSE(GP_AS_GENERATE_CANDIDATES);
-      PROF_START(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING);
+      PROFILE_PAUSE(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
+      PROFILE_START(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING,PROFILE_LEVEL);
       filtering_candidates_process_candidates(filtering_candidates,search->archive,pattern,as_parameters,true,mm_stack);
       filtering_candidates_verify_candidates(filtering_candidates,search->archive,
           search->text_collection,pattern,as_parameters,matches,mm_stack);
@@ -372,8 +377,8 @@ GEM_INLINE void approximate_search_generate_inexact_candidates(
           filtering_candidates,search->archive->text,search->archive->locator,
           search->text_collection,pattern,search->emulated_rc_search,as_parameters,false,matches,mm_stack);
       approximate_search_adjust_max_differences_using_strata(search,matches);
-      PROF_STOP(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING);
-      PROF_CONTINUE(GP_AS_GENERATE_CANDIDATES);
+      PROFILE_STOP(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING,PROFILE_LEVEL);
+      PROFILE_CONTINUE(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
     }
     // Check cut-off condition
     approximate_search_update_mcs(search,errors_allowed + num_wildcards);
@@ -384,7 +389,7 @@ GEM_INLINE void approximate_search_generate_inexact_candidates(
   }
   // Set the minimum number of mismatches required
   region_profile->errors_allowed = errors_allowed;
-  PROF_STOP(GP_AS_GENERATE_CANDIDATES);
+  PROFILE_STOP(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
 }
 /*
  * Verify Candidates
@@ -411,7 +416,5 @@ GEM_INLINE void approximate_search_verify_candidates(approximate_search_t* const
   const uint64_t num_matches = matches_get_num_match_traces(matches);
   search->max_matches_reached = num_matches >= parameters->search_max_matches;
   if (search->max_matches_reached) approximate_search_update_mcs(search,0);
-  // Next State
-  search->search_state = asearch_candidates_verified;
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
 }

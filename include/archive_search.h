@@ -91,4 +91,9 @@ bool archive_search_finished(const archive_search_t* const archive_search);
 void archive_search_hold_verification_candidates(archive_search_t* const archive_search);
 void archive_search_release_verification_candidates(archive_search_t* const archive_search);
 
+/*
+ * Errors
+ */
+#define GEM_ERROR_ARCHIVE_SEARCH_INDEX_COMPLEMENT_REQUIRED "Archive Search. Explicit indexed complement required"
+
 #endif /* ARCHIVE_SEARCH_H_ */

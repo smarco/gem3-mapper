@@ -12,6 +12,11 @@
 #include "paired_matches_classify.h"
 
 /*
+ * Profile
+ */
+#define PROFILE_LEVEL PMED
+
+/*
  * SM Scoring Utils
  */
 GEM_INLINE double archive_score_diff_exponential(
@@ -87,15 +92,15 @@ GEM_INLINE void archive_score_matches_gem_se(archive_search_t* const archive_sea
       match[0].mapq_score = 0;
       break;
     case matches_class_tie_event_distance:
-      archive_search_compute_predictors(archive_search,matches,&predictors);
+      archive_search_se_compute_predictors(archive_search,matches,&predictors);
       match[0].mapq_score = archive_score_matches_gem_se_ties(&predictors);
       break;
     case matches_class_mmap:
-      archive_search_compute_predictors(archive_search,matches,&predictors);
+      archive_search_se_compute_predictors(archive_search,matches,&predictors);
       match[0].mapq_score = archive_score_matches_gem_se_mmap(&predictors);
       break;
     case matches_class_unique:
-      archive_search_compute_predictors(archive_search,matches,&predictors);
+      archive_search_se_compute_predictors(archive_search,matches,&predictors);
       match[0].mapq_score = archive_score_matches_gem_se_unique(&predictors);
       break;
     default:
@@ -135,8 +140,7 @@ GEM_INLINE void archive_score_matches_gem_pe(
   if (num_paired_map>0 && paired_map[0].pair_relation==pair_relation_discordant) return;
   // Classify
   matches_predictors_t predictors;
-  memset(&predictors,0,sizeof(predictors));
-  archive_search_paired_end_compute_predictors(archive_search_end1,archive_search_end2,paired_matches,&predictors);
+  archive_search_pe_compute_predictors(archive_search_end1,archive_search_end2,paired_matches,&predictors);
   const matches_class_t matches_class = paired_matches_classify(paired_matches);
   switch (matches_class) {
     case matches_class_unmapped:
@@ -202,17 +206,17 @@ GEM_INLINE void archive_score_matches_stratify_se(archive_search_t* const archiv
       match[0].mapq_score = 4;
       break;
     case matches_class_tie_event_distance:
-      archive_search_compute_predictors(archive_search,matches,&predictors);
+      archive_search_se_compute_predictors(archive_search,matches,&predictors);
       pr = matches_classify_ties(&predictors);
       match[0].mapq_score = (pr >= 0.90) ? 80 + (uint8_t)((pr-0.90)*500.0) : 79;
       break;
     case matches_class_mmap:
-      archive_search_compute_predictors(archive_search,matches,&predictors);
+      archive_search_se_compute_predictors(archive_search,matches,&predictors);
       pr = matches_classify_mmaps(&predictors);
       match[0].mapq_score = (pr >= 0.90) ? 140 + (uint8_t)((pr-0.90)*500.0) : 139;
       break;
     case matches_class_unique:
-      archive_search_compute_predictors(archive_search,matches,&predictors);
+      archive_search_se_compute_predictors(archive_search,matches,&predictors);
       pr = matches_classify_unique(&predictors);
       match[0].mapq_score = (pr >= 0.95) ? 200 + (uint8_t)((pr-0.95)*1000.0) : 199;
       break;
@@ -255,7 +259,7 @@ GEM_INLINE void archive_score_matches_stratify_pe(
   const uint64_t mcs_end1 = paired_matches->matches_end1->max_complete_stratum;
   const uint64_t mcs_end2 = paired_matches->matches_end2->max_complete_stratum;
   matches_predictors_t predictors;
-  archive_search_paired_end_compute_predictors(archive_search_end1,archive_search_end2,paired_matches,&predictors);
+  archive_search_pe_compute_predictors(archive_search_end1,archive_search_end2,paired_matches,&predictors);
   if (matches_class==matches_class_unmapped) {
     return;
   } else if (matches_class==matches_class_tie_indistinguishable) {
@@ -300,7 +304,7 @@ GEM_INLINE void archive_score_matches_se(
     archive_search_t* const archive_search,
     const bool paired_mapping,matches_t* const matches) {
   if (matches_get_num_match_traces(matches)==0) return;
-  PROF_START(GP_ARCHIVE_SCORE_SE_MATCHES);
+  PROFILE_START(GP_ARCHIVE_SCORE_SE_MATCHES,PROFILE_LEVEL);
   search_parameters_t* const search_parameters = archive_search->as_parameters.search_parameters;
   switch (search_parameters->alignment_model) {
     case alignment_model_none:
@@ -340,7 +344,7 @@ GEM_INLINE void archive_score_matches_se(
           break;
       }
   }
-  PROF_STOP(GP_ARCHIVE_SCORE_SE_MATCHES);
+  PROFILE_STOP(GP_ARCHIVE_SCORE_SE_MATCHES,PROFILE_LEVEL);
 }
 /*
  * PE Scoring
@@ -349,7 +353,7 @@ GEM_INLINE void archive_score_matches_pe(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches) {
   if (paired_matches_get_num_maps(paired_matches)==0) return;
-  PROF_START(GP_ARCHIVE_SCORE_PE_MATCHES);
+  PROFILE_START(GP_ARCHIVE_SCORE_PE_MATCHES,PROFILE_LEVEL);
   search_parameters_t* const search_parameters = archive_search_end1->as_parameters.search_parameters;
   switch (search_parameters->alignment_model) {
     case alignment_model_none:
@@ -388,5 +392,5 @@ GEM_INLINE void archive_score_matches_pe(
       GEM_INVALID_CASE();
       break;
   }
-  PROF_STOP(GP_ARCHIVE_SCORE_PE_MATCHES);
+  PROFILE_STOP(GP_ARCHIVE_SCORE_PE_MATCHES,PROFILE_LEVEL);
 }

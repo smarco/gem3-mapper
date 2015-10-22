@@ -12,6 +12,11 @@
 #include "approximate_search_neighborhood.h"
 
 /*
+ * Profile
+ */
+#define PROFILE_LEVEL PMED
+
+/*
  * Approximate Search State
  */
 const char* approximate_search_state_label[] =
@@ -100,7 +105,7 @@ GEM_INLINE void approximate_search_release_verification_candidates(approximate_s
  * Approximate String Matching using the FM-index
  */
 GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t* const matches) {
-  PROF_START(GP_AS_MAIN);
+  PROFILE_START(GP_AS_MAIN,PROFILE_LEVEL);
   /*
    * Select mapping strategy
    */
@@ -108,29 +113,23 @@ GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t*
   switch (parameters->mapping_mode) {
     case mapping_adaptive_filtering_fast:
     case mapping_adaptive_filtering_thorough:
-      approximate_search_filtering_adaptive(search,matches); // Adaptive & incremental mapping
+      approximate_search_filtering_adaptive(search,matches);  // Adaptive mapping
       break;
     case mapping_adaptive_filtering_complete:
     case mapping_fixed_filtering_complete:
-      approximate_search_filtering_complete(search,matches); // Filtering Complete
+      approximate_search_filtering_complete(search,matches);  // Filtering complete mapping
       break;
     case mapping_neighborhood_search:
       approximate_search_neighborhood_search(search,matches); // Brute-force mapping
       break;
-    case mapping_region_profile_fixed:
-      approximate_search_filtering_adaptive_generate_regions(search);
-      matches->max_complete_stratum = 0; PROF_STOP(GP_AS_MAIN); return;
-      break;
     case mapping_test:
-      approximate_search_test(search,matches);
+      approximate_search_test(search,matches);                // For testing purposes
       break;
     default:
       GEM_INVALID_CASE();
       break;
   }
-  // Set matches-MCS
-  if (matches) matches->max_complete_stratum = MIN(matches->max_complete_stratum,search->max_complete_stratum);
-  PROF_STOP(GP_AS_MAIN);
+  PROFILE_STOP(GP_AS_MAIN,PROFILE_LEVEL);
 }
 /*
  * Display

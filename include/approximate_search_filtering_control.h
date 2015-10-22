@@ -23,7 +23,9 @@ bool asearch_fulfilled(approximate_search_t* const search,matches_t* const match
 
 bool asearch_filter_ahead_candidates(approximate_search_t* const search,matches_t* const matches);
 
-void asearch_control_next_state(approximate_search_t* const search,
-    const approximate_search_state_t processing_step,matches_t* const matches);
+/*
+ * Control DFA States
+ */
+bool asearch_control_trigger_boost(approximate_search_t* const search,matches_t* const matches);
 
 #endif /* APPROXIMATE_SEARCH_FILTERING_CONTROL_H_ */

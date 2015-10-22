@@ -6,16 +6,23 @@
 # DESCRIPTION: Builds all the sources of the GEMTools and the library (.a)
 #==================================================================================================
 
+###############################################################################
 # Definitions
+###############################################################################
 ROOT_PATH=..
-include ../Makefile.mk
+include $(ROOT_PATH)/Makefile.mk
 
+###############################################################################
+# Modules
+###############################################################################
 # Basic Modules
 MODULES=commons gthread report errors
 # Basic Data Structures
-MODULES+=vector ihash shash priority_queue string_buffer segmented_vector
+MODULES+=vector ihash shash priority_queue string_buffer segmented_vector dp_matrix
 # Stats Data Structures
-MODULES+=profiler stats_vector stats_matrix
+MODULES+=stats_vector stats_matrix stats_counter
+# Profile Data Structures
+MODULES+=profiler profiler_timer profiler_gem profiler_cuda
 # Memory/Files Modules
 MODULES+=fm mm mm_slab mm_stack mm_pool
 # Input Data Structures
@@ -35,32 +42,55 @@ MODULES+=fm_index fm_index_search fm_index_query \
          sampled_sa sampled_rl sa_builder \
          interval_set region_set
 # GEM Matches
-MODULES+=matches matches_counters matches_metrics matches_classify 
-# GEM paired-Matches
+MODULES+=matches matches_cigar \
+         matches_counters matches_metrics \
+         matches_classify 
+# GEM Paired-Matches
 MODULES+=paired_matches paired_map paired_matches_classify
 # GEM Pattern Alignment
-MODULES+=pattern bpm_align swg_align bpm_align_gpu match_scaffold match_align
+MODULES+=pattern align align_ond \
+         align_bpm align_bpm_pattern \
+         align_bpm_distance align_bpm_gpu \
+         align_swg align_swg_score \
+         align_swg_simd match_scaffold
+# GEM Match Alignment
+MODULES+=match_alignment match_align \
+         match_align_swg match_align_local
 # GEM Region Profile
 MODULES+=region_profile region_profile_adaptive \
          region_profile_boost region_profile_schedule \
          region_profile_fixed
 # GEM Filtering
-MODULES+=filtering_candidates filtering_region kmer_counting 
+MODULES+=filtering_candidates filtering_candidates_process \
+         filtering_candidates_verify filtering_candidates_align \
+         filtering_candidates_extend filtering_candidates_bpm_buffer \
+         filtering_region filtering_region_verify \
+         filtering_region_align filtering_region_cache \
+         kmer_counting
 # GEM Search Support Modules
 MODULES+=search_parameters paired_search_parameters select_parameters quality_model mm_search
 # GEM Approximate Search (Filtering)
 MODULES+=approximate_search approximate_search_filtering_base \
          approximate_search_filtering_stages approximate_search_filtering_control \
-         approximate_search_filtering_adaptive approximate_search_neighborhood \
-         approximate_search_filtering_complete
+         approximate_search_filtering_adaptive approximate_search_filtering_adaptive_stepwise \
+         approximate_search_filtering_complete approximate_search_neighborhood 
 # GEM Approximate Search (Neighborhood Search)
-MODULES+=nsearch nsearch_hamming nsearch_levenshtein nsearch_partition nsearch_schedule
-# GEM Archive
+MODULES+=nsearch nsearch_partition \
+         nsearch_schedule nsearch_hamming \
+         nsearch_levenshtein nsearch_levenshtein_state
+# GEM Archive Builder
 MODULES+=archive archive_builder archive_builder_index \
-         archive_builder_text archive_builder_text_parser \
-         archive_text archive_search archive_search_group \
+         archive_builder_text archive_builder_text_parser
+# GEM Archive Support
+MODULES+=archive_text archive_search_cache
+# GEM Archive Search
+MODULES+=archive_search \
          archive_search_se archive_search_pe \
-         archive_select archive_score
+         archive_search_se_stepwise archive_search_pe_stepwise
+# GEM Archive Post-Processing
+MODULES+=archive_score archive_select archive_check
+# GEM Search Groups
+MODULES+=search_group search_group_verify_candidates
 # Input Parsers
 MODULES+=input_parser input_fasta_parser input_multifasta_parser
 # Output Printers
@@ -70,38 +100,47 @@ MODULES+=options_menu
 # Report Stats Module
 MODULES+=report_stats
 # GEM Main Modules
-MODULES+=mapper mapper_cuda mapper_bisulfite mapper_stats mapper_profile gem_core
+MODULES+=mapper mapper_cuda mapper_cuda_se mapper_cuda_pe mapper_bisulfite mapper_stats mapper_profile gem_core
         
 SRCS=$(addsuffix .c, $(MODULES))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))
 
+###############################################################################
+# Compilation Modes
+###############################################################################
 all: devel
 
-release: COMPILE_C_FLAGS=$(GENERAL_FLAGS) $(OPT_FLAGS) $(SUPPRESS_CHECKS)
-release: $(GEM_CORE_LIB)
+release: GEM_FLAGS=$(FLAGS_GENERAL) $(FLAGS_OPT) $(FLAGS_SUPPRESS_CHECKS)
+release: $(LIB_GEM_CORE)
 
-devel: COMPILE_C_FLAGS=$(GENERAL_FLAGS) $(OPT_FLAGS) $(DEBUG_FLAGS)
-devel: $(GEM_CORE_LIB)
+devel: GEM_FLAGS=$(FLAGS_GENERAL) $(FLAGS_OPT) $(FLAGS_DEBUG)
+devel: $(LIB_GEM_CORE)
 
-profile: COMPILE_C_FLAGS=$(GENERAL_FLAGS) $(OPT_FLAGS) $(DEBUG_FLAGS) -I/opt/intel/vtune_amplifier_xe_2013/include/
-profile: $(GEM_CORE_LIB)
+profile: GEM_FLAGS=$(FLAGS_GENERAL) $(FLAGS_OPT) $(FLAGS_DEBUG) $(FLAGS_PROFILE)
+profile: $(LIB_GEM_CORE)
 
-debug: COMPILE_C_FLAGS=-O0 $(GENERAL_FLAGS) $(DEBUG_FLAGS) $(GEM_DEBUG_FLAGS)
-debug: $(GEM_CORE_LIB)
+debug: GEM_FLAGS=-O0 $(FLAGS_GENERAL) $(FLAGS_DEBUG) $(FLAGS_PROFILE)
+debug: $(LIB_GEM_CORE)
 
-$(GEM_CORE_LIB): $(OBJS)
+###############################################################################
+# Rules
+###############################################################################
+# GEM-library
+$(LIB_GEM_CORE): $(OBJS)
 ifeq ($(HAVE_CUDA),1)
-	$(AR) -rcs $(GEM_CORE_LIB) $(FOLDER_BUILD)/*.o $(FOLDER_RESOURCES_BUILD)/*.o
+	$(AR) -rcs $(LIB_GEM_CORE) $(FOLDER_BUILD)/*.o $(FOLDER_RESOURCES_BUILD)/*.o
 else
-	$(AR) -rcs $(GEM_CORE_LIB) $(FOLDER_BUILD)/*.o
+	$(AR) -rcs $(LIB_GEM_CORE) $(FOLDER_BUILD)/*.o
 endif
 
 # Building Exceptions (Dependencies)
 $(FOLDER_BUILD)/fm.o : fm.c
-	$(CC) $(COMPILE_C_FLAGS) $(DEF_BZLIB) $(DEF_ZLIB) $(INCLUDE_FLAGS) -c $< -o $@
-$(FOLDER_BUILD)/bpm_align_gpu.o : bpm_align_gpu.c
-	$(CC) $(COMPILE_C_FLAGS) $(DEF_CUDA) $(INCLUDE_FLAGS) -c $< -o $@
+	$(CC) $(GEM_FLAGS) $(DEF_BZLIB) $(DEF_ZLIB) $(PATH_INCLUDE) -c $< -o $@
+$(FOLDER_BUILD)/align_bpm_gpu.o : align_bpm_gpu.c
+	$(CC) $(GEM_FLAGS) $(DEF_CUDA) $(PATH_INCLUDE) $(CUDA_PATH_INCLUDE) -c $< -o $@
+$(FOLDER_BUILD)/profiler_cuda.o : profiler_cuda.c
+	$(CC) $(GEM_FLAGS) $(DEF_CUDA) $(PATH_INCLUDE) $(CUDA_PATH_INCLUDE) -c $< -o $@
 	
 # General building rule
 $(FOLDER_BUILD)/%.o : %.c
-	$(CC) $(COMPILE_C_FLAGS) $(INCLUDE_FLAGS) -c $< -o $@
+	$(CC) $(GEM_FLAGS) $(PATH_INCLUDE) -c $< -o $@

@@ -9,9 +9,9 @@
 
 include ../../Makefile.mk
 
-SHELL := /bin/bash
-NVCC_VERSION = $(shell $(NVCC) --version | grep release | sed 's/.*release //' |  sed 's/,.*//' | sed 's/\.//')
-CUDA_LIBRARY_FLAGS = $(INC_CUDA) $(LIBS_CUDA)
+SHELL:=/bin/bash
+NVCC_VERSION=$(shell $(NVCC) --version | grep release | sed 's/.*release //' |  sed 's/,.*//' | sed 's/\.//')
+CUDA_LIBRARY_FLAGS=$(CUDA_PATH_INCLUDE) $(CUDA_PATH_LIB) $(CUDA_LIB)
 FOLDER_BUILD=../build
 NVCC_MINIMAL_VERSION = $(shell [[ ($(NVCC_VERSION) -ge "0")  && ($(NVCC_VERSION) -le  "29") ]] && echo "10"; \
                                [[ ($(NVCC_VERSION) -ge "30") && ($(NVCC_VERSION) -le  "49") ]] && echo "30"; \

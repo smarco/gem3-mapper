@@ -9,6 +9,7 @@
 #include "output_sam.h"
 #include "gem_core.h"
 #include "matches.h"
+#include "matches_cigar.h"
 #include "paired_map.h"
 
 /*
@@ -389,7 +390,7 @@ GEM_INLINE void output_sam_print_opt_field_tag_NM(
   buffered_output_file_reserve(buffered_output_file,6+INT_MAX_LENGTH);
   // Calculate edit-distance
   const uint64_t edit_distance =
-      matches_cigar_compute_edit_distance__excluding_clipping(matches,
+      matches_cigar_compute_edit_distance__excluding_clipping(matches->cigar_vector,
           match_trace->match_alignment.cigar_offset,match_trace->match_alignment.cigar_length);
   bofprintf_string_literal(buffered_output_file,"\tNM:i:");
   bofprintf_uint64(buffered_output_file,edit_distance);

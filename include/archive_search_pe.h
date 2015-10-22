@@ -16,44 +16,43 @@
 /*
  * Setup
  */
-void archive_search_paired_end_configure(
+void archive_search_pe_configure(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     mm_search_t* const mm_search);
 
 /*
- * PE Archive Search building blocks
+ * PE Extension Control
  */
-void archive_search_pe_generate_candidates(
-    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches);
-void archive_search_pe_finish_search(
+bool archive_search_pe_is_extension_feasible(archive_search_t* const archive_search);
+bool archive_search_pe_use_shortcut_extension(archive_search_t* const archive_search,matches_t* const matches);
+bool archive_search_pe_use_recovery_extension(archive_search_t* const archive_search,matches_t* const matches);
+
+/*
+ * Archive Search PE Continue Search
+ */
+void archive_search_pe_continue(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches);
 
 /*
  * Paired-End Indexed Search (PE Online Approximate String Search)
  */
-void archive_search_paired_end(
+void archive_search_pe(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches);
 
 /*
  * Compute Predictors
  */
-void archive_search_paired_end_compute_predictors(
+void archive_search_pe_compute_predictors(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches,matches_predictors_t* const predictors);
 
 /*
  * Display
  */
-GEM_INLINE void archive_search_pe_print(
+void archive_search_pe_print(
     FILE* const stream,archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2,paired_matches_t* const paired_matches);
-
-/*
- * Errors
- */
-#define GEM_ERROR_ARCHIVE_SEARCH_INDEX_COMPLEMENT_REQUIRED "Archive Search. Explicit indexed complement required"
 
 #endif /* ARCHIVE_SEARCH_PE_H_ */

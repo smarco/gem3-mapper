@@ -12,66 +12,16 @@
 #include "region_profile.h"
 #include "region_profile_adaptive.h"
 #include "region_profile_schedule.h"
+#include "filtering_candidates_process.h"
+#include "filtering_candidates_verify.h"
+#include "filtering_candidates_align.h"
+#include "filtering_candidates_bpm_buffer.h"
 
 /*
- * Basic Cases
+ * Profile
  */
-GEM_INLINE void approximate_search_adaptive_mapping_basic_cases(approximate_search_t* const search) {
-  gem_cond_debug_block(DEBUG_SEARCH_STATE) {
-    tab_fprintf(stderr,"[GEM]>ASM::Basic Cases\n");
-    tab_global_inc();
-  }
-  // Parameters
-  search_parameters_t* const search_parameters = search->as_parameters->search_parameters;
-  pattern_t* const pattern = &search->pattern;
-  const uint64_t key_length = pattern->key_length;
-  const uint64_t num_wildcards = pattern->num_wildcards;
-  // All characters are wildcards
-  if (key_length==num_wildcards) {
-    search->hi_exact_matches = 0;
-    search->lo_exact_matches = 0;
-    approximate_search_update_mcs(search,key_length);
-    search->search_state = asearch_end;
-    return;
-  }
-  /*
-   * Recovery
-   *   If the number of wildcards (or errors required) is too high we try to recover as
-   *   many matches as possible. We extract feasible regions from the read and filter
-   *   them trying to recover anything out of bad quality reads.
-   */
-  if (num_wildcards > 0) {
-    switch (search_parameters->mapping_mode) {
-      case mapping_adaptive_filtering_fast:
-      case mapping_adaptive_filtering_thorough:
-        if (num_wildcards >= search->as_parameters->alignment_max_error_nominal) {
-          search->search_state = asearch_read_recovery;
-          return;
-        }
-        break;
-      default:
-        if (num_wildcards >= search->max_complete_error) {
-          search->search_state = asearch_read_recovery;
-          return;
-        }
-        break;
-    }
-  }
-  // Exact search
-  if (search->max_complete_error==0) {
-    search->search_state = asearch_neighborhood;
-    return;
-  }
-  // Very short reads (Neighborhood search)
-  if (key_length <= RANK_MTABLE_SEARCH_DEPTH || key_length < search->archive->fm_index->proper_length) {
-    search->search_state = asearch_neighborhood;
-    return;
-  }
-  // Otherwise, go to standard exact filtering
-  search->search_state = asearch_exact_filtering_adaptive;
-  gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
-  return;
-}
+#define PROFILE_LEVEL PMED
+
 /*
  * Exact Filtering Fixed
  */
@@ -111,10 +61,7 @@ GEM_INLINE void approximate_search_exact_filtering_adaptive(
     const region_profiling_strategy_t profiling_strategy,matches_t* const matches) {
   // Region-Minimal Profile (Reduce the number of candidates per region and maximize number of regions)
   approximate_search_generate_region_profile_adaptive(search,profiling_strategy,search->mm_stack);
-  if (search->search_state==asearch_no_regions || search->search_state==asearch_exact_matches) { // Check corner cases
-    asearch_control_next_state(search,asearch_exact_filtering_adaptive,matches);
-    return;
-  }
+  if (search->search_state==asearch_no_regions || search->search_state==asearch_exact_matches) return; // Corner cases
   // Generate exact-candidates
   const as_parameters_t* const actual_parameters = search->as_parameters;
   const search_parameters_t* const search_parameters = actual_parameters->search_parameters;
@@ -128,34 +75,35 @@ GEM_INLINE void approximate_search_exact_filtering_adaptive(
   // Verify Candidates (if needed)
   if (verify_candidates) {
     approximate_search_verify_candidates(search,matches);
+    search->search_state = asearch_candidates_verified;
   } else {
     search->search_state = asearch_verify_candidates;
   }
 }
 GEM_INLINE void approximate_search_exact_filtering_adaptive_lightweight(
     approximate_search_t* const search,matches_t* const matches) {
-  PROF_START(GP_AS_FILTERING_EXACT);
+  PROFILE_START(GP_AS_FILTERING_EXACT,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Adaptive Filtering (Exact)\n");
     tab_global_inc();
   }
   approximate_search_exact_filtering_adaptive(search,region_profile_adaptive_lightweight,matches);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
-  PROF_STOP(GP_AS_FILTERING_EXACT);
+  PROFILE_STOP(GP_AS_FILTERING_EXACT,PROFILE_LEVEL);
 }
 GEM_INLINE void approximate_search_exact_filtering_adaptive_recovery(
     approximate_search_t* const search,matches_t* const matches) {
-  PROF_START(GP_AS_READ_RECOVERY);
+  PROFILE_START(GP_AS_READ_RECOVERY,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Recovery Adaptive Filtering (Exact)\n");
     tab_global_inc();
   }
   approximate_search_exact_filtering_adaptive(search,region_profile_adaptive_recovery,matches);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
-  PROF_STOP(GP_AS_READ_RECOVERY);
+  PROFILE_STOP(GP_AS_READ_RECOVERY,PROFILE_LEVEL);
 }
 GEM_INLINE void approximate_search_exact_filtering_adaptive_cutoff(approximate_search_t* const search,matches_t* const matches) {
-  PROF_START(GP_AS_FILTERING_EXACT);
+  PROFILE_START(GP_AS_FILTERING_EXACT,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Adaptive Filtering (Fast Cut-off Exact)\n");
     tab_global_inc();
@@ -187,13 +135,13 @@ GEM_INLINE void approximate_search_exact_filtering_adaptive_cutoff(approximate_s
   region_profile->errors_allowed = 0;
   while (region_profile_generator_next_region(region_profile,&generator,profile_model)) {
     // Generate candidates for the last region found
-    PROF_START(GP_AS_GENERATE_CANDIDATES);
+    PROFILE_START(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
     region_search_t* const last_region = region_profile->filtering_region + (region_profile->num_filtering_regions-1);
     filtering_candidates_add_interval(filtering_candidates,last_region->lo,
         last_region->hi,last_region->begin,last_region->end,0,mm_stack);
-    PROF_STOP(GP_AS_GENERATE_CANDIDATES);
+    PROFILE_STOP(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
     // Verify candidates
-    PROF_START(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING);
+    PROFILE_START(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING,PROFILE_LEVEL);
     filtering_candidates_process_candidates(filtering_candidates,archive,pattern,as_parameters,true,mm_stack);
     filtering_candidates_verify_candidates(filtering_candidates,archive,
         search->text_collection,pattern,as_parameters,matches,mm_stack);
@@ -201,7 +149,7 @@ GEM_INLINE void approximate_search_exact_filtering_adaptive_cutoff(approximate_s
         filtering_candidates,archive->text,archive->locator,search->text_collection,
         pattern,search->emulated_rc_search,as_parameters,false,matches,mm_stack);
     approximate_search_adjust_max_differences_using_strata(search,matches);
-    PROF_STOP(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING);
+    PROFILE_STOP(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING,PROFILE_LEVEL);
     // Cut-off condition
     ++(region_profile->errors_allowed);
     approximate_search_update_mcs(search,region_profile->errors_allowed + pattern->num_wildcards);
@@ -211,31 +159,28 @@ GEM_INLINE void approximate_search_exact_filtering_adaptive_cutoff(approximate_s
   if (region_profile->num_filtering_regions==0) {
     approximate_search_update_mcs(search,pattern->num_wildcards);
     search->search_state = asearch_no_regions;
-    asearch_control_next_state(search,asearch_exact_filtering_adaptive,matches);
   } else if (region_profile_has_exact_matches(region_profile)) {
     const region_search_t* const first_region = region_profile->filtering_region;
     search->hi_exact_matches = first_region->hi;
     search->lo_exact_matches = first_region->lo;
     approximate_search_update_mcs(search,1);
     search->search_state = asearch_exact_matches;
-    asearch_control_next_state(search,asearch_exact_filtering_adaptive,matches);
   } else {
     // Update MCS (maximum complete stratum)
     search->max_matches_reached = matches_get_num_match_traces(matches) >= search_parameters->search_max_matches;
     if (search->max_matches_reached) approximate_search_update_mcs(search,0);
     // Next State
     search->search_state = asearch_candidates_verified;
-    asearch_control_next_state(search,asearch_exact_filtering_adaptive,matches);
   }
-  PROF_STOP(GP_AS_FILTERING_EXACT);
+  PROFILE_STOP(GP_AS_FILTERING_EXACT,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
 }
 /*
  * Boost Exact Filtering Adaptive
  */
 GEM_INLINE void approximate_search_exact_filtering_boost(approximate_search_t* const search,matches_t* const matches) {
-  PROF_START(GP_AS_FILTERING_EXACT_BOOST);
 #ifdef GEM_PROFILE
+  PROFILE_START(GP_AS_FILTERING_EXACT_BOOST,PROFILE_LEVEL);
   const bool already_mapped = matches_is_mapped(matches);
 #endif
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
@@ -249,8 +194,7 @@ GEM_INLINE void approximate_search_exact_filtering_boost(approximate_search_t* c
   // Region-Boost Profile
   approximate_search_generate_region_profile_adaptive(search,region_profile_adaptive_boost,search->mm_stack);
   if (search->search_state == asearch_no_regions || search->search_state == asearch_exact_matches) {
-    asearch_control_next_state(search,asearch_exact_filtering_boost,matches);
-    PROF_STOP(GP_AS_FILTERING_EXACT_BOOST);
+    PROFILE_STOP(GP_AS_FILTERING_EXACT_BOOST,PROFILE_LEVEL);
     gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
     return;
   }
@@ -266,20 +210,17 @@ GEM_INLINE void approximate_search_exact_filtering_boost(approximate_search_t* c
   if (!search->max_matches_reached && old_mcs > search->max_complete_stratum) {
     approximate_search_update_mcs(search,old_mcs);
   }
-  search->search_state = asearch_exact_filtering_boost; // Correct State
-  // Next State
-  asearch_control_next_state(search,asearch_exact_filtering_boost,matches);
 #ifdef GEM_PROFILE
   if (!already_mapped) PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_BOOST_MAPPED,matches_is_mapped(matches)?1:0);
+  PROFILE_STOP(GP_AS_FILTERING_EXACT_BOOST,PROFILE_LEVEL);
 #endif
-  PROF_STOP(GP_AS_FILTERING_EXACT_BOOST);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
 }
 /*
  * Inexact Filtering Adaptive
  */
 GEM_INLINE void approximate_search_inexact_filtering(approximate_search_t* const search,matches_t* const matches) {
-  PROF_START(GP_AS_FILTERING_INEXACT);
+  PROFILE_START(GP_AS_FILTERING_INEXACT,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Adaptive Filtering (Inexact)\n");
     tab_global_inc();
@@ -292,13 +233,13 @@ GEM_INLINE void approximate_search_inexact_filtering(approximate_search_t* const
   // Region-Delimit Profile (Maximize number of unique-regions and try to isolate standard/repetitive regions)
   approximate_search_generate_region_profile_adaptive(search,region_profile_adaptive_lightweight,search->mm_stack);
   if (search->region_profile.num_filtering_regions <= 1) {
-    asearch_control_next_state(search,asearch_inexact_filtering,matches);
-    PROF_STOP(GP_AS_FILTERING_INEXACT);
+    search->search_state = asearch_no_regions;
+    PROFILE_STOP(GP_AS_FILTERING_INEXACT,PROFILE_LEVEL);
     gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
     return;
   }
   if (search->search_state == asearch_no_regions || search->search_state == asearch_exact_matches) {
-    PROF_STOP(GP_AS_FILTERING_INEXACT);
+    PROFILE_STOP(GP_AS_FILTERING_INEXACT,PROFILE_LEVEL);
     gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
     return;
   }
@@ -313,22 +254,21 @@ GEM_INLINE void approximate_search_inexact_filtering(approximate_search_t* const
       search->archive,pattern,actual_parameters,true,search->mm_stack);
   // Verify candidates
   approximate_search_verify_candidates(search,matches);
-  search->search_state = asearch_inexact_filtering; // Correct State
-  // Next State
-  asearch_control_next_state(search,asearch_inexact_filtering,matches);
-  PROF_ADD_COUNTER(GP_AS_FILTERING_INEXACT_MAPPED,matches_is_mapped(matches)?1:0);
-  PROF_ADD_COUNTER(GP_AS_FILTERING_INEXACT_MCS,search->max_complete_stratum);
-  PROF_STOP(GP_AS_FILTERING_INEXACT);
+  // Stats -> TODO to control
+//  PROF_ADD_COUNTER(GP_AS_FILTERING_INEXACT_MAPPED,matches_is_mapped(matches)?1:0);
+//  PROF_ADD_COUNTER(GP_AS_FILTERING_INEXACT_MCS,search->max_complete_stratum);
+  PROFILE_STOP(GP_AS_FILTERING_INEXACT,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
 }
 /*
  * Unbound Filtering
  */
 GEM_INLINE void approximate_search_unbounded_align(approximate_search_t* const search,matches_t* const matches) {
-  PROF_START(GP_AS_FILTERING_UNBOUNDED_ALIGN);
 #ifdef GEM_PROFILE
+  PROFILE_START(GP_AS_FILTERING_UNBOUNDED_ALIGN,PROFILE_LEVEL);
   const bool already_mapped = matches_is_mapped(matches);
 #endif
+  // DEBUG
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Local-Alignment Filtering (unbounded align)\n");
     tab_global_inc();
@@ -338,12 +278,11 @@ GEM_INLINE void approximate_search_unbounded_align(approximate_search_t* const s
       search->archive->text,search->archive->locator,search->text_collection,
       &search->pattern,search->emulated_rc_search,search->as_parameters,
       matches,search->mm_stack);
-  // Next State
-  asearch_control_next_state(search,asearch_unbounded_alignment,matches);
 #ifdef GEM_PROFILE
   if (!already_mapped) PROF_ADD_COUNTER(GP_AS_FILTERING_UNBOUNDED_ALIGN_MAPPED,matches_is_mapped(matches)?1:0);
+  PROFILE_STOP(GP_AS_FILTERING_UNBOUNDED_ALIGN,PROFILE_LEVEL);
 #endif
-  PROF_STOP(GP_AS_FILTERING_UNBOUNDED_ALIGN);
+  // DEBUG
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
 }
 /*
@@ -351,6 +290,7 @@ GEM_INLINE void approximate_search_unbounded_align(approximate_search_t* const s
  */
 GEM_INLINE void approximate_search_verify(approximate_search_t* const search,matches_t* const matches) {
   // Verify
+  filtering_candidates_clear(search->filtering_candidates);
   const uint64_t num_accepted_regions = filtering_candidates_verify_candidates(
       search->filtering_candidates,search->archive,search->text_collection,
       &search->pattern,search->as_parameters,matches,search->mm_stack);
@@ -376,12 +316,12 @@ GEM_INLINE void approximate_search_verify_using_bpm_buffer(
       &search->pattern,bpm_gpu_buffer,candidate_offset_begin,candidate_offset_end,search->mm_stack);
   if (num_accepted_regions > 0) {
     // Realign
-    PROF_START(GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS);
+    PROFILE_START(GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS,PROFILE_LEVEL);
     filtering_candidates_align_candidates(search->filtering_candidates,
         search->archive->text,search->archive->locator,
         search->text_collection,&search->pattern,search->emulated_rc_search,
         search->as_parameters,true,matches,search->mm_stack);
-    PROF_STOP(GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS);
+    PROFILE_STOP(GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS,PROFILE_LEVEL);
   }
   // Update state
   if (search->search_state==asearch_verify_candidates) {

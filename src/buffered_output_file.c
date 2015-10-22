@@ -8,6 +8,14 @@
 
 #include "buffered_output_file.h"
 
+/*
+ * Profile
+ */
+#define PROFILE_LEVEL PLOW
+
+/*
+ * Constants
+ */
 #define BUFFERED_OUTPUT_FILE_FORCE_DUMP_SIZE BUFFER_SIZE_4M
 
 /*
@@ -35,11 +43,13 @@ GEM_INLINE void buffered_output_file_request_buffer(
 }
 GEM_INLINE void buffered_output_file_dump_buffer(buffered_output_file_t* const buffered_output) {
   BUFFERED_OUTPUT_FILE_CHECK(buffered_output);
+  PROFILE_START(GP_BUFFERED_OUTPUT_DUMP,PROFILE_LEVEL);
   // Dump
   if (buffered_output->buffer != NULL) {
     output_file_return_buffer(buffered_output->output_file,buffered_output->buffer);
   }
   buffered_output->buffer = NULL;
+  PROFILE_STOP(GP_BUFFERED_OUTPUT_DUMP,PROFILE_LEVEL);
 }
 GEM_INLINE void buffered_output_file_safety_dump_buffer(buffered_output_file_t* const buffered_output) {
   BUFFERED_OUTPUT_FILE_CHECK(buffered_output);

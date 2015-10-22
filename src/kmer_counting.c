@@ -22,7 +22,12 @@
  */
 
 #include "kmer_counting.h"
-#include "bpm_align.h"
+#include "align.h"
+
+/*
+ * Profile
+ */
+#define PROFILE_LEVEL PLOW
 
 /*
  * Constants
@@ -87,7 +92,7 @@ GEM_INLINE uint64_t kmer_counting_filter(
   const uint64_t kmers_error = KMER_COUNTING_LENGTH*max_error;
   const uint64_t kmers_max = kmer_counting->pattern_length - (KMER_COUNTING_LENGTH-1);
   if (kmers_error >= kmers_max) return 0; // Don't filter
-  PROF_START(GP_FC_KMER_COUNTER_FILTER);
+  PROFILE_START(GP_FC_KMER_COUNTER_FILTER,PROFILE_LEVEL);
   // Prepare filter
   const uint64_t kmers_required = kmer_counting->pattern_length - (KMER_COUNTING_LENGTH-1) - KMER_COUNTING_LENGTH*max_error;
   memset(kmer_counting->kmer_count_text,0,KMER_COUNTING_NUM_KMERS*UINT16_SIZE);
@@ -113,20 +118,20 @@ GEM_INLINE uint64_t kmer_counting_filter(
     if (count_pattern>0 && (kmer_count_text[kmer_idx_end])++ < count_pattern) ++kmers_in_text;
     // Check filter condition
     if (kmers_in_text >= kmers_required) {
-      PROF_STOP(GP_FC_KMER_COUNTER_FILTER);
+      PROFILE_STOP(GP_FC_KMER_COUNTER_FILTER,PROFILE_LEVEL);
       return 0; // Don't filter
     } else if (kmers_required-kmers_in_text > kmers_left) { // Quick abandon
-      PROF_STOP(GP_FC_KMER_COUNTER_FILTER);
+      PROFILE_STOP(GP_FC_KMER_COUNTER_FILTER,PROFILE_LEVEL);
       return ALIGN_DISTANCE_INF; // Filter out
     }
   }
   // Check filter condition
   if (kmers_in_text >= kmers_required) {
-    PROF_STOP(GP_FC_KMER_COUNTER_FILTER);
+    PROFILE_STOP(GP_FC_KMER_COUNTER_FILTER,PROFILE_LEVEL);
     return 0; // Don't filter
   }
   if (init_chunk == text_length) {
-    PROF_STOP(GP_FC_KMER_COUNTER_FILTER);
+    PROFILE_STOP(GP_FC_KMER_COUNTER_FILTER,PROFILE_LEVEL);
     return ALIGN_DISTANCE_INF; // Filter out
   }
   /*
@@ -167,15 +172,15 @@ GEM_INLINE uint64_t kmer_counting_filter(
 //        fprintf(stderr,"(%"PRIu64"/%"PRIu64")[%"PRIu64"] Pattern=%u Text=%u \n",total,kmers_ot,n,kmer_count_pattern[n],kmer_count_text[n]);
 //      }
 //      return begin_pos - (KMER_COUNTING_LENGTH-1); // Don't filter
-      PROF_STOP(GP_FC_KMER_COUNTER_FILTER);
+      PROFILE_STOP(GP_FC_KMER_COUNTER_FILTER,PROFILE_LEVEL);
       return 0; // Don't filter
     } else if (kmers_required-kmers_in_text > kmers_left) { // Quick abandon
-      PROF_STOP(GP_FC_KMER_COUNTER_FILTER);
+      PROFILE_STOP(GP_FC_KMER_COUNTER_FILTER,PROFILE_LEVEL);
       return ALIGN_DISTANCE_INF; // Filter out
     }
   }
   // Not passing the filter
-  PROF_STOP(GP_FC_KMER_COUNTER_FILTER);
+  PROFILE_STOP(GP_FC_KMER_COUNTER_FILTER,PROFILE_LEVEL);
   return ALIGN_DISTANCE_INF; // Filter out
 }
 

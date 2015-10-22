@@ -12,9 +12,8 @@
 #include "essentials.h"
 #include "search_parameters.h"
 #include "region_profile.h"
-#include "bpm_align.h"
 #include "kmer_counting.h"
-#include "swg_align.h"
+#include "align_bpm_pattern.h"
 
 /*
  * Approximate Search Pattern

@@ -1,18 +1,18 @@
 /*
  * PROJECT: GEMMapper
- * FILE: bpm_align_gpu.h
+ * FILE: align_bpm_gpu.h
  * DATE: 06/06/2012
  * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
  *            Santiago Marco-Sola <santiagomsola@gmail.com>
  */
 
-#ifndef BPM_ALIGN_GPU_H_
-#define BPM_ALIGN_GPU_H_
+#ifndef ALIGN_BPM_GPU_H_
+#define ALIGN_BPM_GPU_H_
 
 #include "essentials.h"
 #include "archive.h"
 #include "pattern.h"
-#include "bpm_align.h"
+#include "profiler_timer.h"
 
 /*
  * BMP-GPU Buffer & Collection
@@ -93,4 +93,4 @@ void bpm_gpu_buffer_receive(bpm_gpu_buffer_t* const bpm_gpu_buffer);
 #define GEM_ERROR_BPM_GPU_MAX_PATTERN_LENGTH "BPM-GPU. Query pattern (%"PRIu64" entries) exceeds maximum buffer capacity (%"PRIu64" entries)"
 #define GEM_ERROR_BPM_GPU_MAX_CANDIDATES "BPM-GPU. Number of candidates (%"PRIu64") exceeds maximum buffer capacity (%"PRIu64" candidates)"
 
-#endif /* BPM_ALIGN_GPU_H_ */
+#endif /* ALIGN_BPM_GPU_H_ */

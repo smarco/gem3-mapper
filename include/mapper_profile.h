@@ -59,11 +59,12 @@
 #define GP_ARCHIVE_SEARCH_PE_EXTENSION_RECOVERY             125
 #define GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES              126
 #define GP_ARCHIVE_SEARCH_PE_GENERATE_CANDIDATES            139
-#define GP_ARCHIVE_SEARCH_PE_FINISH_SEARCH                  140
+#define GP_ARCHIVE_SEARCH_PE_FIND_PAIRS                     140
+#define GP_ARCHIVE_SEARCH_PE_FINISH_SEARCH                  141
 
 #define GP_ARCHIVE_SELECT_PE_MATCHES                        142
 #define GP_ARCHIVE_SCORE_PE_MATCHES                         143
-#define GP_PAIRED_MATCHES_FIND_PAIRS                        144
+
 
 /*
  * I/O
@@ -164,13 +165,17 @@
 #define GP_FC_COMPOSE_REGIONS                               339
 
 #define GP_FC_KMER_COUNTER_FILTER                           340
-#define GP_FC_KMER_COUNTER_FILTER_DISCARDED                 341
+#define GP_FC_KMER_COUNTER_FILTER_ACCEPTED                  341
 
 #define GP_FC_EXTEND_MATCH                                  350
 #define GP_FC_EXTEND_RETRIEVE_CANDIDATE_REGIONS             351
 #define GP_FC_EXTEND_VERIFY_CANDIDATE_REGIONS               352
 #define GP_FC_EXTEND_VERIFY_CANDIDATE_LENGTH                353
 #define GP_FC_EXTEND_REALIGN_CANDIDATE_REGIONS              354
+
+#define GP_FC_CACHE_COMPUTE_FOOTPRINT                       360
+#define GP_FC_CACHE_SEARCH                                  361
+#define GP_FC_CACHE_SEARCH_HIT                              362
 
 #define GP_CANDIDATE_POSITIONS                              400
 #define GP_CANDIDATE_REGIONS                                402
@@ -179,22 +184,24 @@
 #define GP_KMER_COUNTER_FILTER                              405
 #define GP_KMER_COUNTER_FILTER_DISCARDED                    406
 #define GP_LEVENSHTEIN_ACCEPTED                             407
+#define GP_ACCEPTED_REGIONS                                 408
 
-#define GP_ACCEPTED_REGIONS                                 425
-#define GP_ACCEPTED_EXACT                                   426
-#define GP_ACCEPTED_INEXACT                                 427
-#define GP_ACCEPTED_REGIONS_LENGTH                          428
+#define GP_ALIGNED_REGIONS                                  415
+#define GP_ALIGNED_EXACT                                    416
+#define GP_ALIGNED_INEXACT                                  417
+#define GP_ALIGNED_REGIONS_LENGTH                           418
 
-#define GP_MATCHING_REGIONS_CHAIN                           450
-#define GP_MATCHING_REGIONS_CHAIN_SUCCESS                   451
-#define GP_MATCHING_REGIONS_CHAIN_COVERAGE                  452
-#define GP_MATCHING_REGIONS_EXTEND                          453
-#define GP_MATCHING_REGIONS_EXTEND_COVERAGE                 454
-#define GP_MATCHING_REGIONS_EDIT_SCAFFOLD                   455
-#define GP_MATCHING_REGIONS_EDIT_SCAFFOLDED                 456
-#define GP_MATCHING_REGIONS_EDIT_SCAFFOLD_COVERAGE          457
-#define GP_MATCHING_REGIONS_SWG_SCAFFOLD                    458
-#define GP_MATCHING_REGIONS_SWG_SCAFFOLDED                  459
+#define GP_MATCH_SCAFFOLD_ALIGNMENT                         450
+#define GP_MATCH_SCAFFOLD_CHAIN_REGIONS                     451
+#define GP_MATCH_SCAFFOLD_CHAIN_REGIONS_SUCCESS             452
+#define GP_MATCH_SCAFFOLD_CHAIN_REGIONS_COVERAGE            453
+#define GP_MATCH_SCAFFOLD_EXTEND_REGIONS                    454
+#define GP_MATCH_SCAFFOLD_EXTEND_REGIONS_COVERAGE           455
+#define GP_MATCH_SCAFFOLD_EDIT                              456
+#define GP_MATCH_SCAFFOLD_EDIT_SCAFFOLDS                    457
+#define GP_MATCH_SCAFFOLD_EDIT_COVERAGE                     458
+#define GP_MATCH_SCAFFOLD_SWG                               459
+#define GP_MATCH_SCAFFOLD_SWG_SCAFFOLDS                     460
 
 #define GP_BPM_TILED                                        470
 #define GP_BMP_TILED_NUM_TILES                              471
@@ -257,11 +264,16 @@
 #define GP_CHECK_NUM_READS                                  650
 #define GP_CHECK_NUM_MAPS                                   651
 #define GP_CHECK_INCORRECT                                  652
-#define GP_CHECK_SUBOPTIMAL                                 653
-#define GP_CHECK_SUBOPTIMAL_SUBDOMINANT                     654
-#define GP_CHECK_SUBOPTIMAL_DIFF                            655
-#define GP_CHECK_SUBOPTIMAL_SCORE                           656
-#define GP_CHECK_SUBOPTIMAL_DISTANCE                        657
+#define GP_CHECK_PRIMARY_SUBOPTIMAL                         653
+#define GP_CHECK_PRIMARY_SUBOPTIMAL_FAIL                    654
+#define GP_CHECK_PRIMARY_SUBOPTIMAL_SCORE                   656
+#define GP_CHECK_PRIMARY_SUBOPTIMAL_DIFF                    655
+#define GP_CHECK_PRIMARY_SUBOPTIMAL_DISTANCE                657
+#define GP_CHECK_SUBDOMINANT_SUBOPTIMAL                     658
+#define GP_CHECK_SUBDOMINANT_SUBOPTIMAL_FAIL                659
+#define GP_CHECK_SUBDOMINANT_SUBOPTIMAL_SCORE               660
+#define GP_CHECK_SUBDOMINANT_SUBOPTIMAL_DIFF                661
+#define GP_CHECK_SUBDOMINANT_SUBOPTIMAL_DISTANCE            662
 
 /*
  * Dummy

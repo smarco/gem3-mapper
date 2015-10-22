@@ -10,8 +10,6 @@
 #define MATCH_SCAFFOLD_H_
 
 #include "essentials.h"
-#include "bpm_align.h"
-#include "swg_align.h"
 #include "matches.h"
 
 /*

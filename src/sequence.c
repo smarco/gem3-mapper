@@ -135,4 +135,18 @@ GEM_INLINE void sequence_generate_reverse_complement(sequence_t* const sequence,
     string_copy_reverse(&rc_sequence->qualities,&sequence->qualities);
   }
 }
+/*
+ * Display
+ */
+GEM_INLINE void sequence_print(FILE* const stream,sequence_t* const sequence) {
+  tab_fprintf(stream,"[GEM]>Sequence\n");
+  if (sequence_has_qualities(sequence)) {
+    fprintf(stream,"@%s\n",sequence_get_tag(sequence));
+    fprintf(stream,"%s\n+\n",sequence_get_read(sequence));
+    fprintf(stream,"%s\n",sequence_get_qualities(sequence));
+  } else {
+    fprintf(stream,">%s\n",sequence_get_tag(sequence));
+    fprintf(stream,"%s\n",sequence_get_read(sequence));
+  }
+}
 

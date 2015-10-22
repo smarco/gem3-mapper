@@ -7,6 +7,7 @@
  */
 
 #include "paired_matches_classify.h"
+#include "matches_cigar.h"
 
 /*
  * PE Classify

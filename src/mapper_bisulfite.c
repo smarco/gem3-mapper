@@ -40,7 +40,7 @@ void* mapper_SE_bisulfite_thread(mapper_search_t* const mapper_search) {
   mapper_search->archive_search = archive_search_new(
       parameters->archive,&mapper_search->mapper_parameters->search_parameters,
       &mapper_search->mapper_parameters->select_parameters);
-  archive_search_single_end_configure(mapper_search->archive_search,mm_search);
+  archive_search_se_configure(mapper_search->archive_search,mm_search);
   matches_t* const matches = matches_new();
   matches_configure(matches,mapper_search->archive_search->text_collection);
 
@@ -72,8 +72,8 @@ void* mapper_SE_bisulfite_thread(mapper_search_t* const mapper_search) {
      read_end = (read_end==paired_end1) ? paired_end2 : paired_end1;
    }
    // Search into the archive
-   archive_search_single_end(mapper_search->archive_search,matches); // Search matches
-   archive_select_matches(mapper_search->archive_search,false,matches); // Select matches
+   archive_search_se(mapper_search->archive_search,matches); // Search matches
+   archive_select_se_matches(mapper_search->archive_search,false,matches); // Select matches
 
    // Copy back original read
    if (seq_end != NULL) string_copy(seq_end,&orig_end);
@@ -127,7 +127,7 @@ void* mapper_PE_bisulfite_thread(mapper_search_t* const mapper_search) {
   mapper_search->archive_search_end2 = archive_search_new(
       parameters->archive,&mapper_search->mapper_parameters->search_parameters,
       &mapper_search->mapper_parameters->select_parameters);
-  archive_search_paired_end_configure(mapper_search->archive_search_end1,mapper_search->archive_search_end2,mm_search);
+  archive_search_pe_configure(mapper_search->archive_search_end1,mapper_search->archive_search_end2,mm_search);
   mapper_search->paired_matches = paired_matches_new(mm_search->text_collection);
   paired_matches_configure(mapper_search->paired_matches,mapper_search->archive_search_end1->text_collection);
 
@@ -148,8 +148,8 @@ void* mapper_PE_bisulfite_thread(mapper_search_t* const mapper_search) {
     string_t* seq_end2 = mapper_bisulfite_process(&orig_end2,archive_search_end2,dna_bisulfite_G2A_table);
 
     // Search into the archive
-    archive_search_paired_end(archive_search_end1,archive_search_end2,paired_matches);
-    archive_select_paired_matches(archive_search_end1,archive_search_end2,paired_matches);
+    archive_search_pe(archive_search_end1,archive_search_end2,paired_matches);
+    archive_select_pe_matches(archive_search_end1,archive_search_end2,paired_matches);
 
     // Copy back original read
     string_copy(seq_end1,&orig_end1);
