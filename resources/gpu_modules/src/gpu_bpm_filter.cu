@@ -152,7 +152,7 @@ GPU_INLINE gpu_error_t gpu_bpm_process_buffer(gpu_buffer_t *mBuff)
 	gpu_bpm_reorder_buffer_t 	*rebuff 	= mBuff->data.bpm.reorderBuffer;
 	gpu_bpm_alignments_buffer_t *res 		= mBuff->data.bpm.alignments;
 	cudaStream_t 				idStream	= mBuff->idStream;
-	uint32_t					idSupDev	= mBuff->device->idSupportedDevice;
+	uint32_t					idSupDev	= mBuff->idSupportedDevice;
 
 	uint32_t threadsPerBlock = GPU_MAX_THREADS_PER_BLOCK;
 	uint32_t numThreads = rebuff->numWarps * GPU_WARP_SIZE;

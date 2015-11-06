@@ -78,11 +78,11 @@ inline uint32_t gpu_fmi_decode_buffer_get_max_positions_(void* fmiBuffer);
  * Main functions
  */
 inline void gpu_fmi_search_init_buffer_(void *fmiBuffer);
-inline void gpu_fmi_search_send_buffer_(void* fmiBuffer,uint32_t numSeeds);
+inline void gpu_fmi_search_send_buffer_(void* fmiBuffer, const uint32_t numSeeds);
 inline void gpu_fmi_search_receive_buffer_(void* fmiBuffer);
 
 inline void gpu_fmi_decode_init_buffer_(void *fmiBuffer);
-inline void gpu_fmi_decode_send_buffer_(void* fmiBuffer,uint32_t numDecodings);
+inline void gpu_fmi_decode_send_buffer_(void* fmiBuffer, const uint32_t numDecodings, const uint32_t samplingRate);
 inline void gpu_fmi_decode_receive_buffer_(void* fmiBuffer);
 
 #endif /* GPU_FMI_INTERFACE_H_ */

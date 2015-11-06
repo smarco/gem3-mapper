@@ -12,7 +12,8 @@
 /*
  * Constants
  */
-#define GPU_UINT32_ONE_MASK      0x00000001u
+#define GPU_UINT32_ONE_MASK     0x00000001u
+#define	GPU_UINT32_LENGTH		32
 
 /*
  * Enum types for Device & Host
@@ -60,15 +61,20 @@ typedef enum
 /*
  * Get elements
  */
-inline uint32_t gpu_get_num_supported_devices_();
-inline uint32_t gpu_buffer_get_id_device_(void* gpu_buffer);
+uint32_t gpu_get_num_supported_devices_(gpu_dev_arch_t selectedArchitectures);
+uint32_t gpu_buffer_get_id_device_(void* gpu_buffer);
+
 
 /*
  * Main functions
  */
-void gpu_init_(void*** gpuBuffer,uint32_t numBuffers,uint32_t maxMbPerBuffer,
-    const char* referenceRaw,gpu_ref_coding_t refCoding,gpu_data_location_t userReferenceAllocOption,const uint64_t refSize,
-    const gpu_fmi_entry_t* fmIndex,gpu_fmi_index_coding_t refCoding,gpu_data_location_t userReferenceAllocOption,const uint64_t bwtSize,
-	bpm_gpu_dev_arch_t selectedArchitectures,const bool verbose);
-void gpu_destroy_(void*** gpuBuffer);
+
+inline void gpu_init_buffers_(void ***gpuBuffer, uint32_t numBuffers, float maxMbPerBuffer,
+						  	  const char *referenceRaw, gpu_ref_coding_t refCoding, const uint64_t refSize,
+						  	  void *indexRaw, gpu_index_coding_t indexCoding, const uint64_t bwtSize,
+						  	  const gpu_module_t activeModules, gpu_dev_arch_t selectedArchitectures,
+						  	  gpu_data_location_t userAllocOption, const bool verbose);
+
+inline void gpu_alloc_buffer_(void *gpuBuffer);
+inline void gpu_destroy_buffers_(void*** gpuBuffer);
 

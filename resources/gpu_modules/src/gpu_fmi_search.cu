@@ -97,14 +97,14 @@ gpu_error_t gpu_fmi_search_launch_kernel(const gpu_fmi_device_entry_t *d_fmi, co
 }
 
 extern "C"
-gpu_error_t gpu_fmi_search_process_buffer(gpu_buffer_t *mBuff)
+GPU_INLINE gpu_error_t gpu_fmi_search_process_buffer(gpu_buffer_t *mBuff)
 {
 	gpu_index_buffer_t 			  	 *index    	  = mBuff->index;
 	gpu_fmi_search_seeds_buffer_t 	 *seeds    	  = mBuff->data.search.seeds;
 	gpu_fmi_search_sa_inter_buffer_t *saIntervals = mBuff->data.search.saIntervals;
 	uint32_t 					     numSeeds	  = mBuff->data.search.seeds.numSeeds;
 	cudaStream_t 				     idStream	  = mBuff->idStream;
-	uint32_t					     idSupDev	  = mBuff->device->idSupportedDevice;
+	uint32_t					     idSupDev	  = mBuff->idSupportedDevice;
 
 	uint32_t threadsPerBlock = GPU_MAX_THREADS_PER_BLOCK;
 	uint32_t numThreads = numSeeds * GPU_FMI_SEED_THREADS_PER_ENTRY;

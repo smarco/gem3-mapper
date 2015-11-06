@@ -1,10 +1,16 @@
-
-#ifndef GPU_FMI_CORE_H_
-#define GPU_FMI_CORE_H_
+/*
+ * PROJECT: Bit-Parallel Myers on GPU
+ * FILE: myers-interface.h
+ * DATE: 4/7/2014
+ * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
+ * DESCRIPTION: Common headers and data structures for BPM on GPU library
+ */
 
 #include "gpu_resources.h"
 #include "gpu_commons.h"
-#include "gpu_scheduler.h"
+
+#ifndef GPU_FMI_CORE_H_
+#define GPU_FMI_CORE_H_
 
 inline __device__ uint32_t count_bitmap(uint32_t bitmap, int32_t shift, uint32_t idxCounterGroup)
 {

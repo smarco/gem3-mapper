@@ -3,6 +3,7 @@
 #ifndef GPU_SAMPLE_H_
 #define GPU_SAMPLE_H_
 
+#include "gpu_commons.h"
 #include <time.h>
 #include <sys/time.h>
 

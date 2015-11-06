@@ -6,12 +6,10 @@
  * DESCRIPTION: Common headers and data structures for BPM on GPU library
  */
 
+#include "gpu_commons.h"
+
 #ifndef GPU_FMI_H_
 #define GPU_FMI_H_
-
-#include "gpu_commons.h"
-#include "gpu_scheduler.h"
-#include "gpu_index.h"
 
 /********************************
 Common constants for Device & Host
@@ -39,24 +37,7 @@ Common constants for Device & Host
 #define GPU_FMI_DECODE_POS_BUFFER_PADDING 	10
 #define GPU_FMI_DECODE_MIN_ELEMENTS		 	(2048 / GPU_FMI_DECODE_THREADS_PER_ENTRY) 					// Min elements per buffer (related to the SM)
 
-/*****************************
-Internal Objects (General)
-*****************************/
 
-typedef struct {
-	uint32_t						 numMaxSeeds;
-	uint32_t						 numMaxIntervals;
-	gpu_fmi_search_seeds_buffer_t 	 seeds;
-	gpu_fmi_search_sa_inter_buffer_t saIntervals;
-} gpu_fmi_search_buffer_t;
-
-typedef struct {
-	uint32_t						 numMaxInitPositions;
-	uint32_t						 numMaxEndPositions;
-	uint32_t						 samplingRate;
-	gpu_fmi_decode_init_pos_buffer_t initPositions;
-	gpu_fmi_decode_end_pos_buffer_t  endPositions;
-} gpu_fmi_decode_buffer_t;
 
 /*****************************
 Internal Objects (Search)
@@ -91,12 +72,44 @@ typedef struct {
 	gpu_fmi_decode_end_pos_t	*d_endBWTPos;
 } gpu_fmi_decode_end_pos_buffer_t;
 
+/*****************************
+Internal Objects (General)
+*****************************/
 
-GPU_INLINE size_t 	gpu_fmi_search_input_size();
-GPU_INLINE void 	gpu_fmi_search_reallocate_host_buffer_layout(gpu_buffer_t* mBuff);
-GPU_INLINE void 	gpu_fmi_search_reallocate_device_buffer_layout(gpu_buffer_t* mBuff);
-GPU_INLINE void 	gpu_fmi_search_init_buffer_(void* fmiBuffer);
+typedef struct {
+	uint32_t						 numMaxSeeds;
+	uint32_t						 numMaxIntervals;
+	gpu_fmi_search_seeds_buffer_t 	 seeds;
+	gpu_fmi_search_sa_inter_buffer_t saIntervals;
+} gpu_fmi_search_buffer_t;
 
+typedef struct {
+	uint32_t						 numMaxInitPositions;
+	uint32_t						 numMaxEndPositions;
+	uint32_t						 samplingRate;
+	gpu_fmi_decode_init_pos_buffer_t initPositions;
+	gpu_fmi_decode_end_pos_buffer_t  endPositions;
+} gpu_fmi_decode_buffer_t;
+
+#include "gpu_buffers.h"
+
+/* Functions to init the buffers (E. SEARCH) */
+size_t 		gpu_fmi_search_input_size();
+void 		gpu_fmi_search_reallocate_host_buffer_layout(gpu_buffer_t* mBuff);
+void 		gpu_fmi_search_reallocate_device_buffer_layout(gpu_buffer_t* mBuff);
+/* Functions to init the buffers (DECODE) */
+size_t 		gpu_fmi_decode_input_size();
+void 		gpu_fmi_decode_reallocate_host_buffer_layout(gpu_buffer_t* mBuff);
+void 		gpu_fmi_decode_reallocate_device_buffer_layout(gpu_buffer_t* mBuff);
+/* Functions to transfer data HOST <-> DEVICE (E. SEARCH) */
+gpu_error_t gpu_fmi_search_transfer_CPU_to_GPU(gpu_buffer_t *mBuff);
+gpu_error_t gpu_fmi_search_transfer_GPU_to_CPU(gpu_buffer_t *mBuff);
+/* Functions to transfer data HOST <-> DEVICE (Decode) */
+gpu_error_t gpu_fmi_decode_transfer_CPU_to_GPU(gpu_buffer_t *mBuff);
+gpu_error_t gpu_fmi_decode_transfer_GPU_to_CPU(gpu_buffer_t *mBuff);
+/* DEVICE Kernels */
+gpu_error_t gpu_fmi_search_process_buffer(gpu_buffer_t *mBuff);
+gpu_error_t gpu_fmi_decode_process_buffer(gpu_buffer_t *mBuff);
 
 #endif /* GPU_FMI_H_ */
 

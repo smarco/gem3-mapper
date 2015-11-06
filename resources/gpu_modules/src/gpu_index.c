@@ -1,6 +1,9 @@
 #include "../include/gpu_index.h"
 
-//ok
+/************************************************************
+Functions to initialize the index data on the DEVICE
+************************************************************/
+
 GPU_INLINE gpu_error_t gpu_load_index_PROFILE(const char *fn, gpu_index_buffer_t *index)
 {
 	FILE *fp = NULL;
@@ -23,7 +26,6 @@ GPU_INLINE gpu_error_t gpu_load_index_PROFILE(const char *fn, gpu_index_buffer_t
 	return (SUCCESS);
 }
 
-//ok
 GPU_INLINE gpu_error_t gpu_transfer_index_CPU_to_GPUs(gpu_index_buffer_t *index, gpu_device_info_t **devices)
 {
 	uint32_t deviceFreeMemory, idSupportedDevice;
@@ -46,7 +48,6 @@ GPU_INLINE gpu_error_t gpu_transfer_index_CPU_to_GPUs(gpu_index_buffer_t *index,
 	return (SUCCESS);
 }
 
-//ok
 GPU_INLINE gpu_error_t gpu_init_index(gpu_index_buffer_t **index, const char *indexRaw,
 									  const uint64_t bwtSize, const gpu_index_coding_t indexCoding,
 									  const uint32_t numSupportedDevices)
@@ -94,7 +95,12 @@ GPU_INLINE gpu_error_t gpu_init_index(gpu_index_buffer_t **index, const char *in
 	return (SUCCESS);
 }
 
-//ok
+
+
+/************************************************************
+ Functions to release the index data from the DEVICE & HOST
+************************************************************/
+
 GPU_INLINE gpu_error_t gpu_free_index_host(gpu_index_buffer_t *index)
 {
     if(index->h_fmi != NULL){
@@ -105,7 +111,6 @@ GPU_INLINE gpu_error_t gpu_free_index_host(gpu_index_buffer_t *index)
     return(SUCCESS);
 }
 
-//ok
 GPU_INLINE gpu_error_t gpu_free_unused_index_host(gpu_index_buffer_t *index, gpu_device_info_t **devices)
 {
 	uint32_t idSupportedDevice, numSupportedDevices;
@@ -125,8 +130,7 @@ GPU_INLINE gpu_error_t gpu_free_unused_index_host(gpu_index_buffer_t *index, gpu
     return(SUCCESS);
 }
 
-//ok
-GPU_INLINE gpu_error_t gpu_free_reference_device(gpu_index_buffer_t *index, gpu_device_info_t **devices)
+GPU_INLINE gpu_error_t gpu_free_index_device(gpu_index_buffer_t *index, gpu_device_info_t **devices)
 {
 	const uint32_t numSupportedDevices = devices[0]->numSupportedDevices;
 	uint32_t idSupportedDevice;
@@ -150,7 +154,6 @@ GPU_INLINE gpu_error_t gpu_free_reference_device(gpu_index_buffer_t *index, gpu_
     return(SUCCESS);
 }
 
-//ok
 GPU_INLINE gpu_error_t gpu_free_index(gpu_index_buffer_t **index, gpu_device_info_t **devices)
 {
 	gpu_index_buffer_t *fmi = (* index);

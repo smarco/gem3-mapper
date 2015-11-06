@@ -1,7 +1,10 @@
 
 #include "../include/gpu_reference.h"
 
-//ok
+/************************************************************
+String basic functions
+************************************************************/
+
 GPU_INLINE uint64_t gpu_char_to_bin_ASCII(unsigned char base)
 {
 	switch(base)
@@ -23,7 +26,21 @@ GPU_INLINE uint64_t gpu_char_to_bin_ASCII(unsigned char base)
 	}
 }
 
-//ok
+GPU_INLINE char gpu_complement_base(const char character)
+{
+	referenceChar = character;
+	referenceChar = (character == GPU_ENC_DNA_CHAR_A) ? GPU_ENC_DNA_CHAR_T : referenceChar;
+	referenceChar = (character == GPU_ENC_DNA_CHAR_C) ? GPU_ENC_DNA_CHAR_G : referenceChar;
+	referenceChar = (character == GPU_ENC_DNA_CHAR_G) ? GPU_ENC_DNA_CHAR_C : referenceChar;
+	referenceChar = (character == GPU_ENC_DNA_CHAR_T) ? GPU_ENC_DNA_CHAR_A : referenceChar;
+	return(referenceChar);
+}
+
+
+/************************************************************
+Transform reference functions
+************************************************************/
+
 GPU_INLINE gpu_error_t gpu_transform_reference_ASCII(const char *referenceASCII, gpu_reference_buffer_t *reference)
 {
 	uint64_t indexBase, bitmap;
@@ -46,7 +63,72 @@ GPU_INLINE gpu_error_t gpu_transform_reference_ASCII(const char *referenceASCII,
 	return(SUCCESS);
 }
 
-//ok
+GPU_INLINE gpu_error_t gpu_transform_Reference_GEM_FR(const char *referenceGEM, gpu_reference_buffer_t *reference)
+{
+	uint64_t indexBase, bitmap;
+	uint64_t idEntry, i, referencePosition;
+	unsigned char referenceChar;
+
+	CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint64_t), cudaHostAllocMapped));
+
+	for(idEntry = 0; idEntry < reference->numEntries; ++idEntry){
+		bitmap = 0;
+		for(i = 0; i < GPU_REFERENCE_CHARS_PER_ENTRY; ++i){
+			referencePosition = idEntry * GPU_REFERENCE_CHARS_PER_ENTRY + i;
+			if (referencePosition < reference->size) referenceChar = referenceGEM[referencePosition];
+				else referenceChar = 'N'; //filling reference padding
+			indexBase = ((uint64_t) referenceChar) << (GPU_UINT64_LENGTH - GPU_REFERENCE_CHAR_LENGTH);
+			bitmap = (bitmap >> GPU_REFERENCE_CHAR_LENGTH) | indexBase;
+		}
+		reference->h_reference[referencePosition / GPU_REFERENCE_CHARS_PER_ENTRY] = bitmap;
+	}
+	return(SUCCESS);
+}
+
+
+GPU_INLINE gpu_error_t gpu_transform_reference_GEM_F(const char *referenceGEM, gpu_reference_buffer_t *reference)
+{
+	uint64_t indexBase, bitmap;
+	uint64_t idEntry, i, referencePosition;
+	char referenceChar;
+
+	// Recompute size of the full reference (forward + reverse-complement)
+	const uint64_t forward_ref_size = reference->size;
+	const uint64_t total_ref_size = 2 * forward_ref_size;
+
+	reference->size = total_ref_size;
+	reference->numEntries = GPU_DIV_CEIL(total_ref_size, GPU_REFERENCE_CHARS_PER_ENTRY) + GPU_REFERENCE_END_PADDING;
+
+	// Allocate CUDA-HostMem
+	CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint64_t), cudaHostAllocMapped));
+
+	// Copy reference
+	for(idEntry = 0; idEntry < reference->numEntries; ++idEntry){
+		bitmap = 0;
+		for(i = 0; i < GPU_REFERENCE_CHARS_PER_ENTRY; ++i){
+			referencePosition = idEntry * GPU_REFERENCE_CHARS_PER_ENTRY + i;
+			if (referencePosition < forward_ref_size) {
+				referenceChar = referenceGEM[referencePosition];
+			} else if (referencePosition < reference->size) {
+				referenceChar = gpu_complement_base(referenceGEM[2 * (forward_ref_size - referencePosition - 2)]);
+			} else {
+				referenceChar = 'N'; //filling reference padding
+			}
+			indexBase = ((uint64_t) referenceChar) << (GPU_UINT64_LENGTH - GPU_REFERENCE_CHAR_LENGTH);
+			bitmap = (bitmap >> GPU_REFERENCE_CHAR_LENGTH) | indexBase;
+		}
+		reference->h_reference[referencePosition / GPU_REFERENCE_CHARS_PER_ENTRY] = bitmap;
+	}
+
+	// Return
+	return(SUCCESS);
+}
+
+
+/************************************************************
+Input & Output reference functions
+************************************************************/
+
 GPU_INLINE gpu_error_t gpu_load_reference_MFASTA(const char *fn, gpu_reference_buffer_t *reference)
 {
 	FILE *fp = NULL;
@@ -85,7 +167,6 @@ GPU_INLINE gpu_error_t gpu_load_reference_MFASTA(const char *fn, gpu_reference_b
 	return (SUCCESS);
 }
 
-//ok
 GPU_INLINE gpu_error_t gpu_load_reference_PROFILE(const char *fn, gpu_reference_buffer_t *reference)
 {
 	FILE *fp = NULL;
@@ -108,78 +189,11 @@ GPU_INLINE gpu_error_t gpu_load_reference_PROFILE(const char *fn, gpu_reference_
 	return (SUCCESS);
 }
 
-//ok
-GPU_INLINE gpu_error_t gpu_transform_Reference_GEM_FR(const char *referenceGEM, gpu_reference_buffer_t *reference)
-{
-	uint64_t indexBase, bitmap;
-	uint64_t idEntry, i, referencePosition;
-	unsigned char referenceChar;
 
-	CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint64_t), cudaHostAllocMapped));
 
-	for(idEntry = 0; idEntry < reference->numEntries; ++idEntry){
-		bitmap = 0;
-		for(i = 0; i < GPU_REFERENCE_CHARS_PER_ENTRY; ++i){
-			referencePosition = idEntry * GPU_REFERENCE_CHARS_PER_ENTRY + i;
-			if (referencePosition < reference->size) referenceChar = referenceGEM[referencePosition];
-				else referenceChar = 'N'; //filling reference padding
-			indexBase = ((uint64_t) referenceChar) << (GPU_UINT64_LENGTH - GPU_REFERENCE_CHAR_LENGTH);
-			bitmap = (bitmap >> GPU_REFERENCE_CHAR_LENGTH) | indexBase;
-		}
-		reference->h_reference[referencePosition / GPU_REFERENCE_CHARS_PER_ENTRY] = bitmap;
-	}
-	return(SUCCESS);
-}
-
-//ok
-GPU_INLINE char gpu_complement_base(const char character)
-{
-	referenceChar = character;
-	referenceChar = (character == GPU_ENC_DNA_CHAR_A) ? GPU_ENC_DNA_CHAR_T : referenceChar;
-	referenceChar = (character == GPU_ENC_DNA_CHAR_C) ? GPU_ENC_DNA_CHAR_G : referenceChar;
-	referenceChar = (character == GPU_ENC_DNA_CHAR_G) ? GPU_ENC_DNA_CHAR_C : referenceChar;
-	referenceChar = (character == GPU_ENC_DNA_CHAR_T) ? GPU_ENC_DNA_CHAR_A : referenceChar;
-	return(referenceChar);
-}
-
-//ok
-GPU_INLINE gpu_error_t gpu_transform_reference_GEM_F(const char *referenceGEM, gpu_reference_buffer_t *reference)
-{
-	uint64_t indexBase, bitmap;
-	uint64_t idEntry, i, referencePosition;
-	char referenceChar;
-
-	// Recompute size of the full reference (forward + reverse-complement)
-	const uint64_t forward_ref_size = reference->size;
-	const uint64_t total_ref_size = 2 * forward_ref_size;
-
-	reference->size = total_ref_size;
-	reference->numEntries = GPU_DIV_CEIL(total_ref_size, GPU_REFERENCE_CHARS_PER_ENTRY) + GPU_REFERENCE_END_PADDING;
-
-	// Allocate CUDA-HostMem
-	CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint64_t), cudaHostAllocMapped));
-
-	// Copy reference
-	for(idEntry = 0; idEntry < reference->numEntries; ++idEntry){
-		bitmap = 0;
-		for(i = 0; i < GPU_REFERENCE_CHARS_PER_ENTRY; ++i){
-			referencePosition = idEntry * GPU_REFERENCE_CHARS_PER_ENTRY + i;
-			if (referencePosition < forward_ref_size) {
-				referenceChar = referenceGEM[referencePosition];
-			} else if (referencePosition < reference->size) {
-				referenceChar = gpu_complement_base(referenceGEM[2 * (forward_ref_size - referencePosition - 2)]);
-			} else {
-				referenceChar = 'N'; //filling reference padding
-			}
-			indexBase = ((uint64_t) referenceChar) << (GPU_UINT64_LENGTH - GPU_REFERENCE_CHAR_LENGTH);
-			bitmap = (bitmap >> GPU_REFERENCE_CHAR_LENGTH) | indexBase;
-		}
-		reference->h_reference[referencePosition / GPU_REFERENCE_CHARS_PER_ENTRY] = bitmap;
-	}
-
-	// Return
-	return(SUCCESS);
-}
+/************************************************************
+Functions to get the GPU FMI buffers
+************************************************************/
 
 GPU_INLINE gpu_error_t gpu_init_reference(gpu_reference_buffer_t **reference, const char *referenceRaw,
 										  const uint64_t refSize, const gpu_ref_coding_t refCoding,
@@ -224,7 +238,6 @@ GPU_INLINE gpu_error_t gpu_init_reference(gpu_reference_buffer_t **reference, co
 	return (SUCCESS);
 }
 
-//ok
 GPU_INLINE gpu_error_t gpu_transfer_reference_CPU_to_GPUs(gpu_reference_buffer_t *reference, gpu_device_info_t **devices)
 {
 	uint32_t deviceFreeMemory, idSupportedDevice;
@@ -248,7 +261,10 @@ GPU_INLINE gpu_error_t gpu_transfer_reference_CPU_to_GPUs(gpu_reference_buffer_t
 }
 
 
-//ok
+/************************************************************
+Free reference functions
+************************************************************/
+
 GPU_INLINE gpu_error_t gpu_free_reference_host(gpu_reference_buffer_t *reference)
 {
     if(reference->h_reference != NULL){
@@ -259,7 +275,6 @@ GPU_INLINE gpu_error_t gpu_free_reference_host(gpu_reference_buffer_t *reference
     return(SUCCESS);
 }
 
-//ok
 GPU_INLINE gpu_error_t gpu_free_unused_reference_host(gpu_reference_buffer_t *reference, gpu_device_info_t **devices)
 {
 	uint32_t idSupportedDevice, numSupportedDevices;
@@ -279,7 +294,6 @@ GPU_INLINE gpu_error_t gpu_free_unused_reference_host(gpu_reference_buffer_t *re
     return(SUCCESS);
 }
 
-//ok
 GPU_INLINE gpu_error_t gpu_free_reference_device(gpu_reference_buffer_t *reference, gpu_device_info_t **devices)
 {
 	const uint32_t numSupportedDevices = devices[0]->numSupportedDevices;

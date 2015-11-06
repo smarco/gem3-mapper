@@ -12,7 +12,7 @@
 Functions to get the GPU FMI buffers
 ************************************************************/
 
-GPU_INLINE uint32_t gpu_fmi_buffer_get_index_(void *fmiBuffer){
+GPU_INLINE gpu_fmi_entry_t* gpu_fmi_buffer_get_index_(void *fmiBuffer){
 	gpu_buffer_t *mBuff = (gpu_buffer_t *) fmiBuffer;
 	return(mBuff->index->h_fmi);
 }
@@ -86,10 +86,10 @@ GPU_INLINE void gpu_fmi_search_reallocate_device_buffer_layout(gpu_buffer_t* mBu
 GPU_INLINE void gpu_fmi_search_init_buffer_(void* fmiBuffer)
 {
 	gpu_buffer_t *mBuff      = (gpu_buffer_t *) fmiBuffer;
-	void* 		  h_rawAlloc = mBuff->h_rawDataBuffer;
-	void* 		  d_rawAlloc = mBuff->d_rawDataBuffer;
-	size_t	  	  sizeBuff   = mBuff->sizeBuffer;
-	uint32_t	  numInputs  = (sizeBuff / gpu_fmi_search_input_size()) - GPU_FMI_SEARCH_SEEDS_BUFFER_PADDING;
+	void* 		    	 h_rawAlloc = mBuff->h_rawData;
+	void* 		  		 d_rawAlloc = mBuff->d_rawData;
+	size_t	  	  		 sizeBuff   = mBuff->sizeBuffer;
+	uint32_t	  		 numInputs  = (sizeBuff / gpu_fmi_search_input_size()) - GPU_FMI_SEARCH_SEEDS_BUFFER_PADDING;
 
 	//Set real size of the input
 	mBuff->data.search.numMaxSeeds     = numInputs;
@@ -150,9 +150,9 @@ Functions to transfer data HOST <-> DEVICE (E. SEARCH)
 
 GPU_INLINE gpu_error_t gpu_fmi_search_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
 {
-	const gpu_fmi_search_seeds_buffer_t* seedBuff = mBuff->data.search.seeds;
-	const cudaStream_t 				     idStream = mBuff->idStream;
-	const size_t 					     cpySize  = seedBuff->numSeeds * sizeof(gpu_fmi_search_seed_t);
+	const gpu_fmi_search_seeds_buffer_t* seedBuff = &mBuff->data.search.seeds;
+	const cudaStream_t 				     idStream =  mBuff->idStream;
+	const size_t 					     cpySize  =  seedBuff->numSeeds * sizeof(gpu_fmi_search_seed_t);
 
 	//Transfer seeds from CPU to the GPU
 	CUDA_ERROR(cudaMemcpyAsync(seedBuff->d_seeds, seedBuff->h_seeds, cpySize, cudaMemcpyHostToDevice, idStream));
@@ -162,9 +162,9 @@ GPU_INLINE gpu_error_t gpu_fmi_search_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
 
 GPU_INLINE gpu_error_t gpu_fmi_search_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
 {
-	const gpu_fmi_search_sa_inter_buffer_t* interBuff = mBuff->data.search.saIntervals;
-	const cudaStream_t 				   		idStream  = mBuff->idStream;
-	const size_t 							cpySize   = interBuff->numIntervals * sizeof(gpu_fmi_search_sa_inter_t);
+	const gpu_fmi_search_sa_inter_buffer_t* interBuff = &mBuff->data.search.saIntervals;
+	const cudaStream_t 				   		idStream  =  mBuff->idStream;
+	const size_t 							cpySize   =  interBuff->numIntervals * sizeof(gpu_fmi_search_sa_inter_t);
 
 	//Transfer SA intervals (occurrence results) from CPU to the GPU
 	CUDA_ERROR(cudaMemcpyAsync(interBuff->h_intervals, interBuff->d_intervals, cpySize, cudaMemcpyDeviceToHost, idStream));
@@ -172,16 +172,17 @@ GPU_INLINE gpu_error_t gpu_fmi_search_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
 	return (SUCCESS);
 }
 
-GPU_INLINE void gpu_fmi_search_send_buffer_(void* fmiBuffer, uint32_t numSeeds)
+GPU_INLINE void gpu_fmi_search_send_buffer_(void* fmiBuffer, const uint32_t numSeeds)
 {
 	gpu_buffer_t *mBuff = (gpu_buffer_t *) fmiBuffer;
+	const uint32_t idSupDevice = mBuff->idSupportedDevice;
 
 	//Set real size of the input
 	mBuff->data.search.seeds.numSeeds = numSeeds;
 	mBuff->data.search.saIntervals.numIntervals = numSeeds;
 
 	//Select the device of the Multi-GPU platform
-    CUDA_ERROR(cudaSetDevice(mBuff->device->idDevice));
+    CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
 	GPU_ERROR(gpu_fmi_search_transfer_CPU_to_GPU(mBuff));
 	GPU_ERROR(gpu_fmi_search_process_buffer(mBuff));
 	GPU_ERROR(gpu_fmi_search_transfer_GPU_to_CPU(mBuff));
@@ -202,9 +203,9 @@ Functions to transfer data HOST <-> DEVICE (Decode)
 
 GPU_INLINE gpu_error_t gpu_fmi_decode_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
 {
-	const gpu_fmi_decode_init_pos_buffer_t* initPosBuff = mBuff->data.decode.initPositions;
-	const cudaStream_t 				   	    idStream    = mBuff->idStream;
-	const size_t 							cpySize     = initPosBuff->numDecodings * sizeof(gpu_fmi_decode_init_pos_t);
+	const gpu_fmi_decode_init_pos_buffer_t* initPosBuff = &mBuff->data.decode.initPositions;
+	const cudaStream_t 				   	    idStream    =  mBuff->idStream;
+	const size_t 							cpySize     =  initPosBuff->numDecodings * sizeof(gpu_fmi_decode_init_pos_t);
 
 	//Transfer seeds from CPU to the GPU
 	CUDA_ERROR(cudaMemcpyAsync(initPosBuff->d_initBWTPos, initPosBuff->h_initBWTPos, cpySize, cudaMemcpyHostToDevice, idStream));
@@ -214,9 +215,9 @@ GPU_INLINE gpu_error_t gpu_fmi_decode_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
 
 GPU_INLINE gpu_error_t gpu_fmi_decode_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
 {
-	const gpu_fmi_search_sa_inter_buffer_t* interBuff = mBuff->data.search.saIntervals;
-	const cudaStream_t 				   		idStream  = mBuff->idStream;
-	const size_t 							cpySize   = interBuff->numIntervals * sizeof(gpu_fmi_search_sa_inter_t);
+	const gpu_fmi_search_sa_inter_buffer_t* interBuff = &mBuff->data.search.saIntervals;
+	const cudaStream_t 				   		idStream  =  mBuff->idStream;
+	const size_t 							cpySize   =  interBuff->numIntervals * sizeof(gpu_fmi_search_sa_inter_t);
 
 	//Transfer SA intervals (occurrence results) from CPU to the GPU
 	CUDA_ERROR(cudaMemcpyAsync(interBuff->h_intervals, interBuff->d_intervals, cpySize, cudaMemcpyDeviceToHost, idStream));
@@ -224,9 +225,10 @@ GPU_INLINE gpu_error_t gpu_fmi_decode_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
 	return (SUCCESS);
 }
 
-GPU_INLINE void gpu_fmi_decode_send_buffer_(void* fmiBuffer, uint32_t numDecodings, uint32_t samplingRate)
+GPU_INLINE void gpu_fmi_decode_send_buffer_(void* fmiBuffer, const uint32_t numDecodings, const uint32_t samplingRate)
 {
 	gpu_buffer_t *mBuff = (gpu_buffer_t *) fmiBuffer;
+	const uint32_t idSupDevice = mBuff->idSupportedDevice;
 
 	//Set real size of the input
 	mBuff->data.decode.initPositions.numDecodings = numDecodings;
@@ -234,7 +236,7 @@ GPU_INLINE void gpu_fmi_decode_send_buffer_(void* fmiBuffer, uint32_t numDecodin
 	mBuff->data.decode.samplingRate    = samplingRate;
 
 	//Select the device of the Multi-GPU platform
-    CUDA_ERROR(cudaSetDevice(mBuff->device->idDevice));
+    CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
 
 	GPU_ERROR(gpu_fmi_decode_transfer_CPU_to_GPU(mBuff));
 	GPU_ERROR(gpu_fmi_decode_process_buffer(mBuff));

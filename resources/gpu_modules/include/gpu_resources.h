@@ -2,8 +2,7 @@
 #ifndef GPU_RESOURCES_H_
 #define GPU_RESOURCES_H_
 
-#include <cuda.h>
-#include <cuda_runtime.h>
+#include "gpu_commons.h"
 
 /*************************************
 GPU Side defines (ASM instructions)

@@ -100,7 +100,7 @@ gpu_error_t gpu_fmi_decoding_launch_kernel(gpu_fmi_device_entry_t *d_fmi, uint64
 
 
 extern "C"
-gpu_error_t gpu_fmi_decode_process_buffer(gpu_buffer_t *mBuff)
+GPU_INLINE gpu_error_t gpu_fmi_decode_process_buffer(gpu_buffer_t *mBuff)
 {
 	gpu_index_buffer_t 			  	 *index    	  = mBuff->index;
 	gpu_fmi_decode_buffer_t			 *decBuff	  = mBuff->data.decode;
@@ -108,7 +108,7 @@ gpu_error_t gpu_fmi_decode_process_buffer(gpu_buffer_t *mBuff)
 	gpu_fmi_decode_end_pos_buffer_t  *endPos 	  = mBuff->data.decode.endPositions;
 	uint32_t 					     numDecodings = mBuff->data.decode.initPositions.numDecodings;
 	cudaStream_t 				     idStream	  = mBuff->idStream;
-	uint32_t					     idSupDev 	  = mBuff->device->idSupportedDevice;
+	uint32_t					     idSupDev 	  = mBuff->idSupportedDevice;
 
 	const uint32_t threadsPerBlock = GPU_MAX_THREADS_PER_BLOCK;
 	const uint32_t numThreads = numDecodings * GPU_FMI_DECODE_THREADS_PER_ENTRY;
