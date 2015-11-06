@@ -32,7 +32,7 @@ GPU_INLINE gpu_error_t gpu_transfer_index_CPU_to_GPUs(gpu_index_buffer_t *index,
 	uint32_t numSupportedDevices = devices[0]->numSupportedDevices;
 
 	for(idSupportedDevice = 0; idSupportedDevice < numSupportedDevices; ++idSupportedDevice){
-		if(index[idSupportedDevice]->memorySpace == GPU_DEVICE_MAPPED){
+		if(index->memorySpace[idSupportedDevice] == GPU_DEVICE_MAPPED){
 			const size_t cpySize = index->numEntries * sizeof(gpu_fmi_entry_t);
 			deviceFreeMemory = gpu_get_device_free_memory(devices[idSupportedDevice]->idDevice);
 			if ((GPU_CONVERT_B_TO_MB(cpySize)) > deviceFreeMemory) return(E_INSUFFICIENT_MEM_GPU);
@@ -63,7 +63,7 @@ GPU_INLINE gpu_error_t gpu_init_index(gpu_index_buffer_t **index, const char *in
 	fmi->d_fmi = (gpu_fmi_entry_t **) malloc(numSupportedDevices * sizeof(gpu_fmi_entry_t *));
 	if (fmi->d_fmi == NULL) GPU_ERROR(E_ALLOCATE_MEM);
 
-	fmi->memorySpace = (gpu_data_location_t *) malloc(numSupportedDevices * sizeof(gpu_data_location_t));
+	fmi->memorySpace = (memory_alloc_t *) malloc(numSupportedDevices * sizeof(memory_alloc_t));
 	if (fmi->memorySpace == NULL) GPU_ERROR(E_ALLOCATE_MEM);
 
 	switch(indexCoding){
@@ -123,7 +123,7 @@ GPU_INLINE gpu_error_t gpu_free_unused_index_host(gpu_index_buffer_t *index, gpu
 			if(index->memorySpace[idSupportedDevice] == GPU_HOST_MAPPED) indexInHostSideUsed = true;
     }
 
-    if(!referenceInHostSideUsed){
+    if(!indexInHostSideUsed){
     	GPU_ERROR(gpu_free_index_host(index));
     }
 

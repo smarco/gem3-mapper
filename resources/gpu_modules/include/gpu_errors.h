@@ -41,22 +41,22 @@ GPU_INLINE void cudaError(cudaError_t err, const char *file,  int line )
    	}
 }
 
-GPU_INLINE char *gpuGetErrorString(gpu_error_t error)
+GPU_INLINE const char* gpuGetErrorString(gpu_error_t error)
 {
     switch(error) {
-        case E_OPENING_FILE:  			return "GEM GPU - Error: opening file"; break;
-        case E_READING_FILE:  			return "GEM GPU - Error: reading file"; break;
-        case E_INSUFFICIENT_MEM_GPU:	return "GEM GPU - Error: there aren't enough GPU memory space"; break;
-        case E_ALLOCATE_MEM: 			return "GEM GPU - Error: allocating data"; break;
-        case E_INCOMPATIBLE_GPU:		return "GEM GPU - Error: incompatible GPU (old CC version)"; break;
-        case E_REFERENCE_CODING:		return "GEM GPU - Error: reference coding not supported"; break;
+        case E_OPENING_FILE:  			return "GEM GPU - Error: opening file";
+        case E_READING_FILE:  			return "GEM GPU - Error: reading file";
+        case E_INSUFFICIENT_MEM_GPU:	return "GEM GPU - Error: there aren't enough GPU memory space";
+        case E_ALLOCATE_MEM: 			return "GEM GPU - Error: allocating data";
+        case E_INCOMPATIBLE_GPU:		return "GEM GPU - Error: incompatible GPU (old CC version)";
+        case E_REFERENCE_CODING:		return "GEM GPU - Error: reference coding not supported";
         default: 						return "GEM GPU - Unknown error";
     }
 }
 
 GPU_INLINE void gpuError(gpu_error_t err, const char *file,  int line)
 {
-   	if (err != 0) {
+   	if (err != SUCCESS) {
       		fprintf(stderr, "%s in %s at line %d\n", gpuGetErrorString(err),  file, line );
        		exit(EXIT_FAILURE);
    	}

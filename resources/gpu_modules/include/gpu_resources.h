@@ -3,6 +3,7 @@
 #define GPU_RESOURCES_H_
 
 #include "gpu_commons.h"
+#include "gpu_devices.h"
 
 /*************************************
 GPU Side defines (ASM instructions)
@@ -48,13 +49,23 @@ inline __device__ uint32_t shfl_32(uint32_t scalarValue, const int lane)
 	return (__shfl(scalarValue, lane));
 }
 
-inline __device__ uint32_t reduceAddWarp(uint32_t resultBitmaps, const uint32_t numThreads)
+inline __device__ uint32_t reduce_add_warp(uint32_t resultBitmaps, const uint32_t numThreads)
 {
 	for (int32_t i = 1; i < numThreads; i *= 2){
 		int32_t n = __shfl_down((int) resultBitmaps, i, GPU_WARP_SIZE);
 			resultBitmaps += n;
 	}
 	return(resultBitmaps);
+}
+
+inline __device__ uint64_t funnel_shift_left(const uint64_t currentCandidateEntry,
+				    				   		 const uint64_t lastCandidateEntry,
+				    				   		 const uint32_t shiftedBits)
+{
+	const uint32_t complementShiftedBits = GPU_UINT64_LENGTH - shiftedBits;
+
+	return ((lastCandidateEntry >> shiftedBits) |
+			(currentCandidateEntry <<  complementShiftedBits));
 }
 
 #endif /* GPU_RESOURCES_H_ */

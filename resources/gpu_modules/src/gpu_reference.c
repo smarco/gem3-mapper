@@ -28,7 +28,7 @@ GPU_INLINE uint64_t gpu_char_to_bin_ASCII(unsigned char base)
 
 GPU_INLINE char gpu_complement_base(const char character)
 {
-	referenceChar = character;
+	char referenceChar = character;
 	referenceChar = (character == GPU_ENC_DNA_CHAR_A) ? GPU_ENC_DNA_CHAR_T : referenceChar;
 	referenceChar = (character == GPU_ENC_DNA_CHAR_C) ? GPU_ENC_DNA_CHAR_G : referenceChar;
 	referenceChar = (character == GPU_ENC_DNA_CHAR_G) ? GPU_ENC_DNA_CHAR_C : referenceChar;
@@ -63,7 +63,7 @@ GPU_INLINE gpu_error_t gpu_transform_reference_ASCII(const char *referenceASCII,
 	return(SUCCESS);
 }
 
-GPU_INLINE gpu_error_t gpu_transform_Reference_GEM_FR(const char *referenceGEM, gpu_reference_buffer_t *reference)
+GPU_INLINE gpu_error_t gpu_transform_reference_GEM_FR(const char *referenceGEM, gpu_reference_buffer_t *reference)
 {
 	uint64_t indexBase, bitmap;
 	uint64_t idEntry, i, referencePosition;
@@ -210,7 +210,7 @@ GPU_INLINE gpu_error_t gpu_init_reference(gpu_reference_buffer_t **reference, co
 	ref->d_reference = (uint64_t **) malloc(numSupportedDevices * sizeof(uint64_t *));
 	if (ref->d_reference == NULL) GPU_ERROR(E_ALLOCATE_MEM);
 
-	ref->memorySpace = (gpu_data_location_t *) malloc(numSupportedDevices * sizeof(gpu_data_location_t));
+	ref->memorySpace = (memory_alloc_t *) malloc(numSupportedDevices * sizeof(memory_alloc_t));
 	if (ref->memorySpace == NULL) GPU_ERROR(E_ALLOCATE_MEM);
 
 	switch(refCoding){
@@ -218,10 +218,10 @@ GPU_INLINE gpu_error_t gpu_init_reference(gpu_reference_buffer_t **reference, co
     		GPU_ERROR(gpu_transform_reference_ASCII(referenceRaw, ref));
     		break;
     	case GPU_REF_GEM_FULL:
-    		GPU_ERROR(gpu_transform_reference_GEMFR(referenceRaw, ref));
+    		GPU_ERROR(gpu_transform_reference_GEM_FR(referenceRaw, ref));
     		break;
     	case GPU_REF_GEM_ONLY_FORWARD:
-    		GPU_ERROR(gpu_transform_reference_GEMF(referenceRaw, ref));
+    		GPU_ERROR(gpu_transform_reference_GEM_F(referenceRaw, ref));
     		break;
     	case GPU_REF_MFASTA_FILE:
     		GPU_ERROR(gpu_load_reference_MFASTA(referenceRaw, ref));
@@ -244,7 +244,7 @@ GPU_INLINE gpu_error_t gpu_transfer_reference_CPU_to_GPUs(gpu_reference_buffer_t
 	uint32_t numSupportedDevices = devices[0]->numSupportedDevices;
 
 	for(idSupportedDevice = 0; idSupportedDevice < numSupportedDevices; ++idSupportedDevice){
-		if(reference[idSupportedDevice]->memorySpace == GPU_DEVICE_MAPPED){
+		if(reference->memorySpace[idSupportedDevice] == GPU_DEVICE_MAPPED){
 			const size_t cpySize = reference->numEntries * sizeof(uint64_t);
 			deviceFreeMemory = gpu_get_device_free_memory(devices[idSupportedDevice]->idDevice);
 			if ((GPU_CONVERT_B_TO_MB(cpySize)) > deviceFreeMemory) return(E_INSUFFICIENT_MEM_GPU);

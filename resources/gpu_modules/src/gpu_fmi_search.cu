@@ -19,14 +19,13 @@ void __global__ gpu_fmi_search_kernel(const gpu_fmi_device_entry_t *fmi, const u
 
 	if ( (threadIdx.x < GPU_MAX_THREADS_PER_SM) && (globalThreadIdx < (numSeeds * GPU_FMI_SEED_THREADS_PER_ENTRY)) ){
 
-		const uint32_t   localIdSeed = idSeed % SEED_ENTRIES_PER_WARP;
+		const uint32_t   localIdSeed = idSeed % GPU_FMI_SEED_ENTRIES_PER_WARP;
 		const ulonglong2 seed 	     = seeds[idSeed];
 		const uint32_t   seedSize    = seed.y >> (GPU_UINT64_LENGTH - GPU_FMI_SEED_FIELD_SIZE);
 			  uint64_t   currentSeed = seed.x;
 
-			  uint64_t interval      = (localEntryIdx % GPU_FMI_ENTRIES_PER_SEED) ? bwtSize : 0;
-			  uint32_t resultBitmaps, idStep = 0, foundSeed = 0;
-			  uint64_t sharedInterval, resultCounters;
+			  uint64_t sharedInterval, interval = (localEntryIdx % GPU_FMI_ENTRIES_PER_SEED) ? bwtSize : 0;
+			  uint32_t idStep = 0, foundSeed = 0;
 
 		__shared__ gpu_fmi_exch_bmp_mem_t   exchBMP[GPU_FMI_ENTRIES_PER_BLOCK];
 				   gpu_fmi_exch_bmp_mem_t * seedExchBMP = &exchBMP[threadIdx.x / GPU_FMI_THREADS_PER_ENTRY];
@@ -54,7 +53,7 @@ void __global__ gpu_fmi_search_kernel(const gpu_fmi_device_entry_t *fmi, const u
 			sharedInterval      = shfl_64(interval, lane);
 
 			// Early exit condition
-			foundSeed           = (__ballot(interval == sharedInterval) >> (localIdSeed * GPU_FMI_SEED_THREADS_PER_ENTRY)) & GPU_MASK_ONE;
+			foundSeed           = (__ballot(interval == sharedInterval) >> (localIdSeed * GPU_FMI_SEED_THREADS_PER_ENTRY)) & GPU_UINT32_MASK_ONE_LOW;
 
 			// Update interval for bitmap threads
 			if (localEntryThreadIdx) interval = sharedInterval;
@@ -82,7 +81,7 @@ gpu_error_t gpu_fmi_search_launch_kernel(const gpu_fmi_device_entry_t *d_fmi, co
 	cudaEventRecord(start, 0);
 
 		for(uint32_t iteration = 0; iteration < nreps; ++iteration)
-			gpu_fmi_backward_search_kernel<<<blocks,threads>>>(d_fmi, bwtSize, numSeeds, d_seeds, d_intervals);
+			gpu_fmi_search_kernel<<<blocks,threads>>>(d_fmi, bwtSize, numSeeds, d_seeds, d_intervals);
 
 	cudaEventRecord(stop, 0);
 	cudaThreadSynchronize();
@@ -96,15 +95,14 @@ gpu_error_t gpu_fmi_search_launch_kernel(const gpu_fmi_device_entry_t *d_fmi, co
 	return(SUCCESS);
 }
 
-extern "C"
-GPU_INLINE gpu_error_t gpu_fmi_search_process_buffer(gpu_buffer_t *mBuff)
+gpu_error_t gpu_fmi_search_process_buffer(gpu_buffer_t *mBuff)
 {
-	gpu_index_buffer_t 			  	 *index    	  = mBuff->index;
-	gpu_fmi_search_seeds_buffer_t 	 *seeds    	  = mBuff->data.search.seeds;
-	gpu_fmi_search_sa_inter_buffer_t *saIntervals = mBuff->data.search.saIntervals;
-	uint32_t 					     numSeeds	  = mBuff->data.search.seeds.numSeeds;
-	cudaStream_t 				     idStream	  = mBuff->idStream;
-	uint32_t					     idSupDev	  = mBuff->idSupportedDevice;
+	gpu_index_buffer_t 			  	 *index    	  =  mBuff->index;
+	gpu_fmi_search_seeds_buffer_t 	 *seeds    	  = &mBuff->data.search.seeds;
+	gpu_fmi_search_sa_inter_buffer_t *saIntervals = &mBuff->data.search.saIntervals;
+	uint32_t 					     numSeeds	  =  mBuff->data.search.seeds.numSeeds;
+	cudaStream_t 				     idStream	  =  mBuff->idStream;
+	uint32_t					     idSupDev	  =  mBuff->idSupportedDevice;
 
 	uint32_t threadsPerBlock = GPU_MAX_THREADS_PER_BLOCK;
 	uint32_t numThreads = numSeeds * GPU_FMI_SEED_THREADS_PER_ENTRY;

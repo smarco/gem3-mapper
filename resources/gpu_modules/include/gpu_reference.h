@@ -32,7 +32,7 @@ char 		gpu_complement_base(const char character);
 /* Transform reference functions */
 gpu_error_t gpu_transform_reference_ASCII(const char *referenceASCII, gpu_reference_buffer_t *reference);
 gpu_error_t gpu_transform_reference_GEM_F(const char *referenceGEM, gpu_reference_buffer_t *reference);
-gpu_error_t gpu_transform_Reference_GEM_FR(const char *referenceGEM, gpu_reference_buffer_t *reference);
+gpu_error_t gpu_transform_reference_GEM_FR(const char *referenceGEM, gpu_reference_buffer_t *reference);
 
 /* Input & Output reference functions  */
 gpu_error_t gpu_load_reference_MFASTA(const char *fn, gpu_reference_buffer_t *reference);
