@@ -190,13 +190,13 @@ uint32_t buildCounters(fmi_buffer_t *fmi)
 		}
 	}
 
-	// Prepare the local counters with the previuos accumulative letters
+	// Prepare the local counters with the previous accumulative letters
 	localCounters.counters[0] = 0;
 	for(idBase = 1; idBase < FMI_NUM_COUNTERS; ++idBase){
 		localCounters.counters[idBase] = localCounters.counters[idBase - 1] + fmi->h_countersFMI[countersNumEntries - 4].counters[idBase - 1];
 	}
 
-	// Accumulate the previuos alphabet letters to the global counters
+	// Accumulate the previous alphabet letters to the global counters
 	for(idEntry = 0; idEntry < countersNumEntries; ++idEntry){
 		for(idBase = 1; idBase < FMI_NUM_COUNTERS; ++idBase){
 			fmi->h_countersFMI[idEntry].counters[idBase] += localCounters.counters[idBase];

@@ -6,7 +6,7 @@
  * DESCRIPTION: Code example of using the BMP GPU interface 
  */
 
-#include "myers-interface.h"
+#include "../gpu_interface.h"
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
