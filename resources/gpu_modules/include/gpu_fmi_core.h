@@ -1,12 +1,28 @@
+/*
+ * PROJECT: Bit-Parallel Myers on GPU
+ * FILE: myers-interface.h
+ * DATE: 4/7/2014
+ * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
+ * DESCRIPTION: Common headers and data structures for BPM on GPU library
+ */
+
+#include "gpu_commons.h"
+#include "gpu_resources.h"
+#include "gpu_index.h"
+#include "gpu_buffers.h"
 
 #ifndef GPU_FMI_CORE_H_
 #define GPU_FMI_CORE_H_
 
-#include "gpu_resources.h"
-#include "gpu_commons.h"
-#include "gpu_scheduler.h"
+GPU_INLINE __device__ uint32_t generate_load_threadIdx(uint64_t decodeEntryThreadIdx)
+{
+	uint32_t localThreadIdx = (decodeEntryThreadIdx  > (GPU_FMI_THREADS_PER_ENTRY + 1)) ? 0                         : decodeEntryThreadIdx;
+	         localThreadIdx = (decodeEntryThreadIdx == (GPU_FMI_THREADS_PER_ENTRY + 1)) ? GPU_FMI_THREADS_PER_ENTRY : localThreadIdx;
+	         localThreadIdx = (decodeEntryThreadIdx ==  GPU_FMI_THREADS_PER_ENTRY)      ? 0                         : localThreadIdx;
+			 return(localThreadIdx);
+}
 
-inline __device__ uint32_t count_bitmap(uint32_t bitmap, int32_t shift, uint32_t idxCounterGroup)
+GPU_INLINE __device__ uint32_t count_bitmap(uint32_t bitmap, int32_t shift, uint32_t idxCounterGroup)
 {
 	uint32_t mask = GPU_UINT32_ONES << (GPU_UINT32_LENGTH - shift);
 
@@ -17,7 +33,13 @@ inline __device__ uint32_t count_bitmap(uint32_t bitmap, int32_t shift, uint32_t
     return (__popc(bitmap & mask));
 }
 
-inline __device__ uint32_t compute_bitmaps(uint4 bitmap, uint32_t bitmapPosition, uint32_t bit0, uint32_t bit1, uint32_t localEntryThreadIdx, uint32_t idxCounterGroup)
+GPU_INLINE __device__ void gather_bitmaps(uint4 loadData, volatile gpu_fmi_exch_bmp_mem_t * exchBMP, uint32_t localEntryThreadIdx)
+{
+	const uint32_t idBMP = (localEntryThreadIdx == 0) ?  GPU_FMI_THREADS_PER_ENTRY - 1 : localEntryThreadIdx - 1;
+	exchBMP->v[idBMP] = loadData.w;
+}
+
+GPU_INLINE __device__ uint32_t compute_bitmaps(uint4 bitmap, uint32_t bitmapPosition, uint32_t bit0, uint32_t bit1, uint32_t localEntryThreadIdx, uint32_t idxCounterGroup)
 {
 	const int32_t  relativePosition = bitmapPosition - (localEntryThreadIdx * GPU_UINT32_LENGTH);
 	uint32_t resultBitmaps, bmpCollapsed, numCaracters;
@@ -32,7 +54,7 @@ inline __device__ uint32_t compute_bitmaps(uint4 bitmap, uint32_t bitmapPosition
 	return (numCaracters);
 }
 
-inline __device__ uint64_t select_counter(uint4 vectorCounters, uint32_t indexBase)
+GPU_INLINE __device__ uint64_t select_counter(uint4 vectorCounters, uint32_t indexBase)
 {
 	const uint2 vectorCountersA = {vectorCounters.x, vectorCounters.y};
 	const uint2 vectorCountersB = {vectorCounters.z, vectorCounters.w};
@@ -44,13 +66,43 @@ inline __device__ uint64_t select_counter(uint4 vectorCounters, uint32_t indexBa
 	return((indexBase == 0) ? scalarCountersA : scalarCountersB);
 }
 
-inline __device__ void gather_bitmaps(uint4 loadData, volatile gpu_fmi_exch_bmp_mem_t * exchBMP, uint32_t localEntryThreadIdx)
+GPU_INLINE __device__ void gather_base_from_BWT(uint4 vbitmap, gpu_fmi_exch_bmp_mem_t * exchBMP, uint32_t bitmapPosition,
+										 	uint32_t fmiEntryThreadIdx, uint32_t decodeEntryThreadIdx, uint32_t decodeEntryIdx,
+										 	uint32_t * bit1, uint32_t * bit0, uint32_t * bit2)
 {
-	const uint32_t idBMP = (localEntryThreadIdx == 0) ?  GPU_FMI_THREADS_PER_ENTRY - 1 : localEntryThreadIdx - 1;
-	exchBMP->v[idBMP] = loadData.w;
+	uint32_t localBit0, localBit1, localBit2;
+
+    gather_bitmaps(vbitmap, exchBMP, fmiEntryThreadIdx);
+    if(fmiEntryThreadIdx == 0) vbitmap = exchBMP->s;
+
+	const int32_t  relativePosition = (GPU_UINT32_LENGTH - (bitmapPosition % GPU_UINT32_LENGTH)) - 1;
+	localBit0 = (vbitmap.x >> relativePosition) & 1;
+	localBit1 = (vbitmap.y >> relativePosition) & 1;
+	localBit2 = (vbitmap.z >> relativePosition) & 1;
+
+	const uint32_t lane = (decodeEntryIdx * GPU_FMI_DECODE_THREADS_PER_ENTRY) + (bitmapPosition / GPU_UINT32_LENGTH);
+	(* bit0) = __shfl(localBit0, lane);
+	(* bit1) = __shfl(localBit1, lane);
+	(* bit2) = __shfl(localBit2, lane);
 }
 
-inline __device__ uint64_t LF_Mapping(uint4 loadEntry, gpu_fmi_exch_bmp_mem_t * exchBMP, uint32_t missedEntry,
+GPU_INLINE __device__ uint4 gather_counters_FMI(uint4 loadEntry, uint32_t missedEntry, uint32_t decodeEntryIdx, uint32_t decodeEntryThreadIdx)
+{
+	uint4 auxData;
+	const uint32_t idThreadCounter = (decodeEntryIdx * GPU_FMI_DECODE_THREADS_PER_ENTRY) + GPU_FMI_THREADS_PER_ENTRY;
+	const uint32_t lane = (missedEntry) ? idThreadCounter + 1 : idThreadCounter;
+
+ 	auxData.x = __shfl(loadEntry.x, lane);
+ 	auxData.y = __shfl(loadEntry.y, lane);
+ 	auxData.z = __shfl(loadEntry.z, lane);
+ 	auxData.w = __shfl(loadEntry.w, lane);
+
+	if(decodeEntryThreadIdx == 0) loadEntry = auxData;
+
+	return(loadEntry);
+}
+
+GPU_INLINE __device__ uint64_t LF_Mapping(uint4 loadEntry, gpu_fmi_exch_bmp_mem_t * exchBMP, uint32_t missedEntry,
 									  uint32_t localEntryThreadIdx, uint32_t bitmapPosition, uint32_t bit1, uint32_t bit0)
 {
 	// Select the counter candidate

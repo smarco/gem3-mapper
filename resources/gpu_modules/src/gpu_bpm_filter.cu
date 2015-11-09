@@ -29,7 +29,7 @@ GPU_INLINE __device__ void gpu_bpm_filter_local_kernel(const gpu_bpm_device_qry_
 
 		uint64_t candidate, lastCandidateEntry, currentCandidateEntry;
 
-		const int32_t indexWord = ((sizeQuery-1) % BMPS_SIZE) / GPU_BMP_UINT32_LENGTH;
+		const int32_t indexWord = ((sizeQuery-1) % BMPS_SIZE) / GPU_UINT32_LENGTH;
 		const uint32_t mask = ((sizeQuery % GPU_UINT32_LENGTH) == 0) ? GPU_UINT32_MASK_ONE_HIGH : 1 << ((sizeQuery % GPU_UINT32_LENGTH) - 1);
 		int32_t  score = sizeQuery, minScore = sizeQuery;
 		uint32_t idColumn = 0, minColumn = 0, idEntry = 0;
@@ -63,7 +63,7 @@ GPU_INLINE __device__ void gpu_bpm_filter_local_kernel(const gpu_bpm_device_qry_
 				#pragma unroll
 				for(uint32_t idPEQ = 0, idBMP = 0; idPEQ < PEQS_PER_THREAD; ++idPEQ, idBMP+=4){
 					Eqv4 = __ldg(&d_queries[entry + idPEQ].bitmap[candidate & 0x07]);
-					setBMP(Eq + idBMP, Eqv4);
+					set_BMP(Eq + idBMP, Eqv4);
 				}
 
 				#pragma unroll
@@ -143,16 +143,15 @@ __global__ void gpu_bpm_filter_kernel(const gpu_bpm_device_qry_entry_t *d_querie
 	 				 	 	 	idCandidate, sizeRef, numReorderedResults, intraQueryThreadIdx, threadsPerQuery);
 }
 
-extern "C"
-GPU_INLINE gpu_error_t gpu_bpm_process_buffer(gpu_buffer_t *mBuff)
+gpu_error_t gpu_bpm_process_buffer(gpu_buffer_t *mBuff)
 {
-	gpu_reference_buffer_t 		*ref 		= mBuff->reference;
-	gpu_bpm_queries_buffer_t 	*qry 		= mBuff->data.bpm.queries;
-	gpu_bpm_candidates_buffer_t	*cand 		= mBuff->data.bpm.candidates;
-	gpu_bpm_reorder_buffer_t 	*rebuff 	= mBuff->data.bpm.reorderBuffer;
-	gpu_bpm_alignments_buffer_t *res 		= mBuff->data.bpm.alignments;
-	cudaStream_t 				idStream	= mBuff->idStream;
-	uint32_t					idSupDev	= mBuff->device->idSupportedDevice;
+	gpu_reference_buffer_t 		*ref 		=  mBuff->reference;
+	gpu_bpm_queries_buffer_t 	*qry 		= &mBuff->data.bpm.queries;
+	gpu_bpm_candidates_buffer_t	*cand 		= &mBuff->data.bpm.candidates;
+	gpu_bpm_reorder_buffer_t 	*rebuff 	= &mBuff->data.bpm.reorderBuffer;
+	gpu_bpm_alignments_buffer_t *res 		= &mBuff->data.bpm.alignments;
+	cudaStream_t 				idStream	=  mBuff->idStream;
+	uint32_t					idSupDev	=  mBuff->idSupportedDevice;
 
 	uint32_t threadsPerBlock = GPU_MAX_THREADS_PER_BLOCK;
 	uint32_t numThreads = rebuff->numWarps * GPU_WARP_SIZE;

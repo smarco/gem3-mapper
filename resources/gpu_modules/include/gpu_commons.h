@@ -14,11 +14,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #include <cuda.h>
 #include <cuda_runtime.h>
-
-#include "../gpu_interface.h"
 
 /********************************
 Common constants for Device & Host
@@ -41,14 +40,14 @@ Common constants for Device & Host
 #define GPU_ROUND(NUM) ((int)((NUM) < 0 ? ((NUM) - 0.5) : ((NUM) + 0.5)))
 #define GPU_MIN(NUM_A,NUM_B) (((NUM_A) < (NUM_B)) ? (NUM_A) : (NUM_B))
 #define GPU_MAX(NUM_A,NUM_B) (((NUM_A) > (NUM_B)) ? (NUM_A) : (NUM_B))
-#define GPU_ALIGN_TO(ADDR,BYTES) (GPU_DIV_CEIL(ADDR,BYTES) * BYTES)
+#define GPU_ALIGN_TO(ADDR,BYTES) ((void*)(GPU_DIV_CEIL((uint64_t)ADDR,BYTES) * BYTES))
 
 
 /* Conversion utils */
-#define GPU_CONVERT_B_TO_KB(number) ((number)/(1024))
-#define GPU_CONVERT_B_TO_MB(number) ((number)/(1024*1024))
-#define GPU_CONVERT_B_TO_GB(number) ((number)/(1024*1024*1024))
-#define GPU_CONVERT_MB_TO_B(number) ((number)*1024*1024)
+#define GPU_CONVERT_B_TO_KB(number) ((number) / (1024))
+#define GPU_CONVERT_B_TO_MB(number) ((number) / (1024 * 1024))
+#define GPU_CONVERT_B_TO_GB(number) ((number) / (1024 * 1024 * 1024))
+#define GPU_CONVERT_MB_TO_B(number) ((number) * (1024 * 1024))
 
 /* System */
 #define GPU_FILE_SIZE_LINES				250
@@ -63,5 +62,9 @@ Common constants for Device & Host
 #define GPU_ENC_DNA_CHAR_X    4LL
 #define GPU_ENC_DNA_CHAR_SEP  5LL
 #define GPU_ENC_DNA_CHAR_JUMP 6LL
+
+#include "../gpu_interface.h"
+#include "gpu_errors.h"
+#include "gpu_sample.h"
 
 #endif /* GPU_COMMONS_H_ */

@@ -1,7 +1,7 @@
 
 #include "../include/gpu_sample.h"
 
-double gpu_sample_time()
+GPU_INLINE double gpu_sample_time()
 {
 	struct timespec tv;
 

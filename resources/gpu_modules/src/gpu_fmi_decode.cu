@@ -8,8 +8,8 @@
 
 #include "../include/gpu_fmi_core.h"
 
-void __global__ gpu_fmi_decoding_positions_kernel(const gpu_fmi_device_entry_t *fmi, const uint64_t bwtSize, const uint32_t numDecodings,
-											  	  const uint64_t *d_initBWTPos, ulonglong2 *d_endBWTPos, const uint32_t samplingRate)
+void __global__ gpu_fmi_decoding_kernel(const gpu_fmi_device_entry_t *fmi, const uint64_t bwtSize, const uint32_t numDecodings,
+								   	    const uint64_t *d_initBWTPos, ulonglong2 *d_endBWTPos, const uint32_t samplingRate)
 {
 	const uint32_t globalThreadIdx      = blockIdx.x * GPU_MAX_THREADS_PER_SM + threadIdx.x;
 	const uint32_t localWarpThreadIdx   = globalThreadIdx % GPU_WARP_SIZE;
@@ -20,7 +20,7 @@ void __global__ gpu_fmi_decoding_positions_kernel(const gpu_fmi_device_entry_t *
 		const uint32_t decodeEntryIdx        = localWarpThreadIdx  / GPU_FMI_DECODE_THREADS_PER_ENTRY;
 		const uint32_t decodeEntryThreadIdx  = localWarpThreadIdx  % GPU_FMI_DECODE_THREADS_PER_ENTRY;
 		const uint32_t fmiEntryThreadIdx     = localWarpThreadIdx  % GPU_FMI_THREADS_PER_ENTRY;
-		const uint32_t loadFMIEntryThreadIdx = generateLoadThreadIdx(decodeEntryThreadIdx);
+		const uint32_t loadFMIEntryThreadIdx = generate_load_threadIdx(decodeEntryThreadIdx);
 
 			  uint4    loadEntry;
 			  uint64_t interval = d_initBWTPos[idDecoding], idStep = 0;
@@ -68,7 +68,7 @@ void __global__ gpu_fmi_decoding_positions_kernel(const gpu_fmi_device_entry_t *
 }
 
 extern "C"
-gpu_error_t gpu_fmi_decoding_launch_kernel(gpu_fmi_device_entry_t *d_fmi, uint64_t bwtSize, uint32_t numDecodings, uint64_t *d_initBWTPos, ulonglong2 *d_endBWTPos)
+GPU_INLINE gpu_error_t gpu_fmi_decoding_launch_kernel(gpu_fmi_device_entry_t *d_fmi, uint64_t bwtSize, uint32_t numDecodings, uint64_t *d_initBWTPos, ulonglong2 *d_endBWTPos)
 {
 	const uint32_t samplingRate = 4;
 	const uint32_t threads = 128;
@@ -84,7 +84,7 @@ gpu_error_t gpu_fmi_decoding_launch_kernel(gpu_fmi_device_entry_t *d_fmi, uint64
 	cudaEventRecord(start, 0);
 
 		for(uint32_t iteration = 0; iteration < nreps; ++iteration)
-			gpu_fmi_decoding_positions_kernel<<<blocks,threads>>>(d_fmi, bwtSize, numDecodings, d_initBWTPos, d_endBWTPos, samplingRate);
+			gpu_fmi_decoding_kernel<<<blocks,threads>>>(d_fmi, bwtSize, numDecodings, d_initBWTPos, d_endBWTPos, samplingRate);
 
 	cudaEventRecord(stop, 0);
 	cudaThreadSynchronize();
@@ -98,17 +98,15 @@ gpu_error_t gpu_fmi_decoding_launch_kernel(gpu_fmi_device_entry_t *d_fmi, uint64
 	return(SUCCESS);
 }
 
-
-extern "C"
 gpu_error_t gpu_fmi_decode_process_buffer(gpu_buffer_t *mBuff)
 {
-	gpu_index_buffer_t 			  	 *index    	  = mBuff->index;
-	gpu_fmi_decode_buffer_t			 *decBuff	  = mBuff->data.decode;
-	gpu_fmi_decode_init_pos_buffer_t *initPos     = mBuff->data.decode.initPositions;
-	gpu_fmi_decode_end_pos_buffer_t  *endPos 	  = mBuff->data.decode.endPositions;
-	uint32_t 					     numDecodings = mBuff->data.decode.initPositions.numDecodings;
-	cudaStream_t 				     idStream	  = mBuff->idStream;
-	uint32_t					     idSupDev 	  = mBuff->device->idSupportedDevice;
+	gpu_index_buffer_t 			  	 *index    	  =  mBuff->index;
+	gpu_fmi_decode_buffer_t			 *decBuff	  = &mBuff->data.decode;
+	gpu_fmi_decode_init_pos_buffer_t *initPos     = &mBuff->data.decode.initPositions;
+	gpu_fmi_decode_end_pos_buffer_t  *endPos 	  = &mBuff->data.decode.endPositions;
+	uint32_t 					     numDecodings =  mBuff->data.decode.initPositions.numDecodings;
+	cudaStream_t 				     idStream	  =  mBuff->idStream;
+	uint32_t					     idSupDev 	  =  mBuff->idSupportedDevice;
 
 	const uint32_t threadsPerBlock = GPU_MAX_THREADS_PER_BLOCK;
 	const uint32_t numThreads = numDecodings * GPU_FMI_DECODE_THREADS_PER_ENTRY;

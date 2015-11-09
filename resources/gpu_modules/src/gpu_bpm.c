@@ -49,7 +49,7 @@ GPU_INLINE gpu_bpm_alg_entry_t* gpu_bpm_buffer_get_alignments_(void *bpmBuffer){
 
 
 /************************************************************
-Functions to init all the Myers resources
+Functions to init all the BPM resources
 ************************************************************/
 
 GPU_INLINE float gpu_bpm_size_per_candidate(const uint32_t averageNumPEQEntries, const uint32_t candidatesPerQuery)
@@ -133,6 +133,7 @@ GPU_INLINE void gpu_bpm_init_buffer_(void* bpmBuffer, const uint32_t averageNumP
 	const size_t	sizeBuff   = mBuff->sizeBuffer;
 	const uint32_t	numInputs  = ((float)sizeBuff / gpu_bpm_size_per_candidate(averageNumPEQEntries, candidatesPerQuery));
 	const uint32_t	maxCandidates = numInputs - gpu_bpm_candidates_for_binning_padding() - GPU_BPM_CANDIDATES_BUFFER_PADDING;
+	const uint32_t  bucketPaddingCandidates = gpu_bpm_candidates_for_binning_padding();
 
 	//Set real size of the input
 	mBuff->data.bpm.maxCandidates = maxCandidates;
@@ -147,16 +148,16 @@ GPU_INLINE void gpu_bpm_init_buffer_(void* bpmBuffer, const uint32_t averageNumP
 }
 
 /************************************************************
-Functions to send & process a Myers buffer to GPU
+Functions to send & process a BPM buffer to GPU
 ************************************************************/
 
 GPU_INLINE gpu_error_t gpu_bpm_reordering_buffer(gpu_buffer_t *mBuff)
 {
 
-	gpu_bpm_queries_buffer_t  	*qry  		= mBuff->data.bpm.queries;
-	gpu_bpm_candidates_buffer_t	*cand 		= mBuff->data.bpm.candidates;
-	gpu_bpm_reorder_buffer_t  	*rebuff 	= mBuff->data.bpm.reorderBuffer;
-	gpu_bpm_alignments_buffer_t	*res  		= mBuff->data.bpm.alignments;
+	gpu_bpm_queries_buffer_t  	*qry  		= &mBuff->data.bpm.queries;
+	gpu_bpm_candidates_buffer_t	*cand 		= &mBuff->data.bpm.candidates;
+	gpu_bpm_reorder_buffer_t  	*rebuff 	= &mBuff->data.bpm.reorderBuffer;
+	gpu_bpm_alignments_buffer_t	*res  		= &mBuff->data.bpm.alignments;
 
 	uint32_t idBucket, idCandidate, idBuff;
 	uint32_t numThreadsPerQuery;
@@ -185,7 +186,7 @@ GPU_INLINE gpu_error_t gpu_bpm_reordering_buffer(gpu_buffer_t *mBuff)
 	}
 
 	//Number of warps per bucket
-	rebuff->candidatesPerBufffer = 0;
+	rebuff->candidatesPerBuffer = 0;
 	for(idBucket = 0; idBucket < rebuff->numBuckets - 1; idBucket++){
 		numThreadsPerQuery = idBucket + 1;
 		numQueriesPerWarp = GPU_WARP_SIZE / numThreadsPerQuery;
@@ -199,7 +200,7 @@ GPU_INLINE gpu_error_t gpu_bpm_reordering_buffer(gpu_buffer_t *mBuff)
 		rebuff->h_initWarpPerBucket[idBucket] = rebuff->h_initWarpPerBucket[idBucket-1] + numWarpsPerBucket[idBucket-1];
 
 	//Allocate buffer (candidates)
-	for(idBuff = 0; idBuff < rebuff->candidatesPerBufffer; idBuff++)
+	for(idBuff = 0; idBuff < rebuff->candidatesPerBuffer; idBuff++)
 		rebuff->h_reorderBuffer[idBuff] = GPU_UINT32_ONES;
 
 	//Set the number of real results in the reorder buffer
@@ -229,10 +230,10 @@ GPU_INLINE gpu_error_t gpu_bpm_reordering_buffer(gpu_buffer_t *mBuff)
 
 GPU_INLINE gpu_error_t gpu_bpm_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
 {
-	gpu_bpm_queries_buffer_t  	*qry  		= mBuff->data.bpm.queries;
-	gpu_bpm_candidates_buffer_t	*cand 		= mBuff->data.bpm.candidates;
-	gpu_bpm_reorder_buffer_t  	*rebuff 	= mBuff->data.bpm.reorderBuffer;
-	gpu_bpm_alignments_buffer_t	*res  		= mBuff->data.bpm.alignments;
+	gpu_bpm_queries_buffer_t  	*qry  		= &mBuff->data.bpm.queries;
+	gpu_bpm_candidates_buffer_t	*cand 		= &mBuff->data.bpm.candidates;
+	gpu_bpm_reorder_buffer_t  	*rebuff 	= &mBuff->data.bpm.reorderBuffer;
+	gpu_bpm_alignments_buffer_t	*res  		= &mBuff->data.bpm.alignments;
 	cudaStream_t 				idStream 	= mBuff->idStream;
 	size_t 						cpySize;
 
@@ -262,8 +263,8 @@ GPU_INLINE gpu_error_t gpu_bpm_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
 
 GPU_INLINE gpu_error_t gpu_bpm_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
 {
-	cudaStream_t 				idStream 	= mBuff->idStream;
-	gpu_bpm_alignments_buffer_t	*res  		= mBuff->data.bpm.alignments;
+	cudaStream_t 				idStream 	=  mBuff->idStream;
+	gpu_bpm_alignments_buffer_t	*res  		= &mBuff->data.bpm.alignments;
 	size_t 						cpySize;
 
 	cpySize = res->numReorderedAlignments * sizeof(gpu_bpm_alg_entry_t);
@@ -275,6 +276,7 @@ GPU_INLINE gpu_error_t gpu_bpm_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
 GPU_INLINE void gpu_bpm_send_buffer_(void *bpmBuffer, const uint32_t numPEQEntries, const uint32_t numQueries, const uint32_t numCandidates)
 {
 	gpu_buffer_t *mBuff = (gpu_buffer_t *) bpmBuffer;
+	const uint32_t idSupDevice = mBuff->idSupportedDevice;
 
 	//Set real size of the things
 	mBuff->data.bpm.queries.totalQueriesEntries = numPEQEntries;
@@ -283,7 +285,7 @@ GPU_INLINE void gpu_bpm_send_buffer_(void *bpmBuffer, const uint32_t numPEQEntri
 	mBuff->data.bpm.alignments.numAlignments	= numCandidates;
 
 	//Select the device of the Multi-GPU platform
-    CUDA_ERROR(cudaSetDevice(mBuff->device->idDevice));
+    CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
 
 	//CPU->GPU Transfers & Process Kernel in Asynchronous way
 	GPU_ERROR(gpu_bpm_reordering_buffer(mBuff));
@@ -302,11 +304,11 @@ Functions to receive & process a BPM buffer from GPU
 
 GPU_INLINE gpu_error_t gpu_bpm_reordering_alignments(gpu_buffer_t *mBuff)
 {
-	gpu_bpm_reorder_buffer_t  	*rebuff = mBuff->data.bpm.reorderBuffer;
-	gpu_bpm_alignments_buffer_t	*res  	= mBuff->data.bpm.alignments;
+	gpu_bpm_reorder_buffer_t  	*rebuff = &mBuff->data.bpm.reorderBuffer;
+	gpu_bpm_alignments_buffer_t	*res  	= &mBuff->data.bpm.alignments;
 	uint32_t idRes;
 
-	for(idRes = 0; idRes < res->numReorderedResults; idRes++)
+	for(idRes = 0; idRes < res->numReorderedAlignments; idRes++)
 		res->h_alignments[rebuff->h_reorderBuffer[idRes]] = res->h_reorderAlignments[idRes];
 
 	return (SUCCESS);
@@ -315,10 +317,11 @@ GPU_INLINE gpu_error_t gpu_bpm_reordering_alignments(gpu_buffer_t *mBuff)
 GPU_INLINE void gpu_bpm_receive_buffer_(void *bpmBuffer)
 {
 	gpu_buffer_t *mBuff = (gpu_buffer_t *) bpmBuffer;
+	const uint32_t idSupDevice = mBuff->idSupportedDevice;
 	uint32_t error;
 
 	//Select the device of the Multi-GPU platform
-    CUDA_ERROR(cudaSetDevice(mBuff->device->idDevice));
+    CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
 
 	//Synchronize Stream (the thread wait for the commands done in the stream)
 	CUDA_ERROR(cudaStreamSynchronize(mBuff->idStream));

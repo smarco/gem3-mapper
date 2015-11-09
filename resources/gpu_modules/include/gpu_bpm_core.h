@@ -1,10 +1,12 @@
 
+
+#include "gpu_commons.h"
+#include "gpu_resources.h"
+#include "gpu_reference.h"
+#include "gpu_buffers.h"
+
 #ifndef GPU_BPM_CORE_H_
 #define GPU_BPM_CORE_H_
-
-#include "gpu_resources.h"
-#include "gpu_commons.h"
-#include "gpu_scheduler.h"
 
 GPU_INLINE __device__ void shuffle_collaborative_shift(uint32_t *value, const uint32_t shiftedBits,
 													   const uint32_t localThreadIdx, const uint32_t BMPS_PER_THREAD)
@@ -45,7 +47,7 @@ GPU_INLINE __device__ void shuffle_collaborative_sum(const uint32_t *A, const ui
 	}
 }
 
-GPU_INLINE __device__ void setBMP(uint32_t *BMP, const uint4 BMPv4)
+GPU_INLINE __device__ void set_BMP(uint32_t *BMP, const uint4 BMPv4)
 {
 	BMP[0] = BMPv4.x;
 	BMP[1] = BMPv4.y;
@@ -53,9 +55,19 @@ GPU_INLINE __device__ void setBMP(uint32_t *BMP, const uint4 BMPv4)
 	BMP[3] = BMPv4.w;
 }
 
+inline __device__ uint32_t select(const int32_t indexWord, uint32_t *BMP, uint32_t value, const uint32_t BMPS_PER_THREAD)
+{
+	#pragma unroll
+	for(uint32_t i = 0; i < BMPS_PER_THREAD; ++i){
+		const uint32_t tmp = BMP[i];
+		value = (indexWord == i) ? tmp : value;
+	}
+	return value;
+}
+
 GPU_INLINE __device__ uint64_t funnelShiftL(const uint64_t currentCandidateEntry,
-				    				   		 const uint64_t lastCandidateEntry,
-				    				   		 const uint32_t shiftedBits)
+				    				   		const uint64_t lastCandidateEntry,
+				    				   		const uint32_t shiftedBits)
 {
 	const uint32_t complementShiftedBits = GPU_UINT64_LENGTH - shiftedBits;
 

@@ -1,7 +1,10 @@
 
 #include "../include/gpu_reference.h"
 
-//ok
+/************************************************************
+String basic functions
+************************************************************/
+
 GPU_INLINE uint64_t gpu_char_to_bin_ASCII(unsigned char base)
 {
 	switch(base)
@@ -23,7 +26,21 @@ GPU_INLINE uint64_t gpu_char_to_bin_ASCII(unsigned char base)
 	}
 }
 
-//ok
+GPU_INLINE char gpu_complement_base(const char character)
+{
+	char referenceChar = character;
+	referenceChar = (character == GPU_ENC_DNA_CHAR_A) ? GPU_ENC_DNA_CHAR_T : referenceChar;
+	referenceChar = (character == GPU_ENC_DNA_CHAR_C) ? GPU_ENC_DNA_CHAR_G : referenceChar;
+	referenceChar = (character == GPU_ENC_DNA_CHAR_G) ? GPU_ENC_DNA_CHAR_C : referenceChar;
+	referenceChar = (character == GPU_ENC_DNA_CHAR_T) ? GPU_ENC_DNA_CHAR_A : referenceChar;
+	return(referenceChar);
+}
+
+
+/************************************************************
+Transform reference functions
+************************************************************/
+
 GPU_INLINE gpu_error_t gpu_transform_reference_ASCII(const char *referenceASCII, gpu_reference_buffer_t *reference)
 {
 	uint64_t indexBase, bitmap;
@@ -46,70 +63,7 @@ GPU_INLINE gpu_error_t gpu_transform_reference_ASCII(const char *referenceASCII,
 	return(SUCCESS);
 }
 
-//ok
-GPU_INLINE gpu_error_t gpu_load_reference_MFASTA(const char *fn, gpu_reference_buffer_t *reference)
-{
-	FILE *fp = NULL;
-	char lineFile[GPU_FILE_SIZE_LINES], *tmp_reference;
-	uint64_t sizeFile = 0, position = 0;
-	int32_t charsRead = 0;
-
-	fp = fopen(fn, "rb");
-	if (fp == NULL) return (E_OPENING_FILE);
-
-	fseek(fp, 0L, SEEK_END);
-	sizeFile = ftell(fp);
-	rewind(fp);
-
-	tmp_reference = (char*) malloc(sizeFile * sizeof(char));
-	if (tmp_reference == NULL) return (E_ALLOCATE_MEM);
-
-	if ((fgets(lineFile, GPU_FILE_SIZE_LINES, fp) == NULL) || (lineFile[0] != '>'))
-		return (E_READING_FILE);
-
-	while((!feof(fp)) && (fgets(lineFile, GPU_FILE_SIZE_LINES, fp) != NULL)){
-		if (lineFile[0] != '>'){
-			charsRead = strlen(lineFile);
-			if(charsRead) charsRead--;
-			memcpy((tmp_reference + position), lineFile, charsRead);
-			position +=  charsRead;
-		}
-	}
-
-	reference->size = position;
-	reference->numEntries = GPU_DIV_CEIL(reference->size, GPU_REFERENCE_CHARS_PER_ENTRY) + GPU_REFERENCE_END_PADDING;
-	GPU_ERROR(gpu_transform_reference_ASCII(tmp_reference, reference));
-
-	fclose(fp);
-	free(tmp_reference);
-	return (SUCCESS);
-}
-
-//ok
-GPU_INLINE gpu_error_t gpu_load_reference_PROFILE(const char *fn, gpu_reference_buffer_t *reference)
-{
-	FILE *fp = NULL;
-	size_t result;
-
-	fp = fopen(fn, "rb");
-	if (fp == NULL) return (E_OPENING_FILE);
-
-    result = fread(&reference->numEntries, sizeof(uint64_t), 1, fp);
-	if (result != 1) return (E_READING_FILE);
-    result = fread(&reference->size, sizeof(uint64_t), 1, fp);
-	if (result != 1) return (E_READING_FILE);
-
-	CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint64_t), cudaHostAllocMapped));
-
-	result = fread(reference->h_reference, sizeof(uint64_t), reference->numEntries, fp);
-	if (result != reference->numEntries) return (E_READING_FILE);
-
-	fclose(fp);
-	return (SUCCESS);
-}
-
-//ok
-GPU_INLINE gpu_error_t gpu_transform_Reference_GEM_FR(const char *referenceGEM, gpu_reference_buffer_t *reference)
+GPU_INLINE gpu_error_t gpu_transform_reference_GEM_FR(const char *referenceGEM, gpu_reference_buffer_t *reference)
 {
 	uint64_t indexBase, bitmap;
 	uint64_t idEntry, i, referencePosition;
@@ -131,18 +85,7 @@ GPU_INLINE gpu_error_t gpu_transform_Reference_GEM_FR(const char *referenceGEM, 
 	return(SUCCESS);
 }
 
-//ok
-GPU_INLINE char gpu_complement_base(const char character)
-{
-	referenceChar = character;
-	referenceChar = (character == GPU_ENC_DNA_CHAR_A) ? GPU_ENC_DNA_CHAR_T : referenceChar;
-	referenceChar = (character == GPU_ENC_DNA_CHAR_C) ? GPU_ENC_DNA_CHAR_G : referenceChar;
-	referenceChar = (character == GPU_ENC_DNA_CHAR_G) ? GPU_ENC_DNA_CHAR_C : referenceChar;
-	referenceChar = (character == GPU_ENC_DNA_CHAR_T) ? GPU_ENC_DNA_CHAR_A : referenceChar;
-	return(referenceChar);
-}
 
-//ok
 GPU_INLINE gpu_error_t gpu_transform_reference_GEM_F(const char *referenceGEM, gpu_reference_buffer_t *reference)
 {
 	uint64_t indexBase, bitmap;
@@ -181,6 +124,77 @@ GPU_INLINE gpu_error_t gpu_transform_reference_GEM_F(const char *referenceGEM, g
 	return(SUCCESS);
 }
 
+
+/************************************************************
+Input & Output reference functions
+************************************************************/
+
+GPU_INLINE gpu_error_t gpu_load_reference_MFASTA(const char *fn, gpu_reference_buffer_t *reference)
+{
+	FILE *fp = NULL;
+	char lineFile[GPU_FILE_SIZE_LINES], *tmp_reference;
+	uint64_t sizeFile = 0, position = 0;
+	int32_t charsRead = 0;
+
+	fp = fopen(fn, "rb");
+	if (fp == NULL) return (E_OPENING_FILE);
+
+	fseek(fp, 0L, SEEK_END);
+	sizeFile = ftell(fp);
+	rewind(fp);
+
+	tmp_reference = (char*) malloc(sizeFile * sizeof(char));
+	if (tmp_reference == NULL) return (E_ALLOCATE_MEM);
+
+	if ((fgets(lineFile, GPU_FILE_SIZE_LINES, fp) == NULL) || (lineFile[0] != '>'))
+		return (E_READING_FILE);
+
+	while((!feof(fp)) && (fgets(lineFile, GPU_FILE_SIZE_LINES, fp) != NULL)){
+		if (lineFile[0] != '>'){
+			charsRead = strlen(lineFile);
+			if(charsRead) charsRead--;
+			memcpy((tmp_reference + position), lineFile, charsRead);
+			position +=  charsRead;
+		}
+	}
+
+	reference->size = position;
+	reference->numEntries = GPU_DIV_CEIL(reference->size, GPU_REFERENCE_CHARS_PER_ENTRY) + GPU_REFERENCE_END_PADDING;
+	GPU_ERROR(gpu_transform_reference_ASCII(tmp_reference, reference));
+
+	fclose(fp);
+	free(tmp_reference);
+	return (SUCCESS);
+}
+
+GPU_INLINE gpu_error_t gpu_load_reference_PROFILE(const char *fn, gpu_reference_buffer_t *reference)
+{
+	FILE *fp = NULL;
+	size_t result;
+
+	fp = fopen(fn, "rb");
+	if (fp == NULL) return (E_OPENING_FILE);
+
+    result = fread(&reference->numEntries, sizeof(uint64_t), 1, fp);
+	if (result != 1) return (E_READING_FILE);
+    result = fread(&reference->size, sizeof(uint64_t), 1, fp);
+	if (result != 1) return (E_READING_FILE);
+
+	CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint64_t), cudaHostAllocMapped));
+
+	result = fread(reference->h_reference, sizeof(uint64_t), reference->numEntries, fp);
+	if (result != reference->numEntries) return (E_READING_FILE);
+
+	fclose(fp);
+	return (SUCCESS);
+}
+
+
+
+/************************************************************
+Functions to get the GPU FMI buffers
+************************************************************/
+
 GPU_INLINE gpu_error_t gpu_init_reference(gpu_reference_buffer_t **reference, const char *referenceRaw,
 										  const uint64_t refSize, const gpu_ref_coding_t refCoding,
 										  const uint32_t numSupportedDevices)
@@ -196,7 +210,7 @@ GPU_INLINE gpu_error_t gpu_init_reference(gpu_reference_buffer_t **reference, co
 	ref->d_reference = (uint64_t **) malloc(numSupportedDevices * sizeof(uint64_t *));
 	if (ref->d_reference == NULL) GPU_ERROR(E_ALLOCATE_MEM);
 
-	ref->memorySpace = (gpu_data_location_t *) malloc(numSupportedDevices * sizeof(gpu_data_location_t));
+	ref->memorySpace = (memory_alloc_t *) malloc(numSupportedDevices * sizeof(memory_alloc_t));
 	if (ref->memorySpace == NULL) GPU_ERROR(E_ALLOCATE_MEM);
 
 	switch(refCoding){
@@ -204,10 +218,10 @@ GPU_INLINE gpu_error_t gpu_init_reference(gpu_reference_buffer_t **reference, co
     		GPU_ERROR(gpu_transform_reference_ASCII(referenceRaw, ref));
     		break;
     	case GPU_REF_GEM_FULL:
-    		GPU_ERROR(gpu_transform_reference_GEMFR(referenceRaw, ref));
+    		GPU_ERROR(gpu_transform_reference_GEM_FR(referenceRaw, ref));
     		break;
     	case GPU_REF_GEM_ONLY_FORWARD:
-    		GPU_ERROR(gpu_transform_reference_GEMF(referenceRaw, ref));
+    		GPU_ERROR(gpu_transform_reference_GEM_F(referenceRaw, ref));
     		break;
     	case GPU_REF_MFASTA_FILE:
     		GPU_ERROR(gpu_load_reference_MFASTA(referenceRaw, ref));
@@ -224,14 +238,13 @@ GPU_INLINE gpu_error_t gpu_init_reference(gpu_reference_buffer_t **reference, co
 	return (SUCCESS);
 }
 
-//ok
 GPU_INLINE gpu_error_t gpu_transfer_reference_CPU_to_GPUs(gpu_reference_buffer_t *reference, gpu_device_info_t **devices)
 {
 	uint32_t deviceFreeMemory, idSupportedDevice;
 	uint32_t numSupportedDevices = devices[0]->numSupportedDevices;
 
 	for(idSupportedDevice = 0; idSupportedDevice < numSupportedDevices; ++idSupportedDevice){
-		if(reference[idSupportedDevice]->memorySpace == GPU_DEVICE_MAPPED){
+		if(reference->memorySpace[idSupportedDevice] == GPU_DEVICE_MAPPED){
 			const size_t cpySize = reference->numEntries * sizeof(uint64_t);
 			deviceFreeMemory = gpu_get_device_free_memory(devices[idSupportedDevice]->idDevice);
 			if ((GPU_CONVERT_B_TO_MB(cpySize)) > deviceFreeMemory) return(E_INSUFFICIENT_MEM_GPU);
@@ -248,7 +261,10 @@ GPU_INLINE gpu_error_t gpu_transfer_reference_CPU_to_GPUs(gpu_reference_buffer_t
 }
 
 
-//ok
+/************************************************************
+Free reference functions
+************************************************************/
+
 GPU_INLINE gpu_error_t gpu_free_reference_host(gpu_reference_buffer_t *reference)
 {
     if(reference->h_reference != NULL){
@@ -259,7 +275,6 @@ GPU_INLINE gpu_error_t gpu_free_reference_host(gpu_reference_buffer_t *reference
     return(SUCCESS);
 }
 
-//ok
 GPU_INLINE gpu_error_t gpu_free_unused_reference_host(gpu_reference_buffer_t *reference, gpu_device_info_t **devices)
 {
 	uint32_t idSupportedDevice, numSupportedDevices;
@@ -279,7 +294,6 @@ GPU_INLINE gpu_error_t gpu_free_unused_reference_host(gpu_reference_buffer_t *re
     return(SUCCESS);
 }
 
-//ok
 GPU_INLINE gpu_error_t gpu_free_reference_device(gpu_reference_buffer_t *reference, gpu_device_info_t **devices)
 {
 	const uint32_t numSupportedDevices = devices[0]->numSupportedDevices;
