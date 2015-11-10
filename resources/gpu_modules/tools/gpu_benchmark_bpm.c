@@ -280,7 +280,7 @@ double processMyersGPU(char *refFile, char *qryFile, uint32_t numBuffers, uint32
 					  NULL, GPU_NONE_DATA, 0,
 					  GPU_BPM, GPU_ARCH_SUPPORTED, GPU_LOCAL_DATA, 0);
 
-	ts = gpu_sample_time();
+	ts = sample_time();
 
 		#pragma omp parallel for num_threads(numThreads) schedule(static,1) private(idTask, idBuffer)
 		for(idTask = 0; idTask < numTasks; ++idTask){
@@ -299,7 +299,7 @@ double processMyersGPU(char *refFile, char *qryFile, uint32_t numBuffers, uint32
 				getFromBuffer(buffer[idBuffer], &testData[idBuffer]);
 		}
 
-	ts1 = gpu_sample_time();
+	ts1 = sample_time();
 	gpu_destroy_buffers_(&buffer);
 
 	//Save last state of each buffer
@@ -329,7 +329,7 @@ double processSmithWatermanCPU(char *refFile, char *qryFile, uint32_t numThreads
 		if (matrix[tID] == NULL) {fprintf(stderr, "Error allocating SW matrix \n"); exit(EXIT_FAILURE);}
 	}
 
-	ts = gpu_sample_time();
+	ts = sample_time();
 
 	#pragma omp parallel num_threads(numThreads)
 
@@ -352,7 +352,7 @@ double processSmithWatermanCPU(char *refFile, char *qryFile, uint32_t numThreads
 		}
 	}
 
-	ts1 = gpu_sample_time();
+	ts1 = sample_time();
 
 	error = saveResults(qryFile, &testData, numBuffers);
 	if(error != 0) {fprintf(stderr, "Error %d, saving results \n", error); exit(EXIT_FAILURE);}

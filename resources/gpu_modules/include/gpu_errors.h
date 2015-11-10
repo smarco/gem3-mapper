@@ -34,7 +34,7 @@ typedef enum
 Functions to handle errors
 ************************************************************/
 
-GPU_INLINE void cudaError(cudaError_t err, const char *file,  int line )
+static GPU_INLINE void cudaError(cudaError_t err, const char *file,  int line )
 {
    	if (err != cudaSuccess) {
       		fprintf(stderr, "%s in %s at line %d\n", cudaGetErrorString(err),  file, line );
@@ -42,7 +42,7 @@ GPU_INLINE void cudaError(cudaError_t err, const char *file,  int line )
    	}
 }
 
-GPU_INLINE const char* gpuGetErrorString(gpu_error_t error)
+static GPU_INLINE const char* gpuGetErrorString(gpu_error_t error)
 {
     switch(error) {
         case E_OPENING_FILE:  			return "GEM GPU - Error: opening file";
@@ -55,7 +55,7 @@ GPU_INLINE const char* gpuGetErrorString(gpu_error_t error)
     }
 }
 
-GPU_INLINE void gpuError(gpu_error_t err, const char *file,  int line)
+static GPU_INLINE void gpuError(gpu_error_t err, const char *file,  int line)
 {
    	if (err != SUCCESS) {
       		fprintf(stderr, "%s in %s at line %d\n", gpuGetErrorString(err),  file, line );
