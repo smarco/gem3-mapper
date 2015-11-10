@@ -6,14 +6,17 @@
  * DESCRIPTION: Interface for BPM on GPU
  */
 
-#include "gpu_bpm_interface.h"
-#include "gpu_fmi_interface.h"
+#include <stdint.h>
+#include <stdbool.h>
 
 /*
  * Constants
  */
 #define GPU_UINT32_ONE_MASK     0x00000001u
 #define	GPU_UINT32_LENGTH		32
+
+#include "gpu_bpm_interface.h"
+#include "gpu_fmi_interface.h"
 
 /*
  * Enum types for Device & Host
@@ -58,6 +61,7 @@ typedef enum
 } gpu_dev_arch_t;
 
 
+
 /*
  * Get elements
  */
@@ -69,12 +73,12 @@ uint32_t gpu_buffer_get_id_device_(void* gpu_buffer);
  * Main functions
  */
 
-inline void gpu_init_buffers_(void ***gpuBuffer, uint32_t numBuffers, float maxMbPerBuffer,
+void gpu_init_buffers_(void ***gpuBuffer, uint32_t numBuffers, float maxMbPerBuffer,
 						  	  const char *referenceRaw, gpu_ref_coding_t refCoding, const uint64_t refSize,
 						  	  void *indexRaw, gpu_index_coding_t indexCoding, const uint64_t bwtSize,
 						  	  const gpu_module_t activeModules, gpu_dev_arch_t selectedArchitectures,
 						  	  gpu_data_location_t userAllocOption, const bool verbose);
 
-inline void gpu_alloc_buffer_(void *gpuBuffer);
-inline void gpu_destroy_buffers_(void*** gpuBuffer);
+void gpu_alloc_buffer_(void *gpuBuffer);
+void gpu_destroy_buffers_(void*** gpuBuffer);
 

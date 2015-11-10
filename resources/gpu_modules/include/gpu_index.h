@@ -42,8 +42,16 @@ typedef union {
 	uint4 v[GPU_FMI_THREADS_PER_ENTRY];
 } gpu_fmi_device_entry_t;
 
+typedef struct {
+	uint32_t bitmaps[GPU_FMI_BWT_CHAR_LENGTH];
+} gpu_index_bitmap_entry_t;
+
+typedef struct {
+	uint64_t counters[GPU_FMI_NUM_COUNTERS];
+} gpu_index_counter_entry_t;
+
 /* Functions to initialize the index data on the DEVICE*/
-gpu_error_t gpu_load_index_PROFILE(const char *fn, gpu_index_buffer_t *index);
+gpu_error_t gpu_transform_index_ASCII(const char *h_BWT, gpu_index_buffer_t *fmi);
 gpu_error_t gpu_transfer_index_CPU_to_GPUs(gpu_index_buffer_t *index, gpu_device_info_t **devices);
 gpu_error_t gpu_init_index(gpu_index_buffer_t **index, const char *indexRaw,
 									  const uint64_t bwtSize, const gpu_index_coding_t indexCoding,
@@ -54,5 +62,13 @@ gpu_error_t gpu_free_unused_index_host(gpu_index_buffer_t *index, gpu_device_inf
 gpu_error_t gpu_free_index_device(gpu_index_buffer_t *index, gpu_device_info_t **devices);
 gpu_error_t gpu_free_index(gpu_index_buffer_t **index, gpu_device_info_t **devices);
 
+/* Primitives to build indexes */
+gpu_error_t gpu_index_build_FMI(gpu_index_buffer_t *fmi, gpu_index_bitmap_entry_t *h_bitmap_BWT,
+								gpu_index_counter_entry_t *h_counters_FMI);
+
+/* I/O indexes */
+gpu_error_t gpu_load_BWT_MFASTA(const char *fn, gpu_index_buffer_t *fmi, char **h_BWT);
+gpu_error_t gpu_save_index_PROFILE(const char *fn, gpu_index_buffer_t *index);
+gpu_error_t gpu_load_index_PROFILE(const char *fn, gpu_index_buffer_t *index);
 
 #endif /* GPU_INDEX_H_ */

@@ -273,7 +273,8 @@ GPU_INLINE gpu_error_t gpu_bpm_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
 	return (SUCCESS);
 }
 
-GPU_INLINE void gpu_bpm_send_buffer_(void *bpmBuffer, const uint32_t numPEQEntries, const uint32_t numQueries, const uint32_t numCandidates)
+GPU_INLINE void gpu_bpm_send_buffer_(void *bpmBuffer, const uint32_t numPEQEntries, const uint32_t numQueries,
+									const uint32_t numCandidates, const uint32_t sizeCandidates)
 {
 	gpu_buffer_t *mBuff = (gpu_buffer_t *) bpmBuffer;
 	const uint32_t idSupDevice = mBuff->idSupportedDevice;
