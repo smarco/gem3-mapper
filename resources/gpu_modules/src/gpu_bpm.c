@@ -39,7 +39,7 @@ GPU_INLINE gpu_bpm_cand_info_t* gpu_bpm_buffer_get_candidates_(void *bpmBuffer){
 
 GPU_INLINE gpu_bpm_qry_info_t* gpu_bpm_buffer_get_peq_info_(void *bpmBuffer){
 	gpu_buffer_t *mBuff = (gpu_buffer_t *) bpmBuffer;
-	return(mBuff->data.bpm.queries.d_qinfo);
+	return(mBuff->data.bpm.queries.h_qinfo);
 }
 
 GPU_INLINE gpu_bpm_alg_entry_t* gpu_bpm_buffer_get_alignments_(void *bpmBuffer){
@@ -135,6 +135,9 @@ GPU_INLINE void gpu_bpm_init_buffer_(void* bpmBuffer, const uint32_t averageNumP
 	const uint32_t	maxCandidates = numInputs - gpu_bpm_candidates_for_binning_padding() - GPU_BPM_CANDIDATES_BUFFER_PADDING;
 	const uint32_t  bucketPaddingCandidates = gpu_bpm_candidates_for_binning_padding();
 
+	//set the type of the buffer
+	mBuff->typeBuffer = GPU_BPM;
+
 	//Set real size of the input
 	mBuff->data.bpm.maxCandidates = maxCandidates;
 	mBuff->data.bpm.maxAlignments = maxCandidates;
@@ -159,23 +162,24 @@ GPU_INLINE gpu_error_t gpu_bpm_reordering_buffer(gpu_buffer_t *mBuff)
 	gpu_bpm_reorder_buffer_t  	*rebuff 	= &mBuff->data.bpm.reorderBuffer;
 	gpu_bpm_alignments_buffer_t	*res  		= &mBuff->data.bpm.alignments;
 
+	const uint32_t numBuckets = GPU_BPM_NUM_BUCKETS_FOR_BINNING;
 	uint32_t idBucket, idCandidate, idBuff;
 	uint32_t numThreadsPerQuery;
 	uint32_t numQueriesPerWarp;
-	uint32_t tmpBuckets[rebuff->numBuckets];
-	uint32_t numCandidatesPerBucket[rebuff->numBuckets];
-	uint32_t numWarpsPerBucket[rebuff->numBuckets];
+	uint32_t tmpBuckets[numBuckets];
+	uint32_t numCandidatesPerBucket[numBuckets];
+	uint32_t numWarpsPerBucket[numBuckets];
 
 	//Re-init the reorderBuffer (to reuse the buffer)
-	rebuff->numBuckets = GPU_BPM_NUM_BUCKETS_FOR_BINNING;
+	rebuff->numBuckets = numBuckets;
 	rebuff->candidatesPerBuffer = 0;
 	rebuff->numWarps = 0;
 
 	//Init buckets (32 buckets => max 4096 bases)
 	for(idBucket = 0; idBucket < rebuff->numBuckets; idBucket++){
 		numCandidatesPerBucket[idBucket] = 0;
-		numWarpsPerBucket[idBucket] = 0;
-		tmpBuckets[idBucket] = 0;
+		numWarpsPerBucket[idBucket] 	 = 0;
+		tmpBuckets[idBucket] 			 = 0;
 	}
 
 	//Fill buckets with elements per bucket

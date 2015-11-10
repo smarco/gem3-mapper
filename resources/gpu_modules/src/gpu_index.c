@@ -268,44 +268,54 @@ GPU_INLINE gpu_error_t gpu_transfer_index_CPU_to_GPUs(gpu_index_buffer_t *index,
 
 GPU_INLINE gpu_error_t gpu_init_index(gpu_index_buffer_t **index, const char *indexRaw,
 									  const uint64_t bwtSize, const gpu_index_coding_t indexCoding,
-									  const uint32_t numSupportedDevices)
+									  const uint32_t numSupportedDevices, gpu_module_t activeModules)
 {
 	gpu_index_buffer_t *fmi = (gpu_index_buffer_t *) malloc(sizeof(gpu_index_buffer_t));
+	uint32_t idSupDevice;
 
 	fmi->d_fmi  		 = NULL;
 	fmi->h_fmi 		 	 = NULL;
 	fmi->memorySpace 	 = NULL;
-	fmi->bwtSize 	 	 = bwtSize;
-	fmi->numEntries  	 = GPU_DIV_CEIL(fmi->bwtSize, GPU_FMI_ENTRY_SIZE) + 1;
-	char *h_BWT = NULL;
+	fmi->bwtSize 	 	 = 0;
+	fmi->numEntries  	 = 0;
+	fmi->activeModules	 = activeModules;
 
 	fmi->d_fmi = (gpu_fmi_entry_t **) malloc(numSupportedDevices * sizeof(gpu_fmi_entry_t *));
 	if (fmi->d_fmi == NULL) GPU_ERROR(E_ALLOCATE_MEM);
-
 	fmi->memorySpace = (memory_alloc_t *) malloc(numSupportedDevices * sizeof(memory_alloc_t));
 	if (fmi->memorySpace == NULL) GPU_ERROR(E_ALLOCATE_MEM);
 
-	switch(indexCoding){
-    	case GPU_INDEX_ASCII:
-    		GPU_ERROR(gpu_transform_index_ASCII(indexRaw, fmi));
-    		break;
-    	case GPU_INDEX_GEM_FULL:
-    		// TODO: Santiago GEM index transformation
-    		GPU_ERROR(E_NOT_IMPLEMENTED);
-    		break;
-    	case GPU_INDEX_MFASTA_FILE:
-    		GPU_ERROR(gpu_load_BWT_MFASTA(indexRaw, fmi, &h_BWT));
-    		GPU_ERROR(gpu_transform_index_ASCII(h_BWT, fmi));
-    		free(h_BWT);
-    		break;
-    	case GPU_INDEX_PROFILE_FILE:
-    		GPU_ERROR(gpu_load_index_PROFILE(indexRaw, fmi));
-    		break;
-    	default:
-    		GPU_ERROR(E_INDEX_CODING);
-    	break;
+	for(idSupDevice = 0; idSupDevice < numSupportedDevices; ++idSupDevice){
+		fmi->d_fmi[idSupDevice] 	  = NULL;
+		fmi->memorySpace[idSupDevice] = GPU_NONE_MAPPED;
 	}
 
+	if(activeModules & (GPU_FMI_DECODE_POS | GPU_FMI_EXACT_SEARCH)){
+		fmi->bwtSize 	 	 = bwtSize;
+		fmi->numEntries  	 = GPU_DIV_CEIL(fmi->bwtSize, GPU_FMI_ENTRY_SIZE) + 1;
+		char *h_BWT = NULL;
+
+		switch(indexCoding){
+			case GPU_INDEX_ASCII:
+				GPU_ERROR(gpu_transform_index_ASCII(indexRaw, fmi));
+				break;
+			case GPU_INDEX_GEM_FULL:
+				// TODO: Santiago GEM index transformation
+				GPU_ERROR(E_NOT_IMPLEMENTED);
+				break;
+			case GPU_INDEX_MFASTA_FILE:
+				GPU_ERROR(gpu_load_BWT_MFASTA(indexRaw, fmi, &h_BWT));
+				GPU_ERROR(gpu_transform_index_ASCII(h_BWT, fmi));
+				free(h_BWT);
+				break;
+			case GPU_INDEX_PROFILE_FILE:
+				GPU_ERROR(gpu_load_index_PROFILE(indexRaw, fmi));
+				break;
+			default:
+				GPU_ERROR(E_INDEX_CODING);
+			break;
+		}
+	}
 	(* index) = fmi;
 	return (SUCCESS);
 }
@@ -328,19 +338,21 @@ GPU_INLINE gpu_error_t gpu_free_index_host(gpu_index_buffer_t *index)
 
 GPU_INLINE gpu_error_t gpu_free_unused_index_host(gpu_index_buffer_t *index, gpu_device_info_t **devices)
 {
+	const gpu_module_t activeModules = index->activeModules;
 	uint32_t idSupportedDevice, numSupportedDevices;
 	bool indexInHostSideUsed = false;
 
-	numSupportedDevices = devices[0]->numSupportedDevices;
+	if(activeModules & (GPU_FMI_DECODE_POS | GPU_FMI_EXACT_SEARCH)){
+		numSupportedDevices = devices[0]->numSupportedDevices;
+		//Free all the unused references in the host side
+		for(idSupportedDevice = 0; idSupportedDevice < numSupportedDevices; ++idSupportedDevice){
+				if(index->memorySpace[idSupportedDevice] == GPU_HOST_MAPPED) indexInHostSideUsed = true;
+		}
 
-	//Free all the unused references in the host side
-    for(idSupportedDevice = 0; idSupportedDevice < numSupportedDevices; ++idSupportedDevice){
-			if(index->memorySpace[idSupportedDevice] == GPU_HOST_MAPPED) indexInHostSideUsed = true;
-    }
-
-    if(!indexInHostSideUsed){
-    	GPU_ERROR(gpu_free_index_host(index));
-    }
+		if(!indexInHostSideUsed){
+			GPU_ERROR(gpu_free_index_host(index));
+		}
+	}
 
     return(SUCCESS);
 }
@@ -372,11 +384,15 @@ GPU_INLINE gpu_error_t gpu_free_index_device(gpu_index_buffer_t *index, gpu_devi
 GPU_INLINE gpu_error_t gpu_free_index(gpu_index_buffer_t **index, gpu_device_info_t **devices)
 {
 	gpu_index_buffer_t *fmi = (* index);
+	const gpu_module_t activeModules = fmi->activeModules;
 
-    GPU_ERROR(gpu_free_index_host(fmi));
-    GPU_ERROR(gpu_free_index_device(fmi, devices));
+	if(activeModules & (GPU_FMI_EXACT_SEARCH | GPU_FMI_DECODE_POS)){
+		GPU_ERROR(gpu_free_index_host(fmi));
+		GPU_ERROR(gpu_free_index_device(fmi, devices));
+	}
 
     if(fmi != NULL){
+    	free(fmi->memorySpace);
         free(fmi);
         fmi = NULL;
     }

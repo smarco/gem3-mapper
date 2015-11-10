@@ -197,43 +197,53 @@ Functions to get the GPU FMI buffers
 
 GPU_INLINE gpu_error_t gpu_init_reference(gpu_reference_buffer_t **reference, const char *referenceRaw,
 										  const uint64_t refSize, const gpu_ref_coding_t refCoding,
-										  const uint32_t numSupportedDevices)
+										  const uint32_t numSupportedDevices, gpu_module_t activeModules)
 {
 	gpu_reference_buffer_t *ref = (gpu_reference_buffer_t *) malloc(sizeof(gpu_reference_buffer_t));
+	uint32_t idSupDevice;
 
-	ref->d_reference = NULL;
-	ref->h_reference = NULL;
-	ref->memorySpace = NULL;
-	ref->size = refSize;
-	ref->numEntries = GPU_DIV_CEIL(ref->size, GPU_REFERENCE_CHARS_PER_ENTRY) + GPU_REFERENCE_END_PADDING;
+	ref->d_reference   = NULL;
+	ref->h_reference   = NULL;
+	ref->memorySpace   = NULL;
+	ref->size 		   = 0;
+	ref->numEntries    = GPU_DIV_CEIL(ref->size, GPU_REFERENCE_CHARS_PER_ENTRY) + GPU_REFERENCE_END_PADDING;
+	ref->activeModules = activeModules;
 
 	ref->d_reference = (uint64_t **) malloc(numSupportedDevices * sizeof(uint64_t *));
 	if (ref->d_reference == NULL) GPU_ERROR(E_ALLOCATE_MEM);
-
 	ref->memorySpace = (memory_alloc_t *) malloc(numSupportedDevices * sizeof(memory_alloc_t));
 	if (ref->memorySpace == NULL) GPU_ERROR(E_ALLOCATE_MEM);
 
-	switch(refCoding){
-    	case GPU_REF_ASCII:
-    		GPU_ERROR(gpu_transform_reference_ASCII(referenceRaw, ref));
-    		break;
-    	case GPU_REF_GEM_FULL:
-    		GPU_ERROR(gpu_transform_reference_GEM_FR(referenceRaw, ref));
-    		break;
-    	case GPU_REF_GEM_ONLY_FORWARD:
-    		GPU_ERROR(gpu_transform_reference_GEM_F(referenceRaw, ref));
-    		break;
-    	case GPU_REF_MFASTA_FILE:
-    		GPU_ERROR(gpu_load_reference_MFASTA(referenceRaw, ref));
-    		break;
-    	case GPU_REF_PROFILE_FILE:
-    		GPU_ERROR(gpu_load_reference_PROFILE(referenceRaw, ref));
-    		break;
-    	default:
-    		GPU_ERROR(E_REFERENCE_CODING);
-    	  break;
+	for(idSupDevice = 0; idSupDevice < numSupportedDevices; ++idSupDevice){
+		ref->d_reference[idSupDevice] = NULL;
+		ref->memorySpace[idSupDevice] = GPU_NONE_MAPPED;
 	}
 
+	if(activeModules & GPU_BPM){
+		ref->size = refSize;
+		ref->numEntries = GPU_DIV_CEIL(ref->size, GPU_REFERENCE_CHARS_PER_ENTRY) + GPU_REFERENCE_END_PADDING;
+
+		switch(refCoding){
+			case GPU_REF_ASCII:
+				GPU_ERROR(gpu_transform_reference_ASCII(referenceRaw, ref));
+				break;
+			case GPU_REF_GEM_FULL:
+				GPU_ERROR(gpu_transform_reference_GEM_FR(referenceRaw, ref));
+				break;
+			case GPU_REF_GEM_ONLY_FORWARD:
+				GPU_ERROR(gpu_transform_reference_GEM_F(referenceRaw, ref));
+				break;
+			case GPU_REF_MFASTA_FILE:
+				GPU_ERROR(gpu_load_reference_MFASTA(referenceRaw, ref));
+				break;
+			case GPU_REF_PROFILE_FILE:
+				GPU_ERROR(gpu_load_reference_PROFILE(referenceRaw, ref));
+				break;
+			default:
+				GPU_ERROR(E_REFERENCE_CODING);
+			  break;
+		}
+	}
 	(* reference) = ref;
 	return (SUCCESS);
 }
@@ -277,19 +287,21 @@ GPU_INLINE gpu_error_t gpu_free_reference_host(gpu_reference_buffer_t *reference
 
 GPU_INLINE gpu_error_t gpu_free_unused_reference_host(gpu_reference_buffer_t *reference, gpu_device_info_t **devices)
 {
+	const gpu_module_t activeModules = reference->activeModules;
 	uint32_t idSupportedDevice, numSupportedDevices;
 	bool referenceInHostSideUsed = false;
 
-	numSupportedDevices = devices[0]->numSupportedDevices;
+	if(activeModules & GPU_BPM){
+		numSupportedDevices = devices[0]->numSupportedDevices;
+		//Free all the unused references in the host side
+		for(idSupportedDevice = 0; idSupportedDevice < numSupportedDevices; ++idSupportedDevice){
+				if(reference->memorySpace[idSupportedDevice] == GPU_HOST_MAPPED) referenceInHostSideUsed = true;
+		}
 
-	//Free all the unused references in the host side
-    for(idSupportedDevice = 0; idSupportedDevice < numSupportedDevices; ++idSupportedDevice){
-			if(reference->memorySpace[idSupportedDevice] == GPU_HOST_MAPPED) referenceInHostSideUsed = true;
-    }
-
-    if(!referenceInHostSideUsed){
-    	GPU_ERROR(gpu_free_reference_host(reference));
-    }
+		if(!referenceInHostSideUsed){
+			GPU_ERROR(gpu_free_reference_host(reference));
+		}
+	}
 
     return(SUCCESS);
 }
@@ -321,11 +333,15 @@ GPU_INLINE gpu_error_t gpu_free_reference_device(gpu_reference_buffer_t *referen
 GPU_INLINE gpu_error_t gpu_free_reference(gpu_reference_buffer_t **reference, gpu_device_info_t **devices)
 {
 	gpu_reference_buffer_t *ref = (* reference);
+	const gpu_module_t activeModules = ref->activeModules;
 
-    GPU_ERROR(gpu_free_reference_host(ref));
-    GPU_ERROR(gpu_free_reference_device(ref, devices));
+	if(activeModules & GPU_BPM){
+		GPU_ERROR(gpu_free_reference_host(ref));
+    	GPU_ERROR(gpu_free_reference_device(ref, devices));
+	}
 
     if(ref != NULL){
+    	free(ref->memorySpace);
         free(ref);
         ref = NULL;
     }

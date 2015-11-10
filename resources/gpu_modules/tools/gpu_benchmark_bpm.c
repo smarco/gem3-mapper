@@ -13,10 +13,6 @@
 #include <string.h>
 #include <omp.h>
 
-#ifndef MIN
-	#define MIN(_a, _b) (((_a) < (_b)) ? (_a) : (_b))
-#endif
-
 typedef struct {
 	/* Example test fields */ 
 	uint32_t 			totalSizeQueries;
@@ -33,8 +29,6 @@ typedef struct {
 	uint32_t 			*pos_raw_queries;
 	uint32_t			*GEM_score;
 } test_t;
-
-
 
 uint32_t loadQueries(const char *fn, test_t *testData, uint32_t *averageQuerySize, uint32_t * averageCandidatesPerQuery)
 {
@@ -280,6 +274,11 @@ double processMyersGPU(char *refFile, char *qryFile, uint32_t numBuffers, uint32
 					  NULL, GPU_NONE_DATA, 0,
 					  GPU_BPM, GPU_ARCH_SUPPORTED, GPU_LOCAL_DATA, 0);
 
+	// Master thread initialize all the buffers
+	// Better each thread initialize self buffers
+	for(idBuffer = 0; idBuffer < numBuffers; ++idBuffer)
+		gpu_alloc_buffer_(buffer[idBuffer]);
+
 	ts = sample_time();
 
 		#pragma omp parallel for num_threads(numThreads) schedule(static,1) private(idTask, idBuffer)
@@ -290,8 +289,8 @@ double processMyersGPU(char *refFile, char *qryFile, uint32_t numBuffers, uint32
 				printf("Host thread %d \t sent job %d \t to buffer %d \t in device %d \n", omp_get_thread_num(), idTask, idBuffer, gpu_buffer_get_id_device_(buffer[idBuffer]));
 
 				//Fill the buffer (generate work)
-				putIntoBuffer(buffer[idBuffer], &testData[idBuffer]);
 				gpu_bpm_init_buffer_(buffer[idBuffer], averageNumPEQEntries, averageCandidatesPerQuery);
+				putIntoBuffer(buffer[idBuffer], &testData[idBuffer]);
 				gpu_bpm_send_buffer_(buffer[idBuffer], testData[idBuffer].totalQueriesEntries, testData[idBuffer].numQueries, testData[idBuffer].numCandidates, 0);
 				gpu_bpm_receive_buffer_(buffer[idBuffer]);
 

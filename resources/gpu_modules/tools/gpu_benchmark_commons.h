@@ -28,3 +28,7 @@ inline double sample_time()
 
 	return((tv.tv_sec+tv.tv_nsec/1000000000.0));
 }
+
+#ifndef MIN
+	#define MIN(_a, _b) (((_a) < (_b)) ? (_a) : (_b))
+#endif
