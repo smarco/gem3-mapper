@@ -62,27 +62,27 @@ typedef struct{
 /*
  * Obtain Buffers
  */
-inline gpu_fmi_search_seed_t*	  gpu_fmi_search_buffer_get_seeds_(void* fmiBuffer);
-inline gpu_fmi_search_sa_inter_t* gpu_fmi_search_buffer_get_sa_intervals_(void* fmiBuffer);
-inline gpu_fmi_decode_init_pos_t* gpu_fmi_decode_buffer_get_init_pos_(void* fmiBuffer);
-inline gpu_fmi_decode_end_pos_t*  gpu_fmi_decode_buffer_get_end_pos_(void* fmiBuffer);
+gpu_fmi_search_seed_t*	  gpu_fmi_search_buffer_get_seeds_(void* fmiBuffer);
+gpu_fmi_search_sa_inter_t* gpu_fmi_search_buffer_get_sa_intervals_(void* fmiBuffer);
+gpu_fmi_decode_init_pos_t* gpu_fmi_decode_buffer_get_init_pos_(void* fmiBuffer);
+gpu_fmi_decode_end_pos_t*  gpu_fmi_decode_buffer_get_end_pos_(void* fmiBuffer);
 
 /*
  * Get elements
  */
-inline uint32_t gpu_fmi_search_buffer_get_max_seeds_(void* fmiBuffer);
-inline uint32_t gpu_fmi_decode_buffer_get_max_positions_(void* fmiBuffer);
+uint32_t gpu_fmi_search_buffer_get_max_seeds_(void* fmiBuffer);
+uint32_t gpu_fmi_decode_buffer_get_max_positions_(void* fmiBuffer);
 
 /*
  * Main functions
  */
-inline void gpu_fmi_search_init_buffer_(void *fmiBuffer);
-inline void gpu_fmi_search_send_buffer_(void* fmiBuffer, const uint32_t numSeeds);
-inline void gpu_fmi_search_receive_buffer_(void* fmiBuffer);
+void gpu_fmi_search_init_buffer_(void *fmiBuffer);
+void gpu_fmi_search_send_buffer_(void* fmiBuffer, const uint32_t numSeeds);
+void gpu_fmi_search_receive_buffer_(void* fmiBuffer);
 
-inline void gpu_fmi_decode_init_buffer_(void *fmiBuffer);
-inline void gpu_fmi_decode_send_buffer_(void* fmiBuffer, const uint32_t numDecodings, const uint32_t samplingRate);
-inline void gpu_fmi_decode_receive_buffer_(void* fmiBuffer);
+void gpu_fmi_decode_init_buffer_(void *fmiBuffer);
+void gpu_fmi_decode_send_buffer_(void* fmiBuffer, const uint32_t numDecodings, const uint32_t samplingRate);
+void gpu_fmi_decode_receive_buffer_(void* fmiBuffer);
 
 #endif /* GPU_FMI_INTERFACE_H_ */
 

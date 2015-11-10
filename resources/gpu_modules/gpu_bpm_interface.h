@@ -56,24 +56,24 @@ typedef struct {
 /*
  * Obtain Buffers
  */
-inline gpu_bpm_qry_entry_t* gpu_bpm_buffer_get_peq_entries_(void* bpmBuffer);
-inline gpu_bpm_cand_info_t* gpu_bpm_buffer_get_candidates_(void* bpmBuffer);
-inline gpu_bpm_qry_info_t*  gpu_bpm_buffer_get_peq_info_(void* bpmBuffer);
-inline gpu_bpm_alg_entry_t* gpu_bpm_buffer_get_alignments_(void* bpmBuffer);
+gpu_bpm_qry_entry_t* gpu_bpm_buffer_get_peq_entries_(void* bpmBuffer);
+gpu_bpm_cand_info_t* gpu_bpm_buffer_get_candidates_(void* bpmBuffer);
+gpu_bpm_qry_info_t*  gpu_bpm_buffer_get_peq_info_(void* bpmBuffer);
+gpu_bpm_alg_entry_t* gpu_bpm_buffer_get_alignments_(void* bpmBuffer);
 
 
 /*
  * Get elements
  */
-inline uint32_t gpu_bpm_buffer_get_max_peq_entries_(void* bpmBuffer);
-inline uint32_t gpu_bpm_buffer_get_max_candidates_(void* bpmBuffer);
-inline uint32_t gpu_bpm_buffer_get_max_queries_(void* bpmBuffer);
+uint32_t gpu_bpm_buffer_get_max_peq_entries_(void* bpmBuffer);
+uint32_t gpu_bpm_buffer_get_max_candidates_(void* bpmBuffer);
+uint32_t gpu_bpm_buffer_get_max_queries_(void* bpmBuffer);
 
 /*
  * Main functions
  */
-inline void gpu_bpm_init_buffer_(void* bpmBuffer, const uint32_t averageNumPEQEntries, const uint32_t candidatesPerQuery);
-inline void gpu_bpm_send_buffer_(void* bpmBuffer, const uint32_t numPEQEntries, const uint32_t numQueries, const uint32_t numCandidates, const sizeCandidates);
-inline void gpu_bpm_receive_buffer_(void* bpmBuffer);
+void gpu_bpm_init_buffer_(void* bpmBuffer, const uint32_t averageNumPEQEntries, const uint32_t candidatesPerQuery);
+void gpu_bpm_send_buffer_(void* bpmBuffer, const uint32_t numPEQEntries, const uint32_t numQueries, const uint32_t numCandidates, const uint32_t sizeCandidates);
+void gpu_bpm_receive_buffer_(void* bpmBuffer);
 
 #endif /* GPU_BPM_INTERFACE_H_ */

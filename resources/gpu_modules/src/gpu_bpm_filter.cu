@@ -8,6 +8,7 @@
 
 #include "../include/gpu_bpm_core.h"
 
+
 GPU_INLINE __device__ void gpu_bpm_filter_local_kernel(const gpu_bpm_device_qry_entry_t * __restrict d_queries, const uint64_t * __restrict d_reference,
 											 	   	   const gpu_bpm_cand_info_t *d_candidates, const uint32_t *d_reorderBuffer,
 											 	   	   gpu_bpm_alg_entry_t *d_reorderResults, const gpu_bpm_qry_info_t *d_qinfo,
@@ -143,6 +144,7 @@ __global__ void gpu_bpm_filter_kernel(const gpu_bpm_device_qry_entry_t *d_querie
 	 				 	 	 	idCandidate, sizeRef, numReorderedResults, intraQueryThreadIdx, threadsPerQuery);
 }
 
+extern "C"
 gpu_error_t gpu_bpm_process_buffer(gpu_buffer_t *mBuff)
 {
 	gpu_reference_buffer_t 		*ref 		=  mBuff->reference;

@@ -98,6 +98,7 @@ GPU_INLINE gpu_error_t gpu_fmi_decoding_launch_kernel(gpu_fmi_device_entry_t *d_
 	return(SUCCESS);
 }
 
+extern "C"
 gpu_error_t gpu_fmi_decode_process_buffer(gpu_buffer_t *mBuff)
 {
 	gpu_index_buffer_t 			  	 *index    	  =  mBuff->index;

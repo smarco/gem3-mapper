@@ -8,6 +8,7 @@
 
 #include "../include/gpu_fmi_core.h"
 
+
 void __global__ gpu_fmi_search_kernel(const gpu_fmi_device_entry_t *fmi, const uint64_t bwtSize,
 									  const uint32_t numSeeds, const ulonglong2 *seeds, ulonglong2 *resIntervals)
 {
@@ -95,6 +96,7 @@ gpu_error_t gpu_fmi_search_launch_kernel(const gpu_fmi_device_entry_t *d_fmi, co
 	return(SUCCESS);
 }
 
+extern "C"
 gpu_error_t gpu_fmi_search_process_buffer(gpu_buffer_t *mBuff)
 {
 	gpu_index_buffer_t 			  	 *index    	  =  mBuff->index;

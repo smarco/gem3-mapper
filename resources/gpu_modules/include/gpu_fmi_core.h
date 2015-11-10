@@ -6,10 +6,12 @@
  * DESCRIPTION: Common headers and data structures for BPM on GPU library
  */
 
+extern "C" {
 #include "gpu_commons.h"
 #include "gpu_resources.h"
 #include "gpu_index.h"
 #include "gpu_buffers.h"
+}
 
 #ifndef GPU_FMI_CORE_H_
 #define GPU_FMI_CORE_H_
