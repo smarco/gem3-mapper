@@ -9,7 +9,7 @@
 #define GPU_DIV_CEIL(NUMERATOR,DENOMINATOR) (((NUMERATOR)+((DENOMINATOR)-1))/(DENOMINATOR))
 
 
-inline double gpu_sample_time()
+inline double sample_time()
 {
 	struct timespec tv;
 

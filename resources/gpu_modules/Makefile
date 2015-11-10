@@ -5,7 +5,7 @@ CC=gcc
 CFLAGS=-O3 -m64
 CUDA_FLAGS=-O3 -m64 -gencode arch=compute_35,code=sm_35
 CUDA_INCLUDES=-I/usr/local/cuda/include
-CUDA_LIBS=-L/usr/local/cuda/lib -lcudart
+CUDA_LIBS=-L/usr/local/cuda/lib64 -lcudart
 
 GCC_GDB_FLAGS=-g -O0 -m64
 NVCC_GDB_FLAGS=-g -G -O0 -m64 -gencode arch=compute_35,code=sm_35
@@ -13,7 +13,7 @@ NVCC_GDB_FLAGS=-g -G -O0 -m64 -gencode arch=compute_35,code=sm_35
 #gcc -c -combine a.c b.c -o c.o
 
 bpm_benchmark:
-	$(CC) $(CFLAGS) tools/gpu_benchmark_bpm.c build/gem_gpu.o -o bin/gpu_bpm_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp
+	$(CC) $(CFLAGS) tools/gpu_benchmark_bpm.c build/gem_gpu.o -o bin/gpu_bpm_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt
 
 all:
 	$(CC) $(CFLAGS) -c src/gpu_sample.c -o build/gpu_sample.o $(CUDA_INCLUDES)

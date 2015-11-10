@@ -303,7 +303,7 @@ GPU_INLINE gpu_error_t gpu_init_index(gpu_index_buffer_t **index, const char *in
     		break;
     	default:
     		GPU_ERROR(E_INDEX_CODING);
-    	  break;
+    	break;
 	}
 
 	(* index) = fmi;
