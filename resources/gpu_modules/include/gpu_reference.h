@@ -23,6 +23,7 @@ typedef struct {
 	uint64_t			*h_reference;
 	uint64_t			**d_reference;
 	memory_alloc_t		*memorySpace;
+	gpu_module_t		activeModules;
 } gpu_reference_buffer_t;
 
 /* String basic functions */
@@ -41,7 +42,7 @@ gpu_error_t gpu_load_reference_PROFILE(const char *fn, gpu_reference_buffer_t *r
 /* Initialize reference functions */
 gpu_error_t gpu_init_reference(gpu_reference_buffer_t **reference, const char *referenceRaw,
 										  const uint64_t refSize, const gpu_ref_coding_t refCoding,
-										  const uint32_t numSupportedDevices);
+										  const uint32_t numSupportedDevices, gpu_module_t activeModules);
 gpu_error_t gpu_transfer_reference_CPU_to_GPUs(gpu_reference_buffer_t *reference, gpu_device_info_t **devices);
 
 /* Free reference functions */
