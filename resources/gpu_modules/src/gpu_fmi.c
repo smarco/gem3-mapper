@@ -221,12 +221,12 @@ GPU_INLINE gpu_error_t gpu_fmi_decode_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
 
 GPU_INLINE gpu_error_t gpu_fmi_decode_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
 {
-	const gpu_fmi_search_sa_inter_buffer_t* interBuff = &mBuff->data.search.saIntervals;
+	const gpu_fmi_decode_end_pos_buffer_t*  endPosBuff = &mBuff->data.decode.endPositions;
 	const cudaStream_t 				   		idStream  =  mBuff->idStream;
-	const size_t 							cpySize   =  interBuff->numIntervals * sizeof(gpu_fmi_search_sa_inter_t);
+	const size_t 							cpySize   =  endPosBuff->numDecodings * sizeof(gpu_fmi_decode_end_pos_t);
 
 	//Transfer SA intervals (occurrence results) from CPU to the GPU
-	CUDA_ERROR(cudaMemcpyAsync(interBuff->h_intervals, interBuff->d_intervals, cpySize, cudaMemcpyDeviceToHost, idStream));
+	CUDA_ERROR(cudaMemcpyAsync(endPosBuff->h_endBWTPos, endPosBuff->d_endBWTPos, cpySize, cudaMemcpyDeviceToHost, idStream));
 
 	return (SUCCESS);
 }

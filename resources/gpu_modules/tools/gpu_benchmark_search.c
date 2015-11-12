@@ -13,17 +13,6 @@
 #include <string.h>
 #include <omp.h>
 
-#define MASK_ZEROS					0x00000000
-#define	UINT32_LENGTH				32 			// 32 bits
-#define SEED_CHAR_LENGTH			2 		    // 2 bits
-#define SEED_FIELD_SIZE				8			// 8 bits
-#define	UINT64_LENGTH				64 			// 64 bits
-
-/* Encoded DNA Nucleotides */
-#define ENC_DNA_CHAR_A    0
-#define ENC_DNA_CHAR_C    1
-#define ENC_DNA_CHAR_G    2
-#define ENC_DNA_CHAR_T    3
 
 typedef struct {
 	/* Example test fields */
@@ -33,27 +22,6 @@ typedef struct {
 	gpu_fmi_search_sa_inter_t	*intervals;
 	gpu_fmi_search_sa_inter_t	*intervalsGEM;
 } test_t;
-
-uint64_t charToBinASCII(unsigned char base)
-{
-	switch(base)
-	{
-    	case 'A':
-    	case 'a':
-    	    return(ENC_DNA_CHAR_A);
-    	case 'C':
-    	case 'c':
-    	    return(ENC_DNA_CHAR_C);
-    	case 'G':
-    	case 'g':
-    	    return(ENC_DNA_CHAR_G);
-    	case 'T':
-    	case 't':
-    	    return(ENC_DNA_CHAR_T);
-    	default :
-    	    return(ENC_DNA_CHAR_A);
-	}
-}
 
 inline void tranformSeed(uint64_t * bitmap1, uint64_t * bitmap0, const char * seedASCII, const uint64_t seedSize)
 {
@@ -96,7 +64,7 @@ uint32_t loadGEMProfile(const char *fn, test_t *profRegions)
     return (0);
 }
 
-uint32_t inspectGEMProfile(const char *fn, test_t *profRegions, uint32_t *totalNumSeeds)
+uint32_t inspectGEMProfile(const char *fn, uint32_t *totalNumSeeds)
 {
     FILE *fp = NULL;
     const uint32_t NUM_ELEMENTS_PER_LINE = 5;
@@ -125,7 +93,7 @@ uint32_t loadTestData(char *seedsFile, test_t *testData)
 {
 	int32_t error, totalNumSeeds;
 
-	error = inspectGEMProfile(seedsFile, testData, &totalNumSeeds);
+	error = inspectGEMProfile(seedsFile, &totalNumSeeds);
 	if(error != 0){fprintf(stderr, "Error %d, inspecting seeds \n", error); exit(EXIT_FAILURE);}
 
 	testData->numSeeds     = totalNumSeeds;
@@ -163,7 +131,7 @@ uint32_t saveResults(const char *fn, test_t *testData, uint32_t numBuffers)
 
 		idTotalInterval = 0;
 		for(idInterval = 0; idInterval < testData[idBuffer].numIntervals; ++idInterval){
-			sprintf(cadena, "%u %u %u\n", idTotalInterval, testData[idBuffer].intervals[idInterval].low, testData[idBuffer].intervals[idInterval].hi);
+			sprintf(cadena, "%u %llu %llu\n", idTotalInterval, testData[idBuffer].intervals[idInterval].low, testData[idBuffer].intervals[idInterval].hi);
 			fputs(cadena, fp);
 			idTotalInterval++;
 		}
@@ -178,7 +146,7 @@ uint32_t putIntoBuffer(void *buffer, test_t *testData)
 	uint32_t i;
 	gpu_fmi_search_seed_t *seed_buffer = gpu_fmi_search_buffer_get_seeds_(buffer);
 
-	testData->numSeeds 		= MIN(testData->numSeeds, gpu_bpm_buffer_get_max_peq_entries_(buffer));
+	testData->numSeeds 		= MIN(testData->numSeeds, gpu_fmi_search_buffer_get_max_seeds_(buffer));
 	testData->numIntervals 	= testData->numSeeds;
 
 	for(i = 0; i < testData->numSeeds; ++i){
@@ -212,23 +180,6 @@ uint32_t freeTestData(test_t *testData, uint32_t numThreads)
 		free(testData[threadID].intervalsGEM);
 	}
 	return (0);
-}
-
-inline char BinASCIItoChar(uint32_t base)
-{
-	switch(base)
-	{
-    	case ENC_DNA_CHAR_A:
-    		return('A');
-    	case ENC_DNA_CHAR_C:
-    		return('C');
-    	case ENC_DNA_CHAR_G:
-    		return('G');
-    	case ENC_DNA_CHAR_T:
-    		return('T');
-    	default :
-    		return('X');
-	}
 }
 
 inline uint32_t printSeed(gpu_fmi_search_seed_t seed, uint32_t seedSize)
@@ -303,7 +254,7 @@ double processSearchFMI(char *fmiFile, char *seedsFile, uint32_t numBuffers, uin
 				gpu_fmi_search_init_buffer_(buffer[idBuffer]);
 				putIntoBuffer(buffer[idBuffer], &testData[idBuffer]);
 				gpu_fmi_search_send_buffer_(buffer[idBuffer],testData[idBuffer].numSeeds);
-				gpu_bpm_receive_buffer_(buffer[idBuffer]);
+				gpu_fmi_search_receive_buffer_(buffer[idBuffer]);
 
 				//Get the results from the buffer (consume results)
 				getFromBuffer(buffer[idBuffer], &testData[idBuffer]);
