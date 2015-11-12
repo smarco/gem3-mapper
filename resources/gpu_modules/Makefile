@@ -27,9 +27,12 @@ all:
 	$(NVCC) $(CUDA_FLAGS) -c src/gpu_bpm_filter.cu -o build/gpu_bpm_filter.o $(CUDA_INCLUDES)
 	ld -r build/gpu_sample.o build/gpu_fmi.o build/gpu_bpm.o build/gpu_devices.o build/gpu_buffers.o build/gpu_index.o build/gpu_reference.o build/gpu_fmi_decode.o build/gpu_fmi_search.o build/gpu_bpm_filter.o -o build/gem_gpu.o 
 	make bpm_benchmark
+	make search_benchmark
 
 bpm_benchmark:
 	$(CC) $(CFLAGS) tools/gpu_benchmark_bpm.c build/gem_gpu.o -o bin/gpu_bpm_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt
+search_benchmark:
+	$(CC) $(CFLAGS) tools/gpu_benchmark_search.c build/gem_gpu.o -o bin/gpu_search_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt -lstdc++
 
 
 debug:
@@ -45,9 +48,12 @@ debug:
 	$(NVCC) $(NVCC_GDB_FLAGS) -c src/gpu_bpm_filter.cu -o build/gpu_bpm_filter.o $(CUDA_INCLUDES)
 	ld -r build/gpu_sample.o build/gpu_fmi.o build/gpu_bpm.o build/gpu_devices.o build/gpu_buffers.o build/gpu_index.o build/gpu_reference.o build/gpu_fmi_decode.o build/gpu_fmi_search.o build/gpu_bpm_filter.o -o build/gem_gpu.o 
 	make bpm_benchmark_debug
+	make search_benchmark_debug
 
 bpm_benchmark_debug:
 	$(CC) $(GCC_GDB_FLAGS) tools/gpu_benchmark_bpm.c build/gem_gpu.o -o bin/gpu_bpm_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt -lstdc++
+search_benchmark_debug:
+	$(CC) $(GCC_GDB_FLAGS) tools/gpu_benchmark_search.c build/gem_gpu.o -o bin/gpu_search_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt -lstdc++
 
 clean:
 	rm -f bin/*
