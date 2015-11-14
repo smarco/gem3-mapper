@@ -272,7 +272,7 @@ double processMyersGPU(char *refFile, char *qryFile, uint32_t numBuffers, uint32
 	gpu_init_buffers_(&buffer, numBuffers, maxMbPerBuffer,
 					  refFile, GPU_REF_PROFILE_FILE, 0,
 					  NULL, GPU_NONE_DATA, 0,
-					  GPU_BPM, GPU_ARCH_SUPPORTED, GPU_LOCAL_DATA, 0);
+					  GPU_BPM, GPU_ARCH_SUPPORTED, GPU_REMOTE_DATA, 0);
 
 	// Master thread initialize all the buffers
 	// Better each thread initialize self buffers

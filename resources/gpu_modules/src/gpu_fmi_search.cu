@@ -12,13 +12,13 @@
 void __global__ gpu_fmi_search_kernel(const gpu_fmi_device_entry_t *fmi, const uint64_t bwtSize,
 									  const uint32_t numSeeds, const ulonglong2 *seeds, ulonglong2 *resIntervals)
 {
-	const uint32_t globalThreadIdx     = blockIdx.x * GPU_MAX_THREADS_PER_SM + threadIdx.x;
+	const uint32_t globalThreadIdx     = gpu_get_thread_idx();
 	const uint32_t localWarpThreadIdx  = globalThreadIdx     % GPU_WARP_SIZE;
 	const uint32_t localEntryIdx       = localWarpThreadIdx  / GPU_FMI_THREADS_PER_ENTRY;
 	const uint32_t localEntryThreadIdx = localWarpThreadIdx  % GPU_FMI_THREADS_PER_ENTRY;
 	const uint32_t idSeed 	 		   = globalThreadIdx     / GPU_FMI_SEED_THREADS_PER_ENTRY;
 
-	if ( (threadIdx.x < GPU_MAX_THREADS_PER_SM) && (globalThreadIdx < (numSeeds * GPU_FMI_SEED_THREADS_PER_ENTRY)) ){
+	if (globalThreadIdx < (numSeeds * GPU_FMI_SEED_THREADS_PER_ENTRY)){
 
 		const uint32_t   localIdSeed = idSeed % GPU_FMI_SEED_ENTRIES_PER_WARP;
 		const ulonglong2 seed 	     = seeds[idSeed];
@@ -106,11 +106,10 @@ gpu_error_t gpu_fmi_search_process_buffer(gpu_buffer_t *mBuff)
 	cudaStream_t 				     idStream	  =  mBuff->idStream;
 	uint32_t					     idSupDev	  =  mBuff->idSupportedDevice;
 
-	uint32_t threadsPerBlock = GPU_MAX_THREADS_PER_BLOCK;
-	uint32_t numThreads = numSeeds * GPU_FMI_SEED_THREADS_PER_ENTRY;
-	uint32_t blocksPerGrid = GPU_DIV_CEIL(numThreads, threadsPerBlock);
+  	dim3 blocksPerGrid, threadsPerBlock;
+	const uint32_t numThreads = numSeeds * GPU_FMI_SEED_THREADS_PER_ENTRY;
+	gpu_kernel_thread_configuration(numThreads, &blocksPerGrid, &threadsPerBlock);
 
-	//printf("KEPLER 2ndGen: LAUNCH KERNEL -- Bloques: %d - Th_block %d\n", blocksPerGrid, threadsPerBlock);
 	gpu_fmi_search_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_fmi_device_entry_t*) index->d_fmi[idSupDev], index->bwtSize,
 																		   seeds->numSeeds, (ulonglong2*) seeds->d_seeds,
 																		   (ulonglong2*) saIntervals->d_intervals);

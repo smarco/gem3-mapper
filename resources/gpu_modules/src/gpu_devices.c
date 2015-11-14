@@ -135,6 +135,7 @@ GPU_INLINE gpu_error_t gpu_set_devices_local_memory(gpu_device_info_t **devices,
 	uint32_t idSupportedDevice, numSupportedDevices = devices[0]->numSupportedDevices;
 
 	for(idSupportedDevice = 0; idSupportedDevice < numSupportedDevices; ++idSupportedDevice){
+		printf("Device: %d \n", devices[idSupportedDevice]->idDevice);
 	    CUDA_ERROR(cudaSetDevice(devices[idSupportedDevice]->idDevice));
 		CUDA_ERROR(cudaDeviceSetCacheConfig(cacheConfig));
 	}

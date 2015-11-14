@@ -2,16 +2,26 @@ SHELL := /bin/bash
 
 NVCC=nvcc
 CC=gcc
+
+CUDA_CC_20=-gencode arch=compute_20,code=sm_20
+CUDA_CC_21=-gencode arch=compute_20,code=sm_21
+CUDA_CC_30=-gencode arch=compute_30,code=sm_30
+CUDA_CC_35=-gencode arch=compute_35,code=sm_35
+CUDA_CC_37=-gencode arch=compute_37,code=sm_37
+CUDA_CC_50=-gencode arch=compute_50,code=sm_50
+CUDA_CC_52=-gencode arch=compute_52,code=sm_52
+CUDA_CC_SUPPORTED=$(CUDA_CC_20) $(CUDA_CC_21) $(CUDA_CC_30) $(CUDA_CC_35) $(CUDA_CC_37) $(CUDA_CC_50) $(CUDA_CC_52)
+
 CFLAGS=-O3 -m64
-CUDA_FLAGS=-O3 -m64 -gencode arch=compute_35,code=sm_35
+GCC_GDB_FLAGS=-g -O0 -m64
+
+CUDA_FLAGS=-O3 -m64 $(CUDA_CC_SUPPORTED)
+NVCC_GDB_FLAGS=-g -G -O0 -m64 $(CUDA_CC_SUPPORTED)
+
 CUDA_INCLUDES=-I/usr/local/cuda/include
 CUDA_LIBS=-L/usr/local/cuda/lib64 -lcudart
 
-GCC_GDB_FLAGS=-g -O0 -m64
-NVCC_GDB_FLAGS=-g -G -O0 -m64 -gencode arch=compute_35,code=sm_35
-
 #gcc -c -combine a.c b.c -o c.o
-
 
 
 all:

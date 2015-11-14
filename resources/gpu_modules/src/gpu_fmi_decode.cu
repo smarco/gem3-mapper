@@ -11,11 +11,11 @@
 void __global__ gpu_fmi_decoding_kernel(const gpu_fmi_device_entry_t *fmi, const uint64_t bwtSize, const uint32_t numDecodings,
 								   	    const uint64_t *d_initBWTPos, ulonglong2 *d_endBWTPos, const uint32_t samplingRate)
 {
-	const uint32_t globalThreadIdx      = blockIdx.x * GPU_MAX_THREADS_PER_SM + threadIdx.x;
+	const uint32_t globalThreadIdx      = gpu_get_thread_idx();
 	const uint32_t localWarpThreadIdx   = globalThreadIdx % GPU_WARP_SIZE;
 	const uint32_t idDecoding 	 	    = globalThreadIdx / GPU_FMI_DECODE_THREADS_PER_ENTRY;
 
-	if((threadIdx.x < GPU_MAX_THREADS_PER_SM) && (idDecoding < numDecodings)){
+	if(idDecoding < numDecodings){
 
 		const uint32_t decodeEntryIdx        = localWarpThreadIdx  / GPU_FMI_DECODE_THREADS_PER_ENTRY;
 		const uint32_t decodeEntryThreadIdx  = localWarpThreadIdx  % GPU_FMI_DECODE_THREADS_PER_ENTRY;
@@ -109,11 +109,10 @@ gpu_error_t gpu_fmi_decode_process_buffer(gpu_buffer_t *mBuff)
 	cudaStream_t 				     idStream	  =  mBuff->idStream;
 	uint32_t					     idSupDev 	  =  mBuff->idSupportedDevice;
 
-	const uint32_t threadsPerBlock = GPU_MAX_THREADS_PER_BLOCK;
+  	dim3 blocksPerGrid, threadsPerBlock;
 	const uint32_t numThreads = numDecodings * GPU_FMI_DECODE_THREADS_PER_ENTRY;
-	const uint32_t blocksPerGrid = GPU_DIV_CEIL(numThreads, threadsPerBlock);
+	gpu_kernel_thread_configuration(numThreads, &blocksPerGrid, &threadsPerBlock);
 
-	//printf("KEPLER 2ndGen: LAUNCH KERNEL -- Bloques: %d - Th_block %d\n", blocksPerGrid, threadsPerBlock);
 	gpu_fmi_decoding_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_fmi_device_entry_t*) index->d_fmi[idSupDev], index->bwtSize,
 																			 initPos->numDecodings, (uint64_t*) initPos->d_initBWTPos,
 																			 (ulonglong2*) endPos->d_endBWTPos, decBuff->samplingRate);

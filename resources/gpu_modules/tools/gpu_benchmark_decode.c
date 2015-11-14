@@ -205,7 +205,7 @@ double processDecodeFMI(char *fmiFile, char *decodeFile, uint32_t numBuffers, ui
 	gpu_init_buffers_(&buffer, numBuffers, maxMbPerBuffer,
 			 	 	  NULL, GPU_NONE_DATA, 0,
 					  fmiFile, GPU_REF_PROFILE_FILE, 0,
-					  GPU_FMI_DECODE_POS, GPU_ARCH_SUPPORTED, GPU_LOCAL_DATA, 0);
+					  GPU_FMI_DECODE_POS, GPU_ARCH_SUPPORTED, GPU_REMOTE_DATA, 0);
 
 	// Master thread initialize all the buffers
 	// Better each thread initialize self buffers

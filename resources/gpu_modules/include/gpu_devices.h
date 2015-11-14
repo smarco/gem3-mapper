@@ -3,19 +3,12 @@
 
 #include "gpu_commons.h"
 
-/* Defines related to GPU Architecture */
-#define	GPU_WARP_SIZE					32
-#ifndef GPU_MAX_THREADS_PER_BLOCK
-	#define	GPU_MAX_THREADS_PER_BLOCK	128
-#endif
-#ifndef GPU_MAX_THREADS_PER_SM
-	#define	GPU_MAX_THREADS_PER_SM		128
-#endif
-
-
 /*************************************
 GPU Interface Objects
 **************************************/
+
+/* Defines related to GPU Architecture */
+#define	GPU_WARP_SIZE					32
 
 typedef enum
 {
