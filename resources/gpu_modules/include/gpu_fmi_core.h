@@ -16,6 +16,8 @@ extern "C" {
 #ifndef GPU_FMI_CORE_H_
 #define GPU_FMI_CORE_H_
 
+//#define GPU_FMI_ENTRIES_PER_BLOCK		(GPU_MAX_THREADS_PER_SM / GPU_FMI_THREADS_PER_ENTRY)
+
 GPU_INLINE __device__ uint32_t generate_load_threadIdx(uint64_t decodeEntryThreadIdx)
 {
 	uint32_t localThreadIdx = (decodeEntryThreadIdx  > (GPU_FMI_THREADS_PER_ENTRY + 1)) ? 0                         : decodeEntryThreadIdx;
@@ -83,9 +85,9 @@ GPU_INLINE __device__ void gather_base_from_BWT(uint4 vbitmap, gpu_fmi_exch_bmp_
 	localBit2 = (vbitmap.z >> relativePosition) & 1;
 
 	const uint32_t lane = (decodeEntryIdx * GPU_FMI_DECODE_THREADS_PER_ENTRY) + (bitmapPosition / GPU_UINT32_LENGTH);
-	(* bit0) = __shfl(localBit0, lane);
-	(* bit1) = __shfl(localBit1, lane);
-	(* bit2) = __shfl(localBit2, lane);
+	(* bit0) = shfl_32(localBit0, lane);
+	(* bit1) = shfl_32(localBit1, lane);
+	(* bit2) = shfl_32(localBit2, lane);
 }
 
 GPU_INLINE __device__ uint4 gather_counters_FMI(uint4 loadEntry, uint32_t missedEntry, uint32_t decodeEntryIdx, uint32_t decodeEntryThreadIdx)
@@ -94,10 +96,10 @@ GPU_INLINE __device__ uint4 gather_counters_FMI(uint4 loadEntry, uint32_t missed
 	const uint32_t idThreadCounter = (decodeEntryIdx * GPU_FMI_DECODE_THREADS_PER_ENTRY) + GPU_FMI_THREADS_PER_ENTRY;
 	const uint32_t lane = (missedEntry) ? idThreadCounter + 1 : idThreadCounter;
 
- 	auxData.x = __shfl(loadEntry.x, lane);
- 	auxData.y = __shfl(loadEntry.y, lane);
- 	auxData.z = __shfl(loadEntry.z, lane);
- 	auxData.w = __shfl(loadEntry.w, lane);
+ 	auxData.x = shfl_32(loadEntry.x, lane);
+ 	auxData.y = shfl_32(loadEntry.y, lane);
+ 	auxData.z = shfl_32(loadEntry.z, lane);
+ 	auxData.w = shfl_32(loadEntry.w, lane);
 
 	if(decodeEntryThreadIdx == 0) loadEntry = auxData;
 

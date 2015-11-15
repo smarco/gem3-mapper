@@ -6,8 +6,20 @@
 #include <mach/mach.h>
 #endif
 
-#define GPU_DIV_CEIL(NUMERATOR,DENOMINATOR) (((NUMERATOR)+((DENOMINATOR)-1))/(DENOMINATOR))
+#define MASK_ZEROS					0x00000000
+#define	UINT32_LENGTH				32 			// 32 bits
+#define SEED_CHAR_LENGTH			2 		    // 2 bits
+#define SEED_FIELD_SIZE				8			// 8 bits
+#define	UINT64_LENGTH				64 			// 64 bits
 
+/* Encoded DNA Nucleotides */
+#define ENC_DNA_CHAR_A    0
+#define ENC_DNA_CHAR_C    1
+#define ENC_DNA_CHAR_G    2
+#define ENC_DNA_CHAR_T    3
+
+#define GPU_DIV_CEIL(NUMERATOR,DENOMINATOR) (((NUMERATOR)+((DENOMINATOR)-1))/(DENOMINATOR))
+#define MIN(_a, _b) (((_a) < (_b)) ? (_a) : (_b))
 
 inline double sample_time()
 {
@@ -29,6 +41,40 @@ inline double sample_time()
 	return((tv.tv_sec+tv.tv_nsec/1000000000.0));
 }
 
-#ifndef MIN
-	#define MIN(_a, _b) (((_a) < (_b)) ? (_a) : (_b))
-#endif
+inline char BinASCIItoChar(uint32_t base)
+{
+	switch(base)
+	{
+    	case ENC_DNA_CHAR_A:
+    		return('A');
+    	case ENC_DNA_CHAR_C:
+    		return('C');
+    	case ENC_DNA_CHAR_G:
+    		return('G');
+    	case ENC_DNA_CHAR_T:
+    		return('T');
+    	default :
+    		return('X');
+	}
+}
+
+uint64_t charToBinASCII(unsigned char base)
+{
+	switch(base)
+	{
+    	case 'A':
+    	case 'a':
+    	    return(ENC_DNA_CHAR_A);
+    	case 'C':
+    	case 'c':
+    	    return(ENC_DNA_CHAR_C);
+    	case 'G':
+    	case 'g':
+    	    return(ENC_DNA_CHAR_G);
+    	case 'T':
+    	case 't':
+    	    return(ENC_DNA_CHAR_T);
+    	default :
+    	    return(ENC_DNA_CHAR_A);
+	}
+}

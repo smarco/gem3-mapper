@@ -15,7 +15,7 @@ GPU_INLINE __device__ void gpu_bpm_filter_local_kernel(const gpu_bpm_device_qry_
 											 	   	   const uint32_t idCandidate, const uint64_t sizeRef, const uint32_t numReorderedResults,
 											 	   	   const uint32_t intraQueryThreadIdx, const uint32_t threadsPerQuery)
 {
-	if ((threadIdx.x < GPU_MAX_THREADS_PER_SM) && (idCandidate < numReorderedResults)){
+	if (idCandidate < numReorderedResults){
 		const uint64_t *localCandidate;
 		const uint32_t PEQS_PER_THREAD = 1;
 		const uint32_t BMPS_SIZE = GPU_BPM_PEQ_LENGTH_PER_CUDA_THREAD * PEQS_PER_THREAD;
@@ -30,7 +30,7 @@ GPU_INLINE __device__ void gpu_bpm_filter_local_kernel(const gpu_bpm_device_qry_
 
 		uint64_t candidate, lastCandidateEntry, currentCandidateEntry;
 
-		const int32_t indexWord = ((sizeQuery-1) % BMPS_SIZE) / GPU_UINT32_LENGTH;
+		const int32_t indexWord = ((sizeQuery - 1) % BMPS_SIZE) / GPU_UINT32_LENGTH;
 		const uint32_t mask = ((sizeQuery % GPU_UINT32_LENGTH) == 0) ? GPU_UINT32_MASK_ONE_HIGH : 1 << ((sizeQuery % GPU_UINT32_LENGTH) - 1);
 		int32_t  score = sizeQuery, minScore = sizeQuery;
 		uint32_t idColumn = 0, minColumn = 0, idEntry = 0;
@@ -57,13 +57,14 @@ GPU_INLINE __device__ void gpu_bpm_filter_local_kernel(const gpu_bpm_device_qry_
 				if((idColumn % GPU_REFERENCE_CHARS_PER_ENTRY) == 0){
 						idEntry++;
 						currentCandidateEntry = localCandidate[idEntry];
-						candidate = funnel_shift_left(currentCandidateEntry, lastCandidateEntry, candidateAlignment);
+						candidate = funnelshift_left_64(currentCandidateEntry, lastCandidateEntry, candidateAlignment);
 						lastCandidateEntry = currentCandidateEntry;
 				}
 
 				#pragma unroll
 				for(uint32_t idPEQ = 0, idBMP = 0; idPEQ < PEQS_PER_THREAD; ++idPEQ, idBMP+=4){
-					Eqv4 = __ldg(&d_queries[entry + idPEQ].bitmap[candidate & 0x07]);
+					//Eqv4 = __ldg(&d_queries[entry + idPEQ].bitmap[candidate & 0x07]); // TODO: implement ldg fermi
+					Eqv4 = d_queries[entry + idPEQ].bitmap[candidate & 0x07];
 					set_BMP(Eq + idBMP, Eqv4);
 				}
 
@@ -75,7 +76,7 @@ GPU_INLINE __device__ void gpu_bpm_filter_local_kernel(const gpu_bpm_device_qry_
 				for(uint32_t idBMP = 0; idBMP < BMPS_PER_THREAD; ++idBMP)
 					tEq[idBMP] = Eq[idBMP] & Pv[idBMP];
 
-				shuffle_collaborative_sum(tEq, Pv, sum, intraQueryThreadIdx, BMPS_PER_THREAD);
+				cooperative_sum(tEq, Pv, sum, intraQueryThreadIdx, BMPS_PER_THREAD);
 
 				#pragma unroll
 				for(uint32_t idBMP = 0; idBMP < BMPS_PER_THREAD; ++idBMP)
@@ -93,8 +94,8 @@ GPU_INLINE __device__ void gpu_bpm_filter_local_kernel(const gpu_bpm_device_qry_
 				MH = select(indexWord, Mh, MH, BMPS_PER_THREAD);
 
 				score += (((PH & mask) != 0) - ((MH & mask) != 0));
-				shuffle_collaborative_shift(Ph, 1, intraQueryThreadIdx, BMPS_PER_THREAD);
-				shuffle_collaborative_shift(Mh, 1, intraQueryThreadIdx, BMPS_PER_THREAD);
+				cooperative_shift(Ph, 1, intraQueryThreadIdx, BMPS_PER_THREAD);
+				cooperative_shift(Mh, 1, intraQueryThreadIdx, BMPS_PER_THREAD);
 
 				#pragma unroll
 				for(uint32_t idBMP = 0; idBMP < BMPS_PER_THREAD; ++idBMP)
@@ -121,7 +122,7 @@ __global__ void gpu_bpm_filter_kernel(const gpu_bpm_device_qry_entry_t *d_querie
 							   	      gpu_bpm_alg_entry_t *d_reorderResults, const gpu_bpm_qry_info_t *d_qinfo, const uint64_t sizeRef,  const uint32_t numReorderedResults,
 							   	      uint32_t *d_initPosPerBucket, uint32_t *d_initWarpPerBucket, uint32_t numWarps)
 {
-	const uint32_t globalThreadIdx = blockIdx.x * GPU_MAX_THREADS_PER_SM + threadIdx.x;
+	const uint32_t globalThreadIdx = gpu_get_thread_idx();
 	const uint32_t globalWarpIdx = globalThreadIdx / GPU_WARP_SIZE;
 
 	uint32_t bucketIdx = 0;
@@ -155,9 +156,9 @@ gpu_error_t gpu_bpm_process_buffer(gpu_buffer_t *mBuff)
 	cudaStream_t 				idStream	=  mBuff->idStream;
 	uint32_t					idSupDev	=  mBuff->idSupportedDevice;
 
-	uint32_t threadsPerBlock = GPU_MAX_THREADS_PER_BLOCK;
-	uint32_t numThreads = rebuff->numWarps * GPU_WARP_SIZE;
-	uint32_t blocksPerGrid = GPU_DIV_CEIL(numThreads, threadsPerBlock);
+  	dim3 blocksPerGrid, threadsPerBlock;
+	const uint32_t numThreads = rebuff->numWarps * GPU_WARP_SIZE;
+	gpu_kernel_thread_configuration(numThreads, &blocksPerGrid, &threadsPerBlock);
 
 	gpu_bpm_filter_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_bpm_device_qry_entry_t *)qry->d_queries, ref->d_reference[idSupDev],
 																			cand->d_candidates, rebuff->d_reorderBuffer, res->d_reorderAlignments,

@@ -2,16 +2,26 @@ SHELL := /bin/bash
 
 NVCC=nvcc
 CC=gcc
+
+CUDA_CC_20=-gencode arch=compute_20,code=sm_20
+CUDA_CC_21=-gencode arch=compute_20,code=sm_21
+CUDA_CC_30=-gencode arch=compute_30,code=sm_30
+CUDA_CC_35=-gencode arch=compute_35,code=sm_35
+CUDA_CC_37=-gencode arch=compute_37,code=sm_37
+CUDA_CC_50=-gencode arch=compute_50,code=sm_50
+CUDA_CC_52=-gencode arch=compute_52,code=sm_52
+CUDA_CC_SUPPORTED=$(CUDA_CC_20) $(CUDA_CC_21) $(CUDA_CC_30) $(CUDA_CC_35) $(CUDA_CC_37) $(CUDA_CC_50) $(CUDA_CC_52)
+
 CFLAGS=-O3 -m64
-CUDA_FLAGS=-O3 -m64 -gencode arch=compute_35,code=sm_35
+GCC_GDB_FLAGS=-g -O0 -m64
+
+CUDA_FLAGS=-O3 -m64 $(CUDA_CC_SUPPORTED)
+NVCC_GDB_FLAGS=-g -G -O0 -m64 $(CUDA_CC_SUPPORTED)
+
 CUDA_INCLUDES=-I/usr/local/cuda/include
 CUDA_LIBS=-L/usr/local/cuda/lib64 -lcudart
 
-GCC_GDB_FLAGS=-g -O0 -m64
-NVCC_GDB_FLAGS=-g -G -O0 -m64 -gencode arch=compute_35,code=sm_35
-
 #gcc -c -combine a.c b.c -o c.o
-
 
 
 all:
@@ -27,10 +37,17 @@ all:
 	$(NVCC) $(CUDA_FLAGS) -c src/gpu_bpm_filter.cu -o build/gpu_bpm_filter.o $(CUDA_INCLUDES)
 	ld -r build/gpu_sample.o build/gpu_fmi.o build/gpu_bpm.o build/gpu_devices.o build/gpu_buffers.o build/gpu_index.o build/gpu_reference.o build/gpu_fmi_decode.o build/gpu_fmi_search.o build/gpu_bpm_filter.o -o build/gem_gpu.o 
 	make bpm_benchmark
+	make search_benchmark
+	make decode_benchmark
+
 
 bpm_benchmark:
-	$(CC) $(CFLAGS) tools/gpu_benchmark_bpm.c build/gem_gpu.o -o bin/gpu_bpm_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt
-
+	$(CC) $(CFLAGS) tools/gpu_benchmark_bpm.c build/gem_gpu.o -o bin/gpu_bpm_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt 
+search_benchmark:
+	$(CC) $(CFLAGS) tools/gpu_benchmark_search.c build/gem_gpu.o -o bin/gpu_search_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt
+decode_benchmark:
+	$(CC) $(CFLAGS) tools/gpu_benchmark_decode.c build/gem_gpu.o -o bin/gpu_decode_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt
+	
 
 debug:
 	$(CC) $(GCC_GDB_FLAGS) -c src/gpu_sample.c -o build/gpu_sample.o $(CUDA_INCLUDES)
@@ -45,9 +62,17 @@ debug:
 	$(NVCC) $(NVCC_GDB_FLAGS) -c src/gpu_bpm_filter.cu -o build/gpu_bpm_filter.o $(CUDA_INCLUDES)
 	ld -r build/gpu_sample.o build/gpu_fmi.o build/gpu_bpm.o build/gpu_devices.o build/gpu_buffers.o build/gpu_index.o build/gpu_reference.o build/gpu_fmi_decode.o build/gpu_fmi_search.o build/gpu_bpm_filter.o -o build/gem_gpu.o 
 	make bpm_benchmark_debug
+	make search_benchmark_debug
+	make decode_benchmark_debug
+
 
 bpm_benchmark_debug:
 	$(CC) $(GCC_GDB_FLAGS) tools/gpu_benchmark_bpm.c build/gem_gpu.o -o bin/gpu_bpm_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt -lstdc++
+search_benchmark_debug:
+	$(CC) $(GCC_GDB_FLAGS) tools/gpu_benchmark_search.c build/gem_gpu.o -o bin/gpu_search_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt -lstdc++
+decode_benchmark_debug:
+	$(CC) $(GCC_GDB_FLAGS) tools/gpu_benchmark_decode.c build/gem_gpu.o -o bin/gpu_decode_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt -lstdc++
+
 
 clean:
 	rm -f bin/*
