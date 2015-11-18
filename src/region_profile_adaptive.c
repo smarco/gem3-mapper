@@ -56,7 +56,7 @@ GEM_INLINE void region_profile_generator_restart(region_profile_generator_t* con
   region_profile_t* const region_profile = generator->region_profile;
   region_search_t* const current_region = region_profile->filtering_region + region_profile->num_filtering_regions;
   current_region->end = generator->key_position;
-  current_region->min = 0;
+  current_region->degree = 0;
   generator->last_cut = 0;
   // Region-Query Status
   generator->lo = 0;

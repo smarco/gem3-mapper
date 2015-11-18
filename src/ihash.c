@@ -9,7 +9,7 @@
 #include "hash.h"
 
 #include "mm.h"
-#include "uthash.h"
+#include "ihash.h"
 
 #define IHASH_SIZE_PER_ELEMENT 56
 

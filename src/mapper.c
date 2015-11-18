@@ -146,8 +146,10 @@ GEM_INLINE void mapper_parameters_set_defaults_cuda(mapper_parameters_cuda_t* co
   cuda->output_buffer_size = BUFFER_SIZE_4M;
   cuda->output_num_buffers = 10*num_processors; // Lazy allocation
   /* BPM Buffers */
-  cuda->num_search_groups_per_thread = 4;
-  cuda->bpm_buffer_size = BUFFER_SIZE_1M;
+  cuda->gpu_buffer_size = BUFFER_SIZE_1M;
+  cuda->num_fmi_bsearch_buffers = 2;
+  cuda->num_fmi_decode_buffers = 3;
+  cuda->num_bpm_buffers = 3;
 }
 GEM_INLINE void mapper_parameters_set_defaults_hints(mapper_parameters_hints_t* const hints) {
   /* Hints */

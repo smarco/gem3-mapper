@@ -48,9 +48,9 @@ MODULES+=matches matches_cigar \
 # GEM Paired-Matches
 MODULES+=paired_matches paired_map paired_matches_classify
 # GEM Pattern Alignment
-MODULES+=pattern align align_ond \
+MODULES+=pattern align \
          align_bpm align_bpm_pattern \
-         align_bpm_distance align_bpm_gpu \
+         align_bpm_distance align_ond \
          align_swg align_swg_score \
          align_swg_simd match_scaffold
 # GEM Match Alignment
@@ -61,19 +61,20 @@ MODULES+=region_profile region_profile_adaptive \
          region_profile_boost region_profile_schedule \
          region_profile_fixed
 # GEM Filtering
-MODULES+=filtering_candidates filtering_candidates_process \
-         filtering_candidates_verify filtering_candidates_align \
-         filtering_candidates_extend filtering_candidates_bpm_buffer \
-         filtering_region filtering_region_verify \
-         filtering_region_align filtering_region_cache \
-         kmer_counting
+MODULES+=filtering_candidates filtering_candidates_verify \
+         filtering_candidates_align filtering_candidates_extend \
+         filtering_candidates_process filtering_candidates_process_buffered \
+         filtering_region_verify filtering_candidates_verify_buffered \
+         filtering_region filtering_region_align \
+         filtering_region_cache kmer_counting 
 # GEM Search Support Modules
 MODULES+=search_parameters paired_search_parameters select_parameters quality_model mm_search
 # GEM Approximate Search (Filtering)
-MODULES+=approximate_search approximate_search_filtering_base \
-         approximate_search_filtering_stages approximate_search_filtering_control \
-         approximate_search_filtering_adaptive approximate_search_filtering_adaptive_stepwise \
-         approximate_search_filtering_complete approximate_search_neighborhood 
+MODULES+=approximate_search approximate_search_filtering_adaptive \
+         approximate_search_filtering_complete approximate_search_neighborhood \
+         approximate_search_filtering_stages approximate_search_control \
+         approximate_search_region_profile approximate_search_generate_candidates \
+         approximate_search_verify_candidates approximate_search_stepwise
 # GEM Approximate Search (Neighborhood Search)
 MODULES+=nsearch nsearch_partition \
          nsearch_schedule nsearch_hamming \
@@ -89,8 +90,14 @@ MODULES+=archive_search \
          archive_search_se_stepwise archive_search_pe_stepwise
 # GEM Archive Post-Processing
 MODULES+=archive_score archive_select archive_check
-# GEM Search Groups
-MODULES+=search_group search_group_verify_candidates
+# GEM GPU-Buffers
+MODULES+=gpu_buffer_collection gpu_buffer_align_bpm \
+         gpu_buffer_fmi_bsearch gpu_buffer_fmi_decode
+# GEM Search-Pipeline & Stages
+MODULES+=search_pipeline \
+         search_stage_region_profile search_stage_region_profile_buffer \
+         search_stage_decode_candidates search_stage_decode_candidates_buffer \
+         search_stage_verify_candidates search_stage_verify_candidates_buffer
 # Input Parsers
 MODULES+=input_parser input_fasta_parser input_multifasta_parser
 # Output Printers
@@ -117,6 +124,7 @@ devel: GEM_FLAGS=$(FLAGS_GENERAL) $(FLAGS_OPT) $(FLAGS_DEBUG)
 devel: $(LIB_GEM_CORE)
 
 profile: GEM_FLAGS=$(FLAGS_GENERAL) $(FLAGS_OPT) $(FLAGS_DEBUG) $(FLAGS_PROFILE)
+profile: DEF_CUDA_PROFILE=-DGEM_PROFILE_CUDA
 profile: $(LIB_GEM_CORE)
 
 debug: GEM_FLAGS=-O0 $(FLAGS_GENERAL) $(FLAGS_DEBUG) $(FLAGS_PROFILE)
@@ -128,7 +136,7 @@ debug: $(LIB_GEM_CORE)
 # GEM-library
 $(LIB_GEM_CORE): $(OBJS)
 ifeq ($(HAVE_CUDA),1)
-	$(AR) -rcs $(LIB_GEM_CORE) $(FOLDER_BUILD)/*.o $(FOLDER_RESOURCES_BUILD)/*.o
+	$(AR) -rcs $(LIB_GEM_CORE) $(FOLDER_BUILD)/*.o $(FOLDER_GEMGPU_BUILD)/gem_gpu.o
 else
 	$(AR) -rcs $(LIB_GEM_CORE) $(FOLDER_BUILD)/*.o
 endif
@@ -139,7 +147,7 @@ $(FOLDER_BUILD)/fm.o : fm.c
 $(FOLDER_BUILD)/align_bpm_gpu.o : align_bpm_gpu.c
 	$(CC) $(GEM_FLAGS) $(DEF_CUDA) $(PATH_INCLUDE) $(CUDA_PATH_INCLUDE) -c $< -o $@
 $(FOLDER_BUILD)/profiler_cuda.o : profiler_cuda.c
-	$(CC) $(GEM_FLAGS) $(DEF_CUDA) $(PATH_INCLUDE) $(CUDA_PATH_INCLUDE) -c $< -o $@
+	$(CC) $(GEM_FLAGS) $(DEF_CUDA) $(DEF_CUDA_PROFILE) $(PATH_INCLUDE) $(CUDA_PATH_INCLUDE) -c $< -o $@
 	
 # General building rule
 $(FOLDER_BUILD)/%.o : %.c

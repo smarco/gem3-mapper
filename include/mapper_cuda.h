@@ -10,7 +10,7 @@
 #define MAPPER_CUDA_H_
 
 #include "mapper.h"
-#include "search_group.h"
+#include "search_pipeline.h"
 
 /*
  * Mapper-CUDA Search
@@ -22,16 +22,18 @@ typedef struct {
   /* Parameters */
   mapper_parameters_t* mapper_parameters;
   /* I/O */
-  bool paired_end;
   buffered_input_file_t* buffered_fasta_input;
   buffered_input_file_t* buffered_fasta_input_end1;
   buffered_input_file_t* buffered_fasta_input_end2;
   buffered_output_file_t* buffered_output_file;
-  /* Search group (and auxiliary variables) */
-  search_group_t* search_group;
-  archive_search_t* archive_search_generate_candidates;
-  archive_search_t* archive_search_verify_candidates;
-  bpm_gpu_buffer_t* bpm_gpu_buffer_verify_candidates;
+  /* GPU Buffers */
+  gpu_buffer_collection_t* gpu_buffer_collection;
+  uint64_t gpu_buffers_offset;
+  /* Search Pipeline (and auxiliary variables) */
+  search_pipeline_t* search_pipeline;
+  archive_search_t* pending_search_region_profile;
+  archive_search_t* pending_search_decode_candidates;
+  archive_search_t* pending_search_verify_candidates;
   matches_t* matches;
   /* Stats */
   mapping_stats_t* mapping_stats; // Per thread stats report structures

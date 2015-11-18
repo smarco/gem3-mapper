@@ -41,7 +41,8 @@ typedef struct {
   indexed_complement_t index_complement;
   uint64_t complement_size_threshold;
   /* Index */
-  sampling_rate_t sampling_rate;
+  sampling_rate_t sa_sampling_rate;
+  sampling_rate_t text_sampling_rate;
   bool run_length_index;
   bool bisulfite_index;
   /* Debug */
@@ -74,7 +75,8 @@ void indexer_parameters_set_defaults(indexer_parameters_t* const parameters) {
   parameters->index_complement=index_complement_yes;
   parameters->complement_size_threshold=BUFFER_SIZE_8G;
   /* Index */
-  parameters->sampling_rate=SAMPLING_RATE_4;
+  parameters->sa_sampling_rate=SAMPLING_RATE_32;
+  parameters->text_sampling_rate=SAMPLING_RATE_4;
   parameters->run_length_index = false;
   parameters->bisulfite_index = false;
   /* Debug */
@@ -241,7 +243,8 @@ option_t gem_indexer_options[] = {
   /* Index */
   { 'r', "run-length-index", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_USER, "" , "(default=false)" },
   { 'b', "bisulfite-index", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_USER, "" , "(default=false)" },
-  { 's', "sampling-rate", REQUIRED, TYPE_INT, 3 , VISIBILITY_ADVANCED, "<sampling_rate>" , "(default=4)" },
+  { 's', "text_sampling-rate", REQUIRED, TYPE_INT, 3 , VISIBILITY_ADVANCED, "<sampling_rate>" , "(default=4)" },
+  { 'S', "SA-sampling-rate", REQUIRED, TYPE_INT, 3 , VISIBILITY_ADVANCED, "<sampling_rate>" , "(default=32)" },
   // TODO { 300, "autotune-index-size", REQUIRED, TYPE_STRING, 5 , VISIBILITY_USER, "<index-size>" , "(Eg 2GB)" },
   /* Debug */
   { 400, "dump-locator-intervals", OPTIONAL, TYPE_NONE, 4 , VISIBILITY_ADVANCED, "" , "" },
@@ -300,20 +303,38 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
       }
       break;
     /* Index */
-    case 's': { // --sampling-rate
+    case 's': { // --text_sampling-rate
       const uint64_t sampling = atol(optarg);
       switch (sampling) {
-        case 1:   parameters->sampling_rate=SAMPLING_RATE_1; break;
-        case 2:   parameters->sampling_rate=SAMPLING_RATE_2; break;
-        case 4:   parameters->sampling_rate=SAMPLING_RATE_4; break;
-        case 8:   parameters->sampling_rate=SAMPLING_RATE_8; break;
-        case 16:  parameters->sampling_rate=SAMPLING_RATE_16; break;
-        case 32:  parameters->sampling_rate=SAMPLING_RATE_32; break;
-        case 64:  parameters->sampling_rate=SAMPLING_RATE_64; break;
-        case 128: parameters->sampling_rate=SAMPLING_RATE_128; break;
-        case 256: parameters->sampling_rate=SAMPLING_RATE_256; break;
+        case 1:   parameters->text_sampling_rate=SAMPLING_RATE_1; break;
+        case 2:   parameters->text_sampling_rate=SAMPLING_RATE_2; break;
+        case 4:   parameters->text_sampling_rate=SAMPLING_RATE_4; break;
+        case 8:   parameters->text_sampling_rate=SAMPLING_RATE_8; break;
+        case 16:  parameters->text_sampling_rate=SAMPLING_RATE_16; break;
+        case 32:  parameters->text_sampling_rate=SAMPLING_RATE_32; break;
+        case 64:  parameters->text_sampling_rate=SAMPLING_RATE_64; break;
+        case 128: parameters->text_sampling_rate=SAMPLING_RATE_128; break;
+        case 256: parameters->text_sampling_rate=SAMPLING_RATE_256; break;
         default:
-          gem_indexer_error_msg("Sampling rate argument not valid. Reset to default (--sampling-rate 16)");
+          gem_indexer_error_msg("Sampling rate argument not valid (--text_sampling-rate)");
+          break;
+      }
+    }
+    break;
+    case 'S': { // --SA-sampling-rate
+      const uint64_t sampling = atol(optarg);
+      switch (sampling) {
+        case 1:   parameters->sa_sampling_rate=SAMPLING_RATE_1; break;
+        case 2:   parameters->sa_sampling_rate=SAMPLING_RATE_2; break;
+        case 4:   parameters->sa_sampling_rate=SAMPLING_RATE_4; break;
+        case 8:   parameters->sa_sampling_rate=SAMPLING_RATE_8; break;
+        case 16:  parameters->sa_sampling_rate=SAMPLING_RATE_16; break;
+        case 32:  parameters->sa_sampling_rate=SAMPLING_RATE_32; break;
+        case 64:  parameters->sa_sampling_rate=SAMPLING_RATE_64; break;
+        case 128: parameters->sa_sampling_rate=SAMPLING_RATE_128; break;
+        case 256: parameters->sa_sampling_rate=SAMPLING_RATE_256; break;
+        default:
+          gem_indexer_error_msg("Sampling rate argument not valid (--SA-sampling-rate)");
           break;
       }
     }
@@ -463,10 +484,12 @@ int main(int argc,char** argv) {
   // GEM Archive Builder
   fm_t* const index_file = fm_open_file(parameters.output_index_file_name,FM_WRITE);
   const archive_type type = (parameters.bisulfite_index) ? archive_dna_bisulfite : archive_dna;
-  archive_builder_t* const archive_builder = archive_builder_new(
-      index_file,parameters.output_index_file_name_prefix,type,
-      parameters.index_complement,parameters.complement_size_threshold,parameters.ns_threshold,
-      parameters.sampling_rate,parameters.num_threads,parameters.max_memory);
+  archive_builder_t* const archive_builder = archive_builder_new(index_file,
+      parameters.output_index_file_name_prefix,type,
+      parameters.index_complement,parameters.complement_size_threshold,
+      parameters.ns_threshold,parameters.sa_sampling_rate,
+      parameters.text_sampling_rate,parameters.num_threads,
+      parameters.max_memory);
 
   // Process MultiFASTA
   indexer_process_multifasta(archive_builder,&parameters);

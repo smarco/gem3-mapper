@@ -76,9 +76,11 @@ typedef struct {
   uint64_t input_buffer_lines;
   uint64_t output_buffer_size;
   uint64_t output_num_buffers;
-  /* BPM Buffers */
-  uint64_t num_search_groups_per_thread; // Total number of search-groups deployed
-  uint64_t bpm_buffer_size;              // Size of each BPM-buffer
+  /* GPU Buffering */
+  uint64_t gpu_buffer_size;              // Size of each GPU-buffer
+  uint64_t num_fmi_bsearch_buffers;      // Number of FMI-BSearch buffers per thread
+  uint64_t num_fmi_decode_buffers;       // Number of FMI-Decode buffers per thread
+  uint64_t num_bpm_buffers;              // Number of BPM buffers per thread
 } mapper_parameters_cuda_t;
 /* Hints */
 typedef struct {

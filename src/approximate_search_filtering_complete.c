@@ -7,8 +7,9 @@
  */
 
 #include "approximate_search_filtering_complete.h"
-#include "approximate_search_filtering_base.h"
 #include "approximate_search_neighborhood.h"
+#include "approximate_search_region_profile.h"
+#include "approximate_search_generate_candidates.h"
 #include "region_profile_schedule.h"
 #include "filtering_candidates_process.h"
 #include "filtering_candidates_verify.h"
@@ -36,9 +37,9 @@ GEM_INLINE void approximate_search_filtering_complete(approximate_search_t* cons
     return;
   }
   // Compute the region profile
-  approximate_search_generate_region_profile_adaptive(search,region_profile_adaptive_limited,search->mm_stack);
-  if (search->search_state==asearch_no_regions) return;
-  if (search->search_state==asearch_exact_matches) {
+  approximate_search_region_profile_adaptive(search,region_profile_adaptive_limited,search->mm_stack);
+  if (search->processing_state==asearch_processing_state_no_regions) return;
+  if (search->processing_state==asearch_processing_state_exact_matches) {
     matches_add_interval_match(matches,search->lo_exact_matches,
         search->hi_exact_matches,pattern->key_length,0,search->emulated_rc_search);
     return;

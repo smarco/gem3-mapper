@@ -301,6 +301,11 @@ void fprintf_uint64_footprint(FILE* const stream,const uint64_t word);
 /*
  * System
  */
+typedef enum {
+  DEVICE_CPU,
+  DEVICE_GPU,
+} device_t;
+
 uint64_t system_get_num_processors();
 char* system_get_cwd();
 char* system_get_hostname();

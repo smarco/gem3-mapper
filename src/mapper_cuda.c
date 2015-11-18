@@ -8,8 +8,9 @@
 #include "mapper_cuda.h"
 #include "mapper_cuda_se.h"
 #include "mapper_cuda_pe.h"
-#include "archive_search_se.h"
-#include "archive_search_pe.h"
+#include "archive_search.h"
+#include "search_pipeline.h"
+#include "gpu_buffer_collection.h"
 #include "report_stats.h"
 
 /*
@@ -44,21 +45,50 @@ void mapper_cuda_error_report(FILE* stream) {
 /*
  * SE/PE runnable
  */
+GEM_INLINE void mapper_cuda_prepare_ticker(
+    ticker_t* const ticker,const bool paired_end,const bool verbose_user) {
+  ticker_count_reset(ticker,verbose_user,
+      paired_end ? "PE::Mapping Sequences" : "SE::Mapping Sequences",0,MAPPER_TICKER_STEP,false);
+  ticker_add_process_label(ticker,"#","sequences processed");
+  ticker_add_finish_label(ticker,"Total","sequences processed");
+  ticker_mutex_enable(ticker);
+}
+GEM_INLINE void mapper_cuda_setup_thread(
+    mapper_cuda_search_t* const mapper_search,const uint64_t thread_id,
+    mapper_parameters_t* const mapper_parameters,gpu_buffer_collection_t* const gpu_buffer_collection,
+    const uint64_t gpu_buffers_offset,mapping_stats_t* const mstats,ticker_t* const ticker) {
+  // Setup Thread
+//  mapper_search[i].paired_end = paired_end;
+  mapper_search->thread_id = thread_id;
+  mapper_search->thread_data = mm_alloc(pthread_t);
+  mapper_search->mapper_parameters = mapper_parameters;
+  mapper_search->gpu_buffer_collection = gpu_buffer_collection;
+  mapper_search->gpu_buffers_offset = gpu_buffers_offset;
+  if (mstats) {
+    mapper_search->mapping_stats = mstats + thread_id;
+    init_mapping_stats(mapper_search->mapping_stats);
+  } else {
+    mapper_search->mapping_stats = NULL;
+  }
+  mapper_search->ticker = ticker;
+}
 GEM_INLINE void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,const bool paired_end) {
-  // Check CUDA-Support & parameters compliance
-  if (!bpm_gpu_support()) GEM_CUDA_NOT_SUPPORTED();
+  // Parameters
   mapper_parameters_cuda_t* const cuda_parameters = &mapper_parameters->cuda;
-  const uint64_t num_threads = mapper_parameters->system.num_threads;
-  const uint64_t num_search_groups_per_thread = cuda_parameters->num_search_groups_per_thread;
-  const uint64_t num_search_groups = num_search_groups_per_thread * num_threads;
+  // Check CUDA-Support
+  if (!gpu_supported()) GEM_CUDA_NOT_SUPPORTED();
   // Load GEM-Index
   mapper_load_index(mapper_parameters);
-  // Prepare BPM-GPU Buffer
-  bpm_gpu_buffer_collection_t* const bpm_gpu_buffer_collection =
-      bpm_gpu_init(mapper_parameters->archive->text,num_search_groups,cuda_parameters->bpm_buffer_size,
-          mapper_parameters->hints.avg_read_length,mapper_parameters->hints.candidates_per_query,
-          mapper_parameters->misc.verbose_dev);
-  // Prepare output file/parameters (SAM headers)
+  // Prepare GPU Buffers
+  const uint64_t num_threads = mapper_parameters->system.num_threads;
+  const uint64_t num_gpu_buffers_per_thread =
+      cuda_parameters->num_fmi_bsearch_buffers +
+      cuda_parameters->num_fmi_decode_buffers +
+      cuda_parameters->num_bpm_buffers;
+  const uint64_t num_gpu_buffers = num_gpu_buffers_per_thread * num_threads;
+  gpu_buffer_collection_t* const gpu_buffer_collection = gpu_buffer_collection_new(mapper_parameters->archive,
+      num_gpu_buffers,cuda_parameters->gpu_buffer_size,mapper_parameters->misc.verbose_dev);
+  // I/O (SAM headers)
   archive_t* const archive = mapper_parameters->archive;
   const bool bisulfite_index = (archive->type == archive_dna_bisulfite);
   if (mapper_parameters->io.output_format==SAM) {
@@ -68,39 +98,24 @@ GEM_INLINE void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,con
   }
   // Ticker
   ticker_t ticker;
-  ticker_count_reset(&ticker,mapper_parameters->misc.verbose_user,
-      paired_end ? "PE::Mapping Sequences" : "SE::Mapping Sequences",0,MAPPER_TICKER_STEP,false);
-  ticker_add_process_label(&ticker,"#","sequences processed");
-  ticker_add_finish_label(&ticker,"Total","sequences processed");
-  ticker_mutex_enable(&ticker);
-  // Allocate per thread mapping stats
-  mapping_stats_t* const mstats = mapper_parameters->global_mapping_stats ? mm_calloc(num_threads,mapping_stats_t,false) : NULL;
-  // Prepare Mapper searches
+  mapper_cuda_prepare_ticker(&ticker,paired_end,mapper_parameters->misc.verbose_user);
+  // Mapping stats
+  mapping_stats_t* const global_mapping_stats = mapper_parameters->global_mapping_stats;
+  mapping_stats_t* const mstats = global_mapping_stats ? mm_calloc(num_threads,mapping_stats_t,false) : NULL;
+  // Mapper Searches (threads)
   mapper_cuda_search_t* const mapper_search = mm_malloc(num_threads*sizeof(mapper_cuda_search_t));
-  // Set error-report function
+  // Error-report function
   g_mapper_cuda_search = mapper_search;
   gem_error_set_report_function(mapper_cuda_error_report);
   /*
-   * Launch 'Generating Candidates' threads
+   * Launch threads
    */
-  bpm_gpu_buffer_t* const bpm_gpu_buffers = bpm_gpu_buffer_collection->bpm_gpu_buffers;
-  uint64_t i, bpm_gpu_buffer_pos=0;
+  uint64_t i, gpu_buffers_offset = 0;
   for (i=0;i<num_threads;++i) {
     // Setup Thread
-    mapper_search[i].paired_end = paired_end;
-    mapper_search[i].thread_id = i;
-    mapper_search[i].thread_data = mm_alloc(pthread_t);
-    mapper_search[i].mapper_parameters = mapper_parameters;
-    mapper_search[i].search_group = search_group_new(mapper_parameters,
-        bpm_gpu_buffers+bpm_gpu_buffer_pos,num_search_groups_per_thread);
-    bpm_gpu_buffer_pos += num_search_groups_per_thread;
-    mapper_search[i].ticker = &ticker;
-  	if (mstats)	{
-      mapper_search[i].mapping_stats = mstats + i;
-      init_mapping_stats(mstats + i);
-		} else {
-      mapper_search[i].mapping_stats = NULL;
-		}
+  	mapper_cuda_setup_thread(mapper_search+i,i,mapper_parameters,
+  	    gpu_buffer_collection,gpu_buffers_offset,mstats,&ticker);
+  	gpu_buffers_offset += num_gpu_buffers_per_thread;
     // Launch thread
     gem_cond_fatal_error__perror(
         pthread_create(mapper_search[i].thread_data,0,
@@ -110,7 +125,7 @@ GEM_INLINE void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,con
   // Join all threads
   for (i=0;i<num_threads;++i) {
     gem_cond_fatal_error__perror(pthread_join(*(mapper_search[i].thread_data),0),SYS_THREAD_JOIN);
-    search_group_delete(mapper_search[i].search_group);
+    search_pipeline_delete(mapper_search[i].search_pipeline);
     mm_free(mapper_search[i].thread_data);
   }
   // Clean up
@@ -118,11 +133,11 @@ GEM_INLINE void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,con
   ticker_mutex_cleanup(&ticker);
 	// Merge report stats
 	if (mstats) {
-    merge_mapping_stats(mapper_parameters->global_mapping_stats,mstats,num_threads);
+    merge_mapping_stats(global_mapping_stats,mstats,num_threads);
     mm_free(mstats);
 	}
   mm_free(mapper_search); // Delete mapper-CUDA searches
-  bpm_gpu_destroy(bpm_gpu_buffer_collection); // Delete GPU-buffer collection
+  gpu_buffer_collection_delete(gpu_buffer_collection); // Delete GPU-buffer collection
 }
 /*
  * SE-CUDA runnable

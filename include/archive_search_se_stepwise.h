@@ -11,38 +11,46 @@
 
 #include "essentials.h"
 #include "archive_search.h"
-#include "align_bpm_gpu.h"
+#include "gpu_buffer_fmi_bsearch.h"
+#include "gpu_buffer_fmi_decode.h"
+#include "gpu_buffer_align_bpm.h"
 #include "matches.h"
 
 /*
- * SE Archive Search Stepwise: Init Search
+ * Stepwise: Init Search
  */
 void archive_search_se_stepwise_init_search(archive_search_t* const archive_search);
 
 /*
- * SE Archive Search Stepwise: Region-Profile Generation
+ * Stepwise: Region-Profile
  */
-void archive_search_se_stepwise_generate_region_profile_partition(
-    archive_search_t* const archive_search);
-void archive_search_se_stepwise_generate_region_profile_copy_partition(
-    archive_search_t* const archive_search);
-void archive_search_se_stepwise_generate_region_profile_retrieve_partition(
-    archive_search_t* const archive_search);
+void archive_search_se_stepwise_region_profile_generate(archive_search_t* const archive_search);
+void archive_search_se_stepwise_region_profile_copy(
+    archive_search_t* const archive_search,gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
+void archive_search_se_stepwise_region_profile_retrieve(
+    archive_search_t* const archive_search,gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
 
 /*
- * SE Archive Search Stepwise: Candidate Verification
+ * Stepwise: Decode-Candidates
  */
-void archive_search_se_stepwise_generate_candidates(archive_search_t* const archive_search);
-void archive_search_se_stepwise_verify_candidates(
-    archive_search_t* const archive_search,matches_t* const matches);
-void archive_search_se_stepwise_copy_candidates(
-    archive_search_t* const archive_search,bpm_gpu_buffer_t* const bpm_gpu_buffer);
-void archive_search_se_stepwise_retrieve_candidates(
-    archive_search_t* const archive_search,bpm_gpu_buffer_t* const bpm_gpu_buffer,
-    matches_t* const matches);
+void archive_search_se_stepwise_decode_candidates_generate(archive_search_t* const archive_search);
+void archive_search_se_stepwise_decode_candidates_copy(
+    archive_search_t* const archive_search,gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode);
+void archive_search_se_stepwise_decode_candidates_retrieve(
+    archive_search_t* const archive_search,gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode);
 
 /*
- * SE Archive Search Stepwise: Finish Search
+ * Stepwise: Verify-Candidates
+ */
+void archive_search_se_stepwise_verify_candidates_generate(archive_search_t* const archive_search);
+void archive_search_se_stepwise_verify_candidates_copy(
+    archive_search_t* const archive_search,gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
+void archive_search_se_stepwise_verify_candidates_retrieve(
+    archive_search_t* const archive_search,
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,matches_t* const matches);
+
+/*
+ * Stepwise: Finish Search
  */
 void archive_search_se_stepwise_finish_search(archive_search_t* const archive_search,matches_t* const matches);
 

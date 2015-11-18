@@ -70,6 +70,7 @@ typedef struct {
   paired_search_parameters_t paired_search_parameters;
   /* Filtering parameters */
   uint64_t filtering_threshold;
+  uint64_t gpu_filtering_threshold;
   float filtering_region_factor;
   region_profile_model_t rp_minimal;  // Region-Minimal
   region_profile_model_t rp_boost;    // Region-Boost

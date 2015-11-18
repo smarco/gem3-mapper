@@ -210,7 +210,7 @@ GPU_INLINE gpu_error_t gpu_save_index_PROFILE(const char *fn, gpu_index_buffer_t
     char fileName[sizeFileName];
     FILE *fp = NULL;
 
-    sprintf(fileName, "%s.%llu.%u.fmi", fn, index->bwtSize, GPU_FMI_ENTRY_SIZE);
+    sprintf(fileName, "%s.%lu.%u.fmi", fn, index->bwtSize, GPU_FMI_ENTRY_SIZE);
     fp = fopen(fileName, "wb");
     if (fp == NULL) return (E_WRITING_FILE);
 

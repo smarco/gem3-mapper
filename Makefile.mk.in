@@ -28,11 +28,7 @@ FOLDER_LIB=$(ROOT_PATH)/lib
 FOLDER_RESOURCES=$(ROOT_PATH)/resources
 FOLDER_RESOURCES_BUILD=$(ROOT_PATH)/resources/build
 
-ifeq ($(PLATFORM),Darwin)
-FOLDER_RESOURCES_LIB=$(ROOT_PATH)/resources/lib
-else
-FOLDER_RESOURCES_LIB=$(ROOT_PATH)/resources/lib
-endif
+FOLDER_GEMGPU_BIULD=$(ROOT_PATH)/resources/gpu_modules/build
 
 FOLDER_RESOURCES_INCLUDE=$(ROOT_PATH)/resources/include
 FOLDER_SOURCE=$(ROOT_PATH)/src
@@ -81,8 +77,8 @@ endif
 ###############################################################################
 
 # Libs/Include Flags
-PATH_INCLUDE=-I$(FOLDER_INCLUDE) -I$(FOLDER_RESOURCES_INCLUDE)
-PATH_LIB=-L$(FOLDER_LIB) -L$(FOLDER_RESOURCES_LIB)
+PATH_INCLUDE=-I$(FOLDER_INCLUDE)
+PATH_LIB=-L$(FOLDER_LIB)
 
 # Link Libs
 LIBS=-lgemcore_c -lpthread -lm $(LIBS_ZLIB) $(LIBS_BZLIB)

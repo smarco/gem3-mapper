@@ -30,8 +30,8 @@ GEM_INLINE void archive_builder_index_build_bwt(
   sa_builder_store_suffixes(archive_builder->sa_builder,verbose);
   // Sort suffixes & sample SA
   archive_builder->sampled_sa = sampled_sa_builder_new(
-      text_length,archive_builder->sampling_rate,
-      archive_builder->num_threads,mm_pool_get_slab(mm_pool_32MB)); // Allocate Sampled-SA
+      text_length,archive_builder->num_threads,archive_builder->sa_sampling_rate,
+      archive_builder->text_sampling_rate,mm_pool_get_slab(mm_pool_32MB)); // Allocate Sampled-SA
   sa_builder_sort_suffixes(archive_builder->sa_builder,archive_builder->enc_bwt,archive_builder->sampled_sa,verbose);
   // DEBUG
   if (dump_bwt) archive_builder_index_print_bwt(archive_builder,".bwt",true);

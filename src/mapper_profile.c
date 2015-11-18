@@ -289,109 +289,120 @@ GEM_INLINE void mapper_profile_print_archive_search_pe(FILE* const stream) {
                        PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"ext",true);
 }
 GEM_INLINE void mapper_profile_print_archive_search_group(FILE* const stream) {
+  /*
+   * TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+   */
   tab_fprintf(stream,"[GEM]>Profile.Archive.Search.Group\n");
-  // Search groups (BPM-Buffers)
-  tab_fprintf(stream,"  |> Archive.Search.Group\n");
-  tab_fprintf(stream,"    --> Candidates.processed          ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_BPM_GPU_BUFFER_NUM_CANDIDATES),NULL,"candidates",true);
-  tab_fprintf(stream,"    --> Candidates.length             ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_BPM_GPU_BUFFER_CANDIDATES_LENGTH),NULL,"nt        ",true);
-  tab_fprintf(stream,"    --> Num.Circular.BPMBuffers.Used  ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_GROUP_BUFFERS_USED),NULL,"buffers   ",true);
-  tab_fprintf(stream,"      --> Queries                     ");
-  PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_BPM_GPU_BUFFER_USAGE_QUERIES));
-  tab_fprintf(stream,"      --> PeqEntries                  ");
-  PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_BPM_GPU_BUFFER_USAGE_PEQ_ENTRIES));
-  tab_fprintf(stream,"      --> Candidates                  ");
-  PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_BPM_GPU_BUFFER_USAGE_CANDIDATES));
+//  // Search groups (BPM-Buffers)
+//  tab_fprintf(stream,"  |> Archive.Search.Group\n");
+//  tab_fprintf(stream,"    --> Candidates.processed          ");
+//  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_BPM_GPU_BUFFER_NUM_CANDIDATES),NULL,"candidates",true);
+//  tab_fprintf(stream,"    --> Candidates.length             ");
+//  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_BPM_GPU_BUFFER_CANDIDATES_LENGTH),NULL,"nt        ",true);
+//  tab_fprintf(stream,"    --> Num.Circular.BPMBuffers.Used  ");
+//  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_GROUP_BUFFERS_USED),NULL,"buffers   ",true);
+//  tab_fprintf(stream,"      --> Queries                     ");
+//  PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_BPM_GPU_BUFFER_USAGE_QUERIES));
+//  tab_fprintf(stream,"      --> PeqEntries                  ");
+//  PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_BPM_GPU_BUFFER_USAGE_PEQ_ENTRIES));
+//  tab_fprintf(stream,"      --> Candidates                  ");
+//  PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_BPM_GPU_BUFFER_USAGE_CANDIDATES));
 }
 GEM_INLINE void mapper_profile_print_archive_search_cuda(FILE* const stream,const bool map_output) {
+  /*
+   * TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+   */
   tab_fprintf(stream,"[GEM]>Profile.CUDA.ArchiveSearch\n");
-  tab_fprintf(stream,"  => TIME.CUDA.Thread                        ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_THREAD),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"    => 0.TIME.CUDA.Buffers.Init              ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_GPU_BUFFER_INIT),PROF_GET_TIMER(GP_MAPPER_ALL));
-  // Generating
-  tab_fprintf(stream,"    => 1.TIME.CUDA.Generating                ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_THREAD_GENERATING),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.Buffer.Input                   ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BUFFERED_INPUT_RELOAD__DUMP_ATTACHED),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.Parse.Input.FASTQ              ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_INPUT_FASTA_PARSE_SEQUENCE),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.Archive.Prepare.Sequence       ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_PREPARE_SEQUENCE),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.Archive.Generate.Candidates    ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_SE_GENERATE_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.Archive.Copy.Candidates        ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_COPY_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
-  // Verifying
-  tab_fprintf(stream,"    => 2.TIME.CUDA.Verifying                 ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_THREAD_SELECTING),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => {GPU}\n");
-  tab_fprintf(stream,"        => TIME.CUDA.Send.Delay              ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_GPU_BUFFER_SEND),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"        => TIME.CUDA.Duty.Cycle              ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_GPU_BUFFER_CHECK_TIME),NULL);
-  tab_fprintf(stream,"        => TIME.CUDA.Retrieve.Delay          ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_GROUP_RETRIEVE_CANDIDATES_DELAY),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => {CPU}\n");
-  tab_fprintf(stream,"        => TIME.Archive.Retrieve.Candidates  ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_RETRIEVE_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"          => TIME.Retrieve.Candidates        ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_RETRIEVE_BPM_BUFFER_CANDIDATE_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"          => TIME.Realign                    ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"        => TIME.Archive.Finish.Search        ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_SE_FINISH_SEARCH),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"        => TIME.Archive.Select.Matches       ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SELECT_SE_MATCHES),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"        => TIME.Restart.Unfit.Searches       ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_THREAD_RESTART_UNFIT),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"        "); mapper_profile_print_output(stream,false,map_output);
-  // Archive Search Groups
-  mapper_profile_print_archive_search_group(stream);
+//  tab_fprintf(stream,"  => TIME.CUDA.Thread                        ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_THREAD),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"    => 0.TIME.CUDA.Buffers.Init              ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_GPU_BUFFER_INIT),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  // Generating
+//  tab_fprintf(stream,"    => 1.TIME.CUDA.Generating                ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_THREAD_GENERATING),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"      => TIME.Buffer.Input                   ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BUFFERED_INPUT_RELOAD__DUMP_ATTACHED),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"      => TIME.Parse.Input.FASTQ              ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_INPUT_FASTA_PARSE_SEQUENCE),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"      => TIME.Archive.Prepare.Sequence       ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_PREPARE_SEQUENCE),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"      => TIME.Archive.Generate.Candidates    ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_SE_GENERATE_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"      => TIME.Archive.Copy.Candidates        ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_COPY_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  // Verifying
+//  tab_fprintf(stream,"    => 2.TIME.CUDA.Verifying                 ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_THREAD_SELECTING),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"      => {GPU}\n");
+//  tab_fprintf(stream,"        => TIME.CUDA.Send.Delay              ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_GPU_BUFFER_SEND),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"        => TIME.CUDA.Duty.Cycle              ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_GPU_BUFFER_CHECK_TIME),NULL);
+//  tab_fprintf(stream,"        => TIME.CUDA.Retrieve.Delay          ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_GROUP_RETRIEVE_CANDIDATES_DELAY),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"      => {CPU}\n");
+//  tab_fprintf(stream,"        => TIME.Archive.Retrieve.Candidates  ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_RETRIEVE_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"          => TIME.Retrieve.Candidates        ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_RETRIEVE_BPM_BUFFER_CANDIDATE_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"          => TIME.Realign                    ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"        => TIME.Archive.Finish.Search        ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_SE_FINISH_SEARCH),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"        => TIME.Archive.Select.Matches       ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SELECT_SE_MATCHES),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"        => TIME.Restart.Unfit.Searches       ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_THREAD_RESTART_UNFIT),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"        "); mapper_profile_print_output(stream,false,map_output);
+//  // Archive Search Groups
+//  mapper_profile_print_archive_search_group(stream);
 }
 GEM_INLINE void mapper_profile_print_archive_search_pe_cuda(FILE* const stream,const bool map_output) {
+
+  /*
+   * TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+   */
+
   tab_fprintf(stream,"[GEM]>Profile.CUDA.ArchiveSearch\n");
-  tab_fprintf(stream,"  => TIME.CUDA.Thread                        ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_THREAD),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"    => 0.TIME.CUDA.Buffers.Init              ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_GPU_BUFFER_INIT),PROF_GET_TIMER(GP_MAPPER_ALL));
-  // Generating
-  tab_fprintf(stream,"    => 1.TIME.CUDA.Generating                ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_THREAD_GENERATING),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.Buffer.Input                   ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BUFFERED_INPUT_RELOAD__DUMP_ATTACHED),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.Parse.Input.FASTQ              ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_INPUT_FASTA_PARSE_SEQUENCE),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.Archive.Generate.Candidates    ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_PE_GENERATE_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.Archive.Copy.Candidates        ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_COPY_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
-  // Verifying
-  tab_fprintf(stream,"    => 2.TIME.CUDA.Verifying                 ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_THREAD_SELECTING),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => {GPU}\n");
-  tab_fprintf(stream,"        => TIME.CUDA.Send.Delay              ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_GPU_BUFFER_SEND),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"        => TIME.CUDA.Duty.Cycle              ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_GPU_BUFFER_CHECK_TIME),NULL);
-  tab_fprintf(stream,"        => TIME.CUDA.Retrieve.Delay          ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_GROUP_RETRIEVE_CANDIDATES_DELAY),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => {CPU}\n");
-  tab_fprintf(stream,"        => TIME.Archive.Retrieve.Candidates  ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_RETRIEVE_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"          => TIME.Retrieve.Candidates        ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_RETRIEVE_BPM_BUFFER_CANDIDATE_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"          => TIME.Realign                    ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"        => TIME.Archive.Finish.Search        ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_PE_FINISH_SEARCH),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"        => TIME.Restart.Unfit.Searches       ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_THREAD_RESTART_UNFIT),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"        "); mapper_profile_print_output(stream,false,map_output);
-  // Archive Search Groups
-  mapper_profile_print_archive_search_group(stream);
+//  tab_fprintf(stream,"  => TIME.CUDA.Thread                        ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_THREAD),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"    => 0.TIME.CUDA.Buffers.Init              ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_GPU_BUFFER_INIT),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  // Generating
+//  tab_fprintf(stream,"    => 1.TIME.CUDA.Generating                ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_THREAD_GENERATING),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"      => TIME.Buffer.Input                   ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BUFFERED_INPUT_RELOAD__DUMP_ATTACHED),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"      => TIME.Parse.Input.FASTQ              ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_INPUT_FASTA_PARSE_SEQUENCE),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"      => TIME.Archive.Generate.Candidates    ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_PE_GENERATE_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"      => TIME.Archive.Copy.Candidates        ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_COPY_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  // Verifying
+//  tab_fprintf(stream,"    => 2.TIME.CUDA.Verifying                 ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_THREAD_SELECTING),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"      => {GPU}\n");
+//  tab_fprintf(stream,"        => TIME.CUDA.Send.Delay              ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_GPU_BUFFER_SEND),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"        => TIME.CUDA.Duty.Cycle              ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_GPU_BUFFER_CHECK_TIME),NULL);
+//  tab_fprintf(stream,"        => TIME.CUDA.Retrieve.Delay          ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_GROUP_RETRIEVE_CANDIDATES_DELAY),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"      => {CPU}\n");
+//  tab_fprintf(stream,"        => TIME.Archive.Retrieve.Candidates  ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_RETRIEVE_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"          => TIME.Retrieve.Candidates        ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_RETRIEVE_BPM_BUFFER_CANDIDATE_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"          => TIME.Realign                    ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"        => TIME.Archive.Finish.Search        ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_PE_FINISH_SEARCH),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"        => TIME.Restart.Unfit.Searches       ");
+//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_THREAD_RESTART_UNFIT),PROF_GET_TIMER(GP_MAPPER_ALL));
+//  tab_fprintf(stream,"        "); mapper_profile_print_output(stream,false,map_output);
+//  // Archive Search Groups
+//  mapper_profile_print_archive_search_group(stream);
 }
 /*
  * Filtering Verification
@@ -663,8 +674,8 @@ GEM_INLINE void mapper_profile_print_mapper_single_end_cuda(
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_ALL),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"    => TIME.Load.Index                     ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_LOAD_INDEX),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"    => TIME.CUDA.Thread                    ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_THREAD),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"    => TIME.CUDA.SE                        ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_SE),PROF_GET_TIMER(GP_MAPPER_ALL));
   // CUDA
   mapper_profile_print_archive_search_cuda(stream,map_output);
   // Commons
@@ -690,8 +701,8 @@ GEM_INLINE void mapper_profile_print_mapper_paired_end_cuda(
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_ALL),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"    => TIME.Load.Index                     ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_LOAD_INDEX),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"    => TIME.CUDA.Thread                    ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_THREAD),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"    => TIME.CUDA.PE                        ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_PE),PROF_GET_TIMER(GP_MAPPER_ALL));
   // CUDA
   mapper_profile_print_archive_search_pe_cuda(stream,map_output);
   // Commons

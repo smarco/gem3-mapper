@@ -119,11 +119,10 @@ GEM_INLINE uint64_t fm_index_get_size(const fm_index_t* const fm_index) {
 /*
  * FM-Index High-level Operators
  */
-// Compute SA[i]
 GEM_INLINE uint64_t fm_index_lookup(const fm_index_t* const fm_index,uint64_t bwt_position) {
-  const uint64_t bwt_length = fm_index_get_length(fm_index);
-  gem_fatal_check(bwt_position>=bwt_length,FM_INDEX_INDEX_OOR,bwt_position,bwt_length);
+  // Parameters
   const bwt_t* const bwt = fm_index->bwt;
+  const uint64_t bwt_length = fm_index_get_length(fm_index);
   const sampled_sa_t* const sampled_sa = fm_index->sampled_sa;
   bool is_sampled = false;
   uint64_t dist=0;
@@ -137,12 +136,10 @@ GEM_INLINE uint64_t fm_index_lookup(const fm_index_t* const fm_index,uint64_t bw
   // Recover sampled position & adjust
   return (sampled_sa_get_sample(sampled_sa,bwt_position) + dist) % bwt_length;
 }
-// Compute SA^(-1)[i]
+
 GEM_INLINE uint64_t fm_index_inverse_lookup(const fm_index_t* const fm_index,const uint64_t text_position) {
   GEM_NOT_IMPLEMENTED(); // TODO Implement
-//#ifndef SUPPRESS_CHECKS
-//  gem_cond_fatal_error(i<0||i>a->text_length,BWT_INDEX,i);
-//#endif
+// // Compute SA^(-1)[i]
 //  register const idx_t refl=a->text_length-i;
 //  register const idx_t sam_quo=GEM_DIV_BY_POWER_OF_TWO_64(refl,a->sampling_rate_log);
 //  register idx_t sam_rem=GEM_MOD_BY_POWER_OF_TWO_64(refl,a->sampling_rate_log), pos;
@@ -152,10 +149,9 @@ GEM_INLINE uint64_t fm_index_inverse_lookup(const fm_index_t* const fm_index,con
 //  return pos;
   return 0;
 }
-// Compute Psi[i]
 GEM_INLINE uint64_t fm_index_psi(const fm_index_t* const fm_index,const uint64_t bwt_position) {
   GEM_NOT_IMPLEMENTED(); // TODO Implement
-  /*
+  /* // Compute Psi[i]
   if (!i)
     return a->last;
   --i;
@@ -217,6 +213,16 @@ GEM_INLINE uint64_t fm_index_decode_raw(
 //    return len;
 //  }
   return 0;
+}
+GEM_INLINE uint64_t fm_index_retrieve_sa_sample(
+    const fm_index_t* const fm_index,
+    const uint64_t sampled_bwt_position,const uint64_t lf_dist) {
+  // Parameters
+  const bwt_t* const bwt = fm_index->bwt;
+  const uint64_t bwt_length = fm_index_get_length(fm_index);
+  const sampled_sa_t* const sampled_sa = fm_index->sampled_sa;
+  // Recover sampled position & adjust
+  return (sampled_sa_get_sample(sampled_sa,sampled_bwt_position) + lf_dist) % bwt_length;
 }
 /*
  * Display

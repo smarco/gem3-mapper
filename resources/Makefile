@@ -7,7 +7,7 @@
 
 # Definitions
 ROOT_PATH=..
-include ../Makefile.mk
+include $(ROOT_PATH)/Makefile.mk
 
 all: devel
 

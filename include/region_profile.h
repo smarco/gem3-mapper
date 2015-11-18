@@ -41,17 +41,16 @@ typedef struct {
 // Filtering regions
 typedef struct {
   // Ranges of the region [begin,end)
-  uint64_t end;
-  uint64_t begin;
   region_type type;
-  // Mismatches required to match the region
+  uint64_t begin;
+  uint64_t end;
+  // Filtering error
+  uint64_t degree; // Degree assigned to this region
   uint64_t max;
   uint64_t min;
-  // Region filtering results
+  // Region exact-search (candidates)
   uint64_t hi;
   uint64_t lo;
-  // Degree assigned to this region
-  uint64_t degree;
 } region_search_t;
 // Region Profile
 typedef struct {

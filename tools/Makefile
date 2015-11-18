@@ -39,7 +39,6 @@ profile: PATH_INCLUDE+=$(CUDA_PATH_INCLUDE)
 profile: $(GEM_TOOLS_BIN)
 
 debug: GEM_FLAGS=-O0 $(FLAGS_GENERAL) $(FLAGS_DEBUG) $(FLAGS_PROFILE)
-debug: LIBS+=$(VTUNE_PROFILE_LIB)
 debug: LIBS+=$(CUDA_PROFILE_LIB)
 debug: PATH_INCLUDE+=$(CUDA_PATH_INCLUDE)
 debug: $(GEM_TOOLS_BIN)
@@ -51,11 +50,11 @@ $(FOLDER_BIN)/gem-mapper: $(LIB_GEM_CORE) gem-mapper.c
 	$(CC) $(GEM_FLAGS) $(DEF_CUDA) $(notdir $@).c -o $@ $(PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB) $(LIBS) $(CUDA_LIB) 
 
 $(FOLDER_BIN)/gem-indexer: $(LIB_GEM_CORE) gem-indexer.c
-	$(CC) $(GEM_FLAGS) $(notdir $@).c -o $@ $(PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB) $(LIBS) 
+	$(CC) $(GEM_FLAGS) $(notdir $@).c -o $@ $(PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB) $(LIBS) $(CUDA_LIB) 
 	
 $(FOLDER_BIN)/gem-retriever: $(LIB_GEM_CORE) gem-retriever.c
-	$(CC) $(GEM_FLAGS) $(notdir $@).c -o $@ $(PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB) $(LIBS) 
+	$(CC) $(GEM_FLAGS) $(notdir $@).c -o $@ $(PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB) $(LIBS) $(CUDA_LIB) 
 
 $(FOLDER_BIN)/gem-constructor: $(LIB_GEM_CORE) gem-constructor.c
-	$(CC) $(GEM_FLAGS) $(notdir $@).c -o $@ $(PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB) $(LIBS) 
+	$(CC) $(GEM_FLAGS) $(notdir $@).c -o $@ $(PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB) $(LIBS) $(CUDA_LIB) 
 	

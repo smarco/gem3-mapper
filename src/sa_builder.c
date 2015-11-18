@@ -523,7 +523,8 @@ GEM_INLINE void sa_builder_ds_shallow_mkq_cached(uint64_t* const a,const uint64_
 void* sa_builder_sort_suffixes_thread(uint64_t thread_id) {
   gem_thread_register_id(thread_id+1);
   // SA sampling rate
-  const uint64_t sampling_rate_pow2 = global_sampled_sa!=NULL ? global_sampled_sa->sampling_rate : 0;
+  const uint64_t sa_sampling_rate_pow2 = global_sampled_sa!=NULL ? global_sampled_sa->sa_sampling_rate : 0;
+  const uint64_t text_sampling_rate_pow2 = global_sampled_sa!=NULL ? global_sampled_sa->text_sampling_rate : 0;
   // Retrieve SA chunks
   fm_t* const sa_file_reader = global_sa_builder->sa_file_reader[thread_id];
   vector_t* const buffer = vector_new(global_sa_builder->block_size/8,uint64_t);
@@ -545,20 +546,18 @@ void* sa_builder_sort_suffixes_thread(uint64_t thread_id) {
       const uint64_t sa_idx = sa_group->sa_offset+block_position;
       const uint8_t sa_char = SA_POS_MASK_GET_BWT1(sa_chunk[block_position]);
       global_enc_bwt[sa_idx] = sa_char;
-      // Store SA-samples
+      // Store SA-samples (hybrid)
       if (global_sampled_sa!=NULL) {
-        #ifdef SAMPLING_SA_INVERSE
-        if (MOD_POW2(sa_idx,sampling_rate_pow2) == 0) {
-          const uint64_t text_position = SA_POS_MASK_POSITION(sa_chunk[block_position]);
-          sampled_sa_builder_set_sample(global_sampled_sa,thread_id,sa_idx,text_position);
-        }
-        #endif
-        #ifdef SAMPLING_SA_DIRECT
+        // Sampling-SA Direct (Text)
         const uint64_t text_position = SA_POS_MASK_POSITION(sa_chunk[block_position]);
-        if (MOD_POW2(text_position,sampling_rate_pow2) == 0) {
+        if (MOD_POW2(text_position,text_sampling_rate_pow2) == 0) {
           sampled_sa_builder_set_sample(global_sampled_sa,thread_id,sa_idx,text_position);
+        } else {
+          // Sampling-SA Inverse (SA)
+          if (MOD_POW2(sa_idx,sa_sampling_rate_pow2) == 0) {
+            sampled_sa_builder_set_sample(global_sampled_sa,thread_id,sa_idx,text_position);
+          }
         }
-        #endif
       }
     }
     // Ticker update

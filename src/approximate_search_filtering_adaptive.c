@@ -1,30 +1,29 @@
 /*
  * PROJECT: GEMMapper
- * FILE: approximate_search_filtering_adaptive.h
+ * FILE: approximate_search_filtering_adaptive.c
  * DATE: 06/06/2012
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
  */
 
 #include "approximate_search_filtering_adaptive.h"
-#include "approximate_search_filtering_base.h"
 #include "approximate_search_filtering_stages.h"
-#include "approximate_search_filtering_control.h"
+#include "approximate_search_control.h"
 #include "approximate_search_neighborhood.h"
 
 /*
  * Control
  */
-GEM_INLINE void asearch_control_next_state_read_recovery(approximate_search_t* const search,matches_t* const matches) {
-  switch (search->search_state) {
-    case asearch_no_regions:
-      search->search_state = asearch_end;
+GEM_INLINE void asearch_control_next_state_read_recovery(
+    approximate_search_t* const search,matches_t* const matches) {
+  switch (search->processing_state) {
+    case asearch_processing_state_no_regions:
       break;
-    case asearch_exact_matches:
+    case asearch_processing_state_exact_matches:
       PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MAPPED,1);
       PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,1);
       break;
-    case asearch_candidates_verified:
+    case asearch_processing_state_candidates_verified:
       PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MAPPED,matches_is_mapped(matches)?1:0);
       PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,search->max_complete_stratum);
       break;
@@ -32,35 +31,42 @@ GEM_INLINE void asearch_control_next_state_read_recovery(approximate_search_t* c
       GEM_INVALID_CASE();
       break;
   }
+  // Finish
+  search->search_stage = asearch_stage_end;
 }
-GEM_INLINE void asearch_control_next_state_exact_filtering_adaptive(approximate_search_t* const search,matches_t* const matches) {
-  // Stats
+GEM_INLINE void asearch_control_next_state_exact_filtering_adaptive(
+    approximate_search_t* const search,matches_t* const matches) {
   // Select state
-  switch (search->search_state) {
-    case asearch_no_regions:
-      search->search_state = asearch_exact_filtering_boost;
+  switch (search->processing_state) {
+    case asearch_processing_state_no_regions:
+      search->search_stage = asearch_stage_filtering_boost;
       break;
-    case asearch_exact_matches:
+    case asearch_processing_state_exact_matches:
       PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MAPPED,1);
       PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,1);
+      search->search_stage = asearch_stage_end;
       break;
-    case asearch_candidates_verified:
+    case asearch_processing_state_candidates_verified:
       PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MAPPED,matches_is_mapped(matches)?1:0);
       PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,search->max_complete_stratum);
-      search->search_state = asearch_control_trigger_boost(search,matches) ?
-          asearch_exact_filtering_boost : asearch_end;
+      if (asearch_control_trigger_boost(search,matches)) {
+        search->search_stage = asearch_stage_filtering_boost;
+      } else {
+        search->search_stage = asearch_stage_end;
+      }
       break;
     default:
       GEM_INVALID_CASE();
       break;
   }
 }
-GEM_INLINE void asearch_control_next_state_exact_filtering_boost(approximate_search_t* const search,matches_t* const matches) {
+GEM_INLINE void asearch_control_next_state_exact_filtering_boost(
+    approximate_search_t* const search,matches_t* const matches) {
   search_parameters_t* const search_parameters = search->as_parameters->search_parameters;
   if (matches_is_mapped(matches) || search_parameters->unbounded_alignment==unbounded_alignment_never) {
-    search->search_state = asearch_end;
+    search->search_stage = asearch_stage_end;
   } else {
-    search->search_state = asearch_unbounded_alignment;
+    search->search_stage = asearch_stage_unbounded_alignment;
   }
 }
 /*
@@ -81,7 +87,7 @@ GEM_INLINE void approximate_search_filtering_adaptive_basic_cases(approximate_se
     search->hi_exact_matches = 0;
     search->lo_exact_matches = 0;
     approximate_search_update_mcs(search,key_length);
-    search->search_state = asearch_end;
+    search->search_stage = asearch_stage_end;
     return;
   }
   /*
@@ -95,13 +101,13 @@ GEM_INLINE void approximate_search_filtering_adaptive_basic_cases(approximate_se
       case mapping_adaptive_filtering_fast:
       case mapping_adaptive_filtering_thorough:
         if (num_wildcards >= search->as_parameters->alignment_max_error_nominal) {
-          search->search_state = asearch_read_recovery;
+          search->search_stage = asearch_stage_read_recovery;
           return;
         }
         break;
       default:
         if (num_wildcards >= search->max_complete_error) {
-          search->search_state = asearch_read_recovery;
+          search->search_stage = asearch_stage_read_recovery;
           return;
         }
         break;
@@ -109,16 +115,16 @@ GEM_INLINE void approximate_search_filtering_adaptive_basic_cases(approximate_se
   }
   // Exact search
   if (search->max_complete_error==0) {
-    search->search_state = asearch_neighborhood;
+    search->search_stage = asearch_stage_neighborhood;
     return;
   }
   // Very short reads (Neighborhood search)
   if (key_length <= RANK_MTABLE_SEARCH_DEPTH || key_length < search->archive->fm_index->proper_length) {
-    search->search_state = asearch_neighborhood;
+    search->search_stage = asearch_stage_neighborhood;
     return;
   }
   // Otherwise, go to standard exact filtering
-  search->search_state = asearch_exact_filtering_adaptive;
+  search->search_stage = asearch_stage_filtering_adaptive;
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
   return;
 }
@@ -129,18 +135,17 @@ GEM_INLINE void approximate_search_filtering_adaptive(approximate_search_t* cons
   // Parameters
   const as_parameters_t* const actual_parameters = search->as_parameters;
   const search_parameters_t* const search_parameters = actual_parameters->search_parameters;
-  pattern_t* const pattern = &search->pattern;
   // Process proper search-stage
-  while (search->search_state != asearch_end) {
-    switch (search->search_state) {
-      case asearch_begin: // Search Start. Check basic cases
+  while (true) {
+    switch (search->search_stage) {
+      case asearch_stage_begin: // Search Start. Check basic cases
         approximate_search_filtering_adaptive_basic_cases(search);
         break;
-      case asearch_read_recovery: // Read recovery
+      case asearch_stage_read_recovery: // Read recovery
         approximate_search_exact_filtering_adaptive_recovery(search,matches);
         asearch_control_next_state_read_recovery(search,matches); // Next State
         break;
-      case asearch_exact_filtering_adaptive: // Exact-Filtering (Adaptive)
+      case asearch_stage_filtering_adaptive: // Exact-Filtering (Adaptive)
         if (search_parameters->mapping_mode==mapping_adaptive_filtering_fast) {
           approximate_search_exact_filtering_adaptive_cutoff(search,matches);
         } else {
@@ -148,52 +153,32 @@ GEM_INLINE void approximate_search_filtering_adaptive(approximate_search_t* cons
         }
         asearch_control_next_state_exact_filtering_adaptive(search,matches); // Next State
         break;
-      case asearch_exact_filtering_boost:
+      case asearch_stage_filtering_boost:
         approximate_search_exact_filtering_boost(search,matches);
         asearch_control_next_state_exact_filtering_boost(search,matches);
         break;
-//      case asearch_inexact_filtering: // Inexact-Filtering
-//        approximate_search_inexact_filtering(search,matches);
-//        break;
-      case asearch_neighborhood:
+      case asearch_stage_neighborhood:
         approximate_search_neighborhood_search(search,matches);
-        search->search_state = asearch_end; // Next State
+        search->search_stage = asearch_stage_end; // Next State
         break;
-      case asearch_exact_matches: // Exact Matches
-        gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_fprintf(stderr,"[GEM]>ASM::Exact-Matches\n"); }
-        matches_add_interval_match(matches,search->lo_exact_matches,
-            search->hi_exact_matches,pattern->key_length,0,search->emulated_rc_search); // Add interval
-        approximate_search_update_mcs(search,1);
-        search->search_state = asearch_end; // Next State
-        break;
-      case asearch_unbounded_alignment: // Unbounded alignments
+      case asearch_stage_unbounded_alignment: // Unbounded alignments
         approximate_search_unbounded_align(search,matches);
-        search->search_state = asearch_end; // Next State
+        search->search_stage = asearch_stage_end; // Next State
         break;
-      case asearch_no_regions: // No regions found
-        gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_fprintf(stderr,"[GEM]>ASM::No-Regions\n"); }
-        approximate_search_update_mcs(search,pattern->num_wildcards);
-        search->search_state = asearch_end; // Next State
-        break;
+      case asearch_stage_end:
+        approximate_search_end(search,matches);
+        return;
       default:
         GEM_INVALID_CASE();
         break;
     }
   }
-  // Set MCS
-  matches->max_complete_stratum = MIN(matches->max_complete_stratum,search->max_complete_stratum);
-  // Done!!
-  gem_cond_debug_block(DEBUG_SEARCH_STATE) {
-    if (search->search_state == asearch_end) {
-      tab_fprintf(stderr,"[GEM]>ASM::END ASM +++\n");
-    }
-  }
-  PROF_ADD_COUNTER(GP_AS_ADAPTIVE_MCS,search->max_complete_stratum);
 }
 /*
- * Test
+ * Test // FIXME Delete ME
  */
-GEM_INLINE void approximate_search_test(approximate_search_t* const search,matches_t* const matches) {
+GEM_INLINE void approximate_search_filtering_adaptive_test(
+    approximate_search_t* const search,matches_t* const matches) {
   pattern_t* const pattern = &search->pattern;
   // FM-Index basic exact search
 //  fm_index_bsearch(search->archive->fm_index,pattern->key,
@@ -210,5 +195,5 @@ GEM_INLINE void approximate_search_test(approximate_search_t* const search,match
   // Update MCS
   approximate_search_update_mcs(search,1);
   // Update next state
-  search->search_state = asearch_end;
+  search->search_stage = asearch_stage_end;
 }

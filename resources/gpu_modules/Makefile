@@ -37,7 +37,6 @@ MODULES=gpu_sample gpu_fmi gpu_bpm gpu_devices gpu_buffers gpu_index gpu_referen
 SRCS=$(addprefix $(FOLDER_SOURCE)/, $(addsuffix .c, $(MODULES)))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(addsuffix .o, $(MODULES)))
 	
-
 all: release
 
 release: NVCC_COMPILE_FLAGS=-O3 -m64 
@@ -56,10 +55,10 @@ debug: NVCC_COMPILE_FLAGS=-G -O0 -m64 --ptxas-options=-v -lineinfo
 debug: GCC_COMPILE_FLAGS=-g -O0 -m64
 debug: $(OBJS) $(CUDA_OBJS) link
 	
-$(CUDA_OBJS): $(CUDA_SRCS)
+$(FOLDER_BUILD)/%.o: $(FOLDER_SOURCE)/%.cu
 	$(NVCC) $(NVCC_COMPILE_FLAGS) $(CUDA_SASS_FLAGS) -c $< -o $@
 	
-$(OBJS): $(SRCS)
+$(FOLDER_BUILD)/%.o: $(FOLDER_SOURCE)/%.c
 	$(CC) $(GCC_COMPILE_FLAGS) -c $< -o $@ $(CUDA_LIBRARY_FLAGS)
 
 link: $(OBJS) $(CUDA_OBJS)
@@ -71,5 +70,4 @@ tools: $(OBJS) $(CUDA_OBJS) link
 	$(CC) $(GCC_GDB_FLAGS) tools/gpu_benchmark_decode.c $(FOLDER_BUILD)/gem_gpu.o -o $(FOLDER_BIN)/gpu_decode_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt -lstdc++
 
 clean:
-	rm -f $(FOLDER_BIN)/*
-	rm -f $(FOLDER_BUILD)/*.o
+	rm -f $(FOLDER_BIN)/* $(FOLDER_BUILD)/*.o

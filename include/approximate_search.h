@@ -23,49 +23,65 @@
 #define DEBUG_SEARCH_STATE          GEM_DEEP_DEBUG
 
 /*
- * Approximate Search State
+ * Search States
  */
 typedef enum {
-  asearch_begin = 0,                     // Beginning of the search
-  asearch_no_regions = 1,                // While doing the region profile no regions were found
-  asearch_exact_matches = 2,             // One maximum region was found (exact results)
-  asearch_exact_filtering_adaptive = 3,  // Region-Minimal Profile (Adaptive) + Exact candidate generation
-  asearch_verify_candidates = 4,         // Verify candidates
-  asearch_candidates_verified = 5,       // Candidates verified
-  asearch_exact_filtering_boost = 6,     // Boost Region-Profile + Exact candidate generation
-  asearch_inexact_filtering = 7,         // Region-Delimit Profile (Adaptive) + Approximate candidate generation
-  asearch_neighborhood = 8,              // Neighborhood search
-  asearch_end = 9,                       // End of the current workflow
-  asearch_read_recovery = 10,            // Read recovery
-  asearch_unbounded_alignment = 11,      // Unbounded Alignment Search
-  asearch_probe_candidates = 12          // Probe candidates (try to lower max-differences) // TODO
-} approximate_search_state_t;
-extern const char* approximate_search_state_label[13];
+  // Null
+  asearch_processing_state_begin = 0,                 // Begin
+  // Region Profile
+  asearch_processing_state_region_partitioned = 1,    // Region Partition Performed
+  asearch_processing_state_region_profiled = 2,       // Region Profile Performed
+  asearch_processing_state_no_regions = 3,            // Region Profile Performed (No regions were found)
+  asearch_processing_state_exact_matches = 4,         // Region Profile Performed (Exact Matches; One maximum region was found)
+  // Verify Candidates
+  asearch_processing_state_candidates_processed = 5,  // Candidates processed
+  asearch_processing_state_candidates_verified = 6,   // Candidates verified
+} asearch_processing_state_t;
+extern const char* asearch_processing_state_label[7];
+/*
+ * Search Stages
+ */
+typedef enum {
+  asearch_stage_begin = 0,                       // Beginning of the search
+  asearch_stage_read_recovery = 1,               // Read recovery (Reads containing multiple uncalled bases)
+  asearch_stage_filtering_adaptive = 2,          // Adaptive filtering search
+  asearch_stage_filtering_boost = 4,             // Boost filtering
+  asearch_stage_inexact_filtering = 5,           // Inexact Filtering (using approximate-candidate generation)
+  asearch_stage_unbounded_alignment = 6,         // Unbounded filtering Search (unbounded alignment)
+  asearch_stage_neighborhood = 7,                // Neighborhood search
+  asearch_stage_end = 8,                         // End of the search
+} asearch_stage_t;
+extern const char* asearch_stage_label[9];
 
 /*
  * Approximate Search
  */
 typedef struct {
   /* Index Structures, Pattern & Parameters */
-  archive_t* archive;                                   // Archive
-  pattern_t pattern;                                    // Search Pattern
+  archive_t* archive;                                     // Archive
+  pattern_t pattern;                                      // Search Pattern
   as_parameters_t* as_parameters; // Search Parameters (Evaluated to read-length)
   /* Search State */
-  bool emulated_rc_search;                              // Currently searching on the RC (emulated on the forward strand)
-  bool do_quality_search;                               // Quality search
-  approximate_search_state_t search_state;              // Current State of the search
-  bool stop_before_neighborhood_search;                 // Stop before Neighborhood Search
+  bool emulated_rc_search;                                // Currently searching on the RC (emulated on the forward strand)
+  bool do_quality_search;                                 // Quality search
+  asearch_stage_t search_stage;                           // Current Search Stage
+  asearch_processing_state_t processing_state;            // Current Processing State
+  bool stop_before_neighborhood_search;                   // Stop before Neighborhood Search
   uint64_t max_complete_error;
-  uint64_t max_complete_stratum;                        // Maximum complete stratum reached by the search
-  uint64_t max_matches_reached;                         // Quick abandon due to maximum matches found
-  uint64_t lo_exact_matches;                            // Interval Lo (Exact matching)
-  uint64_t hi_exact_matches;                            // Interval Hi (Exact matching)
+  uint64_t max_complete_stratum;                          // Maximum complete stratum reached by the search
+  uint64_t max_matches_reached;                           // Quick abandon due to maximum matches found
+  uint64_t lo_exact_matches;                              // Interval Lo (Exact matching)
+  uint64_t hi_exact_matches;                              // Interval Hi (Exact matching)
   /* Search Structures */
-  region_profile_t region_profile;                      // Region Profile
-  filtering_candidates_t* filtering_candidates;         // Filtering Candidates
-  /* BPM Buffer */
-  uint64_t bpm_buffer_offset;
-  uint64_t bpm_buffer_candidates;
+  region_profile_t region_profile;                        // Region Profile
+  filtering_candidates_t* filtering_candidates;           // Filtering Candidates
+  /* Buffer Offsets */
+  uint64_t gpu_buffer_fmi_search_offset;
+  uint64_t gpu_buffer_fmi_search_total;
+  uint64_t gpu_buffer_fmi_decode_offset;
+  uint64_t gpu_buffer_fmi_decode_total;
+  uint64_t gpu_buffer_align_offset;
+  uint64_t gpu_buffer_align_total;
   /* Search Auxiliary Structures (external) */
   text_collection_t* text_collection;                   // Stores text-traces
   interval_set_t* interval_set;                         // Interval Set

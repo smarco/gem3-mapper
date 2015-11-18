@@ -16,7 +16,8 @@ GEM_INLINE archive_builder_t* archive_builder_new(
     fm_t* const output_file,char* const output_file_name_prefix,
     const archive_type type,const indexed_complement_t indexed_complement,
     const uint64_t complement_size_threshold,const uint64_t ns_threshold,
-    const sampling_rate_t sampling_rate,const uint64_t num_threads,const uint64_t max_memory) {
+    const sampling_rate_t sa_sampling_rate,const sampling_rate_t text_sampling_rate,
+    const uint64_t num_threads,const uint64_t max_memory) {
   // Allocate
   archive_builder_t* const archive_builder = mm_alloc(archive_builder_t);
   /*
@@ -26,7 +27,8 @@ GEM_INLINE archive_builder_t* archive_builder_new(
   archive_builder->indexed_complement = indexed_complement;
   archive_builder->complement_size_threshold = complement_size_threshold;
   archive_builder->ns_threshold = ns_threshold;
-  archive_builder->sampling_rate = sampling_rate;
+  archive_builder->sa_sampling_rate = sa_sampling_rate;
+  archive_builder->text_sampling_rate = text_sampling_rate;
   /*
    * Misc
    */

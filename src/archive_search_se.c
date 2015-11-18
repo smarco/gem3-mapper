@@ -75,7 +75,7 @@ GEM_INLINE void archive_search_se(archive_search_t* const archive_search,matches
       // Run the search (REVERSE)
       approximate_search(reverse_asearch,matches); // Reverse emulated-search
       // Resume forward search (if not completed before)
-      if (forward_asearch->search_state != asearch_end && !forward_asearch->max_matches_reached) {
+      if (forward_asearch->search_stage != asearch_stage_end && !forward_asearch->max_matches_reached) {
         approximate_search(forward_asearch,matches);
       }
     }

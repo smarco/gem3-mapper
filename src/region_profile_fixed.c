@@ -12,41 +12,40 @@
 #include "pattern.h"
 
 /*
- * Region Profile Schedule (generate the region partition)
+ * Region Profile Partition
  */
-void region_profile_generate_fixed_schedule(
+void region_profile_generate_fixed_partition(
     region_profile_t* const region_profile,const uint8_t* const key,
     const uint64_t key_length,const bool* const allowed_enc,
-    const uint64_t region_length) {
+    const uint64_t min_region_length) {
   // Init
   region_profile_clear(region_profile);
-  // Profile
-  region_search_t* region_search = region_profile->filtering_region;
+  // Profile Parameters
   uint64_t num_filtering_regions = 0;
-  // Traverse the key & delimit regions of @region_length (skip bad characters)
-  uint64_t i, accum = 0;
+  region_search_t* region_search = region_profile->filtering_region;
+  // Traverse the key & delimit regions of @region_length
+  uint64_t i, region_length = 0;
   region_search->begin = 0;
   for (i=0;i<key_length;++i) {
     // Get next character & check allowed
     const uint8_t enc_char = key[i];
-    if (!allowed_enc[enc_char]) {
-      // Reset region
-      region_search->begin = i+1;
-      accum = 0;
+    if (!allowed_enc[enc_char]) { // Skip bad characters
+      region_search->begin = i+1; // Reset region
+      region_length = 0;
     }
-    // Add character
-    if ((++accum) == region_length) {
+    ++region_length; // Add character
+    if (region_length == min_region_length) {
       // Close region
       region_search->end = i+1;
       ++region_search;
       ++num_filtering_regions;
       // Start new region
       region_search->begin = i+1;
-      accum = 0;
+      region_length = 0;
     }
   }
   // Extend last region
-  if (accum>0 && num_filtering_regions>0) {
+  if (region_length>0 && num_filtering_regions>0) {
     region_search_t* const last_region_search = region_profile->filtering_region + (num_filtering_regions-1);
     if (region_search->begin==last_region_search->end) {
       last_region_search->end = key_length;
@@ -55,7 +54,6 @@ void region_profile_generate_fixed_schedule(
   // Close profile
   region_profile->num_filtering_regions = num_filtering_regions;
 }
-
 /*
  * Region Profile Schedule (query the region partition into the index)
  */
@@ -72,17 +70,17 @@ void region_profile_generate_fixed_query(
     const int64_t region_begin = region->begin;
     const int64_t region_end = region->end;
     int64_t position;
-    region->min = 0;
+    region->degree = 0;
     for (position=region_end-1;position>=region_begin;--position) {
       const uint8_t enc_char = key[position];
       region_profile_query_character(fm_index,&rank_mquery,&lo,&hi,enc_char);
       if (hi - lo == 0) {
-        region->min = region_end-position; // FIXME Field nzSteps
+        region->degree = region_end-position; // FIXME Field nzSteps
         break;
       }
     }
     // Store results
-    if (region->min==0) region->min = region_end-region_begin; // FIXME Field nzSteps
+    if (region->degree==0) region->degree = region_end-region_begin; // FIXME Field nzSteps
     region->lo = lo;
     region->hi = hi;
   }

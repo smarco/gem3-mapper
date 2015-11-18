@@ -7,6 +7,7 @@
  */
 
 #include "align_bpm_pattern.h"
+#include "gpu_buffer_align_bpm.h"
 
 /*
  * Checks
@@ -119,8 +120,4 @@ GEM_INLINE void bpm_pattern_compile(
   // Init BPM chunks
   bpm_pattern_compile_chunks(bpm_pattern,pattern,pattern_length,max_error,mm_stack);
 #endif
-  // Init BPM-GPU Dimensions
-  bpm_pattern->gpu_num_entries = DIV_CEIL(pattern_length,BPM_GPU_PATTERN_ENTRY_LENGTH);
-  bpm_pattern->gpu_entries_per_chunk = DIV_CEIL(max_error,BPM_GPU_PATTERN_ENTRY_LENGTH);
-  bpm_pattern->gpu_num_chunks = DIV_CEIL(bpm_pattern->gpu_num_entries,bpm_pattern->gpu_entries_per_chunk);
 }

@@ -10,7 +10,7 @@
 #define IHASH_H_
 
 #include "commons.h"
-#include "uthash.h"
+#include "../resources/uthash/uthash.h"
 
 /*
  * Checkers

@@ -95,7 +95,7 @@ GEM_INLINE void archive_search_configure(
   archive_search->mm_stack = mm_search->mm_stack;
 }
 GEM_INLINE void archive_search_prepare_sequence(archive_search_t* const archive_search) {
-  PROFILE_START(GP_ARCHIVE_SEARCH_PREPARE_SEQUENCE,PROFILE_LEVEL);
+  PROFILE_START(GP_ARCHIVE_SEARCH_SE_PREPARE_SEQUENCE,PROFILE_LEVEL);
   // Check the index characteristics & generate reverse-complement (if needed)
   if (archive_search->archive->indexed_complement) {
     archive_search->emulate_rc_search = false;
@@ -117,7 +117,7 @@ GEM_INLINE void archive_search_prepare_sequence(archive_search_t* const archive_
   } else {
     pattern_clear(&archive_search->reverse_search_state.pattern);
   }
-  PROFILE_STOP(GP_ARCHIVE_SEARCH_PREPARE_SEQUENCE,PROFILE_LEVEL);
+  PROFILE_STOP(GP_ARCHIVE_SEARCH_SE_PREPARE_SEQUENCE,PROFILE_LEVEL);
 }
 GEM_INLINE void archive_search_reset(archive_search_t* const archive_search) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE_INIT,PROFILE_LEVEL);
@@ -183,10 +183,10 @@ GEM_INLINE uint64_t archive_search_get_num_zero_regions(const archive_search_t* 
 }
 GEM_INLINE bool archive_search_finished(const archive_search_t* const archive_search) {
   if (archive_search->archive->indexed_complement) {
-    return archive_search->forward_search_state.search_state == asearch_end;
+    return archive_search->forward_search_state.search_stage == asearch_stage_end;
   } else {
-    return archive_search->forward_search_state.search_state == asearch_end &&
-           archive_search->reverse_search_state.search_state == asearch_end;
+    return archive_search->forward_search_state.search_stage == asearch_stage_end &&
+           archive_search->reverse_search_state.search_stage == asearch_stage_end;
   }
 }
 /*

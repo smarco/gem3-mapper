@@ -8,6 +8,7 @@
 
 #include "pattern.h"
 #include "sampled_rl.h"
+#include "gpu_buffer_align_bpm.h"
 
 /*
  * Debug
@@ -101,6 +102,7 @@ GEM_INLINE void pattern_prepare(
         pattern->key,read_length,num_non_canonical_bases,effective_filtering_max_error,mm_stack);
     // Prepare BPM pattern
     bpm_pattern_compile(&pattern->bpm_pattern,pattern->key,read_length,effective_filtering_max_error,mm_stack);
+    gpu_bpm_pattern_compile(&pattern->bpm_pattern,effective_filtering_max_error);
 //    // Prepare SWG query-profile
 //    if (parameters->alignment_model == alignment_model_gap_affine) {
 //      swg_init_query_profile(&pattern->swg_query_profile,&parameters->swg_penalties,read_length,mm_stack);

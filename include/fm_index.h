@@ -68,6 +68,10 @@ uint64_t fm_index_psi(const fm_index_t* const fm_index,const uint64_t bwt_positi
 // Decode fm_index->text[bwt_position..bwt_position+length-1] into @buffer.
 uint64_t fm_index_decode(
     const fm_index_t* const fm_index,const uint64_t bwt_position,const uint64_t length,char* const buffer);
+// Retrieve SA-Sample
+uint64_t fm_index_retrieve_sa_sample(
+    const fm_index_t* const fm_index,
+    const uint64_t sampled_bwt_position,const uint64_t lf_dist);
 
 /*
  * Display

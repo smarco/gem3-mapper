@@ -63,7 +63,8 @@ typedef struct {
   sampled_rl_t* sampled_rl;                 // Sampled RL-text (to retrieve approximate source text-positions)
   /* FM-Index */
   dna_text_t* enc_bwt;                      // BWT text
-  sampling_rate_t sampling_rate;            // Sampling Rate
+  sampling_rate_t sa_sampling_rate;         // SA Sampling Rate
+  sampling_rate_t text_sampling_rate;       // Text Sampling Rate
   sampled_sa_builder_t* sampled_sa;         // Sampled SA Builder
   /* Output */
   char* output_file_name_prefix;            // Output Text FileName Prefix
@@ -85,7 +86,8 @@ archive_builder_t* archive_builder_new(
     fm_t* const output_file,char* const output_file_name_prefix,
     const archive_type type,const indexed_complement_t indexed_complement,
     const uint64_t complement_size_threshold,const uint64_t ns_threshold,
-    const sampling_rate_t sampling_rate,const uint64_t num_threads,const uint64_t max_memory);
+    const sampling_rate_t sa_sampling_rate,const sampling_rate_t text_sampling_rate,
+    const uint64_t num_threads,const uint64_t max_memory);
 void archive_builder_delete(archive_builder_t* const archive_builder);
 
 /*

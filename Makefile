@@ -41,9 +41,6 @@ debug: setup
 	$(MAKE) --directory=src debug
 	$(MAKE) --directory=tools debug
 	
-check: setup debug
-	$(MAKE) --directory=test check
-	
 complexity:
 	pmccabe -vt include/*.h src/*.c tools/*.c
 	
@@ -52,5 +49,4 @@ setup:
 
 clean:
 	$(MAKE) --directory=resources clean
-	$(MAKE) --directory=test clean
 	@rm -rf $(FOLDER_BIN) $(FOLDER_BUILD) $(FOLDER_LIB)

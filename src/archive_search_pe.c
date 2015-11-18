@@ -7,10 +7,10 @@
 
 #include "archive_search_pe.h"
 #include "archive_search_se.h"
+#include "approximate_search_control.h"
 #include "archive_search_se_stepwise.h"
 #include "archive_select.h"
 #include "archive_score.h"
-#include "approximate_search_filtering_control.h"
 #include "filtering_candidates_extend.h"
 #include "paired_matches_classify.h"
 

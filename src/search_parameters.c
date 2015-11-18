@@ -105,6 +105,7 @@ GEM_INLINE void search_parameters_init_internals(search_parameters_t* const sear
   // Filtering Thresholds
   search_parameters->filtering_region_factor = 1.0;
   search_parameters->filtering_threshold = 1000;
+  search_parameters->gpu_filtering_threshold = 100;
 }
 GEM_INLINE void search_parameters_init(search_parameters_t* const search_parameters) {
   // Mapping strategy

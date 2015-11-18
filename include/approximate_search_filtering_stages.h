@@ -11,13 +11,6 @@
 
 #include "essentials.h"
 #include "approximate_search.h"
-#include "approximate_search_filtering_base.h"
-#include "align_bpm_gpu.h"
-
-/*
- * Exact Filtering Fixed
- */
-void approximate_search_exact_filtering_fixed(approximate_search_t* const search);
 
 /*
  * Exact Filtering Adaptive
@@ -40,18 +33,18 @@ void approximate_search_exact_filtering_boost(approximate_search_t* const search
 void approximate_search_inexact_filtering(approximate_search_t* const search,matches_t* const matches);
 
 /*
- * Unbound Filtering
+ * Filtering Verification (+ realign)
+ */
+void approximate_search_verify(approximate_search_t* const search,matches_t* const matches);
+
+/*
+ * Unbound Filtering (+ realign)
  */
 void approximate_search_unbounded_align(approximate_search_t* const search,matches_t* const matches);
 
 /*
- * Filtering Verification (+ realign)
+ * End of the search
  */
-GEM_INLINE void approximate_search_verify(approximate_search_t* const search,matches_t* const matches);
-GEM_INLINE void approximate_search_verify_using_bpm_buffer(
-    approximate_search_t* const search,bpm_gpu_buffer_t* const bpm_gpu_buffer,
-    const uint64_t candidate_offset_begin,const uint64_t candidate_offset_end,
-    matches_t* const matches);
-
+void approximate_search_end(approximate_search_t* const search,matches_t* const matches);
 
 #endif /* APPROXIMATE_SEARCH_FILTERING_STAGES_H_ */

@@ -15,10 +15,10 @@
 /*
  * Region Profile Schedule (generate the region partition)
  */
-void region_profile_generate_fixed_schedule(
+void region_profile_generate_fixed_partition(
     region_profile_t* const region_profile,const uint8_t* const key,
     const uint64_t key_length,const bool* const allowed_enc,
-    const uint64_t region_length);
+    const uint64_t min_region_length);
 
 /*
  * Region Profile Schedule (query the region partition into the index)

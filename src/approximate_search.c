@@ -17,23 +17,31 @@
 #define PROFILE_LEVEL PMED
 
 /*
- * Approximate Search State
+ * Approximate Search State/Stage
  */
-const char* approximate_search_state_label[] =
+const char* asearch_processing_state_label[] =
 {
-    [0]  = "begin",
-    [1]  = "no_regions",
-    [2]  = "exact_matches",
-    [3]  = "exact_filtering_adaptive",
-    [4]  = "verify_candidates",
-    [5]  = "candidates_verified",
-    [6]  = "exact_filtering_boost",
-    [7]  = "inexact_filtering",
-    [8]  = "neighborhood",
-    [9]  = "end",
-    [10] = "read_recovery",
-    [11] = "unbounded_alignment",
-    [12] = "probe_candidates",
+    // Begin
+    [asearch_processing_state_begin]  = "begin",
+    // Region Profile
+    [asearch_processing_state_region_partitioned]  = "region-partitioned",
+    [asearch_processing_state_region_profiled]  = "region-profiled",
+    [asearch_processing_state_no_regions]  = "no-regions",
+    [asearch_processing_state_exact_matches]  = "exact_matches",
+    // Verify Candidates
+    [asearch_processing_state_candidates_processed]  = "candidates-processed",
+    [asearch_processing_state_candidates_verified]  = "candidates-verified",
+};
+const char* asearch_stage_label[] =
+{
+    [asearch_stage_begin]  = "begin",
+    [asearch_stage_read_recovery]  = "read-recovery",
+    [asearch_stage_filtering_adaptive]  = "filtering-adaptive",
+    [asearch_stage_filtering_boost]  = "filtering-boost",
+    [asearch_stage_inexact_filtering]  = "inexact-filtering",
+    [asearch_stage_unbounded_alignment]  = "unbounded-alignment",
+    [asearch_stage_neighborhood]  = "neighborhood",
+    [asearch_stage_end]  = "end",
 };
 
 /*
@@ -58,7 +66,8 @@ GEM_INLINE void approximate_search_configure(
 }
 GEM_INLINE void approximate_search_reset(approximate_search_t* const search) {
   // Reset Approximate Search State
-  search->search_state = asearch_begin;
+  search->search_stage = asearch_stage_begin;
+  search->processing_state = asearch_processing_state_begin;
   search->stop_before_neighborhood_search = false;
   const uint64_t max_complete_error = search->as_parameters->complete_search_error_nominal; // FIXME + search->pattern.num_low_quality_bases;
   search->max_complete_error = MIN(max_complete_error,search->pattern.max_effective_filtering_error);
@@ -76,7 +85,7 @@ GEM_INLINE void approximate_search_destroy(approximate_search_t* const search) {
  * Accessors
  */
 GEM_INLINE uint64_t approximate_search_get_num_filtering_candidates(const approximate_search_t* const search) {
-  if (search->search_state == asearch_exact_matches) {
+  if (search->processing_state == asearch_processing_state_exact_matches) {
     return search->hi_exact_matches - search->lo_exact_matches;
   } else {
     const filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
@@ -84,7 +93,8 @@ GEM_INLINE uint64_t approximate_search_get_num_filtering_candidates(const approx
   }
 }
 GEM_INLINE uint64_t approximate_search_get_num_exact_filtering_candidates(const approximate_search_t* const search) {
-  return (search->search_state == asearch_exact_matches) ? search->hi_exact_matches - search->lo_exact_matches : 0;
+  return (search->processing_state == asearch_processing_state_exact_matches) ?
+      search->hi_exact_matches - search->lo_exact_matches : 0;
 }
 GEM_INLINE void approximate_search_update_mcs(approximate_search_t* const search,const uint64_t max_complete_stratum) {
   search->max_complete_stratum = max_complete_stratum;
@@ -97,8 +107,8 @@ GEM_INLINE void approximate_search_hold_verification_candidates(approximate_sear
 }
 GEM_INLINE void approximate_search_release_verification_candidates(approximate_search_t* const search) {
   filtering_candidates_set_all_regions_unverified(search->filtering_candidates);
-  if (search->search_state==asearch_candidates_verified) {
-    search->search_state = asearch_verify_candidates;
+  if (search->processing_state==asearch_processing_state_candidates_verified) {
+    search->processing_state = asearch_processing_state_candidates_processed;
   }
 }
 /*
@@ -113,17 +123,14 @@ GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t*
   switch (parameters->mapping_mode) {
     case mapping_adaptive_filtering_fast:
     case mapping_adaptive_filtering_thorough:
-      approximate_search_filtering_adaptive(search,matches);  // Adaptive mapping
+      approximate_search_filtering_adaptive(search,matches); // Adaptive mapping
       break;
     case mapping_adaptive_filtering_complete:
     case mapping_fixed_filtering_complete:
-      approximate_search_filtering_complete(search,matches);  // Filtering complete mapping
+      approximate_search_filtering_complete(search,matches); // Filtering complete mapping
       break;
     case mapping_neighborhood_search:
       approximate_search_neighborhood_search(search,matches); // Brute-force mapping
-      break;
-    case mapping_test:
-      approximate_search_test(search,matches);                // For testing purposes
       break;
     default:
       GEM_INVALID_CASE();
@@ -137,7 +144,8 @@ GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t*
 GEM_INLINE void approximate_search_print(FILE* const stream,approximate_search_t* const search) {
   tab_fprintf(stream,"[GEM]>ApproximateSearch\n");
   tab_global_inc();
-  tab_fprintf(stream,"=> Search.State %s\n",approximate_search_state_label[search->search_state]);
+  tab_fprintf(stream,"=> Search.Stage %s\n",asearch_stage_label[search->search_stage]);
+  tab_fprintf(stream,"  => Search.State %s\n",asearch_processing_state_label[search->processing_state]);
   tab_fprintf(stream,"=> Max.complete.error %lu\n",search->max_complete_error);
   tab_fprintf(stream,"=> MCS %lu\n",search->max_complete_stratum);
   tab_fprintf(stream,"=> Max.matches.reached %lu\n",search->max_matches_reached);

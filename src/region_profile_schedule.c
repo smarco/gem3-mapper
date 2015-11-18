@@ -16,17 +16,17 @@ GEM_INLINE void region_schedule_filtering_adaptive(
     const uint64_t num_unique_regions_left,const uint64_t max_complete_error,
     const uint64_t sensibility_error_length,const uint64_t errors_allowed) {
   if (errors_allowed > max_complete_error) {
-    region->min = REGION_FILTER_NONE; // Search is fulfilled. Don't filter
+    region->degree = REGION_FILTER_NONE; // Search is fulfilled. Don't filter
     return;
   }
   if (region->type == region_standard) {
-    region->min = REGION_FILTER_DEGREE_ZERO; // Cannot be filtered with errors
+    region->degree = REGION_FILTER_DEGREE_ZERO; // Cannot be filtered with errors
     return;
   }
   // Compute the scope of the search using zero-filter
   const uint64_t total_errors_zero_filter = errors_allowed + num_standard_regions_left + num_unique_regions_left + 1;
   if (total_errors_zero_filter >= max_complete_error+1) {
-    region->min = REGION_FILTER_DEGREE_ZERO; // Search is fulfilled just by filtering-zero
+    region->degree = REGION_FILTER_DEGREE_ZERO; // Search is fulfilled just by filtering-zero
   } else {
     // Compute number of errors left to be assigned to unique-regions
     const uint64_t region_length = region->end-region->begin;
@@ -34,13 +34,13 @@ GEM_INLINE void region_schedule_filtering_adaptive(
     if (num_unique_regions_left >= pending_errors_at_unique_regions  // Enough Regions to filter-zero
         || region_length < sensibility_error_length                  // Region is too small for other degree
         || max_complete_error==1) {                                  // Search doesn't require to allow more errors
-      region->min=REGION_FILTER_DEGREE_ZERO;
+      region->degree=REGION_FILTER_DEGREE_ZERO;
     } else if (2*num_unique_regions_left >= pending_errors_at_unique_regions // Enough Regions to filter-one
         || region_length < 2*sensibility_error_length                // Region is too small for other degree
         || max_complete_error==2) {                                  // Search doesn't require to allow more errors
-      region->min=REGION_FILTER_DEGREE_ONE;
+      region->degree=REGION_FILTER_DEGREE_ONE;
     } else {                                                         // Maximum degree reached
-      region->min=REGION_FILTER_DEGREE_ONE;
+      region->degree=REGION_FILTER_DEGREE_ONE;
 //      region->min=REGION_FILTER_DEGREE_TWO; // FIXME At the moment NS(2) is too expensive
     }
 //    // Mandatory error condition // TODO
@@ -77,17 +77,17 @@ GEM_INLINE void region_profile_schedule_filtering_fixed(
      */
     // Filter up to 0-mismatches those regions with the less number of candidates
     for (i=0;i<regions_required;++i) {
-      filtering_region[loc[i].id].min = REGION_FILTER_DEGREE_ZERO;
+      filtering_region[loc[i].id].degree = REGION_FILTER_DEGREE_ZERO;
     }
     for (;i<num_regions;++i) {
-      filtering_region[loc[i].id].min = REGION_FILTER_NONE;
+      filtering_region[loc[i].id].degree = REGION_FILTER_NONE;
     }
   } else {
     for (i=0;i<num_regions;++i) {
       if (loc[i].value <= filtering_threshold) {
-        filtering_region[i].min = filtering_degree;
+        filtering_region[i].degree = filtering_degree;
       } else {
-        filtering_region[i].min = REGION_FILTER_NONE;
+        filtering_region[i].degree = REGION_FILTER_NONE;
       }
     }
   }
@@ -118,7 +118,7 @@ GEM_INLINE void region_profile_schedule_filtering_adaptive(
     region_schedule_filtering_adaptive(
         region,num_standard_regions_left,num_unique_regions_left,
         max_complete_error,sensibility_misms_length,errors_allowed);
-    errors_allowed += region->min;
+    errors_allowed += region->degree;
   }
 }
 /*
@@ -137,10 +137,10 @@ GEM_INLINE void region_profile_schedule_print(
     		"\t\t(Length,Cand)=(%3"PRIu64",%4"PRIu64")",
         position,region->type==region_unique ? "unique" : "standard",
         region->begin,region->end,region->end-region->begin,region->hi-region->lo);
-    if (region->min==0) {
+    if (region->degree==0) {
       gem_slog("\tDegree=none\n");
     } else {
-      gem_slog("\tDegree=%"PRIu64"\n",region->min-1);
+      gem_slog("\tDegree=%"PRIu64"\n",region->degree-1);
     }
   }
 }

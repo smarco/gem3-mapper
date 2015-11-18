@@ -9,7 +9,7 @@
 #include "hash.h"
 
 #include "mm.h"
-#include "uthash.h"
+#include "shash.h"
 
 /*
  * Constructor
