@@ -7,28 +7,28 @@
 
 # Definitions
 ROOT_PATH=..
-include $(ROOT_PATH)/Makefile.mk
+include ../Makefile.mk
 
 all: devel
 
 release: setup
 ifeq ($(HAVE_CUDA),1)
-	$(MAKE) --directory=myers_gpu release
+	$(MAKE) --directory=gpu_modules release
 endif
 
 devel: setup
 ifeq ($(HAVE_CUDA),1)
-	$(MAKE) --directory=myers_gpu release
+	$(MAKE) --directory=gpu_modules devel
 endif
 
 profile: setup
 ifeq ($(HAVE_CUDA),1)
-	$(MAKE) --directory=myers_gpu profile
+	$(MAKE) --directory=gpu_modules profile
 endif
 
 debug: setup
 ifeq ($(HAVE_CUDA),1)
-	$(MAKE) --directory=myers_gpu debug
+	$(MAKE) --directory=gpu_modules debug
 endif
 
 setup: 
@@ -36,6 +36,6 @@ setup:
 
 clean:
 ifeq ($(HAVE_CUDA),1)
-	$(MAKE) --directory=myers_gpu clean
+	$(MAKE) --directory=gpu_modules clean
 endif
 	@rm -rf build

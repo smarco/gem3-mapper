@@ -257,27 +257,35 @@ void computeSW(char *query, char *candidate, uint32_t idCandidate, uint32_t size
 
 double processMyersGPU(char *refFile, char *qryFile, uint32_t numBuffers, uint32_t numThreads, float maxMbPerBuffer, uint32_t numTasks)
 {
-	void 	 	**buffer;
-	test_t		testData[numThreads]; //simulate the gen. work threads
-	uint32_t 	averageQuerySize, averageCandidatesPerQuery, averageNumPEQEntries;
+	test_t				testData[numThreads];
+	uint32_t 			averageQuerySize, averageCandidatesPerQuery, averageNumPEQEntries;
+	uint32_t 			error, idBuffer, iteration, threadID, idTask;
+	double				ts, ts1;
 
-	uint32_t 	error, idBuffer, iteration, threadID, idTask;
-	double		ts, ts1;
+	gpu_buffers_dto_t 	buff  = {.buffer 		 		= NULL,
+								 .numBuffers 	 		= numBuffers,
+								 .maxMbPerBuffer 		= maxMbPerBuffer,
+								 .activeModules			= GPU_BPM};
+	gpu_index_dto_t 	index = {.fmi 			 		= NULL,
+								 .indexCoding 	 		= GPU_INDEX_NONE,
+								 .bwtSize 		 		= 0};
+	gpu_reference_dto_t ref   = {.reference 	 		= refFile,
+								 .refCoding 			= GPU_REF_PROFILE_FILE,
+								 .refSize				= 0};
+	gpu_info_dto_t 		sys	  = {.selectedArchitectures = GPU_ARCH_SUPPORTED,
+								 .userAllocOption   	= GPU_REMOTE_DATA};
 
 	for(threadID = 0; threadID < numThreads; ++threadID)
 		loadTestData(qryFile, &testData[threadID], &averageQuerySize, &averageCandidatesPerQuery);
-	averageNumPEQEntries = GPU_DIV_CEIL(averageQuerySize,128);
+	averageNumPEQEntries = GPU_DIV_CEIL(averageQuerySize, GPU_BPM_PEQ_ENTRY_LENGTH);
 
-
-	gpu_init_buffers_(&buffer, numBuffers, maxMbPerBuffer,
-					  refFile, GPU_REF_PROFILE_FILE, 0,
-					  NULL, GPU_NONE_DATA, 0,
-					  GPU_BPM, GPU_ARCH_SUPPORTED, GPU_REMOTE_DATA, 0);
+	// Initialize the systems and buffers
+	gpu_init_buffers_(&buff, &index, &ref, &sys, 0);
 
 	// Master thread initialize all the buffers
 	// Better each thread initialize self buffers
 	for(idBuffer = 0; idBuffer < numBuffers; ++idBuffer)
-		gpu_alloc_buffer_(buffer[idBuffer]);
+		gpu_alloc_buffer_(buff.buffer[idBuffer]);
 
 	ts = sample_time();
 
@@ -286,20 +294,20 @@ double processMyersGPU(char *refFile, char *qryFile, uint32_t numBuffers, uint32
 				idBuffer = idTask % numBuffers;
 
 				//Trace the jobs
-				printf("Host thread %d \t sent job %d \t to buffer %d \t in device %d \n", omp_get_thread_num(), idTask, idBuffer, gpu_buffer_get_id_device_(buffer[idBuffer]));
+				printf("Host thread %d \t sent job %d \t to buffer %d \t in device %d \n", omp_get_thread_num(), idTask, idBuffer, gpu_buffer_get_id_device_(buff.buffer[idBuffer]));
 
 				//Fill the buffer (generate work)
-				gpu_bpm_init_buffer_(buffer[idBuffer], averageNumPEQEntries, averageCandidatesPerQuery);
-				putIntoBuffer(buffer[idBuffer], &testData[idBuffer]);
-				gpu_bpm_send_buffer_(buffer[idBuffer], testData[idBuffer].totalQueriesEntries, testData[idBuffer].numQueries, testData[idBuffer].numCandidates, 0);
-				gpu_bpm_receive_buffer_(buffer[idBuffer]);
+				gpu_bpm_init_buffer_(buff.buffer[idBuffer], averageNumPEQEntries, averageCandidatesPerQuery);
+				putIntoBuffer(buff.buffer[idBuffer], &testData[idBuffer]);
+				gpu_bpm_send_buffer_(buff.buffer[idBuffer], testData[idBuffer].totalQueriesEntries, testData[idBuffer].numQueries, testData[idBuffer].numCandidates, 0);
+				gpu_bpm_receive_buffer_(buff.buffer[idBuffer]);
 
 				//Get the results from the buffer (consume results)
-				getFromBuffer(buffer[idBuffer], &testData[idBuffer]);
+				getFromBuffer(buff.buffer[idBuffer], &testData[idBuffer]);
 		}
 
 	ts1 = sample_time();
-	gpu_destroy_buffers_(&buffer);
+	gpu_destroy_buffers_(&buff);
 
 	//Save last state of each buffer
 	error = saveResults(qryFile, &testData[0], numBuffers);
