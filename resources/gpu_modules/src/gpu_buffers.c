@@ -90,23 +90,33 @@ GPU_INLINE gpu_error_t gpu_schedule_buffers(gpu_buffer_t ***gpuBuffer, const uin
 	return (SUCCESS);
 }
 
-GPU_INLINE void gpu_init_buffers_(void ***gpuBuffer, uint32_t numBuffers, float maxMbPerBuffer,
-						  	  	  const char *referenceRaw, gpu_ref_coding_t refCoding, const uint64_t refSize,
-						  	  	  void *indexRaw, gpu_index_coding_t indexCoding, const uint64_t bwtSize,
-						  	  	  const gpu_module_t activeModules, gpu_dev_arch_t selectedArchitectures,
-						  	  	  gpu_data_location_t userAllocOption, const bool verbose)
+GPU_INLINE void gpu_init_buffers_(gpu_buffers_dto_t *buff, gpu_index_dto_t *rawIndex, gpu_reference_dto_t* rawRef, gpu_info_dto_t *sys, const bool verbose)
 {
-	const uint32_t numSupportedDevices = gpu_get_num_supported_devices_(selectedArchitectures);
-
-	gpu_buffer_t			**buffer 	= NULL;
-	gpu_reference_buffer_t	*reference 	= NULL;
-	gpu_index_buffer_t		*index	 	= NULL;
-	gpu_device_info_t		**devices 	= NULL;
-	size_t					minimumMemorySize = 0;
+	/* Buffer info */
+	const float 				maxMbPerBuffer  		= buff->maxMbPerBuffer;
+	const uint32_t 				numBuffers 				= buff->numBuffers;
+	const gpu_module_t 			activeModules 			= buff->activeModules;
+	/* System info */
+	const gpu_dev_arch_t 		selectedArchitectures 	= sys->selectedArchitectures;
+	const gpu_data_location_t	userAllocOption 		= sys->userAllocOption;
+	const uint32_t				numSupportedDevices 	= gpu_get_num_supported_devices_(selectedArchitectures);
+	/* Internal buffers info */
+	gpu_buffer_t				**buffer 				= NULL;
+	gpu_reference_buffer_t		*reference 				= NULL;
+	gpu_index_buffer_t			*index	 				= NULL;
+	gpu_device_info_t			**devices 				= NULL;
+	/* Index info */
+	const void 	 		    	*fmiRaw 				= rawIndex->fmi;
+	const gpu_index_coding_t	indexCoding				= rawIndex->indexCoding;
+	const uint64_t 				bwtSize 				= rawIndex->bwtSize;
+	/* Reference info */
+	const char 		 			*referenceRaw 			= rawRef->reference;
+	const gpu_ref_coding_t 		refCoding 				= rawRef->refCoding;
+	const uint64_t 		 		refSize 				= rawRef->refSize;
 
 	GPU_ERROR(gpu_fast_driver_awake());
 	GPU_ERROR(gpu_init_reference(&reference, referenceRaw, refSize, refCoding, numSupportedDevices, activeModules));
-	GPU_ERROR(gpu_init_index(&index, (const char*)indexRaw, bwtSize, indexCoding, numSupportedDevices, activeModules));
+	GPU_ERROR(gpu_init_index(&index, fmiRaw, bwtSize, indexCoding, numSupportedDevices, activeModules));
 
 	GPU_ERROR(gpu_configure_modules(&devices, selectedArchitectures, userAllocOption, numBuffers, reference, index));
 	GPU_ERROR(gpu_set_devices_local_memory(devices, cudaFuncCachePreferL1));
@@ -119,12 +129,12 @@ GPU_INLINE void gpu_init_buffers_(void ***gpuBuffer, uint32_t numBuffers, float 
 	GPU_ERROR(gpu_free_unused_reference_host(reference, devices));
 	GPU_ERROR(gpu_free_unused_index_host(index, devices));
 
-	(* gpuBuffer) = (void **) buffer;
+	buff->buffer = (void **) buffer;
 }
 
-GPU_INLINE void gpu_destroy_buffers_(void ***gpuBuffer)
+GPU_INLINE void gpu_destroy_buffers_(gpu_buffers_dto_t *buff)
 {
-	gpu_buffer_t **mBuff = (gpu_buffer_t **) (* gpuBuffer);
+	gpu_buffer_t **mBuff = (gpu_buffer_t **) buff->buffer;
 	uint32_t idBuffer;
 	gpu_device_info_t **devices = mBuff[0]->device;
 
@@ -150,9 +160,8 @@ GPU_INLINE void gpu_destroy_buffers_(void ***gpuBuffer)
 	if(mBuff != NULL){
     	free(mBuff);
     	mBuff = NULL;
+    	buff->buffer = NULL;
     }
-
-	(* gpuBuffer) = (void **) mBuff;
 }
 
 /************************************************************

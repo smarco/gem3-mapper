@@ -266,7 +266,7 @@ GPU_INLINE gpu_error_t gpu_transfer_index_CPU_to_GPUs(gpu_index_buffer_t *index,
 	return (SUCCESS);
 }
 
-GPU_INLINE gpu_error_t gpu_init_index(gpu_index_buffer_t **index, const char *indexRaw,
+GPU_INLINE gpu_error_t gpu_init_index(gpu_index_buffer_t **index, const void *indexRaw,
 									  const uint64_t bwtSize, const gpu_index_coding_t indexCoding,
 									  const uint32_t numSupportedDevices, gpu_module_t activeModules)
 {
@@ -297,19 +297,20 @@ GPU_INLINE gpu_error_t gpu_init_index(gpu_index_buffer_t **index, const char *in
 
 		switch(indexCoding){
 			case GPU_INDEX_ASCII:
-				GPU_ERROR(gpu_transform_index_ASCII(indexRaw, fmi));
+				GPU_ERROR(gpu_transform_index_ASCII((const char*)indexRaw, fmi));
 				break;
 			case GPU_INDEX_GEM_FULL:
 				// TODO: Santiago GEM index transformation
+				//GPU_ERROR(gpu_transform_index_GEM_FULL((const gpu_fmi_gem_dto_t*)indexRaw, fmi));
 				GPU_ERROR(E_NOT_IMPLEMENTED);
 				break;
 			case GPU_INDEX_MFASTA_FILE:
-				GPU_ERROR(gpu_load_BWT_MFASTA(indexRaw, fmi, &h_BWT));
+				GPU_ERROR(gpu_load_BWT_MFASTA((const char*)indexRaw, fmi, &h_BWT));
 				GPU_ERROR(gpu_transform_index_ASCII(h_BWT, fmi));
 				free(h_BWT);
 				break;
 			case GPU_INDEX_PROFILE_FILE:
-				GPU_ERROR(gpu_load_index_PROFILE(indexRaw, fmi));
+				GPU_ERROR(gpu_load_index_PROFILE((const char*)indexRaw, fmi));
 				break;
 			default:
 				GPU_ERROR(E_INDEX_CODING);

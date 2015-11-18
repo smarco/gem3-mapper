@@ -1,79 +1,75 @@
-SHELL := /bin/bash
 
-NVCC=nvcc
-CC=gcc
+include ../../Makefile.mk
 
-CUDA_CC_20=-gencode arch=compute_20,code=sm_20
-CUDA_CC_21=-gencode arch=compute_20,code=sm_21
-CUDA_CC_30=-gencode arch=compute_30,code=sm_30
-CUDA_CC_35=-gencode arch=compute_35,code=sm_35
-CUDA_CC_37=-gencode arch=compute_37,code=sm_37
-CUDA_CC_50=-gencode arch=compute_50,code=sm_50
-CUDA_CC_52=-gencode arch=compute_52,code=sm_52
-CUDA_CC_SUPPORTED=$(CUDA_CC_20) $(CUDA_CC_21) $(CUDA_CC_30) $(CUDA_CC_35) $(CUDA_CC_37) $(CUDA_CC_50) $(CUDA_CC_52)
+SHELL:=/bin/bash
+CUDA_LIBRARY_FLAGS=$(CUDA_PATH_INCLUDE) $(CUDA_PATH_LIB) $(CUDA_LIB)
+FOLDER_BUILD=build
+FOLDER_SOURCE=src
+FOLDER_BIN=bin
 
-CFLAGS=-O3 -m64
-GCC_GDB_FLAGS=-g -O0 -m64
+NVCC_VERSION=$(shell $(NVCC) --version | grep release | sed 's/.*release //' |  sed 's/,.*//' | sed 's/\.//')
+NVCC_MINIMAL_VERSION = $(shell [[ ($(NVCC_VERSION) -ge "0")  && ($(NVCC_VERSION) -le  "29") ]] && echo "10"; \
+                               [[ ($(NVCC_VERSION) -ge "30") && ($(NVCC_VERSION) -le  "49") ]] && echo "30"; \
+                               [[ ($(NVCC_VERSION) -ge "50") && ($(NVCC_VERSION) -le  "59") ]] && echo "50"; \
+                               [[ ($(NVCC_VERSION) -ge "60") && ($(NVCC_VERSION) -le  "64") ]] && echo "60"; \
+                               [[ ($(NVCC_VERSION) -ge "65") ]] && echo "65";)
 
-CUDA_FLAGS=-O3 -m64 $(CUDA_CC_SUPPORTED)
-NVCC_GDB_FLAGS=-g -G -O0 -m64 $(CUDA_CC_SUPPORTED)
+$(shell test -d $(FOLDER_BUILD) || mkdir $(FOLDER_BUILD))
+$(shell test -d $(FOLDER_BIN) || mkdir $(FOLDER_BIN))
 
-CUDA_INCLUDES=-I/usr/local/cuda/include
-CUDA_LIBS=-L/usr/local/cuda/lib64 -lcudart
+ifeq ($(NVCC_MINIMAL_VERSION), 10)
+	$(error CUDA SDK version $(NVCC_VERSION) NOT SUPPORTED - (At least CUDA SDK 3.0 is required))
+endif
 
-#gcc -c -combine a.c b.c -o c.o
+## Force to test JIT compiler:
+## export CUDA_FORCE_PTX_JIT=1
+CUDA_SASS_FLAG_30=-gencode arch=compute_20,code=\"sm_20,compute_20\" -gencode arch=compute_20,code=sm_21
+CUDA_SASS_FLAG_50=$(CUDA_SASS_FLAG_30) -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=\"sm_35,compute_35\" -gencode arch=compute_37,code=sm_37
+CUDA_SASS_FLAG_60=$(CUDA_SASS_FLAG_50) -gencode arch=compute_50,code=\"sm_50,compute_50\"
+CUDA_SASS_FLAG_65=$(CUDA_SASS_FLAG_60) -gencode arch=compute_52,code=\"sm_52,compute_52\"
+CUDA_SASS_FLAGS=$(CUDA_SASS_FLAG_$(NVCC_MINIMAL_VERSION))
 
+CUDA_MODULES=gpu_fmi_decode gpu_fmi_search gpu_bpm_filter
+CUDA_SRCS=$(addprefix $(FOLDER_SOURCE)/, $(addsuffix .cu, $(CUDA_MODULES)))
+CUDA_OBJS=$(addprefix $(FOLDER_BUILD)/, $(addsuffix .o, $(CUDA_MODULES)))
 
-all:
-	$(CC) $(CFLAGS) -c src/gpu_sample.c -o build/gpu_sample.o $(CUDA_INCLUDES)
-	$(CC) $(CFLAGS) -c src/gpu_fmi.c -o build/gpu_fmi.o $(CUDA_INCLUDES)
-	$(CC) $(CFLAGS) -c src/gpu_bpm.c -o build/gpu_bpm.o $(CUDA_INCLUDES)
-	$(CC) $(CFLAGS) -c src/gpu_devices.c -o build/gpu_devices.o $(CUDA_INCLUDES)
-	$(CC) $(CFLAGS) -c src/gpu_buffers.c -o build/gpu_buffers.o $(CUDA_INCLUDES)
-	$(CC) $(CFLAGS) -c src/gpu_index.c -o build/gpu_index.o $(CUDA_INCLUDES)
-	$(CC) $(CFLAGS) -c src/gpu_reference.c -o build/gpu_reference.o $(CUDA_INCLUDES)
-	$(NVCC) $(CUDA_FLAGS) -c src/gpu_fmi_decode.cu -o build/gpu_fmi_decode.o $(CUDA_INCLUDES)
-	$(NVCC) $(CUDA_FLAGS) -c src/gpu_fmi_search.cu -o build/gpu_fmi_search.o $(CUDA_INCLUDES)
-	$(NVCC) $(CUDA_FLAGS) -c src/gpu_bpm_filter.cu -o build/gpu_bpm_filter.o $(CUDA_INCLUDES)
-	ld -r build/gpu_sample.o build/gpu_fmi.o build/gpu_bpm.o build/gpu_devices.o build/gpu_buffers.o build/gpu_index.o build/gpu_reference.o build/gpu_fmi_decode.o build/gpu_fmi_search.o build/gpu_bpm_filter.o -o build/gem_gpu.o 
-	make bpm_benchmark
-	make search_benchmark
-	make decode_benchmark
-
-
-bpm_benchmark:
-	$(CC) $(CFLAGS) tools/gpu_benchmark_bpm.c build/gem_gpu.o -o bin/gpu_bpm_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt 
-search_benchmark:
-	$(CC) $(CFLAGS) tools/gpu_benchmark_search.c build/gem_gpu.o -o bin/gpu_search_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt
-decode_benchmark:
-	$(CC) $(CFLAGS) tools/gpu_benchmark_decode.c build/gem_gpu.o -o bin/gpu_decode_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt
+MODULES=gpu_sample gpu_fmi gpu_bpm gpu_devices gpu_buffers gpu_index gpu_reference
+SRCS=$(addprefix $(FOLDER_SOURCE)/, $(addsuffix .c, $(MODULES)))
+OBJS=$(addprefix $(FOLDER_BUILD)/, $(addsuffix .o, $(MODULES)))
 	
 
-debug:
-	$(CC) $(GCC_GDB_FLAGS) -c src/gpu_sample.c -o build/gpu_sample.o $(CUDA_INCLUDES)
-	$(CC) $(GCC_GDB_FLAGS) -c src/gpu_fmi.c -o build/gpu_fmi.o $(CUDA_INCLUDES)
-	$(CC) $(GCC_GDB_FLAGS) -c src/gpu_bpm.c -o build/gpu_bpm.o $(CUDA_INCLUDES)
-	$(CC) $(GCC_GDB_FLAGS) -c src/gpu_devices.c -o build/gpu_devices.o $(CUDA_INCLUDES)
-	$(CC) $(GCC_GDB_FLAGS) -c src/gpu_buffers.c -o build/gpu_buffers.o $(CUDA_INCLUDES)
-	$(CC) $(GCC_GDB_FLAGS) -c src/gpu_index.c -o build/gpu_index.o $(CUDA_INCLUDES)
-	$(CC) $(GCC_GDB_FLAGS) -c src/gpu_reference.c -o build/gpu_reference.o $(CUDA_INCLUDES)
-	$(NVCC) $(NVCC_GDB_FLAGS) -c src/gpu_fmi_decode.cu -o build/gpu_fmi_decode.o $(CUDA_INCLUDES)
-	$(NVCC) $(NVCC_GDB_FLAGS) -c src/gpu_fmi_search.cu -o build/gpu_fmi_search.o $(CUDA_INCLUDES)
-	$(NVCC) $(NVCC_GDB_FLAGS) -c src/gpu_bpm_filter.cu -o build/gpu_bpm_filter.o $(CUDA_INCLUDES)
-	ld -r build/gpu_sample.o build/gpu_fmi.o build/gpu_bpm.o build/gpu_devices.o build/gpu_buffers.o build/gpu_index.o build/gpu_reference.o build/gpu_fmi_decode.o build/gpu_fmi_search.o build/gpu_bpm_filter.o -o build/gem_gpu.o 
-	make bpm_benchmark_debug
-	make search_benchmark_debug
-	make decode_benchmark_debug
+all: release
 
+release: NVCC_COMPILE_FLAGS=-O3 -m64 
+release: GCC_COMPILE_FLAGS=-O3 -m64
+release: $(OBJS) $(CUDA_OBJS) link
 
-bpm_benchmark_debug:
-	$(CC) $(GCC_GDB_FLAGS) tools/gpu_benchmark_bpm.c build/gem_gpu.o -o bin/gpu_bpm_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt -lstdc++
-search_benchmark_debug:
-	$(CC) $(GCC_GDB_FLAGS) tools/gpu_benchmark_search.c build/gem_gpu.o -o bin/gpu_search_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt -lstdc++
-decode_benchmark_debug:
-	$(CC) $(GCC_GDB_FLAGS) tools/gpu_benchmark_decode.c build/gem_gpu.o -o bin/gpu_decode_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt -lstdc++
+profile: NVCC_COMPILE_FLAGS=-O3 -m64 --ptxas-options=-v -lineinfo
+profile: GCC_COMPILE_FLAGS=-O3 -m64
+profile: $(OBJS) $(CUDA_OBJS) link
+	
+devel: NVCC_COMPILE_FLAGS=-G -O3 -m64 --ptxas-options=-v -lineinfo
+devel: GCC_COMPILE_FLAGS=-g -O3 -m64
+devel: $(OBJS) $(CUDA_OBJS) link
+	
+debug: NVCC_COMPILE_FLAGS=-G -O0 -m64 --ptxas-options=-v -lineinfo
+debug: GCC_COMPILE_FLAGS=-g -O0 -m64
+debug: $(OBJS) $(CUDA_OBJS) link
+	
+$(CUDA_OBJS): $(CUDA_SRCS)
+	$(NVCC) $(NVCC_COMPILE_FLAGS) $(CUDA_SASS_FLAGS) -c $< -o $@
+	
+$(OBJS): $(SRCS)
+	$(CC) $(GCC_COMPILE_FLAGS) -c $< -o $@ $(CUDA_LIBRARY_FLAGS)
 
+link: $(OBJS) $(CUDA_OBJS)
+	ld -r $(OBJS) $(CUDA_OBJS) -o $(FOLDER_BUILD)/gem_gpu.o
+
+tools: $(OBJS) $(CUDA_OBJS) link
+	$(CC) $(GCC_GDB_FLAGS) tools/gpu_benchmark_bpm.c $(FOLDER_BUILD)/gem_gpu.o -o $(FOLDER_BIN)/gpu_bpm_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt -lstdc++
+	$(CC) $(GCC_GDB_FLAGS) tools/gpu_benchmark_search.c $(FOLDER_BUILD)/gem_gpu.o -o $(FOLDER_BIN)/gpu_search_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt -lstdc++
+	$(CC) $(GCC_GDB_FLAGS) tools/gpu_benchmark_decode.c $(FOLDER_BUILD)/gem_gpu.o -o $(FOLDER_BIN)/gpu_decode_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt -lstdc++
 
 clean:
-	rm -f bin/*
-	rm -f build/*.o
+	rm -f $(FOLDER_BIN)/*
+	rm -f $(FOLDER_BUILD)/*.o

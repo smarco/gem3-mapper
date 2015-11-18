@@ -50,6 +50,12 @@ GPU Side defines (ASM instructions)
 DEVICE side basic block primitives
 **************************************/
 
+#if (__CUDA_ARCH__ < GPU_CC_KEPLER_2G)
+	#define LDG(ptr) 	(* ptr)
+#else
+	#define LDG(ptr)	__ldg(ptr)
+#endif
+
 #if (__CUDA_ARCH__ < GPU_CC_KEPLER_1G)
 __shared__ uint32_t interBuff[GPU_THREADS_PER_BLOCK];
 GPU_INLINE __device__ uint32_t __emulated_shfl(const int scalarValue, const uint32_t source_lane)

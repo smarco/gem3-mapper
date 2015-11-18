@@ -190,27 +190,36 @@ uint32_t checkDecodingsGPU(test_t *profRegions)
 
 double processDecodeFMI(char *fmiFile, char *decodeFile, uint32_t numBuffers, uint32_t numThreads, float maxMbPerBuffer, uint32_t numTasks)
 {
-	void 	 	**buffer;
-	test_t		testData[numThreads];
+	test_t				testData[numThreads];
+	const uint32_t 		SAMPLING_RATE = 4;
+	uint32_t 			error, idBuffer, iteration, threadID, idTask;
+	double				ts, ts1;
 
-	const uint32_t SAMPLING_RATE = 4;
-	uint32_t 	error, idBuffer, iteration, threadID, idTask;
-	double		ts, ts1;
+	gpu_buffers_dto_t 	buff  = {.buffer 		 		= NULL,
+								 .numBuffers 	 		= numBuffers,
+								 .maxMbPerBuffer 		= maxMbPerBuffer,
+								 .activeModules  		= GPU_FMI_DECODE_POS};
+	gpu_index_dto_t 	index = {.fmi 			 		= fmiFile,
+								 .indexCoding 	 		= GPU_INDEX_PROFILE_FILE,
+								 .bwtSize 		 		= 0};
+	gpu_reference_dto_t ref   = {.reference 	 		= NULL,
+								 .refCoding 			= GPU_REF_NONE,
+								 .refSize				= 0};
+	gpu_info_dto_t 		sys	  = {.selectedArchitectures = GPU_ARCH_SUPPORTED,
+								 .userAllocOption		= GPU_LOCAL_DATA};
 
 	for(threadID = 0; threadID < numThreads; ++threadID){
 		testData[threadID].samplingRate = SAMPLING_RATE;
 		loadTestData(decodeFile, &testData[threadID]);
 	}
 
-	gpu_init_buffers_(&buffer, numBuffers, maxMbPerBuffer,
-			 	 	  NULL, GPU_NONE_DATA, 0,
-					  fmiFile, GPU_REF_PROFILE_FILE, 0,
-					  GPU_FMI_DECODE_POS, GPU_ARCH_SUPPORTED, GPU_REMOTE_DATA, 0);
+	// Initialize the systems and buffers
+	gpu_init_buffers_(&buff, &index, &ref, &sys, 0);
 
 	// Master thread initialize all the buffers
 	// Better each thread initialize self buffers
 	for(idBuffer = 0; idBuffer < numBuffers; ++idBuffer)
-		gpu_alloc_buffer_(buffer[idBuffer]);
+		gpu_alloc_buffer_(buff.buffer[idBuffer]);
 
 	ts = sample_time();
 
@@ -219,20 +228,20 @@ double processDecodeFMI(char *fmiFile, char *decodeFile, uint32_t numBuffers, ui
 				idBuffer = idTask % numBuffers;
 
 				//Trace the jobs
-				printf("Host thread %d \t sent job %d \t to buffer %d \t in device %d \n", omp_get_thread_num(), idTask, idBuffer, gpu_buffer_get_id_device_(buffer[idBuffer]));
+				printf("Host thread %d \t sent job %d \t to buffer %d \t in device %d \n", omp_get_thread_num(), idTask, idBuffer, gpu_buffer_get_id_device_(buff.buffer[idBuffer]));
 
 				//Fill the buffer (generate work)
-				gpu_fmi_decode_init_buffer_(buffer[idBuffer]);
-				putIntoBuffer(buffer[idBuffer], &testData[idBuffer]);
-				gpu_fmi_decode_send_buffer_(buffer[idBuffer],testData[idBuffer].numInitDecodings, testData[idBuffer].samplingRate);
-				gpu_fmi_decode_receive_buffer_(buffer[idBuffer]);
+				gpu_fmi_decode_init_buffer_(buff.buffer[idBuffer]);
+				putIntoBuffer(buff.buffer[idBuffer], &testData[idBuffer]);
+				gpu_fmi_decode_send_buffer_(buff.buffer[idBuffer],testData[idBuffer].numInitDecodings, testData[idBuffer].samplingRate);
+				gpu_fmi_decode_receive_buffer_(buff.buffer[idBuffer]);
 
 				//Get the results from the buffer (consume results)
-				getFromBuffer(buffer[idBuffer], &testData[idBuffer]);
+				getFromBuffer(buff.buffer[idBuffer], &testData[idBuffer]);
 		}
 
 	ts1 = sample_time();
-	gpu_destroy_buffers_(&buffer);
+	gpu_destroy_buffers_(&buff);
 
 	for(threadID = 0; threadID < numThreads; ++threadID)
 		checkDecodingsGPU(&testData[threadID]);

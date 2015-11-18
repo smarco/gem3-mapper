@@ -27,6 +27,7 @@
  */
 typedef enum
 {
+	GPU_INDEX_NONE,
 	GPU_INDEX_MFASTA_FILE,
 	GPU_INDEX_PROFILE_FILE,
 	GPU_INDEX_ASCII,
@@ -58,11 +59,22 @@ typedef struct{
 	uint64_t steps;
 } gpu_fmi_decode_end_pos_t;
 
+typedef struct {
+	uint64_t *mayor_counters;
+	uint64_t *bwt_mem;
+} gpu_fmi_gem_dto_t;
+
+typedef struct {
+	void 	 		   *fmi;
+	gpu_index_coding_t  indexCoding;
+	const uint64_t 		bwtSize;
+} gpu_index_dto_t;
+
 
 /*
  * Obtain Buffers
  */
-gpu_fmi_search_seed_t*	  gpu_fmi_search_buffer_get_seeds_(void* fmiBuffer);
+gpu_fmi_search_seed_t*	   gpu_fmi_search_buffer_get_seeds_(void* fmiBuffer);
 gpu_fmi_search_sa_inter_t* gpu_fmi_search_buffer_get_sa_intervals_(void* fmiBuffer);
 gpu_fmi_decode_init_pos_t* gpu_fmi_decode_buffer_get_init_pos_(void* fmiBuffer);
 gpu_fmi_decode_end_pos_t*  gpu_fmi_decode_buffer_get_end_pos_(void* fmiBuffer);

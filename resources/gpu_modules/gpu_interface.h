@@ -60,6 +60,17 @@ typedef enum
 	GPU_ARCH_SUPPORTED  = GPU_ARCH_FERMI | GPU_ARCH_KEPLER | GPU_ARCH_MAXWELL | GPU_ARCH_NEWGEN
 } gpu_dev_arch_t;
 
+typedef struct {
+	gpu_dev_arch_t 		selectedArchitectures;
+	gpu_data_location_t userAllocOption;
+} gpu_info_dto_t;
+
+typedef struct {
+	void 		 **buffer;
+	uint32_t  	 numBuffers;
+	float 	  	 maxMbPerBuffer;
+	gpu_module_t activeModules;
+} gpu_buffers_dto_t;
 
 
 /*
@@ -73,12 +84,8 @@ uint32_t gpu_buffer_get_id_device_(void* gpu_buffer);
  * Main functions
  */
 
-void gpu_init_buffers_(void ***gpuBuffer, uint32_t numBuffers, float maxMbPerBuffer,
-						  	  const char *referenceRaw, gpu_ref_coding_t refCoding, const uint64_t refSize,
-						  	  void *indexRaw, gpu_index_coding_t indexCoding, const uint64_t bwtSize,
-						  	  const gpu_module_t activeModules, gpu_dev_arch_t selectedArchitectures,
-						  	  gpu_data_location_t userAllocOption, const bool verbose);
+void gpu_init_buffers_(gpu_buffers_dto_t *buff, gpu_index_dto_t *rawIndex, gpu_reference_dto_t* rawRef, gpu_info_dto_t *sys, const bool verbose);
 
 void gpu_alloc_buffer_(void *gpuBuffer);
-void gpu_destroy_buffers_(void*** gpuBuffer);
+void gpu_destroy_buffers_(gpu_buffers_dto_t *buff);
 

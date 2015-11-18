@@ -22,6 +22,7 @@
  */
 typedef enum
 {
+	GPU_REF_NONE,
 	GPU_REF_MFASTA_FILE,
 	GPU_REF_PROFILE_FILE,
 	GPU_REF_ASCII,
@@ -52,6 +53,12 @@ typedef struct {
 	uint32_t posEntry;
 	uint32_t size;
 } gpu_bpm_qry_info_t;
+
+typedef struct {
+	char 		 	*reference;
+	gpu_ref_coding_t refCoding;
+	uint64_t 		 refSize;
+} gpu_reference_dto_t;
 
 /*
  * Obtain Buffers

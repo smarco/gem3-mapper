@@ -54,9 +54,9 @@ typedef struct {
 /* Functions to initialize the index data on the DEVICE*/
 gpu_error_t gpu_transform_index_ASCII(const char *h_BWT, gpu_index_buffer_t *fmi);
 gpu_error_t gpu_transfer_index_CPU_to_GPUs(gpu_index_buffer_t *index, gpu_device_info_t **devices);
-gpu_error_t gpu_init_index(gpu_index_buffer_t **index, const char *indexRaw,
-									  const uint64_t bwtSize, const gpu_index_coding_t indexCoding,
-									  const uint32_t numSupportedDevices, gpu_module_t activeModules);
+gpu_error_t gpu_init_index(gpu_index_buffer_t **index, const void *indexRaw,
+						   const uint64_t bwtSize, const gpu_index_coding_t indexCoding,
+						   const uint32_t numSupportedDevices, gpu_module_t activeModules);
 /* Functions to release the index data from the DEVICE & HOST*/
 gpu_error_t gpu_free_index_host(gpu_index_buffer_t *index);
 gpu_error_t gpu_free_unused_index_host(gpu_index_buffer_t *index, gpu_device_info_t **devices);
