@@ -2,10 +2,11 @@
 include ../../Makefile.mk
 
 SHELL:=/bin/bash
-CUDA_LIBRARY_FLAGS=$(CUDA_PATH_INCLUDE) $(CUDA_PATH_LIB) $(CUDA_LIB)
+CUDA_LIBRARY_FLAGS=$(INC_CUDA) $(LIBS_CUDA)
 FOLDER_BUILD=build
 FOLDER_SOURCE=src
 FOLDER_BIN=bin
+FOLDER_TOOLS=tools
 
 NVCC_VERSION=$(shell $(NVCC) --version | grep release | sed 's/.*release //' |  sed 's/,.*//' | sed 's/\.//')
 NVCC_MINIMAL_VERSION = $(shell [[ ($(NVCC_VERSION) -ge "0")  && ($(NVCC_VERSION) -le  "29") ]] && echo "10"; \
@@ -36,7 +37,15 @@ CUDA_OBJS=$(addprefix $(FOLDER_BUILD)/, $(addsuffix .o, $(CUDA_MODULES)))
 MODULES=gpu_sample gpu_fmi gpu_bpm gpu_devices gpu_buffers gpu_index gpu_reference
 SRCS=$(addprefix $(FOLDER_SOURCE)/, $(addsuffix .c, $(MODULES)))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(addsuffix .o, $(MODULES)))
-	
+
+TOOLS=gpu_benchmark_bpm gpu_benchmark_decode gpu_benchmark_search
+TOOLS_SRC=$(addprefix $(FOLDER_TOOLS)/, $(addsuffix .c, $(TOOLS)))
+TOOLS_BIN=$(addprefix $(FOLDER_BIN)/, $(TOOLS))
+
+BUILDERS=gpu_build_index gpu_build_reference gpu_build_regions
+BUILDERS_SRC=$(addprefix $(FOLDER_TOOLS)/, $(addsuffix .c, $(BUILDERS)))
+BUILDERS_BIN=$(addprefix $(FOLDER_BIN)/, $(BUILDERS))
+
 all: release
 
 release: NVCC_COMPILE_FLAGS=-O3 -m64 
@@ -55,19 +64,23 @@ debug: NVCC_COMPILE_FLAGS=-G -O0 -m64 --ptxas-options=-v -lineinfo
 debug: GCC_COMPILE_FLAGS=-g -O0 -m64
 debug: $(OBJS) $(CUDA_OBJS) link
 	
+tools: GCC_COMPILE_FLAGS=-O3 -m64
+tools: release $(TOOLS_BIN) $(BUILDERS_BIN)
+
 $(FOLDER_BUILD)/%.o: $(FOLDER_SOURCE)/%.cu
 	$(NVCC) $(NVCC_COMPILE_FLAGS) $(CUDA_SASS_FLAGS) -c $< -o $@
 	
 $(FOLDER_BUILD)/%.o: $(FOLDER_SOURCE)/%.c
-	$(CC) $(GCC_COMPILE_FLAGS) -c $< -o $@ $(CUDA_LIBRARY_FLAGS)
+	$(CC) $(GCC_COMPILE_FLAGS) -c $< -o $@
 
 link: $(OBJS) $(CUDA_OBJS)
 	ld -r $(OBJS) $(CUDA_OBJS) -o $(FOLDER_BUILD)/gem_gpu.o
 
-tools: $(OBJS) $(CUDA_OBJS) link
-	$(CC) $(GCC_GDB_FLAGS) tools/gpu_benchmark_bpm.c $(FOLDER_BUILD)/gem_gpu.o -o $(FOLDER_BIN)/gpu_bpm_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt -lstdc++
-	$(CC) $(GCC_GDB_FLAGS) tools/gpu_benchmark_search.c $(FOLDER_BUILD)/gem_gpu.o -o $(FOLDER_BIN)/gpu_search_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt -lstdc++
-	$(CC) $(GCC_GDB_FLAGS) tools/gpu_benchmark_decode.c $(FOLDER_BUILD)/gem_gpu.o -o $(FOLDER_BIN)/gpu_decode_bench $(CUDA_INCLUDES) $(CUDA_LIBS) -fopenmp -lrt -lstdc++
+$(FOLDER_BIN)/gpu_benchmark_%: $(FOLDER_TOOLS)/gpu_benchmark_%.c
+	$(CC) $(GCC_COMPILE_FLAGS) -c $< -o $@ $(CUDA_LIBRARY_FLAGS) -fopenmp -lrt
+
+$(FOLDER_BIN)/gpu_build_%: $(FOLDER_TOOLS)/gpu_build_%.c
+	$(CC) $(GCC_COMPILE_FLAGS) -c $< -o $@ -lrt
 
 clean:
 	rm -f $(FOLDER_BIN)/* $(FOLDER_BUILD)/*.o
