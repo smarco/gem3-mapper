@@ -77,10 +77,10 @@ link: $(OBJS) $(CUDA_OBJS)
 	ld -r $(OBJS) $(CUDA_OBJS) -o $(FOLDER_BUILD)/gem_gpu.o
 
 $(FOLDER_BIN)/gpu_benchmark_%: $(FOLDER_TOOLS)/gpu_benchmark_%.c
-	$(CC) $(GCC_COMPILE_FLAGS) -c $< -o $@ $(CUDA_LIBRARY_FLAGS) -fopenmp -lrt
+	$(CC) $(GCC_COMPILE_FLAGS) $(FOLDER_BUILD)/gem_gpu.o $< -o $@ $(CUDA_LIBRARY_FLAGS) -fopenmp -lrt
 
 $(FOLDER_BIN)/gpu_build_%: $(FOLDER_TOOLS)/gpu_build_%.c
-	$(CC) $(GCC_COMPILE_FLAGS) -c $< -o $@ -lrt
+	$(CC) $(GCC_COMPILE_FLAGS) $< -o $@ -lrt
 
 clean:
 	rm -f $(FOLDER_BIN)/* $(FOLDER_BUILD)/*.o
