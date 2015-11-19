@@ -5,6 +5,13 @@
 #include "gpu_commons.h"
 #include "gpu_devices.h"
 
+#define GPU_CC_FERMI_1G		200
+#define GPU_CC_FERMI_2G		210
+#define GPU_CC_KEPLER_1G	300
+#define GPU_CC_KEPLER_2G	350
+#define GPU_CC_MAXWELL_1G	500
+#define GPU_CC_MAXWELL_2G	520
+
 /* Defines related to GPU Architecture */
 #if   (__CUDA_ARCH__ < GPU_CC_KEPLER_1G)
 	#define	GPU_THREADS_PER_BLOCK		256
@@ -13,13 +20,6 @@
 #else
 	#define	GPU_THREADS_PER_BLOCK		64
 #endif
-
-#define GPU_CC_FERMI_1G		200
-#define GPU_CC_FERMI_2G		210
-#define GPU_CC_KEPLER_1G	300
-#define GPU_CC_KEPLER_2G	350
-#define GPU_CC_MAXWELL_1G	500
-#define GPU_CC_MAXWELL_2G	520
 
 /*************************************
 GPU Side defines (ASM instructions)

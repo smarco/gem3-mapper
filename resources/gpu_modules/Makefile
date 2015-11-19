@@ -64,8 +64,11 @@ debug: NVCC_COMPILE_FLAGS=-G -O0 -m64 --ptxas-options=-v -lineinfo
 debug: GCC_COMPILE_FLAGS=-g -O0 -m64
 debug: $(OBJS) $(CUDA_OBJS) link
 	
-tools: GCC_COMPILE_FLAGS=-O3 -m64
 tools: release $(TOOLS_BIN) $(BUILDERS_BIN)
+tools_profile: profile $(TOOLS_BIN) $(BUILDERS_BIN)
+tools_devel: devel $(TOOLS_BIN) $(BUILDERS_BIN)
+tools_debug: debug $(TOOLS_BIN) $(BUILDERS_BIN)
+
 
 $(FOLDER_BUILD)/%.o: $(FOLDER_SOURCE)/%.cu
 	$(NVCC) $(NVCC_COMPILE_FLAGS) $(CUDA_SASS_FLAGS) -c $< -o $@
