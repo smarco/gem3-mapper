@@ -16,7 +16,7 @@ GPU_INLINE uint32_t gpu_get_threads_per_block(gpu_dev_arch_t architecture)
 GPU_INLINE gpu_dev_arch_t gpu_get_device_architecture(uint32_t idDevice)
 {
 	struct cudaDeviceProp devProp;
-	cudaGetDeviceProperties(&devProp, idDevice);
+	CUDA_ERROR(cudaGetDeviceProperties(&devProp, idDevice));
 
 	if (devProp.major <= 1) return(GPU_ARCH_TESLA);								/* CC 1.X		*/
 	if (devProp.major == 2 && devProp.minor == 0) return(GPU_ARCH_FERMI_1G); 	/* CC 2.0		*/
@@ -53,7 +53,7 @@ GPU_INLINE uint32_t gpu_get_device_cuda_cores(uint32_t idDevice)
 	gpu_dev_arch_t architecture;
 
 	struct cudaDeviceProp devProp;
-	cudaGetDeviceProperties(&devProp, idDevice);
+	CUDA_ERROR(cudaGetDeviceProperties(&devProp, idDevice));
 
 	architecture = gpu_get_device_architecture(idDevice);
 	coresPerSM = gpu_get_SM_cuda_cores(architecture);
@@ -81,7 +81,6 @@ GPU_INLINE uint32_t gpu_get_num_supported_devices_(gpu_dev_arch_t selectedArchit
 	uint32_t idDevice, numSupportedDevices = 0;
 	int32_t numDevices;
 	gpu_dev_arch_t deviceArch;
-
 
 	CUDA_ERROR(cudaGetDeviceCount(&numDevices));
 
