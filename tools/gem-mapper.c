@@ -375,9 +375,9 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       cuda->output_num_buffers = io->output_num_buffers;
       break;
     }
-		 case 205: // --report-file
-			 io->report_file_name = optarg;
-			 break;
+     case 205: // --report-file
+       io->report_file_name = optarg;
+       break;
     /* Qualities */
     case 'q': // --quality-format
       if (gem_strcaseeq(optarg,"ignore")) {
@@ -736,9 +736,9 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 1000: // --sam-compact in {'true'|'false'} (default=true)
       parameters->io.sam_parameters.compact_xa = (optarg==NULL) ? true : input_text_parse_extended_bool(optarg);
       break;
-		case 'r': // --sam-read-group-header
-			output_sam_parse_read_group_header(optarg,&parameters->io.sam_parameters);
-		  break;
+    case 'r': // --sam-read-group-header
+      output_sam_parse_read_group_header(optarg,&parameters->io.sam_parameters);
+      break;
     case 1001: // --sam-gem-compatible in {'true'|'false'} (default=true)
       parameters->io.sam_parameters.print_gem_fields = (optarg==NULL) ? true : input_text_parse_extended_bool(optarg);
       break;
@@ -952,7 +952,7 @@ int main(int argc,char** argv) {
   gem_mapper_open_output(&parameters);
 
   // Initialize Statistics Report
-	if(parameters.io.report_file_name) parameters.global_mapping_stats=mm_alloc(mapping_stats_t);
+  if(parameters.io.report_file_name) parameters.global_mapping_stats=mm_alloc(mapping_stats_t);
 
   // Launch mapper
   if (!cuda->cuda_enabled) {
@@ -991,12 +991,12 @@ int main(int argc,char** argv) {
   // Profile
   if (parameters.misc.profile) gem_mapper_print_profile(&parameters);
 
-	// Mapping Statistics Report
-	if(parameters.io.report_file_name) {
-		 output_mapping_stats(&parameters,parameters.global_mapping_stats);
-	}
+  // Mapping Statistics Report
+  if(parameters.io.report_file_name) {
+     output_mapping_stats(&parameters,parameters.global_mapping_stats);
+  }
 
-	// CleanUP
+  // CleanUP
   archive_delete(parameters.archive); // Delete archive
   gem_mapper_close_input(&parameters); // Close I/O files
   gem_mapper_close_output(&parameters); // Close I/O files

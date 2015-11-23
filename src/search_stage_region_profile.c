@@ -156,7 +156,9 @@ GEM_INLINE void search_stage_region_profile_retrieve_begin(search_stage_region_p
 }
 GEM_INLINE bool search_stage_region_profile_retrieve_finished(search_stage_region_profile_t* const search_stage_rp) {
   search_stage_iterator_t* const iterator = &search_stage_rp->iterator;
-  return iterator->current_buffer_idx==iterator->num_buffers && iterator->current_search_idx==iterator->num_searches;
+  return search_stage_rp->search_stage_mode == search_group_buffer_phase_retrieving &&
+      iterator->current_buffer_idx==iterator->num_buffers &&
+      iterator->current_search_idx==iterator->num_searches;
 }
 GEM_INLINE bool search_stage_region_profile_retrieve_next(
     search_stage_region_profile_t* const search_stage_rp,

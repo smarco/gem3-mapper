@@ -241,7 +241,6 @@ GEM_INLINE void approximate_search_inexact_filtering(approximate_search_t* const
  */
 GEM_INLINE void approximate_search_verify(approximate_search_t* const search,matches_t* const matches) {
   // Verify
-  filtering_candidates_clear(search->filtering_candidates);
   const uint64_t num_accepted_regions = filtering_candidates_verify_candidates(
       search->filtering_candidates,search->archive,search->text_collection,
       &search->pattern,search->as_parameters,matches,search->mm_stack);

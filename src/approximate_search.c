@@ -65,8 +65,6 @@ GEM_INLINE void approximate_search_reset(approximate_search_t* const search) {
   search->max_complete_error = MIN(max_complete_error,search->pattern.max_effective_filtering_error);
   search->max_complete_stratum = ALL;
   search->max_matches_reached = false;
-  // Prepare filtering candidates
-  filtering_candidates_clear(search->filtering_candidates);
   // Prepare region profile
   if (search->max_complete_error > 0) {
     region_profile_new(&search->region_profile,search->pattern.key_length,search->mm_stack);

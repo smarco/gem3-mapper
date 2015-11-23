@@ -28,7 +28,7 @@ FOLDER_LIB=$(ROOT_PATH)/lib
 FOLDER_RESOURCES=$(ROOT_PATH)/resources
 FOLDER_RESOURCES_BUILD=$(ROOT_PATH)/resources/build
 
-FOLDER_GEMGPU_BIULD=$(ROOT_PATH)/resources/gpu_modules/build
+FOLDER_GEMGPU_BUILD=$(ROOT_PATH)/resources/gpu_modules/build
 
 FOLDER_RESOURCES_INCLUDE=$(ROOT_PATH)/resources/include
 FOLDER_SOURCE=$(ROOT_PATH)/src

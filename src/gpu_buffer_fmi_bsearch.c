@@ -90,12 +90,12 @@ GEM_INLINE void gpu_buffer_fmi_search_add_query(
     // Adapt pattern chunk to query encoding
     const uint8_t* const key = pattern->key;
     int64_t i;
-    for (i=end-1;i>=begin;--i) {
+    for (i=end-1;i>=(int64_t)begin;--i) {
       lo |= (key[i] << offset);
       offset += 2;
       if (offset >= 64) break;
     }
-    for (offset=0;i>=begin;--i) {
+    for (offset=0;i>=(int64_t)begin;--i) {
       hi |= (key[i] << offset);
       offset += 2;
     }

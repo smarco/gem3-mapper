@@ -75,7 +75,7 @@ GEM_INLINE void gpu_buffer_collection_delete(gpu_buffer_collection_t* const gpu_
  */
 GEM_INLINE void* gpu_buffer_collection_get_buffer(
     const gpu_buffer_collection_t* const gpu_buffer_collection,const uint64_t buffer_no) {
-  return gpu_buffer_collection->internal_buffers + buffer_no;
+  return gpu_buffer_collection->internal_buffers[buffer_no];
 }
 /*
  * CUDA NOT-Supported

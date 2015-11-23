@@ -2,7 +2,7 @@
 include ../../Makefile.mk
 
 SHELL:=/bin/bash
-CUDA_LIBRARY_FLAGS=$(INC_CUDA) $(LIBS_CUDA)
+CUDA_LIBRARY_FLAGS=$(CUDA_PATH_INCLUDE) $(CUDA_PATH_LIB) $(CUDA_LIB) # $(INC_CUDA) $(LIBS_CUDA)
 FOLDER_BUILD=build
 FOLDER_SOURCE=src
 FOLDER_BIN=bin
@@ -74,7 +74,7 @@ $(FOLDER_BUILD)/%.o: $(FOLDER_SOURCE)/%.cu
 	$(NVCC) $(NVCC_COMPILE_FLAGS) $(CUDA_SASS_FLAGS) -c $< -o $@
 	
 $(FOLDER_BUILD)/%.o: $(FOLDER_SOURCE)/%.c
-	$(CC) $(GCC_COMPILE_FLAGS) -c $< -o $@
+	$(CC) $(GCC_COMPILE_FLAGS) -c $< -o $@ $(CUDA_LIBRARY_FLAGS)
 
 link: $(OBJS) $(CUDA_OBJS)
 	ld -r $(OBJS) $(CUDA_OBJS) -o $(FOLDER_BUILD)/gem_gpu.o
