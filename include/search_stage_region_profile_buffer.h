@@ -26,8 +26,8 @@ typedef struct {
  * Setup
  */
 search_stage_region_profile_buffer_t* search_stage_region_profile_buffer_new(
-    const gpu_buffer_collection_t* const gpu_buffer_collection,
-    const uint64_t buffer_no,const bool cpu_emulated);
+    const gpu_buffer_collection_t* const gpu_buffer_collection,const uint64_t buffer_no,
+    fm_index_t* const fm_index,const bool cpu_emulated);
 void search_stage_region_profile_buffer_clear(
     search_stage_region_profile_buffer_t* const region_profile_buffer,
     archive_search_cache_t* const archive_search_cache);

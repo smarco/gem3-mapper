@@ -14,6 +14,7 @@
 #include "profiler_timer.h"
 
 typedef struct {
+  void* gpu_buffers_dto;              // GPU-Buffer Initializer DTO
   void** internal_buffers;            // Internal Buffers
   uint64_t num_buffers;               // Total number of buffers allocated
 } gpu_buffer_collection_t;
@@ -35,6 +36,6 @@ void gpu_buffer_collection_delete(gpu_buffer_collection_t* const gpu_buffer_coll
  * Accessors
  */
 void* gpu_buffer_collection_get_buffer(
-    gpu_buffer_collection_t* const gpu_buffer_collection,const uint64_t buffer_no);
+    const gpu_buffer_collection_t* const gpu_buffer_collection,const uint64_t buffer_no);
 
 #endif /* GPU_BUFFER_COLLECTION_H_ */

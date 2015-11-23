@@ -32,7 +32,7 @@ GEM_INLINE bool mapper_se_cuda_stage_read_input_sequences_exhausted(mapper_cuda_
 GEM_INLINE bool mapper_se_cuda_stage_region_profile_output_exhausted(mapper_cuda_search_t* const mapper_search) {
   // Check Stage Region-Profile
   search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
-  if (!search_stage_region_profile_is_empty(search_pipeline->stage_region_profile)) return false;
+  if (!search_stage_region_profile_retrieve_finished(search_pipeline->stage_region_profile)) return false;
   // Check pending search
   if (mapper_search->pending_search_decode_candidates!=NULL) return false;
   // Exhausted
@@ -41,7 +41,7 @@ GEM_INLINE bool mapper_se_cuda_stage_region_profile_output_exhausted(mapper_cuda
 GEM_INLINE bool mapper_se_cuda_stage_decode_candidates_output_exhausted(mapper_cuda_search_t* const mapper_search) {
   // Check Stage Decode-Candidates
   search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
-  if (!search_stage_decode_candidates_is_empty(search_pipeline->stage_decode_candidates)) return false;
+  if (!search_stage_decode_candidates_retrieve_finished(search_pipeline->stage_decode_candidates)) return false;
   // Check pending search
   if (mapper_search->pending_search_verify_candidates!=NULL) return false;
   // Exhausted
@@ -107,7 +107,8 @@ GEM_INLINE void mapper_se_cuda_decode_candidates(mapper_cuda_search_t* const map
     mapper_search->pending_search_decode_candidates = NULL;
   }
   // Read from stage Region-Profile
-  while (search_stage_region_profile_retrieve_se_search(stage_region_profile,&archive_search)) {
+  bool pending_searches;
+  while ((pending_searches=search_stage_region_profile_retrieve_se_search(stage_region_profile,&archive_search))) {
     // Generate Decode-Candidates
     archive_search_se_stepwise_decode_candidates_generate(archive_search);
     // Send to CUDA Decode-Candidates
@@ -116,6 +117,10 @@ GEM_INLINE void mapper_se_cuda_decode_candidates(mapper_cuda_search_t* const map
       mapper_search->pending_search_decode_candidates = archive_search; // Pending Search
       break;
     }
+  }
+  // Clean
+  if (!pending_searches) {
+    search_stage_region_profile_clear(stage_region_profile,search_pipeline->archive_search_cache);
   }
   PROFILE_STOP(GP_MAPPER_CUDA_SE_DECODE_CANDIDATES,PROFILE_LEVEL);
 }
@@ -139,7 +144,8 @@ GEM_INLINE void mapper_se_cuda_verify_candidates(mapper_cuda_search_t* const map
     mapper_search->pending_search_verify_candidates = NULL;
   }
   // Read from stage Decode-Candidates,
-  while (search_stage_decode_candidates_retrieve_se_search(stage_decode_candidates,&archive_search)) {
+  bool pending_searches;
+  while ((pending_searches=search_stage_decode_candidates_retrieve_se_search(stage_decode_candidates,&archive_search))) {
     // Generate Verify-Candidates
     archive_search_se_stepwise_verify_candidates_generate(archive_search);
     // Send to CUDA Verify-Candidates
@@ -148,6 +154,10 @@ GEM_INLINE void mapper_se_cuda_verify_candidates(mapper_cuda_search_t* const map
       mapper_search->pending_search_verify_candidates = archive_search; // Pending Search
       break;
     }
+  }
+  // Clean
+  if (!pending_searches) {
+    search_stage_decode_candidates_clear(stage_decode_candidates,search_pipeline->archive_search_cache);
   }
   PROFILE_STOP(GP_MAPPER_CUDA_SE_VERIFY_CANDIDATES,PROFILE_LEVEL);
 }
@@ -161,26 +171,25 @@ GEM_INLINE void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_
   PROFILE_START(GP_MAPPER_CUDA_SE_FINISH_SEARCH,PROFILE_LEVEL);
   // Parameters
   mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
-  matches_t* const matches = mapper_search->matches;
   search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
-  text_collection_t* const text_collection = search_pipeline_get_text_collection(search_pipeline);
   search_stage_verify_candidates_t* const stage_verify_candidates = search_pipeline->stage_verify_candidates;
   archive_search_t* archive_search = NULL;
   // Process all search-groups generated
-  while (search_stage_verify_candidates_retrieve_se_search(
-      stage_verify_candidates,&archive_search,text_collection,matches)) {
+  while (search_stage_verify_candidates_retrieve_se_search(stage_verify_candidates,&archive_search)) {
     // Finish Search
-    archive_search_se_stepwise_finish_search(archive_search,matches);
-    archive_select_se_matches(archive_search,false,matches);
-    // Output matches
+    archive_search_se_stepwise_finish_search(archive_search,stage_verify_candidates->matches); // Finish search
+    archive_select_se_matches(archive_search,false,stage_verify_candidates->matches); // Select Matches
+    // Output Matches
     mapper_SE_output_matches(parameters,mapper_search->buffered_output_file,
-        archive_search,matches,mapper_search->mapping_stats);
+        archive_search,stage_verify_candidates->matches,mapper_search->mapping_stats);
     // Update processed
     if (++mapper_search->reads_processed == MAPPER_TICKER_STEP) {
       ticker_update_mutex(mapper_search->ticker,mapper_search->reads_processed);
       mapper_search->reads_processed=0;
     }
   }
+  // Clean
+  search_stage_verify_candidates_clear(stage_verify_candidates,search_pipeline->archive_search_cache);
   PROFILE_STOP(GP_MAPPER_CUDA_SE_FINISH_SEARCH,PROFILE_LEVEL);
 }
 /*
@@ -193,16 +202,13 @@ void* mapper_cuda_se_thread(mapper_cuda_search_t* const mapper_search) {
   // Parameters
   mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
   const mapper_parameters_cuda_t* const cuda_parameters = &parameters->cuda;
-  search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
   // Create new buffered reader/writer
   mapper_search->buffered_fasta_input = buffered_input_file_new(parameters->input_file,cuda_parameters->input_buffer_lines);
   mapper_search->buffered_output_file = buffered_output_file_new(parameters->output_file);
   buffered_input_file_attach_buffered_output(mapper_search->buffered_fasta_input,mapper_search->buffered_output_file);
   // Create search-pipeline & initialize matches
   mapper_search->search_pipeline = search_pipeline_new(parameters,
-      mapper_search->gpu_buffer_collection,mapper_search->gpu_buffers_offset);
-  mapper_search->matches = matches_new();
-  matches_configure(mapper_search->matches,search_pipeline_get_text_collection(search_pipeline));
+      mapper_search->gpu_buffer_collection,mapper_search->gpu_buffers_offset,false);
   // FASTA/FASTQ reading loop
   mapper_search->reads_processed = 0;
   while (!mapper_se_cuda_stage_read_input_sequences_exhausted(mapper_search)) {
@@ -223,7 +229,6 @@ void* mapper_cuda_se_thread(mapper_cuda_search_t* const mapper_search) {
   ticker_update_mutex(mapper_search->ticker,mapper_search->reads_processed); // Update processed
   buffered_input_file_close(mapper_search->buffered_fasta_input);
   buffered_output_file_close(mapper_search->buffered_output_file);
-  matches_delete(mapper_search->matches);
   PROFILE_STOP(GP_MAPPER_CUDA_SE,PROFILE_LEVEL);
   pthread_exit(0);
 }

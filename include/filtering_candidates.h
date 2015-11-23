@@ -59,6 +59,7 @@ void filtering_candidates_destroy(filtering_candidates_t* const filtering_candid
 /*
  * Accessors
  */
+uint64_t filtering_candidates_get_num_candidate_positions(const filtering_candidates_t* const filtering_candidates);
 uint64_t filtering_candidates_get_num_candidate_regions(const filtering_candidates_t* const filtering_candidates);
 uint64_t filtering_candidates_count_candidate_regions(
     filtering_candidates_t* const filtering_candidates_end,

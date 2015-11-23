@@ -24,6 +24,11 @@ typedef struct {
   // Decode Candidates Buffers
   vector_t* buffers;                      // Verify Candidates Buffers (search_stage_decode_candidates_buffer_t*)
   search_stage_iterator_t iterator;       // Buffers State
+  // Support Data Structures
+  filtering_candidates_t filtering_candidates_forward_end1; // Filtering Candidates (end/1:F)
+  filtering_candidates_t filtering_candidates_reverse_end1; // Filtering Candidates (end/1:R)
+  filtering_candidates_t filtering_candidates_forward_end2; // Filtering Candidates (end/2:F)
+  filtering_candidates_t filtering_candidates_reverse_end2; // Filtering Candidates (end/2:R)
 } search_stage_decode_candidates_t;
 
 /*
@@ -32,7 +37,7 @@ typedef struct {
 search_stage_decode_candidates_t* search_stage_decode_candidates_new(
     const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffers_offset,const uint64_t num_buffers,
-    const bool cpu_emulated);
+    fm_index_t* const fm_index,const bool cpu_emulated);
 void search_stage_decode_candidates_clear(
     search_stage_decode_candidates_t* const search_stage_dc,
     archive_search_cache_t* const archive_search_cache);
@@ -59,6 +64,7 @@ bool search_stage_decode_candidates_send_pe_search(
 /*
  * Retrieve Searches (buffered)
  */
+bool search_stage_decode_candidates_retrieve_finished(search_stage_decode_candidates_t* const search_stage_dc);
 bool search_stage_decode_candidates_retrieve_se_search(
     search_stage_decode_candidates_t* const search_stage_dc,
     archive_search_t** const archive_search);

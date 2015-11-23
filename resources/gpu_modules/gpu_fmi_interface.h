@@ -60,9 +60,12 @@ typedef struct{
 } gpu_fmi_decode_end_pos_t;
 
 typedef struct {
-	uint64_t *mayor_counters;
-	uint64_t *bwt_mem;
-} gpu_fmi_gem_dto_t;
+  uint64_t* c;               // Occurrences of each character
+  uint64_t* C;               // The cumulative occurrences ("ranks") of the symbols of the string
+  uint64_t* mayor_counters;  // Pointer to the Mayor Counters (Rank)
+  uint64_t* bwt_mem;         // Pointer to the BWT structure in memory
+  uint64_t bwt_length;       // Length of the BWT
+} gpu_gem_fmi_dto_t;
 
 typedef struct {
 	void 	 		   *fmi;

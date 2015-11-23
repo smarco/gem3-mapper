@@ -252,7 +252,6 @@ option_t gem_mapper_options[] = {
   { 1201, "cuda-buffers-per-thread", REQUIRED, TYPE_STRING, 12, VISIBILITY_DEVELOPER, "<num_buffers,buffer_size>" , "(default=2,3,3,4M)" },
 #endif /* HAVE_CUDA */
   /* Presets/Hints */
-  { 1300, "reads-model", REQUIRED, TYPE_STRING, 13, VISIBILITY_DEVELOPER, "<average_length>[,<std_length>]" , "(default=150,50)" },
   /* Debug */
   { 'c', "check-alignments", REQUIRED, TYPE_STRING, 14, VISIBILITY_DEVELOPER, "'correct'|'best'|'complete'" , "" },
   /* Miscellaneous */
@@ -802,20 +801,6 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       break;
     }
     /* Presets/Hints */
-    case 1300: { // --reads-model <average_length>[,<std_length>]
-      char *average_length, *std_length;
-      const int num_arguments = input_text_parse_csv_arguments(optarg,2,&average_length,&std_length);
-      gem_mapper_cond_error_msg(num_arguments==0,"Option '--reads-model' wrong number of arguments");
-      // Average read length
-      gem_mapper_cond_error_msg(input_text_parse_size(average_length,&parameters->hints.avg_read_length),
-          "Option '--reads-model'. Error parsing 'average_length'");
-      if (num_arguments > 1) {
-        // Standard deviation read length
-        gem_mapper_cond_error_msg(input_text_parse_size(std_length,&parameters->hints.std_read_length),
-            "Option '--reads-model'. Error parsing 'std_length'");
-      }
-      break;
-    }
     /* Debug */
     case 'c': { // --check-alignments in {'correct'|'best'|'complete'}
       select_parameters_t* const select_parameters = &parameters->select_parameters;

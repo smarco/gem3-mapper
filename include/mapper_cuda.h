@@ -34,7 +34,6 @@ typedef struct {
   archive_search_t* pending_search_region_profile;
   archive_search_t* pending_search_decode_candidates;
   archive_search_t* pending_search_verify_candidates;
-  matches_t* matches;
   /* Stats */
   mapping_stats_t* mapping_stats; // Per thread stats report structures
   /* Progress */

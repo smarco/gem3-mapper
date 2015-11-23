@@ -19,13 +19,18 @@
  */
 typedef struct {
   /* GPU Generic Buffer*/
-  device_t device;          // Computing Device (GPU/CPU)
   void* buffer;             // GPU Generic Buffer
+  /* Dimensions Hints */
+  uint32_t averageNumPEQEntries;
+  uint32_t candidatesPerQuery;
+  uint32_t candidates_same_length; // TODO
   /* Buffer state */
   uint32_t pattern_id;      // Pattern ID (Generator)
   uint32_t num_PEQ_entries;
   uint32_t num_queries;
   uint32_t num_candidates;
+  /* CPU Computation */
+  bool compute_cpu;         // Computing Using CPU (disable GPU)
   /* Profile */
   gem_timer_t timer;
 } gpu_buffer_align_bpm_t;
@@ -43,7 +48,12 @@ gpu_buffer_align_bpm_t* gpu_buffer_align_bpm_new(
     const gpu_buffer_collection_t* const gpu_buffer_collection,const uint64_t buffer_no);
 void gpu_buffer_align_bpm_clear(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
 void gpu_buffer_align_bpm_delete(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
-void gpu_buffer_align_bpm_device(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const device_t device);
+
+/*
+ * Computing Device
+ */
+void gpu_buffer_align_bpm_set_device_cpu(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
+void gpu_buffer_align_bpm_set_device_gpu(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
 
 /*
  * Occupancy & Limits

@@ -153,9 +153,6 @@ GEM_INLINE void mapper_parameters_set_defaults_cuda(mapper_parameters_cuda_t* co
 }
 GEM_INLINE void mapper_parameters_set_defaults_hints(mapper_parameters_hints_t* const hints) {
   /* Hints */
-  hints->avg_read_length=150;
-  hints->std_read_length=50;
-  hints->candidates_per_query=20;
 }
 GEM_INLINE void mapper_parameters_set_defaults_misc(mapper_parameters_misc_t* const misc) {
   /* QC */
@@ -382,7 +379,7 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
   mapper_search->archive_search = archive_search_new(
       parameters->archive,&mapper_search->mapper_parameters->search_parameters,
       &mapper_search->mapper_parameters->select_parameters);
-  archive_search_se_configure(mapper_search->archive_search,mm_search);
+  archive_search_se_inject_mm(mapper_search->archive_search,mm_search);
   matches_t* const matches = matches_new();
   matches_configure(matches,mapper_search->archive_search->text_collection);
 
@@ -443,7 +440,7 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
   mapper_search->archive_search_end2 = archive_search_new(
       parameters->archive,&mapper_search->mapper_parameters->search_parameters,
       &mapper_search->mapper_parameters->select_parameters);
-  archive_search_pe_configure(mapper_search->archive_search_end1,mapper_search->archive_search_end2,mm_search);
+  archive_search_pe_inject_mm(mapper_search->archive_search_end1,mapper_search->archive_search_end2,mm_search);
   mapper_search->paired_matches = paired_matches_new(mm_search->text_collection);
   paired_matches_configure(mapper_search->paired_matches,mapper_search->archive_search_end1->text_collection);
 

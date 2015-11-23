@@ -116,7 +116,7 @@ extern const uint64_t mm_mem_alignment_bits_mask[];
 /*
  * Temporal folder path
  */
-#define MM_DEFAULT_TMP_FOLDER "./"
+#define MM_DEFAULT_TMP_FOLDER ""
 
 char* mm_get_tmp_folder();
 void mm_set_tmp_folder(char* const tmp_folder_path);

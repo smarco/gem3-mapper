@@ -19,10 +19,12 @@
  */
 typedef struct {
   /* GPU Generic Buffer*/
-  device_t device;          // Computing Device (GPU/CPU)
   void* buffer;             // GPU Generic Buffer
   /* Buffer state */
   uint32_t num_queries;     // Buffer state
+  /* CPU Computation */
+  bool compute_cpu;         // Computing Using CPU (disable GPU)
+  fm_index_t* fm_index;     // FM-Index
   /* Profile */
   gem_timer_t timer;
 } gpu_buffer_fmi_search_t;
@@ -31,10 +33,16 @@ typedef struct {
  * Setup
  */
 gpu_buffer_fmi_search_t* gpu_buffer_fmi_search_new(
-    const gpu_buffer_collection_t* const gpu_buffer_collection,const uint64_t buffer_pos);
+    const gpu_buffer_collection_t* const gpu_buffer_collection,
+    const uint64_t buffer_pos,fm_index_t* const fm_index);
 void gpu_buffer_fmi_search_clear(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
 void gpu_buffer_fmi_search_delete(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
-void gpu_buffer_fmi_search_device(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search,const device_t device);
+
+/*
+ * Computing Device
+ */
+void gpu_buffer_fmi_search_set_device_cpu(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
+void gpu_buffer_fmi_search_set_device_gpu(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
 
 /*
  * Occupancy & Limits

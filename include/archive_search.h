@@ -68,22 +68,38 @@ typedef struct {
 archive_search_t* archive_search_new(
     archive_t* const archive,search_parameters_t* const search_parameters,
     select_parameters_t* const select_parameters);
-void archive_search_configure(
-    archive_search_t* const archive_search,const sequence_end_t sequence_end,
-    mm_search_t* const mm_search);
 void archive_search_reset(archive_search_t* const archive_search);
 void archive_search_delete(archive_search_t* const archive_search);
+
+/*
+ * Memory Injection (Support Data Structures)
+ */
+void archive_search_inject_mm_stack(
+    archive_search_t* const archive_search,mm_stack_t* const mm_stack);
+void archive_search_inject_mapper_stats(
+    archive_search_t* const archive_search,mapper_stats_t* mapper_stats);
+void archive_search_inject_interval_set(
+    archive_search_t* const archive_search,interval_set_t* const interval_set);
+void archive_search_inject_text_collection(
+    archive_search_t* const archive_search,text_collection_t* const text_collection);
+void archive_search_inject_filtering_candidates(
+    archive_search_t* const archive_search,
+    filtering_candidates_t* const filtering_candidates_forward,
+    filtering_candidates_t* const filtering_candidates_reverse);
 
 /*
  * Accessors
  */
 sequence_t* archive_search_get_sequence(const archive_search_t* const archive_search);
-uint64_t archive_search_get_search_canditates(const archive_search_t* const archive_search);
+bool archive_search_finished(const archive_search_t* const archive_search);
+
 uint64_t archive_search_get_search_exact_matches(const archive_search_t* const archive_search);
 uint64_t archive_search_get_max_region_length(const archive_search_t* const archive_search);
 uint64_t archive_search_get_num_zero_regions(const archive_search_t* const archive_search);
 
-bool archive_search_finished(const archive_search_t* const archive_search);
+uint64_t archive_search_get_num_regions_profile(const archive_search_t* const archive_search);
+uint64_t archive_search_get_num_decode_candidates(const archive_search_t* const archive_search);
+uint64_t archive_search_get_num_verify_candidates(const archive_search_t* const archive_search);
 
 /*
  * Utils

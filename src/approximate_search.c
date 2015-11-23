@@ -10,6 +10,7 @@
 #include "approximate_search_filtering_adaptive.h"
 #include "approximate_search_filtering_complete.h"
 #include "approximate_search_neighborhood.h"
+#include "filtering_candidates.h"
 
 /*
  * Profile
@@ -55,15 +56,6 @@ GEM_INLINE void approximate_search_init(
   search->as_parameters = as_parameters;
   search->emulated_rc_search = emulated_rc_search;
 }
-GEM_INLINE void approximate_search_configure(
-    approximate_search_t* const search,filtering_candidates_t* const filtering_candidates,
-    text_collection_t* text_collection,interval_set_t* const interval_set,mm_stack_t* const mm_stack) {
-  // Set Auxiliary Structures (external)
-  search->filtering_candidates = filtering_candidates; // Filtering Candidates
-  search->text_collection = text_collection;           // Text-Collection
-  search->interval_set = interval_set;                 // Interval Set
-  search->mm_stack = mm_stack;                         // Set MM
-}
 GEM_INLINE void approximate_search_reset(approximate_search_t* const search) {
   // Reset Approximate Search State
   search->search_stage = asearch_stage_begin;
@@ -80,24 +72,53 @@ GEM_INLINE void approximate_search_reset(approximate_search_t* const search) {
     region_profile_new(&search->region_profile,search->pattern.key_length,search->mm_stack);
   }
 }
-GEM_INLINE void approximate_search_destroy(approximate_search_t* const search) { /* NOP */ }
+GEM_INLINE void approximate_search_destroy(approximate_search_t* const search) {
+  /* NOP */
+}
+/*
+ * Memory Injection (Support Data Structures)
+ */
+GEM_INLINE void approximate_search_inject_mm_stack(
+    approximate_search_t* const search,mm_stack_t* const mm_stack) {
+  search->mm_stack = mm_stack;                         // Set MM
+}
+GEM_INLINE void approximate_search_inject_interval_set(
+    approximate_search_t* const search,interval_set_t* const interval_set) {
+  search->interval_set = interval_set;                 // Interval Set
+}
+GEM_INLINE void approximate_search_inject_text_collection(
+    approximate_search_t* const search,text_collection_t* const text_collection) {
+  search->text_collection = text_collection;           // Text-Collection
+}
+GEM_INLINE void approximate_search_inject_filtering_candidates(
+    approximate_search_t* const search,filtering_candidates_t* const filtering_candidates) {
+  search->filtering_candidates = filtering_candidates; // Filtering Candidates
+}
 /*
  * Accessors
  */
-GEM_INLINE uint64_t approximate_search_get_num_filtering_candidates(const approximate_search_t* const search) {
-  if (search->processing_state == asearch_processing_state_exact_matches) {
-    return search->hi_exact_matches - search->lo_exact_matches;
-  } else {
-    const filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
-    return filtering_candidates_get_num_candidate_regions(filtering_candidates);
-  }
-}
 GEM_INLINE uint64_t approximate_search_get_num_exact_filtering_candidates(const approximate_search_t* const search) {
   return (search->processing_state == asearch_processing_state_exact_matches) ?
       search->hi_exact_matches - search->lo_exact_matches : 0;
 }
 GEM_INLINE void approximate_search_update_mcs(approximate_search_t* const search,const uint64_t max_complete_stratum) {
   search->max_complete_stratum = max_complete_stratum;
+}
+GEM_INLINE uint64_t approximate_search_get_num_regions_profile(const approximate_search_t* const search) {
+  const region_profile_t* const region_profile = &search->region_profile;
+  return region_profile->num_filtering_regions;
+}
+GEM_INLINE uint64_t approximate_search_get_num_decode_candidates(const approximate_search_t* const search) {
+  const filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
+  return filtering_candidates_get_num_candidate_positions(filtering_candidates);
+}
+GEM_INLINE uint64_t approximate_search_get_num_verify_candidates(const approximate_search_t* const search) {
+  if (search->processing_state == asearch_processing_state_exact_matches) {
+    return search->hi_exact_matches - search->lo_exact_matches;
+  } else {
+    const filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
+    return filtering_candidates_get_num_candidate_regions(filtering_candidates);
+  }
 }
 /*
  * Modifiers

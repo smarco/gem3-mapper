@@ -6,7 +6,6 @@
  */
 
 #include "search_stage_verify_candidates_buffer.h"
-#include "archive_search_se_stepwise.h"
 
 /*
  * Profile
@@ -23,7 +22,7 @@ GEM_INLINE search_stage_verify_candidates_buffer_t* search_stage_verify_candidat
   search_stage_verify_candidates_buffer_t* const verify_candidates_buffer = mm_alloc(search_stage_verify_candidates_buffer_t);
   // Init
   verify_candidates_buffer->gpu_buffer_align_bpm = gpu_buffer_align_bpm_new(gpu_buffer_collection,buffer_no);
-  gpu_buffer_align_bpm_device(verify_candidates_buffer->gpu_buffer_align_bpm,cpu_emulated?DEVICE_CPU:DEVICE_GPU);
+  if (cpu_emulated) gpu_buffer_align_bpm_set_device_cpu(verify_candidates_buffer->gpu_buffer_align_bpm);
   const uint64_t max_queries = gpu_buffer_align_bpm_get_max_queries(verify_candidates_buffer->gpu_buffer_align_bpm);
   verify_candidates_buffer->archive_searches = vector_new(max_queries,archive_search_t*);
   // Return
@@ -64,12 +63,12 @@ GEM_INLINE bool search_stage_verify_candidates_buffer_fits(
   uint64_t total_entries = 0,total_query_chunks = 0,total_candidate_chunks = 0;
   gpu_buffer_align_bpm_compute_dimensions(gpu_buffer_align_bpm,
       &archive_search_end1->forward_search_state.pattern,
-      archive_search_get_search_canditates(archive_search_end1),
+      archive_search_get_num_verify_candidates(archive_search_end1),
       &total_entries,&total_query_chunks,&total_candidate_chunks);
   if (archive_search_end2!=NULL) {
     gpu_buffer_align_bpm_compute_dimensions(gpu_buffer_align_bpm,
         &archive_search_end2->forward_search_state.pattern,
-        archive_search_get_search_canditates(archive_search_end2),
+        archive_search_get_num_verify_candidates(archive_search_end2),
         &total_entries,&total_query_chunks,&total_candidate_chunks);
   }
   // Return if current search fits in buffer
@@ -97,17 +96,11 @@ GEM_INLINE void search_stage_verify_candidates_buffer_add(
     archive_search_t* const archive_search) {
   // Add archive-search
   vector_insert(verify_candidates_buffer->archive_searches,archive_search,archive_search_t*);
-  // Copy candidates to the buffer
-  archive_search_se_stepwise_verify_candidates_copy(archive_search,verify_candidates_buffer->gpu_buffer_align_bpm);
 }
 GEM_INLINE void search_stage_verify_candidates_buffer_retrieve(
     search_stage_verify_candidates_buffer_t* const verify_candidates_buffer,
-    const uint64_t search_idx,archive_search_t** const archive_search,
-    matches_t* const matches) {
+    const uint64_t search_idx,archive_search_t** const archive_search) {
   // Retrieve archive-search
   *archive_search = *vector_get_elm(verify_candidates_buffer->archive_searches,search_idx,archive_search_t*);
-  // Retrieve candidates from the buffer
-  archive_search_se_stepwise_verify_candidates_retrieve(
-      *archive_search,verify_candidates_buffer->gpu_buffer_align_bpm,matches);
 }
 

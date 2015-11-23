@@ -156,7 +156,7 @@ GEM_INLINE void archive_select_process_interval_matches(
     if ((match_interval->lo >= match_interval->hi) || (match_interval->distance > last_stratum_distance)) continue;
     // Decode position (Use the first position of the interval, lo)
     match_trace_t match_trace;
-    match_trace.match_alignment.match_position = fm_index_lookup(archive->fm_index,match_interval->lo);
+    match_trace.match_alignment.match_position = fm_index_decode(archive->fm_index,match_interval->lo);
     match_trace.match_alignment.score = match_interval->distance;
     // (Re)Align match (retrieved with the seq-read(pattern))
     if (match_interval->distance > 0) {
@@ -178,7 +178,7 @@ GEM_INLINE void archive_select_process_interval_matches(
       // Check number of matches (only last stratum)
       if (last_stratum_match && (num_matches_last_stratum++ >= last_stratum_reported_matches)) break;
       // Decode position
-      match_trace.match_alignment.match_position = fm_index_lookup(archive->fm_index,sa_position);
+      match_trace.match_alignment.match_position = fm_index_decode(archive->fm_index,sa_position);
       // (Re)Align the match [Already DONE] & Add the match
       matches_add_match_trace(matches,&match_trace,false,archive->locator,archive_search->mm_stack);
     }

@@ -169,6 +169,100 @@ GPU_INLINE gpu_error_t gpu_transform_index_ASCII(const char *h_BWT, gpu_index_bu
 	return(SUCCESS);
 }
 
+GPU_INLINE gpu_error_t gpu_transform_index_GEM_FULL(gpu_gem_fmi_dto_t* const gpu_gem_fmi_dto, gpu_index_buffer_t *fmi)
+{
+  // BWT Parameters
+  const uint64_t BWT_MINOR_BLOCKS_PER_MAYOR_BLOCK = (1<<10); /* 1024 */
+  const uint64_t BWT_MINOR_BLOCK_LENGTH = 64;
+  const uint64_t* c = gpu_gem_fmi_dto->c;
+  const uint64_t* C = gpu_gem_fmi_dto->C;
+  const uint64_t* mayor_counters = gpu_gem_fmi_dto->mayor_counters;
+  const uint32_t* bwt_mem = (uint32_t*) gpu_gem_fmi_dto->bwt_mem;
+  const uint64_t bwt_length = gpu_gem_fmi_dto->bwt_length;
+  // Allocate fmi memory
+  CUDA_ERROR(cudaHostAlloc((void**) &fmi->h_fmi, fmi->numEntries * sizeof(gpu_fmi_entry_t), cudaHostAllocMapped));
+  if (fmi->h_fmi == NULL) return (E_ALLOCATE_MEM);
+  gpu_fmi_entry_t* h_fmi = fmi->h_fmi; // Host FMI
+  // Iterate thought the BWT memory layout
+  uint16_t* minor_counters;
+  uint32_t x0, x1, x2;
+  uint32_t y0, y1, y2;
+  uint32_t z0, z1, z2;
+  uint32_t w0, w1, w2;
+  uint64_t minor_block = 0, h_fmi_entry = 0;
+  uint64_t bwt_pos, i;
+  for (bwt_pos=0;bwt_pos<bwt_length;) {
+    // Get next block (Block0)
+    minor_counters = (uint16_t*)bwt_mem; bwt_mem += 4; // Minor Counters
+    x0 = *(bwt_mem); ++bwt_mem;
+    y0 = *(bwt_mem); ++bwt_mem;
+    x1 = *(bwt_mem); ++bwt_mem;
+    y1 = *(bwt_mem); ++bwt_mem;
+    x2 = *(bwt_mem); ++bwt_mem;
+    y2 = *(bwt_mem); ++bwt_mem;
+    bwt_mem += 2; // Sampling bitmap
+    bwt_pos+=BWT_MINOR_BLOCK_LENGTH; // Next Block
+    // Check end-of-bwt
+    if (bwt_pos<bwt_length) {
+      // Get next block (Block1)
+      bwt_mem += 4; // Skip Minor Counters
+      z0 = *(bwt_mem); ++bwt_mem;
+      w0 = *(bwt_mem); ++bwt_mem;
+      z1 = *(bwt_mem); ++bwt_mem;
+      w1 = *(bwt_mem); ++bwt_mem;
+      z2 = *(bwt_mem); ++bwt_mem;
+      w2 = *(bwt_mem); ++bwt_mem;
+      bwt_mem += 2; // Sampling bitmap
+      bwt_pos+=BWT_MINOR_BLOCK_LENGTH; // Next Block
+    } else {
+      // Padding zeros
+      z0 = 0; z1 = 0; z2 = 0;
+      w0 = 0; w1 = 0; w2 = 0;
+    }
+    // Write Counters
+    if (h_fmi_entry % 2 == 0) {
+      h_fmi->counters[0] = minor_counters[0] + mayor_counters[0]; // 'A'
+      h_fmi->counters[1] = minor_counters[1] + mayor_counters[1]; // 'C'
+    } else {
+      h_fmi->counters[0] = minor_counters[2] + mayor_counters[2]; // 'G'
+      h_fmi->counters[1] = minor_counters[3] + mayor_counters[3]; // 'T'
+    }
+    // Write Bitmap
+    h_fmi->bitmaps[0] = __builtin_bswap32(y0);
+    h_fmi->bitmaps[1] = __builtin_bswap32(y1);
+    h_fmi->bitmaps[2] = __builtin_bswap32(~y2);
+    h_fmi->bitmaps[3] = __builtin_bswap32(x0);
+    h_fmi->bitmaps[4] = __builtin_bswap32(z0);
+    h_fmi->bitmaps[5] = __builtin_bswap32(z1);
+    h_fmi->bitmaps[6] = __builtin_bswap32(~z2);
+    h_fmi->bitmaps[7] = __builtin_bswap32(x1);
+    h_fmi->bitmaps[8] = __builtin_bswap32(w0);
+    h_fmi->bitmaps[9] = __builtin_bswap32(w1);
+    h_fmi->bitmaps[10] = __builtin_bswap32(~w2);
+    h_fmi->bitmaps[11] = __builtin_bswap32(~x2);
+    // Next Entry
+    ++h_fmi; ++h_fmi_entry;
+    minor_block += 2;
+    if (minor_block >= BWT_MINOR_BLOCKS_PER_MAYOR_BLOCK) {
+      mayor_counters += 8;
+    }
+  }
+  // Ghost entry for alternate counters
+  if (h_fmi_entry % 2 == 1) {
+    // Write Counters
+    h_fmi->counters[0] = c[2] + C[2]; // 'G'
+    h_fmi->counters[1] = c[3] + C[3]; // 'T'
+    // Write Bitmap
+    h_fmi->bitmaps[0] = 0; h_fmi->bitmaps[1] = 0;
+    h_fmi->bitmaps[2] = 0; h_fmi->bitmaps[3] = 0;
+    h_fmi->bitmaps[4] = 0; h_fmi->bitmaps[5] = 0;
+    h_fmi->bitmaps[6] = 0; h_fmi->bitmaps[7] = 0;
+    h_fmi->bitmaps[8] = 0; h_fmi->bitmaps[9] = 0;
+    h_fmi->bitmaps[10] = 0; h_fmi->bitmaps[11] = 0;
+  }
+  // Return SUCCESS
+  return (SUCCESS);
+}
 GPU_INLINE gpu_error_t gpu_load_BWT_MFASTA(const char *fn, gpu_index_buffer_t *fmi, char **h_BWT)
 {
 	FILE *fp = NULL;
@@ -210,7 +304,7 @@ GPU_INLINE gpu_error_t gpu_save_index_PROFILE(const char *fn, gpu_index_buffer_t
     char fileName[sizeFileName];
     FILE *fp = NULL;
 
-    sprintf(fileName, "%s.%llu.%u.fmi", fn, index->bwtSize, GPU_FMI_ENTRY_SIZE);
+    sprintf(fileName, "%s.%lu.%u.fmi", fn, index->bwtSize, GPU_FMI_ENTRY_SIZE);
     fp = fopen(fileName, "wb");
     if (fp == NULL) return (E_WRITING_FILE);
 
@@ -300,9 +394,7 @@ GPU_INLINE gpu_error_t gpu_init_index(gpu_index_buffer_t **index, const void *in
 				GPU_ERROR(gpu_transform_index_ASCII((const char*)indexRaw, fmi));
 				break;
 			case GPU_INDEX_GEM_FULL:
-				// TODO: Santiago GEM index transformation
-				//GPU_ERROR(gpu_transform_index_GEM_FULL((const gpu_fmi_gem_dto_t*)indexRaw, fmi));
-				GPU_ERROR(E_NOT_IMPLEMENTED);
+				GPU_ERROR(gpu_transform_index_GEM_FULL((gpu_gem_fmi_dto_t*)indexRaw, fmi));
 				break;
 			case GPU_INDEX_MFASTA_FILE:
 				GPU_ERROR(gpu_load_BWT_MFASTA((const char*)indexRaw, fmi, &h_BWT));

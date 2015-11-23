@@ -60,18 +60,20 @@ uint64_t fm_index_get_size(const fm_index_t* const fm_index);
  * FM-Index Operators
  */
 // Compute SA[i]
-uint64_t fm_index_lookup(const fm_index_t* const fm_index,const uint64_t bwt_position);
+uint64_t fm_index_decode(const fm_index_t* const fm_index,const uint64_t bwt_position);
 // Compute SA^(-1)[i]
-uint64_t fm_index_inverse_lookup(const fm_index_t* const fm_index,const uint64_t text_position);
+uint64_t fm_index_encode(const fm_index_t* const fm_index,const uint64_t text_position);
 // Compute Psi[i]
 uint64_t fm_index_psi(const fm_index_t* const fm_index,const uint64_t bwt_position);
-// Decode fm_index->text[bwt_position..bwt_position+length-1] into @buffer.
-uint64_t fm_index_decode(
-    const fm_index_t* const fm_index,const uint64_t bwt_position,const uint64_t length,char* const buffer);
+
+// Retrieve BWT-pos sampled
+void fm_index_retrieve_bwt_sampled(
+    const fm_index_t* const fm_index,uint64_t bwt_position,
+    uint64_t* const sampled_bwt_position,uint64_t* const lf_dist);
 // Retrieve SA-Sample
-uint64_t fm_index_retrieve_sa_sample(
-    const fm_index_t* const fm_index,
-    const uint64_t sampled_bwt_position,const uint64_t lf_dist);
+void fm_index_retrieve_sa_sample(
+    const fm_index_t* const fm_index,const uint64_t sampled_bwt_position,
+    const uint64_t lf_dist,uint64_t* const text_position);
 
 /*
  * Display

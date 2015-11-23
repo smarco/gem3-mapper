@@ -9,6 +9,7 @@
 #include "approximate_search_generate_candidates.h"
 #include "approximate_search_control.h"
 #include "filtering_candidates_process.h"
+#include "filtering_candidates_process_buffered.h"
 #include "filtering_candidates_verify.h"
 #include "filtering_candidates_align.h"
 #include "region_profile.h"
@@ -231,35 +232,30 @@ GEM_INLINE void approximate_search_generate_exact_candidates_buffered_copy(
 }
 GEM_INLINE void approximate_search_generate_exact_candidates_buffered_retrieve(
     approximate_search_t* const search,gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
-  // Retrieve Buffer offsets
-//  const uint64_t buffer_offset_begin = search->gpu_buffer_fmi_search_offset;
-//  const uint64_t buffer_offset_end = search->gpu_buffer_fmi_search_offset+search->gpu_buffer_fmi_search_total;
-  // Retrieve all positions
-
-// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-//  // Parameters
-//  region_profile_t* const region_profile = &search->region_profile;
-//  const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
-//  const uint64_t key_length = search->pattern.key_length;
-//  const uint64_t boundary_error = search->pattern.max_effective_bandwidth;
-//  // Clear filtering candidates
-//  filtering_candidates_clear(search->filtering_candidates);
-//  // Add all candidates positions
-//  uint64_t i, buffer_offset = search->gpu_buffer_fmi_decode_offset;
-//  for (i=0;i<num_filtering_regions;++i) {
-//    region_search_t* const filtering_region = region_profile->filtering_region + i;
-//    if (filtering_region->degree==REGION_FILTER_DEGREE_ZERO) {
-//      filtering_candidates_decode_filtering_positions_buffered(
-//          search->filtering_candidates,search->archive->locator,
-//          search->archive->text,search->archive->fm_index,
-//          filtering_region->begin,filtering_region->end,
-//          filtering_region->lo,filtering_region->hi,
-//          key_length,boundary_error,
-//          gpu_buffer_fmi_decode,buffer_offset);
-//    }
-//  } // Problem with filtering-positions mem
-
-
+  // Parameters
+  region_profile_t* const region_profile = &search->region_profile;
+  const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
+  const uint64_t key_length = search->pattern.key_length;
+  const uint64_t boundary_error = search->pattern.max_effective_bandwidth;
+  // Add all candidates positions
+  uint64_t buffer_offset_begin = search->gpu_buffer_fmi_search_offset;
+  uint64_t i;
+  for (i=0;i<num_filtering_regions;++i) {
+    region_search_t* const filtering_region = region_profile->filtering_region + i;
+    if (filtering_region->degree==REGION_FILTER_DEGREE_ZERO) {
+      filtering_candidates_decode_filtering_positions_buffered(
+          search->filtering_candidates,search->archive->locator,
+          search->archive->text,search->archive->fm_index,
+          filtering_region->begin,filtering_region->end,
+          filtering_region->lo,filtering_region->hi,
+          key_length,boundary_error,
+          gpu_buffer_fmi_decode,buffer_offset_begin);
+      buffer_offset_begin += filtering_region->hi - filtering_region->lo;
+    }
+  }
+  // Process all candidates
+  filtering_candidates_process_candidates_buffered(search->filtering_candidates,
+      search->archive,&search->pattern,search->as_parameters,false,search->mm_stack);
   // Set state to verify-candidates
   search->processing_state = asearch_processing_state_candidates_processed;
 }

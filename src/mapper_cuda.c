@@ -86,8 +86,9 @@ GEM_INLINE void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,con
       cuda_parameters->num_fmi_decode_buffers +
       cuda_parameters->num_bpm_buffers;
   const uint64_t num_gpu_buffers = num_gpu_buffers_per_thread * num_threads;
-  gpu_buffer_collection_t* const gpu_buffer_collection = gpu_buffer_collection_new(mapper_parameters->archive,
-      num_gpu_buffers,cuda_parameters->gpu_buffer_size,mapper_parameters->misc.verbose_dev);
+  gpu_buffer_collection_t* const gpu_buffer_collection =
+      gpu_buffer_collection_new(mapper_parameters->archive,
+          num_gpu_buffers,cuda_parameters->gpu_buffer_size,mapper_parameters->misc.verbose_dev);
   // I/O (SAM headers)
   archive_t* const archive = mapper_parameters->archive;
   const bool bisulfite_index = (archive->type == archive_dna_bisulfite);

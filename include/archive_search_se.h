@@ -13,10 +13,9 @@
 #include "archive_search.h"
 
 /*
- * Setup
+ * Memory Injection (Support Data Structures)
  */
-void archive_search_se_configure(
-    archive_search_t* const archive_search,mm_search_t* const mm_search);
+void archive_search_se_inject_mm(archive_search_t* const archive_search,mm_search_t* const mm_search);
 
 /*
  * Archive Search SE Continue

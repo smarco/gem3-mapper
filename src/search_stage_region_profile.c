@@ -36,7 +36,7 @@ GEM_INLINE search_stage_region_profile_buffer_t* search_stage_rp_get_current_buf
 GEM_INLINE search_stage_region_profile_t* search_stage_region_profile_new(
     const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffers_offset,const uint64_t num_buffers,
-    const bool cpu_emulated) {
+    fm_index_t* const fm_index,const bool cpu_emulated) {
   // Alloc
   search_stage_region_profile_t* const search_stage_rp = mm_alloc(search_stage_region_profile_t);
   // Init Buffers
@@ -44,9 +44,11 @@ GEM_INLINE search_stage_region_profile_t* search_stage_region_profile_new(
   search_stage_rp->buffers = vector_new(num_buffers,search_stage_region_profile_buffer_t*);
   for (i=0;i<num_buffers;++i) {
     search_stage_region_profile_buffer_t* const buffer_vc =
-        search_stage_region_profile_buffer_new(gpu_buffer_collection,buffers_offset+i,cpu_emulated);
+        search_stage_region_profile_buffer_new(gpu_buffer_collection,buffers_offset+i,fm_index,cpu_emulated);
     vector_insert(search_stage_rp->buffers,buffer_vc,search_stage_region_profile_buffer_t*);
   }
+  search_stage_rp->iterator.num_buffers = num_buffers;
+  search_stage_region_profile_clear(search_stage_rp,NULL); // Clear buffers
   // Return
   return search_stage_rp;
 }
@@ -78,13 +80,6 @@ GEM_INLINE void search_stage_region_profile_delete(
   mm_free(search_stage_rp); // Free handler
 }
 /*
- * Accessors
- */
-GEM_INLINE bool search_stage_region_profile_is_empty(search_stage_region_profile_t* const search_stage_rp) {
-  // TODO TODO TODO TODO TODO TODO TODO
-  return false;
-}
-/*
  * Send Searches (buffered)
  */
 GEM_INLINE bool search_stage_region_profile_send_se_search(
@@ -106,6 +101,8 @@ GEM_INLINE bool search_stage_region_profile_send_se_search(
   }
   // Add SE Search
   search_stage_region_profile_buffer_add(current_buffer,archive_search);
+  // Copy profile-partitions to the buffer
+  archive_search_se_stepwise_region_profile_copy(archive_search,current_buffer->gpu_buffer_fmi_search);
   // Return ok
   return true;
 }
@@ -130,6 +127,10 @@ GEM_INLINE bool search_stage_region_profile_send_pe_search(
   // Add PE Search
   search_stage_region_profile_buffer_add(current_buffer,archive_search_end1);
   search_stage_region_profile_buffer_add(current_buffer,archive_search_end2);
+  // Copy profile-partitions to the buffer
+  gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search = current_buffer->gpu_buffer_fmi_search;
+  archive_search_se_stepwise_region_profile_copy(archive_search_end1,gpu_buffer_fmi_search);
+  archive_search_se_stepwise_region_profile_copy(archive_search_end2,gpu_buffer_fmi_search);
   // Return ok
   return true;
 }
@@ -138,6 +139,8 @@ GEM_INLINE bool search_stage_region_profile_send_pe_search(
  */
 GEM_INLINE void search_stage_region_profile_retrieve_begin(search_stage_region_profile_t* const search_stage_rp) {
   search_stage_region_profile_buffer_t* current_buffer;
+  // Change mode
+  search_stage_rp->search_stage_mode = search_group_buffer_phase_retrieving;
   // Send the current buffer
   current_buffer = search_stage_rp_get_current_buffer(search_stage_rp);
   search_stage_region_profile_buffer_send(current_buffer);
@@ -151,30 +154,35 @@ GEM_INLINE void search_stage_region_profile_retrieve_begin(search_stage_region_p
   // Fetch first group
   search_stage_region_profile_buffer_receive(current_buffer);
 }
+GEM_INLINE bool search_stage_region_profile_retrieve_finished(search_stage_region_profile_t* const search_stage_rp) {
+  search_stage_iterator_t* const iterator = &search_stage_rp->iterator;
+  return iterator->current_buffer_idx==iterator->num_buffers && iterator->current_search_idx==iterator->num_searches;
+}
 GEM_INLINE bool search_stage_region_profile_retrieve_next(
-    search_stage_region_profile_t* const search_stage_rp,archive_search_t** const archive_search) {
+    search_stage_region_profile_t* const search_stage_rp,
+    search_stage_region_profile_buffer_t** const current_buffer,
+    archive_search_t** const archive_search) {
   // Check state
   if (search_stage_rp->search_stage_mode == search_group_buffer_phase_sending) {
     search_stage_region_profile_retrieve_begin(search_stage_rp);
-    search_stage_rp->search_stage_mode = search_group_buffer_phase_retrieving;
   }
   // Check end-of-iteration
-  search_stage_region_profile_buffer_t* current_buffer = search_stage_rp_get_current_buffer(search_stage_rp);
+  *current_buffer = search_stage_rp_get_current_buffer(search_stage_rp);
   search_stage_iterator_t* const iterator = &search_stage_rp->iterator;
   if (iterator->current_search_idx==iterator->num_searches) {
     // Next buffer
     ++(iterator->current_buffer_idx);
     if (iterator->current_buffer_idx==iterator->num_buffers) return false;
     // Reset searches iterator
-    current_buffer = search_stage_rp_get_current_buffer(search_stage_rp);
+    *current_buffer = search_stage_rp_get_current_buffer(search_stage_rp);
     iterator->current_search_idx = 0;
-    iterator->num_searches = vector_get_used(current_buffer->archive_searches);
+    iterator->num_searches = vector_get_used((*current_buffer)->archive_searches);
     if (iterator->num_searches==0) return false;
     // Receive Buffer
-    search_stage_region_profile_buffer_receive(current_buffer);
+    search_stage_region_profile_buffer_receive(*current_buffer);
   }
   // Retrieve Search
-  search_stage_region_profile_buffer_retrieve(current_buffer,iterator->current_search_idx,archive_search);
+  search_stage_region_profile_buffer_retrieve(*current_buffer,iterator->current_search_idx,archive_search);
   ++(iterator->current_search_idx); // Next
   return true;
 }
@@ -183,18 +191,37 @@ GEM_INLINE bool search_stage_region_profile_retrieve_next(
  */
 GEM_INLINE bool search_stage_region_profile_retrieve_se_search(
     search_stage_region_profile_t* const search_stage_rp,archive_search_t** const archive_search) {
-  return search_stage_region_profile_retrieve_next(search_stage_rp,archive_search);
+  // Retrieve next
+  search_stage_region_profile_buffer_t* current_buffer;
+  const bool success = search_stage_region_profile_retrieve_next(search_stage_rp,&current_buffer,archive_search);
+  if (!success) return false;
+  // Retrieve searched profile-partitions from the buffer
+  gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search = current_buffer->gpu_buffer_fmi_search;
+  archive_search_se_stepwise_region_profile_retrieve(*archive_search,gpu_buffer_fmi_search);
+  // Return
+  return true;
 }
 GEM_INLINE bool search_stage_region_profile_retrieve_pe_search(
     search_stage_region_profile_t* const search_stage_rp,
     archive_search_t** const archive_search_end1,archive_search_t** const archive_search_end2) {
-  // Get End/1
+  search_stage_region_profile_buffer_t* current_buffer;
   bool success;
-  success = search_stage_region_profile_retrieve_next(search_stage_rp,archive_search_end1);
+  /*
+   * End/1
+   */
+  // Retrieve (End/1)
+  success = search_stage_region_profile_retrieve_next(search_stage_rp,&current_buffer,archive_search_end1);
   if (!success) return false;
-  // Get End/2
-  success = search_stage_region_profile_retrieve_next(search_stage_rp,archive_search_end2);
+  // Retrieve searched profile-partitions from the buffer (End/1)
+  archive_search_se_stepwise_region_profile_retrieve(*archive_search_end1,current_buffer->gpu_buffer_fmi_search);
+  /*
+   * End/2
+   */
+  // Retrieve (End/2)
+  success = search_stage_region_profile_retrieve_next(search_stage_rp,&current_buffer,archive_search_end2);
   gem_cond_fatal_error(!success,SEARCH_STAGE_RP_UNPAIRED_QUERY);
+  // Retrieve searched profile-partitions from the buffer (End/2)
+  archive_search_se_stepwise_region_profile_retrieve(*archive_search_end2,current_buffer->gpu_buffer_fmi_search);
   // Return ok
   return true;
 }

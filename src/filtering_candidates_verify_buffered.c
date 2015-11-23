@@ -72,8 +72,6 @@ GEM_INLINE uint64_t filtering_candidates_verify_buffered_retrieve(
    * Retrieve filtering-regions from BPM-Buffer
    */
   PROFILE_START(GP_FC_RETRIEVE_BPM_BUFFER_CANDIDATE_REGIONS,PROFILE_LEVEL);
-  // Clear filtering candidates
-  filtering_candidates_clear(filtering_candidates);
   if (gem_expect_false(candidate_offset_begin==candidate_offset_end)) return 0;
   // Fetch Parameters
   const uint64_t key_length = pattern->key_length;

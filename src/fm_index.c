@@ -119,7 +119,7 @@ GEM_INLINE uint64_t fm_index_get_size(const fm_index_t* const fm_index) {
 /*
  * FM-Index High-level Operators
  */
-GEM_INLINE uint64_t fm_index_lookup(const fm_index_t* const fm_index,uint64_t bwt_position) {
+GEM_INLINE uint64_t fm_index_decode(const fm_index_t* const fm_index,uint64_t bwt_position) {
   // Parameters
   const bwt_t* const bwt = fm_index->bwt;
   const uint64_t bwt_length = fm_index_get_length(fm_index);
@@ -136,8 +136,7 @@ GEM_INLINE uint64_t fm_index_lookup(const fm_index_t* const fm_index,uint64_t bw
   // Recover sampled position & adjust
   return (sampled_sa_get_sample(sampled_sa,bwt_position) + dist) % bwt_length;
 }
-
-GEM_INLINE uint64_t fm_index_inverse_lookup(const fm_index_t* const fm_index,const uint64_t text_position) {
+GEM_INLINE uint64_t fm_index_encode(const fm_index_t* const fm_index,const uint64_t text_position) {
   GEM_NOT_IMPLEMENTED(); // TODO Implement
 // // Compute SA^(-1)[i]
 //  register const idx_t refl=a->text_length-i;
@@ -172,57 +171,32 @@ GEM_INLINE uint64_t fm_index_psi(const fm_index_t* const fm_index,const uint64_t
   // return fmi_inverse(a,(fmi_lookup(a,i)+1)%a->bwt->n);
   return 0;
 }
-// Decode fm_index->text[bwt_position..bwt_position+length-1] into @buffer.
-GEM_INLINE uint64_t fm_index_decode(
-    const fm_index_t* const fm_index,const uint64_t bwt_position,const uint64_t length,char* const buffer) {
-  GEM_NOT_IMPLEMENTED(); // TODO Implement
-//  if (__builtin_expect(a->bed!=0,1)) {
-//    return be_decode(a->bed,i,len,p);
-//  } else {
-//    register idx_t pos=fmi_inverse(a,i+len),j;
-//    for (j=0;j<len;++j) {
-//      register const ch_t c=bwt_char(a->bwt,pos);
-//      p[len-1-j]=c;
-//      if (__builtin_expect(c==CHAR_ENC_SEP||c==CHAR_ENC_EOT,false))
-//        p[len-1-j]=0;
-//      pos=bwt_LF(a->bwt,pos);
-//    }
-//    p[len]=0;
-//    return len;
-//  }
-//
-  return 0;
-}
-GEM_INLINE uint64_t fm_index_decode_raw(
-    const fm_index_t* const fm_index,const uint64_t bwt_position,const uint64_t length,char* const buffer) {
-  GEM_NOT_IMPLEMENTED(); // TODO Implement
-//#ifndef SUPPRESS_CHECKS
-//  gem_cond_fatal_error(i<0||i>a->text_length,BWT_INDEX,i);
-//  gem_cond_fatal_error(len<0||len>a->text_length,BWT_LEN,len);
-//  gem_cond_fatal_error(i+len>a->text_length,PARAM_INV);
-//#endif
-//  if (__builtin_expect(a->bed!=0,1)) {
-//    return be_decode_raw(a->bed,i,len,p);
-//  } else {
-//    register idx_t pos=fmi_inverse(a,i+len),j;
-//    for (j=0;j<len;++j) {
-//      p[len-1-j] = bwt_char(a->bwt,pos);
-//      pos=bwt_LF(a->bwt,pos);
-//    }
-//    p[len]=0;
-//    return len;
-//  }
-  return 0;
-}
-GEM_INLINE uint64_t fm_index_retrieve_sa_sample(
-    const fm_index_t* const fm_index,
-    const uint64_t sampled_bwt_position,const uint64_t lf_dist) {
+// Retrieve BWT-pos sampled
+GEM_INLINE void fm_index_retrieve_bwt_sampled(
+    const fm_index_t* const fm_index,uint64_t bwt_position,
+    uint64_t* const sampled_bwt_position,uint64_t* const lf_dist) {
   // Parameters
   const bwt_t* const bwt = fm_index->bwt;
+  bool is_sampled = false;
+  *lf_dist=0;
+  // LF until we find a sampled position
+  bwt_position = bwt_LF(bwt,bwt_position,&is_sampled);
+  while (!is_sampled) {
+    ++(*lf_dist);
+    bwt_position = bwt_LF(bwt,bwt_position,&is_sampled);
+  }
+  *sampled_bwt_position = bwt_position;
+  PROF_ADD_COUNTER(GP_FMIDX_LOOKUP_DIST,*lf_dist);
+}
+// Retrieve SA-Sample
+GEM_INLINE void fm_index_retrieve_sa_sample(
+    const fm_index_t* const fm_index,const uint64_t sampled_bwt_position,
+    const uint64_t lf_dist,uint64_t* const text_position) {
+  // Parameters
   const uint64_t bwt_length = fm_index_get_length(fm_index);
   const sampled_sa_t* const sampled_sa = fm_index->sampled_sa;
   // Recover sampled position & adjust
-  return (sampled_sa_get_sample(sampled_sa,sampled_bwt_position) + lf_dist) % bwt_length;
+  *text_position = (sampled_sa_get_sample(sampled_sa,sampled_bwt_position) + lf_dist) % bwt_length;
 }
 /*
  * Display

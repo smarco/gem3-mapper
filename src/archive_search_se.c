@@ -23,11 +23,16 @@
 #define PROFILE_LEVEL PHIGH
 
 /*
- * Setup
+ * Memory Injection (Support Data Structures)
  */
-GEM_INLINE void archive_search_se_configure(
-    archive_search_t* const archive_search,mm_search_t* const mm_search) {
-  archive_search_configure(archive_search,single_end,mm_search);
+GEM_INLINE void archive_search_se_inject_mm(archive_search_t* const archive_search,mm_search_t* const mm_search) {
+  archive_search_inject_mm_stack(archive_search,mm_search->mm_stack);
+  archive_search_inject_mapper_stats(archive_search,mm_search->mapper_stats);
+  archive_search_inject_interval_set(archive_search,&mm_search->interval_set);
+  archive_search_inject_text_collection(archive_search,&mm_search->text_collection);
+  archive_search_inject_filtering_candidates(archive_search,
+      &mm_search->filtering_candidates_forward_end1,
+      &mm_search->filtering_candidates_reverse_end1);
 }
 /*
  * Archive Search SE Continue

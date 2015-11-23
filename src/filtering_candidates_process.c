@@ -215,7 +215,7 @@ GEM_INLINE void filtering_candidates_decode_filtering_positions(
   vector_t* const candidate_text_positions = filtering_candidates->filtering_positions;
   VECTOR_ITERATE(candidate_text_positions,filtering_position,n,filtering_position_t) {
     // Lookup Position
-    filtering_position->region_text_position = fm_index_lookup(fm_index,filtering_position->region_index_position);
+    filtering_position->region_text_position = fm_index_decode(fm_index,filtering_position->region_index_position);
     // Locate Position
     filtering_position->locator_interval = locator_lookup_interval(locator,filtering_position->region_text_position);
     // Adjust Position

@@ -24,59 +24,28 @@
 /*
  * Control
  */
-//GEM_INLINE void asearch_control_next_state_generate_candidates_recovery(approximate_search_t* const search) {
-//  // Stats
-//  PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,search->max_complete_stratum);
-//  // Select state
-//  switch (search->search_state) {
-//    case asearch_no_regions:
-//      search->search_state = asearch_end;
-//      break;
-//    case asearch_exact_matches:
-//    case asearch_verify_candidates:
-//      break;
-//    default:
-//      GEM_INVALID_CASE();
-//      break;
-//  }
-//}
-//GEM_INLINE void asearch_control_next_state_generate_candidates(approximate_search_t* const search) {
-//  // Stats
-//  PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,search->max_complete_stratum);
-//  // Select state
-//  switch (search->search_state) {
-//    case asearch_no_regions:
-//      search->search_state = asearch_exact_filtering_boost;
-//      break;
-//    case asearch_exact_matches:
-//    case asearch_verify_candidates:
-//      break;
-//    default:
-//      GEM_INVALID_CASE();
-//      break;
-//  }
-//}
-//GEM_INLINE void asearch_control_next_state_candidates_verified(approximate_search_t* const search,matches_t* const matches) {
-//  // Select state
-//  switch (search->search_state) {
-//    case asearch_exact_matches:
-//      PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MAPPED,1);
-//      PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,1);
-//      return;
-//    case asearch_candidates_verified:
-//      PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MAPPED,matches_is_mapped(matches)?1:0);
-//      PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,search->max_complete_stratum);
-//      search->search_state = asearch_control_trigger_boost(search,matches) ?
-//          asearch_exact_filtering_boost : asearch_end;
-//      break;
-//    case asearch_exact_filtering_boost:
-//    case asearch_end:
-//      break;
-//    default:
-//      GEM_INVALID_CASE();
-//      break;
-//  }
-//}
+GEM_INLINE void asearch_control_next_state_filtering_adaptive(
+    approximate_search_t* const search,matches_t* const matches) {
+  // Select state
+  switch (search->processing_state) {
+    case asearch_processing_state_no_regions:
+      search->search_stage = asearch_stage_end;
+      break;
+    case asearch_processing_state_exact_matches:
+      PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MAPPED,1);
+      PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,1);
+      search->search_stage = asearch_stage_end;
+      break;
+    case asearch_processing_state_candidates_verified:
+      PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MAPPED,matches_is_mapped(matches)?1:0);
+      PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,search->max_complete_stratum);
+      search->search_stage = asearch_stage_end;
+      break;
+    default:
+      GEM_INVALID_CASE();
+      break;
+  }
+}
 /*
  * AM Stepwise :: Region Profile
  */
@@ -107,18 +76,18 @@ GEM_INLINE void approximate_search_stepwise_region_profile_retrieve(
     approximate_search_t* const search,gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) {
   if (search->processing_state == asearch_processing_state_region_partitioned) {
     approximate_search_region_profile_buffered_retrieve(search,gpu_buffer_fmi_search);
-    // Check results
-    if (search->processing_state == asearch_processing_state_no_regions) {
-      approximate_search_exact_filtering_adaptive_lightweight(search,NULL);
-      GEM_NOT_IMPLEMENTED(); // TODO Split until processing
-    }
+//    // Check results
+//    if (search->processing_state == asearch_processing_state_no_regions) {
+//      approximate_search_exact_filtering_adaptive_lightweight(search,NULL);
+//      GEM_NOT_IMPLEMENTED(); // TODO Split until processing
+//    }
   }
 }
 /*
  * AM Stepwise :: Decode Candidates
  */
 GEM_INLINE void approximate_search_stepwise_decode_candidates_generate(approximate_search_t* const search) {
-  // ???
+  // NOP
 }
 GEM_INLINE void approximate_search_stepwise_decode_candidates_copy(
     approximate_search_t* const search,gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
@@ -136,7 +105,7 @@ GEM_INLINE void approximate_search_stepwise_decode_candidates_retrieve(
  * AM Stepwise :: Verify Candidates
  */
 GEM_INLINE void approximate_search_stepwise_verify_candidates_generate(approximate_search_t* const search) {
-  // ???
+  // NOP
 }
 GEM_INLINE void approximate_search_stepwise_verify_candidates_copy(
     approximate_search_t* const search,gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
@@ -155,8 +124,9 @@ GEM_INLINE void approximate_search_stepwise_verify_candidates_retrieve(
  * AM Stepwise :: Finish Search
  */
 GEM_INLINE void approximate_search_stepwise_finish(approximate_search_t* const search,matches_t* const matches) {
-  // Next State
-  // FIXME asearch_control_next_state_candidates_verified(search,matches);
+  if (search->search_stage == asearch_stage_filtering_adaptive) {
+    asearch_control_next_state_filtering_adaptive(search,matches); // Next State
+  }
   // Finish search using regular workflow
   approximate_search_filtering_adaptive(search,matches);
 }

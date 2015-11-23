@@ -23,26 +23,24 @@ GEM_INLINE void filtering_candidates_decode_filtering_positions_buffered(
     const uint64_t region_begin,const uint64_t region_end,
     const uint64_t region_lo,const uint64_t region_hi,
     const uint64_t key_length,const uint64_t boundary_error,
-    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
-    const uint64_t buffer_offset_begin) {
+    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,const uint64_t buffer_offset_begin) {
   // Reserve
   vector_t* const filtering_positions = filtering_candidates->filtering_positions;
   const uint64_t num_candidates = region_hi-region_lo;
   vector_reserve_additional(filtering_positions,num_candidates);
-  filtering_position_t* const filtering_position = vector_get_free_elm(filtering_positions,filtering_position_t);
+  filtering_position_t* filtering_position = vector_get_free_elm(filtering_positions,filtering_position_t);
   // Add all candidate positions
   uint64_t i;
-  for (i=0;i<num_candidates;++i) {
+  for (i=0;i<num_candidates;++i,++filtering_position) {
     // Retrieve decoded position & fetch sample
     uint64_t bwt_sampled_position, lf_steps;
-    gpu_buffer_fmi_decode_get_result(gpu_buffer_fmi_decode,
-        buffer_offset_begin+i,&bwt_sampled_position,&lf_steps);
-    if (bwt_sampled_position != -1) { // FIXME Check -1
+    gpu_buffer_fmi_decode_get_result(gpu_buffer_fmi_decode,buffer_offset_begin+i,&bwt_sampled_position,&lf_steps);
+    if (bwt_sampled_position != -1) {
       // Recover Sample
-      filtering_position->region_text_position = fm_index_retrieve_sa_sample(fm_index,bwt_sampled_position,lf_steps);
+      fm_index_retrieve_sa_sample(fm_index,bwt_sampled_position,lf_steps,&filtering_position->region_text_position);
     } else {
       // Re-Decode (GPU decode failed)
-      filtering_position->region_text_position = fm_index_lookup(fm_index,region_lo+i);
+      filtering_position->region_text_position = fm_index_decode(fm_index,region_lo+i);
     }
     // Locate Position
     filtering_position->locator_interval = locator_lookup_interval(locator,filtering_position->region_text_position);

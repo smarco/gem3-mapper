@@ -95,18 +95,30 @@ typedef struct {
 void approximate_search_init(
     approximate_search_t* const search,archive_t* const archive,
     as_parameters_t* const as_parameters,const bool emulated_rc_search);
-void approximate_search_configure(
-    approximate_search_t* const search,filtering_candidates_t* const filtering_candidates,
-    text_collection_t* text_collection,interval_set_t* const interval_set,mm_stack_t* const mm_stack);
 void approximate_search_reset(approximate_search_t* const search);
 void approximate_search_destroy(approximate_search_t* const search);
 
 /*
+ * Memory Injection (Support Data Structures)
+ */
+void approximate_search_inject_mm_stack(
+    approximate_search_t* const search,mm_stack_t* const mm_stack);
+void approximate_search_inject_interval_set(
+    approximate_search_t* const search,interval_set_t* const interval_set);
+void approximate_search_inject_text_collection(
+    approximate_search_t* const search,text_collection_t* const text_collection);
+void approximate_search_inject_filtering_candidates(
+    approximate_search_t* const search,filtering_candidates_t* const filtering_candidates);
+
+/*
  * Accessors
  */
-uint64_t approximate_search_get_num_filtering_candidates(const approximate_search_t* const search);
 uint64_t approximate_search_get_num_exact_filtering_candidates(const approximate_search_t* const search);
 void approximate_search_update_mcs(approximate_search_t* const search,const uint64_t max_complete_stratum);
+
+uint64_t approximate_search_get_num_regions_profile(const approximate_search_t* const search);
+uint64_t approximate_search_get_num_decode_candidates(const approximate_search_t* const search);
+uint64_t approximate_search_get_num_verify_candidates(const approximate_search_t* const search);
 
 /*
  * Modifiers

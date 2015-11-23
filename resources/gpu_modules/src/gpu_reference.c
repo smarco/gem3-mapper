@@ -110,7 +110,7 @@ GPU_INLINE gpu_error_t gpu_transform_reference_GEM_F(const char *referenceGEM, g
 			if (referencePosition < forward_ref_size) {
 				referenceChar = referenceGEM[referencePosition];
 			} else if (referencePosition < reference->size) {
-				referenceChar = gpu_complement_base(referenceGEM[2 * (forward_ref_size - referencePosition - 2)]);
+				referenceChar = gpu_complement_base(referenceGEM[2*forward_ref_size-referencePosition-2]);
 			} else {
 				referenceChar = 'N'; //filling reference padding
 			}

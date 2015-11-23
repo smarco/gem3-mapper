@@ -353,7 +353,8 @@ GEM_INLINE uint64_t sa_builder_word64(const uint8_t* const text,const uint64_t* 
   #else
     //  _int64 _bswap64(__int64 x);
     //    Reverses the byte order of x. Swaps 8 bytes; bits 0-7 are swapped with bits 56-63,
-    //    bits 8-15 are swapped with bits 48-55, bits 16-23 are swapped with bits 40-47, and bits 24-31 are swapped with bits 32-39.
+    //    bits 8-15 are swapped with bits 48-55, bits 16-23 are swapped with bits 40-47,
+    //    and bits 24-31 are swapped with bits 32-39.
     const uint64_t word64 = *((uint64_t*)(text + SA_POS_MASK_POSITION(*sa_position)));
     return __bswap_64(word64);
   #endif

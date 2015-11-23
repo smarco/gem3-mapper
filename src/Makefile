@@ -144,7 +144,13 @@ endif
 # Building Exceptions (Dependencies)
 $(FOLDER_BUILD)/fm.o : fm.c
 	$(CC) $(GEM_FLAGS) $(DEF_BZLIB) $(DEF_ZLIB) $(PATH_INCLUDE) -c $< -o $@
-$(FOLDER_BUILD)/align_bpm_gpu.o : align_bpm_gpu.c
+$(FOLDER_BUILD)/gpu_buffer_collection.o : gpu_buffer_collection.c
+	$(CC) $(GEM_FLAGS) $(DEF_CUDA) $(PATH_INCLUDE) $(CUDA_PATH_INCLUDE) -c $< -o $@
+$(FOLDER_BUILD)/gpu_buffer_fmi_bsearch.o : gpu_buffer_fmi_bsearch.c
+	$(CC) $(GEM_FLAGS) $(DEF_CUDA) $(PATH_INCLUDE) $(CUDA_PATH_INCLUDE) -c $< -o $@
+$(FOLDER_BUILD)/gpu_buffer_fmi_decode.o : gpu_buffer_fmi_decode.c
+	$(CC) $(GEM_FLAGS) $(DEF_CUDA) $(PATH_INCLUDE) $(CUDA_PATH_INCLUDE) -c $< -o $@
+$(FOLDER_BUILD)/gpu_buffer_align_bpm.o : gpu_buffer_align_bpm.c
 	$(CC) $(GEM_FLAGS) $(DEF_CUDA) $(PATH_INCLUDE) $(CUDA_PATH_INCLUDE) -c $< -o $@
 $(FOLDER_BUILD)/profiler_cuda.o : profiler_cuda.c
 	$(CC) $(GEM_FLAGS) $(DEF_CUDA) $(DEF_CUDA_PROFILE) $(PATH_INCLUDE) $(CUDA_PATH_INCLUDE) -c $< -o $@

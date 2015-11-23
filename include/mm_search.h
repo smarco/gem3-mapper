@@ -34,7 +34,7 @@ typedef struct {
   /* Interval Set */
   interval_set_t interval_set;          // Interval-Set
   /* Stats */
-  mapper_stats_t* mapper_stats;       // Mapping Statistics
+  mapper_stats_t* mapper_stats;         // Mapping Statistics
   /* MM-Stack */
   mm_stack_t* mm_stack;                 // Memory-Stack allocator
 } mm_search_t;

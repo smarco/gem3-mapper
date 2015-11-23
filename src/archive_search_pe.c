@@ -25,13 +25,28 @@
 #define PROFILE_LEVEL PHIGH
 
 /*
- * Setup
+ * Memory Injection (Support Data Structures)
  */
-GEM_INLINE void archive_search_pe_configure(
-    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
+void archive_search_pe_inject_mm(
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2,
     mm_search_t* const mm_search) {
-  archive_search_configure(archive_search_end1,paired_end1,mm_search);
-  archive_search_configure(archive_search_end2,paired_end2,mm_search);
+  // Search end/1
+  archive_search_inject_mm_stack(archive_search_end1,mm_search->mm_stack);
+  archive_search_inject_mapper_stats(archive_search_end1,mm_search->mapper_stats);
+  archive_search_inject_interval_set(archive_search_end1,&mm_search->interval_set);
+  archive_search_inject_text_collection(archive_search_end1,&mm_search->text_collection);
+  archive_search_inject_filtering_candidates(archive_search_end1,
+      &mm_search->filtering_candidates_forward_end1,
+      &mm_search->filtering_candidates_reverse_end1);
+  // Search end/2
+  archive_search_inject_mm_stack(archive_search_end2,mm_search->mm_stack);
+  archive_search_inject_mapper_stats(archive_search_end2,mm_search->mapper_stats);
+  archive_search_inject_interval_set(archive_search_end2,&mm_search->interval_set);
+  archive_search_inject_text_collection(archive_search_end2,&mm_search->text_collection);
+  archive_search_inject_filtering_candidates(archive_search_end2,
+      &mm_search->filtering_candidates_forward_end2,
+      &mm_search->filtering_candidates_reverse_end2);
 }
 /*
  * PE Extension Control

@@ -285,7 +285,7 @@ GEM_INLINE void bpm_compute_edit_distance_cutoff_tiled(
     global_distance += pattern_tiled.tile_distance;
     if (global_distance > max_error) {
       *levenshtein_distance = ALIGN_DISTANCE_INF;
-      *levenshtein_match_end_column = ALIGN_COLUMN_INF; // FIXME Needed?
+      *levenshtein_match_end_column = ALIGN_COLUMN_INF;
       PROF_STOP(GP_BPM_TILED);
       return;
     }

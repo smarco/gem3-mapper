@@ -58,7 +58,6 @@ GEM_INLINE void search_stage_verify_candidates_buffer_add(
     archive_search_t* const archive_search);
 GEM_INLINE void search_stage_verify_candidates_buffer_retrieve(
     search_stage_verify_candidates_buffer_t* const verify_candidates_buffer,
-    const uint64_t search_idx,archive_search_t** const archive_search,
-    matches_t* const matches);
+    const uint64_t search_idx,archive_search_t** const archive_search);
 
 #endif /* SEARCH_STAGE_VERIFY_CANDIDATES_BUFFER_H_ */

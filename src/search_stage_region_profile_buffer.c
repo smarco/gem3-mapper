@@ -17,13 +17,14 @@
  * Setup
  */
 GEM_INLINE search_stage_region_profile_buffer_t* search_stage_region_profile_buffer_new(
-    const gpu_buffer_collection_t* const gpu_buffer_collection,
-    const uint64_t buffer_no,const bool cpu_emulated) {
+    const gpu_buffer_collection_t* const gpu_buffer_collection,const uint64_t buffer_no,
+    fm_index_t* const fm_index,const bool cpu_emulated) {
   // Alloc
   search_stage_region_profile_buffer_t* const region_profile_buffer = mm_alloc(search_stage_region_profile_buffer_t);
   // Init
-  region_profile_buffer->gpu_buffer_fmi_search = gpu_buffer_fmi_search_new(gpu_buffer_collection,buffer_no);
-  gpu_buffer_fmi_search_device(region_profile_buffer->gpu_buffer_fmi_search,cpu_emulated?DEVICE_CPU:DEVICE_GPU);
+  region_profile_buffer->gpu_buffer_fmi_search =
+      gpu_buffer_fmi_search_new(gpu_buffer_collection,buffer_no,fm_index);
+  if (cpu_emulated) gpu_buffer_fmi_search_set_device_cpu(region_profile_buffer->gpu_buffer_fmi_search);
   const uint64_t max_queries = gpu_buffer_fmi_search_get_max_queries(region_profile_buffer->gpu_buffer_fmi_search);
   region_profile_buffer->archive_searches = vector_new(max_queries,archive_search_t*);
   // Return
@@ -59,25 +60,18 @@ GEM_INLINE void search_stage_region_profile_buffer_delete(
 GEM_INLINE bool search_stage_region_profile_buffer_fits(
     search_stage_region_profile_buffer_t* const region_profile_buffer,
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2) {
-// gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search = region_profile_buffer->gpu_buffer_fmi_search;
-//  // Compute dimensions
-//  uint64_t total_entries = 0,total_query_chunks = 0,total_candidate_chunks = 0;
-//  gpu_buffer_fmi_search_compute_dimensions(gpu_buffer_align_bpm,
-//      &archive_search_end1->forward_search_state.pattern,
-//      archive_search_get_search_canditates(archive_search_end1),
-//      &total_entries,&total_query_chunks,&total_candidate_chunks);
-//  if (archive_search_end2!=NULL) {
-//    gpu_buffer_fmi_search_compute_dimensions(gpu_buffer_align_bpm,
-//        &archive_search_end2->forward_search_state.pattern,
-//        archive_search_get_search_canditates(archive_search_end2),
-//        &total_entries,&total_query_chunks,&total_candidate_chunks);
-//  }
-//  // Return if current search fits in buffer
-//  return gpu_buffer_fmi_search_fits_in_buffer(gpu_buffer_align_bpm,
-//      total_entries,total_query_chunks,total_candidate_chunks);
-  // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-  // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-  return false;
+  // Get buffer limits
+  gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search = region_profile_buffer->gpu_buffer_fmi_search;
+  const uint64_t max_queries = gpu_buffer_fmi_search_get_max_queries(gpu_buffer_fmi_search);
+  const uint64_t num_queries = gpu_buffer_fmi_search_get_num_queries(gpu_buffer_fmi_search);
+  // Get number of regions to profile
+  uint64_t num_regions_profile;
+  num_regions_profile = archive_search_get_num_regions_profile(archive_search_end1);
+  if (archive_search_end2!=NULL) {
+    num_regions_profile += archive_search_get_num_regions_profile(archive_search_end2);
+  }
+  // Return
+  return (num_queries+num_regions_profile <= max_queries);
 }
 /*
  * Send/Receive
@@ -98,18 +92,12 @@ GEM_INLINE void search_stage_region_profile_buffer_add(
     archive_search_t* const archive_search) {
   // Add archive-search
   vector_insert(region_profile_buffer->archive_searches,archive_search,archive_search_t*);
-  // Copy profile-partitions to the buffer
-  gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search = region_profile_buffer->gpu_buffer_fmi_search;
-  archive_search_se_stepwise_region_profile_copy(archive_search,gpu_buffer_fmi_search);
 }
 GEM_INLINE void search_stage_region_profile_buffer_retrieve(
     search_stage_region_profile_buffer_t* const region_profile_buffer,
     const uint64_t search_idx,archive_search_t** const archive_search) {
   // Retrieve archive-search
   *archive_search = *vector_get_elm(region_profile_buffer->archive_searches,search_idx,archive_search_t*);
-  // Retrieve searched profile-partitions from the buffer
-  gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search = region_profile_buffer->gpu_buffer_fmi_search;
-  archive_search_se_stepwise_region_profile_retrieve(*archive_search,gpu_buffer_fmi_search);
 }
 
 

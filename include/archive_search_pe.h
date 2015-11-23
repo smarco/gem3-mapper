@@ -14,10 +14,11 @@
 #include "paired_matches.h"
 
 /*
- * Setup
+ * Memory Injection (Support Data Structures)
  */
-void archive_search_pe_configure(
-    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
+void archive_search_pe_inject_mm(
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2,
     mm_search_t* const mm_search);
 
 /*

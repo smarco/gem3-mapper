@@ -19,10 +19,19 @@
  */
 typedef struct {
   // Configuration
+  bool paired_end;                        // Paired-end search
   search_stage_mode_t search_stage_mode;  // Stage Mode (Sending/Receiving)
   // Verify Candidates Buffers
   vector_t* buffers;                      // Verify Candidates Buffers (search_group_buffer_vc_t*)
   search_stage_iterator_t iterator;       // Buffers State
+  /* Support Data Structures */
+  matches_t* matches;
+  paired_matches_t* paired_matches;
+  filtering_candidates_t filtering_candidates_forward_end1; // Filtering Candidates (end/1:F)
+  filtering_candidates_t filtering_candidates_reverse_end1; // Filtering Candidates (end/1:R)
+  filtering_candidates_t filtering_candidates_forward_end2; // Filtering Candidates (end/2:F)
+  filtering_candidates_t filtering_candidates_reverse_end2; // Filtering Candidates (end/2:R)
+  text_collection_t text_collection;                        // Stores text-traces
 } search_stage_verify_candidates_t;
 
 /*
@@ -31,7 +40,7 @@ typedef struct {
 search_stage_verify_candidates_t* search_stage_verify_candidates_new(
     const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffers_offset,const uint64_t num_buffers,
-    const bool cpu_emulated);
+    const bool paired_end,const bool cpu_emulated);
 void search_stage_verify_candidates_clear(
     search_stage_verify_candidates_t* const search_stage_vc,
     archive_search_cache_t* const archive_search_cache);
@@ -56,12 +65,13 @@ bool search_stage_verify_candidates_send_pe_search(
 /*
  * Retrieve Searches (buffered)
  */
+bool search_stage_verify_candidates_retrieve_finished(search_stage_verify_candidates_t* const search_stage_vc);
 bool search_stage_verify_candidates_retrieve_se_search(
-    search_stage_verify_candidates_t* const search_stage_vc,archive_search_t** const archive_search,
-    text_collection_t* const text_collection,matches_t* const matches);
+    search_stage_verify_candidates_t* const search_stage_vc,
+    archive_search_t** const archive_search);
 bool search_stage_verify_candidates_retrieve_pe_search(
     search_stage_verify_candidates_t* const search_stage_vc,
-    archive_search_t** const archive_search_end1,archive_search_t** const archive_search_end2,
-    text_collection_t* const text_collection,paired_matches_t* const paired_matches);
+    archive_search_t** const archive_search_end1,
+    archive_search_t** const archive_search_end2);
 
 #endif /* SEARCH_STAGE_VERIFY_CANDIDATES_H_ */

@@ -84,9 +84,10 @@ typedef struct {
 } mapper_parameters_cuda_t;
 /* Hints */
 typedef struct {
-  uint64_t avg_read_length;        // Hint on the average read length
-  uint64_t std_read_length;        // Hint on the standard deviation of the read length
-  uint64_t candidates_per_query;   // Hint on the number of candidates per query
+//  uint64_t avg_read_length;        // Hint on the average read length
+//  uint64_t std_read_length;        // Hint on the standard deviation of the read length
+//  uint64_t candidates_per_query;   // Hint on the number of candidates per query
+  uint64_t dummy;
 } mapper_parameters_hints_t;
 /* Misc */
 typedef struct {

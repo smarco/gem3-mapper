@@ -31,7 +31,7 @@ typedef struct {
 search_stage_region_profile_t* search_stage_region_profile_new(
     const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffers_offset,const uint64_t num_buffers,
-    const bool cpu_emulated);
+    fm_index_t* const fm_index,const bool cpu_emulated);
 void search_stage_region_profile_clear(
     search_stage_region_profile_t* const search_stage_rp,
     archive_search_cache_t* const archive_search_cache);
@@ -56,6 +56,7 @@ bool search_stage_region_profile_send_pe_search(
 /*
  * Retrieve Searches (buffered)
  */
+bool search_stage_region_profile_retrieve_finished(search_stage_region_profile_t* const search_stage_rp);
 bool search_stage_region_profile_retrieve_se_search(
     search_stage_region_profile_t* const search_stage_rp,archive_search_t** const archive_search);
 bool search_stage_region_profile_retrieve_pe_search(

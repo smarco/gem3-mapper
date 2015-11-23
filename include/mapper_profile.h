@@ -291,10 +291,11 @@
  */
 #define GP_MAPPER_CUDA_PE                                  9999
 
-
 /*
  * GPU BUFFERS
  */
+#define GP_GPU_BUFFER_COLLECTION_INIT                       750
+
 #define GP_GPU_BUFFER_ALIGN_BPM_ALLOC                       800
 #define GP_GPU_BUFFER_ALIGN_BPM_NUM_QUERIES                 801
 #define GP_GPU_BUFFER_ALIGN_BPM_CANDIDATE_LENGTH            802

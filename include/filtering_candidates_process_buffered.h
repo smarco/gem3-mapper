@@ -24,8 +24,7 @@ void filtering_candidates_decode_filtering_positions_buffered(
     const uint64_t region_begin,const uint64_t region_end,
     const uint64_t region_lo,const uint64_t region_hi,
     const uint64_t key_length,const uint64_t boundary_error,
-    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
-    const uint64_t buffer_offset_begin);
+    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,const uint64_t buffer_offset_begin);
 void filtering_candidates_process_candidates_buffered(
     filtering_candidates_t* const filtering_candidates,
     archive_t* const archive,const pattern_t* const pattern,

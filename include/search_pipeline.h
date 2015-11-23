@@ -27,8 +27,10 @@ typedef struct {
   search_stage_verify_candidates_t* stage_verify_candidates;
   /* Archive-search cache */
   archive_search_cache_t* archive_search_cache;
-  /* MM */
-  mm_search_t* mm_search;
+  /* Support Data Structures */
+  mm_stack_t* mm_stack;                 // Memory-Stack allocator
+  mapper_stats_t* mapper_stats;         // Mapping Statistics
+  interval_set_t interval_set;          // Interval-Set
 } search_pipeline_t;
 
 /*
@@ -37,7 +39,7 @@ typedef struct {
 search_pipeline_t* search_pipeline_new(
     mapper_parameters_t* const mapper_parameters,
     gpu_buffer_collection_t* const gpu_buffer_collection,
-    const uint64_t buffers_offset);
+    const uint64_t buffers_offset,const bool paired_end);
 void search_pipeline_clear(search_pipeline_t* const search_pipeline);
 void search_pipeline_delete(search_pipeline_t* const search_pipeline);
 
@@ -49,10 +51,5 @@ void search_pipeline_allocate_pe(
     search_pipeline_t* const search_pipeline,
     archive_search_t** const archive_search_end1,
     archive_search_t** const archive_search_end2);
-
-/*
- * Accessors
- */
-text_collection_t* search_pipeline_get_text_collection(search_pipeline_t* const search_pipeline);
 
 #endif /* SEARCH_PIPELINE_H_ */

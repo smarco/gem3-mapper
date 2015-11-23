@@ -61,39 +61,6 @@ GEM_INLINE archive_search_t* archive_search_new(
   // Return
   return archive_search;
 }
-GEM_INLINE void archive_search_configure(
-    archive_search_t* const archive_search,const sequence_end_t sequence_end,
-    mm_search_t* const mm_search) {
-  // Configure F/R search states
-  switch (sequence_end) {
-    case single_end:
-    case paired_end1:
-      approximate_search_configure(
-          &archive_search->forward_search_state,&mm_search->filtering_candidates_forward_end1,
-          &mm_search->text_collection,&mm_search->interval_set,mm_search->mm_stack);
-      approximate_search_configure(
-          &archive_search->reverse_search_state,&mm_search->filtering_candidates_reverse_end1,
-          &mm_search->text_collection,&mm_search->interval_set,mm_search->mm_stack);
-      break;
-    case paired_end2:
-      approximate_search_configure(
-          &archive_search->forward_search_state,&mm_search->filtering_candidates_forward_end2,
-          &mm_search->text_collection,&mm_search->interval_set,mm_search->mm_stack);
-      approximate_search_configure(
-          &archive_search->reverse_search_state,&mm_search->filtering_candidates_reverse_end2,
-          &mm_search->text_collection,&mm_search->interval_set,mm_search->mm_stack);
-      break;
-    default:
-      GEM_INVALID_CASE();
-      break;
-  }
-  // Text-Collection
-  archive_search->text_collection = &mm_search->text_collection;
-  // Stats
-  archive_search->mapper_stats = mm_search->mapper_stats;
-  // MM
-  archive_search->mm_stack = mm_search->mm_stack;
-}
 GEM_INLINE void archive_search_prepare_sequence(archive_search_t* const archive_search) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE_PREPARE_SEQUENCE,PROFILE_LEVEL);
   // Check the index characteristics & generate reverse-complement (if needed)
@@ -144,17 +111,50 @@ GEM_INLINE void archive_search_delete(archive_search_t* const archive_search) {
   mm_free(archive_search);
 }
 /*
+ * Memory Injection (Support Data Structures)
+ */
+void archive_search_inject_mm_stack(
+    archive_search_t* const archive_search,mm_stack_t* const mm_stack) {
+  archive_search->mm_stack = mm_stack;
+  approximate_search_inject_mm_stack(&archive_search->forward_search_state,mm_stack);
+  approximate_search_inject_mm_stack(&archive_search->reverse_search_state,mm_stack);
+}
+void archive_search_inject_mapper_stats(
+    archive_search_t* const archive_search,mapper_stats_t* mapper_stats) {
+  archive_search->mapper_stats = mapper_stats;
+}
+void archive_search_inject_interval_set(
+    archive_search_t* const archive_search,interval_set_t* const interval_set) {
+  approximate_search_inject_interval_set(&archive_search->forward_search_state,interval_set);
+  approximate_search_inject_interval_set(&archive_search->reverse_search_state,interval_set);
+}
+void archive_search_inject_text_collection(
+    archive_search_t* const archive_search,text_collection_t* const text_collection) {
+  archive_search->text_collection = text_collection;
+  approximate_search_inject_text_collection(&archive_search->forward_search_state,text_collection);
+  approximate_search_inject_text_collection(&archive_search->reverse_search_state,text_collection);
+}
+void archive_search_inject_filtering_candidates(
+    archive_search_t* const archive_search,
+    filtering_candidates_t* const filtering_candidates_forward,
+    filtering_candidates_t* const filtering_candidates_reverse) {
+  approximate_search_inject_filtering_candidates(
+      &archive_search->forward_search_state,filtering_candidates_forward);
+  approximate_search_inject_filtering_candidates(
+      &archive_search->reverse_search_state,filtering_candidates_reverse);
+}
+/*
  * Accessors
  */
 GEM_INLINE sequence_t* archive_search_get_sequence(const archive_search_t* const archive_search) {
   return (sequence_t*)&archive_search->sequence;
 }
-GEM_INLINE uint64_t archive_search_get_search_canditates(const archive_search_t* const archive_search) {
+GEM_INLINE bool archive_search_finished(const archive_search_t* const archive_search) {
   if (archive_search->archive->indexed_complement) {
-    return approximate_search_get_num_filtering_candidates(&archive_search->forward_search_state);
+    return archive_search->forward_search_state.search_stage == asearch_stage_end;
   } else {
-    return approximate_search_get_num_filtering_candidates(&archive_search->forward_search_state) +
-           approximate_search_get_num_filtering_candidates(&archive_search->reverse_search_state);
+    return archive_search->forward_search_state.search_stage == asearch_stage_end &&
+           archive_search->reverse_search_state.search_stage == asearch_stage_end;
   }
 }
 GEM_INLINE uint64_t archive_search_get_search_exact_matches(const archive_search_t* const archive_search) {
@@ -181,13 +181,26 @@ GEM_INLINE uint64_t archive_search_get_num_zero_regions(const archive_search_t* 
                archive_search->reverse_search_state.region_profile.num_zero_regions);
   }
 }
-GEM_INLINE bool archive_search_finished(const archive_search_t* const archive_search) {
-  if (archive_search->archive->indexed_complement) {
-    return archive_search->forward_search_state.search_stage == asearch_stage_end;
-  } else {
-    return archive_search->forward_search_state.search_stage == asearch_stage_end &&
-           archive_search->reverse_search_state.search_stage == asearch_stage_end;
+GEM_INLINE uint64_t archive_search_get_num_regions_profile(const archive_search_t* const archive_search) {
+  uint64_t num_regions_profile = approximate_search_get_num_regions_profile(&archive_search->forward_search_state);
+  if (!archive_search->archive->indexed_complement) {
+    num_regions_profile += approximate_search_get_num_regions_profile(&archive_search->reverse_search_state);
   }
+  return num_regions_profile;
+}
+GEM_INLINE uint64_t archive_search_get_num_decode_candidates(const archive_search_t* const archive_search) {
+  uint64_t num_decode_candidates = approximate_search_get_num_decode_candidates(&archive_search->forward_search_state);
+  if (!archive_search->archive->indexed_complement) {
+    num_decode_candidates += approximate_search_get_num_decode_candidates(&archive_search->reverse_search_state);
+  }
+  return num_decode_candidates;
+}
+GEM_INLINE uint64_t archive_search_get_num_verify_candidates(const archive_search_t* const archive_search) {
+  uint64_t num_verify_candidates = approximate_search_get_num_verify_candidates(&archive_search->forward_search_state);
+  if (!archive_search->archive->indexed_complement) {
+    num_verify_candidates += approximate_search_get_num_verify_candidates(&archive_search->reverse_search_state);
+  }
+  return num_verify_candidates;
 }
 /*
  * Utils

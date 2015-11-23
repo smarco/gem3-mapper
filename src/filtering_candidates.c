@@ -67,6 +67,9 @@ GEM_INLINE void filtering_candidates_destroy(filtering_candidates_t* const filte
 /*
  * Accessors
  */
+GEM_INLINE uint64_t filtering_candidates_get_num_candidate_positions(const filtering_candidates_t* const filtering_candidates) {
+  return vector_get_used(filtering_candidates->filtering_positions);
+}
 GEM_INLINE uint64_t filtering_candidates_get_num_candidate_regions(const filtering_candidates_t* const filtering_candidates) {
   return vector_get_used(filtering_candidates->filtering_regions);
 }
