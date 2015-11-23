@@ -1,6 +1,18 @@
 
 #include "../include/gpu_devices.h"
 
+/************************************************************
+Primitives to get devices properties
+************************************************************/
+
+GPU_INLINE uint32_t gpu_get_threads_per_block(gpu_dev_arch_t architecture)
+{
+	if(architecture & GPU_ARCH_FERMI) 	return(GPU_THREADS_PER_BLOCK_FERMI);
+	if(architecture & GPU_ARCH_KEPLER) 	return(GPU_THREADS_PER_BLOCK_KEPLER);
+	if(architecture & GPU_ARCH_MAXWELL) return(GPU_THREADS_PER_BLOCK_MAXWELL);
+	return(GPU_THREADS_PER_BLOCK_NEWGEN);
+}
+
 GPU_INLINE gpu_dev_arch_t gpu_get_device_architecture(uint32_t idDevice)
 {
 	struct cudaDeviceProp devProp;
@@ -81,6 +93,10 @@ GPU_INLINE uint32_t gpu_get_num_supported_devices_(gpu_dev_arch_t selectedArchit
 	return(numSupportedDevices);
 }
 
+/************************************************************
+Primitives to set devices
+************************************************************/
+
 GPU_INLINE gpu_error_t gpu_characterize_devices(gpu_device_info_t **dev, uint32_t numSupportedDevices)
 {
 	uint32_t idSupportedDevice, allSystemPerformance = 0, allSystemBandwidth = 0;
@@ -126,6 +142,26 @@ GPU_INLINE gpu_error_t gpu_synchronize_all_devices(gpu_device_info_t **devices)
 	return(SUCCESS);
 }
 
+GPU_INLINE void gpu_kernel_thread_configuration(const gpu_device_info_t *device, const uint32_t numThreads, dim3 *blocksPerGrid, dim3 *threadsPerBlock)
+{
+	if(device->architecture & (GPU_ARCH_FERMI)){
+		//We use 2-Dimensional Grid (because Fermi is limited to 65535 Blocks per dim)
+		const uint32_t threadsPerRow = gpu_get_threads_per_block(device->architecture);
+		const uint32_t maxBlocksPerRow = 65535;
+		const uint32_t numBlocks = GPU_DIV_CEIL(numThreads, threadsPerRow);
+		const uint32_t rowsPerGrid = GPU_DIV_CEIL(numBlocks, maxBlocksPerRow);
+		const uint32_t blocksPerRow = (rowsPerGrid > 1) ? maxBlocksPerRow : numBlocks;
+
+		blocksPerGrid->x   = blocksPerRow;
+		blocksPerGrid->y   = rowsPerGrid;
+		threadsPerBlock->x = threadsPerRow;
+	}else{
+		const uint32_t threadsPerRow = gpu_get_threads_per_block(device->architecture);
+		threadsPerBlock->x = threadsPerRow;
+		blocksPerGrid->x   = GPU_DIV_CEIL(numThreads, threadsPerRow);
+	}
+}
+
 /************************************************************
 Primitives to manage device driver options
 ************************************************************/
@@ -135,8 +171,10 @@ GPU_INLINE gpu_error_t gpu_set_devices_local_memory(gpu_device_info_t **devices,
 	uint32_t idSupportedDevice, numSupportedDevices = devices[0]->numSupportedDevices;
 
 	for(idSupportedDevice = 0; idSupportedDevice < numSupportedDevices; ++idSupportedDevice){
+		//printf("idSupportedDevice=%d idDevice=%d cudaL1=%d \n", idSupportedDevice, devices[idSupportedDevice]->idDevice, cudaFuncCachePreferL1);
 	    CUDA_ERROR(cudaSetDevice(devices[idSupportedDevice]->idDevice));
-		CUDA_ERROR(cudaDeviceSetCacheConfig(cacheConfig));
+		CUDA_ERROR(cudaDeviceSetCacheConfig(cudaFuncCachePreferL1));
+		//CUDA_ERROR(cudaDeviceSetCacheConfig(cacheConfig));
 	}
 
 	return (SUCCESS);
@@ -244,6 +282,5 @@ GPU_INLINE gpu_error_t gpu_free_devices_info(gpu_device_info_t **devices)
 	}
 
     GPU_ERROR(gpu_free_devices_list_host(&devices));
-
     return(SUCCESS);
 }

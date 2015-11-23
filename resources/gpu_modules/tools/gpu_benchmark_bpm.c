@@ -30,7 +30,7 @@ typedef struct {
 	uint32_t			*GEM_score;
 } test_t;
 
-uint32_t loadQueries(const char *fn, test_t *testData, uint32_t *averageQuerySize, uint32_t * averageCandidatesPerQuery)
+uint32_t loadQueries(const char *fn, test_t *testData, uint32_t *averageQuerySize, uint32_t *averageCandidatesPerQuery)
 {
 	FILE *fp = NULL;
 	size_t result;
@@ -273,7 +273,7 @@ double processMyersGPU(char *refFile, char *qryFile, uint32_t numBuffers, uint32
 								 .refCoding 			= GPU_REF_PROFILE_FILE,
 								 .refSize				= 0};
 	gpu_info_dto_t 		sys	  = {.selectedArchitectures = GPU_ARCH_SUPPORTED,
-								 .userAllocOption   	= GPU_REMOTE_DATA};
+								 .userAllocOption   	= GPU_LOCAL_OR_REMOTE_DATA};
 
 	for(threadID = 0; threadID < numThreads; ++threadID)
 		loadTestData(qryFile, &testData[threadID], &averageQuerySize, &averageCandidatesPerQuery);

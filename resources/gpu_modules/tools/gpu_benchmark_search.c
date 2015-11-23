@@ -237,7 +237,7 @@ double processSearchFMI(char *fmiFile, char *seedsFile, uint32_t numBuffers, uin
 								 .refCoding 			= GPU_REF_NONE,
 								 .refSize				= 0};
 	gpu_info_dto_t 		sys	  = {.selectedArchitectures = GPU_ARCH_SUPPORTED,
-								 .userAllocOption	    = GPU_LOCAL_DATA};
+								 .userAllocOption	    = GPU_LOCAL_OR_REMOTE_DATA};
 
 	for(threadID = 0; threadID < numThreads; ++threadID)
 		loadTestData(seedsFile, &testData[threadID]);

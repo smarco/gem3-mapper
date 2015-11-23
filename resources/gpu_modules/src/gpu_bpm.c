@@ -131,7 +131,7 @@ GPU_INLINE void gpu_bpm_init_buffer_(void* bpmBuffer, const uint32_t averageNumP
 {
 	gpu_buffer_t	*mBuff     = (gpu_buffer_t *) bpmBuffer;
 	const size_t	sizeBuff   = mBuff->sizeBuffer;
-	const uint32_t	numInputs  = ((float)sizeBuff / gpu_bpm_size_per_candidate(averageNumPEQEntries, candidatesPerQuery));
+	const uint32_t	numInputs  = (uint32_t)((double)sizeBuff / gpu_bpm_size_per_candidate(averageNumPEQEntries, candidatesPerQuery));
 	const uint32_t	maxCandidates = numInputs - gpu_bpm_candidates_for_binning_padding() - GPU_BPM_CANDIDATES_BUFFER_PADDING;
 	const uint32_t  bucketPaddingCandidates = gpu_bpm_candidates_for_binning_padding();
 

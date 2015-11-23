@@ -9,16 +9,19 @@
 #define GPU_CC_FERMI_2G		210
 #define GPU_CC_KEPLER_1G	300
 #define GPU_CC_KEPLER_2G	350
+#define GPU_CC_KEPLER_3G	370
 #define GPU_CC_MAXWELL_1G	500
 #define GPU_CC_MAXWELL_2G	520
 
 /* Defines related to GPU Architecture */
-#if   (__CUDA_ARCH__ < GPU_CC_KEPLER_1G)
-	#define	GPU_THREADS_PER_BLOCK		256
-#elif (__CUDA_ARCH__ < GPU_CC_MAXWELL_1G)
-	#define	GPU_THREADS_PER_BLOCK		128
+#if   (__CUDA_ARCH__ <= GPU_CC_FERMI_2G)
+	#define	GPU_THREADS_PER_BLOCK		GPU_THREADS_PER_BLOCK_FERMI
+#elif (__CUDA_ARCH__ <= GPU_CC_KEPLER_3G)
+	#define	GPU_THREADS_PER_BLOCK		GPU_THREADS_PER_BLOCK_KEPLER
+#elif (__CUDA_ARCH__ <= GPU_CC_MAXWELL_2G)
+	#define	GPU_THREADS_PER_BLOCK		GPU_THREADS_PER_BLOCK_MAXWELL
 #else
-	#define	GPU_THREADS_PER_BLOCK		64
+	#define	GPU_THREADS_PER_BLOCK		GPU_THREADS_PER_BLOCK_NEWGEN
 #endif
 
 /*************************************
@@ -151,24 +154,6 @@ GPU_INLINE __device__ uint32_t gpu_get_lane_idx(){
   uint32_t laneid;
   asm volatile("mov.u32 %0, %%laneid;" : "=r"(laneid));
   return(laneid);
-}
-
-GPU_INLINE void gpu_kernel_thread_configuration(const uint32_t numThreads, dim3 *blocksPerGrid, dim3 *threadsPerBlock)
-{
-	#if (__CUDA_ARCH__ < GPU_CC_KEPLER_1G)
-		//We use 2-Dimensional Grid (because Fermi is limited to 65535 Blocks per dim)
-		const uint32_t maxBlocksPerRow = 65535;
-		const uint32_t numBlocks = GPU_DIV_CEIL(numThreads, GPU_THREADS_PER_BLOCK);
-		const uint32_t rowsPerGrid = GPU_DIV_CEIL(numBlocks, maxBlocksPerRow);
-		const uint32_t blocksPerRow = (rowsPerGrid > 1) ? maxBlocksPerRow : numBlocks;
-
-		blocksPerGrid->x   = blocksPerRow;
-		blocksPerGrid->y   = rowsPerGrid;
-		threadsPerBlock->x = GPU_THREADS_PER_BLOCK;
-	#else
-		threadsPerBlock->x = GPU_THREADS_PER_BLOCK;
-		blocksPerGrid->x   = GPU_DIV_CEIL(numThreads, GPU_THREADS_PER_BLOCK);
-	#endif
 }
 
 #endif /* GPU_RESOURCES_H_ */

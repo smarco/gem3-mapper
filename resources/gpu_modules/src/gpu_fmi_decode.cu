@@ -108,10 +108,11 @@ gpu_error_t gpu_fmi_decode_process_buffer(gpu_buffer_t *mBuff)
 	uint32_t 					     numDecodings =  mBuff->data.decode.initPositions.numDecodings;
 	cudaStream_t 				     idStream	  =  mBuff->idStream;
 	uint32_t					     idSupDev 	  =  mBuff->idSupportedDevice;
+	gpu_device_info_t				 *device	  =  mBuff->device[idSupDev];
 
   	dim3 blocksPerGrid, threadsPerBlock;
 	const uint32_t numThreads = numDecodings * GPU_FMI_DECODE_THREADS_PER_ENTRY;
-	gpu_kernel_thread_configuration(numThreads, &blocksPerGrid, &threadsPerBlock);
+	gpu_kernel_thread_configuration(device, numThreads, &blocksPerGrid, &threadsPerBlock);
 
 	gpu_fmi_decoding_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_fmi_device_entry_t*) index->d_fmi[idSupDev], index->bwtSize,
 																			 initPos->numDecodings, (uint64_t*) initPos->d_initBWTPos,

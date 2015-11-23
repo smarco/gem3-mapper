@@ -105,10 +105,11 @@ gpu_error_t gpu_fmi_search_process_buffer(gpu_buffer_t *mBuff)
 	uint32_t 					     numSeeds	  =  mBuff->data.search.seeds.numSeeds;
 	cudaStream_t 				     idStream	  =  mBuff->idStream;
 	uint32_t					     idSupDev	  =  mBuff->idSupportedDevice;
+	gpu_device_info_t				 *device	  =  mBuff->device[idSupDev];
 
   	dim3 blocksPerGrid, threadsPerBlock;
 	const uint32_t numThreads = numSeeds * GPU_FMI_SEED_THREADS_PER_ENTRY;
-	gpu_kernel_thread_configuration(numThreads, &blocksPerGrid, &threadsPerBlock);
+	gpu_kernel_thread_configuration(device, numThreads, &blocksPerGrid, &threadsPerBlock);
 
 	gpu_fmi_search_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_fmi_device_entry_t*) index->d_fmi[idSupDev], index->bwtSize,
 																		   seeds->numSeeds, (ulonglong2*) seeds->d_seeds,

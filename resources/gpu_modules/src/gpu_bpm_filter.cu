@@ -154,10 +154,11 @@ gpu_error_t gpu_bpm_process_buffer(gpu_buffer_t *mBuff)
 	gpu_bpm_alignments_buffer_t *res 		= &mBuff->data.bpm.alignments;
 	cudaStream_t 				idStream	=  mBuff->idStream;
 	uint32_t					idSupDev	=  mBuff->idSupportedDevice;
+	gpu_device_info_t			*device		=  mBuff->device[idSupDev];
 
   	dim3 blocksPerGrid, threadsPerBlock;
 	const uint32_t numThreads = rebuff->numWarps * GPU_WARP_SIZE;
-	gpu_kernel_thread_configuration(numThreads, &blocksPerGrid, &threadsPerBlock);
+	gpu_kernel_thread_configuration(device, numThreads, &blocksPerGrid, &threadsPerBlock);
 
 	gpu_bpm_filter_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_bpm_device_qry_entry_t *)qry->d_queries, ref->d_reference[idSupDev],
 																			cand->d_candidates, rebuff->d_reorderBuffer, res->d_reorderAlignments,
