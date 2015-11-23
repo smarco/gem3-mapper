@@ -9,25 +9,26 @@ FOLDER_BIN=bin
 FOLDER_TOOLS=tools
 
 NVCC_VERSION=$(shell $(NVCC) --version | grep release | sed 's/.*release //' |  sed 's/,.*//' | sed 's/\.//')
-NVCC_MINIMAL_VERSION = $(shell [[ ($(NVCC_VERSION) -ge "0")  && ($(NVCC_VERSION) -le  "29") ]] && echo "10"; \
-                               [[ ($(NVCC_VERSION) -ge "30") && ($(NVCC_VERSION) -le  "49") ]] && echo "30"; \
-                               [[ ($(NVCC_VERSION) -ge "50") && ($(NVCC_VERSION) -le  "59") ]] && echo "50"; \
-                               [[ ($(NVCC_VERSION) -ge "60") && ($(NVCC_VERSION) -le  "64") ]] && echo "60"; \
-                               [[ ($(NVCC_VERSION) -ge "65") ]] && echo "65";)
+NVCC_REQUIRED_VERSION = $(shell [[ ($(NVCC_VERSION) -lt "50") ]] && echo "false";)
+NVCC_MINIMAL_VERSION  = $(shell [[ ($(NVCC_VERSION) -ge "0")  && ($(NVCC_VERSION) -lt  "30") ]] && echo "10"; \
+                                [[ ($(NVCC_VERSION) -ge "30") && ($(NVCC_VERSION) -lt  "50") ]] && echo "20"; \
+                                [[ ($(NVCC_VERSION) -ge "50") && ($(NVCC_VERSION) -lt  "65") ]] && echo "30"; \
+                                [[ ($(NVCC_VERSION) -ge "65") && ($(NVCC_VERSION) -lt  "70") ]] && echo "50"; \
+                                [[ ($(NVCC_VERSION) -ge "70") ]] && echo "52";)
+ifeq ($(NVCC_REQUIRED_VERSION), false)
+$(error CUDA SDK version $(NVCC_VERSION) NOT SUPPORTED - (At least CUDA SDK 5.0 is required))
+endif
 
 $(shell test -d $(FOLDER_BUILD) || mkdir $(FOLDER_BUILD))
 $(shell test -d $(FOLDER_BIN) || mkdir $(FOLDER_BIN))
 
-ifeq ($(NVCC_MINIMAL_VERSION), 10)
-	$(error CUDA SDK version $(NVCC_VERSION) NOT SUPPORTED - (At least CUDA SDK 3.0 is required))
-endif
-
 ## Force to test JIT compiler:
 ## export CUDA_FORCE_PTX_JIT=1
-CUDA_SASS_FLAG_30=-gencode arch=compute_20,code=\"sm_20,compute_20\" -gencode arch=compute_20,code=sm_21
-CUDA_SASS_FLAG_50=$(CUDA_SASS_FLAG_30) -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=\"sm_35,compute_35\" -gencode arch=compute_37,code=sm_37
-CUDA_SASS_FLAG_60=$(CUDA_SASS_FLAG_50) -gencode arch=compute_50,code=\"sm_50,compute_50\"
-CUDA_SASS_FLAG_65=$(CUDA_SASS_FLAG_60) -gencode arch=compute_52,code=\"sm_52,compute_52\"
+CUDA_SASS_FLAG_20=-gencode arch=compute_20,code=\"sm_20,compute_20\" -gencode arch=compute_20,code=sm_21
+CUDA_SASS_FLAG_30=$(CUDA_SASS_FLAG_20) -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=\"sm_35,compute_35\"
+CUDA_SASS_FLAG_37=$(CUDA_SASS_FLAG_30) -gencode arch=compute_37,code=sm_37
+CUDA_SASS_FLAG_50=$(CUDA_SASS_FLAG_37) -gencode arch=compute_50,code=\"sm_50,compute_50\"
+CUDA_SASS_FLAG_52=$(CUDA_SASS_FLAG_50) -gencode arch=compute_52,code=\"sm_52,compute_52\"
 CUDA_SASS_FLAGS=$(CUDA_SASS_FLAG_$(NVCC_MINIMAL_VERSION))
 
 CUDA_MODULES=gpu_fmi_decode gpu_fmi_search gpu_bpm_filter
@@ -48,19 +49,19 @@ BUILDERS_BIN=$(addprefix $(FOLDER_BIN)/, $(BUILDERS))
 
 all: release
 
-release: NVCC_COMPILE_FLAGS=-O3 -m64 
+release: NVCC_COMPILE_FLAGS=-O3 -m64 -Xptxas="-dlcm=ca"
 release: GCC_COMPILE_FLAGS=-O3 -m64
 release: $(OBJS) $(CUDA_OBJS) link
 
-profile: NVCC_COMPILE_FLAGS=-O3 -m64 --ptxas-options=-v -lineinfo
+profile: NVCC_COMPILE_FLAGS=-O3 -m64 --ptxas-options=-v -lineinfo -Xptxas="-dlcm=ca"
 profile: GCC_COMPILE_FLAGS=-O3 -m64
 profile: $(OBJS) $(CUDA_OBJS) link
 	
-devel: NVCC_COMPILE_FLAGS=-G -O3 -m64 --ptxas-options=-v -lineinfo
+devel: NVCC_COMPILE_FLAGS=-G -O3 -m64 -lineinfo -Xptxas="-dlcm=ca"
 devel: GCC_COMPILE_FLAGS=-g -O3 -m64
 devel: $(OBJS) $(CUDA_OBJS) link
 	
-debug: NVCC_COMPILE_FLAGS=-G -O0 -m64 --ptxas-options=-v -lineinfo
+debug: NVCC_COMPILE_FLAGS=-G -O0 -m64 -lineinfo -Xptxas="-dlcm=ca"
 debug: GCC_COMPILE_FLAGS=-g -O0 -m64
 debug: $(OBJS) $(CUDA_OBJS) link
 	

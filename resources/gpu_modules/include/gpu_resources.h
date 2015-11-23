@@ -2,8 +2,10 @@
 #ifndef GPU_RESOURCES_H_
 #define GPU_RESOURCES_H_
 
+extern "C" {
 #include "gpu_commons.h"
 #include "gpu_devices.h"
+}
 
 #define GPU_CC_FERMI_1G		200
 #define GPU_CC_FERMI_2G		210
@@ -76,7 +78,7 @@ GPU_INLINE __device__ uint32_t shfl_32(uint32_t scalarValue, const int lane)
 	#if (__CUDA_ARCH__ < GPU_CC_KEPLER_1G)
 		return (__emulated_shfl(scalarValue, (uint32_t)lane));
 	#else
-		return (__shfl(scalarValue, lane));
+		return (__shfl((int)scalarValue, (int)lane, GPU_WARP_SIZE));
 	#endif
 }
 

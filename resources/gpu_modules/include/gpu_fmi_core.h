@@ -8,10 +8,11 @@
 
 extern "C" {
 #include "gpu_commons.h"
-#include "gpu_resources.h"
 #include "gpu_index.h"
 #include "gpu_buffers.h"
 }
+#include "gpu_resources.h"
+
 
 #ifndef GPU_FMI_CORE_H_
 #define GPU_FMI_CORE_H_

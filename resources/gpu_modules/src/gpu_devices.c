@@ -18,7 +18,7 @@ GPU_INLINE gpu_dev_arch_t gpu_get_device_architecture(uint32_t idDevice)
 	struct cudaDeviceProp devProp;
 	CUDA_ERROR(cudaGetDeviceProperties(&devProp, idDevice));
 
-	if (devProp.major <= 1) return(GPU_ARCH_TESLA);								/* CC 1.X		*/
+	if (devProp.major <= 1) return(GPU_ARCH_TESLA);				/* CC 1.X		*/
 	if (devProp.major == 2 && devProp.minor == 0) return(GPU_ARCH_FERMI_1G); 	/* CC 2.0		*/
 	if (devProp.major == 2 && devProp.minor >  0) return(GPU_ARCH_FERMI_2G); 	/* CC 2.1		*/
 	if (devProp.major == 3 && devProp.minor <  5) return(GPU_ARCH_KEPLER_1G); 	/* CC 3.0, 3.2	*/
@@ -28,7 +28,7 @@ GPU_INLINE gpu_dev_arch_t gpu_get_device_architecture(uint32_t idDevice)
 	if (devProp.major == 6 && devProp.minor == 0) return(GPU_ARCH_PASCAL_1G);   /* CC 6.0		*/
 	if (devProp.major == 6 && devProp.minor >= 5) return(GPU_ARCH_PASCAL_2G);   /* CC 6.2		*/
 
-	return(GPU_ARCH_NEWGEN);													/* CC X.X		*/
+	return(GPU_ARCH_NEWGEN);							/* CC X.X		*/
 }
 
 GPU_INLINE uint32_t gpu_get_SM_cuda_cores(gpu_dev_arch_t architecture)
@@ -64,7 +64,7 @@ GPU_INLINE uint32_t gpu_get_device_cuda_cores(uint32_t idDevice)
 GPU_INLINE size_t gpu_get_device_free_memory(uint32_t idDevice)
 {
 	size_t free, total;
-    CUDA_ERROR(cudaSetDevice(idDevice));
+    	CUDA_ERROR(cudaSetDevice(idDevice));
 	CUDA_ERROR(cudaMemGetInfo(&free, &total));
 	return (free * 0.95);
 }
@@ -170,10 +170,8 @@ GPU_INLINE gpu_error_t gpu_set_devices_local_memory(gpu_device_info_t **devices,
 	uint32_t idSupportedDevice, numSupportedDevices = devices[0]->numSupportedDevices;
 
 	for(idSupportedDevice = 0; idSupportedDevice < numSupportedDevices; ++idSupportedDevice){
-		//printf("idSupportedDevice=%d idDevice=%d cudaL1=%d \n", idSupportedDevice, devices[idSupportedDevice]->idDevice, cudaFuncCachePreferL1);
-	    CUDA_ERROR(cudaSetDevice(devices[idSupportedDevice]->idDevice));
-		CUDA_ERROR(cudaDeviceSetCacheConfig(cudaFuncCachePreferL1));
-		//CUDA_ERROR(cudaDeviceSetCacheConfig(cacheConfig));
+		CUDA_ERROR(cudaSetDevice(devices[idSupportedDevice]->idDevice));
+		CUDA_ERROR(cudaDeviceSetCacheConfig(cacheConfig));
 	}
 
 	return (SUCCESS);
