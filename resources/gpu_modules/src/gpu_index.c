@@ -182,8 +182,18 @@ GPU_INLINE uint32_t gpu_bit_reverse(uint32_t a)
     return a;
 }
 
+inline uint32_t gpu_gen_mask(const int32_t shift)
+{
+	uint32_t mask = GPU_UINT32_ONES << (GPU_UINT32_LENGTH - shift);
+    mask = (shift > GPU_UINT32_LENGTH) ? GPU_UINT32_ONES : mask;
+    mask = (shift > 0) ? mask : GPU_UINT32_ZEROS;
+    return(mask);
+}
+
 GPU_INLINE gpu_error_t gpu_transform_index_GEM_FULL(gpu_gem_fmi_dto_t* const gpu_gem_fmi_dto, gpu_index_buffer_t *fmi)
 {
+   const uint32_t LUT[12] = {3,7,11,0,1,2,4,5,6,8,9,10}; // 1 1 (1) 0 2 2 (2) 0 3 3 (3) (0)
+
   // BWT Parameters
   const uint64_t BWT_MINOR_BLOCKS_PER_MAYOR_BLOCK = (1<<10); /* 1024 */
   const uint64_t BWT_MINOR_BLOCK_LENGTH = 64;
@@ -229,8 +239,8 @@ GPU_INLINE gpu_error_t gpu_transform_index_GEM_FULL(gpu_gem_fmi_dto_t* const gpu
       bwt_pos+=BWT_MINOR_BLOCK_LENGTH; // Next Block
     } else {
       // Padding zeros
-      z0 = 0; z1 = 0; z2 = 0;
-      w0 = 0; w1 = 0; w2 = 0;
+      z0 = 0; z1 = 0; z2 = ~0;
+      w0 = 0; w1 = 0; w2 = ~0;
     }
     // Write Counters
     if (h_fmi_entry % 2 == 0) {
@@ -241,37 +251,64 @@ GPU_INLINE gpu_error_t gpu_transform_index_GEM_FULL(gpu_gem_fmi_dto_t* const gpu
       h_fmi->counters[1] = minor_counters[3] + mayor_counters[3]; // 'T'
     }
     // Write Bitmap
-    h_fmi->bitmaps[0] = gpu_bit_reverse(y0);
-    h_fmi->bitmaps[1] = gpu_bit_reverse(y1);
-    h_fmi->bitmaps[2] = gpu_bit_reverse(~y2);
-    h_fmi->bitmaps[3] = gpu_bit_reverse(x0);
-    h_fmi->bitmaps[4] = gpu_bit_reverse(z0);
-    h_fmi->bitmaps[5] = gpu_bit_reverse(z1);
-    h_fmi->bitmaps[6] = gpu_bit_reverse(~z2);
-    h_fmi->bitmaps[7] = gpu_bit_reverse(x1);
-    h_fmi->bitmaps[8] = gpu_bit_reverse(w0);
-    h_fmi->bitmaps[9] = gpu_bit_reverse(w1);
+    h_fmi->bitmaps[0]  = gpu_bit_reverse(y0) & gpu_bit_reverse(~y2);
+    h_fmi->bitmaps[1]  = gpu_bit_reverse(y1) & gpu_bit_reverse(~y2);
+    h_fmi->bitmaps[2]  = gpu_bit_reverse(~y2);
+    h_fmi->bitmaps[3]  = gpu_bit_reverse(x0) & gpu_bit_reverse(~x2);
+    h_fmi->bitmaps[4]  = gpu_bit_reverse(z0) & gpu_bit_reverse(~z2);
+    h_fmi->bitmaps[5]  = gpu_bit_reverse(z1) & gpu_bit_reverse(~z2);
+    h_fmi->bitmaps[6]  = gpu_bit_reverse(~z2);
+    h_fmi->bitmaps[7]  = gpu_bit_reverse(x1) & gpu_bit_reverse(~x2);
+    h_fmi->bitmaps[8]  = gpu_bit_reverse(w0) & gpu_bit_reverse(~w2);
+    h_fmi->bitmaps[9]  = gpu_bit_reverse(w1) & gpu_bit_reverse(~w2);
     h_fmi->bitmaps[10] = gpu_bit_reverse(~w2);
     h_fmi->bitmaps[11] = gpu_bit_reverse(~x2);
     // Next Entry
     ++h_fmi; ++h_fmi_entry;
     minor_block += 2;
     if (minor_block >= BWT_MINOR_BLOCKS_PER_MAYOR_BLOCK) {
+      minor_block = 0;
       mayor_counters += 8;
     }
   }
+
+  --h_fmi;
+  int32_t padding_module = bwt_length % GPU_FMI_ENTRY_SIZE;
+  uint32_t mask;
+  mask = gpu_gen_mask(padding_module);
+  padding_module -= GPU_UINT32_LENGTH;
+  h_fmi->bitmaps[3]   &= mask;
+  h_fmi->bitmaps[7]   &= mask;
+  h_fmi->bitmaps[11]  &= mask;
+  mask = gpu_gen_mask(padding_module);
+  padding_module -= GPU_UINT32_LENGTH;
+  h_fmi->bitmaps[0]  &= mask;
+  h_fmi->bitmaps[1]  &= mask;
+  h_fmi->bitmaps[2]  &= mask;
+  mask = gpu_gen_mask(padding_module);
+  padding_module -= GPU_UINT32_LENGTH;
+  h_fmi->bitmaps[4]  &= mask;
+  h_fmi->bitmaps[5]  &= mask;
+  h_fmi->bitmaps[6]  &= mask;
+  mask = gpu_gen_mask(padding_module);
+  padding_module -= GPU_UINT32_LENGTH;
+  h_fmi->bitmaps[8]  &= mask;
+  h_fmi->bitmaps[9]  &= mask;
+  h_fmi->bitmaps[10] &= mask;
+
+  ++h_fmi;
   // Ghost entry for alternate counters
   if (h_fmi_entry % 2 == 1) {
     // Write Counters
     h_fmi->counters[0] = c[2] + C[2]; // 'G'
     h_fmi->counters[1] = c[3] + C[3]; // 'T'
     // Write Bitmap
-    h_fmi->bitmaps[0] = 0; h_fmi->bitmaps[1] = 0;
-    h_fmi->bitmaps[2] = 0; h_fmi->bitmaps[3] = 0;
-    h_fmi->bitmaps[4] = 0; h_fmi->bitmaps[5] = 0;
-    h_fmi->bitmaps[6] = 0; h_fmi->bitmaps[7] = 0;
-    h_fmi->bitmaps[8] = 0; h_fmi->bitmaps[9] = 0;
-    h_fmi->bitmaps[10] = 0; h_fmi->bitmaps[11] = 0;
+    h_fmi->bitmaps[0]  =  0; h_fmi->bitmaps[1]  =  0;
+    h_fmi->bitmaps[2]  =  0; h_fmi->bitmaps[3]  =  0;
+    h_fmi->bitmaps[4]  =  0; h_fmi->bitmaps[5]  =  0;
+    h_fmi->bitmaps[6]  =  0; h_fmi->bitmaps[7]  =  0;
+    h_fmi->bitmaps[8]  =  0; h_fmi->bitmaps[9]  =  0;
+    h_fmi->bitmaps[10] =  0; h_fmi->bitmaps[11] =  0;
   }
   // Return SUCCESS
   return (SUCCESS);
