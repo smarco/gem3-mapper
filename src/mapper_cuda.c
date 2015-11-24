@@ -86,6 +86,7 @@ GEM_INLINE void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,con
       cuda_parameters->num_fmi_decode_buffers +
       cuda_parameters->num_bpm_buffers;
   const uint64_t num_gpu_buffers = num_gpu_buffers_per_thread * num_threads;
+  gem_cond_log(mapper_parameters->misc.verbose_user,"[Loading GPU Structures]");
   gpu_buffer_collection_t* const gpu_buffer_collection =
       gpu_buffer_collection_new(mapper_parameters->archive,
           num_gpu_buffers,cuda_parameters->gpu_buffer_size,mapper_parameters->misc.verbose_dev);

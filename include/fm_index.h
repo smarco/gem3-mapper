@@ -59,18 +59,13 @@ uint64_t fm_index_get_size(const fm_index_t* const fm_index);
 /*
  * FM-Index Operators
  */
-// Compute SA[i]
 uint64_t fm_index_decode(const fm_index_t* const fm_index,const uint64_t bwt_position);
-// Compute SA^(-1)[i]
 uint64_t fm_index_encode(const fm_index_t* const fm_index,const uint64_t text_position);
-// Compute Psi[i]
 uint64_t fm_index_psi(const fm_index_t* const fm_index,const uint64_t bwt_position);
 
-// Retrieve BWT-pos sampled
 void fm_index_retrieve_bwt_sampled(
     const fm_index_t* const fm_index,uint64_t bwt_position,
     uint64_t* const sampled_bwt_position,uint64_t* const lf_dist);
-// Retrieve SA-Sample
 void fm_index_retrieve_sa_sample(
     const fm_index_t* const fm_index,const uint64_t sampled_bwt_position,
     const uint64_t lf_dist,uint64_t* const text_position);

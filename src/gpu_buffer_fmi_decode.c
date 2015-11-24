@@ -120,7 +120,7 @@ GEM_INLINE void gpu_buffer_fmi_decode_send(gpu_buffer_fmi_decode_t* const gpu_bu
   if (!gpu_buffer_fmi_decode->compute_cpu) {
     sampled_sa_t* const sampled_sa = gpu_buffer_fmi_decode->fm_index->sampled_sa;
     const uint32_t sampling_rate = sampled_sa_get_sa_sampling_rate(sampled_sa);
-    gpu_fmi_decode_send_buffer_(gpu_buffer_fmi_decode,gpu_buffer_fmi_decode->num_queries,sampling_rate);
+    gpu_fmi_decode_send_buffer_(gpu_buffer_fmi_decode->buffer,gpu_buffer_fmi_decode->num_queries,sampling_rate);
   }
   PROF_STOP(GP_GPU_BUFFER_FMI_DECODE_SEND);
 }
@@ -128,7 +128,7 @@ GEM_INLINE void gpu_buffer_fmi_decode_receive(gpu_buffer_fmi_decode_t* const gpu
   PROF_START(GP_GPU_BUFFER_FMI_DECODE_RECEIVE);
   // Select computing device
   if (!gpu_buffer_fmi_decode->compute_cpu) {
-    gpu_fmi_decode_receive_buffer_(gpu_buffer_fmi_decode);
+    gpu_fmi_decode_receive_buffer_(gpu_buffer_fmi_decode->buffer);
   } else {
     // CPU emulated
     gpu_buffer_fmi_decode_compute_cpu(gpu_buffer_fmi_decode);

@@ -168,8 +168,12 @@ GEM_INLINE void search_stage_decode_candidates_retrieve_begin(search_stage_decod
   search_stage_decode_candidates_buffer_receive(current_buffer);
 }
 GEM_INLINE bool search_stage_decode_candidates_retrieve_finished(search_stage_decode_candidates_t* const search_stage_dc) {
+  // Mode Sending (Retrieval finished)
+  if (search_stage_dc->search_stage_mode==search_group_buffer_phase_sending) return true;
+  // Mode Retrieve (Check iterator)
   search_stage_iterator_t* const iterator = &search_stage_dc->iterator;
-  return iterator->current_buffer_idx==iterator->num_buffers && iterator->current_search_idx==iterator->num_searches;
+  return iterator->current_buffer_idx==iterator->num_buffers &&
+         iterator->current_search_idx==iterator->num_searches;
 }
 GEM_INLINE bool search_stage_decode_candidates_retrieve_next(
     search_stage_decode_candidates_t* const search_stage_dc,

@@ -12,11 +12,13 @@
 #include "region_profile_boost.h"
 #include "region_profile_fixed.h"
 #include "region_profile_schedule.h"
+#include "fm_index_search.h"
 
 /*
  * Debug
  */
-#define DEBUG_REGION_PROFILE_PRINT  GEM_DEEP_DEBUG
+#define DEBUG_REGION_PROFILE_PRINT          GEM_DEEP_DEBUG
+#define DEBUG_CHECK_REGION_PROFILE_BUFFERED false
 
 /*
  * Profile
@@ -124,8 +126,6 @@ GEM_INLINE void approximate_search_region_partition_fixed(approximate_search_t* 
   } else {
     search->processing_state = asearch_processing_state_region_partitioned;
   }
-  // STATS
-  approximate_search_region_profile_fixed_stats(region_profile);
 }
 /*
  * Region Profile Adaptive
@@ -240,25 +240,41 @@ GEM_INLINE void approximate_search_region_profile_buffered_retrieve(
   const uint64_t buffer_offset_begin = search->gpu_buffer_fmi_search_offset;
   // const uint64_t buffer_offset_end = search->gpu_buffer_fmi_search_offset+search->gpu_buffer_fmi_search_total;
   // Traverse Region-Partition
-  uint64_t i, num_feasible_regions = 0, total_candidates = 0;
+  uint64_t i, num_regions_filtered = 0, total_candidates = 0;
   for (i=0;i<num_filtering_regions;++i) {
     region_search_t* const filtering_region = region_profile->filtering_region + i;
     gpu_buffer_fmi_search_get_result(gpu_buffer_fmi_search,
         buffer_offset_begin+i,&filtering_region->hi,&filtering_region->lo);
+    // DEBUG
+    gem_cond_debug_block(DEBUG_CHECK_REGION_PROFILE_BUFFERED) {
+      uint64_t hi, lo;
+      fm_index_bsearch(search->archive->fm_index,search->pattern.key+filtering_region->begin,
+          filtering_region->end-filtering_region->begin,&hi,&lo);
+      gem_cond_fatal_error_msg(filtering_region->hi!=hi || filtering_region->lo!=lo,
+          "ASM.Region.Profile.Buffered. Check Region-Profile failed (hi::%lu!=%lu)(lo::%lu!=%lu)",
+          filtering_region->hi,hi,filtering_region->lo,lo);
+    }
+    // Check number of candidates
     const uint64_t num_candidates = filtering_region->hi - filtering_region->lo;
     if (num_candidates <= search_parameters->gpu_filtering_threshold) {
       filtering_region->degree = REGION_FILTER_DEGREE_ZERO;
       total_candidates += num_candidates;
-      ++num_feasible_regions;
+      ++num_regions_filtered;
     } else {
       filtering_region->degree = REGION_FILTER_NONE;
     }
   }
   region_profile->total_candidates = total_candidates; // Set total candidates
-  // Check total filtering-regions
-  if (num_feasible_regions >= num_filtering_regions-2) { // TODO
-    search->processing_state = asearch_processing_state_region_profiled;
-  } else {
-    search->processing_state = asearch_processing_state_no_regions;
-  }
+  // Set MCS & state
+  const uint64_t num_wildcards = search->pattern.num_wildcards;
+  approximate_search_update_mcs(search,num_regions_filtered + num_wildcards);
+  search->processing_state = asearch_processing_state_region_profiled;
+//  // Check total filtering-regions
+//  if (num_feasible_regions >= num_filtering_regions-2) {
+//    search->processing_state = asearch_processing_state_region_profiled;
+//  } else {
+//    search->processing_state = asearch_processing_state_no_regions;
+//  }
+  // STATS
+  approximate_search_region_profile_fixed_stats(region_profile);
 }

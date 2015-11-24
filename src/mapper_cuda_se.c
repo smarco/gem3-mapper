@@ -62,8 +62,7 @@ GEM_INLINE void mapper_se_cuda_region_profile(mapper_cuda_search_t* const mapper
   archive_search_t* archive_search = NULL;
   // Reschedule search (that couldn't fit into the buffer)
   if (mapper_search->pending_search_region_profile!=NULL) {
-    search_stage_region_profile_send_se_search(
-        stage_region_profile,mapper_search->pending_search_decode_candidates);
+    search_stage_region_profile_send_se_search(stage_region_profile,mapper_search->pending_search_region_profile);
     mapper_search->pending_search_region_profile = NULL;
   }
   // Generation. Keep processing the current input-block
@@ -102,8 +101,7 @@ GEM_INLINE void mapper_se_cuda_decode_candidates(mapper_cuda_search_t* const map
   archive_search_t* archive_search = NULL;
   // Reschedule search (that couldn't fit into the buffer)
   if (mapper_search->pending_search_decode_candidates!=NULL) {
-    search_stage_decode_candidates_send_se_search(
-        stage_decode_candidates,mapper_search->pending_search_decode_candidates);
+    search_stage_decode_candidates_send_se_search(stage_decode_candidates,mapper_search->pending_search_decode_candidates);
     mapper_search->pending_search_decode_candidates = NULL;
   }
   // Read from stage Region-Profile
@@ -139,8 +137,7 @@ GEM_INLINE void mapper_se_cuda_verify_candidates(mapper_cuda_search_t* const map
   archive_search_t* archive_search = NULL;
   // Reschedule search (that couldn't fit into the buffer)
   if (mapper_search->pending_search_verify_candidates!=NULL) {
-    search_stage_verify_candidates_send_se_search(
-        stage_verify_candidates,mapper_search->pending_search_verify_candidates);
+    search_stage_verify_candidates_send_se_search(stage_verify_candidates,mapper_search->pending_search_verify_candidates);
     mapper_search->pending_search_verify_candidates = NULL;
   }
   // Read from stage Decode-Candidates,
@@ -157,7 +154,7 @@ GEM_INLINE void mapper_se_cuda_verify_candidates(mapper_cuda_search_t* const map
   }
   // Clean
   if (!pending_searches) {
-    search_stage_decode_candidates_clear(stage_decode_candidates,search_pipeline->archive_search_cache);
+    search_stage_decode_candidates_clear(stage_decode_candidates,NULL);
   }
   PROFILE_STOP(GP_MAPPER_CUDA_SE_VERIFY_CANDIDATES,PROFILE_LEVEL);
 }
@@ -189,7 +186,7 @@ GEM_INLINE void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_
     }
   }
   // Clean
-  search_stage_verify_candidates_clear(stage_verify_candidates,search_pipeline->archive_search_cache);
+  search_stage_verify_candidates_clear(stage_verify_candidates,NULL);
   PROFILE_STOP(GP_MAPPER_CUDA_SE_FINISH_SEARCH,PROFILE_LEVEL);
 }
 /*
@@ -209,21 +206,24 @@ void* mapper_cuda_se_thread(mapper_cuda_search_t* const mapper_search) {
   // Create search-pipeline & initialize matches
   mapper_search->search_pipeline = search_pipeline_new(parameters,
       mapper_search->gpu_buffer_collection,mapper_search->gpu_buffers_offset,false);
+  mapper_search->pending_search_region_profile = NULL;
+  mapper_search->pending_search_decode_candidates = NULL;
+  mapper_search->pending_search_verify_candidates = NULL;
   // FASTA/FASTQ reading loop
   mapper_search->reads_processed = 0;
   while (!mapper_se_cuda_stage_read_input_sequences_exhausted(mapper_search)) {
     // Region Profile
     mapper_se_cuda_region_profile(mapper_search);
-    while (!mapper_se_cuda_stage_region_profile_output_exhausted(mapper_search)) {
+    do {
       // Decode Candidates
       mapper_se_cuda_decode_candidates(mapper_search);
-      while (!mapper_se_cuda_stage_decode_candidates_output_exhausted(mapper_search)) {
+      do {
         // Verify Candidates
         mapper_se_cuda_verify_candidates(mapper_search);
         // Finish Search
         mapper_se_cuda_finish_search(mapper_search);
-      }
-    }
+      } while (!mapper_se_cuda_stage_decode_candidates_output_exhausted(mapper_search));
+    } while (!mapper_se_cuda_stage_region_profile_output_exhausted(mapper_search));
   }
   // Clean up
   ticker_update_mutex(mapper_search->ticker,mapper_search->reads_processed); // Update processed

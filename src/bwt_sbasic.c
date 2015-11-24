@@ -459,6 +459,11 @@ GEM_INLINE void bwt_sbasic_erank_interval(
   BWT_LOCATE_BLOCK(bwt,hi_in,block_pos,block_mod,mayor_counters,block_mem);
   bwt_sbasic_erank_interval_(char_enc,lo_in,block_mod,mayor_counters,block_mem,lo_out,hi_out);
 }
+GEM_INLINE uint64_t bwt_sbasic_sampling_erank(const bwt_sbasic_t* const bwt,const uint64_t position) {
+  BWT_ERANK_TICK();
+  BWT_LOCATE_BLOCK(bwt,position,block_pos,block_mod,mayor_counters,block_mem);
+  return bwt_sbasic_sampling_erank_(block_mod,mayor_counters,block_mem);
+}
 /*
  * BWT Prefetched ERank
  */

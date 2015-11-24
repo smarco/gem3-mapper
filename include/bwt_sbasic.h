@@ -92,6 +92,7 @@ uint64_t bwt_sbasic_erank_character(const bwt_sbasic_t* const bwt,const char cha
 void bwt_sbasic_erank_interval(
     const bwt_sbasic_t* const bwt,const uint8_t char_enc,
     const uint64_t lo_in,const uint64_t hi_in,uint64_t* const lo_out,uint64_t* const hi_out);
+uint64_t bwt_sbasic_sampling_erank(const bwt_sbasic_t* const bwt,const uint64_t position);
 
 /*
  * BWT Prefetched ERank

@@ -110,7 +110,7 @@ GEM_INLINE uint64_t filtering_candidates_verify_buffered_retrieve(
     for (pattern_chunk=0;pattern_chunk<num_chunks;++pattern_chunk,++candidate_idx) {
       // Retrieve alignment distance
       uint32_t tile_distance=0, tile_match_column=0;
-      gpu_buffer_align_bpm_get_candidate_result(gpu_buffer_align_bpm,candidate_idx,&tile_distance,&tile_match_column);
+      gpu_buffer_align_bpm_get_result(gpu_buffer_align_bpm,candidate_idx,&tile_distance,&tile_match_column);
       pattern_tiled.tile_distance = tile_distance;
       pattern_tiled.tile_match_column = tile_match_column;
       global_distance += tile_distance;

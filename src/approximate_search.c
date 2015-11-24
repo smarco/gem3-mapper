@@ -107,8 +107,8 @@ GEM_INLINE uint64_t approximate_search_get_num_regions_profile(const approximate
   return region_profile->num_filtering_regions;
 }
 GEM_INLINE uint64_t approximate_search_get_num_decode_candidates(const approximate_search_t* const search) {
-  const filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
-  return filtering_candidates_get_num_candidate_positions(filtering_candidates);
+  const region_profile_t* const region_profile = &search->region_profile;
+  return region_profile->total_candidates;
 }
 GEM_INLINE uint64_t approximate_search_get_num_verify_candidates(const approximate_search_t* const search) {
   if (search->processing_state == asearch_processing_state_exact_matches) {

@@ -155,10 +155,12 @@ GEM_INLINE void search_stage_region_profile_retrieve_begin(search_stage_region_p
   search_stage_region_profile_buffer_receive(current_buffer);
 }
 GEM_INLINE bool search_stage_region_profile_retrieve_finished(search_stage_region_profile_t* const search_stage_rp) {
+  // Mode Sending (Retrieval finished)
+  if (search_stage_rp->search_stage_mode==search_group_buffer_phase_sending) return true;
+  // Mode Retrieve (Check iterator)
   search_stage_iterator_t* const iterator = &search_stage_rp->iterator;
-  return search_stage_rp->search_stage_mode == search_group_buffer_phase_retrieving &&
-      iterator->current_buffer_idx==iterator->num_buffers &&
-      iterator->current_search_idx==iterator->num_searches;
+  return iterator->current_buffer_idx==iterator->num_buffers &&
+         iterator->current_search_idx==iterator->num_searches;
 }
 GEM_INLINE bool search_stage_region_profile_retrieve_next(
     search_stage_region_profile_t* const search_stage_rp,

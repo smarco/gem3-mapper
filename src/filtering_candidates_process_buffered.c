@@ -10,6 +10,11 @@
 #include "filtering_candidates_process.h"
 
 /*
+ * Debug
+ */
+#define DEBUG_CHECK_DECODE_POSITION false
+
+/*
  * Profile
  */
 #define PROFILE_LEVEL PMED
@@ -38,6 +43,15 @@ GEM_INLINE void filtering_candidates_decode_filtering_positions_buffered(
     if (bwt_sampled_position != -1) {
       // Recover Sample
       fm_index_retrieve_sa_sample(fm_index,bwt_sampled_position,lf_steps,&filtering_position->region_text_position);
+      // DEBUG
+      gem_cond_debug_block(DEBUG_CHECK_DECODE_POSITION) {
+        const uint64_t region_text_position = fm_index_decode(fm_index,region_lo+i);
+        if (filtering_position->region_text_position!=region_text_position) {
+          gem_cond_fatal_error_msg(filtering_position->region_text_position!=region_text_position,
+              "Filtering.Candidates.Process.Buffered. Check decoded position failed (%lu!=%lu)",
+              filtering_position->region_text_position,region_text_position);
+        }
+      }
     } else {
       // Re-Decode (GPU decode failed)
       filtering_position->region_text_position = fm_index_decode(fm_index,region_lo+i);

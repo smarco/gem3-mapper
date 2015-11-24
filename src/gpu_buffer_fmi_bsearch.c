@@ -82,25 +82,26 @@ GEM_INLINE void gpu_buffer_fmi_search_add_query(
       gpu_fmi_search_buffer_get_seeds_(gpu_buffer_fmi_search->buffer) + gpu_buffer_fmi_search->num_queries;
   // Select computing device
   if (gpu_buffer_fmi_search->compute_cpu) {
-    gpu_fmi_search_seed->hi = (uint64_t)pattern; // Yes, I know what I'm doing here
+    *((pattern_t**)(&gpu_fmi_search_seed->hi)) = pattern;
     gpu_fmi_search_seed->low = (begin << 32) | end;
   } else {
-    // Init
-    uint64_t lo = 0, hi = 0, offset = 0;
     // Adapt pattern chunk to query encoding
+    const int64_t begin_region = begin;
+    const int64_t end_region = end-1;
     const uint8_t* const key = pattern->key;
+    uint64_t lo = 0, hi = 0, offset = 0; // Init
     int64_t i;
-    for (i=end-1;i>=(int64_t)begin;--i) {
-      lo |= (key[i] << offset);
+    for (i=end_region;i>=begin_region;--i) {
+      hi |= (((uint64_t)key[i]) << offset);
       offset += 2;
       if (offset >= 64) break;
     }
-    for (offset=0;i>=(int64_t)begin;--i) {
-      hi |= (key[i] << offset);
+    for (offset=0;i>=begin_region;--i) {
+      lo |= (((uint64_t)key[i]) << offset);
       offset += 2;
     }
-    // Adapt query length (higher 8 bits of hi)
-    hi |= (query_length << 56);
+    // Adapt query length (higher 8 bits of @lo)
+    lo |= (query_length << 56);
     // Store & Increment queries used
     gpu_fmi_search_seed->hi = hi;
     gpu_fmi_search_seed->low = lo;

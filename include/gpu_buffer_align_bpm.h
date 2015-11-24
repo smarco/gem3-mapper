@@ -83,7 +83,7 @@ void gpu_buffer_align_bpm_add_candidate(
 void gpu_buffer_align_bpm_get_candidate(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t buffer_pos,
     uint64_t* const candidate_text_position,uint32_t* const candidate_length);
-void gpu_buffer_align_bpm_get_candidate_result(
+void gpu_buffer_align_bpm_get_result(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t buffer_pos,
     uint32_t* const levenshtein_distance,uint32_t* const levenshtein_match_pos);
 

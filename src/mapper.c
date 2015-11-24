@@ -534,7 +534,9 @@ GEM_INLINE void mapper_run(mapper_parameters_t* const mapper_parameters,const bo
 		if (mstats)	{
 			 mapper_search[i].mapping_stats = mstats + i;
 			 init_mapping_stats(mstats + i);
-		} else mapper_search[i].mapping_stats = NULL;
+		} else {
+		  mapper_search[i].mapping_stats = NULL;
+		}
     // Launch thread
     gem_cond_fatal_error__perror(
         pthread_create(mapper_search[i].thread_data,0,mapper_thread,(void*)(mapper_search+i)),SYS_THREAD_CREATE);

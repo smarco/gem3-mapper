@@ -238,7 +238,7 @@ GEM_INLINE void approximate_search_generate_exact_candidates_buffered_retrieve(
   const uint64_t key_length = search->pattern.key_length;
   const uint64_t boundary_error = search->pattern.max_effective_bandwidth;
   // Add all candidates positions
-  uint64_t buffer_offset_begin = search->gpu_buffer_fmi_search_offset;
+  uint64_t buffer_offset_begin = search->gpu_buffer_fmi_decode_offset;
   uint64_t i;
   for (i=0;i<num_filtering_regions;++i) {
     region_search_t* const filtering_region = region_profile->filtering_region + i;

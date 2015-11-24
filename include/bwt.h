@@ -83,6 +83,7 @@ typedef bwt_basic_builder_t bwt_reverse_builder_t;
 #define bwt_erank bwt_sbasic_erank
 #define bwt_erank_character bwt_sbasic_erank_character
 #define bwt_erank_interval bwt_sbasic_erank_interval
+#define bwt_sampling_erank bwt_sbasic_sampling_erank
 // Reverse
 #define bwt_reverse_builder_erank bwt_basic_builder_erank
 #define bwt_reverse_erank bwt_basic_erank

@@ -446,7 +446,7 @@ GPU_INLINE gpu_error_t gpu_init_index(gpu_index_buffer_t **index, const void *in
 				break;
 			case GPU_INDEX_GEM_FULL:
 				GPU_ERROR(gpu_transform_index_GEM_FULL((gpu_gem_fmi_dto_t*)indexRaw, fmi));
-				GPU_ERROR(gpu_save_index_PROFILE("internalIndexGEM.fmi", fmi));
+				// GPU_ERROR(gpu_save_index_PROFILE("internalIndexGEM.fmi", fmi));
 				break;
 			case GPU_INDEX_MFASTA_FILE:
 				GPU_ERROR(gpu_load_BWT_MFASTA((const char*)indexRaw, fmi, &h_BWT));

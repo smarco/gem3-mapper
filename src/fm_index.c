@@ -171,7 +171,6 @@ GEM_INLINE uint64_t fm_index_psi(const fm_index_t* const fm_index,const uint64_t
   // return fmi_inverse(a,(fmi_lookup(a,i)+1)%a->bwt->n);
   return 0;
 }
-// Retrieve BWT-pos sampled
 GEM_INLINE void fm_index_retrieve_bwt_sampled(
     const fm_index_t* const fm_index,uint64_t bwt_position,
     uint64_t* const sampled_bwt_position,uint64_t* const lf_dist) {
@@ -179,7 +178,7 @@ GEM_INLINE void fm_index_retrieve_bwt_sampled(
   const bwt_t* const bwt = fm_index->bwt;
   bool is_sampled = false;
   *lf_dist=0;
-  // LF until we find a sampled position
+  // Retrieve BWT-pos sampled LF (until we find a sampled position)
   bwt_position = bwt_LF(bwt,bwt_position,&is_sampled);
   while (!is_sampled) {
     ++(*lf_dist);
@@ -188,15 +187,15 @@ GEM_INLINE void fm_index_retrieve_bwt_sampled(
   *sampled_bwt_position = bwt_position;
   PROF_ADD_COUNTER(GP_FMIDX_LOOKUP_DIST,*lf_dist);
 }
-// Retrieve SA-Sample
 GEM_INLINE void fm_index_retrieve_sa_sample(
     const fm_index_t* const fm_index,const uint64_t sampled_bwt_position,
     const uint64_t lf_dist,uint64_t* const text_position) {
   // Parameters
   const uint64_t bwt_length = fm_index_get_length(fm_index);
   const sampled_sa_t* const sampled_sa = fm_index->sampled_sa;
-  // Recover sampled position & adjust
-  *text_position = (sampled_sa_get_sample(sampled_sa,sampled_bwt_position) + lf_dist) % bwt_length;
+  // Recover sampled position (SA-Sample) & adjust
+  const uint64_t sampling_erank = bwt_sampling_erank(fm_index->bwt,sampled_bwt_position);
+  *text_position = (sampled_sa_get_sample(sampled_sa,sampling_erank) + lf_dist) % bwt_length;
 }
 /*
  * Display
