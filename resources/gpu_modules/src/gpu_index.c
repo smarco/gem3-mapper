@@ -169,6 +169,19 @@ GPU_INLINE gpu_error_t gpu_transform_index_ASCII(const char *h_BWT, gpu_index_bu
 	return(SUCCESS);
 }
 
+GPU_INLINE uint32_t gpu_bit_reverse(uint32_t a)
+{
+    uint32_t t;
+    a = (a << 15) | (a >> 17);
+    t = (a ^ (a >> 10)) & 0x003f801f; 
+    a = (t + (t << 10)) ^ a;
+    t = (a ^ (a >>  4)) & 0x0e038421; 
+    a = (t + (t <<  4)) ^ a;
+    t = (a ^ (a >>  2)) & 0x22488842; 
+    a = (t + (t <<  2)) ^ a;
+    return a;
+}
+
 GPU_INLINE gpu_error_t gpu_transform_index_GEM_FULL(gpu_gem_fmi_dto_t* const gpu_gem_fmi_dto, gpu_index_buffer_t *fmi)
 {
   // BWT Parameters
@@ -228,18 +241,18 @@ GPU_INLINE gpu_error_t gpu_transform_index_GEM_FULL(gpu_gem_fmi_dto_t* const gpu
       h_fmi->counters[1] = minor_counters[3] + mayor_counters[3]; // 'T'
     }
     // Write Bitmap
-    h_fmi->bitmaps[0] = __builtin_bswap32(y0);
-    h_fmi->bitmaps[1] = __builtin_bswap32(y1);
-    h_fmi->bitmaps[2] = __builtin_bswap32(~y2);
-    h_fmi->bitmaps[3] = __builtin_bswap32(x0);
-    h_fmi->bitmaps[4] = __builtin_bswap32(z0);
-    h_fmi->bitmaps[5] = __builtin_bswap32(z1);
-    h_fmi->bitmaps[6] = __builtin_bswap32(~z2);
-    h_fmi->bitmaps[7] = __builtin_bswap32(x1);
-    h_fmi->bitmaps[8] = __builtin_bswap32(w0);
-    h_fmi->bitmaps[9] = __builtin_bswap32(w1);
-    h_fmi->bitmaps[10] = __builtin_bswap32(~w2);
-    h_fmi->bitmaps[11] = __builtin_bswap32(~x2);
+    h_fmi->bitmaps[0] = gpu_bit_reverse(y0);
+    h_fmi->bitmaps[1] = gpu_bit_reverse(y1);
+    h_fmi->bitmaps[2] = gpu_bit_reverse(~y2);
+    h_fmi->bitmaps[3] = gpu_bit_reverse(x0);
+    h_fmi->bitmaps[4] = gpu_bit_reverse(z0);
+    h_fmi->bitmaps[5] = gpu_bit_reverse(z1);
+    h_fmi->bitmaps[6] = gpu_bit_reverse(~z2);
+    h_fmi->bitmaps[7] = gpu_bit_reverse(x1);
+    h_fmi->bitmaps[8] = gpu_bit_reverse(w0);
+    h_fmi->bitmaps[9] = gpu_bit_reverse(w1);
+    h_fmi->bitmaps[10] = gpu_bit_reverse(~w2);
+    h_fmi->bitmaps[11] = gpu_bit_reverse(~x2);
     // Next Entry
     ++h_fmi; ++h_fmi_entry;
     minor_block += 2;
@@ -263,6 +276,7 @@ GPU_INLINE gpu_error_t gpu_transform_index_GEM_FULL(gpu_gem_fmi_dto_t* const gpu
   // Return SUCCESS
   return (SUCCESS);
 }
+
 GPU_INLINE gpu_error_t gpu_load_BWT_MFASTA(const char *fn, gpu_index_buffer_t *fmi, char **h_BWT)
 {
 	FILE *fp = NULL;
@@ -395,6 +409,7 @@ GPU_INLINE gpu_error_t gpu_init_index(gpu_index_buffer_t **index, const void *in
 				break;
 			case GPU_INDEX_GEM_FULL:
 				GPU_ERROR(gpu_transform_index_GEM_FULL((gpu_gem_fmi_dto_t*)indexRaw, fmi));
+				GPU_ERROR(gpu_save_index_PROFILE("internalIndexGEM.fmi", fmi));
 				break;
 			case GPU_INDEX_MFASTA_FILE:
 				GPU_ERROR(gpu_load_BWT_MFASTA((const char*)indexRaw, fmi, &h_BWT));
