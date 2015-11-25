@@ -79,7 +79,7 @@ uint32_t gpu_bpm_buffer_get_max_queries_(void* bpmBuffer);
 /*
  * Main functions
  */
-void gpu_bpm_init_buffer_(void* bpmBuffer, const uint32_t averageNumPEQEntries, const uint32_t candidatesPerQuery);
+void gpu_bpm_init_buffer_(void* bpmBuffer, const uint32_t averageQuerySize, const uint32_t candidatesPerQuery);
 void gpu_bpm_send_buffer_(void* bpmBuffer, const uint32_t numPEQEntries, const uint32_t numQueries, const uint32_t numCandidates, const uint32_t sizeCandidates);
 void gpu_bpm_receive_buffer_(void* bpmBuffer);
 

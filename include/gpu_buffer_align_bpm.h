@@ -21,7 +21,7 @@ typedef struct {
   /* GPU Generic Buffer*/
   void* buffer;             // GPU Generic Buffer
   /* Dimensions Hints */
-  uint32_t averageNumPEQEntries;
+  uint32_t averageQuerySize;
   uint32_t candidatesPerQuery;
   uint32_t candidates_same_length; // TODO
   /* Buffer state */

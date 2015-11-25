@@ -52,13 +52,14 @@ GPU_INLINE gpu_bpm_alg_entry_t* gpu_bpm_buffer_get_alignments_(void *bpmBuffer){
 Functions to init all the BPM resources
 ************************************************************/
 
-GPU_INLINE float gpu_bpm_size_per_candidate(const uint32_t averageNumPEQEntries, const uint32_t candidatesPerQuery)
+GPU_INLINE float gpu_bpm_size_per_candidate(const uint32_t averageQuerySize, const uint32_t candidatesPerQuery)
 {
-	const size_t bytesPerQuery       = averageNumPEQEntries * sizeof(gpu_bpm_qry_entry_t) + sizeof(gpu_bpm_qry_info_t);
-	const size_t bytesCandidate 	 = sizeof(gpu_bpm_cand_info_t);
-	const size_t bytesResult 		 = sizeof(gpu_bpm_alg_entry_t);
-	const size_t bytesReorderResult  = sizeof(gpu_bpm_alg_entry_t);
-	const size_t bytesBinningProcess = sizeof(uint32_t);
+	const size_t averageNumPEQEntries = GPU_DIV_CEIL(averageQuerySize, GPU_BPM_PEQ_ENTRY_LENGTH);
+	const size_t bytesPerQuery        = averageNumPEQEntries * sizeof(gpu_bpm_qry_entry_t) + sizeof(gpu_bpm_qry_info_t);
+	const size_t bytesCandidate 	  = sizeof(gpu_bpm_cand_info_t);
+	const size_t bytesResult 		  = sizeof(gpu_bpm_alg_entry_t);
+	const size_t bytesReorderResult   = sizeof(gpu_bpm_alg_entry_t);
+	const size_t bytesBinningProcess  = sizeof(uint32_t);
 
 	return((bytesPerQuery/(float)candidatesPerQuery) + bytesCandidate
 			+ bytesResult + bytesReorderResult + bytesBinningProcess);
@@ -127,12 +128,13 @@ GPU_INLINE void gpu_bpm_reallocate_device_buffer_layout(gpu_buffer_t* mBuff)
 	rawAlloc = (void *) (mBuff->data.bpm.alignments.d_alignments + mBuff->data.bpm.maxAlignments);
 }
 
-GPU_INLINE void gpu_bpm_init_buffer_(void* bpmBuffer, const uint32_t averageNumPEQEntries, const uint32_t candidatesPerQuery)
+GPU_INLINE void gpu_bpm_init_buffer_(void* bpmBuffer, const uint32_t averageQuerySize, const uint32_t candidatesPerQuery)
 {
-	gpu_buffer_t	*mBuff     = (gpu_buffer_t *) bpmBuffer;
-	const size_t	sizeBuff   = mBuff->sizeBuffer;
-	const uint32_t	numInputs  = (uint32_t)((double)sizeBuff / gpu_bpm_size_per_candidate(averageNumPEQEntries, candidatesPerQuery));
-	const uint32_t	maxCandidates = numInputs - gpu_bpm_candidates_for_binning_padding() - GPU_BPM_CANDIDATES_BUFFER_PADDING;
+	gpu_buffer_t	*mBuff     			 	= (gpu_buffer_t *) bpmBuffer;
+	const size_t	sizeBuff   			 	= mBuff->sizeBuffer;
+	const size_t 	averageNumPEQEntries 	= GPU_DIV_CEIL(averageQuerySize, GPU_BPM_PEQ_ENTRY_LENGTH);
+	const uint32_t	numInputs  			 	= (uint32_t)((double)sizeBuff / gpu_bpm_size_per_candidate(averageQuerySize, candidatesPerQuery));
+	const uint32_t	maxCandidates 		 	= numInputs - gpu_bpm_candidates_for_binning_padding() - GPU_BPM_CANDIDATES_BUFFER_PADDING;
 	const uint32_t  bucketPaddingCandidates = gpu_bpm_candidates_for_binning_padding();
 
 	//set the type of the buffer

@@ -21,7 +21,7 @@
 /*
  * Constants :: Buffer Hints
  */
-#define GPU_ALIGN_BPM_AVERAGE_NUM_PEQ_ENTRIES  150
+#define GPU_ALIGN_BPM_AVERAGE_QUERY_SIZE        150
 #define GPU_ALIGN_BPM_CANDIDATES_PER_QUERY      20
 
 /*
@@ -51,7 +51,7 @@ GEM_INLINE gpu_buffer_align_bpm_t* gpu_buffer_align_bpm_new(
   gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm = mm_alloc(gpu_buffer_align_bpm_t);
   // Init
   gpu_buffer_align_bpm->buffer = gpu_buffer_collection_get_buffer(gpu_buffer_collection,buffer_no);
-  gpu_buffer_align_bpm->averageNumPEQEntries = GPU_ALIGN_BPM_AVERAGE_NUM_PEQ_ENTRIES;
+  gpu_buffer_align_bpm->averageQuerySize = GPU_ALIGN_BPM_AVERAGE_QUERY_SIZE;
   gpu_buffer_align_bpm->candidatesPerQuery = GPU_ALIGN_BPM_CANDIDATES_PER_QUERY;
   gpu_buffer_align_bpm->candidates_same_length = 0;
   gpu_buffer_align_bpm->num_PEQ_entries = 0;
@@ -63,7 +63,7 @@ GEM_INLINE gpu_buffer_align_bpm_t* gpu_buffer_align_bpm_new(
   // Init buffer
   gpu_alloc_buffer_(gpu_buffer_align_bpm->buffer);
   gpu_bpm_init_buffer_(gpu_buffer_align_bpm->buffer,
-      gpu_buffer_align_bpm->averageNumPEQEntries,gpu_buffer_align_bpm->candidatesPerQuery);
+      gpu_buffer_align_bpm->averageQuerySize,gpu_buffer_align_bpm->candidatesPerQuery);
   PROF_STOP(GP_GPU_BUFFER_ALIGN_BPM_ALLOC);
   // Return
   return gpu_buffer_align_bpm;
@@ -71,7 +71,7 @@ GEM_INLINE gpu_buffer_align_bpm_t* gpu_buffer_align_bpm_new(
 GEM_INLINE void gpu_buffer_align_bpm_clear(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
   // Init buffer
   gpu_bpm_init_buffer_(gpu_buffer_align_bpm->buffer,
-      gpu_buffer_align_bpm->averageNumPEQEntries,gpu_buffer_align_bpm->candidatesPerQuery);
+      gpu_buffer_align_bpm->averageQuerySize,gpu_buffer_align_bpm->candidatesPerQuery);
   // Clear
   gpu_buffer_align_bpm->num_PEQ_entries = 0;
   gpu_buffer_align_bpm->num_queries = 0;

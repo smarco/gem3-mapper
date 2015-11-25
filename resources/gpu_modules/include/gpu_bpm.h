@@ -98,7 +98,7 @@ typedef struct {
 #include "gpu_buffers.h"
 
 /* Functions to initialize all the BPM resources */
-float 		gpu_bpm_size_per_candidate(const uint32_t averageNumPEQEntries, const uint32_t candidatesPerQuery);
+float 		gpu_bpm_size_per_candidate(const uint32_t averageQuerySize, const uint32_t candidatesPerQuery);
 uint32_t 	gpu_bpm_candidates_for_binning_padding();
 void 		gpu_bpm_reallocate_host_buffer_layout(gpu_buffer_t* mBuff);
 void 		gpu_bpm_reallocate_device_buffer_layout(gpu_buffer_t* mBuff);
