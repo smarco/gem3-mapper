@@ -24,6 +24,13 @@
 #define PROFILE_LEVEL PMED
 
 /*
+ * Benchmark
+ */
+#ifdef CUDA_BENCHMARK_GENERATE_VERIFY_CANDIDATES
+FILE* benchmark_verify_candidates = NULL;
+#endif
+
+/*
  * Verify Candidates
  */
 GEM_INLINE void approximate_search_verify_candidates(approximate_search_t* const search,matches_t* const matches) {
@@ -60,6 +67,10 @@ GEM_INLINE void approximate_search_verify_candidates_buffered_copy(
   search->gpu_buffer_align_offset = gpu_buffer_align_bpm_get_num_candidates(gpu_buffer_align_bpm);
   search->gpu_buffer_align_total = filtering_candidates_verify_buffered_add(
       search->filtering_candidates,&search->pattern,gpu_buffer_align_bpm);
+  // BENCHMARK
+#ifdef CUDA_BENCHMARK_GENERATE_VERIFY_CANDIDATES
+  // approximate_search_region_profile_buffered_print_benchmark(search);
+#endif
 }
 GEM_INLINE void approximate_search_verify_candidates_buffered_retrieve(
     approximate_search_t* const search,gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,

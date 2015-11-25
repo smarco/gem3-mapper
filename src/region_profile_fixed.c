@@ -8,8 +8,8 @@
  */
 #include "region_profile.h"
 #include "region_profile_fixed.h"
-
 #include "pattern.h"
+#include "fm_index_search.h"
 
 /*
  * Region Profile Partition
@@ -84,4 +84,31 @@ void region_profile_generate_fixed_query(
     region->lo = lo;
     region->hi = hi;
   }
+}
+/*
+ * Display/Benchmark
+ */
+GEM_INLINE void region_profile_print_benchmark(
+    FILE* const stream,const region_profile_t* const region_profile,
+    fm_index_t* const fm_index,const uint8_t* key) {
+  REGION_PROFILE_ITERATE(region_profile,region,position) {
+    /*
+     * <chunk_length> <chunk_string> <lo> <hi> <steps_perfomed_on_search>
+     * Eg. 10 ACGTACGTTG 12 134 10
+     */
+    // Chunk length
+    const uint64_t chunk_length = region->end-region->begin;
+    fprintf(stream,"%"PRIu64"\t",chunk_length);
+    // Chunk string
+    uint64_t i;
+    for (i=region->begin;i<region->end;++i) {
+      fprintf(stream,"%c",dna_decode(key[i]));
+    }
+    // Results
+    uint64_t lo, hi, steps;
+    fm_index_bsearch_debug(fm_index,
+        key+region->begin,region->end-region->begin,&hi,&lo,&steps);
+    fprintf(stream,"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\n",lo,hi,steps);
+  }
+  fflush(stream);
 }

@@ -541,6 +541,13 @@ GEM_INLINE void bwt_sbasic_precomputed_erank_interval(
 /*
  * BWT LF (Last to first)
  */
+GEM_INLINE uint64_t bwt_sbasic_LF_(
+    const bwt_sbasic_t* const bwt,const uint64_t position,uint8_t* const char_enc) {
+  BWT_LF_TICK();
+  BWT_LOCATE_BLOCK(bwt,position,block_pos,block_mod,mayor_counters,block_mem);
+  *char_enc = bwt_sbasic_char_(block_mod,block_mem); // Retrieve char_enc
+  return bwt_sbasic_erank_(*char_enc,block_mod,mayor_counters,block_mem);
+}
 GEM_INLINE uint64_t bwt_sbasic_LF(
     const bwt_sbasic_t* const bwt,const uint64_t position,bool* const is_sampled) {
   uint8_t char_enc;

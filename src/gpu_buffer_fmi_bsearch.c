@@ -82,7 +82,7 @@ GEM_INLINE void gpu_buffer_fmi_search_add_query(
       gpu_fmi_search_buffer_get_seeds_(gpu_buffer_fmi_search->buffer) + gpu_buffer_fmi_search->num_queries;
   // Select computing device
   if (gpu_buffer_fmi_search->compute_cpu) {
-    *((pattern_t**)(&gpu_fmi_search_seed->hi)) = pattern;
+    gpu_fmi_search_seed->hi = (uint64_t) pattern;
     gpu_fmi_search_seed->low = (begin << 32) | end;
   } else {
     // Adapt pattern chunk to query encoding

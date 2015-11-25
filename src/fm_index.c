@@ -226,3 +226,27 @@ GEM_INLINE void fm_index_print(FILE* const stream,const fm_index_t* const fm_ind
   // Flush
   fflush(stream);
 }
+GEM_INLINE void fm_index_decode_print_benchmark(
+    FILE* const stream,const fm_index_t* const fm_index,uint64_t bwt_position) {
+  // Parameters
+  const bwt_t* const bwt = fm_index->bwt;
+  const sampled_sa_t* const sampled_sa = fm_index->sampled_sa;
+  const uint64_t sampling_mod = sampled_sa_get_sa_sampling_rate(sampled_sa);
+  // Profile Data
+  const uint64_t bwt_position_base = bwt_position;
+  uint8_t char_enc;
+  uint64_t num_chars[5] = {0,0,0,0,0};
+  // LF loop (until we find a sampled position)
+  uint64_t dist=0;
+  while (bwt_position % sampling_mod != 0) {
+    // LF
+    bwt_position = bwt_LF_(bwt,bwt_position,&char_enc);
+    ++num_chars[char_enc];
+    ++dist;
+  }
+  // Print benchmark line
+  fprintf(stream,"%lu\t%lu\t%lu\t|\t%lu\t%lu\t%lu\t%lu\t%lu\n",
+      bwt_position_base,bwt_position,dist,
+      num_chars[0],num_chars[1],num_chars[2],num_chars[3],num_chars[4]);
+  fflush(stream);
+}

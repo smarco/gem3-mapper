@@ -26,6 +26,13 @@
 #define PROFILE_LEVEL PMED
 
 /*
+ * Benchmark
+ */
+#ifdef CUDA_BENCHMARK_GENERATE_REGION_PROFILE
+FILE* benchmark_region_profile = NULL;
+#endif
+
+/*
  * Region Profile Stats
  */
 GEM_INLINE void approximate_search_region_profile_fixed_stats(region_profile_t* const region_profile) {
@@ -214,6 +221,7 @@ GEM_INLINE void approximate_search_region_profile_adaptive(
 /*
  * Buffered Copy/Retrieve
  */
+void approximate_search_region_profile_buffered_print_benchmark(approximate_search_t* const search);
 GEM_INLINE void approximate_search_region_profile_buffered_copy(
     approximate_search_t* const search,gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) {
   // Parameters
@@ -229,6 +237,10 @@ GEM_INLINE void approximate_search_region_profile_buffered_copy(
     gpu_buffer_fmi_search_add_query(gpu_buffer_fmi_search,pattern,
         region_profile->filtering_region[i].begin,region_profile->filtering_region[i].end);
   }
+  // BENCHMARK
+#ifdef CUDA_BENCHMARK_GENERATE_REGION_PROFILE
+  approximate_search_region_profile_buffered_print_benchmark(search);
+#endif
 }
 GEM_INLINE void approximate_search_region_profile_buffered_retrieve(
     approximate_search_t* const search,gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) {
@@ -238,7 +250,6 @@ GEM_INLINE void approximate_search_region_profile_buffered_retrieve(
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
   // Buffer offsets
   const uint64_t buffer_offset_begin = search->gpu_buffer_fmi_search_offset;
-  // const uint64_t buffer_offset_end = search->gpu_buffer_fmi_search_offset+search->gpu_buffer_fmi_search_total;
   // Traverse Region-Partition
   uint64_t i, num_regions_filtered = 0, total_candidates = 0;
   for (i=0;i<num_filtering_regions;++i) {
@@ -269,12 +280,24 @@ GEM_INLINE void approximate_search_region_profile_buffered_retrieve(
   const uint64_t num_wildcards = search->pattern.num_wildcards;
   approximate_search_update_mcs(search,num_regions_filtered + num_wildcards);
   search->processing_state = asearch_processing_state_region_profiled;
-//  // Check total filtering-regions
-//  if (num_feasible_regions >= num_filtering_regions-2) {
-//    search->processing_state = asearch_processing_state_region_profiled;
-//  } else {
-//    search->processing_state = asearch_processing_state_no_regions;
-//  }
+  // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+  //  // Check total filtering-regions
+  //  if (num_feasible_regions >= num_filtering_regions-2) {
+  //    search->processing_state = asearch_processing_state_region_profiled;
+  //  } else {
+  //    search->processing_state = asearch_processing_state_no_regions;
+  //  }
   // STATS
   approximate_search_region_profile_fixed_stats(region_profile);
+}
+GEM_INLINE void approximate_search_region_profile_buffered_print_benchmark(approximate_search_t* const search) {
+  // Parameters
+  region_profile_t* const region_profile = &search->region_profile;
+  // Prepare benchmark file
+  if (benchmark_region_profile==NULL) {
+    benchmark_region_profile = fopen("gem3.region.profile.benchmark","w+");
+  }
+  // Print Region-Profile benchmark
+  region_profile_print_benchmark(benchmark_region_profile,
+      region_profile,search->archive->fm_index,search->pattern.key);
 }

@@ -28,6 +28,13 @@
 #define PROFILE_LEVEL PMED
 
 /*
+ * Benchmark
+ */
+#ifdef CUDA_BENCHMARK_GENERATE_DECODE_CANDIDATES
+FILE* benchmark_decode_candidates = NULL;
+#endif
+
+/*
  * Constants
  */
 #define ZERO_ERRORS 0
@@ -210,6 +217,7 @@ GEM_INLINE void approximate_search_generate_inexact_candidates(
 /*
  * Buffered Copy/Retrieve
  */
+void approximate_search_generate_exact_candidates_buffered_print_benchmark(approximate_search_t* const search);
 GEM_INLINE void approximate_search_generate_exact_candidates_buffered_copy(
     approximate_search_t* const search,gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
   // Parameters
@@ -229,6 +237,10 @@ GEM_INLINE void approximate_search_generate_exact_candidates_buffered_copy(
       }
     }
   }
+  // BENCHMARK
+  #ifdef CUDA_BENCHMARK_GENERATE_DECODE_CANDIDATES
+  approximate_search_generate_exact_candidates_buffered_print_benchmark(search);
+  #endif
 }
 GEM_INLINE void approximate_search_generate_exact_candidates_buffered_retrieve(
     approximate_search_t* const search,gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
@@ -258,4 +270,27 @@ GEM_INLINE void approximate_search_generate_exact_candidates_buffered_retrieve(
       search->archive,&search->pattern,search->as_parameters,false,search->mm_stack);
   // Set state to verify-candidates
   search->processing_state = asearch_processing_state_candidates_processed;
+}
+/*
+ * Display/Benchmark
+ */
+GEM_INLINE void approximate_search_generate_exact_candidates_buffered_print_benchmark(approximate_search_t* const search) {
+  // Parameters
+  region_profile_t* const region_profile = &search->region_profile;
+  const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
+  // Prepare benchmark file
+  if (benchmark_decode_candidates==NULL) {
+    benchmark_decode_candidates = fopen("gem3.decode.candidates.benchmark","w+");
+  }
+  // Add all candidates positions
+  uint64_t i;
+  for (i=0;i<num_filtering_regions;++i) {
+    region_search_t* const filtering_region = region_profile->filtering_region + i;
+    if (filtering_region->degree==REGION_FILTER_DEGREE_ZERO) {
+      uint64_t bwt_position;
+      for (bwt_position=filtering_region->begin;bwt_position<filtering_region->end;++bwt_position) {
+        fm_index_decode_print_benchmark(benchmark_decode_candidates,search->archive->fm_index,bwt_position);
+      }
+    }
+  }
 }

@@ -133,6 +133,8 @@ void bwt_sbasic_precomputed_erank_interval(
 /*
  * BWT LF (Last to first)
  */
+uint64_t bwt_sbasic_LF_(
+    const bwt_sbasic_t* const bwt,const uint64_t position,uint8_t* const char_enc);
 uint64_t bwt_sbasic_LF(
     const bwt_sbasic_t* const bwt,const uint64_t position,bool* const is_sampled);
 uint64_t bwt_sbasic_prefetched_LF(

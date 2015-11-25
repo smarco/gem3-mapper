@@ -124,6 +124,7 @@ typedef bwt_basic_builder_t bwt_reverse_builder_t;
  * BWT LF (Last to first)
  */
 // Forward
+#define bwt_LF_ bwt_sbasic_LF_
 #define bwt_LF bwt_sbasic_LF
 #define bwt_prefetched_LF bwt_sbasic_prefetched_LF
 #define bwt_LF__enc bwt_sbasic_LF__enc

@@ -75,18 +75,17 @@ GEM_INLINE void filtering_candidates_process_candidates_buffered(
     const bool compose_region_chaining,mm_stack_t* const mm_stack) {
   PROFILE_START(GP_FC_PROCESS_CANDIDATES,PROFILE_LEVEL);
   // Retrieve total candidate positions
-  uint64_t pending_candidates = vector_get_used(filtering_candidates->filtering_positions);
-  PROF_ADD_COUNTER(GP_CANDIDATE_POSITIONS,pending_candidates);
+  PROF_ADD_COUNTER(GP_CANDIDATE_POSITIONS,vector_get_used(filtering_candidates->filtering_positions));
   // Compose matching regions into candidate regions
   //   (also filter out duplicated positions or already checked)
   PROFILE_START(GP_FC_COMPOSE_REGIONS,PROFILE_LEVEL);
   search_parameters_t* const search_parameters = as_parameters->search_parameters;
   const uint64_t key_length = pattern->key_length;
-  pending_candidates = filtering_candidates_compose_filtering_regions(
+  filtering_candidates_compose_filtering_regions(
       filtering_candidates,key_length,pattern->max_effective_bandwidth,
       compose_region_chaining && search_parameters->alignment_scaffolding,mm_stack);
   PROFILE_STOP(GP_FC_COMPOSE_REGIONS,PROFILE_LEVEL);
-  PROF_ADD_COUNTER(GP_CANDIDATE_REGIONS,pending_candidates);
+  PROF_ADD_COUNTER(GP_CANDIDATE_REGIONS,vector_get_used(filtering_candidates->filtering_regions));
   // Return total candidate regions
   PROFILE_STOP(GP_FC_PROCESS_CANDIDATES,PROFILE_LEVEL);
 }

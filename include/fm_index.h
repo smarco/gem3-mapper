@@ -74,6 +74,8 @@ void fm_index_retrieve_sa_sample(
  * Display
  */
 void fm_index_print(FILE* const stream,const fm_index_t* const fm_index);
+void fm_index_decode_print_benchmark(
+    FILE* const stream,const fm_index_t* const fm_index,uint64_t bwt_position);
 
 /*
  * Errors

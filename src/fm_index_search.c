@@ -119,14 +119,25 @@ GEM_INLINE void fm_index_reverse_bsearch_pure(
  */
 GEM_INLINE void fm_index_bsearch_debug(
     const fm_index_t* const fm_index,const uint8_t* const key,
-    uint64_t key_length,uint64_t* const hi_out,uint64_t* const lo_out) {
+    uint64_t key_length,uint64_t* const hi_out,
+    uint64_t* const lo_out,uint64_t* const steps_out) {
   // Query lookup table
-  uint64_t lo=0, hi=fm_index_get_length(fm_index);
-  // Continue with ranks against the FM-Index
-//  bwt_block_locator_t bwt_block_locator_lo, bwt_block_locator_hi;
-//  bwt_block_elms_t bwt_block_elms_lo, bwt_block_elms_hi;
+  uint64_t steps=0, lo=0, hi=fm_index_get_length(fm_index);
+  // Query ranks against the FM-Index
   while (key_length > 0 && hi > lo) {
     const uint8_t c = key[--key_length];
+    lo = bwt_erank(fm_index->bwt,c,lo);
+    hi = bwt_erank(fm_index->bwt,c,hi);
+    ++steps;
+  }
+  // Return results
+  *hi_out=hi;
+  *lo_out=lo;
+  *steps_out=steps;
+}
+
+//  bwt_block_locator_t bwt_block_locator_lo, bwt_block_locator_hi;
+//  bwt_block_elms_t bwt_block_elms_lo, bwt_block_elms_hi;
 //    if (bwt_is_same_bucket(lo,hi)) {
 //      bwt_precompute_interval(fm_index->bwt,lo,hi,&bwt_block_locator_lo,&bwt_block_elms_lo);
 //      bwt_precomputed_erank_interval(fm_index->bwt,c,&lo,&hi,&bwt_block_locator_lo,&bwt_block_elms_lo);
@@ -136,12 +147,4 @@ GEM_INLINE void fm_index_bsearch_debug(
 //      lo = bwt_precomputed_erank(fm_index->bwt,c,&bwt_block_locator_lo,&bwt_block_elms_lo);
 //      hi = bwt_precomputed_erank(fm_index->bwt,c,&bwt_block_locator_hi,&bwt_block_elms_hi);
 //    }
-    lo = bwt_erank(fm_index->bwt,c,lo);
-    hi = bwt_erank(fm_index->bwt,c,hi);
-    printf("> %"PRIu64"\t%"PRIu64"\n",lo,hi);
-  }
-  // Return results
-  *hi_out=hi;
-  *lo_out=lo;
-}
 

@@ -109,7 +109,6 @@ void region_profile_sort_by_candidates(region_profile_t* const region_profile);
  * Display
  */
 void region_profile_print(FILE* const stream,const region_profile_t* const region_profile,const bool sorted);
-void region_profile_print_fixed_regions(FILE* const stream,const region_profile_t* const region_profile,const uint8_t* key);
 
 /*
  * Iterator

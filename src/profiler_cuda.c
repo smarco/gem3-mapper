@@ -8,6 +8,11 @@
  */
 
 #include "profiler_cuda.h"
+
+/*
+ * CUDA Support
+ */
+#ifdef HAVE_CUDA
 #include "nvToolsExt.h"
 
 const uint32_t profiler_cuda_tags_colors[] = {
@@ -24,7 +29,6 @@ const uint32_t profiler_cuda_tags_colors[] = {
  * GEM_PROFILE
  */
 #ifdef GEM_PROFILE
-
 GEM_INLINE void PROFILE_CUDA_START(char* const name,const uint64_t cid) {
   nvtxEventAttributes_t event_attr = {0};
   event_attr.version = NVTX_VERSION;
@@ -38,8 +42,14 @@ GEM_INLINE void PROFILE_CUDA_START(char* const name,const uint64_t cid) {
 GEM_INLINE void PROFILE_CUDA_STOP() {
   nvtxRangePop();
 }
-
 #else
-  #define PROFILE_CUDA_START(name,cid)
-  #define PROFILE_CUDA_STOP()
+  GEM_INLINE void PROFILE_CUDA_START(char* const name,const uint64_t cid) {}
+  GEM_INLINE void PROFILE_CUDA_STOP() {}
 #endif /* GEM_PROFILE */
+/*
+ * CUDA NOT-Supported
+ */
+#else
+  GEM_INLINE void PROFILE_CUDA_START(char* const name,const uint64_t cid) {}
+  GEM_INLINE void PROFILE_CUDA_STOP() {}
+#endif

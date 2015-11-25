@@ -41,7 +41,8 @@ void fm_index_reverse_bsearch_pure(
  */
 void fm_index_bsearch_debug(
     const fm_index_t* const fm_index,const uint8_t* const key,
-    uint64_t key_length,uint64_t* const hi_out,uint64_t* const lo_out);
+    uint64_t key_length,uint64_t* const hi_out,
+    uint64_t* const lo_out,uint64_t* const steps_out);
 
 
 #endif /* FM_INDEX_SEARCH_H_ */

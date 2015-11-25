@@ -164,18 +164,4 @@ GEM_INLINE void region_profile_print(
   }
   fflush(stream);
 }
-GEM_INLINE void region_profile_print_fixed_regions(
-    FILE* const stream,const region_profile_t* const region_profile,const uint8_t* key) {
-  REGION_PROFILE_ITERATE(region_profile,region,position) {
-    // 10 ACGTACGTTG 12 134 XXX
-    const uint64_t chunk_length = region->end-region->begin;
-    fprintf(stream,"%"PRIu64"\t",chunk_length);
-    uint64_t i;
-    for (i=region->begin;i<region->end;++i) {
-      fprintf(stream,"%c",dna_decode(key[i]));
-    }
-    fprintf(stream,"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\n",region->lo,region->hi,region->degree);
-  }
-  fflush(stream);
-}
 

@@ -27,4 +27,11 @@ void region_profile_generate_fixed_query(
     region_profile_t* const region_profile,fm_index_t* const fm_index,
     const uint8_t* const key);
 
+/*
+ * Display/Benchmark
+ */
+void region_profile_print_benchmark(
+    FILE* const stream,const region_profile_t* const region_profile,
+    fm_index_t* const fm_index,const uint8_t* key);
+
 #endif /* REGION_PROFILE_FIXED_H_ */
