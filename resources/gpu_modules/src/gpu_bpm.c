@@ -241,28 +241,44 @@ GPU_INLINE gpu_error_t gpu_bpm_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
 	gpu_bpm_reorder_buffer_t  	*rebuff 	= &mBuff->data.bpm.reorderBuffer;
 	gpu_bpm_alignments_buffer_t	*res  		= &mBuff->data.bpm.alignments;
 	cudaStream_t 				idStream 	= mBuff->idStream;
-	size_t 						cpySize;
+	size_t 						cpySize		= 0;
+	float 						bufferUtilization;
 
-	//Transfer Binary Queries to GPU
-	cpySize = qry->totalQueriesEntries * sizeof(gpu_bpm_qry_entry_t);
-	CUDA_ERROR(cudaMemcpyAsync(qry->d_queries, qry->h_queries, cpySize, cudaMemcpyHostToDevice, idStream));
+	cpySize += qry->totalQueriesEntries * sizeof(gpu_bpm_qry_entry_t);
+	cpySize += qry->numQueries * sizeof(gpu_bpm_qry_info_t);
+	cpySize += cand->numCandidates * sizeof(gpu_bpm_cand_info_t);
+	cpySize += rebuff->candidatesPerBuffer * sizeof(uint32_t);
+	cpySize += rebuff->numBuckets * sizeof(uint32_t);
+	cpySize += rebuff->numBuckets * sizeof(uint32_t);
+	cpySize += res->numReorderedAlignments * sizeof(gpu_bpm_alg_entry_t);
+	cpySize += res->numAlignments * sizeof(gpu_bpm_alg_entry_t);
+	bufferUtilization = (double)cpySize / (double)mBuff->sizeBuffer;
 
-	//Transfer to GPU the information associated with Binary Queries
-	cpySize = qry->numQueries * sizeof(gpu_bpm_qry_info_t);
-	CUDA_ERROR(cudaMemcpyAsync(qry->d_qinfo, qry->h_qinfo, cpySize, cudaMemcpyHostToDevice, idStream));
+	if(bufferUtilization > 0.75){
+		cpySize  = ((void *) (rebuff->d_initWarpPerBucket + rebuff->numBuckets)) - ((void *) qry->d_queries);
+		CUDA_ERROR(cudaMemcpyAsync(qry->d_queries, qry->h_queries, cpySize, cudaMemcpyHostToDevice, idStream));
+	}else{
+		//Transfer Binary Queries to GPU
+		cpySize = qry->totalQueriesEntries * sizeof(gpu_bpm_qry_entry_t);
+		CUDA_ERROR(cudaMemcpyAsync(qry->d_queries, qry->h_queries, cpySize, cudaMemcpyHostToDevice, idStream));
 
-	//Transfer Candidates to GPU
-	cpySize = cand->numCandidates * sizeof(gpu_bpm_cand_info_t);
-	CUDA_ERROR(cudaMemcpyAsync(cand->d_candidates, cand->h_candidates, cpySize, cudaMemcpyHostToDevice, idStream));
+		//Transfer to GPU the information associated with Binary Queries
+		cpySize = qry->numQueries * sizeof(gpu_bpm_qry_info_t);
+		CUDA_ERROR(cudaMemcpyAsync(qry->d_qinfo, qry->h_qinfo, cpySize, cudaMemcpyHostToDevice, idStream));
 
-	//Transfer reordered buffer to GPU
-	cpySize = rebuff->candidatesPerBuffer * sizeof(uint32_t);
-	CUDA_ERROR(cudaMemcpyAsync(rebuff->d_reorderBuffer, rebuff->h_reorderBuffer, cpySize, cudaMemcpyHostToDevice, idStream));
+		//Transfer Candidates to GPU
+		cpySize = cand->numCandidates * sizeof(gpu_bpm_cand_info_t);
+		CUDA_ERROR(cudaMemcpyAsync(cand->d_candidates, cand->h_candidates, cpySize, cudaMemcpyHostToDevice, idStream));
 
-	//Transfer bucket information to GPU
-	cpySize = rebuff->numBuckets * sizeof(uint32_t);
-	CUDA_ERROR(cudaMemcpyAsync(rebuff->d_initPosPerBucket, rebuff->h_initPosPerBucket, cpySize, cudaMemcpyHostToDevice, idStream));
-	CUDA_ERROR(cudaMemcpyAsync(rebuff->d_initWarpPerBucket, rebuff->h_initWarpPerBucket, cpySize, cudaMemcpyHostToDevice, idStream));
+		//Transfer reordered buffer to GPU
+		cpySize = rebuff->candidatesPerBuffer * sizeof(uint32_t);
+		CUDA_ERROR(cudaMemcpyAsync(rebuff->d_reorderBuffer, rebuff->h_reorderBuffer, cpySize, cudaMemcpyHostToDevice, idStream));
+
+		//Transfer bucket information to GPU
+		cpySize = rebuff->numBuckets * sizeof(uint32_t);
+		CUDA_ERROR(cudaMemcpyAsync(rebuff->d_initPosPerBucket, rebuff->h_initPosPerBucket, cpySize, cudaMemcpyHostToDevice, idStream));
+		CUDA_ERROR(cudaMemcpyAsync(rebuff->d_initWarpPerBucket, rebuff->h_initWarpPerBucket, cpySize, cudaMemcpyHostToDevice, idStream));
+	}
 
 	return (SUCCESS);
 }

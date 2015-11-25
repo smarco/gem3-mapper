@@ -290,6 +290,7 @@ GEM_INLINE void approximate_search_region_profile_buffered_retrieve(
   // STATS
   approximate_search_region_profile_fixed_stats(region_profile);
 }
+#ifdef CUDA_BENCHMARK_GENERATE_REGION_PROFILE
 GEM_INLINE void approximate_search_region_profile_buffered_print_benchmark(approximate_search_t* const search) {
   // Parameters
   region_profile_t* const region_profile = &search->region_profile;
@@ -301,3 +302,4 @@ GEM_INLINE void approximate_search_region_profile_buffered_print_benchmark(appro
   region_profile_print_benchmark(benchmark_region_profile,
       region_profile,search->archive->fm_index,search->pattern.key);
 }
+#endif

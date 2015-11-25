@@ -274,6 +274,7 @@ GEM_INLINE void approximate_search_generate_exact_candidates_buffered_retrieve(
 /*
  * Display/Benchmark
  */
+#ifdef CUDA_BENCHMARK_GENERATE_DECODE_CANDIDATES
 GEM_INLINE void approximate_search_generate_exact_candidates_buffered_print_benchmark(approximate_search_t* const search) {
   // Parameters
   region_profile_t* const region_profile = &search->region_profile;
@@ -294,3 +295,4 @@ GEM_INLINE void approximate_search_generate_exact_candidates_buffered_print_benc
     }
   }
 }
+#endif
