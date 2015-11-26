@@ -25,7 +25,7 @@ GEM_INLINE bool gpu_supported() {
 GEM_INLINE gpu_buffer_collection_t* gpu_buffer_collection_new(
     archive_t* const archive,const uint64_t num_buffers,
     const uint64_t buffer_size,const bool verbose) {
-  PROF_START(GP_GPU_BUFFER_COLLECTION_INIT);
+  PROFILE_START(GP_GPU_BUFFER_COLLECTION_INIT);
   // Allocate Buffer Collection
   gpu_buffer_collection_t* const buffer_collection = mm_alloc(gpu_buffer_collection_t);
   buffer_collection->num_buffers = num_buffers;
@@ -62,7 +62,7 @@ GEM_INLINE gpu_buffer_collection_t* gpu_buffer_collection_new(
   gpu_init_buffers_(gpu_buffers_dto,&gpu_index_dto,&gpu_reference_dto,&gpu_info_dto,verbose);
   buffer_collection->internal_buffers = gpu_buffers_dto->buffer;
   // Return
-  PROF_STOP(GP_GPU_BUFFER_COLLECTION_INIT);
+  PROFILE_STOP(GP_GPU_BUFFER_COLLECTION_INIT);
   return buffer_collection;
 }
 GEM_INLINE void gpu_buffer_collection_delete(gpu_buffer_collection_t* const gpu_buffer_collection) {
