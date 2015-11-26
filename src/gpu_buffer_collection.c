@@ -1,6 +1,6 @@
 /*
  * PROJECT: GEMMapper
- * FILE: gpu_buffer.c
+ * FILE: gpu_buffer_collection.c
  * DATE: 04/09/2014
  * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
  *            Santiago Marco-Sola <santiagomsola@gmail.com>

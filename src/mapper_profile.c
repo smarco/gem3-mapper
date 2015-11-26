@@ -309,10 +309,21 @@ GEM_INLINE void mapper_profile_print_archive_search_group(FILE* const stream) {
 //  PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_BPM_GPU_BUFFER_USAGE_CANDIDATES));
 }
 GEM_INLINE void mapper_profile_print_archive_search_cuda(FILE* const stream,const bool map_output) {
-  /*
-   * TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-   */
-  tab_fprintf(stream,"[GEM]>Profile.CUDA.ArchiveSearch\n");
+  //tab_fprintf(stream,"[GEM]>Profile.CUDA.Search\n");
+  //tab_fprintf(stream,"  => TIME.GPU.Init                           ");
+  //TIMER_PRINT(stream,PROF_GET_TIMER(GP_GPU_BUFFER_COLLECTION_INIT),PROF_GET_TIMER(GP_MAPPER_ALL));
+  //tab_fprintf(stream,"  => TIME.CUDA.Search                        ");
+  //TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_SE),PROF_GET_TIMER(GP_MAPPER_ALL));
+  //tab_fprintf(stream,"    => TIME.CUDA.RegionProfile               ");
+  //TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_SE),PROF_GET_TIMER(GP_MAPPER_ALL));
+  //tab_fprintf(stream,"    => TIME.CUDA.DecodeCandidates            ");
+  //TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_SE),PROF_GET_TIMER(GP_MAPPER_ALL));
+  //tab_fprintf(stream,"    => TIME.CUDA.VerifyCandidates            ");
+  //TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_SE),PROF_GET_TIMER(GP_MAPPER_ALL));
+  //tab_fprintf(stream,"    => TIME.CUDA.FinishSearch                ");
+  //TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_SE),PROF_GET_TIMER(GP_MAPPER_ALL));
+
+
 //  tab_fprintf(stream,"  => TIME.CUDA.Thread                        ");
 //  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_THREAD),PROF_GET_TIMER(GP_MAPPER_ALL));
 //  tab_fprintf(stream,"    => 0.TIME.CUDA.Buffers.Init              ");

@@ -43,9 +43,6 @@ GEM_INLINE search_pipeline_t* search_pipeline_new(
   return search_pipeline;
 }
 GEM_INLINE void search_pipeline_clear(search_pipeline_t* const search_pipeline) {
-  search_stage_region_profile_clear(search_pipeline->stage_region_profile,search_pipeline->archive_search_cache);
-  search_stage_decode_candidates_clear(search_pipeline->stage_decode_candidates,search_pipeline->archive_search_cache);
-  search_stage_verify_candidates_clear(search_pipeline->stage_verify_candidates,search_pipeline->archive_search_cache);
   mm_stack_free(search_pipeline->mm_stack);
 }
 GEM_INLINE void search_pipeline_delete(search_pipeline_t* const search_pipeline) {

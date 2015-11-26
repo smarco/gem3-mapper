@@ -118,7 +118,7 @@ GEM_INLINE void mapper_se_cuda_decode_candidates(mapper_cuda_search_t* const map
   }
   // Clean
   if (!pending_searches) {
-    search_stage_region_profile_clear(stage_region_profile,search_pipeline->archive_search_cache);
+    search_stage_region_profile_clear(stage_region_profile,NULL);
   }
   PROFILE_STOP(GP_MAPPER_CUDA_SE_DECODE_CANDIDATES,PROFILE_LEVEL);
 }
@@ -186,7 +186,7 @@ GEM_INLINE void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_
     }
   }
   // Clean
-  search_stage_verify_candidates_clear(stage_verify_candidates,NULL);
+  search_stage_verify_candidates_clear(stage_verify_candidates,search_pipeline->archive_search_cache);
   PROFILE_STOP(GP_MAPPER_CUDA_SE_FINISH_SEARCH,PROFILE_LEVEL);
 }
 /*
