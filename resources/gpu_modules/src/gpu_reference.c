@@ -22,7 +22,7 @@ GPU_INLINE uint64_t gpu_char_to_bin_ASCII(unsigned char base)
     	case 't':
     	    return(GPU_ENC_DNA_CHAR_T << (GPU_UINT64_LENGTH - GPU_REFERENCE_CHAR_LENGTH));
     	default :
-    	    return(GPU_ENC_DNA_CHAR_N << (GPU_UINT64_LENGTH - GPU_REFERENCE_CHAR_LENGTH));
+    	    return(GPU_ENC_DNA_CHAR_A << (GPU_UINT64_LENGTH - GPU_REFERENCE_CHAR_LENGTH));
 	}
 }
 
@@ -54,7 +54,7 @@ GPU_INLINE gpu_error_t gpu_transform_reference_ASCII(const char *referenceASCII,
 		for(i = 0; i < GPU_REFERENCE_CHARS_PER_ENTRY; i++){
 			referencePosition = idEntry * GPU_REFERENCE_CHARS_PER_ENTRY + i;
 			if (referencePosition < reference->size) referenceChar = referenceASCII[referencePosition];
-				else referenceChar = 'N'; //filling reference padding
+				else referenceChar = 'A'; //filling reference padding
 			indexBase = gpu_char_to_bin_ASCII(referenceChar);
 			bitmap = (bitmap >> GPU_REFERENCE_CHAR_LENGTH) | indexBase;
 		}
@@ -65,9 +65,9 @@ GPU_INLINE gpu_error_t gpu_transform_reference_ASCII(const char *referenceASCII,
 
 GPU_INLINE gpu_error_t gpu_transform_reference_GEM_FR(const char *referenceGEM, gpu_reference_buffer_t *reference)
 {
-	uint64_t indexBase, bitmap;
+	const uint64_t  baseMask = GPU_UINT64_ONES << GPU_REFERENCE_CHAR_LENGTH;
+	uint64_t bitmap, base;
 	uint64_t idEntry, i, referencePosition;
-	unsigned char referenceChar;
 
 	CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint64_t), cudaHostAllocMapped));
 
@@ -75,10 +75,11 @@ GPU_INLINE gpu_error_t gpu_transform_reference_GEM_FR(const char *referenceGEM, 
 		bitmap = 0;
 		for(i = 0; i < GPU_REFERENCE_CHARS_PER_ENTRY; ++i){
 			referencePosition = idEntry * GPU_REFERENCE_CHARS_PER_ENTRY + i;
-			if (referencePosition < reference->size) referenceChar = referenceGEM[referencePosition];
-				else referenceChar = 'N'; //filling reference padding
-			indexBase = ((uint64_t) referenceChar) << (GPU_UINT64_LENGTH - GPU_REFERENCE_CHAR_LENGTH);
-			bitmap = (bitmap >> GPU_REFERENCE_CHAR_LENGTH) | indexBase;
+			if (referencePosition < reference->size) base = (uint64_t) referenceGEM[referencePosition];
+				else base = GPU_ENC_DNA_CHAR_A; //filling reference padding
+			base = (base & baseMask) ? GPU_ENC_DNA_CHAR_A : base;
+			base = base << (GPU_UINT64_LENGTH - GPU_REFERENCE_CHAR_LENGTH);
+			bitmap = (bitmap >> GPU_REFERENCE_CHAR_LENGTH) | base;
 		}
 		reference->h_reference[referencePosition / GPU_REFERENCE_CHARS_PER_ENTRY] = bitmap;
 	}
@@ -88,13 +89,13 @@ GPU_INLINE gpu_error_t gpu_transform_reference_GEM_FR(const char *referenceGEM, 
 
 GPU_INLINE gpu_error_t gpu_transform_reference_GEM_F(const char *referenceGEM, gpu_reference_buffer_t *reference)
 {
-	uint64_t indexBase, bitmap;
+	uint64_t base, bitmap;
 	uint64_t idEntry, i, referencePosition;
-	char referenceChar;
 
 	// Recompute size of the full reference (forward + reverse-complement)
 	const uint64_t forward_ref_size = reference->size;
 	const uint64_t total_ref_size = 2 * forward_ref_size;
+	const uint64_t baseMask = GPU_UINT64_ONES << GPU_REFERENCE_CHAR_LENGTH;
 
 	reference->size = total_ref_size;
 	reference->numEntries = GPU_DIV_CEIL(total_ref_size, GPU_REFERENCE_CHARS_PER_ENTRY) + GPU_REFERENCE_END_PADDING;
@@ -108,14 +109,15 @@ GPU_INLINE gpu_error_t gpu_transform_reference_GEM_F(const char *referenceGEM, g
 		for(i = 0; i < GPU_REFERENCE_CHARS_PER_ENTRY; ++i){
 			referencePosition = idEntry * GPU_REFERENCE_CHARS_PER_ENTRY + i;
 			if (referencePosition < forward_ref_size) {
-				referenceChar = referenceGEM[referencePosition];
+				base = (uint64_t) referenceGEM[referencePosition];
 			} else if (referencePosition < reference->size) {
-				referenceChar = gpu_complement_base(referenceGEM[2*forward_ref_size-referencePosition-2]);
+				base = (uint64_t) gpu_complement_base(referenceGEM[2*forward_ref_size-referencePosition-2]);
 			} else {
-				referenceChar = 'N'; //filling reference padding
+				base = GPU_ENC_DNA_CHAR_A; //filling reference padding
 			}
-			indexBase = ((uint64_t) referenceChar) << (GPU_UINT64_LENGTH - GPU_REFERENCE_CHAR_LENGTH);
-			bitmap = (bitmap >> GPU_REFERENCE_CHAR_LENGTH) | indexBase;
+			base = (base & baseMask) ? GPU_ENC_DNA_CHAR_A : base;
+			base = base << (GPU_UINT64_LENGTH - GPU_REFERENCE_CHAR_LENGTH);
+			bitmap = (bitmap >> GPU_REFERENCE_CHAR_LENGTH) | base;
 		}
 		reference->h_reference[referencePosition / GPU_REFERENCE_CHARS_PER_ENTRY] = bitmap;
 	}

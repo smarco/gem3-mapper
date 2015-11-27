@@ -23,6 +23,7 @@
 Common constants for Device & Host
 *********************************/
 
+#define	GPU_UINT8_LENGTH			8
 #define	GPU_UINT32_LENGTH			32
 #define	GPU_UINT64_LENGTH			64
 #define	GPU_UINT64_MAX_VALUE		ULONG_MAX
@@ -30,6 +31,9 @@ Common constants for Device & Host
 #define GPU_UINT32_ONES  			0xFFFFFFFFu
 #define GPU_UINT32_MASK_ONE_LOW  	0x00000001u
 #define GPU_UINT32_MASK_ONE_HIGH  	0x80000000u
+#define GPU_UINT8_ONES  			0xFF
+#define GPU_UINT64_ONES  			0xFFFFFFFFFFFFFFFFu
+#define	GPU_UINT8_SIZE				1
 #define	GPU_UINT32_SIZE				4
 #define	GPU_UINT64_SIZE				8
 

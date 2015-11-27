@@ -5,7 +5,7 @@
 #include "gpu_devices.h"
 
 /* Defines related to Reference representation */
-#define	GPU_REFERENCE_CHAR_LENGTH		4
+#define	GPU_REFERENCE_CHAR_LENGTH		2
 #define GPU_REFERENCE_CHARS_PER_UINT1	(GPU_UINT32_LENGTH / GPU_REFERENCE_CHAR_LENGTH)
 #define GPU_REFERENCE_CHARS_PER_UINT2	(GPU_REFERENCE_CHARS_PER_UINT1 * 2)
 #define GPU_REFERENCE_CHARS_PER_UINT4	(GPU_REFERENCE_CHARS_PER_UINT1 * 4)
@@ -41,8 +41,8 @@ gpu_error_t gpu_load_reference_PROFILE(const char *fn, gpu_reference_buffer_t *r
 
 /* Initialize reference functions */
 gpu_error_t gpu_init_reference(gpu_reference_buffer_t **reference, const char *referenceRaw,
-										  const uint64_t refSize, const gpu_ref_coding_t refCoding,
-										  const uint32_t numSupportedDevices, gpu_module_t activeModules);
+							   const uint64_t refSize, const gpu_ref_coding_t refCoding,
+							   const uint32_t numSupportedDevices, gpu_module_t activeModules);
 gpu_error_t gpu_transfer_reference_CPU_to_GPUs(gpu_reference_buffer_t *reference, gpu_device_info_t **devices);
 
 /* Free reference functions */
