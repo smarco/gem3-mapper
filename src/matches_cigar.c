@@ -151,7 +151,7 @@ void matches_cigar_reverse(
     // FIXME In case of indel, flip @origin->indel.indel_text (only SAM.MD field is using it)
   }
 }
-GEM_INLINE void matches_cigar_reverse_colorspace(
+void matches_cigar_reverse_colorspace(
     vector_t* const cigar_vector,const uint64_t cigar_buffer_offset,
     const uint64_t cigar_length) {
   // Reverse CIGAR
@@ -256,7 +256,7 @@ uint64_t matches_cigar_compute_matching_bases(
   }
   return matching_bases;
 }
-GEM_INLINE int64_t matches_cigar_element_effective_length(const cigar_element_t* const cigar_element) {
+int64_t matches_cigar_element_effective_length(const cigar_element_t* const cigar_element) {
   switch (cigar_element->type) {
     case cigar_match:
       return cigar_element->length;
@@ -324,7 +324,7 @@ int matches_cigar_cmp(
 /*
  * Display
  */
-GEM_INLINE void match_cigar_print(
+void match_cigar_print(
     FILE* const stream,vector_t* const cigar_vector,
     const uint64_t cigar_buffer_offset,const uint64_t cigar_length) {
   uint64_t j;

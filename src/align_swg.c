@@ -20,7 +20,7 @@
  *   @match_alignment->match_position (Correction)
  *   @match_alignment->cigar_length (Cumulative)
  */
-GEM_INLINE void align_swg_traceback(
+void align_swg_traceback(
     match_align_input_t* const align_input,swg_cell_t** const dp,
     const int32_t max_score,const uint64_t max_score_column,
     const int32_t single_gap,const int32_t gap_extension,const bool begin_free,
@@ -106,7 +106,7 @@ GEM_INLINE void align_swg_traceback(
 /*
  * SWG - Init
  */
-GEM_INLINE swg_cell_t** align_swg_allocate_table(
+swg_cell_t** align_swg_allocate_table(
     const uint64_t num_columns,const uint64_t num_rows,mm_stack_t* const mm_stack) {
   swg_cell_t** const dp = mm_stack_malloc(mm_stack,num_columns*sizeof(swg_cell_t*));
   const uint64_t row_size = num_rows*sizeof(swg_cell_t);
@@ -116,7 +116,7 @@ GEM_INLINE swg_cell_t** align_swg_allocate_table(
   }
   return dp;
 }
-GEM_INLINE void align_swg_init_table(
+void align_swg_init_table(
     swg_cell_t** const dp,const uint64_t num_columns,const uint64_t num_rows,
     const int32_t single_gap,const int32_t gap_extension) {
   uint64_t column, row;
@@ -132,7 +132,7 @@ GEM_INLINE void align_swg_init_table(
     dp[0][row].M = dp[0][row-1].M + gap_extension; // g(row)
   }
 }
-GEM_INLINE void align_swg_init_table_banded(
+void align_swg_init_table_banded(
     swg_cell_t** const dp,const uint64_t num_columns,const uint64_t num_rows,
     const uint64_t column_start_band,const uint64_t band_low_offset,
     const bool begin_free,const int32_t single_gap,const int32_t gap_extension) {
@@ -162,7 +162,7 @@ GEM_INLINE void align_swg_init_table_banded(
     }
   }
 }
-GEM_INLINE void align_swg_init_table_banded_opt(
+void align_swg_init_table_banded_opt(
     swg_cell_t** const dp,const uint64_t num_columns,const uint64_t num_rows,
     const uint64_t column_start_band,const uint64_t band_low_offset,
     const bool begin_free,const int32_t single_gap,const int32_t gap_extension) {
@@ -206,7 +206,7 @@ GEM_INLINE void align_swg_init_table_banded_opt(
  *   @align_parameters->swg_penalties
  *   @match_alignment->match_position (Adjusted)
  */
-GEM_INLINE void align_swg_base(
+void align_swg_base(
     match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
     match_alignment_t* const match_alignment,vector_t* const cigar_vector,mm_stack_t* const mm_stack) {
   // Parameters
@@ -275,7 +275,7 @@ GEM_INLINE void align_swg_base(
  *   @match_alignment->match_position (Correction)
  *   @match_alignment->cigar_length (Cumulative)
  */
-GEM_INLINE void align_swg_full(
+void align_swg_full(
     match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
     const bool begin_free,const bool end_free,match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,mm_stack_t* const mm_stack) {
@@ -354,7 +354,7 @@ GEM_INLINE void align_swg_full(
  *   @match_alignment->match_position (Correction)
  *   @match_alignment->cigar_length (Cumulative)
  */
-GEM_INLINE void align_swg_banded(
+void align_swg_banded(
     match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
     const bool begin_free,const bool end_free,match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,mm_stack_t* const mm_stack) {
@@ -462,7 +462,7 @@ GEM_INLINE void align_swg_banded(
  *   @match_alignment->match_position (Adjusted)
  *   @match_alignment->cigar_length (Cumulative)
  */
-GEM_INLINE void align_swg(
+void align_swg(
     match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
     const bool begin_free,const bool end_free,match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,mm_stack_t* const mm_stack) {
@@ -517,7 +517,7 @@ GEM_INLINE void align_swg(
 /*
  * Display
  */
-GEM_INLINE void align_swg_print_table(
+void align_swg_print_table(
     swg_cell_t** const dp,const uint64_t num_columns,
     const uint64_t num_rows) {
   uint64_t i, j;
@@ -528,7 +528,7 @@ GEM_INLINE void align_swg_print_table(
     printf("\n");
   }
 }
-GEM_INLINE void align_swg_print_input(
+void align_swg_print_input(
     const uint8_t* const key,const uint64_t key_length,
     const uint8_t* const text,const uint64_t text_length) {
   uint64_t i;

@@ -14,7 +14,7 @@
 /*
  * Control
  */
-GEM_INLINE void asearch_control_next_state_read_recovery(
+void asearch_control_next_state_read_recovery(
     approximate_search_t* const search,matches_t* const matches) {
   switch (search->processing_state) {
     case asearch_processing_state_no_regions:
@@ -34,7 +34,7 @@ GEM_INLINE void asearch_control_next_state_read_recovery(
   // Finish
   search->search_stage = asearch_stage_end;
 }
-GEM_INLINE void asearch_control_next_state_exact_filtering_adaptive(
+void asearch_control_next_state_exact_filtering_adaptive(
     approximate_search_t* const search,matches_t* const matches) {
   // Select state
   switch (search->processing_state) {
@@ -60,7 +60,7 @@ GEM_INLINE void asearch_control_next_state_exact_filtering_adaptive(
       break;
   }
 }
-GEM_INLINE void asearch_control_next_state_exact_filtering_boost(
+void asearch_control_next_state_exact_filtering_boost(
     approximate_search_t* const search,matches_t* const matches) {
   search_parameters_t* const search_parameters = search->as_parameters->search_parameters;
   if (matches_is_mapped(matches) || search_parameters->unbounded_alignment==unbounded_alignment_never) {
@@ -72,7 +72,7 @@ GEM_INLINE void asearch_control_next_state_exact_filtering_boost(
 /*
  * Adaptive mapping Initial Basic Cases Selector
  */
-GEM_INLINE void approximate_search_filtering_adaptive_basic_cases(approximate_search_t* const search) {
+void approximate_search_filtering_adaptive_basic_cases(approximate_search_t* const search) {
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Basic Cases\n");
     tab_global_inc();
@@ -131,7 +131,7 @@ GEM_INLINE void approximate_search_filtering_adaptive_basic_cases(approximate_se
 /*
  * Adaptive mapping [GEM-workflow 4.0]
  */
-GEM_INLINE void approximate_search_filtering_adaptive(approximate_search_t* const search,matches_t* const matches) {
+void approximate_search_filtering_adaptive(approximate_search_t* const search,matches_t* const matches) {
   // Parameters
   const as_parameters_t* const actual_parameters = search->as_parameters;
   const search_parameters_t* const search_parameters = actual_parameters->search_parameters;
@@ -177,7 +177,7 @@ GEM_INLINE void approximate_search_filtering_adaptive(approximate_search_t* cons
 /*
  * Test // FIXME Delete ME
  */
-GEM_INLINE void approximate_search_filtering_adaptive_test(
+void approximate_search_filtering_adaptive_test(
     approximate_search_t* const search,matches_t* const matches) {
   pattern_t* const pattern = &search->pattern;
   // FM-Index basic exact search

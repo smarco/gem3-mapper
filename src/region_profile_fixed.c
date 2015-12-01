@@ -88,7 +88,7 @@ void region_profile_generate_fixed_query(
 /*
  * Display/Benchmark
  */
-GEM_INLINE void region_profile_print_benchmark(
+void region_profile_print_benchmark(
     FILE* const stream,const region_profile_t* const region_profile,
     fm_index_t* const fm_index,const uint8_t* key) {
   REGION_PROFILE_ITERATE(region_profile,region,position) {

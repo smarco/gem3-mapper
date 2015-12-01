@@ -27,7 +27,7 @@
 /*
  * PE Extension
  */
-GEM_INLINE void archive_search_pe_generate_extension_candidates(
+void archive_search_pe_generate_extension_candidates(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches,const sequence_end_t candidate_end) {
 //  // Check
@@ -53,7 +53,7 @@ GEM_INLINE void archive_search_pe_generate_extension_candidates(
 /*
  * Archive Search PE Stepwise
  */
-GEM_INLINE void archive_search_pe_stepwise_generate_candidates(
+void archive_search_pe_stepwise_generate_candidates(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches) {
 //  PROFILE_START(GP_ARCHIVE_SEARCH_PE,PROFILE_LEVEL);
@@ -95,7 +95,7 @@ GEM_INLINE void archive_search_pe_stepwise_generate_candidates(
 //  PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_GENERATE_CANDIDATES,PROFILE_LEVEL);
 //  PROFILE_STOP(GP_ARCHIVE_SEARCH_PE,PROFILE_LEVEL);
 }
-GEM_INLINE void archive_search_pe_stepwise_finish_search(
+void archive_search_pe_stepwise_finish_search(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches) {
 //  // PE search (continue search until the end)

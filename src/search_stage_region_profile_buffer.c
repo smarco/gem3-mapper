@@ -16,7 +16,7 @@
 /*
  * Setup
  */
-GEM_INLINE search_stage_region_profile_buffer_t* search_stage_region_profile_buffer_new(
+search_stage_region_profile_buffer_t* search_stage_region_profile_buffer_new(
     const gpu_buffer_collection_t* const gpu_buffer_collection,const uint64_t buffer_no,
     fm_index_t* const fm_index,const bool cpu_emulated) {
   // Alloc
@@ -30,7 +30,7 @@ GEM_INLINE search_stage_region_profile_buffer_t* search_stage_region_profile_buf
   // Return
   return region_profile_buffer;
 }
-GEM_INLINE void search_stage_region_profile_buffer_clear(
+void search_stage_region_profile_buffer_clear(
     search_stage_region_profile_buffer_t* const region_profile_buffer,
     archive_search_cache_t* const archive_search_cache) {
   gpu_buffer_fmi_search_clear(region_profile_buffer->gpu_buffer_fmi_search);
@@ -43,7 +43,7 @@ GEM_INLINE void search_stage_region_profile_buffer_clear(
   // Clear searches vector
   vector_clear(region_profile_buffer->archive_searches);
 }
-GEM_INLINE void search_stage_region_profile_buffer_delete(
+void search_stage_region_profile_buffer_delete(
     search_stage_region_profile_buffer_t* const region_profile_buffer,
     archive_search_cache_t* const archive_search_cache) {
   gpu_buffer_fmi_search_delete(region_profile_buffer->gpu_buffer_fmi_search);
@@ -57,7 +57,7 @@ GEM_INLINE void search_stage_region_profile_buffer_delete(
 /*
  * Occupancy
  */
-GEM_INLINE bool search_stage_region_profile_buffer_fits(
+bool search_stage_region_profile_buffer_fits(
     search_stage_region_profile_buffer_t* const region_profile_buffer,
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2) {
   // Get buffer limits
@@ -76,24 +76,24 @@ GEM_INLINE bool search_stage_region_profile_buffer_fits(
 /*
  * Send/Receive
  */
-GEM_INLINE void search_stage_region_profile_buffer_send(
+void search_stage_region_profile_buffer_send(
     search_stage_region_profile_buffer_t* const region_profile_buffer) {
   gpu_buffer_fmi_search_send(region_profile_buffer->gpu_buffer_fmi_search);
 }
-GEM_INLINE void search_stage_region_profile_buffer_receive(
+void search_stage_region_profile_buffer_receive(
     search_stage_region_profile_buffer_t* const region_profile_buffer) {
   gpu_buffer_fmi_search_receive(region_profile_buffer->gpu_buffer_fmi_search);
 }
 /*
  * Accessors
  */
-GEM_INLINE void search_stage_region_profile_buffer_add(
+void search_stage_region_profile_buffer_add(
     search_stage_region_profile_buffer_t* const region_profile_buffer,
     archive_search_t* const archive_search) {
   // Add archive-search
   vector_insert(region_profile_buffer->archive_searches,archive_search,archive_search_t*);
 }
-GEM_INLINE void search_stage_region_profile_buffer_retrieve(
+void search_stage_region_profile_buffer_retrieve(
     search_stage_region_profile_buffer_t* const region_profile_buffer,
     const uint64_t search_idx,archive_search_t** const archive_search) {
   // Retrieve archive-search

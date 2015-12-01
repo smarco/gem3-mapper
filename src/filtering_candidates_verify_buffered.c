@@ -8,12 +8,12 @@
 
 #include "filtering_candidates_verify_buffered.h"
 #include "align_bpm_pattern.h"
+#include "align_bpm_distance.h"
 
 /*
  * Debug
  */
 #define DEBUG_FILTERING_CANDIDATES  GEM_DEEP_DEBUG
-#define DEBUG_CHECK_VERIFY_BUFFERED true
 
 /*
  * Profile
@@ -24,23 +24,23 @@
 /*
  * BPM-Buffer API (Verification)
  */
-GEM_INLINE uint64_t filtering_candidates_verify_buffered_add(
+uint64_t filtering_candidates_verify_buffered_add(
     filtering_candidates_t* const filtering_candidates,pattern_t* const pattern,
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
   // Check number of pending regions
   const uint64_t pending_candidates = filtering_candidates_get_num_candidate_regions(filtering_candidates);
   if (pending_candidates==0) return 0;
-  // Add the pattern(chunks) to the buffer (add new queries)
-  gpu_buffer_align_bpm_add_pattern(gpu_buffer_align_bpm,pattern);
+  // Add the pattern to the buffer (add new queries)
+  gpu_buffer_align_bpm_add_pattern(gpu_buffer_align_bpm,&pattern->bpm_pattern);
+  gpu_buffer_align_bpm_record_query_length(gpu_buffer_align_bpm,pattern->key_length);
   // Fetch pattern dimensions
   const uint64_t max_error = pattern->max_effective_filtering_error;
-  const uint64_t pattern_length = pattern->key_length;
-  const uint64_t num_pattern_chunks = pattern->bpm_pattern.gpu_num_chunks;
-  const uint64_t pattern_entry_length = gpu_bpm_pattern_get_entry_length();
-  const uint64_t pattern_tile_tall = pattern->bpm_pattern.gpu_entries_per_chunk*pattern_entry_length;
+  const uint64_t gpu_pattern_length = pattern->key_length;
+  const uint64_t gpu_pattern_num_tiles = pattern->bpm_pattern.gpu_num_tiles;
+  const uint64_t gpu_pattern_tile_tall = pattern->bpm_pattern.gpu_entries_per_tile*gpu_bpm_pattern_get_entry_length();
   // Traverse all candidates (text-space) & add them to the buffer
   const filtering_region_t* candidate_region = vector_get_mem(filtering_candidates->filtering_regions,filtering_region_t);
-  uint64_t candidate_pos, pattern_chunk, total_candidates_added;
+  uint64_t candidate_pos, tile_offset, total_candidates_added;
   for (candidate_pos=0,total_candidates_added=0;candidate_pos<pending_candidates;++candidate_pos,++candidate_region) {
     // Locate candidate sequence
     const uint64_t begin_position = candidate_region->begin_position;
@@ -48,55 +48,58 @@ GEM_INLINE uint64_t filtering_candidates_verify_buffered_add(
     // Calculate tile dimensions
     pattern_tiled_t pattern_tiled;
     const bool pattern_can_align = pattern_tiled_init(&pattern_tiled,
-        pattern_length,pattern_tile_tall,candidate_length,max_error);
+        gpu_pattern_length,gpu_pattern_tile_tall,candidate_length,max_error);
     if (!pattern_can_align) continue;
     // Initialize current tile variables
-    for (pattern_chunk=0;pattern_chunk<num_pattern_chunks;++pattern_chunk,++total_candidates_added) {
+    for (tile_offset=0;tile_offset<gpu_pattern_num_tiles;++tile_offset,++total_candidates_added) {
       // BPM-GPU put candidate
-      gpu_buffer_align_bpm_add_candidate(gpu_buffer_align_bpm,
-          begin_position+pattern_tiled.tile_offset,pattern_tiled.tile_wide,pattern_chunk);
+      gpu_buffer_align_bpm_add_candidate(gpu_buffer_align_bpm,tile_offset,
+          begin_position+pattern_tiled.tile_offset,pattern_tiled.tile_wide);
       // Calculate next tile
       pattern_tiled_calculate_next(&pattern_tiled);
     }
   }
-  // Return the final number of chunk-candidates added to the buffer
+  gpu_buffer_align_bpm_record_candidates_per_query(gpu_buffer_align_bpm,total_candidates_added);
+  // Return the final number of candidate-tiles added to the buffer
   PROF_ADD_COUNTER(GP_BMP_TILED_NUM_TILES,total_candidates_added);
   PROF_ADD_COUNTER(GP_BMP_TILED_NUM_TILES_VERIFIED,total_candidates_added);
   return total_candidates_added;
 }
-GEM_INLINE void filtering_candidates_verify_buffered_get_candidate(
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t buffer_chunks_offset,
-    const uint64_t num_chunks,uint64_t* const candidate_begin_position,
+void filtering_candidates_verify_buffered_get_candidate(
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t candidate_offset,
+    const uint64_t num_tiles,uint64_t* const candidate_begin_position,
     uint64_t* const candidate_end_position,uint64_t* const candidate_length) {
-  uint32_t chunk_length;
+  uint32_t tile_length;
   gpu_buffer_align_bpm_get_candidate(gpu_buffer_align_bpm,
-      buffer_chunks_offset,candidate_begin_position,&chunk_length);
+      candidate_offset,candidate_begin_position,&tile_length);
   gpu_buffer_align_bpm_get_candidate(gpu_buffer_align_bpm,
-      buffer_chunks_offset+(num_chunks-1),candidate_end_position,&chunk_length);
-  *candidate_end_position += chunk_length;
+      candidate_offset+(num_tiles-1),candidate_end_position,&tile_length);
+  *candidate_end_position += tile_length;
   *candidate_length = *candidate_end_position - *candidate_begin_position;
 }
-GEM_INLINE bool filtering_candidates_verify_buffered_get_result(
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t buffer_chunks_offset,
-    const uint64_t num_chunks,const uint64_t key_length,
+bool filtering_candidates_verify_buffered_get_result(
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
+    const uint64_t candidate_offset,const uint64_t num_tiles,
+    bpm_pattern_t* const bpm_pattern,const uint64_t key_length,
     const uint64_t pattern_tile_tall,const uint64_t candidate_length,
     const uint64_t max_error,uint64_t* const global_distance,
-    uint64_t* const distance_link_tiles,uint64_t* const last_tile_match_position) {
+    uint64_t* const distance_link_tiles,uint64_t* const last_tile_match_position,
+    text_collection_t* const text_collection,mm_stack_t* const mm_stack) {
   // Calculate tile dimensions (Sum up the alignment distance of all the tiles)
   pattern_tiled_t pattern_tiled;
   const bool pattern_can_align = pattern_tiled_init(
       &pattern_tiled,key_length,pattern_tile_tall,candidate_length,max_error);
   if (!pattern_can_align) return false;
-  // Put together all tiles/chunks from the candidate (join results)
+  // Put together all tiles from the candidate (join results)
   *global_distance = 0;
   *distance_link_tiles = 0;
   bool unaligned_tiled = false;
-  uint64_t pattern_chunk;
-  for (pattern_chunk=0;pattern_chunk<num_chunks;++pattern_chunk) {
+  uint64_t pattern_tile;
+  for (pattern_tile=0;pattern_tile<num_tiles;++pattern_tile) {
     // Retrieve alignment distance
     uint32_t tile_distance=0, tile_match_column=0;
     gpu_buffer_align_bpm_get_result(gpu_buffer_align_bpm,
-        buffer_chunks_offset+pattern_chunk,&tile_distance,&tile_match_column);
+        candidate_offset+pattern_tile,&tile_distance,&tile_match_column);
     pattern_tiled.tile_distance = tile_distance;
     pattern_tiled.tile_match_column = tile_match_column;
     *global_distance += tile_distance;
@@ -106,14 +109,42 @@ GEM_INLINE bool filtering_candidates_verify_buffered_get_result(
     // Calculate next tile
     pattern_tiled_calculate_next(&pattern_tiled);
     // DEBUG
-    gem_cond_debug_block(DEBUG_CHECK_VERIFY_BUFFERED) {
-      // TODO
+#ifdef CUDA_CHECK_BUFFERED_VERIFY_CANDIDATES
+    mm_stack_push_state(mm_stack);
+    // Get Candidate & Pattern
+    uint64_t candidate_text_position;
+    uint32_t candidate_length;
+    bpm_pattern_t bpm_pattern_tile;
+    gpu_buffer_align_bpm_retrieve_pattern(gpu_buffer_align_bpm,
+        candidate_offset+pattern_tile,&bpm_pattern_tile,mm_stack);
+    gpu_buffer_align_bpm_get_candidate(gpu_buffer_align_bpm,
+        candidate_offset+pattern_tile,&candidate_text_position,&candidate_length);
+    // Get Candidate Text
+    const uint64_t text_trace_offset = archive_text_retrieve(
+        gpu_buffer_align_bpm->archive_text,text_collection,
+        candidate_text_position,candidate_length,false,mm_stack); // Retrieve text(s)
+    const text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
+    const uint8_t* const text = text_trace->text; // Candidate
+    // Align BPM & Set result
+    uint64_t check_tile_match_end_column, check_tile_distance;
+    bpm_compute_edit_distance_cutoff(&bpm_pattern_tile,text,candidate_length,
+        &check_tile_match_end_column,&check_tile_distance,bpm_pattern_tile.pattern_length,false);
+    if (tile_distance!=check_tile_distance || tile_match_column!=check_tile_match_end_column) {
+      gem_fatal_error_msg("Filtering.Candidates.Verify.Buffered. "
+          "Check verify candidate (Distance:%d!=%lu) (MatchPos:%d!=%lu)",
+          tile_distance,check_tile_distance,tile_match_column,check_tile_match_end_column);
     }
+    //      // Whole read // TODO + STATS
+    //      uint64_t match_end_column, match_distance;
+    //      bpm_compute_edit_distance_cutoff(global_pattern,text,candidate_length,
+    //          &match_end_column,&match_distance,global_pattern->pattern_length,false);
+    mm_stack_pop_state(mm_stack,false);
+#endif
   }
   *last_tile_match_position = pattern_tiled.prev_tile_match_position;
   return !unaligned_tiled;
 }
-GEM_INLINE uint64_t filtering_candidates_verify_buffered_retrieve(
+uint64_t filtering_candidates_verify_buffered_retrieve(
     filtering_candidates_t* const filtering_candidates,archive_text_t* const archive_text,
     text_collection_t* const text_collection,pattern_t* const pattern,
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t candidate_offset_begin,
@@ -121,17 +152,15 @@ GEM_INLINE uint64_t filtering_candidates_verify_buffered_retrieve(
   /*
    * Retrieve filtering-regions from BPM-Buffer
    */
-  PROFILE_START(GP_FC_RETRIEVE_BPM_BUFFER_CANDIDATE_REGIONS,PROFILE_LEVEL);
   if (gem_expect_false(candidate_offset_begin==candidate_offset_end)) return 0;
+  PROFILE_START(GP_FC_RETRIEVE_BPM_BUFFER_CANDIDATE_REGIONS,PROFILE_LEVEL);
   // Fetch Parameters
-  const uint64_t key_length = pattern->key_length;
   const uint64_t max_error = pattern->max_effective_filtering_error;
-  // Fetch tile dimensions
-  const uint64_t num_chunks = pattern->bpm_pattern.gpu_num_chunks;
-  const uint64_t pattern_entry_length = gpu_bpm_pattern_get_entry_length();
-  const uint64_t pattern_tile_tall = pattern->bpm_pattern.gpu_entries_per_chunk*pattern_entry_length;
+  const uint64_t gpu_pattern_length = pattern->key_length;
+  const uint64_t gpu_pattern_num_tiles = pattern->bpm_pattern.gpu_num_tiles;
+  const uint64_t gpu_pattern_tile_tall = pattern->bpm_pattern.gpu_entries_per_tile*gpu_bpm_pattern_get_entry_length();
   // Prepare filtering-regions vectors
-  const uint64_t pending_candidates = (candidate_offset_end-candidate_offset_begin)/num_chunks;
+  const uint64_t pending_candidates = (candidate_offset_end-candidate_offset_begin)/gpu_pattern_num_tiles;
   vector_reserve(filtering_candidates->verified_regions,pending_candidates,false);
   vector_reserve(filtering_candidates->filtering_regions,pending_candidates,false);
   vector_reserve(filtering_candidates->discarded_regions,pending_candidates,false);
@@ -145,15 +174,16 @@ GEM_INLINE uint64_t filtering_candidates_verify_buffered_retrieve(
     // Get the candidate dimensions
     uint64_t candidate_begin_position, candidate_end_position, candidate_length;
     filtering_candidates_verify_buffered_get_candidate(
-        gpu_buffer_align_bpm,candidate_idx,num_chunks,
+        gpu_buffer_align_bpm,candidate_idx,gpu_pattern_num_tiles,
         &candidate_begin_position,&candidate_end_position,&candidate_length);
     // Get the candidate result
-    uint64_t global_distance, distance_link_tiles, last_tile_match_position;
+    uint64_t global_distance = 0, distance_link_tiles = 0, last_tile_match_position = 0;
     const bool aligned = filtering_candidates_verify_buffered_get_result(
-        gpu_buffer_align_bpm,candidate_idx,num_chunks,
-        key_length,pattern_tile_tall,candidate_length,max_error,
-        &global_distance,&distance_link_tiles,&last_tile_match_position);
-    candidate_idx += num_chunks; // Next
+        gpu_buffer_align_bpm,candidate_idx,gpu_pattern_num_tiles,&pattern->bpm_pattern,
+        gpu_pattern_length,gpu_pattern_tile_tall,candidate_length,max_error,
+        &global_distance,&distance_link_tiles,&last_tile_match_position,
+        text_collection,mm_stack);
+    candidate_idx += gpu_pattern_num_tiles; // Next
     // Check total distance & Compose the retrieved region
     if (aligned && global_distance <= max_error) {
       // Configure accepted candidate

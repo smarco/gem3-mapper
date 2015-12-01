@@ -61,7 +61,7 @@ void filtering_region_align_clone(
 /*
  * Region (Re)Align
  */
-GEM_INLINE bool filtering_region_align(
+bool filtering_region_align(
     filtering_region_t* const filtering_region,archive_text_t* const archive_text,
     const text_collection_t* const text_collection,const as_parameters_t* const as_parameters,
     const bool emulated_rc_search,pattern_t* const pattern,matches_t* const matches,
@@ -230,7 +230,7 @@ GEM_INLINE bool filtering_region_align(
     return false; // Discarded
   }
 }
-GEM_INLINE bool filtering_region_align_unbounded(
+bool filtering_region_align_unbounded(
     filtering_region_t* const filtering_region,archive_text_t* const archive_text,
     const text_collection_t* const text_collection,const as_parameters_t* const as_parameters,
     const bool emulated_rc_search,pattern_t* const pattern,matches_t* const matches,

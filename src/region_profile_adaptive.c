@@ -47,12 +47,12 @@
 /*
  * Region Profile Generation (Query)
  */
-GEM_INLINE void region_profile_generator_save_cut_point(region_profile_generator_t* const generator) {
+void region_profile_generator_save_cut_point(region_profile_generator_t* const generator) {
   generator->last_cut = generator->key_position;
   generator->lo_cut = generator->lo;
   generator->hi_cut = generator->hi;
 }
-GEM_INLINE void region_profile_generator_restart(region_profile_generator_t* const generator) {
+void region_profile_generator_restart(region_profile_generator_t* const generator) {
   region_profile_t* const region_profile = generator->region_profile;
   region_search_t* const current_region = region_profile->filtering_region + region_profile->num_filtering_regions;
   current_region->end = generator->key_position;
@@ -66,7 +66,7 @@ GEM_INLINE void region_profile_generator_restart(region_profile_generator_t* con
 /*
  * Region Profile Generation (Region Handling)
  */
-GEM_INLINE void region_profile_generator_init(
+void region_profile_generator_init(
     region_profile_generator_t* const generator,region_profile_t* const region_profile,
     fm_index_t* const fm_index,const uint8_t* const key,const uint64_t key_length,
     const bool* const allowed_enc,const bool allow_zero_regions) {
@@ -90,7 +90,7 @@ GEM_INLINE void region_profile_generator_init(
   generator->key_position = key_length;
   region_profile_generator_restart(generator);
 }
-GEM_INLINE void region_profile_generator_close_region(
+void region_profile_generator_close_region(
     region_profile_generator_t* const generator,
     const region_profile_model_t* const profile_model,
     const uint64_t lo,const uint64_t hi) {
@@ -115,7 +115,7 @@ GEM_INLINE void region_profile_generator_close_region(
   region_profile->total_candidates += candidates_region;
   ++(region_profile->num_filtering_regions);
 }
-GEM_INLINE void region_profile_generator_close_profile(
+void region_profile_generator_close_profile(
     region_profile_generator_t* const generator,const region_profile_model_t* const profile_model) {
   region_profile_t* const region_profile = generator->region_profile;
   if (region_profile->num_filtering_regions == 0) {
@@ -145,7 +145,7 @@ GEM_INLINE void region_profile_generator_close_profile(
     region_profile->max_region_length = MAX(region_profile->max_region_length,last_region->begin);
   }
 }
-GEM_INLINE bool region_profile_generator_add_character(
+bool region_profile_generator_add_character(
     region_profile_generator_t* const generator,const region_profile_model_t* const profile_model) {
   // Region lookup status
   const uint64_t lo = generator->lo;
@@ -198,7 +198,7 @@ GEM_INLINE bool region_profile_generator_add_character(
     return true;
   }
 }
-GEM_INLINE bool region_profile_generator_disallow_character(
+bool region_profile_generator_disallow_character(
     region_profile_generator_t* const generator,const region_profile_model_t* const profile_model) {
   bool new_region = false;
   if (generator->last_cut != 0) {
@@ -216,7 +216,7 @@ GEM_INLINE bool region_profile_generator_disallow_character(
 /*
  * Region Profile Adaptive Iterator
  */
-GEM_INLINE bool region_profile_generator_next_region(
+bool region_profile_generator_next_region(
     region_profile_t* const region_profile,region_profile_generator_t* const generator,
     const region_profile_model_t* const profile_model) {
   PROFILE_START(GP_REGION_PROFILE_ADAPTIVE,PROFILE_LEVEL);
@@ -250,7 +250,7 @@ GEM_INLINE bool region_profile_generator_next_region(
 /*
  * Region Profile Adaptive
  */
-GEM_INLINE void region_profile_generate_adaptive(
+void region_profile_generate_adaptive(
     region_profile_t* const region_profile,fm_index_t* const fm_index,
     const uint8_t* const key,const uint64_t key_length,
     const bool* const allowed_enc,const region_profile_model_t* const profile_model,
@@ -298,7 +298,7 @@ GEM_INLINE void region_profile_generate_adaptive(
 /*
  * Region Profile Adaptive (limited to extract a minimum number of regions)
  */
-GEM_INLINE void region_profile_generate_adaptive_limited(
+void region_profile_generate_adaptive_limited(
     region_profile_t* const region_profile,fm_index_t* const fm_index,
     const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
     const region_profile_model_t* const profile_model,const uint64_t min_regions) {

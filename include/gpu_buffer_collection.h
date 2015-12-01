@@ -13,6 +13,20 @@
 #include "archive.h"
 #include "profiler_timer.h"
 
+/*
+ * Generate Benchmarks
+ */
+#define CUDA_BENCHMARK_GENERATE_REGION_PROFILE
+#define CUDA_BENCHMARK_GENERATE_DECODE_CANDIDATES
+#define CUDA_BENCHMARK_GENERATE_VERIFY_CANDIDATES
+
+/*
+ * Debug GPU results from gpu-buffers (for each stage)
+ */
+#define CUDA_CHECK_BUFFERED_REGION_PROFILE
+#define CUDA_CHECK_BUFFERED_DECODE_POSITIONS
+#define CUDA_CHECK_BUFFERED_VERIFY_CANDIDATES
+
 typedef struct {
   void* gpu_buffers_dto;              // GPU-Buffer Initializer DTO
   void** internal_buffers;            // Internal Buffers

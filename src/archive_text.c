@@ -16,7 +16,7 @@
 /*
  * Builder
  */
-GEM_INLINE void archive_text_write(
+void archive_text_write(
     fm_t* const file_manager,dna_text_t* const enc_text,
     const bool explicit_complement,const uint64_t forward_text_length,
     sampled_rl_t* const sampled_rl,const bool verbose) {
@@ -44,7 +44,7 @@ GEM_INLINE void archive_text_write(
 /*
  * Loader
  */
-GEM_INLINE archive_text_t* archive_text_read_mem(mm_t* const memory_manager) {
+archive_text_t* archive_text_read_mem(mm_t* const memory_manager) {
   // Allocate
   archive_text_t* const archive_text = mm_alloc(archive_text_t);
   // Read Header
@@ -64,7 +64,7 @@ GEM_INLINE archive_text_t* archive_text_read_mem(mm_t* const memory_manager) {
   // Return
   return archive_text;
 }
-GEM_INLINE void archive_text_delete(archive_text_t* const archive_text) {
+void archive_text_delete(archive_text_t* const archive_text) {
   // Delete Graph
   // TODO if (archive->index_type == fm_dna_graph) graph_text_delete(archive->graph);
   // Delete Text
@@ -76,44 +76,44 @@ GEM_INLINE void archive_text_delete(archive_text_t* const archive_text) {
 /*
  * Accessors
  */
-GEM_INLINE uint64_t archive_text_get_size(archive_text_t* const archive_text) {
+uint64_t archive_text_get_size(archive_text_t* const archive_text) {
   const uint64_t graph_size = 0; // TODO archive_text->hypertext ? graph_text_get_size(archive_text->graph) : 0;
   const uint64_t text_size = dna_text_get_size(archive_text->enc_text);
   const uint64_t sampled_rl_size = 0; // TODO
   return graph_size+text_size+sampled_rl_size;
 }
-GEM_INLINE strand_t archive_text_get_position_strand(
+strand_t archive_text_get_position_strand(
     archive_text_t* const archive_text,const uint64_t index_position) {
   return index_position < archive_text->forward_text_length ? Forward : Reverse;
 }
-GEM_INLINE uint64_t archive_text_get_unitary_projection(
+uint64_t archive_text_get_unitary_projection(
     archive_text_t* const archive_text,const uint64_t index_position) {
   return 2*archive_text->forward_text_length - index_position - 2;
 }
-GEM_INLINE uint64_t archive_text_get_projection(
+uint64_t archive_text_get_projection(
     archive_text_t* const archive_text,const uint64_t index_position,const uint64_t length) {
   return 2*archive_text->forward_text_length - index_position - length - 1;
 }
 /*
  * Archive Text Retriever
  */
-GEM_INLINE uint64_t archive_text_retrieve(
+uint64_t archive_text_retrieve(
     archive_text_t* const archive_text,const text_collection_t* const text_collection,
-    const uint64_t index_position,const uint64_t length,
+    const uint64_t text_position,const uint64_t length,
     const bool reverse_complement_text,mm_stack_t* const mm_stack) {
   // Allocate text-trace
   const uint64_t text_trace_offset = text_collection_new_trace(text_collection);
   // Retrieve sequence
   text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
   text_trace->length = length;
-  if (index_position < archive_text->forward_text_length || archive_text->explicit_complement) {
+  if (text_position < archive_text->forward_text_length || archive_text->explicit_complement) {
     if (reverse_complement_text) {
       if (archive_text->explicit_complement) {
-        const uint64_t position_fprojection = archive_text_get_projection(archive_text,index_position,length);
+        const uint64_t position_fprojection = archive_text_get_projection(archive_text,text_position,length);
         text_trace->text = dna_text_retrieve_sequence(archive_text->enc_text,position_fprojection,length,mm_stack);
       } else {
         // Reverse-Complement the text
-        uint8_t* const text = dna_text_retrieve_sequence(archive_text->enc_text,index_position,length,mm_stack);
+        uint8_t* const text = dna_text_retrieve_sequence(archive_text->enc_text,text_position,length,mm_stack);
         text_trace->text = mm_stack_calloc(mm_stack,length,uint8_t,false);
         uint64_t i_forward, i_backward;
         for (i_forward=0,i_backward=length-1;i_forward<length;++i_forward,--i_backward) {
@@ -121,11 +121,11 @@ GEM_INLINE uint64_t archive_text_retrieve(
         }
       }
     } else {
-      text_trace->text = dna_text_retrieve_sequence(archive_text->enc_text,index_position,length,mm_stack);
+      text_trace->text = dna_text_retrieve_sequence(archive_text->enc_text,text_position,length,mm_stack);
     }
   } else {
     // Forward projection
-    const uint64_t position_fprojection = archive_text_get_projection(archive_text,index_position,length);
+    const uint64_t position_fprojection = archive_text_get_projection(archive_text,text_position,length);
     uint8_t* const text = dna_text_retrieve_sequence(archive_text->enc_text,position_fprojection,length,mm_stack);
     if (reverse_complement_text) {
       text_trace->text = text;
@@ -144,7 +144,7 @@ GEM_INLINE uint64_t archive_text_retrieve(
 /*
  * Display
  */
-GEM_INLINE void archive_text_print(FILE* const stream,const archive_text_t* const archive_text) {
+void archive_text_print(FILE* const stream,const archive_text_t* const archive_text) {
   const uint64_t graph_size = 0; // TODO archive_text->hypertext ? graph_text_get_size(archive_text->graph) : 0;
   const uint64_t text_size = dna_text_get_size(archive_text->enc_text);
   const uint64_t sampled_rl_size = 0; // TODO
@@ -184,14 +184,14 @@ GEM_INLINE void archive_text_print(FILE* const stream,const archive_text_t* cons
 ///*
 // * Position Locator
 // */
-//GEM_INLINE void archive_text_append_starting_position_at_interval(
+//void archive_text_append_starting_position_at_interval(
 //    const locator_interval_t* const loc_interval,const uint64_t position_no_offset,
 //    svector_iterator_t* const positions_iterator) {
 //  const int64_t starting_position = MAX(loc_interval->begin_position,position_no_offset);
 //  *svector_iterator_get_element(positions_iterator,uint64_t) = starting_position;
 //  svector_write_iterator_next(positions_iterator); // Next
 //}
-//GEM_INLINE void archive_text_append_starting_position_rec(
+//void archive_text_append_starting_position_rec(
 //    archive_t* const archive,
 //    const locator_interval_t* const loc_interval,const int64_t current_vertex_index,
 //    const int64_t current_index_position,const int64_t current_right_offset,
@@ -248,7 +248,7 @@ GEM_INLINE void archive_text_print(FILE* const stream,const archive_text_t* cons
 //      archive,loc_interval,current_vertex_index-1,
 //      vertex->position,new_right_offset+1,positions_iterator);
 //}
-//GEM_INLINE void archive_text_append_starting_position(
+//void archive_text_append_starting_position(
 //    archive_t* const archive,const uint64_t index_position,const uint64_t right_offset,
 //    svector_iterator_t* const positions_iterator) {
 //  ARCHIVE_CHECK(archive);
@@ -268,12 +268,12 @@ GEM_INLINE void archive_text_print(FILE* const stream,const archive_text_t* cons
 ///*
 // * Text Retriever
 // */
-//GEM_INLINE void archive_text_retrieve_continuous_text_within_interval(
+//void archive_text_retrieve_continuous_text_within_interval(
 //    const locator_interval_t* const loc_interval,const uint64_t current_index_position,
 //    const uint64_t remaining_length,text_block_t* const current_text_block) {
 //  // TODO
 //}
-//GEM_INLINE void archive_text_retrieve_rec(
+//void archive_text_retrieve_rec(
 //    archive_t* const archive,
 //    const locator_interval_t* const loc_interval,const int64_t current_vertex_index,
 //    const uint64_t current_index_position,const int64_t remaining_length,

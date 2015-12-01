@@ -13,7 +13,7 @@
 /*
  * Brute Force
  */
-GEM_INLINE void nsearch_hamming_brute_force_step(
+void nsearch_hamming_brute_force_step(
     nsearch_schedule_t* const nsearch_schedule,
     const uint64_t current_position,const uint64_t current_error) {
   char* const search_string = nsearch_schedule->search_string; // Use first
@@ -34,7 +34,7 @@ GEM_INLINE void nsearch_hamming_brute_force_step(
     }
   }
 }
-GEM_INLINE void nsearch_hamming_brute_force(
+void nsearch_hamming_brute_force(
     fm_index_t* const fm_index,uint8_t* const key,
     const uint64_t key_length,const uint64_t max_error,
     interval_set_t* const intervals_result,mm_stack_t* const mm_stack) {
@@ -51,7 +51,7 @@ GEM_INLINE void nsearch_hamming_brute_force(
 /*
  * Perform scheduled search
  */
-GEM_INLINE void nsearch_hamming_perform_scheduled_search(
+void nsearch_hamming_perform_scheduled_search(
     nsearch_schedule_t* const nsearch_schedule,const uint64_t pending_searches,
     nsearch_operation_t* const nsearch_operation,const uint64_t position,
     const uint64_t local_error,const uint64_t global_error) {
@@ -94,7 +94,7 @@ GEM_INLINE void nsearch_hamming_perform_scheduled_search(
 /*
  * Hamming Neighborhood Search
  */
-GEM_INLINE void nsearch_hamming(
+void nsearch_hamming(
     fm_index_t* const fm_index,uint8_t* const key,
     const uint64_t key_length,const uint64_t max_error,
     interval_set_t* const intervals_result,mm_stack_t* const mm_stack) {
@@ -112,7 +112,7 @@ GEM_INLINE void nsearch_hamming(
 /*
  * Neighborhood Search (Preconditioned by region profile)
  */
-GEM_INLINE void nsearch_hamming_preconditioned(
+void nsearch_hamming_preconditioned(
     fm_index_t* const fm_index,region_profile_t* const region_profile,
     uint8_t* const key,const uint64_t key_length,const uint64_t max_error,
     interval_set_t* const intervals_result,mm_stack_t* const mm_stack) {

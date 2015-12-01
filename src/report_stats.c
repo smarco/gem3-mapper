@@ -4,7 +4,7 @@
 /*
  * Initialize mapping stats
  */
-GEM_INLINE void init_mapping_stats(mapping_stats_t* mstats) {
+void init_mapping_stats(mapping_stats_t* mstats) {
 	 int i,read;
 	 for(read=0;read<2;read++) {
 			mstats->unmapped[read]=0;
@@ -19,7 +19,7 @@ GEM_INLINE void init_mapping_stats(mapping_stats_t* mstats) {
 	 mstats->insert_size_dist=ihash_new();
 }
 
-GEM_INLINE void merge_ihash(ihash_t* ihash1, ihash_t* ihash2) {
+void merge_ihash(ihash_t* ihash1, ihash_t* ihash2) {
 	 ihash_element_t* ih;
 	 for(ih=ihash2->head;ih;ih=ih->hh.next) {
 			uint64_t* count;
@@ -35,7 +35,7 @@ GEM_INLINE void merge_ihash(ihash_t* ihash1, ihash_t* ihash2) {
 	 }
 }
 
-GEM_INLINE void merge_mapping_stats(mapping_stats_t* global_mstats, mapping_stats_t* mstats, uint64_t num_threads) {
+void merge_mapping_stats(mapping_stats_t* global_mstats, mapping_stats_t* mstats, uint64_t num_threads) {
 	 init_mapping_stats(global_mstats);
 	 uint64_t i;
 	 for(i=0;i<num_threads;i++) {
@@ -56,7 +56,7 @@ GEM_INLINE void merge_mapping_stats(mapping_stats_t* global_mstats, mapping_stat
 
 int btab[256]={ ['A'] = 1, ['C'] = 2, ['G'] = 3, ['T'] = 4 };
 
-GEM_INLINE void update_counts(sequence_t* const seq_read, mapping_stats_t* mstats,int end) {
+void update_counts(sequence_t* const seq_read, mapping_stats_t* mstats,int end) {
 	 string_t* const read = &seq_read->read;
 	 const uint64_t len = string_get_length(read);
 	 uint64_t* count;
@@ -73,7 +73,7 @@ GEM_INLINE void update_counts(sequence_t* const seq_read, mapping_stats_t* mstat
 	 while(*p) mstats->base_counts[0][end][btab[(int)*p++]]++;
 }
 
-GEM_INLINE void update_conversion_counts(sequence_t* const seq_read, mapping_stats_t* mstats,int end,bs_strand_t bs,int read_type) {
+void update_conversion_counts(sequence_t* const seq_read, mapping_stats_t* mstats,int end,bs_strand_t bs,int read_type) {
 	 int cnv_idx[4][4] = {{0,0,0,0},{1,0,3,5},{2,0,4,6},{0,0,0,0}};
 	 
 	 int idx=cnv_idx[bs][read_type];
@@ -84,7 +84,7 @@ GEM_INLINE void update_conversion_counts(sequence_t* const seq_read, mapping_sta
 	 }
 }
 
-GEM_INLINE int get_read_type(match_trace_t* match) {
+int get_read_type(match_trace_t* match) {
 	 char *control_seqs[]={SEQUENCING_CONTROL, UNDERCONVERSION_CONTROL, OVERCONVERSION_CONTROL,0};
 	 
 	 char* seq = match->sequence_name;
@@ -94,7 +94,7 @@ GEM_INLINE int get_read_type(match_trace_t* match) {
 	 return i%4;
 }
 
-GEM_INLINE void collect_SE_mapping_stats(archive_search_t* const archive_search, matches_t* const matches, mapping_stats_t* mstats) {
+void collect_SE_mapping_stats(archive_search_t* const archive_search, matches_t* const matches, mapping_stats_t* mstats) {
 	 update_counts(&archive_search->sequence,mstats,0);
 	 bs_strand_t bs = bs_strand_none;
 	 int read_type = -1;
@@ -117,7 +117,7 @@ GEM_INLINE void collect_SE_mapping_stats(archive_search_t* const archive_search,
 	 }
 }
 
-GEM_INLINE void collect_PE_mapping_stats(archive_search_t* const archive_search1, archive_search_t* const archive_search2,
+void collect_PE_mapping_stats(archive_search_t* const archive_search1, archive_search_t* const archive_search2,
  	 paired_matches_t* const paired_matches, mapping_stats_t* mstats) {
 
 	 update_counts(&archive_search1->sequence,mstats,0);
@@ -192,11 +192,11 @@ GEM_INLINE void collect_PE_mapping_stats(archive_search_t* const archive_search1
 char *indent_str="\t\t\t\t\t\t\t\t";
 #define MAX_JSON_ARRAY_LINE 8
 
-GEM_INLINE void output_json_uint_element(FILE *fp,char *key,uint64_t value,int indent,bool last) {
+void output_json_uint_element(FILE *fp,char *key,uint64_t value,int indent,bool last) {
 	 fprintf(fp,"%.*s\"%s\": %"PRIu64"%s",indent,indent_str,key,value,last?"\n":",\n");
 }
 
-GEM_INLINE void output_json_uint_array(FILE *fp,char *key,uint64_t *values,int n,int indent,bool last) {
+void output_json_uint_array(FILE *fp,char *key,uint64_t *values,int n,int indent,bool last) {
 	 if(n<=MAX_JSON_ARRAY_LINE) {
 			fprintf(fp,"%.*s\"%s\": ",indent,indent_str,key);
 			int i;
@@ -221,7 +221,7 @@ GEM_INLINE void output_json_uint_array(FILE *fp,char *key,uint64_t *values,int n
 	 }
 }
 
-GEM_INLINE void output_mapping_stats(mapper_parameters_t *parameters, mapping_stats_t* mstats) {
+void output_mapping_stats(mapper_parameters_t *parameters, mapping_stats_t* mstats) {
 	 char *output_file = parameters->io.report_file_name;
 	 FILE *fp = fopen(output_file,"w");
 	 if(!fp) return;

@@ -21,7 +21,7 @@
 #define FASTA_TEST_FASTA_SKIP_LINE() \
   while (buffer_pos<buffer_size && buffer[buffer_pos]!=EOL && buffer[buffer_pos]!=DOS_EOL) ++buffer_pos; \
   INPUT_FILE_SKIP_EOL(buffer,buffer_pos)
-GEM_INLINE bool input_fasta_parser_test_fastq(
+bool input_fasta_parser_test_fastq(
     char* const file_name,const uint64_t line_num,char* const buffer,const uint64_t buffer_size,
     fasta_file_format_t* const fasta_file_format,const bool show_errors) {
   // Check trivial case
@@ -73,13 +73,13 @@ GEM_INLINE bool input_fasta_parser_test_fastq(
       return false;
   }
 }
-GEM_INLINE bool input_file_test_fasta(
+bool input_file_test_fasta(
     input_file_t* const input_file,fasta_file_format_t* const fasta_file_format,const bool show_errors) {
   INPUT_FILE_CHECK(input_file);
   return (input_fasta_parser_test_fastq(input_file_get_file_name(input_file),input_file->processed_lines+1,
       (char*)input_file->file_buffer,input_file->buffer_size,fasta_file_format,show_errors));
 }
-GEM_INLINE error_code_t input_fasta_parser_check_fastq_file_format(buffered_input_file_t* const buffered_fasta_input) {
+error_code_t input_fasta_parser_check_fastq_file_format(buffered_input_file_t* const buffered_fasta_input) {
   input_file_t* const input_file = buffered_fasta_input->input_file;
   if (expect_false(input_file->file_format==FILE_FORMAT_UNKNOWN)) { // Unknown
     fasta_file_format_t fasta_file_format;
@@ -102,7 +102,7 @@ GEM_INLINE error_code_t input_fasta_parser_check_fastq_file_format(buffered_inpu
 /*
  * Error handler
  */
-GEM_INLINE void input_fasta_parser_prompt_error(
+void input_fasta_parser_prompt_error(
     buffered_input_file_t* const buffered_fasta_input,
     uint64_t line_num,uint64_t column_pos,const error_code_t error_code) {
   // Display textual error msg
@@ -130,7 +130,7 @@ GEM_INLINE void input_fasta_parser_prompt_error(
          input_buffer->cursor[0]!=FASTA_TAG_BEGIN) { \
     input_buffer_skip_line(input_buffer); \
   }
-GEM_INLINE void input_fasta_parser_next_record(buffered_input_file_t* const buffered_fasta_input,char* const line_start) {
+void input_fasta_parser_next_record(buffered_input_file_t* const buffered_fasta_input,char* const line_start) {
   input_buffer_t* const input_buffer = buffered_fasta_input->input_buffer;
   // Back to the beginning
   input_buffer->cursor = line_start;
@@ -160,16 +160,16 @@ GEM_INLINE void input_fasta_parser_next_record(buffered_input_file_t* const buff
 /*
  * Accessors
  */
-GEM_INLINE bool input_fasta_is_fasta(input_file_t* const input_file) {
+bool input_fasta_is_fasta(input_file_t* const input_file) {
   return input_file->file_format==FASTA && input_file->fasta==F_FASTA;
 }
-GEM_INLINE bool input_fasta_is_fastq(input_file_t* const input_file) {
+bool input_fasta_is_fastq(input_file_t* const input_file) {
   return input_file->file_format==FASTA && input_file->fasta==F_FASTQ;
 }
 /*
  * FASTQ/FASTA format. Basic building block for parsing
  */
-GEM_INLINE error_code_t ifp_parse_tag(
+error_code_t ifp_parse_tag(
     input_buffer_t* const input_buffer,string_t* const tag,
     sequence_attributes_t* const attributes,bool* const has_qualities) {
   STRING_CHECK(tag);
@@ -192,7 +192,7 @@ GEM_INLINE error_code_t ifp_parse_tag(
   if (PARSER_IS_EOL(text_line)) PARSER_NEXT_CHAR(text_line);
   return 0;
 }
-GEM_INLINE error_code_t ifp_parse_read(
+error_code_t ifp_parse_read(
     input_file_t* const input_file,input_buffer_t* const input_buffer,
     string_t* const read,const bool strictly_normalized,const bool correct_sequence) {
   if (input_buffer_eob(input_buffer)) return FASTA_ERROR_PREMATURE_EOF;
@@ -221,7 +221,7 @@ GEM_INLINE error_code_t ifp_parse_read(
   PARSER_NEXT_CHAR(text_line);
   return 0;
 }
-GEM_INLINE error_code_t ifp_parse_qualities(
+error_code_t ifp_parse_qualities(
     input_file_t* const input_file,input_buffer_t* const input_buffer,
     string_t* const qualities,const bool try_recovery) {
   if (input_buffer_eob(input_buffer)) return FASTA_ERROR_PREMATURE_EOF;
@@ -248,7 +248,7 @@ GEM_INLINE error_code_t ifp_parse_qualities(
 /*
  * High Level Parsers
  */
-GEM_INLINE error_code_t ifp_parse_sequence(
+error_code_t ifp_parse_sequence(
     input_file_t* const input_file,input_buffer_t* const input_buffer,
     sequence_t* const seq_read,const bool strictly_normalized,const bool try_recovery) {
   // Parse TAG
@@ -278,7 +278,7 @@ GEM_INLINE error_code_t ifp_parse_sequence(
   }
   return 0;
 }
-GEM_INLINE error_code_t input_fasta_parse_sequence(
+error_code_t input_fasta_parse_sequence(
     buffered_input_file_t* const buffered_fasta_input,sequence_t* const seq_read,
     const bool strictly_normalized,const bool try_recovery,const bool check_input_buffer) {
   BUFFERED_INPUT_FILE_CHECK(buffered_fasta_input);

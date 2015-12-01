@@ -25,7 +25,7 @@
 /*
  * Memory Injection (Support Data Structures)
  */
-GEM_INLINE void archive_search_se_inject_mm(archive_search_t* const archive_search,mm_search_t* const mm_search) {
+void archive_search_se_inject_mm(archive_search_t* const archive_search,mm_search_t* const mm_search) {
   archive_search_inject_mm_stack(archive_search,mm_search->mm_stack);
   archive_search_inject_mapper_stats(archive_search,mm_search->mapper_stats);
   archive_search_inject_interval_set(archive_search,&mm_search->interval_set);
@@ -37,7 +37,7 @@ GEM_INLINE void archive_search_se_inject_mm(archive_search_t* const archive_sear
 /*
  * Archive Search SE Continue
  */
-GEM_INLINE void archive_search_se_continue(archive_search_t* const archive_search,matches_t* const matches) {
+void archive_search_se_continue(archive_search_t* const archive_search,matches_t* const matches) {
   // Run the search (FORWARD)
   approximate_search_t* const forward_asearch = &archive_search->forward_search_state;
   approximate_search(forward_asearch,matches); // Forward search
@@ -50,7 +50,7 @@ GEM_INLINE void archive_search_se_continue(archive_search_t* const archive_searc
 /*
  * Single-End Indexed Search (SE Online Approximate String Search)
  */
-GEM_INLINE void archive_search_se(archive_search_t* const archive_search,matches_t* const matches) {
+void archive_search_se(archive_search_t* const archive_search,matches_t* const matches) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE) {
     tab_fprintf(stderr,"[GEM]>ArchiveSearch.SE\n");
@@ -96,7 +96,7 @@ GEM_INLINE void archive_search_se(archive_search_t* const archive_search,matches
 /*
  * Compute Predictors
  */
-GEM_INLINE void archive_search_se_compute_predictors(
+void archive_search_se_compute_predictors(
     archive_search_t* const archive_search,matches_t* const matches,
     matches_predictors_t* const predictors) {
   const uint64_t read_length = sequence_get_length(&archive_search->sequence);
@@ -111,7 +111,7 @@ GEM_INLINE void archive_search_se_compute_predictors(
 /*
  * Display
  */
-GEM_INLINE void archive_search_se_print(
+void archive_search_se_print(
     FILE* const stream,archive_search_t* const archive_search,matches_t* const matches) {
   tab_fprintf(stream,"[GEM]>ArchiveSearch.SE\n");
   tab_global_inc();

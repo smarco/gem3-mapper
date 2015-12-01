@@ -19,7 +19,7 @@
 /*
  * Chained local-SWG Alignment
  */
-GEM_INLINE void match_align_local_swg_chain_local_max(
+void match_align_local_swg_chain_local_max(
     matches_t* const matches,match_trace_t* const match_trace,
     match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
     match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack) {
@@ -119,7 +119,7 @@ GEM_INLINE void match_align_local_swg_chain_local_max(
  *   @match_scaffold->scaffold_regions
  *   @match_scaffold->num_scaffold_regions
  */
-GEM_INLINE void match_align_local_smith_waterman_gotoh(
+void match_align_local_smith_waterman_gotoh(
     matches_t* const matches,match_trace_t* const match_trace,
     match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
     match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack) {

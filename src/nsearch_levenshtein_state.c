@@ -11,7 +11,7 @@
 /*
  * DP-Matrix
  */
-GEM_INLINE void nsearch_levenshtein_state_init(
+void nsearch_levenshtein_state_init(
     nsearch_levenshtein_state_t* const nsearch_levenshtein_state,
     const uint64_t num_columns,const uint64_t column_length,
     mm_stack_t* const mm_stack) {
@@ -33,7 +33,7 @@ GEM_INLINE void nsearch_levenshtein_state_init(
 /*
  * Prepare DP
  */
-GEM_INLINE void nsearch_levenshtein_state_prepare_full(
+void nsearch_levenshtein_state_prepare_full(
     nsearch_levenshtein_state_t* const nsearch_state,const uint64_t key_begin,
     const uint64_t key_end,const uint64_t max_error) {
   // Parameters
@@ -62,7 +62,7 @@ GEM_INLINE void nsearch_levenshtein_state_prepare_full(
     next_column->cells[key_length] = NS_INF;
   }
 }
-GEM_INLINE void nsearch_levenshtein_state_prepare_supercondensed(
+void nsearch_levenshtein_state_prepare_supercondensed(
     nsearch_levenshtein_state_t* const nsearch_state,const uint64_t max_error) {
   // Parameters
   const uint64_t key_length = nsearch_state->key_end - nsearch_state->key_begin;
@@ -93,7 +93,7 @@ GEM_INLINE void nsearch_levenshtein_state_prepare_supercondensed(
 /*
  * Compute DP
  */
-GEM_INLINE void nsearch_levenshtein_state_compute_chararacter(
+void nsearch_levenshtein_state_compute_chararacter(
     nsearch_levenshtein_state_t* const nsearch_state,const bool forward_search,
     const uint8_t* const key,const uint64_t key_begin,const uint64_t key_end,
     const uint64_t text_offset,const uint8_t text_char_enc,
@@ -124,7 +124,7 @@ GEM_INLINE void nsearch_levenshtein_state_compute_chararacter(
   *min_val = NS_DECODE_DISTANCE(column_min);
   *align_distance = NS_HAS_PRIORITY(column_last,1) ? NS_DECODE_DISTANCE(column_last) : NS_INF;
 }
-GEM_INLINE void nsearch_levenshtein_state_compute_sequence(
+void nsearch_levenshtein_state_compute_sequence(
     nsearch_levenshtein_state_t* const nsearch_state,
     nsearch_levenshtein_state_t* const next_nsearch_state,
     const bool forward_search) {
@@ -149,7 +149,7 @@ GEM_INLINE void nsearch_levenshtein_state_compute_sequence(
 /*
  * Display
  */
-GEM_INLINE void nsearch_levenshtein_state_print(
+void nsearch_levenshtein_state_print(
     FILE* const stream,nsearch_levenshtein_state_t* const nsearch_state,
     const bool forward_search,const uint8_t* const key) {
   fprintf(stream,"[GEM]> Levenshtein.State\n");
@@ -164,7 +164,7 @@ GEM_INLINE void nsearch_levenshtein_state_print(
       key,nsearch_state->key_begin,nsearch_state->key_end,
       nsearch_state->local_text,0,nsearch_state->local_text_length);
 }
-GEM_INLINE void nsearch_levenshtein_state_print_search_text(
+void nsearch_levenshtein_state_print_search_text(
     FILE* const stream,nsearch_levenshtein_state_t* const nsearch_state,
     const bool forward_search) {
   if (forward_search) {
@@ -176,7 +176,7 @@ GEM_INLINE void nsearch_levenshtein_state_print_search_text(
   }
   fprintf(stream,"\n");
 }
-GEM_INLINE void nsearch_levenshtein_state_print_local_text(
+void nsearch_levenshtein_state_print_local_text(
     FILE* const stream,nsearch_levenshtein_state_t* const nsearch_state,
     const bool forward_search) {
   const uint8_t* const local_text = nsearch_state->local_text;

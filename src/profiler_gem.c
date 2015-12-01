@@ -30,7 +30,7 @@ profiler_t gem_profile; // THE GREAT PROFILER
 /*
  * Setup
  */
-GEM_INLINE void PROF_NEW(const uint64_t num_threads) {
+void PROF_NEW(const uint64_t num_threads) {
   // Allocate handler
   gem_profile.profile = mm_calloc(num_threads,profile_t,true);
   // Initialize
@@ -50,7 +50,7 @@ GEM_INLINE void PROF_NEW(const uint64_t num_threads) {
     }
   }
 }
-GEM_INLINE void PROF_DELETE() {
+void PROF_DELETE() {
   // Release all profile counters
   uint64_t i;
   for (i=0;i<gem_profile.num_threads;++i) {
@@ -63,106 +63,106 @@ GEM_INLINE void PROF_DELETE() {
 /*
  * PROFILE-TIME functions
  */
-GEM_INLINE void PROF_START_TIMER(const uint64_t timer) {
+void PROF_START_TIMER(const uint64_t timer) {
   TIMER_START(gem_profile.profile[gtid()].timers+timer);
 }
-GEM_INLINE void PROF_STOP_TIMER(const uint64_t timer) {
+void PROF_STOP_TIMER(const uint64_t timer) {
   TIMER_STOP(gem_profile.profile[gtid()].timers+timer);
 }
-GEM_INLINE void PROF_PAUSE_TIMER(const uint64_t timer) {
+void PROF_PAUSE_TIMER(const uint64_t timer) {
   TIMER_PAUSE(gem_profile.profile[gtid()].timers+timer);
 }
-GEM_INLINE void PROF_CONTINUE_TIMER(const uint64_t timer) {
+void PROF_CONTINUE_TIMER(const uint64_t timer) {
   TIMER_CONTINUE(gem_profile.profile[gtid()].timers+timer);
 }
-GEM_INLINE void PROF_RESET_TIMER(const uint64_t timer) {
+void PROF_RESET_TIMER(const uint64_t timer) {
   TIMER_RESET(gem_profile.profile[gtid()].timers+timer);
 }
-GEM_INLINE gem_timer_t* PROF_GET_TIMER(const uint64_t timer) {
+gem_timer_t* PROF_GET_TIMER(const uint64_t timer) {
   return gem_profile.profile[gtid()].timers+timer;
 }
 /*
  * PROFILE-COUNTERS functions
  */
-GEM_INLINE void PROF_RESET_COUNTER(const uint64_t counter) {
+void PROF_RESET_COUNTER(const uint64_t counter) {
   COUNTER_RESET(gem_profile.profile[gtid()].counters+counter);
 }
-GEM_INLINE void PROF_ADD_COUNTER(const uint64_t counter,const uint64_t value) {
+void PROF_ADD_COUNTER(const uint64_t counter,const uint64_t value) {
   COUNTER_ADD(gem_profile.profile[gtid()].counters+counter,value);
 }
-GEM_INLINE void PROF_INC_COUNTER(const uint64_t counter) {
+void PROF_INC_COUNTER(const uint64_t counter) {
   COUNTER_ADD(gem_profile.profile[gtid()].counters+counter,1);
 }
-GEM_INLINE gem_counter_t* PROF_GET_COUNTER(const uint64_t counter) {
+gem_counter_t* PROF_GET_COUNTER(const uint64_t counter) {
   return gem_profile.profile[gtid()].counters+counter;
 }
 /*
  * PROFILE-RANKS functions
  */
 extern uint64_t _bwt_ranks; // Bwt rank counter
-GEM_INLINE void PROF_START_RANK(const uint64_t rank) {
+void PROF_START_RANK(const uint64_t rank) {
   RCOUNTER_START(gem_profile.profile[gtid()].ranks+rank,_bwt_ranks);
 }
-GEM_INLINE void PROF_STOP_RANK(const uint64_t rank) {
+void PROF_STOP_RANK(const uint64_t rank) {
   RCOUNTER_STOP(gem_profile.profile[gtid()].ranks+rank,_bwt_ranks);
 }
-GEM_INLINE void PROF_PAUSE_RANK(const uint64_t rank) {
+void PROF_PAUSE_RANK(const uint64_t rank) {
   RCOUNTER_PAUSE(gem_profile.profile[gtid()].ranks+rank,_bwt_ranks);
 }
-GEM_INLINE void PROF_CONTINUE_RANK(const uint64_t rank) {
+void PROF_CONTINUE_RANK(const uint64_t rank) {
   RCOUNTER_CONTINUE(gem_profile.profile[gtid()].ranks+rank,_bwt_ranks);
 }
-GEM_INLINE void PROF_RESET_RANK(const uint64_t rank) {
+void PROF_RESET_RANK(const uint64_t rank) {
   RCOUNTER_RESET(gem_profile.profile[gtid()].ranks+rank);
 }
-GEM_INLINE gem_counter_t* PROF_GET_RANK(const uint64_t rank) {
+gem_counter_t* PROF_GET_RANK(const uint64_t rank) {
   return &gem_profile.profile[gtid()].ranks[rank].counter;
 }
 /*
  * PROFILE-COMBINED (TIME/RANKS) functions
  */
-GEM_INLINE void PROF_START(const uint64_t timer__ranks) {
+void PROF_START(const uint64_t timer__ranks) {
   TIMER_START(gem_profile.profile[gtid()].timers+timer__ranks);
   RCOUNTER_START(gem_profile.profile[gtid()].ranks+timer__ranks,_bwt_ranks);
 }
-GEM_INLINE void PROF_STOP(const uint64_t timer__ranks) {
+void PROF_STOP(const uint64_t timer__ranks) {
   TIMER_STOP(gem_profile.profile[gtid()].timers+timer__ranks);
   RCOUNTER_STOP(gem_profile.profile[gtid()].ranks+timer__ranks,_bwt_ranks);
 }
-GEM_INLINE void PROF_PAUSE(const uint64_t timer__ranks) {
+void PROF_PAUSE(const uint64_t timer__ranks) {
   TIMER_PAUSE(gem_profile.profile[gtid()].timers+timer__ranks);
   RCOUNTER_PAUSE(gem_profile.profile[gtid()].ranks+timer__ranks,_bwt_ranks);
 }
-GEM_INLINE void PROF_CONTINUE(const uint64_t timer__ranks) {
+void PROF_CONTINUE(const uint64_t timer__ranks) {
   TIMER_CONTINUE(gem_profile.profile[gtid()].timers+timer__ranks);
   RCOUNTER_CONTINUE(gem_profile.profile[gtid()].ranks+timer__ranks,_bwt_ranks);
 }
-GEM_INLINE void PROF_RESET(const uint64_t timer__ranks) {
+void PROF_RESET(const uint64_t timer__ranks) {
   TIMER_RESET(gem_profile.profile[gtid()].timers+timer__ranks);
   RCOUNTER_RESET(gem_profile.profile[gtid()].ranks+timer__ranks);
 }
 /*
  * Display statistics
  */
-GEM_INLINE uint64_t PROF_COUNT_PERCENTAGE(const uint64_t counter,const uint64_t total_counter) {
+uint64_t PROF_COUNT_PERCENTAGE(const uint64_t counter,const uint64_t total_counter) {
   const uint64_t gtid = gtid();
   return PERCENTAGE(
       COUNTER_GET_TOTAL(gem_profile.profile[gtid].counters + counter),
       COUNTER_GET_TOTAL(gem_profile.profile[gtid].counters + total_counter) );
 }
-GEM_INLINE double PROF_COUNT_DIV(const uint64_t counter1,const uint64_t counter2) {
+double PROF_COUNT_DIV(const uint64_t counter1,const uint64_t counter2) {
   const uint64_t gtid = gtid();
   return DIV(
       COUNTER_GET_TOTAL(gem_profile.profile[gtid].counters+counter1),
       COUNTER_GET_TOTAL(gem_profile.profile[gtid].counters+counter2) );
 }
-GEM_INLINE double PROF_TIME_PERCENTAGE(const uint64_t timer,const uint64_t total_timer) {
+double PROF_TIME_PERCENTAGE(const uint64_t timer,const uint64_t total_timer) {
   const uint64_t gtid = gtid();
   const uint64_t timer_ns = TIMER_GET_TOTAL_NS(gem_profile.profile[gtid].timers+timer);
   const uint64_t total_timer_ns = TIMER_GET_TOTAL_NS(gem_profile.profile[gtid].timers+total_timer);
   return PERCENTAGE(timer_ns,total_timer_ns);
 }
-GEM_INLINE double PROF_TIME_PER_CALL(const uint64_t timer) {
+double PROF_TIME_PER_CALL(const uint64_t timer) {
   const uint64_t gtid = gtid();
   gem_timer_t* const prof_timer = gem_profile.profile[gtid].timers+timer;
   const uint64_t num_calls = TIMER_GET_NUM_SAMPLES(prof_timer);
@@ -172,7 +172,7 @@ GEM_INLINE double PROF_TIME_PER_CALL(const uint64_t timer) {
 /*
  * Utils
  */
-GEM_INLINE void PROF_REDUCE_SUM() {
+void PROF_REDUCE_SUM() {
   uint64_t i;
   for (i=1;i<gem_profile.num_threads;++i) {
     uint64_t j;
@@ -183,7 +183,7 @@ GEM_INLINE void PROF_REDUCE_SUM() {
     }
   }
 }
-GEM_INLINE void PROF_REDUCE_MAX() {
+void PROF_REDUCE_MAX() {
   uint64_t i;
   for (i=1;i<gem_profile.num_threads;++i) {
     uint64_t j;
@@ -194,7 +194,7 @@ GEM_INLINE void PROF_REDUCE_MAX() {
     }
   }
 }
-GEM_INLINE void PROF_REDUCE_MIN() {
+void PROF_REDUCE_MIN() {
   uint64_t i;
   for (i=1;i<gem_profile.num_threads;++i) {
     uint64_t j;
@@ -205,7 +205,7 @@ GEM_INLINE void PROF_REDUCE_MIN() {
     }
   }
 }
-GEM_INLINE void PROF_REDUCE_MEAN() {
+void PROF_REDUCE_MEAN() {
   uint64_t i;
   for (i=1;i<gem_profile.num_threads;++i) {
     uint64_t j;
@@ -216,7 +216,7 @@ GEM_INLINE void PROF_REDUCE_MEAN() {
     }
   }
 }
-GEM_INLINE void PROF_REDUCE_SAMPLE() {
+void PROF_REDUCE_SAMPLE() {
   uint64_t i, j;
   for (j=0;j<GP_MAX_COUNTERS;++j) {
     i=0;

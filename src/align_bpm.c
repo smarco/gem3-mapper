@@ -21,7 +21,7 @@
  *   @align_input->text
  *   @align_input->text_length
  */
-GEM_INLINE void align_bpm_compute_matrix(
+void align_bpm_compute_matrix(
     match_align_input_t* const align_input,const uint64_t max_distance,
     bpm_align_matrix_t* const bpm_align_matrix,mm_stack_t* const mm_stack) {
   // Parameters
@@ -126,7 +126,7 @@ GEM_INLINE void align_bpm_compute_matrix(
  *   @bpm_align_matrix->min_score
  *   @match_alignment->match_position (Adjusted)
  */
-GEM_INLINE void align_bpm_backtrace_matrix(
+void align_bpm_backtrace_matrix(
     match_align_input_t* const align_input,const bool left_gap_alignment,
     bpm_align_matrix_t* const bpm_align_matrix,match_alignment_t* const match_alignment,
     vector_t* const cigar_vector) {
@@ -233,7 +233,7 @@ GEM_INLINE void align_bpm_backtrace_matrix(
  *   @align_input->text_length
  *   @match_alignment->match_position (Adjusted)
  */
-GEM_INLINE void align_bpm_match(
+void align_bpm_match(
     match_align_input_t* const align_input,const uint64_t max_distance,
     const bool left_gap_alignment,match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,mm_stack_t* const mm_stack) {

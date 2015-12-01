@@ -13,7 +13,7 @@
 /*
  * Constructors
  */
-GEM_INLINE stats_vector_t* stats_vector_customed_range_new(
+stats_vector_t* stats_vector_customed_range_new(
     uint64_t* const customed_range_values,const uint64_t num_ranges,
     const uint64_t out_of_range_bucket_size) {
   GEM_CHECK_NULL(customed_range_values);
@@ -34,7 +34,7 @@ GEM_INLINE stats_vector_t* stats_vector_customed_range_new(
   stats_vector->out_values = ihash_new();
   return stats_vector;
 }
-GEM_INLINE stats_vector_t* stats_vector_step_range_new(
+stats_vector_t* stats_vector_step_range_new(
     const uint64_t max_value,const uint64_t step,
     const uint64_t out_of_range_bucket_size) {
   GEM_CHECK_ZERO(step);
@@ -56,7 +56,7 @@ GEM_INLINE stats_vector_t* stats_vector_step_range_new(
   stats_vector->out_values = ihash_new();
   return stats_vector;
 }
-GEM_INLINE stats_vector_t* stats_vector_raw_new(
+stats_vector_t* stats_vector_raw_new(
     const uint64_t num_values,const uint64_t out_of_range_bucket_size) {
   GEM_CHECK_ZERO(out_of_range_bucket_size);
   // Allocate handler
@@ -73,7 +73,7 @@ GEM_INLINE stats_vector_t* stats_vector_raw_new(
   stats_vector->out_values = ihash_new();
   return stats_vector;
 }
-GEM_INLINE stats_vector_t* stats_vector_new_from_template(stats_vector_t* const stats_vector_template) {
+stats_vector_t* stats_vector_new_from_template(stats_vector_t* const stats_vector_template) {
   // Allocate handler
   stats_vector_t* const stats_vector = mm_alloc(stats_vector_t);
   // Copy template
@@ -90,12 +90,12 @@ GEM_INLINE stats_vector_t* stats_vector_new_from_template(stats_vector_t* const 
   // Return
   return stats_vector;
 }
-GEM_INLINE void stats_vector_clear(stats_vector_t* const stats_vector) {
+void stats_vector_clear(stats_vector_t* const stats_vector) {
   STATS_VECTOR_CHECK(stats_vector);
   memset(stats_vector->counters,0,stats_vector->num_counters);
   ihash_clear(stats_vector->out_values);
 }
-GEM_INLINE void stats_vector_delete(stats_vector_t* const stats_vector) {
+void stats_vector_delete(stats_vector_t* const stats_vector) {
   STATS_VECTOR_CHECK(stats_vector);
   free(stats_vector->counters);
   ihash_delete(stats_vector->out_values);
@@ -104,7 +104,7 @@ GEM_INLINE void stats_vector_delete(stats_vector_t* const stats_vector) {
 /*
  * Index (value -> index)
  */
-GEM_INLINE uint64_t stats_cvector_get_index(stats_vector_t* const stats_vector,const uint64_t value) {
+uint64_t stats_cvector_get_index(stats_vector_t* const stats_vector,const uint64_t value) {
   STATS_VECTOR_CHECK(stats_vector);
   uint64_t* const range_values = stats_vector->customed_range_values;
   uint64_t lo = 0;
@@ -124,7 +124,7 @@ GEM_INLINE uint64_t stats_cvector_get_index(stats_vector_t* const stats_vector,c
     return lo;
   }
 }
-GEM_INLINE uint64_t stats_svector_get_index(stats_vector_t* const stats_vector,const uint64_t value) {
+uint64_t stats_svector_get_index(stats_vector_t* const stats_vector,const uint64_t value) {
   STATS_VECTOR_CHECK(stats_vector);
   if (value >= stats_vector->max_value) {
     return STATS_VECTOR_OUT_OF_RANGE;
@@ -132,7 +132,7 @@ GEM_INLINE uint64_t stats_svector_get_index(stats_vector_t* const stats_vector,c
     return value/stats_vector->step;
   }
 }
-GEM_INLINE uint64_t stats_rvector_get_index(stats_vector_t* const stats_vector,const uint64_t value) {
+uint64_t stats_rvector_get_index(stats_vector_t* const stats_vector,const uint64_t value) {
   STATS_VECTOR_CHECK(stats_vector);
   if (stats_vector->max_value <= value) {
     return STATS_VECTOR_OUT_OF_RANGE;
@@ -140,11 +140,11 @@ GEM_INLINE uint64_t stats_rvector_get_index(stats_vector_t* const stats_vector,c
     return value;
   }
 }
-GEM_INLINE uint64_t stats_hvector_get_index(stats_vector_t* const stats_vector,const uint64_t value) {
+uint64_t stats_hvector_get_index(stats_vector_t* const stats_vector,const uint64_t value) {
   STATS_VECTOR_CHECK(stats_vector);
   return (stats_vector->max_index+1) + (value-stats_vector->max_value)/stats_vector->out_of_range_bucket_size;
 }
-GEM_INLINE uint64_t stats_vector_get_index(stats_vector_t* const stats_vector,const uint64_t value) {
+uint64_t stats_vector_get_index(stats_vector_t* const stats_vector,const uint64_t value) {
   uint64_t bucket_index;
   switch (stats_vector->type) {
     case STATS_VECTOR_CUSTOMED_RANGE:
@@ -166,7 +166,7 @@ GEM_INLINE uint64_t stats_vector_get_index(stats_vector_t* const stats_vector,co
 /*
  * Vector's Buckets getters
  */
-GEM_INLINE uint64_t* stats_hvector_get_counter(stats_vector_t* const stats_vector,const uint64_t value) {
+uint64_t* stats_hvector_get_counter(stats_vector_t* const stats_vector,const uint64_t value) {
   STATS_VECTOR_CHECK(stats_vector);
   const uint64_t bucket_index = stats_hvector_get_index(stats_vector,value);
   // Fetch counter
@@ -178,7 +178,7 @@ GEM_INLINE uint64_t* stats_hvector_get_counter(stats_vector_t* const stats_vecto
   ihash_insert(stats_vector->out_values,bucket_index,counter);
   return counter;
 }
-GEM_INLINE uint64_t* stats_vector_get_counter(stats_vector_t* const stats_vector,const uint64_t value) {
+uint64_t* stats_vector_get_counter(stats_vector_t* const stats_vector,const uint64_t value) {
   STATS_VECTOR_CHECK(stats_vector);
   uint64_t bucket_index;
   switch (stats_vector->type) {
@@ -205,25 +205,25 @@ GEM_INLINE uint64_t* stats_vector_get_counter(stats_vector_t* const stats_vector
 /*
  * Increment/Add bucket counter
  */
-GEM_INLINE void stats_vector_inc(stats_vector_t* const stats_vector,const uint64_t value) {
+void stats_vector_inc(stats_vector_t* const stats_vector,const uint64_t value) {
   STATS_VECTOR_CHECK(stats_vector);
   ++(*stats_vector_get_counter(stats_vector,value));
 }
-GEM_INLINE void stats_vector_add(stats_vector_t* const stats_vector,const uint64_t value,const uint64_t amount) {
+void stats_vector_add(stats_vector_t* const stats_vector,const uint64_t value,const uint64_t amount) {
   STATS_VECTOR_CHECK(stats_vector);
   *stats_vector_get_counter(stats_vector,value) += amount;
 }
 /*
  * Bucket counters getters (Individual buckets & Accumulated ranges)
  */
-GEM_INLINE uint64_t stats_vector_get_count(stats_vector_t* const stats_vector,const uint64_t value) {
+uint64_t stats_vector_get_count(stats_vector_t* const stats_vector,const uint64_t value) {
   STATS_VECTOR_CHECK(stats_vector);
   return *stats_vector_get_counter(stats_vector,value);
 }
 /*
  * Bucket counters getters (Accumulated ranges)
  */
-GEM_INLINE uint64_t stats_vector_get_accumulated_count(stats_vector_t* const stats_vector) {
+uint64_t stats_vector_get_accumulated_count(stats_vector_t* const stats_vector) {
   STATS_VECTOR_CHECK(stats_vector);
   stats_vector_iterator_t* const iterator = stats_vector_iterator_new(stats_vector);
   uint64_t acc_count = 0;
@@ -234,7 +234,7 @@ GEM_INLINE uint64_t stats_vector_get_accumulated_count(stats_vector_t* const sta
   stats_vector_iterator_delete(iterator);
   return acc_count;
 }
-GEM_INLINE uint64_t stats_vector_get_range_accumulated_count(
+uint64_t stats_vector_get_range_accumulated_count(
     stats_vector_t* const stats_vector,const uint64_t value_from,const uint64_t value_to) {
   STATS_VECTOR_CHECK(stats_vector);
   // TODO
@@ -244,7 +244,7 @@ GEM_INLINE uint64_t stats_vector_get_range_accumulated_count(
  * Inverse Index (index -> value)
  *   Given the stats_vector index returns the corresponding value/range.
  */
-GEM_INLINE void stats_vector_get_value_range(
+void stats_vector_get_value_range(
     stats_vector_t* const stats_vector,const uint64_t index,
     uint64_t* const lo_value,uint64_t* const hi_value) {
   STATS_VECTOR_CHECK(stats_vector);
@@ -274,13 +274,13 @@ GEM_INLINE void stats_vector_get_value_range(
 /*
  * Merge 2 stats-vector (adding bucket counting)
  */
-GEM_INLINE void stats_vector_merge(stats_vector_t* const stats_dst,stats_vector_t* const stats_src) {
+void stats_vector_merge(stats_vector_t* const stats_dst,stats_vector_t* const stats_src) {
   // TODO
 }
 /*
  * Display (Printers)
  */
-GEM_INLINE void stats_vector_display(
+void stats_vector_display(
     FILE* const stream,stats_vector_t* const stats_vector,
     const bool display_zeros,const bool display_percentage,void (*print_label)(uint64_t)) {
   stats_vector_iterator_t* const iterator = stats_vector_iterator_new(stats_vector);
@@ -323,7 +323,7 @@ GEM_INLINE void stats_vector_display(
   }
   stats_vector_iterator_delete(iterator);
 }
-GEM_INLINE void stats_vector_print_ranges(FILE* const stream,stats_vector_t* const stats_vector) {
+void stats_vector_print_ranges(FILE* const stream,stats_vector_t* const stats_vector) {
   stats_vector_iterator_t* const iterator = stats_vector_iterator_new(stats_vector);
   while (!stats_vector_iterator_eoi(iterator)) {
     // Print Ranges
@@ -339,7 +339,7 @@ GEM_INLINE void stats_vector_print_ranges(FILE* const stream,stats_vector_t* con
   }
   stats_vector_iterator_delete(iterator);
 }
-GEM_INLINE void stats_vector_print_values(FILE* const stream,stats_vector_t* const stats_vector,const bool display_percentage) {
+void stats_vector_print_values(FILE* const stream,stats_vector_t* const stats_vector,const bool display_percentage) {
   stats_vector_iterator_t* const iterator = stats_vector_iterator_new(stats_vector);
   const uint64_t sum_values = (display_percentage) ? stats_vector_get_accumulated_count(stats_vector) : 0;
   while (!stats_vector_iterator_eoi(iterator)) {
@@ -358,7 +358,7 @@ GEM_INLINE void stats_vector_print_values(FILE* const stream,stats_vector_t* con
 /*
  * Iterator
  */
-GEM_INLINE void stats_vector_iterator_set_eoi(stats_vector_iterator_t* const sv_iterator) {
+void stats_vector_iterator_set_eoi(stats_vector_iterator_t* const sv_iterator) {
   STATS_VECTOR_ITERATOR_CHECK(sv_iterator);
   if (sv_iterator->index > sv_iterator->last_index) {
     sv_iterator->eoi = true;
@@ -370,7 +370,7 @@ GEM_INLINE void stats_vector_iterator_set_eoi(stats_vector_iterator_t* const sv_
     }
   }
 }
-GEM_INLINE stats_vector_iterator_t* stats_vector_iterator_new(stats_vector_t* const stats_vector) {
+stats_vector_iterator_t* stats_vector_iterator_new(stats_vector_t* const stats_vector) {
   STATS_VECTOR_CHECK(stats_vector);
   // Allocate
   stats_vector_iterator_t* const sv_iterator = mm_alloc(stats_vector_iterator_t);
@@ -386,7 +386,7 @@ GEM_INLINE stats_vector_iterator_t* stats_vector_iterator_new(stats_vector_t* co
   // Ret
   return sv_iterator;
 }
-GEM_INLINE stats_vector_iterator_t* stats_vector_iterator_range_new(
+stats_vector_iterator_t* stats_vector_iterator_range_new(
     stats_vector_t* const stats_vector,const uint64_t value_from,const uint64_t value_to) {
   STATS_VECTOR_CHECK(stats_vector);
   // Allocate
@@ -403,16 +403,16 @@ GEM_INLINE stats_vector_iterator_t* stats_vector_iterator_range_new(
   // Ret
   return sv_iterator;
 }
-GEM_INLINE void stats_vector_iterator_delete(stats_vector_iterator_t* const sv_iterator) {
+void stats_vector_iterator_delete(stats_vector_iterator_t* const sv_iterator) {
   STATS_VECTOR_ITERATOR_CHECK(sv_iterator);
   ihash_iterator_delete(sv_iterator->ihash_iterator);
   mm_free(sv_iterator);
 }
-GEM_INLINE bool stats_vector_iterator_eoi(stats_vector_iterator_t* const sv_iterator) {
+bool stats_vector_iterator_eoi(stats_vector_iterator_t* const sv_iterator) {
   STATS_VECTOR_ITERATOR_CHECK(sv_iterator);
   return sv_iterator->eoi;
 }
-GEM_INLINE void stats_vector_iterator_next(stats_vector_iterator_t* const sv_iterator) {
+void stats_vector_iterator_next(stats_vector_iterator_t* const sv_iterator) {
   STATS_VECTOR_ITERATOR_CHECK(sv_iterator);
   if (gem_expect_true(!stats_vector_iterator_eoi(sv_iterator))) {
     if (sv_iterator->index < sv_iterator->stats_vector->num_counters-1) {
@@ -431,11 +431,11 @@ GEM_INLINE void stats_vector_iterator_next(stats_vector_iterator_t* const sv_ite
     }
   }
 }
-GEM_INLINE uint64_t stats_vector_iterator_get_index(stats_vector_iterator_t* const sv_iterator) {
+uint64_t stats_vector_iterator_get_index(stats_vector_iterator_t* const sv_iterator) {
   STATS_VECTOR_ITERATOR_CHECK(sv_iterator);
   return sv_iterator->index;
 }
-GEM_INLINE uint64_t stats_vector_iterator_get_count(stats_vector_iterator_t* const sv_iterator) {
+uint64_t stats_vector_iterator_get_count(stats_vector_iterator_t* const sv_iterator) {
   STATS_VECTOR_ITERATOR_CHECK(sv_iterator);
   if (sv_iterator->index < sv_iterator->stats_vector->num_counters) { // Counters iteration
     return sv_iterator->stats_vector->counters[sv_iterator->index];
@@ -443,7 +443,7 @@ GEM_INLINE uint64_t stats_vector_iterator_get_count(stats_vector_iterator_t* con
     return *((uint64_t*)ihash_iterator_get_element(sv_iterator->ihash_iterator));
   }
 }
-GEM_INLINE void stats_vector_iterator_get_range(
+void stats_vector_iterator_get_range(
     stats_vector_iterator_t* const sv_iterator,
     uint64_t* const lo_value,uint64_t* const hi_value) {
   STATS_VECTOR_ITERATOR_CHECK(sv_iterator);

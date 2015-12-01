@@ -22,7 +22,7 @@
 /*
  * Curate Alignment
  */
-GEM_INLINE bool match_align_curate_cigar_trim(
+bool match_align_curate_cigar_trim(
     match_align_parameters_t* const align_parameters,const cigar_element_t* const cigar_element,
     uint64_t* const trim_length,uint64_t* const match_position) {
   switch (cigar_element->type) {
@@ -53,7 +53,7 @@ GEM_INLINE bool match_align_curate_cigar_trim(
   }
   return false;
 }
-GEM_INLINE void match_align_curate_cigar(
+void match_align_curate_cigar(
     match_trace_t* const match_trace,vector_t* const cigar_vector,
     match_align_parameters_t* const align_parameters) {
   // Parameters
@@ -160,7 +160,7 @@ GEM_INLINE void match_align_curate_cigar(
  *   @align_parameters->swg_penalties
  *   @match_trace->match_alignment.score
  */
-GEM_INLINE void match_align_exact(
+void match_align_exact(
     matches_t* const matches,match_trace_t* const match_trace,
     match_align_input_t* const align_input,match_align_parameters_t* const align_parameters) {
   PROFILE_START(GP_MATCHES_ALIGN_EXACT,PROFILE_LEVEL);
@@ -199,7 +199,7 @@ GEM_INLINE void match_align_exact(
  *   @align_parameters->emulated_rc_search
  *   @align_parameters->allowed_enc
  */
-GEM_INLINE void match_align_hamming(
+void match_align_hamming(
     matches_t* const matches,match_trace_t* const match_trace,
     match_align_input_t* const align_input,match_align_parameters_t* const align_parameters) {
   PROFILE_START(GP_MATCHES_ALIGN_HAMMING,PROFILE_LEVEL);
@@ -257,7 +257,7 @@ GEM_INLINE void match_align_hamming(
  *   @align_parameters->max_error
  *   @align_parameters->left_gap_alignment
  */
-GEM_INLINE void match_align_levenshtein(
+void match_align_levenshtein(
     matches_t* const matches,match_trace_t* const match_trace,
     match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
     mm_stack_t* const mm_stack) {
@@ -307,7 +307,7 @@ GEM_INLINE void match_align_levenshtein(
  *   @match_scaffold->scaffold_regions
  *   @match_scaffold->num_scaffold_regions
  */
-GEM_INLINE void match_align_smith_waterman_gotoh(
+void match_align_smith_waterman_gotoh(
     matches_t* const matches,match_trace_t* const match_trace,
     match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
     match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack) {

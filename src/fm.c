@@ -75,7 +75,7 @@ const char* const fm_gzfile_open_flags[3] = { "rb", "wb9", "wb+9"};
 /*
  * Setup
  */
-GEM_INLINE void fm_initialize(fm_t* const file_manager) {
+void fm_initialize(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   // Locator
   file_manager->eof = FM_IS_READING(file_manager->mode) ? feof(file_manager->file) : false;
@@ -114,7 +114,7 @@ GEM_INLINE void fm_initialize(fm_t* const file_manager) {
   file_manager->skip_read_buffer=NULL;
   file_manager->skip_write_buffer=NULL;
 }
-GEM_INLINE void fm_check_file_type(fm_t* const file_manager,char* const file_name) {
+void fm_check_file_type(fm_t* const file_manager,char* const file_name) {
   GEM_CHECK_NULL(file_manager);
   // Check FILE stats
   struct stat stat_info;
@@ -140,7 +140,7 @@ GEM_INLINE void fm_check_file_type(fm_t* const file_manager,char* const file_nam
   }
   gem_cond_fatal_error__perror(fclose(file),FM_CLOSE,file_name);
 }
-GEM_INLINE fm_t* fm_open_file(char* const file_name,const fm_mode mode) {
+fm_t* fm_open_file(char* const file_name,const fm_mode mode) {
   GEM_CHECK_NULL(file_name);
   // Allocate handler
   fm_t* file_manager = mm_alloc(fm_t);
@@ -171,7 +171,7 @@ GEM_INLINE fm_t* fm_open_file(char* const file_name,const fm_mode mode) {
   // Return fm
   return file_manager;
 }
-GEM_INLINE fm_t* fm_open_temp_file() {
+fm_t* fm_open_temp_file() {
   // Allocate handler
   fm_t* const file_manager = mm_alloc(fm_t);
   // Open a file
@@ -199,7 +199,7 @@ GEM_INLINE fm_t* fm_open_temp_file() {
   // Return fm
   return file_manager;
 }
-GEM_INLINE fm_t* fm_open_FILE(FILE* const stream,const fm_mode mode) {
+fm_t* fm_open_FILE(FILE* const stream,const fm_mode mode) {
   GEM_CHECK_NULL(stream);
   // Allocate handler
   fm_t* file_manager = mm_alloc(fm_t);
@@ -222,7 +222,7 @@ GEM_INLINE fm_t* fm_open_FILE(FILE* const stream,const fm_mode mode) {
   // Return fm
   return file_manager;
 }
-GEM_INLINE fm_t* fm_open_gzFILE(FILE* const stream,const fm_mode mode) {
+fm_t* fm_open_gzFILE(FILE* const stream,const fm_mode mode) {
 #ifndef HAVE_BZLIB
   gem_fatal_error(FM_NO_ZLIB_SUPPORT);
   return NULL;
@@ -250,7 +250,7 @@ GEM_INLINE fm_t* fm_open_gzFILE(FILE* const stream,const fm_mode mode) {
   return file_manager;
 #endif
 }
-GEM_INLINE fm_t* fm_open_bzFILE(FILE* const stream,const fm_mode mode) {
+fm_t* fm_open_bzFILE(FILE* const stream,const fm_mode mode) {
 #ifndef HAVE_BZLIB
   gem_fatal_error(FM_NO_BZLIB_SUPPORT);
   return NULL;
@@ -274,7 +274,7 @@ GEM_INLINE fm_t* fm_open_bzFILE(FILE* const stream,const fm_mode mode) {
   return file_manager;
 #endif
 }
-GEM_INLINE void fm_close(fm_t* const file_manager) {
+void fm_close(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   // Close fm
   switch (file_manager->file_type) {
@@ -314,11 +314,11 @@ GEM_INLINE void fm_close(fm_t* const file_manager) {
 /*
  * Accesors
  */
-GEM_INLINE uint64_t fm_get_current_position(fm_t* const file_manager) {
+uint64_t fm_get_current_position(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   return file_manager->byte_position;
 }
-GEM_INLINE bool fm_eof(fm_t* const file_manager) {
+bool fm_eof(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   // Shortcut eof
   if (file_manager->eof) return true;
@@ -346,18 +346,18 @@ GEM_INLINE bool fm_eof(fm_t* const file_manager) {
   }
   return true;
 }
-GEM_INLINE char* fm_get_file_name(fm_t* const file_manager) {
+char* fm_get_file_name(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   return file_manager->file_name;
 }
-GEM_INLINE uint64_t fm_get_file_size(fm_t* const file_manager) {
+uint64_t fm_get_file_size(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   return file_manager->file_size;
 }
 /*
  * Seek
  */
-GEM_INLINE void fm_seek(fm_t* const file_manager,const uint64_t position) {
+void fm_seek(fm_t* const file_manager,const uint64_t position) {
   FM_CHECK(file_manager);
   if (file_manager->file_type==FM_REGULAR_FILE) {
     if (file_manager->byte_position!=position) {
@@ -401,7 +401,7 @@ GEM_INLINE void fm_seek(fm_t* const file_manager,const uint64_t position) {
     GEM_NOT_SUPPORTED();
   }
 }
-GEM_INLINE void fm_skip_forward(fm_t* const file_manager,const uint64_t num_bytes) {
+void fm_skip_forward(fm_t* const file_manager,const uint64_t num_bytes) {
   FM_CHECK(file_manager);
   GEM_CHECK_ZERO(num_bytes);
   if (FM_IS_READING(file_manager->mode)) {
@@ -445,7 +445,7 @@ GEM_INLINE void fm_skip_forward(fm_t* const file_manager,const uint64_t num_byte
     }
   }
 }
-GEM_INLINE void fm_skip_uint64(fm_t* const file_manager) {
+void fm_skip_uint64(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   if (FM_IS_READING(file_manager->mode)) {
     fm_read_uint64(file_manager);
@@ -453,7 +453,7 @@ GEM_INLINE void fm_skip_uint64(fm_t* const file_manager) {
     fm_write_uint64(file_manager,0);
   }
 }
-GEM_INLINE void fm_skip_uint32(fm_t* const file_manager) {
+void fm_skip_uint32(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   if (FM_IS_READING(file_manager->mode)) {
     fm_read_uint32(file_manager);
@@ -461,7 +461,7 @@ GEM_INLINE void fm_skip_uint32(fm_t* const file_manager) {
     fm_write_uint32(file_manager,0);
   }
 }
-GEM_INLINE void fm_skip_uint16(fm_t* const file_manager) {
+void fm_skip_uint16(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   if (FM_IS_READING(file_manager->mode)) {
     fm_read_uint16(file_manager);
@@ -469,7 +469,7 @@ GEM_INLINE void fm_skip_uint16(fm_t* const file_manager) {
     fm_write_uint16(file_manager,0);
   }
 }
-GEM_INLINE void fm_skip_uint8(fm_t* const file_manager) {
+void fm_skip_uint8(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   if (FM_IS_READING(file_manager->mode)) {
     fm_read_uint8(file_manager);
@@ -477,7 +477,7 @@ GEM_INLINE void fm_skip_uint8(fm_t* const file_manager) {
     fm_write_uint8(file_manager,0);
   }
 }
-GEM_INLINE void fm_skip_align(fm_t* const file_manager,const uint64_t num_bytes) {
+void fm_skip_align(fm_t* const file_manager,const uint64_t num_bytes) {
   FM_CHECK(file_manager);
   GEM_CHECK_ZERO(num_bytes);
   const uint64_t bytes_mod = file_manager->byte_position % num_bytes;
@@ -486,35 +486,35 @@ GEM_INLINE void fm_skip_align(fm_t* const file_manager,const uint64_t num_bytes)
     fm_skip_forward(file_manager,bytes_to_skip);
   }
 }
-GEM_INLINE void fm_skip_align_16(fm_t* const file_manager) {
+void fm_skip_align_16(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   fm_skip_align(file_manager,2);
 }
-GEM_INLINE void fm_skip_align_32(fm_t* const file_manager) {
+void fm_skip_align_32(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   fm_skip_align(file_manager,4);
 }
-GEM_INLINE void fm_skip_align_64(fm_t* const file_manager) {
+void fm_skip_align_64(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   fm_skip_align(file_manager,8);
 }
-GEM_INLINE void fm_skip_align_128(fm_t* const file_manager) {
+void fm_skip_align_128(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   fm_skip_align(file_manager,16);
 }
-GEM_INLINE void fm_skip_align_512(fm_t* const file_manager) {
+void fm_skip_align_512(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   fm_skip_align(file_manager,64);
 }
-GEM_INLINE void fm_skip_align_1024(fm_t* const file_manager) {
+void fm_skip_align_1024(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   fm_skip_align(file_manager,128);
 }
-GEM_INLINE void fm_skip_align_4KB(fm_t* const file_manager) {
+void fm_skip_align_4KB(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   fm_skip_align(file_manager,4096);
 }
-GEM_INLINE void fm_skip_align_mempage(fm_t* const file_manager) {
+void fm_skip_align_mempage(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   int64_t sz = sysconf(_SC_PAGESIZE);
   gem_cond_fatal_error__perror(sz==-1,SYS_SYSCONF);
@@ -523,31 +523,31 @@ GEM_INLINE void fm_skip_align_mempage(fm_t* const file_manager) {
 /*
  * Read
  */
-GEM_INLINE uint64_t fm_read_uint64(fm_t* const file_manager) {
+uint64_t fm_read_uint64(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   uint64_t var;
   fm_read_mem(file_manager,&var,8);
   return var;
 }
-GEM_INLINE uint32_t fm_read_uint32(fm_t* const file_manager) {
+uint32_t fm_read_uint32(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   uint32_t var;
   fm_read_mem(file_manager,&var,4);
   return var;
 }
-GEM_INLINE uint16_t fm_read_uint16(fm_t* const file_manager) {
+uint16_t fm_read_uint16(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   uint16_t var;
   fm_read_mem(file_manager,&var,2);
   return var;
 }
-GEM_INLINE uint8_t fm_read_uint8(fm_t* const file_manager) {
+uint8_t fm_read_uint8(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   uint8_t var;
   fm_read_mem(file_manager,&var,1);
   return var;
 }
-GEM_INLINE uint64_t fm_read_mem(fm_t* const file_manager,void* const dst,const uint64_t num_bytes) {
+uint64_t fm_read_mem(fm_t* const file_manager,void* const dst,const uint64_t num_bytes) {
   FM_CHECK(file_manager);
   GEM_CHECK_NULL(dst);
   GEM_CHECK_ZERO(num_bytes);
@@ -590,12 +590,12 @@ GEM_INLINE uint64_t fm_read_mem(fm_t* const file_manager,void* const dst,const u
   file_manager->byte_position += num_bytes_read;
   return num_bytes_read;
 }
-GEM_INLINE uint64_t fm_read_mem_parallel(
+uint64_t fm_read_mem_parallel(
     fm_t* const file_manager,void* const dst,const uint64_t num_bytes,const uint64_t num_threads) {
   GEM_NOT_IMPLEMENTED(); // TODO
   return 0;
 }
-GEM_INLINE mm_t* fm_load_mem(fm_t* const file_manager,const uint64_t num_bytes) {
+mm_t* fm_load_mem(fm_t* const file_manager,const uint64_t num_bytes) {
   FM_CHECK(file_manager);
   GEM_CHECK_ZERO(num_bytes);
   // Allocate Memory
@@ -607,7 +607,7 @@ GEM_INLINE mm_t* fm_load_mem(fm_t* const file_manager,const uint64_t num_bytes) 
   // Return
   return mm;
 }
-GEM_INLINE void fm_prefetch_next(fm_t* const file_manager,const uint64_t num_bytes) {
+void fm_prefetch_next(fm_t* const file_manager,const uint64_t num_bytes) {
   FM_CHECK(file_manager);
   GEM_CHECK_ZERO(num_bytes);
   // Read
@@ -626,23 +626,23 @@ GEM_INLINE void fm_prefetch_next(fm_t* const file_manager,const uint64_t num_byt
 /*
  * Write
  */
-GEM_INLINE void fm_write_uint64(fm_t* const file_manager,const uint64_t data) {
+void fm_write_uint64(fm_t* const file_manager,const uint64_t data) {
   FM_CHECK(file_manager);
   fm_write_mem(file_manager,&data,8);
 }
-GEM_INLINE void fm_write_uint32(fm_t* const file_manager,const uint32_t data) {
+void fm_write_uint32(fm_t* const file_manager,const uint32_t data) {
   FM_CHECK(file_manager);
   fm_write_mem(file_manager,&data,4);
 }
-GEM_INLINE void fm_write_uint16(fm_t* const file_manager,const uint16_t data) {
+void fm_write_uint16(fm_t* const file_manager,const uint16_t data) {
   FM_CHECK(file_manager);
   fm_write_mem(file_manager,&data,2);
 }
-GEM_INLINE void fm_write_uint8(fm_t* const file_manager,const uint8_t data) {
+void fm_write_uint8(fm_t* const file_manager,const uint8_t data) {
   FM_CHECK(file_manager);
   fm_write_mem(file_manager,&data,1);
 }
-GEM_INLINE void fm_write_mem(fm_t* const file_manager,const void* const src,const uint64_t num_bytes) {
+void fm_write_mem(fm_t* const file_manager,const void* const src,const uint64_t num_bytes) {
   FM_CHECK(file_manager);
   gem_fatal_check(!FM_IS_WRITING(file_manager->mode),FM_INVALID_MODE_WRITE,file_manager->file_name);
   switch (file_manager->file_type) {
@@ -675,7 +675,7 @@ GEM_INLINE void fm_write_mem(fm_t* const file_manager,const void* const src,cons
 /*
  * Bulk read of file
  */
-GEM_INLINE void fm_bulk_read_fd(const int fd,void* const dst,const uint64_t size) {
+void fm_bulk_read_fd(const int fd,void* const dst,const uint64_t size) {
   GEM_CHECK_NULL(dst);
   uint64_t bytes_written = 0;
   while (bytes_written < size) {
@@ -686,7 +686,7 @@ GEM_INLINE void fm_bulk_read_fd(const int fd,void* const dst,const uint64_t size
     bytes_written += chunk_size;
   }
 }
-GEM_INLINE void fm_bulk_read_file(char* const file_name,void* const dst,const uint64_t offset,const uint64_t size) {
+void fm_bulk_read_file(char* const file_name,void* const dst,const uint64_t offset,const uint64_t size) {
   GEM_CHECK_NULL(file_name);
   GEM_CHECK_NULL(dst);
   // Retrieve input file info
@@ -701,34 +701,34 @@ GEM_INLINE void fm_bulk_read_file(char* const file_name,void* const dst,const ui
   // Read file
   fm_bulk_read_fd(fd,dst,(size==0) ? stat_info.st_size-offset : size);
 }
-GEM_INLINE void fm_bulk_read_file_parallel(
+void fm_bulk_read_file_parallel(
     char* const file_name,void* const dst,const uint64_t offset,const uint64_t size,const uint64_t num_threads) {
   GEM_NOT_IMPLEMENTED(); // TODO
 }
 /*
  * FileManager Wrappers
  */
-GEM_INLINE void gem_stat(char* const file_name,struct stat *stat_info) {
+void gem_stat(char* const file_name,struct stat *stat_info) {
   GEM_CHECK_NULL(file_name);
   gem_cond_fatal_error__perror(stat(file_name,stat_info)==-1,FM_STAT,file_name);
 }
-GEM_INLINE int gem_open_fd(char* const file_name,const int flags,const mode_t mode) {
+int gem_open_fd(char* const file_name,const int flags,const mode_t mode) {
   int fd = open(file_name,flags,mode);
   gem_cond_fatal_error__perror(fd==-1,FM_OPEN,file_name);
   return fd;
 }
-GEM_INLINE FILE* gem_open_FILE(char* const file_name,const char* opentype) {
+FILE* gem_open_FILE(char* const file_name,const char* opentype) {
   FILE* const file = fopen(file_name,opentype);
   gem_cond_fatal_error__perror(file==NULL,FM_FDOPEN,file_name);
   return file;
 }
-GEM_INLINE void gem_unlink(char* const file_name) {
+void gem_unlink(char* const file_name) {
   gem_cond_fatal_error__perror(unlink(file_name),FM_UNLINK,file_name);
 }
 /*
  * Utils
  */
-GEM_INLINE bool gem_access(char* const path,const fm_mode mode) {
+bool gem_access(char* const path,const fm_mode mode) {
   if (access(path,F_OK)) {
     if (ENOENT  == errno /* Does not exist*/ ||
         ENOTDIR == errno /* Not a directory */) return false;
@@ -746,7 +746,7 @@ GEM_INLINE bool gem_access(char* const path,const fm_mode mode) {
   }
   return true;
 }
-GEM_INLINE uint64_t gem_file_size(const char* const file_name) {
+uint64_t gem_file_size(const char* const file_name) {
   // Check FILE stats
   struct stat stat_info;
   gem_cond_fatal_error__perror(stat(file_name,&stat_info)==-1,FM_STAT,file_name);
@@ -755,7 +755,7 @@ GEM_INLINE uint64_t gem_file_size(const char* const file_name) {
 /*
  * FileManager Printers
  */
-GEM_INLINE int vfmprintf(fm_t* const file_manager,const char *template,va_list v_args) {
+int vfmprintf(fm_t* const file_manager,const char *template,va_list v_args) {
   FM_CHECK(file_manager);
   GEM_CHECK_NULL(template);
   GEM_CHECK_NULL(v_args);
@@ -780,7 +780,7 @@ GEM_INLINE int vfmprintf(fm_t* const file_manager,const char *template,va_list v
   }
   return num_bytes;
 }
-GEM_INLINE int fmprintf(fm_t* const file_manager,const char *template,...) {
+int fmprintf(fm_t* const file_manager,const char *template,...) {
   FM_CHECK(file_manager);
   GEM_CHECK_NULL(template);
   va_list v_args;

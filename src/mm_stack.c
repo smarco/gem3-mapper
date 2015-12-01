@@ -28,7 +28,7 @@
 /*
  * Stack Segment
  */
-GEM_INLINE void mm_stack_segment_allocate(mm_stack_t* const mm_stack,mm_stack_segment_t* const stack_segment) {
+void mm_stack_segment_allocate(mm_stack_t* const mm_stack,mm_stack_segment_t* const stack_segment) {
 #ifdef MM_STACK_DEBUG
     stack_segment->slab_unit = (mm_slab_unit_t*) malloc(mm_stack->segment_size);
     stack_segment->memory = (void*) stack_segment->slab_unit;
@@ -38,7 +38,7 @@ GEM_INLINE void mm_stack_segment_allocate(mm_stack_t* const mm_stack,mm_stack_se
 #endif
     stack_segment->memory_available = mm_stack->segment_size;
 }
-GEM_INLINE void mm_stack_segment_reset(mm_stack_t* const mm_stack,mm_stack_segment_t* const stack_segment) {
+void mm_stack_segment_reset(mm_stack_t* const mm_stack,mm_stack_segment_t* const stack_segment) {
 #ifdef MM_STACK_DEBUG
   stack_segment->memory = (void*) stack_segment->slab_unit;
   stack_segment->memory_available = mm_stack->segment_size;
@@ -47,7 +47,7 @@ GEM_INLINE void mm_stack_segment_reset(mm_stack_t* const mm_stack,mm_stack_segme
   stack_segment->memory_available = mm_stack->segment_size;
 #endif
 }
-GEM_INLINE void mm_stack_segment_free(mm_stack_t* const mm_stack,mm_stack_segment_t* const stack_segment) {
+void mm_stack_segment_free(mm_stack_t* const mm_stack,mm_stack_segment_t* const stack_segment) {
 #ifdef MM_STACK_DEBUG
     free((void*)stack_segment->slab_unit);
 #else
@@ -57,7 +57,7 @@ GEM_INLINE void mm_stack_segment_free(mm_stack_t* const mm_stack,mm_stack_segmen
 /*
  * Setup
  */
-GEM_INLINE mm_stack_t* mm_stack_new(mm_slab_t* const mm_slab) {
+mm_stack_t* mm_stack_new(mm_slab_t* const mm_slab) {
   MM_SLAB_CHECK(mm_slab);
   static int no = 0;
   // Allocate handler
@@ -78,7 +78,7 @@ GEM_INLINE mm_stack_t* mm_stack_new(mm_slab_t* const mm_slab) {
   // Return
   return mm_stack;
 }
-GEM_INLINE void mm_stack_delete(mm_stack_t* const mm_stack) {
+void mm_stack_delete(mm_stack_t* const mm_stack) {
   MM_STACK_CHECK(mm_stack);
   // Return all slabs
   mm_slab_lock(mm_stack->mm_slab);
@@ -96,7 +96,7 @@ GEM_INLINE void mm_stack_delete(mm_stack_t* const mm_stack) {
 /*
  * State
  */
-GEM_INLINE void mm_stack_push_state(mm_stack_t* const mm_stack) {
+void mm_stack_push_state(mm_stack_t* const mm_stack) {
   // Allocate new state
   mm_stack_state_t* state;
   vector_alloc_new(mm_stack->state,mm_stack_state_t,state);
@@ -106,7 +106,7 @@ GEM_INLINE void mm_stack_push_state(mm_stack_t* const mm_stack) {
   state->memory = current_segment->memory;
   state->memory_available = current_segment->memory_available;
 }
-GEM_INLINE void mm_stack_pop_state(mm_stack_t* const mm_stack,const bool reap_segments) {
+void mm_stack_pop_state(mm_stack_t* const mm_stack,const bool reap_segments) {
   // Pop state
   mm_stack_state_t* const state = vector_get_last_elm(mm_stack->state,mm_stack_state_t);
   vector_dec_used(mm_stack->state);
@@ -128,7 +128,7 @@ GEM_INLINE void mm_stack_pop_state(mm_stack_t* const mm_stack,const bool reap_se
 /*
  * Align stack memory
  */
-GEM_INLINE void mm_stack_skip_align(mm_stack_t* const mm_stack,const uint64_t num_bytes) {
+void mm_stack_skip_align(mm_stack_t* const mm_stack,const uint64_t num_bytes) {
   GEM_CHECK_ZERO(num_bytes);
   if (gem_expect_true(num_bytes > 1)) {
     // Get last stack segment
@@ -143,7 +143,7 @@ GEM_INLINE void mm_stack_skip_align(mm_stack_t* const mm_stack,const uint64_t nu
 /*
  * Allocators
  */
-GEM_INLINE mm_stack_segment_t* mm_stack_add_segment(mm_stack_t* const mm_stack) {
+mm_stack_segment_t* mm_stack_add_segment(mm_stack_t* const mm_stack) {
   mm_stack_segment_t* stack_segment;
   // Increment last segment
   ++(mm_stack->current_segment);
@@ -163,7 +163,7 @@ GEM_INLINE mm_stack_segment_t* mm_stack_add_segment(mm_stack_t* const mm_stack) 
   mm_stack_segment_reset(mm_stack,stack_segment);
   return stack_segment;
 }
-GEM_INLINE void* mm_stack_memory_allocate(mm_stack_t* const mm_stack,const uint64_t num_bytes,const bool zero_mem) {
+void* mm_stack_memory_allocate(mm_stack_t* const mm_stack,const uint64_t num_bytes,const bool zero_mem) {
   MM_STACK_CHECK(mm_stack);
   // Get last stack segment
   mm_stack_segment_t* current_segment = vector_get_elm(mm_stack->segments,mm_stack->current_segment,mm_stack_segment_t);
@@ -184,7 +184,7 @@ GEM_INLINE void* mm_stack_memory_allocate(mm_stack_t* const mm_stack,const uint6
   // Return memory
   return memory;
 }
-GEM_INLINE void mm_stack_free(mm_stack_t* const mm_stack) {
+void mm_stack_free(mm_stack_t* const mm_stack) {
   MM_STACK_CHECK(mm_stack);
   // Clear all states
   vector_clear(mm_stack->state);

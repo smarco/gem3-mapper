@@ -249,7 +249,7 @@ option_t gem_mapper_options[] = {
   /* CUDA Settings */
 #ifdef HAVE_CUDA
   { 1200, "cuda", OPTIONAL, TYPE_STRING, 12, VISIBILITY_USER, "", "(default=disabled)"},
-  { 1201, "cuda-buffers-per-thread", REQUIRED, TYPE_STRING, 12, VISIBILITY_DEVELOPER, "<num_buffers,buffer_size>" , "(default=2,3,3,4M)" },
+  { 1201, "cuda-buffers-per-thread", REQUIRED, TYPE_STRING, 12, VISIBILITY_DEVELOPER, "<#BufferSearch,#BufferDecode,#BufferVerify,BufferSize>" , "(default=2,3,3,4M)" },
 #endif /* HAVE_CUDA */
   /* Presets/Hints */
   /* Debug */

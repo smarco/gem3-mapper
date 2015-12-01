@@ -12,7 +12,7 @@
  */
 uint64_t sa_sort_length_cmp_values[] = {0,1,5,10,100,1000,10000};
 #define sa_sort_length_cmp_num_ranges 6
-GEM_INLINE archive_builder_t* archive_builder_new(
+archive_builder_t* archive_builder_new(
     fm_t* const output_file,char* const output_file_name_prefix,
     const archive_type type,const indexed_complement_t indexed_complement,
     const uint64_t complement_size_threshold,const uint64_t ns_threshold,
@@ -54,14 +54,14 @@ GEM_INLINE archive_builder_t* archive_builder_new(
   // Return
   return archive_builder;
 }
-GEM_INLINE void archive_builder_delete(archive_builder_t* const archive_builder) {
+void archive_builder_delete(archive_builder_t* const archive_builder) {
   ARCHIVE_BUILDER_CHECK(archive_builder);
   // Archive Components
   mm_free(archive_builder->character_occurrences);
   // Free handler
   mm_free(archive_builder);
 }
-//GEM_INLINE void archive_builder_write_graph__jump_table(archive_builder_t* const archive_builder,const bool display_links) {
+//void archive_builder_write_graph__jump_table(archive_builder_t* const archive_builder,const bool display_links) {
 //  // Write Graph & Jump-Locator (if any)
 //  if (archive_builder->index_type == fm_dna_graph) {
 //    // Write Graph
@@ -80,7 +80,7 @@ GEM_INLINE void archive_builder_delete(archive_builder_t* const archive_builder)
  *       1.3.2 BWT Structure
  *       1.3.3 Memoization Table (Rank calls)
  */
-GEM_INLINE void archive_builder_write_header(archive_builder_t* const archive_builder) {
+void archive_builder_write_header(archive_builder_t* const archive_builder) {
   ARCHIVE_BUILDER_CHECK(archive_builder);
   // Write Header
   fm_write_uint64(archive_builder->output_file_manager,ARCHIVE_MODEL_NO);
@@ -88,11 +88,11 @@ GEM_INLINE void archive_builder_write_header(archive_builder_t* const archive_bu
   fm_write_uint64(archive_builder->output_file_manager,archive_builder->indexed_complement);
   fm_write_uint64(archive_builder->output_file_manager,archive_builder->ns_threshold);
 }
-GEM_INLINE void archive_builder_write_locator(archive_builder_t* const archive_builder) {
+void archive_builder_write_locator(archive_builder_t* const archive_builder) {
   // Write Locator
   locator_builder_write(archive_builder->output_file_manager,archive_builder->locator);
 }
-GEM_INLINE void archive_builder_write_text(
+void archive_builder_write_text(
     archive_builder_t* const archive_builder,const bool verbose) {
   archive_text_write(archive_builder->output_file_manager,
       archive_builder->enc_text,false,archive_builder->forward_text_length,
@@ -100,13 +100,13 @@ GEM_INLINE void archive_builder_write_text(
   if (archive_builder->enc_rl_text!=NULL) dna_text_delete(archive_builder->enc_text); // Free
   if (archive_builder->sampled_rl!=NULL) sampled_rl_delete(archive_builder->sampled_rl); // Free
 }
-GEM_INLINE void archive_builder_write_index(
+void archive_builder_write_index(
     archive_builder_t* const archive_builder,const bool check_index,const bool verbose) {
   // Create & write the FM-index
   fm_index_write(archive_builder->output_file_manager,archive_builder->enc_bwt,
       archive_builder->character_occurrences,archive_builder->sampled_sa,check_index,verbose);
 }
-GEM_INLINE void archive_builder_write_index_reverse(
+void archive_builder_write_index_reverse(
     archive_builder_t* const archive_builder,const bool check_index,const bool verbose) {
   // Create & write the FM-index
   fm_index_reverse_write(archive_builder->output_file_manager,archive_builder->enc_bwt,

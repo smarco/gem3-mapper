@@ -100,7 +100,7 @@ void mapper_error_report(FILE* stream) {
 /*
  * Mapper Parameters
  */
-GEM_INLINE void mapper_parameters_set_defaults_io(mapper_parameters_io_t* const io) {
+void mapper_parameters_set_defaults_io(mapper_parameters_io_t* const io) {
   /* Input */
   io->index_file_name=NULL;
   io->separated_input_files=false;
@@ -126,14 +126,14 @@ GEM_INLINE void mapper_parameters_set_defaults_io(mapper_parameters_io_t* const 
   io->output_num_buffers = 10*num_processors; // Lazy allocation
   io->report_file_name = NULL;
 }
-GEM_INLINE void mapper_parameters_set_defaults_system(mapper_parameters_system_t* const system) {
+void mapper_parameters_set_defaults_system(mapper_parameters_system_t* const system) {
   /* System */
   const uint64_t num_processors = system_get_num_processors();
   system->num_threads=num_processors;
   system->max_memory=0;
   system->tmp_folder=NULL;
 }
-GEM_INLINE void mapper_parameters_set_defaults_cuda(mapper_parameters_cuda_t* const cuda) {
+void mapper_parameters_set_defaults_cuda(mapper_parameters_cuda_t* const cuda) {
   /* CUDA settings */
   const uint64_t num_processors = system_get_num_processors();
   /* CUDA */
@@ -151,10 +151,10 @@ GEM_INLINE void mapper_parameters_set_defaults_cuda(mapper_parameters_cuda_t* co
   cuda->num_fmi_decode_buffers = 3;
   cuda->num_bpm_buffers = 3;
 }
-GEM_INLINE void mapper_parameters_set_defaults_hints(mapper_parameters_hints_t* const hints) {
+void mapper_parameters_set_defaults_hints(mapper_parameters_hints_t* const hints) {
   /* Hints */
 }
-GEM_INLINE void mapper_parameters_set_defaults_misc(mapper_parameters_misc_t* const misc) {
+void mapper_parameters_set_defaults_misc(mapper_parameters_misc_t* const misc) {
   /* QC */
   misc->quality_control = false;
   misc->profile = false;
@@ -163,7 +163,7 @@ GEM_INLINE void mapper_parameters_set_defaults_misc(mapper_parameters_misc_t* co
   misc->verbose_user=true;
   misc->verbose_dev=false;
 }
-GEM_INLINE void mapper_parameters_set_defaults(mapper_parameters_t* const mapper_parameters) {
+void mapper_parameters_set_defaults(mapper_parameters_t* const mapper_parameters) {
   /* CMD line */
   mapper_parameters->argc = 0;
   mapper_parameters->argv = NULL;
@@ -197,7 +197,7 @@ GEM_INLINE void mapper_parameters_set_defaults(mapper_parameters_t* const mapper
 /*
  * Mapper parameters display
  */
-GEM_INLINE void mapper_parameters_print(FILE* const stream,mapper_parameters_t* const parameters) {
+void mapper_parameters_print(FILE* const stream,mapper_parameters_t* const parameters) {
   tab_fprintf(stream,"[GEM]>Mapper.parameters\n");
   /* CMD line */
   uint64_t i;
@@ -211,7 +211,7 @@ GEM_INLINE void mapper_parameters_print(FILE* const stream,mapper_parameters_t* 
 /*
  * Index loader
  */
-GEM_INLINE void mapper_load_index(mapper_parameters_t* const parameters) {
+void mapper_load_index(mapper_parameters_t* const parameters) {
   PROFILE_START(GP_MAPPER_LOAD_INDEX,PROFILE_LEVEL);
   // Load archive
   gem_cond_log(parameters->misc.verbose_user,"[Loading GEM index '%s']",parameters->io.index_file_name);
@@ -222,7 +222,7 @@ GEM_INLINE void mapper_load_index(mapper_parameters_t* const parameters) {
 /*
  * Input
  */
-GEM_INLINE void mapper_PE_prepare_io_buffers(
+void mapper_PE_prepare_io_buffers(
     const mapper_parameters_t* const parameters,const uint64_t input_buffer_lines,
     buffered_input_file_t** const buffered_fasta_input_end1,
     buffered_input_file_t** const buffered_fasta_input_end2,
@@ -237,7 +237,7 @@ GEM_INLINE void mapper_PE_prepare_io_buffers(
     buffered_input_file_attach_buffered_output(*buffered_fasta_input_end1,buffered_output_file);
   }
 }
-GEM_INLINE uint64_t mapper_PE_reload_buffers(
+uint64_t mapper_PE_reload_buffers(
     mapper_parameters_t* const parameters,
     buffered_input_file_t* const buffered_fasta_input_end1,
     buffered_input_file_t* const buffered_fasta_input_end2) {
@@ -276,7 +276,7 @@ GEM_INLINE uint64_t mapper_PE_reload_buffers(
   // OK
   return INPUT_STATUS_OK;
 }
-GEM_INLINE error_code_t mapper_PE_parse_paired_sequences(
+error_code_t mapper_PE_parse_paired_sequences(
     const mapper_parameters_t* const parameters,
     buffered_input_file_t* const buffered_fasta_input_end1,
     buffered_input_file_t* const buffered_fasta_input_end2,
@@ -297,7 +297,7 @@ GEM_INLINE error_code_t mapper_PE_parse_paired_sequences(
   PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
   return INPUT_STATUS_OK;
 }
-GEM_INLINE error_code_t mapper_SE_read_single_sequence(mapper_search_t* const mapper_search) {
+error_code_t mapper_SE_read_single_sequence(mapper_search_t* const mapper_search) {
   const mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
   const error_code_t error_code = input_fasta_parse_sequence(
         mapper_search->buffered_fasta_input,archive_search_get_sequence(mapper_search->archive_search),
@@ -307,7 +307,7 @@ GEM_INLINE error_code_t mapper_SE_read_single_sequence(mapper_search_t* const ma
   PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
   return error_code;
 }
-GEM_INLINE error_code_t mapper_PE_read_paired_sequences(mapper_search_t* const mapper_search) {
+error_code_t mapper_PE_read_paired_sequences(mapper_search_t* const mapper_search) {
   error_code_t error_code;
   // Check/Reload buffers manually
   error_code = mapper_PE_reload_buffers(mapper_search->mapper_parameters,
@@ -325,7 +325,7 @@ GEM_INLINE error_code_t mapper_PE_read_paired_sequences(mapper_search_t* const m
 /*
  * Output
  */
-GEM_INLINE void mapper_SE_output_matches(
+void mapper_SE_output_matches(
     mapper_parameters_t* const parameters,buffered_output_file_t* const buffered_output_file,
     archive_search_t* const archive_search,matches_t* const matches, mapping_stats_t *mstats) {
   switch (parameters->io.output_format) {
@@ -341,7 +341,7 @@ GEM_INLINE void mapper_SE_output_matches(
   }
 	if (mstats) collect_SE_mapping_stats(archive_search,matches,mstats);
 }
-GEM_INLINE void mapper_PE_output_matches(
+void mapper_PE_output_matches(
     mapper_parameters_t* const parameters,buffered_output_file_t* const buffered_output_file,
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches,mapping_stats_t* const mstats) {
@@ -488,7 +488,7 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
 /*
  * SE/PE runnable
  */
-GEM_INLINE void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_end) {
+void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_end) {
   // Load GEM-Index
   mapper_load_index(mapper_parameters);
   // Setup threads
@@ -556,9 +556,9 @@ GEM_INLINE void mapper_run(mapper_parameters_t* const mapper_parameters,const bo
   // Clean up
   mm_free(mapper_search);
 }
-GEM_INLINE void mapper_SE_run(mapper_parameters_t* const mapper_parameters) {
+void mapper_SE_run(mapper_parameters_t* const mapper_parameters) {
   mapper_run(mapper_parameters,false);
 }
-GEM_INLINE void mapper_PE_run(mapper_parameters_t* const mapper_parameters) {
+void mapper_PE_run(mapper_parameters_t* const mapper_parameters) {
   mapper_run(mapper_parameters,true);
 }

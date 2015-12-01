@@ -51,11 +51,11 @@ void archive_search_pe_inject_mm(
 /*
  * PE Extension Control
  */
-GEM_INLINE bool archive_search_pe_is_extension_feasible(archive_search_t* const archive_search) {
+bool archive_search_pe_is_extension_feasible(archive_search_t* const archive_search) {
   // Check the number of samples to derive the expected template size
   return mapper_stats_template_length_is_reliable(archive_search->mapper_stats);
 }
-GEM_INLINE bool archive_search_pe_use_shortcut_extension(archive_search_t* const archive_search,matches_t* const matches) {
+bool archive_search_pe_use_shortcut_extension(archive_search_t* const archive_search,matches_t* const matches) {
   // Check the number of samples to derive the expected template size
   if (!mapper_stats_template_length_is_reliable(archive_search->mapper_stats)) return false;
   // Test if the end can be classify as unique with enough confidence
@@ -67,7 +67,7 @@ GEM_INLINE bool archive_search_pe_use_shortcut_extension(archive_search_t* const
   }
   return false;
 }
-GEM_INLINE bool archive_search_pe_use_recovery_extension(archive_search_t* const archive_search,matches_t* const matches) {
+bool archive_search_pe_use_recovery_extension(archive_search_t* const archive_search,matches_t* const matches) {
   // Check the number of samples to derive the expected template size
   if (!mapper_stats_template_length_is_reliable(archive_search->mapper_stats)) return false;
   // Test if the end can be classify as ambiguous with enough confidence (as to rescue it)
@@ -87,7 +87,7 @@ GEM_INLINE bool archive_search_pe_use_recovery_extension(archive_search_t* const
 /*
  * PE Extension
  */
-GEM_INLINE uint64_t archive_search_pe_extend_matches(
+uint64_t archive_search_pe_extend_matches(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches,const sequence_end_t candidate_end) {
   PROFILE_START(GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES,PROFILE_LEVEL);
@@ -139,7 +139,7 @@ GEM_INLINE uint64_t archive_search_pe_extend_matches(
 /*
  * Archive Search PE Continue Search
  */
-GEM_INLINE void archive_search_pe_continue(
+void archive_search_pe_continue(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches) {
   PROFILE_START(GP_ARCHIVE_SEARCH_PE,PROFILE_LEVEL);
@@ -255,7 +255,7 @@ GEM_INLINE void archive_search_pe_continue(
 /*
  * Paired-End Indexed Search (PE Online Approximate String Search)
  */
-GEM_INLINE void archive_search_pe(
+void archive_search_pe(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches) {
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_PE) {
@@ -280,7 +280,7 @@ GEM_INLINE void archive_search_pe(
 /*
  * Compute Predictors
  */
-GEM_INLINE void archive_search_pe_compute_predictors(
+void archive_search_pe_compute_predictors(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches,matches_predictors_t* const predictors) {
   const uint64_t read_length_end1 = sequence_get_length(&archive_search_end1->sequence);
@@ -300,7 +300,7 @@ GEM_INLINE void archive_search_pe_compute_predictors(
 /*
  * Display
  */
-GEM_INLINE void archive_search_pe_print(
+void archive_search_pe_print(
     FILE* const stream,archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2,paired_matches_t* const paired_matches) {
   tab_fprintf(stream,"[GEM]>ArchiveSearch.PE\n");

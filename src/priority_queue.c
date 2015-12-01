@@ -19,7 +19,7 @@
 /*
  * Setup
  */
-GEM_INLINE pqueue_t* pqueue_new(uint64_t num_initial_elements) {
+pqueue_t* pqueue_new(uint64_t num_initial_elements) {
   // Alloc
   pqueue_t* pqueue = mm_alloc(pqueue_t);
   // Init
@@ -30,10 +30,10 @@ GEM_INLINE pqueue_t* pqueue_new(uint64_t num_initial_elements) {
   // Return
   return pqueue;
 }
-GEM_INLINE void pqueue_clear(pqueue_t* const pqueue) {
+void pqueue_clear(pqueue_t* const pqueue) {
   pqueue->num_elements = 1;
 }
-GEM_INLINE void pqueue_delete(pqueue_t* const pqueue) {
+void pqueue_delete(pqueue_t* const pqueue) {
   // Free buffer
   vector_delete(pqueue->buffer);
   // Free handler
@@ -42,19 +42,19 @@ GEM_INLINE void pqueue_delete(pqueue_t* const pqueue) {
 /*
  * Accessors
  */
-GEM_INLINE uint64_t pqueue_top_priority(pqueue_t* const pqueue) {
+uint64_t pqueue_top_priority(pqueue_t* const pqueue) {
   // Empty case
   if (pqueue->num_elements == 1) return UINT64_MAX;
   pqueue_element_t* const heap = vector_get_mem(pqueue->buffer,pqueue_element_t);
   return heap[1].priority;
 }
-GEM_INLINE void* pqueue_top_priority_element(pqueue_t* const pqueue) {
+void* pqueue_top_priority_element(pqueue_t* const pqueue) {
   // Empty case
   if (pqueue->num_elements == 1) return NULL;
   pqueue_element_t* const heap = vector_get_mem(pqueue->buffer,pqueue_element_t);
   return heap[1].element;
 }
-GEM_INLINE void pqueue_push_(pqueue_t* const pqueue,void* const element,const uint64_t priority) {
+void pqueue_push_(pqueue_t* const pqueue,void* const element,const uint64_t priority) {
   // Reserve 1 more
   vector_reserve_additional(pqueue->buffer,1);
   vector_inc_used(pqueue->buffer);
@@ -69,7 +69,7 @@ GEM_INLINE void pqueue_push_(pqueue_t* const pqueue,void* const element,const ui
   heap[n].element = element;
   heap[n].priority = priority;
 }
-GEM_INLINE void* pqueue_pop_(pqueue_t* const pqueue) {
+void* pqueue_pop_(pqueue_t* const pqueue) {
   // Empty case
   if (pqueue->num_elements == 1) return NULL;
   // Shrink by one

@@ -44,7 +44,7 @@ FILE* benchmark_decode_candidates = NULL;
 /*
  * Generate Candidates
  */
-GEM_INLINE uint64_t approximate_search_generate_region_candidates(
+uint64_t approximate_search_generate_region_candidates(
     fm_index_t* const fm_index,uint8_t* const key,region_search_t* const region,
     const uint64_t filtering_threshold,filtering_candidates_t* const filtering_candidates,
     interval_set_t* const intervals_result,mm_stack_t* const mm_stack) {
@@ -103,7 +103,7 @@ GEM_INLINE uint64_t approximate_search_generate_region_candidates(
    */
   return 0; // Return filtered-degree (errors-allowed)
 }
-GEM_INLINE void approximate_search_generate_exact_candidates(approximate_search_t* const search,matches_t* const matches) {
+void approximate_search_generate_exact_candidates(approximate_search_t* const search,matches_t* const matches) {
   PROFILE_START(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
   // Parameters
   region_profile_t* const region_profile = &search->region_profile;
@@ -131,7 +131,7 @@ GEM_INLINE void approximate_search_generate_exact_candidates(approximate_search_
   region_profile->errors_allowed = errors_allowed;
   PROFILE_STOP(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
 }
-GEM_INLINE void approximate_search_generate_inexact_candidates(
+void approximate_search_generate_inexact_candidates(
     approximate_search_t* const search,const bool dynamic_scheduling,
     const bool verify_ahead,matches_t* const matches) {
   PROFILE_START(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
@@ -218,7 +218,7 @@ GEM_INLINE void approximate_search_generate_inexact_candidates(
  * Buffered Copy/Retrieve
  */
 void approximate_search_generate_exact_candidates_buffered_print_benchmark(approximate_search_t* const search);
-GEM_INLINE void approximate_search_generate_exact_candidates_buffered_copy(
+void approximate_search_generate_exact_candidates_buffered_copy(
     approximate_search_t* const search,gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
   // Parameters
   region_profile_t* const region_profile = &search->region_profile;
@@ -242,7 +242,7 @@ GEM_INLINE void approximate_search_generate_exact_candidates_buffered_copy(
   approximate_search_generate_exact_candidates_buffered_print_benchmark(search);
   #endif
 }
-GEM_INLINE void approximate_search_generate_exact_candidates_buffered_retrieve(
+void approximate_search_generate_exact_candidates_buffered_retrieve(
     approximate_search_t* const search,gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
   // Parameters
   region_profile_t* const region_profile = &search->region_profile;
@@ -275,7 +275,7 @@ GEM_INLINE void approximate_search_generate_exact_candidates_buffered_retrieve(
  * Display/Benchmark
  */
 #ifdef CUDA_BENCHMARK_GENERATE_DECODE_CANDIDATES
-GEM_INLINE void approximate_search_generate_exact_candidates_buffered_print_benchmark(approximate_search_t* const search) {
+void approximate_search_generate_exact_candidates_buffered_print_benchmark(approximate_search_t* const search) {
   // Parameters
   region_profile_t* const region_profile = &search->region_profile;
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions;

@@ -16,29 +16,29 @@
 /*
  * Setup
  */
-GEM_INLINE void search_interval_set_init(search_interval_set_t* const search_interval_set) {
+void search_interval_set_init(search_interval_set_t* const search_interval_set) {
   search_interval_set->intervals = vector_new(INTERVAL_SET_NUN_INITIAL_INTERVALS,search_interval_t);
 }
-GEM_INLINE void search_interval_set_clear(search_interval_set_t* const search_interval_set) {
+void search_interval_set_clear(search_interval_set_t* const search_interval_set) {
   vector_clear(search_interval_set->intervals);
 }
-GEM_INLINE void search_interval_set_destroy(search_interval_set_t* const search_interval_set) {
+void search_interval_set_destroy(search_interval_set_t* const search_interval_set) {
   vector_delete(search_interval_set->intervals);
 }
 /*
  * Counting
  */
-GEM_INLINE uint64_t search_interval_set_count_intervals(search_interval_set_t* const search_interval_set) {
+uint64_t search_interval_set_count_intervals(search_interval_set_t* const search_interval_set) {
   return vector_get_used(search_interval_set->intervals);
 }
-GEM_INLINE uint64_t search_interval_set_count_intervals_length(search_interval_set_t* const search_interval_set) {
+uint64_t search_interval_set_count_intervals_length(search_interval_set_t* const search_interval_set) {
   uint64_t count = 0;
   SEARCH_INTERVAL_SET_ITERATE(search_interval_set,interval) {
     count += interval->hi - interval->lo;
   }
   return count;
 }
-GEM_INLINE uint64_t search_interval_set_count_intervals_length_thresholded(
+uint64_t search_interval_set_count_intervals_length_thresholded(
     search_interval_set_t* const search_interval_set,const uint64_t max_error) {
   uint64_t count = 0;
   SEARCH_INTERVAL_SET_ITERATE(search_interval_set,interval) {
@@ -49,7 +49,7 @@ GEM_INLINE uint64_t search_interval_set_count_intervals_length_thresholded(
 /*
  * Adding
  */
-GEM_INLINE void search_interval_set_add(
+void search_interval_set_add(
     search_interval_set_t* const search_interval_set,const uint64_t lo,const uint64_t hi,
     const uint64_t distance,const uint64_t length) {
   // Allocate
@@ -64,7 +64,7 @@ GEM_INLINE void search_interval_set_add(
 /*
  * Set Operators
  */
-GEM_INLINE void search_interval_set_union(search_interval_set_t* const search_interval_set_a,search_interval_set_t* const search_interval_set_b) {
+void search_interval_set_union(search_interval_set_t* const search_interval_set_a,search_interval_set_t* const search_interval_set_b) {
   // Appends to @search_interval_set_a the intervals contained into @search_interval_set_b (union set)
   const uint64_t total_size = vector_get_used(search_interval_set_a->intervals) + vector_get_used(search_interval_set_b->intervals);
   vector_reserve(search_interval_set_a->intervals,total_size,false);
@@ -78,7 +78,7 @@ GEM_INLINE void search_interval_set_union(search_interval_set_t* const search_in
   }
   vector_set_used(search_interval_set_a->intervals,total_size);
 }
-GEM_INLINE void search_interval_set_subtract(search_interval_set_t* const result_set,search_interval_set_t* const exclusion_set) {
+void search_interval_set_subtract(search_interval_set_t* const result_set,search_interval_set_t* const exclusion_set) {
   // Subtracts to @result_set the intervals contained in @exclusion_set (difference set)
   const uint64_t exclusion_set_size = vector_get_used(exclusion_set->intervals);
   uint64_t result_set_size = vector_get_used(result_set->intervals);

@@ -18,7 +18,6 @@
  * Debug
  */
 #define DEBUG_REGION_PROFILE_PRINT          GEM_DEEP_DEBUG
-#define DEBUG_CHECK_REGION_PROFILE_BUFFERED false
 
 /*
  * Profile
@@ -35,7 +34,7 @@ FILE* benchmark_region_profile = NULL;
 /*
  * Region Profile Stats
  */
-GEM_INLINE void approximate_search_region_profile_fixed_stats(region_profile_t* const region_profile) {
+void approximate_search_region_profile_fixed_stats(region_profile_t* const region_profile) {
 #ifdef GEM_PROFILE
   uint64_t total_candidates = 0;
   PROF_INC_COUNTER(GP_REGION_PROFILE_FIXED);
@@ -51,7 +50,7 @@ GEM_INLINE void approximate_search_region_profile_fixed_stats(region_profile_t* 
   PROF_ADD_COUNTER(GP_REGION_PROFILE_FIXED_TOTAL_CANDIDATES,total_candidates);
 #endif
 }
-GEM_INLINE void approximate_search_region_profile_lightweight_stats(region_profile_t* const region_profile) {
+void approximate_search_region_profile_lightweight_stats(region_profile_t* const region_profile) {
 #ifdef GEM_PROFILE
   uint64_t total_candidates = 0;
   PROF_INC_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT);
@@ -67,7 +66,7 @@ GEM_INLINE void approximate_search_region_profile_lightweight_stats(region_profi
   PROF_ADD_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT_TOTAL_CANDIDATES,total_candidates);
 #endif
 }
-GEM_INLINE void approximate_search_region_profile_boost_stats(region_profile_t* const region_profile) {
+void approximate_search_region_profile_boost_stats(region_profile_t* const region_profile) {
 #ifdef GEM_PROFILE
   uint64_t total_candidates = 0;
   PROF_INC_COUNTER(GP_REGION_PROFILE_BOOST);
@@ -83,7 +82,7 @@ GEM_INLINE void approximate_search_region_profile_boost_stats(region_profile_t* 
   PROF_ADD_COUNTER(GP_REGION_PROFILE_BOOST_TOTAL_CANDIDATES,total_candidates);
 #endif
 }
-GEM_INLINE void approximate_search_region_profile_delimit_stats(region_profile_t* const region_profile) {
+void approximate_search_region_profile_delimit_stats(region_profile_t* const region_profile) {
 #ifdef GEM_PROFILE
   uint64_t total_candidates = 0;
   PROF_INC_COUNTER(GP_REGION_PROFILE_DELIMIT);
@@ -102,7 +101,7 @@ GEM_INLINE void approximate_search_region_profile_delimit_stats(region_profile_t
 /*
  * Region Partition Fixed
  */
-GEM_INLINE void approximate_search_region_partition_fixed(approximate_search_t* const search) {
+void approximate_search_region_partition_fixed(approximate_search_t* const search) {
   // Parameters
   const as_parameters_t* const actual_parameters = search->as_parameters;
   const search_parameters_t* const parameters = actual_parameters->search_parameters;
@@ -137,7 +136,7 @@ GEM_INLINE void approximate_search_region_partition_fixed(approximate_search_t* 
 /*
  * Region Profile Adaptive
  */
-GEM_INLINE void approximate_search_region_profile_adaptive(
+void approximate_search_region_profile_adaptive(
     approximate_search_t* const search,
     const approximate_search_region_profile_strategy_t region_profile_strategy,
     mm_stack_t* const mm_stack) {
@@ -222,7 +221,7 @@ GEM_INLINE void approximate_search_region_profile_adaptive(
  * Buffered Copy/Retrieve
  */
 void approximate_search_region_profile_buffered_print_benchmark(approximate_search_t* const search);
-GEM_INLINE void approximate_search_region_profile_buffered_copy(
+void approximate_search_region_profile_buffered_copy(
     approximate_search_t* const search,gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) {
   // Parameters
   pattern_t* const pattern = &search->pattern;
@@ -242,7 +241,7 @@ GEM_INLINE void approximate_search_region_profile_buffered_copy(
   approximate_search_region_profile_buffered_print_benchmark(search);
 #endif
 }
-GEM_INLINE void approximate_search_region_profile_buffered_retrieve(
+void approximate_search_region_profile_buffered_retrieve(
     approximate_search_t* const search,gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) {
   // Parameters
   search_parameters_t* const search_parameters = search->as_parameters->search_parameters;
@@ -257,14 +256,14 @@ GEM_INLINE void approximate_search_region_profile_buffered_retrieve(
     gpu_buffer_fmi_search_get_result(gpu_buffer_fmi_search,
         buffer_offset_begin+i,&filtering_region->hi,&filtering_region->lo);
     // DEBUG
-    gem_cond_debug_block(DEBUG_CHECK_REGION_PROFILE_BUFFERED) {
+#ifdef CUDA_CHECK_BUFFERED_REGION_PROFILE
       uint64_t hi, lo;
       fm_index_bsearch(search->archive->fm_index,search->pattern.key+filtering_region->begin,
           filtering_region->end-filtering_region->begin,&hi,&lo);
       gem_cond_fatal_error_msg(filtering_region->hi!=hi || filtering_region->lo!=lo,
           "ASM.Region.Profile.Buffered. Check Region-Profile failed (hi::%lu!=%lu)(lo::%lu!=%lu)",
           filtering_region->hi,hi,filtering_region->lo,lo);
-    }
+#endif
     // Check number of candidates
     const uint64_t num_candidates = filtering_region->hi - filtering_region->lo;
     if (num_candidates <= search_parameters->gpu_filtering_threshold) {
@@ -291,7 +290,7 @@ GEM_INLINE void approximate_search_region_profile_buffered_retrieve(
   approximate_search_region_profile_fixed_stats(region_profile);
 }
 #ifdef CUDA_BENCHMARK_GENERATE_REGION_PROFILE
-GEM_INLINE void approximate_search_region_profile_buffered_print_benchmark(approximate_search_t* const search) {
+void approximate_search_region_profile_buffered_print_benchmark(approximate_search_t* const search) {
   // Parameters
   region_profile_t* const region_profile = &search->region_profile;
   // Prepare benchmark file

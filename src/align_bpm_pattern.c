@@ -24,31 +24,31 @@
 /*
  * Compile Pattern
  */
-GEM_INLINE void bpm_pattern_compile_chunks(
+void bpm_pattern_compile_tiles(
     bpm_pattern_t* const bpm_pattern,uint8_t* const pattern,
     const uint64_t pattern_length,const uint64_t max_error,mm_stack_t* const mm_stack) {
   // Init BPM chunks
-  const uint64_t words_per_chunk = DIV_CEIL(max_error,BPM_ALIGN_WORD_LENGTH);
-  const uint64_t num_chunks = DIV_CEIL(bpm_pattern->pattern_num_words,words_per_chunk);
-  bpm_pattern->words_per_chunk = words_per_chunk;
-  bpm_pattern->num_pattern_chunks = num_chunks;
-  bpm_pattern->bpm_pattern_chunks = mm_stack_calloc(mm_stack,num_chunks,bpm_pattern_t,false);
+  const uint64_t words_per_tile = DIV_CEIL(max_error,BPM_ALIGN_WORD_LENGTH);
+  const uint64_t num_tiles = DIV_CEIL(bpm_pattern->pattern_num_words,words_per_tile);
+  bpm_pattern->words_per_tile = words_per_tile;
+  bpm_pattern->num_pattern_tiles = num_tiles;
+  bpm_pattern->bpm_pattern_tiles = mm_stack_calloc(mm_stack,num_tiles,bpm_pattern_t,false);
   uint64_t offset_words = 0, i;
-  for (i=0;i<num_chunks;++i) {
+  for (i=0;i<num_tiles;++i) {
     // Initialize pattern-chunk variables
-    bpm_pattern_t* const bpm_pattern_chunk = bpm_pattern->bpm_pattern_chunks + i;
-    bpm_pattern_chunk->P = bpm_pattern->P;
-    bpm_pattern_chunk->M = bpm_pattern->M;
-    bpm_pattern_chunk->PEQ = bpm_pattern->PEQ + offset_words*DNA__N_RANGE;
-    bpm_pattern_chunk->pattern_num_words = words_per_chunk;
-    bpm_pattern_chunk->level_mask = bpm_pattern->level_mask + offset_words;
-    bpm_pattern_chunk->score = bpm_pattern->score + offset_words;
-    bpm_pattern_chunk->init_score = bpm_pattern->init_score + offset_words;
-    bpm_pattern_chunk->pattern_left = NULL;
-    offset_words += words_per_chunk;
+    bpm_pattern_t* const bpm_pattern_tile = bpm_pattern->bpm_pattern_tiles + i;
+    bpm_pattern_tile->P = bpm_pattern->P;
+    bpm_pattern_tile->M = bpm_pattern->M;
+    bpm_pattern_tile->PEQ = bpm_pattern->PEQ + offset_words*DNA__N_RANGE;
+    bpm_pattern_tile->pattern_num_words = words_per_tile;
+    bpm_pattern_tile->level_mask = bpm_pattern->level_mask + offset_words;
+    bpm_pattern_tile->score = bpm_pattern->score + offset_words;
+    bpm_pattern_tile->init_score = bpm_pattern->init_score + offset_words;
+    bpm_pattern_tile->pattern_left = NULL;
+    offset_words += words_per_tile;
   }
 }
-GEM_INLINE void bpm_pattern_compile(
+void bpm_pattern_compile(
     bpm_pattern_t* const bpm_pattern,uint8_t* const pattern,
     const uint64_t pattern_length,const uint64_t max_error,mm_stack_t* const mm_stack) {
   GEM_CHECK_NULL(bpm_pattern);
@@ -86,7 +86,7 @@ GEM_INLINE void bpm_pattern_compile(
     const uint64_t mask = 1ull<<(i%BPM_ALIGN_WORD_LENGTH);
     bpm_pattern->PEQ[BPM_PATTERN_PEQ_IDX(block,enc_char)] |= mask;
   }
-  for (;i<PEQ_length;++i) {
+  for (;i<PEQ_length;++i) { // Padding
     const uint64_t block = i/BPM_ALIGN_WORD_LENGTH;
     const uint64_t mask = 1ull<<(i%BPM_ALIGN_WORD_LENGTH);
     uint64_t j;
@@ -117,7 +117,7 @@ GEM_INLINE void bpm_pattern_compile(
     bpm_pattern->init_score[top] = word_length;
   }
 #ifdef BPM_TILED
-  // Init BPM chunks
-  bpm_pattern_compile_chunks(bpm_pattern,pattern,pattern_length,max_error,mm_stack);
+  // Compile Tiles
+  bpm_pattern_compile_tiles(bpm_pattern,pattern,pattern_length,max_error,mm_stack);
 #endif
 }

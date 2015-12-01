@@ -22,13 +22,13 @@
 /*
  * Setup
  */
-GEM_INLINE void output_map_parameters_set_defaults(output_map_parameters_t* const output_map_parameters) {
+void output_map_parameters_set_defaults(output_map_parameters_t* const output_map_parameters) {
   output_map_parameters->format_version = map_format_v2;
 }
 /*
  * Output MAP
  */
-GEM_INLINE void output_map_print_cigar_mapv2(
+void output_map_print_cigar_mapv2(
     buffered_output_file_t* const buffered_output_file,
     const cigar_element_t* cigar_array,const uint64_t cigar_length) {
   // Reserve (upper-bound)
@@ -66,7 +66,7 @@ GEM_INLINE void output_map_print_cigar_mapv2(
     }
   }
 }
-GEM_INLINE void output_map_print_cigar_mapv3(
+void output_map_print_cigar_mapv3(
     buffered_output_file_t* const buffered_output_file,
     const cigar_element_t* cigar_array,const uint64_t cigar_length) {
   // Reserve (upper-bound)
@@ -114,7 +114,7 @@ GEM_INLINE void output_map_print_cigar_mapv3(
     }
   }
 }
-GEM_INLINE void output_map_print_match(
+void output_map_print_match(
     buffered_output_file_t* const buffered_output_file,
     const matches_t* const matches,const match_trace_t* const match_trace,
     const bool print_mapq,const output_map_format_t output_map_format) {
@@ -151,7 +151,7 @@ GEM_INLINE void output_map_print_match(
     bofprintf_uint64(buffered_output_file,match_trace->mapq_score);
   }
 }
-GEM_INLINE void output_map_print_paired_match(
+void output_map_print_paired_match(
     buffered_output_file_t* const buffered_output_file,
     const matches_t* const matches_end1,const matches_t* const matches_end2,
     const paired_map_t* const paired_map,const output_map_format_t output_map_format) {
@@ -175,7 +175,7 @@ GEM_INLINE void output_map_print_paired_match(
 /*
  * MAP Alignment pretty
  */
-GEM_INLINE void output_map_alignment_pretty(
+void output_map_alignment_pretty(
     FILE* const stream,match_trace_t* const match_trace,matches_t* const matches,
     uint8_t* const key,const uint64_t key_length,uint8_t* const text,
     const uint64_t text_length,mm_stack_t* const mm_stack) {
@@ -187,14 +187,14 @@ GEM_INLINE void output_map_alignment_pretty(
 /*
  * Separator
  */
-GEM_INLINE void output_map_print_separator(buffered_output_file_t* const buffered_output_file,const char separator) {
+void output_map_print_separator(buffered_output_file_t* const buffered_output_file,const char separator) {
   buffered_output_file_reserve(buffered_output_file,1);
   bofprintf_char(buffered_output_file,separator);
 }
 /*
  * MAP Tag
  */
-GEM_INLINE void output_map_single_end_print_tag(
+void output_map_single_end_print_tag(
     buffered_output_file_t* const buffered_output_file,sequence_t* const seq_read) {
   // Print Tag + End-Info
   const uint64_t tag_length = string_get_length(&seq_read->tag);
@@ -228,7 +228,7 @@ GEM_INLINE void output_map_single_end_print_tag(
     bofprintf_string(buffered_output_file,extra_tag_length,string_get_buffer(&seq_read->attributes.extra_tag));
   }
 }
-GEM_INLINE void output_map_paired_end_print_tag(
+void output_map_paired_end_print_tag(
     buffered_output_file_t* const buffered_output_file,
     sequence_t* const seq_read_end1,sequence_t* const seq_read_end2) {
   // TODO Redefine behavior in case of mismatching tags
@@ -252,7 +252,7 @@ GEM_INLINE void output_map_paired_end_print_tag(
 /*
  * MAP Sequence Read/Qualities
  */
-GEM_INLINE void output_map_single_end_print_read__qualities(
+void output_map_single_end_print_read__qualities(
     buffered_output_file_t* const buffered_output_file,sequence_t* const seq_read) {
   // Select proper case
   const uint64_t read_length = string_get_length(&seq_read->read);
@@ -266,7 +266,7 @@ GEM_INLINE void output_map_single_end_print_read__qualities(
     bofprintf_string(buffered_output_file,read_length,string_get_buffer(&seq_read->read));
   }
 }
-GEM_INLINE void output_map_paired_end_print_read__qualities(
+void output_map_paired_end_print_read__qualities(
     buffered_output_file_t* const buffered_output_file,
     sequence_t* const seq_read_end1,sequence_t* const seq_read_end2) {
   // Select proper case
@@ -291,7 +291,7 @@ GEM_INLINE void output_map_paired_end_print_read__qualities(
 /*
  * MAP Counters
  */
-GEM_INLINE void output_map_print_counters_account_mcs(
+void output_map_print_counters_account_mcs(
     buffered_output_file_t* const buffered_output_file,
     const uint64_t current_counter_pos,const uint64_t num_zeros,const bool compact) {
   if (compact && num_zeros>0) {
@@ -311,7 +311,7 @@ GEM_INLINE void output_map_print_counters_account_mcs(
     bofprintf_string_literal(buffered_output_file,"+0");
   }
 }
-GEM_INLINE void output_map_print_counters(
+void output_map_print_counters(
     buffered_output_file_t* const buffered_output_file,
     matches_counters_t* const matches_counter,
     const uint64_t mcs,const bool compact) {
@@ -366,7 +366,7 @@ GEM_INLINE void output_map_print_counters(
 /*
  * MAP SingleEnd
  */
-GEM_INLINE void output_map_single_end_matches(
+void output_map_single_end_matches(
     buffered_output_file_t* const buffered_output_file,archive_search_t* const archive_search,
     matches_t* const matches,output_map_parameters_t* const output_map_parameters) {
   BUFFERED_OUTPUT_FILE_CHECK(buffered_output_file);
@@ -399,7 +399,7 @@ GEM_INLINE void output_map_single_end_matches(
 /*
  * MAP PairedEnd
  */
-GEM_INLINE void output_map_paired_end_matches(
+void output_map_paired_end_matches(
     buffered_output_file_t* const buffered_output_file,
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches,output_map_parameters_t* const output_map_parameters) {

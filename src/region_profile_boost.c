@@ -33,7 +33,7 @@ typedef struct {
 /*
  * Region Profile Boost
  */
-GEM_INLINE uint64_t region_profile_generate_adaptive_boost_region(
+uint64_t region_profile_generate_adaptive_boost_region(
     fm_index_t* const fm_index,const uint8_t* const key,const bool* const allowed_enc,
     const region_profile_model_t* const profile_model,
     const uint64_t region_begin,const uint64_t region_end_max,
@@ -92,7 +92,7 @@ GEM_INLINE uint64_t region_profile_generate_adaptive_boost_region(
     return region_end_max;
   }
 }
-GEM_INLINE void region_profile_generate_adaptive_boost(
+void region_profile_generate_adaptive_boost(
     region_profile_t* const region_profile,fm_index_t* const fm_index,
     const uint8_t* const key,const uint64_t key_length,const bool* const allowed_enc,
     const region_profile_model_t* const profile_model,mm_stack_t* const mm_stack) {

@@ -24,7 +24,7 @@
 /*
  * Control
  */
-GEM_INLINE void asearch_control_next_state_filtering_adaptive(
+void asearch_control_next_state_filtering_adaptive(
     approximate_search_t* const search,matches_t* const matches) {
   // Select state
   switch (search->processing_state) {
@@ -49,7 +49,7 @@ GEM_INLINE void asearch_control_next_state_filtering_adaptive(
 /*
  * AM Stepwise :: Region Profile
  */
-GEM_INLINE void approximate_search_stepwise_region_profile_generate(approximate_search_t* const search) {
+void approximate_search_stepwise_region_profile_generate(approximate_search_t* const search) {
   while (true) {
     switch (search->search_stage) {
       case asearch_stage_begin: // Search Start. Check basic cases
@@ -66,13 +66,13 @@ GEM_INLINE void approximate_search_stepwise_region_profile_generate(approximate_
     }
   }
 }
-GEM_INLINE void approximate_search_stepwise_region_profile_copy(
+void approximate_search_stepwise_region_profile_copy(
     approximate_search_t* const search,gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) {
   if (search->processing_state == asearch_processing_state_region_partitioned) {
     approximate_search_region_profile_buffered_copy(search,gpu_buffer_fmi_search);
   }
 }
-GEM_INLINE void approximate_search_stepwise_region_profile_retrieve(
+void approximate_search_stepwise_region_profile_retrieve(
     approximate_search_t* const search,gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) {
   if (search->processing_state == asearch_processing_state_region_partitioned) {
     approximate_search_region_profile_buffered_retrieve(search,gpu_buffer_fmi_search);
@@ -86,16 +86,16 @@ GEM_INLINE void approximate_search_stepwise_region_profile_retrieve(
 /*
  * AM Stepwise :: Decode Candidates
  */
-GEM_INLINE void approximate_search_stepwise_decode_candidates_generate(approximate_search_t* const search) {
+void approximate_search_stepwise_decode_candidates_generate(approximate_search_t* const search) {
   // NOP
 }
-GEM_INLINE void approximate_search_stepwise_decode_candidates_copy(
+void approximate_search_stepwise_decode_candidates_copy(
     approximate_search_t* const search,gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
   if (search->processing_state == asearch_processing_state_region_profiled) {
     approximate_search_generate_exact_candidates_buffered_copy(search,gpu_buffer_fmi_decode);
   }
 }
-GEM_INLINE void approximate_search_stepwise_decode_candidates_retrieve(
+void approximate_search_stepwise_decode_candidates_retrieve(
     approximate_search_t* const search,gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
   if (search->processing_state == asearch_processing_state_region_profiled) {
     approximate_search_generate_exact_candidates_buffered_retrieve(search,gpu_buffer_fmi_decode);
@@ -104,16 +104,16 @@ GEM_INLINE void approximate_search_stepwise_decode_candidates_retrieve(
 /*
  * AM Stepwise :: Verify Candidates
  */
-GEM_INLINE void approximate_search_stepwise_verify_candidates_generate(approximate_search_t* const search) {
+void approximate_search_stepwise_verify_candidates_generate(approximate_search_t* const search) {
   // NOP
 }
-GEM_INLINE void approximate_search_stepwise_verify_candidates_copy(
+void approximate_search_stepwise_verify_candidates_copy(
     approximate_search_t* const search,gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
   if (search->processing_state == asearch_processing_state_candidates_processed) {
     approximate_search_verify_candidates_buffered_copy(search,gpu_buffer_align_bpm);
   }
 }
-GEM_INLINE void approximate_search_stepwise_verify_candidates_retrieve(
+void approximate_search_stepwise_verify_candidates_retrieve(
     approximate_search_t* const search,gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     matches_t* const matches) {
   if (search->processing_state == asearch_processing_state_candidates_processed) {
@@ -123,7 +123,7 @@ GEM_INLINE void approximate_search_stepwise_verify_candidates_retrieve(
 /*
  * AM Stepwise :: Finish Search
  */
-GEM_INLINE void approximate_search_stepwise_finish(approximate_search_t* const search,matches_t* const matches) {
+void approximate_search_stepwise_finish(approximate_search_t* const search,matches_t* const matches) {
   if (search->search_stage == asearch_stage_filtering_adaptive) {
     asearch_control_next_state_filtering_adaptive(search,matches); // Next State
   }

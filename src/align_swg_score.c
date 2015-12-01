@@ -12,23 +12,23 @@
 /*
  * SWG Score
  */
-GEM_INLINE int32_t align_swg_score_deletion(const swg_penalties_t* const swg_penalties,const int32_t length) {
+int32_t align_swg_score_deletion(const swg_penalties_t* const swg_penalties,const int32_t length) {
   const int32_t gap_open_score = swg_penalties->gap_open_score;
   const int32_t gap_extension = swg_penalties->gap_extension_score;
   return gap_open_score + gap_extension*length;
 }
-GEM_INLINE int32_t align_swg_score_insertion(const swg_penalties_t* const swg_penalties,const int32_t length) {
+int32_t align_swg_score_insertion(const swg_penalties_t* const swg_penalties,const int32_t length) {
   const int32_t gap_open_score = swg_penalties->gap_open_score;
   const int32_t gap_extension = swg_penalties->gap_extension_score;
   return gap_open_score + gap_extension*length;
 }
-GEM_INLINE int32_t align_swg_score_mismatch(const swg_penalties_t* const swg_penalties) {
+int32_t align_swg_score_mismatch(const swg_penalties_t* const swg_penalties) {
   return swg_penalties->generic_mismatch_score;
 }
-GEM_INLINE int32_t align_swg_score_match(const swg_penalties_t* const swg_penalties,const int32_t match_length) {
+int32_t align_swg_score_match(const swg_penalties_t* const swg_penalties,const int32_t match_length) {
   return swg_penalties->generic_match_score * match_length;
 }
-GEM_INLINE int32_t align_swg_score_cigar_element(
+int32_t align_swg_score_cigar_element(
     const swg_penalties_t* const swg_penalties,const cigar_element_t* const cigar_element) {
   switch (cigar_element->type) {
     case cigar_match:
@@ -50,7 +50,7 @@ GEM_INLINE int32_t align_swg_score_cigar_element(
   }
   return 0;
 }
-GEM_INLINE int32_t align_swg_score_cigar(
+int32_t align_swg_score_cigar(
     const swg_penalties_t* const swg_penalties,vector_t* const cigar_vector,
     const uint64_t cigar_offset,const uint64_t cigar_length) {
   // Parameters
@@ -63,7 +63,7 @@ GEM_INLINE int32_t align_swg_score_cigar(
   // Return score
   return score;
 }
-GEM_INLINE int32_t align_swg_score_cigar__excluding_clipping(
+int32_t align_swg_score_cigar__excluding_clipping(
     const swg_penalties_t* const swg_penalties,vector_t* const cigar_vector,
     const uint64_t cigar_offset,const uint64_t cigar_length) {
   // Parameters

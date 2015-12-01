@@ -15,7 +15,7 @@
 /*
  * Vector Setup (Initialization & Allocation)
  */
-GEM_INLINE svector_t* svector_new_(mm_slab_t* const mm_slab,const uint64_t element_size) {
+svector_t* svector_new_(mm_slab_t* const mm_slab,const uint64_t element_size) {
   MM_SLAB_CHECK(mm_slab);
   GEM_CHECK_ZERO(element_size);
   svector_t* const svector = mm_alloc(svector_t);
@@ -36,7 +36,7 @@ GEM_INLINE svector_t* svector_new_(mm_slab_t* const mm_slab,const uint64_t eleme
   svector->elements_used = 0;
   return svector;
 }
-GEM_INLINE void svector_delete(svector_t* const svector) {
+void svector_delete(svector_t* const svector) {
   SEGMENTED_VECTOR_CHECK(svector);
   // Return all slabs
   mm_slab_lock(svector->mm_slab);
@@ -49,12 +49,12 @@ GEM_INLINE void svector_delete(svector_t* const svector) {
   // Free svector
   mm_free(svector);
 }
-GEM_INLINE void svector_clear(svector_t* const svector) {
+void svector_clear(svector_t* const svector) {
   SEGMENTED_VECTOR_CHECK(svector);
   svector->elements_used = 0;
   svector_reap(svector); // Forced reap
 }
-GEM_INLINE void svector_reap(svector_t* const svector) {
+void svector_reap(svector_t* const svector) {
   SEGMENTED_VECTOR_CHECK(svector);
   if (svector->segments->used > svector->min_resident_segments) {
     // Reap non-resident segments // TODO Register Number of reaps
@@ -74,16 +74,16 @@ GEM_INLINE void svector_reap(svector_t* const svector) {
 #define svector_get_location(svector,global_position,segment,segment_pos) \
   const uint64_t segment = global_position/svector->elements_per_segment; \
   const uint64_t segment_pos = global_position%svector->elements_per_segment
-GEM_INLINE uint64_t svector_get_used(svector_t* const svector) {
+uint64_t svector_get_used(svector_t* const svector) {
   SEGMENTED_VECTOR_CHECK(svector);
   return svector->elements_used;
 }
-GEM_INLINE void* svector_get_elm(svector_t* const svector,const uint64_t position) {
+void* svector_get_elm(svector_t* const svector,const uint64_t position) {
   SEGMENTED_VECTOR_RANGE_CHECK(svector,position);
   svector_get_location(svector,position,segment,segment_pos);
   return svector_get_elm_memory(svector,segment,segment_pos);
 }
-GEM_INLINE vector_segment_t* svector_add_segment(svector_t* const svector) {
+vector_segment_t* svector_add_segment(svector_t* const svector) {
   SEGMENTED_VECTOR_CHECK(svector);
   // Add segment
   vector_reserve_additional(svector->segments,1);
@@ -94,7 +94,7 @@ GEM_INLINE vector_segment_t* svector_add_segment(svector_t* const svector) {
   segment->memory = segment->slab_unit->memory;
   return segment;
 }
-GEM_INLINE void* svector_get_free_elm(svector_t* const svector) {
+void* svector_get_free_elm(svector_t* const svector) {
   SEGMENTED_VECTOR_CHECK(svector);
   svector_get_location(svector,svector->elements_used,num_segment,segment_pos);
   vector_segment_t* const segment = gem_expect_false(num_segment==vector_get_used(svector->segments)) ?
@@ -102,7 +102,7 @@ GEM_INLINE void* svector_get_free_elm(svector_t* const svector) {
   ++(svector->elements_used);
   return segment + segment_pos*svector->element_size;
 }
-GEM_INLINE char* svector_request_char_buffer(svector_t* const svector,const uint64_t length) {
+char* svector_request_char_buffer(svector_t* const svector,const uint64_t length) {
   SEGMENTED_VECTOR_CHECK(svector);
   svector_get_location(svector,svector->elements_used,num_segment,segment_pos);
   // Check that there is enough space in the segment
@@ -125,7 +125,7 @@ GEM_INLINE char* svector_request_char_buffer(svector_t* const svector,const uint
     return segment->memory + segment_pos; // Return
   }
 }
-GEM_INLINE char* svector_insert_char_buffer(svector_t* const svector,const char* const buffer,const uint64_t length) {
+char* svector_insert_char_buffer(svector_t* const svector,const char* const buffer,const uint64_t length) {
   SEGMENTED_VECTOR_CHECK(svector);
   // Request char buffer
   char* const dst_memory = svector_request_char_buffer(svector,length);
@@ -138,7 +138,7 @@ GEM_INLINE char* svector_insert_char_buffer(svector_t* const svector,const char*
 /*
  * Writer
  */
-GEM_INLINE void svector_write(fm_t* const file_manager,svector_t* const svector) {
+void svector_write(fm_t* const file_manager,svector_t* const svector) {
   SEGMENTED_VECTOR_CHECK(svector);
   FM_CHECK(file_manager);
   // Write all the segments
@@ -158,7 +158,7 @@ GEM_INLINE void svector_write(fm_t* const file_manager,svector_t* const svector)
 /*
  * Display/Profile
  */
-GEM_INLINE void svector_print(FILE* const stream,svector_t* const svector) {
+void svector_print(FILE* const stream,svector_t* const svector) {
   GEM_CHECK_NULL(stream);
   SEGMENTED_VECTOR_CHECK(svector);
   // TODO // TODO // TODO // TODO
@@ -168,7 +168,7 @@ GEM_INLINE void svector_print(FILE* const stream,svector_t* const svector) {
   // TODO // TODO // TODO // TODO
   // TODO // TODO // TODO // TODO
 }
-GEM_INLINE void svector_record_stats(svector_t* const svector) {
+void svector_record_stats(svector_t* const svector) {
   SEGMENTED_VECTOR_CHECK(svector);
   // TODO // TODO // TODO // TODO
   // TODO // TODO // TODO // TODO
@@ -177,7 +177,7 @@ GEM_INLINE void svector_record_stats(svector_t* const svector) {
   // TODO // TODO // TODO // TODO
   // TODO // TODO // TODO // TODO
 }
-GEM_INLINE void svector_display_stats(FILE* const stream,svector_t* const svector) {
+void svector_display_stats(FILE* const stream,svector_t* const svector) {
   GEM_CHECK_NULL(stream);
   SEGMENTED_VECTOR_CHECK(svector);
   // TODO // TODO // TODO // TODO
@@ -195,7 +195,7 @@ GEM_INLINE void svector_display_stats(FILE* const stream,svector_t* const svecto
   iterator->current_segment = segment; \
   iterator->global_position = position; \
   iterator->local_position = segment_pos
-GEM_INLINE void svector_iterator_new(
+void svector_iterator_new(
     svector_iterator_t* const iterator,svector_t* const svector,
     const svector_iterator_type iterator_type,const uint64_t init_position) {
   GEM_CHECK_NULL(iterator);
@@ -229,7 +229,7 @@ GEM_INLINE void svector_iterator_new(
       break;
   }
 }
-GEM_INLINE void svector_read_iterator_seek(svector_iterator_t* const iterator,const uint64_t init_position) {
+void svector_read_iterator_seek(svector_iterator_t* const iterator,const uint64_t init_position) {
   SEGMENTED_VECTOR_READ_ITERATOR_CHECK(iterator);
   svector_t* const svector = iterator->svector;
   // Locate
@@ -237,16 +237,16 @@ GEM_INLINE void svector_read_iterator_seek(svector_iterator_t* const iterator,co
   iterator->eoi = (init_position>=svector->elements_used);
   if (!iterator->eoi) iterator->memory = svector_get_elm_memory(svector,segment,segment_pos);
 }
-GEM_INLINE void* svector_iterator_get_elm(svector_iterator_t* const iterator) {
+void* svector_iterator_get_elm(svector_iterator_t* const iterator) {
   SEGMENTED_VECTOR_ITERATOR_CHECK(iterator);
   return iterator->memory;
 }
 // Reading
-GEM_INLINE bool svector_read_iterator_eoi(svector_iterator_t* const iterator) {
+bool svector_read_iterator_eoi(svector_iterator_t* const iterator) {
   SEGMENTED_VECTOR_READ_ITERATOR_CHECK(iterator);
   return iterator->eoi;
 }
-GEM_INLINE void svector_read_iterator_next(svector_iterator_t* const iterator) {
+void svector_read_iterator_next(svector_iterator_t* const iterator) {
   SEGMENTED_VECTOR_READ_ITERATOR_CHECK(iterator);
   // Inc position
   ++(iterator->local_position);
@@ -267,7 +267,7 @@ GEM_INLINE void svector_read_iterator_next(svector_iterator_t* const iterator) {
   }
 }
 // Writing
-GEM_INLINE void svector_write_iterator_next(svector_iterator_t* const iterator) {
+void svector_write_iterator_next(svector_iterator_t* const iterator) {
   SEGMENTED_VECTOR_WRITE_ITERATOR_CHECK(iterator);
   // Inc position
   ++(iterator->local_position);

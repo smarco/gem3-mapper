@@ -15,7 +15,7 @@
 /*
  * Setup
  */
-GEM_INLINE vector_t* vector_new_(const uint64_t num_initial_elements,const uint64_t element_size) {
+vector_t* vector_new_(const uint64_t num_initial_elements,const uint64_t element_size) {
   GEM_CHECK_ZERO(element_size);
   vector_t* const vector_buffer=mm_alloc(vector_t);
   vector_buffer->element_size=element_size;
@@ -25,7 +25,7 @@ GEM_INLINE vector_t* vector_new_(const uint64_t num_initial_elements,const uint6
   vector_buffer->used=0;
   return vector_buffer;
 }
-GEM_INLINE void vector_reserve(vector_t* const vector,const uint64_t num_elements,const bool zero_mem) {
+void vector_reserve(vector_t* const vector,const uint64_t num_elements,const bool zero_mem) {
   VECTOR_CHECK(vector);
   if (vector->elements_allocated < num_elements) {
     const uint64_t proposed=(float)vector->elements_allocated*VECTOR_EXPAND_FACTOR;
@@ -39,7 +39,7 @@ GEM_INLINE void vector_reserve(vector_t* const vector,const uint64_t num_element
     memset(vector->memory+vector->used*vector->element_size,0,(vector->elements_allocated-vector->used)*vector->element_size);
   }
 }
-GEM_INLINE void vector_resize__clear(vector_t* const vector,const uint64_t num_elements) {
+void vector_resize__clear(vector_t* const vector,const uint64_t num_elements) {
   VECTOR_CHECK(vector);
   if (vector->elements_allocated < num_elements) {
     const uint64_t proposed=(float)vector->elements_allocated*VECTOR_EXPAND_FACTOR;
@@ -52,14 +52,14 @@ GEM_INLINE void vector_resize__clear(vector_t* const vector,const uint64_t num_e
   }
   vector->used=0;
 }
-GEM_INLINE void vector_cast__clear_(vector_t* const vector,const uint64_t element_size) {
+void vector_cast__clear_(vector_t* const vector,const uint64_t element_size) {
   VECTOR_CHECK(vector);
   GEM_CHECK_ZERO(element_size);
   vector->elements_allocated=(vector->elements_allocated*vector->element_size)/element_size;
   vector->element_size=element_size;
   vector->used=0;
 }
-GEM_INLINE void vector_delete(vector_t* const vector) {
+void vector_delete(vector_t* const vector) {
   VECTOR_CHECK(vector);
   mm_free(vector->memory);
   mm_free(vector);
@@ -68,7 +68,7 @@ GEM_INLINE void vector_delete(vector_t* const vector) {
  * Accessors
  */
 #ifdef GEM_DEBUG
-GEM_INLINE void* vector_get_mem_element(vector_t* const vector,const uint64_t position,const uint64_t element_size) {
+void* vector_get_mem_element(vector_t* const vector,const uint64_t position,const uint64_t element_size) {
   VECTOR_CHECK(vector);
   GEM_CHECK_ZERO(element_size);
   if (position >= (vector)->used) {
@@ -80,7 +80,7 @@ GEM_INLINE void* vector_get_mem_element(vector_t* const vector,const uint64_t po
 /*
  * Miscellaneous
  */
-GEM_INLINE void vector_copy(vector_t* const vector_to,vector_t* const vector_from) {
+void vector_copy(vector_t* const vector_to,vector_t* const vector_from) {
   VECTOR_CHECK(vector_to);
   VECTOR_CHECK(vector_from);
   // Prepare
@@ -90,7 +90,7 @@ GEM_INLINE void vector_copy(vector_t* const vector_to,vector_t* const vector_fro
   vector_set_used(vector_to,vector_from->used);
   memcpy(vector_to->memory,vector_from->memory,vector_from->used*vector_from->element_size);
 }
-GEM_INLINE vector_t* vector_dup(vector_t* const vector_src) {
+vector_t* vector_dup(vector_t* const vector_src) {
   VECTOR_CHECK(vector_src);
   vector_t* const vector_cpy = vector_new_(vector_src->used,vector_src->element_size);
   // Copy

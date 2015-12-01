@@ -11,11 +11,11 @@
 /*
  * Basic InputFile-Parsing Functions
  */
-GEM_INLINE bool input_file_parse_next_char(input_file_t* const input_file) {
+bool input_file_parse_next_char(input_file_t* const input_file) {
   INPUT_FILE_CHECK(input_file);
   return input_file_next_char(input_file);
 }
-GEM_INLINE error_code_t input_file_parse_skip_separators(input_file_t* const input_file) {
+error_code_t input_file_parse_skip_separators(input_file_t* const input_file) {
   INPUT_FILE_CHECK(input_file);
   if (gem_expect_false(input_file_eof(input_file))) return -1;
   const char current_char = input_file_get_current_char(input_file);
@@ -28,7 +28,7 @@ GEM_INLINE error_code_t input_file_parse_skip_separators(input_file_t* const inp
   }
   return 0;
 }
-GEM_INLINE void input_file_parse_skip_chars(input_file_t* const input_file,uint64_t num_chars) {
+void input_file_parse_skip_chars(input_file_t* const input_file,uint64_t num_chars) {
   INPUT_FILE_CHECK(input_file);
   while (!input_file_eof(input_file) && num_chars>0) {
     // Read character
@@ -39,7 +39,7 @@ GEM_INLINE void input_file_parse_skip_chars(input_file_t* const input_file,uint6
     --num_chars;
   }
 }
-GEM_INLINE void input_file_parse_skip_line(input_file_t* const input_file) {
+void input_file_parse_skip_line(input_file_t* const input_file) {
   INPUT_FILE_CHECK(input_file);
   while (!input_file_eof(input_file)) {
     // Read character
@@ -49,11 +49,11 @@ GEM_INLINE void input_file_parse_skip_line(input_file_t* const input_file) {
     input_file_next_char(input_file);
   }
 }
-GEM_INLINE bool input_file_parse_is_eol(input_file_t* const input_file) {
+bool input_file_parse_is_eol(input_file_t* const input_file) {
   INPUT_FILE_CHECK(input_file);
   return input_file_eof(input_file) || IS_ANY_EOL(input_file_get_current_char(input_file));
 }
-GEM_INLINE void input_file_parse_field(input_file_t* const input_file,const char delimiter,string_t* const string) {
+void input_file_parse_field(input_file_t* const input_file,const char delimiter,string_t* const string) {
   INPUT_FILE_CHECK(input_file);
   while (!input_file_eof(input_file)) {
     // Read character
@@ -66,7 +66,7 @@ GEM_INLINE void input_file_parse_field(input_file_t* const input_file,const char
   }
   string_append_eos(string);
 }
-GEM_INLINE error_code_t input_file_parse_integer(input_file_t* const input_file,int64_t* const value) {
+error_code_t input_file_parse_integer(input_file_t* const input_file,int64_t* const value) {
   INPUT_FILE_CHECK(input_file);
   GEM_CHECK_NULL(value);
   int64_t number = 0;
@@ -98,23 +98,23 @@ GEM_INLINE error_code_t input_file_parse_integer(input_file_t* const input_file,
 /*
  * Basic Text-Parsing Functions
  */
-GEM_INLINE void input_text_parse_next_char(const char** const text_line) {
+void input_text_parse_next_char(const char** const text_line) {
   GEM_CHECK_NULL(text_line);
   PARSER_NEXT_CHAR(text_line);
 }
-GEM_INLINE void input_text_parse_skip_chars(const char** const text_line,uint64_t num_chars) {
+void input_text_parse_skip_chars(const char** const text_line,uint64_t num_chars) {
   GEM_CHECK_NULL(text_line);
   while ((num_chars--) > 0 && !PARSER_IS_EOL(text_line)) PARSER_NEXT_CHAR(text_line);
 }
-GEM_INLINE void input_text_parse_skip_line(const char** const text_line) {
+void input_text_parse_skip_line(const char** const text_line) {
   GEM_CHECK_NULL(text_line);
   PARSER_SKIP_LINE(text_line);
 }
-GEM_INLINE bool input_text_parse_is_eol(const char** const text_line) {
+bool input_text_parse_is_eol(const char** const text_line) {
   GEM_CHECK_NULL(text_line);
   return PARSER_IS_EOL(text_line);
 }
-GEM_INLINE void input_text_parse_field(const char** const text_line,const char delimiter,string_t* const string) {
+void input_text_parse_field(const char** const text_line,const char delimiter,string_t* const string) {
   GEM_CHECK_NULL(text_line);
   // Read field
   const char* const string_begin = *text_line;
@@ -124,7 +124,7 @@ GEM_INLINE void input_text_parse_field(const char** const text_line,const char d
   // Skip delimiter
   if (**text_line==delimiter) PARSER_NEXT_CHAR(text_line);
 }
-GEM_INLINE int input_text_parse_integer(const char** const text_line,int64_t* const value) {
+int input_text_parse_integer(const char** const text_line,int64_t* const value) {
   GEM_CHECK_NULL(text_line);
   GEM_CHECK_NULL(value);
   int64_t number = 0;
@@ -157,7 +157,7 @@ GEM_INLINE int input_text_parse_integer(const char** const text_line,int64_t* co
   *value = number;
   return 0;
 }
-GEM_INLINE int input_text_parse_double(const char** const text_line,double* const value) {
+int input_text_parse_double(const char** const text_line,double* const value) {
   GEM_CHECK_NULL(text_line);
   GEM_CHECK_NULL(value);
   /*
@@ -228,7 +228,7 @@ GEM_INLINE int input_text_parse_double(const char** const text_line,double* cons
   return 0;
 }
 // Parsing CMD-line options
-GEM_INLINE int input_text_parse_size(char* const size_text,uint64_t* const size) {
+int input_text_parse_size(char* const size_text,uint64_t* const size) {
   char* text_centinel = size_text;
   double parsed_size;
   // Parse number (double/interger)
@@ -268,7 +268,7 @@ GEM_INLINE int input_text_parse_size(char* const size_text,uint64_t* const size)
   }
   return 0;
 }
-GEM_INLINE int input_text_parse_csv_arguments(char* const arguments,const uint64_t num_arguments,...) {
+int input_text_parse_csv_arguments(char* const arguments,const uint64_t num_arguments,...) {
   uint64_t num_arguments_parsed = 0;
   // Start va_args
   va_list v_args;
@@ -285,7 +285,7 @@ GEM_INLINE int input_text_parse_csv_arguments(char* const arguments,const uint64
   va_end(v_args);
   return num_arguments_parsed;
 }
-GEM_INLINE int input_text_parse_extended_uint64(char* const argument,uint64_t* const value) {
+int input_text_parse_extended_uint64(char* const argument,uint64_t* const value) {
   // Textual
   if (gem_strcaseeq(argument,"all")) { *value = UINT64_MAX; return 0; }
   if (gem_strcaseeq(argument,"inf")) { *value = UINT64_MAX; return 0; }
@@ -297,7 +297,7 @@ GEM_INLINE int input_text_parse_extended_uint64(char* const argument,uint64_t* c
   // Number
   return input_text_parse_integer((const char** const)&argument,(int64_t*)value);
 }
-GEM_INLINE int input_text_parse_extended_int64(char* const argument,int64_t* const value) {
+int input_text_parse_extended_int64(char* const argument,int64_t* const value) {
   // Textual
   if (gem_strcaseeq(argument,"all")) { *value = INT64_MAX; return 0; }
   if (gem_strcaseeq(argument,"inf")) { *value = INT64_MAX; return 0; }
@@ -309,7 +309,7 @@ GEM_INLINE int input_text_parse_extended_int64(char* const argument,int64_t* con
   // Number
   return input_text_parse_integer((const char** const)&argument,value);
 }
-GEM_INLINE int input_text_parse_extended_double(char* const argument,double* const value) {
+int input_text_parse_extended_double(char* const argument,double* const value) {
   // Textual (use int64_t limits)
   if (gem_strcaseeq(argument,"all")) { *value = INT64_MAX; return 0; }
   if (gem_strcaseeq(argument,"inf")) { *value = INT64_MAX; return 0; }
@@ -321,7 +321,7 @@ GEM_INLINE int input_text_parse_extended_double(char* const argument,double* con
   // Number
   return input_text_parse_double((const char** const)&argument,value);
 }
-GEM_INLINE bool input_text_parse_extended_bool(char* const argument) {
+bool input_text_parse_extended_bool(char* const argument) {
   if (argument==NULL) {
     return true;
   } else {
@@ -337,7 +337,7 @@ GEM_INLINE bool input_text_parse_extended_bool(char* const argument) {
 /*
  * Tag parsing
  */
-GEM_INLINE uint64_t input_text_parse_count_colons_in_field(const char* const text_line) {
+uint64_t input_text_parse_count_colons_in_field(const char* const text_line) {
   // Count number of colons in a field (delimited by TAB or SPACE)
   uint64_t i = 0, count = 0;
   while (text_line[i]!=TAB && text_line[i]!=SPACE && text_line[i]!=EOL) {
@@ -346,7 +346,7 @@ GEM_INLINE uint64_t input_text_parse_count_colons_in_field(const char* const tex
   }
   return count;
 }
-GEM_INLINE error_code_t input_text_parse_tag(
+error_code_t input_text_parse_tag(
     char** const text_line,string_t* const tag,sequence_attributes_t* const attributes) {
   GEM_CHECK_NULL(text_line);
   STRING_CHECK(tag);
@@ -422,7 +422,7 @@ GEM_INLINE error_code_t input_text_parse_tag(
 /*
  * Parse the end information {/1,/2}
  */
-GEM_INLINE uint64_t input_text_parse_tag_chomp_pairend_info(string_t* const tag) {
+uint64_t input_text_parse_tag_chomp_pairend_info(string_t* const tag) {
   STRING_CHECK(tag);
   const uint64_t tag_length = string_get_length(tag);
   if (tag_length>2 && *string_char_at(tag,tag_length-2)==SLASH) {

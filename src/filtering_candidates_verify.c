@@ -23,7 +23,7 @@
 /*
  * Candidate Verification
  */
-GEM_INLINE uint64_t filtering_candidates_verify_filtering_regions(
+uint64_t filtering_candidates_verify_filtering_regions(
     filtering_candidates_t* const filtering_candidates,text_collection_t* const text_collection,
     const pattern_t* const pattern,const as_parameters_t* const as_parameters,
     matches_t* const matches) {
@@ -72,7 +72,7 @@ GEM_INLINE uint64_t filtering_candidates_verify_filtering_regions(
   }
   return num_regions_accepted;
 }
-GEM_INLINE uint64_t filtering_candidates_verify_filtering_regions_multiple_hits(
+uint64_t filtering_candidates_verify_filtering_regions_multiple_hits(
     filtering_candidates_t* const filtering_candidates,text_collection_t* const text_collection,
     const pattern_t* const pattern,const as_parameters_t* const as_parameters,
     matches_t* const matches) {
@@ -120,7 +120,7 @@ GEM_INLINE uint64_t filtering_candidates_verify_filtering_regions_multiple_hits(
   }
   return total_regions_accepted;
 }
-GEM_INLINE uint64_t filtering_candidates_verify_candidates(
+uint64_t filtering_candidates_verify_candidates(
     filtering_candidates_t* const filtering_candidates,archive_t* const archive,
     text_collection_t* const text_collection,const pattern_t* const pattern,
     const as_parameters_t* const as_parameters,

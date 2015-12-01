@@ -25,14 +25,14 @@
  * Stepwise: Init Search
  *   Reset initial values (Prepare pattern(s), instantiate parameters values, ...)
  */
-GEM_INLINE void archive_search_se_stepwise_init_search(archive_search_t* const archive_search) {
+void archive_search_se_stepwise_init_search(archive_search_t* const archive_search) {
   // Init
   archive_search_reset(archive_search);
 }
 /*
  * Stepwise: Region-Profile
  */
-GEM_INLINE void archive_search_se_stepwise_region_profile_generate(archive_search_t* const archive_search) {
+void archive_search_se_stepwise_region_profile_generate(archive_search_t* const archive_search) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE_REGION_PROFILE_GENERATE,PROFILE_LEVEL);
   // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE_STEPWISE) {
@@ -52,7 +52,7 @@ GEM_INLINE void archive_search_se_stepwise_region_profile_generate(archive_searc
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE_STEPWISE) { tab_global_dec(); }
   PROFILE_STOP(GP_ARCHIVE_SEARCH_SE_REGION_PROFILE_GENERATE,PROFILE_LEVEL);
 }
-GEM_INLINE void archive_search_se_stepwise_region_profile_copy(
+void archive_search_se_stepwise_region_profile_copy(
     archive_search_t* const archive_search,gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE_REGION_PROFILE_COPY,PROFILE_LEVEL);
   // DEBUG
@@ -75,7 +75,7 @@ GEM_INLINE void archive_search_se_stepwise_region_profile_copy(
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE_STEPWISE) { tab_global_dec(); }
   PROFILE_STOP(GP_ARCHIVE_SEARCH_SE_REGION_PROFILE_COPY,PROFILE_LEVEL);
 }
-GEM_INLINE void archive_search_se_stepwise_region_profile_retrieve(
+void archive_search_se_stepwise_region_profile_retrieve(
     archive_search_t* const archive_search,gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE_REGION_PROFILE_RETRIEVE,PROFILE_LEVEL);
   // DEBUG
@@ -101,7 +101,7 @@ GEM_INLINE void archive_search_se_stepwise_region_profile_retrieve(
 /*
  * Stepwise: Decode-Candidates
  */
-GEM_INLINE void archive_search_se_stepwise_decode_candidates_generate(archive_search_t* const archive_search) {
+void archive_search_se_stepwise_decode_candidates_generate(archive_search_t* const archive_search) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE_DECODE_CANDIDATES_GENERATE,PROFILE_LEVEL);
   // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE_STEPWISE) {
@@ -121,7 +121,7 @@ GEM_INLINE void archive_search_se_stepwise_decode_candidates_generate(archive_se
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE_STEPWISE) { tab_global_dec(); }
   PROFILE_STOP(GP_ARCHIVE_SEARCH_SE_DECODE_CANDIDATES_GENERATE,PROFILE_LEVEL);
 }
-GEM_INLINE void archive_search_se_stepwise_decode_candidates_copy(
+void archive_search_se_stepwise_decode_candidates_copy(
     archive_search_t* const archive_search,gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE_DECODE_CANDIDATES_COPY,PROFILE_LEVEL);
   // DEBUG
@@ -144,7 +144,7 @@ GEM_INLINE void archive_search_se_stepwise_decode_candidates_copy(
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE_STEPWISE) { tab_global_dec(); }
   PROFILE_STOP(GP_ARCHIVE_SEARCH_SE_DECODE_CANDIDATES_COPY,PROFILE_LEVEL);
 }
-GEM_INLINE void archive_search_se_stepwise_decode_candidates_retrieve(
+void archive_search_se_stepwise_decode_candidates_retrieve(
     archive_search_t* const archive_search,gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE_DECODE_CANDIDATES_RETRIEVE,PROFILE_LEVEL);
   // DEBUG
@@ -170,7 +170,7 @@ GEM_INLINE void archive_search_se_stepwise_decode_candidates_retrieve(
 /*
  * Stepwise: Verify-Candidates
  */
-GEM_INLINE void archive_search_se_stepwise_verify_candidates_generate(archive_search_t* const archive_search) {
+void archive_search_se_stepwise_verify_candidates_generate(archive_search_t* const archive_search) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE_VERIFY_CANDIDATES_GENERATE,PROFILE_LEVEL);
   // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE_STEPWISE) {
@@ -188,7 +188,7 @@ GEM_INLINE void archive_search_se_stepwise_verify_candidates_generate(archive_se
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE_STEPWISE) { tab_global_dec(); }
   PROFILE_STOP(GP_ARCHIVE_SEARCH_SE_VERIFY_CANDIDATES_GENERATE,PROFILE_LEVEL);
 }
-GEM_INLINE void archive_search_se_stepwise_verify_candidates_copy(
+void archive_search_se_stepwise_verify_candidates_copy(
     archive_search_t* const archive_search,gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE_VERIFY_CANDIDATES_COPY,PROFILE_LEVEL);
   // DEBUG
@@ -211,7 +211,7 @@ GEM_INLINE void archive_search_se_stepwise_verify_candidates_copy(
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE_STEPWISE) { tab_global_dec(); }
   PROFILE_STOP(GP_ARCHIVE_SEARCH_SE_VERIFY_CANDIDATES_COPY,PROFILE_LEVEL);
 }
-GEM_INLINE void archive_search_se_stepwise_verify_candidates_retrieve(
+void archive_search_se_stepwise_verify_candidates_retrieve(
     archive_search_t* const archive_search,gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     matches_t* const matches) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE_VERIFY_CANDIDATES_RETRIEVE,PROFILE_LEVEL);
@@ -238,7 +238,7 @@ GEM_INLINE void archive_search_se_stepwise_verify_candidates_retrieve(
 /*
  * Stepwise: Finish Search
  */
-GEM_INLINE void archive_search_se_stepwise_finish_search(
+void archive_search_se_stepwise_finish_search(
     archive_search_t* const archive_search,matches_t* const matches) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE_FINISH_SEARCH,PROFILE_LEVEL);
   // DEBUG
@@ -267,7 +267,7 @@ GEM_INLINE void archive_search_se_stepwise_finish_search(
 /*
  *  DEPRECATED FIXME
  */
-//GEM_INLINE void archive_search_se_stepwise_verify_candidates(
+//void archive_search_se_stepwise_verify_candidates(
 //    archive_search_t* const archive_search,matches_t* const matches) {
 //  PROFILE_START(GP_ARCHIVE_SEARCH_SE_VERIFY_CANDIDATES,PROFILE_LEVEL);
 //  gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE_STEPWISE) {

@@ -11,7 +11,7 @@
 /*
  * DP-Matrix Traceback
  */
-GEM_INLINE void dp_matrix_traceback(
+void dp_matrix_traceback(
     FILE* const stream,const dp_matrix_t* const dp_matrix,
     const uint8_t* const key,const uint64_t key_length,
     const uint8_t* const text,const uint64_t column_position) {
@@ -43,7 +43,7 @@ GEM_INLINE void dp_matrix_traceback(
   fprintf(stream,"\n");
 }
 /*
-GEM_INLINE void neighborhood_search_debug_match(
+void neighborhood_search_debug_match(
     FILE* const stream,const dp_matrix_t* const dp_matrix,
     const uint8_t* const key,const uint64_t key_length,
     const uint8_t* const text,const uint64_t column_position,
@@ -62,7 +62,7 @@ GEM_INLINE void neighborhood_search_debug_match(
 /*
  * Display
  */
-GEM_INLINE void dp_column_print_summary(
+void dp_column_print_summary(
     FILE* const stream,const dp_matrix_t* const dp_matrix,
     const uint64_t column_position,const uint64_t lo,const uint64_t hi) {
   const uint64_t column_length = dp_matrix->column_length;
@@ -72,7 +72,7 @@ GEM_INLINE void dp_column_print_summary(
   tab_fprintf(stream,">> [%"PRIu64"](#%"PRIu64"){min=%"PRIu64",last=%"PRIu64"}\n",
       column_position,hi-lo,min,cells[column_length]);
 }
-GEM_INLINE void dp_matrix_print(
+void dp_matrix_print(
     FILE* const stream,const dp_matrix_t* const dp_matrix,const bool forward_search,
     const uint8_t* const key,const uint64_t key_begin,const uint64_t key_end,
     const uint8_t* const text,const uint64_t text_begin,const uint64_t text_end) {

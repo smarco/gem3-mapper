@@ -18,7 +18,7 @@
 /*
  * Check Occupancy
  */
-GEM_INLINE bool mapper_se_cuda_stage_read_input_sequences_exhausted(mapper_cuda_search_t* const mapper_search) {
+bool mapper_se_cuda_stage_read_input_sequences_exhausted(mapper_cuda_search_t* const mapper_search) {
   // Check pending search
   if (mapper_search->pending_search_region_profile!=NULL) return false;
   // Check end_of_block
@@ -29,7 +29,7 @@ GEM_INLINE bool mapper_se_cuda_stage_read_input_sequences_exhausted(mapper_cuda_
   search_pipeline_clear(mapper_search->search_pipeline);
   return false;
 }
-GEM_INLINE bool mapper_se_cuda_stage_region_profile_output_exhausted(mapper_cuda_search_t* const mapper_search) {
+bool mapper_se_cuda_stage_region_profile_output_exhausted(mapper_cuda_search_t* const mapper_search) {
   // Check Stage Region-Profile
   search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
   if (!search_stage_region_profile_retrieve_finished(search_pipeline->stage_region_profile)) return false;
@@ -38,7 +38,7 @@ GEM_INLINE bool mapper_se_cuda_stage_region_profile_output_exhausted(mapper_cuda
   // Exhausted
   return true;
 }
-GEM_INLINE bool mapper_se_cuda_stage_decode_candidates_output_exhausted(mapper_cuda_search_t* const mapper_search) {
+bool mapper_se_cuda_stage_decode_candidates_output_exhausted(mapper_cuda_search_t* const mapper_search) {
   // Check Stage Decode-Candidates
   search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
   if (!search_stage_decode_candidates_retrieve_finished(search_pipeline->stage_decode_candidates)) return false;
@@ -53,7 +53,7 @@ GEM_INLINE bool mapper_se_cuda_stage_decode_candidates_output_exhausted(mapper_c
  *   Generate region-profile partition
  *   Send to CUDA-region-profile
  */
-GEM_INLINE void mapper_se_cuda_region_profile(mapper_cuda_search_t* const mapper_search) {
+void mapper_se_cuda_region_profile(mapper_cuda_search_t* const mapper_search) {
   PROFILE_START(GP_MAPPER_CUDA_SE_REGION_PROFILE,PROFILE_LEVEL);
   // Parameters
   mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
@@ -92,7 +92,7 @@ GEM_INLINE void mapper_se_cuda_region_profile(mapper_cuda_search_t* const mapper
  *   Generate Decode-Candidates
  *   Send to CUDA Decode-Candidates
  */
-GEM_INLINE void mapper_se_cuda_decode_candidates(mapper_cuda_search_t* const mapper_search) {
+void mapper_se_cuda_decode_candidates(mapper_cuda_search_t* const mapper_search) {
   PROFILE_START(GP_MAPPER_CUDA_SE_DECODE_CANDIDATES,PROFILE_LEVEL);
   // Parameters
   search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
@@ -128,7 +128,7 @@ GEM_INLINE void mapper_se_cuda_decode_candidates(mapper_cuda_search_t* const map
  *   Generate Verify-Candidates
  *   Send to CUDA Verify-Candidates
  */
-GEM_INLINE void mapper_se_cuda_verify_candidates(mapper_cuda_search_t* const mapper_search) {
+void mapper_se_cuda_verify_candidates(mapper_cuda_search_t* const mapper_search) {
   PROFILE_START(GP_MAPPER_CUDA_SE_VERIFY_CANDIDATES,PROFILE_LEVEL);
   // Parameters
   search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
@@ -164,7 +164,7 @@ GEM_INLINE void mapper_se_cuda_verify_candidates(mapper_cuda_search_t* const map
  *   Finish Search
  *   Output Matches
  */
-GEM_INLINE void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_search) {
+void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_search) {
   PROFILE_START(GP_MAPPER_CUDA_SE_FINISH_SEARCH,PROFILE_LEVEL);
   // Parameters
   mapper_parameters_t* const parameters = mapper_search->mapper_parameters;

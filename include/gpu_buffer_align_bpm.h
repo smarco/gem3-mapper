@@ -19,18 +19,21 @@
  */
 typedef struct {
   /* GPU Generic Buffer*/
-  void* buffer;             // GPU Generic Buffer
+  void* buffer;                       // GPU Generic Buffer
   /* Dimensions Hints */
-  uint32_t averageQuerySize;
-  uint32_t candidatesPerQuery;
-  uint32_t candidates_same_length; // TODO
+  gem_counter_t query_length;         // Tracks queries' length
+  gem_counter_t candidates_per_query; // Tracks number of candidates per query
+  uint32_t query_same_length;         // Tracks same-read-length buffers
   /* Buffer state */
-  uint32_t pattern_id;      // Pattern ID (Generator)
-  uint32_t num_PEQ_entries;
+  uint32_t current_query_offset;
+  uint32_t num_entries;
   uint32_t num_queries;
   uint32_t num_candidates;
   /* CPU Computation */
-  bool compute_cpu;         // Computing Using CPU (disable GPU)
+  bool compute_cpu;                   // Computing Using CPU (disable GPU)
+  archive_text_t* archive_text;
+  text_collection_t* text_collection;
+  mm_stack_t* mm_stack;
   /* Profile */
   gem_timer_t timer;
 } gpu_buffer_align_bpm_t;
@@ -45,7 +48,9 @@ uint64_t gpu_bpm_pattern_get_entry_length();
  * Setup
  */
 gpu_buffer_align_bpm_t* gpu_buffer_align_bpm_new(
-    const gpu_buffer_collection_t* const gpu_buffer_collection,const uint64_t buffer_no);
+    const gpu_buffer_collection_t* const gpu_buffer_collection,const uint64_t buffer_no,
+    archive_text_t* const archive_text,text_collection_t* const text_collection,
+    mm_stack_t* const mm_stack);
 void gpu_buffer_align_bpm_clear(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
 void gpu_buffer_align_bpm_delete(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
 
@@ -65,27 +70,43 @@ uint64_t gpu_buffer_align_bpm_get_num_candidates(gpu_buffer_align_bpm_t* const g
 uint64_t gpu_buffer_align_bpm_get_num_queries(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
 
 void gpu_buffer_align_bpm_compute_dimensions(
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const pattern_t* const pattern,
-    const uint64_t total_candidates,uint64_t* const total_entries,
-    uint64_t* const total_query_chunks,uint64_t* const total_candidate_chunks);
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,bpm_pattern_t* const bpm_pattern,
+    const uint64_t num_candidates,uint64_t* const total_entries,
+    uint64_t* const total_queries,uint64_t* const total_candidates);
 bool gpu_buffer_align_bpm_fits_in_buffer(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t total_entries,
-    const uint64_t total_query_chunks,const uint64_t total_candidate_chunks);
+    const uint64_t total_queries,const uint64_t total_candidates);
 
 /*
  * Accessors
  */
 void gpu_buffer_align_bpm_add_pattern(
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,pattern_t* const pattern);
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,bpm_pattern_t* const bpm_pattern);
 void gpu_buffer_align_bpm_add_candidate(
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t candidate_text_position,
-    const uint64_t candidate_length,const uint64_t pattern_chunk);
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t tile_offset,
+    const uint64_t candidate_text_position,const uint64_t candidate_length);
+
 void gpu_buffer_align_bpm_get_candidate(
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t buffer_pos,
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t candidate_offset,
     uint64_t* const candidate_text_position,uint32_t* const candidate_length);
 void gpu_buffer_align_bpm_get_result(
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t buffer_pos,
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t candidate_offset,
     uint32_t* const levenshtein_distance,uint32_t* const levenshtein_match_pos);
+void gpu_buffer_align_bpm_retrieve_pattern(
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t candidate_offset,
+    bpm_pattern_t* const bpm_pattern,mm_stack_t* const mm_stack);
+
+/*
+ * Hints
+ */
+void gpu_buffer_align_bpm_record_query_length(
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t query_length);
+void gpu_buffer_align_bpm_record_candidates_per_query(
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t num_candidates);
+uint64_t gpu_buffer_align_bpm_get_mean_query_length(
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
+uint64_t gpu_buffer_align_bpm_get_mean_candidates_per_query(
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
 
 /*
  * Send/Receive

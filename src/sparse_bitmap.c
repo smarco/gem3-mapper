@@ -22,7 +22,7 @@
 /*
  * Loader/Setup
  */
-GEM_INLINE sparse_bitmap_t* sparse_bitmap_read(fm_t* const file_manager) {
+sparse_bitmap_t* sparse_bitmap_read(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   // Allocate
   sparse_bitmap_t* const sparse_bitmap = mm_alloc(sparse_bitmap_t);
@@ -35,7 +35,7 @@ GEM_INLINE sparse_bitmap_t* sparse_bitmap_read(fm_t* const file_manager) {
   // Return
   return sparse_bitmap;
 }
-GEM_INLINE sparse_bitmap_t* sparse_bitmap_read_mem(mm_t* const memory_manager) {
+sparse_bitmap_t* sparse_bitmap_read_mem(mm_t* const memory_manager) {
   MM_CHECK(memory_manager);
   // Allocate
   sparse_bitmap_t* const sparse_bitmap = mm_alloc(sparse_bitmap_t);
@@ -48,7 +48,7 @@ GEM_INLINE sparse_bitmap_t* sparse_bitmap_read_mem(mm_t* const memory_manager) {
   // Return
   return sparse_bitmap;
 }
-GEM_INLINE void sparse_bitmap_delete(sparse_bitmap_t* const sparse_bitmap) {
+void sparse_bitmap_delete(sparse_bitmap_t* const sparse_bitmap) {
   SPARSE_BITMAP_CHECK(sparse_bitmap);
   if (sparse_bitmap->mm_bitmaps!=NULL) mm_bulk_free(sparse_bitmap->mm_bitmaps);
   mm_free(sparse_bitmap);
@@ -56,15 +56,15 @@ GEM_INLINE void sparse_bitmap_delete(sparse_bitmap_t* const sparse_bitmap) {
 /*
  * Accessors
  */
-GEM_INLINE uint64_t sparse_bitmap_get_size(sparse_bitmap_t* const sparse_bitmap) {
+uint64_t sparse_bitmap_get_size(sparse_bitmap_t* const sparse_bitmap) {
   const uint64_t bitmaps_size = sparse_bitmap->num_bitmaps*UINT64_SIZE;
   return sparse_array_locator_get_size(sparse_bitmap->locator) + bitmaps_size;
 }
-GEM_INLINE bool sparse_bitmap_is_contained(sparse_bitmap_t* const sparse_bitmap,const uint64_t position) {
+bool sparse_bitmap_is_contained(sparse_bitmap_t* const sparse_bitmap,const uint64_t position) {
   SPARSE_BITMAP_CHECK(sparse_bitmap);
   return sparse_array_locator_is_marked(sparse_bitmap->locator,position);
 }
-GEM_INLINE uint64_t sparse_bitmap_get_bitmap(sparse_bitmap_t* const sparse_bitmap,const uint64_t position) {
+uint64_t sparse_bitmap_get_bitmap(sparse_bitmap_t* const sparse_bitmap,const uint64_t position) {
   SPARSE_BITMAP_CHECK(sparse_bitmap);
   uint64_t bimap_position;
   if (sparse_array_locator_get_erank_if_marked(sparse_bitmap->locator,position,&bimap_position)) {
@@ -76,7 +76,7 @@ GEM_INLINE uint64_t sparse_bitmap_get_bitmap(sparse_bitmap_t* const sparse_bitma
 /*
  * Builder
  */
-GEM_INLINE sparse_bitmap_builder_t* sparse_bitmap_builder_new(mm_slab_t* const mm_slab) {
+sparse_bitmap_builder_t* sparse_bitmap_builder_new(mm_slab_t* const mm_slab) {
   // Allocate
   sparse_bitmap_builder_t* const sparse_bitmap_builder = mm_alloc(sparse_bitmap_builder_t);
   // Initialize bitmaps
@@ -87,13 +87,13 @@ GEM_INLINE sparse_bitmap_builder_t* sparse_bitmap_builder_new(mm_slab_t* const m
   // Return
   return sparse_bitmap_builder;
 }
-GEM_INLINE void sparse_bitmap_builder_delete(sparse_bitmap_builder_t* const sparse_bitmap_builder) {
+void sparse_bitmap_builder_delete(sparse_bitmap_builder_t* const sparse_bitmap_builder) {
   SPARSE_BITMAP_BUILDER_CHECK(sparse_bitmap_builder);
   sparse_array_locator_builder_delete(sparse_bitmap_builder->locator_builder);
   svector_delete(sparse_bitmap_builder->bitmaps);
   mm_free(sparse_bitmap_builder);
 }
-GEM_INLINE void sparse_bitmap_builder_add_bitmap(sparse_bitmap_builder_t* const sparse_bitmap_builder,const uint64_t bitmap) {
+void sparse_bitmap_builder_add_bitmap(sparse_bitmap_builder_t* const sparse_bitmap_builder,const uint64_t bitmap) {
   SPARSE_BITMAP_BUILDER_CHECK(sparse_bitmap_builder);
   // Mark as present in the locator
   sparse_array_locator_builder_next(sparse_bitmap_builder->locator_builder,true);
@@ -101,12 +101,12 @@ GEM_INLINE void sparse_bitmap_builder_add_bitmap(sparse_bitmap_builder_t* const 
   *svector_iterator_get_element(&(sparse_bitmap_builder->bitmaps_iterator),uint64_t) = bitmap;
   svector_write_iterator_next(&(sparse_bitmap_builder->bitmaps_iterator));
 }
-GEM_INLINE void sparse_bitmap_builder_skip_bitmap(sparse_bitmap_builder_t* const sparse_bitmap_builder) {
+void sparse_bitmap_builder_skip_bitmap(sparse_bitmap_builder_t* const sparse_bitmap_builder) {
   SPARSE_BITMAP_BUILDER_CHECK(sparse_bitmap_builder);
   // Skip position in the locator
   sparse_array_locator_builder_next(sparse_bitmap_builder->locator_builder,false);
 }
-GEM_INLINE void sparse_bitmap_builder_write(fm_t* const file_manager,sparse_bitmap_builder_t* const sparse_bitmap_builder) {
+void sparse_bitmap_builder_write(fm_t* const file_manager,sparse_bitmap_builder_t* const sparse_bitmap_builder) {
   SPARSE_BITMAP_BUILDER_CHECK(sparse_bitmap_builder);
   FM_CHECK(file_manager);
   // Write header
@@ -119,7 +119,7 @@ GEM_INLINE void sparse_bitmap_builder_write(fm_t* const file_manager,sparse_bitm
 /*
  * Display
  */
-GEM_INLINE void sparse_bitmap_print(FILE* const stream,sparse_bitmap_t* const sparse_bitmap,const bool display_content) {
+void sparse_bitmap_print(FILE* const stream,sparse_bitmap_t* const sparse_bitmap,const bool display_content) {
   GEM_CHECK_NULL(stream);
   SPARSE_BITMAP_CHECK(sparse_bitmap);
   const uint64_t bitmaps_size = sparse_bitmap->num_bitmaps*UINT64_SIZE;

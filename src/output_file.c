@@ -11,7 +11,7 @@
 /*
  * Setup
  */
-GEM_INLINE void output_file_init_buffers(
+void output_file_init_buffers(
     output_file_t* const output_file,const uint64_t max_output_buffers,const uint64_t buffer_size) {
   /* Output Buffers */
   uint64_t i;
@@ -87,7 +87,7 @@ void output_file_close(output_file_t* const output_file) {
 /*
  * Conditions
  */
-GEM_INLINE bool output_file_serve_buffer_cond(
+bool output_file_serve_buffer_cond(
     output_file_t* const output_file,const uint64_t block_id) {
   // 0. We need a buffer free to be served [Security check to make it more robust]
   if (output_file->buffer_free==0) return false;
@@ -102,10 +102,10 @@ GEM_INLINE bool output_file_serve_buffer_cond(
     return false;
   }
 }
-GEM_INLINE bool output_file_eligible_request_cond(output_file_t* const output_file) {
+bool output_file_eligible_request_cond(output_file_t* const output_file) {
   return !pqueue_is_empty(output_file->buffer_requests) && output_file->buffer_free>0;
 }
-GEM_INLINE bool output_file_write_victim_cond(
+bool output_file_write_victim_cond(
     output_file_t* const output_file,output_buffer_t* const output_buffer) {
   return (output_file->next_output_mayor_id==output_buffer->mayor_block_id &&
           output_file->next_output_minor_id==output_buffer->minor_block_id);
@@ -113,7 +113,7 @@ GEM_INLINE bool output_file_write_victim_cond(
 /*
  * Accessors
  */
-GEM_INLINE output_buffer_t* output_file_get_free_buffer(output_file_t* const output_file) {
+output_buffer_t* output_file_get_free_buffer(output_file_t* const output_file) {
   // There is at least one free buffer. Get it!
   GEM_INTERNAL_CHECK(output_file->buffer_free > 0,"Output file. Cannot serve; no free buffers");
   uint64_t i;
@@ -131,7 +131,7 @@ GEM_INLINE output_buffer_t* output_file_get_free_buffer(output_file_t* const out
   // Return
   return output_file->buffer[i];
 }
-GEM_INLINE output_buffer_t* output_file_get_next_buffer_to_write(output_file_t* const output_file) {
+output_buffer_t* output_file_get_next_buffer_to_write(output_file_t* const output_file) {
   if (output_file->buffer_write_pending > 0) {
     const uint32_t mayor_block_id = output_file->next_output_mayor_id;
     const uint32_t minor_block_id = output_file->next_output_minor_id;
@@ -149,7 +149,7 @@ GEM_INLINE output_buffer_t* output_file_get_next_buffer_to_write(output_file_t* 
 /*
  * Utils
  */
-GEM_INLINE void output_file_print_buffers(FILE* stream,output_file_t* const output_file) {
+void output_file_print_buffers(FILE* stream,output_file_t* const output_file) {
   uint64_t i;
   for (i=0;i<output_file->num_buffers;++i) {
     if (output_file->buffer[i] == NULL) break;
@@ -162,14 +162,14 @@ GEM_INLINE void output_file_print_buffers(FILE* stream,output_file_t* const outp
   }
   fprintf(stream,"\n");
 }
-GEM_INLINE void output_file_release_buffer(
+void output_file_release_buffer(
     output_file_t* const output_file,output_buffer_t* const output_buffer) {
   // Free buffer
   output_buffer_set_state(output_buffer,OUTPUT_BUFFER_FREE);
   output_buffer_clear(output_buffer);
   ++output_file->buffer_free; // Inc number of free buffers
 }
-GEM_INLINE output_buffer_t* output_file_request_buffer(
+output_buffer_t* output_file_request_buffer(
     output_file_t* const output_file,const uint64_t block_id) {
   PROF_INC_COUNTER(GP_OUTPUT_BUFFER_REQUESTS);
   output_buffer_t* output_buffer = NULL;
@@ -206,7 +206,7 @@ GEM_INLINE output_buffer_t* output_file_request_buffer(
   // Return buffer
   return output_buffer;
 }
-GEM_INLINE output_buffer_t* output_file_request_buffer_extension(
+output_buffer_t* output_file_request_buffer_extension(
     output_file_t* const output_file,output_buffer_t* const output_buffer) {
   PROF_INC_COUNTER(GP_OUTPUT_BUFFER_EXTENSIONS);
   // Set current output-buffer as incomplete
@@ -221,7 +221,7 @@ GEM_INLINE output_buffer_t* output_file_request_buffer_extension(
   output_buffer_extension->minor_block_id = minor_block_id+1;
   return output_buffer_extension;
 }
-GEM_INLINE void output_file_next_block_id(
+void output_file_next_block_id(
     output_file_t* const output_file,output_buffer_t* const output_buffer) {
   if (output_buffer->is_final_block) {
     ++output_file->next_output_mayor_id;
@@ -230,7 +230,7 @@ GEM_INLINE void output_file_next_block_id(
     ++output_file->next_output_minor_id;
   }
 }
-GEM_INLINE void output_file_return_buffer(
+void output_file_return_buffer(
     output_file_t* const output_file,output_buffer_t* output_buffer) {
   // Set the block buffer as write pending and set the victim
   MUTEX_BEGIN_SECTION(output_file->output_file_mutex)
@@ -283,7 +283,7 @@ GEM_INLINE void output_file_return_buffer(
 /*
  * Output File Printers
  */
-GEM_INLINE int vofprintf(output_file_t* const out_file,const char *template,va_list v_args) {
+int vofprintf(output_file_t* const out_file,const char *template,va_list v_args) {
   OUTPUT_FILE_CHECK(out_file);
   GEM_CHECK_NULL(template);
   int num_bytes;
@@ -294,7 +294,7 @@ GEM_INLINE int vofprintf(output_file_t* const out_file,const char *template,va_l
   MUTEX_END_SECTION(out_file->output_file_mutex);
   return num_bytes;
 }
-GEM_INLINE int ofprintf(output_file_t* const out_file,const char *template,...) {
+int ofprintf(output_file_t* const out_file,const char *template,...) {
   OUTPUT_FILE_CHECK(out_file);
   GEM_CHECK_NULL(template);
   va_list v_args;

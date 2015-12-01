@@ -8,12 +8,12 @@
 
 #include "options_menu.h"
 
-GEM_INLINE uint64_t options_get_num_options(const option_t* const options_menu) {
+uint64_t options_get_num_options(const option_t* const options_menu) {
   uint64_t num_options = 0, i = 0;
   while (options_menu[i++].option_id != 0) ++num_options;
   return num_options;
 }
-GEM_INLINE struct option* options_adaptor_getopt(const option_t* const options_menu) {
+struct option* options_adaptor_getopt(const option_t* const options_menu) {
   const uint64_t num_options = options_get_num_options(options_menu);
   struct option* getopt_menu = mm_malloc(sizeof(struct option)*(num_options+1));
   // Adapt all the records
@@ -30,7 +30,7 @@ GEM_INLINE struct option* options_adaptor_getopt(const option_t* const options_m
   getopt_menu[num_options].val = 0;
   return getopt_menu;
 }
-GEM_INLINE string_t* options_adaptor_getopt_short(const option_t* const options_menu) {
+string_t* options_adaptor_getopt_short(const option_t* const options_menu) {
   const uint64_t num_options = options_get_num_options(options_menu);
   string_t* const getopt_menu_short = mm_alloc(string_t);
   string_init(getopt_menu_short,2*num_options);
@@ -51,7 +51,7 @@ GEM_INLINE string_t* options_adaptor_getopt_short(const option_t* const options_
   string_append_eos(getopt_menu_short);
   return getopt_menu_short;
 }
-GEM_INLINE void options_fprint_menu(
+void options_fprint_menu(
     FILE* const stream,const option_t* const options_menu,char* groups_menu[],
     const bool print_description,const option_visibility_t visibility_level) {
   const uint64_t num_options = options_get_num_options(options_menu);

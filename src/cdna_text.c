@@ -87,7 +87,7 @@ const uint64_t cdna_text_block_mask_right[256] =
 /*
  * CDNA Text (Builder incorporated)
  */
-GEM_INLINE cdna_text_t* cdna_text_new(mm_slab_t* const mm_slab) {
+cdna_text_t* cdna_text_new(mm_slab_t* const mm_slab) {
   // Allocate
   cdna_text_t* const cdna_text = mm_alloc(cdna_text_t);
   // Text */
@@ -102,12 +102,12 @@ GEM_INLINE cdna_text_t* cdna_text_new(mm_slab_t* const mm_slab) {
   // Return
   return cdna_text;
 }
-GEM_INLINE void cdna_text_delete(cdna_text_t* const cdna_text) {
+void cdna_text_delete(cdna_text_t* const cdna_text) {
   CDNA_TEXT_CHECK(cdna_text);
   svector_delete(cdna_text->text); // Free text
   mm_free(cdna_text); // Free handler
 }
-GEM_INLINE void cdna_text_flush(cdna_text_t* const cdna_text) {
+void cdna_text_flush(cdna_text_t* const cdna_text) {
   CDNA_TEXT_CHECK(cdna_text);
   // Write Bitmap
   *svector_iterator_get_element(&(cdna_text->text_iterator),uint64_t) = cdna_text->current_word;
@@ -116,7 +116,7 @@ GEM_INLINE void cdna_text_flush(cdna_text_t* const cdna_text) {
   cdna_text->position_mod21 = 0;
   cdna_text->current_word = 0;
 }
-GEM_INLINE void cdna_text_add_char(cdna_text_t* const cdna_text,const uint8_t enc_char) {
+void cdna_text_add_char(cdna_text_t* const cdna_text,const uint8_t enc_char) {
   CDNA_TEXT_CHECK(cdna_text);
   gem_fatal_check(!is_extended_dna_encoded(enc_char),CDNA_NOT_VALID_CHARACTER,enc_char);
   // Write new character
@@ -132,7 +132,7 @@ GEM_INLINE void cdna_text_add_char(cdna_text_t* const cdna_text,const uint8_t en
     cdna_text->current_word <<= DNA_EXT_RANGE_BITS;
   }
 }
-GEM_INLINE void cdna_text_close(cdna_text_t* const cdna_text) {
+void cdna_text_close(cdna_text_t* const cdna_text) {
   CDNA_TEXT_CHECK(cdna_text);
   if (cdna_text->position_mod21 > 0) {
     // Pad the rest of the word
@@ -147,7 +147,7 @@ GEM_INLINE void cdna_text_close(cdna_text_t* const cdna_text) {
     cdna_text_flush(cdna_text);
   }
 }
-GEM_INLINE void cdna_text_write_as_bitwise_text(fm_t* const file_manager,cdna_text_t* const cdna_text) {
+void cdna_text_write_as_bitwise_text(fm_t* const file_manager,cdna_text_t* const cdna_text) {
   CDNA_TEXT_CHECK(cdna_text);
   cdna_bitwise_text_builder_t* const cdna_bitwise_text =
       cdna_bitwise_text_builder_new(file_manager,cdna_text->text_length,cdna_text->mm_slab);
@@ -165,14 +165,14 @@ GEM_INLINE void cdna_text_write_as_bitwise_text(fm_t* const file_manager,cdna_te
 /*
  * CDNA Accessors
  */
-GEM_INLINE uint64_t cdna_text_get_length(cdna_text_t* const cdna_text) {
+uint64_t cdna_text_get_length(cdna_text_t* const cdna_text) {
   CDNA_TEXT_CHECK(cdna_text);
   return cdna_text->text_length;
 }
 /*
  * CDNA Text Iterator
  */
-GEM_INLINE void cdna_text_iterator_seek(cdna_text_iterator_t* const iterator,const uint64_t position) {
+void cdna_text_iterator_seek(cdna_text_iterator_t* const iterator,const uint64_t position) {
   CDNA_TEXT_ITERATOR_CHECK(iterator);
   gem_fatal_check(position>=iterator->cdna_text->text_length,CDNA_INDEX_OUT_OF_RANGE,position,iterator->cdna_text->text_length);
   // Locate
@@ -186,7 +186,7 @@ GEM_INLINE void cdna_text_iterator_seek(cdna_text_iterator_t* const iterator,con
     iterator->current_word <<= (DNA_EXT_RANGE_BITS*iterator->position_mod21);
   }
 }
-GEM_INLINE void cdna_text_iterator_init(
+void cdna_text_iterator_init(
     cdna_text_iterator_t* const iterator,cdna_text_t* const cdna_text,const uint64_t position) {
   GEM_CHECK_NULL(iterator);
   CDNA_TEXT_CHECK(cdna_text);
@@ -208,15 +208,15 @@ GEM_INLINE void cdna_text_iterator_init(
     }
   }
 }
-GEM_INLINE bool cdna_text_iterator_eoi(cdna_text_iterator_t* const iterator) {
+bool cdna_text_iterator_eoi(cdna_text_iterator_t* const iterator) {
   CDNA_TEXT_ITERATOR_CHECK(iterator);
   return iterator->eoi;
 }
-GEM_INLINE uint8_t cdna_text_iterator_get_char_encoded(cdna_text_iterator_t* const iterator) {
+uint8_t cdna_text_iterator_get_char_encoded(cdna_text_iterator_t* const iterator) {
   CDNA_TEXT_ITERATOR_CHECK(iterator);
   return (uint8_t) ((iterator->current_word & CDNA_TEXT_READ_MASK) >> 60);
 }
-GEM_INLINE void cdna_text_iterator_next_char(cdna_text_iterator_t* const iterator) {
+void cdna_text_iterator_next_char(cdna_text_iterator_t* const iterator) {
   CDNA_TEXT_ITERATOR_CHECK(iterator);
   ++(iterator->position);
   ++(iterator->position_mod21);
@@ -239,7 +239,7 @@ GEM_INLINE void cdna_text_iterator_next_char(cdna_text_iterator_t* const iterato
 /*
  * CDNA Text Reverse Iterator
  */
-GEM_INLINE void cdna_text_reverse_iterator_init(
+void cdna_text_reverse_iterator_init(
     cdna_text_iterator_t* const iterator,cdna_text_t* const cdna_text,const uint64_t position) {
   GEM_CHECK_NULL(iterator);
   CDNA_TEXT_CHECK(cdna_text);
@@ -268,15 +268,15 @@ GEM_INLINE void cdna_text_reverse_iterator_init(
     iterator->position_mod21 = position_mod21;
   }
 }
-GEM_INLINE bool cdna_text_reverse_iterator_eoi(cdna_text_iterator_t* const iterator) {
+bool cdna_text_reverse_iterator_eoi(cdna_text_iterator_t* const iterator) {
   CDNA_TEXT_ITERATOR_CHECK(iterator);
   return iterator->eoi;
 }
-GEM_INLINE uint8_t cdna_text_reverse_iterator_get_char_encoded(cdna_text_iterator_t* const iterator) {
+uint8_t cdna_text_reverse_iterator_get_char_encoded(cdna_text_iterator_t* const iterator) {
   CDNA_TEXT_ITERATOR_CHECK(iterator);
   return (uint8_t) (iterator->current_word & CDNA_TEXT_INVERSE_READ_MASK);
 }
-GEM_INLINE void cdna_text_reverse_iterator_next_char(cdna_text_iterator_t* const iterator) {
+void cdna_text_reverse_iterator_next_char(cdna_text_iterator_t* const iterator) {
   CDNA_TEXT_ITERATOR_CHECK(iterator);
   if (gem_expect_false(iterator->position_mod21==0)) {
     if (iterator->position==0) {
@@ -296,14 +296,14 @@ GEM_INLINE void cdna_text_reverse_iterator_next_char(cdna_text_iterator_t* const
  *   return (int)  0 if (a == b)
  *   return (int)  1 if (a > b)
  */
-GEM_INLINE void cdna_text_block_print(FILE* const stream,uint64_t word_block) {
+void cdna_text_block_print(FILE* const stream,uint64_t word_block) {
   uint64_t i;
   for (i=0;i<CDNA_BLOCK_CHARS;++i) {
     fprintf(stream,"%c",dna_decode((uint8_t) ((word_block & CDNA_TEXT_READ_MASK) >> 60)));
     word_block <<= DNA_EXT_RANGE_BITS;
   }
 }
-GEM_INLINE void cdna_text_block_iterator_init(
+void cdna_text_block_iterator_init(
     cdna_text_iterator_t* const iterator,cdna_text_t* const cdna_text,const uint64_t position) {
   GEM_CHECK_NULL(iterator);
   CDNA_TEXT_CHECK(cdna_text);
@@ -315,11 +315,11 @@ GEM_INLINE void cdna_text_block_iterator_init(
   const uint64_t word_position = position/CDNA_BLOCK_CHARS;
   svector_iterator_new(&(iterator->text_iterator),cdna_text->text,SVECTOR_READ_ITERATOR,word_position);
 }
-GEM_INLINE void cdna_text_block_iterator_next_block(cdna_text_iterator_t* const iterator) {
+void cdna_text_block_iterator_next_block(cdna_text_iterator_t* const iterator) {
   CDNA_TEXT_ITERATOR_CHECK(iterator);
   svector_read_iterator_next(&(iterator->text_iterator));
 }
-GEM_INLINE uint64_t cdna_text_block_iterator_get_block(cdna_text_iterator_t* const iterator) {
+uint64_t cdna_text_block_iterator_get_block(cdna_text_iterator_t* const iterator) {
   CDNA_TEXT_ITERATOR_CHECK(iterator);
   if (gem_expect_true(!svector_read_iterator_eoi(&(iterator->text_iterator)))) {
     return *svector_iterator_get_element(&(iterator->text_iterator),uint64_t);
@@ -335,7 +335,7 @@ GEM_INLINE uint64_t cdna_text_block_iterator_get_block(cdna_text_iterator_t* con
   const uint64_t mask = cdna_text_block_mask_left[mod]; \
   block = ((word & mask) << (left)) | ((next_word & (~mask)) >> (right)) ; \
 }
-GEM_INLINE int cdna_text_block_cmp(cdna_text_iterator_t* const iterator_a,cdna_text_iterator_t* const iterator_b) {
+int cdna_text_block_cmp(cdna_text_iterator_t* const iterator_a,cdna_text_iterator_t* const iterator_b) {
   CDNA_TEXT_ITERATOR_CHECK(iterator_a);
   CDNA_TEXT_ITERATOR_CHECK(iterator_b);
   // Compare successive blocks
@@ -361,7 +361,7 @@ GEM_INLINE int cdna_text_block_cmp(cdna_text_iterator_t* const iterator_a,cdna_t
 /*
  * CDNA Text Character Iterator-HUB
  */
-GEM_INLINE cdna_text_iterator_hub_t* cdna_text_iterator_hub_new(
+cdna_text_iterator_hub_t* cdna_text_iterator_hub_new(
     cdna_text_t** cdna_texts,const uint64_t num_texts,
     const uint64_t starting_position) {
   GEM_CHECK_NULL(cdna_texts);
@@ -393,21 +393,21 @@ GEM_INLINE cdna_text_iterator_hub_t* cdna_text_iterator_hub_new(
   // Return
   return iterator_hub;
 }
-GEM_INLINE void cdna_text_iterator_hub_delete(cdna_text_iterator_hub_t* const iterator_hub) {
+void cdna_text_iterator_hub_delete(cdna_text_iterator_hub_t* const iterator_hub) {
   CDNA_TEXT_ITERATOR_HUB_CHECK(iterator_hub);
   mm_free(iterator_hub->limits);
   mm_free(iterator_hub->iterators);
   mm_free(iterator_hub);
 }
-GEM_INLINE bool cdna_text_iterator_hub_eoi(cdna_text_iterator_hub_t* const iterator_hub) {
+bool cdna_text_iterator_hub_eoi(cdna_text_iterator_hub_t* const iterator_hub) {
   CDNA_TEXT_ITERATOR_HUB_CHECK(iterator_hub);
   return iterator_hub->eoi;
 }
-GEM_INLINE uint8_t cdna_text_iterator_hub_get_char_encoded(cdna_text_iterator_hub_t* const iterator_hub) {
+uint8_t cdna_text_iterator_hub_get_char_encoded(cdna_text_iterator_hub_t* const iterator_hub) {
   CDNA_TEXT_ITERATOR_HUB_CHECK(iterator_hub);
   return cdna_text_iterator_get_char_encoded(iterator_hub->iterators+iterator_hub->iterator_num);
 }
-GEM_INLINE void cdna_text_iterator_hub_next_char(cdna_text_iterator_hub_t* const iterator_hub) {
+void cdna_text_iterator_hub_next_char(cdna_text_iterator_hub_t* const iterator_hub) {
   CDNA_TEXT_ITERATOR_HUB_CHECK(iterator_hub);
   ++(iterator_hub->text_position);
   if (gem_expect_false(iterator_hub->text_position >= iterator_hub->limits[iterator_hub->iterator_num])) {
@@ -426,7 +426,7 @@ GEM_INLINE void cdna_text_iterator_hub_next_char(cdna_text_iterator_hub_t* const
 /*
  * Display
  */
-GEM_INLINE void cdna_text_print(FILE* const stream,cdna_text_t* const cdna_text) {
+void cdna_text_print(FILE* const stream,cdna_text_t* const cdna_text) {
   fprintf(stream,"[GEM]>Compacted DNA-text\n");
   fprintf(stream,"  => Architecture 3b.1bm64.21c\n");
   fprintf(stream,"  => Text.Length %"PRIu64"\n",cdna_text->text_length);

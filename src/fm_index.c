@@ -15,7 +15,7 @@
 /*
  * Builder
  */
-GEM_INLINE void fm_index_write(
+void fm_index_write(
     fm_t* const file_manager,dna_text_t* const bwt_text,uint64_t* const character_occurrences,
     sampled_sa_builder_t* const sampled_sa,const bool check,const bool verbose) {
   // Write Header
@@ -42,7 +42,7 @@ GEM_INLINE void fm_index_write(
   bwt_builder_write(file_manager,bwt_builder);
   bwt_builder_delete(bwt_builder); // Free
 }
-GEM_INLINE void fm_index_reverse_write(
+void fm_index_reverse_write(
     fm_t* const file_manager,dna_text_t* const bwt_reverse_text,
     uint64_t* const character_occurrences,const bool check,const bool verbose) {
   // Generate BWT-Bitmap Reverse
@@ -62,7 +62,7 @@ GEM_INLINE void fm_index_reverse_write(
 /*
  * Loader
  */
-GEM_INLINE fm_index_t* fm_index_read_mem(mm_t* const memory_manager,const bool check) {
+fm_index_t* fm_index_read_mem(mm_t* const memory_manager,const bool check) {
   // Allocate handler
   fm_index_t* const fm_index = mm_alloc(fm_index_t);
   // Read Header
@@ -83,11 +83,11 @@ GEM_INLINE fm_index_t* fm_index_read_mem(mm_t* const memory_manager,const bool c
   // Return
   return fm_index;
 }
-GEM_INLINE bool fm_index_check(const fm_index_t* const fm_index,const bool verbose) {
+bool fm_index_check(const fm_index_t* const fm_index,const bool verbose) {
   GEM_NOT_IMPLEMENTED(); // TODO Implement
   return true;
 }
-GEM_INLINE void fm_index_delete(fm_index_t* const fm_index) {
+void fm_index_delete(fm_index_t* const fm_index) {
   // Delete Sampled SA
   sampled_sa_delete(fm_index->sampled_sa);
   // Delete rank_mtable
@@ -103,13 +103,13 @@ GEM_INLINE void fm_index_delete(fm_index_t* const fm_index) {
 /*
  * Accessors
  */
-GEM_INLINE uint64_t fm_index_get_length(const fm_index_t* const fm_index) {
+uint64_t fm_index_get_length(const fm_index_t* const fm_index) {
   return fm_index->text_length;
 }
-GEM_INLINE double fm_index_get_proper_length(const fm_index_t* const fm_index) {
+double fm_index_get_proper_length(const fm_index_t* const fm_index) {
   return fm_index->proper_length;
 }
-GEM_INLINE uint64_t fm_index_get_size(const fm_index_t* const fm_index) {
+uint64_t fm_index_get_size(const fm_index_t* const fm_index) {
   const uint64_t sampled_sa_size = sampled_sa_get_size(fm_index->sampled_sa); // Sampled SuffixArray positions
   const uint64_t bwt_size = bwt_get_size(fm_index->bwt); // BWT structure
   const uint64_t bwt_reverse_size = bwt_reverse_get_size(fm_index->bwt_reverse); // BWT Reverse structure
@@ -119,7 +119,7 @@ GEM_INLINE uint64_t fm_index_get_size(const fm_index_t* const fm_index) {
 /*
  * FM-Index High-level Operators
  */
-GEM_INLINE uint64_t fm_index_decode(const fm_index_t* const fm_index,uint64_t bwt_position) {
+uint64_t fm_index_decode(const fm_index_t* const fm_index,uint64_t bwt_position) {
   // Parameters
   const bwt_t* const bwt = fm_index->bwt;
   const uint64_t bwt_length = fm_index_get_length(fm_index);
@@ -136,7 +136,7 @@ GEM_INLINE uint64_t fm_index_decode(const fm_index_t* const fm_index,uint64_t bw
   // Recover sampled position & adjust
   return (sampled_sa_get_sample(sampled_sa,bwt_position) + dist) % bwt_length;
 }
-GEM_INLINE uint64_t fm_index_encode(const fm_index_t* const fm_index,const uint64_t text_position) {
+uint64_t fm_index_encode(const fm_index_t* const fm_index,const uint64_t text_position) {
   GEM_NOT_IMPLEMENTED(); // TODO Implement
 // // Compute SA^(-1)[i]
 //  register const idx_t refl=a->text_length-i;
@@ -148,7 +148,7 @@ GEM_INLINE uint64_t fm_index_encode(const fm_index_t* const fm_index,const uint6
 //  return pos;
   return 0;
 }
-GEM_INLINE uint64_t fm_index_psi(const fm_index_t* const fm_index,const uint64_t bwt_position) {
+uint64_t fm_index_psi(const fm_index_t* const fm_index,const uint64_t bwt_position) {
   GEM_NOT_IMPLEMENTED(); // TODO Implement
   /* // Compute Psi[i]
   if (!i)
@@ -171,7 +171,7 @@ GEM_INLINE uint64_t fm_index_psi(const fm_index_t* const fm_index,const uint64_t
   // return fmi_inverse(a,(fmi_lookup(a,i)+1)%a->bwt->n);
   return 0;
 }
-GEM_INLINE void fm_index_retrieve_bwt_sampled(
+void fm_index_retrieve_bwt_sampled(
     const fm_index_t* const fm_index,uint64_t bwt_position,
     uint64_t* const sampled_bwt_position,uint64_t* const lf_dist) {
   // Parameters
@@ -179,15 +179,17 @@ GEM_INLINE void fm_index_retrieve_bwt_sampled(
   bool is_sampled = false;
   *lf_dist=0;
   // Retrieve BWT-pos sampled LF (until we find a sampled position)
-  bwt_position = bwt_LF(bwt,bwt_position,&is_sampled);
+  uint64_t bwt_position_next;
+  bwt_position_next = bwt_LF(bwt,bwt_position,&is_sampled);
   while (!is_sampled) {
     ++(*lf_dist);
-    bwt_position = bwt_LF(bwt,bwt_position,&is_sampled);
+    bwt_position = bwt_position_next;
+    bwt_position_next = bwt_LF(bwt,bwt_position,&is_sampled);
   }
   *sampled_bwt_position = bwt_position;
   PROF_ADD_COUNTER(GP_FMIDX_LOOKUP_DIST,*lf_dist);
 }
-GEM_INLINE void fm_index_retrieve_sa_sample(
+void fm_index_retrieve_sa_sample(
     const fm_index_t* const fm_index,const uint64_t sampled_bwt_position,
     const uint64_t lf_dist,uint64_t* const text_position) {
   // Parameters
@@ -200,7 +202,7 @@ GEM_INLINE void fm_index_retrieve_sa_sample(
 /*
  * Display
  */
-GEM_INLINE void fm_index_print(FILE* const stream,const fm_index_t* const fm_index) {
+void fm_index_print(FILE* const stream,const fm_index_t* const fm_index) {
   // Calculate some figures
   const uint64_t sampled_sa_size = sampled_sa_get_size(fm_index->sampled_sa); // Sampled SuffixArray positions
   const uint64_t rank_table_size = rank_mtable_get_size(fm_index->rank_table); // Memoizated intervals
@@ -226,7 +228,7 @@ GEM_INLINE void fm_index_print(FILE* const stream,const fm_index_t* const fm_ind
   // Flush
   fflush(stream);
 }
-GEM_INLINE void fm_index_decode_print_benchmark(
+void fm_index_decode_print_benchmark(
     FILE* const stream,const fm_index_t* const fm_index,uint64_t bwt_position) {
   // Parameters
   const bwt_t* const bwt = fm_index->bwt;

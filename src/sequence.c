@@ -15,7 +15,7 @@
 /*
  * Constructor
  */
-GEM_INLINE void sequence_init(sequence_t* const sequence) {
+void sequence_init(sequence_t* const sequence) {
   string_init(&sequence->tag,SEQUENCE_TAG_INITIAL_LENGTH);
   string_init(&sequence->read,SEQUENCE_INITIAL_LENGTH);
   string_init(&sequence->qualities,SEQUENCE_INITIAL_LENGTH);
@@ -23,7 +23,7 @@ GEM_INLINE void sequence_init(sequence_t* const sequence) {
   string_init(&sequence->attributes.casava_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH);
   string_init(&sequence->attributes.extra_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH);
 }
-GEM_INLINE void sequence_init_mm(sequence_t* const sequence,mm_stack_t* const mm_stack) {
+void sequence_init_mm(sequence_t* const sequence,mm_stack_t* const mm_stack) {
   string_init_mm(&sequence->tag,SEQUENCE_TAG_INITIAL_LENGTH,mm_stack);
   string_init_mm(&sequence->read,SEQUENCE_INITIAL_LENGTH,mm_stack);
   string_init_mm(&sequence->qualities,SEQUENCE_INITIAL_LENGTH,mm_stack);
@@ -31,7 +31,7 @@ GEM_INLINE void sequence_init_mm(sequence_t* const sequence,mm_stack_t* const mm
   string_init_mm(&sequence->attributes.casava_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH,mm_stack);
   string_init_mm(&sequence->attributes.extra_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH,mm_stack);
 }
-GEM_INLINE void sequence_clear(sequence_t* const sequence) {
+void sequence_clear(sequence_t* const sequence) {
   SEQUENCE_CHECK(sequence);
   string_clear(&sequence->tag);
   string_clear(&sequence->read);
@@ -40,7 +40,7 @@ GEM_INLINE void sequence_clear(sequence_t* const sequence) {
   string_clear(&sequence->attributes.casava_tag);
   string_clear(&sequence->attributes.extra_tag);
 }
-GEM_INLINE void sequence_destroy(sequence_t* const sequence) {
+void sequence_destroy(sequence_t* const sequence) {
   SEQUENCE_CHECK(sequence);
   string_destroy(&sequence->tag);
   string_destroy(&sequence->read);
@@ -51,57 +51,57 @@ GEM_INLINE void sequence_destroy(sequence_t* const sequence) {
 /*
  * Accessors
  */
-GEM_INLINE uint64_t sequence_get_length(sequence_t* const sequence) {
+uint64_t sequence_get_length(sequence_t* const sequence) {
   SEQUENCE_CHECK(sequence);
   return string_get_length(&sequence->read);
 }
-GEM_INLINE void sequence_set_tag(sequence_t* sequence,char* const text,const uint64_t length) {
+void sequence_set_tag(sequence_t* sequence,char* const text,const uint64_t length) {
   SEQUENCE_CHECK(sequence);
   string_set_buffer(&sequence->tag,text,length);
 }
-GEM_INLINE char* sequence_get_tag(sequence_t* const sequence) {
+char* sequence_get_tag(sequence_t* const sequence) {
   SEQUENCE_CHECK(sequence);
   return string_get_buffer(&sequence->tag);
 }
-GEM_INLINE void sequence_set_read(sequence_t* sequence,char* const text,const uint64_t length) {
+void sequence_set_read(sequence_t* sequence,char* const text,const uint64_t length) {
   SEQUENCE_CHECK(sequence);
   string_set_buffer(&sequence->read,text,length);
 }
-GEM_INLINE char* sequence_get_read(sequence_t* const sequence) {
+char* sequence_get_read(sequence_t* const sequence) {
   SEQUENCE_CHECK(sequence);
   return string_get_buffer(&sequence->read);
 }
-GEM_INLINE void sequence_set_qualities(sequence_t* sequence,char* const text,const uint64_t length) {
+void sequence_set_qualities(sequence_t* sequence,char* const text,const uint64_t length) {
   SEQUENCE_CHECK(sequence);
   string_set_buffer(&sequence->qualities,text,length);
 }
-GEM_INLINE char* sequence_get_qualities(sequence_t* const sequence) {
+char* sequence_get_qualities(sequence_t* const sequence) {
   SEQUENCE_CHECK(sequence);
   return string_get_buffer(&sequence->qualities);
 }
-GEM_INLINE bool sequence_has_qualities(const sequence_t* const sequence) {
+bool sequence_has_qualities(const sequence_t* const sequence) {
   SEQUENCE_CHECK(sequence);
   return !string_is_null(&sequence->qualities);
 }
-GEM_INLINE bool sequence_has_casava_tag(const sequence_t* const sequence) {
+bool sequence_has_casava_tag(const sequence_t* const sequence) {
   SEQUENCE_CHECK(sequence);
   return !string_is_null(&sequence->attributes.casava_tag);
 }
-GEM_INLINE bool sequence_has_extra_tag(const sequence_t* const sequence) {
+bool sequence_has_extra_tag(const sequence_t* const sequence) {
   SEQUENCE_CHECK(sequence);
   return !string_is_null(&sequence->attributes.extra_tag);
 }
-GEM_INLINE sequence_end_t sequence_get_end_info(const sequence_t* const sequence) {
+sequence_end_t sequence_get_end_info(const sequence_t* const sequence) {
   SEQUENCE_CHECK(sequence);
   return sequence->attributes.end_info;
 }
 /*
  * Utils
  */
-GEM_INLINE bool sequence_equals(sequence_t* const sequence_a,sequence_t* const sequence_b) {
+bool sequence_equals(sequence_t* const sequence_a,sequence_t* const sequence_b) {
   return string_equals(&sequence_a->read,&sequence_b->read);
 }
-GEM_INLINE void sequence_generate_reverse(sequence_t* const sequence,sequence_t* const rev_sequence) {
+void sequence_generate_reverse(sequence_t* const sequence,sequence_t* const rev_sequence) {
   // Prepare rc_string (Read)
   const uint64_t seq_buffer_length = string_get_length(&sequence->read);
   string_resize(&rev_sequence->read,seq_buffer_length);
@@ -118,7 +118,7 @@ GEM_INLINE void sequence_generate_reverse(sequence_t* const sequence,sequence_t*
     string_copy_reverse(&rev_sequence->qualities,&sequence->qualities);
   }
 }
-GEM_INLINE void sequence_generate_reverse_complement(sequence_t* const sequence,sequence_t* const rc_sequence) {
+void sequence_generate_reverse_complement(sequence_t* const sequence,sequence_t* const rc_sequence) {
   // Prepare rc_string (Read)
   const uint64_t seq_buffer_length = string_get_length(&sequence->read);
   string_resize(&rc_sequence->read,seq_buffer_length);
@@ -138,7 +138,7 @@ GEM_INLINE void sequence_generate_reverse_complement(sequence_t* const sequence,
 /*
  * Display
  */
-GEM_INLINE void sequence_print(FILE* const stream,sequence_t* const sequence) {
+void sequence_print(FILE* const stream,sequence_t* const sequence) {
   tab_fprintf(stream,"[GEM]>Sequence\n");
   if (sequence_has_qualities(sequence)) {
     fprintf(stream,"@%s\n",sequence_get_tag(sequence));

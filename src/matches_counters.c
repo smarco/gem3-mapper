@@ -16,7 +16,7 @@
 /*
  * Setup
  */
-GEM_INLINE matches_counters_t* matches_counters_new() {
+matches_counters_t* matches_counters_new() {
   // Allocate handler
   matches_counters_t* const counters = mm_alloc(matches_counters_t);
   // Init Counters
@@ -25,11 +25,11 @@ GEM_INLINE matches_counters_t* matches_counters_new() {
   // Return
   return counters;
 }
-GEM_INLINE void matches_counters_clear(matches_counters_t* const counters) {
+void matches_counters_clear(matches_counters_t* const counters) {
   vector_clear(counters->counts);
   counters->total_count = 0;
 }
-GEM_INLINE void matches_counters_delete(matches_counters_t* const counters) {
+void matches_counters_delete(matches_counters_t* const counters) {
   vector_delete(counters->counts);
   mm_free(counters);
 }
@@ -37,19 +37,19 @@ GEM_INLINE void matches_counters_delete(matches_counters_t* const counters) {
 /*
  * Counters
  */
-GEM_INLINE uint64_t matches_counters_get_num_counters(matches_counters_t* const counters) {
+uint64_t matches_counters_get_num_counters(matches_counters_t* const counters) {
   return vector_get_used(counters->counts);
 }
-GEM_INLINE uint64_t* matches_counters_get_counts(matches_counters_t* const counters) {
+uint64_t* matches_counters_get_counts(matches_counters_t* const counters) {
   return vector_get_mem(counters->counts,uint64_t);
 }
-GEM_INLINE uint64_t matches_counters_get_count(matches_counters_t* const counters,const uint64_t distance) {
+uint64_t matches_counters_get_count(matches_counters_t* const counters,const uint64_t distance) {
   return *vector_get_elm(counters->counts,distance,uint64_t);
 }
-GEM_INLINE uint64_t matches_counters_get_total_count(matches_counters_t* const counters) {
+uint64_t matches_counters_get_total_count(matches_counters_t* const counters) {
   return counters->total_count;
 }
-GEM_INLINE void matches_counters_add(matches_counters_t* const counters,const uint64_t distance,const uint64_t num_matches) {
+void matches_counters_add(matches_counters_t* const counters,const uint64_t distance,const uint64_t num_matches) {
   vector_t* const counts = counters->counts;
   // Reserve Memory
   if (distance >= vector_get_used(counts)) {
@@ -60,7 +60,7 @@ GEM_INLINE void matches_counters_add(matches_counters_t* const counters,const ui
   *vector_get_elm(counts,distance,uint64_t) += num_matches;
   counters->total_count += num_matches;
 }
-GEM_INLINE void matches_counters_sub(matches_counters_t* const counters,const uint64_t distance,const uint64_t num_matches) {
+void matches_counters_sub(matches_counters_t* const counters,const uint64_t distance,const uint64_t num_matches) {
   uint64_t* const counts = vector_get_elm(counters->counts,distance,uint64_t);
   *counts -= num_matches;
   counters->total_count -= num_matches;
@@ -68,14 +68,14 @@ GEM_INLINE void matches_counters_sub(matches_counters_t* const counters,const ui
 /*
  * Utils
  */
-GEM_INLINE uint64_t matches_counters_compact(matches_counters_t* const counters) {
+uint64_t matches_counters_compact(matches_counters_t* const counters) {
   const uint64_t* const counts = vector_get_mem(counters->counts,uint64_t);
   int64_t i = vector_get_used(counters->counts)-1;
   while (i>=0 && counts[i]==0) --i;
   vector_set_used(counters->counts,++i);
   return i;
 }
-GEM_INLINE void matches_counters_compute_matches_to_decode(
+void matches_counters_compute_matches_to_decode(
     matches_counters_t* const counters,const uint64_t min_reported_strata,
     const uint64_t min_reported_matches,const uint64_t max_reported_matches,
     uint64_t* const reported_strata,uint64_t* const last_stratum_reported_matches) {
@@ -114,7 +114,7 @@ GEM_INLINE void matches_counters_compute_matches_to_decode(
 /*
  * Display
  */
-GEM_INLINE void matches_counters_print_account_mcs(
+void matches_counters_print_account_mcs(
     FILE* const stream,const uint64_t current_counter_pos,const uint64_t num_zeros) {
   uint64_t i = 0;
   if (current_counter_pos==0) {
@@ -126,7 +126,7 @@ GEM_INLINE void matches_counters_print_account_mcs(
   }
   fprintf(stream,"+0");
 }
-GEM_INLINE void matches_counters_print(FILE* const stream,matches_counters_t* const matches_counter,const uint64_t mcs) {
+void matches_counters_print(FILE* const stream,matches_counters_t* const matches_counter,const uint64_t mcs) {
   const uint64_t num_counters = matches_counters_get_num_counters(matches_counter);
   // Zero counters
   if (gem_expect_false(num_counters==0)) {

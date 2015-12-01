@@ -18,7 +18,7 @@
 /*
  * Setup
  */
-GEM_INLINE paired_matches_t* paired_matches_new() {
+paired_matches_t* paired_matches_new() {
   // Alloc
   paired_matches_t* const paired_matches = mm_alloc(paired_matches_t);
   // State
@@ -38,11 +38,11 @@ GEM_INLINE paired_matches_t* paired_matches_new() {
   // Return
   return paired_matches;
 }
-GEM_INLINE void paired_matches_configure(paired_matches_t* const paired_matches,text_collection_t* const text_collection) {
+void paired_matches_configure(paired_matches_t* const paired_matches,text_collection_t* const text_collection) {
   // Text Collection Buffer
   paired_matches->text_collection = text_collection;
 }
-GEM_INLINE void paired_matches_clear(paired_matches_t* const paired_matches) {
+void paired_matches_clear(paired_matches_t* const paired_matches) {
   // State
   paired_matches->max_complete_stratum = ALL;
   // Matches Counters
@@ -56,7 +56,7 @@ GEM_INLINE void paired_matches_clear(paired_matches_t* const paired_matches) {
   // Paired-End Metrics
   matches_metrics_init(&paired_matches->metrics);
 }
-GEM_INLINE void paired_matches_delete(paired_matches_t* const paired_matches) {
+void paired_matches_delete(paired_matches_t* const paired_matches) {
   // Matches Counters
   matches_counters_delete(paired_matches->counters);
   // Single-End Matches
@@ -71,35 +71,35 @@ GEM_INLINE void paired_matches_delete(paired_matches_t* const paired_matches) {
 /*
  * Accessors
  */
-GEM_INLINE bool paired_matches_is_mapped(const paired_matches_t* const paired_matches) {
+bool paired_matches_is_mapped(const paired_matches_t* const paired_matches) {
   return vector_get_used(paired_matches->paired_maps) > 0;
 }
-GEM_INLINE uint64_t paired_matches_get_num_maps(const paired_matches_t* const paired_matches) {
+uint64_t paired_matches_get_num_maps(const paired_matches_t* const paired_matches) {
   return vector_get_used(paired_matches->paired_maps);
 }
-GEM_INLINE paired_map_t* paired_matches_get_maps(paired_matches_t* const paired_matches) {
+paired_map_t* paired_matches_get_maps(paired_matches_t* const paired_matches) {
   return vector_get_mem(paired_matches->paired_maps,paired_map_t);
 }
-GEM_INLINE uint64_t paired_matches_counters_get_count(paired_matches_t* const paired_matches,const uint64_t distance) {
+uint64_t paired_matches_counters_get_count(paired_matches_t* const paired_matches,const uint64_t distance) {
   return matches_counters_get_count(paired_matches->counters,distance);
 }
-GEM_INLINE uint64_t paired_matches_counters_get_total_count(paired_matches_t* const paired_matches) {
+uint64_t paired_matches_counters_get_total_count(paired_matches_t* const paired_matches) {
   return matches_counters_get_total_count(paired_matches->counters);
 }
-GEM_INLINE uint64_t paired_matches_get_first_stratum_matches(paired_matches_t* const paired_matches) {
+uint64_t paired_matches_get_first_stratum_matches(paired_matches_t* const paired_matches) {
   const uint64_t min_distance = matches_metrics_get_min_distance(&paired_matches->metrics);
   return (min_distance==UINT32_MAX) ? 0 : paired_matches_counters_get_count(paired_matches,min_distance);
 }
-GEM_INLINE uint64_t paired_matches_get_subdominant_stratum_matches(paired_matches_t* const paired_matches) {
+uint64_t paired_matches_get_subdominant_stratum_matches(paired_matches_t* const paired_matches) {
   const uint64_t first_stratum_matches = paired_matches_get_first_stratum_matches(paired_matches);
   return paired_matches_counters_get_total_count(paired_matches) - first_stratum_matches;
 }
-GEM_INLINE match_trace_t* paired_map_get_match_end1(
+match_trace_t* paired_map_get_match_end1(
     paired_matches_t* const paired_matches,const paired_map_t* const paired_map) {
   vector_t* const matches_end1 = paired_matches->matches_end1->position_matches;
   return vector_get_elm(matches_end1,paired_map->match_end1_offset,match_trace_t);
 }
-GEM_INLINE match_trace_t* paired_map_get_match_end2(
+match_trace_t* paired_map_get_match_end2(
     paired_matches_t* const paired_matches,const paired_map_t* const paired_map) {
   vector_t* const matches_end2 = paired_matches->matches_end2->position_matches;
   return vector_get_elm(matches_end2,paired_map->match_end2_offset,match_trace_t);
@@ -107,7 +107,7 @@ GEM_INLINE match_trace_t* paired_map_get_match_end2(
 /*
  * Adding Paired-Matches
  */
-GEM_INLINE void paired_matches_add(
+void paired_matches_add(
     paired_matches_t* const paired_matches,match_trace_t* const match_trace_end1,
     match_trace_t* const match_trace_end2,const pair_relation_t pair_relation,
     const pair_orientation_t pair_orientation,const pair_layout_t pair_layout,
@@ -149,7 +149,7 @@ GEM_INLINE void paired_matches_add(
 /*
  * Finding Pairs
  */
-GEM_INLINE pair_orientation_t paired_matches_compute_orientation(
+pair_orientation_t paired_matches_compute_orientation(
     const match_trace_t* const match_trace_end1,const match_trace_t* const match_trace_end2) {
   if (match_trace_end1->strand == Forward) {
     if (match_trace_end2->strand == Forward) {
@@ -173,7 +173,7 @@ GEM_INLINE pair_orientation_t paired_matches_compute_orientation(
     }
   }
 }
-GEM_INLINE pair_layout_t paired_matches_compute_layout(
+pair_layout_t paired_matches_compute_layout(
     const match_trace_t* const match_trace_end1,const match_trace_t* const match_trace_end2) {
   // Get matches location
   const uint64_t begin_position_1 = match_trace_end1->text_position;
@@ -199,7 +199,7 @@ GEM_INLINE pair_layout_t paired_matches_compute_layout(
     }
   }
 }
-GEM_INLINE uint64_t paired_matches_compute_template_length(
+uint64_t paired_matches_compute_template_length(
     const match_trace_t* const match_trace_end1,const match_trace_t* const match_trace_end2,
     const pair_orientation_t pair_orientation,const pair_layout_t pair_layout) {
   // Get matches location
@@ -251,7 +251,7 @@ GEM_INLINE uint64_t paired_matches_compute_template_length(
   }
   return 0;
 }
-GEM_INLINE pair_relation_t paired_matches_compute_relation(
+pair_relation_t paired_matches_compute_relation(
     paired_matches_t* const paired_matches,
     const paired_search_parameters_t* const parameters,mapper_stats_t* const mapper_stats,
     match_trace_t* const match_trace_end1,match_trace_t* const match_trace_end2,
@@ -286,7 +286,7 @@ GEM_INLINE pair_relation_t paired_matches_compute_relation(
   }
   return pair_relation;
 }
-GEM_INLINE match_trace_t* paired_matches_find_pairs_locate_by_sequence_name(
+match_trace_t* paired_matches_find_pairs_locate_by_sequence_name(
     matches_t* const matches,const char* const sequence_name) {
   const match_trace_t* const match_trace_sentinel =
       matches_get_match_trace_buffer(matches) + matches_get_num_match_traces(matches);
@@ -297,7 +297,7 @@ GEM_INLINE match_trace_t* paired_matches_find_pairs_locate_by_sequence_name(
   }
   return NULL;
 }
-GEM_INLINE void paired_matches_find_pairs(
+void paired_matches_find_pairs(
     paired_matches_t* const paired_matches,
     const paired_search_parameters_t* const paired_search_parameters,
     mapper_stats_t* const mapper_stats) {
@@ -356,7 +356,7 @@ GEM_INLINE void paired_matches_find_pairs(
     ++match_trace_end1;
   }
 }
-GEM_INLINE void paired_matches_find_discordant_pairs(
+void paired_matches_find_discordant_pairs(
     paired_matches_t* const paired_matches,
     const paired_search_parameters_t* const paired_search_parameters) {
   // Check number of discordant pairs
@@ -394,7 +394,7 @@ GEM_INLINE void paired_matches_find_discordant_pairs(
 /*
  * Filters
  */
-GEM_INLINE void paired_matches_filter_by_mapq(
+void paired_matches_filter_by_mapq(
     paired_matches_t* const paired_matches,const uint8_t mapq_threshold) {
   paired_map_t* paired_map_out = paired_matches_get_maps(paired_matches);
   VECTOR_ITERATE(paired_matches->paired_maps,paired_map_in,n,paired_map_t) {
@@ -426,7 +426,7 @@ int paired_matches_cmp_distance(const paired_map_t* const a,const paired_map_t* 
   const int template_length_sigmas_diff = (int)a->template_length_sigma - (int)b->template_length_sigma;
   return template_length_sigmas_diff;
 }
-GEM_INLINE void paired_matches_sort_by_distance(paired_matches_t* const paired_matches) {
+void paired_matches_sort_by_distance(paired_matches_t* const paired_matches) {
   // Sort global matches (match_trace_t) wrt distance
   qsort(vector_get_mem(paired_matches->paired_maps,paired_map_t),
       vector_get_used(paired_matches->paired_maps),sizeof(paired_map_t),
@@ -435,7 +435,7 @@ GEM_INLINE void paired_matches_sort_by_distance(paired_matches_t* const paired_m
 int paired_matches_cmp_mapq_score(const paired_map_t* const a,const paired_map_t* const b) {
   return b->mapq_score - a->mapq_score;
 }
-GEM_INLINE void paired_matches_sort_by_mapq_score(paired_matches_t* const paired_matches) {
+void paired_matches_sort_by_mapq_score(paired_matches_t* const paired_matches) {
   // Sort global matches (match_trace_t) wrt distance
   qsort(vector_get_mem(paired_matches->paired_maps,paired_map_t),
       vector_get_used(paired_matches->paired_maps),sizeof(paired_map_t),
@@ -444,7 +444,7 @@ GEM_INLINE void paired_matches_sort_by_mapq_score(paired_matches_t* const paired
 /*
  * Display
  */
-GEM_INLINE void paired_matches_print(FILE* const stream,paired_matches_t* const paired_matches) {
+void paired_matches_print(FILE* const stream,paired_matches_t* const paired_matches) {
   tab_fprintf(stream,"[GEM]>Paired.Matches\n");
   tab_global_inc();
   tab_fprintf(stream,"=> Counters\t");

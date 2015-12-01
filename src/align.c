@@ -13,7 +13,7 @@
 /*
  * Check matches (CIGAR string against text & pattern)
  */
-GEM_INLINE bool align_check(
+bool align_check(
     FILE* const stream,const uint8_t* const key,
     const uint64_t key_length,const uint8_t* const text,
     const uint64_t text_length,vector_t* const cigar_vector,
@@ -100,7 +100,7 @@ GEM_INLINE bool align_check(
 /*
  * Compute edit distance (Basic DP-Matrix Alignment)
  */
-GEM_INLINE int64_t align_dp_compute_edit_distance(
+int64_t align_dp_compute_edit_distance(
     const char* const key,const uint64_t key_length,
     const char* const text,const uint64_t text_length,
     const bool ends_free,uint64_t* const position) {

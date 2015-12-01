@@ -13,7 +13,7 @@
 /*
  * Setup
  */
-GEM_INLINE void region_profile_new(
+void region_profile_new(
     region_profile_t* const region_profile,const uint64_t pattern_length,
     mm_stack_t* const mm_stack) {
   // Allocate memory for the region profile
@@ -36,11 +36,11 @@ void region_profile_clear(region_profile_t* const region_profile) {
 /*
  * Accessors
  */
-GEM_INLINE uint64_t region_get_num_regions(region_profile_t* const region_profile) {
+uint64_t region_get_num_regions(region_profile_t* const region_profile) {
   // All regions (region_unique + region_standard + region_gap)
   return region_profile->num_filtering_regions;
 }
-GEM_INLINE bool region_profile_has_exact_matches(region_profile_t* const region_profile) {
+bool region_profile_has_exact_matches(region_profile_t* const region_profile) {
   // Condition (sufficient but not necessary) to determine
   //   if there are exact matches (taken into account the first region)
   return (region_profile->num_filtering_regions==1) &&
@@ -51,7 +51,7 @@ GEM_INLINE bool region_profile_has_exact_matches(region_profile_t* const region_
 /*
  * Utils
  */
-GEM_INLINE void region_profile_query_character(
+void region_profile_query_character(
     fm_index_t* const fm_index,rank_mquery_t* const rank_mquery,
     uint64_t* const lo,uint64_t* const hi,const uint8_t enc_char) {
   if (!rank_mquery_is_exhausted(rank_mquery)) {
@@ -71,7 +71,7 @@ GEM_INLINE void region_profile_query_character(
     }
   }
 }
-GEM_INLINE void region_profile_extend_last_region(
+void region_profile_extend_last_region(
     region_profile_t* const region_profile,fm_index_t* const fm_index,
     const uint8_t* const key,const bool* const allowed_enc,
     const uint64_t rp_region_type_th) {
@@ -105,10 +105,10 @@ GEM_INLINE void region_profile_extend_last_region(
 int region_profile_locator_cmp(const region_locator_t* const a,const region_locator_t* const b) {
   return (int)a->value - (int)b->value;
 }
-GEM_INLINE void region_profile_locator_sort(region_locator_t* const loc,const uint64_t num_regions) {
+void region_profile_locator_sort(region_locator_t* const loc,const uint64_t num_regions) {
   qsort(loc,num_regions,sizeof(region_locator_t),(int (*)(const void *,const void *))region_profile_locator_cmp);
 }
-GEM_INLINE void region_profile_sort_by_estimated_mappability(region_profile_t* const region_profile) {
+void region_profile_sort_by_estimated_mappability(region_profile_t* const region_profile) {
   // Sort the regions w.r.t to the number of candidates
   const uint64_t num_regions = region_profile->num_filtering_regions;
   region_search_t* const filtering_region = region_profile->filtering_region;
@@ -122,7 +122,7 @@ GEM_INLINE void region_profile_sort_by_estimated_mappability(region_profile_t* c
   }
   region_profile_locator_sort(loc,num_regions);
 }
-GEM_INLINE void region_profile_sort_by_candidates(region_profile_t* const region_profile) {
+void region_profile_sort_by_candidates(region_profile_t* const region_profile) {
   // Sort the regions w.r.t to the number of candidates
   const uint64_t num_regions = region_profile->num_filtering_regions;
   region_search_t* const filtering_region = region_profile->filtering_region;
@@ -137,7 +137,7 @@ GEM_INLINE void region_profile_sort_by_candidates(region_profile_t* const region
 /*
  * Display
  */
-GEM_INLINE void region_profile_print(
+void region_profile_print(
     FILE* const stream,const region_profile_t* const region_profile,const bool sorted) {
   tab_fprintf(stream,"[GEM]>Region.Profile\n");
   tab_fprintf(stream,"  => Pattern.length %"PRIu64"\n",region_profile->pattern_length);

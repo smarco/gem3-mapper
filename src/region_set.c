@@ -16,19 +16,19 @@
 /*
  * Setup
  */
-GEM_INLINE void region_set_init(region_set_t* const region_set) {
+void region_set_init(region_set_t* const region_set) {
   region_set->region_intervals = vector_new(REGION_SET_NUN_INITIAL_INTERVALS,region_interval_t);
 }
-GEM_INLINE void region_set_clear(region_set_t* const region_set) {
+void region_set_clear(region_set_t* const region_set) {
   vector_clear(region_set->region_intervals);
 }
-GEM_INLINE void region_set_destroy(region_set_t* const region_set) {
+void region_set_destroy(region_set_t* const region_set) {
   vector_delete(region_set->region_intervals);
 }
 /*
  * Adding
  */
-GEM_INLINE void region_set_add(region_set_t* const region_set,const uint64_t begin_position,const uint64_t end_position) {
+void region_set_add(region_set_t* const region_set,const uint64_t begin_position,const uint64_t end_position) {
   // Allocate
   region_interval_t* region_interval;
   vector_alloc_new(region_set->region_intervals,region_interval_t,region_interval);

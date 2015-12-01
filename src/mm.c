@@ -80,10 +80,10 @@ int mm_mmap_mode[3] = { MAP_PRIVATE, MAP_SHARED, MAP_SHARED };
  */
 char* mm_temp_folder_path = MM_DEFAULT_TMP_FOLDER;
 
-GEM_INLINE char* mm_get_tmp_folder() {
+char* mm_get_tmp_folder() {
   return mm_temp_folder_path;
 }
-GEM_INLINE void mm_set_tmp_folder(char* const tmp_folder_path) {
+void mm_set_tmp_folder(char* const tmp_folder_path) {
   GEM_CHECK_NULL(tmp_folder_path);
   mm_temp_folder_path = tmp_folder_path;
 }
@@ -92,7 +92,7 @@ GEM_INLINE void mm_set_tmp_folder(char* const tmp_folder_path) {
  *   Allocate relative small chunks of memory relying on the regular memory manager,
  *   usually malloc/calloc using a BuddySystem (Helper functions)
  */
-GEM_INLINE void* mm_malloc_nothrow(uint64_t const num_elements,const uint64_t size_element,const bool init_mem,const int init_value) {
+void* mm_malloc_nothrow(uint64_t const num_elements,const uint64_t size_element,const bool init_mem,const int init_value) {
   // Request memory
   const uint64_t total_memory = num_elements*size_element;
   void* const allocated_mem = (gem_expect_false(init_mem && init_value==0)) ?
@@ -104,7 +104,7 @@ GEM_INLINE void* mm_malloc_nothrow(uint64_t const num_elements,const uint64_t si
   // MM_PRINT_MEM_ALIGMENT(allocated_mem); // Debug
   return allocated_mem;
 }
-GEM_INLINE void* mm_malloc_(uint64_t const num_elements,const uint64_t size_element,const bool init_mem,const int init_value) {
+void* mm_malloc_(uint64_t const num_elements,const uint64_t size_element,const bool init_mem,const int init_value) {
   // Request memory
   const uint64_t total_memory = num_elements*size_element;
   void* allocated_mem;
@@ -120,19 +120,19 @@ GEM_INLINE void* mm_malloc_(uint64_t const num_elements,const uint64_t size_elem
   // MM_PRINT_MEM_ALIGMENT(allocated_mem); // Debug
   return allocated_mem;
 }
-GEM_INLINE void* mm_realloc_nothrow(void* mem_addr,const uint64_t num_bytes) {
+void* mm_realloc_nothrow(void* mem_addr,const uint64_t num_bytes) {
   GEM_CHECK_NULL(mem_addr);
   GEM_CHECK_ZERO(num_bytes);
   return realloc(mem_addr,num_bytes);
 }
-GEM_INLINE void* mm_realloc(void* mem_addr,const uint64_t num_bytes) {
+void* mm_realloc(void* mem_addr,const uint64_t num_bytes) {
   GEM_CHECK_NULL(mem_addr);
   GEM_CHECK_ZERO(num_bytes);
   void* const new_mem_addr = mm_realloc_nothrow(mem_addr,num_bytes);
   gem_cond_fatal_error(!new_mem_addr,MEM_REALLOC,num_bytes);
   return new_mem_addr;
 }
-GEM_INLINE void mm_free(void* mem_addr) {
+void mm_free(void* mem_addr) {
   GEM_CHECK_NULL(mem_addr);
   free(mem_addr);
 }
@@ -140,7 +140,7 @@ GEM_INLINE void mm_free(void* mem_addr) {
  * BulkMemory
  *   Allocate big chunks of memory and resort to disk if memory is not enough
  */
-GEM_INLINE mm_t* mm_bulk_malloc(const uint64_t num_bytes,const bool init_mem) {
+mm_t* mm_bulk_malloc(const uint64_t num_bytes,const bool init_mem) {
   GEM_CHECK_ZERO(num_bytes);
   void* memory = mm_malloc_nothrow(num_bytes,1,init_mem,0);
   if (gem_expect_true(memory!=NULL)) { // Fits in HEAP
@@ -157,7 +157,7 @@ GEM_INLINE mm_t* mm_bulk_malloc(const uint64_t num_bytes,const bool init_mem) {
     return mm_bulk_mmalloc_temp(num_bytes);
   }
 }
-GEM_INLINE mm_t* mm_bulk_mmalloc(const uint64_t num_bytes,const bool use_huge_pages) {
+mm_t* mm_bulk_mmalloc(const uint64_t num_bytes,const bool use_huge_pages) {
   GEM_CHECK_ZERO(num_bytes);
   // Allocate handler
   mm_t* const mem_manager = mm_alloc(mm_t);
@@ -198,7 +198,7 @@ GEM_INLINE mm_t* mm_bulk_mmalloc(const uint64_t num_bytes,const bool use_huge_pa
   return mem_manager;
 #endif
 }
-GEM_INLINE mm_t* mm_bulk_mmalloc_temp(const uint64_t num_bytes) {
+mm_t* mm_bulk_mmalloc_temp(const uint64_t num_bytes) {
   GEM_CHECK_ZERO(num_bytes);
 #ifdef MM_NO_MMAP
   return mm_bulk_mmalloc(num_bytes,false);
@@ -240,7 +240,7 @@ GEM_INLINE mm_t* mm_bulk_mmalloc_temp(const uint64_t num_bytes) {
   return mem_manager;
 #endif
 }
-GEM_INLINE void mm_bulk_free(mm_t* const mem_manager) {
+void mm_bulk_free(mm_t* const mem_manager) {
   GEM_CHECK_NULL(mem_manager);
   GEM_CHECK_NULL(mem_manager->memory);
   GEM_CHECK_NULL(mem_manager->cursor);
@@ -259,7 +259,7 @@ GEM_INLINE void mm_bulk_free(mm_t* const mem_manager) {
   CFREE(mem_manager->file_name);
   mm_free(mem_manager);
 }
-GEM_INLINE mm_t* mm_bulk_mmap_file(char* const file_name,const mm_mode mode,const bool populate_page_tables) {
+mm_t* mm_bulk_mmap_file(char* const file_name,const mm_mode mode,const bool populate_page_tables) {
   GEM_CHECK_NULL(file_name);
 #ifdef MM_NO_MMAP
   return mm_bulk_mload_file(file_name,1);
@@ -296,7 +296,7 @@ GEM_INLINE mm_t* mm_bulk_mmap_file(char* const file_name,const mm_mode mode,cons
   return mem_manager;
 #endif
 }
-GEM_INLINE mm_t* mm_bulk_load_file(char* const file_name,const uint64_t num_threads) {
+mm_t* mm_bulk_load_file(char* const file_name,const uint64_t num_threads) {
   GEM_CHECK_NULL(file_name);
 #ifdef MM_NO_MMAP
   return mm_bulk_mload_file(file_name,num_threads);
@@ -324,7 +324,7 @@ GEM_INLINE mm_t* mm_bulk_load_file(char* const file_name,const uint64_t num_thre
   return mem_manager;
 #endif
 }
-GEM_INLINE mm_t* mm_bulk_mload_file(char* const file_name,const uint64_t num_threads) {
+mm_t* mm_bulk_mload_file(char* const file_name,const uint64_t num_threads) {
   GEM_CHECK_NULL(file_name);
   // Retrieve input file info
   struct stat stat_info;
@@ -344,74 +344,74 @@ GEM_INLINE mm_t* mm_bulk_mload_file(char* const file_name,const uint64_t num_thr
 /*
  * Accessors
  */
-GEM_INLINE void* mm_get_mem(mm_t* const mem_manager) {
+void* mm_get_mem(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
   return mem_manager->cursor;
 }
-GEM_INLINE void* mm_get_base_mem(mm_t* const mem_manager) {
+void* mm_get_base_mem(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
   return mem_manager->memory;
 }
-GEM_INLINE mm_mode mm_get_mode(mm_t* const mem_manager) {
+mm_mode mm_get_mode(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
   return mem_manager->mode;
 }
-GEM_INLINE uint64_t mm_get_allocated(mm_t* const mem_manager) {
+uint64_t mm_get_allocated(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
   return mem_manager->allocated;
 }
-GEM_INLINE char* mm_get_mfile_name(mm_t* const mem_manager) {
+char* mm_get_mfile_name(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
   return mem_manager->file_name;
 }
 /*
  * Seek functions
  */
-GEM_INLINE uint64_t mm_get_current_position(mm_t* const mem_manager) {
+uint64_t mm_get_current_position(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
   return (mem_manager->cursor-mem_manager->memory);
 }
-GEM_INLINE bool mm_eom(mm_t* const mem_manager) {
+bool mm_eom(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
   return mm_get_current_position(mem_manager) >= mem_manager->allocated;
 }
-GEM_INLINE void mm_seek(mm_t* const mem_manager,const uint64_t byte_position) {
+void mm_seek(mm_t* const mem_manager,const uint64_t byte_position) {
   MM_CHECK(mem_manager);
   gem_fatal_check(byte_position>=mem_manager->allocated,MEM_CURSOR_SEEK,byte_position);
   mem_manager->cursor = mem_manager->memory + byte_position;
 }
-GEM_INLINE void mm_skip_forward(mm_t* const mem_manager,const uint64_t num_bytes) {
+void mm_skip_forward(mm_t* const mem_manager,const uint64_t num_bytes) {
   MM_CHECK(mem_manager);
   mem_manager->cursor += num_bytes;
   MM_CHECK_SEGMENT(mem_manager);
 }
-GEM_INLINE void mm_skip_backward(mm_t* const mem_manager,const uint64_t num_bytes) {
+void mm_skip_backward(mm_t* const mem_manager,const uint64_t num_bytes) {
   MM_CHECK(mem_manager);
   mem_manager->cursor -= num_bytes;
   MM_CHECK_SEGMENT(mem_manager);
 }
-GEM_INLINE void mm_skip_uint64(mm_t* const mem_manager) {
+void mm_skip_uint64(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
   mem_manager->cursor += 8;
   MM_CHECK_SEGMENT(mem_manager);
 }
-GEM_INLINE void mm_skip_uint32(mm_t* const mem_manager) {
+void mm_skip_uint32(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
   mem_manager->cursor += 4;
   MM_CHECK_SEGMENT(mem_manager);
 }
-GEM_INLINE void mm_skip_uint16(mm_t* const mem_manager) {
+void mm_skip_uint16(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
   mem_manager->cursor += 2;
   MM_CHECK_SEGMENT(mem_manager);
 }
-GEM_INLINE void mm_skip_uint8(mm_t* const mem_manager) {
+void mm_skip_uint8(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
   mem_manager->cursor += 1;
   MM_CHECK_SEGMENT(mem_manager);
 }
 #ifdef MM_NO_MMAP
-GEM_INLINE void mm_skip_align(mm_t* const mem_manager,const uint64_t num_bytes) {
+void mm_skip_align(mm_t* const mem_manager,const uint64_t num_bytes) {
   MM_CHECK(mem_manager);
   GEM_CHECK_ZERO(num_bytes);
   if (gem_expect_true(num_bytes > 1)) {
@@ -424,7 +424,7 @@ GEM_INLINE void mm_skip_align(mm_t* const mem_manager,const uint64_t num_bytes) 
   }
 }
 #else
-GEM_INLINE void mm_skip_align(mm_t* const mem_manager,const uint64_t num_bytes) {
+void mm_skip_align(mm_t* const mem_manager,const uint64_t num_bytes) {
   MM_CHECK(mem_manager);
   GEM_CHECK_ZERO(num_bytes);
   if (gem_expect_true(num_bytes > 1)) {
@@ -435,7 +435,7 @@ GEM_INLINE void mm_skip_align(mm_t* const mem_manager,const uint64_t num_bytes) 
   }
 }
 #endif
-GEM_INLINE void mm_skip_align_16(mm_t* const mem_manager) {
+void mm_skip_align_16(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
 #ifdef MM_NO_MMAP
   mm_skip_align(mem_manager,2);
@@ -446,7 +446,7 @@ GEM_INLINE void mm_skip_align_16(mm_t* const mem_manager) {
   MM_CHECK_ALIGNMENT(mem_manager,16b);
 #endif
 }
-GEM_INLINE void mm_skip_align_32(mm_t* const mem_manager) {
+void mm_skip_align_32(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
 #ifdef MM_NO_MMAP
   mm_skip_align(mem_manager,4);
@@ -457,7 +457,7 @@ GEM_INLINE void mm_skip_align_32(mm_t* const mem_manager) {
   MM_CHECK_ALIGNMENT(mem_manager,32b);
 #endif
 }
-GEM_INLINE void mm_skip_align_64(mm_t* const mem_manager) {
+void mm_skip_align_64(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
 #ifdef MM_NO_MMAP
   mm_skip_align(mem_manager,8);
@@ -468,7 +468,7 @@ GEM_INLINE void mm_skip_align_64(mm_t* const mem_manager) {
   MM_CHECK_ALIGNMENT(mem_manager,64b);
 #endif
 }
-GEM_INLINE void mm_skip_align_128(mm_t* const mem_manager) {
+void mm_skip_align_128(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
 #ifdef MM_NO_MMAP
   mm_skip_align(mem_manager,16);
@@ -479,7 +479,7 @@ GEM_INLINE void mm_skip_align_128(mm_t* const mem_manager) {
   MM_CHECK_ALIGNMENT(mem_manager,128b);
 #endif
 }
-GEM_INLINE void mm_skip_align_512(mm_t* const mem_manager) {
+void mm_skip_align_512(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
 #ifdef MM_NO_MMAP
   mm_skip_align(mem_manager,64);
@@ -490,7 +490,7 @@ GEM_INLINE void mm_skip_align_512(mm_t* const mem_manager) {
   MM_CHECK_ALIGNMENT(mem_manager,512b);
 #endif
 }
-GEM_INLINE void mm_skip_align_1024(mm_t* const mem_manager) {
+void mm_skip_align_1024(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
 #ifdef MM_NO_MMAP
   mm_skip_align(mem_manager,1024);
@@ -501,7 +501,7 @@ GEM_INLINE void mm_skip_align_1024(mm_t* const mem_manager) {
   MM_CHECK_ALIGNMENT(mem_manager,1KB);
 #endif
 }
-GEM_INLINE void mm_skip_align_4KB(mm_t* const mem_manager) {
+void mm_skip_align_4KB(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
 #ifdef MM_NO_MMAP
   mm_skip_align(mem_manager,4096);
@@ -512,7 +512,7 @@ GEM_INLINE void mm_skip_align_4KB(mm_t* const mem_manager) {
   MM_CHECK_ALIGNMENT(mem_manager,4KB);
 #endif
 }
-GEM_INLINE void mm_skip_align_mempage(mm_t* const mem_manager) {
+void mm_skip_align_mempage(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
   const int64_t page_size = mm_get_page_size();
   gem_cond_fatal_error__perror(page_size==-1,SYS_SYSCONF);
@@ -522,79 +522,79 @@ GEM_INLINE void mm_skip_align_mempage(mm_t* const mem_manager) {
 /*
  * Read functions
  */
-GEM_INLINE uint64_t mm_read_uint64(mm_t* const mem_manager) {
+uint64_t mm_read_uint64(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
   MM_CHECK_SEGMENT(mem_manager);
   const uint64_t data = *((uint64_t*)mem_manager->cursor);
   mem_manager->cursor += 8;
   return data;
 }
-GEM_INLINE uint32_t mm_read_uint32(mm_t* const mem_manager) {
+uint32_t mm_read_uint32(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
   MM_CHECK_SEGMENT(mem_manager);
   const uint32_t data = *((uint32_t*)mem_manager->cursor);
   mem_manager->cursor += 4;
   return data;
 }
-GEM_INLINE uint16_t mm_read_uint16(mm_t* const mem_manager) {
+uint16_t mm_read_uint16(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
   MM_CHECK_SEGMENT(mem_manager);
   const uint16_t data = *((uint16_t*)mem_manager->cursor);
   mem_manager->cursor += 2;
   return data;
 }
-GEM_INLINE uint8_t mm_read_uint8(mm_t* const mem_manager) {
+uint8_t mm_read_uint8(mm_t* const mem_manager) {
   MM_CHECK(mem_manager);
   MM_CHECK_SEGMENT(mem_manager);
   const uint8_t data = *((uint8_t*)mem_manager->cursor);
   mem_manager->cursor += 1;
   return data;
 }
-GEM_INLINE void* mm_read_mem(mm_t* const mem_manager,const uint64_t num_bytes) {
+void* mm_read_mem(mm_t* const mem_manager,const uint64_t num_bytes) {
   MM_CHECK(mem_manager);
   MM_CHECK_SEGMENT(mem_manager);
   void* const current_cursor = mem_manager->cursor;
   mem_manager->cursor += num_bytes;
   return current_cursor;
 }
-GEM_INLINE void mm_copy_mem(mm_t* const mem_manager,void* const dst,const uint64_t num_bytes) {
+void mm_copy_mem(mm_t* const mem_manager,void* const dst,const uint64_t num_bytes) {
   MM_CHECK(mem_manager);
   MM_CHECK_SEGMENT(mem_manager);
   memcpy(dst,mem_manager->cursor,num_bytes);
   mem_manager->cursor += num_bytes;
 }
-GEM_INLINE void mm_copy_mem_parallel(mm_t* const mem_manager,void* const dst,const uint64_t num_bytes,const uint64_t num_threads) {
+void mm_copy_mem_parallel(mm_t* const mem_manager,void* const dst,const uint64_t num_bytes,const uint64_t num_threads) {
   GEM_NOT_IMPLEMENTED(); // TODO
 }
 
 /*
  * Write functions
  */
-GEM_INLINE void mm_write_uint64(mm_t* const mem_manager,const uint64_t data) {
+void mm_write_uint64(mm_t* const mem_manager,const uint64_t data) {
   MM_CHECK(mem_manager);
   MM_CHECK_SEGMENT(mem_manager);
   *((uint64_t*)mem_manager->cursor) = data;
   mem_manager->cursor += 8;
 }
-GEM_INLINE void mm_write_uint32(mm_t* const mem_manager,const uint32_t data) {
+void mm_write_uint32(mm_t* const mem_manager,const uint32_t data) {
   MM_CHECK(mem_manager);
   MM_CHECK_SEGMENT(mem_manager);
   *((uint32_t*)mem_manager->cursor) = data;
   mem_manager->cursor += 4;
 }
-GEM_INLINE void mm_write_uint16(mm_t* const mem_manager,const uint16_t data) {
+void mm_write_uint16(mm_t* const mem_manager,const uint16_t data) {
   MM_CHECK(mem_manager);
   MM_CHECK_SEGMENT(mem_manager);
   *((uint16_t*)mem_manager->cursor) = data;
   mem_manager->cursor += 2;
 }
-GEM_INLINE void mm_write_uint8(mm_t* const mem_manager,const uint8_t data) {
+void mm_write_uint8(mm_t* const mem_manager,const uint8_t data) {
   MM_CHECK(mem_manager);
   MM_CHECK_SEGMENT(mem_manager);
   *((uint8_t*)mem_manager->cursor) = data;
   mem_manager->cursor += 1;
 }
-GEM_INLINE void mm_write_mem(mm_t* const mem_manager,void* const src,const uint64_t num_bytes) {
+void mm_write_mem(mm_t* const mem_manager,void* const src,const uint64_t num_bytes) {
   MM_CHECK(mem_manager);
   MM_CHECK_SEGMENT(mem_manager);
   memcpy(mem_manager->cursor,src,num_bytes);
@@ -604,12 +604,12 @@ GEM_INLINE void mm_write_mem(mm_t* const mem_manager,void* const src,const uint6
 /*
  * Status
  */
-GEM_INLINE int64_t mm_get_page_size() {
+int64_t mm_get_page_size() {
   int64_t page_size = sysconf(_SC_PAGESIZE);
   gem_cond_fatal_error__perror(page_size==-1,SYS_SYSCONF);
   return page_size; // Bytes
 }
-GEM_INLINE int64_t mm_get_stat_meminfo(const char* const label,const uint64_t label_length) {
+int64_t mm_get_stat_meminfo(const char* const label,const uint64_t label_length) {
   // Open /proc/meminfo
   FILE* const meminfo = fopen("/proc/meminfo", "r");
   gem_cond_fatal_error__perror(meminfo == NULL,MEM_STAT_MEMINFO,"no such file");
@@ -628,20 +628,20 @@ GEM_INLINE int64_t mm_get_stat_meminfo(const char* const label,const uint64_t la
   free(line); fclose(meminfo);
   return -1;
 }
-GEM_INLINE int64_t mm_get_available_cached_mem() {
+int64_t mm_get_available_cached_mem() {
   const int64_t size = mm_get_stat_meminfo("Cached:",7);
   gem_cond_fatal_error__perror(size==-1,MEM_STAT_MEMINFO,"Cached");
   return size;
 }
-GEM_INLINE int64_t mm_get_available_free_mem() {
+int64_t mm_get_available_free_mem() {
   const int64_t size = mm_get_stat_meminfo("MemFree:",8);
   gem_cond_fatal_error__perror(size==-1,MEM_STAT_MEMINFO,"MemFree");
   return size;
 }
-GEM_INLINE int64_t mm_get_available_mem() {
+int64_t mm_get_available_mem() {
   return mm_get_available_free_mem()+mm_get_available_cached_mem();
 }
-GEM_INLINE int64_t mm_get_available_virtual_mem() {
+int64_t mm_get_available_virtual_mem() {
   // Get Total Program Size
   uint64_t vm_size = 0;
   FILE *statm = fopen("/proc/self/statm", "r");

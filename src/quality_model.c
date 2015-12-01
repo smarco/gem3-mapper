@@ -12,7 +12,7 @@
 /*
  * Quality Model (Models quality scores from sequence into qm_values)
  */
-GEM_INLINE void quality_model(
+void quality_model(
     sequence_t* const sequence,const quality_model_t quality_model,
     const quality_format_t quality_format,const uint64_t quality_threshold,uint8_t* const quality_mask) {
   switch (quality_model) {
@@ -27,7 +27,7 @@ GEM_INLINE void quality_model(
       break;
   }
 }
-GEM_INLINE void quality_model_flat(
+void quality_model_flat(
     sequence_t* const sequence,
     const quality_format_t quality_format,const uint64_t quality_threshold,uint8_t* const quality_mask) {
   // TODO CHECK sequence not null
@@ -35,7 +35,7 @@ GEM_INLINE void quality_model_flat(
   uint64_t i;
   for (i=0;i<key_length;++i) quality_mask[i] = qm_real;
 }
-GEM_INLINE void quality_model_gem(
+void quality_model_gem(
     sequence_t* const sequence,
     const quality_format_t quality_format,const uint64_t quality_threshold,uint8_t* const quality_mask) {
   // TODO CHECK sequence not null
@@ -66,13 +66,13 @@ GEM_INLINE void quality_model_gem(
 
 
 
-//GEM_INLINE void quality_score_flat(
+//void quality_score_flat(
 //    const sequence_t* const sequence,const quality_format_t format,const uint64_t quality_threshold,
 //    const mismatch* const misms,const uint64_t mism_num) {
 //  return mism_num;
 //}
 
-//GEM_INLINE void quality_score_gem(const sequence_t* const sequence,
+//void quality_score_gem(const sequence_t* const sequence,
 // const quality_format_t format,const uint64_t quality_threshold,
 // const mismatch* const misms,const uint64_t mism_num) {
 //

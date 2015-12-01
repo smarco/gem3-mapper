@@ -17,7 +17,7 @@
 /*
  * Realigning Matches
  */
-GEM_INLINE void archive_select_realign_match_interval(
+void archive_select_realign_match_interval(
     archive_search_t* const archive_search,matches_t* const matches,
     match_interval_t* const match_interval,match_trace_t* const match_trace,mm_stack_t* const mm_stack) {
   as_parameters_t* const as_parameters = &archive_search->as_parameters;
@@ -110,7 +110,7 @@ GEM_INLINE void archive_select_realign_match_interval(
 /*
  * Decoding Matches (Retrieving & Processing matches)
  */
-GEM_INLINE void archive_select_process_trace_matches(
+void archive_select_process_trace_matches(
     archive_search_t* const archive_search,matches_t* const matches,
     const uint64_t reported_strata,uint64_t* const last_stratum_reported_matches) {
   const uint64_t last_stratum_distance = reported_strata-1;
@@ -141,7 +141,7 @@ GEM_INLINE void archive_select_process_trace_matches(
   // Return matches to decode in the last stratum
   *last_stratum_reported_matches -= num_matches_last_stratum;
 }
-GEM_INLINE void archive_select_process_interval_matches(
+void archive_select_process_interval_matches(
     archive_search_t* const archive_search,matches_t* const matches,
     const uint64_t reported_strata,const uint64_t last_stratum_reported_matches) {
   // Parameters
@@ -184,7 +184,7 @@ GEM_INLINE void archive_select_process_interval_matches(
     }
   }
 }
-GEM_INLINE void archive_select_decode_matches(
+void archive_select_decode_matches(
     archive_search_t* const archive_search,matches_t* const matches,
     const uint64_t reported_strata,uint64_t last_stratum_reported_matches) {
   // Decode trace-matches. Count already decoded matches & discard unwanted matches
@@ -197,7 +197,7 @@ GEM_INLINE void archive_select_decode_matches(
 /*
  * Select Paired-Matches
  */
-GEM_INLINE void archive_select_se_matches(
+void archive_select_se_matches(
     archive_search_t* const archive_search,
     const bool paired_mapping,matches_t* const matches) {
   PROFILE_START(GP_ARCHIVE_SELECT_SE_MATCHES,PROFILE_LEVEL);
@@ -229,7 +229,7 @@ GEM_INLINE void archive_select_se_matches(
   }
   PROFILE_STOP(GP_ARCHIVE_SELECT_SE_MATCHES,PROFILE_LEVEL);
 }
-GEM_INLINE void archive_select_pe_matches(
+void archive_select_pe_matches(
     archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches) {

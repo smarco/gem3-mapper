@@ -181,12 +181,12 @@ extern const uint64_t uint64_mask_inverse_ones[];
  */
 // GemTools Inline
 #ifdef __clang__
-#define GEM_INLINE
-#define GEM_DEC_INLINE
+#define GEM_INLINE_C
+#define GEM_INLINE_H
 #else
 //#define GEM_INLINE inline
-#define GEM_INLINE inline
-#define GEM_DEC_INLINE extern inline
+#define GEM_INLINE_C inline
+#define GEM_INLINE_H extern inline
 #endif
 
 // Conditional expect

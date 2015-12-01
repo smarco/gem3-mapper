@@ -11,7 +11,7 @@
 /*
  * Display Alignment pretty
  */
-GEM_INLINE void match_alignment_print_pretty(
+void match_alignment_print_pretty(
     FILE* const stream,match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,uint8_t* const key,
     const uint64_t key_length,uint8_t* const text,

@@ -22,34 +22,24 @@
 /*
  * Internal Accessors
  */
-GEM_INLINE search_stage_verify_candidates_buffer_t* search_stage_vc_get_buffer(
+search_stage_verify_candidates_buffer_t* search_stage_vc_get_buffer(
     search_stage_verify_candidates_t* const search_stage_vc,const uint64_t buffer_pos) {
   return *vector_get_elm(search_stage_vc->buffers,buffer_pos,search_stage_verify_candidates_buffer_t*);
 }
-GEM_INLINE search_stage_verify_candidates_buffer_t* search_stage_vc_get_current_buffer(
+search_stage_verify_candidates_buffer_t* search_stage_vc_get_current_buffer(
     search_stage_verify_candidates_t* const search_stage_vc) {
   return search_stage_vc_get_buffer(search_stage_vc,search_stage_vc->iterator.current_buffer_idx);
 }
 /*
  * Setup
  */
-GEM_INLINE search_stage_verify_candidates_t* search_stage_verify_candidates_new(
-    const gpu_buffer_collection_t* const gpu_buffer_collection,
-    const uint64_t buffers_offset,const uint64_t num_buffers,
-    const bool paired_end,const bool cpu_emulated) {
+search_stage_verify_candidates_t* search_stage_verify_candidates_new(
+    const gpu_buffer_collection_t* const gpu_buffer_collection,const uint64_t buffers_offset,
+    const uint64_t num_buffers,const bool paired_end,const bool cpu_emulated,
+    archive_text_t* const archive_text,mm_stack_t* const mm_stack) {
   // Alloc
   search_stage_verify_candidates_t* const search_stage_vc = mm_alloc(search_stage_verify_candidates_t);
   search_stage_vc->paired_end = paired_end;
-  // Init Buffers
-  uint64_t i;
-  search_stage_vc->buffers = vector_new(num_buffers,search_stage_verify_candidates_buffer_t*);
-  for (i=0;i<num_buffers;++i) {
-    search_stage_verify_candidates_buffer_t* const buffer_vc =
-        search_stage_verify_candidates_buffer_new(gpu_buffer_collection,buffers_offset+i,cpu_emulated);
-    vector_insert(search_stage_vc->buffers,buffer_vc,search_stage_verify_candidates_buffer_t*);
-  }
-  search_stage_vc->iterator.num_buffers = num_buffers;
-  search_stage_verify_candidates_clear(search_stage_vc,NULL); // Clear buffers
   // Init Support Data Structures
   filtering_candidates_init(&search_stage_vc->filtering_candidates_forward_end1);
   filtering_candidates_init(&search_stage_vc->filtering_candidates_reverse_end1);
@@ -63,10 +53,21 @@ GEM_INLINE search_stage_verify_candidates_t* search_stage_verify_candidates_new(
     search_stage_vc->matches = matches_new();
     matches_configure(search_stage_vc->matches,&search_stage_vc->text_collection);
   }
+  // Init Buffers
+  uint64_t i;
+  search_stage_vc->buffers = vector_new(num_buffers,search_stage_verify_candidates_buffer_t*);
+  for (i=0;i<num_buffers;++i) {
+    search_stage_verify_candidates_buffer_t* const buffer_vc =
+        search_stage_verify_candidates_buffer_new(gpu_buffer_collection,buffers_offset+i,
+            cpu_emulated,archive_text,&search_stage_vc->text_collection,mm_stack);
+    vector_insert(search_stage_vc->buffers,buffer_vc,search_stage_verify_candidates_buffer_t*);
+  }
+  search_stage_vc->iterator.num_buffers = num_buffers;
+  search_stage_verify_candidates_clear(search_stage_vc,NULL); // Clear buffers
   // Return
   return search_stage_vc;
 }
-GEM_INLINE void search_stage_verify_candidates_clear(
+void search_stage_verify_candidates_clear(
     search_stage_verify_candidates_t* const search_stage_vc,
     archive_search_cache_t* const archive_search_cache) {
   // Init state
@@ -80,7 +81,7 @@ GEM_INLINE void search_stage_verify_candidates_clear(
   }
   search_stage_vc->iterator.current_buffer_idx = 0; // Init iterator
 }
-GEM_INLINE void search_stage_verify_candidates_delete(
+void search_stage_verify_candidates_delete(
     search_stage_verify_candidates_t* const search_stage_vc,
     archive_search_cache_t* const archive_search_cache) {
   // Delete buffers
@@ -108,7 +109,7 @@ GEM_INLINE void search_stage_verify_candidates_delete(
 /*
  * Send Searches (buffered)
  */
-GEM_INLINE bool search_stage_verify_candidates_send_se_search(
+bool search_stage_verify_candidates_send_se_search(
     search_stage_verify_candidates_t* const search_stage_vc,archive_search_t* const archive_search) {
   // Check Occupancy (fits in current buffer)
   search_stage_verify_candidates_buffer_t* current_buffer = search_stage_vc_get_current_buffer(search_stage_vc);
@@ -132,7 +133,7 @@ GEM_INLINE bool search_stage_verify_candidates_send_se_search(
   // Return ok
   return true;
 }
-GEM_INLINE bool search_stage_verify_candidates_send_pe_search(
+bool search_stage_verify_candidates_send_pe_search(
     search_stage_verify_candidates_t* const search_stage_vc,
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2) {
   // Check Occupancy (fits in current buffer)
@@ -162,7 +163,7 @@ GEM_INLINE bool search_stage_verify_candidates_send_pe_search(
 /*
  * Retrieve operators
  */
-GEM_INLINE void search_stage_verify_candidates_retrieve_begin(search_stage_verify_candidates_t* const search_stage_vc) {
+void search_stage_verify_candidates_retrieve_begin(search_stage_verify_candidates_t* const search_stage_vc) {
   search_stage_verify_candidates_buffer_t* current_buffer;
   // Change mode
   search_stage_vc->search_stage_mode = search_group_buffer_phase_retrieving;
@@ -179,7 +180,7 @@ GEM_INLINE void search_stage_verify_candidates_retrieve_begin(search_stage_verif
   // Fetch first group
   search_stage_verify_candidates_buffer_receive(current_buffer);
 }
-GEM_INLINE bool search_stage_verify_candidates_retrieve_finished(search_stage_verify_candidates_t* const search_stage_vc) {
+bool search_stage_verify_candidates_retrieve_finished(search_stage_verify_candidates_t* const search_stage_vc) {
   // Mode Sending (Retrieval finished)
   if (search_stage_vc->search_stage_mode==search_group_buffer_phase_sending) return true;
   // Mode Retrieve (Check iterator)
@@ -187,7 +188,7 @@ GEM_INLINE bool search_stage_verify_candidates_retrieve_finished(search_stage_ve
   return iterator->current_buffer_idx==iterator->num_buffers &&
          iterator->current_search_idx==iterator->num_searches;
 }
-GEM_INLINE bool search_stage_verify_candidates_retrieve_next(
+bool search_stage_verify_candidates_retrieve_next(
     search_stage_verify_candidates_t* const search_stage_vc,
     search_stage_verify_candidates_buffer_t** const current_buffer,
     archive_search_t** const archive_search) {
@@ -218,7 +219,7 @@ GEM_INLINE bool search_stage_verify_candidates_retrieve_next(
 /*
  * Retrieve Searches (buffered)
  */
-GEM_INLINE bool search_stage_verify_candidates_retrieve_se_search(
+bool search_stage_verify_candidates_retrieve_se_search(
     search_stage_verify_candidates_t* const search_stage_vc,
     archive_search_t** const archive_search) {
   // Retrieve next
@@ -240,7 +241,7 @@ GEM_INLINE bool search_stage_verify_candidates_retrieve_se_search(
   // Return
   return true;
 }
-GEM_INLINE bool search_stage_verify_candidates_retrieve_pe_search(
+bool search_stage_verify_candidates_retrieve_pe_search(
     search_stage_verify_candidates_t* const search_stage_vc,
     archive_search_t** const archive_search_end1,
     archive_search_t** const archive_search_end2) {

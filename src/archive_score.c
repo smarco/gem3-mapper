@@ -19,11 +19,11 @@
 /*
  * SM Scoring Utils
  */
-GEM_INLINE double archive_score_diff_exponential(
+double archive_score_diff_exponential(
     const int32_t reference_score,const int32_t match_score,double exp_coefficient) {
   return (double)reference_score*exp((double)(match_score-reference_score)*exp_coefficient);
 }
-GEM_INLINE uint8_t archive_score_probability_to_mapq(const double probability,const double sum_probability) {
+uint8_t archive_score_probability_to_mapq(const double probability,const double sum_probability) {
   const double mapq = -10. * log10(1.-(probability/sum_probability));
   if (mapq > 60.) {
     return 60;
@@ -33,7 +33,7 @@ GEM_INLINE uint8_t archive_score_probability_to_mapq(const double probability,co
     return (uint8_t) mapq;
   }
 }
-GEM_INLINE uint8_t archive_score_scale_probability(
+uint8_t archive_score_scale_probability(
     const double probability,const double sum_probability,
     const uint8_t floor,const uint8_t ceil) {
 //  double mapq_pr = -10. * log10(1.-(probability/sum_probability));
@@ -46,27 +46,27 @@ GEM_INLINE uint8_t archive_score_scale_probability(
 /*
  * GEM Score
  */
-GEM_INLINE uint8_t archive_score_matches_gem_se_ties(matches_predictors_t* const predictors) {
+uint8_t archive_score_matches_gem_se_ties(matches_predictors_t* const predictors) {
   // Classify ties
   const double pr = matches_classify_ties(predictors);
   if (pr < MATCHES_MIN_CI) return 0;
   if (pr < MATCHES_TIES_CI) return 1;
   return archive_score_scale_probability(pr-MATCHES_TIES_CI,1.-MATCHES_TIES_CI,2,29);
 }
-GEM_INLINE uint8_t archive_score_matches_gem_se_mmap(matches_predictors_t* const predictors) {
+uint8_t archive_score_matches_gem_se_mmap(matches_predictors_t* const predictors) {
   // Classify multimaps
   const double pr = matches_classify_mmaps(predictors);
   if (pr < MATCHES_MIN_CI) return 0;
   if (pr < MATCHES_MMAPS_CI) return 1;
   return archive_score_scale_probability(pr-MATCHES_MMAPS_CI,1.-MATCHES_MMAPS_CI,30,49);
 }
-GEM_INLINE uint8_t archive_score_matches_gem_se_unique(matches_predictors_t* const predictors) {
+uint8_t archive_score_matches_gem_se_unique(matches_predictors_t* const predictors) {
   const double pr = matches_classify_unique(predictors);
   if (pr < MATCHES_MIN_CI) return 0;
   if (pr < MATCHES_UNIQUE_CI) return 1;
   return archive_score_scale_probability(pr-MATCHES_UNIQUE_CI,1.-MATCHES_UNIQUE_CI,50,60);
 }
-GEM_INLINE void archive_score_matches_gem_se(archive_search_t* const archive_search,matches_t* const matches) {
+void archive_score_matches_gem_se(archive_search_t* const archive_search,matches_t* const matches) {
   /*
    * Classify
    *   50-60   Unique
@@ -108,27 +108,27 @@ GEM_INLINE void archive_score_matches_gem_se(archive_search_t* const archive_sea
       break;
   }
 }
-GEM_INLINE uint8_t archive_score_matches_gem_pe_ties(matches_predictors_t* const predictors) {
+uint8_t archive_score_matches_gem_pe_ties(matches_predictors_t* const predictors) {
   // Classify ties
   const double pr = paired_matches_classify_ties(predictors);
   if (pr < PAIRED_MATCHES_MIN_CI) return 0;
   if (pr < PAIRED_MATCHES_TIES_CI) return 1;
   return archive_score_scale_probability(pr-PAIRED_MATCHES_TIES_CI,1.-PAIRED_MATCHES_TIES_CI,2,29);
 }
-GEM_INLINE uint8_t archive_score_matches_gem_pe_mmap(matches_predictors_t* const predictors) {
+uint8_t archive_score_matches_gem_pe_mmap(matches_predictors_t* const predictors) {
   // Classify multimaps
   const double pr = paired_matches_classify_mmaps(predictors);
   if (pr < PAIRED_MATCHES_MIN_CI) return 0;
   if (pr < PAIRED_MATCHES_MMAPS_CI) return 1;
   return archive_score_scale_probability(pr-PAIRED_MATCHES_MMAPS_CI,1.-PAIRED_MATCHES_MMAPS_CI,30,49);
 }
-GEM_INLINE uint8_t archive_score_matches_gem_pe_unique(matches_predictors_t* const predictors) {
+uint8_t archive_score_matches_gem_pe_unique(matches_predictors_t* const predictors) {
   const double pr = paired_matches_classify_unique(predictors);
   if (pr < PAIRED_MATCHES_MIN_CI) return 0;
   if (pr < PAIRED_MATCHES_UNIQUE_CI) return 1;
   return archive_score_scale_probability(pr-PAIRED_MATCHES_UNIQUE_CI,1.-PAIRED_MATCHES_UNIQUE_CI,50,60);
 }
-GEM_INLINE void archive_score_matches_gem_pe(
+void archive_score_matches_gem_pe(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches) {
   // Parameters
@@ -165,7 +165,7 @@ GEM_INLINE void archive_score_matches_gem_pe(
 /*
  * Stratify Matches
  */
-GEM_INLINE void archive_score_matches_stratify_se(archive_search_t* const archive_search,matches_t* const matches) {
+void archive_score_matches_stratify_se(archive_search_t* const archive_search,matches_t* const matches) {
   /*
    * Classify
    *   200-250   Unique (high likelihood)
@@ -226,7 +226,7 @@ GEM_INLINE void archive_score_matches_stratify_se(archive_search_t* const archiv
   }
   matches_predictors_print(stdout,&predictors,sequence_get_tag(&archive_search->sequence),match[0].mapq_score);
 }
-GEM_INLINE void archive_score_matches_stratify_pe(
+void archive_score_matches_stratify_pe(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches) {
   // Score subdominant matches (MAPQ=0)
@@ -300,7 +300,7 @@ GEM_INLINE void archive_score_matches_stratify_pe(
 /*
  * SE Scoring
  */
-GEM_INLINE void archive_score_matches_se(
+void archive_score_matches_se(
     archive_search_t* const archive_search,
     const bool paired_mapping,matches_t* const matches) {
   if (matches_get_num_match_traces(matches)==0) return;
@@ -349,7 +349,7 @@ GEM_INLINE void archive_score_matches_se(
 /*
  * PE Scoring
  */
-GEM_INLINE void archive_score_matches_pe(
+void archive_score_matches_pe(
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches) {
   if (paired_matches_get_num_maps(paired_matches)==0) return;

@@ -24,48 +24,48 @@ bool mute_report_stream = false;
 /*
  * Getters/Setters ELD-function
  */
-inline report_function_t gem_error_get_report_function() {
+report_function_t gem_error_get_report_function() {
   return gem_report_function;
 }
-inline void gem_error_set_report_function(report_function_t function) {
+void gem_error_set_report_function(report_function_t function) {
   gem_report_function = function;
 }
 /*
  * Getters/Setters ELD-function/ELD-streams
  */
-inline FILE* gem_error_get_stream() {
+FILE* gem_error_get_stream() {
   return (error_stream!=NULL) ? error_stream : stderr;
 }
-inline void gem_error_set_stream(FILE* const stream) {
+void gem_error_set_stream(FILE* const stream) {
   error_stream = stream;
 }
-inline FILE* gem_log_get_stream() {
+FILE* gem_log_get_stream() {
   return (log_stream!=NULL) ? log_stream : stderr;
 }
-inline void gem_log_set_stream(FILE* const stream) {
+void gem_log_set_stream(FILE* const stream) {
   log_stream = stream;
 }
-inline FILE* gem_info_get_stream() {
+FILE* gem_info_get_stream() {
   return (info_stream!=NULL) ? info_stream : stderr;
 }
-inline void gem_info_set_stream(FILE* const stream) {
+void gem_info_set_stream(FILE* const stream) {
   info_stream = stream;
 }
-inline FILE* gem_debug_get_stream() {
+FILE* gem_debug_get_stream() {
   return (debug_stream!=NULL) ? debug_stream : stderr;
 }
-inline void gem_debug_set_stream(FILE* const stream) {
+void gem_debug_set_stream(FILE* const stream) {
   debug_stream = stream;
 }
 /*
  * Mute/Articulate ELD-streams
  */
-inline void gem_mute_error_stream() {mute_error_stream=true;}
-inline void gem_mute_report_stream() {mute_report_stream=true;}
-inline void gem_articulate_error_stream() {mute_error_stream=false;}
-inline void gem_articulate_report_stream() {mute_report_stream=false;}
-inline bool gem_is_mute_error_stream() {return mute_error_stream;}
-inline bool gem_is_mute_report_stream() {return mute_report_stream;}
+void gem_mute_error_stream() {mute_error_stream=true;}
+void gem_mute_report_stream() {mute_report_stream=true;}
+void gem_articulate_error_stream() {mute_error_stream=false;}
+void gem_articulate_report_stream() {mute_report_stream=false;}
+bool gem_is_mute_error_stream() {return mute_error_stream;}
+bool gem_is_mute_report_stream() {return mute_report_stream;}
 /*
  * Time Printed Formated functions
  */
@@ -170,7 +170,7 @@ char* tabulated_table[] = {
     /* 18 */ "                  ",
     /* 19 */ "                   ",
     /* 20 */ "                    "};
-inline void fprintf_tabs(FILE* const stream,const int num_spaces) {
+void fprintf_tabs(FILE* const stream,const int num_spaces) {
   if (num_spaces <= 20) {
     fprintf(stream,"%s",tabulated_table[num_spaces]);
   } else {
@@ -179,28 +179,28 @@ inline void fprintf_tabs(FILE* const stream,const int num_spaces) {
   }
 }
 uint64_t global_tab = 0;
-inline void tab_global_print(FILE* const stream) {
+void tab_global_print(FILE* const stream) {
   fprintf_tabs(stream,global_tab);
 }
-inline void tab_global_inc() {
+void tab_global_inc() {
   global_tab += 2;
 }
-inline void tab_global_add(const uint64_t amount) {
+void tab_global_add(const uint64_t amount) {
   global_tab += amount*2;
 }
-inline void tab_global_dec() {
+void tab_global_dec() {
   global_tab = (global_tab > 2) ? global_tab-2 : 0;
 }
-inline void tab_global_subtract(const uint64_t amount) {
+void tab_global_subtract(const uint64_t amount) {
   global_tab -= amount*2;
 }
-inline void tab_global_reset() {
+void tab_global_reset() {
   global_tab = 0;
 }
 /*
  * Ticker
  */
-GEM_INLINE void ticker_percentage_reset(
+void ticker_percentage_reset(
     ticker_t* const ticker,const bool enabled,const char* const label,
     const uint64_t max,const uint64_t step,const bool timed) {
   // Set status
@@ -225,7 +225,7 @@ GEM_INLINE void ticker_percentage_reset(
   ticker->timed=timed;
   if (timed) system_get_time(&ticker->begin_timer);
 }
-GEM_INLINE void ticker_count_reset(
+void ticker_count_reset(
     ticker_t* const ticker,const bool enabled,const char* const label,
     const uint64_t top,const uint64_t each,const bool timed) {
   // Set status
@@ -250,7 +250,7 @@ GEM_INLINE void ticker_count_reset(
   ticker->timed=timed;
   if (timed) system_get_time(&ticker->begin_timer);
 }
-GEM_INLINE void ticker_percentage_finish(ticker_t* const ticker) {
+void ticker_percentage_finish(ticker_t* const ticker) {
   if (!ticker->enabled || ticker->finished) return;
   // Set finished
   ticker->finished = true;
@@ -264,7 +264,7 @@ GEM_INLINE void ticker_percentage_finish(ticker_t* const ticker) {
     tfprintf(gem_log_get_stream(),"%s 100%% %s... done\n",ticker->finish_begin,ticker->finish_end);
   }
 }
-GEM_INLINE void ticker_count_finish(ticker_t* const ticker) {
+void ticker_count_finish(ticker_t* const ticker) {
   if (!ticker->enabled || ticker->finished) return;
   // Set finished
   ticker->finished = true;
@@ -278,7 +278,7 @@ GEM_INLINE void ticker_count_finish(ticker_t* const ticker) {
     tfprintf(gem_log_get_stream(),"%s %"PRIu64" %s... done\n",ticker->finish_begin,ticker->global_ticks,ticker->finish_end);
   }
 }
-GEM_INLINE void ticker_update(ticker_t* const ticker,const uint64_t n) {
+void ticker_update(ticker_t* const ticker,const uint64_t n) {
   if (!ticker->enabled || ticker->finished) return;
   ticker->global_ticks += n;
   ticker->local_ticks += n;
@@ -299,12 +299,12 @@ GEM_INLINE void ticker_update(ticker_t* const ticker,const uint64_t n) {
     }
   }
 }
-GEM_INLINE void ticker_update_mutex(ticker_t* const ticker,const uint64_t n) {
+void ticker_update_mutex(ticker_t* const ticker,const uint64_t n) {
   MUTEX_BEGIN_SECTION(ticker->mutex) {
     ticker_update(ticker,n);
   } MUTEX_END_SECTION(ticker->mutex);
 }
-GEM_INLINE void ticker_finish(ticker_t* const ticker) {
+void ticker_finish(ticker_t* const ticker) {
   if (!ticker->enabled) return;
   if (!ticker->finished) {
     if (ticker->ticker_type == ticker_percentage) {
@@ -314,39 +314,39 @@ GEM_INLINE void ticker_finish(ticker_t* const ticker) {
     }
   }
 }
-GEM_INLINE void ticker_finish_mutex(ticker_t* const ticker) {
+void ticker_finish_mutex(ticker_t* const ticker) {
   MUTEX_BEGIN_SECTION(ticker->mutex) {
     ticker_finish(ticker);
   } MUTEX_END_SECTION(ticker->mutex);
 }
 // Adding labels
-GEM_INLINE void ticker_add_process_label(ticker_t* const ticker,char* const process_begin,char* const process_end) {
+void ticker_add_process_label(ticker_t* const ticker,char* const process_begin,char* const process_end) {
   ticker->process_begin=process_begin;
   ticker->process_end=process_end;
 }
-GEM_INLINE void ticker_add_finish_label(ticker_t* const ticker,char* const finish_begin,char* const finish_end) {
+void ticker_add_finish_label(ticker_t* const ticker,char* const finish_begin,char* const finish_end) {
   ticker->finish_begin=finish_begin;
   ticker->finish_end=finish_end;
 }
 // Enable/Disable ticker
-GEM_INLINE void ticker_set_status(ticker_t* const ticker,const bool enabled) {
+void ticker_set_status(ticker_t* const ticker,const bool enabled) {
   ticker->enabled = enabled;
 }
 // Set granularity
-GEM_INLINE void ticker_set_step(ticker_t* const ticker,const uint64_t step) {
+void ticker_set_step(ticker_t* const ticker,const uint64_t step) {
   ticker->step_ticks = step;
 }
 // Enable mutex
-GEM_INLINE void ticker_mutex_enable(ticker_t* const ticker) {
+void ticker_mutex_enable(ticker_t* const ticker) {
   MUTEX_INIT(ticker->mutex);
 }
-GEM_INLINE void ticker_mutex_cleanup(ticker_t* const ticker) {
+void ticker_mutex_cleanup(ticker_t* const ticker) {
   MUTEX_DESTROY(ticker->mutex);
 }
 /*
  * Print's template helpers
  */
-GEM_INLINE uint64_t calculate_memory_required_v(const char *template,va_list v_args) {
+uint64_t calculate_memory_required_v(const char *template,va_list v_args) {
   // Copy to avoid spoiling v_args
   va_list v_args_cpy;
   va_copy(v_args_cpy,v_args);
@@ -387,7 +387,7 @@ GEM_INLINE uint64_t calculate_memory_required_v(const char *template,va_list v_a
   }
   return mem_required;
 }
-GEM_INLINE uint64_t calculate_memory_required_va(const char *template,...) {
+uint64_t calculate_memory_required_va(const char *template,...) {
   va_list v_args;
   va_start(v_args,template);
   return calculate_memory_required_v(template,v_args);

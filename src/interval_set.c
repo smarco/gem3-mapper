@@ -16,29 +16,29 @@
 /*
  * Setup
  */
-GEM_INLINE void interval_set_init(interval_set_t* const interval_set) {
+void interval_set_init(interval_set_t* const interval_set) {
   interval_set->intervals = vector_new(INTERVAL_SET_NUN_INITIAL_INTERVALS,interval_t);
 }
-GEM_INLINE void interval_set_clear(interval_set_t* const interval_set) {
+void interval_set_clear(interval_set_t* const interval_set) {
   vector_clear(interval_set->intervals);
 }
-GEM_INLINE void interval_set_destroy(interval_set_t* const interval_set) {
+void interval_set_destroy(interval_set_t* const interval_set) {
   vector_delete(interval_set->intervals);
 }
 /*
  * Counting
  */
-GEM_INLINE uint64_t interval_set_count_intervals(interval_set_t* const interval_set) {
+uint64_t interval_set_count_intervals(interval_set_t* const interval_set) {
   return vector_get_used(interval_set->intervals);
 }
-GEM_INLINE uint64_t interval_set_count_intervals_length(interval_set_t* const interval_set) {
+uint64_t interval_set_count_intervals_length(interval_set_t* const interval_set) {
   uint64_t count = 0;
   INTERVAL_SET_ITERATE(interval_set,interval) {
     count += interval->hi - interval->lo;
   }
   return count;
 }
-GEM_INLINE uint64_t interval_set_count_intervals_length_thresholded(
+uint64_t interval_set_count_intervals_length_thresholded(
     interval_set_t* const interval_set,const uint64_t max_error) {
   uint64_t count = 0;
   INTERVAL_SET_ITERATE(interval_set,interval) {
@@ -49,7 +49,7 @@ GEM_INLINE uint64_t interval_set_count_intervals_length_thresholded(
 /*
  * Adding
  */
-GEM_INLINE void interval_set_add(
+void interval_set_add(
     interval_set_t* const interval_set,const uint64_t lo,const uint64_t hi,
     const uint64_t distance,const uint64_t length) {
   // Allocate
@@ -64,7 +64,7 @@ GEM_INLINE void interval_set_add(
 /*
  * Set Operators
  */
-GEM_INLINE void interval_set_union(interval_set_t* const interval_set_a,interval_set_t* const interval_set_b) {
+void interval_set_union(interval_set_t* const interval_set_a,interval_set_t* const interval_set_b) {
   // Appends to @interval_set_a the intervals contained into @interval_set_b (union set)
   const uint64_t total_size = vector_get_used(interval_set_a->intervals) + vector_get_used(interval_set_b->intervals);
   vector_reserve(interval_set_a->intervals,total_size,false);
@@ -78,7 +78,7 @@ GEM_INLINE void interval_set_union(interval_set_t* const interval_set_a,interval
   }
   vector_set_used(interval_set_a->intervals,total_size);
 }
-GEM_INLINE void interval_set_subtract(interval_set_t* const result_set,interval_set_t* const exclusion_set) {
+void interval_set_subtract(interval_set_t* const result_set,interval_set_t* const exclusion_set) {
   // Subtracts to @result_set the intervals contained in @exclusion_set (difference set)
   const uint64_t exclusion_set_size = vector_get_used(exclusion_set->intervals);
   uint64_t result_set_size = vector_get_used(result_set->intervals);

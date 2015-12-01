@@ -20,7 +20,7 @@
   const uint64_t intervals_locator_size = locator->num_intervals*sizeof(locator_interval_t); \
   const uint64_t tag_locator_size = locator->num_tags*sizeof(locator_tag_t); \
   const uint64_t tag_buffer_size = locator->tags_buffer_size;
-GEM_INLINE locator_t* locator_read_mem(mm_t* const memory_manager) {
+locator_t* locator_read_mem(mm_t* const memory_manager) {
   // Allocate locator
   locator_t* const locator = mm_alloc(locator_t);
   // Read locator
@@ -43,7 +43,7 @@ GEM_INLINE locator_t* locator_read_mem(mm_t* const memory_manager) {
   // Return
   return locator;
 }
-GEM_INLINE void locator_delete(locator_t* const locator) {
+void locator_delete(locator_t* const locator) {
   // Free memory managers
   if (locator->mm) mm_bulk_free(locator->mm);
   // Free handler
@@ -52,13 +52,13 @@ GEM_INLINE void locator_delete(locator_t* const locator) {
 /*
  * Locator Accessors
  */
-GEM_INLINE uint64_t locator_get_size(locator_t* const locator) {
+uint64_t locator_get_size(locator_t* const locator) {
   const uint64_t intervals_locator_size = locator->num_intervals*sizeof(locator_interval_t);
   const uint64_t tag_locator_size = locator->num_tags*sizeof(locator_tag_t);
   const uint64_t tag_buffer_size = locator->tags_buffer_size;
   return intervals_locator_size + tag_locator_size + tag_buffer_size;
 }
-GEM_INLINE locator_interval_t* locator_get_interval(const locator_t* const locator,const uint64_t interval_index) {
+locator_interval_t* locator_get_interval(const locator_t* const locator,const uint64_t interval_index) {
   gem_fatal_check(interval_index >= locator->num_intervals,
       LOCATOR_INTERVAL_INDEX_OOB,interval_index,(uint64_t)0,locator->num_intervals);
   return locator->intervals + interval_index;
@@ -66,19 +66,19 @@ GEM_INLINE locator_interval_t* locator_get_interval(const locator_t* const locat
 /*
  * Interval Accessors
  */
-GEM_INLINE char* locator_interval_get_tag(const locator_t* const locator,const locator_interval_t* const interval) {
+char* locator_interval_get_tag(const locator_t* const locator,const locator_interval_t* const interval) {
   return locator->tags_buffer+locator->tag_locator[interval->tag_id].offset;
 }
-GEM_INLINE uint64_t locator_interval_get_index_length(const locator_interval_t* const interval) {
+uint64_t locator_interval_get_index_length(const locator_interval_t* const interval) {
   return (interval->end_position - interval->begin_position);
 }
-GEM_INLINE uint64_t locator_interval_get_text_length(const locator_interval_t* const interval) {
+uint64_t locator_interval_get_text_length(const locator_interval_t* const interval) {
   return interval->sequence_length;
 }
 /*
  * Locating functions
  */
-GEM_INLINE uint64_t locator_lookup_interval_index(const locator_t* const locator,const uint64_t index_position) {
+uint64_t locator_lookup_interval_index(const locator_t* const locator,const uint64_t index_position) {
   // Binary search of the interval
   const locator_interval_t* const intervals = locator->intervals;
   uint64_t lo = 0;
@@ -96,14 +96,14 @@ GEM_INLINE uint64_t locator_lookup_interval_index(const locator_t* const locator
       index_position < intervals[lo].end_position,"Locator-Interval Binary Search. Wrong Boundaries");
   return lo;
 }
-GEM_INLINE locator_interval_t* locator_lookup_interval(const locator_t* const locator,const uint64_t index_position) {
+locator_interval_t* locator_lookup_interval(const locator_t* const locator,const uint64_t index_position) {
   return locator->intervals + locator_lookup_interval_index(locator,index_position);
 }
 /*
  * Map functions (High level mapping)
  */
 // Direct Locator (Position-to-location mapping)
-GEM_INLINE void locator_map(const locator_t* const locator,const uint64_t index_position,location_t* const location) {
+void locator_map(const locator_t* const locator,const uint64_t index_position,location_t* const location) {
   // Find interval
   const locator_interval_t* const interval = locator_lookup_interval(locator,index_position);
   // Fill @location
@@ -120,7 +120,7 @@ GEM_INLINE void locator_map(const locator_t* const locator,const uint64_t index_
   location->bs_strand = interval->bs_strand;
 }
 // Inverse Locator (Location-to-position mapping)
-GEM_INLINE locator_interval_t* locator_inverse_map(
+locator_interval_t* locator_inverse_map(
     locator_t* const locator,const uint8_t* const tag,
     const strand_t strand,const bs_strand_t bs_strand,
     const uint64_t text_position) {
@@ -144,7 +144,7 @@ GEM_INLINE locator_interval_t* locator_inverse_map(
   gem_fatal_error(LOCATOR_INVERSE_NOT_FOUND);
   return NULL;
 }
-GEM_INLINE uint64_t locator_inverse_map_position(
+uint64_t locator_inverse_map_position(
     locator_t* const locator,const uint8_t* const tag,
     const strand_t strand,const bs_strand_t bs_strand,
     const uint64_t text_position) {
@@ -154,7 +154,7 @@ GEM_INLINE uint64_t locator_inverse_map_position(
 /*
  * Display
  */
-GEM_INLINE void locator_interval_print(FILE* const stream,locator_interval_t* const interval,const char* const interval_tag) {
+void locator_interval_print(FILE* const stream,locator_interval_t* const interval,const char* const interval_tag) {
   // Print interval type
   switch (interval->type) {
     case locator_interval_chromosomal_assembly: fprintf(stream,"chromosome\t"); break;
@@ -179,7 +179,7 @@ GEM_INLINE void locator_interval_print(FILE* const stream,locator_interval_t* co
     default: GEM_INVALID_CASE(); break;
   }
 }
-GEM_INLINE void locator_print_summary(
+void locator_print_summary(
     FILE* const stream,const uint64_t num_intervals,
     const uint64_t num_tags,const uint64_t tags_buffer_size) {
   // Print locator info
@@ -189,7 +189,7 @@ GEM_INLINE void locator_print_summary(
       CONVERT_B_TO_MB(sizeof(locator_tag_t)*num_tags),num_tags,sizeof(locator_tag_t));
   tab_fprintf(stream,"  => Tags.Buffer.Size %"PRIu64" B\n",tags_buffer_size);
 }
-GEM_INLINE void locator_print(FILE* const stream,const locator_t* const locator,const bool display_intervals) {
+void locator_print(FILE* const stream,const locator_t* const locator,const bool display_intervals) {
   GEM_CHECK_NULL(stream);
   // Print locator info
   tab_fprintf(stream,"[GEM]>Locator\n");

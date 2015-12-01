@@ -26,7 +26,7 @@ const char* matches_class_label[] =
 /*
  * Classify
  */
-GEM_INLINE void matches_classify_compute_predictors_unmapped(
+void matches_classify_compute_predictors_unmapped(
     matches_predictors_t* const predictors,matches_metrics_t* const metrics,
     const uint64_t read_length,const uint64_t max_region_length,
     const uint64_t proper_length,const uint64_t max_complete_stratum,
@@ -53,7 +53,7 @@ GEM_INLINE void matches_classify_compute_predictors_unmapped(
   // Maximum complete stratum
   predictors->mcs = max_complete_stratum-num_zero_regions;
 }
-GEM_INLINE void matches_classify_compute_predictors_mapped(
+void matches_classify_compute_predictors_mapped(
     matches_predictors_t* const predictors,matches_metrics_t* const metrics,
     const uint64_t primary_map_distance,const uint64_t primary_map_edit_distance,
     const int32_t primary_map_swg_score,const swg_penalties_t* const swg_penalties,
@@ -112,7 +112,7 @@ GEM_INLINE void matches_classify_compute_predictors_mapped(
 /*
  * SE Classify
  */
-GEM_INLINE matches_class_t matches_classify(matches_t* const matches) {
+matches_class_t matches_classify(matches_t* const matches) {
   // Parameters
   matches_metrics_t* const metrics = &matches->metrics;
   match_trace_t* const match = matches_get_match_trace_buffer(matches);
@@ -134,7 +134,7 @@ GEM_INLINE matches_class_t matches_classify(matches_t* const matches) {
     return matches_class_mmap;
   }
 }
-GEM_INLINE void matches_classify_compute_predictors(
+void matches_classify_compute_predictors(
     matches_t* const matches,matches_predictors_t* const predictors,
     const swg_penalties_t* const swg_penalties,const uint64_t read_length,
     const uint64_t max_region_length,uint64_t const proper_length,
@@ -159,7 +159,7 @@ GEM_INLINE void matches_classify_compute_predictors(
   // Subdominant candidates
   predictors->subdominant_candidates_end1 = matches->metrics.subdominant_candidates;
 }
-GEM_INLINE double matches_classify_unique(matches_predictors_t* const predictors) {
+double matches_classify_unique(matches_predictors_t* const predictors) {
   // Unique: Probability of the first position-match (primary match) of being a true positive
   const double lr_factor = -222.2971 +
       (double)predictors->first_map_event_distance_norm * 207.3658 +
@@ -169,7 +169,7 @@ GEM_INLINE double matches_classify_unique(matches_predictors_t* const predictors
       (double)predictors->subdominant_candidates_end1 * 0.2964;
   return 1.0 / (1.0 + (1.0/exp(lr_factor)));
 }
-GEM_INLINE double matches_classify_mmaps(matches_predictors_t* const predictors) {
+double matches_classify_mmaps(matches_predictors_t* const predictors) {
   // Classify MMaps wrt the probability of the first position-match (primary match) of being a true positive
   const double lr_factor = -209.7885 +
       (double)predictors->first_map_event_distance_norm * 191.0935 +
@@ -181,7 +181,7 @@ GEM_INLINE double matches_classify_mmaps(matches_predictors_t* const predictors)
       (double)predictors->subdominant_candidates_end1 * 0.1275;
   return 1.0 / (1.0 + (1.0/exp(lr_factor)));
 }
-GEM_INLINE double matches_classify_ties(matches_predictors_t* const predictors) {
+double matches_classify_ties(matches_predictors_t* const predictors) {
   // Classify ties wrt the probability of being a true positive
   const double lr_factor = -158.99528 +
       (double)predictors->first_map_edit_distance_norm * 72.02521 +

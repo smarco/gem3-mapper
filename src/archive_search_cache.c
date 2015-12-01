@@ -17,7 +17,7 @@
 /*
  * Setup
  */
-GEM_INLINE archive_search_cache_t* archive_search_cache_new(mapper_parameters_t* const mapper_parameters) {
+archive_search_cache_t* archive_search_cache_new(mapper_parameters_t* const mapper_parameters) {
   // Alloc
   archive_search_cache_t* const archive_search_cache = mm_alloc(archive_search_cache_t);
   // Initialize cache
@@ -26,7 +26,7 @@ GEM_INLINE archive_search_cache_t* archive_search_cache_new(mapper_parameters_t*
   // Return
   return archive_search_cache;
 }
-GEM_INLINE void archive_search_cache_delete(archive_search_cache_t* const archive_search_cache) {
+void archive_search_cache_delete(archive_search_cache_t* const archive_search_cache) {
   // Delete all archive_search_t objects in cache
   VECTOR_ITERATE(archive_search_cache->archive_search_cache,archive_search_ptr,n,archive_search_t*) {
     archive_search_delete(*archive_search_ptr);
@@ -38,7 +38,7 @@ GEM_INLINE void archive_search_cache_delete(archive_search_cache_t* const archiv
 /*
  * Allocate/Free
  */
-GEM_INLINE archive_search_t* archive_search_cache_alloc(archive_search_cache_t* const archive_search_cache) {
+archive_search_t* archive_search_cache_alloc(archive_search_cache_t* const archive_search_cache) {
   archive_search_t* archive_search = NULL;
   if (vector_get_used(archive_search_cache->archive_search_cache)>0) {
     // Get from cache already prepared archive_search_t
@@ -54,7 +54,7 @@ GEM_INLINE archive_search_t* archive_search_cache_alloc(archive_search_cache_t* 
   // Return
   return archive_search;
 }
-GEM_INLINE void archive_search_cache_free(
+void archive_search_cache_free(
     archive_search_cache_t* const archive_search_cache,
     archive_search_t* const archive_search) {
   // Add it to the cache

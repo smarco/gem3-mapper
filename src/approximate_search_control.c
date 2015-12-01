@@ -13,7 +13,7 @@
 /*
  * Search Limits
  */
-GEM_INLINE void asearch_control_adjust_max_differences_using_strata(
+void asearch_control_adjust_max_differences_using_strata(
     approximate_search_t* const search,matches_t* const matches) {
   const uint64_t max_differences = search->max_complete_error;
   const uint64_t delta = search->as_parameters->complete_strata_after_best_nominal;
@@ -33,7 +33,7 @@ GEM_INLINE void asearch_control_adjust_max_differences_using_strata(
 /*
  * Search Control Stages
  */
-GEM_INLINE bool asearch_control_filter_ahead_candidates(
+bool asearch_control_filter_ahead_candidates(
     approximate_search_t* const search,matches_t* const matches) {
   // Parameters
   const as_parameters_t* const actual_parameters = search->as_parameters;
@@ -52,7 +52,7 @@ GEM_INLINE bool asearch_control_filter_ahead_candidates(
   }
   return false;
 }
-GEM_INLINE bool asearch_control_trigger_boost(
+bool asearch_control_trigger_boost(
     approximate_search_t* const search,matches_t* const matches) {
   const matches_class_t matches_class = matches_classify(matches);
   if (matches_class==matches_class_unmapped) {
@@ -73,7 +73,7 @@ GEM_INLINE bool asearch_control_trigger_boost(
 /*
  * Search Fulfilled & Predictors
  */
-GEM_INLINE void asearch_control_compute_predictors(
+void asearch_control_compute_predictors(
     approximate_search_t* const search,matches_t* const matches,
     matches_predictors_t* const predictors) {
   const uint64_t read_length = search->pattern.key_length;
@@ -85,7 +85,7 @@ GEM_INLINE void asearch_control_compute_predictors(
   matches_classify_compute_predictors(matches,predictors,swg_penalties,
       read_length,max_region_length,proper_length,max_complete_stratum,num_zero_regions);
 }
-GEM_INLINE bool asearch_control_fulfilled(
+bool asearch_control_fulfilled(
     approximate_search_t* const search,matches_t* const matches) {
   // Parameters
   const search_parameters_t* const search_parameters = search->as_parameters->search_parameters;

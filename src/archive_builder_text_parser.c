@@ -11,7 +11,7 @@
 /*
  * Inspect Text
  */
-GEM_INLINE void archive_builder_inspect_text(
+void archive_builder_inspect_text(
     archive_builder_t* const archive_builder,input_file_t* const input_multifasta,const bool verbose) {
   // Prepare ticket
   ticker_t ticker;
@@ -58,14 +58,14 @@ GEM_INLINE void archive_builder_inspect_text(
 /*
  * Archive Builder. Text Generation Low-Level Building-Blocks
  */
-GEM_INLINE void archive_builder_generate_text_add_character(archive_builder_t* const archive_builder,const uint8_t char_enc) {
+void archive_builder_generate_text_add_character(archive_builder_t* const archive_builder,const uint8_t char_enc) {
   // Update parsing-location
   ++(archive_builder->parsing_state.text_interval_length);
   ++(archive_builder->parsing_state.index_interval_length);
   // Add to Index-Text
   dna_text_set_char(archive_builder->enc_text,(archive_builder->parsing_state.index_position)++,char_enc);
 }
-GEM_INLINE void archive_builder_generate_text_filter__add_character(
+void archive_builder_generate_text_filter__add_character(
     archive_builder_t* const archive_builder,const uint8_t char_enc) {
   uint8_t filtered_char_enc = char_enc;
 //  // Check colorspace
@@ -75,13 +75,13 @@ GEM_INLINE void archive_builder_generate_text_filter__add_character(
 //  }
   archive_builder_generate_text_add_character(archive_builder,filtered_char_enc);
 }
-GEM_INLINE void archive_builder_generate_text_add_separator(archive_builder_t* const archive_builder) {
+void archive_builder_generate_text_add_separator(archive_builder_t* const archive_builder) {
   // Add to Index-Text
   archive_builder->parsing_state.last_char = ENC_DNA_CHAR_SEP;
   dna_text_set_char(archive_builder->enc_text,(archive_builder->parsing_state.index_position)++,ENC_DNA_CHAR_SEP);
   locator_builder_skip_index(archive_builder->locator,1); // Skip Separator
 }
-GEM_INLINE void archive_builder_generate_text_add_Ns(archive_builder_t* const archive_builder) {
+void archive_builder_generate_text_add_Ns(archive_builder_t* const archive_builder) {
   // Below threshold, restore all Ns
   input_multifasta_state_t* const parsing_state = &(archive_builder->parsing_state);
   uint64_t i;
@@ -93,7 +93,7 @@ GEM_INLINE void archive_builder_generate_text_add_Ns(archive_builder_t* const ar
 /*
  * Text Generation. High-Level Building-Blocks
  */
-GEM_INLINE void archive_builder_generate_text_close_sequence(archive_builder_t* const archive_builder) {
+void archive_builder_generate_text_close_sequence(archive_builder_t* const archive_builder) {
   locator_builder_t* const locator = archive_builder->locator;
   input_multifasta_state_t* const parsing_state = &(archive_builder->parsing_state);
   if (parsing_state->index_interval_length > 0) {
@@ -109,7 +109,7 @@ GEM_INLINE void archive_builder_generate_text_close_sequence(archive_builder_t* 
   // Reset length
   input_multifasta_state_reset_interval(parsing_state);
 }
-GEM_INLINE void archive_builder_generate_text_process_unknowns(archive_builder_t* const archive_builder) {
+void archive_builder_generate_text_process_unknowns(archive_builder_t* const archive_builder) {
   input_multifasta_state_t* const parsing_state = &(archive_builder->parsing_state);
   // Check Ns
   const uint64_t ns_pending = parsing_state->ns_pending;
@@ -140,7 +140,7 @@ GEM_INLINE void archive_builder_generate_text_process_unknowns(archive_builder_t
     }
   }
 }
-GEM_INLINE void archive_builder_generate_text_add_sequence(
+void archive_builder_generate_text_add_sequence(
     archive_builder_t* const archive_builder,input_file_t* const input_multifasta,vector_t* const tag) {
   input_multifasta_state_t* const parsing_state = &(archive_builder->parsing_state);
   // Close sequence
@@ -166,7 +166,7 @@ GEM_INLINE void archive_builder_generate_text_add_sequence(
   // Begin new text-sequence (Expect sequence after TAG)
   input_multifasta_state_begin_sequence(parsing_state);
 }
-GEM_INLINE void archive_builder_generate_text_process_character(
+void archive_builder_generate_text_process_character(
     archive_builder_t* const archive_builder,input_file_t* const input_multifasta,const char current_char) {
   // Check Character
   if (current_char==DNA_CHAR_N || !is_extended_dna(current_char)) { // Handle Ns
@@ -183,7 +183,7 @@ GEM_INLINE void archive_builder_generate_text_process_character(
 /*
  * Generate Text
  */
-GEM_INLINE void archive_builder_generate_forward_text(
+void archive_builder_generate_forward_text(
     archive_builder_t* const archive_builder,input_file_t* const input_multifasta,const bool verbose) {
   // Check MultiFASTA
   input_file_check_buffer(input_multifasta);
@@ -229,7 +229,7 @@ GEM_INLINE void archive_builder_generate_forward_text(
 /*
  * Generate RC-Text
  */
-GEM_INLINE void archive_builder_generate_rc_text(archive_builder_t* const archive_builder,const bool verbose) {
+void archive_builder_generate_rc_text(archive_builder_t* const archive_builder,const bool verbose) {
   // Prepare ticker
   ticker_t ticker_rc;
   ticker_percentage_reset(&ticker_rc,verbose,"Generating Text (explicit Reverse-Complement)",0,100,true);
@@ -261,7 +261,7 @@ GEM_INLINE void archive_builder_generate_rc_text(archive_builder_t* const archiv
 /*
  * Generate C2T & G2A Texts
  */
-GEM_INLINE void archive_builder_generate_bisulfite_text(archive_builder_t* const archive_builder,const bool verbose) {
+void archive_builder_generate_bisulfite_text(archive_builder_t* const archive_builder,const bool verbose) {
   // Prepare ticker
   ticker_t ticker_rc;
   ticker_percentage_reset(&ticker_rc,verbose,"Generating Bisulfite-Text (C2T & G2A)",0,100,true);

@@ -78,23 +78,23 @@ const uint64_t uint64_mask_mod_pow2[] =
 /*
  * Common numerical data processing/formating
  */
-GEM_INLINE uint64_t integer_proportion(const float proportion,const uint64_t length) {
+uint64_t integer_proportion(const float proportion,const uint64_t length) {
   if (proportion<=0.0) return 0;
   if (proportion>=1.0) return (uint64_t)proportion;
   return (uint64_t)(proportion*(float)length);
 }
-GEM_INLINE uint64_t integer_lower_power_of_two(uint64_t number) {
+uint64_t integer_lower_power_of_two(uint64_t number) {
   uint64_t result = 0;
   while (number>>=1) {
     result++;
   }
   return result;
 }
-GEM_INLINE uint64_t integer_upper_power_of_two(uint64_t number) {
+uint64_t integer_upper_power_of_two(uint64_t number) {
   const uint64_t lower_power_of_two = integer_lower_power_of_two(number);
   return (number | 1<<lower_power_of_two) ? lower_power_of_two+1 : lower_power_of_two;
 }
-GEM_INLINE int integer_to_ascii(char* const buffer,uint64_t number) {
+int integer_to_ascii(char* const buffer,uint64_t number) {
   // Calculate the number of digits of the number
   const uint64_t num_digits =
       (number >= 10000) ? 5 :
@@ -142,7 +142,7 @@ GEM_INLINE int integer_to_ascii(char* const buffer,uint64_t number) {
 /*
  * Random number generator
  */
-GEM_INLINE uint64_t gem_rand_IID(const uint64_t min,const uint64_t max) {
+uint64_t gem_rand_IID(const uint64_t min,const uint64_t max) {
   int n_rand = rand(); // [0, RAND_MAX]
   const uint64_t range = max - min;
   const uint64_t rem = RAND_MAX % range;
@@ -157,7 +157,7 @@ GEM_INLINE uint64_t gem_rand_IID(const uint64_t min,const uint64_t max) {
 /*
  * Statistical Utils
  */
-GEM_INLINE double standard_normal_CDF(double x) {
+double standard_normal_CDF(double x) {
   // CDF Constants
   const double a1 =  0.254829592;
   const double a2 = -0.284496736;
@@ -177,17 +177,17 @@ GEM_INLINE double standard_normal_CDF(double x) {
 /*
  * CheckSum & BitDisplay
  */
-GEM_INLINE uint64_t checksum_uint64(uint64_t* mem,const uint64_t num_words) {
+uint64_t checksum_uint64(uint64_t* mem,const uint64_t num_words) {
   uint64_t i, checksum = 0;
   for (i=0;i<num_words;++mem,++i) {
     checksum ^= *mem;
   }
   return checksum;
 }
-GEM_INLINE void checksum_incremental_uint64(uint64_t* const checksum,const uint64_t word) {
+void checksum_incremental_uint64(uint64_t* const checksum,const uint64_t word) {
   *checksum ^= word;
 }
-GEM_INLINE void fprintf_uint64_binary(FILE* const stream,const uint64_t word) {
+void fprintf_uint64_binary(FILE* const stream,const uint64_t word) {
   char binary_string[65];
   uint64_t mask = UINT64_ONE_MASK;
   int64_t i;
@@ -199,7 +199,7 @@ GEM_INLINE void fprintf_uint64_binary(FILE* const stream,const uint64_t word) {
   // Print
   fprintf(stream,"%s",binary_string);
 }
-GEM_INLINE void fprintf_uint64_footprint(FILE* const stream,const uint64_t word) {
+void fprintf_uint64_footprint(FILE* const stream,const uint64_t word) {
   uint8_t* components = (uint8_t*)(&word);
   // Print
   fprintf(stream,"%c%c%c%c",
@@ -209,27 +209,27 @@ GEM_INLINE void fprintf_uint64_footprint(FILE* const stream,const uint64_t word)
 /*
  * System
  */
-GEM_INLINE uint64_t system_get_num_processors() {
+uint64_t system_get_num_processors() {
   const uint64_t num_processors = sysconf(_SC_NPROCESSORS_ONLN);
   return num_processors ? num_processors : 1;
 }
-GEM_INLINE char* system_get_cwd() {
+char* system_get_cwd() {
   char* const cwd = malloc(BUFFER_SIZE_2K);
   if (getcwd(cwd,BUFFER_SIZE_2K)==NULL) cwd[0]='\0';
   return cwd;
 }
-GEM_INLINE char* system_get_hostname() {
+char* system_get_hostname() {
   char* const hostname = malloc(BUFFER_SIZE_2K);
   if (gethostname(hostname,1024)) hostname[0]='\0';
   return hostname;
 }
-GEM_INLINE char* system_get_user_name() {
+char* system_get_user_name() {
   struct passwd *pw;
   uid_t uid = geteuid();
   pw = getpwuid(uid);
   return pw ? (pw->pw_name ? pw->pw_name : "") : "";
 }
-GEM_INLINE void system_print_info(FILE* const stream) {
+void system_print_info(FILE* const stream) {
   fprintf(stream,"[GEM]>System.Info\n");
   // Current Date
   time_t current_time=time(0);
@@ -256,7 +256,7 @@ GEM_INLINE void system_print_info(FILE* const stream) {
   // Disk
   // TODO
 }
-GEM_INLINE void system_get_time(struct timespec *ts) {
+void system_get_time(struct timespec *ts) {
 #ifdef __MACH__ // OS X does not have clock_gettime, use clock_get_time
   clock_serv_t cclock;
   mach_timespec_t mts;

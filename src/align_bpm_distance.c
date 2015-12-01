@@ -21,7 +21,7 @@
 /*
  * Reset search functions
  */
-GEM_INLINE void bpm_reset_search(
+void bpm_reset_search(
     const uint64_t num_words,uint64_t* const P,uint64_t* const M,
     int64_t* const score,const int64_t* const init_score) {
   // Reset score,P,M
@@ -35,7 +35,7 @@ GEM_INLINE void bpm_reset_search(
     score[i] = score[i-1] + init_score[i];
   }
 }
-GEM_INLINE void bpm_reset_search_cutoff(
+void bpm_reset_search_cutoff(
     uint8_t* const top_level,uint64_t* const P,uint64_t* const M,int64_t* const score,
     const int64_t* const init_score,const uint64_t max_distance) {
   // Calculate the top level (maximum bit-word for cut-off purposes)
@@ -58,7 +58,7 @@ GEM_INLINE void bpm_reset_search_cutoff(
 int8_t T_hout_64[2][2] = {{0,-1},{1,1}};
 uint8_t P_hin_64[3] = {0, 0, 1L};
 uint8_t N_hin_64[3] = {1L, 0, 0};
-GEM_INLINE int8_t bpm_advance_block(
+int8_t bpm_advance_block(
     uint64_t Eq,const uint64_t mask,
     uint64_t Pv,uint64_t Mv,const int8_t hin,
     uint64_t* const Pv_out,uint64_t* const Mv_out) {
@@ -92,7 +92,7 @@ GEM_INLINE int8_t bpm_advance_block(
 /*
  * BMP
  */
-GEM_INLINE bool bpm_compute_edit_distance_raw(
+bool bpm_compute_edit_distance_raw(
     bpm_pattern_t* const bpm_pattern,const uint8_t* const text,const uint64_t text_length,
     uint64_t* const position,uint64_t* const distance) {
   // Pattern variables
@@ -141,7 +141,7 @@ GEM_INLINE bool bpm_compute_edit_distance_raw(
     return false;
   }
 }
-GEM_INLINE bool bpm_compute_edit_distance_cutoff(
+bool bpm_compute_edit_distance_cutoff(
     const bpm_pattern_t* const bpm_pattern,
     const uint8_t* const text,const uint64_t text_length,
     uint64_t* const match_end_column,uint64_t* const distance,
@@ -245,7 +245,7 @@ GEM_INLINE bool bpm_compute_edit_distance_cutoff(
 /*
  * BPM Tiled (bound)
  */
-GEM_INLINE void bpm_compute_edit_distance_cutoff_tiled(
+void bpm_compute_edit_distance_cutoff_tiled(
     bpm_pattern_t* const bpm_pattern,const uint8_t* const text,const uint64_t text_length,
     uint64_t* const levenshtein_distance,uint64_t* const levenshtein_match_end_column,
     const uint64_t max_error) {
@@ -260,13 +260,13 @@ GEM_INLINE void bpm_compute_edit_distance_cutoff_tiled(
 #else
   PROF_START(GP_BPM_TILED);
   // Fetch pattern dimensions
-  const uint64_t num_pattern_chunks = bpm_pattern->num_pattern_chunks;
-  const uint64_t words_per_chunk =  bpm_pattern->words_per_chunk;
-  PROF_ADD_COUNTER(GP_BMP_TILED_NUM_TILES,num_pattern_chunks);
+  const uint64_t num_pattern_tiles = bpm_pattern->num_pattern_tiles;
+  const uint64_t words_per_tile =  bpm_pattern->words_per_tile;
+  PROF_ADD_COUNTER(GP_BMP_TILED_NUM_TILES,num_pattern_tiles);
   // Calculate tile dimensions
   pattern_tiled_t pattern_tiled;
   const bool pattern_can_align = pattern_tiled_init(&pattern_tiled,
-      bpm_pattern->pattern_length,words_per_chunk*BPM_ALIGN_WORD_LENGTH,text_length,max_error);
+      bpm_pattern->pattern_length,words_per_tile*BPM_ALIGN_WORD_LENGTH,text_length,max_error);
   if (!pattern_can_align) {
     *levenshtein_distance = ALIGN_DISTANCE_INF;
     *levenshtein_match_end_column = ALIGN_COLUMN_INF; // FIXME Needed?
@@ -274,11 +274,11 @@ GEM_INLINE void bpm_compute_edit_distance_cutoff_tiled(
     return;
   }
   // Initialize current tile variables
-  uint64_t pattern_chunk, global_distance = 0, distance_link_tiles = 0;
-  for (pattern_chunk=0;pattern_chunk<num_pattern_chunks;++pattern_chunk) {
+  uint64_t tile_offset, global_distance = 0, distance_link_tiles = 0;
+  for (tile_offset=0;tile_offset<num_pattern_tiles;++tile_offset) {
     PROF_ADD_COUNTER(GP_BMP_TILED_NUM_TILES_VERIFIED,1);
     // BPM Cut-off
-    bpm_get_distance_cutoff(bpm_pattern->bpm_pattern_chunks+pattern_chunk,
+    bpm_get_distance_cutoff(bpm_pattern->bpm_pattern_tiles+tile_offset,
         text+pattern_tiled.tile_offset,pattern_tiled.tile_wide,
         &pattern_tiled.tile_match_column,&pattern_tiled.tile_distance,max_error,false);
     // Update global distance
@@ -308,7 +308,7 @@ GEM_INLINE void bpm_compute_edit_distance_cutoff_tiled(
     uint64_t check_pos, check_distance;
     bpm_get_distance_cutoff(bpm_pattern,text,text_length,&check_pos,&check_distance,max_error,true);
     gem_cond_fatal_error_msg(check_distance < *levenshtein_distance,
-        "Pattern-chunk verification failed (SUM(d(P_i))=%"PRIu64" <= d(P)=%"PRIu64")",check_distance,*levenshtein_distance);
+        "Pattern-tile verification failed (SUM(d(P_i))=%"PRIu64" <= d(P)=%"PRIu64")",check_distance,*levenshtein_distance);
   }
   PROF_STOP(GP_BPM_TILED);
 #endif
@@ -341,7 +341,7 @@ GEM_INLINE void bpm_compute_edit_distance_cutoff_tiled(
   /* Increment the number of matches found */ \
   ++num_matches_found; \
 }
-GEM_INLINE uint64_t bpm_compute_edit_distance_all(
+uint64_t bpm_compute_edit_distance_all(
     const bpm_pattern_t* const bpm_pattern,vector_t* const filtering_regions,
     const uint64_t text_trace_offset,const uint64_t begin_position,
     const uint8_t* const text,const uint64_t text_length,const uint64_t max_distance) {

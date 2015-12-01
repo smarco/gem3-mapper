@@ -40,7 +40,7 @@ typedef struct {
 /*
  * Retrieve all candidates(text) from the index
  */
-GEM_INLINE void filtering_candidates_retrieve_filtering_regions(
+void filtering_candidates_retrieve_filtering_regions(
     filtering_candidates_t* const filtering_candidates,archive_text_t* const archive_text,
     text_collection_t* const text_collection,mm_stack_t* const mm_stack) {
   // Traverse all candidates (text-space)
@@ -59,7 +59,7 @@ GEM_INLINE void filtering_candidates_retrieve_filtering_regions(
 /*
  * Compose filtering regions
  */
-GEM_INLINE void filtering_candidates_compose_matching_regions(
+void filtering_candidates_compose_matching_regions(
     filtering_candidates_t* const filtering_candidates,const uint64_t first_candidate_idx,
     const uint64_t last_candidate_idx,const bool compose_region_chaining,mm_stack_t* const mm_stack) {
   // Fetch candidate-positions
@@ -103,7 +103,7 @@ GEM_INLINE void filtering_candidates_compose_matching_regions(
     }
   }
 }
-GEM_INLINE uint64_t filtering_candidates_compose_filtering_regions(
+uint64_t filtering_candidates_compose_filtering_regions(
     filtering_candidates_t* const filtering_candidates,const uint64_t key_length,
     const uint64_t max_delta_difference,const bool compose_region_chaining,
     mm_stack_t* const mm_stack) {
@@ -169,7 +169,7 @@ GEM_INLINE uint64_t filtering_candidates_compose_filtering_regions(
 /*
  * Filtering adjustment of the position wrt region/seed on which the candidate is based
  */
-GEM_INLINE void filtering_candidates_adjust_filtering_position(
+void filtering_candidates_adjust_filtering_position(
     filtering_position_t* const filtering_position,archive_text_t* const archive_text,
     const uint64_t begin_offset,const uint64_t end_offset,const uint64_t boundary_error) {
   // Decode Sampled RL-Position (RL-text encoded)
@@ -207,7 +207,7 @@ GEM_INLINE void filtering_candidates_adjust_filtering_position(
 /*
  * Decode of all candidate positions (index-space -> text-space)
  */
-GEM_INLINE void filtering_candidates_decode_filtering_positions(
+void filtering_candidates_decode_filtering_positions(
     filtering_candidates_t* const filtering_candidates,
     const locator_t* const locator,archive_text_t* const archive_text,
     const fm_index_t* const fm_index,const uint64_t key_length,const uint64_t boundary_error) {
@@ -229,7 +229,7 @@ GEM_INLINE void filtering_candidates_decode_filtering_positions(
  * Batch decode of all candidate positions (index-space -> text-space)
  *   (All the steps (CSA-lookup, rankQueries) are performed with prefetch-loops)
  */
-GEM_INLINE void filtering_candidates_decode_filtering_position_batch_prefetched(
+void filtering_candidates_decode_filtering_position_batch_prefetched(
     filtering_candidates_t* const filtering_candidates,const locator_t* const locator,
     archive_text_t* const archive_text,const fm_index_t* const fm_index,
     const uint64_t key_length,const uint64_t boundary_error) {
@@ -339,7 +339,7 @@ GEM_INLINE void filtering_candidates_decode_filtering_position_batch_prefetched(
 /*
  * Process Candidates
  */
-GEM_INLINE uint64_t filtering_candidates_process_candidates(
+uint64_t filtering_candidates_process_candidates(
     filtering_candidates_t* const filtering_candidates,
     archive_t* const archive,const pattern_t* const pattern,
     const as_parameters_t* const as_parameters,

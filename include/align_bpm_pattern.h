@@ -36,14 +36,14 @@ struct _bpm_pattern_t {
   int64_t* score;
   int64_t* init_score;
   uint64_t* pattern_left;
-  /* BPM chunks (Pattern split in chunks) */
-  uint64_t words_per_chunk;
-  uint64_t num_pattern_chunks;
+  /* BPM tiles (Pattern split in tiles) */
+  uint64_t words_per_tile;
+  uint64_t num_pattern_tiles;
   /* BPM-GPU Dimensions */
   uint64_t gpu_num_entries;
-  uint64_t gpu_entries_per_chunk;
-  uint64_t gpu_num_chunks;
-  bpm_pattern_t* bpm_pattern_chunks;
+  uint64_t gpu_num_tiles;
+  uint64_t gpu_entries_per_tile;
+  bpm_pattern_t* bpm_pattern_tiles;
 };
 
 /*

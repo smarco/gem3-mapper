@@ -12,7 +12,7 @@
 /*
  * Setup
  */
-GEM_INLINE locator_builder_t* locator_builder_new(mm_slab_t* const mm_slab) {
+locator_builder_t* locator_builder_new(mm_slab_t* const mm_slab) {
   // Allocate
   locator_builder_t* const locator_builder = mm_alloc(locator_builder_t);
   // Intervals
@@ -34,7 +34,7 @@ GEM_INLINE locator_builder_t* locator_builder_new(mm_slab_t* const mm_slab) {
   // Return
   return locator_builder;
 }
-GEM_INLINE void locator_builder_delete(locator_builder_t* const locator_builder) {
+void locator_builder_delete(locator_builder_t* const locator_builder) {
   // Free
   svector_delete(locator_builder->intervals);
   svector_delete(locator_builder->tag_locator);
@@ -42,7 +42,7 @@ GEM_INLINE void locator_builder_delete(locator_builder_t* const locator_builder)
   shash_delete(locator_builder->tags_dictionary);
   mm_free(locator_builder);
 }
-GEM_INLINE void locator_builder_write(fm_t* const file_manager,locator_builder_t* const locator_builder) {
+void locator_builder_write(fm_t* const file_manager,locator_builder_t* const locator_builder) {
   // Write Locator header
   fm_write_uint64(file_manager,LOCATOR_MODEL_NO);
   fm_write_uint64(file_manager,svector_get_used(locator_builder->intervals)); // num_intervals
@@ -71,51 +71,51 @@ GEM_INLINE void locator_builder_write(fm_t* const file_manager,locator_builder_t
 /*
  * Locator Builder Accessors
  */
-GEM_INLINE uint64_t locator_builder_get_num_intervals(locator_builder_t* const locator_builder) {
+uint64_t locator_builder_get_num_intervals(locator_builder_t* const locator_builder) {
   return svector_get_used(locator_builder->intervals);
 }
-GEM_INLINE uint64_t locator_builder_get_num_tags(locator_builder_t* const locator_builder) {
+uint64_t locator_builder_get_num_tags(locator_builder_t* const locator_builder) {
   return locator_builder->tag_id_generator;
 }
 /*
  * Skip text/index
  */
-GEM_INLINE void locator_builder_skip_index(locator_builder_t* const locator_builder,const uint64_t length) {
+void locator_builder_skip_index(locator_builder_t* const locator_builder,const uint64_t length) {
   locator_builder->index_position += length;
 }
 /*
  * Locator Builder Interval Accessors
  */
-GEM_INLINE locator_interval_t* locator_builder_get_interval(
+locator_interval_t* locator_builder_get_interval(
     locator_builder_t* const locator_builder,const uint64_t interval_index) {
   return svector_get_element(locator_builder->intervals,interval_index,locator_interval_t);
 }
 /*
  * Locator Builder Tag Accessors
  */
-GEM_INLINE char* locator_builder_get_tag(
+char* locator_builder_get_tag(
     locator_builder_t* const locator_builder,locator_tag_t* const locator_tag) {
   return svector_get_element(locator_builder->tags_buffer,locator_tag->offset,char);
 }
-GEM_INLINE locator_tag_t* locator_builder_get_locator_tag_by_id(
+locator_tag_t* locator_builder_get_locator_tag_by_id(
     locator_builder_t* const locator_builder,const int64_t tag_id) {
   return svector_get_element(locator_builder->tag_locator,tag_id,locator_tag_t);
 }
-GEM_INLINE locator_tag_t* locator_builder_get_locator_tag_by_tag(
+locator_tag_t* locator_builder_get_locator_tag_by_tag(
     locator_builder_t* const locator_builder,char* const tag) {
   return shash_get(locator_builder->tags_dictionary,tag,locator_tag_t);
 }
 /*
  * Intervals handling
  */
-GEM_INLINE void locator_builder_open_interval(locator_builder_t* const locator_builder,const int64_t tag_id) {
+void locator_builder_open_interval(locator_builder_t* const locator_builder,const int64_t tag_id) {
   // Open a new interval => [begin_position,end_position)
   svector_iterator_t* const intervals_iterator = &(locator_builder->intervals_iterator);
   locator_builder->current_interval = svector_iterator_get_element(intervals_iterator,locator_interval_t);
   locator_builder->current_interval->tag_id = tag_id;
   locator_builder->current_interval->begin_position = locator_builder->index_position;
 }
-GEM_INLINE void locator_builder_close_interval(
+void locator_builder_close_interval(
     locator_builder_t* const locator_builder,const uint64_t interval_text_length,
     const uint64_t interval_index_length,const locator_interval_type type,
     const strand_t strand,const bs_strand_t bs_strand) {
@@ -131,7 +131,7 @@ GEM_INLINE void locator_builder_close_interval(
   locator_builder->index_position += interval_index_length;
   locator_builder->sequence_offset += interval_text_length;
 }
-GEM_INLINE void locator_builder_add_interval(
+void locator_builder_add_interval(
     locator_builder_t* const locator_builder,const int64_t tag_id,
     const uint64_t sequence_offset,const uint64_t interval_text_length,
     const uint64_t interval_index_length,const locator_interval_type type,
@@ -151,14 +151,14 @@ GEM_INLINE void locator_builder_add_interval(
   // Update builder state
   locator_builder->index_position += interval_index_length;
 }
-GEM_INLINE void locator_builder_add_rc_interval(
+void locator_builder_add_rc_interval(
     locator_builder_t* const locator_builder,locator_interval_t* const locator_interval) {
   const uint64_t interval_length = locator_interval_get_index_length(locator_interval);
   const strand_t rc_strand = dna_strand_get_complement(locator_interval->strand);
   locator_builder_add_interval(locator_builder,locator_interval->tag_id,locator_interval->sequence_offset,
       locator_interval->sequence_length,interval_length,locator_interval->type,rc_strand,locator_interval->bs_strand);
 }
-GEM_INLINE int64_t locator_builder_add_sequence(
+int64_t locator_builder_add_sequence(
     locator_builder_t* const locator_builder,char* const tag,const uint64_t tag_length) {
   // Reset the sequence offset
   locator_builder->sequence_offset = 0;
@@ -185,7 +185,7 @@ GEM_INLINE int64_t locator_builder_add_sequence(
 /*
  * Display
  */
-GEM_INLINE void locator_builder_print(
+void locator_builder_print(
     FILE* const stream,locator_builder_t* const locator_builder,const bool display_intervals) {
   GEM_CHECK_NULL(stream);
   // Print locator info

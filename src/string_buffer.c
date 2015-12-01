@@ -15,7 +15,7 @@
 /*
  * Constructor & Accessors
  */
-GEM_INLINE void string_init_(
+void string_init_(
     string_t* const string,char* const buffer,
     const uint64_t length,mm_stack_t* const mm_stack) {
   // Initialize
@@ -41,19 +41,19 @@ GEM_INLINE void string_init_(
     string->mm_stack = NULL;
   }
 }
-GEM_INLINE void string_init(string_t* const string,const uint64_t length) {
+void string_init(string_t* const string,const uint64_t length) {
   // Initialize Dynamic-heap String
   string_init_(string,NULL,length,NULL);
 }
-GEM_INLINE void string_init_static(string_t* const string,char* const buffer) {
+void string_init_static(string_t* const string,char* const buffer) {
   // Initialize Static String
   string_init_(string,buffer,0,NULL);
 }
-GEM_INLINE void string_init_mm(string_t* const string,const uint64_t length,mm_stack_t* const mm_stack) {
+void string_init_mm(string_t* const string,const uint64_t length,mm_stack_t* const mm_stack) {
   // Initialize Dynamic-mmStack String
   string_init_(string,NULL,length,mm_stack);
 }
-GEM_INLINE void string_resize(string_t* const string,const uint64_t length) {
+void string_resize(string_t* const string,const uint64_t length) {
   STRING_DYNAMIC_CHECK(string);
   const uint64_t new_buffer_size = length+1;
   if (string->allocated < new_buffer_size) {
@@ -67,7 +67,7 @@ GEM_INLINE void string_resize(string_t* const string,const uint64_t length) {
     string->allocated = new_buffer_size;
   }
 }
-GEM_INLINE void string_clear(string_t* const string) {
+void string_clear(string_t* const string) {
   STRING_CHECK(string);
   if (string->allocated) {
     // Dynamic String
@@ -78,17 +78,17 @@ GEM_INLINE void string_clear(string_t* const string) {
   }
   string->length = 0;
 }
-GEM_INLINE void string_destroy(string_t* const string) {
+void string_destroy(string_t* const string) {
   STRING_CHECK(string);
   if (string->allocated && string->mm_stack==NULL) {
     mm_free(string->buffer);
   }
 }
-GEM_INLINE char* string_get_buffer(string_t* const string) {
+char* string_get_buffer(string_t* const string) {
   STRING_CHECK(string);
   return string->buffer;
 }
-GEM_INLINE void string_set_buffer_const(string_t* const string,const char* const buffer,const uint64_t length) {
+void string_set_buffer_const(string_t* const string,const char* const buffer,const uint64_t length) {
   STRING_DYNAMIC_CHECK(string);
   GEM_CHECK_NULL(buffer);
   // Dynamic String
@@ -96,7 +96,7 @@ GEM_INLINE void string_set_buffer_const(string_t* const string,const char* const
   gem_strncpy(string->buffer,buffer,length);
   string->length = length;
 }
-GEM_INLINE void string_set_buffer(string_t* const string,char* const buffer,const uint64_t length) {
+void string_set_buffer(string_t* const string,char* const buffer,const uint64_t length) {
   GEM_CHECK_NULL(string);
   GEM_CHECK_NULL(buffer);
   if (gem_expect_true(string->allocated)) {
@@ -108,29 +108,29 @@ GEM_INLINE void string_set_buffer(string_t* const string,char* const buffer,cons
     string->length = length;
   }
 }
-GEM_INLINE char* string_char_at(string_t* const string,const uint64_t pos) {
+char* string_char_at(string_t* const string,const uint64_t pos) {
   STRING_CHECK(string);
   gem_fatal_check(pos>string->length,POSITION_OUT_OF_RANGE,pos,(uint64_t)0,string->length);
   return string->buffer+pos;
 }
-GEM_INLINE uint64_t string_get_length(string_t* const string) {
+uint64_t string_get_length(string_t* const string) {
   STRING_CHECK(string);
   return string->length;
 }
-GEM_INLINE void string_set_length(string_t* const string,const uint64_t length) {
+void string_set_length(string_t* const string,const uint64_t length) {
   STRING_CHECK(string);
   string->length = length;
 }
 /*
  * Basic editing
  */
-GEM_INLINE void string_append_char(string_t* const string,const char character) {
+void string_append_char(string_t* const string,const char character) {
   STRING_DYNAMIC_CHECK(string);
   string_resize(string,string->length);
   string->buffer[string->length] = character; // NOTE: No EOS appended
   ++string->length;
 }
-GEM_INLINE void string_append_eos(string_t* const string) {
+void string_append_eos(string_t* const string) {
   STRING_DYNAMIC_CHECK(string);
   string_resize(string,string->length);
   string->buffer[string->length] = EOS;
@@ -138,7 +138,7 @@ GEM_INLINE void string_append_eos(string_t* const string) {
 /*
  * Append & trimming
  */
-GEM_INLINE void string_left_append_buffer(string_t* const string,const char* const buffer,const uint64_t length) {
+void string_left_append_buffer(string_t* const string,const char* const buffer,const uint64_t length) {
   STRING_DYNAMIC_CHECK(string);
   GEM_CHECK_NULL(buffer);
   const uint64_t base_length = string->length;
@@ -156,7 +156,7 @@ GEM_INLINE void string_left_append_buffer(string_t* const string,const char* con
   }
   string->length = final_length;
 }
-GEM_INLINE void string_left_append_string(string_t* const string_dst,string_t* const string_src) {
+void string_left_append_string(string_t* const string_dst,string_t* const string_src) {
   STRING_DYNAMIC_CHECK(string_dst);
   STRING_CHECK(string_src);
   const uint64_t base_src_length = string_src->length;
@@ -176,7 +176,7 @@ GEM_INLINE void string_left_append_string(string_t* const string_dst,string_t* c
   }
   string_dst->length = final_length;
 }
-GEM_INLINE void string_right_append_buffer(string_t* const string,const char* const buffer,const uint64_t length) {
+void string_right_append_buffer(string_t* const string,const char* const buffer,const uint64_t length) {
   STRING_DYNAMIC_CHECK(string);
   GEM_CHECK_NULL(buffer);
   const uint64_t final_length = string->length+length;
@@ -185,7 +185,7 @@ GEM_INLINE void string_right_append_buffer(string_t* const string,const char* co
   string->buffer[final_length] = EOS;
   string->length = final_length;
 }
-GEM_INLINE void string_right_append_string(string_t* const string_dst,string_t* const string_src) {
+void string_right_append_string(string_t* const string_dst,string_t* const string_src) {
   STRING_DYNAMIC_CHECK(string_dst);
   STRING_CHECK(string_src);
   const uint64_t final_length = string_dst->length+string_src->length;
@@ -194,7 +194,7 @@ GEM_INLINE void string_right_append_string(string_t* const string_dst,string_t* 
   string_dst->buffer[final_length] = EOS;
   string_dst->length = final_length;
 }
-GEM_INLINE void string_trim_left(string_t* const string,const uint64_t length) {
+void string_trim_left(string_t* const string,const uint64_t length) {
   STRING_DYNAMIC_CHECK(string);
   if (length > 0) {
     if (gem_expect_false(length >= string->length)) {
@@ -208,7 +208,7 @@ GEM_INLINE void string_trim_left(string_t* const string,const uint64_t length) {
     }
   }
 }
-GEM_INLINE void string_trim_right(string_t* const string,const uint64_t length) {
+void string_trim_right(string_t* const string,const uint64_t length) {
   STRING_DYNAMIC_CHECK(string);
   if (length > 0) {
     if (gem_expect_false(length >= string->length)) {
@@ -219,7 +219,7 @@ GEM_INLINE void string_trim_right(string_t* const string,const uint64_t length) 
     }
   }
 }
-GEM_INLINE void string_copy_reverse(string_t* const string_dst,string_t* const string_src) {
+void string_copy_reverse(string_t* const string_dst,string_t* const string_src) {
   STRING_DYNAMIC_CHECK(string_dst);
   // Prepare Buffer
   const uint64_t length = string_get_length(string_src);
@@ -236,11 +236,11 @@ GEM_INLINE void string_copy_reverse(string_t* const string_dst,string_t* const s
 /*
  * Compare functions
  */
-GEM_INLINE bool string_is_null(const string_t* const string) {
+bool string_is_null(const string_t* const string) {
   if (gem_expect_false(string==NULL || string->length==0)) return true;
   return gem_expect_true(string->allocated > 0) ? string->buffer[0]==EOS : false;
 }
-GEM_INLINE int64_t string_cmp(string_t* const string_a,string_t* const string_b) {
+int64_t string_cmp(string_t* const string_a,string_t* const string_b) {
   STRING_CHECK(string_a);
   STRING_CHECK(string_b);
   char* const buffer_a = string_a->buffer;
@@ -259,7 +259,7 @@ GEM_INLINE int64_t string_cmp(string_t* const string_a,string_t* const string_b)
     }
   }
 }
-GEM_INLINE int64_t string_ncmp(string_t* const string_a,string_t* const string_b,const uint64_t length) {
+int64_t string_ncmp(string_t* const string_a,string_t* const string_b,const uint64_t length) {
   STRING_CHECK(string_a);
   STRING_CHECK(string_b);
   char* const buffer_a = string_a->buffer;
@@ -267,12 +267,12 @@ GEM_INLINE int64_t string_ncmp(string_t* const string_a,string_t* const string_b
   const uint64_t min_length = MIN(MIN(string_a->length,string_b->length),length);
   return gem_strncmp(buffer_a,buffer_b,min_length);
 }
-GEM_INLINE bool string_equals(string_t* const string_a,string_t* const string_b) {
+bool string_equals(string_t* const string_a,string_t* const string_b) {
   STRING_CHECK(string_a);
   STRING_CHECK(string_b);
   return string_cmp(string_a,string_b)==0;
 }
-GEM_INLINE bool string_nequals(string_t* const string_a,string_t* const string_b,const uint64_t length) {
+bool string_nequals(string_t* const string_a,string_t* const string_b,const uint64_t length) {
   STRING_CHECK(string_a);
   STRING_CHECK(string_b);
   return string_ncmp(string_a,string_b,length)==0;
@@ -280,7 +280,7 @@ GEM_INLINE bool string_nequals(string_t* const string_a,string_t* const string_b
 /*
  * Handlers
  */
-GEM_INLINE string_t* string_dup(string_t* const string) {
+string_t* string_dup(string_t* const string) {
   STRING_CHECK(string);
   string_t* const string_cpy = mm_alloc(string_t);
   // Duplicate
@@ -295,7 +295,7 @@ GEM_INLINE string_t* string_dup(string_t* const string) {
   string_cpy->length = string->length;
   return string_cpy;
 }
-GEM_INLINE void string_copy(string_t* const string_dst,string_t* const string_src) {
+void string_copy(string_t* const string_dst,string_t* const string_src) {
   STRING_DYNAMIC_CHECK(string_dst);
   STRING_CHECK(string_src);
   string_resize(string_dst,string_src->length);
@@ -305,7 +305,7 @@ GEM_INLINE void string_copy(string_t* const string_dst,string_t* const string_sr
 /*
  * String Printers
  */
-GEM_INLINE int sbprintf_v(string_t* const string,const char *template,va_list v_args) {
+int sbprintf_v(string_t* const string,const char *template,va_list v_args) {
   STRING_CHECK(string);
   int chars_printed;
   if (string->allocated>0) { // Allocate memory
@@ -317,7 +317,7 @@ GEM_INLINE int sbprintf_v(string_t* const string,const char *template,va_list v_
   string_get_buffer(string)[chars_printed] = EOS;
   return chars_printed;
 }
-GEM_INLINE int sbprintf(string_t* const string,const char *template,...) {
+int sbprintf(string_t* const string,const char *template,...) {
   STRING_CHECK(string);
   va_list v_args;
   va_start(v_args,template);
@@ -325,7 +325,7 @@ GEM_INLINE int sbprintf(string_t* const string,const char *template,...) {
   va_end(v_args);
   return chars_printed;
 }
-GEM_INLINE int sbprintf_append_v(string_t* const string,const char *template,va_list v_args) {
+int sbprintf_append_v(string_t* const string,const char *template,va_list v_args) {
   STRING_CHECK(string);
   int chars_printed = string_get_length(string);
   if (string->allocated>0) { // Allocate memory
@@ -337,7 +337,7 @@ GEM_INLINE int sbprintf_append_v(string_t* const string,const char *template,va_
   string_get_buffer(string)[chars_printed] = EOS;
   return chars_printed;
 }
-GEM_INLINE int sbprintf_append(string_t* const string,const char *template,...) {
+int sbprintf_append(string_t* const string,const char *template,...) {
   STRING_CHECK(string);
   va_list v_args;
   va_start(v_args,template);
@@ -349,50 +349,50 @@ GEM_INLINE int sbprintf_append(string_t* const string,const char *template,...) 
 /*
  * String-Buffer functions
  */
-GEM_INLINE void gem_strncpy(char* const buffer_dst,const char* const buffer_src,const uint64_t length) {
+void gem_strncpy(char* const buffer_dst,const char* const buffer_src,const uint64_t length) {
   GEM_CHECK_NULL(buffer_dst); GEM_CHECK_NULL(buffer_src);
   memcpy(buffer_dst,buffer_src,length);
   buffer_dst[length] = EOS;
 }
-GEM_INLINE char* gem_strndup(const char* const buffer,const uint64_t length) {
+char* gem_strndup(const char* const buffer,const uint64_t length) {
   GEM_CHECK_NULL(buffer);
   char* const buffer_cpy = mm_malloc(length+1);
   strncpy(buffer_cpy,buffer,length);
   return buffer_cpy;
 }
-GEM_INLINE char* gem_strdup(const char* const buffer) {
+char* gem_strdup(const char* const buffer) {
   GEM_CHECK_NULL(buffer);
   return gem_strndup(buffer,strlen(buffer));
 }
-GEM_INLINE int gem_strcmp(const char* const buffer_a,const char* const buffer_b) {
+int gem_strcmp(const char* const buffer_a,const char* const buffer_b) {
   GEM_CHECK_NULL(buffer_a); GEM_CHECK_NULL(buffer_b);
   return strcmp(buffer_a,buffer_b);
 }
-GEM_INLINE int gem_strcasecmp(const char* const buffer_a,const char* const buffer_b) {
+int gem_strcasecmp(const char* const buffer_a,const char* const buffer_b) {
   GEM_CHECK_NULL(buffer_a); GEM_CHECK_NULL(buffer_b);
   return strcasecmp(buffer_a,buffer_b);
 }
-GEM_INLINE bool gem_streq(const char* const buffer_a,const char* const buffer_b) {
+bool gem_streq(const char* const buffer_a,const char* const buffer_b) {
   GEM_CHECK_NULL(buffer_a); GEM_CHECK_NULL(buffer_b);
   return strcmp(buffer_a,buffer_b)==0;
 }
-GEM_INLINE bool gem_strcaseeq(const char* const buffer_a,const char* const buffer_b) {
+bool gem_strcaseeq(const char* const buffer_a,const char* const buffer_b) {
   GEM_CHECK_NULL(buffer_a); GEM_CHECK_NULL(buffer_b);
   return strcasecmp(buffer_a,buffer_b)==0;
 }
-GEM_INLINE int gem_strncmp(const char* const buffer_a,const char* const buffer_b,const uint64_t length) {
+int gem_strncmp(const char* const buffer_a,const char* const buffer_b,const uint64_t length) {
   GEM_CHECK_NULL(buffer_a); GEM_CHECK_NULL(buffer_b);
   return strncmp(buffer_a,buffer_b,length);
 }
-GEM_INLINE int gem_strncasecmp(const char* const buffer_a,const char* const buffer_b,const uint64_t length) {
+int gem_strncasecmp(const char* const buffer_a,const char* const buffer_b,const uint64_t length) {
   GEM_CHECK_NULL(buffer_a); GEM_CHECK_NULL(buffer_b);
   return strncasecmp(buffer_a,buffer_b,length);
 }
-GEM_INLINE bool gem_strneq(const char* const buffer_a,const char* const buffer_b,const uint64_t length) {
+bool gem_strneq(const char* const buffer_a,const char* const buffer_b,const uint64_t length) {
   GEM_CHECK_NULL(buffer_a); GEM_CHECK_NULL(buffer_b);
   return strncmp(buffer_a,buffer_b,length)==0;
 }
-GEM_INLINE char* gem_strcat(const char* const buffer_a,const char* const buffer_b) {
+char* gem_strcat(const char* const buffer_a,const char* const buffer_b) {
   GEM_CHECK_NULL(buffer_a); GEM_CHECK_NULL(buffer_b);
   const uint64_t total_length = strlen(buffer_a) + strlen(buffer_b);
   char* const buffer_dst = mm_malloc(total_length+1);
@@ -401,7 +401,7 @@ GEM_INLINE char* gem_strcat(const char* const buffer_a,const char* const buffer_
   strcat(buffer_dst,buffer_b);
   return buffer_dst;
 }
-GEM_INLINE uint64_t gem_strlen(const char* const buffer) {
+uint64_t gem_strlen(const char* const buffer) {
   GEM_CHECK_NULL(buffer);
   return strlen(buffer);
 }
@@ -417,7 +417,7 @@ void gem_encrev(uint8_t* const buffer,const uint64_t length) {
   uint64_t i;
   for (i=0;i<middle;++i) buffer[i] = buffer[last_idx-i];
 }
-GEM_INLINE char* gem_strrmext(char* const buffer) {
+char* gem_strrmext(char* const buffer) {
   const int64_t total_length = strlen(buffer);
   int64_t i = total_length-1;
   while (i>=0) {
@@ -426,7 +426,7 @@ GEM_INLINE char* gem_strrmext(char* const buffer) {
   }
   return buffer;
 }
-GEM_INLINE char* gem_strbasename(char* const buffer) {
+char* gem_strbasename(char* const buffer) {
   const int64_t total_length = strlen(buffer);
   int64_t i = total_length-1;
   while (i>=0) {

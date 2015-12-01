@@ -12,7 +12,7 @@
 /*
  * Setup
  */
-GEM_INLINE void rank_mtable_init_levels(rank_mtable_t* const rank_mtable) {
+void rank_mtable_init_levels(rank_mtable_t* const rank_mtable) {
   RANK_MTABLE_CHECK(rank_mtable);
   uint64_t* const level_skip = rank_mtable->level_skip;
   uint64_t i;
@@ -24,7 +24,7 @@ GEM_INLINE void rank_mtable_init_levels(rank_mtable_t* const rank_mtable) {
     rank_mtable->sa_ranks_levels[i] = rank_mtable->sa_ranks_levels[i-1] + level_skip[i];
   }
 }
-GEM_INLINE rank_mtable_t* rank_mtable_read(fm_t* const file_manager) {
+rank_mtable_t* rank_mtable_read(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   // Alloc
   rank_mtable_t* const rank_mtable = mm_alloc(rank_mtable_t);
@@ -43,7 +43,7 @@ GEM_INLINE rank_mtable_t* rank_mtable_read(fm_t* const file_manager) {
   // Return
   return rank_mtable;
 }
-GEM_INLINE rank_mtable_t* rank_mtable_read_mem(mm_t* const memory_manager) {
+rank_mtable_t* rank_mtable_read_mem(mm_t* const memory_manager) {
   MM_CHECK(memory_manager);
   // Alloc
   rank_mtable_t* const rank_mtable = mm_alloc(rank_mtable_t);
@@ -62,7 +62,7 @@ GEM_INLINE rank_mtable_t* rank_mtable_read_mem(mm_t* const memory_manager) {
   // Return
   return rank_mtable;
 }
-GEM_INLINE void rank_mtable_delete(rank_mtable_t* const rank_mtable) {
+void rank_mtable_delete(rank_mtable_t* const rank_mtable) {
   RANK_MTABLE_CHECK(rank_mtable);
   mm_free(rank_mtable->sa_ranks_levels);
   mm_free(rank_mtable->level_skip);
@@ -72,36 +72,36 @@ GEM_INLINE void rank_mtable_delete(rank_mtable_t* const rank_mtable) {
 /*
  * Accessors
  */
-GEM_INLINE uint64_t rank_mtable_get_size(const rank_mtable_t* const rank_mtable) {
+uint64_t rank_mtable_get_size(const rank_mtable_t* const rank_mtable) {
   RANK_MTABLE_CHECK(rank_mtable);
   return rank_mtable->table_size * UINT64_SIZE;
 }
 /*
  * Query
  */
-GEM_INLINE void rank_mquery_new(rank_mquery_t* const query) {
+void rank_mquery_new(rank_mquery_t* const query) {
   RANK_MQUERY_CHECK(query);
   query->hi_position = 1;
   query->level = 0;
 }
-GEM_INLINE void rank_mquery_add_char(const rank_mtable_t* const rank_mtable,rank_mquery_t* const query,uint8_t const enc_char) {
+void rank_mquery_add_char(const rank_mtable_t* const rank_mtable,rank_mquery_t* const query,uint8_t const enc_char) {
   RANK_MQUERY_CHECK(query);
   // Update HI => hi(n+1) = hi(n) + c*4^(level)
   ++(query->level);
   query->hi_position = query->hi_position + enc_char*rank_mtable->level_skip[query->level];
 }
-GEM_INLINE uint64_t rank_mquery_get_level(const rank_mquery_t* const query) {
+uint64_t rank_mquery_get_level(const rank_mquery_t* const query) {
   RANK_MQUERY_CHECK(query);
   return query->level;
 }
-GEM_INLINE uint64_t rank_mquery_is_exhausted(const rank_mquery_t* const query) {
+uint64_t rank_mquery_is_exhausted(const rank_mquery_t* const query) {
   RANK_MQUERY_CHECK(query);
   return query->level >= RANK_MTABLE_SEARCH_DEPTH;
 }
 /*
  * Fetch rank value
  */
-GEM_INLINE void rank_mtable_fetch(
+void rank_mtable_fetch(
     const rank_mtable_t* const rank_mtable,const rank_mquery_t* const query,
     uint64_t* const lo,uint64_t* const hi) {
   RANK_MTABLE_CHECK(rank_mtable);
@@ -112,7 +112,7 @@ GEM_INLINE void rank_mtable_fetch(
 /*
  * Display
  */
-GEM_INLINE void rank_mtable_print(FILE* const stream,rank_mtable_t* const rank_mtable) {
+void rank_mtable_print(FILE* const stream,rank_mtable_t* const rank_mtable) {
   tab_fprintf(stream,"[GEM]>Rank.Table\n");
   tab_fprintf(stream,"  => Total.Cells        %"PRIu64"\n",rank_mtable->table_size);
   tab_fprintf(stream,"  => Total.Size         %"PRIu64" MB\n",CONVERT_B_TO_MB(rank_mtable->table_size*UINT64_SIZE));
@@ -121,7 +121,7 @@ GEM_INLINE void rank_mtable_print(FILE* const stream,rank_mtable_t* const rank_m
   // Flush
   fflush(stream);
 }
-GEM_INLINE void rank_mtable_print_content(FILE* const stream,rank_mtable_t* const rank_mtable,const uint64_t text_length) {
+void rank_mtable_print_content(FILE* const stream,rank_mtable_t* const rank_mtable,const uint64_t text_length) {
   uint64_t i;
   for (i=0;i<rank_mtable->table_size;++i) {
     if (rank_mtable->sa_ranks_levels[0][i] > text_length) {

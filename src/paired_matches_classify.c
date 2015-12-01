@@ -12,7 +12,7 @@
 /*
  * PE Classify
  */
-GEM_INLINE matches_class_t paired_matches_classify(paired_matches_t* const paired_matches) {
+matches_class_t paired_matches_classify(paired_matches_t* const paired_matches) {
   // Parameters
   matches_metrics_t* const metrics = &paired_matches->metrics;
   // Classify
@@ -43,7 +43,7 @@ GEM_INLINE matches_class_t paired_matches_classify(paired_matches_t* const paire
     }
   }
 }
-GEM_INLINE void paired_matches_classify_compute_predictors(
+void paired_matches_classify_compute_predictors(
     paired_matches_t* const paired_matches,matches_predictors_t* const predictors,
     const swg_penalties_t* const swg_penalties,const uint64_t total_read_length,
     const uint64_t max_region_length,uint64_t const proper_length,
@@ -82,7 +82,7 @@ GEM_INLINE void paired_matches_classify_compute_predictors(
   predictors->subdominant_candidates_end1 = paired_matches->matches_end1->metrics.subdominant_candidates;
   predictors->subdominant_candidates_end2 = paired_matches->matches_end2->metrics.subdominant_candidates;
 }
-GEM_INLINE double paired_matches_classify_unique(matches_predictors_t* const predictors) {
+double paired_matches_classify_unique(matches_predictors_t* const predictors) {
   const double lr_factor = -343.3571 +
       (double)predictors->first_map_edit_distance_norm * 46.6914 +
       (double)predictors->first_map_event_distance_norm * 301.8511 +
@@ -92,7 +92,7 @@ GEM_INLINE double paired_matches_classify_unique(matches_predictors_t* const pre
       (double)predictors->mapq_end1 * 0.1308;
   return 1.0 / (1.0 + (1.0/exp(lr_factor)));
 }
-GEM_INLINE double paired_matches_classify_mmaps(matches_predictors_t* const predictors) {
+double paired_matches_classify_mmaps(matches_predictors_t* const predictors) {
   const double lr_factor = -421.36852 +
       (double)predictors->first_map_edit_distance_norm * 75.46711 +
       (double)predictors->subdominant_edit_distance_norm * -54.84610 +
@@ -103,7 +103,7 @@ GEM_INLINE double paired_matches_classify_mmaps(matches_predictors_t* const pred
       (double)predictors->mapq_end1 * 0.06624;
   return 1.0 / (1.0 + (1.0/exp(lr_factor)));
 }
-GEM_INLINE double paired_matches_classify_ties(matches_predictors_t* const predictors) {
+double paired_matches_classify_ties(matches_predictors_t* const predictors) {
   const double lr_factor = -2.093e+02 +
       (double)predictors->first_map_edit_distance_norm * 1.465e+02 +
       (double)predictors->subdominant_edit_distance_norm * -1.316e+02 +

@@ -11,7 +11,7 @@
 /*
  * Init SWG Query Profile
  */
-GEM_INLINE void align_swg_query_profile_allocate_uint8(
+void align_swg_query_profile_allocate_uint8(
     swg_query_profile_t* const swg_query_profile,const swg_penalties_t* swg_penalties,
     const uint64_t max_expected_key_length,mm_stack_t* const mm_stack) {
   // Compute sizes 8-bits cell
@@ -25,7 +25,7 @@ GEM_INLINE void align_swg_query_profile_allocate_uint8(
     swg_query_profile->query_profile_uint8[enc] = mm_stack_calloc(mm_stack,key_effective_length_uint8,uint8_t,true);
   }
 }
-GEM_INLINE void align_swg_query_profile_allocate_int16(
+void align_swg_query_profile_allocate_int16(
     swg_query_profile_t* const swg_query_profile,const swg_penalties_t* swg_penalties,
     const uint64_t max_expected_key_length,mm_stack_t* const mm_stack) {
   // Compute sizes 16-bits cell
@@ -39,7 +39,7 @@ GEM_INLINE void align_swg_query_profile_allocate_int16(
     swg_query_profile->query_profile_int16[enc] = (int16_t*) mm_stack_calloc(mm_stack,key_effective_length_uint16,uint8_t,true);
   }
 }
-GEM_INLINE void align_swg_query_profile_init(
+void align_swg_query_profile_init(
     swg_query_profile_t* const swg_query_profile,const swg_penalties_t* swg_penalties,
     const uint64_t max_expected_key_length,mm_stack_t* const mm_stack) {
   // Penalties
@@ -56,7 +56,7 @@ GEM_INLINE void align_swg_query_profile_init(
 /*
  * Compile SWG Query Profile
  */
-GEM_INLINE bool align_swg_query_profile_compile_uint8(
+bool align_swg_query_profile_compile_uint8(
     swg_query_profile_t* const swg_query_profile,const swg_penalties_t* swg_penalties,
     const uint8_t* const key,const uint64_t key_length,mm_stack_t* const mm_stack) {
   // (Re)Compute sizes 8-bits cell
@@ -93,7 +93,7 @@ GEM_INLINE bool align_swg_query_profile_compile_uint8(
   // Return OK
   return true;
 }
-GEM_INLINE bool align_swg_query_profile_compile_int16(
+bool align_swg_query_profile_compile_int16(
     swg_query_profile_t* const swg_query_profile,const swg_penalties_t* swg_penalties,
     const uint8_t* const key,const uint64_t key_length,mm_stack_t* const mm_stack) {
   // (Re)Compute sizes 16-bits cell
@@ -131,7 +131,7 @@ GEM_INLINE bool align_swg_query_profile_compile_int16(
 ////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////
 
-//GEM_INLINE void swg_align_match_table_print_int16(
+//void swg_align_match_table_print_int16(
 //    int16_t** const dp_m,const uint64_t num_columns,
 //    const uint64_t num_rows,const uint64_t segment_length) {
 //  const uint64_t num_segments = UINT128_SIZE/UINT16_SIZE; // Vector length
@@ -144,7 +144,7 @@ GEM_INLINE bool align_swg_query_profile_compile_int16(
 //    printf("\n");
 //  }
 //}
-//GEM_INLINE int16_t** swg_align_match_allocate_table_int16(
+//int16_t** swg_align_match_allocate_table_int16(
 //    const uint64_t num_columns,const uint64_t num_rows,mm_stack_t* const mm_stack) {
 //  // Allocate the pointers
 //  int16_t** const dp = mm_stack_malloc(mm_stack,num_columns*sizeof(int16_t*));
@@ -157,7 +157,7 @@ GEM_INLINE bool align_swg_query_profile_compile_int16(
 //  }
 //  return dp;
 //}
-//GEM_INLINE void swg_align_match_init_table_int16(
+//void swg_align_match_init_table_int16(
 //    int16_t** const dp_M,int16_t** const dp_I,const uint64_t num_columns,
 //    const uint64_t num_rows,const uint64_t key_length,const bool begin_free,
 //    const uint16_t single_gap,const uint16_t gap_extension) {
@@ -184,7 +184,7 @@ GEM_INLINE bool align_swg_query_profile_compile_int16(
   v128 = _mm_max_epi16(v128,_mm_srli_si128(v128, 2)); \
   result = _mm_extract_epi16(v128, 0)
 
-//GEM_INLINE void swg_align_match_int16_simd128(
+//void swg_align_match_int16_simd128(
 //    const uint8_t* const key,const uint64_t key_length,swg_query_profile_t* const swg_query_profile,
 //    const swg_penalties_t* swg_penalties,uint64_t* const match_position,uint8_t* const text,
 //    const uint64_t text_length,const bool begin_free,const bool end_free,vector_t* const cigar_vector,
@@ -295,7 +295,7 @@ GEM_INLINE bool align_swg_query_profile_compile_int16(
 ////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////
 
-//GEM_INLINE void swg_align_match_table_print_uint8(
+//void swg_align_match_table_print_uint8(
 //    uint8_t** const dp_m,const uint64_t num_columns,const uint64_t num_rows,
 //    const uint64_t segment_length,const uint64_t matrix_bias) {
 //  const uint64_t num_segments = UINT128_SIZE; // Vector length
@@ -308,7 +308,7 @@ GEM_INLINE bool align_swg_query_profile_compile_int16(
 //    printf("\n");
 //  }
 //}
-//GEM_INLINE uint8_t** swg_align_match_allocate_table_uint8(
+//uint8_t** swg_align_match_allocate_table_uint8(
 //    const uint64_t num_columns,const uint64_t num_rows,mm_stack_t* const mm_stack) {
 //  // Allocate the pointers
 //  uint8_t** const dp = mm_stack_malloc(mm_stack,num_columns*sizeof(uint8_t*));
@@ -321,7 +321,7 @@ GEM_INLINE bool align_swg_query_profile_compile_int16(
 //  }
 //  return dp;
 //}
-//GEM_INLINE void swg_align_match_init_table_uint8(
+//void swg_align_match_init_table_uint8(
 //    uint8_t** const dp_M,uint8_t** const dp_I,const uint64_t num_columns,
 //    const uint64_t num_rows,const uint64_t key_length,const uint8_t matrix_bias,
 //    const bool begin_free,const uint8_t single_gap,const uint8_t gap_extension) {
@@ -347,7 +347,7 @@ GEM_INLINE bool align_swg_query_profile_compile_int16(
   v128 = _mm_max_epu8(v128,_mm_srli_si128(v128,2)); \
   v128 = _mm_max_epu8(v128,_mm_srli_si128(v128,1)); \
   result = _mm_extract_epi16(v128,0) & 0x00FF
-//GEM_INLINE bool swg_align_match_uint8_simd128(
+//bool swg_align_match_uint8_simd128(
 //    const uint8_t* const key,const uint64_t key_length,swg_query_profile_t* const swg_query_profile,
 //    const swg_penalties_t* swg_penalties,uint64_t* const match_position,uint8_t* const text,
 //    const uint64_t text_length,const bool begin_free,const bool end_free,vector_t* const cigar_vector,

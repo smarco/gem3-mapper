@@ -29,19 +29,19 @@ typedef struct {
 /*
  * Setup
  */
-GEM_INLINE void filtering_region_cache_init(filtering_region_cache_t* const filtering_region_cache) {
+void filtering_region_cache_init(filtering_region_cache_t* const filtering_region_cache) {
   filtering_region_cache->footprint_hash = ihash_new();
 }
-GEM_INLINE void filtering_region_cache_clear(filtering_region_cache_t* const filtering_region_cache) {
+void filtering_region_cache_clear(filtering_region_cache_t* const filtering_region_cache) {
   ihash_clear(filtering_region_cache->footprint_hash);
 }
-GEM_INLINE void filtering_region_cache_destroy(filtering_region_cache_t* const filtering_region_cache) {
+void filtering_region_cache_destroy(filtering_region_cache_t* const filtering_region_cache) {
   ihash_delete(filtering_region_cache->footprint_hash);
 }
 /*
  * Accessors
  */
-GEM_INLINE void filtering_region_cache_compute_footprint(
+void filtering_region_cache_compute_footprint(
     filtering_region_t* const filtering_region,text_collection_t* const text_collection) {
   PROFILE_START(GP_FC_CACHE_COMPUTE_FOOTPRINT,PROFILE_LEVEL);
   const text_trace_t* const text_trace = text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
@@ -57,7 +57,7 @@ GEM_INLINE void filtering_region_cache_compute_footprint(
   filtering_region->footprint = footprint;
   PROFILE_STOP(GP_FC_CACHE_COMPUTE_FOOTPRINT,PROFILE_LEVEL);
 }
-GEM_INLINE void filtering_region_cache_add(
+void filtering_region_cache_add(
     filtering_region_cache_t* const filtering_region_cache,filtering_region_t* const filtering_region,
     match_trace_t* const match_trace,mm_stack_t* const mm_stack) {
   filtering_region_cache_element_t* const cache_element = mm_stack_alloc(mm_stack,filtering_region_cache_element_t);
@@ -68,7 +68,7 @@ GEM_INLINE void filtering_region_cache_add(
 /*
  * Search
  */
-GEM_INLINE bool filtering_region_cache_cmp_regions(
+bool filtering_region_cache_cmp_regions(
     filtering_region_t* const filtering_region_a,filtering_region_t* const filtering_region_b,
     text_collection_t* const text_collection) {
   // Cmp text-lengths
@@ -82,7 +82,7 @@ GEM_INLINE bool filtering_region_cache_cmp_regions(
   const uint8_t* const text_b = text_trace_b->text;
   return (memcmp(text_a,text_b,text_length_b)==0);
 }
-GEM_INLINE match_trace_t* filtering_region_cache_search(
+match_trace_t* filtering_region_cache_search(
     filtering_region_cache_t* const filtering_region_cache,
     filtering_region_t* const filtering_region,text_collection_t* const text_collection) {
   PROFILE_START(GP_FC_CACHE_SEARCH,PROFILE_LEVEL);

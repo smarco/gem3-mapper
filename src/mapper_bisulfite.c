@@ -11,7 +11,7 @@
 
 #define SEQUENCE_INITIAL_LENGTH 200
 
-GEM_INLINE string_t* mapper_bisulfite_process(string_t* orig,const archive_search_t* end,const char* BS_table) {
+string_t* mapper_bisulfite_process(string_t* orig,const archive_search_t* end,const char* BS_table) {
   string_t *seq = &archive_search_get_sequence(end)->read;
   string_copy(orig,seq);
   uint64_t len = string_get_length(seq);

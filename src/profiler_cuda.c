@@ -29,7 +29,7 @@ const uint32_t profiler_cuda_tags_colors[] = {
  * GEM_PROFILE
  */
 #ifdef GEM_PROFILE
-GEM_INLINE void PROFILE_CUDA_START(char* const name,const uint64_t cid) {
+void PROFILE_CUDA_START(char* const name,const uint64_t cid) {
   nvtxEventAttributes_t event_attr = {0};
   event_attr.version = NVTX_VERSION;
   event_attr.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
@@ -39,17 +39,17 @@ GEM_INLINE void PROFILE_CUDA_START(char* const name,const uint64_t cid) {
   event_attr.message.ascii = name;
   nvtxRangePushEx(&event_attr);
 }
-GEM_INLINE void PROFILE_CUDA_STOP() {
+void PROFILE_CUDA_STOP() {
   nvtxRangePop();
 }
 #else
-  GEM_INLINE void PROFILE_CUDA_START(char* const name,const uint64_t cid) {}
-  GEM_INLINE void PROFILE_CUDA_STOP() {}
+  void PROFILE_CUDA_START(char* const name,const uint64_t cid) {}
+  void PROFILE_CUDA_STOP() {}
 #endif /* GEM_PROFILE */
 /*
  * CUDA NOT-Supported
  */
 #else
-  GEM_INLINE void PROFILE_CUDA_START(char* const name,const uint64_t cid) {}
-  GEM_INLINE void PROFILE_CUDA_STOP() {}
+  void PROFILE_CUDA_START(char* const name,const uint64_t cid) {}
+  void PROFILE_CUDA_STOP() {}
 #endif

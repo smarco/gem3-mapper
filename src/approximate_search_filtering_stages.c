@@ -26,7 +26,7 @@
 /*
  * Exact Filtering Adaptive
  */
-GEM_INLINE void approximate_search_exact_filtering_adaptive(
+void approximate_search_exact_filtering_adaptive(
     approximate_search_t* const search,
     const approximate_search_region_profile_strategy_t profiling_strategy,
     matches_t* const matches) {
@@ -52,7 +52,7 @@ GEM_INLINE void approximate_search_exact_filtering_adaptive(
     search->processing_state = asearch_processing_state_candidates_processed;
   }
 }
-GEM_INLINE void approximate_search_exact_filtering_adaptive_lightweight(
+void approximate_search_exact_filtering_adaptive_lightweight(
     approximate_search_t* const search,matches_t* const matches) {
   PROFILE_START(GP_AS_FILTERING_EXACT,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
@@ -63,7 +63,7 @@ GEM_INLINE void approximate_search_exact_filtering_adaptive_lightweight(
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
   PROFILE_STOP(GP_AS_FILTERING_EXACT,PROFILE_LEVEL);
 }
-GEM_INLINE void approximate_search_exact_filtering_adaptive_recovery(
+void approximate_search_exact_filtering_adaptive_recovery(
     approximate_search_t* const search,matches_t* const matches) {
   PROFILE_START(GP_AS_READ_RECOVERY,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
@@ -74,7 +74,7 @@ GEM_INLINE void approximate_search_exact_filtering_adaptive_recovery(
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
   PROFILE_STOP(GP_AS_READ_RECOVERY,PROFILE_LEVEL);
 }
-GEM_INLINE void approximate_search_exact_filtering_adaptive_cutoff(
+void approximate_search_exact_filtering_adaptive_cutoff(
     approximate_search_t* const search,matches_t* const matches) {
   PROFILE_START(GP_AS_FILTERING_EXACT,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
@@ -151,7 +151,7 @@ GEM_INLINE void approximate_search_exact_filtering_adaptive_cutoff(
 /*
  * Boost Exact Filtering Adaptive
  */
-GEM_INLINE void approximate_search_exact_filtering_boost(approximate_search_t* const search,matches_t* const matches) {
+void approximate_search_exact_filtering_boost(approximate_search_t* const search,matches_t* const matches) {
 #ifdef GEM_PROFILE
   PROFILE_START(GP_AS_FILTERING_EXACT_BOOST,PROFILE_LEVEL);
   const bool already_mapped = matches_is_mapped(matches);
@@ -194,7 +194,7 @@ GEM_INLINE void approximate_search_exact_filtering_boost(approximate_search_t* c
 /*
  * Inexact Filtering Adaptive
  */
-GEM_INLINE void approximate_search_inexact_filtering(approximate_search_t* const search,matches_t* const matches) {
+void approximate_search_inexact_filtering(approximate_search_t* const search,matches_t* const matches) {
   PROFILE_START(GP_AS_FILTERING_INEXACT,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Adaptive Filtering (Inexact)\n");
@@ -239,7 +239,7 @@ GEM_INLINE void approximate_search_inexact_filtering(approximate_search_t* const
 /*
  * Filtering Verification (+ realign)
  */
-GEM_INLINE void approximate_search_verify(approximate_search_t* const search,matches_t* const matches) {
+void approximate_search_verify(approximate_search_t* const search,matches_t* const matches) {
   // Verify
   const uint64_t num_accepted_regions = filtering_candidates_verify_candidates(
       search->filtering_candidates,search->archive,search->text_collection,
@@ -257,7 +257,7 @@ GEM_INLINE void approximate_search_verify(approximate_search_t* const search,mat
 /*
  * Unbound Filtering (+ realign)
  */
-GEM_INLINE void approximate_search_unbounded_align(approximate_search_t* const search,matches_t* const matches) {
+void approximate_search_unbounded_align(approximate_search_t* const search,matches_t* const matches) {
 #ifdef GEM_PROFILE
   PROFILE_START(GP_AS_FILTERING_UNBOUNDED_ALIGN,PROFILE_LEVEL);
   const bool already_mapped = matches_is_mapped(matches);
@@ -282,7 +282,7 @@ GEM_INLINE void approximate_search_unbounded_align(approximate_search_t* const s
 /*
  * End of the search
  */
-GEM_INLINE void approximate_search_end(approximate_search_t* const search,matches_t* const matches) {
+void approximate_search_end(approximate_search_t* const search,matches_t* const matches) {
   // DEBUG
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Search END\n");

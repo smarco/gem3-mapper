@@ -28,7 +28,7 @@
 /*
  * Loader/Setup
  */
-GEM_INLINE sparse_array_locator_t* sparse_array_locator_read(fm_t* const file_manager) {
+sparse_array_locator_t* sparse_array_locator_read(fm_t* const file_manager) {
   FM_CHECK(file_manager);
   // Allocate handler
   sparse_array_locator_t* const locator = mm_alloc(sparse_array_locator_t);
@@ -44,7 +44,7 @@ GEM_INLINE sparse_array_locator_t* sparse_array_locator_read(fm_t* const file_ma
   // Return
   return locator;
 }
-GEM_INLINE sparse_array_locator_t* sparse_array_locator_read_mem(mm_t* const memory_manager) {
+sparse_array_locator_t* sparse_array_locator_read_mem(mm_t* const memory_manager) {
   MM_CHECK(memory_manager);
   // Allocate handler
   sparse_array_locator_t* const locator = mm_alloc(sparse_array_locator_t);
@@ -60,7 +60,7 @@ GEM_INLINE sparse_array_locator_t* sparse_array_locator_read_mem(mm_t* const mem
   // Return
   return locator;
 }
-GEM_INLINE void sparse_array_locator_delete(sparse_array_locator_t* const locator) {
+void sparse_array_locator_delete(sparse_array_locator_t* const locator) {
   SPARSE_ARRAY_LOCATOR_CHECK(locator);
   if (locator->mm!=NULL) {
     if (locator->mm==(mm_t*)(-1)) {
@@ -75,7 +75,7 @@ GEM_INLINE void sparse_array_locator_delete(sparse_array_locator_t* const locato
 /*
  * Accessors
  */
-GEM_INLINE uint64_t sparse_array_locator_get_size(sparse_array_locator_t* const locator) {
+uint64_t sparse_array_locator_get_size(sparse_array_locator_t* const locator) {
   SPARSE_ARRAY_LOCATOR_CHECK(locator);
   return locator->total_size;
 }
@@ -86,14 +86,14 @@ GEM_INLINE uint64_t sparse_array_locator_get_size(sparse_array_locator_t* const 
 #define SPARSE_ARRAY_LOCATOR_GET_MAYOR_BLOCK_LOCATION(position,mayor_block_pos) \
   /* Locate Mayor Block */ \
   const uint64_t mayor_block_pos = position / SAL_MAYOR_BLOCK_LENGTH
-GEM_INLINE bool sparse_array_locator_is_marked(sparse_array_locator_t* const locator,const uint64_t position) {
+bool sparse_array_locator_is_marked(sparse_array_locator_t* const locator,const uint64_t position) {
   SPARSE_ARRAY_LOCATOR_CHECK(locator);
   SPARSE_ARRAY_LOCATOR_CHECK_POSITION(sparse_array_locator,position);
   // Locate Block
   SPARSE_ARRAY_LOCATOR_GET_MINOR_BLOCK_LOCATION(position,block_pos,block_mod);
   return (locator->bitmap[block_pos] & (UINT64_ONE_MASK << block_mod));
 }
-GEM_INLINE uint64_t sparse_array_locator_get_erank(sparse_array_locator_t* const locator,const uint64_t position) {
+uint64_t sparse_array_locator_get_erank(sparse_array_locator_t* const locator,const uint64_t position) {
   SPARSE_ARRAY_LOCATOR_CHECK(locator);
   SPARSE_ARRAY_LOCATOR_GET_MINOR_BLOCK_LOCATION(position,block_pos,block_mod);
   const uint64_t* const block = locator->bitmap + block_pos;
@@ -103,7 +103,7 @@ GEM_INLINE uint64_t sparse_array_locator_get_erank(sparse_array_locator_t* const
   return locator->mayor_counters[mayor_block] +
       ((gem_expect_true(block_masked)) ? POPCOUNT_64(block_masked) + *block_counter : *block_counter);
 }
-GEM_INLINE bool sparse_array_locator_get_erank_if_marked(
+bool sparse_array_locator_get_erank_if_marked(
     sparse_array_locator_t* const locator,const uint64_t position,uint64_t* const erank) {
   SPARSE_ARRAY_LOCATOR_CHECK(locator);
   SPARSE_ARRAY_LOCATOR_GET_MINOR_BLOCK_LOCATION(position,block_pos,block_mod);
@@ -121,7 +121,7 @@ GEM_INLINE bool sparse_array_locator_get_erank_if_marked(
     return false;
   }
 }
-GEM_INLINE bool sparse_array_locator_get_erank__marked(
+bool sparse_array_locator_get_erank__marked(
     sparse_array_locator_t* const locator,const uint64_t position,uint64_t* const erank) {
   SPARSE_ARRAY_LOCATOR_CHECK(locator);
   SPARSE_ARRAY_LOCATOR_GET_MINOR_BLOCK_LOCATION(position,block_pos,block_mod);
@@ -138,7 +138,7 @@ GEM_INLINE bool sparse_array_locator_get_erank__marked(
 /*
  * Static Builder
  */
-GEM_INLINE sparse_array_locator_t* sparse_array_locator_new(const uint64_t idx_begin,const uint64_t idx_end) {
+sparse_array_locator_t* sparse_array_locator_new(const uint64_t idx_begin,const uint64_t idx_end) {
   // Allocate handler
   sparse_array_locator_t* const locator = mm_alloc(sparse_array_locator_t);
   // Meta-Data
@@ -158,7 +158,7 @@ GEM_INLINE sparse_array_locator_t* sparse_array_locator_new(const uint64_t idx_b
   // Return
   return locator;
 }
-GEM_INLINE void sparse_array_locator_mark(sparse_array_locator_t* const locator,const uint64_t position) {
+void sparse_array_locator_mark(sparse_array_locator_t* const locator,const uint64_t position) {
   SPARSE_ARRAY_LOCATOR_CHECK(locator);
   SPARSE_ARRAY_LOCATOR_CHECK_POSITION(sparse_array_locator,position);
   const uint64_t effective_position = position - locator->idx_offset;
@@ -182,7 +182,7 @@ typedef struct {
   uint64_t mayor_counter_accumulated;
   uint64_t minor_counter_accumulated;
 } sparse_array_write_state_t;
-GEM_INLINE void sparse_array_locator_write_chunk(fm_t* const file_manager,sparse_array_write_state_t* const write_state) {
+void sparse_array_locator_write_chunk(fm_t* const file_manager,sparse_array_write_state_t* const write_state) {
   // Iterate over all Minor Blocks & write
   uint64_t i;
   for (i=0;i<write_state->num_blocks;++i) {
@@ -208,7 +208,7 @@ GEM_INLINE void sparse_array_locator_write_chunk(fm_t* const file_manager,sparse
     ++write_state->minor_block_position;
   }
 }
-GEM_INLINE void sparse_array_locator_write_metadata(
+void sparse_array_locator_write_metadata(
     fm_t* const file_manager,
     const uint64_t total_length,const uint64_t total_size,
     const uint64_t num_mayor_blocks,const uint64_t num_minor_blocks) {
@@ -217,7 +217,7 @@ GEM_INLINE void sparse_array_locator_write_metadata(
   fm_write_uint64(file_manager,num_mayor_blocks);
   fm_write_uint64(file_manager,num_minor_blocks);
 }
-GEM_INLINE void sparse_array_locator_write(fm_t* const file_manager,sparse_array_locator_t* const locator) {
+void sparse_array_locator_write(fm_t* const file_manager,sparse_array_locator_t* const locator) {
   SPARSE_ARRAY_LOCATOR_CHECK(locator);
   // Write Meta-Data
   sparse_array_locator_write_metadata(
@@ -240,7 +240,7 @@ GEM_INLINE void sparse_array_locator_write(fm_t* const file_manager,sparse_array
   // Write Mayor Counters
   fm_write_mem(file_manager,locator->mayor_counters,locator->num_mayor_blocks*SAL_MAYOR_COUNTER_SIZE);
 }
-GEM_INLINE void sparse_array_locator_merge__write(
+void sparse_array_locator_merge__write(
     fm_t* const file_manager,sparse_array_locator_t** const locator,const uint64_t num_locators) {
   // Calculate Meta-Data
   uint64_t i, total_length;
@@ -287,7 +287,7 @@ GEM_INLINE void sparse_array_locator_merge__write(
 /*
  * Dynamic Builder
  */
-GEM_INLINE sparse_array_locator_builder_t* sparse_array_locator_builder_new(mm_slab_t* const mm_slab) {
+sparse_array_locator_builder_t* sparse_array_locator_builder_new(mm_slab_t* const mm_slab) {
   // Allocate
   sparse_array_locator_builder_t* const locator_builder = mm_alloc(sparse_array_locator_builder_t);
   // Initialize locator info
@@ -303,13 +303,13 @@ GEM_INLINE sparse_array_locator_builder_t* sparse_array_locator_builder_new(mm_s
   // Return
   return locator_builder;
 }
-GEM_INLINE void sparse_array_locator_builder_delete(sparse_array_locator_builder_t* const locator_builder) {
+void sparse_array_locator_builder_delete(sparse_array_locator_builder_t* const locator_builder) {
   SPARSE_ARRAY_LOCATOR_BUILDER_CHECK(locator_builder);
   svector_delete(locator_builder->minor_blocks);
   vector_delete(locator_builder->mayor_counters);
   mm_free(locator_builder);
 }
-GEM_INLINE void sparse_array_locator_builder_next_word(sparse_array_locator_builder_t* const locator_builder) {
+void sparse_array_locator_builder_next_word(sparse_array_locator_builder_t* const locator_builder) {
   SPARSE_ARRAY_LOCATOR_BUILDER_CHECK(locator_builder);
   // Counter OR Bitmap (16b+48b) = UINT64_T
   locator_builder->current_block |= locator_builder->minor_counter_accumulated << SAL_MINOR_BLOCK_LENGTH;
@@ -320,7 +320,7 @@ GEM_INLINE void sparse_array_locator_builder_next_word(sparse_array_locator_buil
   // Reset
   locator_builder->current_block = 0;
 }
-GEM_INLINE void sparse_array_locator_builder_next(
+void sparse_array_locator_builder_next(
     sparse_array_locator_builder_t* const locator_builder,const bool mark_position) {
   SPARSE_ARRAY_LOCATOR_BUILDER_CHECK(locator_builder);
   // Write Mayor Counter
@@ -343,7 +343,7 @@ GEM_INLINE void sparse_array_locator_builder_next(
     locator_builder->current_block >>= 1;
   }
 }
-GEM_INLINE void sparse_array_locator_builder_write(
+void sparse_array_locator_builder_write(
     fm_t* const file_manager,sparse_array_locator_builder_t* const locator_builder) {
   FM_CHECK(file_manager);
   SPARSE_ARRAY_LOCATOR_BUILDER_CHECK(locator_builder);
@@ -368,7 +368,7 @@ GEM_INLINE void sparse_array_locator_builder_write(
 /*
  * Display
  */
-GEM_INLINE void sparse_array_locator_print(
+void sparse_array_locator_print(
     FILE* const stream,const sparse_array_locator_t* const locator,const bool display_content) {
   GEM_CHECK_NULL(stream);
   SPARSE_ARRAY_LOCATOR_CHECK(locator);
@@ -410,7 +410,7 @@ GEM_INLINE void sparse_array_locator_print(
 /*
  * Stats
  */
-GEM_INLINE sparse_array_locator_stats_t* sparse_array_locator_stats_new() {
+sparse_array_locator_stats_t* sparse_array_locator_stats_new() {
   // Allocate
   sparse_array_locator_stats_t* const locator_stats = mm_alloc(sparse_array_locator_stats_t);
   // Locator Stats
@@ -420,13 +420,13 @@ GEM_INLINE sparse_array_locator_stats_t* sparse_array_locator_stats_new() {
   // Return
   return locator_stats;
 }
-GEM_INLINE void sparse_array_locator_stats_delete(sparse_array_locator_stats_t* const locator_stats) {
+void sparse_array_locator_stats_delete(sparse_array_locator_stats_t* const locator_stats) {
   SPARSE_ARRAY_LOCATOR_STATS_CHECK(locator_stats);
   // Free
   stats_vector_delete(locator_stats->ones_density);
   mm_free(locator_stats);
 }
-GEM_INLINE void sparse_array_locator_stats_calculate(
+void sparse_array_locator_stats_calculate(
     sparse_array_locator_stats_t* const locator_stats,sparse_array_locator_t* const locator) {
   SPARSE_ARRAY_LOCATOR_STATS_CHECK(locator_stats);
   SPARSE_ARRAY_LOCATOR_CHECK(locator);
@@ -440,7 +440,7 @@ GEM_INLINE void sparse_array_locator_stats_calculate(
     stats_vector_inc(locator_stats->ones_density,ones_count);
   }
 }
-GEM_INLINE void sparse_array_locator_stats_print(
+void sparse_array_locator_stats_print(
     FILE* const stream,const char* const sparse_array_locator_stats_tag,
     sparse_array_locator_stats_t* const locator_stats) {
   GEM_CHECK_NULL(stream);

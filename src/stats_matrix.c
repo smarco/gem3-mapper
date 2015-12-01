@@ -11,7 +11,7 @@
 /*
  * Setup
  */
-GEM_INLINE stats_matrix_t* stats_matrix_new(stats_vector_t* const dimension_x,stats_vector_t* const dimension_y) {
+stats_matrix_t* stats_matrix_new(stats_vector_t* const dimension_x,stats_vector_t* const dimension_y) {
   STATS_VECTOR_CHECK(dimension_x);
   STATS_VECTOR_CHECK(dimension_y);
   // Allocate handler
@@ -22,7 +22,7 @@ GEM_INLINE stats_matrix_t* stats_matrix_new(stats_vector_t* const dimension_x,st
   // Return
   return stats_matrix;
 }
-GEM_INLINE void stats_matrix_clear(stats_matrix_t* const stats_matrix) {
+void stats_matrix_clear(stats_matrix_t* const stats_matrix) {
   STATS_MATRIX_CHECK(stats_matrix);
   stats_vector_iterator_t* const iterator_x = stats_vector_iterator_new(stats_matrix->dimension_x);
   while (!stats_vector_iterator_eoi(iterator_x)) {
@@ -33,7 +33,7 @@ GEM_INLINE void stats_matrix_clear(stats_matrix_t* const stats_matrix) {
   }
   stats_vector_iterator_delete(iterator_x);
 }
-GEM_INLINE void stats_matrix_delete(stats_matrix_t* const stats_matrix) {
+void stats_matrix_delete(stats_matrix_t* const stats_matrix) {
   STATS_MATRIX_CHECK(stats_matrix);
   stats_vector_iterator_t* const iterator_x = stats_vector_iterator_new(stats_matrix->dimension_x);
   while (!stats_vector_iterator_eoi(iterator_x)) {
@@ -50,7 +50,7 @@ GEM_INLINE void stats_matrix_delete(stats_matrix_t* const stats_matrix) {
 /*
  * Increment/Add bucket counter
  */
-GEM_INLINE stats_vector_t* stats_matrix_get_y_dimension(stats_matrix_t* const stats_matrix,const uint64_t value_x) {
+stats_vector_t* stats_matrix_get_y_dimension(stats_matrix_t* const stats_matrix,const uint64_t value_x) {
   STATS_MATRIX_CHECK(stats_matrix);
   // Index X-Dimension and get Y-Stats_vector
   uint64_t* const dimension_y_placeholder = stats_vector_get_counter(stats_matrix->dimension_x,value_x);
@@ -61,12 +61,12 @@ GEM_INLINE stats_vector_t* stats_matrix_get_y_dimension(stats_matrix_t* const st
   }
   return (stats_vector_t*) (*dimension_y_placeholder);
 }
-GEM_INLINE void stats_matrix_inc(stats_matrix_t* const stats_matrix,const uint64_t value_x,const uint64_t value_y) {
+void stats_matrix_inc(stats_matrix_t* const stats_matrix,const uint64_t value_x,const uint64_t value_y) {
   STATS_MATRIX_CHECK(stats_matrix);
   // Increment the x-Dimension
   stats_vector_inc(stats_matrix_get_y_dimension(stats_matrix,value_x),value_y);
 }
-GEM_INLINE void stats_matrix_add(stats_matrix_t* const stats_matrix,const uint64_t value_x,const uint64_t value_y,const uint64_t amount) {
+void stats_matrix_add(stats_matrix_t* const stats_matrix,const uint64_t value_x,const uint64_t value_y,const uint64_t amount) {
   STATS_MATRIX_CHECK(stats_matrix);
   // Add the x-Dimension
   stats_vector_add(stats_matrix_get_y_dimension(stats_matrix,value_x),value_y,amount);
@@ -74,14 +74,14 @@ GEM_INLINE void stats_matrix_add(stats_matrix_t* const stats_matrix,const uint64
 /*
  * Bucket counters getters (Individual buckets)
  */
-GEM_INLINE uint64_t stats_matrix_get_count(stats_matrix_t* const stats_matrix,const uint64_t value_x,const uint64_t value_y) {
+uint64_t stats_matrix_get_count(stats_matrix_t* const stats_matrix,const uint64_t value_x,const uint64_t value_y) {
   STATS_MATRIX_CHECK(stats_matrix);
   return stats_vector_get_count(stats_matrix_get_y_dimension(stats_matrix,value_x),value_y);
 }
 /*
  * Display (Printers)
  */
-GEM_INLINE void stats_matrix_display(
+void stats_matrix_display(
     FILE* const stream,stats_matrix_t* const stats_matrix,
     const bool display_percentage,void (*print_label)(uint64_t)) {
   STATS_MATRIX_CHECK(stats_matrix);

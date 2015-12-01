@@ -11,7 +11,7 @@
 /*
  * Build BWT (SA)
  */
-GEM_INLINE void archive_builder_index_build_bwt(
+void archive_builder_index_build_bwt(
     archive_builder_t* const archive_builder,
     const bool dump_bwt,const bool dump_explicit_sa,const bool verbose) {
   // Allocate BWT-text
@@ -39,7 +39,7 @@ GEM_INLINE void archive_builder_index_build_bwt(
   // Free
   sa_builder_delete(archive_builder->sa_builder); // Delete SA-Builder
 }
-GEM_INLINE void archive_builder_index_build_bwt_reverse(
+void archive_builder_index_build_bwt_reverse(
     archive_builder_t* const archive_builder,
     const bool dump_reverse_indexed_text,const bool dump_bwt,
     const bool dump_explicit_sa,const bool verbose) {
@@ -75,7 +75,7 @@ GEM_INLINE void archive_builder_index_build_bwt_reverse(
 /*
  * Display
  */
-GEM_INLINE void archive_builder_index_print_explicit_sa(
+void archive_builder_index_print_explicit_sa(
     archive_builder_t* const archive_builder,const char* const extension) {
   // Open File
   char* const debug_explicit_sa_file_name = gem_strcat(archive_builder->output_file_name_prefix,extension);
@@ -94,7 +94,7 @@ GEM_INLINE void archive_builder_index_print_explicit_sa(
   fclose(debug_explicit_sa_file);
   mm_free(debug_explicit_sa_file_name);
 }
-GEM_INLINE void archive_builder_index_print_bwt(
+void archive_builder_index_print_bwt(
     archive_builder_t* const archive_builder,const char* const extension,const bool verbose) {
   ticker_t ticker;
   ticker_percentage_reset(&ticker,verbose,"Building-BWT::Dumping BWT",1,1,true);

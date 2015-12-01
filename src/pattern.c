@@ -18,7 +18,7 @@
 /*
  * Pattern Prepare
  */
-GEM_INLINE void pattern_prepare(
+void pattern_prepare(
     sequence_t* const sequence,pattern_t* const pattern,region_profile_t* const region_profile,
     const as_parameters_t* const actual_parameters,const bool prepare_rl_pattern,
     bool* const do_quality_search,mm_stack_t* const mm_stack) {
@@ -109,16 +109,16 @@ GEM_INLINE void pattern_prepare(
 //    }
   }
 }
-GEM_INLINE void pattern_clear(pattern_t* const pattern) {
+void pattern_clear(pattern_t* const pattern) {
   pattern->key_length = 0; // Clear the pattern
 }
-GEM_INLINE bool pattern_is_null(pattern_t* const pattern) {
+bool pattern_is_null(pattern_t* const pattern) {
   return (pattern->key_length == 0);
 }
 /*
  * Pattern Tiling
  */
-GEM_INLINE bool pattern_tiled_init(
+bool pattern_tiled_init(
     pattern_tiled_t* const pattern_tiled,
     const uint64_t pattern_length,const uint64_t pattern_tile_tall,
     const uint64_t sequence_length,const uint64_t max_error) {
@@ -145,7 +145,7 @@ GEM_INLINE bool pattern_tiled_init(
   // Return Ok
   return true;
 }
-GEM_INLINE void pattern_tiled_calculate_next(pattern_tiled_t* const pattern_tiled) {
+void pattern_tiled_calculate_next(pattern_tiled_t* const pattern_tiled) {
   // DEBUG
   //  gem_cond_debug_block(DEBUG_PATTERN_TILE_POSITION) {
   //    fprintf(stderr,">Tile (pos=%"PRIu64",len=%"PRIu64",tall=%"PRIu64") [distance=%"PRIu64",match_col=%"PRIu64"]\n",
@@ -164,7 +164,7 @@ GEM_INLINE void pattern_tiled_calculate_next(pattern_tiled_t* const pattern_tile
     pattern_tiled->tile_wide = pattern_tiled->sequence_length-pattern_tiled->tile_offset;
   }
 }
-GEM_INLINE uint64_t pattern_tiled_bound_matching_path(pattern_tiled_t* const pattern_tiled) {
+uint64_t pattern_tiled_bound_matching_path(pattern_tiled_t* const pattern_tiled) {
   if (pattern_tiled->prev_tile_match_position!=UINT64_MAX) {
     const int64_t prev_tile_match_position = pattern_tiled->prev_tile_match_position;
     const int64_t tile_match_position = pattern_tiled->tile_match_column + pattern_tiled->tile_offset;
@@ -190,7 +190,7 @@ GEM_INLINE uint64_t pattern_tiled_bound_matching_path(pattern_tiled_t* const pat
 /*
  * Display
  */
-GEM_INLINE void pattern_enc_print(FILE* const stream,const uint8_t* const key,const uint64_t key_length) {
+void pattern_enc_print(FILE* const stream,const uint8_t* const key,const uint64_t key_length) {
   uint64_t i;
   for (i=0;i<key_length;++i) {
     fprintf(stream,"%c",dna_decode(key[i]));

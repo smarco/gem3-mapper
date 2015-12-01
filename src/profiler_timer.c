@@ -11,50 +11,50 @@
 /*
  * Timers
  */
-GEM_INLINE void TIMER_START(gem_timer_t* const timer) {
+void TIMER_START(gem_timer_t* const timer) {
   timer->accumulated = 0;
   TIMER_CONTINUE(timer);
 }
-GEM_INLINE void TIMER_STOP(gem_timer_t* const timer) {
+void TIMER_STOP(gem_timer_t* const timer) {
   TIMER_PAUSE(timer);
   COUNTER_ADD(&timer->time_ns,timer->accumulated);
 }
-GEM_INLINE void TIMER_PAUSE(gem_timer_t* const timer) {
+void TIMER_PAUSE(gem_timer_t* const timer) {
   system_get_time(&timer->end_timer);
   timer->accumulated += TIME_DIFF_NS(timer->begin_timer,timer->end_timer);
 }
-GEM_INLINE void TIMER_CONTINUE(gem_timer_t* const timer) {
+void TIMER_CONTINUE(gem_timer_t* const timer) {
   system_get_time(&timer->begin_timer);
 }
-GEM_INLINE void TIMER_RESET(gem_timer_t* const timer) {
+void TIMER_RESET(gem_timer_t* const timer) {
   COUNTER_RESET(&timer->time_ns);
 }
-GEM_INLINE void TIMER_RESTART(gem_timer_t* const timer) {
+void TIMER_RESTART(gem_timer_t* const timer) {
   TIMER_RESET(timer);
   TIMER_START(timer);
 }
-GEM_INLINE uint64_t TIMER_GET_TOTAL_NS(const gem_timer_t* const timer) {
+uint64_t TIMER_GET_TOTAL_NS(const gem_timer_t* const timer) {
   return COUNTER_GET_TOTAL(&timer->time_ns);
 }
-GEM_INLINE uint64_t TIMER_GET_NUM_SAMPLES(const gem_timer_t* const timer) {
+uint64_t TIMER_GET_NUM_SAMPLES(const gem_timer_t* const timer) {
   return COUNTER_GET_NUM_SAMPLES(&timer->time_ns);
 }
-GEM_INLINE uint64_t TIMER_GET_MIN_NS(const gem_timer_t* const timer) {
+uint64_t TIMER_GET_MIN_NS(const gem_timer_t* const timer) {
   return COUNTER_GET_MIN(&timer->time_ns);
 }
-GEM_INLINE uint64_t TIMER_GET_MAX_NS(const gem_timer_t* const timer) {
+uint64_t TIMER_GET_MAX_NS(const gem_timer_t* const timer) {
   return COUNTER_GET_MAX(&timer->time_ns);
 }
-GEM_INLINE uint64_t TIMER_GET_MEAN(const gem_timer_t* const timer) {
+uint64_t TIMER_GET_MEAN(const gem_timer_t* const timer) {
   return COUNTER_GET_MEAN(&timer->time_ns);
 }
-GEM_INLINE uint64_t TIMER_GET_VARIANCE(const gem_timer_t* const timer) {
+uint64_t TIMER_GET_VARIANCE(const gem_timer_t* const timer) {
   return COUNTER_GET_VARIANCE(&timer->time_ns);
 }
-GEM_INLINE uint64_t TIMER_GET_STDDEV(const gem_timer_t* const timer) {
+uint64_t TIMER_GET_STDDEV(const gem_timer_t* const timer) {
   return COUNTER_GET_STDDEV(&timer->time_ns);
 }
-GEM_INLINE void TIMER_PRINT(
+void TIMER_PRINT(
     FILE* const stream,const gem_timer_t* const timer,
     const gem_timer_t* const ref_timer) {
   const uint64_t total_time_ns = TIMER_GET_TOTAL_NS(timer);

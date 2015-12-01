@@ -37,11 +37,11 @@ void buffered_output_file_close(buffered_output_file_t* const buffered_output) {
 /*
  * Utils
  */
-GEM_INLINE void buffered_output_file_request_buffer(
+void buffered_output_file_request_buffer(
     buffered_output_file_t* const buffered_output,const uint32_t block_id) {
   buffered_output->buffer = output_file_request_buffer(buffered_output->output_file,block_id);
 }
-GEM_INLINE void buffered_output_file_dump_buffer(buffered_output_file_t* const buffered_output) {
+void buffered_output_file_dump_buffer(buffered_output_file_t* const buffered_output) {
   BUFFERED_OUTPUT_FILE_CHECK(buffered_output);
   PROFILE_START(GP_BUFFERED_OUTPUT_DUMP,PROFILE_LEVEL);
   // Dump
@@ -51,12 +51,12 @@ GEM_INLINE void buffered_output_file_dump_buffer(buffered_output_file_t* const b
   buffered_output->buffer = NULL;
   PROFILE_STOP(GP_BUFFERED_OUTPUT_DUMP,PROFILE_LEVEL);
 }
-GEM_INLINE void buffered_output_file_safety_dump_buffer(buffered_output_file_t* const buffered_output) {
+void buffered_output_file_safety_dump_buffer(buffered_output_file_t* const buffered_output) {
   BUFFERED_OUTPUT_FILE_CHECK(buffered_output);
   buffered_output->buffer = output_file_request_buffer_extension(buffered_output->output_file,buffered_output->buffer);
   gem_cond_fatal_error(buffered_output->buffer==NULL,BUFFER_SAFETY_DUMP);
 }
-GEM_INLINE void buffered_output_file_reserve(buffered_output_file_t* const buffered_output,const uint64_t num_chars) {
+void buffered_output_file_reserve(buffered_output_file_t* const buffered_output,const uint64_t num_chars) {
   BUFFERED_OUTPUT_FILE_CHECK(buffered_output);
   const uint64_t buffer_size = buffered_output->output_file->buffer_size;
   gem_cond_fatal_error(num_chars>buffer_size,BUFFER_RESERVE);
@@ -68,7 +68,7 @@ GEM_INLINE void buffered_output_file_reserve(buffered_output_file_t* const buffe
 /*
  * Printers (Disabled for performance issues)
  */
-//GEM_INLINE int vbofprintf(buffered_output_file_t* const buffered_output,const char *template,va_list v_args) {
+//int vbofprintf(buffered_output_file_t* const buffered_output,const char *template,va_list v_args) {
 //  BUFFERED_OUTPUT_FILE_CHECK(buffered_output);
 //  GEM_CHECK_NULL(template);
 //  if (gem_expect_false(output_buffer_get_used(buffered_output->buffer)+BUFFER_SIZE_1K*10
@@ -77,7 +77,7 @@ GEM_INLINE void buffered_output_file_reserve(buffered_output_file_t* const buffe
 //  }
 //  return vbprintf(buffered_output->buffer,template,v_args);
 //}
-//GEM_INLINE int bofprintf(buffered_output_file_t* const buffered_output,const char *template,...) {
+//int bofprintf(buffered_output_file_t* const buffered_output,const char *template,...) {
 //  BUFFERED_OUTPUT_FILE_CHECK(buffered_output);
 //  GEM_CHECK_NULL(template);
 //  va_list v_args;
@@ -86,7 +86,7 @@ GEM_INLINE void buffered_output_file_reserve(buffered_output_file_t* const buffe
 //  va_end(v_args);
 //  return chars_printed;
 //}
-//GEM_INLINE int vbofprintf_fixed(
+//int vbofprintf_fixed(
 //    buffered_output_file_t* const buffered_output,
 //    const uint64_t expected_mem_usage,const char *template,va_list v_args) {
 //  BUFFERED_OUTPUT_FILE_CHECK(buffered_output);
@@ -98,7 +98,7 @@ GEM_INLINE void buffered_output_file_reserve(buffered_output_file_t* const buffe
 //  }
 //  return vbprintf_fixed(buffered_output->buffer,expected_mem_usage,template,v_args);
 //}
-//GEM_INLINE int bofprintf_fixed(
+//int bofprintf_fixed(
 //    buffered_output_file_t* const buffered_output,
 //    const uint64_t expected_mem_usage,const char *template,...) {
 //  BUFFERED_OUTPUT_FILE_CHECK(buffered_output);
@@ -113,16 +113,16 @@ GEM_INLINE void buffered_output_file_reserve(buffered_output_file_t* const buffe
 /*
  * Fast-printer
  */
-GEM_INLINE void bofprintf_uint64(buffered_output_file_t* const buffered_output,const uint64_t number) {
+void bofprintf_uint64(buffered_output_file_t* const buffered_output,const uint64_t number) {
   bprintf_uint64(buffered_output->buffer,number);
 }
-GEM_INLINE void bofprintf_int64(buffered_output_file_t* const buffered_output,const int64_t number) {
+void bofprintf_int64(buffered_output_file_t* const buffered_output,const int64_t number) {
   bprintf_int64(buffered_output->buffer,number);
 }
-GEM_INLINE void bofprintf_char(buffered_output_file_t* const buffered_output,const char character) {
+void bofprintf_char(buffered_output_file_t* const buffered_output,const char character) {
   bprintf_char(buffered_output->buffer,character);
 }
-GEM_INLINE void bofprintf_string(
+void bofprintf_string(
     buffered_output_file_t* const buffered_output,const int string_length,const char* const string) {
   bprintf_buffer(buffered_output->buffer,string_length,string);
 }

@@ -15,7 +15,7 @@
 /*
  * Setup
  */
-GEM_INLINE void nsearch_schedule_init(
+void nsearch_schedule_init(
     nsearch_schedule_t* const nsearch_schedule,const nsearch_model_t nsearch_model,
     fm_index_t* const fm_index,region_profile_t* const region_profile,
     uint8_t* const key,const uint64_t key_length,const uint64_t max_error,
@@ -58,7 +58,7 @@ GEM_INLINE void nsearch_schedule_init(
 /*
  * Add pending search
  */
-GEM_INLINE bool nsearch_schedule_add_pending_search(
+bool nsearch_schedule_add_pending_search(
     nsearch_schedule_t* const nsearch_schedule,const search_direction_t search_direction,
     const uint64_t offset,const uint64_t length,
     const uint64_t min_local_error,const uint64_t max_local_error,
@@ -82,7 +82,7 @@ GEM_INLINE bool nsearch_schedule_add_pending_search(
 /*
  * Schedule the search
  */
-GEM_INLINE void nsearch_schedule_search_step(
+void nsearch_schedule_search_step(
     nsearch_schedule_t* const nsearch_schedule,
     const uint64_t chunk_offset,const uint64_t chunk_length,
     const uint64_t chunk_min_error,const uint64_t chunk_max_error) {
@@ -149,7 +149,7 @@ GEM_INLINE void nsearch_schedule_search_step(
         epartition.search_1_min_error,epartition.search_1_max_error);
   }
 }
-GEM_INLINE void nsearch_schedule_search(nsearch_schedule_t* const nsearch_schedule) {
+void nsearch_schedule_search(nsearch_schedule_t* const nsearch_schedule) {
   TIMER_START(&nsearch_schedule->ns_timer);
   nsearch_schedule_search_step(nsearch_schedule,0,nsearch_schedule->key_length,0,nsearch_schedule->max_error);
   TIMER_STOP(&nsearch_schedule->ns_timer);
@@ -157,7 +157,7 @@ GEM_INLINE void nsearch_schedule_search(nsearch_schedule_t* const nsearch_schedu
 /*
  * Schedule the search (preconditioned by region profile)
  */
-GEM_INLINE void nsearch_schedule_search_preconditioned_step(
+void nsearch_schedule_search_preconditioned_step(
     nsearch_schedule_t* const nsearch_schedule,
     const uint64_t region_offset,const uint64_t num_regions,
     const uint64_t chunk_min_error,const uint64_t chunk_max_error) {
@@ -216,7 +216,7 @@ GEM_INLINE void nsearch_schedule_search_preconditioned_step(
     }
   }
 }
-GEM_INLINE void nsearch_schedule_search_preconditioned(nsearch_schedule_t* const nsearch_schedule) {
+void nsearch_schedule_search_preconditioned(nsearch_schedule_t* const nsearch_schedule) {
   TIMER_START(&nsearch_schedule->ns_timer);
   const uint64_t num_filtering_regions = nsearch_schedule->region_profile->num_filtering_regions;
   if (num_filtering_regions <= 1) {
@@ -231,7 +231,7 @@ GEM_INLINE void nsearch_schedule_search_preconditioned(nsearch_schedule_t* const
 /*
  * Display
  */
-GEM_INLINE void nsearch_schedule_print(FILE* const stream,nsearch_schedule_t* const nsearch_schedule) {
+void nsearch_schedule_print(FILE* const stream,nsearch_schedule_t* const nsearch_schedule) {
   uint64_t offset = 0;
   while (offset != nsearch_schedule->key_length) {
     uint64_t i;
@@ -252,7 +252,7 @@ typedef struct {
   uint64_t nsearch_schedule_pos;
   uint64_t plength;
 } nsearch_schedule_print_data_t;
-GEM_INLINE void nsearch_schedule_print_region_segment(
+void nsearch_schedule_print_region_segment(
     FILE* const stream,const uint64_t length,
     const char begin_c,const char middle_c,const char end_c) {
   uint64_t j;
@@ -264,7 +264,7 @@ GEM_INLINE void nsearch_schedule_print_region_segment(
     fprintf(stream,"%c",end_c);
   }
 }
-GEM_INLINE void nsearch_schedule_print_region_limits(
+void nsearch_schedule_print_region_limits(
     FILE* const stream,const uint64_t length,
     const uint64_t min,const uint64_t max) {
   uint64_t j;
@@ -278,7 +278,7 @@ GEM_INLINE void nsearch_schedule_print_region_limits(
     for (j=0;j<right;++j) fprintf(stream," ");
   }
 }
-GEM_INLINE void nsearch_schedule_print_pretty(FILE* const stream,nsearch_schedule_t* const nsearch_schedule) {
+void nsearch_schedule_print_pretty(FILE* const stream,nsearch_schedule_t* const nsearch_schedule) {
   // Save stack state & allocate mem
   mm_stack_t* const mm_stack = nsearch_schedule->mm_stack;
   mm_stack_push_state(mm_stack);
@@ -344,10 +344,10 @@ GEM_INLINE void nsearch_schedule_print_pretty(FILE* const stream,nsearch_schedul
   // nsearch_schedule_print(stream,nsearch_schedule);
   mm_stack_pop_state(mm_stack,false);
 }
-GEM_INLINE void nsearch_schedule_print_profile(FILE* const stream,nsearch_schedule_t* const nsearch_schedule) {
+void nsearch_schedule_print_profile(FILE* const stream,nsearch_schedule_t* const nsearch_schedule) {
   fprintf(stderr,"%lu\t%lu\t%2.3f\n",nsearch_schedule->ns_nodes_success,
       nsearch_schedule->ns_nodes,TIMER_GET_TOTAL_S(&nsearch_schedule->ns_timer));
 }
-GEM_INLINE void nsearch_schedule_print_search_string(FILE* const stream,nsearch_schedule_t* const nsearch_schedule) {
+void nsearch_schedule_print_search_string(FILE* const stream,nsearch_schedule_t* const nsearch_schedule) {
   fprintf(stream,"%s",nsearch_schedule->search_string);
 }

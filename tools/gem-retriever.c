@@ -144,7 +144,7 @@ typedef struct {
 /*
  * Parsing
  */
-GEM_INLINE int retriever_query_parse(
+int retriever_query_parse(
     retriever_data_t* const retriever_data,retriever_query_t* const retriever_query,
     char* text_line,const uint64_t text_line_length) {
   // Parse sequence name
@@ -189,7 +189,7 @@ GEM_INLINE int retriever_query_parse(
   retriever_query->text_length = value;
   return 0;
 }
-GEM_INLINE void retriever_query_location(
+void retriever_query_location(
     retriever_data_t* const retriever_data,retriever_query_t* const retriever_query) {
   // Locate the sequence
   locator_interval_t* const locator_interval =

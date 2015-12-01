@@ -17,7 +17,7 @@
 /*
  * Region profile default parameters
  */
-GEM_INLINE void search_parameters_init_replacements(search_parameters_t* const search_parameters) {
+void search_parameters_init_replacements(search_parameters_t* const search_parameters) {
   // Reset
   memset(search_parameters->allowed_chars,0,256*sizeof(bool));
   memset(search_parameters->allowed_enc,0,DNA_EXT_RANGE*sizeof(bool));
@@ -37,7 +37,7 @@ GEM_INLINE void search_parameters_init_replacements(search_parameters_t* const s
   search_parameters->allowed_enc[ENC_DNA_CHAR_T] = true;
   search_parameters->allowed_enc[ENC_DNA_CHAR_N] = false;
 }
-GEM_INLINE void search_parameters_init_error_model(search_parameters_t* const search_parameters) {
+void search_parameters_init_error_model(search_parameters_t* const search_parameters) {
   search_parameters->search_max_matches = 1000;
   search_parameters->complete_search_error = 0.04;
   search_parameters->complete_strata_after_best = 1.0;
@@ -53,7 +53,7 @@ GEM_INLINE void search_parameters_init_error_model(search_parameters_t* const se
   search_parameters->cigar_curation = true;
   search_parameters->cigar_curation_min_end_context = 2;
 }
-GEM_INLINE void search_parameters_init_alignment_model(search_parameters_t* const search_parameters) {
+void search_parameters_init_alignment_model(search_parameters_t* const search_parameters) {
   search_parameters->alignment_model = alignment_model_gap_affine;
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_A] = +1;
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_C] = -4;
@@ -86,7 +86,7 @@ GEM_INLINE void search_parameters_init_alignment_model(search_parameters_t* cons
   search_parameters->swg_penalties.gap_extension_score = -1;
   search_parameters->swg_threshold = 0.20; // 0.20*read_length*match_score
 }
-GEM_INLINE void search_parameters_init_internals(search_parameters_t* const search_parameters) {
+void search_parameters_init_internals(search_parameters_t* const search_parameters) {
   // Region-Minimal Scheme = (20,4,2,2)
   search_parameters->rp_minimal.region_th = 20;
   search_parameters->rp_minimal.max_steps = 4;
@@ -107,7 +107,7 @@ GEM_INLINE void search_parameters_init_internals(search_parameters_t* const sear
   search_parameters->filtering_threshold = 1000;
   search_parameters->gpu_filtering_threshold = 100;
 }
-GEM_INLINE void search_parameters_init(search_parameters_t* const search_parameters) {
+void search_parameters_init(search_parameters_t* const search_parameters) {
   // Mapping strategy
   search_parameters->mapping_mode = mapping_adaptive_filtering_thorough;
   // Qualities
@@ -127,22 +127,22 @@ GEM_INLINE void search_parameters_init(search_parameters_t* const search_paramet
   // Internals
   search_parameters_init_internals(search_parameters);
 }
-GEM_INLINE void search_configure_mapping_strategy(
+void search_configure_mapping_strategy(
     search_parameters_t* const search_parameters,const mapping_mode_t mapping_mode) {
   search_parameters->mapping_mode = mapping_mode;
 }
-GEM_INLINE void search_configure_quality_model(
+void search_configure_quality_model(
     search_parameters_t* const search_parameters,const quality_model_t quality_model,
     const quality_format_t quality_format,const uint64_t quality_threshold) {
   search_parameters->quality_model = quality_model;
   search_parameters->quality_format = quality_format;
   search_parameters->quality_threshold = quality_threshold;
 }
-GEM_INLINE void search_configure_matches(
+void search_configure_matches(
     search_parameters_t* const search_parameters,const uint64_t search_max_matches) {
   search_parameters->search_max_matches = search_max_matches;
 }
-GEM_INLINE void search_configure_replacements(
+void search_configure_replacements(
     search_parameters_t* const search_parameters,
     const char* const mismatch_alphabet,const uint64_t mismatch_alphabet_length) {
   // Reset
@@ -161,11 +161,11 @@ GEM_INLINE void search_configure_replacements(
   gem_cond_fatal_error(count==0,ASP_REPLACEMENT_EMPTY);
   search_parameters->mismatch_alphabet_length = count;
 }
-GEM_INLINE void search_configure_alignment_model(
+void search_configure_alignment_model(
     search_parameters_t* const search_parameters,const alignment_model_t alignment_model) {
   search_parameters->alignment_model = alignment_model;
 }
-GEM_INLINE void search_configure_alignment_match_scores(
+void search_configure_alignment_match_scores(
     search_parameters_t* const search_parameters,const uint64_t matching_score) {
   // Match
   search_parameters->swg_penalties.generic_match_score = matching_score;
@@ -174,7 +174,7 @@ GEM_INLINE void search_configure_alignment_match_scores(
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_G][ENC_DNA_CHAR_G] = matching_score;
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_T][ENC_DNA_CHAR_T] = matching_score;
 }
-GEM_INLINE void search_configure_alignment_mismatch_scores(
+void search_configure_alignment_mismatch_scores(
     search_parameters_t* const search_parameters,const uint64_t mismatch_penalty) {
   // Mismatch
   const int64_t mismatch_score = -((int64_t)mismatch_penalty);
@@ -201,14 +201,14 @@ GEM_INLINE void search_configure_alignment_mismatch_scores(
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_N][ENC_DNA_CHAR_T] = mismatch_score;
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_N][ENC_DNA_CHAR_N] = mismatch_score;
 }
-GEM_INLINE void search_configure_alignment_gap_scores(
+void search_configure_alignment_gap_scores(
     search_parameters_t* const search_parameters,
     const uint64_t gap_open_penalty,const uint64_t gap_extension_penalty) {
   // Gaps
   search_parameters->swg_penalties.gap_open_score = -((int32_t)gap_open_penalty);
   search_parameters->swg_penalties.gap_extension_score = -((int32_t)gap_extension_penalty);
 }
-GEM_INLINE void search_instantiate_values(as_parameters_t* const parameters,const uint64_t pattern_length) {
+void search_instantiate_values(as_parameters_t* const parameters,const uint64_t pattern_length) {
   /* Nominal search parameters (Evaluated to read-length) */
   SEARCH_INSTANTIATE_VALUE(parameters,complete_search_error,pattern_length);
   SEARCH_INSTANTIATE_VALUE(parameters,complete_strata_after_best,pattern_length);
@@ -233,12 +233,12 @@ GEM_INLINE void search_instantiate_values(as_parameters_t* const parameters,cons
 /*
  * Display
  */
-GEM_INLINE void search_parameters_print(FILE* const stream,search_parameters_t* const search_parameters) {
+void search_parameters_print(FILE* const stream,search_parameters_t* const search_parameters) {
   // TODO
   // TODO
   // TODO
 }
-GEM_INLINE void as_parameters_print(FILE* const stream,as_parameters_t* const parameters) {
+void as_parameters_print(FILE* const stream,as_parameters_t* const parameters) {
   tab_fprintf(stream,"[GEM]>AS.Parameters\n");
   tab_fprintf(stream,"=> Search.Parameters\n"); // TODO
 //  tab_global_inc(); // TODO

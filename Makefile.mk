@@ -30,6 +30,7 @@ FOLDER_RESOURCES_BUILD=$(ROOT_PATH)/resources/build
 
 FOLDER_GEMGPU_BUILD=$(ROOT_PATH)/resources/gpu_modules/build
 
+FOLDER_RESOURCES_INCLUDE=$(ROOT_PATH)/resources/include
 FOLDER_SOURCE=$(ROOT_PATH)/src
 FOLDER_TEST=$(ROOT_PATH)/test
 FOLDER_TOOLS=$(ROOT_PATH)/tools
@@ -60,14 +61,16 @@ FLAGS_DEBUG=-g $(FLAGS_GEM_DEBUG)
 FLAGS_PROFILE=$(FLAGS_GEM_PROFILE)
 
 ## GCC Compiler 
-ifeq ($(CC),gcc) 
-FLAGS_OPT=-Ofast -msse4.2
+ifeq ($(CC),gcc)
+FLAGS_OPT=-Ofast -msse4.2 -std=c99 -flto # -fdump-ipa-inline # -fwhole-program
 FLAGS_DEBUG=-g $(FLAGS_GEM_DEBUG) # -ggdb3 -rdynamic
+FLAGS_LINK=-fuse-linker-plugin
+AR=gcc-ar
 endif
 
 ## ICC Compiler
 ifeq ($(CC),icc)
-FLAGS_OPT=-Ofast -msse4.2
+FLAGS_OPT=-Ofast -msse4.2 -ipo
 FLAGS_DEBUG=-g $(FLAGS_GEM_DEBUG)
 endif
 
@@ -80,7 +83,7 @@ PATH_INCLUDE=-I$(FOLDER_INCLUDE)
 PATH_LIB=-L$(FOLDER_LIB)
 
 # Link Libs
-LIBS=-lgemcore_c -lpthread -lm $(LIBS_ZLIB) $(LIBS_BZLIB)
+LIBS=-lpthread -lm $(LIBS_ZLIB) $(LIBS_BZLIB) # -lgemcore_c
 ifeq ($(PLATFORM),Linux)
 LIBS+=-lrt
 endif

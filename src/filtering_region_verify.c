@@ -23,7 +23,7 @@
 /*
  * Verify
  */
-GEM_INLINE void filtering_region_verify_hamming(
+void filtering_region_verify_hamming(
     filtering_region_t* const filtering_region,const uint8_t* const text,
     const uint8_t* const key,const uint64_t key_length,
     const bool* const allowed_enc,const uint64_t max_mismatches) {
@@ -46,7 +46,7 @@ GEM_INLINE void filtering_region_verify_hamming(
   filtering_region->align_match_begin_column = 0;
   filtering_region->align_match_end_column = key_length-1;
 }
-GEM_INLINE int64_t filtering_region_verify_levenshtein(
+int64_t filtering_region_verify_levenshtein(
     filtering_region_t* const candidate_region,
     const text_collection_t* const text_collection,
     const uint8_t* const key,const uint64_t key_length) {
@@ -73,7 +73,7 @@ GEM_INLINE int64_t filtering_region_verify_levenshtein(
   // Return distance
   return dp_distance;
 }
-GEM_INLINE bool filtering_region_verify(
+bool filtering_region_verify(
     filtering_region_t* const filtering_region,const text_collection_t* const text_collection,
     search_parameters_t* const search_parameters,const pattern_t* const pattern) {
   // Parameters
@@ -135,7 +135,7 @@ GEM_INLINE bool filtering_region_verify(
   // Return fail
   return false;
 }
-GEM_INLINE uint64_t filtering_region_verify_multiple_hits(
+uint64_t filtering_region_verify_multiple_hits(
     vector_t* const filtering_regions,filtering_region_t* const filtering_region,
     const text_collection_t* const text_collection,search_parameters_t* const search_parameters,
     const pattern_t* const pattern) {
@@ -166,7 +166,7 @@ GEM_INLINE uint64_t filtering_region_verify_multiple_hits(
   PROF_ADD_COUNTER(GP_ACCEPTED_REGIONS,num_matches_found);
   return num_matches_found;
 }
-GEM_INLINE uint64_t filtering_region_verify_extension(
+uint64_t filtering_region_verify_extension(
     vector_t* const filtering_regions,vector_t* const verified_regions,
     const text_collection_t* const text_collection,
     const uint64_t text_trace_offset,const uint64_t index_position,

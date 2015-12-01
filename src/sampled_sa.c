@@ -21,7 +21,7 @@
 /*
  * Loader/Setup
  */
-GEM_INLINE sampled_sa_t* sampled_sa_read_mem(mm_t* const memory_manager) {
+sampled_sa_t* sampled_sa_read_mem(mm_t* const memory_manager) {
   // Allocate handler
   sampled_sa_t* const sampled_sa = mm_alloc(sampled_sa_t);
   // Read Meta-Data
@@ -36,7 +36,7 @@ GEM_INLINE sampled_sa_t* sampled_sa_read_mem(mm_t* const memory_manager) {
   // Return
   return sampled_sa;
 }
-GEM_INLINE void sampled_sa_write(fm_t* const file_manager,sampled_sa_t* const sampled_sa) {
+void sampled_sa_write(fm_t* const file_manager,sampled_sa_t* const sampled_sa) {
   SAMPLED_SA_CHECK(sampled_sa);
   // Write Meta-Data
   fm_write_uint64(file_manager,SAMPLED_SA_MODEL_NO);
@@ -46,7 +46,7 @@ GEM_INLINE void sampled_sa_write(fm_t* const file_manager,sampled_sa_t* const sa
   // Write PackedIntegerArray
   packed_integer_array_write(file_manager,sampled_sa->packed_integer_array);
 }
-GEM_INLINE void sampled_sa_delete(sampled_sa_t* const sampled_sa) {
+void sampled_sa_delete(sampled_sa_t* const sampled_sa) {
   SAMPLED_SA_CHECK(sampled_sa);
   // Free PackedIntegerArray
   packed_integer_array_delete(sampled_sa->packed_integer_array);
@@ -56,7 +56,7 @@ GEM_INLINE void sampled_sa_delete(sampled_sa_t* const sampled_sa) {
 /*
  * Builder
  */
-GEM_INLINE sampled_sa_builder_t* sampled_sa_builder_new(
+sampled_sa_builder_t* sampled_sa_builder_new(
     const uint64_t index_length,const uint64_t num_builders,
     const sampling_rate_t sa_sampling_rate,const sampling_rate_t text_sampling_rate,
     mm_slab_t* const mm_slab) {
@@ -81,19 +81,19 @@ GEM_INLINE sampled_sa_builder_t* sampled_sa_builder_new(
   // Return
   return sampled_sa;
 }
-GEM_INLINE void sampled_sa_builder_delete_samples(sampled_sa_builder_t* const sampled_sa) {
+void sampled_sa_builder_delete_samples(sampled_sa_builder_t* const sampled_sa) {
   uint64_t i;
   for (i=0;i<sampled_sa->num_chunks;++i) {
     packed_integer_array_builder_delete(sampled_sa->array_builder[i]);
   }
   mm_free(sampled_sa->array_builder);
 }
-GEM_INLINE void sampled_sa_builder_delete(sampled_sa_builder_t* const sampled_sa) {
+void sampled_sa_builder_delete(sampled_sa_builder_t* const sampled_sa) {
   mm_free(sampled_sa->sampled_bitmap_mem);
   MUTEX_DESTROY(sampled_sa->sampled_bitmap_mutex);
   mm_free(sampled_sa);
 }
-GEM_INLINE void sampled_sa_builder_set_sample(
+void sampled_sa_builder_set_sample(
     sampled_sa_builder_t* const sampled_sa,const uint64_t chunk_number,
     const uint64_t array_position,const uint64_t sa_value) {
   // Store sample
@@ -106,7 +106,7 @@ GEM_INLINE void sampled_sa_builder_set_sample(
     sampled_sa->sampled_bitmap_mem[block_pos] |= mask;
   } MUTEX_END_SECTION(sampled_sa->sampled_bitmap_mutex);
 }
-GEM_INLINE void sampled_sa_builder_write(fm_t* const file_manager,sampled_sa_builder_t* const sampled_sa) {
+void sampled_sa_builder_write(fm_t* const file_manager,sampled_sa_builder_t* const sampled_sa) {
   // Write Meta-Data
   fm_write_uint64(file_manager,SAMPLED_SA_MODEL_NO);
   fm_write_uint64(file_manager,sampled_sa->index_length);
@@ -115,46 +115,46 @@ GEM_INLINE void sampled_sa_builder_write(fm_t* const file_manager,sampled_sa_bui
   // Write PackedIntegerArray
   packed_integer_array_builder_write(file_manager,sampled_sa->array_builder,sampled_sa->num_chunks);
 }
-GEM_INLINE uint64_t sampled_sa_builder_get_sa_sampling_rate(const sampled_sa_builder_t* const sampled_sa) {
+uint64_t sampled_sa_builder_get_sa_sampling_rate(const sampled_sa_builder_t* const sampled_sa) {
   return (1<<sampled_sa->sa_sampling_rate);
 }
-GEM_INLINE uint64_t sampled_sa_builder_get_text_sampling_rate(const sampled_sa_builder_t* const sampled_sa) {
+uint64_t sampled_sa_builder_get_text_sampling_rate(const sampled_sa_builder_t* const sampled_sa) {
   return (1<<sampled_sa->text_sampling_rate);
 }
-GEM_INLINE uint64_t* sampled_sa_builder_get_sampled_bitmap(const sampled_sa_builder_t* const sampled_sa) {
+uint64_t* sampled_sa_builder_get_sampled_bitmap(const sampled_sa_builder_t* const sampled_sa) {
   return sampled_sa->sampled_bitmap_mem;
 }
 /*
  * Accessors
  */
-GEM_INLINE uint64_t sampled_sa_get_size(const sampled_sa_t* const sampled_sa) {
+uint64_t sampled_sa_get_size(const sampled_sa_t* const sampled_sa) {
   SAMPLED_SA_CHECK(sampled_sa);
   return packed_integer_array_get_size(sampled_sa->packed_integer_array);
 }
-GEM_INLINE uint64_t sampled_sa_get_sa_sampling_rate(const sampled_sa_t* const sampled_sa) {
+uint64_t sampled_sa_get_sa_sampling_rate(const sampled_sa_t* const sampled_sa) {
   SAMPLED_SA_CHECK(sampled_sa);
   return (1<<sampled_sa->sa_sampling_rate);
 }
-GEM_INLINE uint64_t sampled_sa_get_text_sampling_rate(const sampled_sa_t* const sampled_sa) {
+uint64_t sampled_sa_get_text_sampling_rate(const sampled_sa_t* const sampled_sa) {
   SAMPLED_SA_CHECK(sampled_sa);
   return (1<<sampled_sa->text_sampling_rate);
 }
-GEM_INLINE void sampled_sa_prefetch_sample(const sampled_sa_t* const sampled_sa,const uint64_t array_position) {
+void sampled_sa_prefetch_sample(const sampled_sa_t* const sampled_sa,const uint64_t array_position) {
   SAMPLED_SA_CHECK(sampled_sa);
   packed_integer_array_prefetch(sampled_sa->packed_integer_array,array_position); // Fetch SA position
 }
-GEM_INLINE uint64_t sampled_sa_get_sample(const sampled_sa_t* const sampled_sa,const uint64_t array_position) {
+uint64_t sampled_sa_get_sample(const sampled_sa_t* const sampled_sa,const uint64_t array_position) {
   SAMPLED_SA_CHECK(sampled_sa);
   return packed_integer_array_load(sampled_sa->packed_integer_array,array_position); // Get SA position
 }
-GEM_INLINE void sampled_sa_set_sample(sampled_sa_t* const sampled_sa,const uint64_t array_position,const uint64_t sa_value) {
+void sampled_sa_set_sample(sampled_sa_t* const sampled_sa,const uint64_t array_position,const uint64_t sa_value) {
   SAMPLED_SA_CHECK(sampled_sa);
   packed_integer_array_store(sampled_sa->packed_integer_array,array_position,sa_value); // Store SA position
 }
 /*
  * Display/Stats
  */
-GEM_INLINE void sampled_sa_print_(
+void sampled_sa_print_(
     FILE* const stream,
     const uint64_t sa_sampling_rate,const uint64_t sa_sampling_rate_value,
     const uint64_t text_sampling_rate,const uint64_t text_sampling_rate_value,
@@ -172,7 +172,7 @@ GEM_INLINE void sampled_sa_print_(
   // Flush
   fflush(stream);
 }
-GEM_INLINE void sampled_sa_print(FILE* const stream,sampled_sa_t* const sampled_sa,const bool display_data) {
+void sampled_sa_print(FILE* const stream,sampled_sa_t* const sampled_sa,const bool display_data) {
   SAMPLED_SA_CHECK(sampled_sa);
   // Print Sampled-SA
   sampled_sa_print_(stream,
@@ -186,7 +186,7 @@ GEM_INLINE void sampled_sa_print(FILE* const stream,sampled_sa_t* const sampled_
   // Flush
   fflush(stream);
 }
-GEM_INLINE void sampled_sa_builder_print(FILE* const stream,sampled_sa_builder_t* const sampled_sa) {
+void sampled_sa_builder_print(FILE* const stream,sampled_sa_builder_t* const sampled_sa) {
   SAMPLED_SA_CHECK(sampled_sa);
   // Print Sampled-SA
   sampled_sa_print_(stream,

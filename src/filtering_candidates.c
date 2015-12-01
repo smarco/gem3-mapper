@@ -31,7 +31,7 @@
 /*
  * Setup
  */
-GEM_INLINE void filtering_candidates_init(filtering_candidates_t* const filtering_candidates) {
+void filtering_candidates_init(filtering_candidates_t* const filtering_candidates) {
   // Region Buffer
   filtering_candidates->regions_buffer = vector_new(REGIONS_BUFFER_INIT,region_search_t);
   // Candidates
@@ -42,7 +42,7 @@ GEM_INLINE void filtering_candidates_init(filtering_candidates_t* const filterin
   // Cache
   filtering_region_cache_init(&filtering_candidates->filtering_region_cache);
 }
-GEM_INLINE void filtering_candidates_clear(filtering_candidates_t* const filtering_candidates) {
+void filtering_candidates_clear(filtering_candidates_t* const filtering_candidates) {
   // Region Buffer
   vector_clear(filtering_candidates->regions_buffer);
   // Candidates
@@ -53,7 +53,7 @@ GEM_INLINE void filtering_candidates_clear(filtering_candidates_t* const filteri
   // Cache
   filtering_region_cache_clear(&filtering_candidates->filtering_region_cache);
 }
-GEM_INLINE void filtering_candidates_destroy(filtering_candidates_t* const filtering_candidates) {
+void filtering_candidates_destroy(filtering_candidates_t* const filtering_candidates) {
   // Region Buffer
   vector_delete(filtering_candidates->regions_buffer);
   // Candidates
@@ -67,13 +67,13 @@ GEM_INLINE void filtering_candidates_destroy(filtering_candidates_t* const filte
 /*
  * Accessors
  */
-GEM_INLINE uint64_t filtering_candidates_get_num_candidate_positions(const filtering_candidates_t* const filtering_candidates) {
+uint64_t filtering_candidates_get_num_candidate_positions(const filtering_candidates_t* const filtering_candidates) {
   return vector_get_used(filtering_candidates->filtering_positions);
 }
-GEM_INLINE uint64_t filtering_candidates_get_num_candidate_regions(const filtering_candidates_t* const filtering_candidates) {
+uint64_t filtering_candidates_get_num_candidate_regions(const filtering_candidates_t* const filtering_candidates) {
   return vector_get_used(filtering_candidates->filtering_regions);
 }
-GEM_INLINE uint64_t filtering_candidates_count_candidate_regions(
+uint64_t filtering_candidates_count_candidate_regions(
     filtering_candidates_t* const filtering_candidates_end,
     const filtering_region_status_t filtering_region_status) {
   uint64_t count = 0;
@@ -82,13 +82,13 @@ GEM_INLINE uint64_t filtering_candidates_count_candidate_regions(
   }
   return count;
 }
-GEM_INLINE void filtering_candidates_set_all_regions_pending(filtering_candidates_t* const filtering_candidates) {
+void filtering_candidates_set_all_regions_pending(filtering_candidates_t* const filtering_candidates) {
   // Set all filtering regions as pending
   VECTOR_ITERATE(filtering_candidates->filtering_regions,filtering_region,n,filtering_region_t) {
     filtering_region->status = filtering_region_pending;
   }
 }
-GEM_INLINE void filtering_candidates_set_all_regions_unverified(filtering_candidates_t* const filtering_candidates) {
+void filtering_candidates_set_all_regions_unverified(filtering_candidates_t* const filtering_candidates) {
   // Set all filtering regions as pending
   VECTOR_ITERATE(filtering_candidates->filtering_regions,filtering_region,n,filtering_region_t) {
     filtering_region->status = filtering_region_unverified;
@@ -97,7 +97,7 @@ GEM_INLINE void filtering_candidates_set_all_regions_unverified(filtering_candid
 /*
  * Adding candidate positions
  */
-GEM_INLINE uint64_t filtering_candidates_add_region(
+uint64_t filtering_candidates_add_region(
     filtering_candidates_t* const filtering_candidates,
     const uint64_t region_begin_pos,const uint64_t region_end_pos,
     const uint64_t region_errors) {
@@ -109,7 +109,7 @@ GEM_INLINE uint64_t filtering_candidates_add_region(
   region->degree = region_errors;
   return vector_get_used(filtering_candidates->regions_buffer)-1;
 }
-GEM_INLINE void filtering_candidates_add_interval(
+void filtering_candidates_add_interval(
     filtering_candidates_t* const filtering_candidates,
     const uint64_t interval_lo,const uint64_t interval_hi,
     const uint64_t region_begin_pos,const uint64_t region_end_pos,
@@ -130,7 +130,7 @@ GEM_INLINE void filtering_candidates_add_interval(
   }
   vector_update_used(filtering_candidates->filtering_positions,position_index);
 }
-GEM_INLINE void filtering_candidates_add_interval_set(
+void filtering_candidates_add_interval_set(
     filtering_candidates_t* const filtering_candidates,interval_set_t* const interval_set,
     const uint64_t region_begin_pos,const uint64_t region_end_pos,mm_stack_t* const mm_stack) {
   INTERVAL_SET_ITERATE(interval_set,interval) {
@@ -138,7 +138,7 @@ GEM_INLINE void filtering_candidates_add_interval_set(
         region_begin_pos,region_end_pos,interval->distance,mm_stack);
   }
 }
-GEM_INLINE void filtering_candidates_add_interval_set_thresholded(
+void filtering_candidates_add_interval_set_thresholded(
     filtering_candidates_t* const filtering_candidates,interval_set_t* const interval_set,
     const uint64_t region_begin_pos,const uint64_t region_end_pos,
     const uint64_t max_error,mm_stack_t* const mm_stack) {
@@ -161,17 +161,17 @@ int filtering_region_cmp_sort_align_distance(const filtering_region_t* const a,c
 int verified_region_cmp_position(const verified_region_t* const a,const verified_region_t* const b) {
   return a->begin_position - b->begin_position;
 }
-GEM_INLINE void filtering_positions_sort_positions(vector_t* const filtering_positions) {
+void filtering_positions_sort_positions(vector_t* const filtering_positions) {
   void* array = vector_get_mem(filtering_positions,filtering_position_t);
   const size_t count = vector_get_used(filtering_positions);
   qsort(array,count,sizeof(filtering_position_t),(int (*)(const void *,const void *))filtering_position_cmp_position);
 }
-GEM_INLINE void filtering_regions_sort_align_distance(vector_t* const filtering_regions) {
+void filtering_regions_sort_align_distance(vector_t* const filtering_regions) {
   void* array = vector_get_mem(filtering_regions,filtering_region_t);
   const size_t count = vector_get_used(filtering_regions);
   qsort(array,count,sizeof(filtering_region_t),(int (*)(const void *,const void *))filtering_region_cmp_sort_align_distance);
 }
-GEM_INLINE void verified_regions_sort_positions(vector_t* const verified_regions) {
+void verified_regions_sort_positions(vector_t* const verified_regions) {
   void* array = vector_get_mem(verified_regions,verified_region_t);
   const size_t count = vector_get_used(verified_regions);
   qsort(array,count,sizeof(verified_region_t),(int (*)(const void *,const void *))verified_region_cmp_position);
@@ -180,7 +180,7 @@ GEM_INLINE void verified_regions_sort_positions(vector_t* const verified_regions
 /*
  * Display
  */
-GEM_INLINE void filtering_candidates_print_regions_by_status(
+void filtering_candidates_print_regions_by_status(
     FILE* const stream,vector_t* const filtering_regions,const filtering_region_status_t status,
     const text_collection_t* const text_collection,const bool print_matching_regions) {
   uint64_t i, total_printed = 0;
@@ -201,7 +201,7 @@ GEM_INLINE void filtering_candidates_print_regions_by_status(
   }
   tab_global_dec();
 }
-GEM_INLINE void filtering_candidates_print_regions(
+void filtering_candidates_print_regions(
     FILE* const stream,filtering_candidates_t* const filtering_candidates,
     const text_collection_t* const text_collection,const bool print_base_regions,
     const bool print_matching_regions) {

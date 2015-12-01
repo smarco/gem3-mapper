@@ -37,23 +37,23 @@ void buffered_input_file_close(buffered_input_file_t* const buffered_input) {
 /*
  * Accessors
  */
-GEM_INLINE char** buffered_input_file_get_text_line(buffered_input_file_t* const buffered_input) {
+char** buffered_input_file_get_text_line(buffered_input_file_t* const buffered_input) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input);
   return input_buffer_get_cursor(buffered_input->input_buffer);
 }
-GEM_INLINE uint64_t buffered_input_file_get_cursor_pos(buffered_input_file_t* const buffered_input) {
+uint64_t buffered_input_file_get_cursor_pos(buffered_input_file_t* const buffered_input) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input);
   return input_buffer_get_cursor_pos(buffered_input->input_buffer);
 }
-GEM_INLINE uint64_t buffered_input_file_get_block_id(buffered_input_file_t* const buffered_input) {
+uint64_t buffered_input_file_get_block_id(buffered_input_file_t* const buffered_input) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input);
   return buffered_input->input_buffer->block_id;
 }
-GEM_INLINE bool buffered_input_file_eob(buffered_input_file_t* const buffered_input) {
+bool buffered_input_file_eob(buffered_input_file_t* const buffered_input) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input);
   return input_buffer_eob(buffered_input->input_buffer);
 }
-GEM_INLINE void buffered_input_file_attach_buffered_output(
+void buffered_input_file_attach_buffered_output(
     buffered_input_file_t* const buffered_input_file,buffered_output_file_t* const buffered_output_file) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input_file);
   BUFFERED_OUTPUT_FILE_CHECK(buffered_output_file);
@@ -62,7 +62,7 @@ GEM_INLINE void buffered_input_file_attach_buffered_output(
 /*
  * Utils
  */
-GEM_INLINE uint64_t buffered_input_file_reload(buffered_input_file_t* const buffered_input) {
+uint64_t buffered_input_file_reload(buffered_input_file_t* const buffered_input) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input);
   // Reload Buffer
   return input_file_reload_buffer(buffered_input->input_file,
@@ -71,7 +71,7 @@ GEM_INLINE uint64_t buffered_input_file_reload(buffered_input_file_t* const buff
 //#include "libittnotify.h"
 //__itt_resume();
 //__itt_pause();
-GEM_INLINE uint64_t buffered_input_file_reload__dump_attached(buffered_input_file_t* const buffered_input) {
+uint64_t buffered_input_file_reload__dump_attached(buffered_input_file_t* const buffered_input) {
   BUFFERED_INPUT_FILE_CHECK(buffered_input);
   PROFILE_START(GP_BUFFERED_INPUT_RELOAD__DUMP_ATTACHED,PROFILE_LEVEL);
   // Dump buffer

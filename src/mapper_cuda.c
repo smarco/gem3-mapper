@@ -45,7 +45,7 @@ void mapper_cuda_error_report(FILE* stream) {
 /*
  * SE/PE runnable
  */
-GEM_INLINE void mapper_cuda_prepare_ticker(
+void mapper_cuda_prepare_ticker(
     ticker_t* const ticker,const bool paired_end,const bool verbose_user) {
   ticker_count_reset(ticker,verbose_user,
       paired_end ? "PE::Mapping Sequences" : "SE::Mapping Sequences",0,MAPPER_TICKER_STEP,false);
@@ -53,7 +53,7 @@ GEM_INLINE void mapper_cuda_prepare_ticker(
   ticker_add_finish_label(ticker,"Total","sequences processed");
   ticker_mutex_enable(ticker);
 }
-GEM_INLINE void mapper_cuda_setup_thread(
+void mapper_cuda_setup_thread(
     mapper_cuda_search_t* const mapper_search,const uint64_t thread_id,
     mapper_parameters_t* const mapper_parameters,gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t gpu_buffers_offset,mapping_stats_t* const mstats,ticker_t* const ticker) {
@@ -72,7 +72,7 @@ GEM_INLINE void mapper_cuda_setup_thread(
   }
   mapper_search->ticker = ticker;
 }
-GEM_INLINE void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,const bool paired_end) {
+void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,const bool paired_end) {
   // Parameters
   mapper_parameters_cuda_t* const cuda_parameters = &mapper_parameters->cuda;
   // Check CUDA-Support
@@ -144,12 +144,12 @@ GEM_INLINE void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,con
 /*
  * SE-CUDA runnable
  */
-GEM_INLINE void mapper_cuda_se_run(mapper_parameters_t* const mapper_parameters) {
+void mapper_cuda_se_run(mapper_parameters_t* const mapper_parameters) {
   mapper_cuda_run(mapper_parameters,false);
 }
 /*
  * PE-CUDA Mapper
  */
-GEM_INLINE void mapper_cuda_pe_run(mapper_parameters_t* const mapper_parameters) {
+void mapper_cuda_pe_run(mapper_parameters_t* const mapper_parameters) {
   mapper_cuda_run(mapper_parameters,true);
 }

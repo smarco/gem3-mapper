@@ -19,7 +19,7 @@
 /*
  * Neighborhood Generation (Exact Search)
  */
-GEM_INLINE void approximate_search_neighborhood_exact_search(approximate_search_t* const search,matches_t* const matches) {
+void approximate_search_neighborhood_exact_search(approximate_search_t* const search,matches_t* const matches) {
   PROFILE_START(GP_AS_EXACT_SEARCH,PROFILE_LEVEL);
   pattern_t* const pattern = &search->pattern;
   // FM-Index basic exact search
@@ -41,7 +41,7 @@ GEM_INLINE void approximate_search_neighborhood_exact_search(approximate_search_
 /*
  * Neighborhood Generation (Inexact Search)
  */
-GEM_INLINE void approximate_search_neighborhood_inexact_search(approximate_search_t* const search,matches_t* const matches) {
+void approximate_search_neighborhood_inexact_search(approximate_search_t* const search,matches_t* const matches) {
   // Parameters, pattern & interval-set
   pattern_t* const pattern = &search->pattern;
   interval_set_t* const intervals_result = search->interval_set;
@@ -57,7 +57,7 @@ GEM_INLINE void approximate_search_neighborhood_inexact_search(approximate_searc
 /*
  * Neighborhood Search
  */
-GEM_INLINE void approximate_search_neighborhood_search(approximate_search_t* const search,matches_t* const matches) {
+void approximate_search_neighborhood_search(approximate_search_t* const search,matches_t* const matches) {
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Neighborhood Search\n");
     tab_global_inc();

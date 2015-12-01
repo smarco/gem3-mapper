@@ -12,7 +12,7 @@
 /*
  * Write mtable
  */
-GEM_INLINE void rank_mtable_builder_write(fm_t* const file_manager,rank_mtable_t* const rank_mtable) {
+void rank_mtable_builder_write(fm_t* const file_manager,rank_mtable_t* const rank_mtable) {
   FM_CHECK(file_manager);
   // Write Meta-info
   fm_write_uint64(file_manager,rank_mtable->num_levels);
@@ -114,7 +114,7 @@ void rank_mtable_builder_fill_ranks_hi(
     ticker_update(ticker,4);
   }
 }
-GEM_INLINE void rank_mtable_builder_fill_ranks(
+void rank_mtable_builder_fill_ranks(
     const bwt_builder_t* const bwt_builder,rank_mtable_t* const rank_mtable,ticker_t* const ticker) {
   rank_mtable->sa_ranks_levels[0][1] = bwt_builder_get_length(bwt_builder); // Init_hi
   rank_mtable_builder_fill_ranks_hi(bwt_builder,rank_mtable,1,bwt_builder_get_length(bwt_builder),1,ticker);
@@ -197,7 +197,7 @@ void rank_mtable_reverse_builder_fill_ranks_hi(
     ticker_update(ticker,4);
   }
 }
-GEM_INLINE void rank_mtable_reverse_builder_fill_ranks(
+void rank_mtable_reverse_builder_fill_ranks(
     const bwt_reverse_builder_t* const bwt_reverse_builder,rank_mtable_t* const rank_mtable,ticker_t* const ticker) {
   const uint64_t bwt_length = bwt_reverse_builder_get_length(bwt_reverse_builder);
   rank_mtable->sa_ranks_levels[0][1] = bwt_length; // Init_hi
@@ -215,7 +215,7 @@ GEM_INLINE void rank_mtable_reverse_builder_fill_ranks(
 /*
  * Generate Rank-MTable
  */
-GEM_INLINE rank_mtable_t* rank_mtable_builder_generate(
+rank_mtable_t* rank_mtable_builder_generate(
     const bwt_builder_t* const bwt_builder,
     const bwt_reverse_builder_t* const bwt_reverse_builder,const bool verbose) {
   // Alloc
@@ -243,7 +243,7 @@ GEM_INLINE rank_mtable_t* rank_mtable_builder_generate(
   // Return
   return rank_mtable;
 }
-GEM_INLINE rank_mtable_t* rank_mtable_builder_new(const bwt_builder_t* const bwt_builder,const bool verbose) {
+rank_mtable_t* rank_mtable_builder_new(const bwt_builder_t* const bwt_builder,const bool verbose) {
   return rank_mtable_builder_generate(bwt_builder,NULL,verbose);
 }
 rank_mtable_t* rank_mtable_reverse_builder_new(const bwt_reverse_builder_t* const bwt_reverse_builder,const bool verbose) {
@@ -252,7 +252,7 @@ rank_mtable_t* rank_mtable_reverse_builder_new(const bwt_reverse_builder_t* cons
 /*
  * Delete
  */
-GEM_INLINE void rank_mtable_builder_delete(rank_mtable_t* const rank_mtable) {
+void rank_mtable_builder_delete(rank_mtable_t* const rank_mtable) {
   RANK_MTABLE_CHECK(rank_mtable);
   mm_free(rank_mtable->sa_ranks_levels[0]);
   mm_free(rank_mtable->sa_ranks_levels);

@@ -11,7 +11,7 @@
 /*
  * Compute Partition
  */
-GEM_INLINE void nsearch_partition_compute(
+void nsearch_partition_compute(
     nsearch_partition_t* const nsearch_partition,
     const uint64_t chunk_offset,const uint64_t chunk_length) {
   // Pattern Partition
@@ -23,7 +23,7 @@ GEM_INLINE void nsearch_partition_compute(
   nsearch_partition->region_0 = NULL;
   nsearch_partition->region_1 = NULL;
 }
-GEM_INLINE void nsearch_partition_preconditioned_compute(
+void nsearch_partition_preconditioned_compute(
     nsearch_partition_t* const nsearch_partition,region_search_t* const regions,
     const uint64_t region_offset,const uint64_t num_regions) {
   // Region Partition
@@ -45,7 +45,7 @@ GEM_INLINE void nsearch_partition_preconditioned_compute(
 /*
  * Compute error partition
  */
-GEM_INLINE void nsearch_partition_compute_error(
+void nsearch_partition_compute_error(
     nsearch_partition_t* const nsearch_partition,
     const uint64_t min_error,const uint64_t max_error) {
   // Parameters

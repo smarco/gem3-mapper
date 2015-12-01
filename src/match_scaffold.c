@@ -28,7 +28,7 @@
 /*
  * Setup
  */
-GEM_INLINE void match_scaffold_init(match_scaffold_t* const match_scaffold) {
+void match_scaffold_init(match_scaffold_t* const match_scaffold) {
   // Scaffold matching region
   match_scaffold->scaffold_regions = NULL;
   match_scaffold->num_scaffold_regions = 0;
@@ -39,7 +39,7 @@ GEM_INLINE void match_scaffold_init(match_scaffold_t* const match_scaffold) {
 /*
  * Scaffold Match (based on levenshtein alignment)
  */
-GEM_INLINE bool match_scaffold_match_is_homopolymer(
+bool match_scaffold_match_is_homopolymer(
     const uint8_t* const text,const uint64_t text_pos,
     const uint64_t homopolymer_min_context,const uint8_t* indel_text,
     const uint64_t indel_length) {
@@ -59,7 +59,7 @@ GEM_INLINE bool match_scaffold_match_is_homopolymer(
   }
   return true;
 }
-GEM_INLINE void match_scaffold_match_add_match_matching_approximate(
+void match_scaffold_match_add_match_matching_approximate(
     const uint64_t key_begin,const uint64_t key_end,
     const uint64_t text_begin,const uint64_t text_end,
     const uint64_t cigar_offset,const uint64_t cigar_length,
@@ -77,7 +77,7 @@ GEM_INLINE void match_scaffold_match_add_match_matching_approximate(
   region_matching->cigar_buffer_offset = cigar_offset;
   region_matching->cigar_length = cigar_length;
 }
-GEM_INLINE region_matching_t* match_scaffold_match_add_match(
+region_matching_t* match_scaffold_match_add_match(
     uint8_t* const text,uint64_t* const key_pos,uint64_t* const text_pos,
     const uint64_t cigar_offset,const uint64_t match_length,
     match_scaffold_t* const match_scaffold) {
@@ -98,7 +98,7 @@ GEM_INLINE region_matching_t* match_scaffold_match_add_match(
   // Return matching region
   return region_matching;
 }
-GEM_INLINE void match_scaffold_match_add_mismatch(
+void match_scaffold_match_add_mismatch(
     uint64_t* const key_pos,uint64_t* const text_pos,const uint64_t match_length,
     match_scaffold_t* const match_scaffold,region_matching_t* const last_scaffold_region) {
   // Extend matching-region
@@ -110,7 +110,7 @@ GEM_INLINE void match_scaffold_match_add_mismatch(
   last_scaffold_region->key_end = *key_pos;
   last_scaffold_region->text_end = *text_pos;
 }
-GEM_INLINE void match_scaffold_match_add_homopolymer(
+void match_scaffold_match_add_homopolymer(
     uint8_t* const text,uint64_t* const key_pos,uint64_t* const text_pos,
     const uint64_t context_cigar_offset,const uint64_t context_match_length,
     const cigar_t indel_type,const uint64_t indel_length,
@@ -156,7 +156,7 @@ GEM_INLINE void match_scaffold_match_add_homopolymer(
  *   @align_parameters->min_matching_length
  *   @align_parameters->min_context_length
  */
-GEM_INLINE void match_scaffold_levenshtein_compose_matching_regions(
+void match_scaffold_levenshtein_compose_matching_regions(
     matches_t* const matches,match_align_input_t* const align_input,
     uint64_t key_pos,uint64_t text_pos,const uint64_t cigar_offset,
     const uint64_t cigar_length,match_align_parameters_t* const align_parameters,
@@ -220,7 +220,7 @@ GEM_INLINE void match_scaffold_levenshtein_compose_matching_regions(
 /*
  * Compose the scaffolding (determine the matching regions based on the SWG score)
  */
-GEM_INLINE void match_scaffold_smith_waterman_gotoh_compose_matching_regions(
+void match_scaffold_smith_waterman_gotoh_compose_matching_regions(
     matches_t* const matches,match_align_input_t* const align_input,
     uint64_t key_pos,uint64_t text_pos,const uint64_t cigar_offset,
     const uint64_t cigar_length,match_align_parameters_t* const align_parameters,
@@ -315,7 +315,7 @@ GEM_INLINE void match_scaffold_smith_waterman_gotoh_compose_matching_regions(
  *   @align_parameters->left_gap_alignment
  *   @align_parameters->max_error
  */
-GEM_INLINE void match_scaffold_levenshtein_alignment(
+void match_scaffold_levenshtein_alignment(
     matches_t* const matches,match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
     match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack) {
@@ -361,7 +361,7 @@ GEM_INLINE void match_scaffold_levenshtein_alignment(
  *   @align_parameters->min_matching_length
  *   @align_parameters->min_context_length
  */
-GEM_INLINE bool match_scaffold_levenshtein(
+bool match_scaffold_levenshtein(
     matches_t* const matches,match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
     match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack) {
@@ -417,7 +417,7 @@ GEM_INLINE bool match_scaffold_levenshtein(
 /*
  * Scaffold the alignment (based on SWG-distance)
  */
-GEM_INLINE bool match_scaffold_smith_waterman_gotoh(
+bool match_scaffold_smith_waterman_gotoh(
     matches_t* const matches,match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
     match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack) {
@@ -447,7 +447,7 @@ GEM_INLINE bool match_scaffold_smith_waterman_gotoh(
 /*
  * Exact extend of matching regions
  */
-GEM_INLINE void match_scaffold_exact_extend(
+void match_scaffold_exact_extend(
     matches_t* const matches,match_scaffold_t* const match_scaffold,
     const uint8_t* const key,const uint64_t key_length,
     const uint8_t* const text,const uint64_t text_length,
@@ -498,7 +498,7 @@ GEM_INLINE void match_scaffold_exact_extend(
  *   @match_scaffold->num_scaffold_regions
  *   @match_scaffold->scaffold_regions
  */
-GEM_INLINE void match_scaffold_chain_matching_regions(
+void match_scaffold_chain_matching_regions(
     matches_t* const matches,match_scaffold_t* const match_scaffold,
     const uint8_t* const key,const uint64_t key_length,
     const uint8_t* const text,const bool* const allowed_enc,
@@ -556,7 +556,7 @@ GEM_INLINE void match_scaffold_chain_matching_regions(
  *   @match_scaffold->num_scaffold_regions
  *   @match_scaffold->scaffold_regions
  */
-GEM_INLINE void match_scaffold_alignment(
+void match_scaffold_alignment(
     matches_t* const matches,match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
     match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack) {
@@ -603,7 +603,7 @@ GEM_INLINE void match_scaffold_alignment(
 int region_matching_cmp_text_position(const region_matching_t* const a,const region_matching_t* const b) {
   return a->text_begin - b->text_begin;
 }
-GEM_INLINE void match_scaffold_sort_regions_matching(match_scaffold_t* const match_scaffold) {
+void match_scaffold_sort_regions_matching(match_scaffold_t* const match_scaffold) {
   // Sort Scaffold regions (region_matching_t) wrt their starting position in the text
   void* array = match_scaffold->scaffold_regions;
   const size_t count = match_scaffold->num_scaffold_regions;
@@ -612,7 +612,7 @@ GEM_INLINE void match_scaffold_sort_regions_matching(match_scaffold_t* const mat
 /*
  * Display
  */
-GEM_INLINE void match_scaffold_print(
+void match_scaffold_print(
     FILE* const stream,matches_t* const matches,match_scaffold_t* const match_scaffold) {
   const uint64_t num_scaffold_regions = match_scaffold->num_scaffold_regions;
   tab_fprintf(stream,"[GEM]>Matching.Scaffolded.Regions\n");

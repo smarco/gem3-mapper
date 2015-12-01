@@ -14,7 +14,7 @@
 /*
  * Display
  */
-GEM_INLINE void align_ond_print_contour(
+void align_ond_print_contour(
     FILE* const stream,const int32_t* const contour,
     const int32_t begin_contour,const int32_t end_contour,
     const int32_t distance) {
@@ -26,7 +26,7 @@ GEM_INLINE void align_ond_print_contour(
 /*
  * O(ND) Compute LCS
  */
-GEM_INLINE void align_ond_compute_lcs_distance(
+void align_ond_compute_lcs_distance(
     const uint8_t* const key,const int32_t key_length,
     const uint8_t* const text,const int32_t text_length,
     uint64_t* const lcs_distance,uint64_t* const match_end_column,
@@ -71,7 +71,7 @@ GEM_INLINE void align_ond_compute_lcs_distance(
 /*
  * O(ND) Align
  */
-GEM_INLINE void align_ond_compute_contours(
+void align_ond_compute_contours(
     match_align_input_t* const align_input,const int32_t max_distance,
     align_ond_contours_t* const align_ond_contours,mm_stack_t* const mm_stack) {
   // Parameters
@@ -123,7 +123,7 @@ GEM_INLINE void align_ond_compute_contours(
   align_ond_contours->lcs_distance = ALIGN_DISTANCE_INF;
   align_ond_contours->match_end_column = ALIGN_COLUMN_INF;
 }
-GEM_INLINE void align_ond_backtrace_contours(
+void align_ond_backtrace_contours(
     match_align_input_t* const align_input,align_ond_contours_t* const align_ond_contours,
     match_alignment_t* const match_alignment,vector_t* const cigar_vector) {
   // Parameters
@@ -202,7 +202,7 @@ GEM_INLINE void align_ond_backtrace_contours(
   // Set used
   vector_add_used(cigar_vector,num_cigar_elements);
 }
-GEM_INLINE void align_ond_match(
+void align_ond_match(
     match_align_input_t* const align_input,const int32_t max_distance,
     match_alignment_t* const match_alignment,vector_t* const cigar_vector,
     mm_stack_t* const mm_stack) {
@@ -226,7 +226,7 @@ GEM_INLINE void align_ond_match(
 ///*
 // * O(ND) Align (ends-free prototype)
 // */
-//GEM_INLINE void align_ond_compute_contours(
+//void align_ond_compute_contours(
 //    match_align_input_t* const align_input,const int32_t max_distance,
 //    align_ond_contours_t* const align_ond_contours,mm_stack_t* const mm_stack) {
 //  // Parameters

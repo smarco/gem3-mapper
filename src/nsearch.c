@@ -55,7 +55,7 @@ typedef struct {
 /*
  * Debug
  */
-GEM_INLINE void neighborhood_dp_column_print(
+void neighborhood_dp_column_print(
     neighborhood_search_t* const neighborhood_search,
     uint64_t* const dp_column,const uint64_t column_position,
     const uint64_t lo,const uint64_t hi) {
@@ -64,7 +64,7 @@ GEM_INLINE void neighborhood_dp_column_print(
   for (i=0;i<=key_length;++i) min = MIN(min,dp_column[i]);
   gem_slog(">> [%"PRIu64"](#%"PRIu64"){min=%"PRIu64",last=%"PRIu64"}\n",column_position,hi-lo,min,dp_column[key_length]);
 }
-GEM_INLINE void neighborhood_dp_matrix_print(
+void neighborhood_dp_matrix_print(
     neighborhood_search_t* const neighborhood_search,
     dp_column_t* const dp_columns,const uint64_t num_rows,const uint64_t num_columns) {
   int64_t h, v;
@@ -78,7 +78,7 @@ GEM_INLINE void neighborhood_dp_matrix_print(
     gem_slog("\n");
   }
 }
-GEM_INLINE void neighborhood_dp_matrix_traceback(
+void neighborhood_dp_matrix_traceback(
     neighborhood_search_t* const neighborhood_search,
     dp_column_t* const dp_columns,const uint64_t column_position) {
   const uint8_t* const key = neighborhood_search->key;
@@ -108,7 +108,7 @@ GEM_INLINE void neighborhood_dp_matrix_traceback(
   while (h-- > 0) gem_slog("I");
   gem_slog("\n");
 }
-GEM_INLINE void neighborhood_search_debug_match(
+void neighborhood_search_debug_match(
     neighborhood_search_t* const neighborhood_search,
     dp_column_t* const dp_columns,const uint64_t column_position,
     const uint64_t min_val,const uint64_t num_matches_found) {
@@ -124,7 +124,7 @@ GEM_INLINE void neighborhood_search_debug_match(
 /*
  * Condensed Neighborhood
  */
-GEM_INLINE uint64_t neighborhood_compute_dp_column(
+uint64_t neighborhood_compute_dp_column(
     neighborhood_search_t* const neighborhood_search,
     uint64_t* const base_column,uint64_t* const next_column,
     const uint64_t column_position,const uint8_t text_enc) {
@@ -142,7 +142,7 @@ GEM_INLINE uint64_t neighborhood_compute_dp_column(
   }
   return min;
 }
-GEM_INLINE void neighborhood_condensed_search(
+void neighborhood_condensed_search(
     neighborhood_search_t* const neighborhood_search,
     uint64_t** const dp_columns,const uint64_t column_position,
     const uint64_t lo,const uint64_t hi) {
@@ -177,7 +177,7 @@ GEM_INLINE void neighborhood_condensed_search(
 /*
  * SuperCondensed Neighborhood
  */
-GEM_INLINE uint64_t neighborhood_supercondensed_compute_dp_column(
+uint64_t neighborhood_supercondensed_compute_dp_column(
     neighborhood_search_t* const neighborhood_search,
     uint64_t* const base_column,uint64_t* const next_column,
     const uint64_t column_position,const uint8_t text_enc) {
@@ -206,7 +206,7 @@ GEM_INLINE uint64_t neighborhood_supercondensed_compute_dp_column(
   }
   return column_min;
 }
-GEM_INLINE void neighborhood_supercondensed_search(
+void neighborhood_supercondensed_search(
     neighborhood_search_t* const neighborhood_search,
     uint64_t** const dp_columns,const uint64_t column_position,
     const uint64_t lo,const uint64_t hi) {
@@ -250,7 +250,7 @@ uint64_t neighborhood_best_matches_search_mtable(
     neighborhood_search_t* const neighborhood_search,
     dp_column_t* const dp_columns,const uint64_t current_column,
     rank_mquery_t* const query);
-GEM_INLINE dp_column_t* neighborhood_best_matches_search_init(neighborhood_search_t* const neighborhood_search) {
+dp_column_t* neighborhood_best_matches_search_init(neighborhood_search_t* const neighborhood_search) {
   // Allocate columns
   mm_stack_t* const mm_stack = neighborhood_search->mm_stack;
   const uint64_t max_text_length = neighborhood_search->max_text_length;
@@ -283,7 +283,7 @@ GEM_INLINE dp_column_t* neighborhood_best_matches_search_init(neighborhood_searc
   // Return
   return dp_columns;
 }
-GEM_INLINE void ns_best_matches_compute_dp_column_banded(
+void ns_best_matches_compute_dp_column_banded(
     neighborhood_search_t* const neighborhood_search,
     dp_column_t* const dp_columns,const uint64_t current_column,
     const uint64_t max_error,const uint8_t text_enc,
@@ -311,7 +311,7 @@ GEM_INLINE void ns_best_matches_compute_dp_column_banded(
   *min_val = NS_HAS_PRIORITY(column_min,0) ? NS_DECODE_DISTANCE(column_min) : NS_INF;
   *align_distance = NS_DECODE_DISTANCE(next_column->cells[key_length]);
 }
-GEM_INLINE uint64_t neighborhood_best_matches_search_continue(
+uint64_t neighborhood_best_matches_search_continue(
     neighborhood_search_t* const neighborhood_search,
     dp_column_t* const dp_columns,const uint64_t current_column,
     const uint64_t min_val,const uint64_t align_distance,
@@ -344,7 +344,7 @@ GEM_INLINE uint64_t neighborhood_best_matches_search_continue(
   }
   return matches_found;
 }
-GEM_INLINE uint64_t neighborhood_best_matches_search_bwt(
+uint64_t neighborhood_best_matches_search_bwt(
     neighborhood_search_t* const neighborhood_search,
     dp_column_t* const dp_columns,const uint64_t current_column,
     const uint64_t lo,const uint64_t hi) {
@@ -383,7 +383,7 @@ GEM_INLINE uint64_t neighborhood_best_matches_search_bwt(
   }
   return total_matches_found;
 }
-GEM_INLINE uint64_t neighborhood_best_matches_search_mtable(
+uint64_t neighborhood_best_matches_search_mtable(
     neighborhood_search_t* const neighborhood_search,dp_column_t* const dp_columns,
     const uint64_t current_column,rank_mquery_t* const query) {
   // Profiler
@@ -422,7 +422,7 @@ GEM_INLINE uint64_t neighborhood_best_matches_search_mtable(
 /*
  * Main
  */
-GEM_INLINE void neighborhood_search(
+void neighborhood_search(
     fm_index_t* const fm_index,uint8_t* const key,
     const uint64_t key_length,const uint64_t max_error,
     interval_set_t* const intervals_result,mm_stack_t* const mm_stack) {

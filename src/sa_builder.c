@@ -33,12 +33,12 @@ uint64_t suffix_cmp_length_range[] = {0,1,2,3,4,5,6,7,8,9,10,100,1000,10000};
 /*
  * Prototypes
  */
-GEM_INLINE void sa_builder_record_kmer_count_stats(sa_builder_t* const sa_builder);
+void sa_builder_record_kmer_count_stats(sa_builder_t* const sa_builder);
 
 /*
  * Setup
  */
-GEM_INLINE sa_builder_t* sa_builder_new(
+sa_builder_t* sa_builder_new(
     char* const name_prefix,dna_text_t* const enc_text,
     const uint64_t num_threads,const uint64_t max_memory) {
   // Allocate sa_builder
@@ -69,7 +69,7 @@ GEM_INLINE sa_builder_t* sa_builder_new(
   // Return
   return sa_builder;
 }
-GEM_INLINE void sa_builder_delete(sa_builder_t* const sa_builder) {
+void sa_builder_delete(sa_builder_t* const sa_builder) {
   SA_BUILDER_CHECK(sa_builder);
   mm_free(sa_builder->kmer_count);
   mm_free(sa_builder->pthreads);
@@ -85,7 +85,7 @@ GEM_INLINE void sa_builder_delete(sa_builder_t* const sa_builder) {
 /*
  * 1.- Count all suffixes
  */
-GEM_INLINE void sa_builder_count_suffixes(sa_builder_t* const sa_builder,
+void sa_builder_count_suffixes(sa_builder_t* const sa_builder,
     uint64_t* const character_occurrences,const bool verbose) {
   SA_BUILDER_CHECK(sa_builder);
   // Ticker
@@ -126,7 +126,7 @@ GEM_INLINE void sa_builder_count_suffixes(sa_builder_t* const sa_builder,
 /*
  * 2.- Add all suffixes
  */
-GEM_INLINE uint64_t sa_builder_calculate_max_bucket_size(sa_builder_t* const sa_builder) {
+uint64_t sa_builder_calculate_max_bucket_size(sa_builder_t* const sa_builder) {
   const uint64_t* const kmer_count = sa_builder->kmer_count;
   uint64_t max_bucket_size = 0, i;
   for (i=0;i<sa_builder->num_kmers;++i) { // Find the largest block
@@ -134,7 +134,7 @@ GEM_INLINE uint64_t sa_builder_calculate_max_bucket_size(sa_builder_t* const sa_
   }
   return max_bucket_size*UINT64_SIZE;
 }
-GEM_INLINE uint64_t sa_builder_calculate_num_sa_groups(sa_builder_t* const sa_builder,const uint64_t block_size) {
+uint64_t sa_builder_calculate_num_sa_groups(sa_builder_t* const sa_builder,const uint64_t block_size) {
   const uint64_t* const kmer_count = sa_builder->kmer_count;
   const uint64_t kmers_per_block = block_size/UINT64_SIZE;
   uint64_t num_sa_groups = 0, block_positions_acc = 0, i;
@@ -150,7 +150,7 @@ GEM_INLINE uint64_t sa_builder_calculate_num_sa_groups(sa_builder_t* const sa_bu
   }
   return (block_positions_acc > 0) ? num_sa_groups+1 : num_sa_groups;
 }
-GEM_INLINE void sa_builder_sa_groups_prepare(sa_builder_t* const sa_builder,const uint64_t block_size) {
+void sa_builder_sa_groups_prepare(sa_builder_t* const sa_builder,const uint64_t block_size) {
   // Setup groups
   uint64_t* const kmer_count = sa_builder->kmer_count;
   const uint64_t kmers_per_block = block_size/UINT64_SIZE;
@@ -182,7 +182,7 @@ GEM_INLINE void sa_builder_sa_groups_prepare(sa_builder_t* const sa_builder,cons
     fm_seek(sa_builder->sa_groups[num_sa_group].sa_positions_file,sa_offset*UINT64_SIZE);
   }
 }
-GEM_INLINE void sa_builder_sa_groups_distribute(sa_builder_t* const sa_builder) {
+void sa_builder_sa_groups_distribute(sa_builder_t* const sa_builder) {
   // Calculate number of groups per thread
   const uint64_t num_threads = sa_builder->num_threads;
   uint64_t i, num_groups_per_thread = DIV_CEIL(sa_builder->num_sa_groups,num_threads);
@@ -207,14 +207,14 @@ GEM_INLINE void sa_builder_sa_groups_distribute(sa_builder_t* const sa_builder) 
     }
   }
 }
-GEM_INLINE void sa_builder_sa_groups_cleanup(sa_builder_t* const sa_builder) {
+void sa_builder_sa_groups_cleanup(sa_builder_t* const sa_builder) {
   uint64_t i;
   sa_group_t* const sa_groups = sa_builder->sa_groups;
   for (i=0;i<sa_builder->num_sa_groups;++i) {
     fm_close(sa_groups[i].sa_positions_file);
   }
 }
-GEM_INLINE void sa_builder_store_suffixes_prepare(sa_builder_t* const sa_builder) {
+void sa_builder_store_suffixes_prepare(sa_builder_t* const sa_builder) {
   SA_BUILDER_CHECK(sa_builder);
   // Calculate maximum bucket size (for sorting)
   const uint64_t max_bucket_size = sa_builder_calculate_max_bucket_size(sa_builder);
@@ -238,7 +238,7 @@ GEM_INLINE void sa_builder_store_suffixes_prepare(sa_builder_t* const sa_builder
   sa_builder_sa_groups_prepare(sa_builder,block_size); // Setup SA-Groups
   sa_builder_sa_groups_distribute(sa_builder);
 }
-GEM_INLINE void sa_builder_store_sa_pos(
+void sa_builder_store_sa_pos(
     sa_builder_t* const sa_builder,sa_group_t* const group,
     const uint64_t sa_pos,const uint64_t kmer_idx) {
   SA_BUILDER_CHECK(sa_builder);
@@ -269,7 +269,7 @@ void* sa_builder_store_suffixes_thread(const uint8_t thread_id) {
   // Return
   return NULL;
 }
-GEM_INLINE void sa_builder_store_suffixes(sa_builder_t* const sa_builder,const bool verbose) {
+void sa_builder_store_suffixes(sa_builder_t* const sa_builder,const bool verbose) {
   /*
    * Prepare storage for Writing
    */
@@ -333,17 +333,17 @@ int sa_builder_suffix_cmp(const uint64_t* const a,const uint64_t* const b) {
  *    have @ds_shallow_limit chars in common
  */
 // Auxiliary procedures and macro for Bentley-Sedgewick's multikey quicksort
-GEM_INLINE void sa_builder_vector_swap(uint64_t* a,uint64_t* b,uint64_t length) {
+void sa_builder_vector_swap(uint64_t* a,uint64_t* b,uint64_t length) {
   while (length-- > 0) {
     const uint64_t t = *a;
     *a++ = *b;
     *b++ = t;
   }
 }
-GEM_INLINE uint8_t sa_builder_get_char(const uint64_t* const sa_position) {
+uint8_t sa_builder_get_char(const uint64_t* const sa_position) {
   return SA_POS_MASK_FIRST_CHARACTER(*sa_position);
 }
-GEM_INLINE uint64_t sa_builder_word64(const uint8_t* const text,const uint64_t* const sa_position) {
+uint64_t sa_builder_word64(const uint8_t* const text,const uint64_t* const sa_position) {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   #ifdef __MACH__ // OS X
     return (uint64_t)text[SA_POS_MASK_POSITION(*sa_position)]   << 9 |
@@ -363,10 +363,10 @@ GEM_INLINE uint64_t sa_builder_word64(const uint8_t* const text,const uint64_t* 
   return word64;
 #endif
 }
-GEM_INLINE uint64_t sa_builder_word64_cached(const uint64_t* const sa_position) {
+uint64_t sa_builder_word64_cached(const uint64_t* const sa_position) {
   return SA_POS_MASK_SUFFIX_CACHE(*sa_position);
 }
-GEM_INLINE uint64_t* sa_builder_med3(uint64_t* const a,uint64_t* const b,uint64_t* const c) {
+uint64_t* sa_builder_med3(uint64_t* const a,uint64_t* const b,uint64_t* const c) {
   uint8_t va, vb, vc;
   va = sa_builder_get_char(a);
   vb = sa_builder_get_char(b);
@@ -572,7 +572,7 @@ void* sa_builder_sort_suffixes_thread(uint64_t thread_id) {
 /*
  * 3.3 Sort all suffixes
  */
-GEM_INLINE void sa_builder_sort_suffixes_prepare_groups(sa_builder_t* const sa_builder) {
+void sa_builder_sort_suffixes_prepare_groups(sa_builder_t* const sa_builder) {
   const uint64_t num_threads = sa_builder->num_threads;
   sa_builder->sa_file_reader = mm_calloc(num_threads,fm_t*,false);
   uint64_t i;
@@ -581,7 +581,7 @@ GEM_INLINE void sa_builder_sort_suffixes_prepare_groups(sa_builder_t* const sa_b
   }
 }
 //#include "libittnotify.h"
-GEM_INLINE void sa_builder_sort_suffixes(
+void sa_builder_sort_suffixes(
     sa_builder_t* const sa_builder,dna_text_t* const enc_bwt,
     sampled_sa_builder_t* const sampled_sa,const bool verbose) {
   /*
@@ -626,7 +626,7 @@ GEM_INLINE void sa_builder_sort_suffixes(
 /*
  * Stats
  */
-GEM_INLINE void sa_builder_record_kmer_count_stats(sa_builder_t* const sa_builder) {
+void sa_builder_record_kmer_count_stats(sa_builder_t* const sa_builder) {
   // Allocate
   uint64_t i, max=0;
   for (i=0;i<sa_builder->num_kmers;++i) {
@@ -636,7 +636,7 @@ GEM_INLINE void sa_builder_record_kmer_count_stats(sa_builder_t* const sa_builde
   }
   sa_builder->kmer_count_max = max;
 }
-GEM_INLINE void sa_builder_display_stats(FILE* const stream,sa_builder_t* const sa_builder,const bool display_groups) {
+void sa_builder_display_stats(FILE* const stream,sa_builder_t* const sa_builder,const bool display_groups) {
   SA_BUILDER_CHECK(sa_builder);
   tab_fprintf(stream,"[GEM]>SA.Builder.Stats\n");
   tab_fprintf(stream,"  => Text.Length %"PRIu64"\n",dna_text_get_length(sa_builder->enc_text));
@@ -700,7 +700,7 @@ GEM_INLINE void sa_builder_display_stats(FILE* const stream,sa_builder_t* const 
 /*
  * Debug
  */
-GEM_INLINE void sa_builder_debug_print_sa(
+void sa_builder_debug_print_sa(
     FILE* stream,sa_builder_t* const sa_builder,
     const uint64_t sa_position,const uint64_t sa_suffix_length) {
   const uint8_t* const enc_text = dna_text_get_text(sa_builder->enc_text);

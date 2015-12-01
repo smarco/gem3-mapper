@@ -210,7 +210,7 @@ struct _dna_text_t {
 /*
  * Setup/Loader
  */
-GEM_INLINE dna_text_t* dna_text_read_mem(mm_t* const memory_manager) {
+dna_text_t* dna_text_read_mem(mm_t* const memory_manager) {
   // Alloc
   dna_text_t* const dna_text = mm_alloc(dna_text_t);
   // Read header
@@ -227,7 +227,7 @@ GEM_INLINE dna_text_t* dna_text_read_mem(mm_t* const memory_manager) {
   // Return
   return dna_text;
 }
-GEM_INLINE void dna_text_delete(dna_text_t* const dna_text) {
+void dna_text_delete(dna_text_t* const dna_text) {
   DNA_TEXT_CHECK(dna_text);
   if (dna_text->mm_text!=NULL) {
     mm_bulk_free(dna_text->mm_text);
@@ -239,7 +239,7 @@ GEM_INLINE void dna_text_delete(dna_text_t* const dna_text) {
 /*
  * Builder
  */
-GEM_INLINE dna_text_t* dna_text_new(const uint64_t dna_text_length) {
+dna_text_t* dna_text_new(const uint64_t dna_text_length) {
   dna_text_t* const dna_text = mm_alloc(dna_text_t);
   dna_text->type = dna_text_raw;
   dna_text->allocated = dna_text_length;
@@ -250,7 +250,7 @@ GEM_INLINE dna_text_t* dna_text_new(const uint64_t dna_text_length) {
   dna_text->mm_extern = false;
   return dna_text;
 }
-GEM_INLINE dna_text_t* dna_text_padded_new(const uint64_t dna_text_length,const uint64_t init_padding,const uint64_t end_padding) {
+dna_text_t* dna_text_padded_new(const uint64_t dna_text_length,const uint64_t init_padding,const uint64_t end_padding) {
   dna_text_t* const dna_text = mm_alloc(dna_text_t);
   dna_text->type = dna_text_raw;
   dna_text->allocated = dna_text_length+init_padding+end_padding;
@@ -262,7 +262,7 @@ GEM_INLINE dna_text_t* dna_text_padded_new(const uint64_t dna_text_length,const 
   return dna_text;
 }
 // Builder writer
-GEM_INLINE void dna_text_write_chunk(fm_t* const output_file_manager,dna_text_t* const dna_text,const uint64_t chunk_length) {
+void dna_text_write_chunk(fm_t* const output_file_manager,dna_text_t* const dna_text,const uint64_t chunk_length) {
   FM_CHECK(output_file_manager);
   DNA_TEXT_CHECK(dna_text);
   fm_write_uint64(output_file_manager,DNA_TEXT_MODEL_NO);
@@ -270,7 +270,7 @@ GEM_INLINE void dna_text_write_chunk(fm_t* const output_file_manager,dna_text_t*
   fm_write_uint64(output_file_manager,chunk_length);
   fm_write_mem(output_file_manager,dna_text->text,chunk_length*UINT8_SIZE);
 }
-GEM_INLINE void dna_text_write(fm_t* const output_file_manager,dna_text_t* const dna_text) {
+void dna_text_write(fm_t* const output_file_manager,dna_text_t* const dna_text) {
   FM_CHECK(output_file_manager);
   DNA_TEXT_CHECK(dna_text);
   dna_text_write_chunk(output_file_manager,dna_text,dna_text->length);
@@ -278,29 +278,29 @@ GEM_INLINE void dna_text_write(fm_t* const output_file_manager,dna_text_t* const
 /*
  * Accessors
  */
-GEM_INLINE uint64_t dna_text_get_length(const dna_text_t* const dna_text) {
+uint64_t dna_text_get_length(const dna_text_t* const dna_text) {
   return dna_text->length;
 }
-GEM_INLINE void dna_text_set_length(dna_text_t* const dna_text,const uint64_t length) {
+void dna_text_set_length(dna_text_t* const dna_text,const uint64_t length) {
   DNA_TEXT_CHECK(dna_text);
   dna_text->length = length;
 }
-GEM_INLINE uint64_t dna_text_get_size(const dna_text_t* const dna_text) {
+uint64_t dna_text_get_size(const dna_text_t* const dna_text) {
   DNA_TEXT_CHECK(dna_text);
   return dna_text->length;
 }
-GEM_INLINE uint8_t dna_text_get_char(const dna_text_t* const dna_text,const uint64_t position) {
+uint8_t dna_text_get_char(const dna_text_t* const dna_text,const uint64_t position) {
   gem_fatal_check(position >= dna_text->allocated,DNA_TEXT_OOR,position,dna_text->allocated);
   return dna_text->text[position];
 }
-GEM_INLINE void dna_text_set_char(const dna_text_t* const dna_text,const uint64_t position,const uint8_t enc_char) {
+void dna_text_set_char(const dna_text_t* const dna_text,const uint64_t position,const uint8_t enc_char) {
   gem_fatal_check(position >= dna_text->allocated,DNA_TEXT_OOR,position,dna_text->allocated);
   dna_text->text[position] = enc_char;
 }
-GEM_INLINE uint8_t* dna_text_get_text(const dna_text_t* const dna_text) {
+uint8_t* dna_text_get_text(const dna_text_t* const dna_text) {
   return dna_text->text;
 }
-GEM_INLINE uint8_t* dna_text_retrieve_sequence(
+uint8_t* dna_text_retrieve_sequence(
     const dna_text_t* const dna_text,const uint64_t position,
     const uint64_t length,mm_stack_t* const mm_stack) {
   uint8_t* const sequence = dna_text->text+position;
@@ -310,13 +310,13 @@ GEM_INLINE uint8_t* dna_text_retrieve_sequence(
 /*
  * Utils
  */
-GEM_INLINE strand_t dna_strand_get_complement(const strand_t strand) {
+strand_t dna_strand_get_complement(const strand_t strand) {
   return (strand==Forward ? Reverse : Forward);
 }
 /*
  * Display
  */
-GEM_INLINE void dna_text_print(FILE* const stream,dna_text_t* const dna_text,const uint64_t length) {
+void dna_text_print(FILE* const stream,dna_text_t* const dna_text,const uint64_t length) {
   DNA_TEXT_CHECK(dna_text);
   fprintf(stream,"[GEM]>DNA-text\n");
   switch (dna_text->type) {
@@ -334,13 +334,13 @@ GEM_INLINE void dna_text_print(FILE* const stream,dna_text_t* const dna_text,con
   fprintf(stream,"  => Text.Size %"PRIu64" MB\n",CONVERT_B_TO_MB(dna_text->length*UINT8_SIZE));
   fflush(stream); // Flush
 }
-GEM_INLINE void dna_text_print_content(FILE* const stream,dna_text_t* const dna_text) {
+void dna_text_print_content(FILE* const stream,dna_text_t* const dna_text) {
   DNA_TEXT_CHECK(dna_text);
   const uint8_t* const enc_text = dna_text->text;
   const uint64_t text_length = dna_text->length;
   fwrite(enc_text,1,text_length,stream);
 }
-GEM_INLINE void dna_text_pretty_print_content(FILE* const stream,dna_text_t* const dna_text,const uint64_t width) {
+void dna_text_pretty_print_content(FILE* const stream,dna_text_t* const dna_text,const uint64_t width) {
   DNA_TEXT_CHECK(dna_text);
   // Iterate over all indexed text
   const uint8_t* const enc_text = dna_text->text;
@@ -357,7 +357,7 @@ GEM_INLINE void dna_text_pretty_print_content(FILE* const stream,dna_text_t* con
   if (imod!=width) fprintf(stream,"\n");
 }
 // Buffer Display
-GEM_INLINE void dna_buffer_print(
+void dna_buffer_print(
     FILE* const stream,const uint8_t* const dna_buffer,
     const uint64_t dna_buffer_length,const bool print_reverse) {
   int64_t i;

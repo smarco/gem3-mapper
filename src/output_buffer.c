@@ -12,14 +12,14 @@
 /*
  * Setup
  */
-GEM_INLINE output_buffer_t* output_buffer_new(const uint64_t output_buffer_size) {
+output_buffer_t* output_buffer_new(const uint64_t output_buffer_size) {
   output_buffer_t* out_buffer = mm_alloc(output_buffer_t);
   out_buffer->buffer_mem = mm_calloc(output_buffer_size,char,false);
   output_buffer_clear(out_buffer);
   output_buffer_set_state(out_buffer,OUTPUT_BUFFER_FREE);
   return out_buffer;
 }
-GEM_INLINE void output_buffer_clear(output_buffer_t* const out_buffer) {
+void output_buffer_clear(output_buffer_t* const out_buffer) {
   OUTPUT_BUFFER_CHECK(out_buffer);
   // Clear State
   out_buffer->mayor_block_id=0;
@@ -29,7 +29,7 @@ GEM_INLINE void output_buffer_clear(output_buffer_t* const out_buffer) {
   out_buffer->buffer_used = 0;
   out_buffer->buffer_cursor = out_buffer->buffer_mem;
 }
-GEM_INLINE void output_buffer_delete(output_buffer_t* const out_buffer) {
+void output_buffer_delete(output_buffer_t* const out_buffer) {
   OUTPUT_BUFFER_CHECK(out_buffer);
   mm_free(out_buffer->buffer_mem);
   mm_free(out_buffer);
@@ -37,30 +37,30 @@ GEM_INLINE void output_buffer_delete(output_buffer_t* const out_buffer) {
 /*
  * Accessors
  */
-GEM_INLINE void output_buffer_set_state(output_buffer_t* const out_buffer,const output_buffer_state_t buffer_state) {
+void output_buffer_set_state(output_buffer_t* const out_buffer,const output_buffer_state_t buffer_state) {
   OUTPUT_BUFFER_CHECK(out_buffer);
   out_buffer->buffer_state=buffer_state;
 }
-GEM_INLINE output_buffer_state_t output_buffer_get_state(output_buffer_t* const out_buffer) {
+output_buffer_state_t output_buffer_get_state(output_buffer_t* const out_buffer) {
   OUTPUT_BUFFER_CHECK(out_buffer);
   return out_buffer->buffer_state;
 }
-GEM_INLINE void output_buffer_set_incomplete(output_buffer_t* const out_buffer) {
+void output_buffer_set_incomplete(output_buffer_t* const out_buffer) {
   OUTPUT_BUFFER_CHECK(out_buffer);
   out_buffer->is_final_block=false;
 }
-GEM_INLINE uint64_t output_buffer_get_used(output_buffer_t* const out_buffer) {
+uint64_t output_buffer_get_used(output_buffer_t* const out_buffer) {
   OUTPUT_BUFFER_CHECK(out_buffer);
   return out_buffer->buffer_used;
 }
-GEM_INLINE char* output_buffer_get_buffer(output_buffer_t* const out_buffer) {
+char* output_buffer_get_buffer(output_buffer_t* const out_buffer) {
   OUTPUT_BUFFER_CHECK(out_buffer);
   return out_buffer->buffer_mem;
 }
 /*
  * Buffer printer (Disabled for performance issues)
  */
-//GEM_INLINE int vbprintf(output_buffer_t* const out_buffer,const char *template,va_list v_args) {
+//int vbprintf(output_buffer_t* const out_buffer,const char *template,va_list v_args) {
 //  OUTPUT_BUFFER_CHECK(out_buffer);
 //  GEM_CHECK_NULL(template);
 //  GEM_CHECK_NULL(v_args);
@@ -68,7 +68,7 @@ GEM_INLINE char* output_buffer_get_buffer(output_buffer_t* const out_buffer) {
 //  int64_t mem_required = calculate_memory_required_v(template,v_args);
 //  return vbprintf_fixed(out_buffer,mem_required,template,v_args);
 //}
-//GEM_INLINE int bprintf(output_buffer_t* const out_buffer,const char *template,...) {
+//int bprintf(output_buffer_t* const out_buffer,const char *template,...) {
 //  OUTPUT_BUFFER_CHECK(out_buffer);
 //  GEM_CHECK_NULL(template);
 //  va_list v_args;
@@ -77,7 +77,7 @@ GEM_INLINE char* output_buffer_get_buffer(output_buffer_t* const out_buffer) {
 //  va_end(v_args);
 //  return chars_printed;
 //}
-//GEM_INLINE int vbprintf_fixed(
+//int vbprintf_fixed(
 //    output_buffer_t* const out_buffer,const uint64_t expected_mem_usage,
 //    const char *template,va_list v_args) {
 //  OUTPUT_BUFFER_CHECK(out_buffer);
@@ -91,7 +91,7 @@ GEM_INLINE char* output_buffer_get_buffer(output_buffer_t* const out_buffer) {
 //  }
 //  return chars_printed;
 //}
-//GEM_INLINE int bprintf_fixed(
+//int bprintf_fixed(
 //    output_buffer_t* const out_buffer,const uint64_t expected_mem_usage,const char *template,...) {
 //  OUTPUT_BUFFER_CHECK(out_buffer);
 //  GEM_CHECK_NULL(template);
@@ -104,13 +104,13 @@ GEM_INLINE char* output_buffer_get_buffer(output_buffer_t* const out_buffer) {
 /*
  * Fast-printer functions
  */
-GEM_INLINE void bprintf_uint64(output_buffer_t* const out_buffer,const uint64_t number) {
+void bprintf_uint64(output_buffer_t* const out_buffer,const uint64_t number) {
   OUTPUT_BUFFER_CHECK(out_buffer);
   const int chars_printed = integer_to_ascii(out_buffer->buffer_cursor,number);
   out_buffer->buffer_cursor += chars_printed;
   out_buffer->buffer_used += chars_printed;
 }
-GEM_INLINE void bprintf_int64(output_buffer_t* const out_buffer,const int64_t number) {
+void bprintf_int64(output_buffer_t* const out_buffer,const int64_t number) {
   OUTPUT_BUFFER_CHECK(out_buffer);
   if (number >= 0) {
     const int chars_printed = integer_to_ascii(out_buffer->buffer_cursor,number);
@@ -123,13 +123,13 @@ GEM_INLINE void bprintf_int64(output_buffer_t* const out_buffer,const int64_t nu
     out_buffer->buffer_used += chars_printed;
   }
 }
-GEM_INLINE void bprintf_char(output_buffer_t* const out_buffer,const char character) {
+void bprintf_char(output_buffer_t* const out_buffer,const char character) {
   OUTPUT_BUFFER_CHECK(out_buffer);
   *(out_buffer->buffer_cursor) = character;
   ++(out_buffer->buffer_cursor);
   ++(out_buffer->buffer_used);
 }
-GEM_INLINE void bprintf_buffer(
+void bprintf_buffer(
     output_buffer_t* const out_buffer,const int string_length,const char* const string) {
   OUTPUT_BUFFER_CHECK(out_buffer);
   memcpy(out_buffer->buffer_cursor,string,string_length);

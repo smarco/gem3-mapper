@@ -25,7 +25,7 @@
  */
 #define SPLIT_EXTENSION_WINDOW
 
-GEM_INLINE void filtering_candidates_compute_extension_region(
+void filtering_candidates_compute_extension_region(
     const locator_t* const locator,const bool extension_onward,
     const uint64_t extended_begin_position,const uint64_t extended_effective_length,
     const uint64_t candidate_key_length,const uint64_t max_filtering_error,
@@ -48,7 +48,7 @@ GEM_INLINE void filtering_candidates_compute_extension_region(
 /*
  * Pair Extension
  */
-GEM_INLINE uint64_t filtering_candidates_extend_match(
+uint64_t filtering_candidates_extend_match(
     filtering_candidates_t* const filtering_candidates,
     archive_text_t* const archive_text,const locator_t* const locator,
     text_collection_t* const text_collection,const match_trace_t* const extended_match,
@@ -104,7 +104,7 @@ GEM_INLINE uint64_t filtering_candidates_extend_match(
   return candidates_found;
 }
 #ifdef SPLIT_EXTENSION_WINDOW
-GEM_INLINE void filtering_candidates_extend_generate_candidates(
+void filtering_candidates_extend_generate_candidates(
     filtering_candidates_t* const extended_filtering_candidates,
     filtering_candidates_t* const candidate_filtering_candidates,
     archive_t* const archive,text_collection_t* const text_collection,
@@ -172,7 +172,7 @@ GEM_INLINE void filtering_candidates_extend_generate_candidates(
   }
 }
 #else
-GEM_INLINE void filtering_candidates_process_extension_candidates(
+void filtering_candidates_process_extension_candidates(
     filtering_candidates_t* const extended_filtering_candidates,
     filtering_candidates_t* const candidate_filtering_candidates,
     archive_t* const archive,text_collection_t* const text_collection,const pattern_t* const extended_pattern,

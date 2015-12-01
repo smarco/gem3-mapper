@@ -29,7 +29,7 @@
  *   @align_parameters->max_bandwidth
  *   @match_alignment->cigar_length (Cumulative)
  */
-GEM_INLINE void match_align_swg_add_region_matching(
+void match_align_swg_add_region_matching(
     const region_matching_t* const region_matching,match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,mm_stack_t* const mm_stack) {
@@ -80,7 +80,7 @@ GEM_INLINE void match_align_swg_add_region_matching(
 /*
  * SWG Bride the gap
  */
-GEM_INLINE void match_align_swg_add_gap(
+void match_align_swg_add_gap(
     matches_t* const matches,match_alignment_t* const match_alignment,
     const uint64_t key_chunk_length,const uint64_t text_chunk_length,const bool trim) {
   vector_t* const cigar_vector = matches->cigar_vector;
@@ -106,7 +106,7 @@ GEM_INLINE void match_align_swg_add_gap(
 /*
  * SWG Align region
  */
-GEM_INLINE bool match_align_swg_region(
+bool match_align_swg_region(
     matches_t* const matches,match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,match_alignment_t* const match_alignment,
     const uint64_t key_chunk_begin_offset,const uint64_t key_chunk_length,
@@ -137,7 +137,7 @@ GEM_INLINE bool match_align_swg_region(
     return true;
   }
 }
-GEM_INLINE bool match_align_swg_middle_region(
+bool match_align_swg_middle_region(
     matches_t* const matches,match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,match_alignment_t* const match_alignment,
     const uint64_t key_chunk_begin_offset,const uint64_t key_chunk_length,
@@ -147,7 +147,7 @@ GEM_INLINE bool match_align_swg_middle_region(
       key_chunk_begin_offset,key_chunk_length,text_chunk_begin_offset,text_chunk_length,
       false,false,force_swg_threshold,mm_stack);
 }
-GEM_INLINE bool match_align_swg_begin_region(
+bool match_align_swg_begin_region(
     matches_t* const matches,match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,match_alignment_t* const match_alignment,
     const uint64_t key_chunk_begin_offset,const uint64_t key_chunk_length,
@@ -157,7 +157,7 @@ GEM_INLINE bool match_align_swg_begin_region(
       key_chunk_begin_offset,key_chunk_length,text_chunk_begin_offset,text_chunk_length,
       true,false,force_swg_threshold,mm_stack);
 }
-GEM_INLINE bool match_align_swg_end_region(
+bool match_align_swg_end_region(
     matches_t* const matches,match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,match_alignment_t* const match_alignment,
     const uint64_t key_chunk_begin_offset,const uint64_t key_chunk_length,
@@ -170,7 +170,7 @@ GEM_INLINE bool match_align_swg_end_region(
 /*
  * SWG Post-Alignment (Curate cigar, compute metrics, filter bad-alignments)
  */
-GEM_INLINE void match_align_swg_post_alignment(
+void match_align_swg_post_alignment(
     matches_t* const matches,match_trace_t* const match_trace,
     match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
     const bool local_alignment) {
@@ -226,7 +226,7 @@ GEM_INLINE void match_align_swg_post_alignment(
  *   @match_alignment->effective_length (Cumulative)
  *   @match_alignment->score (Cumulative)
  */
-GEM_INLINE void match_align_swg_chain_scaffold(
+void match_align_swg_chain_scaffold(
     matches_t* const matches,match_trace_t* const match_trace,
     match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
     match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack) {

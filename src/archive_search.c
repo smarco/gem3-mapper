@@ -36,7 +36,7 @@ const char* archive_search_pe_state_label[] =
 /*
  * Setup
  */
-GEM_INLINE archive_search_t* archive_search_new(
+archive_search_t* archive_search_new(
     archive_t* const archive,search_parameters_t* const search_parameters,
     select_parameters_t* const select_parameters) {
   // Allocate handler
@@ -61,7 +61,7 @@ GEM_INLINE archive_search_t* archive_search_new(
   // Return
   return archive_search;
 }
-GEM_INLINE void archive_search_prepare_sequence(archive_search_t* const archive_search) {
+void archive_search_prepare_sequence(archive_search_t* const archive_search) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE_PREPARE_SEQUENCE,PROFILE_LEVEL);
   // Check the index characteristics & generate reverse-complement (if needed)
   if (archive_search->archive->indexed_complement) {
@@ -86,7 +86,7 @@ GEM_INLINE void archive_search_prepare_sequence(archive_search_t* const archive_
   }
   PROFILE_STOP(GP_ARCHIVE_SEARCH_SE_PREPARE_SEQUENCE,PROFILE_LEVEL);
 }
-GEM_INLINE void archive_search_reset(archive_search_t* const archive_search) {
+void archive_search_reset(archive_search_t* const archive_search) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE_INIT,PROFILE_LEVEL);
   // Instantiate parameters actual-values
   const uint64_t sequence_length = sequence_get_length(&archive_search->sequence);
@@ -100,7 +100,7 @@ GEM_INLINE void archive_search_reset(archive_search_t* const archive_search) {
   }
   PROFILE_STOP(GP_ARCHIVE_SEARCH_SE_INIT,PROFILE_LEVEL);
 }
-GEM_INLINE void archive_search_delete(archive_search_t* const archive_search) {
+void archive_search_delete(archive_search_t* const archive_search) {
   // Delete Sequence
   sequence_destroy(&archive_search->sequence);
   sequence_destroy(&archive_search->rc_sequence);
@@ -146,10 +146,10 @@ void archive_search_inject_filtering_candidates(
 /*
  * Accessors
  */
-GEM_INLINE sequence_t* archive_search_get_sequence(const archive_search_t* const archive_search) {
+sequence_t* archive_search_get_sequence(const archive_search_t* const archive_search) {
   return (sequence_t*)&archive_search->sequence;
 }
-GEM_INLINE bool archive_search_finished(const archive_search_t* const archive_search) {
+bool archive_search_finished(const archive_search_t* const archive_search) {
   if (archive_search->archive->indexed_complement) {
     return archive_search->forward_search_state.search_stage == asearch_stage_end;
   } else {
@@ -157,7 +157,7 @@ GEM_INLINE bool archive_search_finished(const archive_search_t* const archive_se
            archive_search->reverse_search_state.search_stage == asearch_stage_end;
   }
 }
-GEM_INLINE uint64_t archive_search_get_search_exact_matches(const archive_search_t* const archive_search) {
+uint64_t archive_search_get_search_exact_matches(const archive_search_t* const archive_search) {
   if (archive_search->archive->indexed_complement) {
     return approximate_search_get_num_exact_filtering_candidates(&archive_search->forward_search_state);
   } else {
@@ -165,7 +165,7 @@ GEM_INLINE uint64_t archive_search_get_search_exact_matches(const archive_search
            approximate_search_get_num_exact_filtering_candidates(&archive_search->reverse_search_state);
   }
 }
-GEM_INLINE uint64_t archive_search_get_max_region_length(const archive_search_t* const archive_search) {
+uint64_t archive_search_get_max_region_length(const archive_search_t* const archive_search) {
   if (archive_search->archive->indexed_complement) {
     return archive_search->forward_search_state.region_profile.max_region_length;
   } else {
@@ -173,7 +173,7 @@ GEM_INLINE uint64_t archive_search_get_max_region_length(const archive_search_t*
                archive_search->reverse_search_state.region_profile.max_region_length);
   }
 }
-GEM_INLINE uint64_t archive_search_get_num_zero_regions(const archive_search_t* const archive_search) {
+uint64_t archive_search_get_num_zero_regions(const archive_search_t* const archive_search) {
   if (archive_search->archive->indexed_complement) {
     return archive_search->forward_search_state.region_profile.num_zero_regions;
   } else {
@@ -181,21 +181,21 @@ GEM_INLINE uint64_t archive_search_get_num_zero_regions(const archive_search_t* 
                archive_search->reverse_search_state.region_profile.num_zero_regions);
   }
 }
-GEM_INLINE uint64_t archive_search_get_num_regions_profile(const archive_search_t* const archive_search) {
+uint64_t archive_search_get_num_regions_profile(const archive_search_t* const archive_search) {
   uint64_t num_regions_profile = approximate_search_get_num_regions_profile(&archive_search->forward_search_state);
   if (!archive_search->archive->indexed_complement) {
     num_regions_profile += approximate_search_get_num_regions_profile(&archive_search->reverse_search_state);
   }
   return num_regions_profile;
 }
-GEM_INLINE uint64_t archive_search_get_num_decode_candidates(const archive_search_t* const archive_search) {
+uint64_t archive_search_get_num_decode_candidates(const archive_search_t* const archive_search) {
   uint64_t num_decode_candidates = approximate_search_get_num_decode_candidates(&archive_search->forward_search_state);
   if (!archive_search->archive->indexed_complement) {
     num_decode_candidates += approximate_search_get_num_decode_candidates(&archive_search->reverse_search_state);
   }
   return num_decode_candidates;
 }
-GEM_INLINE uint64_t archive_search_get_num_verify_candidates(const archive_search_t* const archive_search) {
+uint64_t archive_search_get_num_verify_candidates(const archive_search_t* const archive_search) {
   uint64_t num_verify_candidates = approximate_search_get_num_verify_candidates(&archive_search->forward_search_state);
   if (!archive_search->archive->indexed_complement) {
     num_verify_candidates += approximate_search_get_num_verify_candidates(&archive_search->reverse_search_state);
@@ -205,13 +205,13 @@ GEM_INLINE uint64_t archive_search_get_num_verify_candidates(const archive_searc
 /*
  * Utils
  */
-GEM_INLINE void archive_search_hold_verification_candidates(archive_search_t* const archive_search) {
+void archive_search_hold_verification_candidates(archive_search_t* const archive_search) {
   approximate_search_hold_verification_candidates(&archive_search->forward_search_state);
   if (archive_search->emulate_rc_search) {
     approximate_search_hold_verification_candidates(&archive_search->reverse_search_state);
   }
 }
-GEM_INLINE void archive_search_release_verification_candidates(archive_search_t* const archive_search) {
+void archive_search_release_verification_candidates(archive_search_t* const archive_search) {
   approximate_search_release_verification_candidates(&archive_search->forward_search_state);
   if (archive_search->emulate_rc_search) {
     approximate_search_release_verification_candidates(&archive_search->reverse_search_state);

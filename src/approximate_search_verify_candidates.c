@@ -33,7 +33,7 @@ FILE* benchmark_verify_candidates = NULL;
 /*
  * Verify Candidates
  */
-GEM_INLINE void approximate_search_verify_candidates(approximate_search_t* const search,matches_t* const matches) {
+void approximate_search_verify_candidates(approximate_search_t* const search,matches_t* const matches) {
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Verify Candidates\n");
     tab_global_inc();
@@ -61,7 +61,7 @@ GEM_INLINE void approximate_search_verify_candidates(approximate_search_t* const
 /*
  * Verify Candidates Buffered
  */
-GEM_INLINE void approximate_search_verify_candidates_buffered_copy(
+void approximate_search_verify_candidates_buffered_copy(
     approximate_search_t* const search,gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
   // Add to GPU-Buffer
   search->gpu_buffer_align_offset = gpu_buffer_align_bpm_get_num_candidates(gpu_buffer_align_bpm);
@@ -72,7 +72,7 @@ GEM_INLINE void approximate_search_verify_candidates_buffered_copy(
   // approximate_search_region_profile_buffered_print_benchmark(search);
 #endif
 }
-GEM_INLINE void approximate_search_verify_candidates_buffered_retrieve(
+void approximate_search_verify_candidates_buffered_retrieve(
     approximate_search_t* const search,gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     matches_t* const matches) {
   // Buffer Offsets

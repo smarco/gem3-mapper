@@ -26,7 +26,7 @@
 /*
  * Setup
  */
-GEM_INLINE void mm_slab_add_new_segment(mm_slab_t* const mm_slab) {
+void mm_slab_add_new_segment(mm_slab_t* const mm_slab) {
   MM_SLAB_CHECK(mm_slab);
   // Allocate new slab-segment
   mm_slab_segment_t* const mm_slab_segment = mm_alloc(mm_slab_segment_t);
@@ -66,7 +66,7 @@ GEM_INLINE void mm_slab_add_new_segment(mm_slab_t* const mm_slab) {
   gem_cond_log(MM_SLAB_LOG,"[GEM]> mm_slab(%"PRIu64").addSegment(%"PRIu64" MB)",
       mm_slab->slab_id,CONVERT_B_TO_MB(mm_slab->slab_segment_size));
 }
-GEM_INLINE mm_slab_t* mm_slab_new_(
+mm_slab_t* mm_slab_new_(
     const uint64_t slab_size,const uint64_t slab_segment_size,
     const uint64_t max_allocatable_memory,char* const description) {
   gem_cond_fatal_error(slab_segment_size < slab_size,MM_SLAB_WRONG_DIMENSIONS,slab_segment_size,slab_size);
@@ -96,7 +96,7 @@ GEM_INLINE mm_slab_t* mm_slab_new_(
   // Return
   return mm_slab;
 }
-GEM_INLINE void mm_slab_reap_empty(mm_slab_t* const mm_slab,const uint64_t num_resident_segments) {
+void mm_slab_reap_empty(mm_slab_t* const mm_slab,const uint64_t num_resident_segments) {
   MUTEX_BEGIN_SECTION(mm_slab->slab_mutex) {
     MM_SLAB_CHECK(mm_slab);
     // TODO // TODO // TODO // TODO
@@ -107,7 +107,7 @@ GEM_INLINE void mm_slab_reap_empty(mm_slab_t* const mm_slab,const uint64_t num_r
     // TODO // TODO // TODO // TODO
   } MUTEX_END_SECTION(mm_slab->slab_mutex);
 }
-GEM_INLINE void mm_slab_delete(mm_slab_t* const mm_slab) {
+void mm_slab_delete(mm_slab_t* const mm_slab) {
   MM_SLAB_CHECK(mm_slab);
   // Free all slab segments
   VECTOR_ITERATE(mm_slab->slabs_segments,slabs_segment,ss_i,mm_slab_segment_t*) {
@@ -122,15 +122,15 @@ GEM_INLINE void mm_slab_delete(mm_slab_t* const mm_slab) {
 /*
  *  Accessors
  */
-GEM_INLINE void mm_slab_lock(mm_slab_t* const mm_slab) {
+void mm_slab_lock(mm_slab_t* const mm_slab) {
   MM_SLAB_CHECK(mm_slab);
   MUTEX_BEGIN_SECTION(mm_slab->slab_mutex);
 }
-GEM_INLINE void mm_slab_unlock(mm_slab_t* const mm_slab) {
+void mm_slab_unlock(mm_slab_t* const mm_slab) {
   MM_SLAB_CHECK(mm_slab);
   MUTEX_END_SECTION(mm_slab->slab_mutex);
 }
-GEM_INLINE mm_slab_unit_t* mm_slab_get(mm_slab_t* const mm_slab) {
+mm_slab_unit_t* mm_slab_get(mm_slab_t* const mm_slab) {
   MM_SLAB_CHECK(mm_slab);
   // Check slabs available (Add new one if required)
   if (gem_expect_false(vector_get_used(mm_slab->slabs_units_free)==0)) {
@@ -142,14 +142,14 @@ GEM_INLINE mm_slab_unit_t* mm_slab_get(mm_slab_t* const mm_slab) {
   ++(mm_slab_unit->slab_segment->busy_slabs_units); // Decrement free slabs
   return mm_slab_unit;
 }
-GEM_INLINE void mm_slab_put(mm_slab_t* const mm_slab,mm_slab_unit_t* const mm_slab_unit) {
+void mm_slab_put(mm_slab_t* const mm_slab,mm_slab_unit_t* const mm_slab_unit) {
   MM_SLAB_CHECK(mm_slab);
   // Restore slab as free
   --(mm_slab_unit->slab_segment->busy_slabs_units);
   vector_insert(mm_slab->slabs_units_free,mm_slab_unit,mm_slab_unit_t*);
 }
 
-GEM_INLINE mm_slab_unit_t* mm_slab_request(mm_slab_t* const mm_slab) {
+mm_slab_unit_t* mm_slab_request(mm_slab_t* const mm_slab) {
   MM_SLAB_CHECK(mm_slab);
   mm_slab_unit_t* mm_slab_unit;
   MUTEX_BEGIN_SECTION(mm_slab->slab_mutex) {
@@ -157,14 +157,14 @@ GEM_INLINE mm_slab_unit_t* mm_slab_request(mm_slab_t* const mm_slab) {
   } MUTEX_END_SECTION(mm_slab->slab_mutex);
   return mm_slab_unit;
 }
-GEM_INLINE void mm_slab_return(mm_slab_t* const mm_slab,mm_slab_unit_t* const mm_slab_unit) {
+void mm_slab_return(mm_slab_t* const mm_slab,mm_slab_unit_t* const mm_slab_unit) {
   MM_SLAB_CHECK(mm_slab);
   MM_SLAB_UNIT_CHECK(mm_slab_unit);
   MUTEX_BEGIN_SECTION(mm_slab->slab_mutex) {
     mm_slab_put(mm_slab,mm_slab_unit);
   } MUTEX_END_SECTION(mm_slab->slab_mutex);
 }
-GEM_INLINE uint64_t mm_slab_get_slab_size(mm_slab_t* const mm_slab) {
+uint64_t mm_slab_get_slab_size(mm_slab_t* const mm_slab) {
   MM_SLAB_CHECK(mm_slab);
   return mm_slab->slab_unit_size;
 }
@@ -182,7 +182,7 @@ int mm_slab_cmp_slab_units(mm_slab_unit_t** const mm_slab_unit_a,mm_slab_unit_t*
     return segment_id_b - segment_id_a;
   }
 }
-GEM_INLINE void mm_slab_defragment(mm_slab_t* const mm_slab) {
+void mm_slab_defragment(mm_slab_t* const mm_slab) {
   MUTEX_BEGIN_SECTION(mm_slab->slab_mutex) {
     MM_SLAB_CHECK(mm_slab);
     // Sort free slab units to serve them in memory increasing order
@@ -195,7 +195,7 @@ GEM_INLINE void mm_slab_defragment(mm_slab_t* const mm_slab) {
 /*
  * Display/Profile
  */
-GEM_INLINE void mm_slab_print(FILE* const stream,mm_slab_t* const mm_slab,const bool show_internals) {
+void mm_slab_print(FILE* const stream,mm_slab_t* const mm_slab,const bool show_internals) {
   // TODO
   // svector_record_stats();
   GEM_CHECK_NULL(stream);

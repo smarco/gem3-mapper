@@ -21,7 +21,7 @@ file_format_t input_file_detect_file_format(input_file_t* const input_file) {
 /*
  * Basic I/O functions
  */
-GEM_INLINE void input_file_initialize(input_file_t* const input_file,const uint64_t buffer_allocated) {
+void input_file_initialize(input_file_t* const input_file,const uint64_t buffer_allocated) {
   GEM_CHECK_NULL(input_file);
   // Input file
   input_file->mmaped = false;
@@ -138,58 +138,58 @@ void input_file_close(input_file_t* const input_file) {
 /*
  * Accessors
  */
-GEM_INLINE uint8_t input_file_get_current_char(input_file_t* const input_file) {
+uint8_t input_file_get_current_char(input_file_t* const input_file) {
   INPUT_FILE_CHECK(input_file);
   return input_file->file_buffer[input_file->buffer_pos];
 }
-GEM_INLINE uint8_t input_file_get_char_at(input_file_t* const input_file,const uint64_t position_in_buffer) {
+uint8_t input_file_get_char_at(input_file_t* const input_file,const uint64_t position_in_buffer) {
   INPUT_FILE_CHECK(input_file);
   return input_file->file_buffer[input_file->buffer_pos];
 }
-GEM_INLINE uint64_t input_file_get_next_id(input_file_t* const input_file) {
+uint64_t input_file_get_next_id(input_file_t* const input_file) {
   INPUT_FILE_CHECK(input_file);
   const uint64_t id = input_file->processed_id;
   input_file->processed_id = (input_file->processed_id+1) % UINT32_MAX;
   return id;
 }
-GEM_INLINE char* input_file_get_nonull_file_name(input_file_t* const input_file) {
+char* input_file_get_nonull_file_name(input_file_t* const input_file) {
   INPUT_FILE_CHECK(input_file);
   return (input_file->file_manager!=NULL) ?
       fm_get_file_name(input_file->file_manager) : mm_get_mfile_name(input_file->memory_manager);
 }
-GEM_INLINE char* input_file_get_file_name(input_file_t* const input_file) {
+char* input_file_get_file_name(input_file_t* const input_file) {
   INPUT_FILE_CHECK(input_file);
   char* const file_name = input_file_get_nonull_file_name(input_file);
   return (file_name!=NULL) ? file_name : STREAM_FILE_NAME;
 }
-GEM_INLINE uint64_t input_file_get_size(input_file_t* const input_file) {
+uint64_t input_file_get_size(input_file_t* const input_file) {
   INPUT_FILE_CHECK(input_file);
   return (input_file->mmaped) ?
     mm_get_allocated(input_file->memory_manager):
     fm_get_file_size(input_file->file_manager);
 }
-GEM_INLINE uint64_t input_file_get_current_line(input_file_t* const input_file) {
+uint64_t input_file_get_current_line(input_file_t* const input_file) {
   INPUT_FILE_CHECK(input_file);
   return input_file->processed_lines;
 }
-GEM_INLINE bool input_file_eob(input_file_t* const input_file) {
+bool input_file_eob(input_file_t* const input_file) {
   return input_file->buffer_pos >= input_file->buffer_size;
 }
-GEM_INLINE bool input_file_eof(input_file_t* const input_file) {
+bool input_file_eof(input_file_t* const input_file) {
   return input_file_eob(input_file) && (input_file->mmaped || fm_eof(input_file->file_manager));
 }
-GEM_INLINE void input_file_lock(input_file_t* const input_file) {
+void input_file_lock(input_file_t* const input_file) {
   INPUT_FILE_CHECK(input_file);
   gem_cond_fatal_error__perror(pthread_mutex_lock(&input_file->input_mutex),SYS_MUTEX);
 }
-GEM_INLINE void input_file_unlock(input_file_t* const input_file) {
+void input_file_unlock(input_file_t* const input_file) {
   INPUT_FILE_CHECK(input_file);
   gem_cond_fatal_error__perror(pthread_mutex_unlock(&input_file->input_mutex),SYS_MUTEX);
 }
 /*
  * Basic Buffer Functions
  */
-GEM_INLINE uint64_t input_file_fill_buffer(input_file_t* const input_file) {
+uint64_t input_file_fill_buffer(input_file_t* const input_file) {
   INPUT_FILE_CHECK(input_file);
   input_file->global_pos += input_file->buffer_size;
   input_file->buffer_pos = 0;
@@ -206,7 +206,7 @@ GEM_INLINE uint64_t input_file_fill_buffer(input_file_t* const input_file) {
     return 0;
   }
 }
-GEM_INLINE uint64_t input_file_dump_to_buffer(input_file_t* const input_file,vector_t* const buffer_dst) {
+uint64_t input_file_dump_to_buffer(input_file_t* const input_file,vector_t* const buffer_dst) {
   // FIXME: If mmap file, internal buffer is just pointers to mem (shortcut 2nd layer)
   INPUT_FILE_CHECK(input_file);
   // Copy internal file buffer to buffer_dst
@@ -221,7 +221,7 @@ GEM_INLINE uint64_t input_file_dump_to_buffer(input_file_t* const input_file,vec
   // Return number of written bytes
   return chunk_size;
 }
-GEM_INLINE bool input_file_check_buffer(input_file_t* const input_file) {
+bool input_file_check_buffer(input_file_t* const input_file) {
   INPUT_FILE_CHECK(input_file);
   if (gem_expect_false(input_file_eob(input_file))) {
     // Returns if any character has been read
@@ -230,7 +230,7 @@ GEM_INLINE bool input_file_check_buffer(input_file_t* const input_file) {
     return true;
   }
 }
-GEM_INLINE bool input_file_check_buffer__dump(input_file_t* const input_file,vector_t* const buffer_dst) {
+bool input_file_check_buffer__dump(input_file_t* const input_file,vector_t* const buffer_dst) {
   INPUT_FILE_CHECK(input_file);
   if (gem_expect_false(input_file_eob(input_file))) {
     if (gem_expect_true(buffer_dst!=NULL)) input_file_dump_to_buffer(input_file,buffer_dst);
@@ -239,13 +239,13 @@ GEM_INLINE bool input_file_check_buffer__dump(input_file_t* const input_file,vec
     return true;
   }
 }
-GEM_INLINE bool input_file_next_char(input_file_t* const input_file) {
+bool input_file_next_char(input_file_t* const input_file) {
   INPUT_FILE_CHECK(input_file);
   ++input_file->buffer_pos;
   // Returns if there is any character in buffer
   return input_file_check_buffer(input_file);
 }
-GEM_INLINE bool input_file_next_char__dump(input_file_t* const input_file,vector_t* const buffer_dst) {
+bool input_file_next_char__dump(input_file_t* const input_file,vector_t* const buffer_dst) {
   INPUT_FILE_CHECK(input_file);
   ++input_file->buffer_pos;
   return input_file_check_buffer__dump(input_file,buffer_dst);
@@ -253,7 +253,7 @@ GEM_INLINE bool input_file_next_char__dump(input_file_t* const input_file,vector
 /*
  * Basic Line Functions
  */
-GEM_INLINE void input_file_skip_eol(input_file_t* const input_file) {
+void input_file_skip_eol(input_file_t* const input_file) {
   INPUT_FILE_CHECK(input_file);
   if (!input_file_eof(input_file)) {
     if (input_file_get_current_char(input_file)==DOS_EOL) {
@@ -270,7 +270,7 @@ GEM_INLINE void input_file_skip_eol(input_file_t* const input_file) {
   }
   ++(input_file->processed_lines);
 }
-GEM_INLINE void input_file_skip_eol__dump(input_file_t* const input_file,vector_t* const buffer_dst) {
+void input_file_skip_eol__dump(input_file_t* const input_file,vector_t* const buffer_dst) {
   INPUT_FILE_CHECK(input_file);
   if (!input_file_eof(input_file)) {
     if (input_file_get_current_char(input_file)==DOS_EOL) {
@@ -292,7 +292,7 @@ GEM_INLINE void input_file_skip_eol__dump(input_file_t* const input_file,vector_
   }
   ++(input_file->processed_lines);
 }
-GEM_INLINE uint64_t input_file_next_line(input_file_t* const input_file,vector_t* const buffer_dst) {
+uint64_t input_file_next_line(input_file_t* const input_file,vector_t* const buffer_dst) {
   INPUT_FILE_CHECK(input_file);
   VECTOR_CHECK(buffer_dst);
   input_file_check_buffer__dump(input_file,buffer_dst);
@@ -346,7 +346,7 @@ GEM_INLINE uint64_t input_file_next_line(input_file_t* const input_file,vector_t
 /*
  * Line Readers (thread-unsafe, must call mutex functions before)
  */
-GEM_INLINE uint64_t input_file_add_lines(
+uint64_t input_file_add_lines(
     input_file_t* const input_file,vector_t* buffer_dst,const uint64_t num_lines) {
   INPUT_FILE_CHECK(input_file);
   VECTOR_CHECK(buffer_dst);
@@ -362,7 +362,7 @@ GEM_INLINE uint64_t input_file_add_lines(
   }
   return lines_read;
 }
-GEM_INLINE uint64_t input_file_get_lines(
+uint64_t input_file_get_lines(
     input_file_t* const input_file,vector_t* buffer_dst,const uint64_t num_lines) {
   INPUT_FILE_CHECK(input_file);
   VECTOR_CHECK(buffer_dst);
@@ -374,7 +374,7 @@ GEM_INLINE uint64_t input_file_get_lines(
 /*
  * Buffer reader
  */
-GEM_INLINE uint64_t input_file_reload_buffer(
+uint64_t input_file_reload_buffer(
     input_file_t* const input_file,input_buffer_t** const input_buffer,const uint64_t num_lines) {
   // Read lines
   if (input_file_eof(input_file)) return INPUT_STATUS_EOF;

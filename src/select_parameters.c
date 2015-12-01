@@ -10,7 +10,7 @@
 /*
  * Select Parameters Setup
  */
-GEM_INLINE void select_parameters_init(select_parameters_t* const select_parameters) {
+void select_parameters_init(select_parameters_t* const select_parameters) {
   // MAPQ Score
   select_parameters->mapq_model = mapq_model_gem;
   select_parameters->mapq_threshold = 0;
@@ -21,7 +21,7 @@ GEM_INLINE void select_parameters_init(select_parameters_t* const select_paramet
   // Check
   select_parameters->check_type = archive_check_nothing;
 }
-GEM_INLINE void select_configure_reporting(
+void select_configure_reporting(
     select_parameters_t* const select_parameters,const float min_reported_strata,
     const uint64_t min_reported_matches,const uint64_t max_reported_matches) {
   // Reporting
@@ -29,7 +29,7 @@ GEM_INLINE void select_configure_reporting(
   select_parameters->min_reported_matches = min_reported_matches;
   select_parameters->max_reported_matches = max_reported_matches;
 }
-GEM_INLINE void select_instantiate_values(
+void select_instantiate_values(
     select_parameters_t* const select_parameters,const uint64_t sequence_length) {
   select_parameters->min_reported_strata_nominal = integer_proportion(select_parameters->min_reported_strata,sequence_length);
 }

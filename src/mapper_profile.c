@@ -10,7 +10,7 @@
 
 #ifdef GEM_PROFILE /* GEM_PROFILE ENABLED */
 
-GEM_INLINE void mapper_profile_print_mem_structs(FILE* const stream) {
+void mapper_profile_print_mem_structs(FILE* const stream) {
   tab_fprintf(stream,"[GEM]>Profile.MEM\n");
   // index_mem()
   // In buffers (total, used)
@@ -26,7 +26,7 @@ GEM_INLINE void mapper_profile_print_mem_structs(FILE* const stream) {
 /*
  * General Profile (Efficiency Ratios)
  */
-GEM_INLINE void mapper_profile_print_mapper_efficiency_ratios(FILE* const stream) {
+void mapper_profile_print_mapper_efficiency_ratios(FILE* const stream) {
   ///* Efficiency Ratios */
   //#define GEM_STATS_SHOW_EFFICIENCY_RATIOS(FILE,GSC_NUM_READS,SC_TIME_TH,GSC_NUM_MAPS)
   //  fprintf(FILE, "Ranks/Read               %10.3f n", (float)GET_RANK_COUNTER(SC_TIME_TH)/(float)GET_COUNTER(GSC_NUM_READS));
@@ -42,7 +42,7 @@ GEM_INLINE void mapper_profile_print_mapper_efficiency_ratios(FILE* const stream
 /*
  * I/O
  */
-GEM_INLINE void mapper_profile_print_output(FILE* const stream,const bool paired_end,const bool map_output) {
+void mapper_profile_print_output(FILE* const stream,const bool paired_end,const bool map_output) {
   if (map_output) {
     if (paired_end) {
       fprintf(stream,"=> TIME.Output.MAP.PE               ");
@@ -61,7 +61,7 @@ GEM_INLINE void mapper_profile_print_output(FILE* const stream,const bool paired
     }
   }
 }
-GEM_INLINE void mapper_profile_print_io(
+void mapper_profile_print_io(
     FILE* const stream,const bool paired_end,const bool map_output) {
   // High-level I/O
   fprintf(stream,    "[GEM]>Profile.Mapper.IO\n");
@@ -103,7 +103,7 @@ GEM_INLINE void mapper_profile_print_io(
 /*
  * Checks
  */
-GEM_INLINE void mapper_profile_print_checks(FILE* const stream) {
+void mapper_profile_print_checks(FILE* const stream) {
   tab_fprintf(stream,"[GEM]>Profile.Checks\n");
   tab_fprintf(stream,"  --> Num.Reads.Checked                             ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CHECK_NUM_READS),PROF_GET_COUNTER(GP_CHECK_NUM_READS),"reads",true);
@@ -131,7 +131,7 @@ GEM_INLINE void mapper_profile_print_checks(FILE* const stream) {
 /*
  * Region Profile
  */
-GEM_INLINE void mapper_profile_print_region_profile_lightweight(FILE* const stream) {
+void mapper_profile_print_region_profile_lightweight(FILE* const stream) {
   tab_fprintf(stream,"[GEM]>Profile.Region.Profile {LIGHTWEIGHT}\n");
   tab_fprintf(stream,"  --> Num.Profiles             ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT),NULL,"    ",true);
@@ -150,7 +150,7 @@ GEM_INLINE void mapper_profile_print_region_profile_lightweight(FILE* const stre
   tab_fprintf(stream,"  --> Read.candidates          ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT_TOTAL_CANDIDATES),NULL,"cand",true);
 }
-GEM_INLINE void mapper_profile_print_region_profile_boost(FILE* const stream) {
+void mapper_profile_print_region_profile_boost(FILE* const stream) {
   tab_fprintf(stream,"[GEM]>Profile.Region.Profile {BOOST}\n");
   tab_fprintf(stream,"  --> Num.Profiles             ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_BOOST),NULL,"    ",true);
@@ -169,7 +169,7 @@ GEM_INLINE void mapper_profile_print_region_profile_boost(FILE* const stream) {
   tab_fprintf(stream,"  --> Read.candidates          ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_BOOST_TOTAL_CANDIDATES),NULL,"cand",true);
 }
-GEM_INLINE void mapper_profile_print_region_profile_delimit(FILE* const stream) {
+void mapper_profile_print_region_profile_delimit(FILE* const stream) {
   tab_fprintf(stream,"[GEM]>Profile.Region.Profile {DELIMIT}\n");
   tab_fprintf(stream,"  --> Num.Profiles             ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_DELIMIT),NULL,"    ",true);
@@ -191,7 +191,7 @@ GEM_INLINE void mapper_profile_print_region_profile_delimit(FILE* const stream) 
 /*
  * Approximate Search
  */
-GEM_INLINE void mapper_profile_print_approximate_search(FILE* const stream) {
+void mapper_profile_print_approximate_search(FILE* const stream) {
   fprintf(stream,    "[GEM]>Profile.Approximate.Search.Stages\n");
   tab_fprintf(stream,"  => TIME.Archive.Search.SE.Filtering.Stages  ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_SE),PROF_GET_TIMER(GP_MAPPER_ALL));
@@ -221,11 +221,11 @@ GEM_INLINE void mapper_profile_print_approximate_search(FILE* const stream) {
   tab_fprintf(stream,"      --> MCS.Filtering.Inexact               ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_FILTERING_INEXACT_MCS),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"mcs  ",true);
 }
-GEM_INLINE void mapper_profile_print_approximate_search_ranks(FILE* const stream) { /* TODO */ }
+void mapper_profile_print_approximate_search_ranks(FILE* const stream) { /* TODO */ }
 /*
  * Archive Search
  */
-GEM_INLINE void mapper_profile_print_archive_search_se(FILE* const stream) {
+void mapper_profile_print_archive_search_se(FILE* const stream) {
   fprintf(stream,    "[GEM]>Profile.ArchiveSearch.SE\n");
   tab_fprintf(stream,"  => TIME.Archive.Search.SE             ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_SE),PROF_GET_TIMER(GP_MAPPER_ALL));
@@ -248,7 +248,7 @@ GEM_INLINE void mapper_profile_print_archive_search_se(FILE* const stream) {
   tab_fprintf(stream,"      => TIME.Score.Matches             ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SCORE_SE_MATCHES),PROF_GET_TIMER(GP_MAPPER_ALL));
 }
-GEM_INLINE void mapper_profile_print_archive_search_pe(FILE* const stream) {
+void mapper_profile_print_archive_search_pe(FILE* const stream) {
   fprintf(stream,    "[GEM]>Profile.ArchiveSearch.PE\n");
   tab_fprintf(stream,"  => TIME.Archive.Search.PE                         ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_PE),PROF_GET_TIMER(GP_MAPPER_ALL));
@@ -288,7 +288,7 @@ GEM_INLINE void mapper_profile_print_archive_search_pe(FILE* const stream) {
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTENSION_SHORTCUT_SUCCESS),
                        PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"ext",true);
 }
-GEM_INLINE void mapper_profile_print_archive_search_group(FILE* const stream) {
+void mapper_profile_print_archive_search_group(FILE* const stream) {
   /*
    * TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
    */
@@ -308,7 +308,7 @@ GEM_INLINE void mapper_profile_print_archive_search_group(FILE* const stream) {
 //  tab_fprintf(stream,"      --> Candidates                  ");
 //  PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_BPM_GPU_BUFFER_USAGE_CANDIDATES));
 }
-GEM_INLINE void mapper_profile_print_archive_search_cuda(FILE* const stream,const bool map_output) {
+void mapper_profile_print_archive_search_cuda(FILE* const stream,const bool map_output) {
   //tab_fprintf(stream,"[GEM]>Profile.CUDA.Search\n");
   //tab_fprintf(stream,"  => TIME.GPU.Init                           ");
   //TIMER_PRINT(stream,PROF_GET_TIMER(GP_GPU_BUFFER_COLLECTION_INIT),PROF_GET_TIMER(GP_MAPPER_ALL));
@@ -368,7 +368,7 @@ GEM_INLINE void mapper_profile_print_archive_search_cuda(FILE* const stream,cons
 //  // Archive Search Groups
 //  mapper_profile_print_archive_search_group(stream);
 }
-GEM_INLINE void mapper_profile_print_archive_search_pe_cuda(FILE* const stream,const bool map_output) {
+void mapper_profile_print_archive_search_pe_cuda(FILE* const stream,const bool map_output) {
 
   /*
    * TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
@@ -418,7 +418,7 @@ GEM_INLINE void mapper_profile_print_archive_search_pe_cuda(FILE* const stream,c
 /*
  * Filtering Verification
  */
-GEM_INLINE void mapper_profile_print_verifying(FILE* const stream,const bool verification_profile) {
+void mapper_profile_print_verifying(FILE* const stream,const bool verification_profile) {
   tab_fprintf(stream,"[GEM]>Profile.Filtering\n");
   // Verifying
   tab_fprintf(stream,"  => TIME.Process.Candidates                   ");
@@ -463,7 +463,7 @@ GEM_INLINE void mapper_profile_print_verifying(FILE* const stream,const bool ver
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_BPM_QUICK_ABANDON),PROF_GET_COUNTER(GP_BMP_TILED_NUM_TILES_VERIFIED),"         ",true);
   }
 }
-GEM_INLINE void mapper_profile_print_realign(FILE* const stream) {
+void mapper_profile_print_realign(FILE* const stream) {
   tab_fprintf(stream,"[GEM]>Profile.Realign\n");
   tab_fprintf(stream,"  => TIME.Realign                                  ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_REALIGN_CANDIDATE_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
@@ -519,17 +519,17 @@ GEM_INLINE void mapper_profile_print_realign(FILE* const stream) {
   tab_fprintf(stream,"    --> SWG.Banded.Aligned.Length                  ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SWG_ALIGN_BANDED_LENGTH),PROF_GET_COUNTER(GP_CANDIDATE_REGION_LENGTH),"nt       ",true);
 }
-GEM_INLINE void mapper_profile_print_filtering(FILE* const stream,const bool verification_profile) {
+void mapper_profile_print_filtering(FILE* const stream,const bool verification_profile) {
   // Verifying
   mapper_profile_print_verifying(stream,verification_profile);
   // Realign
   mapper_profile_print_realign(stream);
 }
-GEM_INLINE void mapper_profile_print_filtering_verifying_ranks(FILE* const stream) { /*TODO*/ }
+void mapper_profile_print_filtering_verifying_ranks(FILE* const stream) { /*TODO*/ }
 /*
  * Neighborhood Search
  */
-GEM_INLINE void mapper_profile_print_neighborhood_search(FILE* const stream) {
+void mapper_profile_print_neighborhood_search(FILE* const stream) {
   tab_fprintf(stream,"[GEM]>Profile.NeighborhoodSearch\n");
   tab_fprintf(stream,"  => TIME.NS.BestMatch                         ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_NS_BEST_MATCH),PROF_GET_TIMER(GP_MAPPER_ALL));
@@ -547,11 +547,11 @@ GEM_INLINE void mapper_profile_print_neighborhood_search(FILE* const stream) {
   tab_fprintf(stream,"      --> Nodes.Closed.Depth                   ");
   SAMPLER_PRINT(stream,&_ns_nodes_closed_depth,PROF_GET_COUNTER(GP_NS_NODES_EXPLORED),"bases");
 }
-GEM_INLINE void mapper_profile_print_neighborhood_search_ranks(FILE* const stream) { /*TODO*/ }
+void mapper_profile_print_neighborhood_search_ranks(FILE* const stream) { /*TODO*/ }
 /*
  * Generate Candidates
  */
-GEM_INLINE void mapper_profile_print_generate_candidates(FILE* const stream) {
+void mapper_profile_print_generate_candidates(FILE* const stream) {
   tab_fprintf(stream,"[GEM]>Profile.Generate.Candidates\n");
   tab_fprintf(stream,"  => TIME.Generate.Candidates         ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_GENERATE_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
@@ -605,7 +605,7 @@ GEM_INLINE void mapper_profile_print_generate_candidates(FILE* const stream) {
 /*
  * Ranks Profile
  */
-GEM_INLINE void mapper_profile_print_mapper_ranks(FILE* const stream) {
+void mapper_profile_print_mapper_ranks(FILE* const stream) {
   tab_fprintf(stream,"[GEM]>Profile.Mapper\n");
   tab_fprintf(stream,"  => RANKS.Mapper                  ");
   COUNTER_PRINT(stream,PROF_GET_RANK(GP_MAPPER_ALL),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
@@ -631,7 +631,7 @@ GEM_INLINE void mapper_profile_print_mapper_ranks(FILE* const stream) {
 /*
  * Mapper
  */
-GEM_INLINE void mapper_profile_print_mapper_commons(
+void mapper_profile_print_mapper_commons(
     FILE* const stream,const bool paired_end,const bool map_output,const uint64_t num_threads) {
   // Archive Search SE
   if (paired_end) {
@@ -661,7 +661,7 @@ GEM_INLINE void mapper_profile_print_mapper_commons(
   // Checks
   mapper_profile_print_checks(stream);
 }
-GEM_INLINE void mapper_profile_print_mapper_single_end(
+void mapper_profile_print_mapper_single_end(
     FILE* const stream,const bool map_output,const uint64_t num_threads) {
   // Main
   tab_fprintf(stream,"[GEM]>Profile.Mapper\n");
@@ -677,7 +677,7 @@ GEM_INLINE void mapper_profile_print_mapper_single_end(
   // Commons
   mapper_profile_print_mapper_commons(stream,false,map_output,num_threads);
 }
-GEM_INLINE void mapper_profile_print_mapper_single_end_cuda(
+void mapper_profile_print_mapper_single_end_cuda(
     FILE* const stream,const bool map_output,const uint64_t num_threads) {
   // Main
   tab_fprintf(stream,"[GEM]>Profile.Mapper\n");
@@ -695,7 +695,7 @@ GEM_INLINE void mapper_profile_print_mapper_single_end_cuda(
 /*
  * Mapper PE
  */
-GEM_INLINE void mapper_profile_print_mapper_paired_end(
+void mapper_profile_print_mapper_paired_end(
     FILE* const stream,const bool map_output,const uint64_t num_threads) {
   // All
   tab_fprintf(stream,"[GEM]>Profile.Mapper\n");
@@ -704,7 +704,7 @@ GEM_INLINE void mapper_profile_print_mapper_paired_end(
   // Commons
   mapper_profile_print_mapper_commons(stream,true,map_output,num_threads);
 }
-GEM_INLINE void mapper_profile_print_mapper_paired_end_cuda(
+void mapper_profile_print_mapper_paired_end_cuda(
     FILE* const stream,const bool map_output,const uint64_t num_threads) {
   // All
   tab_fprintf(stream,"[GEM]>Profile.Mapper\n");
@@ -720,12 +720,12 @@ GEM_INLINE void mapper_profile_print_mapper_paired_end_cuda(
   mapper_profile_print_mapper_commons(stream,true,map_output,num_threads);
 }
 #else /* GEM_PROFILE DISABLED */
-GEM_INLINE void mapper_profile_print_mapper_single_end(
+void mapper_profile_print_mapper_single_end(
     FILE* const stream,const bool map_output,const uint64_t num_threads) {}
-GEM_INLINE void mapper_profile_print_mapper_single_end_cuda(
+void mapper_profile_print_mapper_single_end_cuda(
     FILE* const stream,const bool map_output,const uint64_t num_threads) {}
-GEM_INLINE void mapper_profile_print_mapper_paired_end(
+void mapper_profile_print_mapper_paired_end(
     FILE* const stream,const bool map_output,const uint64_t num_threads) {}
-GEM_INLINE void mapper_profile_print_mapper_paired_end_cuda(
+void mapper_profile_print_mapper_paired_end_cuda(
     FILE* const stream,const bool map_output,const uint64_t num_threads) {}
 #endif

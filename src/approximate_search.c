@@ -48,7 +48,7 @@ const char* asearch_stage_label[] =
 /*
  * Setup
  */
-GEM_INLINE void approximate_search_init(
+void approximate_search_init(
     approximate_search_t* const search,archive_t* const archive,
     as_parameters_t* const as_parameters,const bool emulated_rc_search) {
   // Index Structures & Parameters
@@ -56,7 +56,7 @@ GEM_INLINE void approximate_search_init(
   search->as_parameters = as_parameters;
   search->emulated_rc_search = emulated_rc_search;
 }
-GEM_INLINE void approximate_search_reset(approximate_search_t* const search) {
+void approximate_search_reset(approximate_search_t* const search) {
   // Reset Approximate Search State
   search->search_stage = asearch_stage_begin;
   search->processing_state = asearch_processing_state_begin;
@@ -70,47 +70,47 @@ GEM_INLINE void approximate_search_reset(approximate_search_t* const search) {
     region_profile_new(&search->region_profile,search->pattern.key_length,search->mm_stack);
   }
 }
-GEM_INLINE void approximate_search_destroy(approximate_search_t* const search) {
+void approximate_search_destroy(approximate_search_t* const search) {
   /* NOP */
 }
 /*
  * Memory Injection (Support Data Structures)
  */
-GEM_INLINE void approximate_search_inject_mm_stack(
+void approximate_search_inject_mm_stack(
     approximate_search_t* const search,mm_stack_t* const mm_stack) {
   search->mm_stack = mm_stack;                         // Set MM
 }
-GEM_INLINE void approximate_search_inject_interval_set(
+void approximate_search_inject_interval_set(
     approximate_search_t* const search,interval_set_t* const interval_set) {
   search->interval_set = interval_set;                 // Interval Set
 }
-GEM_INLINE void approximate_search_inject_text_collection(
+void approximate_search_inject_text_collection(
     approximate_search_t* const search,text_collection_t* const text_collection) {
   search->text_collection = text_collection;           // Text-Collection
 }
-GEM_INLINE void approximate_search_inject_filtering_candidates(
+void approximate_search_inject_filtering_candidates(
     approximate_search_t* const search,filtering_candidates_t* const filtering_candidates) {
   search->filtering_candidates = filtering_candidates; // Filtering Candidates
 }
 /*
  * Accessors
  */
-GEM_INLINE uint64_t approximate_search_get_num_exact_filtering_candidates(const approximate_search_t* const search) {
+uint64_t approximate_search_get_num_exact_filtering_candidates(const approximate_search_t* const search) {
   return (search->processing_state == asearch_processing_state_exact_matches) ?
       search->hi_exact_matches - search->lo_exact_matches : 0;
 }
-GEM_INLINE void approximate_search_update_mcs(approximate_search_t* const search,const uint64_t max_complete_stratum) {
+void approximate_search_update_mcs(approximate_search_t* const search,const uint64_t max_complete_stratum) {
   search->max_complete_stratum = max_complete_stratum;
 }
-GEM_INLINE uint64_t approximate_search_get_num_regions_profile(const approximate_search_t* const search) {
+uint64_t approximate_search_get_num_regions_profile(const approximate_search_t* const search) {
   const region_profile_t* const region_profile = &search->region_profile;
   return region_profile->num_filtering_regions;
 }
-GEM_INLINE uint64_t approximate_search_get_num_decode_candidates(const approximate_search_t* const search) {
+uint64_t approximate_search_get_num_decode_candidates(const approximate_search_t* const search) {
   const region_profile_t* const region_profile = &search->region_profile;
   return region_profile->total_candidates;
 }
-GEM_INLINE uint64_t approximate_search_get_num_verify_candidates(const approximate_search_t* const search) {
+uint64_t approximate_search_get_num_verify_candidates(const approximate_search_t* const search) {
   if (search->processing_state == asearch_processing_state_exact_matches) {
     return search->hi_exact_matches - search->lo_exact_matches;
   } else {
@@ -121,10 +121,10 @@ GEM_INLINE uint64_t approximate_search_get_num_verify_candidates(const approxima
 /*
  * Modifiers
  */
-GEM_INLINE void approximate_search_hold_verification_candidates(approximate_search_t* const search) {
+void approximate_search_hold_verification_candidates(approximate_search_t* const search) {
   filtering_candidates_set_all_regions_pending(search->filtering_candidates);
 }
-GEM_INLINE void approximate_search_release_verification_candidates(approximate_search_t* const search) {
+void approximate_search_release_verification_candidates(approximate_search_t* const search) {
   filtering_candidates_set_all_regions_unverified(search->filtering_candidates);
   if (search->processing_state==asearch_processing_state_candidates_verified) {
     search->processing_state = asearch_processing_state_candidates_processed;
@@ -133,7 +133,7 @@ GEM_INLINE void approximate_search_release_verification_candidates(approximate_s
 /*
  * Approximate String Matching using the FM-index
  */
-GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t* const matches) {
+void approximate_search(approximate_search_t* const search,matches_t* const matches) {
   PROFILE_START(GP_AS_MAIN,PROFILE_LEVEL);
   /*
    * Select mapping strategy
@@ -160,7 +160,7 @@ GEM_INLINE void approximate_search(approximate_search_t* const search,matches_t*
 /*
  * Display
  */
-GEM_INLINE void approximate_search_print(FILE* const stream,approximate_search_t* const search) {
+void approximate_search_print(FILE* const stream,approximate_search_t* const search) {
   tab_fprintf(stream,"[GEM]>ApproximateSearch\n");
   tab_global_inc();
   tab_fprintf(stream,"=> Search.Stage %s\n",asearch_stage_label[search->search_stage]);

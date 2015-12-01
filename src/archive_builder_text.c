@@ -11,7 +11,7 @@
 /*
  * Generate DNA-Text
  */
-GEM_INLINE void archive_builder_text_process(
+void archive_builder_text_process(
     archive_builder_t* const archive_builder,input_file_t* const input_multifasta,
     const bool dump_locator_intervals,const bool dump_indexed_text,const bool verbose) {
   /*
@@ -51,7 +51,7 @@ GEM_INLINE void archive_builder_text_process(
 /*
  * Run-length Text (Apply RL to the text)
  */
-GEM_INLINE void archive_builder_text_apply_run_length(
+void archive_builder_text_apply_run_length(
     archive_builder_t* const archive_builder,const bool dump_run_length_text,const bool verbose) {
   // Allocate RL-text (Circular BWT extra)
   const uint64_t enc_text_length = dna_text_get_length(archive_builder->enc_text);
@@ -86,7 +86,7 @@ GEM_INLINE void archive_builder_text_apply_run_length(
 /*
  * Display
  */
-GEM_INLINE void archive_builder_text_dump(archive_builder_t* const archive_builder,const char* const extension) {
+void archive_builder_text_dump(archive_builder_t* const archive_builder,const char* const extension) {
   // Open file
   char* const indexed_text_file_name = gem_strcat(archive_builder->output_file_name_prefix,extension);
   FILE* const indexed_text_file = fopen(indexed_text_file_name,"w");

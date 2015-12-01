@@ -10,11 +10,6 @@
 #include "filtering_candidates_process.h"
 
 /*
- * Debug
- */
-#define DEBUG_CHECK_DECODE_POSITION false
-
-/*
  * Profile
  */
 #define PROFILE_LEVEL PMED
@@ -22,7 +17,7 @@
 /*
  * Add all decoded candidate-positions from gpu-buffer
  */
-GEM_INLINE void filtering_candidates_decode_filtering_positions_buffered(
+void filtering_candidates_decode_filtering_positions_buffered(
     filtering_candidates_t* const filtering_candidates,const locator_t* const locator,
     archive_text_t* const archive_text,const fm_index_t* const fm_index,
     const uint64_t region_begin,const uint64_t region_end,
@@ -44,14 +39,12 @@ GEM_INLINE void filtering_candidates_decode_filtering_positions_buffered(
       // Recover Sample
       fm_index_retrieve_sa_sample(fm_index,bwt_sampled_position,lf_steps,&filtering_position->region_text_position);
       // DEBUG
-      gem_cond_debug_block(DEBUG_CHECK_DECODE_POSITION) {
-        const uint64_t region_text_position = fm_index_decode(fm_index,region_lo+i);
-        if (filtering_position->region_text_position!=region_text_position) {
-          gem_cond_fatal_error_msg(filtering_position->region_text_position!=region_text_position,
-              "Filtering.Candidates.Process.Buffered. Check decoded position failed (%lu!=%lu)",
-              filtering_position->region_text_position,region_text_position);
-        }
-      }
+#ifdef CUDA_CHECK_BUFFERED_DECODE_POSITIONS
+      const uint64_t region_text_position = fm_index_decode(fm_index,region_lo+i);
+      gem_cond_fatal_error_msg(filtering_position->region_text_position!=region_text_position,
+          "Filtering.Candidates.Process.Buffered. Check decoded position failed (%lu!=%lu)",
+          filtering_position->region_text_position,region_text_position);
+#endif
     } else {
       // Re-Decode (GPU decode failed)
       filtering_position->region_text_position = fm_index_decode(fm_index,region_lo+i);
@@ -68,7 +61,7 @@ GEM_INLINE void filtering_candidates_decode_filtering_positions_buffered(
 /*
  * Process Candidates from GPU-Buffer
  */
-GEM_INLINE void filtering_candidates_process_candidates_buffered(
+void filtering_candidates_process_candidates_buffered(
     filtering_candidates_t* const filtering_candidates,
     archive_t* const archive,const pattern_t* const pattern,
     const as_parameters_t* const as_parameters,

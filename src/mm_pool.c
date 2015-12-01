@@ -39,7 +39,7 @@ typedef struct {
 // Global memory pool
 mm_pool_t* gem_memory_pool = NULL;
 
-GEM_INLINE mm_slab_t* mm_pool_get_slab(const mm_pool_type_t mm_pool_type) {
+mm_slab_t* mm_pool_get_slab(const mm_pool_type_t mm_pool_type) {
   // Check @gem_memory_pool
   if (gem_memory_pool==NULL) {
     gem_memory_pool = mm_alloc(mm_pool_t);
@@ -92,7 +92,7 @@ GEM_INLINE mm_slab_t* mm_pool_get_slab(const mm_pool_type_t mm_pool_type) {
   } MUTEX_END_SECTION(gem_memory_pool->mutex);
   return mm_slab;
 }
-GEM_INLINE void mm_pool_delete() {
+void mm_pool_delete() {
   // Check @gem_memory_pool
   if (gem_memory_pool!=NULL) {
     // Delete slabs

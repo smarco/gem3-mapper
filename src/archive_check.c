@@ -12,7 +12,7 @@
 /*
  * Check Matches
  */
-GEM_INLINE void archive_check_se_match_retrieve_text(
+void archive_check_se_match_retrieve_text(
     archive_t* const archive,match_trace_t* const match_trace,
     match_align_input_t* const match_align_input,mm_stack_t* const mm_stack) {
   // Retrieve location
@@ -46,7 +46,7 @@ GEM_INLINE void archive_check_se_match_retrieve_text(
     match_align_input->text_offset_begin = BOUNDED_SUBTRACTION(index_end_pos,effective_length+index_position,0);
   }
 }
-GEM_INLINE bool archive_check_se_match_check_optimum(
+bool archive_check_se_match_check_optimum(
     match_trace_t* const match_trace,const alignment_model_t alignment_model,
     swg_penalties_t* const swg_penalties,match_align_input_t* const match_align_input,
     match_trace_t* const optimum_match_trace,vector_t* const cigar_vector,
@@ -77,7 +77,7 @@ GEM_INLINE bool archive_check_se_match_check_optimum(
   }
   return false;
 }
-GEM_INLINE void archive_check_se_match_print(
+void archive_check_se_match_print(
     FILE* const stream,const char* const label,
     match_trace_t* const match_trace,matches_t* const matches,
     match_align_input_t* const match_align_input,sequence_t* const sequence,
@@ -113,14 +113,14 @@ GEM_INLINE void archive_check_se_match_print(
   tab_global_dec();
   fflush(stream); // exit(1);
 }
-GEM_INLINE void archive_check_se_match_print_incorrect(
+void archive_check_se_match_print_incorrect(
     FILE* const stream,match_trace_t* const match_trace,
     matches_t* const matches,match_align_input_t* const match_align_input,
     sequence_t* const sequence,mm_stack_t* const mm_stack) {
   archive_check_se_match_print(stream,"INCORRECT",
       match_trace,matches,match_align_input,sequence,mm_stack);
 }
-GEM_INLINE void archive_check_se_match_print_suboptimum(
+void archive_check_se_match_print_suboptimum(
     FILE* const stream,match_trace_t* const match_trace,
     matches_t* const matches,match_align_input_t* const match_align_input,
     sequence_t* const sequence,match_trace_t* const optimum_match_trace,
@@ -150,7 +150,7 @@ GEM_INLINE void archive_check_se_match_print_suboptimum(
   tab_global_dec();
   tab_global_dec();
 }
-GEM_INLINE void archive_check_se_matches(
+void archive_check_se_matches(
     archive_t* const archive,const alignment_model_t alignment_model,
     swg_penalties_t* swg_penalties,sequence_t* const sequence,
     matches_t* const matches,const archive_check_type check_type,
@@ -218,7 +218,7 @@ GEM_INLINE void archive_check_se_matches(
   }
   mm_stack_pop_state(mm_stack,false);
 }
-GEM_INLINE void archive_check_pe_matches(
+void archive_check_pe_matches(
     archive_t* const archive,const alignment_model_t alignment_model,
     swg_penalties_t* swg_penalties,sequence_t* const sequence_end1,
     sequence_t* const sequence_end2,paired_matches_t* const paired_matches,

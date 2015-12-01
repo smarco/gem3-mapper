@@ -26,8 +26,9 @@ typedef struct {
  * Setup
  */
 search_stage_verify_candidates_buffer_t* search_stage_verify_candidates_buffer_new(
-    const gpu_buffer_collection_t* const gpu_buffer_collection,
-    const uint64_t buffer_no,const bool cpu_emulated);
+    const gpu_buffer_collection_t* const gpu_buffer_collection,const uint64_t buffer_no,
+    const bool cpu_emulated,archive_text_t* const archive_text,
+    text_collection_t* const text_collection,mm_stack_t* const mm_stack);
 void search_stage_verify_candidates_buffer_clear(
     search_stage_verify_candidates_buffer_t* const verify_candidates_buffer,
     archive_search_cache_t* const archive_search_cache);

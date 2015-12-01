@@ -13,7 +13,7 @@
 /*
  * Brute Force
  */
-GEM_INLINE uint64_t nsearch_levenshtein_brute_print_solution(
+uint64_t nsearch_levenshtein_brute_print_solution(
     nsearch_schedule_t* const nsearch_schedule,const uint64_t text_position) {
   char* const search_string = nsearch_schedule->search_string; // Use first
   ++nsearch_schedule->ns_nodes_success; // PROFILE
@@ -21,7 +21,7 @@ GEM_INLINE uint64_t nsearch_levenshtein_brute_print_solution(
   fprintf(stdout,"%s\n",search_string);
   return 1;
 }
-GEM_INLINE uint64_t nsearch_levenshtein_brute_force_step_all(
+uint64_t nsearch_levenshtein_brute_force_step_all(
     nsearch_schedule_t* const nsearch_schedule,const uint64_t text_position) {
   // Expand node for all characters
   nsearch_levenshtein_state_t* const nsearch_state = &nsearch_schedule->pending_searches->nsearch_state;
@@ -54,7 +54,7 @@ GEM_INLINE uint64_t nsearch_levenshtein_brute_force_step_all(
   }
   return total_matches_found;
 }
-GEM_INLINE uint64_t nsearch_levenshtein_brute_force_step_supercondensed(
+uint64_t nsearch_levenshtein_brute_force_step_supercondensed(
     nsearch_schedule_t* const nsearch_schedule,const uint64_t text_position) {
   // Expand node for all characters
   nsearch_levenshtein_state_t* const nsearch_state = &nsearch_schedule->pending_searches->nsearch_state;
@@ -85,7 +85,7 @@ GEM_INLINE uint64_t nsearch_levenshtein_brute_force_step_supercondensed(
   }
   return total_matches_found;
 }
-GEM_INLINE void nsearch_levenshtein_brute_force(
+void nsearch_levenshtein_brute_force(
     fm_index_t* const fm_index,uint8_t* const key,
     const uint64_t key_length,const uint64_t max_error,
     interval_set_t* const intervals_result,mm_stack_t* const mm_stack) {
@@ -108,7 +108,7 @@ GEM_INLINE void nsearch_levenshtein_brute_force(
 /*
  * Perform Levenshtein Scheduled Search
  */
-GEM_INLINE uint64_t nsearch_levenshtein_perform_scheduled_search_next_operation(
+uint64_t nsearch_levenshtein_perform_scheduled_search_next_operation(
     nsearch_schedule_t* const nsearch_schedule,const uint64_t pending_searches,
     nsearch_operation_t* const nsearch_operation,const uint64_t global_error,
     const uint64_t align_distance) {
@@ -148,7 +148,7 @@ GEM_INLINE uint64_t nsearch_levenshtein_perform_scheduled_search_next_operation(
   }
   return 0;
 }
-GEM_INLINE uint64_t nsearch_levenshtein_perform_scheduled_search(
+uint64_t nsearch_levenshtein_perform_scheduled_search(
     nsearch_schedule_t* const nsearch_schedule,const uint64_t pending_searches,
     nsearch_operation_t* const nsearch_operation,const uint64_t global_error) {
   // Parameters
@@ -213,7 +213,7 @@ GEM_INLINE uint64_t nsearch_levenshtein_perform_scheduled_search(
 /*
  * Hamming Neighborhood Search
  */
-GEM_INLINE void nsearch_levenshtein(
+void nsearch_levenshtein(
     fm_index_t* const fm_index,uint8_t* const key,
     const uint64_t key_length,const uint64_t max_error,
     interval_set_t* const intervals_result,mm_stack_t* const mm_stack) {
@@ -231,7 +231,7 @@ GEM_INLINE void nsearch_levenshtein(
 /*
  * Neighborhood Search (Preconditioned by region profile)
  */
-GEM_INLINE void nsearch_levenshtein_preconditioned(
+void nsearch_levenshtein_preconditioned(
     fm_index_t* const fm_index,region_profile_t* const region_profile,
     uint8_t* const key,const uint64_t key_length,const uint64_t max_error,
     interval_set_t* const intervals_result,mm_stack_t* const mm_stack) {
@@ -249,7 +249,7 @@ GEM_INLINE void nsearch_levenshtein_preconditioned(
 /*
  * Display
  */
-GEM_INLINE void nsearch_levenshtein_print_text(
+void nsearch_levenshtein_print_text(
     FILE* const stream,nsearch_schedule_t* const nsearch_schedule,
     const uint64_t pending_searches) {
   nsearch_operation_t* nsearch_operation = NULL;
@@ -268,7 +268,7 @@ GEM_INLINE void nsearch_levenshtein_print_text(
   nsearch_levenshtein_state_print(stream,nsearch_state,
       nsearch_operation->search_direction==direction_forward,nsearch_schedule->key);
 }
-GEM_INLINE void nsearch_levenshtein_print_search_trace(
+void nsearch_levenshtein_print_search_trace(
     FILE* const stream,nsearch_schedule_t* const nsearch_schedule,
     const uint64_t pending_searches) {
   nsearch_operation_t* nsearch_operation = NULL;
@@ -288,7 +288,7 @@ GEM_INLINE void nsearch_levenshtein_print_search_trace(
   nsearch_levenshtein_state_print(stream,nsearch_state,
       nsearch_operation->search_direction==direction_forward,nsearch_schedule->key);
 }
-//GEM_INLINE void nsearch_levenshtein_print_pair_key_text(
+//void nsearch_levenshtein_print_pair_key_text(
 //    FILE* const stream,nsearch_schedule_t* const nsearch_schedule,
 //    nsearch_operation_t* const nsearch_operation) {
 //  nsearch_levenshtein_state_t* const nsearch_state = &nsearch_operation->nsearch_state;

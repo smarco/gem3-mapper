@@ -23,7 +23,7 @@
 /*
  * Approximate Search based on Filtering Complete Search
  */
-GEM_INLINE void approximate_search_filtering_complete(approximate_search_t* const search,matches_t* const matches) {
+void approximate_search_filtering_complete(approximate_search_t* const search,matches_t* const matches) {
   // PROFILE_START(GP_AS_FILTERING_EXACT,PROFILE_LEVEL); // TODO
   // Parameters
   const as_parameters_t* const actual_parameters = search->as_parameters;

@@ -21,13 +21,13 @@
 /*
  * GPU Support
  */
-GEM_INLINE bool gpu_supported() {
+bool gpu_supported() {
   return (gpu_get_num_supported_devices_(GPU_ARCH_SUPPORTED) > 0);
 }
 /*
  * Setup
  */
-GEM_INLINE gpu_buffer_collection_t* gpu_buffer_collection_new(
+gpu_buffer_collection_t* gpu_buffer_collection_new(
     archive_t* const archive,const uint64_t num_buffers,
     const uint64_t buffer_size,const bool verbose) {
   PROFILE_START(GP_GPU_BUFFER_COLLECTION_INIT,PROFILE_LEVEL);
@@ -70,7 +70,7 @@ GEM_INLINE gpu_buffer_collection_t* gpu_buffer_collection_new(
   PROFILE_STOP(GP_GPU_BUFFER_COLLECTION_INIT,PROFILE_LEVEL);
   return buffer_collection;
 }
-GEM_INLINE void gpu_buffer_collection_delete(gpu_buffer_collection_t* const gpu_buffer_collection) {
+void gpu_buffer_collection_delete(gpu_buffer_collection_t* const gpu_buffer_collection) {
   gpu_destroy_buffers_((gpu_buffers_dto_t*)gpu_buffer_collection->gpu_buffers_dto); // Destroy buffers
   mm_free(gpu_buffer_collection->gpu_buffers_dto); // Free DTO
   mm_free(gpu_buffer_collection); // Free Handler
@@ -78,7 +78,7 @@ GEM_INLINE void gpu_buffer_collection_delete(gpu_buffer_collection_t* const gpu_
 /*
  * Accessors
  */
-GEM_INLINE void* gpu_buffer_collection_get_buffer(
+void* gpu_buffer_collection_get_buffer(
     const gpu_buffer_collection_t* const gpu_buffer_collection,const uint64_t buffer_no) {
   return gpu_buffer_collection->internal_buffers[buffer_no];
 }
@@ -89,20 +89,20 @@ GEM_INLINE void* gpu_buffer_collection_get_buffer(
 /*
  * GPU Support
  */
-GEM_INLINE bool gpu_supported() { return false; }
+bool gpu_supported() { return false; }
 /*
  * Setup
  */
-GEM_INLINE gpu_buffer_collection_t* gpu_buffer_collection_new(
+gpu_buffer_collection_t* gpu_buffer_collection_new(
     archive_t* const archive,const uint64_t num_buffers,
     const uint64_t buffer_size,const bool verbose) {
   GEM_CUDA_NOT_SUPPORTED();
   return NULL;
 }
-GEM_INLINE void gpu_buffer_collection_delete(gpu_buffer_collection_t* const gpu_buffer_collection) { GEM_CUDA_NOT_SUPPORTED(); }
+void gpu_buffer_collection_delete(gpu_buffer_collection_t* const gpu_buffer_collection) { GEM_CUDA_NOT_SUPPORTED(); }
 /*
  * Accessors
  */
-GEM_INLINE void* gpu_buffer_collection_get_buffer(
+void* gpu_buffer_collection_get_buffer(
     const gpu_buffer_collection_t* const gpu_buffer_collection,const uint64_t buffer_no) { GEM_CUDA_NOT_SUPPORTED(); return NULL; }
 #endif /* HAVE_CUDA */

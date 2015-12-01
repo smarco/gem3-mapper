@@ -12,7 +12,7 @@
 /*
  * Basic FM-Index search (backwards)
  */
-GEM_INLINE void fm_index_bsearch(
+void fm_index_bsearch(
     const fm_index_t* const fm_index,const uint8_t* const key,
     uint64_t key_length,uint64_t* const hi_out,uint64_t* const lo_out) {
   uint64_t lo, hi;
@@ -47,7 +47,7 @@ GEM_INLINE void fm_index_bsearch(
     *lo_out=lo;
   }
 }
-GEM_INLINE void fm_index_bsearch_pure(
+void fm_index_bsearch_pure(
     const fm_index_t* const fm_index,const uint8_t* const key,
     uint64_t key_length,uint64_t* const hi_out,uint64_t* const lo_out) {
   // Query lookup table
@@ -65,7 +65,7 @@ GEM_INLINE void fm_index_bsearch_pure(
   *hi_out=hi;
   *lo_out=lo;
 }
-GEM_INLINE uint64_t fm_index_bsearch_continue(
+uint64_t fm_index_bsearch_continue(
     const fm_index_t* const fm_index,const char* const key,const uint64_t key_length,
     const bool* const allowed_repl,uint64_t last_hi,uint64_t last_lo,uint64_t begin_pos,
     const uint64_t end_pos,uint64_t* const res_hi,uint64_t* const res_lo) {
@@ -93,7 +93,7 @@ GEM_INLINE uint64_t fm_index_bsearch_continue(
 /*
  * Basic FM-Index search (forward)
  */
-GEM_INLINE void fm_index_reverse_bsearch_pure(
+void fm_index_reverse_bsearch_pure(
     const fm_index_t* const fm_index,const uint8_t* const key,
     const uint64_t key_length,uint64_t* const hi_out,uint64_t* const lo_out) {
   // Init
@@ -117,7 +117,7 @@ GEM_INLINE void fm_index_reverse_bsearch_pure(
 /*
  * Debug
  */
-GEM_INLINE void fm_index_bsearch_debug(
+void fm_index_bsearch_debug(
     const fm_index_t* const fm_index,const uint8_t* const key,
     uint64_t key_length,uint64_t* const hi_out,
     uint64_t* const lo_out,uint64_t* const steps_out) {

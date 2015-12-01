@@ -24,7 +24,7 @@
 /*
  * Candidate Alignment
  */
-GEM_INLINE uint64_t filtering_candidates_align_accepted_regions(
+uint64_t filtering_candidates_align_accepted_regions(
     filtering_candidates_t* const filtering_candidates,
     archive_text_t* const archive_text,const locator_t* const locator,
     text_collection_t* const text_collection,pattern_t* const pattern,
@@ -124,7 +124,7 @@ GEM_INLINE uint64_t filtering_candidates_align_accepted_regions(
   // Return total accepted regions
   return num_accepted_regions;
 }
-GEM_INLINE uint64_t filtering_candidates_unbounded_align_regions_by_status(
+uint64_t filtering_candidates_unbounded_align_regions_by_status(
     vector_t* const filtering_regions,const filtering_region_status_t region_status,
     archive_text_t* const archive_text,const locator_t* const locator,
     text_collection_t* const text_collection,pattern_t* const pattern,
@@ -161,7 +161,7 @@ GEM_INLINE uint64_t filtering_candidates_unbounded_align_regions_by_status(
   // Return number of unbounded alignments
   return num_unbounded_alignments;
 }
-GEM_INLINE uint64_t filtering_candidates_unbounded_align_regions(
+uint64_t filtering_candidates_unbounded_align_regions(
     filtering_candidates_t* const filtering_candidates,
     archive_text_t* const archive_text,const locator_t* const locator,
     text_collection_t* const text_collection,pattern_t* const pattern,
@@ -196,7 +196,7 @@ GEM_INLINE uint64_t filtering_candidates_unbounded_align_regions(
   // Return total unbounded-alignments
   return total_unbounded_alignments;
 }
-GEM_INLINE uint64_t filtering_candidates_align_candidates(
+uint64_t filtering_candidates_align_candidates(
     filtering_candidates_t* const filtering_candidates,
     archive_text_t* const archive_text,const locator_t* const locator,
     text_collection_t* const text_collection,pattern_t* const pattern,
@@ -218,7 +218,7 @@ GEM_INLINE uint64_t filtering_candidates_align_candidates(
 /*
  * Search for unbounded-alignments
  */
-GEM_INLINE uint64_t filtering_candidates_align_unbounded(
+uint64_t filtering_candidates_align_unbounded(
     filtering_candidates_t* const filtering_candidates,
     archive_text_t* const archive_text,const locator_t* const locator,
     text_collection_t* const text_collection,pattern_t* const pattern,
