@@ -76,8 +76,9 @@ typedef struct {
 /*
  * Get elements
  */
-uint32_t gpu_get_num_supported_devices_(gpu_dev_arch_t selectedArchitectures);
-uint32_t gpu_buffer_get_id_device_(void* gpu_buffer);
+uint32_t gpu_get_num_supported_devices_(const gpu_dev_arch_t selectedArchitectures);
+uint32_t gpu_buffer_get_id_device_(const void* const gpu_buffer);
+uint32_t gpu_buffer_get_id_supported_device_(const void* const gpuBuffer);
 
 
 /*

@@ -5,16 +5,16 @@
 Functions to get information from the system
 ************************************************************/
 
-GPU_INLINE uint32_t gpu_buffer_get_id_device_(void *gpuBuffer)
+GPU_INLINE uint32_t gpu_buffer_get_id_device_(const void* const gpuBuffer)
 {
-	gpu_buffer_t *mBuff = (gpu_buffer_t *) gpuBuffer;
+	const gpu_buffer_t* const mBuff = (gpu_buffer_t *) gpuBuffer;
 	const uint32_t idSupDevice = mBuff->idSupportedDevice;
 	return(mBuff->device[idSupDevice]->idDevice);
 }
 
-GPU_INLINE uint32_t gpu_buffer_get_id_supported_device_(void *gpuBuffer)
+GPU_INLINE uint32_t gpu_buffer_get_id_supported_device_(const void* const gpuBuffer)
 {
-	gpu_buffer_t *mBuff = (gpu_buffer_t *) gpuBuffer;
+	const gpu_buffer_t* const mBuff = (gpu_buffer_t *) gpuBuffer;
 	return(mBuff->idSupportedDevice);
 }
 
@@ -42,14 +42,13 @@ GPU_INLINE gpu_error_t gpu_get_min_memory_size_per_buffer(size_t *bytesPerBuffer
 	const size_t bytesPerSearchBuffer = GPU_FMI_SEARCH_MIN_ELEMENTS * gpu_fmi_decode_input_size();
 	const size_t bytesPerDecodeBuffer = GPU_FMI_DECODE_MIN_ELEMENTS * gpu_fmi_search_input_size();
 
-	(* bytesPerBuffer) = GPU_MAX(bytesPerBPMBuffer,GPU_MAX(bytesPerBPMBuffer,bytesPerDecodeBuffer));
+	(* bytesPerBuffer) = GPU_MAX(bytesPerBPMBuffer,GPU_MAX(bytesPerSearchBuffer,bytesPerDecodeBuffer));
 	return (SUCCESS);
 }
 
 GPU_INLINE gpu_error_t gpu_schedule_buffers(gpu_buffer_t ***gpuBuffer, const uint32_t numBuffers, gpu_device_info_t **device,
 										   gpu_reference_buffer_t *reference, gpu_index_buffer_t *index, float maxMbPerBuffer)
 {
-	const gpu_module_t activeModules = reference->activeModules | index->activeModules;
 	uint32_t idSupportedDevice, numBuffersPerDevice, idLocalBuffer;
 	const size_t maxBytesPerBuffer = GPU_CONVERT_MB_TO_B(maxMbPerBuffer);
 	const uint32_t numSupportedDevices = device[0]->numSupportedDevices;
@@ -235,7 +234,6 @@ GPU_INLINE gpu_error_t gpu_configure_modules(gpu_device_info_t ***devices, const
 											 const gpu_data_location_t userAllocOption, const uint32_t numBuffers,
 											 gpu_reference_buffer_t *reference, gpu_index_buffer_t *index)
 {
-	const gpu_module_t activeModules = reference->activeModules | index->activeModules;
 	const uint32_t numDevices = gpu_get_num_devices();
 	const uint32_t numSupportedDevices = gpu_get_num_supported_devices_(selectedArchitectures);
 	uint32_t idDevice, idSupportedDevice = 0;

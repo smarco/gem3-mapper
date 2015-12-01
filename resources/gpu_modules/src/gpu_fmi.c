@@ -12,28 +12,28 @@
 Functions to get the GPU FMI buffers
 ************************************************************/
 
-GPU_INLINE gpu_fmi_entry_t* gpu_fmi_buffer_get_index_(void *fmiBuffer){
-	gpu_buffer_t *mBuff = (gpu_buffer_t *) fmiBuffer;
+GPU_INLINE gpu_fmi_entry_t* gpu_fmi_buffer_get_index_(const void* const fmiBuffer){
+	const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
 	return(mBuff->index->h_fmi);
 }
 
-GPU_INLINE gpu_fmi_search_seed_t* gpu_fmi_search_buffer_get_seeds_(void *fmiBuffer){
-	gpu_buffer_t *mBuff = (gpu_buffer_t *) fmiBuffer;
+GPU_INLINE gpu_fmi_search_seed_t* gpu_fmi_search_buffer_get_seeds_(const void* const fmiBuffer){
+	const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
 	return(mBuff->data.search.seeds.h_seeds);
 }
 
-GPU_INLINE gpu_fmi_search_sa_inter_t* gpu_fmi_search_buffer_get_sa_intervals_(void *fmiBuffer){
-	gpu_buffer_t *mBuff = (gpu_buffer_t *) fmiBuffer;
+GPU_INLINE gpu_fmi_search_sa_inter_t* gpu_fmi_search_buffer_get_sa_intervals_(const void* const fmiBuffer){
+	const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
 	return(mBuff->data.search.saIntervals.h_intervals);
 }
 
-GPU_INLINE gpu_fmi_decode_init_pos_t* gpu_fmi_decode_buffer_get_init_pos_(void *fmiBuffer){
-	gpu_buffer_t *mBuff = (gpu_buffer_t *) fmiBuffer;
+GPU_INLINE gpu_fmi_decode_init_pos_t* gpu_fmi_decode_buffer_get_init_pos_(const void* const fmiBuffer){
+	const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
 	return(mBuff->data.decode.initPositions.h_initBWTPos);
 }
 
-GPU_INLINE gpu_fmi_decode_end_pos_t* gpu_fmi_decode_buffer_get_end_pos_(void *fmiBuffer){
-	gpu_buffer_t *mBuff = (gpu_buffer_t *) fmiBuffer;
+GPU_INLINE gpu_fmi_decode_end_pos_t* gpu_fmi_decode_buffer_get_end_pos_(const void* const fmiBuffer){
+	const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
 	return(mBuff->data.decode.endPositions.h_endBWTPos);
 }
 
@@ -42,13 +42,13 @@ GPU_INLINE gpu_fmi_decode_end_pos_t* gpu_fmi_decode_buffer_get_end_pos_(void *fm
 Functions to get the maximum elements of the buffers
 ************************************************************/
 
-GPU_INLINE uint32_t gpu_fmi_search_buffer_get_max_seeds_(void *fmiBuffer){
-	gpu_buffer_t *mBuff = (gpu_buffer_t *) fmiBuffer;
+GPU_INLINE uint32_t gpu_fmi_search_buffer_get_max_seeds_(const void* const fmiBuffer){
+	const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
 	return(mBuff->data.search.numMaxSeeds);
 }
 
-GPU_INLINE uint32_t gpu_fmi_decode_buffer_get_max_positions_(void *fmiBuffer){
-	gpu_buffer_t *mBuff = (gpu_buffer_t *) fmiBuffer;
+GPU_INLINE uint32_t gpu_fmi_decode_buffer_get_max_positions_(const void* const fmiBuffer){
+	const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
 	return(mBuff->data.decode.numMaxInitPositions);
 }
 
@@ -63,7 +63,7 @@ GPU_INLINE size_t gpu_fmi_search_input_size()
 
 GPU_INLINE void gpu_fmi_search_reallocate_host_buffer_layout(gpu_buffer_t* mBuff)
 {
-	void* rawAlloc = mBuff->h_rawData;
+	const void* rawAlloc = mBuff->h_rawData;
 	//Adjust the host buffer layout (input)
 	mBuff->data.search.seeds.h_seeds = GPU_ALIGN_TO(rawAlloc,16);
 	rawAlloc = (void *) (mBuff->data.search.seeds.h_seeds + mBuff->data.search.numMaxSeeds);
@@ -74,7 +74,7 @@ GPU_INLINE void gpu_fmi_search_reallocate_host_buffer_layout(gpu_buffer_t* mBuff
 
 GPU_INLINE void gpu_fmi_search_reallocate_device_buffer_layout(gpu_buffer_t* mBuff)
 {
-	void* rawAlloc = mBuff->d_rawData;
+	const void* rawAlloc = mBuff->d_rawData;
 	//Adjust the host buffer layout (input)
 	mBuff->data.search.seeds.d_seeds = GPU_ALIGN_TO(rawAlloc,16);
 	rawAlloc = (void *) (mBuff->data.search.seeds.d_seeds + mBuff->data.search.numMaxSeeds);
@@ -83,13 +83,11 @@ GPU_INLINE void gpu_fmi_search_reallocate_device_buffer_layout(gpu_buffer_t* mBu
 	rawAlloc = (void *) (mBuff->data.search.saIntervals.d_intervals + mBuff->data.search.numMaxIntervals);
 }
 
-GPU_INLINE void gpu_fmi_search_init_buffer_(void* fmiBuffer)
+GPU_INLINE void gpu_fmi_search_init_buffer_(void* const fmiBuffer)
 {
-	gpu_buffer_t *mBuff      = (gpu_buffer_t *) fmiBuffer;
-	void* 		  h_rawAlloc = mBuff->h_rawData;
-	void* 		  d_rawAlloc = mBuff->d_rawData;
-	size_t	  	  sizeBuff   = mBuff->sizeBuffer;
-	uint32_t	  numInputs  = (sizeBuff / gpu_fmi_search_input_size()) - GPU_FMI_SEARCH_SEEDS_BUFFER_PADDING;
+	gpu_buffer_t* const mBuff  = (gpu_buffer_t *) fmiBuffer;
+	const size_t	  	sizeBuff   = mBuff->sizeBuffer;
+	const uint32_t	    numInputs  = (sizeBuff / gpu_fmi_search_input_size()) - GPU_FMI_SEARCH_SEEDS_BUFFER_PADDING;
 
 	//set the type of the buffer
 	mBuff->typeBuffer = GPU_FMI_EXACT_SEARCH;
@@ -113,7 +111,7 @@ GPU_INLINE size_t gpu_fmi_decode_input_size()
 
 GPU_INLINE void gpu_fmi_decode_reallocate_host_buffer_layout(gpu_buffer_t* mBuff)
 {
-	void* rawAlloc = mBuff->h_rawData;
+	const void* rawAlloc = mBuff->h_rawData;
 	//Adjust the host buffer layout (input)
 	mBuff->data.decode.initPositions.h_initBWTPos = GPU_ALIGN_TO(rawAlloc,16);
 	rawAlloc = (void *) (mBuff->data.decode.initPositions.h_initBWTPos + mBuff->data.decode.numMaxInitPositions);
@@ -124,7 +122,7 @@ GPU_INLINE void gpu_fmi_decode_reallocate_host_buffer_layout(gpu_buffer_t* mBuff
 
 GPU_INLINE void gpu_fmi_decode_reallocate_device_buffer_layout(gpu_buffer_t* mBuff)
 {
-	void* rawAlloc = mBuff->d_rawData;
+	const void* rawAlloc = mBuff->d_rawData;
 	//Adjust the host buffer layout (input)
 	mBuff->data.decode.initPositions.d_initBWTPos = GPU_ALIGN_TO(rawAlloc,16);
 	rawAlloc = (void *) (mBuff->data.decode.initPositions.d_initBWTPos + mBuff->data.decode.numMaxInitPositions);
@@ -133,11 +131,11 @@ GPU_INLINE void gpu_fmi_decode_reallocate_device_buffer_layout(gpu_buffer_t* mBu
 	rawAlloc = (void *) (mBuff->data.decode.endPositions.d_endBWTPos + mBuff->data.decode.numMaxEndPositions);
 }
 
-GPU_INLINE void gpu_fmi_decode_init_buffer_(void* fmiBuffer)
+GPU_INLINE void gpu_fmi_decode_init_buffer_(void* const fmiBuffer)
 {
-	gpu_buffer_t *mBuff      = (gpu_buffer_t *) fmiBuffer;
-	size_t	  	  sizeBuff   = mBuff->sizeBuffer;
-	uint32_t	  numMaxPositions  = (sizeBuff / gpu_fmi_decode_input_size()) - GPU_FMI_DECODE_POS_BUFFER_PADDING;
+	gpu_buffer_t* const mBuff      = (gpu_buffer_t *) fmiBuffer;
+	const size_t		sizeBuff   = mBuff->sizeBuffer;
+	const uint32_t 		numMaxPositions  = (sizeBuff / gpu_fmi_decode_input_size()) - GPU_FMI_DECODE_POS_BUFFER_PADDING;
 
 	//set the type of the buffer
 	mBuff->typeBuffer = GPU_FMI_DECODE_POS;
@@ -178,9 +176,9 @@ GPU_INLINE gpu_error_t gpu_fmi_search_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
 	return (SUCCESS);
 }
 
-GPU_INLINE void gpu_fmi_search_send_buffer_(void* fmiBuffer, const uint32_t numSeeds)
+GPU_INLINE void gpu_fmi_search_send_buffer_(const void* const fmiBuffer, const uint32_t numSeeds)
 {
-	gpu_buffer_t *mBuff = (gpu_buffer_t *) fmiBuffer;
+	gpu_buffer_t* const mBuff  = (gpu_buffer_t *) fmiBuffer;
 	const uint32_t idSupDevice = mBuff->idSupportedDevice;
 
 	//Set real size of the input
@@ -194,10 +192,9 @@ GPU_INLINE void gpu_fmi_search_send_buffer_(void* fmiBuffer, const uint32_t numS
 	GPU_ERROR(gpu_fmi_search_transfer_GPU_to_CPU(mBuff));
 }
 
-GPU_INLINE void gpu_fmi_search_receive_buffer_(void *fmiBuffer)
+GPU_INLINE void gpu_fmi_search_receive_buffer_(const void* const fmiBuffer)
 {
-	gpu_buffer_t *mBuff = (gpu_buffer_t *) fmiBuffer;
-	uint32_t error;
+	const  gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
 
 	//Synchronize Stream (the thread wait for the commands done in the stream)
 	CUDA_ERROR(cudaStreamSynchronize(mBuff->idStream));
@@ -231,9 +228,9 @@ GPU_INLINE gpu_error_t gpu_fmi_decode_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
 	return (SUCCESS);
 }
 
-GPU_INLINE void gpu_fmi_decode_send_buffer_(void* fmiBuffer, const uint32_t numDecodings, const uint32_t samplingRate)
+GPU_INLINE void gpu_fmi_decode_send_buffer_(const  void* const fmiBuffer, const uint32_t numDecodings, const uint32_t samplingRate)
 {
-	gpu_buffer_t *mBuff = (gpu_buffer_t *) fmiBuffer;
+	gpu_buffer_t* const mBuff  = (gpu_buffer_t *) fmiBuffer;
 	const uint32_t idSupDevice = mBuff->idSupportedDevice;
 
 	//Set real size of the input
@@ -249,10 +246,9 @@ GPU_INLINE void gpu_fmi_decode_send_buffer_(void* fmiBuffer, const uint32_t numD
 	GPU_ERROR(gpu_fmi_decode_transfer_GPU_to_CPU(mBuff));
 }
 
-GPU_INLINE void gpu_fmi_decode_receive_buffer_(void *fmiBuffer)
+GPU_INLINE void gpu_fmi_decode_receive_buffer_(const void* const fmiBuffer)
 {
-	gpu_buffer_t *mBuff = (gpu_buffer_t *) fmiBuffer;
-	uint32_t error;
+	const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
 
 	//Synchronize Stream (the thread wait for the commands done in the stream)
 	CUDA_ERROR(cudaStreamSynchronize(mBuff->idStream));

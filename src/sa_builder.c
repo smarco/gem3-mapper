@@ -378,7 +378,7 @@ GEM_INLINE uint64_t* sa_builder_med3(uint64_t* const a,uint64_t* const b,uint64_
         (vb > vc ? b : (va < vc ? a : c ) ) ;
 }
 // Multikey quicksort (from Bentley-Sedgewick)
-GEM_INLINE void sa_builder_ds_shallow_mkq(uint64_t* const a,const uint64_t n,const uint8_t* text) {
+void sa_builder_ds_shallow_mkq(uint64_t* const a,const uint64_t n,const uint8_t* text) {
 #define swap2(a,b) { t = *(a); *(a) = *(b); *(b) = t; }
   uint64_t partval, val;
   uint64_t *pa, *pb, *pc, *pd, *pl, *pm, *pn;
@@ -464,7 +464,7 @@ GEM_INLINE void sa_builder_ds_shallow_mkq(uint64_t* const a,const uint64_t n,con
     sa_builder_ds_shallow_mkq(a+n-r,r,text);
   }
 }
-GEM_INLINE void sa_builder_ds_shallow_mkq_cached(uint64_t* const a,const uint64_t n,const uint8_t* text) {
+void sa_builder_ds_shallow_mkq_cached(uint64_t* const a,const uint64_t n,const uint8_t* text) {
   uint64_t partval, val;
   uint64_t *pa, *pb, *pc, *pd, *pl, *pm, *pn;
   uint64_t t, r;

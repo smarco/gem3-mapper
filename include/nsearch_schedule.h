@@ -90,8 +90,8 @@ void nsearch_schedule_init(
 /*
  * Schedule the search
  */
-GEM_INLINE void nsearch_schedule_search(nsearch_schedule_t* const nsearch_schedule);
-GEM_INLINE void nsearch_schedule_search_preconditioned(nsearch_schedule_t* const nsearch_schedule);
+void nsearch_schedule_search(nsearch_schedule_t* const nsearch_schedule);
+void nsearch_schedule_search_preconditioned(nsearch_schedule_t* const nsearch_schedule);
 
 /*
  * Display

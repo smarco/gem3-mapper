@@ -119,7 +119,7 @@ uint64_t locator_inverse_map_position(
  * Display
  */
 void locator_interval_print(FILE* const stream,locator_interval_t* const interval,const char* const interval_tag);
-GEM_INLINE void locator_print_summary(
+void locator_print_summary(
     FILE* const stream,const uint64_t num_intervals,
     const uint64_t num_tags,const uint64_t tags_buffer_size);
 void locator_print(FILE* const stream,const locator_t* const locator,const bool display_intervals);

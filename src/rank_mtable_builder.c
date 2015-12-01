@@ -25,7 +25,7 @@ GEM_INLINE void rank_mtable_builder_write(fm_t* const file_manager,rank_mtable_t
 /*
  * Find minimum matching depth
  */
-GEM_INLINE void rank_mtable_builder_find_mmd(
+void rank_mtable_builder_find_mmd(
     rank_mtable_t* const rank_mtable,const uint64_t level,
     rank_mquery_t* const query,uint64_t* const min_matching_depth) {
   // Check number of matches
@@ -56,7 +56,7 @@ GEM_INLINE void rank_mtable_builder_find_mmd(
 /*
  * Fill Rank-MTable
  */
-GEM_INLINE void rank_mtable_builder_fill_ranks_lo(
+void rank_mtable_builder_fill_ranks_lo(
     const bwt_builder_t* const bwt_builder,rank_mtable_t* const rank_mtable,
     uint64_t offset_lo,const uint64_t lo,const uint64_t level,ticker_t* const ticker) {
   // Control recursion level
@@ -85,7 +85,7 @@ GEM_INLINE void rank_mtable_builder_fill_ranks_lo(
     ticker_update(ticker,4);
   }
 }
-GEM_INLINE void rank_mtable_builder_fill_ranks_hi(
+void rank_mtable_builder_fill_ranks_hi(
     const bwt_builder_t* const bwt_builder,rank_mtable_t* const rank_mtable,
     uint64_t offset_hi,const uint64_t hi,const uint64_t level,ticker_t* const ticker) {
   // Control recursion level
@@ -131,7 +131,7 @@ GEM_INLINE void rank_mtable_builder_fill_ranks(
 /*
  * Fill Rank-MTable
  */
-GEM_INLINE void rank_mtable_reverse_builder_fill_ranks_lo(
+void rank_mtable_reverse_builder_fill_ranks_lo(
     const bwt_reverse_builder_t* const bwt_reverse_builder,rank_mtable_t* const rank_mtable,
     uint64_t offset_lo,const uint64_t lo,const uint64_t level,ticker_t* const ticker) {
   // Control recursion level
@@ -164,7 +164,7 @@ GEM_INLINE void rank_mtable_reverse_builder_fill_ranks_lo(
     ticker_update(ticker,4);
   }
 }
-GEM_INLINE void rank_mtable_reverse_builder_fill_ranks_hi(
+void rank_mtable_reverse_builder_fill_ranks_hi(
     const bwt_reverse_builder_t* const bwt_reverse_builder,rank_mtable_t* const rank_mtable,
     uint64_t offset_hi,const uint64_t hi,const uint64_t level,ticker_t* const ticker) {
   // Control recursion level

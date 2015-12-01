@@ -242,11 +242,11 @@ GEM_INLINE void neighborhood_supercondensed_search(
 /*
  * Best-Match
  */
-GEM_INLINE uint64_t neighborhood_best_matches_search_bwt(
+uint64_t neighborhood_best_matches_search_bwt(
     neighborhood_search_t* const neighborhood_search,
     dp_column_t* const dp_columns,const uint64_t current_column,
     const uint64_t lo,const uint64_t hi);
-GEM_INLINE uint64_t neighborhood_best_matches_search_mtable(
+uint64_t neighborhood_best_matches_search_mtable(
     neighborhood_search_t* const neighborhood_search,
     dp_column_t* const dp_columns,const uint64_t current_column,
     rank_mquery_t* const query);

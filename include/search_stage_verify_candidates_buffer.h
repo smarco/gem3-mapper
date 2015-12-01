@@ -25,38 +25,38 @@ typedef struct {
 /*
  * Setup
  */
-GEM_INLINE search_stage_verify_candidates_buffer_t* search_stage_verify_candidates_buffer_new(
+search_stage_verify_candidates_buffer_t* search_stage_verify_candidates_buffer_new(
     const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffer_no,const bool cpu_emulated);
-GEM_INLINE void search_stage_verify_candidates_buffer_clear(
+void search_stage_verify_candidates_buffer_clear(
     search_stage_verify_candidates_buffer_t* const verify_candidates_buffer,
     archive_search_cache_t* const archive_search_cache);
-GEM_INLINE void search_stage_verify_candidates_buffer_delete(
+void search_stage_verify_candidates_buffer_delete(
     search_stage_verify_candidates_buffer_t* const verify_candidates_buffer,
     archive_search_cache_t* const archive_search_cache);
 
 /*
  * Occupancy
  */
-GEM_INLINE bool search_stage_verify_candidates_buffer_fits(
+bool search_stage_verify_candidates_buffer_fits(
     search_stage_verify_candidates_buffer_t* const verify_candidates_buffer,
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2);
 
 /*
  * Send/Receive
  */
-GEM_INLINE void search_stage_verify_candidates_buffer_send(
+void search_stage_verify_candidates_buffer_send(
     search_stage_verify_candidates_buffer_t* const verify_candidates_buffer);
-GEM_INLINE void search_stage_verify_candidates_buffer_receive(
+void search_stage_verify_candidates_buffer_receive(
     search_stage_verify_candidates_buffer_t* const verify_candidates_buffer);
 
 /*
  * Accessors
  */
-GEM_INLINE void search_stage_verify_candidates_buffer_add(
+void search_stage_verify_candidates_buffer_add(
     search_stage_verify_candidates_buffer_t* const verify_candidates_buffer,
     archive_search_t* const archive_search);
-GEM_INLINE void search_stage_verify_candidates_buffer_retrieve(
+void search_stage_verify_candidates_buffer_retrieve(
     search_stage_verify_candidates_buffer_t* const verify_candidates_buffer,
     const uint64_t search_idx,archive_search_t** const archive_search);
 

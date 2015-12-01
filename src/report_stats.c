@@ -54,7 +54,7 @@ GEM_INLINE void merge_mapping_stats(mapping_stats_t* global_mstats, mapping_stat
 	 }
 }
 
-static int btab[256]={ ['A'] = 1, ['C'] = 2, ['G'] = 3, ['T'] = 4 };
+int btab[256]={ ['A'] = 1, ['C'] = 2, ['G'] = 3, ['T'] = 4 };
 
 GEM_INLINE void update_counts(sequence_t* const seq_read, mapping_stats_t* mstats,int end) {
 	 string_t* const read = &seq_read->read;
@@ -74,7 +74,7 @@ GEM_INLINE void update_counts(sequence_t* const seq_read, mapping_stats_t* mstat
 }
 
 GEM_INLINE void update_conversion_counts(sequence_t* const seq_read, mapping_stats_t* mstats,int end,bs_strand_t bs,int read_type) {
-	 static int cnv_idx[4][4] = {{0,0,0,0},{1,0,3,5},{2,0,4,6},{0,0,0,0}};
+	 int cnv_idx[4][4] = {{0,0,0,0},{1,0,3,5},{2,0,4,6},{0,0,0,0}};
 	 
 	 int idx=cnv_idx[bs][read_type];
 	 if(idx) {
@@ -85,7 +85,7 @@ GEM_INLINE void update_conversion_counts(sequence_t* const seq_read, mapping_sta
 }
 
 GEM_INLINE int get_read_type(match_trace_t* match) {
-	 static char *control_seqs[]={SEQUENCING_CONTROL, UNDERCONVERSION_CONTROL, OVERCONVERSION_CONTROL,0};
+	 char *control_seqs[]={SEQUENCING_CONTROL, UNDERCONVERSION_CONTROL, OVERCONVERSION_CONTROL,0};
 	 
 	 char* seq = match->sequence_name;
 	 char* p;
@@ -189,7 +189,7 @@ GEM_INLINE void collect_PE_mapping_stats(archive_search_t* const archive_search1
 	 if(read_type2>=0) mstats->reads[1][read_type2]++;
 }
 
-static char *indent_str="\t\t\t\t\t\t\t\t";
+char *indent_str="\t\t\t\t\t\t\t\t";
 #define MAX_JSON_ARRAY_LINE 8
 
 GEM_INLINE void output_json_uint_element(FILE *fp,char *key,uint64_t value,int indent,bool last) {

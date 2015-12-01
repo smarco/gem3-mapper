@@ -6,8 +6,9 @@
  * DESCRIPTION: Retrieves sequences from a GEM-archive
  */
 
-#include <pthread.h>
 #include "gem_core.h"
+#include <pthread.h>
+
 
 /*
  * Debug

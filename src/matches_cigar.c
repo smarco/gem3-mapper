@@ -12,7 +12,7 @@
 /*
  * CIGAR Buffer Handling
  */
-GEM_INLINE void matches_cigar_buffer_add_cigar_element(
+void matches_cigar_buffer_add_cigar_element(
     cigar_element_t** const cigar_buffer_sentinel,
     const cigar_t cigar_element_type,const uint64_t element_length) {
   if ((*cigar_buffer_sentinel)->type == cigar_element_type) {
@@ -25,7 +25,7 @@ GEM_INLINE void matches_cigar_buffer_add_cigar_element(
     (*cigar_buffer_sentinel)->attributes = cigar_attr_none;
   }
 }
-GEM_INLINE void matches_cigar_buffer_add_mismatch(
+void matches_cigar_buffer_add_mismatch(
     cigar_element_t** const cigar_buffer_sentinel,const uint8_t mismatch) {
   if ((*cigar_buffer_sentinel)->type!=cigar_null) ++(*cigar_buffer_sentinel);
   (*cigar_buffer_sentinel)->type = cigar_mismatch;
@@ -35,7 +35,7 @@ GEM_INLINE void matches_cigar_buffer_add_mismatch(
 /*
  * CIGAR Vector Handling
  */
-GEM_INLINE void matches_cigar_vector_append_insertion(
+void matches_cigar_vector_append_insertion(
     vector_t* const cigar_vector,uint64_t* const current_cigar_length,
     const uint64_t indel_length,const cigar_attr_t attributes) {
   if (*current_cigar_length > 0) {
@@ -55,7 +55,7 @@ GEM_INLINE void matches_cigar_vector_append_insertion(
   vector_inc_used(cigar_vector); // Increment used
   *current_cigar_length += 1;
 }
-GEM_INLINE void matches_cigar_vector_append_deletion(
+void matches_cigar_vector_append_deletion(
     vector_t* const cigar_vector,uint64_t* const current_cigar_length,
     const uint64_t indel_length,const cigar_attr_t attributes) {
   if (*current_cigar_length > 0) {
@@ -75,7 +75,7 @@ GEM_INLINE void matches_cigar_vector_append_deletion(
   vector_inc_used(cigar_vector); // Increment used
   *current_cigar_length += 1;
 }
-GEM_INLINE void matches_cigar_vector_append_match(
+void matches_cigar_vector_append_match(
     vector_t* const cigar_vector,uint64_t* const current_cigar_length,
     const uint64_t match_length,const cigar_attr_t attributes) {
   // Check previous cigar-element (for merging)
@@ -96,7 +96,7 @@ GEM_INLINE void matches_cigar_vector_append_match(
   vector_inc_used(cigar_vector); // Increment used
   *current_cigar_length += 1;
 }
-GEM_INLINE void matches_cigar_vector_append_mismatch(
+void matches_cigar_vector_append_mismatch(
     vector_t* const cigar_vector,uint64_t* const current_cigar_length,
     const uint8_t mismatch,const cigar_attr_t attributes) {
   vector_reserve_additional(cigar_vector,1); // Reserve
@@ -107,7 +107,7 @@ GEM_INLINE void matches_cigar_vector_append_mismatch(
   vector_inc_used(cigar_vector); // Increment used
   *current_cigar_length += 1;
 }
-GEM_INLINE void matches_cigar_vector_append_cigar_element(
+void matches_cigar_vector_append_cigar_element(
     vector_t* const cigar_vector,uint64_t* const cigar_length,cigar_element_t* const cigar_element) {
   switch (cigar_element->type) {
     case cigar_match:
@@ -130,7 +130,7 @@ GEM_INLINE void matches_cigar_vector_append_cigar_element(
 /*
  * CIGAR Vector Utils
  */
-GEM_INLINE void matches_cigar_reverse(
+void matches_cigar_reverse(
     vector_t* const cigar_vector,const uint64_t cigar_buffer_offset,
     const uint64_t cigar_length) {
   // Reverse CIGAR
@@ -164,7 +164,7 @@ GEM_INLINE void matches_cigar_reverse_colorspace(
     SWAP(*origin,*flipped);
   }
 }
-GEM_INLINE uint64_t matches_cigar_compute_event_distance(
+uint64_t matches_cigar_compute_event_distance(
     vector_t* const cigar_vector,const uint64_t cigar_buffer_offset,
     const uint64_t cigar_length) {
   // Sum up all cigar elements
@@ -186,7 +186,7 @@ GEM_INLINE uint64_t matches_cigar_compute_event_distance(
   }
   return event_distance;
 }
-GEM_INLINE uint64_t matches_cigar_compute_edit_distance(
+uint64_t matches_cigar_compute_edit_distance(
     vector_t* const cigar_vector,const uint64_t cigar_buffer_offset,
     const uint64_t cigar_length) {
   // Sum up all cigar elements
@@ -209,7 +209,7 @@ GEM_INLINE uint64_t matches_cigar_compute_edit_distance(
   }
   return edit_distance;
 }
-GEM_INLINE uint64_t matches_cigar_compute_edit_distance__excluding_clipping(
+uint64_t matches_cigar_compute_edit_distance__excluding_clipping(
     vector_t* const cigar_vector,const uint64_t cigar_buffer_offset,
     const uint64_t cigar_length) {
   // Sum up all cigar elements
@@ -234,7 +234,7 @@ GEM_INLINE uint64_t matches_cigar_compute_edit_distance__excluding_clipping(
   }
   return edit_distance;
 }
-GEM_INLINE uint64_t matches_cigar_compute_matching_bases(
+uint64_t matches_cigar_compute_matching_bases(
     vector_t* const cigar_vector,const uint64_t cigar_buffer_offset,
     const uint64_t cigar_length) {
   // Sum up all cigar elements
@@ -275,7 +275,7 @@ GEM_INLINE int64_t matches_cigar_element_effective_length(const cigar_element_t*
   }
   return 0;
 }
-GEM_INLINE int64_t matches_cigar_effective_length(
+int64_t matches_cigar_effective_length(
     vector_t* const cigar_vector,const uint64_t cigar_offset,
     const uint64_t cigar_length) {
   uint64_t effective_length = 0;
@@ -291,7 +291,7 @@ GEM_INLINE int64_t matches_cigar_effective_length(
 /*
  * CIGAR Vector Compare
  */
-GEM_INLINE int matches_cigar_cmp(
+int matches_cigar_cmp(
     vector_t* const cigar_vector_match0,match_trace_t* const match0,
     vector_t* const cigar_vector_match1,match_trace_t* const match1) {
   const uint64_t match0_cigar_length = match0->match_alignment.cigar_length;

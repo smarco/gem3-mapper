@@ -118,6 +118,7 @@ OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))
 all: devel
 
 release: GEM_FLAGS=$(FLAGS_GENERAL) $(FLAGS_OPT) $(FLAGS_SUPPRESS_CHECKS)
+release: $(OBJS)
 release: $(LIB_GEM_CORE)
 
 devel: GEM_FLAGS=$(FLAGS_GENERAL) $(FLAGS_OPT) $(FLAGS_DEBUG)
@@ -136,7 +137,7 @@ debug: $(LIB_GEM_CORE)
 # GEM-library
 $(LIB_GEM_CORE): $(OBJS)
 ifeq ($(HAVE_CUDA),1)
-	$(AR) -rcs $(LIB_GEM_CORE) $(FOLDER_BUILD)/*.o $(FOLDER_GEMGPU_BUILD)/gem_gpu.o
+	$(AR) -rcs $(LIB_GEM_CORE) $(FOLDER_BUILD)/*.o $(FOLDER_GEMGPU_BUILD)/*.o
 else
 	$(AR) -rcs $(LIB_GEM_CORE) $(FOLDER_BUILD)/*.o
 endif

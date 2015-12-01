@@ -76,16 +76,15 @@ GPU_INLINE uint32_t gpu_get_num_devices()
 	return(numDevices);
 }
 
-GPU_INLINE uint32_t gpu_get_num_supported_devices_(gpu_dev_arch_t selectedArchitectures)
+GPU_INLINE uint32_t gpu_get_num_supported_devices_(const gpu_dev_arch_t selectedArchitectures)
 {
 	uint32_t idDevice, numSupportedDevices = 0;
 	int32_t numDevices;
-	gpu_dev_arch_t deviceArch;
 
 	CUDA_ERROR(cudaGetDeviceCount(&numDevices));
 
 	for(idDevice = 0; idDevice < numDevices; ++idDevice){
-		deviceArch = gpu_get_device_architecture(idDevice);
+		const gpu_dev_arch_t deviceArch = gpu_get_device_architecture(idDevice);
 	    if(deviceArch & selectedArchitectures) numSupportedDevices++;
 	}
 

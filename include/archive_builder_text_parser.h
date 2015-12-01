@@ -42,6 +42,6 @@ void archive_builder_generate_rc_text(archive_builder_t* const archive_builder,c
 /*
  * Generate C2T & G2A Texts
  */
-GEM_INLINE void archive_builder_generate_bisulfite_text(archive_builder_t* const archive_builder,const bool verbose);
+void archive_builder_generate_bisulfite_text(archive_builder_t* const archive_builder,const bool verbose);
 
 #endif /* ARCHIVE_BUILDER_TEXT_PARSER_H_ */

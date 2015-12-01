@@ -12,38 +12,38 @@
 Functions to get the GPU BPM buffers
 ************************************************************/
 
-GPU_INLINE uint32_t gpu_bpm_buffer_get_max_peq_entries_(void *bpmBuffer){
-	gpu_buffer_t *mBuff = (gpu_buffer_t *) bpmBuffer;
+GPU_INLINE uint32_t gpu_bpm_buffer_get_max_peq_entries_(const void* const bpmBuffer){
+	const gpu_buffer_t* const mBuff = (gpu_buffer_t *) bpmBuffer;
 	return(mBuff->data.bpm.maxPEQEntries);
 }
 
-GPU_INLINE uint32_t gpu_bpm_buffer_get_max_candidates_(void *bpmBuffer){
-	gpu_buffer_t *mBuff = (gpu_buffer_t *) bpmBuffer;
+GPU_INLINE uint32_t gpu_bpm_buffer_get_max_candidates_(const void* const bpmBuffer){
+	const gpu_buffer_t* const mBuff = (gpu_buffer_t *) bpmBuffer;
 	return(mBuff->data.bpm.maxCandidates);
 }
 
-GPU_INLINE uint32_t gpu_bpm_buffer_get_max_queries_(void *bpmBuffer){
-	gpu_buffer_t *mBuff = (gpu_buffer_t *) bpmBuffer;
+GPU_INLINE uint32_t gpu_bpm_buffer_get_max_queries_(const void* const bpmBuffer){
+	const gpu_buffer_t* const mBuff = (gpu_buffer_t *) bpmBuffer;
 	return(mBuff->data.bpm.maxQueries);
 }
 
-GPU_INLINE gpu_bpm_qry_entry_t* gpu_bpm_buffer_get_peq_entries_(void *bpmBuffer){
-	gpu_buffer_t *mBuff = (gpu_buffer_t *) bpmBuffer;
+GPU_INLINE gpu_bpm_qry_entry_t* gpu_bpm_buffer_get_peq_entries_(const void* const bpmBuffer){
+	const gpu_buffer_t * const mBuff = (gpu_buffer_t *) bpmBuffer;
 	return(mBuff->data.bpm.queries.h_queries);
 }
 
-GPU_INLINE gpu_bpm_cand_info_t* gpu_bpm_buffer_get_candidates_(void *bpmBuffer){
-	gpu_buffer_t *mBuff = (gpu_buffer_t *) bpmBuffer;
+GPU_INLINE gpu_bpm_cand_info_t* gpu_bpm_buffer_get_candidates_(const void* const bpmBuffer){
+	const gpu_buffer_t* const mBuff = (gpu_buffer_t *) bpmBuffer;
 	return(mBuff->data.bpm.candidates.h_candidates);
 }
 
-GPU_INLINE gpu_bpm_qry_info_t* gpu_bpm_buffer_get_peq_info_(void *bpmBuffer){
-	gpu_buffer_t *mBuff = (gpu_buffer_t *) bpmBuffer;
+GPU_INLINE gpu_bpm_qry_info_t* gpu_bpm_buffer_get_peq_info_(const void* const bpmBuffer){
+	const gpu_buffer_t* const mBuff = (gpu_buffer_t *) bpmBuffer;
 	return(mBuff->data.bpm.queries.h_qinfo);
 }
 
-GPU_INLINE gpu_bpm_alg_entry_t* gpu_bpm_buffer_get_alignments_(void *bpmBuffer){
-	gpu_buffer_t *mBuff = (gpu_buffer_t *) bpmBuffer;
+GPU_INLINE gpu_bpm_alg_entry_t* gpu_bpm_buffer_get_alignments_(const void* const bpmBuffer){
+	const gpu_buffer_t* const mBuff = (gpu_buffer_t *) bpmBuffer;
 	return(mBuff->data.bpm.alignments.h_alignments);
 }
 
@@ -128,25 +128,25 @@ GPU_INLINE void gpu_bpm_reallocate_device_buffer_layout(gpu_buffer_t* mBuff)
 	rawAlloc = (void *) (mBuff->data.bpm.alignments.d_alignments + mBuff->data.bpm.maxAlignments);
 }
 
-GPU_INLINE void gpu_bpm_init_buffer_(void* bpmBuffer, const uint32_t averageQuerySize, const uint32_t candidatesPerQuery)
+GPU_INLINE void gpu_bpm_init_buffer_(void* const bpmBuffer, const uint32_t averageQuerySize, const uint32_t candidatesPerQuery)
 {
-	gpu_buffer_t	*mBuff     			 	= (gpu_buffer_t *) bpmBuffer;
-	const size_t	sizeBuff   			 	= mBuff->sizeBuffer;
-	const size_t 	averageNumPEQEntries 	= GPU_DIV_CEIL(averageQuerySize, GPU_BPM_PEQ_ENTRY_LENGTH);
-	const uint32_t	numInputs  			 	= (uint32_t)((double)sizeBuff / gpu_bpm_size_per_candidate(averageQuerySize, candidatesPerQuery));
-	const uint32_t	maxCandidates 		 	= numInputs - gpu_bpm_candidates_for_binning_padding() - GPU_BPM_CANDIDATES_BUFFER_PADDING;
-	const uint32_t  bucketPaddingCandidates = gpu_bpm_candidates_for_binning_padding();
+	gpu_buffer_t* const mBuff     			 	= (gpu_buffer_t *) bpmBuffer;
+	const size_t	    sizeBuff   			 	= mBuff->sizeBuffer;
+	const size_t 	    averageNumPEQEntries 	= GPU_DIV_CEIL(averageQuerySize, GPU_BPM_PEQ_ENTRY_LENGTH);
+	const uint32_t	    numInputs  			 	= (uint32_t)((double)sizeBuff / gpu_bpm_size_per_candidate(averageQuerySize, candidatesPerQuery));
+	const uint32_t	    maxCandidates 		 	= numInputs - gpu_bpm_candidates_for_binning_padding() - GPU_BPM_CANDIDATES_BUFFER_PADDING;
+	const uint32_t      bucketPaddingCandidates = gpu_bpm_candidates_for_binning_padding();
 
 	//set the type of the buffer
 	mBuff->typeBuffer = GPU_BPM;
 
 	//Set real size of the input
-	mBuff->data.bpm.maxCandidates = maxCandidates;
-	mBuff->data.bpm.maxAlignments = maxCandidates;
-	mBuff->data.bpm.maxPEQEntries = (maxCandidates / candidatesPerQuery) * averageNumPEQEntries;
-	mBuff->data.bpm.maxQueries = (maxCandidates / candidatesPerQuery);
+	mBuff->data.bpm.maxCandidates    = maxCandidates;
+	mBuff->data.bpm.maxAlignments    = maxCandidates;
+	mBuff->data.bpm.maxPEQEntries    = (maxCandidates / candidatesPerQuery) * averageNumPEQEntries;
+	mBuff->data.bpm.maxQueries       = (maxCandidates / candidatesPerQuery);
 	mBuff->data.bpm.maxReorderBuffer = maxCandidates + bucketPaddingCandidates;
-	mBuff->data.bpm.maxBuckets = GPU_BPM_NUM_BUCKETS_FOR_BINNING;
+	mBuff->data.bpm.maxBuckets       = GPU_BPM_NUM_BUCKETS_FOR_BINNING;
 
 	gpu_bpm_reallocate_host_buffer_layout(mBuff);
 	gpu_bpm_reallocate_device_buffer_layout(mBuff);
@@ -295,11 +295,11 @@ GPU_INLINE gpu_error_t gpu_bpm_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
 	return (SUCCESS);
 }
 
-GPU_INLINE void gpu_bpm_send_buffer_(void *bpmBuffer, const uint32_t numPEQEntries, const uint32_t numQueries,
+GPU_INLINE void gpu_bpm_send_buffer_(void* const bpmBuffer, const uint32_t numPEQEntries, const uint32_t numQueries,
 									const uint32_t numCandidates, const uint32_t sizeCandidates)
 {
-	gpu_buffer_t *mBuff = (gpu_buffer_t *) bpmBuffer;
-	const uint32_t idSupDevice = mBuff->idSupportedDevice;
+	gpu_buffer_t* const mBuff 		= (gpu_buffer_t *) bpmBuffer;
+	const uint32_t 		idSupDevice = mBuff->idSupportedDevice;
 
 	//Set real size of the things
 	mBuff->data.bpm.queries.totalQueriesEntries = numPEQEntries;
@@ -337,11 +337,10 @@ GPU_INLINE gpu_error_t gpu_bpm_reordering_alignments(gpu_buffer_t *mBuff)
 	return (SUCCESS);
 }
 
-GPU_INLINE void gpu_bpm_receive_buffer_(void *bpmBuffer)
+GPU_INLINE void gpu_bpm_receive_buffer_(void* const bpmBuffer)
 {
-	gpu_buffer_t *mBuff = (gpu_buffer_t *) bpmBuffer;
+	gpu_buffer_t* const mBuff  = (gpu_buffer_t *) bpmBuffer;
 	const uint32_t idSupDevice = mBuff->idSupportedDevice;
-	uint32_t error;
 
 	//Select the device of the Multi-GPU platform
     CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));

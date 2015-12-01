@@ -12,7 +12,7 @@
 /*
  * SETUP
  */
-#define _GNU_SOURCE 1
+#define _GNU_SOURCE
 //#define __USE_GNU 1
 
 /*
@@ -182,8 +182,11 @@ extern const uint64_t uint64_mask_inverse_ones[];
 // GemTools Inline
 #ifdef __clang__
 #define GEM_INLINE
+#define GEM_DEC_INLINE
 #else
+//#define GEM_INLINE inline
 #define GEM_INLINE inline
+#define GEM_DEC_INLINE extern inline
 #endif
 
 // Conditional expect
@@ -195,7 +198,7 @@ extern const uint64_t uint64_mask_inverse_ones[];
 /*
  * Helper functions (OPERATIVE)
  */
-#define SWAP(a,b) do {typeof(a) aux = a; a = b; b = aux;} while (0)
+#define SWAP(a,b) do {__typeof__(a) aux = a; a = b; b = aux;} while (0)
 #define CFREE(handler) if (handler!=NULL) mm_free(handler);
 #define DELEGATE_ERROR(funtion_call,error_code) if ((error_code=funtion_call)) { return error_code; }
 

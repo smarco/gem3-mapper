@@ -50,20 +50,20 @@ BUILDERS_BIN=$(addprefix $(FOLDER_BIN)/, $(BUILDERS))
 all: release
 
 release: NVCC_COMPILE_FLAGS=-O3 -m64 -Xptxas="-dlcm=ca"
-release: GCC_COMPILE_FLAGS=-O3 -m64
-release: $(OBJS) $(CUDA_OBJS) link
+release: GCC_COMPILE_FLAGS=$(FLAGS_OPT)
+release: $(OBJS) $(CUDA_OBJS) 
 
 profile: NVCC_COMPILE_FLAGS=-O3 -m64 --ptxas-options=-v -lineinfo -Xptxas="-dlcm=ca"
 profile: GCC_COMPILE_FLAGS=-O3 -m64
-profile: $(OBJS) $(CUDA_OBJS) link
+profile: $(OBJS) $(CUDA_OBJS) 
 	
 devel: NVCC_COMPILE_FLAGS=-G -O3 -m64 -lineinfo -Xptxas="-dlcm=ca"
 devel: GCC_COMPILE_FLAGS=-g -O3 -m64
-devel: $(OBJS) $(CUDA_OBJS) link
+devel: $(OBJS) $(CUDA_OBJS) 
 	
 debug: NVCC_COMPILE_FLAGS=-G -O0 -m64 -lineinfo -Xptxas="-dlcm=ca"
 debug: GCC_COMPILE_FLAGS=-g -O0 -m64
-debug: $(OBJS) $(CUDA_OBJS) link
+debug: $(OBJS) $(CUDA_OBJS) 
 	
 tools: release $(TOOLS_BIN) $(BUILDERS_BIN)
 tools_profile: profile $(TOOLS_BIN) $(BUILDERS_BIN)
@@ -75,7 +75,7 @@ $(FOLDER_BUILD)/%.o: $(FOLDER_SOURCE)/%.cu
 	$(NVCC) $(NVCC_COMPILE_FLAGS) $(CUDA_SASS_FLAGS) -c $< -o $@
 	
 $(FOLDER_BUILD)/%.o: $(FOLDER_SOURCE)/%.c
-	$(CC) $(GCC_COMPILE_FLAGS) -c $< -o $@ $(CUDA_LIBRARY_FLAGS)
+	$(CC) $(GCC_COMPILE_FLAGS) -c $< -o $@ $(CUDA_LIBRARY_FLAGS) -lrt
 
 link: $(OBJS) $(CUDA_OBJS)
 	ld -r $(OBJS) $(CUDA_OBJS) -o $(FOLDER_BUILD)/gem_gpu.o

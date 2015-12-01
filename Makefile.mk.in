@@ -61,9 +61,11 @@ FLAGS_DEBUG=-g $(FLAGS_GEM_DEBUG)
 FLAGS_PROFILE=$(FLAGS_GEM_PROFILE)
 
 ## GCC Compiler 
-ifeq ($(CC),gcc) 
-FLAGS_OPT=-Ofast -msse4.2
+ifeq ($(CC),gcc)
+FLAGS_OPT=-Ofast -msse4.2 -std=c99 -flto
 FLAGS_DEBUG=-g $(FLAGS_GEM_DEBUG) # -ggdb3 -rdynamic
+FLAGS_LINK=-fuse-linker-plugin
+AR=gcc-ar
 endif
 
 ## ICC Compiler
@@ -81,7 +83,8 @@ PATH_INCLUDE=-I$(FOLDER_INCLUDE)
 PATH_LIB=-L$(FOLDER_LIB)
 
 # Link Libs
-LIBS=-lgemcore_c -lpthread -lm $(LIBS_ZLIB) $(LIBS_BZLIB)
+#LIBS=-lgemcore_c -lpthread -lm $(LIBS_ZLIB) $(LIBS_BZLIB)
+LIBS=-lpthread -lm $(LIBS_ZLIB) $(LIBS_BZLIB)
 ifeq ($(PLATFORM),Linux)
 LIBS+=-lrt
 endif
