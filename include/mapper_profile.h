@@ -280,11 +280,18 @@
 /*
  * CUDA SE Mapper
  */
-#define GP_MAPPER_CUDA_SE                                   710
-#define GP_MAPPER_CUDA_SE_REGION_PROFILE                    711
-#define GP_MAPPER_CUDA_SE_DECODE_CANDIDATES                 712
-#define GP_MAPPER_CUDA_SE_VERIFY_CANDIDATES                 713
-#define GP_MAPPER_CUDA_SE_FINISH_SEARCH                     714
+#define GP_MAPPER_CUDA_SE                                    710
+#define GP_MAPPER_CUDA_SE_REGION_PROFILE                     711
+#define GP_MAPPER_CUDA_SE_DECODE_CANDIDATES                  712
+#define GP_MAPPER_CUDA_SE_VERIFY_CANDIDATES                  713
+#define GP_MAPPER_CUDA_SE_FINISH_SEARCH                      714
+
+#define GP_SEARCH_STAGE_REGION_PROFILE_BUFFERS_USED          720
+#define GP_SEARCH_STAGE_REGION_PROFILE_SEARCHES_IN_BUFFER    721
+#define GP_SEARCH_STAGE_DECODE_CANDIDATES_BUFFERS_USED       722
+#define GP_SEARCH_STAGE_DECODE_CANDIDATES_SEARCHES_IN_BUFFER 723
+#define GP_SEARCH_STAGE_VERIFY_CANDIDATES_BUFFERS_USED       724
+#define GP_SEARCH_STAGE_VERIFY_CANDIDATES_SEARCHES_IN_BUFFER 725
 
 /*
  * CUDA PE Mapper
@@ -296,27 +303,30 @@
  */
 #define GP_GPU_BUFFER_COLLECTION_INIT                       750
 
-#define GP_GPU_BUFFER_ALIGN_BPM_ALLOC                       800
-#define GP_GPU_BUFFER_ALIGN_BPM_NUM_QUERIES                 801
-#define GP_GPU_BUFFER_ALIGN_BPM_CANDIDATE_LENGTH            802
-#define GP_GPU_BUFFER_ALIGN_BPM_SEND                        803
-#define GP_GPU_BUFFER_ALIGN_BPM_RECEIVE                     804
-#define GP_GPU_BUFFER_ALIGN_BPM_DUTY_CYCLE                  805
-#define GP_GPU_BUFFER_ALIGN_BPM_USAGE_CANDIDATES            806
-#define GP_GPU_BUFFER_ALIGN_BPM_USAGE_QUERIES               807
-#define GP_GPU_BUFFER_ALIGN_BPM_USAGE_PEQ_ENTRIES           808
+#define GP_GPU_BUFFER_FMI_SEARCH_ALLOC                      800
+#define GP_GPU_BUFFER_FMI_SEARCH_NUM_QUERIES                801
+#define GP_GPU_BUFFER_FMI_SEARCH_SEND                       802
+#define GP_GPU_BUFFER_FMI_SEARCH_RECEIVE                    803
+#define GP_GPU_BUFFER_FMI_SEARCH_USAGE_QUERIES              804
+#define GP_GPU_BUFFER_FMI_SEARCH_DUTY_CYCLE                 805
 
-#define GP_GPU_BUFFER_FMI_SEARCH_ALLOC                      820
-#define GP_GPU_BUFFER_FMI_SEARCH_NUM_QUERIES                821
-#define GP_GPU_BUFFER_FMI_SEARCH_SEND                       822
-#define GP_GPU_BUFFER_FMI_SEARCH_RECEIVE                    823
-#define GP_GPU_BUFFER_FMI_SEARCH_USAGE_CANDIDATES           824
+#define GP_GPU_BUFFER_FMI_DECODE_ALLOC                      810
+#define GP_GPU_BUFFER_FMI_DECODE_NUM_QUERIES                811
+#define GP_GPU_BUFFER_FMI_DECODE_SEND                       812
+#define GP_GPU_BUFFER_FMI_DECODE_RECEIVE                    813
+#define GP_GPU_BUFFER_FMI_DECODE_USAGE_CANDIDATES           814
+#define GP_GPU_BUFFER_FMI_DECODE_DUTY_CYCLE                 815
 
-#define GP_GPU_BUFFER_FMI_DECODE_ALLOC                      830
-#define GP_GPU_BUFFER_FMI_DECODE_NUM_QUERIES                831
-#define GP_GPU_BUFFER_FMI_DECODE_SEND                       832
-#define GP_GPU_BUFFER_FMI_DECODE_RECEIVE                    833
-#define GP_GPU_BUFFER_FMI_DECODE_USAGE_CANDIDATES           834
+#define GP_GPU_BUFFER_ALIGN_BPM_ALLOC                       820
+#define GP_GPU_BUFFER_ALIGN_BPM_NUM_QUERIES                 821
+#define GP_GPU_BUFFER_ALIGN_BPM_CANDIDATE_LENGTH            822
+#define GP_GPU_BUFFER_ALIGN_BPM_CANDIDATE_PER_QUERY         823
+#define GP_GPU_BUFFER_ALIGN_BPM_SEND                        824
+#define GP_GPU_BUFFER_ALIGN_BPM_RECEIVE                     825
+#define GP_GPU_BUFFER_ALIGN_BPM_DUTY_CYCLE                  826
+#define GP_GPU_BUFFER_ALIGN_BPM_USAGE_CANDIDATES            827
+#define GP_GPU_BUFFER_ALIGN_BPM_USAGE_QUERIES               828
+#define GP_GPU_BUFFER_ALIGN_BPM_USAGE_PEQ_ENTRIES           829
 
 /*
  * Mapper SE

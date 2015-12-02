@@ -31,6 +31,7 @@ gpu_buffer_fmi_search_t* gpu_buffer_fmi_search_new(
   gpu_buffer_fmi_search->num_queries = 0;
   gpu_buffer_fmi_search->compute_cpu = false;
   gpu_buffer_fmi_search->fm_index = fm_index;
+  TIMER_RESET(&gpu_buffer_fmi_search->timer);
   // Init Buffer
   gpu_alloc_buffer_(gpu_buffer_fmi_search->buffer);
   gpu_fmi_search_init_buffer_(gpu_buffer_fmi_search->buffer);
@@ -152,7 +153,8 @@ void gpu_buffer_fmi_search_send(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_se
 #ifdef GEM_PROFILE
   const uint64_t max_queries = gpu_buffer_fmi_search_get_max_queries(gpu_buffer_fmi_search);
   const uint64_t used_queries = gpu_buffer_fmi_search_get_num_queries(gpu_buffer_fmi_search);
-  PROF_ADD_COUNTER(GP_GPU_BUFFER_FMI_SEARCH_USAGE_CANDIDATES,(100*used_queries)/max_queries);
+  PROF_ADD_COUNTER(GP_GPU_BUFFER_FMI_SEARCH_USAGE_QUERIES,(100*used_queries)/max_queries);
+  TIMER_START(&gpu_buffer_fmi_search->timer);
 #endif
   // Select computing device
   if (!gpu_buffer_fmi_search->compute_cpu) {
@@ -170,6 +172,10 @@ void gpu_buffer_fmi_search_receive(gpu_buffer_fmi_search_t* const gpu_buffer_fmi
     gpu_buffer_fmi_search_compute_cpu(gpu_buffer_fmi_search);
   }
   PROF_STOP(GP_GPU_BUFFER_FMI_SEARCH_RECEIVE);
+#ifdef GEM_PROFILE
+  TIMER_STOP(&gpu_buffer_fmi_search->timer);
+  COUNTER_ADD(&PROF_GET_TIMER(GP_GPU_BUFFER_FMI_SEARCH_DUTY_CYCLE)->time_ns,gpu_buffer_fmi_search->timer.accumulated);
+#endif
 }
 /*
  * CUDA NOT-Supported

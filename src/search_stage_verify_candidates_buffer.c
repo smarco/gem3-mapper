@@ -82,12 +82,12 @@ bool search_stage_verify_candidates_buffer_fits(
  */
 void search_stage_verify_candidates_buffer_send(
     search_stage_verify_candidates_buffer_t* const verify_candidates_buffer) {
-  // Send the GPU-buffer
+  PROF_ADD_COUNTER(GP_SEARCH_STAGE_VERIFY_CANDIDATES_SEARCHES_IN_BUFFER,
+      vector_get_used(verify_candidates_buffer->archive_searches));
   gpu_buffer_align_bpm_send(verify_candidates_buffer->gpu_buffer_align_bpm);
 }
 void search_stage_verify_candidates_buffer_receive(
     search_stage_verify_candidates_buffer_t* const verify_candidates_buffer) {
-  // Send the GPU-buffer
   gpu_buffer_align_bpm_receive(verify_candidates_buffer->gpu_buffer_align_bpm);
 }
 /*

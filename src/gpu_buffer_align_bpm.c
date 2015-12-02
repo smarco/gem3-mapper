@@ -353,6 +353,7 @@ void gpu_buffer_align_bpm_record_query_length(
 }
 void gpu_buffer_align_bpm_record_candidates_per_query(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t num_candidates) {
+  PROF_ADD_COUNTER(GP_GPU_BUFFER_ALIGN_BPM_CANDIDATE_PER_QUERY,num_candidates);
   COUNTER_ADD(&gpu_buffer_align_bpm->candidates_per_query,num_candidates);
 }
 uint64_t gpu_buffer_align_bpm_get_mean_query_length(
@@ -498,6 +499,17 @@ void gpu_buffer_align_bpm_get_result(
 void gpu_buffer_align_bpm_retrieve_pattern(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t candidate_offset,
     bpm_pattern_t* const bpm_pattern,mm_stack_t* const mm_stack) { GEM_CUDA_NOT_SUPPORTED(); }
+/*
+ * Hints
+ */
+void gpu_buffer_align_bpm_record_query_length(
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t query_length) { GEM_CUDA_NOT_SUPPORTED(); }
+void gpu_buffer_align_bpm_record_candidates_per_query(
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t num_candidates) { GEM_CUDA_NOT_SUPPORTED(); }
+uint64_t gpu_buffer_align_bpm_get_mean_query_length(
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
+uint64_t gpu_buffer_align_bpm_get_mean_candidates_per_query(
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
 /*
  * Send/Receive
  */

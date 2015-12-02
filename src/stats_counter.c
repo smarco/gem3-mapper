@@ -220,10 +220,12 @@ void SAMPLER_PRINT(
   fprintf(stream,"\t\t\t\t");
   COUNTER_PRINT_STATS(stream,counter,ref_counter,units);
 }
-void PERCENTAGE_PRINT(FILE* const stream,const gem_counter_t* const counter) {
+void PERCENTAGE_PRINT(
+    FILE* const stream,const gem_counter_t* const counter,
+    const char* const units) {
   // Print Mean
   const double mean = COUNTER_GET_MEAN(counter);
-  fprintf(stream,"%7.2f%%\t\t",mean);
+  fprintf(stream,"%7.2f %%%s\t\t",mean,units);
   // Print Samples
   const uint64_t num_samples = COUNTER_GET_NUM_SAMPLES(counter);
   if (num_samples >= BUFFER_SIZE_1G) {

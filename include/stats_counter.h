@@ -48,7 +48,9 @@ void COUNTER_PRINT(
 void SAMPLER_PRINT(
     FILE* const stream,const gem_counter_t* const counter,
     const gem_counter_t* const ref_counter,const char* const units);
-void PERCENTAGE_PRINT(FILE* const stream,const gem_counter_t* const counter);
+void PERCENTAGE_PRINT(
+    FILE* const stream,const gem_counter_t* const counter,
+    const char* const units);
 
 /*
  * Reference Counter (Counts wrt a reference counter. Eg ranks)

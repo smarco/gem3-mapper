@@ -138,14 +138,15 @@ bool search_stage_region_profile_send_pe_search(
  * Retrieve operators
  */
 void search_stage_region_profile_retrieve_begin(search_stage_region_profile_t* const search_stage_rp) {
+  search_stage_iterator_t* const iterator = &search_stage_rp->iterator;
   search_stage_region_profile_buffer_t* current_buffer;
   // Change mode
   search_stage_rp->search_stage_mode = search_group_buffer_phase_retrieving;
+  PROF_ADD_COUNTER(GP_SEARCH_STAGE_REGION_PROFILE_BUFFERS_USED,iterator->current_buffer_idx+1);
   // Send the current buffer
   current_buffer = search_stage_rp_get_current_buffer(search_stage_rp);
   search_stage_region_profile_buffer_send(current_buffer);
   // Initialize the iterator
-  search_stage_iterator_t* const iterator = &search_stage_rp->iterator;
   iterator->current_buffer_idx = 0;
   // Reset searches iterator
   current_buffer = search_stage_rp_get_current_buffer(search_stage_rp);

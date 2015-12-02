@@ -78,6 +78,8 @@ bool search_stage_region_profile_buffer_fits(
  */
 void search_stage_region_profile_buffer_send(
     search_stage_region_profile_buffer_t* const region_profile_buffer) {
+  PROF_ADD_COUNTER(GP_SEARCH_STAGE_REGION_PROFILE_SEARCHES_IN_BUFFER,
+      vector_get_used(region_profile_buffer->archive_searches));
   gpu_buffer_fmi_search_send(region_profile_buffer->gpu_buffer_fmi_search);
 }
 void search_stage_region_profile_buffer_receive(

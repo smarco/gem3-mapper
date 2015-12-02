@@ -151,14 +151,15 @@ bool search_stage_decode_candidates_send_pe_search(
  * Retrieve operators
  */
 void search_stage_decode_candidates_retrieve_begin(search_stage_decode_candidates_t* const search_stage_dc) {
+  search_stage_iterator_t* const iterator = &search_stage_dc->iterator;
   search_stage_decode_candidates_buffer_t* current_buffer;
   // Change mode
   search_stage_dc->search_stage_mode = search_group_buffer_phase_retrieving;
+  PROF_ADD_COUNTER(GP_SEARCH_STAGE_DECODE_CANDIDATES_BUFFERS_USED,iterator->current_buffer_idx+1);
   // Send the current buffer
   current_buffer = search_stage_dc_get_current_buffer(search_stage_dc);
   search_stage_decode_candidates_buffer_send(current_buffer);
   // Initialize the iterator
-  search_stage_iterator_t* const iterator = &search_stage_dc->iterator;
   iterator->current_buffer_idx = 0;
   // Reset searches iterator
   current_buffer = search_stage_dc_get_current_buffer(search_stage_dc);

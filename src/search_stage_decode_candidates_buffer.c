@@ -72,6 +72,8 @@ bool search_stage_decode_candidates_buffer_fits(
  */
 void search_stage_decode_candidates_buffer_send(
     search_stage_decode_candidates_buffer_t* const decode_candidates_buffer) {
+  PROF_ADD_COUNTER(GP_SEARCH_STAGE_DECODE_CANDIDATES_SEARCHES_IN_BUFFER,
+      vector_get_used(decode_candidates_buffer->archive_searches));
   gpu_buffer_fmi_decode_send(decode_candidates_buffer->gpu_buffer_fmi_decode);
 }
 void search_stage_decode_candidates_buffer_receive(
