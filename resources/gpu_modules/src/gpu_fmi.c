@@ -86,8 +86,8 @@ GPU_INLINE void gpu_fmi_search_reallocate_device_buffer_layout(gpu_buffer_t* mBu
 GPU_INLINE void gpu_fmi_search_init_buffer_(void* const fmiBuffer)
 {
 	gpu_buffer_t* const mBuff  = (gpu_buffer_t *) fmiBuffer;
-	const size_t	  	sizeBuff   = mBuff->sizeBuffer;
-	const uint32_t	    numInputs  = (sizeBuff / gpu_fmi_search_input_size()) - GPU_FMI_SEARCH_SEEDS_BUFFER_PADDING;
+	const size_t	  	sizeBuff   = mBuff->sizeBuffer * 0.95;
+	const uint32_t	    numInputs  = (sizeBuff / gpu_fmi_search_input_size());
 
 	//set the type of the buffer
 	mBuff->typeBuffer = GPU_FMI_EXACT_SEARCH;
@@ -134,8 +134,8 @@ GPU_INLINE void gpu_fmi_decode_reallocate_device_buffer_layout(gpu_buffer_t* mBu
 GPU_INLINE void gpu_fmi_decode_init_buffer_(void* const fmiBuffer)
 {
 	gpu_buffer_t* const mBuff      = (gpu_buffer_t *) fmiBuffer;
-	const size_t		sizeBuff   = mBuff->sizeBuffer;
-	const uint32_t 		numMaxPositions  = (sizeBuff / gpu_fmi_decode_input_size()) - GPU_FMI_DECODE_POS_BUFFER_PADDING;
+	const size_t		sizeBuff   = mBuff->sizeBuffer * 0.95;
+	const uint32_t 		numMaxPositions  = (sizeBuff / gpu_fmi_decode_input_size());
 
 	//set the type of the buffer
 	mBuff->typeBuffer = GPU_FMI_DECODE_POS;

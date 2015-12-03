@@ -22,7 +22,7 @@
 /*
  * Constants :: Buffer Hints
  */
-#define GPU_ALIGN_BPM_MIN_NUM_SAMPLES           1000
+#define GPU_ALIGN_BPM_MIN_NUM_SAMPLES           50
 #define GPU_ALIGN_BPM_AVERAGE_QUERY_LENGTH      150
 #define GPU_ALIGN_BPM_CANDIDATES_PER_QUERY      20
 
@@ -359,7 +359,7 @@ void gpu_buffer_align_bpm_record_candidates_per_query(
 uint64_t gpu_buffer_align_bpm_get_mean_query_length(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
   if (COUNTER_GET_NUM_SAMPLES(&gpu_buffer_align_bpm->query_length) >= GPU_ALIGN_BPM_MIN_NUM_SAMPLES) {
-    return (uint64_t)COUNTER_GET_MEAN(&gpu_buffer_align_bpm->query_length);
+    return (uint64_t)ceil(COUNTER_GET_MEAN(&gpu_buffer_align_bpm->query_length));
   } else {
     return GPU_ALIGN_BPM_AVERAGE_QUERY_LENGTH;
   }
@@ -367,7 +367,7 @@ uint64_t gpu_buffer_align_bpm_get_mean_query_length(
 uint64_t gpu_buffer_align_bpm_get_mean_candidates_per_query(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
   if (COUNTER_GET_NUM_SAMPLES(&gpu_buffer_align_bpm->candidates_per_query) >= GPU_ALIGN_BPM_MIN_NUM_SAMPLES) {
-    return (uint64_t)COUNTER_GET_MEAN(&gpu_buffer_align_bpm->candidates_per_query);
+    return (uint64_t)ceil(COUNTER_GET_MEAN(&gpu_buffer_align_bpm->candidates_per_query));
   } else {
     return GPU_ALIGN_BPM_CANDIDATES_PER_QUERY;
   }

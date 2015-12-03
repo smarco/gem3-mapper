@@ -63,7 +63,7 @@ GPU_INLINE __device__ void gpu_bpm_filter_local_kernel(const gpu_bpm_device_qry_
 
 				#pragma unroll
 				for(uint32_t idPEQ = 0, idBMP = 0; idPEQ < PEQS_PER_THREAD; ++idPEQ, idBMP+=4){
-					Eqv4 = LDG(&d_queries[entry + idPEQ].bitmap[candidate & 0x07]);
+					Eqv4 = LDG(&d_queries[entry + idPEQ].bitmap[candidate & GPU_REFERENCE_MASK_BASE]);
 					set_BMP(Eq + idBMP, Eqv4);
 				}
 

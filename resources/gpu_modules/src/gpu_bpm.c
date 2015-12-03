@@ -131,10 +131,10 @@ GPU_INLINE void gpu_bpm_reallocate_device_buffer_layout(gpu_buffer_t* mBuff)
 GPU_INLINE void gpu_bpm_init_buffer_(void* const bpmBuffer, const uint32_t averageQuerySize, const uint32_t candidatesPerQuery)
 {
 	gpu_buffer_t* const mBuff     			 	= (gpu_buffer_t *) bpmBuffer;
-	const size_t	    sizeBuff   			 	= mBuff->sizeBuffer;
+	const double	    sizeBuff   			 	= mBuff->sizeBuffer * 0.95;
 	const size_t 	    averageNumPEQEntries 	= GPU_DIV_CEIL(averageQuerySize, GPU_BPM_PEQ_ENTRY_LENGTH);
-	const uint32_t	    numInputs  			 	= (uint32_t)((double)sizeBuff / gpu_bpm_size_per_candidate(averageQuerySize, candidatesPerQuery));
-	const uint32_t	    maxCandidates 		 	= numInputs - gpu_bpm_candidates_for_binning_padding() - GPU_BPM_CANDIDATES_BUFFER_PADDING;
+	const uint32_t	    numInputs  			 	= (uint32_t)(sizeBuff / gpu_bpm_size_per_candidate(averageQuerySize, candidatesPerQuery));
+	const uint32_t	    maxCandidates 		 	= numInputs - gpu_bpm_candidates_for_binning_padding();
 	const uint32_t      bucketPaddingCandidates = gpu_bpm_candidates_for_binning_padding();
 
 	//set the type of the buffer
@@ -179,6 +179,8 @@ GPU_INLINE gpu_error_t gpu_bpm_reordering_buffer(gpu_buffer_t *mBuff)
 
 	//Init buckets (32 buckets => max 4096 bases)
 	for(idBucket = 0; idBucket < rebuff->numBuckets; idBucket++){
+	  rebuff->h_initPosPerBucket[idBucket] = 0;
+	  rebuff->h_initWarpPerBucket[idBucket] = 0;
 		numCandidatesPerBucket[idBucket] = 0;
 		numWarpsPerBucket[idBucket] 	 = 0;
 		tmpBuckets[idBucket] 			 = 0;
