@@ -176,6 +176,73 @@ GPU_INLINE gpu_error_t gpu_fmi_search_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
 	return (SUCCESS);
 }
 
+inline char gpu_fmi_search_bin_to_char(uint32_t base)
+{
+	switch(base)
+	{
+    	case GPU_ENC_DNA_CHAR_A:
+    		return('A');
+    	case GPU_ENC_DNA_CHAR_C:
+    		return('C');
+    	case GPU_ENC_DNA_CHAR_G:
+    		return('G');
+    	case GPU_ENC_DNA_CHAR_T:
+    		return('T');
+    	default :
+    		return('X');
+	}
+}
+
+inline uint32_t gpu_fmi_search_print_seed(gpu_fmi_search_seed_t seed, uint32_t seedSize)
+{
+	char plainSeed[GPU_FMI_SEED_MAX_CHARS] = {0};
+	uint64_t bitmap = seed.hi;
+	uint32_t idBase;
+
+	for(idBase = 0; idBase < seedSize; ++idBase){
+		uint32_t base = bitmap & 0x3;
+		plainSeed[idBase] = gpu_fmi_search_bin_to_char(base);
+		bitmap >>= GPU_FMI_SEED_CHAR_LENGTH;
+		if(idBase == GPU_UINT32_LENGTH) bitmap = seed.low;
+	}
+
+	for(idBase = 0; idBase < seedSize; ++idBase)
+		printf("%c", plainSeed[seedSize - idBase - 1]);
+
+	return(SUCCESS);
+}
+
+uint32_t flag_print = 0;
+uint32_t gpu_fmi_search_print_buffer(const void* const fmiBuffer)
+{
+	if(flag_print == 0){
+		gpu_buffer_t* const mBuff  = (gpu_buffer_t *) fmiBuffer;
+		const uint32_t maxSeeds    = 100; // Just check and print the first results
+		const uint32_t numSeeds	   = mBuff->data.search.seeds.numSeeds;
+			  uint32_t missMatches = 0;
+			  uint32_t idSeed;
+
+		printf("Buffer: %d ------------------------------------\n", mBuff->idBuffer);
+		for(idSeed = 0; idSeed < numSeeds; ++idSeed){
+			//if(missMatches < maxSeeds){
+				const uint64_t hiSeedSection = mBuff->data.search.seeds.h_seeds[idSeed].low;
+				const uint32_t seedSize = hiSeedSection >> (GPU_UINT64_LENGTH - GPU_FMI_SEED_FIELD_SIZE);
+				printf("[%d] seed=", idSeed);
+				gpu_fmi_search_print_seed(mBuff->data.search.seeds.h_seeds[idSeed], seedSize);
+				printf("\t size=%d \t (GPU) lo=%llu \t hi=%llu \n",
+						seedSize,
+						mBuff->data.search.saIntervals.h_intervals[idSeed].low,
+						mBuff->data.search.saIntervals.h_intervals[idSeed].hi);
+			//}
+			missMatches++;
+		}
+		printf("Buffer: %d ------------------------------------\n", mBuff->idBuffer);
+		flag_print = 1;
+	}
+    return (SUCCESS);
+}
+
+
 GPU_INLINE void gpu_fmi_search_send_buffer_(const void* const fmiBuffer, const uint32_t numSeeds)
 {
 	gpu_buffer_t* const mBuff  = (gpu_buffer_t *) fmiBuffer;
@@ -187,6 +254,7 @@ GPU_INLINE void gpu_fmi_search_send_buffer_(const void* const fmiBuffer, const u
 
 	//Select the device of the Multi-GPU platform
     CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
+    //GPU_ERROR(gpu_fmi_search_print_buffer(fmiBuffer));
 	GPU_ERROR(gpu_fmi_search_transfer_CPU_to_GPU(mBuff));
 	GPU_ERROR(gpu_fmi_search_process_buffer(mBuff));
 	GPU_ERROR(gpu_fmi_search_transfer_GPU_to_CPU(mBuff));
@@ -198,6 +266,7 @@ GPU_INLINE void gpu_fmi_search_receive_buffer_(const void* const fmiBuffer)
 
 	//Synchronize Stream (the thread wait for the commands done in the stream)
 	CUDA_ERROR(cudaStreamSynchronize(mBuff->idStream));
+    //GPU_ERROR(gpu_fmi_search_print_buffer(fmiBuffer));
 }
 
 /************************************************************

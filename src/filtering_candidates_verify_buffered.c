@@ -130,7 +130,7 @@ bool filtering_candidates_verify_buffered_get_result(
     bpm_compute_edit_distance_cutoff(&bpm_pattern_tile,text,candidate_length,
         &check_tile_match_end_column,&check_tile_distance,bpm_pattern_tile.pattern_length,false);
     if (tile_distance!=check_tile_distance || tile_match_column!=check_tile_match_end_column) {
-      gem_fatal_error_msg("Filtering.Candidates.Verify.Buffered. "
+      gem_error_msg("Filtering.Candidates.Verify.Buffered. "
           "Check verify candidate (Distance:%d!=%lu) (MatchPos:%d!=%lu)",
           tile_distance,check_tile_distance,tile_match_column,check_tile_match_end_column);
     }

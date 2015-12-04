@@ -19,7 +19,6 @@ void __global__ gpu_fmi_search_kernel(const gpu_fmi_device_entry_t *fmi, const u
 	const uint32_t idSeed 	 		   = globalThreadIdx     / GPU_FMI_SEED_THREADS_PER_ENTRY;
 
 	if (globalThreadIdx < (numSeeds * GPU_FMI_SEED_THREADS_PER_ENTRY)){
-
 		const uint32_t   localIdSeed = idSeed % GPU_FMI_SEED_ENTRIES_PER_WARP;
 		const ulonglong2 seed 	     = seeds[idSeed];
 		const uint32_t   seedSize    = seed.y >> (GPU_UINT64_LENGTH - GPU_FMI_SEED_FIELD_SIZE);

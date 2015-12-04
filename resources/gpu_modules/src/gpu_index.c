@@ -298,18 +298,21 @@ GPU_INLINE gpu_error_t gpu_transform_index_GEM_FULL(gpu_gem_fmi_dto_t* const gpu
 
   ++h_fmi;
   // Ghost entry for alternate counters
-  if (h_fmi_entry % 2 == 1) {
-    // Write Counters
-    h_fmi->counters[0] = c[2] + C[2]; // 'G'
-    h_fmi->counters[1] = c[3] + C[3]; // 'T'
-    // Write Bitmap
-    h_fmi->bitmaps[0]  =  0; h_fmi->bitmaps[1]  =  0;
-    h_fmi->bitmaps[2]  =  0; h_fmi->bitmaps[3]  =  0;
-    h_fmi->bitmaps[4]  =  0; h_fmi->bitmaps[5]  =  0;
-    h_fmi->bitmaps[6]  =  0; h_fmi->bitmaps[7]  =  0;
-    h_fmi->bitmaps[8]  =  0; h_fmi->bitmaps[9]  =  0;
-    h_fmi->bitmaps[10] =  0; h_fmi->bitmaps[11] =  0;
+  if (h_fmi_entry % 2 == 0) {   // Write Counters
+    h_fmi->counters[0] = c[0] + C[0]; // 'A'
+    h_fmi->counters[1] = c[1] + C[1]; // 'C'
+  } else {
+	h_fmi->counters[0] = c[2] + C[2]; // 'G'
+	h_fmi->counters[1] = c[3] + C[3]; // 'T'
   }
+  // Write Bitmap
+  h_fmi->bitmaps[0]  =  0; h_fmi->bitmaps[1]  =  0;
+  h_fmi->bitmaps[2]  =  0; h_fmi->bitmaps[3]  =  0;
+  h_fmi->bitmaps[4]  =  0; h_fmi->bitmaps[5]  =  0;
+  h_fmi->bitmaps[6]  =  0; h_fmi->bitmaps[7]  =  0;
+  h_fmi->bitmaps[8]  =  0; h_fmi->bitmaps[9]  =  0;
+  h_fmi->bitmaps[10] =  0; h_fmi->bitmaps[11] =  0;
+
   // Return SUCCESS
   return (SUCCESS);
 }
@@ -446,7 +449,7 @@ GPU_INLINE gpu_error_t gpu_init_index(gpu_index_buffer_t **index, const void *in
 				break;
 			case GPU_INDEX_GEM_FULL:
 				GPU_ERROR(gpu_transform_index_GEM_FULL((gpu_gem_fmi_dto_t*)indexRaw, fmi));
-				// GPU_ERROR(gpu_save_index_PROFILE("internalIndexGEM.fmi", fmi));
+				//GPU_ERROR(gpu_save_index_PROFILE("internalIndexGEM.fmi", fmi));
 				break;
 			case GPU_INDEX_MFASTA_FILE:
 				GPU_ERROR(gpu_load_BWT_MFASTA((const char*)indexRaw, fmi, &h_BWT));

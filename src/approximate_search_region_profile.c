@@ -260,9 +260,14 @@ void approximate_search_region_profile_buffered_retrieve(
       uint64_t hi, lo;
       fm_index_bsearch(search->archive->fm_index,search->pattern.key+filtering_region->begin,
           filtering_region->end-filtering_region->begin,&hi,&lo);
-      gem_cond_fatal_error_msg(filtering_region->hi!=hi || filtering_region->lo!=lo,
-          "ASM.Region.Profile.Buffered. Check Region-Profile failed (hi::%lu!=%lu)(lo::%lu!=%lu)",
-          filtering_region->hi,hi,filtering_region->lo,lo);
+      gem_cond_error_msg(
+               (hi-lo!=0 || filtering_region->hi-filtering_region->lo!=0) &&
+               (filtering_region->hi!=hi || filtering_region->lo!=lo),
+               "ASM.Region.Profile.Buffered. Check Region-Profile failed (hi::%lu!=%lu)(lo::%lu!=%lu)",
+               filtering_region->hi,hi,filtering_region->lo,lo);
+      //gem_cond_error_msg(filtering_region->hi!=hi || filtering_region->lo!=lo,
+          //"ASM.Region.Profile.Buffered. Check Region-Profile failed (hi::%lu!=%lu)(lo::%lu!=%lu)",
+          //filtering_region->hi,hi,filtering_region->lo,lo);
 #endif
     // Check number of candidates
     const uint64_t num_candidates = filtering_region->hi - filtering_region->lo;
