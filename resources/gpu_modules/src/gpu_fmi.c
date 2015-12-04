@@ -229,7 +229,7 @@ uint32_t gpu_fmi_search_print_buffer(const void* const fmiBuffer)
 				const uint32_t seedSize = hiSeedSection >> (GPU_UINT64_LENGTH - GPU_FMI_SEED_FIELD_SIZE);
 				printf("[%d] seed=", idSeed);
 				gpu_fmi_search_print_seed(mBuff->data.search.seeds.h_seeds[idSeed], seedSize);
-				printf("\t size=%d \t (GPU) lo=%llu \t hi=%llu \n",
+				printf("\t size=%d \t (GPU) lo=%lu \t hi=%lu \n",
 						seedSize,
 						mBuff->data.search.saIntervals.h_intervals[idSeed].low,
 						mBuff->data.search.saIntervals.h_intervals[idSeed].hi);

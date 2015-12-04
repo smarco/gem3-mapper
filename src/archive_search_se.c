@@ -73,25 +73,35 @@ void archive_search_se(archive_search_t* const archive_search,matches_t* const m
     if (lower_max_difference && archive_search->probe_strand) forward_asearch->stop_before_neighborhood_search = true;
     // Run the search (FORWARD)
     approximate_search(forward_asearch,matches); // Forward search
-    // Check the number of matches & keep searching
-    if (!forward_asearch->max_matches_reached) {
-      // Keep on searching
-      approximate_search_t* const reverse_asearch = &archive_search->reverse_search_state;
-      // Run the search (REVERSE)
-      approximate_search(reverse_asearch,matches); // Reverse emulated-search
-      // Resume forward search (if not completed before)
-      if (forward_asearch->search_stage != asearch_stage_end && !forward_asearch->max_matches_reached) {
-        approximate_search(forward_asearch,matches);
-      }
+    // Keep on searching
+    approximate_search_t* const reverse_asearch = &archive_search->reverse_search_state;
+    // Run the search (REVERSE)
+    approximate_search(reverse_asearch,matches); // Reverse emulated-search
+    // Resume forward search (if not completed before)
+    if (forward_asearch->search_stage != asearch_stage_end) {
+      approximate_search(forward_asearch,matches);
     }
   }
-  PROFILE_STOP(GP_ARCHIVE_SEARCH_SE,PROFILE_LEVEL);
+  // Select Matches
+  archive_select_se_matches(archive_search,false,matches);
+  // Select alignment-Model and process accordingly
+  archive_score_matches_se(archive_search,false,matches);
+  // Check matches
+  search_parameters_t* const search_parameters = archive_search->as_parameters.search_parameters;
+  if (search_parameters->check_type!=archive_check_nothing) {
+    archive_check_se_matches(
+        archive_search->archive,search_parameters->alignment_model,
+        &search_parameters->swg_penalties,&archive_search->sequence,
+        matches,search_parameters->check_type,archive_search->mm_stack);
+  }
+  // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE) {
     tab_global_inc();
     archive_search_se_print(gem_log_get_stream(),archive_search,matches);
     tab_global_dec();
     tab_global_dec();
   }
+  PROFILE_STOP(GP_ARCHIVE_SEARCH_SE,PROFILE_LEVEL);
 }
 /*
  * Compute Predictors

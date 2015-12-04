@@ -125,14 +125,19 @@ bool filtering_candidates_verify_buffered_get_result(
         candidate_text_position,candidate_length,false,mm_stack); // Retrieve text(s)
     const text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
     const uint8_t* const text = text_trace->text; // Candidate
+    uint64_t i, uncalled_bases_text = 0;
+    for (i=0;i<candidate_length;++i) {
+      if (text[i]==ENC_DNA_CHAR_N) ++uncalled_bases_text;
+    }
     // Align BPM & Set result
     uint64_t check_tile_match_end_column, check_tile_distance;
     bpm_compute_edit_distance_cutoff(&bpm_pattern_tile,text,candidate_length,
         &check_tile_match_end_column,&check_tile_distance,bpm_pattern_tile.pattern_length,false);
     if (tile_distance!=check_tile_distance || tile_match_column!=check_tile_match_end_column) {
-      gem_error_msg("Filtering.Candidates.Verify.Buffered. "
-          "Check verify candidate (Distance:%d!=%lu) (MatchPos:%d!=%lu)",
-          tile_distance,check_tile_distance,tile_match_column,check_tile_match_end_column);
+      gem_error_msg("Filtering.Candidates.Verify.Buffered. Check verify candidate "
+          "(Distance:%d!=%lu) (MatchPos:%d!=%lu) (Text.Uncalled.bases=%lu)",
+          tile_distance,check_tile_distance,tile_match_column,
+          check_tile_match_end_column,uncalled_bases_text);
     }
     //      // Whole read // TODO + STATS
     //      uint64_t match_end_column, match_distance;

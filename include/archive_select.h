@@ -10,7 +10,7 @@
 #define ARCHIVE_SELECT_H_
 
 #include "archive_search.h"
-#include "select_parameters.h"
+#include "archive_select_parameters.h"
 
 /*
  * Decoding Matches (Retrieving & Processing matches)

@@ -203,7 +203,7 @@ void archive_select_se_matches(
   PROFILE_START(GP_ARCHIVE_SELECT_SE_MATCHES,PROFILE_LEVEL);
   // Instantiate Search Parameters Values
   select_parameters_t* const select_parameters = archive_search->select_parameters;
-  select_instantiate_values(select_parameters,sequence_get_length(&archive_search->sequence));
+  select_parameters_instantiate_values(select_parameters,sequence_get_length(&archive_search->sequence));
   // Calculate the number of matches to decode wrt input parameters
   uint64_t reported_strata = 0, last_stratum_reported_matches = 0;
   matches_counters_compute_matches_to_decode(
@@ -217,16 +217,6 @@ void archive_select_se_matches(
   }
   // Decode matches
   archive_select_decode_matches(archive_search,matches,reported_strata,last_stratum_reported_matches);
-  // Select alignment-Model and process accordingly
-  archive_score_matches_se(archive_search,paired_mapping,matches);
-  // Check matches
-  if (select_parameters->check_type!=archive_check_nothing) {
-    search_parameters_t* const search_parameters = archive_search->as_parameters.search_parameters;
-    archive_check_se_matches(
-        archive_search->archive,search_parameters->alignment_model,
-        &search_parameters->swg_penalties,&archive_search->sequence,
-        matches,select_parameters->check_type,archive_search->mm_stack);
-  }
   PROFILE_STOP(GP_ARCHIVE_SELECT_SE_MATCHES,PROFILE_LEVEL);
 }
 void archive_select_pe_matches(
@@ -244,22 +234,11 @@ void archive_select_pe_matches(
       mapper_stats_template_length_sample(archive_search_end1->mapper_stats,paired_map->template_length);
     }
   }
-  // Select alignment-Model and process accordingly
-  archive_score_matches_pe(archive_search_end1,archive_search_end2,paired_matches);
   // Discard surplus
   select_parameters_t* const select_parameters = archive_search_end1->select_parameters;
   const uint64_t num_paired_matches = vector_get_used(paired_matches->paired_maps);
   if (num_paired_matches > select_parameters->max_reported_matches) {
     vector_set_used(paired_matches->paired_maps,select_parameters->max_reported_matches);
-  }
-  // Check matches
-  if (select_parameters->check_type!=archive_check_nothing) {
-    search_parameters_t* const search_parameters = archive_search_end1->as_parameters.search_parameters;
-    archive_check_pe_matches(
-        archive_search_end1->archive,search_parameters->alignment_model,
-        &search_parameters->swg_penalties,&archive_search_end1->sequence,
-        &archive_search_end2->sequence,paired_matches,
-        select_parameters->check_type,archive_search_end1->mm_stack);
   }
   PROFILE_STOP(GP_ARCHIVE_SELECT_PE_MATCHES,PROFILE_LEVEL);
 }

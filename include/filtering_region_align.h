@@ -10,8 +10,8 @@
 #define FILTERING_REGION_ALIGN_H_
 
 #include "filtering_region.h"
+#include "archive_search_parameters.h"
 #include "archive_text.h"
-#include "search_parameters.h"
 #include "pattern.h"
 #include "matches.h"
 

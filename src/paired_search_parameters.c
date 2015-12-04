@@ -13,7 +13,6 @@
  */
 void paired_search_parameters_init(paired_search_parameters_t* const paired_search_parameters) {
   paired_search_parameters->paired_end_search = false;
-  paired_search_parameters->max_paired_matches = 1000;
   /* Concordant Orientation */
   paired_search_parameters->pair_discordant_search = pair_discordant_search_only_if_no_concordant;
   paired_search_parameters->pair_orientation[pair_orientation_FR] = pair_relation_concordant;

@@ -175,7 +175,6 @@ void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_search) {
   while (search_stage_verify_candidates_retrieve_se_search(stage_verify_candidates,&archive_search)) {
     // Finish Search
     archive_search_se_stepwise_finish_search(archive_search,stage_verify_candidates->matches); // Finish search
-    archive_select_se_matches(archive_search,false,stage_verify_candidates->matches); // Select Matches
     // Output Matches
     mapper_SE_output_matches(parameters,mapper_search->buffered_output_file,
         archive_search,stage_verify_candidates->matches,mapper_search->mapping_stats);

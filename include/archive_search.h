@@ -12,7 +12,7 @@
 #include "essentials.h"
 
 #include "archive.h"
-#include "select_parameters.h"
+#include "archive_select_parameters.h"
 #include "approximate_search.h"
 #include "sequence.h"
 #include "matches_classify.h"

@@ -64,7 +64,6 @@ void approximate_search_reset(approximate_search_t* const search) {
   const uint64_t max_complete_error = search->as_parameters->complete_search_error_nominal; // FIXME + search->pattern.num_low_quality_bases;
   search->max_complete_error = MIN(max_complete_error,search->pattern.max_effective_filtering_error);
   search->max_complete_stratum = ALL;
-  search->max_matches_reached = false;
   // Prepare region profile
   if (search->max_complete_error > 0) {
     region_profile_new(&search->region_profile,search->pattern.key_length,search->mm_stack);
@@ -167,7 +166,6 @@ void approximate_search_print(FILE* const stream,approximate_search_t* const sea
   tab_fprintf(stream,"  => Search.State %s\n",asearch_processing_state_label[search->processing_state]);
   tab_fprintf(stream,"=> Max.complete.error %lu\n",search->max_complete_error);
   tab_fprintf(stream,"=> MCS %lu\n",search->max_complete_stratum);
-  tab_fprintf(stream,"=> Max.matches.reached %lu\n",search->max_matches_reached);
   tab_fprintf(stream,"=> Exact.lo %lu\n",search->lo_exact_matches);
   tab_fprintf(stream,"=> Exact.hi %lu\n",search->hi_exact_matches);
   tab_fprintf(stream,"=> Region.Profile\n");

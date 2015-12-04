@@ -7,10 +7,10 @@
  */
 
 #include "filtering_candidates.h"
+#include "archive_search_parameters.h"
 #include "archive.h"
 #include "text_collection.h"
 #include "pattern.h"
-#include "search_parameters.h"
 
 /*
  * Verify Candidates

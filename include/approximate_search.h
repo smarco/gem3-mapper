@@ -9,11 +9,11 @@
 #ifndef APPROXIMATE_SEARCH_H_
 #define APPROXIMATE_SEARCH_H_
 
-#include "search_parameters.h"
+#include "archive_search_parameters.h"
 #include "archive.h"
 #include "pattern.h"
-#include "region_profile.h"
 #include "interval_set.h"
+#include "region_profile.h"
 #include "filtering_candidates.h"
 #include "mapper_profile.h"
 
@@ -69,7 +69,6 @@ typedef struct {
   bool stop_before_neighborhood_search;                   // Stop before Neighborhood Search
   uint64_t max_complete_error;
   uint64_t max_complete_stratum;                          // Maximum complete stratum reached by the search
-  uint64_t max_matches_reached;                           // Quick abandon due to maximum matches found
   uint64_t lo_exact_matches;                              // Interval Lo (Exact matching)
   uint64_t hi_exact_matches;                              // Interval Hi (Exact matching)
   /* Search Structures */

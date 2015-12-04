@@ -35,7 +35,6 @@ typedef enum {
 typedef struct {
   bool paired_end_search;
   pair_discordant_search_t pair_discordant_search;
-  uint64_t max_paired_matches;
   /* Pair Relation Allowed {concordant,discordant,invalid} */
   pair_relation_t pair_orientation[4];
   /* Pair allowed lay-outs */

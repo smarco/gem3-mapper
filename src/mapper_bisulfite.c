@@ -73,7 +73,6 @@ void* mapper_SE_bisulfite_thread(mapper_search_t* const mapper_search) {
    }
    // Search into the archive
    archive_search_se(mapper_search->archive_search,matches); // Search matches
-   archive_select_se_matches(mapper_search->archive_search,false,matches); // Select matches
 
    // Copy back original read
    if (seq_end != NULL) string_copy(seq_end,&orig_end);
@@ -149,7 +148,6 @@ void* mapper_PE_bisulfite_thread(mapper_search_t* const mapper_search) {
 
     // Search into the archive
     archive_search_pe(archive_search_end1,archive_search_end2,paired_matches);
-    archive_select_pe_matches(archive_search_end1,archive_search_end2,paired_matches);
 
     // Copy back original read
     string_copy(seq_end1,&orig_end1);

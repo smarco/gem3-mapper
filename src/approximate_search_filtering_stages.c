@@ -139,9 +139,6 @@ void approximate_search_exact_filtering_adaptive_cutoff(
     approximate_search_update_mcs(search,1);
     search->processing_state = asearch_processing_state_exact_matches;
   } else {
-    // Update MCS (maximum complete stratum)
-    search->max_matches_reached = matches_get_num_match_traces(matches) >= search_parameters->search_max_matches;
-    if (search->max_matches_reached) approximate_search_update_mcs(search,0);
     // Next State
     search->processing_state = asearch_processing_state_candidates_verified;
   }
@@ -181,9 +178,7 @@ void approximate_search_exact_filtering_boost(approximate_search_t* const search
       search->archive,&search->pattern,actual_parameters,true,search->mm_stack);
   // Verify candidates
   approximate_search_verify_candidates(search,matches);
-  if (!search->max_matches_reached && old_mcs > search->max_complete_stratum) {
-    approximate_search_update_mcs(search,old_mcs);
-  }
+  if (old_mcs > search->max_complete_stratum) approximate_search_update_mcs(search,old_mcs);
   // DEBUG
 #ifdef GEM_PROFILE
   if (!already_mapped) PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_BOOST_MAPPED,matches_is_mapped(matches)?1:0);

@@ -21,13 +21,6 @@
 #define ARCHIVE_MODEL_NO 5004ull
 
 /*
- * Checker
- */
-#define ARCHIVE_CHECK_INDEX_POSITION(archive,index_position) \
-  gem_fatal_check((int64_t)index_position < 0 || (int64_t)index_position >= archive_get_index_length(archive), \
-      ARCHIVE_INDEX_OOB,index_position,archive_get_index_length(archive))
-
-/*
  * Archive
  */
 typedef enum {

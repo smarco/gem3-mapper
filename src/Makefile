@@ -68,7 +68,7 @@ MODULES+=filtering_candidates filtering_candidates_verify \
          filtering_region filtering_region_align \
          filtering_region_cache kmer_counting 
 # GEM Search Support Modules
-MODULES+=search_parameters paired_search_parameters select_parameters quality_model mm_search
+MODULES+=paired_search_parameters quality_model mm_search
 # GEM Approximate Search (Filtering)
 MODULES+=approximate_search approximate_search_filtering_adaptive \
          approximate_search_filtering_complete approximate_search_neighborhood \
@@ -85,11 +85,11 @@ MODULES+=archive archive_builder archive_builder_index \
 # GEM Archive Support
 MODULES+=archive_text archive_search_cache
 # GEM Archive Search
-MODULES+=archive_search \
+MODULES+=archive_search archive_search_parameters \
          archive_search_se archive_search_pe \
-         archive_search_se_stepwise archive_search_pe_stepwise
-# GEM Archive Post-Processing
-MODULES+=archive_score archive_select archive_check
+         archive_search_se_stepwise archive_search_pe_stepwise \
+         archive_select archive_select_parameters \
+         archive_score archive_check
 # GEM GPU-Buffers
 MODULES+=gpu_buffer_collection gpu_buffer_align_bpm \
          gpu_buffer_fmi_bsearch gpu_buffer_fmi_decode

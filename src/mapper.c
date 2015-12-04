@@ -392,7 +392,6 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
 
     // Search into the archive
     archive_search_se(mapper_search->archive_search,matches);
-    archive_select_se_matches(mapper_search->archive_search,false,matches); // Select matches
 
     // Output matches
     mapper_SE_output_matches(parameters,buffered_output_file,mapper_search->archive_search,matches,mapper_search->mapping_stats);
@@ -456,7 +455,6 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
 
     // Search into the archive
     archive_search_pe(archive_search_end1,archive_search_end2,paired_matches);
-    archive_select_pe_matches(archive_search_end1,archive_search_end2,paired_matches);
 
     // Output matches
     mapper_PE_output_matches(parameters,buffered_output_file,archive_search_end1,archive_search_end2,paired_matches,mapper_search->mapping_stats);

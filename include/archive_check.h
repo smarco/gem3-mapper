@@ -10,20 +10,10 @@
 #define ARCHIVE_CHECK_H_
 
 #include "archive.h"
+#include "archive_search_parameters.h"
 #include "sequence.h"
 #include "match_align.h"
 #include "paired_matches.h"
-
-/*
- * Check type
- */
-typedef enum {
-  archive_check_nothing,
-  archive_check_correct,
-  archive_check_correct__first_optimum,
-  archive_check_correct__all_optimum,
-  archive_check_correct__complete
-} archive_check_type;
 
 /*
  * Check Matches

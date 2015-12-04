@@ -40,7 +40,6 @@ void approximate_search_verify_candidates(approximate_search_t* const search,mat
   }
   // Parameters
   const as_parameters_t* const actual_parameters = search->as_parameters;
-  const search_parameters_t* const parameters = actual_parameters->search_parameters;
   pattern_t* const pattern = &search->pattern;
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
   // Verify Candidates
@@ -52,10 +51,6 @@ void approximate_search_verify_candidates(approximate_search_t* const search,mat
   search->processing_state = asearch_processing_state_candidates_verified;
   // Adjust max-differences
   asearch_control_adjust_max_differences_using_strata(search,matches);
-  // Update MCS (maximum complete stratum)
-  const uint64_t num_matches = matches_get_num_match_traces(matches);
-  search->max_matches_reached = num_matches >= parameters->search_max_matches;
-  if (search->max_matches_reached) approximate_search_update_mcs(search,0);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
 }
 /*

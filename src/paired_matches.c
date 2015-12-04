@@ -308,7 +308,6 @@ void paired_matches_find_pairs(
   matches_sort_by_sequence_name__position(matches_end1);
   matches_sort_by_sequence_name__position(matches_end2);
   // Traverse all matches from the first end
-  const uint64_t max_paired_matches = paired_search_parameters->max_paired_matches;
   uint64_t num_concordant_pair_matches = vector_get_used(paired_matches->paired_maps);
   uint64_t num_discordant_pair_matches = vector_get_used(paired_matches->discordant_paired_maps);
   match_trace_t* match_trace_end1 = vector_get_mem(matches_end1->position_matches,match_trace_t);
@@ -319,8 +318,8 @@ void paired_matches_find_pairs(
   uint64_t template_length;
   double template_length_sigma;
   while (match_trace_end1 < match_trace_end1_sentinel) {
-    // Check number of total pair-matches found so far
-    if (num_concordant_pair_matches > max_paired_matches) break;
+//    // Check number of total pair-matches found so far
+//    if (num_concordant_pair_matches > max_paired_matches) break; // TODO Install quick-quit cond.
     // TODO Binary search of closest valid position and quick abandon after exploring feasible pairs
     // Traverse all possible pairs for @match_trace_end1
     const char* sequence_name = match_trace_end1->sequence_name;

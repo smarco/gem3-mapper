@@ -7,6 +7,9 @@
 
 #include "archive_search_se_stepwise.h"
 #include "archive_search_se.h"
+#include "archive_select.h"
+#include "archive_score.h"
+#include "archive_check.h"
 #include "approximate_search_filtering_stages.h"
 #include "approximate_search_stepwise.h"
 
@@ -254,6 +257,18 @@ void archive_search_se_stepwise_finish_search(
   approximate_search_stepwise_finish(&archive_search->forward_search_state,matches);
   if (archive_search->emulate_rc_search) {
     approximate_search_stepwise_finish(&archive_search->reverse_search_state,matches);
+  }
+  // Select Matches
+  archive_select_se_matches(archive_search,false,matches);
+  // Select alignment-Model and process accordingly
+  archive_score_matches_se(archive_search,false,matches);
+  // Check matches
+  search_parameters_t* const search_parameters = archive_search->as_parameters.search_parameters;
+  if (search_parameters->check_type!=archive_check_nothing) {
+    archive_check_se_matches(
+        archive_search->archive,search_parameters->alignment_model,
+        &search_parameters->swg_penalties,&archive_search->sequence,
+        matches,search_parameters->check_type,archive_search->mm_stack);
   }
   // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE_STEPWISE) {

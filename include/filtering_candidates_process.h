@@ -10,9 +10,9 @@
 #define FILTERING_CANDIDATES_PROCESS_H_
 
 #include "filtering_candidates.h"
+#include "archive_search_parameters.h"
 #include "archive.h"
 #include "pattern.h"
-#include "search_parameters.h"
 
 /*
  * Retrieve all candidates(text) from the index

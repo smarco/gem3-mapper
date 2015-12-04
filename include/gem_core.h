@@ -38,7 +38,7 @@
 #include "archive_builder_text.h"
 #include "archive_builder_text_parser.h"
 #include "archive_builder_index.h"
-#include "select_parameters.h"
+#include "archive_select_parameters.h"
 #include "archive_select.h"
 
 // GEM align

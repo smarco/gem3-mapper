@@ -22,7 +22,7 @@
 /*
  * Constants :: Buffer Hints
  */
-#define GPU_ALIGN_BPM_MIN_NUM_SAMPLES           50
+#define GPU_ALIGN_BPM_MIN_NUM_SAMPLES           1
 #define GPU_ALIGN_BPM_AVERAGE_QUERY_LENGTH      150
 #define GPU_ALIGN_BPM_CANDIDATES_PER_QUERY      20
 
@@ -83,7 +83,7 @@ void gpu_buffer_align_bpm_clear(gpu_buffer_align_bpm_t* const gpu_buffer_align_b
   gpu_bpm_init_buffer_(gpu_buffer_align_bpm->buffer,
       gpu_buffer_align_bpm_get_mean_query_length(gpu_buffer_align_bpm),
       gpu_buffer_align_bpm_get_mean_candidates_per_query(gpu_buffer_align_bpm));
-  // Clear
+  // Dimensions Hints
   gpu_buffer_align_bpm->query_same_length = 0;
   gpu_buffer_align_bpm->num_entries = 0;
   gpu_buffer_align_bpm->num_queries = 0;

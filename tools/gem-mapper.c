@@ -193,7 +193,6 @@ option_t gem_mapper_options[] = {
   { 301, "mismatch-alphabet", REQUIRED, TYPE_STRING, 4, VISIBILITY_ADVANCED, "<symbols>" , "(default='ACGT')" },
   /* Single-end Alignment */
   { 400, "mapping-mode", REQUIRED, TYPE_STRING, 4, VISIBILITY_USER, "'fast'|'thorough'|'complete'" , "(default=thorough)" },
-  { 401, "search-max-matches", REQUIRED, TYPE_INT, 4, VISIBILITY_ADVANCED, "<number>" , "(default=1K)" },
   { 'E', "complete-search-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=0.04, 4%)" },
   { 's', "complete-strata-after-best", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=1)" },
   { 'e', "alignment-max-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=0.08, 8%)" },
@@ -426,10 +425,6 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       } else {
         gem_mapper_error_msg("Option '--mapping-mode' must be 'fast'|'thorough'|'complete'");
       }
-      break;
-    case 401: // --search-max-matches (default=1K)
-      input_text_parse_extended_uint64(optarg,&search->search_max_matches);
-      paired_search->max_paired_matches = search->search_max_matches;
       break;
     case 'E': // --complete-search-error (default=0.04, 4%)
       search->complete_search_error = atof(optarg);
@@ -698,11 +693,11 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     /* MAQ Score */
     case 800: // --mapq-model in {'none'|'gem'|'classify'} (default=gem)
       if (gem_strcaseeq(optarg,"none")) {
-        parameters->select_parameters.mapq_model = mapq_model_none;
+        search->mapq_model = mapq_model_none;
       } else if (gem_strcaseeq(optarg,"gem")) {
-        parameters->select_parameters.mapq_model = mapq_model_gem;
+        search->mapq_model = mapq_model_gem;
       } else if (gem_strcaseeq(optarg,"classify")) {
-        parameters->select_parameters.mapq_model = mapq_model_classify;
+        search->mapq_model = mapq_model_classify;
       } else {
         gem_mapper_error_msg("Option '--mapq-model' must be in {'none'|'gem'|'classify'}");
       }
@@ -710,7 +705,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 801: { // --mapq-threshold <number>
       uint64_t mapq_threshold;
       input_text_parse_extended_uint64(optarg,&mapq_threshold);
-      parameters->select_parameters.mapq_threshold = MIN(255,mapq_threshold);
+      search->mapq_threshold = MIN(255,mapq_threshold);
       break;
     }
     /* Reporting */
@@ -803,19 +798,18 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     /* Presets/Hints */
     /* Debug */
     case 'c': { // --check-alignments in {'correct'|'best'|'complete'}
-      select_parameters_t* const select_parameters = &parameters->select_parameters;
       if (!optarg) {
-        select_parameters->check_type = archive_check_correct;
+        search->check_type = archive_check_correct;
       } else if (gem_strcaseeq(optarg,"none")) {
-        select_parameters->check_type = archive_check_nothing;
+        search->check_type = archive_check_nothing;
       } else if (gem_strcaseeq(optarg,"correct")) {
-        select_parameters->check_type = archive_check_correct;
+        search->check_type = archive_check_correct;
       } else if (gem_strcaseeq(optarg,"first-best") || gem_strcaseeq(optarg,"best")) {
-        select_parameters->check_type = archive_check_correct__first_optimum;
+        search->check_type = archive_check_correct__first_optimum;
       } else if (gem_strcaseeq(optarg,"all-best")) {
-        select_parameters->check_type = archive_check_correct__all_optimum;
+        search->check_type = archive_check_correct__all_optimum;
       } else if (gem_strcaseeq(optarg,"complete")) {
-        select_parameters->check_type = archive_check_correct__complete;
+        search->check_type = archive_check_correct__complete;
       } else {
         gem_mapper_error_msg("Option '--check-alignments' must be 'correct'|'first-best'|'all-best'|'complete'");
       }

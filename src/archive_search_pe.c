@@ -270,6 +270,20 @@ void archive_search_pe(
   archive_search_end2->pe_search_state = archive_search_pe_begin;
   // PE search
   archive_search_pe_continue(archive_search_end1,archive_search_end2,paired_matches);
+  // PE select
+  archive_select_pe_matches(archive_search_end1,archive_search_end2,paired_matches);
+  // PE Score (Select alignment-Model and process accordingly)
+  archive_score_matches_pe(archive_search_end1,archive_search_end2,paired_matches);
+  // PE Check matches
+  search_parameters_t* const search_parameters = archive_search_end1->as_parameters.search_parameters;
+  if (search_parameters->check_type!=archive_check_nothing) {
+    archive_check_pe_matches(
+        archive_search_end1->archive,search_parameters->alignment_model,
+        &search_parameters->swg_penalties,&archive_search_end1->sequence,
+        &archive_search_end2->sequence,paired_matches,
+        search_parameters->check_type,archive_search_end1->mm_stack);
+  }
+  // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_PE) {
     tab_global_inc();
     archive_search_pe_print(gem_log_get_stream(),archive_search_end1,archive_search_end2,paired_matches);

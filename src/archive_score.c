@@ -317,7 +317,7 @@ void archive_score_matches_se(
       /*
        * Select scoring model
        */
-      switch (archive_search->select_parameters->mapq_model) {
+      switch (search_parameters->mapq_model) {
         case mapq_model_none:
           matches_sort_by_distance(matches); // Sort
           break;
@@ -366,7 +366,7 @@ void archive_score_matches_pe(
       /*
        * Select scoring model
        */
-      switch (archive_search_end1->select_parameters->mapq_model) {
+      switch (search_parameters->mapq_model) {
         case mapq_model_none:
           paired_matches_sort_by_distance(paired_matches); // Sort
           break;

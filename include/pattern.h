@@ -10,7 +10,7 @@
 #define PATTERN_H_
 
 #include "essentials.h"
-#include "search_parameters.h"
+#include "archive_search_parameters.h"
 #include "region_profile.h"
 #include "kmer_counting.h"
 #include "align_bpm_pattern.h"
