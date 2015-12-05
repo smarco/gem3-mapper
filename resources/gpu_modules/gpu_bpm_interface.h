@@ -12,22 +12,22 @@
 /*
  * Constants
  */
-#define GPU_BPM_PEQ_ALPHABET_SIZE    5
-#define GPU_BPM_PEQ_ENTRY_LENGTH     128
-#define GPU_BPM_PEQ_SUBENTRY_LENGTH  32
-#define GPU_BPM_PEQ_SUBENTRIES       (GPU_BPM_PEQ_ENTRY_LENGTH / GPU_UINT32_LENGTH)
+#define GPU_BPM_PEQ_ALPHABET_SIZE     5
+#define GPU_BPM_PEQ_ENTRY_LENGTH      128
+#define GPU_BPM_PEQ_SUBENTRY_LENGTH   32
+#define GPU_BPM_PEQ_SUBENTRIES        (GPU_BPM_PEQ_ENTRY_LENGTH / GPU_UINT32_LENGTH)
 
 /*
  * Enum types for Device & Host
  */
 typedef enum
 {
-	GPU_REF_NONE,
-	GPU_REF_MFASTA_FILE,
-	GPU_REF_PROFILE_FILE,
-	GPU_REF_ASCII,
-	GPU_REF_GEM_FULL,
-	GPU_REF_GEM_ONLY_FORWARD
+  GPU_REF_NONE,
+  GPU_REF_MFASTA_FILE,
+  GPU_REF_PROFILE_FILE,
+  GPU_REF_ASCII,
+  GPU_REF_GEM_FULL,
+  GPU_REF_GEM_ONLY_FORWARD
 } gpu_ref_coding_t;
 
 
@@ -35,29 +35,29 @@ typedef enum
  * Common types for Device & Host
  */
 typedef struct { /* each row 1 PEQ Entry (128bits) */
-	uint32_t bitmap[GPU_BPM_PEQ_ALPHABET_SIZE][GPU_BPM_PEQ_SUBENTRIES];
+  uint32_t bitmap[GPU_BPM_PEQ_ALPHABET_SIZE][GPU_BPM_PEQ_SUBENTRIES];
 } gpu_bpm_qry_entry_t;
 
 typedef struct {
-	uint32_t column;
-	uint32_t score;
+  uint32_t column;
+  uint32_t score;
 } gpu_bpm_alg_entry_t;
 
 typedef struct {
-	uint64_t position;
-	uint32_t query;
-	uint32_t size;
+  uint64_t position;
+  uint32_t query;
+  uint32_t size;
 } gpu_bpm_cand_info_t;
 
 typedef struct {
-	uint32_t posEntry;
-	uint32_t size;
+  uint32_t posEntry;
+  uint32_t size;
 } gpu_bpm_qry_info_t;
 
 typedef struct {
-	char 		 	*reference;
-	gpu_ref_coding_t refCoding;
-	uint64_t 		 refSize;
+  char              *reference;
+  gpu_ref_coding_t  refCoding;
+  uint64_t          refSize;
 } gpu_reference_dto_t;
 
 /*
