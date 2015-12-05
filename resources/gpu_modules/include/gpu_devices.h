@@ -31,17 +31,17 @@ typedef struct {
   uint32_t        idSupportedDevice;
   gpu_dev_arch_t  architecture;
   uint32_t        cudaCores;
-  uint32_t        coreClockRate;        // Mhz
+  float           coreClockRate;        // Ghz
   uint32_t        memoryBusWidth;       // Bits
-  uint32_t        memoryClockRate;      // Mhz
+  float           memoryClockRate;      // Ghz
   /* Device performance metrics */
-  uint32_t        absolutePerformance;  // MOps/s
+  float           absolutePerformance;  // GOps/s
   float           relativePerformance;  // Ratio
-  uint32_t        absoluteBandwidth;    // MB/s
+  float           absoluteBandwidth;    // GB/s
   float           relativeBandwidth;    // Ratio
   /* System performance metrics */
-  uint32_t        allSystemPerformance; // MOps/s
-  uint32_t        allSystemBandwidth;   // MB/s
+  float           allSystemPerformance; // GOps/s
+  float           allSystemBandwidth;   // GB/s
 } gpu_device_info_t;
 
 /* Primitives to get information for the scheduler */

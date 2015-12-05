@@ -398,7 +398,7 @@ gpu_error_t gpu_transfer_index_CPU_to_GPUs(gpu_index_buffer_t *index, gpu_device
     if(index->memorySpace[idSupportedDevice] == GPU_DEVICE_MAPPED){
       const size_t cpySize = index->numEntries * sizeof(gpu_fmi_entry_t);
       deviceFreeMemory = gpu_get_device_free_memory(devices[idSupportedDevice]->idDevice);
-      if ((GPU_CONVERT_B_TO_MB(cpySize)) > deviceFreeMemory) return(E_INSUFFICIENT_MEM_GPU);
+      if ((GPU_CONVERT__B_TO_MB(cpySize)) > deviceFreeMemory) return(E_INSUFFICIENT_MEM_GPU);
         CUDA_ERROR(cudaSetDevice(devices[idSupportedDevice]->idDevice));
       //Synchronous allocate & transfer the FM-index to the GPU
       CUDA_ERROR(cudaMalloc((void**) &index->d_fmi[idSupportedDevice], cpySize));

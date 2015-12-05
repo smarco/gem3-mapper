@@ -258,7 +258,7 @@ gpu_error_t gpu_transfer_reference_CPU_to_GPUs(gpu_reference_buffer_t *reference
     if(reference->memorySpace[idSupportedDevice] == GPU_DEVICE_MAPPED){
       const size_t cpySize = reference->numEntries * sizeof(uint64_t);
       deviceFreeMemory = gpu_get_device_free_memory(devices[idSupportedDevice]->idDevice);
-      if ((GPU_CONVERT_B_TO_MB(cpySize)) > deviceFreeMemory) return(E_INSUFFICIENT_MEM_GPU);
+      if ((GPU_CONVERT__B_TO_MB(cpySize)) > deviceFreeMemory) return(E_INSUFFICIENT_MEM_GPU);
       CUDA_ERROR(cudaSetDevice(devices[idSupportedDevice]->idDevice));
       //Synchronous allocate & transfer Binary Reference to GPU
       CUDA_ERROR(cudaMalloc((void**) &reference->d_reference[idSupportedDevice], cpySize));

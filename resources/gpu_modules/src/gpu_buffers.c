@@ -50,7 +50,7 @@ gpu_error_t gpu_schedule_buffers(gpu_buffer_t ***gpuBuffer, const uint32_t numBu
                                  gpu_reference_buffer_t *reference, gpu_index_buffer_t *index, float maxMbPerBuffer)
 {
   uint32_t idSupportedDevice, numBuffersPerDevice, idLocalBuffer;
-  const size_t maxBytesPerBuffer = GPU_CONVERT_MB_TO_B(maxMbPerBuffer);
+  const size_t maxBytesPerBuffer = GPU_CONVERT_MB_TO__B(maxMbPerBuffer);
   const uint32_t numSupportedDevices = device[0]->numSupportedDevices;
   int32_t remainderBuffers = numBuffers, idGlobalBuffer = 0;
 

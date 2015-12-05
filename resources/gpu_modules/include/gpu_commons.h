@@ -48,10 +48,28 @@ Common constants for Device & Host
 
 
 /* Conversion utils */
-#define GPU_CONVERT_B_TO_KB(number) ((number) / (1024))
-#define GPU_CONVERT_B_TO_MB(number) ((number) / (1024 * 1024))
-#define GPU_CONVERT_B_TO_GB(number) ((number) / (1024 * 1024 * 1024))
-#define GPU_CONVERT_MB_TO_B(number) ((number) * (1024 * 1024))
+#define GPU_CONVERT_BYTES_TO_BITS(number) ((number) * 8)
+#define GPU_CONVERT_BITS_TO_BYTES(number) ((number) / 8)
+
+#define GPU_CONVERT__B_TO_KB(number) ((number) / (1024))
+#define GPU_CONVERT__B_TO_MB(number) ((number) / (1024 * 1024))
+#define GPU_CONVERT__B_TO_GB(number) ((number) / (1024 * 1024 * 1024))
+
+#define GPU_CONVERT_KB_TO__B(number) ((number) * (1024))
+#define GPU_CONVERT_KB_TO_MB(number) ((number) / (1024))
+#define GPU_CONVERT_KB_TO_GB(number) ((number) / (1024 * 1024))
+
+#define GPU_CONVERT_MB_TO__B(number) ((number) * (1024 * 1024))
+#define GPU_CONVERT_MB_TO_KB(number) ((number) * (1024))
+#define GPU_CONVERT_MB_TO_GB(number) ((number) / (1024))
+
+#define GPU_CONVERT_GB_TO__B(number) ((number) * (1024 * 1024 * 1024))
+#define GPU_CONVERT_GB_TO_KB(number) ((number) * (1024 * 1024))
+#define GPU_CONVERT_GB_TO_MB(number) ((number) * (1024))
+
+#define GPU_CONVERT__HZ_TO_GHZ(number) ((number) / (1000 * 1000 * 1000))
+#define GPU_CONVERT_KHZ_TO_GHZ(number) ((number) / (1000 * 1000))
+#define GPU_CONVERT_MHZ_TO_GHZ(number) ((number) / (1000))
 
 /* System */
 #define GPU_FILE_SIZE_LINES   250

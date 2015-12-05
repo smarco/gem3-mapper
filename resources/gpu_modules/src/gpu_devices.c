@@ -105,9 +105,9 @@ gpu_error_t gpu_characterize_devices(gpu_device_info_t **dev, uint32_t numSuppor
 
   for(idSupportedDevice = 0; idSupportedDevice < numSupportedDevices; ++idSupportedDevice){
     dev[idSupportedDevice]->numSupportedDevices   = numSupportedDevices;
-    dev[idSupportedDevice]->relativeBandwidth     = (float) dev[idSupportedDevice]->absoluteBandwidth / (float) allSystemBandwidth;
+    dev[idSupportedDevice]->relativeBandwidth     = dev[idSupportedDevice]->absoluteBandwidth / allSystemBandwidth;
     dev[idSupportedDevice]->allSystemBandwidth    = allSystemBandwidth;
-    dev[idSupportedDevice]->relativePerformance   = (float) dev[idSupportedDevice]->absolutePerformance / (float) allSystemPerformance;
+    dev[idSupportedDevice]->relativePerformance   = dev[idSupportedDevice]->absolutePerformance / allSystemPerformance;
     dev[idSupportedDevice]->allSystemPerformance  = allSystemPerformance;
   }
   return(SUCCESS);
@@ -205,12 +205,12 @@ gpu_error_t gpu_init_device(gpu_device_info_t **device, uint32_t idDevice, uint3
   dev->idDevice             = idDevice;
   dev->architecture         = gpu_get_device_architecture(idDevice);
   dev->cudaCores            = gpu_get_device_cuda_cores(idDevice);
-  dev->coreClockRate        = devProp.clockRate;
-  dev->memoryBusWidth       = devProp.memoryBusWidth;
-  dev->memoryClockRate      = devProp.memoryClockRate;
+  dev->coreClockRate        = GPU_CONVERT_KHZ_TO_GHZ((float)devProp.clockRate);
+  dev->memoryBusWidth       = GPU_CONVERT_BITS_TO_BYTES((float)devProp.memoryBusWidth);
+  dev->memoryClockRate      = GPU_CONVERT_KHZ_TO_GHZ((float)devProp.memoryClockRate);
 
   dev->absolutePerformance  = dev->cudaCores * dev->coreClockRate;
-  dev->absoluteBandwidth    = 2.0 * dev->memoryClockRate * (dev->memoryBusWidth / 8) / 1000;
+  dev->absoluteBandwidth    = 2.0 * dev->memoryClockRate * dev->memoryBusWidth; // GBytes/s
 
   (* device) = dev;
   return(SUCCESS);
@@ -232,14 +232,14 @@ gpu_error_t gpu_screen_status_device(const uint32_t idDevice, const bool deviceA
   }
   if(!dataFitsMemoryDevice){
     fprintf(stderr, "\t \t INSUFFICIENT DEVICE MEMORY (Mem Required: %lu MBytes - Mem Available: %lu MBytes) \n",
-            GPU_CONVERT_B_TO_MB(requiredMemorySize), GPU_CONVERT_B_TO_MB(memoryFree));
+            GPU_CONVERT__B_TO_MB(requiredMemorySize), GPU_CONVERT__B_TO_MB(memoryFree));
     return(SUCCESS);
   }
   if((deviceArchSupported && dataFitsMemoryDevice)){
     fprintf(stderr, "\t \t Selected Device [RUNNING] \n");
     if (!localReference || !localIndex){
       fprintf(stderr, "\t \t WARNING PERF. SLOWDOWNS (Mem Recommended: %lu MBytes - Mem Available: %lu MBytes) \n",
-              GPU_CONVERT_B_TO_MB(recomendedMemorySize), GPU_CONVERT_B_TO_MB(memoryFree));
+              GPU_CONVERT__B_TO_MB(recomendedMemorySize), GPU_CONVERT__B_TO_MB(memoryFree));
     }
     return(SUCCESS);
   }
