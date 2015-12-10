@@ -460,7 +460,9 @@ void gpu_buffer_align_bpm_receive(gpu_buffer_align_bpm_t* const gpu_buffer_align
  * Setup
  */
 gpu_buffer_align_bpm_t* gpu_buffer_align_bpm_new(
-    const gpu_buffer_collection_t* const gpu_buffer_collection,const uint64_t buffer_no) { GEM_CUDA_NOT_SUPPORTED(); return NULL; }
+    const gpu_buffer_collection_t* const gpu_buffer_collection,const uint64_t buffer_no,
+    archive_text_t* const archive_text,text_collection_t* const text_collection,
+    mm_stack_t* const mm_stack) { GEM_CUDA_NOT_SUPPORTED(); return NULL; }
 void gpu_buffer_align_bpm_clear(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) { GEM_CUDA_NOT_SUPPORTED(); }
 void gpu_buffer_align_bpm_delete(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) { GEM_CUDA_NOT_SUPPORTED(); }
 /*

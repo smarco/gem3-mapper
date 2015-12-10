@@ -14,13 +14,6 @@
 #include "match_alignment.h"
 #include "match_scaffold.h"
 
-typedef enum {
-  alignment_model_none,
-  alignment_model_hamming,
-  alignment_model_levenshtein,
-  alignment_model_gap_affine
-} alignment_model_t;
-
 /*
  * Curate Alignment
  */

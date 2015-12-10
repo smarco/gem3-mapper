@@ -91,23 +91,20 @@ uint64_t matches_get_subdominant_stratum_matches(matches_t* const matches) {
   return matches_counters_get_total_count(matches->counters) - first_stratum_matches;
 }
 /*
- * Counters
- */
-//void matches_counters_add(
-/*
  * Index
  */
 void matches_index_match(
-    matches_t* const matches, const uint64_t match_trace_offset,
-    const uint64_t begin_position,const uint64_t effective_length,
-    mm_stack_t* const mm_stack) {
+    matches_t* const matches,match_trace_t* const match_trace,
+    const uint64_t match_trace_offset,mm_stack_t* const mm_stack) {
+  // Compute dimensions
+  const uint64_t begin_position = match_trace->match_alignment.match_position;
+  const uint64_t effective_length = match_trace->match_alignment.effective_length;
+  // Allocate pointer for offset
+  match_trace->match_trace_offset = mm_stack_malloc_uint64(mm_stack);
+  *(match_trace->match_trace_offset) = match_trace_offset;
   // Store begin/end positions of the match (as to fast index matches)
-  uint64_t* const match_trace_offset_1 = mm_stack_malloc_uint64(mm_stack);
-  *match_trace_offset_1 = match_trace_offset;
-  ihash_insert(matches->begin_pos_matches,begin_position,match_trace_offset_1);
-  uint64_t* const match_trace_offset_2 = mm_stack_malloc_uint64(mm_stack);
-  *match_trace_offset_2 = match_trace_offset;
-  ihash_insert(matches->end_pos_matches,begin_position+effective_length,match_trace_offset_2);
+  ihash_insert(matches->begin_pos_matches,begin_position,match_trace->match_trace_offset);
+  ihash_insert(matches->end_pos_matches,begin_position+effective_length,match_trace->match_trace_offset);
 }
 uint64_t* matches_lookup_match(
     matches_t* const matches,const uint64_t begin_position,const uint64_t effective_length) {
@@ -127,8 +124,7 @@ void matches_index_rebuild(matches_t* const matches,mm_stack_t* const mm_stack) 
   const uint64_t num_matches = matches_get_num_match_traces(matches);
   uint64_t i;
   for (i=0;i<num_matches;++i) {
-    matches_index_match(matches,i,match[i].match_alignment.match_position,
-        match[i].match_alignment.effective_length,mm_stack);
+    matches_index_match(matches,match+i,i,mm_stack);
   }
 }
 /*
@@ -179,6 +175,81 @@ int64_t match_trace_get_effective_length(
   return effective_length;
 }
 /*
+ * Matches Rank Consistency
+ */
+match_trace_t* matches_sort_preserve_rank_consistency(
+    matches_t* const matches,select_parameters_t* const select_parameters,
+    const alignment_model_t alignment_model,const uint64_t new_match_trace_offset) {
+  // Parameters
+  const uint64_t num_matches = matches_get_num_match_traces(matches);
+  match_trace_t* const match_trace = matches_get_match_trace_buffer(matches);
+  match_trace_t* const new_match_trace = match_trace + new_match_trace_offset;
+  if (num_matches==0 || alignment_model==alignment_model_none) {
+    return new_match_trace; // No swap, return current position
+  }
+  // Find proper position (as to swap with newest one & preserve rank)
+  uint64_t match_offset = 0;
+  uint64_t current_stratum = 0, current_stratum_distance = match_trace->distance;
+  while (match_offset < num_matches) {
+    // Check current match distance
+    const bool is_within_range = (alignment_model == alignment_model_gap_affine) ?
+        match_trace[match_offset].swg_score < new_match_trace->swg_score :
+        match_trace[match_offset].distance > new_match_trace->distance;
+    if (is_within_range) {
+      // New match-trace is within the eligible range; swap to maintain rank consistency
+      match_trace_t* const current_match_trace = match_trace + match_offset;
+      if (*(new_match_trace->match_trace_offset) != match_offset) {
+        SWAP(*current_match_trace,*new_match_trace);
+        SWAP(*(current_match_trace->match_trace_offset),*(new_match_trace->match_trace_offset));
+      }
+      return current_match_trace; // Return new position
+    }
+    // Check stratum
+    if (match_trace[match_offset].distance > current_stratum_distance) {
+      current_stratum_distance = match_trace[match_offset].distance;
+      ++current_stratum;
+    }
+    // Check select limits
+    if (current_stratum >= select_parameters->min_reported_strata_nominal &&
+        match_offset+1 >= select_parameters->max_reported_matches) {
+      // New match-trace is out of the eligible range
+      return new_match_trace; // No swap, return current position
+    }
+    // Next
+    ++match_offset;
+  }
+  // No swap, return current position
+  return new_match_trace;
+}
+match_trace_t* matches_get_ranked_match_trace(
+    matches_t* const matches,select_parameters_t* const select_parameters) {
+  // Parameters
+  const uint64_t num_matches = matches_get_num_match_traces(matches);
+  match_trace_t* const match_trace = matches_get_match_trace_buffer(matches);
+  // Return selected match-trace from ranked ranged
+  if (select_parameters->min_reported_strata_nominal == 0) {
+    return match_trace + (MIN(select_parameters->max_reported_matches,num_matches)-1);
+  } else {
+    uint64_t match_offset = 0;
+    uint64_t current_stratum = 0, current_stratum_distance = match_trace->distance;
+    while (match_offset < num_matches) {
+      // Check stratum
+      if (match_trace[match_offset].distance > current_stratum_distance) {
+        current_stratum_distance = match_trace[match_offset].distance;
+        ++current_stratum;
+      }
+      // Check select limits
+      if (current_stratum >= select_parameters->min_reported_strata_nominal &&
+          match_offset+1 >= select_parameters->max_reported_matches) {
+        return match_trace + match_offset; // Return last match-trace in the eligible range
+      }
+      // Next
+      ++match_offset;
+    }
+    return match_trace + (num_matches-1);
+  }
+}
+/*
  * Adding Matches
  */
 void match_trace_locate(match_trace_t* const match_trace,const locator_t* const locator) {
@@ -198,63 +269,132 @@ void match_trace_locate(match_trace_t* const match_trace,const locator_t* const 
   }
   match_trace->bs_strand = location.bs_strand;
 }
-bool matches_add_match_trace(
+void match_trace_process(
     matches_t* const matches,match_trace_t* const match_trace,
-    const bool update_counters,const locator_t* const locator,
-    mm_stack_t* const mm_stack) {
+    const locator_t* const locator) {
+  // Correct CIGAR (Reverse it if the search was performed in the reverse strand, emulated)
+  if (match_trace->emulated_rc_search) {
+    matches_cigar_reverse(matches->cigar_vector,
+        match_trace->match_alignment.cigar_offset,
+        match_trace->match_alignment.cigar_length);
+    match_trace->emulated_rc_search = false;
+  }
+  // Locate-map the match
+  match_trace_locate(match_trace,locator);
+}
+void match_trace_replace(match_trace_t* const match_trace_dst,match_trace_t* const match_trace_src) {
+  /* Text (Reference) */
+  match_trace_dst->text_trace_offset = match_trace_src->text_trace_offset;
+  match_trace_dst->text = match_trace_src->text;
+  match_trace_dst->text_length = match_trace_src->text_length;
+  /* Match */
+  // match_trace_dst->match_trace_offset = match_trace_src->match_trace_offset; // Keep the old
+  match_trace_dst->sequence_name = match_trace_src->sequence_name;
+  match_trace_dst->strand = match_trace_src->strand;
+  match_trace_dst->bs_strand = match_trace_src->bs_strand;
+  match_trace_dst->text_position = match_trace_src->text_position;
+  match_trace_dst->emulated_rc_search = match_trace_src->emulated_rc_search;
+  /* Score */
+  match_trace_dst->distance = match_trace_src->distance;
+  match_trace_dst->edit_distance = match_trace_src->edit_distance;
+  match_trace_dst->swg_score = match_trace_src->swg_score;
+  match_trace_dst->mapq_score = match_trace_src->mapq_score;
+  /* Alignment */
+  match_trace_dst->match_alignment = match_trace_src->match_alignment;
+#ifdef GEM_DEBUG
+  match_trace_dst->match_scaffold = match_trace_src->match_scaffold;
+#endif
+}
+void matches_add_match(
+    matches_t* const matches,const locator_t* const locator,
+    const bool update_counters,match_trace_t* const match_trace,
+    const bool preserve_rank,select_parameters_t* const select_parameters,
+    const alignment_model_t alignment_model,match_trace_t** const match_trace_added,
+    bool* const match_added,bool* const match_replaced,mm_stack_t* const mm_stack) {
   // Init
   match_trace->mapq_score = 0;
   // Check duplicates
   uint64_t* dup_match_trace_offset = matches_lookup_match(matches,
       match_trace->match_alignment.match_position,match_trace->match_alignment.effective_length);
   if (dup_match_trace_offset==NULL) {
-    // Correct CIGAR (Reverse it if the search was performed in the reverse strand, emulated)
-    if (match_trace->emulated_rc_search) {
-      matches_cigar_reverse(matches->cigar_vector,match_trace->match_alignment.cigar_offset,
-          match_trace->match_alignment.cigar_length);
-      match_trace->emulated_rc_search = false;
-    }
-    // Locate-map the match
-    match_trace_locate(match_trace,locator);
+    // Process match-trace (Correct CIGAR & locate)
+    match_trace_process(matches,match_trace,locator);
     // Add the match-trace
+    PROF_INC_COUNTER(GP_MATCH_NUM_SE_MATCHES_ADDED);
     const uint64_t new_match_trace_offset = vector_get_used(matches->position_matches);
     match_trace_t* new_match_trace;
     vector_alloc_new(matches->position_matches,match_trace_t,new_match_trace);
     *new_match_trace = *match_trace;
     // Index
-    matches_index_match(matches,new_match_trace_offset,new_match_trace->match_alignment.match_position,
-        new_match_trace->match_alignment.effective_length,mm_stack);
+    matches_index_match(matches,new_match_trace,new_match_trace_offset,mm_stack);
     // Update counters
     if (update_counters) {
       matches_counters_add(matches->counters,match_trace->distance,1);
     }
-    matches_metrics_update(&matches->metrics,
-        match_trace->distance,match_trace->edit_distance,match_trace->swg_score); // Update Metrics
-    return true;
+    // Update metrics
+    matches_metrics_update(&matches->metrics,match_trace->distance,
+        match_trace->edit_distance,match_trace->swg_score); // Update Metrics
+    // Preserve rank consistency
+    if (preserve_rank) {
+      *match_trace_added = matches_sort_preserve_rank_consistency(matches,
+          select_parameters,alignment_model,*(new_match_trace->match_trace_offset));
+    } else {
+      *match_trace_added = new_match_trace;
+    }
+    // Set added (not replaced)
+    *match_added = true;
+    *match_replaced = false;
   } else {
-    match_trace_t* const dup_match_trace = vector_get_elm(matches->position_matches,*dup_match_trace_offset,match_trace_t);
+    match_trace_t* const dup_match_trace = vector_get_elm(
+        matches->position_matches,*dup_match_trace_offset,match_trace_t);
     // Pick up the least distant match
     if (dup_match_trace->distance > match_trace->distance) {
-      // Correct CIGAR (Reverse it if the search was performed in the reverse strand, emulated)
-      if (match_trace->emulated_rc_search) {
-        matches_cigar_reverse(matches->cigar_vector,match_trace->match_alignment.cigar_offset,
-            match_trace->match_alignment.cigar_length);
-        match_trace->emulated_rc_search = false;
-      }
-      // Locate-map the match
-      match_trace_locate(match_trace,locator);
+      // Process match-trace (Correct CIGAR & locate)
+      match_trace_process(matches,match_trace,locator);
       // Update counters
       if (update_counters) {
         matches_counters_sub(matches->counters,dup_match_trace->distance,1);
         matches_counters_add(matches->counters,match_trace->distance,1);
       }
-      // Add the match-trace
-      *dup_match_trace = *match_trace;
+      // Replace the match-trace
+      match_trace_replace(dup_match_trace,match_trace);
       // Recompute metrics
       matches_recompute_metrics(matches);
+      // Set replaced
+      *match_replaced = true;
+    } else {
+      // Set not-replaced
+      *match_replaced = false;
     }
-    return false;
+    // Preserve rank consistency
+    if (preserve_rank) {
+      *match_trace_added = matches_sort_preserve_rank_consistency(matches,
+          select_parameters,alignment_model,*(dup_match_trace->match_trace_offset));
+    } else {
+      *match_trace_added = dup_match_trace;
+    }
+    // Set not-added (maybe replaced...)
+    *match_added = false;
   }
+}
+bool matches_add_match_trace(
+    matches_t* const matches,const locator_t* const locator,
+    const bool update_counters,match_trace_t* const match_trace,
+    mm_stack_t* const mm_stack) {
+  match_trace_t* match_trace_added;
+  bool match_added, match_replaced;
+  matches_add_match(matches,locator,update_counters,match_trace,false,NULL,
+      alignment_model_none,&match_trace_added,&match_added,&match_replaced,mm_stack);
+  return match_added;
+}
+void matches_add_match_trace__preserve_rank(
+    matches_t* const matches,const locator_t* const locator,
+    const bool update_counters,match_trace_t* const match_trace,
+    select_parameters_t* const select_parameters,const alignment_model_t alignment_model,
+    match_trace_t** const match_trace_added,bool* const match_added,
+    bool* const match_replaced,mm_stack_t* const mm_stack) {
+  matches_add_match(matches,locator,update_counters,match_trace,true,
+      select_parameters,alignment_model,match_trace_added,match_added,match_replaced,mm_stack);
 }
 void matches_add_interval_match(
     matches_t* const matches,const uint64_t lo,const uint64_t hi,

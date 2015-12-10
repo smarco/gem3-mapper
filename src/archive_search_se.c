@@ -8,6 +8,7 @@
 #include "archive_search_se.h"
 #include "archive_select.h"
 #include "archive_score.h"
+#include "archive_check.h"
 #include "matches_classify.h"
 #include "approximate_search_filtering_adaptive.h"
 #include "approximate_search_filtering_stages.h"
@@ -83,11 +84,11 @@ void archive_search_se(archive_search_t* const archive_search,matches_t* const m
     }
   }
   // Select Matches
-  archive_select_se_matches(archive_search,false,matches);
+  search_parameters_t* const search_parameters = archive_search->as_parameters.search_parameters;
+  archive_select_se_matches(archive_search,&search_parameters->select_parameters_report,matches);
   // Select alignment-Model and process accordingly
   archive_score_matches_se(archive_search,false,matches);
   // Check matches
-  search_parameters_t* const search_parameters = archive_search->as_parameters.search_parameters;
   if (search_parameters->check_type!=archive_check_nothing) {
     archive_check_se_matches(
         archive_search->archive,search_parameters->alignment_model,

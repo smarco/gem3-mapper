@@ -13,10 +13,10 @@
 #include "locator.h"
 #include "interval_set.h"
 #include "text_collection.h"
-#include "match_alignment.h"
+#include "archive_select_parameters.h"
 #include "matches_counters.h"
+#include "match_alignment.h"
 #include "matches_metrics.h"
-#include "align_swg.h"
 
 /*
  * Interval Match
@@ -40,25 +40,26 @@ typedef struct {
  * Position Match (Trace-Match)
  */
 typedef struct {
-  /* Match Text (Reference) */
-  uint64_t trace_offset;   // Trace-offset in the text-collection
-  uint8_t* text;           // Pointer to the matching-text
-  uint64_t text_length;    // Length of the matching-text
+  /* Text (Reference) */
+  uint64_t text_trace_offset;   // Trace-offset in the text-collection
+  uint8_t* text;                // Pointer to the matching-text
+  uint64_t text_length;         // Length of the matching-text
   /* Match */
-  char* sequence_name;     // Sequence name (After decoding.Eg Chr1)
-  strand_t strand;         // Mapping Strand
-  bs_strand_t bs_strand;   // Bisulfite Strand
-  uint64_t text_position;  // Position of the match in the text. Local text (Eg wrt Chr1)
-  bool emulated_rc_search; // Match resulting from a RC-emulated search (using the forward-strand)
+  uint64_t* match_trace_offset; // Match-Trace offset in the the matches vector
+  char* sequence_name;          // Sequence name (After decoding.Eg Chr1)
+  strand_t strand;              // Mapping Strand
+  bs_strand_t bs_strand;        // Bisulfite Strand
+  uint64_t text_position;       // Position of the match in the text. Local text (Eg wrt Chr1)
+  bool emulated_rc_search;      // Match resulting from a RC-emulated search (using the forward-strand)
   /* Score */
-  uint64_t distance;       // Distance
-  uint64_t edit_distance;  // Edit-Distance
-  int32_t swg_score;       // SWG Distance/Score
-  uint8_t mapq_score;      // MAPQ Score
+  uint64_t distance;            // Distance
+  uint64_t edit_distance;       // Edit-Distance
+  int32_t swg_score;            // SWG Distance/Score
+  uint8_t mapq_score;           // MAPQ Score
   /* Alignment */
   match_alignment_t match_alignment; // Match Alignment (CIGAR + ...)
 #ifdef GEM_DEBUG
-  void* match_scaffold;    // Supporting Scaffolding
+  void* match_scaffold;         // Supporting Scaffolding
 #endif
 } match_trace_t;
 
@@ -122,12 +123,24 @@ int64_t match_trace_get_effective_length(
     const uint64_t cigar_buffer_offset,const uint64_t cigar_length);
 
 /*
+ * Matches Rank Consistency
+ */
+match_trace_t* matches_get_ranked_match_trace(
+    matches_t* const matches,select_parameters_t* const select_parameters);
+
+/*
  * Adding Matches
  */
 bool matches_add_match_trace(
-    matches_t* const matches,match_trace_t* const match_trace,
-    const bool update_counters,const locator_t* const locator,
+    matches_t* const matches,const locator_t* const locator,
+    const bool update_counters,match_trace_t* const match_trace,
     mm_stack_t* const mm_stack);
+void matches_add_match_trace__preserve_rank(
+    matches_t* const matches,const locator_t* const locator,
+    const bool update_counters,match_trace_t* const match_trace,
+    select_parameters_t* const select_parameters,const alignment_model_t alignment_model,
+    match_trace_t** const match_trace_added,bool* const match_added,
+    bool* const match_replaced,mm_stack_t* const mm_stack);
 void matches_add_interval_match(
     matches_t* const matches,const uint64_t lo,const uint64_t hi,
     const uint64_t length,const uint64_t distance,const bool emulated_rc_search);
@@ -135,6 +148,9 @@ void matches_add_interval_set(
     matches_t* const matches,interval_set_t* const interval_set,
     const uint64_t length,const bool emulated_rc_search);
 
+/*
+ * Matches hints
+ */
 void matches_hint_allocate_match_trace(matches_t* const matches,const uint64_t num_matches_trace_to_add);
 void matches_hint_allocate_match_interval(matches_t* const matches,const uint64_t num_matches_interval_to_add);
 
@@ -145,6 +161,9 @@ void matches_sort_by_distance(matches_t* const matches);
 void matches_sort_by_swg_score(matches_t* const matches);
 void matches_sort_by_mapq_score(matches_t* const matches);
 void matches_sort_by_sequence_name__position(matches_t* const matches);
+
+match_trace_t* matches_get_ranked_match_trace(
+    matches_t* const matches,select_parameters_t* const select_parameters);
 
 /*
  * Filters

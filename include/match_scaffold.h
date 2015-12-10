@@ -11,6 +11,7 @@
 
 #include "essentials.h"
 #include "matches.h"
+#include "match_align_dto.h"
 
 /*
  * Match Scaffold

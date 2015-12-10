@@ -46,10 +46,8 @@ archive_search_t* archive_search_cache_alloc(archive_search_cache_t* const archi
     vector_dec_used(archive_search_cache->archive_search_cache);
   } else {
     // Allocate new one
-    archive_search = archive_search_new(
-        archive_search_cache->mapper_parameters->archive,
-        &archive_search_cache->mapper_parameters->search_parameters,
-        &archive_search_cache->mapper_parameters->select_parameters);
+    search_parameters_t* const search_parameters = &archive_search_cache->mapper_parameters->search_parameters;
+    archive_search_se_new(archive_search_cache->mapper_parameters->archive,search_parameters,&archive_search);
   }
   // Return
   return archive_search;

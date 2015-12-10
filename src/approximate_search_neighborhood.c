@@ -42,6 +42,7 @@ void approximate_search_neighborhood_exact_search(approximate_search_t* const se
  * Neighborhood Generation (Inexact Search)
  */
 void approximate_search_neighborhood_inexact_search(approximate_search_t* const search,matches_t* const matches) {
+  PROFILE_START(GP_AS_NEIGHBORHOOD_SEARCH,PROFILE_LEVEL);
   // Parameters, pattern & interval-set
   pattern_t* const pattern = &search->pattern;
   interval_set_t* const intervals_result = search->interval_set;
@@ -53,6 +54,7 @@ void approximate_search_neighborhood_inexact_search(approximate_search_t* const 
   matches_add_interval_set(matches,intervals_result,pattern->key_length,search->emulated_rc_search);
   // Update MCS
   approximate_search_update_mcs(search,search->max_complete_error+1);
+  PROFILE_STOP(GP_AS_NEIGHBORHOOD_SEARCH,PROFILE_LEVEL);
 }
 /*
  * Neighborhood Search

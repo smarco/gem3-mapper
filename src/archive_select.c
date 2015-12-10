@@ -15,6 +15,24 @@
 #define PROFILE_LEVEL PMED
 
 /*
+ * Setup
+ */
+void archive_select_configure_se(archive_search_t* const archive_search) {
+  search_parameters_t* const search_parameters = archive_search->as_parameters.search_parameters;
+  select_parameters_t* const select_parameters_report = &search_parameters->select_parameters_report;
+  select_parameters_t* const select_parameters_align = &search_parameters->select_parameters_align;
+  select_parameters_align->min_reported_strata = select_parameters_report->min_reported_strata;
+  select_parameters_align->min_reported_matches = select_parameters_report->min_reported_matches;
+  select_parameters_align->max_reported_matches = select_parameters_report->max_reported_matches;
+}
+void archive_select_configure_pe(archive_search_t* const archive_search) {
+  search_parameters_t* const search_parameters = archive_search->as_parameters.search_parameters;
+  select_parameters_t* const select_parameters_align = &search_parameters->select_parameters_align;
+  select_parameters_align->min_reported_strata = 0;
+  select_parameters_align->min_reported_matches = 1;
+  select_parameters_align->max_reported_matches = 100;
+}
+/*
  * Realigning Matches
  */
 void archive_select_realign_match_interval(
@@ -27,7 +45,7 @@ void archive_select_realign_match_interval(
   match_align_parameters_t align_parameters;
   match_scaffold_t match_scaffold = { .scaffold_regions = 0, .num_scaffold_regions = 0 };
   if (match_interval->distance==0 || alignment_model==alignment_model_none) {
-    align_input.text_trace_offset = match_trace->trace_offset;
+    align_input.text_trace_offset = match_trace->text_trace_offset;
     align_input.text = match_interval->text;
     align_input.text_offset_begin = 0;
     align_input.text_offset_end = match_interval->text_length;
@@ -48,7 +66,7 @@ void archive_select_realign_match_interval(
       case alignment_model_hamming:
         align_input.key = search_state->pattern.key;
         align_input.key_length = search_state->pattern.key_length;
-        align_input.text_trace_offset = match_trace->trace_offset;
+        align_input.text_trace_offset = match_trace->text_trace_offset;
         align_input.text_position = match_trace->match_alignment.match_position;
         align_input.text = match_interval->text;
         align_input.text_offset_begin = 0;
@@ -61,7 +79,7 @@ void archive_select_realign_match_interval(
         align_input.key = search_state->pattern.key;
         align_input.key_length = search_state->pattern.key_length,
         align_input.bpm_pattern =  &search_state->pattern.bpm_pattern;
-        align_input.text_trace_offset = match_trace->trace_offset;
+        align_input.text_trace_offset = match_trace->text_trace_offset;
         align_input.text_position = match_trace->match_alignment.match_position;
         align_input.text = match_interval->text;
         align_input.text_offset_begin = 0;
@@ -77,7 +95,7 @@ void archive_select_realign_match_interval(
         align_input.key = search_state->pattern.key;
         align_input.key_length = search_state->pattern.key_length;
         align_input.bpm_pattern =  &search_state->pattern.bpm_pattern;
-        align_input.text_trace_offset = match_trace->trace_offset;
+        align_input.text_trace_offset = match_trace->text_trace_offset;
         align_input.text_position = match_trace->match_alignment.match_position;
         align_input.text = match_interval->text;
         align_input.text_length = match_interval->text_length;
@@ -113,6 +131,7 @@ void archive_select_realign_match_interval(
 void archive_select_process_trace_matches(
     archive_search_t* const archive_search,matches_t* const matches,
     const uint64_t reported_strata,uint64_t* const last_stratum_reported_matches) {
+  const uint64_t num_initial_matches = vector_get_used(matches->position_matches);
   const uint64_t last_stratum_distance = reported_strata-1;
   // Count already decoded matches & discard unwanted matches
   uint64_t num_matches_last_stratum = 0;
@@ -131,7 +150,6 @@ void archive_select_process_trace_matches(
       ++position_matches_it;
     }
   }
-  const uint64_t num_initial_matches = vector_get_used(matches->position_matches);
   vector_update_used(matches->position_matches,position_matches_it); // Update used
   if (num_initial_matches != vector_get_used(matches->position_matches)) {
     // Because the matches had been reallocated, the indexed-positions are no longer valid
@@ -160,16 +178,16 @@ void archive_select_process_interval_matches(
     match_trace.match_alignment.score = match_interval->distance;
     // (Re)Align match (retrieved with the seq-read(pattern))
     if (match_interval->distance > 0) {
-      match_trace.trace_offset = archive_text_retrieve(archive->text,text_collection,
+      match_trace.text_trace_offset = archive_text_retrieve(archive->text,text_collection,
           match_trace.match_alignment.match_position,match_interval->text_length, /* + delta TODO */
           false,archive_search->mm_stack);
       // Set interval text
-      const text_trace_t* const text_trace = text_collection_get_trace(text_collection,match_trace.trace_offset);
+      const text_trace_t* const text_trace = text_collection_get_trace(text_collection,match_trace.text_trace_offset);
       match_interval->text = text_trace->text;
     }
     archive_select_realign_match_interval(archive_search,matches,match_interval,&match_trace,archive_search->mm_stack);
     // Add the match
-    matches_add_match_trace(matches,&match_trace,false,archive->locator,archive_search->mm_stack);
+    matches_add_match_trace(matches,archive->locator,false,&match_trace,archive_search->mm_stack);
     const bool last_stratum_match = (match_interval->distance == last_stratum_distance);
     if (last_stratum_match) ++num_matches_last_stratum;
     // Build the rest of the interval
@@ -180,7 +198,7 @@ void archive_select_process_interval_matches(
       // Decode position
       match_trace.match_alignment.match_position = fm_index_decode(archive->fm_index,sa_position);
       // (Re)Align the match [Already DONE] & Add the match
-      matches_add_match_trace(matches,&match_trace,false,archive->locator,archive_search->mm_stack);
+      matches_add_match_trace(matches,archive->locator,false,&match_trace,archive_search->mm_stack);
     }
   }
 }
@@ -198,12 +216,9 @@ void archive_select_decode_matches(
  * Select Paired-Matches
  */
 void archive_select_se_matches(
-    archive_search_t* const archive_search,
-    const bool paired_mapping,matches_t* const matches) {
+    archive_search_t* const archive_search,select_parameters_t* const select_parameters,
+    matches_t* const matches) {
   PROFILE_START(GP_ARCHIVE_SELECT_SE_MATCHES,PROFILE_LEVEL);
-  // Instantiate Search Parameters Values
-  select_parameters_t* const select_parameters = archive_search->select_parameters;
-  select_parameters_instantiate_values(select_parameters,sequence_get_length(&archive_search->sequence));
   // Calculate the number of matches to decode wrt input parameters
   uint64_t reported_strata = 0, last_stratum_reported_matches = 0;
   matches_counters_compute_matches_to_decode(
@@ -212,17 +227,15 @@ void archive_select_se_matches(
   if (reported_strata==0) {
     // Remove all matches
     matches_get_clear_match_traces(matches);
-    PROFILE_STOP(GP_ARCHIVE_SELECT_SE_MATCHES,PROFILE_LEVEL);
-    return;
+  } else {
+    // Decode matches
+    archive_select_decode_matches(archive_search,matches,reported_strata,last_stratum_reported_matches);
   }
-  // Decode matches
-  archive_select_decode_matches(archive_search,matches,reported_strata,last_stratum_reported_matches);
   PROFILE_STOP(GP_ARCHIVE_SELECT_SE_MATCHES,PROFILE_LEVEL);
 }
 void archive_select_pe_matches(
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches) {
+    archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2,
+    select_parameters_t* const select_parameters,paired_matches_t* const paired_matches) {
   // Update stats (Check number of paired-matches)
   const uint64_t num_matches = paired_matches_get_num_maps(paired_matches);
   if (num_matches==0) return;
@@ -235,7 +248,6 @@ void archive_select_pe_matches(
     }
   }
   // Discard surplus
-  select_parameters_t* const select_parameters = archive_search_end1->select_parameters;
   const uint64_t num_paired_matches = vector_get_used(paired_matches->paired_maps);
   if (num_paired_matches > select_parameters->max_reported_matches) {
     vector_set_used(paired_matches->paired_maps,select_parameters->max_reported_matches);

@@ -125,7 +125,7 @@ void match_align_local_smith_waterman_gotoh(
     match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack) {
   PROFILE_START(GP_MATCHES_ALIGN_LOCAL_SWG,PROFILE_LEVEL);
   // Configure match-trace
-  match_trace->trace_offset = align_input->text_trace_offset;
+  match_trace->text_trace_offset = align_input->text_trace_offset;
   match_trace->sequence_name = NULL;
   match_trace->text_position = UINT64_MAX;
   match_trace->emulated_rc_search = align_parameters->emulated_rc_search;
@@ -154,7 +154,8 @@ void match_align_local_smith_waterman_gotoh(
 //      align_input->text+(match_alignment->match_position - base_match_position),match_alignment->effective_length,
 //      matches->cigar_vector,match_trace->match_alignment.cigar_offset,match_trace->match_alignment.cigar_length,true);
   // Adjust text
-  match_trace->text = align_input->text + (match_alignment->match_position - base_match_position);
+  match_alignment->match_offset = match_alignment->match_position - base_match_position;
+  match_trace->text = align_input->text + match_alignment->match_offset;
   match_trace->text_length = match_alignment->effective_length;
   PROFILE_STOP(GP_MATCHES_ALIGN_LOCAL_SWG,PROFILE_LEVEL);
 }

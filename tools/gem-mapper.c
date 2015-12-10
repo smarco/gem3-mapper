@@ -139,11 +139,11 @@ void gem_mapper_print_profile(mapper_parameters_t* const parameters) {
     // CPU Mapper
     switch (parameters->mapper_type) {
       case mapper_se:
-        mapper_profile_print_mapper_single_end(gem_info_get_stream(),
+        mapper_profile_print_mapper_se(gem_info_get_stream(),
             parameters->io.output_format==MAP,parameters->system.num_threads);
         break;
       case mapper_pe:
-        mapper_profile_print_mapper_paired_end(gem_info_get_stream(),
+        mapper_profile_print_mapper_pe(gem_info_get_stream(),
             parameters->io.output_format==MAP,parameters->system.num_threads);
         break;
       case mapper_graph:
@@ -155,11 +155,11 @@ void gem_mapper_print_profile(mapper_parameters_t* const parameters) {
     // CUDA Mapper
     switch (parameters->mapper_type) {
       case mapper_se:
-        mapper_profile_print_mapper_single_end_cuda(gem_info_get_stream(),
+        mapper_profile_print_mapper_se_cuda(gem_info_get_stream(),
             parameters->io.output_format==MAP,parameters->system.num_threads);
         break;
       case mapper_pe:
-        mapper_profile_print_mapper_paired_end_cuda(gem_info_get_stream(),
+        mapper_profile_print_mapper_pe_cuda(gem_info_get_stream(),
             parameters->io.output_format==MAP,parameters->system.num_threads);
         break;
       case mapper_graph:
@@ -233,8 +233,8 @@ option_t gem_mapper_options[] = {
   // TODO { 801, "mapq-threshold", REQUIRED, TYPE_INT, 8, VISIBILITY_DEVELOPER, "<number>" , "(default=0)" },
   /* Reporting */
   { 'D', "min-reported-strata", REQUIRED, TYPE_FLOAT, 9, VISIBILITY_USER, "<number|percentage>|'all'" , "(stratum-wise, default=0)" },
-  { 'm', "min-reported-matches", REQUIRED, TYPE_INT,  9, VISIBILITY_USER, "<number>|'all'" , "(default=10)" },
-  { 'M', "max-reported-matches", REQUIRED, TYPE_INT,  9, VISIBILITY_USER, "<number>|'all'" , "(default=100)" },
+  { 'm', "min-reported-matches", REQUIRED, TYPE_INT,  9, VISIBILITY_USER, "<number>|'all'" , "(default=5)" },
+  { 'M', "max-reported-matches", REQUIRED, TYPE_INT,  9, VISIBILITY_USER, "<number>|'all'" , "(default=5)" },
   /* Output Format */
   { 'F',  "output-format", REQUIRED, TYPE_STRING, 10, VISIBILITY_USER, "'MAP'|'SAM'" , "(default=SAM)" },
   { 1000, "sam-compact", OPTIONAL, TYPE_STRING, 10, VISIBILITY_USER, "'true'|'false'" , "(default=true)" },
@@ -248,7 +248,7 @@ option_t gem_mapper_options[] = {
   /* CUDA Settings */
 #ifdef HAVE_CUDA
   { 1200, "cuda", OPTIONAL, TYPE_STRING, 12, VISIBILITY_USER, "", "(default=disabled)"},
-  { 1201, "cuda-buffers-per-thread", REQUIRED, TYPE_STRING, 12, VISIBILITY_DEVELOPER, "<#BufferSearch,#BufferDecode,#BufferVerify,BufferSize>" , "(default=2,3,3,4M)" },
+  { 1201, "cuda-buffers-per-thread", REQUIRED, TYPE_STRING, 12, VISIBILITY_DEVELOPER, "<#BufferSearch,#BufferDecode,#BufferVerify,BufferSize>" , "(default=2,3,3,1M)" },
 #endif /* HAVE_CUDA */
   /* Presets/Hints */
   /* Debug */
@@ -293,7 +293,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
   // Parameters
   mapper_parameters_io_t* const io = &parameters->io;
   search_parameters_t* const search = &parameters->search_parameters;
-  paired_search_parameters_t* const paired_search = &search->paired_search_parameters;
+  search_paired_parameters_t* const paired_search = &search->search_paired_parameters;
   mapper_parameters_cuda_t* const cuda = &parameters->cuda;
   // Parse parameters
   char *bs_suffix1=0, *bs_suffix2=0;
@@ -607,19 +607,19 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     /* Bisulfite Alignment */
     case 601: // --bisulfite_read
       if (gem_strcaseeq(optarg,"inferred")) {
-        parameters->search_parameters.bisulfite_read = bisulfite_read_inferred;
+        search->bisulfite_read = bisulfite_read_inferred;
         break;
       }
       if (gem_strcaseeq(optarg,"1")) {
-        parameters->search_parameters.bisulfite_read = bisulfite_read_1;
+        search->bisulfite_read = bisulfite_read_1;
         break;
       }
       if (gem_strcaseeq(optarg,"2")) {
-        parameters->search_parameters.bisulfite_read = bisulfite_read_2;
+        search->bisulfite_read = bisulfite_read_2;
         break;
       }
       if (gem_strcaseeq(optarg,"interleaved")) {
-        parameters->search_parameters.bisulfite_read = bisulfite_read_interleaved;
+        search->bisulfite_read = bisulfite_read_interleaved;
         break;
       }
       gem_fatal_error_msg("Option '--bisulfite_read' must be '1'|'2'|'interleaved'|'inferred'");
@@ -710,13 +710,13 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     }
     /* Reporting */
     case 'D': // --min-reported-strata
-      input_text_parse_extended_double(optarg,&parameters->select_parameters.min_reported_strata);
+      input_text_parse_extended_double(optarg,&search->select_parameters_report.min_reported_strata);
       break;
     case 'm': // --min-reported-matches
-      input_text_parse_extended_uint64(optarg,&parameters->select_parameters.min_reported_matches);
+      input_text_parse_extended_uint64(optarg,&search->select_parameters_report.min_reported_matches);
       break;
     case 'M': // --max-reported-matches
-      input_text_parse_extended_uint64(optarg,&parameters->select_parameters.max_reported_matches);
+      input_text_parse_extended_uint64(optarg,&search->select_parameters_report.max_reported_matches);
       break;
     /*  Output-format */
     case 'F': // --output-format
@@ -773,7 +773,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
         }
       }
       break;
-    case 1201: { // --cuda-buffers-per-thread=2,3,3,4M
+    case 1201: { // --cuda-buffers-per-thread=2,3,3,1M
       if (!gpu_supported()) GEM_CUDA_NOT_SUPPORTED();
       char *num_buffers=NULL, *buffer_size=NULL;
       const int num_arguments = input_text_parse_csv_arguments(optarg,2,&num_buffers,&buffer_size);
@@ -916,10 +916,12 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
   gem_mapper_cond_error_msg(search->quality_threshold == 0,
       "Quality threshold is zero (all base-calls will be considered wrong)");
   /* Reporting */
-  gem_mapper_cond_error_msg(parameters->select_parameters.min_reported_matches >
-      parameters->select_parameters.max_reported_matches,
+  gem_mapper_cond_error_msg(
+      search->select_parameters_report.min_reported_matches >
+          search->select_parameters_report.max_reported_matches,
       "Option '--max-reported-matches' must be greater or equal than 'min-reported-matches'");
-  gem_mapper_cond_error_msg(parameters->select_parameters.max_reported_matches == 0,
+  gem_mapper_cond_error_msg(
+      search->select_parameters_report.max_reported_matches == 0,
       "Option '--max-reported-matches' must be greater than zero'");
   // Free
   string_destroy(getopt_short_string);

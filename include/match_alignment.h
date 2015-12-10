@@ -64,8 +64,14 @@ typedef struct {
     uint8_t mismatch;        // Mismatch base
   };
 } cigar_element_t;
+typedef enum {
+  alignment_model_none,
+  alignment_model_hamming,
+  alignment_model_levenshtein,
+  alignment_model_gap_affine
+} alignment_model_t;
 typedef struct {
-  uint64_t match_offet;      // Match offset (wrt beginning of candidate)
+  uint64_t match_offset;     // Match offset (wrt beginning of candidate)
   uint64_t match_position;   // Match position
   uint64_t cigar_offset;     // CIGAR offset in buffer
   uint64_t cigar_length;     // CIGAR length

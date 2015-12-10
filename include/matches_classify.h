@@ -10,6 +10,7 @@
 #define MATCHES_CLASSIFY_H_
 
 #include "essentials.h"
+#include "align_swg.h"
 #include "matches.h"
 #include "paired_matches.h"
 

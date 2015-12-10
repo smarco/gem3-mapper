@@ -11,7 +11,7 @@
 
 #include "essentials.h"
 #include "matches.h"
-#include "paired_search_parameters.h"
+#include "archive_search_paired_parameters.h"
 
 /*
  * Paired Matches

@@ -37,8 +37,7 @@ const char* archive_search_pe_state_label[] =
  * Setup
  */
 archive_search_t* archive_search_new(
-    archive_t* const archive,search_parameters_t* const search_parameters,
-    select_parameters_t* const select_parameters) {
+    archive_t* const archive,search_parameters_t* const search_parameters) {
   // Allocate handler
   archive_search_t* const archive_search = mm_alloc(archive_search_t);
   // Archive
@@ -48,7 +47,6 @@ archive_search_t* archive_search_new(
   sequence_init(&archive_search->rc_sequence);
   // Approximate Search
   archive_search->as_parameters.search_parameters = search_parameters;
-  archive_search->select_parameters = select_parameters;
   approximate_search_init(
       &archive_search->forward_search_state,archive,
       &archive_search->as_parameters,false);
@@ -60,6 +58,23 @@ archive_search_t* archive_search_new(
   archive_search->emulate_rc_search = !archive->indexed_complement;
   // Return
   return archive_search;
+}
+void archive_search_se_new(
+    archive_t* const archive,search_parameters_t* const search_parameters,
+    archive_search_t** const archive_search) {
+  // Allocate Search
+  *archive_search = archive_search_new(archive,search_parameters);
+  // Select align
+  archive_select_configure_se(*archive_search);
+}
+void archive_search_pe_new(
+    archive_t* const archive,search_parameters_t* const search_parameters,
+    archive_search_t** const archive_search_end1,archive_search_t** const archive_search_end2) {
+  // Allocate Search
+  *archive_search_end1 = archive_search_new(archive,search_parameters);
+  *archive_search_end2 = archive_search_new(archive,search_parameters);
+  // Select align
+  archive_select_configure_pe(*archive_search_end1);
 }
 void archive_search_prepare_sequence(archive_search_t* const archive_search) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE_PREPARE_SEQUENCE,PROFILE_LEVEL);

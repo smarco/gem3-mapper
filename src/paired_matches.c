@@ -253,7 +253,7 @@ uint64_t paired_matches_compute_template_length(
 }
 pair_relation_t paired_matches_compute_relation(
     paired_matches_t* const paired_matches,
-    const paired_search_parameters_t* const parameters,mapper_stats_t* const mapper_stats,
+    const search_paired_parameters_t* const parameters,mapper_stats_t* const mapper_stats,
     match_trace_t* const match_trace_end1,match_trace_t* const match_trace_end2,
     pair_orientation_t* const pair_orientation,pair_layout_t* const pair_layout,
     uint64_t* const template_length,double* const template_length_sigma) {
@@ -299,7 +299,7 @@ match_trace_t* paired_matches_find_pairs_locate_by_sequence_name(
 }
 void paired_matches_find_pairs(
     paired_matches_t* const paired_matches,
-    const paired_search_parameters_t* const paired_search_parameters,
+    const search_paired_parameters_t* const search_paired_parameters,
     mapper_stats_t* const mapper_stats) {
   // Matches
   matches_t* const matches_end1 = paired_matches->matches_end1;
@@ -314,7 +314,7 @@ void paired_matches_find_pairs(
   const match_trace_t* const match_trace_end1_sentinel = match_trace_end1 + vector_get_used(matches_end1->position_matches);
   const match_trace_t* const match_trace_end2_sentinel =
       vector_get_mem(matches_end2->position_matches,match_trace_t) + vector_get_used(matches_end2->position_matches);
-  const pair_discordant_search_t discordant_search = paired_search_parameters->pair_discordant_search;
+  const pair_discordant_search_t discordant_search = search_paired_parameters->pair_discordant_search;
   uint64_t template_length;
   double template_length_sigma;
   while (match_trace_end1 < match_trace_end1_sentinel) {
@@ -329,7 +329,7 @@ void paired_matches_find_pairs(
         pair_orientation_t pair_orientation;
         pair_layout_t pair_layout;
         const pair_relation_t pair_relation = paired_matches_compute_relation(
-            paired_matches,paired_search_parameters,mapper_stats,match_trace_end1,match_trace_end2,
+            paired_matches,search_paired_parameters,mapper_stats,match_trace_end1,match_trace_end2,
             &pair_orientation,&pair_layout,&template_length,&template_length_sigma);
         switch (pair_relation) {
           case pair_relation_invalid: break;
@@ -357,11 +357,11 @@ void paired_matches_find_pairs(
 }
 void paired_matches_find_discordant_pairs(
     paired_matches_t* const paired_matches,
-    const paired_search_parameters_t* const paired_search_parameters) {
+    const search_paired_parameters_t* const search_paired_parameters) {
   // Check number of discordant pairs
   if (vector_get_used(paired_matches->discordant_paired_maps) > 0) return;
   // Check discordant mode
-  switch (paired_search_parameters->pair_discordant_search) {
+  switch (search_paired_parameters->pair_discordant_search) {
     case pair_discordant_search_never: return;
     case pair_discordant_search_only_if_no_concordant:
       if (vector_get_used(paired_matches->paired_maps) > 0) return;

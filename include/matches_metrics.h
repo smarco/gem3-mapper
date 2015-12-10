@@ -20,16 +20,17 @@
  * Matches-Metrics (Current metrics status -always being updated-)
  */
 typedef struct {
+  /* Agregated */
   uint64_t total_matches_sampled;    // Total matches sampled
+  uint64_t subdominant_candidates;   // Number of subdominant candidates (discarded during post-filtering)
+  /* Minimums */
   uint64_t min1_counter_value;       // Minimum non-zero counter position (for the distance metric the counters use)
   uint64_t min2_counter_value;       // Second minimum non-zero counter position (for the distance metric the counters use)
-  uint64_t max_counter_value;        // Maximum non-zero counter position (for the distance metric the counters use)
   uint64_t min1_edit_distance;       // Minimum edit distance among all found matches
   uint64_t min2_edit_distance;       // Second minimum edit distance among all found matches
   int32_t max1_swg_score;            // Maximum smith-waterman-gotoh score among all found matches
   int32_t max2_swg_score;            // Second maximum smith-waterman-gotoh score among all found matches
-  uint64_t subdominant_candidates;   // Number of subdominant candidates (discarded during post-filtering)
-  // PE specific
+  /* PE specific */
   double min1_template_length_sigma; // Minimum number of sigma deviation from the mean template-length
   double min2_template_length_sigma; // Second minimum number of sigma deviation from the mean template-length
 } matches_metrics_t;
@@ -77,7 +78,6 @@ void matches_metrics_init(matches_metrics_t* const metrics);
  * Accessors
  */
 uint64_t matches_metrics_get_min_distance(matches_metrics_t* const metrics);
-uint64_t matches_metrics_get_max_distance(matches_metrics_t* const metrics);
 uint64_t matches_metrics_get_min_edit_distance(matches_metrics_t* const metrics);
 int32_t matches_metrics_get_max_swg_score(matches_metrics_t* const metrics);
 

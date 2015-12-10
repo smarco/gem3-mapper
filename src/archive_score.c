@@ -333,10 +333,6 @@ void archive_score_matches_se(
         case mapq_model_gem: {
           matches_sort_by_distance(matches); // Sort
           archive_score_matches_gem_se(archive_search,matches);
-//          // Filter by MAPQ-score
-//          if (select_parameters->mapq_threshold > 0) {
-//            matches_filter_by_mapq(matches,select_parameters->mapq_threshold);
-//          }
           break;
         }
         default:
@@ -377,11 +373,6 @@ void archive_score_matches_pe(
         case mapq_model_gem:
           paired_matches_sort_by_distance(paired_matches); // Sort
           archive_score_matches_gem_pe(archive_search_end1,archive_search_end2,paired_matches);
-//        // Filter by MAPQ-score
-//        if (select_parameters->mapq_threshold > 0) {
-//          matches_filter_by_mapq(matches,select_parameters->mapq_threshold);
-//          archive_select_filter_paired_matches_mapq(paired_matches,select_parameters->mapq_threshold);
-//        }
           break;
         default:
           GEM_INVALID_CASE();

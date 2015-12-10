@@ -12,8 +12,10 @@
 #include "essentials.h"
 #include "quality_model.h"
 #include "region_profile.h"
+#include "align_swg_score.h"
+#include "archive_search_paired_parameters.h"
+#include "archive_select_parameters.h"
 #include "match_align.h"
-#include "paired_search_parameters.h"
 
 /*
  * Search Modes
@@ -84,7 +86,6 @@ typedef struct {
   float complete_search_error;
   float complete_strata_after_best;
   float alignment_max_error;
-  float alignment_max_error_after_best;
   unbounded_alignment_t unbounded_alignment;
   float max_bandwidth;
   float alignment_min_identity;                        // Minimum identity of the alignment (applies to dangling ends too)
@@ -101,7 +102,7 @@ typedef struct {
   /* Bisulfite mode */
   bisulfite_read_t bisulfite_read;
   /* Paired-end */
-  paired_search_parameters_t paired_search_parameters;
+  search_paired_parameters_t search_paired_parameters;
   /* Filtering parameters */
   uint64_t filtering_threshold;
   uint64_t gpu_filtering_threshold;
@@ -109,6 +110,9 @@ typedef struct {
   region_profile_model_t rp_minimal;  // Region-Minimal
   region_profile_model_t rp_boost;    // Region-Boost
   region_profile_model_t rp_delimit;  // Region-Delimit
+  /* Select Parameters */
+  select_parameters_t select_parameters_report;  // Select parameters (Used to report results)
+  select_parameters_t select_parameters_align;   // Select parameters (Used to prune work internally)
   /* Check */
   archive_check_type check_type;
   /* MAPQ Score */
@@ -126,7 +130,6 @@ typedef struct {
   uint64_t complete_search_error_nominal;
   uint64_t complete_strata_after_best_nominal;
   uint64_t alignment_max_error_nominal;
-  uint64_t alignment_max_error_after_best_nominal;
   uint64_t max_bandwidth_nominal;
   uint64_t alignment_min_identity_nominal;
   uint64_t alignment_scaffolding_min_coverage_nominal;

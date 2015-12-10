@@ -12,7 +12,6 @@
 #include "essentials.h"
 
 #include "archive.h"
-#include "archive_select_parameters.h"
 #include "approximate_search.h"
 #include "sequence.h"
 #include "matches_classify.h"
@@ -50,7 +49,6 @@ typedef struct {
   bool emulate_rc_search;                    // Flow control
   bool probe_strand;                         // Flow control
   as_parameters_t as_parameters;             // Approximated-Search parameters (evaluated to read-length)
-  select_parameters_t* select_parameters;    // Select parameters
   /* Approximate Search */
   approximate_search_t forward_search_state; // Forward Search State
   approximate_search_t reverse_search_state; // Reverse Search State
@@ -65,9 +63,12 @@ typedef struct {
 /*
  * Setup
  */
-archive_search_t* archive_search_new(
+void archive_search_se_new(
     archive_t* const archive,search_parameters_t* const search_parameters,
-    select_parameters_t* const select_parameters);
+    archive_search_t** const archive_search);
+void archive_search_pe_new(
+    archive_t* const archive,search_parameters_t* const search_parameters,
+    archive_search_t** const archive_search_end1,archive_search_t** const archive_search_end2);
 void archive_search_reset(archive_search_t* const archive_search);
 void archive_search_delete(archive_search_t* const archive_search);
 

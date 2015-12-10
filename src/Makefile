@@ -67,8 +67,6 @@ MODULES+=filtering_candidates filtering_candidates_verify \
          filtering_region_verify filtering_candidates_verify_buffered \
          filtering_region filtering_region_align \
          filtering_region_cache kmer_counting 
-# GEM Search Support Modules
-MODULES+=paired_search_parameters quality_model mm_search
 # GEM Approximate Search (Filtering)
 MODULES+=approximate_search approximate_search_filtering_adaptive \
          approximate_search_filtering_complete approximate_search_neighborhood \
@@ -82,14 +80,16 @@ MODULES+=nsearch nsearch_partition \
 # GEM Archive Builder
 MODULES+=archive archive_builder archive_builder_index \
          archive_builder_text archive_builder_text_parser
-# GEM Archive Support
-MODULES+=archive_text archive_search_cache
-# GEM Archive Search
-MODULES+=archive_search archive_search_parameters \
-         archive_search_se archive_search_pe \
-         archive_search_se_stepwise archive_search_pe_stepwise \
+# GEM Archive Search Support
+MODULES+=archive_text archive_search_cache \
          archive_select archive_select_parameters \
-         archive_score archive_check
+         archive_score archive_check \
+         mm_search quality_model \
+# GEM Archive Search
+MODULES+=archive_search \
+         archive_search_se archive_search_parameters \
+         archive_search_pe archive_search_paired_parameters \
+         archive_search_se_stepwise archive_search_pe_stepwise
 # GEM GPU-Buffers
 MODULES+=gpu_buffer_collection gpu_buffer_align_bpm \
          gpu_buffer_fmi_bsearch gpu_buffer_fmi_decode
@@ -104,10 +104,12 @@ MODULES+=input_parser input_fasta_parser input_multifasta_parser
 MODULES+=output_sam output_map
 # GEM Support Modules
 MODULES+=options_menu
-# Report Stats Module
-MODULES+=report_stats
+# Stats Modules
+MODULES+=mapper_stats mapper_profile \
+         mapper_profile_cuda mapper_profile_search \
+         mapper_profile_misc report_stats
 # GEM Main Modules
-MODULES+=mapper mapper_cuda mapper_cuda_se mapper_cuda_pe mapper_bisulfite mapper_stats mapper_profile gem_core
+MODULES+=mapper mapper_cuda mapper_cuda_se mapper_cuda_pe mapper_bisulfite gem_core
         
 SRCS=$(addsuffix .c, $(MODULES))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))

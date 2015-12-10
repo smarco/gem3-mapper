@@ -10,10 +10,17 @@
 #define FILTERING_REGION_CACHE_H_
 
 #include "filtering_region.h"
+#include "matches.h"
 
+typedef struct {
+  filtering_region_t* filtering_region;
+  uint64_t* match_trace_offset;
+} filtering_region_cache_element_t;
 typedef struct {
   /* Footprint Checksum */
   ihash_t* footprint_hash; // Footprint Checksum (filtering_region_t*)
+  /* Last Region Aligned */
+  filtering_region_cache_element_t last_aligned;
 } filtering_region_cache_t;
 
 /*
@@ -28,15 +35,24 @@ void filtering_region_cache_destroy(filtering_region_cache_t* const filtering_re
  */
 void filtering_region_cache_compute_footprint(
     filtering_region_t* const filtering_region,text_collection_t* const text_collection);
-void filtering_region_cache_add(
+
+bool filtering_region_transient_cache_is_empty(filtering_region_cache_t* const filtering_region_cache);
+void filtering_region_transient_cache_add(
     filtering_region_cache_t* const filtering_region_cache,filtering_region_t* const filtering_region,
-    match_trace_t* const match_trace,mm_stack_t* const mm_stack);
+    uint64_t* const match_trace_offset,mm_stack_t* const mm_stack);
+void filtering_region_permanent_cache_add(
+    filtering_region_cache_t* const filtering_region_cache,filtering_region_t* const filtering_region,
+    uint64_t* const match_trace_offset,mm_stack_t* const mm_stack);
+
 
 /*
  * Search
  */
-match_trace_t* filtering_region_cache_search(
-    filtering_region_cache_t* const filtering_region_cache,
-    filtering_region_t* const filtering_region,text_collection_t* const text_collection);
+match_trace_t* filtering_region_transient_cache_search(
+    filtering_region_cache_t* const filtering_region_cache,filtering_region_t* const filtering_region,
+    text_collection_t* const text_collection,matches_t* const matches);
+match_trace_t* filtering_region_permanent_cache_search(
+    filtering_region_cache_t* const filtering_region_cache,filtering_region_t* const filtering_region,
+    text_collection_t* const text_collection,matches_t* const matches);
 
 #endif /* FILTERING_REGION_CACHE_H_ */

@@ -287,12 +287,13 @@ void approximate_search_region_profile_buffered_retrieve(
   //    search->processing_state = asearch_processing_state_region_profiled;
   //  } else {
   //    search->processing_state = asearch_processing_state_no_regions;
+  //    PROF_INC_COUNTER(GP_ASSW_REGION_PROFILE_UNSUCCESSFUL);
   //  }
   // STATS
   approximate_search_region_profile_fixed_stats(region_profile);
 }
-#ifdef CUDA_BENCHMARK_GENERATE_REGION_PROFILE
 void approximate_search_region_profile_buffered_print_benchmark(approximate_search_t* const search) {
+#ifdef CUDA_BENCHMARK_GENERATE_REGION_PROFILE
   // Parameters
   region_profile_t* const region_profile = &search->region_profile;
   // Prepare benchmark file
@@ -302,5 +303,6 @@ void approximate_search_region_profile_buffered_print_benchmark(approximate_sear
   // Print Region-Profile benchmark
   region_profile_print_benchmark(benchmark_region_profile,
       region_profile,search->archive->fm_index,search->pattern.key);
-}
 #endif
+}
+

@@ -24,11 +24,11 @@ void filtering_region_align_clone(
     filtering_region_t* const filtering_region_dst,text_collection_t* const text_collection) {
   // DEBUG
   gem_cond_debug_block(DEBUG_FILTERING_REGION) {
-    tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Region (region_align)\n");
+    tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Region (region_align_clone)\n");
     tab_global_inc();
   }
   // Clone match-trace (Match Text (Reference)
-  match_trace_dst->trace_offset = match_trace_src->trace_offset;
+  match_trace_dst->text_trace_offset = match_trace_src->text_trace_offset;
   match_trace_dst->text = match_trace_src->text;
   match_trace_dst->text_length = match_trace_src->text_length;
   // Clone match-trace (Match)
@@ -42,17 +42,18 @@ void filtering_region_align_clone(
   // Clone match-alignment
   match_alignment_t* const match_alignment_dst = &match_trace_dst->match_alignment;
   match_alignment_t* const match_alignment_src = &match_trace_src->match_alignment;
-  match_alignment_dst->match_position = filtering_region_dst->begin_position + match_alignment_src->match_offet;
+  match_alignment_dst->match_offset = match_alignment_src->match_offset;
+  match_alignment_dst->match_position = filtering_region_dst->begin_position + match_alignment_dst->match_offset;
   match_alignment_dst->cigar_offset = match_alignment_src->cigar_offset;
   match_alignment_dst->cigar_length = match_alignment_src->cigar_length;
   match_alignment_dst->effective_length = match_alignment_src->effective_length;
   match_alignment_dst->score = match_alignment_src->score;
 #ifdef GEM_DEBUG
-  match_trace_dst->match_scaffold = match_trace_src->match_scaffold;    // Supporting Scaffolding
+  match_trace_dst->match_scaffold = match_trace_src->match_scaffold; // Supporting Scaffolding
 #endif
   // DEBUG
   gem_cond_debug_block(DEBUG_FILTERING_REGION) {
-    tab_fprintf(gem_log_get_stream(),"=> Region ALIGNED-CACHED (distance=%lu,swg_score=%ld)\n",
+    tab_fprintf(gem_log_get_stream(),"=> Region CLONED (distance=%lu,swg_score=%ld)\n",
         match_trace_dst->distance,match_trace_dst->swg_score);
     tab_global_dec();
   }

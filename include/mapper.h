@@ -121,8 +121,6 @@ typedef struct {
   mapper_parameters_io_t io;
   /* Search Parameters */
   search_parameters_t search_parameters;
-  /* Select Parameters */
-  select_parameters_t select_parameters;
   /* System */
   mapper_parameters_system_t system;
   /* CUDA settings */

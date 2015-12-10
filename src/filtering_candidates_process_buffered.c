@@ -47,6 +47,7 @@ void filtering_candidates_decode_filtering_positions_buffered(
 #endif
     } else {
       // Re-Decode (GPU decode failed)
+      PROF_INC_COUNTER(GP_ASSW_DECODE_CANDIDATES_UNSUCCESSFUL);
       filtering_position->region_text_position = fm_index_decode(fm_index,region_lo+i);
     }
     // Locate Position
@@ -56,6 +57,7 @@ void filtering_candidates_decode_filtering_positions_buffered(
         archive_text,region_begin,key_length-region_end,boundary_error);
   }
   // Add used
+  PROF_ADD_COUNTER(GP_ASSW_DECODE_CANDIDATES,num_candidates);
   vector_add_used(filtering_positions,num_candidates);
 }
 /*

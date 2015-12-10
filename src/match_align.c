@@ -168,7 +168,7 @@ void match_align_exact(
   const uint64_t key_length = align_input->key_length;
   match_alignment_t* const match_alignment = &match_trace->match_alignment;
   // Configure match-trace
-  match_trace->trace_offset = align_input->text_trace_offset;
+  match_trace->text_trace_offset = align_input->text_trace_offset;
   match_trace->text = (match_alignment->score==0) ?
       align_input->text + align_input->text_offset_begin : align_input->text;
   match_trace->text_length = align_input->key_length;
@@ -179,8 +179,8 @@ void match_align_exact(
   match_trace->edit_distance = match_alignment->score;
   match_trace->swg_score = align_swg_score_match(align_parameters->swg_penalties,(int32_t)key_length);
   // Insert exact-match CIGAR
-  match_alignment->match_offet = (match_alignment->score==0) ? align_input->text_offset_begin : 0;
-  match_alignment->match_position = align_input->text_position + match_alignment->match_offet; // Adjust position
+  match_alignment->match_offset = (match_alignment->score==0) ? align_input->text_offset_begin : 0;
+  match_alignment->match_position = align_input->text_position + match_alignment->match_offset; // Adjust position
   match_alignment->cigar_offset = vector_get_used(matches->cigar_vector);
   match_alignment->cigar_length = 0;
   match_alignment->effective_length = key_length;
@@ -211,7 +211,7 @@ void match_align_hamming(
   const uint64_t text_offset_end = align_input->text_offset_end;
   const bool* const allowed_enc = align_parameters->allowed_enc;
   // Configure match-trace
-  match_trace->trace_offset = align_input->text_trace_offset;
+  match_trace->text_trace_offset = align_input->text_trace_offset;
   match_trace->text = text + text_offset_begin;
   match_trace->text_length = key_length;
   match_trace->sequence_name = NULL;
@@ -221,7 +221,7 @@ void match_align_hamming(
   match_alignment->match_position = align_input->text_position;
   match_alignment->cigar_offset = vector_get_used(matches->cigar_vector);
   match_alignment->cigar_length = 0;
-  match_alignment->match_offet = 0;
+  match_alignment->match_offset = 0;
   // Hamming Alignment
   uint64_t i, mismatches;
   for (i=text_offset_begin,mismatches=0;i<text_offset_end;++i) {
@@ -263,7 +263,7 @@ void match_align_levenshtein(
     mm_stack_t* const mm_stack) {
   PROFILE_START(GP_MATCHES_ALIGN_LEVENSHTEIN,PROFILE_LEVEL);
   // Configure match-trace
-  match_trace->trace_offset = align_input->text_trace_offset;
+  match_trace->text_trace_offset = align_input->text_trace_offset;
   match_trace->sequence_name = NULL;
   match_trace->text_position = UINT64_MAX;
   match_trace->emulated_rc_search = align_parameters->emulated_rc_search;
@@ -280,8 +280,8 @@ void match_align_levenshtein(
   match_trace->swg_score = align_swg_score_cigar(align_parameters->swg_penalties,
       matches->cigar_vector,match_alignment->cigar_offset,match_alignment->cigar_length);
   // Store matching text
-  match_alignment->match_offet = match_alignment->match_position - match_position;
-  match_trace->text = align_input->text + match_alignment->match_offet;
+  match_alignment->match_offset = match_alignment->match_position - match_position;
+  match_trace->text = align_input->text + match_alignment->match_offset;
   match_trace->text_length = match_alignment->effective_length;
   PROFILE_STOP(GP_MATCHES_ALIGN_LEVENSHTEIN,PROFILE_LEVEL);
 }
@@ -313,7 +313,7 @@ void match_align_smith_waterman_gotoh(
     match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack) {
   PROFILE_START(GP_MATCHES_ALIGN_SWG,PROFILE_LEVEL);
   // Configure match-trace
-  match_trace->trace_offset = align_input->text_trace_offset;
+  match_trace->text_trace_offset = align_input->text_trace_offset;
   match_trace->sequence_name = NULL;
   match_trace->text_position = UINT64_MAX;
   match_trace->emulated_rc_search = align_parameters->emulated_rc_search;
@@ -354,8 +354,8 @@ void match_align_smith_waterman_gotoh(
   // Post alignment checks & setup
   match_align_swg_post_alignment(matches,match_trace,align_input,align_parameters,false);
   // Adjust text
-  match_alignment->match_offet = match_alignment->match_position - base_match_position;
-  match_trace->text = align_input->text + match_alignment->match_offet;
+  match_alignment->match_offset = match_alignment->match_position - base_match_position;
+  match_trace->text = align_input->text + match_alignment->match_offset;
   match_trace->text_length = match_alignment->effective_length;
   PROFILE_STOP(GP_MATCHES_ALIGN_SWG,PROFILE_LEVEL);
 }

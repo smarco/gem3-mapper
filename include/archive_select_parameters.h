@@ -10,7 +10,6 @@
 #define ARCHIVE_SELECT_PARAMETERS_H_
 
 #include "essentials.h"
-#include "archive_check.h"
 
 /*
  * Select Parameters

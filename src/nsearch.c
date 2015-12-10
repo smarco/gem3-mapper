@@ -10,6 +10,11 @@
 #include "dp_matrix.h"
 
 /*
+ * Profile
+ */
+#define PROFILE_LEVEL PMED
+
+/*
  * DEBUG
  */
 #define NS_PRINT_STRING false
@@ -426,6 +431,7 @@ void neighborhood_search(
     fm_index_t* const fm_index,uint8_t* const key,
     const uint64_t key_length,const uint64_t max_error,
     interval_set_t* const intervals_result,mm_stack_t* const mm_stack) {
+  PROFILE_START(GP_NSEARCH,PROFILE_LEVEL);
   // DEBUG/PROF
   gem_cond_debug_block(NS_PRINT_STRING) { if (ns_string==NULL) ns_string = malloc(1000); }
 #ifdef GEM_PROFILE
@@ -478,6 +484,7 @@ void neighborhood_search(
   PROF_ADD_COUNTER(GP_NS_NODE_CLOSED,(_ns_nodes_closed-_ns_nodes_closed_start));
   // Free
   mm_stack_pop_state(mm_stack,false);
+  PROFILE_STOP(GP_NSEARCH,PROFILE_LEVEL);
 }
 
 

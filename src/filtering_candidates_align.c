@@ -10,6 +10,9 @@
 #include "filtering_candidates_process.h"
 #include "filtering_region_align.h"
 
+#define FILTERING_CANDIDATES_ALIGN_CACHE
+#define FILTERING_CANDIDATES_ALIGN_SELECT_PRUNE
+
 /*
  * Debug
  */
@@ -19,8 +22,106 @@
  * Profile
  */
 #define PROFILE_LEVEL PMED
-//#define FILTERING_CANDIDATES_CACHE
 
+/*
+ * Candidate distance bound
+ */
+bool filtering_candidates_align_is_behond_distance_limits(
+    filtering_region_t* const candidate_region,select_parameters_t* const select_parameters,
+    const alignment_model_t alignment_model,swg_penalties_t* const swg_penalties,
+    const bool approximated_distance,const uint64_t key_length,
+    matches_t* const matches) {
+#ifdef FILTERING_CANDIDATES_ALIGN_SELECT_PRUNE
+  // Parameters
+  const uint64_t num_matches = matches_get_num_match_traces(matches);
+  // Basic cases
+  if (num_matches == 0) return false;
+  if (num_matches < select_parameters->max_reported_matches) return false;
+  // Bounded Cases (Only pays off to align matches that can be include within user report limits)
+  switch (alignment_model) { // (Select alignment model)
+    case alignment_model_hamming:
+    case alignment_model_levenshtein: {
+      const uint64_t candidate_min_distance_bound = (approximated_distance) ?
+          candidate_region->align_distance_min_bound : candidate_region->align_distance;
+      match_trace_t* const last_ranked_match_trace = matches_get_ranked_match_trace(matches,select_parameters);
+      // Need a candidate expected to have less distance than the current max
+      return candidate_min_distance_bound >= last_ranked_match_trace->edit_distance;
+    }
+    case alignment_model_gap_affine: {
+      const uint64_t candidate_edit_distance_bound = (approximated_distance) ?
+          candidate_region->align_distance_min_bound : candidate_region->align_distance;
+      const uint64_t candidate_max_score_bound =
+          align_swg_score_compute_max_score_bound(swg_penalties,candidate_edit_distance_bound,key_length);
+      match_trace_t* const last_ranked_match_trace = matches_get_ranked_match_trace(matches,select_parameters);
+      // Need a candidate expected to have better score than the current max
+      return candidate_max_score_bound <= last_ranked_match_trace->swg_score;
+    }
+    default:
+      return false;
+  }
+#endif
+  return false;
+}
+bool filtering_candidates_align_search_filtering_region_cache(
+    filtering_candidates_t* const filtering_candidates,filtering_region_t* const region,
+    text_collection_t* const text_collection,match_trace_t* const match_trace,
+    matches_t* const matches) {
+#ifdef FILTERING_CANDIDATES_ALIGN_CACHE
+  // Search the cache
+  match_trace_t* const match_trace_cache =
+      filtering_region_transient_cache_search(
+          &filtering_candidates->filtering_region_cache,region,text_collection,matches);
+  if (match_trace_cache==NULL) return false;
+  // Clone the match-trace found in the cache
+  filtering_region_align_clone(match_trace_cache,match_trace,region,text_collection);
+  return true;
+#else
+  return false;
+#endif
+}
+bool filtering_candidates_align_region(
+    filtering_candidates_t* const filtering_candidates,filtering_region_t* const region,
+    archive_text_t* const archive_text,const locator_t* const locator,
+    text_collection_t* const text_collection,pattern_t* const pattern,
+    const bool emulated_rc_search,const as_parameters_t* const as_parameters,
+    const bool approximated_distance,matches_t* const matches,
+    mm_stack_t* const mm_stack) {
+  // Parameters
+  search_parameters_t* const search_parameters = as_parameters->search_parameters;
+  const alignment_model_t alignment_model = search_parameters->alignment_model;
+  select_parameters_t* const select_parameters_align = &search_parameters->select_parameters_align;
+  // Retrieve Candidate (if needed)
+  if (region->text_trace_offset == UINT64_MAX) {
+    // if (region->align_distance>0 && alignment_model!=alignment_model_none) {
+      const uint64_t text_length = region->end_position-region->begin_position;
+      region->text_trace_offset = archive_text_retrieve(archive_text,text_collection,
+          region->begin_position,text_length,false,mm_stack);
+    // }
+  }
+  // Align the region (First Search Cache)
+  match_trace_t match_trace;
+  bool match_trace_aligned = filtering_candidates_align_search_filtering_region_cache(
+      filtering_candidates,region,text_collection,&match_trace,matches);
+  if (!match_trace_aligned) {
+    // Align the region
+    match_trace_aligned = filtering_region_align(region,archive_text,text_collection,
+        as_parameters,emulated_rc_search,pattern,matches,&match_trace,mm_stack);
+    if (!match_trace_aligned) return false; // Not aligned or subdominant
+  }
+  // Add to matches
+  bool match_added, match_replaced;
+  match_trace_t* match_trace_added;
+  matches_add_match_trace__preserve_rank(matches,locator,true,&match_trace,select_parameters_align,
+      alignment_model,&match_trace_added,&match_added,&match_replaced,mm_stack);
+#ifdef FILTERING_CANDIDATES_ALIGN_CACHE
+  if (match_added || match_replaced) {
+    filtering_region_transient_cache_add(
+        &filtering_candidates->filtering_region_cache,
+        region,match_trace_added->match_trace_offset,mm_stack);
+  }
+#endif
+  return match_added; // Repeated
+}
 /*
  * Candidate Alignment
  */
@@ -37,18 +138,16 @@ uint64_t filtering_candidates_align_accepted_regions(
   }
   // Parameters
   search_parameters_t* const search_parameters = as_parameters->search_parameters;
-  const uint64_t max_error_after_best = as_parameters->alignment_max_error_after_best_nominal;
-  // Sort filtering regions (wrt align_distance)
+  select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;
+  // Prepare Filtering Regions (Sort wrt align_distance)
   filtering_regions_sort_align_distance(filtering_candidates->filtering_regions);
-  // Prepare candidate vectors
+  // Prepare Candidate Vectors
   const uint64_t num_filtering_regions = vector_get_used(filtering_candidates->filtering_regions);
   vector_reserve_additional(filtering_candidates->discarded_regions,num_filtering_regions);
   filtering_region_t* regions_discarded = vector_get_free_elm(filtering_candidates->discarded_regions,filtering_region_t);
   filtering_region_t* regions_in = vector_get_mem(filtering_candidates->filtering_regions,filtering_region_t);
   filtering_region_t* regions_out = regions_in;
-#ifdef FILTERING_CANDIDATES_CACHE
-  filtering_region_t* last_aligned_region = NULL;
-#endif
+  filtering_region_cache_clear(&filtering_candidates->filtering_region_cache); // Clear cache
   // Traverse all accepted candidates (text-space)
   uint64_t n, num_accepted_regions = 0;
   for (n=0;n<num_filtering_regions;++n,++regions_in) {
@@ -56,54 +155,27 @@ uint64_t filtering_candidates_align_accepted_regions(
       *regions_out = *regions_in;
       ++regions_out;
     } else {
-      // Check filtering strata-after-best
-      const uint64_t min_edit_distance = matches_metrics_get_min_edit_distance(&matches->metrics);
-      const uint64_t distance_bound = (approximated_distance) ?
-          regions_in->align_distance_min_bound : regions_in->align_distance;
-      if (distance_bound > min_edit_distance + max_error_after_best) {
+      // Check distance bounds
+      const bool behond_distance_limits =
+          filtering_candidates_align_is_behond_distance_limits(
+              regions_in,select_parameters,search_parameters->alignment_model,
+              &search_parameters->swg_penalties,approximated_distance,
+              pattern->key_length,matches);
+      if (behond_distance_limits) {
+        PROF_INC_COUNTER(GP_FC_SELECT_PRUNE_HIT);
         *regions_discarded = *regions_in;
         regions_discarded->status = filtering_region_accepted_subdominant;
         matches_metrics_inc_subdominant_candidates(&matches->metrics);
         ++regions_discarded;
       } else {
-        // Retrieve Candidate (if needed)
-        if (regions_in->text_trace_offset == UINT64_MAX) {
-          if (regions_in->align_distance>0 && search_parameters->alignment_model!=alignment_model_none) {
-            const uint64_t text_length = regions_in->end_position-regions_in->begin_position;
-            regions_in->text_trace_offset = archive_text_retrieve(archive_text,text_collection,
-                regions_in->begin_position,text_length,false,mm_stack);
-          }
-        }
-        // Search the cache (of previous aligned regions)
-        match_trace_t match_trace;
-#ifdef FILTERING_CANDIDATES_CACHE
-        if (last_aligned_region!=NULL && last_aligned_region->align_distance==regions_in->align_distance) {
-          // Search cache
-          filtering_region_cache_compute_footprint(regions_in,text_collection);
-          match_trace_t* const cached_match_trace = filtering_region_cache_search(
-              &filtering_candidates->filtering_region_cache,regions_in,text_collection);
-          if (cached_match_trace!=NULL) {
-            filtering_region_align_clone(cached_match_trace,&match_trace,regions_in,text_collection);
-            // Add to matches
-            if (matches_add_match_trace(matches,&match_trace,true,locator,mm_stack)) ++num_accepted_regions;
-            // Next region
-            continue;
-          }
-        }
-#endif
-        // Align the region
-        if (filtering_region_align(regions_in,archive_text,text_collection,
-            as_parameters,emulated_rc_search,pattern,matches,&match_trace,mm_stack)) {
-          // Add to matches
-          if (matches_add_match_trace(matches,&match_trace,true,locator,mm_stack)) {
-            ++num_accepted_regions;
-#ifdef FILTERING_CANDIDATES_CACHE
-            last_aligned_region = regions_in;
-            filtering_region_cache_compute_footprint(regions_in,text_collection); // FIXME Cond.
-            filtering_region_cache_add(&filtering_candidates->filtering_region_cache,regions_in,&match_trace,mm_stack);
-#endif
-          }
+        // Align Region
+        const bool region_aligned = filtering_candidates_align_region(
+            filtering_candidates,regions_in,archive_text,locator,text_collection,pattern,
+            emulated_rc_search,as_parameters,approximated_distance,matches,mm_stack);
+        if (region_aligned) {
+          ++num_accepted_regions;
         } else {
+          // Not aligned (probably because is too distant; sub-dominant)
           *regions_discarded = *regions_in;
           ++regions_discarded;
         }
@@ -155,7 +227,9 @@ uint64_t filtering_candidates_unbounded_align_regions_by_status(
         matches_metrics_dec_subdominant_candidates(&matches->metrics);
       }
       filtering_region->status = filtering_region_aligned_unbounded;
-      if (matches_add_match_trace(matches,&match_trace,true,locator,mm_stack)) ++num_unbounded_alignments;
+      if (matches_add_match_trace(matches,locator,true,&match_trace,mm_stack)) {
+        ++num_unbounded_alignments;
+      }
     }
   }
   // Return number of unbounded alignments

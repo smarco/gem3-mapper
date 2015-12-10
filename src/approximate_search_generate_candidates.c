@@ -274,8 +274,8 @@ void approximate_search_generate_exact_candidates_buffered_retrieve(
 /*
  * Display/Benchmark
  */
-#ifdef CUDA_BENCHMARK_GENERATE_DECODE_CANDIDATES
 void approximate_search_generate_exact_candidates_buffered_print_benchmark(approximate_search_t* const search) {
+#ifdef CUDA_BENCHMARK_GENERATE_DECODE_CANDIDATES
   // Parameters
   region_profile_t* const region_profile = &search->region_profile;
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
@@ -294,5 +294,6 @@ void approximate_search_generate_exact_candidates_buffered_print_benchmark(appro
       }
     }
   }
-}
 #endif
+}
+

@@ -183,8 +183,6 @@ void mapper_parameters_set_defaults(mapper_parameters_t* const mapper_parameters
   mapper_parameters_set_defaults_io(&mapper_parameters->io);
   /* Search Parameters (single-end/paired-end) */
   search_parameters_init(&mapper_parameters->search_parameters);
-  /* Select Parameters */
-  select_parameters_init(&mapper_parameters->select_parameters);
   /* System */
   mapper_parameters_set_defaults_system(&mapper_parameters->system);
   /* CUDA settings */
@@ -376,9 +374,8 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
 
   // Create an Archive-Search
   mm_search_t* const mm_search = mm_search_new(mm_pool_get_slab(mm_pool_32MB));
-  mapper_search->archive_search = archive_search_new(
-      parameters->archive,&mapper_search->mapper_parameters->search_parameters,
-      &mapper_search->mapper_parameters->select_parameters);
+  archive_search_se_new(parameters->archive,
+      &mapper_search->mapper_parameters->search_parameters,&mapper_search->archive_search);
   archive_search_se_inject_mm(mapper_search->archive_search,mm_search);
   matches_t* const matches = matches_new();
   matches_configure(matches,mapper_search->archive_search->text_collection);
@@ -386,7 +383,7 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
   while (mapper_SE_read_single_sequence(mapper_search)) {
-//    if (gem_streq(mapper_search->archive_search->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000869733")) { 
+//    if (gem_streq(mapper_search->archive_search->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000041503")) {
 //      printf("HERE\n");
 //    }
 
@@ -433,12 +430,9 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
 
   // Create an Archive-Search
   mm_search_t* const mm_search = mm_search_new(mm_pool_get_slab(mm_pool_32MB));
-  mapper_search->archive_search_end1 = archive_search_new(
-      parameters->archive,&mapper_search->mapper_parameters->search_parameters,
-      &mapper_search->mapper_parameters->select_parameters);
-  mapper_search->archive_search_end2 = archive_search_new(
-      parameters->archive,&mapper_search->mapper_parameters->search_parameters,
-      &mapper_search->mapper_parameters->select_parameters);
+  search_parameters_t* const search_parameters = &mapper_search->mapper_parameters->search_parameters;
+  archive_search_pe_new(parameters->archive,search_parameters,
+      &mapper_search->archive_search_end1,&mapper_search->archive_search_end2);
   archive_search_pe_inject_mm(mapper_search->archive_search_end1,mapper_search->archive_search_end2,mm_search);
   mapper_search->paired_matches = paired_matches_new(mm_search->text_collection);
   paired_matches_configure(mapper_search->paired_matches,mapper_search->archive_search_end1->text_collection);

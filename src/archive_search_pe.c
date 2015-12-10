@@ -11,6 +11,7 @@
 #include "archive_search_se_stepwise.h"
 #include "archive_select.h"
 #include "archive_score.h"
+#include "archive_check.h"
 #include "filtering_candidates_extend.h"
 #include "paired_matches_classify.h"
 
@@ -93,7 +94,7 @@ uint64_t archive_search_pe_extend_matches(
   PROFILE_START(GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES,PROFILE_LEVEL);
   // Parameters
   search_parameters_t* const search_parameters = archive_search_end1->as_parameters.search_parameters;
-  paired_search_parameters_t* const paired_search_parameters = &search_parameters->paired_search_parameters;
+  search_paired_parameters_t* const search_paired_parameters = &search_parameters->search_paired_parameters;
   mapper_stats_t* const mapper_stats = archive_search_end1->mapper_stats;
   archive_t* const archive = archive_search_end1->archive;
   // Extend in all possible concordant orientations
@@ -126,7 +127,7 @@ uint64_t archive_search_pe_extend_matches(
   uint64_t total_matches_found = 0;
   // Iterate over all matches of the extended end
   VECTOR_ITERATE(extended_matches->position_matches,extended_match,en,match_trace_t) {
-    if (paired_search_parameters->pair_orientation[pair_orientation_FR] == pair_relation_concordant) {
+    if (search_paired_parameters->pair_orientation[pair_orientation_FR] == pair_relation_concordant) {
       // Extend (filter nearby region)
       total_matches_found += filtering_candidates_extend_match(filtering_candidates,
           archive->text,archive->locator,text_collection,extended_match,pattern,
@@ -145,7 +146,8 @@ void archive_search_pe_continue(
   PROFILE_START(GP_ARCHIVE_SEARCH_PE,PROFILE_LEVEL);
   // Parameters
   search_parameters_t* const search_parameters = archive_search_end1->as_parameters.search_parameters;
-  paired_search_parameters_t* const paired_search_parameters = &search_parameters->paired_search_parameters;
+  select_parameters_t* const select_parameters = &search_parameters->select_parameters_report;
+  search_paired_parameters_t* const search_paired_parameters = &search_parameters->search_paired_parameters;
   mapper_stats_t* const mapper_stats = archive_search_end1->mapper_stats;
   matches_t* const matches_end1 = (paired_matches!=NULL) ? paired_matches->matches_end1 : NULL;
   matches_t* const matches_end2 = (paired_matches!=NULL) ? paired_matches->matches_end2 : NULL;
@@ -164,7 +166,7 @@ void archive_search_pe_continue(
       case archive_search_pe_search_end1:
         // Full Search (End/1)
         archive_search_se_stepwise_finish_search(archive_search_end1,matches_end1);
-        archive_select_se_matches(archive_search_end1,true,matches_end1);
+        archive_select_se_matches(archive_search_end1,select_parameters,matches_end1);
         archive_search_end1->pair_searched = true;
         archive_search_end1->end_class = matches_classify(matches_end1);
         // Test for extension of End/1 (Shortcut to avoid mapping end/2)
@@ -193,7 +195,7 @@ void archive_search_pe_continue(
       case archive_search_pe_search_end2:
         // Full Search (End/2)
         archive_search_se_stepwise_finish_search(archive_search_end2,matches_end2);
-        archive_select_se_matches(archive_search_end2,true,matches_end2);
+        archive_select_se_matches(archive_search_end2,select_parameters,matches_end2);
         archive_search_end2->pair_searched = true;
         archive_search_end2->end_class = matches_classify(matches_end2);
         // No break
@@ -224,8 +226,8 @@ void archive_search_pe_continue(
         const uint64_t num_matches_end2 = matches_get_num_match_traces(paired_matches->matches_end2);
         if (num_matches_end1 > 0 && num_matches_end2 > 0) {
           PROFILE_START(GP_ARCHIVE_SEARCH_PE_FINISH_SEARCH,PROFILE_LEVEL);
-          paired_matches_find_pairs(paired_matches,paired_search_parameters,mapper_stats);
-          paired_matches_find_discordant_pairs(paired_matches,paired_search_parameters); // Find discordant (if required)
+          paired_matches_find_pairs(paired_matches,search_paired_parameters,mapper_stats);
+          paired_matches_find_discordant_pairs(paired_matches,search_paired_parameters); // Find discordant (if required)
           PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_FINISH_SEARCH,PROFILE_LEVEL);
         }
         // Check number of paired-matches
@@ -265,17 +267,19 @@ void archive_search_pe(
     tab_fprintf(gem_log_get_stream(),"  => Sequence/2 %s\n",archive_search_end2->sequence.read.buffer);
     tab_global_inc();
   }
+  // Parameters
+  search_parameters_t* const search_parameters = archive_search_end1->as_parameters.search_parameters;
   // Init
   archive_search_end1->pe_search_state = archive_search_pe_begin;
   archive_search_end2->pe_search_state = archive_search_pe_begin;
   // PE search
   archive_search_pe_continue(archive_search_end1,archive_search_end2,paired_matches);
   // PE select
-  archive_select_pe_matches(archive_search_end1,archive_search_end2,paired_matches);
+  archive_select_pe_matches(archive_search_end1,archive_search_end2,
+      &search_parameters->select_parameters_report,paired_matches);
   // PE Score (Select alignment-Model and process accordingly)
   archive_score_matches_pe(archive_search_end1,archive_search_end2,paired_matches);
   // PE Check matches
-  search_parameters_t* const search_parameters = archive_search_end1->as_parameters.search_parameters;
   if (search_parameters->check_type!=archive_check_nothing) {
     archive_check_pe_matches(
         archive_search_end1->archive,search_parameters->alignment_model,

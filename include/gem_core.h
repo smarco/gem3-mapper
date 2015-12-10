@@ -12,8 +12,8 @@
 /*
  * Version
  */
-#define GEM_CORE_VERSION 3.1
-#define GEM_CORE_VERSION_STR "3.1"
+#define GEM_CORE_VERSION 3.2
+#define GEM_CORE_VERSION_STR "3.2"
 
 // GEM essentials
 #include "essentials.h"
@@ -28,6 +28,14 @@
 #include "cdna_bitwise_text.h"
 #include "dna_text.h"
 
+// GEM Align
+#include "align.h"
+#include "align_ond.h"
+
+// GEM NS
+#include "nsearch_hamming.h"
+#include "nsearch_levenshtein.h"
+
 // GEM Index
 #include "sa_builder.h"
 #include "bwt.h"
@@ -41,14 +49,6 @@
 #include "archive_select_parameters.h"
 #include "archive_select.h"
 
-// GEM align
-#include "align.h"
-#include "align_ond.h"
-
-// NS
-#include "nsearch_hamming.h"
-#include "nsearch_levenshtein.h"
-
 // I/O
 #include "input_file.h"
 #include "input_parser.h"
@@ -59,6 +59,7 @@
 // Profile
 #include "profiler.h"
 #include "mapper_profile.h"
+#include "mapper_profile_cuda.h"
 
 // Options Menu (Adaptors + Helpers)
 #include "options_menu.h"

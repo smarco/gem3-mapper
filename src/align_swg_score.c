@@ -81,3 +81,20 @@ int32_t align_swg_score_cigar__excluding_clipping(
   // Return score
   return score;
 }
+int32_t align_swg_score_compute_min_score_bound(
+    const swg_penalties_t* const swg_penalties,const uint64_t edit_distance,
+    const uint64_t key_length) {
+  const int32_t base_score = align_swg_score_match(swg_penalties,key_length-edit_distance);
+  const int32_t single_indel = align_swg_score_deletion(swg_penalties,edit_distance);
+  const int32_t all_misms = align_swg_score_mismatch(swg_penalties)*edit_distance;
+  return base_score + MIN(single_indel,all_misms);
+}
+int32_t align_swg_score_compute_max_score_bound(
+    const swg_penalties_t* const swg_penalties,const uint64_t edit_distance,
+    const uint64_t key_length) {
+  const int32_t base_score = align_swg_score_match(swg_penalties,key_length-edit_distance);
+  const int32_t single_indel = align_swg_score_deletion(swg_penalties,edit_distance);
+  const int32_t all_misms = align_swg_score_mismatch(swg_penalties)*edit_distance;
+  return base_score + MAX(single_indel,all_misms);
+}
+

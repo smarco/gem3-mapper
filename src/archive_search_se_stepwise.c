@@ -259,11 +259,11 @@ void archive_search_se_stepwise_finish_search(
     approximate_search_stepwise_finish(&archive_search->reverse_search_state,matches);
   }
   // Select Matches
-  archive_select_se_matches(archive_search,false,matches);
+  search_parameters_t* const search_parameters = archive_search->as_parameters.search_parameters;
+  archive_select_se_matches(archive_search,&search_parameters->select_parameters_report,matches);
   // Select alignment-Model and process accordingly
   archive_score_matches_se(archive_search,false,matches);
   // Check matches
-  search_parameters_t* const search_parameters = archive_search->as_parameters.search_parameters;
   if (search_parameters->check_type!=archive_check_nothing) {
     archive_check_se_matches(
         archive_search->archive,search_parameters->alignment_model,

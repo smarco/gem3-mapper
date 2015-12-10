@@ -50,8 +50,6 @@ void filtering_candidates_clear(filtering_candidates_t* const filtering_candidat
   vector_clear(filtering_candidates->filtering_regions);
   vector_clear(filtering_candidates->discarded_regions);
   vector_clear(filtering_candidates->verified_regions);
-  // Cache
-  filtering_region_cache_clear(&filtering_candidates->filtering_region_cache);
 }
 void filtering_candidates_destroy(filtering_candidates_t* const filtering_candidates) {
   // Region Buffer

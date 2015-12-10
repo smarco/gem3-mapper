@@ -10,7 +10,7 @@
 #define PAIRED_MATCHES_H_
 
 #include "essentials.h"
-#include "paired_search_parameters.h"
+#include "archive_search_paired_parameters.h"
 #include "sequence.h"
 #include "matches.h"
 #include "paired_map.h"
@@ -81,11 +81,11 @@ void paired_matches_add(
  */
 void paired_matches_find_pairs(
     paired_matches_t* const paired_matches,
-    const paired_search_parameters_t* const paired_search_parameters,
+    const search_paired_parameters_t* const search_paired_parameters,
     mapper_stats_t* const mapper_stats);
 void paired_matches_find_discordant_pairs(
     paired_matches_t* const paired_matches,
-    const paired_search_parameters_t* const paired_search_parameters);
+    const search_paired_parameters_t* const search_paired_parameters);
 
 /*
  * Filters

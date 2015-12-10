@@ -41,7 +41,6 @@ void search_parameters_init_error_model(search_parameters_t* const search_parame
   search_parameters->complete_search_error = 0.04;
   search_parameters->complete_strata_after_best = 1.0;
   search_parameters->alignment_max_error = 0.08;
-  search_parameters->alignment_max_error_after_best = 0.04;
   search_parameters->unbounded_alignment = unbounded_alignment_if_unmapped;
   search_parameters->max_bandwidth = 0.20;
   search_parameters->alignment_min_identity = 0.40;
@@ -120,11 +119,14 @@ void search_parameters_init(search_parameters_t* const search_parameters) {
   // Alignment Model/Score
   search_parameters_init_alignment_model(search_parameters);
   // Paired End
-  paired_search_parameters_init(&search_parameters->paired_search_parameters);
+  search_paired_parameters_init(&search_parameters->search_paired_parameters);
   // Bisulfite
   search_parameters->bisulfite_read = bisulfite_read_inferred;
   // Internals
   search_parameters_init_internals(search_parameters);
+  // Select Parameters
+  select_parameters_init(&search_parameters->select_parameters_report);
+  select_parameters_init(&search_parameters->select_parameters_align);
   // Check
   search_parameters->check_type = archive_check_nothing;
   // MAPQ Score
@@ -209,11 +211,10 @@ void search_configure_alignment_gap_scores(
   search_parameters->swg_penalties.gap_extension_score = -((int32_t)gap_extension_penalty);
 }
 void search_instantiate_values(as_parameters_t* const parameters,const uint64_t pattern_length) {
-  /* Nominal search parameters (Evaluated to read-length) */
+  // Instantiate Search Parameters Values (Nominal search parameters; evaluated to read-length)
   SEARCH_INSTANTIATE_VALUE(parameters,complete_search_error,pattern_length);
   SEARCH_INSTANTIATE_VALUE(parameters,complete_strata_after_best,pattern_length);
   SEARCH_INSTANTIATE_VALUE(parameters,alignment_max_error,pattern_length);
-  SEARCH_INSTANTIATE_VALUE(parameters,alignment_max_error_after_best,pattern_length);
   SEARCH_INSTANTIATE_VALUE(parameters,max_bandwidth,pattern_length);
   SEARCH_INSTANTIATE_VALUE(parameters,alignment_min_identity,pattern_length);
   SEARCH_INSTANTIATE_VALUE(parameters,alignment_scaffolding_min_coverage,pattern_length);
@@ -229,6 +230,9 @@ void search_instantiate_values(as_parameters_t* const parameters,const uint64_t 
     const int64_t pattern_identity_th = search_parameters->swg_threshold*(double)pattern_length;
     parameters->swg_threshold_nominal = pattern_identity_th * swg_penalties->generic_match_score;
   }
+  // Instantiate Select Parameters Values
+  select_parameters_instantiate_values(&parameters->search_parameters->select_parameters_report,pattern_length);
+  select_parameters_instantiate_values(&parameters->search_parameters->select_parameters_align,pattern_length);
 }
 /*
  * Display
@@ -249,7 +253,6 @@ void as_parameters_print(FILE* const stream,as_parameters_t* const parameters) {
   tab_fprintf(stream,"  => Complete.search.error %lu\n",parameters->complete_search_error_nominal);
   tab_fprintf(stream,"  => Complete.strata.after.best %lu\n",parameters->complete_strata_after_best_nominal);
   tab_fprintf(stream,"  => Alingment.max.error %lu\n",parameters->alignment_max_error_nominal);
-  tab_fprintf(stream,"  => Alingment.max.error.after.best %lu\n",parameters->alignment_max_error_after_best_nominal);
   tab_fprintf(stream,"  => Alignment_min.identity %lu\n",parameters->alignment_min_identity_nominal);
   tab_fprintf(stream,"  => Alignment.scaffolding.min.coverage %lu\n",parameters->alignment_scaffolding_min_coverage_nominal);
   tab_fprintf(stream,"  => Alignment.scaffolding.homopolymer.min_context %lu\n",parameters->alignment_scaffolding_homopolymer_min_context_nominal);

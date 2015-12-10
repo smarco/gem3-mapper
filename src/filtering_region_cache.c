@@ -19,21 +19,15 @@
 #define FILTERING_REGION_CACHE_TEXT_FOOTPRINT_LENGTH 100
 
 /*
- * Cached
- */
-typedef struct {
-  filtering_region_t* filtering_region;
-  match_trace_t *match_trace;
-} filtering_region_cache_element_t;
-
-/*
  * Setup
  */
 void filtering_region_cache_init(filtering_region_cache_t* const filtering_region_cache) {
   filtering_region_cache->footprint_hash = ihash_new();
+  filtering_region_cache->last_aligned.filtering_region = NULL;
 }
 void filtering_region_cache_clear(filtering_region_cache_t* const filtering_region_cache) {
   ihash_clear(filtering_region_cache->footprint_hash);
+  filtering_region_cache->last_aligned.filtering_region = NULL;
 }
 void filtering_region_cache_destroy(filtering_region_cache_t* const filtering_region_cache) {
   ihash_delete(filtering_region_cache->footprint_hash);
@@ -57,12 +51,21 @@ void filtering_region_cache_compute_footprint(
   filtering_region->footprint = footprint;
   PROFILE_STOP(GP_FC_CACHE_COMPUTE_FOOTPRINT,PROFILE_LEVEL);
 }
-void filtering_region_cache_add(
+bool filtering_region_transient_cache_is_empty(filtering_region_cache_t* const filtering_region_cache) {
+  return filtering_region_cache->last_aligned.filtering_region==NULL;
+}
+void filtering_region_transient_cache_add(
     filtering_region_cache_t* const filtering_region_cache,filtering_region_t* const filtering_region,
-    match_trace_t* const match_trace,mm_stack_t* const mm_stack) {
+    uint64_t* const match_trace_offset,mm_stack_t* const mm_stack) {
+  filtering_region_cache->last_aligned.filtering_region = filtering_region;
+  filtering_region_cache->last_aligned.match_trace_offset = match_trace_offset;
+}
+void filtering_region_permanent_cache_add(
+    filtering_region_cache_t* const filtering_region_cache,filtering_region_t* const filtering_region,
+    uint64_t* const match_trace_offset,mm_stack_t* const mm_stack) {
   filtering_region_cache_element_t* const cache_element = mm_stack_alloc(mm_stack,filtering_region_cache_element_t);
   cache_element->filtering_region = filtering_region;
-  cache_element->match_trace = match_trace;
+  cache_element->match_trace_offset = match_trace_offset;
   ihash_insert(filtering_region_cache->footprint_hash,filtering_region->footprint,cache_element);
 }
 /*
@@ -82,22 +85,47 @@ bool filtering_region_cache_cmp_regions(
   const uint8_t* const text_b = text_trace_b->text;
   return (memcmp(text_a,text_b,text_length_b)==0);
 }
-match_trace_t* filtering_region_cache_search(
-    filtering_region_cache_t* const filtering_region_cache,
-    filtering_region_t* const filtering_region,text_collection_t* const text_collection) {
+match_trace_t* filtering_region_transient_cache_search(
+    filtering_region_cache_t* const filtering_region_cache,filtering_region_t* const filtering_region,
+    text_collection_t* const text_collection,matches_t* const matches) {
   PROFILE_START(GP_FC_CACHE_SEARCH,PROFILE_LEVEL);
-  // Search for filtering-region footprint (checksum)
-  filtering_region_cache_element_t* const cache_element =
-      ihash_get(filtering_region_cache->footprint_hash,filtering_region->footprint,filtering_region_cache_element_t);
-  if (cache_element==NULL) return NULL;
+  // Basic compare (null & distance)
+  filtering_region_cache_element_t* const last_aligned = &filtering_region_cache->last_aligned;
+  if (last_aligned->filtering_region==NULL ||
+      last_aligned->filtering_region->align_distance != filtering_region->align_distance) {
+    PROFILE_STOP(GP_FC_CACHE_SEARCH,PROFILE_LEVEL);
+    return NULL;
+  }
   // Compare filtering regions
-  if (filtering_region_cache_cmp_regions(filtering_region,cache_element->filtering_region,text_collection)) {
+  if (filtering_region_cache_cmp_regions(filtering_region,last_aligned->filtering_region,text_collection)) {
     PROF_INC_COUNTER(GP_FC_CACHE_SEARCH_HIT);
     PROFILE_STOP(GP_FC_CACHE_SEARCH,PROFILE_LEVEL);
-    return cache_element->match_trace;
+    return matches_get_match_trace(matches,*(last_aligned->match_trace_offset));
   } else {
     PROFILE_STOP(GP_FC_CACHE_SEARCH,PROFILE_LEVEL);
     return NULL;
   }
 }
+match_trace_t* filtering_region_permanent_cache_search(
+    filtering_region_cache_t* const filtering_region_cache,filtering_region_t* const filtering_region,
+    text_collection_t* const text_collection,matches_t* const matches) {
+  PROFILE_START(GP_FC_CACHE_SEARCH,PROFILE_LEVEL);
+  // Search for filtering-region footprint (checksum)
+  filtering_region_cache_element_t* const cache_element =
+      ihash_get(filtering_region_cache->footprint_hash,filtering_region->footprint,filtering_region_cache_element_t);
+  if (cache_element==NULL) {
+    PROFILE_STOP(GP_FC_CACHE_SEARCH,PROFILE_LEVEL);
+    return NULL;
+  }
+  // Compare filtering regions
+  if (filtering_region_cache_cmp_regions(filtering_region,cache_element->filtering_region,text_collection)) {
+    PROF_INC_COUNTER(GP_FC_CACHE_SEARCH_HIT);
+    PROFILE_STOP(GP_FC_CACHE_SEARCH,PROFILE_LEVEL);
+    return matches_get_match_trace(matches,*(cache_element->match_trace_offset));
+  } else {
+    PROFILE_STOP(GP_FC_CACHE_SEARCH,PROFILE_LEVEL);
+    return NULL;
+  }
+}
+
 
