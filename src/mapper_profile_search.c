@@ -329,7 +329,7 @@ void mapper_profile_print_approximate_search_ranks(FILE* const stream) {
  * Ranks Profile
  */
 void mapper_profile_print_mapper_ranks(FILE* const stream) {
-  tab_fprintf(stream,"[GEM]>RANKS.Mapper\n");
+  tab_fprintf(stream,"[GEM]>Profile.RANKS.Mapper");
   COUNTER_PRINT(stream,PROF_GET_RANK(GP_MAPPER_ALL),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
   tab_fprintf(stream,"  => RANKS.Archive.Search        ");
   COUNTER_PRINT(stream,PROF_GET_RANK(GP_ARCHIVE_SEARCH_SE),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);

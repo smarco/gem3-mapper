@@ -45,6 +45,7 @@ uint64_t filtering_candidates_verify_buffered_add(
     // Locate candidate sequence
     const uint64_t begin_position = candidate_region->begin_position;
     const uint64_t candidate_length = candidate_region->end_position - begin_position;
+    gem_slog("> Candidate #%lu (%lu nt)\n",candidate_pos,candidate_length);
     // Calculate tile dimensions
     pattern_tiled_t pattern_tiled;
     const bool pattern_can_align = pattern_tiled_init(&pattern_tiled,
@@ -55,6 +56,10 @@ uint64_t filtering_candidates_verify_buffered_add(
       // BPM-GPU put candidate
       gpu_buffer_align_bpm_add_candidate(gpu_buffer_align_bpm,tile_offset,
           begin_position+pattern_tiled.tile_offset,pattern_tiled.tile_wide);
+      gem_slog("  => Tile #%lu (Offsets=%lu-%lu Tall=%lu Wide=%lu)\n",
+          tile_offset,pattern_tiled.tile_offset,
+          pattern_tiled.tile_offset+pattern_tiled.tile_wide,
+          pattern_tiled.tile_tall,pattern_tiled.tile_wide);
       // Calculate next tile
       pattern_tiled_calculate_next(&pattern_tiled);
     }

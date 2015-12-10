@@ -108,14 +108,14 @@ void mapper_profile_print_mapper_efficiency_ratios(FILE* const stream) {
       (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MATCH_NUM_SE_MATCHES_ADDED)));
   tab_fprintf(stream,"  --> Time/Read                %10.3f ms\n",
       (float)TIMER_GET_TOTAL_MS(PROF_GET_TIMER(GP_MAPPER_ALL))/
-      (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MATCH_NUM_SE_MATCHES_ADDED)));
+      (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MAPPER_NUM_READS)));
   tab_fprintf(stream,"    --> Time/Alignment         %10.3f us\n",
       (float)TIMER_GET_TOTAL_US(PROF_GET_TIMER(GP_MAPPER_ALL))/
-      (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MAPPER_NUM_READS)));
+      (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MATCH_NUM_SE_MATCHES_ADDED)));
   tab_fprintf(stream,"  --> Throughput\n");
   const float reads_per_sec =
-      (float)TIMER_GET_TOTAL_S(PROF_GET_TIMER(GP_MAPPER_ALL)) /
-      (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MAPPER_NUM_READS));
+      (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MAPPER_NUM_READS)) /
+      (float)TIMER_GET_TOTAL_S(PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"  --> Reads/s            %10.3f\n",reads_per_sec);
   tab_fprintf(stream,"  --> MegaReads/h        %10.3f\n",reads_per_sec*3600.0/1000000.0);
   tab_fprintf(stream,"  --> GigaReads/d        %10.3f\n",reads_per_sec*3600.0*24.0/1000000000.0);

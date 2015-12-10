@@ -74,6 +74,7 @@ void mapper_se_cuda_region_profile(mapper_cuda_search_t* const mapper_search) {
         mapper_search->buffered_fasta_input,archive_search_get_sequence(archive_search),
         parameters->io.fastq_strictly_normalized,parameters->io.fastq_try_recovery,false);
     gem_cond_fatal_error(error_code==INPUT_STATUS_FAIL,MAPPER_CUDA_ERROR_PARSING);
+    PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
     // Generate Candidates (Search into the archive)
     archive_search_se_stepwise_init_search(archive_search);
     archive_search_se_stepwise_region_profile_generate(archive_search);

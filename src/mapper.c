@@ -292,7 +292,7 @@ error_code_t mapper_PE_parse_paired_sequences(
       parameters->io.fastq_strictly_normalized,parameters->io.fastq_try_recovery,false);
   if (gem_expect_false(error_code!=INPUT_STATUS_OK)) return error_code;
   // OK
-  PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
+  PROF_ADD_COUNTER(GP_MAPPER_NUM_READS,2);
   return INPUT_STATUS_OK;
 }
 error_code_t mapper_SE_read_single_sequence(mapper_search_t* const mapper_search) {

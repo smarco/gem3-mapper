@@ -46,11 +46,11 @@ void mapper_profile_print_search_stage_buffers(FILE* const stream) {
   tab_fprintf(stream,"  |> CUDA.Search.Stages.Buffers\n");
   tab_fprintf(stream,"    --> CUDA.RegionProfile\n");
   tab_fprintf(stream,"      --> Buffers.Used                       ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SEARCH_STAGE_REGION_PROFILE_BUFFERS_USED),NULL,"",true);
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SEARCH_STAGE_REGION_PROFILE_BUFFERS_USED),NULL,"        ",true);
   tab_fprintf(stream,"      --> Buffer.Searches                    ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SEARCH_STAGE_REGION_PROFILE_SEARCHES_IN_BUFFER),NULL,"",true);
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_SEARCH_STAGE_REGION_PROFILE_SEARCHES_IN_BUFFER),NULL,"        ",true);
   tab_fprintf(stream,"      --> Buffer.Queries                     ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_GPU_BUFFER_FMI_SEARCH_NUM_QUERIES),NULL,"",true);
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_GPU_BUFFER_FMI_SEARCH_NUM_QUERIES),NULL,"        ",true);
   tab_fprintf(stream,"        --> Buffer.Queries.Usage             ");
   PERCENTAGE_PRINT(stream,PROF_GET_COUNTER(GP_GPU_BUFFER_FMI_SEARCH_USAGE_QUERIES),"        ");
   tab_fprintf(stream,"    --> CUDA.DecodeCandidates\n");
