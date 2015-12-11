@@ -181,6 +181,23 @@ void gpu_alloc_buffer_(void *gpuBuffer)
   CUDA_ERROR(cudaMalloc((void**) &mBuff->d_rawData, mBuff->sizeBuffer));
 }
 
+void gpu_realloc_buffer_(void *gpuBuffer, const float maxMbPerBuffer)
+{
+  gpu_buffer_t *mBuff = (gpu_buffer_t *) gpuBuffer;
+  const uint32_t idSupDevice = mBuff->idSupportedDevice;
+  mBuff->sizeBuffer = GPU_CONVERT_MB_TO__B(maxMbPerBuffer);
+
+  //FREE HOST AND DEVICE BUFFER
+  GPU_ERROR(gpu_free_buffer(mBuff));
+
+  //Select the device of the Multi-GPU platform
+  CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
+
+  //ALLOCATE HOST AND DEVICE BUFFER
+  CUDA_ERROR(cudaHostAlloc((void**) &mBuff->h_rawData, mBuff->sizeBuffer, cudaHostAllocMapped));
+  CUDA_ERROR(cudaMalloc((void**) &mBuff->d_rawData, mBuff->sizeBuffer));
+}
+
 gpu_error_t gpu_configure_buffer(gpu_buffer_t *mBuff, const uint32_t idBuffer, const uint32_t idSupportedDevice, const size_t bytesPerBuffer,
                                  const uint32_t numBuffers, gpu_device_info_t **device, gpu_reference_buffer_t *reference, gpu_index_buffer_t *index)
 {

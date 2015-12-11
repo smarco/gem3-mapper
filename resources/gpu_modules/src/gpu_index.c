@@ -437,7 +437,7 @@ gpu_error_t gpu_init_index(gpu_index_buffer_t **index, const void *indexRaw,
 
   if(activeModules & (GPU_FMI_DECODE_POS | GPU_FMI_EXACT_SEARCH)){
     fmi->bwtSize     = bwtSize;
-    fmi->numEntries    = GPU_DIV_CEIL(fmi->bwtSize, GPU_FMI_ENTRY_SIZE) + 1;
+    fmi->numEntries  = GPU_DIV_CEIL(fmi->bwtSize, GPU_FMI_ENTRY_SIZE) + 1;
     char *h_BWT = NULL;
 
     switch(indexCoding){

@@ -64,7 +64,7 @@ typedef struct {
   uint64_t* C;               // The cumulative occurrences ("ranks") of the symbols of the string
   uint64_t* mayor_counters;  // Pointer to the Mayor Counters (Rank)
   uint64_t* bwt_mem;         // Pointer to the BWT structure in memory
-  uint64_t bwt_length;       // Length of the BWT
+  uint64_t  bwt_length;      // Length of the BWT
 } gpu_gem_fmi_dto_t;
 
 typedef struct {
@@ -94,10 +94,13 @@ uint32_t gpu_fmi_decode_buffer_get_max_positions_(const void* const fmiBuffer);
 void gpu_fmi_search_init_buffer_(void* const fmiBuffer);
 void gpu_fmi_search_send_buffer_(const void* const fmiBuffer, const uint32_t numSeeds);
 void gpu_fmi_search_receive_buffer_(const void* const fmiBuffer);
+void gpu_fmi_search_init_and_realloc_buffer_(void* const fmiBuffer, const uint32_t minNumSeeds);
+
 
 void gpu_fmi_decode_init_buffer_(void* const fmiBuffer);
 void gpu_fmi_decode_send_buffer_(const void* const fmiBuffer, const uint32_t numDecodings, const uint32_t samplingRate);
 void gpu_fmi_decode_receive_buffer_(const void* const fmiBuffer);
+void gpu_fmi_decode_init_and_realloc_buffer_(void* const fmiBuffer, const uint32_t minNumDecodings);
 
 #endif /* GPU_FMI_INTERFACE_H_ */
 

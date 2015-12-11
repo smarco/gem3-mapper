@@ -55,6 +55,11 @@ typedef struct {
 } gpu_bpm_qry_info_t;
 
 typedef struct {
+  char*    reference;         // GEM reference using 8 bases
+  uint64_t reference_length;  // Length of the reference
+} gpu_gem_ref_dto_t;
+
+typedef struct {
   char              *reference;
   gpu_ref_coding_t  refCoding;
   uint64_t          refSize;
@@ -82,5 +87,7 @@ uint32_t gpu_bpm_buffer_get_max_queries_(const void* const bpmBuffer);
 void gpu_bpm_init_buffer_(void* const bpmBuffer, const uint32_t averageQuerySize, const uint32_t candidatesPerQuery);
 void gpu_bpm_send_buffer_(void* const bpmBuffer, const uint32_t numPEQEntries, const uint32_t numQueries, const uint32_t numCandidates, const uint32_t sizeCandidates);
 void gpu_bpm_receive_buffer_(void* const bpmBuffer);
+void gpu_bpm_init_and_realloc_buffer_(void *gpuBuffer, const uint32_t averageQuerySize, const uint32_t candidatesPerQuery, const uint32_t minNumCandidates);
+
 
 #endif /* GPU_BPM_INTERFACE_H_ */

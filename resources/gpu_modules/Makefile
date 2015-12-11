@@ -57,11 +57,11 @@ profile: NVCC_COMPILE_FLAGS=-O3 -m64 --ptxas-options=-v -lineinfo -Xptxas="-dlcm
 profile: GCC_COMPILE_FLAGS=-O3 -m64
 profile: $(OBJS) $(CUDA_OBJS) 
 	
-devel: NVCC_COMPILE_FLAGS=-G -O3 -m64 -lineinfo -Xptxas="-dlcm=ca"
+devel: NVCC_COMPILE_FLAGS=-g -G -O3 -m64 -lineinfo -Xptxas="-dlcm=ca"
 devel: GCC_COMPILE_FLAGS=-g -O3 -m64
 devel: $(OBJS) $(CUDA_OBJS) 
 	
-debug: NVCC_COMPILE_FLAGS=-G -O0 -m64 -lineinfo -Xptxas="-dlcm=ca"
+debug: NVCC_COMPILE_FLAGS=-g -G -O0 -m64 -lineinfo -Xptxas="-dlcm=ca"
 debug: GCC_COMPILE_FLAGS=-g -O0 -m64
 debug: $(OBJS) $(CUDA_OBJS) 
 	

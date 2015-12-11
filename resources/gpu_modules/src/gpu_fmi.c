@@ -83,7 +83,7 @@ void gpu_fmi_search_reallocate_device_buffer_layout(gpu_buffer_t* mBuff)
   rawAlloc = (void *) (mBuff->data.search.saIntervals.d_intervals + mBuff->data.search.numMaxIntervals);
 }
 
-GPU_INLINE void gpu_fmi_search_init_buffer_(void* const fmiBuffer)
+void gpu_fmi_search_init_buffer_(void* const fmiBuffer)
 {
   gpu_buffer_t* const mBuff  = (gpu_buffer_t *) fmiBuffer;
   const size_t        sizeBuff   = mBuff->sizeBuffer * 0.95;
@@ -97,6 +97,29 @@ GPU_INLINE void gpu_fmi_search_init_buffer_(void* const fmiBuffer)
   mBuff->data.search.numMaxIntervals = numInputs;
   gpu_fmi_search_reallocate_host_buffer_layout(mBuff);
   gpu_fmi_search_reallocate_device_buffer_layout(mBuff);
+}
+
+void gpu_fmi_search_init_and_realloc_buffer_(void *fmiBuffer, const uint32_t minNumSeeds)
+{
+  gpu_buffer_t* const mBuff                   = (gpu_buffer_t *) fmiBuffer;
+  const uint32_t      idSupDevice             = mBuff->idSupportedDevice;
+  const float         resizeFactor            = 2.0;
+  const size_t        bytesPerSearchBuffer    = minNumSeeds * gpu_fmi_search_input_size();
+
+  //Recalculate the minimum buffer size
+  mBuff->sizeBuffer = bytesPerSearchBuffer * resizeFactor;
+
+  //FREE HOST AND DEVICE BUFFER
+  GPU_ERROR(gpu_free_buffer(mBuff));
+
+  //Select the device of the Multi-GPU platform
+  CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
+
+  //ALLOCATE HOST AND DEVICE BUFFER
+  CUDA_ERROR(cudaHostAlloc((void**) &mBuff->h_rawData, mBuff->sizeBuffer, cudaHostAllocMapped));
+  CUDA_ERROR(cudaMalloc((void**) &mBuff->d_rawData, mBuff->sizeBuffer));
+
+  gpu_fmi_search_init_buffer_(fmiBuffer);
 }
 
 
@@ -145,6 +168,29 @@ void gpu_fmi_decode_init_buffer_(void* const fmiBuffer)
   mBuff->data.decode.numMaxEndPositions = numMaxPositions;
   gpu_fmi_decode_reallocate_host_buffer_layout(mBuff);
   gpu_fmi_decode_reallocate_device_buffer_layout(mBuff);
+}
+
+void gpu_fmi_decode_init_and_realloc_buffer_(void *fmiBuffer, const uint32_t minNumDecodes)
+{
+  gpu_buffer_t* const mBuff                   = (gpu_buffer_t *) fmiBuffer;
+  const uint32_t      idSupDevice             = mBuff->idSupportedDevice;
+  const float         resizeFactor            = 2.0;
+  const size_t        bytesPerDecodeBuffer    = minNumDecodes * gpu_fmi_decode_input_size();
+
+  //Recalculate the minimum buffer size
+  mBuff->sizeBuffer = bytesPerDecodeBuffer * resizeFactor;
+
+  //FREE HOST AND DEVICE BUFFER
+  GPU_ERROR(gpu_free_buffer(mBuff));
+
+  //Select the device of the Multi-GPU platform
+  CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
+
+  //ALLOCATE HOST AND DEVICE BUFFER
+  CUDA_ERROR(cudaHostAlloc((void**) &mBuff->h_rawData, mBuff->sizeBuffer, cudaHostAllocMapped));
+  CUDA_ERROR(cudaMalloc((void**) &mBuff->d_rawData, mBuff->sizeBuffer));
+
+  gpu_fmi_decode_init_buffer_(fmiBuffer);
 }
 
 /************************************************************
@@ -202,7 +248,7 @@ uint32_t gpu_fmi_search_print_buffer(const void* const fmiBuffer)
       const uint32_t seedSize = hiSeedSection >> (GPU_UINT64_LENGTH - GPU_FMI_SEED_FIELD_SIZE);
       printf("[%d] seed=", idSeed);
       gpu_fmi_search_print_seed(mBuff->data.search.seeds.h_seeds[idSeed], seedSize);
-      printf("\t size=%d \t (GPU) lo=%lu \t hi=%lu \n",
+      printf("\t size=%d \t (GPU) lo=%llu \t hi=%llu \n",
              seedSize,
              mBuff->data.search.saIntervals.h_intervals[idSeed].low,
              mBuff->data.search.saIntervals.h_intervals[idSeed].hi);
