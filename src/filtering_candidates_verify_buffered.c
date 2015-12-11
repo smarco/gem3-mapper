@@ -45,7 +45,7 @@ uint64_t filtering_candidates_verify_buffered_add(
     // Locate candidate sequence
     const uint64_t begin_position = candidate_region->begin_position;
     const uint64_t candidate_length = candidate_region->end_position - begin_position;
-    gem_slog("> Candidate #%lu (%lu nt)\n",candidate_pos,candidate_length);
+    // gem_slog("> Candidate #%lu (%lu nt)\n",candidate_pos,candidate_length);
     // Calculate tile dimensions
     pattern_tiled_t pattern_tiled;
     const bool pattern_can_align = pattern_tiled_init(&pattern_tiled,
@@ -56,10 +56,10 @@ uint64_t filtering_candidates_verify_buffered_add(
       // BPM-GPU put candidate
       gpu_buffer_align_bpm_add_candidate(gpu_buffer_align_bpm,tile_offset,
           begin_position+pattern_tiled.tile_offset,pattern_tiled.tile_wide);
-      gem_slog("  => Tile #%lu (Offsets=%lu-%lu Tall=%lu Wide=%lu)\n",
-          tile_offset,pattern_tiled.tile_offset,
-          pattern_tiled.tile_offset+pattern_tiled.tile_wide,
-          pattern_tiled.tile_tall,pattern_tiled.tile_wide);
+      //gem_slog("  => Tile #%lu (Offsets=%lu-%lu Tall=%lu Wide=%lu)\n",
+      //    tile_offset,pattern_tiled.tile_offset,
+      //    pattern_tiled.tile_offset+pattern_tiled.tile_wide,
+      //    pattern_tiled.tile_tall,pattern_tiled.tile_wide);
       // Calculate next tile
       pattern_tiled_calculate_next(&pattern_tiled);
     }
@@ -139,15 +139,21 @@ bool filtering_candidates_verify_buffered_get_result(
     bpm_compute_edit_distance_cutoff(&bpm_pattern_tile,text,candidate_length,
         &check_tile_match_end_column,&check_tile_distance,bpm_pattern_tile.pattern_length,false);
     if (tile_distance!=check_tile_distance || tile_match_column!=check_tile_match_end_column) {
-      gem_error_msg("Filtering.Candidates.Verify.Buffered. Check verify candidate "
-          "(Distance:%d!=%lu) (MatchPos:%d!=%lu) (Text.Uncalled.bases=%lu)",
-          tile_distance,check_tile_distance,tile_match_column,
-          check_tile_match_end_column,uncalled_bases_text);
+      if (uncalled_bases_text == 0) {
+        gem_error_msg("Filtering.Candidates.Verify.Buffered. Check verify candidate "
+            "(Distance:%d!=%lu) (MatchPos:%d!=%lu) (Text.Uncalled.bases=%lu)",
+            tile_distance,check_tile_distance,tile_match_column,
+            check_tile_match_end_column,uncalled_bases_text);
+      }
     }
-    //      // Whole read // TODO + STATS
-    //      uint64_t match_end_column, match_distance;
-    //      bpm_compute_edit_distance_cutoff(global_pattern,text,candidate_length,
-    //          &match_end_column,&match_distance,global_pattern->pattern_length,false);
+    // Whole read
+    uint64_t match_end_column, match_distance;
+    bpm_compute_edit_distance_cutoff(bpm_pattern,text,candidate_length,
+        &match_end_column,&match_distance,bpm_pattern->pattern_length,false);
+    gem_slog(">FC.Verify.Candidate.Buffered.Distance\t"
+        "Whole.Read=%lu\tTileWise={bound=%lu,estimated=%lu}\n",
+        match_distance,*global_distance,*global_distance+*distance_link_tiles);
+    PROF_ADD_COUNTER(GP_FC_RETRIEVE_CANDIDATE_REGIONS_DIST_DIFF,ABS(*global_distance-match_distance));
     mm_stack_pop_state(mm_stack,false);
 #endif
   }
@@ -163,7 +169,7 @@ uint64_t filtering_candidates_verify_buffered_retrieve(
    * Retrieve filtering-regions from BPM-Buffer
    */
   if (gem_expect_false(candidate_offset_begin==candidate_offset_end)) return 0;
-  PROFILE_START(GP_FC_RETRIEVE_BPM_BUFFER_CANDIDATE_REGIONS,PROFILE_LEVEL);
+  PROFILE_START(GP_FC_RETRIEVE_CANDIDATE_REGIONS_BUFFERED,PROFILE_LEVEL);
   // Fetch Parameters
   const uint64_t max_error = pattern->max_effective_filtering_error;
   const uint64_t gpu_pattern_length = pattern->key_length;
@@ -234,7 +240,7 @@ uint64_t filtering_candidates_verify_buffered_retrieve(
   vector_update_used(filtering_candidates->verified_regions,regions_verified);
   vector_update_used(filtering_candidates->filtering_regions,regions_accepted);
   vector_update_used(filtering_candidates->discarded_regions,regions_discarded);
-  PROFILE_STOP(GP_FC_RETRIEVE_BPM_BUFFER_CANDIDATE_REGIONS,PROFILE_LEVEL);
+  PROFILE_STOP(GP_FC_RETRIEVE_CANDIDATE_REGIONS_BUFFERED,PROFILE_LEVEL);
   // DEBUG
   gem_cond_debug_block(DEBUG_FILTERING_CANDIDATES) {
     tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Candidates (verify_regions_BPM_buffer)\n");

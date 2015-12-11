@@ -23,9 +23,9 @@
 /*
  * Debug GPU results from gpu-buffers (for each stage)
  */
-#define CUDA_CHECK_BUFFERED_REGION_PROFILE
-#define CUDA_CHECK_BUFFERED_DECODE_POSITIONS
-#define CUDA_CHECK_BUFFERED_VERIFY_CANDIDATES
+//#define CUDA_CHECK_BUFFERED_REGION_PROFILE
+//#define CUDA_CHECK_BUFFERED_DECODE_POSITIONS
+//#define CUDA_CHECK_BUFFERED_VERIFY_CANDIDATES
 
 typedef struct {
   void* gpu_buffers_dto;              // GPU-Buffer Initializer DTO

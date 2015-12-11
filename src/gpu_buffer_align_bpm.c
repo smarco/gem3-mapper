@@ -27,6 +27,12 @@
 #define GPU_ALIGN_BPM_CANDIDATES_PER_QUERY      20
 
 /*
+ * Errors
+ */
+#define GEM_ERROR_GPU_BPM_MAX_PATTERN_LENGTH "BPM-GPU. Query pattern (%"PRIu64" entries) exceeds maximum buffer capacity (%"PRIu64" entries)"
+#define GEM_ERROR_GPU_BPM_MAX_CANDIDATES "BPM-GPU. Number of candidates (%"PRIu64") exceeds maximum buffer capacity (%"PRIu64" candidates)"
+
+/*
  * Pattern Setup
  */
 void gpu_bpm_pattern_compile(bpm_pattern_t* const bpm_pattern,const uint64_t max_error) {
@@ -141,6 +147,7 @@ bool gpu_buffer_align_bpm_fits_in_buffer(
   if (gpu_buffer_align_bpm->num_queries+total_queries > max_queries ||
       gpu_buffer_align_bpm->num_entries+total_entries > max_PEQ_entries) {
     // Check if the pattern can fit into an empty buffer
+    gem_cond_fatal_error(total_queries > max_queries,GPU_BPM_MAX_CANDIDATES,total_queries,max_queries);
     gem_cond_fatal_error(total_entries > max_PEQ_entries,GPU_BPM_MAX_PATTERN_LENGTH,total_entries,max_PEQ_entries);
     return false;
   }

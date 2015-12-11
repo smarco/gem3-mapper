@@ -121,8 +121,7 @@
 
 #define GP_ASSW_REGION_PROFILE_UNSUCCESSFUL                 200
 //#define GP_ASSW_REGION_PROFILE_
-#define GP_ASSW_DECODE_CANDIDATES                           210
-#define GP_ASSW_DECODE_CANDIDATES_UNSUCCESSFUL              211
+//#define GP_ASSW_DECODE_CANDIDATES_
 //#define GP_ASSW_VERIFY_CANDIDATES_
 
 /*
@@ -169,28 +168,31 @@
 #define GP_FC_VERIFICATION                                  330
 #define GP_FC_PROCESS_CANDIDATES                            331
 #define GP_FC_DECODE_POSITIONS                              332
-#define GP_FC_VERIFY_CANDIDATE_REGIONS                      333
-#define GP_FC_RETRIEVE_BPM_BUFFER_CANDIDATE_REGIONS         334
-#define GP_FC_REALIGN_CANDIDATE_REGIONS                     335
-#define GP_FC_UNBOUNDED_ALIGNMENT                           336
-#define GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS          337
-#define GP_FC_RETRIEVE_CANDIDATE_REGIONS                    338
-#define GP_FC_COMPOSE_REGIONS                               339
+#define GP_FC_DECODE_CANDIDATES_BUFFERED                    333
+#define GP_FC_DECODE_CANDIDATES_BUFFERED_UNSUCCESSFUL       335
+#define GP_FC_DECODE_CANDIDATES_BUFFERED_UNSUCCESSFUL_TOTAL 336
+#define GP_FC_VERIFY_CANDIDATE_REGIONS                      337
+#define GP_FC_REALIGN_CANDIDATE_REGIONS                     338
+#define GP_FC_UNBOUNDED_ALIGNMENT                           339
+#define GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS          340
+#define GP_FC_RETRIEVE_CANDIDATE_REGIONS                    341
+#define GP_FC_RETRIEVE_CANDIDATE_REGIONS_BUFFERED           342
+#define GP_FC_RETRIEVE_CANDIDATE_REGIONS_DIST_DIFF          343
+#define GP_FC_COMPOSE_REGIONS                               344
 
-#define GP_FC_KMER_COUNTER_FILTER                           340
-#define GP_FC_KMER_COUNTER_FILTER_ACCEPTED                  341
+#define GP_FC_KMER_COUNTER_FILTER                           350
+#define GP_FC_KMER_COUNTER_FILTER_ACCEPTED                  351
 
-#define GP_FC_EXTEND_MATCH                                  350
-#define GP_FC_EXTEND_RETRIEVE_CANDIDATE_REGIONS             351
-#define GP_FC_EXTEND_VERIFY_CANDIDATE_REGIONS               352
-#define GP_FC_EXTEND_VERIFY_CANDIDATE_LENGTH                353
-#define GP_FC_EXTEND_REALIGN_CANDIDATE_REGIONS              354
+#define GP_FC_EXTEND_MATCH                                  360
+#define GP_FC_EXTEND_RETRIEVE_CANDIDATE_REGIONS             361
+#define GP_FC_EXTEND_VERIFY_CANDIDATE_REGIONS               362
+#define GP_FC_EXTEND_VERIFY_CANDIDATE_LENGTH                363
+#define GP_FC_EXTEND_REALIGN_CANDIDATE_REGIONS              364
 
-#define GP_FC_CACHE_COMPUTE_FOOTPRINT                       360
-#define GP_FC_CACHE_SEARCH                                  361
-#define GP_FC_CACHE_SEARCH_HIT                              362
-
-#define GP_FC_SELECT_PRUNE_HIT                              365
+#define GP_FC_CACHE_COMPUTE_FOOTPRINT                       370
+#define GP_FC_CACHE_SEARCH                                  371
+#define GP_FC_CACHE_SEARCH_HIT                              372
+#define GP_FC_SELECT_PRUNE_HIT                              373
 
 #define GP_CANDIDATE_POSITIONS                              400
 #define GP_CANDIDATE_REGIONS                                402

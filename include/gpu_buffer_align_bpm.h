@@ -114,10 +114,4 @@ uint64_t gpu_buffer_align_bpm_get_mean_candidates_per_query(
 void gpu_buffer_align_bpm_send(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
 void gpu_buffer_align_bpm_receive(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
 
-/*
- * Errors
- */
-#define GEM_ERROR_GPU_BPM_MAX_PATTERN_LENGTH "BPM-GPU. Query pattern (%"PRIu64" entries) exceeds maximum buffer capacity (%"PRIu64" entries)"
-#define GEM_ERROR_GPU_BPM_MAX_CANDIDATES "BPM-GPU. Number of candidates (%"PRIu64") exceeds maximum buffer capacity (%"PRIu64" candidates)"
-
 #endif /* GPU_BUFFER_ALIGN_BPM_H_ */
