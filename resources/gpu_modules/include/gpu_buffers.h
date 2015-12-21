@@ -43,8 +43,9 @@ typedef struct {
 
 
 /* Primitives to get information from buffers */
-gpu_error_t gpu_get_min_memory_per_module(size_t *minimumMemorySize, gpu_reference_buffer_t *reference, gpu_index_buffer_t *index,
-                                          const uint32_t numBuffers, const gpu_module_t activeModules);
+gpu_error_t gpu_get_min_memory_per_module(size_t *minimumMemorySize, const gpu_reference_buffer_t* const reference,
+                                          const gpu_index_buffer_t* const index, const uint32_t numBuffers,
+                                          const gpu_module_t activeModules);
 gpu_error_t gpu_module_memory_manager(const uint32_t idDevice, const uint32_t idSupDevice, const uint32_t numBuffers,
                                       const gpu_data_location_t userAllocOption, bool *dataFits, bool *lReference, bool *lIndex,
                                       size_t *recMemSize, size_t *reqMemSize, gpu_reference_buffer_t *reference, gpu_index_buffer_t *index);
@@ -54,9 +55,10 @@ gpu_error_t gpu_configure_modules(gpu_device_info_t ***devices, const gpu_dev_ar
 
 /* Primitives to schedule and manage the buffers */
 gpu_error_t gpu_get_min_memory_size_per_buffer(size_t *bytesPerBuffer); //gpu_get_min_memory_size_per_device
-gpu_error_t gpu_configure_buffer(gpu_buffer_t *mBuff, const uint32_t idBuffer, const uint32_t idSupportedDevice, const size_t bytesPerBuffer,
-                                 const uint32_t numBuffers, gpu_device_info_t **device, gpu_reference_buffer_t *reference, gpu_index_buffer_t *index);
-gpu_error_t gpu_schedule_buffers(gpu_buffer_t ***gpuBuffer, const uint32_t numBuffers, gpu_device_info_t **device,
+gpu_error_t gpu_configure_buffer(gpu_buffer_t* const mBuff, const uint32_t idBuffer, const uint32_t idSupportedDevice,
+                                 const size_t bytesPerBuffer, const uint32_t numBuffers, gpu_device_info_t** const device,
+                                 gpu_reference_buffer_t* const reference, gpu_index_buffer_t* const index);
+gpu_error_t gpu_schedule_buffers(gpu_buffer_t ***gpuBuffer, const uint32_t numBuffers, gpu_device_info_t** const device,
                                  gpu_reference_buffer_t *reference, gpu_index_buffer_t *index, float maxMbPerBuffer);
 
 /* Functions to free all the buffer resources (HOST & DEVICE) */

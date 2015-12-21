@@ -9,12 +9,14 @@
 
 #ifndef GPU_COMMONS_H_
 #define GPU_COMMONS_H_
+//#define _FILE_OFFSET_BITS 64
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <sys/types.h>
 
 #include <cuda.h>
 #include <cuda_runtime.h>

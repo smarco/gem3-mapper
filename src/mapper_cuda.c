@@ -77,8 +77,6 @@ void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,const bool pai
   mapper_parameters_cuda_t* const cuda_parameters = &mapper_parameters->cuda;
   // Check CUDA-Support
   if (!gpu_supported()) GEM_CUDA_NOT_SUPPORTED();
-  // Load GEM-Index
-  mapper_load_index(mapper_parameters);
   // Prepare GPU Buffers
   const uint64_t num_threads = mapper_parameters->system.num_threads;
   const uint64_t num_gpu_buffers_per_thread =
@@ -90,6 +88,8 @@ void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,const bool pai
   gpu_buffer_collection_t* const gpu_buffer_collection =
       gpu_buffer_collection_new(mapper_parameters->archive,
           num_gpu_buffers,cuda_parameters->gpu_buffer_size,mapper_parameters->misc.verbose_dev);
+  // Load GEM-Index
+  mapper_load_index(mapper_parameters);
   // I/O (SAM headers)
   archive_t* const archive = mapper_parameters->archive;
   const bool bisulfite_index = (archive->type == archive_dna_bisulfite);

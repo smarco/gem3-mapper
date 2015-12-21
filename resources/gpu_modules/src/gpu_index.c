@@ -21,7 +21,8 @@ char gpu_bin_to_char(const uint32_t indexBase)
   return (base);
 }
 
-void gpu_encode_entry_BWT_to_PEQ(gpu_index_bitmap_entry_t *bwt_entry, char base, const uint32_t size)
+void gpu_encode_entry_BWT_to_PEQ(gpu_index_bitmap_entry_t* const bwt_entry,
+                                 const char base, const uint32_t size)
 {
   const uint32_t binBase = gpu_char_to_bin(base);
   uint32_t idBase;
@@ -30,13 +31,14 @@ void gpu_encode_entry_BWT_to_PEQ(gpu_index_bitmap_entry_t *bwt_entry, char base,
   }
 }
 
-void gpu_bining_bases(gpu_index_counter_entry_t *counterEntry, const char base)
+void gpu_bining_bases(gpu_index_counter_entry_t* const counterEntry, const char base)
 {
   const uint32_t indexBase = gpu_char_to_bin(base);
   if(indexBase < 4) counterEntry->counters[indexBase]++;
 }
 
-gpu_error_t gpu_index_build_PEQ(gpu_index_buffer_t *fmi, const char *h_ascii_BWT, gpu_index_bitmap_entry_t *h_bitmap_BWT)
+gpu_error_t gpu_index_build_PEQ(const gpu_index_buffer_t* const fmi, const char* const h_ascii_BWT,
+                                gpu_index_bitmap_entry_t* const h_bitmap_BWT)
 {
   uint64_t idEntry, i, bwtPosition;
   unsigned char bwtChar;
@@ -55,7 +57,8 @@ gpu_error_t gpu_index_build_PEQ(gpu_index_buffer_t *fmi, const char *h_ascii_BWT
   return(SUCCESS);
 }
 
-gpu_error_t gpu_index_build_counters(gpu_index_buffer_t *fmi, gpu_index_counter_entry_t *h_counters_FMI, const char *h_ascii_BWT)
+gpu_error_t gpu_index_build_counters(const gpu_index_buffer_t* const fmi, gpu_index_counter_entry_t* const h_counters_FMI,
+                                     const char* const h_ascii_BWT)
 {
   uint64_t idEntry, i, bwtPosition;
   uint32_t idBase, idCounter;
@@ -104,7 +107,8 @@ gpu_error_t gpu_index_build_counters(gpu_index_buffer_t *fmi, gpu_index_counter_
   return (SUCCESS);
 }
 
-void gpu_index_set_layout_counter(gpu_index_counter_entry_t *h_counters_FMI, gpu_fmi_entry_t *h_fmi, const uint64_t idEntry)
+void gpu_index_set_layout_counter(const gpu_index_counter_entry_t* const h_counters_FMI,
+                                  gpu_fmi_entry_t* const h_fmi, const uint64_t idEntry)
 {
   uint32_t idCounter;
   for(idCounter = 0; idCounter < GPU_FMI_COUNTERS_PER_ENTRY; ++idCounter){
@@ -113,7 +117,7 @@ void gpu_index_set_layout_counter(gpu_index_counter_entry_t *h_counters_FMI, gpu
   }
 }
 
-void gpu_index_set_layout_bitmap(gpu_index_bitmap_entry_t *h_bitmap_BWT, gpu_fmi_entry_t *h_fmi)
+void gpu_index_set_layout_bitmap(gpu_index_bitmap_entry_t* const h_bitmap_BWT, gpu_fmi_entry_t* const h_fmi)
 {
   const uint32_t LUT[12] = {3,7,11,0,1,2,4,5,6,8,9,10};                                                     // 1 1 (1) 0 2 2 (2) 0 3 3 (3) (0)
   uint32_t idPacket, idFMIBucket, padding = 0;
@@ -132,7 +136,8 @@ void gpu_index_set_layout_bitmap(gpu_index_bitmap_entry_t *h_bitmap_BWT, gpu_fmi
 }
 
 
-gpu_error_t gpu_index_build_FMI(gpu_index_buffer_t *fmi, gpu_index_bitmap_entry_t *h_bitmap_BWT, gpu_index_counter_entry_t *h_counters_FMI)
+gpu_error_t gpu_index_build_FMI(gpu_index_buffer_t* const fmi, gpu_index_bitmap_entry_t* const h_bitmap_BWT,
+                                const gpu_index_counter_entry_t* const h_counters_FMI)
 {
   const uint32_t BITMAPS_PER_FMI = GPU_FMI_ENTRY_SIZE / GPU_UINT32_LENGTH;  // 4 FMI bitmap entries
   uint64_t idEntry;
@@ -145,28 +150,28 @@ gpu_error_t gpu_index_build_FMI(gpu_index_buffer_t *fmi, gpu_index_bitmap_entry_
   return(SUCCESS);
 }
 
-gpu_error_t gpu_transform_index_ASCII(const char *h_BWT, gpu_index_buffer_t *fmi)
+gpu_error_t gpu_transform_index_ASCII(const char* const h_BWT, gpu_index_buffer_t* const fmi)
 {
-  gpu_index_bitmap_entry_t  *h_bitmaps_BWT  = NULL;
-  gpu_index_counter_entry_t *h_counters_FMI = NULL;
+    gpu_index_bitmap_entry_t  *h_bitmaps_BWT  = NULL;
+    gpu_index_counter_entry_t *h_counters_FMI = NULL;
 
-  const uint32_t bwtNumEntries      = fmi->numEntries * (GPU_FMI_ENTRY_SIZE / GPU_UINT32_LENGTH);
-  const uint32_t countersNumEntries = fmi->numEntries * (GPU_FMI_ENTRY_SIZE / GPU_UINT32_LENGTH);
+    const uint32_t bwtNumEntries      = fmi->numEntries * (GPU_FMI_ENTRY_SIZE / GPU_UINT32_LENGTH);
+    const uint32_t countersNumEntries = fmi->numEntries * (GPU_FMI_ENTRY_SIZE / GPU_UINT32_LENGTH);
 
-  h_bitmaps_BWT = (gpu_index_bitmap_entry_t *) malloc(bwtNumEntries * sizeof(gpu_index_bitmap_entry_t));
-  if (h_bitmaps_BWT == NULL) return (E_ALLOCATE_MEM);
-  h_counters_FMI = (gpu_index_counter_entry_t *) malloc(countersNumEntries * sizeof(gpu_index_counter_entry_t));
-  if (h_counters_FMI == NULL) return (E_ALLOCATE_MEM);
-  CUDA_ERROR(cudaHostAlloc((void**) &fmi->h_fmi, fmi->numEntries * sizeof(gpu_fmi_entry_t), cudaHostAllocMapped));
-  if (fmi->h_fmi == NULL) return (E_ALLOCATE_MEM);
+    h_bitmaps_BWT = (gpu_index_bitmap_entry_t *) malloc(bwtNumEntries * sizeof(gpu_index_bitmap_entry_t));
+    if (h_bitmaps_BWT == NULL) return (E_ALLOCATE_MEM);
+    h_counters_FMI = (gpu_index_counter_entry_t *) malloc(countersNumEntries * sizeof(gpu_index_counter_entry_t));
+    if (h_counters_FMI == NULL) return (E_ALLOCATE_MEM);
+    CUDA_ERROR(cudaHostAlloc((void**) &fmi->h_fmi, fmi->numEntries * sizeof(gpu_fmi_entry_t), cudaHostAllocMapped));
+    if (fmi->h_fmi == NULL) return (E_ALLOCATE_MEM);
 
-  GPU_ERROR(gpu_index_build_PEQ(fmi, h_BWT, h_bitmaps_BWT));
-  GPU_ERROR(gpu_index_build_counters(fmi, h_counters_FMI, h_BWT));
-  GPU_ERROR(gpu_index_build_FMI(fmi, h_bitmaps_BWT, h_counters_FMI));
+    GPU_ERROR(gpu_index_build_PEQ(fmi, h_BWT, h_bitmaps_BWT));
+    GPU_ERROR(gpu_index_build_counters(fmi, h_counters_FMI, h_BWT));
+    GPU_ERROR(gpu_index_build_FMI(fmi, h_bitmaps_BWT, h_counters_FMI));
 
-  free(h_bitmaps_BWT);
-  free(h_counters_FMI);
-  return(SUCCESS);
+    free(h_bitmaps_BWT);
+    free(h_counters_FMI);
+    return(SUCCESS);
 }
 
 uint32_t gpu_bit_reverse(uint32_t a)
@@ -190,7 +195,7 @@ uint32_t gpu_gen_mask(const int32_t shift)
   return(mask);
 }
 
-gpu_error_t gpu_transform_index_GEM_FULL(gpu_gem_fmi_dto_t* const gpu_gem_fmi_dto, gpu_index_buffer_t *fmi)
+gpu_error_t gpu_transform_index_GEM_FULL(const gpu_gem_fmi_dto_t* const gpu_gem_fmi_dto, gpu_index_buffer_t* const fmi)
 {
   // BWT Parameters
   const uint64_t BWT_MINOR_BLOCKS_PER_MAYOR_BLOCK = (1<<10); /* 1024 */
@@ -201,6 +206,8 @@ gpu_error_t gpu_transform_index_GEM_FULL(gpu_gem_fmi_dto_t* const gpu_gem_fmi_dt
   const uint32_t* bwt_mem = (uint32_t*) gpu_gem_fmi_dto->bwt_mem;
   const uint64_t bwt_length = gpu_gem_fmi_dto->bwt_length;
   // Allocate fmi memory
+  fmi->bwtSize = bwt_length;
+  fmi->numEntries = GPU_DIV_CEIL(fmi->bwtSize, GPU_FMI_ENTRY_SIZE) + 1;
   CUDA_ERROR(cudaHostAlloc((void**) &fmi->h_fmi, fmi->numEntries * sizeof(gpu_fmi_entry_t), cudaHostAllocMapped));
   if (fmi->h_fmi == NULL) return (E_ALLOCATE_MEM);
   gpu_fmi_entry_t* h_fmi = fmi->h_fmi; // Host FMI
@@ -314,66 +321,9 @@ gpu_error_t gpu_transform_index_GEM_FULL(gpu_gem_fmi_dto_t* const gpu_gem_fmi_dt
   return (SUCCESS);
 }
 
-gpu_error_t gpu_load_BWT_MFASTA(const char *fn, gpu_index_buffer_t *fmi, char **h_BWT)
+gpu_error_t gpu_read_index(FILE* fp, gpu_index_buffer_t* const index)
 {
-  FILE *fp = NULL;
-  char *h_ascii_BWT = NULL;
-  char lineFile[GPU_FILE_SIZE_LINES];
-  uint64_t sizeFile = 0, position = 0;
-  int32_t charsRead = 0;
-
-  fp = fopen(fn, "rb");
-  if (fp == NULL) return (E_OPENING_FILE);
-
-  fseek(fp, 0L, SEEK_END);
-  sizeFile = ftell(fp);
-  rewind(fp);
-
-  h_ascii_BWT = (char*) malloc(sizeFile * sizeof(char));
-  if (h_ascii_BWT == NULL) return (E_ALLOCATE_MEM);
-
-  while((!feof(fp)) && (fgets(lineFile, GPU_FILE_SIZE_LINES, fp) != NULL)){
-    if (lineFile[0] != '>'){
-      charsRead = strlen(lineFile);
-      if(charsRead) charsRead--;
-      memcpy((h_ascii_BWT + position), lineFile, charsRead);
-      position +=  charsRead;
-    }
-  }
-
-  fmi->bwtSize    = position;
-  fmi->numEntries = GPU_DIV_CEIL(fmi->bwtSize, GPU_FMI_ENTRY_SIZE) + 1;
-  (* h_BWT)     = h_ascii_BWT;
-
-  fclose(fp);
-  return (SUCCESS);
-}
-
-gpu_error_t gpu_save_index_PROFILE(const char *fn, gpu_index_buffer_t *index)
-{
-  const uint32_t sizeFileName = 512;
-  char fileName[sizeFileName];
-  FILE *fp = NULL;
-
-  sprintf(fileName, "%s.%lu.%u.fmi", fn, index->bwtSize, GPU_FMI_ENTRY_SIZE);
-  fp = fopen(fileName, "wb");
-  if (fp == NULL) return (E_WRITING_FILE);
-
-  fwrite(&index->numEntries, sizeof(uint64_t), 1, fp);
-  fwrite(&index->bwtSize, sizeof(uint64_t), 1, fp);
-  fwrite(index->h_fmi, sizeof(gpu_fmi_entry_t), index->numEntries, fp);
-
-  fclose(fp);
-  return (SUCCESS);
-}
-
-gpu_error_t gpu_load_index_PROFILE(const char *fn, gpu_index_buffer_t *index)
-{
-  FILE *fp = NULL;
   size_t result;
-
-  fp = fopen(fn, "rb");
-  if (fp == NULL) return (E_OPENING_FILE);
 
   result = fread(&index->numEntries, sizeof(uint64_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
@@ -385,11 +335,25 @@ gpu_error_t gpu_load_index_PROFILE(const char *fn, gpu_index_buffer_t *index)
   result = fread(index->h_fmi, sizeof(gpu_fmi_entry_t), index->numEntries, fp);
   if (result != index->numEntries) return (E_READING_FILE);
 
-  fclose(fp);
   return (SUCCESS);
 }
 
-gpu_error_t gpu_transfer_index_CPU_to_GPUs(gpu_index_buffer_t *index, gpu_device_info_t **devices)
+gpu_error_t gpu_write_index(FILE* fp, const gpu_index_buffer_t* const index)
+{
+  size_t result;
+
+  result = fwrite(&index->numEntries, sizeof(uint64_t), 1, fp);
+  if (result != 1) return (E_WRITING_FILE);
+  result = fwrite(&index->bwtSize, sizeof(uint64_t), 1, fp);
+  if (result != 1) return (E_WRITING_FILE);
+
+  result = fwrite(index->h_fmi, sizeof(gpu_fmi_entry_t), index->numEntries, fp);
+  if (result != index->numEntries) return (E_WRITING_FILE);
+
+  return (SUCCESS);
+}
+
+gpu_error_t gpu_transfer_index_CPU_to_GPUs(gpu_index_buffer_t* const index, gpu_device_info_t** const devices)
 {
   uint32_t deviceFreeMemory, idSupportedDevice;
   uint32_t numSupportedDevices = devices[0]->numSupportedDevices;
@@ -411,18 +375,63 @@ gpu_error_t gpu_transfer_index_CPU_to_GPUs(gpu_index_buffer_t *index, gpu_device
   return (SUCCESS);
 }
 
-gpu_error_t gpu_init_index(gpu_index_buffer_t **index, const void *indexRaw,
-                           const uint64_t bwtSize, const gpu_index_coding_t indexCoding,
-                           const uint32_t numSupportedDevices, gpu_module_t activeModules)
+gpu_error_t gpu_transform_index(const char* const indexRaw, gpu_index_buffer_t* const fmi, const gpu_index_coding_t indexCoding)
 {
-  gpu_index_buffer_t *fmi = (gpu_index_buffer_t *) malloc(sizeof(gpu_index_buffer_t));
+  char* h_BWT = NULL;
+
+  if((fmi->activeModules & GPU_INDEX) == 0)
+    return(E_MODULE_NOT_FOUND);
+
+  switch(indexCoding){
+    case GPU_INDEX_ASCII:
+      GPU_ERROR(gpu_transform_index_ASCII(indexRaw, fmi));
+      break;
+    case GPU_INDEX_GEM_FULL:
+      GPU_ERROR(gpu_transform_index_GEM_FULL((gpu_gem_fmi_dto_t*)indexRaw, fmi));
+      break;
+    case GPU_INDEX_GEM_FILE:
+      GPU_ERROR(gpu_load_index_GEM_FULL(indexRaw, fmi));
+      //GPU_ERROR(gpu_save_index_PROFILE("internalIndexGEM", fmi)); //DEBUG: backup the index
+      break;
+    case GPU_INDEX_MFASTA_FILE:
+      GPU_ERROR(gpu_load_BWT_MFASTA(indexRaw, fmi, &h_BWT));
+      GPU_ERROR(gpu_transform_index_ASCII(h_BWT, fmi));
+      free(h_BWT);
+      break;
+    case GPU_INDEX_PROFILE_FILE:
+      GPU_ERROR(gpu_load_index_PROFILE(indexRaw, fmi));
+      break;
+    default:
+      GPU_ERROR(E_INDEX_CODING);
+    break;
+  }
+
+  return(SUCCESS);
+}
+
+gpu_error_t gpu_init_index_dto(gpu_index_buffer_t* const index)
+{
+  //Initialize the index structure
+  index->d_fmi         = NULL;
+  index->h_fmi         = NULL;
+  index->memorySpace   = NULL;
+  index->bwtSize       = 0;
+  index->numEntries    = 0;
+  index->activeModules = GPU_NONE_MODULES;
+  return (SUCCESS);
+}
+
+gpu_error_t gpu_init_index(gpu_index_buffer_t **index, const char* const indexRaw,
+                           const uint64_t bwtSize, const gpu_index_coding_t indexCoding,
+                           const uint32_t numSupportedDevices, const gpu_module_t activeModules)
+{
+  gpu_index_buffer_t* const fmi = (gpu_index_buffer_t *) malloc(sizeof(gpu_index_buffer_t));
   uint32_t idSupDevice;
 
-  fmi->d_fmi          = NULL;
-  fmi->h_fmi          = NULL;
-  fmi->memorySpace    = NULL;
-  fmi->bwtSize        = 0;
-  fmi->numEntries     = 0;
+  GPU_ERROR(gpu_init_index_dto(fmi));
+
+  fmi->bwtSize        = bwtSize;
+  fmi->numEntries     = GPU_DIV_CEIL(fmi->bwtSize, GPU_FMI_ENTRY_SIZE) + 1;
   fmi->activeModules  = activeModules;
 
   fmi->d_fmi = (gpu_fmi_entry_t **) malloc(numSupportedDevices * sizeof(gpu_fmi_entry_t *));
@@ -431,36 +440,12 @@ gpu_error_t gpu_init_index(gpu_index_buffer_t **index, const void *indexRaw,
   if (fmi->memorySpace == NULL) GPU_ERROR(E_ALLOCATE_MEM);
 
   for(idSupDevice = 0; idSupDevice < numSupportedDevices; ++idSupDevice){
-    fmi->d_fmi[idSupDevice]     = NULL;
+    fmi->d_fmi[idSupDevice]       = NULL;
     fmi->memorySpace[idSupDevice] = GPU_NONE_MAPPED;
   }
 
-  if(activeModules & (GPU_FMI_DECODE_POS | GPU_FMI_EXACT_SEARCH)){
-    fmi->bwtSize     = bwtSize;
-    fmi->numEntries  = GPU_DIV_CEIL(fmi->bwtSize, GPU_FMI_ENTRY_SIZE) + 1;
-    char *h_BWT = NULL;
+  GPU_ERROR(gpu_transform_index(indexRaw, fmi, indexCoding));
 
-    switch(indexCoding){
-      case GPU_INDEX_ASCII:
-        GPU_ERROR(gpu_transform_index_ASCII((const char*)indexRaw, fmi));
-        break;
-      case GPU_INDEX_GEM_FULL:
-        GPU_ERROR(gpu_transform_index_GEM_FULL((gpu_gem_fmi_dto_t*)indexRaw, fmi));
-        //GPU_ERROR(gpu_save_index_PROFILE("internalIndexGEM.fmi", fmi));
-        break;
-      case GPU_INDEX_MFASTA_FILE:
-        GPU_ERROR(gpu_load_BWT_MFASTA((const char*)indexRaw, fmi, &h_BWT));
-        GPU_ERROR(gpu_transform_index_ASCII(h_BWT, fmi));
-        free(h_BWT);
-        break;
-      case GPU_INDEX_PROFILE_FILE:
-        GPU_ERROR(gpu_load_index_PROFILE((const char*)indexRaw, fmi));
-        break;
-      default:
-        GPU_ERROR(E_INDEX_CODING);
-      break;
-    }
-  }
   (* index) = fmi;
   return (SUCCESS);
 }
@@ -471,7 +456,7 @@ gpu_error_t gpu_init_index(gpu_index_buffer_t **index, const void *indexRaw,
  Functions to release the index data from the DEVICE & HOST
 ************************************************************/
 
-gpu_error_t gpu_free_index_host(gpu_index_buffer_t *index)
+gpu_error_t gpu_free_index_host(gpu_index_buffer_t* const index)
 {
     if(index->h_fmi != NULL){
       CUDA_ERROR(cudaFreeHost(index->h_fmi));
@@ -481,13 +466,13 @@ gpu_error_t gpu_free_index_host(gpu_index_buffer_t *index)
     return(SUCCESS);
 }
 
-gpu_error_t gpu_free_unused_index_host(gpu_index_buffer_t *index, gpu_device_info_t **devices)
+gpu_error_t gpu_free_unused_index_host(gpu_index_buffer_t* index, gpu_device_info_t** const devices)
 {
   const gpu_module_t activeModules = index->activeModules;
   uint32_t idSupportedDevice, numSupportedDevices;
   bool indexInHostSideUsed = false;
 
-  if(activeModules & (GPU_FMI_DECODE_POS | GPU_FMI_EXACT_SEARCH)){
+  if(activeModules & GPU_INDEX){
     numSupportedDevices = devices[0]->numSupportedDevices;
     //Free all the unused references in the host side
     for(idSupportedDevice = 0; idSupportedDevice < numSupportedDevices; ++idSupportedDevice){
@@ -502,7 +487,7 @@ gpu_error_t gpu_free_unused_index_host(gpu_index_buffer_t *index, gpu_device_inf
   return(SUCCESS);
 }
 
-gpu_error_t gpu_free_index_device(gpu_index_buffer_t *index, gpu_device_info_t **devices)
+gpu_error_t gpu_free_index_device(gpu_index_buffer_t* index, gpu_device_info_t** const devices)
 {
   const uint32_t numSupportedDevices = devices[0]->numSupportedDevices;
   uint32_t idSupportedDevice;
@@ -526,12 +511,12 @@ gpu_error_t gpu_free_index_device(gpu_index_buffer_t *index, gpu_device_info_t *
   return(SUCCESS);
 }
 
-gpu_error_t gpu_free_index(gpu_index_buffer_t **index, gpu_device_info_t **devices)
+gpu_error_t gpu_free_index(gpu_index_buffer_t **index, gpu_device_info_t** const devices)
 {
-  gpu_index_buffer_t *fmi = (* index);
+  gpu_index_buffer_t* fmi = (* index);
   const gpu_module_t activeModules = fmi->activeModules;
 
-  if(activeModules & (GPU_FMI_EXACT_SEARCH | GPU_FMI_DECODE_POS)){
+  if(activeModules & GPU_INDEX){
     GPU_ERROR(gpu_free_index_host(fmi));
     GPU_ERROR(gpu_free_index_device(fmi, devices));
   }

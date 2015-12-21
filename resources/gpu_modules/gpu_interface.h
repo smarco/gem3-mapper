@@ -35,8 +35,11 @@ typedef enum
   GPU_FMI_DECODE_POS    = GPU_UINT32_ONE_MASK << 1,
   GPU_BPM               = GPU_UINT32_ONE_MASK << 2,
 
+  GPU_REFERENCE         = GPU_BPM,
+  GPU_INDEX             = GPU_FMI_EXACT_SEARCH | GPU_FMI_DECODE_POS,
+
   GPU_NONE_MODULES      = 0,
-  GPU_ALL_MODULES       = GPU_FMI_EXACT_SEARCH | GPU_FMI_DECODE_POS | GPU_BPM
+  GPU_ALL_MODULES       = GPU_INDEX | GPU_REFERENCE
 } gpu_module_t;
 
 typedef enum
@@ -84,10 +87,10 @@ uint32_t gpu_buffer_get_id_supported_device_(const void* const gpuBuffer);
 /*
  * Main functions
  */
-void gpu_store_indexed_structures_(gpu_index_dto_t *rawIndex, gpu_reference_dto_t* rawRef);
-void gpu_init_buffers_(gpu_buffers_dto_t *buff, gpu_index_dto_t *rawIndex, gpu_reference_dto_t* rawRef, gpu_info_dto_t *sys, const bool verbose);
-void gpu_alloc_buffer_(void *gpuBuffer);
-void gpu_realloc_buffer_(void *gpuBuffer, const float maxMbPerBuffer);
-void gpu_destroy_buffers_(gpu_buffers_dto_t *buff);
+void gpu_save_indexed_structures_GEM_(const char* const fileName, const gpu_gem_fmi_dto_t* const gemIndex, const gpu_gem_ref_dto_t* const gemRef, const gpu_module_t activeModules);
+void gpu_init_buffers_(gpu_buffers_dto_t* const buff, gpu_index_dto_t* const rawIndex, gpu_reference_dto_t* const rawRef, gpu_info_dto_t* const sys, const bool verbose);
+void gpu_alloc_buffer_(void* const gpuBuffer);
+void gpu_realloc_buffer_(void* const gpuBuffer, const float maxMbPerBuffer);
+void gpu_destroy_buffers_(gpu_buffers_dto_t* buff);
 
 

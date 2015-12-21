@@ -152,29 +152,36 @@ void gpu_bpm_init_buffer_(void* const bpmBuffer, const uint32_t averageQuerySize
   gpu_bpm_reallocate_device_buffer_layout(mBuff);
 }
 
-void gpu_bpm_init_and_realloc_buffer_(void *bpmBuffer, const uint32_t averageQuerySize,
-                                      const uint32_t candidatesPerQuery, const uint32_t minNumCandidates)
+void gpu_bpm_init_and_realloc_buffer_(void *bpmBuffer, const uint32_t querySize, const uint32_t numCandidates)
 {
-  gpu_buffer_t* const mBuff               = (gpu_buffer_t *) bpmBuffer;
-  const uint32_t  idSupDevice             = mBuff->idSupportedDevice;
-  const float     resizeFactor            = 2.0;
-  const uint32_t  averarageNumPEQEntries  = GPU_DIV_CEIL(averageQuerySize, GPU_BPM_PEQ_ENTRY_LENGTH);
-  const size_t    bytesPerBPMBuffer       = minNumCandidates * gpu_bpm_size_per_candidate(averarageNumPEQEntries,candidatesPerQuery);
+  gpu_buffer_t* const mBuff = (gpu_buffer_t *) bpmBuffer;
+  gpu_bpm_init_buffer_(bpmBuffer, querySize, numCandidates);
 
-  //Recalculate the minimum buffer size
-  mBuff->sizeBuffer = bytesPerBPMBuffer * resizeFactor;
+  if((GPU_DIV_CEIL(querySize, GPU_BPM_PEQ_ENTRY_LENGTH) > gpu_bpm_buffer_get_max_peq_entries_(bpmBuffer))
+      && (numCandidates > gpu_bpm_buffer_get_max_candidates_(bpmBuffer))){
+    // Resize the GPU buffer to fit the required input
+    const uint32_t  idSupDevice             = mBuff->idSupportedDevice;
+    const float     resizeFactor            = 2.0;
+    const uint32_t  averarageNumPEQEntries  = GPU_DIV_CEIL(querySize, GPU_BPM_PEQ_ENTRY_LENGTH);
+    const uint32_t  candidatesPerQuery      = numCandidates;
+    const uint32_t  averageQuerySize        = querySize;
+    const size_t    bytesPerBPMBuffer       = candidatesPerQuery * gpu_bpm_size_per_candidate(averarageNumPEQEntries,candidatesPerQuery);
 
-  //FREE HOST AND DEVICE BUFFER
-  GPU_ERROR(gpu_free_buffer(mBuff));
+    //Recalculate the minimum buffer size
+    mBuff->sizeBuffer = bytesPerBPMBuffer * resizeFactor;
 
-  //Select the device of the Multi-GPU platform
-  CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
+    //FREE HOST AND DEVICE BUFFER
+    GPU_ERROR(gpu_free_buffer(mBuff));
 
-  //ALLOCATE HOST AND DEVICE BUFFER
-  CUDA_ERROR(cudaHostAlloc((void**) &mBuff->h_rawData, mBuff->sizeBuffer, cudaHostAllocMapped));
-  CUDA_ERROR(cudaMalloc((void**) &mBuff->d_rawData, mBuff->sizeBuffer));
+    //Select the device of the Multi-GPU platform
+    CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
 
-  gpu_bpm_init_buffer_(bpmBuffer, averageQuerySize, candidatesPerQuery);
+    //ALLOCATE HOST AND DEVICE BUFFER
+    CUDA_ERROR(cudaHostAlloc((void**) &mBuff->h_rawData, mBuff->sizeBuffer, cudaHostAllocMapped));
+    CUDA_ERROR(cudaMalloc((void**) &mBuff->d_rawData, mBuff->sizeBuffer));
+
+    gpu_bpm_init_buffer_(bpmBuffer, averageQuerySize, candidatesPerQuery);
+  }
 }
 
 /************************************************************

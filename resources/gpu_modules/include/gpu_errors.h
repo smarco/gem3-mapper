@@ -23,6 +23,7 @@ typedef enum
   E_REFERENCE_CODING,
   E_INDEX_CODING,
   E_WRITING_FILE,
+  E_MODULE_NOT_FOUND,
   E_NOT_IMPLEMENTED
 } gpu_error_t;
 
@@ -34,7 +35,7 @@ typedef enum
 Functions to handle errors
 ************************************************************/
 
-void cudaError(cudaError_t err, const char *file,  int line );
+void cudaError(cudaError_t err, const char *file,  int line);
 const char* gpuGetErrorString(gpu_error_t error);
 void gpuError(gpu_error_t err, const char *file,  int line);
 

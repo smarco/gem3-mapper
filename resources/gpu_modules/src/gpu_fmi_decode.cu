@@ -8,8 +8,8 @@
 
 #include "../include/gpu_fmi_core.h"
 
-void __global__ gpu_fmi_decoding_kernel(const gpu_fmi_device_entry_t *fmi, const uint64_t bwtSize, const uint32_t numDecodings,
-                        const uint64_t *d_initBWTPos, ulonglong2 *d_endBWTPos, const uint32_t samplingRate)
+void __global__ gpu_fmi_decoding_kernel(const gpu_fmi_device_entry_t* const fmi, const uint64_t bwtSize, const uint32_t numDecodings,
+                                        const uint64_t* const d_initBWTPos, ulonglong2* const d_endBWTPos, const uint32_t samplingRate)
 {
   const uint32_t globalThreadIdx      = gpu_get_thread_idx();
   const uint32_t localWarpThreadIdx   = globalThreadIdx % GPU_WARP_SIZE;
@@ -27,7 +27,7 @@ void __global__ gpu_fmi_decoding_kernel(const gpu_fmi_device_entry_t *fmi, const
           uint32_t foundBaseN = 0;
 
     __shared__ gpu_fmi_exch_bmp_mem_t   exchBMP[GPU_FMI_ENTRIES_PER_BLOCK];
-               gpu_fmi_exch_bmp_mem_t * decExchBMP = &exchBMP[threadIdx.x / GPU_FMI_THREADS_PER_ENTRY];
+               gpu_fmi_exch_bmp_mem_t * const decExchBMP = &exchBMP[threadIdx.x / GPU_FMI_THREADS_PER_ENTRY];
 
     while((interval % samplingRate) && (foundBaseN == 0)){
       const uint64_t entryIdx       =  interval / GPU_FMI_ENTRY_SIZE;
@@ -39,7 +39,7 @@ void __global__ gpu_fmi_decoding_kernel(const gpu_fmi_device_entry_t *fmi, const
         loadEntry = fmi[entryIdx].v[loadFMIEntryThreadIdx];
 
       // Gathering the base and sharing it with the rest of the threads
-      gather_base_from_BWT(loadEntry, decExchBMP, bitmapPosition, fmiEntryThreadIdx, decodeEntryThreadIdx, decodeEntryIdx, &bit1, &bit0, &bit2);
+      gather_base_from_BWT(loadEntry, decExchBMP, bitmapPosition, fmiEntryThreadIdx, decodeEntryIdx, &bit1, &bit0, &bit2);
 
       // Gathering the counters
       const uint32_t missedEntry = (entryIdx % GPU_FMI_ALTERNATE_COUNTERS != bit1) ? 1 : 0;
@@ -68,7 +68,9 @@ void __global__ gpu_fmi_decoding_kernel(const gpu_fmi_device_entry_t *fmi, const
 }
 
 extern "C"
-gpu_error_t gpu_fmi_decoding_launch_kernel(gpu_fmi_device_entry_t *d_fmi, uint64_t bwtSize, uint32_t numDecodings, uint64_t *d_initBWTPos, ulonglong2 *d_endBWTPos)
+gpu_error_t gpu_fmi_decoding_launch_kernel(const gpu_fmi_device_entry_t* const d_fmi, const uint64_t bwtSize,
+                                           const uint32_t numDecodings, const uint64_t* const d_initBWTPos,
+                                           ulonglong2* const d_endBWTPos)
 {
   const uint32_t samplingRate = 4;
   const uint32_t threads = 128;
@@ -99,7 +101,7 @@ gpu_error_t gpu_fmi_decoding_launch_kernel(gpu_fmi_device_entry_t *d_fmi, uint64
 }
 
 extern "C"
-gpu_error_t gpu_fmi_decode_process_buffer(gpu_buffer_t *mBuff)
+gpu_error_t gpu_fmi_decode_process_buffer(gpu_buffer_t* const mBuff)
 {
   gpu_index_buffer_t                  *index        =  mBuff->index;
   gpu_fmi_decode_buffer_t             *decBuff      = &mBuff->data.decode;

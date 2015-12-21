@@ -99,12 +99,12 @@ void gpu_fmi_search_init_buffer_(void* const fmiBuffer)
   gpu_fmi_search_reallocate_device_buffer_layout(mBuff);
 }
 
-void gpu_fmi_search_init_and_realloc_buffer_(void *fmiBuffer, const uint32_t minNumSeeds)
+void gpu_fmi_search_init_and_realloc_buffer_(void *fmiBuffer, const uint32_t numSeeds)
 {
   gpu_buffer_t* const mBuff                   = (gpu_buffer_t *) fmiBuffer;
   const uint32_t      idSupDevice             = mBuff->idSupportedDevice;
   const float         resizeFactor            = 2.0;
-  const size_t        bytesPerSearchBuffer    = minNumSeeds * gpu_fmi_search_input_size();
+  const size_t        bytesPerSearchBuffer    = numSeeds * gpu_fmi_search_input_size();
 
   //Recalculate the minimum buffer size
   mBuff->sizeBuffer = bytesPerSearchBuffer * resizeFactor;
@@ -132,7 +132,7 @@ size_t gpu_fmi_decode_input_size()
   return(sizeof(gpu_fmi_decode_init_pos_t) + sizeof(gpu_fmi_decode_end_pos_t));
 }
 
-void gpu_fmi_decode_reallocate_host_buffer_layout(gpu_buffer_t* mBuff)
+void gpu_fmi_decode_reallocate_host_buffer_layout(gpu_buffer_t* const mBuff)
 {
   const void* rawAlloc = mBuff->h_rawData;
   //Adjust the host buffer layout (input)
@@ -143,7 +143,7 @@ void gpu_fmi_decode_reallocate_host_buffer_layout(gpu_buffer_t* mBuff)
   rawAlloc = (void *) (mBuff->data.decode.endPositions.h_endBWTPos + mBuff->data.decode.numMaxEndPositions);
 }
 
-void gpu_fmi_decode_reallocate_device_buffer_layout(gpu_buffer_t* mBuff)
+void gpu_fmi_decode_reallocate_device_buffer_layout(gpu_buffer_t* const mBuff)
 {
   const void* rawAlloc = mBuff->d_rawData;
   //Adjust the host buffer layout (input)
@@ -170,12 +170,12 @@ void gpu_fmi_decode_init_buffer_(void* const fmiBuffer)
   gpu_fmi_decode_reallocate_device_buffer_layout(mBuff);
 }
 
-void gpu_fmi_decode_init_and_realloc_buffer_(void *fmiBuffer, const uint32_t minNumDecodes)
+void gpu_fmi_decode_init_and_realloc_buffer_(void* const fmiBuffer, const uint32_t numDecodes)
 {
   gpu_buffer_t* const mBuff                   = (gpu_buffer_t *) fmiBuffer;
   const uint32_t      idSupDevice             = mBuff->idSupportedDevice;
   const float         resizeFactor            = 2.0;
-  const size_t        bytesPerDecodeBuffer    = minNumDecodes * gpu_fmi_decode_input_size();
+  const size_t        bytesPerDecodeBuffer    = numDecodes * gpu_fmi_decode_input_size();
 
   //Recalculate the minimum buffer size
   mBuff->sizeBuffer = bytesPerDecodeBuffer * resizeFactor;
@@ -197,7 +197,7 @@ void gpu_fmi_decode_init_and_realloc_buffer_(void *fmiBuffer, const uint32_t min
 Debug functions for the index
 ************************************************************/
 
-char gpu_fmi_search_bin_to_char(uint32_t base)
+char gpu_fmi_search_bin_to_char(const uint32_t base)
 {
   switch(base){
     case GPU_ENC_DNA_CHAR_A:
@@ -213,7 +213,7 @@ char gpu_fmi_search_bin_to_char(uint32_t base)
   }
 }
 
-uint32_t gpu_fmi_search_print_seed(gpu_fmi_search_seed_t seed, uint32_t seedSize)
+uint32_t gpu_fmi_search_print_seed(const gpu_fmi_search_seed_t seed, const uint32_t seedSize)
 {
   char plainSeed[GPU_FMI_SEED_MAX_CHARS] = {0};
   uint64_t bitmap = seed.hi;
@@ -276,7 +276,7 @@ gpu_error_t gpu_fmi_search_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
   return (SUCCESS);
 }
 
-gpu_error_t gpu_fmi_search_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
+gpu_error_t gpu_fmi_search_transfer_GPU_to_CPU(gpu_buffer_t* const mBuff)
 {
   const gpu_fmi_search_sa_inter_buffer_t* interBuff = &mBuff->data.search.saIntervals;
   const cudaStream_t                      idStream  =  mBuff->idStream;
@@ -288,7 +288,7 @@ gpu_error_t gpu_fmi_search_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
   return (SUCCESS);
 }
 
-void gpu_fmi_search_send_buffer_(const void* const fmiBuffer, const uint32_t numSeeds)
+void gpu_fmi_search_send_buffer_(void* const fmiBuffer, const uint32_t numSeeds)
 {
   gpu_buffer_t* const mBuff  = (gpu_buffer_t *) fmiBuffer;
   const uint32_t idSupDevice = mBuff->idSupportedDevice;
@@ -306,7 +306,7 @@ void gpu_fmi_search_send_buffer_(const void* const fmiBuffer, const uint32_t num
 
 void gpu_fmi_search_receive_buffer_(const void* const fmiBuffer)
 {
-  const  gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
+  const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
 
   //Synchronize Stream (the thread wait for the commands done in the stream)
   CUDA_ERROR(cudaStreamSynchronize(mBuff->idStream));
@@ -316,7 +316,7 @@ void gpu_fmi_search_receive_buffer_(const void* const fmiBuffer)
 Functions to transfer data HOST <-> DEVICE (Decode)
 ************************************************************/
 
-gpu_error_t gpu_fmi_decode_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
+gpu_error_t gpu_fmi_decode_transfer_CPU_to_GPU(gpu_buffer_t* const mBuff)
 {
   const gpu_fmi_decode_init_pos_buffer_t* initPosBuff = &mBuff->data.decode.initPositions;
   const cudaStream_t                      idStream    =  mBuff->idStream;
@@ -328,7 +328,7 @@ gpu_error_t gpu_fmi_decode_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
   return (SUCCESS);
 }
 
-gpu_error_t gpu_fmi_decode_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
+gpu_error_t gpu_fmi_decode_transfer_GPU_to_CPU(gpu_buffer_t* const mBuff)
 {
   const gpu_fmi_decode_end_pos_buffer_t*  endPosBuff = &mBuff->data.decode.endPositions;
   const cudaStream_t                      idStream   =  mBuff->idStream;
@@ -340,7 +340,7 @@ gpu_error_t gpu_fmi_decode_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
   return (SUCCESS);
 }
 
-void gpu_fmi_decode_send_buffer_(const  void* const fmiBuffer, const uint32_t numDecodings, const uint32_t samplingRate)
+void gpu_fmi_decode_send_buffer_(void* const fmiBuffer, const uint32_t numDecodings, const uint32_t samplingRate)
 {
   gpu_buffer_t* const mBuff  = (gpu_buffer_t *) fmiBuffer;
   const uint32_t idSupDevice = mBuff->idSupportedDevice;

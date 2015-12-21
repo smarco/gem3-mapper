@@ -8,24 +8,24 @@
 
 #include "../include/gpu_errors.h"
 
-void cudaError(cudaError_t err, const char *file,  int line )
+void cudaError(cudaError_t err, const char *file,  int line)
 {
     if (err != cudaSuccess) {
-          fprintf(stderr, "%s in %s at line %d\n", cudaGetErrorString(err),  file, line );
+          fprintf(stderr, "%s in %s at line %d\n", cudaGetErrorString(err),  file, line);
           exit(EXIT_FAILURE);
     }
 }
 
 const char* gpuGetErrorString(gpu_error_t error)
 {
-    switch(error) {
-        case E_OPENING_FILE:        return "GEM GPU - Error: opening file";
-        case E_READING_FILE:        return "GEM GPU - Error: reading file";
+    switch(error){
+        case E_OPENING_FILE:          return "GEM GPU - Error: opening file";
+        case E_READING_FILE:          return "GEM GPU - Error: reading file";
         case E_INSUFFICIENT_MEM_GPU:  return "GEM GPU - Error: there aren't enough GPU memory space";
-        case E_ALLOCATE_MEM:      return "GEM GPU - Error: allocating data";
-        case E_INCOMPATIBLE_GPU:    return "GEM GPU - Error: incompatible GPU (old CC version)";
-        case E_REFERENCE_CODING:    return "GEM GPU - Error: reference coding not supported";
-        default:            return "GEM GPU - Unknown error";
+        case E_ALLOCATE_MEM:          return "GEM GPU - Error: allocating data";
+        case E_INCOMPATIBLE_GPU:      return "GEM GPU - Error: incompatible GPU (old CC version)";
+        case E_REFERENCE_CODING:      return "GEM GPU - Error: reference coding not supported";
+        default:                      return "GEM GPU - Unknown error";
     }
 }
 

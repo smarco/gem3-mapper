@@ -35,7 +35,7 @@ CUDA_MODULES=gpu_fmi_decode gpu_fmi_search gpu_bpm_filter
 CUDA_SRCS=$(addprefix $(FOLDER_SOURCE)/, $(addsuffix .cu, $(CUDA_MODULES)))
 CUDA_OBJS=$(addprefix $(FOLDER_BUILD)/, $(addsuffix .o, $(CUDA_MODULES)))
 
-MODULES=gpu_sample gpu_fmi gpu_bpm gpu_devices gpu_buffers gpu_index gpu_reference gpu_errors
+MODULES=gpu_sample gpu_fmi gpu_bpm gpu_devices gpu_buffers gpu_index gpu_reference gpu_errors gpu_io
 SRCS=$(addprefix $(FOLDER_SOURCE)/, $(addsuffix .c, $(MODULES)))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(addsuffix .o, $(MODULES)))
 
