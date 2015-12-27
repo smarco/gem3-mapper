@@ -60,18 +60,14 @@ void search_stage_region_profile_buffer_delete(
 bool search_stage_region_profile_buffer_fits(
     search_stage_region_profile_buffer_t* const region_profile_buffer,
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2) {
-  // Get buffer limits
-  gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search = region_profile_buffer->gpu_buffer_fmi_search;
-  const uint64_t max_queries = gpu_buffer_fmi_search_get_max_queries(gpu_buffer_fmi_search);
-  const uint64_t num_queries = gpu_buffer_fmi_search_get_num_queries(gpu_buffer_fmi_search);
-  // Get number of regions to profile
+  // Compute dimensions (Total number of regions to profile)
   uint64_t num_regions_profile;
   num_regions_profile = archive_search_get_num_regions_profile(archive_search_end1);
   if (archive_search_end2!=NULL) {
     num_regions_profile += archive_search_get_num_regions_profile(archive_search_end2);
   }
-  // Return
-  return (num_queries+num_regions_profile <= max_queries);
+  // Return if current search fits in buffer
+  return gpu_buffer_fmi_search_fits_in_buffer(region_profile_buffer->gpu_buffer_fmi_search,num_regions_profile);
 }
 /*
  * Send/Receive

@@ -15,9 +15,10 @@
 /*
  * Builder
  */
-void fm_index_write(
-    fm_t* const file_manager,dna_text_t* const bwt_text,uint64_t* const character_occurrences,
-    sampled_sa_builder_t* const sampled_sa,const bool check,const bool verbose) {
+bwt_builder_t* fm_index_write(
+    fm_t* const file_manager,dna_text_t* const bwt_text,
+    uint64_t* const character_occurrences,sampled_sa_builder_t* const sampled_sa,
+    const bool check,const bool verbose) {
   // Write Header
   const uint64_t text_length = dna_text_get_length(bwt_text);
   const uint64_t proper_length = log2(text_length)/2;
@@ -40,11 +41,13 @@ void fm_index_write(
   rank_mtable_builder_delete(rank_mtable); // Free
   // Write BWT
   bwt_builder_write(file_manager,bwt_builder);
-  bwt_builder_delete(bwt_builder); // Free
+  // Return BWT
+  return bwt_builder;
 }
-void fm_index_reverse_write(
+bwt_reverse_builder_t* fm_index_reverse_write(
     fm_t* const file_manager,dna_text_t* const bwt_reverse_text,
-    uint64_t* const character_occurrences,const bool check,const bool verbose) {
+    uint64_t* const character_occurrences,const bool check,
+    const bool verbose) {
   // Generate BWT-Bitmap Reverse
   bwt_reverse_builder_t* const bwt_reverse_builder =
       bwt_reverse_builder_new(bwt_reverse_text,character_occurrences,check,verbose);
@@ -57,7 +60,8 @@ void fm_index_reverse_write(
   rank_mtable_builder_delete(rank_mtable); // Free
   // Write BWT Reverse
   bwt_reverse_builder_write(file_manager,bwt_reverse_builder);
-  bwt_reverse_builder_delete(bwt_reverse_builder); // Free
+  // Return BWT
+  return bwt_reverse_builder;
 }
 /*
  * Loader

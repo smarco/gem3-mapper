@@ -15,6 +15,23 @@
 #include "pattern.h"
 
 /*
+ * Constants
+ */
+#define DECODE_NUM_POSITIONS_PREFETCHED          10
+#define RETRIEVE_SAMPLE_NUM_POSITIONS_PREFETCHED 10
+
+/*
+ * Batch decode
+ */
+typedef struct {
+  uint64_t vector_rank;
+  uint64_t index_position;
+  uint64_t distance;
+  uint64_t used_slot;
+  bwt_block_locator_t bwt_block_locator;
+} fc_batch_decode_candidate;
+
+/*
  * Retrieve all candidates(text) from the index
  */
 void filtering_candidates_retrieve_filtering_regions(

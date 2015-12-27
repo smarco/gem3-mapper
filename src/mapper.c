@@ -383,7 +383,7 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
   while (mapper_SE_read_single_sequence(mapper_search)) {
-//    if (gem_streq(mapper_search->archive_search->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000041503")) {
+//    if (gem_streq(mapper_search->archive_search->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000000345")) {
 //      printf("HERE\n");
 //    }
 
@@ -391,7 +391,8 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
     archive_search_se(mapper_search->archive_search,matches);
 
     // Output matches
-    mapper_SE_output_matches(parameters,buffered_output_file,mapper_search->archive_search,matches,mapper_search->mapping_stats);
+    mapper_SE_output_matches(parameters,buffered_output_file,
+        mapper_search->archive_search,matches,mapper_search->mapping_stats);
 
     // Update processed
     if (++reads_processed == MAPPER_TICKER_STEP) {
@@ -451,7 +452,8 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
     archive_search_pe(archive_search_end1,archive_search_end2,paired_matches);
 
     // Output matches
-    mapper_PE_output_matches(parameters,buffered_output_file,archive_search_end1,archive_search_end2,paired_matches,mapper_search->mapping_stats);
+    mapper_PE_output_matches(parameters,buffered_output_file,
+        archive_search_end1,archive_search_end2,paired_matches,mapper_search->mapping_stats);
 
     // Update processed
     if (++reads_processed == MAPPER_TICKER_STEP) {
@@ -505,7 +507,8 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
   ticker_add_finish_label(&ticker,"Total","sequences processed");
   ticker_mutex_enable(&ticker);
 	// Allocate per thread mapping stats
-  mapping_stats_t *mstats = mapper_parameters->global_mapping_stats ? mm_calloc(num_threads,mapping_stats_t,false) : NULL; 
+  mapping_stats_t* const mstats = mapper_parameters->global_mapping_stats ?
+      mm_calloc(num_threads,mapping_stats_t,false) : NULL;
   // Launch threads
   pthread_handler_t mapper_thread;
   if (paired_end) {
@@ -541,7 +544,7 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
   ticker_finish(&ticker);
   ticker_mutex_cleanup(&ticker);
 	// Merge report stats
-	if(mstats) {
+	if (mstats) {
 		 merge_mapping_stats(mapper_parameters->global_mapping_stats,mstats,num_threads);
 		 mm_free(mstats);
 	}

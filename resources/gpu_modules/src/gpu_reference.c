@@ -83,8 +83,11 @@ gpu_error_t gpu_transform_reference_GEM(const gpu_gem_ref_dto_t* const gem_refer
     bitmap = 0;
     for(i = 0; i < GPU_REFERENCE_CHARS_PER_ENTRY; ++i){
       referencePosition = idEntry * GPU_REFERENCE_CHARS_PER_ENTRY + i;
-      if (referencePosition < reference->size) base = (uint64_t) h_gem_reference[referencePosition];
-        else base = GPU_ENC_DNA_CHAR_A; //filling reference padding
+      if (referencePosition < reference->size) {
+        base = (uint64_t) h_gem_reference[referencePosition];
+      } else {
+        base = GPU_ENC_DNA_CHAR_A; //filling reference padding
+      }
       base = (base & baseMask) ? GPU_ENC_DNA_CHAR_A : base;
       base = base << (GPU_UINT64_LENGTH - GPU_REFERENCE_CHAR_LENGTH);
       bitmap = (bitmap >> GPU_REFERENCE_CHAR_LENGTH) | base;

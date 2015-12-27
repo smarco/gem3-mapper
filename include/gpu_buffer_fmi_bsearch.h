@@ -49,6 +49,8 @@ void gpu_buffer_fmi_search_set_device_gpu(gpu_buffer_fmi_search_t* const gpu_buf
  */
 uint64_t gpu_buffer_fmi_search_get_max_queries(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
 uint64_t gpu_buffer_fmi_search_get_num_queries(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
+bool gpu_buffer_fmi_search_fits_in_buffer(
+    gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search,const uint64_t total_queries);
 
 /*
  * Accessors
@@ -65,11 +67,5 @@ void gpu_buffer_fmi_search_get_result(
  */
 void gpu_buffer_fmi_search_send(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
 void gpu_buffer_fmi_search_receive(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
-
-/*
- * Errors
- */
-#define GEM_ERROR_GPU_FMI_SEARCH_MAX_QUERY_LENGTH "GPU-FMI-Search. Query pattern (%"PRIu64" bases) exceeds maximum query capacity (%"PRIu64" bases)"
-#define GEM_ERROR_GPU_FMI_SEARCH_MAX_QUERIES "GPU-FMI-Search. Number of queries (%"PRIu64") exceeds maximum buffer capacity (%"PRIu64" queries)"
 
 #endif /* GPU_BUFFER_FMI_BSEARCH_H_ */

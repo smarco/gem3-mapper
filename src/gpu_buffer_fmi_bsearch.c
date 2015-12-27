@@ -16,6 +16,12 @@
 #define GPU_BUFFER_FMI_SEARCH_MAX_QUERY_LENGTH (((64*2)-8)/2)  /* 60 bases */
 
 /*
+ * Errors
+ */
+#define GEM_ERROR_GPU_FMI_SEARCH_MAX_QUERY_LENGTH "GPU.FMI.Search. Query pattern (%"PRIu64" bases) exceeds maximum query capacity (%"PRIu64" bases)"
+#define GEM_ERROR_GPU_FMI_SEARCH_MAX_QUERIES "GPU.FMI.Search. Number of queries (%"PRIu64") exceeds maximum buffer capacity (%"PRIu64" queries)"
+
+/*
  * CUDA Supported
  */
 #ifdef HAVE_CUDA
@@ -64,6 +70,27 @@ uint64_t gpu_buffer_fmi_search_get_max_queries(gpu_buffer_fmi_search_t* const gp
 uint64_t gpu_buffer_fmi_search_get_num_queries(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) {
   return gpu_buffer_fmi_search->num_queries;
 }
+bool gpu_buffer_fmi_search_fits_in_buffer(
+    gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search,const uint64_t total_queries) {
+  // Get Limits
+  uint64_t max_queries = gpu_buffer_fmi_search_get_max_queries(gpu_buffer_fmi_search);
+  // Check available space in buffer
+  if (gpu_buffer_fmi_search->num_queries+total_queries > max_queries) {
+    // Check number of queries in the buffer
+    if (gpu_buffer_fmi_search->num_queries > 0) {
+      return false; // Leave it to the next fresh buffer
+    }
+    // Reallocate buffer
+    gpu_fmi_search_init_and_realloc_buffer_(gpu_buffer_fmi_search->buffer,total_queries);
+    // Check reallocated buffer dimensions (error otherwise)
+    max_queries = gpu_buffer_fmi_search_get_max_queries(gpu_buffer_fmi_search);
+    gem_cond_fatal_error(total_queries > max_queries,GPU_FMI_SEARCH_MAX_QUERIES,total_queries,max_queries);
+    // Return OK (after reallocation)
+    return true;
+  }
+  // Return OK (fits in buffer)
+  return true;
+}
 /*
  * Accessors
  */
@@ -71,10 +98,7 @@ void gpu_buffer_fmi_search_add_query(
     gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search,
     pattern_t* const pattern,const uint64_t begin,const uint64_t end) {
   PROF_INC_COUNTER(GP_GPU_BUFFER_FMI_SEARCH_NUM_QUERIES);
-  // Check query length & buffer occupancy
-  const uint64_t max_buffer_queries = gpu_buffer_fmi_search_get_max_queries(gpu_buffer_fmi_search);
-  gem_cond_fatal_error(gpu_buffer_fmi_search->num_queries >= max_buffer_queries,
-      GPU_FMI_SEARCH_MAX_QUERIES,(uint64_t)gpu_buffer_fmi_search->num_queries,max_buffer_queries);
+  // Check query length
   const uint64_t query_length = end - begin;
   gem_cond_fatal_error(query_length>=GPU_BUFFER_FMI_SEARCH_MAX_QUERY_LENGTH,
       GPU_FMI_SEARCH_MAX_QUERY_LENGTH,query_length,(uint64_t)GPU_BUFFER_FMI_SEARCH_MAX_QUERY_LENGTH);

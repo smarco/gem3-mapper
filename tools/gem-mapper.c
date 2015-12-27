@@ -948,7 +948,9 @@ int main(int argc,char** argv) {
   gem_mapper_open_output(&parameters);
 
   // Initialize Statistics Report
-  if(parameters.io.report_file_name) parameters.global_mapping_stats=mm_alloc(mapping_stats_t);
+  if(parameters.io.report_file_name) {
+    parameters.global_mapping_stats = mm_alloc(mapping_stats_t);
+  }
 
   // Launch mapper
   if (!cuda->cuda_enabled) {

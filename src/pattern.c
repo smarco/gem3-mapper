@@ -16,6 +16,11 @@
 #define DEBUG_PATTERN_TILE_POSITION true
 
 /*
+ * Constants
+ */
+#define GPU_WORDS128_PER_TILE 2
+
+/*
  * Pattern Prepare
  */
 void pattern_prepare(
@@ -98,15 +103,11 @@ void pattern_prepare(
   pattern->max_effective_bandwidth = actual_parameters->max_bandwidth_nominal + pattern->num_low_quality_bases;
   if (effective_filtering_max_error > 0) {
     // Prepare kmer-counting filter
-    kmer_counting_compile(&pattern->kmer_counting,
-        pattern->key,read_length,num_non_canonical_bases,effective_filtering_max_error,mm_stack);
+    kmer_counting_compile(&pattern->kmer_counting,pattern->key,read_length,
+        num_non_canonical_bases,effective_filtering_max_error,mm_stack);
     // Prepare BPM pattern
     bpm_pattern_compile(&pattern->bpm_pattern,pattern->key,read_length,effective_filtering_max_error,mm_stack);
-    gpu_bpm_pattern_compile(&pattern->bpm_pattern,effective_filtering_max_error);
-//    // Prepare SWG query-profile
-//    if (parameters->alignment_model == alignment_model_gap_affine) {
-//      swg_init_query_profile(&pattern->swg_query_profile,&parameters->swg_penalties,read_length,mm_stack);
-//    }
+    gpu_bpm_pattern_compile(&pattern->bpm_pattern,GPU_WORDS128_PER_TILE,effective_filtering_max_error);
   }
 }
 void pattern_clear(pattern_t* const pattern) {

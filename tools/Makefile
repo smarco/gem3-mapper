@@ -50,7 +50,7 @@ $(FOLDER_BIN)/gem-mapper: $(LIB_GEM_CORE) gem-mapper.c
 	$(CC) $(GEM_FLAGS) $(DEF_CUDA) $(notdir $@).c $(FOLDER_BUILD)/*.o -o $@ $(PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB) $(LIBS) $(CUDA_LIB) 
 
 $(FOLDER_BIN)/gem-indexer: $(LIB_GEM_CORE) gem-indexer.c
-	$(CC) $(GEM_FLAGS) $(notdir $@).c $(FOLDER_BUILD)/*.o -o $@ $(PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB) $(LIBS) $(CUDA_LIB) 
+	$(CC) $(GEM_FLAGS) $(DEF_CUDA) $(notdir $@).c $(FOLDER_BUILD)/*.o -o $@ $(PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB) $(LIBS) $(CUDA_LIB) 
 	
 $(FOLDER_BIN)/gem-retriever: $(LIB_GEM_CORE) gem-retriever.c
 	$(CC) $(GEM_FLAGS) $(notdir $@).c $(FOLDER_BUILD)/*.o -o $@ $(PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB) $(LIBS) $(CUDA_LIB) 

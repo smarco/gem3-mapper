@@ -41,7 +41,9 @@ typedef struct {
 /*
  * Pattern Setup
  */
-void gpu_bpm_pattern_compile(bpm_pattern_t* const bpm_pattern,const uint64_t max_error);
+void gpu_bpm_pattern_compile(
+    bpm_pattern_t* const bpm_pattern,
+    const uint64_t words128_per_tile,const uint64_t max_error);
 uint64_t gpu_bpm_pattern_get_entry_length();
 
 /*

@@ -255,14 +255,22 @@ void approximate_search_generate_exact_candidates_buffered_retrieve(
   for (i=0;i<num_filtering_regions;++i) {
     region_search_t* const filtering_region = region_profile->filtering_region + i;
     if (filtering_region->degree==REGION_FILTER_DEGREE_ZERO) {
-      filtering_candidates_decode_filtering_positions_buffered(
-          search->filtering_candidates,search->archive->locator,
-          search->archive->text,search->archive->fm_index,
-          filtering_region->begin,filtering_region->end,
-          filtering_region->lo,filtering_region->hi,
-          key_length,boundary_error,
-          gpu_buffer_fmi_decode,buffer_offset_begin);
-      buffer_offset_begin += filtering_region->hi - filtering_region->lo;
+      // Retrieve/Decode all pending candidates
+      const uint64_t pending_candidates = filtering_region->hi - filtering_region->lo;
+      if (pending_candidates < DECODE_NUM_POSITIONS_PREFETCHED) {
+        filtering_candidates_decode_filtering_positions_buffered(
+            search->filtering_candidates,search->archive->locator,search->archive->text,
+            search->archive->fm_index,filtering_region->begin,filtering_region->end,
+            filtering_region->lo,filtering_region->hi,key_length,boundary_error,
+            gpu_buffer_fmi_decode,buffer_offset_begin);
+      } else {
+        filtering_candidates_decode_filtering_positions_buffered_prefetched(
+            search->filtering_candidates,search->archive->locator,search->archive->text,
+            search->archive->fm_index,filtering_region->begin,filtering_region->end,
+            filtering_region->lo,filtering_region->hi,key_length,boundary_error,
+            gpu_buffer_fmi_decode,buffer_offset_begin);
+      }
+      buffer_offset_begin += pending_candidates;
     }
   }
   // Process all candidates

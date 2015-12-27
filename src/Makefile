@@ -91,8 +91,9 @@ MODULES+=archive_search \
          archive_search_pe archive_search_paired_parameters \
          archive_search_se_stepwise archive_search_pe_stepwise
 # GEM GPU-Buffers
-MODULES+=gpu_buffer_collection gpu_buffer_align_bpm \
-         gpu_buffer_fmi_bsearch gpu_buffer_fmi_decode
+MODULES+=gpu_config gpu_structures \
+         gpu_buffer_collection gpu_buffer_fmi_bsearch \
+         gpu_buffer_fmi_decode gpu_buffer_align_bpm  
 # GEM Search-Pipeline & Stages
 MODULES+=search_pipeline \
          search_stage_region_profile search_stage_region_profile_buffer \
@@ -146,6 +147,10 @@ endif
 # Building Exceptions (Dependencies)
 $(FOLDER_BUILD)/fm.o : fm.c
 	$(CC) $(GEM_FLAGS) $(DEF_BZLIB) $(DEF_ZLIB) $(PATH_INCLUDE) -c $< -o $@
+$(FOLDER_BUILD)/gpu_config.o : gpu_config.c
+	$(CC) $(GEM_FLAGS) $(DEF_CUDA) $(PATH_INCLUDE) $(CUDA_PATH_INCLUDE) -c $< -o $@
+$(FOLDER_BUILD)/gpu_structures.o : gpu_structures.c
+	$(CC) $(GEM_FLAGS) $(DEF_CUDA) $(PATH_INCLUDE) $(CUDA_PATH_INCLUDE) -c $< -o $@
 $(FOLDER_BUILD)/gpu_buffer_collection.o : gpu_buffer_collection.c
 	$(CC) $(GEM_FLAGS) $(DEF_CUDA) $(PATH_INCLUDE) $(CUDA_PATH_INCLUDE) -c $< -o $@
 $(FOLDER_BUILD)/gpu_buffer_fmi_bsearch.o : gpu_buffer_fmi_bsearch.c

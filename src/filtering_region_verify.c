@@ -79,7 +79,7 @@ bool filtering_region_verify(
   // Parameters
   const text_trace_t* const text_trace = text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
   const uint8_t* const text = text_trace->text; // Candidate
-  const uint64_t max_filtering_error = pattern->max_effective_filtering_error;
+  const uint64_t max_error = pattern->max_effective_filtering_error;
   // Select alignment model
   switch (search_parameters->alignment_model) {
     case alignment_model_hamming: { // 1. Hamming switch
@@ -90,7 +90,7 @@ bool filtering_region_verify(
       const bool* const allowed_enc = search_parameters->allowed_enc;
       if (text_length >= key_length) {
         filtering_region_verify_hamming(filtering_region,
-            text+filtering_region->base_position_offset,key,key_length,allowed_enc,max_filtering_error);
+            text+filtering_region->base_position_offset,key,key_length,allowed_enc,max_error);
         if (filtering_region->align_distance != ALIGN_DISTANCE_INF) {
           // Adjust using text_offset
           filtering_region->align_match_begin_column += text_length;
@@ -107,15 +107,17 @@ bool filtering_region_verify(
     case alignment_model_gap_affine: {
       const uint64_t eff_text_length = filtering_region->end_position - filtering_region->begin_position;
       // [Prefilter] Generalized Kmer-Counting filter
-      const uint64_t test_positive = kmer_counting_filter(&pattern->kmer_counting,text,eff_text_length,max_filtering_error);
+      const uint64_t test_positive = kmer_counting_filter(&pattern->kmer_counting,text,eff_text_length,max_error);
       if (test_positive==ALIGN_DISTANCE_INF) {
         filtering_region->status = filtering_region_verified_discarded;
         return false;
       }
       PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_ACCEPTED);
       // [EditFilter] Myers's BPM algorithm
-      bpm_compute_edit_distance_cutoff_tiled((bpm_pattern_t* const)&pattern->bpm_pattern,text,eff_text_length,
-          &filtering_region->align_distance,&filtering_region->align_match_end_column,max_filtering_error);
+      const bpm_pattern_t* const bpm_pattern = &pattern->bpm_pattern;
+      bpm_compute_edit_distance(bpm_pattern,
+          text,eff_text_length,&filtering_region->align_distance,
+          &filtering_region->align_match_end_column,max_error,true);
       if (filtering_region->align_distance != ALIGN_DISTANCE_INF) {
         PROF_INC_COUNTER(GP_LEVENSHTEIN_ACCEPTED);
         PROF_INC_COUNTER(GP_ACCEPTED_REGIONS);

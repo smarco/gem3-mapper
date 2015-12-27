@@ -1,6 +1,6 @@
 /*
  * PROJECT: Bit-Parallel Myers on GPU
- * FILE: myers-interface.h
+ * FILE: gpu_buffers.h
  * DATE: 4/7/2014
  * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
  * DESCRIPTION: Common headers and data structures for BPM on GPU library

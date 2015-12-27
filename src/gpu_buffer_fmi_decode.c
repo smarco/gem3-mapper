@@ -9,6 +9,13 @@
 #include "gpu_buffer_fmi_decode.h"
 #include "../resources/gpu_modules/gpu_interface.h"
 
+
+/*
+ * Errors
+ */
+#define GEM_ERROR_GPU_FMI_DECODE_MAX_QUERIES "GPU.FMI.Decode. Number of queries (%"PRIu64") exceeds maximum buffer capacity (%"PRIu64" decodes)"
+
+
 /*
  * CUDA Supported
  */
@@ -60,16 +67,33 @@ uint64_t gpu_buffer_fmi_decode_get_max_queries(gpu_buffer_fmi_decode_t* const gp
 uint64_t gpu_buffer_fmi_decode_get_num_queries(gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
   return gpu_buffer_fmi_decode->num_queries;
 }
+bool gpu_buffer_fmi_decode_fits_in_buffer(
+    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,const uint64_t total_queries) {
+  // Get Limits
+  uint64_t max_queries = gpu_buffer_fmi_decode_get_max_queries(gpu_buffer_fmi_decode);
+  // Check available space in buffer
+  if (gpu_buffer_fmi_decode->num_queries+total_queries > max_queries) {
+    // Check number of queries in the buffer
+    if (gpu_buffer_fmi_decode->num_queries > 0) {
+      return false; // Leave it to the next fresh buffer
+    }
+    // Reallocate buffer
+    gpu_fmi_decode_init_and_realloc_buffer_(gpu_buffer_fmi_decode->buffer,total_queries);
+    // Check reallocated buffer dimensions (error otherwise)
+    max_queries = gpu_buffer_fmi_decode_get_max_queries(gpu_buffer_fmi_decode);
+    gem_cond_fatal_error(total_queries > max_queries,GPU_FMI_DECODE_MAX_QUERIES,total_queries,max_queries);
+    // Return OK (after reallocation)
+    return true;
+  }
+  // Return OK (fits in buffer)
+  return true;
+}
 /*
  * Accessors
  */
 void gpu_buffer_fmi_decode_add_query(
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,const uint64_t bwt_position) {
   PROF_INC_COUNTER(GP_GPU_BUFFER_FMI_DECODE_NUM_QUERIES);
-  // Check query length & buffer occupancy
-  const uint64_t max_buffer_queries = gpu_buffer_fmi_decode_get_max_queries(gpu_buffer_fmi_decode);
-  gem_cond_fatal_error(gpu_buffer_fmi_decode->num_queries >= max_buffer_queries,
-      GPU_FMI_DECODE_MAX_QUERIES,(uint64_t)gpu_buffer_fmi_decode->num_queries,max_buffer_queries);
   // Get next free query in buffer
   gpu_fmi_decode_init_pos_t* const gpu_fmi_decode_init_pos =
       gpu_fmi_decode_buffer_get_init_pos_(gpu_buffer_fmi_decode->buffer) + gpu_buffer_fmi_decode->num_queries;

@@ -54,7 +54,7 @@ void* mapper_SE_bisulfite_thread(mapper_search_t* const mapper_search) {
     PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
     // Fully convert reads before searching into archive, making a copy of the original
     if (bs_read_mode==bisulfite_read_inferred) {
-     read_end = sequence_get_end_info(&mapper_search->archive_search->sequence);
+      read_end = sequence_get_end_info(&mapper_search->archive_search->sequence);
     }
     string_t* seq_end = NULL;
     switch(read_end) {

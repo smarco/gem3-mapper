@@ -75,6 +75,10 @@ void mapper_se_cuda_region_profile(mapper_cuda_search_t* const mapper_search) {
         parameters->io.fastq_strictly_normalized,parameters->io.fastq_try_recovery,false);
     gem_cond_fatal_error(error_code==INPUT_STATUS_FAIL,MAPPER_CUDA_ERROR_PARSING);
     PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
+//    // DEBUG
+//    if (gem_streq(archive_search->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000000345")) {
+//      printf("HERE\n");
+//    }
     // Generate Candidates (Search into the archive)
     archive_search_se_stepwise_init_search(archive_search);
     archive_search_se_stepwise_region_profile_generate(archive_search);

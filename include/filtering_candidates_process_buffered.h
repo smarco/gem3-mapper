@@ -16,7 +16,7 @@
 #include "gpu_buffer_fmi_decode.h"
 
 /*
- * Process Candidates Buffered (from GPU-Buffer)
+ * Decode Candidates Buffered (from GPU-Buffer)
  */
 void filtering_candidates_decode_filtering_positions_buffered(
     filtering_candidates_t* const filtering_candidates,const locator_t* const locator,
@@ -25,6 +25,17 @@ void filtering_candidates_decode_filtering_positions_buffered(
     const uint64_t region_lo,const uint64_t region_hi,
     const uint64_t key_length,const uint64_t boundary_error,
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,const uint64_t buffer_offset_begin);
+void filtering_candidates_decode_filtering_positions_buffered_prefetched(
+    filtering_candidates_t* const filtering_candidates,const locator_t* const locator,
+    archive_text_t* const archive_text,const fm_index_t* const fm_index,
+    const uint64_t region_begin,const uint64_t region_end,
+    const uint64_t region_lo,const uint64_t region_hi,
+    const uint64_t key_length,const uint64_t boundary_error,
+    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,const uint64_t buffer_offset_begin);
+
+/*
+ * Process Candidates Buffered (from GPU-Buffer)
+ */
 void filtering_candidates_process_candidates_buffered(
     filtering_candidates_t* const filtering_candidates,
     archive_t* const archive,const pattern_t* const pattern,

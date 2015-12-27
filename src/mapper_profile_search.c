@@ -163,7 +163,7 @@ void mapper_profile_print_candidate_verification(FILE* const stream) {
   tab_fprintf(stream,"      => TIME.Kmer.Counting                    ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_KMER_COUNTER_FILTER),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"      => TIME.BPM.Align                        ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_TILED),PROF_GET_TIMER(GP_MAPPER_ALL));
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_BPM_COMPUTE_EDIT_DISTANCE),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"  |> Filtering.Candidates\n");
   tab_fprintf(stream,"    --> Candidate.Positions                       ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"positions",true);

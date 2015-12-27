@@ -12,20 +12,7 @@
 #include "essentials.h"
 #include "archive.h"
 #include "profiler_timer.h"
-
-/*
- * Generate Benchmarks
- */
-//#define CUDA_BENCHMARK_GENERATE_REGION_PROFILE
-//#define CUDA_BENCHMARK_GENERATE_DECODE_CANDIDATES
-//#define CUDA_BENCHMARK_GENERATE_VERIFY_CANDIDATES
-
-/*
- * Debug GPU results from gpu-buffers (for each stage)
- */
-//#define CUDA_CHECK_BUFFERED_REGION_PROFILE
-//#define CUDA_CHECK_BUFFERED_DECODE_POSITIONS
-//#define CUDA_CHECK_BUFFERED_VERIFY_CANDIDATES
+#include "gpu_config.h"
 
 typedef struct {
   void* gpu_buffers_dto;              // GPU-Buffer Initializer DTO
@@ -34,15 +21,10 @@ typedef struct {
 } gpu_buffer_collection_t;
 
 /*
- * GPU Support
- */
-bool gpu_supported();
-
-/*
  * Setup
  */
 gpu_buffer_collection_t* gpu_buffer_collection_new(
-    archive_t* const archive,const uint64_t num_buffers,
+    char* const gpu_index_name,const uint64_t num_buffers,
     const uint64_t buffer_size,const bool verbose);
 void gpu_buffer_collection_delete(gpu_buffer_collection_t* const gpu_buffer_collection);
 

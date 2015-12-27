@@ -55,17 +55,14 @@ void search_stage_decode_candidates_buffer_delete(
 bool search_stage_decode_candidates_buffer_fits(
     search_stage_decode_candidates_buffer_t* const decode_candidates_buffer,
     archive_search_t* const archive_search_end1,archive_search_t* const archive_search_end2) {
-  // Get buffer limits
-  gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode = decode_candidates_buffer->gpu_buffer_fmi_decode;
-  const uint64_t max_queries = gpu_buffer_fmi_decode_get_max_queries(gpu_buffer_fmi_decode);
-  const uint64_t num_queries = gpu_buffer_fmi_decode_get_num_queries(gpu_buffer_fmi_decode);
-  // Get number of candidates to decode
+  // Compute dimensions (Total number of candidates to decode)
   uint64_t num_decode_candidates = archive_search_get_num_decode_candidates(archive_search_end1);
   if (archive_search_end2 != NULL) {
     num_decode_candidates += archive_search_get_num_decode_candidates(archive_search_end2);
   }
-  // Return
-  return num_queries + num_decode_candidates <= max_queries;
+  // Return if current search fits in buffer
+  return gpu_buffer_fmi_decode_fits_in_buffer(
+      decode_candidates_buffer->gpu_buffer_fmi_decode,num_decode_candidates);
 }
 /*
  * Send/Receive

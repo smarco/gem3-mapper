@@ -112,16 +112,16 @@ bool bpm_compute_edit_distance_raw(
     bpm_pattern_t* const bpm_pattern,const uint8_t* const text,const uint64_t text_length,
     uint64_t* const position,uint64_t* const distance);
 // Cut-off
-bool bpm_compute_edit_distance_cutoff(
+bool bpm_compute_edit_distance(
     const bpm_pattern_t* const bpm_pattern,
     const uint8_t* const text,const uint64_t text_length,
-    uint64_t* const match_end_column,uint64_t* const distance,
+    uint64_t* const match_distance,uint64_t* const match_column,
     const uint64_t max_distance,const bool quick_abandon);
 // BPM Tiled (bound)
-void bpm_compute_edit_distance_cutoff_tiled(
-    bpm_pattern_t* const bpm_pattern,const uint8_t* const text,const uint64_t text_length,
-    uint64_t* const levenshtein_distance,uint64_t* const levenshtein_match_end_column,
-    const uint64_t max_error);
+void bpm_compute_edit_distance_tiled(
+    bpm_pattern_t* const bpm_pattern,const uint8_t* const text,
+    const uint64_t text_length,uint64_t* const match_distance,
+    uint64_t* const match_column,const uint64_t max_error);
 // Find all local minimums
 uint64_t bpm_compute_edit_distance_all(
     const bpm_pattern_t* const bpm_pattern,vector_t* const filtering_regions,

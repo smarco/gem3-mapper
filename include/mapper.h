@@ -20,6 +20,7 @@
 #include "archive_search.h"
 #include "archive_search_parameters.h"
 #include "archive_select.h"
+#include "gpu_buffer_collection.h"
 #include "quality_model.h"
 #include "profiler.h"
 #include "report_stats_mstats.h"
@@ -106,15 +107,15 @@ typedef struct {
   int argc;
   char** argv;
   /* GEM Structures */
-  archive_t* archive;
+  archive_t* archive;                             // GEM Archive
+  gpu_buffer_collection_t* gpu_buffer_collection; // GEM-GPU Index
   input_file_t* input_file;
   input_file_t* input_file_end1;
   input_file_t* input_file_end2;
   pthread_mutex_t input_file_mutex;
   FILE* output_stream;
   output_file_t* output_file;
-	/* Stats report structures */
-	mapping_stats_t* global_mapping_stats;
+	mapping_stats_t* global_mapping_stats;          // Stats Report
   /* Mapper Type */
   mapper_type mapper_type;
   /* I/O Parameters */

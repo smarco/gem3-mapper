@@ -9,6 +9,7 @@
 #include "filtering_candidates_verify_buffered.h"
 #include "align_bpm_pattern.h"
 #include "align_bpm_distance.h"
+#include "align.h"
 
 /*
  * Debug
@@ -136,8 +137,8 @@ bool filtering_candidates_verify_buffered_get_result(
     }
     // Align BPM & Set result
     uint64_t check_tile_match_end_column, check_tile_distance;
-    bpm_compute_edit_distance_cutoff(&bpm_pattern_tile,text,candidate_length,
-        &check_tile_match_end_column,&check_tile_distance,bpm_pattern_tile.pattern_length,false);
+    bpm_compute_edit_distance(&bpm_pattern_tile,text,candidate_length,&check_tile_distance,
+        &check_tile_match_end_column,bpm_pattern_tile.pattern_length,false);
     if (tile_distance!=check_tile_distance || tile_match_column!=check_tile_match_end_column) {
       if (uncalled_bases_text == 0) {
         gem_error_msg("Filtering.Candidates.Verify.Buffered. Check verify candidate "
@@ -148,8 +149,8 @@ bool filtering_candidates_verify_buffered_get_result(
     }
     // Whole read
     uint64_t match_end_column, match_distance;
-    bpm_compute_edit_distance_cutoff(bpm_pattern,text,candidate_length,
-        &match_end_column,&match_distance,bpm_pattern->pattern_length,false);
+    bpm_compute_edit_distance(bpm_pattern,text,candidate_length,
+        &match_distance,&match_end_column,bpm_pattern->pattern_length,false);
     gem_slog(">FC.Verify.Candidate.Buffered.Distance\t"
         "Whole.Read=%lu\tTileWise={bound=%lu,estimated=%lu}\n",
         match_distance,*global_distance,*global_distance+*distance_link_tiles);
@@ -251,4 +252,90 @@ uint64_t filtering_candidates_verify_buffered_retrieve(
   // Return number of accepted regions
   return num_accepted_regions;
 }
-
+/*
+ * Display/Benchmark
+ */
+void filtering_candidates_verify_buffered_print_benchmark_tile(
+    FILE* const stream,filtering_region_t* const filtering_region,
+    pattern_t* const pattern,const uint64_t max_error,
+    const uint64_t tile_pos,const uint64_t tile_tall,
+    const bool print_tile,text_collection_t* const text_collection) {
+  // Parameters
+  bpm_pattern_t* const bpm_pattern = &pattern->bpm_pattern;
+  const uint64_t begin_position = filtering_region->begin_position;
+  const uint64_t candidate_length = filtering_region->end_position - begin_position;
+  const text_trace_t* const text_trace = text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
+  const uint8_t* const text = text_trace->text;
+  // Calculate tile dimensions
+  pattern_tiled_t pattern_tiled;
+  const bool pattern_can_align = pattern_tiled_init(
+      &pattern_tiled,pattern->key_length,tile_tall,candidate_length,max_error);
+  if (!pattern_can_align) return;
+  // Initialize current tile variables
+  uint64_t tile_offset, total_candidates_added, acc_tall, i;
+  for (tile_offset=0,acc_tall=0;tile_offset<=tile_pos;++tile_offset,++total_candidates_added) {
+    if (tile_offset==tile_pos) {
+      // Print tile key
+      if (print_tile) {
+        const uint8_t* const key = pattern->key;
+        for (i=0;i<pattern_tiled.tile_tall;++i) {
+          fprintf(stream,"%c",dna_decode(key[acc_tall+i]));
+        }
+      }
+      // (Re)Align the tile
+      bpm_compute_edit_distance(bpm_pattern->bpm_pattern_tiles+tile_offset,
+          text+pattern_tiled.tile_offset,pattern_tiled.tile_wide,
+          &pattern_tiled.tile_distance,&pattern_tiled.tile_match_column,
+          pattern_tiled.tile_tall,false);
+      // Print tile candidate (position, wide, distance)
+      fprintf(stream,"\tchrX:+:%lu:%lu:%ld",begin_position,pattern_tiled.tile_wide,
+          pattern_tiled.tile_distance==ALIGN_DISTANCE_INF ? -1 : pattern_tiled.tile_distance);
+    }
+    // Calculate next tile
+    acc_tall += pattern_tiled.tile_tall;
+    pattern_tiled_calculate_next(&pattern_tiled);
+  }
+}
+void filtering_candidates_verify_buffered_print_benchmark(
+    FILE* const stream,filtering_candidates_t* const filtering_candidates,
+    archive_text_t* const archive_text,pattern_t* const pattern,
+    mm_stack_t* const mm_stack) {
+  // Allocate text collection
+  text_collection_t text_collection;
+  text_collection_init(&text_collection);
+  // Check number of pending regions
+  const uint64_t pending_candidates = filtering_candidates_get_num_candidate_regions(filtering_candidates);
+  if (pending_candidates==0) return;
+  // Fetch pattern dimensions
+  const uint64_t max_error = pattern->max_effective_filtering_error;
+  const uint64_t gpu_pattern_num_tiles = pattern->bpm_pattern.gpu_num_tiles;
+  const uint64_t gpu_pattern_tile_tall = pattern->bpm_pattern.gpu_entries_per_tile*gpu_bpm_pattern_get_entry_length();
+  // Compile pattern tiles
+  bpm_pattern_t* const bpm_pattern = &pattern->bpm_pattern;
+  bpm_pattern_compile_tiles(bpm_pattern,2*bpm_pattern->gpu_entries_per_tile,max_error,mm_stack);
+  // Traverse all candidates (text-space)
+  uint64_t tile_pos, candidate_pos;
+  for (tile_pos=0;tile_pos<gpu_pattern_num_tiles;++tile_pos) {
+    filtering_region_t* candidate_region = vector_get_mem(filtering_candidates->filtering_regions,filtering_region_t);
+    for (candidate_pos=0;candidate_pos<pending_candidates;++candidate_pos,++candidate_region) {
+      // Retrieve Candidate (if needed)
+      if (candidate_region->text_trace_offset == UINT64_MAX) {
+        const uint64_t text_length = candidate_region->end_position-candidate_region->begin_position;
+        candidate_region->text_trace_offset =
+            archive_text_retrieve(archive_text,&text_collection,
+                candidate_region->begin_position,text_length,false,mm_stack);
+      }
+      // Print candidate tile
+      filtering_candidates_verify_buffered_print_benchmark_tile(
+          stream,candidate_region,pattern,max_error,tile_pos,
+          gpu_pattern_tile_tall,candidate_pos==0,&text_collection);
+    }
+    fprintf(stream,"\n");
+  }
+  // Restore & Free
+  filtering_region_t* candidate_region = vector_get_mem(filtering_candidates->filtering_regions,filtering_region_t);
+  for (candidate_pos=0;candidate_pos<pending_candidates;++candidate_pos,++candidate_region) {
+    candidate_region->text_trace_offset = UINT64_MAX;
+  }
+  text_collection_destroy(&text_collection);
+}

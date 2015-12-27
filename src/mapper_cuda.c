@@ -43,6 +43,27 @@ void mapper_cuda_error_report(FILE* stream) {
 //  } MUTEX_END_SECTION(mapper_cuda_error_report_mutex);
 }
 /*
+ * Index loader
+ */
+void mapper_load_gpu_index(mapper_parameters_t* const parameters) {
+  // Parameters
+  mapper_parameters_cuda_t* const cuda_parameters = &parameters->cuda;
+  const uint64_t num_threads = parameters->system.num_threads;
+  const uint64_t num_gpu_buffers_per_thread =
+      cuda_parameters->num_fmi_bsearch_buffers +
+      cuda_parameters->num_fmi_decode_buffers +
+      cuda_parameters->num_bpm_buffers;
+  const uint64_t num_gpu_buffers = num_gpu_buffers_per_thread * num_threads;
+  // Prepare/Check index path
+  char* const gpu_index_name = gem_strcat(parameters->io.index_file_name,".gpu");
+  gem_cond_fatal_error_msg(!gem_access(gpu_index_name,FM_READ),"Couldn't load gpu-index '%s'",gpu_index_name);
+  gem_cond_log(parameters->misc.verbose_user,"[Loading GPU Index '%s']",gpu_index_name);
+  // Load GPU Index & Prepare Buffers
+  parameters->gpu_buffer_collection = gpu_buffer_collection_new(gpu_index_name,
+      num_gpu_buffers,cuda_parameters->gpu_buffer_size,parameters->misc.verbose_dev);
+  free(gpu_index_name);
+}
+/*
  * SE/PE runnable
  */
 void mapper_cuda_prepare_ticker(
@@ -55,14 +76,14 @@ void mapper_cuda_prepare_ticker(
 }
 void mapper_cuda_setup_thread(
     mapper_cuda_search_t* const mapper_search,const uint64_t thread_id,
-    mapper_parameters_t* const mapper_parameters,gpu_buffer_collection_t* const gpu_buffer_collection,
-    const uint64_t gpu_buffers_offset,mapping_stats_t* const mstats,ticker_t* const ticker) {
+    mapper_parameters_t* const mapper_parameters,const uint64_t gpu_buffers_offset,
+    mapping_stats_t* const mstats,ticker_t* const ticker) {
   // Setup Thread
 //  mapper_search[i].paired_end = paired_end;
   mapper_search->thread_id = thread_id;
   mapper_search->thread_data = mm_alloc(pthread_t);
   mapper_search->mapper_parameters = mapper_parameters;
-  mapper_search->gpu_buffer_collection = gpu_buffer_collection;
+  mapper_search->gpu_buffer_collection = mapper_parameters->gpu_buffer_collection;
   mapper_search->gpu_buffers_offset = gpu_buffers_offset;
   if (mstats) {
     mapper_search->mapping_stats = mstats + thread_id;
@@ -73,21 +94,18 @@ void mapper_cuda_setup_thread(
   mapper_search->ticker = ticker;
 }
 void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,const bool paired_end) {
-  // Parameters
-  mapper_parameters_cuda_t* const cuda_parameters = &mapper_parameters->cuda;
   // Check CUDA-Support
   if (!gpu_supported()) GEM_CUDA_NOT_SUPPORTED();
-  // Prepare GPU Buffers
+  // Parameters
+  // Parameters
+  mapper_parameters_cuda_t* const cuda_parameters = &mapper_parameters->cuda;
   const uint64_t num_threads = mapper_parameters->system.num_threads;
   const uint64_t num_gpu_buffers_per_thread =
       cuda_parameters->num_fmi_bsearch_buffers +
       cuda_parameters->num_fmi_decode_buffers +
       cuda_parameters->num_bpm_buffers;
-  const uint64_t num_gpu_buffers = num_gpu_buffers_per_thread * num_threads;
-  gem_cond_log(mapper_parameters->misc.verbose_user,"[Loading GPU Structures]");
-  gpu_buffer_collection_t* const gpu_buffer_collection =
-      gpu_buffer_collection_new(mapper_parameters->archive,
-          num_gpu_buffers,cuda_parameters->gpu_buffer_size,mapper_parameters->misc.verbose_dev);
+  // Load GPU GEM-Index & Prepare Buffers
+  mapper_load_gpu_index(mapper_parameters);
   // Load GEM-Index
   mapper_load_index(mapper_parameters);
   // I/O (SAM headers)
@@ -102,8 +120,8 @@ void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,const bool pai
   ticker_t ticker;
   mapper_cuda_prepare_ticker(&ticker,paired_end,mapper_parameters->misc.verbose_user);
   // Mapping stats
-  mapping_stats_t* const global_mapping_stats = mapper_parameters->global_mapping_stats;
-  mapping_stats_t* const mstats = global_mapping_stats ? mm_calloc(num_threads,mapping_stats_t,false) : NULL;
+  mapping_stats_t* const mstats = mapper_parameters->global_mapping_stats ?
+      mm_calloc(num_threads,mapping_stats_t,false) : NULL;
   // Mapper Searches (threads)
   mapper_cuda_search_t* const mapper_search = mm_malloc(num_threads*sizeof(mapper_cuda_search_t));
   // Error-report function
@@ -115,8 +133,7 @@ void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,const bool pai
   uint64_t i, gpu_buffers_offset = 0;
   for (i=0;i<num_threads;++i) {
     // Setup Thread
-  	mapper_cuda_setup_thread(mapper_search+i,i,mapper_parameters,
-  	    gpu_buffer_collection,gpu_buffers_offset,mstats,&ticker);
+  	mapper_cuda_setup_thread(mapper_search+i,i,mapper_parameters,gpu_buffers_offset,mstats,&ticker);
   	gpu_buffers_offset += num_gpu_buffers_per_thread;
     // Launch thread
     gem_cond_fatal_error__perror(
@@ -135,11 +152,11 @@ void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,const bool pai
   ticker_mutex_cleanup(&ticker);
 	// Merge report stats
 	if (mstats) {
-    merge_mapping_stats(global_mapping_stats,mstats,num_threads);
+    merge_mapping_stats(mapper_parameters->global_mapping_stats,mstats,num_threads);
     mm_free(mstats);
 	}
   mm_free(mapper_search); // Delete mapper-CUDA searches
-  gpu_buffer_collection_delete(gpu_buffer_collection); // Delete GPU-buffer collection
+  gpu_buffer_collection_delete(mapper_parameters->gpu_buffer_collection); // Delete GPU-buffer collection
 }
 /*
  * SE-CUDA runnable

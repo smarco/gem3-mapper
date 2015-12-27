@@ -6,7 +6,6 @@
  * DESCRIPTION: Encodes a Multi-FASTA file (.fa) into a GEM index
  */
 
-#include <pthread.h>
 #include "gem_core.h"
 
 /*
@@ -45,6 +44,7 @@ typedef struct {
   sampling_rate_t text_sampling_rate;
   bool run_length_index;
   bool bisulfite_index;
+  bool gpu_index;
   /* Debug */
   bool dump_locator_intervals;
   bool dump_indexed_text;
@@ -79,6 +79,11 @@ void indexer_parameters_set_defaults(indexer_parameters_t* const parameters) {
   parameters->text_sampling_rate=SAMPLING_RATE_4;
   parameters->run_length_index = false;
   parameters->bisulfite_index = false;
+#ifdef HAVE_CUDA
+  parameters->gpu_index = true;
+#else
+  parameters->gpu_index = false;
+#endif
   /* Debug */
   parameters->dump_locator_intervals=true;
   parameters->dump_indexed_text=false;
@@ -196,9 +201,12 @@ void indexer_process_multifasta(archive_builder_t* const archive_builder,indexer
   input_file_close(input_multifasta); // Close MultiFASTA
 }
 void indexer_generate_bwt(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
-  // Build BWT
+  // VERBOSE
   tfprintf(gem_log_get_stream(),"[Generating BWT Forward-Text]\n");
-  archive_builder_index_build_bwt(archive_builder,parameters->dump_bwt,parameters->dump_explicit_sa,parameters->verbose);
+  // Build BWT
+  archive_builder_index_build_bwt(
+      archive_builder,parameters->dump_bwt,
+      parameters->dump_explicit_sa,parameters->verbose);
   // DEBUG. Print Explicit Checked-SA => (SApos,SA[SApos...SApos+SAFixLength])
   gem_cond_debug_block(GEM_INDEXER_DEBUG_DUMP_EXPLICIT_CHECKED_SA) {
     indexer_debug_check_sa(gem_strcat(parameters->output_index_file_name_prefix,".check.sa"),archive_builder->enc_text);
@@ -219,12 +227,21 @@ void indexer_generate_bwt_reverse(archive_builder_t* const archive_builder,index
 }
 void indexer_write_index(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
   // Write Text & FM-Index
-  archive_builder_write_text(archive_builder,parameters->verbose);
-  archive_builder_write_index(archive_builder,parameters->check_index,parameters->verbose);
+  archive_builder_write_index(archive_builder,parameters->gpu_index,parameters->check_index,parameters->verbose);
 }
 void indexer_write_index_reverse(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
   // Write FM-Index Reverse
   archive_builder_write_index_reverse(archive_builder,parameters->check_index,parameters->verbose);
+}
+void indexer_cleanup(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
+  // Archive Builder
+  archive_builder_delete(archive_builder);
+  // Output file name
+  mm_free(parameters->output_index_file_name);
+  // Info File Name
+  if (!parameters->info_file_name_provided)  {
+    mm_free(parameters->info_file_name);
+  }
 }
 /*
  * GEM-Indexer options Menu
@@ -241,10 +258,13 @@ option_t gem_indexer_options[] = {
   { 'o', "output", REQUIRED, TYPE_STRING, 2 , VISIBILITY_USER, "<output_prefix>" , "" },
   { 'N', "strip-unknown-bases-threshold", REQUIRED, TYPE_INT, 2 , VISIBILITY_ADVANCED, "'disable'|<integer>" , "(default=50)" },
   /* Index */
-  { 'r', "run-length-index", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_USER, "" , "(default=false)" },
-  { 'b', "bisulfite-index", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_USER, "" , "(default=false)" },
   { 's', "text-sampling-rate", REQUIRED, TYPE_INT, 3 , VISIBILITY_ADVANCED, "<sampling_rate>" , "(default=4)" },
   { 'S', "SA-sampling-rate", REQUIRED, TYPE_INT, 3 , VISIBILITY_ADVANCED, "<sampling_rate>" , "(default=32)" },
+  { 'r', "run-length-index", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_USER, "" , "(default=false)" },
+  { 'b', "bisulfite-index", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_USER, "" , "(default=false)" },
+#ifdef HAVE_CUDA
+  { 300, "gpu-index", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_ADVANCED, "" , "(default=true)" },
+#endif
   // TODO { 300, "autotune-index-size", REQUIRED, TYPE_STRING, 5 , VISIBILITY_USER, "<index-size>" , "(Eg 2GB)" },
   /* Debug */
   { 400, "dump-locator-intervals", OPTIONAL, TYPE_NONE, 4 , VISIBILITY_ADVANCED, "" , "" },
@@ -345,6 +365,11 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
     case 'b': // --bisulfite-index
       parameters->bisulfite_index = (optarg) ? options_parse_bool(optarg) : true;
       break;
+#ifdef HAVE_CUDA
+    case 300: // --gpu-index
+      parameters->gpu_index = (optarg) ? options_parse_bool(optarg) : true;
+      break;
+#endif
     /* Debug/Temporal */
     case 400: // --dump-locator-intervals
       parameters->dump_locator_intervals = (optarg) ? options_parse_bool(optarg) : true;
@@ -455,16 +480,6 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
   string_destroy(getopt_short_string);
   mm_free(getopt_short_string);
   mm_free(getopt_options);
-}
-void indexer_cleanup(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
-  // Archive Builder
-  archive_builder_delete(archive_builder);
-  // Output file name
-  mm_free(parameters->output_index_file_name);
-  // Info File Name
-  if (!parameters->info_file_name_provided)  {
-    mm_free(parameters->info_file_name);
-  }
 }
 /*
  * Main()

@@ -41,20 +41,21 @@ void archive_select_realign_match_interval(
   as_parameters_t* const as_parameters = &archive_search->as_parameters;
   search_parameters_t* const search_parameters = archive_search->as_parameters.search_parameters;
   const alignment_model_t alignment_model = search_parameters->alignment_model;
-  match_align_input_t align_input;
-  match_align_parameters_t align_parameters;
-  match_scaffold_t match_scaffold = { .scaffold_regions = 0, .num_scaffold_regions = 0 };
   if (match_interval->distance==0 || alignment_model==alignment_model_none) {
-    align_input.text_trace_offset = match_trace->text_trace_offset;
-    align_input.text = match_interval->text;
-    align_input.text_offset_begin = 0;
-    align_input.text_offset_end = match_interval->text_length;
-    align_input.key_length = sequence_get_length(&archive_search->sequence);
-    align_input.text_position = match_trace->match_alignment.match_position;
-    align_parameters.emulated_rc_search = match_interval->emulated_rc_search;
-    align_parameters.max_error = match_interval->distance;
-    align_parameters.swg_penalties = &search_parameters->swg_penalties;
-    align_parameters.swg_threshold = as_parameters->swg_threshold_nominal;
+    match_align_input_t align_input = {
+      .text_trace_offset = match_trace->text_trace_offset,
+      .text = match_interval->text,
+      .text_offset_begin = 0,
+      .text_offset_end = match_interval->text_length,
+      .key_length = sequence_get_length(&archive_search->sequence),
+      .text_position = match_trace->match_alignment.match_position,
+    };
+    match_align_parameters_t align_parameters = {
+      .emulated_rc_search = match_interval->emulated_rc_search,
+      .max_error = match_interval->distance,
+      .swg_penalties = &search_parameters->swg_penalties,
+      .swg_threshold = as_parameters->swg_threshold_nominal,
+    };
     match_align_exact(matches,match_trace,&align_input,&align_parameters);
   } else {
     // Search-state (strand-based)
@@ -63,62 +64,81 @@ void archive_select_realign_match_interval(
     const bool left_gap_alignment = !match_interval->emulated_rc_search;
     // Align
     switch (alignment_model) {
-      case alignment_model_hamming:
-        align_input.key = search_state->pattern.key;
-        align_input.key_length = search_state->pattern.key_length;
-        align_input.text_trace_offset = match_trace->text_trace_offset;
-        align_input.text_position = match_trace->match_alignment.match_position;
-        align_input.text = match_interval->text;
-        align_input.text_offset_begin = 0;
-        align_input.text_offset_end = search_state->pattern.key_length;
-        align_parameters.emulated_rc_search = match_interval->emulated_rc_search;
-        align_parameters.allowed_enc = search_parameters->allowed_enc;
+      case alignment_model_hamming: {
+        match_align_input_t align_input = {
+          .key = search_state->pattern.key,
+          .key_length = search_state->pattern.key_length,
+          .text_trace_offset = match_trace->text_trace_offset,
+          .text_position = match_trace->match_alignment.match_position,
+          .text = match_interval->text,
+          .text_offset_begin = 0,
+          .text_offset_end = search_state->pattern.key_length,
+        };
+        match_align_parameters_t align_parameters = {
+          .emulated_rc_search = match_interval->emulated_rc_search,
+          .allowed_enc = search_parameters->allowed_enc,
+        };
         match_align_hamming(matches,match_trace,&align_input,&align_parameters);
         break;
-      case alignment_model_levenshtein:
-        align_input.key = search_state->pattern.key;
-        align_input.key_length = search_state->pattern.key_length,
-        align_input.bpm_pattern =  &search_state->pattern.bpm_pattern;
-        align_input.text_trace_offset = match_trace->text_trace_offset;
-        align_input.text_position = match_trace->match_alignment.match_position;
-        align_input.text = match_interval->text;
-        align_input.text_offset_begin = 0;
-        align_input.text_offset_end = match_interval->text_length;
-        align_input.text_length = match_interval->text_length;
-        align_parameters.emulated_rc_search = match_interval->emulated_rc_search;
-        align_parameters.max_error = match_interval->distance;
-        align_parameters.left_gap_alignment = left_gap_alignment;
-        align_parameters.swg_penalties = &search_parameters->swg_penalties;
+      }
+      case alignment_model_levenshtein: {
+        match_align_input_t align_input = {
+          .key = search_state->pattern.key,
+          .key_length = search_state->pattern.key_length,
+          .bpm_pattern =  &search_state->pattern.bpm_pattern,
+          .text_trace_offset = match_trace->text_trace_offset,
+          .text_position = match_trace->match_alignment.match_position,
+          .text = match_interval->text,
+          .text_offset_begin = 0,
+          .text_offset_end = match_interval->text_length,
+          .text_length = match_interval->text_length,
+        };
+        match_align_parameters_t align_parameters = {
+          .emulated_rc_search = match_interval->emulated_rc_search,
+          .max_error = match_interval->distance,
+          .left_gap_alignment = left_gap_alignment,
+          .swg_penalties = &search_parameters->swg_penalties,
+        };
         match_align_levenshtein(matches,match_trace,&align_input,&align_parameters,mm_stack);
         break;
-      case alignment_model_gap_affine:
-        align_input.key = search_state->pattern.key;
-        align_input.key_length = search_state->pattern.key_length;
-        align_input.bpm_pattern =  &search_state->pattern.bpm_pattern;
-        align_input.text_trace_offset = match_trace->text_trace_offset;
-        align_input.text_position = match_trace->match_alignment.match_position;
-        align_input.text = match_interval->text;
-        align_input.text_length = match_interval->text_length;
-        align_input.text_offset_begin = 0;
-        align_input.text_offset_end = match_interval->text_length;
-        align_input.align_distance_bound = match_interval->distance;
-        align_input.align_match_begin_column = 0;
-        align_input.align_match_end_column = match_interval->text_length;
-        align_parameters.emulated_rc_search = match_interval->emulated_rc_search;
-        align_parameters.max_error = match_interval->distance;
-        align_parameters.max_bandwidth = match_interval->distance;
-        align_parameters.left_gap_alignment = left_gap_alignment;
-        align_parameters.scaffolding = search_parameters->alignment_scaffolding,
-        align_parameters.scaffolding_min_coverage = as_parameters->alignment_scaffolding_min_coverage_nominal;
-        align_parameters.scaffolding_matching_min_length = as_parameters->alignment_scaffolding_min_matching_length_nominal;
-        align_parameters.scaffolding_homopolymer_min_context = as_parameters->alignment_scaffolding_homopolymer_min_context_nominal;
-        align_parameters.allowed_enc = search_parameters->allowed_enc;
-        align_parameters.swg_penalties = &search_parameters->swg_penalties;
-        align_parameters.cigar_curation = search_parameters->cigar_curation;
-        align_parameters.cigar_curation_min_end_context = as_parameters->cigar_curation_min_end_context_nominal;
+      }
+      case alignment_model_gap_affine: {
+        match_align_input_t align_input = {
+          .key = search_state->pattern.key,
+          .key_length = search_state->pattern.key_length,
+          .bpm_pattern =  &search_state->pattern.bpm_pattern,
+          .text_trace_offset = match_trace->text_trace_offset,
+          .text_position = match_trace->match_alignment.match_position,
+          .text = match_interval->text,
+          .text_length = match_interval->text_length,
+          .text_offset_begin = 0,
+          .text_offset_end = match_interval->text_length,
+          .align_distance_bound = match_interval->distance,
+          .align_match_begin_column = 0,
+          .align_match_end_column = match_interval->text_length,
+        };
+        match_align_parameters_t align_parameters = {
+          .emulated_rc_search = match_interval->emulated_rc_search,
+          .max_error = match_interval->distance,
+          .max_bandwidth = match_interval->distance,
+          .left_gap_alignment = left_gap_alignment,
+          .scaffolding = search_parameters->alignment_scaffolding,
+          .scaffolding_min_coverage = as_parameters->alignment_scaffolding_min_coverage_nominal,
+          .scaffolding_matching_min_length = as_parameters->alignment_scaffolding_min_matching_length_nominal,
+          .scaffolding_homopolymer_min_context = as_parameters->alignment_scaffolding_homopolymer_min_context_nominal,
+          .allowed_enc = search_parameters->allowed_enc,
+          .swg_penalties = &search_parameters->swg_penalties,
+          .cigar_curation = search_parameters->cigar_curation,
+          .cigar_curation_min_end_context = as_parameters->cigar_curation_min_end_context_nominal,
+        };
+        match_scaffold_t match_scaffold = {
+            .scaffold_regions = 0,
+            .num_scaffold_regions = 0
+        };
         // Smith-Waterman-Gotoh Alignment (Gap-affine)
         match_align_smith_waterman_gotoh(matches,match_trace,&align_input,&align_parameters,&match_scaffold,mm_stack);
         break;
+      }
       default:
         GEM_INVALID_CASE();
         break;

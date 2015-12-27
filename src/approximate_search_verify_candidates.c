@@ -56,6 +56,7 @@ void approximate_search_verify_candidates(approximate_search_t* const search,mat
 /*
  * Verify Candidates Buffered
  */
+void approximate_search_verify_candidates_buffered_print_benchmark(approximate_search_t* const search);
 void approximate_search_verify_candidates_buffered_copy(
     approximate_search_t* const search,gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
   // Add to GPU-Buffer
@@ -64,7 +65,7 @@ void approximate_search_verify_candidates_buffered_copy(
       search->filtering_candidates,&search->pattern,gpu_buffer_align_bpm);
   // BENCHMARK
 #ifdef CUDA_BENCHMARK_GENERATE_VERIFY_CANDIDATES
-  // approximate_search_region_profile_buffered_print_benchmark(search);
+  approximate_search_verify_candidates_buffered_print_benchmark(search);
 #endif
 }
 void approximate_search_verify_candidates_buffered_retrieve(
@@ -88,4 +89,19 @@ void approximate_search_verify_candidates_buffered_retrieve(
   }
   // Update state
   search->processing_state = asearch_processing_state_candidates_verified;
+}
+/*
+ * Display/Benchmark
+ */
+void approximate_search_verify_candidates_buffered_print_benchmark(approximate_search_t* const search) {
+#ifdef CUDA_BENCHMARK_GENERATE_VERIFY_CANDIDATES
+  // Prepare benchmark file
+  if (benchmark_verify_candidates==NULL) {
+    benchmark_verify_candidates = fopen("gem3.verify.candidates.benchmark","w+");
+  }
+  // Print all candidates' tiles
+  filtering_candidates_verify_buffered_print_benchmark(
+      benchmark_verify_candidates,search->filtering_candidates,
+      search->archive->text,&search->pattern,search->mm_stack);
+#endif
 }

@@ -43,6 +43,7 @@ struct _bpm_pattern_t {
   uint64_t gpu_num_entries;
   uint64_t gpu_num_tiles;
   uint64_t gpu_entries_per_tile;
+  bool pattern_tiles_compiled;
   bpm_pattern_t* bpm_pattern_tiles;
 };
 
@@ -59,5 +60,12 @@ void bpm_pattern_compile(
     bpm_pattern_t* const bpm_pattern,uint8_t* const pattern,
     const uint64_t pattern_length,const uint64_t max_error,
     mm_stack_t* const mm_stack);
+
+/*
+ * Compile Pattern Tiles
+ */
+void bpm_pattern_compile_tiles(
+    bpm_pattern_t* const bpm_pattern,uint64_t words64_per_tile,
+    const uint64_t max_error,mm_stack_t* const mm_stack);
 
 #endif /* ALIGN_BPM_PATTERN_H_ */

@@ -95,11 +95,11 @@ void archive_builder_delete(archive_builder_t* const archive_builder);
  */
 void archive_builder_write_header(archive_builder_t* const archive_builder);
 void archive_builder_write_locator(archive_builder_t* const archive_builder);
-void archive_builder_write_text(
-    archive_builder_t* const archive_builder,const bool verbose);
 void archive_builder_write_index(
-    archive_builder_t* const archive_builder,const bool check_index,const bool verbose);
+    archive_builder_t* const archive_builder,
+    const bool write_gpu_index,const bool check_index,const bool verbose);
 void archive_builder_write_index_reverse(
-    archive_builder_t* const archive_builder,const bool check_index,const bool verbose);
+    archive_builder_t* const archive_builder,
+    const bool check_index,const bool verbose);
 
 #endif /* ARCHIVE_BUILDER_H_ */

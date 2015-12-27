@@ -48,6 +48,8 @@ void gpu_buffer_fmi_decode_set_device_gpu(gpu_buffer_fmi_decode_t* const gpu_buf
  */
 uint64_t gpu_buffer_fmi_decode_get_max_queries(gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode);
 uint64_t gpu_buffer_fmi_decode_get_num_queries(gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode);
+bool gpu_buffer_fmi_decode_fits_in_buffer(
+    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,const uint64_t total_queries);
 
 /*
  * Accessors
@@ -63,10 +65,5 @@ void gpu_buffer_fmi_decode_get_result(
  */
 void gpu_buffer_fmi_decode_send(gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode);
 void gpu_buffer_fmi_decode_receive(gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode);
-
-/*
- * Errors
- */
-#define GEM_ERROR_GPU_FMI_DECODE_MAX_QUERIES "GPU-FMI-Decode. Number of queries (%"PRIu64") exceeds maximum buffer capacity (%"PRIu64" decodes)"
 
 #endif /* GPU_BUFFER_FMI_DECODE_H_ */

@@ -222,13 +222,14 @@
 
 #define GP_MATCH_NUM_SE_MATCHES_ADDED                       461
 
-#define GP_BPM_TILED                                        470
-#define GP_BMP_TILED_NUM_TILES                              471
-#define GP_BMP_TILED_NUM_TILES_VERIFIED                     472
-#define GP_BPM_QUICK_ABANDON                                473
-#define GP_BPM_ALL                                          474
-#define GP_BPM_ALL_QUICK_ABANDON                            475
-#define GP_BPM_ALL_MATCHES_FOUND                            476
+#define GP_BPM_COMPUTE_EDIT_DISTANCE                        470
+#define GP_BPM_TILED                                        471
+#define GP_BMP_TILED_NUM_TILES                              472
+#define GP_BMP_TILED_NUM_TILES_VERIFIED                     473
+#define GP_BPM_QUICK_ABANDON                                474
+#define GP_BPM_ALL                                          475
+#define GP_BPM_ALL_QUICK_ABANDON                            476
+#define GP_BPM_ALL_MATCHES_FOUND                            477
 
 /*
  * FM-Index

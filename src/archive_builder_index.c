@@ -12,8 +12,8 @@
  * Build BWT (SA)
  */
 void archive_builder_index_build_bwt(
-    archive_builder_t* const archive_builder,
-    const bool dump_bwt,const bool dump_explicit_sa,const bool verbose) {
+    archive_builder_t* const archive_builder,const bool dump_bwt,
+    const bool dump_explicit_sa,const bool verbose) {
   // Allocate BWT-text
   dna_text_t* const enc_text = (archive_builder->enc_rl_text==NULL) ?
       archive_builder->enc_text : archive_builder->enc_rl_text;

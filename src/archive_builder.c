@@ -6,6 +6,7 @@
  */
 
 #include "archive_builder.h"
+#include "gpu_structures.h"
 
 /*
  * Constructor
@@ -92,25 +93,37 @@ void archive_builder_write_locator(archive_builder_t* const archive_builder) {
   // Write Locator
   locator_builder_write(archive_builder->output_file_manager,archive_builder->locator);
 }
-void archive_builder_write_text(
-    archive_builder_t* const archive_builder,const bool verbose) {
+void archive_builder_write_index(
+    archive_builder_t* const archive_builder,
+    const bool write_gpu_index,const bool check_index,const bool verbose) {
+  // Write Text
   archive_text_write(archive_builder->output_file_manager,
       archive_builder->enc_text,false,archive_builder->forward_text_length,
       archive_builder->sampled_rl,verbose);
-  if (archive_builder->enc_rl_text!=NULL) dna_text_delete(archive_builder->enc_text); // Free
   if (archive_builder->sampled_rl!=NULL) sampled_rl_delete(archive_builder->sampled_rl); // Free
-}
-void archive_builder_write_index(
-    archive_builder_t* const archive_builder,const bool check_index,const bool verbose) {
   // Create & write the FM-index
-  fm_index_write(archive_builder->output_file_manager,archive_builder->enc_bwt,
-      archive_builder->character_occurrences,archive_builder->sampled_sa,check_index,verbose);
+  bwt_builder_t* const bwt_builder = fm_index_write(
+      archive_builder->output_file_manager,archive_builder->enc_bwt,
+      archive_builder->character_occurrences,archive_builder->sampled_sa,
+      check_index,verbose);
+  // Create & write the GPU FM-Index
+  if (write_gpu_index) {
+    gpu_structures_write(
+        archive_builder->output_file_name_prefix,archive_builder->enc_text,
+        archive_builder->forward_text_length,bwt_builder);
+  }
+  // Free
+  if (archive_builder->enc_rl_text!=NULL) dna_text_delete(archive_builder->enc_text);
+  bwt_builder_delete(bwt_builder);
 }
 void archive_builder_write_index_reverse(
-    archive_builder_t* const archive_builder,const bool check_index,const bool verbose) {
+    archive_builder_t* const archive_builder,
+    const bool check_index,const bool verbose) {
   // Create & write the FM-index
-  fm_index_reverse_write(archive_builder->output_file_manager,archive_builder->enc_bwt,
+  bwt_reverse_builder_t* const bwt_reverse_builder = fm_index_reverse_write(
+      archive_builder->output_file_manager,archive_builder->enc_bwt,
       archive_builder->character_occurrences,check_index,verbose);
+  bwt_reverse_builder_delete(bwt_reverse_builder); // Free BWT-builder
   fm_close(archive_builder->output_file_manager); // Close FM
   if (archive_builder->enc_rl_text==NULL) {
     dna_text_delete(archive_builder->enc_text); // Free

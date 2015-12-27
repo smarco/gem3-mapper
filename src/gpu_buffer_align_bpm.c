@@ -29,16 +29,19 @@
 /*
  * Errors
  */
-#define GEM_ERROR_GPU_BPM_MAX_PATTERN_LENGTH "BPM-GPU. Query pattern (%"PRIu64" entries) exceeds maximum buffer capacity (%"PRIu64" entries)"
-#define GEM_ERROR_GPU_BPM_MAX_CANDIDATES "BPM-GPU. Number of candidates (%"PRIu64") exceeds maximum buffer capacity (%"PRIu64" candidates)"
+#define GEM_ERROR_GPU_ALIGN_BPM_MAX_PATTERN_LENGTH "GPU.BPM.Align. Query pattern (%"PRIu64" entries) exceeds maximum buffer capacity (%"PRIu64" entries)"
+#define GEM_ERROR_GPU_ALIGN_BPM_MAX_CANDIDATES "GPU.BPM.Align. Number of candidates (%"PRIu64") exceeds maximum buffer capacity (%"PRIu64" candidates)"
 
 /*
  * Pattern Setup
  */
-void gpu_bpm_pattern_compile(bpm_pattern_t* const bpm_pattern,const uint64_t max_error) {
+void gpu_bpm_pattern_compile(
+    bpm_pattern_t* const bpm_pattern,
+    const uint64_t words128_per_tile,const uint64_t max_error) {
   // Init BPM-GPU Dimensions
+  const uint64_t min_words128_per_tile = DIV_CEIL(max_error,GPU_ALIGN_BPM_ENTRY_LENGTH);
   bpm_pattern->gpu_num_entries = DIV_CEIL(bpm_pattern->pattern_length,GPU_ALIGN_BPM_ENTRY_LENGTH);
-  bpm_pattern->gpu_entries_per_tile = DIV_CEIL(max_error,GPU_ALIGN_BPM_ENTRY_LENGTH);
+  bpm_pattern->gpu_entries_per_tile = MAX(words128_per_tile,min_words128_per_tile);
   bpm_pattern->gpu_num_tiles = DIV_CEIL(bpm_pattern->gpu_num_entries,bpm_pattern->gpu_entries_per_tile);
 }
 uint64_t gpu_bpm_pattern_get_entry_length() {
@@ -141,24 +144,31 @@ bool gpu_buffer_align_bpm_fits_in_buffer(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t total_entries,
     const uint64_t total_queries,const uint64_t total_candidates) {
   // Get Limits
-  const uint64_t max_PEQ_entries =  gpu_buffer_align_bpm_get_max_entries(gpu_buffer_align_bpm);
-  const uint64_t max_queries = gpu_buffer_align_bpm_get_max_queries(gpu_buffer_align_bpm);
+  uint64_t max_PEQ_entries =  gpu_buffer_align_bpm_get_max_entries(gpu_buffer_align_bpm);
+  uint64_t max_queries = gpu_buffer_align_bpm_get_max_queries(gpu_buffer_align_bpm);
+  uint64_t max_candidates = gpu_buffer_align_bpm_get_max_candidates(gpu_buffer_align_bpm);
   // Check available space in buffer for the pattern
   if (gpu_buffer_align_bpm->num_queries+total_queries > max_queries ||
-      gpu_buffer_align_bpm->num_entries+total_entries > max_PEQ_entries) {
-    // Check if the pattern can fit into an empty buffer
-    gem_cond_fatal_error(total_queries > max_queries,GPU_BPM_MAX_CANDIDATES,total_queries,max_queries);
-    gem_cond_fatal_error(total_entries > max_PEQ_entries,GPU_BPM_MAX_PATTERN_LENGTH,total_entries,max_PEQ_entries);
-    return false;
+      gpu_buffer_align_bpm->num_entries+total_entries > max_PEQ_entries ||
+      gpu_buffer_align_bpm->num_candidates+total_candidates > max_candidates) {
+    // Check buffer occupancy
+    if (gpu_buffer_align_bpm->num_queries > 0) {
+      return false; // Leave it to the next fresh buffer
+    }
+    // Reallocate buffer
+    gpu_bpm_init_and_realloc_buffer_(gpu_buffer_align_bpm->buffer,
+        total_entries*GPU_ALIGN_BPM_ENTRY_LENGTH,total_candidates);
+    // Check reallocated buffer dimensions (error otherwise)
+    max_queries = gpu_buffer_align_bpm_get_max_queries(gpu_buffer_align_bpm);
+    gem_cond_fatal_error(total_queries > max_queries,GPU_ALIGN_BPM_MAX_CANDIDATES,total_queries,max_queries);
+    max_PEQ_entries =  gpu_buffer_align_bpm_get_max_entries(gpu_buffer_align_bpm);
+    gem_cond_fatal_error(total_entries > max_PEQ_entries,GPU_ALIGN_BPM_MAX_PATTERN_LENGTH,total_entries,max_PEQ_entries);
+    max_candidates = gpu_buffer_align_bpm_get_max_candidates(gpu_buffer_align_bpm);
+    gem_cond_fatal_error(total_candidates > max_candidates,GPU_ALIGN_BPM_MAX_CANDIDATES,total_candidates,max_candidates);
+    // Return OK (after reallocation)
+    return true;
   }
-  // Check available space in buffer for the candidates
-  const uint64_t max_candidates = gpu_buffer_align_bpm_get_max_candidates(gpu_buffer_align_bpm);
-  if (gpu_buffer_align_bpm->num_candidates+total_candidates > max_candidates) {
-    // Check if the pattern can fit into an empty buffer
-    gem_cond_fatal_error(total_candidates > max_candidates,GPU_BPM_MAX_CANDIDATES,total_candidates,max_candidates);
-    return false;
-  }
-  // Ok, go on
+  // Return OK (fits in buffer)
   return true;
 }
 /*
@@ -406,8 +416,8 @@ void gpu_buffer_align_bpm_compute_cpu(gpu_buffer_align_bpm_t* const gpu_buffer_a
     const uint8_t* const text = text_trace->text; // Candidate
     // Align BPM & Set result
     uint64_t match_end_column, match_distance;
-    bpm_compute_edit_distance_cutoff(&bpm_pattern,text,text_length,
-        &match_end_column,&match_distance,bpm_pattern.pattern_length,true);
+    bpm_compute_edit_distance(&bpm_pattern,text,text_length,
+        &match_distance,&match_end_column,bpm_pattern.pattern_length,true);
     buffer_results->column = match_end_column;
     buffer_results->score = match_distance;
     // Next
