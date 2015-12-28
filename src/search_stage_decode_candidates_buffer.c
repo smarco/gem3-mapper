@@ -48,6 +48,7 @@ void search_stage_decode_candidates_buffer_delete(
   }
   // Delete searches vector
   vector_delete(decode_candidates_buffer->archive_searches);
+  mm_free(decode_candidates_buffer);
 }
 /*
  * Occupancy

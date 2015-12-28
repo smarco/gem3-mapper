@@ -182,18 +182,21 @@ void gpu_buffer_fmi_search_send(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_se
 #endif
   // Select computing device
   if (!gpu_buffer_fmi_search->compute_cpu) {
-    gpu_fmi_search_send_buffer_(gpu_buffer_fmi_search->buffer,gpu_buffer_fmi_search->num_queries);
+    if (gpu_buffer_fmi_search->num_queries > 0) {
+      gpu_fmi_search_send_buffer_(gpu_buffer_fmi_search->buffer,gpu_buffer_fmi_search->num_queries);
+    }
   }
   PROF_STOP(GP_GPU_BUFFER_FMI_SEARCH_SEND);
 }
 void gpu_buffer_fmi_search_receive(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) {
   PROF_START(GP_GPU_BUFFER_FMI_SEARCH_RECEIVE);
-  // Select computing device
-  if (!gpu_buffer_fmi_search->compute_cpu) {
-    gpu_fmi_search_receive_buffer_(gpu_buffer_fmi_search->buffer);
-  } else {
-    // CPU emulated
-    gpu_buffer_fmi_search_compute_cpu(gpu_buffer_fmi_search);
+  if (gpu_buffer_fmi_search->num_queries > 0) {
+    // Select computing device
+    if (!gpu_buffer_fmi_search->compute_cpu) {
+      gpu_fmi_search_receive_buffer_(gpu_buffer_fmi_search->buffer);
+    } else {
+      gpu_buffer_fmi_search_compute_cpu(gpu_buffer_fmi_search); // CPU emulated
+    }
   }
   PROF_STOP(GP_GPU_BUFFER_FMI_SEARCH_RECEIVE);
 #ifdef GEM_PROFILE

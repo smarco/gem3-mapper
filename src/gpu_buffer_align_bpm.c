@@ -36,12 +36,14 @@
  * Pattern Setup
  */
 void gpu_bpm_pattern_compile(
-    bpm_pattern_t* const bpm_pattern,
-    const uint64_t words128_per_tile,const uint64_t max_error) {
+    bpm_pattern_t* const bpm_pattern,const uint64_t words128_per_tile,
+    const uint64_t max_error) {
   // Init BPM-GPU Dimensions
   const uint64_t min_words128_per_tile = DIV_CEIL(max_error,GPU_ALIGN_BPM_ENTRY_LENGTH);
-  bpm_pattern->gpu_num_entries = DIV_CEIL(bpm_pattern->pattern_length,GPU_ALIGN_BPM_ENTRY_LENGTH);
+  const uint64_t max_words128_per_tile = DIV_CEIL(bpm_pattern->pattern_length,GPU_ALIGN_BPM_ENTRY_LENGTH);
+  bpm_pattern->gpu_num_entries = max_words128_per_tile;
   bpm_pattern->gpu_entries_per_tile = MAX(words128_per_tile,min_words128_per_tile);
+  bpm_pattern->gpu_entries_per_tile = MIN(bpm_pattern->gpu_entries_per_tile,max_words128_per_tile);
   bpm_pattern->gpu_num_tiles = DIV_CEIL(bpm_pattern->gpu_num_entries,bpm_pattern->gpu_entries_per_tile);
 }
 uint64_t gpu_bpm_pattern_get_entry_length() {
@@ -157,7 +159,7 @@ bool gpu_buffer_align_bpm_fits_in_buffer(
     }
     // Reallocate buffer
     gpu_bpm_init_and_realloc_buffer_(gpu_buffer_align_bpm->buffer,
-        total_entries*GPU_ALIGN_BPM_ENTRY_LENGTH,total_candidates);
+        total_entries*GPU_ALIGN_BPM_ENTRY_LENGTH,total_candidates,total_queries);
     // Check reallocated buffer dimensions (error otherwise)
     max_queries = gpu_buffer_align_bpm_get_max_queries(gpu_buffer_align_bpm);
     gem_cond_fatal_error(total_queries > max_queries,GPU_ALIGN_BPM_MAX_CANDIDATES,total_queries,max_queries);
@@ -447,21 +449,24 @@ void gpu_buffer_align_bpm_send(gpu_buffer_align_bpm_t* const gpu_buffer_align_bp
 #endif
   // Select computing device
   if (!gpu_buffer_align_bpm->compute_cpu) {
-    gpu_bpm_send_buffer_(
-        gpu_buffer_align_bpm->buffer,gpu_buffer_align_bpm->num_entries,
-        gpu_buffer_align_bpm->num_queries,gpu_buffer_align_bpm->num_candidates,
-        gpu_buffer_align_bpm->query_same_length);
+    if (gpu_buffer_align_bpm->num_candidates > 0) {
+      gpu_bpm_send_buffer_(
+          gpu_buffer_align_bpm->buffer,gpu_buffer_align_bpm->num_entries,
+          gpu_buffer_align_bpm->num_queries,gpu_buffer_align_bpm->num_candidates,
+          gpu_buffer_align_bpm->query_same_length);
+    }
   }
 	PROF_STOP(GP_GPU_BUFFER_ALIGN_BPM_SEND);
 }
 void gpu_buffer_align_bpm_receive(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
   PROF_START(GP_GPU_BUFFER_ALIGN_BPM_RECEIVE);
-  // Select computing device
-  if (!gpu_buffer_align_bpm->compute_cpu) {
-    gpu_bpm_receive_buffer_(gpu_buffer_align_bpm->buffer);
-  } else {
-    // CPU emulated
-    gpu_buffer_align_bpm_compute_cpu(gpu_buffer_align_bpm);
+  if (gpu_buffer_align_bpm->num_candidates > 0) {
+    // Select computing device
+    if (!gpu_buffer_align_bpm->compute_cpu) {
+      gpu_bpm_receive_buffer_(gpu_buffer_align_bpm->buffer);
+    } else {
+      gpu_buffer_align_bpm_compute_cpu(gpu_buffer_align_bpm); // CPU emulated
+    }
   }
   PROF_STOP(GP_GPU_BUFFER_ALIGN_BPM_RECEIVE);
 #ifdef GEM_PROFILE

@@ -144,20 +144,23 @@ void gpu_buffer_fmi_decode_send(gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_de
 #endif
   // Select computing device
   if (!gpu_buffer_fmi_decode->compute_cpu) {
-    sampled_sa_t* const sampled_sa = gpu_buffer_fmi_decode->fm_index->sampled_sa;
-    const uint32_t sampling_rate = sampled_sa_get_sa_sampling_rate(sampled_sa);
-    gpu_fmi_decode_send_buffer_(gpu_buffer_fmi_decode->buffer,gpu_buffer_fmi_decode->num_queries,sampling_rate);
+    if (gpu_buffer_fmi_decode->num_queries > 0) {
+      sampled_sa_t* const sampled_sa = gpu_buffer_fmi_decode->fm_index->sampled_sa;
+      const uint32_t sampling_rate = sampled_sa_get_sa_sampling_rate(sampled_sa);
+      gpu_fmi_decode_send_buffer_(gpu_buffer_fmi_decode->buffer,gpu_buffer_fmi_decode->num_queries,sampling_rate);
+    }
   }
   PROF_STOP(GP_GPU_BUFFER_FMI_DECODE_SEND);
 }
 void gpu_buffer_fmi_decode_receive(gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
   PROF_START(GP_GPU_BUFFER_FMI_DECODE_RECEIVE);
-  // Select computing device
-  if (!gpu_buffer_fmi_decode->compute_cpu) {
-    gpu_fmi_decode_receive_buffer_(gpu_buffer_fmi_decode->buffer);
-  } else {
-    // CPU emulated
-    gpu_buffer_fmi_decode_compute_cpu(gpu_buffer_fmi_decode);
+  if (gpu_buffer_fmi_decode->num_queries > 0) {
+    // Select computing device
+    if (!gpu_buffer_fmi_decode->compute_cpu) {
+      gpu_fmi_decode_receive_buffer_(gpu_buffer_fmi_decode->buffer);
+    } else {
+      gpu_buffer_fmi_decode_compute_cpu(gpu_buffer_fmi_decode); // CPU emulated
+    }
   }
   PROF_STOP(GP_GPU_BUFFER_FMI_DECODE_RECEIVE);
 #ifdef GEM_PROFILE

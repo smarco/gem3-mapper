@@ -53,6 +53,7 @@ void search_stage_verify_candidates_buffer_delete(
   }
   // Delete searches vector
   vector_delete(verify_candidates_buffer->archive_searches);
+  mm_free(verify_candidates_buffer);
 }
 /*
  * Occupancy

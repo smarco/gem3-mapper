@@ -14,6 +14,11 @@
 #include "profiler_timer.h"
 
 /*
+ * Tiling
+ */
+#define GPU_WORDS128_PER_TILE 2
+
+/*
  * Benchmark Generation
  */
 //#define CUDA_BENCHMARK_GENERATE_REGION_PROFILE

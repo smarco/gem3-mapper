@@ -9,16 +9,12 @@
 #include "pattern.h"
 #include "sampled_rl.h"
 #include "gpu_buffer_align_bpm.h"
+#include "gpu_config.h"
 
 /*
  * Debug
  */
 #define DEBUG_PATTERN_TILE_POSITION true
-
-/*
- * Constants
- */
-#define GPU_WORDS128_PER_TILE 2
 
 /*
  * Pattern Prepare

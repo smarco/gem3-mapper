@@ -293,7 +293,7 @@ void filtering_candidates_decode_filtering_position_batch_prefetched(
   uint64_t num_left_positions = num_candidate_text_positions;
   current_position = 0;
   while (num_left_positions > 0) {
-    const uint64_t batch_size = MIN(num_left_positions,RETRIEVE_SAMPLE_NUM_POSITIONS_PREFETCHED);
+    const uint64_t batch_size = MIN(num_left_positions,DECODE_NUM_POSITIONS_PREFETCHED);
     const uint64_t batch_top = current_position+batch_size;
     for (i=current_position;i<batch_top;++i) {
       sampled_sa_prefetch_sample(sampled_sa,filtering_position[i].decode_sampled_pos);

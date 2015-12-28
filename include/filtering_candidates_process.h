@@ -18,7 +18,6 @@
  * Constants
  */
 #define DECODE_NUM_POSITIONS_PREFETCHED          10
-#define RETRIEVE_SAMPLE_NUM_POSITIONS_PREFETCHED 10
 
 /*
  * Batch decode

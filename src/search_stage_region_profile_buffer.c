@@ -53,6 +53,7 @@ void search_stage_region_profile_buffer_delete(
   }
   // Delete searches vector
   vector_delete(region_profile_buffer->archive_searches);
+  mm_free(region_profile_buffer);
 }
 /*
  * Occupancy
