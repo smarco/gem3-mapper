@@ -152,12 +152,12 @@ void gpu_bpm_init_buffer_(void* const bpmBuffer, const uint32_t averageQuerySize
   gpu_bpm_reallocate_device_buffer_layout(mBuff);
 }
 
-void gpu_bpm_init_and_realloc_buffer_(void *bpmBuffer, const uint32_t querySize, const uint32_t numCandidates)
+void gpu_bpm_init_and_realloc_buffer_(void *bpmBuffer, const uint32_t querySize, const uint32_t numCandidates, const uint32_t numQueries)
 {
   gpu_buffer_t* const mBuff = (gpu_buffer_t *) bpmBuffer;
   gpu_bpm_init_buffer_(bpmBuffer, querySize, numCandidates);
 
-  if((GPU_DIV_CEIL(querySize, GPU_BPM_PEQ_ENTRY_LENGTH) > gpu_bpm_buffer_get_max_peq_entries_(bpmBuffer))
+  if((GPU_DIV_CEIL(querySize, GPU_BPM_PEQ_ENTRY_LENGTH) * numQueries > gpu_bpm_buffer_get_max_peq_entries_(bpmBuffer))
       && (numCandidates > gpu_bpm_buffer_get_max_candidates_(bpmBuffer))){
     // Resize the GPU buffer to fit the required input
     const uint32_t  idSupDevice             = mBuff->idSupportedDevice;
@@ -165,7 +165,8 @@ void gpu_bpm_init_and_realloc_buffer_(void *bpmBuffer, const uint32_t querySize,
     const uint32_t  averarageNumPEQEntries  = GPU_DIV_CEIL(querySize, GPU_BPM_PEQ_ENTRY_LENGTH);
     const uint32_t  candidatesPerQuery      = numCandidates;
     const uint32_t  averageQuerySize        = querySize;
-    const size_t    bytesPerBPMBuffer       = candidatesPerQuery * gpu_bpm_size_per_candidate(averarageNumPEQEntries,candidatesPerQuery);
+    const uint32_t  totalCandidates         = candidatesPerQuery * numQueries;
+    const size_t    bytesPerBPMBuffer       = totalCandidates * gpu_bpm_size_per_candidate(averarageNumPEQEntries,candidatesPerQuery);
 
     //Recalculate the minimum buffer size
     mBuff->sizeBuffer = bytesPerBPMBuffer * resizeFactor;
