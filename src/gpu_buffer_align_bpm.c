@@ -158,8 +158,7 @@ bool gpu_buffer_align_bpm_fits_in_buffer(
       return false; // Leave it to the next fresh buffer
     }
     // Reallocate buffer
-    gpu_bpm_init_and_realloc_buffer_(gpu_buffer_align_bpm->buffer,
-        total_entries*GPU_ALIGN_BPM_ENTRY_LENGTH,total_candidates,total_queries);
+    gpu_bpm_init_and_realloc_buffer_(gpu_buffer_align_bpm->buffer,total_entries,total_candidates,total_queries);
     // Check reallocated buffer dimensions (error otherwise)
     max_queries = gpu_buffer_align_bpm_get_max_queries(gpu_buffer_align_bpm);
     gem_cond_fatal_error(total_queries > max_queries,GPU_ALIGN_BPM_MAX_CANDIDATES,total_queries,max_queries);
