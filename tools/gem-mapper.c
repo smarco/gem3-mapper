@@ -775,20 +775,21 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       break;
     case 1201: { // --cuda-buffers-per-thread=2,3,3,1M
       if (!gpu_supported()) GEM_CUDA_NOT_SUPPORTED();
-      char *num_buffers=NULL, *buffer_size=NULL;
-      const int num_arguments = input_text_parse_csv_arguments(optarg,2,&num_buffers,&buffer_size);
-      gem_mapper_cond_error_msg(num_arguments!=2,"Option '--cuda-buffers-per-thread' wrong number of arguments");
+      char *num_fmi_bsearch_buffers=NULL, *num_fmi_decode_buffers=NULL, *num_bpm_buffers=NULL, *buffer_size=NULL;
+      const int num_arguments = input_text_parse_csv_arguments(optarg,4,
+          &num_fmi_bsearch_buffers,&num_fmi_decode_buffers,&num_bpm_buffers,&buffer_size);
+      gem_mapper_cond_error_msg(num_arguments!=4,"Option '--cuda-buffers-per-thread' wrong number of arguments");
       // Number of region-profile buffers per thread
       gem_mapper_cond_error_msg(input_text_parse_integer(
-          (const char** const)&num_buffers,(int64_t*)&parameters->cuda.num_fmi_bsearch_buffers),
+          (const char** const)&num_fmi_bsearch_buffers,(int64_t*)&parameters->cuda.num_fmi_bsearch_buffers),
           "Option '--cuda-buffers-per-thread'. Error parsing 'region-profile buffers'");
       // Number of decode-candidates buffers per thread
       gem_mapper_cond_error_msg(input_text_parse_integer(
-          (const char** const)&num_buffers,(int64_t*)&parameters->cuda.num_fmi_bsearch_buffers),
+          (const char** const)&num_fmi_decode_buffers,(int64_t*)&parameters->cuda.num_fmi_decode_buffers),
           "Option '--cuda-buffers-per-thread'. Error parsing 'decode-candidates buffers'");
       // Number of verify-candidates buffers per thread
       gem_mapper_cond_error_msg(input_text_parse_integer(
-          (const char** const)&num_buffers,(int64_t*)&parameters->cuda.num_fmi_bsearch_buffers),
+          (const char** const)&num_bpm_buffers,(int64_t*)&parameters->cuda.num_bpm_buffers),
           "Option '--cuda-buffers-per-thread'. Error parsing 'verify-candidates buffers'");
       // Buffer size
       gem_mapper_cond_error_msg(input_text_parse_size(buffer_size,&parameters->cuda.gpu_buffer_size),
