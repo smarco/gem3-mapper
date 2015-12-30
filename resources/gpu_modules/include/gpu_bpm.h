@@ -20,7 +20,7 @@ Common constants for Device & Host
 #define GPU_BPM_NUM_BUCKETS_FOR_BINNING     (GPU_WARP_SIZE + 1)
 
 #define GPU_BPM_CANDIDATES_BUFFER_PADDING   10
-#define GPU_BPM_MIN_ELEMENTS                2048  // MIN elements per buffer (related to the SM -2048th-)
+#define GPU_BPM_MIN_ELEMENTS                150  // MIN elements per buffer (related to the SM -2048th-)
 
 
 /*****************************

@@ -59,7 +59,7 @@ gpu_error_t gpu_schedule_buffers(gpu_buffer_t ***gpuBuffer, const uint32_t numBu
 
   /* Assigning buffers for each GPU (to adapt the workload) */
   for(idSupportedDevice = 0; idSupportedDevice < numSupportedDevices; ++idSupportedDevice){
-    size_t bytesPerDevice, bytesPerBuffer, minimumMemorySize;
+    size_t bytesPerDevice, bytesPerBuffer, minimumMemorySize, minBytesPerBuffer;
     const uint32_t idDevice = device[idSupportedDevice]->idDevice;
     const size_t freeDeviceMemory = gpu_get_device_free_memory(idDevice);
 
@@ -74,6 +74,8 @@ gpu_error_t gpu_schedule_buffers(gpu_buffer_t ***gpuBuffer, const uint32_t numBu
 
     GPU_ERROR(gpu_get_min_memory_per_module(&minimumMemorySize, reference, index, numBuffers, GPU_NONE_MODULES));
     if(freeDeviceMemory < minimumMemorySize) GPU_ERROR(E_INSUFFICIENT_MEM_GPU);
+    GPU_ERROR(gpu_get_min_memory_size_per_buffer(&minBytesPerBuffer));
+    if(minBytesPerBuffer > bytesPerBuffer) GPU_ERROR(E_INSUFFICIENT_MEM_PER_BUFFER);
 
     for(idLocalBuffer = 0; idLocalBuffer < numBuffersPerDevice; ++idLocalBuffer){
       buffer[idGlobalBuffer] = (gpu_buffer_t *) malloc(sizeof(gpu_buffer_t));
