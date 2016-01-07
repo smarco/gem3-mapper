@@ -23,6 +23,15 @@ void filtering_region_align_clone(
     filtering_region_t* const filtering_region_dst,text_collection_t* const text_collection);
 
 /*
+ * Adjust distance bound by scaffolding
+ */
+void filtering_region_align_adjust_distance_by_scaffolding(
+    filtering_region_t* const filtering_region,archive_text_t* const archive_text,
+    const as_parameters_t* const as_parameters,pattern_t* const pattern,
+    matches_t* const matches,text_collection_t* const text_collection,
+    mm_stack_t* const mm_stack);
+
+/*
  * Region (Re)Align
  */
 bool filtering_region_align(

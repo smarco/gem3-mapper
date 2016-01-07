@@ -78,6 +78,8 @@ GT_INLINE gt_vector* gt_vector_dup(gt_vector* vector) {
 
 GT_INLINE void* gt_vector_get_mem_element(gt_vector* vector,size_t position,size_t element_size) {
   GT_VECTOR_CHECK(vector); GT_ZERO_CHECK(element_size);
-  GT_VECTOR_RANGE_CHECK(vector,position);
+//  if (position>=(vector)->used||position<0) {
+    GT_VECTOR_RANGE_CHECK(vector,position);
+//  }
   return vector->memory+(position*element_size);
 }

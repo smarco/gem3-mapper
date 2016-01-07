@@ -7,8 +7,9 @@
  */
 
 #include "approximate_search_control.h"
-#include "archive_score.h"
 #include "matches_classify.h"
+#include "matches_classify_logit.h"
+#include "matches_classify_logit_models.h"
 
 /*
  * Search Limits
@@ -103,7 +104,9 @@ bool asearch_control_fulfilled(
         case matches_class_unique: {
           matches_predictors_t predictors;
           asearch_control_compute_predictors(search,matches,&predictors);
-          return (matches_classify_unique(&predictors) >= MATCHES_UNIQUE_CI);
+          const double pr = matches_classify_logit_unique(
+              &predictors,&logit_model_single_end_default);
+          return (pr >= MATCHES_UNIQUE_CI);
         }
         case matches_class_unmapped:
         case matches_class_mmap:

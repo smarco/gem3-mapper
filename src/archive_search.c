@@ -7,13 +7,7 @@
 
 #include "archive_search.h"
 #include "archive_select.h"
-#include "archive_score.h"
 #include "matches_classify.h"
-
-/*
- * Debug
- */
-#define DEBUG_ARCHIVE_SEARCH_READ_NAME GEM_DEEP_DEBUG
 
 /*
  * Profile

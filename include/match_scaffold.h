@@ -14,10 +14,22 @@
 #include "match_align_dto.h"
 
 /*
+ * Match Scaffold Type
+ */
+typedef enum {
+  scaffold_none,
+  scaffold_region_chain,
+  scaffold_levenshtein,
+  scaffold_swg,
+} match_scaffold_type;
+
+/*
  * Match Scaffold
  */
 typedef struct {
-  /* Scaffold matching regions */
+  /* Scaffold Properties */
+  match_scaffold_type scaffold_type;
+  /* Scaffold Matching Regions */
   region_matching_t* scaffold_regions;
   uint64_t num_scaffold_regions;
   uint64_t scaffolding_coverage;
@@ -31,34 +43,12 @@ typedef struct {
 void match_scaffold_init(match_scaffold_t* const match_scaffold);
 
 /*
- * Scaffold the alignment (based on levenshtein alignment)
- *   @align_input->key
- *   @align_input->key_length
- *   @align_input->bpm_pattern
- *   @align_input->text_position
- *   @align_input->text
- *   @align_input->text_length
- *   @align_input->text_offset_begin
- *   @align_input->text_offset_end
- *   @align_parameters->left_gap_alignment
- *   @align_parameters->min_matching_length
- *   @align_parameters->min_context_length
+ * Accessors
  */
-bool match_scaffold_levenshtein(
-    matches_t* const matches,match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
-    match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack);
+bool match_scaffold_is_null(match_scaffold_t* const match_scaffold);
 
 /*
- * Scaffold the alignment (based on SWG-distance)
- */
-bool match_scaffold_smith_waterman_gotoh(
-    matches_t* const matches,match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
-    match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack);
-
-/*
- * Compute an scaffold for the alignment
+ * Adaptive Scaffolding of the alignment (Best effort)
  *   @align_input->key
  *   @align_input->key_length
  *   @align_input->bpm_pattern
@@ -75,7 +65,7 @@ bool match_scaffold_smith_waterman_gotoh(
  *   @match_scaffold->num_scaffold_regions
  *   @match_scaffold->scaffold_regions
  */
-void match_scaffold_alignment(
+void match_scaffold_adaptive(
     matches_t* const matches,match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
     match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack);

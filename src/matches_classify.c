@@ -159,39 +159,3 @@ void matches_classify_compute_predictors(
   // Subdominant candidates
   predictors->subdominant_candidates_end1 = matches->metrics.subdominant_candidates;
 }
-double matches_classify_unique(matches_predictors_t* const predictors) {
-  // Unique: Probability of the first position-match (primary match) of being a true positive
-  const double lr_factor = -222.2971 +
-      (double)predictors->first_map_event_distance_norm * 207.3658 +
-      (double)predictors->first_map_swg_score_norm * 17.8461 +
-      (double)predictors->mcs * 4.7404 +
-      (double)predictors->max_region_length_norm * -0.9996 +
-      (double)predictors->subdominant_candidates_end1 * 0.2964;
-  return 1.0 / (1.0 + (1.0/exp(lr_factor)));
-}
-double matches_classify_mmaps(matches_predictors_t* const predictors) {
-  // Classify MMaps wrt the probability of the first position-match (primary match) of being a true positive
-  const double lr_factor = -209.7885 +
-      (double)predictors->first_map_event_distance_norm * 191.0935 +
-      (double)predictors->subdominant_event_distance_norm * 2.7940 +
-      (double)predictors->first_map_swg_score_norm * 23.3503 +
-      (double)predictors->subdominant_swg_score_norm * -6.2635 +
-      (double)predictors->mcs * 3.9139 +
-      (double)predictors->max_region_length_norm * -0.5801 +
-      (double)predictors->subdominant_candidates_end1 * 0.1275;
-  return 1.0 / (1.0 + (1.0/exp(lr_factor)));
-}
-double matches_classify_ties(matches_predictors_t* const predictors) {
-  // Classify ties wrt the probability of being a true positive
-  const double lr_factor = -158.99528 +
-      (double)predictors->first_map_edit_distance_norm * 72.02521 +
-      (double)predictors->subdominant_edit_distance_norm * -62.02260 +
-      (double)predictors->first_map_event_distance_norm * 229.73507 +
-      (double)predictors->subdominant_event_distance_norm * -85.95881 +
-      (double)predictors->first_map_swg_score_norm * 22.06638 +
-      (double)predictors->subdominant_swg_score_norm * -18.74157 +
-      (double)predictors->mcs * 1.66582 +
-      (double)predictors->subdominant_stratum_matches * 0.01094 +
-      (double)predictors->subdominant_candidates_end1 * 0.03268;
-  return 1.0 / (1.0 + (1.0/exp(lr_factor)));
-}

@@ -13,11 +13,15 @@
 #include "gpu_buffer_align_bpm.h"
 
 /*
- * BPM-Buffer API (Candidates Verification)
+ * BPM-Buffered Add (Candidates Verification)
  */
 uint64_t filtering_candidates_verify_buffered_add(
     filtering_candidates_t* const filtering_candidates,pattern_t* const pattern,
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
+
+/*
+ * BPM-Buffered Retrieve (Candidates Verification)
+ */
 uint64_t filtering_candidates_verify_buffered_retrieve(
     filtering_candidates_t* const filtering_candidates,archive_text_t* const archive_text,
     text_collection_t* const text_collection,pattern_t* const pattern,

@@ -319,16 +319,12 @@ void match_align_smith_waterman_gotoh(
   match_trace->emulated_rc_search = align_parameters->emulated_rc_search;
   // Scaffold the alignment
   if (align_parameters->scaffolding) {
-    match_scaffold_alignment(matches,align_input,align_parameters,match_scaffold,mm_stack);
-//    // Check minimum identity
-//    if (align_parameters->min_identity + match_scaffold->match_alignment.score > align_input->key_length) {
-//      match_scaffold->num_scaffold_regions = 0;
-//      match_scaffold->scaffolding_coverage = 0;
-//    }
+    match_scaffold_adaptive(matches,align_input,align_parameters,match_scaffold,mm_stack);
+  } else {
+    match_scaffold->num_scaffold_regions = 0;
   }
-  const uint64_t num_scaffold_regions = match_scaffold->num_scaffold_regions;
 #ifdef GEM_DEBUG
-  match_trace->match_scaffold = (match_scaffold!=NULL && num_scaffold_regions > 0) ? match_scaffold : NULL;
+  match_trace->match_scaffold = match_scaffold;
 #endif
   // Configure match-alignment
   match_alignment_t* const match_alignment = &match_trace->match_alignment;
@@ -337,7 +333,7 @@ void match_align_smith_waterman_gotoh(
   match_alignment->cigar_offset = vector_get_used(matches->cigar_vector);
   match_alignment->cigar_length = 0;
   // Check the number of matching regions
-  if (match_scaffold!=NULL && num_scaffold_regions > 0) {
+  if (align_parameters->scaffolding && !match_scaffold_is_null(match_scaffold)) {
     // Chain matching regions and align gaps (SWG)
     match_align_swg_chain_scaffold(matches,match_trace,align_input,align_parameters,match_scaffold,mm_stack);
   } else {

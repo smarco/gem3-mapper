@@ -16,17 +16,17 @@
  * Region profile generation
  */
 typedef enum {
-  // Adaptive Profile reducing the total number of candidates and using cut-off conditions
+  // Adaptive Profile reducing the number of candidates (to a few) and using cut-off conditions
   region_profile_adaptive_lightweight,
+  // Adaptive Profile reducing the number of candidates (to a some) and using cut-off conditions
+  region_profile_adaptive_heavyweight,
   // Adaptive Profile on not-covered and excessive long regions (to boost sensitivity)
   region_profile_adaptive_boost,
   // Adaptive Profile limiting the max. length of a region (max-region-length)
   region_profile_adaptive_limited,
   // Adaptive Profile extracting all possible unique regions (least candidates possible)
   region_profile_adaptive_delimit,
-  // Adaptive Profile with less strict thresholds as to recover as much as feasible from the read
-  region_profile_adaptive_recovery,
-} approximate_search_region_profile_strategy_t;
+} region_profile_strategy_t;
 
 /*
  * Region Partition Fixed
@@ -37,8 +37,7 @@ void approximate_search_region_partition_fixed(approximate_search_t* const searc
  * Region Profile Adaptive
  */
 void approximate_search_region_profile_adaptive(
-    approximate_search_t* const search,
-    const approximate_search_region_profile_strategy_t region_profile_strategy,
+    approximate_search_t* const search,const region_profile_strategy_t strategy,
     mm_stack_t* const mm_stack);
 
 /*
@@ -48,5 +47,6 @@ void approximate_search_region_profile_buffered_copy(
     approximate_search_t* const search,gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
 void approximate_search_region_profile_buffered_retrieve(
     approximate_search_t* const search,gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
+void approximate_search_region_profile_buffered_recompute(approximate_search_t* const search);
 
 #endif /* APPROXIMATE_SEARCH_REGION_PROFILE_H_ */

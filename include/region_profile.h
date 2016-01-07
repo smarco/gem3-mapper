@@ -61,15 +61,19 @@ typedef struct {
   /* Regions */
   region_search_t* filtering_region; // Filtering regions
   uint64_t num_filtering_regions;    // Total number of filtering regions
+  uint64_t num_standard_regions;     // Number of Standard Regions
+  uint64_t num_unique_regions;       // Number of Unique Regions
+  uint64_t num_zero_regions;         // Number of Zero candidate Regions
   /* Pattern Stats */
   uint64_t pattern_length;           // Length of the patter
   uint64_t errors_allowed;           // Total error allowed (the minimum required to get a novel match)
   // Profile Stats
   uint64_t total_candidates;         // Total number of candidates (from exact matching regions)
   uint64_t max_region_length;        // Largest region length
-  uint64_t num_standard_regions;     // Number of Standard Regions
-  uint64_t num_unique_regions;       // Number of Unique Regions
-  uint64_t num_zero_regions;         // Number of Zero candidate Regions
+  uint64_t mappability_p;
+  uint64_t mappability_p_samples;
+  uint64_t mappability_2p;
+  uint64_t mappability_2p_samples;
   /* Locator (region sorting) */
   region_locator_t* loc;
 } region_profile_t;
@@ -108,6 +112,7 @@ void region_profile_sort_by_candidates(region_profile_t* const region_profile);
 /*
  * Display
  */
+void region_profile_print_region(FILE* const stream,region_search_t* const region,const uint64_t position);
 void region_profile_print(FILE* const stream,const region_profile_t* const region_profile,const bool sorted);
 
 /*

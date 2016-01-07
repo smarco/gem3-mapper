@@ -113,7 +113,7 @@ void mapper_se_cuda_decode_candidates(mapper_cuda_search_t* const mapper_search)
   bool pending_searches;
   while ((pending_searches=search_stage_region_profile_retrieve_se_search(stage_region_profile,&archive_search))) {
     // Generate Decode-Candidates
-    // /* NOP */ archive_search_se_stepwise_decode_candidates_generate(archive_search);
+    // archive_search_se_stepwise_decode_candidates_generate(archive_search);
     // Send to CUDA Decode-Candidates
     const bool search_sent = search_stage_decode_candidates_send_se_search(stage_decode_candidates,archive_search);
     if (!search_sent) {

@@ -137,6 +137,14 @@ void region_profile_sort_by_candidates(region_profile_t* const region_profile) {
 /*
  * Display
  */
+void region_profile_print_region(
+    FILE* const stream,region_search_t* const region,const uint64_t position) {
+  tab_fprintf(stream,"    [%"PRIu64"]\ttype=%s\tregion=[%"PRIu64",%"PRIu64")\t"
+      "lo=%"PRIu64"\thi=%"PRIu64"\tcand=%"PRIu64"\n",position,
+      region->type==region_unique ? "region_unique" :
+          (region->type==region_standard ? "region_standard" : "region_gap"),
+      region->begin,region->end,region->lo,region->hi,region->hi-region->lo);
+}
 void region_profile_print(
     FILE* const stream,const region_profile_t* const region_profile,const bool sorted) {
   tab_fprintf(stream,"[GEM]>Region.Profile\n");
@@ -147,19 +155,11 @@ void region_profile_print(
   tab_fprintf(stream,"  => Filtering.Regions\n");
   if (!sorted) {
     REGION_PROFILE_ITERATE(region_profile,region,position) {
-      tab_fprintf(stream,"    [%"PRIu64"]\ttype=%s\tregion=[%"PRIu64",%"PRIu64")\t"
-          "lo=%"PRIu64"\thi=%"PRIu64"\tcand=%"PRIu64"\n",position,
-          region->type==region_unique ? "region_unique" :
-              (region->type==region_standard ? "region_standard" : "region_gap"),
-          region->begin,region->end,region->lo,region->hi,region->hi-region->lo);
+      region_profile_print_region(stream,region,position);
     }
   } else {
     REGION_LOCATOR_ITERATE(region_profile,region,position) {
-      tab_fprintf(stream,"    [%"PRIu64"]\ttype=%s\tregion=[%"PRIu64",%"PRIu64")\t"
-          "lo=%"PRIu64"\thi=%"PRIu64"\tcand=%"PRIu64"\n",position,
-          region->type==region_unique ? "region_unique" :
-              (region->type==region_standard ? "region_standard" : "region_gap"),
-          region->begin,region->end,region->lo,region->hi,region->hi-region->lo);
+      region_profile_print_region(stream,region,position);
     }
   }
   fflush(stream);

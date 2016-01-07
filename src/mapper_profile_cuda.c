@@ -88,57 +88,57 @@ void mapper_profile_print_search_stage_buffers(FILE* const stream) {
 void mapper_profile_print_archive_search_se_cuda(FILE* const stream,const bool map_output) {
   // CUDA SE Search
   tab_fprintf(stream,"[GEM]>Profile.CUDA.Search\n");
-  tab_fprintf(stream,"  => TIME.GPU.Init                                ");
+  tab_fprintf(stream,"  => TIME.GPU.Init                                   ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_GPU_BUFFER_COLLECTION_INIT),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"  => TIME.CUDA.Search                             ");
+  tab_fprintf(stream,"  => TIME.CUDA.Search                                ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_SE),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"    => TIME.CUDA.STAGE.Region.Profile             ");
+  tab_fprintf(stream,"    => TIME.CUDA.STAGE.Region.Profile                ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_SE_REGION_PROFILE),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.Buffer.Input                        ");
+  tab_fprintf(stream,"      => TIME.Buffer.Input                           ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_BUFFERED_INPUT_RELOAD__DUMP_ATTACHED),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.Parse.Input.FASTQ                   ");
+  tab_fprintf(stream,"      => TIME.Parse.Input.FASTQ                      ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_INPUT_FASTA_PARSE_SEQUENCE),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.Archive.Init                        ");
+  tab_fprintf(stream,"      => TIME.Archive.Init                           ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_SE_INIT),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.Archive.Region.Profile.Generate     ");
+  tab_fprintf(stream,"      => TIME.Archive.Region.Profile.Generate        ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_SE_REGION_PROFILE_GENERATE),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.Archive.Region.Profile.Copy         ");
+  tab_fprintf(stream,"      => TIME.Archive.Region.Profile.Copy            ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_SE_REGION_PROFILE_COPY),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"    => TIME.CUDA.STAGE.Decode.Candidates          ");
+  tab_fprintf(stream,"    => TIME.CUDA.STAGE.Decode.Candidates             ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_SE_DECODE_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.Archive.Region.Profile.Retrieve     ");
+  tab_fprintf(stream,"      => TIME.Archive.Region.Profile.Retrieve        ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_SE_REGION_PROFILE_RETRIEVE),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"        --> Region.Profile.Unsuccessful           ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ASSW_REGION_PROFILE_UNSUCCESSFUL),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"profiles ",true);
-  tab_fprintf(stream,"      => TIME.Archive.Decode.Candidates.Copy      ");
+  tab_fprintf(stream,"        => TIME.Archive.Region.Profile.Unsuccessful  ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_ASSW_REGION_PROFILE_UNSUCCESSFUL),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"      => TIME.Archive.Decode.Candidates.Copy         ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_SE_DECODE_CANDIDATES_COPY),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"    => TIME.CUDA.Verify.Candidates                ");
+  tab_fprintf(stream,"    => TIME.CUDA.Verify.Candidates                   ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_SE_VERIFY_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.Archive.Decode.Candidates.Retrieve  ");
+  tab_fprintf(stream,"      => TIME.Archive.Decode.Candidates.Retrieve     ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_SE_DECODE_CANDIDATES_RETRIEVE),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"        => TIME.Decode.Candidates.Buffered        ");
+  tab_fprintf(stream,"        => TIME.Decode.Candidates.Buffered           ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_DECODE_CANDIDATES_BUFFERED),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"          => TIME.Decode.Candidates.Buffered.Fail ");
+  tab_fprintf(stream,"          => TIME.Decode.Candidates.Buffered.Fail    ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_DECODE_CANDIDATES_BUFFERED_UNSUCCESSFUL),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"          --> Decode.Candidates.Buffered          ");
+  tab_fprintf(stream,"          --> Decode.Candidates.Buffered             ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_DECODE_POSITIONS),
                        PROF_GET_COUNTER(GP_FC_DECODE_POSITIONS),"positions",true);
-  tab_fprintf(stream,"            --> Decode.Candidates.Buffered.Fail   ");
+  tab_fprintf(stream,"            --> Decode.Candidates.Buffered.Fail      ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_DECODE_CANDIDATES_BUFFERED_UNSUCCESSFUL_TOTAL),
                        PROF_GET_COUNTER(GP_FC_DECODE_POSITIONS),"positions",true);
-  tab_fprintf(stream,"      => TIME.Archive.Verify.Candidates.Copy      ");
+  tab_fprintf(stream,"      => TIME.Archive.Verify.Candidates.Copy         ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_SE_VERIFY_CANDIDATES_COPY),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"    => TIME.CUDA.FinishSearch                     ");
+  tab_fprintf(stream,"    => TIME.CUDA.FinishSearch                        ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_CUDA_SE_FINISH_SEARCH),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.Archive.Verify.Candidates.Retrieve  ");
+  tab_fprintf(stream,"      => TIME.Archive.Verify.Candidates.Retrieve     ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_SE_VERIFY_CANDIDATES_RETRIEVE),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"        => TIME.Retrieve.Verify.Candidates        ");
+  tab_fprintf(stream,"        => TIME.Retrieve.Verify.Candidates           ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_RETRIEVE_CANDIDATE_REGIONS_BUFFERED),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"            --> Retrieve.Verify.Tile.Distance.Dif ");
+  tab_fprintf(stream,"            --> Retrieve.Verify.Tile.Distance.Dif    ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_RETRIEVE_CANDIDATE_REGIONS_DIST_DIFF),NULL,"distance ",true);
-  tab_fprintf(stream,"      => TIME.Archive.Finish.Search               ");
+  tab_fprintf(stream,"      => TIME.Archive.Finish.Search                  ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_SE_FINISH_SEARCH),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.Archive.Select.Matches              ");
+  tab_fprintf(stream,"      => TIME.Archive.Select.Matches                 ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SELECT_SE_MATCHES),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"      ");
   if (map_output) {
@@ -221,7 +221,7 @@ void mapper_profile_print_mapper_se_cuda(
   // CUDA
   mapper_profile_print_archive_search_se_cuda(stream,map_output);
   // Approximate Search
-  mapper_profile_print_approximate_search_summary(stream,true,map_output,num_threads);
+  mapper_profile_print_approximate_search_summary(stream,true,true,map_output,num_threads);
 }
 /*
  * Mapper-CUDA PE
@@ -247,7 +247,7 @@ void mapper_profile_print_mapper_pe_cuda(
   // CUDA
   mapper_profile_print_archive_search_pe_cuda(stream,map_output);
   // Approximate Search
-  mapper_profile_print_approximate_search_summary(stream,true,map_output,num_threads);
+  mapper_profile_print_approximate_search_summary(stream,true,true,map_output,num_threads);
 }
 #else /* GEM_PROFILE DISABLED */
 /*

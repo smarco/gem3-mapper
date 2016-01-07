@@ -49,12 +49,12 @@ void filtering_candidates_compute_extension_region(
  * Pair Extension
  */
 uint64_t filtering_candidates_extend_match(
-    filtering_candidates_t* const filtering_candidates,
-    archive_text_t* const archive_text,const locator_t* const locator,
-    text_collection_t* const text_collection,const match_trace_t* const extended_match,
-    pattern_t* const candidate_pattern,const as_parameters_t* const candidate_actual_parameters,
-    mapper_stats_t* const mapper_stats,paired_matches_t* const paired_matches,
-    const sequence_end_t candidate_end,mm_stack_t* const mm_stack) {
+    filtering_candidates_t* const filtering_candidates,archive_text_t* const archive_text,
+    const locator_t* const locator,text_collection_t* const text_collection,
+    const match_trace_t* const extended_match,pattern_t* const candidate_pattern,
+    const as_parameters_t* const candidate_actual_parameters,mapper_stats_t* const mapper_stats,
+    paired_matches_t* const paired_matches,const sequence_end_t candidate_end,
+    mm_stack_t* const mm_stack) {
   PROFILE_START(GP_FC_EXTEND_MATCH,PROFILE_LEVEL);
   // Parameters
   search_parameters_t* const search_parameters = candidate_actual_parameters->search_parameters;

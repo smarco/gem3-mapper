@@ -15,14 +15,6 @@
 #include "paired_matches.h"
 
 /*
- * Constants
- */
-#define MATCHES_MIN_CI    0.5
-#define MATCHES_UNIQUE_CI 0.998
-#define MATCHES_MMAPS_CI  0.995
-#define MATCHES_TIES_CI   0.95
-
-/*
  * Matches Classes
  */
 typedef enum {
@@ -61,9 +53,5 @@ void matches_classify_compute_predictors(
     const swg_penalties_t* const swg_penalties,const uint64_t read_length,
     const uint64_t max_region_length,uint64_t const proper_length,
     uint64_t const overriding_mcs,const uint64_t num_zero_regions);
-
-double matches_classify_unique(matches_predictors_t* const predictors);
-double matches_classify_mmaps(matches_predictors_t* const predictors);
-double matches_classify_ties(matches_predictors_t* const predictors);
 
 #endif /* MATCHES_CLASSIFY_H_ */

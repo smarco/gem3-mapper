@@ -9,11 +9,6 @@
 #include "filtering_region_verify.h"
 #include "align.h"
 #include "align_bpm_distance.h"
-//#include "match_scaffold.h"
-//#include "match_align.h"
-//#include "match_align_local.h"
-//#include "match_align_dto.h"
-//#include "output_map.h"
 
 /*
  * Debug

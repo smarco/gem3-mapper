@@ -273,6 +273,9 @@ void approximate_search_generate_exact_candidates_buffered_retrieve(
       buffer_offset_begin += pending_candidates;
     }
   }
+  // Set MCS
+  const uint64_t num_wildcards = search->pattern.num_wildcards;
+  approximate_search_update_mcs(search,num_filtering_regions + num_wildcards);
   // Process all candidates
   filtering_candidates_process_candidates_buffered(search->filtering_candidates,
       search->archive,&search->pattern,search->as_parameters,false,search->mm_stack);

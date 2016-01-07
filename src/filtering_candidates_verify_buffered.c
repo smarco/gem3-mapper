@@ -74,6 +74,86 @@ uint64_t filtering_candidates_verify_buffered_add(
   PROF_ADD_COUNTER(GP_BMP_TILED_NUM_TILES_VERIFIED,total_candidates_added);
   return total_candidates_added;
 }
+/*
+ * BPM-Buffered Retrieve Checkers (Candidates Verification)
+ */
+void filtering_candidates_verify_buffered_check_tile_distance(
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t candidate_offset,
+    const uint64_t pattern_tile, const uint32_t tile_distance,
+    const uint32_t tile_match_column,text_collection_t* const text_collection,
+    mm_stack_t* const mm_stack) {
+  // Push
+  mm_stack_push_state(mm_stack);
+  // Get Candidate & Pattern
+  uint64_t candidate_text_position;
+  uint32_t candidate_length;
+  bpm_pattern_t bpm_pattern_tile;
+  gpu_buffer_align_bpm_retrieve_pattern(gpu_buffer_align_bpm,
+      candidate_offset+pattern_tile,&bpm_pattern_tile,mm_stack);
+  gpu_buffer_align_bpm_get_candidate(gpu_buffer_align_bpm,
+      candidate_offset+pattern_tile,&candidate_text_position,&candidate_length);
+  // Get Candidate Text
+  const uint64_t text_trace_offset = archive_text_retrieve(
+      gpu_buffer_align_bpm->archive_text,text_collection,
+      candidate_text_position,candidate_length,false,mm_stack); // Retrieve text(s)
+  const text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
+  const uint8_t* const text = text_trace->text; // Candidate
+  uint64_t i, uncalled_bases_text = 0;
+  for (i=0;i<candidate_length;++i) {
+    if (text[i]==ENC_DNA_CHAR_N) ++uncalled_bases_text;
+  }
+  // Align BPM & Set result
+  uint64_t check_tile_match_end_column, check_tile_distance;
+  bpm_compute_edit_distance(&bpm_pattern_tile,text,candidate_length,&check_tile_distance,
+      &check_tile_match_end_column,bpm_pattern_tile.pattern_length,false);
+  if (tile_distance!=check_tile_distance || tile_match_column!=check_tile_match_end_column) {
+    if (uncalled_bases_text == 0) {
+      gem_error_msg("Filtering.Candidates.Verify.Buffered. Check verify candidate "
+          "(Distance:%d!=%lu) (MatchPos:%d!=%lu) (Text.Uncalled.bases=%lu)",
+          tile_distance,check_tile_distance,tile_match_column,
+          check_tile_match_end_column,uncalled_bases_text);
+    }
+  }
+  // Pop
+  mm_stack_pop_state(mm_stack,false);
+}
+void filtering_candidates_verify_buffered_check_global_distance(
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t candidate_offset,
+    const uint64_t num_tiles,const uint64_t global_distance,
+    const uint64_t distance_link_tiles,bpm_pattern_t* const bpm_pattern,
+    text_collection_t* const text_collection,mm_stack_t* const mm_stack) {
+  // Push
+  mm_stack_push_state(mm_stack);
+  // Get Candidate Position
+  uint64_t first_candidate_text_position, last_candidate_text_position;
+  uint32_t first_candidate_length, last_candidate_length;
+  gpu_buffer_align_bpm_get_candidate(gpu_buffer_align_bpm,
+      candidate_offset,&first_candidate_text_position,&first_candidate_length);
+  gpu_buffer_align_bpm_get_candidate(gpu_buffer_align_bpm,
+      candidate_offset+num_tiles-1,&last_candidate_text_position,&last_candidate_length);
+  // Get Whole-Candidate Text
+  const uint64_t candidate_length = last_candidate_text_position+last_candidate_length-first_candidate_text_position;
+  const uint64_t text_trace_offset = archive_text_retrieve(
+      gpu_buffer_align_bpm->archive_text,text_collection,
+      first_candidate_text_position,candidate_length,false,mm_stack); // Retrieve text(s)
+  const text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
+  const uint8_t* const text = text_trace->text; // Candidate
+  // Check Whole-Read
+  uint64_t match_end_column, match_distance;
+  bpm_compute_edit_distance(bpm_pattern,text,candidate_length,
+      &match_distance,&match_end_column,bpm_pattern->pattern_length,false);
+//  if (!(global_distance <= match_distance && match_distance <= global_distance+distance_link_tiles)) {
+    gem_slog(">FC.Verify.Candidate.Buffered.Distance\t"
+        "Whole.Read=%lu\tTileWise={bound=%lu,estimated=%lu}\tDiff=%lu\n",
+        match_distance,global_distance,global_distance+distance_link_tiles,ABS(match_distance-global_distance));
+//  }
+  PROF_ADD_COUNTER(GP_FC_RETRIEVE_CANDIDATE_REGIONS_DIST_DIFF,ABS(match_distance-global_distance));
+  // Pop
+  mm_stack_pop_state(mm_stack,false);
+}
+/*
+ * BPM-Buffered Retrieve (Candidates Verification)
+ */
 void filtering_candidates_verify_buffered_get_candidate(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t candidate_offset,
     const uint64_t num_tiles,uint64_t* const candidate_begin_position,
@@ -119,50 +199,17 @@ bool filtering_candidates_verify_buffered_get_result(
     pattern_tiled_calculate_next(&pattern_tiled);
     // DEBUG
 #ifdef CUDA_CHECK_BUFFERED_VERIFY_CANDIDATES
-    mm_stack_push_state(mm_stack);
-    // Get Candidate & Pattern
-    uint64_t candidate_text_position;
-    uint32_t candidate_length;
-    bpm_pattern_t bpm_pattern_tile;
-    gpu_buffer_align_bpm_retrieve_pattern(gpu_buffer_align_bpm,
-        candidate_offset+pattern_tile,&bpm_pattern_tile,mm_stack);
-    gpu_buffer_align_bpm_get_candidate(gpu_buffer_align_bpm,
-        candidate_offset+pattern_tile,&candidate_text_position,&candidate_length);
-    // Get Candidate Text
-    const uint64_t text_trace_offset = archive_text_retrieve(
-        gpu_buffer_align_bpm->archive_text,text_collection,
-        candidate_text_position,candidate_length,false,mm_stack); // Retrieve text(s)
-    const text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
-    const uint8_t* const text = text_trace->text; // Candidate
-    uint64_t i, uncalled_bases_text = 0;
-    for (i=0;i<candidate_length;++i) {
-      if (text[i]==ENC_DNA_CHAR_N) ++uncalled_bases_text;
-    }
-    // Align BPM & Set result
-    uint64_t check_tile_match_end_column, check_tile_distance;
-    bpm_compute_edit_distance(&bpm_pattern_tile,text,candidate_length,&check_tile_distance,
-        &check_tile_match_end_column,bpm_pattern_tile.pattern_length,false);
-    if (tile_distance!=check_tile_distance || tile_match_column!=check_tile_match_end_column) {
-      if (uncalled_bases_text == 0) {
-        gem_error_msg("Filtering.Candidates.Verify.Buffered. Check verify candidate "
-            "(Distance:%d!=%lu) (MatchPos:%d!=%lu) (Text.Uncalled.bases=%lu)",
-            tile_distance,check_tile_distance,tile_match_column,
-            check_tile_match_end_column,uncalled_bases_text);
-      }
-    }
-//    // Whole read // TODO
-//    if () {
-//      uint64_t match_end_column, match_distance;
-//      bpm_compute_edit_distance(bpm_pattern,text,candidate_length,
-//          &match_distance,&match_end_column,bpm_pattern->pattern_length,false);
-//      gem_slog(">FC.Verify.Candidate.Buffered.Distance\t"
-//          "Whole.Read=%lu\tTileWise={bound=%lu,estimated=%lu}\n",
-//          match_distance,*global_distance,*global_distance+*distance_link_tiles);
-//      PROF_ADD_COUNTER(GP_FC_RETRIEVE_CANDIDATE_REGIONS_DIST_DIFF,ABS(*global_distance-match_distance));
-//    }
-    mm_stack_pop_state(mm_stack,false);
+    filtering_candidates_verify_buffered_check_tile_distance(
+        gpu_buffer_align_bpm,candidate_offset,pattern_tile,
+        tile_distance,tile_match_column,text_collection,mm_stack);
 #endif
   }
+  // DEBUG
+#ifdef CUDA_CHECK_BUFFERED_VERIFY_CANDIDATES
+  filtering_candidates_verify_buffered_check_global_distance(
+      gpu_buffer_align_bpm,candidate_offset,num_tiles,*global_distance,
+      *distance_link_tiles,bpm_pattern,text_collection,mm_stack);
+#endif
   *last_tile_match_position = pattern_tiled.prev_tile_match_position;
   return !unaligned_tiled;
 }
@@ -224,6 +271,7 @@ uint64_t filtering_candidates_verify_buffered_retrieve(
           BOUNDED_ADDITION(last_tile_match_position,regions_accepted->align_distance,candidate_length-1);
       ++regions_accepted;
       ++num_accepted_regions;
+      PROF_INC_COUNTER(GP_ACCEPTED_REGIONS);
     } else {
       // Configure discarded candidate
       regions_discarded->status = filtering_region_verified_discarded;

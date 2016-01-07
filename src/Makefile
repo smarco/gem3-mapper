@@ -44,7 +44,8 @@ MODULES+=fm_index fm_index_search fm_index_query \
 # GEM Matches
 MODULES+=matches matches_cigar \
          matches_counters matches_metrics \
-         matches_classify 
+         matches_classify matches_classify_logit \
+         matches_classify_logit_models
 # GEM Paired-Matches
 MODULES+=paired_matches paired_map paired_matches_classify
 # GEM Pattern Alignment
@@ -52,7 +53,11 @@ MODULES+=pattern align \
          align_bpm align_bpm_pattern \
          align_bpm_distance align_ond \
          align_swg align_swg_score \
-         align_swg_simd match_scaffold
+         align_swg_simd kmer_counting 
+# GEM Match Scaffolding
+MODULES+=match_scaffold match_scaffold_compose \
+         match_scaffold_region_chain match_scaffold_swg \
+         match_scaffold_levenshtein
 # GEM Match Alignment
 MODULES+=match_alignment match_align \
          match_align_swg match_align_local
@@ -66,7 +71,7 @@ MODULES+=filtering_candidates filtering_candidates_verify \
          filtering_candidates_process filtering_candidates_process_buffered \
          filtering_region_verify filtering_candidates_verify_buffered \
          filtering_region filtering_region_align \
-         filtering_region_cache kmer_counting 
+         filtering_region_align_configure filtering_region_cache
 # GEM Approximate Search (Filtering)
 MODULES+=approximate_search approximate_search_filtering_adaptive \
          approximate_search_filtering_complete approximate_search_neighborhood \
@@ -83,8 +88,8 @@ MODULES+=archive archive_builder archive_builder_index \
 # GEM Archive Search Support
 MODULES+=archive_text archive_search_cache \
          archive_select archive_select_parameters \
-         archive_score archive_check \
-         mm_search quality_model \
+         archive_score_se archive_score_pe \
+         archive_check mm_search quality_model
 # GEM Archive Search
 MODULES+=archive_search \
          archive_search_se archive_search_parameters \

@@ -58,9 +58,10 @@ typedef enum {
  * Score Model & Sorting
  */
 typedef enum {
-  mapq_model_none,     // None
-  mapq_model_gem,      // GEM Score (Case stratification + Logistic Regression)
-  mapq_model_classify, // GEM Classification towards score calibration
+  mapq_model_none,            // None
+  mapq_model_gem,             // GEM Score (Case stratification + Logistic Regression)
+  mapq_model_classify,        // GEM Classification (Towards score calibration to adjust thresholds)
+  mapq_model_dump_predictors, // GEM Print predictors
 } mapq_model_t;
 typedef enum {
   matches_sorting_distance,
@@ -105,11 +106,11 @@ typedef struct {
   search_paired_parameters_t search_paired_parameters;
   /* Filtering parameters */
   uint64_t filtering_threshold;
-  uint64_t gpu_filtering_threshold;
   float filtering_region_factor;
-  region_profile_model_t rp_minimal;  // Region-Minimal
-  region_profile_model_t rp_boost;    // Region-Boost
-  region_profile_model_t rp_delimit;  // Region-Delimit
+  region_profile_model_t rp_lightweight;  // Region-Lightweight
+  region_profile_model_t rp_heavyweight;  // Region-Heavyweight
+  region_profile_model_t rp_boost;        // Region-Boost
+  region_profile_model_t rp_delimit;      // Region-Delimit
   /* Select Parameters */
   select_parameters_t select_parameters_report;  // Select parameters (Used to report results)
   select_parameters_t select_parameters_align;   // Select parameters (Used to prune work internally)

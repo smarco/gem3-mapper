@@ -78,7 +78,6 @@ void approximate_search_filtering_adaptive_basic_cases(approximate_search_t* con
     tab_global_inc();
   }
   // Parameters
-  search_parameters_t* const search_parameters = search->as_parameters->search_parameters;
   pattern_t* const pattern = &search->pattern;
   const uint64_t key_length = pattern->key_length;
   const uint64_t num_wildcards = pattern->num_wildcards;
@@ -96,22 +95,9 @@ void approximate_search_filtering_adaptive_basic_cases(approximate_search_t* con
    *   many matches as possible. We extract feasible regions from the read and filter
    *   them trying to recover anything out of bad quality reads.
    */
-  if (num_wildcards > 0) {
-    switch (search_parameters->mapping_mode) {
-      case mapping_adaptive_filtering_fast:
-      case mapping_adaptive_filtering_thorough:
-        if (num_wildcards >= search->as_parameters->alignment_max_error_nominal) {
-          search->search_stage = asearch_stage_read_recovery;
-          return;
-        }
-        break;
-      default:
-        if (num_wildcards >= search->max_complete_error) {
-          search->search_stage = asearch_stage_read_recovery;
-          return;
-        }
-        break;
-    }
+  if (num_wildcards > 0 && num_wildcards >= search->as_parameters->alignment_max_error_nominal) {
+    search->search_stage = asearch_stage_read_recovery;
+    return;
   }
   // Exact search
   if (search->max_complete_error==0) {
@@ -142,7 +128,7 @@ void approximate_search_filtering_adaptive(approximate_search_t* const search,ma
         approximate_search_filtering_adaptive_basic_cases(search);
         break;
       case asearch_stage_read_recovery: // Read recovery
-        approximate_search_exact_filtering_adaptive_recovery(search,matches);
+        approximate_search_exact_filtering_adaptive_heavyweight(search,matches);
         asearch_control_next_state_read_recovery(search,matches); // Next State
         break;
       case asearch_stage_filtering_adaptive: // Exact-Filtering (Adaptive)
@@ -154,15 +140,16 @@ void approximate_search_filtering_adaptive(approximate_search_t* const search,ma
         asearch_control_next_state_exact_filtering_adaptive(search,matches); // Next State
         break;
       case asearch_stage_filtering_boost:
-        approximate_search_exact_filtering_boost(search,matches);
-        asearch_control_next_state_exact_filtering_boost(search,matches);
+        //approximate_search_exact_filtering_boost(search,matches); // FIXME
+        //asearch_control_next_state_exact_filtering_boost(search,matches); // FIXME
+        search->search_stage = asearch_stage_end;
         break;
-      case asearch_stage_neighborhood:
-        approximate_search_neighborhood_search(search,matches);
-        search->search_stage = asearch_stage_end; // Next State
-        break;
+//      case asearch_stage_neighborhood:
+//        approximate_search_neighborhood_search(search,matches);
+//        search->search_stage = asearch_stage_end; // Next State
+//        break;
       case asearch_stage_unbounded_alignment: // Unbounded alignments
-        approximate_search_unbounded_align(search,matches);
+        //approximate_search_unbounded_align(search,matches); // FIXME
         search->search_stage = asearch_stage_end; // Next State
         break;
       case asearch_stage_end:

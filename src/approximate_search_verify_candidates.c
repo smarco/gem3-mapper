@@ -11,6 +11,7 @@
 #include "filtering_candidates_process.h"
 #include "filtering_candidates_verify.h"
 #include "filtering_candidates_verify_buffered.h"
+#include "filtering_candidates_extend.h"
 #include "filtering_candidates_align.h"
 
 /*
@@ -52,6 +53,20 @@ void approximate_search_verify_candidates(approximate_search_t* const search,mat
   // Adjust max-differences
   asearch_control_adjust_max_differences_using_strata(search,matches);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
+}
+/*
+ * Verify Extend Candidate
+ */
+uint64_t approximate_search_verify_extend_candidate(
+    filtering_candidates_t* const filtering_candidates,
+    archive_text_t* const archive_text,const locator_t* const locator,
+    text_collection_t* const text_collection,const match_trace_t* const extended_match,
+    pattern_t* const candidate_pattern,const as_parameters_t* const candidate_actual_parameters,
+    mapper_stats_t* const mapper_stats,paired_matches_t* const paired_matches,
+    const sequence_end_t candidate_end,mm_stack_t* const mm_stack) {
+  return filtering_candidates_extend_match(filtering_candidates,archive_text,locator,
+      text_collection,extended_match,candidate_pattern,candidate_actual_parameters,
+      mapper_stats,paired_matches,candidate_end,mm_stack);
 }
 /*
  * Verify Candidates Buffered

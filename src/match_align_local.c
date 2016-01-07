@@ -8,6 +8,7 @@
 
 #include "match_align_local.h"
 #include "match_align_swg.h"
+#include "match_scaffold_swg.h"
 #include "align.h"
 #include "align_swg.h"
 

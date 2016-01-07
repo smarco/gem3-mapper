@@ -86,10 +86,15 @@ void search_parameters_init_alignment_model(search_parameters_t* const search_pa
 }
 void search_parameters_init_internals(search_parameters_t* const search_parameters) {
   // Region-Minimal Scheme = (20,4,2,2)
-  search_parameters->rp_minimal.region_th = 20;
-  search_parameters->rp_minimal.max_steps = 4;
-  search_parameters->rp_minimal.dec_factor = 2;
-  search_parameters->rp_minimal.region_type_th = 2;
+  search_parameters->rp_lightweight.region_th = 20;
+  search_parameters->rp_lightweight.max_steps = 4;
+  search_parameters->rp_lightweight.dec_factor = 2;
+  search_parameters->rp_lightweight.region_type_th = 2;
+  // Region-Minimal Scheme = (50,4,2,2)
+  search_parameters->rp_heavyweight.region_th = 80;
+  search_parameters->rp_heavyweight.max_steps = 4;
+  search_parameters->rp_heavyweight.dec_factor = 2;
+  search_parameters->rp_heavyweight.region_type_th = 2;
   // Region-Boost Scheme = (500,1,8,50)
   search_parameters->rp_boost.region_th = 500;
   search_parameters->rp_boost.max_steps = 1;
@@ -103,7 +108,6 @@ void search_parameters_init_internals(search_parameters_t* const search_paramete
   // Filtering Thresholds
   search_parameters->filtering_region_factor = 1.0;
   search_parameters->filtering_threshold = 1000;
-  search_parameters->gpu_filtering_threshold = 100;
 }
 void search_parameters_init(search_parameters_t* const search_parameters) {
   // Mapping strategy

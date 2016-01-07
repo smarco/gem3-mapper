@@ -17,6 +17,7 @@
  */
 void mapper_profile_print_region_profile_fixed(FILE* const stream);
 void mapper_profile_print_region_profile_lightweight(FILE* const stream);
+void mapper_profile_print_region_profile_heavyweight(FILE* const stream);
 void mapper_profile_print_region_profile_boost(FILE* const stream);
 void mapper_profile_print_region_profile_delimit(FILE* const stream);
 
@@ -52,6 +53,7 @@ void mapper_profile_print_approximate_search_ranks(FILE* const stream);
  */
 void mapper_profile_print_approximate_search_summary(
     FILE* const stream,const bool paired_end,
-    const bool map_output,const uint64_t num_threads);
+    const bool cuda_workflow,const bool map_output,
+    const uint64_t num_threads);
 
 #endif /* MAPPER_PROFILE_SEARCH_H_ */

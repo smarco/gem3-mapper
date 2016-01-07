@@ -55,10 +55,10 @@ void approximate_search_stepwise_region_profile_generate(approximate_search_t* c
       case asearch_stage_begin: // Search Start. Check basic cases
         approximate_search_filtering_adaptive_basic_cases(search);
         break;
+      case asearch_stage_read_recovery:
       case asearch_stage_filtering_adaptive:
         approximate_search_region_partition_fixed(search);
         return;
-      case asearch_stage_read_recovery: return;
       case asearch_stage_neighborhood: return;
       default:
         GEM_INVALID_CASE();
@@ -76,11 +76,16 @@ void approximate_search_stepwise_region_profile_retrieve(
     approximate_search_t* const search,gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) {
   if (search->processing_state == asearch_processing_state_region_partitioned) {
     approximate_search_region_profile_buffered_retrieve(search,gpu_buffer_fmi_search);
-//    // Check results
-//    if (search->processing_state == asearch_processing_state_no_regions) {
-//      approximate_search_exact_filtering_adaptive_lightweight(search,NULL);
-//      GEM_NOT_IMPLEMENTED(); // TODO Split until processing
-//    }
+  }
+  // Check unsuccessful cases
+  if (search->processing_state == asearch_processing_state_no_regions) {
+    PROF_START(GP_ASSW_REGION_PROFILE_UNSUCCESSFUL);
+    // Re-Compute Region Profile Adaptively
+    approximate_search_region_profile_buffered_recompute(search);
+    PROF_STOP(GP_ASSW_REGION_PROFILE_UNSUCCESSFUL);
+    if (search->processing_state==asearch_processing_state_no_regions) return; // Corner cases
+    if (search->processing_state==asearch_processing_state_exact_matches) return; // Corner cases
+    search->processing_state = asearch_processing_state_region_profiled;
   }
 }
 /*
@@ -124,7 +129,9 @@ void approximate_search_stepwise_verify_candidates_retrieve(
  * AM Stepwise :: Finish Search
  */
 void approximate_search_stepwise_finish(approximate_search_t* const search,matches_t* const matches) {
-  if (search->search_stage == asearch_stage_filtering_adaptive) {
+  if (search->search_stage == asearch_stage_read_recovery) {
+    search->search_stage = asearch_stage_end;
+  } else  if (search->search_stage == asearch_stage_filtering_adaptive) {
     asearch_control_next_state_filtering_adaptive(search,matches); // Next State
   }
   // Finish search using regular workflow

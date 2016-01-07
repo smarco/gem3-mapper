@@ -7,13 +7,14 @@
 
 #include "archive_search_pe.h"
 #include "archive_search_se.h"
-#include "approximate_search_control.h"
 #include "archive_search_se_stepwise.h"
 #include "archive_select.h"
-#include "archive_score.h"
+#include "archive_score_pe.h"
 #include "archive_check.h"
-#include "filtering_candidates_extend.h"
+#include "approximate_search_control.h"
+#include "approximate_search_verify_candidates.h"
 #include "paired_matches_classify.h"
+#include "matches_classify_logit_models.h"
 
 /*
  * Debug
@@ -64,7 +65,9 @@ bool archive_search_pe_use_shortcut_extension(archive_search_t* const archive_se
   if (matches_classify(matches)==matches_class_unique) {
     matches_predictors_t predictors;
     archive_search_se_compute_predictors(archive_search,matches,&predictors);
-    return matches_classify_unique(&predictors) >= MATCHES_UNIQUE_CI;
+    const double unique_probability =
+        matches_classify_logit_unique(&predictors,&logit_model_single_end_default);
+    return unique_probability >= MATCHES_UNIQUE_CI;
   }
   return false;
 }
@@ -78,7 +81,9 @@ bool archive_search_pe_use_recovery_extension(archive_search_t* const archive_se
     case matches_class_unique: {
       matches_predictors_t predictors;
       archive_search_se_compute_predictors(archive_search,matches,&predictors);
-      return matches_classify_unique(&predictors) < MATCHES_UNIQUE_CI;
+      const double unique_probability =
+          matches_classify_logit_unique(&predictors,&logit_model_single_end_default);
+      return unique_probability < MATCHES_UNIQUE_CI;
     }
     default:
       return true;
@@ -129,7 +134,7 @@ uint64_t archive_search_pe_extend_matches(
   VECTOR_ITERATE(extended_matches->position_matches,extended_match,en,match_trace_t) {
     if (search_paired_parameters->pair_orientation[pair_orientation_FR] == pair_relation_concordant) {
       // Extend (filter nearby region)
-      total_matches_found += filtering_candidates_extend_match(filtering_candidates,
+      total_matches_found += approximate_search_verify_extend_candidate(filtering_candidates,
           archive->text,archive->locator,text_collection,extended_match,pattern,
           as_parameters,mapper_stats,paired_matches,candidate_end,mm_stack);
     }

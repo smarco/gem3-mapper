@@ -7,11 +7,12 @@
 
 #include "archive_search_se.h"
 #include "archive_select.h"
-#include "archive_score.h"
+#include "archive_score_se.h"
 #include "archive_check.h"
 #include "matches_classify.h"
 #include "approximate_search_filtering_adaptive.h"
 #include "approximate_search_filtering_stages.h"
+#include "region_profile_fixed.h"
 
 /*
  * Debug
@@ -58,6 +59,10 @@ void archive_search_se(archive_search_t* const archive_search,matches_t* const m
     tab_fprintf(gem_log_get_stream(),"  => Tag %s\n",archive_search->sequence.tag.buffer);
     tab_fprintf(gem_log_get_stream(),"  => Sequence %s\n",archive_search->sequence.read.buffer);
     tab_global_inc();
+    approximate_search_t* const search = &archive_search->forward_search_state;
+    region_profile_print_mappability(gem_log_get_stream(),search->archive->fm_index,
+        search->as_parameters->search_parameters->allowed_enc,search->pattern.key,
+        search->pattern.key_length,false,search->mm_stack);
   }
   // Reset initial values (Prepare pattern(s), instantiate parameters values, ...)
   archive_search_reset(archive_search);
@@ -87,7 +92,7 @@ void archive_search_se(archive_search_t* const archive_search,matches_t* const m
   search_parameters_t* const search_parameters = archive_search->as_parameters.search_parameters;
   archive_select_se_matches(archive_search,&search_parameters->select_parameters_report,matches);
   // Select alignment-Model and process accordingly
-  archive_score_matches_se(archive_search,false,matches);
+  archive_score_matches_se(archive_search,matches);
   // Check matches
   if (search_parameters->check_type!=archive_check_nothing) {
     archive_check_se_matches(

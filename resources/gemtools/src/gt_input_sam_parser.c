@@ -410,6 +410,17 @@ GT_INLINE gt_status gt_isp_parse_sam_cigar(char** const text_line,gt_map** _map,
   if ((*text_line)[0]==char1 && (*text_line)[1]==char2 && (*text_line)[2]!=EOL && (*text_line)[3]==type_char) {
 #define GT_ISP_END_OPT_FIELD }}
 
+//GT_INLINE gt_status gt_isp_parse_sam_opt_md(
+//    const char** const text_line,gt_alignment* const alignment,
+//    gt_vector* const maps_vector,gt_sam_pending_end* const pending) {
+//  *text_line+=5;
+//  while (**text_line!=TAB && **text_line!=EOL) { // Read new attached maps
+//    if (!gt_is_number(**text_line)) return GT_ISP_PE_EXPECTED_NUMBER;
+//    GT_PARSE_NUMBER(text_line,number);
+//  }
+//  return 0;
+//}
+
 GT_INLINE gt_status gt_isp_parse_sam_opt_xa_bwa(
     const char** const text_line,gt_alignment* const alignment,
     gt_vector* const maps_vector,gt_sam_pending_end* const pending) {
@@ -470,6 +481,14 @@ GT_INLINE gt_status gt_isp_parse_sam_optional_field(
     }
   } GT_ISP_END_OPT_FIELD;
 
+//  GT_ISP_IF_OPT_FIELD(text_line,'M','D','Z') {
+//    if (is_mapped) {
+//      if (gt_isp_parse_sam_opt_md(text_line,alignment,maps_vector,pending)) {
+//        *text_line = init_opt_field;
+//      }
+//    }
+//  } GT_ISP_END_OPT_FIELD;
+
   /*
    * SAM-like field (store it as attribute and skip)
    */
@@ -479,12 +498,12 @@ GT_INLINE gt_status gt_isp_parse_sam_optional_field(
     // Select proper attributes
     gt_attributes* attributes = NULL;
     // the attributes might not be initialized
-    if(!is_mapped){
+    if (!is_mapped) {
         if(alignment->attributes==NULL){
           alignment->attributes = gt_attributes_new();
         }
         attributes = alignment->attributes;
-    }else{
+    } else {
       gt_map* map = *gt_vector_get_last_elm(maps_vector,gt_map*);
       if(map->attributes==NULL){
         map->attributes = gt_attributes_new();

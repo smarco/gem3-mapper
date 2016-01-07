@@ -6,7 +6,6 @@
  */
 
 #include "archive_select.h"
-#include "archive_score.h"
 #include "archive_check.h"
 
 /*

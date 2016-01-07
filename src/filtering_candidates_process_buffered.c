@@ -170,7 +170,7 @@ void filtering_candidates_decode_filtering_positions_buffered_prefetched(
       fposition->locator_interval = locator_lookup_interval(locator,fposition->region_text_position);
       // Adjust Position
       filtering_candidates_adjust_filtering_position(fposition,
-          archive_text,region_begin,key_length-region_end,boundary_error);
+          archive_text,region_begin,key_length-region_begin,boundary_error);
     }
     // Next batch
     current_position = current_position + batch_size;

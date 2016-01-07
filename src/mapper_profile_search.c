@@ -50,6 +50,25 @@ void mapper_profile_print_region_profile_lightweight(FILE* const stream) {
   tab_fprintf(stream,"  --> Read.candidates          ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT_TOTAL_CANDIDATES),NULL,"cand",true);
 }
+void mapper_profile_print_region_profile_heavyweight(FILE* const stream) {
+  tab_fprintf(stream,"[GEM]>Profile.Region.Profile {HEAVYWEIGHT}\n");
+  tab_fprintf(stream,"  --> Num.Profiles             ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT),NULL,"    ",true);
+  tab_fprintf(stream,"  --> Num.Regions              ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_NUM_REGIONS),NULL,"    ",true);
+  tab_fprintf(stream,"    --> Num.Regions.Standard   ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_NUM_REGIONS_STANDARD),
+                       PROF_GET_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_NUM_REGIONS),"    ",true);
+  tab_fprintf(stream,"    --> Num.Regions.Unique     ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_NUM_REGIONS_UNIQUE),
+                       PROF_GET_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_NUM_REGIONS),"    ",true);
+  tab_fprintf(stream,"  --> Region.length            ");
+  SAMPLER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_REGION_LENGTH),NULL,"nt  ");
+  tab_fprintf(stream,"  --> Region.candidates        ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_REGION_CANDIDATES),NULL,"cand",true);
+  tab_fprintf(stream,"  --> Read.candidates          ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_TOTAL_CANDIDATES),NULL,"cand",true);
+}
 void mapper_profile_print_region_profile_boost(FILE* const stream) {
   tab_fprintf(stream,"[GEM]>Profile.Region.Profile {BOOST}\n");
   tab_fprintf(stream,"  --> Num.Profiles             ");
@@ -355,14 +374,19 @@ void mapper_profile_print_mapper_ranks(FILE* const stream) {
  */
 void mapper_profile_print_approximate_search_summary(
     FILE* const stream,const bool paired_end,
-    const bool map_output,const uint64_t num_threads) {
+    const bool cuda_workflow,const bool map_output,
+    const uint64_t num_threads) {
   // Approximate Search
   mapper_profile_print_approximate_search(stream);
   // Region Profile
-  mapper_profile_print_region_profile_fixed(stream);
-  mapper_profile_print_region_profile_lightweight(stream);
-  mapper_profile_print_region_profile_boost(stream);
-  mapper_profile_print_region_profile_delimit(stream);
+  if (cuda_workflow) {
+    mapper_profile_print_region_profile_fixed(stream);
+    mapper_profile_print_region_profile_heavyweight(stream);
+  } else {
+    mapper_profile_print_region_profile_lightweight(stream);
+    mapper_profile_print_region_profile_boost(stream);
+    mapper_profile_print_region_profile_delimit(stream);
+  }
   // Candidate Generation
   mapper_profile_print_candidate_generation(stream);
   // Candidate Verification
@@ -387,6 +411,7 @@ void mapper_profile_print_approximate_search_summary(
  */
 void mapper_profile_print_region_profile_fixed(FILE* const stream) {}
 void mapper_profile_print_region_profile_lightweight(FILE* const stream) {}
+void mapper_profile_print_region_profile_heavyweight(FILE* const stream) {}
 void mapper_profile_print_region_profile_boost(FILE* const stream) {}
 void mapper_profile_print_region_profile_delimit(FILE* const stream) {}
 /*
@@ -416,5 +441,6 @@ void mapper_profile_print_approximate_search_ranks(FILE* const stream) {}
  */
 void mapper_profile_print_approximate_search_summary(
     FILE* const stream,const bool paired_end,
-    const bool map_output,const uint64_t num_threads) {}
+    const bool cuda_workflow,const bool map_output,
+    const uint64_t num_threads) {}
 #endif

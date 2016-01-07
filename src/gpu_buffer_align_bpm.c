@@ -31,6 +31,7 @@
  */
 #define GEM_ERROR_GPU_ALIGN_BPM_MAX_PATTERN_LENGTH "GPU.BPM.Align. Query pattern (%"PRIu64" entries) exceeds maximum buffer capacity (%"PRIu64" entries)"
 #define GEM_ERROR_GPU_ALIGN_BPM_MAX_CANDIDATES "GPU.BPM.Align. Number of candidates (%"PRIu64") exceeds maximum buffer capacity (%"PRIu64" candidates)"
+#define GEM_ERROR_GPU_ALIGN_BPM_MAX_QUERIES "GPU.BPM.Align. Number of queries (%"PRIu64") exceeds maximum buffer capacity (%"PRIu64" queries)"
 
 /*
  * Pattern Setup
@@ -161,8 +162,8 @@ bool gpu_buffer_align_bpm_fits_in_buffer(
     gpu_bpm_init_and_realloc_buffer_(gpu_buffer_align_bpm->buffer,total_entries,total_candidates,total_queries);
     // Check reallocated buffer dimensions (error otherwise)
     max_queries = gpu_buffer_align_bpm_get_max_queries(gpu_buffer_align_bpm);
-    gem_cond_fatal_error(total_queries > max_queries,GPU_ALIGN_BPM_MAX_CANDIDATES,total_queries,max_queries);
-    max_PEQ_entries =  gpu_buffer_align_bpm_get_max_entries(gpu_buffer_align_bpm);
+    gem_cond_fatal_error(total_queries > max_queries,GPU_ALIGN_BPM_MAX_QUERIES,total_queries,max_queries);
+    max_PEQ_entries = gpu_buffer_align_bpm_get_max_entries(gpu_buffer_align_bpm);
     gem_cond_fatal_error(total_entries > max_PEQ_entries,GPU_ALIGN_BPM_MAX_PATTERN_LENGTH,total_entries,max_PEQ_entries);
     max_candidates = gpu_buffer_align_bpm_get_max_candidates(gpu_buffer_align_bpm);
     gem_cond_fatal_error(total_candidates > max_candidates,GPU_ALIGN_BPM_MAX_CANDIDATES,total_candidates,max_candidates);
