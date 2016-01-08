@@ -43,6 +43,7 @@ void match_scaffold_levenshtein_align(
  *   @align_input->text_offset_begin
  *   @align_input->text_offset_end
  *   @align_parameters->left_gap_alignment
+ *   @align_parameters->max_error
  *   @align_parameters->min_matching_length
  *   @align_parameters->min_context_length
  */

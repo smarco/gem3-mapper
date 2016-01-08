@@ -146,6 +146,7 @@ void match_scaffold_levenshtein_align(
  *   @align_input->text_offset_begin
  *   @align_input->text_offset_end
  *   @align_parameters->left_gap_alignment
+ *   @align_parameters->max_error
  *   @align_parameters->min_matching_length
  *   @align_parameters->min_context_length
  */
@@ -157,16 +158,19 @@ bool match_scaffold_levenshtein(
   PROFILE_START(GP_MATCH_SCAFFOLD_EDIT,PROFILE_LEVEL);
   // Init
 
-//  gem_timer_t timer; TIMER_RESET(&timer); TIMER_START(&timer);
+  gem_timer_t timer; TIMER_RESET(&timer); TIMER_START(&timer);
 
   match_scaffold->scaffold_type = scaffold_levenshtein;
   // Compute the levenshtein alignment (CIGAR)
   match_scaffold_levenshtein_align(matches,align_input,align_parameters,match_scaffold,mm_stack);
 
 //  TIMER_STOP(&timer);
-//  fprintf(stdout,"> %lu %lu %lu %lu",align_input->key_length,
-//      align_input->text_length,align_input->text_offset_end-align_input->text_offset_begin,
-//      TIMER_GET_TOTAL_MS(&timer));
+  if (TIMER_GET_TOTAL_MS(&timer) > 1.0) {
+    fprintf(stdout,"> %lu %lu %lu %lu %f\n",
+      align_input->key_length,align_input->text_length,
+      align_input->text_offset_end-align_input->text_offset_begin,align_parameters->max_error,
+      TIMER_GET_TOTAL_MS(&timer));
+  }
 
   match_alignment_t* const match_alignment = &match_scaffold->match_alignment;
   if (match_alignment->score==ALIGN_DISTANCE_INF) {
