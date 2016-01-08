@@ -142,30 +142,30 @@ void filtering_region_align_configure_swg(
   align_input->key                      = key;
   align_input->key_length               = key_length;
   align_input->bpm_pattern              = &pattern->bpm_pattern;
-  align_input->text_trace_offset        = filtering_region->text_trace_offset;
+  align_input->text_trace_offset        = filtering_region->text_trace_offset;//
   align_input->text_position            = filtering_region->begin_position;
   align_input->text                     = text;
   align_input->text_length              = text_length;
   align_input->text_offset_begin        = text_offset_begin;
   align_input->text_offset_end          = text_offset_end;
-  align_input->align_distance_bound     = align_distance_bound;
-  align_input->align_match_begin_column = align_match_begin_column;
-  align_input->align_match_end_column   = align_match_end_column;
+  align_input->align_distance_bound     = align_distance_bound;//
+  align_input->align_match_begin_column = align_match_begin_column;//
+  align_input->align_match_end_column   = align_match_end_column;//
   // Align Parameters
-  align_parameters->emulated_rc_search                  = emulated_rc_search;
+  align_parameters->emulated_rc_search                  = emulated_rc_search;//
   align_parameters->max_error                           = pattern->max_effective_filtering_error;
-  align_parameters->max_bandwidth                       = max_bandwidth;
-  align_parameters->left_gap_alignment                  = left_gap_alignment;
-  align_parameters->min_identity                        = as_parameters->alignment_min_identity_nominal;
-  align_parameters->scaffolding                         = search_parameters->alignment_scaffolding;
+  align_parameters->max_bandwidth                       = max_bandwidth;//
+  align_parameters->left_gap_alignment                  = left_gap_alignment;//
+  align_parameters->min_identity                        = as_parameters->alignment_min_identity_nominal;//
+  align_parameters->scaffolding                         = search_parameters->alignment_scaffolding;//
   align_parameters->scaffolding_min_coverage            = as_parameters->alignment_scaffolding_min_coverage_nominal;
   align_parameters->scaffolding_matching_min_length     = as_parameters->alignment_scaffolding_min_matching_length_nominal;
   align_parameters->scaffolding_homopolymer_min_context = as_parameters->alignment_scaffolding_homopolymer_min_context_nominal;
-  align_parameters->allowed_enc                         = allowed_enc;
-  align_parameters->swg_penalties                       = swg_penalties;
-  align_parameters->swg_threshold                       = as_parameters->swg_threshold_nominal;
-  align_parameters->cigar_curation                      = search_parameters->cigar_curation;
-  align_parameters->cigar_curation_min_end_context      = as_parameters->cigar_curation_min_end_context_nominal;
+  align_parameters->allowed_enc                         = allowed_enc;//
+  align_parameters->swg_penalties                       = swg_penalties;//
+  align_parameters->swg_threshold                       = as_parameters->swg_threshold_nominal;//
+  align_parameters->cigar_curation                      = search_parameters->cigar_curation;//
+  align_parameters->cigar_curation_min_end_context      = as_parameters->cigar_curation_min_end_context_nominal;//
 }
 void filtering_region_align_configure_local_swg(
     match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,

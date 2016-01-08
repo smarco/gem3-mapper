@@ -319,7 +319,9 @@ void match_align_smith_waterman_gotoh(
   match_trace->emulated_rc_search = align_parameters->emulated_rc_search;
   // Scaffold the alignment
   if (align_parameters->scaffolding) {
+    PROFILE_PAUSE(GP_MATCHES_ALIGN_SWG,PROFILE_LEVEL);
     match_scaffold_adaptive(matches,align_input,align_parameters,match_scaffold,mm_stack);
+    PROFILE_CONTINUE(GP_MATCHES_ALIGN_SWG,PROFILE_LEVEL);
   } else {
     match_scaffold->num_scaffold_regions = 0;
   }

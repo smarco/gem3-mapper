@@ -75,7 +75,8 @@ void match_scaffold_adaptive(
         match_scaffold_levenshtein(matches,align_input,align_parameters,match_scaffold,mm_stack);
       }
       // no break
-    default: break;
+    default:
+      break;
   }
   // DEBUG
   gem_cond_debug_block(DEBUG_MATCH_SCAFFOLD) {
