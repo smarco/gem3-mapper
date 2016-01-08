@@ -32,6 +32,10 @@ void region_profile_clear(region_profile_t* const region_profile) {
   region_profile->num_unique_regions = 0;
   region_profile->num_zero_regions = 0;
   region_profile->max_region_length = 0;
+  region_profile->mappability_p = 0;
+  region_profile->mappability_p_samples = 0;
+  region_profile->mappability_2p = 0;
+  region_profile->mappability_2p_samples = 0;
 }
 /*
  * Accessors

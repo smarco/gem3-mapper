@@ -19,7 +19,7 @@ typedef struct {
   // Region Profile
   region_profile_t* region_profile;
   // Region State
-  uint64_t begin_position;
+  uint64_t region_length;
   uint64_t last_cut;
   uint64_t lo_cut;
   uint64_t hi_cut;

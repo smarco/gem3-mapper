@@ -57,6 +57,7 @@ void region_profile_generator_restart(region_profile_generator_t* const generato
   region_search_t* const current_region = region_profile->filtering_region + region_profile->num_filtering_regions;
   current_region->end = generator->key_position;
   current_region->degree = 0;
+  generator->region_length = 0;
   generator->last_cut = 0;
   // Region-Query Status
   generator->lo = 0;
@@ -74,7 +75,7 @@ void region_profile_generator_init(
   generator->region_profile = region_profile;
   region_profile_clear(region_profile);
   // Region State
-  generator->begin_position = 0;
+  generator->region_length = 0;
   generator->last_cut = 0;
   generator->lo_cut = 0;
   generator->hi_cut = 0;
@@ -98,8 +99,7 @@ void region_profile_generator_close_region(
   region_search_t* const current_region = region_profile->filtering_region + region_profile->num_filtering_regions;
   // Set range
   current_region->begin = generator->key_position;
-  const uint64_t region_length = current_region->end-current_region->begin;
-  region_profile->max_region_length = MAX(region_profile->max_region_length,region_length);
+  region_profile->max_region_length = MAX(region_profile->max_region_length,generator->region_length);
   // Set interval
   current_region->lo = lo;
   current_region->hi = hi;
@@ -148,6 +148,7 @@ void region_profile_generator_close_profile(
 bool region_profile_generator_add_character(
     region_profile_generator_t* const generator,const region_profile_model_t* const profile_model) {
   // Region lookup status
+  ++(generator->region_length);
   const uint64_t lo = generator->lo;
   const uint64_t hi = generator->hi;
   const uint64_t num_candidates = hi-lo;
@@ -317,7 +318,6 @@ void region_profile_generate_adaptive_limited(
   region_profile_generator_t generator;
   region_profile_generator_init(&generator,region_profile,fm_index,key,key_length,allowed_enc,true);
   // Delimit regions
-  uint64_t region_length = 0;
   region_profile_generator_restart(&generator);
   while (generator.key_position > 0) {
     // Get next character
@@ -326,17 +326,14 @@ void region_profile_generate_adaptive_limited(
     // Handling wildcards
     if (!allowed_enc[enc_char]) {
       region_profile_generator_disallow_character(&generator,profile_model);
-      region_length = 0;
     } else {
       // Rank query
       region_profile_query_character(generator.fm_index,&generator.rank_mquery,&generator.lo,&generator.hi,enc_char);
-      ++region_length;
       // Add the character to the region profile
       const uint64_t num_candidates = generator.hi-generator.lo;
-      if (num_candidates <= profile_model->region_th || region_length >= max_region_length) {
+      if (num_candidates <= profile_model->region_th || generator.region_length >= max_region_length) {
         region_profile_generator_close_region(&generator,profile_model,generator.lo,generator.hi);
         region_profile_generator_restart(&generator);
-        region_length = 0;
       }
     }
   }

@@ -141,6 +141,11 @@ void matches_classify_compute_predictors(
     uint64_t const overriding_mcs,const uint64_t num_zero_regions) {
   const uint64_t mcs = (overriding_mcs!=UINT64_MAX) ? overriding_mcs : matches->max_complete_stratum;
   const uint64_t num_matches = matches_get_num_match_traces(matches);
+  // Init
+  predictors->mapq_end1 = 0;
+  predictors->mapq_end2 = 0;
+  predictors->first_map_template_size_sigma = 0;
+  predictors->subdominant_template_size_sigma = 0;
   if (num_matches==0) {
     matches_classify_compute_predictors_unmapped(predictors,&matches->metrics,
         read_length,max_region_length,proper_length,mcs,num_zero_regions);
@@ -158,4 +163,5 @@ void matches_classify_compute_predictors(
   }
   // Subdominant candidates
   predictors->subdominant_candidates_end1 = matches->metrics.subdominant_candidates;
+  predictors->subdominant_candidates_end2 = 0;
 }
