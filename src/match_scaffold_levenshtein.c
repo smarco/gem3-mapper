@@ -106,6 +106,10 @@ void match_scaffold_levenshtein_align(
     matches_t* const matches,match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
     match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack) {
+
+
+  gem_timer_t timer; TIMER_RESET(&timer); TIMER_START(&timer);
+
   // Fill Matrix (Pv,Mv)
   mm_stack_push_state(mm_stack); // Save stack state
   match_align_input_t bpm_align_input = {
@@ -116,7 +120,16 @@ void match_scaffold_levenshtein_align(
       .text_length = align_input->text_offset_end - align_input->text_offset_begin,
   };
   bpm_align_matrix_t bpm_align_matrix;
-  align_bpm_compute_matrix(&bpm_align_input,align_parameters->max_error,&bpm_align_matrix,mm_stack);
+  uint64_t ops = align_bpm_compute_matrix(&bpm_align_input,align_parameters->max_error,&bpm_align_matrix,mm_stack);
+
+  TIMER_STOP(&timer);
+  if (TIMER_GET_TOTAL_S(&timer) > 1.0) {
+    fprintf(stdout,"> %lu %lu %lu %lu %f (%lu)\n",
+      align_input->key_length,align_input->text_length,
+      align_input->text_offset_end-align_input->text_offset_begin,align_parameters->max_error,
+      TIMER_GET_TOTAL_S(&timer),ops);
+  }
+
   // Set distance
   match_scaffold->match_alignment.score = bpm_align_matrix.min_score;
   if (bpm_align_matrix.min_score == ALIGN_DISTANCE_INF) {
@@ -157,21 +170,9 @@ bool match_scaffold_levenshtein(
   PROF_INC_COUNTER(GP_MATCH_SCAFFOLD_EDIT_SCAFFOLDS);
   PROFILE_START(GP_MATCH_SCAFFOLD_EDIT,PROFILE_LEVEL);
   // Init
-
-  gem_timer_t timer; TIMER_RESET(&timer); TIMER_START(&timer);
-
   match_scaffold->scaffold_type = scaffold_levenshtein;
   // Compute the levenshtein alignment (CIGAR)
   match_scaffold_levenshtein_align(matches,align_input,align_parameters,match_scaffold,mm_stack);
-
-//  TIMER_STOP(&timer);
-  if (TIMER_GET_TOTAL_MS(&timer) > 1.0) {
-    fprintf(stdout,"> %lu %lu %lu %lu %f\n",
-      align_input->key_length,align_input->text_length,
-      align_input->text_offset_end-align_input->text_offset_begin,align_parameters->max_error,
-      TIMER_GET_TOTAL_MS(&timer));
-  }
-
   match_alignment_t* const match_alignment = &match_scaffold->match_alignment;
   if (match_alignment->score==ALIGN_DISTANCE_INF) {
     match_scaffold->num_scaffold_regions = 0;
