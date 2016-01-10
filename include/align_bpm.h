@@ -31,7 +31,7 @@ typedef struct {
  *   @align_input->text
  *   @align_input->text_length
  */
-uint64_t align_bpm_compute_matrix(
+void align_bpm_compute_matrix(
     match_align_input_t* const align_input,const uint64_t max_distance,
     bpm_align_matrix_t* const bpm_align_matrix,mm_stack_t* const mm_stack);
 /*

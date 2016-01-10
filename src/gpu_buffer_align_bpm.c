@@ -297,19 +297,20 @@ void gpu_buffer_align_bpm_add_pattern(
   gpu_buffer_align_bpm->current_query_offset = buffer_pattern_query_offset;
   // Add query (for all tiles)
   gpu_bpm_qry_info_t* buffer_pattern_query = gpu_bpm_buffer_get_peq_info_(gpu_buffer) + buffer_pattern_query_offset;
+  const uint64_t tile_entry_length = gpu_entries_per_tile*GPU_ALIGN_BPM_ENTRY_LENGTH;
   uint64_t i, tile_length, remaining_pattern_length = pattern_length;
   for (i=0;i<gpu_num_tiles;++i,++buffer_pattern_query) {
     // Set entry & size
     buffer_pattern_query->posEntry = buffer_num_entries + i*gpu_entries_per_tile;
-    tile_length = MIN(remaining_pattern_length,GPU_ALIGN_BPM_ENTRY_LENGTH);
+    tile_length = MIN(remaining_pattern_length,tile_entry_length);
     buffer_pattern_query->size = tile_length;
     remaining_pattern_length -= tile_length;
     // Check tile length
     if (gpu_buffer_align_bpm->query_same_length != UINT32_MAX) {
+      const uint32_t tile_num_entries = DIV_CEIL(tile_length,tile_entry_length);
       if (gpu_buffer_align_bpm->query_same_length == 0) {
-        gpu_buffer_align_bpm->query_same_length = DIV_CEIL(tile_length,GPU_ALIGN_BPM_ENTRY_LENGTH);
+        gpu_buffer_align_bpm->query_same_length = tile_num_entries;
       } else {
-        const uint32_t tile_num_entries = DIV_CEIL(tile_length,GPU_ALIGN_BPM_ENTRY_LENGTH);
         if (gpu_buffer_align_bpm->query_same_length != tile_num_entries) {
           gpu_buffer_align_bpm->query_same_length = UINT32_MAX; // Not the same length
         }

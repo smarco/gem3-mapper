@@ -21,12 +21,9 @@
  *   @align_input->text
  *   @align_input->text_length
  */
-uint64_t align_bpm_compute_matrix(
+void align_bpm_compute_matrix(
     match_align_input_t* const align_input,const uint64_t max_distance,
     bpm_align_matrix_t* const bpm_align_matrix,mm_stack_t* const mm_stack) {
-
-  uint64_t ops = 0;
-
   // Parameters
   const bpm_pattern_t* const bpm_pattern = align_input->bpm_pattern;
   uint8_t* const text = align_input->text;
@@ -65,7 +62,7 @@ uint64_t align_bpm_compute_matrix(
       const uint64_t mask = level_mask[i];
       const uint64_t Eq = PEQ[BPM_PATTERN_PEQ_IDX(i,enc_char)];
       /* Compute Block */
-      BPM_ADVANCE_BLOCK(Eq,mask,Pv_in,Mv_in,PHin,MHin,PHout,MHout); ++ops;
+      BPM_ADVANCE_BLOCK(Eq,mask,Pv_in,Mv_in,PHin,MHin,PHout,MHout);
       /* Adjust score and swap propagate Hv */
       score[i] += PHout-MHout;
       Pv[next_bdp_idx] = Pv_in;
@@ -88,7 +85,7 @@ uint64_t align_bpm_compute_matrix(
         Mv[bdp_idx] = 0;
         const uint64_t mask = level_mask[top_level];
         /* Compute Block */
-        BPM_ADVANCE_BLOCK(Peq,mask,Pv_in,Mv_in,PHin,MHin,PHout,MHout); ++ops;
+        BPM_ADVANCE_BLOCK(Peq,mask,Pv_in,Mv_in,PHin,MHin,PHout,MHout);
         /* Save Block Pv,Mv */
         Pv[next_bdp_idx]=Pv_in;
         Mv[next_bdp_idx]=Mv_in;
@@ -117,9 +114,6 @@ uint64_t align_bpm_compute_matrix(
   // Return optimal column/distance
   bpm_align_matrix->min_score = min_score;
   bpm_align_matrix->min_score_column = min_score_column;
-
-
-  return ops;
 }
 /*
  * BPM. Recover CIGAR from a matching string

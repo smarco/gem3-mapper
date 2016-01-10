@@ -16,7 +16,7 @@
 /*
  * Tiling
  */
-#define GPU_WORDS128_PER_TILE 2
+#define GPU_WORDS128_PER_TILE 8
 
 /*
  * Benchmark Generation
