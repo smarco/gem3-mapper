@@ -16,7 +16,7 @@
 /*
  * Tiling
  */
-#define GPU_WORDS128_PER_TILE 8
+#define GPU_WORDS128_PER_TILE 2
 
 /*
  * Benchmark Generation
@@ -31,6 +31,7 @@
 //#define CUDA_CHECK_BUFFERED_REGION_PROFILE
 //#define CUDA_CHECK_BUFFERED_DECODE_POSITIONS
 //#define CUDA_CHECK_BUFFERED_VERIFY_CANDIDATES
+
 
 /*
  * GPU Support

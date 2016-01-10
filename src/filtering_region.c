@@ -57,12 +57,13 @@ void filtering_region_print(
     const text_collection_t* const text_collection,const bool print_matching_regions) {
   tab_fprintf(stream,"  => Region %s [%"PRIu64",%"PRIu64") "
       "(total-bases=%"PRIu64","
-      "align-distance=%"PRId64","
+      "align-distance=(%"PRId64",%"PRId64"),"
       "matching-regions=%"PRIu64","
       "align-match=(%"PRIu64",%"PRIu64"))\n",
       filtering_region_status_label[region->status],region->begin_position,region->end_position,
       region->end_position-region->begin_position,
       region->align_distance==ALIGN_DISTANCE_INF ? (int64_t)-1 : (int64_t)region->align_distance,
+      region->align_distance_min_bound==ALIGN_DISTANCE_INF ? (int64_t)-1 : (int64_t)region->align_distance_min_bound,
       region->match_scaffold.num_scaffold_regions,
       region->align_match_begin_column,region->align_match_end_column);
   if (text_collection!=NULL) {

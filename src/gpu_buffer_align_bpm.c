@@ -307,7 +307,7 @@ void gpu_buffer_align_bpm_add_pattern(
     remaining_pattern_length -= tile_length;
     // Check tile length
     if (gpu_buffer_align_bpm->query_same_length != UINT32_MAX) {
-      const uint32_t tile_num_entries = DIV_CEIL(tile_length,tile_entry_length);
+      const uint32_t tile_num_entries = DIV_CEIL(tile_length,GPU_ALIGN_BPM_ENTRY_LENGTH);
       if (gpu_buffer_align_bpm->query_same_length == 0) {
         gpu_buffer_align_bpm->query_same_length = tile_num_entries;
       } else {
