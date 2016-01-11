@@ -19,6 +19,7 @@ typedef struct {
   uint16_t* kmer_count_text;
   uint16_t* kmer_count_pattern;
   uint64_t pattern_length;
+  uint64_t max_error;
 } kmer_counting_t;
 
 /*
@@ -33,7 +34,7 @@ void kmer_counting_compile(
  * Filter text region
  */
 uint64_t kmer_counting_filter(
-    const kmer_counting_t* const kmer_counting,const uint8_t* const text,
-    const uint64_t text_length,const uint64_t max_error);
+    const kmer_counting_t* const kmer_counting,
+    const uint8_t* const text,const uint64_t text_length);
 
 #endif /* KMER_COUNTING_H_ */

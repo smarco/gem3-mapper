@@ -26,6 +26,7 @@
 void filtering_candidates_retrieve_filtering_regions(
     filtering_candidates_t* const filtering_candidates,archive_text_t* const archive_text,
     text_collection_t* const text_collection,mm_stack_t* const mm_stack) {
+  PROFILE_START(GP_FC_RETRIEVE_CANDIDATE_REGIONS,PROFILE_LEVEL);
   // Traverse all candidates (text-space)
   VECTOR_ITERATE(filtering_candidates->filtering_regions,filtering_region,candidate_pos,filtering_region_t) {
     // Retrieve only those marked as unverified to be verified
@@ -38,6 +39,7 @@ void filtering_candidates_retrieve_filtering_regions(
         archive_text_retrieve(archive_text,text_collection,
             filtering_region->begin_position,text_length,false,mm_stack);
   }
+  PROFILE_STOP(GP_FC_RETRIEVE_CANDIDATE_REGIONS,PROFILE_LEVEL);
 }
 /*
  * Compose filtering regions

@@ -27,6 +27,7 @@ uint64_t filtering_candidates_verify_filtering_regions(
     filtering_candidates_t* const filtering_candidates,text_collection_t* const text_collection,
     const pattern_t* const pattern,const as_parameters_t* const as_parameters,
     matches_t* const matches) {
+  PROFILE_START(GP_FC_VERIFY_CANDIDATE_REGIONS,PROFILE_LEVEL);
   // Parameters
   search_parameters_t* const search_parameters = as_parameters->search_parameters;
   // Traverse all regions (text-space)
@@ -70,6 +71,7 @@ uint64_t filtering_candidates_verify_filtering_regions(
     filtering_candidates_print_regions(gem_log_get_stream(),filtering_candidates,text_collection,false,false);
     tab_global_dec();
   }
+  PROFILE_STOP(GP_FC_VERIFY_CANDIDATE_REGIONS,PROFILE_LEVEL);
   return num_regions_accepted;
 }
 uint64_t filtering_candidates_verify_filtering_regions_multiple_hits(
@@ -130,14 +132,10 @@ uint64_t filtering_candidates_verify_candidates(
   if (pending_candidates==0) return 0;
   PROFILE_START(GP_FC_VERIFICATION,PROFILE_LEVEL);
   // Retrieve text-candidates
-  PROFILE_START(GP_FC_RETRIEVE_CANDIDATE_REGIONS,PROFILE_LEVEL);
   filtering_candidates_retrieve_filtering_regions(filtering_candidates,archive->text,text_collection,mm_stack);
-  PROFILE_STOP(GP_FC_RETRIEVE_CANDIDATE_REGIONS,PROFILE_LEVEL);
   // Verify candidates
-  PROFILE_START(GP_FC_VERIFY_CANDIDATE_REGIONS,PROFILE_LEVEL);
   pending_candidates = filtering_candidates_verify_filtering_regions(
       filtering_candidates,text_collection,pattern,as_parameters,matches);
-  PROFILE_STOP(GP_FC_VERIFY_CANDIDATE_REGIONS,PROFILE_LEVEL);
   PROFILE_STOP(GP_FC_VERIFICATION,PROFILE_LEVEL);
   return pending_candidates;
 }

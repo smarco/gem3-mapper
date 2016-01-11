@@ -180,16 +180,19 @@
 #define GP_FC_DECODE_CANDIDATES_BUFFERED_UNSUCCESSFUL       335
 #define GP_FC_DECODE_CANDIDATES_BUFFERED_UNSUCCESSFUL_TOTAL 336
 #define GP_FC_VERIFY_CANDIDATE_REGIONS                      337
-#define GP_FC_REALIGN_CANDIDATE_REGIONS                     338
-#define GP_FC_UNBOUNDED_ALIGNMENT                           339
-#define GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS          340
-#define GP_FC_RETRIEVE_CANDIDATE_REGIONS                    341
-#define GP_FC_RETRIEVE_CANDIDATE_REGIONS_BUFFERED           342
-#define GP_FC_RETRIEVE_CANDIDATE_REGIONS_DIST_DIFF          343
-#define GP_FC_COMPOSE_REGIONS                               344
+#define GP_FC_VERIFY_CANDIDATE_REGION                       338
+#define GP_FC_REALIGN_CANDIDATE_REGIONS                     339
+#define GP_FC_UNBOUNDED_ALIGNMENT                           340
+#define GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS          341
+#define GP_FC_RETRIEVE_CANDIDATE_REGIONS                    342
+#define GP_FC_RETRIEVE_CANDIDATE_REGIONS_BUFFERED           343
+#define GP_FC_RETRIEVE_CANDIDATE_REGIONS_DIST_DIFF          344
+#define GP_FC_COMPOSE_REGIONS                               345
 
 #define GP_FC_KMER_COUNTER_FILTER                           350
-#define GP_FC_KMER_COUNTER_FILTER_ACCEPTED                  351
+#define GP_FC_KMER_COUNTER_FILTER_NA                        351
+#define GP_FC_KMER_COUNTER_FILTER_DISCARDED                 352
+#define GP_FC_KMER_COUNTER_FILTER_ACCEPTED                  353
 
 #define GP_FC_EXTEND_MATCH                                  360
 #define GP_FC_EXTEND_RETRIEVE_CANDIDATE_REGIONS             361
@@ -208,8 +211,8 @@
 #define GP_CANDIDATE_REGION_LENGTH                          404
 #define GP_KMER_COUNTER_FILTER                              405
 #define GP_KMER_COUNTER_FILTER_DISCARDED                    406
-#define GP_LEVENSHTEIN_ACCEPTED                             407
-#define GP_ACCEPTED_REGIONS                                 408
+#define GP_ACCEPTED_REGIONS                                 407
+#define GP_DISCARDED_REGIONS                                408
 
 #define GP_ALIGNED_REGIONS                                  415
 #define GP_ALIGNED_EXACT                                    416

@@ -55,9 +55,21 @@ void kmer_counting_compile(
     kmer_counting_t* const kmer_counting,uint8_t* const pattern,
     const uint64_t pattern_length,const uint64_t num_non_canonical_bases,
     const uint64_t effective_filtering_max_error,mm_stack_t* const mm_stack) {
-  // Check efficiency conditions (if not meet, the filter is disabled)
-  if (num_non_canonical_bases>0 || pattern_length < KMER_COUNTING_LENGTH ||
-      pattern_length/effective_filtering_max_error < KMER_COUNTING_EFFECTIVE_THRESHOLD) {
+  // Check min-length condition
+  if (pattern_length < KMER_COUNTING_LENGTH) {
+    kmer_counting->enabled = false;
+    return;
+  }
+  // Check efficiency condition
+  const uint64_t max_error = effective_filtering_max_error+num_non_canonical_bases;
+  if (pattern_length/max_error < KMER_COUNTING_EFFECTIVE_THRESHOLD) {
+    kmer_counting->enabled = false;
+    return;
+  }
+  // Check max-error condition
+  const uint64_t kmers_error = KMER_COUNTING_LENGTH * max_error;
+  const uint64_t kmers_max = pattern_length - (KMER_COUNTING_LENGTH-1);
+  if (kmers_error >= kmers_max) {
     kmer_counting->enabled = false;
     return;
   }
@@ -66,112 +78,109 @@ void kmer_counting_compile(
   kmer_counting->kmer_count_text = mm_stack_calloc(mm_stack,KMER_COUNTING_NUM_KMERS,uint16_t,true);
   kmer_counting->kmer_count_pattern = mm_stack_calloc(mm_stack,KMER_COUNTING_NUM_KMERS,uint16_t,true);
   kmer_counting->pattern_length = pattern_length;
+  kmer_counting->max_error = max_error;
   // Count kmers in pattern
-  uint64_t pos, kmer_idx;
-  // Initial Fill
-  for (pos=0,kmer_idx=0;pos<KMER_COUNTING_LENGTH-1;++pos) {
-    const uint8_t enc_char = pattern[pos];
-    KMER_COUNTING_ADD_INDEX__MASK(kmer_idx,enc_char);  // Update kmer-index
-  }
+  uint64_t pos, kmer_idx, acc;
   // Compile all k-mers
-  for (;pos<pattern_length;++pos) {
+  for (pos=0;pos<pattern_length;++pos) {
     const uint8_t enc_char = pattern[pos];
-    KMER_COUNTING_ADD_INDEX__MASK(kmer_idx,enc_char);  // Update kmer-index
-    ++(kmer_counting->kmer_count_pattern[kmer_idx]);   // Increment kmer-count
+    if (!is_dna_canonical_encoded(enc_char)) {
+      acc=0; kmer_idx=0; // Reset
+    } else {
+      KMER_COUNTING_ADD_INDEX__MASK(kmer_idx,enc_char);  // Update kmer-index
+      if (acc < KMER_COUNTING_LENGTH-1) {
+        ++acc; // Inc accumulator
+      } else {
+        ++(kmer_counting->kmer_count_pattern[kmer_idx]); // Increment kmer-count
+      }
+    }
   }
 }
 /*
  * Filter text region
  */
 uint64_t kmer_counting_filter(
-    const kmer_counting_t* const kmer_counting,const uint8_t* const text,
-    const uint64_t text_length,const uint64_t max_error) {
-  // Check filter enabled
-  if (!kmer_counting->enabled) return 0; // Don't filter
-  // Check filter usable
-  const uint64_t kmers_error = KMER_COUNTING_LENGTH*max_error;
-  const uint64_t kmers_max = kmer_counting->pattern_length - (KMER_COUNTING_LENGTH-1);
-  if (kmers_error >= kmers_max) return 0; // Don't filter
+    const kmer_counting_t* const kmer_counting,
+    const uint8_t* const text,const uint64_t text_length) {
   PROFILE_START(GP_FC_KMER_COUNTER_FILTER,PROFILE_LEVEL);
+  // Check filter enabled
+  if (!kmer_counting->enabled) {
+    PROFILE_STOP(GP_FC_KMER_COUNTER_FILTER,PROFILE_LEVEL);
+    PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_NA);
+    return 0; // Don't filter
+  }
   // Prepare filter
-  const uint64_t kmers_required = kmer_counting->pattern_length - (KMER_COUNTING_LENGTH-1) - KMER_COUNTING_LENGTH*max_error;
+  const uint64_t max_error = kmer_counting->max_error;
+  const uint64_t kmers_required = kmer_counting->pattern_length -
+      (KMER_COUNTING_LENGTH-1) - KMER_COUNTING_LENGTH*max_error;
   memset(kmer_counting->kmer_count_text,0,KMER_COUNTING_NUM_KMERS*UINT16_SIZE);
   uint16_t* const kmer_count_text = kmer_counting->kmer_count_text;
   uint16_t* const kmer_count_pattern = kmer_counting->kmer_count_pattern;
   /*
    * First count (Load)
    */
-  const uint64_t init_chunk = MIN(text_length,kmer_counting->pattern_length);
-  uint64_t end_pos=0, kmer_idx_end=0, kmers_in_text = 0;
   const uint64_t total_kmers_text = MAX(text_length,kmer_counting->pattern_length);
-  uint64_t kmers_left = total_kmers_text;
-  // Initial fill
-  for (;end_pos<KMER_COUNTING_LENGTH-1;++end_pos,--kmers_left) {
+  const uint64_t init_chunk = MIN(text_length,kmer_counting->pattern_length);
+  uint64_t kmers_left = total_kmers_text, kmers_in_text = 0;
+  uint64_t begin_pos, kmer_idx_begin = 0, acc_begin = 0;
+  uint64_t end_pos, kmer_idx_end=0, acc_end = 0;
+  // Initial window fill
+  for (end_pos=0;end_pos<init_chunk;++end_pos,--kmers_left) {
     const uint8_t enc_char_end = text[end_pos];
-    KMER_COUNTING_ADD_INDEX__MASK(kmer_idx_end,enc_char_end); // Update kmer-index
-  }
-  for (;end_pos<init_chunk;++end_pos,--kmers_left) {
-    const uint8_t enc_char_end = text[end_pos];
-    KMER_COUNTING_ADD_INDEX__MASK(kmer_idx_end,enc_char_end); // Update kmer-index
-    // Increment kmer-count
-    const uint16_t count_pattern = kmer_count_pattern[kmer_idx_end];
-    if (count_pattern>0 && (kmer_count_text[kmer_idx_end])++ < count_pattern) ++kmers_in_text;
-    // Check filter condition
-    if (kmers_in_text >= kmers_required) {
-      PROFILE_STOP(GP_FC_KMER_COUNTER_FILTER,PROFILE_LEVEL);
-      return 0; // Don't filter
-    } else if (kmers_required-kmers_in_text > kmers_left) { // Quick abandon
-      PROFILE_STOP(GP_FC_KMER_COUNTER_FILTER,PROFILE_LEVEL);
-      return ALIGN_DISTANCE_INF; // Filter out
+    if (!is_dna_canonical_encoded(enc_char_end)) {
+      acc_end = 0; kmer_idx_end = 0; // Reset
+    } else {
+      KMER_COUNTING_ADD_INDEX__MASK(kmer_idx_end,enc_char_end); // Update kmer-index
+      if (acc_end < KMER_COUNTING_LENGTH-1) {
+        ++acc_end;
+      } else {
+        // Increment kmer-count
+        const uint16_t count_pattern = kmer_count_pattern[kmer_idx_end];
+        if (count_pattern>0 && (kmer_count_text[kmer_idx_end])++ < count_pattern) ++kmers_in_text;
+        // Check filter condition
+        if (kmers_in_text >= kmers_required) {
+          PROFILE_STOP(GP_FC_KMER_COUNTER_FILTER,PROFILE_LEVEL);
+          return 0; // Don't filter
+        } else if (kmers_required-kmers_in_text > kmers_left) { // Quick abandon
+          PROFILE_STOP(GP_FC_KMER_COUNTER_FILTER,PROFILE_LEVEL);
+          return ALIGN_DISTANCE_INF; // Filter out
+        }
+      }
     }
-  }
-  // Check filter condition
-  if (kmers_in_text >= kmers_required) {
-    PROFILE_STOP(GP_FC_KMER_COUNTER_FILTER,PROFILE_LEVEL);
-    return 0; // Don't filter
-  }
-  if (init_chunk == text_length) {
-    PROFILE_STOP(GP_FC_KMER_COUNTER_FILTER,PROFILE_LEVEL);
-    return ALIGN_DISTANCE_INF; // Filter out
   }
   /*
    * Sliding window count
    */
   // Initial fill
-  uint64_t begin_pos = 0, kmer_idx_begin = 0;
-  for (;begin_pos<KMER_COUNTING_LENGTH-1;++begin_pos) {
-    const uint8_t enc_char_begin = text[begin_pos];
-    KMER_COUNTING_ADD_INDEX(kmer_idx_begin,enc_char_begin); // Update kmer-index
-  }
-  for (;end_pos<text_length;++end_pos,++begin_pos,--kmers_left) {
+  for (begin_pos=0;end_pos<text_length;++end_pos,++begin_pos,--kmers_left) {
     // Begin (Decrement kmer-count)
     const uint8_t enc_char_begin = text[begin_pos];
-    KMER_COUNTING_ADD_INDEX__MASK(kmer_idx_begin,enc_char_begin);
-    const uint16_t count_pattern_begin = kmer_count_pattern[kmer_idx_begin];
-    if (count_pattern_begin > 0 && kmer_count_text[kmer_idx_begin]-- <= count_pattern_begin) --kmers_in_text;
+    if (!is_dna_canonical_encoded(enc_char_begin)) {
+      acc_begin = 0; kmer_idx_begin = 0; // Reset
+    } else {
+      if (acc_begin < KMER_COUNTING_LENGTH-1) {
+        ++acc_begin;
+      } else {
+        KMER_COUNTING_ADD_INDEX__MASK(kmer_idx_begin,enc_char_begin);
+        const uint16_t count_pattern_begin = kmer_count_pattern[kmer_idx_begin];
+        if (count_pattern_begin > 0 && kmer_count_text[kmer_idx_begin]-- <= count_pattern_begin) --kmers_in_text;
+      }
+    }
     // End (Increment kmer-count)
     const uint8_t enc_char_end = text[end_pos];
-    KMER_COUNTING_ADD_INDEX__MASK(kmer_idx_end,enc_char_end);
-    const uint16_t count_pattern_end = kmer_count_pattern[kmer_idx_end];
-    if (count_pattern_end > 0 && kmer_count_text[kmer_idx_end]++ < count_pattern_end) ++kmers_in_text;
+    if (!is_dna_canonical_encoded(enc_char_end)) {
+      acc_end = 0; kmer_idx_end = 0; // Reset
+    } else {
+      if (acc_end < KMER_COUNTING_LENGTH-1) {
+        ++acc_end;
+      } else {
+        KMER_COUNTING_ADD_INDEX__MASK(kmer_idx_end,enc_char_end);
+        const uint16_t count_pattern_end = kmer_count_pattern[kmer_idx_end];
+        if (count_pattern_end > 0 && kmer_count_text[kmer_idx_end]++ < count_pattern_end) ++kmers_in_text;
+      }
+    }
     // Check filter condition
     if (kmers_in_text >= kmers_required) {
-//      uint64_t n, total=0, kmers_ot = 0;
-//      for (n=0;n<KMER_COUNTING_NUM_KMERS;++n) {
-//        kmers_ot += kmer_count_text[n];
-//        if (kmer_count_pattern[n]==0) {
-//          fprintf(stderr," ");
-//        } else if (kmer_count_text[n]>=kmer_count_pattern[n]) {
-//          fprintf(stderr,"-"); total+=kmer_count_pattern[n];
-//        } else {
-//          fprintf(stderr,"*"); total+=kmer_count_text[n];
-//        }
-//      }
-//      fprintf(stderr,"\n");
-//      for (n=0;n<KMER_COUNTING_NUM_KMERS;++n) {
-//        fprintf(stderr,"(%"PRIu64"/%"PRIu64")[%"PRIu64"] Pattern=%u Text=%u \n",total,kmers_ot,n,kmer_count_pattern[n],kmer_count_text[n]);
-//      }
-//      return begin_pos - (KMER_COUNTING_LENGTH-1); // Don't filter
       PROFILE_STOP(GP_FC_KMER_COUNTER_FILTER,PROFILE_LEVEL);
       return 0; // Don't filter
     } else if (kmers_required-kmers_in_text > kmers_left) { // Quick abandon

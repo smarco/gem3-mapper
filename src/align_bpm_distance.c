@@ -228,6 +228,7 @@ bool bpm_compute_edit_distance(
         current_score+pattern_left[top_level] > text_left+max_distance) {
       // Quick abandon, it doesn't match (bounded by best case scenario)
       // TODO Test if (abandon_cond() && min_score!=ALIGN_DISTANCE_INF) return best_distace_score;
+      PROF_STOP(GP_BPM_COMPUTE_EDIT_DISTANCE);
       PROF_INC_COUNTER(GP_BPM_QUICK_ABANDON);
       *match_distance = ALIGN_DISTANCE_INF;
       return false;

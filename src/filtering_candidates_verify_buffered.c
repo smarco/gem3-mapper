@@ -284,6 +284,7 @@ uint64_t filtering_candidates_verify_buffered_retrieve(
       // Configure regions matching (we sacrifice this information as to save memory)
       match_scaffold_init(&regions_discarded->match_scaffold);
       ++regions_discarded;
+      PROF_INC_COUNTER(GP_DISCARDED_REGIONS);
     }
     // Add to verified regions
     regions_verified->begin_position = candidate_begin_position;
