@@ -152,16 +152,25 @@ uint64_t kmer_counting_filter(
    * Sliding window count
    */
   // Initial fill
-  for (begin_pos=0;end_pos<text_length;++end_pos,++begin_pos,--kmers_left) {
+  for (begin_pos=0;begin_pos<KMER_COUNTING_LENGTH-1;++begin_pos) {
+    const uint8_t enc_char_begin = text[begin_pos];
+    if (!is_dna_canonical_encoded(enc_char_begin)) {
+      acc_begin = 0; kmer_idx_begin = 0; // Reset
+    } else {
+      KMER_COUNTING_ADD_INDEX__MASK(kmer_idx_begin,enc_char_begin);
+      ++acc_begin;
+    }
+  }
+  for (;end_pos<text_length;++end_pos,++begin_pos,--kmers_left) {
     // Begin (Decrement kmer-count)
     const uint8_t enc_char_begin = text[begin_pos];
     if (!is_dna_canonical_encoded(enc_char_begin)) {
       acc_begin = 0; kmer_idx_begin = 0; // Reset
     } else {
+      KMER_COUNTING_ADD_INDEX__MASK(kmer_idx_begin,enc_char_begin);
       if (acc_begin < KMER_COUNTING_LENGTH-1) {
         ++acc_begin;
       } else {
-        KMER_COUNTING_ADD_INDEX__MASK(kmer_idx_begin,enc_char_begin);
         const uint16_t count_pattern_begin = kmer_count_pattern[kmer_idx_begin];
         if (count_pattern_begin > 0 && kmer_count_text[kmer_idx_begin]-- <= count_pattern_begin) --kmers_in_text;
       }
@@ -171,10 +180,10 @@ uint64_t kmer_counting_filter(
     if (!is_dna_canonical_encoded(enc_char_end)) {
       acc_end = 0; kmer_idx_end = 0; // Reset
     } else {
+      KMER_COUNTING_ADD_INDEX__MASK(kmer_idx_end,enc_char_end);
       if (acc_end < KMER_COUNTING_LENGTH-1) {
         ++acc_end;
       } else {
-        KMER_COUNTING_ADD_INDEX__MASK(kmer_idx_end,enc_char_end);
         const uint16_t count_pattern_end = kmer_count_pattern[kmer_idx_end];
         if (count_pattern_end > 0 && kmer_count_text[kmer_idx_end]++ < count_pattern_end) ++kmers_in_text;
       }
