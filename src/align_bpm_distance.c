@@ -314,31 +314,6 @@ void bpm_compute_edit_distance_tiled(
 /*
  * BPM all matches
  */
-// TODO Proper factorice
-// TODO Proper factorice
-// TODO Proper factorice
-// TODO Proper factorice
-#define BPM_ADD_FILTERING_REGION(text_trace_offset,begin_position,end_position,min_score_column,min_score,num_matches_found) { \
-  filtering_region_t* filtering_region; \
-  vector_alloc_new(filtering_regions,filtering_region_t,filtering_region); \
-  /* State */ \
-  filtering_region->status = filtering_region_accepted; \
-  /* Text-trace */ \
-  filtering_region->text_trace_offset = text_trace_offset; \
-  /* Location */ \
-  filtering_region->begin_position = begin_position; \
-  filtering_region->end_position = end_position; \
-  filtering_region->base_position_offset = 0; \
-  /* Regions Matching */ \
-  filtering_region->match_scaffold.scaffold_regions = NULL; \
-  filtering_region->match_scaffold.num_scaffold_regions = 0; \
-  filtering_region->match_scaffold.scaffolding_coverage = 0; \
-  /* Alignment distance */ \
-  filtering_region->align_distance = min_score; \
-  filtering_region->align_match_end_column = min_score_column; \
-  /* Increment the number of matches found */ \
-  ++num_matches_found; \
-}
 uint64_t bpm_compute_edit_distance_all(
     const bpm_pattern_t* const bpm_pattern,vector_t* const filtering_regions,
     const uint64_t text_trace_offset,const uint64_t begin_position,
@@ -377,7 +352,9 @@ uint64_t bpm_compute_edit_distance_all(
         min_score_column = text_position;
         min_score = current_score;
         if (current_score==0) { // Don't try to optimize (exact match)
-          BPM_ADD_FILTERING_REGION(text_trace_offset,begin_position,end_position,min_score_column,min_score,num_matches_found);
+          filtering_region_add(filtering_regions,text_trace_offset,
+              begin_position,end_position,min_score,min_score_column);
+          ++num_matches_found; // Increment the number of matches found
         } else {
           match_found = true;
           opt_steps_left = max_distance; // Setup optimization steps
@@ -389,7 +366,9 @@ uint64_t bpm_compute_edit_distance_all(
         min_score = current_score;
       }
       if (opt_steps_left==0) {
-        BPM_ADD_FILTERING_REGION(text_trace_offset,begin_position,end_position,min_score_column,min_score,num_matches_found);
+        filtering_region_add(filtering_regions,text_trace_offset,
+            begin_position,end_position,min_score,min_score_column);
+        ++num_matches_found; // Increment the number of matches found
         match_found = false;
       } else {
         --opt_steps_left;
@@ -397,13 +376,14 @@ uint64_t bpm_compute_edit_distance_all(
     }
     // Quick abandon
     if (min_score==ALIGN_DISTANCE_INF && current_score+pattern_left[top_level] > text_left+max_distance) {
-      // Quick abandon, it doesn't match (bounded by best case scenario)
       PROF_INC_COUNTER(GP_BPM_ALL_QUICK_ABANDON);
-      break;
+      break; // Quick abandon, it doesn't match (bounded by best case scenario)
     }
   }
   if (match_found) {
-    BPM_ADD_FILTERING_REGION(text_trace_offset,begin_position,end_position,min_score_column,min_score,num_matches_found);
+    filtering_region_add(filtering_regions,text_trace_offset,
+        begin_position,end_position,min_score,min_score_column);
+    ++num_matches_found; // Increment the number of matches found
   }
   PROF_INC_COUNTER(GP_BPM_ALL_MATCHES_FOUND);
   PROF_STOP(GP_BPM_ALL);

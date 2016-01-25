@@ -29,16 +29,16 @@ typedef enum {
 } region_profile_strategy_t;
 
 /*
- * Region Partition Fixed
- */
-void approximate_search_region_partition_fixed(approximate_search_t* const search);
-
-/*
  * Region Profile Adaptive
  */
 void approximate_search_region_profile_adaptive(
     approximate_search_t* const search,const region_profile_strategy_t strategy,
     mm_stack_t* const mm_stack);
+
+/*
+ * Region Partition Fixed
+ */
+void approximate_search_region_partition_fixed(approximate_search_t* const search);
 
 /*
  * Buffered Copy/Retrieve

@@ -22,6 +22,7 @@ paired_matches_t* paired_matches_new() {
   // Alloc
   paired_matches_t* const paired_matches = mm_alloc(paired_matches_t);
   // State
+  paired_matches->paired_matches_class = paired_matches_class_unmapped;
   paired_matches->max_complete_stratum = ALL;
   // Text Collection Buffer
   paired_matches->text_collection = NULL;
@@ -42,14 +43,17 @@ void paired_matches_configure(paired_matches_t* const paired_matches,text_collec
   // Text Collection Buffer
   paired_matches->text_collection = text_collection;
 }
-void paired_matches_clear(paired_matches_t* const paired_matches) {
+void paired_matches_clear(paired_matches_t* const paired_matches,const bool clear_matches) {
   // State
+  paired_matches->paired_matches_class = paired_matches_class_unmapped;
   paired_matches->max_complete_stratum = ALL;
   // Matches Counters
   matches_counters_clear(paired_matches->counters);
   // Single-End Matches
-  matches_clear(paired_matches->matches_end1);
-  matches_clear(paired_matches->matches_end2);
+  if (clear_matches) {
+    matches_clear(paired_matches->matches_end1);
+    matches_clear(paired_matches->matches_end2);
+  }
   // Paired-End Matches
   vector_clear(paired_matches->paired_maps);
   vector_clear(paired_matches->discordant_paired_maps);
@@ -90,10 +94,6 @@ uint64_t paired_matches_get_first_stratum_matches(paired_matches_t* const paired
   const uint64_t min_distance = matches_metrics_get_min_distance(&paired_matches->metrics);
   return (min_distance==UINT32_MAX) ? 0 : paired_matches_counters_get_count(paired_matches,min_distance);
 }
-uint64_t paired_matches_get_subdominant_stratum_matches(paired_matches_t* const paired_matches) {
-  const uint64_t first_stratum_matches = paired_matches_get_first_stratum_matches(paired_matches);
-  return paired_matches_counters_get_total_count(paired_matches) - first_stratum_matches;
-}
 match_trace_t* paired_map_get_match_end1(
     paired_matches_t* const paired_matches,const paired_map_t* const paired_map) {
   vector_t* const matches_end1 = paired_matches->matches_end1->position_matches;
@@ -122,7 +122,7 @@ void paired_matches_add(
       vector_alloc_new(paired_matches->paired_maps,paired_map_t,paired_map);
       matches_counters_add(paired_matches->counters,pair_distance,1); // Update counters
       paired_map->pair_relation = pair_relation_concordant;
-      matches_metrics_pe_update(&paired_matches->metrics,
+      paired_matches_metrics_update(&paired_matches->metrics,
           pair_distance,pair_edit_distance,pair_swg_score,template_length_sigma);
       break;
     case pair_relation_discordant:
@@ -142,6 +142,9 @@ void paired_matches_add(
   paired_map->pair_layout = pair_layout;
   paired_map->template_length = template_length;
   paired_map->template_length_sigma = template_length_sigma;
+  paired_map->index_position = MIN(
+      match_trace_end1->match_alignment.match_position,
+      match_trace_end2->match_alignment.match_position);
   paired_map->distance = pair_distance;
   paired_map->edit_distance = pair_edit_distance;
   paired_map->swg_score = pair_swg_score;
@@ -376,7 +379,7 @@ void paired_matches_find_discordant_pairs(
         concordant_map[dn] = *discordant_map;
         // Update counters
         matches_counters_add(paired_matches->counters,discordant_map->distance,1);
-        matches_metrics_pe_update(&paired_matches->metrics,discordant_map->distance,
+        paired_matches_metrics_update(&paired_matches->metrics,discordant_map->distance,
             discordant_map->edit_distance,discordant_map->swg_score,discordant_map->template_length_sigma);
       }
       // Add to used
@@ -410,8 +413,6 @@ void paired_matches_filter_by_mapq(
 int paired_matches_cmp_distance(const paired_map_t* const a,const paired_map_t* const b) {
   // Compare relation (concordant first)
   if (a->pair_relation != b->pair_relation) return (b->pair_relation==pair_relation_concordant) ? 1 : -1;
-  // Compare layout (separated first)
-  if (a->pair_layout != b->pair_layout) return (int)a->pair_relation - (int)b->pair_relation;
   // Compare distance
   const int distance_diff = (int)a->distance - (int)b->distance;
   if (distance_diff) return distance_diff;
@@ -421,9 +422,13 @@ int paired_matches_cmp_distance(const paired_map_t* const a,const paired_map_t* 
   // Compare Edit-distance
   const int distance_edit = (int)a->edit_distance - (int)b->edit_distance;
   if (distance_edit) return distance_edit;
+  // Compare layout (separated first) NOTE:: Used to be after cmp-relation (moved here to preserve metrics consistency)
+  if (a->pair_layout != b->pair_layout) return (int)a->pair_relation - (int)b->pair_relation;
   // Compare template-length-sigmas
   const int template_length_sigmas_diff = (int)a->template_length_sigma - (int)b->template_length_sigma;
-  return template_length_sigmas_diff;
+  if (template_length_sigmas_diff) return template_length_sigmas_diff;
+  // Untie using position (helps to stabilize & cmp results)
+  return (int)a->index_position - (int)b->index_position;
 }
 void paired_matches_sort_by_distance(paired_matches_t* const paired_matches) {
   // Sort global matches (match_trace_t) wrt distance
@@ -461,7 +466,7 @@ void paired_matches_print(FILE* const stream,paired_matches_t* const paired_matc
   tab_global_dec();
   tab_fprintf(stream,"=> Metrics.PE\n");
   tab_global_inc();
-  matches_metrics_print(stream,&paired_matches->metrics,true);
+  matches_metrics_print(stream,&paired_matches->metrics);
   tab_global_dec();
   tab_global_dec();
 }

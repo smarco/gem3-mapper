@@ -11,6 +11,7 @@
 
 #include "essentials.h"
 #include "approximate_search.h"
+#include "matches_predictors.h"
 
 /*
  * Search Limits

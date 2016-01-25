@@ -29,7 +29,7 @@ void archive_select_configure_pe(archive_search_t* const archive_search) {
   select_parameters_t* const select_parameters_align = &search_parameters->select_parameters_align;
   select_parameters_align->min_reported_strata = 0;
   select_parameters_align->min_reported_matches = 1;
-  select_parameters_align->max_reported_matches = 100;
+  select_parameters_align->max_reported_matches = 5;
 }
 /*
  * Realigning Matches

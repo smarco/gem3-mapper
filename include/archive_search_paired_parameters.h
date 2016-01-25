@@ -34,6 +34,8 @@ typedef enum {
 } pair_relation_t;
 typedef struct {
   bool paired_end_search;
+  bool paired_end_extension_shortcut;
+  bool paired_end_extension_recovery;
   pair_discordant_search_t pair_discordant_search;
   /* Pair Relation Allowed {concordant,discordant,invalid} */
   pair_relation_t pair_orientation[4];
@@ -42,6 +44,8 @@ typedef struct {
   /* Template length constraints */
   uint64_t min_template_length;
   uint64_t max_template_length;
+  uint64_t min_initial_template_estimation;
+  uint64_t max_initial_template_estimation;
 } search_paired_parameters_t;
 
 /*

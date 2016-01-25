@@ -12,8 +12,9 @@
 #include "essentials.h"
 #include "align_swg.h"
 #include "matches.h"
-#include "paired_matches.h"
+#include "matches_predictors.h"
 #include "matches_classify.h"
+#include "paired_matches.h"
 
 /*
  * Classify logit-coefficients
@@ -30,12 +31,14 @@ typedef struct {
   double coeff_subdominant_swg_score_norm;
   // Search Scope
   double coeff_first_stratum_matches;
-  double coeff_subdominant_stratum_matches;
-  double coeff_mcs;
+  double coeff_mcs_end1;
+  double coeff_mcs_end2;
+  double coeff_accepted_candidates_end1;
+  double coeff_accepted_candidates_end2;
+  // Mappability
   double coeff_max_region_length_norm;
-  // Subdominant candidates
-  double coeff_subdominant_candidates_end1;
-  double coeff_subdominant_candidates_end2;
+  double coeff_mappability_p;
+  double coeff_mappability_2p;
   // PE specific
   double coeff_first_map_template_size_sigma;
   double coeff_subdominant_template_size_sigma;
@@ -48,6 +51,13 @@ typedef struct {
   matches_classify_logit_coeff_t mmaps_logit_coeff;
   matches_classify_logit_coeff_t ties_logit_coeff;
 } matches_classify_logit_model_t;
+
+/*
+ * Compute Probabilities
+ */
+double matches_classify_logit(
+    const matches_predictors_t* const predictors,
+    const matches_classify_logit_coeff_t* const logit_coeff);
 
 /*
  * Matches Classify Probabilities (using Logistic Regression)

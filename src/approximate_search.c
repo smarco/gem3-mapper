@@ -65,9 +65,15 @@ void approximate_search_reset(approximate_search_t* const search) {
   search->max_complete_error = MIN(max_complete_error,search->pattern.max_effective_filtering_error);
   search->max_complete_stratum = ALL;
   // Prepare region profile
+  const uint64_t key_length = search->pattern.key_length;
   if (search->max_complete_error > 0) {
-    region_profile_new(&search->region_profile,search->pattern.key_length,search->mm_stack);
+    region_profile_new(&search->region_profile,key_length,search->mm_stack);
   }
+  // Reset metrics
+  const double proper_length = fm_index_get_proper_length(search->archive->fm_index);
+  const search_parameters_t* const search_parameters = search->as_parameters->search_parameters;
+  const int32_t swg_match_score = search_parameters->swg_penalties.generic_match_score;
+  approximate_search_metrics_init(&search->metrics,proper_length,key_length,swg_match_score);
 }
 void approximate_search_destroy(approximate_search_t* const search) {
   /* NOP */

@@ -80,9 +80,9 @@ void kmer_counting_compile(
   kmer_counting->pattern_length = pattern_length;
   kmer_counting->max_error = max_error;
   // Count kmers in pattern
-  uint64_t pos, kmer_idx, acc;
+  uint64_t pos=0, kmer_idx=0, acc=0;
   // Compile all k-mers
-  for (pos=0;pos<pattern_length;++pos) {
+  for (;pos<pattern_length;++pos) {
     const uint8_t enc_char = pattern[pos];
     if (!is_dna_canonical_encoded(enc_char)) {
       acc=0; kmer_idx=0; // Reset

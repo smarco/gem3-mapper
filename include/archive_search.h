@@ -41,7 +41,6 @@ typedef struct {
   bool pair_searched;                        // Paired search performed
   bool pair_extended;                        // Paired extension performed
   bool pair_extended_shortcut;               // Paired extension performed (to shortcut)
-  matches_class_t end_class;
   /* Sequence */
   sequence_t sequence;                       // Input
   sequence_t rc_sequence;                    // Generated

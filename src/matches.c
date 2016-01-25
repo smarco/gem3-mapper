@@ -18,12 +18,25 @@
 #define MATCHES_INIT_CIGAR_OPS        5000
 
 /*
+ * Matches Classes
+ */
+const char* matches_class_label[] =
+{
+    [0] = "unmapped",
+    [1] = "tie-d0",
+    [2] = "tie-d1",
+    [3] = "mmap",
+    [4] = "unique"
+};
+
+/*
  * Setup
  */
 matches_t* matches_new() {
   // Allocate handler
   matches_t* const matches = mm_alloc(matches_t);
   // Search-matches state
+  matches->matches_class = matches_class_unmapped;
   matches->max_complete_stratum = ALL;
   // Matches Counters
   matches->counters = matches_counters_new();
@@ -45,6 +58,7 @@ void matches_configure(matches_t* const matches,text_collection_t* const text_co
   matches->text_collection = text_collection;
 }
 void matches_clear(matches_t* const matches) {
+  matches->matches_class = matches_class_unmapped;
   matches->max_complete_stratum = ALL;
   matches_counters_clear(matches->counters);
   matches_metrics_init(&matches->metrics);
@@ -89,6 +103,12 @@ uint64_t matches_get_first_stratum_matches(matches_t* const matches) {
 uint64_t matches_get_subdominant_stratum_matches(matches_t* const matches) {
   const uint64_t first_stratum_matches = matches_get_first_stratum_matches(matches);
   return matches_counters_get_total_count(matches->counters) - first_stratum_matches;
+}
+uint8_t matches_get_primary_mapq(matches_t* const matches) {
+  const uint64_t num_matches = matches_get_num_match_traces(matches);
+  if (num_matches == 0) return 0;
+  const match_trace_t* match = matches_get_match_trace_buffer(matches);
+  return match->mapq_score;
 }
 /*
  * Index
@@ -362,16 +382,16 @@ void matches_add_match(
       matches_recompute_metrics(matches);
       // Set replaced
       *match_replaced = true;
+      // Preserve rank consistency
+      if (preserve_rank) {
+        *match_trace_added = matches_sort_preserve_rank_consistency(matches,
+            select_parameters,alignment_model,*(dup_match_trace->match_trace_offset));
+      } else {
+        *match_trace_added = dup_match_trace;
+      }
     } else {
       // Set not-replaced
       *match_replaced = false;
-    }
-    // Preserve rank consistency
-    if (preserve_rank) {
-      *match_trace_added = matches_sort_preserve_rank_consistency(matches,
-          select_parameters,alignment_model,*(dup_match_trace->match_trace_offset));
-    } else {
-      *match_trace_added = dup_match_trace;
     }
     // Set not-added (maybe replaced...)
     *match_added = false;
@@ -437,7 +457,10 @@ int match_trace_cmp_distance(const match_trace_t* const a,const match_trace_t* c
   if (distance_diff) return distance_diff;
   const int distance_swg = (int)b->swg_score - (int)a->swg_score;
   if (distance_swg) return distance_swg;
-  return (int)a->edit_distance - (int)b->edit_distance;
+  const int distance_edit = (int)a->edit_distance - (int)b->edit_distance;
+  if (distance_edit) return distance_edit;
+  // Untie using position (helps to stabilize & cmp results)
+  return (int)a->match_alignment.match_position - (int)b->match_alignment.match_position;
 }
 void matches_sort_by_distance(matches_t* const matches) {
   qsort(vector_get_mem(matches->position_matches,match_trace_t),
@@ -501,8 +524,7 @@ void matches_filter_by_mapq(matches_t* const matches,const uint8_t mapq_threshol
 void matches_print(FILE* const stream,matches_t* const matches) {
   tab_fprintf(stream,"[GEM]>Matches\n");
   tab_global_inc();
-  const matches_class_t matches_class = matches_classify(matches);
-  tab_fprintf(stream,"=> Class %s\n",matches_class_label[matches_class]);
+  tab_fprintf(stream,"=> Class %s\n",matches_class_label[matches->matches_class]);
   tab_fprintf(stream,"=> Counters\t");
   matches_counters_print(stream,matches->counters,matches->max_complete_stratum);
   fprintf(stream,"\n");
@@ -512,7 +534,7 @@ void matches_print(FILE* const stream,matches_t* const matches) {
   tab_fprintf(stream,"  => Positions.Hashed.End %lu\n",ihash_get_num_elements(matches->end_pos_matches));
   tab_fprintf(stream,"=> Metrics.SE\n");
   tab_global_inc();
-  matches_metrics_print(stream,&matches->metrics,false);
+  matches_metrics_print(stream,&matches->metrics);
   tab_global_dec();
   tab_global_dec();
 }

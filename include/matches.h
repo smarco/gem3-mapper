@@ -64,10 +64,23 @@ typedef struct {
 } match_trace_t;
 
 /*
+ * Matches Classes
+ */
+typedef enum {
+  matches_class_unmapped = 0,
+  matches_class_tie_d0 = 1,
+  matches_class_tie_d1 = 2,
+  matches_class_mmap = 3,
+  matches_class_unique = 4,
+} matches_class_t;
+extern const char* matches_class_label[5];
+
+/*
  * Matches
  */
 typedef struct {
-  /* Search-matches state */
+  /* State */
+  matches_class_t matches_class;
   uint64_t max_complete_stratum;
   /* Text Collection Buffer */
   text_collection_t* text_collection;  // Stores text-traces (candidates/matches/regions/...)
@@ -100,6 +113,7 @@ bool matches_is_mapped(const matches_t* const matches);
 void matches_recompute_metrics(matches_t* const matches);
 uint64_t matches_get_first_stratum_matches(matches_t* const matches);
 uint64_t matches_get_subdominant_stratum_matches(matches_t* const matches);
+uint8_t matches_get_primary_mapq(matches_t* const matches);
 
 /*
  * Index

@@ -197,8 +197,8 @@ void approximate_search_generate_inexact_candidates(
       filtering_candidates_verify_candidates(filtering_candidates,search->archive,
           search->text_collection,pattern,as_parameters,matches,mm_stack);
       filtering_candidates_align_candidates(
-          filtering_candidates,search->archive->text,search->archive->locator,
-          search->text_collection,pattern,search->emulated_rc_search,as_parameters,false,matches,mm_stack);
+          filtering_candidates,search->archive->text,search->archive->locator,search->text_collection,
+          pattern,search->emulated_rc_search,as_parameters,false,false,matches,mm_stack);
       asearch_control_adjust_max_differences_using_strata(search,matches);
       PROFILE_STOP(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING,PROFILE_LEVEL);
       PROFILE_CONTINUE(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);

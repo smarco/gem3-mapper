@@ -12,6 +12,7 @@
 #include "essentials.h"
 #include "archive_search.h"
 #include "paired_matches.h"
+#include "matches_predictors.h"
 
 /*
  * Memory Injection (Support Data Structures)
@@ -26,7 +27,9 @@ void archive_search_pe_inject_mm(
  */
 bool archive_search_pe_is_extension_feasible(archive_search_t* const archive_search);
 bool archive_search_pe_use_shortcut_extension(archive_search_t* const archive_search,matches_t* const matches);
-bool archive_search_pe_use_recovery_extension(archive_search_t* const archive_search,matches_t* const matches);
+bool archive_search_pe_use_recovery_extension(
+    archive_search_t* const archive_search_extended,
+    matches_t* const matches_extended,matches_t* const matches_candidate);
 
 /*
  * Archive Search PE Continue Search

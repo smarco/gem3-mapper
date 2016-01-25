@@ -144,7 +144,6 @@ void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,const bool pai
   // Join all threads
   for (i=0;i<num_threads;++i) {
     gem_cond_fatal_error__perror(pthread_join(*(mapper_search[i].thread_data),0),SYS_THREAD_JOIN);
-    search_pipeline_delete(mapper_search[i].search_pipeline);
     mm_free(mapper_search[i].thread_data);
   }
   // Clean up

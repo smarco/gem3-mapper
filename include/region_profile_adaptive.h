@@ -36,6 +36,11 @@ typedef struct {
   rank_mquery_t rank_mquery;
   uint64_t lo;
   uint64_t hi;
+  // Mappabiliy
+  double mappability_p_acc;
+  uint64_t mappability_p_samples;
+  double mappability_2p_acc;
+  uint64_t mappability_2p_samples;
 } region_profile_generator_t;
 
 /*

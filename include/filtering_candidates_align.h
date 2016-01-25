@@ -19,8 +19,8 @@ uint64_t filtering_candidates_align_accepted_regions(
     archive_text_t* const archive_text,const locator_t* const locator,
     text_collection_t* const text_collection,pattern_t* const pattern,
     const bool emulated_rc_search,const as_parameters_t* const as_parameters,
-    const bool approximated_distance,matches_t* const matches,
-    mm_stack_t* const mm_stack);
+    const bool approximated_distance,const bool align_always,
+    matches_t* const matches,mm_stack_t* const mm_stack);
 
 /*
  * Align Candidates
@@ -30,7 +30,8 @@ uint64_t filtering_candidates_align_candidates(
     archive_text_t* const archive_text,const locator_t* const locator,
     text_collection_t* const text_collection,pattern_t* const pattern,
     const bool emulated_rc_search,const as_parameters_t* const as_parameters,
-    const bool approximated_distance,matches_t* const matches,mm_stack_t* const mm_stack);
+    const bool approximated_distance,const bool align_always,
+    matches_t* const matches,mm_stack_t* const mm_stack);
 uint64_t filtering_candidates_align_unbounded(
     filtering_candidates_t* const filtering_candidates,
     archive_text_t* const archive_text,const locator_t* const locator,

@@ -143,6 +143,7 @@ typedef struct {
   buffered_input_file_t* buffered_fasta_input;
   buffered_input_file_t* buffered_fasta_input_end1;
   buffered_input_file_t* buffered_fasta_input_end2;
+  buffered_output_file_t* buffered_output_file;
   /* Mapper parameters */
   mapper_parameters_t* mapper_parameters;
 	/* Per thread stats report structures */
@@ -175,13 +176,17 @@ void mapper_parameters_print(FILE* const stream,mapper_parameters_t* const param
 void mapper_load_index(mapper_parameters_t* const parameters);
 
 /*
- * Input
+ * Input (Low-level)
  */
+void mapper_SE_prepare_io_buffers(
+    const mapper_parameters_t* const parameters,const uint64_t input_buffer_lines,
+    buffered_input_file_t** const buffered_fasta_input,
+    buffered_output_file_t** const buffered_output_file);
 void mapper_PE_prepare_io_buffers(
     const mapper_parameters_t* const parameters,const uint64_t input_buffer_lines,
     buffered_input_file_t** const buffered_fasta_input_end1,
     buffered_input_file_t** const buffered_fasta_input_end2,
-    buffered_output_file_t* const buffered_output_file);
+    buffered_output_file_t** const buffered_output_file);
 uint64_t mapper_PE_reload_buffers(
     mapper_parameters_t* const parameters,
     buffered_input_file_t* const buffered_fasta_input_end1,
@@ -192,6 +197,10 @@ error_code_t mapper_PE_parse_paired_sequences(
     buffered_input_file_t* const buffered_fasta_input_end2,
     archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2);
+
+/*
+ * Input (High-level)
+ */
 error_code_t mapper_SE_read_single_sequence(mapper_search_t* const mapper_search);
 error_code_t mapper_PE_read_paired_sequences(mapper_search_t* const mapper_search);
 

@@ -62,6 +62,14 @@ typedef struct {
 } verified_region_t;
 
 /*
+ * Accessors
+ */
+void filtering_region_add(
+    vector_t* const filtering_regions,const uint64_t text_trace_offset,
+    const uint64_t begin_position,const uint64_t end_position,
+    const uint64_t align_distance,const uint64_t align_match_end_column);
+
+/*
  * Sorting
  */
 void filtering_region_sort_regions_matching(const filtering_region_t* const filtering_region);

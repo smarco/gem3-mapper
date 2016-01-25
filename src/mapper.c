@@ -218,22 +218,30 @@ void mapper_load_index(mapper_parameters_t* const parameters) {
   PROFILE_STOP(GP_MAPPER_LOAD_INDEX,PROFILE_LEVEL);
 }
 /*
- * Input
+ * Input (Low-level)
  */
+void mapper_SE_prepare_io_buffers(
+    const mapper_parameters_t* const parameters,const uint64_t input_buffer_lines,
+    buffered_input_file_t** const buffered_fasta_input,
+    buffered_output_file_t** const buffered_output_file) {
+  *buffered_fasta_input = buffered_input_file_new(parameters->input_file,input_buffer_lines);
+  *buffered_output_file = buffered_output_file_new(parameters->output_file);
+  buffered_input_file_attach_buffered_output(*buffered_fasta_input,*buffered_output_file);
+}
 void mapper_PE_prepare_io_buffers(
     const mapper_parameters_t* const parameters,const uint64_t input_buffer_lines,
     buffered_input_file_t** const buffered_fasta_input_end1,
     buffered_input_file_t** const buffered_fasta_input_end2,
-    buffered_output_file_t* const buffered_output_file) {
+    buffered_output_file_t** const buffered_output_file) {
   if (parameters->io.separated_input_files) {
     *buffered_fasta_input_end1 = buffered_input_file_new(parameters->input_file_end1,input_buffer_lines);
     *buffered_fasta_input_end2 = buffered_input_file_new(parameters->input_file_end2,input_buffer_lines);
-    buffered_input_file_attach_buffered_output(*buffered_fasta_input_end1,buffered_output_file);
   } else {
     *buffered_fasta_input_end1 = buffered_input_file_new(parameters->input_file,parameters->io.input_buffer_lines);
     *buffered_fasta_input_end2 = *buffered_fasta_input_end1;
-    buffered_input_file_attach_buffered_output(*buffered_fasta_input_end1,buffered_output_file);
   }
+  *buffered_output_file = buffered_output_file_new(parameters->output_file);
+  buffered_input_file_attach_buffered_output(*buffered_fasta_input_end1,*buffered_output_file);
 }
 uint64_t mapper_PE_reload_buffers(
     mapper_parameters_t* const parameters,
@@ -295,6 +303,9 @@ error_code_t mapper_PE_parse_paired_sequences(
   PROF_ADD_COUNTER(GP_MAPPER_NUM_READS,2);
   return INPUT_STATUS_OK;
 }
+/*
+ * Input (High-level)
+ */
 error_code_t mapper_SE_read_single_sequence(mapper_search_t* const mapper_search) {
   const mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
   const error_code_t error_code = input_fasta_parse_sequence(
@@ -368,9 +379,8 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
 
   // Create new buffered reader/writer
   mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
-  mapper_search->buffered_fasta_input = buffered_input_file_new(parameters->input_file,parameters->io.input_buffer_lines);
-  buffered_output_file_t* const buffered_output_file = buffered_output_file_new(parameters->output_file);
-  buffered_input_file_attach_buffered_output(mapper_search->buffered_fasta_input,buffered_output_file);
+  mapper_SE_prepare_io_buffers(parameters,parameters->io.input_buffer_lines,
+      &mapper_search->buffered_fasta_input,&mapper_search->buffered_output_file);
 
   // Create an Archive-Search
   mm_search_t* const mm_search = mm_search_new(mm_pool_get_slab(mm_pool_32MB));
@@ -383,7 +393,7 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
   while (mapper_SE_read_single_sequence(mapper_search)) {
-//    if (gem_streq(mapper_search->archive_search->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000003964")) {
+//    if (gem_streq(mapper_search->archive_search->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000004727")) {
 //      printf("HERE\n");
 //    }
 
@@ -391,7 +401,7 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
     archive_search_se(mapper_search->archive_search,matches);
 
     // Output matches
-    mapper_SE_output_matches(parameters,buffered_output_file,
+    mapper_SE_output_matches(parameters,mapper_search->buffered_output_file,
         mapper_search->archive_search,matches,mapper_search->mapping_stats);
 
     // Update processed
@@ -409,7 +419,7 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
 
   // Clean up
   buffered_input_file_close(mapper_search->buffered_fasta_input);
-  buffered_output_file_close(buffered_output_file);
+  buffered_output_file_close(mapper_search->buffered_output_file);
   archive_search_delete(mapper_search->archive_search);
   matches_delete(matches);
   mm_search_delete(mm_search);
@@ -425,13 +435,16 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
 
   // Create new buffered reader/writer
   mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
-  buffered_output_file_t* const buffered_output_file = buffered_output_file_new(parameters->output_file);
-  mapper_PE_prepare_io_buffers(parameters,parameters->io.input_buffer_lines,
-      &mapper_search->buffered_fasta_input_end1,&mapper_search->buffered_fasta_input_end2,buffered_output_file);
+  mapper_PE_prepare_io_buffers(
+      parameters,parameters->io.input_buffer_lines,&mapper_search->buffered_fasta_input_end1,
+      &mapper_search->buffered_fasta_input_end2,&mapper_search->buffered_output_file);
 
   // Create an Archive-Search
   mm_search_t* const mm_search = mm_search_new(mm_pool_get_slab(mm_pool_32MB));
   search_parameters_t* const search_parameters = &mapper_search->mapper_parameters->search_parameters;
+  mapper_stats_template_init(mm_search->mapper_stats,
+      search_parameters->search_paired_parameters.min_initial_template_estimation,
+      search_parameters->search_paired_parameters.max_initial_template_estimation);
   archive_search_pe_new(parameters->archive,search_parameters,
       &mapper_search->archive_search_end1,&mapper_search->archive_search_end2);
   archive_search_pe_inject_mm(mapper_search->archive_search_end1,mapper_search->archive_search_end2,mm_search);
@@ -444,7 +457,7 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
   paired_matches_t* const paired_matches = mapper_search->paired_matches;
   uint64_t reads_processed = 0;
   while (mapper_PE_read_paired_sequences(mapper_search)) {
-//    if (gem_streq(mapper_search->archive_search_end1->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000000444")) {
+//    if (gem_streq(mapper_search->archive_search_end1->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000216715")) {
 //      printf("HERE\n");
 //    }
 
@@ -452,7 +465,7 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
     archive_search_pe(archive_search_end1,archive_search_end2,paired_matches);
 
     // Output matches
-    mapper_PE_output_matches(parameters,buffered_output_file,
+    mapper_PE_output_matches(parameters,mapper_search->buffered_output_file,
         archive_search_end1,archive_search_end2,paired_matches,mapper_search->mapping_stats);
 
     // Update processed
@@ -463,7 +476,7 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
 
     // Clear
     mm_search_clear(mm_search);
-    paired_matches_clear(paired_matches);
+    paired_matches_clear(paired_matches,true);
   }
   // Update processed
   ticker_update_mutex(mapper_search->ticker,reads_processed);
@@ -471,7 +484,7 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
   // Clean up
   buffered_input_file_close(mapper_search->buffered_fasta_input_end1);
   if (parameters->io.separated_input_files) buffered_input_file_close(mapper_search->buffered_fasta_input_end2);
-  buffered_output_file_close(buffered_output_file);
+  buffered_output_file_close(mapper_search->buffered_output_file);
   archive_search_delete(mapper_search->archive_search_end1);
   archive_search_delete(mapper_search->archive_search_end2);
   paired_matches_delete(mapper_search->paired_matches);

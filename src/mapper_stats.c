@@ -45,6 +45,22 @@ void mapper_stats_delete(mapper_stats_t* const mapper_stats) {
 /*
  * Template Length
  */
+void mapper_stats_template_init(
+    mapper_stats_t* const search_stats,
+    const uint64_t template_length_min,const uint64_t template_length_max) {
+  if (template_length_min!=UINT64_MAX && template_length_max!=UINT64_MAX &&
+      template_length_min <= template_length_max) {
+    gem_counter_t* const tlength = &search_stats->unique_template_size;
+    tlength->samples = MAPPER_STATS_TEMPLATE_LENGTH_MIN_SAMPLES+1;
+    tlength->min = template_length_min;
+    tlength->max = template_length_max;
+    tlength->m_oldM = ((double)(template_length_min+template_length_max))/2.0;
+    tlength->m_newM = tlength->m_oldM;
+    tlength->m_oldS = tlength->m_oldM*tlength->m_oldM;
+    tlength->m_newS = tlength->m_oldS;
+    tlength->total = (uint64_t)((double)tlength->samples * tlength->m_oldM);
+  }
+}
 void mapper_stats_template_length_sample(
     mapper_stats_t* const search_stats,const uint64_t template_length) {
   COUNTER_ADD(&search_stats->unique_template_size,template_length);

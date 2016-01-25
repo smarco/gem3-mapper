@@ -48,7 +48,7 @@ void approximate_search_verify_candidates(approximate_search_t* const search,mat
       search->text_collection,pattern,actual_parameters,matches,search->mm_stack);
   filtering_candidates_align_candidates(
       filtering_candidates,search->archive->text,search->archive->locator,search->text_collection,
-      pattern,search->emulated_rc_search,actual_parameters,false,matches,search->mm_stack);
+      pattern,search->emulated_rc_search,actual_parameters,false,false,matches,search->mm_stack);
   search->processing_state = asearch_processing_state_candidates_verified;
   // Adjust max-differences
   asearch_control_adjust_max_differences_using_strata(search,matches);
@@ -99,7 +99,7 @@ void approximate_search_verify_candidates_buffered_retrieve(
     filtering_candidates_align_candidates(
         search->filtering_candidates,search->archive->text,search->archive->locator,
         search->text_collection,&search->pattern,search->emulated_rc_search,
-        search->as_parameters,true,matches,search->mm_stack);
+        search->as_parameters,true,false,matches,search->mm_stack);
     PROFILE_STOP(GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS,PROFILE_LEVEL);
   }
   // Update state

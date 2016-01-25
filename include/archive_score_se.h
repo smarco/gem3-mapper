@@ -11,6 +11,7 @@
 
 #include "archive_search.h"
 #include "matches.h"
+#include "matches_predictors.h"
 
 /*
  * Scoring Utils
@@ -20,13 +21,6 @@ uint8_t archive_score_probability_to_mapq(
 uint8_t archive_score_probability_scale(
     const double probability,const double sum_probability,
     const uint8_t floor,const uint8_t ceil);
-
-/*
- * SE Score Categories
- */
-uint8_t archive_score_matches_se_default_ties(matches_predictors_t* const predictors);
-uint8_t archive_score_matches_se_default_mmap(matches_predictors_t* const predictors);
-uint8_t archive_score_matches_se_default_unique(matches_predictors_t* const predictors);
 
 /*
  * Archive Scoring SE

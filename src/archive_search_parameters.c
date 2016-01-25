@@ -134,7 +134,8 @@ void search_parameters_init(search_parameters_t* const search_parameters) {
   // Check
   search_parameters->check_type = archive_check_nothing;
   // MAPQ Score
-  search_parameters->mapq_model = mapq_model_gem;
+  search_parameters->mapq_model_se = mapq_model_gem;
+  search_parameters->mapq_model_pe = mapq_model_gem;
   search_parameters->mapq_threshold = 0;
 }
 void search_configure_mapping_strategy(

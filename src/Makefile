@@ -44,10 +44,10 @@ MODULES+=fm_index fm_index_search fm_index_query \
 # GEM Matches
 MODULES+=matches matches_cigar \
          matches_counters matches_metrics \
-         matches_classify matches_classify_logit \
-         matches_classify_logit_models
+         matches_predictors matches_classify \
+         matches_classify_logit matches_classify_logit_models
 # GEM Paired-Matches
-MODULES+=paired_matches paired_map paired_matches_classify
+MODULES+=paired_matches paired_map
 # GEM Pattern Alignment
 MODULES+=pattern align \
          align_bpm align_bpm_pattern \
@@ -77,7 +77,8 @@ MODULES+=approximate_search approximate_search_filtering_adaptive \
          approximate_search_filtering_complete approximate_search_neighborhood \
          approximate_search_filtering_stages approximate_search_control \
          approximate_search_region_profile approximate_search_generate_candidates \
-         approximate_search_verify_candidates approximate_search_stepwise
+         approximate_search_verify_candidates approximate_search_stepwise \
+         approximate_search_metrics
 # GEM Approximate Search (Neighborhood Search)
 MODULES+=nsearch nsearch_partition \
          nsearch_schedule nsearch_hamming \

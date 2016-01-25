@@ -255,7 +255,7 @@ bool search_stage_verify_candidates_retrieve_pe_search(
   success = search_stage_verify_candidates_retrieve_next(search_stage_vc,&current_buffer,archive_search_end1);
   if (!success) return false;
   // Clear & Inject Support Data Structures (End/1)
-  paired_matches_clear(search_stage_vc->paired_matches); // Clear paired-matches
+  paired_matches_clear(search_stage_vc->paired_matches,true); // Clear paired-matches
   filtering_candidates_clear(&search_stage_vc->filtering_candidates_forward_end1);
   filtering_candidates_clear(&search_stage_vc->filtering_candidates_reverse_end1);
   text_collection_clear(&search_stage_vc->text_collection);

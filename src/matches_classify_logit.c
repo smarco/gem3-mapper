@@ -36,23 +36,29 @@ double matches_classify_logit(
        logit_coeff->coeff_subdominant_swg_score_norm *
       (double)predictors->subdominant_swg_score_norm
       +
-       logit_coeff->coeff_first_stratum_matches *
-      (double)predictors->first_stratum_matches
+      logit_coeff->coeff_first_stratum_matches *
+     (double)predictors->first_stratum_matches
       +
-       logit_coeff->coeff_subdominant_stratum_matches *
-      (double)predictors->subdominant_stratum_matches
+       logit_coeff->coeff_mcs_end1 *
+      (double)predictors->mcs_end1
       +
-       logit_coeff->coeff_mcs *
-      (double)predictors->mcs
+      logit_coeff->coeff_mcs_end2 *
+     (double)predictors->mcs_end2
+      +
+       logit_coeff->coeff_accepted_candidates_end1 *
+      (double)predictors->accepted_candidates_end1
+      +
+       logit_coeff->coeff_accepted_candidates_end2 *
+      (double)predictors->accepted_candidates_end2
       +
        logit_coeff->coeff_max_region_length_norm *
       (double)predictors->max_region_length_norm
       +
-       logit_coeff->coeff_subdominant_candidates_end1 *
-      (double)predictors->subdominant_candidates_end1
+       logit_coeff->coeff_mappability_p *
+      (double)predictors->mappability_p
       +
-       logit_coeff->coeff_subdominant_candidates_end2 *
-      (double)predictors->subdominant_candidates_end2
+       logit_coeff->coeff_mappability_2p *
+      (double)predictors->mappability_2p
       +
        logit_coeff->coeff_first_map_template_size_sigma *
       (double)predictors->first_map_template_size_sigma

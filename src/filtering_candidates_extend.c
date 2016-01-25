@@ -85,7 +85,8 @@ uint64_t filtering_candidates_extend_match(
   uint64_t candidates_found = filtering_region_verify_extension(
       filtering_candidates->filtering_regions,filtering_candidates->verified_regions,
       text_collection,text_trace_offset,candidate_begin_position,search_parameters,candidate_pattern);
-  PROF_ADD_COUNTER(GP_FC_EXTEND_VERIFY_CANDIDATE_LENGTH,candidate_length);
+  PROF_ADD_COUNTER(GP_FC_EXTEND_VERIFY_CANDIDATES_LENGTH,candidate_length);
+  PROF_ADD_COUNTER(GP_FC_EXTEND_VERIFY_CANDIDATES_FOUND,candidates_found);
   PROFILE_STOP(GP_FC_EXTEND_VERIFY_CANDIDATE_REGIONS,PROFILE_LEVEL);
   if (candidates_found==0) { PROFILE_STOP(GP_FC_EXTEND_MATCH,PROFILE_LEVEL); return 0; }
   /*
@@ -97,7 +98,7 @@ uint64_t filtering_candidates_extend_match(
   // Align
   candidates_found = filtering_candidates_align_accepted_regions(filtering_candidates,
       archive_text,locator,text_collection,candidate_pattern,false,
-      candidate_actual_parameters,false,matches_candidate,mm_stack);
+      candidate_actual_parameters,false,true,matches_candidate,mm_stack);
   PROFILE_STOP(GP_FC_EXTEND_REALIGN_CANDIDATE_REGIONS,PROFILE_LEVEL);
   PROFILE_STOP(GP_FC_EXTEND_MATCH,PROFILE_LEVEL);
   // Return number of extended-matches found

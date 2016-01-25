@@ -89,38 +89,33 @@ void archive_score_matches_se_stratify(archive_search_t* const archive_search,ma
   const uint64_t num_matches = matches_get_num_match_traces(matches);
   uint64_t i;
   for (i=0;i<num_matches;++i) match[i].mapq_score = 0;
-  // Classify
-  double pr;
+  // Compute TP prob
+  const matches_class_t matches_class = matches->matches_class;
   matches_predictors_t predictors;
-  matches_class_t matches_class;
-  matches_class = matches_classify(matches);
   switch (matches_class) {
     case matches_class_unmapped:
-      return;
-    case matches_class_tie_indistinguishable:
+      break;
+    case matches_class_tie_d0:
       match[0].mapq_score = 2;
       break;
-    case matches_class_tie_swg_score:
-      match[0].mapq_score = 3;
-      break;
-    case matches_class_tie_edit_distance:
-      match[0].mapq_score = 4;
-      break;
-    case matches_class_tie_event_distance:
+    case matches_class_tie_d1: {
       archive_search_se_compute_predictors(archive_search,matches,&predictors);
-      pr = matches_classify_logit_ties(&predictors,&logit_model_single_end_default);
+      const double pr = matches_classify_logit_ties(&predictors,&logit_model_single_end_default);
       match[0].mapq_score = (pr >= 0.90) ? 80 + (uint8_t)((pr-0.90)*500.0) : 79;
       break;
-    case matches_class_mmap:
+    }
+    case matches_class_mmap: {
       archive_search_se_compute_predictors(archive_search,matches,&predictors);
-      pr = matches_classify_logit_mmaps(&predictors,&logit_model_single_end_default);
+      const double pr = matches_classify_logit_mmaps(&predictors,&logit_model_single_end_default);
       match[0].mapq_score = (pr >= 0.90) ? 140 + (uint8_t)((pr-0.90)*500.0) : 139;
       break;
-    case matches_class_unique:
+    }
+    case matches_class_unique: {
       archive_search_se_compute_predictors(archive_search,matches,&predictors);
-      pr = matches_classify_logit_unique(&predictors,&logit_model_single_end_default);
-      match[0].mapq_score = (pr >= 0.95) ? 200 + (uint8_t)((pr-0.95)*1000.0) : 199;
+      const double pr = matches_classify_logit_unique(&predictors,&logit_model_single_end_default);
+      match[0].mapq_score = (pr >= 0.90) ? 200 + (uint8_t)((pr-0.95)*1000.0) : 199;
       break;
+    }
     default:
       GEM_INVALID_CASE();
       break;
@@ -131,7 +126,8 @@ void archive_score_matches_se_default(archive_search_t* const archive_search,mat
    * Classify
    *   50-60   Unique
    *   30-49   MMaps
-   *    1-29   Ties (Distinguishable)
+   *    2-29   Ties (Distinguishable)
+   *       1   Low quality
    *       0   Uncertain & subdominant
    */
   // Score subdominant matches (MAPQ=0)
@@ -139,19 +135,14 @@ void archive_score_matches_se_default(archive_search_t* const archive_search,mat
   const uint64_t num_matches = matches_get_num_match_traces(matches);
   uint64_t i;
   for (i=0;i<num_matches;++i) match[i].mapq_score = 0;
-  // Compute class
+  // Compute TP prob
+  const matches_class_t matches_class = matches->matches_class;
   matches_predictors_t predictors;
-  matches_class_t matches_class;
-  matches_class = matches_classify(matches);
   switch (matches_class) {
     case matches_class_unmapped:
-      return;
-    case matches_class_tie_indistinguishable:
-    case matches_class_tie_swg_score:
-    case matches_class_tie_edit_distance:
-      match[0].mapq_score = 0;
+    case matches_class_tie_d0:
       break;
-    case matches_class_tie_event_distance:
+    case matches_class_tie_d1:
       archive_search_se_compute_predictors(archive_search,matches,&predictors);
       match[0].mapq_score = archive_score_matches_se_default_ties(&predictors);
       break;
@@ -167,6 +158,7 @@ void archive_score_matches_se_default(archive_search_t* const archive_search,mat
       GEM_INVALID_CASE();
       break;
   }
+  matches_metrics_set_mapq(&matches->metrics,match[0].mapq_score);
 }
 /*
  * Archive Scoring SE
@@ -179,11 +171,13 @@ void archive_score_matches_se(archive_search_t* const archive_search,matches_t* 
   if (search_parameters->alignment_model==alignment_model_none) return;
   // Sort by distance (whichever it's selected)
   matches_sort_by_distance(matches);
+  // Classify
+  matches->matches_class = matches_classify(matches);
   /*
    * Select scoring model
    */
   PROFILE_START(GP_ARCHIVE_SCORE_SE_MATCHES,PROFILE_LEVEL);
-  switch (search_parameters->mapq_model) {
+  switch (search_parameters->mapq_model_se) {
     case mapq_model_none: break;
     case mapq_model_classify:
       archive_score_matches_se_stratify(archive_search,matches);
@@ -195,12 +189,12 @@ void archive_score_matches_se(archive_search_t* const archive_search,matches_t* 
       // Score default
       archive_score_matches_se_default(archive_search,matches);
       // Compute predictors
-      match_trace_t* const match = matches_get_match_trace_buffer(matches);
       matches_predictors_t predictors;
       archive_search_se_compute_predictors(archive_search,matches,&predictors);
       // Dump predictors
-      matches_predictors_print(stdout,&predictors,
-          sequence_get_tag(&archive_search->sequence),match[0].mapq_score);
+      matches_predictors_se_print(
+          stdout,sequence_get_tag(&archive_search->sequence),
+          matches->matches_class,&predictors);
       break;
     }
     default:

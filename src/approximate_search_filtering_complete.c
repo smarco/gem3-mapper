@@ -57,8 +57,8 @@ void approximate_search_filtering_complete(approximate_search_t* const search,ma
       pattern,actual_parameters,matches,search->mm_stack);
   // Align candidates
   filtering_candidates_align_candidates(filtering_candidates,
-      search->archive->text,search->archive->locator,search->text_collection,
-      pattern,search->emulated_rc_search,actual_parameters,false,matches,search->mm_stack);
+      search->archive->text,search->archive->locator,search->text_collection,pattern,
+      search->emulated_rc_search,actual_parameters,false,false,matches,search->mm_stack);
   // Update MCS (maximum complete stratum)
   approximate_search_update_mcs(search,region_profile->errors_allowed + pattern->num_wildcards);
   // PROFILE_STOP(GP_AS_FILTERING_EXACT); // TODO

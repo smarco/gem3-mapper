@@ -327,7 +327,8 @@ bool input_text_parse_extended_bool(char* const argument) {
   } else {
     if (gem_streq(argument,"true") ||
         gem_streq(argument,"yes")  ||
-        gem_streq(argument,"allow")) {
+        gem_streq(argument,"allow") ||
+        gem_streq(argument,"enabled")) {
       return true;
     } else {
       return false;

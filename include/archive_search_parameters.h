@@ -117,7 +117,8 @@ typedef struct {
   /* Check */
   archive_check_type check_type;
   /* MAPQ Score */
-  mapq_model_t mapq_model;
+  mapq_model_t mapq_model_se;
+  mapq_model_t mapq_model_pe;
   uint8_t mapq_threshold;
 } search_parameters_t;
 

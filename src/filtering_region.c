@@ -37,6 +37,29 @@ const char* filtering_region_status_label[] =
 };
 
 /*
+ * Accessors
+ */
+void filtering_region_add(
+    vector_t* const filtering_regions,const uint64_t text_trace_offset,
+    const uint64_t begin_position,const uint64_t end_position,
+    const uint64_t align_distance,const uint64_t align_match_end_column) {
+  filtering_region_t* filtering_region;
+  vector_alloc_new(filtering_regions, filtering_region_t, filtering_region);
+  // State
+  filtering_region->status = filtering_region_accepted;
+  // Text-trace
+  filtering_region->text_trace_offset = text_trace_offset;
+  // Location
+  filtering_region->begin_position = begin_position;
+  filtering_region->end_position = end_position;
+  filtering_region->base_position_offset = 0;
+  // Regions Matching
+  match_scaffold_init(&filtering_region->match_scaffold);
+  // Alignment distance
+  filtering_region->align_distance = align_distance;
+  filtering_region->align_match_end_column = align_match_end_column;
+}
+/*
  * Sorting
  */
 int filtering_region_locator_cmp_position(

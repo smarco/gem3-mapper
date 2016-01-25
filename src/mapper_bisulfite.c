@@ -113,9 +113,9 @@ void* mapper_PE_bisulfite_thread(mapper_search_t* const mapper_search) {
 
   // Create new buffered reader/writer
   mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
-  buffered_output_file_t* const buffered_output_file = buffered_output_file_new(parameters->output_file);
-  mapper_PE_prepare_io_buffers(parameters,parameters->io.input_buffer_lines,
-      &mapper_search->buffered_fasta_input_end1,&mapper_search->buffered_fasta_input_end2,buffered_output_file);
+  mapper_PE_prepare_io_buffers(
+      parameters,parameters->io.input_buffer_lines,&mapper_search->buffered_fasta_input_end1,
+      &mapper_search->buffered_fasta_input_end2,&mapper_search->buffered_output_file);
 
   // Create an Archive-Search
   mm_search_t* const mm_search = mm_search_new(mm_pool_get_slab(mm_pool_32MB));
@@ -150,7 +150,8 @@ void* mapper_PE_bisulfite_thread(mapper_search_t* const mapper_search) {
     string_copy(seq_end2,&orig_end2);
 
     // Output matches
-    mapper_PE_output_matches(parameters,buffered_output_file,archive_search_end1,archive_search_end2,paired_matches,mapper_search->mapping_stats);
+    mapper_PE_output_matches(parameters,mapper_search->buffered_output_file,
+        archive_search_end1,archive_search_end2,paired_matches,mapper_search->mapping_stats);
 
     // Update processed
     if (++reads_processed == MAPPER_TICKER_STEP) {
@@ -160,7 +161,7 @@ void* mapper_PE_bisulfite_thread(mapper_search_t* const mapper_search) {
 
     // Clear
     mm_search_clear(mm_search);
-    paired_matches_clear(paired_matches);
+    paired_matches_clear(paired_matches,true);
   }
 
   // Update processed
@@ -171,7 +172,7 @@ void* mapper_PE_bisulfite_thread(mapper_search_t* const mapper_search) {
   string_destroy(&orig_end2);
   buffered_input_file_close(mapper_search->buffered_fasta_input_end1);
   if (parameters->io.separated_input_files) buffered_input_file_close(mapper_search->buffered_fasta_input_end2);
-  buffered_output_file_close(buffered_output_file);
+  buffered_output_file_close(mapper_search->buffered_output_file);
   archive_search_delete(mapper_search->archive_search_end1);
   archive_search_delete(mapper_search->archive_search_end2);
   paired_matches_delete(mapper_search->paired_matches);

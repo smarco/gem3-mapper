@@ -63,11 +63,27 @@ void mapper_profile_print_archive_search_pe(FILE* const stream) {
   tab_fprintf(stream,"        => TIME.Score.Matches                       ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SCORE_PE_MATCHES),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"  |> Archive.Extend.Candidates\n");
-  tab_fprintf(stream,"    --> Candidate.Regions.Length                    ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_EXTEND_VERIFY_CANDIDATE_LENGTH),NULL,"nt",true);
-  tab_fprintf(stream,"    --> Extended.Shortcut.Success                   ");
+  tab_fprintf(stream,"    --> Extensions                                  ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES_TOTAL),
+      PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES_TOTAL),"reads  ",true);
+  tab_fprintf(stream,"      --> Extension.Matches                         ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_NUM_MATCHES),NULL,"matches",true);
+  tab_fprintf(stream,"      --> Extension.Length                          ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_EXTEND_VERIFY_CANDIDATES_LENGTH),NULL,"nt     ",true);
+  tab_fprintf(stream,"      --> Extension.Regions.Found                   ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_EXTEND_VERIFY_CANDIDATES_FOUND),NULL,"regions",true);
+  tab_fprintf(stream,"    --> Extensions.Shortcut                         ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTENSION_SHORTCUT_TOTAL),
+      PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES_TOTAL),"reads  ",true);
+  tab_fprintf(stream,"      --> Extensions.Shortcut.Success               ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTENSION_SHORTCUT_SUCCESS),
-                       PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"ext",true);
+      PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES_TOTAL),"reads  ",true);
+  tab_fprintf(stream,"    --> Extensions.Recovery                         ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTENSION_RECOVERY_TOTAL),
+      PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES_TOTAL),"reads  ",true);
+  tab_fprintf(stream,"      --> Extensions.Recovery.Success               ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTENSION_RECOVERY_SUCCESS),
+      PROF_GET_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES_TOTAL),"reads  ",true);
 }
 /*
  * Mapper SE

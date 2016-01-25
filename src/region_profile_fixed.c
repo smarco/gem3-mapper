@@ -94,16 +94,18 @@ void region_profile_print_mappability(
     const bool* const allowed_enc,const uint8_t* key,
     const uint64_t key_length,const bool print_profiles,
     mm_stack_t* const mm_stack) {
-  double mappability_l15 = 0.0, mappability_l30 = 0.0;
+  // Parameters
+  const uint64_t proper_length = fm_index_get_proper_length(fm_index);
+  double mappability_pl = 0.0, mappability_2pl = 0.0;
   // Init region profile
   mm_stack_push_state(mm_stack);
   region_profile_t region_profile;
   region_profile_new(&region_profile,key_length,mm_stack);
-  // Mappability (length=15)
-  region_profile_generate_fixed_partition(&region_profile,key,key_length,allowed_enc,15);
+  // Mappability (length=proper-length)
+  region_profile_generate_fixed_partition(&region_profile,key,key_length,allowed_enc,proper_length);
   region_profile_generate_fixed_query(&region_profile,fm_index,key);
   if (print_profiles) {
-    tab_fprintf(stream,"[GEM]>Region.Mappability (15nt)\n");
+    tab_fprintf(stream,"[GEM]>Region.Mappability (pl=%lu nt)\n",proper_length);
     REGION_PROFILE_ITERATE((&region_profile),region,position) {
       region_profile_print_region(stream,region,position);
     }
@@ -111,15 +113,15 @@ void region_profile_print_mappability(
   {
     REGION_PROFILE_ITERATE((&region_profile),region,position) {
       const uint64_t num_candidates = region->hi - region->lo;
-      if (num_candidates>0) mappability_l15 += (log((double)num_candidates)/log(4));
+      if (num_candidates>0) mappability_pl += log2((double)num_candidates);
     }
   }
-  mappability_l15 /= (double)region_profile.num_filtering_regions;
-  // Mappability (length=30)
-  region_profile_generate_fixed_partition(&region_profile,key,key_length,allowed_enc,30);
+  mappability_pl /= (double)(2*region_profile.num_filtering_regions);
+  // Mappability (length=2*proper-length)
+  region_profile_generate_fixed_partition(&region_profile,key,key_length,allowed_enc,2*proper_length);
   region_profile_generate_fixed_query(&region_profile,fm_index,key);
   if (print_profiles) {
-    tab_fprintf(stream,"[GEM]>Region.Mappability (30nt)\n");
+    tab_fprintf(stream,"[GEM]>Region.Mappability (2pl=%lu nt)\n",2*proper_length);
     REGION_PROFILE_ITERATE((&region_profile),region,position) {
       region_profile_print_region(stream,region,position);
     }
@@ -127,12 +129,13 @@ void region_profile_print_mappability(
   {
     REGION_PROFILE_ITERATE((&region_profile),region,position) {
       const uint64_t num_candidates = region->hi - region->lo;
-      if (num_candidates>0) mappability_l30 += (log((double)num_candidates)/log(4));
+      if (num_candidates>0) mappability_2pl += log2((double)num_candidates);
     }
   }
-  mappability_l30 /= (double)region_profile.num_filtering_regions;
+  mappability_2pl /= (double)(2*region_profile.num_filtering_regions);
   // Print Mappability Magnitudes
-  tab_fprintf(stream,"[GEM]>Region.Mappability (l15=%2.3f;l30=%2.3f)\n",mappability_l15,mappability_l30);
+  tab_fprintf(stream,"[GEM]>Region.Mappability (pl,2pl)=(%lu,%lu)=(%2.3f,%2.3f)\n",
+      proper_length,2*proper_length,mappability_pl,mappability_2pl);
   // Free
   mm_stack_pop_state(mm_stack,false);
 }

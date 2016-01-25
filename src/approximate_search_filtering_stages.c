@@ -120,7 +120,7 @@ void approximate_search_exact_filtering_adaptive_cutoff(
         search->text_collection,pattern,as_parameters,matches,mm_stack);
     filtering_candidates_align_candidates(
         filtering_candidates,archive->text,archive->locator,search->text_collection,
-        pattern,search->emulated_rc_search,as_parameters,false,matches,mm_stack);
+        pattern,search->emulated_rc_search,as_parameters,false,false,matches,mm_stack);
     asearch_control_adjust_max_differences_using_strata(search,matches);
     PROFILE_STOP(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING,PROFILE_LEVEL);
     // Cut-off condition
@@ -245,7 +245,7 @@ void approximate_search_verify(approximate_search_t* const search,matches_t* con
     filtering_candidates_align_candidates(search->filtering_candidates,
         search->archive->text,search->archive->locator,
         search->text_collection,&search->pattern,search->emulated_rc_search,
-        search->as_parameters,true,matches,search->mm_stack);
+        search->as_parameters,true,false,matches,search->mm_stack);
   }
   // Update state
   search->processing_state = asearch_processing_state_candidates_verified;

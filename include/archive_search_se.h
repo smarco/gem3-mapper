@@ -11,6 +11,7 @@
 
 #include "essentials.h"
 #include "archive_search.h"
+#include "matches_predictors.h"
 
 /*
  * Memory Injection (Support Data Structures)

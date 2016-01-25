@@ -29,10 +29,11 @@
  */
 #define GP_ARCHIVE_SEARCH_SE                                 50
 #define GP_ARCHIVE_SEARCH_SE_INIT                            51
-#define GP_ARCHIVE_SEARCH_SE_PREPARE_SEQUENCE                52
-#define GP_ARCHIVE_SEARCH_SE_GENERATE_CANDIDATES             53
-#define GP_ARCHIVE_SEARCH_SE_VERIFY_CANDIDATES               54
-#define GP_ARCHIVE_SEARCH_SE_FINISH_SEARCH                   55
+#define GP_ARCHIVE_SEARCH_PE_INIT                            52
+#define GP_ARCHIVE_SEARCH_SE_PREPARE_SEQUENCE                53
+#define GP_ARCHIVE_SEARCH_SE_GENERATE_CANDIDATES             54
+#define GP_ARCHIVE_SEARCH_SE_VERIFY_CANDIDATES               55
+#define GP_ARCHIVE_SEARCH_SE_FINISH_SEARCH                   56
 
 // StepWise
 #define GP_ARCHIVE_SEARCH_SE_REGION_PROFILE_GENERATE         60
@@ -45,6 +46,16 @@
 #define GP_ARCHIVE_SEARCH_SE_VERIFY_CANDIDATES_COPY          67
 #define GP_ARCHIVE_SEARCH_SE_VERIFY_CANDIDATES_RETRIEVE      68
 
+#define GP_ARCHIVE_SEARCH_PE_REGION_PROFILE_GENERATE         70
+#define GP_ARCHIVE_SEARCH_PE_REGION_PROFILE_COPY             71
+#define GP_ARCHIVE_SEARCH_PE_REGION_PROFILE_RETRIEVE         72
+#define GP_ARCHIVE_SEARCH_PE_DECODE_CANDIDATES_GENERATE      73
+#define GP_ARCHIVE_SEARCH_PE_DECODE_CANDIDATES_COPY          74
+#define GP_ARCHIVE_SEARCH_PE_DECODE_CANDIDATES_RETRIEVE      75
+#define GP_ARCHIVE_SEARCH_PE_VERIFY_CANDIDATES_GENERATE      76
+#define GP_ARCHIVE_SEARCH_PE_VERIFY_CANDIDATES_COPY          77
+#define GP_ARCHIVE_SEARCH_PE_VERIFY_CANDIDATES_RETRIEVE      78
+
 // Post-processing
 #define GP_ARCHIVE_SELECT_SE_MATCHES                        116
 #define GP_ARCHIVE_SCORE_SE_MATCHES                         117
@@ -54,12 +65,17 @@
  */
 #define GP_ARCHIVE_SEARCH_PE                                122
 #define GP_ARCHIVE_SEARCH_PE_EXTENSION_SHORTCUT             123
-#define GP_ARCHIVE_SEARCH_PE_EXTENSION_SHORTCUT_SUCCESS     124
-#define GP_ARCHIVE_SEARCH_PE_EXTENSION_RECOVERY             125
-#define GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES              126
-#define GP_ARCHIVE_SEARCH_PE_GENERATE_CANDIDATES            139
-#define GP_ARCHIVE_SEARCH_PE_FIND_PAIRS                     140
-#define GP_ARCHIVE_SEARCH_PE_FINISH_SEARCH                  141
+#define GP_ARCHIVE_SEARCH_PE_EXTENSION_SHORTCUT_TOTAL       124
+#define GP_ARCHIVE_SEARCH_PE_EXTENSION_SHORTCUT_SUCCESS     125
+#define GP_ARCHIVE_SEARCH_PE_EXTENSION_RECOVERY             126
+#define GP_ARCHIVE_SEARCH_PE_EXTENSION_RECOVERY_TOTAL       127
+#define GP_ARCHIVE_SEARCH_PE_EXTENSION_RECOVERY_SUCCESS     128
+#define GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES              129
+#define GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES_TOTAL        130
+#define GP_ARCHIVE_SEARCH_PE_EXTEND_NUM_MATCHES             131
+#define GP_ARCHIVE_SEARCH_PE_GENERATE_CANDIDATES            132
+#define GP_ARCHIVE_SEARCH_PE_FIND_PAIRS                     133
+#define GP_ARCHIVE_SEARCH_PE_FINISH_SEARCH                  134
 
 // Post-processing
 #define GP_ARCHIVE_SELECT_PE_MATCHES                        142
@@ -197,8 +213,9 @@
 #define GP_FC_EXTEND_MATCH                                  360
 #define GP_FC_EXTEND_RETRIEVE_CANDIDATE_REGIONS             361
 #define GP_FC_EXTEND_VERIFY_CANDIDATE_REGIONS               362
-#define GP_FC_EXTEND_VERIFY_CANDIDATE_LENGTH                363
-#define GP_FC_EXTEND_REALIGN_CANDIDATE_REGIONS              364
+#define GP_FC_EXTEND_VERIFY_CANDIDATES_LENGTH               363
+#define GP_FC_EXTEND_VERIFY_CANDIDATES_FOUND                364
+#define GP_FC_EXTEND_REALIGN_CANDIDATE_REGIONS              365
 
 #define GP_FC_CACHE_COMPUTE_FOOTPRINT                       370
 #define GP_FC_CACHE_SEARCH                                  371
@@ -320,36 +337,40 @@
 /*
  * CUDA PE Mapper
  */
-#define GP_MAPPER_CUDA_PE                                  9999
+#define GP_MAPPER_CUDA_PE                                    750
+#define GP_MAPPER_CUDA_PE_REGION_PROFILE                     751
+#define GP_MAPPER_CUDA_PE_DECODE_CANDIDATES                  752
+#define GP_MAPPER_CUDA_PE_VERIFY_CANDIDATES                  753
+#define GP_MAPPER_CUDA_PE_FINISH_SEARCH                      754
 
 /*
  * GPU BUFFERS
  */
-#define GP_GPU_BUFFER_COLLECTION_INIT                       750
+#define GP_GPU_BUFFER_FMI_SEARCH_ALLOC                       800
+#define GP_GPU_BUFFER_FMI_SEARCH_NUM_QUERIES                 801
+#define GP_GPU_BUFFER_FMI_SEARCH_SEND                        802
+#define GP_GPU_BUFFER_FMI_SEARCH_RECEIVE                     803
+#define GP_GPU_BUFFER_FMI_SEARCH_USAGE_QUERIES               804
+#define GP_GPU_BUFFER_FMI_SEARCH_DUTY_CYCLE                  805
 
-#define GP_GPU_BUFFER_FMI_SEARCH_ALLOC                      800
-#define GP_GPU_BUFFER_FMI_SEARCH_NUM_QUERIES                801
-#define GP_GPU_BUFFER_FMI_SEARCH_SEND                       802
-#define GP_GPU_BUFFER_FMI_SEARCH_RECEIVE                    803
-#define GP_GPU_BUFFER_FMI_SEARCH_USAGE_QUERIES              804
-#define GP_GPU_BUFFER_FMI_SEARCH_DUTY_CYCLE                 805
+#define GP_GPU_BUFFER_FMI_DECODE_ALLOC                       810
+#define GP_GPU_BUFFER_FMI_DECODE_NUM_QUERIES                 811
+#define GP_GPU_BUFFER_FMI_DECODE_SEND                        812
+#define GP_GPU_BUFFER_FMI_DECODE_RECEIVE                     813
+#define GP_GPU_BUFFER_FMI_DECODE_USAGE_CANDIDATES            814
+#define GP_GPU_BUFFER_FMI_DECODE_DUTY_CYCLE                  815
 
-#define GP_GPU_BUFFER_FMI_DECODE_ALLOC                      810
-#define GP_GPU_BUFFER_FMI_DECODE_NUM_QUERIES                811
-#define GP_GPU_BUFFER_FMI_DECODE_SEND                       812
-#define GP_GPU_BUFFER_FMI_DECODE_RECEIVE                    813
-#define GP_GPU_BUFFER_FMI_DECODE_USAGE_CANDIDATES           814
-#define GP_GPU_BUFFER_FMI_DECODE_DUTY_CYCLE                 815
+#define GP_GPU_BUFFER_ALIGN_BPM_ALLOC                        820
+#define GP_GPU_BUFFER_ALIGN_BPM_NUM_QUERIES                  821
+#define GP_GPU_BUFFER_ALIGN_BPM_CANDIDATE_LENGTH             822
+#define GP_GPU_BUFFER_ALIGN_BPM_CANDIDATE_PER_QUERY          823
+#define GP_GPU_BUFFER_ALIGN_BPM_SEND                         824
+#define GP_GPU_BUFFER_ALIGN_BPM_RECEIVE                      825
+#define GP_GPU_BUFFER_ALIGN_BPM_DUTY_CYCLE                   826
+#define GP_GPU_BUFFER_ALIGN_BPM_USAGE_CANDIDATES             827
+#define GP_GPU_BUFFER_ALIGN_BPM_USAGE_QUERIES                828
+#define GP_GPU_BUFFER_ALIGN_BPM_USAGE_PEQ_ENTRIES            829
 
-#define GP_GPU_BUFFER_ALIGN_BPM_ALLOC                       820
-#define GP_GPU_BUFFER_ALIGN_BPM_NUM_QUERIES                 821
-#define GP_GPU_BUFFER_ALIGN_BPM_CANDIDATE_LENGTH            822
-#define GP_GPU_BUFFER_ALIGN_BPM_CANDIDATE_PER_QUERY         823
-#define GP_GPU_BUFFER_ALIGN_BPM_SEND                        824
-#define GP_GPU_BUFFER_ALIGN_BPM_RECEIVE                     825
-#define GP_GPU_BUFFER_ALIGN_BPM_DUTY_CYCLE                  826
-#define GP_GPU_BUFFER_ALIGN_BPM_USAGE_CANDIDATES            827
-#define GP_GPU_BUFFER_ALIGN_BPM_USAGE_QUERIES               828
-#define GP_GPU_BUFFER_ALIGN_BPM_USAGE_PEQ_ENTRIES           829
+#define GP_GPU_BUFFER_COLLECTION_INIT                        850
 
 #endif /* MAPPER_PROFILE_COUNTERS_H_ */

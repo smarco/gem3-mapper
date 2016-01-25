@@ -218,6 +218,8 @@ option_t gem_mapper_options[] = {
   { 502, "discordant-pair-orientation", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "'FR'|'RF'|'FF'|'RR'" , "(default=RF)" },
   { 503, "pair-layout", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "'separate'|'overlap'|'contain'" , "(default=separated,overlap)" },
   { 504, "discordant-pair-layout", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "'separate'|'overlap'|'contain'" , "(default=contain)" },
+  { 505, "pe-extension", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "'none'|'recovery'|'shortcut'|'all'" , "(default=none)" },
+  { 506, "pe-template-length", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "<min>,<max>," , "(default=disabled)" },
   /* Bisulfite Alignment */
   { 601, "bisulfite-read", REQUIRED, TYPE_STRING, 6, VISIBILITY_ADVANCED, "'inferred','1','2','interleaved'",  "(default=inferred)" },
   // { 602, "bisulfite-suffix", REQUIRED, TYPE_STRING, 6, VISIBILITY_ADVANCED, "<C2T suffix, G2A suffix>" , "(default=#C2T,#G2A)" },
@@ -519,7 +521,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 'L': // --max-template-length (default=10000)
       input_text_parse_extended_uint64(optarg,&paired_search->max_template_length);
       break;
-    case 500: { // --discordant-pair-search in 'always'|'if-no-concordant'|'never' (default=if-no-concordant)
+    case 500: // --discordant-pair-search in 'always'|'if-no-concordant'|'never' (default=if-no-concordant)
       if (gem_strcaseeq(optarg,"always")) {
         paired_search->pair_discordant_search = pair_discordant_search_always;
       } else if (gem_strcaseeq(optarg,"if-no-concordant")) {
@@ -530,7 +532,6 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
         gem_mapper_error_msg("Option '--search-discordant' must be 'always'|'if-no-concordant'|'never'");
       }
       break;
-    }
     case 501: { // --pair-orientation in {'FR'|'RF'|'FF'|'RR'} (default=FR)
       // Init null
       paired_search->pair_orientation[pair_orientation_FR] = pair_relation_invalid;
@@ -613,6 +614,33 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
         gem_mapper_error_msg("Option '--pair-layout' must be 'separate'|'overlap'|'contain'");
         pair_layout = strtok(NULL,",");
       }
+      break;
+    }
+    case 505: // --pe-extension in {'none'|'recovery'|'shortcut'|'all'} (default=none)
+      if (gem_strcaseeq(optarg,"none")) {
+        paired_search->paired_end_extension_shortcut = false;
+        paired_search->paired_end_extension_recovery = false;
+      } else if (gem_strcaseeq(optarg,"shortcut")) {
+        paired_search->paired_end_extension_shortcut = true;
+        paired_search->paired_end_extension_recovery = false;
+      } else if (gem_strcaseeq(optarg,"recovery")) {
+        paired_search->paired_end_extension_shortcut = false;
+        paired_search->paired_end_extension_recovery = true;
+      } else if (gem_strcaseeq(optarg,"all")) {
+        paired_search->paired_end_extension_shortcut = true;
+        paired_search->paired_end_extension_recovery = true;
+      } else {
+        gem_mapper_error_msg("Option '--pe-extension' must be 'none'|'recovery'|'shortcut'|'all'");
+      }
+      break;
+    case 506: { // --pe-template-length=<min>,<max> (default=disabled)
+      char *min=NULL, *max=NULL;
+      const int num_arguments = input_text_parse_csv_arguments(optarg,2,&min,&max);
+      gem_mapper_cond_error_msg(num_arguments!=2,"Option '--pe-template-length' wrong number of arguments");
+      // Parse minimum estimated template-length
+      input_text_parse_extended_uint64(min,&paired_search->min_initial_template_estimation);
+      // Parse maximum estimated template-length
+      input_text_parse_extended_uint64(max,&paired_search->max_initial_template_estimation);
       break;
     }
     /* Bisulfite Alignment */
@@ -704,13 +732,13 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     /* MAQ Score */
     case 800: // --mapq-model in {'none'|'gem'|'classify'|'dump-predictors'} (default=gem)
       if (gem_strcaseeq(optarg,"none")) {
-        search->mapq_model = mapq_model_none;
+        search->mapq_model_se = mapq_model_none;
       } else if (gem_strcaseeq(optarg,"gem")) {
-        search->mapq_model = mapq_model_gem;
+        search->mapq_model_se = mapq_model_gem;
       } else if (gem_strcaseeq(optarg,"classify")) {
-        search->mapq_model = mapq_model_classify;
+        search->mapq_model_se = mapq_model_classify;
       } else if (gem_strcaseeq(optarg,"dump-predictors")) {
-        search->mapq_model = mapq_model_dump_predictors;
+        search->mapq_model_se = mapq_model_dump_predictors;
       } else {
         gem_mapper_error_msg("Option '--mapq-model' must be in {'none'|'gem'}");
       }
@@ -921,6 +949,8 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     parameters->mapper_type = mapper_pe;
     gem_cond_warn_msg(parameters->search_parameters.bisulfite_read != bisulfite_read_inferred,
         "Option '--bisulfite_read' ignored with paired end mode");
+    search->mapq_model_pe = search->mapq_model_se;
+    search->mapq_model_se = mapq_model_gem;
   } else {
     parameters->mapper_type = mapper_se;
   }

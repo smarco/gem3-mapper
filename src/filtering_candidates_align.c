@@ -120,8 +120,8 @@ bool filtering_candidates_align_region(
     archive_text_t* const archive_text,const locator_t* const locator,
     text_collection_t* const text_collection,pattern_t* const pattern,
     const bool emulated_rc_search,const as_parameters_t* const as_parameters,
-    const bool approximated_distance,matches_t* const matches,
-    mm_stack_t* const mm_stack) {
+    const bool approximated_distance,const bool align_always,
+    matches_t* const matches,mm_stack_t* const mm_stack) {
   // Parameters
   search_parameters_t* const search_parameters = as_parameters->search_parameters;
   const alignment_model_t alignment_model = search_parameters->alignment_model;
@@ -134,8 +134,9 @@ bool filtering_candidates_align_region(
   }
   // Align the region (First Search Cache)
   match_trace_t match_trace;
-  bool match_trace_aligned = filtering_candidates_align_search_filtering_region_cache(
-      filtering_candidates,region,text_collection,&match_trace,matches);
+  bool match_trace_aligned = !align_always &&
+      filtering_candidates_align_search_filtering_region_cache(
+          filtering_candidates,region,text_collection,&match_trace,matches);
   if (!match_trace_aligned) {
     // Align the region
     match_trace_aligned = filtering_region_align(region,archive_text,text_collection,
@@ -165,7 +166,8 @@ uint64_t filtering_candidates_align_accepted_regions(
     archive_text_t* const archive_text,const locator_t* const locator,
     text_collection_t* const text_collection,pattern_t* const pattern,
     const bool emulated_rc_search,const as_parameters_t* const as_parameters,
-    const bool approximated_distance,matches_t* const matches,mm_stack_t* const mm_stack) {
+    const bool approximated_distance,const bool align_always,
+    matches_t* const matches,mm_stack_t* const mm_stack) {
   // DEBUG
   gem_cond_debug_block(DEBUG_FILTERING_CANDIDATES) {
     tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Candidates (align_acepted_regions)\n");
@@ -191,20 +193,20 @@ uint64_t filtering_candidates_align_accepted_regions(
       ++regions_out;
     } else {
       // Check if candidate is subdominant (check distance bounds)
-      const bool candidate_subdominant = filtering_candidates_align_is_subdominant(
+      const bool candidate_subdominant = !align_always &&
+          filtering_candidates_align_is_subdominant(
             regions_in,archive_text,as_parameters,select_parameters,pattern,
             approximated_distance,emulated_rc_search,matches,text_collection,mm_stack);
       if (candidate_subdominant) {
         PROF_INC_COUNTER(GP_FC_SELECT_PRUNE_HIT);
         *regions_discarded = *regions_in;
         regions_discarded->status = filtering_region_accepted_subdominant;
-        matches_metrics_inc_subdominant_candidates(&matches->metrics);
         ++regions_discarded;
       } else {
         // Align Region
         const bool region_aligned = filtering_candidates_align_region(
             filtering_candidates,regions_in,archive_text,locator,text_collection,pattern,
-            emulated_rc_search,as_parameters,approximated_distance,matches,mm_stack);
+            emulated_rc_search,as_parameters,approximated_distance,align_always,matches,mm_stack);
         if (region_aligned) {
           ++num_accepted_regions;
         } else {
@@ -216,6 +218,7 @@ uint64_t filtering_candidates_align_accepted_regions(
     }
   }
   // Update used
+  matches_metrics_add_accepted_candidates(&matches->metrics,num_filtering_regions);
   vector_update_used(filtering_candidates->discarded_regions,regions_discarded);
   vector_update_used(filtering_candidates->filtering_regions,regions_out);
   // DEBUG
@@ -256,9 +259,6 @@ uint64_t filtering_candidates_unbounded_align_regions_by_status(
     match_trace_t match_trace;
     if (filtering_region_align_unbounded(filtering_region,archive_text,text_collection,
         as_parameters,emulated_rc_search,pattern,matches,&match_trace,mm_stack)) {
-      if (filtering_region->status==filtering_region_accepted_subdominant) {
-        matches_metrics_dec_subdominant_candidates(&matches->metrics);
-      }
       filtering_region->status = filtering_region_aligned_unbounded;
       if (matches_add_match_trace(matches,locator,true,&match_trace,mm_stack)) {
         ++num_unbounded_alignments;
@@ -308,7 +308,8 @@ uint64_t filtering_candidates_align_candidates(
     archive_text_t* const archive_text,const locator_t* const locator,
     text_collection_t* const text_collection,pattern_t* const pattern,
     const bool emulated_rc_search,const as_parameters_t* const as_parameters,
-    const bool approximated_distance,matches_t* const matches,mm_stack_t* const mm_stack) {
+    const bool approximated_distance,const bool align_always,
+    matches_t* const matches,mm_stack_t* const mm_stack) {
   // Hint to matches
   const uint64_t num_filtering_regions = vector_get_used(filtering_candidates->filtering_regions);
   if (num_filtering_regions==0) return 0;
@@ -317,7 +318,7 @@ uint64_t filtering_candidates_align_candidates(
   // Realign
   const uint64_t aligned_regions = filtering_candidates_align_accepted_regions(
       filtering_candidates,archive_text,locator,text_collection,pattern,emulated_rc_search,
-      as_parameters,approximated_distance,matches,mm_stack);
+      as_parameters,approximated_distance,align_always,matches,mm_stack);
   PROFILE_STOP(GP_FC_REALIGN_CANDIDATE_REGIONS,PROFILE_LEVEL);
   // Return number of aligned regions
   return aligned_regions;

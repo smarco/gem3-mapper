@@ -36,6 +36,9 @@ void mapper_stats_delete(mapper_stats_t* const mapper_stats);
 /*
  * Template Length
  */
+void mapper_stats_template_init(
+    mapper_stats_t* const search_stats,
+    const uint64_t template_length_min,const uint64_t template_length_max);
 void mapper_stats_template_length_sample(
     mapper_stats_t* const search_stats,const uint64_t template_length);
 

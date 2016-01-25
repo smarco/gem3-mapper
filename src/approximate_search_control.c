@@ -77,14 +77,7 @@ bool asearch_control_trigger_boost(
 void asearch_control_compute_predictors(
     approximate_search_t* const search,matches_t* const matches,
     matches_predictors_t* const predictors) {
-  const uint64_t read_length = search->pattern.key_length;
-  const swg_penalties_t* const swg_penalties = &search->as_parameters->search_parameters->swg_penalties;
-  const uint64_t max_region_length = search->region_profile.max_region_length;
-  const uint64_t proper_length = fm_index_get_proper_length(search->archive->fm_index);
-  const uint64_t max_complete_stratum = search->max_complete_stratum;
-  const uint64_t num_zero_regions = search->region_profile.num_zero_regions;
-  matches_classify_compute_predictors(matches,predictors,swg_penalties,
-      read_length,max_region_length,proper_length,max_complete_stratum,num_zero_regions);
+  matches_predictors_compute(matches,predictors,&search->metrics,search->max_complete_stratum);
 }
 bool asearch_control_fulfilled(
     approximate_search_t* const search,matches_t* const matches) {
@@ -97,16 +90,15 @@ bool asearch_control_fulfilled(
       if (matches->max_complete_stratum <= 1) return false;
       const matches_class_t matches_class = matches_classify(matches);
       switch (matches_class) {
-        case matches_class_tie_swg_score:
-        case matches_class_tie_edit_distance:
-        case matches_class_tie_event_distance:
+        case matches_class_tie_d0:
+        case matches_class_tie_d1:
           return (matches->metrics.min1_edit_distance <= 1);
         case matches_class_unique: {
           matches_predictors_t predictors;
           asearch_control_compute_predictors(search,matches,&predictors);
-          const double pr = matches_classify_logit_unique(
-              &predictors,&logit_model_single_end_default);
-          return (pr >= MATCHES_UNIQUE_CI);
+          const double probability =
+              matches_classify_logit_unique(&predictors,&logit_model_single_end_default);
+          return (probability >= MATCHES_UNIQUE_CI);
         }
         case matches_class_unmapped:
         case matches_class_mmap:

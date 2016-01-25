@@ -7,108 +7,248 @@
 
 #include "mapper_cuda_pe.h"
 #include "archive_search_pe.h"
+#include "archive_search_pe_stepwise.h"
 
+/*
+ * Profile
+ */
+#define PROFILE_LEVEL PHIGH
+
+/*
+ * Check Occupancy
+ */
+bool mapper_pe_cuda_stage_read_input_sequences_exhausted(mapper_cuda_search_t* const mapper_search) {
+  // Check pending search
+  if (mapper_search->pending_search_region_profile_end1!=NULL) return false;
+  // Check end_of_block
+  if (!buffered_input_file_eob(mapper_search->buffered_fasta_input_end1)) return false;
+  // Reload buffer
+  uint64_t error_code = mapper_PE_reload_buffers(mapper_search->mapper_parameters,
+      mapper_search->buffered_fasta_input_end1,mapper_search->buffered_fasta_input_end2);
+  if (error_code==INPUT_STATUS_EOF) return true;
+  // Clear pipeline (release intermediate memory & start pipeline fresh)
+  search_pipeline_clear(mapper_search->search_pipeline);
+  return false;
+}
+bool mapper_pe_cuda_stage_region_profile_output_exhausted(mapper_cuda_search_t* const mapper_search) {
+  // Check Stage Region-Profile
+  search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
+  if (!search_stage_region_profile_retrieve_finished(search_pipeline->stage_region_profile)) return false;
+  // Check pending search
+  if (mapper_search->pending_search_decode_candidates_end1!=NULL) return false;
+  // Exhausted
+  return true;
+}
+bool mapper_pe_cuda_stage_decode_candidates_output_exhausted(mapper_cuda_search_t* const mapper_search) {
+  // Check Stage Decode-Candidates
+  search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
+  if (!search_stage_decode_candidates_retrieve_finished(search_pipeline->stage_decode_candidates)) return false;
+  // Check pending search
+  if (mapper_search->pending_search_verify_candidates_end1!=NULL) return false;
+  // Exhausted
+  return true;
+}
+/*
+ * Region Profile (until all buffers are filled or input-block exhausted)
+ *   Read from input-block,
+ *   Generate region-profile partition
+ *   Send to CUDA-region-profile
+ */
+void mapper_pe_cuda_region_profile(mapper_cuda_search_t* const mapper_search) {
+  PROFILE_START(GP_MAPPER_CUDA_PE_REGION_PROFILE,PROFILE_LEVEL);
+  // Parameters
+  mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
+  search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
+  search_stage_region_profile_t* const stage_region_profile = search_pipeline->stage_region_profile;
+  archive_search_t *archive_search_end1 = NULL, *archive_search_end2 = NULL;
+  // Reschedule search (that couldn't fit into the buffer)
+  if (mapper_search->pending_search_region_profile_end1!=NULL) {
+    search_stage_region_profile_send_pe_search(stage_region_profile,
+        mapper_search->pending_search_region_profile_end1,
+        mapper_search->pending_search_region_profile_end2);
+    mapper_search->pending_search_region_profile_end1 = NULL;
+  }
+  // Generation. Keep processing the current input-block
+  while (!buffered_input_file_eob(mapper_search->buffered_fasta_input_end1)) {
+    // Request a clean archive-search
+    search_pipeline_allocate_pe(search_pipeline,&archive_search_end1,&archive_search_end2);
+    // Parse Sequence
+    const error_code_t error_code = mapper_PE_parse_paired_sequences(parameters,
+        mapper_search->buffered_fasta_input_end1,mapper_search->buffered_fasta_input_end2,
+        archive_search_end1,archive_search_end2);
+    gem_cond_fatal_error(error_code==INPUT_STATUS_FAIL,MAPPER_CUDA_ERROR_PARSING);
+    // Generate Candidates (Search into the archive)
+    archive_search_pe_stepwise_init_search(archive_search_end1,archive_search_end2);
+    archive_search_pe_stepwise_region_profile_generate(archive_search_end1,archive_search_end2);
+    // Send search to GPU region-profile
+    const bool search_sent = search_stage_region_profile_send_pe_search(
+        stage_region_profile,archive_search_end1,archive_search_end2);
+    if (!search_sent) {
+      mapper_search->pending_search_region_profile_end1 = archive_search_end1; // Pending Search (end/1)
+      mapper_search->pending_search_region_profile_end2 = archive_search_end2; // Pending Search (end/2)
+      break;
+    }
+  }
+  PROFILE_STOP(GP_MAPPER_CUDA_PE_REGION_PROFILE,PROFILE_LEVEL);
+}
+/*
+ * Decode Candidates (until all buffers are filled or stage region-profile exhausted)
+ *   Read from stage Region-Profile
+ *   Generate Decode-Candidates
+ *   Send to CUDA Decode-Candidates
+ */
+void mapper_pe_cuda_decode_candidates(mapper_cuda_search_t* const mapper_search) {
+  PROFILE_START(GP_MAPPER_CUDA_PE_DECODE_CANDIDATES,PROFILE_LEVEL);
+  // Parameters
+  search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
+  search_stage_region_profile_t* const stage_region_profile = search_pipeline->stage_region_profile;
+  search_stage_decode_candidates_t* const stage_decode_candidates = search_pipeline->stage_decode_candidates;
+  archive_search_t *archive_search_end1 = NULL, *archive_search_end2 = NULL;
+  // Reschedule search (that couldn't fit into the buffer)
+  if (mapper_search->pending_search_decode_candidates_end1!=NULL) {
+    search_stage_decode_candidates_send_pe_search(stage_decode_candidates,
+        mapper_search->pending_search_decode_candidates_end1,
+        mapper_search->pending_search_decode_candidates_end2);
+    mapper_search->pending_search_decode_candidates_end1 = NULL;
+  }
+  // Read from stage Region-Profile
+  bool pending_searches;
+  while ((pending_searches=search_stage_region_profile_retrieve_pe_search(
+      stage_region_profile,&archive_search_end1,&archive_search_end2))) {
+    // Generate Decode-Candidates
+    // /* NOP */  archive_search_pe_stepwise_decode_candidates_generate(archive_search);
+    // Send to CUDA Decode-Candidates
+    const bool search_sent = search_stage_decode_candidates_send_pe_search(
+        stage_decode_candidates,archive_search_end1,archive_search_end2);
+    if (!search_sent) {
+      mapper_search->pending_search_decode_candidates_end1 = archive_search_end1; // Pending Search (end/1)
+      mapper_search->pending_search_decode_candidates_end2 = archive_search_end2; // Pending Search (end/2)
+      break;
+    }
+  }
+  // Clean
+  if (!pending_searches) {
+    search_stage_region_profile_clear(stage_region_profile,NULL);
+  }
+  PROFILE_STOP(GP_MAPPER_CUDA_PE_DECODE_CANDIDATES,PROFILE_LEVEL);
+}
+/*
+ * Verify Candidates (until all buffers are filled or stage Decode-Candidates exhausted)
+ *   Read from stage Decode-Candidates
+ *   Generate Verify-Candidates
+ *   Send to CUDA Verify-Candidates
+ */
+void mapper_pe_cuda_verify_candidates(mapper_cuda_search_t* const mapper_search) {
+  PROFILE_START(GP_MAPPER_CUDA_PE_VERIFY_CANDIDATES,PROFILE_LEVEL);
+  // Parameters
+  search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
+  search_stage_decode_candidates_t* const stage_decode_candidates = search_pipeline->stage_decode_candidates;
+  search_stage_verify_candidates_t* const stage_verify_candidates = search_pipeline->stage_verify_candidates;
+  archive_search_t *archive_search_end1 = NULL, *archive_search_end2 = NULL;
+  // Reschedule search (that couldn't fit into the buffer)
+  if (mapper_search->pending_search_verify_candidates_end1!=NULL) {
+    search_stage_verify_candidates_send_pe_search(stage_verify_candidates,
+        mapper_search->pending_search_verify_candidates_end1,
+        mapper_search->pending_search_verify_candidates_end2);
+    mapper_search->pending_search_verify_candidates_end1 = NULL;
+  }
+  // Read from stage Decode-Candidates,
+  bool pending_searches;
+  while ((pending_searches=search_stage_decode_candidates_retrieve_pe_search(
+      stage_decode_candidates,&archive_search_end1,&archive_search_end2))) {
+    // Generate Verify-Candidates
+    // /* NOP */ archive_search_se_stepwise_verify_candidates_generate(archive_search);
+    // Send to CUDA Verify-Candidates
+    const bool search_sent = search_stage_verify_candidates_send_pe_search(
+        stage_verify_candidates,archive_search_end1,archive_search_end2);
+    if (!search_sent) {
+      mapper_search->pending_search_verify_candidates_end1 = archive_search_end1; // Pending Search (end/1)
+      mapper_search->pending_search_verify_candidates_end2 = archive_search_end2; // Pending Search (end/2)
+      break;
+    }
+  }
+  // Clean
+  if (!pending_searches) {
+    search_stage_decode_candidates_clear(stage_decode_candidates,NULL);
+  }
+  PROFILE_STOP(GP_MAPPER_CUDA_PE_VERIFY_CANDIDATES,PROFILE_LEVEL);
+}
+/*
+ * Finish Search (until stage Verify-Candidates exhausted)
+ *   Read from stage Verify-Candidates
+ *   Finish Search
+ *   Output Matches
+ */
+void mapper_pe_cuda_finish_search(mapper_cuda_search_t* const mapper_search) {
+  PROFILE_START(GP_MAPPER_CUDA_PE_FINISH_SEARCH,PROFILE_LEVEL);
+  // Parameters
+  mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
+  search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
+  search_stage_verify_candidates_t* const stage_verify_candidates = search_pipeline->stage_verify_candidates;
+  archive_search_t *archive_search_end1 = NULL, *archive_search_end2 = NULL;
+  // Process all search-groups generated
+  while (search_stage_verify_candidates_retrieve_pe_search(
+      stage_verify_candidates,&archive_search_end1,&archive_search_end2)) {
+    // Finish Search
+    archive_search_pe_stepwise_finish_search(archive_search_end1,
+        archive_search_end2,stage_verify_candidates->paired_matches); // Finish search
+    // Output Matches
+    mapper_PE_output_matches(parameters,mapper_search->buffered_output_file,archive_search_end1,
+        archive_search_end2,stage_verify_candidates->paired_matches,mapper_search->mapping_stats);
+    // Update processed
+    if (++mapper_search->reads_processed == MAPPER_TICKER_STEP) {
+      ticker_update_mutex(mapper_search->ticker,mapper_search->reads_processed);
+      mapper_search->reads_processed=0;
+    }
+  }
+  // Clean
+  search_stage_verify_candidates_clear(stage_verify_candidates,search_pipeline->archive_search_cache);
+  PROFILE_STOP(GP_MAPPER_CUDA_PE_FINISH_SEARCH,PROFILE_LEVEL);
+}
 /*
  * Mapper PE-CUDA
  */
 void* mapper_cuda_pe_thread(mapper_cuda_search_t* const mapper_search) {
-//  // GEM-thread error handler
-//  gem_thread_register_id(mapper_search->thread_id+1);
-//  PROFILE_START(GP_MAPPER_CUDA_THREAD);
-//  // Parameters
-//  mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
-//  const mapper_parameters_cuda_t* const cuda_parameters = &parameters->cuda;
-//  // Create new buffered reader/writer
-//  buffered_output_file_t* const buffered_output_file = buffered_output_file_new(parameters->output_file);
-//  mapper_PE_prepare_io_buffers(parameters,cuda_parameters->input_buffer_lines,
-//      &mapper_search->buffered_fasta_input_end1,&mapper_search->buffered_fasta_input_end2,buffered_output_file);
-//  buffered_input_file_t* const buffered_fasta_input_end1 = mapper_search->buffered_fasta_input_end1;
-//  buffered_input_file_t* const buffered_fasta_input_end2 = mapper_search->buffered_fasta_input_end2;
-//  // Create search-group, archive_search pointers & paired-end matches
-//  archive_search_group_t* const search_group = mapper_search->search_group;
-//  archive_search_group_init_bpm_buffers(search_group); // Init BPM-buffers
-//  text_collection_t* const text_collection = archive_search_group_get_text_collection(search_group);
-//  paired_matches_t* const paired_matches = paired_matches_new();
-//  paired_matches_configure(paired_matches,text_collection);
-//  archive_search_t *archive_search_generate_end1 = NULL, *archive_search_generate_end2 = NULL;
-//  archive_search_t *archive_search_select_end1, *archive_search_select_end2;
-//  bpm_gpu_buffer_t *bpm_gpu_buffer_end1, *bpm_gpu_buffer_end2;
-//  // FASTA/FASTQ reading loop
-//  error_code_t error_code = 0;
-//  uint64_t reads_processed = 0;
-//  while (true) {
-//    PROFILE_START(GP_MAPPER_CUDA_THREAD_GENERATING);
-//    // Check the end_of_block (We cannot reload input-buffer until all the searches of the previous block are solved)
-//    if (buffered_input_file_eob(mapper_search->buffered_fasta_input_end1) && archive_search_group_is_empty(search_group)) {
-//      error_code = mapper_PE_reload_buffers(parameters,buffered_fasta_input_end1,buffered_fasta_input_end2);
-//      if (error_code==INPUT_STATUS_EOF) break;
-//    }
-//    /*
-//     * First-stage: Generation. Keep processing the current input-block
-//     */
-//    while (!buffered_input_file_eob(mapper_search->buffered_fasta_input_end1)) {
-//      if (buffered_input_file_eob(mapper_search->buffered_fasta_input_end2)) {
-//        MAPPER_ERROR_PE_PARSE_UNSYNCH_INPUT_FILES(parameters);
-//      }
-//      // Request a clean archive-search
-//      archive_search_group_allocate_pe(search_group,&archive_search_generate_end1,&archive_search_generate_end2);
-//      // Parse Sequence
-//      error_code = mapper_PE_parse_paired_sequences(parameters,
-//          buffered_fasta_input_end1,buffered_fasta_input_end2,
-//          archive_search_generate_end1,archive_search_generate_end2);
-//      gem_cond_fatal_error(error_code==INPUT_STATUS_FAIL,MAPPER_CUDA_ERROR_PARSING);
-//      // Begin Search
-//      archive_search_pe_generate_candidates(archive_search_generate_end1,archive_search_generate_end2,paired_matches);
-//      // Add archive-search to group (Put candidates in buffer)
-//      if (!archive_search_group_add_paired_search(search_group,
-//          archive_search_generate_end1,archive_search_generate_end2)) break; // Go to select-candidates
-//      archive_search_generate_end1 = NULL; // Last archive-search is in BPM-buffer
-//    }
-//    PROFILE_STOP(GP_MAPPER_CUDA_THREAD_GENERATING);
-//    /*
-//     * Second-stage: Retrieval (Select & Output)
-//     */
-//    PROFILE_START(GP_MAPPER_CUDA_THREAD_SELECTING);
-//    // Start retrieving
-//    archive_search_group_retrieve_begin(search_group);
-//    // Process all search-groups generated
-//    while (archive_search_group_get_paired_search(search_group,
-//        &archive_search_select_end1,&bpm_gpu_buffer_end1,
-//        &archive_search_select_end2,&bpm_gpu_buffer_end2)) {
-//      // Retrieve candidates
-//      paired_matches_clear(paired_matches); // Clear Paired Matches
-//      text_collection_clear(text_collection); // Clear text-collection
-//      archive_search_retrieve_candidates(archive_search_select_end1,bpm_gpu_buffer_end1,paired_matches->matches_end1);
-//      archive_search_retrieve_candidates(archive_search_select_end2,bpm_gpu_buffer_end2,paired_matches->matches_end2);
-//      // Finish Search
-//      archive_search_pe_finish_search(archive_search_select_end1,archive_search_select_end2,paired_matches);
-//      archive_select_paired_matches(archive_search_select_end1,archive_search_select_end2,paired_matches);
-//      // Output matches
-//      mapper_PE_output_matches(parameters,buffered_output_file,
-//          archive_search_select_end1,archive_search_select_end2,paired_matches,mapper_search->mapping_stats);
-//      // Update processed
-//      if (++reads_processed == MAPPER_TICKER_STEP) {
-//        ticker_update_mutex(mapper_search->ticker,reads_processed);
-//        reads_processed=0;
-//      }
-//    }
-//    archive_search_group_clear(search_group); // Reset search-group
-//    // Check if the last archive-search couldn't fit into the BPM-buffer
-//    if (archive_search_generate_end1!=NULL) {
-//      PROFILE_START(GP_MAPPER_CUDA_THREAD_RESTART_UNFIT);
-//      archive_search_pe_generate_candidates(archive_search_generate_end1,archive_search_generate_end2,paired_matches);
-//      archive_search_group_add_paired_search(search_group,archive_search_generate_end1,archive_search_generate_end2);
-//      archive_search_generate_end1 = NULL;
-//      PROFILE_STOP(GP_MAPPER_CUDA_THREAD_RESTART_UNFIT);
-//    }
-//    PROFILE_STOP(GP_MAPPER_CUDA_THREAD_SELECTING);
-//  }
-//  // Clean up & Quit
-//  ticker_update_mutex(mapper_search->ticker,reads_processed); // Update processed
-//  buffered_input_file_close(mapper_search->buffered_fasta_input_end1);
-//  if (parameters->io.separated_input_files) buffered_input_file_close(mapper_search->buffered_fasta_input_end2);
-//  buffered_output_file_close(buffered_output_file);
-//  paired_matches_delete(paired_matches);
-//  PROFILE_STOP(GP_MAPPER_CUDA_THREAD);
+  // GEM-thread error handler
+  gem_thread_register_id(mapper_search->thread_id+1);
+  PROFILE_START(GP_MAPPER_CUDA_PE,PROFILE_LEVEL);
+  // Parameters
+  mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
+  const mapper_parameters_cuda_t* const cuda_parameters = &parameters->cuda;
+  // Create new buffered reader/writer
+  mapper_PE_prepare_io_buffers(parameters,
+      cuda_parameters->input_buffer_lines,&mapper_search->buffered_fasta_input_end1,
+      &mapper_search->buffered_fasta_input_end2,&mapper_search->buffered_output_file);
+  // Create search-pipeline & initialize matches
+  mapper_search->search_pipeline = search_pipeline_new(parameters,
+      mapper_search->gpu_buffer_collection,mapper_search->gpu_buffers_offset,true);
+  mapper_search->pending_search_region_profile_end1 = NULL;
+  mapper_search->pending_search_decode_candidates_end1 = NULL;
+  mapper_search->pending_search_verify_candidates_end1 = NULL;
+  // FASTA/FASTQ reading loop
+  mapper_search->reads_processed = 0;
+  while (!mapper_pe_cuda_stage_read_input_sequences_exhausted(mapper_search)) {
+    // Region Profile
+    mapper_pe_cuda_region_profile(mapper_search);
+    do {
+      // Decode Candidates
+      mapper_pe_cuda_decode_candidates(mapper_search);
+      do {
+        // Verify Candidates
+        mapper_pe_cuda_verify_candidates(mapper_search);
+        // Finish Search
+        mapper_pe_cuda_finish_search(mapper_search);
+      } while (!mapper_pe_cuda_stage_decode_candidates_output_exhausted(mapper_search));
+    } while (!mapper_pe_cuda_stage_region_profile_output_exhausted(mapper_search));
+  }
+  // Clean up
+  ticker_update_mutex(mapper_search->ticker,mapper_search->reads_processed); // Update processed
+  search_pipeline_delete(mapper_search->search_pipeline);
+  buffered_input_file_close(mapper_search->buffered_fasta_input_end1);
+  if (parameters->io.separated_input_files) {
+    buffered_input_file_close(mapper_search->buffered_fasta_input_end2);
+  }
+  buffered_output_file_close(mapper_search->buffered_output_file);
+  PROFILE_STOP(GP_MAPPER_CUDA_PE,PROFILE_LEVEL);
   pthread_exit(0);
 }

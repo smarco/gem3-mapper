@@ -90,6 +90,11 @@ void region_profile_generator_init(
   // Query state
   generator->key_position = key_length;
   region_profile_generator_restart(generator);
+  // Mappabiliy
+  generator->mappability_p_acc = 0.0;
+  generator->mappability_p_samples = 0;
+  generator->mappability_2p_acc = 0.0;
+  generator->mappability_2p_samples = 0;
 }
 void region_profile_generator_close_region(
     region_profile_generator_t* const generator,
@@ -144,14 +149,31 @@ void region_profile_generator_close_profile(
     region_search_t* const last_region = region_profile->filtering_region + (region_profile->num_filtering_regions-1);
     region_profile->max_region_length = MAX(region_profile->max_region_length,last_region->begin);
   }
+  // Compute Mappability
+  if (generator->mappability_p_samples > 0) {
+    region_profile->mappability_p = generator->mappability_p_acc / (double)(2*generator->mappability_p_samples);
+  }
+  if (generator->mappability_2p_samples > 0) {
+    region_profile->mappability_2p = generator->mappability_2p_acc / (double)(2*generator->mappability_2p_samples);
+  }
 }
 bool region_profile_generator_add_character(
-    region_profile_generator_t* const generator,const region_profile_model_t* const profile_model) {
+    region_profile_generator_t* const generator,
+    const region_profile_model_t* const profile_model,
+    const uint64_t proper_length) {
   // Region lookup status
-  ++(generator->region_length);
   const uint64_t lo = generator->lo;
   const uint64_t hi = generator->hi;
   const uint64_t num_candidates = hi-lo;
+  // Record Mappability
+  ++(generator->region_length);
+  if (generator->region_length == proper_length) {
+    if (num_candidates > 0) generator->mappability_p_acc += log2((double)num_candidates); // (x/2.0)
+    ++(generator->mappability_p_samples);
+  } else if (generator->region_length == 2*proper_length) {
+    if (num_candidates > 0) generator->mappability_2p_acc += log2((double)num_candidates); // (x/2.0)
+    ++(generator->mappability_2p_samples);
+  }
   // Check number of candidates
   gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
     fprintf(gem_log_get_stream()," %"PRIu64,num_candidates);
@@ -221,6 +243,8 @@ bool region_profile_generator_next_region(
     region_profile_t* const region_profile,region_profile_generator_t* const generator,
     const region_profile_model_t* const profile_model) {
   PROFILE_START(GP_REGION_PROFILE_ADAPTIVE,PROFILE_LEVEL);
+  // Parameters
+  const uint64_t proper_length = fm_index_get_proper_length(generator->fm_index);
   // Delimit regions
   while (generator->key_position > 0) {
     // Get next character
@@ -237,7 +261,7 @@ bool region_profile_generator_next_region(
       region_profile_query_character(generator->fm_index,
           &generator->rank_mquery,&generator->lo,&generator->hi,enc_char);
       // Add the character to the region profile
-      if (region_profile_generator_add_character(generator,profile_model)) {
+      if (region_profile_generator_add_character(generator,profile_model,proper_length)) {
         PROFILE_STOP(GP_REGION_PROFILE_ADAPTIVE,PROFILE_LEVEL);
         return true; // New region available
       }
@@ -266,6 +290,8 @@ void region_profile_generate_adaptive(
     fprintf(gem_log_get_stream(),"\n");
     tab_fprintf(gem_log_get_stream(),"[Trace]");
   }
+  // Parameters
+  const uint64_t proper_length = fm_index_get_proper_length(fm_index);
   // Init
   region_profile_generator_t generator;
   region_profile_generator_init(&generator,region_profile,fm_index,key,key_length,allowed_enc,allow_zero_regions);
@@ -286,7 +312,7 @@ void region_profile_generate_adaptive(
       // Rank query
       region_profile_query_character(generator.fm_index,&generator.rank_mquery,&generator.lo,&generator.hi,enc_char);
       // Add the character to the region profile
-      region_profile_generator_add_character(&generator,profile_model);
+      region_profile_generator_add_character(&generator,profile_model,proper_length);
     }
   }
   region_profile_generator_close_profile(&generator,profile_model);

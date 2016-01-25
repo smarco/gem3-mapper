@@ -28,8 +28,8 @@ uint64_t filtering_region_verify_multiple_hits(
 
 uint64_t filtering_region_verify_extension(
     vector_t* const filtering_regions,vector_t* const verified_regions,
-    const text_collection_t* const text_collection,
-    const uint64_t text_trace_offset,const uint64_t index_position,
-    search_parameters_t* const search_parameters,const pattern_t* const pattern);
+    const text_collection_t* const text_collection,const uint64_t text_trace_offset,
+    const uint64_t index_position,search_parameters_t* const search_parameters,
+    const pattern_t* const pattern);
 
 #endif /* FILTERING_REGION_VERIFY_H_ */

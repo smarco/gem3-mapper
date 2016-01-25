@@ -28,6 +28,7 @@ typedef struct {
   pair_relation_t pair_relation;       // Pair relation (concordant/discordant)
   pair_orientation_t pair_orientation; // Pair orientation (FR,RF,FF,RR)
   pair_layout_t pair_layout;           // Pair layout (pair_layout_separate,pair_layout_overlap,pair_layout_contain)
+  uint64_t index_position;             // Pair index position (only used for sorting purposes)
 } paired_map_t;
 
 /*

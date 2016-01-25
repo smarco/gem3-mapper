@@ -22,7 +22,6 @@ typedef struct {
   /* Parameters */
   mapper_parameters_t* mapper_parameters;
   /* I/O */
-  buffered_input_file_t* buffered_fasta_input;
   buffered_input_file_t* buffered_fasta_input_end1;
   buffered_input_file_t* buffered_fasta_input_end2;
   buffered_output_file_t* buffered_output_file;
@@ -31,9 +30,12 @@ typedef struct {
   uint64_t gpu_buffers_offset;
   /* Search Pipeline (and auxiliary variables) */
   search_pipeline_t* search_pipeline;
-  archive_search_t* pending_search_region_profile;
-  archive_search_t* pending_search_decode_candidates;
-  archive_search_t* pending_search_verify_candidates;
+  archive_search_t* pending_search_region_profile_end1;
+  archive_search_t* pending_search_region_profile_end2;
+  archive_search_t* pending_search_decode_candidates_end1;
+  archive_search_t* pending_search_decode_candidates_end2;
+  archive_search_t* pending_search_verify_candidates_end1;
+  archive_search_t* pending_search_verify_candidates_end2;
   /* Stats */
   mapping_stats_t* mapping_stats; // Per thread stats report structures
   /* Progress */

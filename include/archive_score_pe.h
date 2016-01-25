@@ -11,13 +11,8 @@
 
 #include "archive_search.h"
 #include "matches.h"
+#include "matches_predictors.h"
 
-/*
- * PE Score Categories
- */
-uint8_t archive_score_matches_pe_default_ties(matches_predictors_t* const predictors);
-uint8_t archive_score_matches_pe_default_mmap(matches_predictors_t* const predictors);
-uint8_t archive_score_matches_pe_default_unique(matches_predictors_t* const predictors);
 
 /*
  * Archive Scoring PE
