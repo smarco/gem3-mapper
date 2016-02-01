@@ -10,21 +10,22 @@
 /*
  * FM-Index Model & Version
  */
-#define FM_INDEX_MODEL_NO  1005ull
+#define FM_INDEX_MODEL_NO  1006ull
 
 /*
  * Builder
  */
 bwt_builder_t* fm_index_write(
-    fm_t* const file_manager,dna_text_t* const bwt_text,
-    uint64_t* const character_occurrences,sampled_sa_builder_t* const sampled_sa,
-    const bool check,const bool verbose) {
+    fm_t* const file_manager,const bool fm_index_reverse,
+    dna_text_t* const bwt_text,uint64_t* const character_occurrences,
+    sampled_sa_builder_t* const sampled_sa,const bool check,const bool verbose) {
   // Write Header
   const uint64_t text_length = dna_text_get_length(bwt_text);
   const uint64_t proper_length = log2(text_length)/2;
   fm_write_uint64(file_manager,FM_INDEX_MODEL_NO);
   fm_write_uint64(file_manager,text_length);
   fm_write_uint64(file_manager,proper_length);
+  fm_write_uint64(file_manager,fm_index_reverse);
   // Write Sampled-SA & Free Samples
   sampled_sa_builder_write(file_manager,sampled_sa);
   if (verbose) sampled_sa_builder_print(gem_info_get_stream(),sampled_sa);
@@ -74,32 +75,39 @@ fm_index_t* fm_index_read_mem(mm_t* const memory_manager,const bool check) {
   gem_cond_fatal_error(fm_index_model_no!=FM_INDEX_MODEL_NO,FM_INDEX_WRONG_MODEL_NO,fm_index_model_no,(uint64_t)FM_INDEX_MODEL_NO);
   fm_index->text_length = mm_read_uint64(memory_manager);
   fm_index->proper_length = mm_read_uint64(memory_manager);
+  fm_index->fm_index_reverse = mm_read_uint64(memory_manager);
   // Load Sampled SA
   fm_index->sampled_sa = sampled_sa_read_mem(memory_manager);
   // Load rank_mtable
   fm_index->rank_table = rank_mtable_read_mem(memory_manager);
   // Load BWT
   fm_index->bwt = bwt_read_mem(memory_manager,check);
-  // Load rank_mtable Reverse
-  fm_index->rank_table_reverse = rank_mtable_read_mem(memory_manager);
-  // Load BWT Reverse
-  fm_index->bwt_reverse = bwt_reverse_read_mem(memory_manager,check);
+  // Reverse Index
+  if (fm_index->fm_index_reverse) {
+    // Load rank_mtable Reverse
+    fm_index->rank_table_reverse = rank_mtable_read_mem(memory_manager);
+    // Load BWT Reverse
+    fm_index->bwt_reverse = bwt_reverse_read_mem(memory_manager,check);
+  } else {
+    fm_index->rank_table_reverse = NULL;
+    fm_index->bwt_reverse = NULL;
+  }
   // Return
   return fm_index;
-}
-bool fm_index_check(const fm_index_t* const fm_index,const bool verbose) {
-  GEM_NOT_IMPLEMENTED(); // TODO Implement
-  return true;
 }
 void fm_index_delete(fm_index_t* const fm_index) {
   // Delete Sampled SA
   sampled_sa_delete(fm_index->sampled_sa);
   // Delete rank_mtable
   rank_mtable_delete(fm_index->rank_table);
-  rank_mtable_delete(fm_index->rank_table_reverse);
+  if (fm_index->fm_index_reverse) {
+    rank_mtable_delete(fm_index->rank_table_reverse);
+  }
   // Delete BWT
   bwt_delete(fm_index->bwt);
-  bwt_reverse_delete(fm_index->bwt_reverse);
+  if (fm_index->fm_index_reverse) {
+    bwt_reverse_delete(fm_index->bwt_reverse);
+  }
   // Free handler
   mm_free(fm_index);
 }
@@ -116,9 +124,12 @@ double fm_index_get_proper_length(const fm_index_t* const fm_index) {
 uint64_t fm_index_get_size(const fm_index_t* const fm_index) {
   const uint64_t sampled_sa_size = sampled_sa_get_size(fm_index->sampled_sa); // Sampled SuffixArray positions
   const uint64_t bwt_size = bwt_get_size(fm_index->bwt); // BWT structure
-  const uint64_t bwt_reverse_size = bwt_reverse_get_size(fm_index->bwt_reverse); // BWT Reverse structure
+  const uint64_t bwt_reverse_size = (fm_index->fm_index_reverse) ?
+      bwt_reverse_get_size(fm_index->bwt_reverse) : 0; // BWT Reverse structure
   const uint64_t rank_table_size = rank_mtable_get_size(fm_index->rank_table); // Memoizated intervals
-  return sampled_sa_size + bwt_size + bwt_reverse_size + rank_table_size;
+  const uint64_t rank_table_reverse_size = (fm_index->fm_index_reverse) ?
+      rank_mtable_get_size(fm_index->rank_table_reverse) : 0; // Memoizated Reverse intervals
+  return sampled_sa_size + bwt_size + bwt_reverse_size + rank_table_size + rank_table_reverse_size;
 }
 /*
  * FM-Index High-level Operators

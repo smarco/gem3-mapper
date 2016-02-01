@@ -18,7 +18,7 @@
 /*
  * Archive Model & Version
  */
-#define ARCHIVE_MODEL_NO 5005ull
+#define ARCHIVE_MODEL_NO 5006ull
 
 /*
  * Archive
@@ -32,6 +32,7 @@ typedef struct {
   archive_type type;                // Archive type
   bool indexed_complement;          // RC indexed explicitly
   uint64_t ns_threshold;            // Stretches of Ns (|Ns| >= ns_threshold) are not indexed
+  bool indexed_reverse_text;        // Indexed reverse text (backwards text)
   // Locator
   locator_t* locator;               // Sequence Locator
   // Text

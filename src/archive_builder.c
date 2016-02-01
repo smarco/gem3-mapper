@@ -18,7 +18,8 @@ archive_builder_t* archive_builder_new(
     const archive_type type,const indexed_complement_t indexed_complement,
     const uint64_t complement_size_threshold,const uint64_t ns_threshold,
     const sampling_rate_t sa_sampling_rate,const sampling_rate_t text_sampling_rate,
-    const uint64_t num_threads,const uint64_t max_memory) {
+    const bool indexed_reverse_text,const uint64_t num_threads,
+    const uint64_t max_memory) {
   // Allocate
   archive_builder_t* const archive_builder = mm_alloc(archive_builder_t);
   /*
@@ -30,6 +31,7 @@ archive_builder_t* archive_builder_new(
   archive_builder->ns_threshold = ns_threshold;
   archive_builder->sa_sampling_rate = sa_sampling_rate;
   archive_builder->text_sampling_rate = text_sampling_rate;
+  archive_builder->indexed_reverse_text = indexed_reverse_text;
   /*
    * Misc
    */
@@ -43,8 +45,6 @@ archive_builder_t* archive_builder_new(
   input_multifasta_state_clear(&(archive_builder->parsing_state));
   // Locator
   archive_builder->locator = locator_builder_new(mm_pool_get_slab(mm_pool_2MB));
-  // Graph Components
-  // TODO archive_builder->graph = NULL; // Graph is optional
   // Text
   archive_builder->character_occurrences = mm_calloc(DNA_EXT_RANGE*DNA_EXT_RANGE,uint64_t,true);
   archive_builder->enc_rl_text = NULL; // RL-Text is optional
@@ -57,20 +57,21 @@ archive_builder_t* archive_builder_new(
 }
 void archive_builder_delete(archive_builder_t* const archive_builder) {
   ARCHIVE_BUILDER_CHECK(archive_builder);
+  // Close FM
+  fm_close(archive_builder->output_file_manager);
+  // Free Text(s)
+  if (archive_builder->enc_text!=NULL) {
+    dna_text_delete(archive_builder->enc_text);
+  }
+  if (archive_builder->enc_rl_text!=NULL) {
+    dna_text_delete(archive_builder->enc_rl_text);
+  }
+  dna_text_delete(archive_builder->enc_bwt);
   // Archive Components
   mm_free(archive_builder->character_occurrences);
   // Free handler
   mm_free(archive_builder);
 }
-//void archive_builder_write_graph__jump_table(archive_builder_t* const archive_builder,const bool display_links) {
-//  // Write Graph & Jump-Locator (if any)
-//  if (archive_builder->index_type == fm_dna_graph) {
-//    // Write Graph
-//    graph_text_builder_write(archive_builder->output_file_manager,archive_builder->graph,archive_builder->locator);
-//    graph_text_builder_link_table_print(gem_info_get_stream(),archive_builder->graph,archive_builder->locator,true); // DEBUG: Print sorted links
-//    graph_text_builder_delete(archive_builder->graph); // Free
-//  }
-//} // TODO: Graph
 /*
  * Archive Build STEP4 :: Create Index (FM-Index)
  *   1. Generate archive
@@ -88,6 +89,7 @@ void archive_builder_write_header(archive_builder_t* const archive_builder) {
   fm_write_uint64(archive_builder->output_file_manager,archive_builder->type);
   fm_write_uint64(archive_builder->output_file_manager,archive_builder->indexed_complement);
   fm_write_uint64(archive_builder->output_file_manager,archive_builder->ns_threshold);
+  fm_write_uint64(archive_builder->output_file_manager,archive_builder->indexed_reverse_text);
 }
 void archive_builder_write_locator(archive_builder_t* const archive_builder) {
   // Write Locator
@@ -96,24 +98,26 @@ void archive_builder_write_locator(archive_builder_t* const archive_builder) {
 void archive_builder_write_index(
     archive_builder_t* const archive_builder,
     const bool write_gpu_index,const bool check_index,const bool verbose) {
+  // Select proper text
+  dna_text_t* const enc_text = (archive_builder->enc_rl_text==NULL) ?
+      archive_builder->enc_text : archive_builder->enc_rl_text;
   // Write Text
   archive_text_write(archive_builder->output_file_manager,
-      archive_builder->enc_text,false,archive_builder->forward_text_length,
+      enc_text,false,archive_builder->forward_text_length,
       archive_builder->sampled_rl,verbose);
   if (archive_builder->sampled_rl!=NULL) sampled_rl_delete(archive_builder->sampled_rl); // Free
   // Create & write the FM-index
   bwt_builder_t* const bwt_builder = fm_index_write(
-      archive_builder->output_file_manager,archive_builder->enc_bwt,
-      archive_builder->character_occurrences,archive_builder->sampled_sa,
-      check_index,verbose);
+      archive_builder->output_file_manager,archive_builder->indexed_reverse_text,
+      archive_builder->enc_bwt,archive_builder->character_occurrences,
+      archive_builder->sampled_sa,check_index,verbose);
   // Create & write the GPU FM-Index
   if (write_gpu_index) {
     gpu_structures_write(
-        archive_builder->output_file_name_prefix,archive_builder->enc_text,
+        archive_builder->output_file_name_prefix,enc_text,
         archive_builder->forward_text_length,bwt_builder);
   }
   // Free
-  if (archive_builder->enc_rl_text!=NULL) dna_text_delete(archive_builder->enc_text);
   bwt_builder_delete(bwt_builder);
 }
 void archive_builder_write_index_reverse(
@@ -124,12 +128,5 @@ void archive_builder_write_index_reverse(
       archive_builder->output_file_manager,archive_builder->enc_bwt,
       archive_builder->character_occurrences,check_index,verbose);
   bwt_reverse_builder_delete(bwt_reverse_builder); // Free BWT-builder
-  fm_close(archive_builder->output_file_manager); // Close FM
-  if (archive_builder->enc_rl_text==NULL) {
-    dna_text_delete(archive_builder->enc_text); // Free
-  } else {
-    dna_text_delete(archive_builder->enc_rl_text); // Free
-  }
-  dna_text_delete(archive_builder->enc_bwt); // Free
 }
 

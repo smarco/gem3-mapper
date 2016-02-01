@@ -33,6 +33,7 @@ archive_t* archive_read_mem(mm_t* const memory_manager,const bool read_text_only
   archive->type = mm_read_uint64(archive->mm);
   archive->indexed_complement = mm_read_uint64(archive->mm);
   archive->ns_threshold = mm_read_uint64(archive->mm);
+  archive->indexed_reverse_text = mm_read_uint64(archive->mm);
   // Load archive::locator
   archive->locator = locator_read_mem(archive->mm);
   // Load archive::text
@@ -90,6 +91,8 @@ void archive_print(FILE* const stream,const archive_t* const archive) {
   tab_fprintf(stream,"  => Indexed.Complement %s\n",(archive->indexed_complement) ? "YES" : "NO");
   // Ns-Threshold
   tab_fprintf(stream,"  => Ns.Threshold %"PRIu64"\n",archive->ns_threshold);
+  // Index-Reverse-Text
+  tab_fprintf(stream,"  => Indexed.Reverse.Text %s\n",(archive->indexed_reverse_text) ? "YES" : "NO");
   /*
    * Size Display
    */

@@ -12,7 +12,7 @@
 /*
  * Archive-Text Model & Version
  */
-#define ARCHIVE_TEXT_MODEL_NO  1002ull
+#define ARCHIVE_TEXT_MODEL_NO  1006ull
 
 /*
  * Builder
@@ -23,12 +23,9 @@ void archive_text_write(
     sampled_rl_t* const sampled_rl,const bool verbose) {
   // Write Header (Meta-data)
   fm_write_uint64(file_manager,ARCHIVE_TEXT_MODEL_NO);
-  fm_write_uint64(file_manager,0ul); // fm_write_uint64(file_manager,(graph!=NULL) ? 1ul : 0ul); // TODO Hypertext
   fm_write_uint64(file_manager,(sampled_rl!=NULL) ? 1ul : 0ul); // RL-Text
   fm_write_uint64(file_manager,(explicit_complement) ? 1ul : 0ul); // Explicit RC-text
   fm_write_uint64(file_manager,forward_text_length); // Total length of the forward text
-  // Graph
-  // TODO
   // Text
   if (explicit_complement) {
     // Save all (except extra separator)
@@ -52,7 +49,6 @@ archive_text_t* archive_text_read_mem(mm_t* const memory_manager) {
   const uint64_t archive_text_model_no = mm_read_uint64(memory_manager);
   gem_cond_fatal_error(archive_text_model_no!=ARCHIVE_TEXT_MODEL_NO,
       ARCHIVE_TEXT_WRONG_MODEL_NO,archive_text_model_no,(uint64_t)ARCHIVE_TEXT_MODEL_NO);
-  mm_read_uint64(memory_manager); // Hypertext
   archive_text->run_length = (mm_read_uint64(memory_manager)==1); // RL-Text
   archive_text->explicit_complement = (mm_read_uint64(memory_manager)==1); // Explicit RC-text
   archive_text->forward_text_length = mm_read_uint64(memory_manager); // Total length of the forward text

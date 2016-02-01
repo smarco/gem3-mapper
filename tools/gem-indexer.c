@@ -39,6 +39,7 @@ typedef struct {
   uint64_t ns_threshold;
   indexed_complement_t index_complement;
   uint64_t complement_size_threshold;
+  bool indexed_reverse_text;
   /* Index */
   sampling_rate_t sa_sampling_rate;
   sampling_rate_t text_sampling_rate;
@@ -74,6 +75,7 @@ void indexer_parameters_set_defaults(indexer_parameters_t* const parameters) {
   parameters->ns_threshold=50;
   parameters->index_complement=index_complement_yes;
   parameters->complement_size_threshold=BUFFER_SIZE_8G;
+  parameters->indexed_reverse_text = false;
   /* Index */
   parameters->sa_sampling_rate=SAMPLING_RATE_32;
   parameters->text_sampling_rate=SAMPLING_RATE_4;
@@ -183,13 +185,6 @@ void indexer_debug_check_bwt(char* const file_name,dna_text_t* const index_text)
 void indexer_process_multifasta(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
   // Process input MultiFASTA
   input_file_t* const input_multifasta = input_file_open(parameters->input_multifasta_file_name,BUFFER_SIZE_32M,false);
-//  if (parameters->input_graph_file_name!=NULL) {
-//    input_file_t* const input_graph = input_file_open(parameters->input_graph_file_name,BUFFER_SIZE_32M,false);
-////    archive_builder_process_graph(archive_builder,input_graph,parameters->dump_graph_links,parameters->verbose);
-////    archive_builder_process_multifasta__graph(archive_builder,input_multifasta,
-////        parameters->dump_locator_intervals,parameters->dump_indexed_text,parameters->dump_graph_links,parameters->verbose);
-//    input_file_close(input_graph); // Close MultiFASTA
-//  }
   // Process MFASTA
   archive_builder_text_process(archive_builder,input_multifasta,
       parameters->dump_locator_intervals,parameters->dump_indexed_text,parameters->verbose);
@@ -265,6 +260,7 @@ option_t gem_indexer_options[] = {
 #ifdef HAVE_CUDA
   { 300, "gpu-index", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_ADVANCED, "" , "(default=true)" },
 #endif
+  { 301, "index-backward-text", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_ADVANCED, "" , "(default=false)" },
   // TODO { 300, "autotune-index-size", REQUIRED, TYPE_STRING, 5 , VISIBILITY_USER, "<index-size>" , "(Eg 2GB)" },
   /* Debug */
   { 400, "dump-locator-intervals", OPTIONAL, TYPE_NONE, 4 , VISIBILITY_ADVANCED, "" , "" },
@@ -370,6 +366,9 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
       parameters->gpu_index = (optarg) ? options_parse_bool(optarg) : true;
       break;
 #endif
+    case 301: // --index-backward-text
+      parameters->indexed_reverse_text = (optarg) ? options_parse_bool(optarg) : true;
+      break;
     /* Debug/Temporal */
     case 400: // --dump-locator-intervals
       parameters->dump_locator_intervals = (optarg) ? options_parse_bool(optarg) : true;
@@ -503,8 +502,8 @@ int main(int argc,char** argv) {
       parameters.output_index_file_name_prefix,type,
       parameters.index_complement,parameters.complement_size_threshold,
       parameters.ns_threshold,parameters.sa_sampling_rate,
-      parameters.text_sampling_rate,parameters.num_threads,
-      parameters.max_memory);
+      parameters.text_sampling_rate,parameters.indexed_reverse_text,
+      parameters.num_threads,parameters.max_memory);
 
   // Process MultiFASTA
   indexer_process_multifasta(archive_builder,&parameters);
@@ -514,8 +513,10 @@ int main(int argc,char** argv) {
   indexer_write_index(archive_builder,&parameters); // Write Index
 
   // Generate BWT reverse
-  indexer_generate_bwt_reverse(archive_builder,&parameters);
-  indexer_write_index_reverse(archive_builder,&parameters); // Write Index Reverse
+  if (parameters.indexed_reverse_text) {
+    indexer_generate_bwt_reverse(archive_builder,&parameters);
+    indexer_write_index_reverse(archive_builder,&parameters); // Write Index Reverse
+  }
 
   /*
    * Display end banner

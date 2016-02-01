@@ -44,6 +44,7 @@ typedef struct {
   indexed_complement_t indexed_complement; // Forces the storage of the RC
   uint64_t complement_size_threshold;      // Maximum text size allowed to store the RC
   uint64_t ns_threshold;                   // Minimum length of a stretch of Ns to be removed
+  bool indexed_reverse_text;               // Indexed reverse text (backwards text)
   /*
    * Archive Components
    */
@@ -53,8 +54,6 @@ typedef struct {
   sa_builder_t* sa_builder;                 // SA-Builder
   /* Locator */
   locator_builder_t* locator;               // Sequence locator (from MultiFASTA)
-  /* Graph Components */
-  // TODO graph_text_builder_t* graph;              // Graph structure
   /* Text */
   uint64_t forward_text_length;             // Length of the forward text
   dna_text_t* enc_text;                     // Encoded Input Text (from MultiFASTA)
@@ -87,7 +86,8 @@ archive_builder_t* archive_builder_new(
     const archive_type type,const indexed_complement_t indexed_complement,
     const uint64_t complement_size_threshold,const uint64_t ns_threshold,
     const sampling_rate_t sa_sampling_rate,const sampling_rate_t text_sampling_rate,
-    const uint64_t num_threads,const uint64_t max_memory);
+    const bool indexed_reverse_text,const uint64_t num_threads,
+    const uint64_t max_memory);
 void archive_builder_delete(archive_builder_t* const archive_builder);
 
 /*

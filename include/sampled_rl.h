@@ -23,7 +23,7 @@
  * Constants
  */
 #define SAMPLED_RL_MAX_RUN_LENGTH  5
-#define SAMPLED_RL_SAMPLING_RATE  (1<<6)   /* 2^6=64 (HG => 460 MB)*/
+#define SAMPLED_RL_SAMPLING_RATE   100
 
 /*
  * Sampled Run-Length
