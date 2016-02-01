@@ -34,9 +34,8 @@ typedef struct {
   /* K-mers counting */
   kmer_counting_t kmer_counting;
   /* Pattern BitVector-Encoded (Myers-DP) */
-  bpm_pattern_t bpm_pattern;
-  /* SWG query profile */
-  swg_query_profile_t swg_query_profile; // FIXME Remove me
+  bpm_pattern_t* bpm_pattern;
+  bpm_pattern_t* bpm_pattern_tiles;
 } pattern_t;
 
 /*
@@ -63,10 +62,15 @@ typedef struct {
 } pattern_tiled_t;
 
 /*
+ * Constants
+ */
+#define PATTERN_BPM_WORDS64_PER_TILE 1
+
+/*
  * Pattern Prepare
  */
-void pattern_prepare(
-    sequence_t* const sequence,pattern_t* const pattern,region_profile_t* const region_profile,
+void pattern_init(
+    pattern_t* const pattern,sequence_t* const sequence,
     const as_parameters_t* const actual_parameters,const bool prepare_rl_pattern,
     bool* const do_quality_search,mm_stack_t* const mm_stack);
 void pattern_clear(pattern_t* const pattern);
@@ -81,6 +85,14 @@ bool pattern_tiled_init(
     const uint64_t sequence_length,const uint64_t max_error);
 void pattern_tiled_calculate_next(pattern_tiled_t* const pattern_tiled);
 uint64_t pattern_tiled_bound_matching_path(pattern_tiled_t* const pattern_tiled);
+
+/*
+ * Pattern Trimmed
+ */
+void pattern_trimmed_init(
+    pattern_t* const pattern,bpm_pattern_t** const bpm_pattern_trimmed,
+    bpm_pattern_t** const bpm_pattern_trimmed_tiles,const uint64_t key_trim_left,
+    const uint64_t key_trim_right,mm_stack_t* const mm_stack);
 
 /*
  * Display

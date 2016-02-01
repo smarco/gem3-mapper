@@ -115,13 +115,17 @@ uint64_t archive_search_pe_extend_matches(
     extended_matches = matches_end2;
     candidate_matches = matches_end1;
   }
-  filtering_candidates_t* const filtering_candidates = candidate_archive_search->forward_search_state.filtering_candidates;
+  filtering_candidates_t* const filtering_candidates =
+      candidate_archive_search->forward_search_state.filtering_candidates;
   pattern_t* const pattern = &candidate_archive_search->forward_search_state.pattern;
   text_collection_t* const text_collection = candidate_archive_search->text_collection;
   mm_stack_t* const mm_stack = candidate_archive_search->mm_stack;
   uint64_t total_matches_found = 0;
   // Iterate over all matches of the extended end
+//  const uint64_t first_stratum_distance = matches_get_match_trace_buffer(extended_matches)[0].distance;
   VECTOR_ITERATE(extended_matches->position_matches,extended_match,en,match_trace_t) {
+//    if (extended_match->distance > first_stratum_distance) break; // Break beyond first stratum
+    if (extended_match->type == match_type_extended) continue;    // Skip matches retrieve from extension
     if (search_paired_parameters->pair_orientation[pair_orientation_FR] == pair_relation_concordant) {
       // Extend (filter nearby region)
       PROF_INC_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_NUM_MATCHES);

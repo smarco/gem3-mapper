@@ -37,36 +37,32 @@ void asearch_control_next_state_read_recovery(
 void asearch_control_next_state_exact_filtering_adaptive(
     approximate_search_t* const search,matches_t* const matches) {
   // Select state
+  search_parameters_t* const search_parameters = search->as_parameters->search_parameters;
   switch (search->processing_state) {
     case asearch_processing_state_no_regions:
-      search->search_stage = asearch_stage_filtering_boost;
-      break;
+      search->search_stage = asearch_stage_end;
+      return;
     case asearch_processing_state_exact_matches:
       PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MAPPED,1);
       PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,1);
-      search->search_stage = asearch_stage_end;
       break;
     case asearch_processing_state_candidates_verified:
       PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MAPPED,matches_is_mapped(matches)?1:0);
       PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,search->max_complete_stratum);
-      if (asearch_control_trigger_boost(search,matches)) {
-        search->search_stage = asearch_stage_filtering_boost;
-      } else {
-        search->search_stage = asearch_stage_end;
-      }
       break;
     default:
       GEM_INVALID_CASE();
       break;
   }
-}
-void asearch_control_next_state_exact_filtering_boost(
-    approximate_search_t* const search,matches_t* const matches) {
-  search_parameters_t* const search_parameters = search->as_parameters->search_parameters;
-  if (matches_is_mapped(matches) || search_parameters->unbounded_alignment==unbounded_alignment_never) {
+  // Unbounded alignment
+  if (search_parameters->unbounded_alignment==unbounded_alignment_never) {
     search->search_stage = asearch_stage_end;
-  } else {
-    search->search_stage = asearch_stage_unbounded_alignment;
+  } else { // unbounded_alignment_if_unmapped
+    if (matches_is_mapped(matches)) {
+      search->search_stage = asearch_stage_end;
+    } else {
+      search->search_stage = asearch_stage_unbounded_alignment;
+    }
   }
 }
 /*
@@ -139,17 +135,12 @@ void approximate_search_filtering_adaptive(approximate_search_t* const search,ma
         }
         asearch_control_next_state_exact_filtering_adaptive(search,matches); // Next State
         break;
-      case asearch_stage_filtering_boost:
-        //approximate_search_exact_filtering_boost(search,matches); // FIXME
-        //asearch_control_next_state_exact_filtering_boost(search,matches); // FIXME
-        search->search_stage = asearch_stage_end;
-        break;
 //      case asearch_stage_neighborhood:
 //        approximate_search_neighborhood_search(search,matches);
 //        search->search_stage = asearch_stage_end; // Next State
 //        break;
       case asearch_stage_unbounded_alignment: // Unbounded alignments
-        //approximate_search_unbounded_align(search,matches); // FIXME
+//        approximate_search_unbounded_align(search,matches);
         search->search_stage = asearch_stage_end; // Next State
         break;
       case asearch_stage_end:

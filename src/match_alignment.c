@@ -9,7 +9,26 @@
 #include "match_alignment.h"
 
 /*
- * Display Alignment pretty
+ * Region Matching
+ */
+uint64_t region_matching_text_coverage(region_matching_t* const region_matching) {
+  return region_matching->text_end - region_matching->text_begin;
+}
+uint64_t region_matching_text_distance(
+    region_matching_t* const region_matching_a,region_matching_t* const region_matching_b) {
+  return region_matching_b->text_begin - region_matching_a->text_end;
+}
+bool region_matching_text_overlap(
+    region_matching_t* const region_matching_a,region_matching_t* const region_matching_b) {
+  return !(region_matching_a->text_end <= region_matching_b->text_begin ||
+           region_matching_b->text_end <= region_matching_a->text_begin);
+}
+int region_matching_key_cmp(
+    region_matching_t* const region_matching_a,region_matching_t* const region_matching_b) {
+  return (int)region_matching_a->key_begin - (int)region_matching_b->key_begin;
+}
+/*
+ * Display
  */
 void match_alignment_print_pretty(
     FILE* const stream,match_alignment_t* const match_alignment,
@@ -89,5 +108,5 @@ void match_alignment_print_pretty(
   tab_fprintf(stream,"        %s  \n",ops_alg);
   tab_fprintf(stream,"   TXT--%s--\n",text_alg);
   tab_global_dec();
-  mm_stack_pop_state(mm_stack,false);
+  mm_stack_pop_state(mm_stack);
 }

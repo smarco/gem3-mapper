@@ -95,12 +95,12 @@ void approximate_search_verify_candidates_buffered_retrieve(
       gpu_buffer_align_bpm,candidate_offset_begin,candidate_offset_end,search->mm_stack);
   if (num_accepted_regions > 0) {
     // Realign
-    PROFILE_START(GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS,PROFILE_LEVEL);
+    PROFILE_START(GP_FC_REALIGN_CANDIDATE_REGIONS_BUFFERED,PROFILE_LEVEL);
     filtering_candidates_align_candidates(
         search->filtering_candidates,search->archive->text,search->archive->locator,
         search->text_collection,&search->pattern,search->emulated_rc_search,
         search->as_parameters,true,false,matches,search->mm_stack);
-    PROFILE_STOP(GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS,PROFILE_LEVEL);
+    PROFILE_STOP(GP_FC_REALIGN_CANDIDATE_REGIONS_BUFFERED,PROFILE_LEVEL);
   }
   // Update state
   search->processing_state = asearch_processing_state_candidates_verified;

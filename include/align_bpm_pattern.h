@@ -24,11 +24,9 @@ typedef struct _bpm_pattern_t bpm_pattern_t;
 struct _bpm_pattern_t {
   /* BMP Pattern */
   uint64_t* PEQ;              // Pattern equalities (Bit vector for Myers-DP)
-  uint64_t pattern_word_size; // Word size (in bytes)
   uint64_t pattern_length;    // Length
   uint64_t pattern_num_words; // ceil(Length / |w|)
   uint64_t pattern_mod;       // Length % |w|
-  uint64_t PEQ_length;        // ceil(Length / |w|) * |w|
   /* BPM Auxiliary data */
   uint64_t* P;
   uint64_t* M;
@@ -36,15 +34,13 @@ struct _bpm_pattern_t {
   int64_t* score;
   int64_t* init_score;
   uint64_t* pattern_left;
-  /* BPM tiles (Pattern split in tiles) */
-  uint64_t words_per_tile;
-  uint64_t num_pattern_tiles;
   /* BPM-GPU Dimensions */
   uint64_t gpu_num_entries;
   uint64_t gpu_num_tiles;
   uint64_t gpu_entries_per_tile;
-  bool pattern_tiles_compiled;
-  bpm_pattern_t* bpm_pattern_tiles;
+  /* BPM tiles (Pattern split in tiles) */
+  uint64_t words_per_tile;
+  uint64_t num_pattern_tiles;
 };
 
 /*
@@ -56,15 +52,14 @@ struct _bpm_pattern_t {
 /*
  * Compile Pattern
  */
-void bpm_pattern_compile(
-    bpm_pattern_t* const bpm_pattern,uint8_t* const pattern,
-    const uint64_t pattern_length,const uint64_t max_error,
-    mm_stack_t* const mm_stack);
+bpm_pattern_t* bpm_pattern_compile(
+    uint8_t* const pattern,const uint64_t pattern_length,
+    const uint64_t max_error,mm_stack_t* const mm_stack);
 
 /*
  * Compile Pattern Tiles
  */
-void bpm_pattern_compile_tiles(
+bpm_pattern_t* bpm_pattern_compile_tiles(
     bpm_pattern_t* const bpm_pattern,uint64_t words64_per_tile,
     const uint64_t max_error,mm_stack_t* const mm_stack);
 

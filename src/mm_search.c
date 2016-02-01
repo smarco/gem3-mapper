@@ -38,7 +38,7 @@ void mm_search_clear(mm_search_t* const mm_search) {
   filtering_candidates_clear(&mm_search->filtering_candidates_reverse_end2);
   text_collection_clear(&mm_search->text_collection);
   interval_set_clear(&mm_search->interval_set);
-  mm_stack_free(mm_search->mm_stack);
+  mm_stack_clear(mm_search->mm_stack);
 }
 void mm_search_delete(mm_search_t* const mm_search) {
   filtering_candidates_destroy(&mm_search->filtering_candidates_forward_end1);

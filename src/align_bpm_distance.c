@@ -146,7 +146,8 @@ bool bpm_compute_edit_distance(
     const uint8_t* const text,const uint64_t text_length,
     uint64_t* const match_distance,uint64_t* const match_column,
     const uint64_t max_distance,const bool quick_abandon) {
-  PROF_START(GP_BPM_COMPUTE_EDIT_DISTANCE);
+  PROF_START(GP_BPM_DISTANCE);
+  PROF_ADD_COUNTER(GP_BPM_DISTANCE_CELLS,bpm_pattern->pattern_length*text_length);
   // Pattern variables
   const uint64_t* PEQ = bpm_pattern->PEQ;
   const uint64_t num_words = bpm_pattern->pattern_num_words;
@@ -228,8 +229,8 @@ bool bpm_compute_edit_distance(
         current_score+pattern_left[top_level] > text_left+max_distance) {
       // Quick abandon, it doesn't match (bounded by best case scenario)
       // TODO Test if (abandon_cond() && min_score!=ALIGN_DISTANCE_INF) return best_distace_score;
-      PROF_STOP(GP_BPM_COMPUTE_EDIT_DISTANCE);
-      PROF_INC_COUNTER(GP_BPM_QUICK_ABANDON);
+      PROF_STOP(GP_BPM_DISTANCE);
+      PROF_INC_COUNTER(GP_BPM_DISTANCE_QUICK_ABANDON);
       *match_distance = ALIGN_DISTANCE_INF;
       return false;
     }
@@ -238,11 +239,11 @@ bool bpm_compute_edit_distance(
   if (min_score!=ALIGN_DISTANCE_INF) {
     *match_distance = min_score;
     *match_column = min_score_column;
-    PROF_STOP(GP_BPM_COMPUTE_EDIT_DISTANCE);
+    PROF_STOP(GP_BPM_DISTANCE);
     return true;
   } else {
     *match_distance = ALIGN_DISTANCE_INF;
-    PROF_STOP(GP_BPM_COMPUTE_EDIT_DISTANCE);
+    PROF_STOP(GP_BPM_DISTANCE);
     return false;
   }
 }
@@ -252,12 +253,13 @@ bool bpm_compute_edit_distance(
 void bpm_compute_edit_distance_tiled(
     bpm_pattern_t* const bpm_pattern,const uint8_t* const text,
     const uint64_t text_length,uint64_t* const match_distance,
-    uint64_t* const match_column,const uint64_t max_error) {
-  PROF_START(GP_BPM_TILED);
+    uint64_t* const match_column,const uint64_t max_error,
+    mm_stack_t* const mm_stack) {
+  PROF_START(GP_BPM_DISTANCE_TILED);
   // Fetch pattern dimensions
   const uint64_t num_pattern_tiles = bpm_pattern->num_pattern_tiles;
   const uint64_t words_per_tile =  bpm_pattern->words_per_tile;
-  PROF_ADD_COUNTER(GP_BMP_TILED_NUM_TILES,num_pattern_tiles);
+  PROF_ADD_COUNTER(GP_BMP_DISTANCE_TILED_NUM_TILES,num_pattern_tiles);
   // Calculate tile dimensions
   pattern_tiled_t pattern_tiled;
   const bool pattern_can_align = pattern_tiled_init(&pattern_tiled,
@@ -265,15 +267,16 @@ void bpm_compute_edit_distance_tiled(
   if (!pattern_can_align) {
     *match_distance = ALIGN_DISTANCE_INF;
     *match_column = ALIGN_COLUMN_INF;
-    PROF_STOP(GP_BPM_TILED);
+    PROF_STOP(GP_BPM_DISTANCE_TILED);
     return;
   }
   // Initialize current tile variables
+  bpm_pattern_t* const bpm_pattern_tiles = bpm_pattern_compile_tiles(bpm_pattern,1,max_error,mm_stack);
   uint64_t tile_offset, global_distance = 0, distance_link_tiles = 0;
   for (tile_offset=0;tile_offset<num_pattern_tiles;++tile_offset) {
-    PROF_ADD_COUNTER(GP_BMP_TILED_NUM_TILES_VERIFIED,1);
+    PROF_ADD_COUNTER(GP_BMP_DISTANCE_TILED_NUM_TILES_VERIFIED,1);
     // BPM Cut-off
-    bpm_compute_edit_distance(bpm_pattern->bpm_pattern_tiles+tile_offset,
+    bpm_compute_edit_distance(bpm_pattern_tiles+tile_offset,
         text+pattern_tiled.tile_offset,pattern_tiled.tile_wide,
         &pattern_tiled.tile_distance,&pattern_tiled.tile_match_column,
         max_error,false);
@@ -282,7 +285,7 @@ void bpm_compute_edit_distance_tiled(
     if (global_distance > max_error) {
       *match_distance = ALIGN_DISTANCE_INF;
       *match_column = ALIGN_COLUMN_INF;
-      PROF_STOP(GP_BPM_TILED);
+      PROF_STOP(GP_BPM_DISTANCE_TILED);
       return;
     }
     // Bound the joint distance by estimating the cost of connecting the path through the tiles
@@ -309,7 +312,7 @@ void bpm_compute_edit_distance_tiled(
         "Single.Tile.Distance=%"PRIu64" < Tiles.Bound.Distance=%"PRIu64")",
         check_distance,*match_distance);
   }
-  PROF_STOP(GP_BPM_TILED);
+  PROF_STOP(GP_BPM_DISTANCE_TILED);
 }
 /*
  * BPM all matches

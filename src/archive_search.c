@@ -82,14 +82,14 @@ void archive_search_prepare_sequence(archive_search_t* const archive_search) {
   // Generate the pattern(s)
   const bool prepare_rl_pattern = archive_search->archive->text->run_length;
   approximate_search_t* const forward_search_state = &archive_search->forward_search_state;
-  pattern_prepare(&archive_search->sequence,&forward_search_state->pattern,
-      &forward_search_state->region_profile,forward_search_state->as_parameters,
-      prepare_rl_pattern,&forward_search_state->do_quality_search,archive_search->mm_stack);
+  pattern_init(&forward_search_state->pattern,&archive_search->sequence,
+      forward_search_state->as_parameters,prepare_rl_pattern,
+      &forward_search_state->do_quality_search,archive_search->mm_stack);
   if (archive_search->emulate_rc_search) {
     approximate_search_t* const reverse_search_state = &archive_search->reverse_search_state;
-    pattern_prepare(&archive_search->rc_sequence,&reverse_search_state->pattern,
-        &reverse_search_state->region_profile,reverse_search_state->as_parameters,
-        prepare_rl_pattern,&reverse_search_state->do_quality_search,archive_search->mm_stack);
+    pattern_init(&reverse_search_state->pattern,&archive_search->rc_sequence,
+        reverse_search_state->as_parameters,prepare_rl_pattern,
+        &reverse_search_state->do_quality_search,archive_search->mm_stack);
   } else {
     pattern_clear(&archive_search->reverse_search_state.pattern);
   }

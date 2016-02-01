@@ -16,7 +16,6 @@
 
 /*
  * BPM. Compute BPM-DP-Matrix
- *   @align_input->key
  *   @align_input->bpm_pattern
  *   @align_input->text
  *   @align_input->text_length
@@ -35,7 +34,7 @@ void align_bpm_compute_matrix(
   int64_t* const score = bpm_pattern->score;
   const int64_t* const init_score = bpm_pattern->init_score;
   // Allocate auxiliary matrix
-  const uint64_t aux_matrix_size = num_words*bpm_pattern->pattern_word_size*(text_length+1); /* (+1 base-column) */
+  const uint64_t aux_matrix_size = num_words*BPM_ALIGN_WORD_SIZE*(text_length+1); /* (+1 base-column) */
   uint64_t* const Pv = (uint64_t*)mm_stack_malloc(mm_stack,aux_matrix_size);
   uint64_t* const Mv = (uint64_t*)mm_stack_malloc(mm_stack,aux_matrix_size);
   bpm_align_matrix->Mv = Mv;
@@ -118,7 +117,6 @@ void align_bpm_compute_matrix(
 /*
  * BPM. Recover CIGAR from a matching string
  *   @align_input->key
- *   @align_input->key_length
  *   @align_input->bpm_pattern
  *   @align_input->text
  *   @bpm_align_matrix->Pv
@@ -132,22 +130,22 @@ void align_bpm_backtrace_matrix(
     vector_t* const cigar_vector) {
   // Parameters
   const uint8_t* const key = align_input->key;
-  const uint64_t key_length = align_input->key_length;
   const bpm_pattern_t* const bpm_pattern = align_input->bpm_pattern;
+  const uint64_t pattern_length = bpm_pattern->pattern_length;
   uint8_t* const text = align_input->text;
   const uint64_t* const Pv = bpm_align_matrix->Pv;
   const uint64_t* const Mv = bpm_align_matrix->Mv;
   // Allocate CIGAR string memory (worst case)
   match_alignment->cigar_offset = vector_get_used(cigar_vector); // Set CIGAR offset
-  vector_reserve_additional(cigar_vector,MIN(key_length,2*bpm_align_matrix->min_score+1)); // Reserve
+  vector_reserve_additional(cigar_vector,MIN(pattern_length,2*bpm_align_matrix->min_score+1)); // Reserve
   cigar_element_t* cigar_buffer = vector_get_free_elm(cigar_vector,cigar_element_t); // Sentinel
   cigar_element_t* const cigar_buffer_base = cigar_buffer;
   cigar_buffer->type = cigar_null; // Trick
   // Retrieve the alignment. Store the match
   const uint64_t num_words = bpm_pattern->pattern_num_words;
-  int64_t match_effective_length = key_length;
+  int64_t match_effective_length = pattern_length;
   int64_t h = bpm_align_matrix->min_score_column;
-  int64_t v = key_length - 1;
+  int64_t v = pattern_length - 1;
   while (v >= 0 && h >= 0) {
     const uint8_t block = v / UINT64_LENGTH;
     const uint64_t bdp_idx = BPM_PATTERN_BDP_IDX(h+1,num_words,block);
@@ -245,11 +243,11 @@ void align_bpm_match(
   match_alignment->score = bpm_align_matrix.min_score;
   if (bpm_align_matrix.min_score == ALIGN_DISTANCE_INF) {
     match_alignment->cigar_length = 0;
-    mm_stack_pop_state(mm_stack,false); // Free
+    mm_stack_pop_state(mm_stack); // Free
     return;
   }
   // Backtrace and generate CIGAR
   align_bpm_backtrace_matrix(align_input,left_gap_alignment,&bpm_align_matrix,match_alignment,cigar_vector);
   // Free
-  mm_stack_pop_state(mm_stack,false);
+  mm_stack_pop_state(mm_stack);
 }

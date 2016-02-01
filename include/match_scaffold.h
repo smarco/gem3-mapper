@@ -49,21 +49,6 @@ bool match_scaffold_is_null(match_scaffold_t* const match_scaffold);
 
 /*
  * Adaptive Scaffolding of the alignment (Best effort)
- *   @align_input->key
- *   @align_input->key_length
- *   @align_input->bpm_pattern
- *   @align_input->text_position
- *   @align_input->text
- *   @align_input->text_length
- *   @align_input->text_offset_begin
- *   @align_input->text_offset_end
- *   @align_parameters->max_error
- *   @align_parameters->left_gap_alignment
- *   @align_parameters->scaffolding_min_coverage
- *   @align_parameters->scaffolding_matching_min_length
- *   @align_parameters->scaffolding_homopolymer_min_context
- *   @match_scaffold->num_scaffold_regions
- *   @match_scaffold->scaffold_regions
  */
 void match_scaffold_adaptive(
     matches_t* const matches,match_align_input_t* const align_input,

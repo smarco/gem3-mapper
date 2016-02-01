@@ -47,20 +47,20 @@ uint8_t archive_score_matches_se_default_ties(matches_predictors_t* const predic
   // Classify ties
   const double pr = matches_classify_logit_ties(predictors,&logit_model_single_end_default);
   if (pr < MATCHES_MIN_CI) return 0;
-  if (pr < MATCHES_TIES_CI) return 1;
-  return archive_score_probability_scale(pr-MATCHES_TIES_CI,1.-MATCHES_TIES_CI,2,29);
+  if (pr < MATCHES_TIES_CI) return 2;
+  return archive_score_probability_scale(pr-MATCHES_TIES_CI,1.-MATCHES_TIES_CI,3,29);
 }
 uint8_t archive_score_matches_se_default_mmap(matches_predictors_t* const predictors) {
   // Classify multimaps
   const double pr = matches_classify_logit_mmaps(predictors,&logit_model_single_end_default);
   if (pr < MATCHES_MIN_CI) return 0;
-  if (pr < MATCHES_MMAPS_CI) return 1;
+  if (pr < MATCHES_MMAPS_CI) return 2;
   return archive_score_probability_scale(pr-MATCHES_MMAPS_CI,1.-MATCHES_MMAPS_CI,30,49);
 }
 uint8_t archive_score_matches_se_default_unique(matches_predictors_t* const predictors) {
   const double pr = matches_classify_logit_unique(predictors,&logit_model_single_end_default);
   if (pr < MATCHES_MIN_CI) return 0;
-  if (pr < MATCHES_UNIQUE_CI) return 1;
+  if (pr < MATCHES_UNIQUE_CI) return 2;
   return archive_score_probability_scale(pr-MATCHES_UNIQUE_CI,1.-MATCHES_UNIQUE_CI,50,60);
 }
 /*
@@ -84,41 +84,45 @@ void archive_score_matches_se_stratify(archive_search_t* const archive_search,ma
    *   1         Ambiguous (not enough resolution mcs <= 1)
    *   0         Subdominant
    */
-  // Score subdominant matches (MAPQ=0)
+  // Parameters
+  matches_predictors_t predictors;
   match_trace_t* const match = matches_get_match_trace_buffer(matches);
   const uint64_t num_matches = matches_get_num_match_traces(matches);
   uint64_t i;
+  // Score subdominant matches (MAPQ=0)
   for (i=0;i<num_matches;++i) match[i].mapq_score = 0;
   // Compute TP prob
-  const matches_class_t matches_class = matches->matches_class;
-  matches_predictors_t predictors;
-  switch (matches_class) {
-    case matches_class_unmapped:
-      break;
-    case matches_class_tie_d0:
-      match[0].mapq_score = 2;
-      break;
-    case matches_class_tie_d1: {
-      archive_search_se_compute_predictors(archive_search,matches,&predictors);
-      const double pr = matches_classify_logit_ties(&predictors,&logit_model_single_end_default);
-      match[0].mapq_score = (pr >= 0.90) ? 80 + (uint8_t)((pr-0.90)*500.0) : 79;
-      break;
+  if (match[0].type == match_type_local) {
+    match[0].mapq_score = 1;
+  } else {
+    switch (matches->matches_class) {
+      case matches_class_unmapped:
+        break;
+      case matches_class_tie_d0:
+        match[0].mapq_score = 2;
+        break;
+      case matches_class_tie_d1: {
+        archive_search_se_compute_predictors(archive_search,matches,&predictors);
+        const double pr = matches_classify_logit_ties(&predictors,&logit_model_single_end_default);
+        match[0].mapq_score = (pr >= 0.90) ? 80 + (uint8_t)((pr-0.90)*500.0) : 79;
+        break;
+      }
+      case matches_class_mmap: {
+        archive_search_se_compute_predictors(archive_search,matches,&predictors);
+        const double pr = matches_classify_logit_mmaps(&predictors,&logit_model_single_end_default);
+        match[0].mapq_score = (pr >= 0.90) ? 140 + (uint8_t)((pr-0.90)*500.0) : 139;
+        break;
+      }
+      case matches_class_unique: {
+        archive_search_se_compute_predictors(archive_search,matches,&predictors);
+        const double pr = matches_classify_logit_unique(&predictors,&logit_model_single_end_default);
+        match[0].mapq_score = (pr >= 0.90) ? 200 + (uint8_t)((pr-0.95)*1000.0) : 199;
+        break;
+      }
+      default:
+        GEM_INVALID_CASE();
+        break;
     }
-    case matches_class_mmap: {
-      archive_search_se_compute_predictors(archive_search,matches,&predictors);
-      const double pr = matches_classify_logit_mmaps(&predictors,&logit_model_single_end_default);
-      match[0].mapq_score = (pr >= 0.90) ? 140 + (uint8_t)((pr-0.90)*500.0) : 139;
-      break;
-    }
-    case matches_class_unique: {
-      archive_search_se_compute_predictors(archive_search,matches,&predictors);
-      const double pr = matches_classify_logit_unique(&predictors,&logit_model_single_end_default);
-      match[0].mapq_score = (pr >= 0.90) ? 200 + (uint8_t)((pr-0.95)*1000.0) : 199;
-      break;
-    }
-    default:
-      GEM_INVALID_CASE();
-      break;
   }
 }
 void archive_score_matches_se_default(archive_search_t* const archive_search,matches_t* const matches) {
@@ -130,15 +134,15 @@ void archive_score_matches_se_default(archive_search_t* const archive_search,mat
    *       1   Low quality
    *       0   Uncertain & subdominant
    */
-  // Score subdominant matches (MAPQ=0)
+  // Parameters
+  matches_predictors_t predictors;
   match_trace_t* const match = matches_get_match_trace_buffer(matches);
   const uint64_t num_matches = matches_get_num_match_traces(matches);
   uint64_t i;
+  // Score subdominant matches (MAPQ=0)
   for (i=0;i<num_matches;++i) match[i].mapq_score = 0;
   // Compute TP prob
-  const matches_class_t matches_class = matches->matches_class;
-  matches_predictors_t predictors;
-  switch (matches_class) {
+  switch (matches->matches_class) {
     case matches_class_unmapped:
     case matches_class_tie_d0:
       break;
@@ -157,6 +161,9 @@ void archive_score_matches_se_default(archive_search_t* const archive_search,mat
     default:
       GEM_INVALID_CASE();
       break;
+  }
+  if (match[0].type == match_type_local) {
+    match[0].mapq_score = 1;
   }
   matches_metrics_set_mapq(&matches->metrics,match[0].mapq_score);
 }

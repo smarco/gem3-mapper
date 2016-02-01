@@ -87,19 +87,20 @@ typedef struct {
   float complete_search_error;
   float complete_strata_after_best;
   float alignment_max_error;
+  float alignment_max_bandwidth;
+  float alignment_global_min_identity;                 // Alignment minimum identity to be global
+  float alignment_global_min_swg_threshold;            // Alignment minimum SWG score to be global
   unbounded_alignment_t unbounded_alignment;
-  float max_bandwidth;
-  float alignment_min_identity;                        // Minimum identity of the alignment (applies to dangling ends too)
+  float alignment_local_min_identity;                  // Alignment minimum identity to be local
+  float alignment_local_min_swg_threshold;             // Alignment minimum SWG score to be local
   bool alignment_scaffolding;
   float alignment_scaffolding_min_coverage;            // Minimum length of the matching region (chaining regions)
-  float alignment_scaffolding_homopolymer_min_context; // Minimum matching bases to support a homopolymer error
   float alignment_scaffolding_min_matching_length;     // Minimum matching chunk to be considered
   bool cigar_curation;
   float cigar_curation_min_end_context;
   /* Alignment Model/Score */
   alignment_model_t alignment_model;
   swg_penalties_t swg_penalties;
-  double swg_threshold;
   /* Bisulfite mode */
   bisulfite_read_t bisulfite_read;
   /* Paired-end */
@@ -132,13 +133,14 @@ typedef struct {
   uint64_t complete_search_error_nominal;
   uint64_t complete_strata_after_best_nominal;
   uint64_t alignment_max_error_nominal;
-  uint64_t max_bandwidth_nominal;
-  uint64_t alignment_min_identity_nominal;
+  uint64_t alignment_max_bandwidth_nominal;
+  uint64_t alignment_global_min_identity_nominal;
+  uint64_t alignment_global_min_swg_threshold_nominal;
+  uint64_t alignment_local_min_identity_nominal;
+  uint64_t alignment_local_min_swg_threshold_nominal;
   uint64_t alignment_scaffolding_min_coverage_nominal;
-  uint64_t alignment_scaffolding_homopolymer_min_context_nominal;
   uint64_t alignment_scaffolding_min_matching_length_nominal;
   uint64_t cigar_curation_min_end_context_nominal;
-  int64_t swg_threshold_nominal;
 } as_parameters_t;
 
 /*

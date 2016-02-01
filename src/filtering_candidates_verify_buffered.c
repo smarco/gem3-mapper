@@ -17,14 +17,33 @@
 #define DEBUG_FILTERING_CANDIDATES  GEM_DEEP_DEBUG
 #define DEBUG_TILE_DIMENSIONS       false
 
+#define VERIFY_BUFFERED_KMER_FILTER_LENGTH_THRESHOLD  256
+
 /*
  * Profile
  */
 #define PROFILE_LEVEL PMED
 
-
 /*
- * BPM-Buffer API (Verification)
+ * Kmer Filter
+ */
+bool filtering_candidates_verify_buffered_kmer_filter(
+    filtering_region_t* const filtering_region,archive_text_t* const archive_text,
+    text_collection_t* const text_collection,pattern_t* const pattern,
+    mm_stack_t* const mm_stack) {
+  // Retrieve text-candidate
+  filtering_region_retrieve_text(filtering_region,archive_text,text_collection,mm_stack);
+  const text_trace_t* const text_trace =
+      text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
+  const uint8_t* const text = text_trace->text; // Candidate
+  const uint64_t eff_text_length = filtering_region->end_position - filtering_region->begin_position;
+  // Generalized Kmer-Counting filter
+  const uint64_t test_positive = kmer_counting_filter(&pattern->kmer_counting,text,eff_text_length);
+  // Return
+  return test_positive!=ALIGN_DISTANCE_INF;
+}
+/*
+ * BPM-Buffered Add (Candidates Verification)
  */
 uint64_t filtering_candidates_verify_buffered_add(
     filtering_candidates_t* const filtering_candidates,pattern_t* const pattern,
@@ -33,20 +52,32 @@ uint64_t filtering_candidates_verify_buffered_add(
   const uint64_t pending_candidates = filtering_candidates_get_num_candidate_regions(filtering_candidates);
   if (pending_candidates==0) return 0;
   // Add the pattern to the buffer (add new queries)
-  gpu_buffer_align_bpm_add_pattern(gpu_buffer_align_bpm,&pattern->bpm_pattern);
+  gpu_buffer_align_bpm_add_pattern(gpu_buffer_align_bpm,pattern->bpm_pattern);
   gpu_buffer_align_bpm_record_query_length(gpu_buffer_align_bpm,pattern->key_length);
   // Fetch pattern dimensions
   const uint64_t max_error = pattern->max_effective_filtering_error;
   const uint64_t gpu_pattern_length = pattern->key_length;
-  const uint64_t gpu_pattern_num_tiles = pattern->bpm_pattern.gpu_num_tiles;
-  const uint64_t gpu_pattern_tile_tall = pattern->bpm_pattern.gpu_entries_per_tile*gpu_bpm_pattern_get_entry_length();
+  const uint64_t gpu_pattern_num_tiles = pattern->bpm_pattern->gpu_num_tiles;
+  const uint64_t gpu_pattern_tile_tall = pattern->bpm_pattern->gpu_entries_per_tile*gpu_bpm_pattern_get_entry_length();
   // Traverse all candidates (text-space) & add them to the buffer
-  const filtering_region_t* candidate_region = vector_get_mem(filtering_candidates->filtering_regions,filtering_region_t);
+  filtering_region_t* filtering_region = vector_get_mem(filtering_candidates->filtering_regions,filtering_region_t);
   uint64_t candidate_pos, tile_offset, total_candidates_added;
-  for (candidate_pos=0,total_candidates_added=0;candidate_pos<pending_candidates;++candidate_pos,++candidate_region) {
+  for (candidate_pos=0,total_candidates_added=0;candidate_pos<pending_candidates;++candidate_pos,++filtering_region) {
+    // Kmer filtering
+    if (!filtering_region->key_trimmed && pattern->key_length > VERIFY_BUFFERED_KMER_FILTER_LENGTH_THRESHOLD) {
+      const bool accept_candidate =
+          filtering_candidates_verify_buffered_kmer_filter(
+              filtering_region,gpu_buffer_align_bpm->archive_text,
+              gpu_buffer_align_bpm->text_collection,pattern,gpu_buffer_align_bpm->mm_stack);
+      if (!accept_candidate) {
+        PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_DISCARDED);
+        continue;
+      }
+    }
+    PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_ACCEPTED);
     // Locate candidate sequence
-    const uint64_t begin_position = candidate_region->begin_position;
-    const uint64_t candidate_length = candidate_region->end_position - begin_position;
+    const uint64_t begin_position = filtering_region->begin_position;
+    const uint64_t candidate_length = filtering_region->end_position - begin_position;
     if (DEBUG_TILE_DIMENSIONS) gem_slog("> Candidate #%lu (%lu nt)\n",candidate_pos,candidate_length);
     // Calculate tile dimensions
     pattern_tiled_t pattern_tiled;
@@ -70,8 +101,8 @@ uint64_t filtering_candidates_verify_buffered_add(
   }
   gpu_buffer_align_bpm_record_candidates_per_query(gpu_buffer_align_bpm,total_candidates_added);
   // Return the final number of candidate-tiles added to the buffer
-  PROF_ADD_COUNTER(GP_BMP_TILED_NUM_TILES,total_candidates_added);
-  PROF_ADD_COUNTER(GP_BMP_TILED_NUM_TILES_VERIFIED,total_candidates_added);
+  PROF_ADD_COUNTER(GP_BMP_DISTANCE_TILED_NUM_TILES,total_candidates_added);
+  PROF_ADD_COUNTER(GP_BMP_DISTANCE_TILED_NUM_TILES_VERIFIED,total_candidates_added);
   return total_candidates_added;
 }
 /*
@@ -115,7 +146,7 @@ void filtering_candidates_verify_buffered_check_tile_distance(
     }
   }
   // Pop
-  mm_stack_pop_state(mm_stack,false);
+  mm_stack_pop_state(mm_stack);
 }
 void filtering_candidates_verify_buffered_check_global_distance(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t candidate_offset,
@@ -147,9 +178,9 @@ void filtering_candidates_verify_buffered_check_global_distance(
         "Whole.Read=%lu\tTileWise={bound=%lu,estimated=%lu}\tDiff=%lu\n",
         match_distance,global_distance,global_distance+distance_link_tiles,ABS(match_distance-global_distance));
 //  }
-  PROF_ADD_COUNTER(GP_FC_RETRIEVE_CANDIDATE_REGIONS_DIST_DIFF,ABS(match_distance-global_distance));
+  PROF_ADD_COUNTER(GP_FC_VERIFY_CANDIDATES_BUFFERED_DDIFF,ABS(match_distance-global_distance));
   // Pop
-  mm_stack_pop_state(mm_stack,false);
+  mm_stack_pop_state(mm_stack);
 }
 /*
  * BPM-Buffered Retrieve (Candidates Verification)
@@ -222,12 +253,12 @@ uint64_t filtering_candidates_verify_buffered_retrieve(
    * Retrieve filtering-regions from BPM-Buffer
    */
   if (gem_expect_false(candidate_offset_begin==candidate_offset_end)) return 0;
-  PROFILE_START(GP_FC_RETRIEVE_CANDIDATE_REGIONS_BUFFERED,PROFILE_LEVEL);
+  PROFILE_START(GP_FC_VERIFY_CANDIDATES_BUFFERED,PROFILE_LEVEL);
   // Fetch Parameters
   const uint64_t max_error = pattern->max_effective_filtering_error;
   const uint64_t gpu_pattern_length = pattern->key_length;
-  const uint64_t gpu_pattern_num_tiles = pattern->bpm_pattern.gpu_num_tiles;
-  const uint64_t gpu_pattern_tile_tall = pattern->bpm_pattern.gpu_entries_per_tile*gpu_bpm_pattern_get_entry_length();
+  const uint64_t gpu_pattern_num_tiles = pattern->bpm_pattern->gpu_num_tiles;
+  const uint64_t gpu_pattern_tile_tall = pattern->bpm_pattern->gpu_entries_per_tile*gpu_bpm_pattern_get_entry_length();
   // Prepare filtering-regions vectors
   const uint64_t pending_candidates = (candidate_offset_end-candidate_offset_begin)/gpu_pattern_num_tiles;
   vector_reserve(filtering_candidates->verified_regions,pending_candidates,false);
@@ -248,7 +279,7 @@ uint64_t filtering_candidates_verify_buffered_retrieve(
     // Get the candidate result
     uint64_t global_distance = 0, distance_link_tiles = 0, last_tile_match_position = 0;
     const bool aligned = filtering_candidates_verify_buffered_get_result(
-        gpu_buffer_align_bpm,candidate_idx,gpu_pattern_num_tiles,&pattern->bpm_pattern,
+        gpu_buffer_align_bpm,candidate_idx,gpu_pattern_num_tiles,pattern->bpm_pattern,
         gpu_pattern_length,gpu_pattern_tile_tall,candidate_length,max_error,
         &global_distance,&distance_link_tiles,&last_tile_match_position,
         text_collection,mm_stack);
@@ -260,7 +291,10 @@ uint64_t filtering_candidates_verify_buffered_retrieve(
       regions_accepted->text_trace_offset = UINT64_MAX; // Not retrieved yet
       regions_accepted->begin_position = candidate_begin_position;
       regions_accepted->end_position = candidate_end_position;
-      regions_accepted->base_position_offset = 0;
+      regions_accepted->base_begin_position_offset = 0; // TODO Store & Retrive location data
+      regions_accepted->base_end_position_offset = candidate_end_position-candidate_begin_position;
+      regions_accepted->key_trim_left = 0;
+      regions_accepted->key_trim_right = 0;
       // Configure regions matching (we sacrifice this information as to save memory)
       match_scaffold_init(&regions_accepted->match_scaffold);
       // Distance Bound estimation
@@ -295,7 +329,7 @@ uint64_t filtering_candidates_verify_buffered_retrieve(
   vector_update_used(filtering_candidates->verified_regions,regions_verified);
   vector_update_used(filtering_candidates->filtering_regions,regions_accepted);
   vector_update_used(filtering_candidates->discarded_regions,regions_discarded);
-  PROFILE_STOP(GP_FC_RETRIEVE_CANDIDATE_REGIONS_BUFFERED,PROFILE_LEVEL);
+  PROFILE_STOP(GP_FC_VERIFY_CANDIDATES_BUFFERED,PROFILE_LEVEL);
   // DEBUG
   gem_cond_debug_block(DEBUG_FILTERING_CANDIDATES) {
     tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Candidates (verify_regions_BPM_buffer)\n");
@@ -311,11 +345,11 @@ uint64_t filtering_candidates_verify_buffered_retrieve(
  */
 void filtering_candidates_verify_buffered_print_benchmark_tile(
     FILE* const stream,filtering_region_t* const filtering_region,
-    pattern_t* const pattern,const uint64_t max_error,
-    const uint64_t tile_pos,const uint64_t tile_tall,
-    const bool print_tile,text_collection_t* const text_collection) {
+    pattern_t* const pattern,bpm_pattern_t* const bpm_pattern_tiles,
+    const uint64_t max_error,const uint64_t tile_pos,
+    const uint64_t tile_tall,const bool print_tile,
+    text_collection_t* const text_collection) {
   // Parameters
-  bpm_pattern_t* const bpm_pattern = &pattern->bpm_pattern;
   const uint64_t begin_position = filtering_region->begin_position;
   const uint64_t candidate_length = filtering_region->end_position - begin_position;
   const text_trace_t* const text_trace = text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
@@ -337,7 +371,7 @@ void filtering_candidates_verify_buffered_print_benchmark_tile(
         }
       }
       // (Re)Align the tile
-      bpm_compute_edit_distance(bpm_pattern->bpm_pattern_tiles+tile_offset,
+      bpm_compute_edit_distance(bpm_pattern_tiles+tile_offset,
           text+pattern_tiled.tile_offset,pattern_tiled.tile_wide,
           &pattern_tiled.tile_distance,&pattern_tiled.tile_match_column,
           pattern_tiled.tile_tall,false);
@@ -362,26 +396,22 @@ void filtering_candidates_verify_buffered_print_benchmark(
   if (pending_candidates==0) return;
   // Fetch pattern dimensions
   const uint64_t max_error = pattern->max_effective_filtering_error;
-  const uint64_t gpu_pattern_num_tiles = pattern->bpm_pattern.gpu_num_tiles;
-  const uint64_t gpu_pattern_tile_tall = pattern->bpm_pattern.gpu_entries_per_tile*gpu_bpm_pattern_get_entry_length();
+  const uint64_t gpu_pattern_num_tiles = pattern->bpm_pattern->gpu_num_tiles;
+  const uint64_t gpu_pattern_tile_tall = pattern->bpm_pattern->gpu_entries_per_tile*gpu_bpm_pattern_get_entry_length();
   // Compile pattern tiles
-  bpm_pattern_t* const bpm_pattern = &pattern->bpm_pattern;
-  bpm_pattern_compile_tiles(bpm_pattern,2*bpm_pattern->gpu_entries_per_tile,max_error,mm_stack);
+  bpm_pattern_t* const bpm_pattern = pattern->bpm_pattern;
+  bpm_pattern_t* const bpm_pattern_tiles = bpm_pattern_compile_tiles(
+      bpm_pattern,2*bpm_pattern->gpu_entries_per_tile,max_error,mm_stack);
   // Traverse all candidates (text-space)
   uint64_t tile_pos, candidate_pos;
   for (tile_pos=0;tile_pos<gpu_pattern_num_tiles;++tile_pos) {
     filtering_region_t* candidate_region = vector_get_mem(filtering_candidates->filtering_regions,filtering_region_t);
     for (candidate_pos=0;candidate_pos<pending_candidates;++candidate_pos,++candidate_region) {
       // Retrieve Candidate (if needed)
-      if (candidate_region->text_trace_offset == UINT64_MAX) {
-        const uint64_t text_length = candidate_region->end_position-candidate_region->begin_position;
-        candidate_region->text_trace_offset =
-            archive_text_retrieve(archive_text,&text_collection,
-                candidate_region->begin_position,text_length,false,mm_stack);
-      }
+      filtering_region_retrieve_text(candidate_region,archive_text,&text_collection,mm_stack);
       // Print candidate tile
       filtering_candidates_verify_buffered_print_benchmark_tile(
-          stream,candidate_region,pattern,max_error,tile_pos,
+          stream,candidate_region,pattern,bpm_pattern_tiles,max_error,tile_pos,
           gpu_pattern_tile_tall,candidate_pos==0,&text_collection);
     }
     fprintf(stream,"\n");

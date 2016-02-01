@@ -89,8 +89,12 @@ void svector_reap(svector_t* const svector);
 uint64_t svector_get_used(svector_t* const svector);
 void* svector_get_elm(svector_t* const svector,const uint64_t position);
 void* svector_get_free_elm(svector_t* const svector);
-char* svector_request_char_buffer(svector_t* const svector,const uint64_t length);
-char* svector_insert_char_buffer(svector_t* const svector,const char* const buffer,const uint64_t length);
+char* svector_request_char_buffer(
+    svector_t* const svector,uint64_t* const buffer_offset,
+    const uint64_t length);
+char* svector_insert_char_buffer(
+    svector_t* const svector,uint64_t* const buffer_offset,
+    const char* const buffer,const uint64_t length);
 
 #define svector_is_empty(svector) (svector_get_used(vector)==0)
 #define svector_get_element(svector,position,type) ((type*)svector_get_elm(svector,position))

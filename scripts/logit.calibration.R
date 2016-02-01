@@ -19,45 +19,40 @@ summary(mylogit)
 exp(cbind(OR = coef(mylogit), confint(mylogit)))
 
 /*
- * SE
+ * SE NEW
  */
 // None
 mylogit <- glm(tp ~ , data = data1, family = "binomial")
-
-// All
-mylogit <- glm(tp ~ edit+sub_edit+event+sub_event+swg+sub_swg+mcs+max_region+fs_matches+sub_matches+sub_cand, data = data1, family = "binomial")
-
+// ALL
+mylogit <- glm(tp ~ edit+sub_edit+event+sub_event+swg+sub_swg+mcs_1+fs_matches+ack_1+max_region+mp+m2p, data = data1, family = "binomial")
 // Uniq (chr1,HS)
-mylogit <- glm(tp ~ event+swg+mcs, data = data1, family = "binomial")
-mylogit <- glm(tp ~ event+swg+mcs+max_region+sub_cand, data = data1, family = "binomial")
+mylogit <- glm(tp ~ edit+event+mcs_1+max_region+mp, data = data1, family = "binomial")
 
 // Mmaps (chr1,HS)
-mylogit <- glm(tp ~ event+swg+sub_swg+mcs, data = data1, family = "binomial")
-mylogit <- glm(tp ~ event+sub_event+swg+sub_swg+mcs+sub_matches, data = data1, family = "binomial")
+mylogit <- glm(tp ~ event+sub_event+swg+sub_swg+mcs_1+mp, data = data1, family = "binomial")
 
-// D1-Ties (chr1,HS)
-mylogit <- glm(tp ~ edit+sub_edit+event+sub_event+swg+sub_swg+mcs+max_region+fs_matches+sub_matches, data = data1, family = "binomial")
-mylogit <- glm(tp ~ edit+sub_edit+event+sub_event+swg+sub_swg+mcs+max_region+fs_matches+sub_matches, data = data1, family = "binomial")
+// Ties (chr1,HS)
+mylogit <- glm(tp ~ sub_edit+event+sub_swg+mcs_1+mp, data = data1, family = "binomial")
 
 /*
- * PE
+ * PE NEW
  */
-mylogit <- glm(tp ~ , data = data1, family = "binomial")
+rm(list=ls())
+data1=read.table('logit.uniq',header=T)
+summary(mylogit)
+exp(cbind(OR = coef(mylogit), confint(mylogit)))
 
-// All
-mylogit <- glm(tp ~ edit+sub_edit+event+sub_event+swg+sub_swg+mcs+max_region+fs_matches+sub_matches+sigma+sub_sigma+mapq_e1+mapq_e2, data = data1, family = "binomial")
+// None
+mylogit <- glm(tp ~ , data = data1, family = "binomial")
+// ALL
+mylogit <- glm(tp ~ edit+sub_edit+event+sub_event+swg+sub_swg+fs_matches+mcs_1+mcs_2+ack_1+ack_2+max_region+mp+m2p+sigma+sub_sigma+mapq_1+mapq_2, data = data1, family = "binomial")
 
 // Uniq (chr1,HS)
-mylogit <- glm(tp ~ edit+event+swg+mcs+sigma+mapq_e1, data = data1, family = "binomial")
-
+mylogit <- glm(tp ~ edit+event+mcs_1+mcs_2+mapq_1+mapq_2, data = data1, family = "binomial")
 
 // Mmaps (chr1,HS)
-mylogit <- glm(tp ~ event+mcs, data = data1, family = "binomial")
 
-// Ties
-mylogit <- glm(tp ~ edit+sub_edit+swg+sub_swg+fs_matches, data = data1, family = "binomial")
-
-
+// Ties (chr1,HS)
 
 
 

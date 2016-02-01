@@ -105,13 +105,13 @@ void mapper_profile_print_mapper_efficiency_ratios(FILE* const stream) {
       (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MAPPER_NUM_READS)));
   tab_fprintf(stream,"    --> Ranks/Alignment        %10.3f ranks/alg\n",
       (float)COUNTER_GET_TOTAL(PROF_GET_RANK(GP_MAPPER_ALL))/
-      (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MATCH_NUM_SE_MATCHES_ADDED)));
+      (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MATCHES_SE_ADD_NUM_MAPS)));
   tab_fprintf(stream,"  --> Time/Read                %10.3f ms\n",
       (float)TIMER_GET_TOTAL_MS(PROF_GET_TIMER(GP_MAPPER_ALL))/
       (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MAPPER_NUM_READS)));
   tab_fprintf(stream,"    --> Time/Alignment         %10.3f us\n",
       (float)TIMER_GET_TOTAL_US(PROF_GET_TIMER(GP_MAPPER_ALL))/
-      (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MATCH_NUM_SE_MATCHES_ADDED)));
+      (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MATCHES_SE_ADD_NUM_MAPS)));
   tab_fprintf(stream,"  --> Throughput\n");
   const float reads_per_sec =
       (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MAPPER_NUM_READS)) /

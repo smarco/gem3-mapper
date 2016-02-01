@@ -340,7 +340,7 @@ void matches_add_match(
     // Process match-trace (Correct CIGAR & locate)
     match_trace_process(matches,match_trace,locator);
     // Add the match-trace
-    PROF_INC_COUNTER(GP_MATCH_NUM_SE_MATCHES_ADDED);
+    PROF_INC_COUNTER(GP_MATCHES_SE_ADD_NUM_MAPS);
     const uint64_t new_match_trace_offset = vector_get_used(matches->position_matches);
     match_trace_t* new_match_trace;
     vector_alloc_new(matches->position_matches,match_trace_t,new_match_trace);

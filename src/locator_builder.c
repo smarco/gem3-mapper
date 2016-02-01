@@ -170,9 +170,9 @@ int64_t locator_builder_add_sequence(
     // Setup the current locator_tag
     current_locator_tag = svector_iterator_get_element(&(locator_builder->tag_locator_iterator),locator_tag_t);
     current_locator_tag->tag_id = (locator_builder->tag_id_generator)++;
-    current_locator_tag->offset = locator_builder->tags_buffer_size;
     // Add it to the tag_buffer
-    char* const tag_in_buffer = svector_insert_char_buffer(locator_builder->tags_buffer,tag,tag_length);
+    char* const tag_in_buffer = svector_insert_char_buffer(
+        locator_builder->tags_buffer,&current_locator_tag->offset,tag,tag_length);
     locator_builder->tags_buffer_size += tag_length+1;
     current_locator_tag->length = tag_length;
     svector_write_iterator_next(&(locator_builder->tag_locator_iterator)); // Next

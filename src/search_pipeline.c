@@ -44,7 +44,7 @@ search_pipeline_t* search_pipeline_new(
   return search_pipeline;
 }
 void search_pipeline_clear(search_pipeline_t* const search_pipeline) {
-  mm_stack_free(search_pipeline->mm_stack);
+  mm_stack_clear(search_pipeline->mm_stack);
 }
 void search_pipeline_delete(search_pipeline_t* const search_pipeline) {
   search_stage_region_profile_delete(search_pipeline->stage_region_profile,search_pipeline->archive_search_cache);

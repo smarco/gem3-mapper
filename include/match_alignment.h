@@ -71,16 +71,27 @@ typedef enum {
   alignment_model_gap_affine
 } alignment_model_t;
 typedef struct {
-  uint64_t match_offset;     // Match offset (wrt beginning of candidate)
-  uint64_t match_position;   // Match position
-  uint64_t cigar_offset;     // CIGAR offset in buffer
-  uint64_t cigar_length;     // CIGAR length
-  int64_t effective_length;  // Match effective length
-  int32_t score;             // Score assigned by the aligner
+  uint64_t match_text_offset; // Match text offset (wrt beginning of text-candidate)
+  uint64_t match_position;    // Match position
+  uint64_t cigar_offset;      // CIGAR offset in buffer
+  uint64_t cigar_length;      // CIGAR length
+  int64_t effective_length;   // Match effective length
+  int32_t score;              // Score assigned by the aligner
 } match_alignment_t;
 
 /*
- * Display Alignment pretty
+ * Region Matching
+ */
+uint64_t region_matching_text_coverage(region_matching_t* const region_matching);
+uint64_t region_matching_text_distance(
+    region_matching_t* const region_matching_a,region_matching_t* const region_matching_b);
+bool region_matching_text_overlap(
+    region_matching_t* const region_matching_a,region_matching_t* const region_matching_b);
+int region_matching_key_cmp(
+    region_matching_t* const region_matching_a,region_matching_t* const region_matching_b);
+
+/*
+ * Display
  */
 void match_alignment_print_pretty(
     FILE* const stream,match_alignment_t* const match_alignment,

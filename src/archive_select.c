@@ -28,7 +28,7 @@ void archive_select_configure_pe(archive_search_t* const archive_search) {
   search_parameters_t* const search_parameters = archive_search->as_parameters.search_parameters;
   select_parameters_t* const select_parameters_align = &search_parameters->select_parameters_align;
   select_parameters_align->min_reported_strata = 0;
-  select_parameters_align->min_reported_matches = 1;
+  select_parameters_align->min_reported_matches = 5;
   select_parameters_align->max_reported_matches = 5;
 }
 /*
@@ -53,7 +53,6 @@ void archive_select_realign_match_interval(
       .emulated_rc_search = match_interval->emulated_rc_search,
       .max_error = match_interval->distance,
       .swg_penalties = &search_parameters->swg_penalties,
-      .swg_threshold = as_parameters->swg_threshold_nominal,
     };
     match_align_exact(matches,match_trace,&align_input,&align_parameters);
   } else {
@@ -84,7 +83,7 @@ void archive_select_realign_match_interval(
         match_align_input_t align_input = {
           .key = search_state->pattern.key,
           .key_length = search_state->pattern.key_length,
-          .bpm_pattern =  &search_state->pattern.bpm_pattern,
+          .bpm_pattern =  search_state->pattern.bpm_pattern,
           .text_trace_offset = match_trace->text_trace_offset,
           .text_position = match_trace->match_alignment.match_position,
           .text = match_interval->text,
@@ -105,7 +104,7 @@ void archive_select_realign_match_interval(
         match_align_input_t align_input = {
           .key = search_state->pattern.key,
           .key_length = search_state->pattern.key_length,
-          .bpm_pattern =  &search_state->pattern.bpm_pattern,
+          .bpm_pattern =  search_state->pattern.bpm_pattern,
           .text_trace_offset = match_trace->text_trace_offset,
           .text_position = match_trace->match_alignment.match_position,
           .text = match_interval->text,
@@ -113,8 +112,6 @@ void archive_select_realign_match_interval(
           .text_offset_begin = 0,
           .text_offset_end = match_interval->text_length,
           .align_distance_bound = match_interval->distance,
-          .align_match_begin_column = 0,
-          .align_match_end_column = match_interval->text_length,
         };
         match_align_parameters_t align_parameters = {
           .emulated_rc_search = match_interval->emulated_rc_search,
@@ -124,7 +121,6 @@ void archive_select_realign_match_interval(
           .scaffolding = search_parameters->alignment_scaffolding,
           .scaffolding_min_coverage = as_parameters->alignment_scaffolding_min_coverage_nominal,
           .scaffolding_matching_min_length = as_parameters->alignment_scaffolding_min_matching_length_nominal,
-          .scaffolding_homopolymer_min_context = as_parameters->alignment_scaffolding_homopolymer_min_context_nominal,
           .allowed_enc = search_parameters->allowed_enc,
           .swg_penalties = &search_parameters->swg_penalties,
           .cigar_curation = search_parameters->cigar_curation,

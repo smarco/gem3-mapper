@@ -270,7 +270,9 @@ void approximate_search_unbounded_align(approximate_search_t* const search,match
       matches,search->mm_stack);
   // DEBUG
 #ifdef GEM_PROFILE
-  if (!already_mapped) PROF_ADD_COUNTER(GP_AS_FILTERING_UNBOUNDED_ALIGN_MAPPED,matches_is_mapped(matches)?1:0);
+  if (!already_mapped) {
+    PROF_ADD_COUNTER(GP_AS_FILTERING_UNBOUNDED_ALIGN_MAPPED,matches_is_mapped(matches)?1:0);
+  }
   PROFILE_STOP(GP_AS_FILTERING_UNBOUNDED_ALIGN,PROFILE_LEVEL);
 #endif
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }

@@ -31,13 +31,6 @@ typedef struct {
 } fc_batch_decode_candidate;
 
 /*
- * Retrieve all candidates(text) from the index
- */
-void filtering_candidates_retrieve_filtering_regions(
-    filtering_candidates_t* const filtering_candidates,archive_text_t* const archive_text,
-    text_collection_t* const text_collection,mm_stack_t* const mm_stack);
-
-/*
  * Filtering adjustment of the position wrt region/seed on which the candidate is based
  */
 void filtering_candidates_adjust_filtering_position(

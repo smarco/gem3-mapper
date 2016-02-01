@@ -16,6 +16,20 @@
 #define PAIRED_MATCHES_INIT_MATCHES   50
 
 /*
+ * Paired-Matches Classes
+ */
+const char* paired_matches_class_label[] =
+{
+    [0] = "unmapped",
+    [1] = "subdominant-end",
+    [2] = "tie-d0",
+    [3] = "tie-d1",
+    [4] = "mmap",
+    [5] = "unique",
+    [6] = "high-quality-ends"
+};
+
+/*
  * Setup
  */
 paired_matches_t* paired_matches_new() {

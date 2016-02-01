@@ -19,8 +19,8 @@
 /*
  * Pattern Prepare
  */
-void pattern_prepare(
-    sequence_t* const sequence,pattern_t* const pattern,region_profile_t* const region_profile,
+void pattern_init(
+    pattern_t* const pattern,sequence_t* const sequence,
     const as_parameters_t* const actual_parameters,const bool prepare_rl_pattern,
     bool* const do_quality_search,mm_stack_t* const mm_stack) {
   // Parameters
@@ -84,26 +84,20 @@ void pattern_prepare(
     pattern->rl_key_length = rl_key_length;
   }
   // Compute the effective number of differences
-  const int64_t max_allowed_error = (int64_t)read_length - (int64_t)actual_parameters->alignment_min_identity_nominal;
-  uint64_t effective_filtering_max_error;
-  if (gem_expect_false(max_allowed_error<=0)) { // Constrained by min_matching_length_nominal
-    effective_filtering_max_error = 0;
-  } else {
-    // Constrained by num_low_quality_bases
-    effective_filtering_max_error = actual_parameters->alignment_max_error_nominal + pattern->num_low_quality_bases;
-    if (effective_filtering_max_error > max_allowed_error) {
-      effective_filtering_max_error = max_allowed_error;
-    }
-  }
-  pattern->max_effective_filtering_error = effective_filtering_max_error;
-  pattern->max_effective_bandwidth = actual_parameters->max_bandwidth_nominal + pattern->num_low_quality_bases;
-  if (effective_filtering_max_error > 0) {
+  // Constrained by num_low_quality_bases
+  const uint64_t max_effective_filtering_error =
+      actual_parameters->alignment_max_error_nominal + pattern->num_low_quality_bases;
+  pattern->max_effective_filtering_error = max_effective_filtering_error;
+  pattern->max_effective_bandwidth = actual_parameters->alignment_max_bandwidth_nominal + pattern->num_low_quality_bases;
+  if (max_effective_filtering_error > 0) {
     // Prepare kmer-counting filter
     kmer_counting_compile(&pattern->kmer_counting,pattern->key,read_length,
-        num_non_canonical_bases,effective_filtering_max_error,mm_stack);
+        num_non_canonical_bases,max_effective_filtering_error,mm_stack);
     // Prepare BPM pattern
-    bpm_pattern_compile(&pattern->bpm_pattern,pattern->key,read_length,effective_filtering_max_error,mm_stack);
-    gpu_bpm_pattern_compile(&pattern->bpm_pattern,GPU_WORDS128_PER_TILE,effective_filtering_max_error);
+    pattern->bpm_pattern = bpm_pattern_compile(
+        pattern->key,read_length,max_effective_filtering_error,mm_stack);
+    pattern->bpm_pattern_tiles = bpm_pattern_compile_tiles(pattern->bpm_pattern,
+        PATTERN_BPM_WORDS64_PER_TILE,max_effective_filtering_error,mm_stack);
   }
 }
 void pattern_clear(pattern_t* const pattern) {
@@ -183,6 +177,21 @@ uint64_t pattern_tiled_bound_matching_path(pattern_tiled_t* const pattern_tiled)
     pattern_tiled->prev_tile_match_position = pattern_tiled->tile_match_column;
     return 0;
   }
+}
+/*
+ * Pattern Trimmed
+ */
+void pattern_trimmed_init(
+    pattern_t* const pattern,bpm_pattern_t** const bpm_pattern_trimmed,
+    bpm_pattern_t** const bpm_pattern_trimmed_tiles,const uint64_t key_trim_left,
+    const uint64_t key_trim_right,mm_stack_t* const mm_stack) {
+  const uint64_t key_length_trimmed = pattern->key_length - key_trim_left - key_trim_right;
+  const uint64_t max_error = pattern->max_effective_filtering_error;
+  // Compile BPM-Pattern Trimmed
+  *bpm_pattern_trimmed = bpm_pattern_compile(pattern->key+key_trim_left,
+      key_length_trimmed,MIN(max_error,key_length_trimmed),mm_stack);
+  *bpm_pattern_trimmed_tiles = bpm_pattern_compile_tiles(
+      *bpm_pattern_trimmed,PATTERN_BPM_WORDS64_PER_TILE,max_error,mm_stack);
 }
 /*
  * Display

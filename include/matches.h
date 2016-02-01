@@ -19,6 +19,27 @@
 #include "matches_metrics.h"
 
 /*
+ * Matches Type
+ */
+typedef enum {
+  match_type_regular,           // Regular Match
+  match_type_local,             // Local Match (product of unbounded alignment)
+  match_type_extended           // Extended Match (product of extending PE)
+} match_type;
+
+/*
+ * Matches Classes
+ */
+typedef enum {
+  matches_class_unmapped = 0,
+  matches_class_tie_d0 = 1,
+  matches_class_tie_d1 = 2,
+  matches_class_mmap = 3,
+  matches_class_unique = 4,
+} matches_class_t;
+extern const char* matches_class_label[5];
+
+/*
  * Interval Match
  */
 typedef struct {
@@ -40,17 +61,19 @@ typedef struct {
  * Position Match (Trace-Match)
  */
 typedef struct {
-  /* Text (Reference) */
-  uint64_t text_trace_offset;   // Trace-offset in the text-collection
-  uint8_t* text;                // Pointer to the matching-text
-  uint64_t text_length;         // Length of the matching-text
-  /* Match */
+  /* Type */
+  match_type type;              // Match type
+  /* Match Location */
   uint64_t* match_trace_offset; // Match-Trace offset in the the matches vector
   char* sequence_name;          // Sequence name (After decoding.Eg Chr1)
   strand_t strand;              // Mapping Strand
   bs_strand_t bs_strand;        // Bisulfite Strand
   uint64_t text_position;       // Position of the match in the text. Local text (Eg wrt Chr1)
   bool emulated_rc_search;      // Match resulting from a RC-emulated search (using the forward-strand)
+  /* Match Reference-Text */
+  uint64_t text_trace_offset;   // Trace-offset in the text-collection
+  uint8_t* text;                // Pointer to the matching-text
+  uint64_t text_length;         // Length of the matching-text
   /* Score */
   uint64_t distance;            // Distance
   uint64_t edit_distance;       // Edit-Distance
@@ -62,18 +85,6 @@ typedef struct {
   void* match_scaffold;         // Supporting Scaffolding
 #endif
 } match_trace_t;
-
-/*
- * Matches Classes
- */
-typedef enum {
-  matches_class_unmapped = 0,
-  matches_class_tie_d0 = 1,
-  matches_class_tie_d1 = 2,
-  matches_class_mmap = 3,
-  matches_class_unique = 4,
-} matches_class_t;
-extern const char* matches_class_label[5];
 
 /*
  * Matches

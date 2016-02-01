@@ -15,9 +15,9 @@
 #include "match_scaffold.h"
 
 /*
- * Curate Alignment
+ * Normalize Alignment
  */
-void match_align_curate_cigar(
+void match_align_normalize_cigar(
     match_trace_t* const match_trace,vector_t* const cigar_vector,
     match_align_parameters_t* const align_parameters);
 

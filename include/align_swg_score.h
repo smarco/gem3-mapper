@@ -42,7 +42,10 @@ int32_t align_swg_score_cigar_element(
 int32_t align_swg_score_cigar(
     const swg_penalties_t* const swg_penalties,vector_t* const cigar_vector,
     const uint64_t cigar_offset,const uint64_t cigar_length);
-int32_t align_swg_score_cigar__excluding_clipping(
+int32_t align_swg_score_cigar_excluding_deletions(
+    const swg_penalties_t* const swg_penalties,vector_t* const cigar_vector,
+    const uint64_t cigar_offset,const uint64_t cigar_length);
+int32_t align_swg_score_cigar_excluding_clipping(
     const swg_penalties_t* const swg_penalties,vector_t* const cigar_vector,
     const uint64_t cigar_offset,const uint64_t cigar_length);
 

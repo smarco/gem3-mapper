@@ -216,7 +216,7 @@ void archive_check_se_matches(
       break; // FAIL
     }
   }
-  mm_stack_pop_state(mm_stack,false);
+  mm_stack_pop_state(mm_stack);
 }
 void archive_check_pe_matches(
     archive_t* const archive,const alignment_model_t alignment_model,

@@ -65,12 +65,12 @@ bool search_stage_verify_candidates_buffer_fits(
   // Compute dimensions
   uint64_t total_entries = 0,total_queries = 0,total_candidates = 0;
   gpu_buffer_align_bpm_compute_dimensions(gpu_buffer_align_bpm,
-      &archive_search_end1->forward_search_state.pattern.bpm_pattern,
+      archive_search_end1->forward_search_state.pattern.bpm_pattern,
       archive_search_get_num_verify_candidates(archive_search_end1),
       &total_entries,&total_queries,&total_candidates);
   if (archive_search_end2!=NULL) {
     gpu_buffer_align_bpm_compute_dimensions(gpu_buffer_align_bpm,
-        &archive_search_end2->forward_search_state.pattern.bpm_pattern,
+        archive_search_end2->forward_search_state.pattern.bpm_pattern,
         archive_search_get_num_verify_candidates(archive_search_end2),
         &total_entries,&total_queries,&total_candidates);
   }

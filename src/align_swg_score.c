@@ -63,7 +63,23 @@ int32_t align_swg_score_cigar(
   // Return score
   return score;
 }
-int32_t align_swg_score_cigar__excluding_clipping(
+int32_t align_swg_score_cigar_excluding_deletions(
+    const swg_penalties_t* const swg_penalties,vector_t* const cigar_vector,
+    const uint64_t cigar_offset,const uint64_t cigar_length) {
+  // Parameters
+  const cigar_element_t* const cigar_buffer = vector_get_elm(cigar_vector,cigar_offset,cigar_element_t);
+  // Traverse all CIGAR elements
+  int32_t score = 0, i;
+  for (i=0;i<cigar_length;++i) {
+    const cigar_element_t* const cigar_element = cigar_buffer+i;
+    if (cigar_element->type!=cigar_del) {
+      score += align_swg_score_cigar_element(swg_penalties,cigar_element);
+    }
+  }
+  // Return score
+  return score;
+}
+int32_t align_swg_score_cigar_excluding_clipping(
     const swg_penalties_t* const swg_penalties,vector_t* const cigar_vector,
     const uint64_t cigar_offset,const uint64_t cigar_length) {
   // Parameters

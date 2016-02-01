@@ -121,7 +121,8 @@ bool bpm_compute_edit_distance(
 void bpm_compute_edit_distance_tiled(
     bpm_pattern_t* const bpm_pattern,const uint8_t* const text,
     const uint64_t text_length,uint64_t* const match_distance,
-    uint64_t* const match_column,const uint64_t max_error);
+    uint64_t* const match_column,const uint64_t max_error,
+    mm_stack_t* const mm_stack);
 // Find all local minimums
 uint64_t bpm_compute_edit_distance_all(
     const bpm_pattern_t* const bpm_pattern,vector_t* const filtering_regions,

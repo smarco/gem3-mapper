@@ -137,7 +137,7 @@ void region_profile_print_mappability(
   tab_fprintf(stream,"[GEM]>Region.Mappability (pl,2pl)=(%lu,%lu)=(%2.3f,%2.3f)\n",
       proper_length,2*proper_length,mappability_pl,mappability_2pl);
   // Free
-  mm_stack_pop_state(mm_stack,false);
+  mm_stack_pop_state(mm_stack);
 }
 void region_profile_print_benchmark(
     FILE* const stream,const region_profile_t* const region_profile,

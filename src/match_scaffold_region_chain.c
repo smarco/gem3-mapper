@@ -14,14 +14,121 @@
 #define PROFILE_LEVEL PLOW
 
 /*
+ * LIS element (Longest Increasing Subsequence)
+ */
+typedef struct {
+  uint64_t coverage;
+  uint64_t sparseness;
+  uint64_t next_region;
+  bool region_chained;
+} match_scaffold_lis_t;
+int match_scaffold_lis_cmp(const match_scaffold_lis_t* const a,const match_scaffold_lis_t* const b) {
+  int coverage_diff =  b->coverage - a->coverage;
+  if (coverage_diff) return coverage_diff;
+  return a->sparseness - b->sparseness;
+}
+/*
+ * Compute LIS
+ */
+void match_scaffold_chain_compute_lis(
+    match_scaffold_t* const match_scaffold,match_scaffold_lis_t* const lis_vector) {
+  // Parameters
+  region_matching_t* const region_matching = match_scaffold->scaffold_regions;
+  const int64_t num_scaffold_regions = match_scaffold->num_scaffold_regions;
+  // Compute the LIS-vector
+  int64_t region_idx;
+  for (region_idx=num_scaffold_regions-1;region_idx>=0;--region_idx) {
+    // Init
+    region_matching_t* current_region = region_matching + region_idx;
+    const uint64_t current_region_coverage = region_matching_text_coverage(current_region);
+    match_scaffold_lis_t best_lis = { // LIS containing only current region
+        .coverage = current_region_coverage,
+        .sparseness = 0,
+        .next_region = num_scaffold_regions,
+        .region_chained = true,
+    };
+    // Search for the first compatible region (non-overlapping & in-order)
+    int64_t next_region_idx = region_idx + 1;
+    region_matching_t* next_region = current_region + 1;
+    while (next_region_idx < num_scaffold_regions) {
+      // Skip unchained regions
+      if (lis_vector[next_region_idx].region_chained) {
+        // Test region compatible
+        if (!region_matching_text_overlap(current_region,next_region) &&
+            region_matching_key_cmp(current_region,next_region) < 0) {
+          break;
+        }
+        // Pick best LIS (from discarding current region)
+        if (match_scaffold_lis_cmp(&lis_vector[next_region_idx],&best_lis) < 0) {
+          best_lis.coverage = lis_vector[next_region_idx].coverage;
+          best_lis.sparseness = lis_vector[next_region_idx].sparseness;
+          best_lis.next_region = next_region_idx;
+          best_lis.region_chained = false; // Discards current region
+        }
+      }
+      ++next_region_idx;
+      ++next_region;
+    }
+    // Next region compatible with current
+    if (next_region_idx < num_scaffold_regions) {
+      // Join current-region with first non-overlapping
+      const match_scaffold_lis_t joint_lis = {
+          .coverage = current_region_coverage + lis_vector[next_region_idx].coverage,
+          .sparseness = region_matching_text_distance(current_region,next_region) +
+                        lis_vector[next_region_idx].sparseness,
+          .next_region = next_region_idx,
+          .region_chained = true,
+      };
+      // Pick best LIS
+      if (match_scaffold_lis_cmp(&joint_lis,&best_lis) < 0) {
+        best_lis = joint_lis;
+      }
+    }
+    // Set current LIS
+    lis_vector[region_idx] = best_lis;
+  }
+}
+void match_scaffold_chain_store_lis(
+    match_scaffold_t* const match_scaffold,match_scaffold_lis_t* const lis_vector) {
+  // Parameters
+  region_matching_t* region_matching = match_scaffold->scaffold_regions;
+  const int64_t lis_vector_length = match_scaffold->num_scaffold_regions;
+  // Traverse the LIS and store the best chain of regions
+  uint64_t num_scaffold_regions = 0, i = 0;
+  while (i < lis_vector_length) {
+    if (lis_vector[i].region_chained) {
+      region_matching[num_scaffold_regions] = region_matching[i];
+      ++num_scaffold_regions;
+    }
+    i = lis_vector[i].next_region;
+  }
+  match_scaffold->num_scaffold_regions = num_scaffold_regions;
+  match_scaffold->scaffolding_coverage = lis_vector[0].coverage;
+}
+void match_scaffold_chain_matching_regions(
+    match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack) {
+  PROFILE_START(GP_MATCH_SCAFFOLD_CHAIN_REGIONS,PROFILE_LEVEL);
+  // Sort matching regions by text-offsets
+  match_scaffold_sort_regions_matching(match_scaffold);
+  // Allocate DP-LIS table
+  mm_stack_push_state(mm_stack);
+  const int64_t num_scaffold_regions = match_scaffold->num_scaffold_regions;
+  match_scaffold_lis_t* const lis_vector = mm_stack_calloc(
+      mm_stack,num_scaffold_regions,match_scaffold_lis_t,true);
+  // Compute LIS (longest increasing sequence of matching-regions)
+  match_scaffold_chain_compute_lis(match_scaffold,lis_vector);
+  // Keep the best chain (given by the LIS)
+  match_scaffold_chain_store_lis(match_scaffold,lis_vector);
+  mm_stack_pop_state(mm_stack);
+
+}
+/*
  * Exact extend matching regions
  */
 void match_scaffold_exact_extend(
-    matches_t* const matches,match_scaffold_t* const match_scaffold,
+    match_scaffold_t* const match_scaffold,const bool* const allowed_enc,
     const uint8_t* const key,const uint64_t key_length,
-    const uint8_t* const text,const uint64_t text_length,
-    const bool* const allowed_enc) {
-  PROFILE_START(GP_MATCH_SCAFFOLD_EXTEND_REGIONS,PROFILE_LEVEL);
+    const uint8_t* const text,const uint64_t text_length) {
   // Extend all matching regions (Exact extend of matching regions)
   const uint64_t num_scaffold_regions = match_scaffold->num_scaffold_regions;
   const uint64_t last_region = num_scaffold_regions-1;
@@ -60,90 +167,39 @@ void match_scaffold_exact_extend(
     region_matching->text_end = right_text;
   }
   match_scaffold->scaffolding_coverage += inc_coverage;
-  PROFILE_STOP(GP_MATCH_SCAFFOLD_EXTEND_REGIONS,PROFILE_LEVEL);
 }
-/*
- * Chain matching regions
- *   @match_scaffold->num_scaffold_regions
- *   @match_scaffold->scaffold_regions
- */
-void match_scaffold_chain_matching_regions(
-    matches_t* const matches,match_scaffold_t* const match_scaffold,
-    const uint8_t* const key,const uint64_t key_length,
-    const uint8_t* const text,const bool* const allowed_enc,
-    const uint64_t max_error,mm_stack_t* const stack) {
-  PROFILE_START(GP_MATCH_SCAFFOLD_CHAIN_REGIONS,PROFILE_LEVEL);
-  const uint64_t num_scaffold_regions = match_scaffold->num_scaffold_regions;
-  // Sort matching regions
-  match_scaffold_sort_regions_matching(match_scaffold);
-  // Check overlapping
-  bool overlapping_text = false, unsorted_read = false, max_diff = false;
-  region_matching_t* last_region_matching = NULL;
-  uint64_t i, coverage = 0;
-  for (i=0;i<num_scaffold_regions;++i) {
-    region_matching_t* const region_matching = match_scaffold->scaffold_regions + i;
-    if (last_region_matching!=NULL) {
-      if (last_region_matching->text_end > region_matching->text_begin) {
-        overlapping_text = true; break; // Might be an deletion in the reference
-      }
-      if (last_region_matching->key_end > region_matching->key_begin) {
-        unsorted_read = true; break;  // Might be a deletion in the read
-      }
-      const int64_t text_gap = region_matching->text_begin - last_region_matching->text_end;
-      const int64_t key_gap = region_matching->key_begin - last_region_matching->key_end;
-      const int64_t diff = text_gap-key_gap;
-      if (ABS(diff) > max_error) {
-        max_diff = true; break;
-      }
-    }
-    coverage += region_matching->key_end - region_matching->key_begin;
-    last_region_matching = region_matching;
-  }
-  if (overlapping_text || unsorted_read || max_diff) {
-    match_scaffold->num_scaffold_regions = 0; // Disable region chaining
-    match_scaffold->scaffolding_coverage = 0;
-  } else {
-    match_scaffold->scaffolding_coverage = coverage;
-  }
-  PROFILE_STOP(GP_MATCH_SCAFFOLD_CHAIN_REGIONS,PROFILE_LEVEL);
-}
+
 /*
  * Region-Chain Scaffolding
  */
-bool match_scaffold_region_chain(
-    matches_t* const matches,match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
-    match_scaffold_t* const match_scaffold,mm_stack_t* const mm_stack) {
-  // Init
-  match_scaffold->scaffold_type = scaffold_region_chain;
-  // Check number of regions to chain/extend
+void match_scaffold_region_chain(
+    match_scaffold_t* const match_scaffold,match_align_input_t* const align_input,
+    match_align_parameters_t* const align_parameters,const bool exact_extend,
+    mm_stack_t* const mm_stack) {
+  PROF_INC_COUNTER(GP_MATCH_SCAFFOLD_CHAIN_REGIONS_SCAFFOLDS);
+  PROFILE_START(GP_MATCH_SCAFFOLD_CHAIN_REGIONS,PROFILE_LEVEL);
+  // Parameters
+  const uint8_t* const key = align_input->key;
+  const uint64_t key_length = align_input->key_length;
+  const uint8_t* const text = align_input->text;
+  const uint64_t text_length = align_input->text_length;
+  const bool* const allowed_enc = align_parameters->allowed_enc;
+  // Find a compatible chain of matching-regions
   if (match_scaffold->num_scaffold_regions > 0) {
-    // Parameters
-    const uint8_t* const key = align_input->key;
-    const uint64_t key_length = align_input->key_length;
-    const uint8_t* const text = align_input->text;
-    const uint64_t text_length = align_input->text_length;
-    const uint64_t max_error = align_parameters->max_error;
-    const bool* const allowed_enc = align_parameters->allowed_enc;
-    // Find a compatible chain of matching-regions
-    match_scaffold_chain_matching_regions(matches,match_scaffold,key,key_length,text,allowed_enc,max_error,mm_stack);
-    // Extend matching-regions as to maximize coverage
+    match_scaffold_chain_matching_regions(match_scaffold,mm_stack);
     if (match_scaffold->num_scaffold_regions > 0) {
-      PROF_INC_COUNTER(GP_MATCH_SCAFFOLD_CHAIN_REGIONS_SUCCESS);
-      PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_CHAIN_REGIONS_COVERAGE,(100*match_scaffold->scaffolding_coverage)/key_length);
-      if (match_scaffold->scaffolding_coverage < key_length) {
-        match_scaffold_exact_extend(matches,match_scaffold,key,key_length,text,text_length,allowed_enc);
+      // Extend matching-regions as to maximize coverage
+      if (exact_extend && match_scaffold->scaffolding_coverage < key_length) {
+        match_scaffold_exact_extend(match_scaffold,allowed_enc,key,key_length,text,text_length);
       }
-      PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EXTEND_REGIONS_COVERAGE,(100*match_scaffold->scaffolding_coverage)/key_length);
-      // Set score as matching bases
-      match_scaffold->match_alignment.score = key_length - match_scaffold->scaffolding_coverage;
-      // Return OK
-      return true;
+      match_scaffold->match_alignment.score =
+          key_length - match_scaffold->scaffolding_coverage; // Set score as matching bases
+      PROFILE_STOP(GP_MATCH_SCAFFOLD_CHAIN_REGIONS,PROFILE_LEVEL);
+      return;
     }
   }
   // Set score & coverage
   match_scaffold->match_alignment.score = align_input->key_length;
   match_scaffold->scaffolding_coverage = 0;
-  // Return fail
-  return false;
+  PROFILE_STOP(GP_MATCH_SCAFFOLD_CHAIN_REGIONS,PROFILE_LEVEL);
 }

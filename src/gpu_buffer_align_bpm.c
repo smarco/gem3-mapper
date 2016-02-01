@@ -183,13 +183,10 @@ void gpu_buffer_align_bpm_pattern_decompile(
   const uint64_t word_length = BPM_ALIGN_WORD_LENGTH;
   const uint64_t pattern_num_words = DIV_CEIL(pattern_length,BPM_ALIGN_WORD_LENGTH);
   const uint64_t pattern_mod = pattern_length%word_length;
-  const uint64_t PEQ_length = pattern_num_words*word_length;
   // Init fields
-  bpm_pattern->pattern_word_size = BPM_ALIGN_WORD_SIZE;
   bpm_pattern->pattern_length = pattern_length;
   bpm_pattern->pattern_num_words = pattern_num_words;
   bpm_pattern->pattern_mod = pattern_mod;
-  bpm_pattern->PEQ_length = PEQ_length;
   // Allocate memory
   const uint64_t gpu_pattern_num_words = DIV_CEIL(pattern_length,GPU_ALIGN_BPM_ENTRY_LENGTH);
   const uint64_t aux_vector_size = gpu_pattern_num_words*GPU_ALIGN_BPM_ENTRY_SIZE;
@@ -326,10 +323,17 @@ void gpu_buffer_align_bpm_add_candidate(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,const uint64_t tile_offset,
     const uint64_t candidate_text_position,const uint64_t candidate_length) {
   // Insert candidate
+#ifdef GEM_PROFILE
+  gpu_bpm_qry_info_t* const pattern_query =
+      gpu_bpm_buffer_get_peq_info_(gpu_buffer_align_bpm->buffer) +
+      (gpu_buffer_align_bpm->current_query_offset + tile_offset);
   PROF_INC_COUNTER(GP_GPU_BUFFER_ALIGN_BPM_NUM_QUERIES);
   PROF_ADD_COUNTER(GP_GPU_BUFFER_ALIGN_BPM_CANDIDATE_LENGTH,candidate_length);
+  PROF_ADD_COUNTER(GP_GPU_BUFFER_ALIGN_BPM_CELLS,candidate_length*pattern_query->size);
+#endif
   const uint64_t candidate_offset = gpu_buffer_align_bpm->num_candidates;
-  gpu_bpm_cand_info_t* const candidate = gpu_bpm_buffer_get_candidates_(gpu_buffer_align_bpm->buffer) + candidate_offset;
+  gpu_bpm_cand_info_t* const candidate =
+      gpu_bpm_buffer_get_candidates_(gpu_buffer_align_bpm->buffer) + candidate_offset;
   candidate->query = gpu_buffer_align_bpm->current_query_offset + tile_offset;
   candidate->position = candidate_text_position;
   candidate->size = candidate_length;
@@ -427,7 +431,7 @@ void gpu_buffer_align_bpm_compute_cpu(gpu_buffer_align_bpm_t* const gpu_buffer_a
     ++buffer_candidates;
     ++buffer_results;
     // Free
-    mm_stack_pop_state(mm_stack,false);
+    mm_stack_pop_state(mm_stack);
     text_collection_clear(text_collection);
   }
 }

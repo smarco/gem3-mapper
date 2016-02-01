@@ -41,12 +41,14 @@ void search_parameters_init_error_model(search_parameters_t* const search_parame
   search_parameters->complete_search_error = 0.04;
   search_parameters->complete_strata_after_best = 1.0;
   search_parameters->alignment_max_error = 0.08;
+  search_parameters->alignment_max_bandwidth = 0.20;
+  search_parameters->alignment_global_min_identity = 0.40;
+  search_parameters->alignment_global_min_swg_threshold = 0.20; // 0.20*read_length*match_score
   search_parameters->unbounded_alignment = unbounded_alignment_if_unmapped;
-  search_parameters->max_bandwidth = 0.20;
-  search_parameters->alignment_min_identity = 0.40;
+  search_parameters->alignment_local_min_identity = 40;
+  search_parameters->alignment_local_min_swg_threshold = 20;
   search_parameters->alignment_scaffolding = true;
   search_parameters->alignment_scaffolding_min_coverage = 0.80;
-  search_parameters->alignment_scaffolding_homopolymer_min_context = 2;
   search_parameters->alignment_scaffolding_min_matching_length = 10;
   search_parameters->cigar_curation = true;
   search_parameters->cigar_curation_min_end_context = 2;
@@ -82,7 +84,6 @@ void search_parameters_init_alignment_model(search_parameters_t* const search_pa
   search_parameters->swg_penalties.generic_mismatch_score = -4;
   search_parameters->swg_penalties.gap_open_score = -6;
   search_parameters->swg_penalties.gap_extension_score = -1;
-  search_parameters->swg_threshold = 0.20; // 0.20*read_length*match_score
 }
 void search_parameters_init_internals(search_parameters_t* const search_parameters) {
   // Region-Minimal Scheme = (20,4,2,2)
@@ -217,24 +218,19 @@ void search_configure_alignment_gap_scores(
 }
 void search_instantiate_values(as_parameters_t* const parameters,const uint64_t pattern_length) {
   // Instantiate Search Parameters Values (Nominal search parameters; evaluated to read-length)
+  search_parameters_t* const search_parameters = parameters->search_parameters;
+  const uint64_t max_swg_score = pattern_length * search_parameters->swg_penalties.generic_match_score;
   SEARCH_INSTANTIATE_VALUE(parameters,complete_search_error,pattern_length);
   SEARCH_INSTANTIATE_VALUE(parameters,complete_strata_after_best,pattern_length);
   SEARCH_INSTANTIATE_VALUE(parameters,alignment_max_error,pattern_length);
-  SEARCH_INSTANTIATE_VALUE(parameters,max_bandwidth,pattern_length);
-  SEARCH_INSTANTIATE_VALUE(parameters,alignment_min_identity,pattern_length);
+  SEARCH_INSTANTIATE_VALUE(parameters,alignment_max_bandwidth,pattern_length);
+  SEARCH_INSTANTIATE_VALUE(parameters,alignment_global_min_identity,pattern_length);
+  SEARCH_INSTANTIATE_VALUE(parameters,alignment_global_min_swg_threshold,max_swg_score);
+  SEARCH_INSTANTIATE_VALUE(parameters,alignment_local_min_identity,pattern_length);
+  SEARCH_INSTANTIATE_VALUE(parameters,alignment_local_min_swg_threshold,max_swg_score);
   SEARCH_INSTANTIATE_VALUE(parameters,alignment_scaffolding_min_coverage,pattern_length);
-  SEARCH_INSTANTIATE_VALUE(parameters,alignment_scaffolding_homopolymer_min_context,pattern_length);
   SEARCH_INSTANTIATE_VALUE(parameters,alignment_scaffolding_min_matching_length,pattern_length);
   SEARCH_INSTANTIATE_VALUE(parameters,cigar_curation_min_end_context,pattern_length);
-  SEARCH_INSTANTIATE_VALUE(parameters,swg_threshold,pattern_length);
-  search_parameters_t* const search_parameters = parameters->search_parameters;
-  if (search_parameters->swg_threshold <= 0.0 || search_parameters->swg_threshold >= 1.0) {
-    parameters->swg_threshold_nominal = search_parameters->swg_threshold;
-  } else {
-    swg_penalties_t* const swg_penalties = &search_parameters->swg_penalties;
-    const int64_t pattern_identity_th = search_parameters->swg_threshold*(double)pattern_length;
-    parameters->swg_threshold_nominal = pattern_identity_th * swg_penalties->generic_match_score;
-  }
   // Instantiate Select Parameters Values
   select_parameters_instantiate_values(&parameters->search_parameters->select_parameters_report,pattern_length);
   select_parameters_instantiate_values(&parameters->search_parameters->select_parameters_align,pattern_length);
@@ -242,28 +238,21 @@ void search_instantiate_values(as_parameters_t* const parameters,const uint64_t 
 /*
  * Display
  */
-void search_parameters_print(FILE* const stream,search_parameters_t* const search_parameters) {
-  // TODO
-  // TODO
-  // TODO
-}
 void as_parameters_print(FILE* const stream,as_parameters_t* const parameters) {
   tab_fprintf(stream,"[GEM]>AS.Parameters\n");
-  tab_fprintf(stream,"=> Search.Parameters\n"); // TODO
-//  tab_global_inc(); // TODO
-//  search_parameters_print(stream,parameters->search_parameters); // TODO
-//  tab_global_dec(); // TODO
+  tab_fprintf(stream,"=> Search.Parameters\n");
   tab_global_inc();
   tab_fprintf(stream,"=> Nominal.Parameters\n");
   tab_fprintf(stream,"  => Complete.search.error %lu\n",parameters->complete_search_error_nominal);
   tab_fprintf(stream,"  => Complete.strata.after.best %lu\n",parameters->complete_strata_after_best_nominal);
   tab_fprintf(stream,"  => Alingment.max.error %lu\n",parameters->alignment_max_error_nominal);
-  tab_fprintf(stream,"  => Alignment_min.identity %lu\n",parameters->alignment_min_identity_nominal);
+  tab_fprintf(stream,"  => Alingment.max.bandwidth %lu\n",parameters->alignment_max_bandwidth_nominal);
+  tab_fprintf(stream,"  => Alignment.Global.min.identity %lu\n",parameters->alignment_global_min_identity_nominal);
+  tab_fprintf(stream,"  => Alignment.Global.min.swg.threshold %lu\n",parameters->alignment_global_min_swg_threshold_nominal);
+  tab_fprintf(stream,"  => Alignment.Local.min.identity %lu\n",parameters->alignment_local_min_identity_nominal);
+  tab_fprintf(stream,"  => Alignment.Local.min.swg.threshold %lu\n",parameters->alignment_local_min_swg_threshold_nominal);
   tab_fprintf(stream,"  => Alignment.scaffolding.min.coverage %lu\n",parameters->alignment_scaffolding_min_coverage_nominal);
-  tab_fprintf(stream,"  => Alignment.scaffolding.homopolymer.min_context %lu\n",parameters->alignment_scaffolding_homopolymer_min_context_nominal);
   tab_fprintf(stream,"  => Alignment.scaffolding.min.matching.length %lu\n",parameters->alignment_scaffolding_min_matching_length_nominal);
-  tab_fprintf(stream,"  => Max.bandwidth %lu\n",parameters->max_bandwidth_nominal);
   tab_fprintf(stream,"  => Cigar.curation.min.end.context %lu\n",parameters->cigar_curation_min_end_context_nominal);
-  tab_fprintf(stream,"  => Swg.threshold %lu\n",parameters->swg_threshold_nominal);
   tab_global_dec();
 }

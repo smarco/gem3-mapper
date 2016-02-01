@@ -20,31 +20,35 @@ struct match_align_input_t {
   /* Key */
   uint8_t* key;
   uint64_t key_length;
+  uint64_t key_trim_left;
+  uint64_t key_trim_right;
   bpm_pattern_t* bpm_pattern;
+  bpm_pattern_t* bpm_pattern_tiles;
   swg_query_profile_t* swg_query_profile;
   /* Text */
   uint64_t text_trace_offset;
   uint64_t text_position;
-  uint8_t* text;
-  uint64_t text_length;
-  uint64_t text_offset_begin;
-  uint64_t text_offset_end;
+  uint8_t* text;                           // Text (candidate)
+  uint64_t text_length;                    // Text full length (whole decoded text)
+  uint64_t text_offset_begin;              // Text effective-begin offset (eg. bounded by verification)
+  uint64_t text_offset_end;                // Text effective-end offset   (eg. bounded by verification)
+  uint64_t text_offset_base_begin;         // Text base begin offset (range projected by key)
+  uint64_t text_offset_base_end;           // Text base end offset   (range projected by key)
   uint64_t align_distance_bound;
-  uint64_t align_match_begin_column;
-  uint64_t align_match_end_column;
 };
 struct match_align_parameters_t {
   bool emulated_rc_search;
   bool* allowed_enc;
   swg_penalties_t* swg_penalties;
-  int64_t swg_threshold;
   uint64_t max_error;
-  uint64_t min_identity;
   uint64_t max_bandwidth;
+  uint64_t global_min_identity;
+  int64_t global_min_swg_threshold;
+  uint64_t local_min_identity;
+  int64_t local_min_swg_threshold;
   bool left_gap_alignment;
   bool scaffolding;
   uint64_t scaffolding_matching_min_length;
-  uint64_t scaffolding_homopolymer_min_context;
   uint64_t scaffolding_min_coverage;
   bool cigar_curation;
   uint64_t cigar_curation_min_end_context;

@@ -21,27 +21,6 @@
 #define PROFILE_LEVEL PMED
 
 /*
- * Retrieve all candidates(text) from the index
- */
-void filtering_candidates_retrieve_filtering_regions(
-    filtering_candidates_t* const filtering_candidates,archive_text_t* const archive_text,
-    text_collection_t* const text_collection,mm_stack_t* const mm_stack) {
-  PROFILE_START(GP_FC_RETRIEVE_CANDIDATE_REGIONS,PROFILE_LEVEL);
-  // Traverse all candidates (text-space)
-  VECTOR_ITERATE(filtering_candidates->filtering_regions,filtering_region,candidate_pos,filtering_region_t) {
-    // Retrieve only those marked as unverified to be verified
-    if (filtering_region->status!=filtering_region_unverified) continue;
-    // Retrieve only not retrieved yet
-    if (filtering_region->text_trace_offset!=UINT64_MAX) continue;
-    // Retrieve text(s)
-    const uint64_t text_length = filtering_region->end_position - filtering_region->begin_position;
-    filtering_region->text_trace_offset =
-        archive_text_retrieve(archive_text,text_collection,
-            filtering_region->begin_position,text_length,false,mm_stack);
-  }
-  PROFILE_STOP(GP_FC_RETRIEVE_CANDIDATE_REGIONS,PROFILE_LEVEL);
-}
-/*
  * Compose filtering regions
  */
 void filtering_candidates_compose_matching_regions(
@@ -56,7 +35,16 @@ void filtering_candidates_compose_matching_regions(
   filtering_region->text_trace_offset = UINT64_MAX;
   filtering_region->begin_position = candidate_positions[first_candidate_idx].begin_position;
   filtering_region->end_position = candidate_positions[last_candidate_idx].end_position;
-  filtering_region->base_position_offset = candidate_positions[first_candidate_idx].base_position_offset;
+  const uint64_t first_candidate_base_begin_offset = candidate_positions[first_candidate_idx].base_begin_position_offset;
+  filtering_region->base_begin_position_offset = first_candidate_base_begin_offset;
+  const uint64_t last_candidate_base_end_offset = candidate_positions[last_candidate_idx].base_end_position_offset;
+  const uint64_t last_candidate_base_end = candidate_positions[last_candidate_idx].begin_position + last_candidate_base_end_offset;
+  filtering_region->base_end_position_offset = last_candidate_base_end - candidate_positions[first_candidate_idx].begin_position;
+  filtering_region->key_trim_left = candidate_positions[first_candidate_idx].key_trim_left;
+  filtering_region->key_trim_right = candidate_positions[first_candidate_idx].key_trim_right;
+  filtering_region->key_trimmed = (filtering_region->key_trim_left>0 || filtering_region->key_trim_right>0);
+  filtering_region->bpm_pattern_trimmed = NULL;
+  filtering_region->bpm_pattern_trimmed_tiles = NULL;
   PROF_ADD_COUNTER(GP_CANDIDATE_REGION_LENGTH,filtering_region->end_position-filtering_region->begin_position);
   match_scaffold_t* const matches_scaffold = &filtering_region->match_scaffold;
   match_scaffold_init(matches_scaffold);
@@ -100,29 +88,33 @@ uint64_t filtering_candidates_compose_filtering_regions(
   verified_region_t* const verified_region = vector_get_mem(filtering_candidates->verified_regions,verified_region_t);
   // Traverse positions and eliminate duplicates
   const uint64_t num_candidate_positions = vector_get_used(filtering_candidates->filtering_positions);
-  filtering_position_t* const candidate_positions = vector_get_mem(filtering_candidates->filtering_positions,filtering_position_t);
+  filtering_position_t* const candidate_positions =
+      vector_get_mem(filtering_candidates->filtering_positions,filtering_position_t);
   uint64_t candidate_idx = 0, verified_region_idx = 0;
   while (candidate_idx < num_candidate_positions) {
     // Determine the positions belonging to the same region
+    const uint64_t sequence_id = candidate_positions[candidate_idx].sequence_id;
     const uint64_t region_begin_position = candidate_positions[candidate_idx].begin_position;
-    uint64_t last_position = region_begin_position;
     uint64_t group_idx = candidate_idx + 1;
     while (group_idx < num_candidate_positions) {
       const uint64_t position = candidate_positions[group_idx].begin_position;
-      const uint64_t delta = position - last_position;
+      const uint64_t delta = position - region_begin_position;
+      if (sequence_id != candidate_positions[group_idx].sequence_id) break;
       if (delta > max_delta_difference) break; // Doesn't belong to the group. Stop!
       ++group_idx; // Next
     }
     // Check region against verified regions
     bool is_already_verified = false;
-    while (verified_region_idx < num_verified_regions && verified_region[verified_region_idx].end_position <= region_begin_position) {
+    while (verified_region_idx < num_verified_regions &&
+           verified_region[verified_region_idx].end_position <= region_begin_position) {
       ++verified_region_idx;
     }
     if (verified_region_idx < num_verified_regions) {
       const uint64_t verified_begin_position = verified_region[verified_region_idx].begin_position;
       const uint64_t verified_end_position = verified_region[verified_region_idx].end_position;
       const uint64_t region_end_position = candidate_positions[group_idx-1].end_position;
-      is_already_verified = (verified_begin_position <= region_begin_position && region_end_position <= verified_end_position);
+      is_already_verified = (verified_begin_position <= region_begin_position &&
+                             region_end_position <= verified_end_position);
       gem_debug_block() {
         if (is_already_verified) {
           PROF_INC_COUNTER(GP_CANDIDATE_REGIONS_DUPLICATED);
@@ -156,22 +148,31 @@ uint64_t filtering_candidates_compose_filtering_regions(
  */
 void filtering_candidates_adjust_filtering_position(
     filtering_position_t* const filtering_position,archive_text_t* const archive_text,
-    const uint64_t begin_offset,const uint64_t end_offset,const uint64_t boundary_error) {
+    uint64_t begin_offset,const uint64_t end_offset,const uint64_t boundary_error) {
   // Decode Sampled RL-Position (RL-text encoded)
   uint64_t region_text_position = filtering_position->region_text_position;
-  uint64_t rl_increased_error = 0;
+  filtering_position->key_trim_left = 0;
+  filtering_position->key_trim_right = 0;
   if (archive_text->run_length) {
     const uint64_t sampled_idx = region_text_position / SAMPLED_RL_SAMPLING_RATE;
-    rl_increased_error = (region_text_position % SAMPLED_RL_SAMPLING_RATE) * SAMPLED_RL_MAX_RUN_LENGTH;
+    const uint64_t rl_increased_error = (region_text_position % SAMPLED_RL_SAMPLING_RATE) * SAMPLED_RL_MAX_RUN_LENGTH;
+    begin_offset += rl_increased_error;
     region_text_position = sampled_rl_get_sample(archive_text->sampled_rl,sampled_idx);
   }
   // Adjust Position (project to beginning of the candidate)
   const locator_interval_t* const locator_interval = filtering_position->locator_interval;
-  const uint64_t position_offset = begin_offset + rl_increased_error;
-  uint64_t base_begin_position = (region_text_position > position_offset) ? (region_text_position - position_offset) : 0;
+  filtering_position->sequence_id = locator_interval->begin_position;
   // Adjust Begin Position
+  uint64_t base_begin_position = region_text_position;
+  if (region_text_position >= begin_offset) {
+    base_begin_position -= begin_offset;
+  } else {
+    filtering_position->key_trim_left = begin_offset - region_text_position;
+    base_begin_position = 0;
+  }
   uint64_t begin_position;
   if (base_begin_position < locator_interval->begin_position) { // Adjust by locator-interval
+    filtering_position->key_trim_left += locator_interval->begin_position - base_begin_position;
     base_begin_position = locator_interval->begin_position; // Possible trim at the beginning
     begin_position = locator_interval->begin_position;
   } else {
@@ -181,13 +182,19 @@ void filtering_candidates_adjust_filtering_position(
     }
   }
   // Adjust End Position
-  uint64_t end_position = region_text_position + end_offset + boundary_error;
+  uint64_t base_end_position = region_text_position + end_offset;
+  if (base_end_position > locator_interval->end_position) {
+    filtering_position->key_trim_right = base_end_position - locator_interval->end_position;
+    base_end_position = locator_interval->end_position;
+  }
+  uint64_t end_position = base_end_position + boundary_error;
   if (end_position >= locator_interval->end_position) { // Adjust by locator-interval
     end_position = locator_interval->end_position; // Possible trim at the end
   }
   filtering_position->begin_position = begin_position;
   filtering_position->end_position = end_position;
-  filtering_position->base_position_offset = base_begin_position-begin_position;
+  filtering_position->base_begin_position_offset = base_begin_position-begin_position;
+  filtering_position->base_end_position_offset = base_end_position-begin_position;
 }
 /*
  * Decode of all candidate positions (index-space -> text-space)
@@ -351,8 +358,9 @@ uint64_t filtering_candidates_process_candidates(
   // Compose matching regions into candidate regions (also filter out duplicated positions or already checked)
   PROFILE_START(GP_FC_COMPOSE_REGIONS,PROFILE_LEVEL);
   search_parameters_t* const search_parameters = as_parameters->search_parameters;
-  pending_candidates = filtering_candidates_compose_filtering_regions(filtering_candidates,key_length,
-      pattern->max_effective_bandwidth,compose_region_chaining && search_parameters->alignment_scaffolding,mm_stack);
+  const bool do_compose_region_chaining = compose_region_chaining && search_parameters->alignment_scaffolding;
+  pending_candidates = filtering_candidates_compose_filtering_regions(filtering_candidates,
+      key_length,pattern->max_effective_bandwidth,do_compose_region_chaining,mm_stack);
   PROFILE_STOP(GP_FC_COMPOSE_REGIONS,PROFILE_LEVEL);
   PROF_ADD_COUNTER(GP_CANDIDATE_REGIONS,pending_candidates);
   // Return total candidate regions

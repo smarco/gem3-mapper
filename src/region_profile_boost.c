@@ -158,6 +158,6 @@ void region_profile_generate_adaptive_boost(
   region_profile->num_unique_regions = 0;
   region_profile->num_zero_regions = 0;
   region_profile->max_region_length = max_region_length;
-  mm_stack_pop_state(mm_stack,false); // Free
+  mm_stack_pop_state(mm_stack); // Free
   PROFILE_STOP(GP_REGION_PROFILE_ADAPTIVE,PROFILE_LEVEL);
 }

@@ -263,7 +263,7 @@ void align_swg_base(
   align_swg_traceback(align_input,dp,max_score,max_score_column,
       single_gap,gap_extension,true,match_alignment,cigar_vector);
   // Clean-up
-  mm_stack_pop_state(mm_stack,false); // Free
+  mm_stack_pop_state(mm_stack); // Free
 }
 /*
  * SWG Full (Computes full DP-matrix)
@@ -340,7 +340,7 @@ void align_swg_full(
   align_swg_traceback(align_input,dp,max_score,max_score_column,
       single_gap,gap_extension,begin_free,match_alignment,cigar_vector);
   // Clean-up
-  mm_stack_pop_state(mm_stack,false); // Free
+  mm_stack_pop_state(mm_stack); // Free
   PROF_STOP(GP_SWG_ALIGN_FULL);
 }
 /*
@@ -367,8 +367,12 @@ void align_swg_banded(
   const uint64_t max_bandwidth = align_parameters->max_bandwidth;
   // Initialize band-limits
   if (text_length > key_length + max_bandwidth) { // Text too long for band
-    if (!begin_free && !end_free) { match_alignment->score = SWG_SCORE_MIN; return; }
-    if (!begin_free) text_length = key_length + max_bandwidth;
+    if (!begin_free && !end_free) {
+      match_alignment->score = SWG_SCORE_MIN; return;
+    }
+    if (!begin_free) {
+      text_length = key_length + max_bandwidth;
+    }
   }
   if (text_length + max_bandwidth <= key_length) { // Text too short for band
     match_alignment->score = SWG_SCORE_MIN; return;
@@ -379,6 +383,7 @@ void align_swg_banded(
   const uint64_t num_rows = (key_length+1);
   const uint64_t num_rows_1 = num_rows-1;
   const uint64_t num_columns = (text_length+1);
+  PROF_ADD_COUNTER(GP_SWG_ALIGN_BANDED_CELLS,num_columns*max_bandwidth);
   swg_cell_t** const dp = align_swg_allocate_table(num_columns+1,num_rows+1,mm_stack);
   // Initialize DP-matrix
   const swg_matching_score_t* const matching_score = &swg_penalties->matching_score;
@@ -447,7 +452,7 @@ void align_swg_banded(
   align_swg_traceback(align_input,dp,max_score,max_score_column,
       single_gap,gap_extension,begin_free,match_alignment,cigar_vector);
   // Clean-up
-  mm_stack_pop_state(mm_stack,false); // Free
+  mm_stack_pop_state(mm_stack); // Free
   PROF_STOP(GP_SWG_ALIGN_BANDED);
 }
 /*

@@ -102,37 +102,41 @@ void* svector_get_free_elm(svector_t* const svector) {
   ++(svector->elements_used);
   return segment + segment_pos*svector->element_size;
 }
-char* svector_request_char_buffer(svector_t* const svector,const uint64_t length) {
+char* svector_request_char_buffer(
+    svector_t* const svector,uint64_t* const buffer_offset,
+    const uint64_t length) {
   SEGMENTED_VECTOR_CHECK(svector);
   svector_get_location(svector,svector->elements_used,num_segment,segment_pos);
   // Check that there is enough space in the segment
   const uint64_t remaining = svector->segment_size-segment_pos;
   const uint64_t total_length = length+1;
+  uint64_t segment_offset = 0;
   vector_segment_t* segment;
   if (gem_expect_false(num_segment >= vector_get_used(svector->segments))) {
     gem_cond_fatal_error(total_length>svector->segment_size,SVECTOR_INSERT_CHAR_BUFFER_TOO_LONG,total_length);
     segment = svector_add_segment(svector); // Add new segment
-    svector->elements_used += total_length; // Update used
-    return segment->memory; // Return
   } else if (gem_expect_false(remaining < total_length)) {
     gem_cond_fatal_error(total_length>svector->segment_size,SVECTOR_INSERT_CHAR_BUFFER_TOO_LONG,total_length);
     segment = svector_add_segment(svector); // Add new segment
-    svector->elements_used += remaining+total_length; // Update used
-    return segment->memory; // Return
+    svector->elements_used += remaining;
   } else {
     segment = vector_get_elm(svector->segments,num_segment,vector_segment_t); // Add to last segment
-    svector->elements_used += total_length; // Update used
-    return segment->memory + segment_pos; // Return
+    segment_offset = segment_pos; // Return
   }
+  // Return buffer + offset
+  if (buffer_offset) *buffer_offset = svector->elements_used; // Set offset
+  svector->elements_used += total_length; // Update used
+  return segment->memory + segment_offset; // Return
 }
-char* svector_insert_char_buffer(svector_t* const svector,const char* const buffer,const uint64_t length) {
+char* svector_insert_char_buffer(
+    svector_t* const svector,uint64_t* const buffer_offset,
+    const char* const buffer,const uint64_t length) {
   SEGMENTED_VECTOR_CHECK(svector);
   // Request char buffer
-  char* const dst_memory = svector_request_char_buffer(svector,length);
+  char* const dst_memory = svector_request_char_buffer(svector,buffer_offset,length);
   // Copy buffer
-  memcpy(dst_memory,buffer,length+1);
+  memcpy(dst_memory,buffer,length);
   dst_memory[length] = '\0';
-  // *(((char*)dst_memory)+(length+1)) = '\0';
   return dst_memory;
 }
 /*

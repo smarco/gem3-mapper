@@ -226,7 +226,7 @@ void nsearch_levenshtein(
   nsearch_schedule_search(&nsearch_schedule);
   nsearch_schedule_print_profile(stderr,&nsearch_schedule); // PROFILE
   // Free
-  mm_stack_pop_state(mm_stack,false);
+  mm_stack_pop_state(mm_stack);
 }
 /*
  * Neighborhood Search (Preconditioned by region profile)
@@ -244,7 +244,7 @@ void nsearch_levenshtein_preconditioned(
   nsearch_schedule_search_preconditioned(&nsearch_schedule);
   nsearch_schedule_print_profile(stderr,&nsearch_schedule); // PROFILE
   // Free
-  mm_stack_pop_state(mm_stack,false);
+  mm_stack_pop_state(mm_stack);
 }
 /*
  * Display

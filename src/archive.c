@@ -104,7 +104,7 @@ void archive_print(FILE* const stream,const archive_t* const archive) {
    * Components Display
    */
   // Locator
-  locator_print(stream,archive->locator,false);
+  locator_print(stream,archive->locator,true);
   // Archive Text
   archive_text_print(stream,archive->text);
   // FM-Index

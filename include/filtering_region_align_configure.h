@@ -43,10 +43,5 @@ void filtering_region_align_configure_swg(
     filtering_region_t* const filtering_region,const as_parameters_t* const as_parameters,
     pattern_t* const pattern,uint8_t* const text,const uint64_t text_length,
     const bool emulated_rc_search,const bool left_gap_alignment);
-void filtering_region_align_configure_local_swg(
-    match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
-    filtering_region_t* const filtering_region,const as_parameters_t* const as_parameters,
-    pattern_t* const pattern,uint8_t* const text,const uint64_t text_length,
-    const bool emulated_rc_search,const bool left_gap_alignment);
 
 #endif /* FILTERING_REGION_ALIGN_CONFIGURE_H_ */

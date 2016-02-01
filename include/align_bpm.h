@@ -26,7 +26,6 @@ typedef struct {
 
 /*
  * BPM. Compute BPM-DP-Matrix
- *   @align_input->key
  *   @align_input->bpm_pattern
  *   @align_input->text
  *   @align_input->text_length
@@ -37,7 +36,6 @@ void align_bpm_compute_matrix(
 /*
  * BPM. Recover CIGAR from a matching string
  *   @align_input->key
- *   @align_input->key_length
  *   @align_input->bpm_pattern
  *   @align_input->text
  *   @bpm_align_matrix->Pv

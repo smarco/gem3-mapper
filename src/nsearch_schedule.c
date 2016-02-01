@@ -342,7 +342,7 @@ void nsearch_schedule_print_pretty(FILE* const stream,nsearch_schedule_t* const 
   }
   // Succint print
   // nsearch_schedule_print(stream,nsearch_schedule);
-  mm_stack_pop_state(mm_stack,false);
+  mm_stack_pop_state(mm_stack);
 }
 void nsearch_schedule_print_profile(FILE* const stream,nsearch_schedule_t* const nsearch_schedule) {
   fprintf(stderr,"%lu\t%lu\t%2.3f\n",nsearch_schedule->ns_nodes_success,

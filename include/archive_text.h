@@ -14,12 +14,8 @@
 #include "text_collection.h"
 
 /*
- * Checker
+ * Archive Text
  */
-#define ARCHIVE_TEXT_CHECK(archive_text) \
-  GEM_CHECK_NULL(archive_text); \
-  DNA_TEXT_CHECK(archive_text->enc_text)
-
 typedef enum {
   archive_text_regular=0,
   archive_text_run_length=1,
@@ -27,12 +23,10 @@ typedef enum {
 } archive_text_type;
 typedef struct {
   // Meta-information
-  // bool hypertext;                   // Stores hypertext (text + graph = hypertext)
   bool run_length;                  // Archive-Text type
   bool explicit_complement;         // Stores explicit RC-text
   uint64_t forward_text_length;     // Total length of the forward text
   // Indexed text
-  // graph_text_t* graph;              // Graph
   dna_text_t* enc_text;             // Index-Text
   sampled_rl_t* sampled_rl;         // Sampled RL-Index Positions
 } archive_text_t;

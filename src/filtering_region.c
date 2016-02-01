@@ -52,12 +52,29 @@ void filtering_region_add(
   // Location
   filtering_region->begin_position = begin_position;
   filtering_region->end_position = end_position;
-  filtering_region->base_position_offset = 0;
+  filtering_region->base_begin_position_offset = 0;
+  filtering_region->base_end_position_offset = end_position-begin_position;
+  filtering_region->key_trim_left = 0;
+  filtering_region->key_trim_right = 0;
+  // Trimmed Pattern
+  filtering_region->bpm_pattern_trimmed = NULL;
+  filtering_region->bpm_pattern_trimmed_tiles = NULL;
   // Regions Matching
   match_scaffold_init(&filtering_region->match_scaffold);
   // Alignment distance
   filtering_region->align_distance = align_distance;
   filtering_region->align_match_end_column = align_match_end_column;
+}
+void filtering_region_retrieve_text(
+    filtering_region_t* const filtering_region,archive_text_t* const archive_text,
+    text_collection_t* const text_collection,mm_stack_t* const mm_stack) {
+  // Check already retrieved
+  if (filtering_region->text_trace_offset != UINT64_MAX) return;
+  // Retrieve
+  const uint64_t text_position = filtering_region->begin_position;
+  const uint64_t text_length = filtering_region->end_position-filtering_region->begin_position;
+  filtering_region->text_trace_offset = archive_text_retrieve(archive_text,
+      text_collection,text_position,text_length,false,mm_stack);
 }
 /*
  * Sorting

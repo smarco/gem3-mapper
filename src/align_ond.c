@@ -58,7 +58,7 @@ void align_ond_compute_lcs_distance(
       if (end_column >= text_length && end_row >= key_length) {
         *lcs_distance = d;
         *match_end_column = end_column;
-        mm_stack_pop_state(mm_stack,false);
+        mm_stack_pop_state(mm_stack);
         return;
       }
     }
@@ -66,7 +66,7 @@ void align_ond_compute_lcs_distance(
   // Not found
   *lcs_distance = ALIGN_DISTANCE_INF;
   *match_end_column = ALIGN_COLUMN_INF;
-  mm_stack_pop_state(mm_stack,false);
+  mm_stack_pop_state(mm_stack);
 }
 /*
  * O(ND) Align
@@ -214,13 +214,13 @@ void align_ond_match(
   match_alignment->score = align_ond_contours.lcs_distance;
   if (align_ond_contours.lcs_distance == ALIGN_DISTANCE_INF) {
     match_alignment->cigar_length = 0;
-    mm_stack_pop_state(mm_stack,false); // Free
+    mm_stack_pop_state(mm_stack); // Free
     return;
   }
   // Backtrace and generate CIGAR
   align_ond_backtrace_contours(align_input,&align_ond_contours,match_alignment,cigar_vector);
   // Free
-  mm_stack_pop_state(mm_stack,false);
+  mm_stack_pop_state(mm_stack);
 }
 
 ///*

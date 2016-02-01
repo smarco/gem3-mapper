@@ -483,7 +483,7 @@ void neighborhood_search(
   PROF_ADD_COUNTER(GP_NS_FAILED_OPT,(_ns_nodes_fail_optimize-_ns_nodes_fail_optimize_start));
   PROF_ADD_COUNTER(GP_NS_NODE_CLOSED,(_ns_nodes_closed-_ns_nodes_closed_start));
   // Free
-  mm_stack_pop_state(mm_stack,false);
+  mm_stack_pop_state(mm_stack);
   PROFILE_STOP(GP_NSEARCH,PROFILE_LEVEL);
 }
 

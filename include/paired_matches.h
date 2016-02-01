@@ -21,6 +21,9 @@
  */
 #define PAIRED_MATCHES_CHECK(paired_matches) GEM_CHECK_NULL(paired_matches)
 
+/*
+ * Paired-Matches Classes
+ */
 typedef enum {
   paired_matches_class_unmapped = 0,
   paired_matches_class_subdominant_end = 1,
@@ -30,7 +33,7 @@ typedef enum {
   paired_matches_class_unique = 5,
   paired_matches_class_high_quality_ends = 6,
 } paired_matches_class_t;
-extern const char* paired_matches_class_label[8];
+extern const char* paired_matches_class_label[7];
 
 /*
  * Paired Matches

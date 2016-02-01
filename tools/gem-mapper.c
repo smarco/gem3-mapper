@@ -196,19 +196,18 @@ option_t gem_mapper_options[] = {
   { 'E', "complete-search-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=0.04, 4%)" },
   { 's', "complete-strata-after-best", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=1)" },
   { 'e', "alignment-max-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=0.08, 8%)" },
-  { 402, "alignment-override-max-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "'never'|'if-unmapped'" , "(default=if-unmapped)" },
-  { 403, "alignment-max-bandwidth", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=0.20, 20%)" },
-  { 404, "alignment-min-identity", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=40%)" },
-  { 405, "alignment-scaffolding", OPTIONAL, TYPE_STRING, 4, VISIBILITY_ADVANCED, "" , "(default=true)" },
-  { 406, "alignment-scaffolding-min-coverage", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<number|percentage>" , "(default=80%)" },
-  { 407, "alignment-scaffolding-min-homopolymer-context", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<number|percentage>" , "(default=2)" },
+  { 401, "alignment-max-bandwidth", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=0.20, 20%)" },
+  { 402, "alignment-global-min-identity", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=80%)" },
+  { 403, "alignment-global-min-score-threshold", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=0.20)" },
+  { 404, "alignment-local", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "'never'|'if-unmapped'" , "(default=if-unmapped)" },
+  { 405, "alignment-local-min-identity", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=40)" },
+  { 406, "alignment-local-min-score-threshold", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=20)" },
+  { 407, "alignment-scaffolding", OPTIONAL, TYPE_STRING, 4, VISIBILITY_ADVANCED, "" , "(default=true)" },
   { 408, "alignment-scaffolding-min-matching_length", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<number|percentage>" , "(default=10)" },
   { 409, "alignment-curation", OPTIONAL, TYPE_STRING, 4, VISIBILITY_ADVANCED, "" , "(default=true)" },
   { 410, "alignment-curation-min-end-context", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<number|percentage>" , "(default=2)" },
   { 411, "region-model-lightweight", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "" },
   { 412, "region-model-heavyweight", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "" },
-  { 413, "region-model-boost", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "" },
-  { 414, "region-model-delimit", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "" },
   /* Paired-end Alignment */
   { 'p', "paired-end-alignment", NO_ARGUMENT, TYPE_NONE, 5, VISIBILITY_USER, "" , "" },
   { 'l', "min-template-length", REQUIRED, TYPE_INT, 5, VISIBILITY_USER, "<number>" , "(default=disabled)" },
@@ -222,7 +221,6 @@ option_t gem_mapper_options[] = {
   { 506, "pe-template-length", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "<min>,<max>," , "(default=disabled)" },
   /* Bisulfite Alignment */
   { 601, "bisulfite-read", REQUIRED, TYPE_STRING, 6, VISIBILITY_ADVANCED, "'inferred','1','2','interleaved'",  "(default=inferred)" },
-  // { 602, "bisulfite-suffix", REQUIRED, TYPE_STRING, 6, VISIBILITY_ADVANCED, "<C2T suffix, G2A suffix>" , "(default=#C2T,#G2A)" },
   /* Alignment Score */
   { 700, "alignment-model", REQUIRED, TYPE_STRING, 7, VISIBILITY_ADVANCED, "'none'|'hamming'|'edit'|'gap-affine'" , "(default=gap-affine)" },
   { 701, "gap-affine-penalties", REQUIRED, TYPE_STRING, 7, VISIBILITY_USER, "A,B,O,X" , "(default=1,4,6,1)" },
@@ -230,7 +228,6 @@ option_t gem_mapper_options[] = {
   { 'B', "mismatch-penalty", REQUIRED, TYPE_INT, 7, VISIBILITY_ADVANCED, "" , "(default=4)" },
   { 'O', "gap-open-penalty", REQUIRED, TYPE_INT, 7, VISIBILITY_ADVANCED, "" , "(default=6)" },
   { 'X', "gap-extension-penalty", REQUIRED, TYPE_INT, 7, VISIBILITY_ADVANCED, "" , "(default=1)" },
-  { 702, "gap-affine-threshold", OPTIONAL, TYPE_INT, 7, VISIBILITY_ADVANCED, "" , "(default=0.20)" },
   /* MAQ Score */
   { 800, "mapq-model", REQUIRED, TYPE_STRING, 8, VISIBILITY_ADVANCED, "'none'|'gem'" , "(default=gem)" },
   // TODO { 801, "mapq-threshold", REQUIRED, TYPE_INT, 8, VISIBILITY_DEVELOPER, "<number>" , "(default=0)" },
@@ -438,29 +435,32 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 'e': // --alignment-max-error (default=0.08, 8%)
       search->alignment_max_error = atof(optarg);
       break;
-    case 402: // --alignment-override-max-error in {'never'|'if-unmapped'} (default=if-no-match)
-      if (gem_strcaseeq(optarg,"FR")) {
+    case 401: // --alignment-max-bandwidth (default=0.20, 20%)
+      input_text_parse_extended_double(optarg,(double*)&search->alignment_max_bandwidth);
+      break;
+    case 402: // --alignment-global-min-identity (default=40)
+      input_text_parse_extended_double(optarg,(double*)&search->alignment_global_min_identity);
+      break;
+    case 403: // --alignment-global-min-score-threshold (default=0.20)
+      input_text_parse_extended_double(optarg,(double*)&search->alignment_global_min_swg_threshold);
+      break;
+    case 404: // --alignment-local in {'never'|'if-unmapped'} (default=if-unmapped)
+      if (gem_strcaseeq(optarg,"never")) {
         search->unbounded_alignment = unbounded_alignment_never;
-      } else if (gem_strcaseeq(optarg,"RF")) {
+      } else if (gem_strcaseeq(optarg,"if-unmapped")) {
         search->unbounded_alignment = unbounded_alignment_if_unmapped;
       } else {
-        gem_mapper_error_msg("Option '--alignment-override-max-error' must be 'never'|'if-unmapped'");
+        gem_mapper_error_msg("Option '--alignment-local' must be 'never'|'if-unmapped'");
       }
       break;
-    case 403: // --alignment-max-bandwidth (default=0.20, 20%)
-      input_text_parse_extended_double(optarg,(double*)&search->max_bandwidth);
+    case 405: // --alignment-local-min-identity (default=40)
+      input_text_parse_extended_double(optarg,(double*)&search->alignment_local_min_identity);
       break;
-    case 404: // --alignment-min-identity (default=40)
-      input_text_parse_extended_double(optarg,(double*)&search->alignment_min_identity);
+    case 406: // --alignment-local-min-score-threshold (default=20)
+      input_text_parse_extended_double(optarg,(double*)&search->alignment_local_min_swg_threshold);
       break;
-    case 405: // --alignment-scaffolding (default=true)
+    case 407: // --alignment-scaffolding (default=true)
       search->alignment_scaffolding = input_text_parse_extended_bool(optarg);
-      break;
-    case 406: // --alignment-scaffolding-min-coverage (default=80%)
-      input_text_parse_extended_double(optarg,(double*)&search->alignment_scaffolding_min_coverage);
-      break;
-    case 407: // --alignment-scaffolding-min-homopolymer-context (default=2)
-      input_text_parse_extended_double(optarg,(double*)&search->alignment_scaffolding_homopolymer_min_context);
       break;
     case 408: // --alignment-scaffolding-min-matching_length (default=10)
       input_text_parse_extended_double(optarg,(double*)&search->alignment_scaffolding_min_matching_length);
@@ -491,26 +491,16 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       input_text_parse_extended_uint64(region_type_th,&search->rp_heavyweight.region_type_th); // Parse region_type_th
       break;
     }
-    case 413: { // --region-model-boost   <region_th>,<max_steps>,<dec_factor>,<region_type_th> (default=500,1,8,50)
-      char *region_th=NULL, *max_steps=NULL, *dec_factor=NULL, *region_type_th=NULL;
-      const int num_arguments = input_text_parse_csv_arguments(optarg,4,&region_th,&max_steps,&dec_factor,&region_type_th);
-      gem_mapper_cond_error_msg(num_arguments!=4,"Option '--region-model' wrong number of arguments");
-      input_text_parse_extended_uint64(region_th,&search->rp_boost.region_th); // Parse region_th
-      input_text_parse_extended_uint64(max_steps,&search->rp_boost.max_steps); // Parse max_steps
-      input_text_parse_extended_uint64(dec_factor,&search->rp_boost.dec_factor); // Parse dec_factor
-      input_text_parse_extended_uint64(region_type_th,&search->rp_boost.region_type_th); // Parse region_type_th
-      break;
-    }
-    case 414: { // --region-model-delimit <region_th>,<max_steps>,<dec_factor>,<region_type_th> (default=100,4,2,2)
-      char *region_th=NULL, *max_steps=NULL, *dec_factor=NULL, *region_type_th=NULL;
-      const int num_arguments = input_text_parse_csv_arguments(optarg,4,&region_th,&max_steps,&dec_factor,&region_type_th);
-      gem_mapper_cond_error_msg(num_arguments!=4,"Option '--region-model' wrong number of arguments");
-      input_text_parse_extended_uint64(region_th,&search->rp_delimit.region_th); // Parse region_th
-      input_text_parse_extended_uint64(max_steps,&search->rp_delimit.max_steps); // Parse max_steps
-      input_text_parse_extended_uint64(dec_factor,&search->rp_delimit.dec_factor); // Parse dec_factor
-      input_text_parse_extended_uint64(region_type_th,&search->rp_delimit.region_type_th); // Parse region_type_th
-      break;
-    }
+//    case 413: { // --region-model-delimit <region_th>,<max_steps>,<dec_factor>,<region_type_th> (default=100,4,2,2)
+//      char *region_th=NULL, *max_steps=NULL, *dec_factor=NULL, *region_type_th=NULL;
+//      const int num_arguments = input_text_parse_csv_arguments(optarg,4,&region_th,&max_steps,&dec_factor,&region_type_th);
+//      gem_mapper_cond_error_msg(num_arguments!=4,"Option '--region-model' wrong number of arguments");
+//      input_text_parse_extended_uint64(region_th,&search->rp_delimit.region_th); // Parse region_th
+//      input_text_parse_extended_uint64(max_steps,&search->rp_delimit.max_steps); // Parse max_steps
+//      input_text_parse_extended_uint64(dec_factor,&search->rp_delimit.dec_factor); // Parse dec_factor
+//      input_text_parse_extended_uint64(region_type_th,&search->rp_delimit.region_type_th); // Parse region_type_th
+//      break;
+//    }
     /* Paired-end Alignment */
     case 'p': // --paired-end-alignment
       paired_search->paired_end_search = true;
@@ -726,9 +716,6 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       search->swg_penalties.gap_extension_score = -((int32_t)gap_extension_penalty);
       break;
     }
-    case 702: // --gap-affine-threshold
-      input_text_parse_extended_double(optarg,&search->swg_threshold);
-      break;
     /* MAQ Score */
     case 800: // --mapq-model in {'none'|'gem'|'classify'|'dump-predictors'} (default=gem)
       if (gem_strcaseeq(optarg,"none")) {

@@ -42,27 +42,26 @@ bool match_align_swg_middle_region(
     match_align_parameters_t* const align_parameters,match_alignment_t* const match_alignment,
     const uint64_t key_chunk_begin_offset,const uint64_t key_chunk_length,
     const uint64_t text_chunk_begin_offset,const uint64_t text_chunk_length,
-    const bool force_swg_threshold,mm_stack_t* const mm_stack);
+    mm_stack_t* const mm_stack);
 bool match_align_swg_begin_region(
     matches_t* const matches,match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,match_alignment_t* const match_alignment,
     const uint64_t key_chunk_begin_offset,const uint64_t key_chunk_length,
     const uint64_t text_chunk_begin_offset,const uint64_t text_chunk_length,
-    const bool force_swg_threshold,mm_stack_t* const mm_stack);
+    mm_stack_t* const mm_stack);
 bool match_align_swg_end_region(
     matches_t* const matches,match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,match_alignment_t* const match_alignment,
     const uint64_t key_chunk_begin_offset,const uint64_t key_chunk_length,
     const uint64_t text_chunk_begin_offset,const uint64_t text_chunk_length,
-    const bool force_swg_threshold,mm_stack_t* const mm_stack);
+    mm_stack_t* const mm_stack);
 
 /*
- * SWG Post-Alignment (Curate cigar, compute metrics, filter bad-alignments)
+ * SWG Post-Alignment (Normalize cigar, compute metrics, filter bad-alignments)
  */
 void match_align_swg_post_alignment(
     matches_t* const matches,match_trace_t* const match_trace,
-    match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
-    const bool local_alignment);
+    match_align_input_t* const align_input,match_align_parameters_t* const align_parameters);
 
 /*
  * SWG Chained Alignment

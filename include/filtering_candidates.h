@@ -29,9 +29,13 @@ typedef struct {
   uint64_t region_index_position;
   uint64_t region_text_position;
   // Final position
-  uint64_t begin_position;       // Region effective begin position (adjusted to error boundaries)
-  uint64_t end_position;         // Region effective end position (adjusted to error boundaries)
-  uint64_t base_position_offset; // Offset to base filtering position (Begin position without error boundary correction)
+  uint64_t sequence_id;                // Id of the sequence the position belongs to
+  uint64_t begin_position;             // Region effective begin position (adjusted to error boundaries)
+  uint64_t end_position;               // Region effective end position (adjusted to error boundaries)
+  uint64_t base_begin_position_offset; // Offset to base begin filtering position (no error boundary correction)
+  uint64_t base_end_position_offset;   // Offset to base begin filtering position (no error boundary correction)
+  uint64_t key_trim_left;              // Key left trim  (due to position correction wrt the reference limits)
+  uint64_t key_trim_right;             // Key right trim (due to position correction wrt the reference limits)
 } filtering_position_t;
 
 /*

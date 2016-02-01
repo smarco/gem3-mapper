@@ -45,11 +45,16 @@ bool match_scaffold_is_null(match_scaffold_t* const match_scaffold) {
  *   @align_input->key
  *   @align_input->key_length
  *   @align_input->bpm_pattern
+ *   @align_input->bpm_pattern_tiles
  *   @align_input->text_position
  *   @align_input->text
  *   @align_input->text_length
+ *   @align_input->key_trim_left
+ *   @align_input->key_trim_right
  *   @align_input->text_offset_begin
  *   @align_input->text_offset_end
+ *   @align_input->text_offset_base_begin
+ *   @align_input->text_offset_base_end
  *   @align_parameters->max_error
  *   @align_parameters->left_gap_alignment
  *   @align_parameters->scaffolding_min_coverage
@@ -66,14 +71,22 @@ void match_scaffold_adaptive(
   // Select proper scaffold approach
   switch (match_scaffold->scaffold_type) {
     case scaffold_none:
-      // Chaining Matching Regions
-      match_scaffold_region_chain(matches,align_input,align_parameters,match_scaffold,mm_stack);
+      // Scaffold chaining matching regions (from region-profile)
+      match_scaffold->scaffold_type = scaffold_region_chain;
+      match_scaffold_region_chain(match_scaffold,align_input,align_parameters,true,mm_stack);
+      PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_CHAIN_REGIONS_COVERAGE,
+          (100*match_scaffold->scaffolding_coverage)/align_input->key_length);
+//      if (match_scaffold->match_alignment.score <= filtering_region->align_bound_dist) FIXME
+      if (match_scaffold->scaffolding_coverage >= align_parameters->scaffolding_min_coverage) break;
       // no break
     case scaffold_region_chain:
       // Scaffold from Levenshtein-alignment
-      if (match_scaffold->scaffolding_coverage < align_parameters->scaffolding_min_coverage) {
-        match_scaffold_levenshtein(matches,align_input,align_parameters,match_scaffold,mm_stack);
-      }
+      match_scaffold->scaffold_type = scaffold_levenshtein;
+      match_scaffold_levenshtein(match_scaffold,align_input,align_parameters,matches,mm_stack);
+      match_scaffold_region_chain(match_scaffold,align_input,align_parameters,false,mm_stack);
+      // match_scaffold_print(stderr,matches,match_scaffold);
+      PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_COVERAGE,
+          (100*match_scaffold->scaffolding_coverage)/align_input->key_length);
       // no break
     default:
       break;

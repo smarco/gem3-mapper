@@ -20,9 +20,9 @@
 #define PROFILE_LEVEL PLOW
 
 /*
- * Curate Alignment
+ * Normalize Alignment
  */
-bool match_align_curate_cigar_trim(
+bool match_align_normalize_cigar_trim(
     match_align_parameters_t* const align_parameters,const cigar_element_t* const cigar_element,
     uint64_t* const trim_length,uint64_t* const match_position) {
   switch (cigar_element->type) {
@@ -53,7 +53,7 @@ bool match_align_curate_cigar_trim(
   }
   return false;
 }
-void match_align_curate_cigar(
+void match_align_normalize_cigar(
     match_trace_t* const match_trace,vector_t* const cigar_vector,
     match_align_parameters_t* const align_parameters) {
   // Parameters
@@ -61,11 +61,12 @@ void match_align_curate_cigar(
   match_alignment_t* const match_alignment = &match_trace->match_alignment;
   const uint64_t cigar_length = match_alignment->cigar_length;
   cigar_element_t* const cigar_buffer = vector_get_elm(cigar_vector,match_alignment->cigar_offset,cigar_element_t);
-  uint64_t curated_cigar_length = 0, indel_length = 0, i = 0, j = 0;
+  uint64_t normalized_cigar_length = 0, indel_length = 0, i = 0, j = 0;
   // Trim the beginning of the read
   while (j < cigar_length) {
     cigar_element_t* const cigar_element = cigar_buffer + j;
-    if (!match_align_curate_cigar_trim(align_parameters,cigar_element,&indel_length,&match_alignment->match_position)) {
+    if (!match_align_normalize_cigar_trim(align_parameters,
+        cigar_element,&indel_length,&match_alignment->match_position)) {
       break;
     }
     // Trim
@@ -79,14 +80,14 @@ void match_align_curate_cigar(
     cigar_element_t* cigar_element = cigar_buffer + i;
     switch (cigar_element->type) {
       case cigar_mismatch:
-        cigar_buffer[curated_cigar_length++] = *cigar_element;
+        cigar_buffer[normalized_cigar_length++] = *cigar_element;
         ++i;
         break;
       case cigar_match:
         if (i+1<cigar_length && cigar_buffer[i+1].type == cigar_match) {
           cigar_buffer[i+1].length += cigar_element->length;
         } else {
-          cigar_buffer[curated_cigar_length++] = *cigar_element;
+          cigar_buffer[normalized_cigar_length++] = *cigar_element;
         }
         ++i;
         break;
@@ -110,13 +111,13 @@ void match_align_curate_cigar(
             break;
           }
         }
-        // Copy curated Ins/Del
+        // Copy normalized Ins/Del
         if (left_gap_alignment) {
-          if (accum_del.length > 0) cigar_buffer[curated_cigar_length++] = accum_del;
-          if (accum_ins.length > 0) cigar_buffer[curated_cigar_length++] = accum_ins;
+          if (accum_del.length > 0) cigar_buffer[normalized_cigar_length++] = accum_del;
+          if (accum_ins.length > 0) cigar_buffer[normalized_cigar_length++] = accum_ins;
         } else {
-          if (accum_ins.length > 0) cigar_buffer[curated_cigar_length++] = accum_ins;
-          if (accum_del.length > 0) cigar_buffer[curated_cigar_length++] = accum_del;
+          if (accum_ins.length > 0) cigar_buffer[normalized_cigar_length++] = accum_ins;
+          if (accum_del.length > 0) cigar_buffer[normalized_cigar_length++] = accum_del;
         }
         break;
       }
@@ -126,27 +127,27 @@ void match_align_curate_cigar(
     }
   }
   // Handle last CIGAR element(s)
-  if (curated_cigar_length > 0) {
+  if (normalized_cigar_length > 0) {
     // Check match or deletion at the end
-    cigar_element_t* last_cigar_element = cigar_buffer + (curated_cigar_length-1);
+    cigar_element_t* last_cigar_element = cigar_buffer + (normalized_cigar_length-1);
     uint64_t indel_length = 0;
-    if (match_align_curate_cigar_trim(align_parameters,last_cigar_element,&indel_length,NULL)) {
+    if (match_align_normalize_cigar_trim(align_parameters,last_cigar_element,&indel_length,NULL)) {
       // Chain all the mismatches & deletions at the end
       while (last_cigar_element > cigar_buffer) {
         --last_cigar_element;
-        if (!match_align_curate_cigar_trim(align_parameters,last_cigar_element,&indel_length,NULL)) break;
-        --curated_cigar_length;
+        if (!match_align_normalize_cigar_trim(align_parameters,last_cigar_element,&indel_length,NULL)) break;
+        --normalized_cigar_length;
       }
       // Merge all of them
-      last_cigar_element = cigar_buffer + (curated_cigar_length-1);
+      last_cigar_element = cigar_buffer + (normalized_cigar_length-1);
       last_cigar_element->type = cigar_del;
       last_cigar_element->attributes = cigar_attr_trim;
       last_cigar_element->length = indel_length;
-      if (indel_length==0) --curated_cigar_length;
+      if (indel_length==0) --normalized_cigar_length;
     }
   }
-  // Set curated-CIGAR length
-  match_alignment->cigar_length = curated_cigar_length;
+  // Set normalized-CIGAR length
+  match_alignment->cigar_length = normalized_cigar_length;
 }
 /*
  * Exact Alignment
@@ -168,6 +169,7 @@ void match_align_exact(
   const uint64_t key_length = align_input->key_length;
   match_alignment_t* const match_alignment = &match_trace->match_alignment;
   // Configure match-trace
+  match_trace->type = match_type_regular;
   match_trace->text_trace_offset = align_input->text_trace_offset;
   match_trace->text = (match_alignment->score==0) ?
       align_input->text + align_input->text_offset_begin : align_input->text;
@@ -179,8 +181,8 @@ void match_align_exact(
   match_trace->edit_distance = match_alignment->score;
   match_trace->swg_score = align_swg_score_match(align_parameters->swg_penalties,(int32_t)key_length);
   // Insert exact-match CIGAR
-  match_alignment->match_offset = (match_alignment->score==0) ? align_input->text_offset_begin : 0;
-  match_alignment->match_position = align_input->text_position + match_alignment->match_offset; // Adjust position
+  match_alignment->match_text_offset = (match_alignment->score==0) ? align_input->text_offset_begin : 0;
+  match_alignment->match_position = align_input->text_position + match_alignment->match_text_offset; // Adjust position
   match_alignment->cigar_offset = vector_get_used(matches->cigar_vector);
   match_alignment->cigar_length = 0;
   match_alignment->effective_length = key_length;
@@ -211,6 +213,7 @@ void match_align_hamming(
   const uint64_t text_offset_end = align_input->text_offset_end;
   const bool* const allowed_enc = align_parameters->allowed_enc;
   // Configure match-trace
+  match_trace->type = match_type_regular;
   match_trace->text_trace_offset = align_input->text_trace_offset;
   match_trace->text = text + text_offset_begin;
   match_trace->text_length = key_length;
@@ -221,7 +224,7 @@ void match_align_hamming(
   match_alignment->match_position = align_input->text_position;
   match_alignment->cigar_offset = vector_get_used(matches->cigar_vector);
   match_alignment->cigar_length = 0;
-  match_alignment->match_offset = 0;
+  match_alignment->match_text_offset = 0;
   // Hamming Alignment
   uint64_t i, mismatches;
   for (i=text_offset_begin,mismatches=0;i<text_offset_end;++i) {
@@ -263,6 +266,7 @@ void match_align_levenshtein(
     mm_stack_t* const mm_stack) {
   PROFILE_START(GP_MATCHES_ALIGN_LEVENSHTEIN,PROFILE_LEVEL);
   // Configure match-trace
+  match_trace->type = match_type_regular;
   match_trace->text_trace_offset = align_input->text_trace_offset;
   match_trace->sequence_name = NULL;
   match_trace->text_position = UINT64_MAX;
@@ -280,8 +284,8 @@ void match_align_levenshtein(
   match_trace->swg_score = align_swg_score_cigar(align_parameters->swg_penalties,
       matches->cigar_vector,match_alignment->cigar_offset,match_alignment->cigar_length);
   // Store matching text
-  match_alignment->match_offset = match_alignment->match_position - match_position;
-  match_trace->text = align_input->text + match_alignment->match_offset;
+  match_alignment->match_text_offset = match_alignment->match_position - match_position;
+  match_trace->text = align_input->text + match_alignment->match_text_offset;
   match_trace->text_length = match_alignment->effective_length;
   PROFILE_STOP(GP_MATCHES_ALIGN_LEVENSHTEIN,PROFILE_LEVEL);
 }
@@ -339,22 +343,37 @@ void match_align_smith_waterman_gotoh(
     // Chain matching regions and align gaps (SWG)
     match_align_swg_chain_scaffold(matches,match_trace,align_input,align_parameters,match_scaffold,mm_stack);
   } else {
+    // Add left trim
+    if (align_input->key_trim_left > 0) {
+      matches_cigar_vector_append_deletion(matches->cigar_vector,
+          &match_alignment->cigar_length,align_input->key_trim_left,cigar_attr_trim);
+    }
     // Full SWG
     match_align_input_t align_chunk_input;
-    align_chunk_input.key = align_input->key;
-    align_chunk_input.key_length = align_input->key_length;
+    align_chunk_input.key = align_input->key + align_input->key_trim_left;
+    align_chunk_input.key_length = align_input->key_length - align_input->key_trim_left - align_input->key_trim_right;
     align_chunk_input.text = align_input->text + align_input->text_offset_begin;
     align_chunk_input.text_length = align_input->text_offset_end - align_input->text_offset_begin;
     match_alignment->match_position += align_input->text_offset_begin;
     align_swg(&align_chunk_input,align_parameters,true,true,
         &match_trace->match_alignment,matches->cigar_vector,mm_stack);
+    // Add right trim
+    if (align_input->key_trim_right > 0) {
+      matches_cigar_vector_append_deletion(matches->cigar_vector,
+          &match_alignment->cigar_length,align_input->key_trim_right,cigar_attr_trim);
+    }
   }
   // Post alignment checks & setup
-  match_align_swg_post_alignment(matches,match_trace,align_input,align_parameters,false);
+  match_align_swg_post_alignment(matches,match_trace,align_input,align_parameters);
   // Adjust text
-  match_alignment->match_offset = match_alignment->match_position - base_match_position;
-  match_trace->text = align_input->text + match_alignment->match_offset;
+  match_alignment->match_text_offset = match_alignment->match_position - base_match_position;
+  match_trace->text = align_input->text + match_alignment->match_text_offset;
   match_trace->text_length = match_alignment->effective_length;
+  // DEBUG
+//  match_alignment_print_pretty(stderr,match_alignment,
+//      matches->cigar_vector,align_input->key,align_input->key_length,
+//      align_input->text+match_alignment->match_text_offset,
+//      align_input->text_length,mm_stack);
   PROFILE_STOP(GP_MATCHES_ALIGN_SWG,PROFILE_LEVEL);
 }
 

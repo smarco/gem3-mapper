@@ -191,19 +191,18 @@
  */
 #define GP_FC_VERIFICATION                                  330
 #define GP_FC_PROCESS_CANDIDATES                            331
-#define GP_FC_DECODE_POSITIONS                              332
-#define GP_FC_DECODE_CANDIDATES_BUFFERED                    333
+#define GP_FC_COMPOSE_REGIONS                               332
+#define GP_FC_DECODE_POSITIONS                              333
+#define GP_FC_DECODE_CANDIDATES_BUFFERED                    334
 #define GP_FC_DECODE_CANDIDATES_BUFFERED_UNSUCCESSFUL       335
 #define GP_FC_DECODE_CANDIDATES_BUFFERED_UNSUCCESSFUL_TOTAL 336
-#define GP_FC_VERIFY_CANDIDATE_REGIONS                      337
-#define GP_FC_VERIFY_CANDIDATE_REGION                       338
-#define GP_FC_REALIGN_CANDIDATE_REGIONS                     339
-#define GP_FC_UNBOUNDED_ALIGNMENT                           340
-#define GP_FC_REALIGN_BPM_BUFFER_CANDIDATE_REGIONS          341
-#define GP_FC_RETRIEVE_CANDIDATE_REGIONS                    342
-#define GP_FC_RETRIEVE_CANDIDATE_REGIONS_BUFFERED           343
-#define GP_FC_RETRIEVE_CANDIDATE_REGIONS_DIST_DIFF          344
-#define GP_FC_COMPOSE_REGIONS                               345
+#define GP_FC_VERIFY_CANDIDATES                             337
+#define GP_FC_VERIFY_CANDIDATES_REGION                      338
+#define GP_FC_VERIFY_CANDIDATES_BUFFERED                    339
+#define GP_FC_VERIFY_CANDIDATES_BUFFERED_DDIFF              340
+#define GP_FC_REALIGN_CANDIDATE_REGIONS                     341
+#define GP_FC_REALIGN_CANDIDATE_REGIONS_BUFFERED            342
+#define GP_FC_REALIGN_UNBOUNDED                             343
 
 #define GP_FC_KMER_COUNTER_FILTER                           350
 #define GP_FC_KMER_COUNTER_FILTER_NA                        351
@@ -226,8 +225,7 @@
 #define GP_CANDIDATE_REGIONS                                402
 #define GP_CANDIDATE_REGIONS_DUPLICATED                     403
 #define GP_CANDIDATE_REGION_LENGTH                          404
-#define GP_KMER_COUNTER_FILTER                              405
-#define GP_KMER_COUNTER_FILTER_DISCARDED                    406
+
 #define GP_ACCEPTED_REGIONS                                 407
 #define GP_DISCARDED_REGIONS                                408
 
@@ -238,26 +236,24 @@
 
 #define GP_MATCH_SCAFFOLD_ALIGNMENT                         450
 #define GP_MATCH_SCAFFOLD_CHAIN_REGIONS                     451
-#define GP_MATCH_SCAFFOLD_CHAIN_REGIONS_SUCCESS             452
+#define GP_MATCH_SCAFFOLD_CHAIN_REGIONS_SCAFFOLDS           452
 #define GP_MATCH_SCAFFOLD_CHAIN_REGIONS_COVERAGE            453
-#define GP_MATCH_SCAFFOLD_EXTEND_REGIONS                    454
-#define GP_MATCH_SCAFFOLD_EXTEND_REGIONS_COVERAGE           455
-#define GP_MATCH_SCAFFOLD_EDIT                              456
-#define GP_MATCH_SCAFFOLD_EDIT_SCAFFOLDS                    457
-#define GP_MATCH_SCAFFOLD_EDIT_COVERAGE                     458
-#define GP_MATCH_SCAFFOLD_SWG                               459
-#define GP_MATCH_SCAFFOLD_SWG_SCAFFOLDS                     460
+#define GP_MATCH_SCAFFOLD_EDIT                              454
+#define GP_MATCH_SCAFFOLD_EDIT_SCAFFOLDS                    455
+#define GP_MATCH_SCAFFOLD_EDIT_COVERAGE                     456
+#define GP_MATCH_SCAFFOLD_EDIT_CELLS                        457
 
-#define GP_MATCH_NUM_SE_MATCHES_ADDED                       461
+#define GP_BPM_DISTANCE                                     470
+#define GP_BPM_DISTANCE_TILED                               471
+#define GP_BMP_DISTANCE_TILED_NUM_TILES                     472
+#define GP_BMP_DISTANCE_TILED_NUM_TILES_VERIFIED            473
+#define GP_BPM_DISTANCE_QUICK_ABANDON                       474
+#define GP_BPM_DISTANCE_CELLS                               476
 
-#define GP_BPM_COMPUTE_EDIT_DISTANCE                        470
-#define GP_BPM_TILED                                        471
-#define GP_BMP_TILED_NUM_TILES                              472
-#define GP_BMP_TILED_NUM_TILES_VERIFIED                     473
-#define GP_BPM_QUICK_ABANDON                                474
-#define GP_BPM_ALL                                          475
-#define GP_BPM_ALL_QUICK_ABANDON                            476
-#define GP_BPM_ALL_MATCHES_FOUND                            477
+#define GP_BPM_ALL                                          480
+#define GP_BPM_ALL_QUICK_ABANDON                            481
+#define GP_BPM_ALL_MATCHES_FOUND                            482
+
 
 /*
  * FM-Index
@@ -274,12 +270,18 @@
 #define GP_MATCHES_ALIGN_LOCAL_SWG                          584
 
 /*
+ * Matches
+ */
+#define GP_MATCHES_SE_ADD_NUM_MAPS                          590
+
+/*
  * SWG
  */
 #define GP_SWG_ALIGN_FULL                                   600
 #define GP_SWG_ALIGN_FULL_LENGTH                            601
 #define GP_SWG_ALIGN_BANDED                                 602
 #define GP_SWG_ALIGN_BANDED_LENGTH                          603
+#define GP_SWG_ALIGN_BANDED_CELLS                           604
 
 /*
  * Neighborhood Search
@@ -346,6 +348,8 @@
 /*
  * GPU BUFFERS
  */
+#define GP_GPU_BUFFER_COLLECTION_INIT                        790
+
 #define GP_GPU_BUFFER_FMI_SEARCH_ALLOC                       800
 #define GP_GPU_BUFFER_FMI_SEARCH_NUM_QUERIES                 801
 #define GP_GPU_BUFFER_FMI_SEARCH_SEND                        802
@@ -364,13 +368,12 @@
 #define GP_GPU_BUFFER_ALIGN_BPM_NUM_QUERIES                  821
 #define GP_GPU_BUFFER_ALIGN_BPM_CANDIDATE_LENGTH             822
 #define GP_GPU_BUFFER_ALIGN_BPM_CANDIDATE_PER_QUERY          823
-#define GP_GPU_BUFFER_ALIGN_BPM_SEND                         824
-#define GP_GPU_BUFFER_ALIGN_BPM_RECEIVE                      825
-#define GP_GPU_BUFFER_ALIGN_BPM_DUTY_CYCLE                   826
-#define GP_GPU_BUFFER_ALIGN_BPM_USAGE_CANDIDATES             827
-#define GP_GPU_BUFFER_ALIGN_BPM_USAGE_QUERIES                828
-#define GP_GPU_BUFFER_ALIGN_BPM_USAGE_PEQ_ENTRIES            829
-
-#define GP_GPU_BUFFER_COLLECTION_INIT                        850
+#define GP_GPU_BUFFER_ALIGN_BPM_CELLS                        824
+#define GP_GPU_BUFFER_ALIGN_BPM_SEND                         825
+#define GP_GPU_BUFFER_ALIGN_BPM_RECEIVE                      826
+#define GP_GPU_BUFFER_ALIGN_BPM_DUTY_CYCLE                   827
+#define GP_GPU_BUFFER_ALIGN_BPM_USAGE_CANDIDATES             828
+#define GP_GPU_BUFFER_ALIGN_BPM_USAGE_QUERIES                829
+#define GP_GPU_BUFFER_ALIGN_BPM_USAGE_PEQ_ENTRIES            830
 
 #endif /* MAPPER_PROFILE_COUNTERS_H_ */
