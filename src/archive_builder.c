@@ -73,14 +73,7 @@ void archive_builder_delete(archive_builder_t* const archive_builder) {
   mm_free(archive_builder);
 }
 /*
- * Archive Build STEP4 :: Create Index (FM-Index)
- *   1. Generate archive
- *     1.1 Write IndexText
- *     1.2 Write Sampled-SA
- *     1.3 FM-Index
- *       1.3.1 FM-Index Structure
- *       1.3.2 BWT Structure
- *       1.3.3 Memoization Table (Rank calls)
+ * Writers
  */
 void archive_builder_write_header(archive_builder_t* const archive_builder) {
   ARCHIVE_BUILDER_CHECK(archive_builder);

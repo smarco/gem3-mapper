@@ -154,7 +154,7 @@ void locator_builder_add_interval(
 void locator_builder_add_rc_interval(
     locator_builder_t* const locator_builder,locator_interval_t* const locator_interval) {
   const uint64_t interval_length = locator_interval_get_index_length(locator_interval);
-  const strand_t rc_strand = dna_strand_get_complement(locator_interval->strand);
+  const strand_t rc_strand = dna_text_strand_get_complement(locator_interval->strand);
   locator_builder_add_interval(locator_builder,locator_interval->tag_id,locator_interval->sequence_offset,
       locator_interval->sequence_length,interval_length,locator_interval->type,rc_strand,locator_interval->bs_strand);
 }

@@ -166,8 +166,12 @@ void locator_interval_print(FILE* const stream,locator_interval_t* const interva
     default: GEM_INVALID_CASE(); break;
   }
   // Print interval information
-  fprintf(stream,"Idx=[%"PRIu64",%"PRIu64")\tText=%s:%c:[%"PRIu64",%"PRIu64")",
-      interval->begin_position,interval->end_position,interval_tag,
+  fprintf(stream,
+      "Idx=[%"PRIu64",%"PRIu64")\t"
+      "RL.Idx=[%"PRIu64",%"PRIu64")\t"
+      "Text=%s:%c:[%"PRIu64",%"PRIu64")",
+      interval->begin_position,interval->end_position,
+      interval->rl_begin_position,interval->rl_end_position,interval_tag,
       interval->strand==Forward ? '+' : '-',interval->sequence_offset,
       interval->sequence_offset+interval->sequence_length);
   // Print BS-Strand info (if any)

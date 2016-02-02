@@ -75,8 +75,8 @@ uint64_t filtering_candidates_extend_match(
       candidate_pattern->key_length,max_filtering_error,max_template_size,
       &candidate_begin_position,&candidate_end_position);
   const uint64_t candidate_length = candidate_end_position-candidate_begin_position;
-  const uint64_t text_trace_offset = archive_text_retrieve(archive_text,
-      text_collection,candidate_begin_position,candidate_length,false,mm_stack);
+  const uint64_t text_trace_offset = archive_text_retrieve_collection(archive_text,
+      text_collection,candidate_begin_position,candidate_length,false,false,mm_stack);
   PROFILE_STOP(GP_FC_EXTEND_RETRIEVE_CANDIDATE_REGIONS,PROFILE_LEVEL);
   /*
    * Verify candidate region (may contain multiple matches)

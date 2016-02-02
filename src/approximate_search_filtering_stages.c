@@ -34,8 +34,8 @@ void approximate_search_exact_filtering_adaptive(
   if (search->processing_state==asearch_processing_state_no_regions) return; // Corner cases
   if (search->processing_state==asearch_processing_state_exact_matches) return; // Corner cases
   // Generate exact-candidates
-  const as_parameters_t* const actual_parameters = search->as_parameters;
-  const search_parameters_t* const search_parameters = actual_parameters->search_parameters;
+  as_parameters_t* const actual_parameters = search->as_parameters;
+  search_parameters_t* const search_parameters = actual_parameters->search_parameters;
   region_profile_schedule_filtering_fixed(&search->region_profile,ALL,
       REGION_FILTER_DEGREE_ZERO,search_parameters->filtering_threshold);
   approximate_search_generate_exact_candidates(search,matches);
@@ -82,8 +82,8 @@ void approximate_search_exact_filtering_adaptive_cutoff(
     tab_global_inc();
   }
   // Parameters
-  const as_parameters_t* const as_parameters = search->as_parameters;
-  const search_parameters_t* const search_parameters = as_parameters->search_parameters;
+  as_parameters_t* const as_parameters = search->as_parameters;
+  search_parameters_t* const search_parameters = as_parameters->search_parameters;
   archive_t* const archive = search->archive;
   fm_index_t* const fm_index = archive->fm_index;
   pattern_t* const pattern = &search->pattern;
@@ -91,16 +91,8 @@ void approximate_search_exact_filtering_adaptive_cutoff(
   region_profile_t* const region_profile = &search->region_profile;
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
   mm_stack_t* const mm_stack = search->mm_stack;
-  // Select proper key
-  const uint8_t* key;
-  uint64_t key_length;
-  if (!archive->text->run_length) {
-    key = pattern->key;
-    key_length = pattern->key_length;
-  } else {
-    key = pattern->rl_key;
-    key_length = pattern->rl_key_length;
-  }
+  const uint8_t* key = pattern->key;
+  const uint64_t key_length = pattern->key_length;
   // Iterate process of region-candidates-verification
   const region_profile_model_t* const profile_model = &search_parameters->rp_lightweight;
   region_profile_generator_t generator;
@@ -159,8 +151,8 @@ void approximate_search_exact_filtering_boost(approximate_search_t* const search
     tab_global_inc();
   }
   // Parameters
-  const as_parameters_t* const actual_parameters = search->as_parameters;
-  const search_parameters_t* const parameters = actual_parameters->search_parameters;
+  as_parameters_t* const actual_parameters = search->as_parameters;
+  search_parameters_t* const parameters = actual_parameters->search_parameters;
   const uint64_t old_mcs = search->max_complete_stratum;
   // Region-Boost Profile
   approximate_search_region_profile_adaptive(search,region_profile_adaptive_boost,search->mm_stack);
@@ -197,8 +189,8 @@ void approximate_search_inexact_filtering(approximate_search_t* const search,mat
     tab_global_inc();
   }
   // Parameters
-  const as_parameters_t* const actual_parameters = search->as_parameters;
-  const search_parameters_t* const parameters = actual_parameters->search_parameters;
+  as_parameters_t* const actual_parameters = search->as_parameters;
+  search_parameters_t* const parameters = actual_parameters->search_parameters;
   pattern_t* const pattern = &search->pattern;
   region_profile_t* const region_profile = &search->region_profile;
   // Region-Delimit Profile (Maximize number of unique-regions and try to isolate standard/repetitive regions)

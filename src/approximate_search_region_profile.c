@@ -124,20 +124,11 @@ void approximate_search_region_profile_adaptive(
   // Parameters
   const as_parameters_t* const actual_parameters = search->as_parameters;
   const search_parameters_t* const parameters = actual_parameters->search_parameters;
-  const archive_t* archive = search->archive;
   fm_index_t* const fm_index = search->archive->fm_index;
   pattern_t* const pattern = &search->pattern;
   region_profile_t* const region_profile = &search->region_profile;
-  // Select proper key
-  const uint8_t* key;
-  uint64_t key_length;
-  if (!archive->text->run_length) {
-    key = pattern->key;
-    key_length = pattern->key_length;
-  } else {
-    key = pattern->rl_key;
-    key_length = pattern->rl_key_length;
-  }
+  const uint8_t* key = pattern->key;
+  const uint64_t key_length = pattern->key_length;
   // Compute the region profile
   switch (strategy) {
     case region_profile_adaptive_lightweight:
@@ -210,19 +201,10 @@ void approximate_search_region_partition_fixed(approximate_search_t* const searc
   // Parameters
   const as_parameters_t* const actual_parameters = search->as_parameters;
   const search_parameters_t* const parameters = actual_parameters->search_parameters;
-  const archive_t* archive = search->archive;
   fm_index_t* const fm_index = search->archive->fm_index;
   pattern_t* const pattern = &search->pattern;
-  // Select proper key
-  const uint8_t* key;
-  uint64_t key_length;
-  if (!archive->text->run_length) {
-    key = pattern->key;
-    key_length = pattern->key_length;
-  } else {
-    key = pattern->rl_key;
-    key_length = pattern->rl_key_length;
-  }
+  const uint8_t* key = pattern->key;
+  const uint64_t key_length = pattern->key_length;
   // Generate region profile partition
   region_profile_t* const region_profile = &search->region_profile;
   const uint64_t proper_length = fm_index_get_proper_length(fm_index);

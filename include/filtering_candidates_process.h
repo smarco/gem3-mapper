@@ -31,11 +31,13 @@ typedef struct {
 } fc_batch_decode_candidate;
 
 /*
- * Filtering adjustment of the position wrt region/seed on which the candidate is based
+ * Adjust the filtering-position and compute the coordinates or the candidate text
  */
-void filtering_candidates_adjust_filtering_position(
+void filtering_candidates_compute_text_coordinates(
     filtering_position_t* const filtering_position,archive_text_t* const archive_text,
-    const uint64_t begin_offset,const uint64_t end_offset,const uint64_t boundary_error);
+    locator_t* const locator,pattern_t* const pattern,
+    const uint64_t begin_offset,const uint64_t end_offset,
+    mm_stack_t* const mm_stack);
 
 /*
  * Compose filtering regions
@@ -49,9 +51,8 @@ uint64_t filtering_candidates_compose_filtering_regions(
  * Process Candidates
  */
 uint64_t filtering_candidates_process_candidates(
-    filtering_candidates_t* const filtering_candidates,
-    archive_t* const archive,const pattern_t* const pattern,
-    const as_parameters_t* const as_parameters,
-    const bool compose_region_chaining,mm_stack_t* const mm_stack);
+    filtering_candidates_t* const filtering_candidates,archive_t* const archive,
+    pattern_t* const pattern,as_parameters_t* const as_parameters,
+    const bool keep_matching_regions,mm_stack_t* const mm_stack);
 
 #endif /* FILTERING_CANDIDATES_PROCESS_H_ */

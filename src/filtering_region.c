@@ -8,12 +8,7 @@
 
 #include "filtering_region.h"
 #include "align.h"
-//#include "align_bpm_distance.h"
-//#include "match_scaffold.h"
-//#include "match_align.h"
-//#include "match_align_local.h"
-//#include "match_align_dto.h"
-//#include "output_map.h"
+#include "pattern.h"
 
 /*
  * Debug
@@ -65,16 +60,53 @@ void filtering_region_add(
   filtering_region->align_distance = align_distance;
   filtering_region->align_match_end_column = align_match_end_column;
 }
+/*
+ * Translate filtering-region offsets to RL-space
+ */
+void filtering_region_translate_run_length(
+    filtering_region_t* const filtering_region,
+    text_collection_t* const text_collection,pattern_t* const pattern) {
+//  // Retrieve text
+//  text_trace_t* const text_trace = text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
+//  // Keep original 'effective begin position'
+//  filtering_region->source_begin_position = filtering_region->begin_position;
+//  // Translate key-offsets
+//  uint8_t* const rl_key_runs = pattern->rl_runs;
+//  const uint64_t rl_key_length = pattern->rl_key_length;
+//  filtering_region->key_trim_left = archive_text_rl_encode(rl_key_runs,rl_key_length,filtering_region->key_trim_left);
+//  filtering_region->key_trim_right = archive_text_rl_encode(rl_key_runs,rl_key_length,filtering_region->key_trim_right);
+
+//  // Translate text-positions
+//  uint8_t* const rl_text_runs = text_trace->rl_runs;
+//  const uint64_t rl_text_length = text_trace->rl_text_length;
+//  filtering_region->begin_position = archive_text_rl_encode(rl_text_runs,rl_text_length,filtering_region->begin_position);
+//  filtering_region->end_position = archive_text_rl_encode(rl_text_runs,rl_text_length,filtering_region->end_position);
+//  // Translate text-offsets
+//  const uint64_t base_begin_position =
+//      archive_text_rl_encode(rl_text_runs,rl_text_length,filtering_region->base_begin_position_offset);
+
+//  filtering_region->base_begin_position_offset = ;
+//  filtering_region->base_end_position_offset = archive_text_rl_encode(rl_text_runs,rl_text_length,filtering_region->base_end_position_offset);;
+}
+/*
+ * Retrieve filtering region text-candidate
+ */
 void filtering_region_retrieve_text(
     filtering_region_t* const filtering_region,archive_text_t* const archive_text,
     text_collection_t* const text_collection,mm_stack_t* const mm_stack) {
   // Check already retrieved
   if (filtering_region->text_trace_offset != UINT64_MAX) return;
-  // Retrieve
+  // Retrieve Text
   const uint64_t text_position = filtering_region->begin_position;
   const uint64_t text_length = filtering_region->end_position-filtering_region->begin_position;
-  filtering_region->text_trace_offset = archive_text_retrieve(archive_text,
-      text_collection,text_position,text_length,false,mm_stack);
+  const bool run_length_text = archive_text->run_length;
+  filtering_region->text_trace_offset =
+      archive_text_retrieve_collection(archive_text,text_collection,
+          text_position,text_length,false,run_length_text,mm_stack);
+  // Adapt RL-Text
+  if (run_length_text) {
+
+  }
 }
 /*
  * Sorting

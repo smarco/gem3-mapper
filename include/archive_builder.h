@@ -91,7 +91,7 @@ archive_builder_t* archive_builder_new(
 void archive_builder_delete(archive_builder_t* const archive_builder);
 
 /*
- * Create Index (FM-Index)
+ * Writers
  */
 void archive_builder_write_header(archive_builder_t* const archive_builder);
 void archive_builder_write_locator(archive_builder_t* const archive_builder);

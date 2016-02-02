@@ -26,7 +26,7 @@
 void approximate_search_filtering_complete(approximate_search_t* const search,matches_t* const matches) {
   // PROFILE_START(GP_AS_FILTERING_EXACT,PROFILE_LEVEL); // TODO
   // Parameters
-  const as_parameters_t* const actual_parameters = search->as_parameters;
+  as_parameters_t* const actual_parameters = search->as_parameters;
   search_parameters_t* const parameters = actual_parameters->search_parameters;
   archive_t* const archive = search->archive;
   pattern_t* const pattern = &search->pattern;

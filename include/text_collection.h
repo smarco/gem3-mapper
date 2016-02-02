@@ -17,10 +17,13 @@
 typedef struct {
   /* Encoded Text    */
   uint8_t* text;                // Encoded text
-  uint64_t length;              // Text length
+  uint64_t text_length;         // Text length
+  /* Regular Text */
+  uint8_t* regular_text;        // Regular Text
+  uint64_t regular_text_length; // Regular Text-Length
   /* RL-Encoded Text */
   uint8_t* rl_text;             // RL-Encoded Text
-  uint8_t* rl_runs;             // Length of each run
+  uint8_t* rl_runs;             // RL-Encoded Length of each run
   uint64_t rl_text_length;      // RL-Encoded Text length
 } text_trace_t;
 typedef struct {

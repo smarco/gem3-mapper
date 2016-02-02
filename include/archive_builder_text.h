@@ -22,11 +22,11 @@
  */
 // Generate standard DNA-Text
 void archive_builder_text_process(
-    archive_builder_t* const archive_builder,input_file_t* const input_multifasta,
-    const bool dump_locator_intervals,const bool dump_indexed_text,const bool verbose);
+    archive_builder_t* const archive_builder,
+    input_file_t* const input_multifasta,const bool verbose);
 // Apply RL to the text
 void archive_builder_text_apply_run_length(
-    archive_builder_t* const archive_builder,const bool dump_run_length_text,const bool verbose);
+    archive_builder_t* const archive_builder,const bool verbose);
 
 /*
  * Display

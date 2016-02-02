@@ -219,9 +219,9 @@ void retriever_query_location(
   }
   const uint64_t text_length = index_end_position-index_begin_position;
   // Retrieve the sequence
-  const uint64_t text_trace_offset = archive_text_retrieve(
-      retriever_data->archive->text,&retriever_data->text_collection,
-      index_begin_position,text_length,retriever_query->strand==Reverse,retriever_data->mm_stack);
+  const uint64_t text_trace_offset = archive_text_retrieve_collection(
+      retriever_data->archive->text,&retriever_data->text_collection,index_begin_position,
+      text_length,retriever_query->strand==Reverse,false,retriever_data->mm_stack);
   const text_trace_t* const text_trace = text_collection_get_trace(&retriever_data->text_collection,text_trace_offset);
   const uint8_t* const text = text_trace->text; // Candidate
   // Output the sequence

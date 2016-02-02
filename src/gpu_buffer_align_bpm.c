@@ -416,9 +416,9 @@ void gpu_buffer_align_bpm_compute_cpu(gpu_buffer_align_bpm_t* const gpu_buffer_a
     gpu_buffer_align_bpm_retrieve_pattern(gpu_buffer_align_bpm,candidate_pos,&bpm_pattern,mm_stack);
     // Get Candidate Text
     const uint64_t text_length = buffer_candidates->size;
-    const uint64_t text_trace_offset = archive_text_retrieve(
+    const uint64_t text_trace_offset = archive_text_retrieve_collection(
         gpu_buffer_align_bpm->archive_text,text_collection,
-        buffer_candidates->position,text_length,false,mm_stack); // Retrieve text(s)
+        buffer_candidates->position,text_length,false,false,mm_stack); // Retrieve text(s)
     const text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
     const uint8_t* const text = text_trace->text; // Candidate
     // Align BPM & Set result

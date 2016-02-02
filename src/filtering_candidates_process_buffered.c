@@ -100,13 +100,18 @@ void filtering_candidates_decode_batch_retrieve_sa_sample(
  * Decode Candidates Buffered (from GPU-Buffer)
  */
 void filtering_candidates_decode_filtering_positions_buffered(
-    filtering_candidates_t* const filtering_candidates,const locator_t* const locator,
-    archive_text_t* const archive_text,const fm_index_t* const fm_index,
-    const uint64_t region_begin,const uint64_t region_end,
-    const uint64_t region_lo,const uint64_t region_hi,
-    const uint64_t key_length,const uint64_t boundary_error,
-    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,const uint64_t buffer_offset_begin) {
+    filtering_candidates_t* const filtering_candidates,locator_t* const locator,
+    archive_text_t* const archive_text,fm_index_t* const fm_index,
+    region_search_t* const region_search,pattern_t* const pattern,
+    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
+    const uint64_t buffer_offset_begin,mm_stack_t* const mm_stack) {
   PROFILE_START(GP_FC_DECODE_CANDIDATES_BUFFERED,PROFILE_LEVEL);
+  // Parameters
+  const uint64_t region_begin = region_search->begin;
+  const uint64_t region_end = region_search->end;
+  const uint64_t region_lo = region_search->lo;
+  const uint64_t region_hi = region_search->hi;
+  const uint64_t key_length = pattern->key_length;
   // Reserve
   vector_t* const filtering_positions = filtering_candidates->filtering_positions;
   const uint64_t num_candidates = region_hi-region_lo;
@@ -123,8 +128,8 @@ void filtering_candidates_decode_filtering_positions_buffered(
     fposition->locator_interval =
         locator_lookup_interval(locator,fposition->region_text_position);
     // Adjust Position
-    filtering_candidates_adjust_filtering_position(fposition,
-        archive_text,region_begin,key_length-region_end,boundary_error);
+    filtering_candidates_compute_text_coordinates(fposition,archive_text,
+        locator,pattern,region_begin,key_length-region_end,mm_stack);
   }
   // Add used
   PROF_ADD_COUNTER(GP_FC_DECODE_POSITIONS,num_candidates);
@@ -132,13 +137,17 @@ void filtering_candidates_decode_filtering_positions_buffered(
   PROFILE_STOP(GP_FC_DECODE_CANDIDATES_BUFFERED,PROFILE_LEVEL);
 }
 void filtering_candidates_decode_filtering_positions_buffered_prefetched(
-    filtering_candidates_t* const filtering_candidates,const locator_t* const locator,
-    archive_text_t* const archive_text,const fm_index_t* const fm_index,
-    const uint64_t region_begin,const uint64_t region_end,
-    const uint64_t region_lo,const uint64_t region_hi,
-    const uint64_t key_length,const uint64_t boundary_error,
-    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,const uint64_t buffer_offset_begin) {
+    filtering_candidates_t* const filtering_candidates,locator_t* const locator,
+    archive_text_t* const archive_text,fm_index_t* const fm_index,
+    region_search_t* const region_search,pattern_t* const pattern,
+    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
+    const uint64_t buffer_offset_begin,mm_stack_t* const mm_stack) {
   PROFILE_START(GP_FC_DECODE_CANDIDATES_BUFFERED,PROFILE_LEVEL);
+  // Parameters
+  const uint64_t region_begin = region_search->begin;
+  const uint64_t region_lo = region_search->lo;
+  const uint64_t region_hi = region_search->hi;
+  const uint64_t key_length = pattern->key_length;
   // Reserve candidate positions
   vector_t* const filtering_positions = filtering_candidates->filtering_positions;
   const uint64_t num_candidates = region_hi-region_lo;
@@ -169,8 +178,8 @@ void filtering_candidates_decode_filtering_positions_buffered_prefetched(
       // Locate Position
       fposition->locator_interval = locator_lookup_interval(locator,fposition->region_text_position);
       // Adjust Position
-      filtering_candidates_adjust_filtering_position(fposition,
-          archive_text,region_begin,key_length-region_begin,boundary_error);
+      filtering_candidates_compute_text_coordinates(fposition,archive_text,
+          locator,pattern,region_begin,key_length-region_begin,mm_stack);
     }
     // Next batch
     current_position = current_position + batch_size;

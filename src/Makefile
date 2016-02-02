@@ -87,10 +87,11 @@ MODULES+=nsearch nsearch_partition \
 MODULES+=archive archive_builder archive_builder_index \
          archive_builder_text archive_builder_text_parser
 # GEM Archive Search Support
-MODULES+=archive_text archive_search_cache \
+MODULES+=archive_text archive_text_rl \
          archive_select archive_select_parameters \
          archive_score_se archive_score_pe \
-         archive_check mm_search quality_model
+         archive_check archive_search_cache \
+         mm_search quality_model
 # GEM Archive Search
 MODULES+=archive_search \
          archive_search_se archive_search_parameters \

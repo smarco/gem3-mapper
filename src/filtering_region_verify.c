@@ -171,7 +171,7 @@ uint64_t filtering_region_verify_multiple_hits(
   // Text (candidate)
   text_trace_t* const text_trace = text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
   const uint8_t* const text = text_trace->text;
-  const uint64_t text_length = text_trace->length;
+  const uint64_t text_length = text_trace->text_length;
   // Pattern
   const bpm_pattern_t* const bpm_pattern = pattern->bpm_pattern;
   const uint64_t max_filtering_error = pattern->max_effective_filtering_error;
@@ -203,7 +203,7 @@ uint64_t filtering_region_verify_extension(
   // Text (candidate)
   text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
   const uint8_t* const text = text_trace->text;
-  const uint64_t text_length = text_trace->length;
+  const uint64_t text_length = text_trace->text_length;
   // Pattern
   const uint64_t max_filtering_error = pattern->max_effective_filtering_error;
   // 1. Hamming switch

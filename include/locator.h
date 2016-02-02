@@ -15,7 +15,7 @@
 /*
  * Locator Model & Version
  */
-#define LOCATOR_MODEL_NO  3002ull
+#define LOCATOR_MODEL_NO  3006ull
 
 /*
  * Locator
@@ -41,13 +41,16 @@ typedef struct {
   // Positions over INDEX (One single sequence composed by pasting all reference sequences)
   //    Interval  = [begin_position,end_position) (Zero Based)
   //   |Interval| = end_position-begin_position
-  uint64_t begin_position;  // Global bottom location (over all indexed text)
-  uint64_t end_position;    // Global top location (over all indexed text)
+  uint64_t begin_position;    // Global bottom location (over all text)
+  uint64_t end_position;      // Global top location (over all text)
+  // Positions over RL-INDEX (One single sequence composed by pasting all reference sequences & RL)
+  uint64_t rl_begin_position; // Global bottom location (over all rl-text)
+  uint64_t rl_end_position;   // Global top location (over all rl-text)
   // Position over TEXT => Eg: 'Chunk of Chr1 starting from 30'
-  uint64_t sequence_offset; // Offset relative to the sequence/chromosome (wrt all sequences/chromosome)
-  uint64_t sequence_length; // Sequence total length
-  // TAG ID/info (Sequence/Chromosome name)
-  int64_t tag_id;
+  uint64_t sequence_offset;   // Offset relative to the sequence/chromosome (wrt all sequences/chromosome)
+  uint64_t sequence_length;   // Sequence total length
+  // TAG ID
+  int64_t tag_id;             // ID (Sequence/Chromosome name ID)
 } locator_interval_t;
 typedef struct {
   /* Intervals */

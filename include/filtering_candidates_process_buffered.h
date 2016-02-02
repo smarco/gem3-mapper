@@ -19,19 +19,17 @@
  * Decode Candidates Buffered (from GPU-Buffer)
  */
 void filtering_candidates_decode_filtering_positions_buffered(
-    filtering_candidates_t* const filtering_candidates,const locator_t* const locator,
-    archive_text_t* const archive_text,const fm_index_t* const fm_index,
-    const uint64_t region_begin,const uint64_t region_end,
-    const uint64_t region_lo,const uint64_t region_hi,
-    const uint64_t key_length,const uint64_t boundary_error,
-    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,const uint64_t buffer_offset_begin);
+    filtering_candidates_t* const filtering_candidates,locator_t* const locator,
+    archive_text_t* const archive_text,fm_index_t* const fm_index,
+    region_search_t* const region_search,pattern_t* const pattern,
+    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
+    const uint64_t buffer_offset_begin,mm_stack_t* const mm_stack);
 void filtering_candidates_decode_filtering_positions_buffered_prefetched(
-    filtering_candidates_t* const filtering_candidates,const locator_t* const locator,
-    archive_text_t* const archive_text,const fm_index_t* const fm_index,
-    const uint64_t region_begin,const uint64_t region_end,
-    const uint64_t region_lo,const uint64_t region_hi,
-    const uint64_t key_length,const uint64_t boundary_error,
-    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,const uint64_t buffer_offset_begin);
+    filtering_candidates_t* const filtering_candidates,locator_t* const locator,
+    archive_text_t* const archive_text,fm_index_t* const fm_index,
+    region_search_t* const region_search,pattern_t* const pattern,
+    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
+    const uint64_t buffer_offset_begin,mm_stack_t* const mm_stack);
 
 /*
  * Process Candidates Buffered (from GPU-Buffer)

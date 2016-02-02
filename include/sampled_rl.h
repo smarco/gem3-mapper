@@ -22,7 +22,6 @@
 /*
  * Constants
  */
-#define SAMPLED_RL_MAX_RUN_LENGTH  5
 #define SAMPLED_RL_SAMPLING_RATE   100
 
 /*
@@ -37,7 +36,8 @@ typedef struct {
  * Loader/Setup
  */
 sampled_rl_t* sampled_rl_new(
-    const sampling_rate_t sampling_rate,const uint64_t num_samples,const uint64_t max_index);
+    const sampling_rate_t sampling_rate,const uint64_t num_samples,
+    const uint64_t max_index);
 sampled_rl_t* sampled_rl_read_mem(mm_t* const memory_manager);
 void sampled_rl_write(fm_t* const file_manager,sampled_rl_t* const sampled_rl);
 void sampled_rl_delete(sampled_rl_t* const sampled_rl);
@@ -46,8 +46,12 @@ void sampled_rl_delete(sampled_rl_t* const sampled_rl);
  * Accessors
  */
 uint64_t sampled_rl_get_size(sampled_rl_t* const sampled_rl);
-void sampled_rl_sample(sampled_rl_t* const sampled_rl,const uint64_t array_position,const uint64_t rl_position);
-uint64_t sampled_rl_get_sample(sampled_rl_t* const sampled_rl,const uint64_t array_position);
+void sampled_rl_sample(
+    sampled_rl_t* const sampled_rl,const uint64_t array_position,
+    const uint64_t rl_position);
+uint64_t sampled_rl_get_sample(
+    sampled_rl_t* const sampled_rl,const uint64_t array_position);
+
 /*
  * Display/Stats
  */

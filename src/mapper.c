@@ -498,6 +498,8 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
 void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_end) {
   // Load GEM-Index
   mapper_load_index(mapper_parameters);
+  gem_cond_fatal_error_msg(paired_end && mapper_parameters->archive->text->run_length,
+      "Archive.RL-Text not supported for Paired-End Mode (yet...)");
   // Setup threads
   const uint64_t num_threads = mapper_parameters->system.num_threads;
   mapper_search_t* const mapper_search = mm_calloc(num_threads,mapper_search_t,false); // Allocate mapper searches

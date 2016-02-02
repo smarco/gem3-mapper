@@ -1,13 +1,13 @@
 /*
  * PROJECT: GEMMapper
- * FILE: archive_text_retrieve.h
+ * FILE: archive_text.h
  * DATE: 06/06/2013
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
  */
 
-#ifndef ARCHIVE_TEXT_RETRIEVE_H_
-#define ARCHIVE_TEXT_RETRIEVE_H_
+#ifndef ARCHIVE_TEXT_H_
+#define ARCHIVE_TEXT_H_
 
 #include "essentials.h"
 #include "sampled_rl.h"
@@ -59,10 +59,17 @@ uint64_t archive_text_get_projection(
 /*
  * Text Retriever
  */
-uint64_t archive_text_retrieve(
+void archive_text_retrieve(
+    archive_text_t* const archive_text,const uint64_t text_position,
+    const uint64_t text_length,const bool reverse_complement_text,
+    const bool run_length_text,text_trace_t* const text_trace,
+    mm_stack_t* const mm_stack);
+uint64_t archive_text_retrieve_collection(
     archive_text_t* const archive_text,const text_collection_t* const text_collection,
-    const uint64_t text_position,const uint64_t length,
-    const bool reverse_complement_text,mm_stack_t* const mm_stack);
+    const uint64_t text_position,const uint64_t text_length,
+    const bool reverse_complement_text,const bool run_length_text,
+    mm_stack_t* const mm_stack);
+
 
 /*
  * Display
@@ -74,4 +81,4 @@ void archive_text_print(FILE* const stream,const archive_text_t* const archive_t
  */
 #define GEM_ERROR_ARCHIVE_TEXT_WRONG_MODEL_NO "Archive-Text error. Wrong Archive-Text Model %"PRIu64" (Expected model %"PRIu64")"
 
-#endif /* ARCHIVE_TEXT_RETRIEVE_H_ */
+#endif /* ARCHIVE_TEXT_H_ */

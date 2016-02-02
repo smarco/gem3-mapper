@@ -7,6 +7,7 @@
  */
 
 #include "archive_text.h"
+#include "archive_text_rl.h"
 #include "sampled_rl.h"
 
 /*
@@ -90,70 +91,75 @@ uint64_t archive_text_get_projection(
 /*
  * Archive Text Retriever
  */
-uint64_t archive_text_retrieve(
-    archive_text_t* const archive_text,const text_collection_t* const text_collection,
-    const uint64_t text_position,const uint64_t text_length,
-    const bool reverse_complement_text,mm_stack_t* const mm_stack) {
-  // Allocate text-trace
-  const uint64_t text_trace_offset = text_collection_new_trace(text_collection);
-  // Retrieve sequence
-  text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
-  text_trace->length = text_length;
+void archive_text_retrieve(
+    archive_text_t* const archive_text,const uint64_t text_position,
+    const uint64_t text_length,const bool reverse_complement_text,
+    const bool run_length_text,text_trace_t* const text_trace,
+    mm_stack_t* const mm_stack) {
+  // Retrieve text
+  text_trace->regular_text_length = text_length;
   if (text_position < archive_text->forward_text_length || archive_text->explicit_complement) {
     if (reverse_complement_text) {
       if (archive_text->explicit_complement) {
         const uint64_t position_fprojection = archive_text_get_projection(archive_text,text_position,text_length);
-        text_trace->text = dna_text_retrieve_sequence(archive_text->enc_text,position_fprojection,text_length,mm_stack);
+        text_trace->regular_text = dna_text_retrieve_sequence(
+            archive_text->enc_text,position_fprojection,text_length,mm_stack);
       } else {
         // Reverse-Complement the text
         uint8_t* const text = dna_text_retrieve_sequence(archive_text->enc_text,text_position,text_length,mm_stack);
-        text_trace->text = mm_stack_calloc(mm_stack,text_length,uint8_t,false);
+        text_trace->regular_text = mm_stack_calloc(mm_stack,text_length,uint8_t,false);
         uint64_t i_forward, i_backward;
         for (i_forward=0,i_backward=text_length-1;i_forward<text_length;++i_forward,--i_backward) {
-          text_trace->text[i_forward] = dna_encoded_complement(text[i_backward]);
+          text_trace->regular_text[i_forward] = dna_encoded_complement(text[i_backward]);
         }
       }
     } else {
-      text_trace->text = dna_text_retrieve_sequence(archive_text->enc_text,text_position,text_length,mm_stack);
+      text_trace->regular_text = dna_text_retrieve_sequence(archive_text->enc_text,text_position,text_length,mm_stack);
     }
   } else {
     // Forward projection
     const uint64_t position_fprojection = archive_text_get_projection(archive_text,text_position,text_length);
     uint8_t* const text = dna_text_retrieve_sequence(archive_text->enc_text,position_fprojection,text_length,mm_stack);
     if (reverse_complement_text) {
-      text_trace->text = text;
+      text_trace->regular_text = text;
     } else {
       // Reverse-Complement the text
-      text_trace->text = mm_stack_calloc(mm_stack,text_length,uint8_t,false);
+      text_trace->regular_text = mm_stack_calloc(mm_stack,text_length,uint8_t,false);
       uint64_t i_forward, i_backward;
       for (i_forward=0,i_backward=text_length-1;i_forward<text_length;++i_forward,--i_backward) {
-        text_trace->text[i_forward] = dna_encoded_complement(text[i_backward]);
+        text_trace->regular_text[i_forward] = dna_encoded_complement(text[i_backward]);
       }
     }
   }
   // Compute RL-text
-  if (archive_text->run_length) {
+  if (run_length_text) {
     const uint8_t* text = text_trace->text;
     // Allocate RL-Encoded Text
     text_trace->rl_text = mm_stack_calloc(mm_stack,text_length,uint8_t,false);
     text_trace->rl_runs = mm_stack_calloc(mm_stack,text_length,uint8_t,false);
-    uint64_t rl_pos = 0, text_pos;
-    // Init
-    text_trace->rl_text[0] = text[0];
-    text_trace->rl_runs[0] = 1;
-    // RL-Encode all text
-    for (text_pos=1;text_pos<text_length;++text_pos) {
-      if (text_trace->rl_text[rl_pos]==text[text_pos] &&
-          text_trace->rl_runs[rl_pos] < SAMPLED_RL_MAX_RUN_LENGTH) {
-        ++text_trace->rl_runs[rl_pos];
-      } else {
-        ++rl_pos;
-        text_trace->rl_text[rl_pos] = text[text_pos];
-        text_trace->rl_runs[rl_pos] = 1;
-      }
-    }
-    text_trace->rl_text_length = rl_pos+1;
+    // RL encode
+    archive_text_rl_encode(text,text_length,text_trace->rl_text,
+        text_trace->rl_runs,&text_trace->rl_text_length);
+    // Configure
+    text_trace->text = text_trace->rl_text;
+    text_trace->text_length = text_trace->rl_text_length;
+  } else {
+    // Configure
+    text_trace->text = text_trace->regular_text;
+    text_trace->text_length = text_trace->regular_text_length;
   }
+}
+uint64_t archive_text_retrieve_collection(
+    archive_text_t* const archive_text,const text_collection_t* const text_collection,
+    const uint64_t text_position,const uint64_t text_length,
+    const bool reverse_complement_text,const bool run_length_text,
+    mm_stack_t* const mm_stack) {
+  // Allocate text-trace
+  const uint64_t text_trace_offset = text_collection_new_trace(text_collection);
+  text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
+  // Retrieve sequence
+  archive_text_retrieve(archive_text,text_position,text_length,
+      reverse_complement_text,run_length_text,text_trace,mm_stack);
   // Return
   return text_trace_offset;
 }

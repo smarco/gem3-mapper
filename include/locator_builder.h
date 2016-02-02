@@ -19,7 +19,7 @@ typedef struct {
   /* Intervals */
   svector_t* intervals;                    // Stores all intervals (locator_interval_t)
   svector_iterator_t intervals_iterator;   // Interval write iterator
-   /* Tags Locator */
+  /* Tags Locator */
   shash_t* tags_dictionary;                // Tag's Dictionary (locator_tag_t*)
   svector_t* tag_locator;                  // Tag_Locator Array (locator_tag_t)
   svector_iterator_t tag_locator_iterator; // Tag_Locator write iterator

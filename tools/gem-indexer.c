@@ -186,14 +186,21 @@ void indexer_process_multifasta(archive_builder_t* const archive_builder,indexer
   // Process input MultiFASTA
   input_file_t* const input_multifasta = input_file_open(parameters->input_multifasta_file_name,BUFFER_SIZE_32M,false);
   // Process MFASTA
-  archive_builder_text_process(archive_builder,input_multifasta,
-      parameters->dump_locator_intervals,parameters->dump_indexed_text,parameters->verbose);
+  archive_builder_text_process(archive_builder,input_multifasta,parameters->verbose);
   // RL-Index
   if (parameters->run_length_index) {
-    archive_builder_text_apply_run_length(
-        archive_builder,parameters->dump_run_length_text,parameters->verbose);
+    archive_builder_text_apply_run_length(archive_builder,parameters->verbose);
+    // TODO if (parameters->dump_run_length_text) archive_builder_text_dump(archive_builder,".text.rl");
   }
-  input_file_close(input_multifasta); // Close MultiFASTA
+  // DEBUG
+  locator_builder_print(gem_info_get_stream(),archive_builder->locator, parameters->dump_locator_intervals);
+  if (parameters->dump_indexed_text) archive_builder_text_dump(archive_builder,".text");
+  // Write Metadata
+  archive_builder_write_header(archive_builder);
+  archive_builder_write_locator(archive_builder);
+  locator_builder_delete(archive_builder->locator); // Free Locator
+  // Close MultiFASTA
+  input_file_close(input_multifasta);
 }
 void indexer_generate_bwt(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
   // VERBOSE

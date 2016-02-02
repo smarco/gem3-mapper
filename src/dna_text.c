@@ -228,7 +228,6 @@ dna_text_t* dna_text_read_mem(mm_t* const memory_manager) {
   return dna_text;
 }
 void dna_text_delete(dna_text_t* const dna_text) {
-  DNA_TEXT_CHECK(dna_text);
   if (dna_text->mm_text!=NULL) {
     mm_bulk_free(dna_text->mm_text);
   } else if (!dna_text->mm_extern) {
@@ -264,7 +263,6 @@ dna_text_t* dna_text_padded_new(const uint64_t dna_text_length,const uint64_t in
 // Builder writer
 void dna_text_write_chunk(fm_t* const output_file_manager,dna_text_t* const dna_text,const uint64_t chunk_length) {
   FM_CHECK(output_file_manager);
-  DNA_TEXT_CHECK(dna_text);
   fm_write_uint64(output_file_manager,DNA_TEXT_MODEL_NO);
   fm_write_uint64(output_file_manager,dna_text->type);
   fm_write_uint64(output_file_manager,chunk_length);
@@ -272,7 +270,6 @@ void dna_text_write_chunk(fm_t* const output_file_manager,dna_text_t* const dna_
 }
 void dna_text_write(fm_t* const output_file_manager,dna_text_t* const dna_text) {
   FM_CHECK(output_file_manager);
-  DNA_TEXT_CHECK(dna_text);
   dna_text_write_chunk(output_file_manager,dna_text,dna_text->length);
 }
 /*
@@ -282,11 +279,9 @@ uint64_t dna_text_get_length(const dna_text_t* const dna_text) {
   return dna_text->length;
 }
 void dna_text_set_length(dna_text_t* const dna_text,const uint64_t length) {
-  DNA_TEXT_CHECK(dna_text);
   dna_text->length = length;
 }
 uint64_t dna_text_get_size(const dna_text_t* const dna_text) {
-  DNA_TEXT_CHECK(dna_text);
   return dna_text->length;
 }
 uint8_t dna_text_get_char(const dna_text_t* const dna_text,const uint64_t position) {
@@ -310,14 +305,13 @@ uint8_t* dna_text_retrieve_sequence(
 /*
  * Utils
  */
-strand_t dna_strand_get_complement(const strand_t strand) {
+strand_t dna_text_strand_get_complement(const strand_t strand) {
   return (strand==Forward ? Reverse : Forward);
 }
 /*
  * Display
  */
 void dna_text_print(FILE* const stream,dna_text_t* const dna_text,const uint64_t length) {
-  DNA_TEXT_CHECK(dna_text);
   fprintf(stream,"[GEM]>DNA-text\n");
   switch (dna_text->type) {
     case dna_text_raw:
@@ -335,13 +329,11 @@ void dna_text_print(FILE* const stream,dna_text_t* const dna_text,const uint64_t
   fflush(stream); // Flush
 }
 void dna_text_print_content(FILE* const stream,dna_text_t* const dna_text) {
-  DNA_TEXT_CHECK(dna_text);
   const uint8_t* const enc_text = dna_text->text;
   const uint64_t text_length = dna_text->length;
   fwrite(enc_text,1,text_length,stream);
 }
 void dna_text_pretty_print_content(FILE* const stream,dna_text_t* const dna_text,const uint64_t width) {
-  DNA_TEXT_CHECK(dna_text);
   // Iterate over all indexed text
   const uint8_t* const enc_text = dna_text->text;
   const uint64_t text_length = dna_text->length;

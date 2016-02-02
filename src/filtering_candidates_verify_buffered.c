@@ -124,9 +124,9 @@ void filtering_candidates_verify_buffered_check_tile_distance(
   gpu_buffer_align_bpm_get_candidate(gpu_buffer_align_bpm,
       candidate_offset+pattern_tile,&candidate_text_position,&candidate_length);
   // Get Candidate Text
-  const uint64_t text_trace_offset = archive_text_retrieve(
+  const uint64_t text_trace_offset = archive_text_retrieve_collection(
       gpu_buffer_align_bpm->archive_text,text_collection,
-      candidate_text_position,candidate_length,false,mm_stack); // Retrieve text(s)
+      candidate_text_position,candidate_length,false,false,mm_stack); // Retrieve text(s)
   const text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
   const uint8_t* const text = text_trace->text; // Candidate
   uint64_t i, uncalled_bases_text = 0;
@@ -164,9 +164,9 @@ void filtering_candidates_verify_buffered_check_global_distance(
       candidate_offset+num_tiles-1,&last_candidate_text_position,&last_candidate_length);
   // Get Whole-Candidate Text
   const uint64_t candidate_length = last_candidate_text_position+last_candidate_length-first_candidate_text_position;
-  const uint64_t text_trace_offset = archive_text_retrieve(
+  const uint64_t text_trace_offset = archive_text_retrieve_collection(
       gpu_buffer_align_bpm->archive_text,text_collection,
-      first_candidate_text_position,candidate_length,false,mm_stack); // Retrieve text(s)
+      first_candidate_text_position,candidate_length,false,false,mm_stack); // Retrieve text(s)
   const text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
   const uint8_t* const text = text_trace->text; // Candidate
   // Check Whole-Read

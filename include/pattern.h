@@ -20,12 +20,17 @@
  */
 typedef struct {
   /* Processed Search Pattern */
-  uint8_t* key;            // Encoded Pattern
-  uint8_t* quality_mask;   // Quality Mask
-  uint64_t key_length;     // Total Length
-  /* RunLength Processed Search Pattern */
-  uint8_t* rl_key;         // Encoded RL-Pattern
-  uint64_t rl_key_length;  // Total RL-Length
+  uint8_t* key;                  // Encoded Pattern
+  uint8_t* quality_mask;         // Quality Mask
+  uint64_t key_length;           // Total Length
+  /* Regular Pattern */
+  uint8_t* regular_key;          // Original Key
+  uint64_t regular_key_length;   // Original Key length
+  /* Run-Length Pattern */
+  bool run_length;
+  uint8_t* rl_key;               // RL-Encoded Text
+  uint8_t* rl_runs;              // Length of each run
+  uint64_t rl_key_length;        // RL-Encoded Text length
   /* Pattern Properties */
   uint64_t num_wildcards;
   uint64_t num_low_quality_bases;
@@ -71,7 +76,7 @@ typedef struct {
  */
 void pattern_init(
     pattern_t* const pattern,sequence_t* const sequence,
-    const as_parameters_t* const actual_parameters,const bool prepare_rl_pattern,
+    const as_parameters_t* const actual_parameters,const bool run_length_pattern,
     bool* const do_quality_search,mm_stack_t* const mm_stack);
 void pattern_clear(pattern_t* const pattern);
 bool pattern_is_null(pattern_t* const pattern);

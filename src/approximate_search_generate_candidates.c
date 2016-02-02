@@ -141,8 +141,8 @@ void approximate_search_generate_inexact_candidates(
    *  - Verify Ahead: Verifies candidates each queried region. Thus, it can reduce the scope of the search
    */
   // Parameters
-  const as_parameters_t* const as_parameters = search->as_parameters;
-  const search_parameters_t* const parameters = as_parameters->search_parameters;
+  as_parameters_t* const as_parameters = search->as_parameters;
+  search_parameters_t* const parameters = as_parameters->search_parameters;
   const uint64_t filtering_threshold = parameters->filtering_threshold;
   const double proper_length = fm_index_get_proper_length(search->archive->fm_index);
   const uint64_t sensibility_error_length = parameters->filtering_region_factor*proper_length;
@@ -247,28 +247,21 @@ void approximate_search_generate_exact_candidates_buffered_retrieve(
   // Parameters
   region_profile_t* const region_profile = &search->region_profile;
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
-  const uint64_t key_length = search->pattern.key_length;
-  const uint64_t boundary_error = search->pattern.max_effective_bandwidth;
   // Add all candidates positions
   uint64_t buffer_offset_begin = search->gpu_buffer_fmi_decode_offset;
   uint64_t i;
   for (i=0;i<num_filtering_regions;++i) {
-    region_search_t* const filtering_region = region_profile->filtering_region + i;
-    if (filtering_region->degree==REGION_FILTER_DEGREE_ZERO) {
+    region_search_t* const region_search = region_profile->filtering_region + i;
+    if (region_search->degree==REGION_FILTER_DEGREE_ZERO) {
       // Retrieve/Decode all pending candidates
-      const uint64_t pending_candidates = filtering_region->hi - filtering_region->lo;
+      const uint64_t pending_candidates = region_search->hi - region_search->lo;
 //      if (pending_candidates < DECODE_NUM_POSITIONS_PREFETCHED) {
-//        filtering_candidates_decode_filtering_positions_buffered(
-//            search->filtering_candidates,search->archive->locator,search->archive->text,
-//            search->archive->fm_index,filtering_region->begin,filtering_region->end,
-//            filtering_region->lo,filtering_region->hi,key_length,boundary_error,
-//            gpu_buffer_fmi_decode,buffer_offset_begin);
+//        filtering_candidates_decode_filtering_positions_buffered(...);
 //      } else {
         filtering_candidates_decode_filtering_positions_buffered_prefetched(
             search->filtering_candidates,search->archive->locator,search->archive->text,
-            search->archive->fm_index,filtering_region->begin,filtering_region->end,
-            filtering_region->lo,filtering_region->hi,key_length,boundary_error,
-            gpu_buffer_fmi_decode,buffer_offset_begin);
+            search->archive->fm_index,region_search,&search->pattern,
+            gpu_buffer_fmi_decode,buffer_offset_begin,search->mm_stack);
 //      }
       buffer_offset_begin += pending_candidates;
     }

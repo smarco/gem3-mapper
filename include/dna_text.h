@@ -104,11 +104,6 @@ extern const uint8_t dna_encoded_colorspace_table[DNA_EXT_RANGE][DNA_EXT_RANGE];
 #define dna_encoded_colorspace(enc_char_0,enc_char_1) (dna_encoded_colorspace_table[(int)(enc_char_0)][(int)(enc_char_1)])
 
 /*
- * Checkers
- */
-#define DNA_TEXT_CHECK(dna_text) GEM_CHECK_NULL(dna_text)
-
-/*
  * Orientation (strand)
  */
 typedef enum { Forward=0, Reverse=UINT64_MAX } strand_t;             // DNA strand type
@@ -154,7 +149,7 @@ uint8_t* dna_text_retrieve_sequence(
 /*
  * Utils
  */
-strand_t dna_strand_get_complement(const strand_t strand);
+strand_t dna_text_strand_get_complement(const strand_t strand);
 
 /*
  * Display

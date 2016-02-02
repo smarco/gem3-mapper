@@ -26,7 +26,7 @@ typedef enum {
   filtering_region_accepted_subdominant=4,  // Region accepted by pre-filters but sub-dominant
   filtering_region_aligned=5,               // Region aligned
   filtering_region_aligned_subdominant=6,   // Region aligned but sub-dominant in the end
-  filtering_region_aligned_unbounded=7,     // Region aligned usign unbounded alignment
+  filtering_region_aligned_unbounded=7,     // Region aligned using unbounded alignment
 } filtering_region_status_t;
 extern const char* filtering_region_status_label[8];
 typedef struct {
@@ -35,6 +35,7 @@ typedef struct {
   /* Text-trace */
   uint64_t text_trace_offset;
   /* Location */
+  // uint64_t source_begin_position;      // In case of RL-conversion, store the original 'effective begin position'
   uint64_t begin_position;             // Region effective begin position (adjusted to error boundaries)
   uint64_t end_position;               // Region effective end position (adjusted to error boundaries)
   uint64_t base_begin_position_offset; // Offset to base begin filtering position (no error boundary correction)
@@ -76,6 +77,10 @@ void filtering_region_add(
     vector_t* const filtering_regions,const uint64_t text_trace_offset,
     const uint64_t begin_position,const uint64_t end_position,
     const uint64_t align_distance,const uint64_t align_match_end_column);
+
+/*
+ * Retrieve filtering region text-candidate
+ */
 void filtering_region_retrieve_text(
     filtering_region_t* const filtering_region,archive_text_t* const archive_text,
     text_collection_t* const text_collection,mm_stack_t* const mm_stack);

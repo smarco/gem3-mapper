@@ -193,9 +193,9 @@ void archive_select_process_interval_matches(
     match_trace.match_alignment.score = match_interval->distance;
     // (Re)Align match (retrieved with the seq-read(pattern))
     if (match_interval->distance > 0) {
-      match_trace.text_trace_offset = archive_text_retrieve(archive->text,text_collection,
-          match_trace.match_alignment.match_position,match_interval->text_length, /* + delta TODO */
-          false,archive_search->mm_stack);
+      match_trace.text_trace_offset = archive_text_retrieve_collection(
+          archive->text,text_collection,match_trace.match_alignment.match_position,
+          match_interval->text_length/* + delta TODO */,false,false,archive_search->mm_stack);
       // Set interval text
       const text_trace_t* const text_trace = text_collection_get_trace(text_collection,match_trace.text_trace_offset);
       match_interval->text = text_trace->text;
