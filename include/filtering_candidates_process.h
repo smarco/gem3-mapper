@@ -35,9 +35,8 @@ typedef struct {
  */
 void filtering_candidates_compute_text_coordinates(
     filtering_position_t* const filtering_position,archive_text_t* const archive_text,
-    locator_t* const locator,pattern_t* const pattern,
-    const uint64_t begin_offset,const uint64_t end_offset,
-    mm_stack_t* const mm_stack);
+    locator_t* const locator,pattern_t* const pattern,const uint64_t begin_offset,
+    const uint64_t end_offset,mm_stack_t* const mm_stack);
 
 /*
  * Compose filtering regions

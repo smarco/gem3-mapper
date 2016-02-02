@@ -75,11 +75,18 @@ void pattern_init(
     pattern->rl_key = mm_stack_calloc(mm_stack,pattern->regular_key_length,uint8_t,false);
     pattern->rl_runs = mm_stack_calloc(mm_stack,pattern->regular_key_length,uint8_t,false);
     // RL encode
-    archive_text_rl_encode(pattern->key,pattern->key_length,
+    archive_text_rl_encode(pattern->regular_key,pattern->regular_key_length,
         pattern->rl_key,pattern->rl_runs,&pattern->rl_key_length);
     // Configure
     pattern->key = pattern->rl_key;
     pattern->key_length = pattern->rl_key_length;
+//    // DEBUG
+//    fprintf(stderr,">key\n");
+//    dna_buffer_print(stderr,pattern->regular_key,pattern->regular_key_length,false);
+//    fprintf(stderr,"\n");
+//    fprintf(stderr,">RL.key\n");
+//    dna_buffer_print(stderr,pattern->rl_key,pattern->rl_key_length,false);
+//    fprintf(stderr,"\n");
   } else {
     pattern->run_length = false;
     pattern->rl_key = NULL;

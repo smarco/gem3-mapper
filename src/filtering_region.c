@@ -9,6 +9,7 @@
 #include "filtering_region.h"
 #include "align.h"
 #include "pattern.h"
+#include "archive_text_rl.h"
 
 /*
  * Debug
@@ -61,34 +62,6 @@ void filtering_region_add(
   filtering_region->align_match_end_column = align_match_end_column;
 }
 /*
- * Translate filtering-region offsets to RL-space
- */
-void filtering_region_translate_run_length(
-    filtering_region_t* const filtering_region,
-    text_collection_t* const text_collection,pattern_t* const pattern) {
-//  // Retrieve text
-//  text_trace_t* const text_trace = text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
-//  // Keep original 'effective begin position'
-//  filtering_region->source_begin_position = filtering_region->begin_position;
-//  // Translate key-offsets
-//  uint8_t* const rl_key_runs = pattern->rl_runs;
-//  const uint64_t rl_key_length = pattern->rl_key_length;
-//  filtering_region->key_trim_left = archive_text_rl_encode(rl_key_runs,rl_key_length,filtering_region->key_trim_left);
-//  filtering_region->key_trim_right = archive_text_rl_encode(rl_key_runs,rl_key_length,filtering_region->key_trim_right);
-
-//  // Translate text-positions
-//  uint8_t* const rl_text_runs = text_trace->rl_runs;
-//  const uint64_t rl_text_length = text_trace->rl_text_length;
-//  filtering_region->begin_position = archive_text_rl_encode(rl_text_runs,rl_text_length,filtering_region->begin_position);
-//  filtering_region->end_position = archive_text_rl_encode(rl_text_runs,rl_text_length,filtering_region->end_position);
-//  // Translate text-offsets
-//  const uint64_t base_begin_position =
-//      archive_text_rl_encode(rl_text_runs,rl_text_length,filtering_region->base_begin_position_offset);
-
-//  filtering_region->base_begin_position_offset = ;
-//  filtering_region->base_end_position_offset = archive_text_rl_encode(rl_text_runs,rl_text_length,filtering_region->base_end_position_offset);;
-}
-/*
  * Retrieve filtering region text-candidate
  */
 void filtering_region_retrieve_text(
@@ -97,15 +70,33 @@ void filtering_region_retrieve_text(
   // Check already retrieved
   if (filtering_region->text_trace_offset != UINT64_MAX) return;
   // Retrieve Text
-  const uint64_t text_position = filtering_region->begin_position;
-  const uint64_t text_length = filtering_region->end_position-filtering_region->begin_position;
-  const bool run_length_text = archive_text->run_length;
-  filtering_region->text_trace_offset =
-      archive_text_retrieve_collection(archive_text,text_collection,
-          text_position,text_length,false,run_length_text,mm_stack);
-  // Adapt RL-Text
-  if (run_length_text) {
-
+  if (archive_text->run_length) {
+    // Translate RL-Text positions (RL-text encoded)
+    const uint64_t text_begin_position = archive_text_rl_translate(
+        archive_text,filtering_region->begin_position,mm_stack);
+    const uint64_t text_end_position = archive_text_rl_translate(
+        archive_text,filtering_region->end_position,mm_stack);
+    // Retrieve Text
+    const uint64_t text_length = text_end_position - text_begin_position;
+    filtering_region->text_trace_offset =
+        archive_text_retrieve_collection(archive_text,text_collection,
+            text_begin_position,text_length,false,true,mm_stack);
+//    // DEBUG
+//    text_trace_t* const text_trace =
+//        text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
+//    fprintf(stderr,">Text\n");
+//    dna_buffer_print(stderr,text_trace->text,text_trace->text_length,false);
+//    fprintf(stderr,"\n");
+//    fprintf(stderr,">RL.Text\n");
+//    dna_buffer_print(stderr,text_trace->rl_text,text_trace->rl_text_length,false);
+//    fprintf(stderr,"\n");
+  } else {
+    // Retrieve Text
+    const uint64_t text_position = filtering_region->begin_position;
+    const uint64_t text_length = filtering_region->end_position - filtering_region->begin_position;
+    filtering_region->text_trace_offset =
+        archive_text_retrieve_collection(archive_text,text_collection,
+            text_position,text_length,false,false,mm_stack);
   }
 }
 /*

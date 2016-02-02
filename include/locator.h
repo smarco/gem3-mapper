@@ -97,10 +97,16 @@ uint64_t locator_interval_get_index_length(const locator_interval_t* const inter
 uint64_t locator_interval_get_text_length(const locator_interval_t* const interval);
 
 /*
- * Locating functions
+ * Text-Locating functions
  */
 uint64_t locator_lookup_interval_index(const locator_t* const locator,const uint64_t index_position);
 locator_interval_t* locator_lookup_interval(const locator_t* const locator,const uint64_t index_position);
+
+/*
+ * RL-Locating functions
+ */
+uint64_t locator_lookup_rl_interval_index(const locator_t* const locator,const uint64_t rl_index_position);
+locator_interval_t* locator_lookup_rl_interval(const locator_t* const locator,const uint64_t rl_index_position);
 
 /*
  * Map functions (High level mapping)

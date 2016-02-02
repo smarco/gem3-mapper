@@ -149,18 +149,15 @@ uint64_t filtering_candidates_compose_filtering_regions(
 /*
  * Adjust the filtering-position and compute the coordinates or the candidate text
  */
-void filtering_candidates_compute_text_coordinates_standard(
+void filtering_candidates_compute_text_boundaries(
     filtering_position_t* const filtering_position,const uint64_t region_text_position,
-    archive_text_t* const archive_text,locator_t* const locator,
-    uint64_t begin_offset,const uint64_t end_offset,
-    const uint64_t boundary_error) {
+    archive_text_t* const archive_text,const uint64_t boundary_error,
+    const uint64_t begin_offset,const uint64_t end_offset,
+    const uint64_t interval_begin_position,const uint64_t interval_end_position) {
   // Init
   filtering_position->key_trim_left = 0;
   filtering_position->key_trim_right = 0;
-  // Locate Position
-  locator_interval_t* const locator_interval =  locator_lookup_interval(locator,region_text_position);
-  filtering_position->locator_interval = locator_interval;
-  filtering_position->sequence_id = locator_interval->begin_position; // Set ID
+  filtering_position->sequence_id = interval_begin_position; // Set ID
   // Adjust Begin Position
   uint64_t base_begin_position = region_text_position;
   if (region_text_position >= begin_offset) {
@@ -170,61 +167,55 @@ void filtering_candidates_compute_text_coordinates_standard(
     base_begin_position = 0;
   }
   uint64_t begin_position;
-  if (base_begin_position < locator_interval->begin_position) { // Adjust by locator-interval
-    filtering_position->key_trim_left += locator_interval->begin_position - base_begin_position;
-    base_begin_position = locator_interval->begin_position; // Possible trim at the beginning
-    begin_position = locator_interval->begin_position;
+  if (base_begin_position < interval_begin_position) { // Adjust by locator-interval
+    filtering_position->key_trim_left += interval_begin_position - base_begin_position;
+    base_begin_position = interval_begin_position; // Possible trim at the beginning
+    begin_position = interval_begin_position;
   } else {
     begin_position = (base_begin_position > boundary_error) ? base_begin_position-boundary_error : 0;
-    if (begin_position < locator_interval->begin_position) { // Adjust by locator-interval
-      begin_position = locator_interval->begin_position;
+    if (begin_position < interval_begin_position) { // Adjust by locator-interval
+      begin_position = interval_begin_position;
     }
   }
   // Adjust End Position
   uint64_t base_end_position = region_text_position + end_offset;
-  if (base_end_position > locator_interval->end_position) {
-    filtering_position->key_trim_right = base_end_position - locator_interval->end_position;
-    base_end_position = locator_interval->end_position;
+  if (base_end_position > interval_end_position) {
+    filtering_position->key_trim_right = base_end_position - interval_end_position;
+    base_end_position = interval_end_position;
   }
   uint64_t end_position = base_end_position + boundary_error;
-  if (end_position >= locator_interval->end_position) { // Adjust by locator-interval
-    end_position = locator_interval->end_position; // Possible trim at the end
+  if (end_position >= interval_end_position) { // Adjust by locator-interval
+    end_position = interval_end_position; // Possible trim at the end
   }
   filtering_position->begin_position = begin_position;
   filtering_position->end_position = end_position;
   filtering_position->base_begin_position_offset = base_begin_position-begin_position;
   filtering_position->base_end_position_offset = base_end_position-begin_position;
 }
-void filtering_candidates_compute_text_coordinates_run_length(
-    filtering_position_t* const filtering_position,const uint64_t region_text_position_rl,
-    archive_text_t* const archive_text,locator_t* const locator,
-    pattern_t* const pattern,const uint64_t begin_offset_rl,
-    const uint64_t end_offset_rl,const uint64_t boundary_error,
-    mm_stack_t* const mm_stack) {
-  // Translate Region-Text Position (RL-text encoded)
-  const uint64_t region_text_position =
-      archive_text_rl_translate(archive_text,region_text_position_rl,mm_stack);
-  // Translate offsets
-  const uint64_t begin_offset = archive_text_rl_position_decode_exl(pattern->rl_runs,begin_offset_rl);
-  const uint64_t end_offset = archive_text_rl_position_decode_inc(pattern->rl_runs,end_offset_rl);
-  // Adjust position
-  filtering_candidates_compute_text_coordinates_standard(filtering_position,
-      region_text_position,archive_text,locator,begin_offset,end_offset,boundary_error);
-}
 void filtering_candidates_compute_text_coordinates(
     filtering_position_t* const filtering_position,archive_text_t* const archive_text,
-    locator_t* const locator,pattern_t* const pattern,
-    const uint64_t begin_offset,const uint64_t end_offset,
-    mm_stack_t* const mm_stack) {
-  // Switch regular-text or RL-text
-  if (archive_text->sampled_rl) {
-    filtering_candidates_compute_text_coordinates_run_length(filtering_position,
-        filtering_position->region_text_position,archive_text,locator,pattern,
-        begin_offset,end_offset,pattern->max_effective_bandwidth,mm_stack);
+    locator_t* const locator,pattern_t* const pattern,const uint64_t begin_offset,
+    const uint64_t end_offset,mm_stack_t* const mm_stack) {
+  // Locate position
+  locator_interval_t* locator_interval = NULL;
+  if (archive_text->run_length) {
+    // Locate RL-text position
+    const uint64_t region_text_position_rl = filtering_position->region_text_position;
+    locator_interval = locator_lookup_rl_interval(locator,region_text_position_rl);
+    filtering_position->locator_interval = locator_interval;
+    // Compute boundaries
+    filtering_candidates_compute_text_boundaries(filtering_position,
+        filtering_position->region_text_position,archive_text,pattern->max_effective_bandwidth,
+        begin_offset,end_offset,locator_interval->rl_begin_position,locator_interval->rl_end_position);
   } else {
-    filtering_candidates_compute_text_coordinates_standard(filtering_position,
-        filtering_position->region_text_position,archive_text,
-        locator,begin_offset,end_offset,pattern->max_effective_bandwidth);
+    // Locate text position
+    const uint64_t region_text_position = filtering_position->region_text_position;
+    locator_interval = locator_lookup_interval(locator,region_text_position);
+    filtering_position->locator_interval = locator_interval;
+    // Compute boundaries
+    filtering_candidates_compute_text_boundaries(filtering_position,
+        filtering_position->region_text_position,archive_text,pattern->max_effective_bandwidth,
+        begin_offset,end_offset,locator_interval->begin_position,locator_interval->end_position);
   }
 }
 /*

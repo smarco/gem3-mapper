@@ -76,7 +76,7 @@ uint64_t locator_interval_get_text_length(const locator_interval_t* const interv
   return interval->sequence_length;
 }
 /*
- * Locating functions
+ * Text-Locating functions
  */
 uint64_t locator_lookup_interval_index(const locator_t* const locator,const uint64_t index_position) {
   // Binary search of the interval
@@ -93,11 +93,37 @@ uint64_t locator_lookup_interval_index(const locator_t* const locator,const uint
   } while (hi > lo);
   // Return Interval
   GEM_INTERNAL_CHECK(intervals[lo].begin_position <= index_position &&
-      index_position < intervals[lo].end_position,"Locator-Interval Binary Search. Wrong Boundaries");
+      index_position < intervals[lo].end_position,
+      "Locator-Interval Binary Search. Wrong Boundaries");
   return lo;
 }
 locator_interval_t* locator_lookup_interval(const locator_t* const locator,const uint64_t index_position) {
   return locator->intervals + locator_lookup_interval_index(locator,index_position);
+}
+/*
+ * RL-Locating functions
+ */
+uint64_t locator_lookup_rl_interval_index(const locator_t* const locator,const uint64_t rl_index_position) {
+  // Binary search of the interval
+  const locator_interval_t* const intervals = locator->intervals;
+  uint64_t lo = 0;
+  uint64_t hi = locator->num_intervals-1;
+  do {
+    const uint64_t half = (hi+lo+1)/2;
+    if (intervals[half].rl_begin_position > rl_index_position) {
+      hi = half-1;
+    } else {
+      lo = half;
+    }
+  } while (hi > lo);
+  // Return Interval
+  GEM_INTERNAL_CHECK(intervals[lo].rl_begin_position <= rl_index_position &&
+      rl_index_position < intervals[lo].rl_end_position,
+      "Locator-Interval Binary Search. Wrong Boundaries");
+  return lo;
+}
+locator_interval_t* locator_lookup_rl_interval(const locator_t* const locator,const uint64_t rl_index_position) {
+  return locator->intervals + locator_lookup_rl_interval_index(locator,rl_index_position);
 }
 /*
  * Map functions (High level mapping)

@@ -59,8 +59,13 @@ void archive_builder_text_apply_run_length(archive_builder_t* const archive_buil
     } else {
       // Check Separator
       if (enc_text[text_position]==ENC_DNA_CHAR_SEP) {
-        locator_interval_t* const locator_interval =
-            svector_iterator_get_element(&intervals_iterator,locator_interval_t);
+        locator_interval_t* locator_interval = svector_iterator_get_element(&intervals_iterator,locator_interval_t);
+        while (locator_interval->type==locator_interval_uncalled) { // Skip uncalled
+          locator_interval->rl_begin_position = rl_begin_position;
+          locator_interval->rl_end_position = rl_begin_position;
+          svector_read_iterator_next(&intervals_iterator);
+          locator_interval = svector_iterator_get_element(&intervals_iterator,locator_interval_t);
+        }
         locator_interval->rl_begin_position = rl_begin_position;
         locator_interval->rl_end_position = rl_text_position;
         rl_begin_position = rl_text_position+1;
