@@ -42,12 +42,12 @@ void archive_select_realign_match_interval(
   const alignment_model_t alignment_model = search_parameters->alignment_model;
   if (match_interval->distance==0 || alignment_model==alignment_model_none) {
     match_align_input_t align_input = {
+      .key_length = sequence_get_length(&archive_search->sequence),
+      .text_position = match_trace->match_alignment.match_position,
       .text_trace_offset = match_trace->text_trace_offset,
       .text = match_interval->text,
       .text_offset_begin = 0,
       .text_offset_end = match_interval->text_length,
-      .key_length = sequence_get_length(&archive_search->sequence),
-      .text_position = match_trace->match_alignment.match_position,
     };
     match_align_parameters_t align_parameters = {
       .emulated_rc_search = match_interval->emulated_rc_search,
@@ -87,9 +87,9 @@ void archive_select_realign_match_interval(
           .text_trace_offset = match_trace->text_trace_offset,
           .text_position = match_trace->match_alignment.match_position,
           .text = match_interval->text,
+          .text_length = match_interval->text_length,
           .text_offset_begin = 0,
           .text_offset_end = match_interval->text_length,
-          .text_length = match_interval->text_length,
         };
         match_align_parameters_t align_parameters = {
           .emulated_rc_search = match_interval->emulated_rc_search,

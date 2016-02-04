@@ -22,8 +22,11 @@
  * CIGAR Buffer Handling
  */
 void matches_cigar_buffer_add_cigar_element(
-    cigar_element_t** const cigar_buffer_sentinel,
-    const cigar_t cigar_element_type,const uint64_t element_length);
+    cigar_element_t** const cigar_buffer_sentinel,const cigar_t cigar_element_type,
+    const uint64_t element_length);
+void matches_cigar_buffer_add_cigar_element__attr(
+    cigar_element_t** const cigar_buffer_sentinel,const cigar_t cigar_element_type,
+    const uint64_t element_length,const cigar_attr_t attributes);
 void matches_cigar_buffer_add_mismatch(
     cigar_element_t** const cigar_buffer_sentinel,const uint8_t mismatch);
 

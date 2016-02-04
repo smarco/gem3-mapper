@@ -150,7 +150,8 @@ void match_scaffold_levenshtein_tiled(
   };
   align_bpm_compute_matrix(&bpm_align_input,
       bpm_pattern_tile->pattern_length,&bpm_align_matrix,mm_stack);
-  PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_CELLS,bpm_pattern_tile->pattern_length*bpm_align_input.text_length);
+  PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_CELLS,
+      bpm_pattern_tile->pattern_length*bpm_align_input.text_length);
   if (bpm_align_matrix.min_score != ALIGN_DISTANCE_INF) {
     // Backtrace and generate CIGAR
     const uint64_t match_position = align_input->text_position + text_begin;

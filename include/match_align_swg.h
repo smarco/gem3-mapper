@@ -61,7 +61,8 @@ bool match_align_swg_end_region(
  */
 void match_align_swg_post_alignment(
     matches_t* const matches,match_trace_t* const match_trace,
-    match_align_input_t* const align_input,match_align_parameters_t* const align_parameters);
+    match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
+    mm_stack_t* const mm_stack);
 
 /*
  * SWG Chained Alignment

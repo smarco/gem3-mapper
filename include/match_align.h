@@ -22,6 +22,13 @@ void match_align_normalize_cigar(
     match_align_parameters_t* const align_parameters);
 
 /*
+ * RL-Space CIGAR Translation
+ */
+void match_align_translate_rl_cigar(
+    match_trace_t* const match_trace,vector_t* const cigar_vector,
+    match_align_input_t* const align_input,match_align_parameters_t* const align_parameters);
+
+/*
  * Exact Alignment
  *   @align_input->key_length
  *   @align_input->text_position

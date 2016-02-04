@@ -133,13 +133,12 @@ void archive_text_retrieve(
   }
   // Compute RL-text
   if (run_length_text) {
-    const uint8_t* text = text_trace->text;
     // Allocate RL-Encoded Text
-    text_trace->rl_text = mm_stack_calloc(mm_stack,text_length,uint8_t,false);
-    text_trace->rl_runs = mm_stack_calloc(mm_stack,text_length,uint8_t,false);
+    text_trace->rl_text = mm_stack_calloc(mm_stack,text_trace->regular_text_length,uint8_t,false);
+    text_trace->rl_runs = mm_stack_calloc(mm_stack,text_trace->regular_text_length,uint8_t,false);
     // RL encode
-    archive_text_rl_encode(text,text_length,text_trace->rl_text,
-        text_trace->rl_runs,&text_trace->rl_text_length);
+    archive_text_rl_encode(text_trace->regular_text,text_length,
+        text_trace->rl_text,text_trace->rl_runs,&text_trace->rl_text_length);
     // Configure
     text_trace->text = text_trace->rl_text;
     text_trace->text_length = text_trace->rl_text_length;

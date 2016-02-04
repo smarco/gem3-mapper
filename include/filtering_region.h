@@ -35,7 +35,7 @@ typedef struct {
   /* Text-trace */
   uint64_t text_trace_offset;
   /* Location */
-  // uint64_t source_begin_position;      // In case of RL-conversion, store the original 'effective begin position'
+  uint64_t begin_position_translated;  // Translated begin-position from RL-Space (In case of RL-text)
   uint64_t begin_position;             // Region effective begin position (adjusted to error boundaries)
   uint64_t end_position;               // Region effective end position (adjusted to error boundaries)
   uint64_t base_begin_position_offset; // Offset to base begin filtering position (no error boundary correction)

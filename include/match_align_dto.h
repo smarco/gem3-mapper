@@ -15,6 +15,7 @@ typedef struct match_align_parameters_t match_align_parameters_t;
 #include "align_bpm_pattern.h"
 #include "align_swg_score.h"
 #include "align_swg_simd.h"
+#include "text_collection.h"
 
 struct match_align_input_t {
   /* Key */
@@ -26,8 +27,9 @@ struct match_align_input_t {
   bpm_pattern_t* bpm_pattern_tiles;
   swg_query_profile_t* swg_query_profile;
   /* Text */
-  uint64_t text_trace_offset;
-  uint64_t text_position;
+  uint64_t text_trace_offset;              // Text-Trace Offset
+  uint64_t text_position_translated;       // Translated text-position from RL-Space (In case of RL-text)
+  uint64_t text_position;                  // Text position
   uint8_t* text;                           // Text (candidate)
   uint64_t text_length;                    // Text full length (whole decoded text)
   uint64_t text_offset_begin;              // Text effective-begin offset (eg. bounded by verification)
@@ -35,6 +37,10 @@ struct match_align_input_t {
   uint64_t text_offset_base_begin;         // Text base begin offset (range projected by key)
   uint64_t text_offset_base_end;           // Text base end offset   (range projected by key)
   uint64_t align_distance_bound;
+  /* RL-Input */
+  bool run_length;
+  uint8_t* rl_key_runs;
+  uint8_t* rl_text_runs;
 };
 struct match_align_parameters_t {
   bool emulated_rc_search;

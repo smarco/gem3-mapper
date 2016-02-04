@@ -11,6 +11,7 @@
 #include "match_align.h"
 #include "align.h"
 #include "align_swg.h"
+#include "archive_text_rl.h"
 #include "matches.h"
 #include "matches_cigar.h"
 
@@ -114,7 +115,7 @@ bool match_align_swg_region(
   match_align_input_t align_chunk_input;
   align_chunk_input.key = align_input->key+key_chunk_begin_offset;
   align_chunk_input.key_length = key_chunk_length;
-  align_chunk_input.text = align_input->text+text_chunk_begin_offset;
+  align_chunk_input.text = align_input->text + text_chunk_begin_offset;
   align_chunk_input.text_length = text_chunk_length;
   // Keep CIGAR state
   const uint64_t cigar_length = match_alignment->cigar_length;
@@ -168,7 +169,8 @@ bool match_align_swg_end_region(
  */
 void match_align_swg_post_alignment(
     matches_t* const matches,match_trace_t* const match_trace,
-    match_align_input_t* const align_input,match_align_parameters_t* const align_parameters) {
+    match_align_input_t* const align_input,match_align_parameters_t* const align_parameters,
+    mm_stack_t* const mm_stack) {
   vector_t* const cigar_vector = matches->cigar_vector;
   match_alignment_t* const match_alignment = &match_trace->match_alignment;
   // Init
@@ -179,8 +181,37 @@ void match_align_swg_post_alignment(
     match_trace->distance = ALIGN_DISTANCE_INF;
     return;
   }
-  // Normalize alignment
-  match_align_normalize_cigar(match_trace,cigar_vector,align_parameters);
+  //  // DEBUG
+  //  match_align_normalize_cigar(match_trace,cigar_vector,align_parameters);
+  //  match_alignment->match_text_offset = match_alignment->match_position - align_input->text_position;
+  //  fprintf(stderr,"[GEM]>RL-Alignment\n");
+  //  match_alignment_print_pretty(stderr,&match_trace->match_alignment,
+  //      matches->cigar_vector,align_input->key,align_input->key_length,
+  //      align_input->text+match_trace->match_alignment.match_text_offset,
+  //      align_input->text_length,mm_stack);
+  // Translate RL-CIGAR
+  if (align_input->run_length) {
+    match_alignment->match_text_offset = match_alignment->match_position - align_input->text_position;
+    match_align_translate_rl_cigar(match_trace,cigar_vector,align_input,align_parameters);
+  }
+  // Normalize CIGAR & Adjust Position
+  if (align_input->run_length) {
+    // Translate
+    const uint64_t match_rl_text_offset = match_alignment->match_position - align_input->text_position;
+    match_alignment->match_text_offset = archive_text_rl_get_decoded_offset_exl(align_input->rl_text_runs,match_rl_text_offset);
+    match_alignment->match_position = align_input->text_position_translated + match_alignment->match_text_offset;
+    // Normalize alignment
+    match_align_normalize_cigar(match_trace,cigar_vector,align_parameters);
+    // Adjust
+    match_alignment->match_text_offset = match_alignment->match_position - align_input->text_position_translated;
+//    match_trace->text = align_input->text + match_alignment->match_text_offset; // TODO FIXME
+  } else {
+    // Normalize alignment
+    match_align_normalize_cigar(match_trace,cigar_vector,align_parameters);
+    // Adjust
+    match_alignment->match_text_offset = match_alignment->match_position - align_input->text_position;
+    match_trace->text = align_input->text + match_alignment->match_text_offset;
+  }
   // Compute matching bases (identity) + score
   const uint64_t cigar_offset = match_alignment->cigar_offset;
   const uint64_t cigar_length = match_alignment->cigar_length;
@@ -217,6 +248,7 @@ void match_align_swg_post_alignment(
   match_trace->distance = matches_cigar_compute_event_distance(cigar_vector,cigar_offset,cigar_length);
   match_trace->edit_distance = matches_cigar_compute_edit_distance(cigar_vector,cigar_offset,cigar_length);
   match_alignment->effective_length = matches_cigar_effective_length(cigar_vector,cigar_offset,cigar_length);
+  match_trace->text_length = match_alignment->effective_length;
 }
 /*
  * SWG Chained Alignment

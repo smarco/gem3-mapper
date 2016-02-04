@@ -72,24 +72,27 @@ void filtering_region_retrieve_text(
   // Retrieve Text
   if (archive_text->run_length) {
     // Translate RL-Text positions (RL-text encoded)
-    const uint64_t text_begin_position = archive_text_rl_translate(
+    const uint64_t text_begin_position = archive_text_rl_position_translate(
         archive_text,filtering_region->begin_position,mm_stack);
-    const uint64_t text_end_position = archive_text_rl_translate(
+    const uint64_t text_end_position = archive_text_rl_position_translate(
         archive_text,filtering_region->end_position,mm_stack);
+    filtering_region->begin_position_translated = text_begin_position;
     // Retrieve Text
     const uint64_t text_length = text_end_position - text_begin_position;
     filtering_region->text_trace_offset =
         archive_text_retrieve_collection(archive_text,text_collection,
             text_begin_position,text_length,false,true,mm_stack);
-//    // DEBUG
-//    text_trace_t* const text_trace =
-//        text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
-//    fprintf(stderr,">Text\n");
-//    dna_buffer_print(stderr,text_trace->text,text_trace->text_length,false);
-//    fprintf(stderr,"\n");
-//    fprintf(stderr,">RL.Text\n");
-//    dna_buffer_print(stderr,text_trace->rl_text,text_trace->rl_text_length,false);
-//    fprintf(stderr,"\n");
+    //    // DEBUG
+    //    text_trace_t* const text_trace = text_collection_get_trace(
+    //        text_collection,filtering_region->text_trace_offset);
+    //    fprintf(stderr,">Text\n");
+    //    dna_buffer_print(stderr,text_trace->regular_text,text_trace->regular_text_length,false);
+    //    fprintf(stderr,"\n");
+    //    fprintf(stderr,">RL.Text\n");
+    //    dna_buffer_print(stderr,text_trace->rl_text,text_trace->rl_text_length,false);
+    //    fprintf(stderr,"\n");
+    //    uint64_t i; for (i=0;i<text_trace->rl_text_length;++i) fprintf(stderr,"[%d]",text_trace->rl_runs[i]);
+    //    fprintf(stderr,"\n");
   } else {
     // Retrieve Text
     const uint64_t text_position = filtering_region->begin_position;

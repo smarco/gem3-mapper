@@ -95,15 +95,14 @@ bool filtering_candidates_align_is_subdominant(
 }
 bool filtering_candidates_align_search_filtering_region_cache(
     filtering_candidates_t* const filtering_candidates,filtering_region_t* const region,
-    text_collection_t* const text_collection,match_trace_t* const match_trace,
-    matches_t* const matches) {
+    text_collection_t* const text_collection,const uint64_t run_length,
+    match_trace_t* const match_trace,matches_t* const matches) {
   // Search the cache
-  match_trace_t* const match_trace_cache =
-      filtering_region_transient_cache_search(
-          &filtering_candidates->filtering_region_cache,region,text_collection,matches);
+  match_trace_t* const match_trace_cache = filtering_region_transient_cache_search(
+      &filtering_candidates->filtering_region_cache,region,text_collection,matches);
   if (match_trace_cache==NULL) return false;
   // Clone the match-trace found in the cache
-  filtering_region_align_clone(match_trace_cache,match_trace,region,text_collection);
+  filtering_region_align_clone(match_trace_cache,match_trace,region,text_collection,run_length);
   return true;
 }
 bool filtering_candidates_align_region(
@@ -122,8 +121,8 @@ bool filtering_candidates_align_region(
   // Search Cache (Before jumping into aligning the region)
   match_trace_t match_trace;
   bool match_trace_aligned = !extended_match &&
-      filtering_candidates_align_search_filtering_region_cache(
-          filtering_candidates,region,text_collection,&match_trace,matches);
+      filtering_candidates_align_search_filtering_region_cache(filtering_candidates,
+          region,text_collection,pattern->run_length,&match_trace,matches);
   // Align the region
   if (!match_trace_aligned) {
     match_trace_aligned = filtering_region_align(region,archive_text,text_collection,

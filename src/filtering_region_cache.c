@@ -75,15 +75,14 @@ bool filtering_region_cache_cmp_regions(
     filtering_region_t* const filtering_region_a,filtering_region_t* const filtering_region_b,
     text_collection_t* const text_collection) {
   // Cmp text-lengths
-  const uint64_t text_length_a = filtering_region_a->end_position-filtering_region_a->begin_position;
-  const uint64_t text_length_b = filtering_region_b->end_position-filtering_region_b->begin_position;
-  if (text_length_a != text_length_b) return false;
+  // const uint64_t text_length_a = filtering_region_a->end_position-filtering_region_a->begin_position;
+  // const uint64_t text_length_b = filtering_region_b->end_position-filtering_region_b->begin_position;
+  // if (text_length_a != text_length_b) return false;
   // Cmp read
   const text_trace_t* const text_trace_a = text_collection_get_trace(text_collection,filtering_region_a->text_trace_offset);
-  const uint8_t* const text_a = text_trace_a->text;
   const text_trace_t* const text_trace_b = text_collection_get_trace(text_collection,filtering_region_b->text_trace_offset);
-  const uint8_t* const text_b = text_trace_b->text;
-  return (memcmp(text_a,text_b,text_length_b)==0);
+  if (text_trace_a->regular_text_length != text_trace_b->regular_text_length) return false;
+  return (memcmp(text_trace_a->regular_text,text_trace_b->regular_text,text_trace_a->regular_text_length)==0);
 }
 match_trace_t* filtering_region_transient_cache_search(
     filtering_region_cache_t* const filtering_region_cache,filtering_region_t* const filtering_region,

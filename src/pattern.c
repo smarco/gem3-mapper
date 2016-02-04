@@ -80,13 +80,13 @@ void pattern_init(
     // Configure
     pattern->key = pattern->rl_key;
     pattern->key_length = pattern->rl_key_length;
-//    // DEBUG
-//    fprintf(stderr,">key\n");
-//    dna_buffer_print(stderr,pattern->regular_key,pattern->regular_key_length,false);
-//    fprintf(stderr,"\n");
-//    fprintf(stderr,">RL.key\n");
-//    dna_buffer_print(stderr,pattern->rl_key,pattern->rl_key_length,false);
-//    fprintf(stderr,"\n");
+    //    // DEBUG
+    //    fprintf(stderr,">key\n");
+    //    dna_buffer_print(stderr,pattern->regular_key,pattern->regular_key_length,false);
+    //    fprintf(stderr,"\n");
+    //    fprintf(stderr,">RL.key\n");
+    //    dna_buffer_print(stderr,pattern->rl_key,pattern->rl_key_length,false);
+    //    fprintf(stderr,"\n");
   } else {
     pattern->run_length = false;
     pattern->rl_key = NULL;

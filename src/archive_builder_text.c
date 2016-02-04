@@ -83,6 +83,13 @@ void archive_builder_text_apply_run_length(archive_builder_t* const archive_buil
   }
   // Print last run
   dna_text_set_length(archive_builder->enc_rl_text,rl_text_position);
+  // Close remaining intervals
+  while (!svector_read_iterator_eoi(&intervals_iterator)) {
+    locator_interval_t* locator_interval = svector_iterator_get_element(&intervals_iterator,locator_interval_t);
+    locator_interval->rl_begin_position = rl_begin_position;
+    locator_interval->rl_end_position = rl_begin_position;
+    svector_read_iterator_next(&intervals_iterator);
+  }
   // Swap text with rl-text (as to SA-index the rl-text)
   SWAP(archive_builder->enc_text,archive_builder->enc_rl_text);
 }

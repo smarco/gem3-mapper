@@ -134,7 +134,9 @@ void archive_check_se_match_print_suboptimum(
       optimum_match_trace->match_alignment.match_position - match_align_input->text_position;
   if (match_trace->strand==Reverse) {
     optimum_match_trace->match_alignment.match_position = match_align_input->text_position +
-        (match_align_input->text_length - opt_alignment_offset - optimum_match_trace->match_alignment.effective_length);
+        (match_align_input->text_length -
+         opt_alignment_offset -
+         optimum_match_trace->match_alignment.effective_length);
   }
   location_t location;
   locator_map(locator,optimum_match_trace->match_alignment.match_position,&location);

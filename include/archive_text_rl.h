@@ -28,18 +28,24 @@ void archive_text_rl_encode(
 /*
  * Translate position
  */
-uint64_t archive_text_rl_translate(
+uint64_t archive_text_rl_position_translate(
     archive_text_t* const archive_text,const uint64_t position_rl,
     mm_stack_t* const mm_stack);
 
 /*
  * Utils
  */
-uint64_t archive_text_rl_decode_run_length(uint8_t* const rl_runs,const uint64_t rl_position);
-uint64_t archive_text_rl_position_decode_inc(uint8_t* const rl_runs,const uint64_t rl_position);
-uint64_t archive_text_rl_position_decode_exl(uint8_t* const rl_runs,const uint64_t rl_position);
-uint64_t archive_text_rl_position_encode(
-    uint8_t* const rl_runs,const uint64_t rl_text_length,
+uint64_t archive_text_rl_get_run_length(const uint8_t* const rl_runs,const uint64_t rl_position);
+
+uint64_t archive_text_rl_get_decoded_offset_inc(const uint8_t* const rl_runs,const uint64_t rl_position);
+uint64_t archive_text_rl_get_decoded_offset_exl(const uint8_t* const rl_runs,const uint64_t rl_position);
+
+uint64_t archive_text_rl_get_decoded_length(
+    const uint8_t* const rl_runs,const uint64_t rl_position,
+    const uint64_t length);
+
+uint64_t archive_text_rl_get_encoded_offset(
+    const uint8_t* const rl_runs,const uint64_t rl_text_length,
     const uint64_t text_position);
 
 

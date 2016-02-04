@@ -20,7 +20,8 @@
  */
 void filtering_region_align_clone(
     match_trace_t* const match_trace_src,match_trace_t* const match_trace_dst,
-    filtering_region_t* const filtering_region_dst,text_collection_t* const text_collection);
+    filtering_region_t* const filtering_region_dst,text_collection_t* const text_collection,
+    const uint64_t run_length);
 
 /*
  * Adjust distance bound by scaffolding

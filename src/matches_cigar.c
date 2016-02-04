@@ -12,9 +12,9 @@
 /*
  * CIGAR Buffer Handling
  */
-void matches_cigar_buffer_add_cigar_element(
-    cigar_element_t** const cigar_buffer_sentinel,
-    const cigar_t cigar_element_type,const uint64_t element_length) {
+void matches_cigar_buffer_add_cigar_element__attr(
+    cigar_element_t** const cigar_buffer_sentinel,const cigar_t cigar_element_type,
+    const uint64_t element_length,const cigar_attr_t attributes) {
   if ((*cigar_buffer_sentinel)->type == cigar_element_type) {
     (*cigar_buffer_sentinel)->length += element_length;
     (*cigar_buffer_sentinel)->attributes = cigar_attr_none;
@@ -22,8 +22,14 @@ void matches_cigar_buffer_add_cigar_element(
     if ((*cigar_buffer_sentinel)->type != cigar_null) ++(*cigar_buffer_sentinel);
     (*cigar_buffer_sentinel)->type = cigar_element_type;
     (*cigar_buffer_sentinel)->length = element_length;
-    (*cigar_buffer_sentinel)->attributes = cigar_attr_none;
+    (*cigar_buffer_sentinel)->attributes = attributes;
   }
+}
+void matches_cigar_buffer_add_cigar_element(
+    cigar_element_t** const cigar_buffer_sentinel,
+    const cigar_t cigar_element_type,const uint64_t element_length) {
+  matches_cigar_buffer_add_cigar_element__attr(cigar_buffer_sentinel,
+      cigar_element_type,element_length,cigar_attr_none);
 }
 void matches_cigar_buffer_add_mismatch(
     cigar_element_t** const cigar_buffer_sentinel,const uint8_t mismatch) {
