@@ -1,5 +1,7 @@
+#include "../include/gpu_buffer.h"
 
-#include "../include/gpu_buffers.h"
+#ifndef GPU_BUFFER_C_
+#define GPU_BUFFER_C_
 
 /************************************************************
 Functions to get information from the system
@@ -109,9 +111,13 @@ void gpu_init_buffers_(gpu_buffers_dto_t* const buff, gpu_index_dto_t* const raw
   gpu_index_buffer_t        *index                = NULL;
   gpu_device_info_t         **devices             = NULL;
   /* Index info */
-  const void                *fmiRaw               = rawIndex->fmi;
-  const gpu_index_coding_t  indexCoding           = rawIndex->indexCoding;
-  const uint64_t            bwtSize               = rawIndex->bwtSize;
+  const void                *fmiRaw               = rawIndex->fmi.h_fmi;
+  const gpu_index_coding_t  fmiCoding             = rawIndex->fmi.indexCoding;
+  const uint64_t            bwtSize               = rawIndex->fmi.bwtSize;
+  const void                *saRaw                = rawIndex->sa.h_sa;
+  const gpu_index_coding_t  saCoding              = rawIndex->sa.indexCoding;
+  const uint64_t            saNumEntries          = rawIndex->sa.numEntries;
+  const uint32_t            samplingRate          = rawIndex->sa.samplingRate;
   /* Reference info */
   const char                *referenceRaw         = rawRef->reference;
   const gpu_ref_coding_t    refCoding             = rawRef->refCoding;
@@ -119,18 +125,18 @@ void gpu_init_buffers_(gpu_buffers_dto_t* const buff, gpu_index_dto_t* const raw
 
   GPU_ERROR(gpu_fast_driver_awake());
   GPU_ERROR(gpu_init_reference(&reference, referenceRaw, refSize, refCoding, numSupportedDevices, activeModules));
-  GPU_ERROR(gpu_init_index(&index, fmiRaw, bwtSize, indexCoding, numSupportedDevices, activeModules));
+  GPU_ERROR(gpu_init_index(&index, fmiRaw, bwtSize, samplingRate, fmiCoding, numSupportedDevices, activeModules));
 
   GPU_ERROR(gpu_configure_modules(&devices, selectedArchitectures, userAllocOption, numBuffers, reference, index));
   GPU_ERROR(gpu_set_devices_local_memory(devices, cudaFuncCachePreferL1));
 
   GPU_ERROR(gpu_transfer_reference_CPU_to_GPUs(reference, devices));
-  GPU_ERROR(gpu_transfer_index_CPU_to_GPUs(index, devices));
+  GPU_ERROR(gpu_transfer_index_CPU_to_GPUs(index, devices, activeModules));
 
   GPU_ERROR(gpu_schedule_buffers(&buffer, numBuffers, devices, reference, index, maxMbPerBuffer));
 
   GPU_ERROR(gpu_free_unused_reference_host(reference, devices));
-  GPU_ERROR(gpu_free_unused_index_host(index, devices));
+  GPU_ERROR(gpu_free_unused_index_host(index, devices, activeModules));
 
   buff->buffer = (void **) buffer;
 }
@@ -146,7 +152,7 @@ void gpu_destroy_buffers_(gpu_buffers_dto_t* buff)
 
   /* Free all the references */
   GPU_ERROR(gpu_free_reference(&mBuff[0]->reference, devices));
-  GPU_ERROR(gpu_free_index(&mBuff[0]->index, devices));
+  GPU_ERROR(gpu_free_index(&mBuff[0]->index, devices, mBuff[0]->index->activeModules));
 
   for(idBuffer = 0; idBuffer < numBuffers; idBuffer++){
     const uint32_t idSupDevice = mBuff[idBuffer]->idSupportedDevice;
@@ -236,17 +242,20 @@ gpu_error_t gpu_get_min_memory_per_module(size_t *minimumMemorySize, const gpu_r
                                           const gpu_module_t activeModules)
 {
   size_t memorySize;
-  size_t bytesPerReference, bytesPerIndex, bytesPerBuffer, bytesPerAllBuffers;
+  size_t bytesPerReference, bytesPerFMIndex, bytesPerSAIndex, bytesPerBuffer, bytesPerAllBuffers;
 
   gpu_get_min_memory_size_per_buffer(&bytesPerBuffer);
 
   bytesPerAllBuffers  = numBuffers * bytesPerBuffer;
   bytesPerReference   = reference->numEntries * GPU_REFERENCE_BYTES_PER_ENTRY;
-  bytesPerIndex       = index->numEntries * sizeof(gpu_fmi_entry_t);
+  bytesPerFMIndex     = index->fmi.numEntries * sizeof(gpu_fmi_entry_t);
+  bytesPerSAIndex     = index->sa.numEntries * sizeof(gpu_sa_entry_t);
 
   memorySize = bytesPerAllBuffers;
   if(activeModules & GPU_REFERENCE) memorySize += bytesPerReference;
-  if(activeModules & GPU_INDEX) memorySize += bytesPerIndex;
+  if(activeModules & GPU_FMI) memorySize += bytesPerFMIndex;
+  if(activeModules & GPU_SA) memorySize += bytesPerSAIndex;
+
 
   (* minimumMemorySize) = memorySize;
   return (SUCCESS);
@@ -336,7 +345,8 @@ gpu_error_t gpu_module_memory_manager(const uint32_t idDevice, const uint32_t id
   }
 
   if(activeModules & GPU_REFERENCE) reference->memorySpace[idSupDevice] = referenceModule;
-  if(activeModules & GPU_INDEX) index->memorySpace[idSupDevice]   = indexModule;
+  if(activeModules & GPU_INDEX) index->fmi.memorySpace[idSupDevice]   = indexModule;
+  //TODO INCLUIR EL SA
 
   /* Return the memory sizes and flags */
   GPU_ERROR(gpu_get_min_memory_per_module(reqMemSize, reference, index, numBuffers, GPU_NONE_MODULES));
@@ -347,3 +357,6 @@ gpu_error_t gpu_module_memory_manager(const uint32_t idDevice, const uint32_t id
   (* dataFits)    = dataFitsMemoryDevice;
   return(SUCCESS);
 }
+
+#endif /* GPU_BUFFER_C_ */
+

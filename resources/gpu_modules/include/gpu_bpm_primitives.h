@@ -6,10 +6,10 @@
  * DESCRIPTION: Common headers and data structures for BPM on GPU library
  */
 
-#include "gpu_commons.h"
+#ifndef GPU_BPM_PRIMITIVES_H_
+#define GPU_BPM_PRIMITIVES_H_
 
-#ifndef GPU_BPM_H_
-#define GPU_BPM_H_
+#include "gpu_commons.h"
 
 /********************************
 Common constants for Device & Host
@@ -96,7 +96,7 @@ typedef struct {
   gpu_bpm_alignments_buffer_t alignments;
 } gpu_bpm_buffer_t;
 
-#include "gpu_buffers.h"
+#include "gpu_buffer.h"
 
 /* Functions to initialize all the BPM resources */
 float       gpu_bpm_size_per_candidate(const uint32_t averageQuerySize, const uint32_t candidatesPerQuery);
@@ -114,7 +114,7 @@ gpu_error_t gpu_bpm_reorder_process(const gpu_bpm_queries_buffer_t* const qry, c
 /* DEVICE Kernels */
 gpu_error_t gpu_bpm_process_buffer(gpu_buffer_t *mBuff);
 
-#endif /* GPU_BPM_H_ */
+#endif /* GPU_BPM_PRIMITIVES_H_ */
 
 
 

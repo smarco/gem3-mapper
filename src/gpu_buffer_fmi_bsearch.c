@@ -137,7 +137,7 @@ void gpu_buffer_fmi_search_add_query(
 void gpu_buffer_fmi_search_get_result(
     gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search,
     const uint64_t buffer_pos,uint64_t* const hi,uint64_t* const lo) {
-  const gpu_fmi_search_sa_inter_t* const gpu_fmi_search_sa_interval =
+  const gpu_sa_search_inter_t* const gpu_fmi_search_sa_interval =
       gpu_fmi_search_buffer_get_sa_intervals_(gpu_buffer_fmi_search->buffer) + buffer_pos;
   *hi = gpu_fmi_search_sa_interval->hi;
   *lo = gpu_fmi_search_sa_interval->low;
@@ -149,7 +149,7 @@ void gpu_buffer_fmi_search_compute_cpu(gpu_buffer_fmi_search_t* const gpu_buffer
   // Parameters
   gpu_fmi_search_seed_t* const gpu_fmi_search_seeds =
       gpu_fmi_search_buffer_get_seeds_(gpu_buffer_fmi_search->buffer);
-  gpu_fmi_search_sa_inter_t* const gpu_fmi_search_sa_intervals =
+  gpu_sa_search_inter_t* const gpu_fmi_search_sa_intervals =
       gpu_fmi_search_buffer_get_sa_intervals_(gpu_buffer_fmi_search->buffer);
   const uint64_t num_queries = gpu_buffer_fmi_search->num_queries;
   // Traverse all queries
@@ -164,7 +164,7 @@ void gpu_buffer_fmi_search_compute_cpu(gpu_buffer_fmi_search_t* const gpu_buffer
     uint64_t hi, lo;
     fm_index_bsearch(gpu_buffer_fmi_search->fm_index,pattern->key+begin,end-begin,&hi,&lo);
     // Set Result
-    gpu_fmi_search_sa_inter_t* const gpu_fmi_search_sa_interval = gpu_fmi_search_sa_intervals + buffer_pos;
+    gpu_sa_search_inter_t* const gpu_fmi_search_sa_interval = gpu_fmi_search_sa_intervals + buffer_pos;
     gpu_fmi_search_sa_interval->low = lo;
     gpu_fmi_search_sa_interval->hi = hi;
   }

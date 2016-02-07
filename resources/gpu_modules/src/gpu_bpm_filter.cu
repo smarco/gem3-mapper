@@ -6,8 +6,10 @@
  * DESCRIPTION: BPM implementation for CUDA GPUs with compute capability 3.5 
  */
 
-#include "../include/gpu_bpm_core.h"
+#ifndef GPU_BPM_FILTER_CU_
+#define GPU_BPM_FILTER_CU_
 
+#include "../include/gpu_bpm_core.h"
 
 GPU_INLINE __device__ void gpu_bpm_filter_local_kernel(const gpu_bpm_device_qry_entry_t * __restrict d_queries, const uint64_t * __restrict d_reference,
                                                        const gpu_bpm_cand_info_t *d_candidates, const uint32_t *d_reorderBuffer,
@@ -170,3 +172,5 @@ gpu_error_t gpu_bpm_process_buffer(gpu_buffer_t *mBuff)
                                                                           rebuff->numWarps, mBuff->data.bpm.queryBinning);
   return(SUCCESS);
 }
+
+#endif /* GPU_BPM_FILTER_CU_ */

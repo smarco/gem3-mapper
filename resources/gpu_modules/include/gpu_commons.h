@@ -9,7 +9,6 @@
 
 #ifndef GPU_COMMONS_H_
 #define GPU_COMMONS_H_
-//#define _FILE_OFFSET_BITS 64
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -90,5 +89,8 @@ Common constants for Device & Host
 #include "../gpu_interface.h"
 #include "gpu_errors.h"
 #include "gpu_sample.h"
+
+uint32_t gpu_bit_reverse(uint32_t a);
+uint32_t gpu_gen_mask(const int32_t shift);
 
 #endif /* GPU_COMMONS_H_ */

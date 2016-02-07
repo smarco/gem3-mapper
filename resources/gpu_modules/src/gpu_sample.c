@@ -1,3 +1,5 @@
+#ifndef GPU_SAMPLE_C_
+#define GPU_SAMPLE_C_
 
 #include "../include/gpu_sample.h"
 
@@ -20,3 +22,5 @@ double gpu_sample_time()
 
   return((tv.tv_sec+tv.tv_nsec/1000000000.0));
 }
+
+#endif /* GPU_SAMPLE_C_ */

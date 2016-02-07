@@ -38,17 +38,37 @@ typedef enum
 /*
  * Common types for Device & Host
  */
+/* SA data structures */
+typedef uint64_t  gpu_sa_decode_text_pos_t;
+typedef uint64_t  gpu_sa_entry_t;
+
+typedef struct {
+  uint64_t*         sa;
+  uint64_t          sa_sampling;
+  uint64_t          sa_length;
+  uint64_t          index_coding;
+} gpu_gem_sa_dto_t;
+
+typedef struct {
+  gpu_sa_entry_t      *h_sa;
+  uint64_t            numEntries;
+  uint32_t            samplingRate;
+  gpu_index_coding_t  indexCoding;
+} gpu_sa_dto_t;
+
+/* FMI data structures */
 typedef struct {                                  // FMI Entry (64 Bytes) using:
   uint64_t counters[GPU_FMI_COUNTERS_PER_ENTRY];	// 4 letters: Alternate counters   (2  uint64_t)
   uint32_t bitmaps[GPU_FMI_BITMAPS_PER_ENTRY];		// 5 letters: 12 Bitmaps x 32 bits (3 uint128_t)
 } gpu_fmi_entry_t;
 
 typedef uint64_t	gpu_fmi_decode_init_pos_t;
+typedef uint64_t  gpu_fmi_decode_text_pos_t;
 
 typedef struct{
   uint64_t low;
   uint64_t hi;
-} gpu_fmi_search_sa_inter_t;
+} gpu_sa_search_inter_t;
 
 typedef struct{
   uint64_t hi;
@@ -70,19 +90,28 @@ typedef struct {
 } gpu_gem_fmi_dto_t;
 
 typedef struct {
-  char                *fmi;
-  gpu_index_coding_t  indexCoding;
+  gpu_fmi_entry_t     *h_fmi;
   uint64_t            bwtSize;
-} gpu_index_dto_t;
+  gpu_index_coding_t  indexCoding;
+} gpu_fmi_dto_t;
 
+/*
+ * Index General Structures
+ */
+typedef struct {
+  char          *filename;
+  gpu_fmi_dto_t fmi;
+  gpu_sa_dto_t  sa;
+} gpu_index_dto_t;
 
 /*
  * Obtain Buffers
  */
 gpu_fmi_search_seed_t* 	   gpu_fmi_search_buffer_get_seeds_(const void* const fmiBuffer);
-gpu_fmi_search_sa_inter_t* gpu_fmi_search_buffer_get_sa_intervals_(const void* const fmiBuffer);
+gpu_sa_search_inter_t*     gpu_fmi_search_buffer_get_sa_intervals_(const void* const fmiBuffer);
 gpu_fmi_decode_init_pos_t* gpu_fmi_decode_buffer_get_init_pos_(const void* const fmiBuffer);
 gpu_fmi_decode_end_pos_t*  gpu_fmi_decode_buffer_get_end_pos_(const void* const fmiBuffer);
+gpu_sa_decode_text_pos_t*  gpu_sa_decode_buffer_get_ref_pos_(const void* const fmiBuffer);
 
 /*
  * Get elements

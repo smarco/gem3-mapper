@@ -36,9 +36,16 @@ gpu_buffer_collection_t* gpu_buffer_collection_new(
   gpu_buffers_dto->activeModules = GPU_ALL_MODULES;
   buffer_collection->gpu_buffers_dto = gpu_buffers_dto;
   gpu_index_dto_t gpu_index_dto = {
-      .fmi         = gpu_index_name,
-      .indexCoding = GPU_INDEX_GEM_FILE,
-      .bwtSize     = 0,
+      .filename         = gpu_index_name,
+      //Initialize FM-Index
+      .fmi.h_fmi        = NULL,
+      .fmi.bwtSize      = 0,
+      .fmi.indexCoding  = GPU_INDEX_GEM_FILE,
+      //Initialize Suffix-Array
+      .sa.h_sa          = NULL,
+      .sa.numEntries    = 0,
+      .sa.samplingRate  = 0,
+      .sa.indexCoding   = GPU_INDEX_GEM_FILE,
   };
   gpu_reference_dto_t gpu_reference_dto = {
       .reference = gpu_index_name,

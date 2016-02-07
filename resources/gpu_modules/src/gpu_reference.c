@@ -1,5 +1,9 @@
+#ifndef GPU_REFERENCE_C_
+#define GPU_REFERENCE_C_
 
 #include "../include/gpu_reference.h"
+#include "../include/gpu_io.h"
+
 
 /************************************************************
 String basic functions
@@ -143,9 +147,12 @@ gpu_error_t gpu_transform_reference_GEM_FULL(const gpu_gem_ref_dto_t* const gem_
 Input & Output reference functions
 ************************************************************/
 
-gpu_error_t gpu_read_reference(FILE* fp, gpu_reference_buffer_t* const reference)
+gpu_error_t gpu_read_reference(FILE* fp, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules)
 {
   size_t result;
+
+  if(activeModules & GPU_REFERENCE)
+    return(E_MODULE_NOT_FOUND);
 
   result = fread(&reference->numEntries, sizeof(uint64_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
@@ -160,9 +167,12 @@ gpu_error_t gpu_read_reference(FILE* fp, gpu_reference_buffer_t* const reference
   return (SUCCESS);
 }
 
-gpu_error_t gpu_write_reference(FILE* fp, const gpu_reference_buffer_t* const reference)
+gpu_error_t gpu_write_reference(FILE* fp, const gpu_reference_buffer_t* const reference, const gpu_module_t activeModules)
 {
   size_t result;
+
+  if(activeModules & GPU_REFERENCE)
+    return(E_MODULE_NOT_FOUND);
 
   result = fwrite(&reference->numEntries, sizeof(uint64_t), 1, fp);
   if (result != 1) return (E_WRITING_FILE);
@@ -355,3 +365,6 @@ gpu_error_t gpu_free_reference(gpu_reference_buffer_t **reference, gpu_device_in
   (* reference) = ref;
   return(SUCCESS);
 }
+
+#endif /* GPU_REFERENCE_C_ */
+

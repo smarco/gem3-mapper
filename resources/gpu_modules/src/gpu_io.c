@@ -1,12 +1,14 @@
-#include "../include/gpu_io.h"
+#ifndef GPU_IO_C_
+#define GPU_IO_C_
 
+#include "../include/gpu_io.h"
 
 /************************************************************
 Primitives for input/output
 ************************************************************/
 
 
-gpu_error_t gpu_load_BWT_MFASTA(const char* const fn, gpu_index_buffer_t* const fmi, char **h_BWT)
+gpu_error_t gpu_load_BWT_MFASTA(const char* const fn, gpu_index_buffer_t* const index, char **h_BWT)
 {
   FILE *fp = NULL;
   char *h_ascii_BWT = NULL;
@@ -33,38 +35,49 @@ gpu_error_t gpu_load_BWT_MFASTA(const char* const fn, gpu_index_buffer_t* const 
     }
   }
 
-  fmi->bwtSize    = position;
-  fmi->numEntries = GPU_DIV_CEIL(fmi->bwtSize, GPU_FMI_ENTRY_SIZE) + 1;
-  (* h_BWT)     = h_ascii_BWT;
+  index->fmi.bwtSize    = position;
+  index->fmi.numEntries = GPU_DIV_CEIL(index->fmi.bwtSize, GPU_FMI_ENTRY_SIZE) + 1;
+  (* h_BWT)             = h_ascii_BWT;
 
   fclose(fp);
   return (SUCCESS);
 }
 
-gpu_error_t gpu_save_index_PROFILE(const char* const fn, const gpu_index_buffer_t* const index)
+gpu_error_t gpu_save_index_PROFILE(const char* const fn, const gpu_index_buffer_t* const index, const gpu_module_t activeModules)
 {
   const uint32_t sizeFileName = 512;
   char fileName[sizeFileName];
   FILE *fp = NULL;
 
-  sprintf(fileName, "%s.%lu.%u.fmi", fn, index->bwtSize, GPU_FMI_ENTRY_SIZE);
+  if((index->activeModules & activeModules) == 0)
+    return(E_MODULE_NOT_FOUND);
+
+  if (activeModules & GPU_SA)
+    sprintf(fileName, "%s.%lu.%u.sa", fn, index->sa.numEntries, index->sa.sampligRate);
+
+  if(activeModules & GPU_FMI)
+    sprintf(fileName, "%s.%lu.%u.fmi", fn, index->fmi.bwtSize, GPU_FMI_ENTRY_SIZE);
+
   fp = fopen(fileName, "wb");
   if (fp == NULL) return (E_WRITING_FILE);
 
-  GPU_ERROR(gpu_write_index(fp, index));
+  GPU_ERROR(gpu_write_index(fp, index, GPU_FMI));
 
   fclose(fp);
   return (SUCCESS);
 }
 
-gpu_error_t gpu_load_index_PROFILE(const char* const fn, gpu_index_buffer_t* const index)
+gpu_error_t gpu_load_index_PROFILE(const char* const fn, gpu_index_buffer_t* const index, const gpu_module_t activeModules)
 {
   FILE *fp = NULL;
+
+  if((activeModules & GPU_INDEX) == 0)
+    return(E_MODULE_NOT_FOUND);
 
   fp = fopen(fn, "rb");
   if (fp == NULL) return (E_OPENING_FILE);
 
-  GPU_ERROR(gpu_read_index(fp, index));
+  GPU_ERROR(gpu_read_index(fp, index, activeModules));
 
   fclose(fp);
   return (SUCCESS);
@@ -116,7 +129,7 @@ gpu_error_t gpu_load_reference_PROFILE(const char* const fn, gpu_reference_buffe
   fp = fopen(fn, "rb");
   if (fp == NULL) return (E_OPENING_FILE);
 
-  GPU_ERROR(gpu_read_reference(fp, reference));
+  GPU_ERROR(gpu_read_reference(fp, reference, GPU_REFERENCE));
 
   fclose(fp);
   return (SUCCESS);
@@ -130,33 +143,91 @@ gpu_error_t gpu_save_reference_PROFILE(const char* const fn, const gpu_reference
   fp = fopen(fn, "wb");
   if (fp == NULL) return (E_OPENING_FILE);
 
-  GPU_ERROR(gpu_write_reference(fp, reference));
+  GPU_ERROR(gpu_write_reference(fp, reference, GPU_REFERENCE));
 
   fclose(fp);
   return (SUCCESS);
 }
 
-gpu_error_t gpu_load_index_GEM_FULL(const char *fn, gpu_index_buffer_t* const index)
+gpu_error_t gpu_load_index_GEM_FULL(const char *fn, gpu_index_buffer_t* const index, const gpu_index_coding_t activeModules)
 {
   FILE *fp = NULL;
   size_t result;
-  off64_t fileOffsetIndex = 0, fileOffsetRef = 0;
+  off64_t fileOffsetFMIndex = 0, fileOffsetSAIndex = 0, fileOffsetRef = 0;
 
   fp = fopen(fn, "rb");
   if (fp == NULL) return (E_OPENING_FILE);
 
   result = fread(&index->activeModules, sizeof(gpu_module_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
-  if((index->activeModules & GPU_INDEX) == 0) return(E_MODULE_NOT_FOUND);
 
-  result = fread(&fileOffsetIndex, sizeof(off64_t), 1, fp);
+  if((index->activeModules & activeModules) == 0)
+    return(E_MODULE_NOT_FOUND);
+
+  result = fread(&fileOffsetFMIndex, sizeof(off64_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
+  result = fread(&fileOffsetSAIndex, sizeof(off64_t), 1, fp);
+  if (result != 1) GPU_ERROR(E_READING_FILE);
   result = fread(&fileOffsetRef, sizeof(off64_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
-  result = fseeko64(fp, fileOffsetIndex, SEEK_SET);
-  if (result != 0) return (E_READING_FILE);
 
-  GPU_ERROR(gpu_read_index(fp, index));
+  if(activeModules & GPU_FMI){
+    result = fseeko64(fp, fileOffsetFMIndex, SEEK_SET);
+    if (result != 0) return (E_READING_FILE);
+    GPU_ERROR(gpu_read_index(fp, index, GPU_FMI));
+  }
+
+  if(activeModules & GPU_SA){
+    result = fseeko64(fp, fileOffsetSAIndex, SEEK_SET);
+    if (result != 0) return (E_READING_FILE);
+    GPU_ERROR(gpu_read_index(fp, index, GPU_SA));
+  }
+
+  fclose(fp);
+  return (SUCCESS);
+}
+
+gpu_error_t gpu_save_index_GEM_FULL(const char* const fn, const gpu_index_buffer_t* const index, const gpu_index_coding_t activeModules)
+{
+  FILE *fp = NULL;
+  size_t result;
+  gpu_module_t storedModules = index->activeModules & activeModules;
+  off64_t fileOffsetFMIndex = 0, fileOffsetSAIndex = 0, fileOffsetRef = 0;
+
+  if((index->activeModules & activeModules) == 0)
+    return(E_MODULE_NOT_FOUND);
+
+  fp = fopen(fn, "wb");
+  if (fp == NULL) return (E_OPENING_FILE);
+
+  result = fwrite(&storedModules,     sizeof(gpu_module_t), 1, fp);
+  if (result != 1) return (E_WRITING_FILE);
+  result = fwrite(&fileOffsetFMIndex, sizeof(off64_t), 1, fp);
+  if (result != 1) GPU_ERROR(E_WRITING_FILE);
+  result = fwrite(&fileOffsetSAIndex, sizeof(off64_t), 1, fp);
+  if (result != 1) GPU_ERROR(E_WRITING_FILE);
+  result = fwrite(&fileOffsetRef,     sizeof(off64_t), 1, fp);
+  if (result != 1) GPU_ERROR(E_WRITING_FILE);
+
+  if(storedModules & GPU_FMI){
+    fileOffsetFMIndex = ftello64(fp);
+    GPU_ERROR(gpu_write_index(fp, index, GPU_FMI));
+  }
+
+  if(storedModules & GPU_SA){
+    fileOffsetSAIndex = ftello64(fp);
+    GPU_ERROR(gpu_write_index(fp, index, GPU_SA));
+  }
+
+  rewind(fp);
+  result = fwrite(&storedModules,     sizeof(gpu_module_t), 1, fp);
+  if (result != 1) GPU_ERROR(E_WRITING_FILE);
+  result = fwrite(&fileOffsetFMIndex, sizeof(off64_t), 1, fp);
+  if (result != 1) GPU_ERROR(E_WRITING_FILE);
+  result = fwrite(&fileOffsetSAIndex, sizeof(off64_t), 1, fp);
+  if (result != 1) GPU_ERROR(E_WRITING_FILE);
+  result = fwrite(&fileOffsetRef,     sizeof(off64_t), 1, fp);
+  if (result != 1) GPU_ERROR(E_WRITING_FILE);
 
   fclose(fp);
   return (SUCCESS);
@@ -166,23 +237,27 @@ gpu_error_t gpu_load_reference_GEM_FULL(const char* const fn, gpu_reference_buff
 {
   FILE *fp = NULL;
   size_t result;
-  off64_t fileOffsetIndex = 0, fileOffsetRef = 0;
+  off64_t fileOffsetFMIndex = 0, fileOffsetSAIndex = 0, fileOffsetRef = 0;
 
   fp = fopen(fn, "rb");
   if (fp == NULL) return (E_OPENING_FILE);
 
   result = fread(&reference->activeModules, sizeof(gpu_module_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
-  if((reference->activeModules & GPU_REFERENCE) == 0) return (E_MODULE_NOT_FOUND);
 
-  result = fread(&fileOffsetIndex, sizeof(off64_t), 1, fp);
+  if((reference->activeModules & GPU_REFERENCE) == 0)
+    return (E_MODULE_NOT_FOUND);
+
+  result = fread(&fileOffsetFMIndex, sizeof(off64_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
+  result = fread(&fileOffsetSAIndex, sizeof(off64_t), 1, fp);
+  if (result != 1) GPU_ERROR(E_READING_FILE);
   result = fread(&fileOffsetRef, sizeof(off64_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
   result = fseeko64(fp, fileOffsetRef, SEEK_SET);
   if (result != 0) return (E_READING_FILE);
 
-  GPU_ERROR(gpu_read_reference(fp, reference));
+  GPU_ERROR(gpu_read_reference(fp, reference, GPU_REFERENCE));
 
   fclose(fp);
   return (SUCCESS);
@@ -192,26 +267,30 @@ gpu_error_t gpu_save_reference_GEM_FULL(const char* const fn, const gpu_referenc
 {
   FILE *fp = NULL;
   size_t result;
-  gpu_module_t activeModules = reference->activeModules & GPU_REFERENCE;
-  off64_t fileOffsetIndex = 0, fileOffsetRef = 0;
+  gpu_module_t activeModules = reference->activeModules;
+  off64_t fileOffsetFMIndex = 0, fileOffsetSAIndex = 0, fileOffsetRef = 0;
 
   fp = fopen(fn, "wb");
   if (fp == NULL) return (E_OPENING_FILE);
 
   result = fwrite(&activeModules, sizeof(gpu_module_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
-  result = fwrite(&fileOffsetIndex, sizeof(off64_t), 1, fp);
+  result = fwrite(&fileOffsetFMIndex, sizeof(off64_t), 1, fp);
+  if (result != 1) return (E_READING_FILE);
+  result = fwrite(&fileOffsetSAIndex, sizeof(off64_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
   result = fwrite(&fileOffsetRef,   sizeof(off64_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
 
   fileOffsetRef = ftello64(fp);
-  GPU_ERROR(gpu_write_reference(fp, reference));
+  GPU_ERROR(gpu_write_reference(fp, reference, GPU_REFERENCE));
 
   rewind(fp);
   result = fwrite(&activeModules,   sizeof(gpu_module_t), 1, fp);
   if (result != 1) GPU_ERROR(E_WRITING_FILE);
-  result = fwrite(&fileOffsetIndex, sizeof(off64_t), 1, fp);
+  result = fwrite(&fileOffsetFMIndex, sizeof(off64_t), 1, fp);
+  if (result != 1) GPU_ERROR(E_WRITING_FILE);
+  result = fwrite(&fileOffsetSAIndex, sizeof(off64_t), 1, fp);
   if (result != 1) GPU_ERROR(E_WRITING_FILE);
   result = fwrite(&fileOffsetRef,   sizeof(off64_t), 1, fp);
   if (result != 1) GPU_ERROR(E_WRITING_FILE);
@@ -220,86 +299,71 @@ gpu_error_t gpu_save_reference_GEM_FULL(const char* const fn, const gpu_referenc
   return (SUCCESS);
 }
 
-gpu_error_t gpu_save_index_GEM_FULL(const char* const fn, const gpu_index_buffer_t* const index)
-{
-  FILE *fp = NULL;
-  size_t result;
-  gpu_module_t activeModules = index->activeModules & GPU_INDEX;
-  off64_t fileOffsetIndex = 0, fileOffsetRef = 0;
-
-  fp = fopen(fn, "wb");
-  if (fp == NULL) return (E_OPENING_FILE);
-
-  result = fwrite(&activeModules, sizeof(gpu_module_t), 1, fp);
-  if (result != 1) return (E_WRITING_FILE);
-  result = fwrite(&fileOffsetIndex, sizeof(off64_t), 1, fp);
-  if (result != 1) GPU_ERROR(E_WRITING_FILE);
-  result = fwrite(&fileOffsetRef,   sizeof(off64_t), 1, fp);
-  if (result != 1) GPU_ERROR(E_WRITING_FILE);
-
-  fileOffsetIndex = ftello64(fp);
-  GPU_ERROR(gpu_write_index(fp, index));
-
-  rewind(fp);
-  result = fwrite(&activeModules,   sizeof(gpu_module_t), 1, fp);
-  if (result != 1) GPU_ERROR(E_WRITING_FILE);
-  result = fwrite(&fileOffsetIndex, sizeof(off64_t), 1, fp);
-  if (result != 1) GPU_ERROR(E_WRITING_FILE);
-  result = fwrite(&fileOffsetRef,   sizeof(off64_t), 1, fp);
-  if (result != 1) GPU_ERROR(E_WRITING_FILE);
-
-  fclose(fp);
-  return (SUCCESS);
-}
-
-void gpu_save_indexed_structures_GEM_(const char* const fileName, const gpu_gem_fmi_dto_t* const gemIndex,
-                                      const gpu_gem_ref_dto_t* const gemRef, const gpu_module_t activeModules)
+void gpu_save_indexed_structures_GEM_(const char* const fileName, const gpu_gem_fmi_dto_t* const gemFMindex,
+                                      const gpu_gem_ref_dto_t* const gemRef, const gpu_gem_sa_dto_t* const gemSAindex,
+                                      const gpu_module_t activeModules)
 {
   gpu_reference_buffer_t ref;
   gpu_index_buffer_t     index;
-  off64_t fileOffsetIndex = 0, fileOffsetRef = 0;
+  off64_t fileOffsetFMIndex = 0, fileOffsetSAIndex = 0, fileOffsetRef = 0;
   FILE *fp = NULL;
   size_t result;
 
   //Initialize the reference structure
   GPU_ERROR(gpu_init_reference_dto(&ref));
-  ref.activeModules = activeModules & GPU_REFERENCE;
+  ref.activeModules = activeModules;
 
   //Initialize the index structure
-  GPU_ERROR(gpu_init_index_dto(&index));
-  index.activeModules = activeModules & GPU_INDEX;
+  GPU_ERROR(gpu_init_index_dto(&index, activeModules));
+  index.activeModules = activeModules;
 
   fp = fopen(fileName, "wb");
   if (fp == NULL) GPU_ERROR(E_OPENING_FILE);
   result = fwrite(&activeModules,   sizeof(gpu_module_t), 1, fp);
   if (result != 1) GPU_ERROR(E_WRITING_FILE);
-  result = fwrite(&fileOffsetIndex, sizeof(off64_t), 1, fp);
+  result = fwrite(&fileOffsetFMIndex, sizeof(off64_t), 1, fp);
+  if (result != 1) GPU_ERROR(E_WRITING_FILE);
+  result = fwrite(&fileOffsetSAIndex, sizeof(off64_t), 1, fp);
   if (result != 1) GPU_ERROR(E_WRITING_FILE);
   result = fwrite(&fileOffsetRef,   sizeof(off64_t), 1, fp);
   if (result != 1) GPU_ERROR(E_WRITING_FILE);
 
-  fileOffsetIndex = ftello64(fp);
-  fileOffsetRef   = fileOffsetIndex;
+  fileOffsetFMIndex = ftello64(fp);
+  fileOffsetSAIndex = fileOffsetFMIndex;
+  fileOffsetRef     = fileOffsetSAIndex;
 
   if(index.activeModules & GPU_INDEX){
-    GPU_ERROR(gpu_transform_index((char*)gemIndex, &index, gemIndex->index_coding));
-    GPU_ERROR(gpu_write_index(fp, &index));
-    //GPU_ERROR(gpu_save_index_PROFILE("internalIndexGEM", fmi)); //DEBUG: backup the index
-    fileOffsetRef = ftello64(fp);
+    if(index.activeModules & GPU_FMI){
+      GPU_ERROR(gpu_transform_index((char*)gemFMindex, &index, gemFMindex->index_coding, GPU_FMI));
+      GPU_ERROR(gpu_write_index(fp, &index, GPU_FMI));
+      //GPU_ERROR(gpu_save_index_PROFILE("internalIndexGEM", fmi)); //DEBUG: backup the index
+      fileOffsetSAIndex = ftello64(fp);
+      fileOffsetRef     = fileOffsetSAIndex;
+    }
+    if(index.activeModules & GPU_SA){
+      GPU_ERROR(gpu_transform_index((char*)gemSAindex, &index, gemSAindex->index_coding, GPU_SA));
+      GPU_ERROR(gpu_write_index(fp, &index, GPU_SA));
+      fileOffsetRef = ftello64(fp);
+    }
   }
 
   if(ref.activeModules & GPU_REFERENCE){
     GPU_ERROR(gpu_transform_reference((char*)gemRef, &ref, gemRef->ref_coding));
-    GPU_ERROR(gpu_write_reference(fp, &ref));
+    GPU_ERROR(gpu_write_reference(fp, &ref, activeModules));
   }
 
   rewind(fp);
-  result = fwrite(&activeModules,   sizeof(gpu_module_t), 1, fp);
+  result = fwrite(&activeModules,    sizeof(gpu_module_t), 1, fp);
   if (result != 1) GPU_ERROR(E_WRITING_FILE);
-  result = fwrite(&fileOffsetIndex, sizeof(off64_t), 1, fp);
+  result = fwrite(&fileOffsetFMIndex, sizeof(off64_t), 1, fp);
   if (result != 1) GPU_ERROR(E_WRITING_FILE);
-  result = fwrite(&fileOffsetRef,   sizeof(off64_t), 1, fp);
+  result = fwrite(&fileOffsetSAIndex, sizeof(off64_t), 1, fp);
+  if (result != 1) GPU_ERROR(E_WRITING_FILE);
+  result = fwrite(&fileOffsetRef,     sizeof(off64_t), 1, fp);
   if (result != 1) GPU_ERROR(E_WRITING_FILE);
 
   fclose(fp);
 }
+
+#endif /* GPU_IO_C_ */
+

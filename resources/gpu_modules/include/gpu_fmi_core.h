@@ -9,7 +9,7 @@
 extern "C" {
 #include "gpu_commons.h"
 #include "gpu_index.h"
-#include "gpu_buffers.h"
+#include "gpu_buffer.h"
 }
 #include "gpu_resources.h"
 

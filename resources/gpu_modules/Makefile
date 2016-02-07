@@ -31,11 +31,11 @@ CUDA_SASS_FLAG_50=$(CUDA_SASS_FLAG_37) -gencode arch=compute_50,code=\"sm_50,com
 CUDA_SASS_FLAG_52=$(CUDA_SASS_FLAG_50) -gencode arch=compute_52,code=\"sm_52,compute_52\"
 CUDA_SASS_FLAGS=$(CUDA_SASS_FLAG_$(NVCC_MINIMAL_VERSION))
 
-CUDA_MODULES=gpu_fmi_decode gpu_fmi_search gpu_bpm_filter
+CUDA_MODULES=gpu_fmi_decode gpu_fmi_search gpu_bpm_filter gpu_sa_decode
 CUDA_SRCS=$(addprefix $(FOLDER_SOURCE)/, $(addsuffix .cu, $(CUDA_MODULES)))
 CUDA_OBJS=$(addprefix $(FOLDER_BUILD)/, $(addsuffix .o, $(CUDA_MODULES)))
 
-MODULES=gpu_sample gpu_fmi gpu_bpm gpu_devices gpu_buffers gpu_index gpu_reference gpu_errors gpu_io
+MODULES=gpu_bpm_primitives gpu_buffer gpu_commons gpu_devices gpu_errors gpu_fmi_index gpu_fmi_primitives gpu_index gpu_io gpu_reference gpu_sa_index gpu_sa_primitives gpu_sample
 SRCS=$(addprefix $(FOLDER_SOURCE)/, $(addsuffix .c, $(MODULES)))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(addsuffix .o, $(MODULES)))
 

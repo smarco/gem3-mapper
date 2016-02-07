@@ -7,24 +7,15 @@
  */
 
 #include "gpu_commons.h"
-
 /* Include the required objects */
 #include "gpu_devices.h"
 #include "gpu_reference.h"
 #include "gpu_index.h"
-
-/* Include all the supported modules */
-#include "gpu_fmi.h"
-#include "gpu_bpm.h"
+/* Include the required modules */
+#include "gpu_buffer_modules.h"
 
 #ifndef GPU_BUFFER_H_
 #define GPU_BUFFER_H_
-
-typedef union{
-  gpu_bpm_buffer_t        bpm;
-  gpu_fmi_search_buffer_t search;
-  gpu_fmi_decode_buffer_t decode;
-} gpu_data_buffer_t;
 
 typedef struct {
   gpu_module_t            typeBuffer;
@@ -38,7 +29,7 @@ typedef struct {
   size_t                  sizeBuffer;
   void                    *h_rawData;
   void                    *d_rawData;
-  gpu_data_buffer_t       data;
+  gpu_buffer_modules_t    data;
 } gpu_buffer_t;
 
 

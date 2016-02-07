@@ -6,7 +6,10 @@
  * DESCRIPTION: Host scheduler for BPM on GPU
  */
 
-#include "../include/gpu_bpm.h"
+#ifndef GPU_BPM_PRIMITIVES_C_
+#define GPU_BPM_PRIMITIVES_C_
+
+#include "../include/gpu_bpm_primitives.h"
 
 /************************************************************
 Functions to get the GPU BPM buffers
@@ -414,3 +417,5 @@ void gpu_bpm_receive_buffer_(void* const bpmBuffer)
   //Reorder the final results
   GPU_ERROR(gpu_bpm_reordering_alignments(mBuff));
 }
+
+#endif /* GPU_BPM_PRIMITIVES_C_ */

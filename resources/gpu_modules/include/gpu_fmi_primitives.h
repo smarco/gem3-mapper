@@ -6,10 +6,13 @@
  * DESCRIPTION: Common headers and data structures for BPM on GPU library
  */
 
+#include "gpu_index_modules.h"
 #include "gpu_commons.h"
+#include "gpu_fmi_structure.h"
+#include "gpu_sa_index.h"
 
-#ifndef GPU_FMI_H_
-#define GPU_FMI_H_
+#ifndef GPU_FMI_PRIMITIVES_H_
+#define GPU_FMI_PRIMITIVES_H_
 
 /********************************
 Common constants for Device & Host
@@ -51,8 +54,8 @@ typedef struct {
 
 typedef struct {
   uint32_t                    numIntervals;
-  gpu_fmi_search_sa_inter_t   *h_intervals;
-  gpu_fmi_search_sa_inter_t   *d_intervals;
+  gpu_sa_search_inter_t       *h_intervals;
+  gpu_sa_search_inter_t       *d_intervals;
 } gpu_fmi_search_sa_inter_buffer_t;
 
 
@@ -72,6 +75,12 @@ typedef struct {
   gpu_fmi_decode_end_pos_t    *d_endBWTPos;
 } gpu_fmi_decode_end_pos_buffer_t;
 
+typedef struct {
+  uint32_t                    numDecodings;
+  gpu_fmi_decode_text_pos_t   *h_textPos;
+  gpu_fmi_decode_text_pos_t   *d_textPos;
+} gpu_fmi_decode_text_pos_buffer_t;
+
 /*****************************
 Internal Objects (General)
 *****************************/
@@ -86,12 +95,14 @@ typedef struct {
 typedef struct {
   uint32_t                          numMaxInitPositions;
   uint32_t                          numMaxEndPositions;
+  uint32_t                          numMaxTextPositions;
   uint32_t                          samplingRate;
   gpu_fmi_decode_init_pos_buffer_t  initPositions;
   gpu_fmi_decode_end_pos_buffer_t   endPositions;
+  gpu_fmi_decode_text_pos_buffer_t  textPositions;
 } gpu_fmi_decode_buffer_t;
 
-#include "gpu_buffers.h"
+#include "gpu_buffer.h"
 
 /* Functions to init the buffers (E. SEARCH) */
 size_t      gpu_fmi_search_input_size();
@@ -115,7 +126,6 @@ uint32_t    gpu_fmi_search_print_buffer(const void* const fmiBuffer);
 uint32_t    gpu_fmi_search_print_seed(const gpu_fmi_search_seed_t seed, const uint32_t seedSize);
 char        gpu_fmi_search_bin_to_char(const uint32_t base);
 
-#endif /* GPU_FMI_H_ */
 
-
+#endif /* GPU_FMI_PRIMITIVES_H_ */
 

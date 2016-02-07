@@ -6,6 +6,9 @@
  * DESCRIPTION: TODO
  */
 
+#ifndef GPU_ERRORS_C_
+#define GPU_ERRORS_C_
+
 #include "../include/gpu_errors.h"
 
 void cudaError(cudaError_t err, const char *file,  int line)
@@ -42,3 +45,5 @@ void gpuError(gpu_error_t err, const char *file,  int line)
     exit(EXIT_FAILURE);
   }
 }
+
+#endif /* GPU_ERRORS_C_ */

@@ -106,9 +106,12 @@ void archive_builder_write_index(
       archive_builder->sampled_sa,check_index,verbose);
   // Create & write the GPU FM-Index
   if (write_gpu_index) {
+    //TODO: Santi change this parameters to the real one from the indexer.
+    uint64_t* sa_gem      = NULL;
+    uint32_t  sa_sampling = 8;
     gpu_structures_write(
         archive_builder->output_file_name_prefix,enc_text,
-        archive_builder->forward_text_length,bwt_builder);
+        archive_builder->forward_text_length,bwt_builder, sa_gem, sa_sampling);
   }
   // Free
   bwt_builder_delete(bwt_builder);

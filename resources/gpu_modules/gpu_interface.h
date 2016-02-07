@@ -15,8 +15,8 @@
 #define GPU_UINT32_ONE_MASK   0x00000001u
 #define	GPU_UINT32_LENGTH     32
 
-#include "gpu_bpm_interface.h"
-#include "gpu_fmi_interface.h"
+#include "gpu_filter_interface.h"
+#include "gpu_index_interface.h"
 
 /*
  * Enum types for Device & Host
@@ -31,15 +31,22 @@ typedef enum
 
 typedef enum
 {
+  /* GPU modules */
   GPU_FMI_EXACT_SEARCH	= GPU_UINT32_ONE_MASK << 0,
   GPU_FMI_DECODE_POS    = GPU_UINT32_ONE_MASK << 1,
-  GPU_BPM               = GPU_UINT32_ONE_MASK << 2,
-
+  GPU_SA_DECODE_POS     = GPU_UINT32_ONE_MASK << 2,
+  GPU_BPM               = GPU_UINT32_ONE_MASK << 3,
+  /* GPU data structures */
+  GPU_FMI               = GPU_FMI_EXACT_SEARCH | GPU_FMI_DECODE_POS | GPU_SA_DECODE_POS,
+  GPU_SA                = GPU_SA_DECODE_POS,
+  GPU_INDEX             = GPU_FMI | GPU_SA,
   GPU_REFERENCE         = GPU_BPM,
-  GPU_INDEX             = GPU_FMI_EXACT_SEARCH | GPU_FMI_DECODE_POS,
+  /* GPU stages          */
+  GPU_SEEDING           = GPU_INDEX,
+  GPU_FILTERING         = GPU_BPM,
 
   GPU_NONE_MODULES      = 0,
-  GPU_ALL_MODULES       = GPU_INDEX | GPU_REFERENCE
+  GPU_ALL_MODULES       = GPU_SEEDING | GPU_FILTERING
 } gpu_module_t;
 
 typedef enum
@@ -66,6 +73,8 @@ typedef enum
 typedef struct {
   gpu_dev_arch_t      selectedArchitectures;
   gpu_data_location_t userAllocOption;
+  gpu_module_t        activeModules;
+  gpu_module_t        remoteStructures;
 } gpu_info_dto_t;
 
 typedef struct {
@@ -87,7 +96,7 @@ uint32_t gpu_buffer_get_id_supported_device_(const void* const gpuBuffer);
 /*
  * Main functions
  */
-void gpu_save_indexed_structures_GEM_(const char* const fileName, const gpu_gem_fmi_dto_t* const gemIndex, const gpu_gem_ref_dto_t* const gemRef, const gpu_module_t activeModules);
+void gpu_save_indexed_structures_GEM_(const char* const fileName, const gpu_gem_fmi_dto_t* const gemFMindex, const gpu_gem_ref_dto_t* const gemRef, const gpu_gem_sa_dto_t* const gemSAindex, const gpu_module_t activeModules);
 void gpu_init_buffers_(gpu_buffers_dto_t* const buff, gpu_index_dto_t* const rawIndex, gpu_reference_dto_t* const rawRef, gpu_info_dto_t* const sys, const bool verbose);
 void gpu_alloc_buffer_(void* const gpuBuffer);
 void gpu_realloc_buffer_(void* const gpuBuffer, const float maxMbPerBuffer);

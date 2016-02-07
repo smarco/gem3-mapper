@@ -6,8 +6,10 @@
  * DESCRIPTION: FM-Index DNA backward-search customized for GEM Mapper
  */
 
-#include "../include/gpu_fmi_core.h"
+#ifndef GPU_FMI_SEARCH_C_
+#define GPU_FMI_SEARCH_C_
 
+#include "../include/gpu_fmi_core.h"
 
 void __global__ gpu_fmi_search_kernel(const gpu_fmi_device_entry_t* const fmi, const uint64_t bwtSize,
                                       const uint32_t numSeeds, const ulonglong2* const seeds, ulonglong2* const resIntervals)
@@ -111,9 +113,10 @@ gpu_error_t gpu_fmi_search_process_buffer(gpu_buffer_t* const mBuff)
   const uint32_t numThreads = numSeeds * GPU_FMI_SEED_THREADS_PER_ENTRY;
   gpu_kernel_thread_configuration(device, numThreads, &blocksPerGrid, &threadsPerBlock);
 
-  gpu_fmi_search_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_fmi_device_entry_t*) index->d_fmi[idSupDev], index->bwtSize,
+  gpu_fmi_search_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_fmi_device_entry_t*) index->fmi.d_fmi[idSupDev], index->fmi.bwtSize,
                                                                          seeds->numSeeds, (ulonglong2*) seeds->d_seeds,
                                                                          (ulonglong2*) saIntervals->d_intervals);
   return(SUCCESS);
 }
 
+#endif /* GPU_FMI_SEARCH_CU_ */

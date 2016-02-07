@@ -40,6 +40,7 @@ bwt_builder_t* fm_index_write(
     fm_t* const file_manager,const bool fm_index_reverse,
     dna_text_t* const bwt_text,uint64_t* const character_occurrences,
     sampled_sa_builder_t* const sampled_sa,const bool check,const bool verbose);
+
 bwt_reverse_builder_t* fm_index_reverse_write(
     fm_t* const file_manager,dna_text_t* const bwt_reverse_text,
     uint64_t* const character_occurrences,const bool check,

@@ -1,3 +1,5 @@
+#ifndef GPU_DEVICES_C_
+#define GPU_DEVICES_C_
 
 #include "../include/gpu_devices.h"
 
@@ -279,3 +281,5 @@ gpu_error_t gpu_free_devices_info(gpu_device_info_t **devices)
   GPU_ERROR(gpu_free_devices_list_host(&devices));
   return(SUCCESS);
 }
+
+#endif /* GPU_DEVICES_C_ */

@@ -19,16 +19,16 @@
 #include "gpu_index.h"
 
 /* Input & Output reference functions  */
-gpu_error_t gpu_load_BWT_MFASTA(const char* const fn, gpu_index_buffer_t* const fmi, char **h_BWT);
-gpu_error_t gpu_load_index_PROFILE(const char* const fn, gpu_index_buffer_t* const index);
-gpu_error_t gpu_save_index_PROFILE(const char* const fn, const gpu_index_buffer_t* const index);
+gpu_error_t gpu_load_BWT_MFASTA(const char* const fn, gpu_index_buffer_t* const index, char **h_BWT);
+gpu_error_t gpu_load_index_PROFILE(const char* const fn, gpu_index_buffer_t* const index, const gpu_module_t activeModules);
+gpu_error_t gpu_save_index_PROFILE(const char* const fn, const gpu_index_buffer_t* const index, const gpu_module_t activeModules);
 
 gpu_error_t gpu_load_reference_MFASTA(const char *fn, gpu_reference_buffer_t* const reference);
 gpu_error_t gpu_load_reference_PROFILE(const char* const fn, gpu_reference_buffer_t* const reference);
 gpu_error_t gpu_save_reference_PROFILE(const char* const fn, const gpu_reference_buffer_t* const reference);
 
-gpu_error_t gpu_load_index_GEM_FULL(const char *fn, gpu_index_buffer_t* const nindex);
-gpu_error_t gpu_save_index_GEM_FULL(const char* const fn, const gpu_index_buffer_t* const index);
+gpu_error_t gpu_load_index_GEM_FULL(const char *fn, gpu_index_buffer_t* const index, const gpu_index_coding_t activeModules);
+gpu_error_t gpu_save_index_GEM_FULL(const char* const fn, const gpu_index_buffer_t* const index, const gpu_index_coding_t activeModules);
 
 gpu_error_t gpu_load_reference_GEM_FULL(const char* const fn, gpu_reference_buffer_t* const reference);
 gpu_error_t gpu_save_reference_GEM_FULL(const char* const fn, const gpu_reference_buffer_t* const reference);

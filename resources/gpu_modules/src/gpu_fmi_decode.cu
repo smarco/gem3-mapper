@@ -6,6 +6,9 @@
  * DESCRIPTION: FM-Index DNA backward-search customized for GEM Mapper
  */
 
+#ifndef GPU_FMI_DECODE_CU_
+#define GPU_FMI_DECODE_CU_
+
 #include "../include/gpu_fmi_core.h"
 
 void __global__ gpu_fmi_decoding_kernel(const gpu_fmi_device_entry_t* const fmi, const uint64_t bwtSize, const uint32_t numDecodings,
@@ -116,12 +119,12 @@ gpu_error_t gpu_fmi_decode_process_buffer(gpu_buffer_t* const mBuff)
   const uint32_t numThreads = numDecodings * GPU_FMI_DECODE_THREADS_PER_ENTRY;
   gpu_kernel_thread_configuration(device, numThreads, &blocksPerGrid, &threadsPerBlock);
 
-  gpu_fmi_decoding_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_fmi_device_entry_t*) index->d_fmi[idSupDev], index->bwtSize,
+  gpu_fmi_decoding_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_fmi_device_entry_t*) index->fmi.d_fmi[idSupDev], index->fmi.bwtSize,
                                                                            initPos->numDecodings, (uint64_t*) initPos->d_initBWTPos,
                                                                            (ulonglong2*) endPos->d_endBWTPos, decBuff->samplingRate);
-
   return(SUCCESS);
 }
 
+#endif /* GPU_FMI_DECODE_CU_ */
 
 

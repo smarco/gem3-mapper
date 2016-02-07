@@ -1,14 +1,13 @@
+#ifndef GPU_BPM_CORE_H_
+#define GPU_BPM_CORE_H_
 
 extern "C" {
 #include "gpu_commons.h"
 #include "gpu_reference.h"
-#include "gpu_buffers.h"
+#include "gpu_buffer.h"
 }
 #include "gpu_resources.h"
 
-
-#ifndef GPU_BPM_CORE_H_
-#define GPU_BPM_CORE_H_
 
 GPU_INLINE __device__ void cooperative_shift(uint32_t *value, const uint32_t shiftedBits,
                                              const uint32_t localThreadIdx, const uint32_t BMPS_PER_THREAD)

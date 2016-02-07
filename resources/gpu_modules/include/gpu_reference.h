@@ -35,8 +35,8 @@ char        gpu_complement_base(const char character);
 gpu_error_t gpu_transform_reference(const char* const referenceRaw, gpu_reference_buffer_t* const ref, const gpu_ref_coding_t refCoding);
 
 /* Stream reference functions  */
-gpu_error_t gpu_read_reference(FILE* fp, gpu_reference_buffer_t* const reference);
-gpu_error_t gpu_write_reference(FILE* fp, const gpu_reference_buffer_t* const reference);
+gpu_error_t gpu_read_reference(FILE* fp, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
+gpu_error_t gpu_write_reference(FILE* fp, const gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
 
 
 /* Initialize reference functions */
@@ -52,5 +52,4 @@ gpu_error_t gpu_free_unused_reference_host(gpu_reference_buffer_t* const referen
 gpu_error_t gpu_free_reference_device(gpu_reference_buffer_t* const reference, gpu_device_info_t** const devices);
 gpu_error_t gpu_free_reference(gpu_reference_buffer_t **reference, gpu_device_info_t** const devices);
 
-#include "gpu_io.h"
 #endif /* GPU_REFERENCE_H_ */
