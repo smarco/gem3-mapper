@@ -12,6 +12,7 @@
 #include "archive/archive_builder.h"
 #include "archive/archive_builder_text.h"
 #include "archive/archive_builder_index.h"
+#include "system/profiler_timer.h"
 
 /*
  * GEM-indexer Debug

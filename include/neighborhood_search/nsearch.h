@@ -12,6 +12,7 @@
 #include "utils/essentials.h"
 #include "fm_index/fm_index.h"
 #include "data_structures/interval_set.h"
+#include "stats/stats_counter.h"
 
 /*
  * PROF

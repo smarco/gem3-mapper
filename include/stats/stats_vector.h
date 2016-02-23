@@ -10,6 +10,7 @@
 #define STATS_VECTOR_H_
 
 #include "utils/essentials.h"
+#include "stats/stats_counter.h"
 
 /*
  * Constants
