@@ -1,9 +1,10 @@
 /*
- * PROJECT: Bit-Parallel Myers on GPU
- * FILE: myers-interface.h
- * DATE: 4/7/2014
- * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
- * DESCRIPTION: Host scheduler for BPM on GPU
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
  */
 
 #ifndef GPU_FMI_PRIMITIVES_C_
@@ -61,7 +62,7 @@ uint32_t gpu_fmi_decode_buffer_get_max_positions_(const void* const fmiBuffer){
 }
 
 /************************************************************
-Functions to init the buffers (E. SEARCH)
+Functions to initialize the buffers (E. SEARCH)
 ************************************************************/
 
 size_t gpu_fmi_search_input_size()
@@ -118,7 +119,7 @@ void gpu_fmi_search_init_and_realloc_buffer_(void *fmiBuffer, const uint32_t num
   mBuff->sizeBuffer = bytesPerSearchBuffer * resizeFactor;
 
   //FREE HOST AND DEVICE BUFFER
-  GPU_ERROR(gpu_free_buffer(mBuff));
+  GPU_ERROR(gpu_buffer_free(mBuff));
 
   //Select the device of the Multi-GPU platform
   CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
@@ -132,7 +133,7 @@ void gpu_fmi_search_init_and_realloc_buffer_(void *fmiBuffer, const uint32_t num
 
 
 /************************************************************
-Functions to init the buffers (DECODE)
+Functions to initialize the buffers (DECODE)
 ************************************************************/
 
 size_t gpu_fmi_decode_input_size()
@@ -196,7 +197,7 @@ void gpu_fmi_decode_init_and_realloc_buffer_(void* const fmiBuffer, const uint32
   mBuff->sizeBuffer = bytesPerDecodeBuffer * resizeFactor;
 
   //FREE HOST AND DEVICE BUFFER
-  GPU_ERROR(gpu_free_buffer(mBuff));
+  GPU_ERROR(gpu_buffer_free(mBuff));
 
   //Select the device of the Multi-GPU platform
   CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));

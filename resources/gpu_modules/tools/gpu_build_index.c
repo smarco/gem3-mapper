@@ -1,9 +1,10 @@
 /*
- * PROJECT: Thread-cooperative FM-index on GPU
- * FILE: genIndex.h
- * DATE: 24/8/2015
- * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
- * DESCRIPTION: FM-Index DNA Indexer customized for GEM Mapper
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
  */
 
 #include <stdio.h>
@@ -11,27 +12,27 @@
 #include <string.h>
 #include <stdint.h>
 
-#define	BWT_CHAR_LENGTH				3
-#define FMI_NUM_COUNTERS			4
-#define FMI_ALTERNATE_COUNTERS		2
-#define FMI_ENTRY_SIZE				128
+#define	BWT_CHAR_LENGTH				  3
+#define FMI_NUM_COUNTERS			  4
+#define FMI_ALTERNATE_COUNTERS	2
+#define FMI_ENTRY_SIZE				  128
 
-#define	UINT32_LENGTH				32
-#define	UINT64_LENGTH				64
-#define FILE_SIZE_LINES				250
+#define	UINT32_LENGTH				    32
+#define	UINT64_LENGTH				    64
+#define FILE_SIZE_LINES				  250
 
-#define CATCH_ERROR(error) {{if (error) { fprintf(stderr, "%s\n", processError(error)); exit(EXIT_FAILURE); }}}
+#define CATCH_ERROR(error)              {{if (error) { fprintf(stderr, "%s\n", processError(error)); exit(EXIT_FAILURE); }}}
 #define	DIV_CEIL(NUMERATOR,DENOMINATOR) (((NUMERATOR)+((DENOMINATOR)-1))/(DENOMINATOR))
-#define MIN(NUM_A, NUM_B) 				((NUM_A < NUM_B) ? NUM_A : NUM_B)
+#define MIN(NUM_A, NUM_B) 				      ((NUM_A < NUM_B) ? NUM_A : NUM_B)
 
 /* Encoded DNA Nucleotides */
-#define ENC_DNA_CHAR_A    0
-#define ENC_DNA_CHAR_C    1
-#define ENC_DNA_CHAR_G    2
-#define ENC_DNA_CHAR_T    3
+#define ENC_DNA_CHAR_A          0
+#define ENC_DNA_CHAR_C          1
+#define ENC_DNA_CHAR_G          2
+#define ENC_DNA_CHAR_T          3
 
 //whatever different than the above bases
-#define ENC_DNA_CHAR_X    4
+#define ENC_DNA_CHAR_X          4
 
 // FMI Entry (64 Bytes) using:
 //    4 letters: Alternate counters   (2  uint64_t)
@@ -61,40 +62,40 @@ typedef struct {
 inline
 uint32_t charToBinASCII(unsigned char base)
 {
-	switch(base)
-	{
-    	case 'A':
-    	case 'a':
-    	    return(ENC_DNA_CHAR_A);
-    	case 'C':
-    	case 'c':
-    	    return(ENC_DNA_CHAR_C);
-    	case 'G':
-    	case 'g':
-    	    return(ENC_DNA_CHAR_G);
-    	case 'T':
-    	case 't':
-    	    return(ENC_DNA_CHAR_T);
-    	default :
-    	    return(ENC_DNA_CHAR_X);
-	}
+  switch(base)
+  {
+    case 'A':
+    case 'a':
+      return(ENC_DNA_CHAR_A);
+    case 'C':
+    case 'c':
+      return(ENC_DNA_CHAR_C);
+    case 'G':
+    case 'g':
+      return(ENC_DNA_CHAR_G);
+    case 'T':
+    case 't':
+      return(ENC_DNA_CHAR_T);
+    default :
+      return(ENC_DNA_CHAR_X);
+  }
 }
 
 inline char decodeBase(uint32_t indexBase)
 {
-	switch(indexBase)
-	{
-    	case ENC_DNA_CHAR_A:
-    	    return('A');
-    	case ENC_DNA_CHAR_C:
-    	    return('C');
-    	case ENC_DNA_CHAR_G:
-    	    return('G');
-    	case ENC_DNA_CHAR_T:
-    	    return('T');
-    	default:
-    		return('N');
-	}
+  switch(indexBase)
+  {
+    case ENC_DNA_CHAR_A:
+      return('A');
+    case ENC_DNA_CHAR_C:
+      return('C');
+    case ENC_DNA_CHAR_G:
+      return('G');
+    case ENC_DNA_CHAR_T:
+      return('T');
+    default:
+    return('N');
+  }
 }
 
 void encodeBWTtoEntryPEQ(bwt_entry_t *bwt_entry, unsigned char base, uint32_t size)
@@ -109,22 +110,22 @@ inline
 void countBasesASCII(fmi_counters_t *counterEntry, unsigned char base)
 {
 	switch(base){
-    	case 'A':
-    	case 'a':
-    	   	counterEntry->counters[0]++;
-    	   	break;
-    	case 'C':
-    	case 'c':
-    	    counterEntry->counters[1]++;
-    	    break;
-    	case 'G':
-    	case 'g':
-    	   	counterEntry->counters[2]++;
-    	   	break;
-    	case 'T':
-    	case 't':
-			counterEntry->counters[3]++;
-			break;
+    case 'A':
+    case 'a':
+      counterEntry->counters[0]++;
+      break;
+    case 'C':
+    case 'c':
+      counterEntry->counters[1]++;
+      break;
+    case 'G':
+    case 'g':
+      counterEntry->counters[2]++;
+      break;
+    case 'T':
+    case 't':
+      counterEntry->counters[3]++;
+    break;
 	}
 }
 
@@ -343,74 +344,74 @@ uint32_t loadBwtMFASTA(const char *fn, fmi_buffer_t *fmi)
 
 uint32_t saveFMI(const char *fn, fmi_buffer_t *fmi)
 {
-    char fileName[512];
-    FILE *fp = NULL;
+  char fileName[512];
+  FILE *fp = NULL;
 
-    sprintf(fileName, "%s.%llu.%u.fmi", fn, fmi->size, FMI_ENTRY_SIZE);
-    
-    fp = fopen(fileName, "wb");
-    if (fp == NULL) return (8);
+  sprintf(fileName, "%s.%llu.%u.fmi", fn, fmi->size, FMI_ENTRY_SIZE);
 
-    fwrite(&fmi->numEntries, sizeof(uint64_t), 1, fp);
-    fwrite(&fmi->size, sizeof(uint64_t), 1, fp);
-    fwrite(fmi->h_fmi, sizeof(fmi_entry_t), fmi->numEntries, fp);
+  fp = fopen(fileName, "wb");
+  if (fp == NULL) return (8);
 
-    printf("FMI SIZE: %lld, FMI ENTRIES: %lld \n", fmi->size, fmi->numEntries);
+  fwrite(&fmi->numEntries, sizeof(uint64_t), 1, fp);
+  fwrite(&fmi->size, sizeof(uint64_t), 1, fp);
+  fwrite(fmi->h_fmi, sizeof(fmi_entry_t), fmi->numEntries, fp);
 
-    fclose(fp);
-    return (0);
+  printf("FMI SIZE: %lld, FMI ENTRIES: %lld \n", fmi->size, fmi->numEntries);
+
+  fclose(fp);
+  return (0);
 }
 
 uint32_t freeFMI(fmi_buffer_t **fmi)
 {   
-    if((* fmi)->h_fmi != NULL){
-        free((* fmi)->h_fmi);
-        (* fmi)->h_fmi = NULL;
-    }
+  if((* fmi)->h_fmi != NULL){
+    free((* fmi)->h_fmi);
+    (* fmi)->h_fmi = NULL;
+  }
 
-    if((* fmi)->h_countersFMI != NULL){
-        free((* fmi)->h_countersFMI);
-        (* fmi)->h_countersFMI = NULL;
-    }   
+  if((* fmi)->h_countersFMI != NULL){
+    free((* fmi)->h_countersFMI);
+    (* fmi)->h_countersFMI = NULL;
+  }
 
-    if((* fmi)->h_bitmapBWT != NULL){
-        free((* fmi)->h_bitmapBWT);
-        (* fmi)->h_bitmapBWT = NULL;
-    }   
-	
-	if((* fmi)->h_asciiBWT != NULL){
-        free((* fmi)->h_asciiBWT);
-        (* fmi)->h_asciiBWT = NULL;
-    }   
+  if((* fmi)->h_bitmapBWT != NULL){
+    free((* fmi)->h_bitmapBWT);
+    (* fmi)->h_bitmapBWT = NULL;
+  }
 
-    if((* fmi) != NULL){
-        free(* fmi);
-        (* fmi) = NULL;
-    }
+  if((* fmi)->h_asciiBWT != NULL){
+    free((* fmi)->h_asciiBWT);
+    (* fmi)->h_asciiBWT = NULL;
+  }
 
-    return(0);
+  if((* fmi) != NULL){
+    free(* fmi);
+    (* fmi) = NULL;
+  }
+
+  return(0);
 }
 
 inline char *processError(uint32_t e){
-    switch(e) {
-        case 0:  return "No error"; break; 
-        case 30: return "Cannot open reference file"; break;
-        case 31: return "Cannot allocate reference"; break;
-        case 32: return "Reference file isn't multifasta format"; break;
-        case 37: return "Cannot open reference file on write mode"; break;
-        case 42: return "Cannot open queries file"; break;
-        case 43: return "Cannot allocate queries"; break;
-        case 45: return "Cannot allocate results"; break;
-        case 47: return "Cannot open results file for save intervals"; break;
-        case 48: return "Cannot open results file for load intervals"; break;
-        case 99: return "Not implemented"; break;
-        default: return "Unknown error";
-    }   
+  switch(e) {
+    case 0:  return "No error"; break;
+    case 30: return "Cannot open reference file"; break;
+    case 31: return "Cannot allocate reference"; break;
+    case 32: return "Reference file isn't multifasta format"; break;
+    case 37: return "Cannot open reference file on write mode"; break;
+    case 42: return "Cannot open queries file"; break;
+    case 43: return "Cannot allocate queries"; break;
+    case 45: return "Cannot allocate results"; break;
+    case 47: return "Cannot open results file for save intervals"; break;
+    case 48: return "Cannot open results file for load intervals"; break;
+    case 99: return "Not implemented"; break;
+    default: return "Unknown error";
+  }
 }
 
 uint32_t initFMI(fmi_buffer_t **fm_index)
 {
-    fmi_buffer_t *fmi  = (fmi_buffer_t *) malloc(sizeof(fmi_buffer_t));
+  fmi_buffer_t *fmi  = (fmi_buffer_t *) malloc(sizeof(fmi_buffer_t));
 	fmi->size          = 0;
 	fmi->numEntries    = 0;
 
@@ -419,48 +420,48 @@ uint32_t initFMI(fmi_buffer_t **fm_index)
 	fmi->h_bitmapBWT   = NULL;
 	fmi->h_asciiBWT    = NULL;
 
-    (* fm_index) = fmi;
-    return (0);
+  (* fm_index) = fmi;
+  return (0);
 }
 
 int32_t main(int argc, char *argv[])
 {
-    fmi_buffer_t *fmi;
-    char *refFile = argv[1];
-    int error;
+  fmi_buffer_t *fmi;
+  char *refFile = argv[1];
+  int error;
 
 	error = initFMI(&fmi);    
 	CATCH_ERROR(error);
 
 	printf("=> Loading MultiFasta BWT ... \n");
 	error = loadBwtMFASTA(refFile, fmi);
-    CATCH_ERROR(error);
+  CATCH_ERROR(error);
 
 	printf("=> BWT size: %llu, Number of entries: %llu\n", fmi->size, fmi->numEntries);
 	printf("=> Transforming RAW BWT to bitmap BWT ... \n");
 	error = transformBWTtoPEQ(fmi);
-    CATCH_ERROR(error);
+  CATCH_ERROR(error);
 
 	printf("=> Building FMI counters ... \n");
 	error = buildCounters(fmi);
-    CATCH_ERROR(error);
+  CATCH_ERROR(error);
 
 	printf("=> Packing FMI structure ... \n");
  	error = buildFMI(fmi);
-    CATCH_ERROR(error);
+  CATCH_ERROR(error);
 
  // printf("=> Checking FMI structure ... \n");
  // error = checkingFMI(fmi);
  // CATCH_ERROR(error);
 
 	printf("=> Saving FMI ... \n");
-    error = saveFMI(refFile, fmi);
-    CATCH_ERROR(error);
+  error = saveFMI(refFile, fmi);
+  CATCH_ERROR(error);
     
-   	printf("=> Done! \n");
-    error = freeFMI(&fmi);
-    CATCH_ERROR(error);
+  printf("=> Done! \n");
+  error = freeFMI(&fmi);
+  CATCH_ERROR(error);
 
-    return (0);
+  return (0);
 }
 

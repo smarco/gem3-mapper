@@ -38,27 +38,32 @@ gpu_buffer_collection_t* gpu_buffer_collection_new(
   gpu_buffers_dto->activeModules = GPU_ALL_MODULES;
   buffer_collection->gpu_buffers_dto = gpu_buffers_dto;
   gpu_index_dto_t gpu_index_dto = {
-      .filename         = gpu_index_name,
-      //Initialize FM-Index
-      .fmi.h_fmi        = NULL,
-      .fmi.bwtSize      = 0,
-      .fmi.indexCoding  = GPU_INDEX_GEM_FILE,
-      //Initialize Suffix-Array
-      .sa.h_sa          = NULL,
-      .sa.numEntries    = 0,
-      .sa.samplingRate  = 0,
-      .sa.indexCoding   = GPU_INDEX_GEM_FILE,
+    .filename         = gpu_index_name,
+    //Initialize FM-Index
+    .fmi.h_plain      = NULL,
+    .fmi.h_fmi        = NULL,
+    .fmi.bwtSize      = 0,
+    .fmi.indexCoding  = GPU_INDEX_GEM_FILE,
+    //Initialize Suffix-Array
+    .sa.h_plain       = NULL,
+    .sa.h_sa          = NULL,
+    .sa.numEntries    = 0,
+    .sa.samplingRate  = 0,
+    .sa.indexCoding   = GPU_INDEX_GEM_FILE,
   };
   gpu_reference_dto_t gpu_reference_dto = {
-      .reference = gpu_index_name,
-      .refCoding = GPU_REF_GEM_FILE,
-      .refSize   = 0,
+    .reference        = gpu_index_name,
+    .refCoding        = GPU_REF_GEM_FILE,
+    .refSize          = 0,
   };
   gpu_info_dto_t gpu_info_dto = {
-      .selectedArchitectures = GPU_ARCH_SUPPORTED,
-      .userAllocOption = GPU_LOCAL_OR_REMOTE_DATA,
+    .selectedArchitectures  = GPU_ARCH_SUPPORTED,
+    .userAllocOption        = GPU_GEM_POLICY,
+    .activatedModules       = GPU_NONE_MODULES,
+    .allocatedStructures    = GPU_NONE_MODULES,
+    .verbose                = verbose,
   };
-  gpu_init_buffers_(gpu_buffers_dto,&gpu_index_dto,&gpu_reference_dto,&gpu_info_dto,verbose);
+  gpu_init_buffers_(gpu_buffers_dto,&gpu_index_dto,&gpu_reference_dto,&gpu_info_dto);
   buffer_collection->internal_buffers = gpu_buffers_dto->buffer;
   // Return
   PROFILE_STOP(GP_GPU_BUFFER_COLLECTION_INIT,PROFILE_LEVEL);

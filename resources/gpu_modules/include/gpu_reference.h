@@ -1,3 +1,12 @@
+/*
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
+ */
+
 #ifndef GPU_REFERENCE_H_
 #define GPU_REFERENCE_H_
 
@@ -23,33 +32,47 @@ typedef struct {
   uint64_t        numEntries;
   uint64_t        *h_reference;
   uint64_t        **d_reference;
+  memory_stats_t  hostAllocStats;
   memory_alloc_t  *memorySpace;
   gpu_module_t    activeModules;
 } gpu_reference_buffer_t;
+
+
+/* Get information functions */
+gpu_error_t gpu_reference_get_size(gpu_reference_buffer_t* const reference, size_t *bytesPerReference);
 
 /* String basic functions */
 uint64_t    gpu_char_to_bin_ASCII(const unsigned char base);
 char        gpu_complement_base(const char character);
 
 /* Transform reference functions */
-gpu_error_t gpu_transform_reference(const char* const referenceRaw, gpu_reference_buffer_t* const ref, const gpu_ref_coding_t refCoding);
+gpu_error_t gpu_reference_transform(gpu_reference_buffer_t* const ref, const char* const referenceRaw, const gpu_ref_coding_t refCoding, const gpu_module_t activeModules);
 
 /* Stream reference functions  */
-gpu_error_t gpu_read_reference(FILE* fp, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
-gpu_error_t gpu_write_reference(FILE* fp, const gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
-
+gpu_error_t gpu_reference_read_specs(FILE* fp, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
+gpu_error_t gpu_reference_read(FILE* fp, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
+gpu_error_t gpu_reference_write(FILE* fp, const gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
 
 /* Initialize reference functions */
-gpu_error_t gpu_init_reference_dto(gpu_reference_buffer_t* const ref);
-gpu_error_t gpu_init_reference(gpu_reference_buffer_t **reference, const char* const referenceRaw,
-                               const uint64_t refSize, const gpu_ref_coding_t refCoding,
-                               const uint32_t numSupportedDevices, const gpu_module_t activeModules);
-gpu_error_t gpu_transfer_reference_CPU_to_GPUs(gpu_reference_buffer_t* const reference, gpu_device_info_t** const devices);
+gpu_error_t gpu_reference_init_dto(gpu_reference_buffer_t* const ref);
+gpu_error_t gpu_reference_set_specs(gpu_reference_buffer_t* const ref, const char* const referenceRaw, const gpu_ref_coding_t refCoding, const gpu_module_t activeModules);
+gpu_error_t gpu_reference_init(gpu_reference_buffer_t **reference, const gpu_reference_dto_t* const referenceRaw, const uint32_t numSupportedDevices, const gpu_module_t activeModules);
+gpu_error_t gpu_reference_load(gpu_reference_buffer_t *reference, const gpu_reference_dto_t* const referenceRaw,const gpu_module_t activeModules);
+gpu_error_t gpu_reference_allocate(gpu_reference_buffer_t *reference, const gpu_module_t activeModules);
+
+/* Data transfer functions */
+gpu_error_t gpu_reference_transfer_CPU_to_GPUs(gpu_reference_buffer_t* const reference, gpu_device_info_t** const devices,const gpu_module_t activeModules);
 
 /* Free reference functions */
-gpu_error_t gpu_free_reference_host(gpu_reference_buffer_t* const reference);
-gpu_error_t gpu_free_unused_reference_host(gpu_reference_buffer_t* const reference, gpu_device_info_t** const devices);
-gpu_error_t gpu_free_reference_device(gpu_reference_buffer_t* const reference, gpu_device_info_t** const devices);
-gpu_error_t gpu_free_reference(gpu_reference_buffer_t **reference, gpu_device_info_t** const devices);
+gpu_error_t gpu_reference_free_host(gpu_reference_buffer_t* const reference);
+gpu_error_t gpu_reference_free_unused_host(gpu_reference_buffer_t* const reference, gpu_device_info_t** const devices, const gpu_module_t activeModules);
+gpu_error_t gpu_reference_free_device(gpu_reference_buffer_t* const reference, gpu_device_info_t** const devices);
+gpu_error_t gpu_reference_free(gpu_reference_buffer_t **reference, gpu_device_info_t** const devices, const gpu_module_t activeModules);
+
+
+/* LOCAL functions */
+gpu_error_t gpu_reference_transform_ASCII(const char* const referenceASCII, gpu_reference_buffer_t* const reference);
+gpu_error_t gpu_reference_transform_GEM(const gpu_gem_ref_dto_t* const gem_reference, gpu_reference_buffer_t* const reference);
+gpu_error_t gpu_reference_transform_GEM_FULL(const gpu_gem_ref_dto_t* const gem_reference, gpu_reference_buffer_t* const reference);
 
 #endif /* GPU_REFERENCE_H_ */

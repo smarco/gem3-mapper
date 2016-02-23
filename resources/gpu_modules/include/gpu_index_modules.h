@@ -1,4 +1,12 @@
-/* include all the index modules */
+/*
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
+ */
+
 #include "gpu_fmi_index.h"
 #include "gpu_sa_index.h"
 

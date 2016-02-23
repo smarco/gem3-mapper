@@ -1,9 +1,10 @@
 /*
- * PROJECT: Bit-Parallel Myers on GPU
- * FILE: myers-interface.h
- * DATE: 4/7/2014
- * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
- * DESCRIPTION: Code example of using the BMP GPU interface 
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
  */
 
 #include "../gpu_interface.h"
@@ -16,9 +17,9 @@
 
 typedef struct {
 	/* Example test fields */
-	uint32_t 					numSeeds;
-	uint32_t 					numIntervals;
-	gpu_fmi_search_seed_t		*seeds;
+	uint32_t 					        numSeeds;
+	uint32_t 					        numIntervals;
+	gpu_fmi_search_seed_t		  *seeds;
 	gpu_fmi_search_sa_inter_t	*intervals;
 	gpu_fmi_search_sa_inter_t	*intervalsGEM;
 } test_t;
@@ -43,50 +44,50 @@ inline void tranformSeed(uint64_t * bitmap1, uint64_t * bitmap0, const char * se
 
 uint32_t loadGEMProfile(const char *fn, test_t *profRegions)
 {
-    FILE *fp = NULL;
-    const uint32_t SEED_MAX_SIZE = 20000;
+  FILE *fp = NULL;
+  const uint32_t SEED_MAX_SIZE = 20000;
 
-    uint32_t steps, idSeed;
-    char 	 seedASCII[SEED_MAX_SIZE];
-    uint64_t seedSize, lo, hi;
+  uint32_t steps, idSeed;
+  char 	 seedASCII[SEED_MAX_SIZE];
+  uint64_t seedSize, lo, hi;
 
-    fp = fopen(fn, "r");
-    if (fp == NULL) return (8);
+  fp = fopen(fn, "r");
+  if (fp == NULL) return (8);
 
-    for(idSeed = 0; idSeed < profRegions->numSeeds; ++idSeed){
-		fscanf(fp, "%llu %s %llu %llu %u", &seedSize, seedASCII, &lo, &hi, &steps);
-		tranformSeed(&profRegions->seeds[idSeed].low, &profRegions->seeds[idSeed].hi, seedASCII, seedSize);
-		profRegions->intervalsGEM[idSeed].low = lo;
-		profRegions->intervalsGEM[idSeed].hi = hi;
+  for(idSeed = 0; idSeed < profRegions->numSeeds; ++idSeed){
+    fscanf(fp, "%llu %s %llu %llu %u", &seedSize, seedASCII, &lo, &hi, &steps);
+    tranformSeed(&profRegions->seeds[idSeed].low, &profRegions->seeds[idSeed].hi, seedASCII, seedSize);
+    profRegions->intervalsGEM[idSeed].low = lo;
+    profRegions->intervalsGEM[idSeed].hi  = hi;
 	}
 
-    fclose(fp);
-    return (0);
+  fclose(fp);
+  return (0);
 }
 
 uint32_t inspectGEMProfile(const char *fn, uint32_t *totalNumSeeds)
 {
-    FILE *fp = NULL;
-    const uint32_t NUM_ELEMENTS_PER_LINE = 5;
-    const uint32_t SEED_MAX_SIZE = 20000;
-          uint32_t parsedElements = NUM_ELEMENTS_PER_LINE;
+  FILE *fp = NULL;
+  const uint32_t NUM_ELEMENTS_PER_LINE = 5;
+  const uint32_t SEED_MAX_SIZE = 20000;
+        uint32_t parsedElements = NUM_ELEMENTS_PER_LINE;
 
-    uint32_t steps, numSeeds = 0;
-    char 	 seedASCII[SEED_MAX_SIZE];
-    uint64_t seedSize, lo, hi;
+  uint32_t steps, numSeeds = 0;
+  char 	 seedASCII[SEED_MAX_SIZE];
+  uint64_t seedSize, lo, hi;
 
-    fp = fopen(fn, "r");
-    if (fp == NULL) return (8);
+  fp = fopen(fn, "r");
+  if (fp == NULL) return (8);
 
-    while(parsedElements == NUM_ELEMENTS_PER_LINE){
-		parsedElements = fscanf(fp, "%llu %s %llu %llu %u", &seedSize, seedASCII, &lo, &hi, &steps);
-		if(parsedElements == NUM_ELEMENTS_PER_LINE) numSeeds++;
-	}
+  while(parsedElements == NUM_ELEMENTS_PER_LINE){
+    parsedElements = fscanf(fp, "%llu %s %llu %llu %u", &seedSize, seedASCII, &lo, &hi, &steps);
+    if(parsedElements == NUM_ELEMENTS_PER_LINE) numSeeds++;
+  }
 
-    (* totalNumSeeds) = numSeeds;
+  (* totalNumSeeds) = numSeeds;
 
-    fclose(fp);
-    return (0);
+  fclose(fp);
+  return (0);
 }
 
 uint32_t loadTestData(char *seedsFile, test_t *testData)
@@ -202,22 +203,22 @@ uint32_t checkIntervalsGPU(test_t *profRegions)
 	      uint32_t missMatches = 0;
 	      uint32_t idSeed;
 
-    for(idSeed = 0; idSeed < profRegions->numSeeds; ++idSeed){
-    	if((profRegions->intervalsGEM[idSeed].hi != profRegions->intervals[idSeed].hi) ||
-    	   (profRegions->intervalsGEM[idSeed].low != profRegions->intervals[idSeed].low)){
-    		if(missMatches < maxSeeds){
-	    		const uint32_t seedSize = profRegions->seeds[idSeed].hi >> (UINT64_LENGTH - SEED_FIELD_SIZE);
-				printf("[%d] seed=", idSeed);
-				printSeed(profRegions->seeds[idSeed], seedSize);
-				printf("\t size=%d \t (CPU) lo=%llu \t hi=%llu \t (GPU) lo=%llu \t hi=%llu \n",
-						seedSize, profRegions->intervalsGEM[idSeed].low, profRegions->intervalsGEM[idSeed].hi,
-						profRegions->intervals[idSeed].low, profRegions->intervals[idSeed].hi);
-			}
-			missMatches++;
-    	}
+  for(idSeed = 0; idSeed < profRegions->numSeeds; ++idSeed){
+    if((profRegions->intervalsGEM[idSeed].hi != profRegions->intervals[idSeed].hi) ||
+       (profRegions->intervalsGEM[idSeed].low != profRegions->intervals[idSeed].low)){
+      if(missMatches < maxSeeds){
+        const uint32_t seedSize = profRegions->seeds[idSeed].hi >> (UINT64_LENGTH - SEED_FIELD_SIZE);
+      printf("[%d] seed=", idSeed);
+      printSeed(profRegions->seeds[idSeed], seedSize);
+      printf("\t size=%d \t (CPU) lo=%llu \t hi=%llu \t (GPU) lo=%llu \t hi=%llu \n",
+          seedSize, profRegions->intervalsGEM[idSeed].low, profRegions->intervalsGEM[idSeed].hi,
+          profRegions->intervals[idSeed].low, profRegions->intervals[idSeed].hi);
+    }
+    missMatches++;
+    }
 	}
 
-    return (0);
+  return (0);
 }
 
 double processSearchFMI(char *fmiFile, char *seedsFile, uint32_t numBuffers, uint32_t numThreads, float maxMbPerBuffer, uint32_t numTasks)
@@ -226,24 +227,27 @@ double processSearchFMI(char *fmiFile, char *seedsFile, uint32_t numBuffers, uin
 	uint32_t 			error, idBuffer, iteration, threadID, idTask;
 	double				ts, ts1;
 
-	gpu_buffers_dto_t 	buff  = {.buffer 		 		= NULL,
-								 .numBuffers 	 		= numBuffers,
-								 .maxMbPerBuffer 		= maxMbPerBuffer,
-								 .activeModules  		= GPU_FMI_EXACT_SEARCH};
-	gpu_index_dto_t 	index = {.fmi 			 		= fmiFile,
-								 .indexCoding 	 		= GPU_INDEX_PROFILE_FILE,
-								 .bwtSize 		 		= 0};
-	gpu_reference_dto_t ref   = {.reference 	 		= NULL,
-								 .refCoding 			= GPU_REF_NONE,
-								 .refSize				= 0};
-	gpu_info_dto_t 		sys	  = {.selectedArchitectures = GPU_ARCH_SUPPORTED,
-								 .userAllocOption	    = GPU_LOCAL_OR_REMOTE_DATA};
+	gpu_buffers_dto_t 	buff  = {.buffer 		 		        = NULL,
+								               .numBuffers 	 		      = numBuffers,
+								               .maxMbPerBuffer 		    = maxMbPerBuffer,
+								               .activeModules  		    = GPU_FMI_EXACT_SEARCH};
+	gpu_index_dto_t 	  index = {.fmi 			 		        = fmiFile,
+								               .indexCoding 	 		    = GPU_INDEX_PROFILE_FILE,
+								               .bwtSize 		 		      = 0};
+	gpu_reference_dto_t ref   = {.reference 	 		      = NULL,
+								               .refCoding 			      = GPU_REF_NONE,
+								               .refSize				        = 0};
+  gpu_info_dto_t      sys   = {.selectedArchitectures = GPU_ARCH_SUPPORTED,
+                               .userAllocOption       = GPU_LOCAL_OR_REMOTE_DATA,
+                               .activatedModules      = GPU_NONE_MODULES,
+                               .allocatedStructures   = GPU_NONE_MODULES
+                               .verbose               = verbose};
 
 	for(threadID = 0; threadID < numThreads; ++threadID)
 		loadTestData(seedsFile, &testData[threadID]);
 
 	// Initialize the systems and buffers
-	gpu_init_buffers_(&buff, &index, &ref, &sys, 0);
+	gpu_init_buffers_(&buff, &index, &ref, &sys);
 
 	// Master thread initialize all the buffers
 	// Better each thread initialize self buffers
@@ -252,22 +256,22 @@ double processSearchFMI(char *fmiFile, char *seedsFile, uint32_t numBuffers, uin
 
 	ts = sample_time();
 
-		#pragma omp parallel for num_threads(numThreads) schedule(static,1) private(idTask, idBuffer)
-		for(idTask = 0; idTask < numTasks; ++idTask){
-				idBuffer = idTask % numBuffers;
+  #pragma omp parallel for num_threads(numThreads) schedule(static,1) private(idTask, idBuffer)
+  for(idTask = 0; idTask < numTasks; ++idTask){
+    idBuffer = idTask % numBuffers;
 
-				//Trace the jobs
-				printf("Host thread %d \t sent job %d \t to buffer %d \t in device %d \n", omp_get_thread_num(), idTask, idBuffer, gpu_buffer_get_id_device_(buff.buffer[idBuffer]));
+    //Trace the jobs
+    printf("Host thread %d \t sent job %d \t to buffer %d \t in device %d \n", omp_get_thread_num(), idTask, idBuffer, gpu_buffer_get_id_device_(buff.buffer[idBuffer]));
 
-				//Fill the buffer (generate work)
-				gpu_fmi_search_init_buffer_(buff.buffer[idBuffer]);
-				putIntoBuffer(buff.buffer[idBuffer], &testData[idBuffer]);
-				gpu_fmi_search_send_buffer_(buff.buffer[idBuffer],testData[idBuffer].numSeeds);
-				gpu_fmi_search_receive_buffer_(buff.buffer[idBuffer]);
+    //Fill the buffer (generate work)
+    gpu_fmi_search_init_buffer_(buff.buffer[idBuffer]);
+    putIntoBuffer(buff.buffer[idBuffer], &testData[idBuffer]);
+    gpu_fmi_search_send_buffer_(buff.buffer[idBuffer],testData[idBuffer].numSeeds);
+    gpu_fmi_search_receive_buffer_(buff.buffer[idBuffer]);
 
-				//Get the results from the buffer (consume results)
-				getFromBuffer(buff.buffer[idBuffer], &testData[idBuffer]);
-		}
+    //Get the results from the buffer (consume results)
+    getFromBuffer(buff.buffer[idBuffer], &testData[idBuffer]);
+  }
 
 	ts1 = sample_time();
 	gpu_destroy_buffers_(&buff);
@@ -277,10 +281,9 @@ double processSearchFMI(char *fmiFile, char *seedsFile, uint32_t numBuffers, uin
 
 	//Save last state of each buffer
 	error = saveResults(seedsFile, &testData[0], numBuffers);
-		if(error != 0){fprintf(stderr, "Error %d, saving results \n", error); exit(EXIT_FAILURE);}
+	if(error != 0){fprintf(stderr, "Error %d, saving results \n", error); exit(EXIT_FAILURE);}
 
 	freeTestData(&testData[0], numThreads);
-
 	return(ts1-ts);
 }
 
@@ -305,12 +308,11 @@ uint32_t main(int argc, char *argv[])
 	 * 6) Number of tasks		example: 120
 	 */
 	if(atoi(argv[1]) == 0){
-		numBuffers 		= atoi(argv[4]);
-		numThreads 		= atoi(argv[4]);
+		numBuffers 		  = atoi(argv[4]);
+		numThreads 		  = atoi(argv[4]);
 		maxMbPerBuffer 	= atoi(argv[5]);
-		numTasks 		= atoi(argv[6]);
-
-	 	timeElapsed 	= processSearchFMI(fmiFile, seedsFile, numBuffers, numThreads, (float) maxMbPerBuffer, numTasks);
+		numTasks 		    = atoi(argv[6]);
+	 	timeElapsed 	  = processSearchFMI(fmiFile, seedsFile, numBuffers, numThreads, (float) maxMbPerBuffer, numTasks);
 	}
 
 	/* Myers-GPU */

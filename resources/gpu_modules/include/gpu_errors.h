@@ -1,9 +1,10 @@
 /*
- * PROJECT: Bit-Parallel Myers on GPU
- * FILE: myers-interface.h
- * DATE: 4/7/2014
- * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
- * DESCRIPTION: Common headers and data structures for BPM on GPU library
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
  */
 
 #ifndef GPU_ERRORS_H_
@@ -25,6 +26,7 @@ typedef enum
   E_WRITING_FILE,
   E_MODULE_NOT_FOUND,
   E_INSUFFICIENT_MEM_PER_BUFFER,
+  E_DATA_NOT_ALLOCATED,
   E_NOT_IMPLEMENTED
 } gpu_error_t;
 

@@ -1,9 +1,10 @@
 /*
- * PROJECT: Thread-cooperative FM-index on GPU
- * FILE: genIndex.h
- * DATE: 1/9/2015
- * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
- * DESCRIPTION: FM-Index DNA backward-search customized for GEM Mapper
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
  */
 
 #ifndef GPU_FMI_SEARCH_C_
@@ -111,7 +112,7 @@ gpu_error_t gpu_fmi_search_process_buffer(gpu_buffer_t* const mBuff)
 
   dim3 blocksPerGrid, threadsPerBlock;
   const uint32_t numThreads = numSeeds * GPU_FMI_SEED_THREADS_PER_ENTRY;
-  gpu_kernel_thread_configuration(device, numThreads, &blocksPerGrid, &threadsPerBlock);
+  gpu_device_kernel_thread_configuration(device, numThreads, &blocksPerGrid, &threadsPerBlock);
 
   gpu_fmi_search_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_fmi_device_entry_t*) index->fmi.d_fmi[idSupDev], index->fmi.bwtSize,
                                                                          seeds->numSeeds, (ulonglong2*) seeds->d_seeds,

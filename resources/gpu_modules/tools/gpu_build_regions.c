@@ -1,9 +1,10 @@
 /*
- * PROJECT: Bit-Parallel Myers on GPU
- * FILE: myers-interface.h
- * DATE: 4/7/2014
- * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
- * DESCRIPTION: Parser for "*.profile" GEM files (just for testing) 
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
  */
 
 #include <stdio.h>
@@ -145,23 +146,23 @@ int processQuery(uint32_t queryNumber, char *textLine,
 				 uint32_t *retSizeQueries, uint32_t *retNumCandidates)
 {
 	uint32_t position,
-		 numCandidates = 0,
-		 sizeQuery,
-		 result,
-		 tokenCount;
+		       numCandidates = 0,
+		       sizeQuery,
+		       result,
+		       tokenCount;
 
 	int	 sizeLastCandidates,
-		 sizeCurrentCandidate;
+		   sizeCurrentCandidate;
 
 	char *pLastCandidates;
 
 	char query[MAX_SIZE_LINE],
-	  	      lastCandidates[MAX_SIZE_LINE],
-	  	      currentCandidate[500];
+	  	 lastCandidates[MAX_SIZE_LINE],
+	  	 currentCandidate[500];
 
 	pLastCandidates = &lastCandidates[0];
 
-  	sscanf(textLine, "%s\t%[^\n]", query, pLastCandidates);
+	sscanf(textLine, "%s\t%[^\n]", query, pLastCandidates);
 	sizeQuery = strlen(query);
 	sizeLastCandidates = strlen(pLastCandidates);
 	memcpy(queries, query, sizeQuery);
@@ -195,11 +196,11 @@ int loadQueries(const char *fn, void *queries)
 	FILE *fp = NULL;
 	char textLine[MAX_SIZE_LINE];
 	uint32_t queryNumber = 0,
-		 sizeCurrentQuery, 
-		 numQueryCandidates,
-		 processedCandidates = 0, 
-		 processedBases = 0,
-		 lastEntriesPerQuery = 0;
+	         sizeCurrentQuery,
+	         numQueryCandidates,
+	         processedCandidates = 0,
+	         processedBases = 0,
+	         lastEntriesPerQuery = 0;
 
 	fp = fopen(fn, "rb");
 	if (fp==NULL) return (30);
@@ -234,9 +235,8 @@ int loadQueries(const char *fn, void *queries)
 	queryNumber++;
 
 	while((!feof(fp)) && (fgets(textLine, MAX_SIZE_LINE, fp) != NULL)){
-		processQuery(queryNumber, textLine,
-					 qry->char_queries + processedBases, qry->h_candidates + processedCandidates, qry->h_results + processedCandidates, 
-				     &sizeCurrentQuery, &numQueryCandidates);
+		processQuery(queryNumber, textLine, qry->char_queries + processedBases, qry->h_candidates + processedCandidates,
+		             qry->h_results + processedCandidates, &sizeCurrentQuery, &numQueryCandidates);
 
 		qry->pos_queries[queryNumber] = processedBases;
 		qry->h_infoQueries[queryNumber].size = sizeCurrentQuery;
@@ -255,20 +255,20 @@ uint32_t base2number(char base)
 {
 	switch(base)
 	{
-    	case 'A':
-    	case 'a':
-    	    return(1);
-    	case 'C':
-    	case 'c':
-    	    return(2);
-    	case 'G':
-    	case 'g':
-    	    return(4);
-    	case 'T':
-    	case 't':
-    	    return(8);
-    	default :
-    	    return(16);
+   	case 'A':
+   	case 'a':
+      return(1);
+   	case 'C':
+   	case 'c':
+      return(2);
+    case 'G':
+    case 'g':
+      return(4);
+    case 'T':
+    case 't':
+      return(8);
+    default :
+      return(16);
 	}
 }
 
@@ -369,101 +369,100 @@ int statistics(void *queries)
 
 int saveQueries(const char *fn, void *query)
 {
-    qry_t *qry = (qry_t *) query;
+  qry_t *qry = (qry_t *) query;
 	candInfo_GEM_t *candidates_GEM = NULL; 
 	uint32_t idCandidate, averageCandidatesPerQuery, averageSizeQuery;
 
-    char qryFileOut[512];
-    FILE *fp = NULL;
+  char qryFileOut[512];
+  FILE *fp = NULL;
 
-    averageSizeQuery = qry->totalSizeQueries / qry->numQueries;
-    averageCandidatesPerQuery = qry->numCandidates / qry->numQueries;
-    sprintf(qryFileOut, "%s.%u.%u.%u.gem.qry", fn, qry->numQueries, averageCandidatesPerQuery, averageSizeQuery);
-    
-    fp = fopen(qryFileOut, "wb");
-    	if (fp == NULL) return (8);
+  averageSizeQuery = qry->totalSizeQueries / qry->numQueries;
+  averageCandidatesPerQuery = qry->numCandidates / qry->numQueries;
+  sprintf(qryFileOut, "%s.%u.%u.%u.gem.qry", fn, qry->numQueries, averageCandidatesPerQuery, averageSizeQuery);
 
-	//Temporal Fix
+  fp = fopen(qryFileOut, "wb");
+  if (fp == NULL) return (8);
+
 	candidates_GEM = (candInfo_GEM_t *) malloc(qry->numCandidates * sizeof(candInfo_GEM_t));
-		if (candidates_GEM == NULL) return (31);
+  if (candidates_GEM == NULL) return (31);
 	for(idCandidate = 0; idCandidate < qry->numCandidates; idCandidate++){
 		candidates_GEM[idCandidate].position = (uint64_t) qry->h_candidates[idCandidate].position;
 		candidates_GEM[idCandidate].query = qry->h_candidates[idCandidate].query;
 		candidates_GEM[idCandidate].size = qry->h_infoQueries[qry->h_candidates[idCandidate].query].size * (1 + 2 * qry->distance);
 	}
 
-    fwrite(&qry->totalSizeQueries, 		sizeof(uint32_t), 1, fp);
-    fwrite(&qry->totalQueriesEntries, 	sizeof(uint32_t), 1, fp);
-    fwrite(&qry->sizeQueries, 			sizeof(uint32_t), 1, fp);
-    fwrite(&qry->numQueries, 			sizeof(uint32_t), 1, fp);
-    fwrite(&qry->numCandidates, 		sizeof(uint32_t), 1, fp);
-    fwrite(&averageCandidatesPerQuery,	sizeof(uint32_t), 1, fp);
-    fwrite(&averageSizeQuery,			sizeof(uint32_t), 1, fp);
+  fwrite(&qry->totalSizeQueries, 		sizeof(uint32_t), 1, fp);
+  fwrite(&qry->totalQueriesEntries, 	sizeof(uint32_t), 1, fp);
+  fwrite(&qry->sizeQueries, 			sizeof(uint32_t), 1, fp);
+  fwrite(&qry->numQueries, 			sizeof(uint32_t), 1, fp);
+  fwrite(&qry->numCandidates, 		sizeof(uint32_t), 1, fp);
+  fwrite(&averageCandidatesPerQuery,	sizeof(uint32_t), 1, fp);
+  fwrite(&averageSizeQuery,			sizeof(uint32_t), 1, fp);
 
-    fwrite(qry->h_queries, 		sizeof(qryEntry_t), 	qry->totalQueriesEntries, 	fp);
-    fwrite(candidates_GEM, 		sizeof(candInfo_GEM_t),	qry->numCandidates, 		fp);
-    fwrite(qry->h_infoQueries, 	sizeof(qryInfo_t), 		qry->numQueries, 			fp);
-    fwrite(qry->h_results, 		sizeof(uint32_t), 		qry->numCandidates, 		fp);
-    fwrite(qry->char_queries, 	sizeof(char),		 	qry->totalSizeQueries, 		fp);
-    fwrite(qry->pos_queries, 	sizeof(uint32_t),		qry->numQueries, 			fp);
+  fwrite(qry->h_queries, 		sizeof(qryEntry_t), 	qry->totalQueriesEntries, 	fp);
+  fwrite(candidates_GEM, 		sizeof(candInfo_GEM_t),	qry->numCandidates, 		fp);
+  fwrite(qry->h_infoQueries, 	sizeof(qryInfo_t), 		qry->numQueries, 			fp);
+  fwrite(qry->h_results, 		sizeof(uint32_t), 		qry->numCandidates, 		fp);
+  fwrite(qry->char_queries, 	sizeof(char),		 	qry->totalSizeQueries, 		fp);
+  fwrite(qry->pos_queries, 	sizeof(uint32_t),		qry->numQueries, 			fp);
 
 	free(candidates_GEM);
-    fclose(fp);
-    return (0);
+  fclose(fp);
+  return (0);
 }
 
 int freeQueries(void *queries)
 {   
-    qry_t *qry = (qry_t *) queries;  
-	
-    if(qry->char_queries != NULL){
-        free(qry->char_queries);
-        qry->char_queries = NULL;
-    }  
+  qry_t *qry = (qry_t *) queries;
 
-    if(qry->h_queries != NULL){
-        free(qry->h_queries);
-        qry->h_queries = NULL;
-    }
+  if(qry->char_queries != NULL){
+    free(qry->char_queries);
+    qry->char_queries = NULL;
+  }
 
-    if(qry->h_candidates != NULL){
-        free(qry->h_candidates);
-        qry->h_candidates = NULL;
-    }  
+  if(qry->h_queries != NULL){
+    free(qry->h_queries);
+    qry->h_queries = NULL;
+  }
 
-    if(qry->h_infoQueries != NULL){
-        free(qry->h_infoQueries);
-        qry->h_infoQueries = NULL;
-    }  
- 
-     if(qry->h_results != NULL){
-        free(qry->h_results);
-        qry->h_results = NULL;
-    }
-	
-    return(0);
+  if(qry->h_candidates != NULL){
+    free(qry->h_candidates);
+    qry->h_candidates = NULL;
+  }
+
+  if(qry->h_infoQueries != NULL){
+    free(qry->h_infoQueries);
+    qry->h_infoQueries = NULL;
+  }
+
+   if(qry->h_results != NULL){
+    free(qry->h_results);
+    qry->h_results = NULL;
+  }
+
+  return(0);
 }
 
 char *processError(int e){ 
-    switch(e) {
-        case 0:  return "No error"; break; 
-        case 30: return "Cannot open reference file"; break;
-        case 31: return "Cannot allocate reference"; break;
-        case 32: return "Reference file isn't multifasta format"; break;
-        case 37: return "Cannot open reference file on write mode"; break;
-        case 42: return "Cannot open queries file"; break;
-        case 43: return "Cannot allocate queries"; break;
-        case 45: return "Cannot allocate results"; break;
-        case 47: return "Cannot open results file for save intervals"; break;
-        case 48: return "Cannot open results file for load intervals"; break;
-        case 99: return "Not implemented"; break;
-        default: return "Unknown error";
-    }   
+  switch(e) {
+    case 0:  return "No error"; break;
+    case 30: return "Cannot open reference file"; break;
+    case 31: return "Cannot allocate reference"; break;
+    case 32: return "Reference file isn't multifasta format"; break;
+    case 37: return "Cannot open reference file on write mode"; break;
+    case 42: return "Cannot open queries file"; break;
+    case 43: return "Cannot allocate queries"; break;
+    case 45: return "Cannot allocate results"; break;
+    case 47: return "Cannot open results file for save intervals"; break;
+    case 48: return "Cannot open results file for load intervals"; break;
+    case 99: return "Not implemented"; break;
+    default: return "Unknown error";
+  }
 }
 
 int initQueries(void **queries, float distance)
 {
-    qry_t *qry = (qry_t *) malloc(sizeof(qry_t));
+  qry_t *qry = (qry_t *) malloc(sizeof(qry_t));
 	qry->totalSizeQueries = 0;
 	qry->totalQueriesEntries = 0;
 	qry->sizeQueries = 0;
@@ -480,8 +479,8 @@ int initQueries(void **queries, float distance)
 	qry->d_candidates = NULL;
 	qry->h_results = NULL;
 
-    (*queries) = qry;
-    return (0);
+  (*queries) = qry;
+  return (0);
 }
 
 int main(int argc, char *argv[])
@@ -492,29 +491,29 @@ int main(int argc, char *argv[])
 		exit(0);
 	}
 
-    void *queries;
-    float distance = atof(argv[1]);
-    char *qryFile = argv[2];
-    int error;
+  void *queries;
+  float distance = atof(argv[1]);
+  char *qryFile = argv[2];
+  int error;
 
-	error = initQueries(&queries, distance);
-	CATCH_ERROR(error);
+  error = initQueries(&queries, distance);
+  CATCH_ERROR(error);
 
-	error = loadQueries(qryFile, queries);
-    CATCH_ERROR(error);
-	
-	error = transformQueries(queries);
-    CATCH_ERROR(error);
+  error = loadQueries(qryFile, queries);
+  CATCH_ERROR(error);
 
-    error = saveQueries(qryFile, queries);
-    CATCH_ERROR(error);
-	
-	//error = statistics(queries);
-    //CATCH_ERROR(error);
-    
-    error = freeQueries(queries);
-    CATCH_ERROR(error);
+  error = transformQueries(queries);
+  CATCH_ERROR(error);
 
-    return (0);
+  error = saveQueries(qryFile, queries);
+  CATCH_ERROR(error);
+
+  //error = statistics(queries);
+  //CATCH_ERROR(error);
+
+  error = freeQueries(queries);
+  CATCH_ERROR(error);
+
+  return (0);
 }
 

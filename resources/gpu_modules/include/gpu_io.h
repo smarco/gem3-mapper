@@ -1,9 +1,10 @@
 /*
- * PROJECT: Bit-Parallel Myers on GPU
- * FILE: myers-interface.h
- * DATE: 4/7/2014
- * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
- * DESCRIPTION: Common headers and data structures for BPM on GPU library
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
  */
 
 #ifndef GPU_IO_H_
@@ -18,19 +19,31 @@
 #include "gpu_reference.h"
 #include "gpu_index.h"
 
-/* Input & Output reference functions  */
-gpu_error_t gpu_load_BWT_MFASTA(const char* const fn, gpu_index_buffer_t* const index, char **h_BWT);
-gpu_error_t gpu_load_index_PROFILE(const char* const fn, gpu_index_buffer_t* const index, const gpu_module_t activeModules);
-gpu_error_t gpu_save_index_PROFILE(const char* const fn, const gpu_index_buffer_t* const index, const gpu_module_t activeModules);
 
-gpu_error_t gpu_load_reference_MFASTA(const char *fn, gpu_reference_buffer_t* const reference);
-gpu_error_t gpu_load_reference_PROFILE(const char* const fn, gpu_reference_buffer_t* const reference);
-gpu_error_t gpu_save_reference_PROFILE(const char* const fn, const gpu_reference_buffer_t* const reference);
+/* Input & Output Multi-FASTA functions (Indexes) */
+gpu_error_t gpu_io_load_specs_BWT_MFASTA(const char* const fn, gpu_index_buffer_t* const index, const gpu_module_t activeModules);
+gpu_error_t gpu_io_load_BWT_MFASTA(const char* const fn, gpu_index_buffer_t* const index, char **h_BWT);
+/* Input & Output Multi-FASTA functions (Reference) */
+gpu_error_t gpu_io_load_reference_specs_MFASTA(const char *fn, gpu_reference_buffer_t* const reference);
+gpu_error_t gpu_io_load_reference_MFASTA(const char *fn, gpu_reference_buffer_t* const reference);
 
-gpu_error_t gpu_load_index_GEM_FULL(const char *fn, gpu_index_buffer_t* const index, const gpu_index_coding_t activeModules);
-gpu_error_t gpu_save_index_GEM_FULL(const char* const fn, const gpu_index_buffer_t* const index, const gpu_index_coding_t activeModules);
+/* Input & Output BENCHMARK PROFILE functions (Indexes) */
+gpu_error_t gpu_io_save_index_PROFILE(const char* const fn, const gpu_index_buffer_t* const index, const gpu_module_t activeModules);
+gpu_error_t gpu_io_load_index_specs_PROFILE(const char* const fn, gpu_index_buffer_t* const index, const gpu_module_t activeModules);
+gpu_error_t gpu_io_load_index_PROFILE(const char* const fn, gpu_index_buffer_t* const index, const gpu_module_t activeModules);
+/* Input & Output BENCHMARK PROFILE functions (Reference) */
+gpu_error_t gpu_io_load_reference_specs_PROFILE(const char* const fn, gpu_reference_buffer_t* const reference);
+gpu_error_t gpu_io_load_reference_PROFILE(const char* const fn, gpu_reference_buffer_t* const reference);
+gpu_error_t gpu_io_save_reference_PROFILE(const char* const fn, const gpu_reference_buffer_t* const reference);
 
-gpu_error_t gpu_load_reference_GEM_FULL(const char* const fn, gpu_reference_buffer_t* const reference);
-gpu_error_t gpu_save_reference_GEM_FULL(const char* const fn, const gpu_reference_buffer_t* const reference);
+/* Input & Output GEM-CUDA functions (Indexes) */
+gpu_error_t gpu_io_load_index_specs_GEM_FULL(const char *fn, gpu_index_buffer_t* const index, const gpu_module_t activeModules);
+gpu_error_t gpu_io_load_index_GEM_FULL(const char *fn, gpu_index_buffer_t* const index, const gpu_index_coding_t activeModules);
+gpu_error_t gpu_io_save_index_GEM_FULL(const char* const fn, const gpu_index_buffer_t* const index, const gpu_index_coding_t activeModules);
+/* Input & Output GEM-CUDA functions (Reference) */
+gpu_error_t gpu_io_load_reference_specs_GEM_FULL(const char* const fn, gpu_reference_buffer_t* const reference);
+gpu_error_t gpu_io_load_reference_GEM_FULL(const char* const fn, gpu_reference_buffer_t* const reference);
+gpu_error_t gpu_io_save_reference_GEM_FULL(const char* const fn, const gpu_reference_buffer_t* const reference);
+
 
 #endif /* GPU_IO_H_ */

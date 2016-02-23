@@ -1,9 +1,10 @@
 /*
- * PROJECT: Bit-Parallel Myers on GPU
- * FILE: myers-interface.h
- * DATE: 4/7/2014
- * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
- * DESCRIPTION: Host scheduler for BPM on GPU
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
  */
 
 #ifndef GPU_BPM_PRIMITIVES_C_
@@ -176,7 +177,7 @@ void gpu_bpm_init_and_realloc_buffer_(void *bpmBuffer, const uint32_t totalPEQEn
     mBuff->sizeBuffer = bytesPerBPMBuffer * resizeFactor;
 
     //FREE HOST AND DEVICE BUFFER
-    GPU_ERROR(gpu_free_buffer(mBuff));
+    GPU_ERROR(gpu_buffer_free(mBuff));
 
     //Select the device of the Multi-GPU platform
     CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));

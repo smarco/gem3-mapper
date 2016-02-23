@@ -1,11 +1,11 @@
 /*
- * PROJECT: Bit-Parallel Myers on GPU
- * FILE: myers-interface.h
- * DATE: 4/7/2014
- * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
- * DESCRIPTION: Common headers and data structures for BPM on GPU library
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
  */
-
 
 #ifndef GPU_COMMONS_H_
 #define GPU_COMMONS_H_
@@ -92,5 +92,6 @@ Common constants for Device & Host
 
 uint32_t gpu_bit_reverse(uint32_t a);
 uint32_t gpu_gen_mask(const int32_t shift);
+uint32_t gpu_count_active_bits(uint32_t a);
 
 #endif /* GPU_COMMONS_H_ */

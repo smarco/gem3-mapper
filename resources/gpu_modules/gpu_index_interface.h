@@ -1,9 +1,11 @@
 /*
- * PROJECT: FM-index on GPU (backward-search and decode primitives)
- * FILE: fmi-interface.h
- * DATE: 1/10/2015
- * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
- * DESCRIPTION: Interface for FMI on GPU
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *                2013-2016 by Santiago Marco-Sola <santiagomsola@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
  */
 
 #ifndef GPU_FMI_INTERFACE_H_
@@ -39,17 +41,18 @@ typedef enum
  * Common types for Device & Host
  */
 /* SA data structures */
-typedef uint64_t  gpu_sa_decode_text_pos_t;
-typedef uint64_t  gpu_sa_entry_t;
+typedef uint64_t    gpu_sa_decode_text_pos_t;
+typedef uint64_t    gpu_sa_entry_t;
 
 typedef struct {
-  uint64_t*         sa;
-  uint64_t          sa_sampling;
-  uint64_t          sa_length;
-  uint64_t          index_coding;
+  uint64_t*          sa;
+  uint64_t           sa_sampling;
+  uint64_t           sa_length;
+  uint64_t           index_coding;
 } gpu_gem_sa_dto_t;
 
 typedef struct {
+  char                *h_plain;
   gpu_sa_entry_t      *h_sa;
   uint64_t            numEntries;
   uint32_t            samplingRate;
@@ -90,6 +93,7 @@ typedef struct {
 } gpu_gem_fmi_dto_t;
 
 typedef struct {
+  char                *h_plain;
   gpu_fmi_entry_t     *h_fmi;
   uint64_t            bwtSize;
   gpu_index_coding_t  indexCoding;

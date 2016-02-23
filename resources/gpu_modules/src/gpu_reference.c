@@ -1,8 +1,27 @@
+/*
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
+ */
+
 #ifndef GPU_REFERENCE_C_
 #define GPU_REFERENCE_C_
 
 #include "../include/gpu_reference.h"
 #include "../include/gpu_io.h"
+
+/************************************************************
+Get information functions
+************************************************************/
+
+gpu_error_t gpu_reference_get_size(gpu_reference_buffer_t* const reference, size_t* bytesPerReference)
+{
+  (* bytesPerReference) = reference->numEntries * GPU_REFERENCE_BYTES_PER_ENTRY;
+  return (SUCCESS);
+}
 
 
 /************************************************************
@@ -45,14 +64,13 @@ char gpu_complement_base(const char character)
 Transform reference functions
 ************************************************************/
 
-gpu_error_t gpu_transform_reference_ASCII(const char* const referenceASCII, gpu_reference_buffer_t* const reference)
+gpu_error_t gpu_reference_transform_ASCII(const char* const referenceASCII, gpu_reference_buffer_t* const reference)
 {
   uint64_t indexBase, bitmap;
   uint64_t idEntry, i, referencePosition;
   unsigned char referenceChar;
 
   reference->numEntries = GPU_DIV_CEIL(reference->size, GPU_REFERENCE_CHARS_PER_ENTRY) + GPU_REFERENCE_END_PADDING;
-  CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint64_t), cudaHostAllocMapped));
 
   for(idEntry = 0; idEntry < reference->numEntries; ++idEntry){
     bitmap = 0;
@@ -68,7 +86,7 @@ gpu_error_t gpu_transform_reference_ASCII(const char* const referenceASCII, gpu_
   return(SUCCESS);
 }
 
-gpu_error_t gpu_transform_reference_GEM(const gpu_gem_ref_dto_t* const gem_reference, gpu_reference_buffer_t* const reference)
+gpu_error_t gpu_reference_transform_GEM(const gpu_gem_ref_dto_t* const gem_reference, gpu_reference_buffer_t* const reference)
 {
   uint64_t bitmap, base;
   uint64_t idEntry, i, referencePosition;
@@ -80,8 +98,6 @@ gpu_error_t gpu_transform_reference_GEM(const gpu_gem_ref_dto_t* const gem_refer
 
   reference->size = total_ref_size;
   reference->numEntries = GPU_DIV_CEIL(total_ref_size, GPU_REFERENCE_CHARS_PER_ENTRY) + GPU_REFERENCE_END_PADDING;
-
-  CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint64_t), cudaHostAllocMapped));
 
   for(idEntry = 0; idEntry < reference->numEntries; ++idEntry){
     bitmap = 0;
@@ -102,7 +118,7 @@ gpu_error_t gpu_transform_reference_GEM(const gpu_gem_ref_dto_t* const gem_refer
 }
 
 
-gpu_error_t gpu_transform_reference_GEM_FULL(const gpu_gem_ref_dto_t* const gem_reference, gpu_reference_buffer_t* const reference)
+gpu_error_t gpu_reference_transform_GEM_FULL(const gpu_gem_ref_dto_t* const gem_reference, gpu_reference_buffer_t* const reference)
 {
   uint64_t base, bitmap;
   uint64_t idEntry, i, referencePosition;
@@ -115,9 +131,6 @@ gpu_error_t gpu_transform_reference_GEM_FULL(const gpu_gem_ref_dto_t* const gem_
 
   reference->size = total_ref_size;
   reference->numEntries = GPU_DIV_CEIL(total_ref_size, GPU_REFERENCE_CHARS_PER_ENTRY) + GPU_REFERENCE_END_PADDING;
-
-  // Allocate CUDA-HostMem
-  CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint64_t), cudaHostAllocMapped));
 
   // Copy reference
   for(idEntry = 0; idEntry < reference->numEntries; ++idEntry){
@@ -147,7 +160,7 @@ gpu_error_t gpu_transform_reference_GEM_FULL(const gpu_gem_ref_dto_t* const gem_
 Input & Output reference functions
 ************************************************************/
 
-gpu_error_t gpu_read_reference(FILE* fp, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules)
+gpu_error_t gpu_reference_read_specs(FILE* fp, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules)
 {
   size_t result;
 
@@ -159,15 +172,27 @@ gpu_error_t gpu_read_reference(FILE* fp, gpu_reference_buffer_t* const reference
   result = fread(&reference->size, sizeof(uint64_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
 
-  CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint64_t), cudaHostAllocMapped));
+  return (SUCCESS);
+}
 
+gpu_error_t gpu_reference_read(FILE* fp, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules)
+{
+  size_t result;
+
+  if(activeModules & GPU_REFERENCE)
+    return(E_MODULE_NOT_FOUND);
+
+  result = fread(&reference->numEntries, sizeof(uint64_t), 1, fp);
+  if (result != 1) return (E_READING_FILE);
+  result = fread(&reference->size, sizeof(uint64_t), 1, fp);
+  if (result != 1) return (E_READING_FILE);
   result = fread(reference->h_reference, sizeof(uint64_t), reference->numEntries, fp);
   if (result != reference->numEntries) return (E_READING_FILE);
 
   return (SUCCESS);
 }
 
-gpu_error_t gpu_write_reference(FILE* fp, const gpu_reference_buffer_t* const reference, const gpu_module_t activeModules)
+gpu_error_t gpu_reference_write(FILE* fp, const gpu_reference_buffer_t* const reference, const gpu_module_t activeModules)
 {
   size_t result;
 
@@ -190,41 +215,44 @@ gpu_error_t gpu_write_reference(FILE* fp, const gpu_reference_buffer_t* const re
 Initialize reference functions
 ************************************************************/
 
-gpu_error_t gpu_init_reference_dto(gpu_reference_buffer_t* const ref)
+gpu_error_t gpu_reference_init_dto(gpu_reference_buffer_t* const ref)
 {
   //Initialize the reference structure
-  ref->d_reference   = NULL;
-  ref->h_reference   = NULL;
-  ref->memorySpace   = NULL;
-  ref->size          = 0;
-  ref->numEntries    = 0;
-  ref->activeModules = GPU_NONE_MODULES;
+  ref->d_reference    = NULL;
+  ref->h_reference    = NULL;
+  ref->hostAllocStats = GPU_PAGE_UNLOCKED;
+  ref->memorySpace    = NULL;
+  ref->size           = 0;
+  ref->numEntries     = 0;
+  ref->activeModules  = GPU_NONE_MODULES;
+
   return (SUCCESS);
 }
 
-gpu_error_t gpu_transform_reference(const char* const referenceRaw, gpu_reference_buffer_t* const ref, const gpu_ref_coding_t refCoding)
+gpu_error_t gpu_reference_set_specs(gpu_reference_buffer_t* const ref, const char* const referenceRaw,
+                                    const gpu_ref_coding_t refCoding, const gpu_module_t activeModules)
 {
-  if((ref->activeModules & GPU_REFERENCE) == 0)
+  if((activeModules & GPU_REFERENCE) == 0)
     return(E_MODULE_NOT_FOUND);
 
   switch(refCoding){
     case GPU_REF_ASCII:
-      GPU_ERROR(gpu_transform_reference_ASCII(referenceRaw, ref));
-      break;
-    case GPU_REF_GEM_ONLY_FORWARD:
-      GPU_ERROR(gpu_transform_reference_GEM((gpu_gem_ref_dto_t*)referenceRaw, ref));
+      /* Not require special I/O initialization */
       break;
     case GPU_REF_GEM_FULL:
-      GPU_ERROR(gpu_transform_reference_GEM_FULL((gpu_gem_ref_dto_t*)referenceRaw, ref));
+      /* Not require special I/O initialization */
+      break;
+    case GPU_REF_GEM_ONLY_FORWARD:
+      /* Not require special I/O initialization */
       break;
     case GPU_REF_GEM_FILE:
-      GPU_ERROR(gpu_load_reference_GEM_FULL(referenceRaw, ref));
+      GPU_ERROR(gpu_io_load_reference_specs_GEM_FULL(referenceRaw, ref));
       break;
     case GPU_REF_MFASTA_FILE:
-      GPU_ERROR(gpu_load_reference_MFASTA(referenceRaw, ref));
+      GPU_ERROR(gpu_io_load_reference_specs_MFASTA(referenceRaw, ref));
       break;
     case GPU_REF_PROFILE_FILE:
-      GPU_ERROR(gpu_load_reference_PROFILE(referenceRaw, ref));
+      GPU_ERROR(gpu_io_load_reference_specs_PROFILE(referenceRaw, ref));
       break;
     default:
       GPU_ERROR(E_REFERENCE_CODING);
@@ -234,19 +262,50 @@ gpu_error_t gpu_transform_reference(const char* const referenceRaw, gpu_referenc
   return(SUCCESS);
 }
 
-gpu_error_t gpu_init_reference(gpu_reference_buffer_t **reference, const char* const referenceRaw,
-                               const uint64_t refSize, const gpu_ref_coding_t refCoding,
+gpu_error_t gpu_reference_transform(gpu_reference_buffer_t* const ref, const char* const referenceRaw,
+                                    const gpu_ref_coding_t refCoding, const gpu_module_t activeModules)
+{
+  if((activeModules & GPU_REFERENCE) == 0)
+    return(E_MODULE_NOT_FOUND);
+
+  switch(refCoding){
+    case GPU_REF_ASCII:
+      GPU_ERROR(gpu_reference_transform_ASCII(referenceRaw, ref));
+      break;
+    case GPU_REF_GEM_ONLY_FORWARD:
+      GPU_ERROR(gpu_reference_transform_GEM((gpu_gem_ref_dto_t*)referenceRaw, ref));
+      break;
+    case GPU_REF_GEM_FULL:
+      GPU_ERROR(gpu_reference_transform_GEM_FULL((gpu_gem_ref_dto_t*)referenceRaw, ref));
+      break;
+    case GPU_REF_GEM_FILE:
+      GPU_ERROR(gpu_io_load_reference_GEM_FULL(referenceRaw, ref));
+      break;
+    case GPU_REF_MFASTA_FILE:
+      GPU_ERROR(gpu_io_load_reference_MFASTA(referenceRaw, ref));
+      break;
+    case GPU_REF_PROFILE_FILE:
+      GPU_ERROR(gpu_io_load_reference_PROFILE(referenceRaw, ref));
+      break;
+    default:
+      GPU_ERROR(E_REFERENCE_CODING);
+      break;
+  }
+
+  return(SUCCESS);
+}
+
+gpu_error_t gpu_reference_init(gpu_reference_buffer_t **reference, const gpu_reference_dto_t* const referenceRaw,
                                const uint32_t numSupportedDevices, const gpu_module_t activeModules)
 {
   gpu_reference_buffer_t* const ref = (gpu_reference_buffer_t *) malloc(sizeof(gpu_reference_buffer_t));
   uint32_t idSupDevice;
 
-  ref->d_reference   = NULL;
-  ref->h_reference   = NULL;
-  ref->memorySpace   = NULL;
-  ref->size          = refSize;
-  ref->numEntries    = GPU_DIV_CEIL(ref->size, GPU_REFERENCE_CHARS_PER_ENTRY) + GPU_REFERENCE_END_PADDING;
-  ref->activeModules = activeModules;
+  GPU_ERROR(gpu_reference_init_dto(ref));
+
+  ref->activeModules  = activeModules;
+  ref->size           = referenceRaw->refSize;
+  ref->numEntries     = GPU_DIV_CEIL(ref->size, GPU_REFERENCE_CHARS_PER_ENTRY) + GPU_REFERENCE_END_PADDING;
 
   ref->d_reference = (uint64_t **) malloc(numSupportedDevices * sizeof(uint64_t *));
   if (ref->d_reference == NULL) GPU_ERROR(E_ALLOCATE_MEM);
@@ -258,21 +317,53 @@ gpu_error_t gpu_init_reference(gpu_reference_buffer_t **reference, const char* c
     ref->memorySpace[idSupDevice] = GPU_NONE_MAPPED;
   }
 
-  GPU_ERROR(gpu_transform_reference(referenceRaw, ref, refCoding));
+  GPU_ERROR(gpu_reference_set_specs(ref, referenceRaw->reference, referenceRaw->refCoding, activeModules));
 
   (* reference) = ref;
   return (SUCCESS);
 }
 
-gpu_error_t gpu_transfer_reference_CPU_to_GPUs(gpu_reference_buffer_t* const reference, gpu_device_info_t** const devices)
+gpu_error_t gpu_reference_allocate(gpu_reference_buffer_t *reference, const gpu_module_t activeModules)
+{
+  if((activeModules & GPU_REFERENCE) == 0)
+    return(E_MODULE_NOT_FOUND);
+
+  reference->numEntries = GPU_DIV_CEIL(reference->size, GPU_REFERENCE_CHARS_PER_ENTRY) + GPU_REFERENCE_END_PADDING;
+  if(reference->hostAllocStats & GPU_PAGE_LOCKED){
+    CUDA_ERROR(cudaHostAlloc((void**) &reference->h_reference, reference->numEntries * sizeof(uint64_t), cudaHostAllocMapped));
+  }else{
+    reference->h_reference = malloc(reference->numEntries * sizeof(uint64_t));
+    if (reference->h_reference == NULL) return (E_DATA_NOT_ALLOCATED);
+  }
+
+  return(SUCCESS);
+}
+
+gpu_error_t gpu_reference_load(gpu_reference_buffer_t *reference, const gpu_reference_dto_t* const referenceRaw,
+                               const gpu_module_t activeModules)
+{
+  if((activeModules & GPU_REFERENCE) == 0)
+    return(E_MODULE_NOT_FOUND);
+
+  GPU_ERROR(gpu_reference_allocate(reference, activeModules));
+  GPU_ERROR(gpu_reference_transform(reference, referenceRaw->reference, referenceRaw->refCoding, activeModules));
+
+  return(SUCCESS);
+}
+
+gpu_error_t gpu_reference_transfer_CPU_to_GPUs(gpu_reference_buffer_t* const reference, gpu_device_info_t** const devices,
+                                               const gpu_module_t activeModules)
 {
   uint32_t deviceFreeMemory, idSupportedDevice;
   uint32_t numSupportedDevices = devices[0]->numSupportedDevices;
 
+  if((activeModules & GPU_REFERENCE) == 0)
+    return(E_MODULE_NOT_FOUND);
+
   for(idSupportedDevice = 0; idSupportedDevice < numSupportedDevices; ++idSupportedDevice){
     if(reference->memorySpace[idSupportedDevice] == GPU_DEVICE_MAPPED){
       const size_t cpySize = reference->numEntries * sizeof(uint64_t);
-      deviceFreeMemory = gpu_get_device_free_memory(devices[idSupportedDevice]->idDevice);
+      deviceFreeMemory = gpu_device_get_free_memory(devices[idSupportedDevice]->idDevice);
       if ((GPU_CONVERT__B_TO_MB(cpySize)) > deviceFreeMemory) return(E_INSUFFICIENT_MEM_GPU);
       CUDA_ERROR(cudaSetDevice(devices[idSupportedDevice]->idDevice));
       //Synchronous allocate & transfer Binary Reference to GPU
@@ -291,19 +382,20 @@ gpu_error_t gpu_transfer_reference_CPU_to_GPUs(gpu_reference_buffer_t* const ref
 Free reference functions
 ************************************************************/
 
-gpu_error_t gpu_free_reference_host(gpu_reference_buffer_t* const reference)
+gpu_error_t gpu_reference_free_host(gpu_reference_buffer_t* const reference)
 {
     if(reference->h_reference != NULL){
-      CUDA_ERROR(cudaFreeHost(reference->h_reference));
+      if(reference->hostAllocStats == GPU_PAGE_LOCKED) CUDA_ERROR(cudaFreeHost(reference->h_reference));
+      else free(reference->h_reference);
       reference->h_reference = NULL;
     }
 
     return(SUCCESS);
 }
 
-gpu_error_t gpu_free_unused_reference_host(gpu_reference_buffer_t* const reference, gpu_device_info_t** const devices)
+gpu_error_t gpu_reference_free_unused_host(gpu_reference_buffer_t* const reference, gpu_device_info_t** const devices,
+                                           const gpu_module_t activeModules)
 {
-  const gpu_module_t activeModules = reference->activeModules;
   uint32_t idSupportedDevice, numSupportedDevices;
   bool referenceInHostSideUsed = false;
 
@@ -315,14 +407,14 @@ gpu_error_t gpu_free_unused_reference_host(gpu_reference_buffer_t* const referen
     }
 
     if(!referenceInHostSideUsed){
-      GPU_ERROR(gpu_free_reference_host(reference));
+      GPU_ERROR(gpu_reference_free_host(reference));
     }
   }
 
   return(SUCCESS);
 }
 
-gpu_error_t gpu_free_reference_device(gpu_reference_buffer_t* const reference, gpu_device_info_t** const devices)
+gpu_error_t gpu_reference_free_device(gpu_reference_buffer_t* const reference, gpu_device_info_t** const devices)
 {
   const uint32_t numSupportedDevices = devices[0]->numSupportedDevices;
   uint32_t idSupportedDevice;
@@ -346,14 +438,13 @@ gpu_error_t gpu_free_reference_device(gpu_reference_buffer_t* const reference, g
   return(SUCCESS);
 }
 
-gpu_error_t gpu_free_reference(gpu_reference_buffer_t **reference, gpu_device_info_t** const devices)
+gpu_error_t gpu_reference_free(gpu_reference_buffer_t **reference, gpu_device_info_t** const devices, const gpu_module_t activeModules)
 {
   gpu_reference_buffer_t* ref = (* reference);
-  const gpu_module_t activeModules = ref->activeModules;
 
   if(activeModules & GPU_REFERENCE){
-    GPU_ERROR(gpu_free_reference_host(ref));
-    GPU_ERROR(gpu_free_reference_device(ref, devices));
+    GPU_ERROR(gpu_reference_free_host(ref));
+    GPU_ERROR(gpu_reference_free_device(ref, devices));
   }
 
   if(ref != NULL){

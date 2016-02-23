@@ -1,3 +1,12 @@
+/*
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
+ */
+
 #ifndef GPU_DEVICES_C_
 #define GPU_DEVICES_C_
 
@@ -7,7 +16,7 @@
 Primitives to get devices properties
 ************************************************************/
 
-uint32_t gpu_get_threads_per_block(gpu_dev_arch_t architecture)
+uint32_t gpu_device_get_threads_per_block(gpu_dev_arch_t architecture)
 {
   if(architecture & GPU_ARCH_FERMI)   return(GPU_THREADS_PER_BLOCK_FERMI);
   if(architecture & GPU_ARCH_KEPLER)  return(GPU_THREADS_PER_BLOCK_KEPLER);
@@ -15,24 +24,24 @@ uint32_t gpu_get_threads_per_block(gpu_dev_arch_t architecture)
   return(GPU_THREADS_PER_BLOCK_NEWGEN);
 }
 
-gpu_dev_arch_t gpu_get_device_architecture(uint32_t idDevice)
+gpu_dev_arch_t gpu_device_get_architecture(uint32_t idDevice)
 {
   struct cudaDeviceProp devProp;
   CUDA_ERROR(cudaGetDeviceProperties(&devProp, idDevice));
-
-  if (devProp.major <= 1) return(GPU_ARCH_TESLA);                             /* CC 1.X       */
-  if (devProp.major == 2 && devProp.minor == 0) return(GPU_ARCH_FERMI_1G);    /* CC 2.0       */
-  if (devProp.major == 2 && devProp.minor >  0) return(GPU_ARCH_FERMI_2G);    /* CC 2.1       */
-  if (devProp.major == 3 && devProp.minor <  5) return(GPU_ARCH_KEPLER_1G);   /* CC 3.0, 3.2  */
-  if (devProp.major == 3 && devProp.minor >= 5) return(GPU_ARCH_KEPLER_2G);   /* CC 3.5       */
-  if (devProp.major == 5 && devProp.minor == 0) return(GPU_ARCH_MAXWELL_1G);  /* CC 5.0       */
-  if (devProp.major == 5 && devProp.minor >= 5) return(GPU_ARCH_MAXWELL_2G);  /* CC 5.2       */
-  if (devProp.major == 6 && devProp.minor == 0) return(GPU_ARCH_PASCAL_1G);   /* CC 6.0       */
-  if (devProp.major == 6 && devProp.minor >= 5) return(GPU_ARCH_PASCAL_2G);   /* CC 6.2       */
-  return(GPU_ARCH_NEWGEN);                                                    /* CC X.X       */
+                                                                              /* {Y:Mayor X:Minor} */
+  if (devProp.major <= 1) return(GPU_ARCH_TESLA);                             /* CC 1.X            */
+  if (devProp.major == 2 && devProp.minor == 0) return(GPU_ARCH_FERMI_1G);    /* CC 2.0            */
+  if (devProp.major == 2 && devProp.minor >  0) return(GPU_ARCH_FERMI_2G);    /* CC 2.1            */
+  if (devProp.major == 3 && devProp.minor <  5) return(GPU_ARCH_KEPLER_1G);   /* CC 3.0, 3.2       */
+  if (devProp.major == 3 && devProp.minor >= 5) return(GPU_ARCH_KEPLER_2G);   /* CC 3.5            */
+  if (devProp.major == 5 && devProp.minor == 0) return(GPU_ARCH_MAXWELL_1G);  /* CC 5.0            */
+  if (devProp.major == 5 && devProp.minor >= 5) return(GPU_ARCH_MAXWELL_2G);  /* CC 5.2            */
+  if (devProp.major == 6 && devProp.minor == 0) return(GPU_ARCH_PASCAL_1G);   /* CC 6.0            */
+  if (devProp.major == 6 && devProp.minor >= 5) return(GPU_ARCH_PASCAL_2G);   /* CC 6.2            */
+  return(GPU_ARCH_NEWGEN);                                                    /* CC Y.X            */
 }
 
-uint32_t gpu_get_SM_cuda_cores(gpu_dev_arch_t architecture)
+uint32_t gpu_device_get_SM_cuda_cores(gpu_dev_arch_t architecture)
 {
   switch (architecture) {
     case GPU_ARCH_TESLA:      return(8);
@@ -48,7 +57,7 @@ uint32_t gpu_get_SM_cuda_cores(gpu_dev_arch_t architecture)
   }
 }
 
-uint32_t gpu_get_device_cuda_cores(uint32_t idDevice)
+uint32_t gpu_device_get_cuda_cores(uint32_t idDevice)
 {
   uint32_t coresPerSM;
   gpu_dev_arch_t architecture;
@@ -56,13 +65,13 @@ uint32_t gpu_get_device_cuda_cores(uint32_t idDevice)
   struct cudaDeviceProp devProp;
   CUDA_ERROR(cudaGetDeviceProperties(&devProp, idDevice));
 
-  architecture = gpu_get_device_architecture(idDevice);
-  coresPerSM = gpu_get_SM_cuda_cores(architecture);
+  architecture = gpu_device_get_architecture(idDevice);
+  coresPerSM = gpu_device_get_SM_cuda_cores(architecture);
 
   return(devProp.multiProcessorCount * coresPerSM);
 }
 
-size_t gpu_get_device_free_memory(uint32_t idDevice)
+size_t gpu_device_get_free_memory(uint32_t idDevice)
 {
   size_t free, total;
   CUDA_ERROR(cudaSetDevice(idDevice));
@@ -70,7 +79,7 @@ size_t gpu_get_device_free_memory(uint32_t idDevice)
   return (free * 0.95);
 }
 
-uint32_t gpu_get_num_devices()
+uint32_t gpu_device_get_num_all()
 {
   int32_t numDevices;
   CUDA_ERROR(cudaGetDeviceCount(&numDevices));
@@ -85,18 +94,19 @@ uint32_t gpu_get_num_supported_devices_(const gpu_dev_arch_t selectedArchitectur
   CUDA_ERROR(cudaGetDeviceCount(&numDevices));
 
   for(idDevice = 0; idDevice < numDevices; ++idDevice){
-    const gpu_dev_arch_t deviceArch = gpu_get_device_architecture(idDevice);
+    const gpu_dev_arch_t deviceArch = gpu_device_get_architecture(idDevice);
     if(deviceArch & selectedArchitectures) numSupportedDevices++;
   }
 
   return(numSupportedDevices);
 }
 
+
 /************************************************************
 Primitives to set devices
 ************************************************************/
 
-gpu_error_t gpu_characterize_devices(gpu_device_info_t **dev, uint32_t numSupportedDevices)
+gpu_error_t gpu_device_characterize_all(gpu_device_info_t **dev, uint32_t numSupportedDevices)
 {
   uint32_t idSupportedDevice, allSystemPerformance = 0, allSystemBandwidth = 0;
 
@@ -115,7 +125,7 @@ gpu_error_t gpu_characterize_devices(gpu_device_info_t **dev, uint32_t numSuppor
   return(SUCCESS);
 }
 
-gpu_error_t gpu_reset_all_devices(gpu_device_info_t **devices)
+gpu_error_t gpu_device_reset_all(gpu_device_info_t **devices)
 {
   const uint32_t numSupportedDevices = devices[0]->numSupportedDevices;
   uint32_t idSupportedDevice;
@@ -128,7 +138,7 @@ gpu_error_t gpu_reset_all_devices(gpu_device_info_t **devices)
   return(SUCCESS);
 }
 
-gpu_error_t gpu_synchronize_all_devices(gpu_device_info_t **devices)
+gpu_error_t gpu_device_synchronize_all(gpu_device_info_t **devices)
 {
   const uint32_t  numSupportedDevices = devices[0]->numSupportedDevices;
   uint32_t        idSupportedDevice;
@@ -141,11 +151,12 @@ gpu_error_t gpu_synchronize_all_devices(gpu_device_info_t **devices)
   return(SUCCESS);
 }
 
-void gpu_kernel_thread_configuration(const gpu_device_info_t *device, const uint32_t numThreads, dim3 *blocksPerGrid, dim3 *threadsPerBlock)
+void gpu_device_kernel_thread_configuration(const gpu_device_info_t *device, const uint32_t numThreads,
+                                            dim3 *blocksPerGrid, dim3 *threadsPerBlock)
 {
   if(device->architecture & (GPU_ARCH_FERMI)){
     //We use 2-Dimensional Grid (because Fermi is limited to 65535 Blocks per dim)
-    const uint32_t threadsPerRow = gpu_get_threads_per_block(device->architecture);
+    const uint32_t threadsPerRow = gpu_device_get_threads_per_block(device->architecture);
     const uint32_t maxBlocksPerRow = 65535;
     const uint32_t numBlocks = GPU_DIV_CEIL(numThreads, threadsPerRow);
     const uint32_t rowsPerGrid = GPU_DIV_CEIL(numBlocks, maxBlocksPerRow);
@@ -155,17 +166,18 @@ void gpu_kernel_thread_configuration(const gpu_device_info_t *device, const uint
     blocksPerGrid->y   = rowsPerGrid;
     threadsPerBlock->x = threadsPerRow;
   }else{
-    const uint32_t threadsPerRow = gpu_get_threads_per_block(device->architecture);
+    const uint32_t threadsPerRow = gpu_device_get_threads_per_block(device->architecture);
     threadsPerBlock->x = threadsPerRow;
     blocksPerGrid->x   = GPU_DIV_CEIL(numThreads, threadsPerRow);
   }
 }
 
+
 /************************************************************
 Primitives to manage device driver options
 ************************************************************/
 
-gpu_error_t gpu_set_devices_local_memory(gpu_device_info_t **devices, enum cudaFuncCache cacheConfig)
+gpu_error_t gpu_device_set_local_memory_all(gpu_device_info_t **devices, enum cudaFuncCache cacheConfig)
 {
   uint32_t idSupportedDevice, numSupportedDevices = devices[0]->numSupportedDevices;
 
@@ -177,7 +189,7 @@ gpu_error_t gpu_set_devices_local_memory(gpu_device_info_t **devices, enum cudaF
   return (SUCCESS);
 }
 
-gpu_error_t gpu_fast_driver_awake()
+gpu_error_t gpu_device_fast_driver_awake()
 {
   //Dummy call to the NVIDIA API to awake earlier the driver.
   void* prt = NULL;
@@ -186,11 +198,24 @@ gpu_error_t gpu_fast_driver_awake()
   return(SUCCESS);
 }
 
+
 /************************************************************
 Primitives to schedule and manage the devices
 ************************************************************/
 
-gpu_error_t gpu_init_device(gpu_device_info_t **device, uint32_t idDevice, uint32_t idSupportedDevice,
+gpu_error_t gpu_device_setup_system(gpu_device_info_t **devices)
+{
+  /* List here all directives to configure all devices*/
+  // Fast awake of the driver
+  GPU_ERROR(gpu_device_fast_driver_awake());
+  // Set preferred all L1 GPU caches
+  enum cudaFuncCache cacheConfig = cudaFuncCachePreferL1;
+  GPU_ERROR(gpu_device_set_local_memory_all(devices, cudaFuncCachePreferL1));
+
+  return (SUCCESS);
+}
+
+gpu_error_t gpu_device_init(gpu_device_info_t **device, uint32_t idDevice, uint32_t idSupportedDevice,
                             const gpu_dev_arch_t selectedArchitectures)
 {
   gpu_device_info_t *dev = NULL;
@@ -201,12 +226,12 @@ gpu_error_t gpu_init_device(gpu_device_info_t **device, uint32_t idDevice, uint3
   dev = (gpu_device_info_t *) malloc(sizeof(gpu_device_info_t));
   if(dev == NULL) return(E_ALLOCATE_MEM);
 
-  dev->numDevices           = gpu_get_num_devices();
+  dev->numDevices           = gpu_device_get_num_all();
   dev->numSupportedDevices  = gpu_get_num_supported_devices_(selectedArchitectures);
   dev->idSupportedDevice    = idSupportedDevice;
   dev->idDevice             = idDevice;
-  dev->architecture         = gpu_get_device_architecture(idDevice);
-  dev->cudaCores            = gpu_get_device_cuda_cores(idDevice);
+  dev->architecture         = gpu_device_get_architecture(idDevice);
+  dev->cudaCores            = gpu_device_get_cuda_cores(idDevice);
   dev->coreClockRate        = GPU_CONVERT_KHZ_TO_GHZ((float)devProp.clockRate);
   dev->memoryBusWidth       = GPU_CONVERT_BITS_TO_BYTES((float)devProp.memoryBusWidth);
   dev->memoryClockRate      = GPU_CONVERT_KHZ_TO_GHZ((float)devProp.memoryClockRate);
@@ -218,28 +243,30 @@ gpu_error_t gpu_init_device(gpu_device_info_t **device, uint32_t idDevice, uint3
   return(SUCCESS);
 }
 
-
-gpu_error_t gpu_screen_status_device(const uint32_t idDevice, const bool deviceArchSupported,
-                                     const bool dataFitsMemoryDevice, const bool localReference, const bool localIndex,
+gpu_error_t gpu_device_screen_status(const uint32_t idDevice, const bool deviceArchSupported,
                                      const size_t recomendedMemorySize, const size_t requiredMemorySize)
 {
   struct cudaDeviceProp devProp;
-  const size_t memoryFree = gpu_get_device_free_memory(idDevice);
+  const size_t memoryFree = gpu_device_get_free_memory(idDevice);
+  const bool dataFitsMemoryDevice = (requiredMemorySize < memoryFree);
+
   CUDA_ERROR(cudaGetDeviceProperties(&devProp, idDevice));
   fprintf(stderr, "GPU Device %d: %s", idDevice, devProp.name);
 
   if(!deviceArchSupported){
+    fprintf(stderr, "\t \t Discarded Device [NOT RUNNING] \n");
     fprintf(stderr, "\t \t UNSUPPORTED Architecture [Compute Capability < 2.0: UNSUITABLE] \n");
     return(SUCCESS);
   }
   if(!dataFitsMemoryDevice){
+    fprintf(stderr, "\t \t Discarded Device [NOT RUNNING] \n");
     fprintf(stderr, "\t \t INSUFFICIENT DEVICE MEMORY (Mem Required: %lu MBytes - Mem Available: %lu MBytes) \n",
             GPU_CONVERT__B_TO_MB(requiredMemorySize), GPU_CONVERT__B_TO_MB(memoryFree));
     return(SUCCESS);
   }
   if((deviceArchSupported && dataFitsMemoryDevice)){
     fprintf(stderr, "\t \t Selected Device [RUNNING] \n");
-    if (!localReference || !localIndex){
+    if (memoryFree < recomendedMemorySize){
       fprintf(stderr, "\t \t WARNING PERF. SLOWDOWNS (Mem Recommended: %lu MBytes - Mem Available: %lu MBytes) \n",
               GPU_CONVERT__B_TO_MB(recomendedMemorySize), GPU_CONVERT__B_TO_MB(memoryFree));
     }
@@ -253,7 +280,7 @@ gpu_error_t gpu_screen_status_device(const uint32_t idDevice, const bool deviceA
 Functions to free all the buffer resources (HOST & DEVICE)
 ************************************************************/
 
-gpu_error_t gpu_free_devices_list_host(gpu_device_info_t ***deviceList)
+gpu_error_t gpu_device_free_list(gpu_device_info_t ***deviceList)
 {
   gpu_device_info_t **device = (* deviceList);
 
@@ -266,7 +293,7 @@ gpu_error_t gpu_free_devices_list_host(gpu_device_info_t ***deviceList)
   return(SUCCESS);
 }
 
-gpu_error_t gpu_free_devices_info(gpu_device_info_t **devices)
+gpu_error_t gpu_device_free_info_all(gpu_device_info_t **devices)
 {
   uint32_t idSupportedDevice, numSupportedDevices;
 
@@ -278,7 +305,7 @@ gpu_error_t gpu_free_devices_info(gpu_device_info_t **devices)
     }
   }
 
-  GPU_ERROR(gpu_free_devices_list_host(&devices));
+  GPU_ERROR(gpu_device_free_list(&devices));
   return(SUCCESS);
 }
 

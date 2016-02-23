@@ -1,9 +1,10 @@
 /*
- * PROJECT: Bit-Parallel Myers on GPU
- * FILE: myers-interface.h
- * DATE: 4/7/2014
- * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
- * DESCRIPTION: Code example of using the BMP GPU interface 
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
  */
 
 #include "../gpu_interface.h"
@@ -190,23 +191,26 @@ uint32_t checkDecodingsGPU(test_t *profRegions)
 
 double processDecodeFMI(char *fmiFile, char *decodeFile, uint32_t numBuffers, uint32_t numThreads, float maxMbPerBuffer, uint32_t numTasks)
 {
-	test_t				testData[numThreads];
-	const uint32_t 		SAMPLING_RATE = 4;
-	uint32_t 			error, idBuffer, iteration, threadID, idTask;
-	double				ts, ts1;
+	test_t				  testData[numThreads];
+	const uint32_t 	SAMPLING_RATE = 4;
+	uint32_t 			  error, idBuffer, iteration, threadID, idTask;
+	double				  ts, ts1;
 
-	gpu_buffers_dto_t 	buff  = {.buffer 		 		= NULL,
-								 .numBuffers 	 		= numBuffers,
-								 .maxMbPerBuffer 		= maxMbPerBuffer,
-								 .activeModules  		= GPU_FMI_DECODE_POS};
-	gpu_index_dto_t 	index = {.fmi 			 		= fmiFile,
-								 .indexCoding 	 		= GPU_INDEX_PROFILE_FILE,
-								 .bwtSize 		 		= 0};
-	gpu_reference_dto_t ref   = {.reference 	 		= NULL,
-								 .refCoding 			= GPU_REF_NONE,
-								 .refSize				= 0};
-	gpu_info_dto_t 		sys	  = {.selectedArchitectures = GPU_ARCH_SUPPORTED,
-								 .userAllocOption		= GPU_LOCAL_OR_REMOTE_DATA};
+	gpu_buffers_dto_t 	buff  = {.buffer 		 		        = NULL,
+								               .numBuffers 	 		      = numBuffers,
+								               .maxMbPerBuffer 	      = maxMbPerBuffer,
+								               .activeModules         = GPU_FMI_DECODE_POS};
+	gpu_index_dto_t 	  index = {.fmi 			 		        = fmiFile,
+	                             .indexCoding 	 	      = GPU_INDEX_PROFILE_FILE,
+	                             .bwtSize 		 		      = 0};
+	gpu_reference_dto_t ref   = {.reference 	 		      = NULL,
+								               .refCoding 			      = GPU_REF_NONE,
+								               .refSize				        = 0};
+  gpu_info_dto_t      sys   = {.selectedArchitectures = GPU_ARCH_SUPPORTED,
+                               .userAllocOption       = GPU_LOCAL_OR_REMOTE_DATA,
+                               .activatedModules      = GPU_NONE_MODULES,
+                               .allocatedStructures   = GPU_NONE_MODULES
+                               .verbose               = verbose};
 
 	for(threadID = 0; threadID < numThreads; ++threadID){
 		testData[threadID].samplingRate = SAMPLING_RATE;
@@ -214,7 +218,7 @@ double processDecodeFMI(char *fmiFile, char *decodeFile, uint32_t numBuffers, ui
 	}
 
 	// Initialize the systems and buffers
-	gpu_init_buffers_(&buff, &index, &ref, &sys, 0);
+	gpu_init_buffers_(&buff, &index, &ref, &sys);
 
 	// Master thread initialize all the buffers
 	// Better each thread initialize self buffers

@@ -1,9 +1,11 @@
 /*
- * PROJECT: Bit-Parallel Myers on GPU
- * FILE: myers-interface.h
- * DATE: 4/7/2014
- * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
- * DESCRIPTION: Interface for BPM on GPU
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *                2013-2016 by Santiago Marco-Sola <santiagomsola@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
  */
 
 #include <stdint.h>
@@ -26,7 +28,8 @@ typedef enum
   GPU_LOCAL_DATA,    /* Default */
   GPU_REMOTE_DATA,
   GPU_LOCAL_OR_REMOTE_DATA,
-  GPU_NONE_DATA
+  GPU_GEM_POLICY,
+  GPU_NONE_DATA             = 0
 } gpu_data_location_t;
 
 typedef enum
@@ -73,8 +76,9 @@ typedef enum
 typedef struct {
   gpu_dev_arch_t      selectedArchitectures;
   gpu_data_location_t userAllocOption;
-  gpu_module_t        activeModules;
-  gpu_module_t        remoteStructures;
+  gpu_module_t        activatedModules;
+  gpu_module_t        allocatedStructures;
+  bool                verbose;
 } gpu_info_dto_t;
 
 typedef struct {
@@ -96,8 +100,8 @@ uint32_t gpu_buffer_get_id_supported_device_(const void* const gpuBuffer);
 /*
  * Main functions
  */
-void gpu_save_indexed_structures_GEM_(const char* const fileName, const gpu_gem_fmi_dto_t* const gemFMindex, const gpu_gem_ref_dto_t* const gemRef, const gpu_gem_sa_dto_t* const gemSAindex, const gpu_module_t activeModules);
-void gpu_init_buffers_(gpu_buffers_dto_t* const buff, gpu_index_dto_t* const rawIndex, gpu_reference_dto_t* const rawRef, gpu_info_dto_t* const sys, const bool verbose);
+void gpu_io_save_indexed_structures_GEM_(const char* const fileName, const gpu_gem_fmi_dto_t* const gemFMindex, const gpu_gem_ref_dto_t* const gemRef, const gpu_gem_sa_dto_t* const gemSAindex, const gpu_module_t activeModules);
+void gpu_init_buffers_(gpu_buffers_dto_t* const buff, gpu_index_dto_t* const rawIndex, gpu_reference_dto_t* const rawRef, gpu_info_dto_t* const sys);
 void gpu_alloc_buffer_(void* const gpuBuffer);
 void gpu_realloc_buffer_(void* const gpuBuffer, const float maxMbPerBuffer);
 void gpu_destroy_buffers_(gpu_buffers_dto_t* buff);

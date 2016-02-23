@@ -1,24 +1,64 @@
+/*
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
+ */
+
 #ifndef GPU_INDEX_C_
 #define GPU_INDEX_C_
 
 #include "../include/gpu_index.h"
 #include "../include/gpu_io.h"
 
+
+/************************************************************
+Get information functions
+************************************************************/
+
+gpu_error_t gpu_index_get_size(const gpu_index_buffer_t* const index, size_t *bytesPerIndex, const gpu_module_t activeModules)
+{
+  size_t bytesPerFMI = 0, bytesPerSA = 0;
+  (* bytesPerIndex) = 0;
+
+  if(activeModules & GPU_FMI){
+    GPU_ERROR(gpu_fmi_index_get_size(&index->fmi, &bytesPerFMI));
+    (* bytesPerIndex) += bytesPerFMI;
+  }
+
+  if(activeModules & GPU_SA){
+    GPU_ERROR(gpu_sa_index_get_size(&index->sa, &bytesPerSA));
+    (* bytesPerIndex) += bytesPerSA;
+  }
+
+  return (SUCCESS);
+}
+
+
 /************************************************************
 INPUT / OUPUT Functions
 ************************************************************/
 
-gpu_error_t gpu_read_index(FILE* fp, gpu_index_buffer_t* const index, const gpu_module_t activeModules)
+gpu_error_t gpu_index_read_specs(FILE* fp, gpu_index_buffer_t* const index, const gpu_module_t activeModules)
 {
-  if(activeModules & GPU_FMI) GPU_ERROR(gpu_read_fmi_index(fp, &index->fmi));
-  if(activeModules & GPU_SA)  GPU_ERROR(gpu_read_sa_index(fp, &index->sa));
+  if(activeModules & GPU_FMI) GPU_ERROR(gpu_fmi_index_read_specs(fp, &index->fmi));
+  if(activeModules & GPU_SA)  GPU_ERROR(gpu_sa_index_read_specs(fp, &index->sa));
   return (SUCCESS);
 }
 
-gpu_error_t gpu_write_index(FILE* fp, const gpu_index_buffer_t* const index, const gpu_module_t activeModules)
+gpu_error_t gpu_index_read(FILE* fp, gpu_index_buffer_t* const index, const gpu_module_t activeModules)
 {
-  if(activeModules & GPU_FMI) GPU_ERROR(gpu_write_fmi_index(fp, &index->fmi));
-  if(activeModules & GPU_SA)  GPU_ERROR(gpu_write_sa_index(fp, &index->sa));
+  if(activeModules & GPU_FMI) GPU_ERROR(gpu_fmi_index_read(fp, &index->fmi));
+  if(activeModules & GPU_SA)  GPU_ERROR(gpu_sa_index_read(fp, &index->sa));
+  return (SUCCESS);
+}
+
+gpu_error_t gpu_index_write(FILE* fp, const gpu_index_buffer_t* const index, const gpu_module_t activeModules)
+{
+  if(activeModules & GPU_FMI) GPU_ERROR(gpu_fmi_index_write(fp, &index->fmi));
+  if(activeModules & GPU_SA)  GPU_ERROR(gpu_sa_index_write(fp, &index->sa));
   return(SUCCESS);
 }
 
@@ -27,10 +67,10 @@ gpu_error_t gpu_write_index(FILE* fp, const gpu_index_buffer_t* const index, con
 Functions to transference the index (HOST <-> DEVICES)
 ************************************************************/
 
-gpu_error_t gpu_transfer_index_CPU_to_GPUs(gpu_index_buffer_t* const index, gpu_device_info_t** const devices, const gpu_module_t activeModules)
+gpu_error_t gpu_index_transfer_CPU_to_GPUs(gpu_index_buffer_t* const index, gpu_device_info_t** const devices, const gpu_module_t activeModules)
 {
-  if(activeModules & GPU_FMI) GPU_ERROR(gpu_transfer_fmi_index_CPU_to_GPUs(&index->fmi, devices));
-  if(activeModules & GPU_SA)  GPU_ERROR(gpu_transfer_sa_index_CPU_to_GPUs(&index->sa, devices));
+  if(activeModules & GPU_FMI) GPU_ERROR(gpu_fmi_index_transfer_CPU_to_GPUs(&index->fmi, devices));
+  if(activeModules & GPU_SA)  GPU_ERROR(gpu_sa_index_transfer_CPU_to_GPUs(&index->sa, devices));
   return (SUCCESS);
 }
 
@@ -39,47 +79,90 @@ gpu_error_t gpu_transfer_index_CPU_to_GPUs(gpu_index_buffer_t* const index, gpu_
 Functions to transform the index
 ************************************************************/
 
-gpu_error_t gpu_transform_index_ASCII(const char* const textRaw, gpu_index_buffer_t* const index, const gpu_module_t activeModules)
+gpu_error_t gpu_index_transform_ASCII(const gpu_index_dto_t* const textRaw, gpu_index_buffer_t* const index, const gpu_module_t activeModules)
 {
-  if(activeModules & GPU_FMI) GPU_ERROR(gpu_transform_fmi_index_ASCII(textRaw, &index->fmi));
-  if(activeModules & GPU_SA)  GPU_ERROR(gpu_transform_sa_index_ASCII(textRaw, &index->sa));
+  if(activeModules & GPU_FMI) GPU_ERROR(gpu_fmi_index_transform_ASCII(textRaw->fmi.h_plain, &index->fmi));
+  if(activeModules & GPU_SA)  GPU_ERROR(gpu_sa_index_transform_ASCII(textRaw->sa.h_plain, &index->sa));
   return (SUCCESS);
 }
 
-gpu_error_t gpu_transform_index_GEM_FULL(const char* const indexRaw, gpu_index_buffer_t* const index, const gpu_module_t activeModules)
+gpu_error_t gpu_index_transform_GEM_FULL(const gpu_index_dto_t* const indexRaw, gpu_index_buffer_t* const index, const gpu_module_t activeModules)
 {
-  if(activeModules & GPU_FMI) GPU_ERROR(gpu_transform_fmi_index_GEM_FULL((gpu_gem_fmi_dto_t*)indexRaw, &index->fmi));
-  if(activeModules & GPU_SA)  GPU_ERROR(gpu_transform_sa_index_GEM_FULL((gpu_gem_sa_dto_t*)indexRaw, &index->sa));
+  if(activeModules & GPU_FMI) GPU_ERROR(gpu_fmi_index_transform_GEM_FULL((gpu_gem_fmi_dto_t*)indexRaw, &index->fmi));
+  if(activeModules & GPU_SA)  GPU_ERROR(gpu_sa_index_transform_GEM_FULL((gpu_gem_sa_dto_t*)indexRaw, &index->sa));
   return (SUCCESS);
 }
 
-
-gpu_error_t gpu_transform_index_MFASTA_FULL(const char* const indexRaw, gpu_index_buffer_t* const index, const gpu_module_t activeModules)
+gpu_error_t gpu_index_load_specs_MFASTA_FULL(const gpu_index_dto_t* const indexRaw, gpu_index_buffer_t* const index, const gpu_module_t activeModules)
 {
-  if(activeModules & GPU_FMI) GPU_ERROR(gpu_transform_fmi_index_MFASTA_FULL(indexRaw, &index->fmi));
-  if(activeModules & GPU_SA)  GPU_ERROR(gpu_transform_sa_index_MFASTA_FULL(indexRaw, &index->sa));
+  const char* const filename = indexRaw->filename;
+
+  if(activeModules & GPU_FMI) GPU_ERROR(gpu_fmi_index_load_specs_MFASTA_FULL(filename, &index->fmi));
+  if(activeModules & GPU_SA)  GPU_ERROR(gpu_sa_index_load_specs_MFASTA_FULL(filename, &index->sa));
+
   return (SUCCESS);
 }
 
-gpu_error_t gpu_transform_index(const char* const indexRaw, gpu_index_buffer_t* const index,
+gpu_error_t gpu_index_transform_MFASTA_FULL(const gpu_index_dto_t* const indexRaw, gpu_index_buffer_t* const index, const gpu_module_t activeModules)
+{
+  const char* const filename = indexRaw->filename;
+
+  if(activeModules & GPU_FMI) GPU_ERROR(gpu_fmi_index_transform_MFASTA_FULL(filename, &index->fmi));
+  if(activeModules & GPU_SA)  GPU_ERROR(gpu_sa_index_transform_MFASTA_FULL(filename, &index->sa));
+
+  return (SUCCESS);
+}
+
+gpu_error_t gpu_index_set_specs(gpu_index_buffer_t* const index, const gpu_index_dto_t* const indexRaw,
                                 const gpu_index_coding_t indexCoding, const gpu_module_t activeModules)
 {
+  const char* const filename = indexRaw->filename;
+
   switch(indexCoding){
     case GPU_INDEX_ASCII:
-      GPU_ERROR(gpu_transform_index_ASCII(indexRaw, index, activeModules));
+      /* Not need special I/O initialization */
       break;
     case GPU_INDEX_GEM_FULL:
-      GPU_ERROR(gpu_transform_index_GEM_FULL(indexRaw, index, activeModules));
+      /* Not need special I/O initialization */
       break;
     case GPU_INDEX_GEM_FILE:
-      GPU_ERROR(gpu_load_index_GEM_FULL(indexRaw, index, activeModules));
+      GPU_ERROR(gpu_io_load_index_specs_GEM_FULL(filename, index, activeModules));
+      break;
+    case GPU_INDEX_MFASTA_FILE:
+      GPU_ERROR(gpu_index_load_specs_MFASTA_FULL(indexRaw, index, activeModules));
+      break;
+    case GPU_INDEX_PROFILE_FILE:
+      GPU_ERROR(gpu_io_load_index_specs_PROFILE(filename, index, activeModules));
+      break;
+    default:
+      GPU_ERROR(E_INDEX_CODING);
+    break;
+  }
+
+  return (SUCCESS);
+}
+
+gpu_error_t gpu_index_transform(gpu_index_buffer_t* const index, const gpu_index_dto_t* const indexRaw,
+                                const gpu_index_coding_t indexCoding, const gpu_module_t activeModules)
+{
+  const char* const filename = indexRaw->filename;
+
+  switch(indexCoding){
+    case GPU_INDEX_ASCII:
+      GPU_ERROR(gpu_index_transform_ASCII(indexRaw, index, activeModules));
+      break;
+    case GPU_INDEX_GEM_FULL:
+      GPU_ERROR(gpu_index_transform_GEM_FULL(indexRaw, index, activeModules));
+      break;
+    case GPU_INDEX_GEM_FILE:
+      GPU_ERROR(gpu_io_load_index_GEM_FULL(filename, index, activeModules));
       //GPU_ERROR(gpu_save_index_PROFILE("internalIndexGEM", index, activeModules)); //DEBUG: backup the index
       break;
     case GPU_INDEX_MFASTA_FILE:
-      GPU_ERROR(gpu_transform_index_MFASTA_FULL(indexRaw, index, activeModules));
+      GPU_ERROR(gpu_index_transform_MFASTA_FULL(indexRaw, index, activeModules));
       break;
     case GPU_INDEX_PROFILE_FILE:
-      GPU_ERROR(gpu_load_index_PROFILE(indexRaw, index, activeModules));
+      GPU_ERROR(gpu_io_load_index_PROFILE(filename, index, activeModules));
       break;
     default:
       GPU_ERROR(E_INDEX_CODING);
@@ -94,28 +177,58 @@ gpu_error_t gpu_transform_index(const char* const indexRaw, gpu_index_buffer_t* 
 Index initialization functions
 ************************************************************/
 
-gpu_error_t gpu_init_index_dto(gpu_index_buffer_t* const index, const gpu_module_t activeModules)
+gpu_error_t gpu_index_init_dto(gpu_index_buffer_t *index, const gpu_module_t activeModules)
 {
-  //Initialize the the active index modules
-  index->activeModules = GPU_NONE_MODULES;
-  if(activeModules & GPU_FMI) GPU_ERROR(gpu_init_fmi_index_dto(&index->fmi));
-  if(activeModules & GPU_SA)  GPU_ERROR(gpu_init_sa_index_dto(&index->sa));
+  if(activeModules & GPU_FMI) GPU_ERROR(gpu_fmi_index_init_dto(&index->fmi));
+  if(activeModules & GPU_SA)  GPU_ERROR(gpu_sa_index_init_dto(&index->sa));
+
   return (SUCCESS);
 }
 
-gpu_error_t gpu_init_index(gpu_index_buffer_t **index, const char* const indexRaw,
-                           const uint64_t bwtSize, const uint32_t samplingRate, const gpu_index_coding_t indexCoding,
-                           const uint32_t numSupportedDevices, const gpu_module_t activeModules)
+gpu_error_t gpu_index_init(gpu_index_buffer_t** const index, const gpu_index_dto_t* const rawIndex,
+                           const uint32_t numSupportedDevices,const gpu_module_t activeModules)
 {
   gpu_index_buffer_t* const iBuff = (gpu_index_buffer_t *) malloc(sizeof(gpu_index_buffer_t));
 
-  if(activeModules & GPU_FMI) GPU_ERROR(gpu_init_fmi_index(&iBuff->fmi,indexRaw,bwtSize,indexCoding,numSupportedDevices));
-  if(activeModules & GPU_SA)  GPU_ERROR(gpu_init_sa_index(&iBuff->sa,indexRaw,bwtSize,samplingRate,indexCoding,numSupportedDevices));
-  iBuff->activeModules = activeModules;
+  //Initialize the the active index modules
+  iBuff->activeModules = GPU_NONE_MODULES;
+  if(activeModules & GPU_FMI){
+    GPU_ERROR(gpu_fmi_index_init(&iBuff->fmi, iBuff->fmi.bwtSize, numSupportedDevices));
+    GPU_ERROR(gpu_index_set_specs(iBuff, rawIndex, rawIndex->fmi.indexCoding, GPU_FMI));
+  }
 
-  GPU_ERROR(gpu_transform_index(indexRaw, iBuff, indexCoding, activeModules));
+  if(activeModules & GPU_SA){
+    GPU_ERROR(gpu_sa_index_init(&iBuff->sa, iBuff->sa.numEntries, iBuff->sa.sampligRate, numSupportedDevices));
+    GPU_ERROR(gpu_index_set_specs(iBuff, rawIndex, rawIndex->sa.indexCoding, GPU_SA));
+  }
+
+  //iBuff->activeModules = activeModules;
 
   (* index) = iBuff;
+  return (SUCCESS);
+}
+
+gpu_error_t gpu_index_allocate(gpu_index_buffer_t *index, const gpu_module_t activeModules)
+{
+  if(activeModules & GPU_FMI) GPU_ERROR(gpu_fmi_index_allocate(&index->fmi));
+  if(activeModules & GPU_SA)  GPU_ERROR(gpu_sa_index_allocate(&index->sa));
+
+  return (SUCCESS);
+}
+
+gpu_error_t gpu_index_load(gpu_index_buffer_t *index, const gpu_index_dto_t * const rawIndex,
+                           const gpu_module_t activeModules)
+{
+  if(activeModules & GPU_FMI){
+    GPU_ERROR(gpu_fmi_index_allocate(&index->fmi));
+    GPU_ERROR(gpu_index_transform(index, rawIndex, rawIndex->fmi.indexCoding, GPU_FMI));
+  }
+
+  if(activeModules & GPU_SA){
+    GPU_ERROR(gpu_sa_index_allocate(&index->sa));
+    GPU_ERROR(gpu_index_transform(index, rawIndex, rawIndex->sa.indexCoding, GPU_SA));
+  }
+
   return (SUCCESS);
 }
 
@@ -124,43 +237,43 @@ gpu_error_t gpu_init_index(gpu_index_buffer_t **index, const char* const indexRa
  Functions to release the index data from the DEVICE & HOST
 ************************************************************/
 
-gpu_error_t gpu_free_index_host(gpu_index_buffer_t* const index, const gpu_module_t activeModules)
+gpu_error_t gpu_index_free_host(gpu_index_buffer_t* const index, const gpu_module_t activeModules)
 {
-  if(activeModules & GPU_FMI) GPU_ERROR(gpu_free_fmi_index_host(&index->fmi));
-  if(activeModules & GPU_SA)  GPU_ERROR(gpu_free_sa_index_host(&index->sa));
+  if(activeModules & GPU_FMI) GPU_ERROR(gpu_fmi_index_free_host(&index->fmi));
+  if(activeModules & GPU_SA)  GPU_ERROR(gpu_sa_index_free_host(&index->sa));
   return(SUCCESS);
 }
 
-gpu_error_t gpu_free_unused_index_host(gpu_index_buffer_t* index, gpu_device_info_t** const devices, const gpu_module_t activeModules)
+gpu_error_t gpu_index_free_unused_host(gpu_index_buffer_t* index, gpu_device_info_t** const devices, const gpu_module_t activeModules)
 {
-  if(activeModules & GPU_FMI) GPU_ERROR(gpu_free_unused_fmi_index_host(&index->fmi, devices));
-  if(activeModules & GPU_SA)  GPU_ERROR(gpu_free_unused_sa_index_host(&index->sa, devices));
+  if(activeModules & GPU_FMI) GPU_ERROR(gpu_fmi_index_free_unused_host(&index->fmi, devices));
+  if(activeModules & GPU_SA)  GPU_ERROR(gpu_sa_index_free_unused_host(&index->sa, devices));
   return(SUCCESS);
 }
 
-gpu_error_t gpu_free_index_device(gpu_index_buffer_t* index, gpu_device_info_t** const devices, const gpu_module_t activeModules)
+gpu_error_t gpu_index_free_device(gpu_index_buffer_t* index, gpu_device_info_t** const devices, const gpu_module_t activeModules)
 {
-  if(activeModules & GPU_FMI) GPU_ERROR(gpu_free_fmi_index_device(&index->fmi, devices));
-  if(activeModules & GPU_SA)  GPU_ERROR(gpu_free_sa_index_device(&index->sa, devices));
+  if(activeModules & GPU_FMI) GPU_ERROR(gpu_fmi_index_free_device(&index->fmi, devices));
+  if(activeModules & GPU_SA)  GPU_ERROR(gpu_sa_index_free_device(&index->sa, devices));
   return(SUCCESS);
 }
 
-gpu_error_t gpu_free_index_metainfo(gpu_index_buffer_t* index, const gpu_module_t activeModules)
+gpu_error_t gpu_index_free_metainfo(gpu_index_buffer_t* index, const gpu_module_t activeModules)
 {
-  if(activeModules & GPU_FMI) GPU_ERROR(gpu_free_fmi_index_metainfo(&index->fmi));
-  if(activeModules & GPU_SA)  GPU_ERROR(gpu_free_sa_index_metainfo(&index->sa));
+  if(activeModules & GPU_FMI) GPU_ERROR(gpu_fmi_index_free_metainfo(&index->fmi));
+  if(activeModules & GPU_SA)  GPU_ERROR(gpu_sa_index_free_metainfo(&index->sa));
   return(SUCCESS);
 }
 
-gpu_error_t gpu_free_index(gpu_index_buffer_t **index, gpu_device_info_t** const devices, const gpu_module_t activeModules)
+gpu_error_t gpu_index_free(gpu_index_buffer_t **index, gpu_device_info_t** const devices, const gpu_module_t activeModules)
 {
   gpu_index_buffer_t* iBuff = (* index);
 
-  GPU_ERROR(gpu_free_index_host(iBuff, activeModules));
-  GPU_ERROR(gpu_free_index_device(iBuff, devices, activeModules));
+  GPU_ERROR(gpu_index_free_host(iBuff, activeModules));
+  GPU_ERROR(gpu_index_free_device(iBuff, devices, activeModules));
 
   if(iBuff != NULL){
-    GPU_ERROR(gpu_free_index_metainfo(iBuff, activeModules));
+    GPU_ERROR(gpu_index_free_metainfo(iBuff, activeModules));
     free(iBuff);
     iBuff = NULL;
   }

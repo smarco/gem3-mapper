@@ -1,9 +1,10 @@
 /*
- * PROJECT: Bit-Parallel Myers on GPU
- * FILE: myers-interface.h
- * DATE: 4/7/2014
- * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
- * DESCRIPTION: BPM implementation for CUDA GPUs with compute capability 3.5 
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
  */
 
 #ifndef GPU_BPM_FILTER_CU_
@@ -163,7 +164,7 @@ gpu_error_t gpu_bpm_process_buffer(gpu_buffer_t *mBuff)
 
   dim3 blocksPerGrid, threadsPerBlock;
   const uint32_t numThreads = rebuff->numWarps * GPU_WARP_SIZE;
-  gpu_kernel_thread_configuration(device, numThreads, &blocksPerGrid, &threadsPerBlock);
+  gpu_device_kernel_thread_configuration(device, numThreads, &blocksPerGrid, &threadsPerBlock);
 
   gpu_bpm_filter_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_bpm_device_qry_entry_t *)qry->d_queries, ref->d_reference[idSupDev],
                                                                           cand->d_candidates, rebuff->d_reorderBuffer, d_results,

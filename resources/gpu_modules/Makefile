@@ -1,4 +1,12 @@
-
+#
+#  GEM-Cutter "Highly optimized genomic resources for GPUs"
+#  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+#
+#  Licensed under GNU General Public License 3.0 or later.
+#  Some rights reserved. See LICENSE, AUTHORS.
+#  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
+#
+ 
 include ../../Makefile.mk
 
 SHELL:=/bin/bash
@@ -35,7 +43,8 @@ CUDA_MODULES=gpu_fmi_decode gpu_fmi_search gpu_bpm_filter gpu_sa_decode
 CUDA_SRCS=$(addprefix $(FOLDER_SOURCE)/, $(addsuffix .cu, $(CUDA_MODULES)))
 CUDA_OBJS=$(addprefix $(FOLDER_BUILD)/, $(addsuffix .o, $(CUDA_MODULES)))
 
-MODULES=gpu_bpm_primitives gpu_buffer gpu_commons gpu_devices gpu_errors gpu_fmi_index gpu_fmi_primitives gpu_index gpu_io gpu_reference gpu_sa_index gpu_sa_primitives gpu_sample
+BASICS=gpu_commons gpu_buffer gpu_errors gpu_io gpu_sample gpu_module gpu_devices gpu_index gpu_reference
+MODULES=gpu_fmi_index gpu_fmi_primitives gpu_bpm_primitives gpu_sa_index gpu_sa_primitives $(BASICS)
 SRCS=$(addprefix $(FOLDER_SOURCE)/, $(addsuffix .c, $(MODULES)))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(addsuffix .o, $(MODULES)))
 

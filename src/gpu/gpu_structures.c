@@ -47,7 +47,7 @@ void gpu_structures_write(
       .ref_length = forward_text_length,
   };
   // Translate & write GPU index
-  gpu_save_indexed_structures_GEM_(gpu_index_name,
+  gpu_io_save_indexed_structures_GEM_(gpu_index_name,
       &gpu_gem_fmi_dto,&gpu_gem_ref_dto,&gpu_gem_sa_dto,GPU_ALL_MODULES);
   // Free
   free(gpu_index_name);

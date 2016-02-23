@@ -1,9 +1,10 @@
 /*
- * PROJECT: Bit-Parallel Myers on GPU
- * FILE: myers-interface.h
- * DATE: 4/7/2014
- * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
- * DESCRIPTION: Code example of using the BMP GPU interface 
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
  */
 
 #include "../gpu_interface.h"
@@ -19,19 +20,19 @@
 
 typedef struct {
 	/* Example test fields */ 
-	uint32_t totalSizeQueries;
-	uint32_t totalQueriesEntries;
-	uint32_t numQueries;
-	uint32_t numCandidates;
-	uint32_t numResults;
+	uint32_t            totalSizeQueries;
+	uint32_t            totalQueriesEntries;
+	uint32_t            numQueries;
+	uint32_t            numCandidates;
+	uint32_t            numResults;
 	bpm_gpu_qry_entry_t	*queries;
 	bpm_gpu_cand_info_t	*candidates;
 	bpm_gpu_qry_info_t	*qinfo;
 	bpm_gpu_res_entry_t	*results;
 	/* Debug fields */ 
-	char 				*raw_queries;
-	uint32_t 			*pos_raw_queries;
-	uint32_t			*GEM_score;
+	char 				        *raw_queries;
+	uint32_t 			      *pos_raw_queries;
+	uint32_t			      *GEM_score;
 } test_t;
 
 double sampleTime()
@@ -93,7 +94,6 @@ uint32_t loadQueries(const char *fn, test_t *testData, uint32_t *averageQuerySiz
 		if (testData->pos_raw_queries == NULL) {fprintf(stderr, "Error allocating information for RAW queries \n"); exit(EXIT_FAILURE);}
 	result = fread(testData->pos_raw_queries , sizeof(uint32_t), testData->numQueries, fp);
 		if (result != testData->numQueries) {fprintf(stderr, "Error reading information for RAW queries \n"); exit(EXIT_FAILURE);}
-
 
 	fclose(fp);
 	return (0);
@@ -243,15 +243,13 @@ void computeSW(char *query, char *candidate, uint32_t idCandidate, uint32_t size
 
 		// Compute SW-MATRIX
 		for(idColumn = 1; idColumn < numColumns; idColumn++){
-
 			base = candidate[idColumn - 1];
-			for(y = 1; y < sizeColumn; y++){
 
+			for(y = 1; y < sizeColumn; y++){
 				delta = (base != query[y - 1]);
 				cellLeft = matrix[y * numColumns + (idColumn - 1)] + 1;
 				cellUpper = matrix[(y - 1) * numColumns + idColumn] + 1;
 				cellDiagonal = matrix[(y - 1) * numColumns + (idColumn - 1)] + delta;
-				
 				score = MIN(cellDiagonal, MIN(cellLeft, cellUpper));
 				matrix[y * numColumns + idColumn] = score;
 			}
@@ -261,8 +259,9 @@ void computeSW(char *query, char *candidate, uint32_t idCandidate, uint32_t size
 				minColumn = idColumn - 1;
 			}
 		}
-    	results[idCandidate].column = minColumn;
-    	results[idCandidate].score = minScore;
+
+		results[idCandidate].column = minColumn;
+    results[idCandidate].score = minScore;
 	}
 }
 
@@ -279,25 +278,25 @@ double processMyersGPU(char *refFile, char *qryFile, uint32_t numBuffers, uint32
 		loadTestData(qryFile, &testData[threadID], &averageQuerySize, &averageCandidatesPerQuery);
 
 	bpm_gpu_init_(&buffer, numBuffers, maxMbPerBuffer, refFile, PROFILE_REFERENCE_FILE, 0, averageQuerySize,
-				averageCandidatesPerQuery, ARCH_SUPPORTED);
+				        averageCandidatesPerQuery, ARCH_SUPPORTED);
 
 	ts = sampleTime();
 
 		#pragma omp parallel for num_threads(numThreads) schedule(static,1) private(idTask, idBuffer)
 		for(idTask = 0; idTask < numTasks; ++idTask){
-				idBuffer = idTask % numBuffers;
+      idBuffer = idTask % numBuffers;
 
-				//Trace the jobs
-				printf("Host thread %d \t sent job %d \t to buffer %d \t in device %d \n", omp_get_thread_num(), idTask, idBuffer, bpm_gpu_buffer_get_id_device_(buffer[idBuffer]));
+      //Trace the jobs
+      printf("Host thread %d \t sent job %d \t to buffer %d \t in device %d \n", omp_get_thread_num(), idTask, idBuffer, bpm_gpu_buffer_get_id_device_(buffer[idBuffer]));
 
-				//Fill the buffer (generate work)
-				putIntoBuffer(buffer[idBuffer], &testData[idBuffer]);
+      //Fill the buffer (generate work)
+      putIntoBuffer(buffer[idBuffer], &testData[idBuffer]);
 
-				bpm_gpu_send_buffer_(buffer[idBuffer], testData[idBuffer].totalQueriesEntries, testData[idBuffer].numQueries, testData[idBuffer].numCandidates);
-				bpm_gpu_receive_buffer_(buffer[idBuffer]);
+      bpm_gpu_send_buffer_(buffer[idBuffer], testData[idBuffer].totalQueriesEntries, testData[idBuffer].numQueries, testData[idBuffer].numCandidates);
+      bpm_gpu_receive_buffer_(buffer[idBuffer]);
 
-				//Get the results from the buffer (consume results)
-				getFromBuffer(buffer[idBuffer], &testData[idBuffer]);
+      //Get the results from the buffer (consume results)
+      getFromBuffer(buffer[idBuffer], &testData[idBuffer]);
 		}
 
 	ts1 = sampleTime();
@@ -305,10 +304,9 @@ double processMyersGPU(char *refFile, char *qryFile, uint32_t numBuffers, uint32
 
 	//Save last state of each buffer
 	error = saveResults(qryFile, &testData[0], numBuffers);
-		if(error != 0){fprintf(stderr, "Error %d, saving results \n", error); exit(EXIT_FAILURE);}
+	if(error != 0){fprintf(stderr, "Error %d, saving results \n", error); exit(EXIT_FAILURE);}
 
 	freeTestData(&testData[0], numThreads);
-
 	return(ts1-ts);
 }
 
@@ -333,7 +331,6 @@ double processSmithWatermanCPU(char *refFile, char *qryFile, uint32_t numThreads
 	ts = sampleTime();
 
 	#pragma omp parallel num_threads(numThreads)
-
 	{
 		uint32_t threadID = omp_get_thread_num();
 		uint32_t idQuery, idCandidate, sizeQuery, sizeCandidate, positionCandidate;
@@ -359,7 +356,6 @@ double processSmithWatermanCPU(char *refFile, char *qryFile, uint32_t numThreads
 	if(error != 0) {fprintf(stderr, "Error %d, saving results \n", error); exit(EXIT_FAILURE);}
 
 	freeTestData(&testData, numBuffers);
-
 	return(ts1-ts);
 }
 
@@ -415,6 +411,5 @@ uint32_t main(int argc, char *argv[])
 	}	
 
 	printf("TOTAL TIME: \t %f \n", timeElapsed);
-
-    return (0);
+  return (0);
 }

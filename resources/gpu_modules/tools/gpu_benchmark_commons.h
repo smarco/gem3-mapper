@@ -1,3 +1,12 @@
+/*
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
+ */
+
 #include <time.h>
 #include <sys/time.h>
 
@@ -7,16 +16,16 @@
 #endif
 
 #define MASK_ZEROS					0x00000000
-#define	UINT32_LENGTH				32 			// 32 bits
-#define SEED_CHAR_LENGTH			2 		    // 2 bits
-#define SEED_FIELD_SIZE				8			// 8 bits
-#define	UINT64_LENGTH				64 			// 64 bits
+#define	UINT32_LENGTH				32 			  // 32 bits
+#define SEED_CHAR_LENGTH	  2 		    //  2 bits
+#define SEED_FIELD_SIZE			8			    //  8 bits
+#define	UINT64_LENGTH				64 			  // 64 bits
 
 /* Encoded DNA Nucleotides */
-#define ENC_DNA_CHAR_A    0
-#define ENC_DNA_CHAR_C    1
-#define ENC_DNA_CHAR_G    2
-#define ENC_DNA_CHAR_T    3
+#define ENC_DNA_CHAR_A      0
+#define ENC_DNA_CHAR_C      1
+#define ENC_DNA_CHAR_G      2
+#define ENC_DNA_CHAR_T      3
 
 #define GPU_DIV_CEIL(NUMERATOR,DENOMINATOR) (((NUMERATOR)+((DENOMINATOR)-1))/(DENOMINATOR))
 #define MIN(_a, _b) (((_a) < (_b)) ? (_a) : (_b))

@@ -1,9 +1,10 @@
 /*
- * PROJECT: Bit-Parallel Myers on GPU
- * FILE: myers-interface.h
- * DATE: 4/7/2014
- * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
- * DESCRIPTION: Code example of using the BMP GPU interface 
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
  */
 
 #include "../gpu_interface.h"
@@ -15,19 +16,19 @@
 
 typedef struct {
 	/* Example test fields */ 
-	uint32_t 			totalSizeQueries;
-	uint32_t 			totalQueriesEntries;
-	uint32_t 			numQueries;
-	uint32_t 			numCandidates;
-	uint32_t 			numResults;
+	uint32_t 			      totalSizeQueries;
+	uint32_t 			      totalQueriesEntries;
+	uint32_t 			      numQueries;
+	uint32_t 			      numCandidates;
+	uint32_t 			      numResults;
 	gpu_bpm_qry_entry_t	*queries;
 	gpu_bpm_cand_info_t	*candidates;
 	gpu_bpm_qry_info_t	*qinfo;
 	gpu_bpm_alg_entry_t	*results;
 	/* Debug fields */ 
-	char 				*raw_queries;
-	uint32_t 			*pos_raw_queries;
-	uint32_t			*GEM_score;
+	char 				        *raw_queries;
+	uint32_t 			      *pos_raw_queries;
+	uint32_t			      *GEM_score;
 } test_t;
 
 uint32_t loadQueries(const char *fn, test_t *testData, uint32_t *averageQuerySize, uint32_t *averageCandidatesPerQuery)
@@ -262,24 +263,27 @@ double processMyersGPU(char *refFile, char *qryFile, uint32_t numBuffers, uint32
 	uint32_t 			error, idBuffer, iteration, threadID, idTask;
 	double				ts, ts1;
 
-	gpu_buffers_dto_t 	buff  = {.buffer 		 		= NULL,
-								 .numBuffers 	 		= numBuffers,
-								 .maxMbPerBuffer 		= maxMbPerBuffer,
-								 .activeModules			= GPU_BPM};
-	gpu_index_dto_t 	index = {.fmi 			 		= NULL,
-								 .indexCoding 	 		= GPU_INDEX_NONE,
-								 .bwtSize 		 		= 0};
-	gpu_reference_dto_t ref   = {.reference 	 		= refFile,
-								 .refCoding 			= GPU_REF_PROFILE_FILE,
-								 .refSize				= 0};
-	gpu_info_dto_t 		sys	  = {.selectedArchitectures = GPU_ARCH_SUPPORTED,
-								 .userAllocOption   	= GPU_LOCAL_OR_REMOTE_DATA};
+	gpu_buffers_dto_t 	buff  = {.buffer 		 		        = NULL,
+								               .numBuffers 	 		      = numBuffers,
+								               .maxMbPerBuffer 		    = maxMbPerBuffer,
+								               .activeModules			    = GPU_BPM};
+	gpu_index_dto_t 	  index = {.fmi 			 		        = NULL,
+								               .indexCoding 	 		    = GPU_INDEX_NONE,
+								               .bwtSize 		 		      = 0};
+	gpu_reference_dto_t ref   = {.reference 	 		      = refFile,
+								               .refCoding 			      = GPU_REF_PROFILE_FILE,
+								               .refSize				        = 0};
+	gpu_info_dto_t 		  sys	  = {.selectedArchitectures = GPU_ARCH_SUPPORTED,
+								               .userAllocOption   	  = GPU_LOCAL_OR_REMOTE_DATA,
+	                             .activatedModules      = GPU_NONE_MODULES,
+	                             .allocatedStructures   = GPU_NONE_MODULES
+	                             .verbose               = verbose};
 
 	for(threadID = 0; threadID < numThreads; ++threadID)
 		loadTestData(qryFile, &testData[threadID], &averageQuerySize, &averageCandidatesPerQuery);
 
 	// Initialize the systems and buffers
-	gpu_init_buffers_(&buff, &index, &ref, &sys, 0);
+	gpu_init_buffers_(&buff, &index, &ref, &sys);
 
 	// Master thread initialize all the buffers
 	// Better each thread initialize self buffers

@@ -1,8 +1,10 @@
 /*
- * gpu_sa.c
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
  *
- *  Created on: 18/01/2016
- *      Author: achacon
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
  */
 
 #ifndef GPU_SA_INDEX_C_
@@ -10,12 +12,22 @@
 
 #include "../include/gpu_sa_index.h"
 
+/************************************************************
+Get information functions
+************************************************************/
+
+gpu_error_t gpu_sa_index_get_size(const gpu_sa_buffer_t* const sa, size_t* const bytesPerSA)
+{
+  (* bytesPerSA) = sa->numEntries * sizeof(gpu_sa_entry_t);
+  return (SUCCESS);
+}
+
 
 /************************************************************
  GLOBAL METHODS: INPUT / OUPUT Functions
 ************************************************************/
 
-gpu_error_t gpu_read_sa_index(FILE* fp, gpu_sa_buffer_t* const sa)
+gpu_error_t gpu_sa_index_read_specs(FILE* fp, gpu_sa_buffer_t* const sa)
 {
   size_t result;
 
@@ -24,7 +36,17 @@ gpu_error_t gpu_read_sa_index(FILE* fp, gpu_sa_buffer_t* const sa)
   result = fread(&sa->sampligRate, sizeof(uint64_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
 
-  CUDA_ERROR(cudaHostAlloc((void**) &sa->h_sa, sa->numEntries * sizeof(gpu_sa_entry_t), cudaHostAllocMapped));
+  return (SUCCESS);
+}
+
+gpu_error_t gpu_sa_index_read(FILE* fp, gpu_sa_buffer_t* const sa)
+{
+  size_t result;
+
+  result = fread(&sa->numEntries, sizeof(uint64_t), 1, fp);
+  if (result != 1) return (E_READING_FILE);
+  result = fread(&sa->sampligRate, sizeof(uint64_t), 1, fp);
+  if (result != 1) return (E_READING_FILE);
 
   result = fread(sa->h_sa, sizeof(gpu_sa_entry_t), sa->numEntries, fp);
   if (result != sa->numEntries) return (E_READING_FILE);
@@ -32,8 +54,7 @@ gpu_error_t gpu_read_sa_index(FILE* fp, gpu_sa_buffer_t* const sa)
   return (SUCCESS);
 }
 
-
-gpu_error_t gpu_write_sa_index(FILE* fp, const gpu_sa_buffer_t* const sa)
+gpu_error_t gpu_sa_index_write(FILE* fp, const gpu_sa_buffer_t* const sa)
 {
   size_t result;
 
@@ -53,7 +74,7 @@ gpu_error_t gpu_write_sa_index(FILE* fp, const gpu_sa_buffer_t* const sa)
  GLOBAL METHODS: Transfer the index (HOST <-> DEVICES)
 ************************************************************/
 
-gpu_error_t gpu_transfer_sa_index_CPU_to_GPUs(gpu_sa_buffer_t* const sa, gpu_device_info_t** const devices)
+gpu_error_t gpu_sa_index_transfer_CPU_to_GPUs(gpu_sa_buffer_t* const sa, gpu_device_info_t** const devices)
 {
   uint32_t deviceFreeMemory, idSupportedDevice;
   uint32_t numSupportedDevices = devices[0]->numSupportedDevices;
@@ -61,7 +82,7 @@ gpu_error_t gpu_transfer_sa_index_CPU_to_GPUs(gpu_sa_buffer_t* const sa, gpu_dev
   for(idSupportedDevice = 0; idSupportedDevice < numSupportedDevices; ++idSupportedDevice){
     if(sa->memorySpace[idSupportedDevice] == GPU_DEVICE_MAPPED){
       const size_t cpySize = sa->numEntries * sizeof(gpu_sa_entry_t);
-      deviceFreeMemory = gpu_get_device_free_memory(devices[idSupportedDevice]->idDevice);
+      deviceFreeMemory = gpu_device_get_free_memory(devices[idSupportedDevice]->idDevice);
       if ((GPU_CONVERT__B_TO_MB(cpySize)) > deviceFreeMemory) return(E_INSUFFICIENT_MEM_GPU);
         CUDA_ERROR(cudaSetDevice(devices[idSupportedDevice]->idDevice));
       //Synchronous allocate & transfer the FM-index to the GPU
@@ -80,23 +101,28 @@ gpu_error_t gpu_transfer_sa_index_CPU_to_GPUs(gpu_sa_buffer_t* const sa, gpu_dev
  GLOBAL METHODS: Functions to transform the index
 ************************************************************/
 
-gpu_error_t gpu_transform_sa_index_ASCII(const char* const textBWT, gpu_sa_buffer_t* const sa)
+gpu_error_t gpu_sa_index_transform_ASCII(const char* const textBWT, gpu_sa_buffer_t* const sa)
 {
   return(E_NOT_IMPLEMENTED);
 }
 
-gpu_error_t gpu_transform_sa_index_GEM_FULL(const gpu_gem_sa_dto_t* const gpu_gem_sa_dto, gpu_sa_buffer_t* const sa)
+gpu_error_t gpu_sa_index_transform_GEM_FULL(const gpu_gem_sa_dto_t* const gpu_gem_sa_dto, gpu_sa_buffer_t* const sa)
 {
-  sa->h_sa        = gpu_gem_sa_dto->sa;
-  sa->sampligRate = gpu_gem_sa_dto->sa_sampling;
-  sa->numEntries  = GPU_DIV_CEIL(gpu_gem_sa_dto->sa_length, sa->sampligRate);
-  sa->memorySpace = NULL;
-  sa->d_sa        = NULL;
+  sa->h_sa            = gpu_gem_sa_dto->sa;
+  sa->sampligRate     = gpu_gem_sa_dto->sa_sampling;
+  sa->numEntries      = GPU_DIV_CEIL(gpu_gem_sa_dto->sa_length, sa->sampligRate);
+  sa->memorySpace     = NULL;
+  sa->d_sa            = NULL;
 
   return (SUCCESS);
 }
 
-gpu_error_t gpu_transform_sa_index_MFASTA_FULL(const char* const indexRaw, gpu_sa_buffer_t* const sa)
+gpu_error_t gpu_sa_index_load_specs_MFASTA_FULL(const char* const indexRaw, gpu_sa_buffer_t* const sa)
+{
+  return (E_NOT_IMPLEMENTED);
+}
+
+gpu_error_t gpu_sa_index_transform_MFASTA_FULL(const char* const indexRaw, gpu_sa_buffer_t* const sa)
 {
   return (E_NOT_IMPLEMENTED);
 }
@@ -106,27 +132,27 @@ gpu_error_t gpu_transform_sa_index_MFASTA_FULL(const char* const indexRaw, gpu_s
  GLOBAL METHODS: Index initialization functions
 ************************************************************/
 
-gpu_error_t gpu_init_sa_index_dto(gpu_sa_buffer_t* const sa)
+gpu_error_t gpu_sa_index_init_dto(gpu_sa_buffer_t* const sa)
 {
   //Initialize the SA index structure
-  sa->d_sa          = NULL;
-  sa->h_sa          = NULL;
-  sa->memorySpace   = NULL;
-  sa->numEntries    = 0;
-  sa->sampligRate   = 0;
+  sa->d_sa           = NULL;
+  sa->h_sa           = NULL;
+  sa->hostAllocStats = GPU_PAGE_UNLOCKED;
+  sa->memorySpace    = NULL;
+  sa->numEntries     = 0;
+  sa->sampligRate    = 0;
 
   return (SUCCESS);
 }
 
-gpu_error_t gpu_init_sa_index(gpu_sa_buffer_t* const sa, const char* const indexRaw, const uint64_t textSize,
-                              const uint32_t sampligRate, const gpu_index_coding_t indexCoding,
-                              const uint32_t numSupportedDevices)
+gpu_error_t gpu_sa_index_init(gpu_sa_buffer_t* const sa, const uint64_t saNumEntries,
+                              const uint32_t sampligRate, const uint32_t numSupportedDevices)
 {
   uint32_t idSupDevice;
-  GPU_ERROR(gpu_init_sa_index_dto(sa));
+  GPU_ERROR(gpu_sa_index_init_dto(sa));
 
   sa->sampligRate    = sampligRate;
-  sa->numEntries     = GPU_DIV_CEIL(textSize, sa->sampligRate);
+  sa->numEntries     = saNumEntries;
 
   sa->d_sa = (gpu_sa_entry_t **) malloc(numSupportedDevices * sizeof(gpu_sa_entry_t *));
   if (sa->d_sa == NULL) GPU_ERROR(E_ALLOCATE_MEM);
@@ -141,22 +167,34 @@ gpu_error_t gpu_init_sa_index(gpu_sa_buffer_t* const sa, const char* const index
   return (SUCCESS);
 }
 
+gpu_error_t gpu_sa_index_allocate(gpu_sa_buffer_t* const sa)
+{
+  if(sa->hostAllocStats & GPU_PAGE_LOCKED){
+    CUDA_ERROR(cudaHostAlloc((void**) &sa->h_sa, sa->numEntries * sizeof(gpu_sa_entry_t), cudaHostAllocMapped));
+  }else{
+    sa->h_sa = malloc (sa->numEntries * sizeof(gpu_sa_entry_t));
+    if (sa->h_sa == NULL) return (E_ALLOCATE_MEM);
+  }
+
+  return(SUCCESS);
+}
 
 /************************************************************
  GLOBAL METHODS: Functions to release DEVICE & HOST indexes
 ************************************************************/
 
-gpu_error_t gpu_free_sa_index_host(gpu_sa_buffer_t* const sa)
+gpu_error_t gpu_sa_index_free_host(gpu_sa_buffer_t* const sa)
 {
     if(sa->h_sa != NULL){
-      CUDA_ERROR(cudaFreeHost(sa->h_sa));
+      if(sa->hostAllocStats == GPU_PAGE_LOCKED) CUDA_ERROR(cudaFreeHost(sa->h_sa));
+      else free(sa->h_sa);
       sa->h_sa = NULL;
     }
 
     return(SUCCESS);
 }
 
-gpu_error_t gpu_free_unused_sa_index_host(gpu_sa_buffer_t* const sa, gpu_device_info_t** const devices)
+gpu_error_t gpu_sa_index_free_unused_host(gpu_sa_buffer_t* const sa, gpu_device_info_t** const devices)
 {
   uint32_t idSupportedDevice, numSupportedDevices;
   bool indexInHostSideUsed = false;
@@ -168,13 +206,13 @@ gpu_error_t gpu_free_unused_sa_index_host(gpu_sa_buffer_t* const sa, gpu_device_
   }
 
   if(!indexInHostSideUsed){
-    GPU_ERROR(gpu_free_sa_index_host(sa));
+    GPU_ERROR(gpu_sa_index_free_host(sa));
   }
 
   return(SUCCESS);
 }
 
-gpu_error_t gpu_free_sa_index_device(gpu_sa_buffer_t* const sa, gpu_device_info_t** const devices)
+gpu_error_t gpu_sa_index_free_device(gpu_sa_buffer_t* const sa, gpu_device_info_t** const devices)
 {
   const uint32_t numSupportedDevices = devices[0]->numSupportedDevices;
   uint32_t idSupportedDevice;
@@ -198,7 +236,7 @@ gpu_error_t gpu_free_sa_index_device(gpu_sa_buffer_t* const sa, gpu_device_info_
   return(SUCCESS);
 }
 
-gpu_error_t gpu_free_sa_index_metainfo(gpu_sa_buffer_t* const sa)
+gpu_error_t gpu_sa_index_free_metainfo(gpu_sa_buffer_t* const sa)
 {
   //Free the index list
   if(sa->memorySpace != NULL){

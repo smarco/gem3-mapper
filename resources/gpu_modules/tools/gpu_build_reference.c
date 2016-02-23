@@ -1,9 +1,10 @@
 /*
- * PROJECT: Bit-Parallel Myers on GPU
- * FILE: myers-interface.h
- * DATE: 4/7/2014
- * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
- * DESCRIPTION: Parser for "*.profile" GEM files (just for testing) 
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
  */
 
 #include <stdio.h>
@@ -11,22 +12,22 @@
 #include <string.h>
 #include <stdint.h>
 
-#define	REFERENCE_CHAR_LENGTH		4
-#define	UINT32_LENGTH				32
-#define	UINT64_LENGTH				64
+#define	REFERENCE_CHAR_LENGTH		  4
+#define	UINT32_LENGTH				      32
+#define	UINT64_LENGTH				      64
 #define	REFERENCE_CHARS_PER_ENTRY	(UINT64_LENGTH / REFERENCE_CHAR_LENGTH)
-#define REFERENCE_END_PADDING		625
-#define FILE_SIZE_LINES				250
+#define REFERENCE_END_PADDING		  625
+#define FILE_SIZE_LINES				    250
 
-#define CATCH_ERROR(error) {{if (error) { fprintf(stderr, "%s\n", processError(error)); exit(EXIT_FAILURE); }}}
+#define CATCH_ERROR(error)              {{if (error) { fprintf(stderr, "%s\n", processError(error)); exit(EXIT_FAILURE); }}}
 #define	DIV_CEIL(NUMERATOR,DENOMINATOR) (((NUMERATOR)+((DENOMINATOR)-1))/(DENOMINATOR))
-#define MIN(NUM_A, NUM_B) ((NUM_A < NUM_B) ? NUM_A : NUM_B)
+#define MIN(NUM_A, NUM_B)               ((NUM_A < NUM_B) ? NUM_A : NUM_B)
 
 /* Encoded DNA Nucleotides */
-#define ENC_DNA_CHAR_A 0LL
-#define ENC_DNA_CHAR_C 1LL
-#define ENC_DNA_CHAR_G 2LL
-#define ENC_DNA_CHAR_T 3LL
+#define ENC_DNA_CHAR_A    0LL
+#define ENC_DNA_CHAR_C    1LL
+#define ENC_DNA_CHAR_G    2LL
+#define ENC_DNA_CHAR_T    3LL
 
 #define ENC_DNA_CHAR_N    4LL
 #define ENC_DNA_CHAR_SEP  5LL
@@ -43,23 +44,23 @@ typedef struct {
 
 uint64_t charToBinASCII(unsigned char base)
 {
-	switch(base)
-	{
-    	case 'A':
-    	case 'a':
-    	    return(ENC_DNA_CHAR_A);
-    	case 'C':
-    	case 'c':
-    	    return(ENC_DNA_CHAR_C << (UINT64_LENGTH - REFERENCE_CHAR_LENGTH));
-    	case 'G':
-    	case 'g':
-    	    return(ENC_DNA_CHAR_G << (UINT64_LENGTH - REFERENCE_CHAR_LENGTH));
-    	case 'T':
-    	case 't':
-    	    return(ENC_DNA_CHAR_T << (UINT64_LENGTH - REFERENCE_CHAR_LENGTH));
-    	default :
-    	    return(ENC_DNA_CHAR_N << (UINT64_LENGTH - REFERENCE_CHAR_LENGTH));
-	}
+  switch(base)
+  {
+    case 'A':
+    case 'a':
+      return(ENC_DNA_CHAR_A);
+    case 'C':
+    case 'c':
+      return(ENC_DNA_CHAR_C << (UINT64_LENGTH - REFERENCE_CHAR_LENGTH));
+    case 'G':
+    case 'g':
+      return(ENC_DNA_CHAR_G << (UINT64_LENGTH - REFERENCE_CHAR_LENGTH));
+    case 'T':
+    case 't':
+      return(ENC_DNA_CHAR_T << (UINT64_LENGTH - REFERENCE_CHAR_LENGTH));
+    default :
+      return(ENC_DNA_CHAR_N << (UINT64_LENGTH - REFERENCE_CHAR_LENGTH));
+  }
 }
 
 uint32_t transformReferenceASCII(const char *referenceASCII, reference_buffer_t *reference)
@@ -129,92 +130,93 @@ uint32_t loadReferenceMFASTA(const char *fn, void *reference)
 
 uint32_t saveRef(const char *fn, void *reference)
 {
-    reference_buffer_t *ref = (reference_buffer_t *) reference;
+  reference_buffer_t *ref = (reference_buffer_t *) reference;
 
-    char fileName[512];
-    FILE *fp = NULL;
-    uint64_t i;
-    uint32_t error;
+  char fileName[512];
+  FILE *fp = NULL;
+  uint64_t i;
+  uint32_t error;
 
-    sprintf(fileName, "%s.%llu.%ubits.ref", fn, ref->size, REFERENCE_CHAR_LENGTH);
-    
-    fp = fopen(fileName, "wb");
-    if (fp == NULL) return (8);
+  sprintf(fileName, "%s.%llu.%ubits.ref", fn, ref->size, REFERENCE_CHAR_LENGTH);
 
-    fwrite(&ref->numEntries, sizeof(uint64_t), 1, fp);
-    fwrite(&ref->size, sizeof(uint64_t), 1, fp);
+  fp = fopen(fileName, "wb");
+  if (fp == NULL) return (8);
 
-    fwrite(ref->h_reference, sizeof(uint64_t), ref->numEntries, fp);
-    fclose(fp);
-    return (0);
+  fwrite(&ref->numEntries, sizeof(uint64_t), 1, fp);
+  fwrite(&ref->size, sizeof(uint64_t), 1, fp);
+
+  fwrite(ref->h_reference, sizeof(uint64_t), ref->numEntries, fp);
+  fclose(fp);
+  return (0);
 }
 
 uint32_t freeReference(void *reference)
 {   
-    reference_buffer_t *ref = (reference_buffer_t *) reference;
+  reference_buffer_t *ref = (reference_buffer_t *) reference;
 
-    if(ref->h_reference != NULL){
-        free(ref->h_reference);
-        ref->h_reference = NULL;
-    }
+  if(ref->h_reference != NULL){
+    free(ref->h_reference);
+    ref->h_reference = NULL;
+  }
 
-    if(ref->char_reference != NULL){
-        free(ref->char_reference);
-        ref->char_reference = NULL;
-    }   
-	
-    return(0);
+  if(ref->char_reference != NULL){
+    free(ref->char_reference);
+    ref->char_reference = NULL;
+  }
+
+  return(0);
 }
 
-char *processError(uint32_t e){
-    switch(e) {
-        case 0:  return "No error"; break; 
-        case 30: return "Cannot open reference file"; break;
-        case 31: return "Cannot allocate reference"; break;
-        case 32: return "Reference file isn't multifasta format"; break;
-        case 37: return "Cannot open reference file on write mode"; break;
-        case 42: return "Cannot open queries file"; break;
-        case 43: return "Cannot allocate queries"; break;
-        case 45: return "Cannot allocate results"; break;
-        case 47: return "Cannot open results file for save intervals"; break;
-        case 48: return "Cannot open results file for load intervals"; break;
-        case 99: return "Not implemented"; break;
-        default: return "Unknown error";
-    }   
+char *processError(uint32_t e)
+{
+  switch(e) {
+    case 0:  return "No error"; break;
+    case 30: return "Cannot open reference file"; break;
+    case 31: return "Cannot allocate reference"; break;
+    case 32: return "Reference file isn't multifasta format"; break;
+    case 37: return "Cannot open reference file on write mode"; break;
+    case 42: return "Cannot open queries file"; break;
+    case 43: return "Cannot allocate queries"; break;
+    case 45: return "Cannot allocate results"; break;
+    case 47: return "Cannot open results file for save intervals"; break;
+    case 48: return "Cannot open results file for load intervals"; break;
+    case 99: return "Not implemented"; break;
+    default: return "Unknown error";
+  }
 }
 
 uint32_t initReference(void **reference)
 {
-    reference_buffer_t *ref = (reference_buffer_t *) malloc(sizeof(reference_buffer_t));
-	ref->size = 0;
-	ref->numEntries = 0;
+  reference_buffer_t *ref = (reference_buffer_t *) malloc(sizeof(reference_buffer_t));
+  ref->size = 0;
+  ref->numEntries = 0;
 
-	ref->h_reference = NULL;
-	ref->d_reference = NULL;
-	ref->char_reference = NULL;
+  ref->h_reference = NULL;
+  ref->d_reference = NULL;
+  ref->char_reference = NULL;
 
-    (*reference) = ref;
-    return (0);
+  (*reference) = ref;
+  return (0);
 }
 
 int32_t main(int argc, char *argv[])
 {
-    void *reference;
-    char *refFile = argv[1];
-    int error;
+  void *reference;
+  char *refFile = argv[1];
+  int error;
 
-	error = initReference(&reference);    
+  error = initReference(&reference);
 	CATCH_ERROR(error);
 
 	error = loadReferenceMFASTA(refFile, reference);
-    CATCH_ERROR(error);
+  CATCH_ERROR(error);
 
-    error = saveRef(refFile, reference);
-    CATCH_ERROR(error);
+  error = saveRef(refFile, reference);
+  CATCH_ERROR(error);
     
-    error = freeReference(reference);
-    CATCH_ERROR(error);
+  error = freeReference(reference);
+  CATCH_ERROR(error);
 
-    return (0);
+  return (0);
 }
 
