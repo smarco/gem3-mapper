@@ -40,13 +40,13 @@ typedef enum
   GPU_SA_DECODE_POS     = GPU_UINT32_ONE_MASK << 2,
   GPU_BPM               = GPU_UINT32_ONE_MASK << 3,
   /* GPU data structures */
-  GPU_FMI               = GPU_FMI_EXACT_SEARCH | GPU_FMI_DECODE_POS | GPU_SA_DECODE_POS,
+  GPU_FMI               = GPU_FMI_EXACT_SEARCH | GPU_FMI_DECODE_POS,
   GPU_SA                = GPU_SA_DECODE_POS,
   GPU_INDEX             = GPU_FMI | GPU_SA,
   GPU_REFERENCE         = GPU_BPM,
   /* GPU stages          */
   GPU_SEEDING           = GPU_INDEX,
-  GPU_FILTERING         = GPU_BPM,
+  GPU_FILTERING         = GPU_REFERENCE,
 
   GPU_NONE_MODULES      = 0,
   GPU_ALL_MODULES       = GPU_SEEDING | GPU_FILTERING

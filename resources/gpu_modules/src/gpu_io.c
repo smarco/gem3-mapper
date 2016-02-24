@@ -516,7 +516,7 @@ void gpu_io_save_indexed_structures_GEM_(const char* const fileName, const gpu_g
   if(ref.activeModules & GPU_REFERENCE){
     GPU_ERROR(gpu_reference_allocate(&ref, GPU_REFERENCE));
     GPU_ERROR(gpu_reference_transform(&ref, (char*)gemRef, gemRef->ref_coding, GPU_REFERENCE));
-    GPU_ERROR(gpu_reference_write(fp, &ref, activeModules));
+    GPU_ERROR(gpu_reference_write(fp, &ref, GPU_REFERENCE));
   }
 
   rewind(fp);

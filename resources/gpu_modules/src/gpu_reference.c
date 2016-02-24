@@ -164,7 +164,7 @@ gpu_error_t gpu_reference_read_specs(FILE* fp, gpu_reference_buffer_t* const ref
 {
   size_t result;
 
-  if(activeModules & GPU_REFERENCE)
+  if((activeModules & GPU_REFERENCE) == 0)
     return(E_MODULE_NOT_FOUND);
 
   result = fread(&reference->numEntries, sizeof(uint64_t), 1, fp);
@@ -179,7 +179,7 @@ gpu_error_t gpu_reference_read(FILE* fp, gpu_reference_buffer_t* const reference
 {
   size_t result;
 
-  if(activeModules & GPU_REFERENCE)
+  if((activeModules & GPU_REFERENCE) == 0)
     return(E_MODULE_NOT_FOUND);
 
   result = fread(&reference->numEntries, sizeof(uint64_t), 1, fp);
@@ -196,7 +196,7 @@ gpu_error_t gpu_reference_write(FILE* fp, const gpu_reference_buffer_t* const re
 {
   size_t result;
 
-  if(activeModules & GPU_REFERENCE)
+  if((activeModules & GPU_REFERENCE) == 0)
     return(E_MODULE_NOT_FOUND);
 
   result = fwrite(&reference->numEntries, sizeof(uint64_t), 1, fp);
