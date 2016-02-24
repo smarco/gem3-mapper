@@ -35,7 +35,7 @@ gpu_buffer_collection_t* gpu_buffer_collection_new(
   gpu_buffers_dto->buffer = NULL;
   gpu_buffers_dto->numBuffers = num_buffers;
   gpu_buffers_dto->maxMbPerBuffer = CONVERT_B_TO_MB(buffer_size);
-  gpu_buffers_dto->activeModules = GPU_ALL_MODULES;
+  gpu_buffers_dto->activeModules = GPU_FMI | GPU_REFERENCE; //GPU_ALL_MODULES;
   buffer_collection->gpu_buffers_dto = gpu_buffers_dto;
   gpu_index_dto_t gpu_index_dto = {
     .filename         = gpu_index_name,

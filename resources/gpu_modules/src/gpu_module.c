@@ -13,7 +13,7 @@
 #include "../include/gpu_module.h"
 
 // Sorted by allocation priority
-gpu_module_t structureList[] = {GPU_NONE_MODULES, GPU_REFERENCE, GPU_FMI, GPU_SA};
+gpu_module_t structureList[] = {GPU_REFERENCE, GPU_FMI, GPU_SA};
 
 uint32_t gpu_module_get_num_allocated(const gpu_module_t activeModules)
 {
@@ -55,16 +55,16 @@ gpu_error_t gpu_module_set_device_allocation(gpu_reference_buffer_t* const refer
 {
   memory_alloc_t moduleMemorySpace;
 
-  moduleMemorySpace = GPU_REMOTE_DATA;
-  if(allocatedModules & GPU_REFERENCE) moduleMemorySpace = GPU_LOCAL_DATA;
+  moduleMemorySpace = GPU_HOST_MAPPED;
+  if(allocatedModules & GPU_REFERENCE) moduleMemorySpace = GPU_DEVICE_MAPPED;
   reference->memorySpace[idSupDevice] = moduleMemorySpace;
 
-  moduleMemorySpace = GPU_REMOTE_DATA;
-  if(allocatedModules & GPU_FMI) moduleMemorySpace = GPU_LOCAL_DATA;
+  moduleMemorySpace = GPU_HOST_MAPPED;
+  if(allocatedModules & GPU_FMI) moduleMemorySpace = GPU_DEVICE_MAPPED;
   index->fmi.memorySpace[idSupDevice] = moduleMemorySpace;
 
-  moduleMemorySpace = GPU_REMOTE_DATA;
-  if(allocatedModules & GPU_SA) moduleMemorySpace = GPU_LOCAL_DATA;
+  moduleMemorySpace = GPU_HOST_MAPPED;
+  if(allocatedModules & GPU_SA) moduleMemorySpace = GPU_DEVICE_MAPPED;
   index->sa.memorySpace[idSupDevice] = moduleMemorySpace;
 
   return (SUCCESS);
@@ -74,9 +74,9 @@ gpu_error_t gpu_module_get_device_allocation(gpu_reference_buffer_t* const refer
                                             uint32_t idSupDevice, gpu_module_t* allocatedModules)
 {
   (* allocatedModules) = GPU_NONE_MODULES;
-  if (reference->memorySpace[idSupDevice] == GPU_LOCAL_DATA) (* allocatedModules) |= GPU_REFERENCE;
-  if (index->fmi.memorySpace[idSupDevice] == GPU_LOCAL_DATA) (* allocatedModules) |= GPU_FMI;
-  if (index->sa.memorySpace[idSupDevice]  == GPU_LOCAL_DATA) (* allocatedModules) |= GPU_SA;
+  if (reference->memorySpace[idSupDevice] == GPU_DEVICE_MAPPED) (* allocatedModules) |= GPU_REFERENCE;
+  if (index->fmi.memorySpace[idSupDevice] == GPU_DEVICE_MAPPED) (* allocatedModules) |= GPU_FMI;
+  if (index->sa.memorySpace[idSupDevice]  == GPU_DEVICE_MAPPED) (* allocatedModules) |= GPU_SA;
   return (SUCCESS);
 }
 
@@ -85,7 +85,7 @@ gpu_error_t gpu_module_allocator_per_device(gpu_reference_buffer_t* const refere
 {
   const gpu_module_t* const moduleList = gpu_module_get_list_structures();
   size_t memoryFree  = gpu_device_get_free_memory(idDevice), currentMemorySize = 0;
-  gpu_module_t currentModule, totalActiveModules = GPU_NONE_MAPPED;
+  gpu_module_t currentModule, totalActiveModules = GPU_NONE_MODULES;
   uint32_t idModule, numModules = gpu_module_get_num_structures();
 
   for(idModule = 0; idModule < numModules; ++idModule){
@@ -235,6 +235,7 @@ gpu_error_t gpu_module_configure_system(gpu_reference_buffer_t* const reference,
     gpu_device_screen_status(idDevice, deviceArchSupported, recomendedMemorySize, requiredMemorySize);
     if(deviceArchSupported && dataFitsMemoryDevice){ //Data fits on memory device
       GPU_ERROR(gpu_device_init(&dev[idDevice], idDevice, idSupportedDevice, selectedArchitectures));
+      GPU_ERROR(gpu_module_set_device_allocation(reference, index, idSupportedDevice, globalModules)); // TODO: recalculate and use globalStructures
       idSupportedDevice++;
     }
   }
@@ -246,7 +247,7 @@ gpu_error_t gpu_module_configure_system(gpu_reference_buffer_t* const reference,
   (*activatedModules)      = globalModules;
   (*allocatedStructures)   = globalStructures;
 
-  (* devices)            = dev;
+  (* devices)              = dev;
   return(SUCCESS);
 }
 

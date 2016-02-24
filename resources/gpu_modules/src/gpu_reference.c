@@ -64,11 +64,15 @@ char gpu_complement_base(const char character)
 Transform reference functions
 ************************************************************/
 
-gpu_error_t gpu_reference_transform_ASCII(const char* const referenceASCII, gpu_reference_buffer_t* const reference)
+gpu_error_t gpu_reference_transform_ASCII(const char* const referenceASCII, gpu_reference_buffer_t* const reference,
+										  const gpu_module_t activeModules)
 {
   uint64_t indexBase, bitmap;
   uint64_t idEntry, i, referencePosition;
   unsigned char referenceChar;
+
+  if((activeModules & GPU_REFERENCE) == 0)
+    return(E_MODULE_NOT_FOUND);
 
   reference->numEntries = GPU_DIV_CEIL(reference->size, GPU_REFERENCE_CHARS_PER_ENTRY) + GPU_REFERENCE_END_PADDING;
 
@@ -86,7 +90,8 @@ gpu_error_t gpu_reference_transform_ASCII(const char* const referenceASCII, gpu_
   return(SUCCESS);
 }
 
-gpu_error_t gpu_reference_transform_GEM(const gpu_gem_ref_dto_t* const gem_reference, gpu_reference_buffer_t* const reference)
+gpu_error_t gpu_reference_transform_GEM(const gpu_gem_ref_dto_t* const gem_reference, gpu_reference_buffer_t* const reference,
+										const gpu_module_t activeModules)
 {
   uint64_t bitmap, base;
   uint64_t idEntry, i, referencePosition;
@@ -95,6 +100,9 @@ gpu_error_t gpu_reference_transform_GEM(const gpu_gem_ref_dto_t* const gem_refer
   const char* const h_gem_reference = gem_reference->reference;
   const uint64_t total_ref_size     = gem_reference->ref_length;
   const uint64_t baseMask           = GPU_UINT64_ONES << GPU_REFERENCE_CHAR_LENGTH;
+
+  if((activeModules & GPU_REFERENCE) == 0)
+    return(E_MODULE_NOT_FOUND);
 
   reference->size = total_ref_size;
   reference->numEntries = GPU_DIV_CEIL(total_ref_size, GPU_REFERENCE_CHARS_PER_ENTRY) + GPU_REFERENCE_END_PADDING;
@@ -118,7 +126,8 @@ gpu_error_t gpu_reference_transform_GEM(const gpu_gem_ref_dto_t* const gem_refer
 }
 
 
-gpu_error_t gpu_reference_transform_GEM_FULL(const gpu_gem_ref_dto_t* const gem_reference, gpu_reference_buffer_t* const reference)
+gpu_error_t gpu_reference_transform_GEM_FULL(const gpu_gem_ref_dto_t* const gem_reference, gpu_reference_buffer_t* const reference,
+											 const gpu_module_t activeModules)
 {
   uint64_t base, bitmap;
   uint64_t idEntry, i, referencePosition;
@@ -128,6 +137,9 @@ gpu_error_t gpu_reference_transform_GEM_FULL(const gpu_gem_ref_dto_t* const gem_
   const uint64_t forward_ref_size   = gem_reference->ref_length;
   const uint64_t total_ref_size     = 2 * forward_ref_size;
   const uint64_t baseMask           = GPU_UINT64_ONES << GPU_REFERENCE_CHAR_LENGTH;
+
+  if((activeModules & GPU_REFERENCE) == 0)
+    return(E_MODULE_NOT_FOUND);
 
   reference->size = total_ref_size;
   reference->numEntries = GPU_DIV_CEIL(total_ref_size, GPU_REFERENCE_CHARS_PER_ENTRY) + GPU_REFERENCE_END_PADDING;
@@ -246,13 +258,13 @@ gpu_error_t gpu_reference_set_specs(gpu_reference_buffer_t* const ref, const cha
       /* Not require special I/O initialization */
       break;
     case GPU_REF_GEM_FILE:
-      GPU_ERROR(gpu_io_load_reference_specs_GEM_FULL(referenceRaw, ref));
+      GPU_ERROR(gpu_io_load_reference_specs_GEM_FULL(referenceRaw, ref, activeModules));
       break;
     case GPU_REF_MFASTA_FILE:
-      GPU_ERROR(gpu_io_load_reference_specs_MFASTA(referenceRaw, ref));
+      GPU_ERROR(gpu_io_load_reference_specs_MFASTA(referenceRaw, ref, activeModules));
       break;
     case GPU_REF_PROFILE_FILE:
-      GPU_ERROR(gpu_io_load_reference_specs_PROFILE(referenceRaw, ref));
+      GPU_ERROR(gpu_io_load_reference_specs_PROFILE(referenceRaw, ref, activeModules));
       break;
     default:
       GPU_ERROR(E_REFERENCE_CODING);
@@ -270,22 +282,22 @@ gpu_error_t gpu_reference_transform(gpu_reference_buffer_t* const ref, const cha
 
   switch(refCoding){
     case GPU_REF_ASCII:
-      GPU_ERROR(gpu_reference_transform_ASCII(referenceRaw, ref));
+      GPU_ERROR(gpu_reference_transform_ASCII(referenceRaw, ref, activeModules));
       break;
     case GPU_REF_GEM_ONLY_FORWARD:
-      GPU_ERROR(gpu_reference_transform_GEM((gpu_gem_ref_dto_t*)referenceRaw, ref));
+      GPU_ERROR(gpu_reference_transform_GEM((gpu_gem_ref_dto_t*)referenceRaw, ref, activeModules));
       break;
     case GPU_REF_GEM_FULL:
-      GPU_ERROR(gpu_reference_transform_GEM_FULL((gpu_gem_ref_dto_t*)referenceRaw, ref));
+      GPU_ERROR(gpu_reference_transform_GEM_FULL((gpu_gem_ref_dto_t*)referenceRaw, ref, activeModules));
       break;
     case GPU_REF_GEM_FILE:
-      GPU_ERROR(gpu_io_load_reference_GEM_FULL(referenceRaw, ref));
+      GPU_ERROR(gpu_io_load_reference_GEM_FULL(referenceRaw, ref, activeModules));
       break;
     case GPU_REF_MFASTA_FILE:
-      GPU_ERROR(gpu_io_load_reference_MFASTA(referenceRaw, ref));
+      GPU_ERROR(gpu_io_load_reference_MFASTA(referenceRaw, ref, activeModules));
       break;
     case GPU_REF_PROFILE_FILE:
-      GPU_ERROR(gpu_io_load_reference_PROFILE(referenceRaw, ref));
+      GPU_ERROR(gpu_io_load_reference_PROFILE(referenceRaw, ref, activeModules));
       break;
     default:
       GPU_ERROR(E_REFERENCE_CODING);
@@ -303,7 +315,7 @@ gpu_error_t gpu_reference_init(gpu_reference_buffer_t **reference, const gpu_ref
 
   GPU_ERROR(gpu_reference_init_dto(ref));
 
-  ref->activeModules  = activeModules;
+  ref->activeModules  = activeModules & GPU_REFERENCE;
   ref->size           = referenceRaw->refSize;
   ref->numEntries     = GPU_DIV_CEIL(ref->size, GPU_REFERENCE_CHARS_PER_ENTRY) + GPU_REFERENCE_END_PADDING;
 

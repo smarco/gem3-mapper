@@ -379,7 +379,7 @@ void gpu_fmi_decode_send_buffer_(void* const fmiBuffer, const uint32_t numDecodi
 
   GPU_ERROR(gpu_fmi_decode_transfer_CPU_to_GPU(mBuff));
   GPU_ERROR(gpu_fmi_decode_process_buffer(mBuff));
-  if(mBuff->index->sa.sampligRate)
+  if(mBuff->index->activeModules & GPU_SA_DECODE_POS)
     GPU_ERROR(gpu_sa_decode_process_buffer(mBuff));
   GPU_ERROR(gpu_fmi_decode_transfer_GPU_to_CPU(mBuff));
 }

@@ -191,18 +191,13 @@ gpu_error_t gpu_index_init(gpu_index_buffer_t** const index, const gpu_index_dto
   gpu_index_buffer_t* const iBuff = (gpu_index_buffer_t *) malloc(sizeof(gpu_index_buffer_t));
 
   //Initialize the the active index modules
-  iBuff->activeModules = GPU_NONE_MODULES;
-  if(activeModules & GPU_FMI){
-    GPU_ERROR(gpu_fmi_index_init(&iBuff->fmi, iBuff->fmi.bwtSize, numSupportedDevices));
-    GPU_ERROR(gpu_index_set_specs(iBuff, rawIndex, rawIndex->fmi.indexCoding, GPU_FMI));
-  }
+  iBuff->activeModules = activeModules & GPU_INDEX;
 
-  if(activeModules & GPU_SA){
-    GPU_ERROR(gpu_sa_index_init(&iBuff->sa, iBuff->sa.numEntries, iBuff->sa.sampligRate, numSupportedDevices));
-    GPU_ERROR(gpu_index_set_specs(iBuff, rawIndex, rawIndex->sa.indexCoding, GPU_SA));
-  }
+  GPU_ERROR(gpu_fmi_index_init(&iBuff->fmi, iBuff->fmi.bwtSize, numSupportedDevices));
+  GPU_ERROR(gpu_sa_index_init(&iBuff->sa, iBuff->sa.numEntries, iBuff->sa.sampligRate, numSupportedDevices));
 
-  //iBuff->activeModules = activeModules;
+  if(activeModules & GPU_FMI) GPU_ERROR(gpu_index_set_specs(iBuff, rawIndex, rawIndex->fmi.indexCoding, GPU_FMI));
+  if(activeModules & GPU_SA)  GPU_ERROR(gpu_index_set_specs(iBuff, rawIndex, rawIndex->sa.indexCoding, GPU_SA));
 
   (* index) = iBuff;
   return (SUCCESS);

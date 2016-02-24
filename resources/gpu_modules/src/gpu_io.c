@@ -16,7 +16,8 @@
 Primitives for input/output
 ************************************************************/
 
-gpu_error_t gpu_io_load_specs_BWT_MFASTA(const char* const fn, gpu_index_buffer_t* const index, const gpu_module_t activeModules)
+gpu_error_t gpu_io_load_specs_BWT_MFASTA(const char* const fn, gpu_index_buffer_t* const index,
+										 const gpu_module_t activeModules)
 {
   FILE *fp = NULL;
   char *h_ascii_BWT = NULL;
@@ -79,7 +80,8 @@ gpu_error_t gpu_io_load_BWT_MFASTA(const char* const fn, gpu_index_buffer_t* con
   return (SUCCESS);
 }
 
-gpu_error_t gpu_io_save_index_PROFILE(const char* const fn, const gpu_index_buffer_t* const index, const gpu_module_t activeModules)
+gpu_error_t gpu_io_save_index_PROFILE(const char* const fn, const gpu_index_buffer_t* const index,
+									  const gpu_module_t activeModules)
 {
   const uint32_t sizeFileName = 512;
   char fileName[sizeFileName];
@@ -107,7 +109,8 @@ gpu_error_t gpu_io_save_index_PROFILE(const char* const fn, const gpu_index_buff
   return (SUCCESS);
 }
 
-gpu_error_t gpu_io_load_index_specs_PROFILE(const char* const fn, gpu_index_buffer_t* const index, const gpu_module_t activeModules)
+gpu_error_t gpu_io_load_index_specs_PROFILE(const char* const fn, gpu_index_buffer_t* const index,
+											const gpu_module_t activeModules)
 {
   FILE *fp = NULL;
 
@@ -123,7 +126,8 @@ gpu_error_t gpu_io_load_index_specs_PROFILE(const char* const fn, gpu_index_buff
   return (SUCCESS);
 }
 
-gpu_error_t gpu_io_load_index_PROFILE(const char* const fn, gpu_index_buffer_t* const index, const gpu_module_t activeModules)
+gpu_error_t gpu_io_load_index_PROFILE(const char* const fn, gpu_index_buffer_t* const index,
+									  const gpu_module_t activeModules)
 {
   FILE *fp = NULL;
 
@@ -139,7 +143,8 @@ gpu_error_t gpu_io_load_index_PROFILE(const char* const fn, gpu_index_buffer_t* 
   return (SUCCESS);
 }
 
-gpu_error_t gpu_io_load_reference_specs_MFASTA(const char *fn, gpu_reference_buffer_t* const reference)
+gpu_error_t gpu_io_load_reference_specs_MFASTA(const char *fn, gpu_reference_buffer_t* const reference,
+											   const gpu_module_t activeModules)
 {
   FILE *fp = NULL;
   uint64_t sizeFile = 0;
@@ -157,7 +162,8 @@ gpu_error_t gpu_io_load_reference_specs_MFASTA(const char *fn, gpu_reference_buf
   return (SUCCESS);
 }
 
-gpu_error_t gpu_io_load_reference_MFASTA(const char *fn, gpu_reference_buffer_t* const reference)
+gpu_error_t gpu_io_load_reference_MFASTA(const char *fn, gpu_reference_buffer_t* const reference,
+									     const gpu_module_t activeModules)
 {
   FILE *fp = NULL;
   char lineFile[GPU_FILE_SIZE_LINES], *tmp_reference;
@@ -188,14 +194,15 @@ gpu_error_t gpu_io_load_reference_MFASTA(const char *fn, gpu_reference_buffer_t*
 
   reference->size = position;
   reference->numEntries = GPU_DIV_CEIL(reference->size, GPU_REFERENCE_CHARS_PER_ENTRY) + GPU_REFERENCE_END_PADDING;
-  GPU_ERROR(gpu_reference_transform(reference, tmp_reference, GPU_REF_ASCII, GPU_REFERENCE));
+  GPU_ERROR(gpu_reference_transform(reference, tmp_reference, GPU_REF_ASCII, activeModules));
 
   fclose(fp);
   free(tmp_reference);
   return (SUCCESS);
 }
 
-gpu_error_t gpu_io_load_reference_specs_PROFILE(const char* const fn, gpu_reference_buffer_t* const reference)
+gpu_error_t gpu_io_load_reference_specs_PROFILE(const char* const fn, gpu_reference_buffer_t* const reference,
+												const gpu_module_t activeModules)
 {
   FILE *fp = NULL;
   size_t result;
@@ -203,13 +210,14 @@ gpu_error_t gpu_io_load_reference_specs_PROFILE(const char* const fn, gpu_refere
   fp = fopen(fn, "rb");
   if (fp == NULL) return (E_OPENING_FILE);
 
-  GPU_ERROR(gpu_reference_read_specs(fp, reference, GPU_REFERENCE));
+  GPU_ERROR(gpu_reference_read_specs(fp, reference, activeModules));
 
   fclose(fp);
   return (SUCCESS);
 }
 
-gpu_error_t gpu_io_load_reference_PROFILE(const char* const fn, gpu_reference_buffer_t* const reference)
+gpu_error_t gpu_io_load_reference_PROFILE(const char* const fn, gpu_reference_buffer_t* const reference,
+										  const gpu_module_t activeModules)
 {
   FILE *fp = NULL;
   size_t result;
@@ -217,13 +225,14 @@ gpu_error_t gpu_io_load_reference_PROFILE(const char* const fn, gpu_reference_bu
   fp = fopen(fn, "rb");
   if (fp == NULL) return (E_OPENING_FILE);
 
-  GPU_ERROR(gpu_reference_read(fp, reference, GPU_REFERENCE));
+  GPU_ERROR(gpu_reference_read(fp, reference, activeModules));
 
   fclose(fp);
   return (SUCCESS);
 }
 
-gpu_error_t gpu_io_save_reference_PROFILE(const char* const fn, const gpu_reference_buffer_t* const reference)
+gpu_error_t gpu_io_save_reference_PROFILE(const char* const fn, const gpu_reference_buffer_t* const reference,
+										  const gpu_module_t activeModules)
 {
   FILE *fp = NULL;
   size_t result;
@@ -231,27 +240,30 @@ gpu_error_t gpu_io_save_reference_PROFILE(const char* const fn, const gpu_refere
   fp = fopen(fn, "wb");
   if (fp == NULL) return (E_OPENING_FILE);
 
-  GPU_ERROR(gpu_reference_write(fp, reference, GPU_REFERENCE));
+  GPU_ERROR(gpu_reference_write(fp, reference, activeModules));
 
   fclose(fp);
   return (SUCCESS);
 }
 
-gpu_error_t gpu_io_load_index_specs_GEM_FULL(const char *fn, gpu_index_buffer_t* const index, const gpu_module_t activeModules)
+gpu_error_t gpu_io_load_index_specs_GEM_FULL(const char *fn, gpu_index_buffer_t* const index,
+										     const gpu_module_t activeModules)
 {
   FILE *fp = NULL;
   size_t result;
   off64_t fileOffsetFMIndex = 0, fileOffsetSAIndex = 0, fileOffsetRef = 0;
+  gpu_module_t fileActiveModules = GPU_NONE_MODULES;
 
   fp = fopen(fn, "rb");
   if (fp == NULL) return (E_OPENING_FILE);
 
-  result = fread(&index->activeModules, sizeof(gpu_module_t), 1, fp);
+  result = fread(&fileActiveModules, sizeof(gpu_module_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
 
-  if((index->activeModules & activeModules) == 0)
+  if((fileActiveModules & activeModules) == 0)
     return(E_MODULE_NOT_FOUND);
 
+  index->activeModules = fileActiveModules & activeModules & GPU_INDEX;
   result = fread(&fileOffsetFMIndex, sizeof(off64_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
   result = fread(&fileOffsetSAIndex, sizeof(off64_t), 1, fp);
@@ -275,21 +287,24 @@ gpu_error_t gpu_io_load_index_specs_GEM_FULL(const char *fn, gpu_index_buffer_t*
   return (SUCCESS);
 }
 
-gpu_error_t gpu_io_load_index_GEM_FULL(const char *fn, gpu_index_buffer_t* const index, const gpu_index_coding_t activeModules)
+gpu_error_t gpu_io_load_index_GEM_FULL(const char *fn, gpu_index_buffer_t* const index,
+									   const gpu_index_coding_t activeModules)
 {
   FILE *fp = NULL;
   size_t result;
   off64_t fileOffsetFMIndex = 0, fileOffsetSAIndex = 0, fileOffsetRef = 0;
+  gpu_module_t fileActiveModules = GPU_NONE_MODULES;
 
   fp = fopen(fn, "rb");
   if (fp == NULL) return (E_OPENING_FILE);
 
-  result = fread(&index->activeModules, sizeof(gpu_module_t), 1, fp);
+  result = fread(&fileActiveModules, sizeof(gpu_module_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
 
-  if((index->activeModules & activeModules) == 0)
+  if((fileActiveModules & activeModules) == 0)
     return(E_MODULE_NOT_FOUND);
 
+  index->activeModules = fileActiveModules & activeModules & GPU_INDEX;
   result = fread(&fileOffsetFMIndex, sizeof(off64_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
   result = fread(&fileOffsetSAIndex, sizeof(off64_t), 1, fp);
@@ -313,7 +328,8 @@ gpu_error_t gpu_io_load_index_GEM_FULL(const char *fn, gpu_index_buffer_t* const
   return (SUCCESS);
 }
 
-gpu_error_t gpu_io_save_index_GEM_FULL(const char* const fn, const gpu_index_buffer_t* const index, const gpu_index_coding_t activeModules)
+gpu_error_t gpu_io_save_index_GEM_FULL(const char* const fn, const gpu_index_buffer_t* const index,
+									   const gpu_index_coding_t activeModules)
 {
   FILE *fp = NULL;
   size_t result;
@@ -359,21 +375,24 @@ gpu_error_t gpu_io_save_index_GEM_FULL(const char* const fn, const gpu_index_buf
   return (SUCCESS);
 }
 
-gpu_error_t gpu_io_load_reference_specs_GEM_FULL(const char* const fn, gpu_reference_buffer_t* const reference)
+gpu_error_t gpu_io_load_reference_specs_GEM_FULL(const char* const fn, gpu_reference_buffer_t* const reference,
+												 const gpu_module_t activeModules)
 {
   FILE *fp = NULL;
   size_t result;
   off64_t fileOffsetFMIndex = 0, fileOffsetSAIndex = 0, fileOffsetRef = 0;
+  gpu_module_t fileActiveModules = GPU_NONE_MODULES;
 
   fp = fopen(fn, "rb");
   if (fp == NULL) return (E_OPENING_FILE);
 
-  result = fread(&reference->activeModules, sizeof(gpu_module_t), 1, fp);
+  result = fread(&fileActiveModules, sizeof(gpu_module_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
 
-  if((reference->activeModules & GPU_REFERENCE) == 0)
+  if((fileActiveModules & activeModules) == 0)
     return (E_MODULE_NOT_FOUND);
 
+  reference->activeModules = fileActiveModules & activeModules & GPU_REFERENCE;
   result = fread(&fileOffsetFMIndex, sizeof(off64_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
   result = fread(&fileOffsetSAIndex, sizeof(off64_t), 1, fp);
@@ -389,21 +408,24 @@ gpu_error_t gpu_io_load_reference_specs_GEM_FULL(const char* const fn, gpu_refer
   return (SUCCESS);
 }
 
-gpu_error_t gpu_io_load_reference_GEM_FULL(const char* const fn, gpu_reference_buffer_t* const reference)
+gpu_error_t gpu_io_load_reference_GEM_FULL(const char* const fn, gpu_reference_buffer_t* const reference,
+										   const gpu_module_t activeModules)
 {
   FILE *fp = NULL;
   size_t result;
   off64_t fileOffsetFMIndex = 0, fileOffsetSAIndex = 0, fileOffsetRef = 0;
+  gpu_module_t fileActiveModules = GPU_NONE_MODULES;
 
   fp = fopen(fn, "rb");
   if (fp == NULL) return (E_OPENING_FILE);
 
-  result = fread(&reference->activeModules, sizeof(gpu_module_t), 1, fp);
+  result = fread(&fileActiveModules, sizeof(gpu_module_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
 
-  if((reference->activeModules & GPU_REFERENCE) == 0)
+  if((fileActiveModules & activeModules) == 0)
     return (E_MODULE_NOT_FOUND);
 
+  reference->activeModules = fileActiveModules & activeModules & GPU_REFERENCE;
   result = fread(&fileOffsetFMIndex, sizeof(off64_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
   result = fread(&fileOffsetSAIndex, sizeof(off64_t), 1, fp);
@@ -419,12 +441,15 @@ gpu_error_t gpu_io_load_reference_GEM_FULL(const char* const fn, gpu_reference_b
   return (SUCCESS);
 }
 
-gpu_error_t gpu_io_save_reference_GEM_FULL(const char* const fn, const gpu_reference_buffer_t* const reference)
+gpu_error_t gpu_io_save_reference_GEM_FULL(const char* const fn, const gpu_reference_buffer_t* const reference,
+										   const gpu_module_t activeModules)
 {
   FILE *fp = NULL;
   size_t result;
-  gpu_module_t activeModules = reference->activeModules;
   off64_t fileOffsetFMIndex = 0, fileOffsetSAIndex = 0, fileOffsetRef = 0;
+
+  if((activeModules & GPU_REFERENCE) == 0)
+    return (E_MODULE_NOT_FOUND);
 
   fp = fopen(fn, "wb");
   if (fp == NULL) return (E_OPENING_FILE);
@@ -469,13 +494,13 @@ void gpu_io_save_indexed_structures_GEM_(const char* const fileName, const gpu_g
 
   // Initialize the reference structure
   GPU_ERROR(gpu_reference_init_dto(&ref));
-  ref.activeModules = activeModules;
+  ref.activeModules = activeModules & GPU_REFERENCE;
   ref.size          = gemRef->ref_length;
   ref.numEntries    = GPU_DIV_CEIL(ref.size, GPU_REFERENCE_CHARS_PER_ENTRY) + GPU_REFERENCE_END_PADDING;
 
   // Initialize the index (SA & FMI) structure
-  GPU_ERROR(gpu_index_init_dto(&index, activeModules));
-  index.activeModules  = activeModules;
+  GPU_ERROR(gpu_index_init_dto(&index, activeModules & GPU_INDEX));
+  index.activeModules  = activeModules & GPU_INDEX;
   index.fmi.bwtSize    = gemFMindex->bwt_length;
   index.fmi.numEntries = GPU_DIV_CEIL(index.fmi.bwtSize, GPU_FMI_ENTRY_SIZE) + 1;
   index.sa.sampligRate = gemSAindex->sa_sampling;

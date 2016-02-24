@@ -71,8 +71,8 @@ gpu_error_t gpu_reference_free(gpu_reference_buffer_t **reference, gpu_device_in
 
 
 /* LOCAL functions */
-gpu_error_t gpu_reference_transform_ASCII(const char* const referenceASCII, gpu_reference_buffer_t* const reference);
-gpu_error_t gpu_reference_transform_GEM(const gpu_gem_ref_dto_t* const gem_reference, gpu_reference_buffer_t* const reference);
-gpu_error_t gpu_reference_transform_GEM_FULL(const gpu_gem_ref_dto_t* const gem_reference, gpu_reference_buffer_t* const reference);
+gpu_error_t gpu_reference_transform_ASCII(const char* const referenceASCII, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
+gpu_error_t gpu_reference_transform_GEM(const gpu_gem_ref_dto_t* const gem_reference, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
+gpu_error_t gpu_reference_transform_GEM_FULL(const gpu_gem_ref_dto_t* const gem_reference, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
 
 #endif /* GPU_REFERENCE_H_ */
