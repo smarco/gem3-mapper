@@ -128,7 +128,7 @@ gpu_error_t gpu_module_manager_per_device(gpu_reference_buffer_t* const referenc
       (* allocatedModules) = tmpAllocatedModules;
       break;
     default:
-      return(E_DATA_NOT_ALLOCATED);
+      return(E_NOT_SUPPORTED_ALLOC_POLICY);
   }
   return(SUCCESS);
 }
@@ -153,11 +153,61 @@ gpu_error_t gpu_module_memory_requirements_per_device(gpu_reference_buffer_t* co
       GPU_ERROR(gpu_module_get_min_memory(reference, index, numBuffers, GPU_NONE_MODULES, &minimumMemorySize));
       break;
     default:
-      return(E_DATA_NOT_ALLOCATED);
+      return(E_NOT_SUPPORTED_ALLOC_POLICY);
   }
 
   (* maskedDevice)    = memoryFree < minimumMemorySize;
   //(* memoryAllocated) = minimumMemorySize;
+  return(SUCCESS);
+}
+
+gpu_error_t gpu_module_search_structures(gpu_module_t* const allocatedModulesPerDevice, gpu_module_t* const allocatedStructuresPerDevice,
+                                         const uint32_t numSupportedDevices, const gpu_module_t activatedModules,
+                                         gpu_module_t* const allocatedStructures)
+{
+  // Initialization for the best fitting structures exploration
+  const uint32_t maxNumActiveModules            = gpu_module_get_num_allocated(activatedModules);
+  gpu_module_t   minAllocatedStructures         = GPU_ALL_MODULES;
+  uint32_t       minNumAllocatedStructures      = gpu_module_get_num_allocated(minAllocatedStructures);
+  uint32_t       currentNumAllocatedStructures  = 0;
+  uint32_t       currentNumActiveModules        = 0;
+  // Initialization for the device exploration
+  uint32_t       idSupportedDevice              = 0;
+
+  // Discover which devices match with the maximum active Modules and sets the local/remote structures
+  for(idSupportedDevice = 0; idSupportedDevice < numSupportedDevices; ++idSupportedDevice){
+    currentNumActiveModules       = gpu_module_get_num_allocated(allocatedModulesPerDevice[idSupportedDevice]);
+    currentNumAllocatedStructures = gpu_module_get_num_allocated(allocatedStructuresPerDevice[idSupportedDevice]);
+    if((currentNumActiveModules == maxNumActiveModules) && (currentNumAllocatedStructures < minNumAllocatedStructures)){
+      minAllocatedStructures    = allocatedStructuresPerDevice[idSupportedDevice];
+      minNumAllocatedStructures = gpu_module_get_num_allocated(minAllocatedStructures);
+    }
+  }
+
+  (* allocatedStructures) = minAllocatedStructures;
+  return(SUCCESS);
+}
+
+gpu_error_t gpu_module_search_active(gpu_module_t* const allocatedModulesPerDevice, const uint32_t numSupportedDevices,
+                                     gpu_module_t* const activatedModules)
+{
+  // Initialization for the best fitting modules exploration
+  gpu_module_t maxActiveModules    = GPU_NONE_MODULES;
+  uint32_t     maxNumActiveModules = gpu_module_get_num_allocated(maxActiveModules);
+  uint32_t     numActiveModules    = 0;
+  // Initialization for the device exploration
+  uint32_t     idSupportedDevice   = 0;
+
+  // Explore all the system requirements to fit the best global module configuration
+  for(idSupportedDevice = 0; idSupportedDevice < numSupportedDevices; ++idSupportedDevice){
+    numActiveModules      = gpu_module_get_num_allocated(allocatedModulesPerDevice[idSupportedDevice]);
+    if(numActiveModules > maxNumActiveModules){
+      maxActiveModules    = allocatedModulesPerDevice[idSupportedDevice];
+      maxNumActiveModules = gpu_module_get_num_allocated(maxActiveModules);
+    }
+  }
+
+  (* activatedModules) = maxActiveModules;
   return(SUCCESS);
 }
 
@@ -166,44 +216,88 @@ gpu_error_t gpu_module_manager_all_system(gpu_reference_buffer_t* const referenc
                                           const gpu_data_location_t userAllocOption, gpu_module_t* const globalModules,
                                           gpu_module_t* const globalStructures)
 {
+  // Device initialization variables
   const uint32_t numDevices = gpu_device_get_num_all();
   const uint32_t numSupportedDevices = gpu_get_num_supported_devices_(selectedArchitectures);
-
   uint32_t idDevice, idSupportedDevice;
-  uint32_t numActiveModules, maxNumActiveModules;
-  gpu_module_t maxActiveModules, maxAllocStructures, activatedModules, allocatedStructure;
+
+  // Lists initialization for the best fitting modules exploration
   gpu_module_t allocatedModulesPerDevice[numSupportedDevices], allocatedStructuresPerDevice[numSupportedDevices];
+  gpu_module_t activatedModules, allocatedStructures;
 
   // Analyze all the devices on the system and annotate the module requirements
   for(idDevice = 0, idSupportedDevice = 0; idDevice < numDevices; ++idDevice){
     const bool deviceArchSupported = gpu_device_get_architecture(idDevice) & selectedArchitectures;
     if(deviceArchSupported){
       GPU_ERROR(gpu_module_manager_per_device(reference, index, idDevice, numBuffers, userAllocOption,
-                                              &activatedModules, &allocatedStructure));
+                                              &activatedModules, &allocatedStructures));
       allocatedModulesPerDevice[idSupportedDevice]    = activatedModules;
-      allocatedStructuresPerDevice[idSupportedDevice] = allocatedStructure;
+      allocatedStructuresPerDevice[idSupportedDevice] = allocatedStructures;
       idSupportedDevice++;
     }
   }
 
-  // Initialization for the best fitting modules exploration
-  maxActiveModules    = GPU_NONE_MODULES;
-  maxAllocStructures  = GPU_NONE_MODULES;
-  numActiveModules    = 0;
-  maxNumActiveModules = 0;
+  // Module exploration to define the module and structures configuration for all the system
+  GPU_ERROR(gpu_module_search_active(allocatedModulesPerDevice, numSupportedDevices, &activatedModules));
+  GPU_ERROR(gpu_module_search_structures(allocatedModulesPerDevice, allocatedStructuresPerDevice, numSupportedDevices,
+                                         activatedModules, &allocatedStructures));
 
-  // Explore all the system requirements to fit the best global module configuration
-  for(idSupportedDevice = 0; idSupportedDevice < numSupportedDevices; ++idSupportedDevice){
-    numActiveModules = gpu_module_get_num_allocated(allocatedModulesPerDevice[idSupportedDevice]);
-    if(numActiveModules > maxNumActiveModules){
-      maxNumActiveModules = numActiveModules;
-      maxActiveModules    = allocatedModulesPerDevice[idSupportedDevice];
-      maxAllocStructures  = allocatedStructuresPerDevice[idSupportedDevice];
-    }
+  (* globalModules)    = activatedModules;
+  (* globalStructures) = allocatedStructures;
+  return(SUCCESS);
+}
+
+gpu_error_t gpu_module_manager_memory_policies(const gpu_data_location_t userAllocOption, const gpu_module_t userRequestedModules,
+                                               gpu_module_t* const requiredModules, gpu_module_t* const recomendedModules,
+                                               gpu_module_t* const globalStructures)
+{
+  switch (userAllocOption){
+    case GPU_REMOTE_DATA:          // (Force to allocate all structures in HOST)
+      (* globalStructures)  = GPU_NONE_MODULES;
+      (* requiredModules)   = GPU_NONE_MODULES;
+      (* recomendedModules) = userRequestedModules;
+      break;
+    case GPU_LOCAL_DATA:           // (Force to allocate all structures in DEVICE)
+      (* requiredModules)   = userRequestedModules;
+      (* recomendedModules) = userRequestedModules;
+      break;
+    case GPU_LOCAL_OR_REMOTE_DATA: // (Best effort allocating structures in DEVICE and the rest in HOST)
+      (* requiredModules)   = GPU_NONE_MODULES;
+      (* recomendedModules) = userRequestedModules;
+      break;
+    case GPU_GEM_POLICY:           // (GEM Default Allocation)
+      (* requiredModules)   = (* globalStructures); // Reference is the minimum required module to be execute
+      (* recomendedModules) = userRequestedModules;
+      break;
+    default:
+      return(E_NOT_SUPPORTED_ALLOC_POLICY);
   }
+  return(SUCCESS);
+}
 
-  (* globalModules)    = maxActiveModules;
-  (* globalStructures) = maxAllocStructures;
+gpu_error_t gpu_module_manager_memory(gpu_reference_buffer_t* const reference, gpu_index_buffer_t* const index,
+                                      const uint32_t numBuffers, const gpu_dev_arch_t selectedArchitectures,
+                                      const gpu_data_location_t userAllocOption,
+                                      size_t* const recomendedMemorySize, size_t* const requiredMemorySize,
+                                      gpu_module_t* const modules, gpu_module_t* const structures)
+{
+  const gpu_module_t userRequestedModules = index->activeModules & reference->activeModules;
+  // Defines to obtain the module requirements
+  gpu_module_t requiredModules, recomendedModules, localModules, localStructures;
+  size_t localRecomendedMemorySize, localRequiredMemorySize;
+
+  // Explores the best combination of active modules and stored structures for all the devices
+  GPU_ERROR(gpu_module_manager_all_system(reference, index, numBuffers, selectedArchitectures, userAllocOption, &localModules, &localStructures));
+  // Calculates the device memory constrains for the above configuration
+  GPU_ERROR(gpu_module_manager_memory_policies(userAllocOption, userRequestedModules, &requiredModules, &recomendedModules, &localStructures));
+  GPU_ERROR(gpu_module_get_min_memory(reference, index, numBuffers, requiredModules, &localRequiredMemorySize));
+  GPU_ERROR(gpu_module_get_min_memory(reference, index, numBuffers, recomendedModules, &localRecomendedMemorySize));
+
+  (* modules)              = localModules;
+  (* structures)           = localStructures;
+  (* recomendedMemorySize) = localRecomendedMemorySize;
+  (* requiredMemorySize)   = localRequiredMemorySize;
+
   return(SUCCESS);
 }
 
@@ -212,22 +306,20 @@ gpu_error_t gpu_module_configure_system(gpu_reference_buffer_t* const reference,
                                         const gpu_dev_arch_t selectedArchitectures, const gpu_data_location_t userAllocOption,
                                         gpu_module_t* const activatedModules, gpu_module_t* const allocatedStructures)
 {
+  // Defines for the system devices
   const uint32_t numDevices = gpu_device_get_num_all();
   const uint32_t numSupportedDevices = gpu_get_num_supported_devices_(selectedArchitectures);
   gpu_device_info_t **dev = (gpu_device_info_t **) malloc(numSupportedDevices * sizeof(gpu_device_info_t *));
-
-  const gpu_module_t userRequestedModules = reference->activeModules | index->activeModules;
+  uint32_t idDevice, idSupportedDevice;
+  // Defines for the module requirements
+  gpu_module_t globalModules, globalStructures;
   size_t recomendedMemorySize, requiredMemorySize;
-  uint32_t idDevice, idSupportedDevice = 0;
-  gpu_module_t globalModules = GPU_NONE_MODULES, globalStructures = GPU_NONE_MODULES;
 
-  // Explores the best combination of active modules and stored structures for all the devices
-  GPU_ERROR(gpu_module_manager_all_system(reference, index, numBuffers, selectedArchitectures, userAllocOption, &globalModules, &globalStructures));
-  // Calculates the device memory constrains for the above configuration
-  GPU_ERROR(gpu_module_get_min_memory(reference, index, numBuffers, GPU_NONE_MODULES, &requiredMemorySize));
-  GPU_ERROR(gpu_module_get_min_memory(reference, index, numBuffers, userRequestedModules, &recomendedMemorySize));
+  // Choose the best modules-structures and the memory requirements for all the system
+  GPU_ERROR(gpu_module_manager_memory(reference, index, numBuffers, selectedArchitectures, userAllocOption,
+                                      &recomendedMemorySize, &requiredMemorySize, &globalModules, &globalStructures));
 
-  // Activates the devices with enough requirements in the system
+  // Activates the system devices with enough arch and memory requirements
   for(idDevice = 0, idSupportedDevice = 0; idDevice < numDevices; ++idDevice){
     size_t memoryFree               = gpu_device_get_free_memory(idDevice);
     const bool deviceArchSupported  = gpu_device_get_architecture(idDevice) & selectedArchitectures;
@@ -235,11 +327,12 @@ gpu_error_t gpu_module_configure_system(gpu_reference_buffer_t* const reference,
     gpu_device_screen_status(idDevice, deviceArchSupported, recomendedMemorySize, requiredMemorySize);
     if(deviceArchSupported && dataFitsMemoryDevice){ //Data fits on memory device
       GPU_ERROR(gpu_device_init(&dev[idDevice], idDevice, idSupportedDevice, selectedArchitectures));
-      GPU_ERROR(gpu_module_set_device_allocation(reference, index, idSupportedDevice, globalModules)); // TODO: recalculate and use globalStructures
+      GPU_ERROR(gpu_module_set_device_allocation(reference, index, idSupportedDevice, globalStructures));
       idSupportedDevice++;
     }
   }
 
+  // Analyze and record the characteristic of each supported device
   GPU_ERROR(gpu_device_characterize_all(dev, idSupportedDevice));
 
   reference->activeModules = globalModules & GPU_REFERENCE;

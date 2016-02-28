@@ -251,24 +251,23 @@ gpu_error_t gpu_device_screen_status(const uint32_t idDevice, const bool deviceA
   const bool dataFitsMemoryDevice = (requiredMemorySize < memoryFree);
 
   CUDA_ERROR(cudaGetDeviceProperties(&devProp, idDevice));
-  fprintf(stderr, "GPU Device %d: %s", idDevice, devProp.name);
 
   if(!deviceArchSupported){
-    fprintf(stderr, "\t \t Discarded Device [NOT RUNNING] \n");
-    fprintf(stderr, "\t \t UNSUPPORTED Architecture [Compute Capability < 2.0: UNSUITABLE] \n");
+    fprintf(stderr, "GPU Device %d: %-25s Discarded Device [NOT RUNNING] \n", idDevice, devProp.name);
+    fprintf(stderr, "GPU Device %d: %-25s UNSUPPORTED Architecture [Compute Capability < 2.0: UNSUITABLE] \n", idDevice, devProp.name);
     return(SUCCESS);
   }
   if(!dataFitsMemoryDevice){
-    fprintf(stderr, "\t \t Discarded Device [NOT RUNNING] \n");
-    fprintf(stderr, "\t \t INSUFFICIENT DEVICE MEMORY (Mem Required: %lu MBytes - Mem Available: %lu MBytes) \n",
-            GPU_CONVERT__B_TO_MB(requiredMemorySize), GPU_CONVERT__B_TO_MB(memoryFree));
+    fprintf(stderr, "GPU Device %d: %-25s Discarded Device [NOT RUNNING] \n", idDevice, devProp.name);
+    fprintf(stderr, "GPU Device %d: %-25s INSUFFICIENT DEVICE MEMORY (Mem Required: %lu MBytes - Mem Available: %lu MBytes) \n",
+            idDevice, devProp.name, GPU_CONVERT__B_TO_MB(requiredMemorySize), GPU_CONVERT__B_TO_MB(memoryFree));
     return(SUCCESS);
   }
   if((deviceArchSupported && dataFitsMemoryDevice)){
-    fprintf(stderr, "\t \t Selected Device [RUNNING] \n");
+    fprintf(stderr, "GPU Device %d: %-25s Selected Device [RUNNING] \n", idDevice, devProp.name);
     if (memoryFree < recomendedMemorySize){
-      fprintf(stderr, "\t \t WARNING PERF. SLOWDOWNS (Mem Recommended: %lu MBytes - Mem Available: %lu MBytes) \n",
-              GPU_CONVERT__B_TO_MB(recomendedMemorySize), GPU_CONVERT__B_TO_MB(memoryFree));
+      fprintf(stderr, "GPU Device %d: %-25s WARNING PERF. SLOWDOWNS (Mem Recommended: %lu MBytes - Mem Available: %lu MBytes) \n",
+              idDevice, devProp.name, GPU_CONVERT__B_TO_MB(recomendedMemorySize), GPU_CONVERT__B_TO_MB(memoryFree));
     }
     return(SUCCESS);
   }

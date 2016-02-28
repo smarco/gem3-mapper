@@ -29,12 +29,14 @@ const char* gpuGetErrorString(gpu_error_t error)
     case E_INSUFFICIENT_MEM_GPU:        return "GEM GPU - Error: there aren't enough GPU memory space";
     case E_ALLOCATE_MEM:                return "GEM GPU - Error: allocating data";
     case E_INCOMPATIBLE_GPU:            return "GEM GPU - Error: incompatible GPU (old CC version)";
-    case E_NO_SUPPORTED_GPUS:           return "GEM GPU - Error: there aren't supported GPUs in the system";
+    case E_NOT_SUPPORTED_GPUS:          return "GEM GPU - Error: there aren't supported GPUs in the system";
     case E_REFERENCE_CODING:            return "GEM GPU - Error: reference coding not supported";
     case E_INDEX_CODING:                return "GEM GPU - Error: index coding not supported";
     case E_INSUFFICIENT_MEM_PER_BUFFER: return "GEM GPU - Error: GPU buffer size too small";
     case E_MODULE_NOT_FOUND:            return "GEM GPU - Error: module not found";
+    case E_NOT_SUPPORTED_ALLOC_POLICY:  return "GEM GPU - Error: undefined memory allocation policy";
     case E_NOT_IMPLEMENTED:             return "GEM GPU - Error: functionality not implemented";
+    case E_DATA_NOT_ALLOCATED:          return "GEM GPU - Error: structure not allocated to any memory";
     default:                            return "GEM GPU - Unknown error";
   }
 }

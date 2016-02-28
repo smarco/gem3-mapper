@@ -43,11 +43,21 @@ gpu_error_t   gpu_module_manager_all_system(gpu_reference_buffer_t* const refere
 gpu_error_t   gpu_module_memory_requirements_per_device(gpu_reference_buffer_t* const reference, gpu_index_buffer_t* const index,
                                                         const uint32_t idDevice, const uint32_t numBuffers, const gpu_data_location_t userAllocOption,
                                                         gpu_module_t* const maxAllocatedModules, bool* const maskedDevice);
-
 gpu_error_t   gpu_module_configure_system(gpu_reference_buffer_t* const reference, gpu_index_buffer_t* const index,
                                           gpu_device_info_t ***devices, const uint32_t numBuffers,
                                           const gpu_dev_arch_t selectedArchitectures, const gpu_data_location_t userAllocOption,
                                           gpu_module_t* const activatedModules, gpu_module_t* const allocatedStructures);
+gpu_error_t   gpu_module_manager_memory(gpu_reference_buffer_t* const reference, gpu_index_buffer_t* const index,
+                                        const uint32_t numBuffers, const gpu_dev_arch_t selectedArchitectures,
+                                        const gpu_data_location_t userAllocOption,
+                                        size_t* const recomendedMemorySize, size_t* const requiredMemorySize,
+                                        gpu_module_t* const modules, gpu_module_t* const structures);
+/* Primitives search module configurations */
+gpu_error_t   gpu_module_search_active(gpu_module_t* const allocatedModulesPerDevice, const uint32_t numSupportedDevices,
+                                       gpu_module_t* const activatedModules);
+gpu_error_t   gpu_module_search_structures(gpu_module_t* const allocatedModulesPerDevice, gpu_module_t* const allocatedStructuresPerDevice,
+                                           const uint32_t numSupportedDevices, const gpu_module_t activatedModules,
+                                           gpu_module_t* const allocatedStructures);
 
 
 #endif /* GPU_MODULE_H_ */
