@@ -34,5 +34,10 @@ int64_t gem_thread_get_thread_id() {
   return (thread_id) ? *thread_id : -1;
 }
 void gem_thread_cleanup() {
-  if (threads_id_locator!=NULL) ihash_delete(threads_id_locator);
+  if (threads_id_locator!=NULL) {
+    IHASH_BEGIN_ITERATE(threads_id_locator,it_key,it_element,int64_t) {
+      mm_free(it_element);
+    } IHASH_END_ITERATE;
+    ihash_delete(threads_id_locator);
+  }
 }

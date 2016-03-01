@@ -12,6 +12,29 @@
 #include "utils/essentials.h"
 
 /*
+ * Alignment CIGAR (Mismatches/Indels/...)
+ */
+typedef enum {
+  cigar_null = 0,
+  cigar_match = 1,
+  cigar_mismatch = 2,
+  cigar_ins = 3,
+  cigar_del = 4,
+} cigar_t;
+typedef enum {
+  cigar_attr_none = 0,
+  cigar_attr_trim = 1,
+  cigar_attr_homopolymer = 2,
+} cigar_attr_t;
+typedef struct {
+  cigar_t type;              // Match, Mismatch, insertion or deletion
+  cigar_attr_t attributes;   // Attributes
+  union {
+    int32_t length;          // Match length
+    uint8_t mismatch;        // Mismatch base
+  };
+} cigar_element_t;
+/*
  * Region Matching
  *   A chain of regions matching determines the shape of the final
  *   alignment CIGAR. If allowed, the chain of matching regions will
@@ -40,36 +63,23 @@ typedef struct {
   uint64_t text_begin;
   uint64_t text_end;
 } region_matching_t;
-
 /*
- * Alignment CIGAR (Mismatches/Indels/...)
+ * Region Alignment
  */
-typedef enum {
-  cigar_null = 0,
-  cigar_match = 1,
-  cigar_mismatch = 2,
-  cigar_ins = 3,
-  cigar_del = 4,
-} cigar_t;
-typedef enum {
-  cigar_attr_none = 0,
-  cigar_attr_trim = 1,
-  cigar_attr_homopolymer = 2,
-} cigar_attr_t;
 typedef struct {
-  cigar_t type;              // Match, Mismatch, insertion or deletion
-  cigar_attr_t attributes;   // Attributes
-  union {
-    int32_t length;          // Match length
-    uint8_t mismatch;        // Mismatch base
-  };
-} cigar_element_t;
-typedef enum {
-  alignment_model_none,
-  alignment_model_hamming,
-  alignment_model_levenshtein,
-  alignment_model_gap_affine
-} alignment_model_t;
+  uint64_t match_distance;                  // Distance
+  uint64_t text_begin_offset;               // Text begin offset
+  uint64_t text_end_offset;                 // Text end offset
+} region_alignment_tile_t;
+typedef struct {
+  uint64_t num_tiles;                       // Total number of tiles
+  uint64_t distance_min_bound;              // Distance min-bound (Sum all tile distances)
+  uint64_t distance_max_bound;              // Distance max-bound (Sum all tile distances + link-distance estimation)
+  region_alignment_tile_t* alignment_tiles; // Alignment of all tiles
+} region_alignment_t;
+/*
+ * Match Alignment
+ */
 typedef struct {
   uint64_t match_text_offset; // Match text offset (wrt beginning of text-candidate)
   uint64_t match_position;    // Match position
@@ -78,6 +88,15 @@ typedef struct {
   int64_t effective_length;   // Match effective length
   int32_t score;              // Score assigned by the aligner
 } match_alignment_t;
+/*
+ * Alignment Model
+ */
+typedef enum {
+  alignment_model_none,
+  alignment_model_hamming,
+  alignment_model_levenshtein,
+  alignment_model_gap_affine
+} alignment_model_t;
 
 /*
  * Region Matching

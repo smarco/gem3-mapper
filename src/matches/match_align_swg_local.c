@@ -23,14 +23,14 @@ typedef struct {
 } match_align_swg_local_max_t;
 
 void match_align_swg_local_alignment_add_gap(
-    const uint64_t global_key_pos,
-    const uint64_t global_text_pos,
-    uint64_t* const local_key_pos,
-    uint64_t* const local_text_pos,
-    cigar_element_t** const local_cigar_buffer) {
+    cigar_element_t** const local_cigar_buffer,
+    const uint64_t begin_key_pos,
+    const uint64_t begin_text_pos,
+    const uint64_t end_key_pos,
+    const uint64_t end_text_pos) {
   // Compute sentinels differences
-  const uint64_t key_pos_diff = global_key_pos - (*local_key_pos);
-  const uint64_t text_pos_diff = global_text_pos - (*local_text_pos);
+  const uint64_t key_pos_diff = end_key_pos - begin_key_pos;
+  const uint64_t text_pos_diff = end_text_pos - begin_text_pos;
   // Delete the read chunk
   if (key_pos_diff > 0) {
     (*local_cigar_buffer)->type = cigar_del;
@@ -45,9 +45,6 @@ void match_align_swg_local_alignment_add_gap(
     (*local_cigar_buffer)->attributes = cigar_attr_none;
     ++(*local_cigar_buffer);
   }
-  // Update sentinels
-  *local_key_pos = global_key_pos;
-  *local_text_pos = global_text_pos;
 }
 void match_align_swg_local_alignment_add_local_chunk(
     cigar_element_t* const global_cigar_buffer,
@@ -92,7 +89,7 @@ void match_align_swg_local_alignment(
     .local_identity = 0,
   };
   // Traverse all CIGAR elements
-  uint64_t local_key_pos = 0, local_text_pos = 0;
+  uint64_t key_pos = 0, text_pos = 0;
   uint64_t global_key_pos = 0, global_text_pos = 0;
   uint64_t local_identity = 0, i;
   int64_t local_score = 0, global_score = 0;
@@ -103,25 +100,25 @@ void match_align_swg_local_alignment(
         const int32_t match_length = global_cigar_buffer[i].length;
         local_score += align_swg_score_match(swg_penalties,match_length);
         local_identity += match_length;
-        global_text_pos += match_length;
-        global_key_pos += match_length;
+        text_pos += match_length;
+        key_pos += match_length;
         break;
       }
       case cigar_mismatch:
         local_score += align_swg_score_mismatch(swg_penalties);
-        ++global_text_pos;
-        ++global_key_pos;
+        ++text_pos;
+        ++key_pos;
         break;
       case cigar_ins: {
         const int32_t indel_length = global_cigar_buffer[i].length;
         local_score += align_swg_score_insertion(swg_penalties,indel_length);
-        global_text_pos += indel_length;
+        text_pos += indel_length;
         break;
       }
       case cigar_del: {
         const int32_t indel_length = global_cigar_buffer[i].length;
         local_score += align_swg_score_deletion(swg_penalties,indel_length);
-        global_key_pos += indel_length;
+        key_pos += indel_length;
         break;
       }
       default:
@@ -134,35 +131,44 @@ void match_align_swg_local_alignment(
       // Max local score
       local_max.local_score = local_score;
       local_max.local_identity = local_identity;
-      local_max.local_end_key_pos = global_key_pos;
-      local_max.local_end_text_pos = global_text_pos;
+      local_max.local_end_key_pos = key_pos;
+      local_max.local_end_text_pos = text_pos;
       local_max.local_end_cigar = i;
     } else if (local_score < 0) {
       // Store local-max alignment chunk
       if (local_max.local_score >= local_min_swg_threshold &&
           local_max.local_identity >= local_min_identity) {
-        match_align_swg_local_alignment_add_gap(global_key_pos,
-            global_key_pos,&local_key_pos,&local_text_pos,&local_cigar_buffer);
+        match_align_swg_local_alignment_add_gap(&local_cigar_buffer,
+            global_key_pos,global_text_pos,local_max.local_begin_key_pos,local_max.local_begin_text_pos);
         match_align_swg_local_alignment_add_local_chunk(global_cigar_buffer,&local_cigar_buffer,&local_max);
-        global_score += local_score;
+        global_key_pos = local_max.local_end_key_pos;
+        global_text_pos = local_max.local_end_text_pos;
+        global_score += local_max.local_score;
       }
       // Reset
       local_score = 0;
       local_identity = 0;
       local_max.local_score = 0;
       local_max.local_identity = 0;
-      local_max.local_begin_key_pos = global_key_pos;
-      local_max.local_begin_text_pos = global_text_pos;
+      local_max.local_begin_key_pos = key_pos;
+      local_max.local_begin_text_pos = text_pos;
       local_max.local_begin_cigar = i;
     }
   }
   // Check local score
   if (local_max.local_score >= local_min_swg_threshold &&
       local_max.local_identity >= local_min_identity) {
-    match_align_swg_local_alignment_add_gap(global_key_pos,
-        global_key_pos,&local_key_pos,&local_text_pos,&local_cigar_buffer);
+    match_align_swg_local_alignment_add_gap(&local_cigar_buffer,
+        global_key_pos,global_text_pos,local_max.local_begin_key_pos,local_max.local_begin_text_pos);
     match_align_swg_local_alignment_add_local_chunk(global_cigar_buffer,&local_cigar_buffer,&local_max);
-    global_score += local_score;
+    global_key_pos = local_max.local_end_key_pos;
+    global_text_pos = local_max.local_end_text_pos;
+    global_score += local_max.local_score;
+  }
+  // Add final trim (if needed)
+  if (global_key_pos != align_input->key_length) {
+    match_align_swg_local_alignment_add_gap(
+        &local_cigar_buffer,global_key_pos,0,align_input->key_length,0);
   }
   // Set local-CIGAR buffer used
   const uint64_t local_cigar_used = local_cigar_buffer-local_cigar_buffer_base;

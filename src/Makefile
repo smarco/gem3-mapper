@@ -49,16 +49,4 @@ debug: $(SUBDIRS)
 $(SUBDIRS):
 	$(MAKE) --directory=$@ $(MODE)
 
-###############################################################################
-# GEM-library
-###############################################################################
-
-$(LIB_GEM_CORE): $(OBJS)
-ifeq ($(HAVE_CUDA),1)
-	$(AR) -rcs $(LIB_GEM_CORE) $(FOLDER_BUILD)/*.o $(FOLDER_GEMGPU_BUILD)/*.o
-else
-	$(AR) -rcs $(LIB_GEM_CORE) $(FOLDER_BUILD)/*.o
-endif
-
-
 .PHONY: $(SUBDIRS)

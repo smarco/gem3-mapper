@@ -41,7 +41,9 @@ complexity:
 	
 setup: 
 	@mkdir -p $(FOLDER_BIN) $(FOLDER_BUILD) $(FOLDER_LIB)
+	@ln -s $(FOLDER_RESOURCES) $(FOLDER_INCLUDE)/resources 2> /dev/null ||:
 
 clean:
 	$(MAKE) --directory=resources clean
 	@rm -rf $(FOLDER_BIN) $(FOLDER_BUILD) $(FOLDER_LIB)
+	@rm -f $(FOLDER_INCLUDE)/resources

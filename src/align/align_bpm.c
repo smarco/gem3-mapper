@@ -23,7 +23,7 @@
  */
 void align_bpm_compute_matrix(
     match_align_input_t* const align_input,
-    const uint64_t max_distance,
+    uint64_t max_distance,
     bpm_align_matrix_t* const bpm_align_matrix,
     mm_stack_t* const mm_stack) {
   // Parameters
@@ -32,19 +32,22 @@ void align_bpm_compute_matrix(
   const uint64_t text_length = align_input->text_length;
   // Pattern variables
   const uint64_t* PEQ = bpm_pattern->PEQ;
-  const uint64_t num_words = bpm_pattern->pattern_num_words;
+  const uint64_t num_words64 = bpm_pattern->pattern_num_words64;
   const uint64_t* const level_mask = bpm_pattern->level_mask;
   int64_t* const score = bpm_pattern->score;
   const int64_t* const init_score = bpm_pattern->init_score;
   // Allocate auxiliary matrix
-  const uint64_t aux_matrix_size = num_words*BPM_ALIGN_WORD_SIZE*(text_length+1); /* (+1 base-column) */
+  const uint64_t aux_matrix_size = num_words64*UINT64_SIZE*(text_length+1); /* (+1 base-column) */
   uint64_t* const Pv = (uint64_t*)mm_stack_malloc(mm_stack,aux_matrix_size);
   uint64_t* const Mv = (uint64_t*)mm_stack_malloc(mm_stack,aux_matrix_size);
   bpm_align_matrix->Mv = Mv;
   bpm_align_matrix->Pv = Pv;
   // Initialize search
+  if (max_distance >= bpm_pattern->pattern_length) {
+    max_distance = bpm_pattern->pattern_length-1; // Correct max-distance
+  }
   const uint64_t max_distance__1 = max_distance+1;
-  const uint8_t top = num_words-1;
+  const uint8_t top = num_words64-1;
   uint64_t min_score = ALIGN_DISTANCE_INF, min_score_column = ALIGN_COLUMN_INF;
   uint8_t top_level;
   bpm_reset_search_cutoff(&top_level,Pv,Mv,score,init_score,max_distance);
@@ -57,8 +60,8 @@ void align_bpm_compute_matrix(
     uint64_t i,PHin=0,MHin=0,PHout,MHout;
     for (i=0;i<top_level;++i) {
       /* Calculate Step Data */
-      const uint64_t bdp_idx = BPM_PATTERN_BDP_IDX(text_position,num_words,i);
-      const uint64_t next_bdp_idx = bdp_idx+num_words;
+      const uint64_t bdp_idx = BPM_PATTERN_BDP_IDX(text_position,num_words64,i);
+      const uint64_t next_bdp_idx = bdp_idx+num_words64;
       uint64_t Pv_in = Pv[bdp_idx];
       uint64_t Mv_in = Mv[bdp_idx];
       const uint64_t mask = level_mask[i];
@@ -74,13 +77,13 @@ void align_bpm_compute_matrix(
     }
     // Cut-off
     const uint8_t last = top_level-1;
-    if (gem_expect_false(score[last]<=max_distance__1)) {
+    if (gem_expect_false(score[last]<=max_distance__1 && last<top)) {
       const uint64_t last_score = score[last]+(MHin-PHin);
       const uint64_t Peq = PEQ[BPM_PATTERN_PEQ_IDX(top_level,enc_char)];
-      if (last_score<=max_distance && last<top && (MHin || (Peq & 1))) {
+      if (last_score<=max_distance && (MHin || (Peq & 1))) {
         // Init block V
-        const uint64_t bdp_idx = BPM_PATTERN_BDP_IDX(text_position,num_words,top_level);
-        const uint64_t next_bdp_idx = bdp_idx+num_words;
+        const uint64_t bdp_idx = BPM_PATTERN_BDP_IDX(text_position,num_words64,top_level);
+        const uint64_t next_bdp_idx = bdp_idx+num_words64;
         uint64_t Pv_in = BMP_W64_ONES;
         uint64_t Mv_in = 0;
         Pv[bdp_idx] = BMP_W64_ONES;
@@ -106,7 +109,7 @@ void align_bpm_compute_matrix(
     }
     // Check match
     const int64_t current_score = score[top_level-1];
-    if (top_level==num_words && current_score<=max_distance) {
+    if (top_level==num_words64 && current_score<=max_distance) {
       if (current_score < min_score)  {
         min_score_column = text_position;
         min_score = current_score;
@@ -147,17 +150,17 @@ void align_bpm_backtrace_matrix(
   cigar_element_t* const cigar_buffer_base = cigar_buffer;
   cigar_buffer->type = cigar_null; // Trick
   // Retrieve the alignment. Store the match
-  const uint64_t num_words = bpm_pattern->pattern_num_words;
+  const uint64_t num_words64 = bpm_pattern->pattern_num_words64;
   int64_t match_effective_length = pattern_length;
   int64_t h = bpm_align_matrix->min_score_column;
   int64_t v = pattern_length - 1;
   while (v >= 0 && h >= 0) {
     const uint8_t block = v / UINT64_LENGTH;
-    const uint64_t bdp_idx = BPM_PATTERN_BDP_IDX(h+1,num_words,block);
+    const uint64_t bdp_idx = BPM_PATTERN_BDP_IDX(h+1,num_words64,block);
     const uint64_t mask = 1L << (v % UINT64_LENGTH);
     // Select CIGAR operation
     const bool deletion = Pv[bdp_idx] & mask;
-    const bool insertion = Mv[(bdp_idx-num_words)] & mask;
+    const bool insertion = Mv[(bdp_idx-num_words64)] & mask;
     const bool match = text[h]==key[v];
     cigar_t operation;
     if (left_gap_alignment) {

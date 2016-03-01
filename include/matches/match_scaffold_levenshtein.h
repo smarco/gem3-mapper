@@ -15,17 +15,6 @@
 #include "matches/matches.h"
 
 /*
- * Compute Levenshtein Alignment (for scaffolding)
- */
-void match_scaffold_levenshtein_align(
-    match_scaffold_t* const match_scaffold,
-    match_align_input_t* const align_input,
-    const uint64_t max_error,
-    const bool left_gap_alignment,
-    matches_t* const matches,
-    mm_stack_t* const mm_stack);
-
-/*
  * Levenshtein Scaffold Tiled
  */
 bool match_scaffold_levenshtein(

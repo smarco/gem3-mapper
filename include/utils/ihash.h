@@ -61,12 +61,18 @@ void ihash_sort_by_key(ihash_t* const ihash);
 /*
  * Iterator
  */
-#define GT_IHASH_BEGIN_ITERATE(ihash,it_ikey,it_element,type) { \
-  ihash_element *ihash_##ih_element, *ihash_##tmp; \
-  HASH_ITER(hh,ihash,ihash_##ih_element,ihash_##tmp) { \
+#define IHASH_BEGIN_ITERATE(ihash,it_ikey,it_element,type) { \
+  ihash_element_t *ihash_##ih_element, *ihash_##tmp; \
+  HASH_ITER(hh,ihash->head,ihash_##ih_element,ihash_##tmp) { \
+    type* const it_element = (type*)(ihash_##ih_element->element);
+#define IHASH_END_ITERATE }}
+
+#define IHASH_BEGIN_ITERATE__KEY(ihash,it_ikey,it_element,type) { \
+  ihash_element_t *ihash_##ih_element, *ihash_##tmp; \
+  HASH_ITER(hh,ihash->head,ihash_##ih_element,ihash_##tmp) { \
     type* const it_element = (type*)(ihash_##ih_element->element); \
     int64_t const it_ikey = ihash_##ih_element->key;
-#define GT_IHASH_END_ITERATE }}
+#define IHASH_END_ITERATE__KEY }}
 
 ihash_iterator_t* ihash_iterator_new(ihash_t* const ihash);
 void ihash_iterator_delete(ihash_iterator_t* const ihash_iterator);

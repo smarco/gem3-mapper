@@ -19,12 +19,8 @@
 bool filtering_region_verify(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
-    pattern_t* const pattern);
-uint64_t filtering_region_verify_multiple_hits(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern);
-
+    pattern_t* const pattern,
+    const bool kmer_filter);
 uint64_t filtering_region_verify_extension(
     filtering_candidates_t* const filtering_candidates,
     const uint64_t text_trace_offset,

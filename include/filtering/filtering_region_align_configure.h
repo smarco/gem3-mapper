@@ -38,7 +38,8 @@ void filtering_region_align_configure_levenshtein(
     pattern_t* const pattern,
     text_trace_t* const text_trace,
     const bool emulated_rc_search,
-    const bool left_gap_alignment);
+    const bool left_gap_alignment,
+    mm_stack_t* const mm_stack);
 
 /*
  * Configure SWG-based Alignment
@@ -52,6 +53,7 @@ void filtering_region_align_configure_swg(
     text_trace_t* const text_trace,
     const bool emulated_rc_search,
     const bool left_gap_alignment,
-    const bool local_alignment);
+    const bool local_alignment,
+    mm_stack_t* const mm_stack);
 
 #endif /* FILTERING_REGION_ALIGN_CONFIGURE_H_ */

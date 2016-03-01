@@ -47,7 +47,7 @@ void approximate_search_verify_candidates(
   // Verify Candidates
   filtering_candidates_verify_candidates(filtering_candidates,pattern);
   filtering_candidates_align_candidates(filtering_candidates,
-      pattern,search->emulated_rc_search,false,false,false,matches);
+      pattern,search->emulated_rc_search,false,false,matches);
   search->processing_state = asearch_processing_state_candidates_verified;
   // Adjust max-differences
   asearch_control_adjust_max_differences_using_strata(search,matches);
@@ -95,10 +95,8 @@ void approximate_search_verify_candidates_buffered_retrieve(
           &search->pattern,gpu_buffer_align_bpm,candidate_offset_begin,candidate_offset_end);
   if (num_accepted_regions > 0) {
     // Realign
-    PROFILE_START(GP_FC_REALIGN_CANDIDATE_REGIONS_BUFFERED,PROFILE_LEVEL);
     filtering_candidates_align_candidates(search->filtering_candidates,
-        &search->pattern,search->emulated_rc_search,true,false,false,matches);
-    PROFILE_STOP(GP_FC_REALIGN_CANDIDATE_REGIONS_BUFFERED,PROFILE_LEVEL);
+        &search->pattern,search->emulated_rc_search,false,false,matches);
   }
   // Update state
   search->processing_state = asearch_processing_state_candidates_verified;

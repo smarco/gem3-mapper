@@ -36,16 +36,16 @@ void archive_check_se_match_retrieve_text(
   uint8_t* reverse_text;
   uint8_t* forward_text = dna_text_retrieve_sequence(archive->text->enc_text,index_begin_pos,text_length,mm_stack);
   if (match_trace->strand==Forward) {
-    match_align_input->text = forward_text;
-    match_align_input->text_offset_begin = index_position-index_begin_pos;
+    const uint64_t text_offset_begin = index_position-index_begin_pos;
+    match_align_input->text = forward_text+text_offset_begin;
   } else { // Reverse
     uint64_t i;
     reverse_text = mm_stack_calloc(mm_stack,text_length,uint8_t,false);
     for (i=0;i<text_length;++i) {
       reverse_text[text_length-i-1] = dna_encoded_complement(forward_text[i]);
     }
-    match_align_input->text = reverse_text;
-    match_align_input->text_offset_begin = BOUNDED_SUBTRACTION(index_end_pos,effective_length+index_position,0);
+    const uint64_t text_offset_begin = BOUNDED_SUBTRACTION(index_end_pos,effective_length+index_position,0);
+    match_align_input->text = reverse_text+text_offset_begin;
   }
 }
 bool archive_check_se_match_check_optimum(
@@ -103,8 +103,7 @@ void archive_check_se_match_print(
 // match_trace_print(stream,matches->cigar_vector,);
   match_alignment_print_pretty(stream,&match_trace->match_alignment,
       matches->cigar_vector,match_align_input->key,match_align_input->key_length,
-      match_align_input->text+match_align_input->text_offset_begin,
-      match_trace->match_alignment.effective_length,mm_stack);
+      match_align_input->text,match_trace->match_alignment.effective_length,mm_stack);
   tab_global_dec();
   match_scaffold_t* const match_scaffold = (match_scaffold_t*) match_trace->match_scaffold;
   tab_fprintf(stream,"=> Supporting.Edit.Alignment ");
@@ -192,8 +191,7 @@ void archive_check_se_matches(
     archive_check_se_match_retrieve_text(archive,match_trace,&match_align_input,mm_stack);
     // Check correctness
     match_alignment_t* const match_alignment = &match_trace->match_alignment;
-    const bool correct_alignment = align_check(
-        stream,key,key_length,match_align_input.text+match_align_input.text_offset_begin,
+    const bool correct_alignment = align_check(stream,key,key_length,match_align_input.text,
         match_alignment->effective_length,matches->cigar_vector,match_alignment->cigar_offset,
         match_alignment->cigar_length,true);
     if (!correct_alignment) {

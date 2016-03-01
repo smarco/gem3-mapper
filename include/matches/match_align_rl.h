@@ -14,12 +14,12 @@
 #include "matches/match_align_dto.h"
 
 /*
- * RL-Space CIGAR Translation
+ * RL-Space Translate CIGAR
  */
-void match_align_rl_translate_cigar(
-    match_trace_t* const match_trace,
-    vector_t* const cigar_vector,
+void match_align_rl_translate_region_cigar(
+    region_matching_t* const region_matching,
     match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters);
+    const bool left_gap_alignment,
+    vector_t* const cigar_vector);
 
 #endif /* MATCH_ALIGN_RL_H_ */

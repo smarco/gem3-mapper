@@ -123,11 +123,8 @@ void filtering_candidates_decode_filtering_positions_buffered(
   PROFILE_START(GP_FC_DECODE_CANDIDATES_BUFFERED,PROFILE_LEVEL);
   // Parameters
   locator_t* const locator = filtering_candidates->archive->locator;
-  const uint64_t region_begin = region_search->begin;
-  const uint64_t region_end = region_search->end;
   const uint64_t region_lo = region_search->lo;
   const uint64_t region_hi = region_search->hi;
-  const uint64_t key_length = pattern->key_length;
   // Reserve
   vector_t* const filtering_positions = filtering_candidates->filtering_positions;
   const uint64_t num_candidates = region_hi-region_lo;
@@ -144,8 +141,7 @@ void filtering_candidates_decode_filtering_positions_buffered(
     // Locate Position
     fposition->locator_interval = locator_lookup_interval(locator,fposition->region_text_position);
     // Adjust Position
-    filtering_candidates_compute_text_coordinates(filtering_candidates,
-        fposition,pattern,region_begin,key_length-region_end);
+    filtering_candidates_compute_text_coordinates(filtering_candidates,fposition,pattern,region_search);
   }
   // Add used
   PROF_ADD_COUNTER(GP_FC_DECODE_POSITIONS,num_candidates);
@@ -161,10 +157,8 @@ void filtering_candidates_decode_filtering_positions_buffered_prefetched(
   PROFILE_START(GP_FC_DECODE_CANDIDATES_BUFFERED,PROFILE_LEVEL);
   // Parameters
   locator_t* const locator = filtering_candidates->archive->locator;
-  const uint64_t region_begin = region_search->begin;
   const uint64_t region_lo = region_search->lo;
   const uint64_t region_hi = region_search->hi;
-  const uint64_t key_length = pattern->key_length;
   // Reserve candidate positions
   vector_t* const filtering_positions = filtering_candidates->filtering_positions;
   const uint64_t num_candidates = region_hi-region_lo;
@@ -195,8 +189,7 @@ void filtering_candidates_decode_filtering_positions_buffered_prefetched(
       // Locate Position
       fposition->locator_interval = locator_lookup_interval(locator,fposition->region_text_position);
       // Adjust Position
-      filtering_candidates_compute_text_coordinates(filtering_candidates,
-          fposition,pattern,region_begin,key_length-region_begin);
+      filtering_candidates_compute_text_coordinates(filtering_candidates,fposition,pattern,region_search);
     }
     // Next batch
     current_position = current_position + batch_size;
@@ -212,7 +205,7 @@ void filtering_candidates_decode_filtering_positions_buffered_prefetched(
  */
 void filtering_candidates_process_candidates_buffered(
     filtering_candidates_t* const filtering_candidates,
-    const pattern_t* const pattern,
+    pattern_t* const pattern,
     const bool compose_region_chaining) {
   PROFILE_START(GP_FC_PROCESS_CANDIDATES,PROFILE_LEVEL);
   // Retrieve total candidate positions
@@ -221,10 +214,8 @@ void filtering_candidates_process_candidates_buffered(
   //   (also filter out duplicated positions or already checked)
   PROFILE_START(GP_FC_COMPOSE_REGIONS,PROFILE_LEVEL);
   search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
-  const uint64_t key_length = pattern->key_length;
-  filtering_candidates_compose_filtering_regions(
-      filtering_candidates,key_length,pattern->max_effective_bandwidth,
-      compose_region_chaining && search_parameters->alignment_scaffolding);
+  const bool matching_regions_compose = compose_region_chaining && !search_parameters->force_full_swg;
+  filtering_candidates_compose_filtering_regions(filtering_candidates,pattern,matching_regions_compose);
   PROFILE_STOP(GP_FC_COMPOSE_REGIONS,PROFILE_LEVEL);
   PROF_ADD_COUNTER(GP_CANDIDATE_REGIONS,vector_get_used(filtering_candidates->filtering_regions));
   // Return total candidate regions

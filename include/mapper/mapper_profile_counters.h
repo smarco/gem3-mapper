@@ -188,8 +188,7 @@
 #define GP_FC_VERIFY_CANDIDATES_BUFFERED                    339
 #define GP_FC_VERIFY_CANDIDATES_BUFFERED_DDIFF              340
 #define GP_FC_REALIGN_CANDIDATE_REGIONS                     341
-#define GP_FC_REALIGN_CANDIDATE_REGIONS_BUFFERED            342
-#define GP_FC_REALIGN_LOCAL                                 343
+#define GP_FC_REALIGN_LOCAL_CANDIDATE_REGIONS               342
 
 #define GP_FC_KMER_COUNTER_FILTER                           350
 #define GP_FC_KMER_COUNTER_FILTER_NA                        351
@@ -212,9 +211,13 @@
 #define GP_CANDIDATE_REGIONS                                402
 #define GP_CANDIDATE_REGIONS_DUPLICATED                     403
 #define GP_CANDIDATE_REGION_LENGTH                          404
+#define GP_CANDIDATE_REGION_MATCHING_REGIONS_TOTAL          405
+#define GP_CANDIDATE_REGION_MATCHING_COVERAGE               406
+#define GP_CANDIDATE_REGION_LOCAL                           407
+#define GP_CANDIDATE_REGION_LOCAL_ALIGNED                   408
 
-#define GP_ACCEPTED_REGIONS                                 407
-#define GP_DISCARDED_REGIONS                                408
+#define GP_ACCEPTED_REGIONS                                 410
+#define GP_DISCARDED_REGIONS                                411
 
 #define GP_ALIGNED_REGIONS                                  415
 #define GP_ALIGNED_EXACT                                    416
@@ -222,19 +225,25 @@
 #define GP_ALIGNED_REGIONS_LENGTH                           418
 
 #define GP_MATCH_SCAFFOLD_ALIGNMENT                         450
+#define GP_MATCH_SCAFFOLD_ALIGNMENT_MATCHING_REGIONS        461
+#define GP_MATCH_SCAFFOLD_ALIGNMENT_MATCHING_COVERAGE       462
 #define GP_MATCH_SCAFFOLD_CHAIN_REGIONS                     451
 #define GP_MATCH_SCAFFOLD_CHAIN_REGIONS_SCAFFOLDS           452
 #define GP_MATCH_SCAFFOLD_CHAIN_REGIONS_COVERAGE            453
 #define GP_MATCH_SCAFFOLD_EDIT                              454
 #define GP_MATCH_SCAFFOLD_EDIT_SCAFFOLDS                    455
 #define GP_MATCH_SCAFFOLD_EDIT_COVERAGE                     456
-#define GP_MATCH_SCAFFOLD_EDIT_CELLS                        457
+#define GP_MATCH_SCAFFOLD_EDIT_TILES_TOTAL                  457
+#define GP_MATCH_SCAFFOLD_EDIT_TILES_ALIGN                  458
+#define GP_MATCH_SCAFFOLD_EDIT_TILES_SKIPPED                459
+#define GP_MATCH_SCAFFOLD_EDIT_CELLS                        460
 
 #define GP_BPM_DISTANCE                                     470
-#define GP_BPM_DISTANCE_TILED                               471
-#define GP_BMP_DISTANCE_TILED_NUM_TILES                     472
-#define GP_BMP_DISTANCE_TILED_NUM_TILES_VERIFIED            473
-#define GP_BPM_DISTANCE_QUICK_ABANDON                       474
+#define GP_BMP_DISTANCE_NUM_TILES                           471
+#define GP_BMP_DISTANCE_NUM_TILES_VERIFIED                  472
+#define GP_BPM_DISTANCE_QUICK_ABANDON                       473
+#define GP_BPM_DISTANCE_TEXT_LENGTH                         474
+#define GP_BPM_DISTANCE_KEY_LENGTH                          475
 #define GP_BPM_DISTANCE_CELLS                               476
 
 #define GP_BPM_ALL                                          480

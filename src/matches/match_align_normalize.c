@@ -172,27 +172,9 @@ void match_align_normalize(
   //      matches->cigar_vector,align_input->key,align_input->key_length,
   //      align_input->text+match_trace->match_alignment.match_text_offset,
   //      align_input->text_length,mm_stack);
-  // Translate RL-CIGAR
-  if (align_input->run_length) {
-    match_alignment->match_text_offset = match_alignment->match_position - align_input->text_position;
-    match_align_rl_translate_cigar(match_trace,cigar_vector,align_input,align_parameters);
-  }
-  // Normalize CIGAR & Adjust Position
-  if (align_input->run_length) {
-    // Translate
-    const uint64_t match_rl_text_offset = match_alignment->match_position - align_input->text_position;
-    match_alignment->match_text_offset = archive_text_rl_get_decoded_offset_exl(align_input->rl_text_runs,match_rl_text_offset);
-    match_alignment->match_position = align_input->text_position_translated + match_alignment->match_text_offset;
-    // Normalize alignment
-    match_align_normalize_cigar(match_trace,cigar_vector,align_parameters);
-    // Adjust
-    match_alignment->match_text_offset = match_alignment->match_position - align_input->text_position_translated;
-//    match_trace->text = align_input->text + match_alignment->match_text_offset; // TODO FIXME
-  } else {
-    // Normalize alignment
-    match_align_normalize_cigar(match_trace,cigar_vector,align_parameters);
-    // Adjust
-    match_alignment->match_text_offset = match_alignment->match_position - align_input->text_position;
-    match_trace->text = align_input->text + match_alignment->match_text_offset;
-  }
+  // Normalize alignment
+  match_align_normalize_cigar(match_trace,cigar_vector,align_parameters);
+  // Adjust
+  match_alignment->match_text_offset = match_alignment->match_position - align_input->text_position;
+  match_trace->text = align_input->text + match_alignment->match_text_offset;
 }

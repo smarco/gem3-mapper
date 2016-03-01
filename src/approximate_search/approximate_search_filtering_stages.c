@@ -92,8 +92,16 @@ void approximate_search_exact_filtering_adaptive_cutoff(
   const bool* const allowed_enc = search_parameters->allowed_enc;
   region_profile_t* const region_profile = &search->region_profile;
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
-  const uint8_t* key = pattern->key;
-  const uint64_t key_length = pattern->key_length;
+  // Select Key (Regular/RL)
+  uint8_t* key;
+  uint64_t key_length;
+  if (pattern->run_length) {
+    key = pattern->rl_key;
+    key_length = pattern->rl_key_length;
+  } else {
+    key = pattern->key;
+    key_length = pattern->key_length;
+  }
   // Iterate process of region-candidates-verification
   const region_profile_model_t* const profile_model = &search_parameters->rp_lightweight;
   region_profile_generator_t generator;
@@ -111,7 +119,7 @@ void approximate_search_exact_filtering_adaptive_cutoff(
     filtering_candidates_process_candidates(filtering_candidates,pattern,true);
     filtering_candidates_verify_candidates(filtering_candidates,pattern);
     filtering_candidates_align_candidates(filtering_candidates,
-        pattern,search->emulated_rc_search,false,false,false,matches);
+        pattern,search->emulated_rc_search,false,false,matches);
     asearch_control_adjust_max_differences_using_strata(search,matches);
     PROFILE_STOP(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING,PROFILE_LEVEL);
     // Cut-off condition
@@ -185,7 +193,7 @@ void approximate_search_verify(
   if (num_accepted_regions > 0) {
     // Realign
     filtering_candidates_align_candidates(search->filtering_candidates,
-        &search->pattern,search->emulated_rc_search,true,false,false,matches);
+        &search->pattern,search->emulated_rc_search,false,false,matches);
   }
   // Update state
   search->processing_state = asearch_processing_state_candidates_verified;

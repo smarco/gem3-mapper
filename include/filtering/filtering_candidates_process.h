@@ -35,17 +35,15 @@ void filtering_candidates_compute_text_coordinates(
     filtering_candidates_t* const filtering_candidates,
     filtering_position_t* const filtering_position,
     pattern_t* const pattern,
-    const uint64_t begin_offset,
-    const uint64_t end_offset);
+    region_search_t* const source_region);
 
 /*
  * Compose filtering regions
  */
 uint64_t filtering_candidates_compose_filtering_regions(
     filtering_candidates_t* const filtering_candidates,
-    const uint64_t key_length,
-    const uint64_t max_delta_difference,
-    const bool compose_region_chaining);
+    pattern_t* const pattern,
+    const bool matching_regions_compose);
 
 /*
  * Process Candidates

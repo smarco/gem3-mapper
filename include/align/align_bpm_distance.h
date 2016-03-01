@@ -127,17 +127,8 @@ bool bpm_compute_edit_distance(
     const uint64_t text_length,
     uint64_t* const match_distance,
     uint64_t* const match_column,
-    const uint64_t max_distance,
+    uint64_t max_distance,
     const bool quick_abandon);
-// BPM Tiled (bound)
-void bpm_compute_edit_distance_tiled(
-    bpm_pattern_t* const bpm_pattern,
-    const uint8_t* const text,
-    const uint64_t text_length,
-    uint64_t* const match_distance,
-    uint64_t* const match_column,
-    const uint64_t max_error,
-    mm_stack_t* const mm_stack);
 // Find all local minimums
 uint64_t bpm_compute_edit_distance_all(
     const bpm_pattern_t* const bpm_pattern,
@@ -146,6 +137,7 @@ uint64_t bpm_compute_edit_distance_all(
     const uint64_t index_position,
     const uint8_t* const text,
     const uint64_t text_length,
-    const uint64_t max_distance);
+    uint64_t max_distance,
+    mm_stack_t* const mm_stack);
 
 #endif /* ALIGN_BPM_DISTANCE_H_ */

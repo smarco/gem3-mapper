@@ -84,23 +84,23 @@ typedef struct {
   bool allowed_chars[256];                // TODO Revision pending
   bool allowed_enc[DNA_EXT_RANGE];        // TODO Revision pending
   /* Search error model */
-  float complete_search_error;
-  float complete_strata_after_best;
-  float alignment_max_error;
-  float alignment_max_bandwidth;
-  float alignment_global_min_identity;                 // Alignment minimum identity to be global
-  float alignment_global_min_swg_threshold;            // Alignment minimum SWG score to be global
+  double complete_search_error;
+  double complete_strata_after_best;
+  double alignment_max_error;
+  double alignment_max_bandwidth;
+  double alignment_max_aligned_gap_length;              // Maximum length of gap to be aligned
+  double alignment_global_min_identity;                 // Alignment minimum identity to be global
+  double alignment_global_min_swg_threshold;            // Alignment minimum SWG score to be global
   /* Local Alignment */
   local_alignment_t local_alignment;
-  float alignment_local_min_identity;                  // Alignment minimum identity to be local
-  float alignment_local_min_swg_threshold;             // Alignment minimum SWG score to be local
-  float alignment_local_max_aligned_gap_length;        // Maximum length of gap to be aligned (local)
+  double alignment_local_min_identity;                  // Alignment minimum identity to be local
+  double alignment_local_min_swg_threshold;             // Alignment minimum SWG score to be local
   /* Scaffolding */
-  bool alignment_scaffolding;
-  float alignment_scaffolding_min_coverage;            // Minimum length of the matching region (chaining regions)
-  float alignment_scaffolding_min_matching_length;     // Minimum matching chunk to be considered
+  bool force_full_swg;                                  // Force full SWG-Alignment
+  double alignment_scaffolding_min_coverage;            // Minimum length of the matching region (chaining regions)
+  double alignment_scaffolding_min_matching_length;     // Minimum matching chunk to be considered
   bool cigar_curation;
-  float cigar_curation_min_end_context;
+  double cigar_curation_min_end_context;
   /* Alignment Model/Score */
   alignment_model_t alignment_model;
   swg_penalties_t swg_penalties;
@@ -110,7 +110,7 @@ typedef struct {
   search_paired_parameters_t search_paired_parameters;
   /* Filtering parameters */
   uint64_t filtering_threshold;
-  float filtering_region_factor;
+  double filtering_region_factor;
   region_profile_model_t rp_lightweight;  // Region-Lightweight
   region_profile_model_t rp_heavyweight;  // Region-Heavyweight
   region_profile_model_t rp_delimit;      // Region-Delimit
@@ -128,11 +128,11 @@ typedef struct {
   uint64_t complete_strata_after_best_nominal;
   uint64_t alignment_max_error_nominal;
   uint64_t alignment_max_bandwidth_nominal;
+  uint64_t alignment_max_aligned_gap_length_nominal;
   uint64_t alignment_global_min_identity_nominal;
   uint64_t alignment_global_min_swg_threshold_nominal;
   uint64_t alignment_local_min_identity_nominal;
   uint64_t alignment_local_min_swg_threshold_nominal;
-  uint64_t alignment_local_max_aligned_gap_length_nominal;
   uint64_t alignment_scaffolding_min_coverage_nominal;
   uint64_t alignment_scaffolding_min_matching_length_nominal;
   uint64_t cigar_curation_min_end_context_nominal;

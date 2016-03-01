@@ -27,12 +27,12 @@ void pattern_init(
     bool* const do_quality_search,
     mm_stack_t* const mm_stack) {
   // Allocate pattern memory
-  pattern->regular_key_length = sequence_get_length(sequence);
-  pattern->regular_key = mm_stack_calloc(mm_stack,pattern->regular_key_length,uint8_t,false);
+  pattern->key_length = sequence_get_length(sequence);
+  pattern->key = mm_stack_calloc(mm_stack,pattern->key_length,uint8_t,false);
   // Set quality search & Build quality model & mask
   *do_quality_search = (parameters->quality_format!=qualities_ignore) && sequence_has_qualities(sequence);
   if (*do_quality_search) {
-    pattern->quality_mask =  mm_stack_calloc(mm_stack,pattern->regular_key_length,uint8_t,false);
+    pattern->quality_mask =  mm_stack_calloc(mm_stack,pattern->key_length,uint8_t,false);
     quality_model(sequence,parameters->quality_model,
         parameters->quality_format,parameters->quality_threshold,pattern->quality_mask);
   } else {
@@ -43,25 +43,28 @@ void pattern_init(
    *   Check all characters in the key & encode key
    *   Counts the number of wildcards (characters not allowed as replacements) and low_quality_bases
    */
-  uint64_t i, num_wildcards=0, num_low_quality_bases=0, num_non_canonical_bases = 0;
+  uint64_t num_wildcards = 0;           // Number of bases not-allowed
+  uint64_t num_low_quality_bases = 0;   // Number of bases with low quality value
+  uint64_t num_non_canonical_bases = 0; // Number of bases not compliant with the k-mer filter
+  uint64_t i;
   const char* const read = sequence_get_read(sequence);
   if (pattern->quality_mask == NULL) {
-    for (i=0;i<pattern->regular_key_length;++i) {
+    for (i=0;i<pattern->key_length;++i) {
       const char character = read[i];
-      if (!parameters->allowed_chars[(uint8_t)character]) ++num_wildcards;
       if (!is_dna_canonical(character)) ++num_non_canonical_bases;
-      pattern->regular_key[i] = dna_encode(character);
+      if (!parameters->allowed_chars[(uint8_t)character]) ++num_wildcards;
+      pattern->key[i] = dna_encode(character);
     }
   } else {
-    for (i=0;i<pattern->regular_key_length;++i) {
+    for (i=0;i<pattern->key_length;++i) {
       const char character = read[i];
+      if (!is_dna_canonical(character)) ++num_non_canonical_bases;
       if (!parameters->allowed_chars[(uint8_t)character]) {
-        ++num_low_quality_bases; ++num_wildcards;
+        ++num_wildcards;
       } else if (pattern->quality_mask[i]!=qm_real) {
         ++num_low_quality_bases;
       }
-      if (!is_dna_canonical(character)) ++num_non_canonical_bases;
-      pattern->regular_key[i] = dna_encode(character);
+      pattern->key[i] = dna_encode(character);
     }
   }
   pattern->num_wildcards = num_wildcards;
@@ -72,14 +75,12 @@ void pattern_init(
   if (run_length_pattern) {
     pattern->run_length = true;
     // Allocate
-    pattern->rl_key = mm_stack_calloc(mm_stack,pattern->regular_key_length,uint8_t,false);
-    pattern->rl_runs = mm_stack_calloc(mm_stack,pattern->regular_key_length,uint8_t,false);
+    pattern->rl_key = mm_stack_calloc(mm_stack,pattern->key_length,uint8_t,false);
+    pattern->rl_runs_acc = mm_stack_calloc(mm_stack,pattern->key_length,uint32_t,false);
     // RL encode
-    archive_text_rl_encode(pattern->regular_key,pattern->regular_key_length,
-        pattern->rl_key,pattern->rl_runs,&pattern->rl_key_length);
-    // Configure
-    pattern->key = pattern->rl_key;
-    pattern->key_length = pattern->rl_key_length;
+    archive_text_rl_encode(pattern->key,
+        pattern->key_length,pattern->rl_key,
+        &pattern->rl_key_length,pattern->rl_runs_acc);
     //    // DEBUG
     //    fprintf(stderr,">key\n");
     //    dna_buffer_print(stderr,pattern->regular_key,pattern->regular_key_length,false);
@@ -90,29 +91,32 @@ void pattern_init(
   } else {
     pattern->run_length = false;
     pattern->rl_key = NULL;
-    pattern->rl_runs = NULL;
-    // Configure
-    pattern->key = pattern->regular_key;
-    pattern->key_length = pattern->regular_key_length;
+    pattern->rl_runs_acc = NULL;
   }
   /*
-   * Compute the effective number of differences (constrained by num_low_quality_bases)
+   * Compute the effective number of differences
    * and compile the BMP-Pattern & k-mer filter
    */
   const uint64_t max_effective_filtering_error =
-      parameters->alignment_max_error_nominal + pattern->num_low_quality_bases;
-  pattern->max_effective_filtering_error = max_effective_filtering_error;
-  pattern->max_effective_bandwidth =
-      parameters->alignment_max_bandwidth_nominal + pattern->num_low_quality_bases;
-  if (max_effective_filtering_error > 0) {
+      parameters->alignment_max_error_nominal +
+      num_low_quality_bases +
+      num_wildcards;
+  const uint64_t max_effective_bandwidth =
+      parameters->alignment_max_bandwidth_nominal +
+      num_low_quality_bases;
+  pattern->max_effective_filtering_error = MIN(max_effective_filtering_error,pattern->key_length);
+  pattern->max_effective_bandwidth = MIN(max_effective_bandwidth,pattern->key_length);
+  if (pattern->max_effective_filtering_error > 0) {
     // Prepare kmer-counting filter
-    kmer_counting_compile(&pattern->kmer_counting,pattern->key,pattern->key_length,
-        num_non_canonical_bases,max_effective_filtering_error,mm_stack);
+    const uint64_t kmer_filter_error = BOUNDED_ADDITION(
+        pattern->max_effective_filtering_error,num_non_canonical_bases,pattern->key_length);
+    kmer_counting_compile(&pattern->kmer_counting,
+        pattern->key,pattern->key_length,kmer_filter_error,mm_stack);
     // Prepare BPM pattern
     pattern->bpm_pattern = bpm_pattern_compile(
-        pattern->key,pattern->key_length,max_effective_filtering_error,mm_stack);
+        pattern->key,pattern->key_length,pattern->max_effective_filtering_error,mm_stack);
     pattern->bpm_pattern_tiles = bpm_pattern_compile_tiles(pattern->bpm_pattern,
-        PATTERN_BPM_WORDS64_PER_TILE,max_effective_filtering_error,mm_stack);
+        PATTERN_BPM_WORDS64_PER_TILE,pattern->max_effective_filtering_error,mm_stack);
   }
 }
 void pattern_clear(pattern_t* const pattern) {
@@ -124,34 +128,33 @@ bool pattern_is_null(pattern_t* const pattern) {
 /*
  * Pattern Tiling
  */
-bool pattern_tiled_init(
+void pattern_tiled_init(
     pattern_tiled_t* const pattern_tiled,
     const uint64_t pattern_length,
-    const uint64_t pattern_tile_tall,
+    const uint64_t pattern_tile_length,
     const uint64_t sequence_length,
     const uint64_t max_error) {
   // Calculate default tile dimensions & position
   pattern_tiled->pattern_max_error = max_error;
-  pattern_tiled->pattern_tile_tall = pattern_tile_tall;
+  pattern_tiled->pattern_tile_tall = pattern_tile_length;
   pattern_tiled->pattern_remaining_length = pattern_length;
   const int64_t pattern_band_width = sequence_length - pattern_length + 2*max_error;
   if (pattern_band_width < 0) {
-    return false; // Cannot align
+    // It's supposed to be an invalid case because the filtering-process should have
+    // detected (sequence_length < pattern_length) and trim the pattern accordingly
+    gem_fatal_error_msg("Pattern.Tiled. Wrong Dimensions");
   }
   pattern_tiled->pattern_band_width = pattern_band_width;
   pattern_tiled->sequence_length = sequence_length;
   pattern_tiled->tile_offset = 0;
   // Calculate current tile dimensions (adjusted to initial conditions)
-  pattern_tiled->tile_next_offset_inc = pattern_tile_tall - max_error;
-  pattern_tiled->tile_tall = (pattern_length > pattern_tile_tall) ? pattern_tile_tall : pattern_length;
+  pattern_tiled->tile_next_offset_inc = pattern_tile_length - max_error;
+  pattern_tiled->tile_tall = MIN(pattern_tile_length,pattern_length);
   pattern_tiled->tile_wide = pattern_tiled->pattern_band_width + pattern_tiled->tile_next_offset_inc;
-  if (pattern_tiled->tile_offset+pattern_tiled->tile_wide > sequence_length) {
-    pattern_tiled->tile_wide = sequence_length - pattern_tiled->tile_offset;
+  if (pattern_tiled->tile_offset+pattern_tiled->tile_wide > pattern_tiled->sequence_length) {
+    pattern_tiled->tile_wide = pattern_tiled->sequence_length - pattern_tiled->tile_offset;
   }
-  // Init last tile-matching column
-  pattern_tiled->prev_tile_match_position = UINT64_MAX;
-  // Return Ok
-  return true;
+  pattern_tiled->prev_tile_match_position = UINT64_MAX; // Init last tile-matching column
 }
 void pattern_tiled_calculate_next(pattern_tiled_t* const pattern_tiled) {
   // DEBUG
@@ -165,11 +168,10 @@ void pattern_tiled_calculate_next(pattern_tiled_t* const pattern_tiled) {
   pattern_tiled->pattern_remaining_length -= pattern_tiled->tile_tall;
   // Calculate current tile dimensions
   pattern_tiled->tile_next_offset_inc = pattern_tiled->tile_tall;
-  pattern_tiled->tile_tall = (pattern_tiled->pattern_remaining_length > pattern_tiled->tile_tall) ?
-      pattern_tiled->tile_tall : pattern_tiled->pattern_remaining_length;
+  pattern_tiled->tile_tall = MIN(pattern_tiled->tile_tall,pattern_tiled->pattern_remaining_length);
   pattern_tiled->tile_wide = pattern_tiled->pattern_band_width + pattern_tiled->tile_next_offset_inc;
   if (pattern_tiled->tile_offset+pattern_tiled->tile_wide > pattern_tiled->sequence_length) {
-    pattern_tiled->tile_wide = pattern_tiled->sequence_length-pattern_tiled->tile_offset;
+    pattern_tiled->tile_wide = pattern_tiled->sequence_length - pattern_tiled->tile_offset;
   }
 }
 uint64_t pattern_tiled_bound_matching_path(pattern_tiled_t* const pattern_tiled) {
@@ -202,14 +204,14 @@ void pattern_trimmed_init(
     pattern_t* const pattern,
     bpm_pattern_t** const bpm_pattern_trimmed,
     bpm_pattern_t** const bpm_pattern_trimmed_tiles,
+    const uint64_t key_trimmed_length,
     const uint64_t key_trim_left,
     const uint64_t key_trim_right,
     mm_stack_t* const mm_stack) {
-  const uint64_t key_length_trimmed = pattern->key_length - key_trim_left - key_trim_right;
   const uint64_t max_error = pattern->max_effective_filtering_error;
   // Compile BPM-Pattern Trimmed
   *bpm_pattern_trimmed = bpm_pattern_compile(pattern->key+key_trim_left,
-      key_length_trimmed,MIN(max_error,key_length_trimmed),mm_stack);
+      key_trimmed_length,MIN(max_error,key_trimmed_length),mm_stack);
   *bpm_pattern_trimmed_tiles = bpm_pattern_compile_tiles(
       *bpm_pattern_trimmed,PATTERN_BPM_WORDS64_PER_TILE,max_error,mm_stack);
 }

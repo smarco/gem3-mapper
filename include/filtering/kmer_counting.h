@@ -29,8 +29,7 @@ void kmer_counting_compile(
     kmer_counting_t* const kmer_counting,
     uint8_t* const pattern,
     const uint64_t pattern_length,
-    const uint64_t num_non_canonical_bases,
-    const uint64_t effective_filtering_max_error,
+    const uint64_t max_error,
     mm_stack_t* const mm_stack);
 
 /*

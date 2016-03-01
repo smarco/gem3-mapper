@@ -42,7 +42,7 @@ void filtering_region_align_debug(
           match_trace->distance,match_trace->swg_score);
       tab_global_inc();
       output_map_alignment_pretty(gem_log_get_stream(),match_trace,matches,pattern->key,pattern->key_length,
-          text+(match_trace->match_alignment.match_position - filtering_region->begin_position),
+          text+(match_trace->match_alignment.match_position - filtering_region->text_begin_position),
           match_trace->match_alignment.effective_length,filtering_candidates->mm_stack);
       tab_global_dec();
       tab_global_dec();
@@ -79,9 +79,8 @@ void filtering_region_align_clone(
   match_alignment_t* const match_alignment_dst = &match_trace_dst->match_alignment;
   match_alignment_t* const match_alignment_src = &match_trace_src->match_alignment;
   match_alignment_dst->match_text_offset = match_alignment_src->match_text_offset;
-  match_alignment_dst->match_position = (run_length) ?
-      filtering_region_dst->begin_position_translated + match_alignment_dst->match_text_offset:
-      filtering_region_dst->begin_position + match_alignment_dst->match_text_offset;
+  match_alignment_dst->match_position =
+      filtering_region_dst->text_begin_position + match_alignment_dst->match_text_offset;
   match_alignment_dst->cigar_offset = match_alignment_src->cigar_offset;
   match_alignment_dst->cigar_length = match_alignment_src->cigar_length;
   match_alignment_dst->effective_length = match_alignment_src->effective_length;
@@ -116,7 +115,6 @@ void filtering_region_align_exact(
       &align_input,&align_parameters,filtering_region,
       search_parameters,pattern,emulated_rc_search);
   // Add exact match
-  match_trace->match_alignment.score = filtering_region->align_distance;
   match_align_exact(matches,match_trace,&align_input,&align_parameters);
   filtering_region->status = filtering_region_aligned; // Set status
 }
@@ -146,61 +144,49 @@ void filtering_region_align_inexact(
     case alignment_model_hamming: {
       // Configure Alignment
       filtering_region_align_configure_hamming(
-          &align_input,&align_parameters,filtering_region,search_parameters,
-          pattern,text_trace,emulated_rc_search);
+          &align_input,&align_parameters,filtering_region,
+          search_parameters,pattern,text_trace,emulated_rc_search);
       // Hamming Align
       match_align_hamming(matches,match_trace,&align_input,&align_parameters);
       filtering_region->status = filtering_region_aligned;
       break;
     }
     case alignment_model_levenshtein: {
-      // Compile pattern (if trimmed)
-      if (filtering_region->key_trimmed && filtering_region->bpm_pattern_trimmed==NULL) {
-        pattern_trimmed_init(pattern,
-            &filtering_region->bpm_pattern_trimmed,&filtering_region->bpm_pattern_trimmed_tiles,
-            filtering_region->key_trim_left,filtering_region->key_trim_right,mm_stack);
-      }
       // Configure Alignment
       const strand_t position_strand =
-          archive_text_get_position_strand(archive_text,filtering_region->begin_position);
+          archive_text_get_position_strand(archive_text,filtering_region->text_begin_position);
       const bool left_gap_alignment = (position_strand==Forward);
       filtering_region_align_configure_levenshtein(
           &align_input,&align_parameters,filtering_region,search_parameters,
-          pattern,text_trace,emulated_rc_search,left_gap_alignment);
+          pattern,text_trace,emulated_rc_search,left_gap_alignment,mm_stack);
       // Levenshtein Align
       match_align_levenshtein(matches,match_trace,&align_input,&align_parameters,mm_stack);
       break;
     }
     case alignment_model_gap_affine: {
-      // Compile pattern (if trimmed)
-      if (filtering_region->key_trimmed && filtering_region->bpm_pattern_trimmed==NULL) {
-        pattern_trimmed_init(pattern,
-            &filtering_region->bpm_pattern_trimmed,&filtering_region->bpm_pattern_trimmed_tiles,
-            filtering_region->key_trim_left,filtering_region->key_trim_right,mm_stack);
-      }
       // Configure Alignment
       const strand_t position_strand =
-          archive_text_get_position_strand(archive_text,filtering_region->begin_position);
+          archive_text_get_position_strand(archive_text,filtering_region->text_begin_position);
       const bool left_gap_alignment = (position_strand==Forward);
       filtering_region_align_configure_swg(
-          &align_input,&align_parameters,filtering_region,search_parameters,
-          pattern,text_trace,emulated_rc_search,left_gap_alignment,local_alignment);
+          &align_input,&align_parameters,filtering_region,search_parameters,pattern,
+          text_trace,emulated_rc_search,left_gap_alignment,local_alignment,mm_stack);
       // Gap-affine Align
       match_align_smith_waterman_gotoh(matches,match_trace,
           &align_input,&align_parameters,&filtering_region->match_scaffold,mm_stack);
       //      // DEBUG
       //      fprintf(stderr,"[GEM]>Text-Alignment\n");
       //      match_alignment_print_pretty(stderr,&match_trace->match_alignment,
-      //          matches->cigar_vector,pattern->regular_key,pattern->regular_key_length,
-      //          text_trace->regular_text+match_trace->match_alignment.match_text_offset,
-      //          text_trace->regular_text_length,mm_stack);
+      //          matches->cigar_vector,pattern->key,pattern->key_length,
+      //          text_trace->text+match_trace->match_alignment.match_text_offset,
+      //          text_trace->text_length,mm_stack);
       break;
     }
     default:
       GEM_INVALID_CASE();
       break;
   }
-  PROF_ADD_COUNTER(GP_ALIGNED_REGIONS_LENGTH,align_input.text_offset_end-align_input.text_offset_begin);
+  PROF_ADD_COUNTER(GP_ALIGNED_REGIONS_LENGTH,align_input.text_length);
 }
 bool filtering_region_align(
     filtering_candidates_t* const filtering_candidates,
@@ -217,7 +203,10 @@ bool filtering_region_align(
     tab_global_inc();
   }
   // Select Model
-  if (filtering_region->key_trimmed || pattern->run_length || filtering_region->align_distance > 0) {
+  if (pattern->run_length ||
+      filtering_region->key_trimmed ||
+      filtering_region->region_alignment.num_tiles>1 ||
+      filtering_region->region_alignment.distance_min_bound > 0) {
     filtering_region_align_inexact(filtering_candidates,filtering_region,
         pattern,emulated_rc_search,local_alignment,matches,match_trace);
   } else {

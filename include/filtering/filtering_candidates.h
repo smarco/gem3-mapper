@@ -30,14 +30,15 @@ typedef struct {
   uint64_t region_index_position;      // Begin region position (index-space)
   uint64_t region_text_position;       // Begin region position (text-space)
   uint64_t align_distance;             // Align-distance if already know (NSed positions)
-  // Final position
+  // Source Region Offset
+  uint64_t text_source_region_offset;  // Text-Offset to the begin of the source-region
+  uint64_t key_source_region_offset;   // Key-Offset to the begin of the source-region
+  // Position
   uint64_t sequence_id;                // Id of the sequence the position belongs to
-  uint64_t begin_position;             // Region effective begin position (adjusted to error boundaries)
-  uint64_t end_position;               // Region effective end position (adjusted to error boundaries)
-  uint64_t base_begin_position_offset; // Offset to base begin filtering position (no error boundary correction)
-  uint64_t base_end_position_offset;   // Offset to base begin filtering position (no error boundary correction)
-  uint64_t key_trim_left;              // Key left trim  (due to position correction wrt the reference limits)
-  uint64_t key_trim_right;             // Key right trim (due to position correction wrt the reference limits)
+  uint64_t text_begin_position;        // Region effective begin position (adjusted to error boundaries)
+  uint64_t text_end_position;          // Region effective end position (adjusted to error boundaries)
+  uint64_t text_base_begin_offset;     // Offset to base begin filtering position (no error boundary correction)
+  uint64_t text_base_end_offset;       // Offset to base begin filtering position (no error boundary correction)
 } filtering_position_t;
 
 /*
@@ -129,6 +130,7 @@ void filtering_candidates_add_region_interval_set_thresholded(
  */
 void filtering_positions_sort_positions(vector_t* const filtering_positions);
 void filtering_regions_sort_align_distance(vector_t* const filtering_regions);
+void filtering_regions_sort_scaffold_coverage(vector_t* const filtering_regions);
 void verified_regions_sort_positions(vector_t* const verified_regions);
 
 /*

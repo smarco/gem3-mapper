@@ -27,10 +27,12 @@ void archive_search_pe_inject_mm(
  */
 bool archive_search_pe_is_extension_feasible(archive_search_t* const archive_search);
 bool archive_search_pe_use_shortcut_extension(
-    archive_search_t* const archive_search,
+    archive_search_t* const archive_search_extended,
+    archive_search_t* const archive_search_candidate,
     matches_t* const matches);
 bool archive_search_pe_use_recovery_extension(
     archive_search_t* const archive_search_extended,
+    archive_search_t* const archive_search_candidate,
     matches_t* const matches_extended,
     matches_t* const matches_candidate);
 

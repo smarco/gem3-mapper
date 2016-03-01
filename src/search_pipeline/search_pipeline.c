@@ -25,7 +25,8 @@ search_pipeline_t* search_pipeline_new(
   // Alloc
   search_pipeline_t* search_pipeline = mm_alloc(search_pipeline_t);
   // Allocate archive-search cache
-  search_pipeline->archive_search_cache = archive_search_cache_new(mapper_parameters);
+  search_pipeline->archive_search_cache =
+      archive_search_cache_new(archive,&mapper_parameters->base_search_parameters);
   // Allocate Support Data Structures
   search_pipeline->mm_stack = mm_stack_new(mm_pool_get_slab(mm_pool_32MB)); // Memory-Stack allocator
   search_pipeline->mapper_stats = mapper_stats_new(); // Mapping Statistics

@@ -11,20 +11,24 @@
 
 #include "utils/essentials.h"
 #include "archive/archive_search.h"
-#include "mapper/mapper.h"
 
 /*
  * Archive Search Cache
  */
 typedef struct {
-  mapper_parameters_t* mapper_parameters; // Mapper parameters
+  /* Archive-Search Cache */
   vector_t* archive_search_cache;         // Already allocated & configured Slab (archive_search_t*)
+  /* Archive & Parameters */
+  archive_t* archive;                     // Archive
+  search_parameters_t* search_parameters; // Search Parameters
 } archive_search_cache_t;
 
 /*
  * Setup
  */
-archive_search_cache_t* archive_search_cache_new(mapper_parameters_t* const mapper_parameters);
+archive_search_cache_t* archive_search_cache_new(
+    archive_t* const archive,
+    search_parameters_t* const search_parameters);
 void archive_search_cache_delete(archive_search_cache_t* const archive_search_cache);
 
 /*

@@ -49,7 +49,7 @@ void approximate_search_filtering_complete(
   filtering_candidates_verify_candidates(filtering_candidates,pattern);
   // Align candidates
   filtering_candidates_align_candidates(filtering_candidates,
-      pattern,search->emulated_rc_search,false,false,false,matches);
+      pattern,search->emulated_rc_search,false,false,matches);
   // Update MCS (maximum complete stratum)
   approximate_search_update_mcs(search,region_profile->errors_allowed + pattern->num_wildcards);
   // PROFILE_STOP(GP_AS_FILTERING_EXACT); // TODO

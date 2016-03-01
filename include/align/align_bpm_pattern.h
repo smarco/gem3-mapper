@@ -12,21 +12,15 @@
 #include "utils/essentials.h"
 
 /*
- * Constants
- */
-#define BPM_ALIGN_WORD_LENGTH  UINT64_LENGTH
-#define BPM_ALIGN_WORD_SIZE    UINT64_SIZE
-
-/*
  * BPM Pattern
  */
 typedef struct _bpm_pattern_t bpm_pattern_t;
 struct _bpm_pattern_t {
   /* BMP Pattern */
-  uint64_t* PEQ;              // Pattern equalities (Bit vector for Myers-DP)
-  uint64_t pattern_length;    // Length
-  uint64_t pattern_num_words; // ceil(Length / |w|)
-  uint64_t pattern_mod;       // Length % |w|
+  uint64_t* PEQ;                // Pattern equalities (Bit vector for Myers-DP)
+  uint64_t pattern_length;      // Length
+  uint64_t pattern_num_words64; // ceil(Length / |w|)
+  uint64_t pattern_mod;         // Length % |w|
   /* BPM Auxiliary data */
   uint64_t* P;
   uint64_t* M;
@@ -39,8 +33,8 @@ struct _bpm_pattern_t {
   uint64_t gpu_num_tiles;
   uint64_t gpu_entries_per_tile;
   /* BPM tiles (Pattern split in tiles) */
-  uint64_t words_per_tile;
-  uint64_t num_pattern_tiles;
+  uint64_t num_pattern_tiles;  // Total number of tiles
+  uint64_t tile_length;        // Ideal tile length (the last can be shorter)
 };
 
 /*

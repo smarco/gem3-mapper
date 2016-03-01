@@ -199,17 +199,18 @@ option_t gem_mapper_options[] = {
   { 's', "complete-strata-after-best", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=1)" },
   { 'e', "alignment-max-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=0.08, 8%)" },
   { 401, "alignment-max-bandwidth", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=0.20, 20%)" },
-  { 402, "alignment-global-min-identity", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=80%)" },
-  { 403, "alignment-global-min-score-threshold", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=0.20)" },
-  { 404, "alignment-local", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "'never'|'if-unmapped'" , "(default=if-unmapped)" },
-  { 405, "alignment-local-min-identity", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=40)" },
-  { 406, "alignment-local-min-score-threshold", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=20)" },
-  { 407, "alignment-scaffolding", OPTIONAL, TYPE_STRING, 4, VISIBILITY_ADVANCED, "" , "(default=true)" },
-  { 408, "alignment-scaffolding-min-matching_length", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<number|percentage>" , "(default=10)" },
-  { 409, "alignment-curation", OPTIONAL, TYPE_STRING, 4, VISIBILITY_ADVANCED, "" , "(default=true)" },
-  { 410, "alignment-curation-min-end-context", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<number|percentage>" , "(default=2)" },
-  { 411, "region-model-lightweight", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "" },
-  { 412, "region-model-heavyweight", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "" },
+  { 402, "alignment-max-gap-length", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=100)" },
+  { 403, "alignment-global-min-identity", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=80%)" },
+  { 404, "alignment-global-min-score", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=0.20)" },
+  { 405, "alignment-local", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "'never'|'if-unmapped'" , "(default=if-unmapped)" },
+  { 406, "alignment-local-min-identity", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=40)" },
+  { 407, "alignment-local-min-score", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=20)" },
+  { 408, "alignment-force-full-swg", OPTIONAL, TYPE_STRING, 4, VISIBILITY_ADVANCED, "" , "(default=false)" },
+  { 409, "alignment-scaffolding-min-matching_length", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<number|percentage>" , "(default=10)" },
+  { 410, "alignment-curation", OPTIONAL, TYPE_STRING, 4, VISIBILITY_ADVANCED, "" , "(default=true)" },
+  { 411, "alignment-curation-min-end-context", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<number|percentage>" , "(default=2)" },
+  { 412, "region-model-lightweight", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "" },
+  { 413, "region-model-heavyweight", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "" },
   /* Paired-end Alignment */
   { 'p', "paired-end-alignment", NO_ARGUMENT, TYPE_NONE, 5, VISIBILITY_USER, "" , "" },
   { 'l', "min-template-length", REQUIRED, TYPE_INT, 5, VISIBILITY_USER, "<number>" , "(default=disabled)" },
@@ -440,13 +441,16 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 401: // --alignment-max-bandwidth (default=0.20, 20%)
       input_text_parse_extended_double(optarg,(double*)&search->alignment_max_bandwidth);
       break;
-    case 402: // --alignment-global-min-identity (default=40)
+    case 402: // --alignment-max-gap-length (default=100)
+      input_text_parse_extended_double(optarg,(double*)&search->alignment_max_aligned_gap_length);
+      break;
+    case 403: // --alignment-global-min-identity (default=40)
       input_text_parse_extended_double(optarg,(double*)&search->alignment_global_min_identity);
       break;
-    case 403: // --alignment-global-min-score-threshold (default=0.20)
+    case 404: // --alignment-global-min-score (default=0.20)
       input_text_parse_extended_double(optarg,(double*)&search->alignment_global_min_swg_threshold);
       break;
-    case 404: // --alignment-local in {'never'|'if-unmapped'} (default=if-unmapped)
+    case 405: // --alignment-local in {'never'|'if-unmapped'} (default=if-unmapped)
       if (gem_strcaseeq(optarg,"never")) {
         search->local_alignment = local_alignment_never;
       } else if (gem_strcaseeq(optarg,"if-unmapped")) {
@@ -455,25 +459,25 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
         gem_mapper_error_msg("Option '--alignment-local' must be 'never'|'if-unmapped'");
       }
       break;
-    case 405: // --alignment-local-min-identity (default=40)
+    case 406: // --alignment-local-min-identity (default=40)
       input_text_parse_extended_double(optarg,(double*)&search->alignment_local_min_identity);
       break;
-    case 406: // --alignment-local-min-score-threshold (default=20)
+    case 407: // --alignment-local-min-score (default=20)
       input_text_parse_extended_double(optarg,(double*)&search->alignment_local_min_swg_threshold);
       break;
-    case 407: // --alignment-scaffolding (default=true)
-      search->alignment_scaffolding = input_text_parse_extended_bool(optarg);
+    case 408: // --alignment-force-full-swg (default=true)
+      search->force_full_swg = input_text_parse_extended_bool(optarg);
       break;
-    case 408: // --alignment-scaffolding-min-matching_length (default=10)
+    case 409: // --alignment-scaffolding-min-matching_length (default=10)
       input_text_parse_extended_double(optarg,(double*)&search->alignment_scaffolding_min_matching_length);
       break;
-    case 409: // --alignment-curation (default=true)
+    case 410: // --alignment-curation (default=true)
       search->cigar_curation = input_text_parse_extended_bool(optarg);
       break;
-    case 410: // --alignment-curation-min-end-context (default=2)
+    case 411: // --alignment-curation-min-end-context (default=2)
       input_text_parse_extended_double(optarg,(double*)&search->cigar_curation_min_end_context);
       break;
-    case 411: { // --region-model-lightweight <region_th>,<max_steps>,<dec_factor>,<region_type_th> (default=20,4,2,2)
+    case 412: { // --region-model-lightweight <region_th>,<max_steps>,<dec_factor>,<region_type_th> (default=20,4,2,2)
       char *region_th=NULL, *max_steps=NULL, *dec_factor=NULL, *region_type_th=NULL;
       const int num_arguments = input_text_parse_csv_arguments(optarg,4,&region_th,&max_steps,&dec_factor,&region_type_th);
       gem_mapper_cond_error_msg(num_arguments!=4,"Option '--region-model' wrong number of arguments");
@@ -483,7 +487,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       input_text_parse_extended_uint64(region_type_th,&search->rp_lightweight.region_type_th); // Parse region_type_th
       break;
     }
-    case 412: { // --region-model-heavyweight <region_th>,<max_steps>,<dec_factor>,<region_type_th> (default=80,4,2,2)
+    case 413: { // --region-model-heavyweight <region_th>,<max_steps>,<dec_factor>,<region_type_th> (default=80,4,2,2)
       char *region_th=NULL, *max_steps=NULL, *dec_factor=NULL, *region_type_th=NULL;
       const int num_arguments = input_text_parse_csv_arguments(optarg,4,&region_th,&max_steps,&dec_factor,&region_type_th);
       gem_mapper_cond_error_msg(num_arguments!=4,"Option '--region-model' wrong number of arguments");

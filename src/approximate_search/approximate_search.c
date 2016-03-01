@@ -60,8 +60,7 @@ void approximate_search_reset(approximate_search_t* const search) {
   search->search_stage = asearch_stage_begin;
   search->processing_state = asearch_processing_state_begin;
   search->stop_before_neighborhood_search = false;
-  const uint64_t max_complete_error =
-      search->search_parameters->complete_search_error_nominal; // FIXME + search->pattern.num_low_quality_bases;
+  const uint64_t max_complete_error = search->search_parameters->complete_search_error_nominal;
   search->max_complete_error = MIN(max_complete_error,search->pattern.max_effective_filtering_error);
   search->max_complete_stratum = ALL;
   // Prepare region profile

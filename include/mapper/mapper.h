@@ -28,7 +28,7 @@
 /*
  * Constants
  */
-#define MAPPER_TICKER_STEP 100000
+#define MAPPER_TICKER_STEP  100000
 
 /*
  * Mapper Parameters

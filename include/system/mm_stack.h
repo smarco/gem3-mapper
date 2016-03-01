@@ -21,12 +21,6 @@
 #include "system/mm_slab.h"
 #include "utils/vector.h"
 
-/*
- * Debug
- */
-#ifdef GEM_DEBUG
-#define MM_STACK_DEBUG
-#endif
 
 /*
  *  MM-Stack State

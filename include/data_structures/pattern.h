@@ -22,14 +22,11 @@ typedef struct {
   uint8_t* key;                  // Encoded Pattern
   uint8_t* quality_mask;         // Quality Mask
   uint64_t key_length;           // Total Length
-  /* Regular Pattern */
-  uint8_t* regular_key;          // Original Key
-  uint64_t regular_key_length;   // Original Key length
   /* Run-Length Pattern */
   bool run_length;
   uint8_t* rl_key;               // RL-Encoded Text
-  uint8_t* rl_runs;              // Length of each run
   uint64_t rl_key_length;        // RL-Encoded Text length
+  uint32_t* rl_runs_acc;         // Length of each run (accumulated)
   /* Pattern Properties */
   uint64_t num_wildcards;
   uint64_t num_low_quality_bases;
@@ -68,7 +65,7 @@ typedef struct {
 /*
  * Constants
  */
-#define PATTERN_BPM_WORDS64_PER_TILE 1
+#define PATTERN_BPM_WORDS64_PER_TILE 4
 
 /*
  * Pattern Prepare
@@ -86,10 +83,10 @@ bool pattern_is_null(pattern_t* const pattern);
 /*
  * Pattern Tiling
  */
-bool pattern_tiled_init(
+void pattern_tiled_init(
     pattern_tiled_t* const pattern_tiled,
     const uint64_t pattern_length,
-    const uint64_t pattern_tile_tall,
+    const uint64_t pattern_tile_length,
     const uint64_t sequence_length,
     const uint64_t max_error);
 void pattern_tiled_calculate_next(pattern_tiled_t* const pattern_tiled);
@@ -102,6 +99,7 @@ void pattern_trimmed_init(
     pattern_t* const pattern,
     bpm_pattern_t** const bpm_pattern_trimmed,
     bpm_pattern_t** const bpm_pattern_trimmed_tiles,
+    const uint64_t key_trimmed_length,
     const uint64_t key_trim_left,
     const uint64_t key_trim_right,
     mm_stack_t* const mm_stack);

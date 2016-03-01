@@ -16,30 +16,30 @@ void archive_text_rl_encode(
     const uint8_t* const text,
     const uint64_t text_length,
     uint8_t* const rl_text,
-    uint8_t* const rl_runs,
-    uint64_t* const rl_text_length) {
+    uint64_t* const rl_text_length,
+    uint32_t* const rl_runs_acc) {
   // Init
   rl_text[0] = text[0];
-  rl_runs[0] = 1;
+  rl_runs_acc[0] = 1;
   // RL-Encode all text
   uint64_t rl_pos = 0, text_pos, acc = 0;
   for (text_pos=1;text_pos<text_length;++text_pos) {
     if (rl_text[rl_pos]==text[text_pos] &&
-        rl_runs[rl_pos] < TEXT_RL_MAX_RUN_LENGTH) {
+        rl_runs_acc[rl_pos] < TEXT_RL_MAX_RUN_LENGTH) {
       // Increase run
-      ++rl_runs[rl_pos];
+      ++rl_runs_acc[rl_pos];
     } else {
       // Store accumulated
-      rl_runs[rl_pos] += acc;
-      acc = rl_runs[rl_pos];
+      rl_runs_acc[rl_pos] += acc;
+      acc = rl_runs_acc[rl_pos];
       // Next run
       ++rl_pos;
       rl_text[rl_pos] = text[text_pos];
-      rl_runs[rl_pos] = 1;
+      rl_runs_acc[rl_pos] = 1;
     }
   }
   // Store accumulated
-  rl_runs[rl_pos] += acc;
+  rl_runs_acc[rl_pos] += acc;
   // Set rl-length
   *rl_text_length = rl_pos+1;
 }
@@ -65,7 +65,7 @@ uint64_t archive_text_rl_position_translate(
     archive_text_retrieve(archive_text,sampled_position,
         remainder_max_expanded_length,false,true,&text_trace,mm_stack);
     // Compute offset from @sampled_position_rl to @position_rl
-    const uint64_t remainder = text_trace.rl_runs[remainder_rl-1];
+    const uint64_t remainder = text_trace.rl_runs_acc[remainder_rl-1];
     // Return
     mm_stack_pop_state(mm_stack);
     return sampled_position + remainder;
@@ -75,33 +75,33 @@ uint64_t archive_text_rl_position_translate(
  * Utils
  */
 uint64_t archive_text_rl_get_run_length(
-    const uint8_t* const rl_runs,
+    const uint32_t* const rl_runs_acc,
     const uint64_t rl_position) {
-  return (rl_position>0) ? rl_runs[rl_position]-rl_runs[rl_position-1] : rl_runs[rl_position];
+  return (rl_position>0) ? rl_runs_acc[rl_position]-rl_runs_acc[rl_position-1] : rl_runs_acc[rl_position];
 }
 uint64_t archive_text_rl_get_decoded_offset_inc(
-    const uint8_t* const rl_runs,
+    const uint32_t* const rl_runs_acc,
     const uint64_t rl_position) {
-  return rl_runs[rl_position];
+  return rl_runs_acc[rl_position];
 }
 uint64_t archive_text_rl_get_decoded_offset_exl(
-    const uint8_t* const rl_runs,
+    const uint32_t* const rl_runs_acc,
     const uint64_t rl_position) {
-  return (rl_position>0) ? rl_runs[rl_position-1] : 0;
+  return (rl_position>0) ? rl_runs_acc[rl_position-1] : 0;
 }
 uint64_t archive_text_rl_get_decoded_length(
-    const uint8_t* const rl_runs,
+    const uint32_t* const rl_runs_acc,
     const uint64_t rl_position,
     const uint64_t length) {
-  return rl_runs[rl_position+length-1] - archive_text_rl_get_decoded_offset_exl(rl_runs,rl_position);
+  return rl_runs_acc[rl_position+length-1] - archive_text_rl_get_decoded_offset_exl(rl_runs_acc,rl_position);
 }
 uint64_t archive_text_rl_get_encoded_offset(
-    const uint8_t* const rl_runs,
+    const uint32_t* const rl_runs_acc,
     const uint64_t rl_text_length,
     const uint64_t text_position) { // TODO Impl log2 solution
   uint64_t i;
   for (i=0;i<rl_text_length;++i) {
-    if (rl_runs[i] > text_position) return i;
+    if (rl_runs_acc[i] > text_position) return i;
   }
   return rl_text_length;
 }

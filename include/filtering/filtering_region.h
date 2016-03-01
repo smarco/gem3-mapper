@@ -11,6 +11,7 @@
 
 #include "utils/essentials.h"
 #include "data_structures/sequence.h"
+#include "data_structures/pattern.h"
 #include "data_structures/text_collection.h"
 #include "archive/archive_text.h"
 #include "matches/match_scaffold.h"
@@ -30,28 +31,27 @@ extern const char* filtering_region_status_label[6];
 typedef struct {
   /* State */
   filtering_region_status_t status;         // Filtering Region Status
-  /* Location */
+  /* Source Region Offset */
+  uint64_t text_source_region_offset;       // Text-Offset to the begin of the source-region
+  uint64_t key_source_region_offset;        // Key-Offset to the begin of the source-region
+  /* Text */
   uint64_t text_trace_offset;               // Text-trace
-  uint64_t begin_position_translated;       // Translated begin-position from RL-Space (In case of RL-text)
-  uint64_t begin_position;                  // Region effective begin position (adjusted to error boundaries)
-  uint64_t end_position;                    // Region effective end position (adjusted to error boundaries)
-  uint64_t base_begin_position_offset;      // Offset to base begin filtering position (no error boundary correction)
-  uint64_t base_end_position_offset;        // Offset to base begin filtering position (no error boundary correction)
-  /* Trimmed Pattern */
+  uint64_t text_begin_position;             // Region effective begin position (adjusted to error boundaries)
+  uint64_t text_end_position;               // Region effective end position (adjusted to error boundaries)
+  uint64_t text_base_begin_offset;          // Offset to base begin filtering position (no error boundary correction)
+  uint64_t text_base_end_offset;            // Offset to base begin filtering position (no error boundary correction)
+  /* Key */
+  uint64_t key_trimmed_length;              // Key trimmed length
   uint64_t key_trim_left;                   // Key left trim  (due to position correction wrt the reference limits)
   uint64_t key_trim_right;                  // Key right trim (due to position correction wrt the reference limits)
   bool key_trimmed;                         // Key has been trimmed (due to dangling ends; projected to the text-candidate)
   bpm_pattern_t* bpm_pattern_trimmed;       // BPM-Pattern Trimmed
   bpm_pattern_t* bpm_pattern_trimmed_tiles; // BPM-Pattern Trimmed & Tiled
-  /* Matching Regions */
+  /* Alignment */
+  uint64_t max_error;                       // Maximum effective error
+  uint64_t max_bandwidth;                   // Maximum effective bandwidth
+  region_alignment_t region_alignment;      // Filtering Region Alignment
   match_scaffold_t match_scaffold;          // Matching regions supporting the filtering region (Scaffolding)
-  /* Alignment distance */
-  uint64_t align_distance;                  // Distance (In case of approximate: max-bound)
-  uint64_t align_distance_min_bound;        // Approximated distance (min-bound)
-  uint64_t align_match_begin_column;        // Match begin column (inclusive)
-  uint64_t align_match_end_column;          // Matching column (inclusive)
-  /* Footprint */
-  uint64_t footprint;                       // Footprint checksum
 } filtering_region_t;
 typedef struct {
   /* Filtering region */
@@ -76,15 +76,45 @@ void filtering_region_add(
     const uint64_t begin_position,
     const uint64_t end_position,
     const uint64_t align_distance,
-    const uint64_t align_match_end_column);
+    const uint64_t text_begin_offset,
+    const uint64_t text_end_offset,
+    mm_stack_t* const mm_stack);
 
 /*
  * Retrieve filtering region text-candidate
  */
 void filtering_region_retrieve_text(
     filtering_region_t* const filtering_region,
+    pattern_t* const pattern,
     archive_text_t* const archive_text,
     text_collection_t* const text_collection,
+    mm_stack_t* const mm_stack);
+
+/*
+ * Prepare Alignment
+ */
+void filtering_region_alignment_prepare(
+    filtering_region_t* const filtering_region,
+    bpm_pattern_t* const bpm_pattern,
+    bpm_pattern_t* const bpm_pattern_tiles,
+    mm_stack_t* const mm_stack);
+
+/*
+ * Filtering Region Key Trims
+ */
+void filtering_region_compute_key_trims(
+    filtering_region_t* const filtering_region,
+    pattern_t* const pattern,
+    const uint64_t text_length);
+
+/*
+ * Filtering Region BPM-Pattern
+ */
+void filtering_region_bpm_pattern_select(
+    filtering_region_t* const filtering_region,
+    pattern_t* const pattern,
+    bpm_pattern_t** const bpm_pattern,
+    bpm_pattern_t** const bpm_pattern_tiles,
     mm_stack_t* const mm_stack);
 
 /*

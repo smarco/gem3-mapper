@@ -97,7 +97,7 @@ uint64_t filtering_candidates_extend_match(
   matches_hint_allocate_match_trace(matches_candidate,candidates_found); // Hint to matches
   // Align
   candidates_found = filtering_candidates_align_candidates(
-      filtering_candidates,candidate_pattern,false,false,true,false,matches_candidate);
+      filtering_candidates,candidate_pattern,false,true,false,matches_candidate);
   PROFILE_STOP(GP_FC_EXTEND_REALIGN_CANDIDATE_REGIONS,PROFILE_LEVEL);
   PROFILE_STOP(GP_FC_EXTEND_MATCH,PROFILE_LEVEL);
   // Return number of extended-matches found
@@ -122,7 +122,7 @@ void filtering_candidates_extend_generate_candidates(
   uint64_t n;
   for (n=0;n<num_filtering_regions;++n,++regions_extended) {
     // Compute candidate region boundaries
-    const uint64_t extended_eff_begin_position = regions_extended->begin_position;
+    const uint64_t extended_eff_begin_position = regions_extended->text_begin_position;
     uint64_t candidate_begin_position, candidate_end_position;
     filtering_candidates_compute_extension_region(
         candidate_filtering_candidates,true,extended_eff_begin_position,
@@ -146,14 +146,14 @@ void filtering_candidates_extend_generate_candidates(
     while (current_end_position <= end_position) {
       // Add overlapping candidate
       if (current_begin_position != begin_position) {
-        regions_candidate.begin_position = BOUNDED_SUBTRACTION(current_begin_position,overlap,begin_position);
-        regions_candidate.end_position = BOUNDED_ADDITION(current_begin_position,overlap,end_position);
+        regions_candidate.text_begin_position = BOUNDED_SUBTRACTION(current_begin_position,overlap,begin_position);
+        regions_candidate.text_end_position = BOUNDED_ADDITION(current_begin_position,overlap,end_position);
         vector_insert(candidate_filtering_candidates->filtering_regions,regions_candidate,filtering_region_t);
         ++num_chunks_added;
       }
       // Add new chunk
-      regions_candidate.begin_position = current_begin_position;
-      regions_candidate.end_position = current_end_position;
+      regions_candidate.text_begin_position = current_begin_position;
+      regions_candidate.text_end_position = current_end_position;
       vector_insert(candidate_filtering_candidates->filtering_regions,regions_candidate,filtering_region_t);
       ++num_chunks_added;
       // Next
@@ -163,13 +163,13 @@ void filtering_candidates_extend_generate_candidates(
     // Last chunk
     if (num_chunks_added==0 ||
        (current_begin_position < end_position && end_position-current_begin_position > overlap)) {
-      regions_candidate.begin_position = current_begin_position;
-      regions_candidate.end_position = end_position;
+      regions_candidate.text_begin_position = current_begin_position;
+      regions_candidate.text_end_position = end_position;
       vector_insert(candidate_filtering_candidates->filtering_regions,regions_candidate,filtering_region_t);
     } else if (current_begin_position == begin_position) {
       filtering_region_t* const last_regions_candidate =
           vector_get_last_elm(candidate_filtering_candidates->filtering_regions,filtering_region_t);
-      last_regions_candidate->end_position = end_position;
+      last_regions_candidate->text_end_position = end_position;
     }
   }
 }

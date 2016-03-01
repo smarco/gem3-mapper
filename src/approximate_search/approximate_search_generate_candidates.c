@@ -59,9 +59,15 @@ void approximate_search_generate_candidates_exact(
   if (region_profile_has_exact_matches(region_profile)) {
     // Add exact matches
     region_search_t* const region_search = region_profile->filtering_region;
-    filtering_candidates_add_read_interval(
-        filtering_candidates,search->search_parameters,
-        region_search->lo,region_search->hi,pattern->key_length,0);
+    if (pattern->run_length) {
+      filtering_candidates_add_region_interval(
+          filtering_candidates,region_search->lo,region_search->hi,
+          region_search->begin,region_search->end,ZERO_ERRORS);
+    } else {
+      filtering_candidates_add_read_interval(
+          filtering_candidates,search->search_parameters,
+          region_search->lo,region_search->hi,pattern->key_length,0);
+    }
     // Set the minimum number of mismatches required
     approximate_search_update_mcs(search,1);
     region_profile->errors_allowed = 1;
@@ -219,7 +225,7 @@ void approximate_search_generate_candidates_inexact(
       filtering_candidates_process_candidates(filtering_candidates,pattern,true);
       filtering_candidates_verify_candidates(filtering_candidates,pattern);
       filtering_candidates_align_candidates(filtering_candidates,
-          pattern,search->emulated_rc_search,false,false,false,matches);
+          pattern,search->emulated_rc_search,false,false,matches);
       asearch_control_adjust_max_differences_using_strata(search,matches);
       PROFILE_STOP(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING,PROFILE_LEVEL);
       PROFILE_CONTINUE(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);

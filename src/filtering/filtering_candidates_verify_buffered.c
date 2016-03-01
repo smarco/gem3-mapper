@@ -36,11 +36,11 @@ bool filtering_candidates_verify_buffered_kmer_filter(
   text_collection_t* const text_collection = text_collection;
   mm_stack_t* const mm_stack = filtering_candidates->mm_stack;
   // Retrieve text-candidate
-  filtering_region_retrieve_text(filtering_region,archive_text,text_collection,mm_stack);
+  filtering_region_retrieve_text(filtering_region,pattern,archive_text,text_collection,mm_stack);
   const text_trace_t* const text_trace =
       text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
   const uint8_t* const text = text_trace->text; // Candidate
-  const uint64_t eff_text_length = filtering_region->end_position - filtering_region->begin_position;
+  const uint64_t eff_text_length = filtering_region->text_end_position - filtering_region->text_begin_position;
   // Generalized Kmer-Counting filter
   const uint64_t test_positive = kmer_counting_filter(&pattern->kmer_counting,text,eff_text_length);
   // Return
@@ -79,14 +79,13 @@ uint64_t filtering_candidates_verify_buffered_add(
     }
     PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_ACCEPTED);
     // Locate candidate sequence
-    const uint64_t begin_position = filtering_region->begin_position;
-    const uint64_t candidate_length = filtering_region->end_position - begin_position;
+    const uint64_t begin_position = filtering_region->text_begin_position;
+    const uint64_t candidate_length = filtering_region->text_end_position - begin_position;
     if (DEBUG_TILE_DIMENSIONS) gem_slog("> Candidate #%lu (%lu nt)\n",candidate_pos,candidate_length);
     // Calculate tile dimensions
     pattern_tiled_t pattern_tiled;
-    const bool pattern_can_align = pattern_tiled_init(&pattern_tiled,
+    pattern_tiled_init(&pattern_tiled,
         gpu_pattern_length,gpu_pattern_tile_tall,candidate_length,max_error);
-    if (!pattern_can_align) continue;
     // Initialize current tile variables
     for (tile_offset=0;tile_offset<gpu_pattern_num_tiles;++tile_offset,++total_candidates_added) {
       // BPM-GPU put candidate
@@ -104,8 +103,8 @@ uint64_t filtering_candidates_verify_buffered_add(
   }
   gpu_buffer_align_bpm_record_candidates_per_query(gpu_buffer_align_bpm,total_candidates_added);
   // Return the final number of candidate-tiles added to the buffer
-  PROF_ADD_COUNTER(GP_BMP_DISTANCE_TILED_NUM_TILES,total_candidates_added);
-  PROF_ADD_COUNTER(GP_BMP_DISTANCE_TILED_NUM_TILES_VERIFIED,total_candidates_added);
+  PROF_ADD_COUNTER(GP_BMP_DISTANCE_NUM_TILES,total_candidates_added);
+  PROF_ADD_COUNTER(GP_BMP_DISTANCE_NUM_TILES_VERIFIED,total_candidates_added);
   return total_candidates_added;
 }
 /*
@@ -214,58 +213,64 @@ void filtering_candidates_verify_buffered_get_candidate(
   *candidate_end_position += tile_length;
   *candidate_length = *candidate_end_position - *candidate_begin_position;
 }
-bool filtering_candidates_verify_buffered_get_result(
+void filtering_candidates_verify_buffered_get_result(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
+    bpm_pattern_t* const bpm_pattern,
     const uint64_t candidate_offset,
     const uint64_t num_tiles,
-    bpm_pattern_t* const bpm_pattern,
-    const uint64_t key_length,
+    const uint64_t pattern_length,
     const uint64_t pattern_tile_tall,
     const uint64_t candidate_length,
     const uint64_t max_error,
-    uint64_t* const global_distance,
-    uint64_t* const distance_link_tiles,
-    uint64_t* const last_tile_match_position,
+    region_alignment_t* const region_alignment,
     text_collection_t* const text_collection,
     mm_stack_t* const mm_stack) {
   // Calculate tile dimensions (Sum up the alignment distance of all the tiles)
   pattern_tiled_t pattern_tiled;
-  const bool pattern_can_align = pattern_tiled_init(
-      &pattern_tiled,key_length,pattern_tile_tall,candidate_length,max_error);
-  if (!pattern_can_align) return false;
+  pattern_tiled_init(&pattern_tiled,
+      pattern_length,pattern_tile_tall,candidate_length,max_error);
+  // Init region-alignment
+  region_alignment->num_tiles = num_tiles;
+  region_alignment_tile_t* const alignment_tiles =
+      mm_stack_calloc(mm_stack,num_tiles,region_alignment_tile_t,false);
+  region_alignment->alignment_tiles = alignment_tiles;
   // Put together all tiles from the candidate (join results)
-  *global_distance = 0;
-  *distance_link_tiles = 0;
-  bool unaligned_tiled = false;
-  uint64_t pattern_tile;
-  for (pattern_tile=0;pattern_tile<num_tiles;++pattern_tile) {
+  uint64_t tile_pos, global_distance=0, distance_link_tiles=0;
+  for (tile_pos=0;tile_pos<num_tiles;++tile_pos) {
     // Retrieve alignment distance
     uint32_t tile_distance=0, tile_match_column=0;
     gpu_buffer_align_bpm_get_result(gpu_buffer_align_bpm,
-        candidate_offset+pattern_tile,&tile_distance,&tile_match_column);
+        candidate_offset+tile_pos,&tile_distance,&tile_match_column);
     pattern_tiled.tile_distance = tile_distance;
     pattern_tiled.tile_match_column = tile_match_column;
-    *global_distance += tile_distance;
-    if (tile_distance > max_error) unaligned_tiled = true; // return false;
-    // Bound the joint distance by estimating the cost of connecting the path through the tiles
-    *distance_link_tiles += pattern_tiled_bound_matching_path(&pattern_tiled);
+    // Compute distance
+    global_distance += pattern_tiled.tile_distance;
+    distance_link_tiles += pattern_tiled_bound_matching_path(&pattern_tiled);
+    alignment_tiles[tile_pos].match_distance = pattern_tiled.tile_distance;
+    const uint64_t tile_end_offset = pattern_tiled.tile_match_column+1;
+    alignment_tiles[tile_pos].text_end_offset = pattern_tiled.tile_offset + tile_end_offset;
+    const uint64_t tile_begin_offset = BOUNDED_SUBTRACTION(tile_end_offset,
+        pattern_tiled.tile_tall+pattern_tiled.tile_distance,0);
+    alignment_tiles[tile_pos].text_begin_offset = pattern_tiled.tile_offset + tile_begin_offset;
     // Calculate next tile
     pattern_tiled_calculate_next(&pattern_tiled);
     // DEBUG
-#ifdef CUDA_CHECK_BUFFERED_VERIFY_CANDIDATES
+    #ifdef CUDA_CHECK_BUFFERED_VERIFY_CANDIDATES
     filtering_candidates_verify_buffered_check_tile_distance(
         gpu_buffer_align_bpm,candidate_offset,pattern_tile,
         tile_distance,tile_match_column,text_collection,mm_stack);
-#endif
+    #endif
   }
   // DEBUG
-#ifdef CUDA_CHECK_BUFFERED_VERIFY_CANDIDATES
+  #ifdef CUDA_CHECK_BUFFERED_VERIFY_CANDIDATES
   filtering_candidates_verify_buffered_check_global_distance(
       gpu_buffer_align_bpm,candidate_offset,num_tiles,*global_distance,
       *distance_link_tiles,bpm_pattern,text_collection,mm_stack);
-#endif
-  *last_tile_match_position = pattern_tiled.prev_tile_match_position;
-  return !unaligned_tiled;
+  #endif
+  // Setup alignment result
+  region_alignment->distance_min_bound = global_distance;
+  global_distance += distance_link_tiles;
+  region_alignment->distance_max_bound = MIN(global_distance,max_error);
 }
 uint64_t filtering_candidates_verify_buffered_retrieve(
     filtering_candidates_t* const filtering_candidates,
@@ -300,32 +305,28 @@ uint64_t filtering_candidates_verify_buffered_retrieve(
         gpu_buffer_align_bpm,candidate_idx,gpu_pattern_num_tiles,
         &candidate_begin_position,&candidate_end_position,&candidate_length);
     // Get the candidate result
-    uint64_t global_distance = 0, distance_link_tiles = 0, last_tile_match_position = 0;
-    const bool aligned = filtering_candidates_verify_buffered_get_result(
-        gpu_buffer_align_bpm,candidate_idx,gpu_pattern_num_tiles,pattern->bpm_pattern,
+    region_alignment_t region_alignment;
+    filtering_candidates_verify_buffered_get_result(
+        gpu_buffer_align_bpm,pattern->bpm_pattern,candidate_idx,gpu_pattern_num_tiles,
         gpu_pattern_length,gpu_pattern_tile_tall,candidate_length,max_error,
-        &global_distance,&distance_link_tiles,&last_tile_match_position,
-        text_collection,mm_stack);
+        &region_alignment,text_collection,mm_stack);
     candidate_idx += gpu_pattern_num_tiles; // Next
     // Check total distance & Compose the retrieved region
-    if (aligned && global_distance <= max_error) {
+    if (region_alignment.distance_min_bound <= max_error) {
       // Configure accepted candidate
       regions_accepted->status = filtering_region_accepted;
       regions_accepted->text_trace_offset = UINT64_MAX; // Not retrieved yet
-      regions_accepted->begin_position = candidate_begin_position;
-      regions_accepted->end_position = candidate_end_position;
-      regions_accepted->base_begin_position_offset = 0; // TODO Store & Retrive location data
-      regions_accepted->base_end_position_offset = candidate_end_position-candidate_begin_position;
+      regions_accepted->text_begin_position = candidate_begin_position;
+      regions_accepted->text_end_position = candidate_end_position;
+      // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO Store & Retrive location data
+      regions_accepted->text_base_begin_offset = 0;
+      regions_accepted->text_base_end_offset = candidate_end_position-candidate_begin_position;
       regions_accepted->key_trim_left = 0;
       regions_accepted->key_trim_right = 0;
-      // Configure regions matching (we sacrifice this information as to save memory)
-      match_scaffold_init(&regions_accepted->match_scaffold);
-      // Distance Bound estimation
-      regions_accepted->align_distance_min_bound = (global_distance > max_error) ? max_error : global_distance;
-      global_distance += distance_link_tiles;
-      regions_accepted->align_distance = (global_distance > max_error) ? max_error : global_distance;
-      regions_accepted->align_match_end_column =
-          BOUNDED_ADDITION(last_tile_match_position,regions_accepted->align_distance,candidate_length-1);
+      // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+      regions_accepted->region_alignment = region_alignment;
+      match_scaffold_init(&regions_accepted->match_scaffold); // We sacrifice this information as to save memory
+      // Next
       ++regions_accepted;
       ++num_accepted_regions;
       PROF_INC_COUNTER(GP_ACCEPTED_REGIONS);
@@ -333,13 +334,11 @@ uint64_t filtering_candidates_verify_buffered_retrieve(
       // Configure discarded candidate
       regions_discarded->status = filtering_region_verified_discarded;
       regions_discarded->text_trace_offset = UINT64_MAX; // Not retrieved yet
-      regions_discarded->begin_position = candidate_begin_position;
-      regions_discarded->end_position = candidate_end_position;
-      // Distance Bound estimation
-      regions_discarded->align_distance_min_bound = global_distance;
-      regions_discarded->align_distance = global_distance + distance_link_tiles;
-      // Configure regions matching (we sacrifice this information as to save memory)
-      match_scaffold_init(&regions_discarded->match_scaffold);
+      regions_discarded->text_begin_position = candidate_begin_position;
+      regions_discarded->text_end_position = candidate_end_position;
+      regions_discarded->region_alignment = region_alignment;
+      match_scaffold_init(&regions_discarded->match_scaffold); // We sacrifice this information as to save memory
+      // Next
       ++regions_discarded;
       PROF_INC_COUNTER(GP_DISCARDED_REGIONS);
     }
@@ -373,15 +372,14 @@ void filtering_candidates_verify_buffered_print_benchmark_tile(
     const uint64_t tile_tall,const bool print_tile,
     text_collection_t* const text_collection) {
   // Parameters
-  const uint64_t begin_position = filtering_region->begin_position;
-  const uint64_t candidate_length = filtering_region->end_position - begin_position;
+  const uint64_t begin_position = filtering_region->text_begin_position;
+  const uint64_t candidate_length = filtering_region->text_end_position - begin_position;
   const text_trace_t* const text_trace = text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
   const uint8_t* const text = text_trace->text;
   // Calculate tile dimensions
   pattern_tiled_t pattern_tiled;
-  const bool pattern_can_align = pattern_tiled_init(
-      &pattern_tiled,pattern->key_length,tile_tall,candidate_length,max_error);
-  if (!pattern_can_align) return;
+  pattern_tiled_init(&pattern_tiled,
+      pattern->key_length,tile_tall,candidate_length,max_error);
   // Initialize current tile variables
   uint64_t tile_offset, total_candidates_added, acc_tall, i;
   for (tile_offset=0,acc_tall=0;tile_offset<=tile_pos;++tile_offset,++total_candidates_added) {
@@ -434,7 +432,7 @@ void filtering_candidates_verify_buffered_print_benchmark(
     filtering_region_t* candidate_region = vector_get_mem(filtering_candidates->filtering_regions,filtering_region_t);
     for (candidate_pos=0;candidate_pos<pending_candidates;++candidate_pos,++candidate_region) {
       // Retrieve Candidate (if needed)
-      filtering_region_retrieve_text(candidate_region,archive_text,&text_collection,mm_stack);
+      filtering_region_retrieve_text(candidate_region,pattern,archive_text,&text_collection,mm_stack);
       // Print candidate tile
       filtering_candidates_verify_buffered_print_benchmark_tile(
           stream,candidate_region,pattern,bpm_pattern_tiles,max_error,tile_pos,

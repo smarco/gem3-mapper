@@ -20,6 +20,7 @@
  * Debug
  */
 #define MM_STACK_LOG false
+//#define MM_STACK_DEBUG
 
 /*
  * Errors
@@ -39,30 +40,16 @@
  * Segment handling
  */
 void mm_stack_segment_allocate(mm_stack_t* const mm_stack,mm_stack_segment_t* const stack_segment) {
-#ifdef MM_STACK_DEBUG
-    stack_segment->slab_unit = (mm_slab_unit_t*) malloc(mm_stack->segment_size);
-    stack_segment->memory = (void*) stack_segment->slab_unit;
-#else
-    stack_segment->slab_unit = mm_slab_request(mm_stack->mm_slab);
-    stack_segment->memory = stack_segment->slab_unit->memory;
-#endif
-    stack_segment->memory_available = mm_stack->segment_size;
-}
-void mm_stack_segment_reset(mm_stack_t* const mm_stack,mm_stack_segment_t* const stack_segment) {
-#ifdef MM_STACK_DEBUG
-  stack_segment->memory = (void*) stack_segment->slab_unit;
-  stack_segment->memory_available = mm_stack->segment_size;
-#else
+  stack_segment->slab_unit = mm_slab_request(mm_stack->mm_slab);
   stack_segment->memory = stack_segment->slab_unit->memory;
   stack_segment->memory_available = mm_stack->segment_size;
-#endif
+}
+void mm_stack_segment_reset(mm_stack_t* const mm_stack,mm_stack_segment_t* const stack_segment) {
+  stack_segment->memory = stack_segment->slab_unit->memory;
+  stack_segment->memory_available = mm_stack->segment_size;
 }
 void mm_stack_segment_free(mm_stack_t* const mm_stack,mm_stack_segment_t* const stack_segment) {
-#ifdef MM_STACK_DEBUG
-    free((void*)stack_segment->slab_unit);
-#else
-    mm_slab_put(mm_stack->mm_slab,stack_segment->slab_unit);
-#endif
+  mm_slab_put(mm_stack->mm_slab,stack_segment->slab_unit);
 }
 /*
  * Setup
@@ -196,6 +183,22 @@ mm_stack_segment_t* mm_stack_add_segment(mm_stack_t* const mm_stack) {
 /*
  * Allocate/Deallocate
  */
+#ifdef MM_STACK_DEBUG
+void* mm_stack_memory_allocate(
+    mm_stack_t* const mm_stack,
+    const uint64_t num_bytes,
+    const bool zero_mem) {
+  // Issue malloc request
+  if (num_bytes > BUFFER_SIZE_1G) {
+    gem_warn(MM_STACK_LARGE_MEM,CONVERT_B_TO_MB(num_bytes),CONVERT_B_TO_MB(mm_stack->segment_size));
+  }
+  void** memory;
+  vector_alloc_new(mm_stack->malloc_requests,void*,memory);
+  *memory = mm_malloc_(1,num_bytes,zero_mem,0);
+  // Return memory
+  return *memory;
+}
+#else
 void* mm_stack_memory_allocate(
     mm_stack_t* const mm_stack,
     const uint64_t num_bytes,
@@ -228,4 +231,5 @@ void* mm_stack_memory_allocate(
   // Return memory
   return memory;
 }
+#endif
 

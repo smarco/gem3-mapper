@@ -25,14 +25,13 @@ exp(cbind(OR = coef(mylogit), confint(mylogit)))
 mylogit <- glm(tp ~ , data = data1, family = "binomial")
 // ALL
 mylogit <- glm(tp ~ edit+sub_edit+event+sub_event+swg+sub_swg+mcs_1+fs_matches+ack_1+max_region+mp+m2p, data = data1, family = "binomial")
+
 // Uniq (chr1,HS)
-mylogit <- glm(tp ~ edit+event+mcs_1+max_region+mp, data = data1, family = "binomial")
-
+mylogit <- glm(tp ~ edit+event+swg+mcs_1+max_region+mp, data = data1, family = "binomial")
 // Mmaps (chr1,HS)
-mylogit <- glm(tp ~ event+sub_event+swg+sub_swg+mcs_1+mp, data = data1, family = "binomial")
-
+mylogit <- glm(tp ~ edit+event+swg+sub_swg+mcs_1+max_region+mp, data = data1, family = "binomial")
 // Ties (chr1,HS)
-mylogit <- glm(tp ~ sub_edit+event+sub_swg+mcs_1+mp, data = data1, family = "binomial")
+mylogit <- glm(tp ~ edit+sub_edit+event+mcs_1+mp, data = data1, family = "binomial")
 
 /*
  * PE NEW

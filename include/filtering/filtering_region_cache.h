@@ -33,10 +33,6 @@ void filtering_region_cache_destroy(filtering_region_cache_t* const filtering_re
 /*
  * Accessors
  */
-void filtering_region_cache_compute_footprint(
-    filtering_region_t* const filtering_region,
-    text_collection_t* const text_collection);
-
 bool filtering_region_transient_cache_is_empty(
     filtering_region_cache_t* const filtering_region_cache);
 void filtering_region_transient_cache_add(
@@ -44,22 +40,11 @@ void filtering_region_transient_cache_add(
     filtering_region_t* const filtering_region,
     uint64_t* const match_trace_offset,
     mm_stack_t* const mm_stack);
-void filtering_region_permanent_cache_add(
-    filtering_region_cache_t* const filtering_region_cache,
-    filtering_region_t* const filtering_region,
-    uint64_t* const match_trace_offset,
-    mm_stack_t* const mm_stack);
-
 
 /*
  * Search
  */
 match_trace_t* filtering_region_transient_cache_search(
-    filtering_region_cache_t* const filtering_region_cache,
-    filtering_region_t* const filtering_region,
-    text_collection_t* const text_collection,
-    matches_t* const matches);
-match_trace_t* filtering_region_permanent_cache_search(
     filtering_region_cache_t* const filtering_region_cache,
     filtering_region_t* const filtering_region,
     text_collection_t* const text_collection,

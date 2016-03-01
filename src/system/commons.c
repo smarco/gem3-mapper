@@ -78,10 +78,10 @@ const uint64_t uint64_mask_mod_pow2[] =
 /*
  * Common numerical data processing/formating
  */
-uint64_t integer_proportion(const float proportion,const uint64_t length) {
+uint64_t integer_proportion(const double proportion,const uint64_t length) {
   if (proportion<=0.0) return 0;
   if (proportion>=1.0) return (uint64_t)proportion;
-  return (uint64_t)(proportion*(float)length);
+  return (uint64_t)(proportion*(double)length);
 }
 uint64_t integer_lower_power_of_two(uint64_t number) {
   uint64_t result = 0;

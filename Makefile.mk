@@ -42,7 +42,7 @@ FOLDER_TOOLS=$(ROOT_PATH)/tools
 HAVE_ZLIB = 1
 HAVE_BZLIB = 1
 HAVE_OPENMP = 1
-HAVE_CUDA = 1
+HAVE_CUDA = 0
 
 ###############################################################################
 # General Flags

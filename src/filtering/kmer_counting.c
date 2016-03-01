@@ -5,10 +5,6 @@
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
  *
- * TODO
- *   Trick:
- *     Check for Ns, if it doesn't have N's then make a much simpler check of the candidate read
- *
  *   Title: "Verification tests"
  *     Can be heuristic, like discarding a candidate region if
  *     if doesn't have enough seed supporting it. Can be exact like k-mer counting.
@@ -37,10 +33,12 @@
 //#define KMER_COUNTING_MASK   0x000000000000003Full
 //#define KMER_COUNTING_LENGTH 4
 //#define KMER_COUNTING_MASK   0x00000000000000FFull
-#define KMER_COUNTING_LENGTH 5
-#define KMER_COUNTING_MASK   0x00000000000003FFull
-//#define KMER_COUNTING_LENGTH 6
-//#define KMER_COUNTING_MASK   0x0000000000000FFFull
+//#define KMER_COUNTING_LENGTH 5
+//#define KMER_COUNTING_MASK   0x00000000000003FFull
+#define KMER_COUNTING_LENGTH 6
+#define KMER_COUNTING_MASK   0x0000000000000FFFull
+//#define KMER_COUNTING_LENGTH 7
+//#define KMER_COUNTING_MASK   0x0000000000003FFFull
 
 #define KMER_COUNTING_NUM_KMERS POW4(KMER_COUNTING_LENGTH)
 #define KMER_COUNTING_MASK_INDEX(kmer_idx) ((kmer_idx) & KMER_COUNTING_MASK)
@@ -56,8 +54,7 @@ void kmer_counting_compile(
     kmer_counting_t* const kmer_counting,
     uint8_t* const pattern,
     const uint64_t pattern_length,
-    const uint64_t num_non_canonical_bases,
-    const uint64_t effective_filtering_max_error,
+    const uint64_t max_error,
     mm_stack_t* const mm_stack) {
   // Check min-length condition
   if (pattern_length < KMER_COUNTING_LENGTH) {
@@ -65,7 +62,6 @@ void kmer_counting_compile(
     return;
   }
   // Check efficiency condition
-  const uint64_t max_error = effective_filtering_max_error+num_non_canonical_bases;
   if (pattern_length/max_error < KMER_COUNTING_EFFECTIVE_THRESHOLD) {
     kmer_counting->enabled = false;
     return;

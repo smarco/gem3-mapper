@@ -27,6 +27,11 @@
 #define PROFILE_LEVEL PHIGH
 
 /*
+ * Constants
+ */
+#define ARCHIVE_SEARCH_PE_EXTENSION_MAX_READ_LENGTH 500
+
+/*
  * Memory Injection (Support Data Structures)
  */
 void archive_search_pe_inject_mm(
@@ -60,23 +65,31 @@ bool archive_search_pe_is_extension_feasible(archive_search_t* const archive_sea
   return mapper_stats_template_length_is_reliable(archive_search->mapper_stats);
 }
 bool archive_search_pe_use_shortcut_extension(
-    archive_search_t* const archive_search,
+    archive_search_t* const archive_search_extended,
+    archive_search_t* const archive_search_candidate,
     matches_t* const matches) {
   // Check extension enabled
-  search_parameters_t* const search_parameters = &archive_search->search_parameters;
+  search_parameters_t* const search_parameters = &archive_search_extended->search_parameters;
   if (!search_parameters->search_paired_parameters.paired_end_extension_shortcut) return false;
+  // Check key-length
+  const uint64_t key_length = archive_search_candidate->forward_search_state.pattern.key_length;
+  if (key_length > ARCHIVE_SEARCH_PE_EXTENSION_MAX_READ_LENGTH) return false;
   // Check the number of samples to derive the expected template size
-  if (!mapper_stats_template_length_is_reliable(archive_search->mapper_stats)) return false;
+  if (!mapper_stats_template_length_is_reliable(archive_search_extended->mapper_stats)) return false;
   // Test if the shortcut extension will provide a reliable mapping
   return matches->metrics.mapq >= 30;
 }
 bool archive_search_pe_use_recovery_extension(
     archive_search_t* const archive_search_extended,
+    archive_search_t* const archive_search_candidate,
     matches_t* const matches_extended,
     matches_t* const matches_candidate) {
   // Check extension enabled
   search_parameters_t* const search_parameters = &archive_search_extended->search_parameters;
   if (!search_parameters->search_paired_parameters.paired_end_extension_recovery) return false;
+  // Check key-length
+  const uint64_t key_length = archive_search_candidate->forward_search_state.pattern.key_length;
+  if (key_length > ARCHIVE_SEARCH_PE_EXTENSION_MAX_READ_LENGTH) return false;
   // Check the number of samples to derive the expected template size
   if (!mapper_stats_template_length_is_reliable(archive_search_extended->mapper_stats)) return false;
   // Test suitability for extension
@@ -179,7 +192,7 @@ void archive_search_pe_continue(
         archive_search_end1->pair_searched = true;
         // Test for extension of End/1 (Shortcut to avoid mapping end/2)
         archive_search_end1->pair_extended =
-            archive_search_pe_use_shortcut_extension(archive_search_end1,matches_end1);
+            archive_search_pe_use_shortcut_extension(archive_search_end1,archive_search_end2,matches_end1);
         if (archive_search_end1->pair_extended) {
           // Extend End/1
           archive_search_end1->pair_extended_shortcut = true; // Debug
@@ -210,7 +223,8 @@ void archive_search_pe_continue(
       case archive_search_pe_recovery:
         // Paired-end recovery by extension
         if (!archive_search_end1->pair_extended) {
-          if (archive_search_pe_use_recovery_extension(archive_search_end1,matches_end1,matches_end2)) {
+          if (archive_search_pe_use_recovery_extension(
+              archive_search_end1,archive_search_end2,matches_end1,matches_end2)) {
             // Extend End/1
 #ifdef GEM_PROFILE
             PROF_INC_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTENSION_RECOVERY_TOTAL);
@@ -225,7 +239,8 @@ void archive_search_pe_continue(
           }
         }
         if (!archive_search_end2->pair_extended) {
-          if (archive_search_pe_use_recovery_extension(archive_search_end2,matches_end2,matches_end1)) {
+          if (archive_search_pe_use_recovery_extension(
+              archive_search_end2,archive_search_end1,matches_end2,matches_end1)) {
             // Extend End/2
 #ifdef GEM_PROFILE
             PROF_INC_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTENSION_RECOVERY_TOTAL);

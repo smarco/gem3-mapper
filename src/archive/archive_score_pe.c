@@ -100,7 +100,6 @@ void archive_score_matches_pe_stratify(
   const uint64_t num_paired_map = paired_matches_get_num_maps(paired_matches);
   uint64_t i;
   for (i=0;i<num_paired_map;++i) paired_map[i].mapq_score = 0;
-  if (num_paired_map>0 && paired_map[0].pair_relation==pair_relation_discordant) return;
   /*
    * Classify
    */
@@ -127,7 +126,7 @@ void archive_score_matches_pe_stratify(
     case paired_matches_class_tie_d1: {
 //      double pr = matches_classify_logit_ties(&predictors,&logit_model_paired_end_default);
 //      paired_map[0].mapq_score = (pr >= 0.95) ? 80 + (uint8_t)((pr-0.95)*1000.0) : 79;
-      paired_map[0].mapq_score = 6;
+      paired_map[0].mapq_score = 7;
       break;
     }
     case paired_matches_class_mmap: {

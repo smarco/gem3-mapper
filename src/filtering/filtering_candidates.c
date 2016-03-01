@@ -208,10 +208,15 @@ void filtering_candidates_add_region_interval_set_thresholded(
  * Sorting
  */
 int filtering_position_cmp_position(const filtering_position_t* const a,const filtering_position_t* const b) {
-  return a->begin_position - b->begin_position;
+  const int cmp = a->text_begin_position - b->text_begin_position;
+  if (cmp!=0) return cmp;
+  return a->text_end_position - b->text_end_position;
 }
 int filtering_region_cmp_sort_align_distance(const filtering_region_t* const a,const filtering_region_t* const b) {
-  return a->align_distance - b->align_distance;
+  return a->region_alignment.distance_min_bound - b->region_alignment.distance_min_bound;
+}
+int filtering_region_cmp_sort_scaffold_coverage(const filtering_region_t* const a,const filtering_region_t* const b) {
+  return b->match_scaffold.scaffolding_coverage - a->match_scaffold.scaffolding_coverage;
 }
 int verified_region_cmp_position(const verified_region_t* const a,const verified_region_t* const b) {
   return a->begin_position - b->begin_position;
@@ -225,6 +230,11 @@ void filtering_regions_sort_align_distance(vector_t* const filtering_regions) {
   void* array = vector_get_mem(filtering_regions,filtering_region_t);
   const size_t count = vector_get_used(filtering_regions);
   qsort(array,count,sizeof(filtering_region_t),(int (*)(const void *,const void *))filtering_region_cmp_sort_align_distance);
+}
+void filtering_regions_sort_scaffold_coverage(vector_t* const filtering_regions) {
+  void* array = vector_get_mem(filtering_regions,filtering_region_t);
+  const size_t count = vector_get_used(filtering_regions);
+  qsort(array,count,sizeof(filtering_region_t),(int (*)(const void *,const void *))filtering_region_cmp_sort_scaffold_coverage);
 }
 void verified_regions_sort_positions(vector_t* const verified_regions) {
   void* array = vector_get_mem(verified_regions,verified_region_t);

@@ -34,7 +34,7 @@ void filtering_candidates_decode_filtering_positions_buffered_prefetched(
  */
 void filtering_candidates_process_candidates_buffered(
     filtering_candidates_t* const filtering_candidates,
-    const pattern_t* const pattern,
+    pattern_t* const pattern,
     const bool compose_region_chaining);
 
 #endif /* FILTERING_CANDIDATES_PROCESS_BUFFERED_H_ */

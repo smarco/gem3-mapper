@@ -17,12 +17,15 @@
 /*
  * Setup
  */
-archive_search_cache_t* archive_search_cache_new(mapper_parameters_t* const mapper_parameters) {
+archive_search_cache_t* archive_search_cache_new(
+    archive_t* const archive,
+    search_parameters_t* const search_parameters) {
   // Alloc
   archive_search_cache_t* const archive_search_cache = mm_alloc(archive_search_cache_t);
   // Initialize cache
-  archive_search_cache->mapper_parameters = mapper_parameters;
   archive_search_cache->archive_search_cache = vector_new(ARCHIVE_SEARCH_CACHE_INIT_SIZE,archive_search_t*);
+  archive_search_cache->archive = archive;
+  archive_search_cache->search_parameters = search_parameters;
   // Return
   return archive_search_cache;
 }
@@ -46,8 +49,7 @@ archive_search_t* archive_search_cache_alloc(archive_search_cache_t* const archi
     vector_dec_used(archive_search_cache->archive_search_cache);
   } else {
     // Allocate new one
-    search_parameters_t* const search_parameters = &archive_search_cache->mapper_parameters->base_search_parameters;
-    archive_search_se_new(archive_search_cache->mapper_parameters->archive,search_parameters,&archive_search);
+    archive_search_se_new(archive_search_cache->archive,archive_search_cache->search_parameters,&archive_search);
   }
   // Return
   return archive_search;

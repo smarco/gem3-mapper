@@ -190,12 +190,11 @@ void gpu_buffer_align_bpm_pattern_decompile(
     bpm_pattern_t* const bpm_pattern,
     mm_stack_t* const mm_stack) {
   // Calculate dimensions
-  const uint64_t word_length = BPM_ALIGN_WORD_LENGTH;
-  const uint64_t pattern_num_words = DIV_CEIL(pattern_length,BPM_ALIGN_WORD_LENGTH);
-  const uint64_t pattern_mod = pattern_length%word_length;
+  const uint64_t pattern_num_words = DIV_CEIL(pattern_length,UINT64_LENGTH);
+  const uint64_t pattern_mod = pattern_length%UINT64_LENGTH;
   // Init fields
   bpm_pattern->pattern_length = pattern_length;
-  bpm_pattern->pattern_num_words = pattern_num_words;
+  bpm_pattern->pattern_num_words64 = pattern_num_words;
   bpm_pattern->pattern_mod = pattern_mod;
   // Allocate memory
   const uint64_t gpu_pattern_num_words = DIV_CEIL(pattern_length,GPU_ALIGN_BPM_ENTRY_LENGTH);
@@ -234,13 +233,13 @@ void gpu_buffer_align_bpm_pattern_decompile(
   memset(bpm_pattern->level_mask,0,aux_vector_size);
   for (i=0;i<top;++i) {
     bpm_pattern->level_mask[i] = BMP_W64_MASK;
-    bpm_pattern->init_score[i] = word_length;
+    bpm_pattern->init_score[i] = UINT64_LENGTH;
     bpm_pattern->pattern_left[i] = pattern_left;
-    pattern_left = (pattern_left > word_length) ? pattern_left-word_length : 0;
+    pattern_left = (pattern_left > UINT64_LENGTH) ? pattern_left-UINT64_LENGTH : 0;
   }
   for (;i<=pattern_num_words;++i) {
     bpm_pattern->pattern_left[i] = pattern_left;
-    pattern_left = (pattern_left > word_length) ? pattern_left-word_length : 0;
+    pattern_left = (pattern_left > UINT64_LENGTH) ? pattern_left-UINT64_LENGTH : 0;
   }
   if (pattern_mod>0) {
     const uint64_t mask_shift = pattern_mod-1;
@@ -248,16 +247,16 @@ void gpu_buffer_align_bpm_pattern_decompile(
     bpm_pattern->init_score[top] = pattern_mod;
   } else {
     bpm_pattern->level_mask[top] = BMP_W64_MASK;
-    bpm_pattern->init_score[top] = word_length;
+    bpm_pattern->init_score[top] = UINT64_LENGTH;
   }
 }
 void gpu_buffer_align_bpm_pattern_compile(
     gpu_bpm_qry_entry_t* const pattern_entry,
     const bpm_pattern_t* const bpm_pattern) {
   // Copy PEQ pattern
-  const uint64_t bpm_pattern_num_words = bpm_pattern->pattern_num_words;
+  const uint64_t bpm_pattern_num_words = bpm_pattern->pattern_num_words64;
   const uint64_t gpu_pattern_length = bpm_pattern->gpu_num_entries*GPU_ALIGN_BPM_ENTRY_LENGTH;
-  const uint64_t gpu_pattern_num_words = gpu_pattern_length/BPM_ALIGN_WORD_LENGTH;
+  const uint64_t gpu_pattern_num_words = gpu_pattern_length/UINT64_LENGTH;
   const uint32_t* PEQ = (uint32_t*) bpm_pattern->PEQ;
   uint64_t i, entry=0, subentry=0;
   for (i=0;i<bpm_pattern_num_words;++i) {

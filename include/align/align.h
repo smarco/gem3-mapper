@@ -16,6 +16,7 @@
  */
 #define ALIGN_DISTANCE_INF     UINT32_MAX
 #define ALIGN_COLUMN_INF       UINT64_MAX
+#define ALIGN_DISABLED         (UINT32_MAX-1)
 
 /*
  * Check matches (CIGAR string against text & pattern)

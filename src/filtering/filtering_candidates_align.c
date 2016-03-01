@@ -26,10 +26,9 @@
 /*
  * Filtering Candidate distance bound
  */
-bool filtering_candidates_align_is_behond_distance_limits(
+bool filtering_candidates_align_is_subdominant(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
-    const bool approximated_distance,
     pattern_t* const pattern,
     matches_t* const matches) {
   // Parameters
@@ -38,6 +37,7 @@ bool filtering_candidates_align_is_behond_distance_limits(
   const alignment_model_t alignment_model = search_parameters->alignment_model;
   swg_penalties_t* const swg_penalties = &search_parameters->swg_penalties;
   const uint64_t num_matches = matches_get_num_match_traces(matches);
+  region_alignment_t* const region_alignment = &filtering_region->region_alignment;
   // Basic cases
   if (num_matches == 0) return false;
   if (num_matches < select_parameters->max_reported_matches) return false;
@@ -45,15 +45,13 @@ bool filtering_candidates_align_is_behond_distance_limits(
   switch (alignment_model) { // (Select alignment model)
     case alignment_model_hamming:
     case alignment_model_levenshtein: {
-      const uint64_t candidate_min_distance_bound = (approximated_distance) ?
-          filtering_region->align_distance_min_bound : filtering_region->align_distance;
+      const uint64_t candidate_min_distance_bound = region_alignment->distance_min_bound;
       match_trace_t* const last_ranked_match_trace = matches_get_ranked_match_trace(matches,select_parameters);
       // Need a candidate expected to have less distance than the current max
       return candidate_min_distance_bound >= last_ranked_match_trace->edit_distance;
     }
     case alignment_model_gap_affine: {
-      const uint64_t candidate_edit_distance_bound = (approximated_distance) ?
-          filtering_region->align_distance_min_bound : filtering_region->align_distance;
+      const uint64_t candidate_edit_distance_bound = region_alignment->distance_min_bound;
       const uint64_t candidate_max_score_bound = align_swg_score_compute_max_score_bound(
           swg_penalties,candidate_edit_distance_bound,pattern->key_length);
       match_trace_t* const last_ranked_match_trace = matches_get_ranked_match_trace(matches,select_parameters);
@@ -64,17 +62,6 @@ bool filtering_candidates_align_is_behond_distance_limits(
       return false;
   }
   return false;
-}
-bool filtering_candidates_align_is_subdominant(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
-    const bool approximated_distance,
-    const bool emulated_rc_search,
-    matches_t* const matches) {
-  // Check distance limits
-  return filtering_candidates_align_is_behond_distance_limits(
-      filtering_candidates,filtering_region,approximated_distance,pattern,matches);
 }
 /*
  * Filtering Candidates Cache
@@ -116,7 +103,7 @@ bool filtering_candidates_align_region(
   const alignment_model_t alignment_model = search_parameters->alignment_model;
   select_parameters_t* const select_parameters_align = &search_parameters->select_parameters_align;
   // Retrieve Candidate (if needed)
-  filtering_region_retrieve_text(region,archive_text,text_collection,mm_stack);
+  filtering_region_retrieve_text(region,pattern,archive_text,text_collection,mm_stack);
   // Search Cache (Before jumping into aligning the region)
   match_trace_t match_trace;
   bool match_trace_aligned = !extended_match &&
@@ -129,7 +116,8 @@ bool filtering_candidates_align_region(
     if (!match_trace_aligned) return false; // Not aligned or subdominant
   }
   // Add to matches
-  if (match_trace.type == match_type_local && (!local_alignment || extended_match)) {
+  const bool set_local_match_aside = (!local_alignment || extended_match);
+  if (set_local_match_aside && match_trace.type == match_type_local) {
     // Add Local Alignment (Pending)
     matches_add_local_match_pending(matches,&match_trace);
     return false; // Return (not added)
@@ -157,7 +145,6 @@ uint64_t filtering_candidates_align_candidates(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const pattern,
     const bool emulated_rc_search,
-    const bool approximated_distance,
     const bool extended_match,
     const bool local_alignment,
     matches_t* const matches) {
@@ -190,8 +177,7 @@ uint64_t filtering_candidates_align_candidates(
     }
     // Check if candidate is subdominant (check distance bounds)
     const bool candidate_subdominant = !extended_match &&
-        filtering_candidates_align_is_subdominant(filtering_candidates,
-            regions_in,pattern,approximated_distance,emulated_rc_search,matches);
+        filtering_candidates_align_is_subdominant(filtering_candidates,regions_in,pattern,matches);
     if (candidate_subdominant) {
       PROF_INC_COUNTER(GP_FC_SELECT_PRUNE_HIT);
       *regions_discarded = *regions_in;
