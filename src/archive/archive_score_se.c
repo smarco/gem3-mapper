@@ -50,20 +50,20 @@ uint8_t archive_score_matches_se_default_ties(matches_predictors_t* const predic
   // Classify ties
   const double pr = matches_classify_logit_ties(predictors,&logit_model_single_end_default);
   if (pr < MATCHES_MIN_CI) return 0;
-  if (pr < MATCHES_TIES_CI) return 2;
-  return archive_score_probability_scale(pr-MATCHES_TIES_CI,1.-MATCHES_TIES_CI,1,29);
+  if (pr < MATCHES_TIES_CI) return 1;
+  return archive_score_probability_scale(pr-MATCHES_TIES_CI,1.-MATCHES_TIES_CI,2,29);
 }
 uint8_t archive_score_matches_se_default_mmap(matches_predictors_t* const predictors) {
   // Classify multimaps
   const double pr = matches_classify_logit_mmaps(predictors,&logit_model_single_end_default);
   if (pr < MATCHES_MIN_CI) return 0;
-  if (pr < MATCHES_MMAPS_CI) return 2;
+  if (pr < MATCHES_MMAPS_CI) return 1;
   return archive_score_probability_scale(pr-MATCHES_MMAPS_CI,1.-MATCHES_MMAPS_CI,30,49);
 }
 uint8_t archive_score_matches_se_default_unique(matches_predictors_t* const predictors) {
   const double pr = matches_classify_logit_unique(predictors,&logit_model_single_end_default);
   if (pr < MATCHES_MIN_CI) return 0;
-  if (pr < MATCHES_UNIQUE_CI) return 2;
+  if (pr < MATCHES_UNIQUE_CI) return 1;
   return archive_score_probability_scale(pr-MATCHES_UNIQUE_CI,1.-MATCHES_UNIQUE_CI,50,60);
 }
 /*
@@ -169,9 +169,6 @@ void archive_score_matches_se_default(
       GEM_INVALID_CASE();
       break;
   }
-//  if (match[0].type == match_type_local) {
-//    match[0].mapq_score = 1;
-//  }
   matches_metrics_set_mapq(&matches->metrics,match[0].mapq_score);
 }
 /*

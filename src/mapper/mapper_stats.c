@@ -52,13 +52,14 @@ void mapper_stats_template_init(
   if (template_length_min!=UINT64_MAX && template_length_max!=UINT64_MAX &&
       template_length_min <= template_length_max) {
     gem_counter_t* const tlength = &search_stats->unique_template_size;
-    tlength->samples = MAPPER_STATS_TEMPLATE_LENGTH_MIN_SAMPLES+1;
+    tlength->samples = 1000*MAPPER_STATS_TEMPLATE_LENGTH_MIN_SAMPLES+1;
     tlength->min = template_length_min;
     tlength->max = template_length_max;
-    tlength->m_oldM = ((double)(template_length_min+template_length_max))/2.0;
-    tlength->m_newM = tlength->m_oldM;
-    tlength->m_oldS = tlength->m_oldM*tlength->m_oldM;
-    tlength->m_newS = tlength->m_oldS;
+    const double mean = ((double)(template_length_min+template_length_max))/2.0;
+    tlength->m_oldM = mean;
+    tlength->m_newM = (500.0)*(500.0)*(tlength->samples-1);
+    tlength->m_oldS = tlength->m_oldM;
+    tlength->m_newS = tlength->m_newM;
     tlength->total = (uint64_t)((double)tlength->samples * tlength->m_oldM);
   }
 }

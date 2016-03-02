@@ -46,10 +46,10 @@ paired_matches_class_t paired_matches_classify(paired_matches_t* const paired_ma
   paired_map_t* const paired_map = paired_matches_get_maps(paired_matches);
   match_trace_t* const primary_end1 = paired_map_get_match_end1(paired_matches,paired_map);
   match_trace_t* const primary_end2 = paired_map_get_match_end2(paired_matches,paired_map);
-  // High quality ends
-  if (primary_end1->mapq_score > 0 && primary_end2->mapq_score > 0) {
-    return paired_matches_class_high_quality_ends;
-  }
+  //  // High quality ends
+  //  if (primary_end1->mapq_score > 0 && primary_end2->mapq_score > 0) {
+  //    return paired_matches_class_high_quality_ends;
+  //  }
   // Subdominant end
   if (primary_end1->distance > matches_metrics_get_min_distance(&matches_end1->metrics) ||
       primary_end2->distance > matches_metrics_get_min_distance(&matches_end2->metrics)) {

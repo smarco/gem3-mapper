@@ -116,7 +116,7 @@ bool filtering_candidates_align_region(
     if (!match_trace_aligned) return false; // Not aligned or subdominant
   }
   // Add to matches
-  const bool set_local_match_aside = (!local_alignment || extended_match);
+  const bool set_local_match_aside = (!local_alignment && !extended_match);
   if (set_local_match_aside && match_trace.type == match_type_local) {
     // Add Local Alignment (Pending)
     matches_add_local_match_pending(matches,&match_trace);

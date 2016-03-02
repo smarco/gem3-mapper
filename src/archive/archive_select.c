@@ -104,6 +104,9 @@ void archive_select_pe_matches(
     if (paired_map->pair_relation==pair_relation_concordant) {
       mapper_stats_template_length_sample(archive_search_end1->mapper_stats,paired_map->template_length);
     }
+  } else {
+    // Sort by distance (whichever it's selected)
+    paired_matches_sort_by_distance(paired_matches);
   }
   // Discard surplus
   const uint64_t num_paired_matches = vector_get_used(paired_matches->paired_maps);

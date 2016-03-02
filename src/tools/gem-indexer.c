@@ -282,11 +282,11 @@ option_t gem_indexer_options[] = {
   { 403, "dump-bwt", OPTIONAL, TYPE_NONE, 4 , VISIBILITY_ADVANCED, "" , "" },
   { 404, "dump-run-length-text", OPTIONAL, TYPE_NONE, 4 , VISIBILITY_ADVANCED, "" , "" },
   { 405, "debug", NO_ARGUMENT, TYPE_NONE, 4 , VISIBILITY_ADVANCED, "" , "" },
-  { 406, "check-index", OPTIONAL, TYPE_NONE, 4 , VISIBILITY_ADVANCED, "", "(default=false)"},
+  //{ 406, "check-index", OPTIONAL, TYPE_NONE, 4 , VISIBILITY_ADVANCED, "", "(default=false)"},
   { 407, "bwt", NO_ARGUMENT, TYPE_NONE, 4 ,VISIBILITY_ADVANCED, "", "(only generate BWT for benchmarking)" },
   /* System */
   { 't', "threads", REQUIRED, TYPE_INT, 5 , VISIBILITY_USER, "<number>" , "(default=#cores)" },
-  { 500, "max-memory", REQUIRED, TYPE_STRING, 5 , VISIBILITY_ADVANCED, "<maximum-memory>" , "(Eg 2GB)" },
+  //{ 500, "max-memory", REQUIRED, TYPE_STRING, 5 , VISIBILITY_ADVANCED, "<maximum-memory>" , "(Eg 2GB)" },
   { 501, "tmp-folder", REQUIRED, TYPE_STRING, 5 , VISIBILITY_ADVANCED, "<temporal_dir_path>" , "(/tmp/)" },
   /* Miscellaneous */
   { 'v', "verbose", NO_ARGUMENT, TYPE_NONE, 6 ,VISIBILITY_USER, "", "" },

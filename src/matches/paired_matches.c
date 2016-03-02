@@ -452,7 +452,7 @@ int paired_matches_cmp_distance(const paired_map_t* const a,const paired_map_t* 
   // Compare Edit-distance
   const int distance_edit = (int)a->edit_distance - (int)b->edit_distance;
   if (distance_edit) return distance_edit;
-  // Compare layout (separated first) NOTE:: Used to be after cmp-relation (moved here to preserve metrics consistency)
+  // Compare layout (separated first)
   if (a->pair_layout != b->pair_layout) return (int)a->pair_relation - (int)b->pair_relation;
   // Compare template-length-sigmas
   const int template_length_sigmas_diff = (int)a->template_length_sigma - (int)b->template_length_sigma;

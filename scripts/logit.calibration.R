@@ -48,11 +48,10 @@ mylogit <- glm(tp ~ edit+sub_edit+event+sub_event+swg+sub_swg+fs_matches+mcs_1+m
 
 // Uniq (chr1,HS)
 mylogit <- glm(tp ~ edit+event+mcs_1+mcs_2+mapq_1+mapq_2, data = data1, family = "binomial")
-
 // Mmaps (chr1,HS)
 
 // Ties (chr1,HS)
-
+mylogit <- glm(tp ~ edit+event+mcs_1+mcs_2+max_region+m2p+mapq_1+mapq_2, data = data1, family = "binomial")
 
 
 
