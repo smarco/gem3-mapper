@@ -1,4 +1,4 @@
-AC_INIT([GEMMapper],[1.0])
+AC_INIT([GEMMapper],[3.0])
  
 AC_PROG_CC
  
@@ -11,54 +11,138 @@ AC_SUBST([HAVE_BZLIB])
  
 AC_CHECK_HEADERS([omp.h],[HAVE_OPENMP=1])
 AC_SUBST([HAVE_OPENMP])
- 
-# Provide custom CUDA path or set to default		
-AC_ARG_WITH([cuda], [  --with-cuda=PREFIX      Prefix of your CUDA installation path - Default: /usr/local/cuda], 
-					[cuda_prefix=$withval], 
-					[cuda_prefix="/usr/local/cuda"])
- 
-# Checking for nvcc
-VALID_CUDA=yes
-AC_MSG_CHECKING([nvcc in $cuda_prefix/bin])
-if test -x "$cuda_prefix/bin/nvcc"; then
-	AC_MSG_RESULT([found])
-else 
-	AC_MSG_RESULT([not found])
-	AC_MSG_WARN([Couldn't find cuda nvcc compiler])
-	VALID_CUDA=no
-fi	
- 
-# Saving the current flags
-ax_save_CFLAGS="${CPPFLAGS}"
-ax_save_LDFLAGS="${LDFLAGS}"
- 
-AC_CHECK_FILE([$cuda_prefix/lib64],
-[	
-	LDFLAGS+=" -L$cuda_prefix/lib64"
-	AC_CHECK_LIB([cuda], [cuInit], , [VALID_CUDA=no])
-	AC_CHECK_LIB([cudart], [main], , [VALID_CUDA=no])
-],
-[	AC_MSG_WARN([Couldn't find cuda lib directory])
-	VALID_CUDA=no
-])
- 
-AC_CHECK_FILE([$cuda_prefix/include],
-[
-	CPPFLAGS+=" -I$cuda_prefix/include"
-	AC_CHECK_HEADERS([cuda.h cuda_runtime.h], , [VALID_CUDA=no])
-],
-[
-	AC_MSG_WARN([Couldn't find cuda include directory])
-	VALID_CUDA=no
-])
- 
-if test "x$VALID_CUDA" = xyes ; then
-	AC_SUBST([HAVE_CUDA], [1])
-	AC_SUBST([CUDA_PATH], [$cuda_prefix])
+
+# LTO configure parameters
+AC_ARG_ENABLE([lto],
+  AC_HELP_STRING([--enable-lto],[Enables or Disables Linktime Code Optimization (default=yes)]),
+  [
+    enable_lto="$enableval"
+    case $enableval in
+    "no");;
+    "yes");;
+    *) AC_MSG_ERROR([[invalid argument --enable-lto=$disableval... stopping]]);;
+    esac
+  ],
+  [enable_lto="yes"]
+)
+
+# LTO & GOLD plugins test
+if test "$enable_lto" != "no" ; then
+  # Checking for the Link time optimization (LTO)
+  OLD_CFLAGS="$CFLAGS"
+  CFLAGS="$CFLAGS -flto"
+  AC_MSG_CHECKING([whether $CC supports -flto])
+  AC_RUN_IFELSE(
+    [AC_LANG_SOURCE([
+      int main(int argc, char **argv){
+        return 0;
+      }
+    ])],
+    [
+      AC_MSG_RESULT([yes])
+      AC_SUBST([HAVE_LTO], [1])
+    ],
+    [
+      AC_MSG_RESULT([no])
+      AC_SUBST([HAVE_LTO], [0])
+      AC_MSG_WARN([Compiler without link time optimization (LTO) support])
+    ]
+  )
+  CFLAGS="$OLD_CFLAGS"
+  # Checking for the LD.GOLD plugins
+  OLD_CFLAGS="$CFLAGS"
+  CFLAGS="$CFLAGS -fuse-linker-plugin"
+  AC_MSG_CHECKING([whether $CC supports -fuse-linker-plugin])
+  AC_RUN_IFELSE(
+    [AC_LANG_SOURCE([
+      int main(int argc, char **argv){
+        return 0;
+      }
+    ])],
+    [
+      AC_MSG_RESULT([yes])
+      AC_SUBST([HAVE_GOLD], [1])
+    ],
+    [
+      AC_MSG_RESULT([no])
+      AC_MSG_WARN([Linker without plugins support for LTO])
+      AC_SUBST([HAVE_GOLD], [0])
+    ]
+  )
+  CFLAGS="$OLD_CFLAGS"
 else
-	AC_MSG_WARN([Building the binaries without CUDA support])
+  AC_SUBST([HAVE_LTO], [0])
+  AC_SUBST([HAVE_GOLD], [0])
 fi
- 
+
+# CUDA configure parameters
+AC_ARG_ENABLE([cuda],
+  AC_HELP_STRING([--enable-cuda],[Enables or Disables CUDA support (default=yes)]),
+  [
+    enable_lto="$enableval"
+    case $enableval in
+    "no");;
+    "yes");;
+    *) AC_MSG_ERROR([[invalid argument --enable-cuda=$disableval... stopping]]);;
+    esac
+  ],
+  [enable_cuda="yes"]
+)
+
+# CUDA test
+if test "$enable_cuda" != "no" ; then
+  # Provide custom CUDA path or set to default    
+  AC_ARG_WITH([cuda], [  --with-cuda=PREFIX      Prefix of your CUDA installation path (default=/usr/local/cuda)], 
+                      [cuda_prefix=$withval], 
+                      [cuda_prefix="/usr/local/cuda"])
+   
+  # Checking for nvcc
+  VALID_CUDA=yes
+  AC_MSG_CHECKING([nvcc in $cuda_prefix/bin])
+  if test -x "$cuda_prefix/bin/nvcc"; then
+    AC_MSG_RESULT([found])
+  else 
+    AC_MSG_RESULT([not found])
+    AC_MSG_WARN([Couldn't find cuda nvcc compiler])
+    VALID_CUDA=no
+  fi  
+   
+  # Saving the current flags
+  ax_save_CFLAGS="${CPPFLAGS}"
+  ax_save_LDFLAGS="${LDFLAGS}"
+   
+  AC_CHECK_FILE([$cuda_prefix/lib64],
+  [  
+    LDFLAGS+=" -L$cuda_prefix/lib64"
+    AC_CHECK_LIB([cuda], [cuInit], , [VALID_CUDA=no])
+    AC_CHECK_LIB([cudart], [main], , [VALID_CUDA=no])
+  ],
+  [  
+    AC_MSG_WARN([Couldn't find cuda lib directory])
+    VALID_CUDA=no
+  ])
+   
+  AC_CHECK_FILE([$cuda_prefix/include],
+  [
+    CPPFLAGS+=" -I$cuda_prefix/include"
+    AC_CHECK_HEADERS([cuda.h cuda_runtime.h], , [VALID_CUDA=no])
+  ],
+  [
+    AC_MSG_WARN([Couldn't find cuda include directory])
+    VALID_CUDA=no
+  ])
+   
+  if test "x$VALID_CUDA" = xyes ; then
+    AC_SUBST([HAVE_CUDA], [1])
+    AC_SUBST([CUDA_PATH], [$cuda_prefix])
+  else
+    AC_SUBST([HAVE_CUDA], [0])
+    AC_MSG_WARN([Building the binaries without CUDA support])
+  fi
+else
+  AC_SUBST([HAVE_CUDA], [0])
+fi
+
 # Returning to the original flags
 CFLAGS=${ax_save_CPPFLAGS}
 LDFLAGS=${ax_save_LDFLAGS}

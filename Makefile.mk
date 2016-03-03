@@ -42,7 +42,9 @@ FOLDER_TOOLS=$(ROOT_PATH)/tools
 HAVE_ZLIB = 1
 HAVE_BZLIB = 1
 HAVE_OPENMP = 1
-HAVE_CUDA = 0
+HAVE_CUDA = 1
+HAVE_LTO = 1
+HAVE_GOLD = 1
 
 ###############################################################################
 # General Flags
@@ -62,16 +64,22 @@ FLAGS_PROFILE=$(FLAGS_GEM_PROFILE)
 
 ## GCC Compiler 
 ifeq ($(CC),gcc)
-FLAGS_OPT=-Ofast -msse4.2 -std=c99 -flto # -fdump-ipa-inline # -fwhole-program
-FLAGS_DEBUG=-g $(FLAGS_GEM_DEBUG) # -ggdb3 -rdynamic
-FLAGS_LINK=-fuse-linker-plugin
-AR=gcc-ar
+  ifeq ($(HAVE_LTO),1)
+    OPT_LTO=-flto
+  endif
+  ifeq ($(HAVE_GOLD),1)
+    AR=gcc-ar
+    OPT_AR=-fuse-linker-plugin
+  endif
+  FLAGS_OPT=-Ofast -msse4.2 -std=c99 $(OPT_LTO)
+  FLAGS_DEBUG=-g $(FLAGS_GEM_DEBUG)
+  FLAGS_LINK=$(OPT_AR)
 endif
 
 ## ICC Compiler
 ifeq ($(CC),icc)
-FLAGS_OPT=-Ofast -msse4.2 -ipo
-FLAGS_DEBUG=-g $(FLAGS_GEM_DEBUG)
+  FLAGS_OPT=-Ofast -msse4.2 -ipo
+  FLAGS_DEBUG=-g $(FLAGS_GEM_DEBUG)
 endif
 
 ###############################################################################
@@ -85,7 +93,7 @@ PATH_LIB=-L$(FOLDER_LIB)
 # Link Libs
 LIBS=-lpthread -lm $(LIBS_ZLIB) $(LIBS_BZLIB) # -lgemcore_c
 ifeq ($(PLATFORM),Linux)
-LIBS+=-lrt
+  LIBS+=-lrt
 endif
 
 ###############################################################################
