@@ -263,7 +263,6 @@ gpu_error_t gpu_io_load_index_specs_GEM_FULL(const char *fn, gpu_index_buffer_t*
   if((fileActiveModules & activeModules) == 0)
     return(E_MODULE_NOT_FOUND);
 
-  index->activeModules = fileActiveModules & activeModules & GPU_INDEX;
   result = fread(&fileOffsetFMIndex, sizeof(off64_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
   result = fread(&fileOffsetSAIndex, sizeof(off64_t), 1, fp);
@@ -283,12 +282,15 @@ gpu_error_t gpu_io_load_index_specs_GEM_FULL(const char *fn, gpu_index_buffer_t*
     GPU_ERROR(gpu_index_read_specs(fp, index, GPU_SA));
   }
 
+  // Sanity check, re-calculate the active modules
+  index->activeModules |= fileActiveModules & activeModules & GPU_INDEX;
+
   fclose(fp);
   return (SUCCESS);
 }
 
 gpu_error_t gpu_io_load_index_GEM_FULL(const char *fn, gpu_index_buffer_t* const index,
-									   const gpu_index_coding_t activeModules)
+									   const gpu_module_t activeModules)
 {
   FILE *fp = NULL;
   size_t result;
@@ -304,7 +306,6 @@ gpu_error_t gpu_io_load_index_GEM_FULL(const char *fn, gpu_index_buffer_t* const
   if((fileActiveModules & activeModules) == 0)
     return(E_MODULE_NOT_FOUND);
 
-  index->activeModules = fileActiveModules & activeModules & GPU_INDEX;
   result = fread(&fileOffsetFMIndex, sizeof(off64_t), 1, fp);
   if (result != 1) return (E_READING_FILE);
   result = fread(&fileOffsetSAIndex, sizeof(off64_t), 1, fp);
@@ -324,12 +325,15 @@ gpu_error_t gpu_io_load_index_GEM_FULL(const char *fn, gpu_index_buffer_t* const
     GPU_ERROR(gpu_index_read(fp, index, GPU_SA));
   }
 
+  // Sanity check, re-calculate the active modules
+  index->activeModules |= fileActiveModules & activeModules & GPU_INDEX;
+
   fclose(fp);
   return (SUCCESS);
 }
 
 gpu_error_t gpu_io_save_index_GEM_FULL(const char* const fn, const gpu_index_buffer_t* const index,
-									   const gpu_index_coding_t activeModules)
+									   const gpu_module_t activeModules)
 {
   FILE *fp = NULL;
   size_t result;

@@ -157,7 +157,6 @@ gpu_error_t gpu_module_memory_requirements_per_device(gpu_reference_buffer_t* co
   }
 
   (* maskedDevice)    = memoryFree < minimumMemorySize;
-  //(* memoryAllocated) = minimumMemorySize;
   return(SUCCESS);
 }
 
@@ -281,7 +280,7 @@ gpu_error_t gpu_module_manager_memory(gpu_reference_buffer_t* const reference, g
                                       size_t* const recomendedMemorySize, size_t* const requiredMemorySize,
                                       gpu_module_t* const modules, gpu_module_t* const structures)
 {
-  const gpu_module_t userRequestedModules = index->activeModules & reference->activeModules;
+  const gpu_module_t userRequestedModules = index->activeModules | reference->activeModules;
   // Defines to obtain the module requirements
   gpu_module_t requiredModules, recomendedModules, localModules, localStructures;
   size_t localRecomendedMemorySize, localRequiredMemorySize;

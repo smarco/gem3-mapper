@@ -12,21 +12,23 @@
 
 #include "../include/gpu_sa_core.h"
 
-void __global__ gpu_sa_decoding_kernel(const uint64_t* const d_SA, const uint32_t numDecodings,
-                                       const ulonglong2* const d_endBWTPos, uint64_t* const d_textPos)
+void __global__ gpu_sa_decoding_kernel(const uint64_t* const d_SA, const uint32_t samplingRate,
+                                       const uint32_t numDecodings, const ulonglong2* const d_endBWTPos,
+                                       uint64_t* const d_textPos)
 {
   const uint32_t idDecoding = gpu_get_thread_idx();
 
   if(idDecoding < numDecodings){
     const ulonglong2 saPosition = d_endBWTPos[idDecoding];
     if((saPosition.x < GPU_UINT64_MAX_VALUE) && (saPosition.x < GPU_UINT64_MAX_VALUE))
-      d_textPos[idDecoding] = d_SA[saPosition.x] + saPosition.y;
+      d_textPos[idDecoding] = d_SA[saPosition.x / samplingRate] + saPosition.y;
   }
 }
 
 extern "C"
-gpu_error_t gpu_sa_decoding_launch_kernel(const uint64_t* const d_SA, const uint32_t numDecodings,
-                                          const ulonglong2* const d_endBWTPos, uint64_t* const d_textPos)
+gpu_error_t gpu_sa_decoding_launch_kernel(const uint64_t* const d_SA, const uint32_t samplingRate,
+		                                  const uint32_t numDecodings, const ulonglong2* const d_endBWTPos,
+		                                  uint64_t* const d_textPos)
 {
   const uint32_t threads = 128;
   const uint32_t blocks  = GPU_DIV_CEIL(numDecodings, threads);
@@ -39,7 +41,7 @@ gpu_error_t gpu_sa_decoding_launch_kernel(const uint64_t* const d_SA, const uint
   cudaEventRecord(start, 0);
 
     for(uint32_t iteration = 0; iteration < nreps; ++iteration)
-      gpu_sa_decoding_kernel<<<blocks,threads>>>(d_SA, numDecodings, d_endBWTPos, d_textPos);
+      gpu_sa_decoding_kernel<<<blocks,threads>>>(d_SA, samplingRate, numDecodings, d_endBWTPos, d_textPos);
 
   cudaEventRecord(stop, 0);
   cudaThreadSynchronize();
@@ -56,20 +58,21 @@ gpu_error_t gpu_sa_decoding_launch_kernel(const uint64_t* const d_SA, const uint
 extern "C"
 gpu_error_t gpu_sa_decode_process_buffer(gpu_buffer_t* const mBuff)
 {
-  gpu_index_buffer_t                  *index        =  mBuff->index;
-  gpu_fmi_decode_end_pos_buffer_t     *endPos       = &mBuff->data.decode.endPositions;
-  gpu_fmi_decode_text_pos_buffer_t    *textPos      = &mBuff->data.decode.textPositions;
-  uint32_t                            numDecodings  =  mBuff->data.decode.endPositions.numDecodings;
-  cudaStream_t                        idStream      =  mBuff->idStream;
-  uint32_t                            idSupDev      =  mBuff->idSupportedDevice;
-  gpu_device_info_t                   *device       =  mBuff->device[idSupDev];
+  const gpu_index_buffer_t* const               index        =  mBuff->index;
+  const gpu_fmi_decode_end_pos_buffer_t* const  endPos       = &mBuff->data.decode.endPositions;
+  const gpu_fmi_decode_text_pos_buffer_t* const textPos      = &mBuff->data.decode.textPositions;
+  const uint32_t                                numDecodings =  mBuff->data.decode.endPositions.numDecodings;
+  const uint32_t                                samplingRate =  mBuff->data.decode.samplingRate;
+  const cudaStream_t                            idStream     =  mBuff->idStream;
+  const uint32_t                                idSupDev     =  mBuff->idSupportedDevice;
+  const gpu_device_info_t* const                device       =  mBuff->device[idSupDev];
 
   dim3 blocksPerGrid, threadsPerBlock;
   const uint32_t numThreads = numDecodings;
   gpu_device_kernel_thread_configuration(device, numThreads, &blocksPerGrid, &threadsPerBlock);
 
-  gpu_sa_decoding_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>(index->sa.d_sa[idSupDev], numDecodings, (ulonglong2*) endPos->d_endBWTPos,
-                                                                          (uint64_t*) textPos->d_textPos);
+  gpu_sa_decoding_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>(index->sa.d_sa[idSupDev], numDecodings, samplingRate,
+		                                                                  (ulonglong2*) endPos->d_endBWTPos, (uint64_t*) textPos->d_textPos);
 
   return(SUCCESS);
 }
