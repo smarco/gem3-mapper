@@ -24,7 +24,8 @@ bool mapper_se_cuda_stage_read_input_sequences_exhausted(mapper_cuda_search_t* c
   // Check end_of_block
   if (!buffered_input_file_eob(mapper_search->buffered_fasta_input_end1)) return false;
   // Reload buffer
-  if (buffered_input_file_reload__dump_attached(mapper_search->buffered_fasta_input_end1)==INPUT_STATUS_EOF) return true;
+  if (buffered_input_file_reload__dump_attached(
+      mapper_search->buffered_fasta_input_end1,0)==INPUT_STATUS_EOF) return true;
   // Clear pipeline (release intermediate memory & start pipeline fresh)
   search_pipeline_clear(mapper_search->search_pipeline);
   return false;
@@ -206,7 +207,7 @@ void* mapper_cuda_se_thread(mapper_cuda_search_t* const mapper_search) {
   mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
   const mapper_parameters_cuda_t* const cuda_parameters = &parameters->cuda;
   // Create new buffered reader/writer
-  mapper_SE_prepare_io_buffers(parameters,cuda_parameters->input_buffer_lines,
+  mapper_SE_prepare_io_buffers(parameters,cuda_parameters->input_buffer_size,
       &mapper_search->buffered_fasta_input_end1,&mapper_search->buffered_output_file);
   // Create search-pipeline & initialize matches
   mapper_search->search_pipeline = search_pipeline_new(parameters,

@@ -238,7 +238,7 @@ error_code_t input_fasta_parse_sequence(
   PROFILE_START(GP_INPUT_FASTA_PARSE_SEQUENCE,PROFILE_LEVEL);
   error_code_t error_code;
   if (check_input_buffer && buffered_input_file_eob(buffered_fasta_input)) {
-    if ((error_code=buffered_input_file_reload__dump_attached(buffered_fasta_input))!=INPUT_STATUS_OK) {
+    if ((error_code=buffered_input_file_reload__dump_attached(buffered_fasta_input,0))!=INPUT_STATUS_OK) {
       PROFILE_STOP(GP_INPUT_FASTA_PARSE_SEQUENCE,PROFILE_LEVEL);
       return error_code;
     }

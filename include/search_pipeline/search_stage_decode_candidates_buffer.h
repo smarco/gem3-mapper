@@ -29,7 +29,8 @@ search_stage_decode_candidates_buffer_t* search_stage_decode_candidates_buffer_n
     const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffer_no,
     fm_index_t* const fm_index,
-    const bool cpu_emulated);
+    const bool gpu_decode_sa,
+    const bool gpu_decode_text);
 void search_stage_decode_candidates_buffer_clear(
     search_stage_decode_candidates_buffer_t* const decode_candidates_buffer,
     archive_search_cache_t* const archive_search_cache);

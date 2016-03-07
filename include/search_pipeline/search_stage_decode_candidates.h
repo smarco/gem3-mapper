@@ -40,7 +40,8 @@ search_stage_decode_candidates_t* search_stage_decode_candidates_new(
     const uint64_t buffers_offset,
     const uint64_t num_buffers,
     fm_index_t* const fm_index,
-    const bool cpu_emulated,
+    const bool gpu_decode_sa,
+    const bool gpu_decode_text,
     mm_stack_t* const mm_stack);
 void search_stage_decode_candidates_clear(
     search_stage_decode_candidates_t* const search_stage_dc,

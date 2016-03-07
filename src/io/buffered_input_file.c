@@ -10,6 +10,11 @@
 #include "mapper/mapper_profile.h"
 
 /*
+ * Errors
+ */
+#define GEM_ERROR_BUFFERED_INPUT_BUFFER_LINES "Reading Input File ('%s'). Premature end of file (expected end of record)"
+
+/*
  * Constants
  */
 // Profile Level
@@ -18,12 +23,12 @@
 /*
  * Buffered map file handlers
  */
-buffered_input_file_t* buffered_input_file_new(input_file_t* const in_file,const uint64_t buffer_num_lines) {
+buffered_input_file_t* buffered_input_file_new(input_file_t* const in_file,const uint64_t reload_buffer_size) {
   buffered_input_file_t* buffered_input = mm_alloc(buffered_input_file_t);
   /* Input file */
   buffered_input->input_file = in_file;
   /* Block buffer and cursors */
-  buffered_input->buffer_num_lines = buffer_num_lines;
+  buffered_input->reload_buffer_size = reload_buffer_size;
   buffered_input->input_buffer = input_buffer_new();
   /* Attached output buffer */
   buffered_input->attached_buffered_output_file = NULL;
@@ -56,15 +61,23 @@ void buffered_input_file_attach_buffered_output(
 /*
  * Utils
  */
-uint64_t buffered_input_file_reload(buffered_input_file_t* const buffered_input) {
+uint64_t buffered_input_file_reload(
+    buffered_input_file_t* const buffered_input,
+    const uint64_t min_lines) {
   // Reload Buffer
-  return input_file_reload_buffer(buffered_input->input_file,
-      &(buffered_input->input_buffer),buffered_input->buffer_num_lines);
+  const uint64_t lines_in_buffer = input_file_reload_buffer(
+      buffered_input->input_file,&(buffered_input->input_buffer),
+      min_lines,buffered_input->reload_buffer_size);
+  gem_cond_fatal_error(lines_in_buffer%8!=0,
+      BUFFERED_INPUT_BUFFER_LINES,input_file_get_file_name(buffered_input->input_file));
+  return lines_in_buffer;
 }
 //#include "libittnotify.h"
 //__itt_resume();
 //__itt_pause();
-uint64_t buffered_input_file_reload__dump_attached(buffered_input_file_t* const buffered_input) {
+uint64_t buffered_input_file_reload__dump_attached(
+    buffered_input_file_t* const buffered_input,
+    const uint64_t min_lines) {
   PROFILE_START(GP_BUFFERED_INPUT_RELOAD__DUMP_ATTACHED,PROFILE_LEVEL);
   // Dump buffer
   if (buffered_input->attached_buffered_output_file!=NULL) {
@@ -72,7 +85,7 @@ uint64_t buffered_input_file_reload__dump_attached(buffered_input_file_t* const 
   }
   // Read new input block
   PROFILE_START(GP_BUFFERED_INPUT_RELOAD,PROFILE_LEVEL);
-  if (gem_expect_false(buffered_input_file_reload(buffered_input)==0)) {
+  if (gem_expect_false(buffered_input_file_reload(buffered_input,min_lines)==0)) {
     PROFILE_STOP(GP_BUFFERED_INPUT_RELOAD,PROFILE_LEVEL);
     PROFILE_STOP(GP_BUFFERED_INPUT_RELOAD__DUMP_ATTACHED,PROFILE_LEVEL);
     return INPUT_STATUS_EOF;

@@ -34,25 +34,6 @@
 #define GPU_ALIGN_BPM_CANDIDATES_PER_QUERY      20
 
 /*
- * Pattern Setup
- */
-void gpu_bpm_pattern_compile(
-    bpm_pattern_t* const bpm_pattern,
-    const uint64_t words128_per_tile,
-    const uint64_t max_error) {
-  // Init BPM-GPU Dimensions
-  const uint64_t min_words128_per_tile = DIV_CEIL(max_error,GPU_ALIGN_BPM_ENTRY_LENGTH);
-  const uint64_t max_words128_per_tile = DIV_CEIL(bpm_pattern->pattern_length,GPU_ALIGN_BPM_ENTRY_LENGTH);
-  bpm_pattern->gpu_num_entries = max_words128_per_tile;
-  bpm_pattern->gpu_entries_per_tile = MAX(words128_per_tile,min_words128_per_tile);
-  bpm_pattern->gpu_entries_per_tile = MIN(bpm_pattern->gpu_entries_per_tile,max_words128_per_tile);
-  bpm_pattern->gpu_num_tiles = DIV_CEIL(bpm_pattern->gpu_num_entries,bpm_pattern->gpu_entries_per_tile);
-}
-uint64_t gpu_bpm_pattern_get_entry_length() {
-  return GPU_ALIGN_BPM_ENTRY_LENGTH;
-}
-
-/*
  * CUDA Support
  */
 #ifdef HAVE_CUDA
@@ -120,6 +101,9 @@ void gpu_buffer_align_bpm_set_device_gpu(gpu_buffer_align_bpm_t* const gpu_buffe
 /*
  * Occupancy & Limits
  */
+uint64_t gpu_buffer_align_bpm_get_entry_length() {
+  return GPU_ALIGN_BPM_ENTRY_LENGTH;
+}
 uint64_t gpu_buffer_align_bpm_get_max_candidates(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
   return gpu_bpm_buffer_get_max_candidates_(gpu_buffer_align_bpm->buffer);
 }
@@ -138,16 +122,17 @@ uint64_t gpu_buffer_align_bpm_get_num_queries(gpu_buffer_align_bpm_t* const gpu_
 void gpu_buffer_align_bpm_compute_dimensions(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     bpm_pattern_t* const bpm_pattern,
+    bpm_pattern_t* const bpm_pattern_tiles,
     const uint64_t num_candidates,
     uint64_t* const total_entries,
     uint64_t* const total_queries,
     uint64_t* const total_candidates) {
   // Calculate dimensions
-  const uint64_t gpu_pattern_num_entries = bpm_pattern->gpu_num_entries;
-  const uint64_t gpu_pattern_num_tiles = bpm_pattern->gpu_num_tiles;
-  *total_entries += gpu_pattern_num_entries;
-  *total_queries += gpu_pattern_num_tiles;
-  *total_candidates += gpu_pattern_num_tiles*num_candidates;
+  const uint64_t num_entries = DIV_CEIL(bpm_pattern->pattern_length,GPU_ALIGN_BPM_ENTRY_LENGTH);
+  const uint64_t num_tiles = bpm_pattern_tiles->num_pattern_tiles;
+  *total_entries += num_entries;
+  *total_queries += num_tiles;
+  *total_candidates += num_tiles*num_candidates;
 }
 bool gpu_buffer_align_bpm_fits_in_buffer(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
@@ -252,10 +237,11 @@ void gpu_buffer_align_bpm_pattern_decompile(
 }
 void gpu_buffer_align_bpm_pattern_compile(
     gpu_bpm_qry_entry_t* const pattern_entry,
-    const bpm_pattern_t* const bpm_pattern) {
+    const bpm_pattern_t* const bpm_pattern,
+    const bpm_pattern_t* const bpm_pattern_tiles) {
   // Copy PEQ pattern
   const uint64_t bpm_pattern_num_words = bpm_pattern->pattern_num_words64;
-  const uint64_t gpu_pattern_length = bpm_pattern->gpu_num_entries*GPU_ALIGN_BPM_ENTRY_LENGTH;
+  const uint64_t gpu_pattern_length = bpm_pattern_tiles->num_pattern_tiles*bpm_pattern_tiles->tile_length;
   const uint64_t gpu_pattern_num_words = gpu_pattern_length/UINT64_LENGTH;
   const uint32_t* PEQ = (uint32_t*) bpm_pattern->PEQ;
   uint64_t i, entry=0, subentry=0;
@@ -291,25 +277,26 @@ void gpu_buffer_align_bpm_pattern_compile(
  */
 void gpu_buffer_align_bpm_add_pattern(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
-    bpm_pattern_t* const bpm_pattern) {
+    bpm_pattern_t* const bpm_pattern,
+    bpm_pattern_t* const bpm_pattern_tiles) {
   // Parameters (Buffer & Dimensions)
   const uint64_t pattern_length = bpm_pattern->pattern_length;
   const uint64_t buffer_num_entries = gpu_buffer_align_bpm->num_entries;
   void* const gpu_buffer = gpu_buffer_align_bpm->buffer;
-  const uint64_t gpu_num_entries = bpm_pattern->gpu_num_entries;
-  const uint64_t gpu_entries_per_tile = bpm_pattern->gpu_entries_per_tile;
-  const uint64_t gpu_num_tiles = bpm_pattern->gpu_num_tiles;
+  const uint64_t num_entries = DIV_CEIL(bpm_pattern->pattern_length,GPU_ALIGN_BPM_ENTRY_LENGTH);
+  const uint64_t num_entries_per_tile = DIV_CEIL(bpm_pattern_tiles->tile_length,GPU_ALIGN_BPM_ENTRY_LENGTH);
+  const uint64_t num_tiles = bpm_pattern_tiles->num_pattern_tiles;
   // Add query (Metadata)
   const uint32_t buffer_pattern_query_offset = gpu_buffer_align_bpm->num_queries;
-  (gpu_buffer_align_bpm->num_queries) += gpu_num_tiles;
+  (gpu_buffer_align_bpm->num_queries) += num_tiles;
   gpu_buffer_align_bpm->current_query_offset = buffer_pattern_query_offset;
   // Add query (for all tiles)
   gpu_bpm_qry_info_t* buffer_pattern_query = gpu_bpm_buffer_get_peq_info_(gpu_buffer) + buffer_pattern_query_offset;
-  const uint64_t tile_entry_length = gpu_entries_per_tile*GPU_ALIGN_BPM_ENTRY_LENGTH;
+  const uint64_t tile_entry_length = num_entries_per_tile*GPU_ALIGN_BPM_ENTRY_LENGTH;
   uint64_t i, tile_length, remaining_pattern_length = pattern_length;
-  for (i=0;i<gpu_num_tiles;++i,++buffer_pattern_query) {
+  for (i=0;i<num_tiles;++i,++buffer_pattern_query) {
     // Set entry & size
-    buffer_pattern_query->posEntry = buffer_num_entries + i*gpu_entries_per_tile;
+    buffer_pattern_query->posEntry = buffer_num_entries + i*num_entries_per_tile;
     tile_length = MIN(remaining_pattern_length,tile_entry_length);
     buffer_pattern_query->size = tile_length;
     remaining_pattern_length -= tile_length;
@@ -327,8 +314,8 @@ void gpu_buffer_align_bpm_add_pattern(
   }
   // [DTO] Compile PEQ pattern (Add pattern entries)
   gpu_bpm_qry_entry_t* const buffer_pattern_entry = gpu_bpm_buffer_get_peq_entries_(gpu_buffer) + buffer_num_entries;
-  gpu_buffer_align_bpm->num_entries += gpu_num_entries;
-  gpu_buffer_align_bpm_pattern_compile(buffer_pattern_entry,bpm_pattern);
+  gpu_buffer_align_bpm->num_entries += num_entries;
+  gpu_buffer_align_bpm_pattern_compile(buffer_pattern_entry,bpm_pattern,bpm_pattern_tiles);
 }
 void gpu_buffer_align_bpm_add_candidate(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
@@ -527,6 +514,7 @@ void gpu_buffer_align_bpm_set_device_gpu(
 /*
  * Occupancy & Limits
  */
+uint64_t gpu_buffer_align_bpm_get_entry_length() { GEM_CUDA_NOT_SUPPORTED(); return 0; }
 uint64_t gpu_buffer_align_bpm_get_max_candidates(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
 uint64_t gpu_buffer_align_bpm_get_max_queries(
@@ -538,6 +526,7 @@ uint64_t gpu_buffer_align_bpm_get_num_queries(
 void gpu_buffer_align_bpm_compute_dimensions(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     bpm_pattern_t* const bpm_pattern,
+    bpm_pattern_t* const bpm_pattern_tiles,
     const uint64_t num_candidates,
     uint64_t* const total_entries,
     uint64_t* const total_queries,
@@ -552,7 +541,8 @@ bool gpu_buffer_align_bpm_fits_in_buffer(
  */
 void gpu_buffer_align_bpm_add_pattern(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
-    bpm_pattern_t* const bpm_pattern) { GEM_CUDA_NOT_SUPPORTED(); }
+    bpm_pattern_t* const bpm_pattern,
+    bpm_pattern_t* const bpm_pattern_tiles) { GEM_CUDA_NOT_SUPPORTED(); }
 void gpu_buffer_align_bpm_add_candidate(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     const uint64_t tile_offset,

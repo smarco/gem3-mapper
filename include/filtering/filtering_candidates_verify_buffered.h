@@ -13,20 +13,24 @@
 /*
  * BPM-Buffered Add (Candidates Verification)
  */
-uint64_t filtering_candidates_verify_buffered_add(
+void filtering_candidates_verify_buffered_add(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const pattern,
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
+    uint64_t* const gpu_buffer_align_offset,
+    filtering_region_buffered_t** const filtering_region_buffered,
+    uint64_t* const gpu_num_filtering_regions);
 
 /*
  * BPM-Buffered Retrieve (Candidates Verification)
  */
-uint64_t filtering_candidates_verify_buffered_retrieve(
+void filtering_candidates_verify_buffered_retrieve(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const pattern,
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     const uint64_t candidate_offset_begin,
-    const uint64_t candidate_offset_end);
+    filtering_region_buffered_t* const filtering_region_buffered,
+    uint64_t const num_filtering_regions);
 
 /*
  * Display/Benchmark

@@ -15,9 +15,15 @@
 #include "archive/archive.h"
 
 typedef struct {
+  /* Buffers */
   void* gpu_buffers_dto;              // GPU-Buffer Initializer DTO
   void** internal_buffers;            // Internal Buffers
   uint64_t num_buffers;               // Total number of buffers allocated
+  /* Active Modules */
+  bool region_profile;
+  bool decode_candidates_sa;
+  bool decode_candidates_text;
+  bool verify_candidates;
 } gpu_buffer_collection_t;
 
 /*

@@ -49,7 +49,7 @@ debug: $(GEM_TOOLS_BIN)
 ###############################################################################
 
 # GEM-library
-$(LIB_GEM_CORE): $(FOLDER_BUILD)/*.o
+$(LIB_GEM_CORE): $(FOLDER_BUILD)/*.o $(FOLDER_GEMGPU_BUILD)/*.o
 ifeq ($(HAVE_CUDA),1)
 	$(AR) -rcs $(LIB_GEM_CORE) $(FOLDER_BUILD)/*.o $(FOLDER_GEMGPU_BUILD)/*.o
 else

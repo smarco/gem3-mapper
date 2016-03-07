@@ -18,15 +18,27 @@
 /*
  * GEM-mapper Error Handling
  */
+#define gem_mapper_error_report(error_msg,args...) \
+  fprintf(stderr,"GEM-Mapper error:\n> "error_msg"\n",##args)
 #define gem_mapper_error_msg(error_msg,args...) \
-  fprintf(stderr,"GEM-Mapper error:\n> "error_msg"\n",##args); \
+  gem_mapper_error_report(error_msg,##args); \
   exit(1)
 #define gem_mapper_cond_error_msg(condition,error_msg,args...) \
   do { \
     if (__builtin_expect((condition),0)){ \
-      gem_mapper_error_msg(error_msg,##args); \
+      gem_mapper_error_report(error_msg,##args); \
+      exit(1); \
     } \
   } while (0)
+#define gem_mapper_cond_error_msg__perror(condition,error_msg,args...) \
+  do { \
+    if (__builtin_expect((condition),0)){ \
+      gem_mapper_error_report(error_msg,##args); \
+      gem_perror(); \
+      exit(1); \
+    } \
+  } while (0)
+
 /*
  * GEM-mapper Parsing
  */
@@ -106,6 +118,8 @@ void gem_mapper_open_output(mapper_parameters_t* const parameters) {
   } else {
     gem_cond_log(parameters->misc.verbose_user,"[Outputting to '%s']",parameters->io.output_file_name);
     parameters->output_stream = fopen(parameters->io.output_file_name,"w");
+    gem_mapper_cond_error_msg__perror(parameters->output_stream==NULL,
+        "Couldn't open output file '%s'",parameters->io.output_file_name);
   }
   // Open output file
   const mapper_parameters_cuda_t* const cuda = &parameters->cuda;
@@ -182,7 +196,7 @@ option_t gem_mapper_options[] = {
   { '2', "i2", REQUIRED, TYPE_STRING, 2, VISIBILITY_USER, "<file>", "(paired-end, end-2)" },
   { 'z', "gzip-input", NO_ARGUMENT, TYPE_NONE, 2, VISIBILITY_USER, "", "(gzip input)" },
   { 'j', "bzip-input", NO_ARGUMENT, TYPE_NONE, 2, VISIBILITY_USER, "", "(bzip input)" },
-  { 201, "input-model", REQUIRED, TYPE_STRING, 2, VISIBILITY_DEVELOPER, "<input_block_size,num_buffers,num_records>", "(default=64M,2c,5K)" },
+  { 201, "input-model", REQUIRED, TYPE_STRING, 2, VISIBILITY_DEVELOPER, "<input_block_size,num_buffers,buffers_size>", "(default=64M,2c,4K)" },
   { 'o', "output", REQUIRED, TYPE_STRING, 2, VISIBILITY_USER, "<output_prefix>" , "(default=stdout)" },
   { 202, "gzip-output", NO_ARGUMENT, TYPE_NONE, 2, VISIBILITY_USER, "", "(gzip output)" },
   { 203, "bzip-output", NO_ARGUMENT, TYPE_NONE, 2, VISIBILITY_USER, "", "(bzip output)" },
@@ -343,14 +357,12 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       error = parse_arguments_system_integer(num_buffers,&io->input_num_buffers);
       gem_mapper_cond_error_msg(error,"Option '--input-model'. Error parsing 'num_buffers'");
       // Parse number of records per buffer
-      error = input_text_parse_size(num_records,&io->input_buffer_lines);
-      gem_mapper_cond_error_msg(error,"Option '--input-model'. Error parsing 'num_records'");
-      // Adjust
-      io->input_buffer_lines *= (2*4); // 2l-Paired x 4l-FASTQRecord
+      error = input_text_parse_size(num_records,&io->input_buffer_size);
+      gem_mapper_cond_error_msg(error,"Option '--input-model'. Error parsing 'buffer_size'");
       // Propagate settings to CUDA
       cuda->input_block_size = io->input_block_size;
       cuda->input_num_buffers = io->input_num_buffers;
-      cuda->input_buffer_lines = io->input_buffer_lines;
+      cuda->input_buffer_size = io->input_buffer_size;
       break;
     }
     case 'o': // --output

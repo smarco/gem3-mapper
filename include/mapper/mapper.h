@@ -45,8 +45,8 @@ typedef struct {
   char* input_file_name_end2;
   fm_type input_compression;
   uint64_t input_block_size;
+  uint64_t input_buffer_size;
   uint64_t input_num_buffers;
-  uint64_t input_buffer_lines;
   /* I/O Attributes (qualities, ...) */
   bool fastq_strictly_normalized;
   bool fastq_try_recovery;
@@ -73,8 +73,8 @@ typedef struct {
   bool cpu_emulated;
   /* I/O */
   uint64_t input_block_size;
+  uint64_t input_buffer_size;
   uint64_t input_num_buffers;
-  uint64_t input_buffer_lines;
   uint64_t output_buffer_size;
   uint64_t output_num_buffers;
   /* GPU Buffering */

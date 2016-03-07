@@ -31,7 +31,8 @@ void* mapper_SE_bisulfite_thread(mapper_search_t* const mapper_search) {
 
   // Create new buffered reader/writer
   mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
-  mapper_search->buffered_fasta_input = buffered_input_file_new(parameters->input_file,parameters->io.input_buffer_lines);
+  mapper_search->buffered_fasta_input =
+      buffered_input_file_new(parameters->input_file,parameters->io.input_buffer_size);
   buffered_output_file_t* const buffered_output_file = buffered_output_file_new(parameters->output_file);
   buffered_input_file_attach_buffered_output(mapper_search->buffered_fasta_input,buffered_output_file);
 
@@ -114,7 +115,7 @@ void* mapper_PE_bisulfite_thread(mapper_search_t* const mapper_search) {
   // Create new buffered reader/writer
   mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
   mapper_PE_prepare_io_buffers(
-      parameters,parameters->io.input_buffer_lines,&mapper_search->buffered_fasta_input_end1,
+      parameters,parameters->io.input_buffer_size,&mapper_search->buffered_fasta_input_end1,
       &mapper_search->buffered_fasta_input_end2,&mapper_search->buffered_output_file);
 
   // Create an Archive-Search

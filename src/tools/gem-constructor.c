@@ -17,6 +17,8 @@
 #include "stats/stats_vector.h"
 #include "align/align_ond.h"
 #include "archive/locator_builder.h"
+#include "archive/archive.h"
+#include "archive/archive_text.h"
 #include "data_structures/cdna_text.h"
 #include "filtering/region_profile.h"
 #include "io/input_parser.h"
@@ -973,27 +975,31 @@ int main(int argc,char** argv) {
   //  constructor_itoa();
   // constructor_swg();
 
-  constructor_lsc();
-  return 0;
+  //  if (gem_strcaseeq(parameters.option,"hamming-brute")) {
+  //    constructor_ns_hamming_brute();
+  //  }
+  //  if (gem_strcaseeq(parameters.option,"hamming-partition")) {
+  //    constructor_ns_hamming();
+  //  }
+  //  if (gem_strcaseeq(parameters.option,"hamming-regions")) {
+  //    constructor_ns_hamming_2regions();
+  //  }
+  //  if (gem_strcaseeq(parameters.option,"hamming-permutations")) {
+  //    constructor_ns_hamming_permutations();
+  //  }
+  //  if (gem_strcaseeq(parameters.option,"edit-brute")) {
+  //    constructor_ns_edit_brute();
+  //  }
+  //  if (gem_strcaseeq(parameters.option,"edit-partition")) {
+  //    constructor_ns_edit_partition();
+  //  }
 
-//  if (gem_strcaseeq(parameters.option,"hamming-brute")) {
-//    constructor_ns_hamming_brute();
-//  }
-//  if (gem_strcaseeq(parameters.option,"hamming-partition")) {
-//    constructor_ns_hamming();
-//  }
-//  if (gem_strcaseeq(parameters.option,"hamming-regions")) {
-//    constructor_ns_hamming_2regions();
-//  }
-//  if (gem_strcaseeq(parameters.option,"hamming-permutations")) {
-//    constructor_ns_hamming_permutations();
-//  }
-//  if (gem_strcaseeq(parameters.option,"edit-brute")) {
-//    constructor_ns_edit_brute();
-//  }
-//  if (gem_strcaseeq(parameters.option,"edit-partition")) {
-//    constructor_ns_edit_partition();
-//  }
+  //  constructor_lsc();
+  //  return 0;
+
+  archive_t* archive = archive_read("./test.gem",false);
+  fprintf(stderr,"Position=%lu\tProyection=%lu\n",
+      0ul,archive_text_get_unitary_projection(archive->text,0));
 
   return 0;
 }

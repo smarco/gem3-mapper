@@ -74,9 +74,10 @@ void approximate_search_verify_candidates_buffered_copy(
     approximate_search_t* const search,
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
   // Add to GPU-Buffer
-  search->gpu_buffer_align_offset = gpu_buffer_align_bpm_get_num_candidates(gpu_buffer_align_bpm);
-  search->gpu_buffer_align_total = filtering_candidates_verify_buffered_add(
-      search->filtering_candidates,&search->pattern,gpu_buffer_align_bpm);
+  filtering_candidates_verify_buffered_add(
+      search->filtering_candidates,&search->pattern,
+      gpu_buffer_align_bpm,&search->gpu_buffer_align_offset,
+      &search->gpu_filtering_regions,&search->gpu_num_filtering_regions);
   // BENCHMARK
 #ifdef CUDA_BENCHMARK_GENERATE_VERIFY_CANDIDATES
   approximate_search_verify_candidates_buffered_print_benchmark(search);
@@ -86,18 +87,14 @@ void approximate_search_verify_candidates_buffered_retrieve(
     approximate_search_t* const search,
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     matches_t* const matches) {
-  // Buffer Offsets
-  const uint64_t candidate_offset_begin = search->gpu_buffer_align_offset;
-  const uint64_t candidate_offset_end = search->gpu_buffer_align_offset+search->gpu_buffer_align_total;
   // Retrieve
-  const uint64_t num_accepted_regions =
-      filtering_candidates_verify_buffered_retrieve(search->filtering_candidates,
-          &search->pattern,gpu_buffer_align_bpm,candidate_offset_begin,candidate_offset_end);
-  if (num_accepted_regions > 0) {
-    // Realign
-    filtering_candidates_align_candidates(search->filtering_candidates,
-        &search->pattern,search->emulated_rc_search,false,false,matches);
-  }
+  filtering_candidates_verify_buffered_retrieve(
+      search->filtering_candidates,&search->pattern,
+      gpu_buffer_align_bpm,search->gpu_buffer_align_offset,
+      search->gpu_filtering_regions,search->gpu_num_filtering_regions);
+  // Align
+  filtering_candidates_align_candidates(search->filtering_candidates,
+      &search->pattern,search->emulated_rc_search,false,false,matches);
   // Update state
   search->processing_state = asearch_processing_state_candidates_verified;
 }

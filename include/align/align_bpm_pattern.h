@@ -28,10 +28,6 @@ struct _bpm_pattern_t {
   int64_t* score;
   int64_t* init_score;
   uint64_t* pattern_left;
-  /* BPM-GPU Dimensions */
-  uint64_t gpu_num_entries;
-  uint64_t gpu_num_tiles;
-  uint64_t gpu_entries_per_tile;
   /* BPM tiles (Pattern split in tiles) */
   uint64_t num_pattern_tiles;  // Total number of tiles
   uint64_t tile_length;        // Ideal tile length (the last can be shorter)
@@ -57,7 +53,7 @@ bpm_pattern_t* bpm_pattern_compile(
  */
 bpm_pattern_t* bpm_pattern_compile_tiles(
     bpm_pattern_t* const bpm_pattern,
-    uint64_t words64_per_tile,
+    const uint64_t prefered_words64_per_tile,
     const uint64_t max_error,
     mm_stack_t* const mm_stack);
 

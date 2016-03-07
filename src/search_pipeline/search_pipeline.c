@@ -34,15 +34,19 @@ search_pipeline_t* search_pipeline_new(
   // Allocate pipeline stages
   uint64_t acc_buffers_offset = buffers_offset;
   search_pipeline->stage_region_profile = search_stage_region_profile_new(
-      gpu_buffer_collection,acc_buffers_offset,cuda->num_fmi_bsearch_buffers,fm_index,cpu_emulated);
+      gpu_buffer_collection,acc_buffers_offset,cuda->num_fmi_bsearch_buffers,
+      fm_index,cpu_emulated || !gpu_buffer_collection->region_profile);
   acc_buffers_offset += cuda->num_fmi_bsearch_buffers;
   search_pipeline->stage_decode_candidates = search_stage_decode_candidates_new(
-      gpu_buffer_collection,acc_buffers_offset,cuda->num_fmi_decode_buffers,
-      fm_index,cpu_emulated,search_pipeline->mm_stack);
+      gpu_buffer_collection,acc_buffers_offset,cuda->num_fmi_decode_buffers,fm_index,
+      gpu_buffer_collection->decode_candidates_sa && !cpu_emulated,
+      gpu_buffer_collection->decode_candidates_text && !cpu_emulated,
+      search_pipeline->mm_stack);
   acc_buffers_offset += cuda->num_fmi_decode_buffers;
   search_pipeline->stage_verify_candidates = search_stage_verify_candidates_new(
       gpu_buffer_collection,acc_buffers_offset,cuda->num_bpm_buffers,
-      paired_end,cpu_emulated,archive->text,search_pipeline->mm_stack);
+      paired_end,cpu_emulated || !gpu_buffer_collection->verify_candidates,
+      archive->text,search_pipeline->mm_stack);
   // Return
   return search_pipeline;
 }

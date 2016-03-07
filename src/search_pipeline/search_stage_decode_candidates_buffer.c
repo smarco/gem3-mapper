@@ -14,14 +14,14 @@ search_stage_decode_candidates_buffer_t* search_stage_decode_candidates_buffer_n
     const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffer_no,
     fm_index_t* const fm_index,
-    const bool cpu_emulated) {
+    const bool gpu_decode_sa,
+    const bool gpu_decode_text) {
   // Alloc
   search_stage_decode_candidates_buffer_t* const decode_candidates_buffer =
       mm_alloc(search_stage_decode_candidates_buffer_t);
   // Init
-  decode_candidates_buffer->gpu_buffer_fmi_decode =
-      gpu_buffer_fmi_decode_new(gpu_buffer_collection,buffer_no,fm_index);
-  if (cpu_emulated) gpu_buffer_fmi_decode_set_device_cpu(decode_candidates_buffer->gpu_buffer_fmi_decode);
+  decode_candidates_buffer->gpu_buffer_fmi_decode = gpu_buffer_fmi_decode_new(
+      gpu_buffer_collection,buffer_no,fm_index,gpu_decode_sa,gpu_decode_text);
   const uint64_t max_queries = gpu_buffer_fmi_decode_get_max_queries(decode_candidates_buffer->gpu_buffer_fmi_decode);
   decode_candidates_buffer->archive_searches = vector_new(max_queries,archive_search_t*);
   // Return

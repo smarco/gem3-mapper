@@ -72,7 +72,7 @@ ifeq ($(CC),gcc)
     OPT_AR=-fuse-linker-plugin
   endif
   FLAGS_OPT=-Ofast -msse4.2 -std=c99 $(OPT_LTO)
-  FLAGS_DEBUG=-g $(FLAGS_GEM_DEBUG)
+  FLAGS_DEBUG=-g -rdynamic $(FLAGS_GEM_DEBUG)
   FLAGS_LINK=$(OPT_AR)
 endif
 

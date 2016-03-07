@@ -91,7 +91,7 @@ gpu_error_t gpu_io_save_index_PROFILE(const char* const fn, const gpu_index_buff
     return(E_MODULE_NOT_FOUND);
 
   if (activeModules & GPU_SA){
-    sprintf(fileName, "%s.%lu.%u.sa", fn, index->sa.numEntries, index->sa.sampligRate);
+    sprintf(fileName, "%s.%lu.%lu.sa", fn, index->sa.numEntries, index->sa.sampligRate);
     fp = fopen(fileName, "wb");
     if (fp == NULL) return (E_WRITING_FILE);
     GPU_ERROR(gpu_index_write(fp, index, GPU_SA));

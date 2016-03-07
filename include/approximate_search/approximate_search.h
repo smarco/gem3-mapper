@@ -56,27 +56,28 @@ extern const char* asearch_stage_label[7];
  */
 typedef struct {
   /* Index Structures, Pattern & Parameters */
-  archive_t* archive;                                 // Archive
-  pattern_t pattern;                                  // Search Pattern
-  search_parameters_t* search_parameters;             // Search Parameters
+  archive_t* archive;                                      // Archive
+  pattern_t pattern;                                       // Search Pattern
+  search_parameters_t* search_parameters;                  // Search Parameters
   /* Search State */
-  bool emulated_rc_search;                            // Currently searching on the RC (emulated on the forward strand)
-  bool do_quality_search;                             // Quality search
-  asearch_stage_t search_stage;                       // Current Search Stage
-  asearch_processing_state_t processing_state;        // Current Processing State
-  bool stop_before_neighborhood_search;               // Stop before Neighborhood Search
+  bool emulated_rc_search;                                 // Currently searching on the RC (emulated on the forward strand)
+  bool do_quality_search;                                  // Quality search
+  asearch_stage_t search_stage;                            // Current Search Stage
+  asearch_processing_state_t processing_state;             // Current Processing State
+  bool stop_before_neighborhood_search;                    // Stop before Neighborhood Search
   uint64_t max_complete_error;
-  uint64_t max_complete_stratum;                      // Maximum complete stratum reached by the search
+  uint64_t max_complete_stratum;                           // Maximum complete stratum reached by the search
   /* Search Structures */
-  region_profile_t region_profile;                    // Region Profile
-  filtering_candidates_t* filtering_candidates;       // Filtering Candidates
-  /* Buffer Offsets */
+  region_profile_t region_profile;                         // Region Profile
+  filtering_candidates_t* filtering_candidates;            // Filtering Candidates
+  /* Buffered Search Data */
   uint64_t gpu_buffer_fmi_search_offset;
   uint64_t gpu_buffer_fmi_search_total;
   uint64_t gpu_buffer_fmi_decode_offset;
   uint64_t gpu_buffer_fmi_decode_total;
   uint64_t gpu_buffer_align_offset;
-  uint64_t gpu_buffer_align_total;
+  filtering_region_buffered_t* gpu_filtering_regions;      // Filtering-Regions Info
+  uint64_t gpu_num_filtering_regions;                      // Total Buffered Filtering-Regions
   /* Search Auxiliary Structures (external) */
   text_collection_t* text_collection;                      // Stores text-traces
   interval_set_t* interval_set;                            // Interval Set

@@ -17,7 +17,7 @@
 #include "matches/match_scaffold.h"
 
 /*
- * Filtering Region
+ * Filtering Region Status
  */
 typedef enum {
   filtering_region_pending=0,               // On-hold state (unverified)
@@ -28,6 +28,9 @@ typedef enum {
   filtering_region_aligned=5,               // Region aligned
 } filtering_region_status_t;
 extern const char* filtering_region_status_label[6];
+/*
+ * Filtering Region
+ */
 typedef struct {
   /* State */
   filtering_region_status_t status;         // Filtering Region Status
@@ -53,6 +56,22 @@ typedef struct {
   region_alignment_t region_alignment;      // Filtering Region Alignment
   match_scaffold_t match_scaffold;          // Matching regions supporting the filtering region (Scaffolding)
 } filtering_region_t;
+typedef struct {
+  /* Source Region Offset */
+  uint32_t text_source_region_offset;       // Text-Offset to the begin of the source-region
+  uint32_t key_source_region_offset;        // Key-Offset to the begin of the source-region
+  /* Text */
+  uint64_t text_begin_position;             // Region effective begin position (adjusted to error boundaries)
+  uint64_t text_end_position;               // Region effective end position (adjusted to error boundaries)
+  uint64_t text_base_begin_offset;          // Offset to base begin filtering position (no error boundary correction)
+  uint64_t text_base_end_offset;            // Offset to base begin filtering position (no error boundary correction)
+  /* Alignment */
+  region_alignment_t region_alignment;      // Filtering Region Alignment
+  // TODO match_scaffold_t match_scaffold;          // Matching regions supporting the filtering region (Scaffolding)
+} filtering_region_buffered_t;
+/*
+ * Filtering Region Auxiliary Structures
+ */
 typedef struct {
   /* Filtering region */
   filtering_region_t* filtering_region;

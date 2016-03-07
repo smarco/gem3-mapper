@@ -39,7 +39,8 @@ search_stage_decode_candidates_t* search_stage_decode_candidates_new(
     const uint64_t buffers_offset,
     const uint64_t num_buffers,
     fm_index_t* const fm_index,
-    const bool cpu_emulated,
+    const bool gpu_decode_sa,
+    const bool gpu_decode_text,
     mm_stack_t* const mm_stack) {
   // Alloc
   search_stage_decode_candidates_t* const search_stage_dc = mm_alloc(search_stage_decode_candidates_t);
@@ -47,8 +48,8 @@ search_stage_decode_candidates_t* search_stage_decode_candidates_new(
   uint64_t i;
   search_stage_dc->buffers = vector_new(num_buffers,search_stage_decode_candidates_buffer_t*);
   for (i=0;i<num_buffers;++i) {
-    search_stage_decode_candidates_buffer_t* const buffer_vc =
-        search_stage_decode_candidates_buffer_new(gpu_buffer_collection,buffers_offset+i,fm_index,cpu_emulated);
+    search_stage_decode_candidates_buffer_t* const buffer_vc = search_stage_decode_candidates_buffer_new(
+        gpu_buffer_collection,buffers_offset+i,fm_index,gpu_decode_sa,gpu_decode_text);
     vector_insert(search_stage_dc->buffers,buffer_vc,search_stage_decode_candidates_buffer_t*);
   }
   search_stage_dc->iterator.num_buffers = num_buffers;

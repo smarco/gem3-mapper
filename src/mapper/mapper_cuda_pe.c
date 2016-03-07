@@ -218,7 +218,7 @@ void* mapper_cuda_pe_thread(mapper_cuda_search_t* const mapper_search) {
   const mapper_parameters_cuda_t* const cuda_parameters = &parameters->cuda;
   // Create new buffered reader/writer
   mapper_PE_prepare_io_buffers(parameters,
-      cuda_parameters->input_buffer_lines,&mapper_search->buffered_fasta_input_end1,
+      cuda_parameters->input_buffer_size,&mapper_search->buffered_fasta_input_end1,
       &mapper_search->buffered_fasta_input_end2,&mapper_search->buffered_output_file);
   // Create search-pipeline & initialize matches
   mapper_search->search_pipeline = search_pipeline_new(parameters,

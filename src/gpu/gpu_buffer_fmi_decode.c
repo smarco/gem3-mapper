@@ -26,12 +26,15 @@
 gpu_buffer_fmi_decode_t* gpu_buffer_fmi_decode_new(
     const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffer_pos,
-    fm_index_t* const fm_index) {
+    fm_index_t* const fm_index,
+    const bool gpu_decode_sa,
+    const bool gpu_decode_text) {
   PROF_START(GP_GPU_BUFFER_FMI_DECODE_ALLOC);
   gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode = mm_alloc(gpu_buffer_fmi_decode_t);
   gpu_buffer_fmi_decode->buffer = gpu_buffer_collection_get_buffer(gpu_buffer_collection,buffer_pos);
   gpu_buffer_fmi_decode->num_queries = 0;
-  gpu_buffer_fmi_decode->compute_cpu = false;
+  gpu_buffer_fmi_decode->gpu_decode_sa = gpu_decode_sa;
+  gpu_buffer_fmi_decode->gpu_decode_text = gpu_decode_text;
   gpu_buffer_fmi_decode->fm_index = fm_index;
   TIMER_RESET(&gpu_buffer_fmi_decode->timer);
   // Init Buffer
@@ -49,15 +52,6 @@ void gpu_buffer_fmi_decode_clear(gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_d
 }
 void gpu_buffer_fmi_decode_delete(gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
   mm_free(gpu_buffer_fmi_decode);
-}
-/*
- * Computing Device
- */
-void gpu_buffer_fmi_decode_set_device_cpu(gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
-  gpu_buffer_fmi_decode->compute_cpu = true;
-}
-void gpu_buffer_fmi_decode_set_device_gpu(gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
-  gpu_buffer_fmi_decode->compute_cpu = false;
 }
 /*
  * Occupancy & Limits
@@ -104,7 +98,7 @@ void gpu_buffer_fmi_decode_add_query(
   // Increment number of queries
   ++(gpu_buffer_fmi_decode->num_queries);
 }
-void gpu_buffer_fmi_decode_get_result(
+void gpu_buffer_fmi_decode_get_position_sa(
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
     const uint64_t buffer_pos,
     uint64_t* const bwt_sampled_position,
@@ -114,6 +108,15 @@ void gpu_buffer_fmi_decode_get_result(
       gpu_fmi_decode_buffer_get_end_pos_(gpu_buffer_fmi_decode->buffer) + buffer_pos;
   *bwt_sampled_position = gpu_fmi_decode_end_pos->interval;
   *lf_steps = gpu_fmi_decode_end_pos->steps;
+}
+void gpu_buffer_fmi_decode_get_position_text(
+    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
+    const uint64_t buffer_pos,
+    uint64_t* const text_position) {
+  // Get query
+  const gpu_sa_decode_text_pos_t* const gpu_fmi_decode_end_pos =
+      gpu_sa_decode_buffer_get_ref_pos_(gpu_buffer_fmi_decode->buffer) + buffer_pos;
+  *text_position = *gpu_fmi_decode_end_pos;
 }
 /*
  * CPU emulated
@@ -148,7 +151,7 @@ void gpu_buffer_fmi_decode_send(gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_de
   TIMER_START(&gpu_buffer_fmi_decode->timer);
 #endif
   // Select computing device
-  if (!gpu_buffer_fmi_decode->compute_cpu) {
+  if (gpu_buffer_fmi_decode->gpu_decode_sa) {
     if (gpu_buffer_fmi_decode->num_queries > 0) {
       sampled_sa_t* const sampled_sa = gpu_buffer_fmi_decode->fm_index->sampled_sa;
       const uint32_t sampling_rate = sampled_sa_get_sa_sampling_rate(sampled_sa);
@@ -161,7 +164,7 @@ void gpu_buffer_fmi_decode_receive(gpu_buffer_fmi_decode_t* const gpu_buffer_fmi
   PROF_START(GP_GPU_BUFFER_FMI_DECODE_RECEIVE);
   if (gpu_buffer_fmi_decode->num_queries > 0) {
     // Select computing device
-    if (!gpu_buffer_fmi_decode->compute_cpu) {
+    if (gpu_buffer_fmi_decode->gpu_decode_sa) {
       gpu_fmi_decode_receive_buffer_(gpu_buffer_fmi_decode->buffer);
     } else {
       gpu_buffer_fmi_decode_compute_cpu(gpu_buffer_fmi_decode); // CPU emulated

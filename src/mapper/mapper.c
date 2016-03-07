@@ -123,6 +123,7 @@ void mapper_error_report(FILE* stream) {
  * Mapper Parameters
  */
 void mapper_parameters_set_defaults_io(mapper_parameters_io_t* const io) {
+  const uint64_t num_processors = system_get_num_processors();
   /* Input */
   io->index_file_name=NULL;
   io->separated_input_files=false;
@@ -132,9 +133,8 @@ void mapper_parameters_set_defaults_io(mapper_parameters_io_t* const io) {
   io->input_compression=FM_REGULAR_FILE;
   /* I/O */
   io->input_block_size = BUFFER_SIZE_64M;
-  const uint64_t num_processors = system_get_num_processors();
+  io->input_buffer_size = BUFFER_SIZE_4K;
   io->input_num_buffers = 2*num_processors;
-  io->input_buffer_lines = (2*4*NUM_LINES_10K); // 2l-Paired x 4l-FASTQRecord x BufferSize
   io->output_file_name=NULL;
   io->output_compression=FM_REGULAR_FILE;
   /* I/O Attributes */
@@ -163,8 +163,8 @@ void mapper_parameters_set_defaults_cuda(mapper_parameters_cuda_t* const cuda) {
   cuda->cpu_emulated=false;
   /* I/O */
   cuda->input_block_size = BUFFER_SIZE_64M;
+  cuda->input_buffer_size = BUFFER_SIZE_4K;
   cuda->input_num_buffers = 2*num_processors;
-  cuda->input_buffer_lines = (2*4*NUM_LINES_10K); // 2l-Paired x 4l-FASTQRecord x 5K-BufferSize
   cuda->output_buffer_size = BUFFER_SIZE_4M;
   cuda->output_num_buffers = 10*num_processors; // Lazy allocation
   /* BPM Buffers */
@@ -244,24 +244,24 @@ void mapper_load_index(mapper_parameters_t* const parameters) {
  */
 void mapper_SE_prepare_io_buffers(
     const mapper_parameters_t* const parameters,
-    const uint64_t input_buffer_lines,
+    const uint64_t input_buffer_size,
     buffered_input_file_t** const buffered_fasta_input,
     buffered_output_file_t** const buffered_output_file) {
-  *buffered_fasta_input = buffered_input_file_new(parameters->input_file,input_buffer_lines);
+  *buffered_fasta_input = buffered_input_file_new(parameters->input_file,input_buffer_size);
   *buffered_output_file = buffered_output_file_new(parameters->output_file);
   buffered_input_file_attach_buffered_output(*buffered_fasta_input,*buffered_output_file);
 }
 void mapper_PE_prepare_io_buffers(
     const mapper_parameters_t* const parameters,
-    const uint64_t input_buffer_lines,
+    const uint64_t input_buffer_size,
     buffered_input_file_t** const buffered_fasta_input_end1,
     buffered_input_file_t** const buffered_fasta_input_end2,
     buffered_output_file_t** const buffered_output_file) {
   if (parameters->io.separated_input_files) {
-    *buffered_fasta_input_end1 = buffered_input_file_new(parameters->input_file_end1,input_buffer_lines);
-    *buffered_fasta_input_end2 = buffered_input_file_new(parameters->input_file_end2,input_buffer_lines);
+    *buffered_fasta_input_end1 = buffered_input_file_new(parameters->input_file_end1,input_buffer_size);
+    *buffered_fasta_input_end2 = buffered_input_file_new(parameters->input_file_end2,input_buffer_size);
   } else {
-    *buffered_fasta_input_end1 = buffered_input_file_new(parameters->input_file,parameters->io.input_buffer_lines);
+    *buffered_fasta_input_end1 = buffered_input_file_new(parameters->input_file,input_buffer_size);
     *buffered_fasta_input_end2 = *buffered_fasta_input_end1;
   }
   *buffered_output_file = buffered_output_file_new(parameters->output_file);
@@ -275,7 +275,7 @@ uint64_t mapper_PE_reload_buffers(
   error_code_t error_code;
   if (buffered_input_file_eob(buffered_fasta_input_end1)) {
     if (!parameters->io.separated_input_files) {
-      error_code = buffered_input_file_reload__dump_attached(buffered_fasta_input_end1);
+      error_code = buffered_input_file_reload__dump_attached(buffered_fasta_input_end1,0);
       if (error_code==INPUT_STATUS_EOF) return INPUT_STATUS_EOF;
     } else {
       // Dump buffer (explicitly before synch-reload)
@@ -287,7 +287,7 @@ uint64_t mapper_PE_reload_buffers(
           MAPPER_ERROR_PE_PARSE_UNSYNCH_INPUT_FILES(parameters);
         }
         // Reload end1
-        error_code = buffered_input_file_reload__dump_attached(buffered_fasta_input_end1);
+        error_code = buffered_input_file_reload__dump_attached(buffered_fasta_input_end1,0);
         if (error_code==INPUT_STATUS_EOF) {
           if (!input_file_eof(buffered_fasta_input_end2->input_file)) {
             MAPPER_ERROR_PE_PARSE_UNSYNCH_INPUT_FILES(parameters);
@@ -296,8 +296,10 @@ uint64_t mapper_PE_reload_buffers(
           return INPUT_STATUS_EOF;
         }
         // Reload end2
-        error_code = buffered_input_file_reload__dump_attached(buffered_fasta_input_end2);
-        if (error_code==INPUT_STATUS_EOF) {
+        const uint64_t buffered_lines_end1 = buffered_fasta_input_end1->input_buffer->lines_in_buffer;
+        error_code = buffered_input_file_reload__dump_attached(buffered_fasta_input_end2,buffered_lines_end1);
+        const uint64_t buffered_lines_end2 = buffered_fasta_input_end2->input_buffer->lines_in_buffer;
+        if (error_code==INPUT_STATUS_EOF || buffered_lines_end1!=buffered_lines_end2) {
           MAPPER_ERROR_PE_PARSE_UNSYNCH_INPUT_FILES(parameters);
         }
       } MUTEX_END_SECTION(parameters->input_file_mutex);
@@ -409,7 +411,7 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
 
   // Create new buffered reader/writer
   mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
-  mapper_SE_prepare_io_buffers(parameters,parameters->io.input_buffer_lines,
+  mapper_SE_prepare_io_buffers(parameters,parameters->io.input_buffer_size,
       &mapper_search->buffered_fasta_input,&mapper_search->buffered_output_file);
 
   // Create an Archive-Search
@@ -466,7 +468,7 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
   // Create new buffered reader/writer
   mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
   mapper_PE_prepare_io_buffers(
-      parameters,parameters->io.input_buffer_lines,&mapper_search->buffered_fasta_input_end1,
+      parameters,parameters->io.input_buffer_size,&mapper_search->buffered_fasta_input_end1,
       &mapper_search->buffered_fasta_input_end2,&mapper_search->buffered_output_file);
 
   // Create an Archive-Search

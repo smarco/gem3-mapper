@@ -310,7 +310,8 @@ uint64_t input_file_next_line(input_file_t* const input_file,vector_t* const buf
         // Check EOF
         if (!fm_eof(input_file->file_manager)) {
           PROF_START_TIMER(GP_INPUT_FILL_BUFFER);
-          input_file->buffer_size = fm_read_mem(input_file->file_manager,input_file->file_buffer,input_file->buffer_allocated);
+          input_file->buffer_size = fm_read_mem(input_file->file_manager,
+              input_file->file_buffer,input_file->buffer_allocated);
           fm_prefetch_next(input_file->file_manager,input_file->buffer_allocated);
           PROF_STOP_TIMER(GP_INPUT_FILL_BUFFER);
         } else {
@@ -330,11 +331,16 @@ uint64_t input_file_next_line(input_file_t* const input_file,vector_t* const buf
 uint64_t input_file_add_lines(
     input_file_t* const input_file,
     vector_t* buffer_dst,
-    const uint64_t num_lines) {
+    const uint64_t min_lines,
+    const uint64_t hint_buffer_size) {
   // Read lines
   uint64_t lines_read = 0;
-  while (lines_read < num_lines && input_file_next_line(input_file,buffer_dst)) {
+  while (input_file_next_line(input_file,buffer_dst)) {
     ++lines_read;
+    if (lines_read >= min_lines && (lines_read%8==0)) {
+      const uint64_t bytes_read = vector_get_used(buffer_dst) + (input_file->buffer_pos-input_file->buffer_begin);
+      if (bytes_read >= hint_buffer_size) break;
+    }
   }
   // Dump remaining content into the buffer
   input_file_dump_to_buffer(input_file,buffer_dst);
@@ -346,11 +352,12 @@ uint64_t input_file_add_lines(
 uint64_t input_file_get_lines(
     input_file_t* const input_file,
     vector_t* buffer_dst,
-    const uint64_t num_lines) {
+    const uint64_t min_lines,
+    const uint64_t hint_buffer_size) {
   // Clear dst buffer
   vector_clear(buffer_dst);
   // Read lines
-  return input_file_add_lines(input_file,buffer_dst,num_lines);
+  return input_file_add_lines(input_file,buffer_dst,min_lines,hint_buffer_size);
 }
 /*
  * Buffer reader
@@ -358,7 +365,8 @@ uint64_t input_file_get_lines(
 uint64_t input_file_reload_buffer(
     input_file_t* const input_file,
     input_buffer_t** const input_buffer,
-    const uint64_t num_lines) {
+    const uint64_t min_lines,
+    const uint64_t hint_buffer_size) {
   // Read lines
   if (input_file_eof(input_file)) return INPUT_STATUS_EOF;
   input_file_lock(input_file);
@@ -368,7 +376,8 @@ uint64_t input_file_reload_buffer(
   }
   (*input_buffer)->block_id = input_file_get_next_id(input_file);
   (*input_buffer)->current_line_num = input_file->processed_lines+1;
-  (*input_buffer)->lines_in_buffer = input_file_get_lines(input_file,(*input_buffer)->block_buffer,num_lines);
+  (*input_buffer)->lines_in_buffer = input_file_get_lines(input_file,
+      (*input_buffer)->block_buffer,min_lines,hint_buffer_size);
   input_file_unlock(input_file);
   // Setup the block
   (*input_buffer)->cursor = vector_get_mem((*input_buffer)->block_buffer,char);

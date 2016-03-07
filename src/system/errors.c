@@ -63,6 +63,8 @@ void gem_handle_error_signals() {
   error_signal_handler.sa_flags = 0;
   sigaction(SIGBUS,&error_signal_handler,NULL);
   sigaction(SIGSEGV,&error_signal_handler,NULL);
+  sigaction(SIGFPE,&error_signal_handler,NULL);
+  sigaction(SIGILL,&error_signal_handler,NULL);
 }
 /*
  * Print ErrNo

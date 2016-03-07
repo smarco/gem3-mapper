@@ -35,7 +35,9 @@ void rank_mtable_builder_find_mmd(
   uint64_t lo, hi;
   rank_mtable_fetch(rank_mtable,query,&lo,&hi);
   if (hi-lo <= RANK_MTABLE_MMD_THRESHOLD) {
-    *min_matching_depth = MIN(*min_matching_depth,level);
+    uint64_t matching_level = level;
+    if (hi-lo==0 && matching_level>0) --matching_level;
+    *min_matching_depth = MIN(*min_matching_depth,matching_level);
   } else if (gem_expect_false(level+1 < rank_mtable->num_levels)) { // Control recursion level
     rank_mquery_t next_query;
     // Update 'A'
@@ -137,7 +139,7 @@ void rank_mtable_builder_fill_ranks(
   // Find Minimum Matching Depth
   rank_mquery_t query;
   rank_mquery_new(&query);
-  uint64_t min_matching_depth = UINT64_MAX;
+  uint64_t min_matching_depth = RANK_MTABLE_SEARCH_DEPTH;
   rank_mtable_builder_find_mmd(rank_mtable,0,&query,&min_matching_depth);
   rank_mtable->min_matching_depth = min_matching_depth;
 }
@@ -231,7 +233,7 @@ void rank_mtable_reverse_builder_fill_ranks(
   // Find Minimum Matching Depth
   rank_mquery_t query;
   rank_mquery_new(&query);
-  uint64_t min_matching_depth = UINT64_MAX;
+  uint64_t min_matching_depth = RANK_MTABLE_SEARCH_DEPTH;
   rank_mtable_builder_find_mmd(rank_mtable,0,&query,&min_matching_depth);
   rank_mtable->min_matching_depth = min_matching_depth;
 }

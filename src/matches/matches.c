@@ -202,6 +202,7 @@ int64_t match_trace_get_effective_length(
 }
 /*
  * Matches Rank Consistency
+ *   Preserves the first @max_reported_matches with the least distance
  */
 match_trace_t* matches_sort_preserve_rank_consistency(
     matches_t* const matches,
@@ -473,17 +474,31 @@ int match_trace_cmp_distance(const match_trace_t* const a,const match_trace_t* c
   return (int)a->match_alignment.match_position - (int)b->match_alignment.match_position;
 }
 void matches_sort_by_distance(matches_t* const matches) {
-  qsort(vector_get_mem(matches->position_matches,match_trace_t),
-      vector_get_used(matches->position_matches),sizeof(match_trace_t),
+  // Sort
+  const uint64_t num_matches = vector_get_used(matches->position_matches);
+  match_trace_t* const match_trace = vector_get_mem(matches->position_matches,match_trace_t);
+  qsort(match_trace,num_matches,sizeof(match_trace_t),
       (int (*)(const void *,const void *))match_trace_cmp_distance);
+  // Recompute offsets
+  uint64_t i;
+  for (i=0;i<num_matches;++i) {
+    *(match_trace[i].match_trace_offset) = i;
+  }
 }
 int match_trace_cmp_swg_score(const match_trace_t* const a,const match_trace_t* const b) {
   return (int)b->swg_score - (int)a->swg_score;
 }
 void matches_sort_by_swg_score(matches_t* const matches) {
-  qsort(vector_get_mem(matches->position_matches,match_trace_t),
-      vector_get_used(matches->position_matches),sizeof(match_trace_t),
+  // Sort
+  const uint64_t num_matches = vector_get_used(matches->position_matches);
+  match_trace_t* const match_trace = vector_get_mem(matches->position_matches,match_trace_t);
+  qsort(match_trace,num_matches,sizeof(match_trace_t),
       (int (*)(const void *,const void *))match_trace_cmp_swg_score);
+  // Recompute offsets
+  uint64_t i;
+  for (i=0;i<num_matches;++i) {
+    *(match_trace[i].match_trace_offset) = i;
+  }
 }
 int match_trace_cmp_mapq_score(const match_trace_t* const a,const match_trace_t* const b) {
   return (int)b->mapq_score - (int)a->mapq_score;

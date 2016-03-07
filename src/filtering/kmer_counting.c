@@ -62,7 +62,7 @@ void kmer_counting_compile(
     return;
   }
   // Check efficiency condition
-  if (pattern_length/max_error < KMER_COUNTING_EFFECTIVE_THRESHOLD) {
+  if (max_error > 0 && pattern_length/max_error < KMER_COUNTING_EFFECTIVE_THRESHOLD) {
     kmer_counting->enabled = false;
     return;
   }

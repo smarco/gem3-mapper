@@ -270,11 +270,13 @@ void approximate_search_generate_candidates_buffered_copy(
   #endif
 }
 void approximate_search_generate_candidates_buffered_retrieve(
-    approximate_search_t* const search,gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
+    approximate_search_t* const search,
+    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
   // Parameters
   region_profile_t* const region_profile = &search->region_profile;
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
   // Add all candidates positions
+  const bool gpu_decode_text = gpu_buffer_fmi_decode->gpu_decode_text;
   uint64_t buffer_offset_begin = search->gpu_buffer_fmi_decode_offset;
   uint64_t i;
   for (i=0;i<num_filtering_regions;++i) {
@@ -282,13 +284,15 @@ void approximate_search_generate_candidates_buffered_retrieve(
     if (region_search->degree==REGION_FILTER_DEGREE_ZERO) {
       // Retrieve/Decode all pending candidates
       const uint64_t pending_candidates = region_search->hi - region_search->lo;
-//      if (pending_candidates < DECODE_NUM_POSITIONS_PREFETCHED) {
-//        filtering_candidates_decode_filtering_positions_buffered(...);
-//      } else {
-        filtering_candidates_decode_filtering_positions_buffered_prefetched(
+      if (gpu_decode_text) {
+        filtering_candidates_decode_text_filtering_positions_buffered(
             search->filtering_candidates,&search->pattern,
             region_search,gpu_buffer_fmi_decode,buffer_offset_begin);
-//      }
+      } else {
+        filtering_candidates_decode_sa_filtering_positions_buffered(
+            search->filtering_candidates,&search->pattern,
+            region_search,gpu_buffer_fmi_decode,buffer_offset_begin);
+      }
       buffer_offset_begin += pending_candidates;
     }
   }

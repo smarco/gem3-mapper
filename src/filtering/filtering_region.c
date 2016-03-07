@@ -142,6 +142,7 @@ void filtering_region_alignment_prepare(
   // Allocate region-alignment
   const uint64_t num_tiles = bpm_pattern_tiles->num_pattern_tiles;
   region_alignment->num_tiles = num_tiles;
+  region_alignment->distance_min_bound = bpm_pattern->pattern_length;
   region_alignment->alignment_tiles = mm_stack_calloc(mm_stack,num_tiles,region_alignment_tile_t,false);
   // Init all tiles
   const uint64_t text_length = filtering_region->text_end_position-filtering_region->text_begin_position;
