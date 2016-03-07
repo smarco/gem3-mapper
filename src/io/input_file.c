@@ -328,18 +328,38 @@ uint64_t input_file_next_line(input_file_t* const input_file,vector_t* const buf
 /*
  * Line Readers (thread-unsafe, must call mutex functions before)
  */
-uint64_t input_file_add_lines(
+uint64_t input_file_get_lines(
     input_file_t* const input_file,
     vector_t* buffer_dst,
-    const uint64_t min_lines,
-    const uint64_t hint_buffer_size) {
+    const uint64_t num_lines) {
+  // Clear dst buffer
+  vector_clear(buffer_dst);
+  // Read lines
+  uint64_t lines_read = 0;
+  while (lines_read < num_lines && input_file_next_line(input_file,buffer_dst)) {
+    ++lines_read;
+  }
+  // Dump remaining content into the buffer
+  input_file_dump_to_buffer(input_file,buffer_dst);
+  if (lines_read > 0 && *vector_get_last_elm(buffer_dst,char) != EOL) {
+    vector_insert(buffer_dst,EOL,char);
+  }
+  return lines_read;
+}
+uint64_t input_file_get_fastq_records(
+    input_file_t* const input_file,
+    vector_t* buffer_dst,
+    const uint64_t min_fastq_lines,
+    const uint64_t buffer_size_threshold) {
+  // Clear dst buffer
+  vector_clear(buffer_dst);
   // Read lines
   uint64_t lines_read = 0;
   while (input_file_next_line(input_file,buffer_dst)) {
     ++lines_read;
-    if (lines_read >= min_lines && (lines_read%8==0)) {
+    if (lines_read >= min_fastq_lines && (lines_read%8==0)) {
       const uint64_t bytes_read = vector_get_used(buffer_dst) + (input_file->buffer_pos-input_file->buffer_begin);
-      if (bytes_read >= hint_buffer_size) break;
+      if (bytes_read >= buffer_size_threshold) break;
     }
   }
   // Dump remaining content into the buffer
@@ -349,24 +369,14 @@ uint64_t input_file_add_lines(
   }
   return lines_read;
 }
-uint64_t input_file_get_lines(
-    input_file_t* const input_file,
-    vector_t* buffer_dst,
-    const uint64_t min_lines,
-    const uint64_t hint_buffer_size) {
-  // Clear dst buffer
-  vector_clear(buffer_dst);
-  // Read lines
-  return input_file_add_lines(input_file,buffer_dst,min_lines,hint_buffer_size);
-}
 /*
  * Buffer reader
  */
-uint64_t input_file_reload_buffer(
+uint64_t input_file_reload_fastq_buffer(
     input_file_t* const input_file,
     input_buffer_t** const input_buffer,
-    const uint64_t min_lines,
-    const uint64_t hint_buffer_size) {
+    const uint64_t min_fastq_lines,
+    const uint64_t buffer_size_threshold) {
   // Read lines
   if (input_file_eof(input_file)) return INPUT_STATUS_EOF;
   input_file_lock(input_file);
@@ -376,8 +386,8 @@ uint64_t input_file_reload_buffer(
   }
   (*input_buffer)->block_id = input_file_get_next_id(input_file);
   (*input_buffer)->current_line_num = input_file->processed_lines+1;
-  (*input_buffer)->lines_in_buffer = input_file_get_lines(input_file,
-      (*input_buffer)->block_buffer,min_lines,hint_buffer_size);
+  (*input_buffer)->lines_in_buffer = input_file_get_fastq_records(input_file,
+      (*input_buffer)->block_buffer,min_fastq_lines,buffer_size_threshold);
   input_file_unlock(input_file);
   // Setup the block
   (*input_buffer)->cursor = vector_get_mem((*input_buffer)->block_buffer,char);

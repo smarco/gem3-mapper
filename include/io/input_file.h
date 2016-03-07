@@ -111,13 +111,26 @@ void input_file_skip_eol__dump(input_file_t* const input_file,vector_t* const bu
 uint64_t input_file_next_line(input_file_t* const input_file,vector_t* const buffer_dst);
 
 /*
+ * Line Readers (thread-unsafe, must call mutex functions before)
+ */
+uint64_t input_file_get_lines(
+    input_file_t* const input_file,
+    vector_t* buffer_dst,
+    const uint64_t num_lines);
+uint64_t input_file_get_fastq_records(
+    input_file_t* const input_file,
+    vector_t* buffer_dst,
+    const uint64_t min_fastq_lines,
+    const uint64_t buffer_size_threshold);
+
+/*
  * Buffer reader (thread-safe)
  */
-uint64_t input_file_reload_buffer(
+uint64_t input_file_reload_fastq_buffer(
     input_file_t* const input_file,
     input_buffer_t** const input_buffer,
-    const uint64_t min_lines,
-    const uint64_t hint_buffer_size);
+    const uint64_t min_fastq_lines,
+    const uint64_t buffer_size_threshold);
 
 /*
  * Printers

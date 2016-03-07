@@ -63,11 +63,11 @@ void buffered_input_file_attach_buffered_output(
  */
 uint64_t buffered_input_file_reload(
     buffered_input_file_t* const buffered_input,
-    const uint64_t min_lines) {
+    const uint64_t min_fastq_lines) {
   // Reload Buffer
-  const uint64_t lines_in_buffer = input_file_reload_buffer(
+  const uint64_t lines_in_buffer = input_file_reload_fastq_buffer(
       buffered_input->input_file,&(buffered_input->input_buffer),
-      min_lines,buffered_input->reload_buffer_size);
+      min_fastq_lines,buffered_input->reload_buffer_size);
   gem_cond_fatal_error(lines_in_buffer%8!=0,
       BUFFERED_INPUT_BUFFER_LINES,input_file_get_file_name(buffered_input->input_file));
   return lines_in_buffer;
