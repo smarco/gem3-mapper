@@ -19,9 +19,13 @@ void __global__ gpu_sa_decoding_kernel(const uint64_t* const d_SA, const uint32_
   const uint32_t idDecoding = gpu_get_thread_idx();
 
   if(idDecoding < numDecodings){
-    const ulonglong2 saPosition = d_endBWTPos[idDecoding];
-    if((saPosition.x < GPU_UINT64_MAX_VALUE) && (saPosition.x < GPU_UINT64_MAX_VALUE))
-      d_textPos[idDecoding] = d_SA[saPosition.x / samplingRate] + saPosition.y;
+    const ulonglong2 saPosition   = d_endBWTPos[idDecoding];
+          uint64_t   textPosition = GPU_UINT64_MAX_VALUE;
+
+    if((saPosition.x != GPU_UINT64_MAX_VALUE) || (saPosition.x != GPU_UINT64_MAX_VALUE))
+      textPosition = d_SA[saPosition.x / samplingRate] + saPosition.y;
+    
+    d_textPos[idDecoding] = textPosition;
   }
 }
 
