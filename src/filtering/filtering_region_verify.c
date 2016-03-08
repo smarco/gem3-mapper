@@ -210,8 +210,8 @@ bool filtering_region_verify(
   if (region_alignment->distance_min_bound == ALIGN_DISTANCE_INF) {
     // Retrieve text-candidate
     filtering_region_retrieve_text(filtering_region,pattern,archive_text,text_collection,mm_stack);
-    text_trace_t* const text_trace =
-        text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
+    text_trace_t* const text_trace = text_collection_get_trace(
+        text_collection,filtering_region->text_trace_offset);
     // Select alignment model
     switch (search_parameters->alignment_model) {
       case alignment_model_hamming: {

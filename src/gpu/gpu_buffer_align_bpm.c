@@ -31,7 +31,7 @@
  */
 #define GPU_ALIGN_BPM_MIN_NUM_SAMPLES           1
 #define GPU_ALIGN_BPM_AVERAGE_QUERY_LENGTH      150
-#define GPU_ALIGN_BPM_CANDIDATES_PER_QUERY      20
+#define GPU_ALIGN_BPM_CANDIDATES_PER_TILE       20
 
 /*
  * CUDA Support
@@ -51,7 +51,7 @@ gpu_buffer_align_bpm_t* gpu_buffer_align_bpm_new(
   gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm = mm_alloc(gpu_buffer_align_bpm_t);
   // Dimensions Hints
   COUNTER_RESET(&gpu_buffer_align_bpm->query_length);
-  COUNTER_RESET(&gpu_buffer_align_bpm->candidates_per_query);
+  COUNTER_RESET(&gpu_buffer_align_bpm->candidates_per_tile);
   gpu_buffer_align_bpm->query_same_length = 0;
   // Buffer state
   gpu_buffer_align_bpm->buffer = gpu_buffer_collection_get_buffer(gpu_buffer_collection,buffer_no);
@@ -69,7 +69,7 @@ gpu_buffer_align_bpm_t* gpu_buffer_align_bpm_new(
   gpu_alloc_buffer_(gpu_buffer_align_bpm->buffer);
   gpu_bpm_init_buffer_(gpu_buffer_align_bpm->buffer,
       gpu_buffer_align_bpm_get_mean_query_length(gpu_buffer_align_bpm),
-      gpu_buffer_align_bpm_get_mean_candidates_per_query(gpu_buffer_align_bpm));
+      gpu_buffer_align_bpm_get_mean_candidates_per_tile(gpu_buffer_align_bpm));
   PROF_STOP(GP_GPU_BUFFER_ALIGN_BPM_ALLOC);
   // Return
   return gpu_buffer_align_bpm;
@@ -78,7 +78,7 @@ void gpu_buffer_align_bpm_clear(gpu_buffer_align_bpm_t* const gpu_buffer_align_b
   // Init buffer
   gpu_bpm_init_buffer_(gpu_buffer_align_bpm->buffer,
       gpu_buffer_align_bpm_get_mean_query_length(gpu_buffer_align_bpm),
-      gpu_buffer_align_bpm_get_mean_candidates_per_query(gpu_buffer_align_bpm));
+      gpu_buffer_align_bpm_get_mean_candidates_per_tile(gpu_buffer_align_bpm));
   // Dimensions Hints
   gpu_buffer_align_bpm->query_same_length = 0;
   gpu_buffer_align_bpm->num_entries = 0;
@@ -382,11 +382,11 @@ void gpu_buffer_align_bpm_record_query_length(
     const uint64_t query_length) {
   COUNTER_ADD(&gpu_buffer_align_bpm->query_length,query_length);
 }
-void gpu_buffer_align_bpm_record_candidates_per_query(
+void gpu_buffer_align_bpm_record_candidates_per_tile(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
-    const uint64_t num_candidates) {
-  PROF_ADD_COUNTER(GP_GPU_BUFFER_ALIGN_BPM_CANDIDATE_PER_QUERY,num_candidates);
-  COUNTER_ADD(&gpu_buffer_align_bpm->candidates_per_query,num_candidates);
+    const uint64_t candidates_per_tile) {
+  PROF_ADD_COUNTER(GP_GPU_BUFFER_ALIGN_BPM_CANDIDATE_PER_TILE,candidates_per_tile);
+  COUNTER_ADD(&gpu_buffer_align_bpm->candidates_per_tile,candidates_per_tile);
 }
 uint64_t gpu_buffer_align_bpm_get_mean_query_length(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
@@ -396,12 +396,12 @@ uint64_t gpu_buffer_align_bpm_get_mean_query_length(
     return GPU_ALIGN_BPM_AVERAGE_QUERY_LENGTH;
   }
 }
-uint64_t gpu_buffer_align_bpm_get_mean_candidates_per_query(
+uint64_t gpu_buffer_align_bpm_get_mean_candidates_per_tile(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
-  if (COUNTER_GET_NUM_SAMPLES(&gpu_buffer_align_bpm->candidates_per_query) >= GPU_ALIGN_BPM_MIN_NUM_SAMPLES) {
-    return (uint64_t)ceil(COUNTER_GET_MEAN(&gpu_buffer_align_bpm->candidates_per_query));
+  if (COUNTER_GET_NUM_SAMPLES(&gpu_buffer_align_bpm->candidates_per_tile) >= GPU_ALIGN_BPM_MIN_NUM_SAMPLES) {
+    return (uint64_t)ceil(COUNTER_GET_MEAN(&gpu_buffer_align_bpm->candidates_per_tile));
   } else {
-    return GPU_ALIGN_BPM_CANDIDATES_PER_QUERY;
+    return GPU_ALIGN_BPM_CANDIDATES_PER_TILE;
   }
 }
 /*
@@ -569,12 +569,12 @@ void gpu_buffer_align_bpm_retrieve_pattern(
 void gpu_buffer_align_bpm_record_query_length(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     const uint64_t query_length) { GEM_CUDA_NOT_SUPPORTED(); }
-void gpu_buffer_align_bpm_record_candidates_per_query(
+void gpu_buffer_align_bpm_record_candidates_per_tile(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     const uint64_t num_candidates) { GEM_CUDA_NOT_SUPPORTED(); }
 uint64_t gpu_buffer_align_bpm_get_mean_query_length(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
-uint64_t gpu_buffer_align_bpm_get_mean_candidates_per_query(
+uint64_t gpu_buffer_align_bpm_get_mean_candidates_per_tile(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
 /*
  * Send/Receive

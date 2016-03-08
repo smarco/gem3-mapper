@@ -106,6 +106,8 @@ void filtering_region_retrieve_text(
         text_trace->rl_runs_acc,filtering_region->text_source_region_offset);
     filtering_region->key_source_region_offset = archive_text_rl_get_decoded_offset_exl(
         pattern->rl_runs_acc,filtering_region->key_source_region_offset);
+    // Compute key trims
+    filtering_region_compute_key_trims(filtering_region,pattern);
     //    // DEBUG
     //    text_trace_t* const text_trace = text_collection_get_trace(
     //        text_collection,filtering_region->text_trace_offset);
@@ -125,8 +127,6 @@ void filtering_region_retrieve_text(
         archive_text_retrieve_collection(archive_text,text_collection,
             text_position,text_length,false,false,mm_stack);
   }
-  // Compute key trims
-  filtering_region_compute_key_trims(filtering_region,pattern,text_length);
 }
 /*
  * Prepare Alignment
@@ -173,12 +173,12 @@ void filtering_region_alignment_prepare(
  */
 void filtering_region_compute_key_trims(
     filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
-    const uint64_t text_length) {
+    pattern_t* const pattern) {
   // Compute key trims
   const uint64_t key_length = pattern->key_length;
   const uint64_t text_fix_begin = filtering_region->text_source_region_offset;
   const uint64_t key_fix_begin = filtering_region->key_source_region_offset;
+  const uint64_t text_length = filtering_region->text_end_position - filtering_region->text_begin_position;
   if (pattern->key_length > text_length) {
     // Compute trim offsets
     filtering_region->key_trim_left = (key_fix_begin > text_fix_begin) ? key_fix_begin - text_fix_begin : 0;

@@ -32,18 +32,18 @@ void filtering_candidates_decode_retrieve_text_sample(
   gpu_buffer_fmi_decode_get_position_text(gpu_buffer_fmi_decode,
       buffer_offset_begin+filtering_position_offset,&text_position);
   if (text_position == -1) {
-    filtering_position->region_text_position = text_position;
-  } else {
     // Re-Decode (GPU decode failed)
     PROF_INC_COUNTER(GP_FC_DECODE_CANDIDATES_BUFFERED_UNSUCCESSFUL_TOTAL);
     PROFILE_START(GP_FC_DECODE_CANDIDATES_BUFFERED_UNSUCCESSFUL,PROFILE_LEVEL);
     filtering_position->region_text_position =
         fm_index_decode(fm_index,region_interval_lo+filtering_position_offset);
     PROFILE_STOP(GP_FC_DECODE_CANDIDATES_BUFFERED_UNSUCCESSFUL,PROFILE_LEVEL);
+  } else {
+    filtering_position->region_text_position = text_position;
   }
   // DEBUG
 #ifdef CUDA_CHECK_BUFFERED_DECODE_POSITIONS
-  const uint64_t region_text_position = fm_index_decode(fm_index,region_lo+position);
+  const uint64_t region_text_position = fm_index_decode(fm_index,region_interval_lo+filtering_position_offset);
   gem_cond_fatal_error_msg(filtering_position->region_text_position!=region_text_position,
       "Filtering.Candidates.Process.Buffered. Check decoded position failed (%lu!=%lu)",
       filtering_position->region_text_position,region_text_position);

@@ -32,7 +32,7 @@ void filtering_candidates_add_filtering_region(
     const uint64_t align_distance,
     const uint64_t align_end_offset,
     const bool matching_regions_compose,
-    const bool matching_regions_rl,
+    const bool run_length_text,
     mm_stack_t* const mm_stack) {
   // Fetch candidate-positions
   filtering_position_t* const candidate_positions =
@@ -56,6 +56,10 @@ void filtering_candidates_add_filtering_region(
   filtering_region->text_source_region_offset = first_candidate->text_source_region_offset;
   filtering_region->key_source_region_offset = first_candidate->key_source_region_offset;
   PROF_ADD_COUNTER(GP_CANDIDATE_REGION_LENGTH,filtering_region->text_end_position-filtering_region->text_begin_position);
+  // Compute key trims (if we know the real text dimensions)
+  if (!run_length_text) {
+    filtering_region_compute_key_trims(filtering_region,pattern);
+  }
   // Alignment distance
   region_alignment_t* const region_alignment = &filtering_region->region_alignment;
   region_alignment->distance_min_bound = align_distance;
@@ -80,7 +84,7 @@ void filtering_candidates_add_filtering_region(
     const uint64_t num_scaffold_regions = last_candidate_idx-first_candidate_idx+1;
     match_scaffold->scaffold_regions = mm_stack_calloc(mm_stack,num_scaffold_regions,region_matching_t,false);
     match_scaffold->num_scaffold_regions = num_scaffold_regions;
-    match_scaffold->scaffold_regions_rl = matching_regions_rl;
+    match_scaffold->scaffold_regions_rl = run_length_text;
     match_scaffold->scaffolding_coverage = 0;
     uint64_t i;
     for (i=0;i<num_scaffold_regions;++i) {
@@ -112,7 +116,7 @@ uint64_t filtering_candidates_compose_filtering_regions(
     const bool matching_regions_compose) {
   // Parameters
   const uint64_t max_delta_difference = pattern->max_effective_bandwidth;
-  const bool matching_regions_rl = pattern->run_length;
+  const bool run_length_text = pattern->run_length;
   mm_stack_t* const mm_stack = filtering_candidates->mm_stack;
   // Sort candidate positions (text-space)
   filtering_positions_sort_positions(filtering_candidates->filtering_positions);
@@ -168,7 +172,7 @@ uint64_t filtering_candidates_compose_filtering_regions(
       // Create a region candidate with the positions from [candidate_idx] to [group_idx-1]
       filtering_candidates_add_filtering_region(filtering_candidates,pattern,
           candidate_idx,group_idx-1,min_align_distance,min_align_end_offset,
-          matching_regions_compose,matching_regions_rl,mm_stack);
+          matching_regions_compose,run_length_text,mm_stack);
     }
     // Next group
     const uint64_t num_regions_matching = group_idx-candidate_idx;

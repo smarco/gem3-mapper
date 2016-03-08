@@ -22,7 +22,7 @@ typedef struct {
   void* buffer;                       // GPU Generic Buffer
   /* Dimensions Hints */
   gem_counter_t query_length;         // Tracks queries' length
-  gem_counter_t candidates_per_query; // Tracks number of candidates per query
+  gem_counter_t candidates_per_tile;  // Tracks number of candidates per tile
   uint32_t query_same_length;         // Tracks same-read-length buffers
   /* Buffer state */
   uint32_t current_query_offset;
@@ -124,12 +124,12 @@ void gpu_buffer_align_bpm_retrieve_pattern(
 void gpu_buffer_align_bpm_record_query_length(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     const uint64_t query_length);
-void gpu_buffer_align_bpm_record_candidates_per_query(
+void gpu_buffer_align_bpm_record_candidates_per_tile(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     const uint64_t num_candidates);
 uint64_t gpu_buffer_align_bpm_get_mean_query_length(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
-uint64_t gpu_buffer_align_bpm_get_mean_candidates_per_query(
+uint64_t gpu_buffer_align_bpm_get_mean_candidates_per_tile(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
 
 /*

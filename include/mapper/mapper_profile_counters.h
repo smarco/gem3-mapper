@@ -363,7 +363,7 @@
 #define GP_GPU_BUFFER_ALIGN_BPM_ALLOC                        820
 #define GP_GPU_BUFFER_ALIGN_BPM_NUM_QUERIES                  821
 #define GP_GPU_BUFFER_ALIGN_BPM_CANDIDATE_LENGTH             822
-#define GP_GPU_BUFFER_ALIGN_BPM_CANDIDATE_PER_QUERY          823
+#define GP_GPU_BUFFER_ALIGN_BPM_CANDIDATE_PER_TILE           823
 #define GP_GPU_BUFFER_ALIGN_BPM_CELLS                        824
 #define GP_GPU_BUFFER_ALIGN_BPM_SEND                         825
 #define GP_GPU_BUFFER_ALIGN_BPM_RECEIVE                      826

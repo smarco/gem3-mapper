@@ -123,8 +123,7 @@ void filtering_region_alignment_prepare(
  */
 void filtering_region_compute_key_trims(
     filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
-    const uint64_t text_length);
+    pattern_t* const pattern);
 
 /*
  * Filtering Region BPM-Pattern

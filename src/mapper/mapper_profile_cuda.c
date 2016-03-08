@@ -77,8 +77,8 @@ void mapper_profile_print_search_stage_buffers(FILE* const stream) {
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_GPU_BUFFER_ALIGN_BPM_NUM_QUERIES),NULL,"cand    ",true);
   tab_fprintf(stream,"        --> Candidates.Length                ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_GPU_BUFFER_ALIGN_BPM_CANDIDATE_LENGTH),NULL,"nt      ",true);
-  tab_fprintf(stream,"        --> Candidates.per.Query             ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_GPU_BUFFER_ALIGN_BPM_CANDIDATE_PER_QUERY),NULL,"cand    ",true);
+  tab_fprintf(stream,"        --> Candidates.per.Tile4             ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_GPU_BUFFER_ALIGN_BPM_CANDIDATE_PER_TILE),NULL,"cand    ",true);
   tab_fprintf(stream,"        --> BPM.Cells.Computed               ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_GPU_BUFFER_ALIGN_BPM_CELLS),NULL,"cells   ",true);
   tab_fprintf(stream,"        --> Buffer.Candidates.Usage          ");
