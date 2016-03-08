@@ -44,9 +44,12 @@ void filtering_candidates_decode_retrieve_text_sample(
   // DEBUG
 #ifdef CUDA_CHECK_BUFFERED_DECODE_POSITIONS
   const uint64_t region_text_position = fm_index_decode(fm_index,region_interval_lo+filtering_position_offset);
+  bool has_ns;
+  fm_index_decode_debug(fm_index,region_interval_lo+filtering_position_offset,&has_ns);
   gem_cond_fatal_error_msg(filtering_position->region_text_position!=region_text_position,
-      "Filtering.Candidates.Process.Buffered. Check decoded position failed (%lu!=%lu)",
-      filtering_position->region_text_position,region_text_position);
+      "Filtering.Candidates.Process.Buffered. Check decoded position failed (%lu!=%lu,%s)",
+      filtering_position->region_text_position,region_text_position,
+      has_ns ? "WARNING -> Ns in the way" : "No Ns along the way");
 #endif
 }
 void filtering_candidates_decode_batch_retrieve_sampled_position(
