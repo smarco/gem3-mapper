@@ -71,7 +71,7 @@ gpu_error_t gpu_sa_decode_process_buffer(gpu_buffer_t* const mBuff)
   const uint32_t numThreads = numDecodings;
   gpu_device_kernel_thread_configuration(device, numThreads, &blocksPerGrid, &threadsPerBlock);
 
-  gpu_sa_decoding_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>(index->sa.d_sa[idSupDev], numDecodings, samplingRate,
+  gpu_sa_decoding_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>(index->sa.d_sa[idSupDev], samplingRate, numDecodings,
 		                                                                  (ulonglong2*) endPos->d_endBWTPos, (uint64_t*) textPos->d_textPos);
 
   return(SUCCESS);
