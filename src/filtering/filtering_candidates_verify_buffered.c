@@ -65,8 +65,6 @@ void filtering_candidates_verify_buffered_store_region(
   // Text
   filtering_region_buffered->text_begin_position = filtering_region->text_begin_position;
   filtering_region_buffered->text_end_position = filtering_region->text_end_position;
-  filtering_region_buffered->text_base_begin_offset = filtering_region->text_base_begin_offset;
-  filtering_region_buffered->text_base_end_offset = filtering_region->text_base_end_offset;
   // Alignment
   filtering_region_buffered->region_alignment = filtering_region->region_alignment;
 }
@@ -198,7 +196,7 @@ void filtering_candidates_verify_buffered_check_global_distance(
   mm_stack_push_state(mm_stack);
   // Retrieve text
   const uint64_t candidate_position = filtering_region->text_begin_position;
-  const uint64_t candidate_length = filtering_region->text_end_position-filtering_region->text_end_position;
+  const uint64_t candidate_length = filtering_region->text_end_position-filtering_region->text_begin_position;
   const uint64_t text_trace_offset = archive_text_retrieve_collection(
       gpu_buffer_align_bpm->archive_text,text_collection,
       candidate_position,candidate_length,false,false,mm_stack);
@@ -208,9 +206,9 @@ void filtering_candidates_verify_buffered_check_global_distance(
   bpm_compute_edit_distance(bpm_pattern,text_trace->text,text_trace->text_length,
       &match_distance,&match_end_column,bpm_pattern->pattern_length,false);
   //  if (!(global_distance <= match_distance && match_distance <= global_distance+distance_link_tiles)) {
-    gem_slog(">FC.Verify.Candidate.Buffered.Distance\t"
-        "Whole.Read=%lu\tTileWise={bound=%lu}\tDiff=%lu\n",
-        match_distance,global_distance,ABS(match_distance-global_distance));
+  //  gem_slog(">FC.Verify.Candidate.Buffered.Distance\t"
+  //      "Whole.Read=%lu\tTileWise={bound=%lu}\tDiff=%lu\n",
+  //      match_distance,global_distance,ABS(match_distance-global_distance));
   //  }
   PROF_ADD_COUNTER(GP_FC_VERIFY_CANDIDATES_BUFFERED_DDIFF,ABS(match_distance-global_distance));
   // Pop
@@ -230,8 +228,6 @@ void filtering_candidates_verify_buffered_load_region(
   filtering_region->text_trace_offset = UINT64_MAX; // Not retrieved yet
   filtering_region->text_begin_position = filtering_region_buffered->text_begin_position;
   filtering_region->text_end_position = filtering_region_buffered->text_end_position;
-  filtering_region->text_base_begin_offset = filtering_region_buffered->text_base_begin_offset;
-  filtering_region->text_base_end_offset = filtering_region_buffered->text_base_end_offset;
   /* Key */
   filtering_region_compute_key_trims(filtering_region,pattern);
   /* Alignment */
@@ -239,7 +235,10 @@ void filtering_candidates_verify_buffered_load_region(
   match_scaffold_init(&filtering_region->match_scaffold); // We sacrifice this information as to save memory
 }
 void filtering_candidates_verify_buffered_retrieve_region_alignment(
+    filtering_candidates_t* const filtering_candidates,
+    filtering_region_buffered_t* const region_buffered,
     region_alignment_t* const region_alignment,
+    bpm_pattern_t* const bpm_pattern,
     bpm_pattern_t* const bpm_pattern_tiles,
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     uint64_t candidate_idx) {
@@ -272,9 +271,8 @@ void filtering_candidates_verify_buffered_retrieve_region_alignment(
   region_alignment->distance_min_bound = global_distance;
   // DEBUG
   #ifdef CUDA_CHECK_BUFFERED_VERIFY_CANDIDATES
-  filtering_candidates_verify_buffered_check_global_distance(
-      filtering_candidates,region_buffered,
-      pattern->bpm_pattern,gpu_buffer_align_bpm,global_distance);
+  filtering_candidates_verify_buffered_check_global_distance(filtering_candidates,
+      region_buffered,bpm_pattern,gpu_buffer_align_bpm,global_distance);
   #endif
 }
 void filtering_candidates_verify_buffered_retrieve(
@@ -288,6 +286,7 @@ void filtering_candidates_verify_buffered_retrieve(
   // Parameters
   const uint64_t key_length = pattern->key_length;
   const uint64_t max_error = pattern->max_effective_filtering_error;
+  bpm_pattern_t* const bpm_pattern = pattern->bpm_pattern;
   bpm_pattern_t* const bpm_pattern_tiles = pattern->bpm_pattern_tiles;
   // Prepare filtering-regions vectors
   vector_clear(filtering_candidates->verified_regions);
@@ -328,7 +327,8 @@ void filtering_candidates_verify_buffered_retrieve(
     }
     // Retrieve & compose verified region
     filtering_candidates_verify_buffered_retrieve_region_alignment(
-        region_alignment,bpm_pattern_tiles,gpu_buffer_align_bpm,candidate_idx);
+        filtering_candidates,region_buffered,region_alignment,
+        bpm_pattern,bpm_pattern_tiles,gpu_buffer_align_bpm,candidate_idx);
     candidate_idx += region_alignment->num_tiles; // Skip tiles
     if (region_alignment->distance_min_bound <= max_error) {
       filtering_candidates_verify_buffered_load_region(regions_accepted,region_buffered,pattern);

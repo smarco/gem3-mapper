@@ -56,10 +56,9 @@ void filtering_region_verify_hamming(
   const uint8_t* const key = pattern->key;
   const uint64_t key_length = pattern->key_length;
   const uint64_t max_error = filtering_region->max_error;
-  const uint8_t* const text = text_trace->text + filtering_region->text_base_begin_offset;
-  const uint64_t text_length =
-      filtering_region->text_base_end_offset -
-      filtering_region->text_base_begin_offset;
+  const uint64_t text_base_offset = filtering_region->text_source_region_offset - filtering_region->key_source_region_offset;
+  const uint8_t* const text = text_trace->text + text_base_offset;
+  const uint64_t text_length = key_length;
   region_alignment_t* const region_alignment = &filtering_region->region_alignment;
   // Check length
   if (text_length >= key_length) {
@@ -70,8 +69,8 @@ void filtering_region_verify_hamming(
       region_alignment_tile_t* const alignment_tiles = mm_stack_calloc(mm_stack,1,region_alignment_tile_t,false);
       region_alignment->alignment_tiles = alignment_tiles;
       alignment_tiles->match_distance = region_alignment->distance_min_bound;
-      alignment_tiles->text_end_offset = filtering_region->text_base_end_offset;
-      alignment_tiles->text_begin_offset = filtering_region->text_base_begin_offset;
+      alignment_tiles->text_begin_offset = text_base_offset;
+      alignment_tiles->text_end_offset = text_base_offset + key_length;
     }
   } else {
     region_alignment->distance_min_bound = ALIGN_DISTANCE_INF;

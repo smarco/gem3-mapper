@@ -133,7 +133,7 @@ void mapper_parameters_set_defaults_io(mapper_parameters_io_t* const io) {
   io->input_compression=FM_REGULAR_FILE;
   /* I/O */
   io->input_block_size = BUFFER_SIZE_64M;
-  io->input_buffer_size = BUFFER_SIZE_4K;
+  io->input_buffer_size = BUFFER_SIZE_4M;
   io->input_num_buffers = 2*num_processors;
   io->output_file_name=NULL;
   io->output_compression=FM_REGULAR_FILE;
@@ -163,7 +163,7 @@ void mapper_parameters_set_defaults_cuda(mapper_parameters_cuda_t* const cuda) {
   cuda->cpu_emulated=false;
   /* I/O */
   cuda->input_block_size = BUFFER_SIZE_64M;
-  cuda->input_buffer_size = BUFFER_SIZE_4K;
+  cuda->input_buffer_size = BUFFER_SIZE_4M;
   cuda->input_num_buffers = 2*num_processors;
   cuda->output_buffer_size = BUFFER_SIZE_4M;
   cuda->output_num_buffers = 10*num_processors; // Lazy allocation

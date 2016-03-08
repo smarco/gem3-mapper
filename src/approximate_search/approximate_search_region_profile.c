@@ -262,7 +262,7 @@ void approximate_search_region_profile_buffered_retrieve(
     if (num_candidates>0) region_profile->mappability_p += log2((double)num_candidates);
   }
   // Check total number of filtering-regions
-  if (total_candidates!=0 && num_regions_filtered > num_filtering_regions/2) {
+  if (total_candidates!=0 && (num_regions_filtered-num_zero_regions) > num_filtering_regions/2) {
     // Close region profile
     region_profile->mappability_p /= (double)(2*num_filtering_regions);
     region_profile->mappability_2p = 0.0;

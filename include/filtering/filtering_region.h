@@ -41,8 +41,6 @@ typedef struct {
   uint64_t text_trace_offset;               // Text-trace
   uint64_t text_begin_position;             // Region effective begin position (adjusted to error boundaries)
   uint64_t text_end_position;               // Region effective end position (adjusted to error boundaries)
-  uint64_t text_base_begin_offset;          // Offset to base begin filtering position (no error boundary correction)
-  uint64_t text_base_end_offset;            // Offset to base begin filtering position (no error boundary correction)
   /* Key */
   uint64_t key_trimmed_length;              // Key trimmed length
   uint64_t key_trim_left;                   // Key left trim  (due to position correction wrt the reference limits)
@@ -63,8 +61,6 @@ typedef struct {
   /* Text */
   uint64_t text_begin_position;             // Region effective begin position (adjusted to error boundaries)
   uint64_t text_end_position;               // Region effective end position (adjusted to error boundaries)
-  uint64_t text_base_begin_offset;          // Offset to base begin filtering position (no error boundary correction)
-  uint64_t text_base_end_offset;            // Offset to base begin filtering position (no error boundary correction)
   /* Alignment */
   region_alignment_t region_alignment;      // Filtering Region Alignment
   // TODO match_scaffold_t match_scaffold;          // Matching regions supporting the filtering region (Scaffolding)

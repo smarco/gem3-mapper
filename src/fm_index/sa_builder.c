@@ -599,7 +599,6 @@ void* sa_builder_sort_suffixes_thread(uint64_t thread_id) {
           if (MOD_POW2(sa_idx,sa_sampling_rate_pow2) == 0) {
             // Store SA-sample (Hybrid-SA)
             sampled_sa_builder_set_sample(global_sampled_sa,thread_id,sa_idx,text_position);
-
           }
         }
         // Store SA-Space sample (Raw sample / GPU)

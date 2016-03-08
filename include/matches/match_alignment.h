@@ -74,7 +74,6 @@ typedef struct {
 typedef struct {
   uint64_t num_tiles;                       // Total number of tiles
   uint64_t distance_min_bound;              // Distance min-bound (Sum all tile distances)
-  uint64_t distance_max_bound;              // Distance max-bound (Sum all tile distances + link-distance estimation)
   region_alignment_tile_t* alignment_tiles; // Alignment of all tiles
 } region_alignment_t;
 /*

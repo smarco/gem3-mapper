@@ -46,8 +46,8 @@ void filtering_region_align_configure_hamming(
   align_input->key                = key;
   align_input->key_length         = key_length;
   align_input->text_trace_offset  = filtering_region->text_trace_offset;
-  align_input->text_position      = filtering_region->text_begin_position +
-                                    filtering_region->text_base_begin_offset; // Base position
+  const uint64_t text_offset = filtering_region->text_source_region_offset - filtering_region->key_source_region_offset;
+  align_input->text_position      = filtering_region->text_begin_position + text_offset; // Base position
   align_input->text               = text_trace->text;
   align_input->text_length        = text_trace->text_length;
   align_input->region_alignment   = &filtering_region->region_alignment;
@@ -70,8 +70,7 @@ void filtering_region_align_configure_levenshtein(
   const uint64_t key_length = pattern->key_length;
   // Adjust alignment boundaries
   region_alignment_t* const region_alignment = &filtering_region->region_alignment;
-  const uint64_t align_distance = (region_alignment->num_tiles==1) ?
-      region_alignment->distance_min_bound : region_alignment->distance_max_bound;
+  const uint64_t align_distance = pattern->max_effective_filtering_error;
   // Align input
   filtering_region_bpm_pattern_select(filtering_region,pattern,
       &align_input->bpm_pattern,&align_input->bpm_pattern_tiles,mm_stack);

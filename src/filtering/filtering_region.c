@@ -50,8 +50,6 @@ void filtering_region_add(
   // Location
   filtering_region->text_begin_position = begin_position;
   filtering_region->text_end_position = end_position;
-  filtering_region->text_base_begin_offset = 0;
-  filtering_region->text_base_end_offset = end_position-begin_position;
   filtering_region->key_trim_left = 0;
   filtering_region->key_trim_right = 0;
   // Trimmed Pattern
@@ -97,10 +95,6 @@ void filtering_region_retrieve_text(
     filtering_region->text_trace_offset = text_trace_offset;
     filtering_region->text_begin_position = text_begin_position;
     filtering_region->text_end_position = text_end_position;
-    filtering_region->text_base_begin_offset = archive_text_rl_get_decoded_offset_exl(
-        text_trace->rl_runs_acc,filtering_region->text_base_begin_offset);
-    filtering_region->text_base_end_offset = archive_text_rl_get_decoded_offset_exl(
-        text_trace->rl_runs_acc,filtering_region->text_base_end_offset);
     // Set fix position
     filtering_region->text_source_region_offset = archive_text_rl_get_decoded_offset_exl(
         text_trace->rl_runs_acc,filtering_region->text_source_region_offset);
@@ -252,22 +246,20 @@ void filtering_region_print(
   tab_fprintf(stream,"  => Region %s [%"PRIu64",%"PRIu64") "
       "(total-bases=%"PRIu64","
       "scaffold-regions=%"PRIu64","
-      "align-distance=(%"PRId64",%"PRId64"),",
+      "align-distance=%"PRId64",",
       filtering_region_status_label[region->status],
       region->text_begin_position,region->text_end_position,
       region->text_end_position-region->text_begin_position,
       region->match_scaffold.num_scaffold_regions,
       region_alignment->distance_min_bound==ALIGN_DISTANCE_INF ?
-          (int64_t)-1 : (int64_t)region_alignment->distance_min_bound,
-      region_alignment->distance_max_bound==ALIGN_DISTANCE_INF ?
-          (int64_t)-1 : (int64_t)region_alignment->distance_max_bound);
+          (int64_t)-1 : (int64_t)region_alignment->distance_min_bound);
   if (region_alignment->distance_min_bound!=ALIGN_DISTANCE_INF) {
     region_alignment_tile_t* const alignment_tile = region_alignment->alignment_tiles;
-    tab_fprintf(stream,"align-column=(%"PRIu64",%"PRIu64"))\n",
+    tab_fprintf(stream,"align-range=(%"PRIu64",%"PRIu64"))\n",
         alignment_tile[0].text_begin_offset,
         alignment_tile[region_alignment->num_tiles-1].text_end_offset);
   } else {
-    tab_fprintf(stream,"align-column=n/a)\n");
+    tab_fprintf(stream,"align-range=n/a)\n");
   }
   if (text_collection!=NULL) {
     if (region->text_trace_offset == UINT64_MAX) {

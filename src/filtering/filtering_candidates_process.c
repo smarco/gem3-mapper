@@ -30,7 +30,7 @@ void filtering_candidates_add_filtering_region(
     const uint64_t first_candidate_idx,
     const uint64_t last_candidate_idx,
     const uint64_t align_distance,
-    const uint64_t align_end_offset,
+    const uint64_t align_offset,
     const bool matching_regions_compose,
     const bool run_length_text,
     mm_stack_t* const mm_stack) {
@@ -48,10 +48,6 @@ void filtering_candidates_add_filtering_region(
   filtering_region->text_trace_offset = UINT64_MAX; // Unassigned
   filtering_region->text_begin_position = first_candidate->text_begin_position;
   filtering_region->text_end_position = last_candidate->text_end_position;
-  filtering_region->text_base_begin_offset = first_candidate->text_base_begin_offset;
-  const uint64_t last_candidate_base_end_position =
-      last_candidate->text_begin_position + last_candidate->text_base_end_offset;
-  filtering_region->text_base_end_offset = last_candidate_base_end_position - first_candidate->text_begin_position;
   // Source-region offsets
   filtering_region->text_source_region_offset = first_candidate->text_source_region_offset;
   filtering_region->key_source_region_offset = first_candidate->key_source_region_offset;
@@ -70,8 +66,8 @@ void filtering_candidates_add_filtering_region(
     region_alignment->num_tiles = 1;
     region_alignment->alignment_tiles = mm_stack_calloc(mm_stack,1,region_alignment_tile_t,false);
     region_alignment->alignment_tiles->match_distance = 0;
-    region_alignment->alignment_tiles->text_begin_offset = align_end_offset - key_length;
-    region_alignment->alignment_tiles->text_end_offset = align_end_offset;
+    region_alignment->alignment_tiles->text_begin_offset = align_offset;
+    region_alignment->alignment_tiles->text_end_offset = align_offset + key_length;
   }
   filtering_region->max_error = pattern->max_effective_filtering_error;
   filtering_region->max_bandwidth = pattern->max_effective_bandwidth;
@@ -134,7 +130,9 @@ uint64_t filtering_candidates_compose_filtering_regions(
     const uint64_t sequence_id = candidate_positions[candidate_idx].sequence_id;
     const uint64_t region_begin_position = candidate_positions[candidate_idx].text_begin_position;
     uint64_t min_align_distance = candidate_positions[candidate_idx].align_distance;
-    uint64_t min_align_end_offset = candidate_positions[candidate_idx].text_base_end_offset;
+    uint64_t min_align_offset =
+        candidate_positions[candidate_idx].text_source_region_offset -
+        candidate_positions[candidate_idx].key_source_region_offset;
     uint64_t group_idx = candidate_idx + 1;
     while (group_idx < num_candidate_positions) {
       // Check delta-difference between candidate-positions
@@ -145,7 +143,9 @@ uint64_t filtering_candidates_compose_filtering_regions(
       // Select the best already-known alignment distance
       if (candidate_positions[group_idx].align_distance < min_align_distance) {
         min_align_distance = candidate_positions[group_idx].align_distance;
-        min_align_end_offset = candidate_positions[group_idx].text_base_end_offset;
+        min_align_offset =
+            candidate_positions[group_idx].text_source_region_offset -
+            candidate_positions[group_idx].key_source_region_offset;
       }
       // Next
       ++group_idx;
@@ -171,7 +171,7 @@ uint64_t filtering_candidates_compose_filtering_regions(
     if (!is_already_verified) {
       // Create a region candidate with the positions from [candidate_idx] to [group_idx-1]
       filtering_candidates_add_filtering_region(filtering_candidates,pattern,
-          candidate_idx,group_idx-1,min_align_distance,min_align_end_offset,
+          candidate_idx,group_idx-1,min_align_distance,min_align_offset,
           matching_regions_compose,run_length_text,mm_stack);
     }
     // Next group
@@ -232,8 +232,6 @@ void filtering_candidates_compute_text_boundaries(
   }
   filtering_position->text_begin_position = begin_position;
   filtering_position->text_end_position = end_position;
-  filtering_position->text_base_begin_offset = base_begin_position-begin_position;
-  filtering_position->text_base_end_offset = base_end_position-begin_position;
 }
 void filtering_candidates_compute_text_coordinates(
     filtering_candidates_t* const filtering_candidates,

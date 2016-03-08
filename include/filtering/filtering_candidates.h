@@ -37,8 +37,6 @@ typedef struct {
   uint64_t sequence_id;                // Id of the sequence the position belongs to
   uint64_t text_begin_position;        // Region effective begin position (adjusted to error boundaries)
   uint64_t text_end_position;          // Region effective end position (adjusted to error boundaries)
-  uint64_t text_base_begin_offset;     // Offset to base begin filtering position (no error boundary correction)
-  uint64_t text_base_end_offset;       // Offset to base begin filtering position (no error boundary correction)
 } filtering_position_t;
 
 /*
