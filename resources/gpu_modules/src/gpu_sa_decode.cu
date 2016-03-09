@@ -26,13 +26,6 @@ void __global__ gpu_sa_decoding_kernel(const uint64_t* const d_SA, const uint32_
       textPosition = d_SA[saPosition.x / samplingRate] + saPosition.y;
     
     d_textPos[idDecoding] = textPosition;
-
-    //if(textPosition == 5706241946 || textPosition == 5468846318 || textPosition == 5450726672 || textPosition == 3523632993 ||
-    //   textPosition == 284815122  || textPosition == 3523632985 ){
-    //  d_textPos[idDecoding] = GPU_UINT64_MAX_VALUE;
-    //  printf("idDecoding=%u, textPosition=%llu, d_SA[]=%llu, d_textPos[]=%llu, saPosition.x=%llu, saPosition.y=%llu numDecodings=%u \n", 
-    //          idDecoding, textPosition, d_SA[saPosition.x / samplingRate], d_textPos[idDecoding], saPosition.x, saPosition.y, numDecodings);
-    //}
   }
 }
 
