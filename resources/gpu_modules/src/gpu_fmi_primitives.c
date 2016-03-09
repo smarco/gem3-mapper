@@ -176,7 +176,7 @@ void gpu_fmi_decode_init_buffer_(void* const fmiBuffer)
   const uint32_t      numMaxPositions  = sizeBuff / gpu_fmi_decode_input_size();
 
   //set the type of the buffer
-  mBuff->typeBuffer = GPU_FMI_DECODE_POS;
+  mBuff->typeBuffer = GPU_FMI_DECODE_POS | GPU_SA_DECODE_POS;
 
   //Set real size of the input
   mBuff->data.decode.numMaxInitPositions = numMaxPositions;
@@ -352,12 +352,12 @@ gpu_error_t gpu_fmi_decode_transfer_GPU_to_CPU(gpu_buffer_t* const mBuff)
         size_t                            cpySize      =  0;
 
   //Transfer SA intervals (occurrence results) from CPU to the GPU
-  if(mBuff->index->sa.sampligRate == 0){
-    cpySize = endPosBuff->numDecodings * sizeof(gpu_fmi_decode_end_pos_t);
-    CUDA_ERROR(cudaMemcpyAsync(endPosBuff->h_endBWTPos, endPosBuff->d_endBWTPos, cpySize, cudaMemcpyDeviceToHost, idStream));
-  }else{
+  if(mBuff->index->activeModules & GPU_SA_DECODE_POS){
     cpySize = endPosBuff->numDecodings * sizeof(gpu_fmi_decode_text_pos_t);
     CUDA_ERROR(cudaMemcpyAsync(textPosBuff->h_textPos, textPosBuff->d_textPos, cpySize, cudaMemcpyDeviceToHost, idStream));
+  }else{
+    cpySize = endPosBuff->numDecodings * sizeof(gpu_fmi_decode_end_pos_t);
+    CUDA_ERROR(cudaMemcpyAsync(endPosBuff->h_endBWTPos, endPosBuff->d_endBWTPos, cpySize, cudaMemcpyDeviceToHost, idStream));
   }
 
   return (SUCCESS);

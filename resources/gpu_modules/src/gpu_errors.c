@@ -37,6 +37,7 @@ const char* gpuGetErrorString(gpu_error_t error)
     case E_NOT_SUPPORTED_ALLOC_POLICY:  return "GEM GPU - Error: undefined memory allocation policy";
     case E_NOT_IMPLEMENTED:             return "GEM GPU - Error: functionality not implemented";
     case E_DATA_NOT_ALLOCATED:          return "GEM GPU - Error: structure not allocated to any memory";
+    case E_OVERFLOWING_BUFFER:          return "GEM GPU - Error: overflowing elements per buffer";
     default:                            return "GEM GPU - Unknown error";
   }
 }

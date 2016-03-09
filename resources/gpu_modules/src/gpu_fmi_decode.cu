@@ -107,18 +107,25 @@ gpu_error_t gpu_fmi_decoding_launch_kernel(const gpu_fmi_device_entry_t* const d
 extern "C"
 gpu_error_t gpu_fmi_decode_process_buffer(gpu_buffer_t* const mBuff)
 {
-  gpu_index_buffer_t                  *index        =  mBuff->index;
-  gpu_fmi_decode_buffer_t             *decBuff      = &mBuff->data.decode;
-  gpu_fmi_decode_init_pos_buffer_t    *initPos      = &mBuff->data.decode.initPositions;
-  gpu_fmi_decode_end_pos_buffer_t     *endPos       = &mBuff->data.decode.endPositions;
-  uint32_t                            numDecodings  =  mBuff->data.decode.initPositions.numDecodings;
-  cudaStream_t                        idStream      =  mBuff->idStream;
-  uint32_t                            idSupDev      =  mBuff->idSupportedDevice;
-  gpu_device_info_t                   *device       =  mBuff->device[idSupDev];
+  const gpu_index_buffer_t* const               index               =  mBuff->index;
+  const gpu_fmi_decode_buffer_t* const          decBuff             = &mBuff->data.decode;
+  const gpu_fmi_decode_init_pos_buffer_t* const initPos             = &mBuff->data.decode.initPositions;
+  const gpu_fmi_decode_end_pos_buffer_t* const  endPos              = &mBuff->data.decode.endPositions;
+  const uint32_t                                numDecodings        =  mBuff->data.decode.initPositions.numDecodings;
+  const uint32_t                                numMaxInitPositions =  mBuff->data.decode.numMaxInitPositions;
+  const uint32_t                                numMaxEndPositions  =  mBuff->data.decode.numMaxEndPositions;
+  const cudaStream_t                            idStream            =  mBuff->idStream;
+  const uint32_t                                idSupDev            =  mBuff->idSupportedDevice;
+  const gpu_device_info_t* const                device              =  mBuff->device[idSupDev];
 
   dim3 blocksPerGrid, threadsPerBlock;
   const uint32_t numThreads = numDecodings * GPU_FMI_DECODE_THREADS_PER_ENTRY;
   gpu_device_kernel_thread_configuration(device, numThreads, &blocksPerGrid, &threadsPerBlock);
+  // Sanity-check (checks buffer overflowing)
+  if((numDecodings > numMaxInitPositions) || (numDecodings > numMaxEndPositions)){
+    printf("DECODING FMI textPositions.numDecodings=%u, endPositions.numDecodings=%u, maxDecodings=%u \n", numDecodings, mBuff->data.decode.endPositions.numDecodings, mBuff->data.decode.numMaxTextPositions);
+    return(E_OVERFLOWING_BUFFER);
+  }
 
   gpu_fmi_decoding_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_fmi_device_entry_t*) index->fmi.d_fmi[idSupDev], index->fmi.bwtSize,
                                                                            initPos->numDecodings, (uint64_t*) initPos->d_initBWTPos,

@@ -102,21 +102,25 @@ gpu_error_t gpu_fmi_search_launch_kernel(const gpu_fmi_device_entry_t* const d_f
 extern "C"
 gpu_error_t gpu_fmi_search_process_buffer(gpu_buffer_t* const mBuff)
 {
-  gpu_index_buffer_t                *index       =  mBuff->index;
-  gpu_fmi_search_seeds_buffer_t     *seeds       = &mBuff->data.search.seeds;
-  gpu_fmi_search_sa_inter_buffer_t  *saIntervals = &mBuff->data.search.saIntervals;
-  uint32_t                          numSeeds     =  mBuff->data.search.seeds.numSeeds;
-  cudaStream_t                      idStream     =  mBuff->idStream;
-  uint32_t                          idSupDev     =  mBuff->idSupportedDevice;
-  gpu_device_info_t                 *device      =  mBuff->device[idSupDev];
+  const gpu_index_buffer_t* const                index           =  mBuff->index;
+  const gpu_fmi_search_seeds_buffer_t* const     seeds           = &mBuff->data.search.seeds;
+  const gpu_fmi_search_sa_inter_buffer_t* const  saIntervals     = &mBuff->data.search.saIntervals;
+  const uint32_t                                 numSeeds        =  mBuff->data.search.seeds.numSeeds;
+  const uint32_t                                 numMaxSeeds     =  mBuff->data.search.numMaxSeeds;
+  const uint32_t                                 numMaxIntervals =  mBuff->data.search.numMaxIntervals;
+  const cudaStream_t                             idStream        =  mBuff->idStream;
+  const uint32_t                                 idSupDev        =  mBuff->idSupportedDevice;
+  const gpu_device_info_t* const                 device          =  mBuff->device[idSupDev];
 
   dim3 blocksPerGrid, threadsPerBlock;
   const uint32_t numThreads = numSeeds * GPU_FMI_SEED_THREADS_PER_ENTRY;
   gpu_device_kernel_thread_configuration(device, numThreads, &blocksPerGrid, &threadsPerBlock);
+  // Sanity-check (checks buffer overflowing)
+  if((numSeeds > numMaxSeeds) || (numSeeds > numMaxIntervals)) 
+    return(E_OVERFLOWING_BUFFER);
 
   gpu_fmi_search_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_fmi_device_entry_t*) index->fmi.d_fmi[idSupDev], index->fmi.bwtSize,
-                                                                         seeds->numSeeds, (ulonglong2*) seeds->d_seeds,
-                                                                         (ulonglong2*) saIntervals->d_intervals);
+                                                                         numSeeds, (ulonglong2*) seeds->d_seeds, (ulonglong2*) saIntervals->d_intervals);
   return(SUCCESS);
 }
 

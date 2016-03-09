@@ -22,10 +22,17 @@ void __global__ gpu_sa_decoding_kernel(const uint64_t* const d_SA, const uint32_
     const ulonglong2 saPosition   = d_endBWTPos[idDecoding];
           uint64_t   textPosition = GPU_UINT64_MAX_VALUE;
 
-    if((saPosition.x != GPU_UINT64_MAX_VALUE) || (saPosition.x != GPU_UINT64_MAX_VALUE))
+    if((saPosition.x < GPU_UINT64_MAX_VALUE) && (saPosition.y < GPU_UINT64_MAX_VALUE))
       textPosition = d_SA[saPosition.x / samplingRate] + saPosition.y;
     
     d_textPos[idDecoding] = textPosition;
+
+    //if(textPosition == 5706241946 || textPosition == 5468846318 || textPosition == 5450726672 || textPosition == 3523632993 ||
+    //   textPosition == 284815122  || textPosition == 3523632985 ){
+    //  d_textPos[idDecoding] = GPU_UINT64_MAX_VALUE;
+    //  printf("idDecoding=%u, textPosition=%llu, d_SA[]=%llu, d_textPos[]=%llu, saPosition.x=%llu, saPosition.y=%llu numDecodings=%u \n", 
+    //          idDecoding, textPosition, d_SA[saPosition.x / samplingRate], d_textPos[idDecoding], saPosition.x, saPosition.y, numDecodings);
+    //}
   }
 }
 
@@ -62,21 +69,28 @@ gpu_error_t gpu_sa_decoding_launch_kernel(const uint64_t* const d_SA, const uint
 extern "C"
 gpu_error_t gpu_sa_decode_process_buffer(gpu_buffer_t* const mBuff)
 {
-  const gpu_index_buffer_t* const               index        =  mBuff->index;
-  const gpu_fmi_decode_end_pos_buffer_t* const  endPos       = &mBuff->data.decode.endPositions;
-  const gpu_fmi_decode_text_pos_buffer_t* const textPos      = &mBuff->data.decode.textPositions;
-  const uint32_t                                numDecodings =  mBuff->data.decode.endPositions.numDecodings;
-  const uint32_t                                samplingRate =  mBuff->data.decode.samplingRate;
-  const cudaStream_t                            idStream     =  mBuff->idStream;
-  const uint32_t                                idSupDev     =  mBuff->idSupportedDevice;
-  const gpu_device_info_t* const                device       =  mBuff->device[idSupDev];
+  const gpu_index_buffer_t* const               index               =  mBuff->index;
+  const gpu_fmi_decode_end_pos_buffer_t* const  endPos              = &mBuff->data.decode.endPositions;
+  const gpu_fmi_decode_text_pos_buffer_t* const textPos             = &mBuff->data.decode.textPositions;
+  const uint32_t                                numDecodings        =  mBuff->data.decode.textPositions.numDecodings;
+  const uint32_t                                numMaxEndPositions  =  mBuff->data.decode.numMaxEndPositions;
+  const uint32_t                                numMaxTextPositions =  mBuff->data.decode.numMaxTextPositions;
+  const uint32_t                                samplingRate        =  mBuff->data.decode.samplingRate;
+  const cudaStream_t                            idStream            =  mBuff->idStream;
+  const uint32_t                                idSupDev            =  mBuff->idSupportedDevice;
+  const gpu_device_info_t* const                device              =  mBuff->device[idSupDev];
 
   dim3 blocksPerGrid, threadsPerBlock;
   const uint32_t numThreads = numDecodings;
   gpu_device_kernel_thread_configuration(device, numThreads, &blocksPerGrid, &threadsPerBlock);
+  // Sanity-check (checks buffer overflowing)
+  if((numDecodings > numMaxEndPositions) || (numDecodings > numMaxTextPositions)){
+    printf("DECODING SA textPositions.numDecodings=%u, endPositions.numDecodings=%u, maxDecodings=%u \n", numDecodings, mBuff->data.decode.endPositions.numDecodings, mBuff->data.decode.numMaxTextPositions);
+    return(E_OVERFLOWING_BUFFER);
+  }
 
   gpu_sa_decoding_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>(index->sa.d_sa[idSupDev], samplingRate, numDecodings,
-		                                                                  (ulonglong2*) endPos->d_endBWTPos, (uint64_t*) textPos->d_textPos);
+		                                                                      (ulonglong2*) endPos->d_endBWTPos, (uint64_t*) textPos->d_textPos);
 
   return(SUCCESS);
 }

@@ -151,20 +151,26 @@ __global__ void gpu_bpm_filter_kernel(const gpu_bpm_device_qry_entry_t* const d_
 extern "C"
 gpu_error_t gpu_bpm_process_buffer(gpu_buffer_t *mBuff)
 {
-  const gpu_reference_buffer_t* const       ref        =  mBuff->reference;
-  const gpu_bpm_queries_buffer_t* const     qry        = &mBuff->data.bpm.queries;
-  const gpu_bpm_candidates_buffer_t* const  cand       = &mBuff->data.bpm.candidates;
-  const gpu_bpm_reorder_buffer_t* const     rebuff     = &mBuff->data.bpm.reorderBuffer;
-  const gpu_bpm_alignments_buffer_t* const  res        = &mBuff->data.bpm.alignments;
-  const cudaStream_t                        idStream   =  mBuff->idStream;
-  const uint32_t                            idSupDev   =  mBuff->idSupportedDevice;
-  const gpu_device_info_t* const            device     =  mBuff->device[idSupDev];
-  const uint32_t                            numResults = (mBuff->data.bpm.queryBinning) ? res->numAlignments : res->numReorderedAlignments;
-  gpu_bpm_alg_entry_t*                      d_results  = (mBuff->data.bpm.queryBinning) ? res->d_alignments  : res->d_reorderAlignments;
+  const gpu_reference_buffer_t* const       ref           =  mBuff->reference;
+  const gpu_bpm_queries_buffer_t* const     qry           = &mBuff->data.bpm.queries;
+  const gpu_bpm_candidates_buffer_t* const  cand          = &mBuff->data.bpm.candidates;
+  const gpu_bpm_reorder_buffer_t* const     rebuff        = &mBuff->data.bpm.reorderBuffer;
+  const gpu_bpm_alignments_buffer_t* const  res           = &mBuff->data.bpm.alignments;
+  const cudaStream_t                        idStream      =  mBuff->idStream;
+  const uint32_t                            idSupDev      =  mBuff->idSupportedDevice;
+  const gpu_device_info_t* const            device        =  mBuff->device[idSupDev];
+  const uint32_t                            numAlignments = res->numAlignments;
+  const uint32_t                            maxCandidates = mBuff->data.bpm.maxCandidates;
+  const uint32_t                            maxAlignments = mBuff->data.bpm.maxAlignments;
+  const uint32_t                            numResults    = (mBuff->data.bpm.queryBinning) ? res->numAlignments : res->numReorderedAlignments;
+  gpu_bpm_alg_entry_t*                      d_results     = (mBuff->data.bpm.queryBinning) ? res->d_alignments  : res->d_reorderAlignments;
 
   dim3 blocksPerGrid, threadsPerBlock;
   const uint32_t numThreads = rebuff->numWarps * GPU_WARP_SIZE;
   gpu_device_kernel_thread_configuration(device, numThreads, &blocksPerGrid, &threadsPerBlock);
+  // Sanity-check (checks buffer overflowing)
+  if((numAlignments > maxCandidates) || (numAlignments > maxAlignments)) 
+    return(E_OVERFLOWING_BUFFER);
 
   gpu_bpm_filter_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_bpm_device_qry_entry_t *)qry->d_queries, ref->d_reference[idSupDev],
                                                                           cand->d_candidates, rebuff->d_reorderBuffer, d_results,
