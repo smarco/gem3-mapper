@@ -280,6 +280,8 @@ void approximate_search_region_profile_buffered_retrieve(
     approximate_search_region_profile_fixed_stats(region_profile);
   } else {
     // Set State
+    region_profile->num_filtering_regions = 0;
+    region_profile->total_candidates = 0;
     search->processing_state = asearch_processing_state_no_regions;
   }
   // DEBUG

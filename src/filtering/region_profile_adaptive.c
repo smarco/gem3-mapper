@@ -138,11 +138,13 @@ void region_profile_generator_close_profile(
       region_profile->num_standard_regions = 1;
       region_profile->num_unique_regions = 0;
       region_profile->num_zero_regions = 0;
+      region_profile->total_candidates = generator->hi - generator->lo;
     } else {
       region_profile->num_filtering_regions = 0;
       region_profile->num_standard_regions = 0;
       region_profile->num_unique_regions = 0;
       region_profile->num_zero_regions = 0;
+      region_profile->total_candidates = 0;
     }
   } else {
     // We extend the last region

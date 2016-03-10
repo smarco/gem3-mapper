@@ -84,6 +84,18 @@ void approximate_search_stepwise_region_profile_retrieve(
     if (search->processing_state==asearch_processing_state_no_regions) return; // Corner cases
     search->processing_state = asearch_processing_state_region_profiled;
   }
+  // Check exact matches (limit the number of matches)
+  region_profile_t* const region_profile = &search->region_profile;
+  if (region_profile_has_exact_matches(region_profile)) {
+    search_parameters_t* const search_parameters = search->search_parameters;
+    select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;
+    region_search_t* const filtering_region = region_profile->filtering_region;
+    const uint64_t total_candidates = filtering_region->hi - filtering_region->lo;
+    if (select_parameters->min_reported_strata_nominal==0 &&
+        select_parameters->max_reported_matches < total_candidates) {
+      filtering_region->hi = filtering_region->lo + select_parameters->max_reported_matches;
+    }
+  }
 }
 /*
  * AM Stepwise :: Decode Candidates
