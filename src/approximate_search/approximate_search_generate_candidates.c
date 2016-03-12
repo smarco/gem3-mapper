@@ -287,8 +287,8 @@ void approximate_search_generate_candidates_buffered_retrieve(
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
   // Add all candidates positions
   const bool gpu_decode_text = gpu_buffer_fmi_decode->gpu_decode_text;
-  uint64_t buffer_offset_begin = search->gpu_buffer_fmi_decode_offset;
-  uint64_t i;
+  uint64_t gpu_buffer_fmi_decode_offset = search->gpu_buffer_fmi_decode_offset;
+  uint64_t i, gpu_filtering_positions_offset = 0;
   for (i=0;i<num_filtering_regions;++i) {
     region_search_t* const region_search = region_profile->filtering_region + i;
     if (region_search->degree==REGION_FILTER_DEGREE_ZERO) {
@@ -296,16 +296,18 @@ void approximate_search_generate_candidates_buffered_retrieve(
       const uint64_t pending_candidates = region_search->hi - region_search->lo;
       if (gpu_decode_text) {
         filtering_candidates_decode_text_filtering_positions_buffered(
-            search->filtering_candidates,&search->pattern,region_search,
-            gpu_buffer_fmi_decode,buffer_offset_begin,
-            search->gpu_filtering_positions+buffer_offset_begin);
+            search->filtering_candidates,&search->pattern,
+            region_search,search->gpu_filtering_positions+gpu_filtering_positions_offset,
+            gpu_buffer_fmi_decode,gpu_buffer_fmi_decode_offset);
+
       } else {
         filtering_candidates_decode_sa_filtering_positions_buffered(
-            search->filtering_candidates,&search->pattern,region_search,
-            gpu_buffer_fmi_decode,buffer_offset_begin,
-            search->gpu_filtering_positions+buffer_offset_begin);
+            search->filtering_candidates,&search->pattern,
+            region_search,search->gpu_filtering_positions+gpu_filtering_positions_offset,
+            gpu_buffer_fmi_decode,gpu_buffer_fmi_decode_offset);
       }
-      buffer_offset_begin += pending_candidates;
+      gpu_buffer_fmi_decode_offset += pending_candidates;
+      gpu_filtering_positions_offset += pending_candidates;
     }
   }
   // Set MCS

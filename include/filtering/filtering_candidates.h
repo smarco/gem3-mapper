@@ -41,8 +41,8 @@ typedef struct {
 } filtering_position_t;
 typedef struct {
   // Source Region
-  uint32_t source_region_begin;        // Source-region Begin
-  uint32_t source_region_end;          // Source-region End
+  uint64_t source_region_begin;        // Source-region Begin
+  uint64_t source_region_end;          // Source-region End
 } filtering_position_buffered_t;
 /*
  * Filtering Candidates

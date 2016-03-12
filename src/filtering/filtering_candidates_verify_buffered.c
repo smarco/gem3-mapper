@@ -70,6 +70,8 @@ void filtering_candidates_verify_buffered_load_region(
   /* Key */
   filtering_region_compute_key_trims(filtering_region,pattern);
   /* Alignment */
+  filtering_region->max_error = pattern->max_effective_filtering_error;
+  filtering_region->max_bandwidth = pattern->max_effective_bandwidth;
   filtering_region->region_alignment = filtering_region_buffered->region_alignment;
   match_scaffold_init(&filtering_region->match_scaffold); // We sacrifice this information as to save memory
   filtering_region->match_scaffold.scaffold_regions = filtering_region_buffered->scaffold_regions;

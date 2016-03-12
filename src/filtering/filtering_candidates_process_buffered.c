@@ -117,9 +117,9 @@ void filtering_candidates_decode_sa_filtering_positions_buffered(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const pattern,
     region_search_t* const region_search,
+    filtering_position_buffered_t* const gpu_filtering_positions,
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
-    const uint64_t buffer_offset_begin,
-    filtering_position_buffered_t* const gpu_filtering_positions) {
+    const uint64_t buffer_offset_begin) {
   PROFILE_START(GP_FC_DECODE_CANDIDATES_BUFFERED,PROFILE_LEVEL);
   // Parameters
   locator_t* const locator = filtering_candidates->archive->locator;
@@ -175,9 +175,9 @@ void filtering_candidates_decode_text_filtering_positions_buffered(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const pattern,
     region_search_t* const region_search,
+    filtering_position_buffered_t* const gpu_filtering_positions,
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
-    const uint64_t buffer_offset_begin,
-    filtering_position_buffered_t* const gpu_filtering_positions) {
+    const uint64_t buffer_offset_begin) {
   PROFILE_START(GP_FC_DECODE_CANDIDATES_BUFFERED,PROFILE_LEVEL);
   // Parameters
   locator_t* const locator = filtering_candidates->archive->locator;
