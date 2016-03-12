@@ -186,7 +186,9 @@ void gpu_buffer_fmi_decode_receive(gpu_buffer_fmi_decode_t* const gpu_buffer_fmi
 gpu_buffer_fmi_decode_t* gpu_buffer_fmi_decode_new(
     const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffer_pos,
-    fm_index_t* const fm_index) { GEM_CUDA_NOT_SUPPORTED(); return NULL; }
+    fm_index_t* const fm_index,
+    const bool gpu_decode_sa,
+    const bool gpu_decode_text) { GEM_CUDA_NOT_SUPPORTED(); return NULL; }
 void gpu_buffer_fmi_decode_clear(
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) { GEM_CUDA_NOT_SUPPORTED(); }
 void gpu_buffer_fmi_decode_delete(
@@ -214,11 +216,15 @@ bool gpu_buffer_fmi_decode_fits_in_buffer(
 void gpu_buffer_fmi_decode_add_query(
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
     const uint64_t bwt_position) { GEM_CUDA_NOT_SUPPORTED(); }
-void gpu_buffer_fmi_decode_get_result(
+void gpu_buffer_fmi_decode_get_position_sa(
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
     const uint64_t buffer_pos,
     uint64_t* const bwt_sampled_position,
     uint64_t* const lf_steps) { GEM_CUDA_NOT_SUPPORTED(); }
+void gpu_buffer_fmi_decode_get_position_text(
+    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
+    const uint64_t buffer_pos,
+    uint64_t* const text_position) { GEM_CUDA_NOT_SUPPORTED(); }
 /*
  * Send/Receive
  */

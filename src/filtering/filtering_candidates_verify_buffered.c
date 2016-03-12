@@ -56,6 +56,25 @@ void filtering_candidates_verify_buffered_kmer_filter(
 /*
  * Add filtering region to buffer
  */
+void filtering_candidates_verify_buffered_load_region(
+    filtering_region_t* const filtering_region,
+    filtering_region_buffered_t* const filtering_region_buffered,
+    pattern_t* const pattern) {
+  /* Source Region Offset */
+  filtering_region->text_source_region_offset = filtering_region_buffered->text_source_region_offset;
+  filtering_region->key_source_region_offset = filtering_region_buffered->key_source_region_offset;
+  /* Text */
+  filtering_region->text_trace_offset = UINT64_MAX; // Not retrieved yet
+  filtering_region->text_begin_position = filtering_region_buffered->text_begin_position;
+  filtering_region->text_end_position = filtering_region_buffered->text_end_position;
+  /* Key */
+  filtering_region_compute_key_trims(filtering_region,pattern);
+  /* Alignment */
+  filtering_region->region_alignment = filtering_region_buffered->region_alignment;
+  match_scaffold_init(&filtering_region->match_scaffold); // We sacrifice this information as to save memory
+  filtering_region->match_scaffold.scaffold_regions = filtering_region_buffered->scaffold_regions;
+  filtering_region->match_scaffold.num_scaffold_regions = filtering_region_buffered->num_scaffold_regions;
+}
 void filtering_candidates_verify_buffered_store_region(
     filtering_region_buffered_t* const filtering_region_buffered,
     filtering_region_t* const filtering_region) {
@@ -67,6 +86,8 @@ void filtering_candidates_verify_buffered_store_region(
   filtering_region_buffered->text_end_position = filtering_region->text_end_position;
   // Alignment
   filtering_region_buffered->region_alignment = filtering_region->region_alignment;
+  filtering_region_buffered->scaffold_regions = filtering_region->match_scaffold.scaffold_regions;
+  filtering_region_buffered->num_scaffold_regions = filtering_region->match_scaffold.num_scaffold_regions;
 }
 /*
  * BPM-Buffered Add (Candidates Verification)
@@ -132,6 +153,7 @@ void filtering_candidates_verify_buffered_add(
       gpu_buffer_align_bpm_add_candidate(gpu_buffer_align_bpm,tile_pos,candidate_text_position,candidate_length);
     }
     total_candidates_added += num_pattern_tiles;
+    PROF_ADD_COUNTER(GP_ASSW_VERIFY_CANDIDATES_TILES_COPIED,num_pattern_tiles);
     // Add the filtering region to the buffer
     filtering_candidates_verify_buffered_store_region(filtering_region_buffer+candidate_pos,filtering_region);
   }
@@ -215,25 +237,8 @@ void filtering_candidates_verify_buffered_check_global_distance(
   mm_stack_pop_state(mm_stack);
 }
 /*
- * Add filtering region to buffer
+ * Retrieve filtering region from the buffer
  */
-void filtering_candidates_verify_buffered_load_region(
-    filtering_region_t* const filtering_region,
-    filtering_region_buffered_t* const filtering_region_buffered,
-    pattern_t* const pattern) {
-  /* Source Region Offset */
-  filtering_region->text_source_region_offset = filtering_region_buffered->text_source_region_offset;
-  filtering_region->key_source_region_offset = filtering_region_buffered->key_source_region_offset;
-  /* Text */
-  filtering_region->text_trace_offset = UINT64_MAX; // Not retrieved yet
-  filtering_region->text_begin_position = filtering_region_buffered->text_begin_position;
-  filtering_region->text_end_position = filtering_region_buffered->text_end_position;
-  /* Key */
-  filtering_region_compute_key_trims(filtering_region,pattern);
-  /* Alignment */
-  filtering_region->region_alignment = filtering_region_buffered->region_alignment;
-  match_scaffold_init(&filtering_region->match_scaffold); // We sacrifice this information as to save memory
-}
 void filtering_candidates_verify_buffered_retrieve_region_alignment(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_buffered_t* const region_buffered,
@@ -269,6 +274,7 @@ void filtering_candidates_verify_buffered_retrieve_region_alignment(
     ++candidate_idx;
   }
   region_alignment->distance_min_bound = global_distance;
+  PROF_ADD_COUNTER(GP_ASSW_VERIFY_CANDIDATES_TILES_RETRIVED,num_tiles);
   // DEBUG
   #ifdef CUDA_CHECK_BUFFERED_VERIFY_CANDIDATES
   filtering_candidates_verify_buffered_check_global_distance(filtering_candidates,
@@ -350,7 +356,7 @@ void filtering_candidates_verify_buffered_retrieve(
   gem_cond_debug_block(DEBUG_FILTERING_CANDIDATES) {
     tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Candidates (verify_regions_BPM_buffer)\n");
     tab_global_inc();
-    filtering_candidates_print_regions(gem_log_get_stream(),filtering_candidates,false,false);
+    filtering_candidates_print_regions(gem_log_get_stream(),filtering_candidates,false);
     tab_global_dec();
   }
 }

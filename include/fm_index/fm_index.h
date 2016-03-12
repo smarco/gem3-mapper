@@ -66,7 +66,6 @@ uint64_t fm_index_get_size(const fm_index_t* const fm_index);
  * FM-Index Operators
  */
 uint64_t fm_index_decode(const fm_index_t* const fm_index,const uint64_t bwt_position);
-uint64_t fm_index_decode_debug(const fm_index_t* const fm_index,uint64_t bwt_position,bool* const has_ns);
 uint64_t fm_index_encode(const fm_index_t* const fm_index,const uint64_t text_position);
 uint64_t fm_index_psi(const fm_index_t* const fm_index,const uint64_t bwt_position);
 

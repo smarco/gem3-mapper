@@ -76,6 +76,8 @@ typedef struct {
   uint64_t gpu_buffer_fmi_decode_offset;
   uint64_t gpu_buffer_fmi_decode_total;
   uint64_t gpu_buffer_align_offset;
+  filtering_position_buffered_t* gpu_filtering_positions;  // Filtering-Positions Info
+  uint64_t gpu_num_filtering_positions;                    // Total Buffered Filtering-Positions
   filtering_region_buffered_t* gpu_filtering_regions;      // Filtering-Regions Info
   uint64_t gpu_num_filtering_regions;                      // Total Buffered Filtering-Regions
   /* Search Auxiliary Structures (external) */

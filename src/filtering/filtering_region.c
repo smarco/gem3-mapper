@@ -255,46 +255,42 @@ void filtering_region_print(
           (int64_t)-1 : (int64_t)region_alignment->distance_min_bound);
   if (region_alignment->distance_min_bound!=ALIGN_DISTANCE_INF) {
     region_alignment_tile_t* const alignment_tile = region_alignment->alignment_tiles;
-    tab_fprintf(stream,"align-range=(%"PRIu64",%"PRIu64"))\n",
+    fprintf(stream,"align-range=(%"PRIu64",%"PRIu64"))\n",
         alignment_tile[0].text_begin_offset,
         alignment_tile[region_alignment->num_tiles-1].text_end_offset);
   } else {
-    tab_fprintf(stream,"align-range=n/a)\n");
+    fprintf(stream,"align-range=n/a)\n");
   }
-  if (text_collection!=NULL) {
-    if (region->text_trace_offset == UINT64_MAX) {
-      tab_fprintf(stream,"    => Text 'n/a'\n");
-    } else {
-      // Retrieve text
-      const uint64_t text_length = region->text_end_position-region->text_begin_position;
-      const text_trace_t* const text_trace = text_collection_get_trace(text_collection,region->text_trace_offset);
-      uint8_t* const text = text_trace->text;
-      // Allocate display text
-      const uint64_t max_printed_length = MIN(200,text_length);
-      uint64_t i;
+  if (text_collection!=NULL && region->text_trace_offset != UINT64_MAX) {
+    // Retrieve text
+    const uint64_t text_length = region->text_end_position-region->text_begin_position;
+    const text_trace_t* const text_trace = text_collection_get_trace(text_collection,region->text_trace_offset);
+    uint8_t* const text = text_trace->text;
+    // Allocate display text
+    const uint64_t max_printed_length = MIN(200,text_length);
+    uint64_t i;
 #ifdef DEBUG_FILTERING_REGION_DISPLAY_TEXT_MATCHING_REGIONS
-      char* const display_text = malloc(max_printed_length);
-      uint64_t s, p;
-      for (i=0;i<max_printed_length;++i) display_text[i] = 'a'+(dna_decode(text[i])-'A');
-      // Upper-case matching regions
-      match_scaffold_t* const match_scaffold = &region->match_scaffold;
-      for (s=0;s<match_scaffold->num_scaffold_regions;++s) {
-        region_matching_t* const region_matching = match_scaffold->scaffold_regions + s;
-        const uint64_t max_text_scope = MIN(max_printed_length,region_matching->text_end);
-        for (p=region_matching->text_begin;p<max_text_scope;++p) display_text[p] = dna_decode(text[p]);
-      }
-      // Display
-      tab_fprintf(stream,"    => Text %.*s\n",max_printed_length,display_text);
-      // Free
-      free(display_text);
-#else
-      tab_fprintf(stream,"    => Text ");
-      for (i=0;i<max_printed_length;++i) {
-        fprintf(stream,"%c",dna_decode(text[i]));
-      }
-      fprintf(stream,"\n");
-#endif
+    char* const display_text = malloc(max_printed_length);
+    uint64_t s, p;
+    for (i=0;i<max_printed_length;++i) display_text[i] = 'a'+(dna_decode(text[i])-'A');
+    // Upper-case matching regions
+    match_scaffold_t* const match_scaffold = &region->match_scaffold;
+    for (s=0;s<match_scaffold->num_scaffold_regions;++s) {
+      region_matching_t* const region_matching = match_scaffold->scaffold_regions + s;
+      const uint64_t max_text_scope = MIN(max_printed_length,region_matching->text_end);
+      for (p=region_matching->text_begin;p<max_text_scope;++p) display_text[p] = dna_decode(text[p]);
     }
+    // Display
+    tab_fprintf(stream,"    => Text %.*s\n",max_printed_length,display_text);
+    // Free
+    free(display_text);
+#else
+    tab_fprintf(stream,"    => Text ");
+    for (i=0;i<max_printed_length;++i) {
+      fprintf(stream,"%c",dna_decode(text[i]));
+    }
+    fprintf(stream,"\n");
+#endif
   }
   if (print_matching_regions) {
     tab_global_inc();

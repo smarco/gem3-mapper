@@ -20,6 +20,7 @@
 typedef struct {
   // Configuration
   search_stage_mode_t search_stage_mode;  // Stage Mode (Sending/Receiving)
+  bool adaptive_region_profile;
   // Region-Profile Buffers
   vector_t* buffers;                      // Region-Profile Buffers (search_stage_region_profile_buffer_t*)
   search_stage_iterator_t iterator;       // Buffers Iterator
@@ -33,6 +34,7 @@ search_stage_region_profile_t* search_stage_region_profile_new(
     const uint64_t buffers_offset,
     const uint64_t num_buffers,
     fm_index_t* const fm_index,
+    const bool adaptive_region_profile,
     const bool cpu_emulated);
 void search_stage_region_profile_clear(
     search_stage_region_profile_t* const search_stage_rp,

@@ -165,25 +165,6 @@ uint64_t fm_index_decode(const fm_index_t* const fm_index,uint64_t bwt_position)
   // Recover sampled position & adjust
   return (sampled_sa_get_sample(sampled_sa,bwt_position) + dist) % bwt_length;
 }
-uint64_t fm_index_decode_debug(const fm_index_t* const fm_index,uint64_t bwt_position,bool* const has_ns) {
-  // Parameters
-  const bwt_t* const bwt = fm_index->bwt;
-  const uint64_t bwt_length = fm_index_get_length(fm_index);
-  const sampled_sa_t* const sampled_sa = fm_index->sampled_sa;
-  bool is_sampled = false;
-  uint64_t dist=0;
-  *has_ns = false;
-  // LF until we find a sampled position
-  while (bwt_position%8!=0) {
-    uint8_t char_enc;
-    bwt_position = bwt_LF__enc(bwt,bwt_position,&char_enc,&is_sampled);
-    if (char_enc == ENC_DNA_CHAR_N) *has_ns = true;
-    ++dist;
-  }
-  PROF_ADD_COUNTER(GP_FMIDX_LOOKUP_DIST,dist);
-  // Recover sampled position & adjust
-  return (sampled_sa_get_sample(sampled_sa,bwt_position) + dist) % bwt_length;
-}
 uint64_t fm_index_encode(const fm_index_t* const fm_index,const uint64_t text_position) {
   GEM_NOT_IMPLEMENTED(); // TODO Implement
 // // Compute SA^(-1)[i]

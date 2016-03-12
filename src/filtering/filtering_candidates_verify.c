@@ -65,7 +65,7 @@ uint64_t filtering_candidates_verify_filtering_regions(
   gem_cond_debug_block(DEBUG_FILTERING_CANDIDATES) {
     tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Candidates (verify_regions)\n");
     tab_global_inc();
-    filtering_candidates_print_regions(gem_log_get_stream(),filtering_candidates,false,false);
+    filtering_candidates_print_regions(gem_log_get_stream(),filtering_candidates,false);
     tab_global_dec();
   }
   PROFILE_STOP(GP_FC_VERIFY_CANDIDATES,PROFILE_LEVEL);

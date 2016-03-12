@@ -34,8 +34,7 @@ typedef struct {
 void filtering_candidates_compute_text_coordinates(
     filtering_candidates_t* const filtering_candidates,
     filtering_position_t* const filtering_position,
-    pattern_t* const pattern,
-    region_search_t* const source_region);
+    pattern_t* const pattern);
 
 /*
  * Compose filtering regions

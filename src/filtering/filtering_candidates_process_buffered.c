@@ -44,12 +44,9 @@ void filtering_candidates_decode_retrieve_text_sample(
   // DEBUG
 #ifdef CUDA_CHECK_BUFFERED_DECODE_POSITIONS
   const uint64_t region_text_position = fm_index_decode(fm_index,region_interval_lo+filtering_position_offset);
-  bool has_ns;
-  fm_index_decode_debug(fm_index,region_interval_lo+filtering_position_offset,&has_ns);
   gem_cond_fatal_error_msg(filtering_position->region_text_position!=region_text_position,
-      "Filtering.Candidates.Process.Buffered. Check decoded position failed (%lu!=%lu,%s)",
-      filtering_position->region_text_position,region_text_position,
-      has_ns ? "WARNING -> Ns in the way" : "No Ns along the way");
+      "Filtering.Candidates.Process.Buffered. Check decoded position failed (%lu!=%lu)",
+      filtering_position->region_text_position,region_text_position);
 #endif
 }
 void filtering_candidates_decode_batch_retrieve_sampled_position(
@@ -121,7 +118,8 @@ void filtering_candidates_decode_sa_filtering_positions_buffered(
     pattern_t* const pattern,
     region_search_t* const region_search,
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
-    const uint64_t buffer_offset_begin) {
+    const uint64_t buffer_offset_begin,
+    filtering_position_buffered_t* const gpu_filtering_positions) {
   PROFILE_START(GP_FC_DECODE_CANDIDATES_BUFFERED,PROFILE_LEVEL);
   // Parameters
   locator_t* const locator = filtering_candidates->archive->locator;
@@ -152,12 +150,15 @@ void filtering_candidates_decode_sa_filtering_positions_buffered(
     for (i=0;i<batch_size;++i) {
       // Retrieve SA-sample
       filtering_position_t* const fposition = filtering_position+current_position+i;
+      fposition->source_region_begin = gpu_filtering_positions[current_position+i].source_region_begin;
+      fposition->source_region_end = gpu_filtering_positions[current_position+i].source_region_end;
+      fposition->source_region_error = 0;
       filtering_candidates_decode_batch_retrieve_sa_sample(
           filtering_candidates,batch+i,fposition,region_lo,current_position+i);
       // Locate Position
       fposition->locator_interval = locator_lookup_interval(locator,fposition->region_text_position);
       // Adjust Position
-      filtering_candidates_compute_text_coordinates(filtering_candidates,fposition,pattern,region_search);
+      filtering_candidates_compute_text_coordinates(filtering_candidates,fposition,pattern);
       fposition->align_distance = ALIGN_DISTANCE_INF; // Set unaligned
     }
     // Next batch
@@ -165,8 +166,9 @@ void filtering_candidates_decode_sa_filtering_positions_buffered(
     num_left_positions -= batch_size;
   }
   // Add used
-  PROF_ADD_COUNTER(GP_FC_DECODE_POSITIONS,num_candidates);
   vector_add_used(filtering_positions,num_candidates);
+  PROF_ADD_COUNTER(GP_FC_DECODE_POSITIONS,num_candidates);
+  PROF_ADD_COUNTER(GP_ASSW_DECODE_CANDIDATES_RETRIVED,num_candidates);
   PROFILE_STOP(GP_FC_DECODE_CANDIDATES_BUFFERED,PROFILE_LEVEL);
 }
 void filtering_candidates_decode_text_filtering_positions_buffered(
@@ -174,7 +176,8 @@ void filtering_candidates_decode_text_filtering_positions_buffered(
     pattern_t* const pattern,
     region_search_t* const region_search,
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
-    const uint64_t buffer_offset_begin) {
+    const uint64_t buffer_offset_begin,
+    filtering_position_buffered_t* const gpu_filtering_positions) {
   PROFILE_START(GP_FC_DECODE_CANDIDATES_BUFFERED,PROFILE_LEVEL);
   // Parameters
   locator_t* const locator = filtering_candidates->archive->locator;
@@ -189,18 +192,22 @@ void filtering_candidates_decode_text_filtering_positions_buffered(
   uint64_t i;
   for (i=0;i<num_candidates;++i) {
     filtering_position_t* const fposition = filtering_position+i;
+    fposition->source_region_begin = gpu_filtering_positions[i].source_region_begin;
+    fposition->source_region_end = gpu_filtering_positions[i].source_region_end;
+    fposition->source_region_error = 0;
     // Retrieve SA-sample
     filtering_candidates_decode_retrieve_text_sample(filtering_candidates,
         fposition,i,region_lo,gpu_buffer_fmi_decode,buffer_offset_begin);
     // Locate Position
     fposition->locator_interval = locator_lookup_interval(locator,fposition->region_text_position);
     // Adjust Position
-    filtering_candidates_compute_text_coordinates(filtering_candidates,fposition,pattern,region_search);
+    filtering_candidates_compute_text_coordinates(filtering_candidates,fposition,pattern);
     fposition->align_distance = ALIGN_DISTANCE_INF; // Set unaligned
   }
   // Add used
-  PROF_ADD_COUNTER(GP_FC_DECODE_POSITIONS,num_candidates);
   vector_add_used(filtering_positions,num_candidates);
+  PROF_ADD_COUNTER(GP_FC_DECODE_POSITIONS,num_candidates);
+  PROF_ADD_COUNTER(GP_ASSW_DECODE_CANDIDATES_RETRIVED,num_candidates);
   PROFILE_STOP(GP_FC_DECODE_CANDIDATES_BUFFERED,PROFILE_LEVEL);
 }
 /*

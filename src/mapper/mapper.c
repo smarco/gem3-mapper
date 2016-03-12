@@ -11,6 +11,12 @@
 #include "archive/archive_search_se.h"
 #include "archive/archive_search_pe.h"
 #include "stats/report_stats.h"
+//#include "/opt/intel/vtune_amplifier_xe_2013/include/libittnotify.h"
+
+/*
+ * Debug/Profile
+ */
+#define MAPPER_OUTPUT
 
 /*
  * Error Messages
@@ -19,6 +25,7 @@
 #define GEM_ERROR_MAPPER_PE_PARSE_UNSYNCH_INPUT_FILES_SINGLE "Parsing Input File. File '%s' doesn't contain a pair number of reads (cannot pair)"
 #define GEM_ERROR_MAPPER_PE_PARSE_UNSYNCH_INPUT_FILES_EOF "Parsing Input Files. File '%s' could not read second end (unexpected end-of-file)"
 #define GEM_ERROR_MAPPER_PE_PARSE_UNSYNCH_INPUT_FILES_NOT_EOF "Parsing Input Files. File '%s' has too many reads (expected end-of-file)"
+
 
 /*
  * Error Macros
@@ -277,6 +284,10 @@ uint64_t mapper_PE_reload_buffers(
     if (!parameters->io.separated_input_files) {
       error_code = buffered_input_file_reload__dump_attached(buffered_fasta_input_end1,0);
       if (error_code==INPUT_STATUS_EOF) return INPUT_STATUS_EOF;
+      const uint64_t buffered_lines = buffered_fasta_input_end1->input_buffer->lines_in_buffer;
+      if ((buffered_lines % 8) != 0) {
+        MAPPER_ERROR_PE_PARSE_UNSYNCH_INPUT_FILES(parameters);
+      }
     } else {
       // Dump buffer (explicitly before synch-reload)
       buffered_output_file_dump_buffer(buffered_fasta_input_end1->attached_buffered_output_file);
@@ -366,6 +377,7 @@ void mapper_SE_output_matches(
     archive_search_t* const archive_search,
     matches_t* const matches,
     mapping_stats_t *mstats) {
+#ifdef MAPPER_OUTPUT
   switch (parameters->io.output_format) {
     case MAP:
       output_map_single_end_matches(buffered_output_file,archive_search,matches,&parameters->io.map_parameters);
@@ -378,6 +390,7 @@ void mapper_SE_output_matches(
       break;
   }
 	if (mstats) collect_SE_mapping_stats(archive_search,matches,mstats);
+#endif
 }
 void mapper_PE_output_matches(
     mapper_parameters_t* const parameters,
@@ -386,6 +399,7 @@ void mapper_PE_output_matches(
     archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches,
     mapping_stats_t* const mstats) {
+#ifdef MAPPER_OUTPUT
   switch (parameters->io.output_format) {
     case MAP:
       output_map_paired_end_matches(buffered_output_file,archive_search_end1,
@@ -401,6 +415,7 @@ void mapper_PE_output_matches(
       break;
   }
 	if (mstats) collect_PE_mapping_stats(archive_search_end1,archive_search_end2,paired_matches,mstats);
+#endif
 }
 /*
  * SE Mapper
@@ -566,6 +581,7 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
         (pthread_handler_t) mapper_SE_bisulfite_thread : (pthread_handler_t) mapper_SE_thread;
   }
   uint64_t i;
+  //__itt_resume();
   for (i=0;i<num_threads;++i) {
     // Setup thread
     mapper_search[i].paired_end = paired_end;
@@ -588,6 +604,7 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
     gem_cond_fatal_error__perror(pthread_join(*(mapper_search[i].thread_data),0),SYS_THREAD_JOIN);
     mm_free(mapper_search[i].thread_data);
   }
+  //__itt_pause();
   ticker_finish(&ticker);
   ticker_mutex_cleanup(&ticker);
 	// Merge report stats

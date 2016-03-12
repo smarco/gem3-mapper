@@ -20,8 +20,7 @@
  * Candidate Position
  */
 typedef struct {
-  // Source Region
-  uint64_t source_region_offset;
+  // Locator Interval
   locator_interval_t* locator_interval;
   // Decode data
   uint64_t decode_distance;
@@ -30,15 +29,21 @@ typedef struct {
   uint64_t region_index_position;      // Begin region position (index-space)
   uint64_t region_text_position;       // Begin region position (text-space)
   uint64_t align_distance;             // Align-distance if already know (NSed positions)
-  // Source Region Offset
-  uint64_t text_source_region_offset;  // Text-Offset to the begin of the source-region
-  uint64_t key_source_region_offset;   // Key-Offset to the begin of the source-region
+  // Source Region
+  uint64_t source_region_begin;        // Source-region Begin
+  uint64_t source_region_end;          // Source-region End
+  uint64_t source_region_error;        // Source-region Error
+  uint64_t source_region_text_offset;  // Source-region Text-Offset
   // Position
   uint64_t sequence_id;                // Id of the sequence the position belongs to
   uint64_t text_begin_position;        // Region effective begin position (adjusted to error boundaries)
   uint64_t text_end_position;          // Region effective end position (adjusted to error boundaries)
 } filtering_position_t;
-
+typedef struct {
+  // Source Region
+  uint32_t source_region_begin;        // Source-region Begin
+  uint32_t source_region_end;          // Source-region End
+} filtering_position_buffered_t;
 /*
  * Filtering Candidates
  */
@@ -46,8 +51,6 @@ typedef struct {
   /* Index Structures & Parameters */
   archive_t* archive;                              // Archive
   search_parameters_t* search_parameters;          // Search Parameters
-  /* Region Buffer */
-  vector_t* regions_buffer;                        // Regions Buffer (region_t)
   /* Candidates */
   vector_t* filtering_positions;                   // Candidate positions (filtering_position_t)
   vector_t* filtering_regions;                     // Candidate regions (filtering_region_t)
@@ -137,7 +140,6 @@ void verified_regions_sort_positions(vector_t* const verified_regions);
 void filtering_candidates_print_regions(
     FILE* const stream,
     filtering_candidates_t* const filtering_candidates,
-    const bool print_base_regions,
     const bool print_matching_regions);
 
 #endif /* FILTERING_CANDIDATES_H_ */

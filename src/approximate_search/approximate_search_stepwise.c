@@ -35,7 +35,16 @@ void asearch_control_next_state_filtering_adaptive(
     case asearch_processing_state_candidates_verified:
       PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MAPPED,matches_is_mapped(matches)?1:0);
       PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,search->max_complete_stratum);
-      search->search_stage = asearch_stage_end;
+      // Local alignment
+      if (search->search_parameters->local_alignment==local_alignment_never) {
+        search->search_stage = asearch_stage_end;
+      } else { // local_alignment_if_unmapped
+        if (matches_is_mapped(matches)) {
+          search->search_stage = asearch_stage_end;
+        } else {
+          search->search_stage = asearch_stage_local_alignment;
+        }
+      }
       break;
     default:
       GEM_INVALID_CASE();
@@ -92,8 +101,9 @@ void approximate_search_stepwise_region_profile_retrieve(
     region_search_t* const filtering_region = region_profile->filtering_region;
     const uint64_t total_candidates = filtering_region->hi - filtering_region->lo;
     if (select_parameters->min_reported_strata_nominal==0 &&
-        select_parameters->max_reported_matches < total_candidates) {
+        total_candidates > select_parameters->max_reported_matches) {
       filtering_region->hi = filtering_region->lo + select_parameters->max_reported_matches;
+      region_profile->total_candidates = select_parameters->max_reported_matches;
     }
   }
 }

@@ -250,9 +250,15 @@ void approximate_search_generate_candidates_buffered_copy(
   // Parameters
   region_profile_t* const region_profile = &search->region_profile;
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
-  // Store Buffer Position
+  mm_stack_t* const mm_stack = search->mm_stack;
+  // Store Buffer Positions
+  const uint64_t num_filtering_positions = region_profile->total_candidates;
   search->gpu_buffer_fmi_decode_offset = gpu_buffer_fmi_decode_get_num_queries(gpu_buffer_fmi_decode);
-  search->gpu_buffer_fmi_decode_total = region_profile->total_candidates;
+  search->gpu_buffer_fmi_decode_total = num_filtering_positions;
+  filtering_position_buffered_t* gpu_filtering_positions =
+      mm_stack_calloc(mm_stack,num_filtering_positions,filtering_position_buffered_t,false);
+  search->gpu_filtering_positions = gpu_filtering_positions;
+  search->gpu_num_filtering_positions = num_filtering_positions;
   // Copy all candidates positions
   uint64_t i;
   for (i=0;i<num_filtering_regions;++i) {
@@ -261,9 +267,13 @@ void approximate_search_generate_candidates_buffered_copy(
       uint64_t bwt_position;
       for (bwt_position=filtering_region->lo;bwt_position<filtering_region->hi;++bwt_position) {
         gpu_buffer_fmi_decode_add_query(gpu_buffer_fmi_decode,bwt_position);
+        gpu_filtering_positions->source_region_begin = filtering_region->begin;
+        gpu_filtering_positions->source_region_end = filtering_region->end;
+        ++gpu_filtering_positions;
       }
     }
   }
+  PROF_ADD_COUNTER(GP_ASSW_DECODE_CANDIDATES_COPIED,region_profile->total_candidates);
   // BENCHMARK
   #ifdef CUDA_BENCHMARK_GENERATE_DECODE_CANDIDATES
   approximate_search_generate_candidates_buffered_print_benchmark(search);
@@ -286,12 +296,14 @@ void approximate_search_generate_candidates_buffered_retrieve(
       const uint64_t pending_candidates = region_search->hi - region_search->lo;
       if (gpu_decode_text) {
         filtering_candidates_decode_text_filtering_positions_buffered(
-            search->filtering_candidates,&search->pattern,
-            region_search,gpu_buffer_fmi_decode,buffer_offset_begin);
+            search->filtering_candidates,&search->pattern,region_search,
+            gpu_buffer_fmi_decode,buffer_offset_begin,
+            search->gpu_filtering_positions+buffer_offset_begin);
       } else {
         filtering_candidates_decode_sa_filtering_positions_buffered(
-            search->filtering_candidates,&search->pattern,
-            region_search,gpu_buffer_fmi_decode,buffer_offset_begin);
+            search->filtering_candidates,&search->pattern,region_search,
+            gpu_buffer_fmi_decode,buffer_offset_begin,
+            search->gpu_filtering_positions+buffer_offset_begin);
       }
       buffer_offset_begin += pending_candidates;
     }
@@ -300,7 +312,7 @@ void approximate_search_generate_candidates_buffered_retrieve(
   const uint64_t num_wildcards = search->pattern.num_wildcards;
   approximate_search_update_mcs(search,num_filtering_regions + num_wildcards);
   // Process all candidates
-  filtering_candidates_process_candidates_buffered(search->filtering_candidates,&search->pattern,false);
+  filtering_candidates_process_candidates_buffered(search->filtering_candidates,&search->pattern,true);
   // Set state to verify-candidates
   search->processing_state = asearch_processing_state_candidates_processed;
 }

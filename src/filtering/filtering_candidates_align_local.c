@@ -118,7 +118,7 @@ void filtering_candidates_align_local(
   gem_cond_debug_block(DEBUG_FILTERING_CANDIDATES) {
     tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Candidates (local_align)\n");
     tab_global_inc();
-    filtering_candidates_print_regions(gem_log_get_stream(),filtering_candidates,false,false);
+    filtering_candidates_print_regions(gem_log_get_stream(),filtering_candidates,false);
     tab_global_dec();
   }
   PROFILE_STOP(GP_FC_REALIGN_LOCAL_CANDIDATE_REGIONS,PROFILE_LEVEL);

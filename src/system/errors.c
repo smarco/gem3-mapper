@@ -49,7 +49,7 @@ void gem_error_signal_handler(int signal) {
       if (report_function!=NULL) report_function(error_stream);
       // Print signal label
       fprintf(stderr,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
-      fprintf(error_stream,">> GEM.System.Error::Signal raised (no=%d) [%s (errno=%d)]\n",signal,strerror(errno),errno);
+      fprintf(error_stream,">> GEM.System.Error::Signal raised (no=%d) [errno=%d,%s]\n",signal,errno,strerror(errno));
       fprintf(stderr,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
       fflush(error_stream);
     }

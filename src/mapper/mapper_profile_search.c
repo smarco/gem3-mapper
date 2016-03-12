@@ -397,7 +397,8 @@ void mapper_profile_print_approximate_search_summary(
   // Region Profile
   if (cuda_workflow) {
     mapper_profile_print_region_profile_fixed(stream);
-    mapper_profile_print_region_profile_heavyweight(stream);
+    //mapper_profile_print_region_profile_heavyweight(stream);
+    mapper_profile_print_region_profile_lightweight(stream);
   } else {
     mapper_profile_print_region_profile_lightweight(stream);
     // mapper_profile_print_region_profile_delimit(stream);

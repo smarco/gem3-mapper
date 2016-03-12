@@ -49,8 +49,8 @@ void filtering_candidates_add_filtering_region(
   filtering_region->text_begin_position = first_candidate->text_begin_position;
   filtering_region->text_end_position = last_candidate->text_end_position;
   // Source-region offsets
-  filtering_region->text_source_region_offset = first_candidate->text_source_region_offset;
-  filtering_region->key_source_region_offset = first_candidate->key_source_region_offset;
+  filtering_region->text_source_region_offset = first_candidate->source_region_text_offset;
+  filtering_region->key_source_region_offset = first_candidate->source_region_begin;
   PROF_ADD_COUNTER(GP_CANDIDATE_REGION_LENGTH,filtering_region->text_end_position-filtering_region->text_begin_position);
   // Compute key trims (if we know the real text dimensions)
   if (!run_length_text) {
@@ -86,16 +86,15 @@ void filtering_candidates_add_filtering_region(
     for (i=0;i<num_scaffold_regions;++i) {
       region_matching_t* const region_matching = match_scaffold->scaffold_regions + i;
       filtering_position_t* const candidate_position = candidate_positions + first_candidate_idx + i;
-      region_search_t* const source_region = vector_get_elm(
-          filtering_candidates->regions_buffer,candidate_position->source_region_offset,region_search_t);
       // Region error
-      const uint64_t region_length = source_region->end - source_region->begin;
-      region_matching->matching_type = (source_region->degree==0) ? region_matching_exact : region_matching_approximate;
-      region_matching->error = source_region->degree;
+      const uint64_t region_length = candidate_position->source_region_end - candidate_position->source_region_begin;
+      region_matching->matching_type = (candidate_position->source_region_error==0) ?
+          region_matching_exact : region_matching_approximate;
+      region_matching->error = candidate_position->source_region_error;
       region_matching->cigar_length = 0;
       // Read coordinates
-      region_matching->key_begin = source_region->begin;
-      region_matching->key_end = source_region->end;
+      region_matching->key_begin = candidate_position->source_region_begin;
+      region_matching->key_end = candidate_position->source_region_end;
       // Text coordinates (relative to the effective begin position)
       region_matching->text_begin = candidate_position->region_text_position - filtering_region->text_begin_position;
       region_matching->text_end = region_matching->text_begin + region_length;
@@ -131,8 +130,8 @@ uint64_t filtering_candidates_compose_filtering_regions(
     const uint64_t region_begin_position = candidate_positions[candidate_idx].text_begin_position;
     uint64_t min_align_distance = candidate_positions[candidate_idx].align_distance;
     uint64_t min_align_offset =
-        candidate_positions[candidate_idx].text_source_region_offset -
-        candidate_positions[candidate_idx].key_source_region_offset;
+        candidate_positions[candidate_idx].source_region_text_offset -
+        candidate_positions[candidate_idx].source_region_begin;
     uint64_t group_idx = candidate_idx + 1;
     while (group_idx < num_candidate_positions) {
       // Check delta-difference between candidate-positions
@@ -144,8 +143,8 @@ uint64_t filtering_candidates_compose_filtering_regions(
       if (candidate_positions[group_idx].align_distance < min_align_distance) {
         min_align_distance = candidate_positions[group_idx].align_distance;
         min_align_offset =
-            candidate_positions[group_idx].text_source_region_offset -
-            candidate_positions[group_idx].key_source_region_offset;
+            candidate_positions[group_idx].source_region_text_offset -
+            candidate_positions[group_idx].source_region_begin;
       }
       // Next
       ++group_idx;
@@ -185,7 +184,7 @@ uint64_t filtering_candidates_compose_filtering_regions(
     tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Candidates (compose_filtering_regions)\n");
     tab_global_inc();
     filtering_candidates_print_regions(gem_log_get_stream(),
-        filtering_candidates,true,DEBUG_FILTERING_CANDIDATES_REGIONS_MATCHING);
+        filtering_candidates,DEBUG_FILTERING_CANDIDATES_REGIONS_MATCHING);
     tab_global_dec();
   }
   // Return number of filtering regions generated
@@ -236,15 +235,14 @@ void filtering_candidates_compute_text_boundaries(
 void filtering_candidates_compute_text_coordinates(
     filtering_candidates_t* const filtering_candidates,
     filtering_position_t* const filtering_position,
-    pattern_t* const pattern,
-    region_search_t* const source_region) {
+    pattern_t* const pattern) {
   // Parameters
   archive_t* const archive = filtering_candidates->archive;
   locator_t* const locator = archive->locator;
   archive_text_t* const archive_text = archive->text;
   const uint64_t key_length = (pattern->run_length) ? pattern->rl_key_length : pattern->key_length;
-  const uint64_t key_begin_offset = source_region->begin;
-  const uint64_t key_end_offset = key_length-source_region->begin;
+  const uint64_t key_begin_offset = filtering_position->source_region_begin;
+  const uint64_t key_end_offset = key_length - filtering_position->source_region_end;
   // Locate position
   locator_interval_t* locator_interval = NULL;
   if (archive_text->run_length) {
@@ -257,8 +255,7 @@ void filtering_candidates_compute_text_coordinates(
         filtering_position,region_text_position_rl,pattern->max_effective_bandwidth,
         key_begin_offset,key_end_offset,locator_interval->rl_begin_position,locator_interval->rl_end_position);
     // Store source-region offsets
-    filtering_position->text_source_region_offset = region_text_position_rl - filtering_position->text_begin_position;
-    filtering_position->key_source_region_offset = key_begin_offset;
+    filtering_position->source_region_text_offset = region_text_position_rl - filtering_position->text_begin_position;
   } else {
     // Locate text position
     const uint64_t region_text_position = filtering_position->region_text_position;
@@ -269,8 +266,7 @@ void filtering_candidates_compute_text_coordinates(
         filtering_position,filtering_position->region_text_position,pattern->max_effective_bandwidth,
         key_begin_offset,key_end_offset,locator_interval->begin_position,locator_interval->end_position);
     // Store source-region offsets
-    filtering_position->text_source_region_offset = region_text_position - filtering_position->text_begin_position;
-    filtering_position->key_source_region_offset = key_begin_offset;
+    filtering_position->source_region_text_offset = region_text_position - filtering_position->text_begin_position;
   }
 }
 /*
@@ -287,10 +283,7 @@ void filtering_candidates_decode_filtering_positions(
     // Lookup Position
     filtering_position->region_text_position = fm_index_decode(fm_index,filtering_position->region_index_position);
     // Adjust Position
-    region_search_t* const source_region = vector_get_elm(filtering_candidates->regions_buffer,
-        filtering_position->source_region_offset,region_search_t);
-    filtering_candidates_compute_text_coordinates(
-        filtering_candidates,filtering_position,pattern,source_region);
+    filtering_candidates_compute_text_coordinates(filtering_candidates,filtering_position,pattern);
   }
 }
 /*
@@ -395,10 +388,8 @@ void filtering_candidates_decode_filtering_position_batch_prefetched(
   // Adjust decoded position to the beginning of the read
   for (current_position=0;current_position<num_candidate_text_positions;++current_position) {
     // Adjust Position
-    region_search_t* const source_region = vector_get_elm(filtering_candidates->regions_buffer,
-        filtering_position[current_position].source_region_offset,region_search_t);
-    filtering_candidates_compute_text_coordinates(filtering_candidates,
-        filtering_position+current_position,pattern,source_region);
+    filtering_candidates_compute_text_coordinates(
+        filtering_candidates,filtering_position+current_position,pattern);
   }
 }
 /*

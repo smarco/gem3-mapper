@@ -199,7 +199,7 @@ uint64_t filtering_candidates_align_candidates(
     tab_global_dec();
     tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Candidates (align_acepted_regions - aftermath)\n");
     tab_global_inc();
-    filtering_candidates_print_regions(gem_log_get_stream(),filtering_candidates,false,false);
+    filtering_candidates_print_regions(gem_log_get_stream(),filtering_candidates,false);
     tab_global_dec();
   }
   // Return total accepted regions

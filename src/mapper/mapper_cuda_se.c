@@ -82,7 +82,9 @@ void mapper_se_cuda_region_profile(mapper_cuda_search_t* const mapper_search) {
 //    }
     // Generate Candidates (Search into the archive)
     archive_search_se_stepwise_init_search(archive_search);
-    archive_search_se_stepwise_region_profile_generate(archive_search);
+    if (!MAPPER_CUDA_ADAPTIVE_REGION_PROFILE) {
+      archive_search_se_stepwise_region_profile_generate(archive_search);
+    }
     // Send search to GPU region-profile
     const bool search_sent = search_stage_region_profile_send_se_search(stage_region_profile,archive_search);
     if (!search_sent) {
@@ -191,6 +193,8 @@ void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_search) {
       ticker_update_mutex(mapper_search->ticker,mapper_search->reads_processed);
       mapper_search->reads_processed=0;
     }
+    // Pop Stack State
+    mm_stack_pop_state(stage_verify_candidates->mm_stack);
   }
   // Clean
   search_stage_verify_candidates_clear(stage_verify_candidates,search_pipeline->archive_search_cache);
@@ -211,7 +215,8 @@ void* mapper_cuda_se_thread(mapper_cuda_search_t* const mapper_search) {
       &mapper_search->buffered_fasta_input_end1,&mapper_search->buffered_output_file);
   // Create search-pipeline & initialize matches
   mapper_search->search_pipeline = search_pipeline_new(parameters,
-      mapper_search->gpu_buffer_collection,mapper_search->gpu_buffers_offset,false);
+      mapper_search->gpu_buffer_collection,mapper_search->gpu_buffers_offset,
+      MAPPER_CUDA_ADAPTIVE_REGION_PROFILE,false);
   mapper_search->pending_search_region_profile_end1 = NULL;
   mapper_search->pending_search_decode_candidates_end1 = NULL;
   mapper_search->pending_search_verify_candidates_end1 = NULL;

@@ -21,13 +21,15 @@ void filtering_candidates_decode_sa_filtering_positions_buffered(
     pattern_t* const pattern,
     region_search_t* const region_search,
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
-    const uint64_t buffer_offset_begin);
+    const uint64_t buffer_offset_begin,
+    filtering_position_buffered_t* const gpu_filtering_positions);
 void filtering_candidates_decode_text_filtering_positions_buffered(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const pattern,
     region_search_t* const region_search,
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
-    const uint64_t buffer_offset_begin);
+    const uint64_t buffer_offset_begin,
+    filtering_position_buffered_t* const gpu_filtering_positions);
 
 /*
  * Process Candidates Buffered (from GPU-Buffer)

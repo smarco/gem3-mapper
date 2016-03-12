@@ -292,7 +292,7 @@ void approximate_search_region_profile_buffered_retrieve(
 void approximate_search_region_profile_buffered_recompute(approximate_search_t* const search) {
   // Re-Compute region profile
   search->processing_state = asearch_processing_state_begin;
-  approximate_search_region_profile_adaptive(search,region_profile_adaptive_heavyweight,search->mm_stack);
+  approximate_search_region_profile_adaptive(search,region_profile_adaptive_lightweight,search->mm_stack);
   if (search->processing_state==asearch_processing_state_no_regions) {
     approximate_search_update_mcs(search,search->pattern.num_wildcards); // Set MCS
     return;

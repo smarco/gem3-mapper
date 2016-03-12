@@ -28,6 +28,7 @@ void archive_search_se_stepwise_region_profile_generate(
     archive_search_t* const archive_search);
 void archive_search_se_stepwise_region_profile_copy(
     archive_search_t* const archive_search,
+    const bool adaptive_region_profile,
     gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
 void archive_search_se_stepwise_region_profile_retrieve(
     archive_search_t* const archive_search,

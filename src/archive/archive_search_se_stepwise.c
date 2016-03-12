@@ -61,6 +61,7 @@ void archive_search_se_stepwise_region_profile_generate(archive_search_t* const 
 }
 void archive_search_se_stepwise_region_profile_copy(
     archive_search_t* const archive_search,
+    const bool adaptive_region_profile,
     gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE_REGION_PROFILE_COPY,PROFILE_LEVEL);
   // DEBUG
@@ -71,12 +72,22 @@ void archive_search_se_stepwise_region_profile_copy(
         archive_search->sequence.tag.buffer);
     tab_global_inc();
   }
-  // Region-Profile Copy
-  approximate_search_stepwise_region_profile_copy(
-      &archive_search->forward_search_state,gpu_buffer_fmi_search);
-  if (archive_search->emulate_rc_search) {
+  // Check Adaptive Region-profile Switch
+  if (adaptive_region_profile) {
+    archive_search->forward_search_state.search_stage = asearch_stage_filtering_adaptive;
+    archive_search->forward_search_state.processing_state = asearch_processing_state_no_regions;
+    if (archive_search->emulate_rc_search) {
+      archive_search->reverse_search_state.search_stage = asearch_stage_filtering_adaptive;
+      archive_search->reverse_search_state.processing_state = asearch_processing_state_no_regions;
+    }
+  } else {
+    // Region-Profile Copy
     approximate_search_stepwise_region_profile_copy(
-        &archive_search->reverse_search_state,gpu_buffer_fmi_search);
+        &archive_search->forward_search_state,gpu_buffer_fmi_search);
+    if (archive_search->emulate_rc_search) {
+      approximate_search_stepwise_region_profile_copy(
+          &archive_search->reverse_search_state,gpu_buffer_fmi_search);
+    }
   }
   // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE_STEPWISE) { tab_global_dec(); }

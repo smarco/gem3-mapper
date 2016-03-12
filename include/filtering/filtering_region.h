@@ -63,7 +63,8 @@ typedef struct {
   uint64_t text_end_position;               // Region effective end position (adjusted to error boundaries)
   /* Alignment */
   region_alignment_t region_alignment;      // Filtering Region Alignment
-  // TODO match_scaffold_t match_scaffold;          // Matching regions supporting the filtering region (Scaffolding)
+  region_matching_t* scaffold_regions;
+  uint64_t num_scaffold_regions;
 } filtering_region_buffered_t;
 /*
  * Filtering Region Auxiliary Structures

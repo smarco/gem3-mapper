@@ -10,11 +10,6 @@
 #include "mapper/mapper_profile.h"
 
 /*
- * Errors
- */
-#define GEM_ERROR_BUFFERED_INPUT_BUFFER_LINES "Reading Input File ('%s'). Premature end of file (expected end of record)"
-
-/*
  * Constants
  */
 // Profile Level
@@ -68,8 +63,6 @@ uint64_t buffered_input_file_reload(
   const uint64_t lines_in_buffer = input_file_reload_fastq_buffer(
       buffered_input->input_file,&(buffered_input->input_buffer),
       min_fastq_lines,buffered_input->reload_buffer_size);
-  gem_cond_fatal_error(lines_in_buffer%8!=0,
-      BUFFERED_INPUT_BUFFER_LINES,input_file_get_file_name(buffered_input->input_file));
   return lines_in_buffer;
 }
 //#include "libittnotify.h"

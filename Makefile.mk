@@ -43,8 +43,8 @@ HAVE_ZLIB = 1
 HAVE_BZLIB = 1
 HAVE_OPENMP = 1
 HAVE_CUDA = 1
-HAVE_LTO = 1
-HAVE_GOLD = 1
+HAVE_LTO = 0
+HAVE_GOLD = 0
 
 ###############################################################################
 # General Flags
@@ -59,7 +59,7 @@ FLAGS_GEM_DEBUG=-DGEM_DEBUG
 FLAGS_GENERAL=-fPIC -Wall
 FLAGS_SUPPRESS_CHECKS=-DNDEBUG
 FLAGS_OPT=-O4
-FLAGS_DEBUG=-g $(FLAGS_GEM_DEBUG)
+FLAGS_DEBUG=-g
 FLAGS_PROFILE=$(FLAGS_GEM_PROFILE)
 
 ## GCC Compiler 
@@ -72,14 +72,14 @@ ifeq ($(CC),gcc)
     OPT_AR=-fuse-linker-plugin
   endif
   FLAGS_OPT=-Ofast -msse4.2 -std=c99 $(OPT_LTO)
-  FLAGS_DEBUG=-g -rdynamic $(FLAGS_GEM_DEBUG)
+  FLAGS_DEBUG=-g -rdynamic
   FLAGS_LINK=$(OPT_AR)
 endif
 
 ## ICC Compiler
 ifeq ($(CC),icc)
   FLAGS_OPT=-Ofast -msse4.2 -ipo
-  FLAGS_DEBUG=-g $(FLAGS_GEM_DEBUG)
+  FLAGS_DEBUG=-g
 endif
 
 ###############################################################################
@@ -139,11 +139,11 @@ endif
 ###############################################################################
 # VTune
 ###############################################################################
-VTUNE_PROFILE_LIB=-ldl
 LIBITTNOTIFY=/opt/intel/vtune_amplifier_xe_2013/lib64/libittnotify.a
 ifeq ($(wildcard LIBITTNOTIFY),)
   VTUNE_PROFILE_LIB+=$(LIBITTNOTIFY)
 endif
+VTUNE_PROFILE_LIB+=-ldl
 VTUNE_PROFILE_INCLUDE=-I/opt/intel/vtune_amplifier_xe_2013/include/
 
 

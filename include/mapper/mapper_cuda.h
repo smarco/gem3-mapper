@@ -13,6 +13,8 @@
 #include "search_pipeline/search_pipeline.h"
 #include "stats/report_stats_mstats.h"
 
+#define MAPPER_CUDA_ADAPTIVE_REGION_PROFILE true
+
 /*
  * Mapper-CUDA Search
  */
