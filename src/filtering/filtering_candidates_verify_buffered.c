@@ -344,6 +344,7 @@ void filtering_candidates_verify_buffered_retrieve(
       ++regions_accepted;
       PROF_INC_COUNTER(GP_ACCEPTED_REGIONS);
     } else {
+      region_alignment->distance_min_bound = ALIGN_DISTANCE_INF; // To force CPU/GPU same
       filtering_candidates_verify_buffered_load_region(regions_discarded,region_buffered,pattern);
       regions_discarded->status = filtering_region_verified_discarded; // Discarded candidate
       ++regions_discarded;

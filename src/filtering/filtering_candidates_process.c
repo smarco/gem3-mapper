@@ -242,7 +242,7 @@ void filtering_candidates_compute_text_coordinates(
   archive_text_t* const archive_text = archive->text;
   const uint64_t key_length = (pattern->run_length) ? pattern->rl_key_length : pattern->key_length;
   const uint64_t key_begin_offset = filtering_position->source_region_begin;
-  const uint64_t key_end_offset = key_length - filtering_position->source_region_end;
+  const uint64_t key_end_offset = key_length - filtering_position->source_region_begin;
   // Locate position
   locator_interval_t* locator_interval = NULL;
   if (archive_text->run_length) {
