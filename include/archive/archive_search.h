@@ -47,6 +47,7 @@ typedef struct {
   search_parameters_t search_parameters;     // Search parameters
   bool emulate_rc_search;                    // Flow control
   bool probe_strand;                         // Flow control
+  bool buffered_search;                      // Buffered Search
   /* Approximate Search */
   approximate_search_t forward_search_state; // Forward Search State
   approximate_search_t reverse_search_state; // Reverse Search State
@@ -64,10 +65,12 @@ typedef struct {
 void archive_search_se_new(
     archive_t* const archive,
     search_parameters_t* const search_parameters,
+    const bool buffered_search,
     archive_search_t** const archive_search);
 void archive_search_pe_new(
     archive_t* const archive,
     search_parameters_t* const search_parameters,
+    const bool buffered_search,
     archive_search_t** const archive_search_end1,
     archive_search_t** const archive_search_end2);
 void archive_search_reset(archive_search_t* const archive_search);

@@ -20,32 +20,32 @@ void sequence_init(sequence_t* const sequence) {
   string_init(&sequence->tag,SEQUENCE_TAG_INITIAL_LENGTH);
   string_init(&sequence->read,SEQUENCE_INITIAL_LENGTH);
   string_init(&sequence->qualities,SEQUENCE_INITIAL_LENGTH);
-  sequence->attributes.end_info = single_end;
-  string_init(&sequence->attributes.casava_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH);
-  string_init(&sequence->attributes.extra_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH);
+  sequence->end_info = single_end;
+  string_init(&sequence->casava_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH);
+  string_init(&sequence->extra_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH);
 }
 void sequence_init_mm(sequence_t* const sequence,mm_stack_t* const mm_stack) {
   string_init_mm(&sequence->tag,SEQUENCE_TAG_INITIAL_LENGTH,mm_stack);
   string_init_mm(&sequence->read,SEQUENCE_INITIAL_LENGTH,mm_stack);
   string_init_mm(&sequence->qualities,SEQUENCE_INITIAL_LENGTH,mm_stack);
-  sequence->attributes.end_info = single_end;
-  string_init_mm(&sequence->attributes.casava_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH,mm_stack);
-  string_init_mm(&sequence->attributes.extra_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH,mm_stack);
+  sequence->end_info = single_end;
+  string_init_mm(&sequence->casava_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH,mm_stack);
+  string_init_mm(&sequence->extra_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH,mm_stack);
 }
 void sequence_clear(sequence_t* const sequence) {
   string_clear(&sequence->tag);
   string_clear(&sequence->read);
   string_clear(&sequence->qualities);
-  sequence->attributes.end_info = single_end;
-  string_clear(&sequence->attributes.casava_tag);
-  string_clear(&sequence->attributes.extra_tag);
+  sequence->end_info = single_end;
+  string_clear(&sequence->casava_tag);
+  string_clear(&sequence->extra_tag);
 }
 void sequence_destroy(sequence_t* const sequence) {
   string_destroy(&sequence->tag);
   string_destroy(&sequence->read);
   string_destroy(&sequence->qualities);
-  string_destroy(&sequence->attributes.casava_tag);
-  string_destroy(&sequence->attributes.extra_tag);
+  string_destroy(&sequence->casava_tag);
+  string_destroy(&sequence->extra_tag);
 }
 /*
  * Accessors
@@ -84,13 +84,13 @@ bool sequence_has_qualities(const sequence_t* const sequence) {
   return !string_is_null(&sequence->qualities);
 }
 bool sequence_has_casava_tag(const sequence_t* const sequence) {
-  return !string_is_null(&sequence->attributes.casava_tag);
+  return !string_is_null(&sequence->casava_tag);
 }
 bool sequence_has_extra_tag(const sequence_t* const sequence) {
-  return !string_is_null(&sequence->attributes.extra_tag);
+  return !string_is_null(&sequence->extra_tag);
 }
 sequence_end_t sequence_get_end_info(const sequence_t* const sequence) {
-  return sequence->attributes.end_info;
+  return sequence->end_info;
 }
 /*
  * Utils

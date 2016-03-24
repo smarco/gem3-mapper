@@ -14,8 +14,8 @@
 /*
  * Version
  */
-#define GEM_CORE_VERSION 3.2
-#define GEM_CORE_VERSION_STR "3.2"
+#define GEM_CORE_VERSION 3.1
+#define GEM_CORE_VERSION_STR "3.1"
 
 /*
  * GEM Runtime

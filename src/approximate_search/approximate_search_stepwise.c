@@ -64,7 +64,7 @@ void approximate_search_stepwise_region_profile_generate(approximate_search_t* c
       case asearch_stage_filtering_adaptive:
         approximate_search_region_partition_fixed(search);
         return;
-      case asearch_stage_neighborhood: return;
+      // case asearch_stage_neighborhood: return;
       default:
         GEM_INVALID_CASE();
         break;

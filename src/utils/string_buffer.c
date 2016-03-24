@@ -13,7 +13,7 @@
 #include "system/mm.h"
 
 /*
- * Constructor & Accessors
+ * Setup
  */
 void string_init_(string_t* const string,char* const buffer,const uint64_t length,mm_stack_t* const mm_stack) {
   // Initialize
@@ -79,34 +79,33 @@ void string_destroy(string_t* const string) {
     mm_free(string->buffer);
   }
 }
-char* string_get_buffer(string_t* const string) {
-  return string->buffer;
-}
-void string_set_buffer_const(string_t* const string,const char* const buffer,const uint64_t length) {
-  // Dynamic String
-  string_resize(string,length);
-  gem_strncpy(string->buffer,buffer,length);
-  string->length = length;
-}
+/*
+ * Accessors
+ */
 void string_set_buffer(string_t* const string,char* const buffer,const uint64_t length) {
   if (gem_expect_true(string->allocated)) {
     // Dynamic String
-    string_set_buffer_const(string,buffer,length);
+    string_resize(string,length);
+    gem_strncpy(string->buffer,buffer,length);
+    string->length = length;
   } else {
     // Static String
     string->buffer = buffer;
     string->length = length;
   }
 }
-char* string_char_at(string_t* const string,const uint64_t pos) {
-  gem_fatal_check(pos>string->length,POSITION_OUT_OF_RANGE,pos,(uint64_t)0,string->length);
-  return string->buffer+pos;
+char* string_get_buffer(string_t* const string) {
+  return string->buffer;
+}
+void string_set_length(string_t* const string,const uint64_t length) {
+  string->length = length;
 }
 uint64_t string_get_length(string_t* const string) {
   return string->length;
 }
-void string_set_length(string_t* const string,const uint64_t length) {
-  string->length = length;
+char* string_char_at(string_t* const string,const uint64_t pos) {
+  gem_fatal_check(pos>string->length,POSITION_OUT_OF_RANGE,pos,(uint64_t)0,string->length);
+  return string->buffer+pos;
 }
 /*
  * Basic editing

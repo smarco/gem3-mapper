@@ -38,6 +38,11 @@ void filtering_candidates_verify_buffered_kmer_filter(
   // Parameters
   archive_text_t* const archive_text = filtering_candidates->archive->text;
   mm_stack_t* const mm_stack = filtering_candidates->mm_stack;
+  // Compile kmer-filter
+  if (!pattern->kmer_counting.enabled) {
+    kmer_counting_compile(&pattern->kmer_counting,pattern->key,
+        pattern->key_length,pattern->max_effective_filtering_error,mm_stack);
+  }
   // Retrieve text-candidate
   filtering_region_retrieve_text(filtering_region,pattern,archive_text,text_collection,mm_stack);
   const text_trace_t* const text_trace =

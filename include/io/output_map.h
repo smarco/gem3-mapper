@@ -90,4 +90,11 @@ void output_map_paired_end_matches(
     paired_matches_t* const paired_matches,
     output_map_parameters_t* const output_map_parameters);
 
+/*
+ * FASTA/FASTQ
+ */
+void output_fastq(
+    buffered_output_file_t* const buffered_output_file,
+    sequence_t* const sequence);
+
 #endif /* OUTPUT_MAP_H_ */

@@ -11,31 +11,34 @@
 
 #include "utils/essentials.h"
 
+typedef enum {
+  input_buffer_ready,
+  input_buffer_empty,
+  input_buffer_processing,
+} input_buffer_state;
 typedef struct {
-  uint32_t block_id;             // Block ID
-  vector_t* block_buffer;        // Buffer
-  char* cursor;                  // Pointer to the current char
-  uint64_t lines_in_buffer;      // Actual number of lines in buffer
-  uint64_t current_line_num;     // Current line no
+  /* Buffer info */
+  uint64_t buffer_id;                // Buffer ID
+  input_buffer_state buffer_state;   // Buffer State
+  uint64_t num_readers;              // Current number of readers
+  /* Buffer */
+  char* buffer;                      // Pointer to the buffer
+  uint64_t buffer_size;              // Total bytes in buffer
+  uint64_t buffer_allocated;         // Total bytes allocated
+  /* Line Index */
+  vector_t* line_lengths;            // Length of every line in the buffer (uint32_t)
 } input_buffer_t;
 
 /*
  * Setup
  */
-input_buffer_t* input_buffer_new();
-void input_buffer_clear(input_buffer_t* const input_buffer);
+input_buffer_t* input_buffer_new(const uint64_t buffer_size);
 void input_buffer_delete(input_buffer_t* const input_buffer);
 
 /*
- * Accessors
+ * Annotate lines
  */
-char** input_buffer_get_cursor(input_buffer_t* const input_buffer);
-uint64_t input_buffer_get_cursor_pos(input_buffer_t* const input_buffer);
-bool input_buffer_eob(input_buffer_t* const input_buffer);
-
-/*
- * Utils
- */
-void input_buffer_skip_line(input_buffer_t* const input_buffer);
+void input_buffer_annotate_lines(input_buffer_t* const input_buffer);
+uint64_t input_buffer_get_num_lines(input_buffer_t* const input_buffer);
 
 #endif /* INPUT_BUFFER_H_ */

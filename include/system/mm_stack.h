@@ -88,10 +88,21 @@ void* mm_stack_memory_allocate(
     mm_stack_t* const mm_stack,
     const uint64_t num_bytes,
     const bool zero_mem);
+/*
+#define mm_stack_alloc(mm_stack,type) \
+  ((type*)mm_stack_memory_allocate(mm_stack,sizeof(type),false))
+#define mm_stack_malloc(mm_stack,num_bytes) \
+  (fprintf(stderr,">MM-Alloc %lu from %s\n",(uint64_t)(num_bytes),__func__), \
+  (       mm_stack_memory_allocate(mm_stack,(num_bytes),false)))
+#define mm_stack_calloc(mm_stack,num_elements,type,clear_mem) \
+  (fprintf(stderr,">MM-Alloc %lu from %s\n",(uint64_t)((num_elements)*sizeof(type)),__func__), \
+  ((type*)mm_stack_memory_allocate(mm_stack,(num_elements)*sizeof(type),clear_mem)))
+*/
 
 #define mm_stack_alloc(mm_stack,type)                         ((type*)mm_stack_memory_allocate(mm_stack,sizeof(type),false))
 #define mm_stack_malloc(mm_stack,num_bytes)                   (       mm_stack_memory_allocate(mm_stack,(num_bytes),false))
 #define mm_stack_calloc(mm_stack,num_elements,type,clear_mem) ((type*)mm_stack_memory_allocate(mm_stack,(num_elements)*sizeof(type),clear_mem))
+
 
 #define mm_stack_malloc_uint64(mm_stack) mm_stack_malloc(mm_stack,sizeof(uint64_t))
 #define mm_stack_malloc_uint32(mm_stack) mm_stack_malloc(mm_stack,sizeof(uint32_t))

@@ -32,7 +32,8 @@ const char* archive_search_pe_state_label[] =
  */
 archive_search_t* archive_search_new(
     archive_t* const archive,
-    search_parameters_t* const search_parameters) {
+    search_parameters_t* const search_parameters,
+    const bool buffered_search) {
   // Allocate handler
   archive_search_t* const archive_search = mm_alloc(archive_search_t);
   // Archive
@@ -51,26 +52,29 @@ archive_search_t* archive_search_new(
   // Archive search control (Flow control) [DEFAULTS]
   archive_search->probe_strand = true;
   archive_search->emulate_rc_search = !archive->indexed_complement;
+  archive_search->buffered_search = buffered_search;
   // Return
   return archive_search;
 }
 void archive_search_se_new(
     archive_t* const archive,
     search_parameters_t* const search_parameters,
+    const bool buffered_search,
     archive_search_t** const archive_search) {
   // Allocate Search
-  *archive_search = archive_search_new(archive,search_parameters);
+  *archive_search = archive_search_new(archive,search_parameters,buffered_search);
   // Select align
   archive_select_configure_se(*archive_search);
 }
 void archive_search_pe_new(
     archive_t* const archive,
     search_parameters_t* const search_parameters,
+    const bool buffered_search,
     archive_search_t** const archive_search_end1,
     archive_search_t** const archive_search_end2) {
   // Allocate Search
-  *archive_search_end1 = archive_search_new(archive,search_parameters);
-  *archive_search_end2 = archive_search_new(archive,search_parameters);
+  *archive_search_end1 = archive_search_new(archive,search_parameters,buffered_search);
+  *archive_search_end2 = archive_search_new(archive,search_parameters,buffered_search);
   // Select align
   archive_select_configure_pe(*archive_search_end1);
 }
@@ -85,15 +89,16 @@ void archive_search_prepare_sequence(archive_search_t* const archive_search) {
   }
   // Generate the pattern(s)
   const bool run_length_pattern = archive_search->archive->text->run_length;
+  const bool kmer_filter_compile = !archive_search->buffered_search;
   approximate_search_t* const forward_search_state = &archive_search->forward_search_state;
   pattern_init(&forward_search_state->pattern,&archive_search->sequence,
-      forward_search_state->search_parameters,run_length_pattern,
-      &forward_search_state->do_quality_search,archive_search->mm_stack);
+      &forward_search_state->do_quality_search,forward_search_state->search_parameters,
+      run_length_pattern,kmer_filter_compile,archive_search->mm_stack);
   if (archive_search->emulate_rc_search) {
     approximate_search_t* const reverse_search_state = &archive_search->reverse_search_state;
     pattern_init(&reverse_search_state->pattern,&archive_search->rc_sequence,
-        reverse_search_state->search_parameters,run_length_pattern,
-        &reverse_search_state->do_quality_search,archive_search->mm_stack);
+        &reverse_search_state->do_quality_search,reverse_search_state->search_parameters,
+        run_length_pattern,kmer_filter_compile,archive_search->mm_stack);
   } else {
     pattern_clear(&archive_search->reverse_search_state.pattern);
   }

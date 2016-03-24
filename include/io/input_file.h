@@ -13,11 +13,6 @@
 #include "io/input_buffer.h"
 
 /*
- * Input Buffer Scheme
- */
-#define INPUT_FILE_READING_THREAD
-
-/*
  * Codes status
  */
 #define INPUT_STATUS_OK 1
@@ -25,29 +20,18 @@
 #define INPUT_STATUS_FAIL -1
 
 /*
- * FASTQ/FASTA/MULTIFASTA File Attribute
+ * File format
  */
-typedef enum { F_FASTA, F_FASTQ } fasta_file_format_t;
-typedef struct {
-  fasta_file_format_t format;
-} fasta_file_attributes_t;
+typedef enum { FASTA, MAP, SAM, FILE_FORMAT_UNKNOWN } file_format_t;
 
 /*
  * Input file
  */
-typedef enum { FASTA, MAP, SAM, FILE_FORMAT_UNKNOWN } file_format_t;
 typedef struct {
   /* File manager */
   fm_t* file_manager;
   bool mmaped;
   mm_t* memory_manager;
-  /* File format */
-  file_format_t file_format;
-  union {
-    fasta_file_format_t fasta;
-    // map_file_format map_type;
-    // sam_headers sam_headers;
-  };
   /* Internal Buffer */
   uint64_t buffer_allocated;
   uint8_t* file_buffer;
@@ -56,16 +40,10 @@ typedef struct {
   uint64_t buffer_pos;
   uint64_t global_pos;
   uint64_t processed_lines;
-  /* Input Buffer Queue */
-  pthread_mutex_t input_mutex;           // Mutex
-  pthread_cond_t requested_buffer_cond;  // CV (Reload input buffer)
-  input_buffer_t* input_buffer;          // Input-Buffers
-  /* ID generator */
-  uint64_t processed_id;
 } input_file_t;
 
 /*
- * Basic I/O functions
+ * Setup
  */
 input_file_t* input_stream_open(FILE* stream,const uint64_t input_buffer_size);
 input_file_t* input_gzip_stream_open(FILE* stream,const uint64_t input_buffer_size);
@@ -82,7 +60,6 @@ void input_file_close(input_file_t* const input_file);
  */
 uint8_t input_file_get_current_char(input_file_t* const input_file);
 uint8_t input_file_get_char_at(input_file_t* const input_file,const uint64_t position_in_buffer);
-uint64_t input_file_get_next_id(input_file_t* const input_file);
 
 char* input_file_get_file_name(input_file_t* const input_file);
 char* input_file_get_nonull_file_name(input_file_t* const input_file);
@@ -117,30 +94,11 @@ uint64_t input_file_get_lines(
     input_file_t* const input_file,
     vector_t* buffer_dst,
     const uint64_t num_lines);
-uint64_t input_file_get_fastq_records(
-    input_file_t* const input_file,
-    vector_t* buffer_dst,
-    const uint64_t min_fastq_lines,
-    const uint64_t buffer_size_threshold);
 
 /*
- * Buffer reader (thread-safe)
- */
-uint64_t input_file_reload_fastq_buffer(
-    input_file_t* const input_file,
-    input_buffer_t** const input_buffer,
-    const uint64_t min_fastq_lines,
-    const uint64_t buffer_size_threshold);
-
-/*
- * Printers
+ * Display
  */
 #define PRI_input_file "s:%"PRIu64
 #define PRI_input_file_content(input_file) input_file_get_file_name(input_file),input_file_get_current_line(input_file)
-
-/*
- * Error Messages
- */
-#define GEM_ERROR_FILE_FORMAT "Could not determine file format of '%s'"
 
 #endif /* INPUT_FILE_H_ */

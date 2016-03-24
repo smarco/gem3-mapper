@@ -65,9 +65,7 @@ void approximate_search_reset(approximate_search_t* const search) {
   search->max_complete_stratum = ALL;
   // Prepare region profile
   const uint64_t key_length = search->pattern.key_length;
-  if (search->max_complete_error > 0) {
-    region_profile_new(&search->region_profile,key_length,search->mm_stack);
-  }
+  region_profile_new(&search->region_profile,key_length,search->mm_stack);
   // Reset metrics
   const double proper_length = fm_index_get_proper_length(search->archive->fm_index);
   const search_parameters_t* const search_parameters = search->search_parameters;

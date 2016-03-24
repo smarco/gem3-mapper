@@ -7,6 +7,7 @@
  */
 
 #include "io/output_map.h"
+#include "data_structures/sequence.h"
 
 /*
  * Constants
@@ -231,15 +232,15 @@ void output_map_single_end_print_tag(
   }
   // Print CASAVA Tag (if present)
   if (sequence_has_casava_tag(seq_read)) {
-    const uint64_t casava_tag_length = string_get_length(&seq_read->attributes.casava_tag);
+    const uint64_t casava_tag_length = string_get_length(&seq_read->casava_tag);
     buffered_output_file_reserve(buffered_output_file,casava_tag_length);
-    bofprintf_string(buffered_output_file,casava_tag_length,string_get_buffer(&seq_read->attributes.casava_tag));
+    bofprintf_string(buffered_output_file,casava_tag_length,string_get_buffer(&seq_read->casava_tag));
   }
   // Print Extra Tag (if present)
   if (sequence_has_extra_tag(seq_read)) {
-    const uint64_t extra_tag_length = string_get_length(&seq_read->attributes.extra_tag);
+    const uint64_t extra_tag_length = string_get_length(&seq_read->extra_tag);
     buffered_output_file_reserve(buffered_output_file,extra_tag_length);
-    bofprintf_string(buffered_output_file,extra_tag_length,string_get_buffer(&seq_read->attributes.extra_tag));
+    bofprintf_string(buffered_output_file,extra_tag_length,string_get_buffer(&seq_read->extra_tag));
   }
 }
 void output_map_paired_end_print_tag(
@@ -253,15 +254,15 @@ void output_map_paired_end_print_tag(
   bofprintf_string(buffered_output_file,PRIs_content(&seq_read_end1->tag));
   // Print CASAVA Tag (if present)
   if (sequence_has_casava_tag(seq_read_end1)) {
-    const uint64_t casava_tag_length = string_get_length(&seq_read_end1->attributes.casava_tag);
+    const uint64_t casava_tag_length = string_get_length(&seq_read_end1->casava_tag);
     buffered_output_file_reserve(buffered_output_file,casava_tag_length);
-    bofprintf_string(buffered_output_file,casava_tag_length,string_get_buffer(&seq_read_end1->attributes.casava_tag));
+    bofprintf_string(buffered_output_file,casava_tag_length,string_get_buffer(&seq_read_end1->casava_tag));
   }
   // Print Extra Tag (if present)
   if (sequence_has_extra_tag(seq_read_end1)) {
-    const uint64_t extra_tag_length = string_get_length(&seq_read_end1->attributes.extra_tag);
+    const uint64_t extra_tag_length = string_get_length(&seq_read_end1->extra_tag);
     buffered_output_file_reserve(buffered_output_file,extra_tag_length);
-    bofprintf_string(buffered_output_file,extra_tag_length,string_get_buffer(&seq_read_end1->attributes.extra_tag));
+    bofprintf_string(buffered_output_file,extra_tag_length,string_get_buffer(&seq_read_end1->extra_tag));
   }
 }
 /*
@@ -462,4 +463,29 @@ void output_map_paired_end_matches(
     output_map_print_separator(buffered_output_file,'\n');
   }
   PROF_STOP_TIMER(GP_OUTPUT_MAP_PE);
+}
+/*
+ * FASTA/FASTQ
+ */
+void output_fastq(
+    buffered_output_file_t* const buffered_output_file,
+    sequence_t* const sequence) {
+  // Print TAG
+  buffered_output_file_reserve(buffered_output_file,1);
+  output_map_print_separator(buffered_output_file,sequence->has_qualities?'@':'>');
+  output_map_single_end_print_tag(buffered_output_file,sequence);
+  buffered_output_file_reserve(buffered_output_file,1);
+  output_map_print_separator(buffered_output_file,'\n');
+  // Print Sequence
+  const uint64_t seq_length = sequence_get_length(sequence);
+  if (sequence->has_qualities) {
+    buffered_output_file_reserve(buffered_output_file,2*seq_length+10);
+    bofprintf_string(buffered_output_file,seq_length,string_get_buffer(&sequence->read));
+    bofprintf_string(buffered_output_file,3,"\n+\n");
+    bofprintf_string(buffered_output_file,seq_length,string_get_buffer(&sequence->qualities));
+  } else {
+    buffered_output_file_reserve(buffered_output_file,seq_length+10);
+    bofprintf_string(buffered_output_file,seq_length,string_get_buffer(&sequence->read));
+  }
+  output_map_print_separator(buffered_output_file,'\n');
 }

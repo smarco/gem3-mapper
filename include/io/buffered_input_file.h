@@ -10,45 +10,64 @@
 #define BUFFERED_INPUT_FILE_H_
 
 #include "system/commons.h"
-#include "io/input_file.h"
+#include "io/input_file_sliced.h"
 #include "io/buffered_output_file.h"
 
 typedef struct {
   /* Input file */
-  input_file_t* input_file;        // Source input file
-  /* Block buffer and cursors */
-  input_buffer_t* input_buffer;    // Input Buffer
-  uint64_t reload_buffer_size;     // Number of lines to reload the buffer
+  input_file_sliced_t* input_file_sliced;   // Source input file
+  uint64_t prefered_read_size;              // Size to reload the buffer
+  /* Block buffer info */
+  uint32_t block_id;                        // Block ID
+  uint64_t num_lines;                       // Total number of lines in buffer
+  uint64_t current_line_no;                 // Current line no
+  /* Input-file Buffers */
+  vector_t* input_buffers;                  // Associated input-buffers (input_buffer_t*)
+  uint64_t input_buffer_next;               // Next input-buffer offset
+  uint64_t input_first_buffer_offset;       // First-Buffer beginning offset
+  uint64_t input_first_buffer_line_begin;   // First-Buffer beginning line
+  uint64_t input_last_buffer_line_end;      // Last-Buffer end line
+  /* Current input-file buffer */
+  input_buffer_t* current_buffer;           // Current buffer
+  char* current_buffer_sentinel;            // Current buffer sentinel
+  uint64_t current_buffer_line_no;          // Current buffer line number
+  uint64_t current_buffer_line_max;         // Current buffer max. line number
   /* Attached output buffer */
   buffered_output_file_t* attached_buffered_output_file;  // Attach output buffer file
 } buffered_input_file_t;
 
 /*
- * Buffered Input File Handlers
+ * Setup
  */
-buffered_input_file_t* buffered_input_file_new(input_file_t* const in_file,const uint64_t reload_buffer_size);
+buffered_input_file_t* buffered_input_file_new(
+    input_file_sliced_t* const input_file_sliced,
+    const uint64_t prefered_read_size);
 void buffered_input_file_close(buffered_input_file_t* const buffered_input);
 
 /*
  * Accessors
  */
-char** buffered_input_file_get_text_line(buffered_input_file_t* const buffered_input);
-uint64_t buffered_input_file_get_cursor_pos(buffered_input_file_t* const buffered_input);
-uint64_t buffered_input_file_get_block_id(buffered_input_file_t* const buffered_input);
+char* buffered_input_file_get_file_name(buffered_input_file_t* const buffered_input);
+uint32_t buffered_input_file_get_block_id(buffered_input_file_t* const buffered_input);
+uint64_t buffered_input_file_get_num_lines(buffered_input_file_t* const buffered_input);
+uint64_t buffered_input_file_get_current_line_num(buffered_input_file_t* const buffered_input);
 bool buffered_input_file_eob(buffered_input_file_t* const buffered_input);
+
+/*
+ * Line Reader
+ */
+int buffered_input_file_get_line(
+    buffered_input_file_t* const buffered_input,
+    string_t* const input_line);
+
+/*
+ * Buffer Reload
+ */
+uint64_t buffered_input_file_reload(
+    buffered_input_file_t* const buffered_input,
+    const uint64_t forced_read_lines);
 void buffered_input_file_attach_buffered_output(
     buffered_input_file_t* const buffered_input_file,
     buffered_output_file_t* const buffered_output_file);
-
-/*
- * Utils
- */
-void buffered_input_file_skip_line(buffered_input_file_t* const buffered_input);
-uint64_t buffered_input_file_reload(
-    buffered_input_file_t* const buffered_input,
-    const uint64_t min_lines);
-uint64_t buffered_input_file_reload__dump_attached(
-    buffered_input_file_t* const buffered_input,
-    const uint64_t min_lines);
 
 #endif /* BUFFERED_INPUT_FILE_H_ */

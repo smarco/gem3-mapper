@@ -39,7 +39,7 @@ void* mapper_SE_bisulfite_thread(mapper_search_t* const mapper_search) {
   // Create an Archive-Search
   mm_search_t* const mm_search = mm_search_new(mm_pool_get_slab(mm_pool_32MB));
   search_parameters_t* const search_parameters = &parameters->base_search_parameters;
-  archive_search_se_new(parameters->archive,search_parameters,&mapper_search->archive_search);
+  archive_search_se_new(parameters->archive,search_parameters,false,&mapper_search->archive_search);
   archive_search_se_inject_mm(mapper_search->archive_search,mm_search);
   matches_t* const matches = matches_new();
   matches_configure(matches,mapper_search->archive_search->text_collection);
@@ -121,7 +121,7 @@ void* mapper_PE_bisulfite_thread(mapper_search_t* const mapper_search) {
   // Create an Archive-Search
   mm_search_t* const mm_search = mm_search_new(mm_pool_get_slab(mm_pool_32MB));
   search_parameters_t* const search_parameters = &parameters->base_search_parameters;
-  archive_search_pe_new(parameters->archive,search_parameters,
+  archive_search_pe_new(parameters->archive,search_parameters,false,
       &mapper_search->archive_search_end1,&mapper_search->archive_search_end2);
   archive_search_pe_inject_mm(mapper_search->archive_search_end1,mapper_search->archive_search_end2,mm_search);
   mapper_search->paired_matches = paired_matches_new(mm_search->text_collection);

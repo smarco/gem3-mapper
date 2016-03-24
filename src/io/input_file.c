@@ -9,39 +9,22 @@
 #include "io/input_file.h"
 
 /*
- * Format detection (cascade of checkers)
+ * Setup
  */
-file_format_t input_file_detect_file_format(input_file_t* const input_file) {
-  if (input_file->file_format != FILE_FORMAT_UNKNOWN) return input_file->file_format;
-  // Try to determine the file format // TODO
-  input_file->file_format = FASTA;
-  return FASTA;
-}
-/*
- * Basic I/O functions
- */
-void input_file_initialize(input_file_t* const input_file,const uint64_t buffer_allocated) {
-  GEM_CHECK_NULL(input_file);
+void input_file_initialize(input_file_t* const input_file,const uint64_t input_buffer_size) {
   // Input file
   input_file->mmaped = false;
   input_file->memory_manager = NULL;
-  gem_cond_fatal_error__perror(pthread_mutex_init(&input_file->input_mutex,NULL),SYS_MUTEX_INIT);
   // Auxiliary Buffer (for synch purposes)
-  input_file->buffer_allocated = buffer_allocated;
-  input_file->file_buffer = mm_malloc(buffer_allocated);
+  input_file->buffer_allocated = input_buffer_size;
+  input_file->file_buffer = mm_malloc(input_buffer_size);
   input_file->buffer_size = 0;
   input_file->buffer_begin = 0;
   input_file->buffer_pos = 0;
   input_file->global_pos = 0;
   input_file->processed_lines = 0;
-  // ID generator
-  input_file->processed_id = 0;
-  // Detect file format
-  input_file->file_format = FILE_FORMAT_UNKNOWN;
-  input_file_detect_file_format(input_file);
 }
 input_file_t* input_stream_open(FILE* stream,const uint64_t input_buffer_size) {
-  GEM_CHECK_NULL(stream);
   // Allocate handler
   input_file_t* const input_file = mm_alloc(input_file_t);
   // Create file manager
@@ -51,7 +34,6 @@ input_file_t* input_stream_open(FILE* stream,const uint64_t input_buffer_size) {
   return input_file;
 }
 input_file_t* input_gzip_stream_open(FILE* stream,const uint64_t input_buffer_size) {
-  GEM_CHECK_NULL(stream);
   // Allocate handler
   input_file_t* const input_file = mm_alloc(input_file_t);
   // Create file manager
@@ -61,7 +43,6 @@ input_file_t* input_gzip_stream_open(FILE* stream,const uint64_t input_buffer_si
   return input_file;
 }
 input_file_t* input_bzip_stream_open(FILE* stream,const uint64_t input_buffer_size) {
-  GEM_CHECK_NULL(stream);
   // Allocate handler
   input_file_t* const input_file = mm_alloc(input_file_t);
   // Create file manager
@@ -74,7 +55,6 @@ input_file_t* input_file_open(
     char* const file_name,
     const uint64_t input_buffer_size,
     const bool mmap_file) {
-  GEM_CHECK_NULL(file_name);
   // Allocate handler
   input_file_t* const input_file = mm_alloc(input_file_t);
   // Prepare File
@@ -90,7 +70,6 @@ input_file_t* input_file_open(
       input_file->file_manager = NULL;
       input_file->mmaped = true;
       input_file->memory_manager = mm_bulk_mmap_file(file_name,MM_READ_ONLY,false);
-      MUTEX_INIT(input_file->input_mutex);
       // Auxiliary Buffer (for synch purposes)
       input_file->file_buffer = mm_get_base_mem(input_file->memory_manager);
       input_file->buffer_size = mm_get_allocated(input_file->memory_manager);
@@ -98,11 +77,6 @@ input_file_t* input_file_open(
       input_file->buffer_pos = 0;
       input_file->global_pos = 0;
       input_file->processed_lines = 0;
-      // ID generator
-      input_file->processed_id = 0;
-      // Detect file format
-      input_file->file_format = FILE_FORMAT_UNKNOWN;
-      input_file_detect_file_format(input_file);
     } else {
       // Cannot be mapped (sorry)
       input_file->file_manager = fm_open_file(file_name,FM_READ);
@@ -123,8 +97,6 @@ void input_file_rewind(input_file_t* const input_file) {
   input_file->buffer_pos = 0;
   input_file->global_pos = 0;
   input_file->processed_lines = 0;
-  // ID generator
-  input_file->processed_id = 0;
 }
 void input_file_close(input_file_t* const input_file) {
   if (!input_file->mmaped) { // Regular file
@@ -143,11 +115,6 @@ uint8_t input_file_get_current_char(input_file_t* const input_file) {
 }
 uint8_t input_file_get_char_at(input_file_t* const input_file,const uint64_t position_in_buffer) {
   return input_file->file_buffer[input_file->buffer_pos];
-}
-uint64_t input_file_get_next_id(input_file_t* const input_file) {
-  const uint64_t id = input_file->processed_id;
-  input_file->processed_id = (input_file->processed_id+1) % UINT32_MAX;
-  return id;
 }
 char* input_file_get_nonull_file_name(input_file_t* const input_file) {
   return (input_file->file_manager!=NULL) ?
@@ -171,12 +138,6 @@ bool input_file_eob(input_file_t* const input_file) {
 bool input_file_eof(input_file_t* const input_file) {
   return input_file_eob(input_file) && (input_file->mmaped || fm_eof(input_file->file_manager));
 }
-void input_file_lock(input_file_t* const input_file) {
-  gem_cond_fatal_error__perror(pthread_mutex_lock(&input_file->input_mutex),SYS_MUTEX);
-}
-void input_file_unlock(input_file_t* const input_file) {
-  gem_cond_fatal_error__perror(pthread_mutex_unlock(&input_file->input_mutex),SYS_MUTEX);
-}
 /*
  * Basic Buffer Functions
  */
@@ -186,10 +147,8 @@ uint64_t input_file_fill_buffer(input_file_t* const input_file) {
   input_file->buffer_begin = 0;
   // Check EOF
   if (!fm_eof(input_file->file_manager)) {
-    PROF_START_TIMER(GP_INPUT_FILL_BUFFER);
     input_file->buffer_size = fm_read_mem(input_file->file_manager,input_file->file_buffer,input_file->buffer_allocated);
     fm_prefetch_next(input_file->file_manager,input_file->buffer_allocated);
-    PROF_STOP_TIMER(GP_INPUT_FILL_BUFFER);
     return input_file->buffer_size;
   } else {
     input_file->buffer_size = 0;
@@ -197,7 +156,6 @@ uint64_t input_file_fill_buffer(input_file_t* const input_file) {
   }
 }
 uint64_t input_file_dump_to_buffer(input_file_t* const input_file,vector_t* const buffer_dst) {
-  // FIXME: If mmap file, internal buffer is just pointers to mem (shortcut 2nd layer)
   // Copy internal file buffer to buffer_dst
   const uint64_t chunk_size = input_file->buffer_pos-input_file->buffer_begin;
   if (gem_expect_false(chunk_size==0)) return 0;
@@ -309,11 +267,9 @@ uint64_t input_file_next_line(input_file_t* const input_file,vector_t* const buf
         input_file->buffer_begin = 0;
         // Check EOF
         if (!fm_eof(input_file->file_manager)) {
-          PROF_START_TIMER(GP_INPUT_FILL_BUFFER);
           input_file->buffer_size = fm_read_mem(input_file->file_manager,
               input_file->file_buffer,input_file->buffer_allocated);
           fm_prefetch_next(input_file->file_manager,input_file->buffer_allocated);
-          PROF_STOP_TIMER(GP_INPUT_FILL_BUFFER);
         } else {
           input_file->buffer_size = 0;
         }
@@ -345,53 +301,5 @@ uint64_t input_file_get_lines(
     vector_insert(buffer_dst,EOL,char);
   }
   return lines_read;
-}
-uint64_t input_file_get_fastq_records(
-    input_file_t* const input_file,
-    vector_t* buffer_dst,
-    const uint64_t min_fastq_lines,
-    const uint64_t buffer_size_threshold) {
-  // Clear dst buffer
-  vector_clear(buffer_dst);
-  // Read lines
-  uint64_t lines_read = 0;
-  while (input_file_next_line(input_file,buffer_dst)) {
-    ++lines_read;
-    if (lines_read >= min_fastq_lines && (lines_read%8==0)) {
-      const uint64_t bytes_read = vector_get_used(buffer_dst) + (input_file->buffer_pos-input_file->buffer_begin);
-      if (bytes_read >= buffer_size_threshold) break;
-    }
-  }
-  // Dump remaining content into the buffer
-  input_file_dump_to_buffer(input_file,buffer_dst);
-  if (lines_read > 0 && *vector_get_last_elm(buffer_dst,char) != EOL) {
-    vector_insert(buffer_dst,EOL,char);
-  }
-  return lines_read;
-}
-/*
- * Buffer reader
- */
-uint64_t input_file_reload_fastq_buffer(
-    input_file_t* const input_file,
-    input_buffer_t** const input_buffer,
-    const uint64_t min_fastq_lines,
-    const uint64_t buffer_size_threshold) {
-  // Read lines
-  if (input_file_eof(input_file)) return INPUT_STATUS_EOF;
-  input_file_lock(input_file);
-  if (input_file_eof(input_file)) {
-    input_file_unlock(input_file);
-    return INPUT_STATUS_EOF;
-  }
-  (*input_buffer)->block_id = input_file_get_next_id(input_file);
-  (*input_buffer)->current_line_num = input_file->processed_lines+1;
-  (*input_buffer)->lines_in_buffer = input_file_get_fastq_records(input_file,
-      (*input_buffer)->block_buffer,min_fastq_lines,buffer_size_threshold);
-  input_file_unlock(input_file);
-  // Setup the block
-  (*input_buffer)->cursor = vector_get_mem((*input_buffer)->block_buffer,char);
-  PROF_ADD_COUNTER(GP_BUFFERED_INPUT_BUFFER_SIZE,vector_get_used((*input_buffer)->block_buffer));
-  return (*input_buffer)->lines_in_buffer;
 }
 

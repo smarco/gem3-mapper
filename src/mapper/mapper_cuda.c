@@ -47,6 +47,7 @@ void mapper_cuda_error_report(FILE* stream) {
  * Index loader
  */
 void mapper_load_gpu_index(mapper_parameters_t* const parameters) {
+  TIMER_START(&parameters->loading_time);
   // Parameters
   mapper_parameters_cuda_t* const cuda_parameters = &parameters->cuda;
   const uint64_t num_threads = parameters->system.num_threads;
@@ -63,6 +64,7 @@ void mapper_load_gpu_index(mapper_parameters_t* const parameters) {
   parameters->gpu_buffer_collection = gpu_buffer_collection_new(gpu_index_name,
       num_gpu_buffers,cuda_parameters->gpu_buffer_size,parameters->misc.verbose_dev);
   free(gpu_index_name);
+  TIMER_STOP(&parameters->loading_time);
 }
 /*
  * SE/PE runnable

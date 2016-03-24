@@ -24,8 +24,7 @@ bool mapper_se_cuda_stage_read_input_sequences_exhausted(mapper_cuda_search_t* c
   // Check end_of_block
   if (!buffered_input_file_eob(mapper_search->buffered_fasta_input_end1)) return false;
   // Reload buffer
-  if (buffered_input_file_reload__dump_attached(
-      mapper_search->buffered_fasta_input_end1,0)==INPUT_STATUS_EOF) return true;
+  if (buffered_input_file_reload(mapper_search->buffered_fasta_input_end1,0)==INPUT_STATUS_EOF) return true;
   // Clear pipeline (release intermediate memory & start pipeline fresh)
   search_pipeline_clear(mapper_search->search_pipeline);
   return false;
@@ -73,7 +72,7 @@ void mapper_se_cuda_region_profile(mapper_cuda_search_t* const mapper_search) {
     // Parse Sequence
     const error_code_t error_code = input_fasta_parse_sequence(
         mapper_search->buffered_fasta_input_end1,archive_search_get_sequence(archive_search),
-        parameters->io.fastq_strictly_normalized,parameters->io.fastq_try_recovery,false);
+        parameters->io.fastq_strictly_normalized,false);
     gem_cond_fatal_error(error_code==INPUT_STATUS_FAIL,MAPPER_CUDA_ERROR_PARSING);
     PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
 //    // DEBUG
@@ -193,8 +192,6 @@ void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_search) {
       ticker_update_mutex(mapper_search->ticker,mapper_search->reads_processed);
       mapper_search->reads_processed=0;
     }
-    // Pop Stack State
-    mm_stack_pop_state(stage_verify_candidates->mm_stack);
   }
   // Clean
   search_stage_verify_candidates_clear(stage_verify_candidates,search_pipeline->archive_search_cache);
@@ -221,20 +218,27 @@ void* mapper_cuda_se_thread(mapper_cuda_search_t* const mapper_search) {
   mapper_search->pending_search_decode_candidates_end1 = NULL;
   mapper_search->pending_search_verify_candidates_end1 = NULL;
   // FASTA/FASTQ reading loop
+  mm_stack_t* const mm_stack = mapper_search->search_pipeline->mm_stack;
   mapper_search->reads_processed = 0;
   while (!mapper_se_cuda_stage_read_input_sequences_exhausted(mapper_search)) {
     // Region Profile
     mapper_se_cuda_region_profile(mapper_search);
+    mm_stack_push_state(mm_stack);
     do {
       // Decode Candidates
       mapper_se_cuda_decode_candidates(mapper_search);
+      mm_stack_push_state(mm_stack);
       do {
         // Verify Candidates
         mapper_se_cuda_verify_candidates(mapper_search);
         // Finish Search
+        mm_stack_push_state(mm_stack);
         mapper_se_cuda_finish_search(mapper_search);
+        mm_stack_pop_state(mm_stack);
       } while (!mapper_se_cuda_stage_decode_candidates_output_exhausted(mapper_search));
+      mm_stack_pop_state(mm_stack);
     } while (!mapper_se_cuda_stage_region_profile_output_exhausted(mapper_search));
+    mm_stack_pop_state(mm_stack);
   }
   // Clean up
   ticker_update_mutex(mapper_search->ticker,mapper_search->reads_processed); // Update processed

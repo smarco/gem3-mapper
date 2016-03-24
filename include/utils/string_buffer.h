@@ -33,7 +33,7 @@ typedef enum { traversal_forward, traversal_backward } traversal_direction_t;
 #define PRIs_content(string) (int)string_get_length((string_t*)string),string_get_buffer((string_t*)string)
 
 /*
- * Constructor & Accessors
+ * Setup
  */
 void string_init(string_t* const string,const uint64_t length);
 void string_init_static(string_t* const string,char* const buffer);
@@ -42,13 +42,16 @@ void string_resize(string_t* const string,const uint64_t length);
 void string_clear(string_t* const string);
 void string_destroy(string_t* const string);
 
-char* string_get_buffer(string_t* const string);
-void string_set_buffer_const(string_t* const string,const char* const buffer,const uint64_t length);
+/*
+ * Accessors
+ */
 void string_set_buffer(string_t* const string,char* const buffer_src,const uint64_t length);
+char* string_get_buffer(string_t* const string);
+
+void string_set_length(string_t* const string,const uint64_t length);
+uint64_t string_get_length(string_t* const string);
 
 char* string_char_at(string_t* const string,const uint64_t pos);
-uint64_t string_get_length(string_t* const string);
-void string_set_length(string_t* const string,const uint64_t length);
 
 /*
  * Basic editing

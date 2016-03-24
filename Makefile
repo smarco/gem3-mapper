@@ -46,4 +46,4 @@ setup:
 clean:
 	$(MAKE) --directory=resources clean
 	@rm -rf $(FOLDER_BIN) $(FOLDER_BUILD) $(FOLDER_LIB)
-	@rm -f $(FOLDER_INCLUDE)/resources
+	@rm -rf $(FOLDER_INCLUDE)/resources

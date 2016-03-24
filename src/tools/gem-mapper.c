@@ -64,50 +64,49 @@ int parse_arguments_system_integer(char* const argument,uint64_t* const value) {
 /*
  * GEM-mapper I/O related functions
  */
-input_file_t* gem_mapper_open_input_file(
+input_file_sliced_t* gem_mapper_open_input_file(
     char* const input_file_name,const fm_type input_compression,
-    const uint64_t input_block_size,const bool verbose_user) {
+    const uint64_t input_block_size,const uint64_t input_num_blocks,
+    const bool verbose_user) {
   // Open input file
-  input_file_t* input_file;
   if (input_file_name==NULL) {
     gem_cond_log(verbose_user,"[Reading input file from stdin]");
     switch (input_compression) {
       case FM_GZIPPED_FILE:
-        input_file = input_gzip_stream_open(stdin,input_block_size);
-        break;
+        return input_gzip_stream_sliced_open(stdin,input_num_blocks,input_block_size);
       case FM_BZIPPED_FILE:
-        input_file = input_bzip_stream_open(stdin,input_block_size);
-        break;
+        return input_bzip_stream_sliced_open(stdin,input_num_blocks,input_block_size);
       default:
-        input_file = input_stream_open(stdin,input_block_size);
-        break;
+        return input_stream_sliced_open(stdin,input_num_blocks,input_block_size);
     }
   } else {
     gem_cond_log(verbose_user,"[Opening input file '%s']",input_file_name);
-    input_file = input_file_open(input_file_name,input_block_size,false);
+    return input_file_sliced_open(input_file_name,input_num_blocks,input_block_size);
   }
-  return input_file;
 }
 void gem_mapper_open_input(mapper_parameters_t* const parameters) {
   if (parameters->io.separated_input_files) {
     parameters->input_file_end1 = gem_mapper_open_input_file(
         parameters->io.input_file_name_end1,parameters->io.input_compression,
-        parameters->io.input_block_size,parameters->misc.verbose_user);
+        parameters->io.input_block_size,parameters->io.input_num_blocks,
+        parameters->misc.verbose_user);
     parameters->input_file_end2 = gem_mapper_open_input_file(
         parameters->io.input_file_name_end2,parameters->io.input_compression,
-        parameters->io.input_block_size,parameters->misc.verbose_user);
+        parameters->io.input_block_size,parameters->io.input_num_blocks,
+        parameters->misc.verbose_user);
   } else {
     parameters->input_file = gem_mapper_open_input_file(
         parameters->io.input_file_name,parameters->io.input_compression,
-        parameters->io.input_block_size,parameters->misc.verbose_user);
+        parameters->io.input_block_size,parameters->io.input_num_blocks,
+        parameters->misc.verbose_user);
   }
 }
 void gem_mapper_close_input(mapper_parameters_t* const parameters) {
   if (parameters->io.separated_input_files) {
-    input_file_close(parameters->input_file_end1);
-    input_file_close(parameters->input_file_end2);
+    input_file_sliced_close(parameters->input_file_end1);
+    input_file_sliced_close(parameters->input_file_end2);
   } else {
-    input_file_close(parameters->input_file);
+    input_file_sliced_close(parameters->input_file);
   }
 }
 void gem_mapper_open_output(mapper_parameters_t* const parameters) {
@@ -196,7 +195,7 @@ option_t gem_mapper_options[] = {
   { '2', "i2", REQUIRED, TYPE_STRING, 2, VISIBILITY_USER, "<file>", "(paired-end, end-2)" },
   { 'z', "gzip-input", NO_ARGUMENT, TYPE_NONE, 2, VISIBILITY_USER, "", "(gzip input)" },
   { 'j', "bzip-input", NO_ARGUMENT, TYPE_NONE, 2, VISIBILITY_USER, "", "(bzip input)" },
-  { 201, "input-model", REQUIRED, TYPE_STRING, 2, VISIBILITY_DEVELOPER, "<input_block_size,num_buffers,buffers_size>", "(default=64M,2c,4K)" },
+  { 201, "input-model", REQUIRED, TYPE_STRING, 2, VISIBILITY_DEVELOPER, "<block_size,num_blocks,buffer_size>", "(default=32M,c,4M)" },
   { 'o', "output", REQUIRED, TYPE_STRING, 2, VISIBILITY_USER, "<output_prefix>" , "(default=stdout)" },
   { 202, "gzip-output", NO_ARGUMENT, TYPE_NONE, 2, VISIBILITY_USER, "", "(gzip output)" },
   { 203, "bzip-output", NO_ARGUMENT, TYPE_NONE, 2, VISIBILITY_USER, "", "(bzip output)" },
@@ -273,6 +272,7 @@ option_t gem_mapper_options[] = {
   /* Miscellaneous */
   { 1500, "profile", OPTIONAL, TYPE_STRING, 15, VISIBILITY_DEVELOPER, "'sum'|'min'|'max'|'mean'|'sample'" , "(disabled)" },
   { 'v',  "verbose", OPTIONAL, TYPE_STRING, 15, VISIBILITY_USER, "'quiet'|'user'|'dev'" , "(default=user)" },
+  { 1501, "version", NO_ARGUMENT, TYPE_STRING, 15, VISIBILITY_USER, "" , "" },
   { 'h',  "help", OPTIONAL, TYPE_NONE, 15, VISIBILITY_USER, "" , "(print usage)" },
   {  0, "", 0, 0, 0, false, "", ""}
 };
@@ -347,21 +347,21 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       io->input_compression = FM_BZIPPED_FILE;
       break;
     case 201: { // --input-model=64M,2c,5K
-      char *input_block_size=NULL, *num_buffers=NULL, *num_records=NULL;
-      const int num_arguments = input_text_parse_csv_arguments(optarg,3,&input_block_size,&num_buffers,&num_records);
+      char *block_size=NULL, *num_blocks=NULL, *buffer_size=NULL;
+      const int num_arguments = input_text_parse_csv_arguments(optarg,3,&block_size,&num_blocks,&buffer_size);
       gem_mapper_cond_error_msg(num_arguments!=3,"Option '--input-model' wrong number of arguments");
       // Parse input-buffer size
-      int error = input_text_parse_size(input_block_size,&io->input_block_size);
-      gem_mapper_cond_error_msg(error,"Option '--input-model'. Error parsing 'input_block_size'");
+      int error = input_text_parse_size(block_size,&io->input_block_size);
+      gem_mapper_cond_error_msg(error,"Option '--input-model'. Error parsing 'block_size'");
       // Parse number of buffers
-      error = parse_arguments_system_integer(num_buffers,&io->input_num_buffers);
-      gem_mapper_cond_error_msg(error,"Option '--input-model'. Error parsing 'num_buffers'");
+      error = parse_arguments_system_integer(num_blocks,&io->input_num_blocks);
+      gem_mapper_cond_error_msg(error,"Option '--input-model'. Error parsing 'num_blocks'");
       // Parse number of records per buffer
-      error = input_text_parse_size(num_records,&io->input_buffer_size);
+      error = input_text_parse_size(buffer_size,&io->input_buffer_size);
       gem_mapper_cond_error_msg(error,"Option '--input-model'. Error parsing 'buffer_size'");
       // Propagate settings to CUDA
       cuda->input_block_size = io->input_block_size;
-      cuda->input_num_buffers = io->input_num_buffers;
+      cuda->input_num_buffers = io->input_num_blocks;
       cuda->input_buffer_size = io->input_buffer_size;
       break;
     }
@@ -900,6 +900,9 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
         parameters->misc.verbose_dev = false;
       }
       break;
+    case 1501: // --version
+      fprintf(stderr,"gem-mapper\t"GEM_CORE_VERSION_STR"\n");
+      exit(0);
     case 'h':
       if (optarg==NULL || gem_strcaseeq(optarg,"user")) {
         gem_mapper_print_usage(VISIBILITY_USER);
@@ -987,14 +990,17 @@ int main(int argc,char** argv) {
   parse_arguments(argc,argv,&parameters); // Parse cmd-line
 
   // Runtime setup
-  gem_timer_t mapper_time;
   const mapper_parameters_cuda_t* const cuda = &parameters.cuda;
   gruntime_init(parameters.system.num_threads+1,parameters.system.max_memory,parameters.system.tmp_folder);
-  PROFILE_START(GP_MAPPER_ALL,PHIGH); TIMER_RESTART(&mapper_time);
+  PROFILE_START(GP_MAPPER_ALL,PHIGH);
+  TIMER_RESET(&parameters.loading_time);
+  TIMER_RESTART(&parameters.mapper_time);
 
   // Open Input/Output File(s)
+  TIMER_START(&parameters.loading_time);
   gem_mapper_open_input(&parameters);
   gem_mapper_open_output(&parameters);
+  TIMER_STOP(&parameters.loading_time);
 
   // Initialize Statistics Report
   if(parameters.io.report_file_name) {
@@ -1027,7 +1033,8 @@ int main(int argc,char** argv) {
         break;
     }
   }
-  PROFILE_STOP(GP_MAPPER_ALL,PHIGH); TIMER_STOP(&mapper_time);
+  PROFILE_STOP(GP_MAPPER_ALL,PHIGH);
+  TIMER_STOP(&parameters.mapper_time);
 
   // Profile
   if (parameters.misc.profile) gem_mapper_print_profile(&parameters);
@@ -1044,8 +1051,11 @@ int main(int argc,char** argv) {
   gruntime_destroy();
 
   // Display end banner
-  const uint64_t mapper_time_sec = (uint64_t)TIMER_GET_TOTAL_S(&mapper_time);
-  gem_cond_log(parameters.misc.verbose_user,"[GEMMapper terminated successfully in %"PRIu64" s.]\n",mapper_time_sec);
+  const uint64_t mapper_time_sec = (uint64_t)TIMER_GET_TOTAL_S(&parameters.mapper_time);
+  const uint64_t loading_time_sec = (uint64_t)TIMER_GET_TOTAL_S(&parameters.loading_time);
+  gem_cond_log(parameters.misc.verbose_user,
+      "[GEMMapper terminated successfully in %"PRIu64"s. (+%"PRIu64"s. loading)]\n",
+      (uint64_t)BOUNDED_SUBTRACTION(mapper_time_sec,loading_time_sec,0),loading_time_sec);
 
   // Done!
   return 0;

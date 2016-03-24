@@ -21,17 +21,15 @@
  */
 typedef enum { single_end=0, paired_end1=1, paired_end2=2 } sequence_end_t;
 typedef struct {
-  sequence_end_t end_info;
-  string_t casava_tag;
-  string_t extra_tag;
-} sequence_attributes_t;
-typedef struct {
   /* Sequence */
   string_t tag;
   string_t read;
   string_t qualities;
   /* Attributes */
-  sequence_attributes_t attributes;
+  bool has_qualities;
+  sequence_end_t end_info;
+  string_t casava_tag;
+  string_t extra_tag;
 } sequence_t;
 
 /*

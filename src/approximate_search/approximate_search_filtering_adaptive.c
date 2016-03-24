@@ -87,16 +87,16 @@ void approximate_search_filtering_adaptive_basic_cases(approximate_search_t* con
     search->search_stage = asearch_stage_read_recovery;
     return;
   }
-  // Exact search
-  if (search->max_complete_error==0) {
-    search->search_stage = asearch_stage_neighborhood;
-    return;
-  }
-  // Very short reads (Neighborhood search)
-  if (key_length <= RANK_MTABLE_SEARCH_DEPTH || key_length < search->archive->fm_index->proper_length) {
-    search->search_stage = asearch_stage_neighborhood;
-    return;
-  }
+//  // Exact search
+//  if (search->max_complete_error==0) {
+//    search->search_stage = asearch_stage_neighborhood;
+//    return;
+//  }
+//  // Very short reads (Neighborhood search)
+//  if (key_length <= RANK_MTABLE_SEARCH_DEPTH || key_length < search->archive->fm_index->proper_length) {
+//    search->search_stage = asearch_stage_neighborhood;
+//    return;
+//  }
   // Otherwise, go to standard exact filtering
   search->search_stage = asearch_stage_filtering_adaptive;
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }

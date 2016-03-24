@@ -20,6 +20,7 @@ MODULES=buffered_input_file \
         input_buffer \
         input_fasta_parser \
         input_file \
+        input_file_sliced \
         input_multifasta_parser \
         input_parser \
         output_buffer \

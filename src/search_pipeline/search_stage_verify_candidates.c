@@ -236,8 +236,6 @@ bool search_stage_verify_candidates_retrieve_se_search(
   search_stage_verify_candidates_buffer_t* current_buffer;
   const bool success = search_stage_verify_candidates_retrieve_next(search_stage_vc,&current_buffer,archive_search);
   if (!success) return false;
-  // Push Stack State
-  mm_stack_push_state(search_stage_vc->mm_stack);
   // Clear & Inject Support Data Structures
   matches_clear(search_stage_vc->matches);
   filtering_candidates_clear(&search_stage_vc->filtering_candidates_forward_end1);
@@ -266,8 +264,6 @@ bool search_stage_verify_candidates_retrieve_pe_search(
   // Retrieve next (End/1)
   success = search_stage_verify_candidates_retrieve_next(search_stage_vc,&current_buffer,archive_search_end1);
   if (!success) return false;
-  // Push Stack State
-  mm_stack_push_state(search_stage_vc->mm_stack);
   // Clear & Inject Support Data Structures (End/1)
   paired_matches_clear(search_stage_vc->paired_matches,true); // Clear paired-matches
   filtering_candidates_clear(&search_stage_vc->filtering_candidates_forward_end1);

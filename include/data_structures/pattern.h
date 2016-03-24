@@ -73,9 +73,10 @@ typedef struct {
 void pattern_init(
     pattern_t* const pattern,
     sequence_t* const sequence,
+    bool* const do_quality_search,
     const search_parameters_t* const parameters,
     const bool run_length_pattern,
-    bool* const do_quality_search,
+    const bool kmer_filter_compile,
     mm_stack_t* const mm_stack);
 void pattern_clear(pattern_t* const pattern);
 bool pattern_is_null(pattern_t* const pattern);

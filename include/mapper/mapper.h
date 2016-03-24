@@ -44,12 +44,10 @@ typedef struct {
   char* input_file_name_end1;
   char* input_file_name_end2;
   fm_type input_compression;
+  uint64_t input_num_blocks;
   uint64_t input_block_size;
   uint64_t input_buffer_size;
-  uint64_t input_num_buffers;
-  /* I/O Attributes (qualities, ...) */
   bool fastq_strictly_normalized;
-  bool fastq_try_recovery;
   /* Output */
   char* output_file_name;
 	char* report_file_name;
@@ -109,9 +107,9 @@ typedef struct {
   /* GEM Structures */
   archive_t* archive;                             // GEM Archive
   gpu_buffer_collection_t* gpu_buffer_collection; // GEM-GPU Index
-  input_file_t* input_file;
-  input_file_t* input_file_end1;
-  input_file_t* input_file_end2;
+  input_file_sliced_t* input_file;
+  input_file_sliced_t* input_file_end1;
+  input_file_sliced_t* input_file_end2;
   pthread_mutex_t input_file_mutex;
   FILE* output_stream;
   output_file_t* output_file;
@@ -130,6 +128,9 @@ typedef struct {
   mapper_parameters_hints_t hints;
   /* Miscellaneous */
   mapper_parameters_misc_t misc;
+  /* Profile */
+  gem_timer_t mapper_time;
+  gem_timer_t loading_time;
 } mapper_parameters_t;
 /*
  * Mapper Search

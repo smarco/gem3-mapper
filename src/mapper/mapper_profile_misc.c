@@ -22,9 +22,7 @@ void mapper_profile_print_io(FILE* const stream) {
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_BUFFERED_INPUT_RELOAD__DUMP_ATTACHED),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"        => TIME.BufferedInput.Reload       ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_BUFFERED_INPUT_RELOAD),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"          => TIME.InputFile.ReloadBuffer   ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_INPUT_FILL_BUFFER),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"            --> Buffer.ReloadBuffer.Read   ");
+  tab_fprintf(stream,"          --> Buffer.ReloadBuffer.Read     ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_BUFFERED_INPUT_BUFFER_SIZE),NULL,"B",true);
   tab_fprintf(stream,"    => TIME.BufferedOutput.Dump            ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_BUFFERED_OUTPUT_DUMP),PROF_GET_TIMER(GP_MAPPER_ALL));

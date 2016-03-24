@@ -22,9 +22,10 @@
 void pattern_init(
     pattern_t* const pattern,
     sequence_t* const sequence,
+    bool* const do_quality_search,
     const search_parameters_t* const parameters,
     const bool run_length_pattern,
-    bool* const do_quality_search,
+    const bool kmer_filter_compile,
     mm_stack_t* const mm_stack) {
   // Allocate pattern memory
   pattern->key_length = sequence_get_length(sequence);
@@ -108,10 +109,14 @@ void pattern_init(
   pattern->max_effective_bandwidth = MIN(max_effective_bandwidth,pattern->key_length);
   if (pattern->max_effective_filtering_error > 0) {
     // Prepare kmer-counting filter
-    const uint64_t kmer_filter_error = BOUNDED_ADDITION(
-        pattern->max_effective_filtering_error,num_non_canonical_bases,pattern->key_length);
-    kmer_counting_compile(&pattern->kmer_counting,
-        pattern->key,pattern->key_length,kmer_filter_error,mm_stack);
+    if (kmer_filter_compile) {
+      const uint64_t kmer_filter_error = BOUNDED_ADDITION(
+          pattern->max_effective_filtering_error,num_non_canonical_bases,pattern->key_length);
+      kmer_counting_compile(&pattern->kmer_counting,
+          pattern->key,pattern->key_length,kmer_filter_error,mm_stack);
+    } else {
+      pattern->kmer_counting.enabled = false;
+    }
     // Prepare BPM pattern
     pattern->bpm_pattern = bpm_pattern_compile(
         pattern->key,pattern->key_length,pattern->max_effective_filtering_error,mm_stack);

@@ -85,7 +85,6 @@
  * I/O
  */
 #define GP_INPUT_FASTA_PARSE_SEQUENCE                       145
-#define GP_INPUT_FILL_BUFFER                                146
 #define GP_BUFFERED_INPUT_RELOAD                            147
 #define GP_BUFFERED_INPUT_RELOAD__DUMP_ATTACHED             148
 #define GP_BUFFERED_INPUT_BUFFER_SIZE                       149

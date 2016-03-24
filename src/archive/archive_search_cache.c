@@ -49,7 +49,8 @@ archive_search_t* archive_search_cache_alloc(archive_search_cache_t* const archi
     vector_dec_used(archive_search_cache->archive_search_cache);
   } else {
     // Allocate new one
-    archive_search_se_new(archive_search_cache->archive,archive_search_cache->search_parameters,&archive_search);
+    archive_search_se_new(archive_search_cache->archive,
+        archive_search_cache->search_parameters,true,&archive_search);
   }
   // Return
   return archive_search;
