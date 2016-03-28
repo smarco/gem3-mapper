@@ -11,7 +11,7 @@
 #include "archive/archive_search_se.h"
 #include "archive/archive_search_pe.h"
 #include "stats/report_stats.h"
-//#include "/opt/intel/vtune_amplifier_xe_2013/include/libittnotify.h"
+#include "/opt/intel/vtune_amplifier_xe_2013/include/libittnotify.h"
 
 /*
  * Debug/Profile
@@ -438,13 +438,13 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
 //      printf("HERE\n");
 //    }
 
-//    // Search into the archive
-//    archive_search_se(mapper_search->archive_search,matches);
+    // Search into the archive
+    archive_search_se(mapper_search->archive_search,matches);
 
-//    // Output matches
-//    mapper_SE_output_matches(parameters,mapper_search->buffered_output_file,
-//        mapper_search->archive_search,matches,mapper_search->mapping_stats);
-    output_fastq(mapper_search->buffered_output_file,&mapper_search->archive_search->sequence);
+    // Output matches
+    mapper_SE_output_matches(parameters,mapper_search->buffered_output_file,
+        mapper_search->archive_search,matches,mapper_search->mapping_stats);
+    // output_fastq(mapper_search->buffered_output_file,&mapper_search->archive_search->sequence);
 
     // Update processed
     if (++reads_processed == MAPPER_TICKER_STEP) {
@@ -503,15 +503,15 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
 //      printf("HERE\n");
 //    }
 
-//    // Search into the archive
-//    archive_search_pe(archive_search_end1,archive_search_end2,paired_matches);
+    // Search into the archive
+    archive_search_pe(archive_search_end1,archive_search_end2,paired_matches);
 
-//    // Output matches
-//    mapper_PE_output_matches(parameters,mapper_search->buffered_output_file,
-//        archive_search_end1,archive_search_end2,paired_matches,mapper_search->mapping_stats);
+    // Output matches
+    mapper_PE_output_matches(parameters,mapper_search->buffered_output_file,
+        archive_search_end1,archive_search_end2,paired_matches,mapper_search->mapping_stats);
 
-    output_fastq(mapper_search->buffered_output_file,&archive_search_end1->sequence);
-    output_fastq(mapper_search->buffered_output_file,&archive_search_end2->sequence);
+    //output_fastq(mapper_search->buffered_output_file,&archive_search_end1->sequence);
+    //output_fastq(mapper_search->buffered_output_file,&archive_search_end2->sequence);
 
     // Update processed
     if (++reads_processed == MAPPER_TICKER_STEP) {
@@ -579,7 +579,7 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
         (pthread_handler_t) mapper_SE_bisulfite_thread : (pthread_handler_t) mapper_SE_thread;
   }
   uint64_t i;
-  //__itt_resume();
+  __itt_resume();
   for (i=0;i<num_threads;++i) {
     // Setup thread
     mapper_search[i].paired_end = paired_end;
@@ -602,7 +602,7 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
     gem_cond_fatal_error__perror(pthread_join(*(mapper_search[i].thread_data),0),SYS_THREAD_JOIN);
     mm_free(mapper_search[i].thread_data);
   }
-  //__itt_pause();
+  __itt_pause();
   ticker_finish(&ticker);
   ticker_mutex_cleanup(&ticker);
 	// Merge report stats
