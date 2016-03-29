@@ -66,7 +66,7 @@ struct _fm_t {
   /* File */
   int fd;                 /* File descriptor */
   FILE* file;             /* FILE */
-#ifdef HAVE_BZLIB
+#ifdef HAVE_ZLIB
   gzFile gz_file;         /* GZip FILE */
 #endif
 #ifdef HAVE_BZLIB

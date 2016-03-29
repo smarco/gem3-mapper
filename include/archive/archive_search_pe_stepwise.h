@@ -27,7 +27,10 @@ void archive_search_pe_stepwise_init_search(
 /*
  * Stepwise: Region-Profile
  */
-void archive_search_pe_stepwise_region_profile_generate(
+void archive_search_pe_stepwise_region_profile_generate_static(
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2);
+void archive_search_pe_stepwise_region_profile_generate_adaptive(
     archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2);
 void archive_search_pe_stepwise_region_profile_copy(
@@ -42,9 +45,6 @@ void archive_search_pe_stepwise_region_profile_retrieve(
 /*
  * Stepwise: Decode-Candidates
  */
-void archive_search_pe_stepwise_decode_candidates_generate(
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2);
 void archive_search_pe_stepwise_decode_candidates_copy(
     archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2,

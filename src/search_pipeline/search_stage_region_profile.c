@@ -39,11 +39,9 @@ search_stage_region_profile_t* search_stage_region_profile_new(
     const uint64_t buffers_offset,
     const uint64_t num_buffers,
     fm_index_t* const fm_index,
-    const bool adaptive_region_profile,
     const bool cpu_emulated) {
   // Alloc
   search_stage_region_profile_t* const search_stage_rp = mm_alloc(search_stage_region_profile_t);
-  search_stage_rp->adaptive_region_profile = adaptive_region_profile;
   // Init Buffers
   uint64_t i;
   search_stage_rp->buffers = vector_new(num_buffers,search_stage_region_profile_buffer_t*);
@@ -108,8 +106,7 @@ bool search_stage_region_profile_send_se_search(
   // Add SE Search
   search_stage_region_profile_buffer_add(current_buffer,archive_search);
   // Copy profile-partitions to the buffer
-  archive_search_se_stepwise_region_profile_copy(archive_search,
-      search_stage_rp->adaptive_region_profile,current_buffer->gpu_buffer_fmi_search);
+  archive_search_se_stepwise_region_profile_copy(archive_search,current_buffer->gpu_buffer_fmi_search);
   // Return ok
   return true;
 }
@@ -137,10 +134,8 @@ bool search_stage_region_profile_send_pe_search(
   search_stage_region_profile_buffer_add(current_buffer,archive_search_end2);
   // Copy profile-partitions to the buffer
   gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search = current_buffer->gpu_buffer_fmi_search;
-  archive_search_se_stepwise_region_profile_copy(archive_search_end1,
-      search_stage_rp->adaptive_region_profile,gpu_buffer_fmi_search);
-  archive_search_se_stepwise_region_profile_copy(archive_search_end2,
-      search_stage_rp->adaptive_region_profile,gpu_buffer_fmi_search);
+  archive_search_se_stepwise_region_profile_copy(archive_search_end1,gpu_buffer_fmi_search);
+  archive_search_se_stepwise_region_profile_copy(archive_search_end2,gpu_buffer_fmi_search);
   // Return ok
   return true;
 }

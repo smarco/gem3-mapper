@@ -30,12 +30,11 @@ const char* archive_search_pe_state_label[] =
 /*
  * Setup
  */
-archive_search_t* archive_search_new(
+void archive_search_init(
+    archive_search_t* const archive_search,
     archive_t* const archive,
     search_parameters_t* const search_parameters,
     const bool buffered_search) {
-  // Allocate handler
-  archive_search_t* const archive_search = mm_alloc(archive_search_t);
   // Archive
   archive_search->archive = archive;
   // Sequence
@@ -53,16 +52,15 @@ archive_search_t* archive_search_new(
   archive_search->probe_strand = true;
   archive_search->emulate_rc_search = !archive->indexed_complement;
   archive_search->buffered_search = buffered_search;
-  // Return
-  return archive_search;
 }
 void archive_search_se_new(
     archive_t* const archive,
     search_parameters_t* const search_parameters,
     const bool buffered_search,
     archive_search_t** const archive_search) {
-  // Allocate Search
-  *archive_search = archive_search_new(archive,search_parameters,buffered_search);
+  // Prepare Search
+  *archive_search = mm_alloc(archive_search_t); // Allocate handler
+  archive_search_init(*archive_search,archive,search_parameters,buffered_search);
   // Select align
   archive_select_configure_se(*archive_search);
 }
@@ -73,8 +71,10 @@ void archive_search_pe_new(
     archive_search_t** const archive_search_end1,
     archive_search_t** const archive_search_end2) {
   // Allocate Search
-  *archive_search_end1 = archive_search_new(archive,search_parameters,buffered_search);
-  *archive_search_end2 = archive_search_new(archive,search_parameters,buffered_search);
+  *archive_search_end1 = mm_alloc(archive_search_t); // Allocate handler
+  archive_search_init(*archive_search_end1,archive,search_parameters,buffered_search);
+  *archive_search_end2 = mm_alloc(archive_search_t); // Allocate handler
+  archive_search_init(*archive_search_end2,archive,search_parameters,buffered_search);
   // Select align
   archive_select_configure_pe(*archive_search_end1);
 }
@@ -118,13 +118,17 @@ void archive_search_reset(archive_search_t* const archive_search) {
   }
   PROFILE_STOP(GP_ARCHIVE_SEARCH_SE_INIT,PROFILE_LEVEL);
 }
-void archive_search_delete(archive_search_t* const archive_search) {
-  // Delete Sequence
+void archive_search_destroy(archive_search_t* const archive_search) {
+  // Destroy Sequence
   sequence_destroy(&archive_search->sequence);
   sequence_destroy(&archive_search->rc_sequence);
   // Destroy search states
   approximate_search_destroy(&archive_search->forward_search_state);
   approximate_search_destroy(&archive_search->reverse_search_state);
+}
+void archive_search_delete(archive_search_t* const archive_search) {
+  // Destroy archive-search
+  archive_search_destroy(archive_search);
   // Free handler
   mm_free(archive_search);
 }

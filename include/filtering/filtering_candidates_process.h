@@ -49,7 +49,6 @@ uint64_t filtering_candidates_compose_filtering_regions(
  */
 uint64_t filtering_candidates_process_candidates(
     filtering_candidates_t* const filtering_candidates,
-    pattern_t* const pattern,
-    const bool keep_matching_regions);
+    pattern_t* const pattern);
 
 #endif /* FILTERING_CANDIDATES_PROCESS_H_ */

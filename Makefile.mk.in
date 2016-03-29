@@ -141,7 +141,6 @@ endif
 ###############################################################################
 VTUNE_PROFILE_LIB=-ldl
 VTUNE_PATH=/opt/intel/vtune_amplifier_xe_2013/
-# VTUNE_PATH=/opt/intel/vtune_amplifier_xe_2013
 LIBITTNOTIFY=$(VTUNE_PATH)/lib64/libittnotify.a
 ifeq ($(wildcard LIBITTNOTIFY),)
   VTUNE_PROFILE_LIB+=$(LIBITTNOTIFY)

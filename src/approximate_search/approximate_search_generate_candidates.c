@@ -222,7 +222,7 @@ void approximate_search_generate_candidates_inexact(
     if (verify_ahead && asearch_control_filter_ahead_candidates(search,matches)) {
       PROFILE_PAUSE(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
       PROFILE_START(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING,PROFILE_LEVEL);
-      filtering_candidates_process_candidates(filtering_candidates,pattern,true);
+      filtering_candidates_process_candidates(filtering_candidates,pattern);
       filtering_candidates_verify_candidates(filtering_candidates,pattern);
       filtering_candidates_align_candidates(filtering_candidates,
           pattern,search->emulated_rc_search,false,false,matches);

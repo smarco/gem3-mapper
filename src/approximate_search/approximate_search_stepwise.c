@@ -54,7 +54,7 @@ void asearch_control_next_state_filtering_adaptive(
 /*
  * AM Stepwise :: Region Profile
  */
-void approximate_search_stepwise_region_profile_generate(approximate_search_t* const search) {
+void approximate_search_stepwise_region_profile_generate_static(approximate_search_t* const search) {
   while (true) {
     switch (search->search_stage) {
       case asearch_stage_begin: // Search Start. Check basic cases
@@ -64,7 +64,40 @@ void approximate_search_stepwise_region_profile_generate(approximate_search_t* c
       case asearch_stage_filtering_adaptive:
         approximate_search_region_partition_fixed(search);
         return;
-      // case asearch_stage_neighborhood: return;
+      default:
+        GEM_INVALID_CASE();
+        break;
+    }
+  }
+}
+void approximate_search_stepwise_region_profile_generate_adaptive(approximate_search_t* const search) {
+  while (true) {
+    switch (search->search_stage) {
+      case asearch_stage_begin: // Search Start. Check basic cases
+        approximate_search_filtering_adaptive_basic_cases(search);
+        break;
+      case asearch_stage_read_recovery:
+      case asearch_stage_filtering_adaptive:
+        // Adaptive region-profile
+        approximate_search_exact_filtering_adaptive_lightweight(search,NULL);
+        // Check no-regions
+        if (search->processing_state == asearch_processing_state_no_regions) return;
+        // Set as region-profiled
+        search->processing_state = asearch_processing_state_region_profiled;
+        // Check exact matches (limit the number of matches)
+        region_profile_t* const region_profile = &search->region_profile;
+        if (region_profile_has_exact_matches(region_profile)) {
+          search_parameters_t* const search_parameters = search->search_parameters;
+          select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;
+          region_search_t* const filtering_region = region_profile->filtering_region;
+          const uint64_t total_candidates = filtering_region->hi - filtering_region->lo;
+          if (select_parameters->min_reported_strata_nominal==0 &&
+              total_candidates > select_parameters->max_reported_matches) {
+            filtering_region->hi = filtering_region->lo + select_parameters->max_reported_matches;
+            region_profile->total_candidates = select_parameters->max_reported_matches;
+          }
+        }
+        return;
       default:
         GEM_INVALID_CASE();
         break;
@@ -110,9 +143,6 @@ void approximate_search_stepwise_region_profile_retrieve(
 /*
  * AM Stepwise :: Decode Candidates
  */
-void approximate_search_stepwise_decode_candidates_generate(approximate_search_t* const search) {
-  // NOP
-}
 void approximate_search_stepwise_decode_candidates_copy(
     approximate_search_t* const search,
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
@@ -130,9 +160,6 @@ void approximate_search_stepwise_decode_candidates_retrieve(
 /*
  * AM Stepwise :: Verify Candidates
  */
-void approximate_search_stepwise_verify_candidates_generate(approximate_search_t* const search) {
-  // NOP
-}
 void approximate_search_stepwise_verify_candidates_copy(
     approximate_search_t* const search,
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {

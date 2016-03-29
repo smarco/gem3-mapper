@@ -397,8 +397,7 @@ void filtering_candidates_decode_filtering_position_batch_prefetched(
  */
 uint64_t filtering_candidates_process_candidates(
     filtering_candidates_t* const filtering_candidates,
-    pattern_t* const pattern,
-    const bool keep_matching_regions) {
+    pattern_t* const pattern) {
   // Check non-empty pending candidates set
   uint64_t pending_candidates = vector_get_used(filtering_candidates->filtering_positions);
   PROF_ADD_COUNTER(GP_CANDIDATE_POSITIONS,pending_candidates);
@@ -415,9 +414,9 @@ uint64_t filtering_candidates_process_candidates(
   // Compose matching regions into candidate regions (also filter out duplicated positions or already checked)
   PROFILE_START(GP_FC_COMPOSE_REGIONS,PROFILE_LEVEL);
   search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
-  const bool compose_region_chaining = keep_matching_regions && !search_parameters->force_full_swg;
+  const bool matching_region_compose = !search_parameters->force_full_swg;
   pending_candidates = filtering_candidates_compose_filtering_regions(
-      filtering_candidates,pattern,compose_region_chaining);
+      filtering_candidates,pattern,matching_region_compose);
   PROFILE_STOP(GP_FC_COMPOSE_REGIONS,PROFILE_LEVEL);
   PROF_ADD_COUNTER(GP_CANDIDATE_REGIONS,pending_candidates);
   // Return total candidate regions

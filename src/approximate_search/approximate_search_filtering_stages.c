@@ -41,9 +41,9 @@ void approximate_search_exact_filtering_adaptive(
       REGION_FILTER_DEGREE_ZERO,search_parameters->filtering_threshold);
   approximate_search_generate_candidates_exact(search,matches);
   // Process candidates (just prepare to verification)
-  const bool verify_candidates = (matches != NULL);
-  filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern,verify_candidates);
+  filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern);
   // Verify Candidates (if needed)
+  const bool verify_candidates = (matches != NULL);
   if (verify_candidates) {
     approximate_search_verify_candidates(search,matches);
     search->processing_state = asearch_processing_state_candidates_verified;
@@ -116,7 +116,7 @@ void approximate_search_exact_filtering_adaptive_cutoff(
     PROFILE_STOP(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
     // Verify candidates
     PROFILE_START(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING,PROFILE_LEVEL);
-    filtering_candidates_process_candidates(filtering_candidates,pattern,true);
+    filtering_candidates_process_candidates(filtering_candidates,pattern);
     filtering_candidates_verify_candidates(filtering_candidates,pattern);
     filtering_candidates_align_candidates(filtering_candidates,
         pattern,search->emulated_rc_search,false,false,matches);
@@ -172,7 +172,7 @@ void approximate_search_inexact_filtering(
   approximate_search_generate_candidates_inexact(search,true,true,matches);
   approximate_search_update_mcs(search,region_profile->errors_allowed + pattern->num_wildcards); // Update MCS
   // Process candidates (just prepare to verification)
-  filtering_candidates_process_candidates(search->filtering_candidates,pattern,true);
+  filtering_candidates_process_candidates(search->filtering_candidates,pattern);
   // Verify candidates
   approximate_search_verify_candidates(search,matches);
   // Stats -> TODO to control

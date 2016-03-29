@@ -45,7 +45,7 @@ void approximate_search_filtering_complete(
   approximate_search_generate_candidates_exact(search,matches);
   // Verify candidates
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
-  filtering_candidates_process_candidates(filtering_candidates,pattern,true);
+  filtering_candidates_process_candidates(filtering_candidates,pattern);
   filtering_candidates_verify_candidates(filtering_candidates,pattern);
   // Align candidates
   filtering_candidates_align_candidates(filtering_candidates,

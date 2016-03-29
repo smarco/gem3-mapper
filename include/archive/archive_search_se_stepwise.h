@@ -24,11 +24,12 @@ void archive_search_se_stepwise_init_search(archive_search_t* const archive_sear
 /*
  * Stepwise: Region-Profile
  */
-void archive_search_se_stepwise_region_profile_generate(
+void archive_search_se_stepwise_region_profile_generate_static(
+    archive_search_t* const archive_search);
+void archive_search_se_stepwise_region_profile_generate_adaptive(
     archive_search_t* const archive_search);
 void archive_search_se_stepwise_region_profile_copy(
     archive_search_t* const archive_search,
-    const bool adaptive_region_profile,
     gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
 void archive_search_se_stepwise_region_profile_retrieve(
     archive_search_t* const archive_search,
@@ -37,8 +38,6 @@ void archive_search_se_stepwise_region_profile_retrieve(
 /*
  * Stepwise: Decode-Candidates
  */
-void archive_search_se_stepwise_decode_candidates_generate(
-    archive_search_t* const archive_search);
 void archive_search_se_stepwise_decode_candidates_copy(
     archive_search_t* const archive_search,
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode);
@@ -49,8 +48,6 @@ void archive_search_se_stepwise_decode_candidates_retrieve(
 /*
  * Stepwise: Verify-Candidates
  */
-void archive_search_se_stepwise_verify_candidates_generate(
-    archive_search_t* const archive_search);
 void archive_search_se_stepwise_verify_candidates_copy(
     archive_search_t* const archive_search,
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);

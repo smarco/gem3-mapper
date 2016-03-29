@@ -43,6 +43,13 @@ search_stage_decode_candidates_t* search_stage_decode_candidates_new(
     const bool gpu_decode_sa,
     const bool gpu_decode_text,
     mm_stack_t* const mm_stack);
+void search_stage_decode_candidates_prepare_se_search(
+    search_stage_decode_candidates_t* const search_stage_dc,
+    archive_search_t* const archive_search);
+void search_stage_decode_candidates_prepare_pe_search(
+    search_stage_decode_candidates_t* const search_stage_dc,
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2);
 void search_stage_decode_candidates_clear(
     search_stage_decode_candidates_t* const search_stage_dc,
     archive_search_cache_t* const archive_search_cache);

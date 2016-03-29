@@ -21,6 +21,8 @@ typedef struct {
   /* Archive & Parameters */
   archive_t* archive;                     // Archive
   search_parameters_t* search_parameters; // Search Parameters
+  /* MM */
+  mm_stack_t* mm_stack;                   // MM-Stack (private)
 } archive_search_cache_t;
 
 /*
@@ -34,7 +36,13 @@ void archive_search_cache_delete(archive_search_cache_t* const archive_search_ca
 /*
  * Allocate/Free
  */
-archive_search_t* archive_search_cache_alloc(archive_search_cache_t* const archive_search_cache);
+void archive_search_cache_se_alloc(
+    archive_search_cache_t* const archive_search_cache,
+    archive_search_t** const archive_search);
+void archive_search_cache_pe_alloc(
+    archive_search_cache_t* const archive_search_cache,
+    archive_search_t** const archive_search_end1,
+    archive_search_t** const archive_search_end2);
 void archive_search_cache_free(
     archive_search_cache_t* const archive_search_cache,
     archive_search_t* const archive_search);

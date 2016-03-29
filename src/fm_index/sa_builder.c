@@ -248,10 +248,12 @@ void sa_builder_store_suffixes_prepare(sa_builder_t* const sa_builder) {
   sa_builder->block_size = block_size;
   sa_builder->max_bucket_size = max_bucket_size;
   // Allocate SA-positions memory
-  char* full_tmp_file_path = gem_strcat(mm_get_tmp_folder(),sa_builder->name_prefix);
-  sa_builder->sa_positions_file_name = gem_strcat(full_tmp_file_path,".sa.tmp");
+  char* tmp_file_basename = gem_strbasename(sa_builder->name_prefix);
+  char* tmp_file_path = gem_strcat(mm_get_tmp_folder(),tmp_file_basename);
+  sa_builder->sa_positions_file_name = gem_strcat(tmp_file_path,".sa.tmp");
   sa_builder->sa_positions_file = fm_open_file(sa_builder->sa_positions_file_name,FM_WRITE); // size(sa_builder->sa_positions_file) = sa_length*UINT64_SIZE
-  mm_free(full_tmp_file_path);
+  mm_free(tmp_file_basename);
+  mm_free(tmp_file_path);
   // Prepare SA-Groups
   const uint64_t num_sa_groups = sa_builder_calculate_num_sa_groups(sa_builder,block_size);
   sa_builder->num_sa_groups = num_sa_groups;

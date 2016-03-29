@@ -40,7 +40,6 @@ search_pipeline_t* search_pipeline_new(
     mapper_parameters_t* const mapper_parameters,
     gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffers_offset,
-    const bool adaptive_region_profile,
     const bool paired_end);
 void search_pipeline_clear(search_pipeline_t* const search_pipeline);
 void search_pipeline_delete(search_pipeline_t* const search_pipeline);
@@ -48,7 +47,9 @@ void search_pipeline_delete(search_pipeline_t* const search_pipeline);
 /*
  * Archive-Search allocation
  */
-archive_search_t* search_pipeline_allocate_se(search_pipeline_t* const search_pipeline);
+void search_pipeline_allocate_se(
+    search_pipeline_t* const search_pipeline,
+    archive_search_t** const archive_search);
 void search_pipeline_allocate_pe(
     search_pipeline_t* const search_pipeline,
     archive_search_t** const archive_search_end1,
