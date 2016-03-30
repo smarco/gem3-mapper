@@ -38,14 +38,14 @@ void mm_slab_add_new_segment(mm_slab_t* const mm_slab) {
   mm_slab_segment->busy_slabs_units = 0;
   // Allocate mm-segment
   mm_t* mem_manager;
-  const uint64_t available_memory = (mm_slab->max_memory - mm_slab->requested_memory);
-  if ( (available_memory > mm_slab->slab_segment_size) &&
-       (mm_get_available_mem() > mm_slab->slab_segment_size+BUFFER_SIZE_128M) ) {
+//  const uint64_t available_memory = (mm_slab->max_memory - mm_slab->requested_memory);
+//  if ( (available_memory > mm_slab->slab_segment_size) &&
+//       (mm_get_available_mem() > mm_slab->slab_segment_size+BUFFER_SIZE_128M) ) {
     mem_manager = mm_bulk_mmalloc(mm_slab->slab_segment_size,false);
     mm_slab->requested_memory += mm_slab->slab_segment_size;
-  } else {
-    mem_manager = mm_bulk_mmalloc_temp(mm_slab->slab_segment_size);
-  }
+//  } else {
+//    mem_manager = mm_bulk_mmalloc_temp(mm_slab->slab_segment_size);
+//  }
   mm_slab_segment->mm = mem_manager;
   // Add the segment
   vector_insert(mm_slab->slabs_segments,mm_slab_segment,mm_slab_segment_t*);
