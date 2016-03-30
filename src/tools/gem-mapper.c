@@ -361,7 +361,6 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       gem_mapper_cond_error_msg(error,"Option '--input-model'. Error parsing 'buffer_size'");
       // Propagate settings to CUDA
       cuda->input_block_size = io->input_block_size;
-      cuda->input_num_buffers = io->input_num_blocks;
       cuda->input_buffer_size = io->input_buffer_size;
       break;
     }

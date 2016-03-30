@@ -66,18 +66,21 @@ void archive_search_init(
     archive_search_t* const archive_search,
     archive_t* const archive,
     search_parameters_t* const search_parameters,
-    const bool buffered_search);
+    const bool buffered_search,
+    mm_stack_t* const mm_stack);
 void archive_search_destroy(archive_search_t* const archive_search);
 
 void archive_search_se_new(
     archive_t* const archive,
     search_parameters_t* const search_parameters,
     const bool buffered_search,
+    mm_stack_t* const mm_stack,
     archive_search_t** const archive_search);
 void archive_search_pe_new(
     archive_t* const archive,
     search_parameters_t* const search_parameters,
     const bool buffered_search,
+    mm_stack_t* const mm_stack,
     archive_search_t** const archive_search_end1,
     archive_search_t** const archive_search_end2);
 void archive_search_reset(archive_search_t* const archive_search);

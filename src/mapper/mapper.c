@@ -168,9 +168,8 @@ void mapper_parameters_set_defaults_cuda(mapper_parameters_cuda_t* const cuda) {
   cuda->cuda_enabled=false;
   cuda->cpu_emulated=false;
   /* I/O */
-  cuda->input_block_size = BUFFER_SIZE_64M;
+  cuda->input_block_size = BUFFER_SIZE_32M;
   cuda->input_buffer_size = BUFFER_SIZE_4M;
-  cuda->input_num_buffers = 2*num_processors;
   cuda->output_buffer_size = BUFFER_SIZE_4M;
   cuda->output_num_buffers = 10*num_processors; // Lazy allocation
   /* BPM Buffers */
@@ -426,7 +425,7 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
   // Create an Archive-Search
   search_parameters_t* const base_search_parameters = &mapper_search->mapper_parameters->base_search_parameters;
   mm_search_t* const mm_search = mm_search_new(mm_pool_get_slab(mm_pool_32MB));
-  archive_search_se_new(parameters->archive,base_search_parameters,false,&mapper_search->archive_search);
+  archive_search_se_new(parameters->archive,base_search_parameters,false,NULL,&mapper_search->archive_search);
   archive_search_se_inject_mm(mapper_search->archive_search,mm_search);
   matches_t* const matches = matches_new();
   matches_configure(matches,mapper_search->archive_search->text_collection);
@@ -487,7 +486,7 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
   mapper_stats_template_init(mm_search->mapper_stats,
       base_search_parameters->search_paired_parameters.min_initial_template_estimation,
       base_search_parameters->search_paired_parameters.max_initial_template_estimation);
-  archive_search_pe_new(parameters->archive,base_search_parameters,false,
+  archive_search_pe_new(parameters->archive,base_search_parameters,false,NULL,
       &mapper_search->archive_search_end1,&mapper_search->archive_search_end2);
   archive_search_pe_inject_mm(mapper_search->archive_search_end1,mapper_search->archive_search_end2,mm_search);
   mapper_search->paired_matches = paired_matches_new(mm_search->text_collection);

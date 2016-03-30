@@ -57,7 +57,8 @@ void archive_search_cache_se_alloc(
     *archive_search = mm_stack_alloc(archive_search_cache->mm_stack,archive_search_t); // Allocate handler
     archive_search_init(
         *archive_search,archive_search_cache->archive,
-        archive_search_cache->search_parameters,true); // Prepare
+        archive_search_cache->search_parameters,true,
+        archive_search_cache->mm_stack); // Prepare
     archive_select_configure_se(*archive_search); // Select align
   }
 }
@@ -73,7 +74,8 @@ void archive_search_cache_pe_alloc(
     *archive_search_end1 = mm_stack_alloc(archive_search_cache->mm_stack,archive_search_t); // Allocate handler
     archive_search_init(
         *archive_search_end1,archive_search_cache->archive,
-        archive_search_cache->search_parameters,true); // Prepare
+        archive_search_cache->search_parameters,true,
+        archive_search_cache->mm_stack); // Prepare
     archive_select_configure_pe(*archive_search_end1); // Select align
   }
   // Allocate End/2
@@ -84,7 +86,8 @@ void archive_search_cache_pe_alloc(
     *archive_search_end2 = mm_stack_alloc(archive_search_cache->mm_stack,archive_search_t); // Allocate handler
     archive_search_init(
         *archive_search_end2,archive_search_cache->archive,
-        archive_search_cache->search_parameters,true); // Prepare
+        archive_search_cache->search_parameters,true,
+        archive_search_cache->mm_stack); // Prepare
     archive_select_configure_pe(*archive_search_end2); // Select align
   }
 }

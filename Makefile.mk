@@ -43,8 +43,8 @@ HAVE_ZLIB = 1
 HAVE_BZLIB = 1
 HAVE_OPENMP = 1
 HAVE_CUDA = 1
-HAVE_LTO = 0
-HAVE_GOLD = 0
+HAVE_LTO = 1
+HAVE_GOLD = 1
 
 ###############################################################################
 # General Flags

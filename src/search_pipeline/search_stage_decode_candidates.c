@@ -267,16 +267,36 @@ bool search_stage_decode_candidates_retrieve_pe_search(
     archive_search_t** const archive_search_end2) {
   search_stage_decode_candidates_buffer_t* current_buffer;
   bool success;
+  /*
+   * End/1
+   */
   // Retrieve next (End/1)
   success = search_stage_decode_candidates_retrieve_next(search_stage_dc,&current_buffer,archive_search_end1);
   if (!success) return false;
+  // Clear & Inject Support Data Structures (End/1)
+  filtering_candidates_clear(&search_stage_dc->filtering_candidates_forward_end1);
+  filtering_candidates_clear(&search_stage_dc->filtering_candidates_reverse_end1);
+  archive_search_inject_filtering_candidates(*archive_search_end1,
+      &search_stage_dc->filtering_candidates_forward_end1,
+      &search_stage_dc->filtering_candidates_reverse_end1,
+      NULL, /* Not needed for decoding */
+      search_stage_dc->mm_stack);
+  // Retrieve candidate-positions (decoded) from the buffer (End/1)
+  archive_search_se_stepwise_decode_candidates_retrieve(*archive_search_end1,current_buffer->gpu_buffer_fmi_decode);
+  /*
+   * End/2
+   */
   // Retrieve next (End/2)
   success = search_stage_decode_candidates_retrieve_next(search_stage_dc,&current_buffer,archive_search_end2);
   gem_cond_fatal_error(!success,SEARCH_STAGE_DC_UNPAIRED_QUERY);
-  // Clear & Inject Support Data Structures
-  search_stage_decode_candidates_prepare_pe_search(search_stage_dc,*archive_search_end1,*archive_search_end2);
-  // Retrieve candidate-positions (decoded) from the buffer (End/1)
-  archive_search_se_stepwise_decode_candidates_retrieve(*archive_search_end1,current_buffer->gpu_buffer_fmi_decode);
+  // Clear & Inject Support Data Structures (End/2)
+  filtering_candidates_clear(&search_stage_dc->filtering_candidates_forward_end2);
+  filtering_candidates_clear(&search_stage_dc->filtering_candidates_reverse_end2);
+  archive_search_inject_filtering_candidates(*archive_search_end2,
+      &search_stage_dc->filtering_candidates_forward_end2,
+      &search_stage_dc->filtering_candidates_reverse_end2,
+      NULL, /* Not needed for decoding */
+      search_stage_dc->mm_stack);
   // Retrieve candidate-positions (decoded) from the buffer (End/2)
   archive_search_se_stepwise_decode_candidates_retrieve(*archive_search_end2,current_buffer->gpu_buffer_fmi_decode);
   // Return ok

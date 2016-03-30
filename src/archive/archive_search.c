@@ -34,20 +34,30 @@ void archive_search_init(
     archive_search_t* const archive_search,
     archive_t* const archive,
     search_parameters_t* const search_parameters,
-    const bool buffered_search) {
+    const bool buffered_search,
+    mm_stack_t* const mm_stack) {
   // Archive
   archive_search->archive = archive;
-  // Sequence
-  sequence_init(&archive_search->sequence);
-  sequence_init(&archive_search->rc_sequence);
   // Approximate Search
   memcpy(&archive_search->search_parameters,search_parameters,sizeof(search_parameters_t));
+  if (mm_stack==NULL) {
+    sequence_init(&archive_search->sequence); // Sequence
+  } else {
+    sequence_init_mm(&archive_search->sequence,mm_stack); // Sequence
+  }
   approximate_search_init(
       &archive_search->forward_search_state,archive,
       &archive_search->search_parameters,false);
-  approximate_search_init(
-      &archive_search->reverse_search_state,archive,
-      &archive_search->search_parameters,true);
+  if (archive_search->archive->indexed_complement) {
+    if (mm_stack==NULL) {
+      sequence_init(&archive_search->rc_sequence); // Sequence
+    } else {
+      sequence_init_mm(&archive_search->rc_sequence,mm_stack); // Sequence
+    }
+    approximate_search_init(
+        &archive_search->reverse_search_state,archive,
+        &archive_search->search_parameters,true);
+  }
   // Archive search control (Flow control) [DEFAULTS]
   archive_search->probe_strand = true;
   archive_search->emulate_rc_search = !archive->indexed_complement;
@@ -57,10 +67,12 @@ void archive_search_se_new(
     archive_t* const archive,
     search_parameters_t* const search_parameters,
     const bool buffered_search,
+    mm_stack_t* const mm_stack,
     archive_search_t** const archive_search) {
   // Prepare Search
   *archive_search = mm_alloc(archive_search_t); // Allocate handler
-  archive_search_init(*archive_search,archive,search_parameters,buffered_search);
+  archive_search_init(*archive_search,
+      archive,search_parameters,buffered_search,mm_stack);
   // Select align
   archive_select_configure_se(*archive_search);
 }
@@ -68,13 +80,16 @@ void archive_search_pe_new(
     archive_t* const archive,
     search_parameters_t* const search_parameters,
     const bool buffered_search,
+    mm_stack_t* const mm_stack,
     archive_search_t** const archive_search_end1,
     archive_search_t** const archive_search_end2) {
   // Allocate Search
   *archive_search_end1 = mm_alloc(archive_search_t); // Allocate handler
-  archive_search_init(*archive_search_end1,archive,search_parameters,buffered_search);
+  archive_search_init(*archive_search_end1,
+      archive,search_parameters,buffered_search,mm_stack);
   *archive_search_end2 = mm_alloc(archive_search_t); // Allocate handler
-  archive_search_init(*archive_search_end2,archive,search_parameters,buffered_search);
+  archive_search_init(*archive_search_end2,
+      archive,search_parameters,buffered_search,mm_stack);
   // Select align
   archive_select_configure_pe(*archive_search_end1);
 }

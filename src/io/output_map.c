@@ -337,7 +337,8 @@ void output_map_print_counters(
     const uint64_t mcs,
     const bool compact) {
   const uint64_t num_counters = matches_counters_get_num_counters(matches_counter);
-  buffered_output_file_reserve(buffered_output_file,(num_counters+1)*(INT_MAX_LENGTH+1));
+  const uint64_t max_length = MAX(num_counters,mcs);
+  buffered_output_file_reserve(buffered_output_file,(max_length+1)*(INT_MAX_LENGTH+1));
   // Zero counters
   if (gem_expect_false(num_counters==0)) {
     if (mcs==0 || mcs==ALL) {

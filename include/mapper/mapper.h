@@ -72,7 +72,6 @@ typedef struct {
   /* I/O */
   uint64_t input_block_size;
   uint64_t input_buffer_size;
-  uint64_t input_num_buffers;
   uint64_t output_buffer_size;
   uint64_t output_num_buffers;
   /* GPU Buffering */
