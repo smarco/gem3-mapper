@@ -195,7 +195,9 @@ uint64_t buffered_input_file_reload(
     const uint64_t forced_read_lines) {
   PROFILE_START(GP_BUFFERED_INPUT_RELOAD__DUMP_ATTACHED,PROFILE_LEVEL);
   // Dump attached buffered-output
-  buffered_output_file_dump_buffer(buffered_input->attached_buffered_output_file);
+  if (buffered_input->attached_buffered_output_file != NULL) {
+    buffered_output_file_dump_buffer(buffered_input->attached_buffered_output_file);
+  }
   PROFILE_START(GP_BUFFERED_INPUT_RELOAD,PROFILE_LEVEL);
   // Read a new buffer-block
   buffered_input_file_read_buffer(buffered_input->input_file_sliced,buffered_input,forced_read_lines);
@@ -208,7 +210,9 @@ uint64_t buffered_input_file_reload(
   }
   PROFILE_STOP(GP_BUFFERED_INPUT_RELOAD,PROFILE_LEVEL);
   // Get output buffer (block ID)
-  buffered_output_file_request_buffer(buffered_input->attached_buffered_output_file,buffered_input->block_id);
+  if (buffered_input->attached_buffered_output_file != NULL) {
+    buffered_output_file_request_buffer(buffered_input->attached_buffered_output_file,buffered_input->block_id);
+  }
   PROFILE_STOP(GP_BUFFERED_INPUT_RELOAD__DUMP_ATTACHED,PROFILE_LEVEL);
   return INPUT_STATUS_OK; // OK
 }
