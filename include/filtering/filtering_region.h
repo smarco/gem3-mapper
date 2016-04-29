@@ -87,64 +87,64 @@ typedef struct {
  * Accessors
  */
 void filtering_region_add(
-    vector_t* const filtering_regions,
+    vector_t* const restrict filtering_regions,
     const uint64_t text_trace_offset,
     const uint64_t begin_position,
     const uint64_t end_position,
     const uint64_t align_distance,
     const uint64_t text_begin_offset,
     const uint64_t text_end_offset,
-    mm_stack_t* const mm_stack);
+    mm_stack_t* const restrict mm_stack);
 
 /*
  * Retrieve filtering region text-candidate
  */
 void filtering_region_retrieve_text(
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
-    archive_text_t* const archive_text,
-    text_collection_t* const text_collection,
-    mm_stack_t* const mm_stack);
+    filtering_region_t* const restrict filtering_region,
+    pattern_t* const restrict pattern,
+    archive_text_t* const restrict archive_text,
+    text_collection_t* const restrict text_collection,
+    mm_stack_t* const restrict mm_stack);
 
 /*
  * Prepare Alignment
  */
 void filtering_region_alignment_prepare(
-    filtering_region_t* const filtering_region,
-    bpm_pattern_t* const bpm_pattern,
-    bpm_pattern_t* const bpm_pattern_tiles,
-    mm_stack_t* const mm_stack);
+    filtering_region_t* const restrict filtering_region,
+    bpm_pattern_t* const restrict bpm_pattern,
+    bpm_pattern_t* const restrict bpm_pattern_tiles,
+    mm_stack_t* const restrict mm_stack);
 
 /*
  * Filtering Region Key Trims
  */
 void filtering_region_compute_key_trims(
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern);
+    filtering_region_t* const restrict filtering_region,
+    pattern_t* const restrict pattern);
 
 /*
  * Filtering Region BPM-Pattern
  */
 void filtering_region_bpm_pattern_select(
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
-    bpm_pattern_t** const bpm_pattern,
-    bpm_pattern_t** const bpm_pattern_tiles,
-    mm_stack_t* const mm_stack);
+    filtering_region_t* const restrict filtering_region,
+    pattern_t* const restrict pattern,
+    bpm_pattern_t** const restrict bpm_pattern,
+    bpm_pattern_t** const restrict bpm_pattern_tiles,
+    mm_stack_t* const restrict mm_stack);
 
 /*
  * Sorting
  */
-void filtering_region_sort_regions_matching(const filtering_region_t* const filtering_region);
-void filtering_region_locator_sort_positions(vector_t* const filtering_region_locators);
+void filtering_region_sort_regions_matching(const filtering_region_t* const restrict filtering_region);
+void filtering_region_locator_sort_positions(vector_t* const restrict filtering_region_locators);
 
 /*
  * Display
  */
 void filtering_region_print(
-    FILE* const stream,
-    filtering_region_t* const region,
-    const text_collection_t* const text_collection,
+    FILE* const restrict stream,
+    filtering_region_t* const restrict region,
+    const text_collection_t* const restrict text_collection,
     const bool print_matching_regions);
 
 #endif /* FILTERING_REGION_H_ */

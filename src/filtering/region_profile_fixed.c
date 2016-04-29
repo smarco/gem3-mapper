@@ -15,10 +15,10 @@
  * Region Profile Partition
  */
 void region_profile_generate_fixed_partition(
-    region_profile_t* const region_profile,
-    const uint8_t* const key,
+    region_profile_t* const restrict region_profile,
+    const uint8_t* const restrict key,
     const uint64_t key_length,
-    const bool* const allowed_enc,
+    const bool* const restrict allowed_enc,
     const uint64_t min_region_length) {
   // Init
   region_profile_clear(region_profile);
@@ -48,7 +48,7 @@ void region_profile_generate_fixed_partition(
   }
   // Extend last region
   if (region_length>0 && num_filtering_regions>0) {
-    region_search_t* const last_region_search = region_profile->filtering_region + (num_filtering_regions-1);
+    region_search_t* const restrict last_region_search = region_profile->filtering_region + (num_filtering_regions-1);
     if (region_search->begin==last_region_search->end) {
       last_region_search->end = key_length;
     }
@@ -60,9 +60,9 @@ void region_profile_generate_fixed_partition(
  * Region Profile Schedule (query the region partition into the index)
  */
 void region_profile_generate_fixed_query(
-    region_profile_t* const region_profile,
-    fm_index_t* const fm_index,
-    const uint8_t* const key) {
+    region_profile_t* const restrict region_profile,
+    fm_index_t* const restrict fm_index,
+    const uint8_t* const restrict key) {
   // Iterate over all regions
   const uint64_t fm_index_length = fm_index_get_length(fm_index);
   REGION_PROFILE_ITERATE(region_profile,region,position) {
@@ -94,13 +94,13 @@ void region_profile_generate_fixed_query(
  * Display/Benchmark
  */
 void region_profile_print_mappability(
-    FILE* const stream,
-    fm_index_t* const fm_index,
-    const bool* const allowed_enc,
+    FILE* const restrict stream,
+    fm_index_t* const restrict fm_index,
+    const bool* const restrict allowed_enc,
     const uint8_t* key,
     const uint64_t key_length,
     const bool print_profiles,
-    mm_stack_t* const mm_stack) {
+    mm_stack_t* const restrict mm_stack) {
   // Parameters
   const uint64_t proper_length = fm_index_get_proper_length(fm_index);
   double mappability_pl = 0.0, mappability_2pl = 0.0;
@@ -147,9 +147,9 @@ void region_profile_print_mappability(
   mm_stack_pop_state(mm_stack);
 }
 void region_profile_print_benchmark(
-    FILE* const stream,
-    const region_profile_t* const region_profile,
-    fm_index_t* const fm_index,
+    FILE* const restrict stream,
+    const region_profile_t* const restrict region_profile,
+    fm_index_t* const restrict fm_index,
     const uint8_t* key) {
   REGION_PROFILE_ITERATE(region_profile,region,position) {
     /*

@@ -35,9 +35,9 @@
  * Memory Injection (Support Data Structures)
  */
 void archive_search_pe_inject_mm(
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2,
-    mm_search_t* const mm_search) {
+    archive_search_t* const restrict archive_search_end1,
+    archive_search_t* const restrict archive_search_end2,
+    mm_search_t* const restrict mm_search) {
   // Search end/1
   archive_search_inject_mm_stack(archive_search_end1,mm_search->mm_stack);
   archive_search_inject_mapper_stats(archive_search_end1,mm_search->mapper_stats);
@@ -60,16 +60,16 @@ void archive_search_pe_inject_mm(
 /*
  * PE Extension Control
  */
-bool archive_search_pe_is_extension_feasible(archive_search_t* const archive_search) {
+bool archive_search_pe_is_extension_feasible(archive_search_t* const restrict archive_search) {
   // Check the number of samples to derive the expected template size
   return mapper_stats_template_length_is_reliable(archive_search->mapper_stats);
 }
 bool archive_search_pe_use_shortcut_extension(
-    archive_search_t* const archive_search_extended,
-    archive_search_t* const archive_search_candidate,
-    matches_t* const matches) {
+    archive_search_t* const restrict archive_search_extended,
+    archive_search_t* const restrict archive_search_candidate,
+    matches_t* const restrict matches) {
   // Check extension enabled
-  search_parameters_t* const search_parameters = &archive_search_extended->search_parameters;
+  search_parameters_t* const restrict search_parameters = &archive_search_extended->search_parameters;
   if (!search_parameters->search_paired_parameters.paired_end_extension_shortcut) return false;
   // Check key-length
   const uint64_t key_length = archive_search_candidate->forward_search_state.pattern.key_length;
@@ -80,12 +80,12 @@ bool archive_search_pe_use_shortcut_extension(
   return matches->metrics.mapq >= 30;
 }
 bool archive_search_pe_use_recovery_extension(
-    archive_search_t* const archive_search_extended,
-    archive_search_t* const archive_search_candidate,
-    matches_t* const matches_extended,
-    matches_t* const matches_candidate) {
+    archive_search_t* const restrict archive_search_extended,
+    archive_search_t* const restrict archive_search_candidate,
+    matches_t* const restrict matches_extended,
+    matches_t* const restrict matches_candidate) {
   // Check extension enabled
-  search_parameters_t* const search_parameters = &archive_search_extended->search_parameters;
+  search_parameters_t* const restrict search_parameters = &archive_search_extended->search_parameters;
   if (!search_parameters->search_paired_parameters.paired_end_extension_recovery) return false;
   // Check key-length
   const uint64_t key_length = archive_search_candidate->forward_search_state.pattern.key_length;
@@ -99,19 +99,19 @@ bool archive_search_pe_use_recovery_extension(
  * PE Extension
  */
 uint64_t archive_search_pe_extend_matches(
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches,
+    archive_search_t* const restrict archive_search_end1,
+    archive_search_t* const restrict archive_search_end2,
+    paired_matches_t* const restrict paired_matches,
     const sequence_end_t candidate_end) {
   PROF_INC_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES_TOTAL);
   PROFILE_START(GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES,PROFILE_LEVEL);
   // Parameters
-  search_parameters_t* const search_parameters = &archive_search_end1->search_parameters;
-  search_paired_parameters_t* const search_paired_parameters = &search_parameters->search_paired_parameters;
-  mapper_stats_t* const mapper_stats = archive_search_end1->mapper_stats;
+  search_parameters_t* const restrict search_parameters = &archive_search_end1->search_parameters;
+  search_paired_parameters_t* const restrict search_paired_parameters = &search_parameters->search_paired_parameters;
+  mapper_stats_t* const restrict mapper_stats = archive_search_end1->mapper_stats;
   // Extend in all possible concordant orientations
-  matches_t* const matches_end1 = paired_matches->matches_end1;
-  matches_t* const matches_end2 = paired_matches->matches_end2;
+  matches_t* const restrict matches_end1 = paired_matches->matches_end1;
+  matches_t* const restrict matches_end2 = paired_matches->matches_end2;
   /*
    * Configure extension
    *   All extensions are done against the forward strand. If the candidate is in the reverse,
@@ -131,9 +131,9 @@ uint64_t archive_search_pe_extend_matches(
     extended_matches = matches_end2;
     candidate_matches = matches_end1;
   }
-  filtering_candidates_t* const filtering_candidates =
+  filtering_candidates_t* const restrict filtering_candidates =
       candidate_archive_search->forward_search_state.filtering_candidates;
-  pattern_t* const candidate_pattern = &candidate_archive_search->forward_search_state.pattern;
+  pattern_t* const restrict candidate_pattern = &candidate_archive_search->forward_search_state.pattern;
   uint64_t total_matches_found = 0;
   // Iterate over all matches of the extended end
 //  const uint64_t first_stratum_distance = matches_get_match_trace_buffer(extended_matches)[0].distance;
@@ -159,17 +159,17 @@ uint64_t archive_search_pe_extend_matches(
  * Archive Search PE Continue Search
  */
 void archive_search_pe_continue(
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches) {
+    archive_search_t* const restrict archive_search_end1,
+    archive_search_t* const restrict archive_search_end2,
+    paired_matches_t* const restrict paired_matches) {
   PROFILE_START(GP_ARCHIVE_SEARCH_PE,PROFILE_LEVEL);
   // Parameters
-  search_parameters_t* const search_parameters = &archive_search_end1->search_parameters;
-  select_parameters_t* const select_parameters = &search_parameters->select_parameters_report;
-  search_paired_parameters_t* const search_paired_parameters = &search_parameters->search_paired_parameters;
-  mapper_stats_t* const mapper_stats = archive_search_end1->mapper_stats;
-  matches_t* const matches_end1 = (paired_matches!=NULL) ? paired_matches->matches_end1 : NULL;
-  matches_t* const matches_end2 = (paired_matches!=NULL) ? paired_matches->matches_end2 : NULL;
+  search_parameters_t* const restrict search_parameters = &archive_search_end1->search_parameters;
+  select_parameters_t* const restrict select_parameters = &search_parameters->select_parameters_report;
+  search_paired_parameters_t* const restrict search_paired_parameters = &search_parameters->search_paired_parameters;
+  mapper_stats_t* const restrict mapper_stats = archive_search_end1->mapper_stats;
+  matches_t* const restrict matches_end1 = (paired_matches!=NULL) ? paired_matches->matches_end1 : NULL;
+  matches_t* const restrict matches_end2 = (paired_matches!=NULL) ? paired_matches->matches_end2 : NULL;
   // Callback (switch to proper search stage)
   while (archive_search_end1->pe_search_state != archive_search_pe_end) {
     switch (archive_search_end1->pe_search_state) {
@@ -294,9 +294,9 @@ void archive_search_pe_continue(
  * Paired-End Indexed Search (PE Online Approximate String Search)
  */
 void archive_search_pe(
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches) {
+    archive_search_t* const restrict archive_search_end1,
+    archive_search_t* const restrict archive_search_end2,
+    paired_matches_t* const restrict paired_matches) {
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_PE) {
     tab_fprintf(stderr,"[GEM]>ArchiveSearch.PE\n");
     tab_fprintf(gem_log_get_stream(),"  => Tag %s\n",archive_search_end1->sequence.tag.buffer);
@@ -305,7 +305,7 @@ void archive_search_pe(
     tab_global_inc();
   }
   // Parameters
-  search_parameters_t* const search_parameters = &archive_search_end1->search_parameters;
+  search_parameters_t* const restrict search_parameters = &archive_search_end1->search_parameters;
   // Init
   archive_search_end1->pe_search_state = archive_search_pe_begin;
   // archive_search_end2->pe_search_state = archive_search_pe_begin;
@@ -336,15 +336,15 @@ void archive_search_pe(
  * Compute Predictors
  */
 void archive_search_pe_compute_predictors(
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches,
-    matches_predictors_t* const predictors) {
+    archive_search_t* const restrict archive_search_end1,
+    archive_search_t* const restrict archive_search_end2,
+    paired_matches_t* const restrict paired_matches,
+    matches_predictors_t* const restrict predictors) {
   // Compute predictors
-  approximate_search_metrics_t* const search_end1 = &archive_search_end1->forward_search_state.metrics;
-  approximate_search_metrics_t* const search_end2 = &archive_search_end2->forward_search_state.metrics;
-  matches_t* const matches_end1 = paired_matches->matches_end1;
-  matches_t* const matches_end2 = paired_matches->matches_end2;
+  approximate_search_metrics_t* const restrict search_end1 = &archive_search_end1->forward_search_state.metrics;
+  approximate_search_metrics_t* const restrict search_end2 = &archive_search_end2->forward_search_state.metrics;
+  matches_t* const restrict matches_end1 = paired_matches->matches_end1;
+  matches_t* const restrict matches_end2 = paired_matches->matches_end2;
   const uint64_t mcs_end1 = (matches_end1->max_complete_stratum!=ALL) ? matches_end1->max_complete_stratum : 0;
   const uint64_t mcs_end2 = (matches_end2->max_complete_stratum!=ALL) ? matches_end2->max_complete_stratum : 0;
   paired_matches_predictors_compute(paired_matches,predictors,search_end1,search_end2,mcs_end1,mcs_end2);
@@ -353,10 +353,10 @@ void archive_search_pe_compute_predictors(
  * Display
  */
 void archive_search_pe_print(
-    FILE* const stream,
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches) {
+    FILE* const restrict stream,
+    archive_search_t* const restrict archive_search_end1,
+    archive_search_t* const restrict archive_search_end2,
+    paired_matches_t* const restrict paired_matches) {
   tab_fprintf(stream,"[GEM]>ArchiveSearch.PE\n");
   tab_global_inc();
   tab_fprintf(stream,"=> PE.Input\n");

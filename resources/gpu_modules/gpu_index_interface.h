@@ -111,31 +111,31 @@ typedef struct {
 /*
  * Obtain Buffers
  */
-gpu_fmi_search_seed_t* 	   gpu_fmi_search_buffer_get_seeds_(const void* const fmiBuffer);
-gpu_sa_search_inter_t*     gpu_fmi_search_buffer_get_sa_intervals_(const void* const fmiBuffer);
-gpu_fmi_decode_init_pos_t* gpu_fmi_decode_buffer_get_init_pos_(const void* const fmiBuffer);
-gpu_fmi_decode_end_pos_t*  gpu_fmi_decode_buffer_get_end_pos_(const void* const fmiBuffer);
-gpu_sa_decode_text_pos_t*  gpu_sa_decode_buffer_get_ref_pos_(const void* const fmiBuffer);
+gpu_fmi_search_seed_t* 	   gpu_fmi_search_buffer_get_seeds_(const void* const __restrict__ fmiBuffer);
+gpu_sa_search_inter_t*     gpu_fmi_search_buffer_get_sa_intervals_(const void* const __restrict__ fmiBuffer);
+gpu_fmi_decode_init_pos_t* gpu_fmi_decode_buffer_get_init_pos_(const void* const __restrict__ fmiBuffer);
+gpu_fmi_decode_end_pos_t*  gpu_fmi_decode_buffer_get_end_pos_(const void* const __restrict__ fmiBuffer);
+gpu_sa_decode_text_pos_t*  gpu_sa_decode_buffer_get_ref_pos_(const void* const __restrict__ fmiBuffer);
 
 /*
  * Get elements
  */
-uint32_t gpu_fmi_search_buffer_get_max_seeds_(const void* const fmiBuffer);
-uint32_t gpu_fmi_decode_buffer_get_max_positions_(const void* const fmiBuffer);
+uint32_t gpu_fmi_search_buffer_get_max_seeds_(const void* const __restrict__ fmiBuffer);
+uint32_t gpu_fmi_decode_buffer_get_max_positions_(const void* const __restrict__ fmiBuffer);
 
 /*
  * Main functions
  */
-void gpu_fmi_search_init_buffer_(void* const fmiBuffer);
-void gpu_fmi_search_send_buffer_(void* const fmiBuffer, const uint32_t numSeeds);
-void gpu_fmi_search_receive_buffer_(const void* const fmiBuffer);
-void gpu_fmi_search_init_and_realloc_buffer_(void* const fmiBuffer, const uint32_t numSeeds);
+void gpu_fmi_search_init_buffer_(void* const __restrict__ fmiBuffer);
+void gpu_fmi_search_send_buffer_(void* const __restrict__ fmiBuffer, const uint32_t numSeeds);
+void gpu_fmi_search_receive_buffer_(const void* const __restrict__ fmiBuffer);
+void gpu_fmi_search_init_and_realloc_buffer_(void* const __restrict__ fmiBuffer, const uint32_t numSeeds);
 
 
-void gpu_fmi_decode_init_buffer_(void* const fmiBuffer);
-void gpu_fmi_decode_send_buffer_(void* const fmiBuffer, const uint32_t numDecodings, const uint32_t samplingRate);
-void gpu_fmi_decode_receive_buffer_(const void* const fmiBuffer);
-void gpu_fmi_decode_init_and_realloc_buffer_(void* const fmiBuffer, const uint32_t numDecodings);
+void gpu_fmi_decode_init_buffer_(void* const __restrict__ fmiBuffer);
+void gpu_fmi_decode_send_buffer_(void* const __restrict__ fmiBuffer, const uint32_t numDecodings, const uint32_t samplingRate);
+void gpu_fmi_decode_receive_buffer_(const void* const __restrict__ fmiBuffer);
+void gpu_fmi_decode_init_and_realloc_buffer_(void* const __restrict__ fmiBuffer, const uint32_t numDecodings);
 
 #endif /* GPU_FMI_INTERFACE_H_ */
 

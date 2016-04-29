@@ -36,31 +36,31 @@ typedef struct {
  * Builder
  */
 void archive_text_write(
-    fm_t* const file_manager,
-    dna_text_t* const enc_text,
+    fm_t* const restrict file_manager,
+    dna_text_t* const restrict enc_text,
     const bool explicit_complement,
     const uint64_t forward_text_length,
-    sampled_rl_t* const sampled_rl,
+    sampled_rl_t* const restrict sampled_rl,
     const bool verbose);
 
 /*
  * Setup/Loader
  */
-archive_text_t* archive_text_read_mem(mm_t* const memory_manager);
-void archive_text_delete(archive_text_t* const archive_text);
+archive_text_t* archive_text_read_mem(mm_t* const restrict memory_manager);
+void archive_text_delete(archive_text_t* const restrict archive_text);
 
 /*
  * Accessors
  */
-uint64_t archive_text_get_size(archive_text_t* const archive_text);
+uint64_t archive_text_get_size(archive_text_t* const restrict archive_text);
 strand_t archive_text_get_position_strand(
-    archive_text_t* const archive_text,
+    archive_text_t* const restrict archive_text,
     const uint64_t index_position);
 uint64_t archive_text_get_unitary_projection(
-    archive_text_t* const archive_text,
+    archive_text_t* const restrict archive_text,
     const uint64_t index_position);
 uint64_t archive_text_get_projection(
-    archive_text_t* const archive_text,
+    archive_text_t* const restrict archive_text,
     const uint64_t index_position,
     const uint64_t length);
 
@@ -68,29 +68,29 @@ uint64_t archive_text_get_projection(
  * Text Retriever
  */
 void archive_text_retrieve(
-    archive_text_t* const archive_text,
+    archive_text_t* const restrict archive_text,
     const uint64_t text_position,
     const uint64_t text_length,
     const bool reverse_complement_text,
     const bool run_length_text,
-    text_trace_t* const text_trace,
-    mm_stack_t* const mm_stack);
+    text_trace_t* const restrict text_trace,
+    mm_stack_t* const restrict mm_stack);
 uint64_t archive_text_retrieve_collection(
-    archive_text_t* const archive_text,
-    const text_collection_t* const text_collection,
+    archive_text_t* const restrict archive_text,
+    const text_collection_t* const restrict text_collection,
     const uint64_t text_position,
     const uint64_t text_length,
     const bool reverse_complement_text,
     const bool run_length_text,
-    mm_stack_t* const mm_stack);
+    mm_stack_t* const restrict mm_stack);
 
 
 /*
  * Display
  */
 void archive_text_print(
-    FILE* const stream,
-    const archive_text_t* const archive_text);
+    FILE* const restrict stream,
+    const archive_text_t* const restrict archive_text);
 
 /*
  * Errors

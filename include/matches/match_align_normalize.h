@@ -17,10 +17,10 @@
  * SWG Normalize CIGAR & Adjust Position (Translate RL-CIGAR if required)
  */
 void match_align_normalize(
-    matches_t* const matches,
-    match_trace_t* const match_trace,
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
-    mm_stack_t* const mm_stack);
+    matches_t* const restrict matches,
+    match_trace_t* const restrict match_trace,
+    match_align_input_t* const restrict align_input,
+    match_align_parameters_t* const restrict align_parameters,
+    mm_stack_t* const restrict mm_stack);
 
 #endif /* MATCH_ALIGN_NORMALIZE_H_ */

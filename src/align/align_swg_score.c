@@ -12,25 +12,25 @@
 /*
  * SWG Score
  */
-int32_t align_swg_score_deletion(const swg_penalties_t* const swg_penalties,const int32_t length) {
+int32_t align_swg_score_deletion(const swg_penalties_t* const restrict swg_penalties,const int32_t length) {
   const int32_t gap_open_score = swg_penalties->gap_open_score;
   const int32_t gap_extension = swg_penalties->gap_extension_score;
   return gap_open_score + gap_extension*length;
 }
-int32_t align_swg_score_insertion(const swg_penalties_t* const swg_penalties,const int32_t length) {
+int32_t align_swg_score_insertion(const swg_penalties_t* const restrict swg_penalties,const int32_t length) {
   const int32_t gap_open_score = swg_penalties->gap_open_score;
   const int32_t gap_extension = swg_penalties->gap_extension_score;
   return gap_open_score + gap_extension*length;
 }
-int32_t align_swg_score_mismatch(const swg_penalties_t* const swg_penalties) {
+int32_t align_swg_score_mismatch(const swg_penalties_t* const restrict swg_penalties) {
   return swg_penalties->generic_mismatch_score;
 }
-int32_t align_swg_score_match(const swg_penalties_t* const swg_penalties,const int32_t match_length) {
+int32_t align_swg_score_match(const swg_penalties_t* const restrict swg_penalties,const int32_t match_length) {
   return swg_penalties->generic_match_score * match_length;
 }
 int32_t align_swg_score_cigar_element(
-    const swg_penalties_t* const swg_penalties,
-    const cigar_element_t* const cigar_element) {
+    const swg_penalties_t* const restrict swg_penalties,
+    const cigar_element_t* const restrict cigar_element) {
   switch (cigar_element->type) {
     case cigar_match:
       return align_swg_score_match(swg_penalties,cigar_element->length);
@@ -52,12 +52,12 @@ int32_t align_swg_score_cigar_element(
   return 0;
 }
 int32_t align_swg_score_cigar(
-    const swg_penalties_t* const swg_penalties,
-    vector_t* const cigar_vector,
+    const swg_penalties_t* const restrict swg_penalties,
+    vector_t* const restrict cigar_vector,
     const uint64_t cigar_offset,
     const uint64_t cigar_length) {
   // Parameters
-  const cigar_element_t* const cigar_buffer = vector_get_elm(cigar_vector,cigar_offset,cigar_element_t);
+  const cigar_element_t* const restrict cigar_buffer = vector_get_elm(cigar_vector,cigar_offset,cigar_element_t);
   // Traverse all CIGAR elements
   int32_t score = 0, i;
   for (i=0;i<cigar_length;++i) {
@@ -67,16 +67,16 @@ int32_t align_swg_score_cigar(
   return score;
 }
 int32_t align_swg_score_cigar_excluding_deletions(
-    const swg_penalties_t* const swg_penalties,
-    vector_t* const cigar_vector,
+    const swg_penalties_t* const restrict swg_penalties,
+    vector_t* const restrict cigar_vector,
     const uint64_t cigar_offset,
     const uint64_t cigar_length) {
   // Parameters
-  const cigar_element_t* const cigar_buffer = vector_get_elm(cigar_vector,cigar_offset,cigar_element_t);
+  const cigar_element_t* const restrict cigar_buffer = vector_get_elm(cigar_vector,cigar_offset,cigar_element_t);
   // Traverse all CIGAR elements
   int32_t score = 0, i;
   for (i=0;i<cigar_length;++i) {
-    const cigar_element_t* const cigar_element = cigar_buffer+i;
+    const cigar_element_t* const restrict cigar_element = cigar_buffer+i;
     if (cigar_element->type!=cigar_del) {
       score += align_swg_score_cigar_element(swg_penalties,cigar_element);
     }
@@ -85,12 +85,12 @@ int32_t align_swg_score_cigar_excluding_deletions(
   return score;
 }
 int32_t align_swg_score_cigar_excluding_clipping(
-    const swg_penalties_t* const swg_penalties,
-    vector_t* const cigar_vector,
+    const swg_penalties_t* const restrict swg_penalties,
+    vector_t* const restrict cigar_vector,
     const uint64_t cigar_offset,
     const uint64_t cigar_length) {
   // Parameters
-  const cigar_element_t* const cigar_buffer = vector_get_elm(cigar_vector,cigar_offset,cigar_element_t);
+  const cigar_element_t* const restrict cigar_buffer = vector_get_elm(cigar_vector,cigar_offset,cigar_element_t);
   // Ignore trims
   if (cigar_length==0) return 0;
   const int64_t last_cigar_element = cigar_length-1;
@@ -105,7 +105,7 @@ int32_t align_swg_score_cigar_excluding_clipping(
   return score;
 }
 int32_t align_swg_score_compute_min_score_bound(
-    const swg_penalties_t* const swg_penalties,
+    const swg_penalties_t* const restrict swg_penalties,
     const uint64_t edit_distance,
     const uint64_t key_length) {
   const int32_t base_score = align_swg_score_match(swg_penalties,key_length-edit_distance);
@@ -114,7 +114,7 @@ int32_t align_swg_score_compute_min_score_bound(
   return base_score + MIN(single_indel,all_misms);
 }
 int32_t align_swg_score_compute_max_score_bound(
-    const swg_penalties_t* const swg_penalties,
+    const swg_penalties_t* const restrict swg_penalties,
     const uint64_t edit_distance,
     const uint64_t key_length) {
   const int32_t base_score = align_swg_score_match(swg_penalties,key_length-edit_distance);

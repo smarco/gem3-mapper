@@ -23,7 +23,7 @@ typedef struct {
 } match_align_swg_local_max_t;
 
 void match_align_swg_local_alignment_add_gap(
-    cigar_element_t** const local_cigar_buffer,
+    cigar_element_t** const restrict local_cigar_buffer,
     const uint64_t begin_key_pos,
     const uint64_t begin_text_pos,
     const uint64_t end_key_pos,
@@ -47,9 +47,9 @@ void match_align_swg_local_alignment_add_gap(
   }
 }
 void match_align_swg_local_alignment_add_local_chunk(
-    cigar_element_t* const global_cigar_buffer,
-    cigar_element_t** const local_cigar_buffer,
-    match_align_swg_local_max_t* const local_max) {
+    cigar_element_t* const restrict global_cigar_buffer,
+    cigar_element_t** const restrict local_cigar_buffer,
+    match_align_swg_local_max_t* const restrict local_max) {
   // Add local-CIGAR
   uint64_t i;
   for (i=local_max->local_begin_cigar;i<=local_max->local_end_cigar;++i) {
@@ -61,22 +61,22 @@ void match_align_swg_local_alignment_add_local_chunk(
  * SWG-Local Alignment
  */
 void match_align_swg_local_alignment(
-    matches_t* const matches,
-    match_trace_t* const match_trace,
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters) {
+    matches_t* const restrict matches,
+    match_trace_t* const restrict match_trace,
+    match_align_input_t* const restrict align_input,
+    match_align_parameters_t* const restrict align_parameters) {
   // Parameters
-  const swg_penalties_t* const swg_penalties = align_parameters->swg_penalties;
+  const swg_penalties_t* const restrict swg_penalties = align_parameters->swg_penalties;
   const int64_t local_min_swg_threshold = align_parameters->local_min_swg_threshold;
   const uint64_t local_min_identity = align_parameters->local_min_identity;
-  vector_t* const cigar_vector = matches->cigar_vector;
-  match_alignment_t* const match_alignment = &match_trace->match_alignment;
+  vector_t* const restrict cigar_vector = matches->cigar_vector;
+  match_alignment_t* const restrict match_alignment = &match_trace->match_alignment;
   // Prepare CIGARs
   const uint64_t global_cigar_length = match_alignment->cigar_length;
   vector_reserve_additional(cigar_vector,global_cigar_length);
-  cigar_element_t* const global_cigar_buffer = vector_get_elm(cigar_vector,match_alignment->cigar_offset,cigar_element_t);
+  cigar_element_t* const restrict global_cigar_buffer = vector_get_elm(cigar_vector,match_alignment->cigar_offset,cigar_element_t);
   cigar_element_t* local_cigar_buffer = vector_get_free_elm(cigar_vector,cigar_element_t);
-  const cigar_element_t* const local_cigar_buffer_base = local_cigar_buffer;
+  const cigar_element_t* const restrict local_cigar_buffer_base = local_cigar_buffer;
   // Local Max
   match_align_swg_local_max_t local_max = {
     .local_begin_key_pos = 0,

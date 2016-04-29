@@ -38,7 +38,7 @@ typedef struct {
  * Setup
  */
 mm_search_t* mm_search_new();
-void mm_search_clear(mm_search_t* const mm_search);
-void mm_search_delete(mm_search_t* const mm_search);
+void mm_search_clear(mm_search_t* const restrict mm_search);
+void mm_search_delete(mm_search_t* const restrict mm_search);
 
 #endif /* MM_STACK_H_ */

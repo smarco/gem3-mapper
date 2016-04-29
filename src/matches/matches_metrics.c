@@ -11,7 +11,7 @@
 /*
  * Setup
  */
-void matches_metrics_init(matches_metrics_t* const metrics) {
+void matches_metrics_init(matches_metrics_t* const restrict metrics) {
   // Aggregated
   metrics->total_matches_sampled = 0;
   metrics->accepted_candidates = 0;
@@ -31,23 +31,23 @@ void matches_metrics_init(matches_metrics_t* const metrics) {
 /*
  * Accessors
  */
-uint64_t matches_metrics_get_min_distance(matches_metrics_t* const metrics) {
+uint64_t matches_metrics_get_min_distance(matches_metrics_t* const restrict metrics) {
   return metrics->min1_counter_value;
 }
-uint64_t matches_metrics_get_min_edit_distance(matches_metrics_t* const metrics) {
+uint64_t matches_metrics_get_min_edit_distance(matches_metrics_t* const restrict metrics) {
   return metrics->min1_edit_distance;
 }
-int32_t matches_metrics_get_max_swg_score(matches_metrics_t* const metrics) {
+int32_t matches_metrics_get_max_swg_score(matches_metrics_t* const restrict metrics) {
   return metrics->max1_swg_score;
 }
-void matches_metrics_add_accepted_candidates(matches_metrics_t* const metrics,const uint64_t num_candidates) {
+void matches_metrics_add_accepted_candidates(matches_metrics_t* const restrict metrics,const uint64_t num_candidates) {
   metrics->accepted_candidates += num_candidates;
 }
-void matches_metrics_set_mapq(matches_metrics_t* const metrics,const uint8_t mapq) {
+void matches_metrics_set_mapq(matches_metrics_t* const restrict metrics,const uint8_t mapq) {
   metrics->mapq = mapq;
 }
 void matches_metrics_update(
-    matches_metrics_t* const matches_metrics,
+    matches_metrics_t* const restrict matches_metrics,
     const uint64_t distance,
     const uint64_t edit_distance,
     const int32_t swg_score) {
@@ -76,7 +76,7 @@ void matches_metrics_update(
   }
 }
 void paired_matches_metrics_update(
-    matches_metrics_t* const matches_metrics,
+    matches_metrics_t* const restrict matches_metrics,
     const uint64_t distance,
     const uint64_t edit_distance,
     const int32_t swg_score,
@@ -94,7 +94,7 @@ void paired_matches_metrics_update(
 /*
  * Display
  */
-void matches_metrics_print(FILE* const stream,matches_metrics_t* const matches_metrics) {
+void matches_metrics_print(FILE* const restrict stream,matches_metrics_t* const restrict matches_metrics) {
   tab_fprintf(stream,"[GEM]>Metrics\n");
   tab_fprintf(stream,"  => Aggregated \n");
   tab_fprintf(stream,"    => Total.matches.sampled %lu\n",matches_metrics->total_matches_sampled);

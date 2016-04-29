@@ -20,9 +20,9 @@
 /*
  * Loader/Setup
  */
-sampled_sa_t* sampled_sa_read_mem(mm_t* const memory_manager) {
+sampled_sa_t* sampled_sa_read_mem(mm_t* const restrict memory_manager) {
   // Allocate handler
-  sampled_sa_t* const sampled_sa = mm_alloc(sampled_sa_t);
+  sampled_sa_t* const restrict sampled_sa = mm_alloc(sampled_sa_t);
   // Read Meta-Data
   const uint64_t sampled_sa_model_no = mm_read_uint64(memory_manager);
   gem_cond_fatal_error(sampled_sa_model_no!=SAMPLED_SA_MODEL_NO,SAMPLED_SA_WRONG_MODEL_NO,
@@ -35,7 +35,7 @@ sampled_sa_t* sampled_sa_read_mem(mm_t* const memory_manager) {
   // Return
   return sampled_sa;
 }
-void sampled_sa_write(fm_t* const file_manager,sampled_sa_t* const sampled_sa) {
+void sampled_sa_write(fm_t* const restrict file_manager,sampled_sa_t* const restrict sampled_sa) {
   // Write Meta-Data
   fm_write_uint64(file_manager,SAMPLED_SA_MODEL_NO);
   fm_write_uint64(file_manager,sampled_sa->index_length);
@@ -44,7 +44,7 @@ void sampled_sa_write(fm_t* const file_manager,sampled_sa_t* const sampled_sa) {
   // Write PackedIntegerArray
   packed_integer_array_write(file_manager,sampled_sa->packed_integer_array);
 }
-void sampled_sa_delete(sampled_sa_t* const sampled_sa) {
+void sampled_sa_delete(sampled_sa_t* const restrict sampled_sa) {
   // Free PackedIntegerArray
   packed_integer_array_delete(sampled_sa->packed_integer_array);
   // Free handler
@@ -59,9 +59,9 @@ sampled_sa_builder_t* sampled_sa_builder_new(
     const sampling_rate_t sa_sampling_rate,
     const sampling_rate_t text_sampling_rate,
     const bool generate_raw_sampled_sa,
-    mm_slab_t* const mm_slab) {
+    mm_slab_t* const restrict mm_slab) {
   // Allocate handler
-  sampled_sa_builder_t* const sampled_sa = mm_alloc(sampled_sa_builder_t);
+  sampled_sa_builder_t* const restrict sampled_sa = mm_alloc(sampled_sa_builder_t);
   // Init meta-data
   sampled_sa->index_length = index_length;
   sampled_sa->sa_sampling_rate = sa_sampling_rate;
@@ -89,14 +89,14 @@ sampled_sa_builder_t* sampled_sa_builder_new(
   // Return
   return sampled_sa;
 }
-void sampled_sa_builder_delete_samples(sampled_sa_builder_t* const sampled_sa) {
+void sampled_sa_builder_delete_samples(sampled_sa_builder_t* const restrict sampled_sa) {
   uint64_t i;
   for (i=0;i<sampled_sa->num_chunks;++i) {
     packed_integer_array_builder_delete(sampled_sa->array_builder[i]);
   }
   mm_free(sampled_sa->array_builder);
 }
-void sampled_sa_builder_delete(sampled_sa_builder_t* const sampled_sa) {
+void sampled_sa_builder_delete(sampled_sa_builder_t* const restrict sampled_sa) {
   mm_free(sampled_sa->sampled_bitmap_mem);
   MUTEX_DESTROY(sampled_sa->sampled_bitmap_mutex);
   if (sampled_sa->sa_raw_samples) {
@@ -105,7 +105,7 @@ void sampled_sa_builder_delete(sampled_sa_builder_t* const sampled_sa) {
   mm_free(sampled_sa);
 }
 void sampled_sa_builder_set_sample(
-    sampled_sa_builder_t* const sampled_sa,
+    sampled_sa_builder_t* const restrict sampled_sa,
     const uint64_t chunk_number,
     const uint64_t array_position,
     const uint64_t sa_value) {
@@ -120,8 +120,8 @@ void sampled_sa_builder_set_sample(
   } MUTEX_END_SECTION(sampled_sa->sampled_bitmap_mutex);
 }
 void sampled_sa_builder_write(
-    fm_t* const file_manager,
-    sampled_sa_builder_t* const sampled_sa) {
+    fm_t* const restrict file_manager,
+    sampled_sa_builder_t* const restrict sampled_sa) {
   // Write Meta-Data
   fm_write_uint64(file_manager,SAMPLED_SA_MODEL_NO);
   fm_write_uint64(file_manager,sampled_sa->index_length);
@@ -130,39 +130,39 @@ void sampled_sa_builder_write(
   // Write PackedIntegerArray
   packed_integer_array_builder_write(file_manager,sampled_sa->array_builder,sampled_sa->num_chunks);
 }
-uint64_t sampled_sa_builder_get_sa_sampling_rate(const sampled_sa_builder_t* const sampled_sa) {
+uint64_t sampled_sa_builder_get_sa_sampling_rate(const sampled_sa_builder_t* const restrict sampled_sa) {
   return (1<<sampled_sa->sa_sampling_rate);
 }
-uint64_t sampled_sa_builder_get_text_sampling_rate(const sampled_sa_builder_t* const sampled_sa) {
+uint64_t sampled_sa_builder_get_text_sampling_rate(const sampled_sa_builder_t* const restrict sampled_sa) {
   return (1<<sampled_sa->text_sampling_rate);
 }
-uint64_t* sampled_sa_builder_get_sampled_bitmap(const sampled_sa_builder_t* const sampled_sa) {
+uint64_t* sampled_sa_builder_get_sampled_bitmap(const sampled_sa_builder_t* const restrict sampled_sa) {
   return sampled_sa->sampled_bitmap_mem;
 }
 /*
  * Accessors
  */
-uint64_t sampled_sa_get_size(const sampled_sa_t* const sampled_sa) {
+uint64_t sampled_sa_get_size(const sampled_sa_t* const restrict sampled_sa) {
   return packed_integer_array_get_size(sampled_sa->packed_integer_array);
 }
-uint64_t sampled_sa_get_sa_sampling_rate(const sampled_sa_t* const sampled_sa) {
+uint64_t sampled_sa_get_sa_sampling_rate(const sampled_sa_t* const restrict sampled_sa) {
   return (1<<sampled_sa->sa_sampling_rate);
 }
-uint64_t sampled_sa_get_text_sampling_rate(const sampled_sa_t* const sampled_sa) {
+uint64_t sampled_sa_get_text_sampling_rate(const sampled_sa_t* const restrict sampled_sa) {
   return (1<<sampled_sa->text_sampling_rate);
 }
 void sampled_sa_prefetch_sample(
-    const sampled_sa_t* const sampled_sa,
+    const sampled_sa_t* const restrict sampled_sa,
     const uint64_t array_position) {
   packed_integer_array_prefetch(sampled_sa->packed_integer_array,array_position); // Fetch SA position
 }
 uint64_t sampled_sa_get_sample(
-    const sampled_sa_t* const sampled_sa,
+    const sampled_sa_t* const restrict sampled_sa,
     const uint64_t array_position) {
   return packed_integer_array_load(sampled_sa->packed_integer_array,array_position); // Get SA position
 }
 void sampled_sa_set_sample(
-    sampled_sa_t* const sampled_sa,
+    sampled_sa_t* const restrict sampled_sa,
     const uint64_t array_position,
     const uint64_t sa_value) {
   packed_integer_array_store(sampled_sa->packed_integer_array,array_position,sa_value); // Store SA position
@@ -171,7 +171,7 @@ void sampled_sa_set_sample(
  * Display/Stats
  */
 void sampled_sa_print_(
-    FILE* const stream,
+    FILE* const restrict stream,
     const uint64_t sa_sampling_rate,
     const uint64_t sa_sampling_rate_value,
     const uint64_t text_sampling_rate,
@@ -192,8 +192,8 @@ void sampled_sa_print_(
   fflush(stream);
 }
 void sampled_sa_print(
-    FILE* const stream,
-    sampled_sa_t* const sampled_sa,
+    FILE* const restrict stream,
+    sampled_sa_t* const restrict sampled_sa,
     const bool display_data) {
   // Print Sampled-SA
   sampled_sa_print_(stream,
@@ -208,8 +208,8 @@ void sampled_sa_print(
   fflush(stream);
 }
 void sampled_sa_builder_print(
-    FILE* const stream,
-    sampled_sa_builder_t* const sampled_sa) {
+    FILE* const restrict stream,
+    sampled_sa_builder_t* const restrict sampled_sa) {
   // Print Sampled-SA
   sampled_sa_print_(stream,
       sampled_sa->sa_sampling_rate,sampled_sa_builder_get_sa_sampling_rate(sampled_sa),

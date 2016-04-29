@@ -12,11 +12,11 @@
 /*
  * Counters
  */
-void COUNTER_RESET(gem_counter_t* const counter) {
+void COUNTER_RESET(gem_counter_t* const restrict counter) {
   counter->total = 0.0;
   counter->samples = 0;
 }
-void COUNTER_ADD(gem_counter_t* const counter,const uint64_t amount) {
+void COUNTER_ADD(gem_counter_t* const restrict counter,const uint64_t amount) {
   // Add to total & increment number of samples
   counter->total += amount;
   ++(counter->samples);
@@ -36,28 +36,28 @@ void COUNTER_ADD(gem_counter_t* const counter,const uint64_t amount) {
     counter->m_oldS = counter->m_newS;
   }
 }
-uint64_t COUNTER_GET_TOTAL(const gem_counter_t* const counter) {
+uint64_t COUNTER_GET_TOTAL(const gem_counter_t* const restrict counter) {
   return counter->total;
 }
-uint64_t COUNTER_GET_NUM_SAMPLES(const gem_counter_t* const counter) {
+uint64_t COUNTER_GET_NUM_SAMPLES(const gem_counter_t* const restrict counter) {
   return counter->samples;
 }
-uint64_t COUNTER_GET_MIN(const gem_counter_t* const counter) {
+uint64_t COUNTER_GET_MIN(const gem_counter_t* const restrict counter) {
   return counter->min;
 }
-uint64_t COUNTER_GET_MAX(const gem_counter_t* const counter) {
+uint64_t COUNTER_GET_MAX(const gem_counter_t* const restrict counter) {
   return counter->max;
 }
-double COUNTER_GET_MEAN(const gem_counter_t* const counter) {
+double COUNTER_GET_MEAN(const gem_counter_t* const restrict counter) {
   return (double)counter->total/(double)counter->samples;
 }
-double COUNTER_GET_VARIANCE(const gem_counter_t* const counter) {
+double COUNTER_GET_VARIANCE(const gem_counter_t* const restrict counter) {
   return ((counter->samples > 1) ? counter->m_newS/(double)(counter->samples - 1) : 0.0);
 }
-double COUNTER_GET_STDDEV(const gem_counter_t* const counter) {
+double COUNTER_GET_STDDEV(const gem_counter_t* const restrict counter) {
   return sqrt(COUNTER_GET_VARIANCE(counter));
 }
-void COUNTER_COMBINE_SUM(gem_counter_t* const counter_dst,gem_counter_t* const counter_src) {
+void COUNTER_COMBINE_SUM(gem_counter_t* const restrict counter_dst,gem_counter_t* const restrict counter_src) {
   counter_dst->total += counter_src->total;
   counter_dst->samples += counter_src->samples;
   counter_dst->min = MIN(counter_dst->min,counter_src->min);
@@ -67,7 +67,7 @@ void COUNTER_COMBINE_SUM(gem_counter_t* const counter_dst,gem_counter_t* const c
   if (counter_src->m_oldS!=0.0) counter_dst->m_oldS = counter_src->m_oldS;
   if (counter_src->m_oldM!=0.0) counter_dst->m_oldM = counter_src->m_oldM;
 }
-void COUNTER_COMBINE_MAX(gem_counter_t* const counter_dst,gem_counter_t* const counter_src) {
+void COUNTER_COMBINE_MAX(gem_counter_t* const restrict counter_dst,gem_counter_t* const restrict counter_src) {
   if (counter_dst->total < counter_src->total) {
     counter_dst->total = counter_src->total;
     counter_dst->samples = counter_src->samples;
@@ -79,7 +79,7 @@ void COUNTER_COMBINE_MAX(gem_counter_t* const counter_dst,gem_counter_t* const c
   counter_dst->min = MIN(counter_dst->min,counter_src->min);
   counter_dst->max = MAX(counter_dst->max,counter_src->max);
 }
-void COUNTER_COMBINE_MIN(gem_counter_t* const counter_dst,gem_counter_t* const counter_src) {
+void COUNTER_COMBINE_MIN(gem_counter_t* const restrict counter_dst,gem_counter_t* const restrict counter_src) {
   if (counter_dst->samples==0 || counter_dst->total==0 || counter_dst->total > counter_src->total) {
     counter_dst->total = counter_src->total;
     counter_dst->samples = counter_src->samples;
@@ -91,7 +91,7 @@ void COUNTER_COMBINE_MIN(gem_counter_t* const counter_dst,gem_counter_t* const c
   counter_dst->min = MIN(counter_dst->min,counter_src->min);
   counter_dst->max = MAX(counter_dst->max,counter_src->max);
 }
-void COUNTER_COMBINE_MEAN(gem_counter_t* const counter_dst,gem_counter_t* const counter_src) {
+void COUNTER_COMBINE_MEAN(gem_counter_t* const restrict counter_dst,gem_counter_t* const restrict counter_src) {
   // FIXME Horrible, but listen! Now, I just want a rough estimation
   counter_dst->total = (counter_dst->total+counter_src->total)/2;
   counter_dst->samples = (counter_dst->samples+counter_src->samples)/2;
@@ -103,10 +103,10 @@ void COUNTER_COMBINE_MEAN(gem_counter_t* const counter_dst,gem_counter_t* const 
   if (counter_src->m_oldM!=0.0) counter_dst->m_oldM = counter_src->m_oldM;
 }
 void COUNTER_PRINT_STATS(
-    FILE* const stream,
-    const gem_counter_t* const counter,
-    const gem_counter_t* const ref_counter,
-    const char* const units) {
+    FILE* const restrict stream,
+    const gem_counter_t* const restrict counter,
+    const gem_counter_t* const restrict ref_counter,
+    const char* const restrict units) {
   // Print Samples
   const uint64_t num_samples = COUNTER_GET_NUM_SAMPLES(counter);
   if (num_samples >= BUFFER_SIZE_1G) {
@@ -179,10 +179,10 @@ void COUNTER_PRINT_STATS(
   }
 }
 void COUNTER_PRINT(
-    FILE* const stream,
-    const gem_counter_t* const counter,
-    const gem_counter_t* const ref_counter,
-    const char* const units,
+    FILE* const restrict stream,
+    const gem_counter_t* const restrict counter,
+    const gem_counter_t* const restrict ref_counter,
+    const char* const restrict units,
     const bool full_report) {
   const uint64_t total = COUNTER_GET_TOTAL(counter);
   // Print Total
@@ -220,17 +220,17 @@ void COUNTER_PRINT(
   }
 }
 void SAMPLER_PRINT(
-    FILE* const stream,
-    const gem_counter_t* const counter,
-    const gem_counter_t* const ref_counter,
-    const char* const units) {
+    FILE* const restrict stream,
+    const gem_counter_t* const restrict counter,
+    const gem_counter_t* const restrict ref_counter,
+    const char* const restrict units) {
   fprintf(stream,"\t\t\t\t");
   COUNTER_PRINT_STATS(stream,counter,ref_counter,units);
 }
 void PERCENTAGE_PRINT(
-    FILE* const stream,
-    const gem_counter_t* const counter,
-    const char* const units) {
+    FILE* const restrict stream,
+    const gem_counter_t* const restrict counter,
+    const char* const restrict units) {
   // Print Mean
   const double mean = COUNTER_GET_MEAN(counter);
   fprintf(stream,"%7.2f %%%s\t\t",mean,units);
@@ -257,41 +257,41 @@ void PERCENTAGE_PRINT(
 /*
  * Reference Counter (Counts wrt a reference counter. Eg ranks)
  */
-void RCOUNTER_START(gem_reference_counter_t* const rcounter,const uint64_t reference) {
+void RCOUNTER_START(gem_reference_counter_t* const restrict rcounter,const uint64_t reference) {
   rcounter->accumulated = 0;
   RCOUNTER_CONTINUE(rcounter,reference);
 }
-void RCOUNTER_STOP(gem_reference_counter_t* const rcounter,const uint64_t reference) {
+void RCOUNTER_STOP(gem_reference_counter_t* const restrict rcounter,const uint64_t reference) {
   RCOUNTER_PAUSE(rcounter,reference);
   COUNTER_ADD(&rcounter->counter,rcounter->accumulated);
 }
-void RCOUNTER_PAUSE(gem_reference_counter_t* const rcounter,const uint64_t reference) {
+void RCOUNTER_PAUSE(gem_reference_counter_t* const restrict rcounter,const uint64_t reference) {
   rcounter->accumulated += reference-rcounter->begin_count;
 }
-void RCOUNTER_CONTINUE(gem_reference_counter_t* const rcounter,const uint64_t reference) {
+void RCOUNTER_CONTINUE(gem_reference_counter_t* const restrict rcounter,const uint64_t reference) {
   rcounter->begin_count = reference;
 }
-void RCOUNTER_RESET(gem_reference_counter_t* const rcounter) {
+void RCOUNTER_RESET(gem_reference_counter_t* const restrict rcounter) {
   COUNTER_RESET(&rcounter->counter);
 }
-uint64_t RCOUNTER_GET_TOTAL(gem_reference_counter_t* const rcounter) {
+uint64_t RCOUNTER_GET_TOTAL(gem_reference_counter_t* const restrict rcounter) {
   return COUNTER_GET_TOTAL(&rcounter->counter);
 }
-uint64_t RCOUNTER_GET_NUM_SAMPLES(gem_reference_counter_t* const rcounter) {
+uint64_t RCOUNTER_GET_NUM_SAMPLES(gem_reference_counter_t* const restrict rcounter) {
   return COUNTER_GET_NUM_SAMPLES(&rcounter->counter);
 }
-uint64_t RCOUNTER_GET_MIN(gem_reference_counter_t* const rcounter) {
+uint64_t RCOUNTER_GET_MIN(gem_reference_counter_t* const restrict rcounter) {
   return COUNTER_GET_MIN(&rcounter->counter);
 }
-uint64_t RCOUNTER_GET_MAX(gem_reference_counter_t* const rcounter) {
+uint64_t RCOUNTER_GET_MAX(gem_reference_counter_t* const restrict rcounter) {
   return COUNTER_GET_MAX(&rcounter->counter);
 }
-uint64_t RCOUNTER_GET_MEAN(gem_reference_counter_t* const rcounter) {
+uint64_t RCOUNTER_GET_MEAN(gem_reference_counter_t* const restrict rcounter) {
   return COUNTER_GET_MEAN(&rcounter->counter);
 }
-uint64_t RCOUNTER_GET_VARIANCE(gem_reference_counter_t* const rcounter) {
+uint64_t RCOUNTER_GET_VARIANCE(gem_reference_counter_t* const restrict rcounter) {
   return COUNTER_GET_VARIANCE(&rcounter->counter);
 }
-uint64_t RCOUNTER_GET_STDDEV(gem_reference_counter_t* const rcounter) {
+uint64_t RCOUNTER_GET_STDDEV(gem_reference_counter_t* const restrict rcounter) {
   return COUNTER_GET_STDDEV(&rcounter->counter);
 }

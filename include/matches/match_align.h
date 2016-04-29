@@ -27,10 +27,10 @@
  *   @match_trace->match_alignment.score
  */
 void match_align_exact(
-    matches_t* const matches,
-    match_trace_t* const match_trace,
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters);
+    matches_t* const restrict matches,
+    match_trace_t* const restrict match_trace,
+    match_align_input_t* const restrict align_input,
+    match_align_parameters_t* const restrict align_parameters);
 
 /*
  * Hamming Alignment (Only mismatches)
@@ -45,10 +45,10 @@ void match_align_exact(
  *   @align_parameters->allowed_enc
  */
 void match_align_hamming(
-    matches_t* const matches,
-    match_trace_t* const match_trace,
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters);
+    matches_t* const restrict matches,
+    match_trace_t* const restrict match_trace,
+    match_align_input_t* const restrict align_input,
+    match_align_parameters_t* const restrict align_parameters);
 
 /*
  * Levenshtein Alignment (edit distance)
@@ -65,11 +65,11 @@ void match_align_hamming(
  *   @align_parameters->left_gap_alignment
  */
 void match_align_levenshtein(
-    matches_t* const matches,
-    match_trace_t* const match_trace,
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
-    mm_stack_t* const mm_stack);
+    matches_t* const restrict matches,
+    match_trace_t* const restrict match_trace,
+    match_align_input_t* const restrict align_input,
+    match_align_parameters_t* const restrict align_parameters,
+    mm_stack_t* const restrict mm_stack);
 
 /*
  * SWG Alignment (Gap-affine)
@@ -98,11 +98,11 @@ void match_align_levenshtein(
  *   @match_scaffold->num_scaffold_regions
  */
 void match_align_smith_waterman_gotoh(
-    matches_t* const matches,
-    match_trace_t* const match_trace,
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
-    match_scaffold_t* const match_scaffold,
-    mm_stack_t* const mm_stack);
+    matches_t* const restrict matches,
+    match_trace_t* const restrict match_trace,
+    match_align_input_t* const restrict align_input,
+    match_align_parameters_t* const restrict align_parameters,
+    match_scaffold_t* const restrict match_scaffold,
+    mm_stack_t* const restrict mm_stack);
 
 #endif /* MATCH_ALIGN_H_ */

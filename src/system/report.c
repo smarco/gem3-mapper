@@ -37,25 +37,25 @@ void gem_error_set_report_function(report_function_t function) {
 FILE* gem_error_get_stream() {
   return (error_stream!=NULL) ? error_stream : stderr;
 }
-void gem_error_set_stream(FILE* const stream) {
+void gem_error_set_stream(FILE* const restrict stream) {
   error_stream = stream;
 }
 FILE* gem_log_get_stream() {
   return (log_stream!=NULL) ? log_stream : stderr;
 }
-void gem_log_set_stream(FILE* const stream) {
+void gem_log_set_stream(FILE* const restrict stream) {
   log_stream = stream;
 }
 FILE* gem_info_get_stream() {
   return (info_stream!=NULL) ? info_stream : stderr;
 }
-void gem_info_set_stream(FILE* const stream) {
+void gem_info_set_stream(FILE* const restrict stream) {
   info_stream = stream;
 }
 FILE* gem_debug_get_stream() {
   return (debug_stream!=NULL) ? debug_stream : stderr;
 }
-void gem_debug_set_stream(FILE* const stream) {
+void gem_debug_set_stream(FILE* const restrict stream) {
   debug_stream = stream;
 }
 /*
@@ -171,7 +171,7 @@ char* tabulated_table[] = {
     /* 18 */ "                  ",
     /* 19 */ "                   ",
     /* 20 */ "                    "};
-void fprintf_tabs(FILE* const stream,const int num_spaces) {
+void fprintf_tabs(FILE* const restrict stream,const int num_spaces) {
   if (num_spaces <= 20) {
     fprintf(stream,"%s",tabulated_table[num_spaces]);
   } else {
@@ -180,7 +180,7 @@ void fprintf_tabs(FILE* const stream,const int num_spaces) {
   }
 }
 uint64_t global_tab = 0;
-void tab_global_print(FILE* const stream) {
+void tab_global_print(FILE* const restrict stream) {
   fprintf_tabs(stream,global_tab);
 }
 void tab_global_inc() {
@@ -202,7 +202,7 @@ void tab_global_reset() {
  * Ticker
  */
 void ticker_percentage_reset(
-    ticker_t* const ticker,const bool enabled,const char* const label,
+    ticker_t* const restrict ticker,const bool enabled,const char* const restrict label,
     const uint64_t max,const uint64_t step,const bool timed) {
   // Set status
   ticker->enabled = enabled;
@@ -227,7 +227,7 @@ void ticker_percentage_reset(
   if (timed) system_get_time(&ticker->begin_timer);
 }
 void ticker_count_reset(
-    ticker_t* const ticker,const bool enabled,const char* const label,
+    ticker_t* const restrict ticker,const bool enabled,const char* const restrict label,
     const uint64_t top,const uint64_t each,const bool timed) {
   // Set status
   ticker->enabled = enabled;
@@ -251,7 +251,7 @@ void ticker_count_reset(
   ticker->timed=timed;
   if (timed) system_get_time(&ticker->begin_timer);
 }
-void ticker_percentage_finish(ticker_t* const ticker) {
+void ticker_percentage_finish(ticker_t* const restrict ticker) {
   if (!ticker->enabled || ticker->finished) return;
   // Set finished
   ticker->finished = true;
@@ -265,7 +265,7 @@ void ticker_percentage_finish(ticker_t* const ticker) {
     tfprintf(gem_log_get_stream(),"%s 100%% %s... done\n",ticker->finish_begin,ticker->finish_end);
   }
 }
-void ticker_count_finish(ticker_t* const ticker) {
+void ticker_count_finish(ticker_t* const restrict ticker) {
   if (!ticker->enabled || ticker->finished) return;
   // Set finished
   ticker->finished = true;
@@ -279,7 +279,7 @@ void ticker_count_finish(ticker_t* const ticker) {
     tfprintf(gem_log_get_stream(),"%s %"PRIu64" %s... done\n",ticker->finish_begin,ticker->global_ticks,ticker->finish_end);
   }
 }
-void ticker_update(ticker_t* const ticker,const uint64_t n) {
+void ticker_update(ticker_t* const restrict ticker,const uint64_t n) {
   if (!ticker->enabled || ticker->finished) return;
   ticker->global_ticks += n;
   ticker->local_ticks += n;
@@ -300,12 +300,12 @@ void ticker_update(ticker_t* const ticker,const uint64_t n) {
     }
   }
 }
-void ticker_update_mutex(ticker_t* const ticker,const uint64_t n) {
+void ticker_update_mutex(ticker_t* const restrict ticker,const uint64_t n) {
   MUTEX_BEGIN_SECTION(ticker->mutex) {
     ticker_update(ticker,n);
   } MUTEX_END_SECTION(ticker->mutex);
 }
-void ticker_finish(ticker_t* const ticker) {
+void ticker_finish(ticker_t* const restrict ticker) {
   if (!ticker->enabled) return;
   if (!ticker->finished) {
     if (ticker->ticker_type == ticker_percentage) {
@@ -315,33 +315,33 @@ void ticker_finish(ticker_t* const ticker) {
     }
   }
 }
-void ticker_finish_mutex(ticker_t* const ticker) {
+void ticker_finish_mutex(ticker_t* const restrict ticker) {
   MUTEX_BEGIN_SECTION(ticker->mutex) {
     ticker_finish(ticker);
   } MUTEX_END_SECTION(ticker->mutex);
 }
 // Adding labels
-void ticker_add_process_label(ticker_t* const ticker,char* const process_begin,char* const process_end) {
+void ticker_add_process_label(ticker_t* const restrict ticker,char* const restrict process_begin,char* const restrict process_end) {
   ticker->process_begin=process_begin;
   ticker->process_end=process_end;
 }
-void ticker_add_finish_label(ticker_t* const ticker,char* const finish_begin,char* const finish_end) {
+void ticker_add_finish_label(ticker_t* const restrict ticker,char* const restrict finish_begin,char* const restrict finish_end) {
   ticker->finish_begin=finish_begin;
   ticker->finish_end=finish_end;
 }
 // Enable/Disable ticker
-void ticker_set_status(ticker_t* const ticker,const bool enabled) {
+void ticker_set_status(ticker_t* const restrict ticker,const bool enabled) {
   ticker->enabled = enabled;
 }
 // Set granularity
-void ticker_set_step(ticker_t* const ticker,const uint64_t step) {
+void ticker_set_step(ticker_t* const restrict ticker,const uint64_t step) {
   ticker->step_ticks = step;
 }
 // Enable mutex
-void ticker_mutex_enable(ticker_t* const ticker) {
+void ticker_mutex_enable(ticker_t* const restrict ticker) {
   MUTEX_INIT(ticker->mutex);
 }
-void ticker_mutex_cleanup(ticker_t* const ticker) {
+void ticker_mutex_cleanup(ticker_t* const restrict ticker) {
   MUTEX_DESTROY(ticker->mutex);
 }
 /*
@@ -371,7 +371,7 @@ uint64_t calculate_memory_required_v(const char *template,va_list v_args) {
       // Check format
       switch (*centinel) {
         case 's': { // String requires fetching the argument length // FIXME: %.*s
-          char* const string = va_arg(v_args_cpy,char*);
+          char* const restrict string = va_arg(v_args_cpy,char*);
           mem_required += (precision>0) ? precision : strlen(string);
           break;
         }

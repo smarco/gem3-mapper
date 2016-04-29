@@ -18,18 +18,18 @@
  */
 matches_counters_t* matches_counters_new() {
   // Allocate handler
-  matches_counters_t* const counters = mm_alloc(matches_counters_t);
+  matches_counters_t* const restrict counters = mm_alloc(matches_counters_t);
   // Init Counters
   counters->counts = vector_new(MATCHES_INIT_COUNTERS,uint64_t);
   counters->total_count = 0;
   // Return
   return counters;
 }
-void matches_counters_clear(matches_counters_t* const counters) {
+void matches_counters_clear(matches_counters_t* const restrict counters) {
   vector_clear(counters->counts);
   counters->total_count = 0;
 }
-void matches_counters_delete(matches_counters_t* const counters) {
+void matches_counters_delete(matches_counters_t* const restrict counters) {
   vector_delete(counters->counts);
   mm_free(counters);
 }
@@ -37,23 +37,23 @@ void matches_counters_delete(matches_counters_t* const counters) {
 /*
  * Counters
  */
-uint64_t matches_counters_get_num_counters(matches_counters_t* const counters) {
+uint64_t matches_counters_get_num_counters(matches_counters_t* const restrict counters) {
   return vector_get_used(counters->counts);
 }
-uint64_t* matches_counters_get_counts(matches_counters_t* const counters) {
+uint64_t* matches_counters_get_counts(matches_counters_t* const restrict counters) {
   return vector_get_mem(counters->counts,uint64_t);
 }
-uint64_t matches_counters_get_count(matches_counters_t* const counters,const uint64_t distance) {
+uint64_t matches_counters_get_count(matches_counters_t* const restrict counters,const uint64_t distance) {
   return *vector_get_elm(counters->counts,distance,uint64_t);
 }
-uint64_t matches_counters_get_total_count(matches_counters_t* const counters) {
+uint64_t matches_counters_get_total_count(matches_counters_t* const restrict counters) {
   return counters->total_count;
 }
 void matches_counters_add(
-    matches_counters_t* const counters,
+    matches_counters_t* const restrict counters,
     const uint64_t distance,
     const uint64_t num_matches) {
-  vector_t* const counts = counters->counts;
+  vector_t* const restrict counts = counters->counts;
   // Reserve Memory
   if (distance >= vector_get_used(counts)) {
     vector_reserve(counts,distance+1,true);
@@ -64,34 +64,34 @@ void matches_counters_add(
   counters->total_count += num_matches;
 }
 void matches_counters_sub(
-    matches_counters_t* const counters,
+    matches_counters_t* const restrict counters,
     const uint64_t distance,
     const uint64_t num_matches) {
-  uint64_t* const counts = vector_get_elm(counters->counts,distance,uint64_t);
+  uint64_t* const restrict counts = vector_get_elm(counters->counts,distance,uint64_t);
   *counts -= num_matches;
   counters->total_count -= num_matches;
 }
 /*
  * Utils
  */
-uint64_t matches_counters_compact(matches_counters_t* const counters) {
-  const uint64_t* const counts = vector_get_mem(counters->counts,uint64_t);
+uint64_t matches_counters_compact(matches_counters_t* const restrict counters) {
+  const uint64_t* const restrict counts = vector_get_mem(counters->counts,uint64_t);
   int64_t i = vector_get_used(counters->counts)-1;
   while (i>=0 && counts[i]==0) --i;
   vector_set_used(counters->counts,++i);
   return i;
 }
 void matches_counters_compute_matches_to_decode(
-    matches_counters_t* const counters,
+    matches_counters_t* const restrict counters,
     const uint64_t min_reported_strata,
     const uint64_t min_reported_matches,
     const uint64_t max_reported_matches,
-    uint64_t* const reported_strata,
-    uint64_t* const last_stratum_reported_matches) {
+    uint64_t* const restrict reported_strata,
+    uint64_t* const restrict last_stratum_reported_matches) {
   // Compact counters (Shrink the counters to the last non-zero stratum)
   const uint64_t max_strata = matches_counters_compact(counters); // Strata is one based
   if (max_strata==0) return;
-  const uint64_t* const counts = vector_get_mem(counters->counts,uint64_t);
+  const uint64_t* const restrict counts = vector_get_mem(counters->counts,uint64_t);
   uint64_t current_stratum=0, total_matches=0, total_complete_strata=0;
   // Maximum stratum to decode (increased by @min_reported_strata)
   while (current_stratum < max_strata && total_complete_strata < min_reported_strata) {
@@ -124,7 +124,7 @@ void matches_counters_compute_matches_to_decode(
  * Display
  */
 void matches_counters_print_account_mcs(
-    FILE* const stream,
+    FILE* const restrict stream,
     const uint64_t current_counter_pos,
     const uint64_t num_zeros) {
   uint64_t i = 0;
@@ -138,8 +138,8 @@ void matches_counters_print_account_mcs(
   fprintf(stream,"+0");
 }
 void matches_counters_print(
-    FILE* const stream,
-    matches_counters_t* const matches_counter,
+    FILE* const restrict stream,
+    matches_counters_t* const restrict matches_counter,
     const uint64_t mcs) {
   const uint64_t num_counters = matches_counters_get_num_counters(matches_counter);
   // Zero counters

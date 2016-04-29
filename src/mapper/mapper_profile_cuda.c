@@ -14,7 +14,7 @@
 /*
  * Stage Buffers
  */
-void mapper_profile_print_search_stage_buffers(FILE* const stream) {
+void mapper_profile_print_search_stage_buffers(FILE* const restrict stream) {
   tab_fprintf(stream,"[GEM]>Profile.CUDA.Search.Stages.Buffers\n");
   tab_fprintf(stream,"  => TIME.GPU.Buffer.Region.Profile\n");
   tab_fprintf(stream,"    => TIME.Alloc                            ");
@@ -87,7 +87,7 @@ void mapper_profile_print_search_stage_buffers(FILE* const stream) {
 /*
  * Archive Search SE CUDA
  */
-void mapper_profile_print_archive_search_se_cuda(FILE* const stream,const bool map_output) {
+void mapper_profile_print_archive_search_se_cuda(FILE* const restrict stream,const bool map_output) {
   // CUDA SE Search
   tab_fprintf(stream,"[GEM]>Profile.CUDA.Search\n");
   tab_fprintf(stream,"  => TIME.CUDA.Init                                        ");
@@ -185,7 +185,7 @@ void mapper_profile_print_archive_search_se_cuda(FILE* const stream,const bool m
 /*
  * Archive Search PE CUDA
  */
-void mapper_profile_print_archive_search_pe_cuda(FILE* const stream,const bool map_output) {
+void mapper_profile_print_archive_search_pe_cuda(FILE* const restrict stream,const bool map_output) {
   // CUDA SE Search
   tab_fprintf(stream,"[GEM]>Profile.CUDA.Search\n");
   tab_fprintf(stream,"  => TIME.GPU.Init                                   ");
@@ -298,7 +298,7 @@ void mapper_profile_print_archive_search_pe_cuda(FILE* const stream,const bool m
  * Mapper-CUDA SE
  */
 void mapper_profile_print_mapper_se_cuda(
-    FILE* const stream,const bool map_output,const uint64_t num_threads) {
+    FILE* const restrict stream,const bool map_output,const uint64_t num_threads) {
   // Main
   tab_fprintf(stream,"[GEM]>Profile.Mapper\n");
   tab_fprintf(stream,"  => TIME.Mapper                           ");
@@ -324,7 +324,7 @@ void mapper_profile_print_mapper_se_cuda(
  * Mapper-CUDA PE
  */
 void mapper_profile_print_mapper_pe_cuda(
-    FILE* const stream,const bool map_output,const uint64_t num_threads) {
+    FILE* const restrict stream,const bool map_output,const uint64_t num_threads) {
   // All
   tab_fprintf(stream,"[GEM]>Profile.Mapper\n");
   tab_fprintf(stream,"  => TIME.Mapper                           ");
@@ -351,10 +351,10 @@ void mapper_profile_print_mapper_pe_cuda(
  * Mapper-CUDA SE
  */
 void mapper_profile_print_mapper_se_cuda(
-    FILE* const stream,const bool map_output,const uint64_t num_threads) {}
+    FILE* const restrict stream,const bool map_output,const uint64_t num_threads) {}
 /*
  * Mapper-CUDA PE
  */
 void mapper_profile_print_mapper_pe_cuda(
-    FILE* const stream,const bool map_output,const uint64_t num_threads) {}
+    FILE* const restrict stream,const bool map_output,const uint64_t num_threads) {}
 #endif

@@ -27,17 +27,17 @@
  * Filtering Candidate distance bound
  */
 bool filtering_candidates_align_is_subdominant(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
-    matches_t* const matches) {
+    filtering_candidates_t* const restrict filtering_candidates,
+    filtering_region_t* const restrict filtering_region,
+    pattern_t* const restrict pattern,
+    matches_t* const restrict matches) {
   // Parameters
-  search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
-  select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;
+  search_parameters_t* const restrict search_parameters = filtering_candidates->search_parameters;
+  select_parameters_t* const restrict select_parameters = &search_parameters->select_parameters_align;
   const alignment_model_t alignment_model = search_parameters->alignment_model;
-  swg_penalties_t* const swg_penalties = &search_parameters->swg_penalties;
+  swg_penalties_t* const restrict swg_penalties = &search_parameters->swg_penalties;
   const uint64_t num_matches = matches_get_num_match_traces(matches);
-  region_alignment_t* const region_alignment = &filtering_region->region_alignment;
+  region_alignment_t* const restrict region_alignment = &filtering_region->region_alignment;
   // Basic cases
   if (num_matches == 0) return false;
   if (num_matches < select_parameters->max_reported_matches) return false;
@@ -46,7 +46,7 @@ bool filtering_candidates_align_is_subdominant(
     case alignment_model_hamming:
     case alignment_model_levenshtein: {
       const uint64_t candidate_min_distance_bound = region_alignment->distance_min_bound;
-      match_trace_t* const last_ranked_match_trace = matches_get_ranked_match_trace(matches,select_parameters);
+      match_trace_t* const restrict last_ranked_match_trace = matches_get_ranked_match_trace(matches,select_parameters);
       // Need a candidate expected to have less distance than the current max
       return candidate_min_distance_bound >= last_ranked_match_trace->edit_distance;
     }
@@ -54,7 +54,7 @@ bool filtering_candidates_align_is_subdominant(
       const uint64_t candidate_edit_distance_bound = region_alignment->distance_min_bound;
       const uint64_t candidate_max_score_bound = align_swg_score_compute_max_score_bound(
           swg_penalties,candidate_edit_distance_bound,pattern->key_length);
-      match_trace_t* const last_ranked_match_trace = matches_get_ranked_match_trace(matches,select_parameters);
+      match_trace_t* const restrict last_ranked_match_trace = matches_get_ranked_match_trace(matches,select_parameters);
       // Need a candidate expected to have better score than the current max
       return candidate_max_score_bound <= last_ranked_match_trace->swg_score;
     }
@@ -67,14 +67,14 @@ bool filtering_candidates_align_is_subdominant(
  * Filtering Candidates Cache
  */
 bool filtering_candidates_align_search_filtering_region_cache(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const region,
+    filtering_candidates_t* const restrict filtering_candidates,
+    filtering_region_t* const restrict region,
     const uint64_t run_length,
-    matches_t* const matches,
-    match_trace_t* const match_trace) {
+    matches_t* const restrict matches,
+    match_trace_t* const restrict match_trace) {
   // Search the cache
-  text_collection_t* const text_collection = filtering_candidates->text_collection;
-  match_trace_t* const match_trace_cache = filtering_region_transient_cache_search(
+  text_collection_t* const restrict text_collection = filtering_candidates->text_collection;
+  match_trace_t* const restrict match_trace_cache = filtering_region_transient_cache_search(
       &filtering_candidates->filtering_region_cache,region,text_collection,matches);
   if (match_trace_cache==NULL) return false;
   // Clone the match-trace found in the cache
@@ -85,23 +85,23 @@ bool filtering_candidates_align_search_filtering_region_cache(
  * Filtering Candidates Region Align
  */
 bool filtering_candidates_align_region(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const region,
-    pattern_t* const pattern,
+    filtering_candidates_t* const restrict filtering_candidates,
+    filtering_region_t* const restrict region,
+    pattern_t* const restrict pattern,
     const bool emulated_rc_search,
     const bool local_alignment,
     const bool extended_match,
-    matches_t* const matches) {
+    matches_t* const restrict matches) {
   // Parameters
   // Parameters
-  archive_t* const archive = filtering_candidates->archive;
-  locator_t* const locator = archive->locator;
-  archive_text_t* const archive_text = archive->text;
-  text_collection_t* const text_collection = filtering_candidates->text_collection;
-  mm_stack_t* const mm_stack = filtering_candidates->mm_stack;
-  search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
+  archive_t* const restrict archive = filtering_candidates->archive;
+  locator_t* const restrict locator = archive->locator;
+  archive_text_t* const restrict archive_text = archive->text;
+  text_collection_t* const restrict text_collection = filtering_candidates->text_collection;
+  mm_stack_t* const restrict mm_stack = filtering_candidates->mm_stack;
+  search_parameters_t* const restrict search_parameters = filtering_candidates->search_parameters;
   const alignment_model_t alignment_model = search_parameters->alignment_model;
-  select_parameters_t* const select_parameters_align = &search_parameters->select_parameters_align;
+  select_parameters_t* const restrict select_parameters_align = &search_parameters->select_parameters_align;
   // Retrieve Candidate (if needed)
   filtering_region_retrieve_text(region,pattern,archive_text,text_collection,mm_stack);
   // Search Cache (Before jumping into aligning the region)
@@ -142,12 +142,12 @@ bool filtering_candidates_align_region(
  * Filtering Candidates (Re)Alignment
  */
 uint64_t filtering_candidates_align_candidates(
-    filtering_candidates_t* const filtering_candidates,
-    pattern_t* const pattern,
+    filtering_candidates_t* const restrict filtering_candidates,
+    pattern_t* const restrict pattern,
     const bool emulated_rc_search,
     const bool extended_match,
     const bool local_alignment,
-    matches_t* const matches) {
+    matches_t* const restrict matches) {
   // DEBUG
   gem_cond_debug_block(DEBUG_FILTERING_CANDIDATES) {
     tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Candidates (align_acepted_regions)\n");

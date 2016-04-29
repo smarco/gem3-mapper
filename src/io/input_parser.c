@@ -27,10 +27,10 @@
 ///*
 // * Basic InputFile-Parsing Functions
 // */
-//bool input_file_parse_next_char(input_file_t* const input_file) {
+//bool input_file_parse_next_char(input_file_t* const restrict input_file) {
 //  return input_file_next_char(input_file);
 //}
-//error_code_t input_file_parse_skip_separators(input_file_t* const input_file) {
+//error_code_t input_file_parse_skip_separators(input_file_t* const restrict input_file) {
 //  if (gem_expect_false(input_file_eof(input_file))) return -1;
 //  const char current_char = input_file_get_current_char(input_file);
 //  if (gem_expect_false(current_char!=TAB && current_char!=SPACE)) return -1;
@@ -42,7 +42,7 @@
 //  }
 //  return 0;
 //}
-//void input_file_parse_skip_chars(input_file_t* const input_file,uint64_t num_chars) {
+//void input_file_parse_skip_chars(input_file_t* const restrict input_file,uint64_t num_chars) {
 //  while (!input_file_eof(input_file) && num_chars>0) {
 //    // Read character
 //    const char current_char = input_file_get_current_char(input_file);
@@ -52,7 +52,7 @@
 //    --num_chars;
 //  }
 //}
-//void input_file_parse_skip_line(input_file_t* const input_file) {
+//void input_file_parse_skip_line(input_file_t* const restrict input_file) {
 //  while (!input_file_eof(input_file)) {
 //    // Read character
 //    const char current_char = input_file_get_current_char(input_file);
@@ -61,10 +61,10 @@
 //    input_file_next_char(input_file);
 //  }
 //}
-//bool input_file_parse_is_eol(input_file_t* const input_file) {
+//bool input_file_parse_is_eol(input_file_t* const restrict input_file) {
 //  return input_file_eof(input_file) || IS_ANY_EOL(input_file_get_current_char(input_file));
 //}
-//void input_file_parse_field(input_file_t* const input_file,const char delimiter,string_t* const string) {
+//void input_file_parse_field(input_file_t* const restrict input_file,const char delimiter,string_t* const restrict string) {
 //  while (!input_file_eof(input_file)) {
 //    // Read character
 //    const char current_char = input_file_get_current_char(input_file);
@@ -76,7 +76,7 @@
 //  }
 //  string_append_eos(string);
 //}
-//error_code_t input_file_parse_integer(input_file_t* const input_file,int64_t* const value) {
+//error_code_t input_file_parse_integer(input_file_t* const restrict input_file,int64_t* const restrict value) {
 //  int64_t number = 0;
 //  if (input_file_eof(input_file)) return -1;
 //  char current_char = input_file_get_current_char(input_file);
@@ -106,28 +106,28 @@
 ///*
 // * Basic Text-Parsing Functions
 // */
-//void input_text_parse_next_char(const char** const text_line) {
+//void input_text_parse_next_char(const char** const restrict text_line) {
 //  PARSER_NEXT_CHAR(text_line);
 //}
-//void input_text_parse_skip_chars(const char** const text_line,uint64_t num_chars) {
+//void input_text_parse_skip_chars(const char** const restrict text_line,uint64_t num_chars) {
 //  while ((num_chars--) > 0 && !PARSER_IS_EOL(text_line)) PARSER_NEXT_CHAR(text_line);
 //}
-//void input_text_parse_skip_line(const char** const text_line) {
+//void input_text_parse_skip_line(const char** const restrict text_line) {
 //  PARSER_SKIP_LINE(text_line);
 //}
-//bool input_text_parse_is_eol(const char** const text_line) {
+//bool input_text_parse_is_eol(const char** const restrict text_line) {
 //  return PARSER_IS_EOL(text_line);
 //}
-//void input_text_parse_field(const char** const text_line,const char delimiter,string_t* const string) {
+//void input_text_parse_field(const char** const restrict text_line,const char delimiter,string_t* const restrict string) {
 //  // Read field
-//  const char* const string_begin = *text_line;
+//  const char* const restrict string_begin = *text_line;
 //  while (gem_expect_true(**text_line!=delimiter && !PARSER_IS_EOL(text_line))) PARSER_NEXT_CHAR(text_line);
 //  // Copy string
 //  if (string) string_set_buffer_const(string,string_begin,(*text_line-string_begin));
 //  // Skip delimiter
 //  if (**text_line==delimiter) PARSER_NEXT_CHAR(text_line);
 //}
-int input_text_parse_integer(const char** const text_line,int64_t* const value) {
+int input_text_parse_integer(const char** const restrict text_line,int64_t* const restrict value) {
   int64_t number = 0;
   if (**text_line=='0' && (*(*text_line+1)=='x' || *(*text_line+1)=='X')) {
     *text_line+=2;
@@ -158,7 +158,7 @@ int input_text_parse_integer(const char** const text_line,int64_t* const value) 
   *value = number;
   return 0;
 }
-int input_text_parse_double(const char** const text_line,double* const value) {
+int input_text_parse_double(const char** const restrict text_line,double* const restrict value) {
   /*
    * [+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)
    *   Sign ::= [+-]
@@ -227,11 +227,11 @@ int input_text_parse_double(const char** const text_line,double* const value) {
   return 0;
 }
 // Parsing CMD-line options
-int input_text_parse_size(char* const size_text,uint64_t* const size) {
+int input_text_parse_size(char* const restrict size_text,uint64_t* const restrict size) {
   char* text_centinel = size_text;
   double parsed_size;
   // Parse number (double/interger)
-  if (input_text_parse_double((const char** const)&text_centinel,&parsed_size)) return 1;
+  if (input_text_parse_double((const char** const restrict)&text_centinel,&parsed_size)) return 1;
   // Parse units
   switch (*text_centinel) {
     case 'G': /* Giga */
@@ -267,7 +267,7 @@ int input_text_parse_size(char* const size_text,uint64_t* const size) {
   }
   return 0;
 }
-int input_text_parse_csv_arguments(char* const arguments,const uint64_t num_arguments,...) {
+int input_text_parse_csv_arguments(char* const restrict arguments,const uint64_t num_arguments,...) {
   uint64_t num_arguments_parsed = 0;
   // Start va_args
   va_list v_args;
@@ -275,7 +275,7 @@ int input_text_parse_csv_arguments(char* const arguments,const uint64_t num_argu
   // Start parsing
   char *opt = strtok(arguments,",");
   while (opt!=NULL && num_arguments_parsed<num_arguments) {
-    char** const arg = va_arg(v_args,char**);
+    char** const restrict arg = va_arg(v_args,char**);
     *arg = opt;
     opt = strtok(NULL,",");
     ++num_arguments_parsed;
@@ -284,7 +284,7 @@ int input_text_parse_csv_arguments(char* const arguments,const uint64_t num_argu
   va_end(v_args);
   return num_arguments_parsed;
 }
-int input_text_parse_extended_uint64(char* const argument,uint64_t* const value) {
+int input_text_parse_extended_uint64(char* const restrict argument,uint64_t* const restrict value) {
   // Textual
   if (gem_strcaseeq(argument,"all")) { *value = UINT64_MAX; return 0; }
   if (gem_strcaseeq(argument,"inf")) { *value = UINT64_MAX; return 0; }
@@ -294,9 +294,9 @@ int input_text_parse_extended_uint64(char* const argument,uint64_t* const value)
   if (gem_strcaseeq(argument,"zero")) { *value = 0; return 0; }
   if (gem_strcaseeq(argument,"null")) { *value = 0; return 0; }
   // Number
-  return input_text_parse_integer((const char** const)&argument,(int64_t*)value);
+  return input_text_parse_integer((const char** const restrict)&argument,(int64_t*)value);
 }
-int input_text_parse_extended_int64(char* const argument,int64_t* const value) {
+int input_text_parse_extended_int64(char* const restrict argument,int64_t* const restrict value) {
   // Textual
   if (gem_strcaseeq(argument,"all")) { *value = INT64_MAX; return 0; }
   if (gem_strcaseeq(argument,"inf")) { *value = INT64_MAX; return 0; }
@@ -306,9 +306,9 @@ int input_text_parse_extended_int64(char* const argument,int64_t* const value) {
   if (gem_strcaseeq(argument,"none")) { *value = 0; return 0; }
   if (gem_strcaseeq(argument,"zero")) { *value = 0; return 0; }
   // Number
-  return input_text_parse_integer((const char** const)&argument,value);
+  return input_text_parse_integer((const char** const restrict)&argument,value);
 }
-int input_text_parse_extended_double(char* const argument,double* const value) {
+int input_text_parse_extended_double(char* const restrict argument,double* const restrict value) {
   // Textual (use int64_t limits)
   if (gem_strcaseeq(argument,"all")) { *value = INT64_MAX; return 0; }
   if (gem_strcaseeq(argument,"inf")) { *value = INT64_MAX; return 0; }
@@ -318,9 +318,9 @@ int input_text_parse_extended_double(char* const argument,double* const value) {
   if (gem_strcaseeq(argument,"none")) { *value = 0; return 0; }
   if (gem_strcaseeq(argument,"zero")) { *value = 0; return 0; }
   // Number
-  return input_text_parse_double((const char** const)&argument,value);
+  return input_text_parse_double((const char** const restrict)&argument,value);
 }
-bool input_text_parse_extended_bool(char* const argument) {
+bool input_text_parse_extended_bool(char* const restrict argument) {
   if (argument==NULL) {
     return true;
   } else {
@@ -334,7 +334,7 @@ bool input_text_parse_extended_bool(char* const argument) {
     }
   }
 }
-uint64_t input_text_parse_count_colons_in_field(const char* const text_line) {
+uint64_t input_text_parse_count_colons_in_field(const char* const restrict text_line) {
   // Count number of colons in a field (delimited by TAB or SPACE)
   uint64_t i = 0, count = 0;
   while (text_line[i]!=TAB && text_line[i]!=SPACE && text_line[i]!=EOL) {

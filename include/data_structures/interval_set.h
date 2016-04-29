@@ -27,24 +27,24 @@ typedef struct {
 /*
  * Setup
  */
-void interval_set_init(interval_set_t* const interval_set);
-void interval_set_clear(interval_set_t* const interval_set);
-void interval_set_destroy(interval_set_t* const interval_set);
+void interval_set_init(interval_set_t* const restrict interval_set);
+void interval_set_clear(interval_set_t* const restrict interval_set);
+void interval_set_destroy(interval_set_t* const restrict interval_set);
 
 /*
  * Counting
  */
-uint64_t interval_set_count_intervals(interval_set_t* const interval_set);
-uint64_t interval_set_count_intervals_length(interval_set_t* const interval_set);
+uint64_t interval_set_count_intervals(interval_set_t* const restrict interval_set);
+uint64_t interval_set_count_intervals_length(interval_set_t* const restrict interval_set);
 uint64_t interval_set_count_intervals_length_thresholded(
-    interval_set_t* const interval_set,
+    interval_set_t* const restrict interval_set,
     const uint64_t max_error);
 
 /*
  * Adding
  */
 void interval_set_add(
-    interval_set_t* const interval_set,
+    interval_set_t* const restrict interval_set,
     const uint64_t lo,
     const uint64_t hi,
     const uint64_t distance,
@@ -54,11 +54,11 @@ void interval_set_add(
  * Set Operators
  */
 void interval_set_union(
-    interval_set_t* const interval_set_a,
-    interval_set_t* const interval_set_b);
+    interval_set_t* const restrict interval_set_a,
+    interval_set_t* const restrict interval_set_b);
 void interval_set_subtract(
-    interval_set_t* const result_set,
-    interval_set_t* const exclusion_set);
+    interval_set_t* const restrict result_set,
+    interval_set_t* const restrict exclusion_set);
 
 /*
  * Macro iterator

@@ -33,12 +33,12 @@ typedef struct {
  * Setup
  */
 input_buffer_t* input_buffer_new(const uint64_t buffer_size);
-void input_buffer_delete(input_buffer_t* const input_buffer);
+void input_buffer_delete(input_buffer_t* const restrict input_buffer);
 
 /*
  * Annotate lines
  */
-void input_buffer_annotate_lines(input_buffer_t* const input_buffer);
-uint64_t input_buffer_get_num_lines(input_buffer_t* const input_buffer);
+void input_buffer_annotate_lines(input_buffer_t* const restrict input_buffer);
+uint64_t input_buffer_get_num_lines(input_buffer_t* const restrict input_buffer);
 
 #endif /* INPUT_BUFFER_H_ */

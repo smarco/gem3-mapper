@@ -119,8 +119,8 @@ typedef struct _dna_text_t dna_text_t;
 /*
  * Setup/Loader
  */
-dna_text_t* dna_text_read_mem(mm_t* const memory_manager);
-void dna_text_delete(dna_text_t* const dna_text);
+dna_text_t* dna_text_read_mem(mm_t* const restrict memory_manager);
+void dna_text_delete(dna_text_t* const restrict dna_text);
 
 /*
  * Builder
@@ -131,34 +131,34 @@ dna_text_t* dna_text_padded_new(
     const uint64_t init_padding,
     const uint64_t end_padding);
 void dna_text_write_chunk(
-    fm_t* const output_file_manager,
-    dna_text_t* const dna_text,
+    fm_t* const restrict output_file_manager,
+    dna_text_t* const restrict dna_text,
     const uint64_t chunk_length);
 void dna_text_write(
-    fm_t* const output_file_manager,
-    dna_text_t* const dna_text);
+    fm_t* const restrict output_file_manager,
+    dna_text_t* const restrict dna_text);
 
 /*
  * Accessors
  */
-uint64_t dna_text_get_length(const dna_text_t* const dna_text);
+uint64_t dna_text_get_length(const dna_text_t* const restrict dna_text);
 void dna_text_set_length(
-    dna_text_t* const dna_text,
+    dna_text_t* const restrict dna_text,
     const uint64_t length);
-uint64_t dna_text_get_size(const dna_text_t* const dna_text);
+uint64_t dna_text_get_size(const dna_text_t* const restrict dna_text);
 uint8_t dna_text_get_char(
-    const dna_text_t* const dna_text,
+    const dna_text_t* const restrict dna_text,
     const uint64_t position);
 void dna_text_set_char(
-    const dna_text_t* const dna_text,
+    const dna_text_t* const restrict dna_text,
     const uint64_t position,
     const uint8_t enc_char);
-uint8_t* dna_text_get_text(const dna_text_t* const dna_text);
+uint8_t* dna_text_get_text(const dna_text_t* const restrict dna_text);
 uint8_t* dna_text_retrieve_sequence(
-    const dna_text_t* const dna_text,
+    const dna_text_t* const restrict dna_text,
     const uint64_t position,
     const uint64_t length,
-    mm_stack_t* const mm_stack);
+    mm_stack_t* const restrict mm_stack);
 
 /*
  * Utils
@@ -169,21 +169,21 @@ strand_t dna_text_strand_get_complement(const strand_t strand);
  * Display
  */
 void dna_text_print(
-    FILE* const stream,
-    dna_text_t* const dna_text,
+    FILE* const restrict stream,
+    dna_text_t* const restrict dna_text,
     const uint64_t length);
 void dna_text_print_content(
-    FILE* const stream,
-    dna_text_t* const dna_text);
+    FILE* const restrict stream,
+    dna_text_t* const restrict dna_text);
 void dna_text_pretty_print_content(
-    FILE* const stream,
-    dna_text_t* const dna_text,
+    FILE* const restrict stream,
+    dna_text_t* const restrict dna_text,
     const uint64_t width);
 
 // Buffer Display
 void dna_buffer_print(
-    FILE* const stream,
-    const uint8_t* const dna_buffer,
+    FILE* const restrict stream,
+    const uint8_t* const restrict dna_buffer,
     const uint64_t dna_buffer_length,
     const bool print_reverse);
 

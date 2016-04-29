@@ -93,50 +93,50 @@ typedef struct {
  * Setup
  */
 void approximate_search_init(
-    approximate_search_t* const search,
-    archive_t* const archive,
-    search_parameters_t* const search_parameters,
+    approximate_search_t* const restrict search,
+    archive_t* const restrict archive,
+    search_parameters_t* const restrict search_parameters,
     const bool emulated_rc_search);
-void approximate_search_reset(approximate_search_t* const search);
-void approximate_search_destroy(approximate_search_t* const search);
+void approximate_search_reset(approximate_search_t* const restrict search);
+void approximate_search_destroy(approximate_search_t* const restrict search);
 
 /*
  * Memory Injection (Support Data Structures)
  */
 void approximate_search_inject_mm_stack(
-    approximate_search_t* const search,
-    mm_stack_t* const mm_stack);
+    approximate_search_t* const restrict search,
+    mm_stack_t* const restrict mm_stack);
 void approximate_search_inject_interval_set(
-    approximate_search_t* const search,
-    interval_set_t* const interval_set);
+    approximate_search_t* const restrict search,
+    interval_set_t* const restrict interval_set);
 void approximate_search_inject_text_collection(
-    approximate_search_t* const search,
-    text_collection_t* const text_collection);
+    approximate_search_t* const restrict search,
+    text_collection_t* const restrict text_collection);
 void approximate_search_inject_filtering_candidates(
-    approximate_search_t* const search,
-    filtering_candidates_t* const filtering_candidates,
-    text_collection_t* const text_collection,
-    mm_stack_t* const mm_stack);
+    approximate_search_t* const restrict search,
+    filtering_candidates_t* const restrict filtering_candidates,
+    text_collection_t* const restrict text_collection,
+    mm_stack_t* const restrict mm_stack);
 
 /*
  * Accessors
  */
 void approximate_search_update_mcs(
-    approximate_search_t* const search,
+    approximate_search_t* const restrict search,
     const uint64_t max_complete_stratum);
 
-uint64_t approximate_search_get_num_regions_profile(const approximate_search_t* const search);
-uint64_t approximate_search_get_num_decode_candidates(const approximate_search_t* const search);
-uint64_t approximate_search_get_num_verify_candidates(const approximate_search_t* const search);
+uint64_t approximate_search_get_num_regions_profile(const approximate_search_t* const restrict search);
+uint64_t approximate_search_get_num_decode_candidates(const approximate_search_t* const restrict search);
+uint64_t approximate_search_get_num_verify_candidates(const approximate_search_t* const restrict search);
 
 /*
  * Aproximate String Search
  */
-void approximate_search(approximate_search_t* const search,matches_t* const matches);
+void approximate_search(approximate_search_t* const restrict search,matches_t* const restrict matches);
 
 /*
  * Display
  */
-void approximate_search_print(FILE* const stream,approximate_search_t* const search);
+void approximate_search_print(FILE* const restrict stream,approximate_search_t* const restrict search);
 
 #endif /* APPROXIMATE_SEARCH_H_ */

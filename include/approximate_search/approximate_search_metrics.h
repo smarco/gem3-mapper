@@ -27,7 +27,7 @@ typedef struct {
  * Setup
  */
 void approximate_search_metrics_init(
-    approximate_search_metrics_t* const search_metrics,
+    approximate_search_metrics_t* const restrict search_metrics,
     const double proper_length,
     const uint64_t read_length,
     const int32_t swg_match_score);
@@ -36,13 +36,13 @@ void approximate_search_metrics_init(
  * Accessors
  */
 void approximate_search_metrics_set_max_region_length(
-    approximate_search_metrics_t* const search_metrics,
+    approximate_search_metrics_t* const restrict search_metrics,
     const uint64_t max_region_length);
 void approximate_search_metrics_set_num_zero_regions(
-    approximate_search_metrics_t* const search_metrics,
+    approximate_search_metrics_t* const restrict search_metrics,
     const uint64_t num_zero_regions);
 void approximate_search_metrics_set_mappability(
-    approximate_search_metrics_t* const search_metrics,
+    approximate_search_metrics_t* const restrict search_metrics,
     const double mappability_p,
     const double mappability_2p);
 
@@ -50,7 +50,7 @@ void approximate_search_metrics_set_mappability(
  * Display
  */
 void approximate_search_metrics_print(
-    FILE* const stream,
-    approximate_search_metrics_t* const search_metrics);
+    FILE* const restrict stream,
+    approximate_search_metrics_t* const restrict search_metrics);
 
 #endif /* APPROXIMATE_SEARCH_METRICS_H_ */

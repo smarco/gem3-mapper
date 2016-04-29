@@ -13,21 +13,21 @@
  * Filtering Candidates Align Region
  */
 bool filtering_candidates_align_region(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const region,
-    pattern_t* const pattern,
+    filtering_candidates_t* const restrict filtering_candidates,
+    filtering_region_t* const restrict region,
+    pattern_t* const restrict pattern,
     const bool emulated_rc_search,
     const bool local_alignment,
     const bool extended_match,
-    matches_t* const matches);
+    matches_t* const restrict matches);
 
 /*
  * Filtering Candidates Align
  */
 uint64_t filtering_candidates_align_candidates(
-    filtering_candidates_t* const filtering_candidates,
-    pattern_t* const pattern,
+    filtering_candidates_t* const restrict filtering_candidates,
+    pattern_t* const restrict pattern,
     const bool emulated_rc_search,
     const bool extended_match,
     const bool local_alignment,
-    matches_t* const matches);
+    matches_t* const restrict matches);

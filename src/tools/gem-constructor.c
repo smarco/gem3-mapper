@@ -76,7 +76,7 @@ void constructor_write_fm() {
 //  file = fm_open_file("test.sbm",FM_READ);
 }
 void constructor_stats_vector() {
-  stats_vector_t* const stats_raw = stats_vector_raw_new(5,10);
+  stats_vector_t* const restrict stats_raw = stats_vector_raw_new(5,10);
   stats_vector_inc(stats_raw,0);
   stats_vector_inc(stats_raw,1);
   stats_vector_inc(stats_raw,2);
@@ -96,7 +96,7 @@ void constructor_stats_vector() {
   fprintf(stderr,"\n");
 
   uint64_t values[] = {0,100,1000,10000};
-  stats_vector_t* const stats_range = stats_vector_customed_range_new(values,3,10000);
+  stats_vector_t* const restrict stats_range = stats_vector_customed_range_new(values,3,10000);
   stats_vector_inc(stats_range,0);
   stats_vector_inc(stats_range,1);
 
@@ -112,7 +112,7 @@ void constructor_stats_vector() {
   stats_vector_display(stderr,stats_range,false,false,NULL);
   fprintf(stderr,"\n");
 
-  stats_vector_t* const stats_step = stats_vector_step_range_new(1000,10,1000);
+  stats_vector_t* const restrict stats_step = stats_vector_step_range_new(1000,10,1000);
   stats_vector_inc(stats_step,0);
   stats_vector_inc(stats_step,9);
 
@@ -135,8 +135,8 @@ typedef struct {
 } test_t;
 
 void constructor_svector_load() {
-  mm_slab_t* const slab = mm_slab_new_(BUFFER_SIZE_64M,BUFFER_SIZE_512M,MM_UNLIMITED_MEM,"");
-  svector_t* const svector = svector_new(slab,test_t);
+  mm_slab_t* const restrict slab = mm_slab_new_(BUFFER_SIZE_64M,BUFFER_SIZE_512M,MM_UNLIMITED_MEM,"");
+  svector_t* const restrict svector = svector_new(slab,test_t);
   svector_iterator_t iterator;
 
   // Writing
@@ -153,7 +153,7 @@ void constructor_svector_load() {
   svector_iterator_new(&iterator,svector,SVECTOR_READ_ITERATOR,0);
   i=0;
   while (!svector_read_iterator_eoi(&iterator)) {
-    test_t* const test = svector_iterator_get_element(&iterator,test_t);
+    test_t* const restrict test = svector_iterator_get_element(&iterator,test_t);
     gem_cond_fatal_error_msg(test->count!=i,"Invalid count at %"PRIu64" :: count=%"PRIu64"\n",i,test->count);
     gem_cond_fatal_error_msg(test->div_17!=i/17,"Invalid DIV at %"PRIu64" :: div_17=%"PRIu64"\n",i,test->div_17);
     // Next!
@@ -226,12 +226,12 @@ void constructor_svector_load() {
 //  }
 //}
 void constructor_sparse_bitmap_test() {
-  mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
+  mm_slab_t* const restrict slab = mm_slab_new(BUFFER_SIZE_16M);
 
   /*
    * Create & add some elements
    */
-  sparse_bitmap_builder_t* const sparse_bitmap_builder = sparse_bitmap_builder_new(slab);
+  sparse_bitmap_builder_t* const restrict sparse_bitmap_builder = sparse_bitmap_builder_new(slab);
   sparse_bitmap_builder_add_bitmap(sparse_bitmap_builder,1ull);
   sparse_bitmap_builder_skip_bitmap(sparse_bitmap_builder);
   sparse_bitmap_builder_add_bitmap(sparse_bitmap_builder,3ull);
@@ -290,7 +290,7 @@ void constructor_sparse_bitmap_test() {
    * Read
    */
   file = fm_open_file("test.sbm",FM_READ);
-  sparse_bitmap_t* const sparse_bitmap = sparse_bitmap_read(file);
+  sparse_bitmap_t* const restrict sparse_bitmap = sparse_bitmap_read(file);
 
   /*
    * Show some stats
@@ -306,8 +306,8 @@ void constructor_sparse_bitmap_test() {
 //      2ull,sparse_bitmap_is_contained(sparse_bitmap,2ull),sparse_bitmap_get_bitmap(sparse_bitmap,2ull));
 }
 void constructor_cdna_test() {
-  mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  cdna_text_t* const cdna_text = cdna_text_new(slab);
+  mm_slab_t* const restrict slab = mm_slab_new(BUFFER_SIZE_16M);
+  cdna_text_t* const restrict cdna_text = cdna_text_new(slab);
 
   // 0
   cdna_text_add_char(cdna_text,dna_encode('A')); /*  1 */
@@ -369,12 +369,12 @@ void constructor_cdna_test() {
   }
 }
 void constructor_locator_test() {
-  mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
+  mm_slab_t* const restrict slab = mm_slab_new(BUFFER_SIZE_16M);
 
   /*
    * Build some example
    */
-  locator_builder_t* const locator_builder = locator_builder_new(slab);
+  locator_builder_t* const restrict locator_builder = locator_builder_new(slab);
 
 //  locator_builder_add_sequence(locator_builder,"AAA",3);
 //  locator_builder_add_interval(locator_builder,0,0,100,100,locator_interval_regular);
@@ -401,12 +401,12 @@ void constructor_locator_test() {
    * Read
    */
   file = fm_open_file("test.loc",FM_READ);
-//  locator_t* const locator = locator_read(file);
+//  locator_t* const restrict locator = locator_read(file);
 //  locator_print(stderr,locator,true);
 
 }
 void constructor_packed_integer_array(const uint64_t int_length) {
-  packed_integer_array_t* const array = packed_integer_array_new(64,int_length);
+  packed_integer_array_t* const restrict array = packed_integer_array_new(64,int_length);
   fprintf(stderr,">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n"
                  " Printing %"PRIu64" bits-length\n",int_length);
   uint64_t i, integer;
@@ -450,7 +450,7 @@ void constructor_sparse_array_locator_test() {
   sparse_array_locator_delete(sal[1]);
 
   file = fm_open_file("sal_test.sal",FM_READ);
-  sparse_array_locator_t* const locator = sparse_array_locator_read(file);
+  sparse_array_locator_t* const restrict locator = sparse_array_locator_read(file);
 
   sparse_array_locator_print(stderr,locator,true);
   if (sparse_array_locator_is_marked(locator,2) &&
@@ -466,8 +466,8 @@ void constructor_sparse_array_locator_test() {
   sparse_array_locator_delete(locator);
 }
 void constructor_cdna_text__reverse() {
-  mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  cdna_text_t* const text = cdna_text_new(slab);
+  mm_slab_t* const restrict slab = mm_slab_new(BUFFER_SIZE_16M);
+  cdna_text_t* const restrict text = cdna_text_new(slab);
 
   cdna_text_add_char(text,1); // 1
   cdna_text_add_char(text,1); //
@@ -524,7 +524,7 @@ void constructor_fast_mapper_setup() {
 
 }
 void constructor_priority_queue() {
-  pqueue_t* const queue = pqueue_new(15);
+  pqueue_t* const restrict queue = pqueue_new(15);
 
   pqueue_push(queue,NULL,3);
   pqueue_push(queue,NULL,14);
@@ -575,7 +575,7 @@ void constructor_swg() {
 //  uint64_t match_position=100, cigar_length=0;
 //  int64_t effective_length=0;
 //  int32_t alignment_score=0;
-//  vector_t* const cigar_vector = vector_new(100,cigar_element_t);
+//  vector_t* const restrict cigar_vector = vector_new(100,cigar_element_t);
 //  swg_penalties_t swg_penalties;
 //  mm_stack_t* mm_stack = mm_stack_new(mm_slab_new(BUFFER_SIZE_8M));
 //  swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_A] = +1;
@@ -608,12 +608,12 @@ void constructor_swg() {
 //  swg_penalties.gap_open_score = -6;
 //  swg_penalties.gap_extension_score = -1;
 //  // Regular
-//  uint8_t* const key = (uint8_t*)"ACGTACGT";
-//  uint8_t* const text = (uint8_t*)"ACGTACGT";
+//  uint8_t* const restrict key = (uint8_t*)"ACGTACGT";
+//  uint8_t* const restrict text = (uint8_t*)"ACGTACGT";
 //  const uint64_t key_length = strlen((char*)key);
 //  const uint64_t text_length = strlen((char*)text);
-//  uint8_t* const key_enc = malloc(key_length*sizeof(char));
-//  uint8_t* const text_enc = malloc(text_length*sizeof(char));
+//  uint8_t* const restrict key_enc = malloc(key_length*sizeof(char));
+//  uint8_t* const restrict text_enc = malloc(text_length*sizeof(char));
 //  uint64_t i;
 //  for (i=0;i<key_length;++i) key_enc[i] = dna_encode(key[i]);
 //  for (i=0;i<text_length;++i) text_enc[i] = dna_encode(text[i]);
@@ -638,10 +638,10 @@ void constructor_swg() {
  *
  */
 void constructor_nsearch_region_permutations_n(
-    region_profile_t* const region_profile,const uint64_t current_region,
+    region_profile_t* const restrict region_profile,const uint64_t current_region,
     const uint64_t offset,const uint64_t left_length,
-    uint8_t* const key,const uint64_t key_length,
-    const uint64_t max_error,mm_stack_t* const mm_stack) {
+    uint8_t* const restrict key,const uint64_t key_length,
+    const uint64_t max_error,mm_stack_t* const restrict mm_stack) {
   uint64_t i;
   if (left_length==0) return;
   if (current_region+1 == region_profile->num_filtering_regions) {
@@ -673,14 +673,14 @@ void constructor_nsearch_region_permutations_n(
 }
 void constructor_nsearch_region_permutations() {
   // MM-Stack
-  mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_stack_t* const mm_stack = mm_stack_new(slab);
+  mm_slab_t* const restrict slab = mm_slab_new(BUFFER_SIZE_16M);
+  mm_stack_t* const restrict mm_stack = mm_stack_new(slab);
   // Search Parameters
   const uint64_t max_error = parameters.number;
-  const char* const key = parameters.name_input_file; // "ACGGTGACAAACGTCACGGTGGCACATGCAACCAAAAGCTG";//"AAAAAAA";
+  const char* const restrict key = parameters.name_input_file; // "ACGGTGACAAACGTCACGGTGGCACATGCAACCAAAAGCTG";//"AAAAAAA";
   const uint64_t key_length = strlen(key);
   // Encode key
-  uint8_t* const enc_key = malloc(key_length+1);
+  uint8_t* const restrict enc_key = malloc(key_length+1);
   uint64_t i;
   for (i=0;i<key_length;++i) enc_key[i] = dna_encode(key[i]);
   enc_key[key_length] = '\0';
@@ -697,14 +697,14 @@ void constructor_nsearch_region_permutations() {
  */
 void constructor_ns_hamming_brute() {
   // MM-Stack
-  mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_stack_t* const mm_stack = mm_stack_new(slab);
+  mm_slab_t* const restrict slab = mm_slab_new(BUFFER_SIZE_16M);
+  mm_stack_t* const restrict mm_stack = mm_stack_new(slab);
   // Search Parameters
   const uint64_t max_error = parameters.number;
-  const char* const key = parameters.name_input_file; // "ACGGTGACAAACGTCACGGTGGCACATGCAACCAAAAGCTG";//"AAAAAAA";
+  const char* const restrict key = parameters.name_input_file; // "ACGGTGACAAACGTCACGGTGGCACATGCAACCAAAAGCTG";//"AAAAAAA";
   const uint64_t key_length = strlen(key);
   // Encode key
-  uint8_t* const enc_key = malloc(key_length+1);
+  uint8_t* const restrict enc_key = malloc(key_length+1);
   uint64_t i;
   for (i=0;i<key_length;++i) enc_key[i] = dna_encode(key[i]);
   enc_key[key_length] = '\0';
@@ -713,14 +713,14 @@ void constructor_ns_hamming_brute() {
 }
 void constructor_ns_hamming() {
   // MM-Stack
-  mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_stack_t* const mm_stack = mm_stack_new(slab);
+  mm_slab_t* const restrict slab = mm_slab_new(BUFFER_SIZE_16M);
+  mm_stack_t* const restrict mm_stack = mm_stack_new(slab);
   // Search Parameters
   const uint64_t max_error = parameters.number;
-  const char* const key = parameters.name_input_file; // "ACGGTGACAAACGTCACGGTGGCACATGCAACCAAAAGCTG";//"AAAAAAA";
+  const char* const restrict key = parameters.name_input_file; // "ACGGTGACAAACGTCACGGTGGCACATGCAACCAAAAGCTG";//"AAAAAAA";
   const uint64_t key_length = strlen(key);
   // Encode key
-  uint8_t* const enc_key = malloc(key_length+1);
+  uint8_t* const restrict enc_key = malloc(key_length+1);
   uint64_t i;
   for (i=0;i<key_length;++i) enc_key[i] = dna_encode(key[i]);
   enc_key[key_length] = '\0';
@@ -729,14 +729,14 @@ void constructor_ns_hamming() {
 }
 void constructor_ns_hamming_2regions() {
   // MM-Stack
-  mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_stack_t* const mm_stack = mm_stack_new(slab);
+  mm_slab_t* const restrict slab = mm_slab_new(BUFFER_SIZE_16M);
+  mm_stack_t* const restrict mm_stack = mm_stack_new(slab);
   // Search Parameters
   const uint64_t max_error = parameters.number;
-  const char* const key = parameters.name_input_file; // "ACGGTGACAAACGTCACGGTGGCACATGCAACCAAAAGCTG";//"AAAAAAA";
+  const char* const restrict key = parameters.name_input_file; // "ACGGTGACAAACGTCACGGTGGCACATGCAACCAAAAGCTG";//"AAAAAAA";
   const uint64_t key_length = strlen(key);
   // Encode key
-  uint8_t* const enc_key = malloc(key_length+1);
+  uint8_t* const restrict enc_key = malloc(key_length+1);
   uint64_t i;
   for (i=0;i<key_length;++i) enc_key[i] = dna_encode(key[i]);
   enc_key[key_length] = '\0';
@@ -757,14 +757,14 @@ void constructor_ns_hamming_2regions() {
 }
 void constructor_ns_hamming_permutations() {
   // MM-Stack
-  mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_stack_t* const mm_stack = mm_stack_new(slab);
+  mm_slab_t* const restrict slab = mm_slab_new(BUFFER_SIZE_16M);
+  mm_stack_t* const restrict mm_stack = mm_stack_new(slab);
   // Search Parameters
   const uint64_t max_error = parameters.number;
-  const char* const key = parameters.name_input_file; // "ACGGTGACAAACGTCACGGTGGCACATGCAACCAAAAGCTG";//"AAAAAAA";
+  const char* const restrict key = parameters.name_input_file; // "ACGGTGACAAACGTCACGGTGGCACATGCAACCAAAAGCTG";//"AAAAAAA";
   const uint64_t key_length = strlen(key);
   // Encode key
-  uint8_t* const enc_key = malloc(key_length+1);
+  uint8_t* const restrict enc_key = malloc(key_length+1);
   uint64_t i;
   for (i=0;i<key_length;++i) enc_key[i] = dna_encode(key[i]);
   enc_key[key_length] = '\0';
@@ -778,14 +778,14 @@ void constructor_ns_hamming_permutations() {
 }
 void constructor_ns_edit_brute() {
   // MM-Stack
-  mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_stack_t* const mm_stack = mm_stack_new(slab);
+  mm_slab_t* const restrict slab = mm_slab_new(BUFFER_SIZE_16M);
+  mm_stack_t* const restrict mm_stack = mm_stack_new(slab);
   // Search Parameters
   const uint64_t max_error = parameters.number;
-  const char* const key = parameters.name_input_file;
+  const char* const restrict key = parameters.name_input_file;
   const uint64_t key_length = strlen(key);
   // Encode key
-  uint8_t* const enc_key = malloc(key_length+1);
+  uint8_t* const restrict enc_key = malloc(key_length+1);
   uint64_t i;
   for (i=0;i<key_length;++i) enc_key[i] = dna_encode(key[i]);
   enc_key[key_length] = '\0';
@@ -794,14 +794,14 @@ void constructor_ns_edit_brute() {
 }
 void constructor_ns_edit_partition() {
   // MM-Stack
-  mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_stack_t* const mm_stack = mm_stack_new(slab);
+  mm_slab_t* const restrict slab = mm_slab_new(BUFFER_SIZE_16M);
+  mm_stack_t* const restrict mm_stack = mm_stack_new(slab);
   // Search Parameters
   const uint64_t max_error = parameters.number;
-  const char* const key = parameters.name_input_file;
+  const char* const restrict key = parameters.name_input_file;
   const uint64_t key_length = strlen(key);
   // Encode key
-  uint8_t* const enc_key = malloc(key_length+1);
+  uint8_t* const restrict enc_key = malloc(key_length+1);
   uint64_t i;
   for (i=0;i<key_length;++i) enc_key[i] = dna_encode(key[i]);
   enc_key[key_length] = '\0';
@@ -813,8 +813,8 @@ void constructor_ns_edit_partition() {
  */
 void constructor_lsc() {
   // MM-Stack
-  mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_stack_t* const mm_stack = mm_stack_new(slab);
+  mm_slab_t* const restrict slab = mm_slab_new(BUFFER_SIZE_16M);
+  mm_stack_t* const restrict mm_stack = mm_stack_new(slab);
   // Text & key
   char* text = "ACAAGTA";
   char* key =  "ACGT";
@@ -824,11 +824,11 @@ void constructor_lsc() {
   const uint64_t text_length = strlen(text);
   // Encode key
   uint64_t i;
-  uint8_t* const enc_key = malloc(key_length+1);
+  uint8_t* const restrict enc_key = malloc(key_length+1);
   for (i=0;i<key_length;++i) enc_key[i] = dna_encode(key[i]);
   enc_key[key_length] = '\0';
   // Encode text
-  uint8_t* const enc_text = malloc(text_length+1);
+  uint8_t* const restrict enc_text = malloc(text_length+1);
   for (i=0;i<text_length;++i) enc_text[i] = dna_encode(text[i]);
   enc_text[text_length] = '\0';
 

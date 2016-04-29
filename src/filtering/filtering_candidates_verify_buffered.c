@@ -31,13 +31,13 @@
  * Kmer Filter
  */
 void filtering_candidates_verify_buffered_kmer_filter(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
-    text_collection_t* const text_collection) {
+    filtering_candidates_t* const restrict filtering_candidates,
+    filtering_region_t* const restrict filtering_region,
+    pattern_t* const restrict pattern,
+    text_collection_t* const restrict text_collection) {
   // Parameters
-  archive_text_t* const archive_text = filtering_candidates->archive->text;
-  mm_stack_t* const mm_stack = filtering_candidates->mm_stack;
+  archive_text_t* const restrict archive_text = filtering_candidates->archive->text;
+  mm_stack_t* const restrict mm_stack = filtering_candidates->mm_stack;
   // Compile kmer-filter
   if (!pattern->kmer_counting.enabled) {
     kmer_counting_compile(&pattern->kmer_counting,pattern->key,
@@ -45,9 +45,9 @@ void filtering_candidates_verify_buffered_kmer_filter(
   }
   // Retrieve text-candidate
   filtering_region_retrieve_text(filtering_region,pattern,archive_text,text_collection,mm_stack);
-  const text_trace_t* const text_trace =
+  const text_trace_t* const restrict text_trace =
       text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
-  const uint8_t* const text = text_trace->text; // Candidate
+  const uint8_t* const restrict text = text_trace->text; // Candidate
   const uint64_t eff_text_length = filtering_region->text_end_position - filtering_region->text_begin_position;
   // Generalized Kmer-Counting filter
   const uint64_t test_positive = kmer_counting_filter(&pattern->kmer_counting,text,eff_text_length);
@@ -62,9 +62,9 @@ void filtering_candidates_verify_buffered_kmer_filter(
  * Add filtering region to buffer
  */
 void filtering_candidates_verify_buffered_load_region(
-    filtering_region_t* const filtering_region,
-    filtering_region_buffered_t* const filtering_region_buffered,
-    pattern_t* const pattern) {
+    filtering_region_t* const restrict filtering_region,
+    filtering_region_buffered_t* const restrict filtering_region_buffered,
+    pattern_t* const restrict pattern) {
   /* Source Region Offset */
   filtering_region->text_source_region_offset = filtering_region_buffered->text_source_region_offset;
   filtering_region->key_source_region_offset = filtering_region_buffered->key_source_region_offset;
@@ -83,8 +83,8 @@ void filtering_candidates_verify_buffered_load_region(
   filtering_region->match_scaffold.num_scaffold_regions = filtering_region_buffered->num_scaffold_regions;
 }
 void filtering_candidates_verify_buffered_store_region(
-    filtering_region_buffered_t* const filtering_region_buffered,
-    filtering_region_t* const filtering_region) {
+    filtering_region_buffered_t* const restrict filtering_region_buffered,
+    filtering_region_t* const restrict filtering_region) {
   // Source Region Offset
   filtering_region_buffered->text_source_region_offset = filtering_region->text_source_region_offset;
   filtering_region_buffered->key_source_region_offset = filtering_region->key_source_region_offset;
@@ -100,12 +100,12 @@ void filtering_candidates_verify_buffered_store_region(
  * BPM-Buffered Add (Candidates Verification)
  */
 void filtering_candidates_verify_buffered_add(
-    filtering_candidates_t* const filtering_candidates,
-    pattern_t* const pattern,
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
-    uint64_t* const gpu_buffer_align_offset,
-    filtering_region_buffered_t** const filtering_region_buffered,
-    uint64_t* const gpu_num_filtering_regions) {
+    filtering_candidates_t* const restrict filtering_candidates,
+    pattern_t* const restrict pattern,
+    gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm,
+    uint64_t* const restrict gpu_buffer_align_offset,
+    filtering_region_buffered_t** const restrict filtering_region_buffered,
+    uint64_t* const restrict gpu_num_filtering_regions) {
   // Check number of pending filtering-regions
   const uint64_t num_filtering_regions = filtering_candidates_get_num_candidate_regions(filtering_candidates);
   if (num_filtering_regions==0) {
@@ -115,8 +115,8 @@ void filtering_candidates_verify_buffered_add(
     return;
   }
   // Allocate buffered filtering regions
-  mm_stack_t* const mm_stack = gpu_buffer_align_bpm->mm_stack;
-  filtering_region_buffered_t* const filtering_region_buffer =
+  mm_stack_t* const restrict mm_stack = gpu_buffer_align_bpm->mm_stack;
+  filtering_region_buffered_t* const restrict filtering_region_buffer =
       mm_stack_calloc(mm_stack,num_filtering_regions,filtering_region_buffered_t,false);
   *filtering_region_buffered = filtering_region_buffer;
   *gpu_num_filtering_regions = num_filtering_regions;
@@ -125,8 +125,8 @@ void filtering_candidates_verify_buffered_add(
   gpu_buffer_align_bpm_add_pattern(gpu_buffer_align_bpm,pattern->bpm_pattern,pattern->bpm_pattern_tiles);
   gpu_buffer_align_bpm_record_query_length(gpu_buffer_align_bpm,pattern->key_length);
   // Traverse all candidates (text-space)
-  bpm_pattern_t* const bpm_pattern = pattern->bpm_pattern;
-  bpm_pattern_t* const bpm_pattern_tiles = pattern->bpm_pattern_tiles;
+  bpm_pattern_t* const restrict bpm_pattern = pattern->bpm_pattern;
+  bpm_pattern_t* const restrict bpm_pattern_tiles = pattern->bpm_pattern_tiles;
   filtering_region_t* filtering_region = vector_get_mem(filtering_candidates->filtering_regions,filtering_region_t);
   uint64_t candidate_pos, total_candidates_added = 0;
   for (candidate_pos=0;candidate_pos<num_filtering_regions;++candidate_pos,++filtering_region) {
@@ -150,11 +150,11 @@ void filtering_candidates_verify_buffered_add(
     }
     // BPM-GPU put all candidates (tiles)
     const uint64_t num_pattern_tiles = bpm_pattern_tiles->num_pattern_tiles;
-    region_alignment_t* const region_alignment = &filtering_region->region_alignment;
-    region_alignment_tile_t* const alignment_tiles = region_alignment->alignment_tiles;
+    region_alignment_t* const restrict region_alignment = &filtering_region->region_alignment;
+    region_alignment_tile_t* const restrict alignment_tiles = region_alignment->alignment_tiles;
     uint64_t tile_pos;
     for (tile_pos=0;tile_pos<num_pattern_tiles;++tile_pos) {
-      region_alignment_tile_t* const alignment_tile = alignment_tiles + tile_pos;
+      region_alignment_tile_t* const restrict alignment_tile = alignment_tiles + tile_pos;
       const uint64_t candidate_text_position = filtering_region->text_begin_position + alignment_tile->text_begin_offset;
       const uint64_t candidate_length = alignment_tile->text_end_offset-alignment_tile->text_begin_offset;
       gpu_buffer_align_bpm_add_candidate(gpu_buffer_align_bpm,tile_pos,candidate_text_position,candidate_length);
@@ -172,15 +172,15 @@ void filtering_candidates_verify_buffered_add(
  * BPM-Buffered Retrieve Checkers (Candidates Verification)
  */
 void filtering_candidates_verify_buffered_check_tile_distance(
-    filtering_candidates_t* const filtering_candidates,
-    bpm_pattern_t* const bpm_pattern_tile,
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
+    filtering_candidates_t* const restrict filtering_candidates,
+    bpm_pattern_t* const restrict bpm_pattern_tile,
+    gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm,
     const uint64_t candidate_idx,
     const uint32_t tile_distance,
     const uint32_t tile_match_column) {
   // Parameters
-  text_collection_t* const text_collection = filtering_candidates->text_collection;
-  mm_stack_t* const mm_stack = filtering_candidates->mm_stack;
+  text_collection_t* const restrict text_collection = filtering_candidates->text_collection;
+  mm_stack_t* const restrict mm_stack = filtering_candidates->mm_stack;
   // Push
   mm_stack_push_state(mm_stack);
   // Get Candidate & Pattern
@@ -191,8 +191,8 @@ void filtering_candidates_verify_buffered_check_tile_distance(
   // Get Candidate Text
   const uint64_t text_trace_offset = archive_text_retrieve_collection(gpu_buffer_align_bpm->archive_text,
       text_collection,candidate_text_position,candidate_length,false,false,mm_stack); // Retrieve text(s)
-  const text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
-  const uint8_t* const text = text_trace->text; // Candidate
+  const text_trace_t* const restrict text_trace = text_collection_get_trace(text_collection,text_trace_offset);
+  const uint8_t* const restrict text = text_trace->text; // Candidate
   uint64_t i, uncalled_bases_text = 0;
   for (i=0;i<candidate_length;++i) {
     if (text[i]==ENC_DNA_CHAR_N) ++uncalled_bases_text;
@@ -213,14 +213,14 @@ void filtering_candidates_verify_buffered_check_tile_distance(
   mm_stack_pop_state(mm_stack);
 }
 void filtering_candidates_verify_buffered_check_global_distance(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_region_buffered_t* const filtering_region,
-    bpm_pattern_t* const bpm_pattern,
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
+    filtering_candidates_t* const restrict filtering_candidates,
+    filtering_region_buffered_t* const restrict filtering_region,
+    bpm_pattern_t* const restrict bpm_pattern,
+    gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm,
     const uint64_t global_distance) {
   // Parameters
-  text_collection_t* const text_collection = filtering_candidates->text_collection;
-  mm_stack_t* const mm_stack = filtering_candidates->mm_stack;
+  text_collection_t* const restrict text_collection = filtering_candidates->text_collection;
+  mm_stack_t* const restrict mm_stack = filtering_candidates->mm_stack;
   // Push
   mm_stack_push_state(mm_stack);
   // Retrieve text
@@ -229,7 +229,7 @@ void filtering_candidates_verify_buffered_check_global_distance(
   const uint64_t text_trace_offset = archive_text_retrieve_collection(
       gpu_buffer_align_bpm->archive_text,text_collection,
       candidate_position,candidate_length,false,false,mm_stack);
-  const text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
+  const text_trace_t* const restrict text_trace = text_collection_get_trace(text_collection,text_trace_offset);
   // Check Whole-Read
   uint64_t match_end_column, match_distance;
   bpm_compute_edit_distance(bpm_pattern,text_trace->text,text_trace->text_length,
@@ -247,20 +247,20 @@ void filtering_candidates_verify_buffered_check_global_distance(
  * Retrieve filtering region from the buffer
  */
 void filtering_candidates_verify_buffered_retrieve_region_alignment(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_region_buffered_t* const region_buffered,
-    region_alignment_t* const region_alignment,
-    bpm_pattern_t* const bpm_pattern,
-    bpm_pattern_t* const bpm_pattern_tiles,
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
+    filtering_candidates_t* const restrict filtering_candidates,
+    filtering_region_buffered_t* const restrict region_buffered,
+    region_alignment_t* const restrict region_alignment,
+    bpm_pattern_t* const restrict bpm_pattern,
+    bpm_pattern_t* const restrict bpm_pattern_tiles,
+    gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm,
     uint64_t candidate_idx) {
   // Traverse all tiles
-  region_alignment_tile_t* const alignment_tiles = region_alignment->alignment_tiles;
+  region_alignment_tile_t* const restrict alignment_tiles = region_alignment->alignment_tiles;
   const uint64_t num_tiles = region_alignment->num_tiles;
   uint64_t tile_pos, global_distance=0;
   for (tile_pos=0;tile_pos<num_tiles;++tile_pos) {
-    bpm_pattern_t* const bpm_pattern_tile = bpm_pattern_tiles + tile_pos;
-    region_alignment_tile_t* const alignment_tile = alignment_tiles + tile_pos;
+    bpm_pattern_t* const restrict bpm_pattern_tile = bpm_pattern_tiles + tile_pos;
+    region_alignment_tile_t* const restrict alignment_tile = alignment_tiles + tile_pos;
     // Retrieve alignment distance
     uint32_t tile_distance=0, tile_match_column=0;
     gpu_buffer_align_bpm_get_result(gpu_buffer_align_bpm,candidate_idx,&tile_distance,&tile_match_column);
@@ -289,18 +289,18 @@ void filtering_candidates_verify_buffered_retrieve_region_alignment(
   #endif
 }
 void filtering_candidates_verify_buffered_retrieve(
-    filtering_candidates_t* const filtering_candidates,
-    pattern_t* const pattern,
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
+    filtering_candidates_t* const restrict filtering_candidates,
+    pattern_t* const restrict pattern,
+    gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm,
     const uint64_t candidate_offset_begin,
-    filtering_region_buffered_t* const filtering_region_buffered,
+    filtering_region_buffered_t* const restrict filtering_region_buffered,
     uint64_t const num_filtering_regions) {
   PROFILE_START(GP_FC_VERIFY_CANDIDATES_BUFFERED,PROFILE_LEVEL);
   // Parameters
   const uint64_t key_length = pattern->key_length;
   const uint64_t max_error = pattern->max_effective_filtering_error;
-  bpm_pattern_t* const bpm_pattern = pattern->bpm_pattern;
-  bpm_pattern_t* const bpm_pattern_tiles = pattern->bpm_pattern_tiles;
+  bpm_pattern_t* const restrict bpm_pattern = pattern->bpm_pattern;
+  bpm_pattern_t* const restrict bpm_pattern_tiles = pattern->bpm_pattern_tiles;
   // Prepare filtering-regions vectors
   vector_clear(filtering_candidates->verified_regions);
   vector_clear(filtering_candidates->filtering_regions);
@@ -313,8 +313,8 @@ void filtering_candidates_verify_buffered_retrieve(
   // Traverse all filtering regions buffered
   uint64_t region_pos, candidate_idx = candidate_offset_begin;
   for (region_pos=0;region_pos<num_filtering_regions;++region_pos) {
-    filtering_region_buffered_t* const region_buffered = filtering_region_buffered + region_pos;
-    region_alignment_t* const region_alignment = &region_buffered->region_alignment;
+    filtering_region_buffered_t* const restrict region_buffered = filtering_region_buffered + region_pos;
+    region_alignment_t* const restrict region_alignment = &region_buffered->region_alignment;
     // Retrieve trimmed-key region
     const uint64_t text_length = region_buffered->text_end_position - region_buffered->text_begin_position;
     if (key_length > text_length) {
@@ -372,20 +372,20 @@ void filtering_candidates_verify_buffered_retrieve(
 // * Display/Benchmark
 // */
 //void filtering_candidates_verify_buffered_print_benchmark_tile(
-//    FILE* const stream,
-//    filtering_region_t* const filtering_region,
-//    pattern_t* const pattern,
-//    bpm_pattern_t* const bpm_pattern_tiles,
+//    FILE* const restrict stream,
+//    filtering_region_t* const restrict filtering_region,
+//    pattern_t* const restrict pattern,
+//    bpm_pattern_t* const restrict bpm_pattern_tiles,
 //    const uint64_t max_error,
 //    const uint64_t tile_pos,
 //    const uint64_t tile_tall,
 //    const bool print_tile,
-//    text_collection_t* const text_collection) {
+//    text_collection_t* const restrict text_collection) {
 //  // Parameters
 //  const uint64_t begin_position = filtering_region->text_begin_position;
 //  const uint64_t candidate_length = filtering_region->text_end_position - begin_position;
-//  const text_trace_t* const text_trace = text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
-//  const uint8_t* const text = text_trace->text;
+//  const text_trace_t* const restrict text_trace = text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
+//  const uint8_t* const restrict text = text_trace->text;
 //  // Calculate tile dimensions
 //  pattern_tiled_t pattern_tiled;
 //  pattern_tiled_init(&pattern_tiled,
@@ -396,7 +396,7 @@ void filtering_candidates_verify_buffered_retrieve(
 //    if (tile_offset==tile_pos) {
 //      // Print tile key
 //      if (print_tile) {
-//        const uint8_t* const key = pattern->key;
+//        const uint8_t* const restrict key = pattern->key;
 //        for (i=0;i<pattern_tiled.tile_tall;++i) {
 //          fprintf(stream,"%c",dna_decode(key[acc_tall+i]));
 //        }
@@ -416,12 +416,12 @@ void filtering_candidates_verify_buffered_retrieve(
 //  }
 //}
 //void filtering_candidates_verify_buffered_print_benchmark(
-//    FILE* const stream,
-//    filtering_candidates_t* const filtering_candidates,
-//    pattern_t* const pattern) {
+//    FILE* const restrict stream,
+//    filtering_candidates_t* const restrict filtering_candidates,
+//    pattern_t* const restrict pattern) {
 //  // Parameters
-//  archive_text_t* const archive_text = filtering_candidates->archive->text;
-//  mm_stack_t* const mm_stack = filtering_candidates->mm_stack;
+//  archive_text_t* const restrict archive_text = filtering_candidates->archive->text;
+//  mm_stack_t* const restrict mm_stack = filtering_candidates->mm_stack;
 //  // Allocate text collection
 //  text_collection_t text_collection;
 //  text_collection_init(&text_collection);
@@ -430,8 +430,8 @@ void filtering_candidates_verify_buffered_retrieve(
 //  if (pending_candidates==0) return;
 //  // Traverse all candidates (text-space)
 //  const uint64_t max_error = pattern->max_effective_filtering_error;
-//  bpm_pattern_t* const bpm_pattern = pattern->bpm_pattern;
-//  bpm_pattern_t* const bpm_pattern_tiles = pattern->bpm_pattern_tiles;
+//  bpm_pattern_t* const restrict bpm_pattern = pattern->bpm_pattern;
+//  bpm_pattern_t* const restrict bpm_pattern_tiles = pattern->bpm_pattern_tiles;
 //  uint64_t tile_pos, candidate_pos;
 //  for (tile_pos=0;tile_pos<gpu_pattern_num_tiles;++tile_pos) {
 //    filtering_region_t* candidate_region = vector_get_mem(filtering_candidates->filtering_regions,filtering_region_t);

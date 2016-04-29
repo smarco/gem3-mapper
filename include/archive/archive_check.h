@@ -19,21 +19,21 @@
  * Check Matches
  */
 void archive_check_se_matches(
-    archive_t* const archive,
+    archive_t* const restrict archive,
     const alignment_model_t alignment_model,
     swg_penalties_t* swg_penalties,
-    sequence_t* const sequence,
-    matches_t* const matches,
+    sequence_t* const restrict sequence,
+    matches_t* const restrict matches,
     const archive_check_type check_type,
-    mm_stack_t* const mm_stack);
+    mm_stack_t* const restrict mm_stack);
 void archive_check_pe_matches(
-    archive_t* const archive,
+    archive_t* const restrict archive,
     const alignment_model_t alignment_model,
     swg_penalties_t* swg_penalties,
-    sequence_t* const sequence_end1,
-    sequence_t* const sequence_end2,
-    paired_matches_t* const paired_matches,
+    sequence_t* const restrict sequence_end1,
+    sequence_t* const restrict sequence_end2,
+    paired_matches_t* const restrict paired_matches,
     const archive_check_type check_type,
-    mm_stack_t* const mm_stack);
+    mm_stack_t* const restrict mm_stack);
 
 #endif /* ARCHIVE_CHECK_H_ */

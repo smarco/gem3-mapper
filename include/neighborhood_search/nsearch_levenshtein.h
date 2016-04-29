@@ -20,38 +20,38 @@
  * Levenshtein Brute Force
  */
 void nsearch_levenshtein_brute_force(
-    fm_index_t* const fm_index,uint8_t* const key,
+    fm_index_t* const restrict fm_index,uint8_t* const restrict key,
     const uint64_t key_length,const uint64_t max_error,
-    interval_set_t* const intervals_result,mm_stack_t* const mm_stack);
+    interval_set_t* const restrict intervals_result,mm_stack_t* const restrict mm_stack);
 
 /*
  * Perform Levenshtein Scheduled Search
  */
 uint64_t nsearch_levenshtein_perform_scheduled_search(
-    nsearch_schedule_t* const nsearch_schedule,const uint64_t pending_searches,
-    nsearch_operation_t* const nsearch_operation,const uint64_t global_error);
+    nsearch_schedule_t* const restrict nsearch_schedule,const uint64_t pending_searches,
+    nsearch_operation_t* const restrict nsearch_operation,const uint64_t global_error);
 
 /*
  * Levenshtein Neighborhood Search
  */
 void nsearch_levenshtein(
-    fm_index_t* const fm_index,uint8_t* const key,
+    fm_index_t* const restrict fm_index,uint8_t* const restrict key,
     const uint64_t key_length,const uint64_t max_error,
-    interval_set_t* const intervals_result,mm_stack_t* const mm_stack);
+    interval_set_t* const restrict intervals_result,mm_stack_t* const restrict mm_stack);
 void nsearch_levenshtein_preconditioned(
-    fm_index_t* const fm_index,region_profile_t* const region_profile,
-    uint8_t* const key,const uint64_t key_length,const uint64_t max_error,
-    interval_set_t* const intervals_result,mm_stack_t* const mm_stack);
+    fm_index_t* const restrict fm_index,region_profile_t* const restrict region_profile,
+    uint8_t* const restrict key,const uint64_t key_length,const uint64_t max_error,
+    interval_set_t* const restrict intervals_result,mm_stack_t* const restrict mm_stack);
 
 /*
  * Display
  */
 void nsearch_levenshtein_print_search_trace(
-    FILE* const stream,nsearch_schedule_t* const nsearch_schedule,
+    FILE* const restrict stream,nsearch_schedule_t* const restrict nsearch_schedule,
     const uint64_t pending_searches);
 void nsearch_levenshtein_print_pair_key_text(
-    FILE* const stream,nsearch_schedule_t* const nsearch_schedule,
-    nsearch_operation_t* const nsearch_operation);
+    FILE* const restrict stream,nsearch_schedule_t* const restrict nsearch_schedule,
+    nsearch_operation_t* const restrict nsearch_operation);
 
 
 #endif /* NSEARCH_LEVENSHTEIN_H_ */

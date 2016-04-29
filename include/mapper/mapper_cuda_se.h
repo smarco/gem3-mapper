@@ -14,6 +14,6 @@
 /*
  * Mapper SE-CUDA
  */
-void* mapper_cuda_se_thread(mapper_cuda_search_t* const mapper_search);
+void* mapper_cuda_se_thread(mapper_cuda_search_t* const restrict mapper_search);
 
 #endif /* MAPPER_CUDA_SE_H_ */

@@ -22,24 +22,24 @@
  *   @align_input->text_length
  */
 void align_bpm_compute_matrix(
-    match_align_input_t* const align_input,
+    match_align_input_t* const restrict align_input,
     uint64_t max_distance,
-    bpm_align_matrix_t* const bpm_align_matrix,
-    mm_stack_t* const mm_stack) {
+    bpm_align_matrix_t* const restrict bpm_align_matrix,
+    mm_stack_t* const restrict mm_stack) {
   // Parameters
-  const bpm_pattern_t* const bpm_pattern = align_input->bpm_pattern;
-  uint8_t* const text = align_input->text;
+  const bpm_pattern_t* const restrict bpm_pattern = align_input->bpm_pattern;
+  uint8_t* const restrict text = align_input->text;
   const uint64_t text_length = align_input->text_length;
   // Pattern variables
   const uint64_t* PEQ = bpm_pattern->PEQ;
   const uint64_t num_words64 = bpm_pattern->pattern_num_words64;
-  const uint64_t* const level_mask = bpm_pattern->level_mask;
-  int64_t* const score = bpm_pattern->score;
-  const int64_t* const init_score = bpm_pattern->init_score;
+  const uint64_t* const restrict level_mask = bpm_pattern->level_mask;
+  int64_t* const restrict score = bpm_pattern->score;
+  const int64_t* const restrict init_score = bpm_pattern->init_score;
   // Allocate auxiliary matrix
   const uint64_t aux_matrix_size = num_words64*UINT64_SIZE*(text_length+1); /* (+1 base-column) */
-  uint64_t* const Pv = (uint64_t*)mm_stack_malloc(mm_stack,aux_matrix_size);
-  uint64_t* const Mv = (uint64_t*)mm_stack_malloc(mm_stack,aux_matrix_size);
+  uint64_t* const restrict Pv = (uint64_t*)mm_stack_malloc(mm_stack,aux_matrix_size);
+  uint64_t* const restrict Mv = (uint64_t*)mm_stack_malloc(mm_stack,aux_matrix_size);
   bpm_align_matrix->Mv = Mv;
   bpm_align_matrix->Pv = Pv;
   // Initialize search
@@ -131,23 +131,23 @@ void align_bpm_compute_matrix(
  *   @match_alignment->match_position (Adjusted)
  */
 void align_bpm_backtrace_matrix(
-    match_align_input_t* const align_input,
+    match_align_input_t* const restrict align_input,
     const bool left_gap_alignment,
-    bpm_align_matrix_t* const bpm_align_matrix,
-    match_alignment_t* const match_alignment,
-    vector_t* const cigar_vector) {
+    bpm_align_matrix_t* const restrict bpm_align_matrix,
+    match_alignment_t* const restrict match_alignment,
+    vector_t* const restrict cigar_vector) {
   // Parameters
-  const uint8_t* const key = align_input->key;
-  const bpm_pattern_t* const bpm_pattern = align_input->bpm_pattern;
+  const uint8_t* const restrict key = align_input->key;
+  const bpm_pattern_t* const restrict bpm_pattern = align_input->bpm_pattern;
   const uint64_t pattern_length = bpm_pattern->pattern_length;
-  uint8_t* const text = align_input->text;
-  const uint64_t* const Pv = bpm_align_matrix->Pv;
-  const uint64_t* const Mv = bpm_align_matrix->Mv;
+  uint8_t* const restrict text = align_input->text;
+  const uint64_t* const restrict Pv = bpm_align_matrix->Pv;
+  const uint64_t* const restrict Mv = bpm_align_matrix->Mv;
   // Allocate CIGAR string memory (worst case)
   match_alignment->cigar_offset = vector_get_used(cigar_vector); // Set CIGAR offset
   vector_reserve_additional(cigar_vector,MIN(pattern_length,2*bpm_align_matrix->min_score+1)); // Reserve
   cigar_element_t* cigar_buffer = vector_get_free_elm(cigar_vector,cigar_element_t); // Sentinel
-  cigar_element_t* const cigar_buffer_base = cigar_buffer;
+  cigar_element_t* const restrict cigar_buffer_base = cigar_buffer;
   cigar_buffer->type = cigar_null; // Trick
   // Retrieve the alignment. Store the match
   const uint64_t num_words64 = bpm_pattern->pattern_num_words64;
@@ -240,12 +240,12 @@ void align_bpm_backtrace_matrix(
  *   @match_alignment->match_position (Adjusted)
  */
 void align_bpm_match(
-    match_align_input_t* const align_input,
+    match_align_input_t* const restrict align_input,
     const uint64_t max_distance,
     const bool left_gap_alignment,
-    match_alignment_t* const match_alignment,
-    vector_t* const cigar_vector,
-    mm_stack_t* const mm_stack) {
+    match_alignment_t* const restrict match_alignment,
+    vector_t* const restrict cigar_vector,
+    mm_stack_t* const restrict mm_stack) {
   // Fill Matrix (Pv,Mv)
   mm_stack_push_state(mm_stack); // Save stack state
   bpm_align_matrix_t bpm_align_matrix;

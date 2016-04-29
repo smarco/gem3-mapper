@@ -19,13 +19,13 @@
 void init_mapping_stats(mapping_stats_t *mstats);
 
 void collect_SE_mapping_stats(
-    archive_search_t* const archive_search,
-    matches_t* const matches,
+    archive_search_t* const restrict archive_search,
+    matches_t* const restrict matches,
     mapping_stats_t* mstats);
 void collect_PE_mapping_stats(
-    archive_search_t* const archive_search1,
-    archive_search_t* const archive_search2,
-    paired_matches_t* const paired_matches,
+    archive_search_t* const restrict archive_search1,
+    archive_search_t* const restrict archive_search2,
+    paired_matches_t* const restrict paired_matches,
     mapping_stats_t* mstats);
 
 void output_mapping_stats(mapper_parameters_t *parameters,mapping_stats_t* mstats);

@@ -18,7 +18,7 @@
 /*
  * Check Occupancy
  */
-bool mapper_se_cuda_stage_read_input_sequences_exhausted(mapper_cuda_search_t* const mapper_search) {
+bool mapper_se_cuda_stage_read_input_sequences_exhausted(mapper_cuda_search_t* const restrict mapper_search) {
   // Check pending search
   if (mapper_search->pending_search_region_profile_end1!=NULL) return false;
   // Check end_of_block
@@ -29,18 +29,18 @@ bool mapper_se_cuda_stage_read_input_sequences_exhausted(mapper_cuda_search_t* c
   search_pipeline_clear(mapper_search->search_pipeline);
   return false;
 }
-bool mapper_se_cuda_stage_region_profile_output_exhausted(mapper_cuda_search_t* const mapper_search) {
+bool mapper_se_cuda_stage_region_profile_output_exhausted(mapper_cuda_search_t* const restrict mapper_search) {
   // Check Stage Region-Profile
-  search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
+  search_pipeline_t* const restrict search_pipeline = mapper_search->search_pipeline;
   if (!search_stage_region_profile_retrieve_finished(search_pipeline->stage_region_profile)) return false;
   // Check pending search
   if (mapper_search->pending_search_decode_candidates_end1!=NULL) return false;
   // Exhausted
   return true;
 }
-bool mapper_se_cuda_stage_decode_candidates_output_exhausted(mapper_cuda_search_t* const mapper_search) {
+bool mapper_se_cuda_stage_decode_candidates_output_exhausted(mapper_cuda_search_t* const restrict mapper_search) {
   // Check Stage Decode-Candidates
-  search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
+  search_pipeline_t* const restrict search_pipeline = mapper_search->search_pipeline;
   if (!search_stage_decode_candidates_retrieve_finished(search_pipeline->stage_decode_candidates)) return false;
   // Check pending search
   if (mapper_search->pending_search_verify_candidates_end1!=NULL) return false;
@@ -53,12 +53,12 @@ bool mapper_se_cuda_stage_decode_candidates_output_exhausted(mapper_cuda_search_
  *   Generate region-profile partition
  *   Send to CUDA-region-profile
  */
-void mapper_se_cuda_region_profile(mapper_cuda_search_t* const mapper_search) {
+void mapper_se_cuda_region_profile(mapper_cuda_search_t* const restrict mapper_search) {
   PROFILE_START(GP_MAPPER_CUDA_SE_REGION_PROFILE,PROFILE_LEVEL);
   // Parameters
-  mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
-  search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
-  search_stage_region_profile_t* const stage_region_profile = search_pipeline->stage_region_profile;
+  mapper_parameters_t* const restrict parameters = mapper_search->mapper_parameters;
+  search_pipeline_t* const restrict search_pipeline = mapper_search->search_pipeline;
+  search_stage_region_profile_t* const restrict stage_region_profile = search_pipeline->stage_region_profile;
   archive_search_t* archive_search = NULL;
   // Reschedule search (that couldn't fit into the buffer)
   if (mapper_search->pending_search_region_profile_end1!=NULL) {
@@ -93,12 +93,12 @@ void mapper_se_cuda_region_profile(mapper_cuda_search_t* const mapper_search) {
  *   Generate Decode-Candidates
  *   Send to CUDA Decode-Candidates
  */
-void mapper_se_cuda_decode_candidates(mapper_cuda_search_t* const mapper_search) {
+void mapper_se_cuda_decode_candidates(mapper_cuda_search_t* const restrict mapper_search) {
   PROFILE_START(GP_MAPPER_CUDA_SE_DECODE_CANDIDATES,PROFILE_LEVEL);
   // Parameters
-  search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
-  search_stage_region_profile_t* const stage_region_profile = search_pipeline->stage_region_profile;
-  search_stage_decode_candidates_t* const stage_decode_candidates = search_pipeline->stage_decode_candidates;
+  search_pipeline_t* const restrict search_pipeline = mapper_search->search_pipeline;
+  search_stage_region_profile_t* const restrict stage_region_profile = search_pipeline->stage_region_profile;
+  search_stage_decode_candidates_t* const restrict stage_decode_candidates = search_pipeline->stage_decode_candidates;
   archive_search_t* archive_search = NULL;
   // Reschedule search (that couldn't fit into the buffer)
   if (mapper_search->pending_search_decode_candidates_end1!=NULL) {
@@ -128,12 +128,12 @@ void mapper_se_cuda_decode_candidates(mapper_cuda_search_t* const mapper_search)
  *   Generate region-profile partition (adaptive) + decode-candidates
  *   Send to CUDA Decode-Candidates
  */
-void mapper_se_cuda_generate_candidates(mapper_cuda_search_t* const mapper_search) {
+void mapper_se_cuda_generate_candidates(mapper_cuda_search_t* const restrict mapper_search) {
   PROFILE_START(GP_MAPPER_CUDA_SE_DECODE_CANDIDATES,PROFILE_LEVEL);
   // Parameters
-  mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
-  search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
-  search_stage_decode_candidates_t* const stage_decode_candidates = search_pipeline->stage_decode_candidates;
+  mapper_parameters_t* const restrict parameters = mapper_search->mapper_parameters;
+  search_pipeline_t* const restrict search_pipeline = mapper_search->search_pipeline;
+  search_stage_decode_candidates_t* const restrict stage_decode_candidates = search_pipeline->stage_decode_candidates;
   archive_search_t* archive_search = NULL;
   // Reschedule search (that couldn't fit into the buffer)
   if (mapper_search->pending_search_decode_candidates_end1!=NULL) {
@@ -170,12 +170,12 @@ void mapper_se_cuda_generate_candidates(mapper_cuda_search_t* const mapper_searc
  *   Generate Verify-Candidates
  *   Send to CUDA Verify-Candidates
  */
-void mapper_se_cuda_verify_candidates(mapper_cuda_search_t* const mapper_search) {
+void mapper_se_cuda_verify_candidates(mapper_cuda_search_t* const restrict mapper_search) {
   PROFILE_START(GP_MAPPER_CUDA_SE_VERIFY_CANDIDATES,PROFILE_LEVEL);
   // Parameters
-  search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
-  search_stage_decode_candidates_t* const stage_decode_candidates = search_pipeline->stage_decode_candidates;
-  search_stage_verify_candidates_t* const stage_verify_candidates = search_pipeline->stage_verify_candidates;
+  search_pipeline_t* const restrict search_pipeline = mapper_search->search_pipeline;
+  search_stage_decode_candidates_t* const restrict stage_decode_candidates = search_pipeline->stage_decode_candidates;
+  search_stage_verify_candidates_t* const restrict stage_verify_candidates = search_pipeline->stage_verify_candidates;
   archive_search_t* archive_search = NULL;
   // Reschedule search (that couldn't fit into the buffer)
   if (mapper_search->pending_search_verify_candidates_end1!=NULL) {
@@ -207,12 +207,12 @@ void mapper_se_cuda_verify_candidates(mapper_cuda_search_t* const mapper_search)
  *   Finish Search
  *   Output Matches
  */
-void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_search) {
+void mapper_se_cuda_finish_search(mapper_cuda_search_t* const restrict mapper_search) {
   PROFILE_START(GP_MAPPER_CUDA_SE_FINISH_SEARCH,PROFILE_LEVEL);
   // Parameters
-  mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
-  search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
-  search_stage_verify_candidates_t* const stage_verify_candidates = search_pipeline->stage_verify_candidates;
+  mapper_parameters_t* const restrict parameters = mapper_search->mapper_parameters;
+  search_pipeline_t* const restrict search_pipeline = mapper_search->search_pipeline;
+  search_stage_verify_candidates_t* const restrict stage_verify_candidates = search_pipeline->stage_verify_candidates;
   archive_search_t* archive_search = NULL;
   // Process all search-groups generated
   while (search_stage_verify_candidates_retrieve_se_search(stage_verify_candidates,&archive_search)) {
@@ -234,13 +234,13 @@ void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_search) {
 /*
  * Mapper SE-CUDA
  */
-void* mapper_cuda_se_thread(mapper_cuda_search_t* const mapper_search) {
+void* mapper_cuda_se_thread(mapper_cuda_search_t* const restrict mapper_search) {
   // GEM-thread error handler
   gem_thread_register_id(mapper_search->thread_id+1);
   PROFILE_START(GP_MAPPER_CUDA_SE,PROFILE_LEVEL);
   // Parameters
-  mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
-  const mapper_parameters_cuda_t* const cuda_parameters = &parameters->cuda;
+  mapper_parameters_t* const restrict parameters = mapper_search->mapper_parameters;
+  const mapper_parameters_cuda_t* const restrict cuda_parameters = &parameters->cuda;
   // Create new buffered reader/writer
   mapper_SE_prepare_io_buffers(parameters,cuda_parameters->input_buffer_size,
       &mapper_search->buffered_fasta_input_end1,&mapper_search->buffered_output_file);
@@ -251,7 +251,7 @@ void* mapper_cuda_se_thread(mapper_cuda_search_t* const mapper_search) {
   mapper_search->pending_search_decode_candidates_end1 = NULL;
   mapper_search->pending_search_verify_candidates_end1 = NULL;
   // FASTA/FASTQ reading loop
-  mm_stack_t* const mm_stack = mapper_search->search_pipeline->mm_stack;
+  mm_stack_t* const restrict mm_stack = mapper_search->search_pipeline->mm_stack;
   mapper_search->reads_processed = 0;
   while (!mapper_se_cuda_stage_read_input_sequences_exhausted(mapper_search)) {
 #ifdef MAPPER_CUDA_ADAPTIVE_REGION_PROFILE

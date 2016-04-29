@@ -16,20 +16,20 @@
 /*
  * Setup
  */
-void region_set_init(region_set_t* const region_set) {
+void region_set_init(region_set_t* const restrict region_set) {
   region_set->region_intervals = vector_new(REGION_SET_NUN_INITIAL_INTERVALS,region_interval_t);
 }
-void region_set_clear(region_set_t* const region_set) {
+void region_set_clear(region_set_t* const restrict region_set) {
   vector_clear(region_set->region_intervals);
 }
-void region_set_destroy(region_set_t* const region_set) {
+void region_set_destroy(region_set_t* const restrict region_set) {
   vector_delete(region_set->region_intervals);
 }
 /*
  * Adding
  */
 void region_set_add(
-    region_set_t* const region_set,
+    region_set_t* const restrict region_set,
     const uint64_t begin_position,
     const uint64_t end_position) {
   // Allocate
@@ -42,14 +42,14 @@ void region_set_add(
 /*
  * Sort
  */
-void region_set_sort(region_set_t* const region_set) {
+void region_set_sort(region_set_t* const restrict region_set) {
   // TODO
 }
 /*
  * Set operators
  */
 bool region_set_is_contained(
-    region_set_t* const region_set,
+    region_set_t* const restrict region_set,
     const uint64_t begin_position,
     const uint64_t end_position) {
   // TODO

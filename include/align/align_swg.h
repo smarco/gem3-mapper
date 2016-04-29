@@ -36,11 +36,11 @@ typedef struct {
  *   @match_alignment->match_position (Adjusted)
  */
 void align_swg_base(
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
-    match_alignment_t* const match_alignment,
-    vector_t* const cigar_vector,
-    mm_stack_t* const mm_stack);
+    match_align_input_t* const restrict align_input,
+    match_align_parameters_t* const restrict align_parameters,
+    match_alignment_t* const restrict match_alignment,
+    vector_t* const restrict cigar_vector,
+    mm_stack_t* const restrict mm_stack);
 /*
  * Smith-Waterman-Gotoh - Main procedure (Dispatcher)
  *   @align_input->key
@@ -54,24 +54,24 @@ void align_swg_base(
  *   @match_alignment->cigar_length (Cumulative)
  */
 void align_swg(
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
+    match_align_input_t* const restrict align_input,
+    match_align_parameters_t* const restrict align_parameters,
     const bool begin_free,const bool end_free,
-    match_alignment_t* const match_alignment,
-    vector_t* const cigar_vector,
-    mm_stack_t* const mm_stack);
+    match_alignment_t* const restrict match_alignment,
+    vector_t* const restrict cigar_vector,
+    mm_stack_t* const restrict mm_stack);
 
 /*
  * Display
  */
 void align_swg_print_table(
-    swg_cell_t** const dp,
+    swg_cell_t** const restrict dp,
     const uint64_t num_columns,
     const uint64_t num_rows);
 void align_swg_print_input(
-    const uint8_t* const key,
+    const uint8_t* const restrict key,
     const uint64_t key_length,
-    const uint8_t* const text,
+    const uint8_t* const restrict text,
     const uint64_t text_length);
 
 #endif /* ALIGN_SWG_H_ */

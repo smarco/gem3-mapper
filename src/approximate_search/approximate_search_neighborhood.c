@@ -20,10 +20,10 @@
  * Neighborhood Generation (Exact Search)
  */
 void approximate_search_neighborhood_exact_search(
-    approximate_search_t* const search,
-    matches_t* const matches) {
+    approximate_search_t* const restrict search,
+    matches_t* const restrict matches) {
   PROFILE_START(GP_AS_EXACT_SEARCH,PROFILE_LEVEL);
-//  pattern_t* const pattern = &search->pattern;
+//  pattern_t* const restrict pattern = &search->pattern;
   // FM-Index basic exact search
 //  fm_index_bsearch(search->archive->fm_index,pattern->key,
 //    pattern->key_length,&search->hi_exact_matches,&search->lo_exact_matches);
@@ -45,12 +45,12 @@ void approximate_search_neighborhood_exact_search(
  * Neighborhood Generation (Inexact Search)
  */
 void approximate_search_neighborhood_inexact_search(
-    approximate_search_t* const search,
-    matches_t* const matches) {
+    approximate_search_t* const restrict search,
+    matches_t* const restrict matches) {
   PROFILE_START(GP_AS_NEIGHBORHOOD_SEARCH,PROFILE_LEVEL);
   // Parameters, pattern & interval-set
-  pattern_t* const pattern = &search->pattern;
-  interval_set_t* const intervals_result = search->interval_set;
+  pattern_t* const restrict pattern = &search->pattern;
+  interval_set_t* const restrict intervals_result = search->interval_set;
   // Basic search (Brute force mitigated by mrank_table)
   interval_set_clear(search->interval_set); // Clear
   neighborhood_search(search->archive->fm_index,pattern->key,pattern->key_length,
@@ -66,8 +66,8 @@ void approximate_search_neighborhood_inexact_search(
  * Neighborhood Search
  */
 void approximate_search_neighborhood_search(
-    approximate_search_t* const search,
-    matches_t* const matches) {
+    approximate_search_t* const restrict search,
+    matches_t* const restrict matches) {
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Neighborhood Search\n");
     tab_global_inc();

@@ -35,15 +35,15 @@ FILE* benchmark_verify_candidates = NULL;
  * Verify Candidates
  */
 void approximate_search_verify_candidates(
-    approximate_search_t* const search,
-    matches_t* const matches) {
+    approximate_search_t* const restrict search,
+    matches_t* const restrict matches) {
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Verify Candidates\n");
     tab_global_inc();
   }
   // Parameters
-  pattern_t* const pattern = &search->pattern;
-  filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
+  pattern_t* const restrict pattern = &search->pattern;
+  filtering_candidates_t* const restrict filtering_candidates = search->filtering_candidates;
   // Verify Candidates
   filtering_candidates_verify_candidates(filtering_candidates,pattern);
   filtering_candidates_align_candidates(filtering_candidates,
@@ -57,11 +57,11 @@ void approximate_search_verify_candidates(
  * Verify Extend Candidate
  */
 uint64_t approximate_search_verify_extend_candidate(
-    filtering_candidates_t* const filtering_candidates,
-    pattern_t* const candidate_pattern,
-    const match_trace_t* const extended_match,
-    mapper_stats_t* const mapper_stats,
-    paired_matches_t* const paired_matches,
+    filtering_candidates_t* const restrict filtering_candidates,
+    pattern_t* const restrict candidate_pattern,
+    const match_trace_t* const restrict extended_match,
+    mapper_stats_t* const restrict mapper_stats,
+    paired_matches_t* const restrict paired_matches,
     const sequence_end_t candidate_end) {
   return filtering_candidates_extend_match(filtering_candidates,
       candidate_pattern,extended_match,paired_matches,candidate_end,mapper_stats);
@@ -69,10 +69,10 @@ uint64_t approximate_search_verify_extend_candidate(
 /*
  * Verify Candidates Buffered
  */
-void approximate_search_verify_candidates_buffered_print_benchmark(approximate_search_t* const search);
+void approximate_search_verify_candidates_buffered_print_benchmark(approximate_search_t* const restrict search);
 void approximate_search_verify_candidates_buffered_copy(
-    approximate_search_t* const search,
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
+    approximate_search_t* const restrict search,
+    gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm) {
   // Add to GPU-Buffer
   filtering_candidates_verify_buffered_add(
       search->filtering_candidates,&search->pattern,
@@ -84,9 +84,9 @@ void approximate_search_verify_candidates_buffered_copy(
 #endif
 }
 void approximate_search_verify_candidates_buffered_retrieve(
-    approximate_search_t* const search,
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
-    matches_t* const matches) {
+    approximate_search_t* const restrict search,
+    gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm,
+    matches_t* const restrict matches) {
   // Retrieve
   filtering_candidates_verify_buffered_retrieve(
       search->filtering_candidates,&search->pattern,
@@ -101,7 +101,7 @@ void approximate_search_verify_candidates_buffered_retrieve(
 /*
  * Display/Benchmark
  */
-void approximate_search_verify_candidates_buffered_print_benchmark(approximate_search_t* const search) {
+void approximate_search_verify_candidates_buffered_print_benchmark(approximate_search_t* const restrict search) {
 #ifdef CUDA_BENCHMARK_GENERATE_VERIFY_CANDIDATES
   // Prepare benchmark file
   if (benchmark_verify_candidates==NULL) {

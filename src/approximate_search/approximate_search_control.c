@@ -15,8 +15,8 @@
  * Search Limits
  */
 void asearch_control_adjust_max_differences_using_strata(
-    approximate_search_t* const search,
-    matches_t* const matches) {
+    approximate_search_t* const restrict search,
+    matches_t* const restrict matches) {
   const uint64_t max_differences = search->max_complete_error;
   const uint64_t delta = search->search_parameters->complete_strata_after_best_nominal;
   /*
@@ -36,10 +36,10 @@ void asearch_control_adjust_max_differences_using_strata(
  * Search Control Stages
  */
 bool asearch_control_filter_ahead_candidates(
-    approximate_search_t* const search,
-    matches_t* const matches) {
+    approximate_search_t* const restrict search,
+    matches_t* const restrict matches) {
   // Parameters
-  const search_parameters_t* const search_parameters = search->search_parameters;
+  const search_parameters_t* const restrict search_parameters = search->search_parameters;
   // Determines when the search is done following the mapping criteria
   switch (search_parameters->mapping_mode) {
     case mapping_adaptive_filtering_fast:
@@ -58,16 +58,16 @@ bool asearch_control_filter_ahead_candidates(
  * Search Fulfilled & Predictors
  */
 void asearch_control_compute_predictors(
-    approximate_search_t* const search,
-    matches_t* const matches,
-    matches_predictors_t* const predictors) {
+    approximate_search_t* const restrict search,
+    matches_t* const restrict matches,
+    matches_predictors_t* const restrict predictors) {
   matches_predictors_compute(matches,predictors,&search->metrics,search->max_complete_stratum);
 }
 bool asearch_control_fulfilled(
-    approximate_search_t* const search,
-    matches_t* const matches) {
+    approximate_search_t* const restrict search,
+    matches_t* const restrict matches) {
   // Parameters
-  const search_parameters_t* const search_parameters = search->search_parameters;
+  const search_parameters_t* const restrict search_parameters = search->search_parameters;
   if (matches==NULL) return false;
   // Determines when the search is done following the mapping criteria
   switch (search_parameters->mapping_mode) {

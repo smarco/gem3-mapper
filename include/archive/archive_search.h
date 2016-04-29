@@ -63,62 +63,62 @@ typedef struct {
  * Setup
  */
 void archive_search_init(
-    archive_search_t* const archive_search,
-    archive_t* const archive,
-    search_parameters_t* const search_parameters,
+    archive_search_t* const restrict archive_search,
+    archive_t* const restrict archive,
+    search_parameters_t* const restrict search_parameters,
     const bool buffered_search,
-    mm_stack_t* const mm_stack);
-void archive_search_destroy(archive_search_t* const archive_search);
+    mm_stack_t* const restrict mm_stack);
+void archive_search_destroy(archive_search_t* const restrict archive_search);
 
 void archive_search_se_new(
-    archive_t* const archive,
-    search_parameters_t* const search_parameters,
+    archive_t* const restrict archive,
+    search_parameters_t* const restrict search_parameters,
     const bool buffered_search,
-    mm_stack_t* const mm_stack,
-    archive_search_t** const archive_search);
+    mm_stack_t* const restrict mm_stack,
+    archive_search_t** const restrict archive_search);
 void archive_search_pe_new(
-    archive_t* const archive,
-    search_parameters_t* const search_parameters,
+    archive_t* const restrict archive,
+    search_parameters_t* const restrict search_parameters,
     const bool buffered_search,
-    mm_stack_t* const mm_stack,
-    archive_search_t** const archive_search_end1,
-    archive_search_t** const archive_search_end2);
-void archive_search_reset(archive_search_t* const archive_search);
-void archive_search_delete(archive_search_t* const archive_search);
+    mm_stack_t* const restrict mm_stack,
+    archive_search_t** const restrict archive_search_end1,
+    archive_search_t** const restrict archive_search_end2);
+void archive_search_reset(archive_search_t* const restrict archive_search);
+void archive_search_delete(archive_search_t* const restrict archive_search);
 /*
  * Memory Injection (Support Data Structures)
  */
 void archive_search_inject_mm_stack(
-    archive_search_t* const archive_search,
-    mm_stack_t* const mm_stack);
+    archive_search_t* const restrict archive_search,
+    mm_stack_t* const restrict mm_stack);
 void archive_search_inject_mapper_stats(
-    archive_search_t* const archive_search,
+    archive_search_t* const restrict archive_search,
     mapper_stats_t* mapper_stats);
 void archive_search_inject_interval_set(
-    archive_search_t* const archive_search,
-    interval_set_t* const interval_set);
+    archive_search_t* const restrict archive_search,
+    interval_set_t* const restrict interval_set);
 void archive_search_inject_text_collection(
-    archive_search_t* const archive_search,
-    text_collection_t* const text_collection);
+    archive_search_t* const restrict archive_search,
+    text_collection_t* const restrict text_collection);
 void archive_search_inject_filtering_candidates(
-    archive_search_t* const archive_search,
-    filtering_candidates_t* const filtering_candidates_forward,
-    filtering_candidates_t* const filtering_candidates_reverse,
-    text_collection_t* const text_collection,
-    mm_stack_t* const mm_stack);
+    archive_search_t* const restrict archive_search,
+    filtering_candidates_t* const restrict filtering_candidates_forward,
+    filtering_candidates_t* const restrict filtering_candidates_reverse,
+    text_collection_t* const restrict text_collection,
+    mm_stack_t* const restrict mm_stack);
 
 /*
  * Accessors
  */
-sequence_t* archive_search_get_sequence(const archive_search_t* const archive_search);
-bool archive_search_finished(const archive_search_t* const archive_search);
+sequence_t* archive_search_get_sequence(const archive_search_t* const restrict archive_search);
+bool archive_search_finished(const archive_search_t* const restrict archive_search);
 
-uint64_t archive_search_get_max_region_length(const archive_search_t* const archive_search);
-uint64_t archive_search_get_num_zero_regions(const archive_search_t* const archive_search);
+uint64_t archive_search_get_max_region_length(const archive_search_t* const restrict archive_search);
+uint64_t archive_search_get_num_zero_regions(const archive_search_t* const restrict archive_search);
 
-uint64_t archive_search_get_num_regions_profile(const archive_search_t* const archive_search);
-uint64_t archive_search_get_num_decode_candidates(const archive_search_t* const archive_search);
-uint64_t archive_search_get_num_verify_candidates(const archive_search_t* const archive_search);
+uint64_t archive_search_get_num_regions_profile(const archive_search_t* const restrict archive_search);
+uint64_t archive_search_get_num_decode_candidates(const archive_search_t* const restrict archive_search);
+uint64_t archive_search_get_num_verify_candidates(const archive_search_t* const restrict archive_search);
 
 /*
  * Errors

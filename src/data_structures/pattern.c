@@ -20,13 +20,13 @@
  * Pattern Prepare
  */
 void pattern_init(
-    pattern_t* const pattern,
-    sequence_t* const sequence,
-    bool* const do_quality_search,
-    const search_parameters_t* const parameters,
+    pattern_t* const restrict pattern,
+    sequence_t* const restrict sequence,
+    bool* const restrict do_quality_search,
+    const search_parameters_t* const restrict parameters,
     const bool run_length_pattern,
     const bool kmer_filter_compile,
-    mm_stack_t* const mm_stack) {
+    mm_stack_t* const restrict mm_stack) {
   // Allocate pattern memory
   pattern->key_length = sequence_get_length(sequence);
   pattern->key = mm_stack_calloc(mm_stack,pattern->key_length,uint8_t,false);
@@ -48,7 +48,7 @@ void pattern_init(
   uint64_t num_low_quality_bases = 0;   // Number of bases with low quality value
   uint64_t num_non_canonical_bases = 0; // Number of bases not compliant with the k-mer filter
   uint64_t i;
-  const char* const read = sequence_get_read(sequence);
+  const char* const restrict read = sequence_get_read(sequence);
   if (pattern->quality_mask == NULL) {
     for (i=0;i<pattern->key_length;++i) {
       const char character = read[i];
@@ -124,17 +124,17 @@ void pattern_init(
         PATTERN_BPM_WORDS64_PER_TILE,pattern->max_effective_filtering_error,mm_stack);
   }
 }
-void pattern_clear(pattern_t* const pattern) {
+void pattern_clear(pattern_t* const restrict pattern) {
   pattern->key_length = 0; // Clear the pattern
 }
-bool pattern_is_null(pattern_t* const pattern) {
+bool pattern_is_null(pattern_t* const restrict pattern) {
   return (pattern->key_length == 0);
 }
 /*
  * Pattern Tiling
  */
 void pattern_tiled_init(
-    pattern_tiled_t* const pattern_tiled,
+    pattern_tiled_t* const restrict pattern_tiled,
     const uint64_t pattern_length,
     const uint64_t pattern_tile_length,
     const uint64_t sequence_length,
@@ -161,7 +161,7 @@ void pattern_tiled_init(
   }
   pattern_tiled->prev_tile_match_position = UINT64_MAX; // Init last tile-matching column
 }
-void pattern_tiled_calculate_next(pattern_tiled_t* const pattern_tiled) {
+void pattern_tiled_calculate_next(pattern_tiled_t* const restrict pattern_tiled) {
   // DEBUG
   //  gem_cond_debug_block(DEBUG_PATTERN_TILE_POSITION) {
   //    fprintf(stderr,">Tile (pos=%"PRIu64",len=%"PRIu64",tall=%"PRIu64") [distance=%"PRIu64",match_col=%"PRIu64"]\n",
@@ -179,7 +179,7 @@ void pattern_tiled_calculate_next(pattern_tiled_t* const pattern_tiled) {
     pattern_tiled->tile_wide = pattern_tiled->sequence_length - pattern_tiled->tile_offset;
   }
 }
-uint64_t pattern_tiled_bound_matching_path(pattern_tiled_t* const pattern_tiled) {
+uint64_t pattern_tiled_bound_matching_path(pattern_tiled_t* const restrict pattern_tiled) {
   if (pattern_tiled->prev_tile_match_position!=UINT64_MAX) {
     const int64_t prev_tile_match_position = pattern_tiled->prev_tile_match_position;
     const int64_t tile_match_position = pattern_tiled->tile_match_column + pattern_tiled->tile_offset;
@@ -206,13 +206,13 @@ uint64_t pattern_tiled_bound_matching_path(pattern_tiled_t* const pattern_tiled)
  * Pattern Trimmed
  */
 void pattern_trimmed_init(
-    pattern_t* const pattern,
-    bpm_pattern_t** const bpm_pattern_trimmed,
-    bpm_pattern_t** const bpm_pattern_trimmed_tiles,
+    pattern_t* const restrict pattern,
+    bpm_pattern_t** const restrict bpm_pattern_trimmed,
+    bpm_pattern_t** const restrict bpm_pattern_trimmed_tiles,
     const uint64_t key_trimmed_length,
     const uint64_t key_trim_left,
     const uint64_t key_trim_right,
-    mm_stack_t* const mm_stack) {
+    mm_stack_t* const restrict mm_stack) {
   const uint64_t max_error = pattern->max_effective_filtering_error;
   // Compile BPM-Pattern Trimmed
   *bpm_pattern_trimmed = bpm_pattern_compile(pattern->key+key_trim_left,
@@ -224,8 +224,8 @@ void pattern_trimmed_init(
  * Display
  */
 void pattern_enc_print(
-    FILE* const stream,
-    const uint8_t* const key,
+    FILE* const restrict stream,
+    const uint8_t* const restrict key,
     const uint64_t key_length) {
   uint64_t i;
   for (i=0;i<key_length;++i) {

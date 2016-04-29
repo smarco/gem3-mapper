@@ -24,8 +24,8 @@
  * Candidate Verification
  */
 uint64_t filtering_candidates_verify_filtering_regions(
-    filtering_candidates_t* const filtering_candidates,
-    pattern_t* const pattern) {
+    filtering_candidates_t* const restrict filtering_candidates,
+    pattern_t* const restrict pattern) {
   PROFILE_START(GP_FC_VERIFY_CANDIDATES,PROFILE_LEVEL);
   // Traverse all regions (text-space)
   const uint64_t num_filtering_regions = vector_get_used(filtering_candidates->filtering_regions);
@@ -72,8 +72,8 @@ uint64_t filtering_candidates_verify_filtering_regions(
   return num_regions_accepted;
 }
 uint64_t filtering_candidates_verify_candidates(
-    filtering_candidates_t* const filtering_candidates,
-    pattern_t* const pattern) {
+    filtering_candidates_t* const restrict filtering_candidates,
+    pattern_t* const restrict pattern) {
   // Check number of filtering regions
   uint64_t pending_candidates = vector_get_used(filtering_candidates->filtering_regions);
   if (pending_candidates==0) return 0;

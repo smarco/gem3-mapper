@@ -30,12 +30,12 @@
  * Compile Pattern
  */
 bpm_pattern_t* bpm_pattern_compile(
-    uint8_t* const pattern,
+    uint8_t* const restrict pattern,
     const uint64_t pattern_length,
     const uint64_t max_error,
-    mm_stack_t* const mm_stack) {
+    mm_stack_t* const restrict mm_stack) {
   // Alloc
-  bpm_pattern_t* const bpm_pattern = mm_stack_alloc(mm_stack,bpm_pattern_t);
+  bpm_pattern_t* const restrict bpm_pattern = mm_stack_alloc(mm_stack,bpm_pattern_t);
   // Calculate dimensions
   const uint64_t pattern_num_words64 = DIV_CEIL(pattern_length,BPM_W64_LENGTH);
   const uint64_t PEQ_length = pattern_num_words64*BPM_W64_LENGTH;
@@ -101,10 +101,10 @@ bpm_pattern_t* bpm_pattern_compile(
  * Compile Pattern Tiles
  */
 bpm_pattern_t* bpm_pattern_compile_tiles(
-    bpm_pattern_t* const bpm_pattern,
+    bpm_pattern_t* const restrict bpm_pattern,
     const uint64_t prefered_words64_per_tile,
     const uint64_t max_error,
-    mm_stack_t* const mm_stack) {
+    mm_stack_t* const restrict mm_stack) {
   // Set tile tall (adjust to min-128/max-512 tile lengths)
   const uint64_t min_words128_per_tile = DIV_CEIL(max_error,BPM_MIN_TILE_LENGTH);
   const uint64_t prefered_tile_length = prefered_words64_per_tile*UINT64_LENGTH;
@@ -115,7 +115,7 @@ bpm_pattern_t* bpm_pattern_compile_tiles(
   if (tile_length > BPM_MAX_TILE_LENGTH) tile_length = BPM_MAX_TILE_LENGTH;
   const uint64_t num_tiles = DIV_CEIL(bpm_pattern->pattern_length,tile_length);
   // Alloc
-  bpm_pattern_t* const bpm_pattern_tiles = mm_stack_calloc(mm_stack,num_tiles,bpm_pattern_t,false);
+  bpm_pattern_t* const restrict bpm_pattern_tiles = mm_stack_calloc(mm_stack,num_tiles,bpm_pattern_t,false);
   // Init Tiles (Store meta-data in the first tile)
   bpm_pattern_tiles->num_pattern_tiles = num_tiles;
   bpm_pattern_tiles->tile_length = tile_length;
@@ -124,7 +124,7 @@ bpm_pattern_t* bpm_pattern_compile_tiles(
   uint64_t offset_words = 0, i;
   for (i=0;i<num_tiles;++i) {
     // Initialize pattern-chunk variables
-    bpm_pattern_t* const bpm_pattern_tile = bpm_pattern_tiles + i;
+    bpm_pattern_t* const restrict bpm_pattern_tile = bpm_pattern_tiles + i;
     const uint64_t actual_tile_length = MIN(tile_length,pattern_length_left);
     bpm_pattern_tile->pattern_length = actual_tile_length;
     bpm_pattern_tile->pattern_num_words64 = DIV_CEIL(actual_tile_length,BPM_W64_LENGTH);

@@ -12,18 +12,18 @@
  * Setup
  */
 stats_matrix_t* stats_matrix_new(
-    stats_vector_t* const dimension_x,
-    stats_vector_t* const dimension_y) {
+    stats_vector_t* const restrict dimension_x,
+    stats_vector_t* const restrict dimension_y) {
   // Allocate handler
-  stats_matrix_t* const stats_matrix = mm_alloc(stats_matrix_t);
+  stats_matrix_t* const restrict stats_matrix = mm_alloc(stats_matrix_t);
   // Init Dimensions
   stats_matrix->dimension_x = dimension_x;
   stats_matrix->dimension_y = dimension_y;
   // Return
   return stats_matrix;
 }
-void stats_matrix_clear(stats_matrix_t* const stats_matrix) {
-  stats_vector_iterator_t* const iterator_x = stats_vector_iterator_new(stats_matrix->dimension_x);
+void stats_matrix_clear(stats_matrix_t* const restrict stats_matrix) {
+  stats_vector_iterator_t* const restrict iterator_x = stats_vector_iterator_new(stats_matrix->dimension_x);
   while (!stats_vector_iterator_eoi(iterator_x)) {
     const uint64_t counter = stats_vector_iterator_get_count(iterator_x);
     if (counter > 0) stats_vector_clear((stats_vector_t*)counter);
@@ -32,8 +32,8 @@ void stats_matrix_clear(stats_matrix_t* const stats_matrix) {
   }
   stats_vector_iterator_delete(iterator_x);
 }
-void stats_matrix_delete(stats_matrix_t* const stats_matrix) {
-  stats_vector_iterator_t* const iterator_x = stats_vector_iterator_new(stats_matrix->dimension_x);
+void stats_matrix_delete(stats_matrix_t* const restrict stats_matrix) {
+  stats_vector_iterator_t* const restrict iterator_x = stats_vector_iterator_new(stats_matrix->dimension_x);
   while (!stats_vector_iterator_eoi(iterator_x)) {
     const uint64_t counter = stats_vector_iterator_get_count(iterator_x);
     if (counter > 0) stats_vector_delete((stats_vector_t*)counter);
@@ -48,9 +48,9 @@ void stats_matrix_delete(stats_matrix_t* const stats_matrix) {
 /*
  * Increment/Add bucket counter
  */
-stats_vector_t* stats_matrix_get_y_dimension(stats_matrix_t* const stats_matrix,const uint64_t value_x) {
+stats_vector_t* stats_matrix_get_y_dimension(stats_matrix_t* const restrict stats_matrix,const uint64_t value_x) {
   // Index X-Dimension and get Y-Stats_vector
-  uint64_t* const dimension_y_placeholder = stats_vector_get_counter(stats_matrix->dimension_x,value_x);
+  uint64_t* const restrict dimension_y_placeholder = stats_vector_get_counter(stats_matrix->dimension_x,value_x);
   // Use the pointer to Y stored as uint64_t
   if (*dimension_y_placeholder == 0) {
     *dimension_y_placeholder = (uint64_t) stats_vector_new_from_template(stats_matrix->dimension_y);
@@ -59,14 +59,14 @@ stats_vector_t* stats_matrix_get_y_dimension(stats_matrix_t* const stats_matrix,
   return (stats_vector_t*) (*dimension_y_placeholder);
 }
 void stats_matrix_inc(
-    stats_matrix_t* const stats_matrix,
+    stats_matrix_t* const restrict stats_matrix,
     const uint64_t value_x,
     const uint64_t value_y) {
   // Increment the x-Dimension
   stats_vector_inc(stats_matrix_get_y_dimension(stats_matrix,value_x),value_y);
 }
 void stats_matrix_add(
-    stats_matrix_t* const stats_matrix,
+    stats_matrix_t* const restrict stats_matrix,
     const uint64_t value_x,
     const uint64_t value_y,
     const uint64_t amount) {
@@ -77,7 +77,7 @@ void stats_matrix_add(
  * Bucket counters getters (Individual buckets)
  */
 uint64_t stats_matrix_get_count(
-    stats_matrix_t* const stats_matrix,
+    stats_matrix_t* const restrict stats_matrix,
     const uint64_t value_x,
     const uint64_t value_y) {
   return stats_vector_get_count(stats_matrix_get_y_dimension(stats_matrix,value_x),value_y);
@@ -86,15 +86,15 @@ uint64_t stats_matrix_get_count(
  * Display (Printers)
  */
 void stats_matrix_display(
-    FILE* const stream,
-    stats_matrix_t* const stats_matrix,
+    FILE* const restrict stream,
+    stats_matrix_t* const restrict stats_matrix,
     const bool display_percentage,
     void (*print_label)(uint64_t)) {
   // Print Y-Labels
   fprintf(stream,"\t");
   stats_vector_print_ranges(stream,stats_matrix->dimension_y);
   // Print X-Label & (X,(Y-Values))
-  stats_vector_iterator_t* const iterator = stats_vector_iterator_new(stats_matrix->dimension_x);
+  stats_vector_iterator_t* const restrict iterator = stats_vector_iterator_new(stats_matrix->dimension_x);
   while (!stats_vector_iterator_eoi(iterator)) {
     // Get current counter
     uint64_t lo_range, hi_range;
@@ -113,7 +113,7 @@ void stats_matrix_display(
         fprintf(stream," => ");
       }
       // Print Y-Dimension
-      stats_vector_t* const stats_vector = (stats_vector_t*)counter;
+      stats_vector_t* const restrict stats_vector = (stats_vector_t*)counter;
       stats_vector_print_values(stream,stats_vector,display_percentage);
     }
     // Next

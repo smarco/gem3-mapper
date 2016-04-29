@@ -32,23 +32,23 @@ typedef struct {
  * Adjust the filtering-position and compute the coordinates or the candidate text
  */
 void filtering_candidates_compute_text_coordinates(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_position_t* const filtering_position,
-    pattern_t* const pattern);
+    filtering_candidates_t* const restrict filtering_candidates,
+    filtering_position_t* const restrict filtering_position,
+    pattern_t* const restrict pattern);
 
 /*
  * Compose filtering regions
  */
 uint64_t filtering_candidates_compose_filtering_regions(
-    filtering_candidates_t* const filtering_candidates,
-    pattern_t* const pattern,
+    filtering_candidates_t* const restrict filtering_candidates,
+    pattern_t* const restrict pattern,
     const bool matching_regions_compose);
 
 /*
  * Process Candidates
  */
 uint64_t filtering_candidates_process_candidates(
-    filtering_candidates_t* const filtering_candidates,
-    pattern_t* const pattern);
+    filtering_candidates_t* const restrict filtering_candidates,
+    pattern_t* const restrict pattern);
 
 #endif /* FILTERING_CANDIDATES_PROCESS_H_ */

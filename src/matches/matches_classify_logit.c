@@ -13,8 +13,8 @@
  * Compute Probabilities
  */
 double matches_classify_logit(
-    const matches_predictors_t* const predictors,
-    const matches_classify_logit_coeff_t* const logit_coeff) {
+    const matches_predictors_t* const restrict predictors,
+    const matches_classify_logit_coeff_t* const restrict logit_coeff) {
   // Compute lr-factor
   const double lr_factor = logit_coeff->coeff_intercept
       +
@@ -78,20 +78,20 @@ double matches_classify_logit(
  * Matches Classify Probabilities (using Logistic Regression)
  */
 double matches_classify_logit_unique(
-    const matches_predictors_t* const predictors,
-    const matches_classify_logit_model_t* const logit_model) {
+    const matches_predictors_t* const restrict predictors,
+    const matches_classify_logit_model_t* const restrict logit_model) {
   // Unique: Probability of the first position-match (primary match) of being a true positive
   return matches_classify_logit(predictors,&logit_model->unique_logit_coeff);
 }
 double matches_classify_logit_mmaps(
-    const matches_predictors_t* const predictors,
-    const matches_classify_logit_model_t* const logit_model) {
+    const matches_predictors_t* const restrict predictors,
+    const matches_classify_logit_model_t* const restrict logit_model) {
   // Classify MMaps wrt the probability of the first position-match (primary match) of being a true positive
   return matches_classify_logit(predictors,&logit_model->mmaps_logit_coeff);
 }
 double matches_classify_logit_ties(
-    const matches_predictors_t* const predictors,
-    const matches_classify_logit_model_t* const logit_model) {
+    const matches_predictors_t* const restrict predictors,
+    const matches_classify_logit_model_t* const restrict logit_model) {
   // Classify ties wrt the probability of being a true positive
   return matches_classify_logit(predictors,&logit_model->ties_logit_coeff);
 }

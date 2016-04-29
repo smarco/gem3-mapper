@@ -39,18 +39,18 @@ typedef struct {
  * Setup
  */
 void output_sam_parameters_set_defaults(
-    output_sam_parameters_t* const sam_parameters);
+    output_sam_parameters_t* const restrict sam_parameters);
 void output_sam_parse_read_group_header(
-    char* const read_group_buffer,
-    output_sam_parameters_t* const sam_parameters);
+    char* const restrict read_group_buffer,
+    output_sam_parameters_t* const restrict sam_parameters);
 
 /*
  * SAM Headers
  */
 void output_sam_print_header(
-    output_file_t* const output_file,
-    archive_t* const archive,
-    output_sam_parameters_t* const sam_parameters,
+    output_file_t* const restrict output_file,
+    archive_t* const restrict archive,
+    output_sam_parameters_t* const restrict sam_parameters,
     int argc,
     char** argv);
 			
@@ -59,19 +59,19 @@ void output_sam_print_header(
  * SAM output SE
  */
 void output_sam_single_end_matches(
-    buffered_output_file_t* const buffered_output_file,
-    archive_search_t* const archive_search,
-    matches_t* const matches,
-    const output_sam_parameters_t* const output_sam_parameters);
+    buffered_output_file_t* const restrict buffered_output_file,
+    archive_search_t* const restrict archive_search,
+    matches_t* const restrict matches,
+    const output_sam_parameters_t* const restrict output_sam_parameters);
 
 /*
  * SAM output PE
  */
 void output_sam_paired_end_matches(
-    buffered_output_file_t* const buffered_output_file,
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches,
-    const output_sam_parameters_t* const output_sam_parameters);
+    buffered_output_file_t* const restrict buffered_output_file,
+    archive_search_t* const restrict archive_search_end1,
+    archive_search_t* const restrict archive_search_end2,
+    paired_matches_t* const restrict paired_matches,
+    const output_sam_parameters_t* const restrict output_sam_parameters);
 
 #endif /* OUTPUT_SAM_H_ */

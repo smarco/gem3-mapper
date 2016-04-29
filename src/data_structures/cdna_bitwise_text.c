@@ -23,9 +23,9 @@
 /*
  * CDNA Bitwise Text (Loader/Setup)
  */
-cdna_bitwise_text_t* cdna_bitwise_text_read(fm_t* const file_manager) {
+cdna_bitwise_text_t* cdna_bitwise_text_read(fm_t* const restrict file_manager) {
   // Allocate
-  cdna_bitwise_text_t* const cdna_text = mm_alloc(cdna_bitwise_text_t);
+  cdna_bitwise_text_t* const restrict cdna_text = mm_alloc(cdna_bitwise_text_t);
   // Read header
   cdna_text->text_length = fm_read_uint64(file_manager);
   cdna_text->text_size = fm_read_uint64(file_manager);
@@ -38,9 +38,9 @@ cdna_bitwise_text_t* cdna_bitwise_text_read(fm_t* const file_manager) {
   // Return
   return cdna_text;
 }
-cdna_bitwise_text_t* cdna_bitwise_text_read_mem(mm_t* const memory_manager) {
+cdna_bitwise_text_t* cdna_bitwise_text_read_mem(mm_t* const restrict memory_manager) {
   // Allocate
-  cdna_bitwise_text_t* const cdna_text = mm_alloc(cdna_bitwise_text_t);
+  cdna_bitwise_text_t* const restrict cdna_text = mm_alloc(cdna_bitwise_text_t);
   // Read header
   cdna_text->text_length = mm_read_uint64(memory_manager);
   cdna_text->text_size = mm_read_uint64(memory_manager);
@@ -53,7 +53,7 @@ cdna_bitwise_text_t* cdna_bitwise_text_read_mem(mm_t* const memory_manager) {
   // Return
   return cdna_text;
 }
-void cdna_bitwise_text_delete(cdna_bitwise_text_t* const cdna_text) {
+void cdna_bitwise_text_delete(cdna_bitwise_text_t* const restrict cdna_text) {
   // Free Text
   if (cdna_text->mm_text!=NULL) mm_bulk_free(cdna_text->mm_text);
   // Free sparse text
@@ -63,19 +63,19 @@ void cdna_bitwise_text_delete(cdna_bitwise_text_t* const cdna_text) {
 }
 // Iterator
 void cdna_bitwise_text_iterator_new(
-    cdna_bitwise_text_iterator_t* const cdna_bitwise_text_iterator,
-    cdna_bitwise_text_t* const cdna_text,
+    cdna_bitwise_text_iterator_t* const restrict cdna_bitwise_text_iterator,
+    cdna_bitwise_text_t* const restrict cdna_text,
     const uint64_t position,
     const traversal_direction_t text_traversal) {
   // TODO
 }
 char cdna_bitwise_text_iterator_get_char(
-    cdna_bitwise_text_iterator_t* const cdna_bitwise_text_iterator) {
+    cdna_bitwise_text_iterator_t* const restrict cdna_bitwise_text_iterator) {
   // TODO
   return 'A';
 }
 uint8_t cdna_bitwise_text_iterator_get_enc(
-    cdna_bitwise_text_iterator_t* const cdna_bitwise_text_iterator) {
+    cdna_bitwise_text_iterator_t* const restrict cdna_bitwise_text_iterator) {
   // TODO
   return 0;
 }
@@ -83,11 +83,11 @@ uint8_t cdna_bitwise_text_iterator_get_enc(
  * CDNA Bitwise Text (Builder)
  */
 cdna_bitwise_text_builder_t* cdna_bitwise_text_builder_new(
-    fm_t* const file_manager,
+    fm_t* const restrict file_manager,
     const uint64_t text_length,
-    mm_slab_t* const mm_slab) {
+    mm_slab_t* const restrict mm_slab) {
   // Allocate handler
-  cdna_bitwise_text_builder_t* const cdna_text_fm = mm_alloc(cdna_bitwise_text_builder_t);
+  cdna_bitwise_text_builder_t* const restrict cdna_text_fm = mm_alloc(cdna_bitwise_text_builder_t);
   // Initialize file manager
   cdna_text_fm->file_manager = file_manager;
   // Initialize sparseBM-builder
@@ -106,7 +106,7 @@ cdna_bitwise_text_builder_t* cdna_bitwise_text_builder_new(
   // Return
   return cdna_text_fm;
 }
-void cdna_bitwise_text_builder_flush(cdna_bitwise_text_builder_t* const cdna_text) {
+void cdna_bitwise_text_builder_flush(cdna_bitwise_text_builder_t* const restrict cdna_text) {
   // Write Bitmaps
   fm_write_uint64(cdna_text->file_manager,cdna_text->layer_0);
   fm_write_uint64(cdna_text->file_manager,cdna_text->layer_1);
@@ -123,7 +123,7 @@ void cdna_bitwise_text_builder_flush(cdna_bitwise_text_builder_t* const cdna_tex
   cdna_text->position_mod64 = 0;
 }
 void cdna_bitwise_text_builder_add_char(
-    cdna_bitwise_text_builder_t* const cdna_text,
+    cdna_bitwise_text_builder_t* const restrict cdna_text,
     const uint8_t enc_char) {
   // Write new character
   switch (enc_char) {
@@ -178,7 +178,7 @@ void cdna_bitwise_text_builder_add_char(
     cdna_text->layer_2 >>= 1;
   }
 }
-void cdna_bitwise_text_builder_close(cdna_bitwise_text_builder_t* const cdna_text) {
+void cdna_bitwise_text_builder_close(cdna_bitwise_text_builder_t* const restrict cdna_text) {
   if (cdna_text->position_mod64 > 0) {
     // Padding
     cdna_text->layer_2 |= CDNA_BITWISE_WRITE_LAST_MASK;
@@ -200,7 +200,7 @@ void cdna_bitwise_text_builder_close(cdna_bitwise_text_builder_t* const cdna_tex
   // Write Sparse 3rd-layer
   sparse_bitmap_builder_write(cdna_text->file_manager,cdna_text->sparse_bitmap_builder);
 }
-void cdna_bitwise_text_builder_delete(cdna_bitwise_text_builder_t* const cdna_text) {
+void cdna_bitwise_text_builder_delete(cdna_bitwise_text_builder_t* const restrict cdna_text) {
   // Sparse-Bitmap
   sparse_bitmap_builder_delete(cdna_text->sparse_bitmap_builder);
   // Handler
@@ -209,14 +209,14 @@ void cdna_bitwise_text_builder_delete(cdna_bitwise_text_builder_t* const cdna_te
 /*
  * Accessors
  */
-uint64_t cdna_bitwise_text_get_size(cdna_bitwise_text_t* const cdna_text) {
+uint64_t cdna_bitwise_text_get_size(cdna_bitwise_text_t* const restrict cdna_text) {
   const uint64_t sparse_bitmap_size = sparse_bitmap_get_size(cdna_text->sparse_bitmap);
   return cdna_text->text_size + sparse_bitmap_size;
 }
 /*
  * Display
  */
-void cdna_bitwise_text_print(FILE* const stream,cdna_bitwise_text_t* const cdna_text) {
+void cdna_bitwise_text_print(FILE* const restrict stream,cdna_bitwise_text_t* const restrict cdna_text) {
   tab_fprintf(stream,"[GEM]>Compacted DNA-text\n");
   tab_fprintf(stream,"  => Architecture CDNA.3b.2bm64.xl\n");
   tab_fprintf(stream,"  => Text.length %"PRIu64"\n",cdna_text->text_length);

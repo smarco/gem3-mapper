@@ -67,61 +67,61 @@ typedef struct {
 /*
  * Setup
  */
-void filtering_candidates_init(filtering_candidates_t* const filtering_candidates);
-void filtering_candidates_clear(filtering_candidates_t* const filtering_candidates);
-void filtering_candidates_destroy(filtering_candidates_t* const filtering_candidates);
+void filtering_candidates_init(filtering_candidates_t* const restrict filtering_candidates);
+void filtering_candidates_clear(filtering_candidates_t* const restrict filtering_candidates);
+void filtering_candidates_destroy(filtering_candidates_t* const restrict filtering_candidates);
 
 /*
  * Memory Injection (Support Data Structures)
  */
 void filtering_candidates_inject_search(
-    filtering_candidates_t* const filtering_candidates,
-    archive_t* const archive,
-    search_parameters_t* const search_parameters);
+    filtering_candidates_t* const restrict filtering_candidates,
+    archive_t* const restrict archive,
+    search_parameters_t* const restrict search_parameters);
 void filtering_candidates_inject_mm_stack(
-    filtering_candidates_t* const filtering_candidates,
-    mm_stack_t* const mm_stack);
+    filtering_candidates_t* const restrict filtering_candidates,
+    mm_stack_t* const restrict mm_stack);
 void filtering_candidates_inject_text_collection(
-    filtering_candidates_t* const filtering_candidates,
-    text_collection_t* const text_collection);
+    filtering_candidates_t* const restrict filtering_candidates,
+    text_collection_t* const restrict text_collection);
 
 /*
  * Accessors
  */
 uint64_t filtering_candidates_get_num_candidate_positions(
-    const filtering_candidates_t* const filtering_candidates);
+    const filtering_candidates_t* const restrict filtering_candidates);
 uint64_t filtering_candidates_get_num_candidate_regions(
-    const filtering_candidates_t* const filtering_candidates);
+    const filtering_candidates_t* const restrict filtering_candidates);
 uint64_t filtering_candidates_count_candidate_regions(
-    filtering_candidates_t* const filtering_candidates_end,
+    filtering_candidates_t* const restrict filtering_candidates_end,
     const filtering_region_status_t filtering_region_status);
 
 /*
  * Adding candidate positions
  */
 void filtering_candidates_add_read_interval(
-    filtering_candidates_t* const filtering_candidates,
-    search_parameters_t* const search_parameters,
+    filtering_candidates_t* const restrict filtering_candidates,
+    search_parameters_t* const restrict search_parameters,
     const uint64_t interval_lo,
     const uint64_t interval_hi,
     const uint64_t key_length,
     const uint64_t align_distance);
 
 void filtering_candidates_add_region_interval(
-    filtering_candidates_t* const filtering_candidates,
+    filtering_candidates_t* const restrict filtering_candidates,
     const uint64_t interval_lo,
     const uint64_t interval_hi,
     const uint64_t region_begin_pos,
     const uint64_t region_end_pos,
     const uint64_t region_errors);
 void filtering_candidates_add_region_interval_set(
-    filtering_candidates_t* const filtering_candidates,
-    interval_set_t* const interval_set,
+    filtering_candidates_t* const restrict filtering_candidates,
+    interval_set_t* const restrict interval_set,
     const uint64_t region_begin_pos,
     const uint64_t region_end_pos);
 void filtering_candidates_add_region_interval_set_thresholded(
-    filtering_candidates_t* const filtering_candidates,
-    interval_set_t* const interval_set,
+    filtering_candidates_t* const restrict filtering_candidates,
+    interval_set_t* const restrict interval_set,
     const uint64_t region_begin_pos,
     const uint64_t region_end_pos,
     const uint64_t max_error);
@@ -129,17 +129,17 @@ void filtering_candidates_add_region_interval_set_thresholded(
 /*
  * Sorting
  */
-void filtering_positions_sort_positions(vector_t* const filtering_positions);
-void filtering_regions_sort_align_distance(vector_t* const filtering_regions);
-void filtering_regions_sort_scaffold_coverage(vector_t* const filtering_regions);
-void verified_regions_sort_positions(vector_t* const verified_regions);
+void filtering_positions_sort_positions(vector_t* const restrict filtering_positions);
+void filtering_regions_sort_align_distance(vector_t* const restrict filtering_regions);
+void filtering_regions_sort_scaffold_coverage(vector_t* const restrict filtering_regions);
+void verified_regions_sort_positions(vector_t* const restrict verified_regions);
 
 /*
  * Display
  */
 void filtering_candidates_print_regions(
-    FILE* const stream,
-    filtering_candidates_t* const filtering_candidates,
+    FILE* const restrict stream,
+    filtering_candidates_t* const restrict filtering_candidates,
     const bool print_matching_regions);
 
 #endif /* FILTERING_CANDIDATES_H_ */

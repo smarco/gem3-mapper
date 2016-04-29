@@ -22,16 +22,16 @@
  * Setup
  */
 gpu_buffer_collection_t* gpu_buffer_collection_new(
-    char* const gpu_index_name,
+    char* const restrict gpu_index_name,
     const uint64_t num_buffers,
     const uint64_t buffer_size,
     const bool verbose) {
   PROFILE_START(GP_GPU_BUFFER_COLLECTION_INIT,PROFILE_LEVEL);
   // Allocate Buffer Collection
-  gpu_buffer_collection_t* const buffer_collection = mm_alloc(gpu_buffer_collection_t);
+  gpu_buffer_collection_t* const restrict buffer_collection = mm_alloc(gpu_buffer_collection_t);
   buffer_collection->num_buffers = num_buffers;
   // Initialize GPU Runtime
-  gpu_buffers_dto_t* const gpu_buffers_dto = mm_alloc(gpu_buffers_dto_t);
+  gpu_buffers_dto_t* const restrict gpu_buffers_dto = mm_alloc(gpu_buffers_dto_t);
   gpu_buffers_dto->buffer = NULL;
   gpu_buffers_dto->numBuffers = num_buffers;
   gpu_buffers_dto->maxMbPerBuffer = CONVERT_B_TO_MB(buffer_size);
@@ -74,7 +74,7 @@ gpu_buffer_collection_t* gpu_buffer_collection_new(
   PROFILE_STOP(GP_GPU_BUFFER_COLLECTION_INIT,PROFILE_LEVEL);
   return buffer_collection;
 }
-void gpu_buffer_collection_delete(gpu_buffer_collection_t* const gpu_buffer_collection) {
+void gpu_buffer_collection_delete(gpu_buffer_collection_t* const restrict gpu_buffer_collection) {
   gpu_destroy_buffers_((gpu_buffers_dto_t*)gpu_buffer_collection->gpu_buffers_dto); // Destroy buffers
   mm_free(gpu_buffer_collection->gpu_buffers_dto); // Free DTO
   mm_free(gpu_buffer_collection); // Free Handler
@@ -83,7 +83,7 @@ void gpu_buffer_collection_delete(gpu_buffer_collection_t* const gpu_buffer_coll
  * Accessors
  */
 void* gpu_buffer_collection_get_buffer(
-    const gpu_buffer_collection_t* const gpu_buffer_collection,
+    const gpu_buffer_collection_t* const restrict gpu_buffer_collection,
     const uint64_t buffer_no) {
   return gpu_buffer_collection->internal_buffers[buffer_no];
 }
@@ -95,7 +95,7 @@ void* gpu_buffer_collection_get_buffer(
  * Setup
  */
 gpu_buffer_collection_t* gpu_buffer_collection_new(
-    char* const gpu_index_name,
+    char* const restrict gpu_index_name,
     const uint64_t num_buffers,
     const uint64_t buffer_size,
     const bool verbose) {
@@ -103,11 +103,11 @@ gpu_buffer_collection_t* gpu_buffer_collection_new(
   return NULL;
 }
 void gpu_buffer_collection_delete(
-    gpu_buffer_collection_t* const gpu_buffer_collection) { GEM_CUDA_NOT_SUPPORTED(); }
+    gpu_buffer_collection_t* const restrict gpu_buffer_collection) { GEM_CUDA_NOT_SUPPORTED(); }
 /*
  * Accessors
  */
 void* gpu_buffer_collection_get_buffer(
-    const gpu_buffer_collection_t* const gpu_buffer_collection,
+    const gpu_buffer_collection_t* const restrict gpu_buffer_collection,
     const uint64_t buffer_no) { GEM_CUDA_NOT_SUPPORTED(); return NULL; }
 #endif /* HAVE_CUDA */

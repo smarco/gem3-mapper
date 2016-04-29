@@ -23,8 +23,8 @@ extern gem_counter_t _ns_nodes_closed_depth;
  * Neighborhood Search
  */
 void neighborhood_search(
-    fm_index_t* const fm_index,
-    uint8_t* const key,const uint64_t key_length,const uint64_t max_error,
-    interval_set_t* const intervals_result,mm_stack_t* const mm_stack);
+    fm_index_t* const restrict fm_index,
+    uint8_t* const restrict key,const uint64_t key_length,const uint64_t max_error,
+    interval_set_t* const restrict intervals_result,mm_stack_t* const restrict mm_stack);
 
 #endif /* NEIGHBORHOOD_SEARCH_H_ */

@@ -112,23 +112,23 @@ void        gpu_fmi_search_reallocate_device_buffer_layout(gpu_buffer_t* mBuff);
 
 /* Functions to init the buffers (DECODE) */
 size_t      gpu_fmi_decode_input_size();
-void        gpu_fmi_decode_reallocate_host_buffer_layout(gpu_buffer_t* const mBuff);
-void        gpu_fmi_decode_reallocate_device_buffer_layout(gpu_buffer_t* const mBuff);
+void        gpu_fmi_decode_reallocate_host_buffer_layout(gpu_buffer_t* const __restrict__ mBuff);
+void        gpu_fmi_decode_reallocate_device_buffer_layout(gpu_buffer_t* const __restrict__ mBuff);
 
 /* Functions to transfer data HOST <-> DEVICE (E. SEARCH) */
-gpu_error_t gpu_fmi_search_transfer_CPU_to_GPU(gpu_buffer_t* const mBuff);
-gpu_error_t gpu_fmi_search_transfer_GPU_to_CPU(gpu_buffer_t* const mBuff);
+gpu_error_t gpu_fmi_search_transfer_CPU_to_GPU(gpu_buffer_t* const __restrict__ mBuff);
+gpu_error_t gpu_fmi_search_transfer_GPU_to_CPU(gpu_buffer_t* const __restrict__ mBuff);
 
 /* Functions to transfer data HOST <-> DEVICE (Decode) */
-gpu_error_t gpu_fmi_decode_transfer_CPU_to_GPU(gpu_buffer_t* const mBuff);
-gpu_error_t gpu_fmi_decode_transfer_GPU_to_CPU(gpu_buffer_t* const mBuff);
+gpu_error_t gpu_fmi_decode_transfer_CPU_to_GPU(gpu_buffer_t* const __restrict__ mBuff);
+gpu_error_t gpu_fmi_decode_transfer_GPU_to_CPU(gpu_buffer_t* const __restrict__ mBuff);
 
 /* DEVICE Kernels */
-gpu_error_t gpu_fmi_search_process_buffer(gpu_buffer_t* const mBuff);
-gpu_error_t gpu_fmi_decode_process_buffer(gpu_buffer_t* const mBuff);
+gpu_error_t gpu_fmi_search_process_buffer(gpu_buffer_t* const __restrict__ mBuff);
+gpu_error_t gpu_fmi_decode_process_buffer(gpu_buffer_t* const __restrict__ mBuff);
 
 /* DEBUG */
-uint32_t    gpu_fmi_search_print_buffer(const void* const fmiBuffer);
+uint32_t    gpu_fmi_search_print_buffer(const void* const __restrict__ fmiBuffer);
 uint32_t    gpu_fmi_search_print_seed(const gpu_fmi_search_seed_t seed, const uint32_t seedSize);
 char        gpu_fmi_search_bin_to_char(const uint32_t base);
 

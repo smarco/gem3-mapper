@@ -64,38 +64,38 @@ mm_slab_t* mm_slab_new_(
     const uint64_t slab_size,
     const uint64_t slab_segment_size,
     const uint64_t max_allocatable_memory,
-    char* const description);
+    char* const restrict description);
 void mm_slab_reap_empty(
-    mm_slab_t* const mm_slab,
+    mm_slab_t* const restrict mm_slab,
     const uint64_t num_resident_segments);
-void mm_slab_delete(mm_slab_t* const mm_slab);
+void mm_slab_delete(mm_slab_t* const restrict mm_slab);
 
 /*
  *  Accessors
  */
-void mm_slab_lock(mm_slab_t* const mm_slab);
-void mm_slab_unlock(mm_slab_t* const mm_slab);
-mm_slab_unit_t* mm_slab_get(mm_slab_t* const mm_slab);
-void mm_slab_put(mm_slab_t* const mm_slab,mm_slab_unit_t* const mm_slab_unit);
+void mm_slab_lock(mm_slab_t* const restrict mm_slab);
+void mm_slab_unlock(mm_slab_t* const restrict mm_slab);
+mm_slab_unit_t* mm_slab_get(mm_slab_t* const restrict mm_slab);
+void mm_slab_put(mm_slab_t* const restrict mm_slab,mm_slab_unit_t* const restrict mm_slab_unit);
 
 /*
  *  Accessors (ThreadSafe)
  */
-mm_slab_unit_t* mm_slab_request(mm_slab_t* const mm_slab);
-void mm_slab_return(mm_slab_t* const mm_slab,mm_slab_unit_t* const mm_slab_unit);
-uint64_t mm_slab_get_slab_size(mm_slab_t* const mm_slab);
+mm_slab_unit_t* mm_slab_request(mm_slab_t* const restrict mm_slab);
+void mm_slab_return(mm_slab_t* const restrict mm_slab,mm_slab_unit_t* const restrict mm_slab_unit);
+uint64_t mm_slab_get_slab_size(mm_slab_t* const restrict mm_slab);
 
 /*
  * Defragment Slab
  */
-void mm_slab_defragment(mm_slab_t* const mm_slab);
+void mm_slab_defragment(mm_slab_t* const restrict mm_slab);
 
 /*
  * Display/Profile
  */
 void mm_slab_print(
-    FILE* const stream,
-    mm_slab_t* const mm_slab,
+    FILE* const restrict stream,
+    mm_slab_t* const restrict mm_slab,
     const bool show_internals);
 
 /*

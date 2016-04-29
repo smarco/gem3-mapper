@@ -19,7 +19,7 @@ packed_integer_array_t* packed_integer_array_new(
     const uint64_t num_elements,
     const uint64_t integer_length_bits) {
   // Allocate handler
-  packed_integer_array_t* const array = mm_alloc(packed_integer_array_t);
+  packed_integer_array_t* const restrict array = mm_alloc(packed_integer_array_t);
   // Set Dimensions
   array->num_elements = num_elements;
   array->integer_length = integer_length_bits;
@@ -30,7 +30,7 @@ packed_integer_array_t* packed_integer_array_new(
   // Return
   return array;
 }
-void packed_integer_array_delete(packed_integer_array_t* const array) {
+void packed_integer_array_delete(packed_integer_array_t* const restrict array) {
   if (array->mm_bitmap!=NULL) {
     if (array->mm_bitmap==(mm_t*)(-1)) {
       mm_free(array->bitmap);
@@ -40,9 +40,9 @@ void packed_integer_array_delete(packed_integer_array_t* const array) {
   }
   mm_free(array);
 }
-packed_integer_array_t* packed_integer_array_read(fm_t* const file_manager) {
+packed_integer_array_t* packed_integer_array_read(fm_t* const restrict file_manager) {
   // Allocate handler
-  packed_integer_array_t* const array = mm_alloc(packed_integer_array_t);
+  packed_integer_array_t* const restrict array = mm_alloc(packed_integer_array_t);
   // Read Meta-Data
   array->num_elements = fm_read_uint64(file_manager);
   array->integer_length = fm_read_uint64(file_manager);
@@ -53,9 +53,9 @@ packed_integer_array_t* packed_integer_array_read(fm_t* const file_manager) {
   // Return
   return array;
 }
-packed_integer_array_t* packed_integer_array_read_mem(mm_t* const memory_manager) {
+packed_integer_array_t* packed_integer_array_read_mem(mm_t* const restrict memory_manager) {
   // Allocate handler
-  packed_integer_array_t* const array = mm_alloc(packed_integer_array_t);
+  packed_integer_array_t* const restrict array = mm_alloc(packed_integer_array_t);
   // Read Meta-Data
   array->num_elements = mm_read_uint64(memory_manager);
   array->integer_length = mm_read_uint64(memory_manager);
@@ -67,7 +67,7 @@ packed_integer_array_t* packed_integer_array_read_mem(mm_t* const memory_manager
   return array;
 }
 void packed_integer_array_write_metadata(
-    fm_t* const file_manager,
+    fm_t* const restrict file_manager,
     const uint64_t num_elements,
     const uint64_t integer_length,
     const uint64_t array_size) {
@@ -77,8 +77,8 @@ void packed_integer_array_write_metadata(
   fm_write_uint64(file_manager,array_size);
 }
 void packed_integer_array_write(
-    fm_t* const file_manager,
-    packed_integer_array_t* const array) {
+    fm_t* const restrict file_manager,
+    packed_integer_array_t* const restrict array) {
   // Write Meta-Data
   packed_integer_array_write_metadata(file_manager,
       array->num_elements,array->integer_length,array->array_size);
@@ -90,9 +90,9 @@ void packed_integer_array_write(
  */
 packed_integer_array_builder_t* packed_integer_array_builder_new(
     const uint64_t integer_length_bits,
-    mm_slab_t* const mm_slab) {
+    mm_slab_t* const restrict mm_slab) {
   // Allocate handler
-  packed_integer_array_builder_t* const array = mm_alloc(packed_integer_array_builder_t);
+  packed_integer_array_builder_t* const restrict array = mm_alloc(packed_integer_array_builder_t);
   // Set Dimensions
   array->num_elements = 0;
   array->integer_length = integer_length_bits;
@@ -104,12 +104,12 @@ packed_integer_array_builder_t* packed_integer_array_builder_new(
   // Return
   return array;
 }
-void packed_integer_array_builder_delete(packed_integer_array_builder_t* const array) {
+void packed_integer_array_builder_delete(packed_integer_array_builder_t* const restrict array) {
   svector_delete(array->bitmap);
   mm_free(array);
 }
 void packed_integer_array_builder_store(
-    packed_integer_array_builder_t* const array,
+    packed_integer_array_builder_t* const restrict array,
     const uint64_t integer) {
   uint64_t* next_word = svector_iterator_get_element(&array->bitmap_writer,uint64_t);
   // Store LO part
@@ -140,7 +140,7 @@ typedef struct {
   svector_iterator_t bitmap_iterator;
 } array_builder_hub_t;
 void array_builder_hub_load_builder(
-    array_builder_hub_t* const array_builder_hub,
+    array_builder_hub_t* const restrict array_builder_hub,
     const uint64_t array_builder_position) {
   array_builder_hub->current_array_builder = array_builder_hub->array_builders[array_builder_position];
   array_builder_hub->array_builder_pending = array_builder_hub->current_array_builder->num_elements;
@@ -158,7 +158,7 @@ void array_builder_hub_load_builder(
   }
 }
 void array_builder_hub_new(
-    array_builder_hub_t* const array_builder_hub,
+    array_builder_hub_t* const restrict array_builder_hub,
     packed_integer_array_builder_t** array_builders,
     const uint64_t num_array_builders) {
   // Packed Integer Arrays Builders
@@ -175,13 +175,13 @@ void array_builder_hub_new(
   array_builder_hub->array_builder_position = 0;
   array_builder_hub_load_builder(array_builder_hub,0);
 }
-uint64_t array_builder_hub_get_num_elements(array_builder_hub_t* const array_builder_hub) {
+uint64_t array_builder_hub_get_num_elements(array_builder_hub_t* const restrict array_builder_hub) {
   return array_builder_hub->total_elements;
 }
-bool array_builder_hub_eoi(array_builder_hub_t* const array_builder_hub) {
+bool array_builder_hub_eoi(array_builder_hub_t* const restrict array_builder_hub) {
   return (array_builder_hub->array_builder_pending==0);
 }
-uint64_t array_builder_hub_next(array_builder_hub_t* const array_builder_hub) {
+uint64_t array_builder_hub_next(array_builder_hub_t* const restrict array_builder_hub) {
   // Locate next integer
   const uint64_t lo64_offset = array_builder_hub->lo64_offset;
   const uint64_t hi64_offset = UINT64_LENGTH - lo64_offset;
@@ -213,7 +213,7 @@ uint64_t array_builder_hub_next(array_builder_hub_t* const array_builder_hub) {
   return next_integer;
 }
 void packed_integer_array_builder_write(
-    fm_t* const file_manager,
+    fm_t* const restrict file_manager,
     packed_integer_array_builder_t** array_builders,
     const uint64_t num_array_builders) {
   // Create Hub
@@ -252,10 +252,10 @@ void packed_integer_array_builder_write(
 /*
  * Accessors
  */
-uint64_t packed_integer_array_get_size(const packed_integer_array_t* const array) {
+uint64_t packed_integer_array_get_size(const packed_integer_array_t* const restrict array) {
   return array->array_size;
 }
-uint64_t packed_integer_array_get_length(const packed_integer_array_t* const array) {
+uint64_t packed_integer_array_get_length(const packed_integer_array_t* const restrict array) {
   return array->num_elements;
 }
 #define PACKED_INT_ARRAY_GET_LOCATION(lo64_bit_position,lo64_word_position,lo64_offset,hi64_offset) \
@@ -264,7 +264,7 @@ uint64_t packed_integer_array_get_length(const packed_integer_array_t* const arr
   const uint64_t lo64_offset = lo64_bit_position % UINT64_LENGTH; \
   const uint64_t hi64_offset = UINT64_LENGTH-lo64_offset
 void packed_integer_array_prefetch(
-    const packed_integer_array_t* const array,
+    const packed_integer_array_t* const restrict array,
     const uint64_t position) {
   // Prefetch
   const uint64_t lo64_bit_position = position*array->integer_length;
@@ -272,7 +272,7 @@ void packed_integer_array_prefetch(
   PREFETCH(array->bitmap+lo64_word_position);
 }
 uint64_t packed_integer_array_load(
-    const packed_integer_array_t* const array,
+    const packed_integer_array_t* const restrict array,
     const uint64_t position) {
   // Load LO & HI part
   PACKED_INT_ARRAY_GET_LOCATION(lo64_bit_position,lo64_word_position,lo64_offset,hi64_offset);
@@ -284,7 +284,7 @@ uint64_t packed_integer_array_load(
   }
 }
 void packed_integer_array_store(
-    packed_integer_array_t* const array,
+    packed_integer_array_t* const restrict array,
     const uint64_t position,
     const uint64_t integer) {
   // Locate
@@ -300,8 +300,8 @@ void packed_integer_array_store(
  * Display
  */
 void packed_integer_array_print(
-    FILE* const stream,
-    const packed_integer_array_t* const array,
+    FILE* const restrict stream,
+    const packed_integer_array_t* const restrict array,
     const bool display_data) {
   // Print meta-info
   tab_fprintf(stream,"[GEM]>PackedArray.info\n");

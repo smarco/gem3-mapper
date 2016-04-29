@@ -82,24 +82,24 @@ typedef struct {
  * Setup
  */
 void nsearch_schedule_init(
-    nsearch_schedule_t* const nsearch_schedule,const nsearch_model_t nsearch_model,
-    fm_index_t* const fm_index,region_profile_t* const region_profile,
-    uint8_t* const key,const uint64_t key_length,const uint64_t max_error,
-    interval_set_t* const intervals_result,mm_stack_t* const mm_stack);
+    nsearch_schedule_t* const restrict nsearch_schedule,const nsearch_model_t nsearch_model,
+    fm_index_t* const restrict fm_index,region_profile_t* const restrict region_profile,
+    uint8_t* const restrict key,const uint64_t key_length,const uint64_t max_error,
+    interval_set_t* const restrict intervals_result,mm_stack_t* const restrict mm_stack);
 
 /*
  * Schedule the search
  */
-void nsearch_schedule_search(nsearch_schedule_t* const nsearch_schedule);
-void nsearch_schedule_search_preconditioned(nsearch_schedule_t* const nsearch_schedule);
+void nsearch_schedule_search(nsearch_schedule_t* const restrict nsearch_schedule);
+void nsearch_schedule_search_preconditioned(nsearch_schedule_t* const restrict nsearch_schedule);
 
 /*
  * Display
  */
-void nsearch_schedule_print(FILE* const stream,nsearch_schedule_t* const nsearch_schedule);
-void nsearch_schedule_print_pretty(FILE* const stream,nsearch_schedule_t* const nsearch_schedule);
-void nsearch_schedule_print_profile(FILE* const stream,nsearch_schedule_t* const nsearch_schedule);
+void nsearch_schedule_print(FILE* const restrict stream,nsearch_schedule_t* const restrict nsearch_schedule);
+void nsearch_schedule_print_pretty(FILE* const restrict stream,nsearch_schedule_t* const restrict nsearch_schedule);
+void nsearch_schedule_print_profile(FILE* const restrict stream,nsearch_schedule_t* const restrict nsearch_schedule);
 
-void nsearch_schedule_print_search_string(FILE* const stream,nsearch_schedule_t* const nsearch_schedule);
+void nsearch_schedule_print_search_string(FILE* const restrict stream,nsearch_schedule_t* const restrict nsearch_schedule);
 
 #endif /* NSEARCH_SCHEDULE_H_ */

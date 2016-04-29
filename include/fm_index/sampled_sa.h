@@ -47,9 +47,9 @@ typedef struct {
 /*
  * Loader
  */
-sampled_sa_t* sampled_sa_read_mem(mm_t* const memory_manager);
-void sampled_sa_write(fm_t* const file_manager,sampled_sa_t* const sampled_sa);
-void sampled_sa_delete(sampled_sa_t* const sampled_sa);
+sampled_sa_t* sampled_sa_read_mem(mm_t* const restrict memory_manager);
+void sampled_sa_write(fm_t* const restrict file_manager,sampled_sa_t* const restrict sampled_sa);
+void sampled_sa_delete(sampled_sa_t* const restrict sampled_sa);
 
 /*
  * Builder
@@ -60,38 +60,38 @@ sampled_sa_builder_t* sampled_sa_builder_new(
     const sampling_rate_t sa_sampling_rate,
     const sampling_rate_t text_sampling_rate,
     const bool generate_raw_sampled_sa,
-    mm_slab_t* const mm_slab);
-void sampled_sa_builder_delete_samples(sampled_sa_builder_t* const sampled_sa);
-void sampled_sa_builder_delete(sampled_sa_builder_t* const sampled_sa);
+    mm_slab_t* const restrict mm_slab);
+void sampled_sa_builder_delete_samples(sampled_sa_builder_t* const restrict sampled_sa);
+void sampled_sa_builder_delete(sampled_sa_builder_t* const restrict sampled_sa);
 
 void sampled_sa_builder_set_sample(
-    sampled_sa_builder_t* const sampled_sa,
+    sampled_sa_builder_t* const restrict sampled_sa,
     const uint64_t chunk_number,
     const uint64_t array_position,
     const uint64_t sa_value);
 void sampled_sa_builder_write(
-    fm_t* const file_manager,
-    sampled_sa_builder_t* const sampled_sa);
+    fm_t* const restrict file_manager,
+    sampled_sa_builder_t* const restrict sampled_sa);
 
-uint64_t sampled_sa_builder_get_sa_sampling_rate(const sampled_sa_builder_t* const sampled_sa);
-uint64_t sampled_sa_builder_get_text_sampling_rate(const sampled_sa_builder_t* const sampled_sa);
-uint64_t* sampled_sa_builder_get_sampled_bitmap(const sampled_sa_builder_t* const sampled_sa);
+uint64_t sampled_sa_builder_get_sa_sampling_rate(const sampled_sa_builder_t* const restrict sampled_sa);
+uint64_t sampled_sa_builder_get_text_sampling_rate(const sampled_sa_builder_t* const restrict sampled_sa);
+uint64_t* sampled_sa_builder_get_sampled_bitmap(const sampled_sa_builder_t* const restrict sampled_sa);
 
 /*
  * Accessors
  */
-uint64_t sampled_sa_get_size(const sampled_sa_t* const sampled_sa);
-uint64_t sampled_sa_get_sa_sampling_rate(const sampled_sa_t* const sampled_sa);
-uint64_t sampled_sa_get_text_sampling_rate(const sampled_sa_t* const sampled_sa);
+uint64_t sampled_sa_get_size(const sampled_sa_t* const restrict sampled_sa);
+uint64_t sampled_sa_get_sa_sampling_rate(const sampled_sa_t* const restrict sampled_sa);
+uint64_t sampled_sa_get_text_sampling_rate(const sampled_sa_t* const restrict sampled_sa);
 
 void sampled_sa_prefetch_sample(
-    const sampled_sa_t* const sampled_sa,
+    const sampled_sa_t* const restrict sampled_sa,
     const uint64_t array_position);
 uint64_t sampled_sa_get_sample(
-    const sampled_sa_t* const sampled_sa,
+    const sampled_sa_t* const restrict sampled_sa,
     const uint64_t array_position);
 void sampled_sa_set_sample(
-    sampled_sa_t* const sampled_sa,
+    sampled_sa_t* const restrict sampled_sa,
     const uint64_t array_position,
     const uint64_t sa_value);
 
@@ -99,11 +99,11 @@ void sampled_sa_set_sample(
  * Display/Stats
  */
 void sampled_sa_print(
-    FILE* const stream,
-    sampled_sa_t* const sampled_sa,
+    FILE* const restrict stream,
+    sampled_sa_t* const restrict sampled_sa,
     const bool display_data);
 void sampled_sa_builder_print(
-    FILE* const stream,
-    sampled_sa_builder_t* const sampled_sa);
+    FILE* const restrict stream,
+    sampled_sa_builder_t* const restrict sampled_sa);
 
 #endif /* SAMPLED_SA_H_ */

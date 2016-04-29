@@ -52,45 +52,45 @@ typedef struct {
 /*
  * CDNA Bitwise Text (Loader/Setup)
  */
-cdna_bitwise_text_t* cdna_bitwise_text_read(fm_t* const file_manager);
-cdna_bitwise_text_t* cdna_bitwise_text_read_mem(mm_t* const memory_manager);
-void cdna_bitwise_text_delete(cdna_bitwise_text_t* const cdna_text);
+cdna_bitwise_text_t* cdna_bitwise_text_read(fm_t* const restrict file_manager);
+cdna_bitwise_text_t* cdna_bitwise_text_read_mem(mm_t* const restrict memory_manager);
+void cdna_bitwise_text_delete(cdna_bitwise_text_t* const restrict cdna_text);
 
 // Iterator
 void cdna_bitwise_text_iterator_new(
-    cdna_bitwise_text_iterator_t* const cdna_bitwise_text_iterator,
-    cdna_bitwise_text_t* const cdna_text,
+    cdna_bitwise_text_iterator_t* const restrict cdna_bitwise_text_iterator,
+    cdna_bitwise_text_t* const restrict cdna_text,
     const uint64_t position,
     const traversal_direction_t text_traversal);
 char cdna_bitwise_text_iterator_get_char(
-    cdna_bitwise_text_iterator_t* const cdna_bitwise_text_iterator);
+    cdna_bitwise_text_iterator_t* const restrict cdna_bitwise_text_iterator);
 uint8_t cdna_bitwise_text_iterator_get_enc(
-    cdna_bitwise_text_iterator_t* const cdna_bitwise_text_iterator);
+    cdna_bitwise_text_iterator_t* const restrict cdna_bitwise_text_iterator);
 
 /*
  * CDNA Bitwise Text (Builder)
  */
 cdna_bitwise_text_builder_t* cdna_bitwise_text_builder_new(
-    fm_t* const file_manager,
+    fm_t* const restrict file_manager,
     const uint64_t text_length,
-    mm_slab_t* const mm_slab);
+    mm_slab_t* const restrict mm_slab);
 void cdna_bitwise_text_builder_delete(
-    cdna_bitwise_text_builder_t* const cdna_text);
+    cdna_bitwise_text_builder_t* const restrict cdna_text);
 void cdna_bitwise_text_builder_add_char(
-    cdna_bitwise_text_builder_t* const cdna_text,
+    cdna_bitwise_text_builder_t* const restrict cdna_text,
     const uint8_t enc_char);
 void cdna_bitwise_text_builder_close(
-    cdna_bitwise_text_builder_t* const cdna_text);
+    cdna_bitwise_text_builder_t* const restrict cdna_text);
 
 /*
  * Accessors
  */
-uint64_t cdna_bitwise_text_get_size(cdna_bitwise_text_t* const cdna_text);
+uint64_t cdna_bitwise_text_get_size(cdna_bitwise_text_t* const restrict cdna_text);
 
 /*
  * Display
  */
-void cdna_bitwise_text_print(FILE* const stream,cdna_bitwise_text_t* const cdna_text);
+void cdna_bitwise_text_print(FILE* const restrict stream,cdna_bitwise_text_t* const restrict cdna_text);
 
 /*
  * Errors

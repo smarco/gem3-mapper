@@ -14,11 +14,11 @@
 /*
  * SE Bisulfite Mapper Thread
  */
-void* mapper_SE_bisulfite_thread(mapper_search_t* const mapper_search);
+void* mapper_SE_bisulfite_thread(mapper_search_t* const restrict mapper_search);
 
 /*
  * PE Bisulfite Mapper Thread
  */
-void* mapper_PE_bisulfite_thread(mapper_search_t* const mapper_search);
+void* mapper_PE_bisulfite_thread(mapper_search_t* const restrict mapper_search);
 
 #endif /* MAPPER_BISULFITE_H_ */

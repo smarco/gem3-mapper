@@ -34,7 +34,7 @@ const char* matches_class_label[] =
  */
 matches_t* matches_new() {
   // Allocate handler
-  matches_t* const matches = mm_alloc(matches_t);
+  matches_t* const restrict matches = mm_alloc(matches_t);
   // Search-matches state
   matches->matches_class = matches_class_unmapped;
   matches->max_complete_stratum = ALL;
@@ -53,11 +53,11 @@ matches_t* matches_new() {
   // Return
   return matches;
 }
-void matches_configure(matches_t* const matches,text_collection_t* const text_collection) {
+void matches_configure(matches_t* const restrict matches,text_collection_t* const restrict text_collection) {
   // Text Collection Buffer
   matches->text_collection = text_collection;
 }
-void matches_clear(matches_t* const matches) {
+void matches_clear(matches_t* const restrict matches) {
   matches->matches_class = matches_class_unmapped;
   matches->max_complete_stratum = ALL;
   matches_counters_clear(matches->counters);
@@ -67,7 +67,7 @@ void matches_clear(matches_t* const matches) {
   vector_clear(matches->local_matches);
   vector_clear(matches->cigar_vector);
 }
-void matches_delete(matches_t* const matches) {
+void matches_delete(matches_t* const restrict matches) {
   // Delete all
   matches_counters_delete(matches->counters);
   vector_delete(matches->position_matches);
@@ -81,12 +81,12 @@ void matches_delete(matches_t* const matches) {
 /*
  * Accessors
  */
-bool matches_is_mapped(const matches_t* const matches) {
+bool matches_is_mapped(const matches_t* const restrict matches) {
   return vector_get_used(matches->position_matches) > 0;
 }
-void matches_recompute_metrics(matches_t* const matches) {
+void matches_recompute_metrics(matches_t* const restrict matches) {
   // Parameters
-  matches_metrics_t* const metrics = &matches->metrics;
+  matches_metrics_t* const restrict metrics = &matches->metrics;
   // ReCompute distance metrics
   const match_trace_t* match = matches_get_match_trace_buffer(matches);
   const uint64_t num_matches = matches_get_num_match_traces(matches);
@@ -96,15 +96,15 @@ void matches_recompute_metrics(matches_t* const matches) {
     matches_metrics_update(metrics,match->distance,match->edit_distance,match->swg_score);
   }
 }
-uint64_t matches_get_first_stratum_matches(matches_t* const matches) {
+uint64_t matches_get_first_stratum_matches(matches_t* const restrict matches) {
   const uint64_t min_distance = matches_metrics_get_min_distance(&matches->metrics);
   return (min_distance==UINT32_MAX) ? 0 : matches_counters_get_count(matches->counters,min_distance);
 }
-uint64_t matches_get_subdominant_stratum_matches(matches_t* const matches) {
+uint64_t matches_get_subdominant_stratum_matches(matches_t* const restrict matches) {
   const uint64_t first_stratum_matches = matches_get_first_stratum_matches(matches);
   return matches_counters_get_total_count(matches->counters) - first_stratum_matches;
 }
-uint8_t matches_get_primary_mapq(matches_t* const matches) {
+uint8_t matches_get_primary_mapq(matches_t* const restrict matches) {
   const uint64_t num_matches = matches_get_num_match_traces(matches);
   if (num_matches == 0) return 0;
   const match_trace_t* match = matches_get_match_trace_buffer(matches);
@@ -114,10 +114,10 @@ uint8_t matches_get_primary_mapq(matches_t* const matches) {
  * Index
  */
 void matches_index_match(
-    matches_t* const matches,
-    match_trace_t* const match_trace,
+    matches_t* const restrict matches,
+    match_trace_t* const restrict match_trace,
     const uint64_t match_trace_offset,
-    mm_stack_t* const mm_stack) {
+    mm_stack_t* const restrict mm_stack) {
   // Compute dimensions
   const uint64_t begin_position = match_trace->match_alignment.match_position;
   const uint64_t effective_length = match_trace->match_alignment.effective_length;
@@ -129,22 +129,22 @@ void matches_index_match(
   ihash_insert(matches->end_pos_matches,begin_position+effective_length,match_trace->match_trace_offset);
 }
 uint64_t* matches_lookup_match(
-    matches_t* const matches,
+    matches_t* const restrict matches,
     const uint64_t begin_position,
     const uint64_t effective_length) {
   uint64_t* match_trace_offset = ihash_get(matches->begin_pos_matches,begin_position,uint64_t);
   return (match_trace_offset!=NULL) ? match_trace_offset :
       ihash_get(matches->end_pos_matches,begin_position+effective_length,uint64_t);
 }
-void matches_index_clear(matches_t* const matches) {
+void matches_index_clear(matches_t* const restrict matches) {
   ihash_clear(matches->begin_pos_matches);
   ihash_clear(matches->end_pos_matches);
 }
-void matches_index_rebuild(matches_t* const matches,mm_stack_t* const mm_stack) {
+void matches_index_rebuild(matches_t* const restrict matches,mm_stack_t* const restrict mm_stack) {
   // Clear
   matches_index_clear(matches);
   // Re-index positions
-  match_trace_t* const match = matches_get_match_trace_buffer(matches);
+  match_trace_t* const restrict match = matches_get_match_trace_buffer(matches);
   const uint64_t num_matches = matches_get_num_match_traces(matches);
   uint64_t i;
   for (i=0;i<num_matches;++i) {
@@ -154,29 +154,29 @@ void matches_index_rebuild(matches_t* const matches,mm_stack_t* const mm_stack) 
 /*
  * Matches
  */
-match_trace_t* matches_get_match_trace_buffer(const matches_t* const matches) {
+match_trace_t* matches_get_match_trace_buffer(const matches_t* const restrict matches) {
   return vector_get_mem(matches->position_matches,match_trace_t);
 }
-match_trace_t* matches_get_match_trace(const matches_t* const matches,const uint64_t offset) {
+match_trace_t* matches_get_match_trace(const matches_t* const restrict matches,const uint64_t offset) {
   return vector_get_elm(matches->position_matches,offset,match_trace_t);
 }
-uint64_t matches_get_num_match_traces(const matches_t* const matches) {
+uint64_t matches_get_num_match_traces(const matches_t* const restrict matches) {
   return vector_get_used(matches->position_matches);
 }
-void matches_get_clear_match_traces(const matches_t* const matches) {
+void matches_get_clear_match_traces(const matches_t* const restrict matches) {
   vector_clear(matches->position_matches);
 }
-cigar_element_t* match_trace_get_cigar_buffer(const matches_t* const matches,const match_trace_t* const match_trace) {
+cigar_element_t* match_trace_get_cigar_buffer(const matches_t* const restrict matches,const match_trace_t* const restrict match_trace) {
   return vector_get_elm(matches->cigar_vector,match_trace->match_alignment.cigar_offset,cigar_element_t);
 }
-uint64_t match_trace_get_cigar_length(const match_trace_t* const match_trace) {
+uint64_t match_trace_get_cigar_length(const match_trace_t* const restrict match_trace) {
   return match_trace->match_alignment.cigar_length;
 }
-uint64_t match_trace_get_event_distance(const match_trace_t* const match_trace) {
+uint64_t match_trace_get_event_distance(const match_trace_t* const restrict match_trace) {
   return match_trace->distance;
 }
 int64_t match_trace_get_effective_length(
-    matches_t* const matches,
+    matches_t* const restrict matches,
     const uint64_t read_length,
     const uint64_t cigar_buffer_offset,
     const uint64_t cigar_length) {
@@ -205,14 +205,14 @@ int64_t match_trace_get_effective_length(
  *   Preserves the first @max_reported_matches with the least distance
  */
 match_trace_t* matches_sort_preserve_rank_consistency(
-    matches_t* const matches,
-    select_parameters_t* const select_parameters,
+    matches_t* const restrict matches,
+    select_parameters_t* const restrict select_parameters,
     const alignment_model_t alignment_model,
     const uint64_t new_match_trace_offset) {
   // Parameters
   const uint64_t num_matches = matches_get_num_match_traces(matches);
-  match_trace_t* const match_trace = matches_get_match_trace_buffer(matches);
-  match_trace_t* const new_match_trace = match_trace + new_match_trace_offset;
+  match_trace_t* const restrict match_trace = matches_get_match_trace_buffer(matches);
+  match_trace_t* const restrict new_match_trace = match_trace + new_match_trace_offset;
   if (num_matches==0 || alignment_model==alignment_model_none) {
     return new_match_trace; // No swap, return current position
   }
@@ -226,7 +226,7 @@ match_trace_t* matches_sort_preserve_rank_consistency(
         match_trace[match_offset].distance > new_match_trace->distance;
     if (is_within_range) {
       // New match-trace is within the eligible range; swap to maintain rank consistency
-      match_trace_t* const current_match_trace = match_trace + match_offset;
+      match_trace_t* const restrict current_match_trace = match_trace + match_offset;
       if (*(new_match_trace->match_trace_offset) != match_offset) {
         SWAP(*current_match_trace,*new_match_trace);
         SWAP(*(current_match_trace->match_trace_offset),*(new_match_trace->match_trace_offset));
@@ -251,11 +251,11 @@ match_trace_t* matches_sort_preserve_rank_consistency(
   return new_match_trace;
 }
 match_trace_t* matches_get_ranked_match_trace(
-    matches_t* const matches,
-    select_parameters_t* const select_parameters) {
+    matches_t* const restrict matches,
+    select_parameters_t* const restrict select_parameters) {
   // Parameters
   const uint64_t num_matches = matches_get_num_match_traces(matches);
-  match_trace_t* const match_trace = matches_get_match_trace_buffer(matches);
+  match_trace_t* const restrict match_trace = matches_get_match_trace_buffer(matches);
   // Return selected match-trace from ranked ranged
   if (select_parameters->min_reported_strata_nominal == 0) {
     return match_trace + (MIN(select_parameters->max_reported_matches,num_matches)-1);
@@ -282,7 +282,7 @@ match_trace_t* matches_get_ranked_match_trace(
 /*
  * Add Matches
  */
-void match_trace_locate(match_trace_t* const match_trace,const locator_t* const locator) {
+void match_trace_locate(match_trace_t* const restrict match_trace,const locator_t* const restrict locator) {
   GEM_INTERNAL_CHECK(match_trace->match_alignment.effective_length >= 0,"Match effective length must be positive");
   location_t location;
   locator_map(locator,match_trace->match_alignment.match_position,&location);
@@ -300,9 +300,9 @@ void match_trace_locate(match_trace_t* const match_trace,const locator_t* const 
   match_trace->bs_strand = location.bs_strand;
 }
 void match_trace_process(
-    matches_t* const matches,
-    match_trace_t* const match_trace,
-    const locator_t* const locator) {
+    matches_t* const restrict matches,
+    match_trace_t* const restrict match_trace,
+    const locator_t* const restrict locator) {
   // Correct CIGAR (Reverse it if the search was performed in the reverse strand, emulated)
   if (match_trace->emulated_rc_search) {
     matches_cigar_reverse(matches->cigar_vector,
@@ -313,7 +313,7 @@ void match_trace_process(
   // Locate-map the match
   match_trace_locate(match_trace,locator);
 }
-void match_trace_replace(match_trace_t* const match_trace_dst,match_trace_t* const match_trace_src) {
+void match_trace_replace(match_trace_t* const restrict match_trace_dst,match_trace_t* const restrict match_trace_src) {
   /* Text (Reference) */
   match_trace_dst->text_trace_offset = match_trace_src->text_trace_offset;
   match_trace_dst->text = match_trace_src->text;
@@ -335,16 +335,16 @@ void match_trace_replace(match_trace_t* const match_trace_dst,match_trace_t* con
   match_trace_dst->match_scaffold = match_trace_src->match_scaffold;
 }
 void matches_add_match(
-    matches_t* const matches,
-    const locator_t* const locator,
-    match_trace_t* const match_trace,
+    matches_t* const restrict matches,
+    const locator_t* const restrict locator,
+    match_trace_t* const restrict match_trace,
     const bool preserve_rank,
-    select_parameters_t* const select_parameters,
+    select_parameters_t* const restrict select_parameters,
     const alignment_model_t alignment_model,
-    match_trace_t** const match_trace_added,
-    bool* const match_added,
-    bool* const match_replaced,
-    mm_stack_t* const mm_stack) {
+    match_trace_t** const restrict match_trace_added,
+    bool* const restrict match_added,
+    bool* const restrict match_replaced,
+    mm_stack_t* const restrict mm_stack) {
   // Init
   match_trace->mapq_score = 0;
   // Check duplicates
@@ -377,7 +377,7 @@ void matches_add_match(
     *match_added = true;
     *match_replaced = false;
   } else {
-    match_trace_t* const dup_match_trace = vector_get_elm(
+    match_trace_t* const restrict dup_match_trace = vector_get_elm(
         matches->position_matches,*dup_match_trace_offset,match_trace_t);
     // Pick up the least distant match
     if (dup_match_trace->distance > match_trace->distance) {
@@ -408,10 +408,10 @@ void matches_add_match(
   }
 }
 bool matches_add_match_trace(
-    matches_t* const matches,
-    const locator_t* const locator,
-    match_trace_t* const match_trace,
-    mm_stack_t* const mm_stack) {
+    matches_t* const restrict matches,
+    const locator_t* const restrict locator,
+    match_trace_t* const restrict match_trace,
+    mm_stack_t* const restrict mm_stack) {
   match_trace_t* match_trace_added;
   bool match_added, match_replaced;
   matches_add_match(matches,locator,match_trace,false,NULL,
@@ -419,15 +419,15 @@ bool matches_add_match_trace(
   return match_added;
 }
 void matches_add_match_trace__preserve_rank(
-    matches_t* const matches,
-    const locator_t* const locator,
-    match_trace_t* const match_trace,
-    select_parameters_t* const select_parameters,
+    matches_t* const restrict matches,
+    const locator_t* const restrict locator,
+    match_trace_t* const restrict match_trace,
+    select_parameters_t* const restrict select_parameters,
     const alignment_model_t alignment_model,
-    match_trace_t** const match_trace_added,
-    bool* const match_added,
-    bool* const match_replaced,
-    mm_stack_t* const mm_stack) {
+    match_trace_t** const restrict match_trace_added,
+    bool* const restrict match_added,
+    bool* const restrict match_replaced,
+    mm_stack_t* const restrict mm_stack) {
   matches_add_match(matches,locator,match_trace,true,select_parameters,
       alignment_model,match_trace_added,match_added,match_replaced,mm_stack);
 }
@@ -435,18 +435,18 @@ void matches_add_match_trace__preserve_rank(
  * Local Matches
  */
 void matches_add_local_match_pending(
-    matches_t* const matches,
-    match_trace_t* const match_trace) {
+    matches_t* const restrict matches,
+    match_trace_t* const restrict match_trace) {
   match_trace_t* new_match_trace;
   vector_alloc_new(matches->local_matches,match_trace_t,new_match_trace);
   *new_match_trace = *match_trace;
 }
 void matches_add_pending_local_matches(
-    matches_t* const matches,
-    const locator_t* const locator,
-    mm_stack_t* const mm_stack) {
+    matches_t* const restrict matches,
+    const locator_t* const restrict locator,
+    mm_stack_t* const restrict mm_stack) {
   const uint64_t num_local_matches = vector_get_used(matches->local_matches);
-  match_trace_t* const local_match = vector_get_mem(matches->local_matches,match_trace_t);
+  match_trace_t* const restrict local_match = vector_get_mem(matches->local_matches,match_trace_t);
   uint64_t i;
   for (i=0;i<num_local_matches;++i) {
     matches_add_match_trace(matches,locator,local_match,mm_stack);
@@ -456,14 +456,14 @@ void matches_add_pending_local_matches(
  * Matches hints
  */
 void matches_hint_allocate_match_trace(
-    matches_t* const matches,
+    matches_t* const restrict matches,
     const uint64_t num_matches_trace_to_add) {
   vector_reserve_additional(matches->position_matches,num_matches_trace_to_add);
 }
 /*
  * Sorting Matches
  */
-int match_trace_cmp_distance(const match_trace_t* const a,const match_trace_t* const b) {
+int match_trace_cmp_distance(const match_trace_t* const restrict a,const match_trace_t* const restrict b) {
   const int distance_diff = (int)a->distance - (int)b->distance;
   if (distance_diff) return distance_diff;
   const int distance_swg = (int)b->swg_score - (int)a->swg_score;
@@ -473,10 +473,10 @@ int match_trace_cmp_distance(const match_trace_t* const a,const match_trace_t* c
   // Untie using position (helps to stabilize & cmp results)
   return (int)a->match_alignment.match_position - (int)b->match_alignment.match_position;
 }
-void matches_sort_by_distance(matches_t* const matches) {
+void matches_sort_by_distance(matches_t* const restrict matches) {
   // Sort
   const uint64_t num_matches = vector_get_used(matches->position_matches);
-  match_trace_t* const match_trace = vector_get_mem(matches->position_matches,match_trace_t);
+  match_trace_t* const restrict match_trace = vector_get_mem(matches->position_matches,match_trace_t);
   qsort(match_trace,num_matches,sizeof(match_trace_t),
       (int (*)(const void *,const void *))match_trace_cmp_distance);
   // Recompute offsets
@@ -485,13 +485,13 @@ void matches_sort_by_distance(matches_t* const matches) {
     *(match_trace[i].match_trace_offset) = i;
   }
 }
-int match_trace_cmp_swg_score(const match_trace_t* const a,const match_trace_t* const b) {
+int match_trace_cmp_swg_score(const match_trace_t* const restrict a,const match_trace_t* const restrict b) {
   return (int)b->swg_score - (int)a->swg_score;
 }
-void matches_sort_by_swg_score(matches_t* const matches) {
+void matches_sort_by_swg_score(matches_t* const restrict matches) {
   // Sort
   const uint64_t num_matches = vector_get_used(matches->position_matches);
-  match_trace_t* const match_trace = vector_get_mem(matches->position_matches,match_trace_t);
+  match_trace_t* const restrict match_trace = vector_get_mem(matches->position_matches,match_trace_t);
   qsort(match_trace,num_matches,sizeof(match_trace_t),
       (int (*)(const void *,const void *))match_trace_cmp_swg_score);
   // Recompute offsets
@@ -500,19 +500,19 @@ void matches_sort_by_swg_score(matches_t* const matches) {
     *(match_trace[i].match_trace_offset) = i;
   }
 }
-int match_trace_cmp_mapq_score(const match_trace_t* const a,const match_trace_t* const b) {
+int match_trace_cmp_mapq_score(const match_trace_t* const restrict a,const match_trace_t* const restrict b) {
   return (int)b->mapq_score - (int)a->mapq_score;
 }
-void matches_sort_by_mapq_score(matches_t* const matches) {
+void matches_sort_by_mapq_score(matches_t* const restrict matches) {
   qsort(vector_get_mem(matches->position_matches,match_trace_t),
       vector_get_used(matches->position_matches),sizeof(match_trace_t),
       (int (*)(const void *,const void *))match_trace_cmp_mapq_score);
 }
-int match_trace_cmp_sequence_name__position(const match_trace_t* const a,const match_trace_t* const b) {
+int match_trace_cmp_sequence_name__position(const match_trace_t* const restrict a,const match_trace_t* const restrict b) {
   const int cmp = gem_strcmp(a->sequence_name,b->sequence_name);
   return (cmp!=0) ? cmp : ((int)a->text_position - (int)b->text_position);
 }
-void matches_sort_by_sequence_name__position(matches_t* const matches) {
+void matches_sort_by_sequence_name__position(matches_t* const restrict matches) {
   // Sort global matches (match_trace_t) wrt distance
   qsort(vector_get_mem(matches->position_matches,match_trace_t),
       vector_get_used(matches->position_matches),sizeof(match_trace_t),
@@ -521,7 +521,7 @@ void matches_sort_by_sequence_name__position(matches_t* const matches) {
 /*
  * Filters
  */
-void matches_filter_by_mapq(matches_t* const matches,const uint8_t mapq_threshold,mm_stack_t* const mm_stack) {
+void matches_filter_by_mapq(matches_t* const restrict matches,const uint8_t mapq_threshold,mm_stack_t* const restrict mm_stack) {
   const uint64_t num_matches = matches_get_num_match_traces(matches);
   match_trace_t* match_in = matches_get_match_trace_buffer(matches);
   match_trace_t* match_out = match_in;
@@ -546,7 +546,7 @@ void matches_filter_by_mapq(matches_t* const matches,const uint8_t mapq_threshol
 /*
  * Display
  */
-void matches_print(FILE* const stream,matches_t* const matches) {
+void matches_print(FILE* const restrict stream,matches_t* const restrict matches) {
   tab_fprintf(stream,"[GEM]>Matches\n");
   tab_global_inc();
   tab_fprintf(stream,"=> Class %s\n",matches_class_label[matches->matches_class]);

@@ -20,7 +20,7 @@
 
 // Base-name of the sources
 #define GEM_ERROR_BASENAME(S) \
-  ({ const char* const slash=strrchr((S),'/'); \
+  ({ const char* const restrict slash=strrchr((S),'/'); \
      slash ? slash + 1 : (S); })
 
 // Getters/Setters ELD-function
@@ -31,13 +31,13 @@ void gem_error_set_report_function(report_function_t report_function);
 // Getters/Setters ELD-streams
 #define GEM_DEFAULT_REPORT_STREAM stderr
 FILE* gem_error_get_stream();
-void gem_error_set_stream(FILE* const stream);
+void gem_error_set_stream(FILE* const restrict stream);
 FILE* gem_log_get_stream();
-void gem_log_set_stream(FILE* const stream);
+void gem_log_set_stream(FILE* const restrict stream);
 FILE* gem_info_get_stream();
-void gem_info_set_stream(FILE* const stream);
+void gem_info_set_stream(FILE* const restrict stream);
 FILE* gem_debug_get_stream();
-void gem_debug_set_stream(FILE* const stream);
+void gem_debug_set_stream(FILE* const restrict stream);
 // Mute/Articulate ELD-streams
 void gem_mute_error_stream();
 void gem_mute_report_stream();
@@ -60,7 +60,7 @@ bool gem_is_mute_report_stream();
  */
 #define gem_report_error_begin_block(gem_label,gem_error_name,args...) \
   do { \
-    FILE* const gem_stream=gem_error_get_stream(); \
+    FILE* const restrict gem_stream=gem_error_get_stream(); \
     if (!gem_is_mute_report_stream()) { \
       fprintf(gem_stream,gem_label" (%s:%d,%s)\n "GEM_ERROR_##gem_error_name"\n", \
         GEM_ERROR_BASENAME(__FILE__),__LINE__,__func__, ##args); \
@@ -68,7 +68,7 @@ bool gem_is_mute_report_stream();
     }
 #define gem_report_begin_block(gem_label,stream,gem_report_msg,args...) \
   do { \
-    FILE* const gem_stream=gem_##stream##_get_stream(); \
+    FILE* const restrict gem_stream=gem_##stream##_get_stream(); \
     if (!gem_is_mute_report_stream()) { \
       fprintf(gem_stream,gem_label" (%s:%d,%s)\n "gem_report_msg"\n", \
         GEM_ERROR_BASENAME(__FILE__),__LINE__,__func__, ##args); \
@@ -76,14 +76,14 @@ bool gem_is_mute_report_stream();
     }
 #define gem_report_raw_begin_block(gem_label,stream,gem_report_msg,args...) \
   do { \
-    FILE* const gem_stream=gem_##stream##_get_stream(); \
+    FILE* const restrict gem_stream=gem_##stream##_get_stream(); \
     if (!gem_is_mute_report_stream()) { \
       fprintf(gem_stream,gem_label":: "gem_report_msg"\n",##args); \
       fflush(gem_stream); \
     }
 #define gem_report__timestamp_begin_block(gem_label,stream,gem_report_msg,args...) \
   do { \
-    FILE* const gem_stream=gem_##stream##_get_stream(); \
+    FILE* const restrict gem_stream=gem_##stream##_get_stream(); \
     if (!gem_is_mute_report_stream()) { \
       tfprintf(gem_stream,gem_label":: "gem_report_msg"\n",##args); \
       fflush(gem_stream); \
@@ -108,7 +108,7 @@ bool gem_is_mute_report_stream();
 // Simple LOG
 #define gem_slog(gem_log_msg,args...) \
   do { \
-    FILE* const gem_stream=gem_log_get_stream(); \
+    FILE* const restrict gem_stream=gem_log_get_stream(); \
     if (!gem_is_mute_report_stream()) { \
       fprintf(gem_stream,gem_log_msg,##args); \
       fflush(gem_stream); \
@@ -120,7 +120,7 @@ bool gem_is_mute_report_stream();
   gem_report_end_block(0,0,0,0)
 #define gem_log(gem_log_msg,args...) \
   do { \
-    FILE* const gem_stream=gem_log_get_stream(); \
+    FILE* const restrict gem_stream=gem_log_get_stream(); \
     if (!gem_is_mute_report_stream()) { \
       tfprintf(gem_stream,gem_log_msg"\n",##args); \
       fflush(gem_stream); \
@@ -149,7 +149,7 @@ bool gem_is_mute_report_stream();
 // Info LOG
 #define gem_info(gem_info_msg,args...) \
   do { \
-    FILE* const gem_stream=gem_info_get_stream(); \
+    FILE* const restrict gem_stream=gem_info_get_stream(); \
     if (!gem_is_mute_report_stream()) { \
       fprintf(gem_stream,gem_info_msg,##args); \
       fflush(gem_stream); \
@@ -176,8 +176,8 @@ int tab_printf(const char* format,...);
 /*
  * Tabulate Data
  */
-void fprintf_tabs(FILE* const stream,const int num_spaces);
-void tab_global_print(FILE* const stream);
+void fprintf_tabs(FILE* const restrict stream,const int num_spaces);
+void tab_global_print(FILE* const restrict stream);
 void tab_global_inc();
 void tab_global_add(const uint64_t amount);
 void tab_global_dec();
@@ -212,26 +212,26 @@ typedef struct {
 } ticker_t;
 // Percentage based
 void ticker_percentage_reset(
-    ticker_t* const ticker,const bool enabled,const char* const label,
+    ticker_t* const restrict ticker,const bool enabled,const char* const restrict label,
     const uint64_t max,const uint64_t step,const bool timed);
 // Count based
 void ticker_count_reset(
-    ticker_t* const ticker,const bool enabled,const char* const label,
+    ticker_t* const restrict ticker,const bool enabled,const char* const restrict label,
     const uint64_t top,const uint64_t each,const bool timed);
-void ticker_update(ticker_t* const ticker,const uint64_t n);
-void ticker_update_mutex(ticker_t* const ticker,const uint64_t n);
-void ticker_finish(ticker_t* const ticker);
-void ticker_finish_mutex(ticker_t* const ticker);
+void ticker_update(ticker_t* const restrict ticker,const uint64_t n);
+void ticker_update_mutex(ticker_t* const restrict ticker,const uint64_t n);
+void ticker_finish(ticker_t* const restrict ticker);
+void ticker_finish_mutex(ticker_t* const restrict ticker);
 // Adding labels
-void ticker_add_process_label(ticker_t* const ticker,char* const process_begin,char* const process_end);
-void ticker_add_finish_label(ticker_t* const ticker,char* const finish_begin,char* const finish_end);
+void ticker_add_process_label(ticker_t* const restrict ticker,char* const restrict process_begin,char* const restrict process_end);
+void ticker_add_finish_label(ticker_t* const restrict ticker,char* const restrict finish_begin,char* const restrict finish_end);
 // Enable/Disable ticker
-void ticker_set_status(ticker_t* const ticker,const bool enabled);
+void ticker_set_status(ticker_t* const restrict ticker,const bool enabled);
 // Set granularity
-void ticker_set_step(ticker_t* const ticker,const uint64_t step);
+void ticker_set_step(ticker_t* const restrict ticker,const uint64_t step);
 // Enable mutex
-void ticker_mutex_enable(ticker_t* const ticker);
-void ticker_mutex_cleanup(ticker_t* const ticker);
+void ticker_mutex_enable(ticker_t* const restrict ticker);
+void ticker_mutex_cleanup(ticker_t* const restrict ticker);
 // Percentage/Count Ticker Macros
 #define TICKER_COND_BEGIN(condition,maximum,msg,timed) \
   ticker_t __ticker; \

@@ -15,17 +15,17 @@
 /*
  * Setup
  */
-void archive_select_configure_se(archive_search_t* const archive_search) {
-  search_parameters_t* const search_parameters = &archive_search->search_parameters;
-  select_parameters_t* const select_parameters_report = &search_parameters->select_parameters_report;
-  select_parameters_t* const select_parameters_align = &search_parameters->select_parameters_align;
+void archive_select_configure_se(archive_search_t* const restrict archive_search) {
+  search_parameters_t* const restrict search_parameters = &archive_search->search_parameters;
+  select_parameters_t* const restrict select_parameters_report = &search_parameters->select_parameters_report;
+  select_parameters_t* const restrict select_parameters_align = &search_parameters->select_parameters_align;
   select_parameters_align->min_reported_strata = select_parameters_report->min_reported_strata;
   select_parameters_align->min_reported_matches = select_parameters_report->min_reported_matches;
   select_parameters_align->max_reported_matches = select_parameters_report->max_reported_matches;
 }
-void archive_select_configure_pe(archive_search_t* const archive_search) {
-  search_parameters_t* const search_parameters = &archive_search->search_parameters;
-  select_parameters_t* const select_parameters_align = &search_parameters->select_parameters_align;
+void archive_select_configure_pe(archive_search_t* const restrict archive_search) {
+  search_parameters_t* const restrict search_parameters = &archive_search->search_parameters;
+  select_parameters_t* const restrict select_parameters_align = &search_parameters->select_parameters_align;
   select_parameters_align->min_reported_strata = 0;
   select_parameters_align->min_reported_matches = 5;
   select_parameters_align->max_reported_matches = 5;
@@ -34,10 +34,10 @@ void archive_select_configure_pe(archive_search_t* const archive_search) {
  * Decoding Matches (Retrieving & Processing matches)
  */
 void archive_select_process_trace_matches(
-    archive_search_t* const archive_search,
-    matches_t* const matches,
+    archive_search_t* const restrict archive_search,
+    matches_t* const restrict matches,
     const uint64_t reported_strata,
-    uint64_t* const last_stratum_reported_matches) {
+    uint64_t* const restrict last_stratum_reported_matches) {
   const uint64_t num_initial_matches = vector_get_used(matches->position_matches);
   const uint64_t last_stratum_distance = reported_strata-1;
   // Count already decoded matches & discard unwanted matches
@@ -70,9 +70,9 @@ void archive_select_process_trace_matches(
  * Select Paired-Matches
  */
 void archive_select_se_matches(
-    archive_search_t* const archive_search,
-    select_parameters_t* const select_parameters,
-    matches_t* const matches) {
+    archive_search_t* const restrict archive_search,
+    select_parameters_t* const restrict select_parameters,
+    matches_t* const restrict matches) {
   PROFILE_START(GP_ARCHIVE_SELECT_SE_MATCHES,PROFILE_LEVEL);
   // Calculate the number of matches to decode wrt input parameters
   uint64_t reported_strata = 0, last_stratum_reported_matches = 0;
@@ -90,17 +90,17 @@ void archive_select_se_matches(
   PROFILE_STOP(GP_ARCHIVE_SELECT_SE_MATCHES,PROFILE_LEVEL);
 }
 void archive_select_pe_matches(
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2,
-    select_parameters_t* const select_parameters,
-    paired_matches_t* const paired_matches) {
+    archive_search_t* const restrict archive_search_end1,
+    archive_search_t* const restrict archive_search_end2,
+    select_parameters_t* const restrict select_parameters,
+    paired_matches_t* const restrict paired_matches) {
   // Update stats (Check number of paired-matches)
   const uint64_t num_matches = paired_matches_get_num_maps(paired_matches);
   if (num_matches==0) return;
   PROFILE_START(GP_ARCHIVE_SELECT_PE_MATCHES,PROFILE_LEVEL);
   // Sample unique
   if (num_matches==1) {
-    const paired_map_t* const paired_map = paired_matches_get_maps(paired_matches);
+    const paired_map_t* const restrict paired_map = paired_matches_get_maps(paired_matches);
     if (paired_map->pair_relation==pair_relation_concordant) {
       mapper_stats_template_length_sample(archive_search_end1->mapper_stats,paired_map->template_length);
     }

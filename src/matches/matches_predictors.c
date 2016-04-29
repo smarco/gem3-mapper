@@ -11,7 +11,7 @@
 /*
  * Compute Predictors
  */
-void matches_predictors_compute_unmapped(matches_predictors_t* const predictors,const uint64_t read_length) {
+void matches_predictors_compute_unmapped(matches_predictors_t* const restrict predictors,const uint64_t read_length) {
   // Compute event distances
   predictors->first_map_event_distance = read_length;
   predictors->subdominant_event_distance = read_length;
@@ -30,8 +30,8 @@ void matches_predictors_compute_unmapped(matches_predictors_t* const predictors,
   predictors->subdominant_swg_score_norm =  0.0;
 }
 void matches_predictors_compute_mapped(
-    matches_predictors_t* const predictors,
-    matches_metrics_t* const matches_metrics,
+    matches_predictors_t* const restrict predictors,
+    matches_metrics_t* const restrict matches_metrics,
     const uint64_t primary_map_distance,
     const uint64_t primary_map_edit_distance,
     const int32_t primary_map_swg_score,
@@ -85,13 +85,13 @@ void matches_predictors_compute_mapped(
  * SE Compute Predictors
  */
 void matches_predictors_compute(
-    matches_t* const matches,
-    matches_predictors_t* const predictors,
-    approximate_search_metrics_t* const search_metrics,
+    matches_t* const restrict matches,
+    matches_predictors_t* const restrict predictors,
+    approximate_search_metrics_t* const restrict search_metrics,
     const uint64_t mcs) {
   // Parameters
   const uint64_t num_matches = matches_get_num_match_traces(matches);
-  matches_metrics_t* const metrics = &matches->metrics;
+  matches_metrics_t* const restrict metrics = &matches->metrics;
   // Init
   if (num_matches==0) {
     // First stratum
@@ -102,7 +102,7 @@ void matches_predictors_compute(
     // First stratum
     predictors->first_stratum_matches = matches_get_first_stratum_matches(matches);
     // Primary/Subdominant predictors
-    match_trace_t* const match = matches_get_match_trace_buffer(matches);
+    match_trace_t* const restrict match = matches_get_match_trace_buffer(matches);
     matches_predictors_compute_mapped(predictors,metrics,
         match->distance,match->edit_distance,match->swg_score,
         search_metrics->read_length,search_metrics->swg_match_score);
@@ -135,15 +135,15 @@ void matches_predictors_compute(
  * PE Compute Predictors
  */
 void paired_matches_predictors_compute(
-    paired_matches_t* const paired_matches,
-    matches_predictors_t* const predictors,
-    approximate_search_metrics_t* const search_metrics_end1,
-    approximate_search_metrics_t* const search_metrics_end2,
+    paired_matches_t* const restrict paired_matches,
+    matches_predictors_t* const restrict predictors,
+    approximate_search_metrics_t* const restrict search_metrics_end1,
+    approximate_search_metrics_t* const restrict search_metrics_end2,
     const uint64_t mcs_end1,
     const uint64_t mcs_end2) {
   // Parameters
-  matches_metrics_t* const metrics_end1 = &paired_matches->matches_end1->metrics;
-  matches_metrics_t* const metrics_end2 = &paired_matches->matches_end2->metrics;
+  matches_metrics_t* const restrict metrics_end1 = &paired_matches->matches_end1->metrics;
+  matches_metrics_t* const restrict metrics_end2 = &paired_matches->matches_end2->metrics;
   const uint64_t num_matches = paired_matches_get_num_maps(paired_matches);
   const uint64_t total_read_length = search_metrics_end1->read_length + search_metrics_end2->read_length;
   // Compute PE predictors
@@ -161,7 +161,7 @@ void paired_matches_predictors_compute(
   } else {
     // First stratum
     predictors->first_stratum_matches = paired_matches_get_first_stratum_matches(paired_matches);
-    paired_map_t* const paired_map = paired_matches_get_maps(paired_matches);
+    paired_map_t* const restrict paired_map = paired_matches_get_maps(paired_matches);
     // Primary/Subdominant predictors
     matches_predictors_compute_mapped(predictors,
         &paired_matches->metrics,paired_map[0].distance,
@@ -171,8 +171,8 @@ void paired_matches_predictors_compute(
     predictors->first_map_template_size_sigma = paired_matches->metrics.min1_template_length_sigma;
     predictors->subdominant_template_size_sigma = paired_matches->metrics.min2_template_length_sigma;
     // MAPQ Score
-    match_trace_t* const match_end1 = paired_map_get_match_end1(paired_matches,paired_map);
-    match_trace_t* const match_end2 = paired_map_get_match_end2(paired_matches,paired_map);
+    match_trace_t* const restrict match_end1 = paired_map_get_match_end1(paired_matches,paired_map);
+    match_trace_t* const restrict match_end2 = paired_map_get_match_end2(paired_matches,paired_map);
     predictors->mapq_end1 = match_end1->mapq_score;
     predictors->mapq_end2 = match_end2->mapq_score;
   }
@@ -198,10 +198,10 @@ void paired_matches_predictors_compute(
 #define MP_SEP           "  "
 #define MP_DOUBLE_FORMAT "%f"
 void matches_predictors_print(
-    FILE* const stream,
-    const char* const sequence_tag,
-    const char* const match_class,
-    matches_predictors_t* const predictors) {
+    FILE* const restrict stream,
+    const char* const restrict sequence_tag,
+    const char* const restrict match_class,
+    matches_predictors_t* const restrict predictors) {
   // Tag
   fprintf(stream,"%s" MP_SEP,sequence_tag);
   // Class
@@ -261,10 +261,10 @@ void matches_predictors_print(
   fprintf(stream,"%02d\n",predictors->mapq_end2);
 }
 void matches_predictors_se_print(
-    FILE* const stream,
-    const char* const sequence_tag,
+    FILE* const restrict stream,
+    const char* const restrict sequence_tag,
     const matches_class_t matches_class,
-    matches_predictors_t* const predictors) {
+    matches_predictors_t* const restrict predictors) {
   // Class
   switch (matches_class) {
     case matches_class_unmapped:
@@ -287,10 +287,10 @@ void matches_predictors_se_print(
   }
 }
 void matches_predictors_pe_print(
-    FILE* const stream,
-    const char* const sequence_tag,
+    FILE* const restrict stream,
+    const char* const restrict sequence_tag,
     const paired_matches_class_t paired_matches_class,
-    matches_predictors_t* const predictors) {
+    matches_predictors_t* const restrict predictors) {
   switch (paired_matches_class) {
     case paired_matches_class_unmapped:
       break;

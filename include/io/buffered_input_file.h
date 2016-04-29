@@ -40,34 +40,34 @@ typedef struct {
  * Setup
  */
 buffered_input_file_t* buffered_input_file_new(
-    input_file_sliced_t* const input_file_sliced,
+    input_file_sliced_t* const restrict input_file_sliced,
     const uint64_t prefered_read_size);
-void buffered_input_file_close(buffered_input_file_t* const buffered_input);
+void buffered_input_file_close(buffered_input_file_t* const restrict buffered_input);
 
 /*
  * Accessors
  */
-char* buffered_input_file_get_file_name(buffered_input_file_t* const buffered_input);
-uint32_t buffered_input_file_get_block_id(buffered_input_file_t* const buffered_input);
-uint64_t buffered_input_file_get_num_lines(buffered_input_file_t* const buffered_input);
-uint64_t buffered_input_file_get_current_line_num(buffered_input_file_t* const buffered_input);
-bool buffered_input_file_eob(buffered_input_file_t* const buffered_input);
+char* buffered_input_file_get_file_name(buffered_input_file_t* const restrict buffered_input);
+uint32_t buffered_input_file_get_block_id(buffered_input_file_t* const restrict buffered_input);
+uint64_t buffered_input_file_get_num_lines(buffered_input_file_t* const restrict buffered_input);
+uint64_t buffered_input_file_get_current_line_num(buffered_input_file_t* const restrict buffered_input);
+bool buffered_input_file_eob(buffered_input_file_t* const restrict buffered_input);
 
 /*
  * Line Reader
  */
 int buffered_input_file_get_line(
-    buffered_input_file_t* const buffered_input,
-    string_t* const input_line);
+    buffered_input_file_t* const restrict buffered_input,
+    string_t* const restrict input_line);
 
 /*
  * Buffer Reload
  */
 uint64_t buffered_input_file_reload(
-    buffered_input_file_t* const buffered_input,
+    buffered_input_file_t* const restrict buffered_input,
     const uint64_t forced_read_lines);
 void buffered_input_file_attach_buffered_output(
-    buffered_input_file_t* const buffered_input_file,
-    buffered_output_file_t* const buffered_output_file);
+    buffered_input_file_t* const restrict buffered_input_file,
+    buffered_output_file_t* const restrict buffered_output_file);
 
 #endif /* BUFFERED_INPUT_FILE_H_ */

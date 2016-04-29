@@ -43,45 +43,45 @@ typedef struct {
 /*
  * Setup
  */
-void rank_mtable_init_levels(rank_mtable_t* const rank_mtable);
-rank_mtable_t* rank_mtable_read(fm_t* const file_manager);
-rank_mtable_t* rank_mtable_read_mem(mm_t* const memory_manager);
-void rank_mtable_delete(rank_mtable_t* const rank_mtable);
+void rank_mtable_init_levels(rank_mtable_t* const restrict rank_mtable);
+rank_mtable_t* rank_mtable_read(fm_t* const restrict file_manager);
+rank_mtable_t* rank_mtable_read_mem(mm_t* const restrict memory_manager);
+void rank_mtable_delete(rank_mtable_t* const restrict rank_mtable);
 
 /*
  * Accessors
  */
-uint64_t rank_mtable_get_size(const rank_mtable_t* const rank_mtable);
+uint64_t rank_mtable_get_size(const rank_mtable_t* const restrict rank_mtable);
 
 /*
  * Query
  */
-void rank_mquery_new(rank_mquery_t* const query);
+void rank_mquery_new(rank_mquery_t* const restrict query);
 void rank_mquery_add_char(
-    const rank_mtable_t* const rank_mtable,
-    rank_mquery_t* const query,
+    const rank_mtable_t* const restrict rank_mtable,
+    rank_mquery_t* const restrict query,
     uint8_t const enc_char);
-uint64_t rank_mquery_get_level(const rank_mquery_t* const query);
-uint64_t rank_mquery_is_exhausted(const rank_mquery_t* const query);
+uint64_t rank_mquery_get_level(const rank_mquery_t* const restrict query);
+uint64_t rank_mquery_is_exhausted(const rank_mquery_t* const restrict query);
 
 /*
  * Fetch rank value
  */
 void rank_mtable_fetch(
-    const rank_mtable_t* const rank_mtable,
-    const rank_mquery_t* const query,
-    uint64_t* const lo,
-    uint64_t* const hi);
+    const rank_mtable_t* const restrict rank_mtable,
+    const rank_mquery_t* const restrict query,
+    uint64_t* const restrict lo,
+    uint64_t* const restrict hi);
 
 /*
  * Display
  */
 void rank_mtable_print(
-    FILE* const stream,
-    rank_mtable_t* const rank_mtable);
+    FILE* const restrict stream,
+    rank_mtable_t* const restrict rank_mtable);
 void rank_mtable_print_content(
-    FILE* const stream,
-    rank_mtable_t* const rank_mtable,
+    FILE* const restrict stream,
+    rank_mtable_t* const restrict rank_mtable,
     const uint64_t text_length);
 
 #endif /* RANK_MTABLE_H_ */

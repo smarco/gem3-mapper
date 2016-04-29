@@ -13,11 +13,11 @@
  * Encode RL-Text
  */
 void archive_text_rl_encode(
-    const uint8_t* const text,
+    const uint8_t* const restrict text,
     const uint64_t text_length,
-    uint8_t* const rl_text,
-    uint64_t* const rl_text_length,
-    uint32_t* const rl_runs_acc) {
+    uint8_t* const restrict rl_text,
+    uint64_t* const restrict rl_text_length,
+    uint32_t* const restrict rl_runs_acc) {
   // Init
   rl_text[0] = text[0];
   rl_runs_acc[0] = 1;
@@ -47,9 +47,9 @@ void archive_text_rl_encode(
  * Translate position
  */
 uint64_t archive_text_rl_position_translate(
-    archive_text_t* const archive_text,
+    archive_text_t* const restrict archive_text,
     const uint64_t position_rl,
-    mm_stack_t* const mm_stack) {
+    mm_stack_t* const restrict mm_stack) {
   // Retrieve first sampled position
   const uint64_t sampled_position_rl = position_rl / SAMPLED_RL_SAMPLING_RATE;
   const uint64_t remainder_rl = position_rl % SAMPLED_RL_SAMPLING_RATE;
@@ -75,28 +75,28 @@ uint64_t archive_text_rl_position_translate(
  * Utils
  */
 uint64_t archive_text_rl_get_run_length(
-    const uint32_t* const rl_runs_acc,
+    const uint32_t* const restrict rl_runs_acc,
     const uint64_t rl_position) {
   return (rl_position>0) ? rl_runs_acc[rl_position]-rl_runs_acc[rl_position-1] : rl_runs_acc[rl_position];
 }
 uint64_t archive_text_rl_get_decoded_offset_inc(
-    const uint32_t* const rl_runs_acc,
+    const uint32_t* const restrict rl_runs_acc,
     const uint64_t rl_position) {
   return rl_runs_acc[rl_position];
 }
 uint64_t archive_text_rl_get_decoded_offset_exl(
-    const uint32_t* const rl_runs_acc,
+    const uint32_t* const restrict rl_runs_acc,
     const uint64_t rl_position) {
   return (rl_position>0) ? rl_runs_acc[rl_position-1] : 0;
 }
 uint64_t archive_text_rl_get_decoded_length(
-    const uint32_t* const rl_runs_acc,
+    const uint32_t* const restrict rl_runs_acc,
     const uint64_t rl_position,
     const uint64_t length) {
   return rl_runs_acc[rl_position+length-1] - archive_text_rl_get_decoded_offset_exl(rl_runs_acc,rl_position);
 }
 uint64_t archive_text_rl_get_encoded_offset(
-    const uint32_t* const rl_runs_acc,
+    const uint32_t* const restrict rl_runs_acc,
     const uint64_t rl_text_length,
     const uint64_t text_position) { // TODO Impl log2 solution
   uint64_t i;

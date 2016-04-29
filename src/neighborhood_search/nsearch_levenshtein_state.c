@@ -13,15 +13,15 @@
  * DP-Matrix
  */
 void nsearch_levenshtein_state_init(
-    nsearch_levenshtein_state_t* const nsearch_levenshtein_state,
+    nsearch_levenshtein_state_t* const restrict nsearch_levenshtein_state,
     const uint64_t num_columns,const uint64_t column_length,
-    mm_stack_t* const mm_stack) {
+    mm_stack_t* const restrict mm_stack) {
   // Init dp_matrix
-  dp_matrix_t* const dp_matrix = &nsearch_levenshtein_state->dp_matrix;
+  dp_matrix_t* const restrict dp_matrix = &nsearch_levenshtein_state->dp_matrix;
   dp_matrix->column_length = column_length;
   dp_matrix->num_columns = num_columns;
   // Allocate columns
-  dp_column_t* const columns = mm_stack_calloc(mm_stack,num_columns,dp_column_t,false);
+  dp_column_t* const restrict columns = mm_stack_calloc(mm_stack,num_columns,dp_column_t,false);
   dp_matrix->columns = columns;
   uint64_t i;
   for (i=0;i<num_columns;++i) {
@@ -35,13 +35,13 @@ void nsearch_levenshtein_state_init(
  * Prepare DP
  */
 void nsearch_levenshtein_state_prepare_full(
-    nsearch_levenshtein_state_t* const nsearch_state,const uint64_t key_begin,
+    nsearch_levenshtein_state_t* const restrict nsearch_state,const uint64_t key_begin,
     const uint64_t key_end,const uint64_t max_error) {
   // Parameters
   const uint64_t key_length = key_end - key_begin;
   const uint64_t max_text_length = key_length + max_error;
-  dp_matrix_t* const dp_matrix = &nsearch_state->dp_matrix;
-  dp_column_t* const columns = dp_matrix->columns;
+  dp_matrix_t* const restrict dp_matrix = &nsearch_state->dp_matrix;
+  dp_column_t* const restrict columns = dp_matrix->columns;
   // Initialize columns
   const uint64_t column_start_band = max_error+1;
   uint64_t i;
@@ -64,12 +64,12 @@ void nsearch_levenshtein_state_prepare_full(
   }
 }
 void nsearch_levenshtein_state_prepare_supercondensed(
-    nsearch_levenshtein_state_t* const nsearch_state,const uint64_t max_error) {
+    nsearch_levenshtein_state_t* const restrict nsearch_state,const uint64_t max_error) {
   // Parameters
   const uint64_t key_length = nsearch_state->key_end - nsearch_state->key_begin;
   const uint64_t max_text_length = key_length + max_error;
-  dp_matrix_t* const dp_matrix = &nsearch_state->dp_matrix;
-  dp_column_t* const columns = dp_matrix->columns;
+  dp_matrix_t* const restrict dp_matrix = &nsearch_state->dp_matrix;
+  dp_column_t* const restrict columns = dp_matrix->columns;
   // Initialize columns
   const uint64_t column_start_band = max_error+1;
   uint64_t i;
@@ -95,15 +95,15 @@ void nsearch_levenshtein_state_prepare_supercondensed(
  * Compute DP
  */
 void nsearch_levenshtein_state_compute_chararacter(
-    nsearch_levenshtein_state_t* const nsearch_state,const bool forward_search,
-    const uint8_t* const key,const uint64_t key_begin,const uint64_t key_end,
+    nsearch_levenshtein_state_t* const restrict nsearch_state,const bool forward_search,
+    const uint8_t* const restrict key,const uint64_t key_begin,const uint64_t key_end,
     const uint64_t text_offset,const uint8_t text_char_enc,
-    uint64_t* const min_val,uint64_t* const align_distance) {
+    uint64_t* const restrict min_val,uint64_t* const restrict align_distance) {
   // Parameters
-  dp_matrix_t* const dp_matrix = &nsearch_state->dp_matrix;
+  dp_matrix_t* const restrict dp_matrix = &nsearch_state->dp_matrix;
   // Index column (current_column=text_offset offset by 1)
-  dp_column_t* const base_column = dp_matrix->columns + text_offset;
-  dp_column_t* const next_column = base_column + 1;
+  dp_column_t* const restrict base_column = dp_matrix->columns + text_offset;
+  dp_column_t* const restrict next_column = base_column + 1;
   // Fill columns
   const uint64_t band_low_offset = next_column->band_low_offset;
   const uint64_t band_high_offset = next_column->band_high_offset;
@@ -126,14 +126,14 @@ void nsearch_levenshtein_state_compute_chararacter(
   *align_distance = NS_HAS_PRIORITY(column_last,1) ? NS_DECODE_DISTANCE(column_last) : NS_INF;
 }
 void nsearch_levenshtein_state_compute_sequence(
-    nsearch_levenshtein_state_t* const nsearch_state,
-    nsearch_levenshtein_state_t* const next_nsearch_state,
+    nsearch_levenshtein_state_t* const restrict nsearch_state,
+    nsearch_levenshtein_state_t* const restrict next_nsearch_state,
     const bool forward_search) {
   const uint64_t local_text_length = nsearch_state->local_text_length;
-  uint8_t* const local_text = nsearch_state->local_text;
+  uint8_t* const restrict local_text = nsearch_state->local_text;
   const uint64_t global_text_length = nsearch_state->global_text_length;
-  uint8_t* const global_text = nsearch_state->global_text;
-  uint8_t* const next_global_text = next_nsearch_state->global_text;
+  uint8_t* const restrict global_text = nsearch_state->global_text;
+  uint8_t* const restrict next_global_text = next_nsearch_state->global_text;
   uint64_t i;
   if (forward_search) {
     for (i=0;i<global_text_length;++i) next_global_text[i] = global_text[i];
@@ -151,8 +151,8 @@ void nsearch_levenshtein_state_compute_sequence(
  * Display
  */
 void nsearch_levenshtein_state_print(
-    FILE* const stream,nsearch_levenshtein_state_t* const nsearch_state,
-    const bool forward_search,const uint8_t* const key) {
+    FILE* const restrict stream,nsearch_levenshtein_state_t* const restrict nsearch_state,
+    const bool forward_search,const uint8_t* const restrict key) {
   fprintf(stream,"[GEM]> Levenshtein.State\n");
   fprintf(stream,"  => Search %s\n",forward_search ? "forward" : "reverse");
   fprintf(stream,"  => Key [%lu,%lu)\n",nsearch_state->key_begin,nsearch_state->key_end);
@@ -166,7 +166,7 @@ void nsearch_levenshtein_state_print(
       nsearch_state->local_text,0,nsearch_state->local_text_length);
 }
 void nsearch_levenshtein_state_print_search_text(
-    FILE* const stream,nsearch_levenshtein_state_t* const nsearch_state,
+    FILE* const restrict stream,nsearch_levenshtein_state_t* const restrict nsearch_state,
     const bool forward_search) {
   if (forward_search) {
     dna_buffer_print(stream,nsearch_state->global_text,nsearch_state->global_text_length,false);
@@ -178,9 +178,9 @@ void nsearch_levenshtein_state_print_search_text(
   fprintf(stream,"\n");
 }
 void nsearch_levenshtein_state_print_local_text(
-    FILE* const stream,nsearch_levenshtein_state_t* const nsearch_state,
+    FILE* const restrict stream,nsearch_levenshtein_state_t* const restrict nsearch_state,
     const bool forward_search) {
-  const uint8_t* const local_text = nsearch_state->local_text;
+  const uint8_t* const restrict local_text = nsearch_state->local_text;
   const uint64_t local_text_length = nsearch_state->local_text_length;
   dna_buffer_print(stream,local_text,local_text_length,!forward_search);
   fprintf(stream,"\n");

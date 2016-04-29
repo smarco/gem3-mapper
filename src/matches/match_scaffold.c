@@ -26,7 +26,7 @@
 /*
  * Setup
  */
-void match_scaffold_init(match_scaffold_t* const match_scaffold) {
+void match_scaffold_init(match_scaffold_t* const restrict match_scaffold) {
   // Scaffold Properties
   match_scaffold->scaffold_type = scaffold_none;
   match_scaffold->scaffold_regions_rl = false;
@@ -40,31 +40,31 @@ void match_scaffold_init(match_scaffold_t* const match_scaffold) {
 /*
  * Accessors
  */
-bool match_scaffold_is_null(match_scaffold_t* const match_scaffold) {
+bool match_scaffold_is_null(match_scaffold_t* const restrict match_scaffold) {
   return match_scaffold->num_scaffold_regions==0;
 }
 /*
  * RL-Translation
  */
 void match_scaffold_rl_translate_regions(
-    match_scaffold_t* const match_scaffold,
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
-    matches_t* const matches) {
+    match_scaffold_t* const restrict match_scaffold,
+    match_align_input_t* const restrict align_input,
+    match_align_parameters_t* const restrict align_parameters,
+    matches_t* const restrict matches) {
   const uint64_t num_scaffold_regions = match_scaffold->num_scaffold_regions;
   uint64_t i;
   for (i=0;i<num_scaffold_regions;++i) {
-    region_matching_t* const region_matching = match_scaffold->scaffold_regions + i;
+    region_matching_t* const restrict region_matching = match_scaffold->scaffold_regions + i;
     // Translate into Text-Space
     region_matching->matching_type = region_matching_approximate;
     // Translate CIGAR
     match_align_rl_translate_region_cigar(region_matching,align_input,
         align_parameters->left_gap_alignment,matches->cigar_vector);
     // Translate offsets
-    uint32_t* const rl_key_runs_acc = align_input->rl_key_runs_acc;
+    uint32_t* const restrict rl_key_runs_acc = align_input->rl_key_runs_acc;
     region_matching->key_begin = archive_text_rl_get_decoded_offset_exl(rl_key_runs_acc,region_matching->key_begin);
     region_matching->key_end = archive_text_rl_get_decoded_offset_exl(rl_key_runs_acc,region_matching->key_end);
-    uint32_t* const rl_text_runs_acc = align_input->rl_text_runs_acc;
+    uint32_t* const restrict rl_text_runs_acc = align_input->rl_text_runs_acc;
     region_matching->text_begin = archive_text_rl_get_decoded_offset_exl(rl_text_runs_acc,region_matching->text_begin);
     region_matching->text_end = archive_text_rl_get_decoded_offset_exl(rl_text_runs_acc,region_matching->text_end);
   }
@@ -93,11 +93,11 @@ void match_scaffold_rl_translate_regions(
  *   @match_scaffold->scaffold_regions
  */
 void match_scaffold_adaptive(
-    match_scaffold_t* const match_scaffold,
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
-    matches_t* const matches,
-    mm_stack_t* const mm_stack) {
+    match_scaffold_t* const restrict match_scaffold,
+    match_align_input_t* const restrict align_input,
+    match_align_parameters_t* const restrict align_parameters,
+    matches_t* const restrict matches,
+    mm_stack_t* const restrict mm_stack) {
   PROFILE_START(GP_MATCH_SCAFFOLD_ALIGNMENT,PROFILE_LEVEL);
   // Translate matching regions
   const bool rl_space = match_scaffold->scaffold_regions_rl;
@@ -149,10 +149,10 @@ void match_scaffold_adaptive(
 /*
  * Sorting
  */
-int region_matching_cmp_text_position(const region_matching_t* const a,const region_matching_t* const b) {
+int region_matching_cmp_text_position(const region_matching_t* const restrict a,const region_matching_t* const restrict b) {
   return a->text_begin - b->text_begin;
 }
-void match_scaffold_sort_regions_matching(match_scaffold_t* const match_scaffold) {
+void match_scaffold_sort_regions_matching(match_scaffold_t* const restrict match_scaffold) {
   // Sort Scaffold regions (region_matching_t) wrt their starting position in the text
   void* array = match_scaffold->scaffold_regions;
   const size_t count = match_scaffold->num_scaffold_regions;
@@ -162,9 +162,9 @@ void match_scaffold_sort_regions_matching(match_scaffold_t* const match_scaffold
  * Display
  */
 void match_scaffold_print_matching_region(
-    FILE* const stream,matches_t* const matches,
+    FILE* const restrict stream,matches_t* const restrict matches,
     const uint64_t region_matching_id,
-    region_matching_t* const region_matching) {
+    region_matching_t* const restrict region_matching) {
   // Print matching region
   switch (region_matching->matching_type) {
     case region_matching_exact: tab_fprintf(stream,"    %"PRIu64"[exact]\t",region_matching_id); break;
@@ -182,9 +182,9 @@ void match_scaffold_print_matching_region(
   tab_fprintf(stream,"\n");
 }
 void match_scaffold_print(
-    FILE* const stream,
-    matches_t* const matches,
-    match_scaffold_t* const match_scaffold) {
+    FILE* const restrict stream,
+    matches_t* const restrict matches,
+    match_scaffold_t* const restrict match_scaffold) {
   tab_fprintf(stream,"[GEM]>Matching.Scaffold.Regions\n");
   switch (match_scaffold->scaffold_type) {
     case scaffold_none: tab_fprintf(stream,"  => Scaffold.type -None-\n"); break;
@@ -200,13 +200,13 @@ void match_scaffold_print(
   uint64_t i;
   for (i=0;i<num_scaffold_regions;++i) {
     // Print matching region
-    region_matching_t* const region_matching = match_scaffold->scaffold_regions + i;
+    region_matching_t* const restrict region_matching = match_scaffold->scaffold_regions + i;
     match_scaffold_print_matching_region(stream,matches,i,region_matching);
   }
 }
 void match_scaffold_print_pretty_matching_region(
-    FILE* const stream,
-    region_matching_t* const region_matching,
+    FILE* const restrict stream,
+    region_matching_t* const restrict region_matching,
     uint8_t* key,
     uint64_t key_length,
     uint8_t* text) {
@@ -233,20 +233,20 @@ void match_scaffold_print_pretty_matching_region(
   fprintf(stream,"\n");
 }
 void match_scaffold_print_pretty(
-    FILE* const stream,
-    matches_t* const matches,
-    match_scaffold_t* const match_scaffold,
-    uint8_t* const key,
+    FILE* const restrict stream,
+    matches_t* const restrict matches,
+    match_scaffold_t* const restrict match_scaffold,
+    uint8_t* const restrict key,
     const uint64_t key_length,
-    uint8_t* const text,
+    uint8_t* const restrict text,
     const uint64_t text_length,
-    mm_stack_t* const mm_stack) {
+    mm_stack_t* const restrict mm_stack) {
   tab_fprintf(stream,"[GEM]>Match.Scaffold\n");
   // Print regions matching
   const uint64_t num_scaffold_regions = match_scaffold->num_scaffold_regions;
   uint64_t i;
   for (i=0;i<num_scaffold_regions;++i) {
-    region_matching_t* const region_matching = match_scaffold->scaffold_regions + i;
+    region_matching_t* const restrict region_matching = match_scaffold->scaffold_regions + i;
     match_scaffold_print_matching_region(stream,matches,i,region_matching);
     match_scaffold_print_pretty_matching_region(stream,region_matching,key,key_length,text);
   }

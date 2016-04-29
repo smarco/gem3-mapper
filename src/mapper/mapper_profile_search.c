@@ -12,7 +12,7 @@
 /*
  * Region Profile
  */
-void mapper_profile_print_region_profile_fixed(FILE* const stream) {
+void mapper_profile_print_region_profile_fixed(FILE* const restrict stream) {
   tab_fprintf(stream,"[GEM]>Profile.Region.Profile {FIXED}\n");
   tab_fprintf(stream,"  --> Num.Profiles             ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_FIXED),NULL,"    ",true);
@@ -31,7 +31,7 @@ void mapper_profile_print_region_profile_fixed(FILE* const stream) {
   tab_fprintf(stream,"  --> Read.candidates          ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_FIXED_TOTAL_CANDIDATES),NULL,"cand",true);
 }
-void mapper_profile_print_region_profile_lightweight(FILE* const stream) {
+void mapper_profile_print_region_profile_lightweight(FILE* const restrict stream) {
   tab_fprintf(stream,"[GEM]>Profile.Region.Profile {LIGHTWEIGHT}\n");
   tab_fprintf(stream,"  --> Num.Profiles             ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT),NULL,"    ",true);
@@ -50,7 +50,7 @@ void mapper_profile_print_region_profile_lightweight(FILE* const stream) {
   tab_fprintf(stream,"  --> Read.candidates          ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT_TOTAL_CANDIDATES),NULL,"cand",true);
 }
-void mapper_profile_print_region_profile_heavyweight(FILE* const stream) {
+void mapper_profile_print_region_profile_heavyweight(FILE* const restrict stream) {
   tab_fprintf(stream,"[GEM]>Profile.Region.Profile {HEAVYWEIGHT}\n");
   tab_fprintf(stream,"  --> Num.Profiles             ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT),NULL,"    ",true);
@@ -69,7 +69,7 @@ void mapper_profile_print_region_profile_heavyweight(FILE* const stream) {
   tab_fprintf(stream,"  --> Read.candidates          ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_TOTAL_CANDIDATES),NULL,"cand",true);
 }
-void mapper_profile_print_region_profile_delimit(FILE* const stream) {
+void mapper_profile_print_region_profile_delimit(FILE* const restrict stream) {
   tab_fprintf(stream,"[GEM]>Profile.Region.Profile {DELIMIT}\n");
   tab_fprintf(stream,"  --> Num.Profiles             ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_DELIMIT),NULL,"    ",true);
@@ -91,7 +91,7 @@ void mapper_profile_print_region_profile_delimit(FILE* const stream) {
 /*
  * Candidates Generation
  */
-void mapper_profile_print_candidate_generation(FILE* const stream) {
+void mapper_profile_print_candidate_generation(FILE* const restrict stream) {
   tab_fprintf(stream,"[GEM]>Profile.Generate.Candidates\n");
   tab_fprintf(stream,"  => TIME.Generate.Candidates         ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_GENERATE_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
@@ -145,7 +145,7 @@ void mapper_profile_print_candidate_generation(FILE* const stream) {
 /*
  * Candidate Verification
  */
-void mapper_profile_print_candidate_verification(FILE* const stream) {
+void mapper_profile_print_candidate_verification(FILE* const restrict stream) {
   tab_fprintf(stream,"[GEM]>Profile.Candidate.Verification\n");
   // Verifying
   tab_fprintf(stream,"  => TIME.Process.Candidates                      ");
@@ -209,7 +209,7 @@ void mapper_profile_print_candidate_verification(FILE* const stream) {
 /*
  * Candidate realign
  */
-void mapper_profile_print_candidate_realign(FILE* const stream) {
+void mapper_profile_print_candidate_realign(FILE* const restrict stream) {
   tab_fprintf(stream,"[GEM]>Profile.Candidate.Realign\n");
   tab_fprintf(stream,"  => TIME.Realign                                  ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_FC_REALIGN_CANDIDATE_REGIONS),PROF_GET_TIMER(GP_MAPPER_ALL));
@@ -292,7 +292,7 @@ void mapper_profile_print_candidate_realign(FILE* const stream) {
 /*
  * Neighborhood Search
  */
-void mapper_profile_print_neighborhood_search(FILE* const stream) {
+void mapper_profile_print_neighborhood_search(FILE* const restrict stream) {
   tab_fprintf(stream,"[GEM]>Profile.NeighborhoodSearch\n");
   tab_fprintf(stream,"  => TIME.NS.BestMatch                         ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_NS_BEST_MATCH),PROF_GET_TIMER(GP_MAPPER_ALL));
@@ -310,13 +310,13 @@ void mapper_profile_print_neighborhood_search(FILE* const stream) {
 //  tab_fprintf(stream,"      --> Nodes.Closed.Depth                   ");
 //  SAMPLER_PRINT(stream,&_ns_nodes_closed_depth,PROF_GET_COUNTER(GP_NS_NODES_EXPLORED),"bases");
 }
-void mapper_profile_print_neighborhood_search_ranks(FILE* const stream) {
+void mapper_profile_print_neighborhood_search_ranks(FILE* const restrict stream) {
   /*TODO*/
 }
 /*
  * Approximate Search
  */
-void mapper_profile_print_approximate_search(FILE* const stream) {
+void mapper_profile_print_approximate_search(FILE* const restrict stream) {
   fprintf(stream,    "[GEM]>Profile.Approximate.Search.Stages\n");
   tab_fprintf(stream,"  => TIME.Approximate.Search.Building.Blocks\n");
   tab_fprintf(stream,"    => TIME.Approximate.Search                ");
@@ -356,13 +356,13 @@ void mapper_profile_print_approximate_search(FILE* const stream) {
   //  tab_fprintf(stream,"      --> MCS.Filtering.Inexact               ");
   //  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_FILTERING_INEXACT_MCS),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"mcs  ",true);
 }
-void mapper_profile_print_approximate_search_ranks(FILE* const stream) {
+void mapper_profile_print_approximate_search_ranks(FILE* const restrict stream) {
   /*TODO*/
 }
 /*
  * Ranks Profile
  */
-void mapper_profile_print_mapper_ranks(FILE* const stream) {
+void mapper_profile_print_mapper_ranks(FILE* const restrict stream) {
   tab_fprintf(stream,"[GEM]>Profile.RANKS\n");
   tab_fprintf(stream,"  =>  RANKS.Mapper               ");
   COUNTER_PRINT(stream,PROF_GET_RANK(GP_MAPPER_ALL),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
@@ -389,7 +389,7 @@ void mapper_profile_print_mapper_ranks(FILE* const stream) {
  * Approximate Search Profile Summary
  */
 void mapper_profile_print_approximate_search_summary(
-    FILE* const stream,const bool paired_end,
+    FILE* const restrict stream,const bool paired_end,
     const bool cuda_workflow,const bool map_output,
     const uint64_t num_threads) {
   // Approximate Search
@@ -425,37 +425,37 @@ void mapper_profile_print_approximate_search_summary(
 /*
  * Region Profile
  */
-void mapper_profile_print_region_profile_fixed(FILE* const stream) {}
-void mapper_profile_print_region_profile_lightweight(FILE* const stream) {}
-void mapper_profile_print_region_profile_heavyweight(FILE* const stream) {}
-void mapper_profile_print_region_profile_delimit(FILE* const stream) {}
+void mapper_profile_print_region_profile_fixed(FILE* const restrict stream) {}
+void mapper_profile_print_region_profile_lightweight(FILE* const restrict stream) {}
+void mapper_profile_print_region_profile_heavyweight(FILE* const restrict stream) {}
+void mapper_profile_print_region_profile_delimit(FILE* const restrict stream) {}
 /*
  * Candidates Generation
  */
-void mapper_profile_print_candidate_generation(FILE* const stream) {}
+void mapper_profile_print_candidate_generation(FILE* const restrict stream) {}
 /*
  * Candidate Verification
  */
-void mapper_profile_print_candidate_verification(FILE* const stream) {}
+void mapper_profile_print_candidate_verification(FILE* const restrict stream) {}
 /*
  * Candidate realign
  */
-void mapper_profile_print_candidate_realign(FILE* const stream) {}
+void mapper_profile_print_candidate_realign(FILE* const restrict stream) {}
 /*
  * Neighborhood Search
  */
-void mapper_profile_print_neighborhood_search(FILE* const stream) {}
-void mapper_profile_print_neighborhood_search_ranks(FILE* const stream) {}
+void mapper_profile_print_neighborhood_search(FILE* const restrict stream) {}
+void mapper_profile_print_neighborhood_search_ranks(FILE* const restrict stream) {}
 /*
  * Approximate Search
  */
-void mapper_profile_print_approximate_search(FILE* const stream) {}
-void mapper_profile_print_approximate_search_ranks(FILE* const stream) {}
+void mapper_profile_print_approximate_search(FILE* const restrict stream) {}
+void mapper_profile_print_approximate_search_ranks(FILE* const restrict stream) {}
 /*
  * Approximate Search Profile Summary
  */
 void mapper_profile_print_approximate_search_summary(
-    FILE* const stream,const bool paired_end,
+    FILE* const restrict stream,const bool paired_end,
     const bool cuda_workflow,const bool map_output,
     const uint64_t num_threads) {}
 #endif

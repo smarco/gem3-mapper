@@ -47,16 +47,16 @@ typedef struct {
 /*
  * MultiFASTA parsing state
  */
-void input_multifasta_state_clear(input_multifasta_state_t* const parsing_state);
-void input_multifasta_state_reset_interval(input_multifasta_state_t* const parsing_state);
-void input_multifasta_state_begin_sequence(input_multifasta_state_t* const parsing_state);
-uint64_t input_multifasta_get_text_sequence_length(input_multifasta_state_t* const parsing_state);
+void input_multifasta_state_clear(input_multifasta_state_t* const restrict parsing_state);
+void input_multifasta_state_reset_interval(input_multifasta_state_t* const restrict parsing_state);
+void input_multifasta_state_begin_sequence(input_multifasta_state_t* const restrict parsing_state);
+uint64_t input_multifasta_get_text_sequence_length(input_multifasta_state_t* const restrict parsing_state);
 
 /*
  * MultiFASTA file parsing
  */
-void input_multifasta_parse_tag(input_file_t* const input_multifasta,string_t* const tag);
-void input_multifasta_skip_tag(input_file_t* const input_multifasta);
+void input_multifasta_parse_tag(input_file_t* const restrict input_multifasta,string_t* const restrict tag);
+void input_multifasta_skip_tag(input_file_t* const restrict input_multifasta);
 
 /*
  * Errors

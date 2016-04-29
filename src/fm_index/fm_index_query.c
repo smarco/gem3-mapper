@@ -11,13 +11,13 @@
  * FM-Index Bidirectional Operators
  */
 void fm_index_precompute_2erank_forward(
-    const fm_index_t* const fm_index,
-    fm_2erank_elms_t* const fm_2erank_elms,
+    const fm_index_t* const restrict fm_index,
+    fm_2erank_elms_t* const restrict fm_2erank_elms,
     const uint64_t position) {
   // Compute all exclusive ranks
   bwt_block_locator_t block_loc;
   bwt_block_elms_t block_elms;
-  bwt_reverse_t* const bwt_reverse = fm_index->bwt_reverse;
+  bwt_reverse_t* const restrict bwt_reverse = fm_index->bwt_reverse;
   bwt_reverse_precompute(bwt_reverse,position,&block_loc,&block_elms);
   // Store eranks
   fm_2erank_elms->pranks[ENC_DNA_CHAR_A] =
@@ -34,13 +34,13 @@ void fm_index_precompute_2erank_forward(
       bwt_reverse_precomputed_erank(bwt_reverse,ENC_DNA_CHAR_SEP,&block_loc,&block_elms);
 }
 void fm_index_precompute_2erank_backward(
-    const fm_index_t* const fm_index,
-    fm_2erank_elms_t* const fm_2erank_elms,
+    const fm_index_t* const restrict fm_index,
+    fm_2erank_elms_t* const restrict fm_2erank_elms,
     const uint64_t position) {
   // Compute all exclusive ranks
   bwt_block_locator_t block_loc;
   bwt_block_elms_t block_elms;
-  bwt_t* const bwt = fm_index->bwt;
+  bwt_t* const restrict bwt = fm_index->bwt;
   bwt_precompute(bwt,position,&block_loc,&block_elms);
   // Store eranks
   fm_2erank_elms->pranks[ENC_DNA_CHAR_A] = bwt_precomputed_erank(bwt,ENC_DNA_CHAR_A,&block_loc,&block_elms);
@@ -66,8 +66,8 @@ void fm_index_precompute_2erank_backward(
  *    +---+ -/
  */
 uint64_t fm_2erank_elms_compute_reverse_erank_lo_delta(
-    fm_2erank_elms_t* const lo_2erank_elms,
-    fm_2erank_elms_t* const hi_2erank_elms,
+    fm_2erank_elms_t* const restrict lo_2erank_elms,
+    fm_2erank_elms_t* const restrict hi_2erank_elms,
     const uint8_t char_enc) {
   // Switch character
   uint64_t acc = 0;
@@ -97,8 +97,8 @@ uint64_t fm_2erank_elms_compute_reverse_erank_lo_delta(
   return acc;
 }
 uint64_t fm_2erank_elms_compute_reverse_erank_hi_delta(
-    fm_2erank_elms_t* const lo_2erank_elms,
-    fm_2erank_elms_t* const hi_2erank_elms,
+    fm_2erank_elms_t* const restrict lo_2erank_elms,
+    fm_2erank_elms_t* const restrict hi_2erank_elms,
     const uint8_t char_enc) {
   // Switch character
   uint64_t acc = 0;
@@ -128,9 +128,9 @@ uint64_t fm_2erank_elms_compute_reverse_erank_hi_delta(
   return acc;
 }
 void fm_index_precomputed_2query_forward(
-    fm_2interval_t* const fm_2interval,
-    fm_2erank_elms_t* const lo_2erank_elms,
-    fm_2erank_elms_t* const hi_2erank_elms,
+    fm_2interval_t* const restrict fm_2interval,
+    fm_2erank_elms_t* const restrict lo_2erank_elms,
+    fm_2erank_elms_t* const restrict hi_2erank_elms,
     const uint8_t char_enc) {
   // Assign forward values (eranks computed forward)
   fm_2interval->forward_lo = lo_2erank_elms->pranks[char_enc];
@@ -140,9 +140,9 @@ void fm_index_precomputed_2query_forward(
   fm_2interval->backward_hi -= fm_2erank_elms_compute_reverse_erank_hi_delta(lo_2erank_elms,hi_2erank_elms,char_enc);
 }
 void fm_index_precomputed_2query_backward(
-    fm_2interval_t* const fm_2interval,
-    fm_2erank_elms_t* const lo_2erank_elms,
-    fm_2erank_elms_t* const hi_2erank_elms,
+    fm_2interval_t* const restrict fm_2interval,
+    fm_2erank_elms_t* const restrict lo_2erank_elms,
+    fm_2erank_elms_t* const restrict hi_2erank_elms,
     const uint8_t char_enc) {
   // Assign backward values (eranks computed backward)
   fm_2interval->backward_lo = lo_2erank_elms->pranks[char_enc];
@@ -152,8 +152,8 @@ void fm_index_precomputed_2query_backward(
   fm_2interval->forward_hi -= fm_2erank_elms_compute_reverse_erank_hi_delta(lo_2erank_elms,hi_2erank_elms,char_enc);
 }
 void fm_index_2query_forward(
-    const fm_index_t* const fm_index,
-    fm_2interval_t* const fm_2interval,
+    const fm_index_t* const restrict fm_index,
+    fm_2interval_t* const restrict fm_2interval,
     const uint8_t char_enc) {
   // Precompute erank
   fm_2erank_elms_t lo_2erank_elms, hi_2erank_elms;
@@ -163,8 +163,8 @@ void fm_index_2query_forward(
   fm_index_precomputed_2query_forward(fm_2interval,&lo_2erank_elms,&hi_2erank_elms,char_enc);
 }
 void fm_index_2query_backward(
-    const fm_index_t* const fm_index,
-    fm_2interval_t* const fm_2interval,
+    const fm_index_t* const restrict fm_index,
+    fm_2interval_t* const restrict fm_2interval,
     const uint8_t char_enc) {
   // Precompute erank
   fm_2erank_elms_t lo_2erank_elms, hi_2erank_elms;

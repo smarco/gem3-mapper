@@ -78,49 +78,49 @@ typedef struct {
  * Setup
  */
 void region_profile_new(
-    region_profile_t* const region_profile,
+    region_profile_t* const restrict region_profile,
     const uint64_t pattern_length,
-    mm_stack_t* const mm_stack);
-void region_profile_clear(region_profile_t* const region_profile);
+    mm_stack_t* const restrict mm_stack);
+void region_profile_clear(region_profile_t* const restrict region_profile);
 
 /*
  * Accessors
  */
-uint64_t region_get_num_regions(region_profile_t* const region_profile);
-bool region_profile_has_exact_matches(region_profile_t* const region_profile);
+uint64_t region_get_num_regions(region_profile_t* const restrict region_profile);
+bool region_profile_has_exact_matches(region_profile_t* const restrict region_profile);
 
 /*
  * Utils
  */
 void region_profile_query_character(
-    fm_index_t* const fm_index,
-    rank_mquery_t* const rank_mquery,
-    uint64_t* const lo,
-    uint64_t* const hi,
+    fm_index_t* const restrict fm_index,
+    rank_mquery_t* const restrict rank_mquery,
+    uint64_t* const restrict lo,
+    uint64_t* const restrict hi,
     const uint8_t enc_char);
 void region_profile_extend_last_region(
-    region_profile_t* const region_profile,
-    fm_index_t* const fm_index,
-    const uint8_t* const key,
-    const bool* const allowed_enc,
+    region_profile_t* const restrict region_profile,
+    fm_index_t* const restrict fm_index,
+    const uint8_t* const restrict key,
+    const bool* const restrict allowed_enc,
     const uint64_t rp_region_type_th);
 
 /*
  * Sort
  */
-void region_profile_sort_by_estimated_mappability(region_profile_t* const region_profile);
-void region_profile_sort_by_candidates(region_profile_t* const region_profile);
+void region_profile_sort_by_estimated_mappability(region_profile_t* const restrict region_profile);
+void region_profile_sort_by_candidates(region_profile_t* const restrict region_profile);
 
 /*
  * Display
  */
 void region_profile_print_region(
-    FILE* const stream,
-    region_search_t* const region,
+    FILE* const restrict stream,
+    region_search_t* const restrict region,
     const uint64_t position);
 void region_profile_print(
-    FILE* const stream,
-    const region_profile_t* const region_profile,
+    FILE* const restrict stream,
+    const region_profile_t* const restrict region_profile,
     const bool sorted);
 
 /*
@@ -133,8 +133,8 @@ void region_profile_print(
   for (position=0;position<num_filtering_regions;++position,++region)
 #define REGION_LOCATOR_ITERATE(region_profile,region,position) \
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions; \
-  region_search_t* const filtering_region = region_profile->filtering_region; \
-  region_locator_t* const loc = region_profile->loc; \
+  region_search_t* const restrict filtering_region = region_profile->filtering_region; \
+  region_locator_t* const restrict loc = region_profile->loc; \
   region_search_t* region; \
   uint64_t position; \
   for (position=0,region=filtering_region+loc[0].id; \

@@ -41,11 +41,11 @@ typedef struct {
  * Display
  */
 void dp_column_print_summary(
-    FILE* const stream,const dp_matrix_t* const dp_matrix,
+    FILE* const restrict stream,const dp_matrix_t* const restrict dp_matrix,
     const uint64_t column_position,const uint64_t lo,const uint64_t hi);
 void dp_matrix_print(
-    FILE* const stream,const dp_matrix_t* const dp_matrix,const bool forward_search,
-    const uint8_t* const key,const uint64_t key_begin,const uint64_t key_end,
-    const uint8_t* const text,const uint64_t text_begin,const uint64_t text_end);
+    FILE* const restrict stream,const dp_matrix_t* const restrict dp_matrix,const bool forward_search,
+    const uint8_t* const restrict key,const uint64_t key_begin,const uint64_t key_end,
+    const uint8_t* const restrict text,const uint64_t text_begin,const uint64_t text_end);
 
 #endif /* DP_MATRIX_H_ */

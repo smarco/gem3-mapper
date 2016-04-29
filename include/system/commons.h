@@ -241,7 +241,7 @@ uint64_t integer_proportion(const double proportion,const uint64_t length);
 uint64_t integer_lower_power_of_two(uint64_t number);
 uint64_t integer_upper_power_of_two(uint64_t number);
 
-int integer_to_ascii(char* const buffer,uint64_t number);
+int integer_to_ascii(char* const restrict buffer,uint64_t number);
 
 /*
  * Statistical Utils
@@ -252,11 +252,11 @@ double standard_normal_CDF(double x);
  * CheckSum & BitDisplay
  */
 uint64_t checksum_uint64(uint64_t* mem,const uint64_t num_words);
-void checksum_incremental_uint64(uint64_t* const checksum,const uint64_t word);
+void checksum_incremental_uint64(uint64_t* const restrict checksum,const uint64_t word);
 
 #define CHAR_TO_PRINTABLE(character) ( ('!' <= (character) && (character) <= '~') ? (character) : '#')
-void fprintf_uint64_binary(FILE* const stream,const uint64_t word);
-void fprintf_uint64_footprint(FILE* const stream,const uint64_t word);
+void fprintf_uint64_binary(FILE* const restrict stream,const uint64_t word);
+void fprintf_uint64_footprint(FILE* const restrict stream,const uint64_t word);
 
 /*
  * Common parsing
@@ -311,7 +311,7 @@ uint64_t system_get_num_processors();
 char* system_get_cwd();
 char* system_get_hostname();
 char* system_get_user_name();
-void system_print_info(FILE* const stream);
+void system_print_info(FILE* const restrict stream);
 
 void system_get_time(struct timespec *ts);
 

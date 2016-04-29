@@ -17,14 +17,14 @@
  * Region Verification
  */
 bool filtering_region_verify(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
+    filtering_candidates_t* const restrict filtering_candidates,
+    filtering_region_t* const restrict filtering_region,
+    pattern_t* const restrict pattern,
     const bool kmer_filter);
 uint64_t filtering_region_verify_extension(
-    filtering_candidates_t* const filtering_candidates,
+    filtering_candidates_t* const restrict filtering_candidates,
     const uint64_t text_trace_offset,
     const uint64_t index_position,
-    const pattern_t* const pattern);
+    const pattern_t* const restrict pattern);
 
 #endif /* FILTERING_REGION_VERIFY_H_ */

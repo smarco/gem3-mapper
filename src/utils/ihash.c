@@ -15,30 +15,30 @@
  * Constructor
  */
 ihash_t* ihash_new(void) {
-  ihash_t* const ihash = mm_alloc(ihash_t);
+  ihash_t* const restrict ihash = mm_alloc(ihash_t);
   ihash->head = NULL; // uthash initializer
   return ihash;
 }
-void ihash_clear(ihash_t* const ihash) {
+void ihash_clear(ihash_t* const restrict ihash) {
   ihash_element_t *ihash_element, *tmp;
   HASH_ITER(hh,ihash->head,ihash_element,tmp) {
     HASH_DEL(ihash->head,ihash_element);
     mm_free(ihash_element);
   }
 }
-void ihash_delete(ihash_t* const ihash) {
+void ihash_delete(ihash_t* const restrict ihash) {
   ihash_clear(ihash);
   mm_free(ihash);
 }
 /*
  * Basic (Type-unsafe) Accessors
  */
-ihash_element_t* ihash_get_ihash_element(ihash_t* const ihash,const int64_t key) {
+ihash_element_t* ihash_get_ihash_element(ihash_t* const restrict ihash,const int64_t key) {
   ihash_element_t *ihash_element;
   HASH_FIND_INT(ihash->head,&key,ihash_element);
   return ihash_element;
 }
-void ihash_insert_element(ihash_t* ihash,const int64_t key,void* const element) {
+void ihash_insert_element(ihash_t* ihash,const int64_t key,void* const restrict element) {
   ihash_element_t* ihash_element = ihash_get_ihash_element(ihash,key);
   if (gem_expect_true(ihash_element==NULL)) {
     ihash_element = mm_alloc(ihash_element_t);
@@ -56,20 +56,20 @@ void ihash_remove_element(ihash_t* ihash,const int64_t key) {
     HASH_DEL(ihash->head,ihash_element);
   }
 }
-void* ihash_get_element(ihash_t* const ihash,const int64_t key) {
-  ihash_element_t* const ihash_element = ihash_get_ihash_element(ihash,key);
+void* ihash_get_element(ihash_t* const restrict ihash,const int64_t key) {
+  ihash_element_t* const restrict ihash_element = ihash_get_ihash_element(ihash,key);
   return gem_expect_true(ihash_element!=NULL) ? ihash_element->element : NULL;
 }
 /*
  * Type-safe Accessors
  */
-bool ihash_is_contained(ihash_t* const ihash,const int64_t key) {
+bool ihash_is_contained(ihash_t* const restrict ihash,const int64_t key) {
   return (ihash_get_ihash_element(ihash,key)!=NULL);
 }
-uint64_t ihash_get_num_elements(ihash_t* const ihash) {
+uint64_t ihash_get_num_elements(ihash_t* const restrict ihash) {
   return (uint64_t)HASH_COUNT(ihash->head);
 }
-uint64_t ihash_get_size(ihash_t* const ihash) {
+uint64_t ihash_get_size(ihash_t* const restrict ihash) {
   /*
    * The hash handle consumes about 32 bytes per item on a 32-bit system, or 56 bytes per item on a 64-bit system.
    * The other overhead costs (the buckets and the table) are negligible in comparison.
@@ -95,21 +95,21 @@ void ihash_sort_by_key(ihash_t* ihash) {
 /*
  * Iterator
  */
-ihash_iterator_t* ihash_iterator_new(ihash_t* const ihash) {
+ihash_iterator_t* ihash_iterator_new(ihash_t* const restrict ihash) {
   // Allocate
-  ihash_iterator_t* const iterator = mm_alloc(ihash_iterator_t);
+  ihash_iterator_t* const restrict iterator = mm_alloc(ihash_iterator_t);
   // Init
   iterator->current = NULL;
   iterator->next = ihash->head;
   return iterator;
 }
-void ihash_iterator_delete(ihash_iterator_t* const iterator) {
+void ihash_iterator_delete(ihash_iterator_t* const restrict iterator) {
   mm_free(iterator);
 }
-bool ihash_iterator_eoi(ihash_iterator_t* const iterator) {
+bool ihash_iterator_eoi(ihash_iterator_t* const restrict iterator) {
   return (iterator->next!=NULL);
 }
-bool ihash_iterator_next(ihash_iterator_t* const iterator) {
+bool ihash_iterator_next(ihash_iterator_t* const restrict iterator) {
   if (gem_expect_true(iterator->next!=NULL)) {
     iterator->current = iterator->next;
     iterator->next = iterator->next->hh.next;
@@ -119,9 +119,9 @@ bool ihash_iterator_next(ihash_iterator_t* const iterator) {
     return false;
   }
 }
-int64_t ihash_iterator_get_key(ihash_iterator_t* const iterator) {
+int64_t ihash_iterator_get_key(ihash_iterator_t* const restrict iterator) {
   return iterator->current->key;
 }
-void* ihash_iterator_get_element(ihash_iterator_t* const iterator) {
+void* ihash_iterator_get_element(ihash_iterator_t* const restrict iterator) {
   return iterator->current->element;
 }

@@ -61,47 +61,47 @@ input_file_sliced_t* input_bzip_stream_sliced_open(
     const uint64_t input_num_blocks,
     const uint64_t block_size);
 input_file_sliced_t* input_file_sliced_open(
-    char* const file_name,
+    char* const restrict file_name,
     const uint64_t input_num_blocks,
     const uint64_t block_size);
 void input_file_sliced_close(
-    input_file_sliced_t* const input_file_sliced);
+    input_file_sliced_t* const restrict input_file_sliced);
 
 /*
  * Accessors
  */
-char* input_file_sliced_get_file_name(input_file_sliced_t* const input_file_sliced);
-uint64_t input_file_sliced_get_next_id(input_file_sliced_t* const input_file_sliced);
+char* input_file_sliced_get_file_name(input_file_sliced_t* const restrict input_file_sliced);
+uint64_t input_file_sliced_get_next_id(input_file_sliced_t* const restrict input_file_sliced);
 
 /*
  * Process Input-buffers
  */
 void input_file_sliced_return(
-    input_file_sliced_t* const input_file_sliced,
-    vector_t* const input_buffers);
-void input_file_sliced_process(input_file_sliced_t* const input_file_sliced);
+    input_file_sliced_t* const restrict input_file_sliced,
+    vector_t* const restrict input_buffers);
+void input_file_sliced_process(input_file_sliced_t* const restrict input_file_sliced);
 void input_file_sliced_discard_exhausted_buffers(
-    input_file_sliced_t* const input_file_sliced,
-    vector_t* const input_buffers);
+    input_file_sliced_t* const restrict input_file_sliced,
+    vector_t* const restrict input_buffers);
 
 /*
  * Read input-buffer lines
  */
 bool input_file_sliced_eob(
-    input_file_sliced_t* const input_file_sliced,
-    input_buffer_t* const current_file_buffer);
+    input_file_sliced_t* const restrict input_file_sliced,
+    input_buffer_t* const restrict current_file_buffer);
 bool input_file_sliced_read_lines(
-    input_file_sliced_t* const input_file_sliced,
-    input_buffer_t* const current_file_buffer,
+    input_file_sliced_t* const restrict input_file_sliced,
+    input_buffer_t* const restrict current_file_buffer,
     const uint64_t prefered_read_size,
     const uint64_t forced_read_lines,
-    uint64_t* const total_read_lines,
-    uint64_t* const total_read_size);
+    uint64_t* const restrict total_read_lines,
+    uint64_t* const restrict total_read_size);
 
 /*
  * Current Input-Buffer
  */
-input_buffer_t* input_file_sliced_input_buffer_get_current(input_file_sliced_t* const input_file_sliced);
-void input_file_sliced_input_buffer_next(input_file_sliced_t* const input_file_sliced);
+input_buffer_t* input_file_sliced_input_buffer_get_current(input_file_sliced_t* const restrict input_file_sliced);
+void input_file_sliced_input_buffer_next(input_file_sliced_t* const restrict input_file_sliced);
 
 #endif /* INPUT_FILE_SLICED_H_ */

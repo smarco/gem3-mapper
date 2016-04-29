@@ -16,7 +16,7 @@
 /*
  * Classify
  */
-matches_class_t matches_classify(matches_t* const matches);
-paired_matches_class_t paired_matches_classify(paired_matches_t* const paired_matches);
+matches_class_t matches_classify(matches_t* const restrict matches);
+paired_matches_class_t paired_matches_classify(paired_matches_t* const restrict paired_matches);
 
 #endif /* MATCHES_CLASSIFY_H_ */

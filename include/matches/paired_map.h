@@ -35,17 +35,17 @@ typedef struct {
  * Accessors
  */
 uint64_t paired_map_compute_distance(
-    const match_trace_t* const match_end1,
-    const match_trace_t* const match_end2);
+    const match_trace_t* const restrict match_end1,
+    const match_trace_t* const restrict match_end2);
 uint64_t paired_map_compute_edit_distance(
-    const match_trace_t* const match_end1,
-    const match_trace_t* const match_end2);
+    const match_trace_t* const restrict match_end1,
+    const match_trace_t* const restrict match_end2);
 uint64_t paired_map_compute_swg_score(
-    const match_trace_t* const match_end1,
-    const match_trace_t* const match_end2);
+    const match_trace_t* const restrict match_end1,
+    const match_trace_t* const restrict match_end2);
 
-uint64_t paired_map_get_distance(paired_map_t* const paired_map);
-uint64_t paired_map_get_edit_distance(paired_map_t* const paired_map);
-int32_t paired_map_get_swg_score(paired_map_t* const paired_map);
+uint64_t paired_map_get_distance(paired_map_t* const restrict paired_map);
+uint64_t paired_map_get_edit_distance(paired_map_t* const restrict paired_map);
+int32_t paired_map_get_swg_score(paired_map_t* const restrict paired_map);
 
 #endif /* PAIRED_MAP_H_ */

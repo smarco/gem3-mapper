@@ -28,28 +28,28 @@ typedef struct {
  * BPM. Compute BPM-DP-Matrix
  */
 void align_bpm_compute_matrix(
-    match_align_input_t* const align_input,
+    match_align_input_t* const restrict align_input,
     uint64_t max_distance,
-    bpm_align_matrix_t* const bpm_align_matrix,
-    mm_stack_t* const mm_stack);
+    bpm_align_matrix_t* const restrict bpm_align_matrix,
+    mm_stack_t* const restrict mm_stack);
 /*
  * BPM. Recover CIGAR from a matching string
  */
 void align_bpm_backtrace_matrix(
-    match_align_input_t* const align_input,
+    match_align_input_t* const restrict align_input,
     const bool left_gap_alignment,
-    bpm_align_matrix_t* const bpm_align_matrix,
-    match_alignment_t* const match_alignment,
-    vector_t* const cigar_vector);
+    bpm_align_matrix_t* const restrict bpm_align_matrix,
+    match_alignment_t* const restrict match_alignment,
+    vector_t* const restrict cigar_vector);
 /*
  * BPM Align match
  */
 void align_bpm_match(
-    match_align_input_t* const align_input,
+    match_align_input_t* const restrict align_input,
     const uint64_t max_distance,
     const bool left_gap_alignment,
-    match_alignment_t* const match_alignment,
-    vector_t* const cigar_vector,
-    mm_stack_t* const mm_stack);
+    match_alignment_t* const restrict match_alignment,
+    vector_t* const restrict cigar_vector,
+    mm_stack_t* const restrict mm_stack);
 
 #endif /* ALIGN_BPM_H_ */

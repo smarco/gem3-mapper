@@ -16,16 +16,16 @@
 Functions to get information from the system
 ************************************************************/
 
-uint32_t gpu_buffer_get_id_device_(const void* const gpuBuffer)
+uint32_t gpu_buffer_get_id_device_(const void* const restrict gpuBuffer)
 {
-  const gpu_buffer_t* const mBuff = (gpu_buffer_t *) gpuBuffer;
+  const gpu_buffer_t* const restrict mBuff = (gpu_buffer_t *) gpuBuffer;
   const uint32_t idSupDevice = mBuff->idSupportedDevice;
   return(mBuff->device[idSupDevice]->idDevice);
 }
 
-uint32_t gpu_buffer_get_id_supported_device_(const void* const gpuBuffer)
+uint32_t gpu_buffer_get_id_supported_device_(const void* const restrict gpuBuffer)
 {
-  const gpu_buffer_t* const mBuff = (gpu_buffer_t *) gpuBuffer;
+  const gpu_buffer_t* const restrict mBuff = (gpu_buffer_t *) gpuBuffer;
   return(mBuff->idSupportedDevice);
 }
 
@@ -57,7 +57,7 @@ gpu_error_t gpu_buffer_get_min_memory_size(size_t *bytesPerBuffer)
   return (SUCCESS);
 }
 
-gpu_error_t gpu_buffer_scheduling(gpu_buffer_t ***gpuBuffer, const uint32_t numBuffers, gpu_device_info_t** const device,
+gpu_error_t gpu_buffer_scheduling(gpu_buffer_t ***gpuBuffer, const uint32_t numBuffers, gpu_device_info_t** const restrict device,
                                   gpu_reference_buffer_t *reference, gpu_index_buffer_t *index, float maxMbPerBuffer)
 {
   uint32_t idSupportedDevice, numBuffersPerDevice, idLocalBuffer;
@@ -101,9 +101,9 @@ gpu_error_t gpu_buffer_scheduling(gpu_buffer_t ***gpuBuffer, const uint32_t numB
   return (SUCCESS);
 }
 
-gpu_error_t gpu_buffer_configuration(gpu_buffer_t* const mBuff, const uint32_t idBuffer, const uint32_t idSupportedDevice,
-                                     const size_t bytesPerBuffer, const uint32_t numBuffers, gpu_device_info_t** const device,
-                                     gpu_reference_buffer_t* const reference, gpu_index_buffer_t* const index)
+gpu_error_t gpu_buffer_configuration(gpu_buffer_t* const restrict mBuff, const uint32_t idBuffer, const uint32_t idSupportedDevice,
+                                     const size_t bytesPerBuffer, const uint32_t numBuffers, gpu_device_info_t** const restrict device,
+                                     gpu_reference_buffer_t* const restrict reference, gpu_index_buffer_t* const restrict index)
 {
   /* Buffer information */
   mBuff->idBuffer           = idBuffer;
@@ -128,8 +128,8 @@ gpu_error_t gpu_buffer_configuration(gpu_buffer_t* const mBuff, const uint32_t i
   return(SUCCESS);
 }
 
-void gpu_init_buffers_(gpu_buffers_dto_t* const buff, gpu_index_dto_t* const rawIndex,
-                       gpu_reference_dto_t* const rawRef, gpu_info_dto_t* const sys)
+void gpu_init_buffers_(gpu_buffers_dto_t* const restrict buff, gpu_index_dto_t* const restrict rawIndex,
+                       gpu_reference_dto_t* const restrict rawRef, gpu_info_dto_t* const restrict sys)
 {
   /* Buffer info */
   const float               maxMbPerBuffer        = buff->maxMbPerBuffer;
@@ -207,9 +207,9 @@ void gpu_destroy_buffers_(gpu_buffers_dto_t* buff)
 Primitives to schedule and manage the buffers
 ************************************************************/
 
-void gpu_alloc_buffer_(void* const gpuBuffer)
+void gpu_alloc_buffer_(void* const restrict gpuBuffer)
 {
-  gpu_buffer_t* const mBuff  = (gpu_buffer_t *) gpuBuffer;
+  gpu_buffer_t* const restrict mBuff  = (gpu_buffer_t *) gpuBuffer;
   const uint32_t idSupDevice = mBuff->idSupportedDevice;
   mBuff->h_rawData = NULL;
   mBuff->d_rawData = NULL;
@@ -222,9 +222,9 @@ void gpu_alloc_buffer_(void* const gpuBuffer)
   CUDA_ERROR(cudaMalloc((void**) &mBuff->d_rawData, mBuff->sizeBuffer));
 }
 
-void gpu_realloc_buffer_(void* const gpuBuffer, const float maxMbPerBuffer)
+void gpu_realloc_buffer_(void* const restrict gpuBuffer, const float maxMbPerBuffer)
 {
-  gpu_buffer_t* const mBuff = (gpu_buffer_t *) gpuBuffer;
+  gpu_buffer_t* const restrict mBuff = (gpu_buffer_t *) gpuBuffer;
   const uint32_t idSupDevice = mBuff->idSupportedDevice;
   mBuff->sizeBuffer = GPU_CONVERT_MB_TO__B(maxMbPerBuffer);
 

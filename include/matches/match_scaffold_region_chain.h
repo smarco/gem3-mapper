@@ -18,10 +18,10 @@
  * Region-Chain Scaffolding
  */
 void match_scaffold_region_chain(
-    match_scaffold_t* const match_scaffold,
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
+    match_scaffold_t* const restrict match_scaffold,
+    match_align_input_t* const restrict align_input,
+    match_align_parameters_t* const restrict align_parameters,
     const bool exact_extend,
-    mm_stack_t* const mm_stack);
+    mm_stack_t* const restrict mm_stack);
 
 #endif /* MATCH_SCAFFOLD_REGION_CHAIN_H_ */

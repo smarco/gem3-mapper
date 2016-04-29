@@ -11,7 +11,7 @@
 /*
  * I/O
  */
-void mapper_profile_print_io(FILE* const stream) {
+void mapper_profile_print_io(FILE* const restrict stream) {
   // High-level I/O
   fprintf(stream,    "[GEM]>Profile.Mapper.IO\n");
   tab_fprintf(stream,"    => TIME.Load.Index                     ");
@@ -46,7 +46,7 @@ void mapper_profile_print_io(FILE* const stream) {
 /*
  * Output MAP/SAM
  */
-void mapper_profile_print_map_output(FILE* const stream,const bool paired_end) {
+void mapper_profile_print_map_output(FILE* const restrict stream,const bool paired_end) {
   if (paired_end) {
     fprintf(stream,"=> TIME.Output.MAP.PE                  ");
     TIMER_PRINT(stream,PROF_GET_TIMER(GP_OUTPUT_MAP_PE),PROF_GET_TIMER(GP_MAPPER_ALL));
@@ -55,7 +55,7 @@ void mapper_profile_print_map_output(FILE* const stream,const bool paired_end) {
     TIMER_PRINT(stream,PROF_GET_TIMER(GP_OUTPUT_MAP_SE),PROF_GET_TIMER(GP_MAPPER_ALL));
   }
 }
-void mapper_profile_print_sam_output(FILE* const stream,const bool paired_end) {
+void mapper_profile_print_sam_output(FILE* const restrict stream,const bool paired_end) {
   if (paired_end) {
     fprintf(stream,"=> TIME.Output.SAM.PE                  ");
     TIMER_PRINT(stream,PROF_GET_TIMER(GP_OUTPUT_SAM_PE),PROF_GET_TIMER(GP_MAPPER_ALL));
@@ -67,7 +67,7 @@ void mapper_profile_print_sam_output(FILE* const stream,const bool paired_end) {
 /*
  * Checks
  */
-void mapper_profile_print_checks(FILE* const stream) {
+void mapper_profile_print_checks(FILE* const restrict stream) {
   tab_fprintf(stream,"[GEM]>Profile.Checks\n");
   tab_fprintf(stream,"  --> Num.Reads.Checked                             ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CHECK_NUM_READS),PROF_GET_COUNTER(GP_CHECK_NUM_READS),"reads",true);
@@ -95,7 +95,7 @@ void mapper_profile_print_checks(FILE* const stream) {
 /*
  * Efficiency Ratios
  */
-void mapper_profile_print_mapper_efficiency_ratios(FILE* const stream) {
+void mapper_profile_print_mapper_efficiency_ratios(FILE* const restrict stream) {
   // Efficiency Ratios
   fprintf(stream,    "[GEM]>Profile.Efficiency.Ratios\n");
   tab_fprintf(stream,"  --> Ranks/Read               %10.3f ranks/read\n",
@@ -119,7 +119,7 @@ void mapper_profile_print_mapper_efficiency_ratios(FILE* const stream) {
   tab_fprintf(stream,"  --> GigaReads/d        %10.3f\n",reads_per_sec*3600.0*24.0/1000000000.0);
 }
 //
-//void mapper_profile_print_mem_structs(FILE* const stream) {
+//void mapper_profile_print_mem_structs(FILE* const restrict stream) {
 //  tab_fprintf(stream,"[GEM]>Profile.MEM\n");
 //  // index_mem()
 //  // In buffers (total, used)
@@ -136,18 +136,18 @@ void mapper_profile_print_mapper_efficiency_ratios(FILE* const stream) {
 /*
  * I/O
  */
-void mapper_profile_print_io(FILE* const stream) {}
+void mapper_profile_print_io(FILE* const restrict stream) {}
 /*
  * Output MAP/SAM
  */
-void mapper_profile_print_map_output(FILE* const stream,const bool paired_end) {}
-void mapper_profile_print_sam_output(FILE* const stream,const bool paired_end) {}
+void mapper_profile_print_map_output(FILE* const restrict stream,const bool paired_end) {}
+void mapper_profile_print_sam_output(FILE* const restrict stream,const bool paired_end) {}
 /*
  * Checks
  */
-void mapper_profile_print_checks(FILE* const stream) {}
+void mapper_profile_print_checks(FILE* const restrict stream) {}
 /*
  * Efficiency Ratios
  */
-void mapper_profile_print_mapper_efficiency_ratios(FILE* const stream) {}
+void mapper_profile_print_mapper_efficiency_ratios(FILE* const restrict stream) {}
 #endif

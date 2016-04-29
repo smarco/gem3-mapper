@@ -31,18 +31,18 @@ typedef struct {
 /*
  * Setup
  */
-void text_collection_init(text_collection_t* const text_collection);
-void text_collection_clear(text_collection_t* const text_collection);
-void text_collection_destroy(text_collection_t* const text_collection);
+void text_collection_init(text_collection_t* const restrict text_collection);
+void text_collection_clear(text_collection_t* const restrict text_collection);
+void text_collection_destroy(text_collection_t* const restrict text_collection);
 
 /*
  * Accessors
  */
 // [Text-Block]
-uint64_t text_collection_new_trace(const text_collection_t* const text_collection);
+uint64_t text_collection_new_trace(const text_collection_t* const restrict text_collection);
 text_trace_t* text_collection_get_trace(
-    const text_collection_t* const text_collection,
+    const text_collection_t* const restrict text_collection,
     const uint64_t text_trace_offset);
-uint64_t text_collection_get_num_traces(const text_collection_t* const text_collection);
+uint64_t text_collection_get_num_traces(const text_collection_t* const restrict text_collection);
 
 #endif /* TEXT_COLLECTION_H_ */

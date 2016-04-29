@@ -27,9 +27,9 @@
   const uint64_t intervals_locator_size = locator->num_intervals*sizeof(locator_interval_t); \
   const uint64_t tag_locator_size = locator->num_tags*sizeof(locator_tag_t); \
   const uint64_t tag_buffer_size = locator->tags_buffer_size;
-locator_t* locator_read_mem(mm_t* const memory_manager) {
+locator_t* locator_read_mem(mm_t* const restrict memory_manager) {
   // Allocate locator
-  locator_t* const locator = mm_alloc(locator_t);
+  locator_t* const restrict locator = mm_alloc(locator_t);
   // Read locator
   const uint64_t locator_model_no = mm_read_uint64(memory_manager);
   gem_cond_fatal_error(locator_model_no!=LOCATOR_MODEL_NO,
@@ -50,7 +50,7 @@ locator_t* locator_read_mem(mm_t* const memory_manager) {
   // Return
   return locator;
 }
-void locator_delete(locator_t* const locator) {
+void locator_delete(locator_t* const restrict locator) {
   // Free memory managers
   if (locator->mm) mm_bulk_free(locator->mm);
   // Free handler
@@ -59,14 +59,14 @@ void locator_delete(locator_t* const locator) {
 /*
  * Locator Accessors
  */
-uint64_t locator_get_size(locator_t* const locator) {
+uint64_t locator_get_size(locator_t* const restrict locator) {
   const uint64_t intervals_locator_size = locator->num_intervals*sizeof(locator_interval_t);
   const uint64_t tag_locator_size = locator->num_tags*sizeof(locator_tag_t);
   const uint64_t tag_buffer_size = locator->tags_buffer_size;
   return intervals_locator_size + tag_locator_size + tag_buffer_size;
 }
 locator_interval_t* locator_get_interval(
-    const locator_t* const locator,
+    const locator_t* const restrict locator,
     const uint64_t interval_index) {
   gem_fatal_check(interval_index >= locator->num_intervals,
       LOCATOR_INTERVAL_INDEX_OOB,interval_index,(uint64_t)0,locator->num_intervals);
@@ -76,24 +76,24 @@ locator_interval_t* locator_get_interval(
  * Interval Accessors
  */
 char* locator_interval_get_tag(
-    const locator_t* const locator,
-    const locator_interval_t* const interval) {
+    const locator_t* const restrict locator,
+    const locator_interval_t* const restrict interval) {
   return locator->tags_buffer+locator->tag_locator[interval->tag_id].offset;
 }
-uint64_t locator_interval_get_index_length(const locator_interval_t* const interval) {
+uint64_t locator_interval_get_index_length(const locator_interval_t* const restrict interval) {
   return (interval->end_position - interval->begin_position);
 }
-uint64_t locator_interval_get_text_length(const locator_interval_t* const interval) {
+uint64_t locator_interval_get_text_length(const locator_interval_t* const restrict interval) {
   return interval->sequence_length;
 }
 /*
  * Text-Locating functions
  */
 uint64_t locator_lookup_interval_index(
-    const locator_t* const locator,
+    const locator_t* const restrict locator,
     const uint64_t index_position) {
   // Binary search of the interval
-  const locator_interval_t* const intervals = locator->intervals;
+  const locator_interval_t* const restrict intervals = locator->intervals;
   uint64_t lo = 0;
   uint64_t hi = locator->num_intervals-1;
   do {
@@ -105,15 +105,13 @@ uint64_t locator_lookup_interval_index(
     }
   } while (hi > lo);
   // Return Interval
-//  if (!(intervals[lo].begin_position <= index_position && index_position < intervals[lo].end_position)) {
-    GEM_INTERNAL_CHECK(
+  GEM_INTERNAL_CHECK(
         intervals[lo].begin_position <= index_position && index_position < intervals[lo].end_position,
         "Locator-Interval Binary Search. Wrong Boundaries");
-//  }
   return lo;
 }
 locator_interval_t* locator_lookup_interval(
-    const locator_t* const locator,
+    const locator_t* const restrict locator,
     const uint64_t index_position) {
   return locator->intervals + locator_lookup_interval_index(locator,index_position);
 }
@@ -121,10 +119,10 @@ locator_interval_t* locator_lookup_interval(
  * RL-Locating functions
  */
 uint64_t locator_lookup_rl_interval_index(
-    const locator_t* const locator,
+    const locator_t* const restrict locator,
     const uint64_t rl_index_position) {
   // Binary search of the interval
-  const locator_interval_t* const intervals = locator->intervals;
+  const locator_interval_t* const restrict intervals = locator->intervals;
   uint64_t lo = 0;
   uint64_t hi = locator->num_intervals-1;
   do {
@@ -142,7 +140,7 @@ uint64_t locator_lookup_rl_interval_index(
   return lo;
 }
 locator_interval_t* locator_lookup_rl_interval(
-    const locator_t* const locator,
+    const locator_t* const restrict locator,
     const uint64_t rl_index_position) {
   return locator->intervals + locator_lookup_rl_interval_index(locator,rl_index_position);
 }
@@ -151,11 +149,11 @@ locator_interval_t* locator_lookup_rl_interval(
  */
 // Direct Locator (Position-to-location mapping)
 void locator_map(
-    const locator_t* const locator,
+    const locator_t* const restrict locator,
     const uint64_t index_position,
-    location_t* const location) {
+    location_t* const restrict location) {
   // Find interval
-  const locator_interval_t* const interval = locator_lookup_interval(locator,index_position);
+  const locator_interval_t* const restrict interval = locator_lookup_interval(locator,index_position);
   // Fill @location
   if (interval->strand == Forward) {
     location->position = interval->sequence_offset + (index_position-interval->begin_position);
@@ -171,12 +169,12 @@ void locator_map(
 }
 // Inverse Locator (Location-to-position mapping)
 locator_interval_t* locator_inverse_map(
-    locator_t* const locator,
-    const uint8_t* const tag,
+    locator_t* const restrict locator,
+    const uint8_t* const restrict tag,
     const strand_t strand,
     const bs_strand_t bs_strand,
     const uint64_t text_position) {
-  locator_interval_t* const intervals = locator->intervals;
+  locator_interval_t* const restrict intervals = locator->intervals;
   const uint64_t num_intervals = locator->num_intervals;
   // TODO Improve by hashing all tags (or doing binary search)
   uint64_t i;
@@ -197,21 +195,21 @@ locator_interval_t* locator_inverse_map(
   return NULL;
 }
 uint64_t locator_inverse_map_position(
-    locator_t* const locator,
-    const uint8_t* const tag,
+    locator_t* const restrict locator,
+    const uint8_t* const restrict tag,
     const strand_t strand,
     const bs_strand_t bs_strand,
     const uint64_t text_position) {
-  locator_interval_t* const locator_interval = locator_inverse_map(locator,tag,strand,bs_strand,text_position);
+  locator_interval_t* const restrict locator_interval = locator_inverse_map(locator,tag,strand,bs_strand,text_position);
   return locator_interval->begin_position + (text_position-locator_interval->sequence_offset);
 }
 /*
  * Display
  */
 void locator_interval_print(
-    FILE* const stream,
-    locator_interval_t* const interval,
-    const char* const interval_tag) {
+    FILE* const restrict stream,
+    locator_interval_t* const restrict interval,
+    const char* const restrict interval_tag) {
   // Print interval type
   switch (interval->type) {
     case locator_interval_chromosomal_assembly: fprintf(stream,"chromosome\t"); break;
@@ -241,7 +239,7 @@ void locator_interval_print(
   }
 }
 void locator_print_summary(
-    FILE* const stream,
+    FILE* const restrict stream,
     const uint64_t num_intervals,
     const uint64_t num_tags,
     const uint64_t tags_buffer_size) {
@@ -253,8 +251,8 @@ void locator_print_summary(
   tab_fprintf(stream,"  => Tags.Buffer.Size %"PRIu64" B\n",tags_buffer_size);
 }
 void locator_print(
-    FILE* const stream,
-    const locator_t* const locator,
+    FILE* const restrict stream,
+    const locator_t* const restrict locator,
     const bool display_intervals) {
   GEM_CHECK_NULL(stream);
   // Print locator info
@@ -266,9 +264,9 @@ void locator_print(
     uint64_t i;
     for (i=0;i<locator->num_intervals;++i) {
       // Print interval information
-      locator_interval_t* const interval = locator->intervals + i;
+      locator_interval_t* const restrict interval = locator->intervals + i;
       tab_fprintf(stream,"       [%"PRIu64"] ",i);
-      const char* const interval_tag = locator_interval_get_tag(locator,interval);
+      const char* const restrict interval_tag = locator_interval_get_tag(locator,interval);
       locator_interval_print(stream,interval,interval_tag);
     }
   }

@@ -33,43 +33,43 @@ typedef struct {
  * Setup
  */
 gpu_buffer_fmi_decode_t* gpu_buffer_fmi_decode_new(
-    const gpu_buffer_collection_t* const gpu_buffer_collection,
+    const gpu_buffer_collection_t* const restrict gpu_buffer_collection,
     const uint64_t buffer_pos,
-    fm_index_t* const fm_index,
+    fm_index_t* const restrict fm_index,
     const bool gpu_decode_sa,
     const bool gpu_decode_text);
-void gpu_buffer_fmi_decode_clear(gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode);
-void gpu_buffer_fmi_decode_delete(gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode);
+void gpu_buffer_fmi_decode_clear(gpu_buffer_fmi_decode_t* const restrict gpu_buffer_fmi_decode);
+void gpu_buffer_fmi_decode_delete(gpu_buffer_fmi_decode_t* const restrict gpu_buffer_fmi_decode);
 
 /*
  * Occupancy & Limits
  */
-uint64_t gpu_buffer_fmi_decode_get_max_queries(gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode);
-uint64_t gpu_buffer_fmi_decode_get_num_queries(gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode);
+uint64_t gpu_buffer_fmi_decode_get_max_queries(gpu_buffer_fmi_decode_t* const restrict gpu_buffer_fmi_decode);
+uint64_t gpu_buffer_fmi_decode_get_num_queries(gpu_buffer_fmi_decode_t* const restrict gpu_buffer_fmi_decode);
 bool gpu_buffer_fmi_decode_fits_in_buffer(
-    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
+    gpu_buffer_fmi_decode_t* const restrict gpu_buffer_fmi_decode,
     const uint64_t total_queries);
 
 /*
  * Accessors
  */
 void gpu_buffer_fmi_decode_add_query(
-    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
+    gpu_buffer_fmi_decode_t* const restrict gpu_buffer_fmi_decode,
     const uint64_t bwt_position);
 void gpu_buffer_fmi_decode_get_position_sa(
-    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
+    gpu_buffer_fmi_decode_t* const restrict gpu_buffer_fmi_decode,
     const uint64_t buffer_pos,
-    uint64_t* const bwt_sampled_position,
-    uint64_t* const lf_steps);
+    uint64_t* const restrict bwt_sampled_position,
+    uint64_t* const restrict lf_steps);
 void gpu_buffer_fmi_decode_get_position_text(
-    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
+    gpu_buffer_fmi_decode_t* const restrict gpu_buffer_fmi_decode,
     const uint64_t buffer_pos,
-    uint64_t* const text_position);
+    uint64_t* const restrict text_position);
 
 /*
  * Send/Receive
  */
-void gpu_buffer_fmi_decode_send(gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode);
-void gpu_buffer_fmi_decode_receive(gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode);
+void gpu_buffer_fmi_decode_send(gpu_buffer_fmi_decode_t* const restrict gpu_buffer_fmi_decode);
+void gpu_buffer_fmi_decode_receive(gpu_buffer_fmi_decode_t* const restrict gpu_buffer_fmi_decode);
 
 #endif /* GPU_BUFFER_FMI_DECODE_H_ */

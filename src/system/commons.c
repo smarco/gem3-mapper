@@ -94,7 +94,7 @@ uint64_t integer_upper_power_of_two(uint64_t number) {
   const uint64_t lower_power_of_two = integer_lower_power_of_two(number);
   return (number | 1<<lower_power_of_two) ? lower_power_of_two+1 : lower_power_of_two;
 }
-int integer_to_ascii(char* const buffer,uint64_t number) {
+int integer_to_ascii(char* const restrict buffer,uint64_t number) {
   // Calculate the number of digits of the number
   const uint64_t num_digits =
       (number >= 10000) ? 5 :
@@ -184,10 +184,10 @@ uint64_t checksum_uint64(uint64_t* mem,const uint64_t num_words) {
   }
   return checksum;
 }
-void checksum_incremental_uint64(uint64_t* const checksum,const uint64_t word) {
+void checksum_incremental_uint64(uint64_t* const restrict checksum,const uint64_t word) {
   *checksum ^= word;
 }
-void fprintf_uint64_binary(FILE* const stream,const uint64_t word) {
+void fprintf_uint64_binary(FILE* const restrict stream,const uint64_t word) {
   char binary_string[65];
   uint64_t mask = UINT64_ONE_MASK;
   int64_t i;
@@ -199,7 +199,7 @@ void fprintf_uint64_binary(FILE* const stream,const uint64_t word) {
   // Print
   fprintf(stream,"%s",binary_string);
 }
-void fprintf_uint64_footprint(FILE* const stream,const uint64_t word) {
+void fprintf_uint64_footprint(FILE* const restrict stream,const uint64_t word) {
   uint8_t* components = (uint8_t*)(&word);
   // Print
   fprintf(stream,"%c%c%c%c",
@@ -214,12 +214,12 @@ uint64_t system_get_num_processors() {
   return num_processors ? num_processors : 1;
 }
 char* system_get_cwd() {
-  char* const cwd = malloc(BUFFER_SIZE_2K);
+  char* const restrict cwd = malloc(BUFFER_SIZE_2K);
   if (getcwd(cwd,BUFFER_SIZE_2K)==NULL) cwd[0]='\0';
   return cwd;
 }
 char* system_get_hostname() {
-  char* const hostname = malloc(BUFFER_SIZE_2K);
+  char* const restrict hostname = malloc(BUFFER_SIZE_2K);
   if (gethostname(hostname,1024)) hostname[0]='\0';
   return hostname;
 }
@@ -229,7 +229,7 @@ char* system_get_user_name() {
   pw = getpwuid(uid);
   return pw ? (pw->pw_name ? pw->pw_name : "") : "";
 }
-void system_print_info(FILE* const stream) {
+void system_print_info(FILE* const restrict stream) {
   fprintf(stream,"[GEM]>System.Info\n");
   // Current Date
   time_t current_time=time(0);
@@ -246,7 +246,7 @@ void system_print_info(FILE* const stream) {
   fprintf(stream,"  => Hostname %s\n",hostname);
   free(hostname);
   // User
-  const char* const user_name = system_get_user_name();
+  const char* const restrict user_name = system_get_user_name();
   fprintf(stream,"  => Username %s\n",user_name);
   // CPU
   const uint64_t num_processors = system_get_num_processors();

@@ -12,7 +12,7 @@
  * Compute Partition
  */
 void nsearch_partition_compute(
-    nsearch_partition_t* const nsearch_partition,
+    nsearch_partition_t* const restrict nsearch_partition,
     const uint64_t chunk_offset,const uint64_t chunk_length) {
   // Pattern Partition
   nsearch_partition->offset_0 = chunk_offset;
@@ -24,7 +24,7 @@ void nsearch_partition_compute(
   nsearch_partition->region_1 = NULL;
 }
 void nsearch_partition_preconditioned_compute(
-    nsearch_partition_t* const nsearch_partition,region_search_t* const regions,
+    nsearch_partition_t* const restrict nsearch_partition,region_search_t* const restrict regions,
     const uint64_t region_offset,const uint64_t num_regions) {
   // Region Partition
   nsearch_partition->region_offset_0 = region_offset;
@@ -46,12 +46,12 @@ void nsearch_partition_preconditioned_compute(
  * Compute error partition
  */
 void nsearch_partition_compute_error(
-    nsearch_partition_t* const nsearch_partition,
+    nsearch_partition_t* const restrict nsearch_partition,
     const uint64_t min_error,const uint64_t max_error) {
   // Parameters
-  region_search_t* const region_0 = nsearch_partition->region_0;
+  region_search_t* const restrict region_0 = nsearch_partition->region_0;
   const uint64_t length_0 = nsearch_partition->length_0;
-  region_search_t* const region_1 = nsearch_partition->region_1;
+  region_search_t* const restrict region_1 = nsearch_partition->region_1;
   const uint64_t length_1 = nsearch_partition->length_1;
   // Split error
   const uint64_t error_search = max_error/2;

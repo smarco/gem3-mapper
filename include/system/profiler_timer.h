@@ -30,24 +30,24 @@ typedef struct {
 #define TIMER_CONVERT_NS_TO_M(time_ns)  ((double)(time_ns)/1E9/60.0)
 #define TIMER_CONVERT_NS_TO_H(time_ns)  ((double)(time_ns)/1E9/3600.0)
 
-void TIMER_START(gem_timer_t* const timer);
-void TIMER_STOP(gem_timer_t* const timer);
-void TIMER_PAUSE(gem_timer_t* const timer);
-void TIMER_CONTINUE(gem_timer_t* const timer);
-void TIMER_RESET(gem_timer_t* const timer);
-void TIMER_RESTART(gem_timer_t* const timer);
+void TIMER_START(gem_timer_t* const restrict timer);
+void TIMER_STOP(gem_timer_t* const restrict timer);
+void TIMER_PAUSE(gem_timer_t* const restrict timer);
+void TIMER_CONTINUE(gem_timer_t* const restrict timer);
+void TIMER_RESET(gem_timer_t* const restrict timer);
+void TIMER_RESTART(gem_timer_t* const restrict timer);
 
-uint64_t TIMER_GET_TOTAL_NS(const gem_timer_t* const timer);
-uint64_t TIMER_GET_NUM_SAMPLES(const gem_timer_t* const timer);
-uint64_t TIMER_GET_MIN_NS(const gem_timer_t* const timer);
-uint64_t TIMER_GET_MAX_NS(const gem_timer_t* const timer);
-uint64_t TIMER_GET_MEAN(const gem_timer_t* const timer);
-uint64_t TIMER_GET_VARIANCE(const gem_timer_t* const timer);
-uint64_t TIMER_GET_STDDEV(const gem_timer_t* const timer);
+uint64_t TIMER_GET_TOTAL_NS(const gem_timer_t* const restrict timer);
+uint64_t TIMER_GET_NUM_SAMPLES(const gem_timer_t* const restrict timer);
+uint64_t TIMER_GET_MIN_NS(const gem_timer_t* const restrict timer);
+uint64_t TIMER_GET_MAX_NS(const gem_timer_t* const restrict timer);
+uint64_t TIMER_GET_MEAN(const gem_timer_t* const restrict timer);
+uint64_t TIMER_GET_VARIANCE(const gem_timer_t* const restrict timer);
+uint64_t TIMER_GET_STDDEV(const gem_timer_t* const restrict timer);
 
 void TIMER_PRINT(
-    FILE* const stream,const gem_timer_t* const timer,
-    const gem_timer_t* const ref_timer);
+    FILE* const restrict stream,const gem_timer_t* const restrict timer,
+    const gem_timer_t* const restrict ref_timer);
 
 #define TIMER_GET_TOTAL_US(timer) TIMER_CONVERT_NS_TO_US(TIMER_GET_TOTAL_NS(timer))
 #define TIMER_GET_TOTAL_MS(timer) TIMER_CONVERT_NS_TO_MS(TIMER_GET_TOTAL_NS(timer))

@@ -12,8 +12,8 @@
 /*
  * Setup
  */
-void rank_mtable_init_levels(rank_mtable_t* const rank_mtable) {
-  uint64_t* const level_skip = rank_mtable->level_skip;
+void rank_mtable_init_levels(rank_mtable_t* const restrict rank_mtable) {
+  uint64_t* const restrict level_skip = rank_mtable->level_skip;
   uint64_t i;
   level_skip[0] = 0; // Null
   level_skip[1] = 1; // Base skip
@@ -23,9 +23,9 @@ void rank_mtable_init_levels(rank_mtable_t* const rank_mtable) {
     rank_mtable->sa_ranks_levels[i] = rank_mtable->sa_ranks_levels[i-1] + level_skip[i];
   }
 }
-rank_mtable_t* rank_mtable_read(fm_t* const file_manager) {
+rank_mtable_t* rank_mtable_read(fm_t* const restrict file_manager) {
   // Alloc
-  rank_mtable_t* const rank_mtable = mm_alloc(rank_mtable_t);
+  rank_mtable_t* const restrict rank_mtable = mm_alloc(rank_mtable_t);
   // Read Meta-info
   rank_mtable->num_levels = fm_read_uint64(file_manager);
   rank_mtable->table_size = fm_read_uint64(file_manager);
@@ -41,9 +41,9 @@ rank_mtable_t* rank_mtable_read(fm_t* const file_manager) {
   // Return
   return rank_mtable;
 }
-rank_mtable_t* rank_mtable_read_mem(mm_t* const memory_manager) {
+rank_mtable_t* rank_mtable_read_mem(mm_t* const restrict memory_manager) {
   // Alloc
-  rank_mtable_t* const rank_mtable = mm_alloc(rank_mtable_t);
+  rank_mtable_t* const restrict rank_mtable = mm_alloc(rank_mtable_t);
   // Read Meta-info
   rank_mtable->num_levels = mm_read_uint64(memory_manager);
   rank_mtable->table_size = mm_read_uint64(memory_manager);
@@ -59,7 +59,7 @@ rank_mtable_t* rank_mtable_read_mem(mm_t* const memory_manager) {
   // Return
   return rank_mtable;
 }
-void rank_mtable_delete(rank_mtable_t* const rank_mtable) {
+void rank_mtable_delete(rank_mtable_t* const restrict rank_mtable) {
   mm_free(rank_mtable->sa_ranks_levels);
   mm_free(rank_mtable->level_skip);
   if (rank_mtable->mm_sa_ranks!=NULL) mm_bulk_free(rank_mtable->mm_sa_ranks);
@@ -68,38 +68,38 @@ void rank_mtable_delete(rank_mtable_t* const rank_mtable) {
 /*
  * Accessors
  */
-uint64_t rank_mtable_get_size(const rank_mtable_t* const rank_mtable) {
+uint64_t rank_mtable_get_size(const rank_mtable_t* const restrict rank_mtable) {
   return rank_mtable->table_size * UINT64_SIZE;
 }
 /*
  * Query
  */
-void rank_mquery_new(rank_mquery_t* const query) {
+void rank_mquery_new(rank_mquery_t* const restrict query) {
   query->hi_position = 1;
   query->level = 0;
 }
 void rank_mquery_add_char(
-    const rank_mtable_t* const rank_mtable,
-    rank_mquery_t* const query,
+    const rank_mtable_t* const restrict rank_mtable,
+    rank_mquery_t* const restrict query,
     uint8_t const enc_char) {
   // Update HI => hi(n+1) = hi(n) + c*4^(level)
   ++(query->level);
   query->hi_position = query->hi_position + enc_char*rank_mtable->level_skip[query->level];
 }
-uint64_t rank_mquery_get_level(const rank_mquery_t* const query) {
+uint64_t rank_mquery_get_level(const rank_mquery_t* const restrict query) {
   return query->level;
 }
-uint64_t rank_mquery_is_exhausted(const rank_mquery_t* const query) {
+uint64_t rank_mquery_is_exhausted(const rank_mquery_t* const restrict query) {
   return query->level >= RANK_MTABLE_SEARCH_DEPTH;
 }
 /*
  * Fetch rank value
  */
 void rank_mtable_fetch(
-    const rank_mtable_t* const rank_mtable,
-    const rank_mquery_t* const query,
-    uint64_t* const lo,
-    uint64_t* const hi) {
+    const rank_mtable_t* const restrict rank_mtable,
+    const rank_mquery_t* const restrict query,
+    uint64_t* const restrict lo,
+    uint64_t* const restrict hi) {
   *hi = rank_mtable->sa_ranks_levels[query->level][query->hi_position];
   *lo = rank_mtable->sa_ranks_levels[query->level][query->hi_position-1];
 }
@@ -107,8 +107,8 @@ void rank_mtable_fetch(
  * Display
  */
 void rank_mtable_print(
-    FILE* const stream,
-    rank_mtable_t* const rank_mtable) {
+    FILE* const restrict stream,
+    rank_mtable_t* const restrict rank_mtable) {
   tab_fprintf(stream,"[GEM]>Rank.Table\n");
   tab_fprintf(stream,"  => Total.Cells        %"PRIu64"\n",rank_mtable->table_size);
   tab_fprintf(stream,"  => Total.Size         %"PRIu64" MB\n",CONVERT_B_TO_MB(rank_mtable->table_size*UINT64_SIZE));
@@ -118,8 +118,8 @@ void rank_mtable_print(
   fflush(stream);
 }
 void rank_mtable_print_content(
-    FILE* const stream,
-    rank_mtable_t* const rank_mtable,
+    FILE* const restrict stream,
+    rank_mtable_t* const restrict rank_mtable,
     const uint64_t text_length) {
   uint64_t i;
   for (i=0;i<rank_mtable->table_size;++i) {

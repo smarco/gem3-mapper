@@ -71,25 +71,25 @@ typedef struct {
  */
 #define svector_new(mm_slab,type) svector_new_(mm_slab,sizeof(type))
 
-svector_t* svector_new_(mm_slab_t* const mm_slab,const uint64_t element_size);
-void svector_delete(svector_t* const svector);
-void svector_clear(svector_t* const svector);
-void svector_reap(svector_t* const svector);
+svector_t* svector_new_(mm_slab_t* const restrict mm_slab,const uint64_t element_size);
+void svector_delete(svector_t* const restrict svector);
+void svector_clear(svector_t* const restrict svector);
+void svector_reap(svector_t* const restrict svector);
 
 /*
  * Accessors
  */
-uint64_t svector_get_used(svector_t* const svector);
-void* svector_get_elm(svector_t* const svector,const uint64_t position);
-void* svector_get_free_elm(svector_t* const svector);
+uint64_t svector_get_used(svector_t* const restrict svector);
+void* svector_get_elm(svector_t* const restrict svector,const uint64_t position);
+void* svector_get_free_elm(svector_t* const restrict svector);
 char* svector_request_char_buffer(
-    svector_t* const svector,
-    uint64_t* const buffer_offset,
+    svector_t* const restrict svector,
+    uint64_t* const restrict buffer_offset,
     const uint64_t length);
 char* svector_insert_char_buffer(
-    svector_t* const svector,
-    uint64_t* const buffer_offset,
-    const char* const buffer,
+    svector_t* const restrict svector,
+    uint64_t* const restrict buffer_offset,
+    const char* const restrict buffer,
     const uint64_t length);
 
 #define svector_is_empty(svector) (svector_get_used(vector)==0)
@@ -101,31 +101,31 @@ char* svector_insert_char_buffer(
 /*
  * Writer
  */
-void svector_write(fm_t* const file_manager,svector_t* const svector);
+void svector_write(fm_t* const restrict file_manager,svector_t* const restrict svector);
 
 /*
  * Display/Profile
  */
-void svector_print(FILE* const stream,svector_t* const svector);
-void svector_record_stats(svector_t* const svector);
-void svector_display_stats(FILE* const stream,svector_t* const svector);
+void svector_print(FILE* const restrict stream,svector_t* const restrict svector);
+void svector_record_stats(svector_t* const restrict svector);
+void svector_display_stats(FILE* const restrict stream,svector_t* const restrict svector);
 
 /*
  * Iterators
  */
 void svector_iterator_new(
-    svector_iterator_t* const iterator,
-    svector_t* const svector,
+    svector_iterator_t* const restrict iterator,
+    svector_t* const restrict svector,
     const svector_iterator_type iterator_type,
     const uint64_t init_position);
 #define svector_iterator_get_element(iterator,type) ((type*)svector_iterator_get_elm(iterator))
-void* svector_iterator_get_elm(svector_iterator_t* const iterator);
+void* svector_iterator_get_elm(svector_iterator_t* const restrict iterator);
 // Reading
-void svector_read_iterator_seek(svector_iterator_t* const iterator,const uint64_t init_position);
-bool svector_read_iterator_eoi(svector_iterator_t* const svector_iterator);
-void svector_read_iterator_next(svector_iterator_t* const iterator);
+void svector_read_iterator_seek(svector_iterator_t* const restrict iterator,const uint64_t init_position);
+bool svector_read_iterator_eoi(svector_iterator_t* const restrict svector_iterator);
+void svector_read_iterator_next(svector_iterator_t* const restrict iterator);
 // Writing
-void svector_write_iterator_next(svector_iterator_t* const iterator);
+void svector_write_iterator_next(svector_iterator_t* const restrict iterator);
 
 /*
  * Error Messages

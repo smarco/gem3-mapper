@@ -17,9 +17,9 @@
  * RL-Space Translate CIGAR
  */
 void match_align_rl_translate_region_cigar(
-    region_matching_t* const region_matching,
-    match_align_input_t* const align_input,
+    region_matching_t* const restrict region_matching,
+    match_align_input_t* const restrict align_input,
     const bool left_gap_alignment,
-    vector_t* const cigar_vector);
+    vector_t* const restrict cigar_vector);
 
 #endif /* MATCH_ALIGN_RL_H_ */

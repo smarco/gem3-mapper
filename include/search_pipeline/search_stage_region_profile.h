@@ -29,45 +29,45 @@ typedef struct {
  * Setup
  */
 search_stage_region_profile_t* search_stage_region_profile_new(
-    const gpu_buffer_collection_t* const gpu_buffer_collection,
+    const gpu_buffer_collection_t* const restrict gpu_buffer_collection,
     const uint64_t buffers_offset,
     const uint64_t num_buffers,
-    fm_index_t* const fm_index,
+    fm_index_t* const restrict fm_index,
     const bool cpu_emulated);
 void search_stage_region_profile_clear(
-    search_stage_region_profile_t* const search_stage_rp,
-    archive_search_cache_t* const archive_search_cache);
+    search_stage_region_profile_t* const restrict search_stage_rp,
+    archive_search_cache_t* const restrict archive_search_cache);
 void search_stage_region_profile_delete(
-    search_stage_region_profile_t* const search_stage_rp,
-    archive_search_cache_t* const archive_search_cache);
+    search_stage_region_profile_t* const restrict search_stage_rp,
+    archive_search_cache_t* const restrict archive_search_cache);
 
 /*
  * Accessors
  */
-bool search_stage_region_profile_is_empty(search_stage_region_profile_t* const search_stage_rp);
+bool search_stage_region_profile_is_empty(search_stage_region_profile_t* const restrict search_stage_rp);
 
 /*
  * Send Searches (buffered)
  */
 bool search_stage_region_profile_send_se_search(
-    search_stage_region_profile_t* const search_stage_rp,
-    archive_search_t* const archive_search);
+    search_stage_region_profile_t* const restrict search_stage_rp,
+    archive_search_t* const restrict archive_search);
 bool search_stage_region_profile_send_pe_search(
-    search_stage_region_profile_t* const search_stage_rp,
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2);
+    search_stage_region_profile_t* const restrict search_stage_rp,
+    archive_search_t* const restrict archive_search_end1,
+    archive_search_t* const restrict archive_search_end2);
 
 /*
  * Retrieve Searches (buffered)
  */
 bool search_stage_region_profile_retrieve_finished(
-    search_stage_region_profile_t* const search_stage_rp);
+    search_stage_region_profile_t* const restrict search_stage_rp);
 bool search_stage_region_profile_retrieve_se_search(
-    search_stage_region_profile_t* const search_stage_rp,
-    archive_search_t** const archive_search);
+    search_stage_region_profile_t* const restrict search_stage_rp,
+    archive_search_t** const restrict archive_search);
 bool search_stage_region_profile_retrieve_pe_search(
-    search_stage_region_profile_t* const search_stage_rp,
-    archive_search_t** const archive_search_end1,
-    archive_search_t** const archive_search_end2);
+    search_stage_region_profile_t* const restrict search_stage_rp,
+    archive_search_t** const restrict archive_search_end1,
+    archive_search_t** const restrict archive_search_end2);
 
 #endif /* SEARCH_STATE_REGION_PROFILE_H_ */

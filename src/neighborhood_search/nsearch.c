@@ -62,8 +62,8 @@ typedef struct {
  * Debug
  */
 void neighborhood_dp_column_print(
-    neighborhood_search_t* const neighborhood_search,
-    uint64_t* const dp_column,const uint64_t column_position,
+    neighborhood_search_t* const restrict neighborhood_search,
+    uint64_t* const restrict dp_column,const uint64_t column_position,
     const uint64_t lo,const uint64_t hi) {
   const uint64_t key_length = neighborhood_search->key_length;
   uint64_t i, min = UINT64_MAX;
@@ -71,8 +71,8 @@ void neighborhood_dp_column_print(
   gem_slog(">> [%"PRIu64"](#%"PRIu64"){min=%"PRIu64",last=%"PRIu64"}\n",column_position,hi-lo,min,dp_column[key_length]);
 }
 void neighborhood_dp_matrix_print(
-    neighborhood_search_t* const neighborhood_search,
-    dp_column_t* const dp_columns,const uint64_t num_rows,const uint64_t num_columns) {
+    neighborhood_search_t* const restrict neighborhood_search,
+    dp_column_t* const restrict dp_columns,const uint64_t num_rows,const uint64_t num_columns) {
   int64_t h, v;
   for (v=0;v<num_rows;++v) {
     for (h=0;h<num_columns;++h) {
@@ -85,9 +85,9 @@ void neighborhood_dp_matrix_print(
   }
 }
 void neighborhood_dp_matrix_traceback(
-    neighborhood_search_t* const neighborhood_search,
-    dp_column_t* const dp_columns,const uint64_t column_position) {
-  const uint8_t* const key = neighborhood_search->key;
+    neighborhood_search_t* const restrict neighborhood_search,
+    dp_column_t* const restrict dp_columns,const uint64_t column_position) {
+  const uint8_t* const restrict key = neighborhood_search->key;
   const uint64_t key_length = neighborhood_search->key_length;
   int64_t h = column_position;
   int64_t v = key_length;
@@ -115,11 +115,11 @@ void neighborhood_dp_matrix_traceback(
   gem_slog("\n");
 }
 void neighborhood_search_debug_match(
-    neighborhood_search_t* const neighborhood_search,
-    dp_column_t* const dp_columns,const uint64_t column_position,
+    neighborhood_search_t* const restrict neighborhood_search,
+    dp_column_t* const restrict dp_columns,const uint64_t column_position,
     const uint64_t min_val,const uint64_t num_matches_found) {
   const uint64_t key_length = neighborhood_search->key_length;
-  dp_column_t* const next_column = dp_columns + column_position;
+  dp_column_t* const restrict next_column = dp_columns + column_position;
   uint64_t i;
   for (i=0;i<=key_length;++i) gem_slog("%"PRId64" ",next_column->cells[i]>1000 ? -1 : (int64_t)next_column->cells[i]);
   gem_slog("\n");
@@ -131,10 +131,10 @@ void neighborhood_search_debug_match(
  * Condensed Neighborhood
  */
 uint64_t neighborhood_compute_dp_column(
-    neighborhood_search_t* const neighborhood_search,
-    uint64_t* const base_column,uint64_t* const next_column,
+    neighborhood_search_t* const restrict neighborhood_search,
+    uint64_t* const restrict base_column,uint64_t* const restrict next_column,
     const uint64_t column_position,const uint8_t text_enc) {
-  const uint8_t* const key = neighborhood_search->key;
+  const uint8_t* const restrict key = neighborhood_search->key;
   const uint64_t key_length = neighborhood_search->key_length;
   // Fill column
   uint64_t i, min = UINT64_MAX;
@@ -149,16 +149,16 @@ uint64_t neighborhood_compute_dp_column(
   return min;
 }
 void neighborhood_condensed_search(
-    neighborhood_search_t* const neighborhood_search,
-    uint64_t** const dp_columns,const uint64_t column_position,
+    neighborhood_search_t* const restrict neighborhood_search,
+    uint64_t** const restrict dp_columns,const uint64_t column_position,
     const uint64_t lo,const uint64_t hi) {
   // Parameters
-  bwt_t* const bwt = neighborhood_search->fm_index->bwt;
+  bwt_t* const restrict bwt = neighborhood_search->fm_index->bwt;
   const uint64_t key_length = neighborhood_search->key_length;
   const uint64_t max_error = neighborhood_search->max_error;
   // DP-Columns
-  uint64_t* const base_column = dp_columns[column_position];
-  uint64_t* const next_column = dp_columns[column_position+1];
+  uint64_t* const restrict base_column = dp_columns[column_position];
+  uint64_t* const restrict next_column = dp_columns[column_position+1];
   // Advance for all characters
   uint64_t min_val;
   uint8_t enc;
@@ -184,10 +184,10 @@ void neighborhood_condensed_search(
  * SuperCondensed Neighborhood
  */
 uint64_t neighborhood_supercondensed_compute_dp_column(
-    neighborhood_search_t* const neighborhood_search,
-    uint64_t* const base_column,uint64_t* const next_column,
+    neighborhood_search_t* const restrict neighborhood_search,
+    uint64_t* const restrict base_column,uint64_t* const restrict next_column,
     const uint64_t column_position,const uint8_t text_enc) {
-  const uint8_t* const key = neighborhood_search->key;
+  const uint8_t* const restrict key = neighborhood_search->key;
   const uint64_t key_length = neighborhood_search->key_length;
   // Fill column
   uint64_t i, column_min = UINT64_MAX;
@@ -213,16 +213,16 @@ uint64_t neighborhood_supercondensed_compute_dp_column(
   return column_min;
 }
 void neighborhood_supercondensed_search(
-    neighborhood_search_t* const neighborhood_search,
-    uint64_t** const dp_columns,const uint64_t column_position,
+    neighborhood_search_t* const restrict neighborhood_search,
+    uint64_t** const restrict dp_columns,const uint64_t column_position,
     const uint64_t lo,const uint64_t hi) {
   // Parameters
-  bwt_t* const bwt = neighborhood_search->fm_index->bwt;
+  bwt_t* const restrict bwt = neighborhood_search->fm_index->bwt;
   const uint64_t key_length = neighborhood_search->key_length;
   const uint64_t max_error = neighborhood_search->max_error;
   // DP-Columns
-  uint64_t* const base_column = dp_columns[column_position];
-  uint64_t* const next_column = dp_columns[column_position+1];
+  uint64_t* const restrict base_column = dp_columns[column_position];
+  uint64_t* const restrict next_column = dp_columns[column_position+1];
   // Advance for all characters
   uint64_t min_val;
   uint8_t enc;
@@ -249,18 +249,18 @@ void neighborhood_supercondensed_search(
  * Best-Match
  */
 uint64_t neighborhood_best_matches_search_bwt(
-    neighborhood_search_t* const neighborhood_search,
-    dp_column_t* const dp_columns,const uint64_t current_column,
+    neighborhood_search_t* const restrict neighborhood_search,
+    dp_column_t* const restrict dp_columns,const uint64_t current_column,
     const uint64_t lo,const uint64_t hi);
 uint64_t neighborhood_best_matches_search_mtable(
-    neighborhood_search_t* const neighborhood_search,
-    dp_column_t* const dp_columns,const uint64_t current_column,
-    rank_mquery_t* const query);
-dp_column_t* neighborhood_best_matches_search_init(neighborhood_search_t* const neighborhood_search) {
+    neighborhood_search_t* const restrict neighborhood_search,
+    dp_column_t* const restrict dp_columns,const uint64_t current_column,
+    rank_mquery_t* const restrict query);
+dp_column_t* neighborhood_best_matches_search_init(neighborhood_search_t* const restrict neighborhood_search) {
   // Allocate columns
-  mm_stack_t* const mm_stack = neighborhood_search->mm_stack;
+  mm_stack_t* const restrict mm_stack = neighborhood_search->mm_stack;
   const uint64_t max_text_length = neighborhood_search->max_text_length;
-  dp_column_t* const dp_columns = mm_stack_calloc(mm_stack,max_text_length+2,dp_column_t,false);
+  dp_column_t* const restrict dp_columns = mm_stack_calloc(mm_stack,max_text_length+2,dp_column_t,false);
   uint64_t i;
   for (i=0;i<=max_text_length;++i) {
     dp_columns[i].cells = mm_stack_calloc(mm_stack,neighborhood_search->column_length,uint64_t,false);
@@ -290,15 +290,15 @@ dp_column_t* neighborhood_best_matches_search_init(neighborhood_search_t* const 
   return dp_columns;
 }
 void ns_best_matches_compute_dp_column_banded(
-    neighborhood_search_t* const neighborhood_search,
-    dp_column_t* const dp_columns,const uint64_t current_column,
+    neighborhood_search_t* const restrict neighborhood_search,
+    dp_column_t* const restrict dp_columns,const uint64_t current_column,
     const uint64_t max_error,const uint8_t text_enc,
-    uint64_t* const min_val,uint64_t* const align_distance) {
+    uint64_t* const restrict min_val,uint64_t* const restrict align_distance) {
   // Parameters
-  const uint8_t* const key = neighborhood_search->key;
+  const uint8_t* const restrict key = neighborhood_search->key;
   const uint64_t key_length = neighborhood_search->key_length;
-  dp_column_t* const base_column = dp_columns + (current_column-1);
-  dp_column_t* const next_column = dp_columns + current_column;
+  dp_column_t* const restrict base_column = dp_columns + (current_column-1);
+  dp_column_t* const restrict next_column = dp_columns + current_column;
   // Fill columns
   const uint64_t band_low_offset = next_column->band_low_offset;
   const uint64_t band_high_offset = next_column->band_high_offset;
@@ -318,10 +318,10 @@ void ns_best_matches_compute_dp_column_banded(
   *align_distance = NS_DECODE_DISTANCE(next_column->cells[key_length]);
 }
 uint64_t neighborhood_best_matches_search_continue(
-    neighborhood_search_t* const neighborhood_search,
-    dp_column_t* const dp_columns,const uint64_t current_column,
+    neighborhood_search_t* const restrict neighborhood_search,
+    dp_column_t* const restrict dp_columns,const uint64_t current_column,
     const uint64_t min_val,const uint64_t align_distance,
-    const uint64_t max_error,rank_mquery_t* const next_query,
+    const uint64_t max_error,rank_mquery_t* const restrict next_query,
     const uint64_t lo,const uint64_t hi) {
   // Search
   uint64_t matches_found = 0;
@@ -351,13 +351,13 @@ uint64_t neighborhood_best_matches_search_continue(
   return matches_found;
 }
 uint64_t neighborhood_best_matches_search_bwt(
-    neighborhood_search_t* const neighborhood_search,
-    dp_column_t* const dp_columns,const uint64_t current_column,
+    neighborhood_search_t* const restrict neighborhood_search,
+    dp_column_t* const restrict dp_columns,const uint64_t current_column,
     const uint64_t lo,const uint64_t hi) {
   // Profiler
   PROF_BLOCK() { ++_ns_nodes; }
   // Parameters
-  bwt_t* const bwt = neighborhood_search->fm_index->bwt;
+  bwt_t* const restrict bwt = neighborhood_search->fm_index->bwt;
   const uint64_t max_error = neighborhood_search->max_error;
   // Advance for all characters
   uint64_t total_matches_found = 0;
@@ -390,12 +390,12 @@ uint64_t neighborhood_best_matches_search_bwt(
   return total_matches_found;
 }
 uint64_t neighborhood_best_matches_search_mtable(
-    neighborhood_search_t* const neighborhood_search,dp_column_t* const dp_columns,
-    const uint64_t current_column,rank_mquery_t* const query) {
+    neighborhood_search_t* const restrict neighborhood_search,dp_column_t* const restrict dp_columns,
+    const uint64_t current_column,rank_mquery_t* const restrict query) {
   // Profiler
   PROF_BLOCK() { ++_ns_nodes; ++_ns_nodes_mtable; }
   // Parameters
-  const rank_mtable_t* const rank_mtable = neighborhood_search->fm_index->rank_table;
+  const rank_mtable_t* const restrict rank_mtable = neighborhood_search->fm_index->rank_table;
   const uint64_t max_error = neighborhood_search->max_error;
   // Advance for all characters
   uint64_t total_matches_found = 0;
@@ -429,9 +429,9 @@ uint64_t neighborhood_best_matches_search_mtable(
  * Main
  */
 void neighborhood_search(
-    fm_index_t* const fm_index,uint8_t* const key,
+    fm_index_t* const restrict fm_index,uint8_t* const restrict key,
     const uint64_t key_length,const uint64_t max_error,
-    interval_set_t* const intervals_result,mm_stack_t* const mm_stack) {
+    interval_set_t* const restrict intervals_result,mm_stack_t* const restrict mm_stack) {
   PROFILE_START(GP_NSEARCH,PROFILE_LEVEL);
   // DEBUG/PROF
   gem_cond_debug_block(NS_PRINT_STRING) { if (ns_string==NULL) ns_string = malloc(1000); }
@@ -455,7 +455,7 @@ void neighborhood_search(
 
 //  // Allocate columns
 //  mm_stack_push_state(mm_stack);
-//  uint64_t** const dp_columns = mm_stack_calloc(mm_stack,neighborhood_search.max_text_length+2,uint64_t*,false);
+//  uint64_t** const restrict dp_columns = mm_stack_calloc(mm_stack,neighborhood_search.max_text_length+2,uint64_t*,false);
 //  uint64_t i;
 //  for (i=0;i<=neighborhood_search.max_text_length;++i) {
 //    dp_columns[i] = mm_stack_calloc(mm_stack,neighborhood_search.column_length,uint64_t,false);
@@ -473,7 +473,7 @@ void neighborhood_search(
   PROF_START(GP_NS_BEST_MATCH);
   mm_stack_push_state(mm_stack);
   rank_mquery_t query;
-  dp_column_t* const dp_columns = neighborhood_best_matches_search_init(&neighborhood_search);
+  dp_column_t* const restrict dp_columns = neighborhood_best_matches_search_init(&neighborhood_search);
   rank_mquery_new(&query);
   neighborhood_best_matches_search_mtable(&neighborhood_search,dp_columns,1,&query);
   PROF_STOP(GP_NS_BEST_MATCH);

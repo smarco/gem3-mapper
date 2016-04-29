@@ -50,17 +50,17 @@ typedef struct {
  * Compute Partition
  */
 void nsearch_partition_compute(
-    nsearch_partition_t* const nsearch_partition,
+    nsearch_partition_t* const restrict nsearch_partition,
     const uint64_t chunk_offset,const uint64_t chunk_length);
 void nsearch_partition_preconditioned_compute(
-    nsearch_partition_t* const nsearch_partition,region_search_t* const regions,
+    nsearch_partition_t* const restrict nsearch_partition,region_search_t* const restrict regions,
     const uint64_t region_offset,const uint64_t num_regions);
 
 /*
  * Compute error partition
  */
 void nsearch_partition_compute_error(
-    nsearch_partition_t* const nsearch_partition,
+    nsearch_partition_t* const restrict nsearch_partition,
     const uint64_t min_error,const uint64_t max_error);
 
 #endif /* NSEARCH_PARTITION_H_ */

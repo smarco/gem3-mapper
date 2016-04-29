@@ -51,6 +51,6 @@ typedef struct {
 /*
  * Paired-Search Parameters
  */
-void search_paired_parameters_init(search_paired_parameters_t* const search_paired_parameters);
+void search_paired_parameters_init(search_paired_parameters_t* const restrict search_paired_parameters);
 
 #endif /* ARCHIVE_SEARCH_PAIRED_PARAMETERS_H_ */

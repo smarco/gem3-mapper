@@ -18,56 +18,56 @@
  * Memory Injection (Support Data Structures)
  */
 void archive_search_pe_inject_mm(
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2,
-    mm_search_t* const mm_search);
+    archive_search_t* const restrict archive_search_end1,
+    archive_search_t* const restrict archive_search_end2,
+    mm_search_t* const restrict mm_search);
 
 /*
  * PE Extension Control
  */
-bool archive_search_pe_is_extension_feasible(archive_search_t* const archive_search);
+bool archive_search_pe_is_extension_feasible(archive_search_t* const restrict archive_search);
 bool archive_search_pe_use_shortcut_extension(
-    archive_search_t* const archive_search_extended,
-    archive_search_t* const archive_search_candidate,
-    matches_t* const matches);
+    archive_search_t* const restrict archive_search_extended,
+    archive_search_t* const restrict archive_search_candidate,
+    matches_t* const restrict matches);
 bool archive_search_pe_use_recovery_extension(
-    archive_search_t* const archive_search_extended,
-    archive_search_t* const archive_search_candidate,
-    matches_t* const matches_extended,
-    matches_t* const matches_candidate);
+    archive_search_t* const restrict archive_search_extended,
+    archive_search_t* const restrict archive_search_candidate,
+    matches_t* const restrict matches_extended,
+    matches_t* const restrict matches_candidate);
 
 /*
  * Archive Search PE Continue Search
  */
 void archive_search_pe_continue(
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches);
+    archive_search_t* const restrict archive_search_end1,
+    archive_search_t* const restrict archive_search_end2,
+    paired_matches_t* const restrict paired_matches);
 
 /*
  * Paired-End Indexed Search (PE Online Approximate String Search)
  */
 void archive_search_pe(
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches);
+    archive_search_t* const restrict archive_search_end1,
+    archive_search_t* const restrict archive_search_end2,
+    paired_matches_t* const restrict paired_matches);
 
 /*
  * Compute Predictors
  */
 void archive_search_pe_compute_predictors(
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches,
-    matches_predictors_t* const predictors);
+    archive_search_t* const restrict archive_search_end1,
+    archive_search_t* const restrict archive_search_end2,
+    paired_matches_t* const restrict paired_matches,
+    matches_predictors_t* const restrict predictors);
 
 /*
  * Display
  */
 void archive_search_pe_print(
-    FILE* const stream,
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches);
+    FILE* const restrict stream,
+    archive_search_t* const restrict archive_search_end1,
+    archive_search_t* const restrict archive_search_end2,
+    paired_matches_t* const restrict paired_matches);
 
 #endif /* ARCHIVE_SEARCH_PE_H_ */

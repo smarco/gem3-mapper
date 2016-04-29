@@ -46,21 +46,21 @@ typedef struct {
  * Archive Loader
  */
 archive_t* archive_read(
-    char* const file_name,
+    char* const restrict file_name,
     const bool read_text_only);
-void archive_delete(archive_t* const archive);
+void archive_delete(archive_t* const restrict archive);
 
 /*
  * Archive Accessors
  */
-uint64_t archive_get_size(const archive_t* const archive);
-uint64_t archive_get_index_length(const archive_t* const archive);
+uint64_t archive_get_size(const archive_t* const restrict archive);
+uint64_t archive_get_index_length(const archive_t* const restrict archive);
 
 /*
  * Display
  */
 void archive_print(
-    FILE* const stream,
-    const archive_t* const archive);
+    FILE* const restrict stream,
+    const archive_t* const restrict archive);
 
 #endif /* ARCHIVE_H_ */

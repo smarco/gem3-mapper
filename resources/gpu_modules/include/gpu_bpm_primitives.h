@@ -110,8 +110,8 @@ gpu_error_t gpu_bpm_transfer_CPU_to_GPU(gpu_buffer_t *mBuff);
 gpu_error_t gpu_bpm_transfer_GPU_to_CPU(gpu_buffer_t *mBuff);
 /* Functions to receive & process a BPM buffer from GPU */
 gpu_error_t gpu_bpm_reordering_alignments(gpu_buffer_t *mBuff);
-gpu_error_t gpu_bpm_reorder_process(const gpu_bpm_queries_buffer_t* const qry, const gpu_bpm_candidates_buffer_t* const cand,
-                                    gpu_bpm_reorder_buffer_t* const rebuff, gpu_bpm_alignments_buffer_t* const res);
+gpu_error_t gpu_bpm_reorder_process(const gpu_bpm_queries_buffer_t* const __restrict__ qry, const gpu_bpm_candidates_buffer_t* const __restrict__ cand,
+                                    gpu_bpm_reorder_buffer_t* const __restrict__ rebuff, gpu_bpm_alignments_buffer_t* const __restrict__ res);
 /* DEVICE Kernels */
 gpu_error_t gpu_bpm_process_buffer(gpu_buffer_t *mBuff);
 

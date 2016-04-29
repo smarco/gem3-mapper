@@ -162,75 +162,75 @@ typedef struct {
  */
 void mapper_display_input_state(
     FILE* stream,
-    buffered_input_file_t* const buffered_fasta_input,
-    const sequence_t* const sequence);
+    buffered_input_file_t* const restrict buffered_fasta_input,
+    const sequence_t* const restrict sequence);
 
 /*
  * Mapper Parameters
  */
-void mapper_parameters_set_defaults(mapper_parameters_t* const mapper_parameters);
-void mapper_parameters_print(FILE* const stream,mapper_parameters_t* const parameters);
+void mapper_parameters_set_defaults(mapper_parameters_t* const restrict mapper_parameters);
+void mapper_parameters_print(FILE* const restrict stream,mapper_parameters_t* const restrict parameters);
 
 /*
  * Index loader
  */
-void mapper_load_index(mapper_parameters_t* const parameters);
+void mapper_load_index(mapper_parameters_t* const restrict parameters);
 
 /*
  * Input (Low-level)
  */
 void mapper_SE_prepare_io_buffers(
-    const mapper_parameters_t* const parameters,
+    const mapper_parameters_t* const restrict parameters,
     const uint64_t input_buffer_lines,
-    buffered_input_file_t** const buffered_fasta_input,
-    buffered_output_file_t** const buffered_output_file);
+    buffered_input_file_t** const restrict buffered_fasta_input,
+    buffered_output_file_t** const restrict buffered_output_file);
 void mapper_PE_prepare_io_buffers(
-    const mapper_parameters_t* const parameters,
+    const mapper_parameters_t* const restrict parameters,
     const uint64_t input_buffer_lines,
-    buffered_input_file_t** const buffered_fasta_input_end1,
-    buffered_input_file_t** const buffered_fasta_input_end2,
-    buffered_output_file_t** const buffered_output_file);
+    buffered_input_file_t** const restrict buffered_fasta_input_end1,
+    buffered_input_file_t** const restrict buffered_fasta_input_end2,
+    buffered_output_file_t** const restrict buffered_output_file);
 uint64_t mapper_PE_reload_buffers(
-    mapper_parameters_t* const parameters,
-    buffered_input_file_t* const buffered_fasta_input_end1,
-    buffered_input_file_t* const buffered_fasta_input_end2);
+    mapper_parameters_t* const restrict parameters,
+    buffered_input_file_t* const restrict buffered_fasta_input_end1,
+    buffered_input_file_t* const restrict buffered_fasta_input_end2);
 error_code_t mapper_PE_parse_paired_sequences(
-    const mapper_parameters_t* const parameters,
-    buffered_input_file_t* const buffered_fasta_input_end1,
-    buffered_input_file_t* const buffered_fasta_input_end2,
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2);
+    const mapper_parameters_t* const restrict parameters,
+    buffered_input_file_t* const restrict buffered_fasta_input_end1,
+    buffered_input_file_t* const restrict buffered_fasta_input_end2,
+    archive_search_t* const restrict archive_search_end1,
+    archive_search_t* const restrict archive_search_end2);
 
 /*
  * Input (High-level)
  */
-error_code_t mapper_SE_read_single_sequence(mapper_search_t* const mapper_search);
-error_code_t mapper_PE_read_paired_sequences(mapper_search_t* const mapper_search);
+error_code_t mapper_SE_read_single_sequence(mapper_search_t* const restrict mapper_search);
+error_code_t mapper_PE_read_paired_sequences(mapper_search_t* const restrict mapper_search);
 
 /*
  * Output
  */
 void mapper_SE_output_matches(
-    mapper_parameters_t* const parameters,
-    buffered_output_file_t* const buffered_output_file,
-    archive_search_t* const archive_search,
-    matches_t* const matches,mapping_stats_t* mstats);
+    mapper_parameters_t* const restrict parameters,
+    buffered_output_file_t* const restrict buffered_output_file,
+    archive_search_t* const restrict archive_search,
+    matches_t* const restrict matches,mapping_stats_t* mstats);
 void mapper_PE_output_matches(
-    mapper_parameters_t* const parameters,
-    buffered_output_file_t* const buffered_output_file,
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches,
+    mapper_parameters_t* const restrict parameters,
+    buffered_output_file_t* const restrict buffered_output_file,
+    archive_search_t* const restrict archive_search_end1,
+    archive_search_t* const restrict archive_search_end2,
+    paired_matches_t* const restrict paired_matches,
     mapping_stats_t* mstats);
 
 /*
  * SE Mapper
  */
-void mapper_SE_run(mapper_parameters_t* const mapper_parameters);
+void mapper_SE_run(mapper_parameters_t* const restrict mapper_parameters);
 
 /*
  * PE Mapper
  */
-void mapper_PE_run(mapper_parameters_t* const mapper_parameters);
+void mapper_PE_run(mapper_parameters_t* const restrict mapper_parameters);
 
 #endif /* MAPPER_H_ */

@@ -24,13 +24,13 @@
  * Approximate Search based on Filtering Complete Search
  */
 void approximate_search_filtering_complete(
-    approximate_search_t* const search,
-    matches_t* const matches) {
+    approximate_search_t* const restrict search,
+    matches_t* const restrict matches) {
   // PROFILE_START(GP_AS_FILTERING_EXACT,PROFILE_LEVEL); // TODO
   // Parameters
-  search_parameters_t* const parameters = search->search_parameters;
-  pattern_t* const pattern = &search->pattern;
-  region_profile_t* const region_profile = &search->region_profile;
+  search_parameters_t* const restrict parameters = search->search_parameters;
+  pattern_t* const restrict pattern = &search->pattern;
+  region_profile_t* const restrict region_profile = &search->region_profile;
   // Exact Search
   if (search->max_complete_error==0) {
     approximate_search_neighborhood_exact_search(search,matches);
@@ -44,7 +44,7 @@ void approximate_search_filtering_complete(
   region_profile_schedule_filtering_fixed(region_profile,ALL,REGION_FILTER_DEGREE_ZERO,parameters->filtering_threshold);
   approximate_search_generate_candidates_exact(search,matches);
   // Verify candidates
-  filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
+  filtering_candidates_t* const restrict filtering_candidates = search->filtering_candidates;
   filtering_candidates_process_candidates(filtering_candidates,pattern);
   filtering_candidates_verify_candidates(filtering_candidates,pattern);
   // Align candidates

@@ -14,8 +14,8 @@
  * Generate DNA-Text
  */
 void archive_builder_text_process(
-    archive_builder_t* const archive_builder,
-    input_file_t* const input_multifasta,
+    archive_builder_t* const restrict archive_builder,
+    input_file_t* const restrict input_multifasta,
     const bool verbose) {
   // Inspect Text
   archive_builder_inspect_text(archive_builder,input_multifasta,verbose);
@@ -39,7 +39,7 @@ void archive_builder_text_process(
  * Run-length Text (Apply RL to the text)
  */
 void archive_builder_text_apply_run_length(
-    archive_builder_t* const archive_builder,
+    archive_builder_t* const restrict archive_builder,
     const bool verbose) {
   // Allocate RL-text (Circular BWT extra)
   const uint64_t enc_text_length = dna_text_get_length(archive_builder->enc_text);
@@ -51,8 +51,8 @@ void archive_builder_text_apply_run_length(
   svector_iterator_t intervals_iterator;
   svector_iterator_new(&intervals_iterator,archive_builder->locator->intervals,SVECTOR_READ_ITERATOR,0);
   // Compact the text into the RL-text
-  const uint8_t* const enc_text = dna_text_get_text(archive_builder->enc_text);
-  uint8_t* const enc_rl_text = dna_text_get_text(archive_builder->enc_rl_text);
+  const uint8_t* const restrict enc_text = dna_text_get_text(archive_builder->enc_text);
+  uint8_t* const restrict enc_rl_text = dna_text_get_text(archive_builder->enc_rl_text);
   uint64_t text_position, rl_text_position=1;
   uint64_t run_length=1, num_rl_samples=1;
   enc_rl_text[0] = enc_text[0]; // Add character
@@ -101,11 +101,11 @@ void archive_builder_text_apply_run_length(
  * Display
  */
 void archive_builder_text_dump(
-    archive_builder_t* const archive_builder,
-    const char* const extension) {
+    archive_builder_t* const restrict archive_builder,
+    const char* const restrict extension) {
   // Open file
-  char* const indexed_text_file_name = gem_strcat(archive_builder->output_file_name_prefix,extension);
-  FILE* const indexed_text_file = fopen(indexed_text_file_name,"w");
+  char* const restrict indexed_text_file_name = gem_strcat(archive_builder->output_file_name_prefix,extension);
+  FILE* const restrict indexed_text_file = fopen(indexed_text_file_name,"w");
   dna_text_pretty_print_content(indexed_text_file,archive_builder->enc_text,80);
   // Close & release
   fclose(indexed_text_file);

@@ -26,37 +26,37 @@ typedef struct {
   double m_newS;
 } gem_counter_t;
 
-void COUNTER_RESET(gem_counter_t* const counter);
-void COUNTER_ADD(gem_counter_t* const counter,const uint64_t amount);
+void COUNTER_RESET(gem_counter_t* const restrict counter);
+void COUNTER_ADD(gem_counter_t* const restrict counter,const uint64_t amount);
 
-uint64_t COUNTER_GET_TOTAL(const gem_counter_t* const counter);
-uint64_t COUNTER_GET_NUM_SAMPLES(const gem_counter_t* const counter);
-uint64_t COUNTER_GET_MIN(const gem_counter_t* const counter);
-uint64_t COUNTER_GET_MAX(const gem_counter_t* const counter);
-double COUNTER_GET_MEAN(const gem_counter_t* const counter);
-double COUNTER_GET_VARIANCE(const gem_counter_t* const counter);
-double COUNTER_GET_STDDEV(const gem_counter_t* const counter);
+uint64_t COUNTER_GET_TOTAL(const gem_counter_t* const restrict counter);
+uint64_t COUNTER_GET_NUM_SAMPLES(const gem_counter_t* const restrict counter);
+uint64_t COUNTER_GET_MIN(const gem_counter_t* const restrict counter);
+uint64_t COUNTER_GET_MAX(const gem_counter_t* const restrict counter);
+double COUNTER_GET_MEAN(const gem_counter_t* const restrict counter);
+double COUNTER_GET_VARIANCE(const gem_counter_t* const restrict counter);
+double COUNTER_GET_STDDEV(const gem_counter_t* const restrict counter);
 
-void COUNTER_COMBINE_SUM(gem_counter_t* const counter_dst,gem_counter_t* const counter_src);
-void COUNTER_COMBINE_MAX(gem_counter_t* const counter_dst,gem_counter_t* const counter_src);
-void COUNTER_COMBINE_MIN(gem_counter_t* const counter_dst,gem_counter_t* const counter_src);
-void COUNTER_COMBINE_MEAN(gem_counter_t* const counter_dst,gem_counter_t* const counter_src);
+void COUNTER_COMBINE_SUM(gem_counter_t* const restrict counter_dst,gem_counter_t* const restrict counter_src);
+void COUNTER_COMBINE_MAX(gem_counter_t* const restrict counter_dst,gem_counter_t* const restrict counter_src);
+void COUNTER_COMBINE_MIN(gem_counter_t* const restrict counter_dst,gem_counter_t* const restrict counter_src);
+void COUNTER_COMBINE_MEAN(gem_counter_t* const restrict counter_dst,gem_counter_t* const restrict counter_src);
 
 void COUNTER_PRINT(
-    FILE* const stream,
-    const gem_counter_t* const counter,
-    const gem_counter_t* const ref_counter,
-    const char* const units,
+    FILE* const restrict stream,
+    const gem_counter_t* const restrict counter,
+    const gem_counter_t* const restrict ref_counter,
+    const char* const restrict units,
     const bool full_report);
 void SAMPLER_PRINT(
-    FILE* const stream,
-    const gem_counter_t* const counter,
-    const gem_counter_t* const ref_counter,
-    const char* const units);
+    FILE* const restrict stream,
+    const gem_counter_t* const restrict counter,
+    const gem_counter_t* const restrict ref_counter,
+    const char* const restrict units);
 void PERCENTAGE_PRINT(
-    FILE* const stream,
-    const gem_counter_t* const counter,
-    const char* const units);
+    FILE* const restrict stream,
+    const gem_counter_t* const restrict counter,
+    const char* const restrict units);
 
 /*
  * Reference Counter (Counts wrt a reference counter. Eg ranks)
@@ -67,19 +67,19 @@ typedef struct {
   uint64_t accumulated;  // Total accumulated
 } gem_reference_counter_t;
 
-void RCOUNTER_START(gem_reference_counter_t* const rcounter,const uint64_t reference);
-void RCOUNTER_STOP(gem_reference_counter_t* const rcounter,const uint64_t reference);
-void RCOUNTER_PAUSE(gem_reference_counter_t* const rcounter,const uint64_t reference);
-void RCOUNTER_CONTINUE(gem_reference_counter_t* const rcounter,const uint64_t reference);
-void RCOUNTER_RESET(gem_reference_counter_t* const rcounter);
-void RCOUNTER_RESTART(gem_reference_counter_t* const rcounter);
-uint64_t RCOUNTER_GET_TOTAL(gem_reference_counter_t* const rcounter);
-uint64_t RCOUNTER_GET_NUM_SAMPLES(gem_reference_counter_t* const rcounter);
-uint64_t RCOUNTER_GET_MIN(gem_reference_counter_t* const rcounter);
-uint64_t RCOUNTER_GET_MAX(gem_reference_counter_t* const rcounter);
-uint64_t RCOUNTER_GET_MEAN(gem_reference_counter_t* const rcounter);
-uint64_t RCOUNTER_GET_VARIANCE(gem_reference_counter_t* const rcounter);
-uint64_t RCOUNTER_GET_STDDEV(gem_reference_counter_t* const rcounter);
+void RCOUNTER_START(gem_reference_counter_t* const restrict rcounter,const uint64_t reference);
+void RCOUNTER_STOP(gem_reference_counter_t* const restrict rcounter,const uint64_t reference);
+void RCOUNTER_PAUSE(gem_reference_counter_t* const restrict rcounter,const uint64_t reference);
+void RCOUNTER_CONTINUE(gem_reference_counter_t* const restrict rcounter,const uint64_t reference);
+void RCOUNTER_RESET(gem_reference_counter_t* const restrict rcounter);
+void RCOUNTER_RESTART(gem_reference_counter_t* const restrict rcounter);
+uint64_t RCOUNTER_GET_TOTAL(gem_reference_counter_t* const restrict rcounter);
+uint64_t RCOUNTER_GET_NUM_SAMPLES(gem_reference_counter_t* const restrict rcounter);
+uint64_t RCOUNTER_GET_MIN(gem_reference_counter_t* const restrict rcounter);
+uint64_t RCOUNTER_GET_MAX(gem_reference_counter_t* const restrict rcounter);
+uint64_t RCOUNTER_GET_MEAN(gem_reference_counter_t* const restrict rcounter);
+uint64_t RCOUNTER_GET_VARIANCE(gem_reference_counter_t* const restrict rcounter);
+uint64_t RCOUNTER_GET_STDDEV(gem_reference_counter_t* const restrict rcounter);
 
 /*
  * Display

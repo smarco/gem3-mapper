@@ -15,22 +15,22 @@
 /*
  * I/O
  */
-void mapper_profile_print_io(FILE* const stream);
+void mapper_profile_print_io(FILE* const restrict stream);
 
 /*
  * Output MAP/SAM
  */
-void mapper_profile_print_map_output(FILE* const stream,const bool paired_end);
-void mapper_profile_print_sam_output(FILE* const stream,const bool paired_end);
+void mapper_profile_print_map_output(FILE* const restrict stream,const bool paired_end);
+void mapper_profile_print_sam_output(FILE* const restrict stream,const bool paired_end);
 
 /*
  * Checks
  */
-void mapper_profile_print_checks(FILE* const stream);
+void mapper_profile_print_checks(FILE* const restrict stream);
 
 /*
  * Efficiency Ratios
  */
-void mapper_profile_print_mapper_efficiency_ratios(FILE* const stream);
+void mapper_profile_print_mapper_efficiency_ratios(FILE* const restrict stream);
 
 #endif /* MAPPER_PROFILE_MISC_H_ */

@@ -27,9 +27,9 @@
 /*
  * Setup
  */
-void mm_slab_add_new_segment(mm_slab_t* const mm_slab) {
+void mm_slab_add_new_segment(mm_slab_t* const restrict mm_slab) {
   // Allocate new slab-segment
-  mm_slab_segment_t* const mm_slab_segment = mm_alloc(mm_slab_segment_t);
+  mm_slab_segment_t* const restrict mm_slab_segment = mm_alloc(mm_slab_segment_t);
   mm_slab_segment->segment_id = (mm_slab->segment_id_generator)++; // Set ID
   // Calculate number of slab units
   const uint64_t slab_unit_size = mm_slab->slab_unit_size;
@@ -55,7 +55,7 @@ void mm_slab_add_new_segment(mm_slab_t* const mm_slab) {
   int64_t i;
   void* memory = mm_get_mem(mem_manager)+((total_slabs_units-1)*slab_unit_size);
   for (i=total_slabs_units-1;i>=0;--i,memory-=slab_unit_size) {
-    mm_slab_unit_t* const mm_slab_unit = mm_slab_segment->slab_units+i;
+    mm_slab_unit_t* const restrict mm_slab_unit = mm_slab_segment->slab_units+i;
     mm_slab_unit->slab_segment = mm_slab_segment;
     mm_slab_unit->memory = memory;
     vector_insert(mm_slab->slabs_units_free,mm_slab_unit,mm_slab_unit_t*);
@@ -70,9 +70,9 @@ mm_slab_t* mm_slab_new_(
     const uint64_t slab_size,
     const uint64_t slab_segment_size,
     const uint64_t max_allocatable_memory,
-    char* const description) {
+    char* const restrict description) {
   gem_cond_fatal_error(slab_segment_size < slab_size,MM_SLAB_WRONG_DIMENSIONS,slab_segment_size,slab_size);
-  mm_slab_t* const mm_slab = mm_alloc(mm_slab_t);
+  mm_slab_t* const restrict mm_slab = mm_alloc(mm_slab_t);
   mm_slab->slab_id = gem_rand_IID(0,UINT16_MAX);
   gem_cond_log(MM_SLAB_LOG,"[GEM]> mm_slab(%"PRIu64").new()",mm_slab->slab_id);
   mm_slab->description = description;
@@ -99,7 +99,7 @@ mm_slab_t* mm_slab_new_(
   return mm_slab;
 }
 void mm_slab_reap_empty(
-    mm_slab_t* const mm_slab,
+    mm_slab_t* const restrict mm_slab,
     const uint64_t num_resident_segments) {
   MUTEX_BEGIN_SECTION(mm_slab->slab_mutex) {
     // TODO // TODO // TODO // TODO
@@ -110,7 +110,7 @@ void mm_slab_reap_empty(
     // TODO // TODO // TODO // TODO
   } MUTEX_END_SECTION(mm_slab->slab_mutex);
 }
-void mm_slab_delete(mm_slab_t* const mm_slab) {
+void mm_slab_delete(mm_slab_t* const restrict mm_slab) {
   // Free all slab segments
   VECTOR_ITERATE(mm_slab->slabs_segments,slabs_segment,ss_i,mm_slab_segment_t*) {
     mm_bulk_free((*slabs_segment)->mm); // Free memory
@@ -124,48 +124,48 @@ void mm_slab_delete(mm_slab_t* const mm_slab) {
 /*
  *  Accessors
  */
-void mm_slab_lock(mm_slab_t* const mm_slab) {
+void mm_slab_lock(mm_slab_t* const restrict mm_slab) {
   MUTEX_BEGIN_SECTION(mm_slab->slab_mutex);
 }
-void mm_slab_unlock(mm_slab_t* const mm_slab) {
+void mm_slab_unlock(mm_slab_t* const restrict mm_slab) {
   MUTEX_END_SECTION(mm_slab->slab_mutex);
 }
-mm_slab_unit_t* mm_slab_get(mm_slab_t* const mm_slab) {
+mm_slab_unit_t* mm_slab_get(mm_slab_t* const restrict mm_slab) {
   // Check slabs available (Add new one if required)
   if (gem_expect_false(vector_get_used(mm_slab->slabs_units_free)==0)) {
     mm_slab_add_new_segment(mm_slab);
   }
   // Serve free slab
-  mm_slab_unit_t* const mm_slab_unit = *vector_get_last_elm(mm_slab->slabs_units_free,mm_slab_unit_t*);
+  mm_slab_unit_t* const restrict mm_slab_unit = *vector_get_last_elm(mm_slab->slabs_units_free,mm_slab_unit_t*);
   vector_dec_used(mm_slab->slabs_units_free); // Remove from slabs available
   ++(mm_slab_unit->slab_segment->busy_slabs_units); // Decrement free slabs
   return mm_slab_unit;
 }
-void mm_slab_put(mm_slab_t* const mm_slab,mm_slab_unit_t* const mm_slab_unit) {
+void mm_slab_put(mm_slab_t* const restrict mm_slab,mm_slab_unit_t* const restrict mm_slab_unit) {
   // Restore slab as free
   --(mm_slab_unit->slab_segment->busy_slabs_units);
   vector_insert(mm_slab->slabs_units_free,mm_slab_unit,mm_slab_unit_t*);
 }
 
-mm_slab_unit_t* mm_slab_request(mm_slab_t* const mm_slab) {
+mm_slab_unit_t* mm_slab_request(mm_slab_t* const restrict mm_slab) {
   mm_slab_unit_t* mm_slab_unit;
   MUTEX_BEGIN_SECTION(mm_slab->slab_mutex) {
     mm_slab_unit = mm_slab_get(mm_slab);
   } MUTEX_END_SECTION(mm_slab->slab_mutex);
   return mm_slab_unit;
 }
-void mm_slab_return(mm_slab_t* const mm_slab,mm_slab_unit_t* const mm_slab_unit) {
+void mm_slab_return(mm_slab_t* const restrict mm_slab,mm_slab_unit_t* const restrict mm_slab_unit) {
   MUTEX_BEGIN_SECTION(mm_slab->slab_mutex) {
     mm_slab_put(mm_slab,mm_slab_unit);
   } MUTEX_END_SECTION(mm_slab->slab_mutex);
 }
-uint64_t mm_slab_get_slab_size(mm_slab_t* const mm_slab) {
+uint64_t mm_slab_get_slab_size(mm_slab_t* const restrict mm_slab) {
   return mm_slab->slab_unit_size;
 }
 /*
  * Defragment Slab
  */
-int mm_slab_cmp_slab_units(mm_slab_unit_t** const mm_slab_unit_a,mm_slab_unit_t** const mm_slab_unit_b) {
+int mm_slab_cmp_slab_units(mm_slab_unit_t** const restrict mm_slab_unit_a,mm_slab_unit_t** const restrict mm_slab_unit_b) {
   // Sort by slab segment ID & memory position
   const int64_t segment_id_a = (*mm_slab_unit_a)->slab_segment->segment_id;
   const int64_t segment_id_b = (*mm_slab_unit_b)->slab_segment->segment_id;
@@ -176,7 +176,7 @@ int mm_slab_cmp_slab_units(mm_slab_unit_t** const mm_slab_unit_a,mm_slab_unit_t*
     return segment_id_b - segment_id_a;
   }
 }
-void mm_slab_defragment(mm_slab_t* const mm_slab) {
+void mm_slab_defragment(mm_slab_t* const restrict mm_slab) {
   MUTEX_BEGIN_SECTION(mm_slab->slab_mutex) {
     // Sort free slab units to serve them in memory increasing order
     qsort(vector_get_mem(mm_slab->slabs_units_free,mm_slab_unit_t*),
@@ -189,8 +189,8 @@ void mm_slab_defragment(mm_slab_t* const mm_slab) {
  * Display/Profile
  */
 void mm_slab_print(
-    FILE* const stream,
-    mm_slab_t* const mm_slab,
+    FILE* const restrict stream,
+    mm_slab_t* const restrict mm_slab,
     const bool show_internals) {
   // TODO
   // svector_record_stats();

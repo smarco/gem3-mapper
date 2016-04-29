@@ -25,11 +25,11 @@
  * Verify Hamming
  */
 void filtering_region_verify_hamming_text(
-    region_alignment_t* const region_alignment,
-    const uint8_t* const text,
-    const uint8_t* const key,
+    region_alignment_t* const restrict region_alignment,
+    const uint8_t* const restrict text,
+    const uint8_t* const restrict key,
     const uint64_t key_length,
-    const bool* const allowed_enc,
+    const bool* const restrict allowed_enc,
     const uint64_t max_mismatches) {
   // Check candidate
   uint64_t i, mismatches;
@@ -47,26 +47,26 @@ void filtering_region_verify_hamming_text(
   region_alignment->distance_min_bound = mismatches;
 }
 void filtering_region_verify_hamming(
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
-    text_trace_t* const text_trace,
-    const bool* const allowed_enc,
-    mm_stack_t* const mm_stack) {
+    filtering_region_t* const restrict filtering_region,
+    pattern_t* const restrict pattern,
+    text_trace_t* const restrict text_trace,
+    const bool* const restrict allowed_enc,
+    mm_stack_t* const restrict mm_stack) {
   // Parameters
-  const uint8_t* const key = pattern->key;
+  const uint8_t* const restrict key = pattern->key;
   const uint64_t key_length = pattern->key_length;
   const uint64_t max_error = filtering_region->max_error;
   const uint64_t text_base_offset = filtering_region->text_source_region_offset - filtering_region->key_source_region_offset;
-  const uint8_t* const text = text_trace->text + text_base_offset;
+  const uint8_t* const restrict text = text_trace->text + text_base_offset;
   const uint64_t text_length = key_length;
-  region_alignment_t* const region_alignment = &filtering_region->region_alignment;
+  region_alignment_t* const restrict region_alignment = &filtering_region->region_alignment;
   // Check length
   if (text_length >= key_length) {
     // Verify Hamming
     filtering_region_verify_hamming_text(region_alignment,text,key,key_length,allowed_enc,max_error);
     if (region_alignment->distance_min_bound != ALIGN_DISTANCE_INF) {
       region_alignment->num_tiles = 1;
-      region_alignment_tile_t* const alignment_tiles = mm_stack_calloc(mm_stack,1,region_alignment_tile_t,false);
+      region_alignment_tile_t* const restrict alignment_tiles = mm_stack_calloc(mm_stack,1,region_alignment_tile_t,false);
       region_alignment->alignment_tiles = alignment_tiles;
       alignment_tiles->match_distance = region_alignment->distance_min_bound;
       alignment_tiles->text_begin_offset = text_base_offset;
@@ -80,14 +80,14 @@ void filtering_region_verify_hamming(
  * Verify Leveshtein
  */
 bool filtering_region_verify_levenshtein_kmer_filter(
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
-    text_trace_t* const text_trace,
-    mm_stack_t* const mm_stack) {
+    filtering_region_t* const restrict filtering_region,
+    pattern_t* const restrict pattern,
+    text_trace_t* const restrict text_trace,
+    mm_stack_t* const restrict mm_stack) {
   // Parameters
-  const uint8_t* const text = text_trace->text;
+  const uint8_t* const restrict text = text_trace->text;
   const uint64_t text_length = text_trace->text_length;
-  region_alignment_t* const region_alignment = &filtering_region->region_alignment;
+  region_alignment_t* const restrict region_alignment = &filtering_region->region_alignment;
   // Compile kmer-filter trimmed
   kmer_counting_t* kmer_counting;
   if (filtering_region->key_trimmed) {
@@ -107,7 +107,7 @@ bool filtering_region_verify_levenshtein_kmer_filter(
     PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_DISCARDED);
     #ifdef FILTERING_REGION_VERIFY_CHECK_KMER_FILTER
     // DEBUG
-    const bpm_pattern_t* const bpm_pattern = &pattern->bpm_pattern;
+    const bpm_pattern_t* const restrict bpm_pattern = &pattern->bpm_pattern;
     uint64_t distance, match_column;
     bpm_compute_edit_distance(bpm_pattern,text,text_length,&distance,match_column,max_error,true);
     gem_cond_error_msg(distance != ALIGN_DISTANCE_INF,
@@ -119,27 +119,27 @@ bool filtering_region_verify_levenshtein_kmer_filter(
   return true;
 }
 void filtering_region_verify_levenshtein_bpm(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const filtering_region,
-    bpm_pattern_t* const bpm_pattern,
-    bpm_pattern_t* const bpm_pattern_tiles,
-    text_trace_t* const text_trace,
-    mm_stack_t* const mm_stack) {
+    filtering_candidates_t* const restrict filtering_candidates,
+    filtering_region_t* const restrict filtering_region,
+    bpm_pattern_t* const restrict bpm_pattern,
+    bpm_pattern_t* const restrict bpm_pattern_tiles,
+    text_trace_t* const restrict text_trace,
+    mm_stack_t* const restrict mm_stack) {
   // Parameters
-  const uint8_t* const text = text_trace->text;
+  const uint8_t* const restrict text = text_trace->text;
   const uint64_t num_pattern_tiles = bpm_pattern_tiles->num_pattern_tiles;
-  region_alignment_t* const region_alignment = &filtering_region->region_alignment;
-  region_alignment_tile_t* const alignment_tiles = region_alignment->alignment_tiles;
+  region_alignment_t* const restrict region_alignment = &filtering_region->region_alignment;
+  region_alignment_tile_t* const restrict alignment_tiles = region_alignment->alignment_tiles;
   const uint64_t max_error = MIN(filtering_region->max_error,bpm_pattern->pattern_length);
   // Align tiles
   uint64_t max_remaining_error = filtering_region->max_error;
   uint64_t tile_pos, global_distance=0;
   PROF_ADD_COUNTER(GP_BMP_DISTANCE_NUM_TILES,num_pattern_tiles);
   for (tile_pos=0;tile_pos<num_pattern_tiles;++tile_pos) {
-    region_alignment_tile_t* const alignment_tile = alignment_tiles + tile_pos;
+    region_alignment_tile_t* const restrict alignment_tile = alignment_tiles + tile_pos;
     if (alignment_tile->match_distance!=ALIGN_DISTANCE_INF) continue; // Next, already computed!
     if (global_distance <= max_error) {
-      bpm_pattern_t* const bpm_pattern_tile = bpm_pattern_tiles+tile_pos;
+      bpm_pattern_t* const restrict bpm_pattern_tile = bpm_pattern_tiles+tile_pos;
       const uint64_t max_tile_error = MIN(max_remaining_error,bpm_pattern->pattern_length);
       const uint64_t tile_offset = alignment_tile->text_begin_offset;
       const uint64_t tile_wide = alignment_tile->text_end_offset-alignment_tile->text_begin_offset;
@@ -168,12 +168,12 @@ void filtering_region_verify_levenshtein_bpm(
   region_alignment->distance_min_bound = global_distance;
 }
 void filtering_region_verify_levenshtein(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
-    text_trace_t* const text_trace,
+    filtering_candidates_t* const restrict filtering_candidates,
+    filtering_region_t* const restrict filtering_region,
+    pattern_t* const restrict pattern,
+    text_trace_t* const restrict text_trace,
     const bool kmer_filter,
-    mm_stack_t* const mm_stack) {
+    mm_stack_t* const restrict mm_stack) {
   // Generalized Kmer-Counting filter [Prefilter]
   if (kmer_filter) {
     if (!filtering_region_verify_levenshtein_kmer_filter(
@@ -194,22 +194,22 @@ void filtering_region_verify_levenshtein(
  * Verify (Switch)
  */
 bool filtering_region_verify(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
+    filtering_candidates_t* const restrict filtering_candidates,
+    filtering_region_t* const restrict filtering_region,
+    pattern_t* const restrict pattern,
     const bool kmer_filter) {
   PROF_START(GP_FC_VERIFY_CANDIDATES_REGION);
   // Parameters
-  archive_text_t* const archive_text = filtering_candidates->archive->text;
-  search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
-  text_collection_t* const text_collection = filtering_candidates->text_collection;
-  mm_stack_t* const mm_stack = filtering_candidates->mm_stack;
-  region_alignment_t* const region_alignment = &filtering_region->region_alignment;
+  archive_text_t* const restrict archive_text = filtering_candidates->archive->text;
+  search_parameters_t* const restrict search_parameters = filtering_candidates->search_parameters;
+  text_collection_t* const restrict text_collection = filtering_candidates->text_collection;
+  mm_stack_t* const restrict mm_stack = filtering_candidates->mm_stack;
+  region_alignment_t* const restrict region_alignment = &filtering_region->region_alignment;
   // Check align-distance (already known or verified)
   if (region_alignment->distance_min_bound == ALIGN_DISTANCE_INF) {
     // Retrieve text-candidate
     filtering_region_retrieve_text(filtering_region,pattern,archive_text,text_collection,mm_stack);
-    text_trace_t* const text_trace = text_collection_get_trace(
+    text_trace_t* const restrict text_trace = text_collection_get_trace(
         text_collection,filtering_region->text_trace_offset);
     // Select alignment model
     switch (search_parameters->alignment_model) {
@@ -246,16 +246,16 @@ bool filtering_region_verify(
   }
 }
 uint64_t filtering_region_verify_multiple_hits(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern) {
+    filtering_candidates_t* const restrict filtering_candidates,
+    filtering_region_t* const restrict filtering_region,
+    pattern_t* const restrict pattern) {
   // Text (candidate)
-  text_trace_t* const text_trace = text_collection_get_trace(
+  text_trace_t* const restrict text_trace = text_collection_get_trace(
       filtering_candidates->text_collection,filtering_region->text_trace_offset);
-  const uint8_t* const text = text_trace->text;
+  const uint8_t* const restrict text = text_trace->text;
   const uint64_t text_length = text_trace->text_length;
   // Pattern
-  const bpm_pattern_t* const bpm_pattern = pattern->bpm_pattern;
+  const bpm_pattern_t* const restrict bpm_pattern = pattern->bpm_pattern;
   const uint64_t max_filtering_error = filtering_region->max_error;
   // Select alignment model
   uint64_t num_matches_found;
@@ -278,15 +278,15 @@ uint64_t filtering_region_verify_multiple_hits(
   return num_matches_found;
 }
 uint64_t filtering_region_verify_extension(
-    filtering_candidates_t* const filtering_candidates,
+    filtering_candidates_t* const restrict filtering_candidates,
     const uint64_t text_trace_offset,
     const uint64_t index_position,
-    const pattern_t* const pattern) {
+    const pattern_t* const restrict pattern) {
   PROFILE_START(GP_FC_EXTEND_VERIFY_CANDIDATE_REGIONS,PROFILE_LEVEL);
   // Text (candidate)
-  text_trace_t* const text_trace = text_collection_get_trace(
+  text_trace_t* const restrict text_trace = text_collection_get_trace(
       filtering_candidates->text_collection,text_trace_offset);
-  const uint8_t* const text = text_trace->text;
+  const uint8_t* const restrict text = text_trace->text;
   const uint64_t text_length = text_trace->text_length;
   // Pattern
   const uint64_t max_filtering_error = pattern->max_effective_filtering_error;
@@ -295,7 +295,7 @@ uint64_t filtering_region_verify_extension(
   // 2. Generalized Counting filter
   // TODO
   // 3. Myers's BPM algorithm
-  const bpm_pattern_t* const bpm_pattern = pattern->bpm_pattern;
+  const bpm_pattern_t* const restrict bpm_pattern = pattern->bpm_pattern;
   const uint64_t num_matches_found = bpm_compute_edit_distance_all(
       bpm_pattern,filtering_candidates->filtering_regions,
       text_trace_offset,index_position,text,text_length,
