@@ -74,11 +74,50 @@ void region_profile_query_character(
     }
   } else {
     bwt_t* const bwt = fm_index->bwt;
-    if (gem_expect_false(bwt_is_same_bucket(*lo,*hi))) {
-      bwt_erank_interval(bwt,enc_char,*lo,*hi,lo,hi);
+    if (gem_expect_false((*lo/64) == (*hi/64) /*bwt_is_same_bucket(*lo,*hi)*/)) {
+      /*
+       * [MANUAL INLINE] bwt_erank_interval(bwt,enc_char,*lo,*hi,lo,hi); // Apologizes for doing this
+       */
+      const uint64_t block_pos = *hi / 64;
+      const uint64_t block_mod = *hi % 64;
+      const uint64_t* const mayor_counters = bwt->mayor_counters + (*hi / ((1 << 10) * 64)) * 8;
+      const uint64_t* const block_mem = bwt->bwt_mem + block_pos * ((16 * 8 + 64 * 3 + 64) / 8 / 8);
+      // Fetching Regular DNA Characters
+      const uint64_t sum_counters = mayor_counters[enc_char] + ((uint16_t*) block_mem)[enc_char];
+      const uint64_t bitmap = (block_mem[2] ^ xor_table_3[enc_char])
+                            & (block_mem[3] ^ xor_table_2[enc_char])
+                            & (block_mem[4] ^ xor_table_1[enc_char]);
+      *hi = sum_counters + (_mm_popcnt_u64((bitmap & uint64_mask_ones[(block_mod)])));
+      *lo = sum_counters + (_mm_popcnt_u64((bitmap & uint64_mask_ones[(*lo % 64)])));
     } else {
-      *lo = bwt_erank(bwt,enc_char,*lo);
-      *hi = bwt_erank(bwt,enc_char,*hi);
+      /*
+       * [MANUAL INLINE]  *lo = bwt_erank(bwt,enc_char,*lo); // Apologizes for doing this
+       */
+      const uint64_t block_pos_lo = *lo / 64;
+      const uint64_t block_mod_lo = *lo % 64;
+      const uint64_t* const mayor_counters_lo = bwt->mayor_counters + (*lo / ((1 << 10) * 64)) * 8;
+      const uint64_t* const block_mem_lo = bwt->bwt_mem + block_pos_lo * ((16 * 8 + 64 * 3 + 64) / 8 / 8);
+      // Calculate the exclusive rank for the given DNA character
+      const uint64_t sum_counters_lo = mayor_counters_lo[enc_char] + ((uint16_t*) block_mem_lo)[enc_char];
+      const uint64_t bitmap_lo = (block_mem_lo[2] ^ xor_table_3[enc_char])
+                               & (block_mem_lo[3] ^ xor_table_2[enc_char])
+                               & (block_mem_lo[4] ^ xor_table_1[enc_char]);
+      // Return rank
+      *lo = sum_counters_lo + _mm_popcnt_u64((bitmap_lo & uint64_mask_ones[(block_mod_lo)]));
+      /*
+       * [MANUAL INLINE]  *hi = bwt_erank(bwt,enc_char,*hi); // Apologizes for doing this
+       */
+      const uint64_t block_pos_hi = *hi / 64;
+      const uint64_t block_mod_hi = *hi % 64;
+      const uint64_t* const mayor_counters_hi = bwt->mayor_counters + (*hi / ((1 << 10) * 64)) * 8;
+      const uint64_t* const block_mem_hi = bwt->bwt_mem + block_pos_hi * ((16 * 8 + 64 * 3 + 64) / 8 / 8);
+      // Calculate the exclusive rank for the given DNA character
+      const uint64_t sum_counters_hi = mayor_counters_hi[enc_char] + ((uint16_t*) block_mem_hi)[enc_char];
+      const uint64_t bitmap_hi = (block_mem_hi[2] ^ xor_table_3[enc_char])
+                               & (block_mem_hi[3] ^ xor_table_2[enc_char])
+                               & (block_mem_hi[4] ^ xor_table_1[enc_char]);
+      // Return rank
+      *hi = sum_counters_hi + _mm_popcnt_u64((bitmap_hi & uint64_mask_ones[(block_mod_hi)]));
     }
   }
 }
