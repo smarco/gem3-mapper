@@ -13,14 +13,14 @@
  * Basic FM-Index search (backwards)
  */
 void fm_index_bsearch(
-    const fm_index_t* const restrict fm_index,
-    const uint8_t* const restrict key,
+    const fm_index_t* const fm_index,
+    const uint8_t* const key,
     uint64_t key_length,
-    uint64_t* const restrict hi_out,
-    uint64_t* const restrict lo_out) {
+    uint64_t* const hi_out,
+    uint64_t* const lo_out) {
   uint64_t lo, hi;
   // Rank queries against the lookup table
-  const rank_mtable_t* const restrict rank_mtable = fm_index->rank_table;
+  const rank_mtable_t* const rank_mtable = fm_index->rank_table;
   rank_mquery_t query;
   rank_mquery_new(&query);
   //rank_mtable_fetch(rank_mtable,&query,&lo,&hi); printf("> %"PRIu64"\t%"PRIu64"\n",lo,hi);
@@ -51,11 +51,11 @@ void fm_index_bsearch(
   }
 }
 void fm_index_bsearch_pure(
-    const fm_index_t* const restrict fm_index,
-    const uint8_t* const restrict key,
+    const fm_index_t* const fm_index,
+    const uint8_t* const key,
     uint64_t key_length,
-    uint64_t* const restrict hi_out,
-    uint64_t* const restrict lo_out) {
+    uint64_t* const hi_out,
+    uint64_t* const lo_out) {
   // Query lookup table
   uint64_t lo=0, hi=fm_index_get_length(fm_index);
   // Continue with ranks against the FM-Index
@@ -72,18 +72,18 @@ void fm_index_bsearch_pure(
   *lo_out=lo;
 }
 uint64_t fm_index_bsearch_continue(
-    const fm_index_t* const restrict fm_index,
-    const char* const restrict key,
+    const fm_index_t* const fm_index,
+    const char* const key,
     const uint64_t key_length,
-    const bool* const restrict allowed_repl,
+    const bool* const allowed_repl,
     uint64_t last_hi,
     uint64_t last_lo,
     uint64_t begin_pos,
     const uint64_t end_pos,
-    uint64_t* const restrict res_hi,
-    uint64_t* const restrict res_lo) {
+    uint64_t* const res_hi,
+    uint64_t* const res_lo) {
   // Extends the exact search of a key from a given position and interval
-  const bwt_t* const restrict bwt = fm_index->bwt;
+  const bwt_t* const bwt = fm_index->bwt;
   // Continue search
   while (begin_pos > end_pos) {
     if (last_lo==last_hi) {
@@ -107,11 +107,11 @@ uint64_t fm_index_bsearch_continue(
  * Basic FM-Index search (forward)
  */
 void fm_index_reverse_bsearch_pure(
-    const fm_index_t* const restrict fm_index,
-    const uint8_t* const restrict key,
+    const fm_index_t* const fm_index,
+    const uint8_t* const key,
     const uint64_t key_length,
-    uint64_t* const restrict hi_out,
-    uint64_t* const restrict lo_out) {
+    uint64_t* const hi_out,
+    uint64_t* const lo_out) {
   // Init
   fm_2interval_t fm_2interval;
   fm_2interval.backward_lo = 0;
@@ -134,12 +134,12 @@ void fm_index_reverse_bsearch_pure(
  * Debug
  */
 void fm_index_bsearch_debug(
-    const fm_index_t* const restrict fm_index,
-    const uint8_t* const restrict key,
+    const fm_index_t* const fm_index,
+    const uint8_t* const key,
     uint64_t key_length,
-    uint64_t* const restrict hi_out,
-    uint64_t* const restrict lo_out,
-    uint64_t* const restrict steps_out) {
+    uint64_t* const hi_out,
+    uint64_t* const lo_out,
+    uint64_t* const steps_out) {
   // Query lookup table
   uint64_t steps=0, lo=0, hi=fm_index_get_length(fm_index);
   // Query ranks against the FM-Index

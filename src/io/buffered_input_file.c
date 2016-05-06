@@ -23,10 +23,10 @@
  * Setup
  */
 buffered_input_file_t* buffered_input_file_new(
-    input_file_sliced_t* const restrict input_file_sliced,
+    input_file_sliced_t* const input_file_sliced,
     const uint64_t prefered_read_size) {
   // Alloc
-  buffered_input_file_t* const restrict buffered_input = mm_alloc(buffered_input_file_t);
+  buffered_input_file_t* const buffered_input = mm_alloc(buffered_input_file_t);
   // Input file
   buffered_input->input_file_sliced = input_file_sliced;
   buffered_input->prefered_read_size = prefered_read_size;
@@ -48,26 +48,26 @@ buffered_input_file_t* buffered_input_file_new(
   // Return
   return buffered_input;
 }
-void buffered_input_file_close(buffered_input_file_t* const restrict buffered_input) {
+void buffered_input_file_close(buffered_input_file_t* const buffered_input) {
   vector_delete(buffered_input->input_buffers);
   mm_free(buffered_input);
 }
 /*
  * Accessors
  */
-char* buffered_input_file_get_file_name(buffered_input_file_t* const restrict buffered_input) {
+char* buffered_input_file_get_file_name(buffered_input_file_t* const buffered_input) {
   return input_file_sliced_get_file_name(buffered_input->input_file_sliced);
 }
-uint32_t buffered_input_file_get_block_id(buffered_input_file_t* const restrict buffered_input) {
+uint32_t buffered_input_file_get_block_id(buffered_input_file_t* const buffered_input) {
   return buffered_input->block_id;
 }
-uint64_t buffered_input_file_get_num_lines(buffered_input_file_t* const restrict buffered_input) {
+uint64_t buffered_input_file_get_num_lines(buffered_input_file_t* const buffered_input) {
   return buffered_input->num_lines;
 }
-uint64_t buffered_input_file_get_current_line_num(buffered_input_file_t* const restrict buffered_input) {
+uint64_t buffered_input_file_get_current_line_num(buffered_input_file_t* const buffered_input) {
   return buffered_input->current_line_no;
 }
-bool buffered_input_file_eob(buffered_input_file_t* const restrict buffered_input) {
+bool buffered_input_file_eob(buffered_input_file_t* const buffered_input) {
   return buffered_input->current_buffer_line_no >= buffered_input->current_buffer_line_max &&
          buffered_input->input_buffer_next >= vector_get_used(buffered_input->input_buffers);
 }
@@ -75,8 +75,8 @@ bool buffered_input_file_eob(buffered_input_file_t* const restrict buffered_inpu
  * Input-File Buffer Reader
  */
 void buffered_input_file_read_buffer(
-    input_file_sliced_t* const restrict input_file_sliced,
-    buffered_input_file_t* const restrict buffered_input,
+    input_file_sliced_t* const input_file_sliced,
+    buffered_input_file_t* const buffered_input,
     const uint64_t forced_read_lines) {
   // Return exhausted input-buffers
   input_file_sliced_discard_exhausted_buffers(
@@ -96,7 +96,7 @@ void buffered_input_file_read_buffer(
   bool buffer_filled = false;
   while (!buffer_filled) {
     // Get current input-buffer
-    input_buffer_t* const restrict input_buffer = input_file_sliced_input_buffer_get_current(input_file_sliced);
+    input_buffer_t* const input_buffer = input_file_sliced_input_buffer_get_current(input_file_sliced);
     if (input_buffer==NULL) break; // EOF
     vector_insert(buffered_input->input_buffers,input_buffer,input_buffer_t*);
     // Read lines
@@ -116,14 +116,14 @@ void buffered_input_file_read_buffer(
 /*
  * Line Reader
  */
-int buffered_input_file_load_next_chunk(buffered_input_file_t* const restrict buffered_input) {
+int buffered_input_file_load_next_chunk(buffered_input_file_t* const buffered_input) {
   // Load next chunk
-  vector_t* const restrict input_buffers = buffered_input->input_buffers;
+  vector_t* const input_buffers = buffered_input->input_buffers;
   const uint64_t num_input_buffers = vector_get_used(input_buffers);
   const uint64_t input_buffer_next = buffered_input->input_buffer_next;
   if (input_buffer_next < num_input_buffers) {
     // Buffer
-    input_buffer_t* const restrict input_buffer = *(vector_get_elm(input_buffers,input_buffer_next,input_buffer_t*));
+    input_buffer_t* const input_buffer = *(vector_get_elm(input_buffers,input_buffer_next,input_buffer_t*));
     buffered_input->current_buffer = input_buffer;
     // Compute Offsets
     if (input_buffer_next==0) {
@@ -146,15 +146,15 @@ int buffered_input_file_load_next_chunk(buffered_input_file_t* const restrict bu
   }
 }
 int buffered_input_file_get_line(
-    buffered_input_file_t* const restrict buffered_input,
-    string_t* const restrict input_line) {
+    buffered_input_file_t* const buffered_input,
+    string_t* const input_line) {
   // Clear string
   string_clear(input_line);
   // Copy the remaining in the buffer (looking for the end-of-line)
   while (buffered_input->current_buffer_line_no >= buffered_input->current_buffer_line_max) {
     // Delimit line
-    char* const restrict line = buffered_input->current_buffer_sentinel;
-    const uint32_t* const restrict lengths = vector_get_mem(buffered_input->current_buffer->line_lengths,uint32_t);
+    char* const line = buffered_input->current_buffer_sentinel;
+    const uint32_t* const lengths = vector_get_mem(buffered_input->current_buffer->line_lengths,uint32_t);
     const uint64_t line_length = lengths[buffered_input->current_buffer_line_no];
     // Append to line
     string_right_append_buffer(input_line,line,line_length);
@@ -166,8 +166,8 @@ int buffered_input_file_get_line(
     }
   }
   // Copy until the end-of-line
-  char* const restrict line = buffered_input->current_buffer_sentinel;
-  const uint32_t* const restrict lengths = vector_get_mem(buffered_input->current_buffer->line_lengths,uint32_t);
+  char* const line = buffered_input->current_buffer_sentinel;
+  const uint32_t* const lengths = vector_get_mem(buffered_input->current_buffer->line_lengths,uint32_t);
   const uint64_t line_length = lengths[buffered_input->current_buffer_line_no];
   // Set line
   string_right_append_buffer(input_line,line,line_length);
@@ -178,7 +178,7 @@ int buffered_input_file_get_line(
   // Handle EOL
   const uint64_t input_line_length = string_get_length(input_line);
   if (input_line_length >= 2) {
-    char* const restrict input_line_buffer = string_get_buffer(input_line);
+    char* const input_line_buffer = string_get_buffer(input_line);
     if (input_line_buffer[input_line_length-2] == DOS_EOL) {
       input_line_buffer[input_line_length-2] = EOL;
       string_set_length(input_line,input_line_length-1);
@@ -191,7 +191,7 @@ int buffered_input_file_get_line(
  * Utils
  */
 uint64_t buffered_input_file_reload(
-    buffered_input_file_t* const restrict buffered_input,
+    buffered_input_file_t* const buffered_input,
     const uint64_t forced_read_lines) {
   PROFILE_START(GP_BUFFERED_INPUT_RELOAD__DUMP_ATTACHED,PROFILE_LEVEL);
   // Dump attached buffered-output
@@ -217,7 +217,7 @@ uint64_t buffered_input_file_reload(
   return INPUT_STATUS_OK; // OK
 }
 void buffered_input_file_attach_buffered_output(
-    buffered_input_file_t* const restrict buffered_input_file,
-    buffered_output_file_t* const restrict buffered_output_file) {
+    buffered_input_file_t* const buffered_input_file,
+    buffered_output_file_t* const buffered_output_file) {
   buffered_input_file->attached_buffered_output_file = buffered_output_file;
 }

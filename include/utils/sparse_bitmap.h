@@ -45,47 +45,47 @@ typedef struct {
 /*
  * Loader/Setup
  */
-sparse_bitmap_t* sparse_bitmap_read(fm_t* const restrict file_manager);
-sparse_bitmap_t* sparse_bitmap_read_mem(mm_t* const restrict memory_manager);
-void sparse_bitmap_delete(sparse_bitmap_t* const restrict sparse_bitmap);
+sparse_bitmap_t* sparse_bitmap_read(fm_t* const file_manager);
+sparse_bitmap_t* sparse_bitmap_read_mem(mm_t* const memory_manager);
+void sparse_bitmap_delete(sparse_bitmap_t* const sparse_bitmap);
 
 /*
  * Accessors
  */
-uint64_t sparse_bitmap_get_size(sparse_bitmap_t* const restrict sparse_bitmap);
+uint64_t sparse_bitmap_get_size(sparse_bitmap_t* const sparse_bitmap);
 
 bool sparse_bitmap_is_contained(
-    sparse_bitmap_t* const restrict sparse_bitmap,
+    sparse_bitmap_t* const sparse_bitmap,
     const uint64_t position);
 uint64_t sparse_bitmap_get_bitmap(
-    sparse_bitmap_t* const restrict sparse_bitmap,
+    sparse_bitmap_t* const sparse_bitmap,
     const uint64_t position);
 bool sparse_bitmap_get_bitmap_if_contained(
-    sparse_bitmap_t* const restrict sparse_bitmap,
+    sparse_bitmap_t* const sparse_bitmap,
     const uint64_t position);
 
 
 /*
  * Builder
  */
-sparse_bitmap_builder_t* sparse_bitmap_builder_new(mm_slab_t* const restrict mm_slab);
+sparse_bitmap_builder_t* sparse_bitmap_builder_new(mm_slab_t* const mm_slab);
 void sparse_bitmap_builder_delete(
-    sparse_bitmap_builder_t* const restrict sparse_bitmap_builder);
+    sparse_bitmap_builder_t* const sparse_bitmap_builder);
 void sparse_bitmap_builder_add_bitmap(
-    sparse_bitmap_builder_t* const restrict sparse_bitmap_builder,
+    sparse_bitmap_builder_t* const sparse_bitmap_builder,
     const uint64_t bitmap);
 void sparse_bitmap_builder_skip_bitmap(
-    sparse_bitmap_builder_t* const restrict sparse_bitmap_builder);
+    sparse_bitmap_builder_t* const sparse_bitmap_builder);
 void sparse_bitmap_builder_write(
-    fm_t* const restrict file_manager,
-    sparse_bitmap_builder_t* const restrict sparse_bitmap_builder);
+    fm_t* const file_manager,
+    sparse_bitmap_builder_t* const sparse_bitmap_builder);
 
 /*
  * Display
  */
 void sparse_bitmap_print(
-    FILE* const restrict stream,
-    sparse_bitmap_t* const restrict sparse_bitmap,
+    FILE* const stream,
+    sparse_bitmap_t* const sparse_bitmap,
     const bool display_content);
 
 #endif /* SPARSE_BITMAP_H_ */

@@ -12,7 +12,7 @@
  * Region Scheduling
  */
 void region_schedule_filtering_adaptive(
-    region_search_t* const restrict region,
+    region_search_t* const region,
     const uint64_t num_standard_regions_left,
     const uint64_t num_unique_regions_left,
     const uint64_t max_complete_error,
@@ -58,7 +58,7 @@ void region_schedule_filtering_adaptive(
  * Region Profile Scheduling
  */
 void region_profile_schedule_filtering_fixed(
-    region_profile_t* const restrict region_profile,
+    region_profile_t* const region_profile,
     const uint64_t regions_required,
     const uint64_t filtering_degree,
     const uint64_t filtering_threshold) {
@@ -67,8 +67,8 @@ void region_profile_schedule_filtering_fixed(
    *   to be filtered up to zero mismatches.
    */
   const uint64_t num_regions = region_profile->num_filtering_regions;
-  region_search_t* const restrict filtering_region = region_profile->filtering_region;
-  region_locator_t* const restrict loc = region_profile->loc;
+  region_search_t* const filtering_region = region_profile->filtering_region;
+  region_locator_t* const loc = region_profile->loc;
   // Sort by number of candidates
   region_profile_sort_by_candidates(region_profile);
   // Check the number of regions in the profile
@@ -98,7 +98,7 @@ void region_profile_schedule_filtering_fixed(
   }
 }
 void region_profile_schedule_filtering_adaptive(
-    region_profile_t* const restrict region_profile,
+    region_profile_t* const region_profile,
     const uint64_t max_complete_error,
     const uint64_t sensibility_misms_length) {
   /*
@@ -131,7 +131,7 @@ void region_profile_schedule_filtering_adaptive(
  * Display
  */
 void region_profile_schedule_print(
-    region_profile_t* const restrict region_profile,
+    region_profile_t* const region_profile,
     const uint64_t max_differences,
     const uint64_t sensibility_error_length) {
   // Header

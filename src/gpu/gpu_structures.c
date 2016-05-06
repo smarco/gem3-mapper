@@ -18,14 +18,14 @@
  * GPU Index Write
  */
 void gpu_structures_write(
-    const char* const restrict index_file_name_prefix,
-    dna_text_t* const restrict enc_text,
+    const char* const index_file_name_prefix,
+    dna_text_t* const enc_text,
     const uint64_t forward_text_length,
-    bwt_builder_t* const restrict bwt_builder,
-    uint64_t* const restrict sa_gem,
+    bwt_builder_t* const bwt_builder,
+    uint64_t* const sa_gem,
     const uint32_t sa_sampling) {
   // Configure index name
-  char* const restrict gpu_index_name = gem_strcat(index_file_name_prefix,".gem.gpu");
+  char* const gpu_index_name = gem_strcat(index_file_name_prefix,".gem.gpu");
   // Prepare GPU DTOs (Data Transfer Objects)
   gpu_gem_fmi_dto_t gpu_gem_fmi_dto = {
       .c              = bwt_builder->bwt.c,
@@ -62,11 +62,11 @@ void gpu_structures_write(
  * GPU Structures Write
  */
 void gpu_structures_write(
-    const char* const restrict index_file_name_prefix,
-    dna_text_t* const restrict enc_text,
+    const char* const index_file_name_prefix,
+    dna_text_t* const enc_text,
     const uint64_t forward_text_length,
-    bwt_builder_t* const restrict bwt_builder,
-    uint64_t* const restrict sa_gem,
+    bwt_builder_t* const bwt_builder,
+    uint64_t* const sa_gem,
     const uint32_t sa_sampling) { GEM_CUDA_NOT_SUPPORTED(); }
 
 #endif /* HAVE_CUDA */

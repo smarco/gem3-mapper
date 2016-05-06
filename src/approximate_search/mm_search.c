@@ -12,9 +12,9 @@
 /*
  * MM Search
  */
-mm_search_t* mm_search_new(mm_slab_t* const restrict mm_slab) {
+mm_search_t* mm_search_new(mm_slab_t* const mm_slab) {
   // Allocate
-  mm_search_t* const restrict mm_search = mm_alloc(mm_search_t);
+  mm_search_t* const mm_search = mm_alloc(mm_search_t);
   // Filtering candidates
   filtering_candidates_init(&mm_search->filtering_candidates_forward_end1);
   filtering_candidates_init(&mm_search->filtering_candidates_reverse_end1);
@@ -31,7 +31,7 @@ mm_search_t* mm_search_new(mm_slab_t* const restrict mm_slab) {
   // Return
   return mm_search;
 }
-void mm_search_clear(mm_search_t* const restrict mm_search) {
+void mm_search_clear(mm_search_t* const mm_search) {
   filtering_candidates_clear(&mm_search->filtering_candidates_forward_end1);
   filtering_candidates_clear(&mm_search->filtering_candidates_reverse_end1);
   filtering_candidates_clear(&mm_search->filtering_candidates_forward_end2);
@@ -40,7 +40,7 @@ void mm_search_clear(mm_search_t* const restrict mm_search) {
   interval_set_clear(&mm_search->interval_set);
   mm_stack_clear(mm_search->mm_stack);
 }
-void mm_search_delete(mm_search_t* const restrict mm_search) {
+void mm_search_delete(mm_search_t* const mm_search) {
   filtering_candidates_destroy(&mm_search->filtering_candidates_forward_end1);
   filtering_candidates_destroy(&mm_search->filtering_candidates_reverse_end1);
   filtering_candidates_destroy(&mm_search->filtering_candidates_forward_end2);

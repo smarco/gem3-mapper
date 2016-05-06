@@ -56,11 +56,12 @@ FLAGS_GEM_PROFILE=-DGEM_PROFILE
 FLAGS_GEM_DEBUG=-DGEM_DEBUG
 
 ## Base flags (Generic Compiler)
-FLAGS_GENERAL=-fPIC -Wall
+FLAGS_GENERAL=-Wall -std=c99
 FLAGS_SUPPRESS_CHECKS=-DNDEBUG
 FLAGS_OPT=-O4
-FLAGS_DEBUG=-g
-FLAGS_PROFILE=$(FLAGS_GEM_PROFILE)
+FLAGS_DEVEL=-g
+FLAGS_DEBUG=-O0
+FLAGS_PROFILE=-rdynamic
 
 ## GCC Compiler 
 ifeq ($(CC),gcc)
@@ -71,8 +72,7 @@ ifeq ($(CC),gcc)
     AR=gcc-ar
     OPT_AR=-fuse-linker-plugin
   endif
-  FLAGS_OPT=-Ofast -msse4.2 -std=c99 $(OPT_LTO)
-  FLAGS_DEBUG=-g -rdynamic
+  FLAGS_OPT=-Ofast -msse4.2 $(OPT_LTO)
   FLAGS_LINK=$(OPT_AR)
 endif
 
@@ -140,7 +140,8 @@ endif
 # VTune
 ###############################################################################
 VTUNE_PROFILE_LIB=-ldl
-VTUNE_PATH=/opt/intel/vtune_amplifier_xe_2013/
+VTUNE_PATH=/usr/local/software/intel/vtune_amplifier_xe
+#VTUNE_PATH=/opt/intel/vtune_amplifier_xe_2013
 LIBITTNOTIFY=$(VTUNE_PATH)/lib64/libittnotify.a
 ifeq ($(wildcard LIBITTNOTIFY),)
   VTUNE_PROFILE_LIB+=$(LIBITTNOTIFY)

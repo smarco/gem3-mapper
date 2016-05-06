@@ -23,10 +23,10 @@
  */
 void bpm_reset_search(
     const uint64_t num_words,
-    uint64_t* const restrict P,
-    uint64_t* const restrict M,
-    int64_t* const restrict score,
-    const int64_t* const restrict init_score) {
+    uint64_t* const P,
+    uint64_t* const M,
+    int64_t* const score,
+    const int64_t* const init_score) {
   // Reset score,P,M
   uint64_t i;
   P[0]=BMP_W64_ONES;
@@ -39,11 +39,11 @@ void bpm_reset_search(
   }
 }
 void bpm_reset_search_cutoff(
-    uint8_t* const restrict top_level,
-    uint64_t* const restrict P,
-    uint64_t* const restrict M,
-    int64_t* const restrict score,
-    const int64_t* const restrict init_score,
+    uint8_t* const top_level,
+    uint64_t* const P,
+    uint64_t* const M,
+    int64_t* const score,
+    const int64_t* const init_score,
     const uint64_t max_distance) {
   // Calculate the top level (maximum bit-word for cut-off purposes)
   const uint8_t y = (max_distance>0) ? (max_distance+(BMP_W64_LENGTH-1))/BMP_W64_LENGTH : 1;
@@ -71,8 +71,8 @@ int8_t bpm_advance_block(
     uint64_t Pv,
     uint64_t Mv,
     const int8_t hin,
-    uint64_t* const restrict Pv_out,
-    uint64_t* const restrict Mv_out) {
+    uint64_t* const Pv_out,
+    uint64_t* const Mv_out) {
   uint64_t Ph, Mh;
   uint64_t Xv, Xh;
   int8_t hout=0;
@@ -104,19 +104,19 @@ int8_t bpm_advance_block(
  * BMP
  */
 bool bpm_compute_edit_distance_raw(
-    bpm_pattern_t* const restrict bpm_pattern,
-    const uint8_t* const restrict text,
+    bpm_pattern_t* const bpm_pattern,
+    const uint8_t* const text,
     const uint64_t text_length,
-    uint64_t* const restrict position,
-    uint64_t* const restrict distance) {
+    uint64_t* const position,
+    uint64_t* const distance) {
   // Pattern variables
   const uint64_t* PEQ = bpm_pattern->PEQ;
   const uint64_t num_words64 = bpm_pattern->pattern_num_words64;
-  uint64_t* const restrict P = bpm_pattern->P;
-  uint64_t* const restrict M = bpm_pattern->M;
-  const uint64_t* const restrict level_mask = bpm_pattern->level_mask;
-  int64_t* const restrict score = bpm_pattern->score;
-  const int64_t* const restrict init_score = bpm_pattern->init_score;
+  uint64_t* const P = bpm_pattern->P;
+  uint64_t* const M = bpm_pattern->M;
+  const uint64_t* const level_mask = bpm_pattern->level_mask;
+  int64_t* const score = bpm_pattern->score;
+  const int64_t* const init_score = bpm_pattern->init_score;
   // Initialize search
   uint64_t min_score = ALIGN_DISTANCE_INF, min_score_column = ALIGN_COLUMN_INF;
   bpm_reset_search(num_words64,P,M,score,init_score);
@@ -129,8 +129,8 @@ bool bpm_compute_edit_distance_raw(
     int8_t carry;
     uint64_t i;
     for (i=0,carry=0;i<num_words64;++i) {
-      uint64_t* const restrict Py = P+i;
-      uint64_t* const restrict My = M+i;
+      uint64_t* const Py = P+i;
+      uint64_t* const My = M+i;
       carry = bpm_advance_block(PEQ[BPM_PATTERN_PEQ_IDX(i,enc_char)],level_mask[i],*Py,*My,carry+1,Py,My);
       score[i] += carry;
     }
@@ -152,11 +152,11 @@ bool bpm_compute_edit_distance_raw(
   }
 }
 bool bpm_compute_edit_distance(
-    const bpm_pattern_t* const restrict bpm_pattern,
-    const uint8_t* const restrict text,
+    const bpm_pattern_t* const bpm_pattern,
+    const uint8_t* const text,
     const uint64_t text_length,
-    uint64_t* const restrict match_distance,
-    uint64_t* const restrict match_column,
+    uint64_t* const match_distance,
+    uint64_t* const match_column,
     uint64_t max_distance,
     const bool quick_abandon) {
   PROF_START(GP_BPM_DISTANCE);
@@ -166,12 +166,12 @@ bool bpm_compute_edit_distance(
   // Pattern variables
   const uint64_t* PEQ = bpm_pattern->PEQ;
   const uint64_t num_words64 = bpm_pattern->pattern_num_words64;
-  uint64_t* const restrict P = bpm_pattern->P;
-  uint64_t* const restrict M = bpm_pattern->M;
-  const uint64_t* const restrict level_mask = bpm_pattern->level_mask;
-  int64_t* const restrict score = bpm_pattern->score;
-  const int64_t* const restrict init_score = bpm_pattern->init_score;
-  const uint64_t* const restrict pattern_left = bpm_pattern->pattern_left;
+  uint64_t* const P = bpm_pattern->P;
+  uint64_t* const M = bpm_pattern->M;
+  const uint64_t* const level_mask = bpm_pattern->level_mask;
+  int64_t* const score = bpm_pattern->score;
+  const int64_t* const init_score = bpm_pattern->init_score;
+  const uint64_t* const pattern_left = bpm_pattern->pattern_left;
   // Initialize search
   if (max_distance >= bpm_pattern->pattern_length) {
     max_distance = bpm_pattern->pattern_length-1; // Correct max-distance
@@ -264,25 +264,25 @@ bool bpm_compute_edit_distance(
  * BPM all matches
  */
 uint64_t bpm_compute_edit_distance_all(
-    const bpm_pattern_t* const restrict bpm_pattern,
-    vector_t* const restrict filtering_regions,
+    const bpm_pattern_t* const bpm_pattern,
+    vector_t* const filtering_regions,
     const uint64_t text_trace_offset,
     const uint64_t begin_position,
-    const uint8_t* const restrict text,
+    const uint8_t* const text,
     const uint64_t text_length,
     uint64_t max_distance,
-    mm_stack_t* const restrict mm_stack) {
+    mm_stack_t* const mm_stack) {
   PROF_START(GP_BPM_ALL);
   // Pattern variables
   const uint64_t* PEQ = bpm_pattern->PEQ;
   const uint64_t num_words64 = bpm_pattern->pattern_num_words64;
   const uint64_t key_length = bpm_pattern->pattern_length;
-  uint64_t* const restrict P = bpm_pattern->P;
-  uint64_t* const restrict M = bpm_pattern->M;
-  const uint64_t* const restrict level_mask = bpm_pattern->level_mask;
-  int64_t* const restrict score = bpm_pattern->score;
-  const int64_t* const restrict init_score = bpm_pattern->init_score;
-  const uint64_t* const restrict pattern_left = bpm_pattern->pattern_left;
+  uint64_t* const P = bpm_pattern->P;
+  uint64_t* const M = bpm_pattern->M;
+  const uint64_t* const level_mask = bpm_pattern->level_mask;
+  int64_t* const score = bpm_pattern->score;
+  const int64_t* const init_score = bpm_pattern->init_score;
+  const uint64_t* const pattern_left = bpm_pattern->pattern_left;
   // Initialize search
   if (max_distance >= bpm_pattern->pattern_length) {
     max_distance = bpm_pattern->pattern_length-1; // Correct max-distance

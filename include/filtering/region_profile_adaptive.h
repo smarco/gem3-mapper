@@ -47,37 +47,37 @@ typedef struct {
  * Region Profile Adaptive Iterator
  */
 void region_profile_generator_init(
-    region_profile_generator_t* const restrict generator,
-    region_profile_t* const restrict region_profile,
-    fm_index_t* const restrict fm_index,
-    const uint8_t* const restrict key,
+    region_profile_generator_t* const generator,
+    region_profile_t* const region_profile,
+    fm_index_t* const fm_index,
+    const uint8_t* const key,
     const uint64_t key_length,
-    const bool* const restrict allowed_enc,
+    const bool* const allowed_enc,
     const bool allow_zero_regions);
 bool region_profile_generator_next_region(
-    region_profile_t* const restrict region_profile,
-    region_profile_generator_t* const restrict generator,
-    const region_profile_model_t* const restrict profile_model);
+    region_profile_t* const region_profile,
+    region_profile_generator_t* const generator,
+    const region_profile_model_t* const profile_model);
 
 /*
  * Region Profile Generation
  */
 void region_profile_generate_adaptive(
-    region_profile_t* const restrict region_profile,
-    fm_index_t* const restrict fm_index,
-    const uint8_t* const restrict key,
+    region_profile_t* const region_profile,
+    fm_index_t* const fm_index,
+    const uint8_t* const key,
     const uint64_t key_length,
-    const bool* const restrict allowed_enc,
-    const region_profile_model_t* const restrict profile_model,
+    const bool* const allowed_enc,
+    const region_profile_model_t* const profile_model,
     const uint64_t max_regions,
     const bool allow_zero_regions);
 void region_profile_generate_adaptive_limited(
-    region_profile_t* const restrict region_profile,
-    fm_index_t* const restrict fm_index,
-    const uint8_t* const restrict key,
+    region_profile_t* const region_profile,
+    fm_index_t* const fm_index,
+    const uint8_t* const key,
     const uint64_t key_length,
-    const bool* const restrict allowed_enc,
-    const region_profile_model_t* const restrict profile_model,
+    const bool* const allowed_enc,
+    const region_profile_model_t* const profile_model,
     const uint64_t min_regions);
 
 #endif /* REGION_PROFILE_ADAPTIVE_H_ */

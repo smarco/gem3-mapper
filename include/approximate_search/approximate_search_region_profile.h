@@ -30,25 +30,25 @@ typedef enum {
  * Region Profile Adaptive
  */
 void approximate_search_region_profile_adaptive(
-    approximate_search_t* const restrict search,
+    approximate_search_t* const search,
     const region_profile_strategy_t strategy,
-    mm_stack_t* const restrict mm_stack);
+    mm_stack_t* const mm_stack);
 
 /*
  * Region Partition Fixed
  */
-void approximate_search_region_partition_fixed(approximate_search_t* const restrict search);
+void approximate_search_region_partition_fixed(approximate_search_t* const search);
 
 /*
  * Buffered Copy/Retrieve
  */
 void approximate_search_region_profile_buffered_copy(
-    approximate_search_t* const restrict search,
-    gpu_buffer_fmi_search_t* const restrict gpu_buffer_fmi_search);
+    approximate_search_t* const search,
+    gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
 void approximate_search_region_profile_buffered_retrieve(
-    approximate_search_t* const restrict search,
-    gpu_buffer_fmi_search_t* const restrict gpu_buffer_fmi_search);
+    approximate_search_t* const search,
+    gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
 void approximate_search_region_profile_buffered_recompute(
-    approximate_search_t* const restrict search);
+    approximate_search_t* const search);
 
 #endif /* APPROXIMATE_SEARCH_REGION_PROFILE_H_ */

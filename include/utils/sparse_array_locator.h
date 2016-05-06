@@ -61,29 +61,29 @@ typedef struct {
 /*
  * Loader/Setup
  */
-sparse_array_locator_t* sparse_array_locator_read(fm_t* const restrict file_manager);
-sparse_array_locator_t* sparse_array_locator_read_mem(mm_t* const restrict memory_manager);
-void sparse_array_locator_delete(sparse_array_locator_t* const restrict locator);
+sparse_array_locator_t* sparse_array_locator_read(fm_t* const file_manager);
+sparse_array_locator_t* sparse_array_locator_read_mem(mm_t* const memory_manager);
+void sparse_array_locator_delete(sparse_array_locator_t* const locator);
 
 /*
  * Accessors
  */
-uint64_t sparse_array_locator_get_size(sparse_array_locator_t* const restrict locator);
+uint64_t sparse_array_locator_get_size(sparse_array_locator_t* const locator);
 
 bool sparse_array_locator_is_marked(
-    sparse_array_locator_t* const restrict locator,
+    sparse_array_locator_t* const locator,
     const uint64_t position);
 uint64_t sparse_array_locator_get_erank(
-    sparse_array_locator_t* const restrict locator,
+    sparse_array_locator_t* const locator,
     const uint64_t position);
 bool sparse_array_locator_get_erank_if_marked(
-    sparse_array_locator_t* const restrict locator,
+    sparse_array_locator_t* const locator,
     const uint64_t position,
-    uint64_t* const restrict erank);
+    uint64_t* const erank);
 bool sparse_array_locator_get_erank__marked(
-    sparse_array_locator_t* const restrict locator,
+    sparse_array_locator_t* const locator,
     const uint64_t position,
-    uint64_t* const restrict erank);
+    uint64_t* const erank);
 
 /*
  * Builder
@@ -93,30 +93,30 @@ sparse_array_locator_t* sparse_array_locator_new(
     const uint64_t idx_begin,
     const uint64_t idx_end);
 void sparse_array_locator_mark(
-    sparse_array_locator_t* const restrict locator,
+    sparse_array_locator_t* const locator,
     const uint64_t position);
 void sparse_array_locator_write(
-    fm_t* const restrict file_manager,
-    sparse_array_locator_t* const restrict locator);
+    fm_t* const file_manager,
+    sparse_array_locator_t* const locator);
 void sparse_array_locator_merge__write(
-    fm_t* const restrict file_manager,
-    sparse_array_locator_t** const restrict locator,
+    fm_t* const file_manager,
+    sparse_array_locator_t** const locator,
     const uint64_t num_locators);
 // Dynamic Builder
-sparse_array_locator_builder_t* sparse_array_locator_builder_new(mm_slab_t* const restrict mm_slab);
+sparse_array_locator_builder_t* sparse_array_locator_builder_new(mm_slab_t* const mm_slab);
 void sparse_array_locator_builder_delete(
-    sparse_array_locator_builder_t* const restrict locator_builder);
+    sparse_array_locator_builder_t* const locator_builder);
 void sparse_array_locator_builder_next(
-    sparse_array_locator_builder_t* const restrict locator_builder,const bool mark_position);
+    sparse_array_locator_builder_t* const locator_builder,const bool mark_position);
 void sparse_array_locator_builder_write(
-    fm_t* const restrict file_manager,sparse_array_locator_builder_t* const restrict locator_builder);
+    fm_t* const file_manager,sparse_array_locator_builder_t* const locator_builder);
 
 /*
  * Display
  */
 void sparse_array_locator_print(
-    FILE* const restrict stream,
-    const sparse_array_locator_t* const restrict locator,
+    FILE* const stream,
+    const sparse_array_locator_t* const locator,
     const bool display_content);
 
 /*
@@ -124,13 +124,13 @@ void sparse_array_locator_print(
  */
 sparse_array_locator_stats_t* sparse_array_locator_stats_new();
 void sparse_array_locator_stats_delete(
-    sparse_array_locator_stats_t* const restrict sparse_array_locator_stats);
+    sparse_array_locator_stats_t* const sparse_array_locator_stats);
 void sparse_array_locator_stats_calculate(
-    sparse_array_locator_stats_t* const restrict sparse_array_locator_stats,
-    sparse_array_locator_t* const restrict locator);
+    sparse_array_locator_stats_t* const sparse_array_locator_stats,
+    sparse_array_locator_t* const locator);
 void sparse_array_locator_stats_print(
-    FILE* const restrict stream,
-    const char* const restrict sparse_array_locator_stats_tag,
-    sparse_array_locator_stats_t* const restrict locator_stats);
+    FILE* const stream,
+    const char* const sparse_array_locator_stats_tag,
+    sparse_array_locator_stats_t* const locator_stats);
 
 #endif /* SPARSE_ARRAY_LOCATOR_H_ */

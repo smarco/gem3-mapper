@@ -41,7 +41,7 @@ void gem_error_signal_handler(int signal) {
   pthread_mutex_lock(&gem_error_signal_handler_mutex);
     static bool reported = false;
     if (!reported) {
-      FILE* const restrict error_stream = gem_error_get_stream();
+      FILE* const error_stream = gem_error_get_stream();
       // Print stack trace
       gem_print_stack_trace();
       // Print custom error function
@@ -70,7 +70,7 @@ void gem_handle_error_signals() {
  * Print ErrNo
  */
 void gem_perror() {
-  FILE* const restrict error_stream = gem_error_get_stream();
+  FILE* const error_stream = gem_error_get_stream();
   fprintf(error_stream,">> GEM.System.Error::%s (errno=%d)\n",strerror(errno),errno);
   fflush(error_stream);
 }

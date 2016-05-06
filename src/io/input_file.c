@@ -11,7 +11,7 @@
 /*
  * Setup
  */
-void input_file_initialize(input_file_t* const restrict input_file,const uint64_t input_buffer_size) {
+void input_file_initialize(input_file_t* const input_file,const uint64_t input_buffer_size) {
   // Input file
   input_file->mmaped = false;
   input_file->memory_manager = NULL;
@@ -26,7 +26,7 @@ void input_file_initialize(input_file_t* const restrict input_file,const uint64_
 }
 input_file_t* input_stream_open(FILE* stream,const uint64_t input_buffer_size) {
   // Allocate handler
-  input_file_t* const restrict input_file = mm_alloc(input_file_t);
+  input_file_t* const input_file = mm_alloc(input_file_t);
   // Create file manager
   input_file->file_manager = fm_open_FILE(stream,FM_READ);
   // Initialize input file
@@ -35,7 +35,7 @@ input_file_t* input_stream_open(FILE* stream,const uint64_t input_buffer_size) {
 }
 input_file_t* input_gzip_stream_open(FILE* stream,const uint64_t input_buffer_size) {
   // Allocate handler
-  input_file_t* const restrict input_file = mm_alloc(input_file_t);
+  input_file_t* const input_file = mm_alloc(input_file_t);
   // Create file manager
   input_file->file_manager = fm_open_gzFILE(stream,FM_READ);
   // Initialize input file
@@ -44,7 +44,7 @@ input_file_t* input_gzip_stream_open(FILE* stream,const uint64_t input_buffer_si
 }
 input_file_t* input_bzip_stream_open(FILE* stream,const uint64_t input_buffer_size) {
   // Allocate handler
-  input_file_t* const restrict input_file = mm_alloc(input_file_t);
+  input_file_t* const input_file = mm_alloc(input_file_t);
   // Create file manager
   input_file->file_manager = fm_open_bzFILE(stream,FM_READ);
   // Initialize input file
@@ -52,11 +52,11 @@ input_file_t* input_bzip_stream_open(FILE* stream,const uint64_t input_buffer_si
   return input_file;
 }
 input_file_t* input_file_open(
-    char* const restrict file_name,
+    char* const file_name,
     const uint64_t input_buffer_size,
     const bool mmap_file) {
   // Allocate handler
-  input_file_t* const restrict input_file = mm_alloc(input_file_t);
+  input_file_t* const input_file = mm_alloc(input_file_t);
   // Prepare File
   if (!mmap_file) {
     input_file->file_manager = fm_open_file(file_name,FM_READ);
@@ -85,7 +85,7 @@ input_file_t* input_file_open(
   }
   return input_file;
 }
-void input_file_rewind(input_file_t* const restrict input_file) {
+void input_file_rewind(input_file_t* const input_file) {
   if (input_file->mmaped) {
     input_file->buffer_size = mm_get_allocated(input_file->memory_manager);
   } else {
@@ -98,7 +98,7 @@ void input_file_rewind(input_file_t* const restrict input_file) {
   input_file->global_pos = 0;
   input_file->processed_lines = 0;
 }
-void input_file_close(input_file_t* const restrict input_file) {
+void input_file_close(input_file_t* const input_file) {
   if (!input_file->mmaped) { // Regular file
     fm_close(input_file->file_manager);
     mm_free(input_file->file_buffer);
@@ -110,38 +110,38 @@ void input_file_close(input_file_t* const restrict input_file) {
 /*
  * Accessors
  */
-uint8_t input_file_get_current_char(input_file_t* const restrict input_file) {
+uint8_t input_file_get_current_char(input_file_t* const input_file) {
   return input_file->file_buffer[input_file->buffer_pos];
 }
-uint8_t input_file_get_char_at(input_file_t* const restrict input_file,const uint64_t position_in_buffer) {
+uint8_t input_file_get_char_at(input_file_t* const input_file,const uint64_t position_in_buffer) {
   return input_file->file_buffer[input_file->buffer_pos];
 }
-char* input_file_get_nonull_file_name(input_file_t* const restrict input_file) {
+char* input_file_get_nonull_file_name(input_file_t* const input_file) {
   return (input_file->file_manager!=NULL) ?
       fm_get_file_name(input_file->file_manager) : mm_get_mfile_name(input_file->memory_manager);
 }
-char* input_file_get_file_name(input_file_t* const restrict input_file) {
-  char* const restrict file_name = input_file_get_nonull_file_name(input_file);
+char* input_file_get_file_name(input_file_t* const input_file) {
+  char* const file_name = input_file_get_nonull_file_name(input_file);
   return (file_name!=NULL) ? file_name : STREAM_FILE_NAME;
 }
-uint64_t input_file_get_size(input_file_t* const restrict input_file) {
+uint64_t input_file_get_size(input_file_t* const input_file) {
   return (input_file->mmaped) ?
     mm_get_allocated(input_file->memory_manager):
     fm_get_file_size(input_file->file_manager);
 }
-uint64_t input_file_get_current_line(input_file_t* const restrict input_file) {
+uint64_t input_file_get_current_line(input_file_t* const input_file) {
   return input_file->processed_lines;
 }
-bool input_file_eob(input_file_t* const restrict input_file) {
+bool input_file_eob(input_file_t* const input_file) {
   return input_file->buffer_pos >= input_file->buffer_size;
 }
-bool input_file_eof(input_file_t* const restrict input_file) {
+bool input_file_eof(input_file_t* const input_file) {
   return input_file_eob(input_file) && (input_file->mmaped || fm_eof(input_file->file_manager));
 }
 /*
  * Basic Buffer Functions
  */
-uint64_t input_file_fill_buffer(input_file_t* const restrict input_file) {
+uint64_t input_file_fill_buffer(input_file_t* const input_file) {
   input_file->global_pos += input_file->buffer_size;
   input_file->buffer_pos = 0;
   input_file->buffer_begin = 0;
@@ -155,7 +155,7 @@ uint64_t input_file_fill_buffer(input_file_t* const restrict input_file) {
     return 0;
   }
 }
-uint64_t input_file_dump_to_buffer(input_file_t* const restrict input_file,vector_t* const restrict buffer_dst) {
+uint64_t input_file_dump_to_buffer(input_file_t* const input_file,vector_t* const buffer_dst) {
   // Copy internal file buffer to buffer_dst
   const uint64_t chunk_size = input_file->buffer_pos-input_file->buffer_begin;
   if (gem_expect_false(chunk_size==0)) return 0;
@@ -168,7 +168,7 @@ uint64_t input_file_dump_to_buffer(input_file_t* const restrict input_file,vecto
   // Return number of written bytes
   return chunk_size;
 }
-bool input_file_check_buffer(input_file_t* const restrict input_file) {
+bool input_file_check_buffer(input_file_t* const input_file) {
   if (gem_expect_false(input_file_eob(input_file))) {
     // Returns if any character has been read
     return (input_file_fill_buffer(input_file) > 0);
@@ -176,7 +176,7 @@ bool input_file_check_buffer(input_file_t* const restrict input_file) {
     return true;
   }
 }
-bool input_file_check_buffer__dump(input_file_t* const restrict input_file,vector_t* const restrict buffer_dst) {
+bool input_file_check_buffer__dump(input_file_t* const input_file,vector_t* const buffer_dst) {
   if (gem_expect_false(input_file_eob(input_file))) {
     if (gem_expect_true(buffer_dst!=NULL)) input_file_dump_to_buffer(input_file,buffer_dst);
     return (input_file_fill_buffer(input_file) > 0);
@@ -184,19 +184,19 @@ bool input_file_check_buffer__dump(input_file_t* const restrict input_file,vecto
     return true;
   }
 }
-bool input_file_next_char(input_file_t* const restrict input_file) {
+bool input_file_next_char(input_file_t* const input_file) {
   ++input_file->buffer_pos;
   // Returns if there is any character in buffer
   return input_file_check_buffer(input_file);
 }
-bool input_file_next_char__dump(input_file_t* const restrict input_file,vector_t* const restrict buffer_dst) {
+bool input_file_next_char__dump(input_file_t* const input_file,vector_t* const buffer_dst) {
   ++input_file->buffer_pos;
   return input_file_check_buffer__dump(input_file,buffer_dst);
 }
 /*
  * Basic Line Functions
  */
-void input_file_skip_eol(input_file_t* const restrict input_file) {
+void input_file_skip_eol(input_file_t* const input_file) {
   if (!input_file_eof(input_file)) {
     if (input_file_get_current_char(input_file)==DOS_EOL) {
       input_file_next_char(input_file); /* Skip DOS_EOL */
@@ -212,7 +212,7 @@ void input_file_skip_eol(input_file_t* const restrict input_file) {
   }
   ++(input_file->processed_lines);
 }
-void input_file_skip_eol__dump(input_file_t* const restrict input_file,vector_t* const restrict buffer_dst) {
+void input_file_skip_eol__dump(input_file_t* const input_file,vector_t* const buffer_dst) {
   if (!input_file_eof(input_file)) {
     if (input_file_get_current_char(input_file)==DOS_EOL) {
       input_file_next_char__dump(input_file,buffer_dst); /* Skip DOS_EOL */
@@ -233,7 +233,7 @@ void input_file_skip_eol__dump(input_file_t* const restrict input_file,vector_t*
   }
   ++(input_file->processed_lines);
 }
-uint64_t input_file_next_line(input_file_t* const restrict input_file,vector_t* const restrict buffer_dst) {
+uint64_t input_file_next_line(input_file_t* const input_file,vector_t* const buffer_dst) {
   input_file_check_buffer__dump(input_file,buffer_dst);
   if (input_file_eof(input_file)) return INPUT_STATUS_EOF;
   // Read line [OPT]
@@ -285,7 +285,7 @@ uint64_t input_file_next_line(input_file_t* const restrict input_file,vector_t* 
  * Line Readers (thread-unsafe, must call mutex functions before)
  */
 uint64_t input_file_get_lines(
-    input_file_t* const restrict input_file,
+    input_file_t* const input_file,
     vector_t* buffer_dst,
     const uint64_t num_lines) {
   // Clear dst buffer

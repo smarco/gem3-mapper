@@ -15,8 +15,8 @@
  * Control
  */
 void asearch_control_next_state_read_recovery(
-    approximate_search_t* const restrict search,
-    matches_t* const restrict matches) {
+    approximate_search_t* const search,
+    matches_t* const matches) {
   switch (search->processing_state) {
     case asearch_processing_state_no_regions:
       break;
@@ -32,10 +32,10 @@ void asearch_control_next_state_read_recovery(
   search->search_stage = asearch_stage_end;
 }
 void asearch_control_next_state_exact_filtering_adaptive(
-    approximate_search_t* const restrict search,
-    matches_t* const restrict matches) {
+    approximate_search_t* const search,
+    matches_t* const matches) {
   // Select state
-  search_parameters_t* const restrict search_parameters = search->search_parameters;
+  search_parameters_t* const search_parameters = search->search_parameters;
   switch (search->processing_state) {
     case asearch_processing_state_no_regions:
       search->search_stage = asearch_stage_end;
@@ -62,13 +62,13 @@ void asearch_control_next_state_exact_filtering_adaptive(
 /*
  * Adaptive mapping Initial Basic Cases Selector
  */
-void approximate_search_filtering_adaptive_basic_cases(approximate_search_t* const restrict search) {
+void approximate_search_filtering_adaptive_basic_cases(approximate_search_t* const search) {
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Basic Cases\n");
     tab_global_inc();
   }
   // Parameters
-  pattern_t* const restrict pattern = &search->pattern;
+  pattern_t* const pattern = &search->pattern;
   const uint64_t key_length = pattern->key_length;
   const uint64_t num_wildcards = pattern->num_wildcards;
   // All characters are wildcards
@@ -106,10 +106,10 @@ void approximate_search_filtering_adaptive_basic_cases(approximate_search_t* con
  * Adaptive mapping [GEM-workflow 4.0]
  */
 void approximate_search_filtering_adaptive(
-    approximate_search_t* const restrict search,
-    matches_t* const restrict matches) {
+    approximate_search_t* const search,
+    matches_t* const matches) {
   // Parameters
-  const search_parameters_t* const restrict search_parameters = search->search_parameters;
+  const search_parameters_t* const search_parameters = search->search_parameters;
   // Process proper search-stage
   while (true) {
     switch (search->search_stage) {
@@ -149,9 +149,9 @@ void approximate_search_filtering_adaptive(
  * Test // FIXME Delete ME
  */
 void approximate_search_filtering_adaptive_test(
-    approximate_search_t* const restrict search,
-    matches_t* const restrict matches) {
-//  pattern_t* const restrict pattern = &search->pattern;
+    approximate_search_t* const search,
+    matches_t* const matches) {
+//  pattern_t* const pattern = &search->pattern;
   // FM-Index basic exact search
 //  fm_index_bsearch(search->archive->fm_index,pattern->key,
 //    pattern->key_length,&search->hi_exact_matches,&search->lo_exact_matches);

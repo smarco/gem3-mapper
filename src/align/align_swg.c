@@ -20,24 +20,24 @@
  *   @match_alignment->cigar_length (Cumulative)
  */
 void align_swg_traceback(
-    match_align_input_t* const restrict align_input,
-    swg_cell_t** const restrict dp,
+    match_align_input_t* const align_input,
+    swg_cell_t** const dp,
     const int32_t max_score,
     const uint64_t max_score_column,
     const int32_t single_gap,
     const int32_t gap_extension,
     const bool begin_free,
-    match_alignment_t* const restrict match_alignment,
-    vector_t* const restrict cigar_vector) {
+    match_alignment_t* const match_alignment,
+    vector_t* const cigar_vector) {
   // Parameters
-  const uint8_t* const restrict key = align_input->key;
+  const uint8_t* const key = align_input->key;
   const uint64_t key_length = align_input->key_length;
-  uint8_t* const restrict text = align_input->text;
+  uint8_t* const text = align_input->text;
   const uint64_t text_length = align_input->text_length;
   // Allocate CIGAR string memory (worst case)
   vector_reserve_additional(cigar_vector,key_length+text_length); // Reserve
   cigar_element_t* cigar_buffer_sentinel = vector_get_free_elm(cigar_vector,cigar_element_t); // Sentinel
-  cigar_element_t* const restrict cigar_buffer_base = cigar_buffer_sentinel;
+  cigar_element_t* const cigar_buffer_base = cigar_buffer_sentinel;
   cigar_buffer_sentinel->type = cigar_null; // Trick
   // Start Backtrace
   int64_t match_effective_length = key_length;
@@ -113,8 +113,8 @@ void align_swg_traceback(
 swg_cell_t** align_swg_allocate_table(
     const uint64_t num_columns,
     const uint64_t num_rows,
-    mm_stack_t* const restrict mm_stack) {
-  swg_cell_t** const restrict dp = mm_stack_malloc(mm_stack,num_columns*sizeof(swg_cell_t*));
+    mm_stack_t* const mm_stack) {
+  swg_cell_t** const dp = mm_stack_malloc(mm_stack,num_columns*sizeof(swg_cell_t*));
   const uint64_t row_size = num_rows*sizeof(swg_cell_t);
   uint64_t column;
   for (column=0;column<num_columns;++column) {
@@ -123,7 +123,7 @@ swg_cell_t** align_swg_allocate_table(
   return dp;
 }
 void align_swg_init_table(
-    swg_cell_t** const restrict dp,
+    swg_cell_t** const dp,
     const uint64_t num_columns,
     const uint64_t num_rows,
     const int32_t single_gap,
@@ -142,7 +142,7 @@ void align_swg_init_table(
   }
 }
 void align_swg_init_table_banded(
-    swg_cell_t** const restrict dp,
+    swg_cell_t** const dp,
     const uint64_t num_columns,
     const uint64_t num_rows,
     const uint64_t column_start_band,
@@ -177,7 +177,7 @@ void align_swg_init_table_banded(
   }
 }
 void align_swg_init_table_banded_opt(
-    swg_cell_t** const restrict dp,
+    swg_cell_t** const dp,
     const uint64_t num_columns,
     const uint64_t num_rows,
     const uint64_t column_start_band,
@@ -226,15 +226,15 @@ void align_swg_init_table_banded_opt(
  *   @match_alignment->match_position (Adjusted)
  */
 void align_swg_base(
-    match_align_input_t* const restrict align_input,
-    match_align_parameters_t* const restrict align_parameters,
-    match_alignment_t* const restrict match_alignment,
-    vector_t* const restrict cigar_vector,
-    mm_stack_t* const restrict mm_stack) {
+    match_align_input_t* const align_input,
+    match_align_parameters_t* const align_parameters,
+    match_alignment_t* const match_alignment,
+    vector_t* const cigar_vector,
+    mm_stack_t* const mm_stack) {
   // Parameters
-  const uint8_t* const restrict key = align_input->key;
+  const uint8_t* const key = align_input->key;
   const uint64_t key_length = align_input->key_length;
-  uint8_t* const restrict text = align_input->text;
+  uint8_t* const text = align_input->text;
   const uint64_t text_length = align_input->text_length;
   const swg_penalties_t* swg_penalties = align_parameters->swg_penalties;
   // Initialize
@@ -242,9 +242,9 @@ void align_swg_base(
   const uint64_t num_rows = (key_length+1);
   const uint64_t num_columns = (text_length+1);
   uint64_t column, row;
-  swg_cell_t** const restrict dp = align_swg_allocate_table(num_columns,num_rows,mm_stack);
+  swg_cell_t** const dp = align_swg_allocate_table(num_columns,num_rows,mm_stack);
   // Initialize first row
-  const swg_matching_score_t* const restrict matching_score = &swg_penalties->matching_score;
+  const swg_matching_score_t* const matching_score = &swg_penalties->matching_score;
   const int32_t single_gap = swg_penalties->gap_open_score + swg_penalties->gap_extension_score; // g(1)
   const int32_t gap_extension = swg_penalties->gap_extension_score;
   align_swg_init_table(dp,num_columns,num_rows,single_gap,gap_extension);
@@ -298,18 +298,18 @@ void align_swg_base(
  *   @match_alignment->cigar_length (Cumulative)
  */
 void align_swg_full(
-    match_align_input_t* const restrict align_input,
-    match_align_parameters_t* const restrict align_parameters,
+    match_align_input_t* const align_input,
+    match_align_parameters_t* const align_parameters,
     const bool begin_free,
     const bool end_free,
-    match_alignment_t* const restrict match_alignment,
-    vector_t* const restrict cigar_vector,
-    mm_stack_t* const restrict mm_stack) {
+    match_alignment_t* const match_alignment,
+    vector_t* const cigar_vector,
+    mm_stack_t* const mm_stack) {
   PROF_START(GP_SWG_ALIGN_FULL);
   // Parameters
-  const uint8_t* const restrict key = align_input->key;
+  const uint8_t* const key = align_input->key;
   const uint64_t key_length = align_input->key_length;
-  uint8_t* const restrict text = align_input->text;
+  uint8_t* const text = align_input->text;
   const uint64_t text_length = align_input->text_length;
   const swg_penalties_t* swg_penalties = align_parameters->swg_penalties;
   // Allocate memory
@@ -317,9 +317,9 @@ void align_swg_full(
   const uint64_t num_rows = (key_length+1);
   const uint64_t num_rows_1 = num_rows-1;
   const uint64_t num_columns = (text_length+1);
-  swg_cell_t** const restrict dp = align_swg_allocate_table(num_columns+1,num_rows+1,mm_stack);
+  swg_cell_t** const dp = align_swg_allocate_table(num_columns+1,num_rows+1,mm_stack);
   // Initialize DP-matrix
-  const swg_matching_score_t* const restrict matching_score = &swg_penalties->matching_score;
+  const swg_matching_score_t* const matching_score = &swg_penalties->matching_score;
   const int32_t gap_extension = swg_penalties->gap_extension_score;
   const int32_t gap_open = swg_penalties->gap_open_score;
   const int32_t single_gap = gap_open + gap_extension; // g(1)
@@ -381,17 +381,17 @@ void align_swg_full(
  *   @match_alignment->cigar_length (Cumulative)
  */
 void align_swg_banded(
-    match_align_input_t* const restrict align_input,
-    match_align_parameters_t* const restrict align_parameters,
+    match_align_input_t* const align_input,
+    match_align_parameters_t* const align_parameters,
     const bool begin_free,
     const bool end_free,
-    match_alignment_t* const restrict match_alignment,
-    vector_t* const restrict cigar_vector,
-    mm_stack_t* const restrict mm_stack) {
+    match_alignment_t* const match_alignment,
+    vector_t* const cigar_vector,
+    mm_stack_t* const mm_stack) {
   // Parameters
-  const uint8_t* const restrict key = align_input->key;
+  const uint8_t* const key = align_input->key;
   const uint64_t key_length = align_input->key_length;
-  uint8_t* const restrict text = align_input->text;
+  uint8_t* const text = align_input->text;
   uint64_t text_length = align_input->text_length;
   const swg_penalties_t* swg_penalties = align_parameters->swg_penalties;
   const uint64_t max_bandwidth = align_parameters->max_bandwidth;
@@ -414,9 +414,9 @@ void align_swg_banded(
   const uint64_t num_rows_1 = num_rows-1;
   const uint64_t num_columns = (text_length+1);
   PROF_ADD_COUNTER(GP_SWG_ALIGN_BANDED_CELLS,num_columns*max_bandwidth);
-  swg_cell_t** const restrict dp = align_swg_allocate_table(num_columns+1,num_rows+1,mm_stack);
+  swg_cell_t** const dp = align_swg_allocate_table(num_columns+1,num_rows+1,mm_stack);
   // Initialize DP-matrix
-  const swg_matching_score_t* const restrict matching_score = &swg_penalties->matching_score;
+  const swg_matching_score_t* const matching_score = &swg_penalties->matching_score;
   const int32_t gap_extension = swg_penalties->gap_extension_score;
   const int32_t gap_open = swg_penalties->gap_open_score;
   const int32_t single_gap = gap_open + gap_extension; // g(1)
@@ -498,20 +498,20 @@ void align_swg_banded(
  *   @match_alignment->cigar_length (Cumulative)
  */
 void align_swg(
-    match_align_input_t* const restrict align_input,
-    match_align_parameters_t* const restrict align_parameters,
+    match_align_input_t* const align_input,
+    match_align_parameters_t* const align_parameters,
     const bool begin_free,
     const bool end_free,
-    match_alignment_t* const restrict match_alignment,
-    vector_t* const restrict cigar_vector,
-    mm_stack_t* const restrict mm_stack) {
+    match_alignment_t* const match_alignment,
+    vector_t* const cigar_vector,
+    mm_stack_t* const mm_stack) {
   // Parameters
-  const uint8_t* const restrict key = align_input->key;
+  const uint8_t* const key = align_input->key;
   const uint64_t key_length = align_input->key_length;
-  uint8_t* const restrict text = align_input->text;
+  uint8_t* const text = align_input->text;
   const uint64_t text_length = align_input->text_length;
   const swg_penalties_t* swg_penalties = align_parameters->swg_penalties;
-  const bool* const restrict allowed_enc = align_parameters->allowed_enc;
+  const bool* const allowed_enc = align_parameters->allowed_enc;
   // Check lengths
   if (key_length == 0 && text_length == 0) {
     match_alignment->score = 0;
@@ -557,7 +557,7 @@ void align_swg(
  * Display
  */
 void align_swg_print_table(
-    swg_cell_t** const restrict dp,
+    swg_cell_t** const dp,
     const uint64_t num_columns,
     const uint64_t num_rows) {
   uint64_t i, j;
@@ -569,9 +569,9 @@ void align_swg_print_table(
   }
 }
 void align_swg_print_input(
-    const uint8_t* const restrict key,
+    const uint8_t* const key,
     const uint64_t key_length,
-    const uint8_t* const restrict text,
+    const uint8_t* const text,
     const uint64_t text_length) {
   uint64_t i;
   printf("KEY> ");

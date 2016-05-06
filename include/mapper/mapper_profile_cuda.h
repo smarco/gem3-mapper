@@ -16,12 +16,12 @@
  * Mapper SE
  */
 void mapper_profile_print_mapper_se_cuda(
-    FILE* const restrict stream,const bool map_output,const uint64_t num_threads);
+    FILE* const stream,const bool map_output,const uint64_t num_threads);
 
 /*
  * Mapper PE
  */
 void mapper_profile_print_mapper_pe_cuda(
-    FILE* const restrict stream,const bool map_output,const uint64_t num_threads);
+    FILE* const stream,const bool map_output,const uint64_t num_threads);
 
 #endif /* MAPPER_PROFILE_CUDA_H_ */

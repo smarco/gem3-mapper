@@ -37,9 +37,9 @@
 /*
  * FASTQ/FASTA Tag Parser
  */
-sequence_end_t input_fasta_parse_sequence_tag_chomp_end_info(string_t* const restrict tag) {
+sequence_end_t input_fasta_parse_sequence_tag_chomp_end_info(string_t* const tag) {
   // Parse the end information {/1,/2}
-  const char* const restrict tag_buffer = string_get_buffer(tag);
+  const char* const tag_buffer = string_get_buffer(tag);
   const uint64_t tag_length = string_get_length(tag);
   if (tag_length > 2 && tag_buffer[tag_length-2] == SLASH) {
     switch (tag_buffer[tag_length-1]) {
@@ -57,8 +57,8 @@ sequence_end_t input_fasta_parse_sequence_tag_chomp_end_info(string_t* const res
   return single_end;
 }
 void input_fasta_parse_sequence_tag_extra(
-    sequence_t* const restrict sequence,
-    char* const restrict tag_extra,
+    sequence_t* const sequence,
+    char* const tag_extra,
     const uint64_t tag_extra_length) {
   // Parse extra info
   uint64_t i = 0;
@@ -71,7 +71,7 @@ void input_fasta_parse_sequence_tag_extra(
      *   @EAS139:136:FC706VJ:2:5:1000:12850 1:Y:18:ATCACG
      */
     if (input_text_parse_count_colons_in_field(tag_extra+i)==3) {
-      char* const restrict casava_tag_begin = tag_extra+i;
+      char* const casava_tag_begin = tag_extra+i;
       switch (casava_tag_begin[0]) {
         case '1':
           sequence->end_info = paired_end1;
@@ -85,16 +85,16 @@ void input_fasta_parse_sequence_tag_extra(
           break;
       }
       while (i < tag_extra_length && tag_extra[i]!=SPACE && tag_extra[i]!=TAB) ++i;
-      char* const restrict casava_tag_end = tag_extra+i;
+      char* const casava_tag_end = tag_extra+i;
       string_set_buffer(&sequence->casava_tag,casava_tag_begin,(casava_tag_end-casava_tag_begin));
       continue; // Next!
     }
     /*
      * Extra Tag (Consider everything else as extra information appended to the tag)
      */
-    char* const restrict extra_tag_begin = tag_extra+i;
+    char* const extra_tag_begin = tag_extra+i;
     while (i < tag_extra_length && tag_extra[i]!=SPACE && tag_extra[i]!=TAB) ++i;
-    char* const restrict extra_tag_end = tag_extra+i;
+    char* const extra_tag_end = tag_extra+i;
     string_set_buffer(&sequence->extra_tag,extra_tag_begin,extra_tag_end-extra_tag_begin);
     /*
      * Additional check to see if any extra attributes end in /1 /2 /3
@@ -111,7 +111,7 @@ void input_fasta_parse_sequence_tag_extra(
       string_append_string(&sequence->tag,&sequence->extra_tag);
       // Replace all spaces
       const uint64_t tag_length = string_get_length(&sequence->tag);
-      char* const restrict tag_buffer = string_get_buffer(&sequence->tag);
+      char* const tag_buffer = string_get_buffer(&sequence->tag);
       for (i=0;i<tag_length;i++) {
         if (tag_buffer[i]==SPACE) tag_buffer[i] = UNDERSCORE;
       }
@@ -122,14 +122,14 @@ void input_fasta_parse_sequence_tag_extra(
   }
 }
 int input_fasta_parse_sequence_tag(
-    buffered_input_file_t* const restrict buffered_input,
-    sequence_t* const restrict sequence) {
+    buffered_input_file_t* const buffered_input,
+    sequence_t* const sequence) {
   // Read TAG line
-  string_t* const restrict tag_line = &sequence->extra_tag;
+  string_t* const tag_line = &sequence->extra_tag;
   buffered_input_file_get_line(buffered_input,tag_line);
   // Parse beginning character
   const uint64_t line_length = string_get_length(tag_line)-1; // No EOL
-  char* const restrict line = string_get_buffer(tag_line);
+  char* const line = string_get_buffer(tag_line);
   switch (line[0]) {
     case FASTA_TAG_BEGIN:
       sequence->has_qualities = false;
@@ -155,16 +155,16 @@ int input_fasta_parse_sequence_tag(
   return INPUT_STATUS_OK;
 }
 int input_fasta_parse_sequence_read(
-    buffered_input_file_t* const restrict buffered_input,
-    sequence_t* const restrict sequence,
+    buffered_input_file_t* const buffered_input,
+    sequence_t* const sequence,
     const bool strictly_normalized,
     const bool correct_sequence) {
   // Read READ line
-  string_t* const restrict read = &sequence->read;
+  string_t* const read = &sequence->read;
   buffered_input_file_get_line(buffered_input,read);
   // Check/Normalize READ
   const uint64_t line_length = string_get_length(read)-1; // No EOL
-  char* const restrict line = string_get_buffer(read);
+  char* const line = string_get_buffer(read);
   bool bad_character_warn = false;
   uint64_t i = 0;
   for (i=0;i<line_length-1;++i) {
@@ -189,14 +189,14 @@ int input_fasta_parse_sequence_read(
   return INPUT_STATUS_OK;
 }
 int input_fasta_parse_sequence_qualities(
-    buffered_input_file_t* const restrict buffered_input,
-    sequence_t* const restrict sequence) {
+    buffered_input_file_t* const buffered_input,
+    sequence_t* const sequence) {
   // Read QUALITIES line
-  string_t* const restrict qualities = &sequence->qualities;
+  string_t* const qualities = &sequence->qualities;
   buffered_input_file_get_line(buffered_input,qualities);
   // Check/Normalize QUALITIES
   const uint64_t line_length = string_get_length(qualities)-1; // No EOL
-  char* const restrict line = string_get_buffer(qualities);
+  char* const line = string_get_buffer(qualities);
   uint64_t i = 0;
   for (i=0;i<line_length-1;++i) {
     const char character = line[i];
@@ -213,8 +213,8 @@ int input_fasta_parse_sequence_qualities(
  * High Level Parsers
  */
 int input_fasta_parse_sequence_components(
-    buffered_input_file_t* const restrict buffered_input,
-    sequence_t* const restrict sequence,
+    buffered_input_file_t* const buffered_input,
+    sequence_t* const sequence,
     const bool strictly_normalized) {
   // Parse TAG
   int status;
@@ -227,7 +227,7 @@ int input_fasta_parse_sequence_components(
   if (sequence->has_qualities) {
     // Read line (FASTQ comments)
     buffered_input_file_get_line(buffered_input,&sequence->qualities);
-    const char* const restrict buffer = string_get_buffer(&sequence->qualities);
+    const char* const buffer = string_get_buffer(&sequence->qualities);
     if (buffer[0]!=FASTQ_SEP) { // Check '+'
       input_fasta_parser_prompt_error(buffered_input,FASTA_ERROR_SEPARATOR_BAD_CHARACTER);
       return INPUT_STATUS_FAIL;
@@ -244,8 +244,8 @@ int input_fasta_parse_sequence_components(
   return INPUT_STATUS_OK;
 }
 int input_fasta_parse_sequence(
-    buffered_input_file_t* const restrict buffered_input,
-    sequence_t* const restrict sequence,
+    buffered_input_file_t* const buffered_input,
+    sequence_t* const sequence,
     const bool strictly_normalized,
     const bool check_input_buffer) {
   PROFILE_START(GP_INPUT_FASTA_PARSE_SEQUENCE,PROFILE_LEVEL);
@@ -272,10 +272,10 @@ int input_fasta_parse_sequence(
  * Display
  */
 void input_fasta_parser_prompt_error(
-    buffered_input_file_t* const restrict buffered_input,
+    buffered_input_file_t* const buffered_input,
     const error_code_t error_code) {
   // Display textual error msg
-  const char* const restrict file_name = buffered_input_file_get_file_name(buffered_input);
+  const char* const file_name = buffered_input_file_get_file_name(buffered_input);
   const uint64_t line_no = buffered_input_file_get_current_line_num(buffered_input)-1;
   switch (error_code) {
     case 0: /* No error */ break;

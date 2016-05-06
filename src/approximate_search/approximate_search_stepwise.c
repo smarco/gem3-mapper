@@ -25,8 +25,8 @@
  * Control
  */
 void asearch_control_next_state_filtering_adaptive(
-    approximate_search_t* const restrict search,
-    matches_t* const restrict matches) {
+    approximate_search_t* const search,
+    matches_t* const matches) {
   // Select state
   switch (search->processing_state) {
     case asearch_processing_state_no_regions:
@@ -54,7 +54,7 @@ void asearch_control_next_state_filtering_adaptive(
 /*
  * AM Stepwise :: Region Profile
  */
-void approximate_search_stepwise_region_profile_generate_static(approximate_search_t* const restrict search) {
+void approximate_search_stepwise_region_profile_generate_static(approximate_search_t* const search) {
   while (true) {
     switch (search->search_stage) {
       case asearch_stage_begin: // Search Start. Check basic cases
@@ -70,7 +70,7 @@ void approximate_search_stepwise_region_profile_generate_static(approximate_sear
     }
   }
 }
-void approximate_search_stepwise_region_profile_generate_adaptive(approximate_search_t* const restrict search) {
+void approximate_search_stepwise_region_profile_generate_adaptive(approximate_search_t* const search) {
   while (true) {
     switch (search->search_stage) {
       case asearch_stage_begin: // Search Start. Check basic cases
@@ -85,11 +85,11 @@ void approximate_search_stepwise_region_profile_generate_adaptive(approximate_se
         // Set as region-profiled
         search->processing_state = asearch_processing_state_region_profiled;
         // Check exact matches (limit the number of matches)
-        region_profile_t* const restrict region_profile = &search->region_profile;
+        region_profile_t* const region_profile = &search->region_profile;
         if (region_profile_has_exact_matches(region_profile)) {
-          search_parameters_t* const restrict search_parameters = search->search_parameters;
-          select_parameters_t* const restrict select_parameters = &search_parameters->select_parameters_align;
-          region_search_t* const restrict filtering_region = region_profile->filtering_region;
+          search_parameters_t* const search_parameters = search->search_parameters;
+          select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;
+          region_search_t* const filtering_region = region_profile->filtering_region;
           const uint64_t total_candidates = filtering_region->hi - filtering_region->lo;
           if (select_parameters->min_reported_strata_nominal==0 &&
               total_candidates > select_parameters->max_reported_matches) {
@@ -105,15 +105,15 @@ void approximate_search_stepwise_region_profile_generate_adaptive(approximate_se
   }
 }
 void approximate_search_stepwise_region_profile_copy(
-    approximate_search_t* const restrict search,
-    gpu_buffer_fmi_search_t* const restrict gpu_buffer_fmi_search) {
+    approximate_search_t* const search,
+    gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) {
   if (search->processing_state == asearch_processing_state_region_partitioned) {
     approximate_search_region_profile_buffered_copy(search,gpu_buffer_fmi_search);
   }
 }
 void approximate_search_stepwise_region_profile_retrieve(
-    approximate_search_t* const restrict search,
-    gpu_buffer_fmi_search_t* const restrict gpu_buffer_fmi_search) {
+    approximate_search_t* const search,
+    gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) {
   if (search->processing_state == asearch_processing_state_region_partitioned) {
     approximate_search_region_profile_buffered_retrieve(search,gpu_buffer_fmi_search);
   }
@@ -127,11 +127,11 @@ void approximate_search_stepwise_region_profile_retrieve(
     search->processing_state = asearch_processing_state_region_profiled;
   }
   // Check exact matches (limit the number of matches)
-  region_profile_t* const restrict region_profile = &search->region_profile;
+  region_profile_t* const region_profile = &search->region_profile;
   if (region_profile_has_exact_matches(region_profile)) {
-    search_parameters_t* const restrict search_parameters = search->search_parameters;
-    select_parameters_t* const restrict select_parameters = &search_parameters->select_parameters_align;
-    region_search_t* const restrict filtering_region = region_profile->filtering_region;
+    search_parameters_t* const search_parameters = search->search_parameters;
+    select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;
+    region_search_t* const filtering_region = region_profile->filtering_region;
     const uint64_t total_candidates = filtering_region->hi - filtering_region->lo;
     if (select_parameters->min_reported_strata_nominal==0 &&
         total_candidates > select_parameters->max_reported_matches) {
@@ -144,15 +144,15 @@ void approximate_search_stepwise_region_profile_retrieve(
  * AM Stepwise :: Decode Candidates
  */
 void approximate_search_stepwise_decode_candidates_copy(
-    approximate_search_t* const restrict search,
-    gpu_buffer_fmi_decode_t* const restrict gpu_buffer_fmi_decode) {
+    approximate_search_t* const search,
+    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
   if (search->processing_state == asearch_processing_state_region_profiled) {
     approximate_search_generate_candidates_buffered_copy(search,gpu_buffer_fmi_decode);
   }
 }
 void approximate_search_stepwise_decode_candidates_retrieve(
-    approximate_search_t* const restrict search,
-    gpu_buffer_fmi_decode_t* const restrict gpu_buffer_fmi_decode) {
+    approximate_search_t* const search,
+    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
   if (search->processing_state == asearch_processing_state_region_profiled) {
     approximate_search_generate_candidates_buffered_retrieve(search,gpu_buffer_fmi_decode);
   }
@@ -161,16 +161,16 @@ void approximate_search_stepwise_decode_candidates_retrieve(
  * AM Stepwise :: Verify Candidates
  */
 void approximate_search_stepwise_verify_candidates_copy(
-    approximate_search_t* const restrict search,
-    gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm) {
+    approximate_search_t* const search,
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
   if (search->processing_state == asearch_processing_state_candidates_processed) {
     approximate_search_verify_candidates_buffered_copy(search,gpu_buffer_align_bpm);
   }
 }
 void approximate_search_stepwise_verify_candidates_retrieve(
-    approximate_search_t* const restrict search,
-    gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm,
-    matches_t* const restrict matches) {
+    approximate_search_t* const search,
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
+    matches_t* const matches) {
   if (search->processing_state == asearch_processing_state_candidates_processed) {
     approximate_search_verify_candidates_buffered_retrieve(search,gpu_buffer_align_bpm,matches);
   }
@@ -179,8 +179,8 @@ void approximate_search_stepwise_verify_candidates_retrieve(
  * AM Stepwise :: Finish Search
  */
 void approximate_search_stepwise_finish(
-    approximate_search_t* const restrict search,
-    matches_t* const restrict matches) {
+    approximate_search_t* const search,
+    matches_t* const matches) {
   if (search->search_stage == asearch_stage_read_recovery) {
     search->search_stage = asearch_stage_end;
   } else  if (search->search_stage == asearch_stage_filtering_adaptive) {

@@ -26,17 +26,17 @@
  * Compose the scaffolding
  */
 void match_scaffold_levenshtein_compose_alignment(
-    match_scaffold_t* const restrict match_scaffold,
-    matches_t* const restrict matches,
-    const match_alignment_t* const restrict match_alignment,
-    uint8_t* const restrict text,
+    match_scaffold_t* const match_scaffold,
+    matches_t* const matches,
+    const match_alignment_t* const match_alignment,
+    uint8_t* const text,
     uint64_t key_offset,
     const uint64_t matching_min_length,
-    mm_stack_t* const restrict mm_stack) {
+    mm_stack_t* const mm_stack) {
   // Traverse CIGAR elements and compose scaffolding
   const uint64_t cigar_offset = match_alignment->cigar_offset;
   const uint64_t cigar_length = match_alignment->cigar_length;
-  cigar_element_t* const restrict cigar_buffer =
+  cigar_element_t* const cigar_buffer =
       vector_get_elm(matches->cigar_vector,cigar_offset,cigar_element_t);
   region_matching_t* last_scaffold_region = NULL;
   uint64_t text_offset = match_alignment->match_text_offset;
@@ -94,17 +94,17 @@ void match_scaffold_levenshtein_compose_alignment(
  *   @align_input->text
  */
 void match_scaffold_levenshtein_tiled(
-    match_scaffold_t* const restrict match_scaffold,
-    match_align_input_t* const restrict align_input,
-    bpm_pattern_t* const restrict bpm_pattern_tile,
+    match_scaffold_t* const match_scaffold,
+    match_align_input_t* const align_input,
+    bpm_pattern_t* const bpm_pattern_tile,
     const uint64_t key_offset,
     const uint64_t text_begin,
     const uint64_t text_end,
     const uint64_t distance_bound,
     const uint64_t matching_min_length,
     const bool left_gap_alignment,
-    matches_t* const restrict matches,
-    mm_stack_t* const restrict mm_stack) {
+    matches_t* const matches,
+    mm_stack_t* const mm_stack) {
   // Fill Matrix (Pv,Mv)
   bpm_align_matrix_t bpm_align_matrix;
   match_align_input_t bpm_align_input = {
@@ -156,11 +156,11 @@ void match_scaffold_levenshtein_tiled(
  *   @align_parameters->min_matching_length
  */
 bool match_scaffold_levenshtein(
-    match_scaffold_t* const restrict match_scaffold,
-    match_align_input_t* const restrict align_input,
-    match_align_parameters_t* const restrict align_parameters,
-    matches_t* const restrict matches,
-    mm_stack_t* const restrict mm_stack) {
+    match_scaffold_t* const match_scaffold,
+    match_align_input_t* const align_input,
+    match_align_parameters_t* const align_parameters,
+    matches_t* const matches,
+    mm_stack_t* const mm_stack) {
   PROF_INC_COUNTER(GP_MATCH_SCAFFOLD_EDIT_SCAFFOLDS);
   PROFILE_START(GP_MATCH_SCAFFOLD_EDIT,PROFILE_LEVEL);
   // Parameters
@@ -178,15 +178,15 @@ bool match_scaffold_levenshtein(
   // Push stack state
   mm_stack_push_state(mm_stack);
   // Compute dimensions
-  bpm_pattern_t* const restrict bpm_pattern_tiles = align_input->bpm_pattern_tiles;
+  bpm_pattern_t* const bpm_pattern_tiles = align_input->bpm_pattern_tiles;
   const uint64_t num_tiles = bpm_pattern_tiles->num_pattern_tiles;
   PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_TILES_TOTAL,num_tiles);
   // Compute the scaffolding of each tile
-  region_alignment_tile_t* const restrict alignment_tile = align_input->region_alignment->alignment_tiles;
+  region_alignment_tile_t* const alignment_tile = align_input->region_alignment->alignment_tiles;
   uint64_t tile_pos, key_offset = key_trim_left;
   for (tile_pos=0;tile_pos<num_tiles;++tile_pos) {
     // Scaffold tile
-    bpm_pattern_t* const restrict bpm_pattern_tile = bpm_pattern_tiles + tile_pos;
+    bpm_pattern_t* const bpm_pattern_tile = bpm_pattern_tiles + tile_pos;
     const uint64_t tile_length = bpm_pattern_tile->pattern_length;
     const uint64_t match_distance = alignment_tile[tile_pos].match_distance;
     const uint64_t max_local_distance = BOUNDED_SUBTRACTION(tile_length,local_min_identity,0);

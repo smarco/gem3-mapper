@@ -13,14 +13,14 @@
  * Setup
  */
 search_pipeline_t* search_pipeline_new(
-    mapper_parameters_t* const restrict mapper_parameters,
-    gpu_buffer_collection_t* const restrict gpu_buffer_collection,
+    mapper_parameters_t* const mapper_parameters,
+    gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffers_offset,
     const bool paired_end) {
   // Parameters
-  const mapper_parameters_cuda_t* const restrict cuda = &mapper_parameters->cuda;
-  archive_t* const restrict archive = mapper_parameters->archive;
-  fm_index_t* const restrict fm_index = archive->fm_index;
+  const mapper_parameters_cuda_t* const cuda = &mapper_parameters->cuda;
+  archive_t* const archive = mapper_parameters->archive;
+  fm_index_t* const fm_index = archive->fm_index;
   const bool cpu_emulated = cuda->cpu_emulated;
   // Alloc
   search_pipeline_t* search_pipeline = mm_alloc(search_pipeline_t);
@@ -51,10 +51,10 @@ search_pipeline_t* search_pipeline_new(
   // Return
   return search_pipeline;
 }
-void search_pipeline_clear(search_pipeline_t* const restrict search_pipeline) {
+void search_pipeline_clear(search_pipeline_t* const search_pipeline) {
   mm_stack_clear(search_pipeline->mm_stack);
 }
-void search_pipeline_delete(search_pipeline_t* const restrict search_pipeline) {
+void search_pipeline_delete(search_pipeline_t* const search_pipeline) {
   search_stage_region_profile_delete(search_pipeline->stage_region_profile,search_pipeline->archive_search_cache);
   search_stage_decode_candidates_delete(search_pipeline->stage_decode_candidates,search_pipeline->archive_search_cache);
   search_stage_verify_candidates_delete(search_pipeline->stage_verify_candidates,search_pipeline->archive_search_cache);
@@ -68,8 +68,8 @@ void search_pipeline_delete(search_pipeline_t* const restrict search_pipeline) {
  * Archive-Search allocation
  */
 void search_pipeline_allocate_se(
-    search_pipeline_t* const restrict search_pipeline,
-    archive_search_t** const restrict archive_search) {
+    search_pipeline_t* const search_pipeline,
+    archive_search_t** const archive_search) {
   // Alloc
   archive_search_cache_se_alloc(search_pipeline->archive_search_cache,archive_search);
   // Inject Support Data Structures
@@ -78,9 +78,9 @@ void search_pipeline_allocate_se(
   archive_search_inject_interval_set(*archive_search,&search_pipeline->interval_set);
 }
 void search_pipeline_allocate_pe(
-    search_pipeline_t* const restrict search_pipeline,
-    archive_search_t** const restrict archive_search_end1,
-    archive_search_t** const restrict archive_search_end2) {
+    search_pipeline_t* const search_pipeline,
+    archive_search_t** const archive_search_end1,
+    archive_search_t** const archive_search_end2) {
   // Alloc
   archive_search_cache_pe_alloc(
       search_pipeline->archive_search_cache,

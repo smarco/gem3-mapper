@@ -30,10 +30,10 @@ pqueue_t* pqueue_new(uint64_t num_initial_elements) {
   // Return
   return pqueue;
 }
-void pqueue_clear(pqueue_t* const restrict pqueue) {
+void pqueue_clear(pqueue_t* const pqueue) {
   pqueue->num_elements = 1;
 }
-void pqueue_delete(pqueue_t* const restrict pqueue) {
+void pqueue_delete(pqueue_t* const pqueue) {
   // Free buffer
   vector_delete(pqueue->buffer);
   // Free handler
@@ -42,23 +42,23 @@ void pqueue_delete(pqueue_t* const restrict pqueue) {
 /*
  * Accessors
  */
-uint64_t pqueue_top_priority(pqueue_t* const restrict pqueue) {
+uint64_t pqueue_top_priority(pqueue_t* const pqueue) {
   // Empty case
   if (pqueue->num_elements == 1) return UINT64_MAX;
-  pqueue_element_t* const restrict heap = vector_get_mem(pqueue->buffer,pqueue_element_t);
+  pqueue_element_t* const heap = vector_get_mem(pqueue->buffer,pqueue_element_t);
   return heap[1].priority;
 }
-void* pqueue_top_priority_element(pqueue_t* const restrict pqueue) {
+void* pqueue_top_priority_element(pqueue_t* const pqueue) {
   // Empty case
   if (pqueue->num_elements == 1) return NULL;
-  pqueue_element_t* const restrict heap = vector_get_mem(pqueue->buffer,pqueue_element_t);
+  pqueue_element_t* const heap = vector_get_mem(pqueue->buffer,pqueue_element_t);
   return heap[1].element;
 }
-void pqueue_push_(pqueue_t* const restrict pqueue,void* const restrict element,const uint64_t priority) {
+void pqueue_push_(pqueue_t* const pqueue,void* const element,const uint64_t priority) {
   // Reserve 1 more
   vector_reserve_additional(pqueue->buffer,1);
   vector_inc_used(pqueue->buffer);
-  pqueue_element_t* const restrict heap = vector_get_mem(pqueue->buffer,pqueue_element_t);
+  pqueue_element_t* const heap = vector_get_mem(pqueue->buffer,pqueue_element_t);
   // Append at the end & Preserve heap condition (heapify)
   uint64_t n, m;
   n = pqueue->num_elements++;
@@ -69,17 +69,17 @@ void pqueue_push_(pqueue_t* const restrict pqueue,void* const restrict element,c
   heap[n].element = element;
   heap[n].priority = priority;
 }
-void* pqueue_pop_(pqueue_t* const restrict pqueue) {
+void* pqueue_pop_(pqueue_t* const pqueue) {
   // Empty case
   if (pqueue->num_elements == 1) return NULL;
   // Shrink by one
   --pqueue->num_elements;
   vector_dec_used(pqueue->buffer);
   // Keep head
-  pqueue_element_t* const restrict heap = vector_get_mem(pqueue->buffer,pqueue_element_t);
-  void* const restrict top = heap[1].element;
+  pqueue_element_t* const heap = vector_get_mem(pqueue->buffer,pqueue_element_t);
+  void* const top = heap[1].element;
   // Last element goes to the top & Preserve heap condition (heapify)
-  const pqueue_element_t* const restrict last = heap + pqueue->num_elements;
+  const pqueue_element_t* const last = heap + pqueue->num_elements;
   uint64_t n, m;
   n = 1;
   while ((m = 2*n) < pqueue->num_elements) {

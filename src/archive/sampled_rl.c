@@ -25,7 +25,7 @@ sampled_rl_t* sampled_rl_new(
     const uint64_t num_samples,
     const uint64_t max_index) {
   // Allocate handler
-  sampled_rl_t* const restrict sampled_rl = mm_alloc(sampled_rl_t);
+  sampled_rl_t* const sampled_rl = mm_alloc(sampled_rl_t);
   sampled_rl->sampling_rate = sampling_rate;
   // Allocate sampled RL
   const uint64_t sample_length = integer_upper_power_of_two(max_index);
@@ -33,9 +33,9 @@ sampled_rl_t* sampled_rl_new(
   // Return
   return sampled_rl;
 }
-sampled_rl_t* sampled_rl_read_mem(mm_t* const restrict memory_manager) {
+sampled_rl_t* sampled_rl_read_mem(mm_t* const memory_manager) {
   // Allocate handler
-  sampled_rl_t* const restrict sampled_rl = mm_alloc(sampled_rl_t);
+  sampled_rl_t* const sampled_rl = mm_alloc(sampled_rl_t);
   // Read Meta-Data
   const uint64_t sampled_rl_model_no = mm_read_uint64(memory_manager);
   gem_cond_fatal_error(sampled_rl_model_no!=SAMPLED_RL_MODEL_NO,SAMPLED_RL_WRONG_MODEL_NO,
@@ -47,15 +47,15 @@ sampled_rl_t* sampled_rl_read_mem(mm_t* const restrict memory_manager) {
   return sampled_rl;
 }
 void sampled_rl_write(
-    fm_t* const restrict file_manager,
-    sampled_rl_t* const restrict sampled_rl) {
+    fm_t* const file_manager,
+    sampled_rl_t* const sampled_rl) {
   // Write Meta-Data
   fm_write_uint64(file_manager,SAMPLED_RL_MODEL_NO);
   fm_write_uint64(file_manager,sampled_rl->sampling_rate);
   // Write PackedIntegerArray
   packed_integer_array_write(file_manager,sampled_rl->packed_integer_array);
 }
-void sampled_rl_delete(sampled_rl_t* const restrict sampled_rl) {
+void sampled_rl_delete(sampled_rl_t* const sampled_rl) {
   // Free PackedIntegerArray
   packed_integer_array_delete(sampled_rl->packed_integer_array);
   // Free handler
@@ -64,17 +64,17 @@ void sampled_rl_delete(sampled_rl_t* const restrict sampled_rl) {
 /*
  * Accessors
  */
-uint64_t sampled_rl_get_size(sampled_rl_t* const restrict sampled_rl) {
+uint64_t sampled_rl_get_size(sampled_rl_t* const sampled_rl) {
   return packed_integer_array_get_size(sampled_rl->packed_integer_array);
 }
 void sampled_rl_sample(
-    sampled_rl_t* const restrict sampled_rl,
+    sampled_rl_t* const sampled_rl,
     const uint64_t array_position,
     const uint64_t rl_position) {
   // Store SA position
   packed_integer_array_store(sampled_rl->packed_integer_array,array_position,rl_position);
 }
-uint64_t sampled_rl_get_sample(sampled_rl_t* const restrict sampled_rl,const uint64_t array_position) {
+uint64_t sampled_rl_get_sample(sampled_rl_t* const sampled_rl,const uint64_t array_position) {
   // Store SA position
   return packed_integer_array_load(sampled_rl->packed_integer_array,array_position);
 }
@@ -82,8 +82,8 @@ uint64_t sampled_rl_get_sample(sampled_rl_t* const restrict sampled_rl,const uin
  * Display/Stats
  */
 void sampled_rl_print(
-    FILE* const restrict stream,
-    sampled_rl_t* const restrict sampled_rl) {
+    FILE* const stream,
+    sampled_rl_t* const sampled_rl) {
   tab_fprintf(stream,"[GEM]>Sampled-RL\n");
   tab_fprintf(stream,"  => Architecture sRL.pck\n");
   tab_fprintf(stream,"    => RunLength-Space RL \n");

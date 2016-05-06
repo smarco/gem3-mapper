@@ -101,7 +101,7 @@ char* mm_temp_folder_path = MM_DEFAULT_TMP_FOLDER;
 char* mm_get_tmp_folder() {
   return mm_temp_folder_path;
 }
-void mm_set_tmp_folder(char* const restrict tmp_folder_path) {
+void mm_set_tmp_folder(char* const tmp_folder_path) {
   GEM_CHECK_NULL(tmp_folder_path);
   mm_temp_folder_path = tmp_folder_path;
 }
@@ -113,7 +113,7 @@ void mm_set_tmp_folder(char* const restrict tmp_folder_path) {
 void* mm_malloc_nothrow(uint64_t const num_elements,const uint64_t size_element,const bool init_mem,const int init_value) {
   // Request memory
   const uint64_t total_memory = num_elements*size_element;
-  void* const restrict allocated_mem = (gem_expect_false(init_mem && init_value==0)) ?
+  void* const allocated_mem = (gem_expect_false(init_mem && init_value==0)) ?
       calloc(num_elements,size_element) : malloc(total_memory);
   // Check memory
   if (!allocated_mem) return NULL;
@@ -146,7 +146,7 @@ void* mm_realloc_nothrow(void* mem_addr,const uint64_t num_bytes) {
 void* mm_realloc(void* mem_addr,const uint64_t num_bytes) {
   GEM_CHECK_NULL(mem_addr);
   GEM_CHECK_ZERO(num_bytes);
-  void* const restrict new_mem_addr = mm_realloc_nothrow(mem_addr,num_bytes);
+  void* const new_mem_addr = mm_realloc_nothrow(mem_addr,num_bytes);
   gem_cond_fatal_error(!new_mem_addr,MEM_REALLOC,num_bytes);
   return new_mem_addr;
 }
@@ -162,7 +162,7 @@ mm_t* mm_bulk_malloc(const uint64_t num_bytes,const bool init_mem) {
   GEM_CHECK_ZERO(num_bytes);
   void* memory = mm_malloc_nothrow(num_bytes,1,init_mem,0);
   if (gem_expect_true(memory!=NULL)) { // Fits in HEAP
-    mm_t* const restrict mem_manager = mm_alloc(mm_t);
+    mm_t* const mem_manager = mm_alloc(mm_t);
     mem_manager->memory = memory;
     mem_manager->mem_type = MM_HEAP;
     mem_manager->mode = MM_READ_WRITE;
@@ -178,7 +178,7 @@ mm_t* mm_bulk_malloc(const uint64_t num_bytes,const bool init_mem) {
 mm_t* mm_bulk_mmalloc(const uint64_t num_bytes,const bool use_huge_pages) {
   GEM_CHECK_ZERO(num_bytes);
   // Allocate handler
-  mm_t* const restrict mem_manager = mm_alloc(mm_t);
+  mm_t* const mem_manager = mm_alloc(mm_t);
 #ifdef MM_NO_MMAP
   mem_manager->memory = mm_malloc(num_bytes);
   mem_manager->cursor = mem_manager->memory;
@@ -222,7 +222,7 @@ mm_t* mm_bulk_mmalloc_temp(const uint64_t num_bytes) {
   return mm_bulk_mmalloc(num_bytes,false);
 #else
   // Allocate handler
-  mm_t* const restrict mem_manager = mm_alloc(mm_t);
+  mm_t* const mem_manager = mm_alloc(mm_t);
   // TemporalMemory (backed by a file)
   mem_manager->file_name = mm_calloc(strlen(mm_get_tmp_folder())+22,char,true);
   sprintf(mem_manager->file_name,"%smm_temp_XXXXXX",mm_get_tmp_folder());
@@ -258,7 +258,7 @@ mm_t* mm_bulk_mmalloc_temp(const uint64_t num_bytes) {
   return mem_manager;
 #endif
 }
-void mm_bulk_free(mm_t* const restrict mem_manager) {
+void mm_bulk_free(mm_t* const mem_manager) {
   GEM_CHECK_NULL(mem_manager);
   GEM_CHECK_NULL(mem_manager->memory);
   GEM_CHECK_NULL(mem_manager->cursor);
@@ -277,13 +277,13 @@ void mm_bulk_free(mm_t* const restrict mem_manager) {
   CFREE(mem_manager->file_name);
   mm_free(mem_manager);
 }
-mm_t* mm_bulk_mmap_file(char* const restrict file_name,const mm_mode mode,const bool populate_page_tables) {
+mm_t* mm_bulk_mmap_file(char* const file_name,const mm_mode mode,const bool populate_page_tables) {
   GEM_CHECK_NULL(file_name);
 #ifdef MM_NO_MMAP
   return mm_bulk_mload_file(file_name,1);
 #else
   // Allocate handler
-  mm_t* const restrict mem_manager = mm_alloc(mm_t);
+  mm_t* const mem_manager = mm_alloc(mm_t);
   // Retrieve input file info
   struct stat stat_info;
   gem_stat(file_name,&stat_info);
@@ -314,13 +314,13 @@ mm_t* mm_bulk_mmap_file(char* const restrict file_name,const mm_mode mode,const 
   return mem_manager;
 #endif
 }
-mm_t* mm_bulk_load_file(char* const restrict file_name,const uint64_t num_threads) {
+mm_t* mm_bulk_load_file(char* const file_name,const uint64_t num_threads) {
   GEM_CHECK_NULL(file_name);
 #ifdef MM_NO_MMAP
   return mm_bulk_mload_file(file_name,num_threads);
 #else
   // Allocate handler
-  mm_t* const restrict mem_manager = mm_alloc(mm_t);
+  mm_t* const mem_manager = mm_alloc(mm_t);
   // Retrieve input file info
   struct stat stat_info;
   gem_cond_fatal_error__perror(stat(file_name,&stat_info)==-1,SYS_STAT,file_name);
@@ -342,14 +342,14 @@ mm_t* mm_bulk_load_file(char* const restrict file_name,const uint64_t num_thread
   return mem_manager;
 #endif
 }
-mm_t* mm_bulk_mload_file(char* const restrict file_name,const uint64_t num_threads) {
+mm_t* mm_bulk_mload_file(char* const file_name,const uint64_t num_threads) {
   GEM_CHECK_NULL(file_name);
   // Retrieve input file info
   struct stat stat_info;
   gem_cond_fatal_error__perror(stat(file_name,&stat_info)==-1,SYS_STAT,file_name);
   gem_cond_fatal_error(stat_info.st_size==0,MEM_MAP_ZERO_FILE,file_name);
   // Allocate memory to dump the content of the file
-  mm_t* const restrict mem_manager = mm_bulk_mmalloc(stat_info.st_size,false);
+  mm_t* const mem_manager = mm_bulk_mmalloc(stat_info.st_size,false);
   // Read the file and dump it into memory
   if (num_threads>1 && (stat_info.st_size > num_threads*8)) {
     fm_bulk_read_file_parallel(file_name,mem_manager->memory,0,0,num_threads);
@@ -362,60 +362,60 @@ mm_t* mm_bulk_mload_file(char* const restrict file_name,const uint64_t num_threa
 /*
  * Accessors
  */
-void* mm_get_mem(mm_t* const restrict mem_manager) {
+void* mm_get_mem(mm_t* const mem_manager) {
   return mem_manager->cursor;
 }
-void* mm_get_base_mem(mm_t* const restrict mem_manager) {
+void* mm_get_base_mem(mm_t* const mem_manager) {
   return mem_manager->memory;
 }
-mm_mode mm_get_mode(mm_t* const restrict mem_manager) {
+mm_mode mm_get_mode(mm_t* const mem_manager) {
   return mem_manager->mode;
 }
-uint64_t mm_get_allocated(mm_t* const restrict mem_manager) {
+uint64_t mm_get_allocated(mm_t* const mem_manager) {
   return mem_manager->allocated;
 }
-char* mm_get_mfile_name(mm_t* const restrict mem_manager) {
+char* mm_get_mfile_name(mm_t* const mem_manager) {
   return mem_manager->file_name;
 }
 /*
  * Seek functions
  */
-uint64_t mm_get_current_position(mm_t* const restrict mem_manager) {
+uint64_t mm_get_current_position(mm_t* const mem_manager) {
   return (mem_manager->cursor-mem_manager->memory);
 }
-bool mm_eom(mm_t* const restrict mem_manager) {
+bool mm_eom(mm_t* const mem_manager) {
   return mm_get_current_position(mem_manager) >= mem_manager->allocated;
 }
-void mm_seek(mm_t* const restrict mem_manager,const uint64_t byte_position) {
+void mm_seek(mm_t* const mem_manager,const uint64_t byte_position) {
   gem_fatal_check(byte_position>=mem_manager->allocated,MEM_CURSOR_SEEK,byte_position);
   mem_manager->cursor = mem_manager->memory + byte_position;
 }
-void mm_skip_forward(mm_t* const restrict mem_manager,const uint64_t num_bytes) {
+void mm_skip_forward(mm_t* const mem_manager,const uint64_t num_bytes) {
   mem_manager->cursor += num_bytes;
   MM_CHECK_SEGMENT(mem_manager);
 }
-void mm_skip_backward(mm_t* const restrict mem_manager,const uint64_t num_bytes) {
+void mm_skip_backward(mm_t* const mem_manager,const uint64_t num_bytes) {
   mem_manager->cursor -= num_bytes;
   MM_CHECK_SEGMENT(mem_manager);
 }
-void mm_skip_uint64(mm_t* const restrict mem_manager) {
+void mm_skip_uint64(mm_t* const mem_manager) {
   mem_manager->cursor += 8;
   MM_CHECK_SEGMENT(mem_manager);
 }
-void mm_skip_uint32(mm_t* const restrict mem_manager) {
+void mm_skip_uint32(mm_t* const mem_manager) {
   mem_manager->cursor += 4;
   MM_CHECK_SEGMENT(mem_manager);
 }
-void mm_skip_uint16(mm_t* const restrict mem_manager) {
+void mm_skip_uint16(mm_t* const mem_manager) {
   mem_manager->cursor += 2;
   MM_CHECK_SEGMENT(mem_manager);
 }
-void mm_skip_uint8(mm_t* const restrict mem_manager) {
+void mm_skip_uint8(mm_t* const mem_manager) {
   mem_manager->cursor += 1;
   MM_CHECK_SEGMENT(mem_manager);
 }
 #ifdef MM_NO_MMAP
-void mm_skip_align(mm_t* const restrict mem_manager,const uint64_t num_bytes) {
+void mm_skip_align(mm_t* const mem_manager,const uint64_t num_bytes) {
   GEM_CHECK_ZERO(num_bytes);
   if (gem_expect_true(num_bytes > 1)) {
     const uint64_t byte_position = mem_manager->cursor - mem_manager->memory;
@@ -427,7 +427,7 @@ void mm_skip_align(mm_t* const restrict mem_manager,const uint64_t num_bytes) {
   }
 }
 #else
-void mm_skip_align(mm_t* const restrict mem_manager,const uint64_t num_bytes) {
+void mm_skip_align(mm_t* const mem_manager,const uint64_t num_bytes) {
   GEM_CHECK_ZERO(num_bytes);
   if (gem_expect_true(num_bytes > 1)) {
     mem_manager->cursor = mem_manager->cursor+(num_bytes-1);
@@ -437,7 +437,7 @@ void mm_skip_align(mm_t* const restrict mem_manager,const uint64_t num_bytes) {
   }
 }
 #endif
-void mm_skip_align_16(mm_t* const restrict mem_manager) {
+void mm_skip_align_16(mm_t* const mem_manager) {
 #ifdef MM_NO_MMAP
   mm_skip_align(mem_manager,2);
 #else
@@ -447,7 +447,7 @@ void mm_skip_align_16(mm_t* const restrict mem_manager) {
   MM_CHECK_ALIGNMENT(mem_manager,16b);
 #endif
 }
-void mm_skip_align_32(mm_t* const restrict mem_manager) {
+void mm_skip_align_32(mm_t* const mem_manager) {
 #ifdef MM_NO_MMAP
   mm_skip_align(mem_manager,4);
 #else
@@ -457,7 +457,7 @@ void mm_skip_align_32(mm_t* const restrict mem_manager) {
   MM_CHECK_ALIGNMENT(mem_manager,32b);
 #endif
 }
-void mm_skip_align_64(mm_t* const restrict mem_manager) {
+void mm_skip_align_64(mm_t* const mem_manager) {
 #ifdef MM_NO_MMAP
   mm_skip_align(mem_manager,8);
 #else
@@ -467,7 +467,7 @@ void mm_skip_align_64(mm_t* const restrict mem_manager) {
   MM_CHECK_ALIGNMENT(mem_manager,64b);
 #endif
 }
-void mm_skip_align_128(mm_t* const restrict mem_manager) {
+void mm_skip_align_128(mm_t* const mem_manager) {
 #ifdef MM_NO_MMAP
   mm_skip_align(mem_manager,16);
 #else
@@ -477,7 +477,7 @@ void mm_skip_align_128(mm_t* const restrict mem_manager) {
   MM_CHECK_ALIGNMENT(mem_manager,128b);
 #endif
 }
-void mm_skip_align_512(mm_t* const restrict mem_manager) {
+void mm_skip_align_512(mm_t* const mem_manager) {
 #ifdef MM_NO_MMAP
   mm_skip_align(mem_manager,64);
 #else
@@ -487,7 +487,7 @@ void mm_skip_align_512(mm_t* const restrict mem_manager) {
   MM_CHECK_ALIGNMENT(mem_manager,512b);
 #endif
 }
-void mm_skip_align_1024(mm_t* const restrict mem_manager) {
+void mm_skip_align_1024(mm_t* const mem_manager) {
 #ifdef MM_NO_MMAP
   mm_skip_align(mem_manager,1024);
 #else
@@ -497,7 +497,7 @@ void mm_skip_align_1024(mm_t* const restrict mem_manager) {
   MM_CHECK_ALIGNMENT(mem_manager,1KB);
 #endif
 }
-void mm_skip_align_4KB(mm_t* const restrict mem_manager) {
+void mm_skip_align_4KB(mm_t* const mem_manager) {
 #ifdef MM_NO_MMAP
   mm_skip_align(mem_manager,4096);
 #else
@@ -507,7 +507,7 @@ void mm_skip_align_4KB(mm_t* const restrict mem_manager) {
   MM_CHECK_ALIGNMENT(mem_manager,4KB);
 #endif
 }
-void mm_skip_align_mempage(mm_t* const restrict mem_manager) {
+void mm_skip_align_mempage(mm_t* const mem_manager) {
   const int64_t page_size = mm_get_page_size();
   gem_cond_fatal_error__perror(page_size==-1,SYS_SYSCONF);
   mm_skip_align(mem_manager,page_size);
@@ -515,47 +515,47 @@ void mm_skip_align_mempage(mm_t* const restrict mem_manager) {
 /*
  * Read functions
  */
-uint64_t mm_read_uint64(mm_t* const restrict mem_manager) {
+uint64_t mm_read_uint64(mm_t* const mem_manager) {
   MM_CHECK_SEGMENT(mem_manager);
   const uint64_t data = *((uint64_t*)mem_manager->cursor);
   mem_manager->cursor += 8;
   return data;
 }
-uint32_t mm_read_uint32(mm_t* const restrict mem_manager) {
+uint32_t mm_read_uint32(mm_t* const mem_manager) {
   MM_CHECK_SEGMENT(mem_manager);
   const uint32_t data = *((uint32_t*)mem_manager->cursor);
   mem_manager->cursor += 4;
   return data;
 }
-uint16_t mm_read_uint16(mm_t* const restrict mem_manager) {
+uint16_t mm_read_uint16(mm_t* const mem_manager) {
   MM_CHECK_SEGMENT(mem_manager);
   const uint16_t data = *((uint16_t*)mem_manager->cursor);
   mem_manager->cursor += 2;
   return data;
 }
-uint8_t mm_read_uint8(mm_t* const restrict mem_manager) {
+uint8_t mm_read_uint8(mm_t* const mem_manager) {
   MM_CHECK_SEGMENT(mem_manager);
   const uint8_t data = *((uint8_t*)mem_manager->cursor);
   mem_manager->cursor += 1;
   return data;
 }
-void* mm_read_mem(mm_t* const restrict mem_manager,const uint64_t num_bytes) {
+void* mm_read_mem(mm_t* const mem_manager,const uint64_t num_bytes) {
   MM_CHECK_SEGMENT(mem_manager);
-  void* const restrict current_cursor = mem_manager->cursor;
+  void* const current_cursor = mem_manager->cursor;
   mem_manager->cursor += num_bytes;
   return current_cursor;
 }
 void mm_copy_mem(
-    mm_t* const restrict mem_manager,
-    void* const restrict dst,
+    mm_t* const mem_manager,
+    void* const dst,
     const uint64_t num_bytes) {
   MM_CHECK_SEGMENT(mem_manager);
   memcpy(dst,mem_manager->cursor,num_bytes);
   mem_manager->cursor += num_bytes;
 }
 void mm_copy_mem_parallel(
-    mm_t* const restrict mem_manager,
-    void* const restrict dst,
+    mm_t* const mem_manager,
+    void* const dst,
     const uint64_t num_bytes,
     const uint64_t num_threads) {
   GEM_NOT_IMPLEMENTED(); // TODO
@@ -563,27 +563,27 @@ void mm_copy_mem_parallel(
 /*
  * Write functions
  */
-void mm_write_uint64(mm_t* const restrict mem_manager,const uint64_t data) {
+void mm_write_uint64(mm_t* const mem_manager,const uint64_t data) {
   MM_CHECK_SEGMENT(mem_manager);
   *((uint64_t*)mem_manager->cursor) = data;
   mem_manager->cursor += 8;
 }
-void mm_write_uint32(mm_t* const restrict mem_manager,const uint32_t data) {
+void mm_write_uint32(mm_t* const mem_manager,const uint32_t data) {
   MM_CHECK_SEGMENT(mem_manager);
   *((uint32_t*)mem_manager->cursor) = data;
   mem_manager->cursor += 4;
 }
-void mm_write_uint16(mm_t* const restrict mem_manager,const uint16_t data) {
+void mm_write_uint16(mm_t* const mem_manager,const uint16_t data) {
   MM_CHECK_SEGMENT(mem_manager);
   *((uint16_t*)mem_manager->cursor) = data;
   mem_manager->cursor += 2;
 }
-void mm_write_uint8(mm_t* const restrict mem_manager,const uint8_t data) {
+void mm_write_uint8(mm_t* const mem_manager,const uint8_t data) {
   MM_CHECK_SEGMENT(mem_manager);
   *((uint8_t*)mem_manager->cursor) = data;
   mem_manager->cursor += 1;
 }
-void mm_write_mem(mm_t* const restrict mem_manager,void* const restrict src,const uint64_t num_bytes) {
+void mm_write_mem(mm_t* const mem_manager,void* const src,const uint64_t num_bytes) {
   MM_CHECK_SEGMENT(mem_manager);
   memcpy(mem_manager->cursor,src,num_bytes);
   mem_manager->cursor += num_bytes;
@@ -597,9 +597,9 @@ int64_t mm_get_page_size() {
   gem_cond_fatal_error__perror(page_size==-1,SYS_SYSCONF);
   return page_size; // Bytes
 }
-int64_t mm_get_stat_meminfo(const char* const restrict label,const uint64_t label_length) {
+int64_t mm_get_stat_meminfo(const char* const label,const uint64_t label_length) {
   // Open /proc/meminfo
-  FILE* const restrict meminfo = fopen("/proc/meminfo", "r");
+  FILE* const meminfo = fopen("/proc/meminfo", "r");
   gem_cond_fatal_error__perror(meminfo == NULL,MEM_STAT_MEMINFO,"no such file");
   // Parse /proc/meminfo
   char *line = NULL;

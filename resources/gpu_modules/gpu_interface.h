@@ -93,17 +93,17 @@ typedef struct {
  * Get elements
  */
 uint32_t gpu_get_num_supported_devices_(const gpu_dev_arch_t selectedArchitectures);
-uint32_t gpu_buffer_get_id_device_(const void* const __restrict__ gpu_buffer);
-uint32_t gpu_buffer_get_id_supported_device_(const void* const __restrict__ gpuBuffer);
+uint32_t gpu_buffer_get_id_device_(const void* const gpu_buffer);
+uint32_t gpu_buffer_get_id_supported_device_(const void* const gpuBuffer);
 
 
 /*
  * Main functions
  */
-void gpu_io_save_indexed_structures_GEM_(const char* const __restrict__ fileName, const gpu_gem_fmi_dto_t* const __restrict__ gemFMindex, const gpu_gem_ref_dto_t* const __restrict__ gemRef, const gpu_gem_sa_dto_t* const __restrict__ gemSAindex, const gpu_module_t activeModules);
-void gpu_init_buffers_(gpu_buffers_dto_t* const __restrict__ buff, gpu_index_dto_t* const __restrict__ rawIndex, gpu_reference_dto_t* const __restrict__ rawRef, gpu_info_dto_t* const __restrict__ sys);
-void gpu_alloc_buffer_(void* const __restrict__ gpuBuffer);
-void gpu_realloc_buffer_(void* const __restrict__ gpuBuffer, const float maxMbPerBuffer);
+void gpu_io_save_indexed_structures_GEM_(const char* const fileName, const gpu_gem_fmi_dto_t* const gemFMindex, const gpu_gem_ref_dto_t* const gemRef, const gpu_gem_sa_dto_t* const gemSAindex, const gpu_module_t activeModules);
+void gpu_init_buffers_(gpu_buffers_dto_t* const buff, gpu_index_dto_t* const rawIndex, gpu_reference_dto_t* const rawRef, gpu_info_dto_t* const sys);
+void gpu_alloc_buffer_(void* const gpuBuffer);
+void gpu_realloc_buffer_(void* const gpuBuffer, const float maxMbPerBuffer);
 void gpu_destroy_buffers_(gpu_buffers_dto_t* buff);
 
 

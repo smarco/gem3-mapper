@@ -29,10 +29,10 @@ typedef struct {
 #include "gpu_buffer.h"
 
 
-gpu_sa_entry_t* gpu_sa_buffer_get_index_(const void* const __restrict__ saBuffer);
+gpu_sa_entry_t* gpu_sa_buffer_get_index_(const void* const saBuffer);
 
 /* DEVICE Kernels */
-gpu_error_t gpu_sa_decode_process_buffer(gpu_buffer_t* const __restrict__ saBuffer);
+gpu_error_t gpu_sa_decode_process_buffer(gpu_buffer_t* const saBuffer);
 
 
 #endif /* GPU_SA_PRIMITIVES_H_ */

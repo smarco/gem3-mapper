@@ -17,9 +17,9 @@
  * SWG-Local Alignment
  */
 void match_align_swg_local_alignment(
-    matches_t* const restrict matches,
-    match_trace_t* const restrict match_trace,
-    match_align_input_t* const restrict align_input,
-    match_align_parameters_t* const restrict align_parameters);
+    matches_t* const matches,
+    match_trace_t* const match_trace,
+    match_align_input_t* const align_input,
+    match_align_parameters_t* const align_parameters);
 
 #endif /* MATCH_ALIGN_SWG_LOCAL_H_ */

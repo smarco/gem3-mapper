@@ -14,8 +14,8 @@
 uint64_t sa_sort_length_cmp_values[] = {0,1,5,10,100,1000,10000};
 #define sa_sort_length_cmp_num_ranges 6
 archive_builder_t* archive_builder_new(
-    fm_t* const restrict output_file,
-    char* const restrict output_file_name_prefix,
+    fm_t* const output_file,
+    char* const output_file_name_prefix,
     const archive_type type,
     const indexed_complement_t indexed_complement,
     const uint64_t complement_size_threshold,
@@ -26,7 +26,7 @@ archive_builder_t* archive_builder_new(
     const uint64_t num_threads,
     const uint64_t max_memory) {
   // Allocate
-  archive_builder_t* const restrict archive_builder = mm_alloc(archive_builder_t);
+  archive_builder_t* const archive_builder = mm_alloc(archive_builder_t);
   /*
    * Meta-information
    */
@@ -60,7 +60,7 @@ archive_builder_t* archive_builder_new(
   // Return
   return archive_builder;
 }
-void archive_builder_delete(archive_builder_t* const restrict archive_builder) {
+void archive_builder_delete(archive_builder_t* const archive_builder) {
   // Close FM
   fm_close(archive_builder->output_file_manager);
   // Free Text(s)
@@ -81,7 +81,7 @@ void archive_builder_delete(archive_builder_t* const restrict archive_builder) {
 /*
  * Writers
  */
-void archive_builder_write_header(archive_builder_t* const restrict archive_builder) {
+void archive_builder_write_header(archive_builder_t* const archive_builder) {
   // Write Header
   fm_write_uint64(archive_builder->output_file_manager,ARCHIVE_MODEL_NO);
   fm_write_uint64(archive_builder->output_file_manager,archive_builder->type);
@@ -89,17 +89,17 @@ void archive_builder_write_header(archive_builder_t* const restrict archive_buil
   fm_write_uint64(archive_builder->output_file_manager,archive_builder->ns_threshold);
   fm_write_uint64(archive_builder->output_file_manager,archive_builder->indexed_reverse_text);
 }
-void archive_builder_write_locator(archive_builder_t* const restrict archive_builder) {
+void archive_builder_write_locator(archive_builder_t* const archive_builder) {
   // Write Locator
   locator_builder_write(archive_builder->output_file_manager,archive_builder->locator);
 }
 void archive_builder_write_index(
-    archive_builder_t* const restrict archive_builder,
+    archive_builder_t* const archive_builder,
     const bool gpu_index,
     const bool check_index,
     const bool verbose) {
   // Select proper text
-  dna_text_t* const restrict enc_text = (archive_builder->enc_rl_text==NULL) ?
+  dna_text_t* const enc_text = (archive_builder->enc_rl_text==NULL) ?
       archive_builder->enc_text : archive_builder->enc_rl_text;
   // Write Text
   archive_text_write(archive_builder->output_file_manager,
@@ -107,13 +107,13 @@ void archive_builder_write_index(
       archive_builder->sampled_rl,verbose);
   if (archive_builder->sampled_rl!=NULL) sampled_rl_delete(archive_builder->sampled_rl); // Free
   // Create & write the FM-index
-  bwt_builder_t* const restrict bwt_builder = fm_index_write(
+  bwt_builder_t* const bwt_builder = fm_index_write(
       archive_builder->output_file_manager,archive_builder->indexed_reverse_text,
       archive_builder->enc_bwt,archive_builder->character_occurrences,
       archive_builder->sampled_sa,check_index,verbose);
   // Create & write the GPU FM-Index
   if (gpu_index) {
-    sampled_sa_builder_t* const restrict sampled_sa = archive_builder->sampled_sa;
+    sampled_sa_builder_t* const sampled_sa = archive_builder->sampled_sa;
     const uint32_t sa_sampling_rate = sampled_sa_builder_get_sa_sampling_rate(sampled_sa);
     gpu_structures_write(
         archive_builder->output_file_name_prefix,enc_text,
@@ -124,11 +124,11 @@ void archive_builder_write_index(
   bwt_builder_delete(bwt_builder);
 }
 void archive_builder_write_index_reverse(
-    archive_builder_t* const restrict archive_builder,
+    archive_builder_t* const archive_builder,
     const bool check_index,
     const bool verbose) {
   // Create & write the FM-index
-  bwt_reverse_builder_t* const restrict bwt_reverse_builder = fm_index_reverse_write(
+  bwt_reverse_builder_t* const bwt_reverse_builder = fm_index_reverse_write(
       archive_builder->output_file_manager,archive_builder->enc_bwt,
       archive_builder->character_occurrences,check_index,verbose);
   bwt_reverse_builder_delete(bwt_reverse_builder); // Free BWT-builder

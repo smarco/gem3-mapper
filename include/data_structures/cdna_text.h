@@ -56,28 +56,28 @@ extern const uint64_t cdna_text_block_mask_left[256];
 /*
  * CDNA Text (Builder incorporated)
  */
-cdna_text_t* cdna_text_new(mm_slab_t* const restrict mm_slab);
-void cdna_text_delete(cdna_text_t* const restrict cdna_text);
-void cdna_text_add_char(cdna_text_t* const restrict cdna_text,const uint8_t enc_char);
-void cdna_text_close(cdna_text_t* const restrict cdna_text);
+cdna_text_t* cdna_text_new(mm_slab_t* const mm_slab);
+void cdna_text_delete(cdna_text_t* const cdna_text);
+void cdna_text_add_char(cdna_text_t* const cdna_text,const uint8_t enc_char);
+void cdna_text_close(cdna_text_t* const cdna_text);
 
-void cdna_text_write_as_bitwise_text(fm_t* const restrict file_manager,cdna_text_t* const restrict cdna_text);
+void cdna_text_write_as_bitwise_text(fm_t* const file_manager,cdna_text_t* const cdna_text);
 
 /*
  * CDNA Accessors
  */
-uint64_t cdna_text_get_length(cdna_text_t* const restrict cdna_text);
+uint64_t cdna_text_get_length(cdna_text_t* const cdna_text);
 
 /*
  * CDNA Text Iterator
  */
 void cdna_text_iterator_init(
-    cdna_text_iterator_t* const restrict iterator,
-    cdna_text_t* const restrict cdna_text,
+    cdna_text_iterator_t* const iterator,
+    cdna_text_t* const cdna_text,
     const uint64_t position);
-bool cdna_text_iterator_eoi(cdna_text_iterator_t* const restrict iterator);
-uint8_t cdna_text_iterator_get_char_encoded(cdna_text_iterator_t* const restrict iterator);
-void cdna_text_iterator_next_char(cdna_text_iterator_t* const restrict iterator);
+bool cdna_text_iterator_eoi(cdna_text_iterator_t* const iterator);
+uint8_t cdna_text_iterator_get_char_encoded(cdna_text_iterator_t* const iterator);
+void cdna_text_iterator_next_char(cdna_text_iterator_t* const iterator);
 
 /*
  * CDNA Text Reverse Iterator
@@ -86,23 +86,23 @@ void cdna_text_iterator_next_char(cdna_text_iterator_t* const restrict iterator)
  *    - Traverses the text from last added character until the first
  */
 void cdna_text_reverse_iterator_init(
-    cdna_text_iterator_t* const restrict iterator,
-    cdna_text_t* const restrict cdna_text,
+    cdna_text_iterator_t* const iterator,
+    cdna_text_t* const cdna_text,
     const uint64_t position);
-bool cdna_text_reverse_iterator_eoi(cdna_text_iterator_t* const restrict iterator);
-uint8_t cdna_text_reverse_iterator_get_char_encoded(cdna_text_iterator_t* const restrict iterator);
-void cdna_text_reverse_iterator_next_char(cdna_text_iterator_t* const restrict iterator);
+bool cdna_text_reverse_iterator_eoi(cdna_text_iterator_t* const iterator);
+uint8_t cdna_text_reverse_iterator_get_char_encoded(cdna_text_iterator_t* const iterator);
+void cdna_text_reverse_iterator_next_char(cdna_text_iterator_t* const iterator);
 
 /*
  * CDNA Text Compare
  */
 void cdna_text_block_iterator_init(
-    cdna_text_iterator_t* const restrict iterator,
-    cdna_text_t* const restrict cdna_text,
+    cdna_text_iterator_t* const iterator,
+    cdna_text_t* const cdna_text,
     const uint64_t position);
-void cdna_text_block_iterator_next_block(cdna_text_iterator_t* const restrict iterator);
-uint64_t cdna_text_block_iterator_get_block(cdna_text_iterator_t* const restrict iterator);
-int cdna_text_block_cmp(cdna_text_iterator_t* const restrict iterator_a,cdna_text_iterator_t* const restrict iterator_b);
+void cdna_text_block_iterator_next_block(cdna_text_iterator_t* const iterator);
+uint64_t cdna_text_block_iterator_get_block(cdna_text_iterator_t* const iterator);
+int cdna_text_block_cmp(cdna_text_iterator_t* const iterator_a,cdna_text_iterator_t* const iterator_b);
 
 /*
  * CDNA Text (Iterator-HUB)
@@ -111,14 +111,14 @@ cdna_text_iterator_hub_t* cdna_text_iterator_hub_new(
     cdna_text_t** cdna_texts,
     const uint64_t num_texts,
     const uint64_t starting_position);
-void cdna_text_iterator_hub_delete(cdna_text_iterator_hub_t* const restrict iterator_hub);
-bool cdna_text_iterator_hub_eoi(cdna_text_iterator_hub_t* const restrict iterator_hub);
-uint8_t cdna_text_iterator_hub_get_char_encoded(cdna_text_iterator_hub_t* const restrict iterator_hub);
-void cdna_text_iterator_hub_next_char(cdna_text_iterator_hub_t* const restrict iterator_hub);
+void cdna_text_iterator_hub_delete(cdna_text_iterator_hub_t* const iterator_hub);
+bool cdna_text_iterator_hub_eoi(cdna_text_iterator_hub_t* const iterator_hub);
+uint8_t cdna_text_iterator_hub_get_char_encoded(cdna_text_iterator_hub_t* const iterator_hub);
+void cdna_text_iterator_hub_next_char(cdna_text_iterator_hub_t* const iterator_hub);
 
 /*
  * Display
  */
-void cdna_text_print(FILE* const restrict stream,cdna_text_t* const restrict cdna_text);
+void cdna_text_print(FILE* const stream,cdna_text_t* const cdna_text);
 
 #endif /* CDNA_TEXT_H_ */

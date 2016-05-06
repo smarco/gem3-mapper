@@ -13,14 +13,14 @@
  * Inspect Text
  */
 void archive_builder_inspect_text(
-    archive_builder_t* const restrict archive_builder,
-    input_file_t* const restrict input_multifasta,
+    archive_builder_t* const archive_builder,
+    input_file_t* const input_multifasta,
     const bool verbose) {
   // Prepare ticket
   ticker_t ticker;
   ticker_percentage_reset(&ticker,verbose,"Inspecting MultiFASTA",0,0,true);
   // MultiFASTA Read cycle
-  vector_t* const restrict line_buffer = vector_new(200,char);
+  vector_t* const line_buffer = vector_new(200,char);
   uint64_t enc_text_length = 0; // input_file_get_size(input_multifasta);
   while (!input_file_eof(input_multifasta)) {
     // Get line
@@ -62,7 +62,7 @@ void archive_builder_inspect_text(
  * Archive Builder. Text Generation Low-Level Building-Blocks
  */
 void archive_builder_generate_text_add_character(
-    archive_builder_t* const restrict archive_builder,
+    archive_builder_t* const archive_builder,
     const uint8_t char_enc) {
   // Update parsing-location
   ++(archive_builder->parsing_state.text_interval_length);
@@ -71,7 +71,7 @@ void archive_builder_generate_text_add_character(
   dna_text_set_char(archive_builder->enc_text,(archive_builder->parsing_state.index_position)++,char_enc);
 }
 void archive_builder_generate_text_filter__add_character(
-    archive_builder_t* const restrict archive_builder,
+    archive_builder_t* const archive_builder,
     const uint8_t char_enc) {
   uint8_t filtered_char_enc = char_enc;
 //  // Check colorspace
@@ -81,15 +81,15 @@ void archive_builder_generate_text_filter__add_character(
 //  }
   archive_builder_generate_text_add_character(archive_builder,filtered_char_enc);
 }
-void archive_builder_generate_text_add_separator(archive_builder_t* const restrict archive_builder) {
+void archive_builder_generate_text_add_separator(archive_builder_t* const archive_builder) {
   // Add to Index-Text
   archive_builder->parsing_state.last_char = ENC_DNA_CHAR_SEP;
   dna_text_set_char(archive_builder->enc_text,(archive_builder->parsing_state.index_position)++,ENC_DNA_CHAR_SEP);
   locator_builder_skip_index(archive_builder->locator,1); // Skip Separator
 }
-void archive_builder_generate_text_add_Ns(archive_builder_t* const restrict archive_builder) {
+void archive_builder_generate_text_add_Ns(archive_builder_t* const archive_builder) {
   // Below threshold, restore all Ns
-  input_multifasta_state_t* const restrict parsing_state = &(archive_builder->parsing_state);
+  input_multifasta_state_t* const parsing_state = &(archive_builder->parsing_state);
   uint64_t i;
   for (i=0;i<parsing_state->ns_pending;++i) {
     archive_builder_generate_text_filter__add_character(archive_builder,ENC_DNA_CHAR_N);
@@ -99,9 +99,9 @@ void archive_builder_generate_text_add_Ns(archive_builder_t* const restrict arch
 /*
  * Text Generation. High-Level Building-Blocks
  */
-void archive_builder_generate_text_close_sequence(archive_builder_t* const restrict archive_builder) {
-  locator_builder_t* const restrict locator = archive_builder->locator;
-  input_multifasta_state_t* const restrict parsing_state = &(archive_builder->parsing_state);
+void archive_builder_generate_text_close_sequence(archive_builder_t* const archive_builder) {
+  locator_builder_t* const locator = archive_builder->locator;
+  input_multifasta_state_t* const parsing_state = &(archive_builder->parsing_state);
   if (parsing_state->index_interval_length > 0) {
     // Close interval
     locator_builder_close_interval(locator,parsing_state->text_interval_length,
@@ -115,8 +115,8 @@ void archive_builder_generate_text_close_sequence(archive_builder_t* const restr
   // Reset length
   input_multifasta_state_reset_interval(parsing_state);
 }
-void archive_builder_generate_text_process_unknowns(archive_builder_t* const restrict archive_builder) {
-  input_multifasta_state_t* const restrict parsing_state = &(archive_builder->parsing_state);
+void archive_builder_generate_text_process_unknowns(archive_builder_t* const archive_builder) {
+  input_multifasta_state_t* const parsing_state = &(archive_builder->parsing_state);
   // Check Ns
   const uint64_t ns_pending = parsing_state->ns_pending;
   if (ns_pending > 0) {
@@ -147,10 +147,10 @@ void archive_builder_generate_text_process_unknowns(archive_builder_t* const res
   }
 }
 void archive_builder_generate_text_add_sequence(
-    archive_builder_t* const restrict archive_builder,
-    input_file_t* const restrict input_multifasta,
-    vector_t* const restrict tag) {
-  input_multifasta_state_t* const restrict parsing_state = &(archive_builder->parsing_state);
+    archive_builder_t* const archive_builder,
+    input_file_t* const input_multifasta,
+    vector_t* const tag) {
+  input_multifasta_state_t* const parsing_state = &(archive_builder->parsing_state);
   // Close sequence
   if (parsing_state->multifasta_read_state==Reading_sequence) {
     gem_cond_fatal_error(input_multifasta_get_text_sequence_length(parsing_state)==0,
@@ -160,7 +160,7 @@ void archive_builder_generate_text_add_sequence(
   }
   // Parse TAG (Skip separators)
   const uint64_t tag_buffer_length = vector_get_used(tag);
-  char* const restrict tag_buffer = vector_get_mem(tag,char)+1;
+  char* const tag_buffer = vector_get_mem(tag,char)+1;
   uint64_t tag_length;
   for (tag_length=0;tag_length<tag_buffer_length;++tag_length) {
     if (MFASTA_IS_ANY_TAG_SEPARATOR(tag_buffer[tag_length])) break;
@@ -175,8 +175,8 @@ void archive_builder_generate_text_add_sequence(
   input_multifasta_state_begin_sequence(parsing_state);
 }
 void archive_builder_generate_text_process_character(
-    archive_builder_t* const restrict archive_builder,
-    input_file_t* const restrict input_multifasta,
+    archive_builder_t* const archive_builder,
+    input_file_t* const input_multifasta,
     const char current_char) {
   // Check Character
   if (current_char==DNA_CHAR_N || !is_extended_dna(current_char)) { // Handle Ns
@@ -194,8 +194,8 @@ void archive_builder_generate_text_process_character(
  * Generate Text
  */
 void archive_builder_generate_forward_text(
-    archive_builder_t* const restrict archive_builder,
-    input_file_t* const restrict input_multifasta,
+    archive_builder_t* const archive_builder,
+    input_file_t* const input_multifasta,
     const bool verbose) {
   // Check MultiFASTA
   input_file_check_buffer(input_multifasta);
@@ -207,14 +207,14 @@ void archive_builder_generate_forward_text(
   ticker_add_process_label(&ticker,"","bases parsed");
   ticker_add_finish_label(&ticker,"Total","bases parsed");
   // MultiFASTA Read cycle
-  vector_t* const restrict line_buffer = vector_new(200,char);
-  input_multifasta_state_t* const restrict parsing_state = &(archive_builder->parsing_state);
+  vector_t* const line_buffer = vector_new(200,char);
+  input_multifasta_state_t* const parsing_state = &(archive_builder->parsing_state);
   input_multifasta_state_clear(parsing_state); // Init parsing state
   while (!input_file_eof(input_multifasta)) {
     // Get line
     input_file_get_lines(input_multifasta,line_buffer,1);
     const uint64_t line_length = vector_get_used(line_buffer)-1;
-    const char* const restrict line = vector_get_mem(line_buffer,char);
+    const char* const line = vector_get_mem(line_buffer,char);
     // Parse line
     if (line[0]==FASTA_TAG_BEGIN) { // Archive builder parse Tag
       archive_builder_generate_text_add_sequence(archive_builder,input_multifasta,line_buffer);
@@ -241,17 +241,17 @@ void archive_builder_generate_forward_text(
 /*
  * Generate RC-Text
  */
-void archive_builder_generate_rc_text(archive_builder_t* const restrict archive_builder, const bool verbose) {
+void archive_builder_generate_rc_text(archive_builder_t* const archive_builder, const bool verbose) {
   // Prepare ticker
   ticker_t ticker_rc;
   ticker_percentage_reset(&ticker_rc,verbose,"Generating Text (explicit Reverse-Complement)",0,100,true);
   // Traverse all reference intervals (num_base_intervals are those from the graph file; not RC)
-  locator_builder_t* const restrict locator = archive_builder->locator;
+  locator_builder_t* const locator = archive_builder->locator;
   const uint64_t num_intervals = locator_builder_get_num_intervals(archive_builder->locator);
   int64_t i;
   for (i=num_intervals-1;i>=0;--i) {
     // Retrieve interval
-    locator_interval_t* const restrict locator_interval = locator_builder_get_interval(archive_builder->locator,i);
+    locator_interval_t* const locator_interval = locator_builder_get_interval(archive_builder->locator,i);
     const uint64_t interval_length = locator_interval_get_index_length(locator_interval);
     // Add RC interval to locator
     locator_builder_add_rc_interval(locator,locator_interval);
@@ -273,17 +273,17 @@ void archive_builder_generate_rc_text(archive_builder_t* const restrict archive_
 /*
  * Generate C2T & G2A Texts
  */
-void archive_builder_generate_bisulfite_text(archive_builder_t* const restrict archive_builder,const bool verbose) {
+void archive_builder_generate_bisulfite_text(archive_builder_t* const archive_builder,const bool verbose) {
   // Prepare ticker
   ticker_t ticker_rc;
   ticker_percentage_reset(&ticker_rc,verbose,"Generating Bisulfite-Text (C2T & G2A)",0,100,true);
   // Traverse all reference intervals (num_base_intervals are those from the graph file; not RC)
-  locator_builder_t* const restrict locator = archive_builder->locator;
+  locator_builder_t* const locator = archive_builder->locator;
   const uint64_t num_intervals = locator_builder_get_num_intervals(archive_builder->locator);
   int64_t i;
   for (i=0;i<num_intervals;++i) {
     // Retrieve interval & set C2T-stranded
-    locator_interval_t* const restrict locator_interval = locator_builder_get_interval(archive_builder->locator,i);
+    locator_interval_t* const locator_interval = locator_builder_get_interval(archive_builder->locator,i);
     locator_interval->bs_strand = bs_strand_C2T;
     // Add G2A-text interval to locator
     locator_builder_add_interval(locator,locator_interval->tag_id,

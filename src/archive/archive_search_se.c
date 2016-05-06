@@ -28,8 +28,8 @@
  * Memory Injection (Support Data Structures)
  */
 void archive_search_se_inject_mm(
-    archive_search_t* const restrict archive_search,
-    mm_search_t* const restrict mm_search) {
+    archive_search_t* const archive_search,
+    mm_search_t* const mm_search) {
   archive_search_inject_mm_stack(archive_search,mm_search->mm_stack);
   archive_search_inject_mapper_stats(archive_search,mm_search->mapper_stats);
   archive_search_inject_interval_set(archive_search,&mm_search->interval_set);
@@ -43,14 +43,14 @@ void archive_search_se_inject_mm(
  * Archive Search SE Continue
  */
 void archive_search_se_continue(
-    archive_search_t* const restrict archive_search,
-    matches_t* const restrict matches) {
+    archive_search_t* const archive_search,
+    matches_t* const matches) {
   // Run the search (FORWARD)
-  approximate_search_t* const restrict forward_asearch = &archive_search->forward_search_state;
+  approximate_search_t* const forward_asearch = &archive_search->forward_search_state;
   approximate_search(forward_asearch,matches); // Forward search
   if (archive_search->emulate_rc_search) {
     // Run the search (REVERSE)
-    approximate_search_t* const restrict reverse_asearch = &archive_search->reverse_search_state;
+    approximate_search_t* const reverse_asearch = &archive_search->reverse_search_state;
     approximate_search(reverse_asearch,matches); // Reverse emulated-search
   }
 }
@@ -58,15 +58,15 @@ void archive_search_se_continue(
  * Single-End Indexed Search (SE Online Approximate String Search)
  */
 void archive_search_se(
-    archive_search_t* const restrict archive_search,
-    matches_t* const restrict matches) {
+    archive_search_t* const archive_search,
+    matches_t* const matches) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE) {
     tab_fprintf(stderr,"[GEM]>ArchiveSearch.SE\n");
     tab_fprintf(gem_log_get_stream(),"  => Tag %s\n",archive_search->sequence.tag.buffer);
     tab_fprintf(gem_log_get_stream(),"  => Sequence %s\n",archive_search->sequence.read.buffer);
     tab_global_inc();
-//    approximate_search_t* const restrict search = &archive_search->forward_search_state;
+//    approximate_search_t* const search = &archive_search->forward_search_state;
 //    region_profile_print_mappability(gem_log_get_stream(),search->archive->fm_index,
 //        search->as_parameters->search_parameters->allowed_enc,search->pattern.key,
 //        search->pattern.key_length,false,search->mm_stack);
@@ -74,8 +74,8 @@ void archive_search_se(
   // Reset initial values (Prepare pattern(s), instantiate parameters values, ...)
   archive_search_reset(archive_search);
   // Search the pattern(s)
-  search_parameters_t* const restrict search_parameters = &archive_search->search_parameters;
-  approximate_search_t* const restrict forward_asearch = &archive_search->forward_search_state;
+  search_parameters_t* const search_parameters = &archive_search->search_parameters;
+  approximate_search_t* const forward_asearch = &archive_search->forward_search_state;
   if (!archive_search->emulate_rc_search) {
     // Compute the full search
     approximate_search(forward_asearch,matches); // Forward search
@@ -87,7 +87,7 @@ void archive_search_se(
     // Run the search (FORWARD)
     approximate_search(forward_asearch,matches); // Forward search
     // Keep on searching
-    approximate_search_t* const restrict reverse_asearch = &archive_search->reverse_search_state;
+    approximate_search_t* const reverse_asearch = &archive_search->reverse_search_state;
     // Run the search (REVERSE)
     approximate_search(reverse_asearch,matches); // Reverse emulated-search
     // Resume forward search (if not completed before)
@@ -119,9 +119,9 @@ void archive_search_se(
  * Compute Predictors
  */
 void archive_search_se_compute_predictors(
-    archive_search_t* const restrict archive_search,
-    matches_t* const restrict matches,
-    matches_predictors_t* const restrict predictors) {
+    archive_search_t* const archive_search,
+    matches_t* const matches,
+    matches_predictors_t* const predictors) {
   const uint64_t max_complete_stratum = matches->max_complete_stratum==ALL ? 0 : matches->max_complete_stratum;
   matches_predictors_compute(matches,predictors,&archive_search->forward_search_state.metrics,max_complete_stratum);
 }
@@ -129,9 +129,9 @@ void archive_search_se_compute_predictors(
  * Display
  */
 void archive_search_se_print(
-    FILE* const restrict stream,
-    archive_search_t* const restrict archive_search,
-    matches_t* const restrict matches) {
+    FILE* const stream,
+    archive_search_t* const archive_search,
+    matches_t* const matches) {
   tab_fprintf(stream,"[GEM]>ArchiveSearch.SE\n");
   tab_global_inc();
   tab_fprintf(stream,"=> Search.Forward\n");

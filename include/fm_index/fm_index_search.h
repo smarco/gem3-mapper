@@ -16,50 +16,50 @@
  * Basic FM-Index search (backwards)
  */
 void fm_index_bsearch(
-    const fm_index_t* const restrict fm_index,
-    const uint8_t* const restrict key,
+    const fm_index_t* const fm_index,
+    const uint8_t* const key,
     uint64_t key_length,
-    uint64_t* const restrict hi_out,
-    uint64_t* const restrict lo_out);
+    uint64_t* const hi_out,
+    uint64_t* const lo_out);
 
 void fm_index_bsearch_pure(
-    const fm_index_t* const restrict fm_index,
-    const uint8_t* const restrict key,
+    const fm_index_t* const fm_index,
+    const uint8_t* const key,
     uint64_t key_length,
-    uint64_t* const restrict hi_out,
-    uint64_t* const restrict lo_out);
+    uint64_t* const hi_out,
+    uint64_t* const lo_out);
 
 uint64_t fm_index_bsearch_continue(
-    const fm_index_t* const restrict fm_index,
-    const char* const restrict key,
+    const fm_index_t* const fm_index,
+    const char* const key,
     const uint64_t key_length,
-    const bool* const restrict allowed_repl,
+    const bool* const allowed_repl,
     uint64_t last_hi,
     uint64_t last_lo,
     uint64_t begin_pos,
     const uint64_t end_pos,
-    uint64_t* const restrict res_hi,
-    uint64_t* const restrict res_lo);
+    uint64_t* const res_hi,
+    uint64_t* const res_lo);
 
 /*
  * Basic FM-Index search (forward)
  */
 void fm_index_reverse_bsearch_pure(
-    const fm_index_t* const restrict fm_index,
-    const uint8_t* const restrict key,
+    const fm_index_t* const fm_index,
+    const uint8_t* const key,
     const uint64_t key_length,
-    uint64_t* const restrict hi_out,
-    uint64_t* const restrict lo_out);
+    uint64_t* const hi_out,
+    uint64_t* const lo_out);
 
 /*
  * Debug
  */
 void fm_index_bsearch_debug(
-    const fm_index_t* const restrict fm_index,
-    const uint8_t* const restrict key,
+    const fm_index_t* const fm_index,
+    const uint8_t* const key,
     uint64_t key_length,
-    uint64_t* const restrict hi_out,
-    uint64_t* const restrict lo_out,
-    uint64_t* const restrict steps_out);
+    uint64_t* const hi_out,
+    uint64_t* const lo_out,
+    uint64_t* const steps_out);
 
 #endif /* FM_INDEX_SEARCH_H_ */

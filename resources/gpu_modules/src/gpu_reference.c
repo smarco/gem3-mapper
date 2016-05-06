@@ -17,7 +17,7 @@
 Get information functions
 ************************************************************/
 
-gpu_error_t gpu_reference_get_size(gpu_reference_buffer_t* const restrict reference, size_t* bytesPerReference)
+gpu_error_t gpu_reference_get_size(gpu_reference_buffer_t* const reference, size_t* bytesPerReference)
 {
   (* bytesPerReference) = reference->numEntries * GPU_REFERENCE_BYTES_PER_ENTRY;
   return (SUCCESS);
@@ -64,7 +64,7 @@ char gpu_complement_base(const char character)
 Transform reference functions
 ************************************************************/
 
-gpu_error_t gpu_reference_transform_ASCII(const char* const restrict referenceASCII, gpu_reference_buffer_t* const restrict reference,
+gpu_error_t gpu_reference_transform_ASCII(const char* const referenceASCII, gpu_reference_buffer_t* const reference,
 										  const gpu_module_t activeModules)
 {
   uint64_t indexBase, bitmap;
@@ -90,14 +90,14 @@ gpu_error_t gpu_reference_transform_ASCII(const char* const restrict referenceAS
   return(SUCCESS);
 }
 
-gpu_error_t gpu_reference_transform_GEM(const gpu_gem_ref_dto_t* const restrict gem_reference, gpu_reference_buffer_t* const restrict reference,
+gpu_error_t gpu_reference_transform_GEM(const gpu_gem_ref_dto_t* const gem_reference, gpu_reference_buffer_t* const reference,
 										const gpu_module_t activeModules)
 {
   uint64_t bitmap, base;
   uint64_t idEntry, i, referencePosition;
 
   // Compute size of the forward reference
-  const char* const restrict h_gem_reference = gem_reference->reference;
+  const char* const h_gem_reference = gem_reference->reference;
   const uint64_t total_ref_size     = gem_reference->ref_length;
   const uint64_t baseMask           = GPU_UINT64_ONES << GPU_REFERENCE_CHAR_LENGTH;
 
@@ -126,14 +126,14 @@ gpu_error_t gpu_reference_transform_GEM(const gpu_gem_ref_dto_t* const restrict 
 }
 
 
-gpu_error_t gpu_reference_transform_GEM_FULL(const gpu_gem_ref_dto_t* const restrict gem_reference, gpu_reference_buffer_t* const restrict reference,
+gpu_error_t gpu_reference_transform_GEM_FULL(const gpu_gem_ref_dto_t* const gem_reference, gpu_reference_buffer_t* const reference,
 											 const gpu_module_t activeModules)
 {
   uint64_t base, bitmap;
   uint64_t idEntry, i, referencePosition;
 
   // Recompute size of the full reference (forward + reverse-complement)
-  const char* const restrict h_gem_reference = gem_reference->reference;
+  const char* const h_gem_reference = gem_reference->reference;
   const uint64_t forward_ref_size   = gem_reference->ref_length;
   const uint64_t total_ref_size     = 2 * forward_ref_size;
   const uint64_t baseMask           = GPU_UINT64_ONES << GPU_REFERENCE_CHAR_LENGTH;
@@ -172,7 +172,7 @@ gpu_error_t gpu_reference_transform_GEM_FULL(const gpu_gem_ref_dto_t* const rest
 Input & Output reference functions
 ************************************************************/
 
-gpu_error_t gpu_reference_read_specs(FILE* fp, gpu_reference_buffer_t* const restrict reference, const gpu_module_t activeModules)
+gpu_error_t gpu_reference_read_specs(FILE* fp, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules)
 {
   size_t result;
 
@@ -187,7 +187,7 @@ gpu_error_t gpu_reference_read_specs(FILE* fp, gpu_reference_buffer_t* const res
   return (SUCCESS);
 }
 
-gpu_error_t gpu_reference_read(FILE* fp, gpu_reference_buffer_t* const restrict reference, const gpu_module_t activeModules)
+gpu_error_t gpu_reference_read(FILE* fp, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules)
 {
   size_t result;
 
@@ -204,7 +204,7 @@ gpu_error_t gpu_reference_read(FILE* fp, gpu_reference_buffer_t* const restrict 
   return (SUCCESS);
 }
 
-gpu_error_t gpu_reference_write(FILE* fp, const gpu_reference_buffer_t* const restrict reference, const gpu_module_t activeModules)
+gpu_error_t gpu_reference_write(FILE* fp, const gpu_reference_buffer_t* const reference, const gpu_module_t activeModules)
 {
   size_t result;
 
@@ -227,7 +227,7 @@ gpu_error_t gpu_reference_write(FILE* fp, const gpu_reference_buffer_t* const re
 Initialize reference functions
 ************************************************************/
 
-gpu_error_t gpu_reference_init_dto(gpu_reference_buffer_t* const restrict ref)
+gpu_error_t gpu_reference_init_dto(gpu_reference_buffer_t* const ref)
 {
   //Initialize the reference structure
   ref->d_reference    = NULL;
@@ -241,7 +241,7 @@ gpu_error_t gpu_reference_init_dto(gpu_reference_buffer_t* const restrict ref)
   return (SUCCESS);
 }
 
-gpu_error_t gpu_reference_set_specs(gpu_reference_buffer_t* const restrict ref, const char* const restrict referenceRaw,
+gpu_error_t gpu_reference_set_specs(gpu_reference_buffer_t* const ref, const char* const referenceRaw,
                                     const gpu_ref_coding_t refCoding, const gpu_module_t activeModules)
 {
   if((activeModules & GPU_REFERENCE) == 0)
@@ -274,7 +274,7 @@ gpu_error_t gpu_reference_set_specs(gpu_reference_buffer_t* const restrict ref, 
   return(SUCCESS);
 }
 
-gpu_error_t gpu_reference_transform(gpu_reference_buffer_t* const restrict ref, const char* const restrict referenceRaw,
+gpu_error_t gpu_reference_transform(gpu_reference_buffer_t* const ref, const char* const referenceRaw,
                                     const gpu_ref_coding_t refCoding, const gpu_module_t activeModules)
 {
   if((activeModules & GPU_REFERENCE) == 0)
@@ -307,10 +307,10 @@ gpu_error_t gpu_reference_transform(gpu_reference_buffer_t* const restrict ref, 
   return(SUCCESS);
 }
 
-gpu_error_t gpu_reference_init(gpu_reference_buffer_t **reference, const gpu_reference_dto_t* const restrict referenceRaw,
+gpu_error_t gpu_reference_init(gpu_reference_buffer_t **reference, const gpu_reference_dto_t* const referenceRaw,
                                const uint32_t numSupportedDevices, const gpu_module_t activeModules)
 {
-  gpu_reference_buffer_t* const restrict ref = (gpu_reference_buffer_t *) malloc(sizeof(gpu_reference_buffer_t));
+  gpu_reference_buffer_t* const ref = (gpu_reference_buffer_t *) malloc(sizeof(gpu_reference_buffer_t));
   uint32_t idSupDevice;
 
   GPU_ERROR(gpu_reference_init_dto(ref));
@@ -351,7 +351,7 @@ gpu_error_t gpu_reference_allocate(gpu_reference_buffer_t *reference, const gpu_
   return(SUCCESS);
 }
 
-gpu_error_t gpu_reference_load(gpu_reference_buffer_t *reference, const gpu_reference_dto_t* const restrict referenceRaw,
+gpu_error_t gpu_reference_load(gpu_reference_buffer_t *reference, const gpu_reference_dto_t* const referenceRaw,
                                const gpu_module_t activeModules)
 {
   if((activeModules & GPU_REFERENCE) == 0)
@@ -363,7 +363,7 @@ gpu_error_t gpu_reference_load(gpu_reference_buffer_t *reference, const gpu_refe
   return(SUCCESS);
 }
 
-gpu_error_t gpu_reference_transfer_CPU_to_GPUs(gpu_reference_buffer_t* const restrict reference, gpu_device_info_t** const restrict devices,
+gpu_error_t gpu_reference_transfer_CPU_to_GPUs(gpu_reference_buffer_t* const reference, gpu_device_info_t** const devices,
                                                const gpu_module_t activeModules)
 {
   uint32_t deviceFreeMemory, idSupportedDevice;
@@ -394,7 +394,7 @@ gpu_error_t gpu_reference_transfer_CPU_to_GPUs(gpu_reference_buffer_t* const res
 Free reference functions
 ************************************************************/
 
-gpu_error_t gpu_reference_free_host(gpu_reference_buffer_t* const restrict reference)
+gpu_error_t gpu_reference_free_host(gpu_reference_buffer_t* const reference)
 {
     if(reference->h_reference != NULL){
       if(reference->hostAllocStats == GPU_PAGE_LOCKED) CUDA_ERROR(cudaFreeHost(reference->h_reference));
@@ -405,7 +405,7 @@ gpu_error_t gpu_reference_free_host(gpu_reference_buffer_t* const restrict refer
     return(SUCCESS);
 }
 
-gpu_error_t gpu_reference_free_unused_host(gpu_reference_buffer_t* const restrict reference, gpu_device_info_t** const restrict devices,
+gpu_error_t gpu_reference_free_unused_host(gpu_reference_buffer_t* const reference, gpu_device_info_t** const devices,
                                            const gpu_module_t activeModules)
 {
   uint32_t idSupportedDevice, numSupportedDevices;
@@ -426,7 +426,7 @@ gpu_error_t gpu_reference_free_unused_host(gpu_reference_buffer_t* const restric
   return(SUCCESS);
 }
 
-gpu_error_t gpu_reference_free_device(gpu_reference_buffer_t* const restrict reference, gpu_device_info_t** const restrict devices)
+gpu_error_t gpu_reference_free_device(gpu_reference_buffer_t* const reference, gpu_device_info_t** const devices)
 {
   const uint32_t numSupportedDevices = devices[0]->numSupportedDevices;
   uint32_t idSupportedDevice;
@@ -450,7 +450,7 @@ gpu_error_t gpu_reference_free_device(gpu_reference_buffer_t* const restrict ref
   return(SUCCESS);
 }
 
-gpu_error_t gpu_reference_free(gpu_reference_buffer_t **reference, gpu_device_info_t** const restrict devices, const gpu_module_t activeModules)
+gpu_error_t gpu_reference_free(gpu_reference_buffer_t **reference, gpu_device_info_t** const devices, const gpu_module_t activeModules)
 {
   gpu_reference_buffer_t* ref = (* reference);
 

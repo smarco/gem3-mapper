@@ -21,29 +21,29 @@
 
 
 /* Input & Output Multi-FASTA functions (Indexes) */
-gpu_error_t gpu_io_load_specs_BWT_MFASTA(const char* const __restrict__ fn, gpu_index_buffer_t* const __restrict__ index, const gpu_module_t activeModules);
-gpu_error_t gpu_io_load_BWT_MFASTA(const char* const __restrict__ fn, gpu_index_buffer_t* const __restrict__ index, char **h_BWT);
+gpu_error_t gpu_io_load_specs_BWT_MFASTA(const char* const fn, gpu_index_buffer_t* const index, const gpu_module_t activeModules);
+gpu_error_t gpu_io_load_BWT_MFASTA(const char* const fn, gpu_index_buffer_t* const index, char **h_BWT);
 /* Input & Output Multi-FASTA functions (Reference) */
-gpu_error_t gpu_io_load_reference_specs_MFASTA(const char *fn, gpu_reference_buffer_t* const __restrict__ reference, const gpu_module_t activeModules);
-gpu_error_t gpu_io_load_reference_MFASTA(const char *fn, gpu_reference_buffer_t* const __restrict__ reference, const gpu_module_t activeModules);
+gpu_error_t gpu_io_load_reference_specs_MFASTA(const char *fn, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
+gpu_error_t gpu_io_load_reference_MFASTA(const char *fn, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
 
 /* Input & Output BENCHMARK PROFILE functions (Indexes) */
-gpu_error_t gpu_io_save_index_PROFILE(const char* const __restrict__ fn, const gpu_index_buffer_t* const __restrict__ index, const gpu_module_t activeModules);
-gpu_error_t gpu_io_load_index_specs_PROFILE(const char* const __restrict__ fn, gpu_index_buffer_t* const __restrict__ index, const gpu_module_t activeModules);
-gpu_error_t gpu_io_load_index_PROFILE(const char* const __restrict__ fn, gpu_index_buffer_t* const __restrict__ index, const gpu_module_t activeModules);
+gpu_error_t gpu_io_save_index_PROFILE(const char* const fn, const gpu_index_buffer_t* const index, const gpu_module_t activeModules);
+gpu_error_t gpu_io_load_index_specs_PROFILE(const char* const fn, gpu_index_buffer_t* const index, const gpu_module_t activeModules);
+gpu_error_t gpu_io_load_index_PROFILE(const char* const fn, gpu_index_buffer_t* const index, const gpu_module_t activeModules);
 /* Input & Output BENCHMARK PROFILE functions (Reference) */
-gpu_error_t gpu_io_load_reference_specs_PROFILE(const char* const __restrict__ fn, gpu_reference_buffer_t* const __restrict__ reference, const gpu_module_t activeModules);
-gpu_error_t gpu_io_load_reference_PROFILE(const char* const __restrict__ fn, gpu_reference_buffer_t* const __restrict__ reference, const gpu_module_t activeModules);
-gpu_error_t gpu_io_save_reference_PROFILE(const char* const __restrict__ fn, const gpu_reference_buffer_t* const __restrict__ reference, const gpu_module_t activeModules);
+gpu_error_t gpu_io_load_reference_specs_PROFILE(const char* const fn, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
+gpu_error_t gpu_io_load_reference_PROFILE(const char* const fn, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
+gpu_error_t gpu_io_save_reference_PROFILE(const char* const fn, const gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
 
 /* Input & Output GEM-CUDA functions (Indexes) */
-gpu_error_t gpu_io_load_index_specs_GEM_FULL(const char *fn, gpu_index_buffer_t* const __restrict__ index, const gpu_module_t activeModules);
-gpu_error_t gpu_io_load_index_GEM_FULL(const char *fn, gpu_index_buffer_t* const __restrict__ index, const gpu_module_t activeModules);
-gpu_error_t gpu_io_save_index_GEM_FULL(const char* const __restrict__ fn, const gpu_index_buffer_t* const __restrict__ index, const gpu_module_t activeModules);
+gpu_error_t gpu_io_load_index_specs_GEM_FULL(const char *fn, gpu_index_buffer_t* const index, const gpu_module_t activeModules);
+gpu_error_t gpu_io_load_index_GEM_FULL(const char *fn, gpu_index_buffer_t* const index, const gpu_module_t activeModules);
+gpu_error_t gpu_io_save_index_GEM_FULL(const char* const fn, const gpu_index_buffer_t* const index, const gpu_module_t activeModules);
 /* Input & Output GEM-CUDA functions (Reference) */
-gpu_error_t gpu_io_load_reference_specs_GEM_FULL(const char* const __restrict__ fn, gpu_reference_buffer_t* const __restrict__ reference, const gpu_module_t activeModules);
-gpu_error_t gpu_io_load_reference_GEM_FULL(const char* const __restrict__ fn, gpu_reference_buffer_t* const __restrict__ reference, const gpu_module_t activeModules);
-gpu_error_t gpu_io_save_reference_GEM_FULL(const char* const __restrict__ fn, const gpu_reference_buffer_t* const __restrict__ reference, const gpu_module_t activeModules);
+gpu_error_t gpu_io_load_reference_specs_GEM_FULL(const char* const fn, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
+gpu_error_t gpu_io_load_reference_GEM_FULL(const char* const fn, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
+gpu_error_t gpu_io_save_reference_GEM_FULL(const char* const fn, const gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
 
 
 #endif /* GPU_IO_H_ */

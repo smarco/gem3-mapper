@@ -43,18 +43,18 @@ struct _bpm_pattern_t {
  * Compile Pattern
  */
 bpm_pattern_t* bpm_pattern_compile(
-    uint8_t* const restrict pattern,
+    uint8_t* const pattern,
     const uint64_t pattern_length,
     const uint64_t max_error,
-    mm_stack_t* const restrict mm_stack);
+    mm_stack_t* const mm_stack);
 
 /*
  * Compile Pattern Tiles
  */
 bpm_pattern_t* bpm_pattern_compile_tiles(
-    bpm_pattern_t* const restrict bpm_pattern,
+    bpm_pattern_t* const bpm_pattern,
     const uint64_t prefered_words64_per_tile,
     const uint64_t max_error,
-    mm_stack_t* const restrict mm_stack);
+    mm_stack_t* const mm_stack);
 
 #endif /* ALIGN_BPM_PATTERN_H_ */

@@ -18,11 +18,11 @@
  * Quality Model (Models quality scores from sequence into qm_values)
  */
 void quality_model(
-    sequence_t* const restrict sequence,
+    sequence_t* const sequence,
     const quality_model_t quality_model,
     const quality_format_t quality_format,
     const uint64_t quality_threshold,
-    uint8_t* const restrict quality_mask) {
+    uint8_t* const quality_mask) {
   switch (quality_model) {
     case quality_model_type_flat:
       quality_model_flat(sequence,quality_format,quality_threshold,quality_mask);
@@ -36,19 +36,19 @@ void quality_model(
   }
 }
 void quality_model_flat(
-    sequence_t* const restrict sequence,
+    sequence_t* const sequence,
     const quality_format_t quality_format,
     const uint64_t quality_threshold,
-    uint8_t* const restrict quality_mask) {
+    uint8_t* const quality_mask) {
   const uint64_t key_length = sequence_get_length(sequence);
   uint64_t i;
   for (i=0;i<key_length;++i) quality_mask[i] = qm_real;
 }
 void quality_model_gem(
-    sequence_t* const restrict sequence,
+    sequence_t* const sequence,
     const quality_format_t quality_format,
     const uint64_t quality_threshold,
-    uint8_t* const restrict quality_mask) {
+    uint8_t* const quality_mask) {
   uint64_t enc_diff;
   switch (quality_format) {
     case qualities_offset_33:

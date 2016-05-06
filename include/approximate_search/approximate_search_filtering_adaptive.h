@@ -15,7 +15,7 @@
 /*
  * Adaptive mapping Initial Basic Cases Selector
  */
-void approximate_search_filtering_adaptive_basic_cases(approximate_search_t* const restrict search);
+void approximate_search_filtering_adaptive_basic_cases(approximate_search_t* const search);
 
 /*
  * Adaptive mapping [GEM-workflow 4.0]
@@ -28,7 +28,7 @@ void approximate_search_filtering_adaptive_basic_cases(approximate_search_t* con
  *   to achieve a compromise between speed and depth of the search (max_mismatches)
  */
 void approximate_search_filtering_adaptive(
-    approximate_search_t* const restrict search,
-    matches_t* const restrict matches);
+    approximate_search_t* const search,
+    matches_t* const matches);
 
 #endif /* APPROXIMATE_SEARCH_FILTERING_ADAPTIVE_H_ */

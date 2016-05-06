@@ -98,16 +98,16 @@
  */
 void bpm_reset_search(
     const uint64_t num_words,
-    uint64_t* const restrict P,
-    uint64_t* const restrict M,
-    int64_t* const restrict score,
-    const int64_t* const restrict init_score);
+    uint64_t* const P,
+    uint64_t* const M,
+    int64_t* const score,
+    const int64_t* const init_score);
 void bpm_reset_search_cutoff(
-    uint8_t* const restrict top_level,
-    uint64_t* const restrict P,
-    uint64_t* const restrict M,
-    int64_t* const restrict score,
-    const int64_t* const restrict init_score,
+    uint8_t* const top_level,
+    uint64_t* const P,
+    uint64_t* const M,
+    int64_t* const score,
+    const int64_t* const init_score,
     const uint64_t max_distance);
 
 /*
@@ -115,29 +115,29 @@ void bpm_reset_search_cutoff(
  */
 // Raw
 bool bpm_compute_edit_distance_raw(
-    bpm_pattern_t* const restrict bpm_pattern,
-    const uint8_t* const restrict text,
+    bpm_pattern_t* const bpm_pattern,
+    const uint8_t* const text,
     const uint64_t text_length,
-    uint64_t* const restrict position,
-    uint64_t* const restrict distance);
+    uint64_t* const position,
+    uint64_t* const distance);
 // Cut-off
 bool bpm_compute_edit_distance(
-    const bpm_pattern_t* const restrict bpm_pattern,
-    const uint8_t* const restrict text,
+    const bpm_pattern_t* const bpm_pattern,
+    const uint8_t* const text,
     const uint64_t text_length,
-    uint64_t* const restrict match_distance,
-    uint64_t* const restrict match_column,
+    uint64_t* const match_distance,
+    uint64_t* const match_column,
     uint64_t max_distance,
     const bool quick_abandon);
 // Find all local minimums
 uint64_t bpm_compute_edit_distance_all(
-    const bpm_pattern_t* const restrict bpm_pattern,
-    vector_t* const restrict filtering_regions,
+    const bpm_pattern_t* const bpm_pattern,
+    vector_t* const filtering_regions,
     const uint64_t text_trace_offset,
     const uint64_t index_position,
-    const uint8_t* const restrict text,
+    const uint8_t* const text,
     const uint64_t text_length,
     uint64_t max_distance,
-    mm_stack_t* const restrict mm_stack);
+    mm_stack_t* const mm_stack);
 
 #endif /* ALIGN_BPM_DISTANCE_H_ */

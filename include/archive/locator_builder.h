@@ -36,60 +36,60 @@ typedef struct {
 /*
  * Setup
  */
-locator_builder_t* locator_builder_new(mm_slab_t* const restrict mm_slab);
-void locator_builder_delete(locator_builder_t* const restrict locator_builder);
+locator_builder_t* locator_builder_new(mm_slab_t* const mm_slab);
+void locator_builder_delete(locator_builder_t* const locator_builder);
 void locator_builder_write(
-    fm_t* const restrict file_manager,
-    locator_builder_t* const restrict locator_builder);
+    fm_t* const file_manager,
+    locator_builder_t* const locator_builder);
 
 /*
  * Locator Builder Accessors
  */
-uint64_t locator_builder_get_num_intervals(locator_builder_t* const restrict locator_builder);
-uint64_t locator_builder_get_num_tags(locator_builder_t* const restrict locator_builder);
+uint64_t locator_builder_get_num_intervals(locator_builder_t* const locator_builder);
+uint64_t locator_builder_get_num_tags(locator_builder_t* const locator_builder);
 
 /*
  * Skip text/index
  */
 void locator_builder_skip_index(
-    locator_builder_t* const restrict locator_builder,
+    locator_builder_t* const locator_builder,
     const uint64_t length);
 
 /*
  * Locator Builder Interval Accessors
  */
 locator_interval_t* locator_builder_get_interval(
-    locator_builder_t* const restrict locator_builder,
+    locator_builder_t* const locator_builder,
     const uint64_t interval_index);
 
 /*
  * Locator Builder Tag Accessors
  */
 char* locator_builder_get_tag(
-    locator_builder_t* const restrict locator_builder,
-    locator_tag_t* const restrict locator_tag);
+    locator_builder_t* const locator_builder,
+    locator_tag_t* const locator_tag);
 locator_tag_t* locator_builder_get_locator_tag_by_id(
-    locator_builder_t* const restrict locator_builder,
+    locator_builder_t* const locator_builder,
     const int64_t tag_id);
 locator_tag_t* locator_builder_get_locator_tag_by_tag(
-    locator_builder_t* const restrict locator_builder,
-    char* const restrict tag);
+    locator_builder_t* const locator_builder,
+    char* const tag);
 
 /*
  * Interval handling
  */
 void locator_builder_open_interval(
-    locator_builder_t* const restrict locator_builder,
+    locator_builder_t* const locator_builder,
     const int64_t tag_id);
 void locator_builder_close_interval(
-    locator_builder_t* const restrict locator_builder,
+    locator_builder_t* const locator_builder,
     const uint64_t interval_text_length,
     const uint64_t interval_index_length,
     const locator_interval_type type,
     const strand_t strand,
     const bs_strand_t bs_strand);
 void locator_builder_add_interval(
-    locator_builder_t* const restrict locator_builder,
+    locator_builder_t* const locator_builder,
     const int64_t tag_id,
     const uint64_t sequence_offset,
     const uint64_t interval_text_length,
@@ -98,19 +98,19 @@ void locator_builder_add_interval(
     const strand_t strand,
     const bs_strand_t bs_strand);
 void locator_builder_add_rc_interval(
-    locator_builder_t* const restrict locator_builder,
-    locator_interval_t* const restrict locator_interval);
+    locator_builder_t* const locator_builder,
+    locator_interval_t* const locator_interval);
 int64_t locator_builder_add_sequence(
-    locator_builder_t* const restrict locator_builder,
-    char* const restrict tag,
+    locator_builder_t* const locator_builder,
+    char* const tag,
     const uint64_t tag_length);
 
 /*
  * Display
  */
 void locator_builder_print(
-    FILE* const restrict stream,
-    locator_builder_t* const restrict locator_builder,
+    FILE* const stream,
+    locator_builder_t* const locator_builder,
     const bool display_intervals);
 
 

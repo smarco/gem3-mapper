@@ -12,7 +12,7 @@
  * Add Scaffold Region
  */
 void match_scaffold_compose_add_matching_approximate(
-    match_scaffold_t* const restrict match_scaffold,
+    match_scaffold_t* const match_scaffold,
     const uint64_t key_begin,
     const uint64_t key_end,
     const uint64_t text_begin,
@@ -21,7 +21,7 @@ void match_scaffold_compose_add_matching_approximate(
     const uint64_t cigar_length,
     const uint64_t score) {
   // Add matching region
-  region_matching_t* const restrict region_matching = match_scaffold->scaffold_regions + match_scaffold->num_scaffold_regions;
+  region_matching_t* const region_matching = match_scaffold->scaffold_regions + match_scaffold->num_scaffold_regions;
   ++match_scaffold->num_scaffold_regions;
   // Setup matching-region
   region_matching->matching_type = region_matching_approximate;
@@ -34,14 +34,14 @@ void match_scaffold_compose_add_matching_approximate(
   region_matching->cigar_length = cigar_length;
 }
 region_matching_t* match_scaffold_compose_add_matching_exact(
-    match_scaffold_t* const restrict match_scaffold,
-    uint8_t* const restrict text,
-    uint64_t* const restrict key_offset,
-    uint64_t* const restrict text_offset,
+    match_scaffold_t* const match_scaffold,
+    uint8_t* const text,
+    uint64_t* const key_offset,
+    uint64_t* const text_offset,
     const uint64_t cigar_offset,
     const uint64_t match_length) {
   // Add matching region
-  region_matching_t* const restrict region_matching = match_scaffold->scaffold_regions + match_scaffold->num_scaffold_regions;
+  region_matching_t* const region_matching = match_scaffold->scaffold_regions + match_scaffold->num_scaffold_regions;
   ++match_scaffold->num_scaffold_regions;
   // Set-up matching region
   region_matching->matching_type = region_matching_exact;
@@ -58,10 +58,10 @@ region_matching_t* match_scaffold_compose_add_matching_exact(
   return region_matching;
 }
 void match_scaffold_compose_add_mismatch(
-    match_scaffold_t* const restrict match_scaffold,
-    region_matching_t* const restrict last_scaffold_region,
-    uint64_t* const restrict key_offset,
-    uint64_t* const restrict text_offset,
+    match_scaffold_t* const match_scaffold,
+    region_matching_t* const last_scaffold_region,
+    uint64_t* const key_offset,
+    uint64_t* const text_offset,
     const uint64_t match_length) {
   // Extend matching-region
   last_scaffold_region->matching_type = region_matching_approximate;

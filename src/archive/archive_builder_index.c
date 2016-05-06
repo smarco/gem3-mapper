@@ -13,7 +13,7 @@
  * Build BWT (SA)
  */
 void archive_builder_index_build_bwt(
-    archive_builder_t* const restrict archive_builder,
+    archive_builder_t* const archive_builder,
     const bool gpu_index,
     const bool dump_bwt,
     const bool dump_explicit_sa,
@@ -43,14 +43,14 @@ void archive_builder_index_build_bwt(
   sa_builder_delete(archive_builder->sa_builder); // Delete SA-Builder
 }
 void archive_builder_index_build_bwt_reverse(
-    archive_builder_t* const restrict archive_builder,
+    archive_builder_t* const archive_builder,
     const bool dump_reverse_indexed_text,
     const bool dump_bwt,
     const bool dump_explicit_sa,
     const bool verbose) {
   // Reverse BWT-text
   const uint64_t text_length = dna_text_get_length(archive_builder->enc_text);
-  uint8_t* const restrict enc_text_buffer = dna_text_get_text(archive_builder->enc_text);
+  uint8_t* const enc_text_buffer = dna_text_get_text(archive_builder->enc_text);
   const uint64_t text_length_half = text_length/2;
   uint64_t i;
   for (i=0;i<text_length_half;++i) {
@@ -79,15 +79,15 @@ void archive_builder_index_build_bwt_reverse(
  * Display
  */
 void archive_builder_index_print_explicit_sa(
-    archive_builder_t* const restrict archive_builder,
-    const char* const restrict extension) {
+    archive_builder_t* const archive_builder,
+    const char* const extension) {
   // Open File
-  char* const restrict debug_explicit_sa_file_name = gem_strcat(archive_builder->output_file_name_prefix,extension);
-  FILE* const restrict debug_explicit_sa_file = fopen(debug_explicit_sa_file_name,"w");
+  char* const debug_explicit_sa_file_name = gem_strcat(archive_builder->output_file_name_prefix,extension);
+  FILE* const debug_explicit_sa_file = fopen(debug_explicit_sa_file_name,"w");
   // Traverse SA & Print Explicit SA => (SApos,SA[SApos...SApos+SAFixLength])
-  sa_builder_t* const restrict sa_builder = archive_builder->sa_builder;
+  sa_builder_t* const sa_builder = archive_builder->sa_builder;
   const uint64_t sa_length = dna_text_get_length(sa_builder->enc_text);
-  fm_t* const restrict sa_positions_file = fm_open_file(sa_builder->sa_positions_file_name,FM_READ);
+  fm_t* const sa_positions_file = fm_open_file(sa_builder->sa_positions_file_name,FM_READ);
   uint64_t i;
   for (i=0;i<sa_length;++i) {
     const uint64_t sa_position = fm_read_uint64(sa_positions_file);
@@ -99,13 +99,13 @@ void archive_builder_index_print_explicit_sa(
   mm_free(debug_explicit_sa_file_name);
 }
 void archive_builder_index_print_bwt(
-    archive_builder_t* const restrict archive_builder,
-    const char* const restrict extension,
+    archive_builder_t* const archive_builder,
+    const char* const extension,
     const bool verbose) {
   ticker_t ticker;
   ticker_percentage_reset(&ticker,verbose,"Building-BWT::Dumping BWT",1,1,true);
-  char* const restrict file_name = gem_strcat(archive_builder->output_file_name_prefix,extension);
-  FILE* const restrict bwt_file = fopen(file_name,"w"); // Open file
+  char* const file_name = gem_strcat(archive_builder->output_file_name_prefix,extension);
+  FILE* const bwt_file = fopen(file_name,"w"); // Open file
   dna_text_pretty_print_content(bwt_file,archive_builder->enc_bwt,80); // Dump BWT
   fclose(bwt_file);
   mm_free(file_name);

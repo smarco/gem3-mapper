@@ -29,24 +29,24 @@ typedef struct {
  * Setup
  */
 output_buffer_t* output_buffer_new(const uint64_t output_buffer_size);
-void output_buffer_clear(output_buffer_t* const restrict out_buffer);
-void output_buffer_delete(output_buffer_t* const restrict out_buffer);
+void output_buffer_clear(output_buffer_t* const out_buffer);
+void output_buffer_delete(output_buffer_t* const out_buffer);
 
 /*
  * Accessors
  */
-void output_buffer_set_state(output_buffer_t* const restrict output_buffer,const output_buffer_state_t buffer_state);
-output_buffer_state_t output_buffer_get_state(output_buffer_t* const restrict output_buffer);
-void output_buffer_set_incomplete(output_buffer_t* const restrict output_buffer);
-uint64_t output_buffer_get_used(output_buffer_t* const restrict output_buffer);
-char* output_buffer_get_buffer(output_buffer_t* const restrict out_buffer);
+void output_buffer_set_state(output_buffer_t* const output_buffer,const output_buffer_state_t buffer_state);
+output_buffer_state_t output_buffer_get_state(output_buffer_t* const output_buffer);
+void output_buffer_set_incomplete(output_buffer_t* const output_buffer);
+uint64_t output_buffer_get_used(output_buffer_t* const output_buffer);
+char* output_buffer_get_buffer(output_buffer_t* const out_buffer);
 
 /*
  * Fast-printer functions
  */
-void bprintf_uint64(output_buffer_t* const restrict out_buffer,const uint64_t number);
-void bprintf_int64(output_buffer_t* const restrict out_buffer,const int64_t number);
-void bprintf_char(output_buffer_t* const restrict out_buffer,const char character);
-void bprintf_buffer(output_buffer_t* const restrict out_buffer,const int string_length,const char* const restrict string);
+void bprintf_uint64(output_buffer_t* const out_buffer,const uint64_t number);
+void bprintf_int64(output_buffer_t* const out_buffer,const int64_t number);
+void bprintf_char(output_buffer_t* const out_buffer,const char character);
+void bprintf_buffer(output_buffer_t* const out_buffer,const int string_length,const char* const string);
 
 #endif /* OUTPUT_BUFFER_H_ */

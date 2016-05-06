@@ -23,7 +23,7 @@
 void gruntime_init(
     const uint64_t num_threads,
     const uint64_t max_memory,
-    char* const restrict tmp_folder);
+    char* const tmp_folder);
 void gruntime_destroy();
 
 #endif /* GRUNTIME_H_ */

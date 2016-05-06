@@ -38,41 +38,41 @@ typedef struct {
  * Setup
  */
 output_file_t* output_file_new(
-    char* const restrict file_name,
+    char* const file_name,
     const uint64_t max_output_buffers,
     const uint64_t buffer_size);
 output_file_t* output_stream_new(
-    FILE* const restrict stream,
+    FILE* const stream,
     const uint64_t max_output_buffers,
     const uint64_t buffer_size);
 output_file_t* output_gzip_stream_new(
-    FILE* const restrict stream,
+    FILE* const stream,
     const uint64_t max_output_buffers,
     const uint64_t buffer_size);
 output_file_t* output_bzip_stream_new(
-    FILE* const restrict stream,
+    FILE* const stream,
     const uint64_t max_output_buffers,
     const uint64_t buffer_size);
-void output_file_close(output_file_t* const restrict out_file);
+void output_file_close(output_file_t* const out_file);
 
 /*
  * Utils
  */
 output_buffer_t* output_file_request_buffer(
-    output_file_t* const restrict output_file,
+    output_file_t* const output_file,
     const uint64_t block_id);
 output_buffer_t* output_file_request_buffer_extension(
-    output_file_t* const restrict output_file,
-    output_buffer_t* const restrict output_buffer);
+    output_file_t* const output_file,
+    output_buffer_t* const output_buffer);
 void output_file_return_buffer(
-    output_file_t* const restrict output_file,
-    output_buffer_t* const restrict output_buffer);
+    output_file_t* const output_file,
+    output_buffer_t* const output_buffer);
 
 /*
  * Output File Printers
  */
-int vofprintf(output_file_t* const restrict out_file,const char *template,va_list v_args);
-int ofprintf(output_file_t* const restrict out_file,const char *template,...);
+int vofprintf(output_file_t* const out_file,const char *template,va_list v_args);
+int ofprintf(output_file_t* const out_file,const char *template,...);
 
 /*
  * Error Messages

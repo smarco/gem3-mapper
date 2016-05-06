@@ -17,37 +17,37 @@
  * Memory Injection (Support Data Structures)
  */
 void archive_search_se_inject_mm(
-    archive_search_t* const restrict archive_search,
-    mm_search_t* const restrict mm_search);
+    archive_search_t* const archive_search,
+    mm_search_t* const mm_search);
 
 /*
  * Archive Search SE Continue
  */
 void archive_search_se_continue(
-    archive_search_t* const restrict archive_search,
-    matches_t* const restrict matches);
+    archive_search_t* const archive_search,
+    matches_t* const matches);
 
 /*
  * Single-End Indexed Search (SE Online Approximate String Search)
  */
 void archive_search_se(
-    archive_search_t* const restrict archive_search,
-    matches_t* const restrict matches);
+    archive_search_t* const archive_search,
+    matches_t* const matches);
 
 /*
  * Compute Predictors
  */
 void archive_search_se_compute_predictors(
-    archive_search_t* const restrict archive_search,
-    matches_t* const restrict matches,
-    matches_predictors_t* const restrict predictors);
+    archive_search_t* const archive_search,
+    matches_t* const matches,
+    matches_predictors_t* const predictors);
 
 /*
  * Display
  */
 void archive_search_se_print(
-    FILE* const restrict stream,
-    archive_search_t* const restrict archive_search,
-    matches_t* const restrict matches);
+    FILE* const stream,
+    archive_search_t* const archive_search,
+    matches_t* const matches);
 
 #endif /* ARCHIVE_SEARCH_SE_H_ */

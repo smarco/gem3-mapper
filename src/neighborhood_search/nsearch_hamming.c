@@ -15,9 +15,9 @@
  * Brute Force
  */
 void nsearch_hamming_brute_force_step(
-    nsearch_schedule_t* const restrict nsearch_schedule,
+    nsearch_schedule_t* const nsearch_schedule,
     const uint64_t current_position,const uint64_t current_error) {
-  char* const restrict search_string = nsearch_schedule->search_string; // Use first
+  char* const search_string = nsearch_schedule->search_string; // Use first
   uint8_t enc;
   for (enc=0;enc<DNA_RANGE;++enc) {
     const uint64_t next_error = current_error + (enc!=(nsearch_schedule->key[current_position]) ? 1 : 0);
@@ -36,9 +36,9 @@ void nsearch_hamming_brute_force_step(
   }
 }
 void nsearch_hamming_brute_force(
-    fm_index_t* const restrict fm_index,uint8_t* const restrict key,
+    fm_index_t* const fm_index,uint8_t* const key,
     const uint64_t key_length,const uint64_t max_error,
-    interval_set_t* const restrict intervals_result,mm_stack_t* const restrict mm_stack) {
+    interval_set_t* const intervals_result,mm_stack_t* const mm_stack) {
   // Init
   nsearch_schedule_t nsearch_schedule;
   nsearch_schedule_init(&nsearch_schedule,nsearch_model_hamming,fm_index,
@@ -53,8 +53,8 @@ void nsearch_hamming_brute_force(
  * Perform scheduled search
  */
 void nsearch_hamming_perform_scheduled_search(
-    nsearch_schedule_t* const restrict nsearch_schedule,const uint64_t pending_searches,
-    nsearch_operation_t* const restrict nsearch_operation,const uint64_t position,
+    nsearch_schedule_t* const nsearch_schedule,const uint64_t pending_searches,
+    nsearch_operation_t* const nsearch_operation,const uint64_t position,
     const uint64_t local_error,const uint64_t global_error) {
   const uint64_t next_position = position + 1;
   uint8_t enc;
@@ -85,7 +85,7 @@ void nsearch_hamming_perform_scheduled_search(
       } else {
         // Search next chunk
         const uint64_t next_pending_searches = pending_searches-1;
-        nsearch_operation_t* const restrict next_nsearch_operation = nsearch_schedule->pending_searches + next_pending_searches;
+        nsearch_operation_t* const next_nsearch_operation = nsearch_schedule->pending_searches + next_pending_searches;
         nsearch_hamming_perform_scheduled_search(nsearch_schedule,next_pending_searches,
             next_nsearch_operation,next_nsearch_operation->begin,0,next_local_error+global_error);
       }
@@ -96,9 +96,9 @@ void nsearch_hamming_perform_scheduled_search(
  * Hamming Neighborhood Search
  */
 void nsearch_hamming(
-    fm_index_t* const restrict fm_index,uint8_t* const restrict key,
+    fm_index_t* const fm_index,uint8_t* const key,
     const uint64_t key_length,const uint64_t max_error,
-    interval_set_t* const restrict intervals_result,mm_stack_t* const restrict mm_stack) {
+    interval_set_t* const intervals_result,mm_stack_t* const mm_stack) {
   // Push
   mm_stack_push_state(mm_stack);
   // Search
@@ -114,9 +114,9 @@ void nsearch_hamming(
  * Neighborhood Search (Preconditioned by region profile)
  */
 void nsearch_hamming_preconditioned(
-    fm_index_t* const restrict fm_index,region_profile_t* const restrict region_profile,
-    uint8_t* const restrict key,const uint64_t key_length,const uint64_t max_error,
-    interval_set_t* const restrict intervals_result,mm_stack_t* const restrict mm_stack) {
+    fm_index_t* const fm_index,region_profile_t* const region_profile,
+    uint8_t* const key,const uint64_t key_length,const uint64_t max_error,
+    interval_set_t* const intervals_result,mm_stack_t* const mm_stack) {
   // Push
   mm_stack_push_state(mm_stack);
   // Search

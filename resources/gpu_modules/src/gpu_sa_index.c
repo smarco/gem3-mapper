@@ -16,7 +16,7 @@
 Get information functions
 ************************************************************/
 
-gpu_error_t gpu_sa_index_get_size(const gpu_sa_buffer_t* const restrict sa, size_t* const restrict bytesPerSA)
+gpu_error_t gpu_sa_index_get_size(const gpu_sa_buffer_t* const sa, size_t* const bytesPerSA)
 {
   (* bytesPerSA) = sa->numEntries * sizeof(gpu_sa_entry_t);
   return (SUCCESS);
@@ -27,7 +27,7 @@ gpu_error_t gpu_sa_index_get_size(const gpu_sa_buffer_t* const restrict sa, size
  GLOBAL METHODS: INPUT / OUPUT Functions
 ************************************************************/
 
-gpu_error_t gpu_sa_index_read_specs(FILE* fp, gpu_sa_buffer_t* const restrict sa)
+gpu_error_t gpu_sa_index_read_specs(FILE* fp, gpu_sa_buffer_t* const sa)
 {
   size_t result;
 
@@ -39,7 +39,7 @@ gpu_error_t gpu_sa_index_read_specs(FILE* fp, gpu_sa_buffer_t* const restrict sa
   return (SUCCESS);
 }
 
-gpu_error_t gpu_sa_index_read(FILE* fp, gpu_sa_buffer_t* const restrict sa)
+gpu_error_t gpu_sa_index_read(FILE* fp, gpu_sa_buffer_t* const sa)
 {
   size_t result;
 
@@ -54,7 +54,7 @@ gpu_error_t gpu_sa_index_read(FILE* fp, gpu_sa_buffer_t* const restrict sa)
   return (SUCCESS);
 }
 
-gpu_error_t gpu_sa_index_write(FILE* fp, const gpu_sa_buffer_t* const restrict sa)
+gpu_error_t gpu_sa_index_write(FILE* fp, const gpu_sa_buffer_t* const sa)
 {
   size_t result;
 
@@ -74,7 +74,7 @@ gpu_error_t gpu_sa_index_write(FILE* fp, const gpu_sa_buffer_t* const restrict s
  GLOBAL METHODS: Transfer the index (HOST <-> DEVICES)
 ************************************************************/
 
-gpu_error_t gpu_sa_index_transfer_CPU_to_GPUs(gpu_sa_buffer_t* const restrict sa, gpu_device_info_t** const restrict devices)
+gpu_error_t gpu_sa_index_transfer_CPU_to_GPUs(gpu_sa_buffer_t* const sa, gpu_device_info_t** const devices)
 {
   uint32_t deviceFreeMemory, idSupportedDevice;
   uint32_t numSupportedDevices = devices[0]->numSupportedDevices;
@@ -101,12 +101,12 @@ gpu_error_t gpu_sa_index_transfer_CPU_to_GPUs(gpu_sa_buffer_t* const restrict sa
  GLOBAL METHODS: Functions to transform the index
 ************************************************************/
 
-gpu_error_t gpu_sa_index_transform_ASCII(const char* const restrict textBWT, gpu_sa_buffer_t* const restrict sa)
+gpu_error_t gpu_sa_index_transform_ASCII(const char* const textBWT, gpu_sa_buffer_t* const sa)
 {
   return(E_NOT_IMPLEMENTED);
 }
 
-gpu_error_t gpu_sa_index_transform_GEM_FULL(const gpu_gem_sa_dto_t* const restrict gpu_gem_sa_dto, gpu_sa_buffer_t* const restrict sa)
+gpu_error_t gpu_sa_index_transform_GEM_FULL(const gpu_gem_sa_dto_t* const gpu_gem_sa_dto, gpu_sa_buffer_t* const sa)
 {
   sa->h_sa            = gpu_gem_sa_dto->sa;
   sa->sampligRate     = gpu_gem_sa_dto->sa_sampling;
@@ -117,12 +117,12 @@ gpu_error_t gpu_sa_index_transform_GEM_FULL(const gpu_gem_sa_dto_t* const restri
   return (SUCCESS);
 }
 
-gpu_error_t gpu_sa_index_load_specs_MFASTA_FULL(const char* const restrict indexRaw, gpu_sa_buffer_t* const restrict sa)
+gpu_error_t gpu_sa_index_load_specs_MFASTA_FULL(const char* const indexRaw, gpu_sa_buffer_t* const sa)
 {
   return (E_NOT_IMPLEMENTED);
 }
 
-gpu_error_t gpu_sa_index_transform_MFASTA_FULL(const char* const restrict indexRaw, gpu_sa_buffer_t* const restrict sa)
+gpu_error_t gpu_sa_index_transform_MFASTA_FULL(const char* const indexRaw, gpu_sa_buffer_t* const sa)
 {
   return (E_NOT_IMPLEMENTED);
 }
@@ -132,7 +132,7 @@ gpu_error_t gpu_sa_index_transform_MFASTA_FULL(const char* const restrict indexR
  GLOBAL METHODS: Index initialization functions
 ************************************************************/
 
-gpu_error_t gpu_sa_index_init_dto(gpu_sa_buffer_t* const restrict sa)
+gpu_error_t gpu_sa_index_init_dto(gpu_sa_buffer_t* const sa)
 {
   //Initialize the SA index structure
   sa->d_sa           = NULL;
@@ -145,7 +145,7 @@ gpu_error_t gpu_sa_index_init_dto(gpu_sa_buffer_t* const restrict sa)
   return (SUCCESS);
 }
 
-gpu_error_t gpu_sa_index_init(gpu_sa_buffer_t* const restrict sa, const uint64_t saNumEntries,
+gpu_error_t gpu_sa_index_init(gpu_sa_buffer_t* const sa, const uint64_t saNumEntries,
                               const uint32_t sampligRate, const uint32_t numSupportedDevices)
 {
   uint32_t idSupDevice;
@@ -167,7 +167,7 @@ gpu_error_t gpu_sa_index_init(gpu_sa_buffer_t* const restrict sa, const uint64_t
   return (SUCCESS);
 }
 
-gpu_error_t gpu_sa_index_allocate(gpu_sa_buffer_t* const restrict sa)
+gpu_error_t gpu_sa_index_allocate(gpu_sa_buffer_t* const sa)
 {
   if(sa->hostAllocStats & GPU_PAGE_LOCKED){
     CUDA_ERROR(cudaHostAlloc((void**) &sa->h_sa, sa->numEntries * sizeof(gpu_sa_entry_t), cudaHostAllocMapped));
@@ -183,7 +183,7 @@ gpu_error_t gpu_sa_index_allocate(gpu_sa_buffer_t* const restrict sa)
  GLOBAL METHODS: Functions to release DEVICE & HOST indexes
 ************************************************************/
 
-gpu_error_t gpu_sa_index_free_host(gpu_sa_buffer_t* const restrict sa)
+gpu_error_t gpu_sa_index_free_host(gpu_sa_buffer_t* const sa)
 {
     if(sa->h_sa != NULL){
       if(sa->hostAllocStats == GPU_PAGE_LOCKED) CUDA_ERROR(cudaFreeHost(sa->h_sa));
@@ -194,7 +194,7 @@ gpu_error_t gpu_sa_index_free_host(gpu_sa_buffer_t* const restrict sa)
     return(SUCCESS);
 }
 
-gpu_error_t gpu_sa_index_free_unused_host(gpu_sa_buffer_t* const restrict sa, gpu_device_info_t** const restrict devices)
+gpu_error_t gpu_sa_index_free_unused_host(gpu_sa_buffer_t* const sa, gpu_device_info_t** const devices)
 {
   uint32_t idSupportedDevice, numSupportedDevices;
   bool indexInHostSideUsed = false;
@@ -212,7 +212,7 @@ gpu_error_t gpu_sa_index_free_unused_host(gpu_sa_buffer_t* const restrict sa, gp
   return(SUCCESS);
 }
 
-gpu_error_t gpu_sa_index_free_device(gpu_sa_buffer_t* const restrict sa, gpu_device_info_t** const restrict devices)
+gpu_error_t gpu_sa_index_free_device(gpu_sa_buffer_t* const sa, gpu_device_info_t** const devices)
 {
   const uint32_t numSupportedDevices = devices[0]->numSupportedDevices;
   uint32_t idSupportedDevice;
@@ -236,7 +236,7 @@ gpu_error_t gpu_sa_index_free_device(gpu_sa_buffer_t* const restrict sa, gpu_dev
   return(SUCCESS);
 }
 
-gpu_error_t gpu_sa_index_free_metainfo(gpu_sa_buffer_t* const restrict sa)
+gpu_error_t gpu_sa_index_free_metainfo(gpu_sa_buffer_t* const sa)
 {
   //Free the index list
   if(sa->memorySpace != NULL){

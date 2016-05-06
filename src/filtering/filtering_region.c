@@ -33,14 +33,14 @@ const char* filtering_region_status_label[] =
  * Accessors
  */
 void filtering_region_add(
-    vector_t* const restrict filtering_regions,
+    vector_t* const filtering_regions,
     const uint64_t text_trace_offset,
     const uint64_t begin_position,
     const uint64_t end_position,
     const uint64_t align_distance,
     const uint64_t text_begin_offset,
     const uint64_t text_end_offset,
-    mm_stack_t* const restrict mm_stack) {
+    mm_stack_t* const mm_stack) {
   filtering_region_t* filtering_region;
   vector_alloc_new(filtering_regions, filtering_region_t, filtering_region);
   // State
@@ -58,10 +58,10 @@ void filtering_region_add(
   // Regions Matching
   match_scaffold_init(&filtering_region->match_scaffold);
   // Alignment distance
-  region_alignment_t* const restrict region_alignment = &filtering_region->region_alignment;
+  region_alignment_t* const region_alignment = &filtering_region->region_alignment;
   region_alignment->distance_min_bound = align_distance;
   region_alignment->num_tiles = 1;
-  region_alignment_tile_t* const restrict alignment_tiles = mm_stack_calloc(mm_stack,1,region_alignment_tile_t,false);
+  region_alignment_tile_t* const alignment_tiles = mm_stack_calloc(mm_stack,1,region_alignment_tile_t,false);
   region_alignment->alignment_tiles = alignment_tiles;
   alignment_tiles->match_distance = align_distance;
   alignment_tiles->text_begin_offset = text_begin_offset;
@@ -71,11 +71,11 @@ void filtering_region_add(
  * Retrieve filtering region text-candidate
  */
 void filtering_region_retrieve_text(
-    filtering_region_t* const restrict filtering_region,
-    pattern_t* const restrict pattern,
-    archive_text_t* const restrict archive_text,
-    text_collection_t* const restrict text_collection,
-    mm_stack_t* const restrict mm_stack) {
+    filtering_region_t* const filtering_region,
+    pattern_t* const pattern,
+    archive_text_t* const archive_text,
+    text_collection_t* const text_collection,
+    mm_stack_t* const mm_stack) {
   // Check already retrieved
   if (filtering_region->text_trace_offset != UINT64_MAX) return;
   // Retrieve Text
@@ -91,7 +91,7 @@ void filtering_region_retrieve_text(
     const uint64_t text_trace_offset = archive_text_retrieve_collection(
         archive_text,text_collection,text_begin_position,text_length,false,true,mm_stack);
     // Configure filtering-region
-    text_trace_t* const restrict text_trace = text_collection_get_trace(text_collection,text_trace_offset);
+    text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
     filtering_region->text_trace_offset = text_trace_offset;
     filtering_region->text_begin_position = text_begin_position;
     filtering_region->text_end_position = text_end_position;
@@ -103,7 +103,7 @@ void filtering_region_retrieve_text(
     // Compute key trims
     filtering_region_compute_key_trims(filtering_region,pattern);
     //    // DEBUG
-    //    text_trace_t* const restrict text_trace = text_collection_get_trace(
+    //    text_trace_t* const text_trace = text_collection_get_trace(
     //        text_collection,filtering_region->text_trace_offset);
     //    fprintf(stderr,">Text\n");
     //    dna_buffer_print(stderr,text_trace->text,text_trace->text_length,false);
@@ -126,12 +126,12 @@ void filtering_region_retrieve_text(
  * Prepare Alignment
  */
 void filtering_region_alignment_prepare(
-    filtering_region_t* const restrict filtering_region,
-    bpm_pattern_t* const restrict bpm_pattern,
-    bpm_pattern_t* const restrict bpm_pattern_tiles,
-    mm_stack_t* const restrict mm_stack) {
+    filtering_region_t* const filtering_region,
+    bpm_pattern_t* const bpm_pattern,
+    bpm_pattern_t* const bpm_pattern_tiles,
+    mm_stack_t* const mm_stack) {
   // Check region-alignment
-  region_alignment_t* const restrict region_alignment = &filtering_region->region_alignment;
+  region_alignment_t* const region_alignment = &filtering_region->region_alignment;
   if (region_alignment->alignment_tiles!=NULL) return; // Already initialized
   // Allocate region-alignment
   const uint64_t num_tiles = bpm_pattern_tiles->num_pattern_tiles;
@@ -140,7 +140,7 @@ void filtering_region_alignment_prepare(
   region_alignment->alignment_tiles = mm_stack_calloc(mm_stack,num_tiles,region_alignment_tile_t,false);
   // Init all tiles
   const uint64_t text_length = filtering_region->text_end_position-filtering_region->text_begin_position;
-  region_alignment_tile_t* const restrict alignment_tiles = region_alignment->alignment_tiles;
+  region_alignment_tile_t* const alignment_tiles = region_alignment->alignment_tiles;
   if (num_tiles==1) {
     alignment_tiles->match_distance = ALIGN_DISTANCE_INF;
     alignment_tiles->text_end_offset = text_length;
@@ -166,8 +166,8 @@ void filtering_region_alignment_prepare(
  * Compute key trims
  */
 void filtering_region_compute_key_trims(
-    filtering_region_t* const restrict filtering_region,
-    pattern_t* const restrict pattern) {
+    filtering_region_t* const filtering_region,
+    pattern_t* const pattern) {
   // Compute key trims
   const uint64_t key_length = pattern->key_length;
   const uint64_t text_fix_begin = filtering_region->text_source_region_offset;
@@ -200,11 +200,11 @@ void filtering_region_compute_key_trims(
  * Select proper BPM-Pattern
  */
 void filtering_region_bpm_pattern_select(
-    filtering_region_t* const restrict filtering_region,
-    pattern_t* const restrict pattern,
-    bpm_pattern_t** const restrict bpm_pattern,
-    bpm_pattern_t** const restrict bpm_pattern_tiles,
-    mm_stack_t* const restrict mm_stack) {
+    filtering_region_t* const filtering_region,
+    pattern_t* const pattern,
+    bpm_pattern_t** const bpm_pattern,
+    bpm_pattern_t** const bpm_pattern_tiles,
+    mm_stack_t* const mm_stack) {
   // Select BPM-Pattern
   if (filtering_region->key_trimmed) {
     // Check compiled
@@ -224,11 +224,11 @@ void filtering_region_bpm_pattern_select(
  * Sorting
  */
 int filtering_region_locator_cmp_position(
-    const filtering_region_locator_t* const restrict a,
-    const filtering_region_locator_t* const restrict b) {
+    const filtering_region_locator_t* const a,
+    const filtering_region_locator_t* const b) {
   return a->position - b->position;
 }
-void filtering_region_locator_sort_positions(vector_t* const restrict filtering_region_locators) {
+void filtering_region_locator_sort_positions(vector_t* const filtering_region_locators) {
   void* array = vector_get_mem(filtering_region_locators,filtering_region_locator_t);
   const size_t count = vector_get_used(filtering_region_locators);
   qsort(array,count,sizeof(filtering_region_locator_t),
@@ -238,11 +238,11 @@ void filtering_region_locator_sort_positions(vector_t* const restrict filtering_
  * Display
  */
 void filtering_region_print(
-    FILE* const restrict stream,
-    filtering_region_t* const restrict region,
-    const text_collection_t* const restrict text_collection,
+    FILE* const stream,
+    filtering_region_t* const region,
+    const text_collection_t* const text_collection,
     const bool print_matching_regions) {
-  region_alignment_t* const restrict region_alignment = &region->region_alignment;
+  region_alignment_t* const region_alignment = &region->region_alignment;
   tab_fprintf(stream,"  => Region %s [%"PRIu64",%"PRIu64") "
       "(total-bases=%"PRIu64","
       "scaffold-regions=%"PRIu64","
@@ -254,7 +254,7 @@ void filtering_region_print(
       region_alignment->distance_min_bound==ALIGN_DISTANCE_INF ?
           (int64_t)-1 : (int64_t)region_alignment->distance_min_bound);
   if (region_alignment->distance_min_bound!=ALIGN_DISTANCE_INF) {
-    region_alignment_tile_t* const restrict alignment_tile = region_alignment->alignment_tiles;
+    region_alignment_tile_t* const alignment_tile = region_alignment->alignment_tiles;
     fprintf(stream,"align-range=(%"PRIu64",%"PRIu64"))\n",
         alignment_tile[0].text_begin_offset,
         alignment_tile[region_alignment->num_tiles-1].text_end_offset);
@@ -264,19 +264,19 @@ void filtering_region_print(
   if (text_collection!=NULL && region->text_trace_offset != UINT64_MAX) {
     // Retrieve text
     const uint64_t text_length = region->text_end_position-region->text_begin_position;
-    const text_trace_t* const restrict text_trace = text_collection_get_trace(text_collection,region->text_trace_offset);
-    uint8_t* const restrict text = text_trace->text;
+    const text_trace_t* const text_trace = text_collection_get_trace(text_collection,region->text_trace_offset);
+    uint8_t* const text = text_trace->text;
     // Allocate display text
     const uint64_t max_printed_length = MIN(200,text_length);
     uint64_t i;
 #ifdef DEBUG_FILTERING_REGION_DISPLAY_TEXT_MATCHING_REGIONS
-    char* const restrict display_text = malloc(max_printed_length);
+    char* const display_text = malloc(max_printed_length);
     uint64_t s, p;
     for (i=0;i<max_printed_length;++i) display_text[i] = 'a'+(dna_decode(text[i])-'A');
     // Upper-case matching regions
-    match_scaffold_t* const restrict match_scaffold = &region->match_scaffold;
+    match_scaffold_t* const match_scaffold = &region->match_scaffold;
     for (s=0;s<match_scaffold->num_scaffold_regions;++s) {
-      region_matching_t* const restrict region_matching = match_scaffold->scaffold_regions + s;
+      region_matching_t* const region_matching = match_scaffold->scaffold_regions + s;
       const uint64_t max_text_scope = MIN(max_printed_length,region_matching->text_end);
       for (p=region_matching->text_begin;p<max_text_scope;++p) display_text[p] = dna_decode(text[p]);
     }

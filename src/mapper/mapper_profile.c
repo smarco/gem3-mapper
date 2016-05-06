@@ -13,7 +13,7 @@
 /*
  * Archive Search
  */
-void mapper_profile_print_archive_search_se(FILE* const restrict stream) {
+void mapper_profile_print_archive_search_se(FILE* const stream) {
   fprintf(stream,    "[GEM]>Profile.ArchiveSearch.SE\n");
   tab_fprintf(stream,"  => TIME.Archive.Search.SE             ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_SE),PROF_GET_TIMER(GP_MAPPER_ALL));
@@ -24,7 +24,7 @@ void mapper_profile_print_archive_search_se(FILE* const restrict stream) {
   tab_fprintf(stream,"    => TIME.Score.Matches               ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SCORE_SE_MATCHES),PROF_GET_TIMER(GP_MAPPER_ALL));
 }
-void mapper_profile_print_archive_search_pe(FILE* const restrict stream) {
+void mapper_profile_print_archive_search_pe(FILE* const stream) {
   fprintf(stream,    "[GEM]>Profile.ArchiveSearch.PE\n");
   tab_fprintf(stream,"  => TIME.Archive.Search.PE                         ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_ARCHIVE_SEARCH_PE),PROF_GET_TIMER(GP_MAPPER_ALL));
@@ -89,7 +89,7 @@ void mapper_profile_print_archive_search_pe(FILE* const restrict stream) {
  * Mapper SE
  */
 void mapper_profile_print_mapper_se(
-    FILE* const restrict stream,const bool map_output,
+    FILE* const stream,const bool map_output,
     const uint64_t num_threads) {
   // Main
   tab_fprintf(stream,"[GEM]>Profile.Mapper\n");
@@ -116,7 +116,7 @@ void mapper_profile_print_mapper_se(
  * Mapper PE
  */
 void mapper_profile_print_mapper_pe(
-    FILE* const restrict stream,const bool map_output,const uint64_t num_threads) {
+    FILE* const stream,const bool map_output,const uint64_t num_threads) {
   // All
   tab_fprintf(stream,"[GEM]>Profile.Mapper\n");
   tab_fprintf(stream,"  => TIME.Mapper                           ");
@@ -140,7 +140,7 @@ void mapper_profile_print_mapper_pe(
 }
 #else /* GEM_PROFILE DISABLED */
 void mapper_profile_print_mapper_se(
-    FILE* const restrict stream,const bool map_output,const uint64_t num_threads) {}
+    FILE* const stream,const bool map_output,const uint64_t num_threads) {}
 void mapper_profile_print_mapper_pe(
-    FILE* const restrict stream,const bool map_output,const uint64_t num_threads) {}
+    FILE* const stream,const bool map_output,const uint64_t num_threads) {}
 #endif

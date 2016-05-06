@@ -25,11 +25,11 @@
  * Exclude tiles
  */
 void filtering_candidates_align_local_exclude_tiles(
-    filtering_region_t* const restrict filtering_region,
-    pattern_t* const restrict pattern,
-    mm_stack_t* const restrict mm_stack) {
+    filtering_region_t* const filtering_region,
+    pattern_t* const pattern,
+    mm_stack_t* const mm_stack) {
   // Parameters
-  match_scaffold_t* const restrict match_scaffold = &filtering_region->match_scaffold;
+  match_scaffold_t* const match_scaffold = &filtering_region->match_scaffold;
   const uint64_t num_scaffold_regions = match_scaffold->num_scaffold_regions;
   // Get BPM-Pattern
   bpm_pattern_t* bpm_pattern, *bpm_pattern_tiles;
@@ -40,8 +40,8 @@ void filtering_candidates_align_local_exclude_tiles(
       bpm_pattern,bpm_pattern_tiles,mm_stack);
   // Check number of tiles
   const uint64_t num_pattern_tiles = bpm_pattern_tiles->num_pattern_tiles;
-  region_alignment_t* const restrict region_alignment = &filtering_region->region_alignment;
-  region_alignment_tile_t* const restrict alignment_tiles = region_alignment->alignment_tiles;
+  region_alignment_t* const region_alignment = &filtering_region->region_alignment;
+  region_alignment_tile_t* const alignment_tiles = region_alignment->alignment_tiles;
   if (num_pattern_tiles > 1) {
     // Sort matching regions by text-offsets
     match_scaffold_sort_regions_matching(match_scaffold);
@@ -49,7 +49,7 @@ void filtering_candidates_align_local_exclude_tiles(
     region_matching_t* region_matching = match_scaffold->scaffold_regions;
     uint64_t tile_pos, tile_key_begin = 0, region_pos;
     for (tile_pos=0,region_pos=0;tile_pos<num_pattern_tiles;++tile_pos) {
-      bpm_pattern_t* const restrict bpm_pattern_tile = bpm_pattern_tiles+tile_pos;
+      bpm_pattern_t* const bpm_pattern_tile = bpm_pattern_tiles+tile_pos;
       const uint64_t tile_key_end = tile_key_begin + bpm_pattern_tile->pattern_length;
       // Skip resolved tiles
       if (alignment_tiles[tile_pos].match_distance!=ALIGN_DISTANCE_INF) continue;
@@ -70,18 +70,18 @@ void filtering_candidates_align_local_exclude_tiles(
  * Filtering Candidates (Re)Alignment
  */
 void filtering_candidates_align_local(
-    filtering_candidates_t* const restrict filtering_candidates,
-    pattern_t* const restrict pattern,
+    filtering_candidates_t* const filtering_candidates,
+    pattern_t* const pattern,
     const bool emulated_rc_search,
-    matches_t* const restrict matches) {
+    matches_t* const matches) {
   PROFILE_START(GP_FC_REALIGN_LOCAL_CANDIDATE_REGIONS,PROFILE_LEVEL);
   // Add pending local matches (found so far)
-  locator_t* const restrict locator = filtering_candidates->archive->locator;
-  mm_stack_t* const restrict mm_stack = filtering_candidates->mm_stack;
+  locator_t* const locator = filtering_candidates->archive->locator;
+  mm_stack_t* const mm_stack = filtering_candidates->mm_stack;
   matches_add_pending_local_matches(matches,locator,mm_stack);
   // Check total alignments found
-  search_parameters_t* const restrict search_parameters = filtering_candidates->search_parameters;
-  select_parameters_t* const restrict select_parameters = &search_parameters->select_parameters_align;
+  search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
+  select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;
   const uint64_t max_reported_matches = select_parameters->max_reported_matches;
   uint64_t total_matches = matches_get_num_match_traces(matches);
   if (total_matches < max_reported_matches) {

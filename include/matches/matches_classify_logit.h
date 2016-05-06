@@ -56,20 +56,20 @@ typedef struct {
  * Compute Probabilities
  */
 double matches_classify_logit(
-    const matches_predictors_t* const restrict predictors,
-    const matches_classify_logit_coeff_t* const restrict logit_coeff);
+    const matches_predictors_t* const predictors,
+    const matches_classify_logit_coeff_t* const logit_coeff);
 
 /*
  * Matches Classify Probabilities (using Logistic Regression)
  */
 double matches_classify_logit_unique(
-    const matches_predictors_t* const restrict predictors,
-    const matches_classify_logit_model_t* const restrict logit_model);
+    const matches_predictors_t* const predictors,
+    const matches_classify_logit_model_t* const logit_model);
 double matches_classify_logit_mmaps(
-    const matches_predictors_t* const restrict predictors,
-    const matches_classify_logit_model_t* const restrict logit_model);
+    const matches_predictors_t* const predictors,
+    const matches_classify_logit_model_t* const logit_model);
 double matches_classify_logit_ties(
-    const matches_predictors_t* const restrict predictors,
-    const matches_classify_logit_model_t* const restrict logit_model);
+    const matches_predictors_t* const predictors,
+    const matches_classify_logit_model_t* const logit_model);
 
 #endif /* MATCHES_CLASSIFY_LOGIT_H_ */

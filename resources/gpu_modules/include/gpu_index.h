@@ -16,35 +16,35 @@
 
 
 /* Get information functions */
-gpu_error_t gpu_index_get_size(const gpu_index_buffer_t* const __restrict__ index, size_t *bytesPerIndex, const gpu_module_t activeModules);
+gpu_error_t gpu_index_get_size(const gpu_index_buffer_t* const index, size_t *bytesPerIndex, const gpu_module_t activeModules);
 
 /* Functions to initialize the index data on the DEVICE */
 gpu_error_t gpu_index_init_dto(gpu_index_buffer_t *index, const gpu_module_t activeModules);
-gpu_error_t gpu_index_init(gpu_index_buffer_t** const __restrict__ index, const gpu_index_dto_t* const __restrict__ rawIndex, const uint32_t numSupportedDevices, const gpu_module_t activeModules);
-gpu_error_t gpu_index_load(gpu_index_buffer_t* index, const gpu_index_dto_t * const __restrict__ rawIndex,const gpu_module_t activeModules);
-gpu_error_t gpu_index_set_specs(gpu_index_buffer_t* const __restrict__ index, const gpu_index_dto_t* const __restrict__ indexRaw,const gpu_index_coding_t indexCoding, const gpu_module_t activeModules);
+gpu_error_t gpu_index_init(gpu_index_buffer_t** const index, const gpu_index_dto_t* const rawIndex, const uint32_t numSupportedDevices, const gpu_module_t activeModules);
+gpu_error_t gpu_index_load(gpu_index_buffer_t* index, const gpu_index_dto_t * const rawIndex,const gpu_module_t activeModules);
+gpu_error_t gpu_index_set_specs(gpu_index_buffer_t* const index, const gpu_index_dto_t* const indexRaw,const gpu_index_coding_t indexCoding, const gpu_module_t activeModules);
 gpu_error_t gpu_index_allocate(gpu_index_buffer_t* index, const gpu_module_t activeModules);
 
 /* Data transfer functions */
-gpu_error_t gpu_index_transfer_CPU_to_GPUs(gpu_index_buffer_t* const __restrict__ index, gpu_device_info_t** const __restrict__ devices, const gpu_module_t activeModules);
+gpu_error_t gpu_index_transfer_CPU_to_GPUs(gpu_index_buffer_t* const index, gpu_device_info_t** const devices, const gpu_module_t activeModules);
 
 /* Stream index functions  */
-gpu_error_t gpu_index_read_specs(FILE* fp, gpu_index_buffer_t* const __restrict__ index, const gpu_module_t activeModules);
-gpu_error_t gpu_index_read(FILE* fp, gpu_index_buffer_t* const __restrict__ index, const gpu_module_t activeModules);
-gpu_error_t gpu_index_write(FILE* fp, const gpu_index_buffer_t* const __restrict__ index, const gpu_module_t activeModules);
+gpu_error_t gpu_index_read_specs(FILE* fp, gpu_index_buffer_t* const index, const gpu_module_t activeModules);
+gpu_error_t gpu_index_read(FILE* fp, gpu_index_buffer_t* const index, const gpu_module_t activeModules);
+gpu_error_t gpu_index_write(FILE* fp, const gpu_index_buffer_t* const index, const gpu_module_t activeModules);
 
 /* Stream index functions  */
-gpu_error_t gpu_index_transform(gpu_index_buffer_t* const __restrict__ index, const gpu_index_dto_t* const __restrict__ indexRaw, const gpu_index_coding_t indexCoding, const gpu_module_t activeModules);
-gpu_error_t gpu_index_transform_ASCII(const gpu_index_dto_t* const __restrict__ textRaw, gpu_index_buffer_t* const __restrict__ index, const gpu_module_t activeModules);
-gpu_error_t gpu_index_transform_GEM_FULL(const gpu_index_dto_t* const __restrict__ indexRaw, gpu_index_buffer_t* const __restrict__ index, const gpu_module_t activeModules);
-gpu_error_t gpu_index_transform_MFASTA_FULL(const gpu_index_dto_t* const __restrict__ indexRaw, gpu_index_buffer_t* const __restrict__ index, const gpu_module_t activeModules);
-gpu_error_t gpu_index_load_specs_MFASTA_FULL(const gpu_index_dto_t* const __restrict__ indexRaw, gpu_index_buffer_t* const __restrict__ index, const gpu_module_t activeModules);
+gpu_error_t gpu_index_transform(gpu_index_buffer_t* const index, const gpu_index_dto_t* const indexRaw, const gpu_index_coding_t indexCoding, const gpu_module_t activeModules);
+gpu_error_t gpu_index_transform_ASCII(const gpu_index_dto_t* const textRaw, gpu_index_buffer_t* const index, const gpu_module_t activeModules);
+gpu_error_t gpu_index_transform_GEM_FULL(const gpu_index_dto_t* const indexRaw, gpu_index_buffer_t* const index, const gpu_module_t activeModules);
+gpu_error_t gpu_index_transform_MFASTA_FULL(const gpu_index_dto_t* const indexRaw, gpu_index_buffer_t* const index, const gpu_module_t activeModules);
+gpu_error_t gpu_index_load_specs_MFASTA_FULL(const gpu_index_dto_t* const indexRaw, gpu_index_buffer_t* const index, const gpu_module_t activeModules);
 
 /* Functions to release the index data from the DEVICE & HOST */
-gpu_error_t gpu_index_free_host(gpu_index_buffer_t* const __restrict__ index, const gpu_module_t activeModules);
-gpu_error_t gpu_index_free_unused_host(gpu_index_buffer_t* index, gpu_device_info_t** const __restrict__ devices, const gpu_module_t activeModules);
-gpu_error_t gpu_index_free_device(gpu_index_buffer_t* index, gpu_device_info_t** const __restrict__ devices, const gpu_module_t activeModules);
+gpu_error_t gpu_index_free_host(gpu_index_buffer_t* const index, const gpu_module_t activeModules);
+gpu_error_t gpu_index_free_unused_host(gpu_index_buffer_t* index, gpu_device_info_t** const devices, const gpu_module_t activeModules);
+gpu_error_t gpu_index_free_device(gpu_index_buffer_t* index, gpu_device_info_t** const devices, const gpu_module_t activeModules);
 gpu_error_t gpu_index_free_metainfo(gpu_index_buffer_t* index, const gpu_module_t activeModules);
-gpu_error_t gpu_index_free(gpu_index_buffer_t **index, gpu_device_info_t** const __restrict__ devices, const gpu_module_t activeModules);
+gpu_error_t gpu_index_free(gpu_index_buffer_t **index, gpu_device_info_t** const devices, const gpu_module_t activeModules);
 
 #endif /* GPU_INDEX_H_ */

@@ -12,9 +12,9 @@
 /*
  * Setup
  */
-locator_builder_t* locator_builder_new(mm_slab_t* const restrict mm_slab) {
+locator_builder_t* locator_builder_new(mm_slab_t* const mm_slab) {
   // Allocate
-  locator_builder_t* const restrict locator_builder = mm_alloc(locator_builder_t);
+  locator_builder_t* const locator_builder = mm_alloc(locator_builder_t);
   // Intervals
   locator_builder->current_interval = NULL;
   locator_builder->intervals = svector_new(mm_slab,locator_interval_t);
@@ -34,7 +34,7 @@ locator_builder_t* locator_builder_new(mm_slab_t* const restrict mm_slab) {
   // Return
   return locator_builder;
 }
-void locator_builder_delete(locator_builder_t* const restrict locator_builder) {
+void locator_builder_delete(locator_builder_t* const locator_builder) {
   // Free
   svector_delete(locator_builder->intervals);
   svector_delete(locator_builder->tag_locator);
@@ -43,8 +43,8 @@ void locator_builder_delete(locator_builder_t* const restrict locator_builder) {
   mm_free(locator_builder);
 }
 void locator_builder_write(
-    fm_t* const restrict file_manager,
-    locator_builder_t* const restrict locator_builder) {
+    fm_t* const file_manager,
+    locator_builder_t* const locator_builder) {
   // Write Locator header
   fm_write_uint64(file_manager,LOCATOR_MODEL_NO);
   fm_write_uint64(file_manager,svector_get_used(locator_builder->intervals)); // num_intervals
@@ -56,10 +56,10 @@ void locator_builder_write(
   uint64_t tags_length_written = 0;
   while (!svector_read_iterator_eoi(&tag_locator_iterator)) {
     // Get next locator tag
-    locator_tag_t* const restrict locator_tag = svector_iterator_get_element(&tag_locator_iterator,locator_tag_t);
+    locator_tag_t* const locator_tag = svector_iterator_get_element(&tag_locator_iterator,locator_tag_t);
     svector_read_iterator_next(&tag_locator_iterator);
     // Write the tag
-    const char* const restrict tag = locator_builder_get_tag(locator_builder,locator_tag);
+    const char* const tag = locator_builder_get_tag(locator_builder,locator_tag);
     fm_write_mem(file_manager,tag,locator_tag->length+1);
     // Adjust the offset
     locator_tag->offset = tags_length_written;
@@ -73,17 +73,17 @@ void locator_builder_write(
 /*
  * Locator Builder Accessors
  */
-uint64_t locator_builder_get_num_intervals(locator_builder_t* const restrict locator_builder) {
+uint64_t locator_builder_get_num_intervals(locator_builder_t* const locator_builder) {
   return svector_get_used(locator_builder->intervals);
 }
-uint64_t locator_builder_get_num_tags(locator_builder_t* const restrict locator_builder) {
+uint64_t locator_builder_get_num_tags(locator_builder_t* const locator_builder) {
   return locator_builder->tag_id_generator;
 }
 /*
  * Skip text/index
  */
 void locator_builder_skip_index(
-    locator_builder_t* const restrict locator_builder,
+    locator_builder_t* const locator_builder,
     const uint64_t length) {
   locator_builder->index_position += length;
 }
@@ -91,7 +91,7 @@ void locator_builder_skip_index(
  * Locator Builder Interval Accessors
  */
 locator_interval_t* locator_builder_get_interval(
-    locator_builder_t* const restrict locator_builder,
+    locator_builder_t* const locator_builder,
     const uint64_t interval_index) {
   return svector_get_element(locator_builder->intervals,interval_index,locator_interval_t);
 }
@@ -99,34 +99,34 @@ locator_interval_t* locator_builder_get_interval(
  * Locator Builder Tag Accessors
  */
 char* locator_builder_get_tag(
-    locator_builder_t* const restrict locator_builder,
-    locator_tag_t* const restrict locator_tag) {
+    locator_builder_t* const locator_builder,
+    locator_tag_t* const locator_tag) {
   return svector_get_element(locator_builder->tags_buffer,locator_tag->offset,char);
 }
 locator_tag_t* locator_builder_get_locator_tag_by_id(
-    locator_builder_t* const restrict locator_builder,
+    locator_builder_t* const locator_builder,
     const int64_t tag_id) {
   return svector_get_element(locator_builder->tag_locator,tag_id,locator_tag_t);
 }
 locator_tag_t* locator_builder_get_locator_tag_by_tag(
-    locator_builder_t* const restrict locator_builder,
-    char* const restrict tag) {
+    locator_builder_t* const locator_builder,
+    char* const tag) {
   return shash_get(locator_builder->tags_dictionary,tag,locator_tag_t);
 }
 /*
  * Intervals handling
  */
 void locator_builder_open_interval(
-    locator_builder_t* const restrict locator_builder,
+    locator_builder_t* const locator_builder,
     const int64_t tag_id) {
   // Open a new interval => [begin_position,end_position)
-  svector_iterator_t* const restrict intervals_iterator = &(locator_builder->intervals_iterator);
+  svector_iterator_t* const intervals_iterator = &(locator_builder->intervals_iterator);
   locator_builder->current_interval = svector_iterator_get_element(intervals_iterator,locator_interval_t);
   locator_builder->current_interval->tag_id = tag_id;
   locator_builder->current_interval->begin_position = locator_builder->index_position;
 }
 void locator_builder_close_interval(
-    locator_builder_t* const restrict locator_builder,
+    locator_builder_t* const locator_builder,
     const uint64_t interval_text_length,
     const uint64_t interval_index_length,
     const locator_interval_type type,
@@ -145,7 +145,7 @@ void locator_builder_close_interval(
   locator_builder->sequence_offset += interval_text_length;
 }
 void locator_builder_add_interval(
-    locator_builder_t* const restrict locator_builder,
+    locator_builder_t* const locator_builder,
     const int64_t tag_id,
     const uint64_t sequence_offset,
     const uint64_t interval_text_length,
@@ -169,16 +169,16 @@ void locator_builder_add_interval(
   locator_builder->index_position += interval_index_length;
 }
 void locator_builder_add_rc_interval(
-    locator_builder_t* const restrict locator_builder,
-    locator_interval_t* const restrict locator_interval) {
+    locator_builder_t* const locator_builder,
+    locator_interval_t* const locator_interval) {
   const uint64_t interval_length = locator_interval_get_index_length(locator_interval);
   const strand_t rc_strand = dna_text_strand_get_complement(locator_interval->strand);
   locator_builder_add_interval(locator_builder,locator_interval->tag_id,locator_interval->sequence_offset,
       locator_interval->sequence_length,interval_length,locator_interval->type,rc_strand,locator_interval->bs_strand);
 }
 int64_t locator_builder_add_sequence(
-    locator_builder_t* const restrict locator_builder,
-    char* const restrict tag,
+    locator_builder_t* const locator_builder,
+    char* const tag,
     const uint64_t tag_length) {
   // Reset the sequence offset
   locator_builder->sequence_offset = 0;
@@ -191,7 +191,7 @@ int64_t locator_builder_add_sequence(
     current_locator_tag = svector_iterator_get_element(&(locator_builder->tag_locator_iterator),locator_tag_t);
     current_locator_tag->tag_id = (locator_builder->tag_id_generator)++;
     // Add it to the tag_buffer
-    char* const restrict tag_in_buffer = svector_insert_char_buffer(
+    char* const tag_in_buffer = svector_insert_char_buffer(
         locator_builder->tags_buffer,&current_locator_tag->offset,tag,tag_length);
     locator_builder->tags_buffer_size += tag_length+1;
     current_locator_tag->length = tag_length;
@@ -206,8 +206,8 @@ int64_t locator_builder_add_sequence(
  * Display
  */
 void locator_builder_print(
-    FILE* const restrict stream,
-    locator_builder_t* const restrict locator_builder,
+    FILE* const stream,
+    locator_builder_t* const locator_builder,
     const bool display_intervals) {
   GEM_CHECK_NULL(stream);
   // Print locator info
@@ -220,13 +220,13 @@ void locator_builder_print(
   if (display_intervals) {
     tab_fprintf(stream,"  => Locator.intervals\n");
     uint64_t i = 0;
-    svector_iterator_t* const restrict intervals_iterator = &(locator_builder->intervals_iterator);
+    svector_iterator_t* const intervals_iterator = &(locator_builder->intervals_iterator);
     svector_iterator_new(intervals_iterator,locator_builder->intervals,SVECTOR_READ_ITERATOR,0);
     while (!svector_read_iterator_eoi(intervals_iterator)) {
       // Get interval & tag
-      locator_interval_t* const restrict interval = svector_iterator_get_element(intervals_iterator,locator_interval_t);
-      locator_tag_t* const restrict locator_tag = locator_builder_get_locator_tag_by_id(locator_builder,interval->tag_id);
-      const char* const restrict interval_tag = locator_builder_get_tag(locator_builder,locator_tag);
+      locator_interval_t* const interval = svector_iterator_get_element(intervals_iterator,locator_interval_t);
+      locator_tag_t* const locator_tag = locator_builder_get_locator_tag_by_id(locator_builder,interval->tag_id);
+      const char* const interval_tag = locator_builder_get_tag(locator_builder,locator_tag);
       // Print interval information
       tab_fprintf(stream,"       [%"PRIu64"] ",i++);
       locator_interval_print(stream,interval,interval_tag);

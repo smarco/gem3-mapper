@@ -141,40 +141,40 @@ typedef struct {
 /*
  * Search Parameters
  */
-void search_parameters_init(search_parameters_t* const restrict search_parameters);
+void search_parameters_init(search_parameters_t* const search_parameters);
 
 void search_configure_mapping_strategy(
-    search_parameters_t* const restrict search_parameters,
+    search_parameters_t* const search_parameters,
     const mapping_mode_t mapping_mode);
 void search_configure_quality_model(
-    search_parameters_t* const restrict search_parameters,
+    search_parameters_t* const search_parameters,
     const quality_model_t quality_model,
     const quality_format_t quality_format,
     const uint64_t quality_threshold);
 void search_configure_replacements(
-    search_parameters_t* const restrict search_parameters,
-    const char* const restrict mismatch_alphabet,
+    search_parameters_t* const search_parameters,
+    const char* const mismatch_alphabet,
     const uint64_t mismatch_alphabet_length);
 void search_configure_alignment_model(
-    search_parameters_t* const restrict search_parameters,
+    search_parameters_t* const search_parameters,
     const alignment_model_t alignment_model);
 void search_configure_alignment_match_scores(
-    search_parameters_t* const restrict search_parameters,
+    search_parameters_t* const search_parameters,
     const uint64_t matching_score);
 void search_configure_alignment_mismatch_scores(
-    search_parameters_t* const restrict search_parameters,
+    search_parameters_t* const search_parameters,
     const uint64_t mismatch_penalty);
 
 void search_instantiate_values(
-    search_parameters_t* const restrict search_parameters,
+    search_parameters_t* const search_parameters,
     const uint64_t pattern_length);
 
 /*
  * Display
  */
 void search_parameters_print(
-    FILE* const restrict stream,
-    search_parameters_t* const restrict search_parameters);
+    FILE* const stream,
+    search_parameters_t* const search_parameters);
 
 /*
  * Error Msg

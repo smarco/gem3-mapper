@@ -11,7 +11,7 @@
 /*
  * Paired-Search Parameters
  */
-void search_paired_parameters_init(search_paired_parameters_t* const restrict search_paired_parameters) {
+void search_paired_parameters_init(search_paired_parameters_t* const search_paired_parameters) {
   search_paired_parameters->paired_end_search = false;
   search_paired_parameters->paired_end_extension_shortcut = false;
   search_paired_parameters->paired_end_extension_recovery = true;

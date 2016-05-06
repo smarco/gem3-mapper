@@ -52,17 +52,17 @@ typedef struct {
 /*
  * Setup
  */
-void mapper_cuda_search_init(mapper_cuda_search_t* const restrict mapper_cuda_search);
+void mapper_cuda_search_init(mapper_cuda_search_t* const mapper_cuda_search);
 
 /*
  * SE-CUDA Mapper
  */
-void mapper_cuda_se_run(mapper_parameters_t* const restrict mapper_parameters);
+void mapper_cuda_se_run(mapper_parameters_t* const mapper_parameters);
 
 /*
  * PE-CUDA Mapper
  */
-void mapper_cuda_pe_run(mapper_parameters_t* const restrict mapper_parameters);
+void mapper_cuda_pe_run(mapper_parameters_t* const mapper_parameters);
 
 /*
  * Error Messages

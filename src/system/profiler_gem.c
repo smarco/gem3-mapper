@@ -164,7 +164,7 @@ double PROF_TIME_PERCENTAGE(const uint64_t timer,const uint64_t total_timer) {
 }
 double PROF_TIME_PER_CALL(const uint64_t timer) {
   const uint64_t gtid = gtid();
-  gem_timer_t* const restrict prof_timer = gem_profile.profile[gtid].timers+timer;
+  gem_timer_t* const prof_timer = gem_profile.profile[gtid].timers+timer;
   const uint64_t num_calls = TIMER_GET_NUM_SAMPLES(prof_timer);
   const uint64_t timer_ns = TIMER_GET_TOTAL_NS(prof_timer);
   return (num_calls!=0) ? (TIMER_CONVERT_NS_TO_MS(timer_ns) / (double)num_calls) : 0.0;

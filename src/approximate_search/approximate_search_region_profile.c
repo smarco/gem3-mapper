@@ -34,7 +34,7 @@ FILE* benchmark_region_profile = NULL;
 /*
  * Region Profile Stats
  */
-void approximate_search_region_profile_fixed_stats(region_profile_t* const restrict region_profile) {
+void approximate_search_region_profile_fixed_stats(region_profile_t* const region_profile) {
 #ifdef GEM_PROFILE
   uint64_t total_candidates = 0, num_elegible_regions = 0;
   PROF_INC_COUNTER(GP_REGION_PROFILE_FIXED);
@@ -50,7 +50,7 @@ void approximate_search_region_profile_fixed_stats(region_profile_t* const restr
   PROF_ADD_COUNTER(GP_REGION_PROFILE_FIXED_TOTAL_CANDIDATES,total_candidates);
 #endif
 }
-void approximate_search_region_profile_lightweight_stats(region_profile_t* const restrict region_profile) {
+void approximate_search_region_profile_lightweight_stats(region_profile_t* const region_profile) {
 #ifdef GEM_PROFILE
   uint64_t total_candidates = 0;
   PROF_INC_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT);
@@ -66,7 +66,7 @@ void approximate_search_region_profile_lightweight_stats(region_profile_t* const
   PROF_ADD_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT_TOTAL_CANDIDATES,total_candidates);
 #endif
 }
-void approximate_search_region_profile_heavyweight_stats(region_profile_t* const restrict region_profile) {
+void approximate_search_region_profile_heavyweight_stats(region_profile_t* const region_profile) {
 #ifdef GEM_PROFILE
   uint64_t total_candidates = 0;
   PROF_INC_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT);
@@ -82,7 +82,7 @@ void approximate_search_region_profile_heavyweight_stats(region_profile_t* const
   PROF_ADD_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_TOTAL_CANDIDATES,total_candidates);
 #endif
 }
-void approximate_search_region_profile_delimit_stats(region_profile_t* const restrict region_profile) {
+void approximate_search_region_profile_delimit_stats(region_profile_t* const region_profile) {
 #ifdef GEM_PROFILE
   uint64_t total_candidates = 0;
   PROF_INC_COUNTER(GP_REGION_PROFILE_DELIMIT);
@@ -102,14 +102,14 @@ void approximate_search_region_profile_delimit_stats(region_profile_t* const res
  * Region Profile Adaptive
  */
 void approximate_search_region_profile_adaptive(
-    approximate_search_t* const restrict search,
+    approximate_search_t* const search,
     const region_profile_strategy_t strategy,
-    mm_stack_t* const restrict mm_stack) {
+    mm_stack_t* const mm_stack) {
   // Parameters
-  const search_parameters_t* const restrict parameters = search->search_parameters;
-  fm_index_t* const restrict fm_index = search->archive->fm_index;
-  pattern_t* const restrict pattern = &search->pattern;
-  region_profile_t* const restrict region_profile = &search->region_profile;
+  const search_parameters_t* const parameters = search->search_parameters;
+  fm_index_t* const fm_index = search->archive->fm_index;
+  pattern_t* const pattern = &search->pattern;
+  region_profile_t* const region_profile = &search->region_profile;
   // Select Key (Regular/RL)
   uint8_t* key;
   uint64_t key_length;
@@ -174,15 +174,15 @@ void approximate_search_region_profile_adaptive(
 /*
  * Region Partition Fixed
  */
-void approximate_search_region_partition_fixed(approximate_search_t* const restrict search) {
+void approximate_search_region_partition_fixed(approximate_search_t* const search) {
   // Parameters
-  const search_parameters_t* const restrict parameters = search->search_parameters;
-  fm_index_t* const restrict fm_index = search->archive->fm_index;
-  pattern_t* const restrict pattern = &search->pattern;
+  const search_parameters_t* const parameters = search->search_parameters;
+  fm_index_t* const fm_index = search->archive->fm_index;
+  pattern_t* const pattern = &search->pattern;
   const uint8_t* key = pattern->key;
   const uint64_t key_length = pattern->key_length;
   // Generate region profile partition
-  region_profile_t* const restrict region_profile = &search->region_profile;
+  region_profile_t* const region_profile = &search->region_profile;
   const uint64_t proper_length = fm_index_get_proper_length(fm_index);
   region_profile_generate_fixed_partition(
       region_profile,key,key_length,parameters->allowed_enc,proper_length);
@@ -196,13 +196,13 @@ void approximate_search_region_partition_fixed(approximate_search_t* const restr
 /*
  * Buffered Copy/Retrieve
  */
-void approximate_search_region_profile_buffered_print_benchmark(approximate_search_t* const restrict search);
+void approximate_search_region_profile_buffered_print_benchmark(approximate_search_t* const search);
 void approximate_search_region_profile_buffered_copy(
-    approximate_search_t* const restrict search,
-    gpu_buffer_fmi_search_t* const restrict gpu_buffer_fmi_search) {
+    approximate_search_t* const search,
+    gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) {
   // Parameters
-  pattern_t* const restrict pattern = &search->pattern;
-  region_profile_t* const restrict region_profile = &search->region_profile;
+  pattern_t* const pattern = &search->pattern;
+  region_profile_t* const region_profile = &search->region_profile;
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
   // Store Buffer Position
   search->gpu_buffer_fmi_search_offset = gpu_buffer_fmi_search_get_num_queries(gpu_buffer_fmi_search);
@@ -219,11 +219,11 @@ void approximate_search_region_profile_buffered_copy(
 #endif
 }
 void approximate_search_region_profile_buffered_retrieve(
-    approximate_search_t* const restrict search,
-    gpu_buffer_fmi_search_t* const restrict gpu_buffer_fmi_search) {
+    approximate_search_t* const search,
+    gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) {
   // Parameters
-  search_parameters_t* const restrict search_parameters = search->search_parameters;
-  region_profile_t* const restrict region_profile = &search->region_profile;
+  search_parameters_t* const search_parameters = search->search_parameters;
+  region_profile_t* const region_profile = &search->region_profile;
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
   const uint64_t filtering_threshold = search_parameters->rp_heavyweight.region_th;
   // Buffer offsets
@@ -232,7 +232,7 @@ void approximate_search_region_profile_buffered_retrieve(
   uint64_t num_regions_filtered = 0, num_zero_regions = 0, max_region_length = 0;
   uint64_t i, total_candidates = 0;
   for (i=0;i<num_filtering_regions;++i) {
-    region_search_t* const restrict filtering_region = region_profile->filtering_region + i;
+    region_search_t* const filtering_region = region_profile->filtering_region + i;
     gpu_buffer_fmi_search_get_result(gpu_buffer_fmi_search,
         buffer_offset_begin+i,&filtering_region->hi,&filtering_region->lo);
     // DEBUG
@@ -289,7 +289,7 @@ void approximate_search_region_profile_buffered_retrieve(
     region_profile_print(stderr,region_profile,false);
   }
 }
-void approximate_search_region_profile_buffered_recompute(approximate_search_t* const restrict search) {
+void approximate_search_region_profile_buffered_recompute(approximate_search_t* const search) {
   // Re-Compute region profile
   search->processing_state = asearch_processing_state_begin;
   approximate_search_region_profile_adaptive(search,region_profile_adaptive_lightweight,search->mm_stack);
@@ -298,7 +298,7 @@ void approximate_search_region_profile_buffered_recompute(approximate_search_t* 
     return;
   }
   // Schedule exact-candidates
-  const search_parameters_t* const restrict search_parameters = search->search_parameters;
+  const search_parameters_t* const search_parameters = search->search_parameters;
   region_profile_schedule_filtering_fixed(&search->region_profile,ALL,
       REGION_FILTER_DEGREE_ZERO,search_parameters->filtering_threshold);
   // Set State
@@ -308,10 +308,10 @@ void approximate_search_region_profile_buffered_recompute(approximate_search_t* 
     region_profile_print(stderr,&search->region_profile,false);
   }
 }
-void approximate_search_region_profile_buffered_print_benchmark(approximate_search_t* const restrict search) {
+void approximate_search_region_profile_buffered_print_benchmark(approximate_search_t* const search) {
 #ifdef CUDA_BENCHMARK_GENERATE_REGION_PROFILE
   // Parameters
-  region_profile_t* const restrict region_profile = &search->region_profile;
+  region_profile_t* const region_profile = &search->region_profile;
   // Prepare benchmark file
   if (benchmark_region_profile==NULL) {
     benchmark_region_profile = fopen("gem3.region.profile.benchmark","w+");

@@ -73,9 +73,9 @@
  * BWT Builder Auxiliary functions
  */
 void bwt_sbasic_builder_initialize(
-    bwt_sbasic_builder_t* const restrict bwt_builder,const uint64_t bwt_text_length,
-    const uint64_t* const restrict character_occurrences) {
-  bwt_sbasic_t* const restrict bwt = &bwt_builder->bwt;
+    bwt_sbasic_builder_t* const bwt_builder,const uint64_t bwt_text_length,
+    const uint64_t* const character_occurrences) {
+  bwt_sbasic_t* const bwt = &bwt_builder->bwt;
   /*
    * Meta-Data
    */
@@ -152,8 +152,8 @@ void bwt_sbasic_builder_initialize(
   } \
   bit_mask <<= 1
 
-void bwt_sbasic_builder_write_mayor_counters(bwt_sbasic_builder_t* const restrict bwt_builder) {
-  uint64_t* const restrict mayor_counters = bwt_builder->bwt.mayor_counters + bwt_builder->mayor_counter;
+void bwt_sbasic_builder_write_mayor_counters(bwt_sbasic_builder_t* const bwt_builder) {
+  uint64_t* const mayor_counters = bwt_builder->bwt.mayor_counters + bwt_builder->mayor_counter;
   uint8_t i;
   for (i=0;i<BWT_MAYOR_COUNTER_RANGE-1;++i) {
     // Update sentinel counters
@@ -169,8 +169,8 @@ void bwt_sbasic_builder_write_mayor_counters(bwt_sbasic_builder_t* const restric
   // Update MayorCounter position
   bwt_builder->mayor_counter += BWT_MAYOR_COUNTER_RANGE;
 }
-void bwt_sbasic_builder_write_minor_counters(bwt_sbasic_builder_t* const restrict bwt_builder) {
-  uint16_t* const restrict minor_counters_mem = (uint16_t*) bwt_builder->minor_block_mem;
+void bwt_sbasic_builder_write_minor_counters(bwt_sbasic_builder_t* const bwt_builder) {
+  uint16_t* const minor_counters_mem = (uint16_t*) bwt_builder->minor_block_mem;
   uint8_t i;
   // Dump counters
   for (i=0;i<BWT_MINOR_COUNTER_RANGE-1;++i) {
@@ -181,7 +181,7 @@ void bwt_sbasic_builder_write_minor_counters(bwt_sbasic_builder_t* const restric
   bwt_builder->minor_block_mem += 2; // 2*64bits == 8*16bits
 }
 void bwt_sbasic_builder_write_minor_block(
-    bwt_sbasic_builder_t* const restrict bwt_builder,
+    bwt_sbasic_builder_t* const bwt_builder,
     const uint64_t layer_0,const uint64_t layer_1,const uint64_t layer_2,
     const uint64_t sampled_bitmap) {
   *bwt_builder->minor_block_mem = layer_0; ++(bwt_builder->minor_block_mem);
@@ -195,12 +195,12 @@ void bwt_sbasic_builder_write_minor_block(
  * BWT Builder
  */
 bwt_sbasic_builder_t* bwt_sbasic_builder_new(
-    dna_text_t* const restrict bwt_text,const uint64_t* const restrict character_occurrences,
-    sampled_sa_builder_t* const restrict sampled_sa,const bool check,const bool verbose) {
+    dna_text_t* const bwt_text,const uint64_t* const character_occurrences,
+    sampled_sa_builder_t* const sampled_sa,const bool check,const bool verbose) {
   /*
    * Allocate & initialize builder
    */
-  bwt_sbasic_builder_t* const restrict bwt_builder = mm_alloc(bwt_sbasic_builder_t);
+  bwt_sbasic_builder_t* const bwt_builder = mm_alloc(bwt_sbasic_builder_t);
   const uint64_t bwt_length = dna_text_get_length(bwt_text);
   bwt_sbasic_builder_initialize(bwt_builder,bwt_length,character_occurrences);
   const uint64_t* sampled_positions_bitmap = sampled_sa_builder_get_sampled_bitmap(sampled_sa);
@@ -216,7 +216,7 @@ bwt_sbasic_builder_t* bwt_sbasic_builder_new(
   // BM Layers
   uint64_t layer_0=0, layer_1=0, layer_2=0, bit_mask=UINT64_ONE_MASK;
   // Iterate over the BWT
-  const uint8_t* const restrict bwt = dna_text_get_text(bwt_text);
+  const uint8_t* const bwt = dna_text_get_text(bwt_text);
   uint64_t bwt_pos = 0;
   while (bwt_pos < bwt_length) {
     // Get BWT character
@@ -254,7 +254,7 @@ bwt_sbasic_builder_t* bwt_sbasic_builder_new(
   ticker_finish(&ticker);
   return bwt_builder;
 }
-void bwt_sbasic_builder_write(fm_t* const restrict file_manager,bwt_sbasic_builder_t* const restrict bwt_builder) {
+void bwt_sbasic_builder_write(fm_t* const file_manager,bwt_sbasic_builder_t* const bwt_builder) {
   BWT_BUILDER_CHECK(bwt_builder);
   /* Meta-Data */
   fm_write_uint64(file_manager,BWT_SBASIC_MODEL_NO); // Model Number
@@ -272,7 +272,7 @@ void bwt_sbasic_builder_write(fm_t* const restrict file_manager,bwt_sbasic_build
   fm_skip_align_4KB(file_manager);
   fm_write_mem(file_manager,bwt_builder->bwt.bwt_mem,bwt_builder->bwt.num_minor_blocks*BWT_MINOR_BLOCK_SIZE);
 }
-void bwt_sbasic_builder_delete(bwt_sbasic_builder_t* const restrict bwt_builder) {
+void bwt_sbasic_builder_delete(bwt_sbasic_builder_t* const bwt_builder) {
   BWT_BUILDER_CHECK(bwt_builder);
   mm_free(bwt_builder->bwt.c);
   mm_free(bwt_builder->bwt.C);
@@ -285,9 +285,9 @@ void bwt_sbasic_builder_delete(bwt_sbasic_builder_t* const restrict bwt_builder)
 /*
  * BWT Loader
  */
-bwt_sbasic_t* bwt_sbasic_read_mem(mm_t* const restrict memory_manager,const bool check) {
+bwt_sbasic_t* bwt_sbasic_read_mem(mm_t* const memory_manager,const bool check) {
   // Allocate handler
-  bwt_sbasic_t* const restrict bwt = mm_alloc(bwt_sbasic_t);
+  bwt_sbasic_t* const bwt = mm_alloc(bwt_sbasic_t);
   /* Meta-Data */
   const uint64_t bwt_serial_no = mm_read_uint64(memory_manager); // Serial Number
   gem_cond_fatal_error(bwt_serial_no!=BWT_SBASIC_MODEL_NO,BWT_WRONG_MODEL_NO,bwt_serial_no,(uint64_t)BWT_SBASIC_MODEL_NO);
@@ -308,7 +308,7 @@ bwt_sbasic_t* bwt_sbasic_read_mem(mm_t* const restrict memory_manager,const bool
   // Return
   return bwt;
 }
-void bwt_sbasic_delete(bwt_sbasic_t* const restrict bwt) {
+void bwt_sbasic_delete(bwt_sbasic_t* const bwt) {
   BWT_CHECK(bwt);
   // Free counters memory
   if (bwt->mm_counters) {
@@ -324,7 +324,7 @@ void bwt_sbasic_delete(bwt_sbasic_t* const restrict bwt) {
 /*
  * BWT General Accessors
  */
-uint64_t bwt_sbasic_get_size(bwt_sbasic_t* const restrict bwt) {
+uint64_t bwt_sbasic_get_size(bwt_sbasic_t* const bwt) {
   // Compute sizes
   const uint64_t minor_blocks_size = bwt->num_minor_blocks*BWT_MINOR_BLOCK_SIZE;
   const uint64_t mayor_counters_size = bwt->num_mayor_blocks*BWT_MAYOR_COUNTER_RANGE*UINT64_SIZE;
@@ -333,15 +333,15 @@ uint64_t bwt_sbasic_get_size(bwt_sbasic_t* const restrict bwt) {
          mayor_counters_size +                       /* bwt->mayor_counters */
          minor_blocks_size;                          /* bwt->bwt_mem */
 }
-uint64_t bwt_sbasic_builder_get_length(const bwt_sbasic_builder_t* const restrict bwt_builder) {
+uint64_t bwt_sbasic_builder_get_length(const bwt_sbasic_builder_t* const bwt_builder) {
   BWT_BUILDER_CHECK(bwt_builder);
   return bwt_sbasic_get_length(&bwt_builder->bwt);
 }
-uint64_t bwt_sbasic_get_length(const bwt_sbasic_t* const restrict bwt) {
+uint64_t bwt_sbasic_get_length(const bwt_sbasic_t* const bwt) {
   BWT_CHECK(bwt);
   return bwt->length;
 }
-uint64_t bwt_sbasic_builder_get_size(bwt_sbasic_builder_t* const restrict bwt_builder) {
+uint64_t bwt_sbasic_builder_get_size(bwt_sbasic_builder_t* const bwt_builder) {
   BWT_BUILDER_CHECK(bwt_builder);
   return bwt_sbasic_get_size(&bwt_builder->bwt);
 }
@@ -352,18 +352,18 @@ bool bwt_sbasic_is_same_bucket(const uint64_t lo,const uint64_t hi) {
 #define BWT_LOCATE_BLOCK(bwt,position,block_pos,block_mod,mayor_counters,block_mem) \
   const uint64_t block_pos = position / BWT_MINOR_BLOCK_LENGTH; \
   const uint64_t block_mod = position % BWT_MINOR_BLOCK_LENGTH; \
-  const uint64_t* const restrict mayor_counters = bwt->mayor_counters + (position/BWT_MAYOR_BLOCK_LENGTH)*BWT_MAYOR_COUNTER_RANGE; \
-  const uint64_t* const restrict block_mem = bwt->bwt_mem + block_pos*BWT_MINOR_BLOCK_64WORDS
+  const uint64_t* const mayor_counters = bwt->mayor_counters + (position/BWT_MAYOR_BLOCK_LENGTH)*BWT_MAYOR_COUNTER_RANGE; \
+  const uint64_t* const block_mem = bwt->bwt_mem + block_pos*BWT_MINOR_BLOCK_64WORDS
 /* Gets the mayor_counters & minor_block corresponding to position @i */
 void bwt_sbasic_get_block_location(
-    const bwt_sbasic_t* const restrict bwt,const uint64_t position,bwt_block_locator_t* const restrict block_loc) {
+    const bwt_sbasic_t* const bwt,const uint64_t position,bwt_block_locator_t* const block_loc) {
   block_loc->block_pos = position / BWT_MINOR_BLOCK_LENGTH;
   block_loc->block_mod = position % BWT_MINOR_BLOCK_LENGTH;
   block_loc->mayor_counters = bwt->mayor_counters + (position/BWT_MAYOR_BLOCK_LENGTH)*BWT_MAYOR_COUNTER_RANGE;
   block_loc->block_mem = bwt->bwt_mem + block_loc->block_pos*BWT_MINOR_BLOCK_64WORDS;
 }
 /* Computes and returns the encoded letter */
-uint8_t bwt_sbasic_char_(const uint64_t block_mod,const uint64_t* const restrict block_mem) {
+uint8_t bwt_sbasic_char_(const uint64_t block_mod,const uint64_t* const block_mem) {
   const uint64_t letter_mask = 1ull << block_mod;
   const uint8_t bit_1 = ((block_mem[2] & letter_mask) != 0);
   const uint8_t bit_2 = ((block_mem[3] & letter_mask) != 0);
@@ -371,18 +371,18 @@ uint8_t bwt_sbasic_char_(const uint64_t block_mod,const uint64_t* const restrict
   return (bit_3 << 2) | (bit_2 << 1) | bit_1;
 }
 /* Computes and returns the rank */
-bool bwt_sbasic_sampling_is_sampled_(const uint64_t block_mod,const uint64_t* const restrict block_mem) {
+bool bwt_sbasic_sampling_is_sampled_(const uint64_t block_mod,const uint64_t* const block_mem) {
   return block_mem[5] & (UINT64_ONE_MASK<<block_mod); // Retrieve sampled_bit
 }
 uint64_t bwt_sbasic_sampling_erank_(
-    const uint64_t block_mod,const uint64_t* const restrict mayor_counters,const uint64_t* const restrict block_mem) {
+    const uint64_t block_mod,const uint64_t* const mayor_counters,const uint64_t* const block_mem) {
   // Calculate the sampling exclusive rank (offset of the SA-sample)
   const uint64_t sum_counters = mayor_counters[BWT_SAMPLING_ENC_CHAR] + ((uint16_t*)block_mem)[BWT_SAMPLING_ENC_CHAR];
   return sum_counters + POPCOUNT_64(block_mem[5] & uint64_erank_mask(block_mod));
 }
 uint64_t bwt_sbasic_erank_(
     const uint8_t char_enc,const uint64_t block_mod,
-    const uint64_t* const restrict mayor_counters,const uint64_t* const restrict block_mem) {
+    const uint64_t* const mayor_counters,const uint64_t* const block_mem) {
   // Calculate the exclusive rank for the given DNA character
   const uint64_t sum_counters = mayor_counters[char_enc] + ((uint16_t*)block_mem)[char_enc];
   const uint64_t bitmap = (block_mem[2]^xor_table_3[char_enc]) &
@@ -394,8 +394,8 @@ uint64_t bwt_sbasic_erank_(
 /* Computes and returns the rank of an interval located in the same block */
 void bwt_sbasic_erank_interval_(
     const uint8_t char_enc,const uint64_t lo_value,const uint64_t block_mod,
-    const uint64_t* const restrict mayor_counters,const uint64_t* const restrict block_mem,
-    uint64_t* const restrict lo,uint64_t* const restrict hi) {
+    const uint64_t* const mayor_counters,const uint64_t* const block_mem,
+    uint64_t* const lo,uint64_t* const hi) {
   // Fetching Regular DNA Characters
   const uint64_t sum_counters = mayor_counters[char_enc] + ((uint16_t*)block_mem)[char_enc];
   const uint64_t bitmap = (block_mem[2]^xor_table_3[char_enc]) &
@@ -408,8 +408,8 @@ void bwt_sbasic_erank_interval_(
 }
 /* Pre-computes the block elements (faster computation of all possible ranks) */
 void bwt_sbasic_precompute_(
-    const uint64_t block_mod,const uint64_t* const restrict block_mem,
-    bwt_block_elms_t* const restrict bwt_block_elms) {
+    const uint64_t block_mod,const uint64_t* const block_mem,
+    bwt_block_elms_t* const bwt_block_elms) {
   const uint64_t erase_mask = uint64_erank_mask(block_mod);
   const uint64_t bitmap_1 = block_mem[2] & erase_mask;
   const uint64_t bitmap_N1 = (block_mem[2]^(-1ull)) & erase_mask;
@@ -426,41 +426,41 @@ void bwt_sbasic_precompute_(
 /*
  * BWT Character Accessors
  */
-uint8_t bwt_sbasic_char(const bwt_sbasic_t* const restrict bwt,const uint64_t position) {
+uint8_t bwt_sbasic_char(const bwt_sbasic_t* const bwt,const uint64_t position) {
   BWT_CHAR_TICK();
   /* Locate Block */
   const uint64_t block_pos = position / BWT_MINOR_BLOCK_LENGTH;
   const uint64_t block_mod = position % BWT_MINOR_BLOCK_LENGTH;
-  const uint64_t* const restrict block_mem = bwt->bwt_mem + block_pos*BWT_MINOR_BLOCK_64WORDS;
+  const uint64_t* const block_mem = bwt->bwt_mem + block_pos*BWT_MINOR_BLOCK_64WORDS;
   return bwt_sbasic_char_(block_mod,block_mem);
 }
-char bwt_sbasic_char_character(const bwt_sbasic_t* const restrict bwt,const uint64_t position) {
+char bwt_sbasic_char_character(const bwt_sbasic_t* const bwt,const uint64_t position) {
   return dna_decode(bwt_sbasic_char(bwt,position));
 }
 /*
  * BWT ERank (Exclusive Rank Function)
  */
-uint64_t bwt_sbasic_builder_erank(const bwt_sbasic_builder_t* const restrict bwt_builder,const uint8_t char_enc,const uint64_t position) {
+uint64_t bwt_sbasic_builder_erank(const bwt_sbasic_builder_t* const bwt_builder,const uint8_t char_enc,const uint64_t position) {
   BWT_ERANK_TICK();
   BWT_LOCATE_BLOCK((&bwt_builder->bwt),position,block_pos,block_mod,mayor_counters,block_mem);
   return bwt_sbasic_erank_(char_enc,block_mod,mayor_counters,block_mem);
 }
-uint64_t bwt_sbasic_erank(const bwt_sbasic_t* const restrict bwt,const uint8_t char_enc,const uint64_t position) {
+uint64_t bwt_sbasic_erank(const bwt_sbasic_t* const bwt,const uint8_t char_enc,const uint64_t position) {
   BWT_ERANK_TICK();
   BWT_LOCATE_BLOCK(bwt,position,block_pos,block_mod,mayor_counters,block_mem);
   return bwt_sbasic_erank_(char_enc,block_mod,mayor_counters,block_mem);
 }
-uint64_t bwt_sbasic_erank_character(const bwt_sbasic_t* const restrict bwt,const char character,const uint64_t position) {
+uint64_t bwt_sbasic_erank_character(const bwt_sbasic_t* const bwt,const char character,const uint64_t position) {
   return bwt_sbasic_erank(bwt,dna_encode(character),position);
 }
 void bwt_sbasic_erank_interval(
-    const bwt_sbasic_t* const restrict bwt,const uint8_t char_enc,
-    const uint64_t lo_in,const uint64_t hi_in,uint64_t* const restrict lo_out,uint64_t* const restrict hi_out) {
+    const bwt_sbasic_t* const bwt,const uint8_t char_enc,
+    const uint64_t lo_in,const uint64_t hi_in,uint64_t* const lo_out,uint64_t* const hi_out) {
   BWT_ERANK_INTERVAL_TICK();
   BWT_LOCATE_BLOCK(bwt,hi_in,block_pos,block_mod,mayor_counters,block_mem);
   bwt_sbasic_erank_interval_(char_enc,lo_in,block_mod,mayor_counters,block_mem,lo_out,hi_out);
 }
-uint64_t bwt_sbasic_sampling_erank(const bwt_sbasic_t* const restrict bwt,const uint64_t position) {
+uint64_t bwt_sbasic_sampling_erank(const bwt_sbasic_t* const bwt,const uint64_t position) {
   BWT_ERANK_TICK();
   BWT_LOCATE_BLOCK(bwt,position,block_pos,block_mod,mayor_counters,block_mem);
   return bwt_sbasic_sampling_erank_(block_mod,mayor_counters,block_mem);
@@ -468,21 +468,21 @@ uint64_t bwt_sbasic_sampling_erank(const bwt_sbasic_t* const restrict bwt,const 
 /*
  * BWT Prefetched ERank
  */
-void bwt_sbasic_prefetch(const bwt_sbasic_t* const restrict bwt,const uint64_t position,bwt_block_locator_t* const restrict block_loc) {
+void bwt_sbasic_prefetch(const bwt_sbasic_t* const bwt,const uint64_t position,bwt_block_locator_t* const block_loc) {
   BWT_PREFETCH_TICK();
   bwt_sbasic_get_block_location(bwt,position,block_loc);
   BWT_PREFETCH_BLOCK(block_loc);
 }
 uint64_t bwt_sbasic_prefetched_erank(
-    const bwt_sbasic_t* const restrict bwt,const uint8_t char_enc,
-    const uint64_t position,const bwt_block_locator_t* const restrict block_loc) {
+    const bwt_sbasic_t* const bwt,const uint8_t char_enc,
+    const uint64_t position,const bwt_block_locator_t* const block_loc) {
   BWT_ERANK_TICK();
   return bwt_sbasic_erank_(char_enc,block_loc->block_mod,block_loc->mayor_counters,block_loc->block_mem);
 }
 void bwt_sbasic_prefetched_erank_interval(
-    const bwt_sbasic_t* const restrict bwt,const uint8_t char_enc,
-    const uint64_t lo_in,const uint64_t hi_in,uint64_t* const restrict lo_out,uint64_t* const restrict hi_out,
-    const bwt_block_locator_t* const restrict block_loc) {
+    const bwt_sbasic_t* const bwt,const uint8_t char_enc,
+    const uint64_t lo_in,const uint64_t hi_in,uint64_t* const lo_out,uint64_t* const hi_out,
+    const bwt_block_locator_t* const block_loc) {
   BWT_ERANK_INTERVAL_TICK();
   bwt_sbasic_erank_interval_(char_enc,lo_in,block_loc->block_mod,
       block_loc->mayor_counters,block_loc->block_mem,lo_out,hi_out);
@@ -491,33 +491,33 @@ void bwt_sbasic_prefetched_erank_interval(
  *  BWT Precomputed ERank (Precomputation of the block's elements)
  */
 void bwt_sbasic_precompute(
-    const bwt_sbasic_t* const restrict bwt,const uint64_t position,
-    bwt_block_locator_t* const restrict block_loc,bwt_block_elms_t* const restrict block_elms) {
+    const bwt_sbasic_t* const bwt,const uint64_t position,
+    bwt_block_locator_t* const block_loc,bwt_block_elms_t* const block_elms) {
   BWT_PRECOMPUTE_TICK();
   bwt_sbasic_get_block_location(bwt,position,block_loc);
   bwt_sbasic_precompute_(block_loc->block_mod,block_loc->block_mem,block_elms);
 }
 void bwt_sbasic_precompute_interval(
-    const bwt_sbasic_t* const restrict bwt,const uint64_t lo,const uint64_t hi,
-    bwt_block_locator_t* const restrict block_loc,bwt_block_elms_t* const restrict block_elms) {
+    const bwt_sbasic_t* const bwt,const uint64_t lo,const uint64_t hi,
+    bwt_block_locator_t* const block_loc,bwt_block_elms_t* const block_elms) {
   bwt_sbasic_precompute(bwt,hi,block_loc,block_elms);
   block_elms->gap_mask = uint64_erank_inv_mask(lo % BWT_MINOR_BLOCK_LENGTH);
 }
 void bwt_sbasic_prefetched_precompute(
-    const bwt_sbasic_t* const restrict bwt,
-    const bwt_block_locator_t* const restrict block_loc,bwt_block_elms_t* const restrict block_elms) {
+    const bwt_sbasic_t* const bwt,
+    const bwt_block_locator_t* const block_loc,bwt_block_elms_t* const block_elms) {
   BWT_PRECOMPUTE_TICK();
   bwt_sbasic_precompute_(block_loc->block_mod,block_loc->block_mem,block_elms);
 }
 void bwt_sbasic_prefetched_precompute_interval(
-    const bwt_sbasic_t* const restrict bwt,const uint64_t lo,
-    const bwt_block_locator_t* const restrict block_loc,bwt_block_elms_t* const restrict block_elms) {
+    const bwt_sbasic_t* const bwt,const uint64_t lo,
+    const bwt_block_locator_t* const block_loc,bwt_block_elms_t* const block_elms) {
   bwt_sbasic_prefetched_precompute(bwt,block_loc,block_elms);
   block_elms->gap_mask = uint64_erank_inv_mask(lo % BWT_MINOR_BLOCK_LENGTH);
 }
 uint64_t bwt_sbasic_precomputed_erank(
-    const bwt_sbasic_t* const restrict bwt,const uint8_t char_enc,
-    const bwt_block_locator_t* const restrict block_loc,const bwt_block_elms_t* const restrict block_elms) {
+    const bwt_sbasic_t* const bwt,const uint8_t char_enc,
+    const bwt_block_locator_t* const block_loc,const bwt_block_elms_t* const block_elms) {
   BWT_ERANK_TICK();
   // Return precomputed-erank
   const uint64_t sum_counters = block_loc->mayor_counters[char_enc] + ((uint16_t*)block_loc->block_mem)[char_enc];
@@ -525,9 +525,9 @@ uint64_t bwt_sbasic_precomputed_erank(
   return sum_counters + POPCOUNT_64(bitmap);
 }
 void bwt_sbasic_precomputed_erank_interval(
-    const bwt_sbasic_t* const restrict bwt,const uint8_t char_enc,
-    uint64_t* const restrict lo_out,uint64_t* const restrict hi_out,
-    const bwt_block_locator_t* const restrict block_loc,const bwt_block_elms_t* const restrict block_elms) {
+    const bwt_sbasic_t* const bwt,const uint8_t char_enc,
+    uint64_t* const lo_out,uint64_t* const hi_out,
+    const bwt_block_locator_t* const block_loc,const bwt_block_elms_t* const block_elms) {
   BWT_ERANK_INTERVAL_TICK();
   const uint64_t bitmap = block_elms->bitmap_1__2[char_enc & 3] & block_elms->bitmap_3[char_enc>>2];
   const uint64_t bitmap_gap = bitmap & block_elms->gap_mask;
@@ -543,25 +543,25 @@ void bwt_sbasic_precomputed_erank_interval(
  * BWT LF (Last to first)
  */
 uint64_t bwt_sbasic_LF_(
-    const bwt_sbasic_t* const restrict bwt,const uint64_t position,uint8_t* const restrict char_enc) {
+    const bwt_sbasic_t* const bwt,const uint64_t position,uint8_t* const char_enc) {
   BWT_LF_TICK();
   BWT_LOCATE_BLOCK(bwt,position,block_pos,block_mod,mayor_counters,block_mem);
   *char_enc = bwt_sbasic_char_(block_mod,block_mem); // Retrieve char_enc
   return bwt_sbasic_erank_(*char_enc,block_mod,mayor_counters,block_mem);
 }
 uint64_t bwt_sbasic_LF(
-    const bwt_sbasic_t* const restrict bwt,const uint64_t position,bool* const restrict is_sampled) {
+    const bwt_sbasic_t* const bwt,const uint64_t position,bool* const is_sampled) {
   uint8_t char_enc;
   return bwt_sbasic_LF__enc(bwt,position,&char_enc,is_sampled);
 }
 uint64_t bwt_sbasic_prefetched_LF(
-    const bwt_sbasic_t* const restrict bwt,const uint64_t position,bool* const restrict is_sampled,
-    const bwt_block_locator_t* const restrict block_loc) {
+    const bwt_sbasic_t* const bwt,const uint64_t position,bool* const is_sampled,
+    const bwt_block_locator_t* const block_loc) {
   uint8_t char_enc;
   return bwt_sbasic_prefetched_LF__enc(bwt,position,&char_enc,is_sampled,block_loc);
 }
 uint64_t bwt_sbasic_LF__enc(
-    const bwt_sbasic_t* const restrict bwt,const uint64_t position,uint8_t* const restrict char_enc,bool* const restrict is_sampled) {
+    const bwt_sbasic_t* const bwt,const uint64_t position,uint8_t* const char_enc,bool* const is_sampled) {
   BWT_LF_TICK();
   BWT_LOCATE_BLOCK(bwt,position,block_pos,block_mod,mayor_counters,block_mem);
   *is_sampled = bwt_sbasic_sampling_is_sampled_(block_mod,block_mem); // Retrieve sampled_bit
@@ -573,15 +573,15 @@ uint64_t bwt_sbasic_LF__enc(
   }
 }
 uint64_t bwt_sbasic_LF__character(
-    const bwt_sbasic_t* const restrict bwt,const uint64_t position,char* const restrict character,bool* const restrict is_sampled) {
+    const bwt_sbasic_t* const bwt,const uint64_t position,char* const character,bool* const is_sampled) {
   uint8_t char_enc = 0;
   const uint64_t rank_LF = bwt_sbasic_LF__enc(bwt,position,&char_enc,is_sampled);
   *character = dna_decode(char_enc);
   return rank_LF;
 }
 uint64_t bwt_sbasic_prefetched_LF__enc(
-    const bwt_sbasic_t* const restrict bwt,const uint64_t position,uint8_t* const restrict char_enc,bool* const restrict is_sampled,
-    const bwt_block_locator_t* const restrict block_loc) {
+    const bwt_sbasic_t* const bwt,const uint64_t position,uint8_t* const char_enc,bool* const is_sampled,
+    const bwt_block_locator_t* const block_loc) {
   BWT_LF_TICK();
   *is_sampled = bwt_sbasic_sampling_is_sampled_(block_loc->block_mod,block_loc->block_mem); // Retrieve sampled_bit
   if (*is_sampled) {
@@ -594,7 +594,7 @@ uint64_t bwt_sbasic_prefetched_LF__enc(
 /*
  * Display
  */
-void bwt_sbasic_print_(FILE* const restrict stream,bwt_sbasic_t* const restrict bwt) {
+void bwt_sbasic_print_(FILE* const stream,bwt_sbasic_t* const bwt) {
   // Compute sizes
   const uint64_t mayor_counters_size = bwt->num_mayor_blocks*BWT_MAYOR_COUNTER_RANGE*UINT64_SIZE;
   const uint64_t minor_blocks_size = bwt->num_minor_blocks*BWT_MINOR_BLOCK_SIZE;
@@ -646,10 +646,10 @@ void bwt_sbasic_print_(FILE* const restrict stream,bwt_sbasic_t* const restrict 
   // Flush
   fflush(stream);
 }
-void bwt_sbasic_builder_print(FILE* const restrict stream,bwt_sbasic_builder_t* const restrict bwt_builder) {
+void bwt_sbasic_builder_print(FILE* const stream,bwt_sbasic_builder_t* const bwt_builder) {
   bwt_sbasic_print_(stream,&bwt_builder->bwt);
 }
-void bwt_sbasic_print(FILE* const restrict stream,bwt_sbasic_t* const restrict bwt) {
+void bwt_sbasic_print(FILE* const stream,bwt_sbasic_t* const bwt) {
   bwt_sbasic_print_(stream,bwt);
 }
 

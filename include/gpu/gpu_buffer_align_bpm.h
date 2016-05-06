@@ -42,7 +42,7 @@ typedef struct {
  * Pattern Setup
  */
 void gpu_bpm_pattern_compile(
-    bpm_pattern_t* const restrict bpm_pattern,
+    bpm_pattern_t* const bpm_pattern,
     const uint64_t words128_per_tile,
     const uint64_t max_error);
 uint64_t gpu_bpm_pattern_get_entry_length();
@@ -51,40 +51,40 @@ uint64_t gpu_bpm_pattern_get_entry_length();
  * Setup
  */
 gpu_buffer_align_bpm_t* gpu_buffer_align_bpm_new(
-    const gpu_buffer_collection_t* const restrict gpu_buffer_collection,
+    const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffer_no,
-    archive_text_t* const restrict archive_text,
-    text_collection_t* const restrict text_collection,
-    mm_stack_t* const restrict mm_stack);
-void gpu_buffer_align_bpm_clear(gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm);
-void gpu_buffer_align_bpm_delete(gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm);
+    archive_text_t* const archive_text,
+    text_collection_t* const text_collection,
+    mm_stack_t* const mm_stack);
+void gpu_buffer_align_bpm_clear(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
+void gpu_buffer_align_bpm_delete(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
 
 /*
  * Computing Device
  */
-void gpu_buffer_align_bpm_set_device_cpu(gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm);
-void gpu_buffer_align_bpm_set_device_gpu(gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm);
+void gpu_buffer_align_bpm_set_device_cpu(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
+void gpu_buffer_align_bpm_set_device_gpu(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
 
 /*
  * Occupancy & Limits
  */
 uint64_t gpu_buffer_align_bpm_get_entry_length();
-uint64_t gpu_buffer_align_bpm_get_max_candidates(gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm);
-uint64_t gpu_buffer_align_bpm_get_max_queries(gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm);
+uint64_t gpu_buffer_align_bpm_get_max_candidates(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
+uint64_t gpu_buffer_align_bpm_get_max_queries(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
 
-uint64_t gpu_buffer_align_bpm_get_num_candidates(gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm);
-uint64_t gpu_buffer_align_bpm_get_num_queries(gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm);
+uint64_t gpu_buffer_align_bpm_get_num_candidates(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
+uint64_t gpu_buffer_align_bpm_get_num_queries(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
 
 void gpu_buffer_align_bpm_compute_dimensions(
-    gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm,
-    bpm_pattern_t* const restrict bpm_pattern,
-    bpm_pattern_t* const restrict bpm_pattern_tiles,
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
+    bpm_pattern_t* const bpm_pattern,
+    bpm_pattern_t* const bpm_pattern_tiles,
     const uint64_t num_candidates,
-    uint64_t* const restrict total_entries,
-    uint64_t* const restrict total_queries,
-    uint64_t* const restrict total_candidates);
+    uint64_t* const total_entries,
+    uint64_t* const total_queries,
+    uint64_t* const total_candidates);
 bool gpu_buffer_align_bpm_fits_in_buffer(
-    gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm,
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     const uint64_t total_entries,
     const uint64_t total_queries,
     const uint64_t total_candidates);
@@ -93,49 +93,49 @@ bool gpu_buffer_align_bpm_fits_in_buffer(
  * Accessors
  */
 void gpu_buffer_align_bpm_add_pattern(
-    gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm,
-    bpm_pattern_t* const restrict bpm_pattern,
-    bpm_pattern_t* const restrict bpm_pattern_tiles);
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
+    bpm_pattern_t* const bpm_pattern,
+    bpm_pattern_t* const bpm_pattern_tiles);
 void gpu_buffer_align_bpm_add_candidate(
-    gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm,
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     const uint64_t tile_offset,
     const uint64_t candidate_text_position,
     const uint64_t candidate_length);
 
 void gpu_buffer_align_bpm_get_candidate(
-    gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm,
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     const uint64_t candidate_offset,
-    uint64_t* const restrict candidate_text_position,
-    uint32_t* const restrict candidate_length);
+    uint64_t* const candidate_text_position,
+    uint32_t* const candidate_length);
 void gpu_buffer_align_bpm_get_result(
-    gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm,
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     const uint64_t candidate_offset,
-    uint32_t* const restrict levenshtein_distance,
-    uint32_t* const restrict levenshtein_match_pos);
+    uint32_t* const levenshtein_distance,
+    uint32_t* const levenshtein_match_pos);
 void gpu_buffer_align_bpm_retrieve_pattern(
-    gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm,
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     const uint64_t candidate_offset,
-    bpm_pattern_t* const restrict bpm_pattern,
-    mm_stack_t* const restrict mm_stack);
+    bpm_pattern_t* const bpm_pattern,
+    mm_stack_t* const mm_stack);
 
 /*
  * Hints
  */
 void gpu_buffer_align_bpm_record_query_length(
-    gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm,
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     const uint64_t query_length);
 void gpu_buffer_align_bpm_record_candidates_per_tile(
-    gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm,
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     const uint64_t num_candidates);
 uint64_t gpu_buffer_align_bpm_get_mean_query_length(
-    gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm);
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
 uint64_t gpu_buffer_align_bpm_get_mean_candidates_per_tile(
-    gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm);
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
 
 /*
  * Send/Receive
  */
-void gpu_buffer_align_bpm_send(gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm);
-void gpu_buffer_align_bpm_receive(gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm);
+void gpu_buffer_align_bpm_send(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
+void gpu_buffer_align_bpm_receive(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
 
 #endif /* GPU_BUFFER_ALIGN_BPM_H_ */

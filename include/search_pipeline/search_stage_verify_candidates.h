@@ -39,47 +39,47 @@ typedef struct {
  * Setup
  */
 search_stage_verify_candidates_t* search_stage_verify_candidates_new(
-    const gpu_buffer_collection_t* const restrict gpu_buffer_collection,
+    const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffers_offset,
     const uint64_t num_buffers,
     const bool paired_end,
     const bool cpu_emulated,
-    archive_text_t* const restrict archive_text,
-    mm_stack_t* const restrict mm_stack);
+    archive_text_t* const archive_text,
+    mm_stack_t* const mm_stack);
 void search_stage_verify_candidates_clear(
-    search_stage_verify_candidates_t* const restrict search_stage_vc,
-    archive_search_cache_t* const restrict archive_search_cache);
+    search_stage_verify_candidates_t* const search_stage_vc,
+    archive_search_cache_t* const archive_search_cache);
 void search_stage_verify_candidates_delete(
-    search_stage_verify_candidates_t* const restrict search_stage_vc,
-    archive_search_cache_t* const restrict archive_search_cache);
+    search_stage_verify_candidates_t* const search_stage_vc,
+    archive_search_cache_t* const archive_search_cache);
 
 /*
  * Accessors
  */
-bool search_stage_verify_candidates_is_empty(search_stage_verify_candidates_t* const restrict search_stage_vc);
+bool search_stage_verify_candidates_is_empty(search_stage_verify_candidates_t* const search_stage_vc);
 
 /*
  * Send Searches (buffered)
  */
 bool search_stage_verify_candidates_send_se_search(
-    search_stage_verify_candidates_t* const restrict search_stage_vc,
-    archive_search_t* const restrict archive_search);
+    search_stage_verify_candidates_t* const search_stage_vc,
+    archive_search_t* const archive_search);
 bool search_stage_verify_candidates_send_pe_search(
-    search_stage_verify_candidates_t* const restrict search_stage_vc,
-    archive_search_t* const restrict archive_search_end1,
-    archive_search_t* const restrict archive_search_end2);
+    search_stage_verify_candidates_t* const search_stage_vc,
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2);
 
 /*
  * Retrieve Searches (buffered)
  */
 bool search_stage_verify_candidates_retrieve_finished(
-    search_stage_verify_candidates_t* const restrict search_stage_vc);
+    search_stage_verify_candidates_t* const search_stage_vc);
 bool search_stage_verify_candidates_retrieve_se_search(
-    search_stage_verify_candidates_t* const restrict search_stage_vc,
-    archive_search_t** const restrict archive_search);
+    search_stage_verify_candidates_t* const search_stage_vc,
+    archive_search_t** const archive_search);
 bool search_stage_verify_candidates_retrieve_pe_search(
-    search_stage_verify_candidates_t* const restrict search_stage_vc,
-    archive_search_t** const restrict archive_search_end1,
-    archive_search_t** const restrict archive_search_end2);
+    search_stage_verify_candidates_t* const search_stage_vc,
+    archive_search_t** const archive_search_end1,
+    archive_search_t** const archive_search_end2);
 
 #endif /* SEARCH_STAGE_VERIFY_CANDIDATES_H_ */

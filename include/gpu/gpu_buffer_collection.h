@@ -30,17 +30,17 @@ typedef struct {
  * Setup
  */
 gpu_buffer_collection_t* gpu_buffer_collection_new(
-    char* const restrict gpu_index_name,
+    char* const gpu_index_name,
     const uint64_t num_buffers,
     const uint64_t buffer_size,
     const bool verbose);
-void gpu_buffer_collection_delete(gpu_buffer_collection_t* const restrict gpu_buffer_collection);
+void gpu_buffer_collection_delete(gpu_buffer_collection_t* const gpu_buffer_collection);
 
 /*
  * Accessors
  */
 void* gpu_buffer_collection_get_buffer(
-    const gpu_buffer_collection_t* const restrict gpu_buffer_collection,
+    const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffer_no);
 
 #endif /* GPU_BUFFER_COLLECTION_H_ */

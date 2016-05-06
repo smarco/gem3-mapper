@@ -29,7 +29,7 @@ uint8_t archive_score_probability_scale(
  * Archive Scoring SE
  */
 void archive_score_matches_se(
-    archive_search_t* const restrict archive_search,
-    matches_t* const restrict matches);
+    archive_search_t* const archive_search,
+    matches_t* const matches);
 
 #endif /* ARCHIVE_SCORE_SE_H_ */

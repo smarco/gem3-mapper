@@ -25,17 +25,17 @@
  * Add filtering region from one or many filtering positions (and compose matching regions)
  */
 void filtering_candidates_add_filtering_region(
-    filtering_candidates_t* const restrict filtering_candidates,
-    pattern_t* const restrict pattern,
+    filtering_candidates_t* const filtering_candidates,
+    pattern_t* const pattern,
     const uint64_t first_candidate_idx,
     const uint64_t last_candidate_idx,
     const uint64_t align_distance,
     const uint64_t align_offset,
     const bool matching_regions_compose,
     const bool run_length_text,
-    mm_stack_t* const restrict mm_stack) {
+    mm_stack_t* const mm_stack) {
   // Fetch candidate-positions
-  filtering_position_t* const restrict candidate_positions =
+  filtering_position_t* const candidate_positions =
       vector_get_mem(filtering_candidates->filtering_positions,filtering_position_t);
   // Allow new matching candidate-region
   filtering_region_t* filtering_region;
@@ -43,8 +43,8 @@ void filtering_candidates_add_filtering_region(
   // State
   filtering_region->status = filtering_region_unverified; // Newly created region (unverified)
   // Location
-  filtering_position_t* const restrict first_candidate = candidate_positions + first_candidate_idx;
-  filtering_position_t* const restrict last_candidate = candidate_positions + last_candidate_idx;
+  filtering_position_t* const first_candidate = candidate_positions + first_candidate_idx;
+  filtering_position_t* const last_candidate = candidate_positions + last_candidate_idx;
   filtering_region->text_trace_offset = UINT64_MAX; // Unassigned
   filtering_region->text_begin_position = first_candidate->text_begin_position;
   filtering_region->text_end_position = last_candidate->text_end_position;
@@ -57,7 +57,7 @@ void filtering_candidates_add_filtering_region(
     filtering_region_compute_key_trims(filtering_region,pattern);
   }
   // Alignment distance
-  region_alignment_t* const restrict region_alignment = &filtering_region->region_alignment;
+  region_alignment_t* const region_alignment = &filtering_region->region_alignment;
   region_alignment->distance_min_bound = align_distance;
   if (align_distance!=0) {
     region_alignment->alignment_tiles = NULL;
@@ -73,10 +73,10 @@ void filtering_candidates_add_filtering_region(
   filtering_region->max_bandwidth = pattern->max_effective_bandwidth;
   // Matching Regions (Compose regions matching)
   PROF_ADD_COUNTER(GP_CANDIDATE_REGION_MATCHING_REGIONS_TOTAL,last_candidate_idx-first_candidate_idx+1);
-  match_scaffold_t* const restrict match_scaffold = &filtering_region->match_scaffold;
+  match_scaffold_t* const match_scaffold = &filtering_region->match_scaffold;
   match_scaffold_init(match_scaffold);
   if (matching_regions_compose) {
-    mm_stack_t* const restrict mm_stack = filtering_candidates->mm_stack;
+    mm_stack_t* const mm_stack = filtering_candidates->mm_stack;
     const uint64_t num_scaffold_regions = last_candidate_idx-first_candidate_idx+1;
     match_scaffold->scaffold_regions = mm_stack_calloc(mm_stack,num_scaffold_regions,region_matching_t,false);
     match_scaffold->num_scaffold_regions = num_scaffold_regions;
@@ -84,8 +84,8 @@ void filtering_candidates_add_filtering_region(
     match_scaffold->scaffolding_coverage = 0;
     uint64_t i;
     for (i=0;i<num_scaffold_regions;++i) {
-      region_matching_t* const restrict region_matching = match_scaffold->scaffold_regions + i;
-      filtering_position_t* const restrict candidate_position = candidate_positions + first_candidate_idx + i;
+      region_matching_t* const region_matching = match_scaffold->scaffold_regions + i;
+      filtering_position_t* const candidate_position = candidate_positions + first_candidate_idx + i;
       // Region error
       const uint64_t region_length = candidate_position->source_region_end - candidate_position->source_region_begin;
       region_matching->matching_type = (candidate_position->source_region_error==0) ?
@@ -106,22 +106,22 @@ void filtering_candidates_add_filtering_region(
   }
 }
 uint64_t filtering_candidates_compose_filtering_regions(
-    filtering_candidates_t* const restrict filtering_candidates,
-    pattern_t* const restrict pattern,
+    filtering_candidates_t* const filtering_candidates,
+    pattern_t* const pattern,
     const bool matching_regions_compose) {
   // Parameters
   const uint64_t max_delta_difference = pattern->max_effective_bandwidth;
   const bool run_length_text = pattern->run_length;
-  mm_stack_t* const restrict mm_stack = filtering_candidates->mm_stack;
+  mm_stack_t* const mm_stack = filtering_candidates->mm_stack;
   // Sort candidate positions (text-space)
   filtering_positions_sort_positions(filtering_candidates->filtering_positions);
   // Sort verified regions
   verified_regions_sort_positions(filtering_candidates->verified_regions);
   const uint64_t num_verified_regions = vector_get_used(filtering_candidates->verified_regions);
-  verified_region_t* const restrict verified_region = vector_get_mem(filtering_candidates->verified_regions,verified_region_t);
+  verified_region_t* const verified_region = vector_get_mem(filtering_candidates->verified_regions,verified_region_t);
   // Traverse positions and eliminate duplicates
   const uint64_t num_candidate_positions = vector_get_used(filtering_candidates->filtering_positions);
-  filtering_position_t* const restrict candidate_positions =
+  filtering_position_t* const candidate_positions =
       vector_get_mem(filtering_candidates->filtering_positions,filtering_position_t);
   uint64_t candidate_idx = 0, verified_region_idx = 0;
   while (candidate_idx < num_candidate_positions) {
@@ -194,7 +194,7 @@ uint64_t filtering_candidates_compose_filtering_regions(
  * Adjust the filtering-position and compute the coordinates or the candidate text
  */
 void filtering_candidates_compute_text_boundaries(
-    filtering_position_t* const restrict filtering_position,
+    filtering_position_t* const filtering_position,
     const uint64_t region_text_position,
     const uint64_t boundary_error,
     const uint64_t begin_offset,
@@ -233,13 +233,13 @@ void filtering_candidates_compute_text_boundaries(
   filtering_position->text_end_position = end_position;
 }
 void filtering_candidates_compute_text_coordinates(
-    filtering_candidates_t* const restrict filtering_candidates,
-    filtering_position_t* const restrict filtering_position,
-    pattern_t* const restrict pattern) {
+    filtering_candidates_t* const filtering_candidates,
+    filtering_position_t* const filtering_position,
+    pattern_t* const pattern) {
   // Parameters
-  archive_t* const restrict archive = filtering_candidates->archive;
-  locator_t* const restrict locator = archive->locator;
-  archive_text_t* const restrict archive_text = archive->text;
+  archive_t* const archive = filtering_candidates->archive;
+  locator_t* const locator = archive->locator;
+  archive_text_t* const archive_text = archive->text;
   const uint64_t key_length = (pattern->run_length) ? pattern->rl_key_length : pattern->key_length;
   const uint64_t key_begin_offset = filtering_position->source_region_begin;
   const uint64_t key_end_offset = key_length - filtering_position->source_region_begin;
@@ -273,12 +273,12 @@ void filtering_candidates_compute_text_coordinates(
  * Decode of all candidate positions (index-space -> text-space)
  */
 void filtering_candidates_decode_filtering_positions(
-    filtering_candidates_t* const restrict filtering_candidates,
-    pattern_t* const restrict pattern) {
+    filtering_candidates_t* const filtering_candidates,
+    pattern_t* const pattern) {
   // Parameters
-  fm_index_t* const restrict fm_index = filtering_candidates->archive->fm_index;
+  fm_index_t* const fm_index = filtering_candidates->archive->fm_index;
   // Traverse all candidate positions in index-space
-  vector_t* const restrict candidate_text_positions = filtering_candidates->filtering_positions;
+  vector_t* const candidate_text_positions = filtering_candidates->filtering_positions;
   VECTOR_ITERATE(candidate_text_positions,filtering_position,n,filtering_position_t) {
     // Lookup Position
     filtering_position->region_text_position = fm_index_decode(fm_index,filtering_position->region_index_position);
@@ -291,16 +291,16 @@ void filtering_candidates_decode_filtering_positions(
  *   (All the steps (CSA-lookup, rankQueries) are performed with prefetch-loops)
  */
 void filtering_candidates_decode_filtering_position_batch_prefetched(
-    filtering_candidates_t* const restrict filtering_candidates,
-    pattern_t* const restrict pattern) {
+    filtering_candidates_t* const filtering_candidates,
+    pattern_t* const pattern) {
   // Parameters
-  archive_t* const restrict archive = filtering_candidates->archive;
-  fm_index_t* const restrict fm_index = archive->fm_index;
-  const bwt_t* const restrict bwt = fm_index->bwt;
-  const sampled_sa_t* const restrict sampled_sa = fm_index->sampled_sa;
-  vector_t* const restrict candidate_text_positions = filtering_candidates->filtering_positions;
+  archive_t* const archive = filtering_candidates->archive;
+  fm_index_t* const fm_index = archive->fm_index;
+  const bwt_t* const bwt = fm_index->bwt;
+  const sampled_sa_t* const sampled_sa = fm_index->sampled_sa;
+  vector_t* const candidate_text_positions = filtering_candidates->filtering_positions;
   const uint64_t num_candidate_text_positions = vector_get_used(candidate_text_positions);
-  filtering_position_t* const restrict filtering_position = vector_get_mem(candidate_text_positions,filtering_position_t);
+  filtering_position_t* const filtering_position = vector_get_mem(candidate_text_positions,filtering_position_t);
   // Initial fill batch
   fc_batch_decode_candidate batch[DECODE_NUM_POSITIONS_PREFETCHED]; // Batch Decode
   bool is_sampled;
@@ -396,8 +396,8 @@ void filtering_candidates_decode_filtering_position_batch_prefetched(
  * Process Candidates
  */
 uint64_t filtering_candidates_process_candidates(
-    filtering_candidates_t* const restrict filtering_candidates,
-    pattern_t* const restrict pattern) {
+    filtering_candidates_t* const filtering_candidates,
+    pattern_t* const pattern) {
   // Check non-empty pending candidates set
   uint64_t pending_candidates = vector_get_used(filtering_candidates->filtering_positions);
   PROF_ADD_COUNTER(GP_CANDIDATE_POSITIONS,pending_candidates);
@@ -413,7 +413,7 @@ uint64_t filtering_candidates_process_candidates(
   PROFILE_STOP(GP_FC_DECODE_POSITIONS,PROFILE_LEVEL);
   // Compose matching regions into candidate regions (also filter out duplicated positions or already checked)
   PROFILE_START(GP_FC_COMPOSE_REGIONS,PROFILE_LEVEL);
-  search_parameters_t* const restrict search_parameters = filtering_candidates->search_parameters;
+  search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
   const bool matching_region_compose = !search_parameters->force_full_swg;
   pending_candidates = filtering_candidates_compose_filtering_regions(
       filtering_candidates,pattern,matching_region_compose);

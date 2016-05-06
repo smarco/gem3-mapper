@@ -21,9 +21,9 @@
 /*
  * Setup/Loader
  */
-archive_t* archive_read_mem(mm_t* const restrict memory_manager,const bool read_text_only) {
+archive_t* archive_read_mem(mm_t* const memory_manager,const bool read_text_only) {
   // Allocate handler
-  archive_t* const restrict archive = mm_alloc(archive_t);
+  archive_t* const archive = mm_alloc(archive_t);
   // Set the memory source
   archive->mm = memory_manager;
   // Load archive meta-data
@@ -43,13 +43,13 @@ archive_t* archive_read_mem(mm_t* const restrict memory_manager,const bool read_
   // Return
   return archive;
 }
-archive_t* archive_read(char* const restrict file_name,const bool read_text_only) {
+archive_t* archive_read(char* const file_name,const bool read_text_only) {
   // Load the whole archive in memory at once
-  mm_t* const restrict mm = mm_bulk_mload_file(file_name,1);
+  mm_t* const mm = mm_bulk_mload_file(file_name,1);
   // Return the loaded archive
   return archive_read_mem(mm,read_text_only);
 }
-void archive_delete(archive_t* const restrict archive) {
+void archive_delete(archive_t* const archive) {
   // Delete Locator
   locator_delete(archive->locator);
   // Delete Text
@@ -64,17 +64,17 @@ void archive_delete(archive_t* const restrict archive) {
 /*
  * Archive Accessors
  */
-uint64_t archive_get_size(const archive_t* const restrict archive) {
+uint64_t archive_get_size(const archive_t* const archive) {
   GEM_NOT_IMPLEMENTED(); // TODO
   return 0;
 }
-uint64_t archive_get_index_length(const archive_t* const restrict archive) {
+uint64_t archive_get_index_length(const archive_t* const archive) {
   return fm_index_get_length(archive->fm_index);
 }
 /*
  * Display
  */
-void archive_print(FILE* const restrict stream,const archive_t* const restrict archive) {
+void archive_print(FILE* const stream,const archive_t* const archive) {
   GEM_CHECK_NULL(stream);
   tab_fprintf(stream,"[GEM]>Archive\n");
   // Compute Sizes

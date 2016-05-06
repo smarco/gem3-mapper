@@ -18,41 +18,41 @@
 /*
  * AM Stepwise :: Region Profile
  */
-void approximate_search_stepwise_region_profile_generate_static(approximate_search_t* const restrict search);
-void approximate_search_stepwise_region_profile_generate_adaptive(approximate_search_t* const restrict search);
+void approximate_search_stepwise_region_profile_generate_static(approximate_search_t* const search);
+void approximate_search_stepwise_region_profile_generate_adaptive(approximate_search_t* const search);
 void approximate_search_stepwise_region_profile_copy(
-    approximate_search_t* const restrict search,
-    gpu_buffer_fmi_search_t* const restrict gpu_buffer_fmi_search);
+    approximate_search_t* const search,
+    gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
 void approximate_search_stepwise_region_profile_retrieve(
-    approximate_search_t* const restrict search,
-    gpu_buffer_fmi_search_t* const restrict gpu_buffer_fmi_search);
+    approximate_search_t* const search,
+    gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
 
 /*
  * AM Stepwise :: Decode Candidates
  */
 void approximate_search_stepwise_decode_candidates_copy(
-    approximate_search_t* const restrict search,
-    gpu_buffer_fmi_decode_t* const restrict gpu_buffer_fmi_decode);
+    approximate_search_t* const search,
+    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode);
 void approximate_search_stepwise_decode_candidates_retrieve(
-    approximate_search_t* const restrict search,
-    gpu_buffer_fmi_decode_t* const restrict gpu_buffer_fmi_decode);
+    approximate_search_t* const search,
+    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode);
 
 /*
  * AM Stepwise :: Verify Candidates
  */
 void approximate_search_stepwise_verify_candidates_copy(
-    approximate_search_t* const restrict search,
-    gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm);
+    approximate_search_t* const search,
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
 void approximate_search_stepwise_verify_candidates_retrieve(
-    approximate_search_t* const restrict search,
-    gpu_buffer_align_bpm_t* const restrict gpu_buffer_align_bpm,
-    matches_t* const restrict matches);
+    approximate_search_t* const search,
+    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
+    matches_t* const matches);
 
 /*
  * AM Stepwise :: Finish Search
  */
 void approximate_search_stepwise_finish(
-    approximate_search_t* const restrict search,
-    matches_t* const restrict matches);
+    approximate_search_t* const search,
+    matches_t* const matches);
 
 #endif /* APPROXIMATE_SEARCH_STEPWISE_H_ */

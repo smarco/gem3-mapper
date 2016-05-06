@@ -209,7 +209,7 @@ gpu_error_t gpu_device_setup_system(gpu_device_info_t **devices)
   // Fast awake of the driver
   GPU_ERROR(gpu_device_fast_driver_awake());
   // Set preferred all L1 GPU caches
-  enum cudaFuncCache cacheConfig = cudaFuncCachePreferL1;
+  //enum cudaFuncCache cacheConfig = cudaFuncCachePreferL1;
   GPU_ERROR(gpu_device_set_local_memory_all(devices, cudaFuncCachePreferL1));
 
   return (SUCCESS);

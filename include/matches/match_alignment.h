@@ -100,28 +100,28 @@ typedef enum {
 /*
  * Region Matching
  */
-uint64_t region_matching_text_coverage(region_matching_t* const restrict region_matching);
+uint64_t region_matching_text_coverage(region_matching_t* const region_matching);
 uint64_t region_matching_text_distance(
-    region_matching_t* const restrict region_matching_a,
-    region_matching_t* const restrict region_matching_b);
+    region_matching_t* const region_matching_a,
+    region_matching_t* const region_matching_b);
 bool region_matching_text_overlap(
-    region_matching_t* const restrict region_matching_a,
-    region_matching_t* const restrict region_matching_b);
+    region_matching_t* const region_matching_a,
+    region_matching_t* const region_matching_b);
 int region_matching_key_cmp(
-    region_matching_t* const restrict region_matching_a,
-    region_matching_t* const restrict region_matching_b);
+    region_matching_t* const region_matching_a,
+    region_matching_t* const region_matching_b);
 
 /*
  * Display
  */
 void match_alignment_print_pretty(
-    FILE* const restrict stream,
-    match_alignment_t* const restrict match_alignment,
-    vector_t* const restrict cigar_vector,
-    uint8_t* const restrict key,
+    FILE* const stream,
+    match_alignment_t* const match_alignment,
+    vector_t* const cigar_vector,
+    uint8_t* const key,
     const uint64_t key_length,
-    uint8_t* const restrict text,
+    uint8_t* const text,
     const uint64_t text_length,
-    mm_stack_t* const restrict mm_stack);
+    mm_stack_t* const mm_stack);
 
 #endif /* MATCH_ALIGNMENT_H_ */

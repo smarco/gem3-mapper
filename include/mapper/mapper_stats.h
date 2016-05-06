@@ -30,32 +30,32 @@ typedef struct {
  * Setup
  */
 mapper_stats_t* mapper_stats_new();
-void mapper_stats_clear(mapper_stats_t* const restrict mapper_stats);
-void mapper_stats_delete(mapper_stats_t* const restrict mapper_stats);
+void mapper_stats_clear(mapper_stats_t* const mapper_stats);
+void mapper_stats_delete(mapper_stats_t* const mapper_stats);
 
 /*
  * Template Length
  */
 void mapper_stats_template_init(
-    mapper_stats_t* const restrict search_stats,
+    mapper_stats_t* const search_stats,
     const uint64_t template_length_min,
     const uint64_t template_length_max);
 void mapper_stats_template_length_sample(
-    mapper_stats_t* const restrict search_stats,
+    mapper_stats_t* const search_stats,
     const uint64_t template_length);
 
-uint64_t mapper_stats_template_length_get_num_samples(mapper_stats_t* const restrict search_stats);
+uint64_t mapper_stats_template_length_get_num_samples(mapper_stats_t* const search_stats);
 uint64_t mapper_stats_template_length_get_ci_min_samples(
-    mapper_stats_t* const restrict search_stats,
+    mapper_stats_t* const search_stats,
     const uint64_t margin_error);
-bool mapper_stats_template_length_is_reliable(mapper_stats_t* const restrict search_stats);
+bool mapper_stats_template_length_is_reliable(mapper_stats_t* const search_stats);
 
-double mapper_stats_template_length_get_mean(mapper_stats_t* const restrict search_stats);
-double mapper_stats_template_length_get_stddev(mapper_stats_t* const restrict search_stats);
-uint64_t mapper_stats_template_length_get_expected_max(mapper_stats_t* const restrict search_stats);
-uint64_t mapper_stats_template_length_get_expected_min(mapper_stats_t* const restrict search_stats);
+double mapper_stats_template_length_get_mean(mapper_stats_t* const search_stats);
+double mapper_stats_template_length_get_stddev(mapper_stats_t* const search_stats);
+uint64_t mapper_stats_template_length_get_expected_max(mapper_stats_t* const search_stats);
+uint64_t mapper_stats_template_length_get_expected_min(mapper_stats_t* const search_stats);
 double mapper_stats_template_length_get_sigma_dev(
-    mapper_stats_t* const restrict search_stats,
+    mapper_stats_t* const search_stats,
     const uint64_t template_length);
 
 

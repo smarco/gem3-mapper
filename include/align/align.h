@@ -22,12 +22,12 @@
  * Check matches (CIGAR string against text & pattern)
  */
 bool align_check(
-    FILE* const restrict stream,
-    const uint8_t* const restrict key,
+    FILE* const stream,
+    const uint8_t* const key,
     const uint64_t key_length,
-    const uint8_t* const restrict text,
+    const uint8_t* const text,
     const uint64_t text_length,
-    vector_t* const restrict cigar_vector,
+    vector_t* const cigar_vector,
     uint64_t const cigar_offset,
     uint64_t const cigar_length,
     const bool verbose);
@@ -36,11 +36,11 @@ bool align_check(
  * Compute edit distance (Basic DP-Matrix Alignment)
  */
 int64_t align_dp_compute_edit_distance(
-    const char* const restrict key,
+    const char* const key,
     const uint64_t key_length,
-    const char* const restrict text,
+    const char* const text,
     const uint64_t text_length,
     const bool ends_free,
-    uint64_t* const restrict position);
+    uint64_t* const position);
 
 #endif /* ALIGN_H_ */

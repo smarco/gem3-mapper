@@ -17,7 +17,7 @@
 /*
  * Region profile default parameters
  */
-void search_parameters_init_replacements(search_parameters_t* const restrict search_parameters) {
+void search_parameters_init_replacements(search_parameters_t* const search_parameters) {
   // Reset
   memset(search_parameters->allowed_chars,0,256*sizeof(bool));
   memset(search_parameters->allowed_enc,0,DNA_EXT_RANGE*sizeof(bool));
@@ -37,7 +37,7 @@ void search_parameters_init_replacements(search_parameters_t* const restrict sea
   search_parameters->allowed_enc[ENC_DNA_CHAR_T] = true;
   search_parameters->allowed_enc[ENC_DNA_CHAR_N] = false;
 }
-void search_parameters_init_error_model(search_parameters_t* const restrict search_parameters) {
+void search_parameters_init_error_model(search_parameters_t* const search_parameters) {
   search_parameters->complete_search_error = 0.04;
   search_parameters->complete_strata_after_best = 1.0;
   search_parameters->alignment_max_error = 0.08;
@@ -54,7 +54,7 @@ void search_parameters_init_error_model(search_parameters_t* const restrict sear
   search_parameters->cigar_curation = true;
   search_parameters->cigar_curation_min_end_context = 2.0;
 }
-void search_parameters_init_alignment_model(search_parameters_t* const restrict search_parameters) {
+void search_parameters_init_alignment_model(search_parameters_t* const search_parameters) {
   search_parameters->alignment_model = alignment_model_gap_affine;
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_A] = +1;
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_C] = -4;
@@ -86,7 +86,7 @@ void search_parameters_init_alignment_model(search_parameters_t* const restrict 
   search_parameters->swg_penalties.gap_open_score = -6;
   search_parameters->swg_penalties.gap_extension_score = -1;
 }
-void search_parameters_init_internals(search_parameters_t* const restrict search_parameters) {
+void search_parameters_init_internals(search_parameters_t* const search_parameters) {
   // Region-Minimal Scheme = (20,4,2,2)
   search_parameters->rp_lightweight.region_th = 20;
   search_parameters->rp_lightweight.max_steps = 4;
@@ -106,7 +106,7 @@ void search_parameters_init_internals(search_parameters_t* const restrict search
   search_parameters->filtering_region_factor = 1.0;
   search_parameters->filtering_threshold = 1000;
 }
-void search_parameters_init(search_parameters_t* const restrict search_parameters) {
+void search_parameters_init(search_parameters_t* const search_parameters) {
   // Mapping strategy
   search_parameters->mapping_mode = mapping_adaptive_filtering_thorough;
   // Qualities
@@ -136,12 +136,12 @@ void search_parameters_init(search_parameters_t* const restrict search_parameter
   search_parameters->mapq_threshold = 0;
 }
 void search_configure_mapping_strategy(
-    search_parameters_t* const restrict search_parameters,
+    search_parameters_t* const search_parameters,
     const mapping_mode_t mapping_mode) {
   search_parameters->mapping_mode = mapping_mode;
 }
 void search_configure_quality_model(
-    search_parameters_t* const restrict search_parameters,
+    search_parameters_t* const search_parameters,
     const quality_model_t quality_model,
     const quality_format_t quality_format,
     const uint64_t quality_threshold) {
@@ -150,8 +150,8 @@ void search_configure_quality_model(
   search_parameters->quality_threshold = quality_threshold;
 }
 void search_configure_replacements(
-    search_parameters_t* const restrict search_parameters,
-    const char* const restrict mismatch_alphabet,
+    search_parameters_t* const search_parameters,
+    const char* const mismatch_alphabet,
     const uint64_t mismatch_alphabet_length) {
   // Reset
   search_parameters_init_replacements(search_parameters);
@@ -170,12 +170,12 @@ void search_configure_replacements(
   search_parameters->mismatch_alphabet_length = count;
 }
 void search_configure_alignment_model(
-    search_parameters_t* const restrict search_parameters,
+    search_parameters_t* const search_parameters,
     const alignment_model_t alignment_model) {
   search_parameters->alignment_model = alignment_model;
 }
 void search_configure_alignment_match_scores(
-    search_parameters_t* const restrict search_parameters,
+    search_parameters_t* const search_parameters,
     const uint64_t matching_score) {
   // Match
   search_parameters->swg_penalties.generic_match_score = matching_score;
@@ -185,7 +185,7 @@ void search_configure_alignment_match_scores(
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_T][ENC_DNA_CHAR_T] = matching_score;
 }
 void search_configure_alignment_mismatch_scores(
-    search_parameters_t* const restrict search_parameters,
+    search_parameters_t* const search_parameters,
     const uint64_t mismatch_penalty) {
   // Mismatch
   const int64_t mismatch_score = -((int64_t)mismatch_penalty);
@@ -213,7 +213,7 @@ void search_configure_alignment_mismatch_scores(
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_N][ENC_DNA_CHAR_N] = mismatch_score;
 }
 void search_configure_alignment_gap_scores(
-    search_parameters_t* const restrict search_parameters,
+    search_parameters_t* const search_parameters,
     const uint64_t gap_open_penalty,
     const uint64_t gap_extension_penalty) {
   // Gaps
@@ -221,7 +221,7 @@ void search_configure_alignment_gap_scores(
   search_parameters->swg_penalties.gap_extension_score = -((int32_t)gap_extension_penalty);
 }
 void search_instantiate_values(
-    search_parameters_t* const restrict search_parameters,
+    search_parameters_t* const search_parameters,
     const uint64_t pattern_length) {
   // Instantiate Search Parameters Values (Nominal search parameters; evaluated to read-length)
   const uint64_t max_swg_score = pattern_length * search_parameters->swg_penalties.generic_match_score;
@@ -245,8 +245,8 @@ void search_instantiate_values(
  * Display
  */
 void search_parameters_print(
-    FILE* const restrict stream,
-    search_parameters_t* const restrict search_parameters) {
+    FILE* const stream,
+    search_parameters_t* const search_parameters) {
   tab_fprintf(stream,"[GEM]>AS.Parameters\n");
   tab_fprintf(stream,"=> Search.Parameters\n");
   tab_global_inc();

@@ -16,7 +16,7 @@
  * Complete Search
  */
 void approximate_search_filtering_complete(
-    approximate_search_t* const restrict search,
-    matches_t* const restrict matches);
+    approximate_search_t* const search,
+    matches_t* const matches);
 
 #endif /* APPROXIMATE_SEARCH_FILTERING_COMPLETE_H_ */

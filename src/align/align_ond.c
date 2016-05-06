@@ -15,17 +15,17 @@
  * O(ND) Compute LCS
  */
 void align_ond_compute_lcs_distance(
-    const uint8_t* const restrict key,
+    const uint8_t* const key,
     const int32_t key_length,
-    const uint8_t* const restrict text,
+    const uint8_t* const text,
     const int32_t text_length,
-    uint64_t* const restrict lcs_distance,
-    uint64_t* const restrict match_end_column,
-    mm_stack_t* const restrict mm_stack) {
+    uint64_t* const lcs_distance,
+    uint64_t* const match_end_column,
+    mm_stack_t* const mm_stack) {
   // Allocation
   mm_stack_push_state(mm_stack);
   const int32_t max_lcs = key_length + text_length;
-  int32_t* const restrict V = mm_stack_calloc(mm_stack,max_lcs,int32_t,true);
+  int32_t* const V = mm_stack_calloc(mm_stack,max_lcs,int32_t,true);
   // Init
   int32_t d, k;
   V[1] = 0;
@@ -63,15 +63,15 @@ void align_ond_compute_lcs_distance(
  * O(ND) Align
  */
 void align_ond_compute_contours(
-    match_align_input_t* const restrict align_input,
+    match_align_input_t* const align_input,
     const int32_t max_distance,
-    align_ond_contours_t* const restrict align_ond_contours,
-    mm_stack_t* const restrict mm_stack) {
+    align_ond_contours_t* const align_ond_contours,
+    mm_stack_t* const mm_stack) {
   // Parameters
   const int32_t key_length = align_input->key_length;
-  const uint8_t* const restrict key = align_input->key;
+  const uint8_t* const key = align_input->key;
   const int32_t text_length = align_input->text_length;
-  const uint8_t* const restrict text = align_input->text;
+  const uint8_t* const text = align_input->text;
   // Allocation
   const int32_t num_contours = max_distance+2; // (+1) init (+1) max-distance
   align_ond_contours->contour = mm_stack_calloc(mm_stack,num_contours,int32_t*,false);
@@ -85,8 +85,8 @@ void align_ond_compute_contours(
   int32_t d, k;
   align_ond_contours->contour[0][1] = 0; // Init
   for (d=0;d<=max_distance;++d) {
-    int32_t* const restrict prev_contour = align_ond_contours->contour[d];
-    int32_t* const restrict current_contour = align_ond_contours->contour[d+1];
+    int32_t* const prev_contour = align_ond_contours->contour[d];
+    int32_t* const current_contour = align_ond_contours->contour[d+1];
     for (k=-d;k<=d;k+=2) {
       // Select adjacent neighbor (up or left)
       const bool upper_neighbor_line = ((k == -d) || (k != d && prev_contour[k-1] < prev_contour[k+1]));
@@ -117,10 +117,10 @@ void align_ond_compute_contours(
   align_ond_contours->match_end_column = ALIGN_COLUMN_INF;
 }
 void align_ond_backtrace_contours(
-    match_align_input_t* const restrict align_input,
-    align_ond_contours_t* const restrict align_ond_contours,
-    match_alignment_t* const restrict match_alignment,
-    vector_t* const restrict cigar_vector) {
+    match_align_input_t* const align_input,
+    align_ond_contours_t* const align_ond_contours,
+    match_alignment_t* const match_alignment,
+    vector_t* const cigar_vector) {
   // Parameters
   const uint64_t key_length = align_input->key_length;
   int32_t h = align_ond_contours->match_end_column, v = key_length;
@@ -129,14 +129,14 @@ void align_ond_backtrace_contours(
   match_alignment->cigar_offset = vector_get_used(cigar_vector); // Set CIGAR offset
   vector_reserve_additional(cigar_vector,MIN(key_length,2*align_ond_contours->lcs_distance+1)); // Reserve
   cigar_element_t* cigar_buffer = vector_get_free_elm(cigar_vector,cigar_element_t); // Sentinel
-  cigar_element_t* const restrict cigar_buffer_base = cigar_buffer;
+  cigar_element_t* const cigar_buffer_base = cigar_buffer;
   cigar_buffer->type = cigar_null; // Trick
   // Retrieve the alignment
   int64_t match_effective_length = align_input->key_length;
   while (true) {
     // Current contour & position
-    int32_t* const restrict prev_contour = align_ond_contours->contour[d];
-    const int32_t* const restrict current_contour = align_ond_contours->contour[d+1];
+    int32_t* const prev_contour = align_ond_contours->contour[d];
+    const int32_t* const current_contour = align_ond_contours->contour[d+1];
     const int32_t k = h - v;
     // Retrieve adjacent neighbor (up or left)
     const bool upper_neighbor_line = ((k==-d) || (k!=d && prev_contour[k-1] < prev_contour[k+1]));
@@ -198,11 +198,11 @@ void align_ond_backtrace_contours(
   vector_add_used(cigar_vector,num_cigar_elements);
 }
 void align_ond_match(
-    match_align_input_t* const restrict align_input,
+    match_align_input_t* const align_input,
     const int32_t max_distance,
-    match_alignment_t* const restrict match_alignment,
-    vector_t* const restrict cigar_vector,
-    mm_stack_t* const restrict mm_stack) {
+    match_alignment_t* const match_alignment,
+    vector_t* const cigar_vector,
+    mm_stack_t* const mm_stack) {
   // Compute contours
   mm_stack_push_state(mm_stack); // Save stack state
   align_ond_contours_t align_ond_contours;
@@ -223,13 +223,13 @@ void align_ond_match(
 // * O(ND) Align (ends-free prototype)
 // */
 //void align_ond_compute_contours(
-//    match_align_input_t* const restrict align_input,const int32_t max_distance,
-//    align_ond_contours_t* const restrict align_ond_contours,mm_stack_t* const restrict mm_stack) {
+//    match_align_input_t* const align_input,const int32_t max_distance,
+//    align_ond_contours_t* const align_ond_contours,mm_stack_t* const mm_stack) {
 //  // Parameters
 //  const int32_t key_length = align_input->key_length;
-//  const uint8_t* const restrict key = align_input->key;
+//  const uint8_t* const key = align_input->key;
 //  const int32_t text_length = align_input->text_length;
-//  const uint8_t* const restrict text = align_input->text;
+//  const uint8_t* const text = align_input->text;
 //  // Allocation
 //  const uint32_t num_contours = max_distance+2; // (+1) init (+1) max-distance
 //  const uint32_t num_klines = 2*max_distance+1;
@@ -245,8 +245,8 @@ void align_ond_match(
 //  // Compute contours
 //  int32_t d, k;
 //  for (d=0;d<=max_distance;++d) {
-//    int32_t* const restrict prev_contour = align_ond_contours->contour[d];
-//    int32_t* const restrict current_contour = align_ond_contours->contour[d+1];
+//    int32_t* const prev_contour = align_ond_contours->contour[d];
+//    int32_t* const current_contour = align_ond_contours->contour[d+1];
 //    for (k=-d;k<=max_distance;++k) {
 //      // Select adjacent neighbor (up or left)
 //      const bool upper_neighbor_line = ((k == -d) || (k != max_distance && prev_contour[k-1] < prev_contour[k+1]));
@@ -281,8 +281,8 @@ void align_ond_match(
  * Display
  */
 void align_ond_print_contour(
-    FILE* const restrict stream,
-    const int32_t* const restrict contour,
+    FILE* const stream,
+    const int32_t* const contour,
     const int32_t begin_contour,
     const int32_t end_contour,
     const int32_t distance) {

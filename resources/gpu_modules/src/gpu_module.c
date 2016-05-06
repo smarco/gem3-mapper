@@ -30,7 +30,7 @@ gpu_module_t* gpu_module_get_list_structures()
   return(structureList);
 }
 
-gpu_error_t gpu_module_get_min_memory(gpu_reference_buffer_t* const restrict reference, const gpu_index_buffer_t* const restrict index,
+gpu_error_t gpu_module_get_min_memory(gpu_reference_buffer_t* const reference, const gpu_index_buffer_t* const index,
                                       const uint32_t numBuffers, const gpu_module_t activeModules, size_t *minimumMemorySize)
 {
   size_t memorySize;
@@ -50,7 +50,7 @@ gpu_error_t gpu_module_get_min_memory(gpu_reference_buffer_t* const restrict ref
   return (SUCCESS);
 }
 
-gpu_error_t gpu_module_set_device_allocation(gpu_reference_buffer_t* const restrict reference, gpu_index_buffer_t* const restrict index,
+gpu_error_t gpu_module_set_device_allocation(gpu_reference_buffer_t* const reference, gpu_index_buffer_t* const index,
                                             uint32_t idSupDevice, gpu_module_t allocatedModules)
 {
   memory_alloc_t moduleMemorySpace;
@@ -70,7 +70,7 @@ gpu_error_t gpu_module_set_device_allocation(gpu_reference_buffer_t* const restr
   return (SUCCESS);
 }
 
-gpu_error_t gpu_module_get_device_allocation(gpu_reference_buffer_t* const restrict reference, gpu_index_buffer_t* const restrict index,
+gpu_error_t gpu_module_get_device_allocation(gpu_reference_buffer_t* const reference, gpu_index_buffer_t* const index,
                                             uint32_t idSupDevice, gpu_module_t* allocatedModules)
 {
   (* allocatedModules) = GPU_NONE_MODULES;
@@ -80,10 +80,10 @@ gpu_error_t gpu_module_get_device_allocation(gpu_reference_buffer_t* const restr
   return (SUCCESS);
 }
 
-gpu_error_t gpu_module_allocator_per_device(gpu_reference_buffer_t* const restrict reference, gpu_index_buffer_t* const restrict index, const uint32_t idDevice,
-                                            const uint32_t numBuffers, const gpu_module_t activeModules, gpu_module_t* const restrict allocatedModules)
+gpu_error_t gpu_module_allocator_per_device(gpu_reference_buffer_t* const reference, gpu_index_buffer_t* const index, const uint32_t idDevice,
+                                            const uint32_t numBuffers, const gpu_module_t activeModules, gpu_module_t* const allocatedModules)
 {
-  const gpu_module_t* const restrict moduleList = gpu_module_get_list_structures();
+  const gpu_module_t* const moduleList = gpu_module_get_list_structures();
   size_t memoryFree  = gpu_device_get_free_memory(idDevice), currentMemorySize = 0;
   gpu_module_t currentModule, totalActiveModules = GPU_NONE_MODULES;
   uint32_t idModule, numModules = gpu_module_get_num_structures();
@@ -101,9 +101,9 @@ gpu_error_t gpu_module_allocator_per_device(gpu_reference_buffer_t* const restri
   return(SUCCESS);
 }
 
-gpu_error_t gpu_module_manager_per_device(gpu_reference_buffer_t* const restrict reference, gpu_index_buffer_t* const restrict index,
+gpu_error_t gpu_module_manager_per_device(gpu_reference_buffer_t* const reference, gpu_index_buffer_t* const index,
                                           const uint32_t idDevice, const uint32_t numBuffers, const gpu_data_location_t userAllocOption,
-                                          gpu_module_t* const restrict activatedModules, gpu_module_t* const restrict allocatedModules)
+                                          gpu_module_t* const activatedModules, gpu_module_t* const allocatedModules)
 {
   const gpu_module_t userSelectedModules = reference->activeModules | index->activeModules;
   gpu_module_t tmpAllocatedModules = GPU_NONE_MODULES;
@@ -133,9 +133,9 @@ gpu_error_t gpu_module_manager_per_device(gpu_reference_buffer_t* const restrict
   return(SUCCESS);
 }
 
-gpu_error_t gpu_module_memory_requirements_per_device(gpu_reference_buffer_t* const restrict reference, gpu_index_buffer_t* const restrict index,
+gpu_error_t gpu_module_memory_requirements_per_device(gpu_reference_buffer_t* const reference, gpu_index_buffer_t* const index,
                                                       const uint32_t idDevice, const uint32_t numBuffers, const gpu_data_location_t userAllocOption,
-                                                      gpu_module_t* const restrict maxAllocatedModules, bool* const restrict maskedDevice)
+                                                      gpu_module_t* const maxAllocatedModules, bool* const maskedDevice)
 {
   const gpu_module_t userSelectedModules = reference->activeModules | index->activeModules;
   size_t memoryFree  = gpu_device_get_free_memory(idDevice);
@@ -160,9 +160,9 @@ gpu_error_t gpu_module_memory_requirements_per_device(gpu_reference_buffer_t* co
   return(SUCCESS);
 }
 
-gpu_error_t gpu_module_search_structures(gpu_module_t* const restrict allocatedModulesPerDevice, gpu_module_t* const restrict allocatedStructuresPerDevice,
+gpu_error_t gpu_module_search_structures(gpu_module_t* const allocatedModulesPerDevice, gpu_module_t* const allocatedStructuresPerDevice,
                                          const uint32_t numSupportedDevices, const gpu_module_t activatedModules,
-                                         gpu_module_t* const restrict allocatedStructures)
+                                         gpu_module_t* const allocatedStructures)
 {
   // Initialization for the best fitting structures exploration
   const uint32_t maxNumActiveModules            = gpu_module_get_num_allocated(activatedModules);
@@ -187,8 +187,8 @@ gpu_error_t gpu_module_search_structures(gpu_module_t* const restrict allocatedM
   return(SUCCESS);
 }
 
-gpu_error_t gpu_module_search_active(gpu_module_t* const restrict allocatedModulesPerDevice, const uint32_t numSupportedDevices,
-                                     gpu_module_t* const restrict activatedModules)
+gpu_error_t gpu_module_search_active(gpu_module_t* const allocatedModulesPerDevice, const uint32_t numSupportedDevices,
+                                     gpu_module_t* const activatedModules)
 {
   // Initialization for the best fitting modules exploration
   gpu_module_t maxActiveModules    = GPU_NONE_MODULES;
@@ -210,10 +210,10 @@ gpu_error_t gpu_module_search_active(gpu_module_t* const restrict allocatedModul
   return(SUCCESS);
 }
 
-gpu_error_t gpu_module_manager_all_system(gpu_reference_buffer_t* const restrict reference, gpu_index_buffer_t* const restrict index,
+gpu_error_t gpu_module_manager_all_system(gpu_reference_buffer_t* const reference, gpu_index_buffer_t* const index,
                                           const uint32_t numBuffers, const gpu_dev_arch_t selectedArchitectures,
-                                          const gpu_data_location_t userAllocOption, gpu_module_t* const restrict globalModules,
-                                          gpu_module_t* const restrict globalStructures)
+                                          const gpu_data_location_t userAllocOption, gpu_module_t* const globalModules,
+                                          gpu_module_t* const globalStructures)
 {
   // Device initialization variables
   const uint32_t numDevices = gpu_device_get_num_all();
@@ -247,8 +247,8 @@ gpu_error_t gpu_module_manager_all_system(gpu_reference_buffer_t* const restrict
 }
 
 gpu_error_t gpu_module_manager_memory_policies(const gpu_data_location_t userAllocOption, const gpu_module_t userRequestedModules,
-                                               gpu_module_t* const restrict requiredModules, gpu_module_t* const restrict recomendedModules,
-                                               gpu_module_t* const restrict globalStructures)
+                                               gpu_module_t* const requiredModules, gpu_module_t* const recomendedModules,
+                                               gpu_module_t* const globalStructures)
 {
   switch (userAllocOption){
     case GPU_REMOTE_DATA:          // (Force to allocate all structures in HOST)
@@ -274,11 +274,11 @@ gpu_error_t gpu_module_manager_memory_policies(const gpu_data_location_t userAll
   return(SUCCESS);
 }
 
-gpu_error_t gpu_module_manager_memory(gpu_reference_buffer_t* const restrict reference, gpu_index_buffer_t* const restrict index,
+gpu_error_t gpu_module_manager_memory(gpu_reference_buffer_t* const reference, gpu_index_buffer_t* const index,
                                       const uint32_t numBuffers, const gpu_dev_arch_t selectedArchitectures,
                                       const gpu_data_location_t userAllocOption,
-                                      size_t* const restrict recomendedMemorySize, size_t* const restrict requiredMemorySize,
-                                      gpu_module_t* const restrict modules, gpu_module_t* const restrict structures)
+                                      size_t* const recomendedMemorySize, size_t* const requiredMemorySize,
+                                      gpu_module_t* const modules, gpu_module_t* const structures)
 {
   const gpu_module_t userRequestedModules = index->activeModules | reference->activeModules;
   // Defines to obtain the module requirements
@@ -300,10 +300,10 @@ gpu_error_t gpu_module_manager_memory(gpu_reference_buffer_t* const restrict ref
   return(SUCCESS);
 }
 
-gpu_error_t gpu_module_configure_system(gpu_reference_buffer_t* const restrict reference, gpu_index_buffer_t* const restrict index,
+gpu_error_t gpu_module_configure_system(gpu_reference_buffer_t* const reference, gpu_index_buffer_t* const index,
                                         gpu_device_info_t ***devices, const uint32_t numBuffers,
                                         const gpu_dev_arch_t selectedArchitectures, const gpu_data_location_t userAllocOption,
-                                        gpu_module_t* const restrict activatedModules, gpu_module_t* const restrict allocatedStructures)
+                                        gpu_module_t* const activatedModules, gpu_module_t* const allocatedStructures)
 {
   // Defines for the system devices
   const uint32_t numDevices = gpu_device_get_num_all();

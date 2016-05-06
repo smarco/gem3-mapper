@@ -16,22 +16,22 @@
 /*
  * Setup
  */
-void interval_set_init(interval_set_t* const restrict interval_set) {
+void interval_set_init(interval_set_t* const interval_set) {
   interval_set->intervals = vector_new(INTERVAL_SET_NUN_INITIAL_INTERVALS,interval_t);
 }
-void interval_set_clear(interval_set_t* const restrict interval_set) {
+void interval_set_clear(interval_set_t* const interval_set) {
   vector_clear(interval_set->intervals);
 }
-void interval_set_destroy(interval_set_t* const restrict interval_set) {
+void interval_set_destroy(interval_set_t* const interval_set) {
   vector_delete(interval_set->intervals);
 }
 /*
  * Counting
  */
-uint64_t interval_set_count_intervals(interval_set_t* const restrict interval_set) {
+uint64_t interval_set_count_intervals(interval_set_t* const interval_set) {
   return vector_get_used(interval_set->intervals);
 }
-uint64_t interval_set_count_intervals_length(interval_set_t* const restrict interval_set) {
+uint64_t interval_set_count_intervals_length(interval_set_t* const interval_set) {
   uint64_t count = 0;
   INTERVAL_SET_ITERATE(interval_set,interval) {
     count += interval->hi - interval->lo;
@@ -39,7 +39,7 @@ uint64_t interval_set_count_intervals_length(interval_set_t* const restrict inte
   return count;
 }
 uint64_t interval_set_count_intervals_length_thresholded(
-    interval_set_t* const restrict interval_set,
+    interval_set_t* const interval_set,
     const uint64_t max_error) {
   uint64_t count = 0;
   INTERVAL_SET_ITERATE(interval_set,interval) {
@@ -51,7 +51,7 @@ uint64_t interval_set_count_intervals_length_thresholded(
  * Adding
  */
 void interval_set_add(
-    interval_set_t* const restrict interval_set,
+    interval_set_t* const interval_set,
     const uint64_t lo,
     const uint64_t hi,
     const uint64_t distance,
@@ -69,8 +69,8 @@ void interval_set_add(
  * Set Operators
  */
 void interval_set_union(
-    interval_set_t* const restrict interval_set_a,
-    interval_set_t* const restrict interval_set_b) {
+    interval_set_t* const interval_set_a,
+    interval_set_t* const interval_set_b) {
   // Appends to @interval_set_a the intervals contained into @interval_set_b (union set)
   const uint64_t total_size = vector_get_used(interval_set_a->intervals) + vector_get_used(interval_set_b->intervals);
   vector_reserve(interval_set_a->intervals,total_size,false);
@@ -85,8 +85,8 @@ void interval_set_union(
   vector_set_used(interval_set_a->intervals,total_size);
 }
 void interval_set_subtract(
-    interval_set_t* const restrict result_set,
-    interval_set_t* const restrict exclusion_set) {
+    interval_set_t* const result_set,
+    interval_set_t* const exclusion_set) {
   // Subtracts to @result_set the intervals contained in @exclusion_set (difference set)
   const uint64_t exclusion_set_size = vector_get_used(exclusion_set->intervals);
   uint64_t result_set_size = vector_get_used(result_set->intervals);
@@ -107,7 +107,7 @@ void interval_set_subtract(
         } else if (lo1 < lo2 && hi2 < hi1) { // Exclusion inside result
           // Add the chunk to the end
           vector_reserve(result_set->intervals,result_set_size+1,false);
-          interval_t* const restrict int_res_chunk = vector_get_mem(result_set->intervals,interval_t) + result_set_size;
+          interval_t* const int_res_chunk = vector_get_mem(result_set->intervals,interval_t) + result_set_size;
           int_res_chunk->lo = hi2;
           int_res_chunk->hi = hi1;
           int_res_chunk->distance = int_res->distance;

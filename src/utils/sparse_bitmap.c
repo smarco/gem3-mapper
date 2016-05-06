@@ -30,9 +30,9 @@
 /*
  * Loader/Setup
  */
-sparse_bitmap_t* sparse_bitmap_read(fm_t* const restrict file_manager) {
+sparse_bitmap_t* sparse_bitmap_read(fm_t* const file_manager) {
   // Allocate
-  sparse_bitmap_t* const restrict sparse_bitmap = mm_alloc(sparse_bitmap_t);
+  sparse_bitmap_t* const sparse_bitmap = mm_alloc(sparse_bitmap_t);
   // Read Bitmaps
   sparse_bitmap->num_bitmaps  = fm_read_uint64(file_manager);
   sparse_bitmap->mm_bitmaps = fm_load_mem(file_manager,sparse_bitmap->num_bitmaps*UINT64_SIZE);
@@ -42,9 +42,9 @@ sparse_bitmap_t* sparse_bitmap_read(fm_t* const restrict file_manager) {
   // Return
   return sparse_bitmap;
 }
-sparse_bitmap_t* sparse_bitmap_read_mem(mm_t* const restrict memory_manager) {
+sparse_bitmap_t* sparse_bitmap_read_mem(mm_t* const memory_manager) {
   // Allocate
-  sparse_bitmap_t* const restrict sparse_bitmap = mm_alloc(sparse_bitmap_t);
+  sparse_bitmap_t* const sparse_bitmap = mm_alloc(sparse_bitmap_t);
   // Read Bitmaps
   sparse_bitmap->num_bitmaps  = mm_read_uint64(memory_manager);
   sparse_bitmap->mm_bitmaps = NULL;
@@ -54,24 +54,24 @@ sparse_bitmap_t* sparse_bitmap_read_mem(mm_t* const restrict memory_manager) {
   // Return
   return sparse_bitmap;
 }
-void sparse_bitmap_delete(sparse_bitmap_t* const restrict sparse_bitmap) {
+void sparse_bitmap_delete(sparse_bitmap_t* const sparse_bitmap) {
   if (sparse_bitmap->mm_bitmaps!=NULL) mm_bulk_free(sparse_bitmap->mm_bitmaps);
   mm_free(sparse_bitmap);
 }
 /*
  * Accessors
  */
-uint64_t sparse_bitmap_get_size(sparse_bitmap_t* const restrict sparse_bitmap) {
+uint64_t sparse_bitmap_get_size(sparse_bitmap_t* const sparse_bitmap) {
   const uint64_t bitmaps_size = sparse_bitmap->num_bitmaps*UINT64_SIZE;
   return sparse_array_locator_get_size(sparse_bitmap->locator) + bitmaps_size;
 }
 bool sparse_bitmap_is_contained(
-    sparse_bitmap_t* const restrict sparse_bitmap,
+    sparse_bitmap_t* const sparse_bitmap,
     const uint64_t position) {
   return sparse_array_locator_is_marked(sparse_bitmap->locator,position);
 }
 uint64_t sparse_bitmap_get_bitmap(
-    sparse_bitmap_t* const restrict sparse_bitmap,
+    sparse_bitmap_t* const sparse_bitmap,
     const uint64_t position) {
   uint64_t bimap_position;
   if (sparse_array_locator_get_erank_if_marked(sparse_bitmap->locator,position,&bimap_position)) {
@@ -83,9 +83,9 @@ uint64_t sparse_bitmap_get_bitmap(
 /*
  * Builder
  */
-sparse_bitmap_builder_t* sparse_bitmap_builder_new(mm_slab_t* const restrict mm_slab) {
+sparse_bitmap_builder_t* sparse_bitmap_builder_new(mm_slab_t* const mm_slab) {
   // Allocate
-  sparse_bitmap_builder_t* const restrict sparse_bitmap_builder = mm_alloc(sparse_bitmap_builder_t);
+  sparse_bitmap_builder_t* const sparse_bitmap_builder = mm_alloc(sparse_bitmap_builder_t);
   // Initialize bitmaps
   sparse_bitmap_builder->bitmaps = svector_new(mm_slab,uint64_t);
   svector_iterator_new(&(sparse_bitmap_builder->bitmaps_iterator),sparse_bitmap_builder->bitmaps,SVECTOR_WRITE_ITERATOR,0);
@@ -94,13 +94,13 @@ sparse_bitmap_builder_t* sparse_bitmap_builder_new(mm_slab_t* const restrict mm_
   // Return
   return sparse_bitmap_builder;
 }
-void sparse_bitmap_builder_delete(sparse_bitmap_builder_t* const restrict sparse_bitmap_builder) {
+void sparse_bitmap_builder_delete(sparse_bitmap_builder_t* const sparse_bitmap_builder) {
   sparse_array_locator_builder_delete(sparse_bitmap_builder->locator_builder);
   svector_delete(sparse_bitmap_builder->bitmaps);
   mm_free(sparse_bitmap_builder);
 }
 void sparse_bitmap_builder_add_bitmap(
-    sparse_bitmap_builder_t* const restrict sparse_bitmap_builder,
+    sparse_bitmap_builder_t* const sparse_bitmap_builder,
     const uint64_t bitmap) {
   // Mark as present in the locator
   sparse_array_locator_builder_next(sparse_bitmap_builder->locator_builder,true);
@@ -108,13 +108,13 @@ void sparse_bitmap_builder_add_bitmap(
   *svector_iterator_get_element(&(sparse_bitmap_builder->bitmaps_iterator),uint64_t) = bitmap;
   svector_write_iterator_next(&(sparse_bitmap_builder->bitmaps_iterator));
 }
-void sparse_bitmap_builder_skip_bitmap(sparse_bitmap_builder_t* const restrict sparse_bitmap_builder) {
+void sparse_bitmap_builder_skip_bitmap(sparse_bitmap_builder_t* const sparse_bitmap_builder) {
   // Skip position in the locator
   sparse_array_locator_builder_next(sparse_bitmap_builder->locator_builder,false);
 }
 void sparse_bitmap_builder_write(
-    fm_t* const restrict file_manager,
-    sparse_bitmap_builder_t* const restrict sparse_bitmap_builder) {
+    fm_t* const file_manager,
+    sparse_bitmap_builder_t* const sparse_bitmap_builder) {
   // Write header
   fm_write_uint64(file_manager,svector_get_used(sparse_bitmap_builder->bitmaps)); // num_bitmaps
   // Write bitmaps
@@ -126,8 +126,8 @@ void sparse_bitmap_builder_write(
  * Display
  */
 void sparse_bitmap_print(
-    FILE* const restrict stream,
-    sparse_bitmap_t* const restrict sparse_bitmap,
+    FILE* const stream,
+    sparse_bitmap_t* const sparse_bitmap,
     const bool display_content) {
   GEM_CHECK_NULL(stream);
   const uint64_t bitmaps_size = sparse_bitmap->num_bitmaps*UINT64_SIZE;

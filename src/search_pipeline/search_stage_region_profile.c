@@ -23,30 +23,30 @@
  * Internal Accessors
  */
 search_stage_region_profile_buffer_t* search_stage_rp_get_buffer(
-    search_stage_region_profile_t* const restrict search_stage_rp,
+    search_stage_region_profile_t* const search_stage_rp,
     const uint64_t buffer_pos) {
   return *vector_get_elm(search_stage_rp->buffers,buffer_pos,search_stage_region_profile_buffer_t*);
 }
 search_stage_region_profile_buffer_t* search_stage_rp_get_current_buffer(
-    search_stage_region_profile_t* const restrict search_stage_rp) {
+    search_stage_region_profile_t* const search_stage_rp) {
   return search_stage_rp_get_buffer(search_stage_rp,search_stage_rp->iterator.current_buffer_idx);
 }
 /*
  * Setup
  */
 search_stage_region_profile_t* search_stage_region_profile_new(
-    const gpu_buffer_collection_t* const restrict gpu_buffer_collection,
+    const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffers_offset,
     const uint64_t num_buffers,
-    fm_index_t* const restrict fm_index,
+    fm_index_t* const fm_index,
     const bool cpu_emulated) {
   // Alloc
-  search_stage_region_profile_t* const restrict search_stage_rp = mm_alloc(search_stage_region_profile_t);
+  search_stage_region_profile_t* const search_stage_rp = mm_alloc(search_stage_region_profile_t);
   // Init Buffers
   uint64_t i;
   search_stage_rp->buffers = vector_new(num_buffers,search_stage_region_profile_buffer_t*);
   for (i=0;i<num_buffers;++i) {
-    search_stage_region_profile_buffer_t* const restrict buffer_vc =
+    search_stage_region_profile_buffer_t* const buffer_vc =
         search_stage_region_profile_buffer_new(gpu_buffer_collection,buffers_offset+i,fm_index,cpu_emulated);
     vector_insert(search_stage_rp->buffers,buffer_vc,search_stage_region_profile_buffer_t*);
   }
@@ -56,8 +56,8 @@ search_stage_region_profile_t* search_stage_region_profile_new(
   return search_stage_rp;
 }
 void search_stage_region_profile_clear(
-    search_stage_region_profile_t* const restrict search_stage_rp,
-    archive_search_cache_t* const restrict archive_search_cache) {
+    search_stage_region_profile_t* const search_stage_rp,
+    archive_search_cache_t* const archive_search_cache) {
   // Init state
   search_stage_rp->search_stage_mode = search_group_buffer_phase_sending;
   // Clear & Init buffers
@@ -70,8 +70,8 @@ void search_stage_region_profile_clear(
   search_stage_rp->iterator.current_buffer_idx = 0; // Init iterator
 }
 void search_stage_region_profile_delete(
-    search_stage_region_profile_t* const restrict search_stage_rp,
-    archive_search_cache_t* const restrict archive_search_cache) {
+    search_stage_region_profile_t* const search_stage_rp,
+    archive_search_cache_t* const archive_search_cache) {
   // Delete buffers
   const uint64_t num_buffers = search_stage_rp->iterator.num_buffers;
   uint64_t i;
@@ -86,8 +86,8 @@ void search_stage_region_profile_delete(
  * Send Searches (buffered)
  */
 bool search_stage_region_profile_send_se_search(
-    search_stage_region_profile_t* const restrict search_stage_rp,
-    archive_search_t* const restrict archive_search) {
+    search_stage_region_profile_t* const search_stage_rp,
+    archive_search_t* const archive_search) {
   // Check Occupancy (fits in current buffer)
   search_stage_region_profile_buffer_t* current_buffer = search_stage_rp_get_current_buffer(search_stage_rp);
   while (!search_stage_region_profile_buffer_fits(current_buffer,archive_search,NULL)) {
@@ -111,9 +111,9 @@ bool search_stage_region_profile_send_se_search(
   return true;
 }
 bool search_stage_region_profile_send_pe_search(
-    search_stage_region_profile_t* const restrict search_stage_rp,
-    archive_search_t* const restrict archive_search_end1,
-    archive_search_t* const restrict archive_search_end2) {
+    search_stage_region_profile_t* const search_stage_rp,
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2) {
   // Check Occupancy (fits in current buffer)
   search_stage_region_profile_buffer_t* current_buffer = search_stage_rp_get_current_buffer(search_stage_rp);
   while (!search_stage_region_profile_buffer_fits(current_buffer,archive_search_end1,archive_search_end2)) {
@@ -133,7 +133,7 @@ bool search_stage_region_profile_send_pe_search(
   search_stage_region_profile_buffer_add(current_buffer,archive_search_end1);
   search_stage_region_profile_buffer_add(current_buffer,archive_search_end2);
   // Copy profile-partitions to the buffer
-  gpu_buffer_fmi_search_t* const restrict gpu_buffer_fmi_search = current_buffer->gpu_buffer_fmi_search;
+  gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search = current_buffer->gpu_buffer_fmi_search;
   archive_search_se_stepwise_region_profile_copy(archive_search_end1,gpu_buffer_fmi_search);
   archive_search_se_stepwise_region_profile_copy(archive_search_end2,gpu_buffer_fmi_search);
   // Return ok
@@ -142,8 +142,8 @@ bool search_stage_region_profile_send_pe_search(
 /*
  * Retrieve operators
  */
-void search_stage_region_profile_retrieve_begin(search_stage_region_profile_t* const restrict search_stage_rp) {
-  search_stage_iterator_t* const restrict iterator = &search_stage_rp->iterator;
+void search_stage_region_profile_retrieve_begin(search_stage_region_profile_t* const search_stage_rp) {
+  search_stage_iterator_t* const iterator = &search_stage_rp->iterator;
   search_stage_region_profile_buffer_t* current_buffer;
   // Change mode
   search_stage_rp->search_stage_mode = search_group_buffer_phase_retrieving;
@@ -161,25 +161,25 @@ void search_stage_region_profile_retrieve_begin(search_stage_region_profile_t* c
   search_stage_region_profile_buffer_receive(current_buffer);
 }
 bool search_stage_region_profile_retrieve_finished(
-    search_stage_region_profile_t* const restrict search_stage_rp) {
+    search_stage_region_profile_t* const search_stage_rp) {
   // Mode Sending (Retrieval finished)
   if (search_stage_rp->search_stage_mode==search_group_buffer_phase_sending) return true;
   // Mode Retrieve (Check iterator)
-  search_stage_iterator_t* const restrict iterator = &search_stage_rp->iterator;
+  search_stage_iterator_t* const iterator = &search_stage_rp->iterator;
   return iterator->current_buffer_idx==iterator->num_buffers &&
          iterator->current_search_idx==iterator->num_searches;
 }
 bool search_stage_region_profile_retrieve_next(
-    search_stage_region_profile_t* const restrict search_stage_rp,
-    search_stage_region_profile_buffer_t** const restrict current_buffer,
-    archive_search_t** const restrict archive_search) {
+    search_stage_region_profile_t* const search_stage_rp,
+    search_stage_region_profile_buffer_t** const current_buffer,
+    archive_search_t** const archive_search) {
   // Check state
   if (search_stage_rp->search_stage_mode == search_group_buffer_phase_sending) {
     search_stage_region_profile_retrieve_begin(search_stage_rp);
   }
   // Check end-of-iteration
   *current_buffer = search_stage_rp_get_current_buffer(search_stage_rp);
-  search_stage_iterator_t* const restrict iterator = &search_stage_rp->iterator;
+  search_stage_iterator_t* const iterator = &search_stage_rp->iterator;
   if (iterator->current_search_idx==iterator->num_searches) {
     // Next buffer
     ++(iterator->current_buffer_idx);
@@ -201,22 +201,22 @@ bool search_stage_region_profile_retrieve_next(
  * Retrieve Searches (buffered)
  */
 bool search_stage_region_profile_retrieve_se_search(
-    search_stage_region_profile_t* const restrict search_stage_rp,
-    archive_search_t** const restrict archive_search) {
+    search_stage_region_profile_t* const search_stage_rp,
+    archive_search_t** const archive_search) {
   // Retrieve next
   search_stage_region_profile_buffer_t* current_buffer;
   const bool success = search_stage_region_profile_retrieve_next(search_stage_rp,&current_buffer,archive_search);
   if (!success) return false;
   // Retrieve searched profile-partitions from the buffer
-  gpu_buffer_fmi_search_t* const restrict gpu_buffer_fmi_search = current_buffer->gpu_buffer_fmi_search;
+  gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search = current_buffer->gpu_buffer_fmi_search;
   archive_search_se_stepwise_region_profile_retrieve(*archive_search,gpu_buffer_fmi_search);
   // Return
   return true;
 }
 bool search_stage_region_profile_retrieve_pe_search(
-    search_stage_region_profile_t* const restrict search_stage_rp,
-    archive_search_t** const restrict archive_search_end1,
-    archive_search_t** const restrict archive_search_end2) {
+    search_stage_region_profile_t* const search_stage_rp,
+    archive_search_t** const archive_search_end1,
+    archive_search_t** const archive_search_end2) {
   search_stage_region_profile_buffer_t* current_buffer;
   bool success;
   /*

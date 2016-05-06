@@ -18,10 +18,10 @@
  * Levenshtein Scaffold Tiled
  */
 bool match_scaffold_levenshtein(
-    match_scaffold_t* const restrict match_scaffold,
-    match_align_input_t* const restrict align_input,
-    match_align_parameters_t* const restrict align_parameters,
-    matches_t* const restrict matches,
-    mm_stack_t* const restrict mm_stack);
+    match_scaffold_t* const match_scaffold,
+    match_align_input_t* const align_input,
+    match_align_parameters_t* const align_parameters,
+    matches_t* const matches,
+    mm_stack_t* const mm_stack);
 
 #endif /* MATCH_SCAFFOLD_LEVENSHTEIN_H_ */

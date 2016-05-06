@@ -28,11 +28,11 @@
  * Exact Filtering Adaptive
  */
 void approximate_search_exact_filtering_adaptive(
-    approximate_search_t* const restrict search,
+    approximate_search_t* const search,
     const region_profile_strategy_t strategy,
-    matches_t* const restrict matches) {
+    matches_t* const matches) {
   // Parameters
-  search_parameters_t* const restrict search_parameters = search->search_parameters;
+  search_parameters_t* const search_parameters = search->search_parameters;
   // Region-Minimal Profile (Reduce the number of candidates per region and maximize number of regions)
   approximate_search_region_profile_adaptive(search,strategy,search->mm_stack);
   if (search->processing_state==asearch_processing_state_no_regions) return; // Corner case
@@ -52,8 +52,8 @@ void approximate_search_exact_filtering_adaptive(
   }
 }
 void approximate_search_exact_filtering_adaptive_lightweight(
-    approximate_search_t* const restrict search,
-    matches_t* const restrict matches) {
+    approximate_search_t* const search,
+    matches_t* const matches) {
   PROFILE_START(GP_AS_FILTERING_EXACT,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Adaptive Filtering (Exact)\n");
@@ -65,8 +65,8 @@ void approximate_search_exact_filtering_adaptive_lightweight(
   PROFILE_STOP(GP_AS_FILTERING_EXACT,PROFILE_LEVEL);
 }
 void approximate_search_exact_filtering_adaptive_heavyweight(
-    approximate_search_t* const restrict search,
-    matches_t* const restrict matches) {
+    approximate_search_t* const search,
+    matches_t* const matches) {
   PROFILE_START(GP_AS_FILTERING_EXACT,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Adaptive Filtering (Exact)\n");
@@ -77,21 +77,21 @@ void approximate_search_exact_filtering_adaptive_heavyweight(
   PROFILE_STOP(GP_AS_FILTERING_EXACT,PROFILE_LEVEL);
 }
 void approximate_search_exact_filtering_adaptive_cutoff(
-    approximate_search_t* const restrict search,
-    matches_t* const restrict matches) {
+    approximate_search_t* const search,
+    matches_t* const matches) {
   PROFILE_START(GP_AS_FILTERING_EXACT,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Adaptive Filtering (Fast Cut-off Exact)\n");
     tab_global_inc();
   }
   // Parameters
-  search_parameters_t* const restrict search_parameters = search->search_parameters;
-  archive_t* const restrict archive = search->archive;
-  fm_index_t* const restrict fm_index = archive->fm_index;
-  pattern_t* const restrict pattern = &search->pattern;
-  const bool* const restrict allowed_enc = search_parameters->allowed_enc;
-  region_profile_t* const restrict region_profile = &search->region_profile;
-  filtering_candidates_t* const restrict filtering_candidates = search->filtering_candidates;
+  search_parameters_t* const search_parameters = search->search_parameters;
+  archive_t* const archive = search->archive;
+  fm_index_t* const fm_index = archive->fm_index;
+  pattern_t* const pattern = &search->pattern;
+  const bool* const allowed_enc = search_parameters->allowed_enc;
+  region_profile_t* const region_profile = &search->region_profile;
+  filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
   // Select Key (Regular/RL)
   uint8_t* key;
   uint64_t key_length;
@@ -103,14 +103,14 @@ void approximate_search_exact_filtering_adaptive_cutoff(
     key_length = pattern->key_length;
   }
   // Iterate process of region-candidates-verification
-  const region_profile_model_t* const restrict profile_model = &search_parameters->rp_lightweight;
+  const region_profile_model_t* const profile_model = &search_parameters->rp_lightweight;
   region_profile_generator_t generator;
   region_profile_generator_init(&generator,region_profile,fm_index,key,key_length,allowed_enc,false);
   region_profile->errors_allowed = 0;
   while (region_profile_generator_next_region(region_profile,&generator,profile_model)) {
     // Generate candidates for the last region found
     PROFILE_START(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
-    region_search_t* const restrict last_region = region_profile->filtering_region + (region_profile->num_filtering_regions-1);
+    region_search_t* const last_region = region_profile->filtering_region + (region_profile->num_filtering_regions-1);
     filtering_candidates_add_region_interval(filtering_candidates,
         last_region->lo,last_region->hi,last_region->begin,last_region->end,0);
     PROFILE_STOP(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
@@ -141,17 +141,17 @@ void approximate_search_exact_filtering_adaptive_cutoff(
  * Inexact Filtering Adaptive
  */
 void approximate_search_inexact_filtering(
-    approximate_search_t* const restrict search,
-    matches_t* const restrict matches) {
+    approximate_search_t* const search,
+    matches_t* const matches) {
   PROFILE_START(GP_AS_FILTERING_INEXACT,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Adaptive Filtering (Inexact)\n");
     tab_global_inc();
   }
   // Parameters
-  search_parameters_t* const restrict parameters = search->search_parameters;
-  pattern_t* const restrict pattern = &search->pattern;
-  region_profile_t* const restrict region_profile = &search->region_profile;
+  search_parameters_t* const parameters = search->search_parameters;
+  pattern_t* const pattern = &search->pattern;
+  region_profile_t* const region_profile = &search->region_profile;
   // Region-Delimit Profile (Maximize number of unique-regions and try to isolate standard/repetitive regions)
   approximate_search_region_profile_adaptive(search,region_profile_adaptive_lightweight,search->mm_stack);
   if (search->region_profile.num_filtering_regions <= 1) {
@@ -185,8 +185,8 @@ void approximate_search_inexact_filtering(
  * Filtering Verification (+ realign)
  */
 void approximate_search_verify(
-    approximate_search_t* const restrict search,
-    matches_t* const restrict matches) {
+    approximate_search_t* const search,
+    matches_t* const matches) {
   // Verify
   const uint64_t num_accepted_regions =
       filtering_candidates_verify_candidates(search->filtering_candidates,&search->pattern);
@@ -202,8 +202,8 @@ void approximate_search_verify(
  * Unbound Filtering (+ realign)
  */
 void approximate_search_align_local(
-    approximate_search_t* const restrict search,
-    matches_t* const restrict matches) {
+    approximate_search_t* const search,
+    matches_t* const matches) {
   // DEBUG
   PROFILE_START(GP_AS_FILTERING_LOCAL_ALIGN,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
@@ -221,14 +221,14 @@ void approximate_search_align_local(
  * End of the search
  */
 void approximate_search_end(
-    approximate_search_t* const restrict search,
-    matches_t* const restrict matches) {
+    approximate_search_t* const search,
+    matches_t* const matches) {
   // DEBUG
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Search END\n");
   }
   // Check final state
-  pattern_t* const restrict pattern = &search->pattern;
+  pattern_t* const pattern = &search->pattern;
   if (search->processing_state == asearch_processing_state_no_regions) {
     gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_fprintf(stderr,"[GEM]>ASM::No-Regions\n"); }
     approximate_search_update_mcs(search,pattern->num_wildcards);

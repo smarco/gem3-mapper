@@ -55,19 +55,19 @@ typedef struct {
  * SE Compute Predictors
  */
 void matches_predictors_compute(
-    matches_t* const restrict matches,
-    matches_predictors_t* const restrict predictors,
-    approximate_search_metrics_t* const restrict search_metrics,
+    matches_t* const matches,
+    matches_predictors_t* const predictors,
+    approximate_search_metrics_t* const search_metrics,
     const uint64_t mcs);
 
 /*
  * PE Compute Predictors
  */
 void paired_matches_predictors_compute(
-    paired_matches_t* const restrict paired_matches,
-    matches_predictors_t* const restrict predictors,
-    approximate_search_metrics_t* const restrict search_metrics_end1,
-    approximate_search_metrics_t* const restrict search_metrics_end2,
+    paired_matches_t* const paired_matches,
+    matches_predictors_t* const predictors,
+    approximate_search_metrics_t* const search_metrics_end1,
+    approximate_search_metrics_t* const search_metrics_end2,
     const uint64_t mcs_end1,
     const uint64_t mcs_end2);
 
@@ -75,14 +75,14 @@ void paired_matches_predictors_compute(
  * Display
  */
 void matches_predictors_se_print(
-    FILE* const restrict stream,
-    const char* const restrict sequence_tag,
+    FILE* const stream,
+    const char* const sequence_tag,
     const matches_class_t matches_class,
-    matches_predictors_t* const restrict predictors);
+    matches_predictors_t* const predictors);
 void matches_predictors_pe_print(
-    FILE* const restrict stream,
-    const char* const restrict sequence_tag,
+    FILE* const stream,
+    const char* const sequence_tag,
     const paired_matches_class_t paired_matches_class,
-    matches_predictors_t* const restrict predictors);
+    matches_predictors_t* const predictors);
 
 #endif /* MATCHES_PREDICTORS_H_ */

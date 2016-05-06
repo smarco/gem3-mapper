@@ -18,7 +18,7 @@
  */
 input_buffer_t* input_buffer_new(const uint64_t buffer_size) {
   // Alloc
-  input_buffer_t* const restrict input_buffer = mm_alloc(input_buffer_t);
+  input_buffer_t* const input_buffer = mm_alloc(input_buffer_t);
   // Buffer info
   input_buffer->buffer_id = 0;
   input_buffer->buffer_state = input_buffer_empty;
@@ -32,7 +32,7 @@ input_buffer_t* input_buffer_new(const uint64_t buffer_size) {
   // Return
   return input_buffer;
 }
-void input_buffer_delete(input_buffer_t* const restrict input_buffer) {
+void input_buffer_delete(input_buffer_t* const input_buffer) {
   mm_free(input_buffer->buffer);
   vector_delete(input_buffer->line_lengths);
   mm_free(input_buffer);
@@ -40,13 +40,13 @@ void input_buffer_delete(input_buffer_t* const restrict input_buffer) {
 /*
  * Annotate lines
  */
-void input_buffer_annotate_lines(input_buffer_t* const restrict input_buffer) {
+void input_buffer_annotate_lines(input_buffer_t* const input_buffer) {
   // Clear index
-  vector_t* const restrict line_lengths = input_buffer->line_lengths;
+  vector_t* const line_lengths = input_buffer->line_lengths;
   vector_clear(line_lengths);
   // Traverse buffer & annotate line offsets
   const uint64_t buffer_size = input_buffer->buffer_size;
-  const char* const restrict buffer = input_buffer->buffer;
+  const char* const buffer = input_buffer->buffer;
   uint32_t i, offset = 0;
   for (i=0;i<buffer_size;++i) {
     const char current_char = buffer[i];
@@ -60,6 +60,6 @@ void input_buffer_annotate_lines(input_buffer_t* const restrict input_buffer) {
   // Insert the length of the remaining chars
   vector_insert(line_lengths,offset,uint32_t);
 }
-uint64_t input_buffer_get_num_lines(input_buffer_t* const restrict input_buffer) {
+uint64_t input_buffer_get_num_lines(input_buffer_t* const input_buffer) {
   return vector_get_used(input_buffer->line_lengths)-1;
 }

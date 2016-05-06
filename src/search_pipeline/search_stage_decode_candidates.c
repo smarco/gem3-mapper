@@ -23,32 +23,32 @@
  * Internal Accessors
  */
 search_stage_decode_candidates_buffer_t* search_stage_dc_get_buffer(
-    search_stage_decode_candidates_t* const restrict search_stage_dc,
+    search_stage_decode_candidates_t* const search_stage_dc,
     const uint64_t buffer_pos) {
   return *vector_get_elm(search_stage_dc->buffers,buffer_pos,search_stage_decode_candidates_buffer_t*);
 }
 search_stage_decode_candidates_buffer_t* search_stage_dc_get_current_buffer(
-    search_stage_decode_candidates_t* const restrict search_stage_dc) {
+    search_stage_decode_candidates_t* const search_stage_dc) {
   return search_stage_dc_get_buffer(search_stage_dc,search_stage_dc->iterator.current_buffer_idx);
 }
 /*
  * Setup
  */
 search_stage_decode_candidates_t* search_stage_decode_candidates_new(
-    const gpu_buffer_collection_t* const restrict gpu_buffer_collection,
+    const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffers_offset,
     const uint64_t num_buffers,
-    fm_index_t* const restrict fm_index,
+    fm_index_t* const fm_index,
     const bool gpu_decode_sa,
     const bool gpu_decode_text,
-    mm_stack_t* const restrict mm_stack) {
+    mm_stack_t* const mm_stack) {
   // Alloc
-  search_stage_decode_candidates_t* const restrict search_stage_dc = mm_alloc(search_stage_decode_candidates_t);
+  search_stage_decode_candidates_t* const search_stage_dc = mm_alloc(search_stage_decode_candidates_t);
   // Init Buffers
   uint64_t i;
   search_stage_dc->buffers = vector_new(num_buffers,search_stage_decode_candidates_buffer_t*);
   for (i=0;i<num_buffers;++i) {
-    search_stage_decode_candidates_buffer_t* const restrict buffer_vc = search_stage_decode_candidates_buffer_new(
+    search_stage_decode_candidates_buffer_t* const buffer_vc = search_stage_decode_candidates_buffer_new(
         gpu_buffer_collection,buffers_offset+i,fm_index,gpu_decode_sa,gpu_decode_text);
     vector_insert(search_stage_dc->buffers,buffer_vc,search_stage_decode_candidates_buffer_t*);
   }
@@ -64,8 +64,8 @@ search_stage_decode_candidates_t* search_stage_decode_candidates_new(
   return search_stage_dc;
 }
 void search_stage_decode_candidates_prepare_se_search(
-    search_stage_decode_candidates_t* const restrict search_stage_dc,
-    archive_search_t* const restrict archive_search) {
+    search_stage_decode_candidates_t* const search_stage_dc,
+    archive_search_t* const archive_search) {
   // Clear & Inject Support Data Structures
   filtering_candidates_clear(&search_stage_dc->filtering_candidates_forward_end1);
   filtering_candidates_clear(&search_stage_dc->filtering_candidates_reverse_end1);
@@ -76,9 +76,9 @@ void search_stage_decode_candidates_prepare_se_search(
       search_stage_dc->mm_stack);
 }
 void search_stage_decode_candidates_prepare_pe_search(
-    search_stage_decode_candidates_t* const restrict search_stage_dc,
-    archive_search_t* const restrict archive_search_end1,
-    archive_search_t* const restrict archive_search_end2) {
+    search_stage_decode_candidates_t* const search_stage_dc,
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2) {
   // Clear & Inject Support Data Structures (End/1)
   filtering_candidates_clear(&search_stage_dc->filtering_candidates_forward_end1);
   filtering_candidates_clear(&search_stage_dc->filtering_candidates_reverse_end1);
@@ -97,8 +97,8 @@ void search_stage_decode_candidates_prepare_pe_search(
       search_stage_dc->mm_stack);
 }
 void search_stage_decode_candidates_clear(
-    search_stage_decode_candidates_t* const restrict search_stage_dc,
-    archive_search_cache_t* const restrict archive_search_cache) {
+    search_stage_decode_candidates_t* const search_stage_dc,
+    archive_search_cache_t* const archive_search_cache) {
   // Init state
   search_stage_dc->search_stage_mode = search_group_buffer_phase_sending;
   // Clear & Init buffers
@@ -111,8 +111,8 @@ void search_stage_decode_candidates_clear(
   search_stage_dc->iterator.current_buffer_idx = 0; // Init iterator
 }
 void search_stage_decode_candidates_delete(
-    search_stage_decode_candidates_t* const restrict search_stage_dc,
-    archive_search_cache_t* const restrict archive_search_cache) {
+    search_stage_decode_candidates_t* const search_stage_dc,
+    archive_search_cache_t* const archive_search_cache) {
   // Delete buffers
   const uint64_t num_buffers = search_stage_dc->iterator.num_buffers;
   uint64_t i;
@@ -133,8 +133,8 @@ void search_stage_decode_candidates_delete(
  * Send Searches (buffered)
  */
 bool search_stage_decode_candidates_send_se_search(
-    search_stage_decode_candidates_t* const restrict search_stage_dc,
-    archive_search_t* const restrict archive_search) {
+    search_stage_decode_candidates_t* const search_stage_dc,
+    archive_search_t* const archive_search) {
   // Check Occupancy (fits in current buffer)
   search_stage_decode_candidates_buffer_t* current_buffer = search_stage_dc_get_current_buffer(search_stage_dc);
   while (!search_stage_decode_candidates_buffer_fits(current_buffer,archive_search,NULL)) {
@@ -158,9 +158,9 @@ bool search_stage_decode_candidates_send_se_search(
   return true;
 }
 bool search_stage_decode_candidates_send_pe_search(
-    search_stage_decode_candidates_t* const restrict search_stage_dc,
-    archive_search_t* const restrict archive_search_end1,
-    archive_search_t* const restrict archive_search_end2) {
+    search_stage_decode_candidates_t* const search_stage_dc,
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2) {
   // Check Occupancy (fits in current buffer)
   search_stage_decode_candidates_buffer_t* current_buffer = search_stage_dc_get_current_buffer(search_stage_dc);
   while (!search_stage_decode_candidates_buffer_fits(current_buffer,archive_search_end1,archive_search_end2)) {
@@ -180,7 +180,7 @@ bool search_stage_decode_candidates_send_pe_search(
   search_stage_decode_candidates_buffer_add(current_buffer,archive_search_end1);
   search_stage_decode_candidates_buffer_add(current_buffer,archive_search_end2);
   // Copy the candidate-positions (encoded) to the buffer
-  gpu_buffer_fmi_decode_t* const restrict gpu_buffer_fmi_decode = current_buffer->gpu_buffer_fmi_decode;
+  gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode = current_buffer->gpu_buffer_fmi_decode;
   archive_search_se_stepwise_decode_candidates_copy(archive_search_end1,gpu_buffer_fmi_decode);
   archive_search_se_stepwise_decode_candidates_copy(archive_search_end2,gpu_buffer_fmi_decode);
   // Return ok
@@ -189,8 +189,8 @@ bool search_stage_decode_candidates_send_pe_search(
 /*
  * Retrieve operators
  */
-void search_stage_decode_candidates_retrieve_begin(search_stage_decode_candidates_t* const restrict search_stage_dc) {
-  search_stage_iterator_t* const restrict iterator = &search_stage_dc->iterator;
+void search_stage_decode_candidates_retrieve_begin(search_stage_decode_candidates_t* const search_stage_dc) {
+  search_stage_iterator_t* const iterator = &search_stage_dc->iterator;
   search_stage_decode_candidates_buffer_t* current_buffer;
   // Change mode
   search_stage_dc->search_stage_mode = search_group_buffer_phase_retrieving;
@@ -208,25 +208,25 @@ void search_stage_decode_candidates_retrieve_begin(search_stage_decode_candidate
   search_stage_decode_candidates_buffer_receive(current_buffer);
 }
 bool search_stage_decode_candidates_retrieve_finished(
-    search_stage_decode_candidates_t* const restrict search_stage_dc) {
+    search_stage_decode_candidates_t* const search_stage_dc) {
   // Mode Sending (Retrieval finished)
   if (search_stage_dc->search_stage_mode==search_group_buffer_phase_sending) return true;
   // Mode Retrieve (Check iterator)
-  search_stage_iterator_t* const restrict iterator = &search_stage_dc->iterator;
+  search_stage_iterator_t* const iterator = &search_stage_dc->iterator;
   return iterator->current_buffer_idx==iterator->num_buffers &&
          iterator->current_search_idx==iterator->num_searches;
 }
 bool search_stage_decode_candidates_retrieve_next(
-    search_stage_decode_candidates_t* const restrict search_stage_dc,
-    search_stage_decode_candidates_buffer_t** const restrict current_buffer,
-    archive_search_t** const restrict archive_search) {
+    search_stage_decode_candidates_t* const search_stage_dc,
+    search_stage_decode_candidates_buffer_t** const current_buffer,
+    archive_search_t** const archive_search) {
   // Check state
   if (search_stage_dc->search_stage_mode == search_group_buffer_phase_sending) {
     search_stage_decode_candidates_retrieve_begin(search_stage_dc);
   }
   // Check end-of-iteration
   *current_buffer = search_stage_dc_get_current_buffer(search_stage_dc);
-  search_stage_iterator_t* const restrict iterator = &search_stage_dc->iterator;
+  search_stage_iterator_t* const iterator = &search_stage_dc->iterator;
   if (iterator->current_search_idx==iterator->num_searches) {
     // Next buffer
     ++(iterator->current_buffer_idx);
@@ -248,8 +248,8 @@ bool search_stage_decode_candidates_retrieve_next(
  * Retrieve Searches (buffered)
  */
 bool search_stage_decode_candidates_retrieve_se_search(
-    search_stage_decode_candidates_t* const restrict search_stage_dc,
-    archive_search_t** const restrict archive_search) {
+    search_stage_decode_candidates_t* const search_stage_dc,
+    archive_search_t** const archive_search) {
   // Retrieve next
   search_stage_decode_candidates_buffer_t* current_buffer;
   const bool success = search_stage_decode_candidates_retrieve_next(search_stage_dc,&current_buffer,archive_search);
@@ -262,9 +262,9 @@ bool search_stage_decode_candidates_retrieve_se_search(
   return true;
 }
 bool search_stage_decode_candidates_retrieve_pe_search(
-    search_stage_decode_candidates_t* const restrict search_stage_dc,
-    archive_search_t** const restrict archive_search_end1,
-    archive_search_t** const restrict archive_search_end2) {
+    search_stage_decode_candidates_t* const search_stage_dc,
+    archive_search_t** const archive_search_end1,
+    archive_search_t** const archive_search_end2) {
   search_stage_decode_candidates_buffer_t* current_buffer;
   bool success;
   /*

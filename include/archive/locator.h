@@ -80,45 +80,45 @@ typedef struct {
 /*
  * Loader/Setup
  */
-locator_t* locator_read_mem(mm_t* const restrict memory_manager);
-void locator_setup_inverse_locator(locator_t* const restrict locator);
-void locator_delete(locator_t* const restrict locator);
+locator_t* locator_read_mem(mm_t* const memory_manager);
+void locator_setup_inverse_locator(locator_t* const locator);
+void locator_delete(locator_t* const locator);
 
 /*
  * Locator Accessors
  */
-uint64_t locator_get_size(locator_t* const restrict locator);
+uint64_t locator_get_size(locator_t* const locator);
 locator_interval_t* locator_get_interval(
-    const locator_t* const restrict locator,
+    const locator_t* const locator,
     const uint64_t interval_index);
 
 /*
  * Interval Accessors
  */
 char* locator_interval_get_tag(
-    const locator_t* const restrict locator,
-    const locator_interval_t* const restrict interval);
-uint64_t locator_interval_get_index_length(const locator_interval_t* const restrict interval);
-uint64_t locator_interval_get_text_length(const locator_interval_t* const restrict interval);
+    const locator_t* const locator,
+    const locator_interval_t* const interval);
+uint64_t locator_interval_get_index_length(const locator_interval_t* const interval);
+uint64_t locator_interval_get_text_length(const locator_interval_t* const interval);
 
 /*
  * Text-Locating functions
  */
 uint64_t locator_lookup_interval_index(
-    const locator_t* const restrict locator,
+    const locator_t* const locator,
     const uint64_t index_position);
 locator_interval_t* locator_lookup_interval(
-    const locator_t* const restrict locator,
+    const locator_t* const locator,
     const uint64_t index_position);
 
 /*
  * RL-Locating functions
  */
 uint64_t locator_lookup_rl_interval_index(
-    const locator_t* const restrict locator,
+    const locator_t* const locator,
     const uint64_t rl_index_position);
 locator_interval_t* locator_lookup_rl_interval(
-    const locator_t* const restrict locator,
+    const locator_t* const locator,
     const uint64_t rl_index_position);
 
 /*
@@ -126,19 +126,19 @@ locator_interval_t* locator_lookup_rl_interval(
  */
 // [Direct Locator] (Position-to-location mapping)
 void locator_map(
-    const locator_t* const restrict locator,
+    const locator_t* const locator,
     const uint64_t index_position,
-    location_t* const restrict location);
+    location_t* const location);
 // [Inverse Locator] (Location-to-position mapping)
 locator_interval_t* locator_inverse_map(
-    locator_t* const restrict locator,
-    const uint8_t* const restrict tag,
+    locator_t* const locator,
+    const uint8_t* const tag,
     const strand_t strand,
     const bs_strand_t bs_strand,
     const uint64_t text_position);
 uint64_t locator_inverse_map_position(
-    locator_t* const restrict locator,
-    const uint8_t* const restrict tag,
+    locator_t* const locator,
+    const uint8_t* const tag,
     const strand_t strand,
     const bs_strand_t bs_strand,
     const uint64_t text_position);
@@ -148,17 +148,17 @@ uint64_t locator_inverse_map_position(
  * Display
  */
 void locator_interval_print(
-    FILE* const restrict stream,
-    locator_interval_t* const restrict interval,
-    const char* const restrict interval_tag);
+    FILE* const stream,
+    locator_interval_t* const interval,
+    const char* const interval_tag);
 void locator_print_summary(
-    FILE* const restrict stream,
+    FILE* const stream,
     const uint64_t num_intervals,
     const uint64_t num_tags,
     const uint64_t tags_buffer_size);
 void locator_print(
-    FILE* const restrict stream,
-    const locator_t* const restrict locator,
+    FILE* const stream,
+    const locator_t* const locator,
     const bool display_intervals);
 
 #endif /* LOCATOR_H_ */

@@ -14,10 +14,10 @@
  * RL-Translate CIGAR-Match
  */
 void match_align_rl_translate_cigar_match(
-    cigar_element_t** const restrict cigar_buffer,
+    cigar_element_t** const cigar_buffer,
     const uint64_t rl_match_length,
-    const uint32_t* const restrict rl_key_runs,
-    const uint32_t* const restrict rl_text_runs,
+    const uint32_t* const rl_key_runs,
+    const uint32_t* const rl_text_runs,
     uint64_t rl_key_pos,
     uint64_t rl_text_pos,
     const bool left_gap_alignment) {
@@ -60,16 +60,16 @@ void match_align_rl_translate_cigar_match(
  * RL-Translate CIGAR
  */
 void match_align_rl_translate_region_cigar(
-    region_matching_t* const restrict region_matching,
-    match_align_input_t* const restrict align_input,
+    region_matching_t* const region_matching,
+    match_align_input_t* const align_input,
     const bool left_gap_alignment,
-    vector_t* const restrict cigar_vector) {
+    vector_t* const cigar_vector) {
   // Allocate Translated CIGAR
   const uint64_t rl_match_length = region_matching->key_end-region_matching->key_begin;
   const uint64_t cigar_offset = vector_get_used(cigar_vector);
   vector_reserve_additional(cigar_vector,2*rl_match_length);
   cigar_element_t* cigar_buffer = vector_get_free_elm(cigar_vector,cigar_element_t); // Sentinel
-  cigar_element_t* const restrict cigar_buffer_base = cigar_buffer;
+  cigar_element_t* const cigar_buffer_base = cigar_buffer;
   cigar_buffer->type = cigar_null; // Trick
   // Translate all match-CIGAR element
   match_align_rl_translate_cigar_match(

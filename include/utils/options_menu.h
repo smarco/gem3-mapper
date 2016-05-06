@@ -29,19 +29,19 @@ typedef struct {
   char* description;                     // Brief description
 } option_t;
 
-uint64_t options_get_num_options(const option_t* const restrict options_menu);
-struct option* options_adaptor_getopt(const option_t* const restrict options_menu);
-string_t* options_adaptor_getopt_short(const option_t* const restrict options_menu);
+uint64_t options_get_num_options(const option_t* const options_menu);
+struct option* options_adaptor_getopt(const option_t* const options_menu);
+string_t* options_adaptor_getopt_short(const option_t* const options_menu);
 void options_fprint_menu(
-    FILE* const restrict stream,
-    const option_t* const restrict options_menu,
+    FILE* const stream,
+    const option_t* const options_menu,
     char* groups_menu[],
     const bool print_description,
     const option_visibility_t visibility_level);
 
 #define GEM_OPTIONS_ITERATE_BEGIN(tool_options,option_id) \
   struct option* __getopt = gt_options_adaptor_getopt(tool_options); \
-  gt_string* const restrict __short_getopt = gt_options_adaptor_getopt_short(tool_options); \
+  gt_string* const __short_getopt = gt_options_adaptor_getopt_short(tool_options); \
   int option_id, option_index; \
   while (true) { \
     /* Get option &  Select case */ \

@@ -38,21 +38,21 @@ typedef struct {
  * Init SWG Query Profile
  */
 void align_swg_query_profile_init(
-    swg_query_profile_t* const restrict swg_query_profile,
+    swg_query_profile_t* const swg_query_profile,
     const swg_penalties_t* swg_penalties,
     const uint64_t max_expected_key_length,
-    mm_stack_t* const restrict mm_stack);
+    mm_stack_t* const mm_stack);
 bool align_swg_query_profile_compile_uint8(
-    swg_query_profile_t* const restrict swg_query_profile,
+    swg_query_profile_t* const swg_query_profile,
     const swg_penalties_t* swg_penalties,
-    const uint8_t* const restrict key,
+    const uint8_t* const key,
     const uint64_t key_length,
-    mm_stack_t* const restrict mm_stack);
+    mm_stack_t* const mm_stack);
 bool align_swg_query_profile_compile_int16(
-    swg_query_profile_t* const restrict swg_query_profile,
+    swg_query_profile_t* const swg_query_profile,
     const swg_penalties_t* swg_penalties,
-    const uint8_t* const restrict key,
+    const uint8_t* const key,
     const uint64_t key_length,
-    mm_stack_t* const restrict mm_stack);
+    mm_stack_t* const mm_stack);
 
 #endif /* ALIGN_SWG_SIMD_H_ */

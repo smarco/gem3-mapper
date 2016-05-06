@@ -55,36 +55,36 @@ typedef struct {
  * Setup
  */
 paired_matches_t* paired_matches_new();
-void paired_matches_configure(paired_matches_t* const restrict paired_matches,text_collection_t* const restrict text_collection);
-void paired_matches_clear(paired_matches_t* const restrict paired_matches,const bool clear_matches);
-void paired_matches_delete(paired_matches_t* const restrict paired_matches);
+void paired_matches_configure(paired_matches_t* const paired_matches,text_collection_t* const text_collection);
+void paired_matches_clear(paired_matches_t* const paired_matches,const bool clear_matches);
+void paired_matches_delete(paired_matches_t* const paired_matches);
 
 /*
  * Accessors
  */
-bool paired_matches_is_mapped(const paired_matches_t* const restrict paired_matches);
-uint64_t paired_matches_get_num_maps(const paired_matches_t* const restrict paired_matches);
-paired_map_t* paired_matches_get_maps(paired_matches_t* const restrict paired_matches);
+bool paired_matches_is_mapped(const paired_matches_t* const paired_matches);
+uint64_t paired_matches_get_num_maps(const paired_matches_t* const paired_matches);
+paired_map_t* paired_matches_get_maps(paired_matches_t* const paired_matches);
 
-uint64_t paired_matches_counters_get_count(paired_matches_t* const restrict paired_matches,const uint64_t distance);
-uint64_t paired_matches_counters_get_total_count(paired_matches_t* const restrict paired_matches);
+uint64_t paired_matches_counters_get_count(paired_matches_t* const paired_matches,const uint64_t distance);
+uint64_t paired_matches_counters_get_total_count(paired_matches_t* const paired_matches);
 
-uint64_t paired_matches_get_first_stratum_matches(paired_matches_t* const restrict paired_matches);
+uint64_t paired_matches_get_first_stratum_matches(paired_matches_t* const paired_matches);
 
 match_trace_t* paired_map_get_match_end1(
-    paired_matches_t* const restrict paired_matches,
-    const paired_map_t* const restrict paired_map);
+    paired_matches_t* const paired_matches,
+    const paired_map_t* const paired_map);
 match_trace_t* paired_map_get_match_end2(
-    paired_matches_t* const restrict paired_matches,
-    const paired_map_t* const restrict paired_map);
+    paired_matches_t* const paired_matches,
+    const paired_map_t* const paired_map);
 
 /*
  * Adding Paired-Matches
  */
 void paired_matches_add(
-    paired_matches_t* const restrict paired_matches,
-    match_trace_t* const restrict match_trace_end1,
-    match_trace_t* const restrict match_trace_end2,
+    paired_matches_t* const paired_matches,
+    match_trace_t* const match_trace_end1,
+    match_trace_t* const match_trace_end2,
     const pair_relation_t pair_relation,
     const pair_orientation_t pair_orientation,
     const pair_layout_t pair_layout,
@@ -95,29 +95,29 @@ void paired_matches_add(
  * Finding Pairs
  */
 void paired_matches_find_pairs(
-    paired_matches_t* const restrict paired_matches,
-    const search_paired_parameters_t* const restrict search_paired_parameters,
-    mapper_stats_t* const restrict mapper_stats);
+    paired_matches_t* const paired_matches,
+    const search_paired_parameters_t* const search_paired_parameters,
+    mapper_stats_t* const mapper_stats);
 void paired_matches_find_discordant_pairs(
-    paired_matches_t* const restrict paired_matches,
-    const search_paired_parameters_t* const restrict search_paired_parameters);
+    paired_matches_t* const paired_matches,
+    const search_paired_parameters_t* const search_paired_parameters);
 
 /*
  * Filters
  */
 void paired_matches_filter_by_mapq(
-    paired_matches_t* const restrict paired_matches,
+    paired_matches_t* const paired_matches,
     const uint8_t mapq_threshold);
 
 /*
  * Sort
  */
-void paired_matches_sort_by_distance(paired_matches_t* const restrict paired_matches);
-void paired_matches_sort_by_mapq_score(paired_matches_t* const restrict paired_matches);
+void paired_matches_sort_by_distance(paired_matches_t* const paired_matches);
+void paired_matches_sort_by_mapq_score(paired_matches_t* const paired_matches);
 
 /*
  * Display
  */
-void paired_matches_print(FILE* const restrict stream,paired_matches_t* const restrict paired_matches);
+void paired_matches_print(FILE* const stream,paired_matches_t* const paired_matches);
 
 #endif /* PAIRED_MATCHES_H_ */

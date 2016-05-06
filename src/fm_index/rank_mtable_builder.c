@@ -13,8 +13,8 @@
  * Write mtable
  */
 void rank_mtable_builder_write(
-    fm_t* const restrict file_manager,
-    rank_mtable_t* const restrict rank_mtable) {
+    fm_t* const file_manager,
+    rank_mtable_t* const rank_mtable) {
   // Write Meta-info
   fm_write_uint64(file_manager,rank_mtable->num_levels);
   fm_write_uint64(file_manager,rank_mtable->table_size);
@@ -27,10 +27,10 @@ void rank_mtable_builder_write(
  * Find minimum matching depth
  */
 void rank_mtable_builder_find_mmd(
-    rank_mtable_t* const restrict rank_mtable,
+    rank_mtable_t* const rank_mtable,
     const uint64_t level,
-    rank_mquery_t* const restrict query,
-    uint64_t* const restrict min_matching_depth) {
+    rank_mquery_t* const query,
+    uint64_t* const min_matching_depth) {
   // Check number of matches
   uint64_t lo, hi;
   rank_mtable_fetch(rank_mtable,query,&lo,&hi);
@@ -62,16 +62,16 @@ void rank_mtable_builder_find_mmd(
  * Fill Rank-MTable
  */
 void rank_mtable_builder_fill_ranks_lo(
-    const bwt_builder_t* const restrict bwt_builder,
-    rank_mtable_t* const restrict rank_mtable,
+    const bwt_builder_t* const bwt_builder,
+    rank_mtable_t* const rank_mtable,
     uint64_t offset_lo,
     const uint64_t lo,
     const uint64_t level,
-    ticker_t* const restrict ticker) {
+    ticker_t* const ticker) {
   // Control recursion level
   if (gem_expect_false(level < rank_mtable->num_levels)) {
     // Get level
-    uint64_t* const restrict rank_level = rank_mtable->sa_ranks_levels[level];
+    uint64_t* const rank_level = rank_mtable->sa_ranks_levels[level];
     // Calculate level offset
     const uint64_t next_level = level+1;
     const uint64_t level_skip = rank_mtable->level_skip[level];
@@ -95,16 +95,16 @@ void rank_mtable_builder_fill_ranks_lo(
   }
 }
 void rank_mtable_builder_fill_ranks_hi(
-    const bwt_builder_t* const restrict bwt_builder,
-    rank_mtable_t* const restrict rank_mtable,
+    const bwt_builder_t* const bwt_builder,
+    rank_mtable_t* const rank_mtable,
     uint64_t offset_hi,
     const uint64_t hi,
     const uint64_t level,
-    ticker_t* const restrict ticker) {
+    ticker_t* const ticker) {
   // Control recursion level
   if (gem_expect_false(level < rank_mtable->num_levels)) {
     // Get level
-    uint64_t* const restrict rank_level = rank_mtable->sa_ranks_levels[level];
+    uint64_t* const rank_level = rank_mtable->sa_ranks_levels[level];
     // Calculate level offset
     const uint64_t next_level = level+1;
     const uint64_t level_skip = rank_mtable->level_skip[level];
@@ -128,9 +128,9 @@ void rank_mtable_builder_fill_ranks_hi(
   }
 }
 void rank_mtable_builder_fill_ranks(
-    const bwt_builder_t* const restrict bwt_builder,
-    rank_mtable_t* const restrict rank_mtable,
-    ticker_t* const restrict ticker) {
+    const bwt_builder_t* const bwt_builder,
+    rank_mtable_t* const rank_mtable,
+    ticker_t* const ticker) {
   rank_mtable->sa_ranks_levels[0][1] = bwt_builder_get_length(bwt_builder); // Init_hi
   rank_mtable_builder_fill_ranks_hi(bwt_builder,rank_mtable,1,bwt_builder_get_length(bwt_builder),1,ticker);
   rank_mtable->sa_ranks_levels[0][0] = 0; // Init_lo
@@ -147,16 +147,16 @@ void rank_mtable_builder_fill_ranks(
  * Fill Rank-MTable
  */
 void rank_mtable_reverse_builder_fill_ranks_lo(
-    const bwt_reverse_builder_t* const restrict bwt_reverse_builder,
-    rank_mtable_t* const restrict rank_mtable,
+    const bwt_reverse_builder_t* const bwt_reverse_builder,
+    rank_mtable_t* const rank_mtable,
     uint64_t offset_lo,
     const uint64_t lo,
     const uint64_t level,
-    ticker_t* const restrict ticker) {
+    ticker_t* const ticker) {
   // Control recursion level
   if (gem_expect_false(level < rank_mtable->num_levels)) {
     // Get level
-    uint64_t* const restrict rank_level = rank_mtable->sa_ranks_levels[level];
+    uint64_t* const rank_level = rank_mtable->sa_ranks_levels[level];
     // Calculate level offset
     const uint64_t next_level = level+1;
     const uint64_t level_skip = rank_mtable->level_skip[level];
@@ -184,16 +184,16 @@ void rank_mtable_reverse_builder_fill_ranks_lo(
   }
 }
 void rank_mtable_reverse_builder_fill_ranks_hi(
-    const bwt_reverse_builder_t* const restrict bwt_reverse_builder,
-    rank_mtable_t* const restrict rank_mtable,
+    const bwt_reverse_builder_t* const bwt_reverse_builder,
+    rank_mtable_t* const rank_mtable,
     uint64_t offset_hi,
     const uint64_t hi,
     const uint64_t level,
-    ticker_t* const restrict ticker) {
+    ticker_t* const ticker) {
   // Control recursion level
   if (gem_expect_false(level < rank_mtable->num_levels)) {
     // Get level
-    uint64_t* const restrict rank_level = rank_mtable->sa_ranks_levels[level];
+    uint64_t* const rank_level = rank_mtable->sa_ranks_levels[level];
     // Calculate level offset
     const uint64_t next_level = level+1;
     const uint64_t level_skip = rank_mtable->level_skip[level];
@@ -221,9 +221,9 @@ void rank_mtable_reverse_builder_fill_ranks_hi(
   }
 }
 void rank_mtable_reverse_builder_fill_ranks(
-    const bwt_reverse_builder_t* const restrict bwt_reverse_builder,
-    rank_mtable_t* const restrict rank_mtable,
-    ticker_t* const restrict ticker) {
+    const bwt_reverse_builder_t* const bwt_reverse_builder,
+    rank_mtable_t* const rank_mtable,
+    ticker_t* const ticker) {
   const uint64_t bwt_length = bwt_reverse_builder_get_length(bwt_reverse_builder);
   rank_mtable->sa_ranks_levels[0][1] = bwt_length; // Init_hi
   rank_mtable_reverse_builder_fill_ranks_hi(bwt_reverse_builder,rank_mtable,1,bwt_length,1,ticker);
@@ -241,11 +241,11 @@ void rank_mtable_reverse_builder_fill_ranks(
  * Generate Rank-MTable
  */
 rank_mtable_t* rank_mtable_builder_generate(
-    const bwt_builder_t* const restrict bwt_builder,
-    const bwt_reverse_builder_t* const restrict bwt_reverse_builder,
+    const bwt_builder_t* const bwt_builder,
+    const bwt_reverse_builder_t* const bwt_reverse_builder,
     const bool verbose) {
   // Alloc
-  rank_mtable_t* const restrict rank_mtable = mm_alloc(rank_mtable_t);
+  rank_mtable_t* const rank_mtable = mm_alloc(rank_mtable_t);
   // Set Meta-Inf
   rank_mtable->num_levels=RANK_MTABLE_LEVELS;
   rank_mtable->table_size=RANK_MTABLE_SIZE(RANK_MTABLE_SEARCH_DEPTH);
@@ -270,19 +270,19 @@ rank_mtable_t* rank_mtable_builder_generate(
   return rank_mtable;
 }
 rank_mtable_t* rank_mtable_builder_new(
-    const bwt_builder_t* const restrict bwt_builder,
+    const bwt_builder_t* const bwt_builder,
     const bool verbose) {
   return rank_mtable_builder_generate(bwt_builder,NULL,verbose);
 }
 rank_mtable_t* rank_mtable_reverse_builder_new(
-    const bwt_reverse_builder_t* const restrict bwt_reverse_builder,
+    const bwt_reverse_builder_t* const bwt_reverse_builder,
     const bool verbose) {
   return rank_mtable_builder_generate(NULL,bwt_reverse_builder,verbose);
 }
 /*
  * Delete
  */
-void rank_mtable_builder_delete(rank_mtable_t* const restrict rank_mtable) {
+void rank_mtable_builder_delete(rank_mtable_t* const rank_mtable) {
   mm_free(rank_mtable->sa_ranks_levels[0]);
   mm_free(rank_mtable->sa_ranks_levels);
   mm_free(rank_mtable->level_skip);

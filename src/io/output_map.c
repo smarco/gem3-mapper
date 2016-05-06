@@ -23,14 +23,14 @@
 /*
  * Setup
  */
-void output_map_parameters_set_defaults(output_map_parameters_t* const restrict output_map_parameters) {
+void output_map_parameters_set_defaults(output_map_parameters_t* const output_map_parameters) {
   output_map_parameters->format_version = map_format_v2;
 }
 /*
  * Output MAP
  */
 void output_map_print_cigar_mapv2(
-    buffered_output_file_t* const restrict buffered_output_file,
+    buffered_output_file_t* const buffered_output_file,
     const cigar_element_t* cigar_array,
     const uint64_t cigar_length) {
   // Reserve (upper-bound)
@@ -69,7 +69,7 @@ void output_map_print_cigar_mapv2(
   }
 }
 void output_map_print_cigar_mapv3(
-    buffered_output_file_t* const restrict buffered_output_file,
+    buffered_output_file_t* const buffered_output_file,
     const cigar_element_t* cigar_array,
     const uint64_t cigar_length) {
   // Reserve (upper-bound)
@@ -118,9 +118,9 @@ void output_map_print_cigar_mapv3(
   }
 }
 void output_map_print_match(
-    buffered_output_file_t* const restrict buffered_output_file,
-    const matches_t* const restrict matches,
-    const match_trace_t* const restrict match_trace,
+    buffered_output_file_t* const buffered_output_file,
+    const matches_t* const matches,
+    const match_trace_t* const match_trace,
     const bool print_mapq,
     const output_map_format_t output_map_format) {
   // Reserve
@@ -136,7 +136,7 @@ void output_map_print_match(
   bofprintf_uint64(buffered_output_file,match_trace->text_position+1); /* Base-1 */
   // Print CIGAR
   bofprintf_char(buffered_output_file,':');
-  const cigar_element_t* const restrict cigar_buffer = match_trace_get_cigar_buffer(matches,match_trace);
+  const cigar_element_t* const cigar_buffer = match_trace_get_cigar_buffer(matches,match_trace);
   const uint64_t cigar_length = match_trace_get_cigar_length(match_trace);
   switch (output_map_format) {
     case map_format_v2:
@@ -157,20 +157,20 @@ void output_map_print_match(
   }
 }
 void output_map_print_paired_match(
-    buffered_output_file_t* const restrict buffered_output_file,
-    const matches_t* const restrict matches_end1,
-    const matches_t* const restrict matches_end2,
-    const paired_map_t* const restrict paired_map,
+    buffered_output_file_t* const buffered_output_file,
+    const matches_t* const matches_end1,
+    const matches_t* const matches_end2,
+    const paired_map_t* const paired_map,
     const output_map_format_t output_map_format) {
   // Map end/1
-  match_trace_t* const restrict match_end1 = matches_get_match_trace(matches_end1,paired_map->match_end1_offset);
+  match_trace_t* const match_end1 = matches_get_match_trace(matches_end1,paired_map->match_end1_offset);
   output_map_print_match(buffered_output_file,matches_end1,match_end1,false,output_map_format);
   buffered_output_file_reserve(buffered_output_file,2);
   // Paired-end Separator
   bofprintf_char(buffered_output_file,':');
   bofprintf_char(buffered_output_file,':');
   // Map end/2
-  match_trace_t* const restrict match_end2 = matches_get_match_trace(matches_end2,paired_map->match_end2_offset);
+  match_trace_t* const match_end2 = matches_get_match_trace(matches_end2,paired_map->match_end2_offset);
   output_map_print_match(buffered_output_file,matches_end2,match_end2,false,output_map_format);
   // MAPQ Score Separator
   bofprintf_char(buffered_output_file,':');
@@ -183,14 +183,14 @@ void output_map_print_paired_match(
  * MAP Alignment pretty
  */
 void output_map_alignment_pretty(
-    FILE* const restrict stream,
-    match_trace_t* const restrict match_trace,
-    matches_t* const restrict matches,
-    uint8_t* const restrict key,
+    FILE* const stream,
+    match_trace_t* const match_trace,
+    matches_t* const matches,
+    uint8_t* const key,
     const uint64_t key_length,
-    uint8_t* const restrict text,
+    uint8_t* const text,
     const uint64_t text_length,
-    mm_stack_t* const restrict mm_stack) {
+    mm_stack_t* const mm_stack) {
   tab_fprintf(stream,"%s:%"PRIu64":%c:",match_trace->sequence_name,
       match_trace->text_position,(match_trace->strand==Forward)?'+':'-');
   match_alignment_print_pretty(stream,&match_trace->match_alignment,
@@ -200,7 +200,7 @@ void output_map_alignment_pretty(
  * Separator
  */
 void output_map_print_separator(
-    buffered_output_file_t* const restrict buffered_output_file,
+    buffered_output_file_t* const buffered_output_file,
     const char separator) {
   buffered_output_file_reserve(buffered_output_file,1);
   bofprintf_char(buffered_output_file,separator);
@@ -209,8 +209,8 @@ void output_map_print_separator(
  * MAP Tag
  */
 void output_map_single_end_print_tag(
-    buffered_output_file_t* const restrict buffered_output_file,
-    sequence_t* const restrict seq_read) {
+    buffered_output_file_t* const buffered_output_file,
+    sequence_t* const seq_read) {
   // Print Tag + End-Info
   const uint64_t tag_length = string_get_length(&seq_read->tag);
   buffered_output_file_reserve(buffered_output_file,tag_length+3);
@@ -244,9 +244,9 @@ void output_map_single_end_print_tag(
   }
 }
 void output_map_paired_end_print_tag(
-    buffered_output_file_t* const restrict buffered_output_file,
-    sequence_t* const restrict seq_read_end1,
-    sequence_t* const restrict seq_read_end2) {
+    buffered_output_file_t* const buffered_output_file,
+    sequence_t* const seq_read_end1,
+    sequence_t* const seq_read_end2) {
   // TODO Redefine behavior in case of mismatching tags
   // Print Tag + End-Info
   const uint64_t tag_length = string_get_length(&seq_read_end1->tag);
@@ -269,8 +269,8 @@ void output_map_paired_end_print_tag(
  * MAP Sequence Read/Qualities
  */
 void output_map_single_end_print_read__qualities(
-    buffered_output_file_t* const restrict buffered_output_file,
-    sequence_t* const restrict seq_read) {
+    buffered_output_file_t* const buffered_output_file,
+    sequence_t* const seq_read) {
   // Select proper case
   const uint64_t read_length = string_get_length(&seq_read->read);
   if (sequence_has_qualities(seq_read)) {
@@ -284,9 +284,9 @@ void output_map_single_end_print_read__qualities(
   }
 }
 void output_map_paired_end_print_read__qualities(
-    buffered_output_file_t* const restrict buffered_output_file,
-    sequence_t* const restrict seq_read_end1,
-    sequence_t* const restrict seq_read_end2) {
+    buffered_output_file_t* const buffered_output_file,
+    sequence_t* const seq_read_end1,
+    sequence_t* const seq_read_end2) {
   // Select proper case
   const uint64_t read_length_end1 = string_get_length(&seq_read_end1->read);
   const uint64_t read_length_end2 = string_get_length(&seq_read_end2->read);
@@ -310,7 +310,7 @@ void output_map_paired_end_print_read__qualities(
  * MAP Counters
  */
 void output_map_print_counters_account_mcs(
-    buffered_output_file_t* const restrict buffered_output_file,
+    buffered_output_file_t* const buffered_output_file,
     const uint64_t current_counter_pos,
     const uint64_t num_zeros,
     const bool compact) {
@@ -332,8 +332,8 @@ void output_map_print_counters_account_mcs(
   }
 }
 void output_map_print_counters(
-    buffered_output_file_t* const restrict buffered_output_file,
-    matches_counters_t* const restrict matches_counter,
+    buffered_output_file_t* const buffered_output_file,
+    matches_counters_t* const matches_counter,
     const uint64_t mcs,
     const bool compact) {
   const uint64_t num_counters = matches_counters_get_num_counters(matches_counter);
@@ -389,10 +389,10 @@ void output_map_print_counters(
  * MAP SingleEnd
  */
 void output_map_single_end_matches(
-    buffered_output_file_t* const restrict buffered_output_file,
-    archive_search_t* const restrict archive_search,
-    matches_t* const restrict matches,
-    output_map_parameters_t* const restrict output_map_parameters) {
+    buffered_output_file_t* const buffered_output_file,
+    archive_search_t* const archive_search,
+    matches_t* const matches,
+    output_map_parameters_t* const output_map_parameters) {
   PROF_START_TIMER(GP_OUTPUT_MAP_SE);
   // Print TAG
   output_map_single_end_print_tag(buffered_output_file,&archive_search->sequence);
@@ -423,14 +423,14 @@ void output_map_single_end_matches(
  * MAP PairedEnd
  */
 void output_map_paired_end_matches(
-    buffered_output_file_t* const restrict buffered_output_file,
-    archive_search_t* const restrict archive_search_end1,
-    archive_search_t* const restrict archive_search_end2,
-    paired_matches_t* const restrict paired_matches,
-    output_map_parameters_t* const restrict output_map_parameters) {
+    buffered_output_file_t* const buffered_output_file,
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2,
+    paired_matches_t* const paired_matches,
+    output_map_parameters_t* const output_map_parameters) {
   PROF_START_TIMER(GP_OUTPUT_MAP_PE);
-  matches_t* const restrict matches_end1 = paired_matches->matches_end1;
-  matches_t* const restrict matches_end2 = paired_matches->matches_end2;
+  matches_t* const matches_end1 = paired_matches->matches_end1;
+  matches_t* const matches_end2 = paired_matches->matches_end2;
   if (!paired_matches_is_mapped(paired_matches)) {
     output_map_single_end_matches(buffered_output_file,archive_search_end1,matches_end1,output_map_parameters);
     output_map_single_end_matches(buffered_output_file,archive_search_end2,matches_end2,output_map_parameters);
@@ -451,7 +451,7 @@ void output_map_paired_end_matches(
     } else {
       // Print PAIRED MATCHES (Traverse all matches (Position-matches))
       const uint64_t num_paired_map = paired_matches_get_num_maps(paired_matches);
-      paired_map_t* const restrict paired_map = paired_matches_get_maps(paired_matches);
+      paired_map_t* const paired_map = paired_matches_get_maps(paired_matches);
       uint64_t i;
       for (i=0;i<num_paired_map;++i) {
         // Separator
@@ -469,8 +469,8 @@ void output_map_paired_end_matches(
  * FASTA/FASTQ
  */
 void output_fastq(
-    buffered_output_file_t* const restrict buffered_output_file,
-    sequence_t* const restrict sequence) {
+    buffered_output_file_t* const buffered_output_file,
+    sequence_t* const sequence) {
   // Print TAG
   buffered_output_file_reserve(buffered_output_file,1);
   output_map_print_separator(buffered_output_file,sequence->has_qualities?'@':'>');

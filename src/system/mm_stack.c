@@ -39,25 +39,25 @@
 /*
  * Segment handling
  */
-void mm_stack_segment_allocate(mm_stack_t* const restrict mm_stack,mm_stack_segment_t* const restrict stack_segment) {
+void mm_stack_segment_allocate(mm_stack_t* const mm_stack,mm_stack_segment_t* const stack_segment) {
   stack_segment->slab_unit = mm_slab_request(mm_stack->mm_slab);
   stack_segment->memory = stack_segment->slab_unit->memory;
   stack_segment->memory_available = mm_stack->segment_size;
 }
-void mm_stack_segment_reset(mm_stack_t* const restrict mm_stack,mm_stack_segment_t* const restrict stack_segment) {
+void mm_stack_segment_reset(mm_stack_t* const mm_stack,mm_stack_segment_t* const stack_segment) {
   stack_segment->memory = stack_segment->slab_unit->memory;
   stack_segment->memory_available = mm_stack->segment_size;
 }
-void mm_stack_segment_free(mm_stack_t* const restrict mm_stack,mm_stack_segment_t* const restrict stack_segment) {
+void mm_stack_segment_free(mm_stack_t* const mm_stack,mm_stack_segment_t* const stack_segment) {
   mm_slab_put(mm_stack->mm_slab,stack_segment->slab_unit);
 }
 /*
  * Setup
  */
-mm_stack_t* mm_stack_new(mm_slab_t* const restrict mm_slab) {
+mm_stack_t* mm_stack_new(mm_slab_t* const mm_slab) {
   static int no = 0;
   // Allocate handler
-  mm_stack_t* const restrict mm_stack = mm_alloc(mm_stack_t);
+  mm_stack_t* const mm_stack = mm_alloc(mm_stack_t);
   mm_stack->id = no++;
   gem_cond_log(MM_STACK_LOG,"[GEM]> mm_stack(%"PRIu64").new()",mm_stack->id);
   // Initialize slab
@@ -76,7 +76,7 @@ mm_stack_t* mm_stack_new(mm_slab_t* const restrict mm_slab) {
   // Return
   return mm_stack;
 }
-void mm_stack_reap_segments(mm_stack_t* const restrict mm_stack,const uint64_t resident_segments) {
+void mm_stack_reap_segments(mm_stack_t* const mm_stack,const uint64_t resident_segments) {
   mm_slab_lock(mm_stack->mm_slab);
   VECTOR_ITERATE_OFFSET(mm_stack->segments,stack_segment,position,resident_segments,mm_stack_segment_t) {
     mm_stack_segment_free(mm_stack,stack_segment);
@@ -84,14 +84,14 @@ void mm_stack_reap_segments(mm_stack_t* const restrict mm_stack,const uint64_t r
   mm_slab_unlock(mm_stack->mm_slab);
   vector_set_used(mm_stack->segments,resident_segments); // Set segment available
 }
-void mm_stack_clear(mm_stack_t* const restrict mm_stack) {
+void mm_stack_clear(mm_stack_t* const mm_stack) {
   // Clear all states
   vector_clear(mm_stack->state);
   // Clear first Segment
   mm_stack_segment_reset(mm_stack,vector_get_elm(mm_stack->segments,0,mm_stack_segment_t));
   mm_stack->current_segment = 0; // Set current segment
 }
-void mm_stack_delete(mm_stack_t* const restrict mm_stack) {
+void mm_stack_delete(mm_stack_t* const mm_stack) {
   // Delete Slab
   mm_slab_lock(mm_stack->mm_slab);
   VECTOR_ITERATE(mm_stack->segments,stack_segment,p1,mm_stack_segment_t) {
@@ -112,24 +112,24 @@ void mm_stack_delete(mm_stack_t* const restrict mm_stack) {
 /*
  * State
  */
-void mm_stack_push_state(mm_stack_t* const restrict mm_stack) {
+void mm_stack_push_state(mm_stack_t* const mm_stack) {
   // Allocate new state
   mm_stack_state_t* state;
   vector_alloc_new(mm_stack->state,mm_stack_state_t,state);
   // Setup state
-  mm_stack_segment_t* const restrict current_segment = vector_get_elm(
+  mm_stack_segment_t* const current_segment = vector_get_elm(
       mm_stack->segments,mm_stack->current_segment,mm_stack_segment_t);
   state->memory = current_segment->memory;
   state->memory_available = current_segment->memory_available;
   state->current_segment = mm_stack->current_segment;
   state->malloc_requests = vector_get_used(mm_stack->malloc_requests);
 }
-void mm_stack_pop_state(mm_stack_t* const restrict mm_stack) {
+void mm_stack_pop_state(mm_stack_t* const mm_stack) {
   // Pop state
-  mm_stack_state_t* const restrict state = vector_get_last_elm(mm_stack->state,mm_stack_state_t);
+  mm_stack_state_t* const state = vector_get_last_elm(mm_stack->state,mm_stack_state_t);
   vector_dec_used(mm_stack->state);
   // Restore state
-  mm_stack_segment_t* const restrict current_segment = vector_get_elm(
+  mm_stack_segment_t* const current_segment = vector_get_elm(
       mm_stack->segments,state->current_segment,mm_stack_segment_t);
   current_segment->memory = state->memory; // Memory
   current_segment->memory_available = state->memory_available; // Memory available
@@ -143,14 +143,14 @@ void mm_stack_pop_state(mm_stack_t* const restrict mm_stack) {
 /*
  * Align stack memory
  */
-void mm_stack_skip_align(mm_stack_t* const restrict mm_stack,const uint64_t num_bytes) {
+void mm_stack_skip_align(mm_stack_t* const mm_stack,const uint64_t num_bytes) {
   GEM_CHECK_ZERO(num_bytes);
   if (gem_expect_true(num_bytes > 1)) {
     // Get last stack segment
-    mm_stack_segment_t* const restrict current_segment =
+    mm_stack_segment_t* const current_segment =
         vector_get_elm(mm_stack->segments,mm_stack->current_segment,mm_stack_segment_t);
     // Get current memory position
-    void* const restrict current_memory = current_segment->memory + (num_bytes-1);
+    void* const current_memory = current_segment->memory + (num_bytes-1);
     // Calculate the number of bytes to skip
     const uint64_t num_bytes_to_skip = (num_bytes-1) - (MM_CAST_ADDR(current_memory)%num_bytes);
     mm_stack_memory_allocate(mm_stack,num_bytes_to_skip,false);
@@ -159,7 +159,7 @@ void mm_stack_skip_align(mm_stack_t* const restrict mm_stack,const uint64_t num_
 /*
  * Add new segment
  */
-mm_stack_segment_t* mm_stack_add_segment(mm_stack_t* const restrict mm_stack) {
+mm_stack_segment_t* mm_stack_add_segment(mm_stack_t* const mm_stack) {
   mm_stack_segment_t* stack_segment;
   // Increment last segment
   const uint64_t total_segments = vector_get_used(mm_stack->segments);
@@ -185,7 +185,7 @@ mm_stack_segment_t* mm_stack_add_segment(mm_stack_t* const restrict mm_stack) {
  */
 #ifdef MM_STACK_DEBUG
 void* mm_stack_memory_allocate(
-    mm_stack_t* const restrict mm_stack,
+    mm_stack_t* const mm_stack,
     const uint64_t num_bytes,
     const bool zero_mem) {
   // Issue malloc request
@@ -200,7 +200,7 @@ void* mm_stack_memory_allocate(
 }
 #else
 void* mm_stack_memory_allocate(
-    mm_stack_t* const restrict mm_stack,
+    mm_stack_t* const mm_stack,
     const uint64_t num_bytes,
     const bool zero_mem) {
   // Get last stack segment
@@ -224,7 +224,7 @@ void* mm_stack_memory_allocate(
     }
   }
   // Serve Memory Request
-  void* const restrict memory = current_segment->memory;
+  void* const memory = current_segment->memory;
   current_segment->memory += num_bytes;
   current_segment->memory_available -= num_bytes;
   if (gem_expect_false(zero_mem)) memset(memory,0,num_bytes); // Set zero

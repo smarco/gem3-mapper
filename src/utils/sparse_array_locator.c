@@ -36,9 +36,9 @@
 /*
  * Loader/Setup
  */
-sparse_array_locator_t* sparse_array_locator_read(fm_t* const restrict file_manager) {
+sparse_array_locator_t* sparse_array_locator_read(fm_t* const file_manager) {
   // Allocate handler
-  sparse_array_locator_t* const restrict locator = mm_alloc(sparse_array_locator_t);
+  sparse_array_locator_t* const locator = mm_alloc(sparse_array_locator_t);
   // Meta-Data
   locator->total_length = fm_read_uint64(file_manager);
   locator->total_size = fm_read_uint64(file_manager);
@@ -51,9 +51,9 @@ sparse_array_locator_t* sparse_array_locator_read(fm_t* const restrict file_mana
   // Return
   return locator;
 }
-sparse_array_locator_t* sparse_array_locator_read_mem(mm_t* const restrict memory_manager) {
+sparse_array_locator_t* sparse_array_locator_read_mem(mm_t* const memory_manager) {
   // Allocate handler
-  sparse_array_locator_t* const restrict locator = mm_alloc(sparse_array_locator_t);
+  sparse_array_locator_t* const locator = mm_alloc(sparse_array_locator_t);
   // Meta-Data
   locator->total_length = mm_read_uint64(memory_manager);
   locator->total_size = mm_read_uint64(memory_manager);
@@ -66,7 +66,7 @@ sparse_array_locator_t* sparse_array_locator_read_mem(mm_t* const restrict memor
   // Return
   return locator;
 }
-void sparse_array_locator_delete(sparse_array_locator_t* const restrict locator) {
+void sparse_array_locator_delete(sparse_array_locator_t* const locator) {
   if (locator->mm!=NULL) {
     if (locator->mm==(mm_t*)(-1)) {
       mm_free(locator->mayor_counters);
@@ -80,7 +80,7 @@ void sparse_array_locator_delete(sparse_array_locator_t* const restrict locator)
 /*
  * Accessors
  */
-uint64_t sparse_array_locator_get_size(sparse_array_locator_t* const restrict locator) {
+uint64_t sparse_array_locator_get_size(sparse_array_locator_t* const locator) {
   return locator->total_size;
 }
 #define SPARSE_ARRAY_LOCATOR_GET_MINOR_BLOCK_LOCATION(position,block_pos,block_mod) \
@@ -91,33 +91,33 @@ uint64_t sparse_array_locator_get_size(sparse_array_locator_t* const restrict lo
   /* Locate Mayor Block */ \
   const uint64_t mayor_block_pos = position / SAL_MAYOR_BLOCK_LENGTH
 bool sparse_array_locator_is_marked(
-    sparse_array_locator_t* const restrict locator,
+    sparse_array_locator_t* const locator,
     const uint64_t position) {
   // Locate Block
   SPARSE_ARRAY_LOCATOR_GET_MINOR_BLOCK_LOCATION(position,block_pos,block_mod);
   return (locator->bitmap[block_pos] & (UINT64_ONE_MASK << block_mod));
 }
 uint64_t sparse_array_locator_get_erank(
-    sparse_array_locator_t* const restrict locator,
+    sparse_array_locator_t* const locator,
     const uint64_t position) {
   SPARSE_ARRAY_LOCATOR_GET_MINOR_BLOCK_LOCATION(position,block_pos,block_mod);
-  const uint64_t* const restrict block = locator->bitmap + block_pos;
-  const uint16_t* const restrict block_counter = ((uint16_t*)block) + 3;
+  const uint64_t* const block = locator->bitmap + block_pos;
+  const uint16_t* const block_counter = ((uint16_t*)block) + 3;
   const uint64_t block_masked = *block & uint64_mask_ones[block_mod];
   SPARSE_ARRAY_LOCATOR_GET_MAYOR_BLOCK_LOCATION(position,mayor_block);
   return locator->mayor_counters[mayor_block] +
       ((gem_expect_true(block_masked)) ? POPCOUNT_64(block_masked) + *block_counter : *block_counter);
 }
 bool sparse_array_locator_get_erank_if_marked(
-    sparse_array_locator_t* const restrict locator,
+    sparse_array_locator_t* const locator,
     const uint64_t position,
-    uint64_t* const restrict erank) {
+    uint64_t* const erank) {
   SPARSE_ARRAY_LOCATOR_GET_MINOR_BLOCK_LOCATION(position,block_pos,block_mod);
-  const uint64_t* const restrict block_addr = locator->bitmap + block_pos;
+  const uint64_t* const block_addr = locator->bitmap + block_pos;
   const uint64_t block = *block_addr;
   // Check if marked
   if ((block & (UINT64_ONE_MASK << block_mod))) {
-    const uint16_t* const restrict block_counter = ((uint16_t*)block_addr) + 3;
+    const uint16_t* const block_counter = ((uint16_t*)block_addr) + 3;
     const uint64_t block_masked = block & uint64_erank_mask(block_mod);
     SPARSE_ARRAY_LOCATOR_GET_MAYOR_BLOCK_LOCATION(position,mayor_block);
     *erank = locator->mayor_counters[mayor_block] +
@@ -128,14 +128,14 @@ bool sparse_array_locator_get_erank_if_marked(
   }
 }
 bool sparse_array_locator_get_erank__marked(
-    sparse_array_locator_t* const restrict locator,
+    sparse_array_locator_t* const locator,
     const uint64_t position,
-    uint64_t* const restrict erank) {
+    uint64_t* const erank) {
   SPARSE_ARRAY_LOCATOR_GET_MINOR_BLOCK_LOCATION(position,block_pos,block_mod);
-  const uint64_t* const restrict block_addr = locator->bitmap + block_pos;
+  const uint64_t* const block_addr = locator->bitmap + block_pos;
   const uint64_t block = *block_addr;
   // Check if marked
-  const uint16_t* const restrict block_counter = ((uint16_t*)block_addr) + 3;
+  const uint16_t* const block_counter = ((uint16_t*)block_addr) + 3;
   const uint64_t block_masked = block & uint64_erank_mask(block_mod);
   SPARSE_ARRAY_LOCATOR_GET_MAYOR_BLOCK_LOCATION(position,mayor_block);
   *erank = locator->mayor_counters[mayor_block] +
@@ -149,7 +149,7 @@ sparse_array_locator_t* sparse_array_locator_new(
     const uint64_t idx_begin,
     const uint64_t idx_end) {
   // Allocate handler
-  sparse_array_locator_t* const restrict locator = mm_alloc(sparse_array_locator_t);
+  sparse_array_locator_t* const locator = mm_alloc(sparse_array_locator_t);
   // Meta-Data
   const uint64_t first_block_offset = idx_begin % SAL_MINOR_BLOCK_LENGTH;
   const uint64_t total_length = idx_end-idx_begin + first_block_offset;
@@ -168,7 +168,7 @@ sparse_array_locator_t* sparse_array_locator_new(
   return locator;
 }
 void sparse_array_locator_mark(
-    sparse_array_locator_t* const restrict locator,
+    sparse_array_locator_t* const locator,
     const uint64_t position) {
   const uint64_t effective_position = position - locator->idx_offset;
   // Locate Block
@@ -192,8 +192,8 @@ typedef struct {
   uint64_t minor_counter_accumulated;
 } sparse_array_write_state_t;
 void sparse_array_locator_write_chunk(
-    fm_t* const restrict file_manager,
-    sparse_array_write_state_t* const restrict write_state) {
+    fm_t* const file_manager,
+    sparse_array_write_state_t* const write_state) {
   // Iterate over all Minor Blocks & write
   uint64_t i;
   for (i=0;i<write_state->num_blocks;++i) {
@@ -207,8 +207,8 @@ void sparse_array_locator_write_chunk(
       write_state->minor_counter_accumulated=0;
     }
     // Update MinorCounter & Write
-    uint64_t* const restrict block = write_state->block;
-    uint16_t* const restrict block_counter = ((uint16_t*)block) + 3;
+    uint64_t* const block = write_state->block;
+    uint16_t* const block_counter = ((uint16_t*)block) + 3;
     *block_counter = write_state->minor_counter_accumulated;
     fm_write_uint64(file_manager,*block);
     // Update Count
@@ -220,7 +220,7 @@ void sparse_array_locator_write_chunk(
   }
 }
 void sparse_array_locator_write_metadata(
-    fm_t* const restrict file_manager,
+    fm_t* const file_manager,
     const uint64_t total_length,
     const uint64_t total_size,
     const uint64_t num_mayor_blocks,
@@ -231,8 +231,8 @@ void sparse_array_locator_write_metadata(
   fm_write_uint64(file_manager,num_minor_blocks);
 }
 void sparse_array_locator_write(
-    fm_t* const restrict file_manager,
-    sparse_array_locator_t* const restrict locator) {
+    fm_t* const file_manager,
+    sparse_array_locator_t* const locator) {
   // Write Meta-Data
   sparse_array_locator_write_metadata(
       file_manager,locator->total_length,locator->total_size,
@@ -255,8 +255,8 @@ void sparse_array_locator_write(
   fm_write_mem(file_manager,locator->mayor_counters,locator->num_mayor_blocks*SAL_MAYOR_COUNTER_SIZE);
 }
 void sparse_array_locator_merge__write(
-    fm_t* const restrict file_manager,
-    sparse_array_locator_t** const restrict locator,
+    fm_t* const file_manager,
+    sparse_array_locator_t** const locator,
     const uint64_t num_locators) {
   // Calculate Meta-Data
   uint64_t i, total_length;
@@ -269,7 +269,7 @@ void sparse_array_locator_merge__write(
   sparse_array_locator_write_metadata(
       file_manager,total_length,total_size,num_mayor_blocks,num_minor_blocks);
   // Setup write chunk state
-  uint64_t* const restrict mayor_counters = mm_calloc(num_mayor_blocks,uint64_t,true);
+  uint64_t* const mayor_counters = mm_calloc(num_mayor_blocks,uint64_t,true);
   sparse_array_write_state_t write_state = {
       /* Global mayor counters */
       .mayor_counter=mayor_counters,
@@ -302,9 +302,9 @@ void sparse_array_locator_merge__write(
 /*
  * Dynamic Builder
  */
-sparse_array_locator_builder_t* sparse_array_locator_builder_new(mm_slab_t* const restrict mm_slab) {
+sparse_array_locator_builder_t* sparse_array_locator_builder_new(mm_slab_t* const mm_slab) {
   // Allocate
-  sparse_array_locator_builder_t* const restrict locator_builder = mm_alloc(sparse_array_locator_builder_t);
+  sparse_array_locator_builder_t* const locator_builder = mm_alloc(sparse_array_locator_builder_t);
   // Initialize locator info
   locator_builder->position = 0;
   locator_builder->current_block = 0;
@@ -318,12 +318,12 @@ sparse_array_locator_builder_t* sparse_array_locator_builder_new(mm_slab_t* cons
   // Return
   return locator_builder;
 }
-void sparse_array_locator_builder_delete(sparse_array_locator_builder_t* const restrict locator_builder) {
+void sparse_array_locator_builder_delete(sparse_array_locator_builder_t* const locator_builder) {
   svector_delete(locator_builder->minor_blocks);
   vector_delete(locator_builder->mayor_counters);
   mm_free(locator_builder);
 }
-void sparse_array_locator_builder_next_word(sparse_array_locator_builder_t* const restrict locator_builder) {
+void sparse_array_locator_builder_next_word(sparse_array_locator_builder_t* const locator_builder) {
   // Counter OR Bitmap (16b+48b) = UINT64_T
   locator_builder->current_block |= locator_builder->minor_counter_accumulated << SAL_MINOR_BLOCK_LENGTH;
   locator_builder->minor_counter_accumulated = locator_builder->current_count;
@@ -334,7 +334,7 @@ void sparse_array_locator_builder_next_word(sparse_array_locator_builder_t* cons
   locator_builder->current_block = 0;
 }
 void sparse_array_locator_builder_next(
-    sparse_array_locator_builder_t* const restrict locator_builder,
+    sparse_array_locator_builder_t* const locator_builder,
     const bool mark_position) {
   // Write Mayor Counter
   if (locator_builder->position%SAL_MAYOR_BLOCK_NUM_MINOR_BLOCKS==0) {
@@ -357,8 +357,8 @@ void sparse_array_locator_builder_next(
   }
 }
 void sparse_array_locator_builder_write(
-    fm_t* const restrict file_manager,
-    sparse_array_locator_builder_t* const restrict locator_builder) {
+    fm_t* const file_manager,
+    sparse_array_locator_builder_t* const locator_builder) {
   // Flush
   const uint64_t block_mod = locator_builder->position % SAL_MINOR_BLOCK_LENGTH;
   if (block_mod!=0) {
@@ -381,8 +381,8 @@ void sparse_array_locator_builder_write(
  * Display
  */
 void sparse_array_locator_print(
-    FILE* const restrict stream,
-    const sparse_array_locator_t* const restrict locator,
+    FILE* const stream,
+    const sparse_array_locator_t* const locator,
     const bool display_content) {
   // Display Meta-Data information
   const uint64_t total_size = locator->total_size;
@@ -424,7 +424,7 @@ void sparse_array_locator_print(
  */
 sparse_array_locator_stats_t* sparse_array_locator_stats_new() {
   // Allocate
-  sparse_array_locator_stats_t* const restrict locator_stats = mm_alloc(sparse_array_locator_stats_t);
+  sparse_array_locator_stats_t* const locator_stats = mm_alloc(sparse_array_locator_stats_t);
   // Locator Stats
   locator_stats->marked_positions = 0;
   // Bitmaps
@@ -432,14 +432,14 @@ sparse_array_locator_stats_t* sparse_array_locator_stats_new() {
   // Return
   return locator_stats;
 }
-void sparse_array_locator_stats_delete(sparse_array_locator_stats_t* const restrict locator_stats) {
+void sparse_array_locator_stats_delete(sparse_array_locator_stats_t* const locator_stats) {
   // Free
   stats_vector_delete(locator_stats->ones_density);
   mm_free(locator_stats);
 }
 void sparse_array_locator_stats_calculate(
-    sparse_array_locator_stats_t* const restrict locator_stats,
-    sparse_array_locator_t* const restrict locator) {
+    sparse_array_locator_stats_t* const locator_stats,
+    sparse_array_locator_t* const locator) {
   uint64_t i;
   // Calculate locator stats
   locator_stats->locator_length = locator->total_length;
@@ -451,9 +451,9 @@ void sparse_array_locator_stats_calculate(
   }
 }
 void sparse_array_locator_stats_print(
-    FILE* const restrict stream,
-    const char* const restrict sparse_array_locator_stats_tag,
-    sparse_array_locator_stats_t* const restrict locator_stats) {
+    FILE* const stream,
+    const char* const sparse_array_locator_stats_tag,
+    sparse_array_locator_stats_t* const locator_stats) {
   // Display Statistics
   fprintf(stream,"SparseArrayLocator.Stats %s\n",sparse_array_locator_stats_tag);
   fprintf(stream,"  => Locator.Marked %"PRIu64" (%2.3f%%)\n",

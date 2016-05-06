@@ -16,38 +16,38 @@
 Functions to get the GPU BPM buffers
 ************************************************************/
 
-uint32_t gpu_bpm_buffer_get_max_peq_entries_(const void* const __restrict__ bpmBuffer){
-  const gpu_buffer_t* const __restrict__ mBuff = (gpu_buffer_t *) bpmBuffer;
+uint32_t gpu_bpm_buffer_get_max_peq_entries_(const void* const bpmBuffer){
+  const gpu_buffer_t* const mBuff = (gpu_buffer_t *) bpmBuffer;
   return(mBuff->data.bpm.maxPEQEntries);
 }
 
-uint32_t gpu_bpm_buffer_get_max_candidates_(const void* const __restrict__ bpmBuffer){
-  const gpu_buffer_t* const __restrict__ mBuff = (gpu_buffer_t *) bpmBuffer;
+uint32_t gpu_bpm_buffer_get_max_candidates_(const void* const bpmBuffer){
+  const gpu_buffer_t* const mBuff = (gpu_buffer_t *) bpmBuffer;
   return(mBuff->data.bpm.maxCandidates);
 }
 
-uint32_t gpu_bpm_buffer_get_max_queries_(const void* const __restrict__ bpmBuffer){
-  const gpu_buffer_t* const __restrict__ mBuff = (gpu_buffer_t *) bpmBuffer;
+uint32_t gpu_bpm_buffer_get_max_queries_(const void* const bpmBuffer){
+  const gpu_buffer_t* const mBuff = (gpu_buffer_t *) bpmBuffer;
   return(mBuff->data.bpm.maxQueries);
 }
 
-gpu_bpm_qry_entry_t* gpu_bpm_buffer_get_peq_entries_(const void* const __restrict__ bpmBuffer){
-  const gpu_buffer_t * const __restrict__ mBuff = (gpu_buffer_t *) bpmBuffer;
+gpu_bpm_qry_entry_t* gpu_bpm_buffer_get_peq_entries_(const void* const bpmBuffer){
+  const gpu_buffer_t * const mBuff = (gpu_buffer_t *) bpmBuffer;
   return(mBuff->data.bpm.queries.h_queries);
 }
 
-gpu_bpm_cand_info_t* gpu_bpm_buffer_get_candidates_(const void* const __restrict__ bpmBuffer){
-  const gpu_buffer_t* const __restrict__ mBuff = (gpu_buffer_t *) bpmBuffer;
+gpu_bpm_cand_info_t* gpu_bpm_buffer_get_candidates_(const void* const bpmBuffer){
+  const gpu_buffer_t* const mBuff = (gpu_buffer_t *) bpmBuffer;
   return(mBuff->data.bpm.candidates.h_candidates);
 }
 
-gpu_bpm_qry_info_t* gpu_bpm_buffer_get_peq_info_(const void* const __restrict__ bpmBuffer){
-  const gpu_buffer_t* const __restrict__ mBuff = (gpu_buffer_t *) bpmBuffer;
+gpu_bpm_qry_info_t* gpu_bpm_buffer_get_peq_info_(const void* const bpmBuffer){
+  const gpu_buffer_t* const mBuff = (gpu_buffer_t *) bpmBuffer;
   return(mBuff->data.bpm.queries.h_qinfo);
 }
 
-gpu_bpm_alg_entry_t* gpu_bpm_buffer_get_alignments_(const void* const __restrict__ bpmBuffer){
-  const gpu_buffer_t* const __restrict__ mBuff = (gpu_buffer_t *) bpmBuffer;
+gpu_bpm_alg_entry_t* gpu_bpm_buffer_get_alignments_(const void* const bpmBuffer){
+  const gpu_buffer_t* const mBuff = (gpu_buffer_t *) bpmBuffer;
   return(mBuff->data.bpm.alignments.h_alignments);
 }
 
@@ -132,9 +132,9 @@ void gpu_bpm_reallocate_device_buffer_layout(gpu_buffer_t* mBuff)
   rawAlloc = (void *) (mBuff->data.bpm.alignments.d_alignments + mBuff->data.bpm.maxAlignments);
 }
 
-void gpu_bpm_init_buffer_(void* const __restrict__ bpmBuffer, const uint32_t averageQuerySize, const uint32_t candidatesPerQuery)
+void gpu_bpm_init_buffer_(void* const bpmBuffer, const uint32_t averageQuerySize, const uint32_t candidatesPerQuery)
 {
-  gpu_buffer_t* const __restrict__ mBuff                   = (gpu_buffer_t *) bpmBuffer;
+  gpu_buffer_t* const mBuff                   = (gpu_buffer_t *) bpmBuffer;
   const double        sizeBuff                = mBuff->sizeBuffer * 0.95;
   const size_t        averageNumPEQEntries    = GPU_DIV_CEIL(averageQuerySize, GPU_BPM_PEQ_ENTRY_LENGTH);
   const uint32_t      numInputs               = (uint32_t)(sizeBuff / gpu_bpm_size_per_candidate(averageQuerySize, candidatesPerQuery));
@@ -158,7 +158,7 @@ void gpu_bpm_init_buffer_(void* const __restrict__ bpmBuffer, const uint32_t ave
 
 void gpu_bpm_init_and_realloc_buffer_(void *bpmBuffer, const uint32_t totalPEQEntries, const uint32_t totalCandidates, const uint32_t totalQueries)
 {
-  gpu_buffer_t* const __restrict__ mBuff = (gpu_buffer_t *) bpmBuffer;
+  gpu_buffer_t* const mBuff = (gpu_buffer_t *) bpmBuffer;
   const uint32_t averarageNumPEQEntries = totalPEQEntries / totalQueries;
   const uint32_t averageQuerySize       = (totalPEQEntries * GPU_BPM_PEQ_ENTRY_LENGTH) / totalQueries;
   const uint32_t candidatesPerQuery     = totalCandidates / totalQueries;
@@ -194,8 +194,8 @@ void gpu_bpm_init_and_realloc_buffer_(void *bpmBuffer, const uint32_t totalPEQEn
 Functions to send & process a BPM buffer to GPU
 ************************************************************/
 
-gpu_error_t gpu_bpm_reorder_process(const gpu_bpm_queries_buffer_t* const __restrict__ qry, const gpu_bpm_candidates_buffer_t* const __restrict__ cand,
-                                    gpu_bpm_reorder_buffer_t* const __restrict__ rebuff, gpu_bpm_alignments_buffer_t* const __restrict__ res)
+gpu_error_t gpu_bpm_reorder_process(const gpu_bpm_queries_buffer_t* const qry, const gpu_bpm_candidates_buffer_t* const cand,
+                                    gpu_bpm_reorder_buffer_t* const rebuff, gpu_bpm_alignments_buffer_t* const res)
 {
   const uint32_t numBuckets = GPU_BPM_NUM_BUCKETS_FOR_BINNING;
   uint32_t idBucket, idCandidate, idBuff;
@@ -263,10 +263,10 @@ gpu_error_t gpu_bpm_reorder_process(const gpu_bpm_queries_buffer_t* const __rest
 gpu_error_t gpu_bpm_reordering_buffer(gpu_buffer_t *mBuff)
 {
   const uint32_t                           binning  = mBuff->data.bpm.queryBinning;
-  const gpu_bpm_queries_buffer_t* const __restrict__    qry      = &mBuff->data.bpm.queries;
-  const gpu_bpm_candidates_buffer_t* const __restrict__ cand     = &mBuff->data.bpm.candidates;
-        gpu_bpm_alignments_buffer_t* const __restrict__ res      = &mBuff->data.bpm.alignments;
-        gpu_bpm_reorder_buffer_t* const __restrict__    rebuff   = &mBuff->data.bpm.reorderBuffer;
+  const gpu_bpm_queries_buffer_t* const    qry      = &mBuff->data.bpm.queries;
+  const gpu_bpm_candidates_buffer_t* const cand     = &mBuff->data.bpm.candidates;
+        gpu_bpm_alignments_buffer_t* const res      = &mBuff->data.bpm.alignments;
+        gpu_bpm_reorder_buffer_t* const    rebuff   = &mBuff->data.bpm.reorderBuffer;
         uint32_t                           idBucket;
 
   //Re-initialize the reorderBuffer (to reuse the buffer)
@@ -361,10 +361,10 @@ gpu_error_t gpu_bpm_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
   return (SUCCESS);
 }
 
-void gpu_bpm_send_buffer_(void* const __restrict__ bpmBuffer, const uint32_t numPEQEntries, const uint32_t numQueries,
+void gpu_bpm_send_buffer_(void* const bpmBuffer, const uint32_t numPEQEntries, const uint32_t numQueries,
                           const uint32_t numCandidates, const uint32_t queryBinning)
 {
-  gpu_buffer_t* const __restrict__ mBuff     = (gpu_buffer_t *) bpmBuffer;
+  gpu_buffer_t* const mBuff     = (gpu_buffer_t *) bpmBuffer;
   const uint32_t    idSupDevice = mBuff->idSupportedDevice;
 
   //Set real size of the things
@@ -405,9 +405,9 @@ gpu_error_t gpu_bpm_reordering_alignments(gpu_buffer_t *mBuff)
   return (SUCCESS);
 }
 
-void gpu_bpm_receive_buffer_(void* const __restrict__ bpmBuffer)
+void gpu_bpm_receive_buffer_(void* const bpmBuffer)
 {
-  gpu_buffer_t* const __restrict__ mBuff  = (gpu_buffer_t *) bpmBuffer;
+  gpu_buffer_t* const mBuff  = (gpu_buffer_t *) bpmBuffer;
   const uint32_t idSupDevice = mBuff->idSupportedDevice;
 
   //Select the device of the Multi-GPU platform

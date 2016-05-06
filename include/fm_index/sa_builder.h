@@ -137,11 +137,11 @@ typedef struct {
  * Setup
  */
 sa_builder_t* sa_builder_new(
-    char* const restrict name_prefix,
-    dna_text_t* const restrict enc_text,
+    char* const name_prefix,
+    dna_text_t* const enc_text,
     const uint64_t num_threads,
     const uint64_t max_memory);
-void sa_builder_delete(sa_builder_t* const restrict sa_builder);
+void sa_builder_delete(sa_builder_t* const sa_builder);
 
 /*
  * Sorting Suffixes
@@ -150,24 +150,24 @@ void sa_builder_delete(sa_builder_t* const restrict sa_builder);
  *   3.- Sort all suffixes
  */
 void sa_builder_count_suffixes(
-    sa_builder_t* const restrict sa_builder,
-    uint64_t* const restrict character_occurrences,
+    sa_builder_t* const sa_builder,
+    uint64_t* const character_occurrences,
     const bool verbose);
 void sa_builder_store_suffixes(
-    sa_builder_t* const restrict sa_builder,
+    sa_builder_t* const sa_builder,
     const bool verbose);
 void sa_builder_sort_suffixes(
-    sa_builder_t* const restrict sa_builder,
-    dna_text_t* const restrict enc_bwt,
-    sampled_sa_builder_t* const restrict sampled_sa,
+    sa_builder_t* const sa_builder,
+    dna_text_t* const enc_bwt,
+    sampled_sa_builder_t* const sampled_sa,
     const bool verbose);
 
 /*
  * Stats
  */
 void sa_builder_display_stats(
-    FILE* const restrict stream,
-    sa_builder_t* const restrict sa_builder,
+    FILE* const stream,
+    sa_builder_t* const sa_builder,
     const bool display_groups);
 
 /*
@@ -175,7 +175,7 @@ void sa_builder_display_stats(
  */
 void sa_builder_debug_print_sa(
     FILE* stream,
-    sa_builder_t* const restrict sa_builder,
+    sa_builder_t* const sa_builder,
     const uint64_t sa_position,
     const uint64_t sa_suffix_length);
 

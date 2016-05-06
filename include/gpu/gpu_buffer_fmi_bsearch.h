@@ -33,45 +33,45 @@ typedef struct {
  * Setup
  */
 gpu_buffer_fmi_search_t* gpu_buffer_fmi_search_new(
-    const gpu_buffer_collection_t* const restrict gpu_buffer_collection,
+    const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffer_pos,
-    fm_index_t* const restrict fm_index);
-void gpu_buffer_fmi_search_clear(gpu_buffer_fmi_search_t* const restrict gpu_buffer_fmi_search);
-void gpu_buffer_fmi_search_delete(gpu_buffer_fmi_search_t* const restrict gpu_buffer_fmi_search);
+    fm_index_t* const fm_index);
+void gpu_buffer_fmi_search_clear(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
+void gpu_buffer_fmi_search_delete(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
 
 /*
  * Computing Device
  */
-void gpu_buffer_fmi_search_set_device_cpu(gpu_buffer_fmi_search_t* const restrict gpu_buffer_fmi_search);
-void gpu_buffer_fmi_search_set_device_gpu(gpu_buffer_fmi_search_t* const restrict gpu_buffer_fmi_search);
+void gpu_buffer_fmi_search_set_device_cpu(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
+void gpu_buffer_fmi_search_set_device_gpu(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
 
 /*
  * Occupancy & Limits
  */
-uint64_t gpu_buffer_fmi_search_get_max_queries(gpu_buffer_fmi_search_t* const restrict gpu_buffer_fmi_search);
-uint64_t gpu_buffer_fmi_search_get_num_queries(gpu_buffer_fmi_search_t* const restrict gpu_buffer_fmi_search);
+uint64_t gpu_buffer_fmi_search_get_max_queries(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
+uint64_t gpu_buffer_fmi_search_get_num_queries(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
 bool gpu_buffer_fmi_search_fits_in_buffer(
-    gpu_buffer_fmi_search_t* const restrict gpu_buffer_fmi_search,
+    gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search,
     const uint64_t total_queries);
 
 /*
  * Accessors
  */
 void gpu_buffer_fmi_search_add_query(
-    gpu_buffer_fmi_search_t* const restrict gpu_buffer_fmi_search,
-    pattern_t* const restrict pattern,
+    gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search,
+    pattern_t* const pattern,
     const uint64_t begin,
     const uint64_t end);
 void gpu_buffer_fmi_search_get_result(
-    gpu_buffer_fmi_search_t* const restrict gpu_buffer_fmi_search,
+    gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search,
     const uint64_t buffer_pos,
-    uint64_t* const restrict hi,
-    uint64_t* const restrict lo);
+    uint64_t* const hi,
+    uint64_t* const lo);
 
 /*
  * Send/Receive
  */
-void gpu_buffer_fmi_search_send(gpu_buffer_fmi_search_t* const restrict gpu_buffer_fmi_search);
-void gpu_buffer_fmi_search_receive(gpu_buffer_fmi_search_t* const restrict gpu_buffer_fmi_search);
+void gpu_buffer_fmi_search_send(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
+void gpu_buffer_fmi_search_receive(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
 
 #endif /* GPU_BUFFER_FMI_BSEARCH_H_ */

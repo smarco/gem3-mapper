@@ -15,8 +15,8 @@
 /*
  * Vector Setup (Initialization & Allocation)
  */
-svector_t* svector_new_(mm_slab_t* const restrict mm_slab,const uint64_t element_size) {
-  svector_t* const restrict svector = mm_alloc(svector_t);
+svector_t* svector_new_(mm_slab_t* const mm_slab,const uint64_t element_size) {
+  svector_t* const svector = mm_alloc(svector_t);
   // Initialize slab & dimensions
   svector->mm_slab = mm_slab;
   svector->segment_size = mm_slab_get_slab_size(mm_slab);
@@ -34,7 +34,7 @@ svector_t* svector_new_(mm_slab_t* const restrict mm_slab,const uint64_t element
   svector->elements_used = 0;
   return svector;
 }
-void svector_delete(svector_t* const restrict svector) {
+void svector_delete(svector_t* const svector) {
   // Return all slabs
   mm_slab_lock(svector->mm_slab);
   VECTOR_ITERATE(svector->segments,segment,position,vector_segment_t) {
@@ -46,11 +46,11 @@ void svector_delete(svector_t* const restrict svector) {
   // Free svector
   mm_free(svector);
 }
-void svector_clear(svector_t* const restrict svector) {
+void svector_clear(svector_t* const svector) {
   svector->elements_used = 0;
   svector_reap(svector); // Forced reap
 }
-void svector_reap(svector_t* const restrict svector) {
+void svector_reap(svector_t* const svector) {
   if (svector->segments->used > svector->min_resident_segments) {
     // Reap non-resident segments // TODO Register Number of reaps
     mm_slab_lock(svector->mm_slab);
@@ -69,35 +69,35 @@ void svector_reap(svector_t* const restrict svector) {
 #define svector_get_location(svector,global_position,segment,segment_pos) \
   const uint64_t segment = global_position/svector->elements_per_segment; \
   const uint64_t segment_pos = global_position%svector->elements_per_segment
-uint64_t svector_get_used(svector_t* const restrict svector) {
+uint64_t svector_get_used(svector_t* const svector) {
   return svector->elements_used;
 }
 void* svector_get_elm(
-    svector_t* const restrict svector,
+    svector_t* const svector,
     const uint64_t position) {
   svector_get_location(svector,position,segment,segment_pos);
   return svector_get_elm_memory(svector,segment,segment_pos);
 }
-vector_segment_t* svector_add_segment(svector_t* const restrict svector) {
+vector_segment_t* svector_add_segment(svector_t* const svector) {
   // Add segment
   vector_reserve_additional(svector->segments,1);
   vector_inc_used(svector->segments);
-  vector_segment_t* const restrict segment = vector_get_last_elm(svector->segments,vector_segment_t);
+  vector_segment_t* const segment = vector_get_last_elm(svector->segments,vector_segment_t);
   // Init segment
   segment->slab_unit = mm_slab_request(svector->mm_slab);
   segment->memory = segment->slab_unit->memory;
   return segment;
 }
-void* svector_get_free_elm(svector_t* const restrict svector) {
+void* svector_get_free_elm(svector_t* const svector) {
   svector_get_location(svector,svector->elements_used,num_segment,segment_pos);
-  vector_segment_t* const restrict segment = gem_expect_false(num_segment==vector_get_used(svector->segments)) ?
+  vector_segment_t* const segment = gem_expect_false(num_segment==vector_get_used(svector->segments)) ?
     svector_add_segment(svector) : vector_get_elm(svector->segments,num_segment,vector_segment_t);
   ++(svector->elements_used);
   return segment + segment_pos*svector->element_size;
 }
 char* svector_request_char_buffer(
-    svector_t* const restrict svector,
-    uint64_t* const restrict buffer_offset,
+    svector_t* const svector,
+    uint64_t* const buffer_offset,
     const uint64_t length) {
   svector_get_location(svector,svector->elements_used,num_segment,segment_pos);
   // Check that there is enough space in the segment
@@ -122,12 +122,12 @@ char* svector_request_char_buffer(
   return segment->memory + segment_offset; // Return
 }
 char* svector_insert_char_buffer(
-    svector_t* const restrict svector,
-    uint64_t* const restrict buffer_offset,
-    const char* const restrict buffer,
+    svector_t* const svector,
+    uint64_t* const buffer_offset,
+    const char* const buffer,
     const uint64_t length) {
   // Request char buffer
-  char* const restrict dst_memory = svector_request_char_buffer(svector,buffer_offset,length);
+  char* const dst_memory = svector_request_char_buffer(svector,buffer_offset,length);
   // Copy buffer
   memcpy(dst_memory,buffer,length);
   dst_memory[length] = '\0';
@@ -137,8 +137,8 @@ char* svector_insert_char_buffer(
  * Writer
  */
 void svector_write(
-    fm_t* const restrict file_manager,
-    svector_t* const restrict svector) {
+    fm_t* const file_manager,
+    svector_t* const svector) {
   // Write all the segments
   uint64_t pending_elements = svector->elements_used;
   VECTOR_ITERATE(svector->segments,segment,position,vector_segment_t) {
@@ -157,8 +157,8 @@ void svector_write(
  * Display/Profile
  */
 void svector_print(
-    FILE* const restrict stream,
-    svector_t* const restrict svector) {
+    FILE* const stream,
+    svector_t* const svector) {
   // TODO // TODO // TODO // TODO
   // TODO // TODO // TODO // TODO
   // TODO // TODO // TODO // TODO
@@ -166,7 +166,7 @@ void svector_print(
   // TODO // TODO // TODO // TODO
   // TODO // TODO // TODO // TODO
 }
-void svector_record_stats(svector_t* const restrict svector) {
+void svector_record_stats(svector_t* const svector) {
   // TODO // TODO // TODO // TODO
   // TODO // TODO // TODO // TODO
   // TODO // TODO // TODO // TODO
@@ -175,8 +175,8 @@ void svector_record_stats(svector_t* const restrict svector) {
   // TODO // TODO // TODO // TODO
 }
 void svector_display_stats(
-    FILE* const restrict stream,
-    svector_t* const restrict svector) {
+    FILE* const stream,
+    svector_t* const svector) {
   // TODO // TODO // TODO // TODO
   // TODO // TODO // TODO // TODO
   // TODO // TODO // TODO // TODO
@@ -193,8 +193,8 @@ void svector_display_stats(
   iterator->global_position = position; \
   iterator->local_position = segment_pos
 void svector_iterator_new(
-    svector_iterator_t* const restrict iterator,
-    svector_t* const restrict svector,
+    svector_iterator_t* const iterator,
+    svector_t* const svector,
     const svector_iterator_type iterator_type,
     const uint64_t init_position) {
   // Init
@@ -226,21 +226,21 @@ void svector_iterator_new(
       break;
   }
 }
-void svector_read_iterator_seek(svector_iterator_t* const restrict iterator,const uint64_t init_position) {
-  svector_t* const restrict svector = iterator->svector;
+void svector_read_iterator_seek(svector_iterator_t* const iterator,const uint64_t init_position) {
+  svector_t* const svector = iterator->svector;
   // Locate
   svector_set_iterator_location(iterator,svector,init_position,segment,segment_pos);
   iterator->eoi = (init_position>=svector->elements_used);
   if (!iterator->eoi) iterator->memory = svector_get_elm_memory(svector,segment,segment_pos);
 }
-void* svector_iterator_get_elm(svector_iterator_t* const restrict iterator) {
+void* svector_iterator_get_elm(svector_iterator_t* const iterator) {
   return iterator->memory;
 }
 // Reading
-bool svector_read_iterator_eoi(svector_iterator_t* const restrict iterator) {
+bool svector_read_iterator_eoi(svector_iterator_t* const iterator) {
   return iterator->eoi;
 }
-void svector_read_iterator_next(svector_iterator_t* const restrict iterator) {
+void svector_read_iterator_next(svector_iterator_t* const iterator) {
   // Inc position
   ++(iterator->local_position);
   ++(iterator->global_position);
@@ -260,7 +260,7 @@ void svector_read_iterator_next(svector_iterator_t* const restrict iterator) {
   }
 }
 // Writing
-void svector_write_iterator_next(svector_iterator_t* const restrict iterator) {
+void svector_write_iterator_next(svector_iterator_t* const iterator) {
   // Inc position
   ++(iterator->local_position);
   // Check boundary condition

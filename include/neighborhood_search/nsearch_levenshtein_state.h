@@ -33,43 +33,43 @@ typedef struct {
  * Setup
  */
 void nsearch_levenshtein_state_init(
-    nsearch_levenshtein_state_t* const restrict nsearch_state,
+    nsearch_levenshtein_state_t* const nsearch_state,
     const uint64_t num_columns,const uint64_t column_length,
-    mm_stack_t* const restrict mm_stack);
+    mm_stack_t* const mm_stack);
 
 /*
  * Prepare DP
  */
 void nsearch_levenshtein_state_prepare_full(
-    nsearch_levenshtein_state_t* const restrict nsearch_state,const uint64_t key_begin,
+    nsearch_levenshtein_state_t* const nsearch_state,const uint64_t key_begin,
     const uint64_t key_end,const uint64_t max_error);
 void nsearch_levenshtein_state_prepare_supercondensed(
-    nsearch_levenshtein_state_t* const restrict nsearch_state,const uint64_t max_error);
+    nsearch_levenshtein_state_t* const nsearch_state,const uint64_t max_error);
 
 /*
  * Compute DP
  */
 void nsearch_levenshtein_state_compute_chararacter(
-    nsearch_levenshtein_state_t* const restrict nsearch_state,const bool forward_search,
-    const uint8_t* const restrict key,const uint64_t key_begin,const uint64_t key_end,
+    nsearch_levenshtein_state_t* const nsearch_state,const bool forward_search,
+    const uint8_t* const key,const uint64_t key_begin,const uint64_t key_end,
     const uint64_t text_offset,const uint8_t text_char_enc,
-    uint64_t* const restrict min_val,uint64_t* const restrict align_distance);
+    uint64_t* const min_val,uint64_t* const align_distance);
 void nsearch_levenshtein_state_compute_sequence(
-    nsearch_levenshtein_state_t* const restrict nsearch_state,
-    nsearch_levenshtein_state_t* const restrict next_nsearch_state,
+    nsearch_levenshtein_state_t* const nsearch_state,
+    nsearch_levenshtein_state_t* const next_nsearch_state,
     const bool forward_search);
 
 /*
  * Display
  */
 void nsearch_levenshtein_state_print(
-    FILE* const restrict stream,nsearch_levenshtein_state_t* const restrict nsearch_state,
-    const bool forward_search,const uint8_t* const restrict key);
+    FILE* const stream,nsearch_levenshtein_state_t* const nsearch_state,
+    const bool forward_search,const uint8_t* const key);
 void nsearch_levenshtein_state_print_search_text(
-    FILE* const restrict stream,nsearch_levenshtein_state_t* const restrict nsearch_state,
+    FILE* const stream,nsearch_levenshtein_state_t* const nsearch_state,
     const bool forward_search);
 void nsearch_levenshtein_state_print_local_text(
-    FILE* const restrict stream,nsearch_levenshtein_state_t* const restrict nsearch_state,
+    FILE* const stream,nsearch_levenshtein_state_t* const nsearch_state,
     const bool forward_search);
 
 #endif /* NSEARCH_LEVENSHTEIN_STATE_H_ */

@@ -45,20 +45,20 @@ FILE* benchmark_decode_candidates = NULL;
  * Generate Candidates from Region-Profile (Exact Regions)
  */
 void approximate_search_generate_candidates_exact(
-    approximate_search_t* const restrict search,
-    matches_t* const restrict matches) {
+    approximate_search_t* const search,
+    matches_t* const matches) {
   PROFILE_START(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
   // Parameters
-  region_profile_t* const restrict region_profile = &search->region_profile;
-  filtering_candidates_t* const restrict filtering_candidates = search->filtering_candidates;
+  region_profile_t* const region_profile = &search->region_profile;
+  filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
   // Pattern
-  pattern_t* const restrict pattern = &search->pattern;
+  pattern_t* const pattern = &search->pattern;
   const uint64_t num_wildcards = pattern->num_wildcards;
   // Generate candidates for each region
   PROF_ADD_COUNTER(GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS,region_profile->num_filtering_regions);
   if (region_profile_has_exact_matches(region_profile)) {
     // Add exact matches
-    region_search_t* const restrict region_search = region_profile->filtering_region;
+    region_search_t* const region_search = region_profile->filtering_region;
     if (pattern->run_length) {
       filtering_candidates_add_region_interval(
           filtering_candidates,region_search->lo,region_search->hi,
@@ -96,13 +96,13 @@ void approximate_search_generate_candidates_exact(
  * Generate Candidates from Region-Profile (Inexact regions)
  */
 uint64_t approximate_search_generate_region_candidates(
-    fm_index_t* const restrict fm_index,
-    uint8_t* const restrict key,
-    region_search_t* const restrict region,
+    fm_index_t* const fm_index,
+    uint8_t* const key,
+    region_search_t* const region,
     const uint64_t filtering_threshold,
-    filtering_candidates_t* const restrict filtering_candidates,
-    interval_set_t* const restrict intervals_result,
-    mm_stack_t* const restrict mm_stack) {
+    filtering_candidates_t* const filtering_candidates,
+    interval_set_t* const intervals_result,
+    mm_stack_t* const mm_stack) {
   bool perform_search = true;
   uint64_t candidates;
   // Filter up to n errors (n>=2)
@@ -160,10 +160,10 @@ uint64_t approximate_search_generate_region_candidates(
   return 0; // Return filtered-degree (errors-allowed)
 }
 void approximate_search_generate_candidates_inexact(
-    approximate_search_t* const restrict search,
+    approximate_search_t* const search,
     const bool dynamic_scheduling,
     const bool verify_ahead,
-    matches_t* const restrict matches) {
+    matches_t* const matches) {
   PROFILE_START(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
   /*
    * Filters all the regions up to the scheduled degree
@@ -171,20 +171,20 @@ void approximate_search_generate_candidates_inexact(
    *  - Verify Ahead: Verifies candidates each queried region. Thus, it can reduce the scope of the search
    */
   // Parameters
-  search_parameters_t* const restrict parameters = search->search_parameters;
+  search_parameters_t* const parameters = search->search_parameters;
   const uint64_t filtering_threshold = parameters->filtering_threshold;
   const double proper_length = fm_index_get_proper_length(search->archive->fm_index);
   const uint64_t sensibility_error_length = parameters->filtering_region_factor*proper_length;
   // Approximate Search Data
-  fm_index_t* const restrict fm_index = search->archive->fm_index;
-  region_profile_t* const restrict region_profile = &search->region_profile;
-  filtering_candidates_t* const restrict filtering_candidates = search->filtering_candidates;
-  interval_set_t* const restrict intervals_result = search->interval_set;
-  mm_stack_t* const restrict mm_stack = search->mm_stack;
+  fm_index_t* const fm_index = search->archive->fm_index;
+  region_profile_t* const region_profile = &search->region_profile;
+  filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
+  interval_set_t* const intervals_result = search->interval_set;
+  mm_stack_t* const mm_stack = search->mm_stack;
   // Pattern
-  pattern_t* const restrict pattern = &search->pattern;
+  pattern_t* const pattern = &search->pattern;
   const uint64_t num_wildcards = pattern->num_wildcards;
-  uint8_t* const restrict key = search->pattern.key;
+  uint8_t* const key = search->pattern.key;
   // Region profile
   const uint64_t num_regions = region_profile->num_filtering_regions;
   const uint64_t num_standard_regions = region_profile->num_standard_regions;
@@ -244,13 +244,13 @@ void approximate_search_generate_candidates_inexact(
 /*
  * Buffered Copy/Retrieve
  */
-void approximate_search_generate_candidates_buffered_print_benchmark(approximate_search_t* const restrict search);
+void approximate_search_generate_candidates_buffered_print_benchmark(approximate_search_t* const search);
 void approximate_search_generate_candidates_buffered_copy(
-    approximate_search_t* const restrict search,gpu_buffer_fmi_decode_t* const restrict gpu_buffer_fmi_decode) {
+    approximate_search_t* const search,gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
   // Parameters
-  region_profile_t* const restrict region_profile = &search->region_profile;
+  region_profile_t* const region_profile = &search->region_profile;
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
-  mm_stack_t* const restrict mm_stack = search->mm_stack;
+  mm_stack_t* const mm_stack = search->mm_stack;
   // Store Buffer Positions
   const uint64_t num_filtering_positions = region_profile->total_candidates;
   search->gpu_buffer_fmi_decode_offset = gpu_buffer_fmi_decode_get_num_queries(gpu_buffer_fmi_decode);
@@ -262,7 +262,7 @@ void approximate_search_generate_candidates_buffered_copy(
   // Copy all candidates positions
   uint64_t i;
   for (i=0;i<num_filtering_regions;++i) {
-    region_search_t* const restrict filtering_region = region_profile->filtering_region + i;
+    region_search_t* const filtering_region = region_profile->filtering_region + i;
     if (filtering_region->degree==REGION_FILTER_DEGREE_ZERO) {
       uint64_t bwt_position;
       for (bwt_position=filtering_region->lo;bwt_position<filtering_region->hi;++bwt_position) {
@@ -280,17 +280,17 @@ void approximate_search_generate_candidates_buffered_copy(
   #endif
 }
 void approximate_search_generate_candidates_buffered_retrieve(
-    approximate_search_t* const restrict search,
-    gpu_buffer_fmi_decode_t* const restrict gpu_buffer_fmi_decode) {
+    approximate_search_t* const search,
+    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
   // Parameters
-  region_profile_t* const restrict region_profile = &search->region_profile;
+  region_profile_t* const region_profile = &search->region_profile;
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
   // Add all candidates positions
   const bool gpu_decode_text = gpu_buffer_fmi_decode->gpu_decode_text;
   uint64_t gpu_buffer_fmi_decode_offset = search->gpu_buffer_fmi_decode_offset;
   uint64_t i, gpu_filtering_positions_offset = 0;
   for (i=0;i<num_filtering_regions;++i) {
-    region_search_t* const restrict region_search = region_profile->filtering_region + i;
+    region_search_t* const region_search = region_profile->filtering_region + i;
     if (region_search->degree==REGION_FILTER_DEGREE_ZERO) {
       // Retrieve/Decode all pending candidates
       const uint64_t pending_candidates = region_search->hi - region_search->lo;
@@ -321,10 +321,10 @@ void approximate_search_generate_candidates_buffered_retrieve(
 /*
  * Display/Benchmark
  */
-void approximate_search_generate_candidates_buffered_print_benchmark(approximate_search_t* const restrict search) {
+void approximate_search_generate_candidates_buffered_print_benchmark(approximate_search_t* const search) {
 #ifdef CUDA_BENCHMARK_GENERATE_DECODE_CANDIDATES
   // Parameters
-  region_profile_t* const restrict region_profile = &search->region_profile;
+  region_profile_t* const region_profile = &search->region_profile;
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
   // Prepare benchmark file
   if (benchmark_decode_candidates==NULL) {
@@ -333,7 +333,7 @@ void approximate_search_generate_candidates_buffered_print_benchmark(approximate
   // Add all candidates positions
   uint64_t i;
   for (i=0;i<num_filtering_regions;++i) {
-    region_search_t* const restrict filtering_region = region_profile->filtering_region + i;
+    region_search_t* const filtering_region = region_profile->filtering_region + i;
     if (filtering_region->degree==REGION_FILTER_DEGREE_ZERO) {
       uint64_t bwt_position;
       for (bwt_position=filtering_region->begin;bwt_position<filtering_region->end;++bwt_position) {

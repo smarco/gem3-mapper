@@ -93,38 +93,38 @@ typedef struct {
  * Setup
  */
 matches_t* matches_new();
-void matches_configure(matches_t* const restrict matches,text_collection_t* const restrict text_collection);
-void matches_clear(matches_t* const restrict matches);
-void matches_delete(matches_t* const restrict matches);
+void matches_configure(matches_t* const matches,text_collection_t* const text_collection);
+void matches_clear(matches_t* const matches);
+void matches_delete(matches_t* const matches);
 
 /*
  * Accessors
  */
-bool matches_is_mapped(const matches_t* const restrict matches);
-void matches_recompute_metrics(matches_t* const restrict matches);
-uint64_t matches_get_first_stratum_matches(matches_t* const restrict matches);
-uint64_t matches_get_subdominant_stratum_matches(matches_t* const restrict matches);
-uint8_t matches_get_primary_mapq(matches_t* const restrict matches);
+bool matches_is_mapped(const matches_t* const matches);
+void matches_recompute_metrics(matches_t* const matches);
+uint64_t matches_get_first_stratum_matches(matches_t* const matches);
+uint64_t matches_get_subdominant_stratum_matches(matches_t* const matches);
+uint8_t matches_get_primary_mapq(matches_t* const matches);
 
 /*
  * Index
  */
-void matches_index_rebuild(matches_t* const restrict matches,mm_stack_t* const restrict mm_stack);
-void matches_index_clear(matches_t* const restrict matches);
+void matches_index_rebuild(matches_t* const matches,mm_stack_t* const mm_stack);
+void matches_index_clear(matches_t* const matches);
 
 /*
  * Matches Accessors
  */
-match_trace_t* matches_get_match_trace_buffer(const matches_t* const restrict matches);
-match_trace_t* matches_get_match_trace(const matches_t* const restrict matches,const uint64_t offset);
-uint64_t matches_get_num_match_traces(const matches_t* const restrict matches);
-void matches_get_clear_match_traces(const matches_t* const restrict matches);
+match_trace_t* matches_get_match_trace_buffer(const matches_t* const matches);
+match_trace_t* matches_get_match_trace(const matches_t* const matches,const uint64_t offset);
+uint64_t matches_get_num_match_traces(const matches_t* const matches);
+void matches_get_clear_match_traces(const matches_t* const matches);
 
-cigar_element_t* match_trace_get_cigar_buffer(const matches_t* const restrict matches,const match_trace_t* const restrict match_trace);
-uint64_t match_trace_get_cigar_length(const match_trace_t* const restrict match_trace);
-uint64_t match_trace_get_event_distance(const match_trace_t* const restrict match_trace);
+cigar_element_t* match_trace_get_cigar_buffer(const matches_t* const matches,const match_trace_t* const match_trace);
+uint64_t match_trace_get_cigar_length(const match_trace_t* const match_trace);
+uint64_t match_trace_get_event_distance(const match_trace_t* const match_trace);
 int64_t match_trace_get_effective_length(
-    matches_t* const restrict matches,
+    matches_t* const matches,
     const uint64_t read_length,
     const uint64_t cigar_buffer_offset,
     const uint64_t cigar_length);
@@ -133,62 +133,62 @@ int64_t match_trace_get_effective_length(
  * Matches Rank Consistency
  */
 match_trace_t* matches_get_ranked_match_trace(
-    matches_t* const restrict matches,
-    select_parameters_t* const restrict select_parameters);
+    matches_t* const matches,
+    select_parameters_t* const select_parameters);
 
 /*
  * Add Matches
  */
 bool matches_add_match_trace(
-    matches_t* const restrict matches,
-    const locator_t* const restrict locator,
-    match_trace_t* const restrict match_trace,
-    mm_stack_t* const restrict mm_stack);
+    matches_t* const matches,
+    const locator_t* const locator,
+    match_trace_t* const match_trace,
+    mm_stack_t* const mm_stack);
 void matches_add_match_trace__preserve_rank(
-    matches_t* const restrict matches,
-    const locator_t* const restrict locator,
-    match_trace_t* const restrict match_trace,
-    select_parameters_t* const restrict select_parameters,
+    matches_t* const matches,
+    const locator_t* const locator,
+    match_trace_t* const match_trace,
+    select_parameters_t* const select_parameters,
     const alignment_model_t alignment_model,
-    match_trace_t** const restrict match_trace_added,
-    bool* const restrict match_added,
-    bool* const restrict match_replaced,
-    mm_stack_t* const restrict mm_stack);
+    match_trace_t** const match_trace_added,
+    bool* const match_added,
+    bool* const match_replaced,
+    mm_stack_t* const mm_stack);
 
 /*
  * Local Matches
  */
 void matches_add_local_match_pending(
-    matches_t* const restrict matches,
-    match_trace_t* const restrict match_trace);
+    matches_t* const matches,
+    match_trace_t* const match_trace);
 void matches_add_pending_local_matches(
-    matches_t* const restrict matches,
-    const locator_t* const restrict locator,
-    mm_stack_t* const restrict mm_stack);
+    matches_t* const matches,
+    const locator_t* const locator,
+    mm_stack_t* const mm_stack);
 
 /*
  * Matches hints
  */
 void matches_hint_allocate_match_trace(
-    matches_t* const restrict matches,
+    matches_t* const matches,
     const uint64_t num_matches_trace_to_add);
 
 /*
  * Sorting Matches
  */
-void matches_sort_by_distance(matches_t* const restrict matches);
-void matches_sort_by_swg_score(matches_t* const restrict matches);
-void matches_sort_by_mapq_score(matches_t* const restrict matches);
-void matches_sort_by_sequence_name__position(matches_t* const restrict matches);
+void matches_sort_by_distance(matches_t* const matches);
+void matches_sort_by_swg_score(matches_t* const matches);
+void matches_sort_by_mapq_score(matches_t* const matches);
+void matches_sort_by_sequence_name__position(matches_t* const matches);
 
 /*
  * Filters
  */
-void matches_filter_by_mapq(matches_t* const restrict matches,const uint8_t mapq_threshold,mm_stack_t* const restrict mm_stack);
+void matches_filter_by_mapq(matches_t* const matches,const uint8_t mapq_threshold,mm_stack_t* const mm_stack);
 
 /*
  * Display
  */
-void matches_print(FILE* const restrict stream,matches_t* const restrict matches);
+void matches_print(FILE* const stream,matches_t* const matches);
 
 #endif /* MATCHES_H_ */

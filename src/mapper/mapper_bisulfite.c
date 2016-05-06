@@ -25,24 +25,24 @@ string_t* mapper_bisulfite_process(string_t* orig,const archive_search_t* end,co
 /*
  * SE Bisulfite Mapper Thread
  */
-void* mapper_SE_bisulfite_thread(mapper_search_t* const restrict mapper_search) {
+void* mapper_SE_bisulfite_thread(mapper_search_t* const mapper_search) {
   // GEM-thread error handler
   gem_thread_register_id(mapper_search->thread_id+1);
 
   // Create new buffered reader/writer
-  mapper_parameters_t* const restrict parameters = mapper_search->mapper_parameters;
+  mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
   mapper_search->buffered_fasta_input =
       buffered_input_file_new(parameters->input_file,parameters->io.input_buffer_size);
-  buffered_output_file_t* const restrict buffered_output_file = buffered_output_file_new(parameters->output_file);
+  buffered_output_file_t* const buffered_output_file = buffered_output_file_new(parameters->output_file);
   buffered_input_file_attach_buffered_output(mapper_search->buffered_fasta_input,buffered_output_file);
 
   // Create an Archive-Search
-  mm_search_t* const restrict mm_search = mm_search_new(mm_pool_get_slab(mm_pool_32MB));
-  search_parameters_t* const restrict search_parameters = &parameters->base_search_parameters;
+  mm_search_t* const mm_search = mm_search_new(mm_pool_get_slab(mm_pool_32MB));
+  search_parameters_t* const search_parameters = &parameters->base_search_parameters;
   archive_search_se_new(parameters->archive,search_parameters,
       false,NULL,&mapper_search->archive_search);
   archive_search_se_inject_mm(mapper_search->archive_search,mm_search);
-  matches_t* const restrict matches = matches_new();
+  matches_t* const matches = matches_new();
   matches_configure(matches,mapper_search->archive_search->text_collection);
 
   // Temporary storage for original reads before bisulfite conversion
@@ -109,19 +109,19 @@ void* mapper_SE_bisulfite_thread(mapper_search_t* const restrict mapper_search) 
 /*
  * PE Bisulfite Mapper Thread
  */
-void* mapper_PE_bisulfite_thread(mapper_search_t* const restrict mapper_search) {
+void* mapper_PE_bisulfite_thread(mapper_search_t* const mapper_search) {
   // GEM-thread error handler
   gem_thread_register_id(mapper_search->thread_id+1);
 
   // Create new buffered reader/writer
-  mapper_parameters_t* const restrict parameters = mapper_search->mapper_parameters;
+  mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
   mapper_PE_prepare_io_buffers(
       parameters,parameters->io.input_buffer_size,&mapper_search->buffered_fasta_input_end1,
       &mapper_search->buffered_fasta_input_end2,&mapper_search->buffered_output_file);
 
   // Create an Archive-Search
-  mm_search_t* const restrict mm_search = mm_search_new(mm_pool_get_slab(mm_pool_32MB));
-  search_parameters_t* const restrict search_parameters = &parameters->base_search_parameters;
+  mm_search_t* const mm_search = mm_search_new(mm_pool_get_slab(mm_pool_32MB));
+  search_parameters_t* const search_parameters = &parameters->base_search_parameters;
   archive_search_pe_new(parameters->archive,search_parameters,false,NULL,
       &mapper_search->archive_search_end1,&mapper_search->archive_search_end2);
   archive_search_pe_inject_mm(mapper_search->archive_search_end1,mapper_search->archive_search_end2,mm_search);
@@ -134,9 +134,9 @@ void* mapper_PE_bisulfite_thread(mapper_search_t* const restrict mapper_search) 
   string_init(&orig_end1,SEQUENCE_INITIAL_LENGTH);
   string_init(&orig_end2,SEQUENCE_INITIAL_LENGTH);
 
-  archive_search_t* const restrict archive_search_end1 = mapper_search->archive_search_end1;
-  archive_search_t* const restrict archive_search_end2 = mapper_search->archive_search_end2;
-  paired_matches_t* const restrict paired_matches = mapper_search->paired_matches;
+  archive_search_t* const archive_search_end1 = mapper_search->archive_search_end1;
+  archive_search_t* const archive_search_end2 = mapper_search->archive_search_end2;
+  paired_matches_t* const paired_matches = mapper_search->paired_matches;
   while (mapper_PE_read_paired_sequences(mapper_search)) {
     PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
 

@@ -65,27 +65,27 @@ typedef struct {
 /*
  * Setup
  */
-mm_stack_t* mm_stack_new(mm_slab_t* const restrict mm_slab);
-void mm_stack_reap_segments(mm_stack_t* const restrict mm_stack,const uint64_t resident_segments);
-void mm_stack_clear(mm_stack_t* const restrict mm_stack);
-void mm_stack_delete(mm_stack_t* const restrict mm_stack);
+mm_stack_t* mm_stack_new(mm_slab_t* const mm_slab);
+void mm_stack_reap_segments(mm_stack_t* const mm_stack,const uint64_t resident_segments);
+void mm_stack_clear(mm_stack_t* const mm_stack);
+void mm_stack_delete(mm_stack_t* const mm_stack);
 
 /*
  * State
  */
-void mm_stack_push_state(mm_stack_t* const restrict mm_stack);
-void mm_stack_pop_state(mm_stack_t* const restrict mm_stack);
+void mm_stack_push_state(mm_stack_t* const mm_stack);
+void mm_stack_pop_state(mm_stack_t* const mm_stack);
 
 /*
  * Align stack memory
  */
-void mm_stack_skip_align(mm_stack_t* const restrict mm_stack,const uint64_t num_bytes);
+void mm_stack_skip_align(mm_stack_t* const mm_stack,const uint64_t num_bytes);
 
 /*
  * Allocators
  */
 void* mm_stack_memory_allocate(
-    mm_stack_t* const restrict mm_stack,
+    mm_stack_t* const mm_stack,
     const uint64_t num_bytes,
     const bool zero_mem);
 /*

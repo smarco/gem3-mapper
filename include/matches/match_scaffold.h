@@ -41,43 +41,43 @@ typedef struct {
 /*
  * Setup
  */
-void match_scaffold_init(match_scaffold_t* const restrict match_scaffold);
+void match_scaffold_init(match_scaffold_t* const match_scaffold);
 
 /*
  * Accessors
  */
-bool match_scaffold_is_null(match_scaffold_t* const restrict match_scaffold);
+bool match_scaffold_is_null(match_scaffold_t* const match_scaffold);
 
 /*
  * Adaptive Scaffolding of the alignment (Best effort)
  */
 void match_scaffold_adaptive(
-    match_scaffold_t* const restrict match_scaffold,
-    match_align_input_t* const restrict align_input,
-    match_align_parameters_t* const restrict align_parameters,
-    matches_t* const restrict matches,
-    mm_stack_t* const restrict mm_stack);
+    match_scaffold_t* const match_scaffold,
+    match_align_input_t* const align_input,
+    match_align_parameters_t* const align_parameters,
+    matches_t* const matches,
+    mm_stack_t* const mm_stack);
 
 /*
  * Sorting
  */
-void match_scaffold_sort_regions_matching(match_scaffold_t* const restrict match_scaffold);
+void match_scaffold_sort_regions_matching(match_scaffold_t* const match_scaffold);
 
 /*
  * Display
  */
 void match_scaffold_print(
-    FILE* const restrict stream,
-    matches_t* const restrict matches,
-    match_scaffold_t* const restrict match_scaffold);
+    FILE* const stream,
+    matches_t* const matches,
+    match_scaffold_t* const match_scaffold);
 void match_scaffold_print_pretty(
-    FILE* const restrict stream,
-    matches_t* const restrict matches,
-    match_scaffold_t* const restrict match_scaffold,
-    uint8_t* const restrict key,
+    FILE* const stream,
+    matches_t* const matches,
+    match_scaffold_t* const match_scaffold,
+    uint8_t* const key,
     const uint64_t key_length,
-    uint8_t* const restrict text,
+    uint8_t* const text,
     const uint64_t text_length,
-    mm_stack_t* const restrict mm_stack);
+    mm_stack_t* const mm_stack);
 
 #endif /* MATCH_SCAFFOLD_H_ */

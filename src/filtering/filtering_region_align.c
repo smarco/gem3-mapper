@@ -20,12 +20,12 @@
  * Debug
  */
 void filtering_region_align_debug(
-    filtering_candidates_t* const restrict filtering_candidates,
-    filtering_region_t* const restrict filtering_region,
-    pattern_t* const restrict pattern,
+    filtering_candidates_t* const filtering_candidates,
+    filtering_region_t* const filtering_region,
+    pattern_t* const pattern,
     const bool aligned,
-    matches_t* const restrict matches,
-    match_trace_t* const restrict match_trace) {
+    matches_t* const matches,
+    match_trace_t* const match_trace) {
   gem_cond_debug_block(DEBUG_FILTERING_REGION) {
     if (!aligned) {
       tab_fprintf(gem_log_get_stream(),
@@ -34,9 +34,9 @@ void filtering_region_align_debug(
       tab_global_dec();
     } else {
       // Text Candidate
-      const text_trace_t* const restrict text_trace = text_collection_get_trace(
+      const text_trace_t* const text_trace = text_collection_get_trace(
           filtering_candidates->text_collection,filtering_region->text_trace_offset);
-      uint8_t* const restrict text = text_trace->text;
+      uint8_t* const text = text_trace->text;
       // Print debug info
       tab_fprintf(gem_log_get_stream(),"=> Region ALIGNED (distance=%lu,swg_score=%ld)\n",
           match_trace->distance,match_trace->swg_score);
@@ -53,9 +53,9 @@ void filtering_region_align_debug(
  * Region (Re)Align by clone previous
  */
 void filtering_region_align_clone(
-    match_trace_t* const restrict match_trace_src,
-    match_trace_t* const restrict match_trace_dst,
-    filtering_region_t* const restrict filtering_region_dst,
+    match_trace_t* const match_trace_src,
+    match_trace_t* const match_trace_dst,
+    filtering_region_t* const filtering_region_dst,
     const uint64_t run_length) {
   // DEBUG
   gem_cond_debug_block(DEBUG_FILTERING_REGION) {
@@ -76,8 +76,8 @@ void filtering_region_align_clone(
   match_trace_dst->edit_distance = match_trace_src->edit_distance;
   match_trace_dst->swg_score = match_trace_src->swg_score;
   // Clone match-alignment
-  match_alignment_t* const restrict match_alignment_dst = &match_trace_dst->match_alignment;
-  match_alignment_t* const restrict match_alignment_src = &match_trace_src->match_alignment;
+  match_alignment_t* const match_alignment_dst = &match_trace_dst->match_alignment;
+  match_alignment_t* const match_alignment_src = &match_trace_src->match_alignment;
   match_alignment_dst->match_text_offset = match_alignment_src->match_text_offset;
   match_alignment_dst->match_position =
       filtering_region_dst->text_begin_position + match_alignment_dst->match_text_offset;
@@ -99,15 +99,15 @@ void filtering_region_align_clone(
  * Region (Re)Align
  */
 void filtering_region_align_exact(
-    filtering_candidates_t* const restrict filtering_candidates,
-    filtering_region_t* const restrict filtering_region,
-    pattern_t* const restrict pattern,
+    filtering_candidates_t* const filtering_candidates,
+    filtering_region_t* const filtering_region,
+    pattern_t* const pattern,
     const bool emulated_rc_search,
-    matches_t* const restrict matches,
-    match_trace_t* const restrict match_trace) {
+    matches_t* const matches,
+    match_trace_t* const match_trace) {
   PROF_INC_COUNTER(GP_ALIGNED_EXACT);
   // Parameters
-  search_parameters_t* const restrict search_parameters = filtering_candidates->search_parameters;
+  search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
   match_align_input_t align_input;
   match_align_parameters_t align_parameters;
   // Configure Alignment
@@ -119,21 +119,21 @@ void filtering_region_align_exact(
   filtering_region->status = filtering_region_aligned; // Set status
 }
 void filtering_region_align_inexact(
-    filtering_candidates_t* const restrict filtering_candidates,
-    filtering_region_t* const restrict filtering_region,
-    pattern_t* const restrict pattern,
+    filtering_candidates_t* const filtering_candidates,
+    filtering_region_t* const filtering_region,
+    pattern_t* const pattern,
     const bool emulated_rc_search,
     const bool local_alignment,
-    matches_t* const restrict matches,
-    match_trace_t* const restrict match_trace) {
+    matches_t* const matches,
+    match_trace_t* const match_trace) {
   PROF_INC_COUNTER(GP_ALIGNED_INEXACT);
   // Parameters
-  archive_text_t* const restrict archive_text = filtering_candidates->archive->text;
-  text_collection_t* const restrict text_collection = filtering_candidates->text_collection;
-  text_trace_t* const restrict text_trace = text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
-  search_parameters_t* const restrict search_parameters = filtering_candidates->search_parameters;
+  archive_text_t* const archive_text = filtering_candidates->archive->text;
+  text_collection_t* const text_collection = filtering_candidates->text_collection;
+  text_trace_t* const text_trace = text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
+  search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
   const alignment_model_t alignment_model = search_parameters->alignment_model;
-  mm_stack_t* const restrict mm_stack = filtering_candidates->mm_stack;
+  mm_stack_t* const mm_stack = filtering_candidates->mm_stack;
   match_align_input_t align_input;
   match_align_parameters_t align_parameters;
   // Select alignment model
@@ -189,13 +189,13 @@ void filtering_region_align_inexact(
   PROF_ADD_COUNTER(GP_ALIGNED_REGIONS_LENGTH,align_input.text_length);
 }
 bool filtering_region_align(
-    filtering_candidates_t* const restrict filtering_candidates,
-    filtering_region_t* const restrict filtering_region,
-    pattern_t* const restrict pattern,
+    filtering_candidates_t* const filtering_candidates,
+    filtering_region_t* const filtering_region,
+    pattern_t* const pattern,
     const bool emulated_rc_search,
     const bool local_alignment,
-    matches_t* const restrict matches,
-    match_trace_t* const restrict match_trace) {
+    matches_t* const matches,
+    match_trace_t* const match_trace) {
   // DEBUG
   PROF_INC_COUNTER(GP_ALIGNED_REGIONS);
   gem_cond_debug_block(DEBUG_FILTERING_REGION) {

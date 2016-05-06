@@ -13,13 +13,13 @@
  * DP-Matrix Traceback
  */
 void dp_matrix_traceback(
-    FILE* const restrict stream,
-    const dp_matrix_t* const restrict dp_matrix,
-    const uint8_t* const restrict key,
+    FILE* const stream,
+    const dp_matrix_t* const dp_matrix,
+    const uint8_t* const key,
     const uint64_t key_length,
-    const uint8_t* const restrict text,
+    const uint8_t* const text,
     const uint64_t column_position) {
-  dp_column_t* const restrict columns = dp_matrix->columns;
+  dp_column_t* const columns = dp_matrix->columns;
   int64_t h = column_position;
   int64_t v = key_length;
   tab_fprintf(stream,"");
@@ -48,15 +48,15 @@ void dp_matrix_traceback(
 }
 /*
 void neighborhood_search_debug_match(
-    FILE* const restrict stream,
-    const dp_matrix_t* const restrict dp_matrix,
-    const uint8_t* const restrict key,
+    FILE* const stream,
+    const dp_matrix_t* const dp_matrix,
+    const uint8_t* const key,
     const uint64_t key_length,
-    const uint8_t* const restrict text,
+    const uint8_t* const text,
     const uint64_t column_position,
     const uint64_t min_val,
     const uint64_t num_matches_found) {
-  dp_column_t* const restrict next_column = dp_matrix->columns + column_position;
+  dp_column_t* const next_column = dp_matrix->columns + column_position;
   uint64_t i;
   for (i=0;i<=key_length;++i) {
     fprintf(stream,"%"PRId64" ",next_column->cells[i]>1000 ? -1 : (int64_t)next_column->cells[i]);
@@ -71,26 +71,26 @@ void neighborhood_search_debug_match(
  * Display
  */
 void dp_column_print_summary(
-    FILE* const restrict stream,
-    const dp_matrix_t* const restrict dp_matrix,
+    FILE* const stream,
+    const dp_matrix_t* const dp_matrix,
     const uint64_t column_position,
     const uint64_t lo,
     const uint64_t hi) {
   const uint64_t column_length = dp_matrix->column_length;
-  uint64_t* const restrict cells = dp_matrix->columns[column_position].cells;
+  uint64_t* const cells = dp_matrix->columns[column_position].cells;
   uint64_t i, min = UINT64_MAX;
   for (i=0;i<=column_length;++i) min = MIN(min,cells[i]);
   tab_fprintf(stream,">> [%"PRIu64"](#%"PRIu64"){min=%"PRIu64",last=%"PRIu64"}\n",
       column_position,hi-lo,min,cells[column_length]);
 }
 void dp_matrix_print(
-    FILE* const restrict stream,
-    const dp_matrix_t* const restrict dp_matrix,
+    FILE* const stream,
+    const dp_matrix_t* const dp_matrix,
     const bool forward_search,
-    const uint8_t* const restrict key,
+    const uint8_t* const key,
     const uint64_t key_begin,
     const uint64_t key_end,
-    const uint8_t* const restrict text,
+    const uint8_t* const text,
     const uint64_t text_begin,
     const uint64_t text_end) {
   int64_t h, v;

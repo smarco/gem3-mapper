@@ -23,8 +23,8 @@ typedef struct {
   bool region_chained;
 } match_scaffold_lis_t;
 int match_scaffold_lis_cmp(
-    const match_scaffold_lis_t* const restrict a,
-    const match_scaffold_lis_t* const restrict b) {
+    const match_scaffold_lis_t* const a,
+    const match_scaffold_lis_t* const b) {
   int coverage_diff =  b->coverage - a->coverage;
   if (coverage_diff) return coverage_diff;
   return a->sparseness - b->sparseness;
@@ -33,10 +33,10 @@ int match_scaffold_lis_cmp(
  * Compute LIS
  */
 void match_scaffold_chain_compute_lis(
-    match_scaffold_t* const restrict match_scaffold,
-    match_scaffold_lis_t* const restrict lis_vector) {
+    match_scaffold_t* const match_scaffold,
+    match_scaffold_lis_t* const lis_vector) {
   // Parameters
-  region_matching_t* const restrict region_matching = match_scaffold->scaffold_regions;
+  region_matching_t* const region_matching = match_scaffold->scaffold_regions;
   const int64_t num_scaffold_regions = match_scaffold->num_scaffold_regions;
   // Compute the LIS-vector
   int64_t region_idx;
@@ -92,8 +92,8 @@ void match_scaffold_chain_compute_lis(
   }
 }
 void match_scaffold_chain_store_lis(
-    match_scaffold_t* const restrict match_scaffold,
-    match_scaffold_lis_t* const restrict lis_vector) {
+    match_scaffold_t* const match_scaffold,
+    match_scaffold_lis_t* const lis_vector) {
   // Parameters
   region_matching_t* region_matching = match_scaffold->scaffold_regions;
   const int64_t lis_vector_length = match_scaffold->num_scaffold_regions;
@@ -110,15 +110,15 @@ void match_scaffold_chain_store_lis(
   match_scaffold->scaffolding_coverage = lis_vector[0].coverage;
 }
 void match_scaffold_chain_matching_regions(
-    match_scaffold_t* const restrict match_scaffold,
-    mm_stack_t* const restrict mm_stack) {
+    match_scaffold_t* const match_scaffold,
+    mm_stack_t* const mm_stack) {
   PROFILE_START(GP_MATCH_SCAFFOLD_CHAIN_REGIONS,PROFILE_LEVEL);
   // Sort matching regions by text-offsets
   match_scaffold_sort_regions_matching(match_scaffold);
   // Allocate DP-LIS table
   mm_stack_push_state(mm_stack);
   const int64_t num_scaffold_regions = match_scaffold->num_scaffold_regions;
-  match_scaffold_lis_t* const restrict lis_vector = mm_stack_calloc(
+  match_scaffold_lis_t* const lis_vector = mm_stack_calloc(
       mm_stack,num_scaffold_regions,match_scaffold_lis_t,true);
   // Compute LIS (longest increasing sequence of matching-regions)
   match_scaffold_chain_compute_lis(match_scaffold,lis_vector);
@@ -131,11 +131,11 @@ void match_scaffold_chain_matching_regions(
  * Exact extend matching regions
  */
 void match_scaffold_exact_extend(
-    match_scaffold_t* const restrict match_scaffold,
-    const bool* const restrict allowed_enc,
-    const uint8_t* const restrict key,
+    match_scaffold_t* const match_scaffold,
+    const bool* const allowed_enc,
+    const uint8_t* const key,
     const uint64_t key_length,
-    const uint8_t* const restrict text,
+    const uint8_t* const text,
     const uint64_t text_length) {
   // Extend all matching regions (Exact extend of matching regions)
   const uint64_t num_scaffold_regions = match_scaffold->num_scaffold_regions;
@@ -143,7 +143,7 @@ void match_scaffold_exact_extend(
   uint64_t i, inc_coverage = 0;
   for (i=0;i<num_scaffold_regions;++i) {
     // Try to left extend
-    region_matching_t* const restrict region_matching = match_scaffold->scaffold_regions + i;
+    region_matching_t* const region_matching = match_scaffold->scaffold_regions + i;
     const int64_t left_key_max = (i==0) ? 0 : match_scaffold->scaffold_regions[i-1].key_end;
     const int64_t left_text_max = (i==0) ? 0 : match_scaffold->scaffold_regions[i-1].text_end;
     int64_t left_key = region_matching->key_begin-1;
@@ -181,19 +181,19 @@ void match_scaffold_exact_extend(
  * Region-Chain Scaffolding
  */
 void match_scaffold_region_chain(
-    match_scaffold_t* const restrict match_scaffold,
-    match_align_input_t* const restrict align_input,
-    match_align_parameters_t* const restrict align_parameters,
+    match_scaffold_t* const match_scaffold,
+    match_align_input_t* const align_input,
+    match_align_parameters_t* const align_parameters,
     const bool exact_extend,
-    mm_stack_t* const restrict mm_stack) {
+    mm_stack_t* const mm_stack) {
   PROF_INC_COUNTER(GP_MATCH_SCAFFOLD_CHAIN_REGIONS_SCAFFOLDS);
   PROFILE_START(GP_MATCH_SCAFFOLD_CHAIN_REGIONS,PROFILE_LEVEL);
   // Parameters
-  const uint8_t* const restrict key = align_input->key;
+  const uint8_t* const key = align_input->key;
   const uint64_t key_length = align_input->key_length;
-  const uint8_t* const restrict text = align_input->text;
+  const uint8_t* const text = align_input->text;
   const uint64_t text_length = align_input->text_length;
-  const bool* const restrict allowed_enc = align_parameters->allowed_enc;
+  const bool* const allowed_enc = align_parameters->allowed_enc;
   // Find a compatible chain of matching-regions
   if (match_scaffold->num_scaffold_regions > 0) {
     match_scaffold_chain_matching_regions(match_scaffold,mm_stack);

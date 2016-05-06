@@ -46,21 +46,21 @@ uint8_t archive_score_probability_scale(
 /*
  * SE Score Categories
  */
-uint8_t archive_score_matches_se_default_ties(matches_predictors_t* const restrict predictors) {
+uint8_t archive_score_matches_se_default_ties(matches_predictors_t* const predictors) {
   // Classify ties
   const double pr = matches_classify_logit_ties(predictors,&logit_model_single_end_default);
   if (pr < MATCHES_MIN_CI) return 0;
   if (pr < MATCHES_TIES_CI) return 1;
   return archive_score_probability_scale(pr-MATCHES_TIES_CI,1.-MATCHES_TIES_CI,2,29);
 }
-uint8_t archive_score_matches_se_default_mmap(matches_predictors_t* const restrict predictors) {
+uint8_t archive_score_matches_se_default_mmap(matches_predictors_t* const predictors) {
   // Classify multimaps
   const double pr = matches_classify_logit_mmaps(predictors,&logit_model_single_end_default);
   if (pr < MATCHES_MIN_CI) return 0;
   if (pr < MATCHES_MMAPS_CI) return 1;
   return archive_score_probability_scale(pr-MATCHES_MMAPS_CI,1.-MATCHES_MMAPS_CI,30,49);
 }
-uint8_t archive_score_matches_se_default_unique(matches_predictors_t* const restrict predictors) {
+uint8_t archive_score_matches_se_default_unique(matches_predictors_t* const predictors) {
   const double pr = matches_classify_logit_unique(predictors,&logit_model_single_end_default);
   if (pr < MATCHES_MIN_CI) return 0;
   if (pr < MATCHES_UNIQUE_CI) return 1;
@@ -70,8 +70,8 @@ uint8_t archive_score_matches_se_default_unique(matches_predictors_t* const rest
  * SE Scoring Models
  */
 void archive_score_matches_se_stratify(
-    archive_search_t* const restrict archive_search,
-    matches_t* const restrict matches) {
+    archive_search_t* const archive_search,
+    matches_t* const matches) {
   /*
    * Classify
    *   200-250   Unique (high likelihood)
@@ -91,7 +91,7 @@ void archive_score_matches_se_stratify(
    */
   // Parameters
   matches_predictors_t predictors;
-  match_trace_t* const restrict match = matches_get_match_trace_buffer(matches);
+  match_trace_t* const match = matches_get_match_trace_buffer(matches);
   const uint64_t num_matches = matches_get_num_match_traces(matches);
   uint64_t i;
   // Score subdominant matches (MAPQ=0)
@@ -131,8 +131,8 @@ void archive_score_matches_se_stratify(
   }
 }
 void archive_score_matches_se_default(
-    archive_search_t* const restrict archive_search,
-    matches_t* const restrict matches) {
+    archive_search_t* const archive_search,
+    matches_t* const matches) {
   /*
    * Classify
    *   50-60   Unique
@@ -143,7 +143,7 @@ void archive_score_matches_se_default(
    */
   // Parameters
   matches_predictors_t predictors;
-  match_trace_t* const restrict match = matches_get_match_trace_buffer(matches);
+  match_trace_t* const match = matches_get_match_trace_buffer(matches);
   const uint64_t num_matches = matches_get_num_match_traces(matches);
   uint64_t i;
   // Score subdominant matches (MAPQ=0)
@@ -175,12 +175,12 @@ void archive_score_matches_se_default(
  * Archive Scoring SE
  */
 void archive_score_matches_se(
-    archive_search_t* const restrict archive_search,
-    matches_t* const restrict matches) {
+    archive_search_t* const archive_search,
+    matches_t* const matches) {
   // Check no-matches
   if (matches_get_num_match_traces(matches)==0) return;
   // Check no-align model
-  search_parameters_t* const restrict search_parameters = &archive_search->search_parameters;
+  search_parameters_t* const search_parameters = &archive_search->search_parameters;
   if (search_parameters->alignment_model==alignment_model_none) return;
   // Sort by distance (whichever it's selected)
   matches_sort_by_distance(matches);

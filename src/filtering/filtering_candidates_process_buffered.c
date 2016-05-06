@@ -19,14 +19,14 @@
  * Decode Candidates Helpers (Buffered/Batch)
  */
 void filtering_candidates_decode_retrieve_text_sample(
-    filtering_candidates_t* const restrict filtering_candidates,
-    filtering_position_t* const restrict filtering_position,
+    filtering_candidates_t* const filtering_candidates,
+    filtering_position_t* const filtering_position,
     const uint64_t filtering_position_offset,
     const uint64_t region_interval_lo,
-    gpu_buffer_fmi_decode_t* const restrict gpu_buffer_fmi_decode,
+    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
     const uint64_t buffer_offset_begin) {
   // Parameters
-  fm_index_t* const restrict fm_index = filtering_candidates->archive->fm_index;
+  fm_index_t* const fm_index = filtering_candidates->archive->fm_index;
   // Retrieve decoded position & fetch sample
   uint64_t text_position;
   gpu_buffer_fmi_decode_get_position_text(gpu_buffer_fmi_decode,
@@ -50,15 +50,15 @@ void filtering_candidates_decode_retrieve_text_sample(
 #endif
 }
 void filtering_candidates_decode_batch_retrieve_sampled_position(
-    filtering_candidates_t* const restrict filtering_candidates,
-    fc_batch_decode_candidate* const restrict batch_candidate,
+    filtering_candidates_t* const filtering_candidates,
+    fc_batch_decode_candidate* const batch_candidate,
     const uint64_t region_interval_lo,
     const uint64_t region_interval_position,
-    gpu_buffer_fmi_decode_t* const restrict gpu_buffer_fmi_decode,
+    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
     const uint64_t buffer_offset_begin) {
   // Parameters
-  fm_index_t* const restrict fm_index = filtering_candidates->archive->fm_index;
-  const bwt_t* const restrict bwt = fm_index->bwt;
+  fm_index_t* const fm_index = filtering_candidates->archive->fm_index;
+  const bwt_t* const bwt = fm_index->bwt;
   // Retrieve sampled-position from buffer
   gpu_buffer_fmi_decode_get_position_sa(
       gpu_buffer_fmi_decode,buffer_offset_begin+region_interval_position,
@@ -75,12 +75,12 @@ void filtering_candidates_decode_batch_retrieve_sampled_position(
   bwt_prefetch(bwt,batch_candidate->index_position,&batch_candidate->bwt_block_locator);
 }
 void filtering_candidates_decode_batch_retrieve_bm_sampled(
-    filtering_candidates_t* const restrict filtering_candidates,
-    fc_batch_decode_candidate* const restrict batch_candidate) {
+    filtering_candidates_t* const filtering_candidates,
+    fc_batch_decode_candidate* const batch_candidate) {
   // Parameters
-  fm_index_t* const restrict fm_index = filtering_candidates->archive->fm_index;
-  const bwt_t* const restrict bwt = fm_index->bwt;
-  const sampled_sa_t* const restrict sampled_sa = fm_index->sampled_sa;
+  fm_index_t* const fm_index = filtering_candidates->archive->fm_index;
+  const bwt_t* const bwt = fm_index->bwt;
+  const sampled_sa_t* const sampled_sa = fm_index->sampled_sa;
   // Retrieve BM-sampled (position of the SA-sample)
   bool is_sampled;
   batch_candidate->index_position =
@@ -90,14 +90,14 @@ void filtering_candidates_decode_batch_retrieve_bm_sampled(
   sampled_sa_prefetch_sample(sampled_sa,batch_candidate->index_position);
 }
 void filtering_candidates_decode_batch_retrieve_sa_sample(
-    filtering_candidates_t* const restrict filtering_candidates,
-    fc_batch_decode_candidate* const restrict batch_candidate,
-    filtering_position_t* const restrict filtering_position,
+    filtering_candidates_t* const filtering_candidates,
+    fc_batch_decode_candidate* const batch_candidate,
+    filtering_position_t* const filtering_position,
     const uint64_t region_interval_lo,
     const uint64_t region_interval_position) {
   // Parameters
-  fm_index_t* const restrict fm_index = filtering_candidates->archive->fm_index;
-  const sampled_sa_t* const restrict sampled_sa = fm_index->sampled_sa;
+  fm_index_t* const fm_index = filtering_candidates->archive->fm_index;
+  const sampled_sa_t* const sampled_sa = fm_index->sampled_sa;
   const uint64_t bwt_length = fm_index_get_length(fm_index);
   // Retrieve sampled-position
   const uint64_t sampled_position = sampled_sa_get_sample(sampled_sa,batch_candidate->index_position);
@@ -114,22 +114,22 @@ void filtering_candidates_decode_batch_retrieve_sa_sample(
  * Decode Candidates Buffered (from GPU-Buffer)
  */
 void filtering_candidates_decode_sa_filtering_positions_buffered(
-    filtering_candidates_t* const restrict filtering_candidates,
-    pattern_t* const restrict pattern,
-    region_search_t* const restrict region_search,
-    filtering_position_buffered_t* const restrict gpu_filtering_positions,
-    gpu_buffer_fmi_decode_t* const restrict gpu_buffer_fmi_decode,
+    filtering_candidates_t* const filtering_candidates,
+    pattern_t* const pattern,
+    region_search_t* const region_search,
+    filtering_position_buffered_t* const gpu_filtering_positions,
+    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
     const uint64_t buffer_offset_begin) {
   PROFILE_START(GP_FC_DECODE_CANDIDATES_BUFFERED,PROFILE_LEVEL);
   // Parameters
-  locator_t* const restrict locator = filtering_candidates->archive->locator;
+  locator_t* const locator = filtering_candidates->archive->locator;
   const uint64_t region_lo = region_search->lo;
   const uint64_t region_hi = region_search->hi;
   // Reserve candidate positions
-  vector_t* const restrict filtering_positions = filtering_candidates->filtering_positions;
+  vector_t* const filtering_positions = filtering_candidates->filtering_positions;
   const uint64_t num_candidates = region_hi-region_lo;
   vector_reserve_additional(filtering_positions,num_candidates);
-  filtering_position_t* const restrict filtering_position = vector_get_free_elm(filtering_positions,filtering_position_t);
+  filtering_position_t* const filtering_position = vector_get_free_elm(filtering_positions,filtering_position_t);
   // Retrieve decoded positions
   fc_batch_decode_candidate batch[DECODE_NUM_POSITIONS_PREFETCHED];
   uint64_t num_left_positions = num_candidates;
@@ -149,7 +149,7 @@ void filtering_candidates_decode_sa_filtering_positions_buffered(
     // Retrieve SA-sample, locate position & adjust
     for (i=0;i<batch_size;++i) {
       // Retrieve SA-sample
-      filtering_position_t* const restrict fposition = filtering_position+current_position+i;
+      filtering_position_t* const fposition = filtering_position+current_position+i;
       fposition->source_region_begin = gpu_filtering_positions[current_position+i].source_region_begin;
       fposition->source_region_end = gpu_filtering_positions[current_position+i].source_region_end;
       fposition->source_region_error = 0;
@@ -172,26 +172,26 @@ void filtering_candidates_decode_sa_filtering_positions_buffered(
   PROFILE_STOP(GP_FC_DECODE_CANDIDATES_BUFFERED,PROFILE_LEVEL);
 }
 void filtering_candidates_decode_text_filtering_positions_buffered(
-    filtering_candidates_t* const restrict filtering_candidates,
-    pattern_t* const restrict pattern,
-    region_search_t* const restrict region_search,
-    filtering_position_buffered_t* const restrict gpu_filtering_positions,
-    gpu_buffer_fmi_decode_t* const restrict gpu_buffer_fmi_decode,
+    filtering_candidates_t* const filtering_candidates,
+    pattern_t* const pattern,
+    region_search_t* const region_search,
+    filtering_position_buffered_t* const gpu_filtering_positions,
+    gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode,
     const uint64_t buffer_offset_begin) {
   PROFILE_START(GP_FC_DECODE_CANDIDATES_BUFFERED,PROFILE_LEVEL);
   // Parameters
-  locator_t* const restrict locator = filtering_candidates->archive->locator;
+  locator_t* const locator = filtering_candidates->archive->locator;
   const uint64_t region_lo = region_search->lo;
   const uint64_t region_hi = region_search->hi;
   // Reserve
-  vector_t* const restrict filtering_positions = filtering_candidates->filtering_positions;
+  vector_t* const filtering_positions = filtering_candidates->filtering_positions;
   const uint64_t num_candidates = region_hi-region_lo;
   vector_reserve_additional(filtering_positions,num_candidates);
-  filtering_position_t* const restrict filtering_position = vector_get_free_elm(filtering_positions,filtering_position_t);
+  filtering_position_t* const filtering_position = vector_get_free_elm(filtering_positions,filtering_position_t);
   // Add all candidate positions
   uint64_t i;
   for (i=0;i<num_candidates;++i) {
-    filtering_position_t* const restrict fposition = filtering_position+i;
+    filtering_position_t* const fposition = filtering_position+i;
     fposition->source_region_begin = gpu_filtering_positions[i].source_region_begin;
     fposition->source_region_end = gpu_filtering_positions[i].source_region_end;
     fposition->source_region_error = 0;
@@ -214,15 +214,15 @@ void filtering_candidates_decode_text_filtering_positions_buffered(
  * Process Candidates Buffered (from GPU-Buffer)
  */
 void filtering_candidates_process_candidates_buffered(
-    filtering_candidates_t* const restrict filtering_candidates,
-    pattern_t* const restrict pattern,
+    filtering_candidates_t* const filtering_candidates,
+    pattern_t* const pattern,
     const bool compose_region_chaining) {
   PROFILE_START(GP_FC_PROCESS_CANDIDATES,PROFILE_LEVEL);
   // Retrieve total candidate positions
   PROF_ADD_COUNTER(GP_CANDIDATE_POSITIONS,vector_get_used(filtering_candidates->filtering_positions));
   // Compose matching regions into candidate regions (also filter out duplicated positions or already checked)
   PROFILE_START(GP_FC_COMPOSE_REGIONS,PROFILE_LEVEL);
-  search_parameters_t* const restrict search_parameters = filtering_candidates->search_parameters;
+  search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
   const bool matching_regions_compose = compose_region_chaining && !search_parameters->force_full_swg;
   filtering_candidates_compose_filtering_regions(filtering_candidates,pattern,matching_regions_compose);
   PROFILE_STOP(GP_FC_COMPOSE_REGIONS,PROFILE_LEVEL);

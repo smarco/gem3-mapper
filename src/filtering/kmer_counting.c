@@ -51,11 +51,11 @@
  * Compile Pattern
  */
 void kmer_counting_compile(
-    kmer_counting_t* const restrict kmer_counting,
-    uint8_t* const restrict pattern,
+    kmer_counting_t* const kmer_counting,
+    uint8_t* const pattern,
     const uint64_t pattern_length,
     const uint64_t max_error,
-    mm_stack_t* const restrict mm_stack) {
+    mm_stack_t* const mm_stack) {
   // Check min-length condition
   if (pattern_length < KMER_COUNTING_LENGTH) {
     kmer_counting->enabled = false;
@@ -100,8 +100,8 @@ void kmer_counting_compile(
  * Filter text region
  */
 uint64_t kmer_counting_filter(
-    const kmer_counting_t* const restrict kmer_counting,
-    const uint8_t* const restrict text,
+    const kmer_counting_t* const kmer_counting,
+    const uint8_t* const text,
     const uint64_t text_length) {
   PROFILE_START(GP_FC_KMER_COUNTER_FILTER,PROFILE_LEVEL);
   // Check filter enabled
@@ -115,8 +115,8 @@ uint64_t kmer_counting_filter(
   const uint64_t kmers_required = kmer_counting->pattern_length -
       (KMER_COUNTING_LENGTH-1) - KMER_COUNTING_LENGTH*max_error;
   memset(kmer_counting->kmer_count_text,0,KMER_COUNTING_NUM_KMERS*UINT16_SIZE);
-  uint16_t* const restrict kmer_count_text = kmer_counting->kmer_count_text;
-  uint16_t* const restrict kmer_count_pattern = kmer_counting->kmer_count_pattern;
+  uint16_t* const kmer_count_text = kmer_counting->kmer_count_text;
+  uint16_t* const kmer_count_pattern = kmer_counting->kmer_count_pattern;
   /*
    * First count (Load)
    */

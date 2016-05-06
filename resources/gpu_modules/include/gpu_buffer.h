@@ -39,10 +39,10 @@ typedef struct {
 gpu_error_t gpu_buffer_get_min_memory_size(size_t *bytesPerBuffer);
 
 /* Primitives to schedule and manage the buffers */
-gpu_error_t gpu_buffer_configuration(gpu_buffer_t* const __restrict__ mBuff, const uint32_t idBuffer, const uint32_t idSupportedDevice,
-                                     const size_t bytesPerBuffer, const uint32_t numBuffers, gpu_device_info_t** const __restrict__ device,
-                                     gpu_reference_buffer_t* const __restrict__ reference, gpu_index_buffer_t* const __restrict__ index);
-gpu_error_t gpu_buffer_scheduling(gpu_buffer_t ***gpuBuffer, const uint32_t numBuffers, gpu_device_info_t** const __restrict__ device,
+gpu_error_t gpu_buffer_configuration(gpu_buffer_t* const mBuff, const uint32_t idBuffer, const uint32_t idSupportedDevice,
+                                     const size_t bytesPerBuffer, const uint32_t numBuffers, gpu_device_info_t** const device,
+                                     gpu_reference_buffer_t* const reference, gpu_index_buffer_t* const index);
+gpu_error_t gpu_buffer_scheduling(gpu_buffer_t ***gpuBuffer, const uint32_t numBuffers, gpu_device_info_t** const device,
                                   gpu_reference_buffer_t *reference, gpu_index_buffer_t *index, float maxMbPerBuffer);
 
 /* Functions to free all the buffer resources (HOST & DEVICE) */

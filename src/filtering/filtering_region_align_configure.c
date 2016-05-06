@@ -12,15 +12,15 @@
  * Configure Basic Alignment
  */
 void filtering_region_align_configure_exact(
-    match_align_input_t* const restrict align_input,
-    match_align_parameters_t* const restrict align_parameters,
-    filtering_region_t* const restrict filtering_region,
-    search_parameters_t* const restrict search_parameters,
-    pattern_t* const restrict pattern,
+    match_align_input_t* const align_input,
+    match_align_parameters_t* const align_parameters,
+    filtering_region_t* const filtering_region,
+    search_parameters_t* const search_parameters,
+    pattern_t* const pattern,
     const bool emulated_rc_search) {
   // Parameters
   const uint64_t key_length = pattern->key_length;
-  swg_penalties_t* const restrict swg_penalties = &search_parameters->swg_penalties;
+  swg_penalties_t* const swg_penalties = &search_parameters->swg_penalties;
   // Align input
   align_input->key_length         = key_length;
   align_input->text_position      = filtering_region->text_begin_position;
@@ -31,17 +31,17 @@ void filtering_region_align_configure_exact(
   align_parameters->swg_penalties      = swg_penalties;
 }
 void filtering_region_align_configure_hamming(
-    match_align_input_t* const restrict align_input,
-    match_align_parameters_t* const restrict align_parameters,
-    filtering_region_t* const restrict filtering_region,
-    search_parameters_t* const restrict search_parameters,
-    pattern_t* const restrict pattern,
-    text_trace_t* const restrict text_trace,
+    match_align_input_t* const align_input,
+    match_align_parameters_t* const align_parameters,
+    filtering_region_t* const filtering_region,
+    search_parameters_t* const search_parameters,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
     const bool emulated_rc_search) {
   // Parameters
-  uint8_t* const restrict key = pattern->key;
+  uint8_t* const key = pattern->key;
   const uint64_t key_length = pattern->key_length;
-  bool* const restrict allowed_enc = search_parameters->allowed_enc;
+  bool* const allowed_enc = search_parameters->allowed_enc;
   // Align input
   align_input->key                = key;
   align_input->key_length         = key_length;
@@ -56,20 +56,20 @@ void filtering_region_align_configure_hamming(
   align_parameters->allowed_enc        = allowed_enc;
 }
 void filtering_region_align_configure_levenshtein(
-    match_align_input_t* const restrict align_input,
-    match_align_parameters_t* const restrict align_parameters,
-    filtering_region_t* const restrict filtering_region,
-    search_parameters_t* const restrict search_parameters,
-    pattern_t* const restrict pattern,
-    text_trace_t* const restrict text_trace,
+    match_align_input_t* const align_input,
+    match_align_parameters_t* const align_parameters,
+    filtering_region_t* const filtering_region,
+    search_parameters_t* const search_parameters,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
     const bool emulated_rc_search,
     const bool left_gap_alignment,
-    mm_stack_t* const restrict mm_stack) {
+    mm_stack_t* const mm_stack) {
   // Parameters
-  uint8_t* const restrict key = pattern->key;
+  uint8_t* const key = pattern->key;
   const uint64_t key_length = pattern->key_length;
   // Adjust alignment boundaries
-  region_alignment_t* const restrict region_alignment = &filtering_region->region_alignment;
+  region_alignment_t* const region_alignment = &filtering_region->region_alignment;
   const uint64_t align_distance = pattern->max_effective_filtering_error;
   // Align input
   filtering_region_bpm_pattern_select(filtering_region,pattern,
@@ -91,16 +91,16 @@ void filtering_region_align_configure_levenshtein(
  * Configure SWG-based Alignment
  */
 void filtering_region_align_configure_swg(
-    match_align_input_t* const restrict align_input,
-    match_align_parameters_t* const restrict align_parameters,
-    filtering_region_t* const restrict filtering_region,
-    search_parameters_t* const restrict search_parameters,
-    pattern_t* const restrict pattern,
-    text_trace_t* const restrict text_trace,
+    match_align_input_t* const align_input,
+    match_align_parameters_t* const align_parameters,
+    filtering_region_t* const filtering_region,
+    search_parameters_t* const search_parameters,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
     const bool emulated_rc_search,
     const bool left_gap_alignment,
     const bool local_alignment,
-    mm_stack_t* const restrict mm_stack) {
+    mm_stack_t* const mm_stack) {
   // Parameters
   const uint64_t key_length = pattern->key_length;
   // Align input

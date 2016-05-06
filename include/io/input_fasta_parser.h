@@ -25,8 +25,8 @@
  * Read Parser
  */
 int input_fasta_parse_sequence(
-    buffered_input_file_t* const restrict buffered_fasta_input,
-    sequence_t* const restrict sequence,
+    buffered_input_file_t* const buffered_fasta_input,
+    sequence_t* const sequence,
     const bool strictly_normalized,
     const bool check_input_buffer);
 
@@ -34,7 +34,7 @@ int input_fasta_parse_sequence(
  * Display
  */
 void input_fasta_parser_prompt_error(
-    buffered_input_file_t* const restrict buffered_input,
+    buffered_input_file_t* const buffered_input,
     const error_code_t error_code);
 
 #endif /* INPUT_FASTA_PARSER_H_ */

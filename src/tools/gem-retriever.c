@@ -57,7 +57,7 @@ typedef struct {
   mm_stack_t* mm_stack;
 } retriever_data_t;
 // Defaults
-void retriever_parameters_set_defaults(retriever_parameters_t* const restrict parameters) {
+void retriever_parameters_set_defaults(retriever_parameters_t* const parameters) {
   /* I/O */
   parameters->index_file_name=NULL;
   parameters->input_file_name=NULL;
@@ -87,10 +87,10 @@ void usage(const option_visibility_t visibility_level) {
   fprintf(stderr, "USAGE: ./gem-retriever [ARGS]...\n");
   options_fprint_menu(stderr,gem_retriever_options,gem_retriever_groups,true,visibility_level);
 }
-void parse_arguments(int argc,char** argv,retriever_parameters_t* const restrict parameters) {
+void parse_arguments(int argc,char** argv,retriever_parameters_t* const parameters) {
   struct option* getopt_options = options_adaptor_getopt(gem_retriever_options);
-  string_t* const restrict getopt_short_string = options_adaptor_getopt_short(gem_retriever_options);
-  char* const restrict getopt_short = string_get_buffer(getopt_short_string);
+  string_t* const getopt_short_string = options_adaptor_getopt_short(gem_retriever_options);
+  char* const getopt_short = string_get_buffer(getopt_short_string);
   int option, option_index;
   while (true) {
     // Get option &  Select case
@@ -151,7 +151,7 @@ typedef struct {
  * Parsing
  */
 int retriever_query_parse(
-    retriever_data_t* const restrict retriever_data,retriever_query_t* const restrict retriever_query,
+    retriever_data_t* const retriever_data,retriever_query_t* const retriever_query,
     char* text_line,const uint64_t text_line_length) {
   // Parse sequence name
   if (text_line_length==0) return -1;
@@ -186,19 +186,19 @@ int retriever_query_parse(
   ++text_line;
   // Parse position
   int64_t value;
-  input_text_parse_integer((const char** const restrict)&text_line,&value);
+  input_text_parse_integer((const char** const)&text_line,&value);
   retriever_query->text_position = value;
   if (*text_line!=':' && *text_line!='\t') return -1;
   ++text_line;
   // Parse length
-  input_text_parse_integer((const char** const restrict)&text_line,&value);
+  input_text_parse_integer((const char** const)&text_line,&value);
   retriever_query->text_length = value;
   return 0;
 }
 void retriever_query_location(
-    retriever_data_t* const restrict retriever_data,retriever_query_t* const restrict retriever_query) {
+    retriever_data_t* const retriever_data,retriever_query_t* const retriever_query) {
   // Locate the sequence
-  locator_interval_t* const restrict locator_interval =
+  locator_interval_t* const locator_interval =
       locator_inverse_map(retriever_data->archive->locator,retriever_query->tag,
           Forward,retriever_query->bs_strand,retriever_query->text_position);
   if (locator_interval==NULL) {
@@ -228,8 +228,8 @@ void retriever_query_location(
   const uint64_t text_trace_offset = archive_text_retrieve_collection(
       retriever_data->archive->text,&retriever_data->text_collection,index_begin_position,
       text_length,retriever_query->strand==Reverse,false,retriever_data->mm_stack);
-  const text_trace_t* const restrict text_trace = text_collection_get_trace(&retriever_data->text_collection,text_trace_offset);
-  const uint8_t* const restrict text = text_trace->text; // Candidate
+  const text_trace_t* const text_trace = text_collection_get_trace(&retriever_data->text_collection,text_trace_offset);
+  const uint8_t* const text = text_trace->text; // Candidate
   // Output the sequence
   uint64_t i;
   for (i=0;i<text_length;++i) {
@@ -243,7 +243,7 @@ void retriever_query_location(
 int main(int argc,char** argv) {
   // Parsing command-line options
   retriever_data_t retriever_data;
-  retriever_parameters_t* const restrict parameters = &retriever_data.parameters;
+  retriever_parameters_t* const parameters = &retriever_data.parameters;
   retriever_parameters_set_defaults(parameters);
   parse_arguments(argc,argv,parameters);
 
@@ -257,7 +257,7 @@ int main(int argc,char** argv) {
   gem_cond_log(parameters->verbose,"... done");
 
   // Allocate
-  mm_slab_t* const restrict mm_slab = mm_slab_new_(BUFFER_SIZE_64M,BUFFER_SIZE_512M,MM_UNLIMITED_MEM,"");
+  mm_slab_t* const mm_slab = mm_slab_new_(BUFFER_SIZE_64M,BUFFER_SIZE_512M,MM_UNLIMITED_MEM,"");
   retriever_data.mm_stack = mm_stack_new(mm_slab);
   text_collection_init(&retriever_data.text_collection);
 

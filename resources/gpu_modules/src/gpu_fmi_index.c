@@ -17,7 +17,7 @@
 Get information functions
 ************************************************************/
 
-gpu_error_t gpu_fmi_index_get_size(const gpu_fmi_buffer_t* const restrict fmi, size_t* const restrict bytesPerFMI)
+gpu_error_t gpu_fmi_index_get_size(const gpu_fmi_buffer_t* const fmi, size_t* const bytesPerFMI)
 {
   (* bytesPerFMI) = fmi->numEntries * sizeof(gpu_fmi_entry_t);
   return (SUCCESS);
@@ -28,7 +28,7 @@ gpu_error_t gpu_fmi_index_get_size(const gpu_fmi_buffer_t* const restrict fmi, s
  GLOBAL METHODS: INPUT / OUPUT Functions
 ************************************************************/
 
-gpu_error_t gpu_fmi_index_read_specs(FILE* fp, gpu_fmi_buffer_t* const restrict fmi)
+gpu_error_t gpu_fmi_index_read_specs(FILE* fp, gpu_fmi_buffer_t* const fmi)
 {
   size_t result;
 
@@ -40,7 +40,7 @@ gpu_error_t gpu_fmi_index_read_specs(FILE* fp, gpu_fmi_buffer_t* const restrict 
   return (SUCCESS);
 }
 
-gpu_error_t gpu_fmi_index_read(FILE* fp, gpu_fmi_buffer_t* const restrict fmi)
+gpu_error_t gpu_fmi_index_read(FILE* fp, gpu_fmi_buffer_t* const fmi)
 {
   size_t result;
 
@@ -55,7 +55,7 @@ gpu_error_t gpu_fmi_index_read(FILE* fp, gpu_fmi_buffer_t* const restrict fmi)
   return (SUCCESS);
 }
 
-gpu_error_t gpu_fmi_index_write(FILE* fp, const gpu_fmi_buffer_t* const restrict fmi)
+gpu_error_t gpu_fmi_index_write(FILE* fp, const gpu_fmi_buffer_t* const fmi)
 {
   size_t result;
 
@@ -70,13 +70,10 @@ gpu_error_t gpu_fmi_index_write(FILE* fp, const gpu_fmi_buffer_t* const restrict
   return (SUCCESS);
 }
 
-gpu_error_t gpu_fmi_index_load_specs_MFASTA_FULL(const char* const restrict fn, gpu_fmi_buffer_t* const restrict fmi)
+gpu_error_t gpu_fmi_index_load_specs_MFASTA_FULL(const char* const fn, gpu_fmi_buffer_t* const fmi)
 {
   FILE *fp = NULL;
-  char *h_ascii_BWT = NULL;
-  char lineFile[GPU_FILE_SIZE_LINES];
-  uint64_t sizeFile = 0, position = 0;
-  int32_t charsRead = 0;
+  uint64_t sizeFile = 0;
 
   fp = fopen(fn, "rb");
   if (fp == NULL) return (E_OPENING_FILE);
@@ -91,7 +88,7 @@ gpu_error_t gpu_fmi_index_load_specs_MFASTA_FULL(const char* const restrict fn, 
   return (SUCCESS);
 }
 
-gpu_error_t gpu_fmi_index_load_MFASTA_FULL(const char* const restrict fn, gpu_fmi_buffer_t* const restrict fmi, char **h_BWT)
+gpu_error_t gpu_fmi_index_load_MFASTA_FULL(const char* const fn, gpu_fmi_buffer_t* const fmi, char **h_BWT)
 {
   FILE *fp = NULL;
   char *h_ascii_BWT = NULL;
@@ -131,7 +128,7 @@ gpu_error_t gpu_fmi_index_load_MFASTA_FULL(const char* const restrict fn, gpu_fm
  GLOBAL METHODS: Transfer the index (HOST <-> DEVICES)
 ************************************************************/
 
-gpu_error_t gpu_fmi_index_transfer_CPU_to_GPUs(gpu_fmi_buffer_t* const restrict fmi, gpu_device_info_t** const restrict devices)
+gpu_error_t gpu_fmi_index_transfer_CPU_to_GPUs(gpu_fmi_buffer_t* const fmi, gpu_device_info_t** const devices)
 {
   uint32_t deviceFreeMemory, idSupportedDevice;
   uint32_t numSupportedDevices = devices[0]->numSupportedDevices;
@@ -158,7 +155,7 @@ gpu_error_t gpu_fmi_index_transfer_CPU_to_GPUs(gpu_fmi_buffer_t* const restrict 
  GLOBAL METHODS: Functions to transform the index
 ************************************************************/
 
-gpu_error_t gpu_fmi_index_transform_ASCII(const char* const restrict textBWT, gpu_fmi_buffer_t* const restrict fmi)
+gpu_error_t gpu_fmi_index_transform_ASCII(const char* const textBWT, gpu_fmi_buffer_t* const fmi)
 {
     gpu_index_bitmap_entry_t  *h_bitmaps_BWT  = NULL;
     gpu_index_counter_entry_t *h_counters_FMI = NULL;
@@ -180,7 +177,7 @@ gpu_error_t gpu_fmi_index_transform_ASCII(const char* const restrict textBWT, gp
     return(SUCCESS);
 }
 
-gpu_error_t gpu_fmi_index_transform_GEM_FULL(const gpu_gem_fmi_dto_t* const restrict gpu_gem_fmi_dto, gpu_fmi_buffer_t* const restrict fmi)
+gpu_error_t gpu_fmi_index_transform_GEM_FULL(const gpu_gem_fmi_dto_t* const gpu_gem_fmi_dto, gpu_fmi_buffer_t* const fmi)
 {
   // BWT Parameters
   const uint64_t BWT_MINOR_BLOCKS_PER_MAYOR_BLOCK = (1<<10); /* 1024 */
@@ -201,7 +198,7 @@ gpu_error_t gpu_fmi_index_transform_GEM_FULL(const gpu_gem_fmi_dto_t* const rest
   uint32_t z0, z1, z2;
   uint32_t w0, w1, w2;
   uint64_t minor_block = 0, h_fmi_entry = 0;
-  uint64_t bwt_pos, i;
+  uint64_t bwt_pos;
   for (bwt_pos=0;bwt_pos<bwt_length;) {
     // Get next block (Block0)
     minor_counters = (uint16_t*)bwt_mem; bwt_mem += 4; // Minor Counters
@@ -305,7 +302,7 @@ gpu_error_t gpu_fmi_index_transform_GEM_FULL(const gpu_gem_fmi_dto_t* const rest
 }
 
 
-gpu_error_t gpu_fmi_index_transform_MFASTA_FULL(const char* const restrict indexRaw, gpu_fmi_buffer_t* const restrict fmi)
+gpu_error_t gpu_fmi_index_transform_MFASTA_FULL(const char* const indexRaw, gpu_fmi_buffer_t* const fmi)
 {
   char* h_BWT = NULL;
   GPU_ERROR(gpu_fmi_index_load_MFASTA_FULL(indexRaw, fmi, &h_BWT));
@@ -319,7 +316,7 @@ gpu_error_t gpu_fmi_index_transform_MFASTA_FULL(const char* const restrict index
  GLOBAL METHODS: Index initialization functions
 ************************************************************/
 
-gpu_error_t gpu_fmi_index_init_dto(gpu_fmi_buffer_t* const restrict fmi)
+gpu_error_t gpu_fmi_index_init_dto(gpu_fmi_buffer_t* const fmi)
 {
   //Initialize the FMI index structure
   fmi->d_fmi          = NULL;
@@ -332,7 +329,7 @@ gpu_error_t gpu_fmi_index_init_dto(gpu_fmi_buffer_t* const restrict fmi)
   return (SUCCESS);
 }
 
-gpu_error_t gpu_fmi_index_init(gpu_fmi_buffer_t* const restrict fmi, const uint64_t bwtSize, const uint32_t numSupportedDevices)
+gpu_error_t gpu_fmi_index_init(gpu_fmi_buffer_t* const fmi, const uint64_t bwtSize, const uint32_t numSupportedDevices)
 {
   uint32_t idSupDevice;
   GPU_ERROR(gpu_fmi_index_init_dto(fmi));
@@ -353,7 +350,7 @@ gpu_error_t gpu_fmi_index_init(gpu_fmi_buffer_t* const restrict fmi, const uint6
   return (SUCCESS);
 }
 
-gpu_error_t gpu_fmi_index_allocate(gpu_fmi_buffer_t* const restrict fmi)
+gpu_error_t gpu_fmi_index_allocate(gpu_fmi_buffer_t* const fmi)
 {
   fmi->numEntries = GPU_DIV_CEIL(fmi->bwtSize, GPU_FMI_ENTRY_SIZE) + 1;
   if(fmi->hostAllocStats & GPU_PAGE_LOCKED){
@@ -369,7 +366,7 @@ gpu_error_t gpu_fmi_index_allocate(gpu_fmi_buffer_t* const restrict fmi)
  GLOBAL METHODS: Functions to release DEVICE & HOST indexes
 ************************************************************/
 
-gpu_error_t gpu_fmi_index_free_host(gpu_fmi_buffer_t* const restrict fmi)
+gpu_error_t gpu_fmi_index_free_host(gpu_fmi_buffer_t* const fmi)
 {
   if(fmi->h_fmi != NULL){
       if(fmi->hostAllocStats == GPU_PAGE_LOCKED) CUDA_ERROR(cudaFreeHost(fmi->h_fmi));
@@ -380,7 +377,7 @@ gpu_error_t gpu_fmi_index_free_host(gpu_fmi_buffer_t* const restrict fmi)
     return(SUCCESS);
 }
 
-gpu_error_t gpu_fmi_index_free_unused_host(gpu_fmi_buffer_t* const restrict fmi, gpu_device_info_t** const restrict devices)
+gpu_error_t gpu_fmi_index_free_unused_host(gpu_fmi_buffer_t* const fmi, gpu_device_info_t** const devices)
 {
   uint32_t idSupportedDevice, numSupportedDevices;
   bool indexInHostSideUsed = false;
@@ -398,7 +395,7 @@ gpu_error_t gpu_fmi_index_free_unused_host(gpu_fmi_buffer_t* const restrict fmi,
   return(SUCCESS);
 }
 
-gpu_error_t gpu_fmi_index_free_device(gpu_fmi_buffer_t* const restrict fmi, gpu_device_info_t** const restrict devices)
+gpu_error_t gpu_fmi_index_free_device(gpu_fmi_buffer_t* const fmi, gpu_device_info_t** const devices)
 {
   const uint32_t numSupportedDevices = devices[0]->numSupportedDevices;
   uint32_t idSupportedDevice;
@@ -422,7 +419,7 @@ gpu_error_t gpu_fmi_index_free_device(gpu_fmi_buffer_t* const restrict fmi, gpu_
   return(SUCCESS);
 }
 
-gpu_error_t gpu_fmi_index_free_metainfo(gpu_fmi_buffer_t* const restrict fmi)
+gpu_error_t gpu_fmi_index_free_metainfo(gpu_fmi_buffer_t* const fmi)
 {
   //Free the index list
   if(fmi->memorySpace != NULL){
@@ -454,7 +451,7 @@ char gpu_bin_to_char(const uint32_t indexBase)
   return (base);
 }
 
-void gpu_encode_entry_BWT_to_PEQ(gpu_index_bitmap_entry_t* const restrict bwt_entry,
+void gpu_encode_entry_BWT_to_PEQ(gpu_index_bitmap_entry_t* const bwt_entry,
                                  const char base, const uint32_t size)
 {
   const uint32_t binBase = gpu_char_to_bin(base);
@@ -464,14 +461,14 @@ void gpu_encode_entry_BWT_to_PEQ(gpu_index_bitmap_entry_t* const restrict bwt_en
   }
 }
 
-void gpu_bining_bases(gpu_index_counter_entry_t* const restrict counterEntry, const char base)
+void gpu_bining_bases(gpu_index_counter_entry_t* const counterEntry, const char base)
 {
   const uint32_t indexBase = gpu_char_to_bin(base);
   if(indexBase < 4) counterEntry->counters[indexBase]++;
 }
 
-void gpu_index_set_layout_counter(const gpu_index_counter_entry_t* const restrict h_counters_FMI,
-                                  gpu_fmi_entry_t* const restrict h_fmi, const uint64_t idEntry)
+void gpu_index_set_layout_counter(const gpu_index_counter_entry_t* const h_counters_FMI,
+                                  gpu_fmi_entry_t* const h_fmi, const uint64_t idEntry)
 {
   uint32_t idCounter;
   for(idCounter = 0; idCounter < GPU_FMI_COUNTERS_PER_ENTRY; ++idCounter){
@@ -480,10 +477,10 @@ void gpu_index_set_layout_counter(const gpu_index_counter_entry_t* const restric
   }
 }
 
-void gpu_index_set_layout_bitmap(gpu_index_bitmap_entry_t* const restrict h_bitmap_BWT, gpu_fmi_entry_t* const restrict h_fmi)
+void gpu_index_set_layout_bitmap(gpu_index_bitmap_entry_t* const h_bitmap_BWT, gpu_fmi_entry_t* const h_fmi)
 {
   const uint32_t LUT[12] = {3,7,11,0,1,2,4,5,6,8,9,10};                                                     // 1 1 (1) 0 2 2 (2) 0 3 3 (3) (0)
-  uint32_t idPacket, idFMIBucket, padding = 0;
+  uint32_t idPacket, idFMIBucket;
   const uint32_t FMI_NUM_BITMAPS        = GPU_FMI_ENTRY_SIZE * GPU_FMI_BWT_CHAR_LENGTH / GPU_UINT32_LENGTH; // 12 words             (4 FMI entries x 3 bits)
   const uint32_t NUM_PACKET_BMP_ENTRIES = GPU_FMI_ENTRY_SIZE  / GPU_UINT32_LENGTH;                          // 4 BMP entries        (128 bases / 32 bits)
   const uint32_t NUM_PACKET_FMI_ENTRIES = FMI_NUM_BITMAPS / NUM_PACKET_BMP_ENTRIES;                         // 3 FMI bitmap entries (12 bitmaps / 4 packets)
@@ -503,8 +500,8 @@ void gpu_index_set_layout_bitmap(gpu_index_bitmap_entry_t* const restrict h_bitm
  LOCAL METHODS: Main conversion primitives
 ************************************************************/
 
-gpu_error_t gpu_fmi_index_build_PEQ(const gpu_fmi_buffer_t* const restrict fmi, const char* const restrict h_ascii_BWT,
-                                    gpu_index_bitmap_entry_t* const restrict h_bitmap_BWT)
+gpu_error_t gpu_fmi_index_build_PEQ(const gpu_fmi_buffer_t* const fmi, const char* const h_ascii_BWT,
+                                    gpu_index_bitmap_entry_t* const h_bitmap_BWT)
 {
   uint64_t idEntry, i, bwtPosition;
   unsigned char bwtChar;
@@ -523,11 +520,11 @@ gpu_error_t gpu_fmi_index_build_PEQ(const gpu_fmi_buffer_t* const restrict fmi, 
   return(SUCCESS);
 }
 
-gpu_error_t gpu_fmi_index_build_COUNTERS(const gpu_fmi_buffer_t* const restrict fmi, gpu_index_counter_entry_t* const restrict h_counters_FMI,
-                                         const char* const restrict h_ascii_BWT)
+gpu_error_t gpu_fmi_index_build_COUNTERS(const gpu_fmi_buffer_t* const fmi, gpu_index_counter_entry_t* const h_counters_FMI,
+                                         const char* const h_ascii_BWT)
 {
   uint64_t idEntry, i, bwtPosition;
-  uint32_t idBase, idCounter;
+  uint32_t idBase;
   char bwtChar;
 
   gpu_index_counter_entry_t localCounters;
@@ -573,8 +570,8 @@ gpu_error_t gpu_fmi_index_build_COUNTERS(const gpu_fmi_buffer_t* const restrict 
   return (SUCCESS);
 }
 
-gpu_error_t gpu_fmi_index_build_FMI(gpu_fmi_buffer_t* const restrict fmi, gpu_index_bitmap_entry_t* const restrict h_bitmap_BWT,
-                                    const gpu_index_counter_entry_t* const restrict h_counters_FMI)
+gpu_error_t gpu_fmi_index_build_FMI(gpu_fmi_buffer_t* const fmi, gpu_index_bitmap_entry_t* const h_bitmap_BWT,
+                                    const gpu_index_counter_entry_t* const h_counters_FMI)
 {
   const uint32_t BITMAPS_PER_FMI = GPU_FMI_ENTRY_SIZE / GPU_UINT32_LENGTH;  // 4 FMI bitmap entries
   uint64_t idEntry;

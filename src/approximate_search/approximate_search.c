@@ -46,16 +46,16 @@ const char* asearch_stage_label[] =
  * Setup
  */
 void approximate_search_init(
-    approximate_search_t* const restrict search,
-    archive_t* const restrict archive,
-    search_parameters_t* const restrict search_parameters,
+    approximate_search_t* const search,
+    archive_t* const archive,
+    search_parameters_t* const search_parameters,
     const bool emulated_rc_search) {
   // Index Structures & Parameters
   search->archive = archive;
   search->search_parameters = search_parameters;
   search->emulated_rc_search = emulated_rc_search;
 }
-void approximate_search_reset(approximate_search_t* const restrict search) {
+void approximate_search_reset(approximate_search_t* const search) {
   // Reset Approximate Search State
   search->search_stage = asearch_stage_begin;
   search->processing_state = asearch_processing_state_begin;
@@ -68,36 +68,36 @@ void approximate_search_reset(approximate_search_t* const restrict search) {
   region_profile_new(&search->region_profile,key_length,search->mm_stack);
   // Reset metrics
   const double proper_length = fm_index_get_proper_length(search->archive->fm_index);
-  const search_parameters_t* const restrict search_parameters = search->search_parameters;
+  const search_parameters_t* const search_parameters = search->search_parameters;
   const int32_t swg_match_score = search_parameters->swg_penalties.generic_match_score;
   approximate_search_metrics_init(&search->metrics,proper_length,key_length,swg_match_score);
 }
-void approximate_search_destroy(approximate_search_t* const restrict search) {
+void approximate_search_destroy(approximate_search_t* const search) {
   /* NOP */
 }
 /*
  * Memory Injection (Support Data Structures)
  */
 void approximate_search_inject_mm_stack(
-    approximate_search_t* const restrict search,
-    mm_stack_t* const restrict mm_stack) {
+    approximate_search_t* const search,
+    mm_stack_t* const mm_stack) {
   search->mm_stack = mm_stack;
 }
 void approximate_search_inject_interval_set(
-    approximate_search_t* const restrict search,
-    interval_set_t* const restrict interval_set) {
+    approximate_search_t* const search,
+    interval_set_t* const interval_set) {
   search->interval_set = interval_set;
 }
 void approximate_search_inject_text_collection(
-    approximate_search_t* const restrict search,
-    text_collection_t* const restrict text_collection) {
+    approximate_search_t* const search,
+    text_collection_t* const text_collection) {
   search->text_collection = text_collection;
 }
 void approximate_search_inject_filtering_candidates(
-    approximate_search_t* const restrict search,
-    filtering_candidates_t* const restrict filtering_candidates,
-    text_collection_t* const restrict text_collection,
-    mm_stack_t* const restrict mm_stack) {
+    approximate_search_t* const search,
+    filtering_candidates_t* const filtering_candidates,
+    text_collection_t* const text_collection,
+    mm_stack_t* const mm_stack) {
   search->filtering_candidates = filtering_candidates;
   filtering_candidates_inject_search(
       search->filtering_candidates,search->archive,search->search_parameters);
@@ -108,25 +108,25 @@ void approximate_search_inject_filtering_candidates(
  * Accessors
  */
 void approximate_search_update_mcs(
-    approximate_search_t* const restrict search,
+    approximate_search_t* const search,
     const uint64_t max_complete_stratum) {
   search->max_complete_stratum = max_complete_stratum;
 }
-uint64_t approximate_search_get_num_regions_profile(const approximate_search_t* const restrict search) {
-  const region_profile_t* const restrict region_profile = &search->region_profile;
+uint64_t approximate_search_get_num_regions_profile(const approximate_search_t* const search) {
+  const region_profile_t* const region_profile = &search->region_profile;
   return region_profile->num_filtering_regions;
 }
-uint64_t approximate_search_get_num_decode_candidates(const approximate_search_t* const restrict search) {
-  const region_profile_t* const restrict region_profile = &search->region_profile;
+uint64_t approximate_search_get_num_decode_candidates(const approximate_search_t* const search) {
+  const region_profile_t* const region_profile = &search->region_profile;
   return region_profile->total_candidates;
 }
-uint64_t approximate_search_get_num_verify_candidates(const approximate_search_t* const restrict search) {
+uint64_t approximate_search_get_num_verify_candidates(const approximate_search_t* const search) {
   return filtering_candidates_get_num_candidate_regions(search->filtering_candidates);
 }
 /*
  * Approximate String Matching using the FM-index
  */
-void approximate_search(approximate_search_t* const restrict search,matches_t* const restrict matches) {
+void approximate_search(approximate_search_t* const search,matches_t* const matches) {
   PROFILE_START(GP_AS_MAIN,PROFILE_LEVEL);
   /*
    * Select mapping strategy
@@ -152,7 +152,7 @@ void approximate_search(approximate_search_t* const restrict search,matches_t* c
 /*
  * Display
  */
-void approximate_search_print(FILE* const restrict stream,approximate_search_t* const restrict search) {
+void approximate_search_print(FILE* const stream,approximate_search_t* const search) {
   tab_fprintf(stream,"[GEM]>ApproximateSearch\n");
   tab_global_inc();
   tab_fprintf(stream,"=> Search.Stage %s\n",asearch_stage_label[search->search_stage]);

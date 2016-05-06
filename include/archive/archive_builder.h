@@ -72,8 +72,8 @@ typedef struct {
  * Archive Builder
  */
 archive_builder_t* archive_builder_new(
-    fm_t* const restrict output_file,
-    char* const restrict output_file_name_prefix,
+    fm_t* const output_file,
+    char* const output_file_name_prefix,
     const archive_type type,
     const indexed_complement_t indexed_complement,
     const uint64_t complement_size_threshold,
@@ -83,20 +83,20 @@ archive_builder_t* archive_builder_new(
     const bool indexed_reverse_text,
     const uint64_t num_threads,
     const uint64_t max_memory);
-void archive_builder_delete(archive_builder_t* const restrict archive_builder);
+void archive_builder_delete(archive_builder_t* const archive_builder);
 
 /*
  * Writers
  */
-void archive_builder_write_header(archive_builder_t* const restrict archive_builder);
-void archive_builder_write_locator(archive_builder_t* const restrict archive_builder);
+void archive_builder_write_header(archive_builder_t* const archive_builder);
+void archive_builder_write_locator(archive_builder_t* const archive_builder);
 void archive_builder_write_index(
-    archive_builder_t* const restrict archive_builder,
+    archive_builder_t* const archive_builder,
     const bool gpu_index,
     const bool check_index,
     const bool verbose);
 void archive_builder_write_index_reverse(
-    archive_builder_t* const restrict archive_builder,
+    archive_builder_t* const archive_builder,
     const bool check_index,
     const bool verbose);
 

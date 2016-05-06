@@ -22,40 +22,40 @@ typedef struct {
  * O(ND) Compute LCS
  */
 void align_ond_compute_lcs_distance(
-    const uint8_t* const restrict key,
+    const uint8_t* const key,
     const int32_t key_length,
-    const uint8_t* const restrict text,
+    const uint8_t* const text,
     const int32_t text_length,
-    uint64_t* const restrict lcs_distance,
-    uint64_t* const restrict match_end_column,
-    mm_stack_t* const restrict mm_stack);
+    uint64_t* const lcs_distance,
+    uint64_t* const match_end_column,
+    mm_stack_t* const mm_stack);
 
 /*
  * O(ND) Align
  */
 void align_ond_compute_contours(
-    match_align_input_t* const restrict align_input,
+    match_align_input_t* const align_input,
     const int32_t max_distance,
-    align_ond_contours_t* const restrict align_ond_contours,
-    mm_stack_t* const restrict mm_stack);
+    align_ond_contours_t* const align_ond_contours,
+    mm_stack_t* const mm_stack);
 void align_ond_backtrace_contours(
-    match_align_input_t* const restrict align_input,
-    align_ond_contours_t* const restrict align_ond_contours,
-    match_alignment_t* const restrict match_alignment,
-    vector_t* const restrict cigar_vector);
+    match_align_input_t* const align_input,
+    align_ond_contours_t* const align_ond_contours,
+    match_alignment_t* const match_alignment,
+    vector_t* const cigar_vector);
 void align_ond_match(
-    match_align_input_t* const restrict align_input,
+    match_align_input_t* const align_input,
     const int32_t max_distance,
-    match_alignment_t* const restrict match_alignment,
-    vector_t* const restrict cigar_vector,
-    mm_stack_t* const restrict mm_stack);
+    match_alignment_t* const match_alignment,
+    vector_t* const cigar_vector,
+    mm_stack_t* const mm_stack);
 
 /*
  * Display
  */
 void align_ond_print_contour(
-    FILE* const restrict stream,
-    const int32_t* const restrict contour,
+    FILE* const stream,
+    const int32_t* const contour,
     const int32_t begin_contour,
     const int32_t end_contour,
     const int32_t distance);

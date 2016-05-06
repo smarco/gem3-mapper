@@ -16,7 +16,7 @@
  * Region Scheduling
  */
 void region_schedule_filtering_adaptive(
-    region_search_t* const restrict region,
+    region_search_t* const region,
     const uint64_t num_standard_regions_left,
     const uint64_t num_unique_regions_left,
     const uint64_t max_complete_error,
@@ -27,12 +27,12 @@ void region_schedule_filtering_adaptive(
  * Region Profile Scheduling
  */
 void region_profile_schedule_filtering_fixed(
-    region_profile_t* const restrict region_profile,
+    region_profile_t* const region_profile,
     const uint64_t regions_required,
     const uint64_t filtering_degree,
     const uint64_t filtering_threshold);
 void region_profile_schedule_filtering_adaptive(
-    region_profile_t* const restrict region_profile,
+    region_profile_t* const region_profile,
     const uint64_t max_complete_error,
     const uint64_t sensibility_misms_length);
 
@@ -40,7 +40,7 @@ void region_profile_schedule_filtering_adaptive(
  * Display
  */
 void region_profile_schedule_print(
-    region_profile_t* const restrict region_profile,
+    region_profile_t* const region_profile,
     const uint64_t max_differences,
     const uint64_t sensibility_error_length);
 

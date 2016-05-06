@@ -13,6 +13,6 @@
  * Verify Candidates
  */
 uint64_t filtering_candidates_verify_candidates(
-    filtering_candidates_t* const restrict filtering_candidates,
-    pattern_t* const restrict pattern);
+    filtering_candidates_t* const filtering_candidates,
+    pattern_t* const pattern);
 

@@ -71,7 +71,7 @@ typedef struct {
   bool verbose;
 } indexer_parameters_t;
 // Defaults
-void indexer_parameters_set_defaults(indexer_parameters_t* const restrict parameters) {
+void indexer_parameters_set_defaults(indexer_parameters_t* const parameters) {
   /* I/O */
   parameters->input_multifasta_file_name=NULL;
   parameters->input_graph_file_name=NULL;
@@ -119,7 +119,7 @@ char* debug_char_text;
 uint64_t debug_text_length;
 uint64_t* debug_SA = NULL;
 #define INDEXER_GET_BWT_CHAR_FROM_SA(text,text_length,sa_pos) ((sa_pos==0) ? text[text_length-1] : text[sa_pos-1])
-int indexer_debug_suffix_cmp(const uint64_t* const restrict a,const uint64_t* const restrict b) {
+int indexer_debug_suffix_cmp(const uint64_t* const a,const uint64_t* const b) {
   // Same SA-pos
   if (gem_expect_false(*a==*b)) return 0;
   // Return cmp result
@@ -137,7 +137,7 @@ int indexer_debug_suffix_cmp(const uint64_t* const restrict a,const uint64_t* co
     return indexer_debug_suffix_cmp(&offset_a,&offset_b);
   }
 }
-void indexer_debug_generate_sa(dna_text_t* const restrict index_text) {
+void indexer_debug_generate_sa(dna_text_t* const index_text) {
   // Allocate memory for SA
   debug_char_text = (char*) dna_text_get_text(index_text);
   debug_text_length = dna_text_get_length(index_text);
@@ -147,9 +147,9 @@ void indexer_debug_generate_sa(dna_text_t* const restrict index_text) {
   // Build SA
   qsort(debug_SA,debug_text_length,sizeof(uint64_t),(int (*)(const void *,const void *))indexer_debug_suffix_cmp);
 }
-void indexer_debug_check_sa(char* const restrict file_name,dna_text_t* const restrict index_text) {
+void indexer_debug_check_sa(char* const file_name,dna_text_t* const index_text) {
   // Open file
-  FILE* const restrict bwt_file = fopen(file_name,"w");
+  FILE* const bwt_file = fopen(file_name,"w");
   // Generate SA
   if (debug_SA==NULL) indexer_debug_generate_sa(index_text);
   // Dump full SA
@@ -170,9 +170,9 @@ void indexer_debug_check_sa(char* const restrict file_name,dna_text_t* const res
   // Close
   fclose(bwt_file);
 }
-void indexer_debug_check_bwt(char* const restrict file_name,dna_text_t* const restrict index_text) {
+void indexer_debug_check_bwt(char* const file_name,dna_text_t* const index_text) {
   // Open file
-  FILE* const restrict bwt_file = fopen(file_name,"w");
+  FILE* const bwt_file = fopen(file_name,"w");
   // Generate SA
   if (debug_SA==NULL) indexer_debug_generate_sa(index_text);
   // Dump BWT to check file
@@ -188,9 +188,9 @@ void indexer_debug_check_bwt(char* const restrict file_name,dna_text_t* const re
 /*
  * GEM-Indexer Build Archive
  */
-void indexer_process_multifasta(archive_builder_t* const restrict archive_builder,indexer_parameters_t* const restrict parameters) {
+void indexer_process_multifasta(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
   // Process input MultiFASTA
-  input_file_t* const restrict input_multifasta = input_file_open(parameters->input_multifasta_file_name,BUFFER_SIZE_32M,false);
+  input_file_t* const input_multifasta = input_file_open(parameters->input_multifasta_file_name,BUFFER_SIZE_32M,false);
   // Process MFASTA
   archive_builder_text_process(archive_builder,input_multifasta,parameters->verbose);
   // RL-Index
@@ -208,7 +208,7 @@ void indexer_process_multifasta(archive_builder_t* const restrict archive_builde
   // Close MultiFASTA
   input_file_close(input_multifasta);
 }
-void indexer_generate_bwt(archive_builder_t* const restrict archive_builder,indexer_parameters_t* const restrict parameters) {
+void indexer_generate_bwt(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
   // VERBOSE
   tfprintf(gem_log_get_stream(),"[Generating BWT Forward-Text]\n");
   // Build BWT
@@ -227,21 +227,21 @@ void indexer_generate_bwt(archive_builder_t* const restrict archive_builder,inde
   // DEBUG. Skip the FM-index generation
   if (parameters->dev_generate_only_bwt) exit(0);
 }
-void indexer_generate_bwt_reverse(archive_builder_t* const restrict archive_builder,indexer_parameters_t* const restrict parameters) {
+void indexer_generate_bwt_reverse(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
   // Build BWT of the reverse text
   tfprintf(gem_log_get_stream(),"[Generating BWT Reverse-Text]\n");
   archive_builder_index_build_bwt_reverse(archive_builder,parameters->dump_indexed_text,
       parameters->dump_bwt,parameters->dump_explicit_sa,parameters->verbose);
 }
-void indexer_write_index(archive_builder_t* const restrict archive_builder,indexer_parameters_t* const restrict parameters) {
+void indexer_write_index(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
   // Write Text & FM-Index
   archive_builder_write_index(archive_builder,parameters->gpu_index,parameters->check_index,parameters->verbose);
 }
-void indexer_write_index_reverse(archive_builder_t* const restrict archive_builder,indexer_parameters_t* const restrict parameters) {
+void indexer_write_index_reverse(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
   // Write FM-Index Reverse
   archive_builder_write_index_reverse(archive_builder,parameters->check_index,parameters->verbose);
 }
-void indexer_cleanup(archive_builder_t* const restrict archive_builder,indexer_parameters_t* const restrict parameters) {
+void indexer_cleanup(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
   // Archive Builder
   archive_builder_delete(archive_builder);
   // Output file name
@@ -308,10 +308,10 @@ void usage(const option_visibility_t visibility_level) {
   fprintf(stderr, "USAGE: ./gem-indexer [ARGS]...\n");
   options_fprint_menu(stderr,gem_indexer_options,gem_indexer_groups,true,visibility_level);
 }
-void parse_arguments(int argc,char** argv,indexer_parameters_t* const restrict parameters) {
+void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters) {
   struct option* getopt_options = options_adaptor_getopt(gem_indexer_options);
-  string_t* const restrict getopt_short_string = options_adaptor_getopt_short(gem_indexer_options);
-  char* const restrict getopt_short = string_get_buffer(getopt_short_string);
+  string_t* const getopt_short_string = options_adaptor_getopt_short(gem_indexer_options);
+  char* const getopt_short = string_get_buffer(getopt_short_string);
   int option, option_index;
   while (true) {
     // Get option &  Select case
@@ -509,9 +509,9 @@ int main(int argc,char** argv) {
   TIMER_RESTART(&gem_indexer_timer); // Start global timer
 
   // GEM Archive Builder
-  fm_t* const restrict index_file = fm_open_file(parameters.output_index_file_name,FM_WRITE);
+  fm_t* const index_file = fm_open_file(parameters.output_index_file_name,FM_WRITE);
   const archive_type type = (parameters.bisulfite_index) ? archive_dna_bisulfite : archive_dna;
-  archive_builder_t* const restrict archive_builder = archive_builder_new(index_file,
+  archive_builder_t* const archive_builder = archive_builder_new(index_file,
       parameters.output_index_file_name_prefix,type,
       parameters.index_complement,parameters.complement_size_threshold,
       parameters.ns_threshold,parameters.sa_sampling_rate,

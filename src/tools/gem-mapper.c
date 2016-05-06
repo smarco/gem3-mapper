@@ -42,7 +42,7 @@
 /*
  * GEM-mapper Parsing
  */
-int parse_arguments_system_integer(char* const restrict argument,uint64_t* const restrict value) {
+int parse_arguments_system_integer(char* const argument,uint64_t* const value) {
   char* argument_ptr = argument;
   // Textual
   if (gem_strcaseeq(argument_ptr,"c")) {
@@ -51,7 +51,7 @@ int parse_arguments_system_integer(char* const restrict argument,uint64_t* const
   }
   // Number
   double number;
-  const int error = input_text_parse_double((const char** const restrict)&argument_ptr,&number);
+  const int error = input_text_parse_double((const char** const)&argument_ptr,&number);
   if (error) return error;
   // Textual
   if (gem_strcaseeq(argument_ptr,"c")) {
@@ -65,7 +65,7 @@ int parse_arguments_system_integer(char* const restrict argument,uint64_t* const
  * GEM-mapper I/O related functions
  */
 input_file_sliced_t* gem_mapper_open_input_file(
-    char* const restrict input_file_name,const fm_type input_compression,
+    char* const input_file_name,const fm_type input_compression,
     const uint64_t input_block_size,const uint64_t input_num_blocks,
     const bool verbose_user) {
   // Open input file
@@ -84,7 +84,7 @@ input_file_sliced_t* gem_mapper_open_input_file(
     return input_file_sliced_open(input_file_name,input_num_blocks,input_block_size);
   }
 }
-void gem_mapper_open_input(mapper_parameters_t* const restrict parameters) {
+void gem_mapper_open_input(mapper_parameters_t* const parameters) {
   if (parameters->io.separated_input_files) {
     parameters->input_file_end1 = gem_mapper_open_input_file(
         parameters->io.input_file_name_end1,parameters->io.input_compression,
@@ -101,7 +101,7 @@ void gem_mapper_open_input(mapper_parameters_t* const restrict parameters) {
         parameters->misc.verbose_user);
   }
 }
-void gem_mapper_close_input(mapper_parameters_t* const restrict parameters) {
+void gem_mapper_close_input(mapper_parameters_t* const parameters) {
   if (parameters->io.separated_input_files) {
     input_file_sliced_close(parameters->input_file_end1);
     input_file_sliced_close(parameters->input_file_end2);
@@ -109,7 +109,7 @@ void gem_mapper_close_input(mapper_parameters_t* const restrict parameters) {
     input_file_sliced_close(parameters->input_file);
   }
 }
-void gem_mapper_open_output(mapper_parameters_t* const restrict parameters) {
+void gem_mapper_open_output(mapper_parameters_t* const parameters) {
   // Open output stream
   if (parameters->io.output_file_name==NULL) {
     gem_cond_log(parameters->misc.verbose_user,"[Outputting to stdout]");
@@ -121,7 +121,7 @@ void gem_mapper_open_output(mapper_parameters_t* const restrict parameters) {
         "Couldn't open output file '%s'",parameters->io.output_file_name);
   }
   // Open output file
-  const mapper_parameters_cuda_t* const restrict cuda = &parameters->cuda;
+  const mapper_parameters_cuda_t* const cuda = &parameters->cuda;
   const uint64_t max_output_buffers = (cuda->cuda_enabled) ? cuda->output_num_buffers : parameters->io.output_num_buffers;
   const uint64_t output_buffer_size = (cuda->cuda_enabled) ? cuda->output_buffer_size : parameters->io.output_buffer_size;
   switch (parameters->io.output_compression) {
@@ -136,10 +136,10 @@ void gem_mapper_open_output(mapper_parameters_t* const restrict parameters) {
       break;
   }
 }
-void gem_mapper_close_output(mapper_parameters_t* const restrict parameters) {
+void gem_mapper_close_output(mapper_parameters_t* const parameters) {
   output_file_close(parameters->output_file);
 }
-void gem_mapper_print_profile(mapper_parameters_t* const restrict parameters) {
+void gem_mapper_print_profile(mapper_parameters_t* const parameters) {
   // Reduce Stats
   switch (parameters->misc.profile_reduce_type) {
     case reduce_sum: PROF_REDUCE_SUM(); break;
@@ -298,7 +298,7 @@ void gem_mapper_print_usage(const option_visibility_t visibility_level) {
   fprintf(stderr, "USAGE: ./gem-mapper [ARGS]...\n");
   options_fprint_menu(stderr,gem_mapper_options,gem_mapper_groups,true,visibility_level);
 }
-void parse_arguments(int argc,char** argv,mapper_parameters_t* const restrict parameters) {
+void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters) {
   // Check number of parameters (quick usage & exit)
   if (argc <= 1) {
     gem_mapper_print_usage(VISIBILITY_USER);
@@ -308,15 +308,15 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const restrict pa
   parameters->argc = argc;
   parameters->argv = argv;
   // Parameters
-  mapper_parameters_io_t* const restrict io = &parameters->io;
-  search_parameters_t* const restrict search = &parameters->base_search_parameters;
-  search_paired_parameters_t* const restrict paired_search = &search->search_paired_parameters;
-  mapper_parameters_cuda_t* const restrict cuda = &parameters->cuda;
+  mapper_parameters_io_t* const io = &parameters->io;
+  search_parameters_t* const search = &parameters->base_search_parameters;
+  search_paired_parameters_t* const paired_search = &search->search_paired_parameters;
+  mapper_parameters_cuda_t* const cuda = &parameters->cuda;
   // Parse parameters
   char *bs_suffix1=0, *bs_suffix2=0;
   struct option* getopt_options = options_adaptor_getopt(gem_mapper_options);
-  string_t* const restrict getopt_short_string = options_adaptor_getopt_short(gem_mapper_options);
-  char* const restrict getopt_short = string_get_buffer(getopt_short_string);
+  string_t* const getopt_short_string = options_adaptor_getopt_short(gem_mapper_options);
+  char* const getopt_short = string_get_buffer(getopt_short_string);
   int option, option_index;
   while (true) {
     // Get option &  Select case
@@ -418,7 +418,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const restrict pa
       input_text_parse_extended_uint64(optarg,&search->quality_threshold);
       break;
     case 301: { // --mismatch-alphabet (default='ACGT')
-      const char* const restrict mismatch_alphabet = optarg;
+      const char* const mismatch_alphabet = optarg;
       search_configure_replacements(search,mismatch_alphabet,gem_strlen(mismatch_alphabet));
       break;
     }
@@ -826,15 +826,15 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const restrict pa
       gem_mapper_cond_error_msg(num_arguments!=4,"Option '--cuda-buffers-per-thread' wrong number of arguments");
       // Number of region-profile buffers per thread
       gem_mapper_cond_error_msg(input_text_parse_integer(
-          (const char** const restrict)&num_fmi_bsearch_buffers,(int64_t*)&parameters->cuda.num_fmi_bsearch_buffers),
+          (const char** const)&num_fmi_bsearch_buffers,(int64_t*)&parameters->cuda.num_fmi_bsearch_buffers),
           "Option '--cuda-buffers-per-thread'. Error parsing 'region-profile buffers'");
       // Number of decode-candidates buffers per thread
       gem_mapper_cond_error_msg(input_text_parse_integer(
-          (const char** const restrict)&num_fmi_decode_buffers,(int64_t*)&parameters->cuda.num_fmi_decode_buffers),
+          (const char** const)&num_fmi_decode_buffers,(int64_t*)&parameters->cuda.num_fmi_decode_buffers),
           "Option '--cuda-buffers-per-thread'. Error parsing 'decode-candidates buffers'");
       // Number of verify-candidates buffers per thread
       gem_mapper_cond_error_msg(input_text_parse_integer(
-          (const char** const restrict)&num_bpm_buffers,(int64_t*)&parameters->cuda.num_bpm_buffers),
+          (const char** const)&num_bpm_buffers,(int64_t*)&parameters->cuda.num_bpm_buffers),
           "Option '--cuda-buffers-per-thread'. Error parsing 'verify-candidates buffers'");
       // Buffer size
       gem_mapper_cond_error_msg(input_text_parse_size(buffer_size,&parameters->cuda.gpu_buffer_size),
@@ -922,11 +922,11 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const restrict pa
    * Parameters Check
    */
   // I/O Parameters
-  const char* const restrict pindex = parameters->io.index_file_name;
-  const char* const restrict poutput = parameters->io.output_file_name;
+  const char* const pindex = parameters->io.index_file_name;
+  const char* const poutput = parameters->io.output_file_name;
   gem_mapper_cond_error_msg(pindex==NULL,"Index file required");
   if (!parameters->io.separated_input_files) {
-    const char* const restrict pinput = parameters->io.input_file_name;
+    const char* const pinput = parameters->io.input_file_name;
     if (pinput!=NULL) {
       gem_mapper_cond_error_msg(gem_streq(pindex,pinput), "Index and Input-file must be different");
       if (poutput!=NULL) {
@@ -935,8 +935,8 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const restrict pa
       }
     }
   } else {
-    const char* const restrict pinput_1 = parameters->io.input_file_name_end1;
-    const char* const restrict pinput_2 = parameters->io.input_file_name_end2;
+    const char* const pinput_1 = parameters->io.input_file_name_end1;
+    const char* const pinput_2 = parameters->io.input_file_name_end2;
     gem_mapper_cond_error_msg(pinput_1==NULL, "Missing Input-End1 (--i1)");
     gem_mapper_cond_error_msg(pinput_2==NULL, "Missing Input-End2 (--i2)");
     gem_mapper_cond_error_msg(gem_streq(pinput_1,pinput_2), "Input-End1 and Input-End2 must be different");
@@ -989,7 +989,7 @@ int main(int argc,char** argv) {
   parse_arguments(argc,argv,&parameters); // Parse cmd-line
 
   // Runtime setup
-  const mapper_parameters_cuda_t* const restrict cuda = &parameters.cuda;
+  const mapper_parameters_cuda_t* const cuda = &parameters.cuda;
   gruntime_init(parameters.system.num_threads+1,parameters.system.max_memory,parameters.system.tmp_folder);
   PROFILE_START(GP_MAPPER_ALL,PHIGH);
   TIMER_RESET(&parameters.loading_time);

@@ -21,17 +21,17 @@
 #define PROFILE_LEVEL PMED
 
 void filtering_candidates_compute_extension_region(
-    filtering_candidates_t* const restrict filtering_candidates,
+    filtering_candidates_t* const filtering_candidates,
     const bool extension_onward,
     const uint64_t extended_begin_position,
     const uint64_t extended_effective_length,
     const uint64_t candidate_key_length,
     const uint64_t max_filtering_error,
     const uint64_t max_template_size,
-    uint64_t* const restrict candidate_begin_position,
-    uint64_t* const restrict candidate_end_position) {
-  locator_t* const restrict locator = filtering_candidates->archive->locator;
-  locator_interval_t* const restrict locator_interval = locator_lookup_interval(locator,extended_begin_position);
+    uint64_t* const candidate_begin_position,
+    uint64_t* const candidate_end_position) {
+  locator_t* const locator = filtering_candidates->archive->locator;
+  locator_interval_t* const locator_interval = locator_lookup_interval(locator,extended_begin_position);
   if (extension_onward) {
     *candidate_begin_position = BOUNDED_SUBTRACTION(extended_begin_position,max_filtering_error,locator_interval->begin_position);
     const uint64_t end_offset = extended_effective_length + max_template_size + candidate_key_length + max_filtering_error;
@@ -49,18 +49,18 @@ void filtering_candidates_compute_extension_region(
  * Pair Extension
  */
 uint64_t filtering_candidates_extend_match(
-    filtering_candidates_t* const restrict filtering_candidates,
-    pattern_t* const restrict candidate_pattern,
-    const match_trace_t* const restrict extended_match,
-    paired_matches_t* const restrict paired_matches,
+    filtering_candidates_t* const filtering_candidates,
+    pattern_t* const candidate_pattern,
+    const match_trace_t* const extended_match,
+    paired_matches_t* const paired_matches,
     const sequence_end_t candidate_end,
-    mapper_stats_t* const restrict mapper_stats) {
+    mapper_stats_t* const mapper_stats) {
   PROFILE_START(GP_FC_EXTEND_MATCH,PROFILE_LEVEL);
   // Parameters
-  archive_t* const restrict archive = filtering_candidates->archive;
-  archive_text_t* const restrict archive_text = archive->text;
-  text_collection_t* const restrict text_collection = filtering_candidates->text_collection;
-  mm_stack_t* const restrict mm_stack = filtering_candidates->mm_stack;
+  archive_t* const archive = filtering_candidates->archive;
+  archive_text_t* const archive_text = archive->text;
+  text_collection_t* const text_collection = filtering_candidates->text_collection;
+  mm_stack_t* const mm_stack = filtering_candidates->mm_stack;
   const uint64_t max_filtering_error = candidate_pattern->max_effective_filtering_error;
   /*
    * Retrieve text-candidate
@@ -104,15 +104,15 @@ uint64_t filtering_candidates_extend_match(
   return candidates_found;
 }
 void filtering_candidates_extend_generate_candidates(
-    filtering_candidates_t* const restrict extended_filtering_candidates,
-    filtering_candidates_t* const restrict candidate_filtering_candidates,
-    const pattern_t* const restrict extended_pattern,
-    const pattern_t* const restrict candidate_pattern,
-    paired_matches_t* const restrict paired_matches,
-    mapper_stats_t* const restrict mapper_stats) {
+    filtering_candidates_t* const extended_filtering_candidates,
+    filtering_candidates_t* const candidate_filtering_candidates,
+    const pattern_t* const extended_pattern,
+    const pattern_t* const candidate_pattern,
+    paired_matches_t* const paired_matches,
+    mapper_stats_t* const mapper_stats) {
   // Parameters
-  archive_t* const restrict archive = candidate_filtering_candidates->archive;
-  archive_text_t* const restrict archive_text = archive->text;
+  archive_t* const archive = candidate_filtering_candidates->archive;
+  archive_text_t* const archive_text = archive->text;
   const uint64_t max_template_size = mapper_stats_template_length_get_expected_max(mapper_stats);
   // Allocate candidate filtering regions
   const uint64_t num_filtering_regions = vector_get_used(extended_filtering_candidates->filtering_regions);
@@ -167,7 +167,7 @@ void filtering_candidates_extend_generate_candidates(
       regions_candidate.text_end_position = end_position;
       vector_insert(candidate_filtering_candidates->filtering_regions,regions_candidate,filtering_region_t);
     } else if (current_begin_position == begin_position) {
-      filtering_region_t* const restrict last_regions_candidate =
+      filtering_region_t* const last_regions_candidate =
           vector_get_last_elm(candidate_filtering_candidates->filtering_regions,filtering_region_t);
       last_regions_candidate->text_end_position = end_position;
     }

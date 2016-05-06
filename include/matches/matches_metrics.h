@@ -40,25 +40,25 @@ typedef struct {
 /*
  * Setup
  */
-void matches_metrics_init(matches_metrics_t* const restrict metrics);
+void matches_metrics_init(matches_metrics_t* const metrics);
 
 /*
  * Accessors
  */
-uint64_t matches_metrics_get_min_distance(matches_metrics_t* const restrict metrics);
-uint64_t matches_metrics_get_min_edit_distance(matches_metrics_t* const restrict metrics);
-int32_t matches_metrics_get_max_swg_score(matches_metrics_t* const restrict metrics);
+uint64_t matches_metrics_get_min_distance(matches_metrics_t* const metrics);
+uint64_t matches_metrics_get_min_edit_distance(matches_metrics_t* const metrics);
+int32_t matches_metrics_get_max_swg_score(matches_metrics_t* const metrics);
 
-void matches_metrics_add_accepted_candidates(matches_metrics_t* const restrict metrics,const uint64_t num_candidates);
-void matches_metrics_set_mapq(matches_metrics_t* const restrict metrics,const uint8_t mapq);
+void matches_metrics_add_accepted_candidates(matches_metrics_t* const metrics,const uint64_t num_candidates);
+void matches_metrics_set_mapq(matches_metrics_t* const metrics,const uint8_t mapq);
 
 void matches_metrics_update(
-    matches_metrics_t* const restrict matches_metrics,
+    matches_metrics_t* const matches_metrics,
     const uint64_t distance,
     const uint64_t edit_distance,
     const int32_t swg_score);
 void paired_matches_metrics_update(
-    matches_metrics_t* const restrict matches_metrics,
+    matches_metrics_t* const matches_metrics,
     const uint64_t distance,
     const uint64_t edit_distance,
     const int32_t swg_score,
@@ -67,6 +67,6 @@ void paired_matches_metrics_update(
 /*
  * Display
  */
-void matches_metrics_print(FILE* const restrict stream,matches_metrics_t* const restrict matches_metrics);
+void matches_metrics_print(FILE* const stream,matches_metrics_t* const matches_metrics);
 
 #endif /* MATCHES_METRICS_H_ */
