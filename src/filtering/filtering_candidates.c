@@ -37,7 +37,6 @@ void filtering_candidates_init(filtering_candidates_t* const filtering_candidate
   filtering_candidates->filtering_positions = vector_new(CANDIDATE_POSITIONS_INIT,filtering_position_t);
   filtering_candidates->filtering_regions = vector_new(CANDIDATE_POSITIONS_INIT,filtering_region_t);
   filtering_candidates->discarded_regions = vector_new(CANDIDATE_POSITIONS_INIT,filtering_region_t);
-  filtering_candidates->verified_regions = vector_new(CANDIDATE_POSITIONS_INIT,verified_region_t);
   // Cache
   filtering_region_cache_init(&filtering_candidates->filtering_region_cache);
 }
@@ -46,14 +45,12 @@ void filtering_candidates_clear(filtering_candidates_t* const filtering_candidat
   vector_clear(filtering_candidates->filtering_positions);
   vector_clear(filtering_candidates->filtering_regions);
   vector_clear(filtering_candidates->discarded_regions);
-  vector_clear(filtering_candidates->verified_regions);
 }
 void filtering_candidates_destroy(filtering_candidates_t* const filtering_candidates) {
   // Candidates
   vector_delete(filtering_candidates->filtering_positions);
   vector_delete(filtering_candidates->filtering_regions);
   vector_delete(filtering_candidates->discarded_regions);
-  vector_delete(filtering_candidates->verified_regions);
   // Cache
   filtering_region_cache_destroy(&filtering_candidates->filtering_region_cache);
 }
@@ -187,11 +184,6 @@ void filtering_candidates_add_region_interval_set_thresholded(
 /*
  * Sorting
  */
-int filtering_position_cmp_position(const filtering_position_t* const a,const filtering_position_t* const b) {
-  const int cmp = a->text_begin_position - b->text_begin_position;
-  if (cmp!=0) return cmp;
-  return a->text_end_position - b->text_end_position;
-}
 int filtering_region_cmp_sort_align_distance(const filtering_region_t* const a,const filtering_region_t* const b) {
   return a->region_alignment.distance_min_bound - b->region_alignment.distance_min_bound;
 }
@@ -200,11 +192,6 @@ int filtering_region_cmp_sort_scaffold_coverage(const filtering_region_t* const 
 }
 int verified_region_cmp_position(const verified_region_t* const a,const verified_region_t* const b) {
   return a->begin_position - b->begin_position;
-}
-void filtering_positions_sort_positions(vector_t* const filtering_positions) {
-  void* array = vector_get_mem(filtering_positions,filtering_position_t);
-  const size_t count = vector_get_used(filtering_positions);
-  qsort(array,count,sizeof(filtering_position_t),(int (*)(const void *,const void *))filtering_position_cmp_position);
 }
 void filtering_regions_sort_align_distance(vector_t* const filtering_regions) {
   void* array = vector_get_mem(filtering_regions,filtering_region_t);
@@ -216,10 +203,30 @@ void filtering_regions_sort_scaffold_coverage(vector_t* const filtering_regions)
   const size_t count = vector_get_used(filtering_regions);
   qsort(array,count,sizeof(filtering_region_t),(int (*)(const void *,const void *))filtering_region_cmp_sort_scaffold_coverage);
 }
-void verified_regions_sort_positions(vector_t* const verified_regions) {
-  void* array = vector_get_mem(verified_regions,verified_region_t);
-  const size_t count = vector_get_used(verified_regions);
-  qsort(array,count,sizeof(verified_region_t),(int (*)(const void *,const void *))verified_region_cmp_position);
+int filtering_position_cmp_position(const filtering_position_t* const a,const filtering_position_t* const b) {
+  return a->text_end_position - b->text_end_position;
+}
+void filtering_positions_sort_positions_large(vector_t* const filtering_positions) {
+  void* array = vector_get_mem(filtering_positions,filtering_position_t);
+  const size_t count = vector_get_used(filtering_positions);
+  qsort(array,count,sizeof(filtering_position_t),(int (*)(const void *,const void *))filtering_position_cmp_position);
+}
+void filtering_positions_sort_positions_small(vector_t* const filtering_positions) {
+  filtering_position_t* const filtering_position = vector_get_mem(filtering_positions,filtering_position_t);
+  const int num_positions = vector_get_used(filtering_positions);
+  const int top = num_positions - 1;
+  int i,j;
+  for (j=0;j<top;j++) {
+    // Find minimum
+    int min = j;
+    for (i=j+1;i<num_positions;i++) {
+      if (filtering_position[i].text_end_position < filtering_position[min].text_end_position) min = i;
+    }
+    // Swap
+    if (min != j) {
+      SWAP(filtering_position[j],filtering_position[min]);
+    }
+  }
 }
 /*
  * Display

@@ -43,9 +43,7 @@
 gpu_buffer_align_bpm_t* gpu_buffer_align_bpm_new(
     const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffer_no,
-    archive_text_t* const archive_text,
-    text_collection_t* const text_collection,
-    mm_stack_t* const mm_stack) {
+    const bool align_bpm_enabled) {
   PROF_START(GP_GPU_BUFFER_ALIGN_BPM_ALLOC);
   // Alloc
   gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm = mm_alloc(gpu_buffer_align_bpm_t);
@@ -54,16 +52,12 @@ gpu_buffer_align_bpm_t* gpu_buffer_align_bpm_new(
   COUNTER_RESET(&gpu_buffer_align_bpm->candidates_per_tile);
   gpu_buffer_align_bpm->query_same_length = 0;
   // Buffer state
+  gpu_buffer_align_bpm->align_bpm_enabled = align_bpm_enabled;
   gpu_buffer_align_bpm->buffer = gpu_buffer_collection_get_buffer(gpu_buffer_collection,buffer_no);
   gpu_buffer_align_bpm->num_entries = 0;
   gpu_buffer_align_bpm->num_queries = 0;
   gpu_buffer_align_bpm->num_candidates = 0;
   gpu_buffer_align_bpm->current_query_offset = 0;
-  // CPU Computation
-  gpu_buffer_align_bpm->compute_cpu = false;
-  gpu_buffer_align_bpm->archive_text = archive_text;
-  gpu_buffer_align_bpm->text_collection = text_collection;
-  gpu_buffer_align_bpm->mm_stack = mm_stack;
   TIMER_RESET(&gpu_buffer_align_bpm->timer);
   // Init buffer
   gpu_alloc_buffer_(gpu_buffer_align_bpm->buffer);
@@ -88,15 +82,6 @@ void gpu_buffer_align_bpm_clear(gpu_buffer_align_bpm_t* const gpu_buffer_align_b
 }
 void gpu_buffer_align_bpm_delete(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
   mm_free(gpu_buffer_align_bpm);
-}
-/*
- * Computing Device
- */
-void gpu_buffer_align_bpm_set_device_cpu(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
-  gpu_buffer_align_bpm->compute_cpu = true;
-}
-void gpu_buffer_align_bpm_set_device_gpu(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
-  gpu_buffer_align_bpm->compute_cpu = false;
 }
 /*
  * Occupancy & Limits
@@ -405,45 +390,6 @@ uint64_t gpu_buffer_align_bpm_get_mean_candidates_per_tile(
   }
 }
 /*
- * CPU emulated
- */
-void gpu_buffer_align_bpm_compute_cpu(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
-  // Parameters
-  mm_stack_t* const mm_stack = gpu_buffer_align_bpm->mm_stack;
-  text_collection_t* const text_collection = gpu_buffer_align_bpm->text_collection;
-  void* const gpu_buffer = gpu_buffer_align_bpm->buffer;
-  const uint64_t used_candidates = gpu_buffer_align_bpm->num_candidates; // Limits
-  gpu_bpm_cand_info_t* buffer_candidates = gpu_bpm_buffer_get_candidates_(gpu_buffer);
-  gpu_bpm_alg_entry_t* buffer_results = gpu_bpm_buffer_get_alignments_(gpu_buffer);
-  // Traverse all candidates
-  uint64_t candidate_pos;
-  for (candidate_pos=0;candidate_pos<used_candidates;++candidate_pos) {
-    // Get Pattern
-    bpm_pattern_t bpm_pattern;
-    mm_stack_push_state(mm_stack);
-    gpu_buffer_align_bpm_retrieve_pattern(gpu_buffer_align_bpm,candidate_pos,&bpm_pattern,mm_stack);
-    // Get Candidate Text
-    const uint64_t text_length = buffer_candidates->size;
-    const uint64_t text_trace_offset = archive_text_retrieve_collection(
-        gpu_buffer_align_bpm->archive_text,text_collection,
-        buffer_candidates->position,text_length,false,false,mm_stack); // Retrieve text(s)
-    const text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
-    const uint8_t* const text = text_trace->text; // Candidate
-    // Align BPM & Set result
-    uint64_t match_end_column, match_distance;
-    bpm_compute_edit_distance(&bpm_pattern,text,text_length,
-        &match_distance,&match_end_column,bpm_pattern.pattern_length,true);
-    buffer_results->column = match_end_column;
-    buffer_results->score = match_distance;
-    // Next
-    ++buffer_candidates;
-    ++buffer_results;
-    // Free
-    mm_stack_pop_state(mm_stack);
-    text_collection_clear(text_collection);
-  }
-}
-/*
  * Send/Receive
  */
 void gpu_buffer_align_bpm_send(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
@@ -461,24 +407,20 @@ void gpu_buffer_align_bpm_send(gpu_buffer_align_bpm_t* const gpu_buffer_align_bp
   TIMER_START(&gpu_buffer_align_bpm->timer);
 #endif
   // Select computing device
-  if (!gpu_buffer_align_bpm->compute_cpu) {
+  if (gpu_buffer_align_bpm->align_bpm_enabled) {
     if (gpu_buffer_align_bpm->num_candidates > 0) {
-      gpu_bpm_send_buffer_(
-          gpu_buffer_align_bpm->buffer,gpu_buffer_align_bpm->num_entries,
-          gpu_buffer_align_bpm->num_queries,gpu_buffer_align_bpm->num_candidates,
-          gpu_buffer_align_bpm->query_same_length);
+      gpu_bpm_send_buffer_(gpu_buffer_align_bpm->buffer,
+          gpu_buffer_align_bpm->num_entries,gpu_buffer_align_bpm->num_queries,
+          gpu_buffer_align_bpm->num_candidates,gpu_buffer_align_bpm->query_same_length);
     }
   }
 	PROF_STOP(GP_GPU_BUFFER_ALIGN_BPM_SEND);
 }
 void gpu_buffer_align_bpm_receive(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
   PROF_START(GP_GPU_BUFFER_ALIGN_BPM_RECEIVE);
-  if (gpu_buffer_align_bpm->num_candidates > 0) {
-    // Select computing device
-    if (!gpu_buffer_align_bpm->compute_cpu) {
+  if (gpu_buffer_align_bpm->align_bpm_enabled) {
+    if (gpu_buffer_align_bpm->num_candidates > 0) {
       gpu_bpm_receive_buffer_(gpu_buffer_align_bpm->buffer);
-    } else {
-      gpu_buffer_align_bpm_compute_cpu(gpu_buffer_align_bpm); // CPU emulated
     }
   }
   PROF_STOP(GP_GPU_BUFFER_ALIGN_BPM_RECEIVE);
@@ -497,19 +439,10 @@ void gpu_buffer_align_bpm_receive(gpu_buffer_align_bpm_t* const gpu_buffer_align
 gpu_buffer_align_bpm_t* gpu_buffer_align_bpm_new(
     const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffer_no,
-    archive_text_t* const archive_text,
-    text_collection_t* const text_collection,
-    mm_stack_t* const mm_stack) { GEM_CUDA_NOT_SUPPORTED(); return NULL; }
+    const bool align_bpm_enabled) { GEM_CUDA_NOT_SUPPORTED(); return NULL; }
 void gpu_buffer_align_bpm_clear(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) { GEM_CUDA_NOT_SUPPORTED(); }
 void gpu_buffer_align_bpm_delete(
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) { GEM_CUDA_NOT_SUPPORTED(); }
-/*
- * Computing Device
- */
-void gpu_buffer_align_bpm_set_device_cpu(
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) { GEM_CUDA_NOT_SUPPORTED(); }
-void gpu_buffer_align_bpm_set_device_gpu(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) { GEM_CUDA_NOT_SUPPORTED(); }
 /*
  * Occupancy & Limits

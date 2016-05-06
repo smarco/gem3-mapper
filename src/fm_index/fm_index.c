@@ -34,7 +34,7 @@ bwt_builder_t* fm_index_write(
     const bool verbose) {
   // Write Header
   const uint64_t text_length = dna_text_get_length(bwt_text);
-  const uint64_t proper_length = log2(text_length)/2;
+  const uint64_t proper_length = gem_log2(text_length)/2;
   fm_write_uint64(file_manager,FM_INDEX_MODEL_NO);
   fm_write_uint64(file_manager,text_length);
   fm_write_uint64(file_manager,proper_length);

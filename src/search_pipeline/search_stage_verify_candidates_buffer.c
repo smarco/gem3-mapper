@@ -18,16 +18,12 @@
 search_stage_verify_candidates_buffer_t* search_stage_verify_candidates_buffer_new(
     const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffer_no,
-    const bool cpu_emulated,
-    archive_text_t* const archive_text,
-    text_collection_t* const text_collection,
-    mm_stack_t* const mm_stack) {
+    const bool verify_candidates_enabled) {
   // Alloc
   search_stage_verify_candidates_buffer_t* const verify_candidates_buffer = mm_alloc(search_stage_verify_candidates_buffer_t);
   // Init
-  verify_candidates_buffer->gpu_buffer_align_bpm = gpu_buffer_align_bpm_new(
-      gpu_buffer_collection,buffer_no,archive_text,text_collection,mm_stack);
-  if (cpu_emulated) gpu_buffer_align_bpm_set_device_cpu(verify_candidates_buffer->gpu_buffer_align_bpm);
+  verify_candidates_buffer->gpu_buffer_align_bpm =
+      gpu_buffer_align_bpm_new(gpu_buffer_collection,buffer_no,verify_candidates_enabled);
   const uint64_t max_queries = gpu_buffer_align_bpm_get_max_queries(verify_candidates_buffer->gpu_buffer_align_bpm);
   verify_candidates_buffer->archive_searches = vector_new(max_queries,archive_search_t*);
   // Return
@@ -69,14 +65,14 @@ bool search_stage_verify_candidates_buffer_fits(
   // Compute dimensions
   uint64_t total_entries = 0,total_queries = 0,total_candidates = 0;
   gpu_buffer_align_bpm_compute_dimensions(gpu_buffer_align_bpm,
-      archive_search_end1->forward_search_state.pattern.bpm_pattern,
-      archive_search_end1->forward_search_state.pattern.bpm_pattern_tiles,
+      archive_search_end1->approximate_search.pattern.bpm_pattern,
+      archive_search_end1->approximate_search.pattern.bpm_pattern_tiles,
       archive_search_get_num_verify_candidates(archive_search_end1),
       &total_entries,&total_queries,&total_candidates);
   if (archive_search_end2!=NULL) {
     gpu_buffer_align_bpm_compute_dimensions(gpu_buffer_align_bpm,
-        archive_search_end2->forward_search_state.pattern.bpm_pattern,
-        archive_search_end2->forward_search_state.pattern.bpm_pattern_tiles,
+        archive_search_end2->approximate_search.pattern.bpm_pattern,
+        archive_search_end2->approximate_search.pattern.bpm_pattern_tiles,
         archive_search_get_num_verify_candidates(archive_search_end2),
         &total_entries,&total_queries,&total_candidates);
   }

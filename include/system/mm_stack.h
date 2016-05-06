@@ -88,6 +88,7 @@ void* mm_stack_memory_allocate(
     mm_stack_t* const mm_stack,
     const uint64_t num_bytes,
     const bool zero_mem);
+
 /*
 #define mm_stack_alloc(mm_stack,type) \
   ((type*)mm_stack_memory_allocate(mm_stack,sizeof(type),false))

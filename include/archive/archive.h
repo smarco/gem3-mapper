@@ -29,7 +29,6 @@ typedef enum {
 typedef struct {
   // Meta-information
   archive_type type;                // Archive type
-  bool indexed_complement;          // RC indexed explicitly
   uint64_t ns_threshold;            // Stretches of Ns (|Ns| >= ns_threshold) are not indexed
   bool indexed_reverse_text;        // Indexed reverse text (backwards text)
   // Locator

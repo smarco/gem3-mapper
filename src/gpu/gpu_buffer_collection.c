@@ -66,10 +66,10 @@ gpu_buffer_collection_t* gpu_buffer_collection_new(
   gpu_init_buffers_(gpu_buffers_dto,&gpu_index_dto,&gpu_reference_dto,&gpu_info_dto);
   buffer_collection->internal_buffers = gpu_buffers_dto->buffer;
   // Set active modules
-  buffer_collection->region_profile = gpu_buffers_dto->activeModules & GPU_FMI_EXACT_SEARCH;
-  buffer_collection->decode_candidates_sa = gpu_buffers_dto->activeModules & GPU_FMI_DECODE_POS;
-  buffer_collection->decode_candidates_text = gpu_buffers_dto->activeModules & GPU_SA_DECODE_POS;
-  buffer_collection->verify_candidates = gpu_buffers_dto->activeModules & GPU_BPM;
+  buffer_collection->gpu_region_profile_available = gpu_buffers_dto->activeModules & GPU_FMI_EXACT_SEARCH;
+  buffer_collection->gpu_decode_candidates_sa_available = gpu_buffers_dto->activeModules & GPU_FMI_DECODE_POS;
+  buffer_collection->gpu_decode_candidates_text_available = gpu_buffers_dto->activeModules & GPU_SA_DECODE_POS;
+  buffer_collection->gpu_verify_candidates_available = gpu_buffers_dto->activeModules & GPU_BPM;
   // Return
   PROFILE_STOP(GP_GPU_BUFFER_COLLECTION_INIT,PROFILE_LEVEL);
   return buffer_collection;

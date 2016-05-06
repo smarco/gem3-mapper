@@ -264,7 +264,8 @@ option_t gem_mapper_options[] = {
   /* CUDA Settings */
 #ifdef HAVE_CUDA
   { 1200, "cuda", OPTIONAL, TYPE_STRING, 12, VISIBILITY_USER, "", "(default=disabled)"},
-  { 1201, "cuda-buffers-per-thread", REQUIRED, TYPE_STRING, 12, VISIBILITY_DEVELOPER, "<#BufferSearch,#BufferDecode,#BufferVerify,BufferSize>" , "(default=2,3,3,1M)" },
+  { 1201, "cuda-buffers-model", REQUIRED, TYPE_STRING, 12, VISIBILITY_DEVELOPER, "<#BufferSearch,#BufferDecode,#BufferVerify,BufferSize>" , "(default=2,3,3,1M)" },
+  { 1202, "cuda-region-profile", OPTIONAL, TYPE_STRING, 12, VISIBILITY_USER, "'adaptive'|'fixed'", "(default=adaptive)"},
 #endif /* HAVE_CUDA */
   /* Presets/Hints */
   /* Debug */
@@ -488,7 +489,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 411: // --alignment-curation-min-end-context (default=2)
       input_text_parse_extended_double(optarg,(double*)&search->cigar_curation_min_end_context);
       break;
-    case 412: { // --region-model-lightweight <region_th>,<max_steps>,<dec_factor>,<region_type_th> (default=20,4,2,2)
+    case 412: { // --region-model-lightweight <region_th>,<max_steps>,<dec_factor>,<region_type_th>
       char *region_th=NULL, *max_steps=NULL, *dec_factor=NULL, *region_type_th=NULL;
       const int num_arguments = input_text_parse_csv_arguments(optarg,4,&region_th,&max_steps,&dec_factor,&region_type_th);
       gem_mapper_cond_error_msg(num_arguments!=4,"Option '--region-model' wrong number of arguments");
@@ -498,7 +499,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       input_text_parse_extended_uint64(region_type_th,&search->rp_lightweight.region_type_th); // Parse region_type_th
       break;
     }
-    case 413: { // --region-model-heavyweight <region_th>,<max_steps>,<dec_factor>,<region_type_th> (default=80,4,2,2)
+    case 413: { // --region-model-heavyweight <region_th>,<max_steps>,<dec_factor>,<region_type_th>
       char *region_th=NULL, *max_steps=NULL, *dec_factor=NULL, *region_type_th=NULL;
       const int num_arguments = input_text_parse_csv_arguments(optarg,4,&region_th,&max_steps,&dec_factor,&region_type_th);
       gem_mapper_cond_error_msg(num_arguments!=4,"Option '--region-model' wrong number of arguments");
@@ -810,37 +811,44 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 1200: // --cuda
       if (!gpu_supported()) GEM_CUDA_NOT_SUPPORTED();
       parameters->cuda.cuda_enabled = true;
-      if (optarg) {
-        if (gem_strcaseeq(optarg,"emulated")) {
-          parameters->cuda.cpu_emulated = true;
-        } else {
-          gem_mapper_error_msg("Option '--cuda' invalid argument '%s'",optarg);
-        }
+      if (optarg && gem_strcaseeq(optarg,"emulated")) {
+        parameters->cuda.cpu_emulation = true;
       }
       break;
-    case 1201: { // --cuda-buffers-per-thread=2,3,3,1M
+    case 1201: { // --cuda-buffers-model=2,3,3,1M
       if (!gpu_supported()) GEM_CUDA_NOT_SUPPORTED();
       char *num_fmi_bsearch_buffers=NULL, *num_fmi_decode_buffers=NULL, *num_bpm_buffers=NULL, *buffer_size=NULL;
       const int num_arguments = input_text_parse_csv_arguments(optarg,4,
           &num_fmi_bsearch_buffers,&num_fmi_decode_buffers,&num_bpm_buffers,&buffer_size);
-      gem_mapper_cond_error_msg(num_arguments!=4,"Option '--cuda-buffers-per-thread' wrong number of arguments");
+      gem_mapper_cond_error_msg(num_arguments!=4,"Option '--cuda-buffers-model' wrong number of arguments");
       // Number of region-profile buffers per thread
       gem_mapper_cond_error_msg(input_text_parse_integer(
           (const char** const)&num_fmi_bsearch_buffers,(int64_t*)&parameters->cuda.num_fmi_bsearch_buffers),
-          "Option '--cuda-buffers-per-thread'. Error parsing 'region-profile buffers'");
+          "Option '--cuda-buffers-model'. Error parsing 'region-profile buffers'");
       // Number of decode-candidates buffers per thread
       gem_mapper_cond_error_msg(input_text_parse_integer(
           (const char** const)&num_fmi_decode_buffers,(int64_t*)&parameters->cuda.num_fmi_decode_buffers),
-          "Option '--cuda-buffers-per-thread'. Error parsing 'decode-candidates buffers'");
+          "Option '--cuda-buffers-model'. Error parsing 'decode-candidates buffers'");
       // Number of verify-candidates buffers per thread
       gem_mapper_cond_error_msg(input_text_parse_integer(
           (const char** const)&num_bpm_buffers,(int64_t*)&parameters->cuda.num_bpm_buffers),
-          "Option '--cuda-buffers-per-thread'. Error parsing 'verify-candidates buffers'");
+          "Option '--cuda-buffers-model'. Error parsing 'verify-candidates buffers'");
       // Buffer size
       gem_mapper_cond_error_msg(input_text_parse_size(buffer_size,&parameters->cuda.gpu_buffer_size),
-          "Option '--cuda-buffers-per-thread'. Error parsing 'buffer_size'");
+          "Option '--cuda-buffers-model'. Error parsing 'buffer_size'");
       break;
     }
+    case 1202: // --cuda-region-profile in {'adaptive'|'fixed'} (default=adaptive)
+      if (!gpu_supported()) GEM_CUDA_NOT_SUPPORTED();
+      parameters->cuda.cuda_enabled = true;
+      if (gem_strcaseeq(optarg,"adaptive")) {
+        parameters->cuda.region_profile_algorithm = mapper_cuda_region_profile_adaptive;
+      } else if (gem_strcaseeq(optarg,"fixed") || gem_strcaseeq(optarg,"static")) {
+        parameters->cuda.region_profile_algorithm = mapper_cuda_region_profile_fixed;
+      } else {
+        gem_mapper_error_msg("Option '--cuda-region-profile' must be 'adaptive'|'fixed'");
+      }
+      break;
     /* Presets/Hints */
     /* Debug */
     case 'c': { // --check-alignments in {'correct'|'best'|'complete'}

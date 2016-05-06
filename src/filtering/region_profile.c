@@ -10,6 +10,11 @@
 #include "data_structures/pattern.h"
 
 /*
+ * Constants
+ */
+#define REGION_PROFILE_MIN_REGIONS_ALLOCATED 5
+
+/*
  * Setup
  */
 void region_profile_new(
@@ -19,7 +24,8 @@ void region_profile_new(
   // Allocate memory for the region profile
   region_profile->pattern_length = pattern_length;
   // Filtering regions
-  region_profile->filtering_region = mm_stack_calloc(mm_stack,pattern_length,region_search_t,false);
+  region_profile->max_regions_allocated = MAX(REGION_PROFILE_MIN_REGIONS_ALLOCATED,DIV_CEIL(pattern_length,10));
+  region_profile->filtering_region = mm_stack_calloc(mm_stack,region_profile->max_regions_allocated,region_search_t,false);
   // Locator for region sorting
   region_profile->loc = mm_stack_calloc(mm_stack,pattern_length,region_locator_t,false);
 }

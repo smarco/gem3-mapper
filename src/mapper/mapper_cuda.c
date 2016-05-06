@@ -12,7 +12,7 @@
 #include "gpu/gpu_buffer_collection.h"
 #include "stats/report_stats.h"
 
-#include "/usr/local/software/intel/vtune_amplifier_xe/include/libittnotify.h"
+//#include "/usr/local/software/intel/vtune_amplifier_xe/include/libittnotify.h"
 
 /*
  * Error report

@@ -105,11 +105,9 @@ uint64_t locator_lookup_interval_index(
     }
   } while (hi > lo);
   // Return Interval
-//  if (!(intervals[lo].begin_position <= index_position && index_position < intervals[lo].end_position)) {
-    GEM_INTERNAL_CHECK(
+  GEM_INTERNAL_CHECK(
         intervals[lo].begin_position <= index_position && index_position < intervals[lo].end_position,
         "Locator-Interval Binary Search. Wrong Boundaries");
-//  }
   return lo;
 }
 locator_interval_t* locator_lookup_interval(

@@ -55,7 +55,6 @@ typedef struct {
   vector_t* filtering_positions;                   // Candidate positions (filtering_position_t)
   vector_t* filtering_regions;                     // Candidate regions (filtering_region_t)
   vector_t* discarded_regions;                     // Discarded regions (filtering_region_t)
-  vector_t* verified_regions;                      // Verified regions (verified_region_t)
   /* Cache */
   filtering_region_cache_t filtering_region_cache; // Filtering-Region Cache
   /* Text-Collection */
@@ -129,10 +128,11 @@ void filtering_candidates_add_region_interval_set_thresholded(
 /*
  * Sorting
  */
-void filtering_positions_sort_positions(vector_t* const filtering_positions);
 void filtering_regions_sort_align_distance(vector_t* const filtering_regions);
 void filtering_regions_sort_scaffold_coverage(vector_t* const filtering_regions);
-void verified_regions_sort_positions(vector_t* const verified_regions);
+
+void filtering_positions_sort_positions_large(vector_t* const filtering_positions);
+void filtering_positions_sort_positions_small(vector_t* const filtering_positions);
 
 /*
  * Display

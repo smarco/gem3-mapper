@@ -72,7 +72,7 @@ bool archive_search_pe_use_shortcut_extension(
   search_parameters_t* const search_parameters = &archive_search_extended->search_parameters;
   if (!search_parameters->search_paired_parameters.paired_end_extension_shortcut) return false;
   // Check key-length
-  const uint64_t key_length = archive_search_candidate->forward_search_state.pattern.key_length;
+  const uint64_t key_length = archive_search_candidate->approximate_search.pattern.key_length;
   if (key_length > ARCHIVE_SEARCH_PE_EXTENSION_MAX_READ_LENGTH) return false;
   // Check the number of samples to derive the expected template size
   if (!mapper_stats_template_length_is_reliable(archive_search_extended->mapper_stats)) return false;
@@ -88,7 +88,7 @@ bool archive_search_pe_use_recovery_extension(
   search_parameters_t* const search_parameters = &archive_search_extended->search_parameters;
   if (!search_parameters->search_paired_parameters.paired_end_extension_recovery) return false;
   // Check key-length
-  const uint64_t key_length = archive_search_candidate->forward_search_state.pattern.key_length;
+  const uint64_t key_length = archive_search_candidate->approximate_search.pattern.key_length;
   if (key_length > ARCHIVE_SEARCH_PE_EXTENSION_MAX_READ_LENGTH) return false;
   // Check the number of samples to derive the expected template size
   if (!mapper_stats_template_length_is_reliable(archive_search_extended->mapper_stats)) return false;
@@ -132,8 +132,8 @@ uint64_t archive_search_pe_extend_matches(
     candidate_matches = matches_end1;
   }
   filtering_candidates_t* const filtering_candidates =
-      candidate_archive_search->forward_search_state.filtering_candidates;
-  pattern_t* const candidate_pattern = &candidate_archive_search->forward_search_state.pattern;
+      candidate_archive_search->approximate_search.filtering_candidates;
+  pattern_t* const candidate_pattern = &candidate_archive_search->approximate_search.pattern;
   uint64_t total_matches_found = 0;
   // Iterate over all matches of the extended end
 //  const uint64_t first_stratum_distance = matches_get_match_trace_buffer(extended_matches)[0].distance;
@@ -341,8 +341,8 @@ void archive_search_pe_compute_predictors(
     paired_matches_t* const paired_matches,
     matches_predictors_t* const predictors) {
   // Compute predictors
-  approximate_search_metrics_t* const search_end1 = &archive_search_end1->forward_search_state.metrics;
-  approximate_search_metrics_t* const search_end2 = &archive_search_end2->forward_search_state.metrics;
+  approximate_search_metrics_t* const search_end1 = &archive_search_end1->approximate_search.metrics;
+  approximate_search_metrics_t* const search_end2 = &archive_search_end2->approximate_search.metrics;
   matches_t* const matches_end1 = paired_matches->matches_end1;
   matches_t* const matches_end2 = paired_matches->matches_end2;
   const uint64_t mcs_end1 = (matches_end1->max_complete_stratum!=ALL) ? matches_end1->max_complete_stratum : 0;

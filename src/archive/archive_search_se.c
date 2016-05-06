@@ -45,14 +45,8 @@ void archive_search_se_inject_mm(
 void archive_search_se_continue(
     archive_search_t* const archive_search,
     matches_t* const matches) {
-  // Run the search (FORWARD)
-  approximate_search_t* const forward_asearch = &archive_search->forward_search_state;
-  approximate_search(forward_asearch,matches); // Forward search
-  if (archive_search->emulate_rc_search) {
-    // Run the search (REVERSE)
-    approximate_search_t* const reverse_asearch = &archive_search->reverse_search_state;
-    approximate_search(reverse_asearch,matches); // Reverse emulated-search
-  }
+  // Run the search
+  approximate_search(&archive_search->approximate_search,matches);
 }
 /*
  * Single-End Indexed Search (SE Online Approximate String Search)
@@ -75,26 +69,8 @@ void archive_search_se(
   archive_search_reset(archive_search);
   // Search the pattern(s)
   search_parameters_t* const search_parameters = &archive_search->search_parameters;
-  approximate_search_t* const forward_asearch = &archive_search->forward_search_state;
-  if (!archive_search->emulate_rc_search) {
-    // Compute the full search
-    approximate_search(forward_asearch,matches); // Forward search
-  } else {
-    // Configure search stage to stop at
-    const bool lower_max_difference =
-        search_parameters->complete_strata_after_best_nominal < forward_asearch->max_complete_error;
-    if (lower_max_difference && archive_search->probe_strand) forward_asearch->stop_before_neighborhood_search = true;
-    // Run the search (FORWARD)
-    approximate_search(forward_asearch,matches); // Forward search
-    // Keep on searching
-    approximate_search_t* const reverse_asearch = &archive_search->reverse_search_state;
-    // Run the search (REVERSE)
-    approximate_search(reverse_asearch,matches); // Reverse emulated-search
-    // Resume forward search (if not completed before)
-    if (forward_asearch->search_stage != asearch_stage_end) {
-      approximate_search(forward_asearch,matches);
-    }
-  }
+  // Compute the full search
+  approximate_search(&archive_search->approximate_search,matches);
   // Select Matches
   archive_select_se_matches(archive_search,&search_parameters->select_parameters_report,matches);
   // Select alignment-Model and process accordingly
@@ -123,7 +99,7 @@ void archive_search_se_compute_predictors(
     matches_t* const matches,
     matches_predictors_t* const predictors) {
   const uint64_t max_complete_stratum = matches->max_complete_stratum==ALL ? 0 : matches->max_complete_stratum;
-  matches_predictors_compute(matches,predictors,&archive_search->forward_search_state.metrics,max_complete_stratum);
+  matches_predictors_compute(matches,predictors,&archive_search->approximate_search.metrics,max_complete_stratum);
 }
 /*
  * Display
@@ -134,16 +110,10 @@ void archive_search_se_print(
     matches_t* const matches) {
   tab_fprintf(stream,"[GEM]>ArchiveSearch.SE\n");
   tab_global_inc();
-  tab_fprintf(stream,"=> Search.Forward\n");
+  tab_fprintf(stream,"=> Approximate.Search\n");
   tab_global_inc();
-  approximate_search_print(stream,&archive_search->forward_search_state);
+  approximate_search_print(stream,&archive_search->approximate_search);
   tab_global_dec();
-  if (archive_search->emulate_rc_search) {
-    tab_fprintf(stream,"=> Search.Reverse\n");
-    tab_global_inc();
-    approximate_search_print(stream,&archive_search->reverse_search_state);
-    tab_global_dec();
-  }
   if (matches!=NULL) {
     tab_fprintf(stream,"=> Matches.end\n");
     tab_global_inc();

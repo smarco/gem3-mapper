@@ -65,10 +65,13 @@ typedef struct {
   char* tmp_folder;
 } mapper_parameters_system_t;
 /* CUDA settings */
+typedef enum {
+  mapper_cuda_region_profile_adaptive,
+  mapper_cuda_region_profile_fixed,
+} mapper_cuda_region_profile_algorithm;
 typedef struct {
   /* CUDA */
   bool cuda_enabled;
-  bool cpu_emulated;
   /* I/O */
   uint64_t input_block_size;
   uint64_t input_buffer_size;
@@ -79,14 +82,17 @@ typedef struct {
   uint64_t num_fmi_bsearch_buffers;      // Number of FMI-BSearch buffers per thread
   uint64_t num_fmi_decode_buffers;       // Number of FMI-Decode buffers per thread
   uint64_t num_bpm_buffers;              // Number of BPM buffers per thread
+  /* Stages Configuration */
+  bool cpu_emulation;
+  mapper_cuda_region_profile_algorithm region_profile_algorithm; // Region-Profile Algorithm
 } mapper_parameters_cuda_t;
 /* Hints */
-typedef struct {
+//typedef struct {
 //  uint64_t avg_read_length;        // Hint on the average read length
 //  uint64_t std_read_length;        // Hint on the standard deviation of the read length
 //  uint64_t candidates_per_query;   // Hint on the number of candidates per query
-  uint64_t dummy;
-} mapper_parameters_hints_t;
+//  uint64_t dummy;
+//} mapper_parameters_hints_t;
 /* Misc */
 typedef struct {
   /* Debug */
@@ -124,7 +130,7 @@ typedef struct {
   /* CUDA settings */
   mapper_parameters_cuda_t cuda;
   /* Hints*/
-  mapper_parameters_hints_t hints;
+  // mapper_parameters_hints_t hints;
   /* Miscellaneous */
   mapper_parameters_misc_t misc;
   /* Profile */

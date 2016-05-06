@@ -19,14 +19,11 @@
 search_stage_region_profile_buffer_t* search_stage_region_profile_buffer_new(
     const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffer_no,
-    fm_index_t* const fm_index,
-    const bool cpu_emulated) {
+    const bool region_profile_enabled) {
   // Alloc
   search_stage_region_profile_buffer_t* const region_profile_buffer = mm_alloc(search_stage_region_profile_buffer_t);
   // Init
-  region_profile_buffer->gpu_buffer_fmi_search =
-      gpu_buffer_fmi_search_new(gpu_buffer_collection,buffer_no,fm_index);
-  if (cpu_emulated) gpu_buffer_fmi_search_set_device_cpu(region_profile_buffer->gpu_buffer_fmi_search);
+  region_profile_buffer->gpu_buffer_fmi_search = gpu_buffer_fmi_search_new(gpu_buffer_collection,buffer_no,region_profile_enabled);
   const uint64_t max_queries = gpu_buffer_fmi_search_get_max_queries(region_profile_buffer->gpu_buffer_fmi_search);
   region_profile_buffer->archive_searches = vector_new(max_queries,archive_search_t*);
   // Return

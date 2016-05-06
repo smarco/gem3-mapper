@@ -109,6 +109,7 @@ typedef struct {
   /* Paired-end */
   search_paired_parameters_t search_paired_parameters;
   /* Filtering parameters */
+  uint64_t fixed_region_length;
   uint64_t filtering_threshold;
   double filtering_region_factor;
   region_profile_model_t rp_lightweight;  // Region-Lightweight

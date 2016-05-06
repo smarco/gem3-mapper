@@ -114,16 +114,16 @@ uint64_t filtering_candidates_compose_filtering_regions(
   const bool run_length_text = pattern->run_length;
   mm_stack_t* const mm_stack = filtering_candidates->mm_stack;
   // Sort candidate positions (text-space)
-  filtering_positions_sort_positions(filtering_candidates->filtering_positions);
-  // Sort verified regions
-  verified_regions_sort_positions(filtering_candidates->verified_regions);
-  const uint64_t num_verified_regions = vector_get_used(filtering_candidates->verified_regions);
-  verified_region_t* const verified_region = vector_get_mem(filtering_candidates->verified_regions,verified_region_t);
-  // Traverse positions and eliminate duplicates
   const uint64_t num_candidate_positions = vector_get_used(filtering_candidates->filtering_positions);
+  if (num_candidate_positions < 100) {
+    filtering_positions_sort_positions_small(filtering_candidates->filtering_positions);
+  } else {
+    filtering_positions_sort_positions_large(filtering_candidates->filtering_positions);
+  }
+  // Traverse positions and eliminate duplicates
   filtering_position_t* const candidate_positions =
       vector_get_mem(filtering_candidates->filtering_positions,filtering_position_t);
-  uint64_t candidate_idx = 0, verified_region_idx = 0;
+  uint64_t candidate_idx = 0;
   while (candidate_idx < num_candidate_positions) {
     // Determine the positions belonging to the same region
     const uint64_t sequence_id = candidate_positions[candidate_idx].sequence_id;
@@ -149,30 +149,29 @@ uint64_t filtering_candidates_compose_filtering_regions(
       // Next
       ++group_idx;
     }
-    // Check region against verified regions
-    bool is_already_verified = false;
-    while (verified_region_idx < num_verified_regions &&
-           verified_region[verified_region_idx].end_position <= region_begin_position) {
-      ++verified_region_idx;
-    }
-    if (verified_region_idx < num_verified_regions) {
-      const uint64_t verified_begin_position = verified_region[verified_region_idx].begin_position;
-      const uint64_t verified_end_position = verified_region[verified_region_idx].end_position;
-      const uint64_t region_end_position = candidate_positions[group_idx-1].text_end_position;
-      is_already_verified = (verified_begin_position <= region_begin_position &&
-                             region_end_position <= verified_end_position);
-      gem_debug_block() {
-        if (is_already_verified) {
-          PROF_INC_COUNTER(GP_CANDIDATE_REGIONS_DUPLICATED);
-        }
-      }
-    }
-    if (!is_already_verified) {
-      // Create a region candidate with the positions from [candidate_idx] to [group_idx-1]
-      filtering_candidates_add_filtering_region(filtering_candidates,pattern,
-          candidate_idx,group_idx-1,min_align_distance,min_align_offset,
-          matching_regions_compose,run_length_text,mm_stack);
-    }
+    //    // Check region against verified regions
+    //    bool is_already_verified = false;
+    //    while (verified_region_idx < num_verified_regions &&
+    //           verified_region[verified_region_idx].end_position <= region_begin_position) {
+    //      ++verified_region_idx;
+    //    }
+    //    if (verified_region_idx < num_verified_regions) {
+    //      const uint64_t verified_begin_position = verified_region[verified_region_idx].begin_position;
+    //      const uint64_t verified_end_position = verified_region[verified_region_idx].end_position;
+    //      const uint64_t region_end_position = candidate_positions[group_idx-1].text_end_position;
+    //      is_already_verified = (verified_begin_position <= region_begin_position &&
+    //                             region_end_position <= verified_end_position);
+    //      gem_debug_block() {
+    //        if (is_already_verified) {
+    //          PROF_INC_COUNTER(GP_CANDIDATE_REGIONS_DUPLICATED);
+    //        }
+    //      }
+    //    }
+    // if (!is_already_verified) skip;
+    // Create a region candidate with the positions from [candidate_idx] to [group_idx-1]
+    filtering_candidates_add_filtering_region(filtering_candidates,pattern,
+        candidate_idx,group_idx-1,min_align_distance,min_align_offset,
+        matching_regions_compose,run_length_text,mm_stack);
     // Next group
     const uint64_t num_regions_matching = group_idx-candidate_idx;
     candidate_idx += num_regions_matching;

@@ -16,6 +16,11 @@
 /*
  * Decode Candidates Buffered (from GPU-Buffer)
  */
+void filtering_candidates_decode_filtering_positions_buffered(
+    filtering_candidates_t* const filtering_candidates,
+    pattern_t* const pattern,
+    region_search_t* const region_search,
+    filtering_position_buffered_t* const gpu_filtering_positions);
 void filtering_candidates_decode_sa_filtering_positions_buffered(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const pattern,

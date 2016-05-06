@@ -11,7 +11,7 @@
 #include "archive/archive_search_se.h"
 #include "archive/archive_search_pe.h"
 #include "stats/report_stats.h"
-#include "/usr/local/software/intel/vtune_amplifier_xe/include/libittnotify.h"
+//#include "/usr/local/software/intel/vtune_amplifier_xe/include/libittnotify.h"
 
 /*
  * Debug/Profile
@@ -166,7 +166,6 @@ void mapper_parameters_set_defaults_cuda(mapper_parameters_cuda_t* const cuda) {
   const uint64_t num_processors = system_get_num_processors();
   /* CUDA */
   cuda->cuda_enabled=false;
-  cuda->cpu_emulated=false;
   /* I/O */
   cuda->input_block_size = BUFFER_SIZE_32M;
   cuda->input_buffer_size = BUFFER_SIZE_4M;
@@ -177,10 +176,13 @@ void mapper_parameters_set_defaults_cuda(mapper_parameters_cuda_t* const cuda) {
   cuda->num_fmi_bsearch_buffers = 2;
   cuda->num_fmi_decode_buffers = 3;
   cuda->num_bpm_buffers = 3;
+  /* Stages Configuration */
+  cuda->cpu_emulation=false;
+  cuda->region_profile_algorithm = mapper_cuda_region_profile_adaptive;
 }
-void mapper_parameters_set_defaults_hints(mapper_parameters_hints_t* const hints) {
-  /* Hints */
-}
+//void mapper_parameters_set_defaults_hints(mapper_parameters_hints_t* const hints) {
+//  /* Hints */
+//}
 void mapper_parameters_set_defaults_misc(mapper_parameters_misc_t* const misc) {
   /* QC */
   misc->quality_control = false;
@@ -215,7 +217,7 @@ void mapper_parameters_set_defaults(mapper_parameters_t* const mapper_parameters
   /* CUDA settings */
   mapper_parameters_set_defaults_cuda(&mapper_parameters->cuda);
   /* Hints */
-  mapper_parameters_set_defaults_hints(&mapper_parameters->hints);
+  // mapper_parameters_set_defaults_hints(&mapper_parameters->hints);
   /* Miscellaneous */
   mapper_parameters_set_defaults_misc(&mapper_parameters->misc);
 }
@@ -258,22 +260,6 @@ void mapper_SE_prepare_io_buffers(
   *buffered_output_file = buffered_output_file_new(parameters->output_file);
   buffered_input_file_attach_buffered_output(*buffered_fasta_input,*buffered_output_file);
 }
-void mapper_PE_prepare_io_buffers(
-    const mapper_parameters_t* const parameters,
-    const uint64_t input_buffer_size,
-    buffered_input_file_t** const buffered_fasta_input_end1,
-    buffered_input_file_t** const buffered_fasta_input_end2,
-    buffered_output_file_t** const buffered_output_file) {
-  if (parameters->io.separated_input_files) {
-    *buffered_fasta_input_end1 = buffered_input_file_new(parameters->input_file_end1,input_buffer_size);
-    *buffered_fasta_input_end2 = buffered_input_file_new(parameters->input_file_end2,input_buffer_size);
-  } else {
-    *buffered_fasta_input_end1 = buffered_input_file_new(parameters->input_file,input_buffer_size);
-    *buffered_fasta_input_end2 = *buffered_fasta_input_end1;
-  }
-  *buffered_output_file = buffered_output_file_new(parameters->output_file);
-  buffered_input_file_attach_buffered_output(*buffered_fasta_input_end1,*buffered_output_file);
-}
 uint64_t mapper_PE_reload_buffers(
     mapper_parameters_t* const parameters,
     buffered_input_file_t* const buffered_fasta_input_end1,
@@ -305,12 +291,31 @@ uint64_t mapper_PE_reload_buffers(
         if (buffered_fasta_input_end2->num_lines != num_lines_read) {
           MAPPER_ERROR_PE_PARSE_UNSYNCH_INPUT_FILES(parameters);
         }
-        if (num_lines_read==0) return INPUT_STATUS_EOF;
+        if (num_lines_read==0) {
+          MUTEX_END_SECTION(parameters->input_file_mutex);
+          return INPUT_STATUS_EOF;
+        }
       } MUTEX_END_SECTION(parameters->input_file_mutex);
     }
   }
   // OK
   return INPUT_STATUS_OK;
+}
+void mapper_PE_prepare_io_buffers(
+    const mapper_parameters_t* const parameters,
+    const uint64_t input_buffer_size,
+    buffered_input_file_t** const buffered_fasta_input_end1,
+    buffered_input_file_t** const buffered_fasta_input_end2,
+    buffered_output_file_t** const buffered_output_file) {
+  if (parameters->io.separated_input_files) {
+    *buffered_fasta_input_end1 = buffered_input_file_new(parameters->input_file_end1,input_buffer_size);
+    *buffered_fasta_input_end2 = buffered_input_file_new(parameters->input_file_end2,input_buffer_size);
+  } else {
+    *buffered_fasta_input_end1 = buffered_input_file_new(parameters->input_file,input_buffer_size);
+    *buffered_fasta_input_end2 = *buffered_fasta_input_end1;
+  }
+  *buffered_output_file = buffered_output_file_new(parameters->output_file);
+  buffered_input_file_attach_buffered_output(*buffered_fasta_input_end1,*buffered_output_file);
 }
 error_code_t mapper_PE_parse_paired_sequences(
     const mapper_parameters_t* const parameters,

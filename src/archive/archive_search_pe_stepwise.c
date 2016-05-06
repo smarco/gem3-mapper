@@ -64,12 +64,8 @@ void archive_search_pe_stepwise_region_profile_generate_static(
     tab_global_inc();
   }
   // Region-Profile Generate
-  approximate_search_stepwise_region_profile_generate_static(&archive_search_end1->forward_search_state);
-  approximate_search_stepwise_region_profile_generate_static(&archive_search_end2->forward_search_state);
-  if (archive_search_end1->emulate_rc_search) {
-    approximate_search_stepwise_region_profile_generate_static(&archive_search_end1->reverse_search_state);
-    approximate_search_stepwise_region_profile_generate_static(&archive_search_end2->reverse_search_state);
-  }
+  approximate_search_stepwise_region_profile_generate_static(&archive_search_end1->approximate_search);
+  approximate_search_stepwise_region_profile_generate_static(&archive_search_end2->approximate_search);
   // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_PE_STEPWISE) { tab_global_dec(); }
   PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_REGION_PROFILE_GENERATE,PROFILE_LEVEL);
@@ -85,12 +81,8 @@ void archive_search_pe_stepwise_region_profile_generate_adaptive(
     tab_global_inc();
   }
   // Region-Profile Generate
-  approximate_search_stepwise_region_profile_generate_adaptive(&archive_search_end1->forward_search_state);
-  approximate_search_stepwise_region_profile_generate_adaptive(&archive_search_end2->forward_search_state);
-  if (archive_search_end1->emulate_rc_search) {
-    approximate_search_stepwise_region_profile_generate_adaptive(&archive_search_end1->reverse_search_state);
-    approximate_search_stepwise_region_profile_generate_adaptive(&archive_search_end2->reverse_search_state);
-  }
+  approximate_search_stepwise_region_profile_generate_adaptive(&archive_search_end1->approximate_search);
+  approximate_search_stepwise_region_profile_generate_adaptive(&archive_search_end2->approximate_search);
   // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_PE_STEPWISE) { tab_global_dec(); }
   PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_REGION_PROFILE_GENERATE,PROFILE_LEVEL);
@@ -108,15 +100,9 @@ void archive_search_pe_stepwise_region_profile_copy(
   }
   // Region-Profile Copy
   approximate_search_stepwise_region_profile_copy(
-      &archive_search_end1->forward_search_state,gpu_buffer_fmi_search);
+      &archive_search_end1->approximate_search,gpu_buffer_fmi_search);
   approximate_search_stepwise_region_profile_copy(
-      &archive_search_end2->forward_search_state,gpu_buffer_fmi_search);
-  if (archive_search_end1->emulate_rc_search) {
-    approximate_search_stepwise_region_profile_copy(
-        &archive_search_end1->reverse_search_state,gpu_buffer_fmi_search);
-    approximate_search_stepwise_region_profile_copy(
-        &archive_search_end2->reverse_search_state,gpu_buffer_fmi_search);
-  }
+      &archive_search_end2->approximate_search,gpu_buffer_fmi_search);
   // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_PE_STEPWISE) { tab_global_dec(); }
   PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_REGION_PROFILE_COPY,PROFILE_LEVEL);
@@ -134,15 +120,9 @@ void archive_search_pe_stepwise_region_profile_retrieve(
   }
   // Region-Profile Retrieve
   approximate_search_stepwise_region_profile_retrieve(
-      &archive_search_end1->forward_search_state,gpu_buffer_fmi_search);
+      &archive_search_end1->approximate_search,gpu_buffer_fmi_search);
   approximate_search_stepwise_region_profile_retrieve(
-      &archive_search_end2->forward_search_state,gpu_buffer_fmi_search);
-  if (archive_search_end1->emulate_rc_search) {
-    approximate_search_stepwise_region_profile_retrieve(
-        &archive_search_end1->reverse_search_state,gpu_buffer_fmi_search);
-    approximate_search_stepwise_region_profile_retrieve(
-        &archive_search_end2->reverse_search_state,gpu_buffer_fmi_search);
-  }
+      &archive_search_end2->approximate_search,gpu_buffer_fmi_search);
   // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_PE_STEPWISE) { tab_global_dec(); }
   PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_REGION_PROFILE_RETRIEVE,PROFILE_LEVEL);
@@ -164,15 +144,9 @@ void archive_search_pe_stepwise_decode_candidates_copy(
   }
   // Decode-Candidates Copy
   approximate_search_stepwise_decode_candidates_copy(
-      &archive_search_end1->forward_search_state,gpu_buffer_fmi_decode);
+      &archive_search_end1->approximate_search,gpu_buffer_fmi_decode);
   approximate_search_stepwise_decode_candidates_copy(
-      &archive_search_end2->forward_search_state,gpu_buffer_fmi_decode);
-  if (archive_search_end1->emulate_rc_search) {
-    approximate_search_stepwise_decode_candidates_copy(
-        &archive_search_end1->reverse_search_state,gpu_buffer_fmi_decode);
-    approximate_search_stepwise_decode_candidates_copy(
-        &archive_search_end2->reverse_search_state,gpu_buffer_fmi_decode);
-  }
+      &archive_search_end2->approximate_search,gpu_buffer_fmi_decode);
   // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_PE_STEPWISE) { tab_global_dec(); }
   PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_DECODE_CANDIDATES_COPY,PROFILE_LEVEL);
@@ -190,15 +164,9 @@ void archive_search_pe_stepwise_decode_candidates_retrieve(
   }
   // Decode-Candidates Retrieve
   approximate_search_stepwise_decode_candidates_retrieve(
-      &archive_search_end1->forward_search_state,gpu_buffer_fmi_decode);
+      &archive_search_end1->approximate_search,gpu_buffer_fmi_decode);
   approximate_search_stepwise_decode_candidates_retrieve(
-      &archive_search_end2->forward_search_state,gpu_buffer_fmi_decode);
-  if (archive_search_end1->emulate_rc_search) {
-    approximate_search_stepwise_decode_candidates_retrieve(
-        &archive_search_end1->reverse_search_state,gpu_buffer_fmi_decode);
-    approximate_search_stepwise_decode_candidates_retrieve(
-        &archive_search_end2->reverse_search_state,gpu_buffer_fmi_decode);
-  }
+      &archive_search_end2->approximate_search,gpu_buffer_fmi_decode);
   // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_PE_STEPWISE) { tab_global_dec(); }
   PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_DECODE_CANDIDATES_RETRIEVE,PROFILE_LEVEL);
@@ -220,15 +188,9 @@ void archive_search_pe_stepwise_verify_candidates_copy(
   }
   // Verify-Candidates Copy
   approximate_search_stepwise_verify_candidates_copy(
-      &archive_search_end1->forward_search_state,gpu_buffer_align_bpm);
+      &archive_search_end1->approximate_search,gpu_buffer_align_bpm);
   approximate_search_stepwise_verify_candidates_copy(
-      &archive_search_end2->forward_search_state,gpu_buffer_align_bpm);
-  if (archive_search_end1->emulate_rc_search) {
-    approximate_search_stepwise_verify_candidates_copy(
-        &archive_search_end1->reverse_search_state,gpu_buffer_align_bpm);
-    approximate_search_stepwise_verify_candidates_copy(
-        &archive_search_end2->reverse_search_state,gpu_buffer_align_bpm);
-  }
+      &archive_search_end2->approximate_search,gpu_buffer_align_bpm);
   // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_PE_STEPWISE) { tab_global_dec(); }
   PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_VERIFY_CANDIDATES_COPY,PROFILE_LEVEL);
@@ -247,15 +209,9 @@ void archive_search_pe_stepwise_verify_candidates_retrieve(
   }
   // Verify-Candidates Retrieve
   approximate_search_stepwise_verify_candidates_retrieve(
-      &archive_search_end1->forward_search_state,gpu_buffer_align_bpm,matches);
+      &archive_search_end1->approximate_search,gpu_buffer_align_bpm,matches);
   approximate_search_stepwise_verify_candidates_retrieve(
-      &archive_search_end2->forward_search_state,gpu_buffer_align_bpm,matches);
-  if (archive_search_end1->emulate_rc_search) {
-    approximate_search_stepwise_verify_candidates_retrieve(
-        &archive_search_end1->reverse_search_state,gpu_buffer_align_bpm,matches);
-    approximate_search_stepwise_verify_candidates_retrieve(
-        &archive_search_end2->reverse_search_state,gpu_buffer_align_bpm,matches);
-  }
+      &archive_search_end2->approximate_search,gpu_buffer_align_bpm,matches);
   // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_PE_STEPWISE) { tab_global_dec(); }
   PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_VERIFY_CANDIDATES_RETRIEVE,PROFILE_LEVEL);
@@ -276,12 +232,8 @@ void archive_search_pe_stepwise_finish_search(
     tab_global_inc();
   }
   // Finish SE-Search
-  approximate_search_stepwise_finish(&archive_search_end1->forward_search_state,paired_matches->matches_end1);
-  approximate_search_stepwise_finish(&archive_search_end2->forward_search_state,paired_matches->matches_end2);
-  if (archive_search_end1->emulate_rc_search) {
-    approximate_search_stepwise_finish(&archive_search_end1->reverse_search_state,paired_matches->matches_end1);
-    approximate_search_stepwise_finish(&archive_search_end2->reverse_search_state,paired_matches->matches_end2);
-  }
+  approximate_search_stepwise_finish(&archive_search_end1->approximate_search,paired_matches->matches_end1);
+  approximate_search_stepwise_finish(&archive_search_end2->approximate_search,paired_matches->matches_end2);
   // Select Matches
   search_parameters_t* const search_parameters = &archive_search_end1->search_parameters;
   archive_select_se_matches(archive_search_end1,&search_parameters->select_parameters_report,paired_matches->matches_end1);
@@ -316,5 +268,4 @@ void archive_search_pe_stepwise_finish_search(
   }
   PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_FINISH_SEARCH,PROFILE_LEVEL);
 }
-
 

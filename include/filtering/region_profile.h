@@ -58,20 +58,21 @@ typedef struct {
 typedef struct {
   /* Regions */
   region_search_t* filtering_region; // Filtering regions
+  uint64_t max_regions_allocated;    // Maximum regions allocated (limit)
   uint64_t num_filtering_regions;    // Total number of filtering regions
   uint64_t num_standard_regions;     // Number of Standard Regions
   uint64_t num_unique_regions;       // Number of Unique Regions
   uint64_t num_zero_regions;         // Number of Zero candidate Regions
+  /* Locator (region sorting) */
+  region_locator_t* loc;
   /* Pattern Stats */
   uint64_t pattern_length;           // Length of the patter
   uint64_t errors_allowed;           // Total error allowed (the minimum required to get a novel match)
-  // Profile Stats
+  /* Profile Stats */
   uint64_t total_candidates;         // Total number of candidates (from exact matching regions)
   uint64_t max_region_length;        // Largest region length
   double mappability_p;
   double mappability_2p;
-  /* Locator (region sorting) */
-  region_locator_t* loc;
 } region_profile_t;
 
 /*

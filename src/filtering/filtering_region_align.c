@@ -205,7 +205,7 @@ bool filtering_region_align(
   // Select Model
   if (pattern->run_length ||
       filtering_region->key_trimmed ||
-      filtering_region->region_alignment.num_tiles>1 ||
+      filtering_region->region_alignment.num_tiles > 1 ||
       filtering_region->region_alignment.distance_min_bound > 0) {
     filtering_region_align_inexact(filtering_candidates,filtering_region,
         pattern,emulated_rc_search,local_alignment,matches,match_trace);

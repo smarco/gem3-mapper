@@ -78,7 +78,7 @@ void filtering_candidates_verify_buffered_load_region(
   filtering_region->max_error = pattern->max_effective_filtering_error;
   filtering_region->max_bandwidth = pattern->max_effective_bandwidth;
   filtering_region->region_alignment = filtering_region_buffered->region_alignment;
-  match_scaffold_init(&filtering_region->match_scaffold); // We sacrifice this information as to save memory
+  match_scaffold_init(&filtering_region->match_scaffold);
   filtering_region->match_scaffold.scaffold_regions = filtering_region_buffered->scaffold_regions;
   filtering_region->match_scaffold.num_scaffold_regions = filtering_region_buffered->num_scaffold_regions;
 }
@@ -115,7 +115,8 @@ void filtering_candidates_verify_buffered_add(
     return;
   }
   // Allocate buffered filtering regions
-  mm_stack_t* const mm_stack = gpu_buffer_align_bpm->mm_stack;
+  text_collection_t* const text_collection = filtering_candidates->text_collection;
+  mm_stack_t* const mm_stack = filtering_candidates->mm_stack;
   filtering_region_buffered_t* const filtering_region_buffer =
       mm_stack_calloc(mm_stack,num_filtering_regions,filtering_region_buffered_t,false);
   *filtering_region_buffered = filtering_region_buffer;
@@ -140,8 +141,8 @@ void filtering_candidates_verify_buffered_add(
     filtering_region_alignment_prepare(filtering_region,bpm_pattern,bpm_pattern_tiles,mm_stack);
     // Kmer filtering
     if (pattern->key_length > VERIFY_BUFFERED_KMER_FILTER_LENGTH_THRESHOLD) {
-      filtering_candidates_verify_buffered_kmer_filter(filtering_candidates,
-          filtering_region,pattern,gpu_buffer_align_bpm->text_collection);
+      filtering_candidates_verify_buffered_kmer_filter(
+          filtering_candidates,filtering_region,pattern,text_collection);
       if (filtering_region->region_alignment.distance_min_bound==ALIGN_DISTANCE_INF) {
         filtering_candidates_verify_buffered_store_region(
             filtering_region_buffer+candidate_pos,filtering_region);
@@ -180,6 +181,7 @@ void filtering_candidates_verify_buffered_check_tile_distance(
     const uint32_t tile_match_column) {
   // Parameters
   text_collection_t* const text_collection = filtering_candidates->text_collection;
+  archive_text_t* const archive_text = filtering_candidates->archive->text;
   mm_stack_t* const mm_stack = filtering_candidates->mm_stack;
   // Push
   mm_stack_push_state(mm_stack);
@@ -189,8 +191,8 @@ void filtering_candidates_verify_buffered_check_tile_distance(
   gpu_buffer_align_bpm_get_candidate(gpu_buffer_align_bpm,
       candidate_idx,&candidate_text_position,&candidate_length);
   // Get Candidate Text
-  const uint64_t text_trace_offset = archive_text_retrieve_collection(gpu_buffer_align_bpm->archive_text,
-      text_collection,candidate_text_position,candidate_length,false,false,mm_stack); // Retrieve text(s)
+  const uint64_t text_trace_offset = archive_text_retrieve_collection(
+      archive_text,text_collection,candidate_text_position,candidate_length,false,false,mm_stack); // Retrieve text(s)
   const text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
   const uint8_t* const text = text_trace->text; // Candidate
   uint64_t i, uncalled_bases_text = 0;
@@ -220,6 +222,7 @@ void filtering_candidates_verify_buffered_check_global_distance(
     const uint64_t global_distance) {
   // Parameters
   text_collection_t* const text_collection = filtering_candidates->text_collection;
+  archive_text_t* const archive_text = filtering_candidates->archive->text;
   mm_stack_t* const mm_stack = filtering_candidates->mm_stack;
   // Push
   mm_stack_push_state(mm_stack);
@@ -227,8 +230,7 @@ void filtering_candidates_verify_buffered_check_global_distance(
   const uint64_t candidate_position = filtering_region->text_begin_position;
   const uint64_t candidate_length = filtering_region->text_end_position-filtering_region->text_begin_position;
   const uint64_t text_trace_offset = archive_text_retrieve_collection(
-      gpu_buffer_align_bpm->archive_text,text_collection,
-      candidate_position,candidate_length,false,false,mm_stack);
+      archive_text,text_collection,candidate_position,candidate_length,false,false,mm_stack);
   const text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
   // Check Whole-Read
   uint64_t match_end_column, match_distance;
@@ -244,7 +246,37 @@ void filtering_candidates_verify_buffered_check_global_distance(
   mm_stack_pop_state(mm_stack);
 }
 /*
- * Retrieve filtering region from the buffer
+ * Compute filtering-region alignment
+ */
+void filtering_candidates_verify_buffered_compute_region_alignment(
+    filtering_candidates_t* const filtering_candidates,
+    filtering_region_buffered_t* const region_buffered,
+    region_alignment_t* const region_alignment,
+    pattern_t* const pattern) {
+  // Parameters
+  text_collection_t* const text_collection = filtering_candidates->text_collection;
+  archive_text_t* const archive_text = filtering_candidates->archive->text;
+  mm_stack_t* const mm_stack = filtering_candidates->mm_stack;
+  // Push
+  mm_stack_push_state(mm_stack);
+  // Retrieve text
+  const uint64_t candidate_position = region_buffered->text_begin_position;
+  const uint64_t candidate_length = region_buffered->text_end_position-region_buffered->text_begin_position;
+  const uint64_t text_trace_offset = archive_text_retrieve_collection(
+      archive_text,text_collection,candidate_position,candidate_length,false,false,mm_stack);
+  text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
+  // Myers's BPM algorithm [EditFilter]
+  const uint64_t filtering_max_error = pattern->max_effective_filtering_error;
+  bpm_pattern_t* const bpm_pattern = pattern->bpm_pattern;
+  bpm_pattern_t* const bpm_pattern_tiles = pattern->bpm_pattern_tiles;
+  filtering_region_verify_levenshtein_bpm(
+      filtering_candidates,region_alignment,filtering_max_error,
+      bpm_pattern,bpm_pattern_tiles,text_trace,mm_stack);
+  // Pop
+  mm_stack_pop_state(mm_stack);
+}
+/*
+ * Retrieve filtering-region alignment from the buffer
  */
 void filtering_candidates_verify_buffered_retrieve_region_alignment(
     filtering_candidates_t* const filtering_candidates,
@@ -302,7 +334,6 @@ void filtering_candidates_verify_buffered_retrieve(
   bpm_pattern_t* const bpm_pattern = pattern->bpm_pattern;
   bpm_pattern_t* const bpm_pattern_tiles = pattern->bpm_pattern_tiles;
   // Prepare filtering-regions vectors
-  vector_clear(filtering_candidates->verified_regions);
   vector_clear(filtering_candidates->filtering_regions);
   vector_clear(filtering_candidates->discarded_regions);
   if (num_filtering_regions==0) return; // No filtering regions
@@ -339,9 +370,14 @@ void filtering_candidates_verify_buffered_retrieve(
       continue; // Next
     }
     // Retrieve & compose verified region
-    filtering_candidates_verify_buffered_retrieve_region_alignment(
-        filtering_candidates,region_buffered,region_alignment,
-        bpm_pattern,bpm_pattern_tiles,gpu_buffer_align_bpm,candidate_idx);
+    if (gpu_buffer_align_bpm->align_bpm_enabled) {
+      filtering_candidates_verify_buffered_retrieve_region_alignment(
+          filtering_candidates,region_buffered,region_alignment,
+          bpm_pattern,bpm_pattern_tiles,gpu_buffer_align_bpm,candidate_idx);
+    } else {
+      filtering_candidates_verify_buffered_compute_region_alignment(
+          filtering_candidates,region_buffered,region_alignment,pattern);
+    }
     candidate_idx += region_alignment->num_tiles; // Skip tiles
     if (region_alignment->distance_min_bound <= max_error) {
       filtering_candidates_verify_buffered_load_region(regions_accepted,region_buffered,pattern);

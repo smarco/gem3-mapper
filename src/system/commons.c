@@ -139,6 +139,15 @@ int integer_to_ascii(char* const buffer,uint64_t number) {
   // Return number of ciphers written
   return centinel - buffer;
 }
+float gem_log2(float number) {
+//  union { float val; int32_t x; } u = { number };
+//  float log_2 = (float)(((u.x >> 23) & 255) - 128);
+//  u.x &= ~(255 << 23);
+//  u.x += 127 << 23;
+//  log_2 += ((-0.34484843f) * u.val + 2.02466578f) * u.val - 0.67487759f;
+//  return log_2;
+  return __builtin_log2(number);
+}
 /*
  * Random number generator
  */

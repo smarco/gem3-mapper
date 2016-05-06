@@ -243,6 +243,8 @@ uint64_t integer_upper_power_of_two(uint64_t number);
 
 int integer_to_ascii(char* const buffer,uint64_t number);
 
+float gem_log2(float number);
+
 /*
  * Statistical Utils
  */

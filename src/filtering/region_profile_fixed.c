@@ -29,6 +29,8 @@ void region_profile_generate_fixed_partition(
   uint64_t i, region_length = 0;
   region_search->begin = 0;
   for (i=0;i<key_length;++i) {
+    // Cut-off
+    if (num_filtering_regions >= region_profile->max_regions_allocated) break;
     // Get next character & check allowed
     const uint8_t enc_char = key[i];
     if (!allowed_enc[enc_char]) { // Skip bad characters
@@ -120,7 +122,7 @@ void region_profile_print_mappability(
   {
     REGION_PROFILE_ITERATE((&region_profile),region,position) {
       const uint64_t num_candidates = region->hi - region->lo;
-      if (num_candidates>0) mappability_pl += log2((double)num_candidates);
+      if (num_candidates>0) mappability_pl += gem_log2((double)num_candidates);
     }
   }
   mappability_pl /= (double)(2*region_profile.num_filtering_regions);
@@ -136,7 +138,7 @@ void region_profile_print_mappability(
   {
     REGION_PROFILE_ITERATE((&region_profile),region,position) {
       const uint64_t num_candidates = region->hi - region->lo;
-      if (num_candidates>0) mappability_2pl += log2((double)num_candidates);
+      if (num_candidates>0) mappability_2pl += gem_log2((double)num_candidates);
     }
   }
   mappability_2pl /= (double)(2*region_profile.num_filtering_regions);

@@ -39,12 +39,14 @@ void approximate_search_exact_filtering_adaptive(
   // Generate candidates
   region_profile_schedule_filtering_fixed(&search->region_profile,ALL,
       REGION_FILTER_DEGREE_ZERO,search_parameters->filtering_threshold);
-  approximate_search_generate_candidates_exact(search,matches);
-  // Process candidates (just prepare to verification)
-  filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern);
   // Verify Candidates (if needed)
   const bool verify_candidates = (matches != NULL);
   if (verify_candidates) {
+    // Generate candidates
+    approximate_search_generate_candidates_exact(search,matches);
+    // Process candidates
+    filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern);
+    // Verify candidates
     approximate_search_verify_candidates(search,matches);
     search->processing_state = asearch_processing_state_candidates_verified;
   } else {
@@ -108,6 +110,8 @@ void approximate_search_exact_filtering_adaptive_cutoff(
   region_profile_generator_init(&generator,region_profile,fm_index,key,key_length,allowed_enc,false);
   region_profile->errors_allowed = 0;
   while (region_profile_generator_next_region(region_profile,&generator,profile_model)) {
+    // Cut-off
+    if (region_profile->num_filtering_regions >= region_profile->max_regions_allocated) break;
     // Generate candidates for the last region found
     PROFILE_START(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
     region_search_t* const last_region = region_profile->filtering_region + (region_profile->num_filtering_regions-1);

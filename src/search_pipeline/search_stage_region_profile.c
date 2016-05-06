@@ -38,8 +38,7 @@ search_stage_region_profile_t* search_stage_region_profile_new(
     const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffers_offset,
     const uint64_t num_buffers,
-    fm_index_t* const fm_index,
-    const bool cpu_emulated) {
+    const bool region_profile_enabled) {
   // Alloc
   search_stage_region_profile_t* const search_stage_rp = mm_alloc(search_stage_region_profile_t);
   // Init Buffers
@@ -47,7 +46,7 @@ search_stage_region_profile_t* search_stage_region_profile_new(
   search_stage_rp->buffers = vector_new(num_buffers,search_stage_region_profile_buffer_t*);
   for (i=0;i<num_buffers;++i) {
     search_stage_region_profile_buffer_t* const buffer_vc =
-        search_stage_region_profile_buffer_new(gpu_buffer_collection,buffers_offset+i,fm_index,cpu_emulated);
+        search_stage_region_profile_buffer_new(gpu_buffer_collection,buffers_offset+i,region_profile_enabled);
     vector_insert(search_stage_rp->buffers,buffer_vc,search_stage_region_profile_buffer_t*);
   }
   search_stage_rp->iterator.num_buffers = num_buffers;

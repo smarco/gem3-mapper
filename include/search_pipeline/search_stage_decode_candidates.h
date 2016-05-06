@@ -39,9 +39,9 @@ search_stage_decode_candidates_t* search_stage_decode_candidates_new(
     const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffers_offset,
     const uint64_t num_buffers,
-    fm_index_t* const fm_index,
-    const bool gpu_decode_sa,
-    const bool gpu_decode_text,
+    const uint32_t sampling_rate,
+    const bool decode_sa_enabled,
+    const bool decode_text_enabled,
     mm_stack_t* const mm_stack);
 void search_stage_decode_candidates_prepare_se_search(
     search_stage_decode_candidates_t* const search_stage_dc,

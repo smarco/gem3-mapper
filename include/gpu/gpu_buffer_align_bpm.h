@@ -25,15 +25,11 @@ typedef struct {
   gem_counter_t candidates_per_tile;  // Tracks number of candidates per tile
   uint32_t query_same_length;         // Tracks same-read-length buffers
   /* Buffer state */
+  bool align_bpm_enabled;             // Enabled GPU-computing align-bpm
   uint32_t current_query_offset;
   uint32_t num_entries;
   uint32_t num_queries;
   uint32_t num_candidates;
-  /* CPU Computation */
-  bool compute_cpu;                   // Computing Using CPU (disable GPU)
-  archive_text_t* archive_text;
-  text_collection_t* text_collection;
-  mm_stack_t* mm_stack;
   /* Profile */
   gem_timer_t timer;
 } gpu_buffer_align_bpm_t;
@@ -53,17 +49,9 @@ uint64_t gpu_bpm_pattern_get_entry_length();
 gpu_buffer_align_bpm_t* gpu_buffer_align_bpm_new(
     const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffer_no,
-    archive_text_t* const archive_text,
-    text_collection_t* const text_collection,
-    mm_stack_t* const mm_stack);
+    const bool align_bpm_enabled);
 void gpu_buffer_align_bpm_clear(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
 void gpu_buffer_align_bpm_delete(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
-
-/*
- * Computing Device
- */
-void gpu_buffer_align_bpm_set_device_cpu(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
-void gpu_buffer_align_bpm_set_device_gpu(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
 
 /*
  * Occupancy & Limits

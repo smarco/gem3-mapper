@@ -48,6 +48,12 @@ void approximate_search_region_profile_buffered_copy(
 void approximate_search_region_profile_buffered_retrieve(
     approximate_search_t* const search,
     gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
+
+/*
+ * Region Partition Compute/Recompute
+ */
+void approximate_search_region_profile_buffered_compute(
+    approximate_search_t* const search);
 void approximate_search_region_profile_buffered_recompute(
     approximate_search_t* const search);
 

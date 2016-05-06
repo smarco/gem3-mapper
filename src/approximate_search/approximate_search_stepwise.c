@@ -114,8 +114,13 @@ void approximate_search_stepwise_region_profile_copy(
 void approximate_search_stepwise_region_profile_retrieve(
     approximate_search_t* const search,
     gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) {
+  // Retrieve regions-interval (compute if not enabled)
   if (search->processing_state == asearch_processing_state_region_partitioned) {
-    approximate_search_region_profile_buffered_retrieve(search,gpu_buffer_fmi_search);
+    if (gpu_buffer_fmi_search->fmi_search_enabled) {
+      approximate_search_region_profile_buffered_retrieve(search,gpu_buffer_fmi_search);
+    } else {
+      approximate_search_region_profile_buffered_compute(search);
+    }
   }
   // Check unsuccessful cases
   if (search->processing_state == asearch_processing_state_no_regions) {

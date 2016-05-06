@@ -28,9 +28,9 @@ typedef struct {
 search_stage_decode_candidates_buffer_t* search_stage_decode_candidates_buffer_new(
     const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffer_no,
-    fm_index_t* const fm_index,
-    const bool gpu_decode_sa,
-    const bool gpu_decode_text);
+    const uint32_t sampling_rate,
+    const bool decode_sa_enabled,
+    const bool decode_text_enabled);
 void search_stage_decode_candidates_buffer_clear(
     search_stage_decode_candidates_buffer_t* const decode_candidates_buffer,
     archive_search_cache_t* const archive_search_cache);

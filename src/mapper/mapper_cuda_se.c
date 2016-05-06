@@ -234,6 +234,48 @@ void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_search) {
 /*
  * Mapper SE-CUDA
  */
+void mapper_cuda_se_thread_fixed(
+    mapper_cuda_search_t* const mapper_search,
+    mm_stack_t* const mm_stack) {
+  while (!mapper_se_cuda_stage_read_input_sequences_exhausted(mapper_search)) {
+    // Region Profile
+    mapper_se_cuda_region_profile(mapper_search);
+    mm_stack_push_state(mm_stack);
+    do {
+      // Decode Candidates
+      mapper_se_cuda_decode_candidates(mapper_search);
+      mm_stack_push_state(mm_stack);
+      do {
+        // Verify Candidates
+        mapper_se_cuda_verify_candidates(mapper_search);
+        // Finish Search
+        mm_stack_push_state(mm_stack);
+        mapper_se_cuda_finish_search(mapper_search);
+        mm_stack_pop_state(mm_stack);
+      } while (!mapper_se_cuda_stage_decode_candidates_output_exhausted(mapper_search));
+      mm_stack_pop_state(mm_stack);
+    } while (!mapper_se_cuda_stage_region_profile_output_exhausted(mapper_search));
+    mm_stack_pop_state(mm_stack);
+  }
+}
+void mapper_cuda_se_thread_adaptive(
+    mapper_cuda_search_t* const mapper_search,
+    mm_stack_t* const mm_stack) {
+  while (!mapper_se_cuda_stage_read_input_sequences_exhausted(mapper_search)) {
+    // Decode Candidates
+    mapper_se_cuda_generate_candidates(mapper_search);
+    mm_stack_push_state(mm_stack);
+    do {
+      // Verify Candidates
+      mapper_se_cuda_verify_candidates(mapper_search);
+      // Finish Search
+      mm_stack_push_state(mm_stack);
+      mapper_se_cuda_finish_search(mapper_search);
+      mm_stack_pop_state(mm_stack);
+    } while (!mapper_se_cuda_stage_decode_candidates_output_exhausted(mapper_search));
+    mm_stack_pop_state(mm_stack);
+  }
+}
 void* mapper_cuda_se_thread(mapper_cuda_search_t* const mapper_search) {
   // GEM-thread error handler
   gem_thread_register_id(mapper_search->thread_id+1);
@@ -253,40 +295,16 @@ void* mapper_cuda_se_thread(mapper_cuda_search_t* const mapper_search) {
   // FASTA/FASTQ reading loop
   mm_stack_t* const mm_stack = mapper_search->search_pipeline->mm_stack;
   mapper_search->reads_processed = 0;
-  while (!mapper_se_cuda_stage_read_input_sequences_exhausted(mapper_search)) {
-#ifdef MAPPER_CUDA_ADAPTIVE_REGION_PROFILE
-    // Decode Candidates
-    mapper_se_cuda_generate_candidates(mapper_search);
-    mm_stack_push_state(mm_stack);
-    do {
-      // Verify Candidates
-      mapper_se_cuda_verify_candidates(mapper_search);
-      // Finish Search
-      mm_stack_push_state(mm_stack);
-      mapper_se_cuda_finish_search(mapper_search);
-      mm_stack_pop_state(mm_stack);
-    } while (!mapper_se_cuda_stage_decode_candidates_output_exhausted(mapper_search));
-    mm_stack_pop_state(mm_stack);
-#else
-    // Region Profile
-    mapper_se_cuda_region_profile(mapper_search);
-    mm_stack_push_state(mm_stack);
-    do {
-      // Decode Candidates
-      mapper_se_cuda_decode_candidates(mapper_search);
-      mm_stack_push_state(mm_stack);
-      do {
-        // Verify Candidates
-        mapper_se_cuda_verify_candidates(mapper_search);
-        // Finish Search
-        mm_stack_push_state(mm_stack);
-        mapper_se_cuda_finish_search(mapper_search);
-        mm_stack_pop_state(mm_stack);
-      } while (!mapper_se_cuda_stage_decode_candidates_output_exhausted(mapper_search));
-      mm_stack_pop_state(mm_stack);
-    } while (!mapper_se_cuda_stage_region_profile_output_exhausted(mapper_search));
-    mm_stack_pop_state(mm_stack);
-#endif
+  switch (cuda_parameters->region_profile_algorithm) {
+    case mapper_cuda_region_profile_fixed:
+      mapper_cuda_se_thread_fixed(mapper_search,mm_stack);
+      break;
+    case mapper_cuda_region_profile_adaptive:
+      mapper_cuda_se_thread_adaptive(mapper_search,mm_stack);
+      break;
+    default:
+      GEM_INVALID_CASE();
+      break;
   }
   // Clean up
   ticker_update_mutex(mapper_search->ticker,mapper_search->reads_processed); // Update processed

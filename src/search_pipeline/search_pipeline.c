@@ -21,7 +21,7 @@ search_pipeline_t* search_pipeline_new(
   const mapper_parameters_cuda_t* const cuda = &mapper_parameters->cuda;
   archive_t* const archive = mapper_parameters->archive;
   fm_index_t* const fm_index = archive->fm_index;
-  const bool cpu_emulated = cuda->cpu_emulated;
+  const bool cpu_emulation = cuda->cpu_emulation;
   // Alloc
   search_pipeline_t* search_pipeline = mm_alloc(search_pipeline_t);
   // Allocate archive-search cache
@@ -31,23 +31,26 @@ search_pipeline_t* search_pipeline_new(
   search_pipeline->mm_stack = mm_stack_new(mm_pool_get_slab(mm_pool_32MB)); // Memory-Stack allocator
   search_pipeline->mapper_stats = mapper_stats_new(); // Mapping Statistics
   interval_set_init(&search_pipeline->interval_set); // Interval Set
-  // Allocate pipeline stages
+  // Allocate pipeline-stage region-profile
   uint64_t acc_buffers_offset = buffers_offset;
-  search_pipeline->stage_region_profile = search_stage_region_profile_new(
-      gpu_buffer_collection,acc_buffers_offset,
-      cuda->num_fmi_bsearch_buffers,fm_index,
-      cpu_emulated || !gpu_buffer_collection->region_profile);
+  const bool region_profile_enabled = gpu_buffer_collection->gpu_region_profile_available && !cpu_emulation;
+  search_pipeline->stage_region_profile = search_stage_region_profile_new(gpu_buffer_collection,
+      acc_buffers_offset,cuda->num_fmi_bsearch_buffers,region_profile_enabled);
   acc_buffers_offset += cuda->num_fmi_bsearch_buffers;
+  // Allocate pipeline-stage decode-candidates
+  sampled_sa_t* const sampled_sa = fm_index->sampled_sa;
+  const uint32_t sampling_rate = sampled_sa_get_sa_sampling_rate(sampled_sa);
+  const bool decode_sa_enabled = gpu_buffer_collection->gpu_decode_candidates_sa_available && !cpu_emulation;
+  const bool decode_text_enabled = gpu_buffer_collection->gpu_decode_candidates_text_available && !cpu_emulation;
   search_pipeline->stage_decode_candidates = search_stage_decode_candidates_new(
-      gpu_buffer_collection,acc_buffers_offset,cuda->num_fmi_decode_buffers,fm_index,
-      gpu_buffer_collection->decode_candidates_sa && !cpu_emulated,
-      gpu_buffer_collection->decode_candidates_text && !cpu_emulated,
-      search_pipeline->mm_stack);
+      gpu_buffer_collection,acc_buffers_offset,cuda->num_fmi_decode_buffers,sampling_rate,
+      decode_sa_enabled,decode_text_enabled,search_pipeline->mm_stack);
   acc_buffers_offset += cuda->num_fmi_decode_buffers;
+  // Allocate pipeline-stage verify-candidates
+  const bool verify_candidates_enabled = gpu_buffer_collection->gpu_verify_candidates_available && !cpu_emulation;
   search_pipeline->stage_verify_candidates = search_stage_verify_candidates_new(
       gpu_buffer_collection,acc_buffers_offset,cuda->num_bpm_buffers,
-      paired_end,cpu_emulated || !gpu_buffer_collection->verify_candidates,
-      archive->text,search_pipeline->mm_stack);
+      paired_end,verify_candidates_enabled,search_pipeline->mm_stack);
   // Return
   return search_pipeline;
 }

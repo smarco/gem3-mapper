@@ -14,25 +14,25 @@ all: devel
 release: setup
 ifeq ($(HAVE_CUDA),1)
 	$(MAKE) --directory=gpu_modules release
-	cp gpu_modules/build/*.o ../build
+	cp -u gpu_modules/build/*.o ../build
 endif
 
 devel: setup
 ifeq ($(HAVE_CUDA),1)
 	$(MAKE) --directory=gpu_modules devel
-	cp gpu_modules/build/*.o ../build
+	cp -u gpu_modules/build/*.o ../build
 endif
 
 profile: setup
 ifeq ($(HAVE_CUDA),1)
 	$(MAKE) --directory=gpu_modules profile
-	cp gpu_modules/build/*.o ../build
+	cp -u gpu_modules/build/*.o ../build
 endif
 
 debug: setup
 ifeq ($(HAVE_CUDA),1)
 	$(MAKE) --directory=gpu_modules debug
-	cp gpu_modules/build/*.o ../build
+	cp -u gpu_modules/build/*.o ../build
 endif
 
 setup: 

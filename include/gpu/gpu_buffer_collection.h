@@ -20,10 +20,10 @@ typedef struct {
   void** internal_buffers;            // Internal Buffers
   uint64_t num_buffers;               // Total number of buffers allocated
   /* Active Modules */
-  bool region_profile;
-  bool decode_candidates_sa;
-  bool decode_candidates_text;
-  bool verify_candidates;
+  bool gpu_region_profile_available;
+  bool gpu_decode_candidates_sa_available;
+  bool gpu_decode_candidates_text_available;
+  bool gpu_verify_candidates_available;
 } gpu_buffer_collection_t;
 
 /*

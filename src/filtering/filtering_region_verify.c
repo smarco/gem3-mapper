@@ -120,7 +120,8 @@ bool filtering_region_verify_levenshtein_kmer_filter(
 }
 void filtering_region_verify_levenshtein_bpm(
     filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const filtering_region,
+    region_alignment_t* const region_alignment,
+    const uint64_t filtering_max_error,
     bpm_pattern_t* const bpm_pattern,
     bpm_pattern_t* const bpm_pattern_tiles,
     text_trace_t* const text_trace,
@@ -128,11 +129,10 @@ void filtering_region_verify_levenshtein_bpm(
   // Parameters
   const uint8_t* const text = text_trace->text;
   const uint64_t num_pattern_tiles = bpm_pattern_tiles->num_pattern_tiles;
-  region_alignment_t* const region_alignment = &filtering_region->region_alignment;
   region_alignment_tile_t* const alignment_tiles = region_alignment->alignment_tiles;
-  const uint64_t max_error = MIN(filtering_region->max_error,bpm_pattern->pattern_length);
+  const uint64_t max_error = MIN(filtering_max_error,bpm_pattern->pattern_length);
   // Align tiles
-  uint64_t max_remaining_error = filtering_region->max_error;
+  uint64_t max_remaining_error = max_error;
   uint64_t tile_pos, global_distance=0;
   PROF_ADD_COUNTER(GP_BMP_DISTANCE_NUM_TILES,num_pattern_tiles);
   for (tile_pos=0;tile_pos<num_pattern_tiles;++tile_pos) {
@@ -188,7 +188,8 @@ void filtering_region_verify_levenshtein(
       bpm_pattern,bpm_pattern_tiles,mm_stack);
   // Myers's BPM algorithm [EditFilter]
   filtering_region_verify_levenshtein_bpm(filtering_candidates,
-      filtering_region,bpm_pattern,bpm_pattern_tiles,text_trace,mm_stack);
+      &filtering_region->region_alignment,filtering_region->max_error,
+      bpm_pattern,bpm_pattern_tiles,text_trace,mm_stack);
 }
 /*
  * Verify (Switch)
@@ -302,15 +303,6 @@ uint64_t filtering_region_verify_extension(
       max_filtering_error,filtering_candidates->mm_stack);
   PROF_ADD_COUNTER(GP_ACCEPTED_REGIONS,num_matches_found);
   PROF_ADD_COUNTER(GP_FC_EXTEND_VERIFY_CANDIDATES_LENGTH,text_length);
-  // Filter out already verified regions
-  // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-  // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-  // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-  // Add to verified regions
-  verified_region_t* verified_region;
-  vector_alloc_new(filtering_candidates->verified_regions,verified_region_t,verified_region);
-  verified_region->begin_position = index_position;
-  verified_region->end_position = index_position + text_length;
   // Return number of filtering regions added (accepted)
   PROF_ADD_COUNTER(GP_FC_EXTEND_VERIFY_CANDIDATES_FOUND,num_matches_found);
   PROFILE_STOP(GP_FC_EXTEND_VERIFY_CANDIDATE_REGIONS,PROFILE_LEVEL);

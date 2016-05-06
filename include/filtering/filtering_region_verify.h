@@ -14,6 +14,18 @@
 #include "data_structures/pattern.h"
 
 /*
+ * Verify Levenshtein
+ */
+void filtering_region_verify_levenshtein_bpm(
+    filtering_candidates_t* const filtering_candidates,
+    region_alignment_t* const region_alignment,
+    const uint64_t filtering_max_error,
+    bpm_pattern_t* const bpm_pattern,
+    bpm_pattern_t* const bpm_pattern_tiles,
+    text_trace_t* const text_trace,
+    mm_stack_t* const mm_stack);
+
+/*
  * Region Verification
  */
 bool filtering_region_verify(

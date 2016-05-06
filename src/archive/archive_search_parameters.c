@@ -93,9 +93,9 @@ void search_parameters_init_internals(search_parameters_t* const search_paramete
   search_parameters->rp_lightweight.dec_factor = 2;
   search_parameters->rp_lightweight.region_type_th = 2;
   // Region-Minimal Scheme = (50,4,2,2)
-  search_parameters->rp_heavyweight.region_th = 80;
+  search_parameters->rp_heavyweight.region_th = 100;
   search_parameters->rp_heavyweight.max_steps = 4;
-  search_parameters->rp_heavyweight.dec_factor = 2;
+  search_parameters->rp_heavyweight.dec_factor = 4;
   search_parameters->rp_heavyweight.region_type_th = 2;
   // Region-Delimit Scheme = (100,4,2,2)
   search_parameters->rp_delimit.region_th = 100;
@@ -103,6 +103,7 @@ void search_parameters_init_internals(search_parameters_t* const search_paramete
   search_parameters->rp_delimit.dec_factor = 2;
   search_parameters->rp_delimit.region_type_th = 2;
   // Filtering Thresholds
+  search_parameters->fixed_region_length = 20;
   search_parameters->filtering_region_factor = 1.0;
   search_parameters->filtering_threshold = 1000;
 }

@@ -30,7 +30,7 @@ archive_t* archive_read_mem(mm_t* const memory_manager,const bool read_text_only
   const uint64_t archive_model_no = mm_read_uint64(memory_manager);
   gem_cond_fatal_error(archive_model_no!=ARCHIVE_MODEL_NO,ARCHIVE_WRONG_MODEL_NO,archive_model_no,(uint64_t)ARCHIVE_MODEL_NO);
   archive->type = mm_read_uint64(archive->mm);
-  archive->indexed_complement = mm_read_uint64(archive->mm);
+  mm_read_uint64(archive->mm); // archive->indexed_complement // TODO Remove with next index change
   archive->ns_threshold = mm_read_uint64(archive->mm);
   archive->indexed_reverse_text = mm_read_uint64(archive->mm);
   // Load archive::locator
@@ -86,8 +86,6 @@ void archive_print(FILE* const stream,const archive_t* const archive) {
   tab_fprintf(stream,"  => Index.Type GEM.FM-Index.DNA.%s%s\n",
       (archive->text->run_length) ? "RunLength" : "Classic",
       (archive->type==archive_dna_bisulfite) ? ".bisulfite" : "");
-  // Index-Complement
-  tab_fprintf(stream,"  => Indexed.Complement %s\n",(archive->indexed_complement) ? "YES" : "NO");
   // Ns-Threshold
   tab_fprintf(stream,"  => Ns.Threshold %"PRIu64"\n",archive->ns_threshold);
   // Index-Reverse-Text

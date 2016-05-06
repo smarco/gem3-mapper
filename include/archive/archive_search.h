@@ -40,17 +40,12 @@ typedef struct {
   bool pair_searched;                        // Paired search performed
   bool pair_extended;                        // Paired extension performed
   bool pair_extended_shortcut;               // Paired extension performed (to shortcut)
-  /* Sequence */
-  sequence_t sequence;                       // Input
-  sequence_t rc_sequence;                    // Generated
   /* Parameters */
   search_parameters_t search_parameters;     // Search parameters
-  bool emulate_rc_search;                    // Flow control
-  bool probe_strand;                         // Flow control
+  sequence_t sequence;                       // Input Sequence
   bool buffered_search;                      // Buffered Search
   /* Approximate Search */
-  approximate_search_t forward_search_state; // Forward Search State
-  approximate_search_t reverse_search_state; // Reverse Search State
+  approximate_search_t approximate_search;   // Approximate Search State
   /* Text-Collection */
   text_collection_t* text_collection;
   /* Stats */

@@ -39,8 +39,7 @@ search_stage_verify_candidates_t* search_stage_verify_candidates_new(
     const uint64_t buffers_offset,
     const uint64_t num_buffers,
     const bool paired_end,
-    const bool cpu_emulated,
-    archive_text_t* const archive_text,
+    const bool verify_candidates_enabled,
     mm_stack_t* const mm_stack) {
   // Alloc
   search_stage_verify_candidates_t* const search_stage_vc = mm_alloc(search_stage_verify_candidates_t);
@@ -64,8 +63,7 @@ search_stage_verify_candidates_t* search_stage_verify_candidates_new(
   search_stage_vc->buffers = vector_new(num_buffers,search_stage_verify_candidates_buffer_t*);
   for (i=0;i<num_buffers;++i) {
     search_stage_verify_candidates_buffer_t* const buffer_vc =
-        search_stage_verify_candidates_buffer_new(gpu_buffer_collection,buffers_offset+i,
-            cpu_emulated,archive_text,&search_stage_vc->text_collection,mm_stack);
+        search_stage_verify_candidates_buffer_new(gpu_buffer_collection,buffers_offset+i,verify_candidates_enabled);
     vector_insert(search_stage_vc->buffers,buffer_vc,search_stage_verify_candidates_buffer_t*);
   }
   search_stage_vc->iterator.num_buffers = num_buffers;
