@@ -12,7 +12,7 @@
 
 #include "../include/gpu_fmi_core.h"
 
-void __global__ gpu_fmi_search_kernel(const gpu_fmi_device_entry_t* const fmi, const uint64_t bwtSize,
+void __global__ gpu_fmi_ssearch_kernel(const gpu_fmi_device_entry_t* const fmi, const uint64_t bwtSize,
                                       const uint32_t numSeeds, const ulonglong2* const seeds, ulonglong2* const resIntervals)
 {
   const uint32_t globalThreadIdx     = gpu_get_thread_idx();
@@ -71,8 +71,8 @@ void __global__ gpu_fmi_search_kernel(const gpu_fmi_device_entry_t* const fmi, c
 }
 
 extern "C"
-gpu_error_t gpu_fmi_search_launch_kernel(const gpu_fmi_device_entry_t* const d_fmi, const uint64_t bwtSize, const uint32_t numSeeds,
-                                         const ulonglong2* const d_seeds, ulonglong2* const d_intervals)
+gpu_error_t gpu_fmi_ssearch_launch_kernel(const gpu_fmi_device_entry_t* const d_fmi, const uint64_t bwtSize, const uint32_t numSeeds,
+                                          const ulonglong2* const d_seeds, ulonglong2* const d_intervals)
 {
   const uint32_t threads = 128;
   const uint32_t blocks  = GPU_DIV_CEIL(numSeeds * GPU_FMI_SEED_THREADS_PER_ENTRY, threads);
@@ -85,7 +85,7 @@ gpu_error_t gpu_fmi_search_launch_kernel(const gpu_fmi_device_entry_t* const d_f
   cudaEventRecord(start, 0);
 
     for(uint32_t iteration = 0; iteration < nreps; ++iteration)
-      gpu_fmi_search_kernel<<<blocks,threads>>>(d_fmi, bwtSize, numSeeds, d_seeds, d_intervals);
+      gpu_fmi_ssearch_kernel<<<blocks,threads>>>(d_fmi, bwtSize, numSeeds, d_seeds, d_intervals);
 
   cudaEventRecord(stop, 0);
   cudaThreadSynchronize();
@@ -100,14 +100,14 @@ gpu_error_t gpu_fmi_search_launch_kernel(const gpu_fmi_device_entry_t* const d_f
 }
 
 extern "C"
-gpu_error_t gpu_fmi_search_process_buffer(gpu_buffer_t* const mBuff)
+gpu_error_t gpu_fmi_ssearch_process_buffer(gpu_buffer_t* const mBuff)
 {
   const gpu_index_buffer_t* const                index           =  mBuff->index;
-  const gpu_fmi_search_seeds_buffer_t* const     seeds           = &mBuff->data.search.seeds;
-  const gpu_fmi_search_sa_inter_buffer_t* const  saIntervals     = &mBuff->data.search.saIntervals;
-  const uint32_t                                 numSeeds        =  mBuff->data.search.seeds.numSeeds;
-  const uint32_t                                 numMaxSeeds     =  mBuff->data.search.numMaxSeeds;
-  const uint32_t                                 numMaxIntervals =  mBuff->data.search.numMaxIntervals;
+  const gpu_fmi_search_seeds_buffer_t* const     seeds           = &mBuff->data.ssearch.seeds;
+  const gpu_fmi_search_sa_inter_buffer_t* const  saIntervals     = &mBuff->data.ssearch.saIntervals;
+  const uint32_t                                 numSeeds        =  mBuff->data.ssearch.seeds.numSeeds;
+  const uint32_t                                 numMaxSeeds     =  mBuff->data.ssearch.numMaxSeeds;
+  const uint32_t                                 numMaxIntervals =  mBuff->data.ssearch.numMaxIntervals;
   const cudaStream_t                             idStream        =  mBuff->idStream;
   const uint32_t                                 idSupDev        =  mBuff->idSupportedDevice;
   const gpu_device_info_t* const                 device          =  mBuff->device[idSupDev];
@@ -119,7 +119,7 @@ gpu_error_t gpu_fmi_search_process_buffer(gpu_buffer_t* const mBuff)
   if((numSeeds > numMaxSeeds) || (numSeeds > numMaxIntervals)) 
     return(E_OVERFLOWING_BUFFER);
 
-  gpu_fmi_search_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_fmi_device_entry_t*) index->fmi.d_fmi[idSupDev], index->fmi.bwtSize,
+  gpu_fmi_ssearch_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_fmi_device_entry_t*) index->fmi.d_fmi[idSupDev], index->fmi.bwtSize,
                                                                          numSeeds, (ulonglong2*) seeds->d_seeds, (ulonglong2*) saIntervals->d_intervals);
   return(SUCCESS);
 }

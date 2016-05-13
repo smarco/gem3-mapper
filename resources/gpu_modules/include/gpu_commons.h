@@ -41,6 +41,7 @@ Common constants for Device & Host
 #define GPU_INLINE                inline
 
 /* Functions inline */
+#define GPU_SELECT_OFFSET(NUM_A,NUM_B)      ((NUM_A/NUM_B)*NUM_B)
 #define GPU_DIV_CEIL(NUMERATOR,DENOMINATOR) (((NUMERATOR)+((DENOMINATOR)-1))/(DENOMINATOR))
 #define GPU_ROUND(NUM)                      ((int)((NUM) < 0 ? ((NUM) - 0.5) : ((NUM) + 0.5)))
 #define GPU_MIN(NUM_A,NUM_B)                (((NUM_A) < (NUM_B)) ? (NUM_A) : (NUM_B))

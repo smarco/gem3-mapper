@@ -315,7 +315,7 @@ gpu_error_t gpu_bpm_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
   cpySize += res->numAlignments * sizeof(gpu_bpm_alg_entry_t);
   bufferUtilization = (double)cpySize / (double)mBuff->sizeBuffer;
 
-  if(bufferUtilization > 0.25){
+  if(bufferUtilization > 0.15){
     cpySize  = ((void *) (rebuff->d_initWarpPerBucket + rebuff->numBuckets)) - ((void *) qry->d_queries);
     CUDA_ERROR(cudaMemcpyAsync(qry->d_queries, qry->h_queries, cpySize, cudaMemcpyHostToDevice, idStream));
   }else{

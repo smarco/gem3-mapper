@@ -40,13 +40,13 @@ gpu_buffer_fmi_search_t* gpu_buffer_fmi_search_new(
   TIMER_RESET(&gpu_buffer_fmi_search->timer);
   // Init Buffer
   gpu_alloc_buffer_(gpu_buffer_fmi_search->buffer);
-  gpu_fmi_search_init_buffer_(gpu_buffer_fmi_search->buffer);
+  gpu_fmi_ssearch_init_buffer_(gpu_buffer_fmi_search->buffer);
   PROF_STOP(GP_GPU_BUFFER_FMI_SEARCH_ALLOC);
   // Return
   return gpu_buffer_fmi_search;
 }
 void gpu_buffer_fmi_search_clear(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) {
-  gpu_fmi_search_init_buffer_(gpu_buffer_fmi_search->buffer); // Init Buffer
+  gpu_fmi_ssearch_init_buffer_(gpu_buffer_fmi_search->buffer); // Init Buffer
   gpu_buffer_fmi_search->num_queries = 0; // Clear
 }
 void gpu_buffer_fmi_search_delete(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) {
@@ -56,7 +56,7 @@ void gpu_buffer_fmi_search_delete(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_
  * Occupancy & Limits
  */
 uint64_t gpu_buffer_fmi_search_get_max_queries(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) {
-  return gpu_fmi_search_buffer_get_max_seeds_(gpu_buffer_fmi_search->buffer);
+  return gpu_fmi_ssearch_buffer_get_max_seeds_(gpu_buffer_fmi_search->buffer);
 }
 uint64_t gpu_buffer_fmi_search_get_num_queries(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) {
   return gpu_buffer_fmi_search->num_queries;
@@ -73,7 +73,7 @@ bool gpu_buffer_fmi_search_fits_in_buffer(
       return false; // Leave it to the next fresh buffer
     }
     // Reallocate buffer
-    gpu_fmi_search_init_and_realloc_buffer_(gpu_buffer_fmi_search->buffer,total_queries);
+    gpu_fmi_ssearch_init_and_realloc_buffer_(gpu_buffer_fmi_search->buffer,total_queries);
     // Check reallocated buffer dimensions (error otherwise)
     max_queries = gpu_buffer_fmi_search_get_max_queries(gpu_buffer_fmi_search);
     gem_cond_fatal_error(total_queries > max_queries,GPU_FMI_SEARCH_MAX_QUERIES,total_queries,max_queries);
@@ -100,7 +100,7 @@ void gpu_buffer_fmi_search_add_query(
       GPU_FMI_SEARCH_MAX_QUERY_LENGTH,query_length,(uint64_t)GPU_BUFFER_FMI_SEARCH_MAX_QUERY_LENGTH);
   // Get next free query in buffer
   gpu_fmi_search_seed_t* const gpu_fmi_search_seed =
-      gpu_fmi_search_buffer_get_seeds_(gpu_buffer_fmi_search->buffer) + gpu_buffer_fmi_search->num_queries;
+      gpu_fmi_ssearch_buffer_get_seeds_(gpu_buffer_fmi_search->buffer) + gpu_buffer_fmi_search->num_queries;
   // Adapt pattern chunk to query encoding
   const int64_t begin_region = begin;
   const int64_t end_region = end-1;
@@ -130,7 +130,7 @@ void gpu_buffer_fmi_search_get_result(
     uint64_t* const hi,
     uint64_t* const lo) {
   const gpu_sa_search_inter_t* const gpu_fmi_search_sa_interval =
-      gpu_fmi_search_buffer_get_sa_intervals_(gpu_buffer_fmi_search->buffer) + buffer_pos;
+      gpu_fmi_ssearch_buffer_get_sa_intervals_(gpu_buffer_fmi_search->buffer) + buffer_pos;
   *hi = gpu_fmi_search_sa_interval->hi;
   *lo = gpu_fmi_search_sa_interval->low;
 }
@@ -148,7 +148,7 @@ void gpu_buffer_fmi_search_send(gpu_buffer_fmi_search_t* const gpu_buffer_fmi_se
   // Select computing device
   if (gpu_buffer_fmi_search->fmi_search_enabled) {
     if (gpu_buffer_fmi_search->num_queries > 0) {
-      gpu_fmi_search_send_buffer_(gpu_buffer_fmi_search->buffer,gpu_buffer_fmi_search->num_queries);
+      gpu_fmi_ssearch_send_buffer_(gpu_buffer_fmi_search->buffer,gpu_buffer_fmi_search->num_queries);
     }
   }
   PROF_STOP(GP_GPU_BUFFER_FMI_SEARCH_SEND);
@@ -157,7 +157,7 @@ void gpu_buffer_fmi_search_receive(gpu_buffer_fmi_search_t* const gpu_buffer_fmi
   PROF_START(GP_GPU_BUFFER_FMI_SEARCH_RECEIVE);
   if (gpu_buffer_fmi_search->fmi_search_enabled) {
     if (gpu_buffer_fmi_search->num_queries > 0) {
-      gpu_fmi_search_receive_buffer_(gpu_buffer_fmi_search->buffer);
+      gpu_fmi_ssearch_receive_buffer_(gpu_buffer_fmi_search->buffer);
     }
   }
   PROF_STOP(GP_GPU_BUFFER_FMI_SEARCH_RECEIVE);

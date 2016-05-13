@@ -1,0 +1,276 @@
+/*
+ *  GEM-Cutter "Highly optimized genomic resources for GPUs"
+ *  Copyright (c) 2013-2016 by Alejandro Chacon    <alejandro.chacond@gmail.com>
+ *
+ *  Licensed under GNU General Public License 3.0 or later.
+ *  Some rights reserved. See LICENSE, AUTHORS.
+ *  @license GPL-3.0+ <http://www.gnu.org/licenses/gpl-3.0.en.html>
+ */
+
+#ifndef GPU_FMI_PRIMITIVES_ASEARCH_C_
+#define GPU_FMI_PRIMITIVES_ASEARCH_C_
+
+#include "../include/gpu_fmi_primitives.h"
+#include "../include/gpu_sa_primitives.h"
+
+/************************************************************
+Functions to get the GPU FMI buffers
+************************************************************/
+
+gpu_fmi_search_query_t* gpu_fmi_asearch_buffer_get_queries_(const void* const fmiBuffer){
+  const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
+  return(mBuff->data.asearch.queries.h_queries);
+}
+
+gpu_fmi_search_query_info_t* gpu_fmi_asearch_buffer_get_queries_info_(const void* const fmiBuffer){
+  const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
+  return(mBuff->data.asearch.queries.h_queryInfo);
+}
+
+gpu_fmi_search_region_t* gpu_fmi_asearch_buffer_get_regions_(const void* const fmiBuffer){
+  const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
+  return(mBuff->data.asearch.queries.h_regions);
+}
+
+gpu_sa_search_inter_t* gpu_fmi_asearch_buffer_get_regions_intervals_(const void* const fmiBuffer){
+  const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
+  return(mBuff->data.asearch.regions.h_intervals);
+}
+
+gpu_fmi_search_region_info_t* gpu_fmi_asearch_buffer_get_regions_offsets_(const void* const fmiBuffer){
+  const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
+  return(mBuff->data.asearch.regions.h_regionsOffsets);
+}
+
+/************************************************************
+Functions to get the maximum elements of the buffers
+************************************************************/
+
+uint32_t gpu_fmi_asearch_buffer_get_max_queries_(const void* const fmiBuffer){
+  const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
+  return(mBuff->data.asearch.numMaxQueries);
+}
+
+uint32_t gpu_fmi_asearch_buffer_get_max_regions_(const void* const fmiBuffer){
+  const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
+  return(mBuff->data.asearch.numMaxRegions);
+}
+
+uint32_t gpu_fmi_asearch_buffer_get_max_bases_(const void* const fmiBuffer){
+  const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
+  return(mBuff->data.asearch.numMaxBases);
+}
+
+/************************************************************
+Functions to initialize the buffers (E. SEARCH)
+************************************************************/
+
+size_t gpu_fmi_asearch_size_per_query(const uint32_t averageQuerySize, const uint32_t averageRegionsPerQuery)
+{
+  //Memory size dedicated to each query
+  const size_t bytesPerQueryRAW  = averageQuerySize * sizeof(gpu_fmi_search_query_t);
+  const size_t bytesPerQueryInfo = sizeof(gpu_fmi_search_query_info_t) + sizeof(gpu_fmi_search_region_t);
+  const size_t bytesPerQuery     = bytesPerQueryRAW + bytesPerQueryInfo;
+  //Memory size dedicated to query regions (maxRegionsRatio means % of regions per query)
+  const size_t averageNumRegions = GPU_DIV_CEIL(averageQuerySize, averageRegionsPerQuery);
+  const size_t bytesPerRegion    = sizeof(gpu_sa_search_inter_t) + sizeof(gpu_fmi_search_region_info_t);
+  //Return maximum memory size required per each query
+  return((averageNumRegions * bytesPerRegion) + bytesPerQuery);
+}
+
+void gpu_fmi_asearch_reallocate_host_buffer_layout(gpu_buffer_t* mBuff)
+{
+  const void* rawAlloc = mBuff->h_rawData;
+  //Adjust the host buffer layout (input)
+  mBuff->data.asearch.queries.h_queries = GPU_ALIGN_TO(rawAlloc,16);
+  rawAlloc = (void *) (mBuff->data.asearch.queries.h_queries + mBuff->data.asearch.numMaxBases);
+  mBuff->data.asearch.queries.h_queryInfo = GPU_ALIGN_TO(rawAlloc,16);
+  rawAlloc = (void *) (mBuff->data.asearch.queries.h_queryInfo + mBuff->data.asearch.numMaxQueries);
+  //Adjust the host buffer layout (output)
+  mBuff->data.asearch.queries.h_regions = GPU_ALIGN_TO(rawAlloc,16);
+  rawAlloc = (void *) (mBuff->data.asearch.queries.h_regions + mBuff->data.asearch.numMaxQueries);
+  mBuff->data.asearch.regions.h_intervals = GPU_ALIGN_TO(rawAlloc,16);
+  rawAlloc = (void *) (mBuff->data.asearch.regions.h_intervals + mBuff->data.asearch.numMaxRegions);
+  mBuff->data.asearch.regions.h_regionsOffsets = GPU_ALIGN_TO(rawAlloc,16);
+  rawAlloc = (void *) (mBuff->data.asearch.regions.h_regionsOffsets + mBuff->data.asearch.numMaxRegions);
+}
+
+void gpu_fmi_asearch_reallocate_device_buffer_layout(gpu_buffer_t* mBuff)
+{
+  const void* rawAlloc = mBuff->d_rawData;
+  //Adjust the host buffer layout (input)
+  mBuff->data.asearch.queries.d_queries = GPU_ALIGN_TO(rawAlloc,16);
+  rawAlloc = (void *) (mBuff->data.asearch.queries.d_queries + mBuff->data.asearch.numMaxBases);
+  mBuff->data.asearch.queries.d_queryInfo = GPU_ALIGN_TO(rawAlloc,16);
+  rawAlloc = (void *) (mBuff->data.asearch.queries.d_queryInfo + mBuff->data.asearch.numMaxQueries);
+  //Adjust the host buffer layout (output)
+  mBuff->data.asearch.queries.d_regions = GPU_ALIGN_TO(rawAlloc,16);
+  rawAlloc = (void *) (mBuff->data.asearch.queries.d_regions + mBuff->data.asearch.numMaxQueries);
+  mBuff->data.asearch.regions.d_intervals = GPU_ALIGN_TO(rawAlloc,16);
+  rawAlloc = (void *) (mBuff->data.asearch.regions.d_intervals + mBuff->data.asearch.numMaxRegions);
+  mBuff->data.asearch.regions.d_regionsOffsets = GPU_ALIGN_TO(rawAlloc,16);
+  rawAlloc = (void *) (mBuff->data.asearch.regions.d_regionsOffsets + mBuff->data.asearch.numMaxRegions);
+}
+
+void gpu_fmi_asearch_init_buffer_(void* const fmiBuffer, const uint32_t averageQuerySize, const float maxRegions)
+{
+  gpu_buffer_t* const mBuff                  = (gpu_buffer_t *) fmiBuffer;
+  const size_t        sizeBuff               = mBuff->sizeBuffer * 0.95;
+  const uint32_t      averageRegionsPerQuery = GPU_DIV_CEIL(averageQuerySize, (100 * maxRegions));
+  const size_t        bytesPerQuery          = gpu_fmi_asearch_size_per_query(averageQuerySize, averageRegionsPerQuery);
+  const uint32_t      numQueries             = sizeBuff / bytesPerQuery;
+
+  //set the type of the buffer
+  mBuff->typeBuffer = GPU_FMI_ADAPT_SEARCH;
+
+  //set real size of the input
+  mBuff->data.asearch.numMaxQueries         = numQueries;
+  mBuff->data.asearch.numMaxBases           = numQueries * averageQuerySize;
+  mBuff->data.asearch.numMaxRegions         = numQueries * averageRegionsPerQuery;
+  //internal data information
+  mBuff->data.asearch.regions.numRegions    = numQueries * averageRegionsPerQuery;
+  mBuff->data.asearch.numMaxRegionsPerQuery = maxRegions;
+
+  gpu_fmi_asearch_reallocate_host_buffer_layout(mBuff);
+  gpu_fmi_asearch_reallocate_device_buffer_layout(mBuff);
+}
+
+void gpu_fmi_asearch_init_and_realloc_buffer_(void* const fmiBuffer, const float maxRegions, const uint32_t totalBases,
+                                              const uint32_t totalQueries, const uint32_t totalRegions)
+{
+  gpu_buffer_t* const mBuff                  = (gpu_buffer_t *) fmiBuffer;
+  const uint32_t      averageQuerySize       = GPU_DIV_CEIL(totalBases, totalQueries);
+  const uint32_t      averageRegionsPerQuery = GPU_DIV_CEIL(averageQuerySize, (100 * maxRegions));
+
+  gpu_fmi_asearch_init_buffer_(fmiBuffer, averageQuerySize, maxRegions);
+
+  if( (totalBases   > gpu_fmi_asearch_buffer_get_max_bases_(fmiBuffer))   &&
+      (totalQueries > gpu_fmi_asearch_buffer_get_max_queries_(fmiBuffer)) &&
+      (totalRegions > gpu_fmi_asearch_buffer_get_max_regions_(fmiBuffer))){
+
+    // Resize the GPU buffer to fit the required input
+    const uint32_t      idSupDevice             = mBuff->idSupportedDevice;
+    const float         resizeFactor            = 2.0;
+    const size_t        bytesPerSearchBuffer    = totalQueries * gpu_fmi_asearch_input_size(averageQuerySize, averageRegionsPerQuery);
+
+    //Recalculate the minimum buffer size
+    mBuff->sizeBuffer = bytesPerSearchBuffer * resizeFactor;
+
+    //FREE HOST AND DEVICE BUFFER
+    GPU_ERROR(gpu_buffer_free(mBuff));
+
+    //Select the device of the Multi-GPU platform
+    CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
+
+    //ALLOCATE HOST AND DEVICE BUFFER
+    CUDA_ERROR(cudaHostAlloc((void**) &mBuff->h_rawData, mBuff->sizeBuffer, cudaHostAllocMapped));
+    CUDA_ERROR(cudaMalloc((void**) &mBuff->d_rawData, mBuff->sizeBuffer));
+
+    gpu_fmi_asearch_init_buffer_(fmiBuffer, averageQuerySize, maxRegions);
+  }
+}
+
+/************************************************************
+Functions to transfer data HOST <-> DEVICE (E. SEARCH)
+************************************************************/
+
+gpu_error_t gpu_fmi_asearch_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
+{
+  const gpu_fmi_asearch_queries_buffer_t* qryBuff  = &mBuff->data.asearch.queries;
+  const gpu_fmi_asearch_regions_buffer_t* regBuff  = &mBuff->data.asearch.regions;
+  const cudaStream_t                      idStream =  mBuff->idStream;
+  size_t                                  cpySize  =  0;
+  float                                   bufferUtilization;
+
+  cpySize += qryBuff->numBases   * sizeof(gpu_fmi_search_query_t);
+  cpySize += qryBuff->numQueries * sizeof(gpu_fmi_search_query_info_t);
+  cpySize += qryBuff->numQueries * sizeof(gpu_fmi_search_region_t);
+  cpySize += regBuff->numRegions * sizeof(gpu_sa_search_inter_t);
+  cpySize += regBuff->numRegions * sizeof(gpu_fmi_search_region_info_t);
+  bufferUtilization = (double)cpySize / (double)mBuff->sizeBuffer;
+
+  if(bufferUtilization > 0.15){
+    cpySize  = ((void *) (qryBuff->d_regions + qryBuff->numQueries)) - ((void *) qryBuff->d_queries);
+    CUDA_ERROR(cudaMemcpyAsync(qryBuff->d_queries, qryBuff->h_queries, cpySize, cudaMemcpyHostToDevice, idStream));
+  }else{
+    //Transfer Queries to GPU
+    cpySize = qryBuff->numBases * sizeof(gpu_fmi_search_query_t);
+    CUDA_ERROR(cudaMemcpyAsync(qryBuff->d_queries, qryBuff->h_queries, cpySize, cudaMemcpyHostToDevice, idStream));
+
+    //Transfer to GPU the information associated with Queries
+    cpySize = qryBuff->numQueries * sizeof(gpu_fmi_search_query_info_t);
+    CUDA_ERROR(cudaMemcpyAsync(qryBuff->d_queryInfo, qryBuff->h_queryInfo, cpySize, cudaMemcpyHostToDevice, idStream));
+
+    //Transfer Candidates to GPU
+    cpySize = qryBuff->numQueries * sizeof(gpu_fmi_search_region_t);
+    CUDA_ERROR(cudaMemcpyAsync(qryBuff->d_regions, qryBuff->h_regions, cpySize, cudaMemcpyHostToDevice, idStream));
+  }
+
+  return (SUCCESS);
+}
+
+gpu_error_t gpu_fmi_asearch_transfer_GPU_to_CPU(gpu_buffer_t* const mBuff)
+{
+  const gpu_fmi_asearch_queries_buffer_t* qryBuff   = &mBuff->data.asearch.queries;
+  const gpu_fmi_asearch_regions_buffer_t* regBuff   = &mBuff->data.asearch.regions;
+  const cudaStream_t                      idStream  =  mBuff->idStream;
+        size_t                            cpySize   =  0;
+        float                             bufferUtilization;
+
+  cpySize += qryBuff->numBases   * sizeof(gpu_fmi_search_query_t);
+  cpySize += qryBuff->numQueries * sizeof(gpu_fmi_search_query_info_t);
+  cpySize += qryBuff->numQueries * sizeof(gpu_fmi_search_region_t);
+  cpySize += regBuff->numRegions * sizeof(gpu_sa_search_inter_t);
+  cpySize += regBuff->numRegions * sizeof(gpu_fmi_search_region_info_t);
+  bufferUtilization = (double)cpySize / (double)mBuff->sizeBuffer;
+
+  if(bufferUtilization > 0.15){
+    cpySize  = ((void *) (regBuff->h_regionsOffsets + regBuff->numRegions)) - ((void *) qryBuff->h_regions);
+    CUDA_ERROR(cudaMemcpyAsync(qryBuff->h_regions, qryBuff->d_regions, cpySize, cudaMemcpyHostToDevice, idStream));
+  }else{
+    //Transfer Candidates to GPU
+    cpySize = qryBuff->numQueries * sizeof(gpu_fmi_search_region_t);
+    CUDA_ERROR(cudaMemcpyAsync(qryBuff->h_regions, qryBuff->d_regions, cpySize, cudaMemcpyHostToDevice, idStream));
+
+    //Transfer Candidates to GPU
+    cpySize = regBuff->numRegions * sizeof(gpu_sa_search_inter_t);
+    CUDA_ERROR(cudaMemcpyAsync(regBuff->h_intervals, regBuff->d_intervals, cpySize, cudaMemcpyHostToDevice, idStream));
+
+    //Transfer Candidates to GPU
+    cpySize = regBuff->numRegions * sizeof(gpu_fmi_search_region_info_t);
+    CUDA_ERROR(cudaMemcpyAsync(regBuff->h_regionsOffsets, regBuff->d_regionsOffsets, cpySize, cudaMemcpyHostToDevice, idStream));
+  }
+
+  return (SUCCESS);
+}
+
+void gpu_fmi_asearch_send_buffer_(void* const fmiBuffer, const uint32_t numBases, const uint32_t numQueries,
+                                  const uint32_t occMinThreshold, const uint32_t extraSteps, const uint32_t alphabetSize)
+{
+  gpu_buffer_t* const mBuff  = (gpu_buffer_t *) fmiBuffer;
+  const uint32_t idSupDevice = mBuff->idSupportedDevice;
+
+  //Set real size of the input
+  mBuff->data.asearch.extraSteps         = extraSteps;
+  mBuff->data.asearch.alphabetSize       = alphabetSize;
+  mBuff->data.asearch.occMinThreshold    = occMinThreshold;
+  mBuff->data.asearch.queries.numQueries = numQueries;
+  mBuff->data.asearch.queries.numBases   = numBases;
+
+  //Select the device of the Multi-GPU platform
+  CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
+  GPU_ERROR(gpu_fmi_asearch_transfer_CPU_to_GPU(mBuff));
+  GPU_ERROR(gpu_fmi_asearch_process_buffer(mBuff));
+  GPU_ERROR(gpu_fmi_asearch_transfer_GPU_to_CPU(mBuff));
+}
+
+void gpu_fmi_asearch_receive_buffer_(const void* const fmiBuffer)
+{
+  const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
+
+  //Synchronize Stream (the thread wait for the commands done in the stream)
+  CUDA_ERROR(cudaStreamSynchronize(mBuff->idStream));
+}
+
+#endif /* GPU_FMI_PRIMITIVES_ASEARCH_C_ */
+

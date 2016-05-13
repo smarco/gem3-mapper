@@ -16,9 +16,10 @@
 #define GPU_BUFFER_MODULES_H_
 
 typedef union{
-  gpu_bpm_buffer_t        bpm;
-  gpu_fmi_search_buffer_t search;
-  gpu_fmi_decode_buffer_t decode;
+  gpu_bpm_buffer_t         bpm;
+  gpu_fmi_asearch_buffer_t asearch;
+  gpu_fmi_ssearch_buffer_t ssearch;
+  gpu_fmi_decode_buffer_t  decode;
 } gpu_buffer_modules_t;
 
 #endif /* GPU_BUFFER_MODULES_H_ */
