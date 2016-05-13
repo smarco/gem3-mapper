@@ -66,6 +66,9 @@ typedef struct {
   uint64_t max_memory;
   /* Misc */
   ticker_t ticker;                          // Index Builder Ticker
+  /* MM */
+  mm_slab_t* mm_slab_8MB;                   // MM-Slab
+  mm_slab_t* mm_slab_32MB;                  // MM-Slab
 } archive_builder_t;
 
 /*

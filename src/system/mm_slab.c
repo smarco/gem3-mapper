@@ -98,18 +98,6 @@ mm_slab_t* mm_slab_new_(
   // Return
   return mm_slab;
 }
-void mm_slab_reap_empty(
-    mm_slab_t* const mm_slab,
-    const uint64_t num_resident_segments) {
-  MUTEX_BEGIN_SECTION(mm_slab->slab_mutex) {
-    // TODO // TODO // TODO // TODO
-    // TODO // TODO // TODO // TODO
-    // TODO // TODO // TODO // TODO
-    // TODO // TODO // TODO // TODO
-    // TODO // TODO // TODO // TODO
-    // TODO // TODO // TODO // TODO
-  } MUTEX_END_SECTION(mm_slab->slab_mutex);
-}
 void mm_slab_delete(mm_slab_t* const mm_slab) {
   // Free all slab segments
   VECTOR_ITERATE(mm_slab->slabs_segments,slabs_segment,ss_i,mm_slab_segment_t*) {
@@ -192,8 +180,6 @@ void mm_slab_print(
     FILE* const stream,
     mm_slab_t* const mm_slab,
     const bool show_internals) {
-  // TODO
-  // svector_record_stats();
   GEM_CHECK_NULL(stream);
   MUTEX_BEGIN_SECTION(mm_slab->slab_mutex) {
     const uint64_t num_segments = vector_get_used(mm_slab->slabs_segments);

@@ -19,17 +19,20 @@
  */
 typedef struct {
   /* Processed Search Pattern */
-  uint8_t* key;                  // Encoded Pattern
-  uint8_t* quality_mask;         // Quality Mask
-  uint64_t key_length;           // Total Length
+  uint8_t* key;                      // Encoded Pattern
+  uint8_t* quality_mask;             // Quality Mask
+  uint64_t key_length;               // Total Length
+  uint64_t clip_left;                // Input sequence left-clipped
+  uint64_t clip_right;               // Input sequence right-clipped
   /* Run-Length Pattern */
   bool run_length;
-  uint8_t* rl_key;               // RL-Encoded Text
-  uint64_t rl_key_length;        // RL-Encoded Text length
-  uint32_t* rl_runs_acc;         // Length of each run (accumulated)
+  uint8_t* rl_key;                   // RL-Encoded Text
+  uint64_t rl_key_length;            // RL-Encoded Text length
+  uint32_t* rl_runs_acc;             // Length of each run (accumulated)
   /* Pattern Properties */
   uint64_t num_wildcards;
   uint64_t num_low_quality_bases;
+  uint64_t num_non_canonical_bases;
   uint64_t max_effective_filtering_error;
   uint64_t max_effective_bandwidth;
   /* K-mers counting */

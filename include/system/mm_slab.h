@@ -65,9 +65,6 @@ mm_slab_t* mm_slab_new_(
     const uint64_t slab_segment_size,
     const uint64_t max_allocatable_memory,
     char* const description);
-void mm_slab_reap_empty(
-    mm_slab_t* const mm_slab,
-    const uint64_t num_resident_segments);
 void mm_slab_delete(mm_slab_t* const mm_slab);
 
 /*

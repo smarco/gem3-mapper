@@ -18,11 +18,14 @@ typedef struct match_align_parameters_t match_align_parameters_t;
 #include "data_structures/text_collection.h"
 
 struct match_align_input_t {
+  /* Sequence */
+  uint64_t sequence_clip_left;             // Input sequence clipped (masked)
+  uint64_t sequence_clip_right;            // Input sequence clipped (masked)
   /* Key */
   uint8_t* key;
   uint64_t key_length;
-  uint64_t key_trim_left;
-  uint64_t key_trim_right;
+  uint64_t key_trim_left;                  // Alignment trim
+  uint64_t key_trim_right;                 // Alignment trim
   bpm_pattern_t* bpm_pattern;
   bpm_pattern_t* bpm_pattern_tiles;
   swg_query_profile_t* swg_query_profile;

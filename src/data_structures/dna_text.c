@@ -75,8 +75,7 @@ const bool extended_dna_encoded_table[DNA_EXT_RANGE] =
 const bool unmasked_dna_table[256] =
 {
     [0 ... 255] = false,
-    ['A'] = true, ['C'] = true, ['G'] = true, ['T'] = true,
-    ['N'] = true,
+    ['A'] = true, ['C'] = true, ['G'] = true, ['T'] = true
 };
 const bool iupac_code_table[256] =
 {
@@ -100,7 +99,7 @@ const char dna_normalized_table[256] =
 {
     [0 ... 255] = 'N',
     ['A'] = 'A', ['C'] = 'C', ['G'] = 'G', ['T'] = 'T',
-    ['a'] = 'A', ['c'] = 'C', ['g'] = 'G', ['t'] = 'T',
+    ['a'] = 'a', ['c'] = 'c', ['g'] = 'g', ['t'] = 't',
 };
 const char dna_strictly_normalized_table[256] =
 {

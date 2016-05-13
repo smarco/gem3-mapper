@@ -27,7 +27,7 @@ stats_vector_t* stats_vector_customed_range_new(
   stats_vector->max_value = customed_range_values[stats_vector->max_index];
   // Values out of range
   stats_vector->out_of_range_bucket_size = out_of_range_bucket_size;
-  stats_vector->out_values = ihash_new();
+  stats_vector->out_values = ihash_new(NULL);
   return stats_vector;
 }
 stats_vector_t* stats_vector_step_range_new(
@@ -47,7 +47,7 @@ stats_vector_t* stats_vector_step_range_new(
   stats_vector->step = step;
   // Values out of range
   stats_vector->out_of_range_bucket_size = out_of_range_bucket_size;
-  stats_vector->out_values = ihash_new();
+  stats_vector->out_values = ihash_new(NULL);
   return stats_vector;
 }
 stats_vector_t* stats_vector_raw_new(
@@ -64,7 +64,7 @@ stats_vector_t* stats_vector_raw_new(
   stats_vector->max_value = num_values;
   // Values out of range
   stats_vector->out_of_range_bucket_size = out_of_range_bucket_size;
-  stats_vector->out_values = ihash_new();
+  stats_vector->out_values = ihash_new(NULL);
   return stats_vector;
 }
 stats_vector_t* stats_vector_new_from_template(stats_vector_t* const stats_vector_template) {
@@ -80,7 +80,7 @@ stats_vector_t* stats_vector_new_from_template(stats_vector_t* const stats_vecto
   stats_vector->step = stats_vector_template->step;
   stats_vector->customed_range_values = stats_vector_template->customed_range_values;
   stats_vector->out_of_range_bucket_size = stats_vector_template->out_of_range_bucket_size;
-  stats_vector->out_values = ihash_new();
+  stats_vector->out_values = ihash_new(NULL);
   // Return
   return stats_vector;
 }

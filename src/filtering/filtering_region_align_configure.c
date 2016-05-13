@@ -22,10 +22,12 @@ void filtering_region_align_configure_exact(
   const uint64_t key_length = pattern->key_length;
   swg_penalties_t* const swg_penalties = &search_parameters->swg_penalties;
   // Align input
-  align_input->key_length         = key_length;
-  align_input->text_position      = filtering_region->text_begin_position;
-  align_input->text_trace_offset  = filtering_region->text_trace_offset;
-  align_input->region_alignment   = &filtering_region->region_alignment;
+  align_input->key_length          = key_length;
+  align_input->sequence_clip_left  = pattern->clip_left;
+  align_input->sequence_clip_right = pattern->clip_right;
+  align_input->text_position       = filtering_region->text_begin_position;
+  align_input->text_trace_offset   = filtering_region->text_trace_offset;
+  align_input->region_alignment    = &filtering_region->region_alignment;
   // Align Parameters
   align_parameters->emulated_rc_search = emulated_rc_search;
   align_parameters->swg_penalties      = swg_penalties;
@@ -43,14 +45,16 @@ void filtering_region_align_configure_hamming(
   const uint64_t key_length = pattern->key_length;
   bool* const allowed_enc = search_parameters->allowed_enc;
   // Align input
-  align_input->key                = key;
-  align_input->key_length         = key_length;
-  align_input->text_trace_offset  = filtering_region->text_trace_offset;
+  align_input->key                 = key;
+  align_input->key_length          = key_length;
+  align_input->sequence_clip_left  = pattern->clip_left;
+  align_input->sequence_clip_right = pattern->clip_right;
+  align_input->text_trace_offset   = filtering_region->text_trace_offset;
   const uint64_t text_offset = filtering_region->text_source_region_offset - filtering_region->key_source_region_offset;
-  align_input->text_position      = filtering_region->text_begin_position + text_offset; // Base position
-  align_input->text               = text_trace->text;
-  align_input->text_length        = text_trace->text_length;
-  align_input->region_alignment   = &filtering_region->region_alignment;
+  align_input->text_position       = filtering_region->text_begin_position + text_offset; // Base position
+  align_input->text                = text_trace->text;
+  align_input->text_length         = text_trace->text_length;
+  align_input->region_alignment    = &filtering_region->region_alignment;
   // Align Parameters
   align_parameters->emulated_rc_search = emulated_rc_search;
   align_parameters->allowed_enc        = allowed_enc;
@@ -74,13 +78,15 @@ void filtering_region_align_configure_levenshtein(
   // Align input
   filtering_region_bpm_pattern_select(filtering_region,pattern,
       &align_input->bpm_pattern,&align_input->bpm_pattern_tiles,mm_stack);
-  align_input->key                = key;
-  align_input->key_length         = key_length;
-  align_input->text_trace_offset  = filtering_region->text_trace_offset;
-  align_input->text_position      = filtering_region->text_begin_position;
-  align_input->text               = text_trace->text;
-  align_input->text_length        = text_trace->text_length;
-  align_input->region_alignment   = region_alignment;
+  align_input->sequence_clip_left  = pattern->clip_left;
+  align_input->sequence_clip_right = pattern->clip_right;
+  align_input->key                 = key;
+  align_input->key_length          = key_length;
+  align_input->text_trace_offset   = filtering_region->text_trace_offset;
+  align_input->text_position       = filtering_region->text_begin_position;
+  align_input->text                = text_trace->text;
+  align_input->text_length         = text_trace->text_length;
+  align_input->region_alignment    = region_alignment;
   // Align Parameters
   align_parameters->emulated_rc_search = emulated_rc_search;
   align_parameters->max_error          = align_distance;
@@ -104,6 +110,8 @@ void filtering_region_align_configure_swg(
   // Parameters
   const uint64_t key_length = pattern->key_length;
   // Align input
+  align_input->sequence_clip_left       = pattern->clip_left;
+  align_input->sequence_clip_right      = pattern->clip_right;
   align_input->key                      = pattern->key;
   align_input->key_length               = key_length;
   align_input->key_trim_left            = filtering_region->key_trim_left;

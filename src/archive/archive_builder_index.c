@@ -33,7 +33,7 @@ void archive_builder_index_build_bwt(
   // Sort suffixes & sample SA
   archive_builder->sampled_sa = sampled_sa_builder_new(
       text_length,archive_builder->num_threads,archive_builder->sa_sampling_rate,
-      archive_builder->text_sampling_rate,gpu_index,mm_pool_get_slab(mm_pool_32MB)); // Allocate Sampled-SA
+      archive_builder->text_sampling_rate,gpu_index,archive_builder->mm_slab_32MB); // Allocate Sampled-SA
   sa_builder_sort_suffixes(archive_builder->sa_builder,
       archive_builder->enc_bwt,archive_builder->sampled_sa,verbose);
   // DEBUG

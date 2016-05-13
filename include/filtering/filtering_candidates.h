@@ -130,9 +130,7 @@ void filtering_candidates_add_region_interval_set_thresholded(
  */
 void filtering_regions_sort_align_distance(vector_t* const filtering_regions);
 void filtering_regions_sort_scaffold_coverage(vector_t* const filtering_regions);
-
-void filtering_positions_sort_positions_large(vector_t* const filtering_positions);
-void filtering_positions_sort_positions_small(vector_t* const filtering_positions);
+void filtering_positions_sort_positions(vector_t* const filtering_positions);
 
 /*
  * Display

@@ -28,6 +28,11 @@ const char* archive_search_pe_state_label[] =
 };
 
 /*
+ * Constants
+ */
+#define BISULFITE_SEQUENCE_INITIAL_LENGTH 200
+
+/*
  * Setup
  */
 void archive_search_init(
@@ -41,10 +46,30 @@ void archive_search_init(
   // Approximate Search
   memcpy(&archive_search->search_parameters,search_parameters,sizeof(search_parameters_t));
   if (mm_stack==NULL) {
-    sequence_init(&archive_search->sequence); // Sequence
+    // Sequence
+    sequence_init(&archive_search->sequence);
+    // BS-Sequence
+    if (archive->type == archive_dna_bisulfite) {
+      archive_search->bs_original_sequence = mm_alloc(string_t);
+      string_init(archive_search->bs_original_sequence,BISULFITE_SEQUENCE_INITIAL_LENGTH);
+    } else {
+      archive_search->bs_original_sequence = NULL;
+    }
   } else {
-    sequence_init_mm(&archive_search->sequence,mm_stack); // Sequence
+    // Sequence
+    sequence_init_mm(&archive_search->sequence,mm_stack);
+    // BS-Sequence
+    if (archive->type == archive_dna_bisulfite) {
+      archive_search->bs_original_sequence = mm_alloc(string_t);
+      string_init_mm(archive_search->bs_original_sequence,BISULFITE_SEQUENCE_INITIAL_LENGTH,mm_stack);
+    } else {
+      archive_search->bs_original_sequence = NULL;
+    }
   }
+  // BS Init
+  const bisulfite_read_t bisulfite_read_mode = search_parameters->bisulfite_read;
+  archive_search->bs_sequence_end = (bisulfite_read_mode==bisulfite_read_2) ? paired_end2 : paired_end1;
+  // Approximate Search Init
   approximate_search_init(
       &archive_search->approximate_search,archive,
       &archive_search->search_parameters,false);
@@ -105,6 +130,10 @@ void archive_search_reset(archive_search_t* const archive_search) {
 void archive_search_destroy(archive_search_t* const archive_search) {
   // Destroy Sequence
   sequence_destroy(&archive_search->sequence);
+  if (archive_search->bs_original_sequence!=NULL) {
+    string_destroy(archive_search->bs_original_sequence);
+    mm_free(archive_search->bs_original_sequence);
+  }
   // Destroy search states
   approximate_search_destroy(&archive_search->approximate_search);
 }

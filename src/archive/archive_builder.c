@@ -49,7 +49,9 @@ archive_builder_t* archive_builder_new(
   // MFASTA Input parsing
   input_multifasta_state_clear(&(archive_builder->parsing_state));
   // Locator
-  archive_builder->locator = locator_builder_new(mm_pool_get_slab(mm_pool_2MB));
+  archive_builder->mm_slab_8MB = mm_slab_new_(BUFFER_SIZE_8M,BUFFER_SIZE_32M,MM_UNLIMITED_MEM,"archive_builder.8MB");
+  archive_builder->mm_slab_32MB = mm_slab_new_(BUFFER_SIZE_32M,BUFFER_SIZE_256M,MM_UNLIMITED_MEM,"archive_builder.32MB");
+  archive_builder->locator = locator_builder_new(archive_builder->mm_slab_8MB);
   // Text
   archive_builder->character_occurrences = mm_calloc(DNA_EXT_RANGE*DNA_EXT_RANGE,uint64_t,true);
   archive_builder->enc_rl_text = NULL; // RL-Text is optional
@@ -75,6 +77,9 @@ void archive_builder_delete(archive_builder_t* const archive_builder) {
   mm_free(archive_builder->character_occurrences);
   // Free Sampled-SA
   sampled_sa_builder_delete(archive_builder->sampled_sa);
+  // Free mm-slab
+  mm_slab_delete(archive_builder->mm_slab_8MB);
+  mm_slab_delete(archive_builder->mm_slab_32MB);
   // Free handler
   mm_free(archive_builder);
 }

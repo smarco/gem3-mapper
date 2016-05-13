@@ -28,7 +28,8 @@ typedef struct {
   /* Archive-search cache */
   archive_search_cache_t* archive_search_cache;
   /* Support Data Structures */
-  mm_stack_t* mm_stack;                 // Memory-Stack allocator
+  mm_slab_t* mm_slab;                   // MM-Slab
+  mm_stack_t* mm_stack;                 // MM-Stack
   mapper_stats_t* mapper_stats;         // Mapping Statistics
   interval_set_t interval_set;          // Interval-Set
 } search_pipeline_t;

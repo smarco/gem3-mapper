@@ -157,7 +157,6 @@ int input_fasta_parse_sequence_tag(
 int input_fasta_parse_sequence_read(
     buffered_input_file_t* const buffered_input,
     sequence_t* const sequence,
-    const bool strictly_normalized,
     const bool correct_sequence) {
   // Read READ line
   string_t* const read = &sequence->read;
@@ -182,7 +181,7 @@ int input_fasta_parse_sequence_read(
               buffered_input_file_get_current_line_num(buffered_input)-1,"replaced with 'N'");
         }
       }
-      line[i] = (strictly_normalized) ? dna_strictly_normalized(character) : dna_normalized(character);
+      line[i] = dna_normalized(character);
     }
   }
   string_set_length(&sequence->read,line_length);
@@ -221,7 +220,7 @@ int input_fasta_parse_sequence_components(
   status = input_fasta_parse_sequence_tag(buffered_input,sequence);
   if (status!=INPUT_STATUS_OK) return status;
   // Parse READ
-  status = input_fasta_parse_sequence_read(buffered_input,sequence,true,true);
+  status = input_fasta_parse_sequence_read(buffered_input,sequence,true);
   if (status!=INPUT_STATUS_OK) return status;
   // Parse QUALITIES
   if (sequence->has_qualities) {

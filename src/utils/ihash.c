@@ -9,21 +9,37 @@
 #include "utils/hash.h"
 #include "system/mm.h"
 
+/*
+ * Constants
+ */
 #define IHASH_SIZE_PER_ELEMENT 56
+
+/*
+ * Allocators
+ */
+#undef  uthash_malloc
+#define uthash_malloc(sz)   (ihash->mm_stack!=NULL ? mm_stack_malloc(ihash->mm_stack,sz) : malloc(sz))
+#undef  uthash_free
+#define uthash_free(ptr,sz) if (ihash->mm_stack==NULL) free(ptr);
 
 /*
  * Constructor
  */
-ihash_t* ihash_new(void) {
+ihash_t* ihash_new(mm_stack_t* const mm_stack) {
   ihash_t* const ihash = mm_alloc(ihash_t);
   ihash->head = NULL; // uthash initializer
+  ihash->mm_stack = mm_stack;
   return ihash;
 }
 void ihash_clear(ihash_t* const ihash) {
   ihash_element_t *ihash_element, *tmp;
-  HASH_ITER(hh,ihash->head,ihash_element,tmp) {
-    HASH_DEL(ihash->head,ihash_element);
-    mm_free(ihash_element);
+  if (ihash->mm_stack != NULL) {
+    ihash->head = NULL; // uthash initializer
+  } else {
+    HASH_ITER(hh,ihash->head,ihash_element,tmp) {
+      HASH_DEL(ihash->head,ihash_element);
+      uthash_free(ihash_element,0);
+    }
   }
 }
 void ihash_delete(ihash_t* const ihash) {
@@ -41,7 +57,7 @@ ihash_element_t* ihash_get_ihash_element(ihash_t* const ihash,const int64_t key)
 void ihash_insert_element(ihash_t* ihash,const int64_t key,void* const element) {
   ihash_element_t* ihash_element = ihash_get_ihash_element(ihash,key);
   if (gem_expect_true(ihash_element==NULL)) {
-    ihash_element = mm_alloc(ihash_element_t);
+    ihash_element = uthash_malloc(sizeof(ihash_element_t));
     ihash_element->key = key;
     ihash_element->element = element;
     HASH_ADD_INT(ihash->head,key,ihash_element);

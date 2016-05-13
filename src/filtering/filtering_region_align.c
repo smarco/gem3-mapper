@@ -219,6 +219,8 @@ bool filtering_region_align(
         filtering_region,pattern,false,matches,match_trace); // DEBUG
     return false; // Discarded
   } else {
+    // Add input-clipping to CIGAR
+    match_aling_add_clipping(match_trace,matches->cigar_vector,pattern->clip_left,pattern->clip_right);
     // Assign Aligned-status & store offset
     filtering_region->status = filtering_region_aligned;
     filtering_region_align_debug(filtering_candidates,

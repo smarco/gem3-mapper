@@ -190,43 +190,44 @@ int filtering_region_cmp_sort_align_distance(const filtering_region_t* const a,c
 int filtering_region_cmp_sort_scaffold_coverage(const filtering_region_t* const a,const filtering_region_t* const b) {
   return b->match_scaffold.scaffolding_coverage - a->match_scaffold.scaffolding_coverage;
 }
-int verified_region_cmp_position(const verified_region_t* const a,const verified_region_t* const b) {
-  return a->begin_position - b->begin_position;
-}
-void filtering_regions_sort_align_distance(vector_t* const filtering_regions) {
-  void* array = vector_get_mem(filtering_regions,filtering_region_t);
-  const size_t count = vector_get_used(filtering_regions);
-  qsort(array,count,sizeof(filtering_region_t),(int (*)(const void *,const void *))filtering_region_cmp_sort_align_distance);
-}
-void filtering_regions_sort_scaffold_coverage(vector_t* const filtering_regions) {
-  void* array = vector_get_mem(filtering_regions,filtering_region_t);
-  const size_t count = vector_get_used(filtering_regions);
-  qsort(array,count,sizeof(filtering_region_t),(int (*)(const void *,const void *))filtering_region_cmp_sort_scaffold_coverage);
-}
 int filtering_position_cmp_position(const filtering_position_t* const a,const filtering_position_t* const b) {
   return a->text_end_position - b->text_end_position;
 }
-void filtering_positions_sort_positions_large(vector_t* const filtering_positions) {
-  void* array = vector_get_mem(filtering_positions,filtering_position_t);
-  const size_t count = vector_get_used(filtering_positions);
-  qsort(array,count,sizeof(filtering_position_t),(int (*)(const void *,const void *))filtering_position_cmp_position);
+//void filtering_regions_sort_align_distance(vector_t* const filtering_regions) {
+//  void* array = vector_get_mem(filtering_regions,filtering_region_t);
+//  const size_t count = vector_get_used(filtering_regions);
+//  qsort(array,count,sizeof(filtering_region_t),(int (*)(const void *,const void *))filtering_region_cmp_sort_align_distance);
+//}
+//void filtering_regions_sort_scaffold_coverage(vector_t* const filtering_regions) {
+//  void* array = vector_get_mem(filtering_regions,filtering_region_t);
+//  const size_t count = vector_get_used(filtering_regions);
+//  qsort(array,count,sizeof(filtering_region_t),(int (*)(const void *,const void *))filtering_region_cmp_sort_scaffold_coverage);
+//}
+//void filtering_positions_sort_positions(vector_t* const filtering_positions) {
+//  void* array = vector_get_mem(filtering_positions,filtering_position_t);
+//  const size_t count = vector_get_used(filtering_positions);
+//  qsort(array,count,sizeof(filtering_position_t),(int (*)(const void *,const void *))filtering_position_cmp_position);
+//}
+#define VECTOR_SORT_NAME                 align_distance
+#define VECTOR_SORT_TYPE                 filtering_region_t
+#define VECTOR_SORT_CMP(a,b)             filtering_region_cmp_sort_align_distance(a,b)
+#include "utils/vector_sort.h"
+void filtering_regions_sort_align_distance(vector_t* const filtering_regions) {
+  vector_sort_align_distance(filtering_regions);
 }
-void filtering_positions_sort_positions_small(vector_t* const filtering_positions) {
-  filtering_position_t* const filtering_position = vector_get_mem(filtering_positions,filtering_position_t);
-  const int num_positions = vector_get_used(filtering_positions);
-  const int top = num_positions - 1;
-  int i,j;
-  for (j=0;j<top;j++) {
-    // Find minimum
-    int min = j;
-    for (i=j+1;i<num_positions;i++) {
-      if (filtering_position[i].text_end_position < filtering_position[min].text_end_position) min = i;
-    }
-    // Swap
-    if (min != j) {
-      SWAP(filtering_position[j],filtering_position[min]);
-    }
-  }
+#define VECTOR_SORT_NAME                 scaffold_coverage
+#define VECTOR_SORT_TYPE                 filtering_region_t
+#define VECTOR_SORT_CMP(a,b)             filtering_region_cmp_sort_scaffold_coverage(a,b)
+#include "utils/vector_sort.h"
+void filtering_regions_sort_scaffold_coverage(vector_t* const filtering_regions) {
+  vector_sort_scaffold_coverage(filtering_regions);
+}
+#define VECTOR_SORT_NAME                 filtering_positions
+#define VECTOR_SORT_TYPE                 filtering_position_t
+#define VECTOR_SORT_CMP(a,b)             filtering_position_cmp_position(a,b)
+#include "utils/vector_sort.h"
+void filtering_positions_sort_positions(vector_t* const filtering_positions) {
+  vector_sort_filtering_positions(filtering_positions);
 }
 /*
  * Display

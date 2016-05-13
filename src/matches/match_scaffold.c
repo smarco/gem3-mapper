@@ -152,11 +152,18 @@ void match_scaffold_adaptive(
 int region_matching_cmp_text_position(const region_matching_t* const a,const region_matching_t* const b) {
   return a->text_begin - b->text_begin;
 }
+//void match_scaffold_sort_regions_matching(match_scaffold_t* const match_scaffold) {
+//  // Sort Scaffold regions (region_matching_t) wrt their starting position in the text
+//  void* array = match_scaffold->scaffold_regions;
+//  const size_t count = match_scaffold->num_scaffold_regions;
+//  qsort(array,count,sizeof(region_matching_t),(int (*)(const void *,const void *))region_matching_cmp_text_position);
+//}
+#define VECTOR_SORT_NAME                 region_matching
+#define VECTOR_SORT_TYPE                 region_matching_t
+#define VECTOR_SORT_CMP(a,b)             region_matching_cmp_text_position(a,b)
+#include "utils/vector_sort.h"
 void match_scaffold_sort_regions_matching(match_scaffold_t* const match_scaffold) {
-  // Sort Scaffold regions (region_matching_t) wrt their starting position in the text
-  void* array = match_scaffold->scaffold_regions;
-  const size_t count = match_scaffold->num_scaffold_regions;
-  qsort(array,count,sizeof(region_matching_t),(int (*)(const void *,const void *))region_matching_cmp_text_position);
+  buffer_sort_region_matching(match_scaffold->scaffold_regions,match_scaffold->num_scaffold_regions);
 }
 /*
  * Display

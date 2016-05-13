@@ -72,7 +72,7 @@ void approximate_search_filtering_adaptive_basic_cases(approximate_search_t* con
   const uint64_t key_length = pattern->key_length;
   const uint64_t num_wildcards = pattern->num_wildcards;
   // All characters are wildcards
-  if (key_length==num_wildcards) {
+  if (key_length==num_wildcards || key_length==0) {
     approximate_search_update_mcs(search,key_length);
     search->search_stage = asearch_stage_end;
     return;

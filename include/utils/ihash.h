@@ -10,6 +10,7 @@
 #define IHASH_H_
 
 #include "system/commons.h"
+#include "system/mm_stack.h"
 #include "resources/uthash/uthash.h"
 
 /*
@@ -22,6 +23,7 @@ typedef struct {
 } ihash_element_t;
 typedef struct {
   ihash_element_t* head;
+  mm_stack_t* mm_stack;
 } ihash_t;
 typedef struct {
   ihash_element_t* current;
@@ -31,7 +33,7 @@ typedef struct {
 /*
  * Constructor
  */
-ihash_t* ihash_new(void);
+ihash_t* ihash_new(mm_stack_t* const mm_stack);
 void ihash_clear(ihash_t* const ihash);
 void ihash_delete(ihash_t* const ihash);
 

@@ -12,7 +12,7 @@
 /*
  * MM Search
  */
-mm_search_t* mm_search_new(mm_slab_t* const mm_slab) {
+mm_search_t* mm_search_new() {
   // Allocate
   mm_search_t* const mm_search = mm_alloc(mm_search_t);
   // Filtering candidates
@@ -26,8 +26,9 @@ mm_search_t* mm_search_new(mm_slab_t* const mm_slab) {
   interval_set_init(&mm_search->interval_set);
   // Stats
   mm_search->mapper_stats = mapper_stats_new();
-  // MM-Stack
-  mm_search->mm_stack = mm_stack_new(mm_slab);
+  // MM
+  mm_search->mm_slab = mm_slab_new_(BUFFER_SIZE_32M,BUFFER_SIZE_32M,MM_UNLIMITED_MEM,"mm_search.32MB");
+  mm_search->mm_stack = mm_stack_new(mm_search->mm_slab);
   // Return
   return mm_search;
 }
@@ -49,5 +50,6 @@ void mm_search_delete(mm_search_t* const mm_search) {
   interval_set_destroy(&mm_search->interval_set);
   mapper_stats_delete(mm_search->mapper_stats);
   mm_stack_delete(mm_search->mm_stack);
+  mm_slab_delete(mm_search->mm_slab);
   mm_free(mm_search);
 }

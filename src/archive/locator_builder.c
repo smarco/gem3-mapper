@@ -20,7 +20,7 @@ locator_builder_t* locator_builder_new(mm_slab_t* const mm_slab) {
   locator_builder->intervals = svector_new(mm_slab,locator_interval_t);
   svector_iterator_new(&(locator_builder->intervals_iterator),locator_builder->intervals,SVECTOR_WRITE_ITERATOR,0);
   // Tag Locator
-  locator_builder->tags_dictionary = shash_new();
+  locator_builder->tags_dictionary = shash_new(NULL);
   locator_builder->tag_locator = svector_new(mm_slab,locator_tag_t);
   svector_iterator_new(&(locator_builder->tag_locator_iterator),locator_builder->tag_locator,SVECTOR_WRITE_ITERATOR,0);
   // Tags Buffer

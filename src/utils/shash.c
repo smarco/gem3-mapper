@@ -10,18 +10,31 @@
 #include "system/mm.h"
 
 /*
+ * Allocators
+ */
+#undef  uthash_malloc
+#define uthash_malloc(sz)   (shash->mm_stack!=NULL ? mm_stack_malloc(shash->mm_stack,sz) : malloc(sz))
+#undef  uthash_free
+#define uthash_free(ptr,sz) if (shash->mm_stack==NULL) free(ptr);
+
+/*
  * Constructor
  */
-shash_t* shash_new(void) {
+shash_t* shash_new(mm_stack_t* const mm_stack) {
   shash_t* const shash = mm_alloc(shash_t);
   shash->head = NULL; // uthash initializer
+  shash->mm_stack = mm_stack;
   return shash;
 }
 void shash_clear(shash_t* shash) {
   shash_element_t *shash_element, *tmp;
-  HASH_ITER(hh,shash->head,shash_element,tmp) {
-    HASH_DEL(shash->head,shash_element);
-    mm_free(shash_element);
+  if (shash->mm_stack != NULL) {
+    shash->head = NULL; // uthash initializer
+  } else {
+    HASH_ITER(hh,shash->head,shash_element,tmp) {
+      HASH_DEL(shash->head,shash_element);
+      mm_free(shash_element);
+    }
   }
 }
 void shash_delete(shash_t* shash) {
@@ -43,7 +56,7 @@ void shash_insert_element(
     void* const element) {
   shash_element_t* shash_element = shash_get_shash_element(shash,key);
   if (gem_expect_true(shash_element==NULL)) {
-    shash_element = mm_alloc(shash_element_t);
+    shash_element = uthash_malloc(sizeof(shash_element_t));
     shash_element->key = key;
     shash_element->element = element;
     HASH_ADD_KEYPTR(hh,shash->head,shash_element->key,key_length,shash_element);

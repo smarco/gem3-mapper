@@ -32,7 +32,7 @@ const char* paired_matches_class_label[] =
 /*
  * Setup
  */
-paired_matches_t* paired_matches_new() {
+paired_matches_t* paired_matches_new(mm_stack_t* const mm_stack) {
   // Alloc
   paired_matches_t* const paired_matches = mm_alloc(paired_matches_t);
   // State
@@ -43,8 +43,8 @@ paired_matches_t* paired_matches_new() {
   // Matches Counters
   paired_matches->counters = matches_counters_new();
   // Single-End Matches
-  paired_matches->matches_end1 = matches_new();
-  paired_matches->matches_end2 = matches_new();
+  paired_matches->matches_end1 = matches_new(mm_stack);
+  paired_matches->matches_end2 = matches_new(mm_stack);
   // Paired-End Matches
   paired_matches->paired_maps = vector_new(PAIRED_MATCHES_INIT_MATCHES,paired_map_t);
   paired_matches->discordant_paired_maps = vector_new(PAIRED_MATCHES_INIT_MATCHES,paired_map_t);

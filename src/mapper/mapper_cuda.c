@@ -11,8 +11,8 @@
 #include "archive/archive_search.h"
 #include "gpu/gpu_buffer_collection.h"
 #include "stats/report_stats.h"
-
-//#include "/usr/local/software/intel/vtune_amplifier_xe/include/libittnotify.h"
+//#include "/opt/intel/vtune_amplifier_xe/include/ittnotify.h"
+//#include "/usr/local/software/intel/vtune_amplifier_xe_2016.3.0.463186/include/ittnotify.h"
 
 /*
  * Error report

@@ -55,7 +55,9 @@ typedef struct {
 } locator_interval_t;
 typedef struct {
   /* Intervals */
-  locator_interval_t* intervals;    // Intervals
+  locator_interval_t* intervals;      // Intervals
+  uint64_t* intervals_lookahead;      // LUT Look-ahead search
+  uint64_t* intervals_begin_position; // LUT Intervals[i].begin_position
   uint64_t num_intervals;
   /* Tag locator */
   locator_tag_t* tag_locator;       // Tag Locator

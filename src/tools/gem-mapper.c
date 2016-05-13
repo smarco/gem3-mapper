@@ -201,6 +201,7 @@ option_t gem_mapper_options[] = {
   { 203, "bzip-output", NO_ARGUMENT, TYPE_NONE, 2, VISIBILITY_USER, "", "(bzip output)" },
   { 204, "output-model", REQUIRED, TYPE_STRING, 2, VISIBILITY_DEVELOPER, "<buffer_size,num_buffers>", "(default=4M,5c)" },
   { 205, "report-file", REQUIRED, TYPE_STRING, 2, VISIBILITY_USER, "<file_name>", "(default=NULL)" },
+  { 206, "clipping", OPTIONAL, TYPE_STRING, 2, VISIBILITY_ADVANCED, "'masked'|'hard,<left_clip>,<right_clip>'", "(default=disabled)" },
   /* Qualities */
   { 'q', "quality-format", REQUIRED, TYPE_STRING, 3, VISIBILITY_ADVANCED, "'ignore'|'offset-33'|'offset-64'", "(default=offset-33)" },
   { 'Q', "quality-model", REQUIRED, TYPE_STRING, 3, VISIBILITY_ADVANCED, "'gem'|'flat'", "(default=gem)" },
@@ -310,7 +311,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
   parameters->argv = argv;
   // Parameters
   mapper_parameters_io_t* const io = &parameters->io;
-  search_parameters_t* const search = &parameters->base_search_parameters;
+  search_parameters_t* const search = &parameters->search_parameters;
   search_paired_parameters_t* const paired_search = &search->search_paired_parameters;
   mapper_parameters_cuda_t* const cuda = &parameters->cuda;
   // Parse parameters
@@ -391,6 +392,24 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     }
      case 205: // --report-file
        io->report_file_name = optarg;
+       break;
+     case 206: // --clipping 'masked'|'hard,<left_clip>,<right_clip>' (default=disabled)
+       if (optarg==NULL) {
+         search->clipping = clipping_masked;
+       } else {
+         // Parse optargs
+         char *clipping_mode=NULL, *left_clip=NULL, *right_clip=NULL;
+         const int num_arguments = input_text_parse_csv_arguments(optarg,3,&clipping_mode,&left_clip,&right_clip);
+         if (num_arguments==1 && gem_strcaseeq(clipping_mode,"masked")) {
+           search->clipping = clipping_masked;
+         } else if (num_arguments==3 && gem_strcaseeq(clipping_mode,"hard")) {
+           search->clipping = clipping_hard;
+           input_text_parse_extended_uint64(left_clip,&search->clip_left);
+           input_text_parse_extended_uint64(right_clip,&search->clip_right);
+         } else {
+           gem_mapper_error_msg("Option '--clipping' must be 'masked' or 'hard,<left_clip>,<right_clip>'");
+         }
+       }
        break;
     /* Qualities */
     case 'q': // --quality-format

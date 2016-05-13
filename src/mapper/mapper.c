@@ -11,7 +11,8 @@
 #include "archive/archive_search_se.h"
 #include "archive/archive_search_pe.h"
 #include "stats/report_stats.h"
-//#include "/usr/local/software/intel/vtune_amplifier_xe/include/libittnotify.h"
+//#include "/opt/intel/vtune_amplifier_xe/include/ittnotify.h"
+//#include "/usr/local/software/intel/vtune_amplifier_xe_2016.3.0.463186/include/ittnotify.h"
 
 /*
  * Debug/Profile
@@ -211,7 +212,7 @@ void mapper_parameters_set_defaults(mapper_parameters_t* const mapper_parameters
   /* I/O Parameters */
   mapper_parameters_set_defaults_io(&mapper_parameters->io);
   /* Search Parameters (single-end/paired-end) */
-  search_parameters_init(&mapper_parameters->base_search_parameters);
+  search_parameters_init(&mapper_parameters->search_parameters);
   /* System */
   mapper_parameters_set_defaults_system(&mapper_parameters->system);
   /* CUDA settings */
@@ -428,12 +429,15 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
       &mapper_search->buffered_fasta_input,&mapper_search->buffered_output_file);
 
   // Create an Archive-Search
-  search_parameters_t* const base_search_parameters = &mapper_search->mapper_parameters->base_search_parameters;
-  mm_search_t* const mm_search = mm_search_new(mm_pool_get_slab(mm_pool_32MB));
-  archive_search_se_new(parameters->archive,base_search_parameters,false,NULL,&mapper_search->archive_search);
+  search_parameters_t* const search_parameters = &mapper_search->mapper_parameters->search_parameters;
+  mm_search_t* const mm_search = mm_search_new();
+  archive_search_se_new(parameters->archive,search_parameters,false,NULL,&mapper_search->archive_search);
   archive_search_se_inject_mm(mapper_search->archive_search,mm_search);
-  matches_t* const matches = matches_new();
+  matches_t* const matches = matches_new(mm_search->mm_stack);
   matches_configure(matches,mapper_search->archive_search->text_collection);
+  archive_t* const archive = parameters->archive;
+  archive_search_t* const archive_search = mapper_search->archive_search;
+  const bool bisulfite_index = (archive->type == archive_dna_bisulfite); // Bisulfite
 
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
@@ -442,12 +446,18 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
 //      printf("HERE\n");
 //    }
 
+    // Bisulfite: Fully convert reads before searching into archive, making a copy of the original
+    if (bisulfite_index) mapper_bisulfite_process_sequence_se(archive_search,search_parameters);
+
     // Search into the archive
-    archive_search_se(mapper_search->archive_search,matches);
+    archive_search_se(archive_search,matches);
+
+    // Bisulfite: Copy back original read
+    if (bisulfite_index) mapper_bisulfite_restore_sequence_se(archive_search);
 
     // Output matches
     mapper_SE_output_matches(parameters,mapper_search->buffered_output_file,
-        mapper_search->archive_search,matches,mapper_search->mapping_stats);
+        archive_search,matches,mapper_search->mapping_stats);
     // output_fastq(mapper_search->buffered_output_file,&mapper_search->archive_search->sequence);
 
     // Update processed
@@ -466,7 +476,7 @@ void* mapper_SE_thread(mapper_search_t* const mapper_search) {
   // Clean up
   buffered_input_file_close(mapper_search->buffered_fasta_input);
   buffered_output_file_close(mapper_search->buffered_output_file);
-  archive_search_delete(mapper_search->archive_search);
+  archive_search_delete(archive_search);
   matches_delete(matches);
   mm_search_delete(mm_search);
 
@@ -486,34 +496,41 @@ void* mapper_PE_thread(mapper_search_t* const mapper_search) {
       &mapper_search->buffered_fasta_input_end2,&mapper_search->buffered_output_file);
 
   // Create an Archive-Search
-  mm_search_t* const mm_search = mm_search_new(mm_pool_get_slab(mm_pool_32MB));
-  search_parameters_t* const base_search_parameters = &mapper_search->mapper_parameters->base_search_parameters;
+  mm_search_t* const mm_search = mm_search_new();
+  search_parameters_t* const base_search_parameters = &mapper_search->mapper_parameters->search_parameters;
   mapper_stats_template_init(mm_search->mapper_stats,
       base_search_parameters->search_paired_parameters.min_initial_template_estimation,
       base_search_parameters->search_paired_parameters.max_initial_template_estimation);
   archive_search_pe_new(parameters->archive,base_search_parameters,false,NULL,
       &mapper_search->archive_search_end1,&mapper_search->archive_search_end2);
   archive_search_pe_inject_mm(mapper_search->archive_search_end1,mapper_search->archive_search_end2,mm_search);
-  mapper_search->paired_matches = paired_matches_new(mm_search->text_collection);
+  mapper_search->paired_matches = paired_matches_new(mm_search->mm_stack);
   paired_matches_configure(mapper_search->paired_matches,mapper_search->archive_search_end1->text_collection);
-
-  // FASTA/FASTQ reading loop
+  archive_t* const archive = parameters->archive;
   archive_search_t* const archive_search_end1 = mapper_search->archive_search_end1;
   archive_search_t* const archive_search_end2 = mapper_search->archive_search_end2;
   paired_matches_t* const paired_matches = mapper_search->paired_matches;
+  const bool bisulfite_index = (archive->type == archive_dna_bisulfite);
+
+  // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
   while (mapper_PE_read_paired_sequences(mapper_search)) {
 //    if (gem_streq(mapper_search->archive_search_end1->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000216715")) {
 //      printf("HERE\n");
 //    }
 
+    // Bisulfite: Fully convert reads before searching into archive, making a copy of the original
+    if (bisulfite_index) mapper_bisulfite_process_sequence_pe(archive_search_end1,archive_search_end2);
+
     // Search into the archive
     archive_search_pe(archive_search_end1,archive_search_end2,paired_matches);
+
+    // Bisulfite: Copy back original read
+    if (bisulfite_index) mapper_bisulfite_restore_sequence_pe(archive_search_end1,archive_search_end2);
 
     // Output matches
     mapper_PE_output_matches(parameters,mapper_search->buffered_output_file,
         archive_search_end1,archive_search_end2,paired_matches,mapper_search->mapping_stats);
-
     //output_fastq(mapper_search->buffered_output_file,&archive_search_end1->sequence);
     //output_fastq(mapper_search->buffered_output_file,&archive_search_end2->sequence);
 
@@ -576,11 +593,9 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
   // Launch threads
   pthread_handler_t mapper_thread;
   if (paired_end) {
-    mapper_thread = (bisulfite_index) ?
-        (pthread_handler_t) mapper_PE_bisulfite_thread : (pthread_handler_t) mapper_PE_thread;
+    mapper_thread = (pthread_handler_t) mapper_PE_thread;
   } else {
-    mapper_thread = (bisulfite_index) ?
-        (pthread_handler_t) mapper_SE_bisulfite_thread : (pthread_handler_t) mapper_SE_thread;
+    mapper_thread = (pthread_handler_t) mapper_SE_thread;
   }
   uint64_t i;
   //__itt_resume();

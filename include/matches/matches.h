@@ -92,7 +92,7 @@ typedef struct {
 /*
  * Setup
  */
-matches_t* matches_new();
+matches_t* matches_new(mm_stack_t* const mm_stack);
 void matches_configure(matches_t* const matches,text_collection_t* const text_collection);
 void matches_clear(matches_t* const matches);
 void matches_delete(matches_t* const matches);

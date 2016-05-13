@@ -44,6 +44,8 @@ typedef struct {
   search_parameters_t search_parameters;     // Search parameters
   sequence_t sequence;                       // Input Sequence
   bool buffered_search;                      // Buffered Search
+  string_t* bs_original_sequence;            // Bisulfite original sequence before conversion
+  sequence_end_t bs_sequence_end;            // Bisulfite sequence end
   /* Approximate Search */
   approximate_search_t approximate_search;   // Approximate Search State
   /* Text-Collection */

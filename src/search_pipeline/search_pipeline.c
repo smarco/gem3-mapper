@@ -26,9 +26,10 @@ search_pipeline_t* search_pipeline_new(
   search_pipeline_t* search_pipeline = mm_alloc(search_pipeline_t);
   // Allocate archive-search cache
   search_pipeline->archive_search_cache =
-      archive_search_cache_new(archive,&mapper_parameters->base_search_parameters);
+      archive_search_cache_new(archive,&mapper_parameters->search_parameters);
   // Allocate Support Data Structures
-  search_pipeline->mm_stack = mm_stack_new(mm_pool_get_slab(mm_pool_32MB)); // Memory-Stack allocator
+  search_pipeline->mm_slab = mm_slab_new_(BUFFER_SIZE_32M,BUFFER_SIZE_32M,MM_UNLIMITED_MEM,"search_pipeline.32MB");
+  search_pipeline->mm_stack = mm_stack_new(search_pipeline->mm_slab);
   search_pipeline->mapper_stats = mapper_stats_new(); // Mapping Statistics
   interval_set_init(&search_pipeline->interval_set); // Interval Set
   // Allocate pipeline-stage region-profile
@@ -62,9 +63,10 @@ void search_pipeline_delete(search_pipeline_t* const search_pipeline) {
   search_stage_decode_candidates_delete(search_pipeline->stage_decode_candidates,search_pipeline->archive_search_cache);
   search_stage_verify_candidates_delete(search_pipeline->stage_verify_candidates,search_pipeline->archive_search_cache);
   archive_search_cache_delete(search_pipeline->archive_search_cache);
-  mm_stack_delete(search_pipeline->mm_stack);
   mapper_stats_delete(search_pipeline->mapper_stats);
   interval_set_destroy(&search_pipeline->interval_set);
+  mm_stack_delete(search_pipeline->mm_stack);
+  mm_slab_delete(search_pipeline->mm_slab);
   mm_free(search_pipeline);
 }
 /*

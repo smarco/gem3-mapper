@@ -28,7 +28,8 @@ archive_search_cache_t* archive_search_cache_new(
   archive_search_cache->archive = archive;
   archive_search_cache->search_parameters = search_parameters;
   // MM
-  archive_search_cache->mm_stack = mm_stack_new(mm_pool_get_slab(mm_pool_2MB));
+  archive_search_cache->mm_slab = mm_slab_new_(BUFFER_SIZE_8M,BUFFER_SIZE_8M,MM_UNLIMITED_MEM,"archive_search_cache.8MB");
+  archive_search_cache->mm_stack = mm_stack_new(archive_search_cache->mm_slab);
   // Return
   return archive_search_cache;
 }
@@ -38,6 +39,7 @@ void archive_search_cache_delete(archive_search_cache_t* const archive_search_ca
     archive_search_destroy(*archive_search_ptr);
   }
   mm_stack_delete(archive_search_cache->mm_stack);
+  mm_slab_delete(archive_search_cache->mm_slab);
   // Free handlers
   vector_delete(archive_search_cache->archive_search_cache);
   mm_free(archive_search_cache);

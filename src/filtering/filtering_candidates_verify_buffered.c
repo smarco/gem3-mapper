@@ -137,8 +137,6 @@ void filtering_candidates_verify_buffered_add(
           filtering_region_buffer+candidate_pos,filtering_region);
       continue; // Next
     }
-    // Prepare Alignment-Tiles
-    filtering_region_alignment_prepare(filtering_region,bpm_pattern,bpm_pattern_tiles,mm_stack);
     // Kmer filtering
     if (pattern->key_length > VERIFY_BUFFERED_KMER_FILTER_LENGTH_THRESHOLD) {
       filtering_candidates_verify_buffered_kmer_filter(
@@ -149,6 +147,8 @@ void filtering_candidates_verify_buffered_add(
         continue; // Next
       }
     }
+    // Prepare Alignment-Tiles
+    filtering_region_alignment_prepare(filtering_region,bpm_pattern,bpm_pattern_tiles,mm_stack);
     // BPM-GPU put all candidates (tiles)
     const uint64_t num_pattern_tiles = bpm_pattern_tiles->num_pattern_tiles;
     region_alignment_t* const region_alignment = &filtering_region->region_alignment;

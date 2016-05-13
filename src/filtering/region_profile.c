@@ -87,8 +87,8 @@ void region_profile_query_character(
       const uint64_t bitmap = (block_mem[2] ^ xor_table_3[enc_char])
                             & (block_mem[3] ^ xor_table_2[enc_char])
                             & (block_mem[4] ^ xor_table_1[enc_char]);
-      *hi = sum_counters + (_mm_popcnt_u64((bitmap & uint64_mask_ones[(block_mod)])));
-      *lo = sum_counters + (_mm_popcnt_u64((bitmap & uint64_mask_ones[(*lo % 64)])));
+      *hi = sum_counters + (POPCOUNT_64((bitmap & uint64_mask_ones[(block_mod)])));
+      *lo = sum_counters + (POPCOUNT_64((bitmap & uint64_mask_ones[(*lo % 64)])));
     } else {
       /*
        * [MANUAL INLINE]  *lo = bwt_erank(bwt,enc_char,*lo); // Apologizes for doing this
@@ -103,7 +103,7 @@ void region_profile_query_character(
                                & (block_mem_lo[3] ^ xor_table_2[enc_char])
                                & (block_mem_lo[4] ^ xor_table_1[enc_char]);
       // Return rank
-      *lo = sum_counters_lo + _mm_popcnt_u64((bitmap_lo & uint64_mask_ones[(block_mod_lo)]));
+      *lo = sum_counters_lo + POPCOUNT_64((bitmap_lo & uint64_mask_ones[(block_mod_lo)]));
       /*
        * [MANUAL INLINE]  *hi = bwt_erank(bwt,enc_char,*hi); // Apologizes for doing this
        */
@@ -117,7 +117,7 @@ void region_profile_query_character(
                                & (block_mem_hi[3] ^ xor_table_2[enc_char])
                                & (block_mem_hi[4] ^ xor_table_1[enc_char]);
       // Return rank
-      *hi = sum_counters_hi + _mm_popcnt_u64((bitmap_hi & uint64_mask_ones[(block_mod_hi)]));
+      *hi = sum_counters_hi + POPCOUNT_64((bitmap_hi & uint64_mask_ones[(block_mod_hi)]));
     }
   }
 }
@@ -154,15 +154,20 @@ void region_profile_extend_last_region(
 /*
  * Sort
  */
-int region_profile_locator_cmp(
-    const region_locator_t* const a,
-    const region_locator_t* const b) {
+int region_profile_locator_cmp(const region_locator_t* const a,const region_locator_t* const b) {
   return (int)a->value - (int)b->value;
 }
-void region_profile_locator_sort(
-    region_locator_t* const loc,
-    const uint64_t num_regions) {
-  qsort(loc,num_regions,sizeof(region_locator_t),(int (*)(const void *,const void *))region_profile_locator_cmp);
+//void region_profile_locator_sort(
+//    region_locator_t* const loc,
+//    const uint64_t num_regions) {
+//  qsort(loc,num_regions,sizeof(region_locator_t),(int (*)(const void *,const void *))region_profile_locator_cmp);
+//}
+#define VECTOR_SORT_NAME                 region_profile_locator
+#define VECTOR_SORT_TYPE                 region_locator_t
+#define VECTOR_SORT_CMP(a,b)             region_profile_locator_cmp(a,b)
+#include "utils/vector_sort.h"
+void region_profile_locator_sort(region_locator_t* const loc,const uint64_t num_regions) {
+  buffer_sort_region_profile_locator(loc,num_regions);
 }
 void region_profile_sort_by_estimated_mappability(region_profile_t* const region_profile) {
   // Sort the regions w.r.t to the number of candidates

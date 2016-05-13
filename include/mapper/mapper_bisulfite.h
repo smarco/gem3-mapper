@@ -9,16 +9,20 @@
 #ifndef MAPPER_BISULFITE_H_
 #define MAPPER_BISULFITE_H_
 
-#include "mapper/mapper.h"
+#include "utils/essentials.h"
+#include "archive/archive_search.h"
 
-/*
- * SE Bisulfite Mapper Thread
- */
-void* mapper_SE_bisulfite_thread(mapper_search_t* const mapper_search);
+void mapper_bisulfite_process_sequence_se(
+    archive_search_t* const archive_search,
+    search_parameters_t* const search_parameters);
+void mapper_bisulfite_process_sequence_pe(
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2);
 
-/*
- * PE Bisulfite Mapper Thread
- */
-void* mapper_PE_bisulfite_thread(mapper_search_t* const mapper_search);
+void mapper_bisulfite_restore_sequence_se(
+    archive_search_t* const archive_search);
+void mapper_bisulfite_restore_sequence_pe(
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2);
 
 #endif /* MAPPER_BISULFITE_H_ */

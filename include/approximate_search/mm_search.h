@@ -31,7 +31,8 @@ typedef struct {
   /* Stats */
   mapper_stats_t* mapper_stats;         // Mapping Statistics
   /* MM-Stack */
-  mm_stack_t* mm_stack;                 // Memory-Stack allocator
+  mm_slab_t* mm_slab;                   // MM-Slab
+  mm_stack_t* mm_stack;                 // MM-Stack
 } mm_search_t;
 
 /*

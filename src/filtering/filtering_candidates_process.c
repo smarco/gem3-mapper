@@ -115,11 +115,7 @@ uint64_t filtering_candidates_compose_filtering_regions(
   mm_stack_t* const mm_stack = filtering_candidates->mm_stack;
   // Sort candidate positions (text-space)
   const uint64_t num_candidate_positions = vector_get_used(filtering_candidates->filtering_positions);
-  if (num_candidate_positions < 100) {
-    filtering_positions_sort_positions_small(filtering_candidates->filtering_positions);
-  } else {
-    filtering_positions_sort_positions_large(filtering_candidates->filtering_positions);
-  }
+  filtering_positions_sort_positions(filtering_candidates->filtering_positions);
   // Traverse positions and eliminate duplicates
   filtering_position_t* const candidate_positions =
       vector_get_mem(filtering_candidates->filtering_positions,filtering_position_t);

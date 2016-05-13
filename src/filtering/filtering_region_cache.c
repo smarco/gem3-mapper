@@ -22,7 +22,7 @@
  * Setup
  */
 void filtering_region_cache_init(filtering_region_cache_t* const filtering_region_cache) {
-  filtering_region_cache->footprint_hash = ihash_new();
+  filtering_region_cache->footprint_hash = ihash_new(NULL);
   filtering_region_cache->last_aligned.filtering_region = NULL;
 }
 void filtering_region_cache_clear(filtering_region_cache_t* const filtering_region_cache) {

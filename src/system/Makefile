@@ -21,7 +21,6 @@ MODULES=commons \
         gruntime \
         gthread \
         mm \
-        mm_pool \
         mm_slab \
         mm_stack \
         profiler \

@@ -22,6 +22,7 @@ typedef struct {
   archive_t* archive;                     // Archive
   search_parameters_t* search_parameters; // Search Parameters
   /* MM */
+  mm_slab_t* mm_slab;                     // MM-Slab (private)
   mm_stack_t* mm_stack;                   // MM-Stack (private)
 } archive_search_cache_t;
 

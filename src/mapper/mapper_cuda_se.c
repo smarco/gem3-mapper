@@ -7,6 +7,7 @@
 
 #include "mapper/mapper_cuda_se.h"
 #include "mapper/mapper.h"
+#include "mapper/mapper_bisulfite.h"
 #include "archive/archive_search_se.h"
 #include "io/input_file.h"
 
@@ -57,6 +58,7 @@ void mapper_se_cuda_region_profile(mapper_cuda_search_t* const mapper_search) {
   PROFILE_START(GP_MAPPER_CUDA_SE_REGION_PROFILE,PROFILE_LEVEL);
   // Parameters
   mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
+  const bool bisulfite_index = (parameters->archive->type == archive_dna_bisulfite);
   search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
   search_stage_region_profile_t* const stage_region_profile = search_pipeline->stage_region_profile;
   archive_search_t* archive_search = NULL;
@@ -75,6 +77,8 @@ void mapper_se_cuda_region_profile(mapper_cuda_search_t* const mapper_search) {
         parameters->io.fastq_strictly_normalized,false);
     gem_cond_fatal_error(error_code==INPUT_STATUS_FAIL,MAPPER_CUDA_ERROR_PARSING);
     PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
+    // Bisulfite: Fully convert reads before searching into archive, making a copy of the original
+    if (bisulfite_index) mapper_bisulfite_process_sequence_se(archive_search,&parameters->search_parameters);
     // Generate Candidates (Search into the archive)
     archive_search_se_stepwise_init_search(archive_search);
     archive_search_se_stepwise_region_profile_generate_static(archive_search);
@@ -132,6 +136,7 @@ void mapper_se_cuda_generate_candidates(mapper_cuda_search_t* const mapper_searc
   PROFILE_START(GP_MAPPER_CUDA_SE_DECODE_CANDIDATES,PROFILE_LEVEL);
   // Parameters
   mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
+  const bool bisulfite_index = (parameters->archive->type == archive_dna_bisulfite);
   search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
   search_stage_decode_candidates_t* const stage_decode_candidates = search_pipeline->stage_decode_candidates;
   archive_search_t* archive_search = NULL;
@@ -152,6 +157,8 @@ void mapper_se_cuda_generate_candidates(mapper_cuda_search_t* const mapper_searc
         parameters->io.fastq_strictly_normalized,false);
     gem_cond_fatal_error(error_code==INPUT_STATUS_FAIL,MAPPER_CUDA_ERROR_PARSING);
     PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
+    // Bisulfite: Fully convert reads before searching into archive, making a copy of the original
+    if (bisulfite_index) mapper_bisulfite_process_sequence_se(archive_search,&parameters->search_parameters);
     // Generate Candidates (Search into the archive)
     archive_search_se_stepwise_init_search(archive_search);
     archive_search_se_stepwise_region_profile_generate_adaptive(archive_search);
@@ -211,6 +218,7 @@ void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_search) {
   PROFILE_START(GP_MAPPER_CUDA_SE_FINISH_SEARCH,PROFILE_LEVEL);
   // Parameters
   mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
+  const bool bisulfite_index = (parameters->archive->type == archive_dna_bisulfite);
   search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
   search_stage_verify_candidates_t* const stage_verify_candidates = search_pipeline->stage_verify_candidates;
   archive_search_t* archive_search = NULL;
@@ -218,6 +226,8 @@ void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_search) {
   while (search_stage_verify_candidates_retrieve_se_search(stage_verify_candidates,&archive_search)) {
     // Finish Search
     archive_search_se_stepwise_finish_search(archive_search,stage_verify_candidates->matches); // Finish search
+    // Bisulfite: Copy back original read
+    if (bisulfite_index) mapper_bisulfite_restore_sequence_se(archive_search);
     // Output Matches
     mapper_SE_output_matches(parameters,mapper_search->buffered_output_file,
         archive_search,stage_verify_candidates->matches,mapper_search->mapping_stats);

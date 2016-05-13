@@ -190,9 +190,10 @@ void input_file_sliced_process(input_file_sliced_t* const input_file_sliced) {
 void input_file_sliced_discard_exhausted_buffers(
     input_file_sliced_t* const input_file_sliced,
     vector_t* const input_buffers) {
-  MUTEX_BEGIN_SECTION(input_file_sliced->input_buffers_mutex);
-  // Set exhausted buffers as empty
   const uint64_t num_buffers = vector_get_used(input_buffers);
+  if (num_buffers==0) return; // Quick return
+  // Set exhausted buffers as empty
+  MUTEX_BEGIN_SECTION(input_file_sliced->input_buffers_mutex);
   const uint64_t current_buffer_id = input_file_sliced->current_buffer_id;
   uint64_t i;
   for (i=0;i<num_buffers;++i) {

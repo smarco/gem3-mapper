@@ -855,6 +855,65 @@ void constructor_lsc() {
       enc_text,text_length,mm_stack);
 //      enc_text+match_alignment.match_position,text_length,mm_stack);
 }
+
+#define VECTOR_SORT_NAME            int
+#define VECTOR_SORT_TYPE            int
+#define VECTOR_SORT_CMP(a,b)        (*(a)-*(b))
+#include "utils/vector_sort.h"
+
+void constructor_vector_sort(const int num_elements,const int iterations) {
+  // Allocate
+  vector_t* const vector = vector_new(num_elements,int);
+  vector_set_used(vector,num_elements);
+  int* const array = vector_get_mem(vector,int);
+  int iter, i;
+  // Test
+  for (iter=0;iter<iterations;++iter) {
+    // Generate values
+    for (i=0;i<num_elements;++i) {
+      array[i] = gem_rand(0,1000000);
+    }
+    // Sort them
+    //vector_sort_selection_int(vector);
+    //vector_sort_quicksort_int(vector);
+    //vector_sort_heapsort_int(vector);
+    vector_sort_int(vector);
+
+    // Check ordering
+    if (buffer_sort_check_int(array,num_elements)) {
+      fprintf(stderr,"%d: Checked\n",iter);
+    }
+  }
+  // Free
+  vector_delete(vector);
+}
+//#include <numa.h>
+//void constructor_numa() {
+//  if (numa_available() < 0) {
+//    printf("Your system does not support NUMA API\n");
+//  }
+//  // Query number of nodes
+//  const int max_node = numa_max_node();
+//  printf("System has %d NUMA nodes\n",max_node+1);
+//  // Query each node
+//  int i;
+//  for (i=0;i<=max_node;++i) {
+//    // Memory
+//    uint64_t total_memory, total_free;
+//    total_memory = numa_node_size(i,&total_free);
+//    printf("  [%d] Node\n",i);
+//    printf("    Total.Memory %lu MB (%lu MB free)\n",total_memory/1024/1024,total_free/1024/1024);
+//    // Node CPUs
+//    struct bitmask* cpu_mask = numa_allocate_cpumask();
+//    if (numa_node_to_cpus(i,cpu_mask) < 0) {
+//      perror("Error numa_node_to_cpus");
+//    }
+//    printf("    Binds => ");
+//    int j;
+//    for (j=0;j<32;++j) if (numa_bitmask_isbitset(cpu_mask,j)) printf("%d ",j);
+//    printf(" \n");
+//  }
+//}
 /*
  * Generic Menu
  */
@@ -997,9 +1056,13 @@ int main(int argc,char** argv) {
   //  constructor_lsc();
   //  return 0;
 
-  archive_t* archive = archive_read("./test.gem",false);
-  fprintf(stderr,"Position=%lu\tProyection=%lu\n",
-      0ul,archive_text_get_unitary_projection(archive->text,0));
+//  archive_t* archive = archive_read("./test.gem",false);
+//  fprintf(stderr,"Position=%lu\tProyection=%lu\n",
+//      0ul,archive_text_get_unitary_projection(archive->text,0));
+
+//  constructor_vector_sort(parameters.param1,parameters.param2);
+
+// constructor_numa();
 
   return 0;
 }

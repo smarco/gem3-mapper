@@ -54,7 +54,7 @@ typedef struct {
 /*
  * Setup
  */
-paired_matches_t* paired_matches_new();
+paired_matches_t* paired_matches_new(mm_stack_t* const mm_stack);
 void paired_matches_configure(paired_matches_t* const paired_matches,text_collection_t* const text_collection);
 void paired_matches_clear(paired_matches_t* const paired_matches,const bool clear_matches);
 void paired_matches_delete(paired_matches_t* const paired_matches);

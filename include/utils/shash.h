@@ -10,6 +10,7 @@
 #define SHASH_H_
 
 #include "system/commons.h"
+#include "system/mm_stack.h"
 #include "resources/uthash/uthash.h"
 
 /*
@@ -22,6 +23,7 @@ typedef struct {
 } shash_element_t;
 typedef struct {
   shash_element_t* head;
+  mm_stack_t* mm_stack;
 } shash_t;
 typedef struct {
   shash_element_t* current;
@@ -31,7 +33,7 @@ typedef struct {
 /*
  * Constructor
  */
-shash_t* shash_new(void);
+shash_t* shash_new(mm_stack_t* const mm_stack);
 void shash_clear(shash_t* const shash);
 void shash_delete(shash_t* const shash);
 

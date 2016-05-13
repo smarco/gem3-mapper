@@ -69,11 +69,24 @@ typedef enum {
 } matches_sorting_t;
 
 /*
+ * Clipping
+ */
+typedef enum {
+  clipping_disabled,
+  clipping_masked,
+  clipping_hard
+} clipping_type;
+
+/*
  * Search Parameters
  */
 typedef struct {
   /* Mapping strategy (Mapping mode + properties) */
   mapping_mode_t mapping_mode;
+  /* Clipping */
+  clipping_type clipping;
+  uint64_t clip_left;
+  uint64_t clip_right;
   /* Qualities */
   quality_model_t quality_model;   // TODO Revision pending
   quality_format_t quality_format; // TODO Revision pending

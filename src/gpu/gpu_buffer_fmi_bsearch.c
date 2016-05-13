@@ -176,7 +176,7 @@ void gpu_buffer_fmi_search_receive(gpu_buffer_fmi_search_t* const gpu_buffer_fmi
 gpu_buffer_fmi_search_t* gpu_buffer_fmi_search_new(
     const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffer_pos,
-    fm_index_t* const fm_index) { GEM_CUDA_NOT_SUPPORTED(); return NULL; }
+    const bool fmi_search_enabled) { GEM_CUDA_NOT_SUPPORTED(); return NULL; }
 void gpu_buffer_fmi_search_clear(
     gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search) { GEM_CUDA_NOT_SUPPORTED(); }
 void gpu_buffer_fmi_search_delete(

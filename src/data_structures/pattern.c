@@ -19,45 +19,51 @@
 /*
  * Pattern Prepare
  */
-void pattern_init(
+void pattern_init_encode(
     pattern_t* const pattern,
     sequence_t* const sequence,
     bool* const do_quality_search,
     const search_parameters_t* const parameters,
-    const bool run_length_pattern,
-    const bool kmer_filter_compile,
-    mm_stack_t* const mm_stack) {
-  // Allocate pattern memory
-  pattern->key_length = sequence_get_length(sequence);
-  pattern->key = mm_stack_calloc(mm_stack,pattern->key_length,uint8_t,false);
-  // Set quality search & Build quality model & mask
-  *do_quality_search = (parameters->quality_format!=qualities_ignore) && sequence_has_qualities(sequence);
-  if (*do_quality_search) {
-    pattern->quality_mask =  mm_stack_calloc(mm_stack,pattern->key_length,uint8_t,false);
-    quality_model(sequence,parameters->quality_model,
-        parameters->quality_format,parameters->quality_threshold,pattern->quality_mask);
-  } else {
-    pattern->quality_mask = NULL;
-  }
-  /*
-   * Compute the encoded pattern
-   *   Check all characters in the key & encode key
-   *   Counts the number of wildcards (characters not allowed as replacements) and low_quality_bases
-   */
+    const bool run_length_pattern) {
+  // Parameters
+  const uint64_t sequence_length = sequence_get_length(sequence);
+  const char* const read = sequence_get_read(sequence);
+  // Aux
   uint64_t num_wildcards = 0;           // Number of bases not-allowed
   uint64_t num_low_quality_bases = 0;   // Number of bases with low quality value
   uint64_t num_non_canonical_bases = 0; // Number of bases not compliant with the k-mer filter
-  uint64_t i;
-  const char* const read = sequence_get_read(sequence);
+  int64_t clip_left, clip_right;
+  int64_t i, j;
+  // Set left-clipping (if any)
+  switch (parameters->clipping) {
+    case clipping_disabled:
+      i = 0;
+      clip_left = 0;
+      break;
+    case clipping_masked:
+      i = 0;
+      while (i<sequence_length && !is_unmasked_dna(read[i])) ++i;
+      clip_left = i;
+      break;
+    case clipping_hard:
+      i = parameters->clip_left;
+      clip_left = MIN(parameters->clip_left,sequence_length);
+      break;
+    default:
+      GEM_INVALID_CASE();
+      break;
+  }
+  // Encode read
   if (pattern->quality_mask == NULL) {
-    for (i=0;i<pattern->key_length;++i) {
+    for (j=0;i<sequence_length;++i,++j) {
       const char character = read[i];
       if (!is_dna_canonical(character)) ++num_non_canonical_bases;
       if (!parameters->allowed_chars[(uint8_t)character]) ++num_wildcards;
-      pattern->key[i] = dna_encode(character);
+      pattern->key[j] = dna_encode(character);
     }
   } else {
-    for (i=0;i<pattern->key_length;++i) {
+    // Encode read
+    for (j=0;i<sequence_length;++i,++j) {
       const char character = read[i];
       if (!is_dna_canonical(character)) ++num_non_canonical_bases;
       if (!parameters->allowed_chars[(uint8_t)character]) {
@@ -65,14 +71,39 @@ void pattern_init(
       } else if (pattern->quality_mask[i]!=qm_real) {
         ++num_low_quality_bases;
       }
-      pattern->key[i] = dna_encode(character);
+      pattern->key[j] = dna_encode(character);
     }
   }
+  // Skip right-clipping (if any)
+  switch (parameters->clipping) {
+    case clipping_disabled:
+      clip_right = 0;
+      break;
+    case clipping_masked:
+      i = sequence_length-1;
+      while (i>=clip_left && !is_unmasked_dna(read[i])) --i;
+      clip_right = sequence_length - (i+1);
+      break;
+    case clipping_hard:
+      clip_right = MIN(parameters->clip_right,sequence_length - clip_left);
+      break;
+    default:
+      GEM_INVALID_CASE();
+      break;
+  }
+  // Set effective length
+  pattern->key_length = sequence_length - clip_right - clip_left;
+  pattern->clip_left = clip_left;
+  pattern->clip_right = clip_right;
+  // Set wildcards & low-quality bases
   pattern->num_wildcards = num_wildcards;
   pattern->num_low_quality_bases = num_low_quality_bases;
-  /*
-   * Compute the RL-pattern
-   */
+  pattern->num_non_canonical_bases = num_non_canonical_bases;
+}
+void pattern_init_encode_rl(
+    pattern_t* const pattern,
+    const bool run_length_pattern,
+    mm_stack_t* const mm_stack) {
   if (run_length_pattern) {
     pattern->run_length = true;
     // Allocate
@@ -94,34 +125,72 @@ void pattern_init(
     pattern->rl_key = NULL;
     pattern->rl_runs_acc = NULL;
   }
+}
+void pattern_init(
+    pattern_t* const pattern,
+    sequence_t* const sequence,
+    bool* const do_quality_search,
+    const search_parameters_t* const parameters,
+    const bool run_length_pattern,
+    const bool kmer_filter_compile,
+    mm_stack_t* const mm_stack) {
+  // Allocate pattern memory
+  const uint64_t sequence_length = sequence_get_length(sequence);
+  pattern->key = mm_stack_calloc(mm_stack,sequence_length,uint8_t,false);
+  // Set quality search & Build quality model & mask
+  *do_quality_search = (parameters->quality_format!=qualities_ignore) && sequence_has_qualities(sequence);
+  if (*do_quality_search) {
+    pattern->quality_mask = mm_stack_calloc(mm_stack,sequence_length,uint8_t,false);
+    quality_model(sequence,parameters->quality_model,
+        parameters->quality_format,parameters->quality_threshold,pattern->quality_mask);
+  } else {
+    pattern->quality_mask = NULL;
+  }
+  /*
+   * Compute the encoded pattern
+   *   Check all characters in the key & encode key
+   *   Counts the number of wildcards (characters not allowed as replacements) and low_quality_bases
+   */
+  // Compute then pattern
+  pattern_init_encode(pattern,sequence,do_quality_search,parameters,run_length_pattern);
+  // Compute the RL-pattern
+  pattern_init_encode_rl(pattern,run_length_pattern,mm_stack);
   /*
    * Compute the effective number of differences
    * and compile the BMP-Pattern & k-mer filter
    */
-  const uint64_t max_effective_filtering_error =
-      parameters->alignment_max_error_nominal +
-      num_low_quality_bases +
-      num_wildcards;
-  const uint64_t max_effective_bandwidth =
-      parameters->alignment_max_bandwidth_nominal +
-      num_low_quality_bases;
-  pattern->max_effective_filtering_error = MIN(max_effective_filtering_error,pattern->key_length);
-  pattern->max_effective_bandwidth = MIN(max_effective_bandwidth,pattern->key_length);
-  if (pattern->max_effective_filtering_error > 0) {
-    // Prepare kmer-counting filter
-    if (kmer_filter_compile) {
-      const uint64_t kmer_filter_error = BOUNDED_ADDITION(
-          pattern->max_effective_filtering_error,num_non_canonical_bases,pattern->key_length);
-      kmer_counting_compile(&pattern->kmer_counting,
-          pattern->key,pattern->key_length,kmer_filter_error,mm_stack);
-    } else {
-      pattern->kmer_counting.enabled = false;
+  if (pattern->key_length == 0) { // Check length
+    pattern->max_effective_filtering_error = 0;
+    pattern->max_effective_bandwidth = 0;
+    pattern->bpm_pattern = NULL;
+    pattern->bpm_pattern_tiles = NULL;
+  } else {
+    const uint64_t max_effective_filtering_error =
+        parameters->alignment_max_error_nominal +
+        pattern->num_low_quality_bases +
+        pattern->num_wildcards;
+    const uint64_t max_effective_bandwidth =
+        parameters->alignment_max_bandwidth_nominal +
+        pattern->num_low_quality_bases;
+    pattern->max_effective_filtering_error = MIN(max_effective_filtering_error,pattern->key_length);
+    pattern->max_effective_bandwidth = MIN(max_effective_bandwidth,pattern->key_length);
+    if (pattern->max_effective_filtering_error > 0) {
+      // Prepare kmer-counting filter
+      if (kmer_filter_compile) {
+        const uint64_t kmer_filter_error = BOUNDED_ADDITION(
+            pattern->max_effective_filtering_error,
+            pattern->num_non_canonical_bases,pattern->key_length);
+        kmer_counting_compile(&pattern->kmer_counting,
+            pattern->key,pattern->key_length,kmer_filter_error,mm_stack);
+      } else {
+        pattern->kmer_counting.enabled = false;
+      }
+      // Prepare BPM pattern
+      pattern->bpm_pattern = bpm_pattern_compile(
+          pattern->key,pattern->key_length,pattern->max_effective_filtering_error,mm_stack);
+      pattern->bpm_pattern_tiles = bpm_pattern_compile_tiles(pattern->bpm_pattern,
+          PATTERN_BPM_WORDS64_PER_TILE,pattern->max_effective_filtering_error,mm_stack);
     }
-    // Prepare BPM pattern
-    pattern->bpm_pattern = bpm_pattern_compile(
-        pattern->key,pattern->key_length,pattern->max_effective_filtering_error,mm_stack);
-    pattern->bpm_pattern_tiles = bpm_pattern_compile_tiles(pattern->bpm_pattern,
-        PATTERN_BPM_WORDS64_PER_TILE,pattern->max_effective_filtering_error,mm_stack);
   }
 }
 void pattern_clear(pattern_t* const pattern) {

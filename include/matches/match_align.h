@@ -15,6 +15,15 @@
 #include "matches/match_scaffold.h"
 
 /*
+ * Match Clipping
+ */
+void match_aling_add_clipping(
+    match_trace_t* const match_trace,
+    vector_t* const cigar_vector,
+    const uint64_t sequence_clip_left,
+    const uint64_t sequence_clip_right);
+
+/*
  * Exact Alignment
  *   @align_input->key_length
  *   @align_input->text_position

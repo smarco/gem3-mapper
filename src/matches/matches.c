@@ -32,7 +32,7 @@ const char* matches_class_label[] =
 /*
  * Setup
  */
-matches_t* matches_new() {
+matches_t* matches_new(mm_stack_t* const mm_stack) {
   // Allocate handler
   matches_t* const matches = mm_alloc(matches_t);
   // Search-matches state
@@ -42,8 +42,8 @@ matches_t* matches_new() {
   matches->counters = matches_counters_new();
   // Position Matches
   matches->position_matches = vector_new(MATCHES_INIT_GLOBAL_MATCHES,match_trace_t);
-  matches->begin_pos_matches = ihash_new();
-  matches->end_pos_matches = ihash_new();
+  matches->begin_pos_matches = ihash_new(mm_stack);
+  matches->end_pos_matches = ihash_new(mm_stack);
   // Local Matches
   matches->local_matches = vector_new(MATCHES_INIT_GLOBAL_MATCHES,match_trace_t);
   // CIGAR buffer

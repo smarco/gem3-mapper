@@ -14,7 +14,7 @@ void init_mapping_stats(mapping_stats_t* mstats) {
 	 int i,read;
 	 for(read=0;read<2;read++) {
 			mstats->unmapped[read]=0;
-			mstats->read_length_dist[read]=ihash_new();
+			mstats->read_length_dist[read]=ihash_new(NULL);
 			int j;
 			for(j=0;j<7;j++) for(i=0;i<5;i++) mstats->base_counts[j][read][i]=0;
 			for(j=0;j<4;j++) mstats->reads[read][j]=0;
@@ -22,7 +22,7 @@ void init_mapping_stats(mapping_stats_t* mstats) {
 	 }
 	 for(i=0;i<256;i++) mstats->hist_mapq[i]=0;
 	 mstats->correct_pairs=0;
-	 mstats->insert_size_dist=ihash_new();
+	 mstats->insert_size_dist=ihash_new(NULL);
 }
 
 void merge_ihash(ihash_t* ihash1, ihash_t* ihash2) {

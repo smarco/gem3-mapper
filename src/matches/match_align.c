@@ -23,6 +23,63 @@
 #define PROFILE_LEVEL PLOW
 
 /*
+ * Match Clipping
+ */
+void match_aling_add_clipping(
+    match_trace_t* const match_trace,
+    vector_t* const cigar_vector,
+    const uint64_t sequence_clip_left,
+    const uint64_t sequence_clip_right) {
+  // Left trim
+  if (sequence_clip_left > 0) {
+    // Parameters
+    match_alignment_t* const match_alignment = &match_trace->match_alignment;
+    const uint64_t cigar_offset = match_alignment->cigar_offset;
+    cigar_element_t* cigar_buffer = vector_get_elm(cigar_vector,cigar_offset,cigar_element_t);
+    if (cigar_buffer[0].type==cigar_del) {
+      cigar_buffer[0].length += sequence_clip_left;
+      cigar_buffer[0].attributes = cigar_attr_trim;
+    } else {
+      // Reserve additional
+      vector_reserve_additional(cigar_vector,1);
+      vector_inc_used(cigar_vector); // Increment used
+      cigar_buffer = vector_get_elm(cigar_vector,cigar_offset,cigar_element_t);
+      // Shift CIGAR one position right
+      uint64_t i;
+      for (i=match_alignment->cigar_length;i>0;--i) {
+        cigar_buffer[i] = cigar_buffer[i-1];
+      }
+      // Add clip
+      cigar_buffer[0].type = cigar_del;
+      cigar_buffer[0].attributes = cigar_attr_trim;
+      cigar_buffer[0].length = sequence_clip_left;
+      ++(match_alignment->cigar_length);
+    }
+  }
+  // Right trim
+  if (sequence_clip_right > 0) {
+    // Parameters
+    match_alignment_t* const match_alignment = &match_trace->match_alignment;
+    const uint64_t cigar_offset = match_alignment->cigar_offset;
+    cigar_element_t* cigar_buffer = vector_get_elm(cigar_vector,cigar_offset,cigar_element_t);
+    const uint64_t cigar_length = match_alignment->cigar_length;
+    if (cigar_buffer[cigar_length-1].type==cigar_del) {
+      cigar_buffer[cigar_length-1].length += sequence_clip_right;
+      cigar_buffer[cigar_length-1].attributes = cigar_attr_trim;
+    } else {
+      // Reserve additional
+      vector_reserve_additional(cigar_vector,1);
+      vector_inc_used(cigar_vector); // Increment used
+      cigar_buffer = vector_get_elm(cigar_vector,cigar_offset,cigar_element_t);
+      // Add clip
+      cigar_buffer[cigar_length].type = cigar_del;
+      cigar_buffer[cigar_length].attributes = cigar_attr_trim;
+      cigar_buffer[cigar_length].length = sequence_clip_right;
+      ++(match_alignment->cigar_length);
+    }
+  }
+}
+/*
  * Exact Alignment
  *   @align_input->key_length
  *   @align_input->text_position
@@ -54,7 +111,7 @@ void match_align_exact(
   match_trace->distance = 0;
   match_trace->edit_distance = 0;
   match_trace->swg_score = align_swg_score_match(align_parameters->swg_penalties,(int32_t)key_length);
-  // Insert exact-match CIGAR
+  // Set position/distance
   region_alignment_t* const region_alignment = align_input->region_alignment;
   match_alignment->match_text_offset = region_alignment->alignment_tiles->text_begin_offset;
   match_alignment->match_position = align_input->text_position + match_alignment->match_text_offset; // Adjust position
@@ -62,7 +119,9 @@ void match_align_exact(
   match_alignment->cigar_length = 0;
   match_alignment->score = 0;
   match_alignment->effective_length = key_length;
-  matches_cigar_vector_append_match(matches->cigar_vector,&match_alignment->cigar_length,key_length,cigar_attr_none);
+  // Insert exact-match CIGAR
+  matches_cigar_vector_append_match(
+      matches->cigar_vector,&match_alignment->cigar_length,key_length,cigar_attr_none);
   PROFILE_STOP(GP_MATCHES_ALIGN_EXACT,PROFILE_LEVEL);
 }
 /*
@@ -119,6 +178,7 @@ void match_align_hamming(
     }
   }
   match_alignment->effective_length = key_length;
+  // Set distances
   match_trace->distance = mismatches;
   match_trace->edit_distance = mismatches;
   match_trace->swg_score = align_swg_score_cigar(align_parameters->swg_penalties,
@@ -159,6 +219,7 @@ void match_align_levenshtein(
   match_alignment->match_position = align_input->text_position;
   align_bpm_match(align_input,align_parameters->max_error,
       align_parameters->left_gap_alignment,match_alignment,matches->cigar_vector,mm_stack);
+  // Set distances
   match_trace->distance = match_alignment->score;
   match_trace->edit_distance = match_alignment->score;
   match_trace->swg_score = align_swg_score_cigar(align_parameters->swg_penalties,
