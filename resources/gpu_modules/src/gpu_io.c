@@ -407,7 +407,7 @@ gpu_error_t gpu_io_load_reference_specs_GEM_FULL(const char* const fn, gpu_refer
 }
 
 gpu_error_t gpu_io_load_reference_GEM_FULL(const char* const fn, gpu_reference_buffer_t* const reference,
-										   const gpu_module_t activeModules)
+										                       const gpu_module_t activeModules)
 {
   FILE *fp = NULL;
   size_t result;

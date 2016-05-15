@@ -22,71 +22,37 @@ gpu_fmi_entry_t* gpu_fmi_buffer_get_index_(const void* const fmiBuffer){
   return(mBuff->index->fmi.h_fmi);
 }
 
-/************************************************************
-Debug functions for the index
-************************************************************/
+
+/* Functions to init the buffers (DECODE) */
 /*
-char gpu_fmi_search_bin_to_char(const uint32_t base)
+size_t gpu_fmi_buffer_input_size(gpu_buffer_t* const mBuff)
 {
-  switch(base){
-    case GPU_ENC_DNA_CHAR_A:
-      return('A');
-    case GPU_ENC_DNA_CHAR_C:
-      return('C');
-    case GPU_ENC_DNA_CHAR_G:
-      return('G');
-    case GPU_ENC_DNA_CHAR_T:
-      return('T');
-    default :
-      return('X');
-  }
+  size_t gpu_fmi_asearch_size_per_query(const uint32_t averageQuerySize, const uint32_t averageRegionsPerQuery)
 }
-
-uint32_t gpu_fmi_search_print_seed(const gpu_fmi_search_seed_t seed, const uint32_t seedSize)
+void gpu_fmi_buffer_reallocate_host_layout(gpu_buffer_t* const mBuff)
 {
-  char plainSeed[GPU_FMI_SEED_MAX_CHARS] = {0};
-  uint64_t bitmap = seed.hi;
-  uint32_t idBase;
 
-  for(idBase = 0; idBase < seedSize; ++idBase){
-    uint32_t base = bitmap & 0x3;
-    plainSeed[idBase] = gpu_fmi_search_bin_to_char(base);
-    bitmap >>= GPU_FMI_SEED_CHAR_LENGTH;
-    if(idBase == GPU_UINT32_LENGTH) bitmap = seed.low;
-  }
-
-  for(idBase = 0; idBase < seedSize; ++idBase)
-    printf("%c", plainSeed[seedSize - idBase - 1]);
-
-  return(SUCCESS);
 }
-
-uint32_t flag_print = 0;
-uint32_t gpu_fmi_search_print_buffer(const void* const fmiBuffer)
+void gpu_fmi_buffer_reallocate_device_layout(gpu_buffer_t* const mBuff)
 {
-  if(flag_print == 0){
-    gpu_buffer_t* const mBuff  = (gpu_buffer_t *) fmiBuffer;
-    const uint32_t maxSeeds    = 100; // Just check and print the first results
-    const uint32_t numSeeds    = mBuff->data.search.seeds.numSeeds;
-          uint32_t missMatches = 0;
-          uint32_t idSeed;
+}*/
 
-    printf("Buffer: %d ------------------------------------\n", mBuff->idBuffer);
-    for(idSeed = 0; idSeed < numSeeds; ++idSeed){
-      const uint64_t hiSeedSection = mBuff->data.search.seeds.h_seeds[idSeed].low;
-      const uint32_t seedSize = hiSeedSection >> (GPU_UINT64_LENGTH - GPU_FMI_SEED_FIELD_SIZE);
-      printf("[%d] seed=", idSeed);
-      gpu_fmi_search_print_seed(mBuff->data.search.seeds.h_seeds[idSeed], seedSize);
-      printf("\t size=%d \t (GPU) lo=%lu \t hi=%lu \n",
-             seedSize,
-             mBuff->data.search.saIntervals.h_intervals[idSeed].low,
-             mBuff->data.search.saIntervals.h_intervals[idSeed].hi);
-      missMatches++;
-    }
-    printf("Buffer: %d ------------------------------------\n", mBuff->idBuffer);
-    flag_print = 1;
-  }
-  return (SUCCESS);
+/* Functions to transfer data HOST <-> DEVICE (DECODE) */
+/*
+gpu_error_t gpu_fmi_buffer_transfer_CPU_to_GPU(gpu_buffer_t* const mBuff)
+{
+
+}
+gpu_error_t gpu_fmi_buffer_transfer_GPU_to_CPU(gpu_buffer_t* const mBuff)
+{
+
+}*/
+
+/* DEVICE Kernels */
+/*
+gpu_error_t gpu_fmi_buffer_process(gpu_buffer_t* const mBuff)
+{
+
 }*/
 
 

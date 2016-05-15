@@ -70,7 +70,7 @@ typedef struct {
 #include "gpu_buffer.h"
 
 /* Functions to init the buffers (E. SEARCH) */
-size_t      gpu_fmi_asearch_input_size();
+size_t      gpu_fmi_asearch_size_per_query(const uint32_t averageQuerySize, const uint32_t averageRegionsPerQuery);
 void        gpu_fmi_asearch_reallocate_host_buffer_layout(gpu_buffer_t* mBuff);
 void        gpu_fmi_asearch_reallocate_device_buffer_layout(gpu_buffer_t* mBuff);
 

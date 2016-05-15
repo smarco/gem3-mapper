@@ -221,19 +221,20 @@ gpu_error_t gpu_module_manager_all_system(gpu_reference_buffer_t* const referenc
   uint32_t idDevice, idSupportedDevice;
 
   // Lists initialization for the best fitting modules exploration
-  gpu_module_t allocatedModulesPerDevice[numSupportedDevices], allocatedStructuresPerDevice[numSupportedDevices];
-  gpu_module_t activatedModules, allocatedStructures;
+  gpu_module_t allocatedModulesPerDevice[numSupportedDevices];
+  gpu_module_t allocatedStructuresPerDevice[numSupportedDevices];
+  gpu_module_t activatedModules = GPU_NONE_MODULES, allocatedStructures = GPU_NONE_MODULES;
 
   // Analyze all the devices on the system and annotate the module requirements
   for(idDevice = 0, idSupportedDevice = 0; idDevice < numDevices; ++idDevice){
     const bool deviceArchSupported = gpu_device_get_architecture(idDevice) & selectedArchitectures;
+    activatedModules    = GPU_NONE_MODULES; allocatedStructures = GPU_NONE_MODULES;
     if(deviceArchSupported){
-      GPU_ERROR(gpu_module_manager_per_device(reference, index, idDevice, numBuffers, userAllocOption,
-                                              &activatedModules, &allocatedStructures));
-      allocatedModulesPerDevice[idSupportedDevice]    = activatedModules;
-      allocatedStructuresPerDevice[idSupportedDevice] = allocatedStructures;
+      GPU_ERROR(gpu_module_manager_per_device(reference, index, idDevice, numBuffers, userAllocOption, &activatedModules, &allocatedStructures));
       idSupportedDevice++;
     }
+    allocatedModulesPerDevice[idSupportedDevice]    = activatedModules;
+    allocatedStructuresPerDevice[idSupportedDevice] = allocatedStructures;
   }
 
   // Module exploration to define the module and structures configuration for all the system
@@ -282,7 +283,8 @@ gpu_error_t gpu_module_manager_memory(gpu_reference_buffer_t* const reference, g
 {
   const gpu_module_t userRequestedModules = index->activeModules | reference->activeModules;
   // Defines to obtain the module requirements
-  gpu_module_t requiredModules, recomendedModules, localModules, localStructures;
+  gpu_module_t requiredModules = GPU_NONE_MODULES, recomendedModules = GPU_NONE_MODULES;
+  gpu_module_t localModules    = GPU_NONE_MODULES, localStructures   = GPU_NONE_MODULES;
   size_t localRecomendedMemorySize, localRequiredMemorySize;
 
   // Explores the best combination of active modules and stored structures for all the devices

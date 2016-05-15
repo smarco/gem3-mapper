@@ -151,7 +151,7 @@ void gpu_fmi_asearch_init_and_realloc_buffer_(void* const fmiBuffer, const float
     // Resize the GPU buffer to fit the required input
     const uint32_t      idSupDevice             = mBuff->idSupportedDevice;
     const float         resizeFactor            = 2.0;
-    const size_t        bytesPerSearchBuffer    = totalQueries * gpu_fmi_asearch_input_size(averageQuerySize, averageRegionsPerQuery);
+    const size_t        bytesPerSearchBuffer    = totalQueries * gpu_fmi_asearch_size_per_query(averageQuerySize, averageRegionsPerQuery);
 
     //Recalculate the minimum buffer size
     mBuff->sizeBuffer = bytesPerSearchBuffer * resizeFactor;
