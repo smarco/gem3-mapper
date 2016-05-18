@@ -18,11 +18,11 @@
 
 void init_mapping_stats(mapping_stats_t *mstats);
 
-void collect_SE_mapping_stats(
+void collect_se_mapping_stats(
     archive_search_t* const archive_search,
     matches_t* const matches,
     mapping_stats_t* mstats);
-void collect_PE_mapping_stats(
+void collect_pe_mapping_stats(
     archive_search_t* const archive_search1,
     archive_search_t* const archive_search2,
     paired_matches_t* const paired_matches,

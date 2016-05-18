@@ -99,7 +99,7 @@ int get_read_type(match_trace_t* match) {
 	 return i%4;
 }
 
-void collect_SE_mapping_stats(archive_search_t* const archive_search, matches_t* const matches, mapping_stats_t* mstats) {
+void collect_se_mapping_stats(archive_search_t* const archive_search, matches_t* const matches, mapping_stats_t* mstats) {
 	 update_counts(&archive_search->sequence,mstats,0);
 	 bs_strand_t bs = bs_strand_none;
 	 int read_type = -1;
@@ -122,7 +122,7 @@ void collect_SE_mapping_stats(archive_search_t* const archive_search, matches_t*
 	 }
 }
 
-void collect_PE_mapping_stats(archive_search_t* const archive_search1, archive_search_t* const archive_search2,
+void collect_pe_mapping_stats(archive_search_t* const archive_search1, archive_search_t* const archive_search2,
  	 paired_matches_t* const paired_matches, mapping_stats_t* mstats) {
 
 	 update_counts(&archive_search1->sequence,mstats,0);

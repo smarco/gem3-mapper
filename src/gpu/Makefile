@@ -17,7 +17,8 @@ include $(ROOT_PATH)/Makefile.mk
 ###############################################################################
 MODULES=gpu_buffer_align_bpm \
         gpu_buffer_collection \
-        gpu_buffer_fmi_bsearch \
+        gpu_buffer_fmi_ssearch \
+        gpu_buffer_fmi_asearch \
         gpu_buffer_fmi_decode \
         gpu_config \
         gpu_structures

@@ -12,6 +12,11 @@
 #include "utils/essentials.h"
 
 /*
+ * Region-Profile Adaptive (if not define, static seeds are generated)
+ */
+#define GPU_REGION_PROFILE_ADAPTIVE
+
+/*
  * Tiling
  */
 #define GPU_WORDS128_PER_TILE 2

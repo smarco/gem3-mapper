@@ -29,6 +29,7 @@ typedef struct {
   filtering_candidates_t filtering_candidates_reverse_end1; // Filtering Candidates (end/1:R)
   filtering_candidates_t filtering_candidates_forward_end2; // Filtering Candidates (end/2:F)
   filtering_candidates_t filtering_candidates_reverse_end2; // Filtering Candidates (end/2:R)
+  text_collection_t text_collection;                        // Stores text-traces
   mm_stack_t* mm_stack;                                     // MM-Stack
 } search_stage_decode_candidates_t;
 

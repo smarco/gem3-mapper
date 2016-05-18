@@ -11,21 +11,31 @@
 
 #include "utils/essentials.h"
 #include "approximate_search/approximate_search.h"
-#include "gpu/gpu_buffer_fmi_bsearch.h"
+#include "gpu/gpu_buffer_fmi_ssearch.h"
+#include "gpu/gpu_buffer_fmi_asearch.h"
 #include "gpu/gpu_buffer_fmi_decode.h"
 #include "gpu/gpu_buffer_align_bpm.h"
 
 /*
  * AM Stepwise :: Region Profile
  */
-void approximate_search_stepwise_region_profile_generate_static(approximate_search_t* const search);
-void approximate_search_stepwise_region_profile_generate_adaptive(approximate_search_t* const search);
-void approximate_search_stepwise_region_profile_copy(
+void approximate_search_stepwise_region_profile_static_generate(
+    approximate_search_t* const search);
+void approximate_search_stepwise_region_profile_static_copy(
     approximate_search_t* const search,
-    gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
-void approximate_search_stepwise_region_profile_retrieve(
+    gpu_buffer_fmi_ssearch_t* const gpu_buffer_fmi_ssearch);
+void approximate_search_stepwise_region_profile_static_retrieve(
     approximate_search_t* const search,
-    gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
+    gpu_buffer_fmi_ssearch_t* const gpu_buffer_fmi_ssearch);
+
+void approximate_search_stepwise_region_profile_adaptive_generate(
+    approximate_search_t* const search);
+void approximate_search_stepwise_region_profile_adaptive_copy(
+    approximate_search_t* const search,
+    gpu_buffer_fmi_asearch_t* const gpu_buffer_fmi_asearch);
+void approximate_search_stepwise_region_profile_adaptive_retrieve(
+    approximate_search_t* const search,
+    gpu_buffer_fmi_asearch_t* const gpu_buffer_fmi_asearch);
 
 /*
  * AM Stepwise :: Decode Candidates

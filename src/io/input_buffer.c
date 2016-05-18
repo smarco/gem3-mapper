@@ -47,18 +47,30 @@ void input_buffer_annotate_lines(input_buffer_t* const input_buffer) {
   // Traverse buffer & annotate line offsets
   const uint64_t buffer_size = input_buffer->buffer_size;
   const char* const buffer = input_buffer->buffer;
-  uint32_t i, offset = 0;
-  for (i=0;i<buffer_size;++i) {
-    const char current_char = buffer[i];
-    if (gem_expect_false(current_char==EOL)) {
-      vector_insert(line_lengths,offset+1,uint32_t);
-      offset = 0;
-    } else {
-      ++offset;
-    }
+  // Implementation based on memchr (better for large lines)
+  const char* sentinel = buffer;
+  const char* last_sentinel = buffer;
+  const char* const end = sentinel + buffer_size;
+  while ((sentinel = memchr(sentinel,EOL,end-sentinel))) {
+    ++sentinel;
+    vector_insert(line_lengths,sentinel-last_sentinel,uint32_t);
+    last_sentinel = sentinel;
   }
   // Insert the length of the remaining chars
-  vector_insert(line_lengths,offset,uint32_t);
+  vector_insert(line_lengths,end-last_sentinel,uint32_t);
+  //  // Implementation based on pure counting (better for short lines)
+  //  uint32_t i, offset = 0;
+  //  for (i=0;i<buffer_size;++i) {
+  //    const char current_char = buffer[i];
+  //    if (gem_expect_false(current_char==EOL)) {
+  //      vector_insert(line_lengths,offset+1,uint32_t);
+  //      offset = 0;
+  //    } else {
+  //      ++offset;
+  //    }
+  //  }
+  //  // Insert the length of the remaining chars
+  //  vector_insert(line_lengths,offset,uint32_t);
 }
 uint64_t input_buffer_get_num_lines(input_buffer_t* const input_buffer) {
   return vector_get_used(input_buffer->line_lengths)-1;

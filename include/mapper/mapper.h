@@ -65,10 +65,6 @@ typedef struct {
   char* tmp_folder;
 } mapper_parameters_system_t;
 /* CUDA settings */
-typedef enum {
-  mapper_cuda_region_profile_adaptive,
-  mapper_cuda_region_profile_fixed,
-} mapper_cuda_region_profile_algorithm;
 typedef struct {
   /* CUDA */
   bool cuda_enabled;
@@ -84,7 +80,6 @@ typedef struct {
   uint64_t num_bpm_buffers;              // Number of BPM buffers per thread
   /* Stages Configuration */
   bool cpu_emulation;
-  mapper_cuda_region_profile_algorithm region_profile_algorithm; // Region-Profile Algorithm
 } mapper_parameters_cuda_t;
 /* Hints */
 //typedef struct {
@@ -185,22 +180,22 @@ void mapper_load_index(mapper_parameters_t* const parameters);
 /*
  * Input (Low-level)
  */
-void mapper_SE_prepare_io_buffers(
+void mapper_se_prepare_io_buffers(
     const mapper_parameters_t* const parameters,
     const uint64_t input_buffer_lines,
     buffered_input_file_t** const buffered_fasta_input,
     buffered_output_file_t** const buffered_output_file);
-void mapper_PE_prepare_io_buffers(
+void mapper_pe_prepare_io_buffers(
     const mapper_parameters_t* const parameters,
     const uint64_t input_buffer_lines,
     buffered_input_file_t** const buffered_fasta_input_end1,
     buffered_input_file_t** const buffered_fasta_input_end2,
     buffered_output_file_t** const buffered_output_file);
-uint64_t mapper_PE_reload_buffers(
+uint64_t mapper_pe_reload_buffers(
     mapper_parameters_t* const parameters,
     buffered_input_file_t* const buffered_fasta_input_end1,
     buffered_input_file_t* const buffered_fasta_input_end2);
-error_code_t mapper_PE_parse_paired_sequences(
+error_code_t mapper_pe_parse_paired_sequences(
     const mapper_parameters_t* const parameters,
     buffered_input_file_t* const buffered_fasta_input_end1,
     buffered_input_file_t* const buffered_fasta_input_end2,
@@ -210,18 +205,18 @@ error_code_t mapper_PE_parse_paired_sequences(
 /*
  * Input (High-level)
  */
-error_code_t mapper_SE_read_single_sequence(mapper_search_t* const mapper_search);
-error_code_t mapper_PE_read_paired_sequences(mapper_search_t* const mapper_search);
+error_code_t mapper_se_read_single_sequence(mapper_search_t* const mapper_search);
+error_code_t mapper_pe_read_paired_sequences(mapper_search_t* const mapper_search);
 
 /*
  * Output
  */
-void mapper_SE_output_matches(
+void mapper_se_output_matches(
     mapper_parameters_t* const parameters,
     buffered_output_file_t* const buffered_output_file,
     archive_search_t* const archive_search,
     matches_t* const matches,mapping_stats_t* mstats);
-void mapper_PE_output_matches(
+void mapper_pe_output_matches(
     mapper_parameters_t* const parameters,
     buffered_output_file_t* const buffered_output_file,
     archive_search_t* const archive_search_end1,
@@ -232,11 +227,11 @@ void mapper_PE_output_matches(
 /*
  * SE Mapper
  */
-void mapper_SE_run(mapper_parameters_t* const mapper_parameters);
+void mapper_se_run(mapper_parameters_t* const mapper_parameters);
 
 /*
  * PE Mapper
  */
-void mapper_PE_run(mapper_parameters_t* const mapper_parameters);
+void mapper_pe_run(mapper_parameters_t* const mapper_parameters);
 
 #endif /* MAPPER_H_ */

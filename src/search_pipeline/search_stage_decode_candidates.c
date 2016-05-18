@@ -60,6 +60,7 @@ search_stage_decode_candidates_t* search_stage_decode_candidates_new(
   filtering_candidates_init(&search_stage_dc->filtering_candidates_reverse_end1);
   filtering_candidates_init(&search_stage_dc->filtering_candidates_forward_end2);
   filtering_candidates_init(&search_stage_dc->filtering_candidates_reverse_end2);
+  text_collection_init(&search_stage_dc->text_collection);
   search_stage_dc->mm_stack = mm_stack;
   // Return
   return search_stage_dc;
@@ -70,10 +71,11 @@ void search_stage_decode_candidates_prepare_se_search(
   // Clear & Inject Support Data Structures
   filtering_candidates_clear(&search_stage_dc->filtering_candidates_forward_end1);
   filtering_candidates_clear(&search_stage_dc->filtering_candidates_reverse_end1);
+  text_collection_clear(&search_stage_dc->text_collection);
   archive_search_inject_filtering_candidates(archive_search,
       &search_stage_dc->filtering_candidates_forward_end1,
       &search_stage_dc->filtering_candidates_reverse_end1,
-      NULL, /* Not needed for decoding */
+      &search_stage_dc->text_collection,
       search_stage_dc->mm_stack);
 }
 void search_stage_decode_candidates_prepare_pe_search(
@@ -127,6 +129,7 @@ void search_stage_decode_candidates_delete(
   filtering_candidates_destroy(&search_stage_dc->filtering_candidates_reverse_end1);
   filtering_candidates_destroy(&search_stage_dc->filtering_candidates_forward_end2);
   filtering_candidates_destroy(&search_stage_dc->filtering_candidates_reverse_end2);
+  text_collection_destroy(&search_stage_dc->text_collection);
   // Free handler
   mm_free(search_stage_dc);
 }
@@ -277,10 +280,11 @@ bool search_stage_decode_candidates_retrieve_pe_search(
   // Clear & Inject Support Data Structures (End/1)
   filtering_candidates_clear(&search_stage_dc->filtering_candidates_forward_end1);
   filtering_candidates_clear(&search_stage_dc->filtering_candidates_reverse_end1);
+  text_collection_clear(&search_stage_dc->text_collection);
   archive_search_inject_filtering_candidates(*archive_search_end1,
       &search_stage_dc->filtering_candidates_forward_end1,
       &search_stage_dc->filtering_candidates_reverse_end1,
-      NULL, /* Not needed for decoding */
+      &search_stage_dc->text_collection,
       search_stage_dc->mm_stack);
   // Retrieve candidate-positions (decoded) from the buffer (End/1)
   archive_search_se_stepwise_decode_candidates_retrieve(*archive_search_end1,current_buffer->gpu_buffer_fmi_decode);
@@ -293,10 +297,11 @@ bool search_stage_decode_candidates_retrieve_pe_search(
   // Clear & Inject Support Data Structures (End/2)
   filtering_candidates_clear(&search_stage_dc->filtering_candidates_forward_end2);
   filtering_candidates_clear(&search_stage_dc->filtering_candidates_reverse_end2);
+  text_collection_clear(&search_stage_dc->text_collection);
   archive_search_inject_filtering_candidates(*archive_search_end2,
       &search_stage_dc->filtering_candidates_forward_end2,
       &search_stage_dc->filtering_candidates_reverse_end2,
-      NULL, /* Not needed for decoding */
+      &search_stage_dc->text_collection,
       search_stage_dc->mm_stack);
   // Retrieve candidate-positions (decoded) from the buffer (End/2)
   archive_search_se_stepwise_decode_candidates_retrieve(*archive_search_end2,current_buffer->gpu_buffer_fmi_decode);

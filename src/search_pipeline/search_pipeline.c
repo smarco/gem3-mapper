@@ -23,7 +23,7 @@ search_pipeline_t* search_pipeline_new(
   fm_index_t* const fm_index = archive->fm_index;
   const bool cpu_emulation = cuda->cpu_emulation;
   // Alloc
-  search_pipeline_t* search_pipeline = mm_alloc(search_pipeline_t);
+  search_pipeline_t* const search_pipeline = mm_alloc(search_pipeline_t);
   // Allocate archive-search cache
   search_pipeline->archive_search_cache =
       archive_search_cache_new(archive,&mapper_parameters->search_parameters);
@@ -35,8 +35,11 @@ search_pipeline_t* search_pipeline_new(
   // Allocate pipeline-stage region-profile
   uint64_t acc_buffers_offset = buffers_offset;
   const bool region_profile_enabled = gpu_buffer_collection->gpu_region_profile_available && !cpu_emulation;
+  region_profile_model_t* const profile_model = &mapper_parameters->search_parameters.rp_lightweight;
   search_pipeline->stage_region_profile = search_stage_region_profile_new(gpu_buffer_collection,
-      acc_buffers_offset,cuda->num_fmi_bsearch_buffers,region_profile_enabled);
+      acc_buffers_offset,cuda->num_fmi_bsearch_buffers,region_profile_enabled,
+      (uint32_t)profile_model->region_th,(uint32_t)profile_model->max_steps,
+      (uint32_t)profile_model->dec_factor);
   acc_buffers_offset += cuda->num_fmi_bsearch_buffers;
   // Allocate pipeline-stage decode-candidates
   sampled_sa_t* const sampled_sa = fm_index->sampled_sa;

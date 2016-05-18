@@ -266,7 +266,6 @@ option_t gem_mapper_options[] = {
 #ifdef HAVE_CUDA
   { 1200, "cuda", OPTIONAL, TYPE_STRING, 12, VISIBILITY_USER, "", "(default=disabled)"},
   { 1201, "cuda-buffers-model", REQUIRED, TYPE_STRING, 12, VISIBILITY_DEVELOPER, "<#BufferSearch,#BufferDecode,#BufferVerify,BufferSize>" , "(default=2,3,3,1M)" },
-  { 1202, "cuda-region-profile", OPTIONAL, TYPE_STRING, 12, VISIBILITY_USER, "'adaptive'|'fixed'", "(default=adaptive)"},
 #endif /* HAVE_CUDA */
   /* Presets/Hints */
   /* Debug */
@@ -857,17 +856,6 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
           "Option '--cuda-buffers-model'. Error parsing 'buffer_size'");
       break;
     }
-    case 1202: // --cuda-region-profile in {'adaptive'|'fixed'} (default=adaptive)
-      if (!gpu_supported()) GEM_CUDA_NOT_SUPPORTED();
-      parameters->cuda.cuda_enabled = true;
-      if (gem_strcaseeq(optarg,"adaptive")) {
-        parameters->cuda.region_profile_algorithm = mapper_cuda_region_profile_adaptive;
-      } else if (gem_strcaseeq(optarg,"fixed") || gem_strcaseeq(optarg,"static")) {
-        parameters->cuda.region_profile_algorithm = mapper_cuda_region_profile_fixed;
-      } else {
-        gem_mapper_error_msg("Option '--cuda-region-profile' must be 'adaptive'|'fixed'");
-      }
-      break;
     /* Presets/Hints */
     /* Debug */
     case 'c': { // --check-alignments in {'correct'|'best'|'complete'}
@@ -1029,7 +1017,7 @@ int main(int argc,char** argv) {
   TIMER_STOP(&parameters.loading_time);
 
   // Initialize Statistics Report
-  if(parameters.io.report_file_name) {
+  if (parameters.io.report_file_name) {
     parameters.global_mapping_stats = mm_alloc(mapping_stats_t);
   }
 
@@ -1037,10 +1025,10 @@ int main(int argc,char** argv) {
   if (!cuda->cuda_enabled) {
     switch (parameters.mapper_type) {
       case mapper_se:
-        mapper_SE_run(&parameters);
+        mapper_se_run(&parameters);
         break;
       case mapper_pe:
-        mapper_PE_run(&parameters);
+        mapper_pe_run(&parameters);
         break;
       default:
         GEM_INVALID_CASE();

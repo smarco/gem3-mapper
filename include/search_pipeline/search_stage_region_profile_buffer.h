@@ -12,15 +12,21 @@
 #include "utils/essentials.h"
 #include "archive/archive_search.h"
 #include "archive/archive_search_cache.h"
-#include "gpu/gpu_buffer_fmi_bsearch.h"
+#include "gpu/gpu_buffer_fmi_asearch.h"
+#include "gpu/gpu_buffer_fmi_ssearch.h"
 
 /*
  * Search-Stage Region Profile Buffer
  */
 typedef struct {
-  gpu_buffer_fmi_search_t* gpu_buffer_fmi_search; // GPU-BPM-Buffer
-  vector_t* archive_searches;                     // Vector of archive-searches (archive_search_t*)
+#ifdef GPU_REGION_PROFILE_ADAPTIVE
+  gpu_buffer_fmi_asearch_t* gpu_buffer_fmi_asearch; // GPU FMI-Static-Adaptive Buffer
+#else
+  gpu_buffer_fmi_ssearch_t* gpu_buffer_fmi_ssearch; // GPU FMI-Static-Search Buffer
+#endif
+  vector_t* archive_searches;                       // Vector of archive-searches (archive_search_t*)
 } search_stage_region_profile_buffer_t;
+
 
 /*
  * Setup
@@ -28,7 +34,10 @@ typedef struct {
 search_stage_region_profile_buffer_t* search_stage_region_profile_buffer_new(
     const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffer_no,
-    const bool region_profile_enabled);
+    const bool region_profile_enabled,
+    const uint32_t occ_min_threshold,
+    const uint32_t extra_search_steps,
+    const uint32_t alphabet_size);
 void search_stage_region_profile_buffer_clear(
     search_stage_region_profile_buffer_t* const region_profile_buffer,
     archive_search_cache_t* const archive_search_cache);

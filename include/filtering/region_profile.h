@@ -16,6 +16,7 @@
  * Constants
  */
 #define REGION_MAX_LENGTH_PL_FACTOR 2.0
+#define REGION_MAX_REGIONS_FACTOR   10
 
 // Degree to filter region
 #define REGION_FILTER_NONE        0

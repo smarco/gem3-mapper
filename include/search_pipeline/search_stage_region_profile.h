@@ -32,7 +32,10 @@ search_stage_region_profile_t* search_stage_region_profile_new(
     const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffers_offset,
     const uint64_t num_buffers,
-    const bool region_profile_enabled);
+    const bool region_profile_enabled,
+    const uint32_t occ_min_threshold,
+    const uint32_t extra_search_steps,
+    const uint32_t alphabet_size);
 void search_stage_region_profile_clear(
     search_stage_region_profile_t* const search_stage_rp,
     archive_search_cache_t* const archive_search_cache);

@@ -81,7 +81,11 @@ void mapper_se_cuda_region_profile(mapper_cuda_search_t* const mapper_search) {
     if (bisulfite_index) mapper_bisulfite_process_sequence_se(archive_search,&parameters->search_parameters);
     // Generate Candidates (Search into the archive)
     archive_search_se_stepwise_init_search(archive_search);
-    archive_search_se_stepwise_region_profile_generate_static(archive_search);
+#ifdef GPU_REGION_PROFILE_ADAPTIVE
+    archive_search_se_stepwise_region_profile_adaptive_generate(archive_search);
+#else
+    archive_search_se_stepwise_region_profile_static_generate(archive_search);
+#endif
     // Send search to GPU region-profile
     const bool search_sent = search_stage_region_profile_send_se_search(stage_region_profile,archive_search);
     if (!search_sent) {
@@ -127,51 +131,6 @@ void mapper_se_cuda_decode_candidates(mapper_cuda_search_t* const mapper_search)
   PROFILE_STOP(GP_MAPPER_CUDA_SE_DECODE_CANDIDATES,PROFILE_LEVEL);
 }
 /*
- * Generate Candidates (until all buffers are filled or input-block exhausted)
- *   Read from input-block,
- *   Generate region-profile partition (adaptive) + decode-candidates
- *   Send to CUDA Decode-Candidates
- */
-void mapper_se_cuda_generate_candidates(mapper_cuda_search_t* const mapper_search) {
-  PROFILE_START(GP_MAPPER_CUDA_SE_DECODE_CANDIDATES,PROFILE_LEVEL);
-  // Parameters
-  mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
-  const bool bisulfite_index = (parameters->archive->type == archive_dna_bisulfite);
-  search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
-  search_stage_decode_candidates_t* const stage_decode_candidates = search_pipeline->stage_decode_candidates;
-  archive_search_t* archive_search = NULL;
-  // Reschedule search (that couldn't fit into the buffer)
-  if (mapper_search->pending_search_decode_candidates_end1!=NULL) {
-    search_stage_decode_candidates_send_se_search(
-        stage_decode_candidates,mapper_search->pending_search_decode_candidates_end1);
-    mapper_search->pending_search_decode_candidates_end1 = NULL;
-  }
-  // Generation. Keep processing the current input-block
-  while (!buffered_input_file_eob(mapper_search->buffered_fasta_input_end1)) {
-    // Request a clean archive-search
-    search_pipeline_allocate_se(search_pipeline,&archive_search);
-    search_stage_decode_candidates_prepare_se_search(stage_decode_candidates,archive_search);
-    // Parse Sequence
-    const error_code_t error_code = input_fasta_parse_sequence(
-        mapper_search->buffered_fasta_input_end1,archive_search_get_sequence(archive_search),
-        parameters->io.fastq_strictly_normalized,false);
-    gem_cond_fatal_error(error_code==INPUT_STATUS_FAIL,MAPPER_CUDA_ERROR_PARSING);
-    PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
-    // Bisulfite: Fully convert reads before searching into archive, making a copy of the original
-    if (bisulfite_index) mapper_bisulfite_process_sequence_se(archive_search,&parameters->search_parameters);
-    // Generate Candidates (Search into the archive)
-    archive_search_se_stepwise_init_search(archive_search);
-    archive_search_se_stepwise_region_profile_generate_adaptive(archive_search);
-    // Send search to GPU region-profile
-    const bool search_sent = search_stage_decode_candidates_send_se_search(stage_decode_candidates,archive_search);
-    if (!search_sent) {
-      mapper_search->pending_search_decode_candidates_end1 = archive_search; // Pending Search
-      break;
-    }
-  }
-  PROFILE_STOP(GP_MAPPER_CUDA_SE_DECODE_CANDIDATES,PROFILE_LEVEL);
-}
-/*
  * Verify Candidates (until all buffers are filled or stage Decode-Candidates exhausted)
  *   Read from stage Decode-Candidates
  *   Generate Verify-Candidates
@@ -193,8 +152,6 @@ void mapper_se_cuda_verify_candidates(mapper_cuda_search_t* const mapper_search)
   // Read from stage Decode-Candidates,
   bool pending_searches;
   while ((pending_searches=search_stage_decode_candidates_retrieve_se_search(stage_decode_candidates,&archive_search))) {
-    // Generate Verify-Candidates
-    // /* NOP */ archive_search_se_stepwise_verify_candidates_generate(archive_search);
     // Send to CUDA Verify-Candidates
     const bool search_sent = search_stage_verify_candidates_send_se_search(stage_verify_candidates,archive_search);
     if (!search_sent) {
@@ -229,7 +186,7 @@ void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_search) {
     // Bisulfite: Copy back original read
     if (bisulfite_index) mapper_bisulfite_restore_sequence_se(archive_search);
     // Output Matches
-    mapper_SE_output_matches(parameters,mapper_search->buffered_output_file,
+    mapper_se_output_matches(parameters,mapper_search->buffered_output_file,
         archive_search,stage_verify_candidates->matches,mapper_search->mapping_stats);
     // Update processed
     if (++mapper_search->reads_processed == MAPPER_TICKER_STEP) {
@@ -244,7 +201,7 @@ void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_search) {
 /*
  * Mapper SE-CUDA
  */
-void mapper_cuda_se_thread_fixed(
+void mapper_cuda_se_thread_pipeline(
     mapper_cuda_search_t* const mapper_search,
     mm_stack_t* const mm_stack) {
   while (!mapper_se_cuda_stage_read_input_sequences_exhausted(mapper_search)) {
@@ -268,24 +225,6 @@ void mapper_cuda_se_thread_fixed(
     mm_stack_pop_state(mm_stack);
   }
 }
-void mapper_cuda_se_thread_adaptive(
-    mapper_cuda_search_t* const mapper_search,
-    mm_stack_t* const mm_stack) {
-  while (!mapper_se_cuda_stage_read_input_sequences_exhausted(mapper_search)) {
-    // Decode Candidates
-    mapper_se_cuda_generate_candidates(mapper_search);
-    mm_stack_push_state(mm_stack);
-    do {
-      // Verify Candidates
-      mapper_se_cuda_verify_candidates(mapper_search);
-      // Finish Search
-      mm_stack_push_state(mm_stack);
-      mapper_se_cuda_finish_search(mapper_search);
-      mm_stack_pop_state(mm_stack);
-    } while (!mapper_se_cuda_stage_decode_candidates_output_exhausted(mapper_search));
-    mm_stack_pop_state(mm_stack);
-  }
-}
 void* mapper_cuda_se_thread(mapper_cuda_search_t* const mapper_search) {
   // GEM-thread error handler
   gem_thread_register_id(mapper_search->thread_id+1);
@@ -294,7 +233,7 @@ void* mapper_cuda_se_thread(mapper_cuda_search_t* const mapper_search) {
   mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
   const mapper_parameters_cuda_t* const cuda_parameters = &parameters->cuda;
   // Create new buffered reader/writer
-  mapper_SE_prepare_io_buffers(parameters,cuda_parameters->input_buffer_size,
+  mapper_se_prepare_io_buffers(parameters,cuda_parameters->input_buffer_size,
       &mapper_search->buffered_fasta_input_end1,&mapper_search->buffered_output_file);
   // Create search-pipeline & initialize matches
   mapper_search->search_pipeline = search_pipeline_new(parameters,
@@ -305,17 +244,7 @@ void* mapper_cuda_se_thread(mapper_cuda_search_t* const mapper_search) {
   // FASTA/FASTQ reading loop
   mm_stack_t* const mm_stack = mapper_search->search_pipeline->mm_stack;
   mapper_search->reads_processed = 0;
-  switch (cuda_parameters->region_profile_algorithm) {
-    case mapper_cuda_region_profile_fixed:
-      mapper_cuda_se_thread_fixed(mapper_search,mm_stack);
-      break;
-    case mapper_cuda_region_profile_adaptive:
-      mapper_cuda_se_thread_adaptive(mapper_search,mm_stack);
-      break;
-    default:
-      GEM_INVALID_CASE();
-      break;
-  }
+  mapper_cuda_se_thread_pipeline(mapper_search,mm_stack);
   // Clean up
   ticker_update_mutex(mapper_search->ticker,mapper_search->reads_processed); // Update processed
   search_pipeline_delete(mapper_search->search_pipeline);

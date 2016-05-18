@@ -38,7 +38,10 @@ search_stage_region_profile_t* search_stage_region_profile_new(
     const gpu_buffer_collection_t* const gpu_buffer_collection,
     const uint64_t buffers_offset,
     const uint64_t num_buffers,
-    const bool region_profile_enabled) {
+    const bool region_profile_enabled,
+    const uint32_t occ_min_threshold,
+    const uint32_t extra_search_steps,
+    const uint32_t alphabet_size) {
   // Alloc
   search_stage_region_profile_t* const search_stage_rp = mm_alloc(search_stage_region_profile_t);
   // Init Buffers
@@ -46,7 +49,9 @@ search_stage_region_profile_t* search_stage_region_profile_new(
   search_stage_rp->buffers = vector_new(num_buffers,search_stage_region_profile_buffer_t*);
   for (i=0;i<num_buffers;++i) {
     search_stage_region_profile_buffer_t* const buffer_vc =
-        search_stage_region_profile_buffer_new(gpu_buffer_collection,buffers_offset+i,region_profile_enabled);
+        search_stage_region_profile_buffer_new(
+            gpu_buffer_collection,buffers_offset+i,region_profile_enabled,
+            occ_min_threshold,extra_search_steps,alphabet_size);
     vector_insert(search_stage_rp->buffers,buffer_vc,search_stage_region_profile_buffer_t*);
   }
   search_stage_rp->iterator.num_buffers = num_buffers;
@@ -105,7 +110,11 @@ bool search_stage_region_profile_send_se_search(
   // Add SE Search
   search_stage_region_profile_buffer_add(current_buffer,archive_search);
   // Copy profile-partitions to the buffer
-  archive_search_se_stepwise_region_profile_copy(archive_search,current_buffer->gpu_buffer_fmi_search);
+#ifdef GPU_REGION_PROFILE_ADAPTIVE
+  archive_search_se_stepwise_region_profile_adaptive_copy(archive_search,current_buffer->gpu_buffer_fmi_asearch);
+#else
+  archive_search_se_stepwise_region_profile_static_copy(archive_search,current_buffer->gpu_buffer_fmi_ssearch);
+#endif
   // Return ok
   return true;
 }
@@ -132,9 +141,15 @@ bool search_stage_region_profile_send_pe_search(
   search_stage_region_profile_buffer_add(current_buffer,archive_search_end1);
   search_stage_region_profile_buffer_add(current_buffer,archive_search_end2);
   // Copy profile-partitions to the buffer
-  gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search = current_buffer->gpu_buffer_fmi_search;
-  archive_search_se_stepwise_region_profile_copy(archive_search_end1,gpu_buffer_fmi_search);
-  archive_search_se_stepwise_region_profile_copy(archive_search_end2,gpu_buffer_fmi_search);
+#ifdef GPU_REGION_PROFILE_ADAPTIVE
+  gpu_buffer_fmi_asearch_t* const gpu_buffer_fmi_asearch = current_buffer->gpu_buffer_fmi_asearch;
+  archive_search_se_stepwise_region_profile_adaptive_copy(archive_search_end1,gpu_buffer_fmi_asearch);
+  archive_search_se_stepwise_region_profile_adaptive_copy(archive_search_end2,gpu_buffer_fmi_asearch);
+#else
+  gpu_buffer_fmi_ssearch_t* const gpu_buffer_fmi_ssearch = current_buffer->gpu_buffer_fmi_ssearch;
+  archive_search_se_stepwise_region_profile_static_copy(archive_search_end1,gpu_buffer_fmi_ssearch);
+  archive_search_se_stepwise_region_profile_static_copy(archive_search_end2,gpu_buffer_fmi_ssearch);
+#endif
   // Return ok
   return true;
 }
@@ -207,8 +222,13 @@ bool search_stage_region_profile_retrieve_se_search(
   const bool success = search_stage_region_profile_retrieve_next(search_stage_rp,&current_buffer,archive_search);
   if (!success) return false;
   // Retrieve searched profile-partitions from the buffer
-  gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search = current_buffer->gpu_buffer_fmi_search;
-  archive_search_se_stepwise_region_profile_retrieve(*archive_search,gpu_buffer_fmi_search);
+#ifdef GPU_REGION_PROFILE_ADAPTIVE
+  gpu_buffer_fmi_asearch_t* const gpu_buffer_fmi_asearch = current_buffer->gpu_buffer_fmi_asearch;
+  archive_search_se_stepwise_region_profile_adaptive_retrieve(*archive_search,gpu_buffer_fmi_asearch);
+#else
+  gpu_buffer_fmi_ssearch_t* const gpu_buffer_fmi_ssearch = current_buffer->gpu_buffer_fmi_ssearch;
+  archive_search_se_stepwise_region_profile_static_retrieve(*archive_search,gpu_buffer_fmi_ssearch);
+#endif
   // Return
   return true;
 }
@@ -225,7 +245,11 @@ bool search_stage_region_profile_retrieve_pe_search(
   success = search_stage_region_profile_retrieve_next(search_stage_rp,&current_buffer,archive_search_end1);
   if (!success) return false;
   // Retrieve searched profile-partitions from the buffer (End/1)
-  archive_search_se_stepwise_region_profile_retrieve(*archive_search_end1,current_buffer->gpu_buffer_fmi_search);
+#ifdef GPU_REGION_PROFILE_ADAPTIVE
+  archive_search_se_stepwise_region_profile_adaptive_retrieve(*archive_search_end1,current_buffer->gpu_buffer_fmi_asearch);
+#else
+  archive_search_se_stepwise_region_profile_static_retrieve(*archive_search_end1,current_buffer->gpu_buffer_fmi_ssearch);
+#endif
   /*
    * End/2
    */
@@ -233,7 +257,11 @@ bool search_stage_region_profile_retrieve_pe_search(
   success = search_stage_region_profile_retrieve_next(search_stage_rp,&current_buffer,archive_search_end2);
   gem_cond_fatal_error(!success,SEARCH_STAGE_RP_UNPAIRED_QUERY);
   // Retrieve searched profile-partitions from the buffer (End/2)
-  archive_search_se_stepwise_region_profile_retrieve(*archive_search_end2,current_buffer->gpu_buffer_fmi_search);
+#ifdef GPU_REGION_PROFILE_ADAPTIVE
+  archive_search_se_stepwise_region_profile_adaptive_retrieve(*archive_search_end2,current_buffer->gpu_buffer_fmi_asearch);
+#else
+  archive_search_se_stepwise_region_profile_static_retrieve(*archive_search_end2,current_buffer->gpu_buffer_fmi_ssearch);
+#endif
   // Return ok
   return true;
 }

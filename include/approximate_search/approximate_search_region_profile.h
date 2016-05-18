@@ -10,7 +10,8 @@
 #define APPROXIMATE_SEARCH_REGION_PROFILE_H_
 
 #include "approximate_search/approximate_search.h"
-#include "gpu/gpu_buffer_fmi_bsearch.h"
+#include "gpu/gpu_buffer_fmi_ssearch.h"
+#include "gpu/gpu_buffer_fmi_asearch.h"
 
 /*
  * Region profile generation
@@ -37,24 +38,30 @@ void approximate_search_region_profile_adaptive(
 /*
  * Region Partition Fixed
  */
-void approximate_search_region_partition_fixed(approximate_search_t* const search);
+void approximate_search_region_profile_static_partition(approximate_search_t* const search);
+void approximate_search_region_profile_static_compute(
+    approximate_search_t* const search);
 
 /*
- * Buffered Copy/Retrieve
+ * Static Buffered Copy/Retrieve
  */
-void approximate_search_region_profile_buffered_copy(
+void approximate_search_region_profile_static_buffered_copy(
     approximate_search_t* const search,
-    gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
-void approximate_search_region_profile_buffered_retrieve(
+    gpu_buffer_fmi_ssearch_t* const gpu_buffer_fmi_ssearch);
+void approximate_search_region_profile_static_buffered_retrieve(
     approximate_search_t* const search,
-    gpu_buffer_fmi_search_t* const gpu_buffer_fmi_search);
+    gpu_buffer_fmi_ssearch_t* const gpu_buffer_fmi_ssearch);
+void approximate_search_region_profile_static_buffered_recompute(
+    approximate_search_t* const search);
 
 /*
- * Region Partition Compute/Recompute
+ * Adaptive Buffered Copy/Retrieve
  */
-void approximate_search_region_profile_buffered_compute(
-    approximate_search_t* const search);
-void approximate_search_region_profile_buffered_recompute(
-    approximate_search_t* const search);
+void approximate_search_region_profile_adaptive_buffered_copy(
+    approximate_search_t* const search,
+    gpu_buffer_fmi_asearch_t* const gpu_buffer_fmi_asearch);
+void approximate_search_region_profile_adaptive_buffered_retrieve(
+    approximate_search_t* const search,
+    gpu_buffer_fmi_asearch_t* const gpu_buffer_fmi_asearch);
 
 #endif /* APPROXIMATE_SEARCH_REGION_PROFILE_H_ */
