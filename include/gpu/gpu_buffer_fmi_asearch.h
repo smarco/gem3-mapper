@@ -29,7 +29,6 @@ typedef struct {
   uint32_t num_queries;          // Current number of queries
   uint32_t num_bases;            // Current number of bases
   uint32_t num_regions;          // Current number of regions
-  float max_regions;             // Maximum number of regions per query (%)
   /* Profile */
   gem_counter_t query_length;    // Tracks queries' length
   gem_timer_t timer;

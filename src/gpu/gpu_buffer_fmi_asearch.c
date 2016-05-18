@@ -44,14 +44,13 @@ gpu_buffer_fmi_asearch_t* gpu_buffer_fmi_asearch_new(
   gpu_buffer_fmi_asearch->occ_min_threshold = occ_min_threshold;
   gpu_buffer_fmi_asearch->extra_search_steps = extra_search_steps;
   gpu_buffer_fmi_asearch->alphabet_size = alphabet_size;
-  gpu_buffer_fmi_asearch->max_regions = ((float)REGION_MAX_REGIONS_FACTOR)/100.0;
   // Init gpu-buffer
   PROF_START(GP_GPU_BUFFER_FMI_SEARCH_ALLOC);
   gpu_alloc_buffer_(gpu_buffer_fmi_asearch->buffer);
   gpu_fmi_asearch_init_buffer_(
       gpu_buffer_fmi_asearch->buffer,
       gpu_buffer_fmi_asearch_get_mean_query_length(gpu_buffer_fmi_asearch),
-      gpu_buffer_fmi_asearch->max_regions);
+      REGION_MAX_REGIONS_FACTOR);
   PROF_STOP(GP_GPU_BUFFER_FMI_SEARCH_ALLOC);
   // Init Buffer state
   gpu_buffer_fmi_asearch->num_queries = 0;
@@ -68,7 +67,7 @@ void gpu_buffer_fmi_asearch_clear(gpu_buffer_fmi_asearch_t* const gpu_buffer_fmi
   gpu_fmi_asearch_init_buffer_(
       gpu_buffer_fmi_asearch->buffer,
       gpu_buffer_fmi_asearch_get_mean_query_length(gpu_buffer_fmi_asearch),
-      gpu_buffer_fmi_asearch->max_regions);
+      REGION_MAX_REGIONS_FACTOR);
   // Clear Buffer state
   gpu_buffer_fmi_asearch->num_queries = 0;
   gpu_buffer_fmi_asearch->num_bases = 0;
@@ -116,9 +115,8 @@ bool gpu_buffer_fmi_asearch_fits_in_buffer(
       return false; // Leave it to the next fresh buffer
     }
     // Reallocate buffer
-    gpu_fmi_asearch_init_and_realloc_buffer_(
-        gpu_buffer_fmi_asearch->buffer,gpu_buffer_fmi_asearch->max_regions,
-        total_bases,total_queries,total_regions);
+    gpu_fmi_asearch_init_and_realloc_buffer_(gpu_buffer_fmi_asearch->buffer,
+        REGION_MAX_REGIONS_FACTOR,total_bases,total_queries,total_regions);
     // Check reallocated buffer dimensions (error otherwise)
     max_queries = gpu_buffer_fmi_asearch_get_max_queries(gpu_buffer_fmi_asearch);
     gem_cond_fatal_error(total_queries > max_queries,GPU_FMI_ASEARCH_MAX_QUERIES,total_queries,max_queries);
@@ -214,7 +212,8 @@ void gpu_buffer_fmi_asearch_send(gpu_buffer_fmi_asearch_t* const gpu_buffer_fmi_
   // Select computing device
   if (gpu_buffer_fmi_asearch->fmi_search_enabled) {
     if (gpu_buffer_fmi_asearch->num_queries > 0) {
-      gpu_fmi_asearch_send_buffer_(gpu_buffer_fmi_asearch->buffer, gpu_buffer_fmi_asearch->num_queries,
+      gpu_fmi_asearch_send_buffer_(
+          gpu_buffer_fmi_asearch->buffer,gpu_buffer_fmi_asearch->num_queries,
           gpu_buffer_fmi_asearch->num_bases,gpu_buffer_fmi_asearch->num_regions,
           gpu_buffer_fmi_asearch->occ_min_threshold,gpu_buffer_fmi_asearch->extra_search_steps,
           gpu_buffer_fmi_asearch->alphabet_size);

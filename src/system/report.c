@@ -378,7 +378,7 @@ uint64_t calculate_memory_required_v(const char *template,va_list v_args) {
         default:
           // As for the rest, we estimate the memory usage
           // Also we assume an upper bound over the possible formats (int, chars, floats, ...)
-          va_arg(v_args_cpy,int);
+          (void)va_arg(v_args_cpy,int);
           mem_required+=20;
           break;
       }

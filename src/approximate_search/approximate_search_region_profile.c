@@ -387,10 +387,11 @@ void approximate_search_region_profile_adaptive_buffered_retrieve(
         &filtering_region->hi,&filtering_region->lo);
     // Close region
     approximate_search_region_profile_close_region(
-        filtering_region,filtering_threshold,&total_candidates,&num_regions_filtered,
-        &num_zero_regions,&max_region_length,&mappability_p);
+        filtering_region,filtering_threshold,&total_candidates,
+        &num_regions_filtered,&num_zero_regions,&max_region_length,&mappability_p);
   }
   // Close profile
+  region_profile->num_filtering_regions = num_filtering_regions;
   approximate_search_region_profile_close_profile(
       search,num_filtering_regions,num_regions_filtered,
       num_zero_regions,total_candidates,max_region_length,mappability_p);
