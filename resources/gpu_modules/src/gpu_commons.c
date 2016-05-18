@@ -40,4 +40,12 @@ uint32_t gpu_gen_mask(const int32_t shift)
   return(mask);
 }
 
+uint8_t base2log(uint16_t value)
+{
+    uint8_t result = 0;
+    while (value >>= 1)
+        result++;
+    return(result);
+}
+
 #endif /* GPU_COMMONS_C_ */

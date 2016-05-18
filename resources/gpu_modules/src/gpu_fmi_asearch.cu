@@ -48,9 +48,14 @@ GPU_INLINE __device__ void advance_step_LF_mapping(const gpu_fmi_device_entry_t*
 
 }
 
+#define GPU_FMI_STEPS             4
+#define GPU_FMI_OCC_THRESHOLD     20  //Min number of regions per seed
+
 void __global__ gpu_fmi_asearch_kernel(const gpu_fmi_device_entry_t* const fmi, const uint64_t bwtSize,
                                        const char* const queries, const uint2* const queryInfo, const uint32_t numQueries,
-                                       uint2* const regions, ulonglong2* const regIntervals, uint2* const regOffset)
+                                       uint2* const regions, ulonglong2* const regIntervals, uint2* const regOffset,
+                                       const uint32_t maxExtraSteps, const uint32_t occThreshold, const uint32_t occShrinkFactor,
+                                       const uint32_t maxRegionsFactor)
 {
   // Thread group-scheduling initializations
   const uint32_t globalThreadIdx     = gpu_get_thread_idx();
@@ -68,7 +73,7 @@ void __global__ gpu_fmi_asearch_kernel(const gpu_fmi_device_entry_t* const fmi, 
     __shared__ gpu_fmi_exch_bmp_mem_t   exchBMP[GPU_FMI_ENTRIES_PER_BLOCK];
                gpu_fmi_exch_bmp_mem_t * const seedExchBMP = &exchBMP[threadIdx.x / GPU_FMI_THREADS_PER_ENTRY];
 
-    const uint32_t maxRegions = GPU_DIV_CEIL(querySize, GPU_FMI_RATIO_REGIONS);
+    const uint32_t maxRegions = GPU_MAX(GPU_DIV_CEIL(querySize, maxRegionsFactor), GPU_FMI_MIN_REGIONS);
           uint32_t idBase = 0, idRegion = 0;
     //Extracts and locates each seed
     while ((idBase < querySize) && (idRegion < maxRegions)){
@@ -78,7 +83,7 @@ void __global__ gpu_fmi_asearch_kernel(const gpu_fmi_device_entry_t* const fmi, 
       uint32_t bit0, bit1;
       bool     foundN = false;
       //Searching for the next seed
-      while((occ > GPU_FMI_OCC_THRESHOLD) && (idBase && querySize) && !foundN){
+      while((occ > occThreshold) && (idBase && querySize) && !foundN){
         // Gathering the base of the seed
         get_base(LDG(query - idBase), &bit0, &bit1, &foundN);
         if(!foundN) advance_step_LF_mapping(fmi, bit0, bit1, &L, &R, seedExchBMP);
@@ -86,26 +91,26 @@ void __global__ gpu_fmi_asearch_kernel(const gpu_fmi_device_entry_t* const fmi, 
         occ = R - L;
       }
       //Evaluate current seed (discard or continue exploration)
-      if(occ < GPU_FMI_OCC_THRESHOLD){
+      if(occ < occThreshold){
         uint64_t endL = L, endR = R;
         endBase = idBase;
         if(!foundN){
           // Extension initialization
-          uint32_t newThreshold = occ >> GPU_FMI_D, idStep = 0;
+          uint32_t shrinkOccThreshold = occ >> occShrinkFactor, idStep = 0;
           //Last steps extension (exploration for consecutive 4 bases)
-          while((idBase < querySize) && (occ != 0) && (idStep < GPU_FMI_STEPS) && !foundN){
+          while((idBase < querySize) && (occ != 0) && (idStep < maxExtraSteps) && !foundN){
             // Gathering the base of the seed
             get_base(LDG(query - idBase), &bit0, &bit1, &foundN);
             if(!foundN) advance_step_LF_mapping(fmi, bit0, bit1, &L, &R, seedExchBMP);
             // Update seed information
             occ = R - L;
-            if((occ <= newThreshold) && (occ != 0)){
+            if((occ <= shrinkOccThreshold) && (occ != 0)){
               endL = L; endR = R;
               endBase = idBase;
-              newThreshold = occ;
+              shrinkOccThreshold = occ;
             }
             // Move to next base
-            newThreshold >>= GPU_FMI_D;
+            shrinkOccThreshold >>= occShrinkFactor;
             idBase++; idStep++;
           }
         }
@@ -128,9 +133,15 @@ gpu_error_t gpu_fmi_asearch_launch_kernel(const gpu_fmi_device_entry_t* const d_
                                           const char* const d_queries, const uint2* const d_queryInfo, const uint32_t numQueries,
                                           uint2* const d_regions, ulonglong2* const d_regIntervals, uint2* const d_regOffset)
 {
+  //GPU thread configuration
   const uint32_t threads = 128;
   const uint32_t blocks  = GPU_DIV_CEIL(numQueries * GPU_FMI_THREADS_PER_QUERY, threads);
   const uint32_t nreps   = 10;
+  //Search configuration
+  const uint32_t occShrinkFactor  =  GPU_FMI_D;
+  const uint32_t occThreshold     =  GPU_FMI_OCC_THRESHOLD;
+  const uint32_t maxExtraSteps    =  GPU_FMI_STEPS;
+  const uint32_t maxRegionsFactor =  GPU_FMI_RATIO_REGIONS;
 
   float elapsed_time_ms = 0.0f;
   cudaEvent_t start, stop;
@@ -140,7 +151,8 @@ gpu_error_t gpu_fmi_asearch_launch_kernel(const gpu_fmi_device_entry_t* const d_
 
     for(uint32_t iteration = 0; iteration < nreps; ++iteration)
       gpu_fmi_asearch_kernel<<<blocks,threads>>>(d_fmi, bwtSize, d_queries, d_queryInfo, numQueries,
-                                                 d_regions, d_regIntervals, d_regOffset);
+                                                 d_regions, d_regIntervals, d_regOffset,
+                                                 maxExtraSteps, occThreshold, occShrinkFactor, maxRegionsFactor);
 
   cudaEventRecord(stop, 0);
   cudaThreadSynchronize();
@@ -158,18 +170,23 @@ extern "C"
 gpu_error_t gpu_fmi_asearch_process_buffer(gpu_buffer_t* const mBuff)
 {
   // Getting internal buffers
-  const gpu_index_buffer_t* const           index         =  mBuff->index;
-  const gpu_fmi_asearch_queries_buffer_t*   queries       = &mBuff->data.asearch.queries;
-  const gpu_fmi_asearch_regions_buffer_t*   regions       = &mBuff->data.asearch.regions;
+  const gpu_index_buffer_t* const           index            =  mBuff->index;
+  const gpu_fmi_asearch_queries_buffer_t*   queries          = &mBuff->data.asearch.queries;
+  const gpu_fmi_asearch_regions_buffer_t*   regions          = &mBuff->data.asearch.regions;
   // Getting buffer sizes
-  const uint32_t                            numQueries    =  mBuff->data.asearch.queries.numQueries;
-  const uint32_t                            numMaxQueries =  mBuff->data.asearch.numMaxQueries;
-  const uint32_t                            numBases      =  mBuff->data.asearch.queries.numBases;
-  const uint32_t                            numMaxBases   =  mBuff->data.asearch.numMaxBases;
+  const uint32_t                            numQueries       =  mBuff->data.asearch.queries.numQueries;
+  const uint32_t                            numMaxQueries    =  mBuff->data.asearch.numMaxQueries;
+  const uint32_t                            numBases         =  mBuff->data.asearch.queries.numBases;
+  const uint32_t                            numMaxBases      =  mBuff->data.asearch.numMaxBases;
   // Getting device information
-  const cudaStream_t                        idStream      =  mBuff->idStream;
-  const uint32_t                            idSupDev      =  mBuff->idSupportedDevice;
-  const gpu_device_info_t* const            device        =  mBuff->device[idSupDev];
+  const cudaStream_t                        idStream         =  mBuff->idStream;
+  const uint32_t                            idSupDev         =  mBuff->idSupportedDevice;
+  const gpu_device_info_t* const            device           =  mBuff->device[idSupDev];
+  //Search configuration
+  const uint32_t                            occShrinkFactor  =  BASE2LOG(mBuff->data.asearch.alphabetSize);
+  const uint32_t                            occThreshold     =  mBuff->data.asearch.occMinThreshold;
+  const uint32_t                            maxExtraSteps    =  mBuff->data.asearch.extraSteps;
+  const uint32_t                            maxRegionsFactor =  mBuff->data.asearch.maxRegionsFactor;
 
   dim3 blocksPerGrid, threadsPerBlock;
   const uint32_t numThreads = numQueries * GPU_FMI_THREADS_PER_QUERY;
@@ -180,7 +197,8 @@ gpu_error_t gpu_fmi_asearch_process_buffer(gpu_buffer_t* const mBuff)
 
   gpu_fmi_asearch_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_fmi_device_entry_t*) index->fmi.d_fmi[idSupDev], index->fmi.bwtSize,
                                                                           (char*) queries->d_queries, (uint2*) queries->d_queryInfo, numQueries,
-                                                                          (uint2*) queries->d_regions, (ulonglong2*) regions->d_intervals, (uint2*) regions->d_regionsOffsets);
+                                                                          (uint2*) queries->d_regions, (ulonglong2*) regions->d_intervals, (uint2*) regions->d_regionsOffsets,
+                                                                          maxExtraSteps, occThreshold, occShrinkFactor, maxRegionsFactor);
   return(SUCCESS);
 }
 

@@ -162,10 +162,10 @@ void gpu_fmi_ssearch_send_buffer_(void* const fmiBuffer, const uint32_t numSeeds
 void gpu_fmi_ssearch_receive_buffer_(const void* const fmiBuffer);
 void gpu_fmi_ssearch_init_and_realloc_buffer_(void* const fmiBuffer, const uint32_t numSeeds);
 // Adaptative search
-void gpu_fmi_asearch_init_buffer_(void* const fmiBuffer, const uint32_t averageQuerySize, const float maxRegions);
-void gpu_fmi_asearch_send_buffer_(void* const fmiBuffer, const uint32_t numBases, const uint32_t numQueries, const uint32_t occMinThreshold, const uint32_t extraSteps, const uint32_t alphabetSize);
+void gpu_fmi_asearch_init_buffer_(void* const fmiBuffer, const uint32_t averageQuerySize, const uint32_t maxRegionsFactor);
+void gpu_fmi_asearch_send_buffer_(void* const fmiBuffer, const uint32_t numQueries, const uint32_t numBases, const uint32_t numRegions, const uint32_t occMinThreshold, const uint32_t extraSteps, const uint32_t alphabetSize);
 void gpu_fmi_asearch_receive_buffer_(const void* const fmiBuffer);
-void gpu_fmi_asearch_init_and_realloc_buffer_(void* const fmiBuffer, const float maxRegions, const uint32_t totalBases, const uint32_t totalQueries, const uint32_t totalRegions);
+void gpu_fmi_asearch_init_and_realloc_buffer_(void* const fmiBuffer, const uint32_t maxRegionsFactor, const uint32_t totalBases,const uint32_t totalQueries, const uint32_t totalRegions);
 // Decode
 void gpu_fmi_decode_init_buffer_(void* const fmiBuffer);
 void gpu_fmi_decode_send_buffer_(void* const fmiBuffer, const uint32_t numDecodings, const uint32_t samplingRate);

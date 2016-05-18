@@ -27,6 +27,7 @@ Common constants for Device & Host
 #define GPU_FMI_STEPS             4
 #define GPU_FMI_OCC_THRESHOLD     20  //Min number of regions per seed
 #define GPU_FMI_RATIO_REGIONS     10  //Extract 10 seeds (covering a 9% query error)
+#define GPU_FMI_MIN_REGIONS       1
 
 /*****************************
 Internal Objects (Adaptative  Search)
@@ -59,7 +60,7 @@ typedef struct {
   uint32_t                          numMaxBases;
   uint32_t                          numMaxQueries;
   uint32_t                          numMaxRegions;
-  float                             numMaxRegionsPerQuery;
+  uint32_t                          maxRegionsFactor;
   uint32_t                          occMinThreshold;
   uint32_t                          extraSteps;
   uint32_t                          alphabetSize;

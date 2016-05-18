@@ -214,8 +214,8 @@ void gpu_buffer_fmi_asearch_send(gpu_buffer_fmi_asearch_t* const gpu_buffer_fmi_
   // Select computing device
   if (gpu_buffer_fmi_asearch->fmi_search_enabled) {
     if (gpu_buffer_fmi_asearch->num_queries > 0) {
-      gpu_fmi_asearch_send_buffer_(gpu_buffer_fmi_asearch->buffer,
-          gpu_buffer_fmi_asearch->num_bases,gpu_buffer_fmi_asearch->num_queries,
+      gpu_fmi_asearch_send_buffer_(gpu_buffer_fmi_asearch->buffer, gpu_buffer_fmi_asearch->num_queries,
+          gpu_buffer_fmi_asearch->num_bases,gpu_buffer_fmi_asearch->num_regions,
           gpu_buffer_fmi_asearch->occ_min_threshold,gpu_buffer_fmi_asearch->extra_search_steps,
           gpu_buffer_fmi_asearch->alphabet_size);
     }
