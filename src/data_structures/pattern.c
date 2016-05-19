@@ -168,20 +168,20 @@ void pattern_init(
     const uint64_t max_effective_filtering_error =
         parameters->alignment_max_error_nominal +
         pattern->num_low_quality_bases +
+        pattern->num_non_canonical_bases +
         pattern->num_wildcards;
     const uint64_t max_effective_bandwidth =
         parameters->alignment_max_bandwidth_nominal +
-        pattern->num_low_quality_bases;
+        pattern->num_low_quality_bases +
+        pattern->num_non_canonical_bases +
+        pattern->num_wildcards;
     pattern->max_effective_filtering_error = MIN(max_effective_filtering_error,pattern->key_length);
     pattern->max_effective_bandwidth = MIN(max_effective_bandwidth,pattern->key_length);
     if (pattern->max_effective_filtering_error > 0) {
       // Prepare kmer-counting filter
       if (kmer_filter_compile) {
-        const uint64_t kmer_filter_error = BOUNDED_ADDITION(
-            pattern->max_effective_filtering_error,
-            pattern->num_non_canonical_bases,pattern->key_length);
-        kmer_counting_compile(&pattern->kmer_counting,
-            pattern->key,pattern->key_length,kmer_filter_error,mm_stack);
+        kmer_counting_compile(&pattern->kmer_counting,pattern->key,
+            pattern->key_length,pattern->max_effective_filtering_error,mm_stack);
       } else {
         pattern->kmer_counting.enabled = false;
       }

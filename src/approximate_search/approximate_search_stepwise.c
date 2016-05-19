@@ -60,7 +60,7 @@ void approximate_search_stepwise_region_profile_adaptive_compute(
   PROF_START(GP_ASSW_REGION_PROFILE_UNSUCCESSFUL);
   // Re-Compute region profile
   search->processing_state = asearch_processing_state_begin;
-  approximate_search_region_profile_adaptive(search,region_profile_adaptive_heavyweight,search->mm_stack);
+  approximate_search_region_profile_adaptive(search,region_profile_adaptive_lightweight,search->mm_stack);
   if (search->processing_state==asearch_processing_state_no_regions) {
     approximate_search_update_mcs(search,search->pattern.num_wildcards); // Set MCS
     return;

@@ -55,6 +55,7 @@ void filtering_candidates_verify_buffered_kmer_filter(
     filtering_region->region_alignment.distance_min_bound = ALIGN_DISTANCE_INF;
     PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_DISCARDED);
   } else {
+    filtering_region->region_alignment.distance_min_bound = pattern->key_length;
     PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_ACCEPTED);
   }
 }
