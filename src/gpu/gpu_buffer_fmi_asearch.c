@@ -44,6 +44,9 @@ gpu_buffer_fmi_asearch_t* gpu_buffer_fmi_asearch_new(
   gpu_buffer_fmi_asearch->occ_min_threshold = occ_min_threshold;
   gpu_buffer_fmi_asearch->extra_search_steps = extra_search_steps;
   gpu_buffer_fmi_asearch->alphabet_size = alphabet_size;
+  // Profile
+  COUNTER_RESET(&gpu_buffer_fmi_asearch->query_length);
+  TIMER_RESET(&gpu_buffer_fmi_asearch->timer);
   // Init gpu-buffer
   PROF_START(GP_GPU_BUFFER_FMI_SEARCH_ALLOC);
   gpu_alloc_buffer_(gpu_buffer_fmi_asearch->buffer);
@@ -56,9 +59,6 @@ gpu_buffer_fmi_asearch_t* gpu_buffer_fmi_asearch_new(
   gpu_buffer_fmi_asearch->num_queries = 0;
   gpu_buffer_fmi_asearch->num_bases = 0;
   gpu_buffer_fmi_asearch->num_regions = 0;
-  // Profile
-  COUNTER_RESET(&gpu_buffer_fmi_asearch->query_length);
-  TIMER_RESET(&gpu_buffer_fmi_asearch->timer);
   // Return
   return gpu_buffer_fmi_asearch;
 }
@@ -147,28 +147,26 @@ uint64_t gpu_buffer_fmi_asearch_add_query(
     const uint64_t max_regions) {
   // Parameters
   const uint64_t key_length = pattern->key_length;
-  // Add query
-  const uint64_t num_queries = gpu_buffer_fmi_asearch->num_queries;
+  const uint64_t query_offset = gpu_buffer_fmi_asearch->num_queries;
   gpu_fmi_search_query_info_t* const search_query_info =
-      gpu_fmi_asearch_buffer_get_queries_info_(gpu_buffer_fmi_asearch->buffer) + num_queries;
+      gpu_fmi_asearch_buffer_get_queries_info_(gpu_buffer_fmi_asearch->buffer) + query_offset;
+  gpu_fmi_search_region_t* const search_query_region =
+      gpu_fmi_asearch_buffer_get_regions_(gpu_buffer_fmi_asearch->buffer) + query_offset;
+  // Add query
   search_query_info->init_offset = gpu_buffer_fmi_asearch->num_bases;
   search_query_info->query_size = key_length;
-  ++(gpu_buffer_fmi_asearch->num_queries); // Next
+  search_query_region->init_offset = gpu_buffer_fmi_asearch->num_regions; // Set resulting regions offsets
   // Add pattern (bases)
   gpu_fmi_search_query_t* const search_query =
-      gpu_fmi_asearch_buffer_get_queries_(gpu_buffer_fmi_asearch->buffer) +
-      gpu_buffer_fmi_asearch->num_bases;
+      gpu_fmi_asearch_buffer_get_queries_(gpu_buffer_fmi_asearch->buffer) + search_query_info->init_offset;
   const uint8_t* const key = pattern->key;
   memcpy(search_query,key,key_length); // Copy pattern
-  gpu_buffer_fmi_asearch->num_bases += key_length; // Next
-  // Set resulting regions offsets
-  const uint64_t num_regions = gpu_buffer_fmi_asearch->num_regions;
-  gpu_fmi_search_region_t* const search_region =
-      gpu_fmi_asearch_buffer_get_regions_(gpu_buffer_fmi_asearch->buffer) + num_queries;
-  search_region->init_offset = num_regions;
-  gpu_buffer_fmi_asearch->num_regions += max_regions; // Next
+  // Next
+  ++(gpu_buffer_fmi_asearch->num_queries);
+  gpu_buffer_fmi_asearch->num_bases += key_length;
+  gpu_buffer_fmi_asearch->num_regions += max_regions;
   // Return query-offset
-  return num_queries;
+  return query_offset;
 }
 void gpu_buffer_fmi_asearch_get_result_total_regions(
     gpu_buffer_fmi_asearch_t* const gpu_buffer_fmi_asearch,
