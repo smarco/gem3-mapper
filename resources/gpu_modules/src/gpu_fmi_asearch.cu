@@ -24,9 +24,9 @@ GPU_INLINE __device__ void advance_step_LF_mapping(const gpu_fmi_device_entry_t*
                                                    uint64_t* const L, uint64_t* const R, gpu_fmi_exch_bmp_mem_t * const seedExchBMP)
 {
   const uint32_t globalThreadIdx     = gpu_get_thread_idx();
-  const uint32_t localWarpThreadIdx  = globalThreadIdx     % GPU_WARP_SIZE;
-  const uint32_t localEntryIdx       = localWarpThreadIdx  / GPU_FMI_THREADS_PER_ENTRY;
-  const uint32_t localEntryThreadIdx = localWarpThreadIdx  % GPU_FMI_THREADS_PER_ENTRY;
+  const uint32_t localWarpThreadIdx  = globalThreadIdx    % GPU_WARP_SIZE;
+  const uint32_t localEntryIdx       = localWarpThreadIdx / GPU_FMI_THREADS_PER_ENTRY;
+  const uint32_t localEntryThreadIdx = localWarpThreadIdx % GPU_FMI_THREADS_PER_ENTRY;
 
   // Communicate along the FMI entry group threads the L o R interval
   uint64_t       interval       = (localEntryIdx % GPU_FMI_ENTRIES_PER_QUERY) ? (* R) : (* L);
@@ -48,9 +48,6 @@ GPU_INLINE __device__ void advance_step_LF_mapping(const gpu_fmi_device_entry_t*
 
 }
 
-#define GPU_FMI_STEPS             4
-#define GPU_FMI_OCC_THRESHOLD     20  //Min number of regions per seed
-
 void __global__ gpu_fmi_asearch_kernel(const gpu_fmi_device_entry_t* const fmi, const uint64_t bwtSize,
                                        const char* const queries, const uint2* const queryInfo, const uint32_t numQueries,
                                        uint2* const regions, ulonglong2* const regIntervals, uint2* const regOffset,
@@ -59,8 +56,8 @@ void __global__ gpu_fmi_asearch_kernel(const gpu_fmi_device_entry_t* const fmi, 
 {
   // Thread group-scheduling initializations
   const uint32_t globalThreadIdx     = gpu_get_thread_idx();
-  const uint32_t localWarpThreadIdx  = globalThreadIdx     % GPU_WARP_SIZE;
-  const uint32_t idQuery             = globalThreadIdx     / GPU_FMI_THREADS_PER_QUERY;
+  const uint32_t localWarpThreadIdx  = globalThreadIdx % GPU_WARP_SIZE;
+  const uint32_t idQuery             = globalThreadIdx / GPU_FMI_THREADS_PER_QUERY;
 
   if (idQuery < numQueries){
     // Setting thread buffer affinity
@@ -74,26 +71,27 @@ void __global__ gpu_fmi_asearch_kernel(const gpu_fmi_device_entry_t* const fmi, 
                gpu_fmi_exch_bmp_mem_t * const seedExchBMP = &exchBMP[threadIdx.x / GPU_FMI_THREADS_PER_ENTRY];
 
     const uint32_t maxRegions = GPU_MAX(GPU_DIV_CEIL(querySize, maxRegionsFactor), GPU_FMI_MIN_REGIONS);
-          uint32_t idBase = 0, idRegion = 0;
+          uint32_t idBase = 0, idRegion = 0, initBase = 0, endBase = 0;
     //Extracts and locates each seed
     while ((idBase < querySize) && (idRegion < maxRegions)){
       //Region initializations
-      uint64_t L = 0, R = bwtSize;
-      uint64_t occ = R - L, initBase = idBase, endBase = idBase;
+      uint64_t L = 0, R = bwtSize, occ = R - L;
       uint32_t bit0, bit1;
       bool     foundN = false;
+               idBase = initBase = endBase;
       //Searching for the next seed
-      while((occ > occThreshold) && (idBase && querySize) && !foundN){
+      while((occ > occThreshold) && (idBase < querySize) && !foundN){
         // Gathering the base of the seed
         get_base(LDG(query - idBase), &bit0, &bit1, &foundN);
-        if(!foundN) advance_step_LF_mapping(fmi, bit0, bit1, &L, &R, seedExchBMP);
         idBase++;
+        // Advance step FMI reducing the interval search 
+        if(!foundN) advance_step_LF_mapping(fmi, bit0, bit1, &L, &R, seedExchBMP);
         occ = R - L;
       }
       //Evaluate current seed (discard or continue exploration)
-      if(occ < occThreshold){
+      endBase = idBase;
+      if(occ <= occThreshold){
         uint64_t endL = L, endR = R;
-        endBase = idBase;
         if(!foundN){
           // Extension initialization
           uint32_t shrinkOccThreshold = occ >> occShrinkFactor, idStep = 0;
@@ -101,23 +99,22 @@ void __global__ gpu_fmi_asearch_kernel(const gpu_fmi_device_entry_t* const fmi, 
           while((idBase < querySize) && (occ != 0) && (idStep < maxExtraSteps) && !foundN){
             // Gathering the base of the seed
             get_base(LDG(query - idBase), &bit0, &bit1, &foundN);
+            idBase++; idStep++;
+            // Advance step FMI reducing the interval search 
             if(!foundN) advance_step_LF_mapping(fmi, bit0, bit1, &L, &R, seedExchBMP);
             // Update seed information
             occ = R - L;
             if((occ <= shrinkOccThreshold) && (occ != 0)){
               endL = L; endR = R;
               endBase = idBase;
-              shrinkOccThreshold = occ;
             }
-            // Move to next base
             shrinkOccThreshold >>= occShrinkFactor;
-            idBase++; idStep++;
           }
         }
         // Save extracted region (SA intervals + Query position)
         if((localWarpThreadIdx % GPU_FMI_THREADS_PER_QUERY) == 0){
             regionInterval[idRegion] = make_ulonglong2(endL, endR);
-            regionOffset[idRegion]   = make_uint2(initBase, endBase);
+            regionOffset[idRegion]   = make_uint2(querySize - endBase, querySize - initBase);
         }
         idRegion++;
       }
@@ -183,7 +180,7 @@ gpu_error_t gpu_fmi_asearch_process_buffer(gpu_buffer_t* const mBuff)
   const uint32_t                            idSupDev         =  mBuff->idSupportedDevice;
   const gpu_device_info_t* const            device           =  mBuff->device[idSupDev];
   //Search configuration
-  const uint32_t                            occShrinkFactor  =  BASE2LOG(mBuff->data.asearch.alphabetSize);
+  const uint32_t                            occShrinkFactor  =  mBuff->data.asearch.occShrinkFactor;
   const uint32_t                            occThreshold     =  mBuff->data.asearch.occMinThreshold;
   const uint32_t                            maxExtraSteps    =  mBuff->data.asearch.extraSteps;
   const uint32_t                            maxRegionsFactor =  mBuff->data.asearch.maxRegionsFactor;

@@ -72,10 +72,9 @@ size_t gpu_fmi_asearch_size_per_query(const uint32_t averageQuerySize, const uin
   const size_t bytesPerQueryInfo = sizeof(gpu_fmi_search_query_info_t) + sizeof(gpu_fmi_search_region_t);
   const size_t bytesPerQuery     = bytesPerQueryRAW + bytesPerQueryInfo;
   //Memory size dedicated to query regions (maxRegionsRatio means % of regions per query)
-  const size_t averageNumRegions = GPU_DIV_CEIL(averageQuerySize, averageRegionsPerQuery);
   const size_t bytesPerRegion    = sizeof(gpu_sa_search_inter_t) + sizeof(gpu_fmi_search_region_info_t);
   //Return maximum memory size required per each query
-  return((averageNumRegions * bytesPerRegion) + bytesPerQuery);
+  return((averageRegionsPerQuery * bytesPerRegion) + bytesPerQuery);
 }
 
 void gpu_fmi_asearch_reallocate_host_buffer_layout(gpu_buffer_t* mBuff)
@@ -225,19 +224,19 @@ gpu_error_t gpu_fmi_asearch_transfer_GPU_to_CPU(gpu_buffer_t* const mBuff)
 
   if(bufferUtilization > 0.15){
     cpySize  = ((void *) (regBuff->h_regionsOffsets + regBuff->numRegions)) - ((void *) qryBuff->h_regions);
-    CUDA_ERROR(cudaMemcpyAsync(qryBuff->h_regions, qryBuff->d_regions, cpySize, cudaMemcpyHostToDevice, idStream));
+    CUDA_ERROR(cudaMemcpyAsync(qryBuff->h_regions, qryBuff->d_regions, cpySize, cudaMemcpyDeviceToHost, idStream));
   }else{
     //Transfer Candidates to GPU
     cpySize = qryBuff->numQueries * sizeof(gpu_fmi_search_region_t);
-    CUDA_ERROR(cudaMemcpyAsync(qryBuff->h_regions, qryBuff->d_regions, cpySize, cudaMemcpyHostToDevice, idStream));
+    CUDA_ERROR(cudaMemcpyAsync(qryBuff->h_regions, qryBuff->d_regions, cpySize, cudaMemcpyDeviceToHost, idStream));
 
     //Transfer Candidates to GPU
     cpySize = regBuff->numRegions * sizeof(gpu_sa_search_inter_t);
-    CUDA_ERROR(cudaMemcpyAsync(regBuff->h_intervals, regBuff->d_intervals, cpySize, cudaMemcpyHostToDevice, idStream));
+    CUDA_ERROR(cudaMemcpyAsync(regBuff->h_intervals, regBuff->d_intervals, cpySize, cudaMemcpyDeviceToHost, idStream));
 
     //Transfer Candidates to GPU
     cpySize = regBuff->numRegions * sizeof(gpu_fmi_search_region_info_t);
-    CUDA_ERROR(cudaMemcpyAsync(regBuff->h_regionsOffsets, regBuff->d_regionsOffsets, cpySize, cudaMemcpyHostToDevice, idStream));
+    CUDA_ERROR(cudaMemcpyAsync(regBuff->h_regionsOffsets, regBuff->d_regionsOffsets, cpySize, cudaMemcpyDeviceToHost, idStream));
   }
 
   return (SUCCESS);
@@ -251,7 +250,7 @@ void gpu_fmi_asearch_send_buffer_(void* const fmiBuffer, const uint32_t numQueri
 
   //Set real size of the input
   mBuff->data.asearch.extraSteps         = extraSteps;
-  mBuff->data.asearch.alphabetSize       = BASE2LOG(alphabetSize);
+  mBuff->data.asearch.occShrinkFactor    = BASE2LOG(alphabetSize);
   mBuff->data.asearch.occMinThreshold    = occMinThreshold;
   mBuff->data.asearch.queries.numQueries = numQueries;
   mBuff->data.asearch.queries.numBases   = numBases;

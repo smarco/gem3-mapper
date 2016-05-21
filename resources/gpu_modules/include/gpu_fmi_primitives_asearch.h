@@ -63,7 +63,7 @@ typedef struct {
   uint32_t                          maxRegionsFactor;
   uint32_t                          occMinThreshold;
   uint32_t                          extraSteps;
-  uint32_t                          alphabetSize;
+  uint32_t                          occShrinkFactor;
   gpu_fmi_asearch_queries_buffer_t  queries;
   gpu_fmi_asearch_regions_buffer_t  regions;
 } gpu_fmi_asearch_buffer_t;
