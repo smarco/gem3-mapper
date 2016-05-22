@@ -125,7 +125,7 @@ void approximate_search_region_profile_close_region(
   *max_region_length = MAX(*max_region_length,region_length);
   if (num_candidates>0) *mappability_p += gem_log2((double)num_candidates);
 }
-void approximate_search_region_profile_close_profile(
+void approximate_search_region_profile_static_close_profile(
     approximate_search_t* const search,
     const uint64_t num_filtering_regions,
     const uint64_t num_regions_filtered,
@@ -163,6 +163,45 @@ void approximate_search_region_profile_close_profile(
   gem_cond_debug_block(DEBUG_REGION_PROFILE_PRINT) {
     region_profile_print(stderr,region_profile,false);
   }
+}
+void approximate_search_region_profile_adaptive_close_profile(
+    approximate_search_t* const search,
+    const uint64_t num_filtering_regions,
+    const uint64_t num_regions_filtered,
+    const uint64_t num_zero_regions,
+    const uint64_t total_candidates,
+    const uint64_t max_region_length,
+    const double mappability_p){
+  region_profile_t* const region_profile = &search->region_profile;
+  region_profile->num_filtering_regions = num_filtering_regions;
+  region_profile->num_standard_regions = num_filtering_regions;
+  if (num_filtering_regions == 0) {
+    // Set State
+    search->processing_state = asearch_processing_state_no_regions;
+    // Close region profile
+    region_profile->num_zero_regions = 0;
+    region_profile->total_candidates = 0;
+    region_profile->mappability_p = 0.0;
+    region_profile->mappability_2p = 0.0;
+  } else {
+    // Set State
+    search->processing_state = asearch_processing_state_region_profiled;
+    // Close region profile
+    region_search_t* const last_region =
+        region_profile->filtering_region + (region_profile->num_filtering_regions-1);
+    region_profile->mappability_p = mappability_p/(double)(2*num_filtering_regions);
+    region_profile->mappability_2p = 0.0;
+    region_profile->total_candidates = total_candidates;
+    region_profile->max_region_length = MAX(max_region_length,last_region->begin);
+    region_profile->num_zero_regions = num_zero_regions;
+    // Set Metrics
+    approximate_search_metrics_set_max_region_length(&search->metrics,max_region_length);
+    approximate_search_metrics_set_num_zero_regions(&search->metrics,num_zero_regions);
+    approximate_search_metrics_set_mappability(&search->metrics,
+        region_profile->mappability_p,region_profile->mappability_2p);
+  }
+  // STATS
+  approximate_search_region_profile_fixed_stats(region_profile);
 }
 /*
  * Region Profile Adaptive
@@ -279,7 +318,7 @@ void approximate_search_region_profile_static_compute(approximate_search_t* cons
         &num_regions_filtered,&num_zero_regions,&max_region_length,&mappability_p);
   }
   // Close profile
-  approximate_search_region_profile_close_profile(
+  approximate_search_region_profile_static_close_profile(
       search,num_filtering_regions,num_regions_filtered,
       num_zero_regions,total_candidates,max_region_length,mappability_p);
 }
@@ -344,7 +383,7 @@ void approximate_search_region_profile_static_buffered_retrieve(
         &num_zero_regions,&max_region_length,&mappability_p);
   }
   // Close profile
-  approximate_search_region_profile_close_profile(
+  approximate_search_region_profile_static_close_profile(
       search,num_filtering_regions,num_regions_filtered,
       num_zero_regions,total_candidates,max_region_length,mappability_p);
 }
@@ -391,8 +430,7 @@ void approximate_search_region_profile_adaptive_buffered_retrieve(
         &num_regions_filtered,&num_zero_regions,&max_region_length,&mappability_p);
   }
   // Close profile
-  region_profile->num_filtering_regions = num_filtering_regions;
-  approximate_search_region_profile_close_profile(
+  approximate_search_region_profile_adaptive_close_profile(
       search,num_filtering_regions,num_regions_filtered,
       num_zero_regions,total_candidates,max_region_length,mappability_p);
 }

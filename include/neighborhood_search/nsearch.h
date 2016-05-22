@@ -10,6 +10,7 @@
 #define NEIGHBORHOOD_SEARCH_H_
 
 #include "utils/essentials.h"
+#include "stats/stats_counter.h"
 #include "data_structures/interval_set.h"
 #include "fm_index/fm_index.h"
 
