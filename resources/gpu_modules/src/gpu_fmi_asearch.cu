@@ -82,7 +82,7 @@ void __global__ gpu_fmi_asearch_kernel(const gpu_fmi_device_entry_t* const fmi, 
       //Searching for the next seed
       while((occ > occThreshold) && (idBase < querySize) && !foundN){
         // Gathering the base of the seed
-        get_base(LDG(query - idBase), &bit0, &bit1, &foundN);
+        get_base(*(query - idBase), &bit0, &bit1, &foundN);
         idBase++;
         // Advance step FMI reducing the interval search 
         if(!foundN) advance_step_LF_mapping(fmi, bit0, bit1, &L, &R, seedExchBMP);
@@ -98,7 +98,7 @@ void __global__ gpu_fmi_asearch_kernel(const gpu_fmi_device_entry_t* const fmi, 
           //Last steps extension (exploration for consecutive 4 bases)
           while((idBase < querySize) && (occ != 0) && (idStep < maxExtraSteps) && !foundN){
             // Gathering the base of the seed
-            get_base(LDG(query - idBase), &bit0, &bit1, &foundN);
+            get_base(*(query - idBase), &bit0, &bit1, &foundN);
             idBase++; idStep++;
             // Advance step FMI reducing the interval search 
             if(!foundN) advance_step_LF_mapping(fmi, bit0, bit1, &L, &R, seedExchBMP);
