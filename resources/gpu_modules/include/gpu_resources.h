@@ -64,7 +64,7 @@ DEVICE side basic block primitives
 **************************************/
 
 #if (__CUDA_ARCH__ < GPU_CC_KEPLER_2G)
-  #define LDG(ptr)  (* ptr)
+  #define LDG(ptr)  (*(ptr))
 #else
   #define LDG(ptr)  __ldg(ptr)
 #endif
