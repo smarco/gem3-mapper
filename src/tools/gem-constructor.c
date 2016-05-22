@@ -1034,24 +1034,24 @@ int main(int argc,char** argv) {
   //  constructor_itoa();
   // constructor_swg();
 
-  //  if (gem_strcaseeq(parameters.option,"hamming-brute")) {
-  //    constructor_ns_hamming_brute();
-  //  }
-  //  if (gem_strcaseeq(parameters.option,"hamming-partition")) {
-  //    constructor_ns_hamming();
-  //  }
-  //  if (gem_strcaseeq(parameters.option,"hamming-regions")) {
-  //    constructor_ns_hamming_2regions();
-  //  }
-  //  if (gem_strcaseeq(parameters.option,"hamming-permutations")) {
-  //    constructor_ns_hamming_permutations();
-  //  }
-  //  if (gem_strcaseeq(parameters.option,"edit-brute")) {
-  //    constructor_ns_edit_brute();
-  //  }
-  //  if (gem_strcaseeq(parameters.option,"edit-partition")) {
-  //    constructor_ns_edit_partition();
-  //  }
+  if (gem_strcaseeq(parameters.option,"hamming-brute")) {
+    constructor_ns_hamming_brute();
+  }
+  if (gem_strcaseeq(parameters.option,"hamming-partition")) {
+    constructor_ns_hamming();
+  }
+  if (gem_strcaseeq(parameters.option,"hamming-regions")) {
+    constructor_ns_hamming_2regions();
+  }
+  if (gem_strcaseeq(parameters.option,"hamming-permutations")) {
+    constructor_ns_hamming_permutations();
+  }
+  if (gem_strcaseeq(parameters.option,"edit-brute")) {
+    constructor_ns_edit_brute();
+  }
+  if (gem_strcaseeq(parameters.option,"edit-partition")) {
+    constructor_ns_edit_partition();
+  }
 
   //  constructor_lsc();
   //  return 0;

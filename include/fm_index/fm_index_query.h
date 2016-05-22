@@ -29,13 +29,9 @@ typedef struct {
 } fm_2erank_elms_t;
 
 /*
- * FM-Index Bidirectional Operators
+ * FM-Index Precomputed Bidirectional Operators
  */
-void fm_index_precompute_2erank_forward(
-    const fm_index_t* const fm_index,
-    fm_2erank_elms_t* const fm_2erank_elms,
-    const uint64_t position);
-void fm_index_precompute_2erank_backward(
+void fm_index_precompute_2erank(
     const fm_index_t* const fm_index,
     fm_2erank_elms_t* const fm_2erank_elms,
     const uint64_t position);
@@ -49,6 +45,10 @@ void fm_index_precomputed_2query_backward(
     fm_2erank_elms_t* const lo_2erank_elms,
     fm_2erank_elms_t* const hi_2erank_elms,
     const uint8_t char_enc);
+
+/*
+ * FM-Index Bidirectional Operators
+ */
 void fm_index_2query_forward(
     const fm_index_t* const fm_index,
     fm_2interval_t* const fm_2interval,

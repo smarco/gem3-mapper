@@ -21,12 +21,6 @@ void archive_builder_index_build_bwt(
     const bool dump_bwt,
     const bool dump_explicit_sa,
     const bool verbose);
-void archive_builder_index_build_bwt_reverse(
-    archive_builder_t* const archive_builder,
-    const bool dump_reverse_indexed_text,
-    const bool dump_bwt,
-    const bool dump_explicit_sa,
-    const bool verbose);
 
 /*
  * Display

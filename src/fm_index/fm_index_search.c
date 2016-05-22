@@ -59,14 +59,14 @@ void fm_index_bsearch_pure(
   // Query lookup table
   uint64_t lo=0, hi=fm_index_get_length(fm_index);
   // Continue with ranks against the FM-Index
-//  uint64_t j; for (j=0;j<key_length;++j) printf("%c",dna_decode(key[j])); printf("\n");;
+  // uint64_t j; for (j=0;j<key_length;++j) printf("%c",dna_decode(key[j])); printf("\n");
   while (key_length > 0 && hi > lo) {
     const uint8_t c = key[--key_length];
     lo = bwt_erank(fm_index->bwt,c,lo);
     hi = bwt_erank(fm_index->bwt,c,hi);
-//    printf("%"PRIu64"  %"PRIu64"\n",lo,hi);
+    // printf("%"PRIu64"  %"PRIu64"\n",lo,hi);
   }
-//  printf("\n");
+  // printf("\n");
   // Return results
   *hi_out=hi;
   *lo_out=lo;
@@ -126,6 +126,68 @@ void fm_index_reverse_bsearch_pure(
 //    printf("%"PRIu64"  %"PRIu64"\n",fm_2interval.backward_lo,fm_2interval.backward_hi);
   }
 //  printf("\n");
+  // Return results
+  *lo_out = fm_2interval.backward_lo;
+  *hi_out = fm_2interval.backward_hi;
+}
+void fm_index_reverse_bsearch_fb(
+    const fm_index_t* const fm_index,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    uint64_t* const hi_out,
+    uint64_t* const lo_out) {
+  // Init
+  fm_2interval_t fm_2interval;
+  fm_2interval.backward_lo = 0;
+  fm_2interval.backward_hi = fm_index_get_length(fm_index);
+  fm_2interval.forward_lo = 0;
+  fm_2interval.forward_hi = fm_index_get_length(fm_index);
+  // Search second half (forward)
+  int64_t i = key_length/2;
+  for (i=10;i<20;++i) {
+    fm_index_2query_forward(fm_index,&fm_2interval,key[i]);
+    if (fm_2interval.forward_lo < fm_2interval.forward_hi) {
+      *lo_out = 0; *hi_out = 0; return;
+    }
+  }
+  // Search first half (backwards)
+  for (i=9;i>=0;--i) {
+    fm_index_2query_backward(fm_index,&fm_2interval,key[i]);
+    if (fm_2interval.forward_lo < fm_2interval.forward_hi) {
+      *lo_out = 0; *hi_out = 0; return;
+    }
+  }
+  // Return results
+  *lo_out = fm_2interval.backward_lo;
+  *hi_out = fm_2interval.backward_hi;
+}
+void fm_index_reverse_bsearch_bf(
+    const fm_index_t* const fm_index,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    uint64_t* const hi_out,
+    uint64_t* const lo_out) {
+  // Init
+  fm_2interval_t fm_2interval;
+  fm_2interval.backward_lo = 0;
+  fm_2interval.backward_hi = fm_index_get_length(fm_index);
+  fm_2interval.forward_lo = 0;
+  fm_2interval.forward_hi = fm_index_get_length(fm_index);
+  // Search first half (backwards)
+  int64_t i;
+  for (i=9;i>=0;--i) {
+    fm_index_2query_backward(fm_index,&fm_2interval,key[i]);
+    if (fm_2interval.forward_lo < fm_2interval.forward_hi) {
+      *lo_out = 0; *hi_out = 0; return;
+    }
+  }
+  // Search second half (forward)
+  for (i=10;i<20;++i) {
+    fm_index_2query_forward(fm_index,&fm_2interval,key[i]);
+    if (fm_2interval.forward_lo < fm_2interval.forward_hi) {
+      *lo_out = 0; *hi_out = 0; return;
+    }
+  }
   // Return results
   *lo_out = fm_2interval.backward_lo;
   *hi_out = fm_2interval.backward_hi;

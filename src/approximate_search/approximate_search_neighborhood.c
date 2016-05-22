@@ -9,6 +9,9 @@
 #include "approximate_search/approximate_search_neighborhood.h"
 #include "neighborhood_search/nsearch.h"
 #include "fm_index/fm_index_search.h"
+#include "filtering/filtering_candidates_process.h"
+#include "filtering/filtering_candidates_verify.h"
+#include "filtering/filtering_candidates_align.h"
 
 /*
  * Profile
@@ -23,20 +26,25 @@ void approximate_search_neighborhood_exact_search(
     approximate_search_t* const search,
     matches_t* const matches) {
   PROFILE_START(GP_AS_EXACT_SEARCH,PROFILE_LEVEL);
-//  pattern_t* const pattern = &search->pattern;
+  pattern_t* const pattern = &search->pattern;
+  uint64_t hi, lo;
   // FM-Index basic exact search
-//  fm_index_bsearch(search->archive->fm_index,pattern->key,
-//    pattern->key_length,&search->hi_exact_matches,&search->lo_exact_matches);
-//  fm_index_bsearch_pure(search->archive->fm_index,pattern->key,
-//      pattern->key_length,&search->hi_exact_matches,&search->lo_exact_matches);
-//  fm_index_reverse_bsearch_pure(search->archive->fm_index,pattern->key,
-//      pattern->key_length,&search->hi_exact_matches,&search->lo_exact_matches);
-  // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-//  fm_index_bsearch(search->archive->fm_index,pattern->key,
-//      pattern->key_length,&search->hi_exact_matches,&search->lo_exact_matches);
-//  // Add to matches
-//  matches_add_interval_match(matches,search->lo_exact_matches,
-//      search->hi_exact_matches,pattern->key_length,0,search->emulated_rc_search);
+  //fm_index_bsearch(search->archive->fm_index,pattern->key,pattern->key_length,&hi,&lo);
+  //fm_index_bsearch_pure(search->archive->fm_index,pattern->key,pattern->key_length,&hi,&lo);
+  //fm_index_reverse_bsearch_pure(search->archive->fm_index,pattern->key,pattern->key_length,&hi,&lo);
+  //fm_index_reverse_bsearch_fb(search->archive->fm_index,pattern->key,pattern->key_length,&hi,&lo);
+  fm_index_reverse_bsearch_bf(search->archive->fm_index,pattern->key,pattern->key_length,&hi,&lo);
+  // Add interval
+  filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
+  filtering_candidates_add_read_interval(filtering_candidates,
+      search->search_parameters,lo,hi,pattern->key_length,0);
+  // Process candidates
+  filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern);
+  // Verify Candidates
+  filtering_candidates_verify_candidates(filtering_candidates,pattern);
+  // Align
+  filtering_candidates_align_candidates(filtering_candidates,
+      pattern,search->emulated_rc_search,false,false,matches);
   // Update MCS
   approximate_search_update_mcs(search,1);
   PROFILE_STOP(GP_AS_EXACT_SEARCH,PROFILE_LEVEL);

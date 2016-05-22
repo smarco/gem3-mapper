@@ -25,16 +25,12 @@
 /*
  * Archive Builder (Indexer)
  */
-typedef enum { index_complement_no=0, index_complement_yes=1, index_complement_auto=2 } indexed_complement_t;
 typedef struct {
   /*
    * Meta-information
    */
   archive_type type;                       // Archive type
-  indexed_complement_t indexed_complement; // Forces the storage of the RC
-  uint64_t complement_size_threshold;      // Maximum text size allowed to store the RC
   uint64_t ns_threshold;                   // Minimum length of a stretch of Ns to be removed
-  bool indexed_reverse_text;               // Indexed reverse text (backwards text)
   /*
    * Archive Components
    */
@@ -78,12 +74,9 @@ archive_builder_t* archive_builder_new(
     fm_t* const output_file,
     char* const output_file_name_prefix,
     const archive_type type,
-    const indexed_complement_t indexed_complement,
-    const uint64_t complement_size_threshold,
     const uint64_t ns_threshold,
     const sampling_rate_t sa_sampling_rate,
     const sampling_rate_t text_sampling_rate,
-    const bool indexed_reverse_text,
     const uint64_t num_threads,
     const uint64_t max_memory);
 void archive_builder_delete(archive_builder_t* const archive_builder);
@@ -96,10 +89,6 @@ void archive_builder_write_locator(archive_builder_t* const archive_builder);
 void archive_builder_write_index(
     archive_builder_t* const archive_builder,
     const bool gpu_index,
-    const bool check_index,
-    const bool verbose);
-void archive_builder_write_index_reverse(
-    archive_builder_t* const archive_builder,
     const bool check_index,
     const bool verbose);
 

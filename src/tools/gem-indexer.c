@@ -43,9 +43,6 @@ typedef struct {
   char* output_index_file_name;
   char* output_index_file_name_prefix;
   uint64_t ns_threshold;
-  indexed_complement_t index_complement;
-  uint64_t complement_size_threshold;
-  bool indexed_reverse_text;
   /* Index */
   sampling_rate_t sa_sampling_rate;
   sampling_rate_t text_sampling_rate;
@@ -79,9 +76,6 @@ void indexer_parameters_set_defaults(indexer_parameters_t* const parameters) {
   parameters->output_index_file_name_prefix=NULL;
   /* MultiFasta Processing */
   parameters->ns_threshold=50;
-  parameters->index_complement=index_complement_yes;
-  parameters->complement_size_threshold=BUFFER_SIZE_8G;
-  parameters->indexed_reverse_text = false;
   /* Index */
   parameters->sa_sampling_rate=SAMPLING_RATE_8;
   parameters->text_sampling_rate=SAMPLING_RATE_4;
@@ -227,19 +221,9 @@ void indexer_generate_bwt(archive_builder_t* const archive_builder,indexer_param
   // DEBUG. Skip the FM-index generation
   if (parameters->dev_generate_only_bwt) exit(0);
 }
-void indexer_generate_bwt_reverse(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
-  // Build BWT of the reverse text
-  tfprintf(gem_log_get_stream(),"[Generating BWT Reverse-Text]\n");
-  archive_builder_index_build_bwt_reverse(archive_builder,parameters->dump_indexed_text,
-      parameters->dump_bwt,parameters->dump_explicit_sa,parameters->verbose);
-}
 void indexer_write_index(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
   // Write Text & FM-Index
   archive_builder_write_index(archive_builder,parameters->gpu_index,parameters->check_index,parameters->verbose);
-}
-void indexer_write_index_reverse(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
-  // Write FM-Index Reverse
-  archive_builder_write_index_reverse(archive_builder,parameters->check_index,parameters->verbose);
 }
 void indexer_cleanup(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
   // Archive Builder
@@ -256,9 +240,6 @@ void indexer_cleanup(archive_builder_t* const archive_builder,indexer_parameters
  */
 // TODO { 'g', "graph", REQUIRED, TYPE_STRING, 2 , VISIBILITY_USER, "<graph_file>" , "(GRAPH-File)" },
 // TODO { 'c', "index-colorspace", NO_ARGUMENT, TYPE_NONE, 2 , true, "" , "(default=false)" },
-// TODO { 200, "index-complement", OPTIONAL, TYPE_STRING, 2 , true, "" , "(default=false, simulated at mapping)" },
-// TODO { 201, "complement-size-threshold", REQUIRED, TYPE_INT, 2 , true, "<integer>" , "(default=8GB)" },
-// TODO { 202, "generate-reverse", NO_ARGUMENT, TYPE_NONE, 3 , true, "", "(default=true)"},
 // TODO { 405, "dump-graph-links", OPTIONAL, TYPE_NONE, 4 , true, "" , "" },
 option_t gem_indexer_options[] = {
   /* I/O */
@@ -273,7 +254,6 @@ option_t gem_indexer_options[] = {
 #ifdef HAVE_CUDA
   { 300, "gpu-index", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_ADVANCED, "" , "(default=true)" },
 #endif
-  { 301, "index-backward-text", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_ADVANCED, "" , "(default=false)" },
   // TODO { 300, "autotune-index-size", REQUIRED, TYPE_STRING, 5 , VISIBILITY_USER, "<index-size>" , "(Eg 2GB)" },
   /* Debug */
   { 400, "dump-locator-intervals", OPTIONAL, TYPE_NONE, 4 , VISIBILITY_ADVANCED, "" , "" },
@@ -379,9 +359,6 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
       parameters->gpu_index = (optarg) ? options_parse_bool(optarg) : true;
       break;
 #endif
-    case 301: // --index-backward-text
-      parameters->indexed_reverse_text = (optarg) ? options_parse_bool(optarg) : true;
-      break;
     /* Debug/Temporal */
     case 400: // --dump-locator-intervals
       parameters->dump_locator_intervals = (optarg) ? options_parse_bool(optarg) : true;
@@ -398,9 +375,6 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
     case 404:
       parameters->dump_run_length_text = (optarg) ? options_parse_bool(optarg) : true;
       break;
-//    case 405: // --dump-graph-links
-//      parameters->dump_graph_links = (optarg) ? options_parse_bool(optarg) : true;
-//      break;
     case 405: // --debug
       parameters->dump_locator_intervals = true;
       parameters->dump_indexed_text = true;
@@ -460,13 +434,6 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
   /*
    * Parameters Check
    */
-//  // Index type incompatibility list
-//  if (parameters->input_graph_file_name!=NULL) {
-//    gem_indexer_cond_error_msg_msg(parameters->index_colorspace,
-//            "Index-Type. Graph generation is not compatible with colorspace");
-//    gem_indexer_cond_error_msg_msg(parameters->index_run_length,
-//            "Index-Type. Graph generation is not compatible with RL-index");
-//  }
   // Input file name
   gem_indexer_cond_error_msg(parameters->input_multifasta_file_name==NULL,
       "Parsing arguments. Please specify an input filename (--input)");
@@ -513,10 +480,9 @@ int main(int argc,char** argv) {
   const archive_type type = (parameters.bisulfite_index) ? archive_dna_bisulfite : archive_dna;
   archive_builder_t* const archive_builder = archive_builder_new(index_file,
       parameters.output_index_file_name_prefix,type,
-      parameters.index_complement,parameters.complement_size_threshold,
       parameters.ns_threshold,parameters.sa_sampling_rate,
-      parameters.text_sampling_rate,parameters.indexed_reverse_text,
-      parameters.num_threads,parameters.max_memory);
+      parameters.text_sampling_rate,parameters.num_threads,
+      parameters.max_memory);
 
   // Process MultiFASTA
   indexer_process_multifasta(archive_builder,&parameters);
@@ -524,12 +490,6 @@ int main(int argc,char** argv) {
   // Generate BWT
   indexer_generate_bwt(archive_builder,&parameters);
   indexer_write_index(archive_builder,&parameters); // Write Index
-
-  // Generate BWT reverse
-  if (parameters.indexed_reverse_text) {
-    indexer_generate_bwt_reverse(archive_builder,&parameters);
-    indexer_write_index_reverse(archive_builder,&parameters); // Write Index Reverse
-  }
 
   /*
    * Display end banner

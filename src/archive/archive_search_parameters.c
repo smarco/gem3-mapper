@@ -87,7 +87,7 @@ void search_parameters_init_alignment_model(search_parameters_t* const search_pa
   search_parameters->swg_penalties.gap_extension_score = -1;
 }
 void search_parameters_init_internals(search_parameters_t* const search_parameters) {
-  // Region-Minimal Scheme = (20,4,2,2)
+  // Region-LightWeight Scheme = (20,4,2,2)
   search_parameters->rp_lightweight.region_th = 20;
   search_parameters->rp_lightweight.max_steps = 4;
   search_parameters->rp_lightweight.dec_factor = 2;

@@ -19,8 +19,10 @@ MODULES=dp_matrix \
         nsearch \
         nsearch_hamming \
         nsearch_levenshtein \
+        nsearch_levenshtein_scheduled \
         nsearch_levenshtein_state \
         nsearch_partition \
+        nsearch_operation \
         nsearch_schedule
 
 SRCS=$(addsuffix .c, $(MODULES))

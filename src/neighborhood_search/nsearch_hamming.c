@@ -9,14 +9,14 @@
 #include "neighborhood_search/nsearch_hamming.h"
 #include "neighborhood_search/nsearch_partition.h"
 #include "neighborhood_search/nsearch_schedule.h"
-#include "data_structures/dna_text.h"
 
 /*
  * Brute Force
  */
 void nsearch_hamming_brute_force_step(
     nsearch_schedule_t* const nsearch_schedule,
-    const uint64_t current_position,const uint64_t current_error) {
+    const uint64_t current_position,
+    const uint64_t current_error) {
   char* const search_string = nsearch_schedule->search_string; // Use first
   uint8_t enc;
   for (enc=0;enc<DNA_RANGE;++enc) {
@@ -36,9 +36,12 @@ void nsearch_hamming_brute_force_step(
   }
 }
 void nsearch_hamming_brute_force(
-    fm_index_t* const fm_index,uint8_t* const key,
-    const uint64_t key_length,const uint64_t max_error,
-    interval_set_t* const intervals_result,mm_stack_t* const mm_stack) {
+    fm_index_t* const fm_index,
+    uint8_t* const key,
+    const uint64_t key_length,
+    const uint64_t max_error,
+    interval_set_t* const intervals_result,
+    mm_stack_t* const mm_stack) {
   // Init
   nsearch_schedule_t nsearch_schedule;
   nsearch_schedule_init(&nsearch_schedule,nsearch_model_hamming,fm_index,
@@ -50,12 +53,15 @@ void nsearch_hamming_brute_force(
   nsearch_schedule_print_profile(stderr,&nsearch_schedule); // PROFILE
 }
 /*
- * Perform scheduled search
+ * Scheduled search
  */
-void nsearch_hamming_perform_scheduled_search(
-    nsearch_schedule_t* const nsearch_schedule,const uint64_t pending_searches,
-    nsearch_operation_t* const nsearch_operation,const uint64_t position,
-    const uint64_t local_error,const uint64_t global_error) {
+void nsearch_hamming_scheduled_search(
+    nsearch_schedule_t* const nsearch_schedule,
+    const uint64_t pending_searches,
+    nsearch_operation_t* const nsearch_operation,
+    const uint64_t position,
+    const uint64_t local_error,
+    const uint64_t global_error) {
   const uint64_t next_position = position + 1;
   uint8_t enc;
   for (enc=0;enc<DNA_RANGE;++enc) {
@@ -63,18 +69,16 @@ void nsearch_hamming_perform_scheduled_search(
     const uint64_t next_local_error = local_error + ((enc!=nsearch_schedule->key[position]) ? 1 : 0);
     if (next_local_error > nsearch_operation->max_local_error) continue;
     if (next_local_error+global_error > nsearch_operation->max_global_error) continue;
-    if (next_position==nsearch_operation->end) {
+    if (next_position==nsearch_operation->local_key_end) {
       if (next_local_error < nsearch_operation->min_local_error) continue;
       if (next_local_error+global_error < nsearch_operation->min_global_error) continue;
     }
     // Search character
-    const uint64_t search_string_pos = position-nsearch_operation->begin;
-    nsearch_schedule->search_string[nsearch_operation->begin+search_string_pos] = dna_decode(enc);
-    nsearch_schedule->search_string[nsearch_operation->begin+search_string_pos+1] = '\0';
+    nsearch_schedule->search_string[position] = dna_decode(enc);
     ++(nsearch_schedule->ns_nodes); // PROFILING
     // Keep searching
-    if (next_position < nsearch_operation->end) {
-      nsearch_hamming_perform_scheduled_search(nsearch_schedule,pending_searches,
+    if (next_position < nsearch_operation->local_key_end) {
+      nsearch_hamming_scheduled_search(nsearch_schedule,pending_searches,
           nsearch_operation,next_position,next_local_error,global_error);
     } else { // (next_position == limit) End of the chunk-search
       // Check pending searches
@@ -86,8 +90,8 @@ void nsearch_hamming_perform_scheduled_search(
         // Search next chunk
         const uint64_t next_pending_searches = pending_searches-1;
         nsearch_operation_t* const next_nsearch_operation = nsearch_schedule->pending_searches + next_pending_searches;
-        nsearch_hamming_perform_scheduled_search(nsearch_schedule,next_pending_searches,
-            next_nsearch_operation,next_nsearch_operation->begin,0,next_local_error+global_error);
+        nsearch_hamming_scheduled_search(nsearch_schedule,next_pending_searches,
+            next_nsearch_operation,next_nsearch_operation->local_key_begin,0,next_local_error+global_error);
       }
     }
   }
@@ -96,9 +100,12 @@ void nsearch_hamming_perform_scheduled_search(
  * Hamming Neighborhood Search
  */
 void nsearch_hamming(
-    fm_index_t* const fm_index,uint8_t* const key,
-    const uint64_t key_length,const uint64_t max_error,
-    interval_set_t* const intervals_result,mm_stack_t* const mm_stack) {
+    fm_index_t* const fm_index,
+    uint8_t* const key,
+    const uint64_t key_length,
+    const uint64_t max_error,
+    interval_set_t* const intervals_result,
+    mm_stack_t* const mm_stack) {
   // Push
   mm_stack_push_state(mm_stack);
   // Search
@@ -114,9 +121,13 @@ void nsearch_hamming(
  * Neighborhood Search (Preconditioned by region profile)
  */
 void nsearch_hamming_preconditioned(
-    fm_index_t* const fm_index,region_profile_t* const region_profile,
-    uint8_t* const key,const uint64_t key_length,const uint64_t max_error,
-    interval_set_t* const intervals_result,mm_stack_t* const mm_stack) {
+    fm_index_t* const fm_index,
+    region_profile_t* const region_profile,
+    uint8_t* const key,
+    const uint64_t key_length,
+    const uint64_t max_error,
+    interval_set_t* const intervals_result,
+    mm_stack_t* const mm_stack) {
   // Push
   mm_stack_push_state(mm_stack);
   // Search

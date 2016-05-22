@@ -21,14 +21,11 @@ typedef struct {
   /* Meta-info */
   uint64_t text_length;                   // Text length
   uint64_t proper_length;                 // Pl=log(text_length,4)
-  bool fm_index_reverse;                  // FM-Index of the reverse text included
   /* Sampled SA */
   sampled_sa_t* sampled_sa;               // Sampled SuffixArray positions
   /* BWT */
   rank_mtable_t* rank_table;              // Memoizated intervals
   bwt_t* bwt;                             // BWT forward text
-  rank_mtable_t* rank_table_reverse;      // Memoizated reverse intervals
-  bwt_reverse_t* bwt_reverse;             // BWT reverse text
 } fm_index_t;
 
 /*
@@ -36,16 +33,9 @@ typedef struct {
  */
 bwt_builder_t* fm_index_write(
     fm_t* const file_manager,
-    const bool fm_index_reverse,
     dna_text_t* const bwt_text,
     uint64_t* const character_occurrences,
     sampled_sa_builder_t* const sampled_sa,
-    const bool check,
-    const bool verbose);
-bwt_reverse_builder_t* fm_index_reverse_write(
-    fm_t* const file_manager,
-    dna_text_t* const bwt_reverse_text,
-    uint64_t* const character_occurrences,
     const bool check,
     const bool verbose);
 

@@ -7,19 +7,25 @@
  */
 
 #include "neighborhood_search/nsearch_schedule.h"
+#include "neighborhood_search/nsearch_operation.h"
 #include "neighborhood_search/nsearch_partition.h"
 #include "neighborhood_search/nsearch_hamming.h"
 #include "neighborhood_search/nsearch_levenshtein.h"
-#include "neighborhood_search/nsearch_levenshtein_state.h"
+#include "neighborhood_search/nsearch_levenshtein_scheduled.h"
 
 /*
  * Setup
  */
 void nsearch_schedule_init(
-    nsearch_schedule_t* const nsearch_schedule,const nsearch_model_t nsearch_model,
-    fm_index_t* const fm_index,region_profile_t* const region_profile,
-    uint8_t* const key,const uint64_t key_length,const uint64_t max_error,
-    interval_set_t* const intervals_result,mm_stack_t* const mm_stack) {
+    nsearch_schedule_t* const nsearch_schedule,
+    const nsearch_model_t nsearch_model,
+    fm_index_t* const fm_index,
+    region_profile_t* const region_profile,
+    uint8_t* const key,
+    const uint64_t key_length,
+    const uint64_t max_error,
+    interval_set_t* const intervals_result,
+    mm_stack_t* const mm_stack) {
   // Search
   nsearch_schedule->fm_index = fm_index;
   nsearch_schedule->nsearch_model = nsearch_model;
@@ -31,21 +37,20 @@ void nsearch_schedule_init(
   nsearch_schedule->max_text_length = max_text_length;
   nsearch_schedule->intervals_result = intervals_result;
   nsearch_schedule->mm_stack = mm_stack;
+  nsearch_schedule->search_string = mm_stack_calloc(mm_stack,max_text_length,char,true);
+  nsearch_schedule->search_string[key_length] = '\0';
   // Pending Search Operations
   const uint64_t max_pending_ops = max_error+1; // TODO Shrink
   nsearch_operation_t* const pending_searches = mm_stack_calloc(mm_stack,max_pending_ops,nsearch_operation_t,false);
   nsearch_schedule->pending_searches = pending_searches;
   if (nsearch_model==nsearch_model_levenshtein) {
-    const uint64_t num_columns = max_text_length + 3;
-    const uint64_t column_length = key_length + 1;
     uint64_t i;
     for (i=0;i<max_pending_ops;++i) {
-      nsearch_levenshtein_state_init(&pending_searches[i].nsearch_state,num_columns,column_length,mm_stack);
+      nsearch_operation_init(pending_searches+i,key_length,max_text_length,mm_stack);
     }
   }
   nsearch_schedule->num_pending_searches = 0;
   nsearch_schedule->search_id = 0;
-  nsearch_schedule->search_string = mm_stack_calloc(mm_stack,max_text_length,char,true);
   // Profiler
   nsearch_schedule->ns_nodes = 0;
   nsearch_schedule->ns_nodes_mtable = 0;
@@ -59,22 +64,30 @@ void nsearch_schedule_init(
  * Add pending search
  */
 bool nsearch_schedule_add_pending_search(
-    nsearch_schedule_t* const nsearch_schedule,const search_direction_t search_direction,
-    const uint64_t offset,const uint64_t length,
-    const uint64_t min_local_error,const uint64_t max_local_error,
-    const uint64_t min_global_error,const uint64_t max_global_error) {
+    nsearch_schedule_t* const nsearch_schedule,
+    const search_direction_t search_direction,
+    const uint64_t local_key_begin,
+    const uint64_t local_key_length,
+    const uint64_t global_key_begin,
+    const uint64_t global_key_length,
+    const uint64_t min_local_error,
+    const uint64_t max_local_error,
+    const uint64_t min_global_error,
+    const uint64_t max_global_error) {
   // Check impossible search configuration
-  if (min_local_error > length) return false;
+  if (min_local_error > local_key_length) return false;
   // Queue search
   const uint64_t num_op = nsearch_schedule->num_pending_searches;
   nsearch_schedule->pending_searches[num_op].search_direction = search_direction;
-  nsearch_schedule->pending_searches[num_op].begin = offset;
-  nsearch_schedule->pending_searches[num_op].end = offset+length;
+  nsearch_schedule->pending_searches[num_op].local_key_begin = local_key_begin;
+  nsearch_schedule->pending_searches[num_op].local_key_end = local_key_begin+local_key_length;
+  nsearch_schedule->pending_searches[num_op].global_key_begin = global_key_begin;
+  nsearch_schedule->pending_searches[num_op].global_key_end = global_key_begin+global_key_length;
   nsearch_schedule->pending_searches[num_op].min_local_error = min_local_error;
   nsearch_schedule->pending_searches[num_op].max_local_error = max_local_error;
   nsearch_schedule->pending_searches[num_op].min_global_error = min_global_error;
   nsearch_schedule->pending_searches[num_op].max_global_error = max_global_error;
-  nsearch_schedule->pending_searches[num_op].max_text_length = length+max_local_error;
+  nsearch_schedule->pending_searches[num_op].max_text_length = local_key_length+max_local_error;
   ++(nsearch_schedule->num_pending_searches);
   // Return
   return true;
@@ -84,34 +97,32 @@ bool nsearch_schedule_add_pending_search(
  */
 void nsearch_schedule_search_step(
     nsearch_schedule_t* const nsearch_schedule,
-    const uint64_t chunk_offset,const uint64_t chunk_length,
-    const uint64_t chunk_min_error,const uint64_t chunk_max_error) {
+    const uint64_t chunk_offset,
+    const uint64_t chunk_length,
+    const uint64_t chunk_min_error,
+    const uint64_t chunk_max_error) {
   // Adjust error
   bool feasible_search;
   if (chunk_max_error==0 || chunk_length<=chunk_max_error) {
     // Exact search of the chunk
     feasible_search = nsearch_schedule_add_pending_search(
-        nsearch_schedule,direction_forward,chunk_offset,chunk_length,
+        nsearch_schedule,direction_forward,
+        chunk_offset,chunk_length,chunk_offset,chunk_length,
         chunk_min_error,chunk_max_error,chunk_min_error,chunk_max_error);
     if (!feasible_search) return; // Impossible search
-    // Perform the search (Solve pending extensions)
+    // Select nsearch-alignment model & Perform the search (Solve pending extensions)
     nsearch_schedule_print_pretty(stderr,nsearch_schedule); // DEBUG
-    const uint64_t num_pending_searches = nsearch_schedule->num_pending_searches - 1;
-    nsearch_operation_t* const nsearch_operation = nsearch_schedule->pending_searches + num_pending_searches;
-    // Select nsearch-alignment model
     switch (nsearch_schedule->nsearch_model) {
-      case nsearch_model_hamming:
-        nsearch_hamming_perform_scheduled_search(nsearch_schedule,
-            num_pending_searches,nsearch_operation,nsearch_operation->begin,0,0);
+      case nsearch_model_hamming: {
+        const uint64_t pending_searches = nsearch_schedule->num_pending_searches - 1;
+        nsearch_operation_t* const nsearch_operation = nsearch_schedule->pending_searches + pending_searches;
+        nsearch_hamming_scheduled_search(nsearch_schedule,
+            pending_searches,nsearch_operation,nsearch_operation->local_key_begin,0,0);
         break;
+      }
       case nsearch_model_levenshtein: {
-        nsearch_levenshtein_state_t* const nsearch_state = &nsearch_operation->nsearch_state;
-        nsearch_state->key_begin = nsearch_operation->begin;
-        nsearch_state->key_end = nsearch_operation->end;
-        nsearch_state->global_text_length = 0;
-        nsearch_state->local_text_length = 0;
-        nsearch_levenshtein_state_prepare_supercondensed(nsearch_state,nsearch_operation->max_local_error);
-        nsearch_levenshtein_perform_scheduled_search(nsearch_schedule,num_pending_searches,nsearch_operation,0);
+        const uint64_t num_pending_searches = nsearch_schedule->num_pending_searches;
+        nsearch_levenshtein_scheduled_search(nsearch_schedule,num_pending_searches,NULL);
         break;
       }
       default:
@@ -128,7 +139,8 @@ void nsearch_schedule_search_step(
      * First Partition (forward)
      */
     feasible_search = nsearch_schedule_add_pending_search(
-        nsearch_schedule,direction_forward,epartition.offset_1,epartition.length_1,
+        nsearch_schedule,direction_forward,
+        epartition.offset_1,epartition.length_1,chunk_offset,chunk_length,
         epartition.extend_1_local_min_error,epartition.extend_1_local_max_error,
         epartition.extend_1_global_min_error,epartition.extend_1_global_max_error);
     if (!feasible_search) return; // Impossible search
@@ -140,7 +152,8 @@ void nsearch_schedule_search_step(
      */
     nsearch_schedule->num_pending_searches = num_pending_searches; // Restore pending searches point
     feasible_search = nsearch_schedule_add_pending_search(
-        nsearch_schedule,direction_backward,epartition.offset_0,epartition.length_0,
+        nsearch_schedule,direction_backward,
+        epartition.offset_0,epartition.length_0,chunk_offset,chunk_length,
         epartition.extend_0_local_min_error,epartition.extend_0_local_max_error,
         epartition.extend_0_global_min_error,epartition.extend_0_global_max_error);
     if (!feasible_search) return; // Impossible search
@@ -159,15 +172,17 @@ void nsearch_schedule_search(nsearch_schedule_t* const nsearch_schedule) {
  */
 void nsearch_schedule_search_preconditioned_step(
     nsearch_schedule_t* const nsearch_schedule,
-    const uint64_t region_offset,const uint64_t num_regions,
-    const uint64_t chunk_min_error,const uint64_t chunk_max_error) {
+    const uint64_t region_offset,
+    const uint64_t num_regions,
+    const uint64_t chunk_min_error,
+    const uint64_t chunk_max_error) {
   // PRE: (num_regions > 1)
   region_search_t* const regions = nsearch_schedule->region_profile->filtering_region;
+  const uint64_t global_region_offset = regions[region_offset].begin;
   const uint64_t global_region_length = regions[region_offset+num_regions-1].end - regions[region_offset].begin;
   if (chunk_max_error==0 || global_region_length<=chunk_max_error) {
-    nsearch_schedule_search_step(
-        nsearch_schedule,regions[region_offset].begin,
-        global_region_length,chunk_min_error,chunk_max_error);
+    nsearch_schedule_search_step(nsearch_schedule,
+        global_region_offset,global_region_length,chunk_min_error,chunk_max_error);
   } else {
     bool feasible_search;
     const uint64_t num_pending_searches = nsearch_schedule->num_pending_searches;
@@ -180,7 +195,8 @@ void nsearch_schedule_search_preconditioned_step(
      */
     // Extend first partition (forward)
     feasible_search = nsearch_schedule_add_pending_search(
-        nsearch_schedule,direction_forward,epartition.offset_1,epartition.length_1,
+        nsearch_schedule,direction_forward,
+        epartition.offset_1,epartition.length_1,global_region_offset,global_region_length,
         epartition.extend_1_local_min_error,epartition.extend_1_local_max_error,
         epartition.extend_1_global_min_error,epartition.extend_1_global_max_error);
     if (!feasible_search) return; // Impossible search
@@ -200,7 +216,8 @@ void nsearch_schedule_search_preconditioned_step(
     // Extend second partition (backward)
     nsearch_schedule->num_pending_searches = num_pending_searches; // Restore pending searches point
     feasible_search = nsearch_schedule_add_pending_search(
-        nsearch_schedule,direction_backward,epartition.offset_0,epartition.length_0,
+        nsearch_schedule,direction_backward,
+        epartition.offset_0,epartition.length_0,global_region_offset,global_region_length,
         epartition.extend_0_local_min_error,epartition.extend_0_local_max_error,
         epartition.extend_0_global_min_error,epartition.extend_0_global_max_error);
     if (!feasible_search) return; // Impossible search
@@ -231,18 +248,17 @@ void nsearch_schedule_search_preconditioned(nsearch_schedule_t* const nsearch_sc
 /*
  * Display
  */
-void nsearch_schedule_print(FILE* const stream,nsearch_schedule_t* const nsearch_schedule) {
+void nsearch_schedule_print(
+    FILE* const stream,
+    nsearch_schedule_t* const nsearch_schedule) {
   uint64_t offset = 0;
   while (offset != nsearch_schedule->key_length) {
     uint64_t i;
     for (i=0;i<nsearch_schedule->num_pending_searches;++i) {
       nsearch_operation_t* const pending_search = nsearch_schedule->pending_searches + i;
-      if (pending_search->begin == offset) {
-        fprintf(stream,">>[%lu,%lu) {%lu,%lu}/(%lu,%lu)\n",
-            pending_search->begin,pending_search->end,
-            pending_search->min_local_error,pending_search->max_local_error,
-            pending_search->min_global_error,pending_search->max_global_error);
-        offset = pending_search->end;
+      if (pending_search->local_key_begin == offset) {
+        nsearch_operation_print(stream,pending_search);
+        offset = pending_search->local_key_end;
         break;
       }
     }
@@ -253,8 +269,11 @@ typedef struct {
   uint64_t plength;
 } nsearch_schedule_print_data_t;
 void nsearch_schedule_print_region_segment(
-    FILE* const stream,const uint64_t length,
-    const char begin_c,const char middle_c,const char end_c) {
+    FILE* const stream,
+    const uint64_t length,
+    const char begin_c,
+    const char middle_c,
+    const char end_c) {
   uint64_t j;
   if (length < 5) {
     for (j=0;j<length;++j) fprintf(stream,"*");
@@ -265,8 +284,10 @@ void nsearch_schedule_print_region_segment(
   }
 }
 void nsearch_schedule_print_region_limits(
-    FILE* const stream,const uint64_t length,
-    const uint64_t min,const uint64_t max) {
+    FILE* const stream,
+    const uint64_t length,
+    const uint64_t min,
+    const uint64_t max) {
   uint64_t j;
   if (length < 5) {
     for (j=0;j<length;++j) fprintf(stream,"*");
@@ -278,7 +299,9 @@ void nsearch_schedule_print_region_limits(
     for (j=0;j<right;++j) fprintf(stream," ");
   }
 }
-void nsearch_schedule_print_pretty(FILE* const stream,nsearch_schedule_t* const nsearch_schedule) {
+void nsearch_schedule_print_pretty(
+    FILE* const stream,
+    nsearch_schedule_t* const nsearch_schedule) {
   // Save stack state & allocate mem
   mm_stack_t* const mm_stack = nsearch_schedule->mm_stack;
   mm_stack_push_state(mm_stack);
@@ -297,17 +320,37 @@ void nsearch_schedule_print_pretty(FILE* const stream,nsearch_schedule_t* const 
   while (offset != nsearch_schedule->key_length) {
     for (i=0;i<num_pending_searches;++i) {
       nsearch_operation_t* const pending_search = pending_searches + i;
-      if (pending_search->begin == offset) {
+      if (pending_search->local_key_begin == offset) {
         print_data[j].nsearch_schedule_pos = i;
-        print_data[j].plength = amplification*(pending_search->end-pending_search->begin);
-        offset = pending_search->end;
+        print_data[j].plength = amplification*(pending_search->local_key_end-pending_search->local_key_begin);
+        offset = pending_search->local_key_end;
         ++j;
         break;
       }
     }
   }
-  // Print Header & local min/max limits
+  // Print Header
   fprintf(stream,"[GEM]>NSearch[%lu]\n",nsearch_schedule->search_id++);
+  // Print Scheduled Operations
+  fprintf(stream,"  => Scheduled.Operations\n");
+  for (i=0;i<nsearch_schedule->num_pending_searches;++i) {
+    nsearch_operation_t* const pending_search = pending_searches + (nsearch_schedule->num_pending_searches-i-1);
+    fprintf(stream,"    => Key.Local[%lu,%lu) Key.Global[%lu,%lu)\n",
+        pending_search->local_key_begin,pending_search->local_key_end,
+        pending_search->global_key_begin,pending_search->global_key_end);
+  }
+  fprintf(stream,"\n");
+  // Print local min/max limits
+  fprintf(stream,"  => Local.Error    ");
+  for (i=0;i<nsearch_schedule->num_pending_searches;++i) {
+    nsearch_schedule_print_data_t* const operation_data = print_data + i;
+    nsearch_operation_t* const pending_search = pending_searches + operation_data->nsearch_schedule_pos;
+    nsearch_schedule_print_region_limits(stream,operation_data->plength,
+        pending_search->min_local_error,pending_search->max_local_error);
+  }
+  fprintf(stream,"\n");
+  // Print global min/max limits
+  fprintf(stream,"  => Global.Error   ");
   for (i=0;i<nsearch_schedule->num_pending_searches;++i) {
     nsearch_schedule_print_data_t* const operation_data = print_data + i;
     nsearch_operation_t* const pending_search = pending_searches + operation_data->nsearch_schedule_pos;
@@ -316,6 +359,7 @@ void nsearch_schedule_print_pretty(FILE* const stream,nsearch_schedule_t* const 
   }
   fprintf(stream,"\n");
   // Print intervals
+  fprintf(stream,"  => Partition      ");
   for (i=0;i<num_pending_searches;++i) {
     nsearch_schedule_print_data_t* const operation_data = print_data + i;
     nsearch_operation_t* const pending_search = pending_searches + operation_data->nsearch_schedule_pos;
@@ -327,12 +371,14 @@ void nsearch_schedule_print_pretty(FILE* const stream,nsearch_schedule_t* const 
   region_profile_t* const region_profile = nsearch_schedule->region_profile;
   if (region_profile!=NULL) {
     const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
+    fprintf(stream,"  => Regions        ");
     for (i=0;i<num_filtering_regions;++i) {
       region_search_t* const region = region_profile->filtering_region + i;
       const uint64_t plength = amplification*(region->end-region->begin);
       nsearch_schedule_print_region_segment(stream,plength,'|','-','|');
     }
     fprintf(stream,"\n");
+    fprintf(stream,"  => Regions.Limits ");
     for (i=0;i<num_filtering_regions;++i) {
       region_search_t* const region = region_profile->filtering_region + i;
       const uint64_t plength = amplification*(region->end-region->begin);
@@ -344,10 +390,14 @@ void nsearch_schedule_print_pretty(FILE* const stream,nsearch_schedule_t* const 
   // nsearch_schedule_print(stream,nsearch_schedule);
   mm_stack_pop_state(mm_stack);
 }
-void nsearch_schedule_print_profile(FILE* const stream,nsearch_schedule_t* const nsearch_schedule) {
+void nsearch_schedule_print_profile(
+    FILE* const stream,
+    nsearch_schedule_t* const nsearch_schedule) {
   fprintf(stderr,"%lu\t%lu\t%2.3f\n",nsearch_schedule->ns_nodes_success,
       nsearch_schedule->ns_nodes,TIMER_GET_TOTAL_S(&nsearch_schedule->ns_timer));
 }
-void nsearch_schedule_print_search_string(FILE* const stream,nsearch_schedule_t* const nsearch_schedule) {
-  fprintf(stream,"%s",nsearch_schedule->search_string);
+void nsearch_schedule_print_search_string(
+    FILE* const stream,
+    nsearch_schedule_t* const nsearch_schedule) {
+  fprintf(stream,"%s\n",nsearch_schedule->search_string);
 }

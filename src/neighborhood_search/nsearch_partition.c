@@ -13,7 +13,8 @@
  */
 void nsearch_partition_compute(
     nsearch_partition_t* const nsearch_partition,
-    const uint64_t chunk_offset,const uint64_t chunk_length) {
+    const uint64_t chunk_offset,
+    const uint64_t chunk_length) {
   // Pattern Partition
   nsearch_partition->offset_0 = chunk_offset;
   nsearch_partition->length_0 = chunk_length/2;
@@ -24,8 +25,10 @@ void nsearch_partition_compute(
   nsearch_partition->region_1 = NULL;
 }
 void nsearch_partition_preconditioned_compute(
-    nsearch_partition_t* const nsearch_partition,region_search_t* const regions,
-    const uint64_t region_offset,const uint64_t num_regions) {
+    nsearch_partition_t* const nsearch_partition,
+    region_search_t* const regions,
+    const uint64_t region_offset,
+    const uint64_t num_regions) {
   // Region Partition
   nsearch_partition->region_offset_0 = region_offset;
   nsearch_partition->num_regions_0 = DIV_CEIL(num_regions,2);
@@ -47,7 +50,8 @@ void nsearch_partition_preconditioned_compute(
  */
 void nsearch_partition_compute_error(
     nsearch_partition_t* const nsearch_partition,
-    const uint64_t min_error,const uint64_t max_error) {
+    const uint64_t min_error,
+    const uint64_t max_error) {
   // Parameters
   region_search_t* const region_0 = nsearch_partition->region_0;
   const uint64_t length_0 = nsearch_partition->length_0;

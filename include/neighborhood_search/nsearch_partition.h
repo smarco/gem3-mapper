@@ -1,6 +1,6 @@
 /*
  * PROJECT: GEMMapper
- * FILE: neighborhood_search_hamming.h
+ * FILE: nsearch_partition.h
  * DATE: 06/06/2013
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
@@ -10,8 +10,8 @@
 #define NSEARCH_PARTITION_H_
 
 #include "utils/essentials.h"
-#include "fm_index/fm_index.h"
 #include "data_structures/interval_set.h"
+#include "fm_index/fm_index.h"
 #include "filtering/region_profile.h"
 
 /*
@@ -51,16 +51,20 @@ typedef struct {
  */
 void nsearch_partition_compute(
     nsearch_partition_t* const nsearch_partition,
-    const uint64_t chunk_offset,const uint64_t chunk_length);
+    const uint64_t chunk_offset,
+    const uint64_t chunk_length);
 void nsearch_partition_preconditioned_compute(
-    nsearch_partition_t* const nsearch_partition,region_search_t* const regions,
-    const uint64_t region_offset,const uint64_t num_regions);
+    nsearch_partition_t* const nsearch_partition,
+    region_search_t* const regions,
+    const uint64_t region_offset,
+    const uint64_t num_regions);
 
 /*
  * Compute error partition
  */
 void nsearch_partition_compute_error(
     nsearch_partition_t* const nsearch_partition,
-    const uint64_t min_error,const uint64_t max_error);
+    const uint64_t min_error,
+    const uint64_t max_error);
 
 #endif /* NSEARCH_PARTITION_H_ */

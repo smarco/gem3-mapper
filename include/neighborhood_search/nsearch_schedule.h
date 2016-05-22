@@ -14,8 +14,8 @@
 #include "data_structures/interval_set.h"
 #include "fm_index/fm_index.h"
 #include "filtering/region_profile.h"
-#include "neighborhood_search/nsearch_levenshtein_state.h"
 #include "neighborhood_search/dp_matrix.h"
+#include "neighborhood_search/nsearch_operation.h"
 
 /*
  * Neighborhood Search Metric
@@ -24,26 +24,6 @@ typedef enum {
   nsearch_model_hamming,
   nsearch_model_levenshtein
 } nsearch_model_t;
-
-/*
- * Neighborhood Search Operation
- */
-typedef enum { direction_forward, direction_backward } search_direction_t;
-typedef struct {
-  // Pattern chunk
-  uint64_t begin;
-  uint64_t end;
-  // Search direction
-  search_direction_t search_direction;
-  // Error
-  uint64_t max_local_error;
-  uint64_t min_local_error;
-  uint64_t max_global_error;
-  uint64_t min_global_error;
-  uint64_t max_text_length;
-  // Search State
-  nsearch_levenshtein_state_t nsearch_state;
-} nsearch_operation_t;
 
 /*
  * Neighborhood Search Schedule
@@ -74,7 +54,6 @@ typedef struct {
   gem_timer_t ns_timer;
   // MM
   mm_stack_t* mm_stack;
-  // Debug
   char* search_string;
 } nsearch_schedule_t;
 
@@ -82,10 +61,15 @@ typedef struct {
  * Setup
  */
 void nsearch_schedule_init(
-    nsearch_schedule_t* const nsearch_schedule,const nsearch_model_t nsearch_model,
-    fm_index_t* const fm_index,region_profile_t* const region_profile,
-    uint8_t* const key,const uint64_t key_length,const uint64_t max_error,
-    interval_set_t* const intervals_result,mm_stack_t* const mm_stack);
+    nsearch_schedule_t* const nsearch_schedule,
+    const nsearch_model_t nsearch_model,
+    fm_index_t* const fm_index,
+    region_profile_t* const region_profile,
+    uint8_t* const key,
+    const uint64_t key_length,
+    const uint64_t max_error,
+    interval_set_t* const intervals_result,
+    mm_stack_t* const mm_stack);
 
 /*
  * Schedule the search
@@ -96,10 +80,17 @@ void nsearch_schedule_search_preconditioned(nsearch_schedule_t* const nsearch_sc
 /*
  * Display
  */
-void nsearch_schedule_print(FILE* const stream,nsearch_schedule_t* const nsearch_schedule);
-void nsearch_schedule_print_pretty(FILE* const stream,nsearch_schedule_t* const nsearch_schedule);
-void nsearch_schedule_print_profile(FILE* const stream,nsearch_schedule_t* const nsearch_schedule);
-
-void nsearch_schedule_print_search_string(FILE* const stream,nsearch_schedule_t* const nsearch_schedule);
+void nsearch_schedule_print(
+    FILE* const stream,
+    nsearch_schedule_t* const nsearch_schedule);
+void nsearch_schedule_print_pretty(
+    FILE* const stream,
+    nsearch_schedule_t* const nsearch_schedule);
+void nsearch_schedule_print_profile(
+    FILE* const stream,
+    nsearch_schedule_t* const nsearch_schedule);
+void nsearch_schedule_print_search_string(
+    FILE* const stream,
+    nsearch_schedule_t* const nsearch_schedule);
 
 #endif /* NSEARCH_SCHEDULE_H_ */

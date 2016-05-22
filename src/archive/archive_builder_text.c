@@ -28,9 +28,7 @@ void archive_builder_text_process(
   // Set forward-text length
   archive_builder->forward_text_length = archive_builder->parsing_state.index_position;
   // Generate RC-Text
-  if (archive_builder->indexed_complement == index_complement_yes) {
-    archive_builder_generate_rc_text(archive_builder,verbose);
-  }
+  archive_builder_generate_rc_text(archive_builder,verbose);
   archive_builder_generate_text_add_separator(archive_builder); // Add extra separator (Close full-text)
   // Set full-text length
   dna_text_set_length(archive_builder->enc_text,archive_builder->parsing_state.index_position);

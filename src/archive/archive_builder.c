@@ -17,12 +17,9 @@ archive_builder_t* archive_builder_new(
     fm_t* const output_file,
     char* const output_file_name_prefix,
     const archive_type type,
-    const indexed_complement_t indexed_complement,
-    const uint64_t complement_size_threshold,
     const uint64_t ns_threshold,
     const sampling_rate_t sa_sampling_rate,
     const sampling_rate_t text_sampling_rate,
-    const bool indexed_reverse_text,
     const uint64_t num_threads,
     const uint64_t max_memory) {
   // Allocate
@@ -31,12 +28,9 @@ archive_builder_t* archive_builder_new(
    * Meta-information
    */
   archive_builder->type = type;
-  archive_builder->indexed_complement = indexed_complement;
-  archive_builder->complement_size_threshold = complement_size_threshold;
   archive_builder->ns_threshold = ns_threshold;
   archive_builder->sa_sampling_rate = sa_sampling_rate;
   archive_builder->text_sampling_rate = text_sampling_rate;
-  archive_builder->indexed_reverse_text = indexed_reverse_text;
   /*
    * Misc
    */
@@ -90,9 +84,9 @@ void archive_builder_write_header(archive_builder_t* const archive_builder) {
   // Write Header
   fm_write_uint64(archive_builder->output_file_manager,ARCHIVE_MODEL_NO);
   fm_write_uint64(archive_builder->output_file_manager,archive_builder->type);
-  fm_write_uint64(archive_builder->output_file_manager,archive_builder->indexed_complement);
+  fm_write_uint64(archive_builder->output_file_manager,1ull); // TODO Remove next index upgrade
   fm_write_uint64(archive_builder->output_file_manager,archive_builder->ns_threshold);
-  fm_write_uint64(archive_builder->output_file_manager,archive_builder->indexed_reverse_text);
+  fm_write_uint64(archive_builder->output_file_manager,0ull); // TODO Remove next index upgrade
 }
 void archive_builder_write_locator(archive_builder_t* const archive_builder) {
   // Write Locator
@@ -113,9 +107,8 @@ void archive_builder_write_index(
   if (archive_builder->sampled_rl!=NULL) sampled_rl_delete(archive_builder->sampled_rl); // Free
   // Create & write the FM-index
   bwt_builder_t* const bwt_builder = fm_index_write(
-      archive_builder->output_file_manager,archive_builder->indexed_reverse_text,
-      archive_builder->enc_bwt,archive_builder->character_occurrences,
-      archive_builder->sampled_sa,check_index,verbose);
+      archive_builder->output_file_manager,archive_builder->enc_bwt,
+      archive_builder->character_occurrences,archive_builder->sampled_sa,check_index,verbose);
   // Create & write the GPU FM-Index
   if (gpu_index) {
     sampled_sa_builder_t* const sampled_sa = archive_builder->sampled_sa;
@@ -127,15 +120,5 @@ void archive_builder_write_index(
   }
   // Free
   bwt_builder_delete(bwt_builder);
-}
-void archive_builder_write_index_reverse(
-    archive_builder_t* const archive_builder,
-    const bool check_index,
-    const bool verbose) {
-  // Create & write the FM-index
-  bwt_reverse_builder_t* const bwt_reverse_builder = fm_index_reverse_write(
-      archive_builder->output_file_manager,archive_builder->enc_bwt,
-      archive_builder->character_occurrences,check_index,verbose);
-  bwt_reverse_builder_delete(bwt_reverse_builder); // Free BWT-builder
 }
 

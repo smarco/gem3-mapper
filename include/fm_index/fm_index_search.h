@@ -21,14 +21,12 @@ void fm_index_bsearch(
     uint64_t key_length,
     uint64_t* const hi_out,
     uint64_t* const lo_out);
-
 void fm_index_bsearch_pure(
     const fm_index_t* const fm_index,
     const uint8_t* const key,
     uint64_t key_length,
     uint64_t* const hi_out,
     uint64_t* const lo_out);
-
 uint64_t fm_index_bsearch_continue(
     const fm_index_t* const fm_index,
     const char* const key,
@@ -50,7 +48,18 @@ void fm_index_reverse_bsearch_pure(
     const uint64_t key_length,
     uint64_t* const hi_out,
     uint64_t* const lo_out);
-
+void fm_index_reverse_bsearch_fb(
+    const fm_index_t* const fm_index,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    uint64_t* const hi_out,
+    uint64_t* const lo_out);
+void fm_index_reverse_bsearch_bf(
+    const fm_index_t* const fm_index,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    uint64_t* const hi_out,
+    uint64_t* const lo_out);
 /*
  * Debug
  */

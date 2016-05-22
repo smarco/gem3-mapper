@@ -154,7 +154,7 @@ char* gt_stats_groups[] = {
  */
 gt_option gt_mapset_options[] = {
   /* Operations */
-  { 'C', "operation", GT_OPT_REQUIRED, GT_OPT_STRING, 2 , true,
+  { 'O', "operation", GT_OPT_REQUIRED, GT_OPT_STRING, 2 , true,
       "<operation>\n"
       "     [Set Operators]\n"
       "        union\n"

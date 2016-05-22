@@ -143,6 +143,9 @@ void approximate_search(approximate_search_t* const search,matches_t* const matc
     case mapping_neighborhood_search:
       approximate_search_neighborhood_search(search,matches); // Brute-force mapping
       break;
+    case mapping_test:
+      approximate_search_neighborhood_exact_search(search,matches);
+      break;
     default:
       GEM_INVALID_CASE();
       break;

@@ -26,7 +26,6 @@
  */
 bwt_builder_t* fm_index_write(
     fm_t* const file_manager,
-    const bool fm_index_reverse,
     dna_text_t* const bwt_text,
     uint64_t* const character_occurrences,
     sampled_sa_builder_t* const sampled_sa,
@@ -38,7 +37,7 @@ bwt_builder_t* fm_index_write(
   fm_write_uint64(file_manager,FM_INDEX_MODEL_NO);
   fm_write_uint64(file_manager,text_length);
   fm_write_uint64(file_manager,proper_length);
-  fm_write_uint64(file_manager,fm_index_reverse);
+  fm_write_uint64(file_manager,0ull); // TODO Remove with next index upgrade
   // Write Sampled-SA & Free Samples
   sampled_sa_builder_write(file_manager,sampled_sa);
   if (verbose) sampled_sa_builder_print(gem_info_get_stream(),sampled_sa);
@@ -57,27 +56,6 @@ bwt_builder_t* fm_index_write(
   // Return BWT
   return bwt_builder;
 }
-bwt_reverse_builder_t* fm_index_reverse_write(
-    fm_t* const file_manager,
-    dna_text_t* const bwt_reverse_text,
-    uint64_t* const character_occurrences,
-    const bool check,
-    const bool verbose) {
-  // Generate BWT-Bitmap Reverse
-  bwt_reverse_builder_t* const bwt_reverse_builder =
-      bwt_reverse_builder_new(bwt_reverse_text,character_occurrences,check,verbose);
-  if (verbose) bwt_reverse_builder_print(gem_info_get_stream(),bwt_reverse_builder);
-  // Build mrank table Reverse
-  rank_mtable_t* const rank_mtable = rank_mtable_reverse_builder_new(bwt_reverse_builder,verbose);
-  if (verbose) rank_mtable_print(gem_info_get_stream(),rank_mtable);
-  // Write mrank table Reverse
-  rank_mtable_builder_write(file_manager,rank_mtable);
-  rank_mtable_builder_delete(rank_mtable); // Free
-  // Write BWT Reverse
-  bwt_reverse_builder_write(file_manager,bwt_reverse_builder);
-  // Return BWT
-  return bwt_reverse_builder;
-}
 /*
  * Loader
  */
@@ -89,23 +67,13 @@ fm_index_t* fm_index_read_mem(mm_t* const memory_manager,const bool check) {
   gem_cond_fatal_error(fm_index_model_no!=FM_INDEX_MODEL_NO,FM_INDEX_WRONG_MODEL_NO,fm_index_model_no,(uint64_t)FM_INDEX_MODEL_NO);
   fm_index->text_length = mm_read_uint64(memory_manager);
   fm_index->proper_length = mm_read_uint64(memory_manager);
-  fm_index->fm_index_reverse = mm_read_uint64(memory_manager);
+  mm_read_uint64(memory_manager); // TODO Remove with next index upgrade
   // Load Sampled SA
   fm_index->sampled_sa = sampled_sa_read_mem(memory_manager);
   // Load rank_mtable
   fm_index->rank_table = rank_mtable_read_mem(memory_manager);
   // Load BWT
   fm_index->bwt = bwt_read_mem(memory_manager,check);
-  // Reverse Index
-  if (fm_index->fm_index_reverse) {
-    // Load rank_mtable Reverse
-    fm_index->rank_table_reverse = rank_mtable_read_mem(memory_manager);
-    // Load BWT Reverse
-    fm_index->bwt_reverse = bwt_reverse_read_mem(memory_manager,check);
-  } else {
-    fm_index->rank_table_reverse = NULL;
-    fm_index->bwt_reverse = NULL;
-  }
   // Return
   return fm_index;
 }
@@ -114,14 +82,8 @@ void fm_index_delete(fm_index_t* const fm_index) {
   sampled_sa_delete(fm_index->sampled_sa);
   // Delete rank_mtable
   rank_mtable_delete(fm_index->rank_table);
-  if (fm_index->fm_index_reverse) {
-    rank_mtable_delete(fm_index->rank_table_reverse);
-  }
   // Delete BWT
   bwt_delete(fm_index->bwt);
-  if (fm_index->fm_index_reverse) {
-    bwt_reverse_delete(fm_index->bwt_reverse);
-  }
   // Free handler
   mm_free(fm_index);
 }
@@ -138,12 +100,8 @@ double fm_index_get_proper_length(const fm_index_t* const fm_index) {
 uint64_t fm_index_get_size(const fm_index_t* const fm_index) {
   const uint64_t sampled_sa_size = sampled_sa_get_size(fm_index->sampled_sa); // Sampled SuffixArray positions
   const uint64_t bwt_size = bwt_get_size(fm_index->bwt); // BWT structure
-  const uint64_t bwt_reverse_size = (fm_index->fm_index_reverse) ?
-      bwt_reverse_get_size(fm_index->bwt_reverse) : 0; // BWT Reverse structure
   const uint64_t rank_table_size = rank_mtable_get_size(fm_index->rank_table); // Memoizated intervals
-  const uint64_t rank_table_reverse_size = (fm_index->fm_index_reverse) ?
-      rank_mtable_get_size(fm_index->rank_table_reverse) : 0; // Memoizated Reverse intervals
-  return sampled_sa_size + bwt_size + bwt_reverse_size + rank_table_size + rank_table_reverse_size;
+  return sampled_sa_size + bwt_size + rank_table_size;
 }
 /*
  * FM-Index High-level Operators
@@ -242,14 +200,12 @@ void fm_index_print(
   const uint64_t sampled_sa_size = sampled_sa_get_size(fm_index->sampled_sa); // Sampled SuffixArray positions
   const uint64_t rank_table_size = rank_mtable_get_size(fm_index->rank_table); // Memoizated intervals
   const uint64_t bwt_size = bwt_get_size(fm_index->bwt); // BWT structure
-  const uint64_t bwt_reverse_size = bwt_reverse_get_size(fm_index->bwt_reverse); // BWT Reverse structure
   const uint64_t fm_index_size = sampled_sa_size+bwt_size+rank_table_size;
   tab_fprintf(stream,"[GEM]>FM.Index\n");
   tab_fprintf(stream,"  => FM.Index.Size  %"PRIu64" MB (100%%)\n",CONVERT_B_TO_MB(fm_index_size));
   tab_fprintf(stream,"    => Sampled.SA   %"PRIu64" MB (%2.3f%%)\n",CONVERT_B_TO_MB(sampled_sa_size),PERCENTAGE(sampled_sa_size,fm_index_size));
   tab_fprintf(stream,"    => Rank.mTable  %"PRIu64" MB (%2.3f%%)\n",CONVERT_B_TO_MB(rank_table_size),PERCENTAGE(rank_table_size,fm_index_size));
   tab_fprintf(stream,"    => BWT          %"PRIu64" MB (%2.3f%%)\n",CONVERT_B_TO_MB(bwt_size),PERCENTAGE(bwt_size,fm_index_size));
-  tab_fprintf(stream,"    => BWT-Reverse  %"PRIu64" MB (%2.3f%%)\n",CONVERT_B_TO_MB(bwt_reverse_size),PERCENTAGE(bwt_reverse_size,fm_index_size));
   tab_global_inc();
   // Sampled SuffixArray positions
   sampled_sa_print(stream,fm_index->sampled_sa,false);
@@ -257,8 +213,6 @@ void fm_index_print(
   rank_mtable_print(stream,fm_index->rank_table);
   // BWT structure
   bwt_print(stream,fm_index->bwt);
-  // BWT-Reverse structure
-  bwt_reverse_print(stream,fm_index->bwt_reverse);
   tab_global_dec();
   // Flush
   fflush(stream);
