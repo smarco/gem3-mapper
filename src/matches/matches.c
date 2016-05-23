@@ -471,7 +471,9 @@ int match_trace_cmp_distance(const match_trace_t* const a,const match_trace_t* c
   const int distance_edit = (int)a->edit_distance - (int)b->edit_distance;
   if (distance_edit) return distance_edit;
   // Untie using position (helps to stabilize & cmp results)
-  return (int)a->match_alignment.match_position - (int)b->match_alignment.match_position;
+  if (a->match_alignment.match_position < b->match_alignment.match_position) return -1;
+  if (a->match_alignment.match_position > b->match_alignment.match_position) return  1;
+  return 0;
 }
 void matches_sort_by_distance(matches_t* const matches) {
   // Sort
@@ -509,8 +511,11 @@ void matches_sort_by_mapq_score(matches_t* const matches) {
       (int (*)(const void *,const void *))match_trace_cmp_mapq_score);
 }
 int match_trace_cmp_sequence_name__position(const match_trace_t* const a,const match_trace_t* const b) {
-  const int cmp = gem_strcmp(a->sequence_name,b->sequence_name);
-  return (cmp!=0) ? cmp : ((int)a->text_position - (int)b->text_position);
+  const int cmp_name = gem_strcmp(a->sequence_name,b->sequence_name);
+  if (cmp_name!=0) return cmp_name;
+  if (a->text_position < b->text_position) return -1;
+  if (a->text_position > b->text_position) return  1;
+  return 0;
 }
 void matches_sort_by_sequence_name__position(matches_t* const matches) {
   // Sort global matches (match_trace_t) wrt distance

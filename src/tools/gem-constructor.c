@@ -20,6 +20,7 @@
 #include "archive/archive.h"
 #include "archive/archive_text.h"
 #include "data_structures/cdna_text.h"
+#include "filtering/filtering_candidates.h"
 #include "filtering/region_profile.h"
 #include "io/input_parser.h"
 #include "matches/match_align_dto.h"
@@ -871,7 +872,7 @@ void constructor_vector_sort(const int num_elements,const int iterations) {
   for (iter=0;iter<iterations;++iter) {
     // Generate values
     for (i=0;i<num_elements;++i) {
-      array[i] = gem_rand(0,1000000);
+      array[i] = gem_rand(0,10000000);
     }
     // Sort them
     //vector_sort_selection_int(vector);
@@ -887,6 +888,60 @@ void constructor_vector_sort(const int num_elements,const int iterations) {
   // Free
   vector_delete(vector);
 }
+
+
+int64_t filtering_position_cmp_p(const filtering_position_t* const a,const filtering_position_t* const b) {
+  return (int64_t)a->text_end_position - (int64_t)b->text_end_position;
+}
+
+#define VECTOR_SORT_NAME                 positions
+#define VECTOR_SORT_TYPE                 filtering_position_t
+#define VECTOR_SORT_CMP(a,b)             filtering_position_cmp_p(a,b)
+#include "utils/vector_sort.h"
+
+void constructor_vector_sort_pos(const int num_elements,const int iterations) {
+  // Allocate
+  vector_t* const vector = vector_new(num_elements,filtering_position_t);
+  vector_set_used(vector,num_elements);
+  filtering_position_t* const array = vector_get_mem(vector,filtering_position_t);
+  int iter, i;
+  // Test
+  for (iter=0;iter<iterations;++iter) {
+    // Generate values
+//    for (i=0;i<num_elements;++i) {
+//      array[i].text_end_position = gem_rand(0,100000000);
+//    }
+    i = 0;
+    array[i++].text_end_position = 5730752298;
+    array[i++].text_end_position = 2776163281;
+    array[i++].text_end_position = 2776163281;
+    array[i++].text_end_position = 2776163281;
+    array[i++].text_end_position = 1761992833;
+    array[i++].text_end_position = 1608181033;
+    array[i++].text_end_position = 425170857;
+    array[i++].text_end_position = 3735532162;
+    array[i++].text_end_position = 123525849;
+    array[i++].text_end_position = 2776163281;
+    array[i++].text_end_position = 5642143581;
+    vector_set_used(vector,i);
+
+    // Sort them
+    //vector_sort_selection_int(vector);
+    //vector_sort_quicksort_int(vector);
+    //vector_sort_heapsort_int(vector);
+     vector_sort_positions(vector);
+
+    // Check ordering
+    if (buffer_sort_check_positions(array,num_elements)) {
+      fprintf(stderr,"%d: Checked\n",iter);
+    }
+  }
+  // Free
+  vector_delete(vector);
+}
+
+
+
 //#include <numa.h>
 //void constructor_numa() {
 //  if (numa_available() < 0) {
@@ -1034,24 +1089,24 @@ int main(int argc,char** argv) {
   //  constructor_itoa();
   // constructor_swg();
 
-  if (gem_strcaseeq(parameters.option,"hamming-brute")) {
-    constructor_ns_hamming_brute();
-  }
-  if (gem_strcaseeq(parameters.option,"hamming-partition")) {
-    constructor_ns_hamming();
-  }
-  if (gem_strcaseeq(parameters.option,"hamming-regions")) {
-    constructor_ns_hamming_2regions();
-  }
-  if (gem_strcaseeq(parameters.option,"hamming-permutations")) {
-    constructor_ns_hamming_permutations();
-  }
-  if (gem_strcaseeq(parameters.option,"edit-brute")) {
-    constructor_ns_edit_brute();
-  }
-  if (gem_strcaseeq(parameters.option,"edit-partition")) {
-    constructor_ns_edit_partition();
-  }
+//  if (gem_strcaseeq(parameters.option,"hamming-brute")) {
+//    constructor_ns_hamming_brute();
+//  }
+//  if (gem_strcaseeq(parameters.option,"hamming-partition")) {
+//    constructor_ns_hamming();
+//  }
+//  if (gem_strcaseeq(parameters.option,"hamming-regions")) {
+//    constructor_ns_hamming_2regions();
+//  }
+//  if (gem_strcaseeq(parameters.option,"hamming-permutations")) {
+//    constructor_ns_hamming_permutations();
+//  }
+//  if (gem_strcaseeq(parameters.option,"edit-brute")) {
+//    constructor_ns_edit_brute();
+//  }
+//  if (gem_strcaseeq(parameters.option,"edit-partition")) {
+//    constructor_ns_edit_partition();
+//  }
 
   //  constructor_lsc();
   //  return 0;
@@ -1060,7 +1115,9 @@ int main(int argc,char** argv) {
 //  fprintf(stderr,"Position=%lu\tProyection=%lu\n",
 //      0ul,archive_text_get_unitary_projection(archive->text,0));
 
-//  constructor_vector_sort(parameters.param1,parameters.param2);
+  //constructor_vector_sort(parameters.param1,parameters.param2);
+  constructor_vector_sort_pos(parameters.param1,parameters.param2);
+
 
 // constructor_numa();
 

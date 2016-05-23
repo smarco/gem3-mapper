@@ -190,8 +190,8 @@ int filtering_region_cmp_sort_align_distance(const filtering_region_t* const a,c
 int filtering_region_cmp_sort_scaffold_coverage(const filtering_region_t* const a,const filtering_region_t* const b) {
   return b->match_scaffold.scaffolding_coverage - a->match_scaffold.scaffolding_coverage;
 }
-int filtering_position_cmp_position(const filtering_position_t* const a,const filtering_position_t* const b) {
-  return a->text_end_position - b->text_end_position;
+int64_t filtering_position_cmp_position(const filtering_position_t* const a,const filtering_position_t* const b) {
+  return (int64_t)a->text_end_position - (int64_t)b->text_end_position;
 }
 //void filtering_regions_sort_align_distance(vector_t* const filtering_regions) {
 //  void* array = vector_get_mem(filtering_regions,filtering_region_t);
