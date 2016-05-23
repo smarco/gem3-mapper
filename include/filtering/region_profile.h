@@ -94,6 +94,12 @@ bool region_profile_has_exact_matches(region_profile_t* const region_profile);
 /*
  * Utils
  */
+void region_profile_compute_kmer_frequency(
+    region_profile_t* const region_profile,
+    fm_index_t* const fm_index,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const bool* const allowed_enc);
 void region_profile_query_character(
     fm_index_t* const fm_index,
     rank_mquery_t* const rank_mquery,

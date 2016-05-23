@@ -59,6 +59,42 @@ bool region_profile_has_exact_matches(region_profile_t* const region_profile) {
 /*
  * Utils
  */
+void region_profile_compute_kmer_frequency(
+    region_profile_t* const region_profile,
+    fm_index_t* const fm_index,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const bool* const allowed_enc) {
+  // Init mquery
+  rank_mquery_t rank_mquery;
+  rank_mquery_new(&rank_mquery);
+  // Traverse the read & compute the frequency of contiguous kmers
+  double frequency = 0.0;
+  int64_t i, samples = 0;
+  for (i=key_length-1;i>=0;--i) {
+    // Fetch character
+    const uint8_t enc_char = key[i];
+    if (!allowed_enc[enc_char]) {
+      rank_mquery_new(&rank_mquery); // Reset
+      continue;
+    }
+    // Query
+    rank_mtable_t* const rank_mtable = fm_index->rank_table;
+    if (!rank_mquery_is_exhausted(&rank_mquery)) {
+      rank_mquery_add_char(rank_mtable,&rank_mquery,enc_char);
+    } else {
+      // Account
+      uint64_t hi, lo;
+      rank_mtable_fetch(rank_mtable,&rank_mquery,&lo,&hi);
+      frequency += gem_log2((double)(hi-lo)); // (x/2.0)
+      ++samples;
+      // Reset
+      rank_mquery_new(&rank_mquery);
+    }
+  }
+  // Compute the kmer average frequency
+  region_profile->mappability_2p = frequency/(double)(2*samples);
+}
 void region_profile_query_character(
     fm_index_t* const fm_index,
     rank_mquery_t* const rank_mquery,

@@ -336,6 +336,8 @@ void region_profile_generate_adaptive(
   gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
     fprintf(gem_log_get_stream(),"\n");
   }
+  // Experimental // FIXME
+  region_profile_compute_kmer_frequency(region_profile,fm_index,key,key_length,allowed_enc);
 }
 /*
  * Region Profile Adaptive (limited to extract a minimum number of regions)
