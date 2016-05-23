@@ -166,16 +166,33 @@ void approximate_search_region_profile_static_close_profile(
 }
 void approximate_search_region_profile_adaptive_close_profile(
     approximate_search_t* const search,
-    const uint64_t num_filtering_regions,
+    const uint64_t num_regions,
     const uint64_t num_regions_filtered,
     const uint64_t num_zero_regions,
-    const uint64_t total_candidates,
+    uint64_t total_candidates,
     const uint64_t max_region_length,
     const double mappability_p){
+  // Parameters
   region_profile_t* const region_profile = &search->region_profile;
-  region_profile->num_filtering_regions = num_filtering_regions;
-  region_profile->num_standard_regions = num_filtering_regions;
-  if (num_filtering_regions == 0) {
+  // Check exact matches
+  if (num_regions == 1 && num_regions_filtered == 0) {
+    const uint64_t key_length = search->pattern.key_length;
+    region_search_t* const first_region = region_profile->filtering_region;
+    if (first_region->begin==0 && first_region->end==key_length) {
+      region_profile->num_filtering_regions = 1;
+      region_profile->num_standard_regions = 1;
+      total_candidates += first_region->hi - first_region->lo;
+      first_region->degree = REGION_FILTER_DEGREE_ZERO;
+    } else {
+      region_profile->num_filtering_regions = 0;
+      region_profile->num_standard_regions = 0;
+    }
+  } else {
+    region_profile->num_filtering_regions = num_regions;
+    region_profile->num_standard_regions = num_regions;
+  }
+  // Check number of regions
+  if (region_profile->num_filtering_regions == 0) {
     // Set State
     search->processing_state = asearch_processing_state_no_regions;
     // Close region profile
@@ -189,7 +206,7 @@ void approximate_search_region_profile_adaptive_close_profile(
     // Close region profile
     region_search_t* const last_region =
         region_profile->filtering_region + (region_profile->num_filtering_regions-1);
-    region_profile->mappability_p = mappability_p/(double)(2*num_filtering_regions);
+    region_profile->mappability_p = mappability_p/(double)(2*region_profile->num_filtering_regions);
     region_profile->mappability_2p = 0.0;
     region_profile->total_candidates = total_candidates;
     region_profile->max_region_length = MAX(max_region_length,last_region->begin);
@@ -408,16 +425,16 @@ void approximate_search_region_profile_adaptive_buffered_retrieve(
   region_profile_t* const region_profile = &search->region_profile;
   const uint64_t filtering_threshold = search_parameters->rp_lightweight.region_th;
   // Retrieve buffer offsets
-  uint64_t regions_offset, num_filtering_regions;
+  uint64_t regions_offset, num_regions;
   gpu_buffer_fmi_asearch_get_result_total_regions(
       gpu_buffer_fmi_asearch,search->gpu_buffer_fmi_search_offset,
-      &regions_offset,&num_filtering_regions);
+      &regions_offset,&num_regions);
   // Traverse Region-Partition
   uint64_t num_regions_filtered = 0, num_zero_regions = 0;
   uint64_t max_region_length = 0, total_candidates = 0;
   double mappability_p = 0.0;
   uint64_t i;
-  for (i=0;i<num_filtering_regions;++i) {
+  for (i=0;i<num_regions;++i) {
     // Fetch region search-interval
     region_search_t* const filtering_region = region_profile->filtering_region + i;
     gpu_buffer_fmi_asearch_get_result_region(
@@ -431,8 +448,8 @@ void approximate_search_region_profile_adaptive_buffered_retrieve(
   }
   // Close profile
   approximate_search_region_profile_adaptive_close_profile(
-      search,num_filtering_regions,num_regions_filtered,
-      num_zero_regions,total_candidates,max_region_length,mappability_p);
+      search,num_regions,num_regions_filtered,num_zero_regions,
+      total_candidates,max_region_length,mappability_p);
 }
 /*
  * Benchmark

@@ -177,20 +177,19 @@ void pattern_init(
         pattern->num_wildcards;
     pattern->max_effective_filtering_error = MIN(max_effective_filtering_error,pattern->key_length);
     pattern->max_effective_bandwidth = MIN(max_effective_bandwidth,pattern->key_length);
-    if (pattern->max_effective_filtering_error > 0) {
-      // Prepare kmer-counting filter
-      if (kmer_filter_compile) {
-        kmer_counting_compile(&pattern->kmer_counting,pattern->key,
-            pattern->key_length,pattern->max_effective_filtering_error,mm_stack);
-      } else {
-        pattern->kmer_counting.enabled = false;
-      }
-      // Prepare BPM pattern
-      pattern->bpm_pattern = bpm_pattern_compile(
-          pattern->key,pattern->key_length,pattern->max_effective_filtering_error,mm_stack);
-      pattern->bpm_pattern_tiles = bpm_pattern_compile_tiles(pattern->bpm_pattern,
-          PATTERN_BPM_WORDS64_PER_TILE,pattern->max_effective_filtering_error,mm_stack);
+    // if (pattern->max_effective_filtering_error > 0) return; // Old-style
+    // Prepare kmer-counting filter
+    if (kmer_filter_compile) {
+      kmer_counting_compile(&pattern->kmer_counting,pattern->key,
+          pattern->key_length,pattern->max_effective_filtering_error,mm_stack);
+    } else {
+      pattern->kmer_counting.enabled = false;
     }
+    // Prepare BPM pattern
+    pattern->bpm_pattern = bpm_pattern_compile(
+        pattern->key,pattern->key_length,pattern->max_effective_filtering_error,mm_stack);
+    pattern->bpm_pattern_tiles = bpm_pattern_compile_tiles(pattern->bpm_pattern,
+        PATTERN_BPM_WORDS64_PER_TILE,pattern->max_effective_filtering_error,mm_stack);
   }
 }
 void pattern_clear(pattern_t* const pattern) {
