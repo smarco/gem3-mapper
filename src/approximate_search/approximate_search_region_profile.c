@@ -450,6 +450,13 @@ void approximate_search_region_profile_adaptive_buffered_retrieve(
   approximate_search_region_profile_adaptive_close_profile(
       search,num_regions,num_regions_filtered,num_zero_regions,
       total_candidates,max_region_length,mappability_p);
+  // Experimental // FIXME
+  region_profile_compute_kmer_frequency(region_profile,
+      search->archive->fm_index,
+      search->pattern.key,
+      search->pattern.key_length,
+      search->search_parameters->allowed_enc,
+      search->mm_stack);
 }
 /*
  * Benchmark

@@ -99,7 +99,8 @@ void region_profile_compute_kmer_frequency(
     fm_index_t* const fm_index,
     const uint8_t* const key,
     const uint64_t key_length,
-    const bool* const allowed_enc);
+    const bool* const allowed_enc,
+    mm_stack_t* const mm_stack);
 void region_profile_query_character(
     fm_index_t* const fm_index,
     rank_mquery_t* const rank_mquery,

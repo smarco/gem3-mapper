@@ -64,36 +64,46 @@ void region_profile_compute_kmer_frequency(
     fm_index_t* const fm_index,
     const uint8_t* const key,
     const uint64_t key_length,
-    const bool* const allowed_enc) {
+    const bool* const allowed_enc,
+    mm_stack_t* const mm_stack) {
+  // Push
+  mm_stack_push_state(mm_stack);
   // Init mquery
-  rank_mquery_t rank_mquery;
-  rank_mquery_new(&rank_mquery);
+  rank_mtable_t* const rank_mtable = fm_index->rank_table;
+  const uint64_t max_samples = DIV_CEIL(key_length,RANK_MTABLE_SEARCH_DEPTH);
+  rank_mquery_t* const rank_mquery = mm_stack_calloc(mm_stack,max_samples,rank_mquery_t,false);
   // Traverse the read & compute the frequency of contiguous kmers
-  float frequency = 0.0;
   int64_t i, samples = 0;
+  rank_mquery_t* current_rank_mquery = rank_mquery;
+  rank_mquery_new(current_rank_mquery);
   for (i=key_length-1;i>=0;--i) {
     // Fetch character
     const uint8_t enc_char = key[i];
     if (!allowed_enc[enc_char]) {
-      rank_mquery_new(&rank_mquery); // Reset
+      rank_mquery_new(current_rank_mquery); // Reset
       continue;
     }
     // Query
-    rank_mtable_t* const rank_mtable = fm_index->rank_table;
-    if (!rank_mquery_is_exhausted(&rank_mquery)) {
-      rank_mquery_add_char(rank_mtable,&rank_mquery,enc_char);
+    if (!rank_mquery_is_exhausted(current_rank_mquery)) {
+      rank_mquery_add_char(rank_mtable,current_rank_mquery,enc_char);
     } else {
-      // Account
-      uint64_t hi, lo;
-      rank_mtable_fetch(rank_mtable,&rank_mquery,&lo,&hi);
-      frequency += gem_loge((float)(hi-lo));
-      ++samples;
-      // Reset
-      rank_mquery_new(&rank_mquery);
+      rank_mtable_prefetch(rank_mtable,current_rank_mquery);
+      ++samples; // Next
+      ++current_rank_mquery;
+      rank_mquery_new(current_rank_mquery); // Reset
     }
   }
   // Compute the kmer average frequency
+  float frequency = 0.0;
+  for (i=0;i<samples;++i) {
+    // Account
+    uint64_t hi, lo;
+    rank_mtable_fetch(rank_mtable,rank_mquery+i,&lo,&hi);
+    frequency += gem_loge((float)(hi-lo));
+  }
   region_profile->mappability_2p = (double)( frequency/((float)samples*gem_loge(4)) );
+  // Free
+  mm_stack_pop_state(mm_stack);
 }
 void region_profile_query_character(
     fm_index_t* const fm_index,

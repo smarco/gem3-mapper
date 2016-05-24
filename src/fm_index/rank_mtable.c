@@ -95,6 +95,11 @@ uint64_t rank_mquery_is_exhausted(const rank_mquery_t* const query) {
 /*
  * Fetch rank value
  */
+void rank_mtable_prefetch(
+    const rank_mtable_t* const rank_mtable,
+    const rank_mquery_t* const query) {
+  PREFETCH((rank_mtable->sa_ranks_levels[query->level] + (query->hi_position-1)));
+}
 void rank_mtable_fetch(
     const rank_mtable_t* const rank_mtable,
     const rank_mquery_t* const query,
