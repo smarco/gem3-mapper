@@ -38,8 +38,7 @@ void region_profile_clear(region_profile_t* const region_profile) {
   region_profile->num_unique_regions = 0;
   region_profile->num_zero_regions = 0;
   region_profile->max_region_length = 0;
-  region_profile->mappability_p = 0.0;
-  region_profile->mappability_2p = 0.0;
+  region_profile->kmer_frequency = 0.0;
 }
 /*
  * Accessors
@@ -101,7 +100,7 @@ void region_profile_compute_kmer_frequency(
     rank_mtable_fetch(rank_mtable,rank_mquery+i,&lo,&hi);
     frequency += gem_loge((float)(hi-lo));
   }
-  region_profile->mappability_2p = (double)( frequency/((float)samples*gem_loge(4)) );
+  region_profile->kmer_frequency = (double)( frequency/((float)samples*gem_loge(4)) );
   // Free
   mm_stack_pop_state(mm_stack);
 }

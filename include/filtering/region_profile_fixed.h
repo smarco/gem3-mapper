@@ -33,14 +33,6 @@ void region_profile_generate_fixed_query(
 /*
  * Display/Benchmark
  */
-void region_profile_print_mappability(
-    FILE* const stream,
-    fm_index_t* const fm_index,
-    const bool* const allowed_enc,
-    const uint8_t* key,
-    const uint64_t key_length,
-    const bool print_profiles,
-    mm_stack_t* const mm_stack);
 void region_profile_print_benchmark(
     FILE* const stream,
     const region_profile_t* const region_profile,

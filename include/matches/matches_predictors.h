@@ -41,8 +41,7 @@ typedef struct {
   uint64_t accepted_candidates_end2;
   /* Mappability */
   double max_region_length_norm;
-  double mappability_p;
-  double mappability_2p;
+  double kmer_frequency;
   /* Template Size */
   double first_map_template_size_sigma;
   double subdominant_template_size_sigma;

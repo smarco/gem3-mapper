@@ -71,7 +71,6 @@ void approximate_search_stepwise_region_profile_adaptive_compute(
       REGION_FILTER_DEGREE_ZERO,search_parameters->filtering_threshold);
   // Set State
   search->processing_state = asearch_processing_state_region_profiled;
-  // region_profile_print(stderr,&search->region_profile,false); // DEBUG
   PROF_STOP(GP_ASSW_REGION_PROFILE_UNSUCCESSFUL);
 }
 void approximate_search_stepwise_region_profile_limit_exact_matches(

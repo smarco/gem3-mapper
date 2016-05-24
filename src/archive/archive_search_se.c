@@ -60,10 +60,6 @@ void archive_search_se(
     tab_fprintf(gem_log_get_stream(),"  => Tag %s\n",archive_search->sequence.tag.buffer);
     tab_fprintf(gem_log_get_stream(),"  => Sequence %s\n",archive_search->sequence.read.buffer);
     tab_global_inc();
-//    approximate_search_t* const search = &archive_search->forward_search_state;
-//    region_profile_print_mappability(gem_log_get_stream(),search->archive->fm_index,
-//        search->as_parameters->search_parameters->allowed_enc,search->pattern.key,
-//        search->pattern.key_length,false,search->mm_stack);
   }
   // Reset initial values (Prepare pattern(s), instantiate parameters values, ...)
   archive_search_reset(archive_search);

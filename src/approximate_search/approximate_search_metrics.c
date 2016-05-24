@@ -23,9 +23,7 @@ void approximate_search_metrics_init(
   // Mappability
   search_metrics->num_zero_regions = 0;
   search_metrics->max_region_length = UINT32_MAX;
-  search_metrics->mappability_p = 0.0;
-  search_metrics->mappability_2p = 0.0;
-
+  search_metrics->kmer_frequency = 0.0;
 }
 /*
  * Accessors
@@ -40,12 +38,10 @@ void approximate_search_metrics_set_num_zero_regions(
     const uint64_t num_zero_regions) {
   search_metrics->num_zero_regions = num_zero_regions;
 }
-void approximate_search_metrics_set_mappability(
+void approximate_search_metrics_set_kmer_frequency(
     approximate_search_metrics_t* const search_metrics,
-    const double mappability_p,
-    const double mappability_2p) {
-  search_metrics->mappability_p = mappability_p;
-  search_metrics->mappability_2p = mappability_2p;
+    const double kmer_frequency) {
+  search_metrics->kmer_frequency = kmer_frequency;
 }
 /*
  * Display
@@ -60,6 +56,5 @@ void approximate_search_metrics_print(
   tab_fprintf(stream,"    => SWG.Match.Score %lu\n",search_metrics->swg_match_score);
   tab_fprintf(stream,"  => Mappability\n");
   tab_fprintf(stream,"    => Max.Region.length  %lu\n",search_metrics->max_region_length);
-  tab_fprintf(stream,"    => Mappability.p      %2.3f\n",search_metrics->mappability_p);
-  tab_fprintf(stream,"    => Mappability.2p     %2.3f\n",search_metrics->mappability_2p);
+  tab_fprintf(stream,"    => Kmer.frequency     %2.3f\n",search_metrics->kmer_frequency);
 }

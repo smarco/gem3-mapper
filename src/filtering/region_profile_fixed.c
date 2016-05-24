@@ -95,59 +95,6 @@ void region_profile_generate_fixed_query(
 /*
  * Display/Benchmark
  */
-void region_profile_print_mappability(
-    FILE* const stream,
-    fm_index_t* const fm_index,
-    const bool* const allowed_enc,
-    const uint8_t* key,
-    const uint64_t key_length,
-    const bool print_profiles,
-    mm_stack_t* const mm_stack) {
-  // Parameters
-  const uint64_t proper_length = fm_index_get_proper_length(fm_index);
-  double mappability_pl = 0.0, mappability_2pl = 0.0;
-  // Init region profile
-  mm_stack_push_state(mm_stack);
-  region_profile_t region_profile;
-  region_profile_new(&region_profile,key_length,mm_stack);
-  // Mappability (length=proper-length)
-  region_profile_generate_fixed_partition(&region_profile,key,key_length,allowed_enc,proper_length);
-  region_profile_generate_fixed_query(&region_profile,fm_index,key);
-  if (print_profiles) {
-    tab_fprintf(stream,"[GEM]>Region.Mappability (pl=%lu nt)\n",proper_length);
-    REGION_PROFILE_ITERATE((&region_profile),region,position) {
-      region_profile_print_region(stream,region,position);
-    }
-  }
-  {
-    REGION_PROFILE_ITERATE((&region_profile),region,position) {
-      const uint64_t num_candidates = region->hi - region->lo;
-      if (num_candidates>0) mappability_pl += gem_log2((double)num_candidates);
-    }
-  }
-  mappability_pl /= (double)(2*region_profile.num_filtering_regions);
-  // Mappability (length=2*proper-length)
-  region_profile_generate_fixed_partition(&region_profile,key,key_length,allowed_enc,2*proper_length);
-  region_profile_generate_fixed_query(&region_profile,fm_index,key);
-  if (print_profiles) {
-    tab_fprintf(stream,"[GEM]>Region.Mappability (2pl=%lu nt)\n",2*proper_length);
-    REGION_PROFILE_ITERATE((&region_profile),region,position) {
-      region_profile_print_region(stream,region,position);
-    }
-  }
-  {
-    REGION_PROFILE_ITERATE((&region_profile),region,position) {
-      const uint64_t num_candidates = region->hi - region->lo;
-      if (num_candidates>0) mappability_2pl += gem_log2((double)num_candidates);
-    }
-  }
-  mappability_2pl /= (double)(2*region_profile.num_filtering_regions);
-  // Print Mappability Magnitudes
-  tab_fprintf(stream,"[GEM]>Region.Mappability (pl,2pl)=(%lu,%lu)=(%2.3f,%2.3f)\n",
-      proper_length,2*proper_length,mappability_pl,mappability_2pl);
-  // Free
-  mm_stack_pop_state(mm_stack);
-}
 void region_profile_print_benchmark(
     FILE* const stream,
     const region_profile_t* const region_profile,

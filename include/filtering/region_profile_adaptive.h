@@ -19,7 +19,6 @@ typedef struct {
   // Region Profile
   region_profile_t* region_profile;
   // Region State
-  uint64_t region_length;
   uint64_t last_cut;
   uint64_t lo_cut;
   uint64_t hi_cut;
@@ -36,11 +35,6 @@ typedef struct {
   rank_mquery_t rank_mquery;
   uint64_t lo;
   uint64_t hi;
-  // Mappabiliy
-  double mappability_p_acc;
-  uint64_t mappability_p_samples;
-  double mappability_2p_acc;
-  uint64_t mappability_2p_samples;
 } region_profile_generator_t;
 
 /*

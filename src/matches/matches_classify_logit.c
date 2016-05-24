@@ -54,11 +54,8 @@ double matches_classify_logit(
        logit_coeff->coeff_max_region_length_norm *
       (double)predictors->max_region_length_norm
       +
-       logit_coeff->coeff_mappability_p *
-      (double)predictors->mappability_p
-      +
-       logit_coeff->coeff_mappability_2p *
-      (double)predictors->mappability_2p
+       logit_coeff->coeff_kmer_frequency *
+      (double)predictors->kmer_frequency
       +
        logit_coeff->coeff_first_map_template_size_sigma *
       (double)predictors->first_map_template_size_sigma

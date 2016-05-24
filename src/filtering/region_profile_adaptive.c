@@ -56,7 +56,6 @@ void region_profile_generator_restart(region_profile_generator_t* const generato
   region_search_t* const current_region = region_profile->filtering_region + region_profile->num_filtering_regions;
   current_region->end = generator->key_position;
   current_region->degree = 0;
-  generator->region_length = 0;
   generator->last_cut = 0;
   // Region-Query Status
   generator->lo = 0;
@@ -78,7 +77,6 @@ void region_profile_generator_init(
   generator->region_profile = region_profile;
   region_profile_clear(region_profile);
   // Region State
-  generator->region_length = 0;
   generator->last_cut = 0;
   generator->lo_cut = 0;
   generator->hi_cut = 0;
@@ -93,11 +91,6 @@ void region_profile_generator_init(
   // Query state
   generator->key_position = key_length;
   region_profile_generator_restart(generator);
-  // Mappabiliy
-  generator->mappability_p_acc = 0.0;
-  generator->mappability_p_samples = 0;
-  generator->mappability_2p_acc = 0.0;
-  generator->mappability_2p_samples = 0;
 }
 void region_profile_generator_close_region(
     region_profile_generator_t* const generator,
@@ -108,7 +101,8 @@ void region_profile_generator_close_region(
   region_search_t* const current_region = region_profile->filtering_region + region_profile->num_filtering_regions;
   // Set range
   current_region->begin = generator->key_position;
-  region_profile->max_region_length = MAX(region_profile->max_region_length,generator->region_length);
+  const uint64_t region_length = current_region->end - current_region->begin;
+  region_profile->max_region_length = MAX(region_profile->max_region_length,region_length);
   // Set interval
   current_region->lo = lo;
   current_region->hi = hi;
@@ -156,13 +150,6 @@ void region_profile_generator_close_profile(
     region_search_t* const last_region = region_profile->filtering_region + (region_profile->num_filtering_regions-1);
     region_profile->max_region_length = MAX(region_profile->max_region_length,last_region->begin);
   }
-  // Compute Mappability
-  if (generator->mappability_p_samples > 0) {
-    region_profile->mappability_p = generator->mappability_p_acc / (double)(2*generator->mappability_p_samples);
-  }
-  if (generator->mappability_2p_samples > 0) {
-    region_profile->mappability_2p = generator->mappability_2p_acc / (double)(2*generator->mappability_2p_samples);
-  }
 }
 bool region_profile_generator_add_character(
     region_profile_generator_t* const generator,
@@ -172,15 +159,6 @@ bool region_profile_generator_add_character(
   const uint64_t lo = generator->lo;
   const uint64_t hi = generator->hi;
   const uint64_t num_candidates = hi-lo;
-  // Record Mappability
-  ++(generator->region_length);
-  if (generator->region_length == proper_length) {
-    if (num_candidates > 0) generator->mappability_p_acc += gem_log2((double)num_candidates); // (x/2.0)
-    ++(generator->mappability_p_samples);
-  } else if (generator->region_length == 2*proper_length) {
-    if (num_candidates > 0) generator->mappability_2p_acc += gem_log2((double)num_candidates); // (x/2.0)
-    ++(generator->mappability_2p_samples);
-  }
   // Check number of candidates
   gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
     fprintf(gem_log_get_stream()," %"PRIu64,num_candidates);
@@ -377,8 +355,10 @@ void region_profile_generate_adaptive_limited(
       // Rank query
       region_profile_query_character(generator.fm_index,&generator.rank_mquery,&generator.lo,&generator.hi,enc_char);
       // Add the character to the region profile
+      region_search_t* const current_region = region_profile->filtering_region + region_profile->num_filtering_regions;
       const uint64_t num_candidates = generator.hi-generator.lo;
-      if (num_candidates <= profile_model->region_th || generator.region_length >= max_region_length) {
+      const uint64_t region_length = current_region->end - generator.key_position;
+      if (num_candidates <= profile_model->region_th || region_length >= max_region_length) {
         region_profile_generator_close_region(&generator,profile_model,generator.lo,generator.hi);
         region_profile_generator_restart(&generator);
       }

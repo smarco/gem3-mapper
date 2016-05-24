@@ -72,8 +72,7 @@ typedef struct {
   /* Profile Stats */
   uint64_t total_candidates;         // Total number of candidates (from exact matching regions)
   uint64_t max_region_length;        // Largest region length
-  double mappability_p;
-  double mappability_2p;
+  double kmer_frequency;
 } region_profile_t;
 
 /*

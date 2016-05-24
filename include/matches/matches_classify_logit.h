@@ -37,8 +37,7 @@ typedef struct {
   double coeff_accepted_candidates_end2;
   // Mappability
   double coeff_max_region_length_norm;
-  double coeff_mappability_p;
-  double coeff_mappability_2p;
+  double coeff_kmer_frequency;
   // PE specific
   double coeff_first_map_template_size_sigma;
   double coeff_subdominant_template_size_sigma;

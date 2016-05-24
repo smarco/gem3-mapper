@@ -118,8 +118,7 @@ void matches_predictors_compute(
    * Mappability
    */
   predictors->max_region_length_norm = (double)search_metrics->max_region_length/search_metrics->proper_length;
-  predictors->mappability_p = search_metrics->mappability_p;
-  predictors->mappability_2p = search_metrics->mappability_2p;
+  predictors->kmer_frequency = search_metrics->kmer_frequency;
   /*
    * Template Size
    */
@@ -192,8 +191,7 @@ void paired_matches_predictors_compute(
       0 : search_metrics_end2->max_region_length;
   const uint64_t max_region_length = MAX(max_region_length_end1,max_region_length_end2);
   predictors->max_region_length_norm = (double)max_region_length/search_metrics_end1->proper_length;
-  predictors->mappability_p = MAX(search_metrics_end1->mappability_p,search_metrics_end2->mappability_p);
-  predictors->mappability_2p = MAX(search_metrics_end1->mappability_2p,search_metrics_end2->mappability_2p);
+  predictors->kmer_frequency = MAX(search_metrics_end1->kmer_frequency,search_metrics_end2->kmer_frequency);
 }
 #define MP_SEP           "  "
 #define MP_DOUBLE_FORMAT "%f"
@@ -242,9 +240,9 @@ void matches_predictors_print(
   // max_region_length
   fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,predictors->max_region_length_norm);
   // Mappability (p)
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,predictors->mappability_p);
-  // Mappability (2p)
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,predictors->mappability_2p);
+  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,predictors->kmer_frequency);
+  // NULL
+  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,0.0);
   /*
    * Template Size
    */

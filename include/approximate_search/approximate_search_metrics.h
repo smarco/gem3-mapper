@@ -19,8 +19,7 @@ typedef struct {
   /* Mappability */
   uint64_t max_region_length;        // Maximum region length
   uint64_t num_zero_regions;         // Number of zero regions
-  double mappability_p;              // Approx. Mappability-0 at proper-length
-  double mappability_2p;             // Approx. Mappability-0 at 2 times the proper-length
+  double kmer_frequency;             // Approx. kmer frequency
 } approximate_search_metrics_t;
 
 /*
@@ -41,10 +40,9 @@ void approximate_search_metrics_set_max_region_length(
 void approximate_search_metrics_set_num_zero_regions(
     approximate_search_metrics_t* const search_metrics,
     const uint64_t num_zero_regions);
-void approximate_search_metrics_set_mappability(
+void approximate_search_metrics_set_kmer_frequency(
     approximate_search_metrics_t* const search_metrics,
-    const double mappability_p,
-    const double mappability_2p);
+    const double kmer_frequency);
 
 /*
  * Display
