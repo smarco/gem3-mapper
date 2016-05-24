@@ -69,7 +69,7 @@ void region_profile_compute_kmer_frequency(
   rank_mquery_t rank_mquery;
   rank_mquery_new(&rank_mquery);
   // Traverse the read & compute the frequency of contiguous kmers
-  double frequency = 0.0;
+  float frequency = 0.0;
   int64_t i, samples = 0;
   for (i=key_length-1;i>=0;--i) {
     // Fetch character
@@ -86,14 +86,14 @@ void region_profile_compute_kmer_frequency(
       // Account
       uint64_t hi, lo;
       rank_mtable_fetch(rank_mtable,&rank_mquery,&lo,&hi);
-      frequency += gem_log2((double)(hi-lo)); // (x/2.0)
+      frequency += gem_loge((float)(hi-lo));
       ++samples;
       // Reset
       rank_mquery_new(&rank_mquery);
     }
   }
   // Compute the kmer average frequency
-  region_profile->mappability_2p = frequency/(double)(2*samples);
+  region_profile->mappability_2p = (double)( frequency/((float)samples*gem_loge(4)) );
 }
 void region_profile_query_character(
     fm_index_t* const fm_index,

@@ -146,7 +146,20 @@ float gem_log2(float number) {
 //  u.x += 127 << 23;
 //  log_2 += ((-0.34484843f) * u.val + 2.02466578f) * u.val - 0.67487759f;
 //  return log_2;
+//  /* Ankerl's inversion of Schraudolph's published algorithm, converted to explicit multiplication */
+//  union { float f; int x; } u = { number };
+//  return (u.x - 1064866805) * 8.262958405176314e-8f; /* 1 / 12102203.0; */
   return __builtin_log2(number);
+}
+float gem_loge(float number) {
+  int * const exp_ptr = ((int*) &number);
+  int x = *exp_ptr;
+  const int log_2 = ((x >> 23) & 255) - 128;
+  x &= ~(255 << 23);
+  x += 127 << 23;
+  *exp_ptr = x;
+  number = ((-1.0f / 3) * number + 2) * number - 2.0f / 3;
+  return ((number + log_2) * 0.69314718);
 }
 /*
  * Random number generator
