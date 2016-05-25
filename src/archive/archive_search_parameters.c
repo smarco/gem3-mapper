@@ -90,7 +90,7 @@ void search_parameters_init_internals(search_parameters_t* const search_paramete
   // Region-LightWeight Scheme = (20,4,2,2)
   search_parameters->rp_lightweight.region_th = 20;
   search_parameters->rp_lightweight.max_steps = 4;
-  search_parameters->rp_lightweight.dec_factor = 2;
+  search_parameters->rp_lightweight.dec_factor = 1;
   search_parameters->rp_lightweight.region_type_th = 2;
   // Region-Minimal Scheme = (50,4,2,2)
   search_parameters->rp_heavyweight.region_th = 100;

@@ -13,6 +13,7 @@ typedef struct {
 	 uint64_t hist_mapq[256];
 	 ihash_t *read_length_dist[2];
 	 ihash_t *insert_size_dist;
+	 ihash_t *distance_dist[2];
 } mapping_stats_t;
 
 #endif

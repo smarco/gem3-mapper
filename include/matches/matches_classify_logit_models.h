@@ -27,8 +27,8 @@ extern const matches_classify_logit_model_t logit_model_single_end_default;
 extern const matches_classify_logit_model_t logit_model_paired_end_default;
 
 #define PAIRED_MATCHES_MIN_CI          0.90
-#define PAIRED_MATCHES_UNIQUE_CI       0.99
-#define PAIRED_MATCHES_MMAPS_CI        0.98
+#define PAIRED_MATCHES_UNIQUE_CI       0.998
+#define PAIRED_MATCHES_MMAPS_CI        0.998
 #define PAIRED_MATCHES_TIES_CI         0.95
 
 #endif

@@ -79,9 +79,11 @@ void archive_score_matches_pe_default(
     case paired_matches_class_tie_d1:
       if (primary_end1->mapq_score > 0 && primary_end2->mapq_score > 0) {
         paired_map[0].mapq_score = 29;
+      } else if (primary_end1->mapq_score >= 30 || primary_end2->mapq_score >= 30) {
+        paired_map[0].mapq_score = 28;
       } else {
         archive_search_pe_compute_predictors(archive_search_end1,archive_search_end2,paired_matches,&predictors);
-        paired_map[0].mapq_score = archive_score_matches_pe_default_ties(&predictors,2,28);
+        paired_map[0].mapq_score = archive_score_matches_pe_default_ties(&predictors,2,27);
       }
       break;
     case paired_matches_class_mmap: // Lack of samples
@@ -154,18 +156,24 @@ void archive_score_matches_pe_stratify(
       if (paired_matches->matches_end1->matches_class == matches_class_tie_d0 &&
           paired_matches->matches_end2->matches_class == matches_class_tie_d0) {
         paired_map[0].mapq_score = 8;
+      } else if (
+//                 (paired_matches->matches_end1->matches_class == matches_class_tie_d0 ||
+//                  paired_matches->matches_end2->matches_class == matches_class_tie_d0) &&
+                 (primary_end1->mapq_score >= 30 || primary_end2->mapq_score >= 30)) {
+        paired_map[0].mapq_score = 10;
       } else {
-//        double pr = matches_classify_logit_ties(&predictors,&logit_model_paired_end_default);
-        if (paired_map[0].template_length == paired_map[1].template_length) {
-          //paired_map[0].mapq_score = (pr >= 0.95) ? 80 + (uint8_t)((pr-0.95)*1000.0) : 79;
-          paired_map[0].mapq_score = 9;
-        } else if (paired_map[0].template_length_sigma > paired_map[1].template_length_sigma) {
-          //paired_map[0].mapq_score = (pr >= 0.95) ? 140 + (uint8_t)((pr-0.95)*1000.0) : 139;
-          paired_map[0].mapq_score = 10;
-        } else {
-          //paired_map[0].mapq_score = (pr >= 0.95) ? 200 + (uint8_t)((pr-0.95)*1000.0) : 199;
-          paired_map[0].mapq_score = 11;
-        }
+        double pr = matches_classify_logit_ties(&predictors,&logit_model_paired_end_default);
+        paired_map[0].mapq_score = (pr >= 0.90) ? 90 + (uint8_t)((pr-0.90)*500.0) : 89;
+//        if (paired_map[0].template_length == paired_map[1].template_length) {
+//          paired_map[0].mapq_score = (pr >= 0.95) ? 80 + (uint8_t)((pr-0.95)*1000.0) : 79;
+//          //paired_map[0].mapq_score = 9;
+//        } else if (paired_map[0].template_length_sigma > paired_map[1].template_length_sigma) {
+//          paired_map[0].mapq_score = (pr >= 0.95) ? 140 + (uint8_t)((pr-0.95)*1000.0) : 139;
+//          //paired_map[0].mapq_score = 10;
+//        } else {
+//          paired_map[0].mapq_score = (pr >= 0.95) ? 200 + (uint8_t)((pr-0.95)*1000.0) : 199;
+//          //paired_map[0].mapq_score = 11;
+//        }
       }
       break;
     }
@@ -174,7 +182,9 @@ void archive_score_matches_pe_stratify(
       break;
     }
     case paired_matches_class_unique: {
-      paired_map[0].mapq_score = 16;
+      double pr = matches_classify_logit_ties(&predictors,&logit_model_paired_end_default);
+      paired_map[0].mapq_score = (pr >= 0.90) ? 150 + (uint8_t)((pr-0.90)*500.0) : 149;
+      //paired_map[0].mapq_score = 16;
       break;
     }
     case paired_matches_class_high_quality_ends:

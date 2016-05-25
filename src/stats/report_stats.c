@@ -15,6 +15,7 @@ void init_mapping_stats(mapping_stats_t* mstats) {
 	 for(read=0;read<2;read++) {
 			mstats->unmapped[read]=0;
 			mstats->read_length_dist[read]=ihash_new(NULL);
+			mstats->distance_dist[read]=ihash_new(NULL);
 			int j;
 			for(j=0;j<7;j++) for(i=0;i<5;i++) mstats->base_counts[j][read][i]=0;
 			for(j=0;j<4;j++) mstats->reads[read][j]=0;
@@ -55,7 +56,10 @@ void merge_mapping_stats(mapping_stats_t* global_mstats, mapping_stats_t* mstats
 				 for(k=0;k<7;k++) for(j=0;j<5;j++) global_mstats->base_counts[k][rd][j]+=mstats[i].base_counts[k][rd][j];
 			}
 			for(j=0;j<256;j++) global_mstats->hist_mapq[j]+=mstats[i].hist_mapq[j];
-			for(j=0;j<2;j++) merge_ihash(global_mstats->read_length_dist[j],mstats[i].read_length_dist[j]);
+			for(j=0;j<2;j++) {
+				 merge_ihash(global_mstats->read_length_dist[j],mstats[i].read_length_dist[j]);
+				 merge_ihash(global_mstats->distance_dist[j],mstats[i].distance_dist[j]);
+			}
 			merge_ihash(global_mstats->insert_size_dist,mstats[i].insert_size_dist);
 	 }
 }
@@ -77,6 +81,27 @@ void update_counts(sequence_t* const seq_read, mapping_stats_t* mstats,int end) 
 	 }
 	 char *p = string_get_buffer(read);
 	 while(*p) mstats->base_counts[0][end][btab[(int)*p++]]++;
+}
+
+void update_distance_counts(matches_t* const matches, match_trace_t* const match_trace, mapping_stats_t* mstats, int end) {
+	 vector_t* const cigar_vector = matches->cigar_vector;
+	 const uint64_t cigar_buffer_offset = match_trace->match_alignment.cigar_offset;
+	 const uint64_t cigar_length = match_trace->match_alignment.cigar_length;
+	 const cigar_element_t* const cigar_buffer = vector_get_elm(cigar_vector,cigar_buffer_offset,cigar_element_t);
+	 uint64_t i, distance = 0;
+	 for (i=0;i<cigar_length;++i) {
+			if(cigar_buffer[i].type == cigar_mismatch) distance++;
+	 }
+	 uint64_t* count;
+	 ihash_element_t* ih = ihash_get_ihash_element(mstats->distance_dist[end],distance);
+	 if(ih == NULL) {
+			count=mm_alloc(uint64_t);
+			*count=1;
+			ihash_insert_element(mstats->distance_dist[end],distance,count);
+	 } else {
+			count = ih->element;
+			(*count)++;
+	 }	 
 }
 
 void update_conversion_counts(sequence_t* const seq_read, mapping_stats_t* mstats,int end,bs_strand_t bs,int read_type) {
@@ -110,6 +135,7 @@ void collect_se_mapping_stats(archive_search_t* const archive_search, matches_t*
 	 } else {
 			// We just look at primary alignments
 			match_trace_t* match = vector_get_mem(matches->position_matches,match_trace_t);
+			update_distance_counts(matches, match, mstats, 0);
 			bs = match->bs_strand;
 			read_type = get_read_type(match);
 			if(match->mapq_score>0) {
@@ -139,6 +165,8 @@ void collect_pe_mapping_stats(archive_search_t* const archive_search1, archive_s
 			if(vector_match_trace_used_end1 && vector_match_trace_used_end2) {
  				 match_trace_t* prim_match_end1 = vector_get_mem(matches_end1->position_matches,match_trace_t);
 				 match_trace_t* prim_match_end2 = vector_get_mem(matches_end2->position_matches,match_trace_t);
+				 update_distance_counts(matches_end1, prim_match_end1, mstats, 0);
+				 update_distance_counts(matches_end2, prim_match_end2, mstats, 1);
 				 bs1 = prim_match_end1 -> bs_strand;
 				 bs2 = prim_match_end2 -> bs_strand;
 				 read_type1 = get_read_type(prim_match_end1);
@@ -146,11 +174,13 @@ void collect_pe_mapping_stats(archive_search_t* const archive_search1, archive_s
 			} else if(vector_match_trace_used_end1) {
 				 mstats->unmapped[1]++;
 				 match_trace_t* prim_match_end1 = vector_get_mem(matches_end1->position_matches,match_trace_t);
+				 update_distance_counts(matches_end1, prim_match_end1, mstats, 0);
 				 bs1 = prim_match_end1->bs_strand;
 				 read_type1 = get_read_type(prim_match_end1);
 			} else if(vector_match_trace_used_end2) {
 				 mstats->unmapped[0]++;
 				 match_trace_t* prim_match_end2 = vector_get_mem(matches_end2->position_matches,match_trace_t);
+				 update_distance_counts(matches_end2, prim_match_end2, mstats, 1);
 				 bs2 = prim_match_end2->bs_strand;
 				 read_type2 = get_read_type(prim_match_end2);
 			} else {
@@ -177,6 +207,8 @@ void collect_pe_mapping_stats(archive_search_t* const archive_search1, archive_s
 			}
 			match_trace_t* const match_end1 = matches_get_match_trace(paired_matches->matches_end1,paired_map->match_end1_offset);
 			match_trace_t* const match_end2 = matches_get_match_trace(paired_matches->matches_end2,paired_map->match_end2_offset);
+			update_distance_counts(paired_matches->matches_end1, match_end1, mstats, 0);
+			update_distance_counts(paired_matches->matches_end2, match_end2, mstats, 1);
 			bs1 = match_end1 -> bs_strand;
 			bs2 = match_end2 -> bs_strand;
 			read_type1 = read_type2 = get_read_type(match_end1);
@@ -334,6 +366,17 @@ void output_mapping_stats(mapper_parameters_t *parameters, mapping_stats_t* msta
 				 fprintf(fp,"%.*s}%s",--indent,indent_str,i?"\n":",\n");
 			}
 			fprintf(fp,"%.*s],\n",--indent,indent_str);
+			fprintf(fp,"%.*s\"HistMismatch\": [\n",indent++,indent_str);
+			for(i=0;i<2;i++) {
+				 fprintf(fp,"%.*s{\n",indent++,indent_str);
+				 ihash_sort_by_key(mstats->distance_dist[i]);
+				 ihash_element_t* ih;
+				 for(ih=mstats->distance_dist[i]->head;ih;ih=ih->hh.next) {
+						fprintf(fp,"%.*s\"%"PRId64"\": %"PRIu64"%s",indent,indent_str,ih->key,*((uint64_t *)ih->element),ih->hh.next?",\n":"\n");
+				 }
+				 fprintf(fp,"%.*s}%s",--indent,indent_str,i?"\n":",\n");
+			}
+			fprintf(fp,"%.*s],\n",--indent,indent_str);
 			ihash_sort_by_key(mstats->insert_size_dist);
 			fprintf(fp,"%.*s\"HistTemplateLen\": {\n",indent++,indent_str);
 			ihash_element_t* ih;
@@ -389,6 +432,14 @@ void output_mapping_stats(mapper_parameters_t *parameters, mapping_stats_t* msta
 			}
 			fprintf(fp,"%.*s}\n",--indent,indent_str);
 			fprintf(fp,"%.*s],\n",--indent,indent_str);
+			fprintf(fp,"%.*s\"HistMismatch\": [\n",indent++,indent_str);
+			fprintf(fp,"%.*s{\n",indent++,indent_str);
+			ihash_sort_by_key(mstats->distance_dist[0]);
+			for(ih=mstats->distance_dist[0]->head;ih;ih=ih->hh.next) {
+				 fprintf(fp,"%.*s\"%"PRId64"\": %"PRIu64"%s",indent,indent_str,ih->key,*((uint64_t *)ih->element),ih->hh.next?",\n":"\n");
+			}
+			fprintf(fp,"%.*s}\n",--indent,indent_str);
+			fprintf(fp,"%.*s]\n",--indent,indent_str);
 	 }
 	 fputs("}\n",fp);
 	 fclose(fp);

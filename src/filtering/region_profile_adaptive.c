@@ -180,8 +180,7 @@ bool region_profile_generator_add_character(
     }
     // Check Region-Candidates Progress
     generator->expected_count /= profile_model->dec_factor;
-    if (num_candidates <= generator->expected_count) {
-      // TODO (glimpse of the past) || num_candidates <= profile_model->region_type_th
+    if (num_candidates < generator->expected_count) {
       region_profile_generator_save_cut_point(generator); // Refresh cut point
     }
     // Check maximum steps allowed to optimize region

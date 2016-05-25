@@ -13,6 +13,7 @@
 #define _LARGEFILE_SOURCE   1
 #define _LARGEFILE64_SOURCE 1
 #define _FILE_OFFSET_BITS   64
+#define off64_t off_t
 
 #include "gpu_commons.h"
 /* Include the required objects */
