@@ -106,7 +106,7 @@ void __global__ gpu_fmi_asearch_kernel(const gpu_fmi_device_entry_t* const fmi, 
             if(!foundN) advance_step_LF_mapping(fmi, bit0, bit1, &L, &R, seedExchBMP);
             // Update seed information
             occ = R - L;
-            if((occ <= shrinkOccThreshold) && (occ != 0)){
+            if((occ < shrinkOccThreshold) && (occ != 0) && !foundN){
               endL = L; endR = R;
               endBase = idBase;
             }
