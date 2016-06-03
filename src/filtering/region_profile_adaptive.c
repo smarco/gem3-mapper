@@ -122,6 +122,12 @@ void region_profile_generator_close_region(
 void region_profile_generator_close_profile(
     region_profile_generator_t* const generator,
     const region_profile_model_t* const profile_model) {
+  // Check last cut-point
+  if (generator->last_cut != 0) {
+    region_profile_generator_close_region(generator,profile_model,
+        generator->last_cut,generator->lo_cut,generator->hi_cut);
+  }
+  // Check region-profile
   region_profile_t* const region_profile = generator->region_profile;
   if (region_profile->num_filtering_regions == 0) {
     region_search_t* const first_region = region_profile->filtering_region;
@@ -166,17 +172,6 @@ bool region_profile_generator_add_character(
   }
   if (num_candidates > profile_model->region_th) return false;
   if (num_candidates > 0) {
-    // End of the read reached
-    if (gem_expect_false(generator->key_position == 0)) {
-      if (generator->last_cut == 0) {
-        region_profile_generator_close_region(generator,profile_model,
-            generator->key_position,lo,hi);
-      } else {
-        region_profile_generator_close_region(generator,profile_model,
-            generator->last_cut,generator->lo_cut,generator->hi_cut);
-      }
-      return true;
-    }
     // If we don't have a Cut-Point
     if (generator->last_cut == 0) {
       region_profile_generator_save_cut_point(generator); // First Cut-Point
@@ -204,14 +199,13 @@ bool region_profile_generator_add_character(
     if (gem_expect_false(generator->allow_zero_regions || generator->last_cut == 0)) {
       region_profile_generator_close_region(generator,profile_model,
           generator->key_position,lo,hi);
-      region_profile_generator_restart(generator);
     } else {
       // Don't allow zero-regions (or we have a restore last cut-point)
       generator->key_position = generator->last_cut;
       region_profile_generator_close_region(generator,profile_model,
           generator->last_cut,generator->lo_cut,generator->hi_cut);
-      region_profile_generator_restart(generator);
     }
+    region_profile_generator_restart(generator);
     return true;
   }
 }
