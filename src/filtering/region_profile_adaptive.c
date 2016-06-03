@@ -44,6 +44,11 @@
 #define PROFILE_LEVEL PLOW
 
 /*
+ * Constants
+ */
+#define REGION_CUTPOINT_NULL UINT64_MAX
+
+/*
  * Region Profile Generation (Query)
  */
 void region_profile_generator_save_cut_point(region_profile_generator_t* const generator) {
@@ -56,7 +61,7 @@ void region_profile_generator_restart(region_profile_generator_t* const generato
   region_search_t* const current_region = region_profile->filtering_region + region_profile->num_filtering_regions;
   current_region->end = generator->key_position;
   current_region->degree = 0;
-  generator->last_cut = 0;
+  generator->last_cut = REGION_CUTPOINT_NULL;
   // Region-Query Status
   generator->lo = 0;
   generator->hi = fm_index_get_length(generator->fm_index);
@@ -77,9 +82,6 @@ void region_profile_generator_init(
   generator->region_profile = region_profile;
   region_profile_clear(region_profile);
   // Region State
-  generator->last_cut = 0;
-  generator->lo_cut = 0;
-  generator->hi_cut = 0;
   generator->expected_count = 0;
   generator->max_steps = 0;
   // Query
@@ -123,7 +125,7 @@ void region_profile_generator_close_profile(
     region_profile_generator_t* const generator,
     const region_profile_model_t* const profile_model) {
   // Check last cut-point
-  if (generator->last_cut != 0) {
+  if (generator->last_cut != REGION_CUTPOINT_NULL) {
     region_profile_generator_close_region(generator,profile_model,
         generator->last_cut,generator->lo_cut,generator->hi_cut);
   }
@@ -173,7 +175,7 @@ bool region_profile_generator_add_character(
   if (num_candidates > profile_model->region_th) return false;
   if (num_candidates > 0) {
     // If we don't have a Cut-Point
-    if (generator->last_cut == 0) {
+    if (generator->last_cut == REGION_CUTPOINT_NULL) {
       region_profile_generator_save_cut_point(generator); // First Cut-Point
       generator->expected_count = num_candidates;
       generator->max_steps = profile_model->max_steps;
@@ -187,16 +189,16 @@ bool region_profile_generator_add_character(
     // Check maximum steps allowed to optimize region
     --(generator->max_steps);
     if (generator->max_steps == 0) {
-      generator->key_position = generator->last_cut;
       region_profile_generator_close_region(generator,profile_model,
           generator->last_cut,generator->lo_cut,generator->hi_cut);
+      generator->key_position = generator->last_cut; // Restart
       region_profile_generator_restart(generator);
       return true;
     }
     return false;
   } else { // num_candidates == 0
     // Zero candidates & (allow zero-regions or no cutting point)
-    if (gem_expect_false(generator->allow_zero_regions || generator->last_cut == 0)) {
+    if (generator->allow_zero_regions || generator->last_cut == REGION_CUTPOINT_NULL) {
       region_profile_generator_close_region(generator,profile_model,
           generator->key_position,lo,hi);
     } else {
@@ -213,7 +215,7 @@ bool region_profile_generator_disallow_character(
     region_profile_generator_t* const generator,
     const region_profile_model_t* const profile_model) {
   bool new_region = false;
-  if (generator->last_cut != 0) {
+  if (generator->last_cut != REGION_CUTPOINT_NULL) {
     region_profile_generator_close_region(generator,profile_model,
         generator->key_position+1,generator->lo,generator->hi);
     new_region = true;
