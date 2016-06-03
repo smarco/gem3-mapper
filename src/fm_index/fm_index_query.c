@@ -42,7 +42,69 @@ void fm_index_precompute_2erank(
  *    | N |  |
  *    +---+ -/
  */
-uint64_t fm_2erank_elms_compute_reverse_erank_lo_delta(
+uint64_t fm_2erank_elms_upper_acc_erank(
+    fm_2erank_elms_t* const lo_2erank_elms,
+    fm_2erank_elms_t* const hi_2erank_elms,
+    const uint8_t char_enc) {
+  // Switch character
+  uint64_t acc = 0;
+  switch (char_enc) {
+    case ENC_DNA_CHAR_SEP:
+      acc += hi_2erank_elms->pranks[ENC_DNA_CHAR_N]-lo_2erank_elms->pranks[ENC_DNA_CHAR_N];
+      // no break
+    case ENC_DNA_CHAR_N:
+      acc += hi_2erank_elms->pranks[ENC_DNA_CHAR_A]-lo_2erank_elms->pranks[ENC_DNA_CHAR_A];
+      // no break
+    case ENC_DNA_CHAR_T:
+      acc += hi_2erank_elms->pranks[ENC_DNA_CHAR_C]-lo_2erank_elms->pranks[ENC_DNA_CHAR_C];
+      // no break
+    case ENC_DNA_CHAR_G:
+      acc += hi_2erank_elms->pranks[ENC_DNA_CHAR_G]-lo_2erank_elms->pranks[ENC_DNA_CHAR_G];
+      // no break
+    case ENC_DNA_CHAR_C:
+      acc += hi_2erank_elms->pranks[ENC_DNA_CHAR_T]-lo_2erank_elms->pranks[ENC_DNA_CHAR_T];
+      // no break
+    case ENC_DNA_CHAR_A:
+      break;
+    default:
+      GEM_INVALID_CASE();
+      break;
+  }
+  // Return
+  return acc;
+}
+uint64_t fm_2erank_elms_lower_acc_erank(
+    fm_2erank_elms_t* const lo_2erank_elms,
+    fm_2erank_elms_t* const hi_2erank_elms,
+    const uint8_t char_enc) {
+  // Switch character
+  uint64_t acc = 0;
+  switch (char_enc) {
+    case ENC_DNA_CHAR_A:
+      acc += hi_2erank_elms->pranks[ENC_DNA_CHAR_G]-lo_2erank_elms->pranks[ENC_DNA_CHAR_G];
+      // no break
+    case ENC_DNA_CHAR_C:
+      acc += hi_2erank_elms->pranks[ENC_DNA_CHAR_C]-lo_2erank_elms->pranks[ENC_DNA_CHAR_C];
+      // no break
+    case ENC_DNA_CHAR_G:
+      acc += hi_2erank_elms->pranks[ENC_DNA_CHAR_A]-lo_2erank_elms->pranks[ENC_DNA_CHAR_A];
+      // no break
+    case ENC_DNA_CHAR_T:
+      acc += hi_2erank_elms->pranks[ENC_DNA_CHAR_N]-lo_2erank_elms->pranks[ENC_DNA_CHAR_N];
+      // no break
+    case ENC_DNA_CHAR_N:
+      acc += hi_2erank_elms->pranks[ENC_DNA_CHAR_SEP]-lo_2erank_elms->pranks[ENC_DNA_CHAR_SEP];
+      // no break
+    case ENC_DNA_CHAR_SEP:
+      break;
+    default:
+      GEM_INVALID_CASE();
+      break;
+  }
+  // Return
+  return acc;
+}
+uint64_t fm_2erank_elms_upper_acc_erank_mirror(
     fm_2erank_elms_t* const lo_2erank_elms,
     fm_2erank_elms_t* const hi_2erank_elms,
     const uint8_t char_enc) {
@@ -73,7 +135,7 @@ uint64_t fm_2erank_elms_compute_reverse_erank_lo_delta(
   // Return
   return acc;
 }
-uint64_t fm_2erank_elms_compute_reverse_erank_hi_delta(
+uint64_t fm_2erank_elms_lower_acc_erank_mirror(
     fm_2erank_elms_t* const lo_2erank_elms,
     fm_2erank_elms_t* const hi_2erank_elms,
     const uint8_t char_enc) {
@@ -114,8 +176,8 @@ void fm_index_precomputed_2query_forward(
   fm_2interval->forward_lo = lo_2erank_elms->pranks[mirror_char_enc];
   fm_2interval->forward_hi = hi_2erank_elms->pranks[mirror_char_enc];
   // Assign backward values (eranks computed forward)
-  fm_2interval->backward_lo += fm_2erank_elms_compute_reverse_erank_lo_delta(lo_2erank_elms,hi_2erank_elms,char_enc);
-  fm_2interval->backward_hi -= fm_2erank_elms_compute_reverse_erank_hi_delta(lo_2erank_elms,hi_2erank_elms,char_enc);
+  fm_2interval->backward_lo += fm_2erank_elms_upper_acc_erank(lo_2erank_elms,hi_2erank_elms,char_enc);
+  fm_2interval->backward_hi -= fm_2erank_elms_lower_acc_erank(lo_2erank_elms,hi_2erank_elms,char_enc);
 }
 void fm_index_precomputed_2query_backward(
     fm_2interval_t* const fm_2interval,
@@ -127,8 +189,8 @@ void fm_index_precomputed_2query_backward(
   fm_2interval->backward_hi = hi_2erank_elms->pranks[char_enc];
   // Assign forward values (eranks computed backward)
   const uint8_t mirror_char_enc = dna_encoded_complement(char_enc);
-  fm_2interval->forward_lo += fm_2erank_elms_compute_reverse_erank_lo_delta(lo_2erank_elms,hi_2erank_elms,mirror_char_enc);
-  fm_2interval->forward_hi -= fm_2erank_elms_compute_reverse_erank_hi_delta(lo_2erank_elms,hi_2erank_elms,mirror_char_enc);
+  fm_2interval->forward_lo += fm_2erank_elms_upper_acc_erank_mirror(lo_2erank_elms,hi_2erank_elms,mirror_char_enc);
+  fm_2interval->forward_hi -= fm_2erank_elms_lower_acc_erank_mirror(lo_2erank_elms,hi_2erank_elms,mirror_char_enc);
 }
 /*
  * FM-Index Bidirectional Operators

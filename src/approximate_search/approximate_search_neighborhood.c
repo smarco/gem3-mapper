@@ -31,9 +31,12 @@ void approximate_search_neighborhood_exact_search(
   // FM-Index basic exact search
   //fm_index_bsearch(search->archive->fm_index,pattern->key,pattern->key_length,&hi,&lo);
   //fm_index_bsearch_pure(search->archive->fm_index,pattern->key,pattern->key_length,&hi,&lo);
-  //fm_index_reverse_bsearch_pure(search->archive->fm_index,pattern->key,pattern->key_length,&hi,&lo);
+  fm_index_reverse_bsearch_pure(search->archive->fm_index,pattern->key,pattern->key_length,&hi,&lo);
   //fm_index_reverse_bsearch_fb(search->archive->fm_index,pattern->key,pattern->key_length,&hi,&lo);
-  fm_index_reverse_bsearch_bf(search->archive->fm_index,pattern->key,pattern->key_length,&hi,&lo);
+  //fm_index_reverse_bsearch_bf(search->archive->fm_index,pattern->key,pattern->key_length,&hi,&lo);
+
+  printf("%lu\t%lu\n",lo,hi);
+
   // Add interval
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
   filtering_candidates_add_read_interval(filtering_candidates,
@@ -47,6 +50,8 @@ void approximate_search_neighborhood_exact_search(
       pattern,search->emulated_rc_search,false,false,matches);
   // Update MCS
   approximate_search_update_mcs(search,1);
+  // Set MCS
+  matches->max_complete_stratum = MIN(matches->max_complete_stratum,search->max_complete_stratum);
   PROFILE_STOP(GP_AS_EXACT_SEARCH,PROFILE_LEVEL);
 }
 /*
