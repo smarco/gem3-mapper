@@ -73,11 +73,12 @@ void __global__ gpu_fmi_asearch_kernel(const gpu_fmi_device_entry_t* const fmi, 
     const uint32_t maxRegions = GPU_MAX(GPU_DIV_CEIL(querySize, maxRegionsFactor), GPU_FMI_MIN_REGIONS);
           uint32_t idBase = 0, idRegion = 0, initBase = 0, endBase = 0;
           uint64_t L = 0, R = bwtSize, occ = R - L;
+          bool     foundN;
     //Extracts and locates each seed
     while ((idBase < querySize) && (idRegion < maxRegions)){
       //Query input initializations
       uint32_t bit0, bit1;
-      bool     foundN = false;
+      foundN = false;
       //Search initializations
       L = 0; R = bwtSize; occ = R - L;
       idBase = initBase = endBase;
@@ -123,7 +124,7 @@ void __global__ gpu_fmi_asearch_kernel(const gpu_fmi_device_entry_t* const fmi, 
     }
     // Save region profile info (number of extracted regions)
     if((localWarpThreadIdx % GPU_FMI_THREADS_PER_QUERY) == 0){
-      if(idRegion == 0){
+      if(idRegion == 0 && !foundN){
         // Save extracted region (SA intervals + Query position)
         regionInterval[idRegion] = make_ulonglong2(L, R);
         regionOffset[idRegion]   = make_uint2(querySize - endBase, querySize - initBase);

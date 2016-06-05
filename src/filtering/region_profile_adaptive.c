@@ -217,7 +217,7 @@ bool region_profile_generator_disallow_character(
   bool new_region = false;
   if (generator->last_cut != REGION_CUTPOINT_NULL) {
     region_profile_generator_close_region(generator,profile_model,
-        generator->key_position+1,generator->lo,generator->hi);
+        generator->last_cut,generator->lo_cut,generator->hi_cut);
     new_region = true;
   }
   while (generator->key_position > 0 && !generator->allowed_enc[generator->key[generator->key_position-1]]) {
