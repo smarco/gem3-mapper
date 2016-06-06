@@ -120,6 +120,7 @@ void filtering_candidates_decode_filtering_positions_buffered(
     filtering_position_buffered_t* const gpu_filtering_positions) {
   PROFILE_START(GP_FC_DECODE_CANDIDATES_BUFFERED,PROFILE_LEVEL);
   // Parameters
+  const bool exact_match = (region_search->begin==0 && region_search->end==pattern->key_length);
   const uint64_t region_lo = region_search->lo;
   const uint64_t region_hi = region_search->hi;
   // Reserve
@@ -139,7 +140,7 @@ void filtering_candidates_decode_filtering_positions_buffered(
         fm_index_decode(filtering_candidates->archive->fm_index,region_lo+i);
     // Adjust Position
     filtering_candidates_compute_text_coordinates(filtering_candidates,fposition,pattern);
-    fposition->align_distance = ALIGN_DISTANCE_INF; // Set unaligned
+    fposition->align_distance = exact_match ? 0 : ALIGN_DISTANCE_INF;
   }
   // Add used
   vector_add_used(filtering_positions,num_candidates);
@@ -156,6 +157,7 @@ void filtering_candidates_decode_sa_filtering_positions_buffered(
     const uint64_t buffer_offset_begin) {
   PROFILE_START(GP_FC_DECODE_CANDIDATES_BUFFERED,PROFILE_LEVEL);
   // Parameters
+  const bool exact_match = (region_search->begin==0 && region_search->end==pattern->key_length);
   const uint64_t region_lo = region_search->lo;
   const uint64_t region_hi = region_search->hi;
   // Reserve candidate positions
@@ -190,7 +192,7 @@ void filtering_candidates_decode_sa_filtering_positions_buffered(
           filtering_candidates,batch+i,fposition,region_lo,current_position+i);
       // Adjust Position
       filtering_candidates_compute_text_coordinates(filtering_candidates,fposition,pattern);
-      fposition->align_distance = ALIGN_DISTANCE_INF; // Set unaligned
+      fposition->align_distance = exact_match ? 0 : ALIGN_DISTANCE_INF;
     }
     // Next batch
     current_position = current_position + batch_size;
@@ -211,6 +213,7 @@ void filtering_candidates_decode_text_filtering_positions_buffered(
     const uint64_t buffer_offset_begin) {
   PROFILE_START(GP_FC_DECODE_CANDIDATES_BUFFERED,PROFILE_LEVEL);
   // Parameters
+  const bool exact_match = (region_search->begin==0 && region_search->end==pattern->key_length);
   const uint64_t region_lo = region_search->lo;
   const uint64_t region_hi = region_search->hi;
   // Reserve
@@ -230,7 +233,7 @@ void filtering_candidates_decode_text_filtering_positions_buffered(
         fposition,i,region_lo,gpu_buffer_fmi_decode,buffer_offset_begin);
     // Adjust Position
     filtering_candidates_compute_text_coordinates(filtering_candidates,fposition,pattern);
-    fposition->align_distance = ALIGN_DISTANCE_INF; // Set unaligned
+    fposition->align_distance = exact_match ? 0 : ALIGN_DISTANCE_INF;
   }
   // Add used
   vector_add_used(filtering_positions,num_candidates);

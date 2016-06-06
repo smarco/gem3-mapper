@@ -139,5 +139,8 @@ void filtering_candidates_print_regions(
     FILE* const stream,
     filtering_candidates_t* const filtering_candidates,
     const bool print_matching_regions);
+void filtering_candidates_print_positions(
+    FILE* const stream,
+    filtering_candidates_t* const filtering_candidates);
 
 #endif /* FILTERING_CANDIDATES_H_ */

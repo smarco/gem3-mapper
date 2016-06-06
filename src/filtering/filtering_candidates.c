@@ -281,3 +281,20 @@ void filtering_candidates_print_regions(
       vector_get_used(filtering_candidates->discarded_regions);
   if (total_regions > 0) tab_fprintf(stream,"  => Total.Regions %"PRIu64"\n",total_regions);
 }
+void filtering_candidates_print_positions(
+    FILE* const stream,
+    filtering_candidates_t* const filtering_candidates) {
+  const uint64_t num_candidate_positions = vector_get_used(filtering_candidates->filtering_positions);
+  filtering_position_t* const candidate_positions =
+      vector_get_mem(filtering_candidates->filtering_positions,filtering_position_t);
+  uint64_t i;
+  tab_fprintf(stream,"[GEM]>Filtering.Positions\n");
+  for (i=0;i<num_candidate_positions;++i) {
+    tab_fprintf(stream,"  => Key[%lu,%lu) ~> Text[%lu,%lu) Distance=%lu\n",
+        candidate_positions[i].source_region_begin,
+        candidate_positions[i].source_region_end,
+        candidate_positions[i].text_begin_position,
+        candidate_positions[i].text_end_position,
+        candidate_positions[i].align_distance);
+  }
+}
