@@ -132,8 +132,8 @@ void filtering_candidates_verify_buffered_add(
   filtering_region_t* filtering_region = vector_get_mem(filtering_candidates->filtering_regions,filtering_region_t);
   uint64_t candidate_pos, total_candidates_added = 0;
   for (candidate_pos=0;candidate_pos<num_filtering_regions;++candidate_pos,++filtering_region) {
-    // Filter out key-trimmed regions
-    if (filtering_region->key_trimmed) {
+    // Filter out exact-matches & key-trimmed regions
+    if (filtering_region->region_alignment.distance_min_bound==0 || filtering_region->key_trimmed) {
       filtering_candidates_verify_buffered_store_region(
           filtering_region_buffer+candidate_pos,filtering_region);
       continue; // Next
@@ -345,9 +345,18 @@ void filtering_candidates_verify_buffered_retrieve(
   // Traverse all filtering regions buffered
   uint64_t region_pos, candidate_idx = candidate_offset_begin;
   for (region_pos=0;region_pos<num_filtering_regions;++region_pos) {
+    // Retrieve region
     filtering_region_buffered_t* const region_buffered = filtering_region_buffered + region_pos;
     region_alignment_t* const region_alignment = &region_buffered->region_alignment;
-    // Retrieve trimmed-key region
+    // Detect exact-matches
+    if (region_buffered->region_alignment.distance_min_bound == 0) {
+      filtering_candidates_verify_buffered_load_region(regions_discarded,region_buffered,pattern);
+      regions_accepted->status = filtering_region_accepted; // Accepted candidate
+      ++regions_accepted;
+      PROF_INC_COUNTER(GP_ACCEPTED_REGIONS);
+      continue; // Next
+    }
+    // Detect trimmed matches
     const uint64_t text_length = region_buffered->text_end_position - region_buffered->text_begin_position;
     if (key_length > text_length) {
       filtering_region_t trimmed_region;
@@ -363,7 +372,7 @@ void filtering_candidates_verify_buffered_retrieve(
       }
       continue; // Next
     }
-    // Retrieve already discarded region
+    // Detect already discarded region
     if (region_alignment->distance_min_bound==ALIGN_DISTANCE_INF) {
       filtering_candidates_verify_buffered_load_region(regions_discarded,region_buffered,pattern);
       regions_discarded->status = filtering_region_verified_discarded;
