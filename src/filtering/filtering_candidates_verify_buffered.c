@@ -350,7 +350,7 @@ void filtering_candidates_verify_buffered_retrieve(
     region_alignment_t* const region_alignment = &region_buffered->region_alignment;
     // Detect exact-matches
     if (region_buffered->region_alignment.distance_min_bound == 0) {
-      filtering_candidates_verify_buffered_load_region(regions_discarded,region_buffered,pattern);
+      filtering_candidates_verify_buffered_load_region(regions_accepted,region_buffered,pattern);
       regions_accepted->status = filtering_region_accepted; // Accepted candidate
       ++regions_accepted;
       PROF_INC_COUNTER(GP_ACCEPTED_REGIONS);

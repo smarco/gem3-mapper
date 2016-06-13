@@ -39,9 +39,10 @@ typedef struct {
   uint64_t max_error;
   uint64_t max_text_length;
   // Scheduler Progress
-  nsearch_operation_t* pending_searches; // Pending search operations
-  uint64_t num_pending_searches;         // Total pending operations
-  uint64_t search_id;                    // Search ID
+  nsearch_operation_t* pending_searches;      // Pending search operations
+  nsearch_operation_t* nsearch_operation_aux; // Auxiliary nsearch-operation object
+  uint64_t num_pending_searches;              // Total pending operations
+  uint64_t search_id;                         // Search ID
   // Output results
   interval_set_t* intervals_result;
   // Profiler/Stats

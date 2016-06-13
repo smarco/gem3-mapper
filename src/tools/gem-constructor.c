@@ -777,7 +777,7 @@ void constructor_ns_hamming_permutations() {
   // Generate all possible partitions
   constructor_nsearch_region_permutations_n(&region_profile,0,0,key_length,enc_key,key_length,max_error,mm_stack);
 }
-void constructor_ns_edit_brute() {
+void constructor_ns_edit_brute_full() {
   // MM-Stack
   mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
   mm_stack_t* const mm_stack = mm_stack_new(slab);
@@ -791,7 +791,23 @@ void constructor_ns_edit_brute() {
   for (i=0;i<key_length;++i) enc_key[i] = dna_encode(key[i]);
   enc_key[key_length] = '\0';
   // Search
-  nsearch_levenshtein_brute_force(NULL,enc_key,key_length,max_error,NULL,mm_stack);
+  nsearch_levenshtein_brute_force_full(NULL,enc_key,key_length,max_error,NULL,mm_stack);
+}
+void constructor_ns_edit_brute_supercondensed() {
+  // MM-Stack
+  mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
+  mm_stack_t* const mm_stack = mm_stack_new(slab);
+  // Search Parameters
+  const uint64_t max_error = parameters.number;
+  const char* const key = parameters.name_input_file;
+  const uint64_t key_length = strlen(key);
+  // Encode key
+  uint8_t* const enc_key = malloc(key_length+1);
+  uint64_t i;
+  for (i=0;i<key_length;++i) enc_key[i] = dna_encode(key[i]);
+  enc_key[key_length] = '\0';
+  // Search
+  nsearch_levenshtein_brute_force_supercondensed(NULL,enc_key,key_length,max_error,NULL,mm_stack);
 }
 void constructor_ns_edit_partition() {
   // MM-Stack
@@ -1089,24 +1105,27 @@ int main(int argc,char** argv) {
   //  constructor_itoa();
   // constructor_swg();
 
-//  if (gem_strcaseeq(parameters.option,"hamming-brute")) {
-//    constructor_ns_hamming_brute();
-//  }
-//  if (gem_strcaseeq(parameters.option,"hamming-partition")) {
-//    constructor_ns_hamming();
-//  }
-//  if (gem_strcaseeq(parameters.option,"hamming-regions")) {
-//    constructor_ns_hamming_2regions();
-//  }
-//  if (gem_strcaseeq(parameters.option,"hamming-permutations")) {
-//    constructor_ns_hamming_permutations();
-//  }
-//  if (gem_strcaseeq(parameters.option,"edit-brute")) {
-//    constructor_ns_edit_brute();
-//  }
-//  if (gem_strcaseeq(parameters.option,"edit-partition")) {
-//    constructor_ns_edit_partition();
-//  }
+  if (gem_strcaseeq(parameters.option,"hamming-brute")) {
+    constructor_ns_hamming_brute();
+  }
+  if (gem_strcaseeq(parameters.option,"hamming-partition")) {
+    constructor_ns_hamming();
+  }
+  if (gem_strcaseeq(parameters.option,"hamming-regions")) {
+    constructor_ns_hamming_2regions();
+  }
+  if (gem_strcaseeq(parameters.option,"hamming-permutations")) {
+    constructor_ns_hamming_permutations();
+  }
+  if (gem_strcaseeq(parameters.option,"edit-brute-full")) {
+    constructor_ns_edit_brute_full();
+  }
+  if (gem_strcaseeq(parameters.option,"edit-brute-supercondensed")) {
+    constructor_ns_edit_brute_supercondensed();
+  }
+  if (gem_strcaseeq(parameters.option,"edit-partition")) {
+    constructor_ns_edit_partition();
+  }
 
   //  constructor_lsc();
   //  return 0;

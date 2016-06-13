@@ -13,11 +13,15 @@
 #include "neighborhood_search/dp_matrix.h"
 
 /*
+ * Constants
+ */
+#define NO_ACTIVE_COLUMN UINT64_MAX
+
+/*
  * Levenshtein Search State
  */
 typedef struct {
   dp_matrix_t dp_matrix;
-  uint64_t first_active_column;
 } nsearch_levenshtein_state_t;
 
 /*
@@ -39,9 +43,17 @@ void nsearch_levenshtein_state_prepare_supercondensed_neighbourhood(
 void nsearch_levenshtein_state_prepare_chained(
     nsearch_levenshtein_state_t* const current_nsearch_state,
     nsearch_levenshtein_state_t* const next_nsearch_state,
+    const uint64_t current_key_length,
+    const uint64_t current_text_length,
+    const bool next_operation_towards_end);
+
+/*
+ * Accessors
+ */
+uint64_t nsearch_levenshtein_state_get_align_distance(
+    nsearch_levenshtein_state_t* const nsearch_state,
     const uint64_t key_length,
-    const uint64_t text_length,
-    const uint64_t current_min_error);
+    const uint64_t text_length);
 
 /*
  * Compute DP
@@ -54,7 +66,7 @@ void nsearch_levenshtein_state_compute_text(
     const uint8_t* const text,
     const uint64_t text_length,
     const uint64_t max_error);
-bool nsearch_levenshtein_state_compute_chararacter(
+void nsearch_levenshtein_state_compute_chararacter(
     nsearch_levenshtein_state_t* const nsearch_state,
     const bool forward_search,
     const uint8_t* const key,

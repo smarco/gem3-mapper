@@ -44,6 +44,8 @@ void nsearch_schedule_init(
   nsearch_operation_t* const pending_searches = mm_stack_calloc(mm_stack,max_pending_ops,nsearch_operation_t,false);
   nsearch_schedule->pending_searches = pending_searches;
   if (nsearch_model==nsearch_model_levenshtein) {
+    nsearch_schedule->nsearch_operation_aux = mm_stack_alloc(mm_stack,nsearch_operation_t);
+    nsearch_operation_init(nsearch_schedule->nsearch_operation_aux,key_length,max_text_length,mm_stack);
     uint64_t i;
     for (i=0;i<max_pending_ops;++i) {
       nsearch_operation_init(pending_searches+i,key_length,max_text_length,mm_stack);
@@ -111,9 +113,9 @@ void nsearch_schedule_search_step(
         chunk_min_error,chunk_max_error,chunk_min_error,chunk_max_error);
     if (!feasible_search) return; // Impossible search
     // Select nsearch-alignment model & Perform the search (Solve pending extensions)
-    nsearch_schedule_print_pretty(stderr,nsearch_schedule); // DEBUG
     switch (nsearch_schedule->nsearch_model) {
       case nsearch_model_hamming: {
+        nsearch_schedule_print_pretty(stderr,nsearch_schedule); // DEBUG
         const uint64_t pending_searches = nsearch_schedule->num_pending_searches - 1;
         nsearch_operation_t* const nsearch_operation = nsearch_schedule->pending_searches + pending_searches;
         nsearch_hamming_scheduled_search(nsearch_schedule,
@@ -264,10 +266,6 @@ void nsearch_schedule_print(
     }
   }
 }
-typedef struct {
-  uint64_t nsearch_schedule_pos;
-  uint64_t plength;
-} nsearch_schedule_print_data_t;
 void nsearch_schedule_print_region_segment(
     FILE* const stream,
     const uint64_t length,
@@ -299,6 +297,10 @@ void nsearch_schedule_print_region_limits(
     for (j=0;j<right;++j) fprintf(stream," ");
   }
 }
+typedef struct {
+  uint64_t nsearch_schedule_pos;
+  uint64_t plength;
+} nsearch_schedule_print_data_t;
 void nsearch_schedule_print_pretty(
     FILE* const stream,
     nsearch_schedule_t* const nsearch_schedule) {

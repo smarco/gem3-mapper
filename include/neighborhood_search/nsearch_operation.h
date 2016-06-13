@@ -33,7 +33,6 @@ typedef struct {
   // Local Text (Local search string)
   uint8_t* text;               // Current local text
   uint64_t text_position;      // Current text position
-  uint64_t context_length;     // Context length
   // Global Text (Global search string)
   uint8_t* global_text;
   uint64_t global_text_length;
@@ -51,22 +50,26 @@ void nsearch_operation_init(
     mm_stack_t* const mm_stack);
 
 /*
- * Prepare Sequence
+ * Prepare Operation
  */
-void nsearch_operation_chained_prepare_sequence(
-    nsearch_operation_t* const current_operation,
-    nsearch_operation_t* const next_operation);
-void nsearch_operation_chained_prepare_context(
-    nsearch_operation_t* const current_operation,
-    nsearch_operation_t* const next_operation,
-    const uint64_t first_active_column);
-void nsearch_operation_chained_prepare_reverse_sequence(
-    nsearch_operation_t* const current_operation,
-    nsearch_operation_t* const next_operation);
-void nsearch_operation_chained_prepare_reverse_context(
-    nsearch_operation_t* const next_operation,
-    const uint64_t first_active_column,
-    const uint64_t last_active_column);
+void nsearch_operation_chained_prepare_forward(
+    nsearch_operation_t* const current_nsearch_operation,
+    nsearch_operation_t* const next_nsearch_operation,
+    uint8_t* const key,
+    const uint64_t key_length);
+void nsearch_operation_compute_reverse(
+    nsearch_operation_t* const nsearch_operation,
+    nsearch_operation_t* const nsearch_operation_rev,
+    uint8_t* const key,
+    const uint64_t key_length);
+
+/*
+ * Utils
+ */
+int nsearch_operation_state_global_text_cmp(
+    nsearch_operation_t* const nsearch_operation,
+    char* const global_text,
+    mm_stack_t* const mm_stack);
 
 /*
  * Display
@@ -77,15 +80,12 @@ void nsearch_operation_print(
 void nsearch_operation_state_print(
     FILE* const stream,
     nsearch_operation_t* const nsearch_operation,
-    const bool forward_search,
     const uint8_t* const key);
 void nsearch_operation_state_print_global_text(
     FILE* const stream,
-    nsearch_operation_t* const nsearch_operation,
-    const bool forward_search);
+    nsearch_operation_t* const nsearch_operation);
 void nsearch_operation_state_print_local_text(
     FILE* const stream,
-    nsearch_operation_t* const nsearch_operation,
-    const bool forward_search);
+    nsearch_operation_t* const nsearch_operation);
 
 #endif /* NSEARCH_OPERATION_H_ */

@@ -22,6 +22,7 @@
  */
 #define GPU_ASEARCH_MIN_NUM_SAMPLES           1
 #define GPU_ASEARCH_AVERAGE_QUERY_LENGTH      150
+#define GPU_ASEARCH_BASES_PADDING             8
 
 /*
  * CUDA Supported
@@ -106,9 +107,11 @@ bool gpu_buffer_fmi_asearch_fits_in_buffer(
   uint64_t max_queries = gpu_buffer_fmi_asearch_get_max_queries(gpu_buffer_fmi_asearch);
   uint64_t max_bases = gpu_buffer_fmi_asearch_get_max_bases(gpu_buffer_fmi_asearch);
   uint64_t max_regions = gpu_buffer_fmi_asearch_get_max_regions(gpu_buffer_fmi_asearch);
+  // Compute total bases + padding (worst case)
+  const uint64_t total_bases_padded = total_bases + 2*GPU_ASEARCH_BASES_PADDING;
   // Check available space in buffer
   if (gpu_buffer_fmi_asearch->num_queries+total_queries > max_queries ||
-      gpu_buffer_fmi_asearch->num_bases+total_bases > max_bases ||
+      gpu_buffer_fmi_asearch->num_bases+total_bases_padded > max_bases ||
       gpu_buffer_fmi_asearch->num_regions+total_regions > max_regions) {
     // Check number of queries in the buffer
     if (gpu_buffer_fmi_asearch->num_queries > 0) {
@@ -116,12 +119,12 @@ bool gpu_buffer_fmi_asearch_fits_in_buffer(
     }
     // Reallocate buffer
     gpu_fmi_asearch_init_and_realloc_buffer_(gpu_buffer_fmi_asearch->buffer,
-        REGION_MAX_REGIONS_FACTOR,total_bases,total_queries,total_regions);
+        REGION_MAX_REGIONS_FACTOR,total_bases_padded,total_queries,total_regions);
     // Check reallocated buffer dimensions (error otherwise)
     max_queries = gpu_buffer_fmi_asearch_get_max_queries(gpu_buffer_fmi_asearch);
     gem_cond_fatal_error(total_queries > max_queries,GPU_FMI_ASEARCH_MAX_QUERIES,total_queries,max_queries);
     max_bases = gpu_buffer_fmi_asearch_get_max_bases(gpu_buffer_fmi_asearch);
-    gem_cond_fatal_error(total_bases > max_bases,GPU_FMI_ASEARCH_MAX_PATTERN_LENGTH,total_bases,max_bases);
+    gem_cond_fatal_error(total_bases_padded > max_bases,GPU_FMI_ASEARCH_MAX_PATTERN_LENGTH,total_bases_padded,max_bases);
     max_regions = gpu_buffer_fmi_asearch_get_max_regions(gpu_buffer_fmi_asearch);
     gem_cond_fatal_error(total_regions > max_regions,GPU_FMI_ASEARCH_MAX_REGIONS,total_regions,max_regions);
     // Return OK (after reallocation)
@@ -161,10 +164,16 @@ uint64_t gpu_buffer_fmi_asearch_add_query(
       gpu_fmi_asearch_buffer_get_queries_(gpu_buffer_fmi_asearch->buffer) + search_query_info->init_offset;
   const uint8_t* const key = pattern->key;
   memcpy(search_query,key,key_length); // Copy pattern
+  COUNTER_ADD(&gpu_buffer_fmi_asearch->query_length,key_length); // Profile
   // Next
   ++(gpu_buffer_fmi_asearch->num_queries);
-  gpu_buffer_fmi_asearch->num_bases += key_length;
   gpu_buffer_fmi_asearch->num_regions += max_regions;
+  gpu_buffer_fmi_asearch->num_bases += key_length;
+  const uint64_t num_bases_mod = gpu_buffer_fmi_asearch->num_bases % GPU_ASEARCH_BASES_PADDING;
+  if (num_bases_mod > 0) {
+    const uint64_t bases_to_skip = GPU_ASEARCH_BASES_PADDING - num_bases_mod;
+    gpu_buffer_fmi_asearch->num_bases += bases_to_skip;
+  }
   // Return query-offset
   return query_offset;
 }
