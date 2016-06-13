@@ -73,8 +73,9 @@ typedef enum {
  */
 typedef enum {
   clipping_disabled,
+  clipping_uncalled,
   clipping_masked,
-  clipping_hard
+  clipping_fixed
 } clipping_type;
 
 /*

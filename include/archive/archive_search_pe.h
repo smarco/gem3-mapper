@@ -25,7 +25,6 @@ void archive_search_pe_inject_mm(
 /*
  * PE Extension Control
  */
-bool archive_search_pe_is_extension_feasible(archive_search_t* const archive_search);
 bool archive_search_pe_use_shortcut_extension(
     archive_search_t* const archive_search_extended,
     archive_search_t* const archive_search_candidate,

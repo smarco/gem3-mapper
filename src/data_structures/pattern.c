@@ -40,12 +40,17 @@ void pattern_init_encode(
       i = 0;
       clip_left = 0;
       break;
+    case clipping_uncalled:
+      i = 0;
+      while (i<sequence_length && !is_dna_canonical(read[i])) ++i;
+      clip_left = i;
+      break;
     case clipping_masked:
       i = 0;
       while (i<sequence_length && !is_unmasked_dna(read[i])) ++i;
       clip_left = i;
       break;
-    case clipping_hard:
+    case clipping_fixed:
       i = parameters->clip_left;
       clip_left = MIN(parameters->clip_left,sequence_length);
       break;
@@ -79,12 +84,17 @@ void pattern_init_encode(
     case clipping_disabled:
       clip_right = 0;
       break;
+    case clipping_uncalled:
+      i = sequence_length-1;
+      while (i>=clip_left && !is_dna_canonical(read[i])) --i;
+      clip_right = sequence_length - (i+1);
+      break;
     case clipping_masked:
       i = sequence_length-1;
       while (i>=clip_left && !is_unmasked_dna(read[i])) --i;
       clip_right = sequence_length - (i+1);
       break;
-    case clipping_hard:
+    case clipping_fixed:
       clip_right = MIN(parameters->clip_right,sequence_length - clip_left);
       break;
     default:

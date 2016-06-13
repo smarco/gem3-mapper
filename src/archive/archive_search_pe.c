@@ -60,10 +60,6 @@ void archive_search_pe_inject_mm(
 /*
  * PE Extension Control
  */
-bool archive_search_pe_is_extension_feasible(archive_search_t* const archive_search) {
-  // Check the number of samples to derive the expected template size
-  return mapper_stats_template_length_is_reliable(archive_search->mapper_stats);
-}
 bool archive_search_pe_use_shortcut_extension(
     archive_search_t* const archive_search_extended,
     archive_search_t* const archive_search_candidate,
@@ -73,7 +69,7 @@ bool archive_search_pe_use_shortcut_extension(
   if (!search_parameters->search_paired_parameters.paired_end_extension_shortcut) return false;
   // Check key-length
   const uint64_t key_length = archive_search_candidate->approximate_search.pattern.key_length;
-  if (key_length > ARCHIVE_SEARCH_PE_EXTENSION_MAX_READ_LENGTH) return false;
+  if (key_length==0 || key_length > ARCHIVE_SEARCH_PE_EXTENSION_MAX_READ_LENGTH) return false;
   // Check the number of samples to derive the expected template size
   if (!mapper_stats_template_length_is_reliable(archive_search_extended->mapper_stats)) return false;
   // Test if the shortcut extension will provide a reliable mapping
@@ -89,7 +85,7 @@ bool archive_search_pe_use_recovery_extension(
   if (!search_parameters->search_paired_parameters.paired_end_extension_recovery) return false;
   // Check key-length
   const uint64_t key_length = archive_search_candidate->approximate_search.pattern.key_length;
-  if (key_length > ARCHIVE_SEARCH_PE_EXTENSION_MAX_READ_LENGTH) return false;
+  if (key_length==0 || key_length > ARCHIVE_SEARCH_PE_EXTENSION_MAX_READ_LENGTH) return false;
   // Check the number of samples to derive the expected template size
   if (!mapper_stats_template_length_is_reliable(archive_search_extended->mapper_stats)) return false;
   // Test suitability for extension
@@ -136,10 +132,10 @@ uint64_t archive_search_pe_extend_matches(
   pattern_t* const candidate_pattern = &candidate_archive_search->approximate_search.pattern;
   uint64_t total_matches_found = 0;
   // Iterate over all matches of the extended end
-//  const uint64_t first_stratum_distance = matches_get_match_trace_buffer(extended_matches)[0].distance;
+  // const uint64_t first_stratum_distance = matches_get_match_trace_buffer(extended_matches)[0].distance;
   VECTOR_ITERATE(extended_matches->position_matches,extended_match,en,match_trace_t) {
-//    if (extended_match->distance > first_stratum_distance) break; // Break beyond first stratum
-    if (extended_match->type == match_type_extended) continue;    // Skip matches retrieve from extension
+    // if (extended_match->distance > first_stratum_distance) break; // Break beyond first stratum
+    if (extended_match->type == match_type_extended) continue;    // Skip matches retrieved from extension
     if (search_paired_parameters->pair_orientation[pair_orientation_FR] == pair_relation_concordant) {
       // Extend (filter nearby region)
       PROF_INC_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_NUM_MATCHES);

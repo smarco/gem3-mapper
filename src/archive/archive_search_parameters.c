@@ -111,7 +111,7 @@ void search_parameters_init(search_parameters_t* const search_parameters) {
   // Mapping strategy
   search_parameters->mapping_mode = mapping_adaptive_filtering_thorough;
   // Clipping
-  search_parameters->clipping = clipping_disabled;
+  search_parameters->clipping = clipping_uncalled;
   search_parameters->clip_left = 0;
   search_parameters->clip_right = 0;
   // Qualities
