@@ -291,11 +291,8 @@ void match_trace_locate(match_trace_t* const match_trace,const locator_t* const 
   if (location.strand == Reverse) { // Adjust position by the effective length
     match_trace->text_position -= (uint64_t) match_trace->match_alignment.effective_length;
     match_trace->strand = Reverse;
-    GEM_INTERNAL_CHECK(!match_trace->emulated_rc_search,
-        "Archive-Select. Locating match-trace. "
-        "Impossible combination (search_strand==Reverse while emulated searching FR-index)");
   } else {
-    match_trace->strand = match_trace->emulated_rc_search ? Reverse : Forward;
+    match_trace->strand = Forward;
   }
   match_trace->bs_strand = location.bs_strand;
 }
@@ -303,13 +300,6 @@ void match_trace_process(
     matches_t* const matches,
     match_trace_t* const match_trace,
     const locator_t* const locator) {
-  // Correct CIGAR (Reverse it if the search was performed in the reverse strand, emulated)
-  if (match_trace->emulated_rc_search) {
-    matches_cigar_reverse(matches->cigar_vector,
-        match_trace->match_alignment.cigar_offset,
-        match_trace->match_alignment.cigar_length);
-    match_trace->emulated_rc_search = false;
-  }
   // Locate-map the match
   match_trace_locate(match_trace,locator);
 }
@@ -324,7 +314,6 @@ void match_trace_replace(match_trace_t* const match_trace_dst,match_trace_t* con
   match_trace_dst->strand = match_trace_src->strand;
   match_trace_dst->bs_strand = match_trace_src->bs_strand;
   match_trace_dst->text_position = match_trace_src->text_position;
-  match_trace_dst->emulated_rc_search = match_trace_src->emulated_rc_search;
   /* Score */
   match_trace_dst->distance = match_trace_src->distance;
   match_trace_dst->edit_distance = match_trace_src->edit_distance;

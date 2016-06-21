@@ -42,14 +42,12 @@ extern const char* asearch_processing_state_label[6];
  */
 typedef enum {
   asearch_stage_begin = 0,                            // Beginning of the search
-  asearch_stage_read_recovery = 1,                    // Read recovery (Reads containing multiple uncalled bases)
-  asearch_stage_filtering_adaptive = 2,               // Adaptive filtering search
-  asearch_stage_inexact_filtering = 3,                // Inexact Filtering (using approximate-candidate generation)
-  asearch_stage_local_alignment = 4,                  // Local-Alignment filtering Search
-  asearch_stage_neighborhood = 5,                     // Neighborhood search
-  asearch_stage_end = 6,                              // End of the search
+  asearch_stage_filtering_adaptive = 1,               // Adaptive filtering search
+  asearch_stage_neighborhood = 2,                     // Neighborhood search
+  asearch_stage_local_alignment = 3,                  // Local-Alignment filtering Search
+  asearch_stage_end = 4,                              // End of the search
 } asearch_stage_t;
-extern const char* asearch_stage_label[7];
+extern const char* asearch_stage_label[5];
 
 /*
  * Approximate Search
@@ -60,17 +58,15 @@ typedef struct {
   pattern_t pattern;                                       // Search Pattern
   search_parameters_t* search_parameters;                  // Search Parameters
   /* Search State */
-  bool emulated_rc_search;                                 // Currently searching on the RC (emulated on the forward strand)
   bool do_quality_search;                                  // Quality search
   asearch_stage_t search_stage;                            // Current Search Stage
   asearch_processing_state_t processing_state;             // Current Processing State
-  bool stop_before_neighborhood_search;                    // Stop before Neighborhood Search
-  uint64_t max_complete_error;
-  uint64_t max_complete_stratum;                           // Maximum complete stratum reached by the search
+  uint64_t current_max_complete_error;                     // Current max-error allowed (adjusted by matches found)
+  uint64_t current_max_complete_stratum;                   // Current mcs reached by the search (adjusted by matches found)
   /* Search Structures */
   region_profile_t region_profile;                         // Region Profile
   filtering_candidates_t* filtering_candidates;            // Filtering Candidates
-  /* Buffered Search Data */
+  /* Buffered Search */
   uint64_t gpu_buffer_fmi_search_offset;
   uint64_t gpu_buffer_fmi_search_total;
   uint64_t gpu_buffer_fmi_decode_offset;
@@ -95,8 +91,7 @@ typedef struct {
 void approximate_search_init(
     approximate_search_t* const search,
     archive_t* const archive,
-    search_parameters_t* const search_parameters,
-    const bool emulated_rc_search);
+    search_parameters_t* const search_parameters);
 void approximate_search_reset(approximate_search_t* const search);
 void approximate_search_destroy(approximate_search_t* const search);
 

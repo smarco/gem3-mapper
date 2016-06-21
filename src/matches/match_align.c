@@ -87,7 +87,6 @@ void match_aling_add_clipping(
  *   @align_input->text
  *   @align_input->text_offset_begin
  *   @align_input->text_offset_end
- *   @align_parameters->emulated_rc_search
  *   @align_parameters->swg_penalties
  *   @match_trace->match_alignment.score
  */
@@ -107,7 +106,6 @@ void match_align_exact(
   match_trace->text_length = align_input->key_length;
   match_trace->sequence_name = NULL;
   match_trace->text_position = UINT64_MAX;
-  match_trace->emulated_rc_search = align_parameters->emulated_rc_search;
   match_trace->distance = 0;
   match_trace->edit_distance = 0;
   match_trace->swg_score = align_swg_score_match(align_parameters->swg_penalties,(int32_t)key_length);
@@ -133,7 +131,6 @@ void match_align_exact(
  *   @align_input->text
  *   @align_input->text_offset_begin
  *   @align_input->text_offset_end
- *   @align_parameters->emulated_rc_search
  *   @align_parameters->allowed_enc
  */
 void match_align_hamming(
@@ -143,29 +140,27 @@ void match_align_hamming(
     match_align_parameters_t* const align_parameters) {
   PROFILE_START(GP_MATCHES_ALIGN_HAMMING,PROFILE_LEVEL);
   // Parameters
-  const uint8_t* const key = align_input->key;
-  const uint64_t key_length = align_input->key_length;
-  uint8_t* const text = align_input->text;
   region_alignment_t* const region_alignment = align_input->region_alignment;
   const uint64_t text_offset_begin = region_alignment->alignment_tiles->text_begin_offset;
-  const uint64_t text_offset_end = region_alignment->alignment_tiles->text_end_offset;
+  const uint8_t* const key = align_input->key;
+  const uint64_t key_length = align_input->key_length;
+  uint8_t* const text = align_input->text + text_offset_begin;
   const bool* const allowed_enc = align_parameters->allowed_enc;
   // Configure match-trace
   match_trace->type = match_type_regular;
   match_trace->text_trace_offset = align_input->text_trace_offset;
-  match_trace->text = text + text_offset_begin;
+  match_trace->text = text;
   match_trace->text_length = key_length;
   match_trace->sequence_name = NULL;
   match_trace->text_position = UINT64_MAX;
-  match_trace->emulated_rc_search = align_parameters->emulated_rc_search;
   match_alignment_t* const match_alignment = &match_trace->match_alignment;
-  match_alignment->match_position = align_input->text_position;
+  match_alignment->match_text_offset = text_offset_begin;
+  match_alignment->match_position = align_input->text_position + text_offset_begin;
   match_alignment->cigar_offset = vector_get_used(matches->cigar_vector);
   match_alignment->cigar_length = 0;
-  match_alignment->match_text_offset = 0;
   // Hamming Alignment
   uint64_t i, mismatches;
-  for (i=text_offset_begin,mismatches=0;i<text_offset_end;++i) {
+  for (i=0,mismatches=0;i<key_length;++i) {
     const uint8_t candidate_enc = text[i];
     // Check Mismatch
     if (!allowed_enc[candidate_enc] || candidate_enc != key[i]) {
@@ -183,6 +178,7 @@ void match_align_hamming(
   match_trace->edit_distance = mismatches;
   match_trace->swg_score = align_swg_score_cigar(align_parameters->swg_penalties,
       matches->cigar_vector,match_alignment->cigar_offset,match_alignment->cigar_length);
+  match_trace->match_scaffold = NULL;
   PROFILE_STOP(GP_MATCHES_ALIGN_HAMMING,PROFILE_LEVEL);
 }
 /*
@@ -197,7 +193,6 @@ void match_align_hamming(
  *   @align_input->text_offset_end
  *   @align_input->text_length
  *   @align_parameters->swg_penalties
- *   @align_parameters->emulated_rc_search
  *   @align_parameters->max_error
  *   @align_parameters->left_gap_alignment
  */
@@ -213,7 +208,6 @@ void match_align_levenshtein(
   match_trace->text_trace_offset = align_input->text_trace_offset;
   match_trace->sequence_name = NULL;
   match_trace->text_position = UINT64_MAX;
-  match_trace->emulated_rc_search = align_parameters->emulated_rc_search;
   // Levenshtein Align
   match_alignment_t* const match_alignment = &match_trace->match_alignment;
   match_alignment->match_position = align_input->text_position;
@@ -225,6 +219,7 @@ void match_align_levenshtein(
   match_trace->swg_score = align_swg_score_cigar(align_parameters->swg_penalties,
       matches->cigar_vector,match_alignment->cigar_offset,match_alignment->cigar_length);
   // Store matching text
+  match_trace->match_scaffold = NULL;
   match_alignment->match_text_offset = match_alignment->match_position - align_input->text_position;
   match_trace->text = align_input->text + match_alignment->match_text_offset;
   match_trace->text_length = match_alignment->effective_length;
@@ -240,7 +235,6 @@ void match_align_levenshtein(
  *   @align_input->text_length
  *   @align_input->text_offset_begin
  *   @align_input->text_offset_end
- *   @align_parameters->emulated_rc_search
  *   @align_parameters->swg_penalties
  *   @align_parameters->swg_threshold
  *   @align_parameters->min_identity
@@ -264,7 +258,6 @@ void match_align_smith_waterman_gotoh(
   match_trace->text_trace_offset = align_input->text_trace_offset;
   match_trace->sequence_name = NULL;
   match_trace->text_position = UINT64_MAX;
-  match_trace->emulated_rc_search = align_parameters->emulated_rc_search;
   // Scaffold the alignment
   if (!align_parameters->force_full_swg) {
     PROFILE_PAUSE(GP_MATCHES_ALIGN_SWG,PROFILE_LEVEL);

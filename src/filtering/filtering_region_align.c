@@ -70,7 +70,6 @@ void filtering_region_align_clone(
   // Clone match-trace (Match)
   match_trace_dst->sequence_name = NULL;
   match_trace_dst->text_position = UINT64_MAX;
-  match_trace_dst->emulated_rc_search = match_trace_src->emulated_rc_search;
   // Clone match-trace (Score)
   match_trace_dst->distance = match_trace_src->distance;
   match_trace_dst->edit_distance = match_trace_src->edit_distance;
@@ -80,14 +79,12 @@ void filtering_region_align_clone(
   match_alignment_t* const match_alignment_src = &match_trace_src->match_alignment;
   match_alignment_dst->match_text_offset = match_alignment_src->match_text_offset;
   match_alignment_dst->match_position =
-      filtering_region_dst->text_begin_position + match_alignment_dst->match_text_offset;
+      filtering_region_dst->text_begin_position + match_alignment_src->match_text_offset;
   match_alignment_dst->cigar_offset = match_alignment_src->cigar_offset;
   match_alignment_dst->cigar_length = match_alignment_src->cigar_length;
   match_alignment_dst->effective_length = match_alignment_src->effective_length;
   match_alignment_dst->score = match_alignment_src->score;
-#ifdef GEM_DEBUG
   match_trace_dst->match_scaffold = match_trace_src->match_scaffold; // Supporting Scaffolding
-#endif
   // DEBUG
   gem_cond_debug_block(DEBUG_FILTERING_REGION) {
     tab_fprintf(gem_log_get_stream(),"=> Region CLONED (distance=%lu,swg_score=%ld)\n",
@@ -102,7 +99,6 @@ void filtering_region_align_exact(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
     pattern_t* const pattern,
-    const bool emulated_rc_search,
     matches_t* const matches,
     match_trace_t* const match_trace) {
   PROF_INC_COUNTER(GP_ALIGNED_EXACT);
@@ -112,8 +108,8 @@ void filtering_region_align_exact(
   match_align_parameters_t align_parameters;
   // Configure Alignment
   filtering_region_align_configure_exact(
-      &align_input,&align_parameters,filtering_region,
-      search_parameters,pattern,emulated_rc_search);
+      &align_input,&align_parameters,
+      filtering_region,search_parameters,pattern);
   // Add exact match
   match_align_exact(matches,match_trace,&align_input,&align_parameters);
   filtering_region->status = filtering_region_aligned; // Set status
@@ -122,7 +118,6 @@ void filtering_region_align_inexact(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
     pattern_t* const pattern,
-    const bool emulated_rc_search,
     const bool local_alignment,
     matches_t* const matches,
     match_trace_t* const match_trace) {
@@ -145,7 +140,7 @@ void filtering_region_align_inexact(
       // Configure Alignment
       filtering_region_align_configure_hamming(
           &align_input,&align_parameters,filtering_region,
-          search_parameters,pattern,text_trace,emulated_rc_search);
+          search_parameters,pattern,text_trace);
       // Hamming Align
       match_align_hamming(matches,match_trace,&align_input,&align_parameters);
       filtering_region->status = filtering_region_aligned;
@@ -157,8 +152,8 @@ void filtering_region_align_inexact(
           archive_text_get_position_strand(archive_text,filtering_region->text_begin_position);
       const bool left_gap_alignment = (position_strand==Forward);
       filtering_region_align_configure_levenshtein(
-          &align_input,&align_parameters,filtering_region,search_parameters,
-          pattern,text_trace,emulated_rc_search,left_gap_alignment,mm_stack);
+          &align_input,&align_parameters,filtering_region,
+          search_parameters,pattern,text_trace,left_gap_alignment,mm_stack);
       // Levenshtein Align
       match_align_levenshtein(matches,match_trace,&align_input,&align_parameters,mm_stack);
       break;
@@ -169,8 +164,8 @@ void filtering_region_align_inexact(
           archive_text_get_position_strand(archive_text,filtering_region->text_begin_position);
       const bool left_gap_alignment = (position_strand==Forward);
       filtering_region_align_configure_swg(
-          &align_input,&align_parameters,filtering_region,search_parameters,pattern,
-          text_trace,emulated_rc_search,left_gap_alignment,local_alignment,mm_stack);
+          &align_input,&align_parameters,filtering_region,search_parameters,
+          pattern,text_trace,left_gap_alignment,local_alignment,mm_stack);
       // Gap-affine Align
       match_align_smith_waterman_gotoh(matches,match_trace,
           &align_input,&align_parameters,&filtering_region->match_scaffold,mm_stack);
@@ -192,7 +187,6 @@ bool filtering_region_align(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
     pattern_t* const pattern,
-    const bool emulated_rc_search,
     const bool local_alignment,
     matches_t* const matches,
     match_trace_t* const match_trace) {
@@ -207,11 +201,13 @@ bool filtering_region_align(
       filtering_region->key_trimmed ||
       filtering_region->region_alignment.num_tiles > 1 ||
       filtering_region->region_alignment.distance_min_bound > 0) {
-    filtering_region_align_inexact(filtering_candidates,filtering_region,
-        pattern,emulated_rc_search,local_alignment,matches,match_trace);
+    filtering_region_align_inexact(
+        filtering_candidates,filtering_region,pattern,
+        local_alignment,matches,match_trace);
   } else {
-    filtering_region_align_exact(filtering_candidates,filtering_region,
-        pattern,emulated_rc_search,matches,match_trace);
+    filtering_region_align_exact(
+        filtering_candidates,filtering_region,pattern,
+        matches,match_trace);
   }
   // Check (re)alignment result
   if (match_trace->distance==ALIGN_DISTANCE_INF || match_trace->swg_score < 0) {

@@ -14,23 +14,6 @@
 /*
  * Control
  */
-void asearch_control_next_state_read_recovery(
-    approximate_search_t* const search,
-    matches_t* const matches) {
-  switch (search->processing_state) {
-    case asearch_processing_state_no_regions:
-      break;
-    case asearch_processing_state_candidates_verified:
-      PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MAPPED,matches_is_mapped(matches)?1:0);
-      PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,search->max_complete_stratum);
-      break;
-    default:
-      GEM_INVALID_CASE();
-      break;
-  }
-  // Finish
-  search->search_stage = asearch_stage_end;
-}
 void asearch_control_next_state_exact_filtering_adaptive(
     approximate_search_t* const search,
     matches_t* const matches) {
@@ -42,7 +25,7 @@ void asearch_control_next_state_exact_filtering_adaptive(
       break;
     case asearch_processing_state_candidates_verified:
       PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MAPPED,matches_is_mapped(matches)?1:0);
-      PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,search->max_complete_stratum);
+      PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,search->current_max_complete_stratum);
       // Local alignment
       if (search_parameters->local_alignment==local_alignment_never) {
         search->search_stage = asearch_stage_end;
@@ -77,16 +60,16 @@ void approximate_search_filtering_adaptive_basic_cases(approximate_search_t* con
     search->search_stage = asearch_stage_end;
     return;
   }
-  /*
-   * Recovery
-   *   If the number of wildcards (or errors required) is too high we try to recover as
-   *   many matches as possible. We extract feasible regions from the read and filter
-   *   them trying to recover anything out of bad quality reads.
-   */
-  if (num_wildcards > 0 && num_wildcards >= search->search_parameters->alignment_max_error_nominal) {
-    search->search_stage = asearch_stage_read_recovery;
-    return;
-  }
+//  /*
+//   * Recovery
+//   *   If the number of wildcards (or errors required) is too high we try to recover as
+//   *   many matches as possible. We extract feasible regions from the read and filter
+//   *   them trying to recover anything out of bad quality reads.
+//   */
+//  if (num_wildcards > 0 && num_wildcards >= search->search_parameters->alignment_max_error_nominal) {
+//    search->search_stage = asearch_stage_read_recovery;
+//    return;
+//  }
 //  // Exact search
 //  if (search->max_complete_error==0) {
 //    search->search_stage = asearch_stage_neighborhood;
@@ -115,10 +98,6 @@ void approximate_search_filtering_adaptive(
     switch (search->search_stage) {
       case asearch_stage_begin: // Search Start. Check basic cases
         approximate_search_filtering_adaptive_basic_cases(search);
-        break;
-      case asearch_stage_read_recovery: // Read recovery
-        approximate_search_exact_filtering_adaptive_heavyweight(search,matches);
-        asearch_control_next_state_read_recovery(search,matches); // Next State
         break;
       case asearch_stage_filtering_adaptive: // Exact-Filtering (Adaptive)
         if (search_parameters->mapping_mode==mapping_adaptive_filtering_fast) {
@@ -165,7 +144,7 @@ void approximate_search_filtering_adaptive_test(
 //  // TODO
 //  matches_add_interval_match(
 //      matches,search->lo_exact_matches,search->hi_exact_matches,
-//      pattern->key_length,0,search->emulated_rc_search);
+//      pattern->key_length,0);
   // Update MCS
   approximate_search_update_mcs(search,1);
   // Update next state

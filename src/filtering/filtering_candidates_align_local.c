@@ -72,7 +72,6 @@ void filtering_candidates_align_local_exclude_tiles(
 void filtering_candidates_align_local(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const pattern,
-    const bool emulated_rc_search,
     matches_t* const matches) {
   PROFILE_START(GP_FC_REALIGN_LOCAL_CANDIDATE_REGIONS,PROFILE_LEVEL);
   // Add pending local matches (found so far)
@@ -108,7 +107,7 @@ void filtering_candidates_align_local(
       // Align Region
       PROF_INC_COUNTER(GP_CANDIDATE_REGION_LOCAL_ALIGNED);
       const bool match_added = filtering_candidates_align_region(
-          filtering_candidates,filtering_region,pattern,emulated_rc_search,true,false,matches);
+          filtering_candidates,filtering_region,pattern,true,false,matches);
       if (match_added) ++total_matches;
     }
     // Update Used

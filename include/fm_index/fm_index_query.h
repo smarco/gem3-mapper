@@ -24,38 +24,26 @@ typedef struct {
   uint64_t backward_lo;
   uint64_t backward_hi;
 } fm_2interval_t;
-typedef struct {
-  uint64_t pranks[DNA_EXT_RANGE];         // Precomputed eranks
-} fm_2erank_elms_t;
 
 /*
- * FM-Index Precomputed Bidirectional Operators
+ * Setup
  */
-void fm_index_precompute_2erank(
+void fm_index_2query_init(
     const fm_index_t* const fm_index,
-    fm_2erank_elms_t* const fm_2erank_elms,
-    const uint64_t position);
-void fm_index_precomputed_2query_forward(
-    fm_2interval_t* const fm_2interval,
-    fm_2erank_elms_t* const lo_2erank_elms,
-    fm_2erank_elms_t* const hi_2erank_elms,
-    const uint8_t char_enc);
-void fm_index_precomputed_2query_backward(
-    fm_2interval_t* const fm_2interval,
-    fm_2erank_elms_t* const lo_2erank_elms,
-    fm_2erank_elms_t* const hi_2erank_elms,
-    const uint8_t char_enc);
+    fm_2interval_t* const fm_2interval);
 
 /*
  * FM-Index Bidirectional Operators
  */
 void fm_index_2query_forward(
     const fm_index_t* const fm_index,
-    fm_2interval_t* const fm_2interval,
-    const uint8_t char_enc);
+    const uint8_t char_enc,
+    fm_2interval_t* const fm_2interval_in,
+    fm_2interval_t* const fm_2interval_out);
 void fm_index_2query_backward(
     const fm_index_t* const fm_index,
-    fm_2interval_t* const fm_2interval,
-    const uint8_t char_enc);
+    const uint8_t char_enc,
+    fm_2interval_t* const fm_2interval_in,
+    fm_2interval_t* const fm_2interval_out);
 
 #endif /* FM_INDEX_QUERY_H_ */

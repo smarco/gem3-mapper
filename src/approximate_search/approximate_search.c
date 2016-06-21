@@ -35,34 +35,30 @@ const char* asearch_processing_state_label[] =
 const char* asearch_stage_label[] =
 {
     [asearch_stage_begin]  = "begin",
-    [asearch_stage_read_recovery]  = "read-recovery",
     [asearch_stage_filtering_adaptive]  = "filtering-adaptive",
-    [asearch_stage_inexact_filtering]  = "inexact-filtering",
-    [asearch_stage_local_alignment]  = "local-alignment",
     [asearch_stage_neighborhood]  = "neighborhood",
+    [asearch_stage_local_alignment]  = "local-alignment",
     [asearch_stage_end]  = "end",
 };
+
 /*
  * Setup
  */
 void approximate_search_init(
     approximate_search_t* const search,
     archive_t* const archive,
-    search_parameters_t* const search_parameters,
-    const bool emulated_rc_search) {
+    search_parameters_t* const search_parameters) {
   // Index Structures & Parameters
   search->archive = archive;
   search->search_parameters = search_parameters;
-  search->emulated_rc_search = emulated_rc_search;
 }
 void approximate_search_reset(approximate_search_t* const search) {
   // Reset Approximate Search State
   search->search_stage = asearch_stage_begin;
   search->processing_state = asearch_processing_state_begin;
-  search->stop_before_neighborhood_search = false;
   const uint64_t max_complete_error = search->search_parameters->complete_search_error_nominal;
-  search->max_complete_error = MIN(max_complete_error,search->pattern.max_effective_filtering_error);
-  search->max_complete_stratum = ALL;
+  search->current_max_complete_error = MIN(max_complete_error,search->pattern.max_effective_filtering_error);
+  search->current_max_complete_stratum = ALL;
   // Prepare region profile
   const uint64_t key_length = search->pattern.key_length;
   region_profile_new(&search->region_profile,key_length,search->mm_stack);
@@ -110,7 +106,7 @@ void approximate_search_inject_filtering_candidates(
 void approximate_search_update_mcs(
     approximate_search_t* const search,
     const uint64_t max_complete_stratum) {
-  search->max_complete_stratum = max_complete_stratum;
+  search->current_max_complete_stratum = max_complete_stratum;
 }
 uint64_t approximate_search_get_num_regions_profile(const approximate_search_t* const search) {
   const region_profile_t* const region_profile = &search->region_profile;
@@ -137,11 +133,13 @@ void approximate_search(approximate_search_t* const search,matches_t* const matc
       approximate_search_filtering_adaptive(search,matches); // Adaptive mapping
       break;
     case mapping_adaptive_filtering_complete:
-    case mapping_fixed_filtering_complete:
       approximate_search_filtering_complete(search,matches); // Filtering complete mapping
       break;
-    case mapping_neighborhood_search:
-      approximate_search_neighborhood_search(search,matches); // Brute-force mapping
+    case mapping_neighborhood_search_brute_force:
+      approximate_search_neighborhood_search_brute_force(search,matches); // Brute-force mapping
+      break;
+    case mapping_neighborhood_search_partition:
+      approximate_search_neighborhood_search_partition(search,matches); // NS-partition mapping
       break;
     case mapping_test:
       approximate_search_neighborhood_exact_search(search,matches);
@@ -160,11 +158,11 @@ void approximate_search_print(FILE* const stream,approximate_search_t* const sea
   tab_global_inc();
   tab_fprintf(stream,"=> Search.Stage %s\n",asearch_stage_label[search->search_stage]);
   tab_fprintf(stream,"  => Search.State %s\n",asearch_processing_state_label[search->processing_state]);
-  tab_fprintf(stream,"=> Max.complete.error %lu\n",search->max_complete_error);
-  tab_fprintf(stream,"=> MCS %lu\n",search->max_complete_stratum);
+  tab_fprintf(stream,"=> Max.complete.error %lu\n",search->current_max_complete_error);
+  tab_fprintf(stream,"=> MCS %lu\n",search->current_max_complete_stratum);
   tab_fprintf(stream,"=> Region.Profile\n");
   tab_global_inc();
-  region_profile_print(stream,&search->region_profile,false);
+  region_profile_print(stream,&search->region_profile);
   tab_global_dec();
   tab_global_dec();
 }

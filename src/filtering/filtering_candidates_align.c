@@ -88,7 +88,6 @@ bool filtering_candidates_align_region(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const region,
     pattern_t* const pattern,
-    const bool emulated_rc_search,
     const bool local_alignment,
     const bool extended_match,
     matches_t* const matches) {
@@ -112,7 +111,7 @@ bool filtering_candidates_align_region(
   // Align the region
   if (!match_trace_aligned) {
     match_trace_aligned = filtering_region_align(filtering_candidates,
-        region,pattern,emulated_rc_search,local_alignment,matches,&match_trace);
+        region,pattern,local_alignment,matches,&match_trace);
     if (!match_trace_aligned) return false; // Not aligned or subdominant
   }
   // Add to matches
@@ -144,7 +143,6 @@ bool filtering_candidates_align_region(
 uint64_t filtering_candidates_align_candidates(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const pattern,
-    const bool emulated_rc_search,
     const bool extended_match,
     const bool local_alignment,
     matches_t* const matches) {
@@ -186,8 +184,8 @@ uint64_t filtering_candidates_align_candidates(
       continue;
     }
     // Align Region
-    const bool accepted_region = filtering_candidates_align_region(filtering_candidates,
-        regions_in,pattern,emulated_rc_search,local_alignment,extended_match,matches);
+    const bool accepted_region = filtering_candidates_align_region(
+        filtering_candidates,regions_in,pattern,local_alignment,extended_match,matches);
     if (accepted_region) ++num_accepted_regions;
   }
   // Update used

@@ -87,7 +87,6 @@ void region_profile_generate_fixed_query(
     }
     // Store results
     if (region->degree==0) region->degree = region_end-region_begin; // FIXME Field nzSteps
-    region->type = region_standard;
     region->lo = lo;
     region->hi = hi;
   }

@@ -144,105 +144,10 @@ void rank_mtable_builder_fill_ranks(
   rank_mtable->min_matching_depth = min_matching_depth;
 }
 /*
- * Fill Rank-MTable
- */
-void rank_mtable_reverse_builder_fill_ranks_lo(
-    const bwt_reverse_builder_t* const bwt_reverse_builder,
-    rank_mtable_t* const rank_mtable,
-    uint64_t offset_lo,
-    const uint64_t lo,
-    const uint64_t level,
-    ticker_t* const ticker) {
-  // Control recursion level
-  if (gem_expect_false(level < rank_mtable->num_levels)) {
-    // Get level
-    uint64_t* const rank_level = rank_mtable->sa_ranks_levels[level];
-    // Calculate level offset
-    const uint64_t next_level = level+1;
-    const uint64_t level_skip = rank_mtable->level_skip[level];
-    // Update 'A'
-    rank_level[offset_lo] = bwt_reverse_builder_erank(bwt_reverse_builder,ENC_DNA_CHAR_A,lo);
-    rank_mtable_reverse_builder_fill_ranks_lo(
-        bwt_reverse_builder,rank_mtable,offset_lo,rank_level[offset_lo],next_level,ticker);
-    // Update 'C'
-    offset_lo+=level_skip;
-    rank_level[offset_lo] = bwt_reverse_builder_erank(bwt_reverse_builder,ENC_DNA_CHAR_C,lo);
-    rank_mtable_reverse_builder_fill_ranks_lo(
-        bwt_reverse_builder,rank_mtable,offset_lo,rank_level[offset_lo],next_level,ticker);
-    // Update 'G'
-    offset_lo+=level_skip;
-    rank_level[offset_lo] = bwt_reverse_builder_erank(bwt_reverse_builder,ENC_DNA_CHAR_G,lo);
-    rank_mtable_reverse_builder_fill_ranks_lo(
-        bwt_reverse_builder,rank_mtable,offset_lo,rank_level[offset_lo],next_level,ticker);
-    // Update 'T'
-    offset_lo+=level_skip;
-    rank_level[offset_lo] = bwt_reverse_builder_erank(bwt_reverse_builder,ENC_DNA_CHAR_T,lo);
-    rank_mtable_reverse_builder_fill_ranks_lo(
-        bwt_reverse_builder,rank_mtable,offset_lo,rank_level[offset_lo],next_level,ticker);
-    // Update ticker
-    ticker_update(ticker,4);
-  }
-}
-void rank_mtable_reverse_builder_fill_ranks_hi(
-    const bwt_reverse_builder_t* const bwt_reverse_builder,
-    rank_mtable_t* const rank_mtable,
-    uint64_t offset_hi,
-    const uint64_t hi,
-    const uint64_t level,
-    ticker_t* const ticker) {
-  // Control recursion level
-  if (gem_expect_false(level < rank_mtable->num_levels)) {
-    // Get level
-    uint64_t* const rank_level = rank_mtable->sa_ranks_levels[level];
-    // Calculate level offset
-    const uint64_t next_level = level+1;
-    const uint64_t level_skip = rank_mtable->level_skip[level];
-    // Update 'A'
-    rank_level[offset_hi] = bwt_reverse_builder_erank(bwt_reverse_builder,ENC_DNA_CHAR_A,hi);
-    rank_mtable_reverse_builder_fill_ranks_hi(
-        bwt_reverse_builder,rank_mtable,offset_hi,rank_level[offset_hi],next_level,ticker);
-    // Update 'C'
-    offset_hi+=level_skip;
-    rank_level[offset_hi] = bwt_reverse_builder_erank(bwt_reverse_builder,ENC_DNA_CHAR_C,hi);
-    rank_mtable_reverse_builder_fill_ranks_hi(
-        bwt_reverse_builder,rank_mtable,offset_hi,rank_level[offset_hi],next_level,ticker);
-    // Update 'G'
-    offset_hi+=level_skip;
-    rank_level[offset_hi] = bwt_reverse_builder_erank(bwt_reverse_builder,ENC_DNA_CHAR_G,hi);
-    rank_mtable_reverse_builder_fill_ranks_hi(
-        bwt_reverse_builder,rank_mtable,offset_hi,rank_level[offset_hi],next_level,ticker);
-    // Update 'T'
-    offset_hi+=level_skip;
-    rank_level[offset_hi] = bwt_reverse_builder_erank(bwt_reverse_builder,ENC_DNA_CHAR_T,hi);
-    rank_mtable_reverse_builder_fill_ranks_hi(
-        bwt_reverse_builder,rank_mtable,offset_hi,rank_level[offset_hi],next_level,ticker);
-    // Update ticker
-    ticker_update(ticker,4);
-  }
-}
-void rank_mtable_reverse_builder_fill_ranks(
-    const bwt_reverse_builder_t* const bwt_reverse_builder,
-    rank_mtable_t* const rank_mtable,
-    ticker_t* const ticker) {
-  const uint64_t bwt_length = bwt_reverse_builder_get_length(bwt_reverse_builder);
-  rank_mtable->sa_ranks_levels[0][1] = bwt_length; // Init_hi
-  rank_mtable_reverse_builder_fill_ranks_hi(bwt_reverse_builder,rank_mtable,1,bwt_length,1,ticker);
-  rank_mtable->sa_ranks_levels[0][0] = 0; // Init_lo
-  rank_mtable->sa_ranks_levels[1][0] = 0; // 'A'
-  rank_mtable_reverse_builder_fill_ranks_lo(bwt_reverse_builder,rank_mtable,0,0,2,ticker);
-  // Find Minimum Matching Depth
-  rank_mquery_t query;
-  rank_mquery_new(&query);
-  uint64_t min_matching_depth = RANK_MTABLE_SEARCH_DEPTH;
-  rank_mtable_builder_find_mmd(rank_mtable,0,&query,&min_matching_depth);
-  rank_mtable->min_matching_depth = min_matching_depth;
-}
-/*
  * Generate Rank-MTable
  */
 rank_mtable_t* rank_mtable_builder_generate(
     const bwt_builder_t* const bwt_builder,
-    const bwt_reverse_builder_t* const bwt_reverse_builder,
     const bool verbose) {
   // Alloc
   rank_mtable_t* const rank_mtable = mm_alloc(rank_mtable_t);
@@ -258,13 +163,8 @@ rank_mtable_t* rank_mtable_builder_generate(
   rank_mtable_init_levels(rank_mtable);
   // Initialize
   ticker_t ticker;
-  if (bwt_builder!=NULL) {
-    ticker_percentage_reset(&ticker,verbose,"Building rank_mtable",rank_mtable->table_size,10,true);
-    rank_mtable_builder_fill_ranks(bwt_builder,rank_mtable,&ticker);
-  } else {
-    ticker_percentage_reset(&ticker,verbose,"Building rank_mtable (reverse)",rank_mtable->table_size,10,true);
-    rank_mtable_reverse_builder_fill_ranks(bwt_reverse_builder,rank_mtable,&ticker);
-  }
+  ticker_percentage_reset(&ticker,verbose,"Building rank_mtable",rank_mtable->table_size,10,true);
+  rank_mtable_builder_fill_ranks(bwt_builder,rank_mtable,&ticker);
   ticker_finish(&ticker);
   // Return
   return rank_mtable;
@@ -272,12 +172,7 @@ rank_mtable_t* rank_mtable_builder_generate(
 rank_mtable_t* rank_mtable_builder_new(
     const bwt_builder_t* const bwt_builder,
     const bool verbose) {
-  return rank_mtable_builder_generate(bwt_builder,NULL,verbose);
-}
-rank_mtable_t* rank_mtable_reverse_builder_new(
-    const bwt_reverse_builder_t* const bwt_reverse_builder,
-    const bool verbose) {
-  return rank_mtable_builder_generate(NULL,bwt_reverse_builder,verbose);
+  return rank_mtable_builder_generate(bwt_builder,verbose);
 }
 /*
  * Delete

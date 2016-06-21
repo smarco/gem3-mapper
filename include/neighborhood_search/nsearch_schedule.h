@@ -16,6 +16,29 @@
 #include "filtering/region_profile.h"
 #include "neighborhood_search/dp_matrix.h"
 #include "neighborhood_search/nsearch_operation.h"
+#include "approximate_search/approximate_search.h"
+#include "matches/matches.h"
+
+/*
+ * Enumaration Mode
+ */
+#define NSEARCH_ENUMERATE
+
+/*
+ * Profile
+ */
+#ifndef GEM_PROFILE
+  #define NSEARCH_PROF_ADD_NODE(nsearch_schedule)      ++((nsearch_schedule)->profile.ns_nodes)
+  #define NSEARCH_PROF_CLOSE_NODE(nsearch_schedule)    ++((nsearch_schedule)->profile.ns_nodes_closed)
+  #define NSEARCH_PROF_ADD_SOLUTION(nsearch_schedule)  ++((nsearch_schedule)->profile.ns_nodes_success)
+  #define NSEARCH_PROF_ACCOUNT_DEPTH(nsearch_schedule,depth) \
+    COUNTER_ADD(&(nsearch_schedule)->profile.ns_nodes_closed_depth,depth);
+#else
+  #define NSEARCH_PROF_ADD_NODE(nsearch_schedule)
+  #define NSEARCH_PROF_CLOSE_NODE(nsearch_schedule)
+  #define NSEARCH_PROF_ADD_SOLUTION(nsearch_schedule)
+  #define NSEARCH_PROF_ACCOUNT_DEPTH(nsearch_schedule,depth)
+#endif
 
 /*
  * Neighborhood Search Metric
@@ -29,23 +52,6 @@ typedef enum {
  * Neighborhood Search Schedule
  */
 typedef struct {
-  // FM-Index
-  fm_index_t* fm_index;
-  // Search Parameters
-  nsearch_model_t nsearch_model;
-  uint8_t* key;
-  uint64_t key_length;
-  region_profile_t* region_profile;
-  uint64_t max_error;
-  uint64_t max_text_length;
-  // Scheduler Progress
-  nsearch_operation_t* pending_searches;      // Pending search operations
-  nsearch_operation_t* nsearch_operation_aux; // Auxiliary nsearch-operation object
-  uint64_t num_pending_searches;              // Total pending operations
-  uint64_t search_id;                         // Search ID
-  // Output results
-  interval_set_t* intervals_result;
-  // Profiler/Stats
   uint64_t ns_nodes;
   uint64_t ns_nodes_mtable;
   uint64_t ns_nodes_success;
@@ -53,9 +59,24 @@ typedef struct {
   uint64_t ns_nodes_fail_optimize;
   gem_counter_t ns_nodes_closed_depth;
   gem_timer_t ns_timer;
-  // MM
-  mm_stack_t* mm_stack;
-  char* search_string;
+} nsearch_schedule_profile_t;
+typedef struct {
+  // Search Structures
+  uint64_t search_id;                         // Search ID
+  approximate_search_t* search;               // ASM-Search
+  matches_t* matches;                         // Matches
+  // Search Parameters
+  nsearch_model_t nsearch_model;              // Search error model
+  uint8_t* key;
+  uint64_t key_length;
+  uint64_t max_error;
+  // Scheduler Operations
+  nsearch_operation_t* pending_searches;      // Pending search operations
+  nsearch_operation_t* nsearch_operation_aux; // Auxiliary nsearch-operation object
+  uint64_t num_pending_searches;              // Total pending operations
+  // Misc
+  nsearch_schedule_profile_t profile;         // Profiler
+  mm_stack_t* mm_stack;                       // MM
 } nsearch_schedule_t;
 
 /*
@@ -64,13 +85,8 @@ typedef struct {
 void nsearch_schedule_init(
     nsearch_schedule_t* const nsearch_schedule,
     const nsearch_model_t nsearch_model,
-    fm_index_t* const fm_index,
-    region_profile_t* const region_profile,
-    uint8_t* const key,
-    const uint64_t key_length,
-    const uint64_t max_error,
-    interval_set_t* const intervals_result,
-    mm_stack_t* const mm_stack);
+    approximate_search_t* const search,
+    matches_t* const matches);
 
 /*
  * Schedule the search
@@ -88,9 +104,6 @@ void nsearch_schedule_print_pretty(
     FILE* const stream,
     nsearch_schedule_t* const nsearch_schedule);
 void nsearch_schedule_print_profile(
-    FILE* const stream,
-    nsearch_schedule_t* const nsearch_schedule);
-void nsearch_schedule_print_search_string(
     FILE* const stream,
     nsearch_schedule_t* const nsearch_schedule);
 

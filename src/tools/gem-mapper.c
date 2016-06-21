@@ -223,8 +223,7 @@ option_t gem_mapper_options[] = {
   { 409, "alignment-scaffolding-min-matching_length", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<number|percentage>" , "(default=10)" },
   { 410, "alignment-curation", OPTIONAL, TYPE_STRING, 4, VISIBILITY_ADVANCED, "" , "(default=true)" },
   { 411, "alignment-curation-min-end-context", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<number|percentage>" , "(default=2)" },
-  { 412, "region-model-lightweight", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "" },
-  { 413, "region-model-heavyweight", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<region_th>,<max_steps>,<dec_factor>,<region_type_th>" , "" },
+  { 412, "region-model", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<filtering_threshold>,<max_steps>,<alphabet>,<ns_threshold>,<region_length>" , "" },
   /* Paired-end Alignment */
   { 'p', "paired-end-alignment", NO_ARGUMENT, TYPE_NONE, 5, VISIBILITY_USER, "" , "" },
   { 'l', "min-template-length", REQUIRED, TYPE_INT, 5, VISIBILITY_USER, "<number>" , "(default=disabled)" },
@@ -451,12 +450,12 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
         search->mapping_mode = mapping_adaptive_filtering_fast;
       } else if (gem_strcaseeq(optarg,"thorough")) {
         search->mapping_mode = mapping_adaptive_filtering_thorough;
-      } else if (gem_strcaseeq(optarg,"complete")) {
+      } else if (gem_strcaseeq(optarg,"complete-filtering")) {
         search->mapping_mode = mapping_adaptive_filtering_complete;
-      } else if (gem_strcaseeq(optarg,"brute-force")) {
-        search->mapping_mode = mapping_neighborhood_search;
-      } else if (gem_strcaseeq(optarg,"filtering-complete")) {
-        search->mapping_mode = mapping_fixed_filtering_complete;
+      } else if (gem_strcaseeq(optarg,"complete-brute-force")) {
+        search->mapping_mode = mapping_neighborhood_search_brute_force;
+      } else if (gem_strcaseeq(optarg,"complete-partition")) {
+        search->mapping_mode = mapping_neighborhood_search_partition;
       } else if (gem_strcaseeq(optarg,"test")) {
         search->mapping_mode = mapping_test;
       } else {
@@ -511,36 +510,18 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 411: // --alignment-curation-min-end-context (default=2)
       input_text_parse_extended_double(optarg,(double*)&search->cigar_curation_min_end_context);
       break;
-    case 412: { // --region-model-lightweight <region_th>,<max_steps>,<dec_factor>,<region_type_th>
-      char *region_th=NULL, *max_steps=NULL, *dec_factor=NULL, *region_type_th=NULL;
-      const int num_arguments = input_text_parse_csv_arguments(optarg,4,&region_th,&max_steps,&dec_factor,&region_type_th);
-      gem_mapper_cond_error_msg(num_arguments!=4,"Option '--region-model' wrong number of arguments");
-      input_text_parse_extended_uint64(region_th,&search->rp_lightweight.region_th); // Parse region_th
-      input_text_parse_extended_uint64(max_steps,&search->rp_lightweight.max_steps); // Parse max_steps
-      input_text_parse_extended_uint64(dec_factor,&search->rp_lightweight.dec_factor); // Parse dec_factor
-      input_text_parse_extended_uint64(region_type_th,&search->rp_lightweight.region_type_th); // Parse region_type_th
+    case 412: { // --region-model <filtering_threshold>,<max_steps>,<alphabet>,<ns_threshold>,<region_length>
+      char *region_th=NULL, *max_steps=NULL, *dec_factor=NULL, *ns_th=NULL, *region_length=NULL;
+      const int num_arguments = input_text_parse_csv_arguments(
+          optarg,5,&region_th,&max_steps,&dec_factor,&ns_th,&region_length);
+      gem_mapper_cond_error_msg(num_arguments!=5,"Option '--region-model' wrong number of arguments");
+      input_text_parse_extended_uint64(region_th,&search->region_profile_model.region_th);
+      input_text_parse_extended_uint64(max_steps,&search->region_profile_model.max_steps);
+      input_text_parse_extended_uint64(dec_factor,&search->region_profile_model.dec_factor);
+      input_text_parse_extended_uint64(ns_th,&search->region_profile_model.ns_filtering_threshold);
+      input_text_parse_extended_uint64(region_length,&search->region_profile_model.region_length);
       break;
     }
-    case 413: { // --region-model-heavyweight <region_th>,<max_steps>,<dec_factor>,<region_type_th>
-      char *region_th=NULL, *max_steps=NULL, *dec_factor=NULL, *region_type_th=NULL;
-      const int num_arguments = input_text_parse_csv_arguments(optarg,4,&region_th,&max_steps,&dec_factor,&region_type_th);
-      gem_mapper_cond_error_msg(num_arguments!=4,"Option '--region-model' wrong number of arguments");
-      input_text_parse_extended_uint64(region_th,&search->rp_heavyweight.region_th); // Parse region_th
-      input_text_parse_extended_uint64(max_steps,&search->rp_heavyweight.max_steps); // Parse max_steps
-      input_text_parse_extended_uint64(dec_factor,&search->rp_heavyweight.dec_factor); // Parse dec_factor
-      input_text_parse_extended_uint64(region_type_th,&search->rp_heavyweight.region_type_th); // Parse region_type_th
-      break;
-    }
-//    case 413: { // --region-model-delimit <region_th>,<max_steps>,<dec_factor>,<region_type_th> (default=100,4,2,2)
-//      char *region_th=NULL, *max_steps=NULL, *dec_factor=NULL, *region_type_th=NULL;
-//      const int num_arguments = input_text_parse_csv_arguments(optarg,4,&region_th,&max_steps,&dec_factor,&region_type_th);
-//      gem_mapper_cond_error_msg(num_arguments!=4,"Option '--region-model' wrong number of arguments");
-//      input_text_parse_extended_uint64(region_th,&search->rp_delimit.region_th); // Parse region_th
-//      input_text_parse_extended_uint64(max_steps,&search->rp_delimit.max_steps); // Parse max_steps
-//      input_text_parse_extended_uint64(dec_factor,&search->rp_delimit.dec_factor); // Parse dec_factor
-//      input_text_parse_extended_uint64(region_type_th,&search->rp_delimit.region_type_th); // Parse region_type_th
-//      break;
-//    }
     /* Paired-end Alignment */
     case 'p': // --paired-end-alignment
       paired_search->paired_end_search = true;

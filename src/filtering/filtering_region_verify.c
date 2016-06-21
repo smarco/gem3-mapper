@@ -56,9 +56,13 @@ void filtering_region_verify_hamming(
   const uint8_t* const key = pattern->key;
   const uint64_t key_length = pattern->key_length;
   const uint64_t max_error = filtering_region->max_error;
-  const uint64_t text_base_offset = filtering_region->text_source_region_offset - filtering_region->key_source_region_offset;
+  const uint64_t text_base_offset =
+      filtering_region->text_source_region_offset -
+      filtering_region->key_source_region_offset;
   const uint8_t* const text = text_trace->text + text_base_offset;
-  const uint64_t text_length = key_length;
+  const uint64_t text_length =
+      filtering_region->text_end_position -
+      (filtering_region->text_begin_position+text_base_offset);
   region_alignment_t* const region_alignment = &filtering_region->region_alignment;
   // Check length
   if (text_length >= key_length) {

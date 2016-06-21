@@ -56,47 +56,12 @@ void approximate_search_region_profile_lightweight_stats(region_profile_t* const
   uint64_t total_candidates = 0;
   PROF_INC_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT);
   PROF_ADD_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT_NUM_REGIONS,region_profile->num_filtering_regions);
-  PROF_ADD_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT_NUM_REGIONS_STANDARD,region_profile->num_standard_regions);
-  PROF_ADD_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT_NUM_REGIONS_UNIQUE,
-      region_profile->num_filtering_regions-region_profile->num_standard_regions);
   REGION_PROFILE_ITERATE(region_profile,region,position) {
     PROF_ADD_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT_REGION_LENGTH,region->end-region->begin);
     PROF_ADD_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT_REGION_CANDIDATES,(region->hi-region->lo));
     total_candidates += (region->hi-region->lo);
   }
   PROF_ADD_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT_TOTAL_CANDIDATES,total_candidates);
-#endif
-}
-void approximate_search_region_profile_heavyweight_stats(region_profile_t* const region_profile) {
-#ifdef GEM_PROFILE
-  uint64_t total_candidates = 0;
-  PROF_INC_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT);
-  PROF_ADD_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_NUM_REGIONS,region_profile->num_filtering_regions);
-  PROF_ADD_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_NUM_REGIONS_STANDARD,region_profile->num_standard_regions);
-  PROF_ADD_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_NUM_REGIONS_UNIQUE,
-      region_profile->num_filtering_regions-region_profile->num_standard_regions);
-  REGION_PROFILE_ITERATE(region_profile,region,position) {
-    PROF_ADD_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_REGION_LENGTH,region->end-region->begin);
-    PROF_ADD_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_REGION_CANDIDATES,(region->hi-region->lo));
-    total_candidates += (region->hi-region->lo);
-  }
-  PROF_ADD_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_TOTAL_CANDIDATES,total_candidates);
-#endif
-}
-void approximate_search_region_profile_delimit_stats(region_profile_t* const region_profile) {
-#ifdef GEM_PROFILE
-  uint64_t total_candidates = 0;
-  PROF_INC_COUNTER(GP_REGION_PROFILE_DELIMIT);
-  PROF_ADD_COUNTER(GP_REGION_PROFILE_DELIMIT_NUM_REGIONS,region_profile->num_filtering_regions);
-  PROF_ADD_COUNTER(GP_REGION_PROFILE_DELIMIT_NUM_REGIONS_STANDARD,region_profile->num_standard_regions);
-  PROF_ADD_COUNTER(GP_REGION_PROFILE_DELIMIT_NUM_REGIONS_UNIQUE,
-      region_profile->num_filtering_regions-region_profile->num_standard_regions);
-  REGION_PROFILE_ITERATE(region_profile,region,position) {
-    PROF_ADD_COUNTER(GP_REGION_PROFILE_DELIMIT_REGION_LENGTH,region->end-region->begin);
-    PROF_ADD_COUNTER(GP_REGION_PROFILE_DELIMIT_REGION_CANDIDATES,(region->hi-region->lo));
-    total_candidates += (region->hi-region->lo);
-  }
-  PROF_ADD_COUNTER(GP_REGION_PROFILE_DELIMIT_TOTAL_CANDIDATES,total_candidates);
 #endif
 }
 /*
@@ -169,16 +134,13 @@ void approximate_search_region_profile_adaptive_close_profile(
     region_search_t* const first_region = region_profile->filtering_region;
     if (first_region->begin==0 && first_region->end==key_length) {
       region_profile->num_filtering_regions = 1;
-      region_profile->num_standard_regions = 1;
       total_candidates += first_region->hi - first_region->lo;
       first_region->degree = REGION_FILTER_DEGREE_ZERO;
     } else {
       region_profile->num_filtering_regions = 0;
-      region_profile->num_standard_regions = 0;
     }
   } else {
     region_profile->num_filtering_regions = num_regions;
-    region_profile->num_standard_regions = num_regions;
   }
   // Check number of regions
   if (region_profile->num_filtering_regions == 0) {
@@ -228,21 +190,13 @@ void approximate_search_region_profile_adaptive(
   }
   // Compute the region profile
   switch (strategy) {
-    case region_profile_adaptive_lightweight:
+    case region_profile_adaptive:
       region_profile_generate_adaptive(region_profile,fm_index,key,key_length,
-          parameters->allowed_enc,&parameters->rp_lightweight,ALL,false);
-      break;
-    case region_profile_adaptive_heavyweight:
-      region_profile_generate_adaptive(region_profile,fm_index,key,key_length,
-          parameters->allowed_enc,&parameters->rp_heavyweight,ALL,false);
+          parameters->allowed_enc,&parameters->region_profile_model,ALL,false);
       break;
     case region_profile_adaptive_limited:
       region_profile_generate_adaptive_limited(region_profile,fm_index,key,key_length,
-          parameters->allowed_enc,&parameters->rp_lightweight,search->max_complete_error+1);
-      break;
-    case region_profile_adaptive_delimit:
-      region_profile_generate_adaptive(region_profile,fm_index,key,key_length,
-          parameters->allowed_enc,&parameters->rp_delimit,UINT64_MAX,true);
+          parameters->allowed_enc,&parameters->region_profile_model,search->current_max_complete_error+1);
       break;
     default:
       GEM_INVALID_CASE();
@@ -254,7 +208,7 @@ void approximate_search_region_profile_adaptive(
   approximate_search_metrics_set_max_region_length(&search->metrics,region_profile->max_region_length);
   approximate_search_metrics_set_num_zero_regions(&search->metrics,region_profile->num_zero_regions);
   approximate_search_metrics_set_kmer_frequency(&search->metrics,region_profile->kmer_frequency);
-  gem_cond_debug_block(DEBUG_REGION_PROFILE_PRINT) { region_profile_print(stderr,region_profile,false); }
+  gem_cond_debug_block(DEBUG_REGION_PROFILE_PRINT) { region_profile_print(stderr,region_profile); }
   // Check Zero-Region
   if (region_profile->num_filtering_regions==0) {
     approximate_search_update_mcs(search,pattern->num_wildcards);
@@ -262,21 +216,7 @@ void approximate_search_region_profile_adaptive(
     return;
   }
   // STATS
-  switch (strategy) {
-    case region_profile_adaptive_limited:
-    case region_profile_adaptive_lightweight:
-      approximate_search_region_profile_lightweight_stats(region_profile);
-      break;
-    case region_profile_adaptive_heavyweight:
-      approximate_search_region_profile_heavyweight_stats(region_profile);
-      break;
-    case region_profile_adaptive_delimit:
-      approximate_search_region_profile_delimit_stats(region_profile);
-      break;
-    default:
-      GEM_INVALID_CASE();
-      break;
-  }
+  approximate_search_region_profile_lightweight_stats(region_profile);
 }
 /*
  * Region Partition Fixed
@@ -287,10 +227,11 @@ void approximate_search_region_profile_static_partition(approximate_search_t* co
   pattern_t* const pattern = &search->pattern;
   const uint8_t* key = pattern->key;
   const uint64_t key_length = pattern->key_length;
+  const bool* const allowed_enc = parameters->allowed_enc;
   // Generate region profile partition
   region_profile_t* const region_profile = &search->region_profile;
-  region_profile_generate_fixed_partition(region_profile,key,
-      key_length,parameters->allowed_enc,parameters->fixed_region_length);
+  const uint64_t min_region_length = parameters->region_profile_model.region_length;
+  region_profile_generate_fixed_partition(region_profile,key,key_length,allowed_enc,min_region_length);
   // Check region-partition result
   if (region_profile->num_filtering_regions <= 1) {
     search->processing_state = asearch_processing_state_no_regions;
@@ -303,7 +244,7 @@ void approximate_search_region_profile_static_compute(approximate_search_t* cons
   search_parameters_t* const search_parameters = search->search_parameters;
   region_profile_t* const region_profile = &search->region_profile;
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
-  const uint64_t filtering_threshold = search_parameters->rp_lightweight.region_th;
+  const uint64_t filtering_threshold = search_parameters->region_profile_model.region_th;
   // Traverse Region-Partition
   uint64_t num_regions_filtered = 0, num_zero_regions = 0;
   uint64_t max_region_length = 0, total_candidates = 0;
@@ -356,7 +297,7 @@ void approximate_search_region_profile_static_buffered_retrieve(
   pattern_t* const pattern = &search->pattern;
   region_profile_t* const region_profile = &search->region_profile;
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
-  const uint64_t filtering_threshold = search_parameters->rp_lightweight.region_th;
+  const uint64_t filtering_threshold = search_parameters->region_profile_model.region_th;
   // Buffer offsets
   const uint64_t buffer_offset_begin = search->gpu_buffer_fmi_search_offset;
   // Traverse Region-Partition
@@ -393,7 +334,7 @@ void approximate_search_region_profile_static_buffered_retrieve(
       search,num_filtering_regions,num_regions_filtered,
       num_zero_regions,total_candidates,max_region_length);
   // DEBUG
-  gem_cond_debug_block(DEBUG_REGION_PROFILE_PRINT) { region_profile_print(stderr,region_profile,false); }
+  gem_cond_debug_block(DEBUG_REGION_PROFILE_PRINT) { region_profile_print(stderr,region_profile); }
 }
 /*
  * Adaptive Buffered Copy/Retrieve
@@ -416,7 +357,7 @@ void approximate_search_region_profile_adaptive_buffered_retrieve(
   search_parameters_t* const search_parameters = search->search_parameters;
   pattern_t* const pattern = &search->pattern;
   region_profile_t* const region_profile = &search->region_profile;
-  const uint64_t filtering_threshold = search_parameters->rp_lightweight.region_th;
+  const uint64_t filtering_threshold = search_parameters->region_profile_model.region_th;
   // Retrieve buffer offsets
   uint64_t regions_offset, num_regions;
   gpu_buffer_fmi_asearch_get_result_total_regions(
@@ -447,7 +388,7 @@ void approximate_search_region_profile_adaptive_buffered_retrieve(
       search,num_regions,num_regions_filtered,num_zero_regions,
       total_candidates,max_region_length);
   // DEBUG
-  gem_cond_debug_block(DEBUG_REGION_PROFILE_PRINT) { region_profile_print(stderr,region_profile,false); }
+  gem_cond_debug_block(DEBUG_REGION_PROFILE_PRINT) { region_profile_print(stderr,region_profile); }
 }
 /*
  * Benchmark

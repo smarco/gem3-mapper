@@ -97,42 +97,10 @@ uint64_t filtering_candidates_count_candidate_regions(
 /*
  * Adding candidate positions
  */
-void filtering_candidates_add_read_interval(
-    filtering_candidates_t* const filtering_candidates,
-    search_parameters_t* const search_parameters,
-    const uint64_t interval_lo,
-    const uint64_t interval_hi,
-    const uint64_t key_length,
-    const uint64_t align_distance) {
-  // Check total candidates
-  const uint64_t total_candidates = interval_hi-interval_lo;
-  if (gem_expect_false(total_candidates==0)) return;
-  // Compute number of matches to add
-  select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;
-  uint64_t pending_candidates;
-  if (align_distance==0 && select_parameters->min_reported_strata_nominal==0) {
-    pending_candidates = MIN(select_parameters->max_reported_matches,total_candidates);
-  } else {
-    pending_candidates = total_candidates;
-  }
-  // Store candidate positions
-  vector_t* const filtering_positions = filtering_candidates->filtering_positions;
-  vector_reserve_additional(filtering_positions,pending_candidates);
-  filtering_position_t* filtering_position = vector_get_free_elm(filtering_positions,filtering_position_t);
-  const uint64_t interval_top = interval_lo + pending_candidates;
-  uint64_t index_position;
-  for (index_position=interval_lo;index_position<interval_top;++index_position) {
-    filtering_position->source_region_begin = 0;
-    filtering_position->source_region_end = key_length;
-    filtering_position->source_region_error = align_distance;
-    filtering_position->region_index_position = index_position;
-    filtering_position->align_distance = align_distance;
-    ++filtering_position;
-  }
-  vector_update_used(filtering_positions,filtering_position);
-}
 void filtering_candidates_add_region_interval(
     filtering_candidates_t* const filtering_candidates,
+    search_parameters_t* const search_parameters,
+    pattern_t* const pattern,
     const uint64_t interval_lo,
     const uint64_t interval_hi,
     const uint64_t region_begin_pos,
@@ -141,45 +109,31 @@ void filtering_candidates_add_region_interval(
   // Check total candidates
   const uint64_t total_candidates = interval_hi-interval_lo;
   if (gem_expect_false(total_candidates==0)) return;
+  // Check for exact matches (whole read)
+  const uint64_t key_length = pattern->key_length;
+  const bool exact_match = region_errors==0 && region_begin_pos==0 && region_end_pos==key_length;
+  // Select matches
+  select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;
+  uint64_t interval_top;
+  if (exact_match && select_parameters->min_reported_strata_nominal==0) {
+    interval_top = interval_lo + MIN(select_parameters->max_reported_matches,total_candidates);
+  } else {
+    interval_top = interval_hi;
+  }
   // Store candidate positions
   vector_t* const filtering_positions = filtering_candidates->filtering_positions;
-  vector_reserve_additional(filtering_positions,total_candidates);
+  vector_reserve_additional(filtering_positions,interval_top-interval_lo);
   filtering_position_t* filtering_position = vector_get_free_elm(filtering_positions,filtering_position_t);
   uint64_t index_position;
-  for (index_position=interval_lo;index_position<interval_hi;++index_position) {
+  for (index_position=interval_lo;index_position<interval_top;++index_position) {
     filtering_position->source_region_begin = region_begin_pos;
     filtering_position->source_region_end = region_end_pos;
     filtering_position->source_region_error = region_errors;
     filtering_position->region_index_position = index_position;
-    filtering_position->align_distance = ALIGN_DISTANCE_INF;
+    filtering_position->align_distance = exact_match ? 0 : ALIGN_DISTANCE_INF;
     ++filtering_position;
   }
   vector_update_used(filtering_positions,filtering_position);
-}
-void filtering_candidates_add_region_interval_set(
-    filtering_candidates_t* const filtering_candidates,
-    interval_set_t* const interval_set,
-    const uint64_t region_begin_pos,
-    const uint64_t region_end_pos) {
-  INTERVAL_SET_ITERATE(interval_set,interval) {
-    filtering_candidates_add_region_interval(
-        filtering_candidates,interval->lo,interval->hi,
-        region_begin_pos,region_end_pos,interval->distance);
-  }
-}
-void filtering_candidates_add_region_interval_set_thresholded(
-    filtering_candidates_t* const filtering_candidates,
-    interval_set_t* const interval_set,
-    const uint64_t region_begin_pos,
-    const uint64_t region_end_pos,
-    const uint64_t max_error) {
-  INTERVAL_SET_ITERATE(interval_set,interval) {
-    if (interval->distance <= max_error) {
-      filtering_candidates_add_region_interval(
-          filtering_candidates,interval->lo,interval->hi,
-          region_begin_pos,region_end_pos,interval->distance);
-    }
-  }
 }
 /*
  * Sorting

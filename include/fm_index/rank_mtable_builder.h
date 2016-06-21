@@ -26,9 +26,6 @@ void rank_mtable_builder_write(
 rank_mtable_t* rank_mtable_builder_new(
     const bwt_builder_t* const bwt_builder,
     const bool verbose);
-rank_mtable_t* rank_mtable_reverse_builder_new(
-    const bwt_reverse_builder_t* const bwt_reverse_builder,
-    const bool verbose);
 
 /*
  * Delete

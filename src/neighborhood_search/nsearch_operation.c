@@ -87,13 +87,13 @@ void nsearch_operation_chained_prepare_forward(
       current_nsearch_operation->global_key_begin;
   const uint64_t current_text_length =
       current_nsearch_operation->text_position;
-  const bool next_operation_towards_end =
-      (next_nsearch_operation->search_direction==direction_forward) ?
+  const bool next_forward = (next_nsearch_operation->search_direction==direction_forward);
+  const bool supercondensed = (next_forward) ?
           (next_nsearch_operation->global_key_begin == 0) :
           (next_nsearch_operation->global_key_end == key_length);
   nsearch_levenshtein_state_prepare_chained(
       current_nsearch_state,next_nsearch_state,
-      current_key_length,current_text_length,next_operation_towards_end);
+      current_key_length,current_text_length,supercondensed);
   // nsearch_operation_state_print(stderr,next_nsearch_operation,key); // DEBUG
   // fprintf(stderr,"[GEM]> Operation.Chained (FORWARD) <<<<<<<<<<<<<<<<<<< \n");
 }
@@ -101,27 +101,25 @@ void nsearch_operation_compute_reverse(
     nsearch_operation_t* const nsearch_operation,
     nsearch_operation_t* const nsearch_operation_rev,
     uint8_t* const key,
-    const uint64_t key_length) {
-  // Parameters
-  const uint8_t* const key_chunk = key + nsearch_operation->global_key_begin;
-  const uint64_t key_chunk_length = nsearch_operation->global_key_end - nsearch_operation->global_key_begin;
-  const bool forward_search = (nsearch_operation->search_direction != direction_forward);
-  const uint64_t current_max_error = nsearch_operation->max_global_error;
+    const uint64_t key_length,
+    const uint64_t key_chunk_begin,
+    const uint64_t key_chunk_end) {
   // Reverse sequence
 //  fprintf(stderr,"[GEM]> Operation.Chained (REVERSE) >>>>>>>>>>>>>>>>>>> \n");
 //  nsearch_operation_state_print(stderr,nsearch_operation,key); // DEBUG
   nsearch_operation_chained_prepare_sequence_reverse(nsearch_operation,
       nsearch_operation_rev->text,&nsearch_operation_rev->text_position);
-  // Reverse DP (recompute DP & isolate active columns)
+  // Reverse DP (prepare DP matrix)
   const bool next_operation_towards_end =
       (nsearch_operation->search_direction==direction_backward) ?
           (nsearch_operation->global_key_begin == 0) :
           (nsearch_operation->global_key_end == key_length);
-  if (next_operation_towards_end) {
-    nsearch_levenshtein_state_prepare_supercondensed_neighbourhood(&nsearch_operation_rev->nsearch_state);
-  } else {
-    nsearch_levenshtein_state_prepare_full_neighbourhood(&nsearch_operation_rev->nsearch_state);
-  }
+  nsearch_levenshtein_state_prepare(&nsearch_operation_rev->nsearch_state,next_operation_towards_end);
+  // Reverse DP (recompute DP)
+  const uint8_t* const key_chunk = key + key_chunk_begin;
+  const uint64_t key_chunk_length = key_chunk_end - key_chunk_begin;
+  const bool forward_search = (nsearch_operation->search_direction != direction_forward);
+  const uint64_t current_max_error = nsearch_operation->max_global_error;
   const uint8_t* const text = nsearch_operation_rev->text;
   const uint64_t text_length = nsearch_operation_rev->text_position;
   nsearch_levenshtein_state_compute_text(
@@ -129,9 +127,11 @@ void nsearch_operation_compute_reverse(
       key_chunk,key_chunk_length,text,text_length,current_max_error);
   // Copy necessary fields
   nsearch_operation_rev->search_direction = (forward_search) ? direction_forward : direction_backward;
+  nsearch_operation_rev->min_local_error = nsearch_operation->min_local_error;
   nsearch_operation_rev->min_global_error = nsearch_operation->min_global_error;
-  nsearch_operation_rev->global_key_begin = nsearch_operation->global_key_begin;
-  nsearch_operation_rev->global_key_end = nsearch_operation->global_key_end;
+  nsearch_operation_rev->max_global_error = nsearch_operation->max_global_error;
+  nsearch_operation_rev->global_key_begin = key_chunk_begin;
+  nsearch_operation_rev->global_key_end = key_chunk_end;
 //  // DEBUG
 //  dp_matrix_print(
 //      stderr,&nsearch_operation_rev->nsearch_state.dp_matrix,
@@ -181,11 +181,11 @@ int nsearch_operation_state_global_text_cmp(
 void nsearch_operation_print(
     FILE* const stream,
     nsearch_operation_t* const nsearch_operation) {
-  fprintf(stream,">>LKey[%lu,%lu)/GKey[%lu,%lu) LError{%lu,%lu}/GError(%lu,%lu)\n",
+  fprintf(stream,">>LKey[%lu,%lu)/GKey[%lu,%lu) Error{%lu/%lu,%lu}\n",
       nsearch_operation->local_key_begin,nsearch_operation->local_key_end,
       nsearch_operation->global_key_begin,nsearch_operation->global_key_end,
-      nsearch_operation->min_local_error,nsearch_operation->max_local_error,
-      nsearch_operation->min_global_error,nsearch_operation->max_global_error);
+      nsearch_operation->min_local_error,nsearch_operation->min_global_error,
+      nsearch_operation->max_global_error);
 }
 void nsearch_operation_state_print(
     FILE* const stream,

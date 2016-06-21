@@ -19,11 +19,9 @@ typedef struct {
   // Search direction
   search_direction_t search_direction;
   // Error
-  uint64_t max_local_error;
-  uint64_t min_local_error;
-  uint64_t max_global_error;
-  uint64_t min_global_error;
-  uint64_t max_text_length;
+  uint64_t min_local_error;  // Minimum error to the local partition/segment
+  uint64_t min_global_error; // Minimum error accumulated (including current partition/segment)
+  uint64_t max_global_error; // Maximum error accumulated (including current partition/segment)
   // Local Key
   uint64_t local_key_begin;
   uint64_t local_key_end;
@@ -61,7 +59,9 @@ void nsearch_operation_compute_reverse(
     nsearch_operation_t* const nsearch_operation,
     nsearch_operation_t* const nsearch_operation_rev,
     uint8_t* const key,
-    const uint64_t key_length);
+    const uint64_t key_length,
+    const uint64_t key_chunk_begin,
+    const uint64_t key_chunk_end);
 
 /*
  * Utils

@@ -21,12 +21,6 @@
  *   dec_factor - Once the number of candidates of the region is below @region_th,
  *                the algorithm will expand the region by one character as long as the
  *                total number of candidates of that region is reduced by a factor of @dec_factor
- *   region_type_th - Depending on the number of candidates of the region we classify them into
- *                    regular regions and unique regions.
- *     Regular Regions - Regions with more candidates than @rp_region_type_th (> rp_region_type_th)
- *     Unique Regions  - Regions with less candidates than @rp_region_type_th (<= rp_region_type_th)
- *   max_regions - No more than max_regions will be generated
- *   allow_zero_regions - Allow a region to have zero candidates
  *
  */
 
@@ -106,19 +100,12 @@ void region_profile_generator_close_region(
   current_region->begin = key_position;
   const uint64_t region_length = current_region->end - current_region->begin;
   region_profile->max_region_length = MAX(region_profile->max_region_length,region_length);
-  // Set interval
+  // Set interval/candidates
+  const uint64_t candidates_region = hi - lo;
   current_region->lo = lo;
   current_region->hi = hi;
-  const uint64_t candidates_region = hi - lo;
-  if (candidates_region <= profile_model->region_type_th) {
-    current_region->type = region_unique;
-    if (candidates_region==0) ++(region_profile->num_zero_regions);
-  } else {
-    current_region->type = region_standard;
-    ++(region_profile->num_standard_regions);
-  }
-  // Set candidates
   region_profile->total_candidates += candidates_region;
+  if (candidates_region==0) ++(region_profile->num_zero_regions);
   ++(region_profile->num_filtering_regions);
 }
 void region_profile_generator_close_profile(
@@ -138,22 +125,18 @@ void region_profile_generator_close_profile(
       first_region->lo = generator->lo;
       first_region->hi = generator->hi;
       region_profile->num_filtering_regions = 1;
-      region_profile->num_standard_regions = 1;
-      region_profile->num_unique_regions = 0;
       region_profile->num_zero_regions = 0;
       region_profile->total_candidates = generator->hi - generator->lo;
     } else {
       region_profile->num_filtering_regions = 0;
-      region_profile->num_standard_regions = 0;
-      region_profile->num_unique_regions = 0;
       region_profile->num_zero_regions = 0;
       region_profile->total_candidates = 0;
     }
   } else {
     // We extend the last region
     if (generator->allow_zero_regions) {
-      region_profile_extend_last_region(region_profile,generator->fm_index,
-          generator->key,generator->allowed_enc,profile_model->region_type_th);
+      region_profile_extend_last_region(region_profile,
+          generator->fm_index,generator->key,generator->allowed_enc);
     }
     // Add information about the last region
     region_search_t* const last_region = region_profile->filtering_region + (region_profile->num_filtering_regions-1);

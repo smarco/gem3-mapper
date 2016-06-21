@@ -36,16 +36,15 @@ void nsearch_levenshtein_state_init(
 /*
  * Prepare DP
  */
-void nsearch_levenshtein_state_prepare_full_neighbourhood(
-    nsearch_levenshtein_state_t* const nsearch_state);
-void nsearch_levenshtein_state_prepare_supercondensed_neighbourhood(
-    nsearch_levenshtein_state_t* const nsearch_state);
+void nsearch_levenshtein_state_prepare(
+    nsearch_levenshtein_state_t* const nsearch_state,
+    const bool supercondensed_neighbourhood);
 void nsearch_levenshtein_state_prepare_chained(
     nsearch_levenshtein_state_t* const current_nsearch_state,
     nsearch_levenshtein_state_t* const next_nsearch_state,
     const uint64_t current_key_length,
     const uint64_t current_text_length,
-    const bool next_operation_towards_end);
+    const bool supercondensed_neighbourhood);
 
 /*
  * Accessors

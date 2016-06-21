@@ -30,7 +30,6 @@ bool filtering_region_align(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
     pattern_t* const pattern,
-    const bool emulated_rc_search,
     const bool local_alignment,
     matches_t* const matches,
     match_trace_t* const match_trace);

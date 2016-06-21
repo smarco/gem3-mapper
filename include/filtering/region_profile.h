@@ -15,7 +15,6 @@
 /*
  * Constants
  */
-#define REGION_MAX_LENGTH_PL_FACTOR 2.0
 #define REGION_MAX_REGIONS_FACTOR   10
 
 // Degree to filter region
@@ -24,23 +23,16 @@
 #define REGION_FILTER_DEGREE_ONE  2
 #define REGION_FILTER_DEGREE_TWO  3
 
-/*
- * Region Type:
- *   - region_gap: Constitutes a gap in the region profile (Eg. Contains wildcards).
- *   - region_standard: Region with some candidates. Should only be filtered up to 0-misms
- *   - region_unique: Very few candidates or none. Can be filtered up to n-errors (n>=0)
- */
-typedef enum { region_unique, region_standard, region_gap } region_type;
 typedef struct {
-  uint64_t region_th;      // Max. number of candidates allowed per region
-  uint64_t max_steps;      // Max. number of characters to explore to improve the region
-  uint64_t dec_factor;     // Decreasing factor per step in region exploration
-  uint64_t region_type_th; // Threshold to classify regions {ZERO,NON_ZERO}
+  uint64_t region_th;                // Max. number of candidates allowed per region
+  uint64_t max_steps;                // Max. number of characters to explore to improve the region
+  uint64_t dec_factor;               // Decreasing factor per step in region exploration
+  uint64_t ns_filtering_threshold;   // Max. number of candidates allowed to switch from NS to filtering
+  uint64_t region_length;            // Region length (used in experimental tests)
 } region_profile_model_t;
 // Filtering regions
 typedef struct {
   // Ranges of the region [begin,end)
-  region_type type;
   uint64_t begin;
   uint64_t end;
   // Filtering error
@@ -61,15 +53,10 @@ typedef struct {
   region_search_t* filtering_region; // Filtering regions
   uint64_t max_regions_allocated;    // Maximum regions allocated (limit)
   uint64_t num_filtering_regions;    // Total number of filtering regions
-  uint64_t num_standard_regions;     // Number of Standard Regions
-  uint64_t num_unique_regions;       // Number of Unique Regions
-  uint64_t num_zero_regions;         // Number of Zero candidate Regions
-  /* Locator (region sorting) */
-  region_locator_t* loc;
-  /* Pattern Stats */
-  uint64_t pattern_length;           // Length of the patter
-  uint64_t errors_allowed;           // Total error allowed (the minimum required to get a novel match)
-  /* Profile Stats */
+  uint64_t num_zero_regions;         // Number of zero-candidate Regions
+  uint64_t num_filtered_regions;     // Total number of filtered regions
+  /* Profile */
+  uint64_t pattern_length;           // Length of the pattern
   uint64_t total_candidates;         // Total number of candidates (from exact matching regions)
   uint64_t max_region_length;        // Largest region length
   double kmer_frequency;
@@ -110,13 +97,11 @@ void region_profile_extend_last_region(
     region_profile_t* const region_profile,
     fm_index_t* const fm_index,
     const uint8_t* const key,
-    const bool* const allowed_enc,
-    const uint64_t rp_region_type_th);
+    const bool* const allowed_enc);
 
 /*
  * Sort
  */
-void region_profile_sort_by_estimated_mappability(region_profile_t* const region_profile);
 void region_profile_sort_by_candidates(region_profile_t* const region_profile);
 
 /*
@@ -128,8 +113,7 @@ void region_profile_print_region(
     const uint64_t position);
 void region_profile_print(
     FILE* const stream,
-    const region_profile_t* const region_profile,
-    const bool sorted);
+    const region_profile_t* const region_profile);
 
 /*
  * Iterator
@@ -139,14 +123,5 @@ void region_profile_print(
   region_search_t* region = region_profile->filtering_region; \
   uint64_t position; \
   for (position=0;position<num_filtering_regions;++position,++region)
-#define REGION_LOCATOR_ITERATE(region_profile,region,position) \
-  const uint64_t num_filtering_regions = region_profile->num_filtering_regions; \
-  region_search_t* const filtering_region = region_profile->filtering_region; \
-  region_locator_t* const loc = region_profile->loc; \
-  region_search_t* region; \
-  uint64_t position; \
-  for (position=0,region=filtering_region+loc[0].id; \
-       position<num_filtering_regions; \
-       ++position,region=filtering_region+loc[position].id)
 
 #endif /* REGION_PROFILE_H_ */

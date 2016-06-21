@@ -51,7 +51,6 @@ typedef struct {
   strand_t strand;                   // Mapping Strand
   bs_strand_t bs_strand;             // Bisulfite Strand
   uint64_t text_position;            // Position of the match in the text. Local text (Eg wrt Chr1)
-  bool emulated_rc_search;           // Match resulting from a RC-emulated search (using the forward-strand)
   /* Reference-Text */
   uint64_t text_trace_offset;        // Trace-offset in the text-collection
   uint8_t* text;                     // Pointer to the matching-text

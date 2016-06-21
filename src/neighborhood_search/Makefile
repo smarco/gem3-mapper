@@ -16,7 +16,6 @@ include $(ROOT_PATH)/Makefile.mk
 # Modules
 ###############################################################################
 MODULES=dp_matrix \
-        nsearch \
         nsearch_hamming \
         nsearch_levenshtein \
         nsearch_levenshtein_scheduled \

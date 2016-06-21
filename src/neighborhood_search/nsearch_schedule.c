@@ -19,48 +19,44 @@
 void nsearch_schedule_init(
     nsearch_schedule_t* const nsearch_schedule,
     const nsearch_model_t nsearch_model,
-    fm_index_t* const fm_index,
-    region_profile_t* const region_profile,
-    uint8_t* const key,
-    const uint64_t key_length,
-    const uint64_t max_error,
-    interval_set_t* const intervals_result,
-    mm_stack_t* const mm_stack) {
-  // Search
-  nsearch_schedule->fm_index = fm_index;
+    approximate_search_t* const search,
+    matches_t* const matches) {
+  // Search Structures
+  nsearch_schedule->search_id = 0;
+  nsearch_schedule->search = search;
+  nsearch_schedule->matches = matches;
+  // Search Parameters
   nsearch_schedule->nsearch_model = nsearch_model;
-  nsearch_schedule->key = key;
-  nsearch_schedule->key_length = key_length;
-  nsearch_schedule->region_profile = region_profile;
-  nsearch_schedule->max_error = max_error;
+  nsearch_schedule->key = search->pattern.key;
+  nsearch_schedule->key_length = search->pattern.key_length;
+  nsearch_schedule->max_error = search->current_max_complete_error;
+  // Search Operations
+  const uint64_t key_length = nsearch_schedule->key_length;
+  const uint64_t max_error = nsearch_schedule->max_error;
   const uint64_t max_text_length = key_length + max_error;
-  nsearch_schedule->max_text_length = max_text_length;
-  nsearch_schedule->intervals_result = intervals_result;
-  nsearch_schedule->mm_stack = mm_stack;
-  nsearch_schedule->search_string = mm_stack_calloc(mm_stack,max_text_length,char,true);
-  nsearch_schedule->search_string[key_length] = '\0';
-  // Pending Search Operations
-  const uint64_t max_pending_ops = max_error+1; // TODO Shrink
+  const uint64_t max_pending_ops = (uint64_t)ceil(gem_log2((float)(max_error+1))) + 1;
+  mm_stack_t* const mm_stack = search->mm_stack;
   nsearch_operation_t* const pending_searches = mm_stack_calloc(mm_stack,max_pending_ops,nsearch_operation_t,false);
   nsearch_schedule->pending_searches = pending_searches;
+  nsearch_schedule->num_pending_searches = 0;
   if (nsearch_model==nsearch_model_levenshtein) {
-    nsearch_schedule->nsearch_operation_aux = mm_stack_alloc(mm_stack,nsearch_operation_t);
-    nsearch_operation_init(nsearch_schedule->nsearch_operation_aux,key_length,max_text_length,mm_stack);
     uint64_t i;
     for (i=0;i<max_pending_ops;++i) {
       nsearch_operation_init(pending_searches+i,key_length,max_text_length,mm_stack);
     }
   }
-  nsearch_schedule->num_pending_searches = 0;
-  nsearch_schedule->search_id = 0;
+  nsearch_schedule->nsearch_operation_aux = mm_stack_alloc(mm_stack,nsearch_operation_t);
+  nsearch_operation_init(nsearch_schedule->nsearch_operation_aux,key_length,max_text_length,mm_stack);
   // Profiler
-  nsearch_schedule->ns_nodes = 0;
-  nsearch_schedule->ns_nodes_mtable = 0;
-  nsearch_schedule->ns_nodes_success = 0;
-  nsearch_schedule->ns_nodes_closed = 0;
-  nsearch_schedule->ns_nodes_fail_optimize = 0;
-  COUNTER_RESET(&nsearch_schedule->ns_nodes_closed_depth);
-  TIMER_RESET(&nsearch_schedule->ns_timer);
+  nsearch_schedule->profile.ns_nodes = 0;
+  nsearch_schedule->profile.ns_nodes_mtable = 0;
+  nsearch_schedule->profile.ns_nodes_success = 0;
+  nsearch_schedule->profile.ns_nodes_closed = 0;
+  nsearch_schedule->profile.ns_nodes_fail_optimize = 0;
+  COUNTER_RESET(&nsearch_schedule->profile.ns_nodes_closed_depth);
+  TIMER_RESET(&nsearch_schedule->profile.ns_timer);
+  // MM
+  nsearch_schedule->mm_stack = mm_stack;
 }
 /*
  * Add pending search
@@ -73,11 +69,11 @@ bool nsearch_schedule_add_pending_search(
     const uint64_t global_key_begin,
     const uint64_t global_key_length,
     const uint64_t min_local_error,
-    const uint64_t max_local_error,
     const uint64_t min_global_error,
     const uint64_t max_global_error) {
   // Check impossible search configuration
   if (min_local_error > local_key_length) return false;
+  if (min_global_error > max_global_error) return false;
   // Queue search
   const uint64_t num_op = nsearch_schedule->num_pending_searches;
   nsearch_schedule->pending_searches[num_op].search_direction = search_direction;
@@ -86,10 +82,8 @@ bool nsearch_schedule_add_pending_search(
   nsearch_schedule->pending_searches[num_op].global_key_begin = global_key_begin;
   nsearch_schedule->pending_searches[num_op].global_key_end = global_key_begin+global_key_length;
   nsearch_schedule->pending_searches[num_op].min_local_error = min_local_error;
-  nsearch_schedule->pending_searches[num_op].max_local_error = max_local_error;
   nsearch_schedule->pending_searches[num_op].min_global_error = min_global_error;
   nsearch_schedule->pending_searches[num_op].max_global_error = max_global_error;
-  nsearch_schedule->pending_searches[num_op].max_text_length = local_key_length+max_local_error;
   ++(nsearch_schedule->num_pending_searches);
   // Return
   return true;
@@ -110,21 +104,17 @@ void nsearch_schedule_search_step(
     feasible_search = nsearch_schedule_add_pending_search(
         nsearch_schedule,direction_forward,
         chunk_offset,chunk_length,chunk_offset,chunk_length,
-        chunk_min_error,chunk_max_error,chunk_min_error,chunk_max_error);
+        chunk_min_error,chunk_min_error,chunk_max_error);
     if (!feasible_search) return; // Impossible search
     // Select nsearch-alignment model & Perform the search (Solve pending extensions)
     switch (nsearch_schedule->nsearch_model) {
       case nsearch_model_hamming: {
-        nsearch_schedule_print_pretty(stderr,nsearch_schedule); // DEBUG
-        const uint64_t pending_searches = nsearch_schedule->num_pending_searches - 1;
-        nsearch_operation_t* const nsearch_operation = nsearch_schedule->pending_searches + pending_searches;
-        nsearch_hamming_scheduled_search(nsearch_schedule,
-            pending_searches,nsearch_operation,nsearch_operation->local_key_begin,0,0);
+        nsearch_hamming_scheduled_search(nsearch_schedule);
         break;
       }
       case nsearch_model_levenshtein: {
-        const uint64_t num_pending_searches = nsearch_schedule->num_pending_searches;
-        nsearch_levenshtein_scheduled_search(nsearch_schedule,num_pending_searches,NULL);
+        nsearch_levenshtein_scheduled_search(nsearch_schedule,
+            nsearch_schedule->num_pending_searches,NULL);
         break;
       }
       default:
@@ -143,8 +133,8 @@ void nsearch_schedule_search_step(
     feasible_search = nsearch_schedule_add_pending_search(
         nsearch_schedule,direction_forward,
         epartition.offset_1,epartition.length_1,chunk_offset,chunk_length,
-        epartition.extend_1_local_min_error,epartition.extend_1_local_max_error,
-        epartition.extend_1_global_min_error,epartition.extend_1_global_max_error);
+        epartition.extend_1_local_min_error,epartition.extend_1_global_min_error,
+        epartition.extend_1_global_max_error);
     if (!feasible_search) return; // Impossible search
     nsearch_schedule_search_step(
         nsearch_schedule,epartition.offset_0,epartition.length_0,
@@ -156,8 +146,8 @@ void nsearch_schedule_search_step(
     feasible_search = nsearch_schedule_add_pending_search(
         nsearch_schedule,direction_backward,
         epartition.offset_0,epartition.length_0,chunk_offset,chunk_length,
-        epartition.extend_0_local_min_error,epartition.extend_0_local_max_error,
-        epartition.extend_0_global_min_error,epartition.extend_0_global_max_error);
+        epartition.extend_0_local_min_error,epartition.extend_0_global_min_error,
+        epartition.extend_0_global_max_error);
     if (!feasible_search) return; // Impossible search
     nsearch_schedule_search_step(
         nsearch_schedule,epartition.offset_1,epartition.length_1,
@@ -165,9 +155,9 @@ void nsearch_schedule_search_step(
   }
 }
 void nsearch_schedule_search(nsearch_schedule_t* const nsearch_schedule) {
-  TIMER_START(&nsearch_schedule->ns_timer);
+  TIMER_START(&nsearch_schedule->profile.ns_timer);
   nsearch_schedule_search_step(nsearch_schedule,0,nsearch_schedule->key_length,0,nsearch_schedule->max_error);
-  TIMER_STOP(&nsearch_schedule->ns_timer);
+  TIMER_STOP(&nsearch_schedule->profile.ns_timer);
 }
 /*
  * Schedule the search (preconditioned by region profile)
@@ -179,7 +169,8 @@ void nsearch_schedule_search_preconditioned_step(
     const uint64_t chunk_min_error,
     const uint64_t chunk_max_error) {
   // PRE: (num_regions > 1)
-  region_search_t* const regions = nsearch_schedule->region_profile->filtering_region;
+  region_profile_t* const region_profile = &nsearch_schedule->search->region_profile;
+  region_search_t* const regions = region_profile->filtering_region;
   const uint64_t global_region_offset = regions[region_offset].begin;
   const uint64_t global_region_length = regions[region_offset+num_regions-1].end - regions[region_offset].begin;
   if (chunk_max_error==0 || global_region_length<=chunk_max_error) {
@@ -199,8 +190,8 @@ void nsearch_schedule_search_preconditioned_step(
     feasible_search = nsearch_schedule_add_pending_search(
         nsearch_schedule,direction_forward,
         epartition.offset_1,epartition.length_1,global_region_offset,global_region_length,
-        epartition.extend_1_local_min_error,epartition.extend_1_local_max_error,
-        epartition.extend_1_global_min_error,epartition.extend_1_global_max_error);
+        epartition.extend_1_local_min_error,epartition.extend_1_global_min_error,
+        epartition.extend_1_global_max_error);
     if (!feasible_search) return; // Impossible search
     // Search first partition (forward)
     if (epartition.region_0!=NULL) {
@@ -220,8 +211,8 @@ void nsearch_schedule_search_preconditioned_step(
     feasible_search = nsearch_schedule_add_pending_search(
         nsearch_schedule,direction_backward,
         epartition.offset_0,epartition.length_0,global_region_offset,global_region_length,
-        epartition.extend_0_local_min_error,epartition.extend_0_local_max_error,
-        epartition.extend_0_global_min_error,epartition.extend_0_global_max_error);
+        epartition.extend_0_local_min_error,epartition.extend_0_global_min_error,
+        epartition.extend_0_global_max_error);
     if (!feasible_search) return; // Impossible search
     // Search second partition (backward)
     if (epartition.region_1!=NULL) {
@@ -236,8 +227,9 @@ void nsearch_schedule_search_preconditioned_step(
   }
 }
 void nsearch_schedule_search_preconditioned(nsearch_schedule_t* const nsearch_schedule) {
-  TIMER_START(&nsearch_schedule->ns_timer);
-  const uint64_t num_filtering_regions = nsearch_schedule->region_profile->num_filtering_regions;
+  TIMER_START(&nsearch_schedule->profile.ns_timer);
+  region_profile_t* const region_profile = &nsearch_schedule->search->region_profile;
+  const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
   if (num_filtering_regions <= 1) {
     nsearch_schedule_search_step(nsearch_schedule,
         0,nsearch_schedule->key_length,0,nsearch_schedule->max_error);
@@ -245,7 +237,7 @@ void nsearch_schedule_search_preconditioned(nsearch_schedule_t* const nsearch_sc
     nsearch_schedule_search_preconditioned_step(nsearch_schedule,
         0,num_filtering_regions,0,nsearch_schedule->max_error);
   }
-  TIMER_STOP(&nsearch_schedule->ns_timer);
+  TIMER_STOP(&nsearch_schedule->profile.ns_timer);
 }
 /*
  * Display
@@ -279,6 +271,23 @@ void nsearch_schedule_print_region_segment(
     fprintf(stream,"%c",begin_c);
     for (j=0;j<length-2;++j) fprintf(stream,"%c",middle_c);
     fprintf(stream,"%c",end_c);
+  }
+}
+void nsearch_schedule_print_region_error(
+    FILE* const stream,
+    const uint64_t length,
+    const uint64_t min_local,
+    const uint64_t min_global,
+    const uint64_t max_global) {
+  uint64_t j;
+  if (length < 8) {
+    for (j=0;j<length;++j) fprintf(stream,"*");
+  } else {
+    const uint64_t left = (length-8)/2;
+    const uint64_t right = (length-8)-left;
+    for (j=0;j<left;++j) fprintf(stream," ");
+    fprintf(stream,"{%lu}{%lu,%lu}",min_local,min_global,max_global);
+    for (j=0;j<right;++j) fprintf(stream," ");
   }
 }
 void nsearch_schedule_print_region_limits(
@@ -333,31 +342,23 @@ void nsearch_schedule_print_pretty(
   }
   // Print Header
   fprintf(stream,"[GEM]>NSearch[%lu]\n",nsearch_schedule->search_id++);
-  // Print Scheduled Operations
-  fprintf(stream,"  => Scheduled.Operations\n");
-  for (i=0;i<nsearch_schedule->num_pending_searches;++i) {
-    nsearch_operation_t* const pending_search = pending_searches + (nsearch_schedule->num_pending_searches-i-1);
-    fprintf(stream,"    => Key.Local[%lu,%lu) Key.Global[%lu,%lu)\n",
-        pending_search->local_key_begin,pending_search->local_key_end,
-        pending_search->global_key_begin,pending_search->global_key_end);
-  }
-  fprintf(stream,"\n");
+  //  // Print Scheduled Operations
+  //  fprintf(stream,"  => Scheduled.Operations\n");
+  //  for (i=0;i<nsearch_schedule->num_pending_searches;++i) {
+  //    nsearch_operation_t* const pending_search = pending_searches + (nsearch_schedule->num_pending_searches-i-1);
+  //    fprintf(stream,"    => Key.Local[%lu,%lu) Key.Global[%lu,%lu)\n",
+  //        pending_search->local_key_begin,pending_search->local_key_end,
+  //        pending_search->global_key_begin,pending_search->global_key_end);
+  //  }
+  //  fprintf(stream,"\n");
   // Print local min/max limits
-  fprintf(stream,"  => Local.Error    ");
+  fprintf(stream,"  => Error          ");
   for (i=0;i<nsearch_schedule->num_pending_searches;++i) {
     nsearch_schedule_print_data_t* const operation_data = print_data + i;
     nsearch_operation_t* const pending_search = pending_searches + operation_data->nsearch_schedule_pos;
-    nsearch_schedule_print_region_limits(stream,operation_data->plength,
-        pending_search->min_local_error,pending_search->max_local_error);
-  }
-  fprintf(stream,"\n");
-  // Print global min/max limits
-  fprintf(stream,"  => Global.Error   ");
-  for (i=0;i<nsearch_schedule->num_pending_searches;++i) {
-    nsearch_schedule_print_data_t* const operation_data = print_data + i;
-    nsearch_operation_t* const pending_search = pending_searches + operation_data->nsearch_schedule_pos;
-    nsearch_schedule_print_region_limits(stream,operation_data->plength,
-        pending_search->min_local_error,pending_search->max_local_error);
+    nsearch_schedule_print_region_error(stream,operation_data->plength,
+        pending_search->min_local_error,pending_search->min_global_error,
+        pending_search->max_global_error);
   }
   fprintf(stream,"\n");
   // Print intervals
@@ -370,7 +371,7 @@ void nsearch_schedule_print_pretty(
   }
   fprintf(stream,"\n");
   // Print regions
-  region_profile_t* const region_profile = nsearch_schedule->region_profile;
+  region_profile_t* const region_profile = &nsearch_schedule->search->region_profile;
   if (region_profile!=NULL) {
     const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
     fprintf(stream,"  => Regions        ");
@@ -380,7 +381,7 @@ void nsearch_schedule_print_pretty(
       nsearch_schedule_print_region_segment(stream,plength,'|','-','|');
     }
     fprintf(stream,"\n");
-    fprintf(stream,"  => Regions.Limits ");
+    fprintf(stream,"  => Regions.Error  ");
     for (i=0;i<num_filtering_regions;++i) {
       region_search_t* const region = region_profile->filtering_region + i;
       const uint64_t plength = amplification*(region->end-region->begin);
@@ -395,11 +396,8 @@ void nsearch_schedule_print_pretty(
 void nsearch_schedule_print_profile(
     FILE* const stream,
     nsearch_schedule_t* const nsearch_schedule) {
-  fprintf(stderr,"%lu\t%lu\t%2.3f\n",nsearch_schedule->ns_nodes_success,
-      nsearch_schedule->ns_nodes,TIMER_GET_TOTAL_S(&nsearch_schedule->ns_timer));
-}
-void nsearch_schedule_print_search_string(
-    FILE* const stream,
-    nsearch_schedule_t* const nsearch_schedule) {
-  fprintf(stream,"%s\n",nsearch_schedule->search_string);
+  fprintf(stderr,"%lu\t%lu\t%2.3f\n",
+      nsearch_schedule->profile.ns_nodes_success,
+      nsearch_schedule->profile.ns_nodes,
+      TIMER_GET_TOTAL_S(&nsearch_schedule->profile.ns_timer));
 }

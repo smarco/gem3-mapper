@@ -18,11 +18,6 @@
 void approximate_search_generate_candidates_exact(
     approximate_search_t* const search,
     matches_t* const matches);
-void approximate_search_generate_candidates_inexact(
-    approximate_search_t* const search,
-    const bool dynamic_scheduling,
-    const bool verify_ahead,
-    matches_t* const matches);
 
 /*
  * Buffered Copy/Retrieve

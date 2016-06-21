@@ -61,31 +61,14 @@ void nsearch_partition_compute_error(
   const uint64_t error_search = max_error/2;
   const uint64_t error_extend = max_error;
   /*
-   * Region error (global)
-   */
-  if (region_0!=NULL) {
-    nsearch_partition->extend_0_global_min_error = MAX(min_error,region_0->min);
-    nsearch_partition->extend_0_global_max_error = max_error;
-  } else {
-    nsearch_partition->extend_0_global_min_error = min_error;
-    nsearch_partition->extend_0_global_max_error = max_error;
-  }
-  if (region_1!=NULL) {
-    nsearch_partition->extend_1_global_min_error = MAX(min_error,region_1->min);
-    nsearch_partition->extend_1_global_max_error = max_error;
-  } else {
-    nsearch_partition->extend_1_global_min_error = min_error;
-    nsearch_partition->extend_1_global_max_error = max_error;
-  }
-  /*
-   * First partition
+   * First partition (local)
    */
   // Base error
   nsearch_partition->search_0_min_error = 0;
-  nsearch_partition->search_0_max_error = MIN(error_search,length_0);
+  nsearch_partition->search_0_max_error = MIN(error_search,length_0); // Length constraint
   nsearch_partition->extend_1_local_min_error = 0;
-  nsearch_partition->extend_1_local_max_error = MIN(error_extend,length_1);
-  // Adjust using region min/max
+  nsearch_partition->extend_1_local_max_error = MIN(error_extend,length_1); // Length constraint
+  // Adjust using region-min/max
   if (region_0!=NULL) {
     nsearch_partition->search_0_min_error = region_0->min;
     nsearch_partition->search_0_max_error = MIN(nsearch_partition->search_0_max_error,region_0->max);
@@ -94,13 +77,13 @@ void nsearch_partition_compute_error(
     nsearch_partition->extend_1_local_min_error = region_1->min;
     nsearch_partition->extend_1_local_max_error = MIN(nsearch_partition->extend_1_local_max_error,region_1->max);
   }
-  // Adjust combining constraints
+  // Adjust using min-needed errors in each partition
   const uint64_t search_0_left_errors = max_error-nsearch_partition->extend_1_local_min_error;
   nsearch_partition->search_0_max_error = MIN(nsearch_partition->search_0_max_error,search_0_left_errors);
   const uint64_t extend_1_local_left_errors = max_error-nsearch_partition->search_0_min_error;
   nsearch_partition->extend_1_local_max_error = MIN(nsearch_partition->extend_1_local_max_error,extend_1_local_left_errors);
   /*
-   * Second partition
+   * Second partition (local)
    */
   // Base error
   nsearch_partition->search_1_min_error = 0;
@@ -121,4 +104,26 @@ void nsearch_partition_compute_error(
   nsearch_partition->search_1_max_error = MIN(nsearch_partition->search_1_max_error,search_1_left_errors);
   uint64_t extend_0_local_left_errors = max_error-nsearch_partition->search_1_min_error;
   nsearch_partition->extend_0_local_max_error = MIN(nsearch_partition->extend_0_local_max_error,extend_0_local_left_errors);
+  /*
+   * Region error (global)
+   */
+  if (region_0!=NULL) {
+    nsearch_partition->extend_0_global_min_error = MAX(min_error,region_0->min);
+    nsearch_partition->extend_0_global_max_error = max_error;
+  } else {
+    nsearch_partition->extend_0_global_min_error = min_error;
+    nsearch_partition->extend_0_global_max_error = max_error;
+  }
+  if (region_1!=NULL) {
+    nsearch_partition->extend_1_global_min_error = MAX(min_error,region_1->min);
+    nsearch_partition->extend_1_global_max_error = max_error;
+  } else {
+    nsearch_partition->extend_1_global_min_error = min_error;
+    nsearch_partition->extend_1_global_max_error = max_error;
+  }
+  // Adjust combining constraints
+  nsearch_partition->extend_0_global_min_error =
+      MAX(nsearch_partition->extend_0_global_min_error,nsearch_partition->extend_0_local_min_error);
+  nsearch_partition->extend_1_global_min_error =
+      MAX(nsearch_partition->extend_1_global_min_error,nsearch_partition->extend_1_local_min_error);
 }

@@ -31,7 +31,6 @@ void match_aling_add_clipping(
  *   @align_input->text
  *   @align_input->text_offset_begin
  *   @align_input->text_offset_end
- *   @align_parameters->emulated_rc_search
  *   @align_parameters->swg_penalties
  *   @match_trace->match_alignment.score
  */
@@ -50,7 +49,6 @@ void match_align_exact(
  *   @align_input->text
  *   @align_input->text_offset_begin
  *   @align_input->text_offset_end
- *   @align_parameters->emulated_rc_search
  *   @align_parameters->allowed_enc
  */
 void match_align_hamming(
@@ -69,7 +67,6 @@ void match_align_hamming(
  *   @align_input->text_offset_begin
  *   @align_input->text_offset_end
  *   @align_input->text_length
- *   @align_parameters->emulated_rc_search
  *   @align_parameters->max_error
  *   @align_parameters->left_gap_alignment
  */
@@ -90,7 +87,6 @@ void match_align_levenshtein(
  *   @align_input->text_length
  *   @align_input->text_offset_begin
  *   @align_input->text_offset_end
- *   @align_parameters->emulated_rc_search
  *   @align_parameters->swg_penalties
  *   @align_parameters->swg_threshold
  *   @align_parameters->min_identity

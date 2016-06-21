@@ -16,7 +16,7 @@
 /*
  * Search Limits
  */
-void asearch_control_adjust_max_differences_using_strata(
+void asearch_control_adjust_current_max_error(
     approximate_search_t* const search,
     matches_t* const matches);
 

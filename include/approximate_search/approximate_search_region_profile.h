@@ -17,14 +17,10 @@
  * Region profile generation
  */
 typedef enum {
-  // Adaptive Profile reducing the number of candidates (to a few) and using cut-off conditions
-  region_profile_adaptive_lightweight,
-  // Adaptive Profile reducing the number of candidates (to a some) and using cut-off conditions
-  region_profile_adaptive_heavyweight,
-  // Adaptive Profile limiting the max. length of a region (max-region-length)
+  // Adaptive Profile (reducing the number of candidates and using cut-off conditions)
+  region_profile_adaptive,
+  // Adaptive Profile (limiting the maximum length of the region)
   region_profile_adaptive_limited,
-  // Adaptive Profile extracting all possible unique regions (least candidates possible)
-  region_profile_adaptive_delimit,
 } region_profile_strategy_t;
 
 /*

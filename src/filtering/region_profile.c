@@ -26,17 +26,13 @@ void region_profile_new(
   // Filtering regions
   region_profile->max_regions_allocated = MAX(REGION_PROFILE_MIN_REGIONS_ALLOCATED,DIV_CEIL(pattern_length,10));
   region_profile->filtering_region = mm_stack_calloc(mm_stack,region_profile->max_regions_allocated,region_search_t,false);
-  // Locator for region sorting
-  region_profile->loc = mm_stack_calloc(mm_stack,pattern_length,region_locator_t,false);
 }
 void region_profile_clear(region_profile_t* const region_profile) {
   // Reset
   region_profile->num_filtering_regions = 0;
-  region_profile->errors_allowed = 0;
   region_profile->total_candidates = 0;
-  region_profile->num_standard_regions = 0;
-  region_profile->num_unique_regions = 0;
   region_profile->num_zero_regions = 0;
+  region_profile->num_filtered_regions = 0;
   region_profile->max_region_length = 0;
   region_profile->kmer_frequency = 0.0;
 }
@@ -170,8 +166,7 @@ void region_profile_extend_last_region(
     region_profile_t* const region_profile,
     fm_index_t* const fm_index,
     const uint8_t* const key,
-    const bool* const allowed_enc,
-    const uint64_t rp_region_type_th) {
+    const bool* const allowed_enc) {
   // Tries to extend the last region of the profile to the end of the key (position 0)
   // Merge the tail with the last region
   region_search_t* const last_region = region_profile->filtering_region + (region_profile->num_filtering_regions-1);
@@ -188,57 +183,21 @@ void region_profile_extend_last_region(
     }
     // Extend beyond zero interval // TODO
     // while (last_region->begin > 0 && allowed_enc[key[--last_region->begin]]);
-    // Adjust the region end (if needed) and type
-    const uint64_t count = last_region->hi-last_region->lo;
-    if (last_region->type==region_standard && count<=rp_region_type_th) {
-      last_region->type = region_unique;
-      --(region_profile->num_standard_regions);
-    }
   }
 }
 /*
  * Sort
  */
-int region_profile_locator_cmp(const region_locator_t* const a,const region_locator_t* const b) {
-  return (int)a->value - (int)b->value;
+int region_search_cmp_candidates(const region_search_t* const a,const region_search_t* const b) {
+  return (int)(a->hi - a->lo) - (int)(b->hi - b->lo);
 }
-//void region_profile_locator_sort(
-//    region_locator_t* const loc,
-//    const uint64_t num_regions) {
-//  qsort(loc,num_regions,sizeof(region_locator_t),(int (*)(const void *,const void *))region_profile_locator_cmp);
-//}
-#define VECTOR_SORT_NAME                 region_profile_locator
-#define VECTOR_SORT_TYPE                 region_locator_t
-#define VECTOR_SORT_CMP(a,b)             region_profile_locator_cmp(a,b)
+#define VECTOR_SORT_NAME                 region_search_by_candidates
+#define VECTOR_SORT_TYPE                 region_search_t
+#define VECTOR_SORT_CMP(a,b)             region_search_cmp_candidates(a,b)
 #include "utils/vector_sort.h"
-void region_profile_locator_sort(region_locator_t* const loc,const uint64_t num_regions) {
-  buffer_sort_region_profile_locator(loc,num_regions);
-}
-void region_profile_sort_by_estimated_mappability(region_profile_t* const region_profile) {
-  // Sort the regions w.r.t to the number of candidates
-  const uint64_t num_regions = region_profile->num_filtering_regions;
-  region_search_t* const filtering_region = region_profile->filtering_region;
-  region_locator_t* const loc = region_profile->loc;
-  uint64_t i;
-  for (i=0;i<num_regions;++i) {
-    loc[i].id = i;
-    loc[i].value = (filtering_region[i].type == region_standard) ?
-        (filtering_region[i].end-filtering_region[i].begin)<<16 :
-        (filtering_region[i].hi-filtering_region[i].lo);
-  }
-  region_profile_locator_sort(loc,num_regions);
-}
 void region_profile_sort_by_candidates(region_profile_t* const region_profile) {
-  // Sort the regions w.r.t to the number of candidates
-  const uint64_t num_regions = region_profile->num_filtering_regions;
-  region_search_t* const filtering_region = region_profile->filtering_region;
-  region_locator_t* const loc = region_profile->loc;
-  uint64_t i;
-  for (i=0;i<num_regions;++i) {
-    loc[i].id = i;
-    loc[i].value = filtering_region[i].hi-filtering_region[i].lo;
-  }
-  region_profile_locator_sort(loc,num_regions);
+  buffer_sort_region_search_by_candidates(
+      region_profile->filtering_region,region_profile->num_filtering_regions);
 }
 /*
  * Display
@@ -247,30 +206,20 @@ void region_profile_print_region(
     FILE* const stream,
     region_search_t* const region,
     const uint64_t position) {
-  tab_fprintf(stream,"    [%"PRIu64"]\ttype=%s\tregion=[%"PRIu64",%"PRIu64")\t"
+  tab_fprintf(stream,"    [%"PRIu64"]\tregion=[%"PRIu64",%"PRIu64")\t"
       "lo=%"PRIu64"\thi=%"PRIu64"\tcand=%"PRIu64"\n",position,
-      region->type==region_unique ? "region_unique" :
-          (region->type==region_standard ? "region_standard" : "region_gap"),
       region->begin,region->end,region->lo,region->hi,region->hi-region->lo);
 }
 void region_profile_print(
     FILE* const stream,
-    const region_profile_t* const region_profile,
-    const bool sorted) {
+    const region_profile_t* const region_profile) {
   tab_fprintf(stream,"[GEM]>Region.Profile\n");
   tab_fprintf(stream,"  => Pattern.length %"PRIu64"\n",region_profile->pattern_length);
   tab_fprintf(stream,"  => Num.Filtering.Regions %"PRIu64"\n",region_profile->num_filtering_regions);
-  tab_fprintf(stream,"  => Num.Standard.Regions %"PRIu64"\n",region_profile->num_standard_regions);
-  tab_fprintf(stream,"  => Errors.allowed %"PRIu64"\n",region_profile->errors_allowed);
+  tab_fprintf(stream,"  => Num.Zero.Regions %"PRIu64"\n",region_profile->num_zero_regions);
   tab_fprintf(stream,"  => Filtering.Regions\n");
-  if (!sorted) {
-    REGION_PROFILE_ITERATE(region_profile,region,position) {
-      region_profile_print_region(stream,region,position);
-    }
-  } else {
-    REGION_LOCATOR_ITERATE(region_profile,region,position) {
-      region_profile_print_region(stream,region,position);
-    }
+  REGION_PROFILE_ITERATE(region_profile,region,position) {
+    region_profile_print_region(stream,region,position);
   }
   fflush(stream);
 }

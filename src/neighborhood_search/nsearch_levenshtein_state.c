@@ -31,8 +31,9 @@ void nsearch_levenshtein_state_init(
 /*
  * Prepare DP
  */
-void nsearch_levenshtein_state_prepare_full_neighbourhood(
-    nsearch_levenshtein_state_t* const nsearch_state) {
+void nsearch_levenshtein_state_prepare(
+    nsearch_levenshtein_state_t* const nsearch_state,
+    const bool supercondensed_neighbourhood) {
   // Parameters
   dp_matrix_t* const dp_matrix = &nsearch_state->dp_matrix;
   dp_column_t* const columns = dp_matrix->columns;
@@ -41,26 +42,14 @@ void nsearch_levenshtein_state_prepare_full_neighbourhood(
   // Init first row
   uint64_t i;
   columns[0].cells[0] = NS_DISTANCE_SET_PRIORITY(NS_DISTANCE_ENCODE(0),1);
-  for (i=1;i<num_columns;++i) {
-    columns[i].cells[0] = NS_DISTANCE_SET_PRIORITY(NS_DISTANCE_ENCODE(i),1);
-  }
-  // Init first column
-  for (i=1;i<num_rows;++i) {
-    columns[0].cells[i] = NS_DISTANCE_SET_PRIORITY(NS_DISTANCE_ENCODE(i),1);
-  }
-}
-void nsearch_levenshtein_state_prepare_supercondensed_neighbourhood(
-    nsearch_levenshtein_state_t* const nsearch_state) {
-  // Parameters
-  dp_matrix_t* const dp_matrix = &nsearch_state->dp_matrix;
-  dp_column_t* const columns = dp_matrix->columns;
-  const uint64_t num_columns = dp_matrix->num_columns;
-  const uint64_t num_rows = dp_matrix->num_rows;
-  // Init first row
-  uint64_t i;
-  columns[0].cells[0] = NS_DISTANCE_SET_PRIORITY(NS_DISTANCE_ENCODE(0),1);
-  for (i=1;i<num_columns;++i) {
-    columns[i].cells[0] = NS_DISTANCE_SET_PRIORITY(NS_DISTANCE_ENCODE(0),0);
+  if (supercondensed_neighbourhood) {
+    for (i=1;i<num_columns;++i) {
+      columns[i].cells[0] = NS_DISTANCE_SET_PRIORITY(NS_DISTANCE_ENCODE(0),0);
+    }
+  } else {
+    for (i=1;i<num_columns;++i) {
+      columns[i].cells[0] = NS_DISTANCE_SET_PRIORITY(NS_DISTANCE_ENCODE(i),1);
+    }
   }
   // Init first column
   for (i=1;i<num_rows;++i) {
@@ -72,7 +61,7 @@ void nsearch_levenshtein_state_prepare_chained(
     nsearch_levenshtein_state_t* const next_nsearch_state,
     const uint64_t current_key_length,
     const uint64_t current_text_length,
-    const bool next_operation_towards_end) {
+    const bool supercondensed_neighbourhood) {
   // Parameters
   dp_matrix_t* const current_dp_matrix = &current_nsearch_state->dp_matrix;
   dp_column_t* const current_columns = current_dp_matrix->columns;
@@ -92,7 +81,7 @@ void nsearch_levenshtein_state_prepare_chained(
     next_columns[0].cells[i] = cell_value;
   }
   // Init first row :: Remaining cells
-  if (next_operation_towards_end) {
+  if (supercondensed_neighbourhood) {
     for (i=1;i<num_columns;++i) {
       next_columns[i].cells[0] = NS_DISTANCE_SET_PRIORITY(NS_DISTANCE_ENCODE(0),0);
     }

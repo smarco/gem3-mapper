@@ -23,13 +23,11 @@ void fm_index_bsearch(
   const rank_mtable_t* const rank_mtable = fm_index->rank_table;
   rank_mquery_t query;
   rank_mquery_new(&query);
-  //rank_mtable_fetch(rank_mtable,&query,&lo,&hi); printf("> %"PRIu64"\t%"PRIu64"\n",lo,hi);
   while (key_length > 0 && !rank_mquery_is_exhausted(&query)) {
     const uint8_t c = key[key_length-1];
     if (c >= ENC_DNA_CHAR_N) break;
     rank_mquery_add_char(rank_mtable,&query,c); // Rank query (calculate offsets)
     --key_length;
-    //rank_mtable_fetch(rank_mtable,&query,&lo,&hi); printf("> %"PRIu64"\t%"PRIu64"\n",lo,hi);
   }
   // Query lookup table
   rank_mtable_fetch(rank_mtable,&query,&lo,&hi);
@@ -43,7 +41,6 @@ void fm_index_bsearch(
       const uint8_t c = key[--key_length];
       lo = bwt_erank(fm_index->bwt,c,lo);
       hi = bwt_erank(fm_index->bwt,c,hi);
-      //printf("> %"PRIu64"\t%"PRIu64"\n",lo,hi);
     }
     // Return results
     *hi_out=hi;
@@ -59,12 +56,10 @@ void fm_index_bsearch_pure(
   // Query lookup table
   uint64_t lo=0, hi=fm_index_get_length(fm_index);
   // Continue with ranks against the FM-Index
-  // uint64_t j; for (j=0;j<key_length;++j) printf("%c",dna_decode(key[j])); printf("\n");
   while (key_length > 0 && hi > lo) {
     const uint8_t c = key[--key_length];
     lo = bwt_erank(fm_index->bwt,c,lo);
     hi = bwt_erank(fm_index->bwt,c,hi);
-    // printf("%"PRIu64"  %"PRIu64"\n",lo,hi);
   }
   // printf("\n");
   // Return results
@@ -119,13 +114,16 @@ void fm_index_reverse_bsearch_pure(
   fm_2interval.forward_lo = 0;
   fm_2interval.forward_hi = fm_index_get_length(fm_index);
   // Search using 2interval and eranks against the FM-Index
-//  uint64_t j; for (j=0;j<key_length;++j) printf("%c",dna_decode(key[j])); printf("\n");
-  uint64_t i = 0;
-  while (i < key_length && fm_2interval.forward_lo < fm_2interval.forward_hi) {
-    fm_index_2query_forward(fm_index,&fm_2interval,key[i++]);
-//    printf("%"PRIu64"  %"PRIu64"\n",fm_2interval.backward_lo,fm_2interval.backward_hi);
+//  uint64_t i = 0;
+//  while (i < key_length && fm_2interval.forward_lo < fm_2interval.forward_hi) {
+//    fm_index_2query_forward(fm_index,key[i++],&fm_2interval,&fm_2interval);
+//  }
+
+  int64_t i = key_length-1;
+  while (i>=0 && fm_2interval.forward_lo < fm_2interval.forward_hi) {
+    fm_index_2query_backward(fm_index,key[i--],&fm_2interval,&fm_2interval);
   }
-//  printf("\n");
+
   // Return results
   *lo_out = fm_2interval.backward_lo;
   *hi_out = fm_2interval.backward_hi;
@@ -143,17 +141,17 @@ void fm_index_reverse_bsearch_fb(
   fm_2interval.forward_lo = 0;
   fm_2interval.forward_hi = fm_index_get_length(fm_index);
   // Search second half (forward)
-  int64_t i = key_length/2;
-  for (i=10;i<20;++i) {
-    fm_index_2query_forward(fm_index,&fm_2interval,key[i]);
-    if (fm_2interval.forward_lo < fm_2interval.forward_hi) {
+  int64_t i;
+  for (i=10;i<key_length;++i) {
+    fm_index_2query_forward(fm_index,key[i],&fm_2interval,&fm_2interval);
+    if (fm_2interval.forward_lo >= fm_2interval.forward_hi) {
       *lo_out = 0; *hi_out = 0; return;
     }
   }
   // Search first half (backwards)
   for (i=9;i>=0;--i) {
-    fm_index_2query_backward(fm_index,&fm_2interval,key[i]);
-    if (fm_2interval.forward_lo < fm_2interval.forward_hi) {
+    fm_index_2query_backward(fm_index,key[i],&fm_2interval,&fm_2interval);
+    if (fm_2interval.forward_lo >= fm_2interval.forward_hi) {
       *lo_out = 0; *hi_out = 0; return;
     }
   }
@@ -176,15 +174,15 @@ void fm_index_reverse_bsearch_bf(
   // Search first half (backwards)
   int64_t i;
   for (i=9;i>=0;--i) {
-    fm_index_2query_backward(fm_index,&fm_2interval,key[i]);
-    if (fm_2interval.forward_lo < fm_2interval.forward_hi) {
+    fm_index_2query_backward(fm_index,key[i],&fm_2interval,&fm_2interval);
+    if (fm_2interval.forward_lo >= fm_2interval.forward_hi) {
       *lo_out = 0; *hi_out = 0; return;
     }
   }
   // Search second half (forward)
-  for (i=10;i<20;++i) {
-    fm_index_2query_forward(fm_index,&fm_2interval,key[i]);
-    if (fm_2interval.forward_lo < fm_2interval.forward_hi) {
+  for (i=10;i<key_length;++i) {
+    fm_index_2query_forward(fm_index,key[i],&fm_2interval,&fm_2interval);
+    if (fm_2interval.forward_lo >= fm_2interval.forward_hi) {
       *lo_out = 0; *hi_out = 0; return;
     }
   }

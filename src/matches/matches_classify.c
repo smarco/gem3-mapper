@@ -76,5 +76,5 @@ paired_matches_class_t paired_matches_classify(paired_matches_t* const paired_ma
     return paired_matches_class_tie_d1;
   }
   // MultiMap
-  return matches_class_mmap;
+  return paired_matches_class_mmap;
 }

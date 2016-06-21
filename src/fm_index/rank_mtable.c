@@ -128,9 +128,6 @@ void rank_mtable_print_content(
     const uint64_t text_length) {
   uint64_t i;
   for (i=0;i<rank_mtable->table_size;++i) {
-    if (rank_mtable->sa_ranks_levels[0][i] > text_length) {
-      printf("Here\n");
-    }
     fprintf(stream,"%"PRIu64"\n",rank_mtable->sa_ranks_levels[0][i]);
   }
 }

@@ -21,12 +21,12 @@
  * Search Modes
  */
 typedef enum {
-  mapping_adaptive_filtering_fast,     // Adaptive filtering until high confidence results reached
-  mapping_adaptive_filtering_thorough, // Adaptive filtering thoroughly exploring filtering candidates
-  mapping_adaptive_filtering_complete, // Full complete search (using neighborhood search if needed)
-  mapping_fixed_filtering_complete,    // Pure Filtering Complete
-  mapping_neighborhood_search,         // Pure Neighborhood Search (brute-force)
-  mapping_test
+  mapping_adaptive_filtering_fast,         // Adaptive filtering until high confidence results reached
+  mapping_adaptive_filtering_thorough,     // Adaptive filtering thoroughly exploring filtering candidates
+  mapping_adaptive_filtering_complete,     // Full complete search
+  mapping_neighborhood_search_brute_force, // Neighborhood Search using brute-force
+  mapping_neighborhood_search_partition,   // Neighborhood Search using partition & bidirectional search
+  mapping_test,
 } mapping_mode_t;
 typedef enum {
   local_alignment_never,
@@ -83,15 +83,17 @@ typedef enum {
  */
 typedef struct {
   /* Mapping strategy (Mapping mode + properties) */
-  mapping_mode_t mapping_mode;
+  mapping_mode_t mapping_mode;                         // Mapping mode
+  search_paired_parameters_t search_paired_parameters; // Paired-end
+  bisulfite_read_t bisulfite_read;                     // Bisulfite mode
   /* Clipping */
   clipping_type clipping;
   uint64_t clip_left;
   uint64_t clip_right;
   /* Qualities */
-  quality_model_t quality_model;   // TODO Revision pending
-  quality_format_t quality_format; // TODO Revision pending
-  uint64_t quality_threshold;      // TODO Revision pending
+  quality_model_t quality_model;          // TODO Revision pending
+  quality_format_t quality_format;        // TODO Revision pending
+  uint64_t quality_threshold;             // TODO Revision pending
   /* Replacements (Regulates the bases that can be replaced/mismatched) */
   char mismatch_alphabet[DNA_EXT_RANGE];  // TODO Revision pending
   uint64_t mismatch_alphabet_length;      // TODO Revision pending
@@ -105,6 +107,7 @@ typedef struct {
   double alignment_max_aligned_gap_length;              // Maximum length of gap to be aligned
   double alignment_global_min_identity;                 // Alignment minimum identity to be global
   double alignment_global_min_swg_threshold;            // Alignment minimum SWG score to be global
+  region_profile_model_t region_profile_model;          // Region-Profile Model (Lightweight)
   /* Local Alignment */
   local_alignment_t local_alignment;
   double alignment_local_min_identity;                  // Alignment minimum identity to be local
@@ -118,22 +121,9 @@ typedef struct {
   /* Alignment Model/Score */
   alignment_model_t alignment_model;
   swg_penalties_t swg_penalties;
-  /* Bisulfite mode */
-  bisulfite_read_t bisulfite_read;
-  /* Paired-end */
-  search_paired_parameters_t search_paired_parameters;
-  /* Filtering parameters */
-  uint64_t fixed_region_length;
-  uint64_t filtering_threshold;
-  double filtering_region_factor;
-  region_profile_model_t rp_lightweight;  // Region-Lightweight
-  region_profile_model_t rp_heavyweight;  // Region-Heavyweight
-  region_profile_model_t rp_delimit;      // Region-Delimit
   /* Select Parameters */
-  select_parameters_t select_parameters_report;  // Select parameters (Used to report results)
-  select_parameters_t select_parameters_align;   // Select parameters (Used to prune work internally)
-  /* Check */
-  archive_check_type check_type;
+  select_parameters_t select_parameters_report;         // Select parameters (Used to report results)
+  select_parameters_t select_parameters_align;          // Select parameters (Used to prune work internally)
   /* MAPQ Score */
   mapq_model_t mapq_model_se;
   mapq_model_t mapq_model_pe;
@@ -151,6 +141,8 @@ typedef struct {
   uint64_t alignment_scaffolding_min_coverage_nominal;
   uint64_t alignment_scaffolding_min_matching_length_nominal;
   uint64_t cigar_curation_min_end_context_nominal;
+  /* Check */
+  archive_check_type check_type;
 } search_parameters_t;
 
 /*

@@ -96,6 +96,7 @@ void input_file_sliced_close(input_file_sliced_t* const input_file_sliced) {
   for (i=0;i<total_input_buffers;++i) {
     input_buffer_delete(input_file_sliced->input_buffers[i]);
   }
+  mm_free(input_file_sliced->input_buffers);
   // Handler
   mm_free(input_file_sliced);
 }

@@ -98,32 +98,15 @@ uint64_t filtering_candidates_count_candidate_regions(
 /*
  * Adding candidate positions
  */
-void filtering_candidates_add_read_interval(
-    filtering_candidates_t* const filtering_candidates,
-    search_parameters_t* const search_parameters,
-    const uint64_t interval_lo,
-    const uint64_t interval_hi,
-    const uint64_t key_length,
-    const uint64_t align_distance);
-
 void filtering_candidates_add_region_interval(
     filtering_candidates_t* const filtering_candidates,
+    search_parameters_t* const search_parameters,
+    pattern_t* const pattern,
     const uint64_t interval_lo,
     const uint64_t interval_hi,
     const uint64_t region_begin_pos,
     const uint64_t region_end_pos,
     const uint64_t region_errors);
-void filtering_candidates_add_region_interval_set(
-    filtering_candidates_t* const filtering_candidates,
-    interval_set_t* const interval_set,
-    const uint64_t region_begin_pos,
-    const uint64_t region_end_pos);
-void filtering_candidates_add_region_interval_set_thresholded(
-    filtering_candidates_t* const filtering_candidates,
-    interval_set_t* const interval_set,
-    const uint64_t region_begin_pos,
-    const uint64_t region_end_pos,
-    const uint64_t max_error);
 
 /*
  * Sorting

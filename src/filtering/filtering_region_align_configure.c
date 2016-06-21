@@ -16,8 +16,7 @@ void filtering_region_align_configure_exact(
     match_align_parameters_t* const align_parameters,
     filtering_region_t* const filtering_region,
     search_parameters_t* const search_parameters,
-    pattern_t* const pattern,
-    const bool emulated_rc_search) {
+    pattern_t* const pattern) {
   // Parameters
   const uint64_t key_length = pattern->key_length;
   swg_penalties_t* const swg_penalties = &search_parameters->swg_penalties;
@@ -29,8 +28,7 @@ void filtering_region_align_configure_exact(
   align_input->text_trace_offset   = filtering_region->text_trace_offset;
   align_input->region_alignment    = &filtering_region->region_alignment;
   // Align Parameters
-  align_parameters->emulated_rc_search = emulated_rc_search;
-  align_parameters->swg_penalties      = swg_penalties;
+  align_parameters->swg_penalties  = swg_penalties;
 }
 void filtering_region_align_configure_hamming(
     match_align_input_t* const align_input,
@@ -38,26 +36,25 @@ void filtering_region_align_configure_hamming(
     filtering_region_t* const filtering_region,
     search_parameters_t* const search_parameters,
     pattern_t* const pattern,
-    text_trace_t* const text_trace,
-    const bool emulated_rc_search) {
+    text_trace_t* const text_trace) {
   // Parameters
   uint8_t* const key = pattern->key;
   const uint64_t key_length = pattern->key_length;
   bool* const allowed_enc = search_parameters->allowed_enc;
+  swg_penalties_t* const swg_penalties = &search_parameters->swg_penalties;
   // Align input
   align_input->key                 = key;
   align_input->key_length          = key_length;
   align_input->sequence_clip_left  = pattern->clip_left;
   align_input->sequence_clip_right = pattern->clip_right;
   align_input->text_trace_offset   = filtering_region->text_trace_offset;
-  const uint64_t text_offset = filtering_region->text_source_region_offset - filtering_region->key_source_region_offset;
-  align_input->text_position       = filtering_region->text_begin_position + text_offset; // Base position
+  align_input->text_position       = filtering_region->text_begin_position; // Base position
   align_input->text                = text_trace->text;
-  align_input->text_length         = text_trace->text_length;
+  align_input->text_length         = key_length;
   align_input->region_alignment    = &filtering_region->region_alignment;
   // Align Parameters
-  align_parameters->emulated_rc_search = emulated_rc_search;
-  align_parameters->allowed_enc        = allowed_enc;
+  align_parameters->allowed_enc    = allowed_enc;
+  align_parameters->swg_penalties  = swg_penalties;
 }
 void filtering_region_align_configure_levenshtein(
     match_align_input_t* const align_input,
@@ -66,7 +63,6 @@ void filtering_region_align_configure_levenshtein(
     search_parameters_t* const search_parameters,
     pattern_t* const pattern,
     text_trace_t* const text_trace,
-    const bool emulated_rc_search,
     const bool left_gap_alignment,
     mm_stack_t* const mm_stack) {
   // Parameters
@@ -88,7 +84,6 @@ void filtering_region_align_configure_levenshtein(
   align_input->text_length         = text_trace->text_length;
   align_input->region_alignment    = region_alignment;
   // Align Parameters
-  align_parameters->emulated_rc_search = emulated_rc_search;
   align_parameters->max_error          = align_distance;
   align_parameters->left_gap_alignment = left_gap_alignment;
   align_parameters->swg_penalties      = &search_parameters->swg_penalties;
@@ -103,7 +98,6 @@ void filtering_region_align_configure_swg(
     search_parameters_t* const search_parameters,
     pattern_t* const pattern,
     text_trace_t* const text_trace,
-    const bool emulated_rc_search,
     const bool left_gap_alignment,
     const bool local_alignment,
     mm_stack_t* const mm_stack) {
@@ -128,7 +122,6 @@ void filtering_region_align_configure_swg(
   align_input->rl_key_runs_acc          = pattern->rl_runs_acc;
   align_input->rl_text_runs_acc         = text_trace->rl_runs_acc;
   // Align Parameters
-  align_parameters->emulated_rc_search              = emulated_rc_search;
   align_parameters->max_error                       = filtering_region->max_error;
   align_parameters->max_bandwidth                   = filtering_region->max_bandwidth;
   align_parameters->left_gap_alignment              = left_gap_alignment;

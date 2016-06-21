@@ -13,6 +13,20 @@
 #include "approximate_search/approximate_search.h"
 
 /*
+ * Neighborhood Search Brute Force
+ */
+void approximate_search_neighborhood_search_brute_force(
+    approximate_search_t* const search,
+    matches_t* const matches);
+
+/*
+ * Neighborhood Search (Using partitions)
+ */
+void approximate_search_neighborhood_search_partition(
+    approximate_search_t* const search,
+    matches_t* const matches);
+
+/*
  * Neighborhood Generation (Inexact Search)
  */
 void approximate_search_neighborhood_exact_search(

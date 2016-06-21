@@ -14,10 +14,10 @@
 /*
  * Search Limits
  */
-void asearch_control_adjust_max_differences_using_strata(
+void asearch_control_adjust_current_max_error(
     approximate_search_t* const search,
     matches_t* const matches) {
-  const uint64_t max_differences = search->max_complete_error;
+  const uint64_t current_max_complete_error = search->current_max_complete_error;
   const uint64_t delta = search->search_parameters->complete_strata_after_best_nominal;
   /*
    * Control delta error adjustment
@@ -25,10 +25,10 @@ void asearch_control_adjust_max_differences_using_strata(
    *   finds the minimum non zero stratum (mnzs) and adjusts
    *   the maximum number of mismatches to (mnzs+delta)
    */
-  if (delta < max_differences) {
+  if (delta < current_max_complete_error) {
     const int64_t fms = matches_metrics_get_min_edit_distance(&matches->metrics);
-    if (fms>=0 && fms+delta < max_differences) {
-      search->max_complete_error = fms+delta;
+    if (fms>=0 && fms+delta < current_max_complete_error) {
+      search->current_max_complete_error = fms+delta;
     }
   }
 }
@@ -47,7 +47,7 @@ bool asearch_control_filter_ahead_candidates(
     case mapping_adaptive_filtering_thorough:
       return false;
     case mapping_adaptive_filtering_complete:
-      return search_parameters->complete_strata_after_best_nominal < search->max_complete_error;
+      return search_parameters->complete_strata_after_best_nominal < search->current_max_complete_error;
     default:
       GEM_INVALID_CASE();
       break;
@@ -61,7 +61,7 @@ void asearch_control_compute_predictors(
     approximate_search_t* const search,
     matches_t* const matches,
     matches_predictors_t* const predictors) {
-  matches_predictors_compute(matches,predictors,&search->metrics,search->max_complete_stratum);
+  matches_predictors_compute(matches,predictors,&search->metrics,search->current_max_complete_stratum);
 }
 bool asearch_control_fulfilled(
     approximate_search_t* const search,
@@ -72,6 +72,7 @@ bool asearch_control_fulfilled(
   // Determines when the search is done following the mapping criteria
   switch (search_parameters->mapping_mode) {
     case mapping_adaptive_filtering_fast: {
+      // TODO     asearch_control_adjust_max_differences_using_strata(search,matches);
       if (matches->max_complete_stratum <= 1) return false;
       const matches_class_t matches_class = matches_classify(matches);
       switch (matches_class) {
@@ -93,9 +94,8 @@ bool asearch_control_fulfilled(
       return false;
     }
     case mapping_adaptive_filtering_complete:
-      return search->max_complete_stratum > search->max_complete_error;
+      return search->current_max_complete_stratum > search->current_max_complete_error;
     case mapping_adaptive_filtering_thorough:
-    case mapping_fixed_filtering_complete:
       return false;
     default:
       GEM_INVALID_CASE();

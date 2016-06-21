@@ -70,9 +70,7 @@ void archive_search_init(
   const bisulfite_read_t bisulfite_read_mode = search_parameters->bisulfite_read;
   archive_search->bs_sequence_end = (bisulfite_read_mode==bisulfite_read_2) ? paired_end2 : paired_end1;
   // Approximate Search Init
-  approximate_search_init(
-      &archive_search->approximate_search,archive,
-      &archive_search->search_parameters,false);
+  approximate_search_init(&archive_search->approximate_search,archive,&archive_search->search_parameters);
   archive_search->buffered_search = buffered_search;
 }
 void archive_search_se_new(

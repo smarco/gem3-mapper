@@ -95,26 +95,27 @@ void archive_check_se_match_print(
   tab_fprintf(stream,"=> Match check failed (%s)\n",label);
   tab_fprintf(stream,"=> Sequence\n");
   sequence_print(stream,sequence);
+  // Alignment
   tab_fprintf(stream,"=> Alignment\n");
   tab_global_inc();
-// output_map_alignment_pretty // TODO
-//  (%s:%"PRIu64":%c:)\n",match_trace->sequence_name,
-//      match_trace->text_position,(match_trace->strand==Forward)?'+':'-');
-// match_trace_print(stream,matches->cigar_vector,);
   match_alignment_print_pretty(stream,&match_trace->match_alignment,
       matches->cigar_vector,match_align_input->key,match_align_input->key_length,
       match_align_input->text,match_trace->match_alignment.effective_length,mm_stack);
   tab_global_dec();
+  // Supporting Edit-alignment
   match_scaffold_t* const match_scaffold = (match_scaffold_t*) match_trace->match_scaffold;
-  tab_fprintf(stream,"=> Supporting.Edit.Alignment ");
-  match_cigar_print(stream,matches->cigar_vector,
-      match_scaffold->match_alignment.cigar_offset,
-      match_scaffold->match_alignment.cigar_length);
-  fprintf(stream,"\n");
-  tab_fprintf(stream,"=> Supporting.Scaffold\n");
-  tab_global_inc();
-  match_scaffold_print(stream,matches,match_trace->match_scaffold);
-  tab_global_dec();
+  if (match_scaffold!=NULL) {
+    tab_fprintf(stream,"=> Supporting.Edit.Alignment ");
+    match_cigar_print(stream,matches->cigar_vector,
+        match_scaffold->match_alignment.cigar_offset,
+        match_scaffold->match_alignment.cigar_length);
+    fprintf(stream,"\n");
+    // Scaffold
+    tab_fprintf(stream,"=> Supporting.Scaffold\n");
+    tab_global_inc();
+    match_scaffold_print(stream,matches,match_trace->match_scaffold);
+    tab_global_dec();
+  }
   tab_global_dec();
   fflush(stream); // exit(1);
 }

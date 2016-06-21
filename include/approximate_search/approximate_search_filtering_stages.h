@@ -18,17 +18,7 @@
 void approximate_search_exact_filtering_adaptive_lightweight(
     approximate_search_t* const search,
     matches_t* const matches);
-void approximate_search_exact_filtering_adaptive_heavyweight(
-    approximate_search_t* const search,
-    matches_t* const matches);
 void approximate_search_exact_filtering_adaptive_cutoff(
-    approximate_search_t* const search,
-    matches_t* const matches);
-
-/*
- * Inexact Filtering Adaptive
- */
-void approximate_search_inexact_filtering(
     approximate_search_t* const search,
     matches_t* const matches);
 

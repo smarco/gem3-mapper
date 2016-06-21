@@ -19,39 +19,20 @@
 /*
  * Levenshtein Brute Force
  */
-void nsearch_levenshtein_brute_force_full(
-    fm_index_t* const fm_index,
-    uint8_t* const key,
-    const uint64_t key_length,
-    const uint64_t max_error,
-    interval_set_t* const intervals_result,
-    mm_stack_t* const mm_stack);
-void nsearch_levenshtein_brute_force_supercondensed(
-    fm_index_t* const fm_index,
-    uint8_t* const key,
-    const uint64_t key_length,
-    const uint64_t max_error,
-    interval_set_t* const intervals_result,
-    mm_stack_t* const mm_stack);
+void nsearch_levenshtein_brute_force(
+    approximate_search_t* const search,
+    const bool supercondensed,
+    matches_t* const matches);
 
 /*
  * Levenshtein Neighborhood Search
  */
 void nsearch_levenshtein(
-    fm_index_t* const fm_index,
-    uint8_t* const key,
-    const uint64_t key_length,
-    const uint64_t max_error,
-    interval_set_t* const intervals_result,
-    mm_stack_t* const mm_stack);
+    approximate_search_t* const search,
+    matches_t* const matches);
 void nsearch_levenshtein_preconditioned(
-    fm_index_t* const fm_index,
-    region_profile_t* const region_profile,
-    uint8_t* const key,
-    const uint64_t key_length,
-    const uint64_t max_error,
-    interval_set_t* const intervals_result,
-    mm_stack_t* const mm_stack);
+    approximate_search_t* const search,
+    matches_t* const matches);
 
 /*
  * Display
@@ -63,5 +44,12 @@ void nsearch_levenshtein_print_status(
 void nsearch_levenshtein_print_trace(
     FILE* const stream,
     nsearch_schedule_t* const nsearch_schedule);
+void nsearch_levenshtein_print_alignment(
+    FILE* const stream,
+    char* const key,
+    char* const text,
+    const bool supercondensed_neighbourhood,
+    nsearch_operation_t* const nsearch_operation,
+    mm_stack_t* const mm_stack);
 
 #endif /* NSEARCH_LEVENSHTEIN_H_ */

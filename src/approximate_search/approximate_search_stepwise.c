@@ -35,7 +35,7 @@ void asearch_control_next_state_filtering_adaptive(
       break;
     case asearch_processing_state_candidates_verified:
       PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MAPPED,matches_is_mapped(matches)?1:0);
-      PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,search->max_complete_stratum);
+      PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,search->current_max_complete_stratum);
       // Local alignment
       if (search->search_parameters->local_alignment==local_alignment_never) {
         search->search_stage = asearch_stage_end;
@@ -60,15 +60,13 @@ void approximate_search_stepwise_region_profile_adaptive_compute(
   PROF_START(GP_ASSW_REGION_PROFILE_UNSUCCESSFUL);
   // Re-Compute region profile
   search->processing_state = asearch_processing_state_begin;
-  approximate_search_region_profile_adaptive(search,region_profile_adaptive_lightweight,search->mm_stack);
+  approximate_search_region_profile_adaptive(search,region_profile_adaptive,search->mm_stack);
   if (search->processing_state==asearch_processing_state_no_regions) {
     approximate_search_update_mcs(search,search->pattern.num_wildcards); // Set MCS
     return;
   }
   // Schedule exact-candidates
-  const search_parameters_t* const search_parameters = search->search_parameters;
-  region_profile_schedule_filtering_fixed(&search->region_profile,ALL,
-      REGION_FILTER_DEGREE_ZERO,search_parameters->filtering_threshold);
+  region_profile_schedule_filtering_exact(&search->region_profile);
   // Set State
   search->processing_state = asearch_processing_state_region_profiled;
   PROF_STOP(GP_ASSW_REGION_PROFILE_UNSUCCESSFUL);
@@ -99,7 +97,6 @@ void approximate_search_stepwise_region_profile_static_generate(
       case asearch_stage_begin: // Search Start. Check basic cases
         approximate_search_filtering_adaptive_basic_cases(search);
         break;
-      case asearch_stage_read_recovery:
       case asearch_stage_filtering_adaptive:
         approximate_search_region_profile_static_partition(search);
         return;
@@ -142,7 +139,6 @@ void approximate_search_stepwise_region_profile_adaptive_generate(
       case asearch_stage_begin: // Search Start. Check basic cases
         approximate_search_filtering_adaptive_basic_cases(search);
         break;
-      case asearch_stage_read_recovery:
       case asearch_stage_filtering_adaptive:
         search->search_stage = asearch_stage_filtering_adaptive;
         return;
@@ -216,9 +212,7 @@ void approximate_search_stepwise_verify_candidates_retrieve(
 void approximate_search_stepwise_finish(
     approximate_search_t* const search,
     matches_t* const matches) {
-  if (search->search_stage == asearch_stage_read_recovery) {
-    search->search_stage = asearch_stage_end;
-  } else  if (search->search_stage == asearch_stage_filtering_adaptive) {
+  if (search->search_stage == asearch_stage_filtering_adaptive) {
     asearch_control_next_state_filtering_adaptive(search,matches); // Next State
   }
   // Finish search using regular workflow

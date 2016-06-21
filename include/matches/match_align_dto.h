@@ -41,7 +41,6 @@ struct match_align_input_t {
   uint32_t* rl_text_runs_acc;
 };
 struct match_align_parameters_t {
-  bool emulated_rc_search;
   bool* allowed_enc;
   swg_penalties_t* swg_penalties;
   uint64_t max_error;
