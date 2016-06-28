@@ -260,7 +260,8 @@ uint64_t filtering_region_verify_multiple_hits(
   const uint8_t* const text = text_trace->text;
   const uint64_t text_length = text_trace->text_length;
   // Pattern
-  const bpm_pattern_t* const bpm_pattern = pattern->bpm_pattern;
+  bpm_pattern_t* const bpm_pattern = pattern->bpm_pattern;
+  bpm_pattern_t* const bpm_pattern_tiles = pattern->bpm_pattern_tiles;
   const uint64_t max_filtering_error = filtering_region->max_error;
   // Select alignment model
   uint64_t num_matches_found;
@@ -269,7 +270,7 @@ uint64_t filtering_region_verify_multiple_hits(
     case alignment_model_gap_affine:
       // 3. Myers's BPM algorithm
       num_matches_found = bpm_compute_edit_distance_all(
-          bpm_pattern,filtering_candidates->filtering_regions,
+          bpm_pattern,bpm_pattern_tiles,filtering_candidates->filtering_regions,
           filtering_region->text_trace_offset,filtering_region->text_begin_position,
           text,text_length,max_filtering_error,filtering_candidates->mm_stack);
       break;
@@ -300,9 +301,10 @@ uint64_t filtering_region_verify_extension(
   // 2. Generalized Counting filter
   // TODO
   // 3. Myers's BPM algorithm
-  const bpm_pattern_t* const bpm_pattern = pattern->bpm_pattern;
+  bpm_pattern_t* const bpm_pattern = pattern->bpm_pattern;
+  bpm_pattern_t* const bpm_pattern_tiles = pattern->bpm_pattern_tiles;
   const uint64_t num_matches_found = bpm_compute_edit_distance_all(
-      bpm_pattern,filtering_candidates->filtering_regions,
+      bpm_pattern,bpm_pattern_tiles,filtering_candidates->filtering_regions,
       text_trace_offset,index_position,text,text_length,
       max_filtering_error,filtering_candidates->mm_stack);
   PROF_ADD_COUNTER(GP_ACCEPTED_REGIONS,num_matches_found);

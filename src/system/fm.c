@@ -20,7 +20,7 @@
 /*
  * Debug
  */
-#define FM_DEEP_DEBUG true
+#define FM_DEEP_DEBUG false
 
 /*
  * Error Messages
@@ -56,6 +56,7 @@
 
 #define GEM_ERROR_FM_LOAD "Could not load memory chunk (size=%"PRIu64",read=%"PRIu64")"
 #define GEM_ERROR_FM_DUP  "Could not duplicate file '%s' (not regular FILE or stream)"
+
 
 /*
  * File-Manager

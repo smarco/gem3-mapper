@@ -30,10 +30,66 @@ const char* filtering_region_status_label[] =
     [5] = "aligned",
 };
 /*
- * Accessors
+ * Prepare Alignment
+ */
+void filtering_region_alignment_prepare_region_alignment(
+    region_alignment_t* const region_alignment,
+    bpm_pattern_t* const bpm_pattern,
+    bpm_pattern_t* const bpm_pattern_tiles,
+    const uint64_t text_begin_offset,
+    const uint64_t text_end_offset,
+    const uint64_t max_error,
+    mm_stack_t* const mm_stack) {
+  // Allocate region-alignment
+  const uint64_t num_tiles = bpm_pattern_tiles->num_pattern_tiles;
+  region_alignment->num_tiles = num_tiles;
+  region_alignment->distance_min_bound = bpm_pattern->pattern_length;
+  region_alignment->alignment_tiles = mm_stack_calloc(mm_stack,num_tiles,region_alignment_tile_t,false);
+  // Init all tiles
+  const uint64_t text_length = text_end_offset-text_begin_offset;
+  region_alignment_tile_t* const alignment_tiles = region_alignment->alignment_tiles;
+  if (num_tiles==1) {
+    alignment_tiles->match_distance = ALIGN_DISTANCE_INF;
+    alignment_tiles->text_end_offset = text_end_offset;
+    alignment_tiles->text_begin_offset = text_begin_offset;
+  } else {
+    // Calculate tile dimensions
+    const uint64_t effective_max_error = MIN(max_error,bpm_pattern->pattern_length);
+    pattern_tiled_t pattern_tiled;
+    pattern_tiled_init(&pattern_tiled,bpm_pattern->pattern_length,
+        bpm_pattern_tiles->tile_length,text_length,effective_max_error);
+    uint64_t tile_pos;
+    for (tile_pos=0;tile_pos<num_tiles;++tile_pos) {
+      // Init Tile
+      alignment_tiles[tile_pos].match_distance = ALIGN_DISTANCE_INF;
+      alignment_tiles[tile_pos].text_end_offset = text_begin_offset+pattern_tiled.tile_offset+pattern_tiled.tile_wide;
+      alignment_tiles[tile_pos].text_begin_offset = text_begin_offset+pattern_tiled.tile_offset;
+      // Calculate next tile
+      pattern_tiled_calculate_next(&pattern_tiled);
+    }
+  }
+}
+void filtering_region_alignment_prepare(
+    filtering_region_t* const filtering_region,
+    bpm_pattern_t* const bpm_pattern,
+    bpm_pattern_t* const bpm_pattern_tiles,
+    mm_stack_t* const mm_stack) {
+  // Check region-alignment
+  region_alignment_t* const region_alignment = &filtering_region->region_alignment;
+  if (region_alignment->alignment_tiles!=NULL) return; // Already initialized
+  // Prepare region-alignment
+  const uint64_t text_length = filtering_region->text_end_position-filtering_region->text_begin_position;
+  filtering_region_alignment_prepare_region_alignment(
+      region_alignment,bpm_pattern,bpm_pattern_tiles,
+      0,text_length,filtering_region->max_error,mm_stack);
+}
+/*
+ * Add region to the vector of filtering-regions
  */
 void filtering_region_add(
     vector_t* const filtering_regions,
+    bpm_pattern_t* const bpm_pattern,
+    bpm_pattern_t* const bpm_pattern_tiles,
     const uint64_t text_trace_offset,
     const uint64_t begin_position,
     const uint64_t end_position,
@@ -42,7 +98,7 @@ void filtering_region_add(
     const uint64_t text_end_offset,
     mm_stack_t* const mm_stack) {
   filtering_region_t* filtering_region;
-  vector_alloc_new(filtering_regions, filtering_region_t, filtering_region);
+  vector_alloc_new(filtering_regions,filtering_region_t,filtering_region);
   // State
   filtering_region->status = filtering_region_accepted;
   // Text-trace
@@ -57,15 +113,11 @@ void filtering_region_add(
   filtering_region->bpm_pattern_trimmed_tiles = NULL;
   // Regions Matching
   match_scaffold_init(&filtering_region->match_scaffold);
-  // Alignment distance
-  region_alignment_t* const region_alignment = &filtering_region->region_alignment;
-  region_alignment->distance_min_bound = align_distance;
-  region_alignment->num_tiles = 1;
-  region_alignment_tile_t* const alignment_tiles = mm_stack_calloc(mm_stack,1,region_alignment_tile_t,false);
-  region_alignment->alignment_tiles = alignment_tiles;
-  alignment_tiles->match_distance = align_distance;
-  alignment_tiles->text_begin_offset = text_begin_offset;
-  alignment_tiles->text_end_offset = text_end_offset;
+  // Regions-Alignment
+  filtering_region->max_error = align_distance;
+  filtering_region_alignment_prepare_region_alignment(
+      &filtering_region->region_alignment,bpm_pattern,bpm_pattern_tiles,
+      text_begin_offset,text_end_offset,align_distance,mm_stack);
 }
 /*
  * Retrieve filtering region text-candidate
@@ -120,46 +172,6 @@ void filtering_region_retrieve_text(
     filtering_region->text_trace_offset =
         archive_text_retrieve_collection(archive_text,text_collection,
             text_position,text_length,false,false,mm_stack);
-  }
-}
-/*
- * Prepare Alignment
- */
-void filtering_region_alignment_prepare(
-    filtering_region_t* const filtering_region,
-    bpm_pattern_t* const bpm_pattern,
-    bpm_pattern_t* const bpm_pattern_tiles,
-    mm_stack_t* const mm_stack) {
-  // Check region-alignment
-  region_alignment_t* const region_alignment = &filtering_region->region_alignment;
-  if (region_alignment->alignment_tiles!=NULL) return; // Already initialized
-  // Allocate region-alignment
-  const uint64_t num_tiles = bpm_pattern_tiles->num_pattern_tiles;
-  region_alignment->num_tiles = num_tiles;
-  region_alignment->distance_min_bound = bpm_pattern->pattern_length;
-  region_alignment->alignment_tiles = mm_stack_calloc(mm_stack,num_tiles,region_alignment_tile_t,false);
-  // Init all tiles
-  const uint64_t text_length = filtering_region->text_end_position-filtering_region->text_begin_position;
-  region_alignment_tile_t* const alignment_tiles = region_alignment->alignment_tiles;
-  if (num_tiles==1) {
-    alignment_tiles->match_distance = ALIGN_DISTANCE_INF;
-    alignment_tiles->text_end_offset = text_length;
-    alignment_tiles->text_begin_offset = 0;
-  } else {
-    // Calculate tile dimensions
-    const uint64_t max_error = MIN(filtering_region->max_error,bpm_pattern->pattern_length);
-    pattern_tiled_t pattern_tiled;
-    pattern_tiled_init(&pattern_tiled,bpm_pattern->pattern_length,
-        bpm_pattern_tiles->tile_length,text_length,max_error);
-    uint64_t tile_pos;
-    for (tile_pos=0;tile_pos<num_tiles;++tile_pos) {
-      // Init Tile
-      alignment_tiles[tile_pos].match_distance = ALIGN_DISTANCE_INF;
-      alignment_tiles[tile_pos].text_end_offset = pattern_tiled.tile_offset+pattern_tiled.tile_wide;
-      alignment_tiles[tile_pos].text_begin_offset = pattern_tiled.tile_offset;
-      // Calculate next tile
-      pattern_tiled_calculate_next(&pattern_tiled);
-    }
   }
 }
 /*

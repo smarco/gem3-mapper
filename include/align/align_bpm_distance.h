@@ -131,10 +131,11 @@ bool bpm_compute_edit_distance(
     const bool quick_abandon);
 // Find all local minimums
 uint64_t bpm_compute_edit_distance_all(
-    const bpm_pattern_t* const bpm_pattern,
+    bpm_pattern_t* const bpm_pattern,
+    bpm_pattern_t* const bpm_pattern_tiles,
     vector_t* const filtering_regions,
     const uint64_t text_trace_offset,
-    const uint64_t index_position,
+    const uint64_t begin_position,
     const uint8_t* const text,
     const uint64_t text_length,
     uint64_t max_distance,

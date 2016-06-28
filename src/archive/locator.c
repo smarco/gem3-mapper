@@ -106,7 +106,6 @@ uint64_t locator_lookup_interval_index_2way(
     const locator_t* const locator,
     const uint64_t index_position) {
   // Binary search of the interval
-  const locator_interval_t* const intervals = locator->intervals;
   const uint64_t* const intervals_begin_position = locator->intervals_begin_position;
   if (locator->num_intervals == 1) return 0;
   uint64_t lo = 0;
@@ -121,9 +120,9 @@ uint64_t locator_lookup_interval_index_2way(
   } while (hi > lo);
   // Return Interval
   GEM_INTERNAL_CHECK(
-        intervals[lo].begin_position <= index_position &&
-        index_position < intervals[lo].end_position,
-        "Locator-Interval Binary Search. Wrong Boundaries");
+      locator->intervals[lo].begin_position <= index_position &&
+      index_position < locator->intervals[lo].end_position,
+      "Locator-Interval Binary Search. Wrong Boundaries");
   return lo;
 }
 uint64_t locator_lookup_interval_index_4way(

@@ -264,7 +264,8 @@ bool bpm_compute_edit_distance(
  * BPM all matches
  */
 uint64_t bpm_compute_edit_distance_all(
-    const bpm_pattern_t* const bpm_pattern,
+    bpm_pattern_t* const bpm_pattern,
+    bpm_pattern_t* const bpm_pattern_tiles,
     vector_t* const filtering_regions,
     const uint64_t text_trace_offset,
     const uint64_t begin_position,
@@ -312,7 +313,8 @@ uint64_t bpm_compute_edit_distance_all(
         if (current_score==0) { // Don't try to optimize (exact match)
           const uint64_t text_end_offset = min_score_column+1;
           const uint64_t text_begin_offset = BOUNDED_SUBTRACTION(text_end_offset,key_length+min_score,0);
-          filtering_region_add(filtering_regions,
+          filtering_region_add(
+              filtering_regions,bpm_pattern,bpm_pattern_tiles,
               text_trace_offset,begin_position,end_position,
               min_score,text_begin_offset,text_end_offset,mm_stack);
           ++num_matches_found; // Increment the number of matches found
@@ -329,7 +331,8 @@ uint64_t bpm_compute_edit_distance_all(
       if (opt_steps_left==0) {
         const uint64_t text_end_offset = min_score_column+1;
         const uint64_t text_begin_offset = BOUNDED_SUBTRACTION(text_end_offset,key_length+min_score,0);
-        filtering_region_add(filtering_regions,
+        filtering_region_add(
+            filtering_regions,bpm_pattern,bpm_pattern_tiles,
             text_trace_offset,begin_position,end_position,
             min_score,text_begin_offset,text_end_offset,mm_stack);
         ++num_matches_found; // Increment the number of matches found
@@ -347,7 +350,8 @@ uint64_t bpm_compute_edit_distance_all(
   if (match_found) {
     const uint64_t text_end_offset = min_score_column+1;
     const uint64_t text_begin_offset = BOUNDED_SUBTRACTION(text_end_offset,key_length+min_score,0);
-    filtering_region_add(filtering_regions,
+    filtering_region_add(
+        filtering_regions,bpm_pattern,bpm_pattern_tiles,
         text_trace_offset,begin_position,end_position,
         min_score,text_begin_offset,text_end_offset,mm_stack);
     ++num_matches_found; // Increment the number of matches found

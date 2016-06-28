@@ -84,10 +84,21 @@ typedef struct {
 } verified_region_t;
 
 /*
- * Accessors
+ * Prepare Alignment
+ */
+void filtering_region_alignment_prepare(
+    filtering_region_t* const filtering_region,
+    bpm_pattern_t* const bpm_pattern,
+    bpm_pattern_t* const bpm_pattern_tiles,
+    mm_stack_t* const mm_stack);
+
+/*
+ * Add region to the vector of filtering-regions
  */
 void filtering_region_add(
     vector_t* const filtering_regions,
+    bpm_pattern_t* const bpm_pattern,
+    bpm_pattern_t* const bpm_pattern_tiles,
     const uint64_t text_trace_offset,
     const uint64_t begin_position,
     const uint64_t end_position,
@@ -104,15 +115,6 @@ void filtering_region_retrieve_text(
     pattern_t* const pattern,
     archive_text_t* const archive_text,
     text_collection_t* const text_collection,
-    mm_stack_t* const mm_stack);
-
-/*
- * Prepare Alignment
- */
-void filtering_region_alignment_prepare(
-    filtering_region_t* const filtering_region,
-    bpm_pattern_t* const bpm_pattern,
-    bpm_pattern_t* const bpm_pattern_tiles,
     mm_stack_t* const mm_stack);
 
 /*
