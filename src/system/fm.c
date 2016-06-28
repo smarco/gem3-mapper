@@ -58,13 +58,6 @@
 #define GEM_ERROR_FM_DUP  "Could not duplicate file '%s' (not regular FILE or stream)"
 
 /*
- * Config
- */
-#ifndef O_NOATIME
-  #define O_NOATIME 0 /* FIXME: O_NOATIME is not allowed if only read rights are guaranteed */
-#endif
-
-/*
  * File-Manager
  */
 struct _fm_t {
@@ -97,7 +90,7 @@ struct _fm_t {
 #define FM_BULK_COPY_BLOCK_SIZE BUFFER_SIZE_256M // SSIZE_MAX
 #define FM_SKIP_BUFFER_SIZE     BUFFER_SIZE_2M
 // Open Flags
-const int fm_open_flags[3] = { O_RDONLY, O_WRONLY|O_CREAT|O_NOATIME|O_TRUNC, O_RDWR|O_CREAT|O_NOATIME };
+const int fm_open_flags[3] = { O_RDONLY, O_WRONLY|O_CREAT|O_TRUNC, O_RDWR|O_CREAT };
 const char* const fm_file_open_flags[3] = { "rb", "wb", "wb+" };
 const char* const fm_gzfile_open_flags[3] = { "rb", "wb9", "wb+9"};
 
