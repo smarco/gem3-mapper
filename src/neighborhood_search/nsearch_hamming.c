@@ -105,8 +105,13 @@ void nsearch_hamming_brute_force(
   nsearch_schedule_init(&nsearch_schedule,nsearch_model_hamming,search,matches);
   // Search
   TIMER_START(&nsearch_schedule.profile.ns_timer);
+#ifdef NSEARCH_ENUMERATE
   const uint64_t init_lo = 0;
-  const uint64_t init_hi = fm_index_get_length(search->archive->fm_index);
+  const uint64_t init_hi = 1;
+#else
+  const uint64_t init_lo = 0;
+  const uint64_t init_hi = fm_index_get_length(nsearch_schedule.search->archive->fm_index);
+#endif
   nsearch_hamming_brute_force_step(&nsearch_schedule,
       nsearch_schedule.key_length-1,0,init_lo,init_hi);
   TIMER_STOP(&nsearch_schedule.profile.ns_timer);
@@ -180,12 +185,13 @@ void nsearch_hamming_scheduled_search(nsearch_schedule_t* const nsearch_schedule
   // Parameters
   const uint64_t pending_searches = nsearch_schedule->num_pending_searches - 1;
   nsearch_operation_t* const nsearch_operation = nsearch_schedule->pending_searches + pending_searches;
-  fm_index_t* const fm_index = nsearch_schedule->search->archive->fm_index;
   // Init query
   fm_2interval_t fm_2interval;
-  fm_index_2query_init(fm_index,&fm_2interval);
+#ifndef NSEARCH_ENUMERATE
+  fm_index_2query_init(nsearch_schedule->search->archive->fm_index,&fm_2interval);
+#endif
   // Launch search
-  //nsearch_schedule_print_pretty(stderr,nsearch_schedule); // DEBUG
+  // nsearch_schedule_print_pretty(stderr,nsearch_schedule); // DEBUG
   const int64_t begin_position =
       (nsearch_operation->search_direction==direction_forward) ?
           nsearch_operation->local_key_begin :

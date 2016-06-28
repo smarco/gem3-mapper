@@ -40,9 +40,9 @@ uint64_t nsearch_levenshtein_terminate(
     const uint64_t align_distance) {
   NSEARCH_PROF_ADD_SOLUTION(nsearch_schedule);
 #ifdef NSEARCH_ENUMERATE
-  //const uint8_t* const text = nsearch_schedule->nsearch_operation_aux->global_text;
-  //dna_buffer_print(stdout,text,text_position+1,true);
-  //fprintf(stdout,"\n");
+  const uint8_t* const text = nsearch_schedule->nsearch_operation_aux->global_text;
+  dna_buffer_print(stdout,text,text_position+1,true);
+  fprintf(stdout,"\n");
   return 1;
 #else
   filtering_candidates_t* const filtering_candidates = nsearch_schedule->search->filtering_candidates;
@@ -149,7 +149,7 @@ void nsearch_levenshtein(
   nsearch_schedule_t nsearch_schedule;
   nsearch_schedule_init(&nsearch_schedule,nsearch_model_levenshtein,search,matches);
   nsearch_schedule_search(&nsearch_schedule);
-  nsearch_schedule_print_profile(stderr,&nsearch_schedule); // PROFILE
+  // nsearch_schedule_print_profile(stderr,&nsearch_schedule); // PROFILE
 }
 /*
  * Neighborhood Search (Preconditioned by region profile)
@@ -161,7 +161,7 @@ void nsearch_levenshtein_preconditioned(
   nsearch_schedule_t nsearch_schedule;
   nsearch_schedule_init(&nsearch_schedule,nsearch_model_levenshtein,search,matches);
   nsearch_schedule_search_preconditioned(&nsearch_schedule);
-  nsearch_schedule_print_profile(stderr,&nsearch_schedule); // PROFILE
+  // nsearch_schedule_print_profile(stderr,&nsearch_schedule); // PROFILE
 }
 /*
  * Display

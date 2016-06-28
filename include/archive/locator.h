@@ -106,9 +106,6 @@ uint64_t locator_interval_get_text_length(const locator_interval_t* const interv
 /*
  * Text-Locating functions
  */
-uint64_t locator_lookup_interval_index(
-    const locator_t* const locator,
-    const uint64_t index_position);
 locator_interval_t* locator_lookup_interval(
     const locator_t* const locator,
     const uint64_t index_position);
@@ -116,9 +113,6 @@ locator_interval_t* locator_lookup_interval(
 /*
  * RL-Locating functions
  */
-uint64_t locator_lookup_rl_interval_index(
-    const locator_t* const locator,
-    const uint64_t rl_index_position);
 locator_interval_t* locator_lookup_rl_interval(
     const locator_t* const locator,
     const uint64_t rl_index_position);

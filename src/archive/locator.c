@@ -102,29 +102,39 @@ uint64_t locator_interval_get_text_length(const locator_interval_t* const interv
 /*
  * Text-Locating functions
  */
-//  // Binary search of the interval
-//  const locator_interval_t* const intervals = locator->intervals;
-//  const uint64_t* const intervals_begin_position = locator->intervals_begin_position;
-//  uint64_t lo = 0;
-//  uint64_t hi = locator->num_intervals;
-//  do {
-//    const uint64_t half = (hi+lo)/4;
-//    if (index_position < intervals_begin_position[half]) {
-//      hi = half;
-//    } else {
-//      lo = half;
-//    }
-//  } while (hi > lo+1);
-//  // Return Interval
-//  GEM_INTERNAL_CHECK(
-//        intervals[lo].begin_position <= index_position && index_position < intervals[lo].end_position,
-//        "Locator-Interval Binary Search. Wrong Boundaries");
-//  return lo;
-uint64_t locator_lookup_interval_index(
+uint64_t locator_lookup_interval_index_2way(
     const locator_t* const locator,
     const uint64_t index_position) {
-  // 4-way search of the interval
+  // Binary search of the interval
+  const locator_interval_t* const intervals = locator->intervals;
   const uint64_t* const intervals_begin_position = locator->intervals_begin_position;
+  if (locator->num_intervals == 1) return 0;
+  uint64_t lo = 0;
+  uint64_t hi = locator->num_intervals-1;
+  do {
+    const uint64_t half = (hi+lo+1)/2;
+    if (index_position < intervals_begin_position[half]) {
+      hi = half-1;
+    } else {
+      lo = half;
+    }
+  } while (hi > lo);
+  // Return Interval
+  GEM_INTERNAL_CHECK(
+        intervals[lo].begin_position <= index_position &&
+        index_position < intervals[lo].end_position,
+        "Locator-Interval Binary Search. Wrong Boundaries");
+  return lo;
+}
+uint64_t locator_lookup_interval_index_4way(
+    const locator_t* const locator,
+    const uint64_t index_position) {
+  // 2-way search of the interval (for small cases)
+  const uint64_t* const intervals_begin_position = locator->intervals_begin_position;
+  if (locator->num_intervals <= 4) {
+    return locator_lookup_interval_index_2way(locator,index_position);
+  }
+  // 4-way search of the interval
   uint64_t lo = 0;
   uint64_t hi = locator->num_intervals;
   do {
@@ -159,7 +169,7 @@ uint64_t locator_lookup_interval_index(
 locator_interval_t* locator_lookup_interval(
     const locator_t* const locator,
     const uint64_t index_position) {
-  return locator->intervals + locator_lookup_interval_index(locator,index_position);
+  return locator->intervals + locator_lookup_interval_index_4way(locator,index_position);
 }
 /*
  * RL-Locating functions

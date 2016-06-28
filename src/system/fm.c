@@ -18,6 +18,11 @@
 #include "utils/vector.h"
 
 /*
+ * Debug
+ */
+#define FM_DEEP_DEBUG true
+
+/*
  * Error Messages
  */
 #define GEM_ERROR_FM_NO_ZLIB_SUPPORT "ZLIB functionality disable for this compilation"
@@ -675,12 +680,15 @@ void fm_bulk_read_fd(
     const int fd,
     void* const dst,
     const uint64_t size) {
-  uint64_t bytes_written = 0;
+  uint64_t bytes_written = 0, bytes_read = 0;
   while (bytes_written < size) {
     const uint64_t bytes_pending = size-bytes_written;
     const uint64_t chunk_size = (bytes_pending<FM_BULK_COPY_BLOCK_SIZE) ? bytes_pending : FM_BULK_COPY_BLOCK_SIZE;
     // Copy chunk
-    gem_cond_fatal_error__perror(read(fd,dst+bytes_written,chunk_size)!=chunk_size,FM_FDREAD,chunk_size,fd);
+    gem_cond_log(FM_DEEP_DEBUG,"[GEM]> Reading 'read(...)' %lu bytes from offset %lu ...",chunk_size,bytes_written);
+    bytes_read = read(fd,dst+bytes_written,chunk_size);
+    gem_cond_fatal_error__perror(bytes_read!=chunk_size,FM_FDREAD,chunk_size,fd);
+    gem_cond_log(FM_DEEP_DEBUG,"[GEM]> ... done! (%lu bytes read)",bytes_read);
     bytes_written += chunk_size;
   }
 }

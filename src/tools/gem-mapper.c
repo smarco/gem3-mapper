@@ -233,7 +233,7 @@ option_t gem_mapper_options[] = {
   { 502, "discordant-pair-orientation", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "'FR'|'RF'|'FF'|'RR'" , "(default=RF)" },
   { 503, "pair-layout", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "'separate'|'overlap'|'contain'" , "(default=separated,overlap)" },
   { 504, "discordant-pair-layout", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "'separate'|'overlap'|'contain'" , "(default=contain)" },
-  { 505, "pe-extension", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "'none'|'recovery'|'shortcut'|'all'" , "(default=none)" },
+  // TODO { 505, "pe-extension", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "'none'|'recovery'|'shortcut'|'all'" , "(default=none)" },
   { 506, "pe-template-length", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "<min>,<max>," , "(default=disabled)" },
   /* Bisulfite Alignment */
   { 601, "bisulfite-read", REQUIRED, TYPE_STRING, 6, VISIBILITY_ADVANCED, "'inferred','1','2','interleaved'",  "(default=inferred)" },

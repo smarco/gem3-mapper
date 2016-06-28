@@ -114,7 +114,7 @@ void nsearch_schedule_search_step(
       }
       case nsearch_model_levenshtein: {
         nsearch_levenshtein_scheduled_search(nsearch_schedule,
-            nsearch_schedule->num_pending_searches,NULL);
+            nsearch_schedule->num_pending_searches,NULL,NULL);
         break;
       }
       default:

@@ -19,7 +19,8 @@
 /*
  * Debug
  */
-#define MM_STACK_LOG false
+#define MM_STACK_LOG      false
+#define MM_STACK_LOG_DEEP false
 //#define MM_STACK_DEBUG
 
 /*
@@ -186,7 +187,7 @@ mm_stack_segment_t* mm_stack_add_segment(mm_stack_t* const mm_stack) {
 #ifdef MM_STACK_DEBUG
 void* mm_stack_memory_allocate(
     mm_stack_t* const mm_stack,
-    const uint64_t num_bytes,
+    uint64_t num_bytes,
     const bool zero_mem) {
   // Issue malloc request
   if (num_bytes > BUFFER_SIZE_1G) {
@@ -201,10 +202,12 @@ void* mm_stack_memory_allocate(
 #else
 void* mm_stack_memory_allocate(
     mm_stack_t* const mm_stack,
-    const uint64_t num_bytes,
+    uint64_t num_bytes,
     const bool zero_mem) {
   // Get last stack segment
   mm_stack_segment_t* current_segment = vector_get_elm(mm_stack->segments,mm_stack->current_segment,mm_stack_segment_t);
+  // Check requested bytes to ensure alignment to 16Bytes (128bits)
+  if (num_bytes%16 != 0) num_bytes += 16-(num_bytes%16);
   // Check if there is enough free memory in the segment
   if (gem_expect_false(num_bytes > current_segment->memory_available)) {
     // Check we can fit the request into a slab unit
@@ -228,6 +231,9 @@ void* mm_stack_memory_allocate(
   current_segment->memory += num_bytes;
   current_segment->memory_available -= num_bytes;
   if (gem_expect_false(zero_mem)) memset(memory,0,num_bytes); // Set zero
+  gem_cond_log(MM_STACK_LOG_DEEP,
+      "[GEM]> mm_stack(%"PRIu64").requested %lu Bytes from %lu available. Pointer %p (diff=%lu)",
+      mm_stack->id,num_bytes,current_segment->memory_available+num_bytes,memory,current_segment->memory-memory);
   // Return memory
   return memory;
 }
