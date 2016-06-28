@@ -47,7 +47,7 @@ bwt_builder_t* fm_index_write(
   if (verbose) bwt_builder_print(gem_info_get_stream(),bwt_builder);
   // Build mrank table
   rank_mtable_t* const rank_mtable = rank_mtable_builder_new(bwt_builder,verbose);
-  if (verbose) rank_mtable_print(gem_info_get_stream(),rank_mtable);
+  if (verbose) rank_mtable_print(gem_info_get_stream(),rank_mtable,false);
   // Write mrank table
   rank_mtable_builder_write(file_manager,rank_mtable);
   rank_mtable_builder_delete(rank_mtable); // Free
@@ -210,7 +210,7 @@ void fm_index_print(
   // Sampled SuffixArray positions
   sampled_sa_print(stream,fm_index->sampled_sa,false);
   // Memoizated intervals
-  rank_mtable_print(stream,fm_index->rank_table);
+  rank_mtable_print(stream,fm_index->rank_table,true);
   // BWT structure
   bwt_print(stream,fm_index->bwt);
   tab_global_dec();

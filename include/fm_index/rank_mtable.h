@@ -81,10 +81,7 @@ void rank_mtable_fetch(
  */
 void rank_mtable_print(
     FILE* const stream,
-    rank_mtable_t* const rank_mtable);
-void rank_mtable_print_content(
-    FILE* const stream,
     rank_mtable_t* const rank_mtable,
-    const uint64_t text_length);
+    const bool print_content);
 
 #endif /* RANK_MTABLE_H_ */

@@ -195,6 +195,8 @@ void archive_text_print(
   tab_global_dec();
   // Sampled RL-Text
   tab_global_inc();
-  sampled_rl_print(stream,archive_text->sampled_rl);
+  if (archive_text->sampled_rl != NULL) {
+    sampled_rl_print(stream,archive_text->sampled_rl);
+  }
   tab_global_dec();
 }

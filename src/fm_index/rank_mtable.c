@@ -111,23 +111,62 @@ void rank_mtable_fetch(
 /*
  * Display
  */
+void rank_mtable_print_content_rec(
+    FILE* const stream,
+    rank_mtable_t* const rank_mtable,
+    const uint64_t current_offset,
+    const uint64_t current_level,
+    const uint64_t max_level,
+    char* const string) {
+  // Control recursion level
+  if (gem_expect_false(current_level < max_level)) {
+    // Get level & Calculate level offset
+    uint64_t* const rank_level = rank_mtable->sa_ranks_levels[current_level];
+    const uint64_t next_level = current_level+1;
+    const uint64_t level_skip = rank_mtable->level_skip[current_level];
+    char* const string_level = string + (RANK_MTABLE_SEARCH_DEPTH-current_level);
+    // Update 'A'
+    const uint64_t offset_A = current_offset;
+    *string_level = 'A';
+    tab_fprintf(stream,"[%s] %lu %lu\n",string_level,rank_level[offset_A],rank_level[offset_A+1]);
+    rank_mtable_print_content_rec(stream,rank_mtable,offset_A,next_level,max_level,string);
+    // Update 'C'
+    const uint64_t offset_C = offset_A + level_skip;
+    *string_level = 'C';
+    tab_fprintf(stream,"[%s] %lu %lu\n",string_level,rank_level[offset_C],rank_level[offset_C+1]);
+    rank_mtable_print_content_rec(stream,rank_mtable,offset_C,next_level,max_level,string);
+    // Update 'G'
+    const uint64_t offset_G = offset_C + level_skip;
+    *string_level = 'G';
+    tab_fprintf(stream,"[%s] %lu %lu\n",string_level,rank_level[offset_G],rank_level[offset_G+1]);
+    rank_mtable_print_content_rec(stream,rank_mtable,offset_G,next_level,max_level,string);
+    // Update 'T'
+    const uint64_t offset_T = offset_G + level_skip;
+    *string_level = 'T';
+    tab_fprintf(stream,"[%s] %lu %lu\n",string_level,rank_level[offset_T],rank_level[offset_T+1]);
+    rank_mtable_print_content_rec(stream,rank_mtable,offset_T,next_level,max_level,string);
+  }
+}
 void rank_mtable_print(
     FILE* const stream,
-    rank_mtable_t* const rank_mtable) {
+    rank_mtable_t* const rank_mtable,
+    const bool print_content) {
   tab_fprintf(stream,"[GEM]>Rank.Table\n");
   tab_fprintf(stream,"  => Total.Cells        %"PRIu64"\n",rank_mtable->table_size);
   tab_fprintf(stream,"  => Total.Size         %"PRIu64" MB\n",CONVERT_B_TO_MB(rank_mtable->table_size*UINT64_SIZE));
   tab_fprintf(stream,"  => Num.Levels         %"PRIu64"\n",rank_mtable->num_levels);
   tab_fprintf(stream,"  => Min.matching.depth %"PRIu64"\n",rank_mtable->min_matching_depth);
+  // Print content
+  if (print_content) {
+    tab_fprintf(stream,"  => Content\n");
+    char string[RANK_MTABLE_SEARCH_DEPTH+1];
+    const uint64_t max_level = 4; // MAX==rank_mtable->num_levels;
+    tab_global_inc(); tab_global_inc();
+    string[RANK_MTABLE_SEARCH_DEPTH] = '\0';
+    rank_mtable_print_content_rec(stream,rank_mtable,0,1,max_level,string);
+    tab_global_dec(); tab_global_dec();
+  }
   // Flush
   fflush(stream);
 }
-void rank_mtable_print_content(
-    FILE* const stream,
-    rank_mtable_t* const rank_mtable,
-    const uint64_t text_length) {
-  uint64_t i;
-  for (i=0;i<rank_mtable->table_size;++i) {
-    fprintf(stream,"%"PRIu64"\n",rank_mtable->sa_ranks_levels[0][i]);
-  }
-}
+
