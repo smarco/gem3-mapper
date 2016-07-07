@@ -100,11 +100,13 @@ typedef struct{
 } gpu_fmi_decode_end_pos_t;
 
 typedef struct {
-  uint64_t*          c;               // Occurrences of each character
-  uint64_t*          C;               // The cumulative occurrences ("ranks") of the symbols of the string
-  uint64_t*          mayor_counters;  // Pointer to the Mayor Counters (Rank)
-  uint64_t*          bwt_mem;         // Pointer to the BWT structure in memory
-  uint64_t           bwt_length;      // Length of the BWT
+  uint64_t*          c;                     // Occurrences of each character
+  uint64_t*          C;                     // The cumulative occurrences ("ranks") of the symbols of the string
+  uint64_t*          mayor_counters;        // Pointer to the Mayor Counters (Rank)
+  uint64_t*          bwt_mem;               // Pointer to the BWT structure in memory
+  uint64_t           bwt_length;            // Length of the BWT
+  uint64_t           num_levels_fmi_table;
+  uint64_t           skip_levels_fmi_table;
   gpu_index_coding_t index_coding;
 } gpu_gem_fmi_dto_t;
 
@@ -112,6 +114,11 @@ typedef struct {
   char                *h_plain;
   gpu_fmi_entry_t     *h_fmi;
   uint64_t            bwtSize;
+  uint32_t            *h_offsetsTable;
+  gpu_sa_entry_t      *h_table;
+  uint32_t            numLevelsTable;
+  uint32_t            skipLevelsTable;
+  uint32_t            numElementsTable;
   gpu_index_coding_t  indexCoding;
 } gpu_fmi_dto_t;
 

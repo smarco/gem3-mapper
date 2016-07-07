@@ -28,12 +28,15 @@ void gpu_structures_write(
   char* const gpu_index_name = gem_strcat(index_file_name_prefix,".gem.gpu");
   // Prepare GPU DTOs (Data Transfer Objects)
   gpu_gem_fmi_dto_t gpu_gem_fmi_dto = {
-      .c              = bwt_builder->bwt.c,
-      .C              = bwt_builder->bwt.C,
-      .mayor_counters = bwt_builder->bwt.mayor_counters,
-      .bwt_mem        = bwt_builder->bwt.bwt_mem,
-      .bwt_length     = bwt_builder->bwt.length,
-      .index_coding   = GPU_INDEX_GEM_FULL,
+      .c                     = bwt_builder->bwt.c,
+      .C                     = bwt_builder->bwt.C,
+      .mayor_counters        = bwt_builder->bwt.mayor_counters,
+      .bwt_mem               = bwt_builder->bwt.bwt_mem,
+      .bwt_length            = bwt_builder->bwt.length,
+      .index_coding          = GPU_INDEX_GEM_FULL,
+      /* (numLevels, Size) => (9, 0.8MB) (10, 3.2MB) (11, 13MB) (12, 52MB) (13, 210MB) */
+      .num_levels_fmi_table  = 12,
+      .skip_levels_fmi_table = 6,
   };
   gpu_gem_sa_dto_t gpu_gem_sa_dto = {
       .sa           = sa_gem,

@@ -44,18 +44,13 @@ gpu_error_t gpu_fmi_index_read(FILE* fp, gpu_fmi_buffer_t* const fmi)
 {
   size_t result;
 
-  result = fread(&fmi->numEntries, sizeof(uint64_t), 1, fp);
-  if (result != 1) return (E_READING_FILE);
-  result = fread(&fmi->bwtSize, sizeof(uint64_t), 1, fp);
-  if (result != 1) return (E_READING_FILE);
-
   result = fread(fmi->h_fmi, sizeof(gpu_fmi_entry_t), fmi->numEntries, fp);
   if (result != fmi->numEntries) return (E_READING_FILE);
 
   return (SUCCESS);
 }
 
-gpu_error_t gpu_fmi_index_write(FILE* fp, const gpu_fmi_buffer_t* const fmi)
+gpu_error_t gpu_fmi_index_write_specs(FILE* fp, const gpu_fmi_buffer_t* const fmi)
 {
   size_t result;
 
@@ -63,6 +58,13 @@ gpu_error_t gpu_fmi_index_write(FILE* fp, const gpu_fmi_buffer_t* const fmi)
   if (result != 1) return (E_WRITING_FILE);
   result = fwrite(&fmi->bwtSize, sizeof(uint64_t), 1, fp);
   if (result != 1) return (E_WRITING_FILE);
+
+  return (SUCCESS);
+}
+
+gpu_error_t gpu_fmi_index_write(FILE* fp, const gpu_fmi_buffer_t* const fmi)
+{
+  size_t result;
 
   result = fwrite(fmi->h_fmi, sizeof(gpu_fmi_entry_t), fmi->numEntries, fp);
   if (result != fmi->numEntries) return (E_WRITING_FILE);

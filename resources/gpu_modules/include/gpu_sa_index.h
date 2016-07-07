@@ -38,6 +38,7 @@ gpu_error_t gpu_sa_index_transfer_CPU_to_GPUs(gpu_sa_buffer_t* const sa, gpu_dev
 /* Stream index functions  */
 gpu_error_t gpu_sa_index_read_specs(FILE* fp, gpu_sa_buffer_t* const sa);
 gpu_error_t gpu_sa_index_read(FILE* fp, gpu_sa_buffer_t* const sa);
+gpu_error_t gpu_sa_index_write_specs(FILE* fp, const gpu_sa_buffer_t* const sa);
 gpu_error_t gpu_sa_index_write(FILE* fp, const gpu_sa_buffer_t* const sa);
 
 /* Data load functions */

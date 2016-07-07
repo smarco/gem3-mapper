@@ -48,14 +48,16 @@ typedef enum
   /* GPU stages          */
   GPU_SEEDING           = GPU_INDEX,
   GPU_FILTERING         = GPU_REFERENCE,
-
+  /* General setups      */
   GPU_NONE_MODULES      = 0,
   GPU_ALL_MODULES       = GPU_SEEDING | GPU_FILTERING
 } gpu_module_t;
 
 typedef enum
 {
+  /* Non-supported GPU architectures */
   GPU_ARCH_TESLA      = GPU_UINT32_ONE_MASK << 0,
+  /* Supported GPU architectures     */
   GPU_ARCH_FERMI_1G   = GPU_UINT32_ONE_MASK << 1,
   GPU_ARCH_FERMI_2G   = GPU_UINT32_ONE_MASK << 2,
   GPU_ARCH_KEPLER_1G  = GPU_UINT32_ONE_MASK << 3,
@@ -64,12 +66,12 @@ typedef enum
   GPU_ARCH_MAXWELL_2G = GPU_UINT32_ONE_MASK << 6,
   GPU_ARCH_PASCAL_1G  = GPU_UINT32_ONE_MASK << 7,
   GPU_ARCH_PASCAL_2G  = GPU_UINT32_ONE_MASK << 8,
-
+  /* Main GPU Architectures          */
   GPU_ARCH_FERMI      = GPU_ARCH_FERMI_1G   | GPU_ARCH_FERMI_2G,
   GPU_ARCH_KEPLER     = GPU_ARCH_KEPLER_1G  | GPU_ARCH_KEPLER_2G,
   GPU_ARCH_MAXWELL    = GPU_ARCH_MAXWELL_1G | GPU_ARCH_MAXWELL_2G,
   GPU_ARCH_PASCAL     = GPU_ARCH_PASCAL_1G  | GPU_ARCH_PASCAL_2G,
-
+  /* General setups                  */
   GPU_ARCH_NEWGEN     = GPU_UINT32_ONE_MASK << 31,
   GPU_ARCH_SUPPORTED  = GPU_ARCH_FERMI | GPU_ARCH_KEPLER | GPU_ARCH_MAXWELL | GPU_ARCH_NEWGEN
 } gpu_dev_arch_t;

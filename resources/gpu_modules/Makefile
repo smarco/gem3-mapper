@@ -44,7 +44,7 @@ CUDA_SRCS=$(addprefix $(FOLDER_SOURCE)/, $(addsuffix .cu, $(CUDA_MODULES)))
 CUDA_OBJS=$(addprefix $(FOLDER_BUILD)/, $(addsuffix .o, $(CUDA_MODULES)))
 
 BASICS=gpu_commons gpu_buffer gpu_errors gpu_io gpu_sample gpu_module gpu_devices gpu_index gpu_reference
-FMI_MODULES=gpu_fmi_index gpu_fmi_primitives gpu_fmi_primitives_decode gpu_fmi_primitives_ssearch gpu_fmi_primitives_asearch
+FMI_MODULES=gpu_fmi_index gpu_fmi_table gpu_fmi_primitives gpu_fmi_primitives_decode gpu_fmi_primitives_ssearch gpu_fmi_primitives_asearch
 SA_MODULES=gpu_sa_index gpu_sa_primitives
 BPM_MODULES=gpu_bpm_primitives
 MODULES= $(FMI_MODULES) $(SA_MODULES) $(BPM_MODULES) $(BASICS)

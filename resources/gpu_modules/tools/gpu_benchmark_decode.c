@@ -16,9 +16,9 @@
 
 typedef struct {
 	/* Example test fields */
-	uint32_t 					numInitDecodings;
-	uint32_t 					numEndDecodings;
-	uint32_t					samplingRate;
+	uint32_t 					        numInitDecodings;
+	uint32_t 					        numEndDecodings;
+	uint32_t					        samplingRate;
 	gpu_fmi_decode_init_pos_t	*initDecodings;
 	gpu_fmi_decode_end_pos_t	*endDecodings;
 	gpu_fmi_decode_end_pos_t	*endDecodingsGEM;
@@ -27,26 +27,26 @@ typedef struct {
 
 uint32_t loadGEMProfile(const char *fn, test_t *profRegions)
 {
-    FILE *fp = NULL;
+  FILE *fp = NULL;
 
-    uint32_t idDecoding, steps;
-    uint64_t initBWTPos, endBWTPos;
-    uint32_t bookmark, numAs, numCs, numGs, numTs, numXs;
+  uint32_t idDecoding, steps;
+  uint64_t initBWTPos, endBWTPos;
+  uint32_t bookmark, numAs, numCs, numGs, numTs, numXs;
 
-    fp = fopen(fn, "r");
-    if (fp == NULL) return (8);
+  fp = fopen(fn, "r");
+  if (fp == NULL) return (8);
 
-    for(idDecoding = 0; idDecoding < profRegions->numInitDecodings; ++idDecoding){
-		fscanf(fp, "%llu %llu %u %c %u %u %u %u %u",
-				&initBWTPos, &endBWTPos, &steps, &bookmark,
-				&numAs, &numCs, &numGs, &numTs, &numXs);
-		profRegions->initDecodings[idDecoding]             = initBWTPos;
-		profRegions->endDecodingsGEM[idDecoding].interval  = endBWTPos;
-		profRegions->endDecodingsGEM[idDecoding].steps     = steps;
-	}
+  for(idDecoding = 0; idDecoding < profRegions->numInitDecodings; ++idDecoding){
+    fscanf(fp, "%llu %llu %u %c %u %u %u %u %u",
+           &initBWTPos, &endBWTPos, &steps, &bookmark,
+           &numAs, &numCs, &numGs, &numTs, &numXs);
+    profRegions->initDecodings[idDecoding]             = initBWTPos;
+    profRegions->endDecodingsGEM[idDecoding].interval  = endBWTPos;
+    profRegions->endDecodingsGEM[idDecoding].steps     = steps;
+  }
 
-    fclose(fp);
-    return (0);
+  fclose(fp);
+  return (0);
 }
 
 uint32_t inspectGEMProfile(const char *fn, uint32_t *numTotalDecodings)
@@ -84,8 +84,7 @@ uint32_t loadTestData(char *decodeFile, test_t *testData)
 	testData->numInitDecodings = totalNumDecodings;
 	testData->numEndDecodings = totalNumDecodings;
 
-
-    //allocate the memory for the structures on testData
+  //allocate the memory for the structures on testData
 	testData->initDecodings    = (gpu_fmi_decode_init_pos_t *) malloc(testData->numInitDecodings * sizeof(gpu_fmi_decode_init_pos_t));
 	if (testData->initDecodings == NULL){fprintf(stderr, "Error allocating initialized decodings \n"); exit(EXIT_FAILURE);}
 	testData->endDecodings     = (gpu_fmi_decode_end_pos_t *)  malloc(testData->numEndDecodings  * sizeof(gpu_fmi_decode_end_pos_t));
@@ -280,10 +279,10 @@ uint32_t main(int argc, char *argv[])
 	 * 6) Number of tasks		example: 120
 	 */
 	if(atoi(argv[1]) == 0){
-		numBuffers 		= atoi(argv[4]);
-		numThreads 		= atoi(argv[4]);
+		numBuffers 		  = atoi(argv[4]);
+		numThreads 		  = atoi(argv[4]);
 		maxMbPerBuffer 	= atoi(argv[5]);
-		numTasks 		= atoi(argv[6]);
+		numTasks 		    = atoi(argv[6]);
 
 	 	timeElapsed 	= processDecodeFMI(fmiFile, decodeFile, numBuffers, numThreads, (float) maxMbPerBuffer, numTasks);
 	}

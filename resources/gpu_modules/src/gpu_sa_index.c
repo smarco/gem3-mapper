@@ -43,18 +43,13 @@ gpu_error_t gpu_sa_index_read(FILE* fp, gpu_sa_buffer_t* const sa)
 {
   size_t result;
 
-  result = fread(&sa->numEntries, sizeof(uint64_t), 1, fp);
-  if (result != 1) return (E_READING_FILE);
-  result = fread(&sa->sampligRate, sizeof(uint64_t), 1, fp);
-  if (result != 1) return (E_READING_FILE);
-
   result = fread(sa->h_sa, sizeof(gpu_sa_entry_t), sa->numEntries, fp);
   if (result != sa->numEntries) return (E_READING_FILE);
 
   return (SUCCESS);
 }
 
-gpu_error_t gpu_sa_index_write(FILE* fp, const gpu_sa_buffer_t* const sa)
+gpu_error_t gpu_sa_index_write_specs(FILE* fp, const gpu_sa_buffer_t* const sa)
 {
   size_t result;
 
@@ -62,6 +57,13 @@ gpu_error_t gpu_sa_index_write(FILE* fp, const gpu_sa_buffer_t* const sa)
   if (result != 1) return (E_WRITING_FILE);
   result = fwrite(&sa->sampligRate, sizeof(uint64_t), 1, fp);
   if (result != 1) return (E_WRITING_FILE);
+
+  return (SUCCESS);
+}
+
+gpu_error_t gpu_sa_index_write(FILE* fp, const gpu_sa_buffer_t* const sa)
+{
+  size_t result;
 
   result = fwrite(sa->h_sa, sizeof(gpu_sa_entry_t), sa->numEntries, fp);
   if (result != sa->numEntries) return (E_WRITING_FILE);

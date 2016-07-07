@@ -13,12 +13,14 @@
 #include "gpu_commons.h"
 #include "gpu_devices.h"
 #include "gpu_fmi_structure.h"
+#include "gpu_fmi_table.h"
 
 /*****************************
 Internal Objects (General)
 *****************************/
 
 typedef struct {
+  gpu_fmi_table_t table;
   uint64_t        bwtSize;
   uint64_t        numEntries;
   gpu_fmi_entry_t *h_fmi;
@@ -42,6 +44,7 @@ gpu_error_t gpu_fmi_index_transfer_CPU_to_GPUs(gpu_fmi_buffer_t* const fmi, gpu_
 /* Stream index functions */
 gpu_error_t gpu_fmi_index_read_specs(FILE* fp, gpu_fmi_buffer_t* const fmi);
 gpu_error_t gpu_fmi_index_read(FILE* fp, gpu_fmi_buffer_t* const fmi);
+gpu_error_t gpu_fmi_index_write_specs(FILE* fp, const gpu_fmi_buffer_t* const fmi);
 gpu_error_t gpu_fmi_index_write(FILE* fp, const gpu_fmi_buffer_t* const fmi);
 
 /* Data transform functions */

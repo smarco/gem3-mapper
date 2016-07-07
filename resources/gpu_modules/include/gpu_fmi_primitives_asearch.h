@@ -20,7 +20,9 @@ Common constants for Device & Host
 *********************************/
 
 /* Defines related to FMI adaptative BACKWARD-SEARCH primitives */
-#define GPU_FMI_ENTRIES_PER_QUERY 2
+#define GPU_FMI_ENTRIES_PER_QUERY      2
+#define GPU_FMI_BASE_QUERY_LENGTH      8 //Bits per base query
+#define GPU_FMI_BASES_PER_QUERY_ENTRY  (GPU_UINT64_LENGTH / GPU_FMI_BASE_QUERY_LENGTH) //Bases per internal entry
 
 #define GPU_FMI_THREADS_PER_QUERY (GPU_FMI_THREADS_PER_ENTRY * GPU_FMI_ENTRIES_PER_SEED)
 #define GPU_FMI_D                 2

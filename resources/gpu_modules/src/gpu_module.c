@@ -62,6 +62,7 @@ gpu_error_t gpu_module_set_device_allocation(gpu_reference_buffer_t* const refer
   moduleMemorySpace = GPU_HOST_MAPPED;
   if(allocatedModules & GPU_FMI) moduleMemorySpace = GPU_DEVICE_MAPPED;
   index->fmi.memorySpace[idSupDevice] = moduleMemorySpace;
+  index->fmi.table.memorySpace[idSupDevice] = moduleMemorySpace;
 
   moduleMemorySpace = GPU_HOST_MAPPED;
   if(allocatedModules & GPU_SA) moduleMemorySpace = GPU_DEVICE_MAPPED;
