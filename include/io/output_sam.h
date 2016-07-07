@@ -52,7 +52,8 @@ void output_sam_print_header(
     archive_t* const archive,
     output_sam_parameters_t* const sam_parameters,
     int argc,
-    char** argv);
+    char** argv,
+    char* const gem_version);
 			
 
 /*

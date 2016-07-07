@@ -25,7 +25,7 @@ void nsearch_hamming_query(
     uint64_t* const hi_out) {
   NSEARCH_PROF_ADD_NODE(nsearch_schedule);
 #ifdef NSEARCH_ENUMERATE
-  nsearch_schedule->nsearch_operation_aux->global_text[current_position] = char_enc;
+  nsearch_schedule->pending_searches->text[current_position] = char_enc;
   *lo_out = 0; *hi_out = 1;
 #else
   fm_index_t* const fm_index = nsearch_schedule->search->archive->fm_index;
@@ -42,13 +42,13 @@ void nsearch_hamming_directional_query(
     fm_2interval_t* const fm_2interval_out) {
   NSEARCH_PROF_ADD_NODE(nsearch_schedule);
 #ifdef NSEARCH_ENUMERATE
-  nsearch_schedule->nsearch_operation_aux->global_text[current_position] = char_enc;
+  nsearch_schedule->pending_searches->text[current_position] = char_enc;
 #else
   fm_index_t* const fm_index = nsearch_schedule->search->archive->fm_index;
   if (search_direction==direction_forward) {
-    fm_index_2query_forward(fm_index,char_enc,fm_2interval_in,fm_2interval_out);
+    fm_index_2query_forward_query(fm_index,fm_2interval_in,fm_2interval_out,char_enc);
   } else {
-    fm_index_2query_backward(fm_index,char_enc,fm_2interval_in,fm_2interval_out);
+    fm_index_2query_backward_query(fm_index,fm_2interval_in,fm_2interval_out,char_enc);
   }
 #endif
 }
@@ -59,7 +59,7 @@ void nsearch_hamming_terminate(
     const uint64_t align_distance) {
   NSEARCH_PROF_ADD_SOLUTION(nsearch_schedule);
 #ifdef NSEARCH_ENUMERATE
-  const uint8_t* const text = nsearch_schedule->nsearch_operation_aux->global_text;
+  const uint8_t* const text = nsearch_schedule->pending_searches->text;
   dna_buffer_print(stdout,text,nsearch_schedule->key_length,false);
   fprintf(stdout,"\n");
 #else

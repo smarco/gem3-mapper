@@ -17,6 +17,12 @@
 #include "archive/locator.h"
 
 /*
+ * Version
+ */
+#define GEM_VERSION_STRING(version) QUOTE(version)
+char* const gem_version = GEM_VERSION_STRING(GEM_VERSION);
+
+/*
  * Debug
  */
 //#define GEM_RETRIEVER_DEBUG_
@@ -75,6 +81,7 @@ option_t gem_retriever_options[] = {
   { 'o', "output", REQUIRED, TYPE_STRING, 2 , VISIBILITY_USER, "<output_prefix>" , "(default=stdout)" },
   /* Miscellaneous */
   { 'h',  "help", OPTIONAL, TYPE_NONE, 3, VISIBILITY_USER, "" , "(print usage)" },
+  { 300, "version", NO_ARGUMENT, TYPE_STRING, 3, VISIBILITY_USER, "" , "" },
   {  0, "", 0, 0, 0, false, "", ""}
 };
 char* gem_retriever_groups[] = {
@@ -116,6 +123,9 @@ void parse_arguments(int argc,char** argv,retriever_parameters_t* const paramete
       } else {
         gem_retriever_error_msg("Help argument not valid {'user','advanced'}");
       }
+      exit(0);
+    case 300: // --version
+      fprintf(stderr,"%s\n",gem_version);
       exit(0);
     /* */
     case '?':

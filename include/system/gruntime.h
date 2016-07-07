@@ -12,12 +12,6 @@
 #include "system/commons.h"
 
 /*
- * Version
- */
-#define GEM_CORE_VERSION 3.1
-#define GEM_CORE_VERSION_STR "3.1"
-
-/*
  * GEM Runtime
  */
 void gruntime_init(

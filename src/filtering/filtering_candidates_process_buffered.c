@@ -247,15 +247,15 @@ void filtering_candidates_decode_text_filtering_positions_buffered(
 void filtering_candidates_process_candidates_buffered(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const pattern,
-    const bool compose_region_chaining) {
+    const bool compose_matching_regions) {
   PROFILE_START(GP_FC_PROCESS_CANDIDATES,PROFILE_LEVEL);
   // Retrieve total candidate positions
   PROF_ADD_COUNTER(GP_CANDIDATE_POSITIONS,vector_get_used(filtering_candidates->filtering_positions));
   // Compose matching regions into candidate regions (also filter out duplicated positions or already checked)
   PROFILE_START(GP_FC_COMPOSE_REGIONS,PROFILE_LEVEL);
   search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
-  const bool matching_regions_compose = compose_region_chaining && !search_parameters->force_full_swg;
-  filtering_candidates_compose_filtering_regions(filtering_candidates,pattern,matching_regions_compose);
+  filtering_candidates_compose_filtering_regions(
+      filtering_candidates,pattern,compose_matching_regions && !search_parameters->force_full_swg);
   PROFILE_STOP(GP_FC_COMPOSE_REGIONS,PROFILE_LEVEL);
   PROF_ADD_COUNTER(GP_CANDIDATE_REGIONS,vector_get_used(filtering_candidates->filtering_regions));
   // Return total candidate regions

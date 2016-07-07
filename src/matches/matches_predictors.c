@@ -117,7 +117,8 @@ void matches_predictors_compute(
   /*
    * Mappability
    */
-  predictors->max_region_length_norm = (double)search_metrics->max_region_length/search_metrics->proper_length;
+  const uint64_t max_region_length = (search_metrics->max_region_length==UINT32_MAX) ? 0 : search_metrics->max_region_length;
+  predictors->max_region_length_norm = (double)max_region_length/search_metrics->proper_length;
   predictors->kmer_frequency = search_metrics->kmer_frequency;
   /*
    * Template Size

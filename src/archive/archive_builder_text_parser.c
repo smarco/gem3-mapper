@@ -222,6 +222,7 @@ void archive_builder_generate_forward_text(
     }
   }
   // Close sequence
+  archive_builder_generate_text_process_unknowns(archive_builder); // Check Ns
   archive_builder_generate_text_close_sequence(archive_builder);
   gem_cond_fatal_error(input_multifasta_get_text_sequence_length(&archive_builder->parsing_state)==0,
       MULTIFASTA_SEQ_EMPTY,PRI_input_file_content(input_multifasta)); // Check sequence not null

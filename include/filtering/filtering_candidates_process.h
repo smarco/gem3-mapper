@@ -42,13 +42,14 @@ void filtering_candidates_compute_text_coordinates(
 uint64_t filtering_candidates_compose_filtering_regions(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const pattern,
-    const bool matching_regions_compose);
+    const bool compose_matching_regions);
 
 /*
  * Process Candidates
  */
 uint64_t filtering_candidates_process_candidates(
     filtering_candidates_t* const filtering_candidates,
-    pattern_t* const pattern);
+    pattern_t* const pattern,
+    const bool compose_matching_regions);
 
 #endif /* FILTERING_CANDIDATES_PROCESS_H_ */

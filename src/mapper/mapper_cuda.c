@@ -122,8 +122,9 @@ void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,const bool pai
   archive_t* const archive = mapper_parameters->archive;
   const bool bisulfite_index = (archive->type == archive_dna_bisulfite);
   if (mapper_parameters->io.output_format==SAM) {
-    output_sam_print_header(mapper_parameters->output_file,archive,
-        &mapper_parameters->io.sam_parameters,mapper_parameters->argc,mapper_parameters->argv);
+    output_sam_print_header(
+        mapper_parameters->output_file,archive,&mapper_parameters->io.sam_parameters,
+        mapper_parameters->argc,mapper_parameters->argv,mapper_parameters->gem_version);
     mapper_parameters->io.sam_parameters.bisulfite_output = bisulfite_index;
   }
   // Ticker

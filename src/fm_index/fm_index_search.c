@@ -121,7 +121,7 @@ void fm_index_reverse_bsearch_pure(
 
   int64_t i = key_length-1;
   while (i>=0 && fm_2interval.forward_lo < fm_2interval.forward_hi) {
-    fm_index_2query_backward(fm_index,key[i--],&fm_2interval,&fm_2interval);
+    fm_index_2query_backward_query(fm_index,&fm_2interval,&fm_2interval,key[i--]);
   }
 
   // Return results
@@ -143,14 +143,14 @@ void fm_index_reverse_bsearch_fb(
   // Search second half (forward)
   int64_t i;
   for (i=10;i<key_length;++i) {
-    fm_index_2query_forward(fm_index,key[i],&fm_2interval,&fm_2interval);
+    fm_index_2query_forward_query(fm_index,&fm_2interval,&fm_2interval,key[i]);
     if (fm_2interval.forward_lo >= fm_2interval.forward_hi) {
       *lo_out = 0; *hi_out = 0; return;
     }
   }
   // Search first half (backwards)
   for (i=9;i>=0;--i) {
-    fm_index_2query_backward(fm_index,key[i],&fm_2interval,&fm_2interval);
+    fm_index_2query_backward_query(fm_index,&fm_2interval,&fm_2interval,key[i]);
     if (fm_2interval.forward_lo >= fm_2interval.forward_hi) {
       *lo_out = 0; *hi_out = 0; return;
     }
@@ -174,14 +174,14 @@ void fm_index_reverse_bsearch_bf(
   // Search first half (backwards)
   int64_t i;
   for (i=9;i>=0;--i) {
-    fm_index_2query_backward(fm_index,key[i],&fm_2interval,&fm_2interval);
+    fm_index_2query_backward_query(fm_index,&fm_2interval,&fm_2interval,key[i]);
     if (fm_2interval.forward_lo >= fm_2interval.forward_hi) {
       *lo_out = 0; *hi_out = 0; return;
     }
   }
   // Search second half (forward)
   for (i=10;i<key_length;++i) {
-    fm_index_2query_forward(fm_index,key[i],&fm_2interval,&fm_2interval);
+    fm_index_2query_forward_query(fm_index,&fm_2interval,&fm_2interval,key[i]);
     if (fm_2interval.forward_lo >= fm_2interval.forward_hi) {
       *lo_out = 0; *hi_out = 0; return;
     }

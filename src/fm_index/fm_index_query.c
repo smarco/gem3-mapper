@@ -8,13 +8,6 @@
 #include "fm_index/fm_index_query.h"
 
 /*
- * Precomputed ranks
- */
-typedef struct {
-  uint64_t pranks[DNA_EXT_RANGE];         // Precomputed eranks
-} fm_2erank_elms_t;
-
-/*
  * Setup
  */
 void fm_index_2query_init(
@@ -158,11 +151,11 @@ void fm_index_precomputed_2query_backward(
 /*
  * FM-Index Bidirectional Operators
  */
-void fm_index_2query_forward(
+void fm_index_2query_forward_query(
     const fm_index_t* const fm_index,
-    const uint8_t char_enc,
     fm_2interval_t* const fm_2interval_in,
-    fm_2interval_t* const fm_2interval_out) {
+    fm_2interval_t* const fm_2interval_out,
+    const uint8_t char_enc) {
   // Precompute erank
   fm_2erank_elms_t lo_2erank_elms, hi_2erank_elms;
   fm_index_precompute_2erank(fm_index,&lo_2erank_elms,fm_2interval_in->forward_lo);
@@ -171,11 +164,11 @@ void fm_index_2query_forward(
   fm_index_precomputed_2query_forward(
       fm_2interval_in,fm_2interval_out,&lo_2erank_elms,&hi_2erank_elms,char_enc);
 }
-void fm_index_2query_backward(
+void fm_index_2query_backward_query(
     const fm_index_t* const fm_index,
-    const uint8_t char_enc,
     fm_2interval_t* const fm_2interval_in,
-    fm_2interval_t* const fm_2interval_out) {
+    fm_2interval_t* const fm_2interval_out,
+    const uint8_t char_enc) {
   // Precompute erank
   fm_2erank_elms_t lo_2erank_elms, hi_2erank_elms;
   fm_index_precompute_2erank(fm_index,&lo_2erank_elms,fm_2interval_in->backward_lo);
@@ -183,4 +176,47 @@ void fm_index_2query_backward(
   // Compute next 2interval
   fm_index_precomputed_2query_backward(
       fm_2interval_in,fm_2interval_out,&lo_2erank_elms,&hi_2erank_elms,char_enc);
+}
+/*
+ * FM-Index Bidirectional 2-step Operators
+ */
+void fm_index_2query_forward_precompute(
+    const fm_index_t* const fm_index,
+    fm_2interval_t* const fm_2interval,
+    fm_2erank_elms_t* const lo_2erank_elms,
+    fm_2erank_elms_t* const hi_2erank_elms) {
+  // Precompute erank
+  fm_index_precompute_2erank(fm_index,lo_2erank_elms,fm_2interval->forward_lo);
+  fm_index_precompute_2erank(fm_index,hi_2erank_elms,fm_2interval->forward_hi);
+}
+void fm_index_2query_backward_precompute(
+    const fm_index_t* const fm_index,
+    fm_2interval_t* const fm_2interval,
+    fm_2erank_elms_t* const lo_2erank_elms,
+    fm_2erank_elms_t* const hi_2erank_elms) {
+  // Precompute erank
+  fm_index_precompute_2erank(fm_index,lo_2erank_elms,fm_2interval->backward_lo);
+  fm_index_precompute_2erank(fm_index,hi_2erank_elms,fm_2interval->backward_hi);
+}
+void fm_index_2query_precomputed_forward_query(
+    fm_2erank_elms_t* const lo_2erank_elms,
+    fm_2erank_elms_t* const hi_2erank_elms,
+    fm_2interval_t* const fm_2interval_in,
+    fm_2interval_t* const fm_2interval_out,
+    const uint8_t char_enc) {
+  // Compute next 2interval
+  fm_index_precomputed_2query_forward(
+      fm_2interval_in,fm_2interval_out,
+      lo_2erank_elms,hi_2erank_elms,char_enc);
+}
+void fm_index_2query_precomputed_backward_query(
+    fm_2erank_elms_t* const lo_2erank_elms,
+    fm_2erank_elms_t* const hi_2erank_elms,
+    fm_2interval_t* const fm_2interval_in,
+    fm_2interval_t* const fm_2interval_out,
+    const uint8_t char_enc) {
+  // Compute next 2interval
+  fm_index_precomputed_2query_backward(
+      fm_2interval_in,fm_2interval_out,
+      lo_2erank_elms,hi_2erank_elms,char_enc);
 }

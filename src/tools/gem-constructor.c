@@ -29,6 +29,12 @@
 #include "neighborhood_search/nsearch_levenshtein.h"
 
 /*
+ * Version
+ */
+#define GEM_VERSION_STRING(version) QUOTE(version)
+char* const gem_version = GEM_VERSION_STRING(GEM_VERSION);
+
+/*
  * Generic parameters
  */
 typedef struct {
@@ -690,6 +696,7 @@ void constructor_ns_init(
   // Configure ASM-search
   search->mm_stack = mm_stack;
   search->current_max_complete_error = max_error;
+  search->region_profile.num_filtering_regions = 0;
   // Configure Key
   uint64_t i;
   search->pattern.key = mm_stack_calloc(mm_stack,key_length,uint8_t,true);

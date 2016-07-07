@@ -42,6 +42,6 @@ void filtering_candidates_decode_text_filtering_positions_buffered(
 void filtering_candidates_process_candidates_buffered(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const pattern,
-    const bool compose_region_chaining);
+    const bool compose_matching_regions);
 
 #endif /* FILTERING_CANDIDATES_PROCESS_BUFFERED_H_ */

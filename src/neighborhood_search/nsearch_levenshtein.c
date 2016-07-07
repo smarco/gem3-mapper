@@ -24,7 +24,7 @@ void nsearch_levenshtein_query(
     uint64_t* const hi_out) {
   NSEARCH_PROF_ADD_NODE(nsearch_schedule);
 #ifdef NSEARCH_ENUMERATE
-  nsearch_schedule->nsearch_operation_aux->global_text[current_position] = char_enc;
+  nsearch_schedule->pending_searches->text[current_position] = char_enc;
   *lo_out = 0; *hi_out = 1;
 #else
   fm_index_t* const fm_index = nsearch_schedule->search->archive->fm_index;
@@ -40,7 +40,7 @@ uint64_t nsearch_levenshtein_terminate(
     const uint64_t align_distance) {
   NSEARCH_PROF_ADD_SOLUTION(nsearch_schedule);
 #ifdef NSEARCH_ENUMERATE
-  const uint8_t* const text = nsearch_schedule->nsearch_operation_aux->global_text;
+  const uint8_t* const text = nsearch_schedule->pending_searches->text;
   dna_buffer_print(stdout,text,text_position+1,true);
   fprintf(stdout,"\n");
   return 1;
@@ -75,8 +75,9 @@ uint64_t nsearch_levenshtein_brute_force_step(
   for (char_enc=0;char_enc<DNA_RANGE;++char_enc) {
     // Compute DP-next
     uint64_t min_val, align_distance;
-    nsearch_levenshtein_state_compute_chararacter(&nsearch_operation->nsearch_state,false,
-        key,key_length,text_position,char_enc,max_error,&min_val,&align_distance);
+    nsearch_levenshtein_state_compute_chararacter(
+        &nsearch_operation->nsearch_state,false,key,key_length,
+        text_position,char_enc,max_error,&min_val,&align_distance);
     if (min_val > max_error) continue;
     // Query
     nsearch_levenshtein_query(
@@ -125,7 +126,7 @@ void nsearch_levenshtein_brute_force(
   nsearch_schedule_init(&nsearch_schedule,nsearch_model_levenshtein,search,matches);
   // Search
   TIMER_START(&nsearch_schedule.profile.ns_timer);
-  nsearch_operation_t* const nsearch_operation = nsearch_schedule.nsearch_operation_aux;
+  nsearch_operation_t* const nsearch_operation = nsearch_schedule.pending_searches;
   nsearch_levenshtein_state_prepare(&nsearch_operation->nsearch_state,supercondensed);
   nsearch_operation->text_position = 0;
 #ifdef NSEARCH_ENUMERATE
@@ -182,96 +183,4 @@ void nsearch_levenshtein_print_status(
     nsearch_operation_state_print_local_text(stream,nsearch_operation);
     nsearch_operation_state_print(stream,nsearch_operation,nsearch_schedule->key);
   }
-}
-typedef struct {
-  nsearch_operation_t* nsearch_operation;
-} nsearch_levenshtein_trace_t;
-int nsearch_levenshtein_trace_sort(
-    const nsearch_levenshtein_trace_t* const a,
-    const nsearch_levenshtein_trace_t* const b) {
-  return a->nsearch_operation->local_key_begin - b->nsearch_operation->local_key_begin;
-}
-#define VECTOR_SORT_NAME                 nsearch_levenshtein_trace
-#define VECTOR_SORT_TYPE                 nsearch_levenshtein_trace_t
-#define VECTOR_SORT_CMP(a,b)             nsearch_levenshtein_trace_sort(a,b)
-#include "utils/vector_sort.h"
-void nsearch_levenshtein_print_trace(
-    FILE* const stream,
-    nsearch_schedule_t* const nsearch_schedule) {
-  // Save stack state & allocate mem
-  mm_stack_t* const mm_stack = nsearch_schedule->mm_stack;
-  mm_stack_push_state(mm_stack);
-  const uint64_t num_searches = nsearch_schedule->num_pending_searches;
-  nsearch_levenshtein_trace_t* const nsearch_levenshtein_trace =
-      mm_stack_calloc(mm_stack,num_searches,nsearch_levenshtein_trace_t,true);
-  // Copy all operations
-  uint64_t i;
-  for (i=0;i<num_searches;++i) {
-    nsearch_levenshtein_trace[i].nsearch_operation = nsearch_schedule->pending_searches + i;
-  }
-  // Sort by local-key position
-  buffer_sort_nsearch_levenshtein_trace(nsearch_levenshtein_trace,num_searches);
-  // Print global-text
-  nsearch_operation_t* const last_nsearch_operation = nsearch_schedule->pending_searches;
-  if (last_nsearch_operation->search_direction==direction_forward) {
-    dna_buffer_print(stream,last_nsearch_operation->global_text,last_nsearch_operation->global_text_length,false);
-    dna_buffer_print(stream,last_nsearch_operation->text,last_nsearch_operation->text_position,false);
-  } else {
-    dna_buffer_print(stream,last_nsearch_operation->text,last_nsearch_operation->text_position,true);
-    dna_buffer_print(stream,last_nsearch_operation->global_text,last_nsearch_operation->global_text_length,true);
-  }
-  fprintf(stream,"\t");
-  // Print global-text with region separators
-  for (i=0;i<num_searches;++i) {
-    nsearch_operation_t* const nsearch_operation = nsearch_levenshtein_trace[i].nsearch_operation;
-    if (i>0) fprintf(stream,"|");
-    dna_buffer_print(stream,
-        nsearch_operation->text,nsearch_operation->text_position,
-        nsearch_operation->search_direction!=direction_forward);
-  }
-  fprintf(stream,"\t");
-  // Print search-ranges min/max-error
-  for (i=0;i<num_searches;++i) {
-    nsearch_operation_t* const nsearch_operation = nsearch_levenshtein_trace[i].nsearch_operation;
-    fprintf(stream,"{%lu}{%lu,%lu}",nsearch_operation->min_local_error,
-        nsearch_operation->min_global_error,nsearch_operation->max_global_error);
-  }
-  fprintf(stream,"\t");
-  // Print search-ranges trace
-  for (i=0;i<num_searches;++i) {
-    nsearch_operation_t* const nsearch_operation = nsearch_schedule->pending_searches + (num_searches-i-1);
-    fprintf(stream,"[%lu,%lu)",nsearch_operation->local_key_begin,nsearch_operation->local_key_end);
-  }
-  fprintf(stream,"\n");
-  // Free
-  mm_stack_pop_state(mm_stack);
-}
-void nsearch_levenshtein_print_alignment(
-    FILE* const stream,
-    char* const key,
-    char* const text,
-    const bool supercondensed_neighbourhood,
-    nsearch_operation_t* const nsearch_operation,
-    mm_stack_t* const mm_stack) {
-  mm_stack_push_state(mm_stack);
-  // Copy & encode text
-  const uint64_t key_length = strlen(key);
-  const uint64_t text_length = strlen(text);
-  uint8_t* const enc_key = mm_stack_calloc(mm_stack,key_length,uint8_t,true);
-  uint8_t* const enc_text = mm_stack_calloc(mm_stack,text_length,uint8_t,true);
-  uint64_t i;
-  for (i=0;i<key_length;++i) enc_key[i] = dna_encode(key[i]);
-  for (i=0;i<text_length;++i) enc_text[i] = dna_encode(text[i]);
-  // Prepare DP-matrix
-  nsearch_levenshtein_state_prepare(&nsearch_operation->nsearch_state,supercondensed_neighbourhood);
-  // Compute text
-  nsearch_levenshtein_state_compute_text(
-      &nsearch_operation->nsearch_state,true,
-      enc_key,key_length,enc_text,text_length,UINT64_MAX);
-  // Display DP-matrix
-  dp_matrix_print(
-      stderr,&nsearch_operation->nsearch_state.dp_matrix,
-      true,enc_key,0,key_length,enc_text,0,text_length);
-  // Free
-  mm_stack_pop_state(mm_stack);
 }

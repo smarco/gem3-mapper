@@ -104,6 +104,7 @@ typedef struct {
   /* CMD line */
   int argc;
   char** argv;
+  char* gem_version;
   /* GEM Structures */
   archive_t* archive;                             // GEM Archive
   gpu_buffer_collection_t* gpu_buffer_collection; // GEM-GPU Index

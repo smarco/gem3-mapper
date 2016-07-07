@@ -13,6 +13,11 @@ ROOT_PATH=../..
 include $(ROOT_PATH)/Makefile.mk
 
 ###############################################################################
+# Version
+###############################################################################
+VERSION=$(shell if [ -d $(ROOT_PATH)/.git ]; then git describe --abbrev=4 --dirty --always; else cat $(ROOT_PATH)/VERSION; fi)
+
+###############################################################################
 # Tools
 ###############################################################################
 GEM_TOOLS=gem-mapper gem-indexer gem-constructor gem-retriever
@@ -24,23 +29,25 @@ GEM_TOOLS_BIN=$(addprefix $(FOLDER_BIN)/, $(GEM_TOOLS))
 ###############################################################################
 all: devel
 
-release: GEM_FLAGS=$(FLAGS_GENERAL) $(FLAGS_OPT) $(FLAGS_LINK) $(FLAGS_SUPPRESS_CHECKS)
+release: GEM_FLAGS=$(FLAGS_GENERAL) $(FLAGS_OPT) -DGEM_VERSION=$(VERSION) $(FLAGS_LINK) $(FLAGS_SUPPRESS_CHECKS)
 release: $(GEM_TOOLS_BIN)
 
-static: GEM_FLAGS=$(FLAGS_GENERAL) $(FLAGS_OPT) $(FLAGS_LINK) $(FLAGS_SUPPRESS_CHECKS) -static
+static: GEM_FLAGS=$(FLAGS_GENERAL) $(FLAGS_OPT) -DGEM_VERSION=$(VERSION) $(FLAGS_LINK) $(FLAGS_SUPPRESS_CHECKS) -static
 static: $(GEM_TOOLS_BIN)
 
-devel: GEM_FLAGS=$(FLAGS_GENERAL) $(FLAGS_OPT) $(FLAGS_LINK) $(FLAGS_DEVEL)
+devel: GEM_FLAGS=$(FLAGS_GENERAL) $(FLAGS_OPT) -DGEM_VERSION=$(VERSION) $(FLAGS_LINK) $(FLAGS_DEVEL)
 devel: LIBS+=$(VTUNE_PROFILE_LIB)
 devel: $(GEM_TOOLS_BIN)
 
-profile: GEM_FLAGS=$(FLAGS_GENERAL) $(FLAGS_OPT) $(FLAGS_LINK) $(FLAGS_DEVEL) $(FLAGS_PROFILE) $(FLAGS_GEM_DEBUG) $(FLAGS_GEM_PROFILE)
+profile: GEM_FLAGS=$(FLAGS_GENERAL) $(FLAGS_OPT) -DGEM_VERSION=$(VERSION) $(FLAGS_LINK)
+profile: GEM_FLAGS+=$(FLAGS_DEVEL) $(FLAGS_PROFILE) $(FLAGS_GEM_DEBUG) $(FLAGS_GEM_PROFILE)
 profile: LIBS+=$(CUDA_PROFILE_LIB)
 profile: LIBS+=$(VTUNE_PROFILE_LIB)
 profile: PATH_INCLUDE+=$(CUDA_PATH_INCLUDE)
 profile: $(GEM_TOOLS_BIN)
 
-debug: GEM_FLAGS=$(FLAGS_DEBUG) $(FLAGS_GENERAL) $(FLAGS_DEVEL) $(FLAGS_PROFILE) $(FLAGS_GEM_DEBUG) $(FLAGS_GEM_PROFILE)
+debug: GEM_FLAGS=$(FLAGS_DEBUG) $(FLAGS_GENERAL) $(FLAGS_DEVEL) $(FLAGS_PROFILE)
+debug: GEM_FLAGS+=$(FLAGS_GEM_DEBUG) -DGEM_VERSION=$(VERSION) $(FLAGS_GEM_PROFILE)
 debug: LIBS+=$(CUDA_PROFILE_LIB)
 debug: PATH_INCLUDE+=$(CUDA_PATH_INCLUDE)
 debug: $(GEM_TOOLS_BIN)

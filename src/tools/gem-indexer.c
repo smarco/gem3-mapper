@@ -15,6 +15,12 @@
 #include "system/profiler_timer.h"
 
 /*
+ * Version
+ */
+#define GEM_VERSION_STRING(version) QUOTE(version)
+char* const gem_version = GEM_VERSION_STRING(GEM_VERSION);
+
+/*
  * GEM-indexer Debug
  */
 #define GEM_INDEXER_DEBUG_DUMP_EXPLICIT_CHECKED_SA  false
@@ -273,6 +279,7 @@ option_t gem_indexer_options[] = {
   { 'q', "quiet", NO_ARGUMENT, TYPE_NONE, 6 ,VISIBILITY_USER, "", "" },
   { 600, "info-file", REQUIRED, TYPE_STRING, 6 ,VISIBILITY_ADVANCED, "<info_file_path>", "" },
   { 'h', "help", OPTIONAL, TYPE_NONE, 6 , VISIBILITY_USER, "" , "(print usage)" },
+  { 601, "version", NO_ARGUMENT, TYPE_STRING, 6, VISIBILITY_USER, "" , "" },
   {  0, "", 0, 0, 0, false, "", ""}
 };
 char* gem_indexer_groups[] = {
@@ -425,7 +432,9 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
         gem_indexer_error_msg("Help argument not valid {'user','advanced'}");
       }
       exit(0);
-    /* */
+    case 601: // --version
+      fprintf(stderr,"%s\n",gem_version);
+      exit(0);
     case '?':
     default:
       gem_indexer_error_msg("Option not recognized");

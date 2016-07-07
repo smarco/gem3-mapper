@@ -41,15 +41,5 @@ void nsearch_levenshtein_print_status(
     FILE* const stream,
     nsearch_schedule_t* const nsearch_schedule,
     const uint64_t pending_searches);
-void nsearch_levenshtein_print_trace(
-    FILE* const stream,
-    nsearch_schedule_t* const nsearch_schedule);
-void nsearch_levenshtein_print_alignment(
-    FILE* const stream,
-    char* const key,
-    char* const text,
-    const bool supercondensed_neighbourhood,
-    nsearch_operation_t* const nsearch_operation,
-    mm_stack_t* const mm_stack);
 
 #endif /* NSEARCH_LEVENSHTEIN_H_ */

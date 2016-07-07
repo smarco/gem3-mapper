@@ -18,9 +18,9 @@
 #include "neighborhood_search/nsearch_schedule.h"
 
 /*
- * Levenshtein Scheduled Search Operation
+ * Levenshtein Scheduled Search Query
  */
-uint64_t nsearch_levenshtein_scheduled_search_operation(
+uint64_t nsearch_levenshtein_scheduled_search_operation_query(
     nsearch_schedule_t* const nsearch_schedule,
     const uint64_t pending_searches,
     nsearch_operation_t* const nsearch_operation,

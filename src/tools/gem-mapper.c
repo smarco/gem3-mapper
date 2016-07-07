@@ -16,6 +16,12 @@
 #include "mapper/mapper_profile_cuda.h"
 
 /*
+ * Version
+ */
+#define GEM_VERSION_STRING(version) QUOTE(version)
+char* const gem_version = GEM_VERSION_STRING(GEM_VERSION);
+
+/*
  * GEM-mapper Error Handling
  */
 #define gem_mapper_error_report(error_msg,args...) \
@@ -307,6 +313,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
   // Set CMD line
   parameters->argc = argc;
   parameters->argv = argv;
+  parameters->gem_version = gem_version;
   // Parameters
   mapper_parameters_io_t* const io = &parameters->io;
   search_parameters_t* const search = &parameters->search_parameters;
@@ -900,7 +907,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       }
       break;
     case 1501: // --version
-      fprintf(stderr,"gem-mapper\t"GEM_CORE_VERSION_STR"\n");
+      fprintf(stderr,"%s\n",gem_version);
       exit(0);
     case 'h':
       if (optarg==NULL || gem_strcaseeq(optarg,"user")) {

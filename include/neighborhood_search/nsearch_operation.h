@@ -28,12 +28,9 @@ typedef struct {
   // Global Key
   uint64_t global_key_begin;
   uint64_t global_key_end;
-  // Local Text (Local search string)
-  uint8_t* text;               // Current local text
-  uint64_t text_position;      // Current text position
-  // Global Text (Global search string)
-  uint8_t* global_text;
-  uint64_t global_text_length;
+  // Text (Operation Search String)
+  uint8_t* text;
+  uint64_t text_position;
   // Search State
   nsearch_levenshtein_state_t nsearch_state;
 } nsearch_operation_t;
@@ -48,27 +45,21 @@ void nsearch_operation_init(
     mm_stack_t* const mm_stack);
 
 /*
- * Prepare Operation
+ * Prepare Operation Chained
  */
-void nsearch_operation_chained_prepare_forward(
+bool nsearch_operation_chained_prepare(
     nsearch_operation_t* const current_nsearch_operation,
     nsearch_operation_t* const next_nsearch_operation,
     uint8_t* const key,
-    const uint64_t key_length);
-void nsearch_operation_compute_reverse(
-    nsearch_operation_t* const nsearch_operation,
-    nsearch_operation_t* const nsearch_operation_rev,
-    uint8_t* const key,
     const uint64_t key_length,
-    const uint64_t key_chunk_begin,
-    const uint64_t key_chunk_end);
+    const bool reverse_sequence);
 
 /*
  * Utils
  */
-int nsearch_operation_state_global_text_cmp(
+bool nsearch_operation_state_text_eq(
     nsearch_operation_t* const nsearch_operation,
-    char* const global_text,
+    char* const text,
     mm_stack_t* const mm_stack);
 
 /*

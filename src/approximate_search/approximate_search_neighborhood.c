@@ -37,7 +37,7 @@ void approximate_search_neighborhood_search_brute_force(
     nsearch_levenshtein_brute_force(search,true,matches);
   }
   // Process candidates
-  filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern);
+  filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern,false);
   // Verify Candidates
   filtering_candidates_verify_candidates(filtering_candidates,pattern);
   // Align
@@ -65,7 +65,7 @@ void approximate_search_neighborhood_search_partition(
     nsearch_levenshtein(search,matches);
   }
   // Process candidates
-  filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern);
+  filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern,false);
   // Verify Candidates
   filtering_candidates_verify_candidates(filtering_candidates,pattern);
   // Align
@@ -95,7 +95,7 @@ void approximate_search_neighborhood_exact_search(
   filtering_candidates_add_region_interval(filtering_candidates,
       search->search_parameters,pattern,lo,hi,0,pattern->key_length,0);
   // Process candidates
-  filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern);
+  filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern,false);
   // Verify Candidates
   filtering_candidates_verify_candidates(filtering_candidates,pattern);
   // Align

@@ -42,7 +42,7 @@ void approximate_search_exact_filtering_adaptive(
     // Generate candidates
     approximate_search_generate_candidates_exact(search,matches);
     // Process candidates
-    filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern);
+    filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern,true);
     // Verify candidates
     approximate_search_verify_candidates(search,matches);
     search->processing_state = asearch_processing_state_candidates_verified;
@@ -106,7 +106,7 @@ void approximate_search_exact_filtering_adaptive_cutoff(
     PROFILE_STOP(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
     // Verify candidates
     PROFILE_START(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING,PROFILE_LEVEL);
-    filtering_candidates_process_candidates(filtering_candidates,pattern);
+    filtering_candidates_process_candidates(filtering_candidates,pattern,true);
     filtering_candidates_verify_candidates(filtering_candidates,pattern);
     filtering_candidates_align_candidates(filtering_candidates,pattern,false,false,matches);
     PROFILE_STOP(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING,PROFILE_LEVEL);

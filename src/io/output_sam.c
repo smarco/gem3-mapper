@@ -60,7 +60,7 @@ void output_sam_parameters_set_defaults(output_sam_parameters_t* const sam_param
  * @SQ  SN:chr10   LN:135534747
  * @SQ  SN:chr11   LN:135006516
  *
- * @RG  ID:NOID   PG:tmap  SM:NOSM
+ * @RG  ID:NOID   PG:GEM   SM:NOSM
  * @RG  ID:0      PG:GEM   PL:ILLUMINA  SM:0
  *
  */
@@ -69,7 +69,8 @@ void output_sam_print_header(
     archive_t* const archive,
     output_sam_parameters_t* const sam_parameters,
     int argc,
-    char** argv) {
+    char** argv,
+    char* const gem_version) {
   /*
    * TODO
    *   Other options like BWA/Bowtie2
@@ -106,8 +107,8 @@ void output_sam_print_header(
   if (sam_parameters->read_group_header) ofprintf(output_file,"%s\n",sam_parameters->read_group_header);
   // Print all @PG lines (Program)
   //   @PG  ID:GEM PN:gem-2-sam  VN:3.0.0 CL:gem-mapper -I /home/u/hsapiens_v37 -i /h/uu.fastq -e 0.08
-  ofprintf(output_file,"@PG\tID:GEM\tPN:gem-mapper\tVN:"GEM_CORE_VERSION_STR);
-	size_t t_len=256;
+  ofprintf(output_file,"@PG\tID:GEM\tPN:gem-mapper\tVN:%s",gem_version);
+	size_t t_len = 256;
 	char *q = mm_malloc(t_len);
   for (i=0;i<argc;++i) {
 		 // Escape tabs etc. in command line to avoid confusing SAM parsers

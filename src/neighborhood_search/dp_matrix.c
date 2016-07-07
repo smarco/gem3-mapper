@@ -46,22 +46,6 @@ void dp_matrix_traceback(
   while (h-- > 0) fprintf(stream,"I");
   fprintf(stream,"\n");
 }
-//void neighborhood_search_debug_match(
-//    FILE* const stream,const dp_matrix_t* const dp_matrix,
-//    const uint8_t* const key,const uint64_t key_length,
-//    const uint8_t* const text,const uint64_t column_position,
-//    const uint64_t min_val,const uint64_t num_matches_found) {
-//  dp_column_t* const next_column = dp_matrix->columns + column_position;
-//  uint64_t i;
-//  for (i=0;i<=key_length;++i) {
-//    fprintf(stream,"%"PRId64" ",next_column->cells[i]>1000 ? -1 : (int64_t)next_column->cells[i]);
-//  }
-//  fprintf(stream,"\n");
-//  dp_matrix_traceback(stream,dp_matrix,key,key_length,text,column_position);
-//  // dp_matrix_print(stream,dp_matrix,10,10);
-//  fprintf(stream,"\n[%02"PRIu64"](%03"PRIu64")> %.*s\n",
-//      min_val,num_matches_found,(int)column_position,text);
-//}
 /*
  * Display
  */

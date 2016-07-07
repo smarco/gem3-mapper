@@ -92,7 +92,7 @@ void search_parameters_init_internals(search_parameters_t* const search_paramete
   search_parameters->region_profile_model.max_steps = 4;
   search_parameters->region_profile_model.dec_factor = 1;
   search_parameters->region_profile_model.region_length = 20;
-  search_parameters->region_profile_model.ns_filtering_threshold = 1000;
+  search_parameters->region_profile_model.ns_filtering_threshold = 20;
 }
 void search_parameters_init(search_parameters_t* const search_parameters) {
   // Mapping strategy

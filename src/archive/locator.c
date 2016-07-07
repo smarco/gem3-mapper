@@ -25,13 +25,15 @@
  */
 void locator_intervals_init(locator_t* const locator) {
   // Begin-positions table
-  locator->intervals_begin_position = mm_calloc(locator->num_intervals,uint64_t,false);
+  const uint64_t num_intervals = locator->num_intervals;
+  locator->intervals_begin_position = mm_calloc(num_intervals+1,uint64_t,false);
   uint64_t i;
-  for (i=0;i<locator->num_intervals;++i) {
+  for (i=0;i<num_intervals;++i) {
     locator->intervals_begin_position[i] = locator->intervals[i].begin_position;
   }
-//  // Lookahead table
-//  locator->intervals_lookahead = mm_calloc(locator->num_intervals,uint64_t,false);
+  locator->intervals_begin_position[num_intervals] = locator->intervals[num_intervals-1].end_position;
+  //  // Lookahead table
+  //  locator->intervals_lookahead = mm_calloc(locator->num_intervals,uint64_t,false);
 }
 #define LOCATOR_CALCULATE_SIZES(locator) \
   const uint64_t intervals_locator_size = locator->num_intervals*sizeof(locator_interval_t); \
@@ -104,40 +106,38 @@ uint64_t locator_interval_get_text_length(const locator_interval_t* const interv
  */
 uint64_t locator_lookup_interval_index_2way(
     const locator_t* const locator,
-    const uint64_t index_position) {
+    const uint64_t index_position,
+    const uint64_t init_lo,
+    const uint64_t init_hi) {
   // Binary search of the interval
   const uint64_t* const intervals_begin_position = locator->intervals_begin_position;
-  if (locator->num_intervals == 1) return 0;
-  uint64_t lo = 0;
-  uint64_t hi = locator->num_intervals-1;
+  uint64_t lo = init_lo;
+  uint64_t hi = init_hi;
   do {
-    const uint64_t half = (hi+lo+1)/2;
+    const uint64_t half = (hi+lo)/2;
     if (index_position < intervals_begin_position[half]) {
-      hi = half-1;
+      hi = half;
     } else {
       lo = half;
     }
-  } while (hi > lo);
+    GEM_INTERNAL_CHECK(
+        locator->intervals[lo].begin_position <= index_position &&
+        index_position < locator->intervals[hi-1].end_position,
+        "Locator-Interval Binary Search. Wrong Boundaries");
+  } while (hi-lo > 1);
   // Return Interval
-  GEM_INTERNAL_CHECK(
-      locator->intervals[lo].begin_position <= index_position &&
-      index_position < locator->intervals[lo].end_position,
-      "Locator-Interval Binary Search. Wrong Boundaries");
   return lo;
 }
 uint64_t locator_lookup_interval_index_4way(
     const locator_t* const locator,
     const uint64_t index_position) {
-  // 2-way search of the interval (for small cases)
   const uint64_t* const intervals_begin_position = locator->intervals_begin_position;
-  if (locator->num_intervals <= 4) {
-    return locator_lookup_interval_index_2way(locator,index_position);
-  }
   // 4-way search of the interval
   uint64_t lo = 0;
   uint64_t hi = locator->num_intervals;
   do {
-    const uint64_t quarter = DIV_CEIL((hi-lo),4);
+    const uint64_t search_range = hi-lo;
+    const uint64_t quarter = (search_range>=4) ? search_range/4 : 1;
     uint64_t pivot_begin = lo + quarter;
     if (index_position < intervals_begin_position[pivot_begin]) {
       hi = pivot_begin;
@@ -157,12 +157,12 @@ uint64_t locator_lookup_interval_index_4way(
         }
       }
     }
-  } while (hi > lo+1);
+    GEM_INTERNAL_CHECK(
+        locator->intervals[lo].begin_position <= index_position &&
+        index_position < locator->intervals[hi-1].end_position,
+        "Locator-Interval Binary Search. Wrong Boundaries");
+  } while (hi-lo > 1);
   // Return Interval
-  GEM_INTERNAL_CHECK(
-      locator->intervals[lo].begin_position <= index_position &&
-      index_position < locator->intervals[lo].end_position,
-      "Locator-Interval Binary Search. Wrong Boundaries");
   return lo;
 }
 locator_interval_t* locator_lookup_interval(

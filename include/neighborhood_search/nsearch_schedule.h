@@ -22,12 +22,12 @@
 /*
  * Enumaration Mode
  */
-#define NSEARCH_ENUMERATE
+//#define NSEARCH_ENUMERATE
 
 /*
  * Profile
  */
-#ifndef GEM_PROFILE
+#ifdef GEM_DEBUG
   #define NSEARCH_PROF_ADD_NODE(nsearch_schedule)      ++((nsearch_schedule)->profile.ns_nodes)
   #define NSEARCH_PROF_CLOSE_NODE(nsearch_schedule)    ++((nsearch_schedule)->profile.ns_nodes_closed)
   #define NSEARCH_PROF_ADD_SOLUTION(nsearch_schedule)  ++((nsearch_schedule)->profile.ns_nodes_success)
@@ -72,7 +72,6 @@ typedef struct {
   uint64_t max_error;
   // Scheduler Operations
   nsearch_operation_t* pending_searches;      // Pending search operations
-  nsearch_operation_t* nsearch_operation_aux; // Auxiliary nsearch-operation object
   uint64_t num_pending_searches;              // Total pending operations
   // Misc
   nsearch_schedule_profile_t profile;         // Profiler

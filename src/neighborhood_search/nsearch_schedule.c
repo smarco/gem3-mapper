@@ -39,14 +39,10 @@ void nsearch_schedule_init(
   nsearch_operation_t* const pending_searches = mm_stack_calloc(mm_stack,max_pending_ops,nsearch_operation_t,false);
   nsearch_schedule->pending_searches = pending_searches;
   nsearch_schedule->num_pending_searches = 0;
-  if (nsearch_model==nsearch_model_levenshtein) {
-    uint64_t i;
-    for (i=0;i<max_pending_ops;++i) {
-      nsearch_operation_init(pending_searches+i,key_length,max_text_length,mm_stack);
-    }
+  uint64_t i;
+  for (i=0;i<max_pending_ops;++i) {
+    nsearch_operation_init(pending_searches+i,key_length,max_text_length,mm_stack);
   }
-  nsearch_schedule->nsearch_operation_aux = mm_stack_alloc(mm_stack,nsearch_operation_t);
-  nsearch_operation_init(nsearch_schedule->nsearch_operation_aux,key_length,max_text_length,mm_stack);
   // Profiler
   nsearch_schedule->profile.ns_nodes = 0;
   nsearch_schedule->profile.ns_nodes_mtable = 0;
@@ -76,15 +72,22 @@ bool nsearch_schedule_add_pending_search(
   if (min_global_error > max_global_error) return false;
   // Queue search
   const uint64_t num_op = nsearch_schedule->num_pending_searches;
-  nsearch_schedule->pending_searches[num_op].search_direction = search_direction;
-  nsearch_schedule->pending_searches[num_op].local_key_begin = local_key_begin;
-  nsearch_schedule->pending_searches[num_op].local_key_end = local_key_begin+local_key_length;
-  nsearch_schedule->pending_searches[num_op].global_key_begin = global_key_begin;
-  nsearch_schedule->pending_searches[num_op].global_key_end = global_key_begin+global_key_length;
-  nsearch_schedule->pending_searches[num_op].min_local_error = min_local_error;
-  nsearch_schedule->pending_searches[num_op].min_global_error = min_global_error;
-  nsearch_schedule->pending_searches[num_op].max_global_error = max_global_error;
+  nsearch_operation_t* const nsearch_operation = nsearch_schedule->pending_searches + num_op;
+  nsearch_operation->search_direction = search_direction;
+  nsearch_operation->local_key_begin = local_key_begin;
+  nsearch_operation->local_key_end = local_key_begin+local_key_length;
+  nsearch_operation->global_key_begin = global_key_begin;
+  nsearch_operation->global_key_end = global_key_begin+global_key_length;
+  nsearch_operation->min_local_error = min_local_error;
+  nsearch_operation->min_global_error = min_global_error;
+  nsearch_operation->max_global_error = max_global_error;
   ++(nsearch_schedule->num_pending_searches);
+  // Prepare DP
+  const bool search_forward = (search_direction==direction_forward);
+  const bool supercondensed = (search_forward) ?
+          (nsearch_operation->global_key_begin == 0) :
+          (nsearch_operation->global_key_end == nsearch_schedule->key_length);
+  nsearch_levenshtein_state_prepare(&nsearch_operation->nsearch_state,supercondensed);
   // Return
   return true;
 }
@@ -372,7 +375,7 @@ void nsearch_schedule_print_pretty(
   fprintf(stream,"\n");
   // Print regions
   region_profile_t* const region_profile = &nsearch_schedule->search->region_profile;
-  if (region_profile!=NULL) {
+  if (region_profile->num_filtering_regions > 0) {
     const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
     fprintf(stream,"  => Regions        ");
     for (i=0;i<num_filtering_regions;++i) {
