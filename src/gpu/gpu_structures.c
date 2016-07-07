@@ -24,6 +24,9 @@ void gpu_structures_write(
     bwt_builder_t* const bwt_builder,
     uint64_t* const sa_gem,
     const uint32_t sa_sampling) {
+  // Prepare ticket
+  ticker_t ticker;
+  ticker_percentage_reset(&ticker,true,"Building GPU-Index",0,0,true);
   // Configure index name
   char* const gpu_index_name = gem_strcat(index_file_name_prefix,".gem.gpu");
   // Prepare GPU DTOs (Data Transfer Objects)
@@ -54,6 +57,8 @@ void gpu_structures_write(
       &gpu_gem_fmi_dto,&gpu_gem_ref_dto,&gpu_gem_sa_dto,GPU_ALL_MODULES);
   // Free
   free(gpu_index_name);
+  // Finish ticker
+  ticker_finish(&ticker);
 }
 
 /*
