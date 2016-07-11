@@ -35,22 +35,6 @@ FILE* benchmark_region_profile = NULL;
 /*
  * Region Profile Stats
  */
-void approximate_search_region_profile_fixed_stats(region_profile_t* const region_profile) {
-#ifdef GEM_PROFILE
-  uint64_t total_candidates = 0, num_elegible_regions = 0;
-  PROF_INC_COUNTER(GP_REGION_PROFILE_FIXED);
-  REGION_PROFILE_ITERATE(region_profile,region,position) {
-    if (region->degree!=REGION_FILTER_DEGREE_ZERO) continue;
-    ++num_elegible_regions;
-    PROF_ADD_COUNTER(GP_REGION_PROFILE_FIXED_REGION_LENGTH,region->end-region->begin);
-    PROF_ADD_COUNTER(GP_REGION_PROFILE_FIXED_REGION_CANDIDATES,(region->hi-region->lo));
-    total_candidates += (region->hi-region->lo);
-  }
-  PROF_ADD_COUNTER(GP_REGION_PROFILE_FIXED_NUM_REGIONS,num_elegible_regions);
-  PROF_ADD_COUNTER(GP_REGION_PROFILE_FIXED_NUM_REGIONS_STANDARD,num_elegible_regions);
-  PROF_ADD_COUNTER(GP_REGION_PROFILE_FIXED_TOTAL_CANDIDATES,total_candidates);
-#endif
-}
 void approximate_search_region_profile_lightweight_stats(region_profile_t* const region_profile) {
 #ifdef GEM_PROFILE
   uint64_t total_candidates = 0;
@@ -111,7 +95,7 @@ void approximate_search_region_profile_static_close_profile(
     approximate_search_metrics_set_num_zero_regions(&search->metrics,num_zero_regions);
     approximate_search_metrics_set_kmer_frequency(&search->metrics,region_profile->kmer_frequency);
     // STATS
-    approximate_search_region_profile_fixed_stats(region_profile);
+    approximate_search_region_profile_lightweight_stats(region_profile);
   } else {
     // Set State
     region_profile->num_filtering_regions = 0;
@@ -164,7 +148,7 @@ void approximate_search_region_profile_adaptive_close_profile(
     approximate_search_metrics_set_kmer_frequency(&search->metrics,region_profile->kmer_frequency);
   }
   // STATS
-  approximate_search_region_profile_fixed_stats(region_profile);
+  approximate_search_region_profile_lightweight_stats(region_profile);
 }
 /*
  * Region Profile Adaptive

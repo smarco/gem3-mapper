@@ -16,11 +16,6 @@ release: setup
 	$(MAKE) --directory=resources release
 	$(MAKE) --directory=src release
 	
-# Optimized + Static // TODO
-static:	setup
-	$(MAKE) --directory=resources release
-	$(MAKE) --directory=src release
-	
 # Optimized + DebugSymbols
 devel: setup
 	$(MAKE) --directory=resources devel

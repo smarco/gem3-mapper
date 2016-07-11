@@ -11,8 +11,7 @@
 #include "archive/archive_search.h"
 #include "gpu/gpu_buffer_collection.h"
 #include "stats/report_stats.h"
-//#include "/opt/intel/vtune_amplifier_xe/include/ittnotify.h"
-//#include "/usr/local/software/intel/vtune_amplifier_xe_2016.3.0.463186/include/ittnotify.h"
+#include "system/profiler.h"
 
 /*
  * Error report
@@ -141,7 +140,7 @@ void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,const bool pai
   /*
    * Launch threads
    */
-  //__itt_resume();
+  PROFILE_VTUNE_START(); // Vtune
   uint64_t i, gpu_buffers_offset = 0;
   for (i=0;i<num_threads;++i) {
     // Setup Thread
@@ -158,7 +157,7 @@ void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,const bool pai
     gem_cond_fatal_error__perror(pthread_join(*(mapper_search[i].thread_data),0),SYS_THREAD_JOIN);
     mm_free(mapper_search[i].thread_data);
   }
-  //__itt_pause();
+  PROFILE_VTUNE_STOP(); // Vtune
   // Clean up
   ticker_finish(&ticker);
   ticker_mutex_cleanup(&ticker);

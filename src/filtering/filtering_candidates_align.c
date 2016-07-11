@@ -92,7 +92,6 @@ bool filtering_candidates_align_region(
     const bool extended_match,
     matches_t* const matches) {
   // Parameters
-  // Parameters
   archive_t* const archive = filtering_candidates->archive;
   locator_t* const locator = archive->locator;
   archive_text_t* const archive_text = archive->text;

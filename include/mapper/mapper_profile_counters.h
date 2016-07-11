@@ -101,10 +101,6 @@
  * Approximate search
  */
 #define GP_AS_MAIN                                          160
-#define GP_AS_READ_RECOVERY                                 162
-#define GP_AS_EXACT_SEARCH                                  163
-#define GP_AS_NEIGHBORHOOD_SEARCH                           164
-
 #define GP_AS_ADAPTIVE_MCS                                  170
 
 #define GP_AS_FILTERING_EXACT                               171
@@ -117,14 +113,6 @@
 
 #define GP_AS_GENERATE_CANDIDATES                           185
 #define GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS      186
-#define GP_AS_GENERATE_CANDIDATES_SEARCH_D2                 187
-#define GP_AS_GENERATE_CANDIDATES_SEARCH_D2_HIT             188
-#define GP_AS_GENERATE_CANDIDATES_SEARCH_D2_HIT_CANDIDATES  189
-#define GP_AS_GENERATE_CANDIDATES_SEARCH_D1                 190
-#define GP_AS_GENERATE_CANDIDATES_SEARCH_D1_HIT             191
-#define GP_AS_GENERATE_CANDIDATES_SEARCH_D1_HIT_CANDIDATES  192
-#define GP_AS_GENERATE_CANDIDATES_SEARCH_D0_HIT             193
-#define GP_AS_GENERATE_CANDIDATES_SEARCH_D0_HIT_CANDIDATES  194
 #define GP_AS_GENERATE_CANDIDATES_PROCESSED                 195
 #define GP_AS_GENERATE_CANDIDATES_SKIPPED                   196
 #define GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING         197
@@ -142,14 +130,6 @@
 #define GP_REGION_PROFILE_ADAPTIVE                          250
 #define GP_REGION_PROFILE_QUIT_PROFILE                      251
 
-#define GP_REGION_PROFILE_FIXED                             252
-#define GP_REGION_PROFILE_FIXED_NUM_REGIONS                 253
-#define GP_REGION_PROFILE_FIXED_NUM_REGIONS_UNIQUE          254
-#define GP_REGION_PROFILE_FIXED_NUM_REGIONS_STANDARD        255
-#define GP_REGION_PROFILE_FIXED_REGION_LENGTH               256
-#define GP_REGION_PROFILE_FIXED_REGION_CANDIDATES           257
-#define GP_REGION_PROFILE_FIXED_TOTAL_CANDIDATES            258
-
 #define GP_REGION_PROFILE_LIGHTWEIGHT                       259
 #define GP_REGION_PROFILE_LIGHTWEIGHT_NUM_REGIONS           260
 #define GP_REGION_PROFILE_LIGHTWEIGHT_NUM_REGIONS_UNIQUE    261
@@ -157,22 +137,6 @@
 #define GP_REGION_PROFILE_LIGHTWEIGHT_REGION_LENGTH         263
 #define GP_REGION_PROFILE_LIGHTWEIGHT_REGION_CANDIDATES     264
 #define GP_REGION_PROFILE_LIGHTWEIGHT_TOTAL_CANDIDATES      265
-
-#define GP_REGION_PROFILE_HEAVYWEIGHT                       266
-#define GP_REGION_PROFILE_HEAVYWEIGHT_NUM_REGIONS           267
-#define GP_REGION_PROFILE_HEAVYWEIGHT_NUM_REGIONS_UNIQUE    268
-#define GP_REGION_PROFILE_HEAVYWEIGHT_NUM_REGIONS_STANDARD  269
-#define GP_REGION_PROFILE_HEAVYWEIGHT_REGION_LENGTH         270
-#define GP_REGION_PROFILE_HEAVYWEIGHT_REGION_CANDIDATES     271
-#define GP_REGION_PROFILE_HEAVYWEIGHT_TOTAL_CANDIDATES      272
-
-#define GP_REGION_PROFILE_DELIMIT                           280
-#define GP_REGION_PROFILE_DELIMIT_NUM_REGIONS               281
-#define GP_REGION_PROFILE_DELIMIT_NUM_REGIONS_UNIQUE        282
-#define GP_REGION_PROFILE_DELIMIT_NUM_REGIONS_STANDARD      283
-#define GP_REGION_PROFILE_DELIMIT_REGION_LENGTH             284
-#define GP_REGION_PROFILE_DELIMIT_REGION_CANDIDATES         285
-#define GP_REGION_PROFILE_DELIMIT_TOTAL_CANDIDATES          286
 
 /*
  * Filtering Candidates (Verifying)
@@ -283,16 +247,7 @@
 /*
  * Neighborhood Search
  */
-#define GP_NSEARCH                                          610
-
-#define GP_NS_BEST_MATCH                                    620
-
-#define GP_NS_NODES_EXPLORED                                621
-#define GP_NS_NODES_EXPLORED_MTABLE                         622
-#define GP_NS_NODE_SUCCESS                                  623
-#define GP_NS_FAILED_OPT                                    624
-#define GP_NS_NODE_CLOSED                                   625
-#define GP_NS_NODE_CLOSED_DEPTH                             626
+#define GP_AS_NEIGHBORHOOD_SEARCH                           620
 
 /*
  * Checks

@@ -195,6 +195,7 @@ bool filtering_region_align(
   gem_cond_debug_block(DEBUG_FILTERING_REGION) {
     tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Region (region_align)\n");
     tab_global_inc();
+    filtering_region_print(gem_log_get_stream(),filtering_region,filtering_candidates->text_collection,true);
   }
   // Select Model
   if (pattern->run_length ||

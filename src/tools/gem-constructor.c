@@ -703,6 +703,10 @@ void constructor_ns_init(
   for (i=0;i<key_length;++i) search->pattern.key[i] = dna_encode(key[i]);
   search->pattern.key[key_length] = '\0';
   search->pattern.key_length = key_length;
+  // Configure search-parameters
+  search_parameters_t* search_parameters = mm_stack_alloc(mm_stack,search_parameters_t);
+  search_parameters->region_profile_model.ns_filtering_threshold = 0;
+  search->search_parameters = search_parameters;
 }
 void constructor_ns_hamming_brute() {
   // Init NS-search

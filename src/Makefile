@@ -34,18 +34,23 @@ SUBDIRS=align \
         utils \
         tools
 
+release: GEM_FLAGS=$(FLAGS_OPT) $(FLAGS_GENERAL) $(FLAGS_SUPPRESS_CHECKS)
 release: MODE=release
 release: $(SUBDIRS)
 
+devel: GEM_FLAGS=$(FLAGS_OPT) $(FLAGS_GENERAL) $(FLAGS_DEVEL) 
 devel: MODE=devel
 devel: $(SUBDIRS)
 
+profile: GEM_FLAGS=$(FLAGS_OPT) $(FLAGS_GENERAL) $(FLAGS_DEVEL) $(FLAGS_PROFILE) $(FLAGS_GEM_DEBUG) $(FLAGS_GEM_PROFILE) 
 profile: MODE=profile
 profile: $(SUBDIRS)
 
+debug: GEM_FLAGS=$(FLAGS_DEBUG) $(FLAGS_GENERAL) $(FLAGS_DEVEL) $(FLAGS_PROFILE) $(FLAGS_GEM_DEBUG) $(FLAGS_GEM_PROFILE)
 debug: MODE=debug
 debug: $(SUBDIRS)
 
+export GEM_FLAGS
 $(SUBDIRS):
 	$(MAKE) --directory=$@ $(MODE)
 

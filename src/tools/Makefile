@@ -29,27 +29,24 @@ GEM_TOOLS_BIN=$(addprefix $(FOLDER_BIN)/, $(GEM_TOOLS))
 ###############################################################################
 all: devel
 
-release: GEM_FLAGS=$(FLAGS_GENERAL) $(FLAGS_OPT) -DGEM_VERSION=$(VERSION)-release $(FLAGS_LINK) $(FLAGS_SUPPRESS_CHECKS)
+release: GEM_VERSION=-DGEM_VERSION=$(VERSION)-release 
+release: GEM_PATHS=$(PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB)
+release: GEM_LIBS=$(CUDA_LIB) $(LIBS) $(VTUNE_PROFILE_LIB)
 release: $(GEM_TOOLS_BIN)
 
-static: GEM_FLAGS=$(FLAGS_GENERAL) $(FLAGS_OPT) -DGEM_VERSION=$(VERSION)-static $(FLAGS_LINK) $(FLAGS_SUPPRESS_CHECKS) -static
-static: $(GEM_TOOLS_BIN)
-
-devel: GEM_FLAGS=$(FLAGS_GENERAL) $(FLAGS_OPT) -DGEM_VERSION=$(VERSION)-devel $(FLAGS_LINK) $(FLAGS_DEVEL)
-devel: LIBS+=$(VTUNE_PROFILE_LIB)
+devel: GEM_VERSION=-DGEM_VERSION=$(VERSION)-devel
+devel: GEM_PATHS=$(PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB)
+devel: GEM_LIBS=$(CUDA_LIB) $(LIBS) $(VTUNE_PROFILE_LIB)
 devel: $(GEM_TOOLS_BIN)
 
-profile: GEM_FLAGS=$(FLAGS_GENERAL) $(FLAGS_OPT) -DGEM_VERSION=$(VERSION)-profile $(FLAGS_LINK)
-profile: GEM_FLAGS+=$(FLAGS_DEVEL) $(FLAGS_PROFILE) $(FLAGS_GEM_DEBUG) $(FLAGS_GEM_PROFILE)
-profile: LIBS+=$(CUDA_PROFILE_LIB)
-profile: LIBS+=$(VTUNE_PROFILE_LIB)
-profile: PATH_INCLUDE+=$(CUDA_PATH_INCLUDE)
+profile: GEM_VERSION=-DGEM_VERSION=$(VERSION)-profile
+profile: GEM_PATHS=$(PATH_INCLUDE) $(CUDA_PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB)
+profile: GEM_LIBS=$(CUDA_LIB) $(LIBS) $(CUDA_PROFILE_LIB) $(VTUNE_PROFILE_LIB)
 profile: $(GEM_TOOLS_BIN)
 
-debug: GEM_FLAGS=$(FLAGS_DEBUG) $(FLAGS_GENERAL) $(FLAGS_DEVEL) $(FLAGS_PROFILE)
-debug: GEM_FLAGS+=$(FLAGS_GEM_DEBUG) -DGEM_VERSION=$(VERSION)-debug $(FLAGS_GEM_PROFILE)
-debug: LIBS+=$(CUDA_PROFILE_LIB)
-debug: PATH_INCLUDE+=$(CUDA_PATH_INCLUDE)
+debug: GEM_VERSION=-DGEM_VERSION=$(VERSION)-debug 
+debug: GEM_PATHS=$(PATH_INCLUDE) $(CUDA_PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB) 
+debug: GEM_LIBS=$(CUDA_LIB) $(LIBS) $(CUDA_PROFILE_LIB) $(VTUNE_PROFILE_LIB)
 debug: $(GEM_TOOLS_BIN)
 
 ###############################################################################
@@ -66,15 +63,15 @@ endif
 	
 # GEM Tools	
 $(FOLDER_BIN)/gem-mapper: $(LIB_GEM_CORE) gem-mapper.c 
-	$(CC) $(GEM_FLAGS) $(DEF_CUDA) $(notdir $@).c $(FOLDER_BUILD)/*.o -o $@ $(PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB) $(CUDA_LIB) $(LIBS) 
+	$(CC) $(GEM_FLAGS) $(GEM_VERSION) $(DEF_CUDA) $(notdir $@).c $(FOLDER_BUILD)/*.o -o $@ $(FLAGS_LINK) $(GEM_PATHS) $(GEM_LIBS)  
 
 $(FOLDER_BIN)/gem-indexer: $(LIB_GEM_CORE) gem-indexer.c
-	$(CC) $(GEM_FLAGS) $(DEF_CUDA) $(notdir $@).c $(FOLDER_BUILD)/*.o -o $@ $(PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB) $(CUDA_LIB) $(LIBS) 
+	$(CC) $(GEM_FLAGS) $(GEM_VERSION) $(DEF_CUDA) $(notdir $@).c $(FOLDER_BUILD)/*.o -o $@ $(FLAGS_LINK) $(GEM_PATHS) $(GEM_LIBS)  
 	
 $(FOLDER_BIN)/gem-retriever: $(LIB_GEM_CORE) gem-retriever.c
-	$(CC) $(GEM_FLAGS) $(notdir $@).c $(FOLDER_BUILD)/*.o -o $@ $(PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB) $(CUDA_LIB) $(LIBS) 
+	$(CC) $(GEM_FLAGS) $(GEM_VERSION) $(notdir $@).c $(FOLDER_BUILD)/*.o -o $@ $(FLAGS_LINK) $(GEM_PATHS) $(GEM_LIBS) 
 
 $(FOLDER_BIN)/gem-constructor: $(LIB_GEM_CORE) gem-constructor.c
-	$(CC) $(GEM_FLAGS) $(notdir $@).c $(FOLDER_BUILD)/*.o -o $@ $(PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB) $(CUDA_LIB) $(LIBS) 
+	$(CC) $(GEM_FLAGS) $(GEM_VERSION) $(notdir $@).c $(FOLDER_BUILD)/*.o -o $@ $(FLAGS_LINK) $(GEM_PATHS) $(GEM_LIBS) 
 	
 

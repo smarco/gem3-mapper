@@ -178,13 +178,15 @@ uint64_t nsearch_levenshtein_scheduled_search_operation_query(
     }
   }
   // Precompute all ranks
-  fm_index_t* const fm_index = nsearch_schedule->search->archive->fm_index;
   fm_2erank_elms_t lo_2erank_elms, hi_2erank_elms;
+#ifndef NSEARCH_ENUMERATE
+  fm_index_t* const fm_index = nsearch_schedule->search->archive->fm_index;
   if (forward_search) {
     fm_index_2query_forward_precompute(fm_index,fm_2interval,&lo_2erank_elms,&hi_2erank_elms);
   } else {
     fm_index_2query_backward_precompute(fm_index,fm_2interval,&lo_2erank_elms,&hi_2erank_elms);
   }
+#endif
   // Search all characters (expand node)
   fm_2interval_t next_fm_2interval;
   uint8_t char_enc;

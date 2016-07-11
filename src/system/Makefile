@@ -27,6 +27,7 @@ MODULES=commons \
         profiler_cuda \
         profiler_gem \
         profiler_timer \
+        profiler_vtune \
         report
 
 SRCS=$(addsuffix .c, $(MODULES))
@@ -37,16 +38,12 @@ OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))
 ###############################################################################
 all: devel
 
-release: GEM_FLAGS=$(FLAGS_OPT) $(FLAGS_GENERAL) $(FLAGS_SUPPRESS_CHECKS)
 release: $(OBJS)
 
-devel: GEM_FLAGS=$(FLAGS_OPT) $(FLAGS_GENERAL) $(FLAGS_DEVEL)
 devel: $(OBJS)
 
-profile: GEM_FLAGS=$(FLAGS_OPT) $(FLAGS_GENERAL) $(FLAGS_DEVEL) $(FLAGS_PROFILE) $(FLAGS_GEM_DEBUG) $(FLAGS_GEM_PROFILE)
 profile: $(OBJS)
 
-debug: GEM_FLAGS=$(FLAGS_DEBUG) $(FLAGS_GENERAL) $(FLAGS_DEVEL) $(FLAGS_PROFILE) $(FLAGS_GEM_DEBUG) $(FLAGS_GEM_PROFILE)
 debug: $(OBJS)
 
 ###############################################################################
@@ -58,6 +55,8 @@ $(FOLDER_BUILD)/fm.o : fm.c
 	$(CC) $(GEM_FLAGS) $(DEF_BZLIB) $(DEF_ZLIB) $(PATH_INCLUDE) -c $< -o $@
 $(FOLDER_BUILD)/profiler_cuda.o : profiler_cuda.c
 	$(CC) $(GEM_FLAGS) $(DEF_CUDA) $(DEF_CUDA_PROFILE) $(PATH_INCLUDE) $(CUDA_PATH_INCLUDE) -c $< -o $@
+$(FOLDER_BUILD)/profiler_vtune.o : profiler_vtune.c
+	$(CC) $(GEM_FLAGS) $(PATH_INCLUDE) $(FLAGS_GEM_VTUNE) $(VTUNE_PROFILE_INCLUDE) -c $< -o $@
 
 # General building rule
 $(FOLDER_BUILD)/%.o : %.c

@@ -12,25 +12,6 @@
 /*
  * Region Profile
  */
-void mapper_profile_print_region_profile_fixed(FILE* const stream) {
-  tab_fprintf(stream,"[GEM]>Profile.Region.Profile {FIXED}\n");
-  tab_fprintf(stream,"  --> Num.Profiles             ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_FIXED),NULL,"    ",true);
-  tab_fprintf(stream,"  --> Num.Regions              ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_FIXED_NUM_REGIONS),NULL,"    ",true);
-  tab_fprintf(stream,"    --> Num.Regions.Standard   ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_FIXED_NUM_REGIONS_STANDARD),
-                       PROF_GET_COUNTER(GP_REGION_PROFILE_FIXED_NUM_REGIONS),"    ",true);
-  tab_fprintf(stream,"    --> Num.Regions.Unique     ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_FIXED_NUM_REGIONS_UNIQUE),
-                       PROF_GET_COUNTER(GP_REGION_PROFILE_FIXED_NUM_REGIONS),"    ",true);
-  tab_fprintf(stream,"  --> Region.length            ");
-  SAMPLER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_FIXED_REGION_LENGTH),NULL,"nt  ");
-  tab_fprintf(stream,"  --> Region.candidates        ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_FIXED_REGION_CANDIDATES),NULL,"cand",true);
-  tab_fprintf(stream,"  --> Read.candidates          ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_FIXED_TOTAL_CANDIDATES),NULL,"cand",true);
-}
 void mapper_profile_print_region_profile_lightweight(FILE* const stream) {
   tab_fprintf(stream,"[GEM]>Profile.Region.Profile {LIGHTWEIGHT}\n");
   tab_fprintf(stream,"  --> Num.Profiles             ");
@@ -50,44 +31,6 @@ void mapper_profile_print_region_profile_lightweight(FILE* const stream) {
   tab_fprintf(stream,"  --> Read.candidates          ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT_TOTAL_CANDIDATES),NULL,"cand",true);
 }
-void mapper_profile_print_region_profile_heavyweight(FILE* const stream) {
-  tab_fprintf(stream,"[GEM]>Profile.Region.Profile {HEAVYWEIGHT}\n");
-  tab_fprintf(stream,"  --> Num.Profiles             ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT),NULL,"    ",true);
-  tab_fprintf(stream,"  --> Num.Regions              ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_NUM_REGIONS),NULL,"    ",true);
-  tab_fprintf(stream,"    --> Num.Regions.Standard   ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_NUM_REGIONS_STANDARD),
-                       PROF_GET_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_NUM_REGIONS),"    ",true);
-  tab_fprintf(stream,"    --> Num.Regions.Unique     ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_NUM_REGIONS_UNIQUE),
-                       PROF_GET_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_NUM_REGIONS),"    ",true);
-  tab_fprintf(stream,"  --> Region.length            ");
-  SAMPLER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_REGION_LENGTH),NULL,"nt  ");
-  tab_fprintf(stream,"  --> Region.candidates        ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_REGION_CANDIDATES),NULL,"cand",true);
-  tab_fprintf(stream,"  --> Read.candidates          ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_HEAVYWEIGHT_TOTAL_CANDIDATES),NULL,"cand",true);
-}
-void mapper_profile_print_region_profile_delimit(FILE* const stream) {
-  tab_fprintf(stream,"[GEM]>Profile.Region.Profile {DELIMIT}\n");
-  tab_fprintf(stream,"  --> Num.Profiles             ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_DELIMIT),NULL,"    ",true);
-  tab_fprintf(stream,"  --> Num.Regions              ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_DELIMIT_NUM_REGIONS),NULL,"    ",true);
-  tab_fprintf(stream,"    --> Num.Regions.Standard   ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_DELIMIT_NUM_REGIONS_STANDARD),
-                       PROF_GET_COUNTER(GP_REGION_PROFILE_DELIMIT_NUM_REGIONS),"    ",true);
-  tab_fprintf(stream,"    --> Num.Regions.Unique     ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_DELIMIT_NUM_REGIONS_UNIQUE),
-                       PROF_GET_COUNTER(GP_REGION_PROFILE_DELIMIT_NUM_REGIONS),"    ",true);
-  tab_fprintf(stream,"  --> Region.length            ");
-  SAMPLER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_DELIMIT_REGION_LENGTH),NULL,"nt  ");
-  tab_fprintf(stream,"  --> Region.candidates        ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_DELIMIT_REGION_CANDIDATES),NULL,"cand",true);
-  tab_fprintf(stream,"  --> Read.candidates          ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_DELIMIT_TOTAL_CANDIDATES),NULL,"cand",true);
-}
 /*
  * Candidates Generation
  */
@@ -95,10 +38,6 @@ void mapper_profile_print_candidate_generation(FILE* const stream) {
   tab_fprintf(stream,"[GEM]>Profile.Generate.Candidates\n");
   tab_fprintf(stream,"  => TIME.Generate.Candidates         ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_GENERATE_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"    => TIME.Generate.Candidates.D2    ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_GENERATE_CANDIDATES_SEARCH_D2),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"    => TIME.Generate.Candidates.D1    ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_GENERATE_CANDIDATES_SEARCH_D1),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"    => TIME.Dynamic.Filtering         ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"  |> Generate.Candidates\n");
@@ -111,35 +50,8 @@ void mapper_profile_print_candidate_generation(FILE* const stream) {
   tab_fprintf(stream,"      --> Regions.Skipped             ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_GENERATE_CANDIDATES_SKIPPED),
                        PROF_GET_COUNTER(GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS),"regions",true);
-  tab_fprintf(stream,"      --> Generate.D2                 ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D2),
-                       PROF_GET_COUNTER(GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS),"regions",true);
-  tab_fprintf(stream,"        --> Generate.D2.Hit           ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D2_HIT),
-                       PROF_GET_COUNTER(GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS),"regions",true);
-  tab_fprintf(stream,"      --> Generate.D1                 ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D1),
-                       PROF_GET_COUNTER(GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS),"regions",true);
-  tab_fprintf(stream,"        --> Generate.D1.Hit           ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D1_HIT),
-                       PROF_GET_COUNTER(GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS),"regions",true);
-  tab_fprintf(stream,"      --> Generate.D0                 ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D0_HIT),
-                       PROF_GET_COUNTER(GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS),"regions",true);
-  tab_fprintf(stream,"        --> Generate.D0.Hit           ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D0_HIT),
-                       PROF_GET_COUNTER(GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS),"regions",true);
   tab_fprintf(stream,"    --> Candidates.Generated          ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),
-                       PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"pos",true);
-  tab_fprintf(stream,"      --> Candidates.Generated.D2     ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D2_HIT_CANDIDATES),
-                       PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"pos",true);
-  tab_fprintf(stream,"      --> Candidates.Generated.D1     ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D1_HIT_CANDIDATES),
-                       PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"pos",true);
-  tab_fprintf(stream,"      --> Candidates.Generated.D0     ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D0_HIT_CANDIDATES),
                        PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"pos",true);
 }
 /*
@@ -294,21 +206,6 @@ void mapper_profile_print_candidate_realign(FILE* const stream) {
  */
 void mapper_profile_print_neighborhood_search(FILE* const stream) {
   tab_fprintf(stream,"[GEM]>Profile.NeighborhoodSearch\n");
-  tab_fprintf(stream,"  => TIME.NS.BestMatch                         ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_NS_BEST_MATCH),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"  |> NS.Nodes\n");
-  tab_fprintf(stream,"    --> Nodes.Explored                         ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_NODES_EXPLORED),PROF_GET_COUNTER(GP_NS_NODES_EXPLORED),"nodes",true);
-  tab_fprintf(stream,"      --> Nodes.Explored.mTable                ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_NODES_EXPLORED_MTABLE),PROF_GET_COUNTER(GP_NS_NODES_EXPLORED),"nodes",true);
-  tab_fprintf(stream,"    --> Nodes.Match                            ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_NODE_SUCCESS),PROF_GET_COUNTER(GP_NS_NODES_EXPLORED),"nodes",true);
-  tab_fprintf(stream,"    --> Nodes.Closed                           ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_NODE_CLOSED),PROF_GET_COUNTER(GP_NS_NODES_EXPLORED),"nodes",true);
-  tab_fprintf(stream,"      --> Nodes.Failed.Optimization            ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_FAILED_OPT),PROF_GET_COUNTER(GP_NS_NODES_EXPLORED),"nodes",true);
-//  tab_fprintf(stream,"      --> Nodes.Closed.Depth                   ");
-//  SAMPLER_PRINT(stream,&_ns_nodes_closed_depth,PROF_GET_COUNTER(GP_NS_NODES_EXPLORED),"bases");
 }
 void mapper_profile_print_neighborhood_search_ranks(FILE* const stream) {
   /*TODO*/
@@ -322,7 +219,7 @@ void mapper_profile_print_approximate_search(FILE* const stream) {
   tab_fprintf(stream,"    => TIME.Approximate.Search                ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_MAIN),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"      => TIME.Neighborhood.Search             ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_NSEARCH),PROF_GET_TIMER(GP_MAPPER_ALL));
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_NEIGHBORHOOD_SEARCH),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"      => TIME.Region.Profile                  ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_REGION_PROFILE_ADAPTIVE),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"      => TIME.Generate.Candidates             ");
@@ -342,8 +239,6 @@ void mapper_profile_print_approximate_search(FILE* const stream) {
 //  TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_FILTERING_INEXACT),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"      => TIME.Filtering.Local                 ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_FILTERING_LOCAL_ALIGN),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.Read.Recovery                   ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_READ_RECOVERY),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"      => TIME.Neighborhood.Search             ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_NEIGHBORHOOD_SEARCH),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"  |> Approximate.Search.Stages\n");
@@ -395,14 +290,7 @@ void mapper_profile_print_approximate_search_summary(
   // Approximate Search
   mapper_profile_print_approximate_search(stream);
   // Region Profile
-  if (cuda_workflow) {
-    mapper_profile_print_region_profile_fixed(stream);
-    //mapper_profile_print_region_profile_heavyweight(stream);
-    mapper_profile_print_region_profile_lightweight(stream);
-  } else {
-    mapper_profile_print_region_profile_lightweight(stream);
-    // mapper_profile_print_region_profile_delimit(stream);
-  }
+  mapper_profile_print_region_profile_lightweight(stream);
   // Candidate Generation
   mapper_profile_print_candidate_generation(stream);
   // Candidate Verification

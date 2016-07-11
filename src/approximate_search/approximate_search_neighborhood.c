@@ -81,7 +81,6 @@ void approximate_search_neighborhood_search_partition(
 void approximate_search_neighborhood_exact_search(
     approximate_search_t* const search,
     matches_t* const matches) {
-  PROFILE_START(GP_AS_EXACT_SEARCH,PROFILE_LEVEL);
   pattern_t* const pattern = &search->pattern;
   uint64_t hi, lo;
   // FM-Index basic exact search
@@ -103,7 +102,6 @@ void approximate_search_neighborhood_exact_search(
   // Set MCS
   approximate_search_update_mcs(search,1);
   matches->max_complete_stratum = MIN(matches->max_complete_stratum,search->current_max_complete_stratum);
-  PROFILE_STOP(GP_AS_EXACT_SEARCH,PROFILE_LEVEL);
 }
 /*
  * Neighborhood Generation (Inexact Search)

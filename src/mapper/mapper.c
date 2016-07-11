@@ -11,8 +11,7 @@
 #include "archive/archive_search_se.h"
 #include "archive/archive_search_pe.h"
 #include "stats/report_stats.h"
-//#include "/opt/intel/vtune_amplifier_xe/include/ittnotify.h"
-//#include "/usr/local/software/intel/vtune_amplifier_xe_2016.3.0.463186/include/ittnotify.h"
+#include "system/profiler.h"
 
 /*
  * Debug/Profile
@@ -598,7 +597,7 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
     mapper_thread = (pthread_handler_t) mapper_se_thread;
   }
   uint64_t i;
-  //__itt_resume();
+  PROFILE_VTUNE_START(); // Vtune
   for (i=0;i<num_threads;++i) {
     // Setup thread
     mapper_search[i].paired_end = paired_end;
@@ -621,7 +620,7 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
     gem_cond_fatal_error__perror(pthread_join(*(mapper_search[i].thread_data),0),SYS_THREAD_JOIN);
     mm_free(mapper_search[i].thread_data);
   }
-  //__itt_pause();
+  PROFILE_VTUNE_STOP(); // Vtune
   ticker_finish(&ticker);
   ticker_mutex_cleanup(&ticker);
 	// Merge report stats

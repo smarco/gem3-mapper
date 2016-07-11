@@ -67,8 +67,6 @@ void approximate_search_generate_candidates_exact(
       PROF_INC_COUNTER(GP_AS_GENERATE_CANDIDATES_PROCESSED);
       // Generate exact-candidates for the region
       if (region_search[i].degree == REGION_FILTER_DEGREE_ZERO) {
-        PROF_INC_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D0_HIT);
-        PROF_ADD_COUNTER(GP_AS_GENERATE_CANDIDATES_SEARCH_D0_HIT_CANDIDATES,region_search[i].hi-region_search[i].lo);
         filtering_candidates_add_region_interval(
             filtering_candidates,search_parameters,pattern,
             region_search[i].lo,region_search[i].hi,
