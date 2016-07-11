@@ -141,8 +141,9 @@ void filtering_region_verify_levenshtein_bpm(
   PROF_ADD_COUNTER(GP_BMP_DISTANCE_NUM_TILES,num_pattern_tiles);
   for (tile_pos=0;tile_pos<num_pattern_tiles;++tile_pos) {
     region_alignment_tile_t* const alignment_tile = alignment_tiles + tile_pos;
-    if (alignment_tile->match_distance!=ALIGN_DISTANCE_INF) continue; // Next, already computed!
-    if (global_distance <= max_error) {
+    if (alignment_tile->match_distance!=ALIGN_DISTANCE_INF) {
+      global_distance += alignment_tile->match_distance;
+    } else {
       bpm_pattern_t* const bpm_pattern_tile = bpm_pattern_tiles+tile_pos;
       const uint64_t max_tile_error = MIN(max_remaining_error,bpm_pattern->pattern_length);
       const uint64_t tile_offset = alignment_tile->text_begin_offset;
@@ -162,11 +163,16 @@ void filtering_region_verify_levenshtein_bpm(
         // Update distance
         max_remaining_error = BOUNDED_SUBTRACTION(max_remaining_error,tile_distance,0);
         global_distance += tile_distance;
-        continue;
+      } else {
+        global_distance = ALIGN_DISTANCE_INF;
+        break; // Stop verify
       }
     }
-    // Store tile alignment
-    global_distance = ALIGN_DISTANCE_INF;
+    // Check global-distance
+    if (global_distance > max_error) {
+      global_distance = ALIGN_DISTANCE_INF;
+      break; // Stop verify
+    }
   }
   // Setup alignment result
   region_alignment->distance_min_bound = global_distance;

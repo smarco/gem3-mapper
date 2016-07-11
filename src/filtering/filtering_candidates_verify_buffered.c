@@ -283,26 +283,40 @@ void filtering_candidates_verify_buffered_retrieve_region_alignment(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_buffered_t* const region_buffered,
     region_alignment_t* const region_alignment,
+    const uint64_t max_error,
     bpm_pattern_t* const bpm_pattern,
     bpm_pattern_t* const bpm_pattern_tiles,
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     uint64_t candidate_idx) {
-  // Traverse all tiles
+  // Parameters
   region_alignment_tile_t* const alignment_tiles = region_alignment->alignment_tiles;
   const uint64_t num_tiles = region_alignment->num_tiles;
+  // Traverse all tiles
   uint64_t tile_pos, global_distance=0;
   for (tile_pos=0;tile_pos<num_tiles;++tile_pos) {
+    bpm_pattern_t* const bpm_pattern_tile = bpm_pattern_tiles + tile_pos;
     region_alignment_tile_t* const alignment_tile = alignment_tiles + tile_pos;
     // Retrieve alignment distance
-    uint32_t tile_distance=0, tile_match_column=0;
-    gpu_buffer_align_bpm_get_result(gpu_buffer_align_bpm,candidate_idx,&tile_distance,&tile_match_column);
-    alignment_tile->match_distance = tile_distance;
-    global_distance += tile_distance;
-    // DEBUG
-    #ifdef CUDA_CHECK_BUFFERED_VERIFY_CANDIDATES
-    filtering_candidates_verify_buffered_check_tile_distance(filtering_candidates,
-        bpm_pattern_tile,gpu_buffer_align_bpm,candidate_idx,tile_distance,tile_match_column);
-    #endif
+    if (global_distance > max_error) {
+      alignment_tile->match_distance = ALIGN_DISTANCE_INF;
+      global_distance = ALIGN_DISTANCE_INF;
+    } else {
+      uint32_t tile_distance=0, tile_match_column=0;
+      gpu_buffer_align_bpm_get_result(gpu_buffer_align_bpm,candidate_idx,&tile_distance,&tile_match_column);
+      const uint64_t tile_offset = alignment_tile->text_begin_offset;
+      const uint64_t tile_end_offset = tile_match_column+1;
+      const uint64_t tile_tall = bpm_pattern_tile->pattern_length;
+      const uint64_t tile_begin_offset = BOUNDED_SUBTRACTION(tile_end_offset,tile_tall+tile_distance,0);
+      alignment_tile->match_distance = tile_distance;
+      alignment_tile->text_end_offset = tile_offset + tile_end_offset;
+      alignment_tile->text_begin_offset = tile_offset + tile_begin_offset;
+      global_distance += tile_distance;
+      // DEBUG
+      #ifdef CUDA_CHECK_BUFFERED_VERIFY_CANDIDATES
+      filtering_candidates_verify_buffered_check_tile_distance(filtering_candidates,
+          bpm_pattern_tile,gpu_buffer_align_bpm,candidate_idx,tile_distance,tile_match_column);
+      #endif
+    }
     // Next
     ++candidate_idx;
   }
@@ -324,9 +338,9 @@ void filtering_candidates_verify_buffered_retrieve(
   PROFILE_START(GP_FC_VERIFY_CANDIDATES_BUFFERED,PROFILE_LEVEL);
   // Parameters
   const uint64_t key_length = pattern->key_length;
-  const uint64_t max_error = pattern->max_effective_filtering_error;
   bpm_pattern_t* const bpm_pattern = pattern->bpm_pattern;
   bpm_pattern_t* const bpm_pattern_tiles = pattern->bpm_pattern_tiles;
+  const uint64_t max_error = MIN(pattern->max_effective_filtering_error,bpm_pattern->pattern_length);
   // Prepare filtering-regions vectors
   vector_clear(filtering_candidates->filtering_regions);
   vector_clear(filtering_candidates->discarded_regions);
@@ -375,7 +389,7 @@ void filtering_candidates_verify_buffered_retrieve(
     // Retrieve & compose verified region
     if (gpu_buffer_align_bpm->align_bpm_enabled) {
       filtering_candidates_verify_buffered_retrieve_region_alignment(
-          filtering_candidates,region_buffered,region_alignment,
+          filtering_candidates,region_buffered,region_alignment,max_error,
           bpm_pattern,bpm_pattern_tiles,gpu_buffer_align_bpm,candidate_idx);
     } else {
       filtering_candidates_verify_buffered_compute_region_alignment(
