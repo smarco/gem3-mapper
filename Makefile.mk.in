@@ -54,6 +54,9 @@ HAVE_GOLD = @HAVE_GOLD@
 LIB_GEM_CORE=$(FOLDER_LIB)/libgemcore_c.a
 FLAGS_GEM_PROFILE=-DGEM_PROFILE
 FLAGS_GEM_DEBUG=-DGEM_DEBUG
+ifeq ($(VTUNE),true)
+  FLAGS_GEM_VTUNE=-DGEM_VTUNE
+endif
 
 ## Base flags (Generic Compiler)
 FLAGS_GENERAL=-Wall -std=c99
@@ -139,12 +142,19 @@ endif
 ###############################################################################
 # VTune
 ###############################################################################
-VTUNE_PROFILE_LIB=-ldl
-# VTUNE_PATH=/opt/intel/vtune_amplifier_xe/
-# VTUNE_PATH=/usr/local/software/intel/vtune_amplifier_xe_2016.3.0.463186/
+ifeq ($(VTUNE),true)
+# Path
+VTUNE_PATH=/opt/intel/vtune_amplifier_xe/
+ifeq ("$(wildcard $(VTUNE_PATH))","")
+  VTUNE_PATH=/usr/local/software/intel/vtune_amplifier_xe_2016.3.0.463186/
+endif
+# Libs
+VTUNE_PROFILE_LIB=-Wl,--no-as-needed -ldl
 LIBITTNOTIFY=$(VTUNE_PATH)/lib64/libittnotify.a
 ifeq ($(wildcard LIBITTNOTIFY),)
   VTUNE_PROFILE_LIB+=$(LIBITTNOTIFY)
 endif
+# Includes
 VTUNE_PROFILE_INCLUDE=-I$(VTUNE_PATH)/include/
+endif
 
