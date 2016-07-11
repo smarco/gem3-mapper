@@ -42,9 +42,9 @@ FOLDER_TOOLS=$(ROOT_PATH)/tools
 HAVE_ZLIB = 1
 HAVE_BZLIB = 1
 HAVE_OPENMP = 1
-HAVE_CUDA = 0
-HAVE_LTO = 0
-HAVE_GOLD = 0
+HAVE_CUDA = 1
+HAVE_LTO = 1
+HAVE_GOLD = 1
 
 ###############################################################################
 # General Flags
@@ -75,7 +75,7 @@ ifeq ($(CC),gcc)
     AR=gcc-ar
     OPT_AR=-fuse-linker-plugin
   endif
-  FLAGS_OPT=-Ofast -msse4.2 $(OPT_LTO)
+  FLAGS_OPT=-Ofast -march=native $(OPT_LTO)
   FLAGS_LINK=$(OPT_AR)
 endif
 

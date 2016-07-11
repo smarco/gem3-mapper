@@ -292,18 +292,11 @@ void filtering_candidates_verify_buffered_retrieve_region_alignment(
   const uint64_t num_tiles = region_alignment->num_tiles;
   uint64_t tile_pos, global_distance=0;
   for (tile_pos=0;tile_pos<num_tiles;++tile_pos) {
-    bpm_pattern_t* const bpm_pattern_tile = bpm_pattern_tiles + tile_pos;
     region_alignment_tile_t* const alignment_tile = alignment_tiles + tile_pos;
     // Retrieve alignment distance
     uint32_t tile_distance=0, tile_match_column=0;
     gpu_buffer_align_bpm_get_result(gpu_buffer_align_bpm,candidate_idx,&tile_distance,&tile_match_column);
-    const uint64_t tile_offset = alignment_tile->text_begin_offset;
-    const uint64_t tile_end_offset = tile_match_column+1;
-    const uint64_t tile_tall = bpm_pattern_tile->pattern_length;
-    const uint64_t tile_begin_offset = BOUNDED_SUBTRACTION(tile_end_offset,tile_tall+tile_distance,0);
     alignment_tile->match_distance = tile_distance;
-    alignment_tile->text_end_offset = tile_offset + tile_end_offset;
-    alignment_tile->text_begin_offset = tile_offset + tile_begin_offset;
     global_distance += tile_distance;
     // DEBUG
     #ifdef CUDA_CHECK_BUFFERED_VERIFY_CANDIDATES

@@ -295,9 +295,9 @@ void filtering_region_print_region_alignment(
       region_alignment->distance_min_bound);
   for (i=0;i<region_alignment->num_tiles;++i) {
     fprintf(stream," (%lu,%lu][%lu]",
-        alignment_tiles->text_begin_offset,
-        alignment_tiles->text_end_offset,
-        alignment_tiles->match_distance);
+        alignment_tiles[i].text_begin_offset,
+        alignment_tiles[i].text_end_offset,
+        alignment_tiles[i].match_distance);
   }
   fprintf(stream,"\n");
 }
