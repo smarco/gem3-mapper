@@ -206,7 +206,7 @@ void filtering_candidates_print_regions_by_status(
   tab_global_inc();
   for (i=0;i<num_regions;++i) {
     if (fregion[i].status!=status) continue;
-    filtering_region_print(stream,fregion+i,text_collection,print_matching_regions);
+    filtering_region_print(stream,fregion+i,text_collection,false,print_matching_regions,true);
   }
   tab_global_dec();
 }

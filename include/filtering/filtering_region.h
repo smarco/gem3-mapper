@@ -147,6 +147,8 @@ void filtering_region_print(
     FILE* const stream,
     filtering_region_t* const region,
     const text_collection_t* const text_collection,
-    const bool print_matching_regions);
+    const bool print_region_text,
+    const bool print_matching_regions,
+    const bool print_region_alignment);
 
 #endif /* FILTERING_REGION_H_ */
