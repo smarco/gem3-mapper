@@ -112,14 +112,17 @@ void filtering_region_add(
   filtering_region->key_trim_left = 0;
   filtering_region->key_trim_right = 0;
   // Trimmed Pattern
+  filtering_region->max_error = align_distance;
   filtering_region->bpm_pattern_trimmed = NULL;
   filtering_region->bpm_pattern_trimmed_tiles = NULL;
   // Regions Matching
   match_scaffold_init(&filtering_region->match_scaffold);
   // Regions-Alignment
-  filtering_region->max_error = align_distance;
+  region_alignment_t* const region_alignment = &filtering_region->region_alignment;
+  region_alignment->distance_min_bound = ALIGN_DISTANCE_INF;
+  region_alignment->alignment_tiles = NULL;
   filtering_region_alignment_prepare_region_alignment(
-      &filtering_region->region_alignment,bpm_pattern,bpm_pattern_tiles,
+      region_alignment,bpm_pattern,bpm_pattern_tiles,
       text_begin_offset,text_end_offset,align_distance,mm_stack);
 }
 /*
