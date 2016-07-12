@@ -289,6 +289,7 @@ void filtering_region_print_region_alignment(
     FILE* const stream,
     region_alignment_t* const region_alignment) {
   region_alignment_tile_t* const alignment_tiles = region_alignment->alignment_tiles;
+  if (alignment_tiles==NULL) return;
   uint64_t i;
   tab_fprintf(stream,"  => Alignment-Tiles total=%lu dist-bound=%lu",
       region_alignment->num_tiles,

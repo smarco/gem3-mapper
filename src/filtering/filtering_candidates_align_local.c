@@ -94,14 +94,16 @@ void filtering_candidates_align_local(
     uint64_t i; // last_region_coverage;
     PROF_ADD_COUNTER(GP_CANDIDATE_REGION_LOCAL,num_regions);
     for (i=0;i<num_regions;++i,++filtering_region) {
-//      // Check max-reported matches & coverage
-//      const uint64_t scaffolding_coverage = filtering_region->match_scaffold.scaffolding_coverage;
-//      if (total_matches >= max_reported_matches && last_region_coverage > scaffolding_coverage) break;
-//      last_region_coverage = scaffolding_coverage;
+      // Check max-reported matches
+      if (total_matches >= max_reported_matches) break;
       // Retrieve Text
       filtering_region_retrieve_text(
           filtering_region,pattern,filtering_candidates->archive->text,
           filtering_candidates->text_collection,mm_stack);
+      // Clean region-filtering
+      filtering_region->region_alignment.alignment_tiles = NULL;
+      filtering_region_alignment_prepare(filtering_region,
+          pattern->bpm_pattern,pattern->bpm_pattern_tiles,mm_stack);
       // Exclude not-supported regions for local-alignment
       filtering_candidates_align_local_exclude_tiles(filtering_region,pattern,mm_stack);
       // Align Region

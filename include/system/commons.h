@@ -53,7 +53,7 @@
 /*
  * Debug
  */
-#define GEM_DEEP_DEBUG true
+#define GEM_DEEP_DEBUG false
 
 /*
  * Common constants
