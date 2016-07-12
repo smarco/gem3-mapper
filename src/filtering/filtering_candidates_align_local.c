@@ -36,8 +36,7 @@ void filtering_candidates_align_local_exclude_tiles(
   filtering_region_bpm_pattern_select(filtering_region,
       pattern,&bpm_pattern,&bpm_pattern_tiles,mm_stack);
   // Prepare Alignment
-  filtering_region_alignment_prepare(filtering_region,
-      bpm_pattern,bpm_pattern_tiles,mm_stack);
+  filtering_region_alignment_prepare(filtering_region,bpm_pattern,bpm_pattern_tiles,true,mm_stack);
   // Check number of tiles
   const uint64_t num_pattern_tiles = bpm_pattern_tiles->num_pattern_tiles;
   region_alignment_t* const region_alignment = &filtering_region->region_alignment;
@@ -100,10 +99,6 @@ void filtering_candidates_align_local(
       filtering_region_retrieve_text(
           filtering_region,pattern,filtering_candidates->archive->text,
           filtering_candidates->text_collection,mm_stack);
-      // Clean region-filtering
-      filtering_region->region_alignment.alignment_tiles = NULL;
-      filtering_region_alignment_prepare(filtering_region,
-          pattern->bpm_pattern,pattern->bpm_pattern_tiles,mm_stack);
       // Exclude not-supported regions for local-alignment
       filtering_candidates_align_local_exclude_tiles(filtering_region,pattern,mm_stack);
       // Align Region

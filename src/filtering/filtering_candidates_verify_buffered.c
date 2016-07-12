@@ -151,7 +151,7 @@ void filtering_candidates_verify_buffered_add(
       }
     }
     // Prepare Alignment-Tiles
-    filtering_region_alignment_prepare(filtering_region,bpm_pattern,bpm_pattern_tiles,mm_stack);
+    filtering_region_alignment_prepare(filtering_region,bpm_pattern,bpm_pattern_tiles,false,mm_stack);
     // BPM-GPU put all candidates (tiles)
     const uint64_t num_pattern_tiles = bpm_pattern_tiles->num_pattern_tiles;
     region_alignment_t* const region_alignment = &filtering_region->region_alignment;

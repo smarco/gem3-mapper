@@ -195,7 +195,7 @@ void filtering_region_verify_levenshtein(
       pattern,&bpm_pattern,&bpm_pattern_tiles,mm_stack);
   // Prepare Alignment
   filtering_region_alignment_prepare(filtering_region,
-      bpm_pattern,bpm_pattern_tiles,mm_stack);
+      bpm_pattern,bpm_pattern_tiles,false,mm_stack);
   // Myers's BPM algorithm [EditFilter]
   filtering_region_verify_levenshtein_bpm(filtering_candidates,
       &filtering_region->region_alignment,filtering_region->max_error,

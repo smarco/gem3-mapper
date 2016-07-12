@@ -91,6 +91,7 @@ void filtering_region_alignment_prepare(
     filtering_region_t* const filtering_region,
     bpm_pattern_t* const bpm_pattern,
     bpm_pattern_t* const bpm_pattern_tiles,
+    const bool force_reset,
     mm_stack_t* const mm_stack);
 
 /*
