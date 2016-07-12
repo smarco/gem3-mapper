@@ -82,6 +82,7 @@ void filtering_candidates_verify_buffered_load_region(
   match_scaffold_init(&filtering_region->match_scaffold);
   filtering_region->match_scaffold.scaffold_regions = filtering_region_buffered->scaffold_regions;
   filtering_region->match_scaffold.num_scaffold_regions = filtering_region_buffered->num_scaffold_regions;
+  filtering_region->match_scaffold.scaffolding_coverage = filtering_region_buffered->scaffold_coverage;
 }
 void filtering_candidates_verify_buffered_store_region(
     filtering_region_buffered_t* const filtering_region_buffered,
@@ -96,6 +97,7 @@ void filtering_candidates_verify_buffered_store_region(
   filtering_region_buffered->region_alignment = filtering_region->region_alignment;
   filtering_region_buffered->scaffold_regions = filtering_region->match_scaffold.scaffold_regions;
   filtering_region_buffered->num_scaffold_regions = filtering_region->match_scaffold.num_scaffold_regions;
+  filtering_region_buffered->scaffold_coverage = filtering_region->match_scaffold.scaffolding_coverage;
 }
 /*
  * BPM-Buffered Add (Candidates Verification)

@@ -65,6 +65,7 @@ typedef struct {
   region_alignment_t region_alignment;      // Filtering Region Alignment
   region_matching_t* scaffold_regions;
   uint64_t num_scaffold_regions;
+  uint64_t scaffold_coverage;
 } filtering_region_buffered_t;
 /*
  * Filtering Region Auxiliary Structures

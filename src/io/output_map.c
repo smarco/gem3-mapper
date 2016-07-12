@@ -191,7 +191,7 @@ void output_map_alignment_pretty(
     uint8_t* const text,
     const uint64_t text_length,
     mm_stack_t* const mm_stack) {
-  tab_fprintf(stream,"%s:%"PRIu64":%c:",match_trace->sequence_name,
+  tab_fprintf(stream,"%s:%"PRIu64":%c\n",match_trace->sequence_name,
       match_trace->text_position,(match_trace->strand==Forward)?'+':'-');
   match_alignment_print_pretty(stream,&match_trace->match_alignment,
       matches->cigar_vector,key,key_length,text,text_length,mm_stack);
