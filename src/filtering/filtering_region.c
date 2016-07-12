@@ -40,6 +40,13 @@ void filtering_region_alignment_prepare_region_alignment(
     const uint64_t text_end_offset,
     const uint64_t max_error,
     mm_stack_t* const mm_stack) {
+  // Allocate region-alignment
+  const uint64_t num_tiles = bpm_pattern_tiles->num_pattern_tiles;
+  region_alignment->num_tiles = num_tiles;
+  region_alignment->distance_min_bound = bpm_pattern->pattern_length;
+  if (region_alignment->alignment_tiles==NULL) {
+    region_alignment->alignment_tiles = mm_stack_calloc(mm_stack,num_tiles,region_alignment_tile_t,false);
+  }
   // Init all tiles
   const uint64_t text_length = text_end_offset-text_begin_offset;
   region_alignment_tile_t* const alignment_tiles = region_alignment->alignment_tiles;
@@ -73,18 +80,9 @@ void filtering_region_alignment_prepare(
     mm_stack_t* const mm_stack) {
   // Check region-alignment
   region_alignment_t* const region_alignment = &filtering_region->region_alignment;
-  if (region_alignment->alignment_tiles!=NULL) {
-    if (!force_reset) return; // Already initialized
-  } else {
-    // Allocate region-alignment
-    const uint64_t num_tiles = bpm_pattern_tiles->num_pattern_tiles;
-    region_alignment->num_tiles = num_tiles;
-    region_alignment->distance_min_bound = bpm_pattern->pattern_length;
-    region_alignment->alignment_tiles = mm_stack_calloc(mm_stack,num_tiles,region_alignment_tile_t,false);
-  }
+  if (region_alignment->alignment_tiles!=NULL && !force_reset) return; // Already initialized
   // Prepare region-alignment
   const uint64_t text_length = filtering_region->text_end_position-filtering_region->text_begin_position;
-  region_alignment->distance_min_bound = bpm_pattern->pattern_length;
   filtering_region_alignment_prepare_region_alignment(
       region_alignment,bpm_pattern,bpm_pattern_tiles,
       0,text_length,filtering_region->max_error,mm_stack);
