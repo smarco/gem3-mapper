@@ -50,7 +50,6 @@ void filtering_region_alignment_prepare_region_alignment(
   // Init all tiles
   const uint64_t text_length = text_end_offset-text_begin_offset;
   region_alignment_tile_t* const alignment_tiles = region_alignment->alignment_tiles;
-  const uint64_t num_tiles = bpm_pattern_tiles->num_pattern_tiles;
   if (num_tiles==1) {
     alignment_tiles->match_distance = ALIGN_DISTANCE_INF;
     alignment_tiles->text_end_offset = text_end_offset;
