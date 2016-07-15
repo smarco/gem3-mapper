@@ -23,9 +23,10 @@
 typedef enum {
   mapping_adaptive_filtering_fast,         // Adaptive filtering until high confidence results reached
   mapping_adaptive_filtering_thorough,     // Adaptive filtering thoroughly exploring filtering candidates
-  mapping_adaptive_filtering_complete,     // Full complete search
+  mapping_adaptive_filtering_complete,     // Adaptive filtering guaranteeing complete search
   mapping_neighborhood_search_brute_force, // Neighborhood Search using brute-force
   mapping_neighborhood_search_partition,   // Neighborhood Search using partition & bidirectional search
+  mapping_adaptive_hybrid_complete,        // Complete search using filtering + NS-search
   mapping_test,
 } mapping_mode_t;
 typedef enum {

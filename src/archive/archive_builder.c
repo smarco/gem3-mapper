@@ -106,9 +106,12 @@ void archive_builder_write_index(
       archive_builder->sampled_rl,verbose);
   if (archive_builder->sampled_rl!=NULL) sampled_rl_delete(archive_builder->sampled_rl); // Free
   // Create & write the FM-index
-  bwt_builder_t* const bwt_builder = fm_index_write(
+  bwt_builder_t* bwt_builder;
+  rank_mtable_t* rank_mtable;
+  fm_index_write(
       archive_builder->output_file_manager,archive_builder->enc_bwt,
-      archive_builder->character_occurrences,archive_builder->sampled_sa,check_index,verbose);
+      archive_builder->character_occurrences,archive_builder->sampled_sa,
+      &bwt_builder,&rank_mtable,check_index,verbose);
   // Create & write the GPU FM-Index
   if (gpu_index) {
     sampled_sa_builder_t* const sampled_sa = archive_builder->sampled_sa;
@@ -116,9 +119,10 @@ void archive_builder_write_index(
     gpu_structures_write(
         archive_builder->output_file_name_prefix,enc_text,
         archive_builder->forward_text_length,bwt_builder,
-        sampled_sa->sa_raw_samples,sa_sampling_rate);
+        rank_mtable,sampled_sa->sa_raw_samples,sa_sampling_rate);
   }
   // Free
   bwt_builder_delete(bwt_builder);
+  rank_mtable_builder_delete(rank_mtable);
 }
 

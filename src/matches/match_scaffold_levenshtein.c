@@ -113,7 +113,7 @@ void match_scaffold_levenshtein_tiled(
       .text = align_input->text + text_begin ,
       .text_length = text_end - text_begin,
   };
-  const uint64_t max_distance = 2*distance_bound;
+  const uint64_t max_distance = distance_bound;
   align_bpm_compute_matrix(&bpm_align_input,max_distance,&bpm_align_matrix,mm_stack);
   PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_CELLS,
       bpm_pattern_tile->pattern_length*bpm_align_input.text_length);
@@ -168,7 +168,6 @@ bool match_scaffold_levenshtein(
   const uint64_t key_trim_right = align_input->key_trim_right;
   const uint64_t key_length =  align_input->key_length - key_trim_left - key_trim_right;
   const uint64_t matching_min_length = align_parameters->scaffolding_matching_min_length;
-  const uint64_t local_min_identity = align_parameters->local_min_identity;
   const uint64_t max_scaffold_regions = DIV_CEIL(key_length,matching_min_length);
   const bool left_gap_alignment = align_parameters->left_gap_alignment;
   // Init Scaffold
@@ -189,23 +188,21 @@ bool match_scaffold_levenshtein(
     bpm_pattern_t* const bpm_pattern_tile = bpm_pattern_tiles + tile_pos;
     const uint64_t tile_length = bpm_pattern_tile->pattern_length;
     const uint64_t match_distance = alignment_tile[tile_pos].match_distance;
-    const uint64_t max_local_distance = BOUNDED_SUBTRACTION(tile_length,local_min_identity,0);
-    const bool align_tile = match_distance==ALIGN_DISTANCE_INF || match_distance<=max_local_distance;
-    PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_TILES_SKIPPED,align_tile?0:1);
-    if (align_tile) {
+    PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_TILES_SKIPPED,(match_distance!=ALIGN_DISABLED)?0:1);
+    if (match_distance!=ALIGN_DISABLED) {
 //      if (match_distance==0) {
 //        uint64_t k_off = key_offset, t_off = alignment_tile[tile_pos].text_begin_offset;
 //        match_scaffold_compose_add_matching_exact(match_scaffold,&k_off,&t_off,tile_length); // Add Match
-//      } else {
-        const uint64_t text_begin_offset = alignment_tile[tile_pos].text_begin_offset;
-        const uint64_t text_end_offset = alignment_tile[tile_pos].text_end_offset;
-        mm_stack_push_state(mm_stack); // Push stack state
-        match_scaffold_levenshtein_tiled(match_scaffold,align_input,
-            bpm_pattern_tile,key_offset,text_begin_offset,text_end_offset,
-            match_distance,matching_min_length,left_gap_alignment,matches,mm_stack);
-        mm_stack_pop_state(mm_stack); // Pop stack state
-        PROF_INC_COUNTER(GP_MATCH_SCAFFOLD_EDIT_TILES_ALIGN);
-//      }
+//      } ... TODO
+      const uint64_t text_begin_offset = alignment_tile[tile_pos].text_begin_offset;
+      const uint64_t text_end_offset = alignment_tile[tile_pos].text_end_offset;
+      const uint64_t distance_bound = (match_distance<tile_length) ? match_distance : tile_length;
+      mm_stack_push_state(mm_stack); // Push stack state
+      match_scaffold_levenshtein_tiled(match_scaffold,align_input,
+          bpm_pattern_tile,key_offset,text_begin_offset,text_end_offset,
+          distance_bound,matching_min_length,left_gap_alignment,matches,mm_stack);
+      mm_stack_pop_state(mm_stack); // Pop stack state
+      PROF_INC_COUNTER(GP_MATCH_SCAFFOLD_EDIT_TILES_ALIGN);
     }
     // Next
     key_offset += tile_length;

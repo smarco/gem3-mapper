@@ -205,11 +205,13 @@ void match_align_swg_compute_alignment_type(
   const uint64_t cigar_length = match_alignment->cigar_length;
   const uint64_t matching_bases = matches_cigar_compute_matching_bases(cigar_vector,cigar_offset,cigar_length);
   if (matching_bases < align_parameters->global_min_identity) {
+    PROF_INC_COUNTER(GP_ALIGNED_DISCARDED_MATCHING_BASES);
     match_trace->type = match_type_local; // Local (by identity)
   } else {
     match_trace->swg_score = align_swg_score_cigar(
         align_parameters->swg_penalties,cigar_vector,cigar_offset,cigar_length);
     if (match_trace->swg_score < align_parameters->global_min_swg_threshold) {
+      PROF_INC_COUNTER(GP_ALIGNED_DISCARDED_SWG_THRESHOLD);
       match_trace->type = match_type_local; // Local (by score)
     } else {
       match_trace->type = match_type_regular; // Regular Alignment (global)

@@ -130,13 +130,13 @@
 #define GP_REGION_PROFILE_ADAPTIVE                          250
 #define GP_REGION_PROFILE_QUIT_PROFILE                      251
 
-#define GP_REGION_PROFILE_LIGHTWEIGHT                       259
-#define GP_REGION_PROFILE_LIGHTWEIGHT_NUM_REGIONS           260
-#define GP_REGION_PROFILE_LIGHTWEIGHT_NUM_REGIONS_UNIQUE    261
-#define GP_REGION_PROFILE_LIGHTWEIGHT_NUM_REGIONS_STANDARD  262
-#define GP_REGION_PROFILE_LIGHTWEIGHT_REGION_LENGTH         263
-#define GP_REGION_PROFILE_LIGHTWEIGHT_REGION_CANDIDATES     264
-#define GP_REGION_PROFILE_LIGHTWEIGHT_TOTAL_CANDIDATES      265
+#define GP_REGION_PROFILE                                   259
+#define GP_REGION_PROFILE_NUM_REGIONS                       260
+#define GP_REGION_PROFILE_NUM_REGIONS_UNIQUE                261
+#define GP_REGION_PROFILE_NUM_REGIONS_STANDARD              262
+#define GP_REGION_PROFILE_REGION_LENGTH                     263
+#define GP_REGION_PROFILE_REGION_CANDIDATES                 264
+#define GP_REGION_PROFILE_TOTAL_CANDIDATES                  265
 
 /*
  * Filtering Candidates (Verifying)
@@ -167,7 +167,6 @@
 #define GP_FC_EXTEND_VERIFY_CANDIDATES_FOUND                364
 #define GP_FC_EXTEND_REALIGN_CANDIDATE_REGIONS              365
 
-#define GP_FC_CACHE_COMPUTE_FOOTPRINT                       370
 #define GP_FC_CACHE_SEARCH                                  371
 #define GP_FC_CACHE_SEARCH_HIT                              372
 #define GP_FC_SELECT_PRUNE_HIT                              373
@@ -188,20 +187,27 @@
 #define GP_ALIGNED_EXACT                                    416
 #define GP_ALIGNED_INEXACT                                  417
 #define GP_ALIGNED_REGIONS_LENGTH                           418
+#define GP_ALIGNED_ACCEPTED                                 419
+#define GP_ALIGNED_DISCARDED                                420
+#define GP_ALIGNED_DISCARDED_SWG                            421
+#define GP_ALIGNED_DISCARDED_SWG_THRESHOLD                  422
+#define GP_ALIGNED_DISCARDED_MATCHING_BASES                 423
+#define GP_ALIGNED_DISCARDED_SCAFFOLD                       424
 
 #define GP_MATCH_SCAFFOLD_ALIGNMENT                         450
-#define GP_MATCH_SCAFFOLD_ALIGNMENT_MATCHING_REGIONS        461
-#define GP_MATCH_SCAFFOLD_ALIGNMENT_MATCHING_COVERAGE       462
-#define GP_MATCH_SCAFFOLD_CHAIN_REGIONS                     451
-#define GP_MATCH_SCAFFOLD_CHAIN_REGIONS_SCAFFOLDS           452
-#define GP_MATCH_SCAFFOLD_CHAIN_REGIONS_COVERAGE            453
-#define GP_MATCH_SCAFFOLD_EDIT                              454
-#define GP_MATCH_SCAFFOLD_EDIT_SCAFFOLDS                    455
-#define GP_MATCH_SCAFFOLD_EDIT_COVERAGE                     456
-#define GP_MATCH_SCAFFOLD_EDIT_TILES_TOTAL                  457
-#define GP_MATCH_SCAFFOLD_EDIT_TILES_ALIGN                  458
-#define GP_MATCH_SCAFFOLD_EDIT_TILES_SKIPPED                459
-#define GP_MATCH_SCAFFOLD_EDIT_CELLS                        460
+#define GP_MATCH_SCAFFOLD_ALIGNMENT_ADAPTIVE                451
+#define GP_MATCH_SCAFFOLD_ALIGNMENT_MATCHING_REGIONS        452
+#define GP_MATCH_SCAFFOLD_ALIGNMENT_MATCHING_COVERAGE       453
+#define GP_MATCH_SCAFFOLD_CHAIN_REGIONS                     454
+#define GP_MATCH_SCAFFOLD_CHAIN_REGIONS_SCAFFOLDS           455
+#define GP_MATCH_SCAFFOLD_CHAIN_REGIONS_COVERAGE            456
+#define GP_MATCH_SCAFFOLD_EDIT                              457
+#define GP_MATCH_SCAFFOLD_EDIT_SCAFFOLDS                    458
+#define GP_MATCH_SCAFFOLD_EDIT_COVERAGE                     459
+#define GP_MATCH_SCAFFOLD_EDIT_TILES_TOTAL                  460
+#define GP_MATCH_SCAFFOLD_EDIT_TILES_ALIGN                  461
+#define GP_MATCH_SCAFFOLD_EDIT_TILES_SKIPPED                462
+#define GP_MATCH_SCAFFOLD_EDIT_CELLS                        463
 
 #define GP_BPM_DISTANCE                                     470
 #define GP_BMP_DISTANCE_NUM_TILES                           471
@@ -233,7 +239,8 @@
 /*
  * Matches
  */
-#define GP_MATCHES_SE_ADD_NUM_MAPS                          590
+#define GP_MATCHES_MAPS_ADDED                               590
+#define GP_MATCHES_MAPS_DUP                                 591
 
 /*
  * SWG
@@ -248,6 +255,19 @@
  * Neighborhood Search
  */
 #define GP_AS_NEIGHBORHOOD_SEARCH                           620
+
+#define GP_NS_GENERATION                                    630
+#define GP_NS_VERIFICATION                                  631
+#define GP_NS_ALIGN                                         632
+
+#define GP_NS_NODES                                         635
+#define GP_NS_NODES_SUCCESS                                 636
+#define GP_NS_NODES_FAIL                                    637
+#define GP_NS_NODES_DP_PREVENT                              638
+#define GP_NS_DP_CELLS_COMPUTED                             640
+
+#define GP_NS_SEARCH_DEPTH                                  645
+#define GP_NS_CANDIDATES_GENERATED                          646
 
 /*
  * Checks

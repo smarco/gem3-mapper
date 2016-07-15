@@ -322,6 +322,9 @@ void region_profile_generate_adaptive_limited(
     fprintf(gem_log_get_stream(),"\n");
     tab_fprintf(gem_log_get_stream(),"[Trace]");
   }
+  // Parameters
+  rank_mtable_t* const rank_mtable = fm_index->rank_table;
+  const uint64_t min_matching_depth = rank_mtable->min_matching_depth;
   // Init
   const uint64_t max_region_length = key_length/min_regions;
   region_profile_generator_t generator;
@@ -344,6 +347,9 @@ void region_profile_generate_adaptive_limited(
       const uint64_t num_candidates = generator.hi-generator.lo;
       const uint64_t region_length = current_region->end - generator.key_position;
       if (num_candidates <= profile_model->region_th || region_length >= max_region_length) {
+        if (generator.rank_mquery.level < min_matching_depth) {
+          rank_mtable_fetch(rank_mtable,&generator.rank_mquery,&generator.lo,&generator.hi);
+        }
         region_profile_generator_close_region(&generator,profile_model,
             generator.key_position,generator.lo,generator.hi);
         region_profile_generator_restart(&generator);

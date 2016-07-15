@@ -193,7 +193,7 @@ void nsearch_levenshtein_state_compute_chararacter_banded(
   const uint64_t current_column = text_position+1;
   uint64_t v_banded_begin, v_banded_end, i;
   v_banded_end = MIN(current_column+max_error+1,row_limit);
-  if (nsearch_state->supercondensed || current_column < (max_error+1)) {
+  if (current_column < (max_error+1)) { /* TODO Check ( ... || nsearch_state->supercondensed) */
     v_banded_begin = 1;
   } else {
     v_banded_begin = current_column - max_error;
@@ -203,6 +203,7 @@ void nsearch_levenshtein_state_compute_chararacter_banded(
   }
   // Fill columns
   uint64_t column_min = NS_DISTANCE_INF;
+  PROF_ADD_COUNTER(GP_NS_DP_CELLS_COMPUTED,v_banded_end-v_banded_begin);
   for (i=v_banded_begin;i<v_banded_end;++i) {
     // Compute cells
     const uint64_t key_idx = forward_search ? (i-1) : (key_length-i);

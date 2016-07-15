@@ -11,6 +11,7 @@
 
 #include "utils/essentials.h"
 #include "fm_index/bwt.h"
+#include "fm_index/rank_mtable.h"
 #include "data_structures/dna_text.h"
 
 /*
@@ -21,6 +22,7 @@ void gpu_structures_write(
     dna_text_t* const enc_text,
     const uint64_t forward_text_length,
     bwt_builder_t* const bwt_builder,
+    rank_mtable_t* const rank_mtable,
     uint64_t* const sa_gem,
     const uint32_t sa_sampling);
 

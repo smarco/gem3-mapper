@@ -103,13 +103,13 @@ void mapper_profile_print_mapper_efficiency_ratios(FILE* const stream) {
       (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MAPPER_NUM_READS)));
   tab_fprintf(stream,"    --> Ranks/Alignment        %10.3f ranks/alg\n",
       (float)COUNTER_GET_TOTAL(PROF_GET_RANK(GP_MAPPER_ALL))/
-      (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MATCHES_SE_ADD_NUM_MAPS)));
+      (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MATCHES_MAPS_ADDED)));
   tab_fprintf(stream,"  --> Time/Read                %10.3f ms\n",
       (float)TIMER_GET_TOTAL_MS(PROF_GET_TIMER(GP_MAPPER_ALL))/
       (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MAPPER_NUM_READS)));
   tab_fprintf(stream,"    --> Time/Alignment         %10.3f us\n",
       (float)TIMER_GET_TOTAL_US(PROF_GET_TIMER(GP_MAPPER_ALL))/
-      (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MATCHES_SE_ADD_NUM_MAPS)));
+      (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MATCHES_MAPS_ADDED)));
   tab_fprintf(stream,"  --> Throughput\n");
   const float reads_per_sec =
       (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MAPPER_NUM_READS)) /
@@ -118,20 +118,6 @@ void mapper_profile_print_mapper_efficiency_ratios(FILE* const stream) {
   tab_fprintf(stream,"  --> MegaReads/h        %10.3f\n",reads_per_sec*3600.0/1000000.0);
   tab_fprintf(stream,"  --> GigaReads/d        %10.3f\n",reads_per_sec*3600.0*24.0/1000000000.0);
 }
-//
-//void mapper_profile_print_mem_structs(FILE* const stream) {
-//  tab_fprintf(stream,"[GEM]>Profile.MEM\n");
-//  // index_mem()
-//  // In buffers (total, used)
-//  // Out buffers (total, used)
-//  // mm_stack
-//  // mm_slabs => mm_pool
-//  // bpm_buffers
-//  // filtering_candidates_vectors
-//  // interval_sets
-//  // text_collection
-//  // matches
-//}
 #else /* GEM_PROFILE DISABLED */
 /*
  * I/O

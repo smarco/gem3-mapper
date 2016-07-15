@@ -18,21 +18,8 @@
 #include "neighborhood_search/nsearch_schedule.h"
 
 /*
- * Levenshtein Scheduled Search Query
- */
-uint64_t nsearch_levenshtein_scheduled_search_operation_query(
-    nsearch_schedule_t* const nsearch_schedule,
-    const uint64_t pending_searches,
-    nsearch_operation_t* const nsearch_operation,
-    fm_2interval_t* const fm_2interval);
-
-/*
  * Levenshtein Scheduled Search
  */
-uint64_t nsearch_levenshtein_scheduled_search(
-    nsearch_schedule_t* const nsearch_schedule,
-    const uint64_t pending_searches,
-    nsearch_operation_t* const current_nsearch_operation,
-    fm_2interval_t* const fm_2interval);
+uint64_t nsearch_levenshtein_scheduled_search(nsearch_schedule_t* const nsearch_schedule);
 
 #endif /* NSEARCH_LEVENSHTEIN_SCHEDULED_H_ */

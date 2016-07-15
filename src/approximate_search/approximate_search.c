@@ -141,8 +141,11 @@ void approximate_search(approximate_search_t* const search,matches_t* const matc
     case mapping_neighborhood_search_partition:
       approximate_search_neighborhood_search_partition(search,matches); // NS-partition mapping
       break;
+    case mapping_adaptive_hybrid_complete:
+      approximate_search_hybrid_complete_search(search,matches);
+      break;
     case mapping_test:
-      approximate_search_neighborhood_exact_search(search,matches);
+      GEM_NOT_IMPLEMENTED(); // approximate_search_neighborhood_exact_search(search,matches);
       break;
     default:
       GEM_INVALID_CASE();
@@ -162,7 +165,7 @@ void approximate_search_print(FILE* const stream,approximate_search_t* const sea
   tab_fprintf(stream,"=> MCS %lu\n",search->current_max_complete_stratum);
   tab_fprintf(stream,"=> Region.Profile\n");
   tab_global_inc();
-  region_profile_print(stream,&search->region_profile);
+  region_profile_print(stream,&search->region_profile,false);
   tab_global_dec();
   tab_global_dec();
 }

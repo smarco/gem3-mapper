@@ -22,7 +22,6 @@ void nsearch_levenshtein_query(
     const uint64_t hi_in,
     uint64_t* const lo_out,
     uint64_t* const hi_out) {
-  NSEARCH_PROF_ADD_NODE(nsearch_schedule);
 #ifdef NSEARCH_ENUMERATE
   nsearch_schedule->pending_searches->text[current_position] = char_enc;
   *lo_out = 0; *hi_out = 1;
@@ -38,7 +37,9 @@ uint64_t nsearch_levenshtein_terminate(
     const uint64_t lo,
     const uint64_t hi,
     const uint64_t align_distance) {
-  NSEARCH_PROF_ADD_SOLUTION(nsearch_schedule);
+  // PROFILE
+  PROF_ADD_COUNTER(GP_NS_SEARCH_DEPTH,text_position);
+  PROF_ADD_COUNTER(GP_NS_CANDIDATES_GENERATED,(hi-lo));
 #ifdef NSEARCH_ENUMERATE
   const uint8_t* const text = nsearch_schedule->pending_searches->text;
   dna_buffer_print(stdout,text,text_position+1,true);
@@ -107,25 +108,18 @@ uint64_t nsearch_levenshtein_brute_force_step(
       }
     }
   }
-  // PROFILE
-#ifdef GEM_PROFILE
-  if (total_matches_found==0) {
-    NSEARCH_PROF_CLOSE_NODE(nsearch_schedule);
-    NSEARCH_PROF_ACCOUNT_DEPTH(nsearch_schedule,text_position);
-  }
-#endif
   // Return matches found
+  NSEARCH_PROF_NODE(nsearch_schedule,total_matches_found); // PROFILE
   return total_matches_found;
 }
 void nsearch_levenshtein_brute_force(
     approximate_search_t* const search,
     const bool supercondensed,
     matches_t* const matches) {
+  PROF_START(GP_NS_GENERATION);
   // Init
   nsearch_schedule_t nsearch_schedule;
   nsearch_schedule_init(&nsearch_schedule,nsearch_model_levenshtein,search,matches);
-  // Search
-  TIMER_START(&nsearch_schedule.profile.ns_timer);
   nsearch_operation_t* const nsearch_operation = nsearch_schedule.pending_searches;
   nsearch_levenshtein_state_prepare(&nsearch_operation->nsearch_state,supercondensed);
   nsearch_operation->text_position = 0;
@@ -136,9 +130,14 @@ void nsearch_levenshtein_brute_force(
   const uint64_t init_lo = 0;
   const uint64_t init_hi = fm_index_get_length(nsearch_schedule.search->archive->fm_index);
 #endif
+  // Search
   nsearch_levenshtein_brute_force_step(&nsearch_schedule,nsearch_operation,supercondensed,init_lo,init_hi);
-  TIMER_STOP(&nsearch_schedule.profile.ns_timer);
-  // nsearch_schedule_print_profile(stderr,&nsearch_schedule); // PROFILE
+  // PROFILE
+  // nsearch_schedule_print_profile(stderr,&nsearch_schedule);
+  PROF_ADD_COUNTER(GP_NS_NODES,nsearch_schedule.profile.ns_nodes);
+  PROF_ADD_COUNTER(GP_NS_NODES_SUCCESS,nsearch_schedule.profile.ns_nodes_success);
+  PROF_ADD_COUNTER(GP_NS_NODES_FAIL,nsearch_schedule.profile.ns_nodes_fail);
+  PROF_STOP(GP_NS_GENERATION);
 }
 /*
  * Levenshtein Neighborhood Search

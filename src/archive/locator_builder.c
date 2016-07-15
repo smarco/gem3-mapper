@@ -136,7 +136,10 @@ void locator_builder_close_interval(
   locator_builder->current_interval->type = type;
   locator_builder->current_interval->strand = strand;
   locator_builder->current_interval->bs_strand = bs_strand;
-  locator_builder->current_interval->end_position = locator_builder->current_interval->begin_position+interval_index_length;
+  locator_builder->current_interval->end_position =
+      locator_builder->current_interval->begin_position+interval_index_length;
+  locator_builder->current_interval->rl_begin_position = 0;
+  locator_builder->current_interval->rl_end_position = 0;
   locator_builder->current_interval->sequence_offset = locator_builder->sequence_offset;
   locator_builder->current_interval->sequence_length = interval_text_length;
   svector_write_iterator_next(&(locator_builder->intervals_iterator)); // Next
@@ -161,6 +164,8 @@ void locator_builder_add_interval(
   locator_builder->current_interval->bs_strand = bs_strand;
   locator_builder->current_interval->begin_position = locator_builder->index_position;
   locator_builder->current_interval->end_position = locator_builder->index_position+interval_index_length;
+  locator_builder->current_interval->rl_begin_position = 0;
+  locator_builder->current_interval->rl_end_position = 0;
   locator_builder->current_interval->sequence_offset = sequence_offset;
   locator_builder->current_interval->sequence_length = interval_text_length;
   locator_builder->current_interval->tag_id = (tag_id==-1) ? locator_builder->tag_id_generator : tag_id;

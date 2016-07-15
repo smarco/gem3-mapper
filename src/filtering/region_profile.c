@@ -52,54 +52,8 @@ bool region_profile_has_exact_matches(region_profile_t* const region_profile) {
        (region_profile->filtering_region[0].hi-region_profile->filtering_region[0].lo) > 0);
 }
 /*
- * Utils
+ * Region Query
  */
-void region_profile_compute_kmer_frequency(
-    region_profile_t* const region_profile,
-    fm_index_t* const fm_index,
-    const uint8_t* const key,
-    const uint64_t key_length,
-    const bool* const allowed_enc,
-    mm_stack_t* const mm_stack) {
-  // Push
-  mm_stack_push_state(mm_stack);
-  // Init mquery
-  rank_mtable_t* const rank_mtable = fm_index->rank_table;
-  const uint64_t max_samples = DIV_CEIL(key_length,RANK_MTABLE_SEARCH_DEPTH);
-  rank_mquery_t* const rank_mquery = mm_stack_calloc(mm_stack,max_samples,rank_mquery_t,false);
-  // Traverse the read & compute the frequency of contiguous kmers
-  int64_t i, samples = 0;
-  rank_mquery_t* current_rank_mquery = rank_mquery;
-  rank_mquery_new(current_rank_mquery);
-  for (i=key_length-1;i>=0;--i) {
-    // Fetch character
-    const uint8_t enc_char = key[i];
-    if (!allowed_enc[enc_char]) {
-      rank_mquery_new(current_rank_mquery); // Reset
-      continue;
-    }
-    // Query
-    if (!rank_mquery_is_exhausted(current_rank_mquery)) {
-      rank_mquery_add_char(rank_mtable,current_rank_mquery,enc_char);
-    } else {
-      rank_mtable_prefetch(rank_mtable,current_rank_mquery);
-      ++samples; // Next
-      ++current_rank_mquery;
-      rank_mquery_new(current_rank_mquery); // Reset
-    }
-  }
-  // Compute the kmer average frequency
-  float frequency = 0.0;
-  for (i=0;i<samples;++i) {
-    // Account
-    uint64_t hi, lo;
-    rank_mtable_fetch(rank_mtable,rank_mquery+i,&lo,&hi);
-    frequency += gem_loge((float)(hi-lo));
-  }
-  region_profile->kmer_frequency = (double)( frequency/((float)samples*gem_loge(4)) );
-  // Free
-  mm_stack_pop_state(mm_stack);
-}
 void region_profile_query_character(
     fm_index_t* const fm_index,
     rank_mquery_t* const rank_mquery,
@@ -186,6 +140,162 @@ void region_profile_extend_last_region(
   }
 }
 /*
+ * Region Search Prepare
+ */
+void region_profile_fill_gaps_add(
+    region_search_t* const filtering_region_filled,
+    uint64_t* const num_filtering_regions_filled,
+    const uint64_t begin_region,
+    const uint64_t end_region,
+    const uint64_t degree) {
+  const uint64_t region_idx = (*num_filtering_regions_filled)++;
+  filtering_region_filled[region_idx].begin = begin_region;
+  filtering_region_filled[region_idx].end = end_region;
+  filtering_region_filled[region_idx].degree = degree;
+}
+void region_profile_fill_gaps(
+    region_profile_t* const region_profile,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const bool* const allowed_enc,
+    const uint64_t num_wildcards,
+    mm_stack_t* const mm_stack) {
+  // Sort regions by position
+  region_profile_sort_by_position(region_profile);
+  // Current filtering-regions
+  region_search_t* filtering_region = region_profile->filtering_region;
+  uint64_t regions_left = region_profile->num_filtering_regions;
+  // Allocate new filtering-regions
+  const uint64_t max_regions = 2*(num_wildcards+regions_left)+1;
+  region_search_t* const filtering_region_filled =
+      mm_stack_calloc(mm_stack,MIN(key_length,max_regions),region_search_t,false);
+  uint64_t num_filtering_regions_filled = 0;
+  // Fill gaps
+  uint64_t begin = 0, end = 0;
+  for (;end<key_length;) {
+    // Check current region profile
+    if (regions_left>0 && filtering_region->begin==end) {
+      // Fill gap
+      if (begin < end) {
+        region_profile_fill_gaps_add(filtering_region_filled,
+            &num_filtering_regions_filled,begin,end,0);
+      }
+      region_profile_fill_gaps_add(filtering_region_filled,
+          &num_filtering_regions_filled,filtering_region->begin,
+          filtering_region->end,filtering_region->degree);
+      // Restart
+      begin = filtering_region->end;
+      end   = filtering_region->end;
+      // Next region
+      --(regions_left);
+      ++(filtering_region);
+      continue;
+    }
+    // Check not-allowed chars
+    if (!allowed_enc[key[end]]) {
+      // Fill gap
+      if (begin < end) {
+        region_profile_fill_gaps_add(filtering_region_filled,
+            &num_filtering_regions_filled,begin,end,0);
+      }
+      // Skip not-allowed chars
+      begin = end;
+      while (++end<key_length && !allowed_enc[key[end]]);
+      if (begin < end) {
+        region_profile_fill_gaps_add(filtering_region_filled,
+            &num_filtering_regions_filled,begin,end,end-begin);
+      }
+      // Restart
+      begin = end;
+      continue;
+    }
+    // Next
+    ++end;
+  }
+  // Fill gap
+  if (begin < end) {
+    region_profile_fill_gaps_add(filtering_region_filled,
+        &num_filtering_regions_filled,begin,end,0);
+  }
+  // Set new region-profile
+  region_profile->filtering_region = filtering_region_filled;
+  region_profile->num_filtering_regions = num_filtering_regions_filled;
+}
+uint64_t region_profile_compute_max_accumulated_error(region_profile_t* const region_profile) {
+  // Parameters
+  const region_search_t* const filtering_region = region_profile->filtering_region;
+  const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
+  // Traverse all regions
+  uint64_t i, max_accumulated_error = 0;
+  for (i=0;i<num_filtering_regions;++i) {
+    max_accumulated_error += filtering_region[i].degree;
+  }
+  return max_accumulated_error;
+}
+void region_profile_compute_error_limits(
+    region_profile_t* const region_profile,
+    const uint64_t max_accumulated_error,
+    const uint64_t max_search_error) {
+  // Parameters
+  region_search_t* const filtering_region = region_profile->filtering_region;
+  const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
+  // Traverse all regions
+  uint64_t i;
+  for (i=0;i<num_filtering_regions;++i) {
+    filtering_region[i].min = filtering_region[i].degree;
+    filtering_region[i].max = max_search_error - (max_accumulated_error-filtering_region[i].min);
+  }
+}
+/*
+ * kmer Frequency
+ */
+void region_profile_compute_kmer_frequency(
+    region_profile_t* const region_profile,
+    fm_index_t* const fm_index,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const bool* const allowed_enc,
+    mm_stack_t* const mm_stack) {
+  // Push
+  mm_stack_push_state(mm_stack);
+  // Init mquery
+  rank_mtable_t* const rank_mtable = fm_index->rank_table;
+  const uint64_t max_samples = DIV_CEIL(key_length,RANK_MTABLE_SEARCH_DEPTH);
+  rank_mquery_t* const rank_mquery = mm_stack_calloc(mm_stack,max_samples,rank_mquery_t,false);
+  // Traverse the read & compute the frequency of contiguous kmers
+  int64_t i, samples = 0;
+  rank_mquery_t* current_rank_mquery = rank_mquery;
+  rank_mquery_new(current_rank_mquery);
+  for (i=key_length-1;i>=0;--i) {
+    // Fetch character
+    const uint8_t enc_char = key[i];
+    if (!allowed_enc[enc_char]) {
+      rank_mquery_new(current_rank_mquery); // Reset
+      continue;
+    }
+    // Query
+    if (!rank_mquery_is_exhausted(current_rank_mquery)) {
+      rank_mquery_add_char(rank_mtable,current_rank_mquery,enc_char);
+    } else {
+      rank_mtable_prefetch(rank_mtable,current_rank_mquery);
+      ++samples; // Next
+      ++current_rank_mquery;
+      rank_mquery_new(current_rank_mquery); // Reset
+    }
+  }
+  // Compute the kmer average frequency
+  float frequency = 0.0;
+  for (i=0;i<samples;++i) {
+    // Account
+    uint64_t hi, lo;
+    rank_mtable_fetch(rank_mtable,rank_mquery+i,&lo,&hi);
+    frequency += gem_loge((float)(hi-lo));
+  }
+  region_profile->kmer_frequency = (double)( frequency/((float)samples*gem_loge(4)) );
+  // Free
+  mm_stack_pop_state(mm_stack);
+}
+/*
  * Sort
  */
 int region_search_cmp_candidates(const region_search_t* const a,const region_search_t* const b) {
@@ -199,27 +309,54 @@ void region_profile_sort_by_candidates(region_profile_t* const region_profile) {
   buffer_sort_region_search_by_candidates(
       region_profile->filtering_region,region_profile->num_filtering_regions);
 }
+int region_search_cmp_position(const region_search_t* const a,const region_search_t* const b) {
+  return (int)a->begin - (int)b->begin;
+}
+#define VECTOR_SORT_NAME                 region_search_by_position
+#define VECTOR_SORT_TYPE                 region_search_t
+#define VECTOR_SORT_CMP(a,b)             region_search_cmp_position(a,b)
+#include "utils/vector_sort.h"
+void region_profile_sort_by_position(region_profile_t* const region_profile) {
+  buffer_sort_region_search_by_position(
+      region_profile->filtering_region,region_profile->num_filtering_regions);
+}
 /*
  * Display
  */
 void region_profile_print_region(
     FILE* const stream,
     region_search_t* const region,
-    const uint64_t position) {
-  tab_fprintf(stream,"    [%"PRIu64"]\tregion=[%"PRIu64",%"PRIu64")\t"
-      "lo=%"PRIu64"\thi=%"PRIu64"\tcand=%"PRIu64"\n",position,
-      region->begin,region->end,region->lo,region->hi,region->hi-region->lo);
+    const uint64_t position,
+    const bool display_error_limits) {
+  if (!display_error_limits) {
+    tab_fprintf(stream,
+        "    [%"PRIu64"]\t"
+        "region=[%"PRIu64",%"PRIu64")\t"
+        "lo=%"PRIu64"\thi=%"PRIu64"\t"
+        "cand=%"PRIu64"\n",
+        position,region->begin,region->end,
+        region->lo,region->hi,
+        region->hi-region->lo);
+  } else {
+    tab_fprintf(stream,
+        "    [%"PRIu64"]\t"
+        "region=[%"PRIu64",%"PRIu64")\t"
+        "error=[%"PRIu64",%"PRIu64"]\n",
+        position,region->begin,region->end,
+        region->min,region->max);
+  }
 }
 void region_profile_print(
     FILE* const stream,
-    const region_profile_t* const region_profile) {
+    const region_profile_t* const region_profile,
+    const bool display_error_limits) {
   tab_fprintf(stream,"[GEM]>Region.Profile\n");
   tab_fprintf(stream,"  => Pattern.length %"PRIu64"\n",region_profile->pattern_length);
   tab_fprintf(stream,"  => Num.Filtering.Regions %"PRIu64"\n",region_profile->num_filtering_regions);
   tab_fprintf(stream,"  => Num.Zero.Regions %"PRIu64"\n",region_profile->num_zero_regions);
   tab_fprintf(stream,"  => Filtering.Regions\n");
   REGION_PROFILE_ITERATE(region_profile,region,position) {
-    region_profile_print_region(stream,region,position);
+    region_profile_print_region(stream,region,position,display_error_limits);
   }
   fflush(stream);
 }

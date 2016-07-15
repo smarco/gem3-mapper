@@ -15,6 +15,7 @@
 #include "archive/archive.h"
 #include "archive/locator_builder.h"
 #include "fm_index/sa_builder.h"
+#include "fm_index/rank_mtable_builder.h"
 
 /*
  * Debug

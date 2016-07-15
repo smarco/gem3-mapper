@@ -35,17 +35,17 @@ FILE* benchmark_region_profile = NULL;
 /*
  * Region Profile Stats
  */
-void approximate_search_region_profile_lightweight_stats(region_profile_t* const region_profile) {
+void approximate_search_region_profile_stats(region_profile_t* const region_profile) {
 #ifdef GEM_PROFILE
   uint64_t total_candidates = 0;
-  PROF_INC_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT);
-  PROF_ADD_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT_NUM_REGIONS,region_profile->num_filtering_regions);
+  PROF_INC_COUNTER(GP_REGION_PROFILE);
+  PROF_ADD_COUNTER(GP_REGION_PROFILE_NUM_REGIONS,region_profile->num_filtering_regions);
   REGION_PROFILE_ITERATE(region_profile,region,position) {
-    PROF_ADD_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT_REGION_LENGTH,region->end-region->begin);
-    PROF_ADD_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT_REGION_CANDIDATES,(region->hi-region->lo));
+    PROF_ADD_COUNTER(GP_REGION_PROFILE_REGION_LENGTH,region->end-region->begin);
+    PROF_ADD_COUNTER(GP_REGION_PROFILE_REGION_CANDIDATES,(region->hi-region->lo));
     total_candidates += (region->hi-region->lo);
   }
-  PROF_ADD_COUNTER(GP_REGION_PROFILE_LIGHTWEIGHT_TOTAL_CANDIDATES,total_candidates);
+  PROF_ADD_COUNTER(GP_REGION_PROFILE_TOTAL_CANDIDATES,total_candidates);
 #endif
 }
 /*
@@ -95,7 +95,7 @@ void approximate_search_region_profile_static_close_profile(
     approximate_search_metrics_set_num_zero_regions(&search->metrics,num_zero_regions);
     approximate_search_metrics_set_kmer_frequency(&search->metrics,region_profile->kmer_frequency);
     // STATS
-    approximate_search_region_profile_lightweight_stats(region_profile);
+    approximate_search_region_profile_stats(region_profile);
   } else {
     // Set State
     region_profile->num_filtering_regions = 0;
@@ -148,7 +148,7 @@ void approximate_search_region_profile_adaptive_close_profile(
     approximate_search_metrics_set_kmer_frequency(&search->metrics,region_profile->kmer_frequency);
   }
   // STATS
-  approximate_search_region_profile_lightweight_stats(region_profile);
+  approximate_search_region_profile_stats(region_profile);
 }
 /*
  * Region Profile Adaptive
@@ -192,7 +192,7 @@ void approximate_search_region_profile_adaptive(
   approximate_search_metrics_set_max_region_length(&search->metrics,region_profile->max_region_length);
   approximate_search_metrics_set_num_zero_regions(&search->metrics,region_profile->num_zero_regions);
   approximate_search_metrics_set_kmer_frequency(&search->metrics,region_profile->kmer_frequency);
-  gem_cond_debug_block(DEBUG_REGION_PROFILE_PRINT) { region_profile_print(stderr,region_profile); }
+  gem_cond_debug_block(DEBUG_REGION_PROFILE_PRINT) { region_profile_print(stderr,region_profile,false); }
   // Check Zero-Region
   if (region_profile->num_filtering_regions==0) {
     approximate_search_update_mcs(search,pattern->num_wildcards);
@@ -200,7 +200,7 @@ void approximate_search_region_profile_adaptive(
     return;
   }
   // STATS
-  approximate_search_region_profile_lightweight_stats(region_profile);
+  approximate_search_region_profile_stats(region_profile);
 }
 /*
  * Region Partition Fixed
@@ -318,7 +318,7 @@ void approximate_search_region_profile_static_buffered_retrieve(
       search,num_filtering_regions,num_regions_filtered,
       num_zero_regions,total_candidates,max_region_length);
   // DEBUG
-  gem_cond_debug_block(DEBUG_REGION_PROFILE_PRINT) { region_profile_print(stderr,region_profile); }
+  gem_cond_debug_block(DEBUG_REGION_PROFILE_PRINT) { region_profile_print(stderr,region_profile,false); }
 }
 /*
  * Adaptive Buffered Copy/Retrieve
@@ -372,7 +372,7 @@ void approximate_search_region_profile_adaptive_buffered_retrieve(
       search,num_regions,num_regions_filtered,num_zero_regions,
       total_candidates,max_region_length);
   // DEBUG
-  gem_cond_debug_block(DEBUG_REGION_PROFILE_PRINT) { region_profile_print(stderr,region_profile); }
+  gem_cond_debug_block(DEBUG_REGION_PROFILE_PRINT) { region_profile_print(stderr,region_profile,false); }
 }
 /*
  * Benchmark

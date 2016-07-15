@@ -45,12 +45,8 @@ void nsearch_schedule_init(
   }
   // Profiler
   nsearch_schedule->profile.ns_nodes = 0;
-  nsearch_schedule->profile.ns_nodes_mtable = 0;
   nsearch_schedule->profile.ns_nodes_success = 0;
-  nsearch_schedule->profile.ns_nodes_closed = 0;
-  nsearch_schedule->profile.ns_nodes_fail_optimize = 0;
-  COUNTER_RESET(&nsearch_schedule->profile.ns_nodes_closed_depth);
-  TIMER_RESET(&nsearch_schedule->profile.ns_timer);
+  nsearch_schedule->profile.ns_nodes_fail = 0;
   // MM
   nsearch_schedule->mm_stack = mm_stack;
 }
@@ -116,8 +112,7 @@ void nsearch_schedule_search_step(
         break;
       }
       case nsearch_model_levenshtein: {
-        nsearch_levenshtein_scheduled_search(nsearch_schedule,
-            nsearch_schedule->num_pending_searches,NULL,NULL);
+        nsearch_levenshtein_scheduled_search(nsearch_schedule);
         break;
       }
       default:
@@ -158,9 +153,13 @@ void nsearch_schedule_search_step(
   }
 }
 void nsearch_schedule_search(nsearch_schedule_t* const nsearch_schedule) {
-  TIMER_START(&nsearch_schedule->profile.ns_timer);
-  nsearch_schedule_search_step(nsearch_schedule,0,nsearch_schedule->key_length,0,nsearch_schedule->max_error);
-  TIMER_STOP(&nsearch_schedule->profile.ns_timer);
+  PROF_START(GP_NS_GENERATION);
+  nsearch_schedule_search_step(nsearch_schedule,
+      0,nsearch_schedule->key_length,0,nsearch_schedule->max_error);
+  PROF_ADD_COUNTER(GP_NS_NODES,nsearch_schedule->profile.ns_nodes);
+  PROF_ADD_COUNTER(GP_NS_NODES_SUCCESS,nsearch_schedule->profile.ns_nodes_success);
+  PROF_ADD_COUNTER(GP_NS_NODES_FAIL,nsearch_schedule->profile.ns_nodes_fail);
+  PROF_STOP(GP_NS_GENERATION);
 }
 /*
  * Schedule the search (preconditioned by region profile)
@@ -230,7 +229,7 @@ void nsearch_schedule_search_preconditioned_step(
   }
 }
 void nsearch_schedule_search_preconditioned(nsearch_schedule_t* const nsearch_schedule) {
-  TIMER_START(&nsearch_schedule->profile.ns_timer);
+  PROF_START(GP_NS_GENERATION);
   region_profile_t* const region_profile = &nsearch_schedule->search->region_profile;
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
   if (num_filtering_regions <= 1) {
@@ -240,7 +239,10 @@ void nsearch_schedule_search_preconditioned(nsearch_schedule_t* const nsearch_sc
     nsearch_schedule_search_preconditioned_step(nsearch_schedule,
         0,num_filtering_regions,0,nsearch_schedule->max_error);
   }
-  TIMER_STOP(&nsearch_schedule->profile.ns_timer);
+  PROF_ADD_COUNTER(GP_NS_NODES,nsearch_schedule->profile.ns_nodes);
+  PROF_ADD_COUNTER(GP_NS_NODES_SUCCESS,nsearch_schedule->profile.ns_nodes_success);
+  PROF_ADD_COUNTER(GP_NS_NODES_FAIL,nsearch_schedule->profile.ns_nodes_fail);
+  PROF_STOP(GP_NS_GENERATION);
 }
 /*
  * Display
@@ -399,8 +401,7 @@ void nsearch_schedule_print_pretty(
 void nsearch_schedule_print_profile(
     FILE* const stream,
     nsearch_schedule_t* const nsearch_schedule) {
-  fprintf(stderr,"%lu\t%lu\t%2.3f\n",
+  fprintf(stderr,"%lu\t%lu\n",
       nsearch_schedule->profile.ns_nodes_success,
-      nsearch_schedule->profile.ns_nodes,
-      TIMER_GET_TOTAL_S(&nsearch_schedule->profile.ns_timer));
+      nsearch_schedule->profile.ns_nodes);
 }

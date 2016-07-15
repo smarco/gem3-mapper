@@ -463,6 +463,8 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
         search->mapping_mode = mapping_neighborhood_search_brute_force;
       } else if (gem_strcaseeq(optarg,"complete-partition")) {
         search->mapping_mode = mapping_neighborhood_search_partition;
+      } else if (gem_strcaseeq(optarg,"complete-hybrid")) {
+        search->mapping_mode = mapping_adaptive_hybrid_complete;
       } else if (gem_strcaseeq(optarg,"test")) {
         search->mapping_mode = mapping_test;
       } else {

@@ -13,6 +13,13 @@
 #include "approximate_search/approximate_search.h"
 
 /*
+ * Exact Search
+ */
+void approximate_search_neighborhood_exact_search(
+    approximate_search_t* const search,
+    matches_t* const matches);
+
+/*
  * Neighborhood Search Brute Force
  */
 void approximate_search_neighborhood_search_brute_force(
@@ -27,19 +34,9 @@ void approximate_search_neighborhood_search_partition(
     matches_t* const matches);
 
 /*
- * Neighborhood Generation (Inexact Search)
+ * Neighborhood Search (Using partitions + region-profile preconditioned)
  */
-void approximate_search_neighborhood_exact_search(
-    approximate_search_t* const search,
-    matches_t* const matches);
-void approximate_search_neighborhood_inexact_search(
-    approximate_search_t* const search,
-    matches_t* const matches);
-
-/*
- * Neighborhood Search
- */
-void approximate_search_neighborhood_search(
+void approximate_search_neighborhood_search_partition_preconditioned(
     approximate_search_t* const search,
     matches_t* const matches);
 

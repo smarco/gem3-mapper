@@ -22,6 +22,7 @@ void gpu_structures_write(
     dna_text_t* const enc_text,
     const uint64_t forward_text_length,
     bwt_builder_t* const bwt_builder,
+    rank_mtable_t* const rank_mtable,
     uint64_t* const sa_gem,
     const uint32_t sa_sampling) {
   // Prepare ticket
@@ -38,8 +39,8 @@ void gpu_structures_write(
       .bwt_length            = bwt_builder->bwt.length,
       .index_coding          = GPU_INDEX_GEM_FULL,
       /* (numLevels, Size) => (9, 0.8MB) (10, 3.2MB) (11, 13MB) (12, 52MB) (13, 210MB) */
-      .num_levels_fmi_table  = 12,
-      .skip_levels_fmi_table = 6,
+      .num_levels_fmi_table  = RANK_MTABLE_LEVELS,
+      .skip_levels_fmi_table = rank_mtable->min_matching_depth,
   };
   gpu_gem_sa_dto_t gpu_gem_sa_dto = {
       .sa           = sa_gem,
@@ -74,6 +75,7 @@ void gpu_structures_write(
     dna_text_t* const enc_text,
     const uint64_t forward_text_length,
     bwt_builder_t* const bwt_builder,
+    rank_mtable_t* const rank_mtable,
     uint64_t* const sa_gem,
     const uint32_t sa_sampling) { GEM_CUDA_NOT_SUPPORTED(); }
 

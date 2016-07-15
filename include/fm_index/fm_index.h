@@ -31,11 +31,13 @@ typedef struct {
 /*
  * Builder
  */
-bwt_builder_t* fm_index_write(
+void fm_index_write(
     fm_t* const file_manager,
     dna_text_t* const bwt_text,
     uint64_t* const character_occurrences,
     sampled_sa_builder_t* const sampled_sa,
+    bwt_builder_t** const bwt_builder_out,
+    rank_mtable_t** const rank_mtable_out,
     const bool check,
     const bool verbose);
 

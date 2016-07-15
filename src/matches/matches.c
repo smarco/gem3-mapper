@@ -343,7 +343,7 @@ void matches_add_match(
     // Process match-trace (Correct CIGAR & locate)
     match_trace_process(matches,match_trace,locator);
     // Add the match-trace
-    PROF_INC_COUNTER(GP_MATCHES_SE_ADD_NUM_MAPS);
+    PROF_INC_COUNTER(GP_MATCHES_MAPS_ADDED);
     const uint64_t new_match_trace_offset = vector_get_used(matches->position_matches);
     match_trace_t* new_match_trace;
     vector_alloc_new(matches->position_matches,match_trace_t,new_match_trace);
@@ -366,6 +366,7 @@ void matches_add_match(
     *match_added = true;
     *match_replaced = false;
   } else {
+    PROF_INC_COUNTER(GP_MATCHES_MAPS_DUP);
     match_trace_t* const dup_match_trace = vector_get_elm(
         matches->position_matches,*dup_match_trace_offset,match_trace_t);
     // Pick up the least distant match

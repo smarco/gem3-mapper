@@ -24,11 +24,13 @@
 /*
  * Builder
  */
-bwt_builder_t* fm_index_write(
+void fm_index_write(
     fm_t* const file_manager,
     dna_text_t* const bwt_text,
     uint64_t* const character_occurrences,
     sampled_sa_builder_t* const sampled_sa,
+    bwt_builder_t** const bwt_builder_out,
+    rank_mtable_t** const rank_mtable_out,
     const bool check,
     const bool verbose) {
   // Write Header
@@ -50,11 +52,11 @@ bwt_builder_t* fm_index_write(
   if (verbose) rank_mtable_print(gem_info_get_stream(),rank_mtable,false);
   // Write mrank table
   rank_mtable_builder_write(file_manager,rank_mtable);
-  rank_mtable_builder_delete(rank_mtable); // Free
   // Write BWT
   bwt_builder_write(file_manager,bwt_builder);
-  // Return BWT
-  return bwt_builder;
+  // Return
+  *bwt_builder_out = bwt_builder;
+  *rank_mtable_out = rank_mtable;
 }
 /*
  * Loader

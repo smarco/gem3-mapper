@@ -214,15 +214,22 @@ void match_align_levenshtein(
   align_bpm_match(align_input,align_parameters->max_error,
       align_parameters->left_gap_alignment,match_alignment,matches->cigar_vector,mm_stack);
   // Set distances
-  match_trace->distance = match_alignment->score;
-  match_trace->edit_distance = match_alignment->score;
-  match_trace->swg_score = align_swg_score_cigar(align_parameters->swg_penalties,
-      matches->cigar_vector,match_alignment->cigar_offset,match_alignment->cigar_length);
-  // Store matching text
-  match_trace->match_scaffold = NULL;
-  match_alignment->match_text_offset = match_alignment->match_position - align_input->text_position;
-  match_trace->text = align_input->text + match_alignment->match_text_offset;
-  match_trace->text_length = match_alignment->effective_length;
+  if (match_alignment->score==-1) {
+    PROF_INC_COUNTER(GP_ALIGNED_DISCARDED_SWG);
+    match_trace->distance = ALIGN_DISTANCE_INF;
+    match_trace->edit_distance = ALIGN_DISTANCE_INF;
+    match_trace->swg_score = SWG_SCORE_MIN;
+  } else {
+    match_trace->distance = match_alignment->score;
+    match_trace->edit_distance = match_alignment->score;
+    match_trace->swg_score = align_swg_score_cigar(align_parameters->swg_penalties,
+        matches->cigar_vector,match_alignment->cigar_offset,match_alignment->cigar_length);
+    // Store matching text
+    match_trace->match_scaffold = NULL;
+    match_alignment->match_text_offset = match_alignment->match_position - align_input->text_position;
+    match_trace->text = align_input->text + match_alignment->match_text_offset;
+    match_trace->text_length = match_alignment->effective_length;
+  }
   PROFILE_STOP(GP_MATCHES_ALIGN_LEVENSHTEIN,PROFILE_LEVEL);
 }
 /*
@@ -264,6 +271,7 @@ void match_align_smith_waterman_gotoh(
     match_scaffold_adaptive(match_scaffold,align_input,align_parameters,matches,mm_stack);
     PROFILE_CONTINUE(GP_MATCHES_ALIGN_SWG,PROFILE_LEVEL);
     if (match_scaffold->num_scaffold_regions==0) {
+      PROF_INC_COUNTER(GP_ALIGNED_DISCARDED_SCAFFOLD);
       match_trace->swg_score = SWG_SCORE_MIN;
       match_trace->distance = ALIGN_DISTANCE_INF;
       return;
@@ -275,6 +283,7 @@ void match_align_smith_waterman_gotoh(
   // Check for bad alignments (discarded)
   match_alignment_t* const match_alignment = &match_trace->match_alignment;
   if (match_alignment->score == SWG_SCORE_MIN) { // Input trims not computed
+    PROF_INC_COUNTER(GP_ALIGNED_DISCARDED_SWG);
     match_trace->swg_score = SWG_SCORE_MIN;
     match_trace->distance = ALIGN_DISTANCE_INF;
     return;

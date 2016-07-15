@@ -213,10 +213,12 @@ bool filtering_region_align(
   }
   // Check (re)alignment result
   if (match_trace->distance==ALIGN_DISTANCE_INF || match_trace->swg_score < 0) {
+    PROF_INC_COUNTER(GP_ALIGNED_DISCARDED);
     filtering_region_align_debug(filtering_candidates,
         filtering_region,pattern,false,matches,match_trace); // DEBUG
     return false; // Discarded
   } else {
+    PROF_INC_COUNTER(GP_ALIGNED_ACCEPTED);
     // Add input-clipping to CIGAR
     match_aling_add_clipping(match_trace,matches->cigar_vector,pattern->clip_left,pattern->clip_right);
     // Assign Aligned-status & store offset

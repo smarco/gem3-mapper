@@ -37,11 +37,12 @@ typedef struct {
   uint64_t end;
   // Filtering error
   uint64_t degree; // Degree assigned to this region
-  uint64_t max;
-  uint64_t min;
   // Region exact-search (candidates)
   uint64_t hi;
   uint64_t lo;
+  // NS-Search limits
+  uint64_t max;
+  uint64_t min;
 } region_search_t;
 // Region Profile
 typedef struct {
@@ -78,15 +79,8 @@ uint64_t region_get_num_regions(region_profile_t* const region_profile);
 bool region_profile_has_exact_matches(region_profile_t* const region_profile);
 
 /*
- * Utils
+ * Region Query
  */
-void region_profile_compute_kmer_frequency(
-    region_profile_t* const region_profile,
-    fm_index_t* const fm_index,
-    const uint8_t* const key,
-    const uint64_t key_length,
-    const bool* const allowed_enc,
-    mm_stack_t* const mm_stack);
 void region_profile_query_character(
     fm_index_t* const fm_index,
     rank_mquery_t* const rank_mquery,
@@ -100,9 +94,38 @@ void region_profile_extend_last_region(
     const bool* const allowed_enc);
 
 /*
+ * Region Search Prepare
+ */
+void region_profile_fill_gaps(
+    region_profile_t* const region_profile,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const bool* const allowed_enc,
+    const uint64_t num_wildcards,
+    mm_stack_t* const mm_stack);
+uint64_t region_profile_compute_max_accumulated_error(
+    region_profile_t* const region_profile);
+void region_profile_compute_error_limits(
+    region_profile_t* const region_profile,
+    const uint64_t max_accumulated_error,
+    const uint64_t max_search_error);
+
+/*
+ * kmer Frequency
+ */
+void region_profile_compute_kmer_frequency(
+    region_profile_t* const region_profile,
+    fm_index_t* const fm_index,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const bool* const allowed_enc,
+    mm_stack_t* const mm_stack);
+
+/*
  * Sort
  */
 void region_profile_sort_by_candidates(region_profile_t* const region_profile);
+void region_profile_sort_by_position(region_profile_t* const region_profile);
 
 /*
  * Display
@@ -110,10 +133,12 @@ void region_profile_sort_by_candidates(region_profile_t* const region_profile);
 void region_profile_print_region(
     FILE* const stream,
     region_search_t* const region,
-    const uint64_t position);
+    const uint64_t position,
+    const bool display_error_limits);
 void region_profile_print(
     FILE* const stream,
-    const region_profile_t* const region_profile);
+    const region_profile_t* const region_profile,
+    const bool display_error_limits);
 
 /*
  * Iterator

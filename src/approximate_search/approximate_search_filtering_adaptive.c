@@ -108,7 +108,7 @@ void approximate_search_filtering_adaptive(
         asearch_control_next_state_exact_filtering_adaptive(search,matches); // Next State
         break;
 //      case asearch_stage_neighborhood:
-//        approximate_search_neighborhood_search(search,matches);
+//        approximate_search_filtering_adaptive_neighborhood(search,matches);
 //        search->search_stage = asearch_stage_end; // Next State
 //        break;
       case asearch_stage_local_alignment: // Local alignments
@@ -123,30 +123,4 @@ void approximate_search_filtering_adaptive(
         break;
     }
   }
-}
-/*
- * Test // FIXME Delete ME
- */
-void approximate_search_filtering_adaptive_test(
-    approximate_search_t* const search,
-    matches_t* const matches) {
-//  pattern_t* const pattern = &search->pattern;
-  // FM-Index basic exact search
-//  fm_index_bsearch(search->archive->fm_index,pattern->key,
-//    pattern->key_length,&search->hi_exact_matches,&search->lo_exact_matches);
-//  fm_index_reverse_bsearch(search->archive->fm_index,pattern->key,
-//      pattern->key_length,&search->hi_exact_matches,&search->lo_exact_matches);
-//  fm_index_bsearch_pure(search->archive->fm_index,pattern->key,
-//      pattern->key_length,&search->hi_exact_matches,&search->lo_exact_matches);
-//  fm_index_reverse_bsearch_pure(search->archive->fm_index,pattern->key,
-//      pattern->key_length,&search->hi_exact_matches,&search->lo_exact_matches);
-  // Add to matches
-//  // TODO
-//  matches_add_interval_match(
-//      matches,search->lo_exact_matches,search->hi_exact_matches,
-//      pattern->key_length,0);
-  // Update MCS
-  approximate_search_update_mcs(search,1);
-  // Update next state
-  search->search_stage = asearch_stage_end;
 }

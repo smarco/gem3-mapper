@@ -119,7 +119,6 @@ void filtering_region_add(
   match_scaffold_init(&filtering_region->match_scaffold);
   // Regions-Alignment
   region_alignment_t* const region_alignment = &filtering_region->region_alignment;
-  region_alignment->distance_min_bound = ALIGN_DISTANCE_INF;
   region_alignment->alignment_tiles = NULL;
   filtering_region_alignment_prepare_region_alignment(
       region_alignment,bpm_pattern,bpm_pattern_tiles,

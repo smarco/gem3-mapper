@@ -20,24 +20,23 @@
 #include "matches/matches.h"
 
 /*
- * Enumaration Mode
+ * Enumeration Mode
  */
 //#define NSEARCH_ENUMERATE
 
 /*
  * Profile
  */
-#ifdef GEM_DEBUG
-  #define NSEARCH_PROF_ADD_NODE(nsearch_schedule)      ++((nsearch_schedule)->profile.ns_nodes)
-  #define NSEARCH_PROF_CLOSE_NODE(nsearch_schedule)    ++((nsearch_schedule)->profile.ns_nodes_closed)
-  #define NSEARCH_PROF_ADD_SOLUTION(nsearch_schedule)  ++((nsearch_schedule)->profile.ns_nodes_success)
-  #define NSEARCH_PROF_ACCOUNT_DEPTH(nsearch_schedule,depth) \
-    COUNTER_ADD(&(nsearch_schedule)->profile.ns_nodes_closed_depth,depth);
+#ifdef GEM_PROFILE
+  #define NSEARCH_PROF_NODE(nsearch_schedule,matches_found) \
+    ++((nsearch_schedule)->profile.ns_nodes); \
+    if (matches_found==0) { \
+      ++((nsearch_schedule)->profile.ns_nodes_fail); \
+    } else { \
+      ++((nsearch_schedule)->profile.ns_nodes_success); \
+    }
 #else
-  #define NSEARCH_PROF_ADD_NODE(nsearch_schedule)
-  #define NSEARCH_PROF_CLOSE_NODE(nsearch_schedule)
-  #define NSEARCH_PROF_ADD_SOLUTION(nsearch_schedule)
-  #define NSEARCH_PROF_ACCOUNT_DEPTH(nsearch_schedule,depth)
+  #define NSEARCH_PROF_NODE(nsearch_schedule,matches_found)
 #endif
 
 /*
@@ -52,13 +51,10 @@ typedef enum {
  * Neighborhood Search Schedule
  */
 typedef struct {
+  /* Nodes */
   uint64_t ns_nodes;
-  uint64_t ns_nodes_mtable;
   uint64_t ns_nodes_success;
-  uint64_t ns_nodes_closed;
-  uint64_t ns_nodes_fail_optimize;
-  gem_counter_t ns_nodes_closed_depth;
-  gem_timer_t ns_timer;
+  uint64_t ns_nodes_fail;
 } nsearch_schedule_profile_t;
 typedef struct {
   // Search Structures

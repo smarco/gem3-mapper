@@ -23,7 +23,6 @@ void nsearch_hamming_query(
     const uint64_t hi_in,
     uint64_t* const lo_out,
     uint64_t* const hi_out) {
-  NSEARCH_PROF_ADD_NODE(nsearch_schedule);
 #ifdef NSEARCH_ENUMERATE
   nsearch_schedule->pending_searches->text[current_position] = char_enc;
   *lo_out = 0; *hi_out = 1;
@@ -40,7 +39,6 @@ void nsearch_hamming_directional_query(
     const uint8_t char_enc,
     fm_2interval_t* const fm_2interval_in,
     fm_2interval_t* const fm_2interval_out) {
-  NSEARCH_PROF_ADD_NODE(nsearch_schedule);
 #ifdef NSEARCH_ENUMERATE
   nsearch_schedule->pending_searches->text[current_position] = char_enc;
 #else
@@ -57,7 +55,9 @@ void nsearch_hamming_terminate(
     const uint64_t lo,
     const uint64_t hi,
     const uint64_t align_distance) {
-  NSEARCH_PROF_ADD_SOLUTION(nsearch_schedule);
+  // PROFILE
+  PROF_ADD_COUNTER(GP_NS_SEARCH_DEPTH,nsearch_schedule->key_length);
+  PROF_ADD_COUNTER(GP_NS_CANDIDATES_GENERATED,(hi-lo));
 #ifdef NSEARCH_ENUMERATE
   const uint8_t* const text = nsearch_schedule->pending_searches->text;
   dna_buffer_print(stdout,text,nsearch_schedule->key_length,false);
@@ -96,15 +96,15 @@ void nsearch_hamming_brute_force_step(
       }
     }
   }
+  NSEARCH_PROF_NODE(nsearch_schedule,1); // PROFILE
 }
 void nsearch_hamming_brute_force(
     approximate_search_t* const search,
     matches_t* const matches) {
+  PROF_START(GP_NS_GENERATION);
   // Init
   nsearch_schedule_t nsearch_schedule;
   nsearch_schedule_init(&nsearch_schedule,nsearch_model_hamming,search,matches);
-  // Search
-  TIMER_START(&nsearch_schedule.profile.ns_timer);
 #ifdef NSEARCH_ENUMERATE
   const uint64_t init_lo = 0;
   const uint64_t init_hi = 1;
@@ -112,15 +112,20 @@ void nsearch_hamming_brute_force(
   const uint64_t init_lo = 0;
   const uint64_t init_hi = fm_index_get_length(nsearch_schedule.search->archive->fm_index);
 #endif
+  // Search
   nsearch_hamming_brute_force_step(&nsearch_schedule,
       nsearch_schedule.key_length-1,0,init_lo,init_hi);
-  TIMER_STOP(&nsearch_schedule.profile.ns_timer);
-  // nsearch_schedule_print_profile(stderr,&nsearch_schedule); // PROFILE
+  // PROFILE
+  // nsearch_schedule_print_profile(stderr,&nsearch_schedule);
+  PROF_ADD_COUNTER(GP_NS_NODES,nsearch_schedule.profile.ns_nodes);
+  PROF_ADD_COUNTER(GP_NS_NODES_SUCCESS,nsearch_schedule.profile.ns_nodes_success);
+  PROF_ADD_COUNTER(GP_NS_NODES_FAIL,nsearch_schedule.profile.ns_nodes_fail);
+  PROF_STOP(GP_NS_GENERATION);
 }
 /*
  * Scheduled search
  */
-void nsearch_hamming_scheduled_search_operation(
+void nsearch_hamming_scheduled_search_operation_next(
     nsearch_schedule_t* const nsearch_schedule,
     const uint64_t pending_searches,
     nsearch_operation_t* const nsearch_operation,
@@ -128,7 +133,8 @@ void nsearch_hamming_scheduled_search_operation(
     const uint64_t local_error,
     const uint64_t global_error,
     const int64_t current_position) {
-  // COmpute limits
+  NSEARCH_PROF_NODE(nsearch_schedule,1); // PROFILE
+  // Compute limits
   const search_direction_t search_direction = nsearch_operation->search_direction;
   int64_t next_position;
   bool limit_reached;
@@ -156,7 +162,7 @@ void nsearch_hamming_scheduled_search_operation(
     if (next_fm_2interval.backward_lo >= next_fm_2interval.backward_hi) continue;
     // Keep searching
     if (!limit_reached) {
-      nsearch_hamming_scheduled_search_operation(
+      nsearch_hamming_scheduled_search_operation_next(
           nsearch_schedule,pending_searches,nsearch_operation,
           &next_fm_2interval,next_local_error,global_error,next_position);
     } else {
@@ -174,7 +180,7 @@ void nsearch_hamming_scheduled_search_operation(
             (next_nsearch_operation->search_direction==direction_forward) ?
                 next_nsearch_operation->local_key_begin :
                 next_nsearch_operation->local_key_end - 1;
-        nsearch_hamming_scheduled_search_operation(
+        nsearch_hamming_scheduled_search_operation_next(
             nsearch_schedule,next_pending_searches,next_nsearch_operation,
             &next_fm_2interval,0,next_local_error+global_error,next_begin_position);
       }
@@ -196,7 +202,7 @@ void nsearch_hamming_scheduled_search(nsearch_schedule_t* const nsearch_schedule
       (nsearch_operation->search_direction==direction_forward) ?
           nsearch_operation->local_key_begin :
           nsearch_operation->local_key_end - 1;
-  nsearch_hamming_scheduled_search_operation(nsearch_schedule,
+  nsearch_hamming_scheduled_search_operation_next(nsearch_schedule,
       pending_searches,nsearch_operation,&fm_2interval,0,0,begin_position);
 }
 /*
