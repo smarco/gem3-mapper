@@ -36,10 +36,10 @@ gpu_error_t gpu_sa_index_allocate(gpu_sa_buffer_t* const sa);
 gpu_error_t gpu_sa_index_transfer_CPU_to_GPUs(gpu_sa_buffer_t* const sa, gpu_device_info_t** const devices);
 
 /* Stream index functions  */
-gpu_error_t gpu_sa_index_read_specs(FILE* fp, gpu_sa_buffer_t* const sa);
-gpu_error_t gpu_sa_index_read(FILE* fp, gpu_sa_buffer_t* const sa);
-gpu_error_t gpu_sa_index_write_specs(FILE* fp, const gpu_sa_buffer_t* const sa);
-gpu_error_t gpu_sa_index_write(FILE* fp, const gpu_sa_buffer_t* const sa);
+gpu_error_t gpu_sa_index_read_specs(int fp, gpu_sa_buffer_t* const sa);
+gpu_error_t gpu_sa_index_read(int fp, gpu_sa_buffer_t* const sa);
+gpu_error_t gpu_sa_index_write_specs(int fp, const gpu_sa_buffer_t* const sa);
+gpu_error_t gpu_sa_index_write(int fp, const gpu_sa_buffer_t* const sa);
 
 /* Data load functions */
 gpu_error_t gpu_sa_index_load_specs_MFASTA_FULL(const char* const indexRaw, gpu_sa_buffer_t* const sa);

@@ -127,7 +127,7 @@ gpu_error_t gpu_reference_transform_GEM(const gpu_gem_ref_dto_t* const gem_refer
 
 
 gpu_error_t gpu_reference_transform_GEM_FULL(const gpu_gem_ref_dto_t* const gem_reference, gpu_reference_buffer_t* const reference,
-											 const gpu_module_t activeModules)
+											                       const gpu_module_t activeModules)
 {
   uint64_t base, bitmap;
   uint64_t idEntry, i, referencePosition;
@@ -162,7 +162,6 @@ gpu_error_t gpu_reference_transform_GEM_FULL(const gpu_gem_ref_dto_t* const gem_
     }
     reference->h_reference[referencePosition / GPU_REFERENCE_CHARS_PER_ENTRY] = bitmap;
   }
-
   // Return
   return(SUCCESS);
 }
@@ -172,53 +171,81 @@ gpu_error_t gpu_reference_transform_GEM_FULL(const gpu_gem_ref_dto_t* const gem_
 Input & Output reference functions
 ************************************************************/
 
-gpu_error_t gpu_reference_read_specs(FILE* fp, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules)
+gpu_error_t gpu_reference_read_specs(int fp, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules)
 {
-  size_t result;
-
+  size_t result, bytesRequest;
+  // Module sanity checker
   if((activeModules & GPU_REFERENCE) == 0)
     return(E_MODULE_NOT_FOUND);
-
-  result = fread(&reference->numEntries, sizeof(uint64_t), 1, fp);
-  if (result != 1) return (E_READING_FILE);
-  result = fread(&reference->size, sizeof(uint64_t), 1, fp);
-  if (result != 1) return (E_READING_FILE);
-
+  // Read the reference specifications
+  bytesRequest = sizeof(uint64_t);
+  result = read(fp, (void* )&reference->numEntries, bytesRequest);
+  if (result != bytesRequest) return (E_READING_FILE);
+  bytesRequest = sizeof(uint64_t);
+  result = read(fp, (void* )&reference->size, bytesRequest);
+  if (result != bytesRequest) return (E_READING_FILE);
+  // Succeed
   return (SUCCESS);
 }
 
-gpu_error_t gpu_reference_read(FILE* fp, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules)
+gpu_error_t gpu_reference_write_specs(int fp, const gpu_reference_buffer_t* const reference, const gpu_module_t activeModules)
 {
-  size_t result;
-
+  size_t result, bytesRequest;
+  // Module sanity checker
   if((activeModules & GPU_REFERENCE) == 0)
     return(E_MODULE_NOT_FOUND);
-
-  result = fread(&reference->numEntries, sizeof(uint64_t), 1, fp);
-  if (result != 1) return (E_READING_FILE);
-  result = fread(&reference->size, sizeof(uint64_t), 1, fp);
-  if (result != 1) return (E_READING_FILE);
-  result = fread(reference->h_reference, sizeof(uint64_t), reference->numEntries, fp);
-  if (result != reference->numEntries) return (E_READING_FILE);
-
+  // Write the reference specifications
+  bytesRequest = sizeof(uint64_t);
+  result = write(fp, (void* )&reference->numEntries, bytesRequest);
+  if (result != bytesRequest) return (E_READING_FILE);
+  bytesRequest = sizeof(uint64_t);
+  result = write(fp, (void* )&reference->size, bytesRequest);
+  if (result != bytesRequest) return (E_READING_FILE);
+  // Succeed
   return (SUCCESS);
 }
 
-gpu_error_t gpu_reference_write(FILE* fp, const gpu_reference_buffer_t* const reference, const gpu_module_t activeModules)
+gpu_error_t gpu_reference_read(int fp, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules)
 {
-  size_t result;
-
+  const size_t   bytesRequest = sizeof(uint64_t) * reference->numEntries;
+  const uint32_t numRequests  = GPU_DIV_CEIL(bytesRequest, GPU_FILE_SIZE_BLOCK);
+  size_t result, numBytesRequested = 0;
+  uint32_t idRequest;
+  // Module sanity checker
   if((activeModules & GPU_REFERENCE) == 0)
     return(E_MODULE_NOT_FOUND);
+  // Read the reference specifications
+  GPU_ERROR(gpu_reference_read_specs(fp, reference, activeModules));
+  // Read the reference in a block iterative way
+  for(idRequest = 0; idRequest < numRequests; ++idRequest){
+    const size_t requestSize = GPU_MIN(GPU_FILE_SIZE_BLOCK, bytesRequest - numBytesRequested);
+    result = read(fp, (void* )reference->h_reference + numBytesRequested, requestSize);
+    if (result != requestSize) return (E_READING_FILE);
+    numBytesRequested += requestSize;
+  }
+  // Succeed
+  return (SUCCESS);
+}
 
-  result = fwrite(&reference->numEntries, sizeof(uint64_t), 1, fp);
-  if (result != 1) return (E_WRITING_FILE);
-  result = fwrite(&reference->size, sizeof(uint64_t), 1, fp);
-  if (result != 1) return (E_WRITING_FILE);
-
-  result = fwrite(reference->h_reference, sizeof(uint64_t), reference->numEntries, fp);
-  if (result != reference->numEntries) return (E_WRITING_FILE);
-
+gpu_error_t gpu_reference_write(int fp, const gpu_reference_buffer_t* const reference, const gpu_module_t activeModules)
+{
+  const size_t   bytesRequest = sizeof(uint64_t) * reference->numEntries;
+  const uint64_t numRequests  = GPU_DIV_CEIL(bytesRequest, GPU_FILE_SIZE_BLOCK);
+  size_t result, numBytesRequested = 0;
+  uint64_t idRequest;
+  // Module sanity checker
+  if((activeModules & GPU_REFERENCE) == 0)
+    return(E_MODULE_NOT_FOUND);
+  // Write the reference specifications
+  GPU_ERROR(gpu_reference_write_specs(fp, reference, activeModules));
+  // Write the reference in a block iterative way
+  for(idRequest = 0; idRequest < numRequests; ++idRequest){
+    const size_t requestSize = GPU_MIN(GPU_FILE_SIZE_BLOCK, bytesRequest - numBytesRequested);
+    result = write(fp, (void* )reference->h_reference + numBytesRequested, requestSize);
+    if (result != requestSize) return (E_WRITING_FILE);
+    numBytesRequested += requestSize;
+  }
+  // Succeed
   return (SUCCESS);
 }
 
@@ -237,7 +264,7 @@ gpu_error_t gpu_reference_init_dto(gpu_reference_buffer_t* const ref)
   ref->size           = 0;
   ref->numEntries     = 0;
   ref->activeModules  = GPU_NONE_MODULES;
-
+  // Succeed
   return (SUCCESS);
 }
 
@@ -270,7 +297,7 @@ gpu_error_t gpu_reference_set_specs(gpu_reference_buffer_t* const ref, const cha
       GPU_ERROR(E_REFERENCE_CODING);
       break;
     }
-
+  // Succeed
   return(SUCCESS);
 }
 
@@ -303,7 +330,7 @@ gpu_error_t gpu_reference_transform(gpu_reference_buffer_t* const ref, const cha
       GPU_ERROR(E_REFERENCE_CODING);
       break;
   }
-
+  // Succeed
   return(SUCCESS);
 }
 

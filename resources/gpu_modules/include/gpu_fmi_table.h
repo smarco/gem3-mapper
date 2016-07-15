@@ -41,11 +41,11 @@ gpu_error_t gpu_fmi_table_get_num_elements(const uint32_t numLevels, uint32_t* c
 gpu_error_t gpu_fmi_table_init_dto(gpu_fmi_table_t* const fmiTable);
 gpu_error_t gpu_fmi_table_init(gpu_fmi_table_t* const fmiTable, const uint32_t numLevels, const uint32_t numSupportedDevices);
 gpu_error_t gpu_fmi_table_allocate(gpu_fmi_table_t* const fmiTable);
-gpu_error_t gpu_fmi_table_read_specs(FILE* fp, gpu_fmi_table_t* const fmiTable);
+gpu_error_t gpu_fmi_table_read_specs(int fp, gpu_fmi_table_t* const fmiTable);
 gpu_error_t gpu_fmi_table_load_default_specs(gpu_fmi_table_t* const fmiTable);
-gpu_error_t gpu_fmi_table_read(FILE* fp, gpu_fmi_table_t* const fmiTable);
-gpu_error_t gpu_fmi_table_write_specs(FILE* fp, const gpu_fmi_table_t* const fmiTable);
-gpu_error_t gpu_fmi_table_write(FILE* fp, const gpu_fmi_table_t* const fmiTable);
+gpu_error_t gpu_fmi_table_read(int fp, gpu_fmi_table_t* const fmiTable);
+gpu_error_t gpu_fmi_table_write_specs(int fp, const gpu_fmi_table_t* const fmiTable);
+gpu_error_t gpu_fmi_table_write(int fp, const gpu_fmi_table_t* const fmiTable);
 gpu_error_t gpu_fmi_table_transfer_CPU_to_GPUs(gpu_fmi_table_t* const fmiTable, gpu_device_info_t** const devices);
 gpu_error_t gpu_fmi_table_build(gpu_fmi_table_t* const fmiTable, const gpu_fmi_entry_t* const h_fmi, const uint64_t bwtSize);
 gpu_error_t gpu_fmi_table_get_size(const gpu_fmi_table_t* const fmiTable, size_t* const bytesPerFmiTable);

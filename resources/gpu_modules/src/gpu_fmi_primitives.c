@@ -22,39 +22,5 @@ gpu_fmi_entry_t* gpu_fmi_buffer_get_index_(const void* const fmiBuffer){
   return(mBuff->index->fmi.h_fmi);
 }
 
-
-/* Functions to init the buffers (DECODE) */
-/*
-size_t gpu_fmi_buffer_input_size(gpu_buffer_t* const mBuff)
-{
-  size_t gpu_fmi_asearch_size_per_query(const uint32_t averageQuerySize, const uint32_t averageRegionsPerQuery)
-}
-void gpu_fmi_buffer_reallocate_host_layout(gpu_buffer_t* const mBuff)
-{
-
-}
-void gpu_fmi_buffer_reallocate_device_layout(gpu_buffer_t* const mBuff)
-{
-}*/
-
-/* Functions to transfer data HOST <-> DEVICE (DECODE) */
-/*
-gpu_error_t gpu_fmi_buffer_transfer_CPU_to_GPU(gpu_buffer_t* const mBuff)
-{
-
-}
-gpu_error_t gpu_fmi_buffer_transfer_GPU_to_CPU(gpu_buffer_t* const mBuff)
-{
-
-}*/
-
-/* DEVICE Kernels */
-/*
-gpu_error_t gpu_fmi_buffer_process(gpu_buffer_t* const mBuff)
-{
-
-}*/
-
-
 #endif /* GPU_FMI_PRIMITIVES_C_ */
 

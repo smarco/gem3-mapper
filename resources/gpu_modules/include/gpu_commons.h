@@ -16,6 +16,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -75,6 +78,7 @@ Common constants for Device & Host
 
 /* System */
 #define GPU_FILE_SIZE_LINES   250
+#define GPU_FILE_SIZE_BLOCK   (256 * 1024 * 1024)
 
 /* Encoded DNA Nucleotides */
 #define GPU_ENC_DNA_CHAR_A    0LL

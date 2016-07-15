@@ -49,9 +49,10 @@ char        gpu_complement_base(const char character);
 gpu_error_t gpu_reference_transform(gpu_reference_buffer_t* const ref, const char* const referenceRaw, const gpu_ref_coding_t refCoding, const gpu_module_t activeModules);
 
 /* Stream reference functions  */
-gpu_error_t gpu_reference_read_specs(FILE* fp, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
-gpu_error_t gpu_reference_read(FILE* fp, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
-gpu_error_t gpu_reference_write(FILE* fp, const gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
+gpu_error_t gpu_reference_read_specs(int fp, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
+gpu_error_t gpu_reference_read(int fp, gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
+gpu_error_t gpu_reference_write_specs(int fp, const gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
+gpu_error_t gpu_reference_write(int fp, const gpu_reference_buffer_t* const reference, const gpu_module_t activeModules);
 
 /* Initialize reference functions */
 gpu_error_t gpu_reference_init_dto(gpu_reference_buffer_t* const ref);

@@ -44,7 +44,7 @@ gpu_error_t gpu_index_get_size(const gpu_index_buffer_t* const index, size_t *by
 INPUT / OUPUT Functions
 ************************************************************/
 
-gpu_error_t gpu_index_read_specs(FILE* fp, gpu_index_buffer_t* const index, const gpu_module_t activeModules)
+gpu_error_t gpu_index_read_specs(int fp, gpu_index_buffer_t* const index, const gpu_module_t activeModules)
 {
   if(activeModules & GPU_FMI){
     GPU_ERROR(gpu_fmi_index_read_specs(fp, &index->fmi));
@@ -56,7 +56,7 @@ gpu_error_t gpu_index_read_specs(FILE* fp, gpu_index_buffer_t* const index, cons
   return (SUCCESS);
 }
 
-gpu_error_t gpu_index_read(FILE* fp, gpu_index_buffer_t* const index, const gpu_module_t activeModules)
+gpu_error_t gpu_index_read(int fp, gpu_index_buffer_t* const index, const gpu_module_t activeModules)
 {
   if(activeModules & GPU_FMI){
     GPU_ERROR(gpu_fmi_index_read_specs(fp, &index->fmi));
@@ -71,7 +71,7 @@ gpu_error_t gpu_index_read(FILE* fp, gpu_index_buffer_t* const index, const gpu_
   return (SUCCESS);
 }
 
-gpu_error_t gpu_index_write_specs(FILE* fp, const gpu_index_buffer_t* const index, const gpu_module_t activeModules)
+gpu_error_t gpu_index_write_specs(int fp, const gpu_index_buffer_t* const index, const gpu_module_t activeModules)
 {
   if(activeModules & GPU_FMI){
     GPU_ERROR(gpu_fmi_index_write_specs(fp, &index->fmi));
@@ -83,7 +83,7 @@ gpu_error_t gpu_index_write_specs(FILE* fp, const gpu_index_buffer_t* const inde
   return(SUCCESS);
 }
 
-gpu_error_t gpu_index_write(FILE* fp, const gpu_index_buffer_t* const index, const gpu_module_t activeModules)
+gpu_error_t gpu_index_write(int fp, const gpu_index_buffer_t* const index, const gpu_module_t activeModules)
 {
   if(activeModules & GPU_FMI){
     GPU_ERROR(gpu_fmi_index_write_specs(fp, &index->fmi));

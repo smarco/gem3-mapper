@@ -238,19 +238,6 @@ gpu_error_t gpu_fmi_table_allocate(gpu_fmi_table_t* const fmiTable)
   return(SUCCESS);
 }
 
-gpu_error_t gpu_fmi_table_read_specs(FILE* fp, gpu_fmi_table_t* const fmiTable)
-{
-  size_t result;
-  result = fread(&fmiTable->maxLevelsTableLUT, sizeof(uint32_t), 1, fp);
-  if (result != 1) return (E_READING_FILE);
-  result = fread(&fmiTable->skipLevelsTableLUT, sizeof(uint32_t), 1, fp);
-  if (result != 1) return (E_READING_FILE);
-  result = fread(&fmiTable->totalElemTableLUT, sizeof(uint32_t), 1, fp);
-  if (result != 1) return (E_READING_FILE);
-  // Succeed
-  return (SUCCESS);
-}
-
 gpu_error_t gpu_fmi_table_load_default_specs(gpu_fmi_table_t* const fmiTable)
 {
   if (fmiTable->maxLevelsTableLUT  == 0) fmiTable->maxLevelsTableLUT  = GPU_FMI_TABLE_DEFAULT_LEVELS;
@@ -259,42 +246,78 @@ gpu_error_t gpu_fmi_table_load_default_specs(gpu_fmi_table_t* const fmiTable)
   return (SUCCESS);
 }
 
-gpu_error_t gpu_fmi_table_read(FILE* fp, gpu_fmi_table_t* const fmiTable)
+gpu_error_t gpu_fmi_table_read_specs(int fp, gpu_fmi_table_t* const fmiTable)
 {
-  size_t result;
+  size_t result, bytesRequest;
+  // Read the specifications of the LUT fmi-table
+  bytesRequest = sizeof(uint32_t);
+  result = read(fp, (void *)&fmiTable->maxLevelsTableLUT, bytesRequest);
+  if (result != bytesRequest) return (E_READING_FILE);
+  bytesRequest = sizeof(uint32_t);
+  result = read(fp, (void *)&fmiTable->skipLevelsTableLUT, bytesRequest);
+  if (result != bytesRequest) return (E_READING_FILE);
+  bytesRequest = sizeof(uint32_t);
+  result = read(fp, (void *)&fmiTable->totalElemTableLUT, bytesRequest);
+  if (result != bytesRequest) return (E_READING_FILE);
+  // Succeed
+  return (SUCCESS);
+}
+
+gpu_error_t gpu_fmi_table_read(int fp, gpu_fmi_table_t* const fmiTable)
+{
+  size_t result, bytesRequest, numBytesRequested = 0;
+  uint64_t idRequest, numRequests;
   // Read the metadata used in the LUT fmi-table
-  result = fread(fmiTable->h_offsetsTableLUT, sizeof(offset_table_t), fmiTable->maxLevelsTableLUT, fp);
-  if (result != fmiTable->maxLevelsTableLUT) return (E_READING_FILE);
+  bytesRequest = sizeof(offset_table_t) * fmiTable->maxLevelsTableLUT;
+  result = read(fp, (void* )fmiTable->h_offsetsTableLUT, bytesRequest);
+  if (result != bytesRequest) return (E_READING_FILE);
   // Read the LUT fmi-table
-  result = fread(fmiTable->h_fmiTableLUT, sizeof(gpu_sa_entry_t), fmiTable->totalElemTableLUT, fp);
-  if (result != fmiTable->totalElemTableLUT) return (E_READING_FILE);
+  bytesRequest = sizeof(gpu_sa_entry_t) * fmiTable->totalElemTableLUT;
+  numRequests  = GPU_DIV_CEIL(bytesRequest, GPU_FILE_SIZE_BLOCK);
+  for(idRequest = 0; idRequest < numRequests; ++idRequest){
+    const size_t requestSize = GPU_MIN(GPU_FILE_SIZE_BLOCK, bytesRequest - numBytesRequested);
+    result = read(fp, (void* )fmiTable->h_fmiTableLUT + numBytesRequested, requestSize);
+    if (result != requestSize) return (E_READING_FILE);
+    numBytesRequested += requestSize;
+  }
   // Succeed
   return (SUCCESS);
 }
 
-gpu_error_t gpu_fmi_table_write_specs(FILE* fp, const gpu_fmi_table_t* const fmiTable)
+gpu_error_t gpu_fmi_table_write_specs(int fp, const gpu_fmi_table_t* const fmiTable)
 {
-  size_t result;
+  size_t result, bytesRequest;
   // Write the specifications of the LUT fmi-table
-  result = fwrite(&fmiTable->maxLevelsTableLUT,  sizeof(uint32_t), 1, fp);
-  if (result != 1) return (E_WRITING_FILE);
-  result = fwrite(&fmiTable->skipLevelsTableLUT, sizeof(uint32_t), 1, fp);
-  if (result != 1) return (E_WRITING_FILE);
-  result = fwrite(&fmiTable->totalElemTableLUT,  sizeof(uint32_t), 1, fp);
-  if (result != 1) return (E_WRITING_FILE);
+  bytesRequest = sizeof(uint32_t);
+  result = write(fp, (void *)&fmiTable->maxLevelsTableLUT, bytesRequest);
+  if (result != bytesRequest) return (E_WRITING_FILE);
+  bytesRequest = sizeof(uint32_t);
+  result = write(fp, (void *)&fmiTable->skipLevelsTableLUT, bytesRequest);
+  if (result != bytesRequest) return (E_WRITING_FILE);
+  bytesRequest = sizeof(uint32_t);
+  result = write(fp, (void *)&fmiTable->totalElemTableLUT, bytesRequest);
+  if (result != bytesRequest) return (E_WRITING_FILE);
   // Succeed
   return (SUCCESS);
 }
 
-gpu_error_t gpu_fmi_table_write(FILE* fp, const gpu_fmi_table_t* const fmiTable)
+gpu_error_t gpu_fmi_table_write(int fp, const gpu_fmi_table_t* const fmiTable)
 {
-  size_t result;
+  size_t result, bytesRequest, numBytesRequested = 0;
+  uint64_t idRequest, numRequests;
   // Write the metadata used in the LUT fmi-table
-  result = fwrite(fmiTable->h_offsetsTableLUT, sizeof(offset_table_t), fmiTable->maxLevelsTableLUT, fp);
-  if (result != fmiTable->maxLevelsTableLUT) return (E_WRITING_FILE);
+  bytesRequest = sizeof(offset_table_t) * fmiTable->maxLevelsTableLUT;
+  result = write(fp, (void* )fmiTable->h_offsetsTableLUT, bytesRequest);
+  if (result != bytesRequest) return (E_WRITING_FILE);
   // Write the LUT fmi-table
-  result = fwrite(fmiTable->h_fmiTableLUT, sizeof(gpu_sa_entry_t), fmiTable->totalElemTableLUT, fp);
-  if (result != fmiTable->totalElemTableLUT) return (E_WRITING_FILE);
+  bytesRequest = sizeof(gpu_sa_entry_t) * fmiTable->totalElemTableLUT;
+  numRequests  = GPU_DIV_CEIL(bytesRequest, GPU_FILE_SIZE_BLOCK);
+  for(idRequest = 0; idRequest < numRequests; ++idRequest){
+    const size_t requestSize = GPU_MIN(GPU_FILE_SIZE_BLOCK, bytesRequest - numBytesRequested);
+    result = write(fp, (void* )fmiTable->h_fmiTableLUT + numBytesRequested, requestSize);
+    if (result != requestSize) return (E_WRITING_FILE);
+    numBytesRequested += requestSize;
+  }
   // Succeed
   return (SUCCESS);
 }

@@ -28,46 +28,66 @@ gpu_error_t gpu_fmi_index_get_size(const gpu_fmi_buffer_t* const fmi, size_t* co
  GLOBAL METHODS: INPUT / OUPUT Functions
 ************************************************************/
 
-gpu_error_t gpu_fmi_index_read_specs(FILE* fp, gpu_fmi_buffer_t* const fmi)
+gpu_error_t gpu_fmi_index_read_specs(int fp, gpu_fmi_buffer_t* const fmi)
 {
-  size_t result;
+  size_t result, bytesRequest;
 
-  result = fread(&fmi->numEntries, sizeof(uint64_t), 1, fp);
-  if (result != 1) return (E_READING_FILE);
-  result = fread(&fmi->bwtSize, sizeof(uint64_t), 1, fp);
-  if (result != 1) return (E_READING_FILE);
+  bytesRequest = sizeof(uint64_t);
+  result = read(fp, (void *)&fmi->numEntries, bytesRequest);
+  if (result != bytesRequest) return (E_READING_FILE);
+
+  bytesRequest = sizeof(uint64_t);
+  result = read(fp, (void *)&fmi->bwtSize, bytesRequest);
+  if (result != bytesRequest) return (E_READING_FILE);
 
   return (SUCCESS);
 }
 
-gpu_error_t gpu_fmi_index_read(FILE* fp, gpu_fmi_buffer_t* const fmi)
+gpu_error_t gpu_fmi_index_read(int fp, gpu_fmi_buffer_t* const fmi)
 {
-  size_t result;
+  const size_t   bytesRequest = sizeof(gpu_fmi_entry_t) * fmi->numEntries;
+  const uint64_t numRequests  = GPU_DIV_CEIL(bytesRequest, GPU_FILE_SIZE_BLOCK);
+  size_t result, numBytesRequested = 0;
+  uint64_t idRequest;
 
-  result = fread(fmi->h_fmi, sizeof(gpu_fmi_entry_t), fmi->numEntries, fp);
-  if (result != fmi->numEntries) return (E_READING_FILE);
+  for(idRequest = 0; idRequest < numRequests; ++idRequest){
+    const size_t requestSize = GPU_MIN(GPU_FILE_SIZE_BLOCK, bytesRequest - numBytesRequested);
+    result = read(fp, (void* )fmi->h_fmi + numBytesRequested, requestSize);
+    if (result != requestSize) return (E_READING_FILE);
+    numBytesRequested += requestSize;
+  }
 
   return (SUCCESS);
 }
 
-gpu_error_t gpu_fmi_index_write_specs(FILE* fp, const gpu_fmi_buffer_t* const fmi)
+gpu_error_t gpu_fmi_index_write_specs(int fp, const gpu_fmi_buffer_t* const fmi)
 {
-  size_t result;
+  size_t result, bytesRequest;
 
-  result = fwrite(&fmi->numEntries, sizeof(uint64_t), 1, fp);
-  if (result != 1) return (E_WRITING_FILE);
-  result = fwrite(&fmi->bwtSize, sizeof(uint64_t), 1, fp);
-  if (result != 1) return (E_WRITING_FILE);
+  bytesRequest = sizeof(uint64_t);
+  result = write(fp, (void *)&fmi->numEntries, bytesRequest);
+  if (result != bytesRequest) return (E_WRITING_FILE);
+
+  bytesRequest = sizeof(uint64_t);
+  result = write(fp, (void *)&fmi->bwtSize, bytesRequest);
+  if (result != bytesRequest) return (E_WRITING_FILE);
 
   return (SUCCESS);
 }
 
-gpu_error_t gpu_fmi_index_write(FILE* fp, const gpu_fmi_buffer_t* const fmi)
+gpu_error_t gpu_fmi_index_write(int fp, const gpu_fmi_buffer_t* const fmi)
 {
-  size_t result;
+  const size_t   bytesRequest = sizeof(gpu_fmi_entry_t) * fmi->numEntries;
+  const uint64_t numRequests  = GPU_DIV_CEIL(bytesRequest, GPU_FILE_SIZE_BLOCK);
+  size_t result, numBytesRequested = 0;
+  uint64_t idRequest;
 
-  result = fwrite(fmi->h_fmi, sizeof(gpu_fmi_entry_t), fmi->numEntries, fp);
-  if (result != fmi->numEntries) return (E_WRITING_FILE);
+  for(idRequest = 0; idRequest < numRequests; ++idRequest){
+    const size_t requestSize = GPU_MIN(GPU_FILE_SIZE_BLOCK, bytesRequest - numBytesRequested);
+    result = write(fp, (void* )fmi->h_fmi + numBytesRequested, requestSize);
+    if (result != requestSize) return (E_WRITING_FILE);
+    numBytesRequested += requestSize;
+  }
 
   return (SUCCESS);
 }

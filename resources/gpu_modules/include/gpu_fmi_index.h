@@ -42,10 +42,10 @@ gpu_error_t gpu_fmi_index_allocate(gpu_fmi_buffer_t* const fmi);
 gpu_error_t gpu_fmi_index_transfer_CPU_to_GPUs(gpu_fmi_buffer_t* const fmi, gpu_device_info_t** const devices);
 
 /* Stream index functions */
-gpu_error_t gpu_fmi_index_read_specs(FILE* fp, gpu_fmi_buffer_t* const fmi);
-gpu_error_t gpu_fmi_index_read(FILE* fp, gpu_fmi_buffer_t* const fmi);
-gpu_error_t gpu_fmi_index_write_specs(FILE* fp, const gpu_fmi_buffer_t* const fmi);
-gpu_error_t gpu_fmi_index_write(FILE* fp, const gpu_fmi_buffer_t* const fmi);
+gpu_error_t gpu_fmi_index_read_specs(int fp, gpu_fmi_buffer_t* const fmi);
+gpu_error_t gpu_fmi_index_read(int fp, gpu_fmi_buffer_t* const fmi);
+gpu_error_t gpu_fmi_index_write_specs(int fp, const gpu_fmi_buffer_t* const fmi);
+gpu_error_t gpu_fmi_index_write(int fp, const gpu_fmi_buffer_t* const fmi);
 
 /* Data transform functions */
 gpu_error_t gpu_fmi_index_transform_ASCII(const char* const textBWT, gpu_fmi_buffer_t* const fmi);

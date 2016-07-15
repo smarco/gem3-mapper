@@ -27,50 +27,67 @@ gpu_error_t gpu_sa_index_get_size(const gpu_sa_buffer_t* const sa, size_t* const
  GLOBAL METHODS: INPUT / OUPUT Functions
 ************************************************************/
 
-gpu_error_t gpu_sa_index_read_specs(FILE* fp, gpu_sa_buffer_t* const sa)
+gpu_error_t gpu_sa_index_read_specs(int fp, gpu_sa_buffer_t* const sa)
 {
-  size_t result;
-
-  result = fread(&sa->numEntries, sizeof(uint64_t), 1, fp);
-  if (result != 1) return (E_READING_FILE);
-  result = fread(&sa->sampligRate, sizeof(uint64_t), 1, fp);
-  if (result != 1) return (E_READING_FILE);
-
+  size_t result, bytesRequest;
+  // Read the specifications of the SA
+  bytesRequest = sizeof(uint64_t);
+  result = read(fp, (void *)&sa->numEntries, bytesRequest);
+  if (result != bytesRequest) return (E_READING_FILE);
+  bytesRequest = sizeof(uint64_t);
+  result = read(fp, (void *)&sa->sampligRate, bytesRequest);
+  if (result != bytesRequest) return (E_READING_FILE);
+  // Succeed
   return (SUCCESS);
 }
 
-gpu_error_t gpu_sa_index_read(FILE* fp, gpu_sa_buffer_t* const sa)
+gpu_error_t gpu_sa_index_read(int fp, gpu_sa_buffer_t* const sa)
 {
-  size_t result;
-
-  result = fread(sa->h_sa, sizeof(gpu_sa_entry_t), sa->numEntries, fp);
-  if (result != sa->numEntries) return (E_READING_FILE);
-
+  const size_t   bytesRequest = sizeof(gpu_sa_entry_t) * sa->numEntries;
+  const uint64_t numRequests  = GPU_DIV_CEIL(bytesRequest, GPU_FILE_SIZE_BLOCK);
+  size_t result, numBytesRequested = 0;
+  uint64_t idRequest;
+  // Read the SA in a block iterative way
+  for(idRequest = 0; idRequest < numRequests; ++idRequest){
+    const size_t requestSize = GPU_MIN(GPU_FILE_SIZE_BLOCK, bytesRequest - numBytesRequested);
+    result = read(fp, (void *)sa->h_sa + numBytesRequested, requestSize);
+    if (result != requestSize) return (E_READING_FILE);
+    numBytesRequested += requestSize;
+  }
+  // Succeed
   return (SUCCESS);
 }
 
-gpu_error_t gpu_sa_index_write_specs(FILE* fp, const gpu_sa_buffer_t* const sa)
+gpu_error_t gpu_sa_index_write_specs(int fp, const gpu_sa_buffer_t* const sa)
 {
-  size_t result;
-
-  result = fwrite(&sa->numEntries, sizeof(uint64_t), 1, fp);
-  if (result != 1) return (E_WRITING_FILE);
-  result = fwrite(&sa->sampligRate, sizeof(uint64_t), 1, fp);
-  if (result != 1) return (E_WRITING_FILE);
-
+  size_t result, bytesRequest;
+  // Write the specifications of the SA
+  bytesRequest = sizeof(uint64_t);
+  result = write(fp, (void *)&sa->numEntries, bytesRequest);
+  if (result != bytesRequest) return (E_WRITING_FILE);
+  bytesRequest = sizeof(uint64_t);
+  result = write(fp, (void *)&sa->sampligRate, bytesRequest);
+  if (result != bytesRequest) return (E_WRITING_FILE);
+  // Succeed
   return (SUCCESS);
 }
 
-gpu_error_t gpu_sa_index_write(FILE* fp, const gpu_sa_buffer_t* const sa)
+gpu_error_t gpu_sa_index_write(int fp, const gpu_sa_buffer_t* const sa)
 {
-  size_t result;
-
-  result = fwrite(sa->h_sa, sizeof(gpu_sa_entry_t), sa->numEntries, fp);
-  if (result != sa->numEntries) return (E_WRITING_FILE);
-
+  const size_t   bytesRequest = sizeof(gpu_sa_entry_t) * sa->numEntries;
+  const uint64_t numRequests  = GPU_DIV_CEIL(bytesRequest, GPU_FILE_SIZE_BLOCK);
+  size_t result, numBytesRequested = 0;
+  uint64_t idRequest;
+  // Write the SA in a block iterative way
+  for(idRequest = 0; idRequest < numRequests; ++idRequest){
+    const size_t requestSize = GPU_MIN(GPU_FILE_SIZE_BLOCK, bytesRequest - numBytesRequested);
+    result = write(fp, (void *)sa->h_sa + numBytesRequested, requestSize);
+    if (result != requestSize) return (E_WRITING_FILE);
+    numBytesRequested += requestSize;
+  }
+  // Succeed
   return (SUCCESS);
 }
-
 
 /************************************************************
  GLOBAL METHODS: Transfer the index (HOST <-> DEVICES)

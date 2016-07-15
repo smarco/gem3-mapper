@@ -29,9 +29,10 @@ gpu_error_t gpu_index_allocate(gpu_index_buffer_t* index, const gpu_module_t act
 gpu_error_t gpu_index_transfer_CPU_to_GPUs(gpu_index_buffer_t* const index, gpu_device_info_t** const devices, const gpu_module_t activeModules);
 
 /* Stream index functions  */
-gpu_error_t gpu_index_read_specs(FILE* fp, gpu_index_buffer_t* const index, const gpu_module_t activeModules);
-gpu_error_t gpu_index_read(FILE* fp, gpu_index_buffer_t* const index, const gpu_module_t activeModules);
-gpu_error_t gpu_index_write(FILE* fp, const gpu_index_buffer_t* const index, const gpu_module_t activeModules);
+gpu_error_t gpu_index_read_specs(int fp, gpu_index_buffer_t* const index, const gpu_module_t activeModules);
+gpu_error_t gpu_index_read(int fp, gpu_index_buffer_t* const index, const gpu_module_t activeModules);
+gpu_error_t gpu_index_write_specs(int fp, const gpu_index_buffer_t* const index, const gpu_module_t activeModules);
+gpu_error_t gpu_index_write(int fp, const gpu_index_buffer_t* const index, const gpu_module_t activeModules);
 
 /* Stream index functions  */
 gpu_error_t gpu_index_transform(gpu_index_buffer_t* const index, const gpu_index_dto_t* const indexRaw, const gpu_index_coding_t indexCoding, const gpu_module_t activeModules);
