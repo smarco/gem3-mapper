@@ -509,7 +509,7 @@ void gpu_io_save_indexed_structures_GEM_(const char* const fn, const gpu_gem_fmi
   // Initialize the reference structure
   GPU_ERROR(gpu_reference_init_dto(&ref));
   ref.activeModules = activeModules & GPU_REFERENCE;
-  ref.size          = gemRef->ref_length;
+  ref.size          = gemRef->ref_length * 2; //Forward & reverse genomes
   ref.numEntries    = GPU_DIV_CEIL(ref.size, GPU_REFERENCE_CHARS_PER_ENTRY) + GPU_REFERENCE_END_PADDING;
 
   // Initialize the index (SA & FMI) structure
@@ -541,7 +541,8 @@ void gpu_io_save_indexed_structures_GEM_(const char* const fn, const gpu_gem_fmi
       GPU_ERROR(gpu_index_allocate(&index, GPU_FMI));
       GPU_ERROR(gpu_index_transform(&index, (gpu_index_dto_t*)gemFMindex, gemFMindex->index_coding, GPU_FMI));
       GPU_ERROR(gpu_index_write(fp, &index, GPU_FMI));
-      //GPU_ERROR(gpu_save_index_PROFILE("internalIndexGEM", fmi)); //DEBUG: backup the index
+      GPU_ERROR(gpu_index_free_host(&index,GPU_FMI));
+      //GPU_ERROR(gpu_save_index_PROFILE("internalIndexGEM", fmi)); // Dumping the index
       fileOffsetSAIndex = lseek64(fp, 0, SEEK_CUR);
       fileOffsetRef     = fileOffsetSAIndex;
     }
@@ -549,6 +550,7 @@ void gpu_io_save_indexed_structures_GEM_(const char* const fn, const gpu_gem_fmi
       GPU_ERROR(gpu_index_allocate(&index, GPU_SA));
       GPU_ERROR(gpu_index_transform(&index, (gpu_index_dto_t*)gemSAindex, gemSAindex->index_coding, GPU_SA));
       GPU_ERROR(gpu_index_write(fp, &index, GPU_SA));
+      GPU_ERROR(gpu_index_free_host(&index,GPU_SA));
       fileOffsetRef = lseek64(fp, 0, SEEK_CUR);
     }
   }
@@ -557,6 +559,7 @@ void gpu_io_save_indexed_structures_GEM_(const char* const fn, const gpu_gem_fmi
     GPU_ERROR(gpu_reference_allocate(&ref, GPU_REFERENCE));
     GPU_ERROR(gpu_reference_transform(&ref, (char*)gemRef, gemRef->ref_coding, GPU_REFERENCE));
     GPU_ERROR(gpu_reference_write(fp, &ref, GPU_REFERENCE));
+    GPU_ERROR(gpu_reference_free_host(&ref));
   }
 
   //Rewind the file

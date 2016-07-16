@@ -127,11 +127,15 @@ gpu_error_t gpu_sa_index_transform_ASCII(const char* const textBWT, gpu_sa_buffe
 
 gpu_error_t gpu_sa_index_transform_GEM_FULL(const gpu_gem_sa_dto_t* const gpu_gem_sa_dto, gpu_sa_buffer_t* const sa)
 {
-  sa->h_sa            = gpu_gem_sa_dto->sa;
+  uint64_t idEntry = 0;
+
   sa->sampligRate     = gpu_gem_sa_dto->sa_sampling;
   sa->numEntries      = GPU_DIV_CEIL(gpu_gem_sa_dto->sa_length, sa->sampligRate);
   sa->memorySpace     = NULL;
   sa->d_sa            = NULL;
+
+  for(idEntry = 0; idEntry < sa->numEntries; ++idEntry)
+    sa->h_sa[idEntry] = gpu_gem_sa_dto->sa[idEntry];
 
   return (SUCCESS);
 }
