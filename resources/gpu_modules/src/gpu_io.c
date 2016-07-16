@@ -450,7 +450,7 @@ gpu_error_t gpu_io_save_module_info_GEM_FULL(const int fp, const gpu_module_t fi
   size_t result, bytesRequest;
   bytesRequest = sizeof(gpu_module_t);
   result = write(fp, (void *)&fileActiveModules, bytesRequest);
-  if (result != bytesRequest) return (E_READING_FILE);
+  if (result != bytesRequest) return (E_WRITING_FILE);
   return(SUCCESS);
 }
 
@@ -460,13 +460,13 @@ gpu_error_t gpu_io_save_offsets_info_GEM_FULL(const int fp, const off64_t fileOf
   size_t result, bytesRequest;
   bytesRequest = sizeof(off64_t);
   result = write(fp, (void *)&fileOffsetFMIndex, bytesRequest);
-  if (result != bytesRequest) return (E_READING_FILE);
+  if (result != bytesRequest) return (E_WRITING_FILE);
   bytesRequest = sizeof(off64_t);
   result = write(fp, (void *)&fileOffsetSAIndex, bytesRequest);
-  if (result != bytesRequest) return (E_READING_FILE);
+  if (result != bytesRequest) return (E_WRITING_FILE);
   bytesRequest = sizeof(off64_t);
   result = write(fp, (void *)&fileOffsetRef, bytesRequest);
-  if (result != bytesRequest) return (E_READING_FILE);
+  if (result != bytesRequest) return (E_WRITING_FILE);
   return(SUCCESS);
 }
 
