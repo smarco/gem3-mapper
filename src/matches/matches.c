@@ -110,6 +110,9 @@ uint8_t matches_get_primary_mapq(matches_t* const matches) {
   const match_trace_t* match = matches_get_match_trace_buffer(matches);
   return match->mapq_score;
 }
+void matches_update_mcs(matches_t* const matches,const uint64_t current_mcs) {
+  matches->max_complete_stratum = MIN(matches->max_complete_stratum,current_mcs);
+}
 /*
  * Index
  */
@@ -163,7 +166,7 @@ match_trace_t* matches_get_match_trace(const matches_t* const matches,const uint
 uint64_t matches_get_num_match_traces(const matches_t* const matches) {
   return vector_get_used(matches->position_matches);
 }
-void matches_get_clear_match_traces(const matches_t* const matches) {
+void matches_clear_match_traces(const matches_t* const matches) {
   vector_clear(matches->position_matches);
 }
 cigar_element_t* match_trace_get_cigar_buffer(const matches_t* const matches,const match_trace_t* const match_trace) {

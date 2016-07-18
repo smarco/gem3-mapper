@@ -6,8 +6,8 @@
  * DESCRIPTION:
  */
 
+#include <approximate_search/approximate_search_stages.h>
 #include "approximate_search/approximate_search_region_profile.h"
-#include "approximate_search/approximate_search_filtering_stages.h"
 #include "filtering/region_profile.h"
 #include "filtering/region_profile_adaptive.h"
 #include "filtering/region_profile_fixed.h"
@@ -195,7 +195,6 @@ void approximate_search_region_profile_adaptive(
   gem_cond_debug_block(DEBUG_REGION_PROFILE_PRINT) { region_profile_print(stderr,region_profile,false); }
   // Check Zero-Region
   if (region_profile->num_filtering_regions==0) {
-    approximate_search_update_mcs(search,pattern->num_wildcards);
     search->processing_state = asearch_processing_state_no_regions;
     return;
   }
@@ -306,8 +305,8 @@ void approximate_search_region_profile_static_buffered_retrieve(
 #endif
     // Close region
     approximate_search_region_profile_close_region(
-        filtering_region,filtering_threshold,&total_candidates,&num_regions_filtered,
-        &num_zero_regions,&max_region_length);
+        filtering_region,filtering_threshold,&total_candidates,
+        &num_regions_filtered,&num_zero_regions,&max_region_length);
   }
   // Compute kmer frequency
   region_profile_compute_kmer_frequency(

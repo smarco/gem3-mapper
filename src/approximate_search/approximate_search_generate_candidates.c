@@ -48,10 +48,8 @@ void approximate_search_generate_candidates_exact(
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
   region_search_t* const region_search = region_profile->filtering_region;
   pattern_t* const pattern = &search->pattern;
-  const uint64_t num_wildcards = pattern->num_wildcards;
   // Generate candidates for each region
   PROF_ADD_COUNTER(GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS,region_profile->num_filtering_regions);
-  region_profile->num_filtered_regions = 0;
   if (region_profile_has_exact_matches(region_profile)) {
     // Add exact matches
     filtering_candidates_add_region_interval(
@@ -75,7 +73,6 @@ void approximate_search_generate_candidates_exact(
       }
     }
   }
-  approximate_search_update_mcs(search,region_profile->num_filtered_regions + num_wildcards);
   PROFILE_STOP(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
 }
 /*
@@ -109,6 +106,7 @@ void approximate_search_generate_candidates_buffered_copy(
         gpu_filtering_positions->source_region_end = filtering_region->end;
         ++gpu_filtering_positions;
       }
+      ++(region_profile->num_filtered_regions);
     }
   }
   PROF_ADD_COUNTER(GP_ASSW_DECODE_CANDIDATES_COPIED,region_profile->total_candidates);
@@ -152,9 +150,6 @@ void approximate_search_generate_candidates_buffered_retrieve(
       gpu_filtering_positions_offset += pending_candidates;
     }
   }
-  // Set MCS
-  const uint64_t num_wildcards = search->pattern.num_wildcards;
-  approximate_search_update_mcs(search,num_filtering_regions + num_wildcards);
   // Process all candidates
   filtering_candidates_process_candidates_buffered(search->filtering_candidates,&search->pattern,true);
   // Set state to verify-candidates

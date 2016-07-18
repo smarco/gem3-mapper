@@ -5,12 +5,12 @@
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  */
 
+#include <approximate_search/approximate_search_stages.h>
 #include "archive/archive_search_se.h"
 #include "archive/archive_select.h"
 #include "archive/archive_score_se.h"
 #include "archive/archive_check.h"
 #include "approximate_search/approximate_search_filtering_adaptive.h"
-#include "approximate_search/approximate_search_filtering_stages.h"
 #include "filtering/region_profile_fixed.h"
 #include "matches/matches_classify.h"
 

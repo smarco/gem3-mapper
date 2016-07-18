@@ -13,11 +13,6 @@
 #include "approximate_search/approximate_search.h"
 
 /*
- * Adaptive mapping Initial Basic Cases Selector
- */
-void approximate_search_filtering_adaptive_basic_cases(approximate_search_t* const search);
-
-/*
  * Adaptive mapping [GEM-workflow 4.0]
  *
  *   Filtering-only approach indented to adjust the degree of filtering w.r.t

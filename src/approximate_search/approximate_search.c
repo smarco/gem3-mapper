@@ -10,6 +10,7 @@
 #include "approximate_search/approximate_search_filtering_adaptive.h"
 #include "approximate_search/approximate_search_filtering_complete.h"
 #include "approximate_search/approximate_search_neighborhood.h"
+#include "approximate_search/approximate_search_hybrid.h"
 #include "filtering/filtering_candidates.h"
 
 /*
@@ -58,7 +59,7 @@ void approximate_search_reset(approximate_search_t* const search) {
   search->processing_state = asearch_processing_state_begin;
   const uint64_t max_complete_error = search->search_parameters->complete_search_error_nominal;
   search->current_max_complete_error = MIN(max_complete_error,search->pattern.max_effective_filtering_error);
-  search->current_max_complete_stratum = ALL;
+  search->current_max_complete_stratum = 0;
   // Prepare region profile
   const uint64_t key_length = search->pattern.key_length;
   region_profile_new(&search->region_profile,key_length,search->mm_stack);
@@ -106,7 +107,7 @@ void approximate_search_inject_filtering_candidates(
 void approximate_search_update_mcs(
     approximate_search_t* const search,
     const uint64_t max_complete_stratum) {
-  search->current_max_complete_stratum = max_complete_stratum;
+  search->current_max_complete_stratum = MAX(search->current_max_complete_stratum,max_complete_stratum);
 }
 uint64_t approximate_search_get_num_regions_profile(const approximate_search_t* const search) {
   const region_profile_t* const region_profile = &search->region_profile;
@@ -129,7 +130,6 @@ void approximate_search(approximate_search_t* const search,matches_t* const matc
    */
   switch (search->search_parameters->mapping_mode) {
     case mapping_adaptive_filtering_fast:
-    case mapping_adaptive_filtering_thorough:
       approximate_search_filtering_adaptive(search,matches); // Adaptive mapping
       break;
     case mapping_adaptive_filtering_complete:
@@ -141,11 +141,11 @@ void approximate_search(approximate_search_t* const search,matches_t* const matc
     case mapping_neighborhood_search_partition:
       approximate_search_neighborhood_search_partition(search,matches); // NS-partition mapping
       break;
-    case mapping_adaptive_hybrid_complete:
-      approximate_search_hybrid_complete_search(search,matches);
+    case mapping_hybrid_thorough:
+      approximate_search_hybrid(search,matches);
       break;
-    case mapping_test:
-      GEM_NOT_IMPLEMENTED(); // approximate_search_neighborhood_exact_search(search,matches);
+    case mapping_hybrid_complete:
+      approximate_search_hybrid_complete_search(search,matches);
       break;
     default:
       GEM_INVALID_CASE();

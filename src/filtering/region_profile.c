@@ -30,9 +30,9 @@ void region_profile_new(
 void region_profile_clear(region_profile_t* const region_profile) {
   // Reset
   region_profile->num_filtering_regions = 0;
+  region_profile->num_filtered_regions = 0;
   region_profile->total_candidates = 0;
   region_profile->num_zero_regions = 0;
-  region_profile->num_filtered_regions = 0;
   region_profile->max_region_length = 0;
   region_profile->kmer_frequency = 0.0;
 }
@@ -152,6 +152,7 @@ void region_profile_fill_gaps_add(
   filtering_region_filled[region_idx].begin = begin_region;
   filtering_region_filled[region_idx].end = end_region;
   filtering_region_filled[region_idx].degree = degree;
+  // filtering_region_filled[region_idx].lo = num_wildcards;
 }
 void region_profile_fill_gaps(
     region_profile_t* const region_profile,
@@ -191,24 +192,6 @@ void region_profile_fill_gaps(
       ++(filtering_region);
       continue;
     }
-    // Check not-allowed chars
-    if (!allowed_enc[key[end]]) {
-      // Fill gap
-      if (begin < end) {
-        region_profile_fill_gaps_add(filtering_region_filled,
-            &num_filtering_regions_filled,begin,end,0);
-      }
-      // Skip not-allowed chars
-      begin = end;
-      while (++end<key_length && !allowed_enc[key[end]]);
-      if (begin < end) {
-        region_profile_fill_gaps_add(filtering_region_filled,
-            &num_filtering_regions_filled,begin,end,end-begin);
-      }
-      // Restart
-      begin = end;
-      continue;
-    }
     // Next
     ++end;
   }
@@ -221,7 +204,63 @@ void region_profile_fill_gaps(
   region_profile->filtering_region = filtering_region_filled;
   region_profile->num_filtering_regions = num_filtering_regions_filled;
 }
-uint64_t region_profile_compute_max_accumulated_error(region_profile_t* const region_profile) {
+void region_profile_merge_small_regions(
+    region_profile_t* const region_profile,
+    const uint64_t proper_length) {
+  const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
+  region_search_t* filtering_region = region_profile->filtering_region;
+  region_search_t* filtering_region_before = NULL;
+  region_search_t* filtering_region_after = NULL;
+  region_search_t* filtering_region_out = region_profile->filtering_region;
+  uint64_t i;
+  for (i=0;i<num_filtering_regions;) {
+    // Detect small regions bound not to precondition well
+    const uint64_t region_length = filtering_region->end - filtering_region->begin;
+    if (filtering_region->degree==0 && region_length < proper_length) {
+      // Merge the region with the one before or after
+      filtering_region_after = (i==num_filtering_regions-1) ? NULL : filtering_region+1;
+      if (filtering_region_before && filtering_region_before->degree==0) {
+        // Merge with region-before
+        filtering_region_before->end = filtering_region->end;
+        filtering_region_before->degree = 0;
+        ++filtering_region; ++i;
+      } else if (filtering_region_after && filtering_region_after->degree==0 &&
+                (filtering_region_after->end - filtering_region_after->begin) >= proper_length) {
+        // Merge with region-after
+        filtering_region_out->begin = filtering_region->begin;
+        filtering_region_out->end = filtering_region_after->end;
+        filtering_region_out->degree = 0;
+        filtering_region_before = filtering_region_out;
+        ++filtering_region_out;
+        filtering_region += 2; i += 2;
+      } else if (filtering_region_before) {
+        // Merge with region-before
+        filtering_region_before->end = filtering_region->end;
+        filtering_region_before->degree = 0;
+        ++filtering_region; ++i;
+      } else if (filtering_region_after) {
+        // Merge with region-after
+        filtering_region_out->begin = filtering_region->begin;
+        filtering_region_out->end = filtering_region_after->end;
+        filtering_region_out->degree = 0;
+        filtering_region_before = filtering_region_out;
+        ++filtering_region_out;
+        filtering_region += 2; i += 2;
+      }
+    } else {
+      // Copy region
+      if (filtering_region_out != filtering_region) {
+        *filtering_region_out = *filtering_region;
+      }
+      filtering_region_before = filtering_region_out;
+      ++filtering_region_out;
+      ++filtering_region; ++i;
+    }
+  }
+  // Set total number of regions
+  region_profile->num_filtering_regions = filtering_region_out - region_profile->filtering_region;
+}
+uint64_t region_profile_compute_max_complete_strata(region_profile_t* const region_profile) {
   // Parameters
   const region_search_t* const filtering_region = region_profile->filtering_region;
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
@@ -234,7 +273,7 @@ uint64_t region_profile_compute_max_accumulated_error(region_profile_t* const re
 }
 void region_profile_compute_error_limits(
     region_profile_t* const region_profile,
-    const uint64_t max_accumulated_error,
+    const uint64_t max_complete_strata,
     const uint64_t max_search_error) {
   // Parameters
   region_search_t* const filtering_region = region_profile->filtering_region;
@@ -243,7 +282,7 @@ void region_profile_compute_error_limits(
   uint64_t i;
   for (i=0;i<num_filtering_regions;++i) {
     filtering_region[i].min = filtering_region[i].degree;
-    filtering_region[i].max = max_search_error - (max_accumulated_error-filtering_region[i].min);
+    filtering_region[i].max = max_search_error - (max_complete_strata-filtering_region[i].min);
   }
 }
 /*

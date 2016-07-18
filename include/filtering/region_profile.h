@@ -103,11 +103,14 @@ void region_profile_fill_gaps(
     const bool* const allowed_enc,
     const uint64_t num_wildcards,
     mm_stack_t* const mm_stack);
-uint64_t region_profile_compute_max_accumulated_error(
+void region_profile_merge_small_regions(
+    region_profile_t* const region_profile,
+    const uint64_t proper_length);
+uint64_t region_profile_compute_max_complete_strata(
     region_profile_t* const region_profile);
 void region_profile_compute_error_limits(
     region_profile_t* const region_profile,
-    const uint64_t max_accumulated_error,
+    const uint64_t max_complete_strata,
     const uint64_t max_search_error);
 
 /*

@@ -1,17 +1,17 @@
 /*
  * PROJECT: GEMMapper
- * FILE: approximate_search_filtering_stages_stepwise.h
+ * FILE: approximate_search_filtering_stepwise.h
  * DATE: 06/06/2012
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
  */
 
+#include <approximate_search/approximate_search_stages.h>
 #include "approximate_search/approximate_search_stepwise.h"
 #include "approximate_search/approximate_search_region_profile.h"
 #include "approximate_search/approximate_search_verify_candidates.h"
 #include "approximate_search/approximate_search_generate_candidates.h"
 #include "approximate_search/approximate_search_filtering_adaptive.h"
-#include "approximate_search/approximate_search_filtering_stages.h"
 #include "approximate_search/approximate_search_control.h"
 #include "approximate_search/approximate_search_neighborhood.h"
 #include "filtering/region_profile_schedule.h"
@@ -34,8 +34,6 @@ void asearch_control_next_state_filtering_adaptive(
       search->search_stage = asearch_stage_end;
       break;
     case asearch_processing_state_candidates_verified:
-      PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MAPPED,matches_is_mapped(matches)?1:0);
-      PROF_ADD_COUNTER(GP_AS_FILTERING_EXACT_MCS,search->current_max_complete_stratum);
       // Local alignment
       if (search->search_parameters->local_alignment==local_alignment_never) {
         search->search_stage = asearch_stage_end;
@@ -61,10 +59,7 @@ void approximate_search_stepwise_region_profile_adaptive_compute(
   // Re-Compute region profile
   search->processing_state = asearch_processing_state_begin;
   approximate_search_region_profile_adaptive(search,region_profile_adaptive,search->mm_stack);
-  if (search->processing_state==asearch_processing_state_no_regions) {
-    approximate_search_update_mcs(search,search->pattern.num_wildcards); // Set MCS
-    return;
-  }
+  if (search->processing_state==asearch_processing_state_no_regions) return;
   // Schedule exact-candidates
   region_profile_schedule_filtering_exact(&search->region_profile);
   // Set State
@@ -95,7 +90,7 @@ void approximate_search_stepwise_region_profile_static_generate(
   while (true) {
     switch (search->search_stage) {
       case asearch_stage_begin: // Search Start. Check basic cases
-        approximate_search_filtering_adaptive_basic_cases(search);
+        approximate_search_begin(search);
         break;
       case asearch_stage_filtering_adaptive:
         approximate_search_region_profile_static_partition(search);
@@ -137,7 +132,7 @@ void approximate_search_stepwise_region_profile_adaptive_generate(
   while (true) {
     switch (search->search_stage) {
       case asearch_stage_begin: // Search Start. Check basic cases
-        approximate_search_filtering_adaptive_basic_cases(search);
+        approximate_search_begin(search);
         break;
       case asearch_stage_filtering_adaptive:
         search->search_stage = asearch_stage_filtering_adaptive;

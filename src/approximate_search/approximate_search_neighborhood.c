@@ -7,6 +7,7 @@
  */
 
 #include "approximate_search/approximate_search_neighborhood.h"
+#include "approximate_search/approximate_search_stages.h"
 #include "fm_index/fm_index_search.h"
 #include "filtering/filtering_candidates_process.h"
 #include "filtering/filtering_candidates_verify.h"
@@ -46,9 +47,9 @@ void approximate_search_neighborhood_exact_search(
   PROF_START(GP_NS_ALIGN);
   filtering_candidates_align_candidates(filtering_candidates,pattern,false,false,matches);
   PROF_STOP(GP_NS_ALIGN);
-  // Set MCS
+  // Finish Search
   approximate_search_update_mcs(search,1);
-  matches->max_complete_stratum = MIN(matches->max_complete_stratum,search->current_max_complete_stratum);
+  approximate_search_end(search,matches);
 }
 /*
  * Neighborhood Search Brute Force
@@ -76,9 +77,9 @@ void approximate_search_neighborhood_search_brute_force(
   PROF_START(GP_NS_ALIGN);
   filtering_candidates_align_candidates(filtering_candidates,pattern,false,false,matches);
   PROF_STOP(GP_NS_ALIGN);
-  // Set MCS
+  // Finish Search
   approximate_search_update_mcs(search,search->current_max_complete_error+1);
-  matches->max_complete_stratum = MIN(matches->max_complete_stratum,search->current_max_complete_stratum);
+  approximate_search_end(search,matches);
   PROFILE_STOP(GP_AS_NEIGHBORHOOD_SEARCH,PROFILE_LEVEL);
 }
 /*
@@ -107,9 +108,9 @@ void approximate_search_neighborhood_search_partition(
   PROF_START(GP_NS_ALIGN);
   filtering_candidates_align_candidates(filtering_candidates,pattern,false,false,matches);
   PROF_STOP(GP_NS_ALIGN);
-  // Set MCS
+  // Finish Search
   approximate_search_update_mcs(search,search->current_max_complete_error+1);
-  matches->max_complete_stratum = MIN(matches->max_complete_stratum,search->current_max_complete_stratum);
+  approximate_search_end(search,matches);
   PROFILE_STOP(GP_AS_NEIGHBORHOOD_SEARCH,PROFILE_LEVEL);
 }
 /*
@@ -124,37 +125,27 @@ void approximate_search_neighborhood_search_partition_preconditioned(
   pattern_t* const pattern = &search->pattern;
   region_profile_t* const region_profile = &search->region_profile;
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
-  // Prepare region-profile (fill gaps & compute the minimum errors required)
-  region_profile_fill_gaps(region_profile,pattern->key,pattern->key_length,
-      search_parameters->allowed_enc,pattern->num_wildcards,search->mm_stack);
-  const uint64_t max_accumulated_error = region_profile_compute_max_accumulated_error(region_profile);
-  if (max_accumulated_error < search->current_max_complete_error + 1) {
-    region_profile_compute_error_limits(region_profile,
-        max_accumulated_error,search->current_max_complete_error);
-    // Generate Candidates (Select Alignment Model)
-    if (search_parameters->alignment_model == alignment_model_hamming) {
-      nsearch_hamming_preconditioned(search,matches);
-    } else {
-      nsearch_levenshtein_preconditioned(search,matches);
-    }
-    // Process+Verify candidates
-    PROF_START(GP_NS_VERIFICATION);
-    filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern,false);
-    filtering_candidates_verify_candidates(filtering_candidates,pattern);
-    PROF_STOP(GP_NS_VERIFICATION);
-    // Align
-    PROF_START(GP_NS_ALIGN);
-    filtering_candidates_align_candidates(filtering_candidates,pattern,false,false,matches);
-    PROF_STOP(GP_NS_ALIGN);
+  const uint64_t max_complete_error = search->current_max_complete_error;
+  const uint64_t mcs = search->current_max_complete_stratum;
+  // Compute error limits
+  region_profile_compute_error_limits(region_profile,mcs,max_complete_error);
+  // region_profile_print(stderr,region_profile,true);
+  // Generate Candidates (Select Alignment Model)
+  if (search_parameters->alignment_model == alignment_model_hamming) {
+    nsearch_hamming_preconditioned(search,matches);
+  } else {
+    nsearch_levenshtein_preconditioned(search,matches);
   }
-  // Set MCS
-  approximate_search_update_mcs(search,search->current_max_complete_error+1);
-  matches->max_complete_stratum = MIN(matches->max_complete_stratum,search->current_max_complete_stratum);
+  // Process+Verify candidates
+  PROF_START(GP_NS_VERIFICATION);
+  filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern,false);
+  filtering_candidates_verify_candidates(filtering_candidates,pattern);
+  PROF_STOP(GP_NS_VERIFICATION);
+  // Align
+  PROF_START(GP_NS_ALIGN);
+  filtering_candidates_align_candidates(filtering_candidates,pattern,false,false,matches);
+  PROF_STOP(GP_NS_ALIGN);
+  // Update MCS
+  approximate_search_update_mcs(search,max_complete_error+1);
   PROFILE_STOP(GP_AS_NEIGHBORHOOD_SEARCH,PROFILE_LEVEL);
 }
-
-//  gem_cond_debug_block(DEBUG_SEARCH_STATE) {
-//    tab_fprintf(stderr,"[GEM]>ASM::Neighborhood Search\n");
-//    tab_global_inc();
-//  }
-//  gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }

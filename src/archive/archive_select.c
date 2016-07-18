@@ -81,7 +81,7 @@ void archive_select_se_matches(
       select_parameters->max_reported_matches,&reported_strata,&last_stratum_reported_matches);
   if (reported_strata==0) {
     // Remove all matches
-    matches_get_clear_match_traces(matches);
+    matches_clear_match_traces(matches);
   } else {
     // Decode matches (discard unwanted matches)
     archive_select_process_trace_matches(archive_search,

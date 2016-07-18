@@ -214,7 +214,7 @@ option_t gem_mapper_options[] = {
   { 300, "gem-quality-threshold", REQUIRED, TYPE_INT, 3, VISIBILITY_ADVANCED, "<number>", "(default=26, that is e<=2e-3)" },
   { 301, "mismatch-alphabet", REQUIRED, TYPE_STRING, 4, VISIBILITY_ADVANCED, "<symbols>" , "(default='ACGT')" },
   /* Single-end Alignment */
-  { 400, "mapping-mode", REQUIRED, TYPE_STRING, 4, VISIBILITY_USER, "'fast'|'thorough'|'complete'" , "(default=thorough)" },
+  { 400, "mapping-mode", REQUIRED, TYPE_STRING, 4, VISIBILITY_USER, "'fast'|'thorough'|'complete'" , "(default=fast)" },
   { 'E', "complete-search-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=0.04, 4%)" },
   { 's', "complete-strata-after-best", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=1)" },
   { 'e', "alignment-max-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=0.08, 8%)" },
@@ -452,21 +452,22 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       break;
     }
     /* Single-end Alignment */
-    case 400: // --mapping-mode in {'fast'|'thorough'|'complete'} (default=thorough)
+    case 400: // --mapping-mode in {'fast'|'thorough'|'complete'} (default=fast)
+      // Filtering Modes
       if (gem_strcaseeq(optarg,"fast")) {
         search->mapping_mode = mapping_adaptive_filtering_fast;
-      } else if (gem_strcaseeq(optarg,"thorough")) {
-        search->mapping_mode = mapping_adaptive_filtering_thorough;
       } else if (gem_strcaseeq(optarg,"complete-filtering")) {
         search->mapping_mode = mapping_adaptive_filtering_complete;
+      // NS Modes
       } else if (gem_strcaseeq(optarg,"complete-brute-force")) {
         search->mapping_mode = mapping_neighborhood_search_brute_force;
       } else if (gem_strcaseeq(optarg,"complete-partition")) {
         search->mapping_mode = mapping_neighborhood_search_partition;
-      } else if (gem_strcaseeq(optarg,"complete-hybrid")) {
-        search->mapping_mode = mapping_adaptive_hybrid_complete;
-      } else if (gem_strcaseeq(optarg,"test")) {
-        search->mapping_mode = mapping_test;
+      // Hybrid Modes
+      } else if (gem_strcaseeq(optarg,"thorough")) {
+        search->mapping_mode = mapping_hybrid_thorough;
+      } else if (gem_strcaseeq(optarg,"complete") || gem_strcaseeq(optarg,"complete-hybrid")) {
+        search->mapping_mode = mapping_hybrid_complete;
       } else {
         gem_mapper_error_msg("Option '--mapping-mode' must be 'fast'|'thorough'|'complete'");
       }

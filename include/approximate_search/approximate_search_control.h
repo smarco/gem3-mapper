@@ -20,22 +20,5 @@ void asearch_control_adjust_current_max_error(
     approximate_search_t* const search,
     matches_t* const matches);
 
-/*
- * Search Control Stages
- */
-bool asearch_control_filter_ahead_candidates(
-    approximate_search_t* const search,
-    matches_t* const matches);
-
-/*
- * Search Fulfilled & Predictors
- */
-void asearch_control_compute_predictors(
-    approximate_search_t* const search,
-    matches_t* const matches,
-    matches_predictors_t* const predictors);
-bool asearch_control_fulfilled(
-    approximate_search_t* const search,
-    matches_t* const matches);
 
 #endif /* APPROXIMATE_SEARCH_CONTROL_H_ */

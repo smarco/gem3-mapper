@@ -60,6 +60,7 @@ gpu_buffer_align_bpm_t* gpu_buffer_align_bpm_new(
   gpu_buffer_align_bpm->current_query_offset = 0;
   TIMER_RESET(&gpu_buffer_align_bpm->timer);
   // Init buffer
+  const int64_t thread_id = gtid(); // Between [1,num_threads] (zero is master)
   gpu_alloc_buffer_(gpu_buffer_align_bpm->buffer);
   gpu_bpm_init_buffer_(gpu_buffer_align_bpm->buffer,
       gpu_buffer_align_bpm_get_mean_query_length(gpu_buffer_align_bpm),

@@ -105,6 +105,8 @@ uint64_t matches_get_first_stratum_matches(matches_t* const matches);
 uint64_t matches_get_subdominant_stratum_matches(matches_t* const matches);
 uint8_t matches_get_primary_mapq(matches_t* const matches);
 
+void matches_update_mcs(matches_t* const matches,const uint64_t current_mcs);
+
 /*
  * Index
  */
@@ -117,7 +119,7 @@ void matches_index_clear(matches_t* const matches);
 match_trace_t* matches_get_match_trace_buffer(const matches_t* const matches);
 match_trace_t* matches_get_match_trace(const matches_t* const matches,const uint64_t offset);
 uint64_t matches_get_num_match_traces(const matches_t* const matches);
-void matches_get_clear_match_traces(const matches_t* const matches);
+void matches_clear_match_traces(const matches_t* const matches);
 
 cigar_element_t* match_trace_get_cigar_buffer(const matches_t* const matches,const match_trace_t* const match_trace);
 uint64_t match_trace_get_cigar_length(const match_trace_t* const match_trace);

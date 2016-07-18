@@ -50,6 +50,7 @@ gpu_buffer_fmi_asearch_t* gpu_buffer_fmi_asearch_new(
   TIMER_RESET(&gpu_buffer_fmi_asearch->timer);
   // Init gpu-buffer
   PROF_START(GP_GPU_BUFFER_FMI_SEARCH_ALLOC);
+  const int64_t thread_id = gtid(); // Between [1,num_threads] (zero is master)
   gpu_alloc_buffer_(gpu_buffer_fmi_asearch->buffer);
   gpu_fmi_asearch_init_buffer_(
       gpu_buffer_fmi_asearch->buffer,
