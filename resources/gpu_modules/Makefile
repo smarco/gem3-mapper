@@ -22,7 +22,8 @@ NVCC_MINIMAL_VERSION  = $(shell [[ ($(NVCC_VERSION) -ge "0")  && ($(NVCC_VERSION
                                 [[ ($(NVCC_VERSION) -ge "30") && ($(NVCC_VERSION) -lt  "50") ]] && echo "20"; \
                                 [[ ($(NVCC_VERSION) -ge "50") && ($(NVCC_VERSION) -lt  "65") ]] && echo "30"; \
                                 [[ ($(NVCC_VERSION) -ge "65") && ($(NVCC_VERSION) -lt  "70") ]] && echo "50"; \
-                                [[ ($(NVCC_VERSION) -ge "70") ]] && echo "52";)
+                                [[ ($(NVCC_VERSION) -ge "70") && ($(NVCC_VERSION) -lt  "80") ]] && echo "52"; \
+                                [[ ($(NVCC_VERSION) -ge "80") ]] && echo "60";)
 ifeq ($(NVCC_REQUIRED_VERSION), false)
 $(error CUDA SDK version $(NVCC_VERSION) NOT SUPPORTED - (At least CUDA SDK 5.0 is required))
 endif
@@ -37,6 +38,7 @@ CUDA_SASS_FLAG_30=$(CUDA_SASS_FLAG_20) -gencode arch=compute_30,code=sm_30 -genc
 CUDA_SASS_FLAG_37=$(CUDA_SASS_FLAG_30) -gencode arch=compute_37,code=sm_37
 CUDA_SASS_FLAG_50=$(CUDA_SASS_FLAG_37) -gencode arch=compute_50,code=\"sm_50,compute_50\"
 CUDA_SASS_FLAG_52=$(CUDA_SASS_FLAG_50) -gencode arch=compute_52,code=\"sm_52,compute_52\"
+CUDA_SASS_FLAG_60=$(CUDA_SASS_FLAG_52) -gencode arch=compute_60,code=\"sm_60,compute_60\" -gencode arch=compute_61,code=\"sm_61,compute_61\" -gencode arch=compute_62,code=\"sm_62,compute_62\"
 CUDA_SASS_FLAGS=$(CUDA_SASS_FLAG_$(NVCC_MINIMAL_VERSION))
 
 CUDA_MODULES=gpu_fmi_decode gpu_fmi_ssearch gpu_fmi_asearch gpu_bpm_filter gpu_sa_decode
