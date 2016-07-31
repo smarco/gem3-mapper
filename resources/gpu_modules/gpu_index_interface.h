@@ -107,6 +107,7 @@ typedef struct {
   uint64_t           bwt_length;            // Length of the BWT
   uint64_t           num_levels_fmi_table;
   uint64_t           skip_levels_fmi_table;
+  uint32_t           occ_threashold_fmi_table;
   gpu_index_coding_t index_coding;
 } gpu_gem_fmi_dto_t;
 

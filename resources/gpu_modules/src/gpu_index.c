@@ -124,7 +124,7 @@ gpu_error_t gpu_index_transform_ASCII(const gpu_index_dto_t* const textRaw, gpu_
 {
   if(activeModules & GPU_FMI){
     GPU_ERROR(gpu_fmi_index_transform_ASCII(textRaw->fmi.h_plain, &index->fmi));
-    GPU_ERROR(gpu_fmi_table_build(&index->fmi.table, index->fmi.h_fmi, index->fmi.bwtSize));
+    GPU_ERROR(gpu_fmi_table_construction(&index->fmi.table, index->fmi.h_fmi, index->fmi.bwtSize));
   }
   if(activeModules & GPU_SA){
     GPU_ERROR(gpu_sa_index_transform_ASCII(textRaw->sa.h_plain, &index->sa));
@@ -136,7 +136,7 @@ gpu_error_t gpu_index_transform_GEM_FULL(const gpu_index_dto_t* const indexRaw, 
 {
   if(activeModules & GPU_FMI){
     GPU_ERROR(gpu_fmi_index_transform_GEM_FULL((gpu_gem_fmi_dto_t*)indexRaw, &index->fmi));
-    GPU_ERROR(gpu_fmi_table_build(&index->fmi.table, index->fmi.h_fmi, index->fmi.bwtSize));
+    GPU_ERROR(gpu_fmi_table_construction(&index->fmi.table, index->fmi.h_fmi, index->fmi.bwtSize));
   }
   if(activeModules & GPU_SA){
     GPU_ERROR(gpu_sa_index_transform_GEM_FULL((gpu_gem_sa_dto_t*)indexRaw, &index->sa));
@@ -165,7 +165,7 @@ gpu_error_t gpu_index_transform_MFASTA_FULL(const gpu_index_dto_t* const indexRa
 
   if(activeModules & GPU_FMI){
     GPU_ERROR(gpu_fmi_index_transform_MFASTA_FULL(filename, &index->fmi));
-    GPU_ERROR(gpu_fmi_table_build(&index->fmi.table, index->fmi.h_fmi, index->fmi.bwtSize));
+    GPU_ERROR(gpu_fmi_table_construction(&index->fmi.table, index->fmi.h_fmi, index->fmi.bwtSize));
   }
   if(activeModules & GPU_SA){
     GPU_ERROR(gpu_sa_index_transform_MFASTA_FULL(filename, &index->sa));

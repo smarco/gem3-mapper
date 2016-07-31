@@ -514,13 +514,18 @@ void gpu_io_save_indexed_structures_GEM_(const char* const fn, const gpu_gem_fmi
 
   // Initialize the index (SA & FMI) structure
   GPU_ERROR(gpu_index_init_dto(&index, activeModules & GPU_INDEX));
-  index.activeModules                = activeModules & GPU_INDEX;
-  index.fmi.bwtSize                  = gemFMindex->bwt_length;
-  index.fmi.numEntries               = GPU_DIV_CEIL(index.fmi.bwtSize, GPU_FMI_ENTRY_SIZE) + 1;
-  index.fmi.table.maxLevelsTableLUT  = gemFMindex->num_levels_fmi_table;
-  index.fmi.table.skipLevelsTableLUT = gemFMindex->skip_levels_fmi_table;
-  index.sa.sampligRate               = gemSAindex->sa_sampling;
-  index.sa.numEntries                = GPU_DIV_CEIL(gemSAindex->sa_length, gemSAindex->sa_sampling);
+  index.activeModules                  = activeModules & GPU_INDEX;
+  // Initialize the FM-Index
+  index.fmi.bwtSize                    = gemFMindex->bwt_length;
+  index.fmi.numEntries                 = GPU_DIV_CEIL(index.fmi.bwtSize, GPU_FMI_ENTRY_SIZE) + 1;
+  // Initialize the FMI Table
+  index.fmi.table.maxLevelsTableLUT    = gemFMindex->num_levels_fmi_table;
+  index.fmi.table.skipLevelsTableLUT   = gemFMindex->skip_levels_fmi_table;
+  index.fmi.table.occThresholdTableLUT = gemFMindex->occ_threashold_fmi_table;
+  index.fmi.table.formatTableLUT       = GPU_FMI_TABLE_MULTILEVEL_LINKED;
+  // Initialize the Suffix-Array index
+  index.sa.sampligRate                 = gemSAindex->sa_sampling;
+  index.sa.numEntries                  = GPU_DIV_CEIL(gemSAindex->sa_length, gemSAindex->sa_sampling);
 
   fp = open(fn, openMode, GPU_FILE_PERMISIONS);
   if (fp < 0) GPU_ERROR(E_OPENING_FILE);

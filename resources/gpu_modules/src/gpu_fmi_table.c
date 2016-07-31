@@ -132,12 +132,85 @@ gpu_error_t gpu_fmi_table_process_backward_level(const gpu_fmi_entry_t* const h_
   return(SUCCESS);
 }
 
+gpu_error_t gpu_fmi_table_get_positions(const uint32_t idLevel, const uint32_t idEntry, const offset_table_t* const offsetsTableLUT,
+                                        uint32_t* const idGlobalL, uint32_t* const idGlobalR)
+{
+  const uint32_t numBases            = GPU_FMI_TABLE_ALPHABET_SIZE;
+  const uint32_t initOffsetCurrLevel = offsetsTableLUT[idLevel].init, topOffsetCurrLevel = offsetsTableLUT[idLevel].top;
+  const uint32_t numLeftElements     = topOffsetCurrLevel - initOffsetCurrLevel;
+  const uint32_t idLastLeftSubGroup  = ((numBases - 1) * (numLeftElements / numBases));
+  // Creating the hash key to obtain the corresponding FMI interval
+  const uint32_t idTableLeft  = idEntry;
+  const uint32_t idTableRight = idTableLeft >> 2;
+  // Gathering the table entries for L & R (specialized table layout)
+  uint32_t idL = initOffsetCurrLevel + idTableLeft;
+  uint32_t idR = initOffsetCurrLevel + idTableLeft + 1;
+  if(idTableLeft >= idLastLeftSubGroup) idR = topOffsetCurrLevel + idTableRight;
+  (* idGlobalL) = idL; (* idGlobalR) = idR;
+  // Succeed
+  return(SUCCESS);
+}
+
+gpu_error_t gpu_fmi_table_process_backward_links(const uint32_t idLevel, const uint64_t occThreshold,
+                                                 const offset_table_t* const offsetsTableLUT, gpu_sa_entry_t* const fmiTableLUT)
+{
+  const uint32_t initOffsetCurrLevel = offsetsTableLUT[idLevel].init, topOffsetCurrLevel = offsetsTableLUT[idLevel].top;
+  const uint32_t numEntries          = topOffsetCurrLevel - initOffsetCurrLevel;
+  uint32_t idEntry;
+  //Extracts the superior link mark
+  for(idEntry = 0; idEntry < numEntries; ++idEntry){
+    uint64_t L, R, occ, linkContent = ((uint64_t)idLevel) << GPU_FMI_TABLE_FIELD_LENGTH;
+    uint32_t idL, idR;
+    gpu_fmi_table_get_positions(idLevel, idEntry, offsetsTableLUT, &idL, &idR);
+    L = fmiTableLUT[idL]; R = fmiTableLUT[idR];
+    occ = R - L;
+    if(occ <= occThreshold){
+      //Extracts the superior link mark
+      const uint32_t idParentLevel     = idLevel - 1;
+      const uint32_t offsetParentEntry = offsetsTableLUT[idParentLevel].init;
+      const uint32_t idParentEntry     = idEntry & (~(GPU_UINT32_ONES << (idParentLevel << 1)));
+      linkContent = fmiTableLUT[offsetParentEntry + idParentEntry] & GPU_FMI_TABLE_LINK_MASK;
+    }
+    fmiTableLUT[idL] |= linkContent;
+  }
+  // Succeed
+  return(SUCCESS);
+}
+
+gpu_error_t gpu_fmi_table_process_forward_links(const uint32_t idLevel, const uint64_t occThreshold,
+                                                const offset_table_t* const offsetsTableLUT, gpu_sa_entry_t* const fmiTableLUT)
+{
+  const uint32_t numBases            = GPU_FMI_TABLE_ALPHABET_SIZE;
+  const uint32_t initOffsetCurrLevel = offsetsTableLUT[idLevel].init, topOffsetCurrLevel = offsetsTableLUT[idLevel].top;
+  const uint32_t numEntries          = topOffsetCurrLevel - initOffsetCurrLevel;
+
+  uint32_t idEntry;
+  //Extracts the superior link mark
+  for(idEntry = 0; idEntry < numEntries; ++idEntry){
+    uint64_t L, R, occ, linkContent = ((uint64_t)idLevel) << GPU_FMI_TABLE_FIELD_LENGTH;
+    uint32_t idL, idR;
+    gpu_fmi_table_get_positions(idLevel, idEntry, offsetsTableLUT, &idL, &idR);
+    L = fmiTableLUT[idL]; R = fmiTableLUT[idR];
+    occ = R - L;
+    if(occ <= occThreshold){
+      //Extracts the superior link mark
+      const uint32_t idParentLevel     = idLevel - 1;
+      const uint32_t idParentEntry     = idEntry >> (numBases >> 1);
+      const uint32_t offsetParentEntry = offsetsTableLUT[idParentLevel].init;
+      linkContent = fmiTableLUT[offsetParentEntry + idParentEntry] & GPU_FMI_TABLE_LINK_MASK;
+    }
+    fmiTableLUT[idL] |= linkContent;
+  }
+  // Succeed
+  return(SUCCESS);
+}
+
 gpu_error_t gpu_fmi_table_process_forward_level(const gpu_fmi_entry_t* const fmi, const uint32_t idLevel,
                                                 offset_table_t* const offsetsTableLUT, gpu_sa_entry_t* const fmiTableLUT)
 {
   const uint32_t numBases            = GPU_FMI_TABLE_ALPHABET_SIZE;
-  const uint32_t initOffsetCurrLevel = offsetsTableLUT[idLevel-1].init,   topOffsetCurrLevel = offsetsTableLUT[idLevel-1].top;
-  const uint32_t initOffsetNextLevel = offsetsTableLUT[idLevel].init, topOffsetNextLevel = offsetsTableLUT[idLevel].top;
+  const uint32_t initOffsetCurrLevel = offsetsTableLUT[idLevel-1].init, topOffsetCurrLevel = offsetsTableLUT[idLevel-1].top;
+  const uint32_t initOffsetNextLevel = offsetsTableLUT[idLevel].init,   topOffsetNextLevel = offsetsTableLUT[idLevel].top;
   const uint32_t numElementsLevel    = topOffsetCurrLevel - initOffsetCurrLevel;
   // Generates the next LUT level (GPU_FMI_TABLE_ALPHABET_SIZE+1 elements per entry)
   uint32_t idEntry, idBase;
@@ -178,15 +251,17 @@ gpu_error_t gpu_fmi_table_get_num_elements(const uint32_t numLevels, uint32_t* c
 gpu_error_t gpu_fmi_table_init_dto(gpu_fmi_table_t* const fmiTable)
 {
   //Initialize the FMI index structure
-  fmiTable->d_offsetsTableLUT  = NULL;
-  fmiTable->h_offsetsTableLUT  = NULL;
-  fmiTable->d_fmiTableLUT      = NULL;
-  fmiTable->h_fmiTableLUT      = NULL;
-  fmiTable->hostAllocStats     = GPU_PAGE_UNLOCKED;
-  fmiTable->memorySpace        = NULL;
-  fmiTable->maxLevelsTableLUT  = 0;
-  fmiTable->skipLevelsTableLUT = 0;
-  fmiTable->totalElemTableLUT  = 0;
+  fmiTable->formatTableLUT       = GPU_FMI_TABLE_DISABLED;
+  fmiTable->d_offsetsTableLUT    = NULL;
+  fmiTable->h_offsetsTableLUT    = NULL;
+  fmiTable->d_fmiTableLUT        = NULL;
+  fmiTable->h_fmiTableLUT        = NULL;
+  fmiTable->hostAllocStats       = GPU_PAGE_UNLOCKED;
+  fmiTable->memorySpace          = NULL;
+  fmiTable->maxLevelsTableLUT    = 0;
+  fmiTable->skipLevelsTableLUT   = 0;
+  fmiTable->totalElemTableLUT    = 0;
+  fmiTable->occThresholdTableLUT = 0;
   // Succeed
   return (SUCCESS);
 }
@@ -200,6 +275,7 @@ gpu_error_t gpu_fmi_table_init(gpu_fmi_table_t* const fmiTable, const uint32_t n
 
   fmiTable->maxLevelsTableLUT = numLevels;
   fmiTable->totalElemTableLUT = totalElemTableLUT;
+  fmiTable->formatTableLUT    = GPU_FMI_TABLE_MULTILEVEL_LINKED;
 
   fmiTable->d_offsetsTableLUT = (offset_table_t **) malloc(numSupportedDevices * sizeof(offset_table_t *));
   if (fmiTable->d_offsetsTableLUT == NULL) GPU_ERROR(E_ALLOCATE_MEM);
@@ -355,21 +431,66 @@ gpu_error_t gpu_fmi_table_build(gpu_fmi_table_t* const fmiTable, const gpu_fmi_e
 {
   // Get FMI table specifications
   const uint32_t maxLevels = fmiTable->maxLevelsTableLUT;
+  uint32_t idLevel = 0;
+  // Pre-calculate internal offsets
+  GPU_ERROR(gpu_fmi_table_init_offsets(fmiTable->h_offsetsTableLUT, maxLevels));
+  // Generates and fills 0th LUT level
+  fmiTable->h_fmiTableLUT[0] = 0;
+  fmiTable->h_fmiTableLUT[1] = bwtSize;
+  idLevel++;
+  // Generates and fills 1st LUT level
+  if(idLevel < maxLevels)
+    GPU_ERROR(gpu_fmi_table_process_forward_level(h_fmi, idLevel, fmiTable->h_offsetsTableLUT, fmiTable->h_fmiTableLUT));
+  idLevel++;
+  // Generates and fills nth LUT levels
+  for(; idLevel < maxLevels; ++idLevel)
+    GPU_ERROR(gpu_fmi_table_process_backward_level(h_fmi, idLevel, fmiTable->h_offsetsTableLUT, fmiTable->h_fmiTableLUT));
+  // Succeed
+  return(SUCCESS);
+}
+
+gpu_error_t gpu_fmi_table_process_links(const uint32_t numLevels, const uint64_t occThreshold, const offset_table_t* const offsetsTableLUT, gpu_sa_entry_t* const fmiTableLUT)
+{
+  uint32_t idLevel = 1;
+  // Attaching the 1st LUT level links
+  GPU_ERROR(gpu_fmi_table_process_forward_links(idLevel, occThreshold, offsetsTableLUT, fmiTableLUT));
+  // Attaching the nth LUT level links
+  for(idLevel = 2; idLevel < numLevels; ++idLevel)
+    GPU_ERROR(gpu_fmi_table_process_backward_links(idLevel, occThreshold, offsetsTableLUT, fmiTableLUT));
+  // Succeed
+  return(SUCCESS);
+}
+
+gpu_error_t gpu_fmi_table_print_links(const offset_table_t* const offsetsTableLUT, gpu_sa_entry_t* const fmiTableLUT)
+{
+  uint32_t idEntry, idLevel, maxLevel = 10;
+  for(idLevel = 0; idLevel < maxLevel; ++idLevel){
+    const uint32_t numEntries = offsetsTableLUT[idLevel + 1].init - offsetsTableLUT[idLevel].init;
+    const uint32_t offEntries = offsetsTableLUT[idLevel].init;
+    printf("====== idLevel=%u - numEntries=%u ====== \n", idLevel, numEntries);
+    for(idEntry = 0; idEntry < numEntries; ++idEntry){
+       const long long unsigned int idEntryRaw      = fmiTableLUT[offEntries + idEntry];
+       const long long unsigned int idEntryLink     = (idEntryRaw & GPU_FMI_TABLE_LINK_MASK) >> GPU_FMI_TABLE_FIELD_LENGTH;
+       const long long unsigned int idEntryInterval = idEntryRaw & GPU_FMI_TABLE_FIELD_MASK;
+       printf("[%u] idEntry=%llu idEntryLink=%llu idEntryInterval=%llu \n", idEntry, idEntryRaw, idEntryLink, idEntryInterval);
+    }
+  }
+  // Succeed
+  return(SUCCESS);
+}
+
+gpu_error_t gpu_fmi_table_construction(gpu_fmi_table_t* const fmiTable, const gpu_fmi_entry_t* const h_fmi, const uint64_t bwtSize)
+{
+  // Get FMI table specifications
+  const uint32_t maxLevels                    = fmiTable->maxLevelsTableLUT;
+  const uint32_t occThreshold                 = fmiTable->occThresholdTableLUT;
+  const offset_table_t* const offsetsTableLUT = fmiTable->h_offsetsTableLUT;
+  gpu_sa_entry_t* const fmiTableLUT           = fmiTable->h_fmiTableLUT;
+  // Build FMI Table & attach the multilevel links
   if(maxLevels >= GPU_FMI_TABLE_MIN_LEVELS){
-    uint32_t idLevel = 0;
-    // Pre-calculate internal offsets
-    GPU_ERROR(gpu_fmi_table_init_offsets(fmiTable->h_offsetsTableLUT, maxLevels));
-    // Generates and fills 0th LUT level
-    fmiTable->h_fmiTableLUT[0] = 0;
-    fmiTable->h_fmiTableLUT[1] = bwtSize;
-    idLevel++;
-    // Generates and fills 1st LUT level
-    if(idLevel < maxLevels)
-      GPU_ERROR(gpu_fmi_table_process_forward_level(h_fmi, idLevel, fmiTable->h_offsetsTableLUT, fmiTable->h_fmiTableLUT));
-    idLevel++;
-    // Generates and fills nth LUT levels
-    for(; idLevel < maxLevels; ++idLevel)
-      GPU_ERROR(gpu_fmi_table_process_backward_level(h_fmi, idLevel, fmiTable->h_offsetsTableLUT, fmiTable->h_fmiTableLUT));
+    GPU_ERROR(gpu_fmi_table_build(fmiTable, h_fmi, bwtSize));
+    GPU_ERROR(gpu_fmi_table_process_links(maxLevels, occThreshold, offsetsTableLUT, fmiTableLUT));
+    //GPU_ERROR(gpu_fmi_table_print_links(offsetsTableLUT, fmiTableLUT));
     // Succeed
     return(SUCCESS);
   }else{

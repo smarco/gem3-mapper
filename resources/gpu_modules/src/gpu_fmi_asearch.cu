@@ -160,6 +160,69 @@ void __global__ gpu_fmi_asearch_kernel(const gpu_fmi_device_entry_t* const fmi, 
   }
 }
 
+GPU_INLINE __device__ void gpu_fmi_table_get_positions(const uint32_t idLevel, const uint32_t idTableLeft, const uint2* const offsetsTable,
+                                                       uint32_t* const idGlobalL, uint32_t* const idGlobalR)
+{
+  // Parameter initialization for the table indexes
+  uint32_t idL, idR, idTableRight = idTableLeft >> 2;
+  uint2 offset;
+  // Gathering the intervals delimiting the table entries for the corresponding level
+  offset = LDG(&offsetsTable[idLevel]);
+  // Gathering the table entries for L & R (specialized table layout)
+  idL = offset.x + idTableLeft; idR = offset.x + idTableLeft + 1;
+  // Seeds starting by T, uses the right specialized table layout
+  if((idTableLeft & GPU_FMI_TABLE_KEY_MASK) == (GPU_FMI_TABLE_ALPHABET_SIZE - 1))
+    idR = offset.y + idTableRight;
+  // Return the postition table entry intervals
+  (* idGlobalL) = idL; (* idGlobalR) = idR;
+}
+
+GPU_INLINE __device__ void gpu_fmi_table_linked_lookup(const uint64_t* const query, const uint32_t querySize, uint64_t* const infoBase, uint32_t* const infoQuery,
+                                                       const uint64_t* const fmiTable, const uint2* const offsetsTable, const uint32_t maxLevels,
+                                                       uint32_t* const globalBase, uint64_t* const globalL, uint64_t* const globalR, bool* const globalFoundN)
+{
+  uint32_t idTable = 0, idLevel = 0, idBase = (* globalBase);
+  uint64_t L = (* globalL), R = (* globalR);
+  bool     foundN = (* globalFoundN);
+  // Skipping the first n table levels where n = (OCC > OCC_THRESHOLD)
+  while((idLevel < maxLevels - 1) && (idBase < querySize) && !foundN){
+    uint32_t bit0, bit1, indexBase;
+    char base;
+    // Gathering the base of the seed
+    gpu_fmi_query_reverse_lookup(query, idBase, querySize, &base, infoBase, infoQuery);
+    gpu_fmi_query_decompose(base, &bit0, &bit1, &foundN);
+    idBase++;
+    if(!foundN){
+      // Creating the hash key to obtain the corresponding FMI interval
+      indexBase = bit0 | (bit1 << 1);
+      idTable |= (indexBase << (idLevel << 1));
+      idLevel++;
+    }
+  }
+
+  // Query the FMI table if seed no not start with N
+  if(idLevel){
+    uint32_t idL, idR, idLevelRestored;
+    gpu_fmi_table_get_positions(idLevel, idTable, offsetsTable, &idL, &idR);
+    L = fmiTable[idL]; R = fmiTable[idR];
+    // Gather the truly interval
+    idLevelRestored = (L & GPU_FMI_TABLE_LINK_MASK) >> GPU_FMI_TABLE_FIELD_LENGTH;
+    if(idLevelRestored != idLevel){
+      uint32_t idL, idR;
+      // Restoring the truly hash table key
+      idTable &= ~(GPU_UINT32_ONES << (idLevelRestored << 1));
+      gpu_fmi_table_get_positions(idLevelRestored, idTable, offsetsTable, &idL, &idR);
+      L = fmiTable[idL]; R = fmiTable[idR];
+      idBase -= (idLevel - idLevelRestored);
+    }
+  }
+  // Updating the search parameters
+  (* globalL)      = L & GPU_FMI_TABLE_FIELD_MASK;
+  (* globalR)      = R & GPU_FMI_TABLE_FIELD_MASK;
+  (* globalFoundN) = foundN;
+  (* globalBase)   = idBase;
+}
+
 GPU_INLINE __device__ void gpu_fmi_table_lookup(const uint64_t* const query, const uint32_t querySize, uint32_t* const globalBase,
                                                 uint64_t* const infoBase, uint32_t* const infoQuery,
                                                 const uint64_t* const fmiTable, const uint2* const offsetsTable,
@@ -200,7 +263,7 @@ GPU_INLINE __device__ void gpu_fmi_table_lookup(const uint64_t* const query, con
     // Gathering the table entries for L & R (specialized table layout)
     idL = offset.x + idTableLeft; idR = offset.x + idTableLeft + 1;
     if(rightTableProcessing) idR = offset.y + idTableRight;
-    L = fmiTable[idL]; R = fmiTable[idR];
+    L = fmiTable[idL] & GPU_FMI_TABLE_FIELD_MASK; R = fmiTable[idR] & GPU_FMI_TABLE_FIELD_MASK;
     occ = R - L;
   }
   // Extending the FMI table query to fit in the adatative search requirements
@@ -223,7 +286,7 @@ GPU_INLINE __device__ void gpu_fmi_table_lookup(const uint64_t* const query, con
       // Gathering the table entries for L & R (specialized table layout)
       idL = offset.x + idTableLeft; idR = offset.x + idTableLeft + 1;
       if(rightTableProcessing) idR = offset.y + idTableRight;
-      L = fmiTable[idL]; R = fmiTable[idR];
+      L = fmiTable[idL] & GPU_FMI_TABLE_FIELD_MASK; R = fmiTable[idR] & GPU_FMI_TABLE_FIELD_MASK;
       occ = R - L;
     }
   }
@@ -232,6 +295,104 @@ GPU_INLINE __device__ void gpu_fmi_table_lookup(const uint64_t* const query, con
   (* globalR)      = R;
   (* globalFoundN) = foundN;
   (* globalBase)   = idBase;
+}
+
+void __global__ gpu_fmi_asearch_table_linked_kernel(const gpu_fmi_device_entry_t* const fmi, const uint64_t bwtSize,
+                                                    const uint64_t* const fmiTable, const uint2* const offsetsTable, const uint32_t maxLevels,
+                                                    const char* const queries, const uint2* const queryInfo, const uint32_t numQueries,
+                                                    uint2* const regions, ulonglong2* const regIntervals, uint2* const regOffset,
+                                                    const uint32_t maxExtraSteps, const uint32_t occThreshold, const uint32_t occShrinkFactor,
+                                                    const uint32_t maxRegionsFactor)
+{
+  // Thread group-scheduling initializations
+  const uint32_t globalThreadIdx     = gpu_get_thread_idx();
+  const uint32_t localWarpThreadIdx  = globalThreadIdx % GPU_WARP_SIZE;
+  const uint32_t idQuery             = globalThreadIdx / GPU_FMI_THREADS_PER_QUERY;
+
+  // Sanity check (threads with asigned work will be executed)
+  if (idQuery < numQueries){
+    // Setting thread buffer affinity
+    const uint32_t        querySize      = queryInfo[idQuery].y; // 1st query position
+    const uint64_t* const query          = (uint64_t*) (queries + queryInfo[idQuery].x);
+    ulonglong2* const     regionInterval = regIntervals + regions[idQuery].x;
+    uint2* const          regionOffset   = regOffset    + regions[idQuery].x;
+
+    // Shared memory space dedicated for the internal FMI entry thread-communications
+    __shared__ gpu_fmi_exch_bmp_mem_t   exchBMP[GPU_FMI_ENTRIES_PER_BLOCK];
+               gpu_fmi_exch_bmp_mem_t * const seedExchBMP = &exchBMP[threadIdx.x / GPU_FMI_THREADS_PER_ENTRY];
+
+    //Search variable declaration
+    const uint32_t maxRegions = GPU_MAX(GPU_DIV_CEIL(querySize, maxRegionsFactor), GPU_FMI_MIN_REGIONS);
+          uint32_t infoQuery = GPU_UINT32_ONES, idBase = 0, idRegion = 0, initBase = 0, endBase = 0;
+          uint64_t infoBase = 0, L = 0, R = bwtSize, occ = R - L;
+          bool     foundN;
+          char     base;
+    // Extracts and locates each seed
+    while ((idBase < querySize) && (idRegion < maxRegions)){
+      // Query input initializations
+      uint32_t bit0, bit1;
+      foundN = false;
+      // Search initializations
+      L = 0; R = bwtSize;
+      idBase = initBase = endBase;
+
+      // LUT initializations
+      gpu_fmi_table_linked_lookup(query, querySize, &infoBase, &infoQuery, fmiTable, offsetsTable, maxLevels,
+                                  &idBase, &L, &R, &foundN);
+      occ = R - L;
+      //Searching for the next seed
+      while((occ > occThreshold) && (idBase < querySize) && !foundN){
+        // Gathering the base of the seed
+        gpu_fmi_query_reverse_lookup(query, idBase, querySize, &base, &infoBase, &infoQuery);
+        gpu_fmi_query_decompose(base, &bit0, &bit1, &foundN);
+        idBase++;
+        // Advance step FMI reducing the interval search
+        if(!foundN) advance_step_LF_mapping(fmi, bit0, bit1, &L, &R, seedExchBMP);
+        occ = R - L;
+      }
+      //Evaluate current seed (discard or continue exploration)
+      endBase = idBase;
+      if(occ <= occThreshold){
+        uint64_t endL = L, endR = R;
+        if(!foundN){
+          // Extension initialization
+          uint32_t shrinkOccThreshold = occ >> occShrinkFactor, idStep = 0;
+          //Last steps extension (exploration for consecutive 4 bases)
+          while((idBase < querySize) && (occ != 0) && (idStep < maxExtraSteps) && !foundN){
+            // Gathering the base of the seed
+            gpu_fmi_query_reverse_lookup(query, idBase, querySize, &base, &infoBase, &infoQuery);
+            gpu_fmi_query_decompose(base, &bit0, &bit1, &foundN);
+            idBase++; idStep++;
+            // Advance step FMI reducing the interval search
+            if(!foundN) advance_step_LF_mapping(fmi, bit0, bit1, &L, &R, seedExchBMP);
+            // Update seed information
+            occ = R - L;
+            if((occ < shrinkOccThreshold) && (occ != 0) && !foundN){
+              endL = L; endR = R;
+              endBase = idBase;
+            }
+            shrinkOccThreshold >>= occShrinkFactor;
+          }
+        }
+        // Save extracted region (SA intervals + Query position)
+        if((localWarpThreadIdx % GPU_FMI_THREADS_PER_QUERY) == 0){
+            regionInterval[idRegion] = make_ulonglong2(endL, endR);
+            regionOffset[idRegion]   = make_uint2(querySize - endBase, querySize - initBase);
+        }
+        idRegion++;
+      }
+    }
+    // Save region profile info (number of extracted regions)
+    if((localWarpThreadIdx % GPU_FMI_THREADS_PER_QUERY) == 0){
+      if(idRegion == 0 && !foundN){
+        // Save extracted region (SA intervals + Query position)
+        regionInterval[idRegion] = make_ulonglong2(L, R);
+        regionOffset[idRegion]   = make_uint2(querySize - endBase, querySize - initBase);
+        idRegion++;
+      }
+      regions[idQuery].y = idRegion;
+    }
+  }
 }
 
 void __global__ gpu_fmi_asearch_table_kernel(const gpu_fmi_device_entry_t* const fmi, const uint64_t bwtSize,
@@ -333,7 +494,7 @@ void __global__ gpu_fmi_asearch_table_kernel(const gpu_fmi_device_entry_t* const
 }
 
 extern "C"
-gpu_error_t gpu_fmi_asearch_launch_kernel(const gpu_fmi_device_entry_t* const d_fmi, const uint64_t bwtSize,
+gpu_error_t gpu_fmi_asearch_launch_kernel(const gpu_fmi_device_entry_t* const d_fmi, const uint64_t bwtSize, const gpu_fmi_table_format_t formatTable,
                                           const uint64_t* const d_fmiTable, const uint2* const d_offsetsTable, const uint32_t skipLevels, const uint32_t maxLevels,
                                           const char* const d_queries, const uint2* const d_queryInfo, const uint32_t numQueries,
                                           uint2* const d_regions, ulonglong2* const d_regIntervals, uint2* const d_regOffset)
@@ -355,15 +516,24 @@ gpu_error_t gpu_fmi_asearch_launch_kernel(const gpu_fmi_device_entry_t* const d_
   cudaEventRecord(start, 0);
 
     for(uint32_t iteration = 0; iteration < nreps; ++iteration){
-      if(maxLevels != 0){
-        gpu_fmi_asearch_table_kernel<<<blocks,threads>>>(d_fmi, bwtSize, d_fmiTable, d_offsetsTable, skipLevels, maxLevels,
-                                                         d_queries, d_queryInfo, numQueries,
-                                                         d_regions, d_regIntervals, d_regOffset,
-                                                         maxExtraSteps, occThreshold, occShrinkFactor, maxRegionsFactor);
-      }else{
-        gpu_fmi_asearch_kernel<<<blocks,threads>>>(d_fmi, bwtSize, d_queries, d_queryInfo, numQueries,
-                                                   d_regions, d_regIntervals, d_regOffset,
-                                                   maxExtraSteps, occThreshold, occShrinkFactor, maxRegionsFactor);
+      switch(formatTable){
+        case GPU_FMI_TABLE_DISABLED:
+          gpu_fmi_asearch_kernel<<<blocks,threads>>>(d_fmi, bwtSize, d_queries, d_queryInfo, numQueries,
+                                                     d_regions, d_regIntervals, d_regOffset,
+                                                     maxExtraSteps, occThreshold, occShrinkFactor, maxRegionsFactor);
+          break;
+        case GPU_FMI_TABLE_MULTILEVEL:
+          gpu_fmi_asearch_table_kernel<<<blocks,threads>>>(d_fmi, bwtSize, d_fmiTable, d_offsetsTable, skipLevels, maxLevels,
+                                                           d_queries, d_queryInfo, numQueries,
+                                                           d_regions, d_regIntervals, d_regOffset,
+                                                           maxExtraSteps, occThreshold, occShrinkFactor, maxRegionsFactor);
+        break;
+        case GPU_FMI_TABLE_MULTILEVEL_LINKED:
+          gpu_fmi_asearch_table_linked_kernel<<<blocks,threads>>>(d_fmi, bwtSize, d_fmiTable, d_offsetsTable, maxLevels,
+                                                                  d_queries, d_queryInfo, numQueries,
+                                                                  d_regions, d_regIntervals, d_regOffset,
+                                                                  maxExtraSteps, occThreshold, occShrinkFactor, maxRegionsFactor);
+        break;
       }
     }
 
@@ -410,17 +580,28 @@ gpu_error_t gpu_fmi_asearch_process_buffer(gpu_buffer_t* const mBuff)
   if((numQueries > numMaxQueries) || (numBases > numMaxBases))
     return(E_OVERFLOWING_BUFFER);
 
-  if(table->maxLevelsTableLUT != 0){
-    gpu_fmi_asearch_table_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_fmi_device_entry_t*) index->fmi.d_fmi[idSupDev], index->fmi.bwtSize,
-                                                                                  (uint64_t*) table->d_fmiTableLUT[idSupDev], (uint2*) table->d_offsetsTableLUT[idSupDev], table->skipLevelsTableLUT, table->maxLevelsTableLUT,
-                                                                                  (char*) queries->d_queries, (uint2*) queries->d_queryInfo, numQueries,
-                                                                                  (uint2*) queries->d_regions, (ulonglong2*) regions->d_intervals, (uint2*) regions->d_regionsOffsets,
-                                                                                  maxExtraSteps, occThreshold, occShrinkFactor, maxRegionsFactor);
-  }else{
-    gpu_fmi_asearch_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_fmi_device_entry_t*) index->fmi.d_fmi[idSupDev], index->fmi.bwtSize,
-                                                                            (char*) queries->d_queries, (uint2*) queries->d_queryInfo, numQueries,
-                                                                            (uint2*) queries->d_regions, (ulonglong2*) regions->d_intervals, (uint2*) regions->d_regionsOffsets,
-                                                                            maxExtraSteps, occThreshold, occShrinkFactor, maxRegionsFactor);
+  switch(table->formatTableLUT){
+    case GPU_FMI_TABLE_DISABLED:
+      gpu_fmi_asearch_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_fmi_device_entry_t*) index->fmi.d_fmi[idSupDev], index->fmi.bwtSize,
+                                                                              (char*) queries->d_queries, (uint2*) queries->d_queryInfo, numQueries,
+                                                                              (uint2*) queries->d_regions, (ulonglong2*) regions->d_intervals, (uint2*) regions->d_regionsOffsets,
+                                                                              maxExtraSteps, occThreshold, occShrinkFactor, maxRegionsFactor);
+
+    break;
+    case GPU_FMI_TABLE_MULTILEVEL:
+      gpu_fmi_asearch_table_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_fmi_device_entry_t*) index->fmi.d_fmi[idSupDev], index->fmi.bwtSize,
+                                                                                    (uint64_t*) table->d_fmiTableLUT[idSupDev], (uint2*) table->d_offsetsTableLUT[idSupDev], table->skipLevelsTableLUT, table->maxLevelsTableLUT,
+                                                                                    (char*) queries->d_queries, (uint2*) queries->d_queryInfo, numQueries,
+                                                                                    (uint2*) queries->d_regions, (ulonglong2*) regions->d_intervals, (uint2*) regions->d_regionsOffsets,
+                                                                                    maxExtraSteps, occThreshold, occShrinkFactor, maxRegionsFactor);
+    break;
+    case GPU_FMI_TABLE_MULTILEVEL_LINKED:
+      gpu_fmi_asearch_table_linked_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_fmi_device_entry_t*) index->fmi.d_fmi[idSupDev], index->fmi.bwtSize,
+                                                                                           (uint64_t*) table->d_fmiTableLUT[idSupDev], (uint2*) table->d_offsetsTableLUT[idSupDev], table->maxLevelsTableLUT,
+                                                                                           (char*) queries->d_queries, (uint2*) queries->d_queryInfo, numQueries,
+                                                                                           (uint2*) queries->d_regions, (ulonglong2*) regions->d_intervals, (uint2*) regions->d_regionsOffsets,
+                                                                                           maxExtraSteps, occThreshold, occShrinkFactor, maxRegionsFactor);
+    break;
   }
   return(SUCCESS);
 }
