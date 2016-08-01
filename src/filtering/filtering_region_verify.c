@@ -184,9 +184,6 @@ void filtering_region_verify_levenshtein(
     text_trace_t* const text_trace,
     const bool kmer_filter,
     mm_stack_t* const mm_stack) {
-  if (filtering_region->text_begin_position == 450526669) {
-    printf("HERE\n");
-  }
   // Generalized Kmer-Counting filter [Prefilter]
   if (kmer_filter) {
     if (!filtering_region_verify_levenshtein_kmer_filter(
