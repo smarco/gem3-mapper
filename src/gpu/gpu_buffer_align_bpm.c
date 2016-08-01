@@ -410,9 +410,9 @@ void gpu_buffer_align_bpm_send(gpu_buffer_align_bpm_t* const gpu_buffer_align_bp
   // Select computing device
   if (gpu_buffer_align_bpm->align_bpm_enabled) {
     if (gpu_buffer_align_bpm->num_candidates > 0) {
-      gpu_bpm_send_buffer_(gpu_buffer_align_bpm->buffer,
-          gpu_buffer_align_bpm->num_entries,gpu_buffer_align_bpm->num_queries,
-          gpu_buffer_align_bpm->num_candidates,gpu_buffer_align_bpm->query_same_length);
+      gpu_bpm_send_buffer_(gpu_buffer_align_bpm->buffer,gpu_buffer_align_bpm->num_entries,
+          gpu_buffer_align_bpm->num_queries,gpu_buffer_align_bpm->num_candidates,
+          (gpu_buffer_align_bpm->query_same_length==UINT32_MAX) ? 0 : gpu_buffer_align_bpm->query_same_length);
     }
   }
 	PROF_STOP(GP_GPU_BUFFER_ALIGN_BPM_SEND);
