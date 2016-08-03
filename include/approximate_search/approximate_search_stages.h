@@ -36,16 +36,16 @@ void approximate_search_verify(
     matches_t* const matches);
 
 /*
- * Unbound Filtering (+ realign)
+ * Neighborhood Search
  */
-void approximate_search_align_local(
+void approximate_search_neighborhood(
     approximate_search_t* const search,
     matches_t* const matches);
 
 /*
- * Neighborhood Search
+ * Unbound Filtering (+ realign)
  */
-void approximate_search_neighborhood(
+void approximate_search_align_local(
     approximate_search_t* const search,
     matches_t* const matches);
 

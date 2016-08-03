@@ -253,7 +253,7 @@ void archive_search_pe_stepwise_finish_search(
   archive_score_matches_se(archive_search_end1,paired_matches->matches_end1);
   archive_score_matches_se(archive_search_end2,paired_matches->matches_end2);
   // Finish PE-Search
-  archive_search_end1->pe_search_state = archive_search_pe_recovery;
+  archive_search_end1->pe_search_state = archive_search_pe_state_recovery;
   archive_search_end1->pair_searched = true;
   archive_search_end2->pair_searched = true;
   archive_search_pe_continue(archive_search_end1,archive_search_end2,paired_matches);

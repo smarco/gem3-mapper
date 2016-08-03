@@ -188,7 +188,6 @@ uint64_t filtering_candidates_align_candidates(
     if (accepted_region) ++num_accepted_regions;
   }
   // Update used
-  matches_metrics_add_accepted_candidates(&matches->metrics,num_filtering_regions);
   vector_update_used(filtering_candidates->filtering_regions,regions_out);
   vector_update_used(filtering_candidates->discarded_regions,regions_discarded);
   // DEBUG

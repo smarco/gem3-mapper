@@ -1,13 +1,13 @@
 #!/bin/bash
 
-awk '
+awk -v lab=$2 '
 BEGIN {
   OFS="\t"
   id = 0;
   end = 1;
 }
 {
-  $1=sprintf("Sim.Illumina.l100.%010d",id); 
+  $1=sprintf("Sim.Illumina.l%s.%010d",lab,id); 
   print;
   if (end==1) {
     end = 2;

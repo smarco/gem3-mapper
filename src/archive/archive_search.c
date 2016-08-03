@@ -184,12 +184,6 @@ sequence_t* archive_search_get_sequence(const archive_search_t* const archive_se
 bool archive_search_finished(const archive_search_t* const archive_search) {
   return archive_search->approximate_search.search_stage == asearch_stage_end;
 }
-uint64_t archive_search_get_max_region_length(const archive_search_t* const archive_search) {
-  return archive_search->approximate_search.region_profile.max_region_length;
-}
-uint64_t archive_search_get_num_zero_regions(const archive_search_t* const archive_search) {
-  return archive_search->approximate_search.region_profile.num_zero_regions;
-}
 uint64_t archive_search_get_num_regions_profile(const archive_search_t* const archive_search) {
   return approximate_search_get_num_regions_profile(&archive_search->approximate_search);
 }

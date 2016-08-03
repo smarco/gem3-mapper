@@ -95,7 +95,6 @@ void asearch_control_adjust_current_max_error(
 //    case mapping_adaptive_filtering_fast: {
 //      // TODO     asearch_control_adjust_max_differences_using_strata(search,matches);
 //      if (matches->max_complete_stratum <= 1) return false;
-//      const matches_class_t matches_class = matches_classify(matches);
 //      switch (matches_class) {
 //        case matches_class_tie_d0:
 //        case matches_class_tie_d1:

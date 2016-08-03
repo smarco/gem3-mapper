@@ -53,7 +53,7 @@ void approximate_search_begin(approximate_search_t* const search) {
 void approximate_search_exact_filtering_adaptive(
     approximate_search_t* const search,
     matches_t* const matches) {
-  PROFILE_START(GP_AS_FILTERING_EXACT,PROFILE_LEVEL);
+  PROFILE_START(GP_AS_FILTERING_ADATIVE,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Adaptive Filtering (Exact)\n");
     tab_global_inc();
@@ -79,12 +79,12 @@ void approximate_search_exact_filtering_adaptive(
   }
   // DEBUG
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); tab_global_dec(); }
-  PROFILE_STOP(GP_AS_FILTERING_EXACT,PROFILE_LEVEL);
+  PROFILE_STOP(GP_AS_FILTERING_ADATIVE,PROFILE_LEVEL);
 }
 void approximate_search_exact_filtering_adaptive_cutoff(
     approximate_search_t* const search,
     matches_t* const matches) {
-  PROFILE_START(GP_AS_FILTERING_EXACT,PROFILE_LEVEL);
+  PROFILE_START(GP_AS_FILTERING_ADATIVE,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Adaptive Filtering (Fast Cut-off Exact)\n");
     tab_global_inc();
@@ -137,7 +137,7 @@ void approximate_search_exact_filtering_adaptive_cutoff(
   } else {
     search->processing_state = asearch_processing_state_candidates_verified;
   }
-  PROFILE_STOP(GP_AS_FILTERING_EXACT,PROFILE_LEVEL);
+  PROFILE_STOP(GP_AS_FILTERING_ADATIVE,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
 }
 /*
@@ -158,13 +158,32 @@ void approximate_search_verify(
   search->processing_state = asearch_processing_state_candidates_verified;
 }
 /*
+ * Neighborhood Search
+ */
+void approximate_search_neighborhood(
+    approximate_search_t* const search,
+    matches_t* const matches) {
+  PROFILE_START(GP_AS_NEIGHBORHOOD_SEARCH,PROFILE_LEVEL);
+  // Parameters
+  search_parameters_t* const search_parameters = search->search_parameters;
+  pattern_t* const pattern = &search->pattern;
+  region_profile_t* const region_profile = &search->region_profile;
+  // Prepare region-profile (fill gaps)
+  region_profile_fill_gaps(region_profile,pattern->key,pattern->key_length,
+      search_parameters->allowed_enc,pattern->num_wildcards,search->mm_stack);
+  region_profile_merge_small_regions(region_profile,search->archive->fm_index->proper_length);
+  // NS
+  approximate_search_neighborhood_search_partition_preconditioned(search,matches);
+  PROFILE_STOP(GP_AS_NEIGHBORHOOD_SEARCH,PROFILE_LEVEL);
+}
+/*
  * Unbound Filtering (+ realign)
  */
 void approximate_search_align_local(
     approximate_search_t* const search,
     matches_t* const matches) {
   // DEBUG
-  PROFILE_START(GP_AS_FILTERING_LOCAL_ALIGN,PROFILE_LEVEL);
+  PROFILE_START(GP_AS_LOCAL_ALIGN,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Local-Alignment Filtering (local align)\n");
     tab_global_inc();
@@ -173,30 +192,7 @@ void approximate_search_align_local(
   filtering_candidates_align_local(search->filtering_candidates,&search->pattern,matches);
   // DEBUG
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
-  PROFILE_STOP(GP_AS_FILTERING_LOCAL_ALIGN,PROFILE_LEVEL);
-}
-/*
- * Neighborhood Search
- */
-void approximate_search_neighborhood(
-    approximate_search_t* const search,
-    matches_t* const matches) {
-  // Parameters
-  search_parameters_t* const search_parameters = search->search_parameters;
-  pattern_t* const pattern = &search->pattern;
-  region_profile_t* const region_profile = &search->region_profile;
-  // Adjust max-complete-error
-  // asearch_control_adjust_current_max_error(search,matches);
-  const uint64_t delta = search->search_parameters->complete_strata_after_best_nominal;
-  const uint64_t mcs = search->region_profile.num_filtered_regions;
-  const uint64_t max_complete_error = mcs + delta;
-  search->current_max_complete_error = MIN(search->current_max_complete_error,max_complete_error);
-  // Prepare region-profile (fill gaps)
-  region_profile_fill_gaps(region_profile,pattern->key,pattern->key_length,
-      search_parameters->allowed_enc,pattern->num_wildcards,search->mm_stack);
-  region_profile_merge_small_regions(region_profile,search->archive->fm_index->proper_length);
-  // NS
-  approximate_search_neighborhood_search_partition_preconditioned(search,matches);
+  PROFILE_STOP(GP_AS_LOCAL_ALIGN,PROFILE_LEVEL);
 }
 /*
  * End of the search
@@ -208,8 +204,18 @@ void approximate_search_end(
   gem_cond_debug_block(DEBUG_SEARCH_STATE) {
     tab_fprintf(stderr,"[GEM]>ASM::Search END\n");
   }
+  // Update metrics
+  const double proper_length = fm_index_get_proper_length(search->archive->fm_index);
+  const search_parameters_t* const search_parameters = search->search_parameters;
+  matches_metrics_set_proper_length(&matches->metrics,proper_length);
+  matches_metrics_set_read_length(&matches->metrics,search->pattern.key_length);
+  matches_metrics_set_swg_match_score(&matches->metrics,search_parameters->swg_penalties.generic_match_score);
+  region_profile_t* const region_profile = &search->region_profile;
+  matches_metrics_set_max_region_length(&matches->metrics,region_profile->max_region_length);
+  matches_metrics_set_kmer_frequency(&matches->metrics,region_profile->kmer_frequency);
   // Update MCS (maximum complete stratum)
   pattern_t* const pattern = &search->pattern;
   approximate_search_update_mcs(search,search->region_profile.num_filtered_regions + pattern->num_wildcards);
   matches_update_mcs(matches,search->current_max_complete_stratum);
+  PROF_ADD_COUNTER(GP_AS_MCS,search->current_max_complete_stratum);
 }

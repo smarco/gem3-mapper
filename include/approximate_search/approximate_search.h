@@ -9,7 +9,6 @@
 #ifndef APPROXIMATE_SEARCH_H_
 #define APPROXIMATE_SEARCH_H_
 
-#include "approximate_search/approximate_search_metrics.h"
 #include "archive/archive_search_parameters.h"
 #include "archive/archive.h"
 #include "data_structures/pattern.h"
@@ -79,8 +78,6 @@ typedef struct {
   /* Search Auxiliary Structures (external) */
   text_collection_t* text_collection;                      // Stores text-traces
   interval_set_t* interval_set;                            // Interval Set
-  /* Search Metrics */
-  approximate_search_metrics_t metrics;                    // Search Metrics
   /* MM */
   mm_stack_t* mm_stack;                                    // MM-Stack
 } approximate_search_t;

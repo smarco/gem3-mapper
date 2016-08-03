@@ -2,8 +2,6 @@
 
 awk '
 BEGIN{
-  id=0;
-  end=1;
   map["A"] = "T";
   map["C"] = "G";
   map["G"] = "C";
@@ -12,24 +10,23 @@ BEGIN{
 }
 {
   if ($0 !~ /^@/) {
+    if (and($2,0x40)) {
+      end = 1;
+    } else {
+      end = 2;
+    }
     if (and($2,0x10)) {
-      printf("@Sim.Illumina.l100.%010d/%d\n",id,end);
+      printf("@%s/%d\n",$1,end);
       for (i = length($10); i; i--) {
-        printf "%s", map[substr($10, i, 1)]
+        printf("%s",map[substr($10, i, 1)]);
       }
       printf("\n+\n");
       for (i = length($11); i; i--) {
-        printf "%s", substr($11, i, 1)
+        printf("%s",substr($11, i, 1));
       }
       printf("\n");
     } else {
-      printf("@Sim.Illumina.l100.%010d/%d\n%s\n+\n%s\n",id,end,$10,$11);
-    }
-    if (end==1) {
-      end=2;
-    } else {
-      end=1;
-      id++;
+      printf("@%s/%d\n%s\n+\n%s\n",$1,end,$10,$11);
     }
   }
 }' $1

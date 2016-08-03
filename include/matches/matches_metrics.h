@@ -20,10 +20,15 @@
  * Matches-Metrics (Current metrics status -always being updated-)
  */
 typedef struct {
-  /* Aggregated */
+  /* Search Magnitudes */
+  double proper_length;
+  uint64_t read_length;
+  int32_t swg_match_score;
+  /* Mappability */
+  uint64_t max_region_length;
+  double kmer_frequency;
+  /* Matches */
   uint64_t total_matches_sampled;    // Total matches sampled
-  uint64_t accepted_candidates;      // Number of accepted candidates
-  /* Minimums */
   uint64_t min1_counter_value;       // Minimum non-zero counter position (for the distance metric the counters use)
   uint64_t min2_counter_value;       // Second minimum non-zero counter position (for the distance metric the counters use)
   uint64_t min1_edit_distance;       // Minimum edit distance among all found matches
@@ -49,9 +54,27 @@ uint64_t matches_metrics_get_min_distance(matches_metrics_t* const metrics);
 uint64_t matches_metrics_get_min_edit_distance(matches_metrics_t* const metrics);
 int32_t matches_metrics_get_max_swg_score(matches_metrics_t* const metrics);
 
-void matches_metrics_add_accepted_candidates(matches_metrics_t* const metrics,const uint64_t num_candidates);
+void matches_metrics_set_proper_length(
+    matches_metrics_t* const metrics,
+    const uint64_t proper_length);
+void matches_metrics_set_read_length(
+    matches_metrics_t* const metrics,
+    const uint64_t read_length);
+void matches_metrics_set_swg_match_score(
+    matches_metrics_t* const metrics,
+    const uint64_t swg_match_score);
+void matches_metrics_set_max_region_length(
+    matches_metrics_t* const metrics,
+    const uint64_t max_region_length);
+void matches_metrics_set_kmer_frequency(
+    matches_metrics_t* const metrics,
+    const double kmer_frequency);
+
 void matches_metrics_set_mapq(matches_metrics_t* const metrics,const uint8_t mapq);
 
+/*
+ * Update
+ */
 void matches_metrics_update(
     matches_metrics_t* const matches_metrics,
     const uint64_t distance,

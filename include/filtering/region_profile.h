@@ -54,7 +54,6 @@ typedef struct {
   region_search_t* filtering_region; // Filtering regions
   uint64_t max_regions_allocated;    // Maximum regions allocated (limit)
   uint64_t num_filtering_regions;    // Total number of filtering regions
-  uint64_t num_zero_regions;         // Number of zero-candidate Regions
   uint64_t num_filtered_regions;     // Total number of filtered regions
   /* Profile */
   uint64_t pattern_length;           // Length of the pattern

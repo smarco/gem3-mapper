@@ -20,7 +20,6 @@ MODULES=approximate_search_control \
         approximate_search_filtering_complete \
         approximate_search_generate_candidates \
         approximate_search_hybrid \
-        approximate_search_metrics \
         approximate_search_neighborhood \
         approximate_search_region_profile \
         approximate_search_stages \

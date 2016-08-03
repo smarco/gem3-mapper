@@ -225,7 +225,7 @@ uint64_t matches_cigar_compute_edit_distance(
     switch (cigar_buffer[i].type) {
       case cigar_match: break;
       case cigar_mismatch:
-        edit_distance += cigar_buffer[i].type;
+        ++edit_distance;
         break;
       case cigar_ins:
       case cigar_del:

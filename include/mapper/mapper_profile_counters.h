@@ -101,15 +101,19 @@
  * Approximate search
  */
 #define GP_AS_MAIN                                          160
-#define GP_AS_ADAPTIVE_MCS                                  170
+#define GP_AS_MCS                                           161
 
-#define GP_AS_FILTERING_EXACT                               171
-#define GP_AS_FILTERING_EXACT_MAPPED                        172
-#define GP_AS_FILTERING_EXACT_MCS                           173
-#define GP_AS_FILTERING_INEXACT                             174
-#define GP_AS_FILTERING_INEXACT_MAPPED                      175
-#define GP_AS_FILTERING_INEXACT_MCS                         176
-#define GP_AS_FILTERING_LOCAL_ALIGN                         177
+#define GP_AS_FILTERING_ADATIVE                             165
+#define GP_AS_FILTERING_ADATIVE_CALL                        166
+#define GP_AS_FILTERING_ADATIVE_MCS                         167
+#define GP_AS_NEIGHBORHOOD_SEARCH                           168
+#define GP_AS_NEIGHBORHOOD_SEARCH_MCS                       169
+#define GP_AS_NEIGHBORHOOD_SEARCH_CALL                      170
+#define GP_AS_NEIGHBORHOOD_SEARCH_CALL_UNMAPPED             171
+#define GP_AS_NEIGHBORHOOD_SEARCH_CALL_MAP_INCOMPLETE       172
+#define GP_AS_NEIGHBORHOOD_SEARCH_CALL_MAP_FRONTIER         173
+#define GP_AS_LOCAL_ALIGN                                   174
+#define GP_AS_LOCAL_ALIGN_CALL                              176
 
 #define GP_AS_GENERATE_CANDIDATES                           185
 #define GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS      186
@@ -254,8 +258,6 @@
 /*
  * Neighborhood Search
  */
-#define GP_AS_NEIGHBORHOOD_SEARCH                           620
-
 #define GP_NS_GENERATION                                    630
 #define GP_NS_VERIFICATION                                  631
 #define GP_NS_ALIGN                                         632

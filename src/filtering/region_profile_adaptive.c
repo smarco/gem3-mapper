@@ -105,7 +105,6 @@ void region_profile_generator_close_region(
   current_region->lo = lo;
   current_region->hi = hi;
   region_profile->total_candidates += candidates_region;
-  if (candidates_region==0) ++(region_profile->num_zero_regions);
   ++(region_profile->num_filtering_regions);
 }
 void region_profile_generator_close_profile(
@@ -125,11 +124,9 @@ void region_profile_generator_close_profile(
       first_region->lo = generator->lo;
       first_region->hi = generator->hi;
       region_profile->num_filtering_regions = 1;
-      region_profile->num_zero_regions = 0;
       region_profile->total_candidates = generator->hi - generator->lo;
     } else {
       region_profile->num_filtering_regions = 0;
-      region_profile->num_zero_regions = 0;
       region_profile->total_candidates = 0;
     }
   } else {

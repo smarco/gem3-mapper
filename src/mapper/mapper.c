@@ -153,6 +153,7 @@ void mapper_parameters_set_defaults_io(mapper_parameters_io_t* const io) {
   io->output_buffer_size = BUFFER_SIZE_4M;
   io->output_num_buffers = 10*num_processors; // Lazy allocation
   io->report_file_name = NULL;
+  io->mapper_ticker_step = 100000;
 }
 void mapper_parameters_set_defaults_system(mapper_parameters_system_t* const system) {
   /* System */
@@ -459,7 +460,7 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
     // output_fastq(mapper_search->buffered_output_file,&mapper_search->archive_search->sequence);
 
     // Update processed
-    if (++reads_processed == MAPPER_TICKER_STEP) {
+    if (++reads_processed == parameters->io.mapper_ticker_step) {
       ticker_update_mutex(mapper_search->ticker,reads_processed);
       reads_processed=0;
     }
@@ -533,7 +534,7 @@ void* mapper_pe_thread(mapper_search_t* const mapper_search) {
     //output_fastq(mapper_search->buffered_output_file,&archive_search_end2->sequence);
 
     // Update processed
-    if (++reads_processed == MAPPER_TICKER_STEP) {
+    if (++reads_processed == parameters->io.mapper_ticker_step) {
       ticker_update_mutex(mapper_search->ticker,reads_processed);
       reads_processed=0;
     }
@@ -582,7 +583,8 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
   // Setup Ticker
   ticker_t ticker;
   ticker_count_reset(&ticker,mapper_parameters->misc.verbose_user,
-      paired_end ? "PE::Mapping Sequences" : "SE::Mapping Sequences",0,MAPPER_TICKER_STEP,false);
+      paired_end ? "PE::Mapping Sequences" : "SE::Mapping Sequences",0,
+      mapper_parameters->io.mapper_ticker_step,false);
   ticker_add_process_label(&ticker,"#","sequences processed");
   ticker_add_finish_label(&ticker,"Total","sequences processed");
   ticker_mutex_enable(&ticker);

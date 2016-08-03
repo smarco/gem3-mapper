@@ -23,19 +23,6 @@ void archive_search_pe_inject_mm(
     mm_search_t* const mm_search);
 
 /*
- * PE Extension Control
- */
-bool archive_search_pe_use_shortcut_extension(
-    archive_search_t* const archive_search_extended,
-    archive_search_t* const archive_search_candidate,
-    matches_t* const matches);
-bool archive_search_pe_use_recovery_extension(
-    archive_search_t* const archive_search_extended,
-    archive_search_t* const archive_search_candidate,
-    matches_t* const matches_extended,
-    matches_t* const matches_candidate);
-
-/*
  * Archive Search PE Continue Search
  */
 void archive_search_pe_continue(
@@ -50,15 +37,6 @@ void archive_search_pe(
     archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches);
-
-/*
- * Compute Predictors
- */
-void archive_search_pe_compute_predictors(
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches,
-    matches_predictors_t* const predictors);
 
 /*
  * Display

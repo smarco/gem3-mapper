@@ -35,14 +35,6 @@ void archive_search_se(
     matches_t* const matches);
 
 /*
- * Compute Predictors
- */
-void archive_search_se_compute_predictors(
-    archive_search_t* const archive_search,
-    matches_t* const matches,
-    matches_predictors_t* const predictors);
-
-/*
  * Display
  */
 void archive_search_se_print(

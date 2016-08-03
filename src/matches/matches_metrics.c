@@ -12,10 +12,8 @@
  * Setup
  */
 void matches_metrics_init(matches_metrics_t* const metrics) {
-  // Aggregated
+  // Matches
   metrics->total_matches_sampled = 0;
-  metrics->accepted_candidates = 0;
-  // Minimums
   metrics->min1_counter_value = UINT32_MAX;
   metrics->min2_counter_value = UINT32_MAX;
   metrics->min1_edit_distance = UINT32_MAX;
@@ -40,12 +38,38 @@ uint64_t matches_metrics_get_min_edit_distance(matches_metrics_t* const metrics)
 int32_t matches_metrics_get_max_swg_score(matches_metrics_t* const metrics) {
   return metrics->max1_swg_score;
 }
-void matches_metrics_add_accepted_candidates(matches_metrics_t* const metrics,const uint64_t num_candidates) {
-  metrics->accepted_candidates += num_candidates;
+/* */
+void matches_metrics_set_proper_length(
+    matches_metrics_t* const metrics,
+    const uint64_t proper_length) {
+  metrics->proper_length = proper_length;
+}
+void matches_metrics_set_read_length(
+    matches_metrics_t* const metrics,
+    const uint64_t read_length) {
+  metrics->read_length = read_length;
+}
+void matches_metrics_set_swg_match_score(
+    matches_metrics_t* const metrics,
+    const uint64_t swg_match_score) {
+  metrics->swg_match_score = swg_match_score;
+}
+void matches_metrics_set_max_region_length(
+    matches_metrics_t* const metrics,
+    const uint64_t max_region_length) {
+  metrics->max_region_length = max_region_length;
+}
+void matches_metrics_set_kmer_frequency(
+    matches_metrics_t* const metrics,
+    const double kmer_frequency) {
+  metrics->kmer_frequency = kmer_frequency;
 }
 void matches_metrics_set_mapq(matches_metrics_t* const metrics,const uint8_t mapq) {
   metrics->mapq = mapq;
 }
+/*
+ * Update
+ */
 void matches_metrics_update(
     matches_metrics_t* const matches_metrics,
     const uint64_t distance,
@@ -96,10 +120,15 @@ void paired_matches_metrics_update(
  */
 void matches_metrics_print(FILE* const stream,matches_metrics_t* const matches_metrics) {
   tab_fprintf(stream,"[GEM]>Metrics\n");
-  tab_fprintf(stream,"  => Aggregated \n");
+  tab_fprintf(stream,"  => Search.Magnitudes\n");
+  tab_fprintf(stream,"    => Read.length     %lu\n",matches_metrics->read_length);
+  tab_fprintf(stream,"    => Proper.Length   %2.3f\n",matches_metrics->proper_length);
+  tab_fprintf(stream,"    => SWG.Match.Score %lu\n",matches_metrics->swg_match_score);
+  tab_fprintf(stream,"  => Mappability\n");
+  tab_fprintf(stream,"    => Max.Region.length  %lu\n",matches_metrics->max_region_length);
+  tab_fprintf(stream,"    => Kmer.frequency     %2.3f\n",matches_metrics->kmer_frequency);
+  tab_fprintf(stream,"  => Matches\n");
   tab_fprintf(stream,"    => Total.matches.sampled %lu\n",matches_metrics->total_matches_sampled);
-  tab_fprintf(stream,"    => Total.accepted.matches %lu\n",matches_metrics->accepted_candidates);
-  tab_fprintf(stream,"  => Minimums\n");
   tab_fprintf(stream,"    => Min1.counter.value %lu\n",matches_metrics->min1_counter_value);
   tab_fprintf(stream,"    => Min2.counter.value %lu\n",matches_metrics->min2_counter_value);
   tab_fprintf(stream,"    => Min1.edit.distance %lu\n",matches_metrics->min1_edit_distance);

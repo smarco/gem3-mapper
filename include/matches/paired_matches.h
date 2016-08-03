@@ -21,12 +21,10 @@
  */
 typedef enum {
   paired_matches_class_unmapped = 0,
-  paired_matches_class_subdominant_end = 1,
-  paired_matches_class_tie_d0 = 2,
-  paired_matches_class_tie_d1 = 3,
-  paired_matches_class_mmap = 4,
-  paired_matches_class_unique = 5,
-  paired_matches_class_high_quality_ends = 6,
+  paired_matches_class_tie_d0 = 1,
+  paired_matches_class_tie_d1 = 2,
+  paired_matches_class_mmap = 3,
+  paired_matches_class_unique = 4,
 } paired_matches_class_t;
 extern const char* paired_matches_class_label[7];
 

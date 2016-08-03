@@ -61,6 +61,8 @@ void archive_search_se(
     tab_fprintf(gem_log_get_stream(),"  => Sequence %s\n",archive_search->sequence.read.buffer);
     tab_global_inc();
   }
+//  gem_timer_t timer;
+//  TIMER_RESTART(&timer); // DEBUG // FIXME
   // Reset initial values (Prepare pattern(s), instantiate parameters values, ...)
   archive_search_reset(archive_search);
   // Search the pattern(s)
@@ -78,6 +80,11 @@ void archive_search_se(
         &search_parameters->swg_penalties,&archive_search->sequence,
         matches,search_parameters->check_type,archive_search->mm_stack);
   }
+//  TIMER_STOP(&timer); // DEBUG // FIXME
+//  if (TIMER_GET_TOTAL_MS(&timer) > 100.0) {
+//    fprintf(stdout,"Total time taken %2.3f ms\n",TIMER_GET_TOTAL_MS(&timer));
+//    sequence_print(stderr,&archive_search->sequence);
+//  }
   // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE) {
     tab_global_inc();
@@ -86,16 +93,6 @@ void archive_search_se(
     tab_global_dec();
   }
   PROFILE_STOP(GP_ARCHIVE_SEARCH_SE,PROFILE_LEVEL);
-}
-/*
- * Compute Predictors
- */
-void archive_search_se_compute_predictors(
-    archive_search_t* const archive_search,
-    matches_t* const matches,
-    matches_predictors_t* const predictors) {
-  const uint64_t max_complete_stratum = matches->max_complete_stratum==ALL ? 0 : matches->max_complete_stratum;
-  matches_predictors_compute(matches,predictors,&archive_search->approximate_search.metrics,max_complete_stratum);
 }
 /*
  * Display

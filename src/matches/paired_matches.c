@@ -21,12 +21,10 @@
 const char* paired_matches_class_label[] =
 {
     [0] = "unmapped",
-    [1] = "subdominant-end",
-    [2] = "tie-d0",
-    [3] = "tie-d1",
-    [4] = "mmap",
-    [5] = "unique",
-    [6] = "high-quality-ends"
+    [1] = "tie-d0",
+    [2] = "tie-d1",
+    [3] = "mmap",
+    [4] = "unique",
 };
 
 /*

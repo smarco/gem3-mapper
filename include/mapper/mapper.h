@@ -26,11 +26,6 @@
 #include "stats/report_stats_mstats.h"
 
 /*
- * Constants
- */
-#define MAPPER_TICKER_STEP  100000
-
-/*
  * Mapper Parameters
  */
 /* Mapper Mode */
@@ -57,6 +52,7 @@ typedef struct {
   fm_type output_compression;
   uint64_t output_buffer_size;
   uint64_t output_num_buffers;
+  uint64_t mapper_ticker_step;
 } mapper_parameters_io_t;
 /* System */
 typedef struct {

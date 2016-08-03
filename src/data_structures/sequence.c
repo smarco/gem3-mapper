@@ -136,7 +136,7 @@ void sequence_generate_reverse_complement(sequence_t* const sequence,sequence_t*
  * Display
  */
 void sequence_print(FILE* const stream,sequence_t* const sequence) {
-  tab_fprintf(stream,"[GEM]>Sequence\n");
+  // tab_fprintf(stream,"[GEM]>Sequence\n");
   if (sequence_has_qualities(sequence)) {
     fprintf(stream,"@%s\n",sequence_get_tag(sequence));
     fprintf(stream,"%s+\n",sequence_get_read(sequence));

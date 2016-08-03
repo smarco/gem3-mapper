@@ -274,23 +274,43 @@ void mapper_profile_print_approximate_search(FILE* const stream) {
   tab_fprintf(stream,"  => TIME.Approximate.Search.Stages\n");
   tab_fprintf(stream,"    => TIME.Approximate.Search                ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_MAIN),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.Filtering.Exact                 ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_FILTERING_EXACT),PROF_GET_TIMER(GP_MAPPER_ALL));
-//  tab_fprintf(stream,"      => TIME.Filtering.Inexact               ");
-//  TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_FILTERING_INEXACT),PROF_GET_TIMER(GP_MAPPER_ALL));
-  tab_fprintf(stream,"      => TIME.Filtering.Local                 ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_FILTERING_LOCAL_ALIGN),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"      => TIME.Filtering.Adaptive              ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_FILTERING_ADATIVE),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"      => TIME.Neighborhood.Search             ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_NEIGHBORHOOD_SEARCH),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"      => TIME.Local.Alignment                 ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_LOCAL_ALIGN),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"  |> Approximate.Search.Stages\n");
-  tab_fprintf(stream,"    --> Filtering.Exact.Mapped                ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_FILTERING_EXACT_MAPPED),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
-  tab_fprintf(stream,"    --> Filtering.Exact.MCS                   ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_FILTERING_EXACT_MCS),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"mcs  ",true);
-  //  tab_fprintf(stream,"    --> Filtering.Inexact.Mapped              ");
-  //  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_FILTERING_INEXACT_MAPPED),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
-  //  tab_fprintf(stream,"      --> MCS.Filtering.Inexact               ");
-  //  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_FILTERING_INEXACT_MCS),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"mcs  ",true);
+  tab_fprintf(stream,"    --> Approximate.Search                    ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MAPPER_NUM_READS),
+      PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
+  tab_fprintf(stream,"      --> Filtering.Filtering.Adaptive        ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_FILTERING_ADATIVE_CALL),
+      PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
+  tab_fprintf(stream,"      --> Neighborhood.Search                 ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL),
+      PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
+  tab_fprintf(stream,"        --> Neighborhood.Search.Unmapped      ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_UNMAPPED),
+      PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
+  tab_fprintf(stream,"        --> Neighborhood.Search.Incomplete    ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_MAP_INCOMPLETE),
+      PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
+  tab_fprintf(stream,"        --> Neighborhood.Search.Frontier      ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_MAP_FRONTIER),
+      PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
+  tab_fprintf(stream,"      --> Local.Alignment                     ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_LOCAL_ALIGN_CALL),
+      PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
+  tab_fprintf(stream,"    --> MCS.Approximate.Search                ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_MCS),
+      PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"mcs  ",true);
+  tab_fprintf(stream,"      --> MCS.Filtering.Filtering.Adaptive    ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_FILTERING_ADATIVE_MCS),
+      PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"mcs  ",true);
+  tab_fprintf(stream,"      --> MCS.Neighborhood.Search             ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_MCS),
+      PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"mcs  ",true);
 }
 void mapper_profile_print_approximate_search_ranks(FILE* const stream) {
   /*TODO*/

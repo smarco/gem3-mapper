@@ -70,10 +70,11 @@ void mapper_load_gpu_index(mapper_parameters_t* const parameters) {
  */
 void mapper_cuda_prepare_ticker(
     ticker_t* const ticker,
+    const uint64_t ticker_step,
     const bool paired_end,
     const bool verbose_user) {
   ticker_count_reset(ticker,verbose_user,
-      paired_end ? "PE::Mapping Sequences" : "SE::Mapping Sequences",0,MAPPER_TICKER_STEP,false);
+      paired_end ? "PE::Mapping Sequences" : "SE::Mapping Sequences",0,ticker_step,false);
   ticker_add_process_label(ticker,"#","sequences processed");
   ticker_add_finish_label(ticker,"Total","sequences processed");
   ticker_mutex_enable(ticker);
@@ -128,7 +129,9 @@ void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,const bool pai
   }
   // Ticker
   ticker_t ticker;
-  mapper_cuda_prepare_ticker(&ticker,paired_end,mapper_parameters->misc.verbose_user);
+  mapper_cuda_prepare_ticker(
+      &ticker,mapper_parameters->io.mapper_ticker_step,
+      paired_end,mapper_parameters->misc.verbose_user);
   // Mapping stats
   mapping_stats_t* const mstats = mapper_parameters->global_mapping_stats ?
       mm_calloc(num_threads,mapping_stats_t,false) : NULL;

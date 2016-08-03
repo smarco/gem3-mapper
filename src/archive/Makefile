@@ -28,6 +28,7 @@ MODULES=archive_builder \
         archive_search_paired_parameters \
         archive_search_parameters \
         archive_search_pe \
+        archive_search_pe_stages \
         archive_search_pe_stepwise \
         archive_search_se \
         archive_search_se_stepwise \

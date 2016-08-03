@@ -32,7 +32,6 @@ void region_profile_clear(region_profile_t* const region_profile) {
   region_profile->num_filtering_regions = 0;
   region_profile->num_filtered_regions = 0;
   region_profile->total_candidates = 0;
-  region_profile->num_zero_regions = 0;
   region_profile->max_region_length = 0;
   region_profile->kmer_frequency = 0.0;
 }
@@ -392,7 +391,6 @@ void region_profile_print(
   tab_fprintf(stream,"[GEM]>Region.Profile\n");
   tab_fprintf(stream,"  => Pattern.length %"PRIu64"\n",region_profile->pattern_length);
   tab_fprintf(stream,"  => Num.Filtering.Regions %"PRIu64"\n",region_profile->num_filtering_regions);
-  tab_fprintf(stream,"  => Num.Zero.Regions %"PRIu64"\n",region_profile->num_zero_regions);
   tab_fprintf(stream,"  => Filtering.Regions\n");
   REGION_PROFILE_ITERATE(region_profile,region,position) {
     region_profile_print_region(stream,region,position,display_error_limits);

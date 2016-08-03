@@ -278,7 +278,8 @@ option_t gem_mapper_options[] = {
   /* Miscellaneous */
   { 1500, "profile", OPTIONAL, TYPE_STRING, 15, VISIBILITY_DEVELOPER, "'sum'|'min'|'max'|'mean'|'sample'" , "(disabled)" },
   { 'v',  "verbose", OPTIONAL, TYPE_STRING, 15, VISIBILITY_USER, "'quiet'|'user'|'dev'" , "(default=user)" },
-  { 1501, "version", NO_ARGUMENT, TYPE_STRING, 15, VISIBILITY_USER, "" , "" },
+  { 1501, "progress-step", REQUIRED, TYPE_INT, 15, VISIBILITY_DEVELOPER, "" , "(default=100000)" },
+  { 1502, "version", NO_ARGUMENT, TYPE_STRING, 15, VISIBILITY_USER, "" , "" },
   { 'h',  "help", OPTIONAL, TYPE_NONE, 15, VISIBILITY_USER, "" , "(print usage)" },
   {  0, "", 0, 0, 0, false, "", ""}
 };
@@ -909,7 +910,10 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
         parameters->misc.verbose_dev = false;
       }
       break;
-    case 1501: // --version
+    case 1501: // --progress-step
+      input_text_parse_extended_uint64(optarg,&parameters->io.mapper_ticker_step);
+      break;
+    case 1502: // --version
       fprintf(stderr,"%s\n",gem_version);
       exit(0);
     case 'h':

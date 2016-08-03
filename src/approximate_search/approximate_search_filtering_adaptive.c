@@ -14,9 +14,30 @@
 /*
  * Control
  */
+void as_filtering_control_begin(approximate_search_t* const search) {
+  gem_cond_debug_block(DEBUG_SEARCH_STATE) {
+    tab_fprintf(stderr,"[GEM]>ASM::Basic Cases\n");
+    tab_global_inc();
+  }
+  // Parameters
+  pattern_t* const pattern = &search->pattern;
+  const uint64_t key_length = pattern->key_length;
+  const uint64_t num_wildcards = pattern->num_wildcards;
+  // All characters are wildcards
+  if (key_length==num_wildcards || key_length==0) {
+    search->search_stage = asearch_stage_end;
+    return;
+  }
+  // Otherwise, go to standard exact filtering
+  search->search_stage = asearch_stage_filtering_adaptive;
+  PROF_INC_COUNTER(GP_AS_FILTERING_ADATIVE_CALL);
+  gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
+  return;
+}
 void as_filtering_control_filtering_adaptive_next_state(
     approximate_search_t* const search,
     matches_t* const matches) {
+  PROF_ADD_COUNTER(GP_AS_FILTERING_ADATIVE_MCS,search->region_profile.num_filtered_regions);
   // Select state
   switch (search->processing_state) {
     case asearch_processing_state_no_regions:
@@ -28,6 +49,7 @@ void as_filtering_control_filtering_adaptive_next_state(
       if (search_parameters->local_alignment==local_alignment_never || matches_is_mapped(matches)) {
         search->search_stage = asearch_stage_end;
       } else {  // local_alignment_if_unmapped
+        PROF_INC_COUNTER(GP_AS_LOCAL_ALIGN_CALL);
         search->search_stage = asearch_stage_local_alignment;
       }
       break;
@@ -46,8 +68,8 @@ void approximate_search_filtering_adaptive(
   // Process proper search-stage
   while (true) {
     switch (search->search_stage) {
-      case asearch_stage_begin: // Search Start. Check basic cases
-        approximate_search_begin(search);
+      case asearch_stage_begin: // Search begin
+        as_filtering_control_begin(search);
         break;
       case asearch_stage_filtering_adaptive: // Exact-Filtering (Adaptive)
         // approximate_search_exact_filtering_adaptive_cutoff(search,matches);

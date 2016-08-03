@@ -20,12 +20,12 @@
  * Archive Search State
  */
 typedef enum {
-  archive_search_pe_begin = 0,                     // Beginning of the search
-  archive_search_pe_search_end1 = 1,               // Generate candidates for end1
-  archive_search_pe_search_end2 = 2,               // Generate candidates for end2
-  archive_search_pe_recovery = 3,                  // Recover by extension when needed
-  archive_search_pe_find_pairs = 4,                // Cross-link matches from both ends
-  archive_search_pe_end = 5                        // End of the current workflow
+  archive_search_pe_state_begin = 0,                     // Beginning of the search
+  archive_search_pe_state_search_end1 = 1,               // Generate candidates for end1
+  archive_search_pe_state_search_end2 = 2,               // Generate candidates for end2
+  archive_search_pe_state_recovery = 3,                  // Recover by extension when needed
+  archive_search_pe_state_find_pairs = 4,                // Cross-link matches from both ends
+  archive_search_pe_state_end = 5                        // End of the current workflow
 } archive_search_pe_state_t;
 extern const char* archive_search_pe_state_label[7];
 
@@ -109,9 +109,6 @@ void archive_search_inject_filtering_candidates(
  */
 sequence_t* archive_search_get_sequence(const archive_search_t* const archive_search);
 bool archive_search_finished(const archive_search_t* const archive_search);
-
-uint64_t archive_search_get_max_region_length(const archive_search_t* const archive_search);
-uint64_t archive_search_get_num_zero_regions(const archive_search_t* const archive_search);
 
 uint64_t archive_search_get_num_regions_profile(const archive_search_t* const archive_search);
 uint64_t archive_search_get_num_decode_candidates(const archive_search_t* const archive_search);

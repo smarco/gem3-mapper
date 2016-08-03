@@ -119,7 +119,6 @@ void approximate_search_neighborhood_search_partition(
 void approximate_search_neighborhood_search_partition_preconditioned(
     approximate_search_t* const search,
     matches_t* const matches) {
-  PROFILE_START(GP_AS_NEIGHBORHOOD_SEARCH,PROFILE_LEVEL);
   // Parameters
   search_parameters_t* const search_parameters = search->search_parameters;
   pattern_t* const pattern = &search->pattern;
@@ -129,7 +128,6 @@ void approximate_search_neighborhood_search_partition_preconditioned(
   const uint64_t mcs = search->current_max_complete_stratum;
   // Compute error limits
   region_profile_compute_error_limits(region_profile,mcs,max_complete_error);
-  // region_profile_print(stderr,region_profile,true);
   // Generate Candidates (Select Alignment Model)
   if (search_parameters->alignment_model == alignment_model_hamming) {
     nsearch_hamming_preconditioned(search,matches);
@@ -147,5 +145,4 @@ void approximate_search_neighborhood_search_partition_preconditioned(
   PROF_STOP(GP_NS_ALIGN);
   // Update MCS
   approximate_search_update_mcs(search,max_complete_error+1);
-  PROFILE_STOP(GP_AS_NEIGHBORHOOD_SEARCH,PROFILE_LEVEL);
 }

@@ -189,7 +189,7 @@ void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_search) {
     mapper_se_output_matches(parameters,mapper_search->buffered_output_file,
         archive_search,stage_verify_candidates->matches,mapper_search->mapping_stats);
     // Update processed
-    if (++mapper_search->reads_processed == MAPPER_TICKER_STEP) {
+    if (++mapper_search->reads_processed == parameters->io.mapper_ticker_step) {
       ticker_update_mutex(mapper_search->ticker,mapper_search->reads_processed);
       mapper_search->reads_processed=0;
     }
