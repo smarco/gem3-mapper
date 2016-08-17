@@ -35,7 +35,7 @@ gpu_buffer_collection_t* gpu_buffer_collection_new(
   gpu_buffers_dto->buffer = NULL;
   gpu_buffers_dto->numBuffers = num_buffers;
   gpu_buffers_dto->maxMbPerBuffer = CONVERT_B_TO_MB(buffer_size);
-  gpu_buffers_dto->activeModules = GPU_FMI_ADAPT_SEARCH | GPU_FMI_DECODE_POS | GPU_BPM | GPU_SA_DECODE_POS;
+  gpu_buffers_dto->activeModules = GPU_FMI_ADAPT_SEARCH | GPU_FMI_DECODE_POS | GPU_BPM_FILTER | GPU_KMER_FILTER | GPU_SA_DECODE_POS;
   buffer_collection->gpu_buffers_dto = gpu_buffers_dto;
   gpu_index_dto_t gpu_index_dto = {
     .filename             = gpu_index_name,
@@ -75,7 +75,9 @@ gpu_buffer_collection_t* gpu_buffer_collection_new(
   buffer_collection->gpu_region_profile_available         = gpu_info_dto.activatedModules & GPU_FMI_ADAPT_SEARCH;
   buffer_collection->gpu_decode_candidates_sa_available   = gpu_info_dto.activatedModules & GPU_FMI_DECODE_POS;
   buffer_collection->gpu_decode_candidates_text_available = gpu_info_dto.activatedModules & GPU_SA_DECODE_POS;
-  buffer_collection->gpu_verify_candidates_available      = gpu_info_dto.activatedModules & GPU_BPM;
+  buffer_collection->gpu_verify_candidates_available      = gpu_info_dto.activatedModules & GPU_BPM_FILTER;
+  // TODO Check if the K-MER module is active something like:
+  //buffer_collection->gpu_filter_candidates_available      = gpu_info_dto.activatedModules & GPU_KMER_FILTER;
   // Return
   PROFILE_STOP(GP_GPU_BUFFER_COLLECTION_INIT,PROFILE_LEVEL);
   return buffer_collection;

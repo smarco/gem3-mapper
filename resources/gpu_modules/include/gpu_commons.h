@@ -37,6 +37,7 @@ Common constants for Device & Host
 #define GPU_UINT32_MASK_ONE_HIGH  0x80000000u
 #define GPU_UINT8_ONES            0xFF
 #define GPU_UINT64_ONES           0xFFFFFFFFFFFFFFFFu
+#define GPU_UINT64_ZEROS          0x0000000000000000u
 #define GPU_UINT8_SIZE            1
 #define GPU_UINT32_SIZE           4
 #define GPU_UINT64_SIZE           8
@@ -50,7 +51,9 @@ Common constants for Device & Host
 #define GPU_MIN(NUM_A,NUM_B)                (((NUM_A) < (NUM_B)) ? (NUM_A) : (NUM_B))
 #define GPU_MAX(NUM_A,NUM_B)                (((NUM_A) > (NUM_B)) ? (NUM_A) : (NUM_B))
 #define GPU_ALIGN_TO(ADDR,BYTES)            ((void*)(GPU_DIV_CEIL((uint64_t)ADDR,BYTES) * BYTES))
-#define BASE2LOG(NUM)                       (base2log(NUM))
+#define GPU_POW2(NUM)                       (GPU_UINT32_MASK_ONE_LOW<<(NUM))
+#define GPU_POW4(NUM)                       (GPU_UINT32_MASK_ONE_LOW<<((NUM)<<1))
+#define GPU_BASE2LOG(NUM)                   (base2log(NUM))
 
 /* Conversion utils */
 #define GPU_CONVERT_BYTES_TO_BITS(number) ((number) * 8)

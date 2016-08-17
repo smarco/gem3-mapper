@@ -31,8 +31,8 @@ void __global__ gpu_sa_decoding_kernel(const uint64_t* const d_SA, const uint32_
 
 extern "C"
 gpu_error_t gpu_sa_decoding_launch_kernel(const uint64_t* const d_SA, const uint32_t samplingRate,
-		                                  const uint32_t numDecodings, const ulonglong2* const d_endBWTPos,
-		                                  uint64_t* const d_textPos)
+		                                      const uint32_t numDecodings, const ulonglong2* const d_endBWTPos,
+		                                      uint64_t* const d_textPos)
 {
   const uint32_t threads = 128;
   const uint32_t blocks  = GPU_DIV_CEIL(numDecodings, threads);

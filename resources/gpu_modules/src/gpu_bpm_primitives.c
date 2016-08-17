@@ -64,7 +64,7 @@ float gpu_bpm_size_per_candidate(const uint32_t averageQuerySize, const uint32_t
   const size_t bytesResult          = sizeof(gpu_bpm_alg_entry_t);
   const size_t bytesReorderResult   = sizeof(gpu_bpm_alg_entry_t);
   const size_t bytesBinningProcess  = sizeof(uint32_t);
-
+  // Calculate the necesary bytes for each BPM filter operation
   return((bytesPerQuery/(float)candidatesPerQuery) + bytesCandidate
       + bytesResult + bytesReorderResult + bytesBinningProcess);
 }
@@ -73,11 +73,9 @@ uint32_t gpu_bpm_candidates_for_binning_padding()
 {
   uint32_t idBucket;
   uint32_t bucketPaddingCandidates = 0;
-
   /* Worst number of dummy candidates added for padding the binning */
   for(idBucket = 1; idBucket < GPU_BPM_NUM_BUCKETS_FOR_BINNING-1; ++idBucket)
     bucketPaddingCandidates += (GPU_WARP_SIZE / idBucket);
-
   /* Increased bytes per buffer taking account the padding*/
   return(bucketPaddingCandidates);
 }
@@ -85,7 +83,6 @@ uint32_t gpu_bpm_candidates_for_binning_padding()
 void gpu_bpm_reallocate_host_buffer_layout(gpu_buffer_t* mBuff)
 {
   void* rawAlloc = mBuff->h_rawData;
-
   //Adjust the host buffer layout (input)
   mBuff->data.bpm.queries.h_queries = GPU_ALIGN_TO(rawAlloc,16);
   rawAlloc = (void *) (mBuff->data.bpm.queries.h_queries + mBuff->data.bpm.maxPEQEntries);
@@ -99,7 +96,6 @@ void gpu_bpm_reallocate_host_buffer_layout(gpu_buffer_t* mBuff)
   rawAlloc = (void *) (mBuff->data.bpm.reorderBuffer.h_initPosPerBucket + mBuff->data.bpm.maxBuckets);
   mBuff->data.bpm.reorderBuffer.h_initWarpPerBucket = GPU_ALIGN_TO(rawAlloc,16);
   rawAlloc = (void *) (mBuff->data.bpm.reorderBuffer.h_initWarpPerBucket + mBuff->data.bpm.maxBuckets);
-
   //Adjust the host buffer layout (output)
   mBuff->data.bpm.alignments.h_reorderAlignments = GPU_ALIGN_TO(rawAlloc,16);
   rawAlloc = (void *) (mBuff->data.bpm.alignments.h_reorderAlignments + mBuff->data.bpm.maxReorderBuffer);
@@ -110,7 +106,6 @@ void gpu_bpm_reallocate_host_buffer_layout(gpu_buffer_t* mBuff)
 void gpu_bpm_reallocate_device_buffer_layout(gpu_buffer_t* mBuff)
 {
   void* rawAlloc = mBuff->d_rawData;
-
   //Adjust the host buffer layout (input)
   mBuff->data.bpm.queries.d_queries = GPU_ALIGN_TO(rawAlloc,16);
   rawAlloc = (void *) (mBuff->data.bpm.queries.d_queries + mBuff->data.bpm.maxPEQEntries);
@@ -124,7 +119,6 @@ void gpu_bpm_reallocate_device_buffer_layout(gpu_buffer_t* mBuff)
   rawAlloc = (void *) (mBuff->data.bpm.reorderBuffer.d_initPosPerBucket + mBuff->data.bpm.maxBuckets);
   mBuff->data.bpm.reorderBuffer.d_initWarpPerBucket = GPU_ALIGN_TO(rawAlloc,16);
   rawAlloc = (void *) (mBuff->data.bpm.reorderBuffer.d_initWarpPerBucket + mBuff->data.bpm.maxBuckets);
-
   //Adjust the host buffer layout (output)
   mBuff->data.bpm.alignments.d_reorderAlignments = GPU_ALIGN_TO(rawAlloc,16);
   rawAlloc = (void *) (mBuff->data.bpm.alignments.d_reorderAlignments + mBuff->data.bpm.maxReorderBuffer);
@@ -140,10 +134,8 @@ void gpu_bpm_init_buffer_(void* const bpmBuffer, const uint32_t averageQuerySize
   const uint32_t      numInputs               = (uint32_t)(sizeBuff / gpu_bpm_size_per_candidate(averageQuerySize, candidatesPerQuery));
   const uint32_t      maxCandidates           = numInputs - gpu_bpm_candidates_for_binning_padding();
   const uint32_t      bucketPaddingCandidates = gpu_bpm_candidates_for_binning_padding();
-
   //set the type of the buffer
-  mBuff->typeBuffer = GPU_BPM;
-
+  mBuff->typeBuffer = GPU_BPM_FILTER;
   //Set real size of the input
   mBuff->data.bpm.maxCandidates    = maxCandidates;
   mBuff->data.bpm.maxAlignments    = maxCandidates;
@@ -151,20 +143,21 @@ void gpu_bpm_init_buffer_(void* const bpmBuffer, const uint32_t averageQuerySize
   mBuff->data.bpm.maxQueries       = (maxCandidates / candidatesPerQuery);
   mBuff->data.bpm.maxReorderBuffer = maxCandidates + bucketPaddingCandidates;
   mBuff->data.bpm.maxBuckets       = GPU_BPM_NUM_BUCKETS_FOR_BINNING;
-
+  // Set the corresponding buffer layout
   gpu_bpm_reallocate_host_buffer_layout(mBuff);
   gpu_bpm_reallocate_device_buffer_layout(mBuff);
 }
 
 void gpu_bpm_init_and_realloc_buffer_(void *bpmBuffer, const uint32_t totalPEQEntries, const uint32_t totalCandidates, const uint32_t totalQueries)
 {
+  // Buffer reinitialization
   gpu_buffer_t* const mBuff = (gpu_buffer_t *) bpmBuffer;
   const uint32_t averarageNumPEQEntries = totalPEQEntries / totalQueries;
   const uint32_t averageQuerySize       = (totalPEQEntries * GPU_BPM_PEQ_ENTRY_LENGTH) / totalQueries;
   const uint32_t candidatesPerQuery     = totalCandidates / totalQueries;
-
+  // Remap the buffer layout with new information trying to fit better
   gpu_bpm_init_buffer_(bpmBuffer, averageQuerySize, candidatesPerQuery);
-
+  // Checking if we need to reallocate a bigger buffer
   if( (totalPEQEntries > gpu_bpm_buffer_get_max_peq_entries_(bpmBuffer)) &&
       (totalCandidates > gpu_bpm_buffer_get_max_candidates_(bpmBuffer))  &&
       (totalQueries    > gpu_bpm_buffer_get_max_queries_(bpmBuffer))){
@@ -172,20 +165,16 @@ void gpu_bpm_init_and_realloc_buffer_(void *bpmBuffer, const uint32_t totalPEQEn
     const uint32_t  idSupDevice             = mBuff->idSupportedDevice;
     const float     resizeFactor            = 2.0;
     const size_t    bytesPerBPMBuffer       = totalCandidates * gpu_bpm_size_per_candidate(averarageNumPEQEntries,candidatesPerQuery);
-
     //Recalculate the minimum buffer size
     mBuff->sizeBuffer = bytesPerBPMBuffer * resizeFactor;
-
     //FREE HOST AND DEVICE BUFFER
     GPU_ERROR(gpu_buffer_free(mBuff));
-
     //Select the device of the Multi-GPU platform
     CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
-
     //ALLOCATE HOST AND DEVICE BUFFER
     CUDA_ERROR(cudaHostAlloc((void**) &mBuff->h_rawData, mBuff->sizeBuffer, cudaHostAllocMapped));
     CUDA_ERROR(cudaMalloc((void**) &mBuff->d_rawData, mBuff->sizeBuffer));
-
+    // Remap the buffer layout with the new size
     gpu_bpm_init_buffer_(bpmBuffer, averageQuerySize, candidatesPerQuery);
   }
 }
@@ -201,23 +190,20 @@ gpu_error_t gpu_bpm_reorder_process(const gpu_bpm_queries_buffer_t* const qry, c
   uint32_t idBucket, idCandidate, idBuff;
   uint32_t numThreadsPerQuery, numQueriesPerWarp;
   uint32_t tmpBuckets[numBuckets], numCandidatesPerBucket[numBuckets], numWarpsPerBucket[numBuckets];
-
-  //Init buckets (32 buckets => max 4096 bases)
+  // Init buckets (32 buckets => max 4096 bases)
   rebuff->numWarps = 0;
   for(idBucket = 0; idBucket < rebuff->numBuckets; idBucket++){
     numCandidatesPerBucket[idBucket]      = 0;
     numWarpsPerBucket[idBucket]           = 0;
     tmpBuckets[idBucket]                  = 0;
   }
-
-  //Fill buckets with elements per bucket
+  // Fill buckets with elements per bucket
   for(idCandidate = 0; idCandidate < cand->numCandidates; idCandidate++){
     idBucket = (qry->h_qinfo[cand->h_candidates[idCandidate].query].size - 1) / GPU_BPM_PEQ_LENGTH_PER_CUDA_THREAD;
     idBucket = (idBucket < (rebuff->numBuckets - 1)) ? idBucket : (rebuff->numBuckets - 1);
     numCandidatesPerBucket[idBucket]++;
   }
-
-  //Number of warps per bucket
+  // Number of warps per bucket
   rebuff->candidatesPerBuffer = 0;
   for(idBucket = 0; idBucket < rebuff->numBuckets - 1; idBucket++){
     numThreadsPerQuery = idBucket + 1;
@@ -226,19 +212,15 @@ gpu_error_t gpu_bpm_reorder_process(const gpu_bpm_queries_buffer_t* const qry, c
     rebuff->h_initPosPerBucket[idBucket] = rebuff->candidatesPerBuffer;
     rebuff->candidatesPerBuffer += numWarpsPerBucket[idBucket] * numQueriesPerWarp;
   }
-
-  //Fill the start position warps for each bucket
+  // Fill the start position warps for each bucket
   for(idBucket = 1; idBucket < rebuff->numBuckets; idBucket++)
     rebuff->h_initWarpPerBucket[idBucket] = rebuff->h_initWarpPerBucket[idBucket-1] + numWarpsPerBucket[idBucket-1];
-
-  //Allocate buffer (candidates)
+  // Allocate buffer (candidates)
   for(idBuff = 0; idBuff < rebuff->candidatesPerBuffer; idBuff++)
     rebuff->h_reorderBuffer[idBuff] = GPU_UINT32_ONES;
-
-  //Set the number of real results in the reorder buffer
+  // Set the number of real results in the reorder buffer
   res->numReorderedAlignments = rebuff->candidatesPerBuffer;
-
-  //Reorder by size the candidates
+  // Reorder by size the candidates
   for(idBucket = 0; idBucket < rebuff->numBuckets; idBucket++)
     tmpBuckets[idBucket] = rebuff->h_initPosPerBucket[idBucket];
   for(idCandidate = 0; idCandidate < cand->numCandidates; idCandidate++){
@@ -248,15 +230,13 @@ gpu_error_t gpu_bpm_reorder_process(const gpu_bpm_queries_buffer_t* const qry, c
       tmpBuckets[idBucket]++;
     }
   }
-
-  //Fill the paddings with replicated candidates (always the last candidate)
+  // Fill the paddings with replicated candidates (always the last candidate)
   for(idBuff = 0; idBuff < rebuff->candidatesPerBuffer; idBuff++)
     if(rebuff->h_reorderBuffer[idBuff] == GPU_UINT32_ONES) rebuff->h_reorderBuffer[idBuff] = rebuff->h_reorderBuffer[idBuff-1];
-
-  //Calculate the number of warps necessaries in the GPU
+  // Calculate the number of warps necessaries in the GPU
   for(idBucket = 0; idBucket < (rebuff->numBuckets - 1); idBucket++)
     rebuff->numWarps += numWarpsPerBucket[idBucket];
-
+  // Succeed
   return (SUCCESS);
 }
 
@@ -268,18 +248,15 @@ gpu_error_t gpu_bpm_reordering_buffer(gpu_buffer_t *mBuff)
         gpu_bpm_alignments_buffer_t* const res      = &mBuff->data.bpm.alignments;
         gpu_bpm_reorder_buffer_t* const    rebuff   = &mBuff->data.bpm.reorderBuffer;
         uint32_t                           idBucket;
-
   //Re-initialize the reorderBuffer (to reuse the buffer)
   rebuff->numBuckets          = GPU_BPM_NUM_BUCKETS_FOR_BINNING;
   rebuff->candidatesPerBuffer = 0;
   rebuff->numWarps            = 0;
-
   //Initialize buckets (32 buckets => max 4096 bases)
   for(idBucket = 0; idBucket < rebuff->numBuckets; idBucket++){
     rebuff->h_initPosPerBucket[idBucket]  = 0;
     rebuff->h_initWarpPerBucket[idBucket] = 0;
   }
-
   if(binning){
     //Calculate the number of warps necessaries in the GPU
     rebuff->numWarps = GPU_DIV_CEIL(binning * cand->numCandidates, GPU_WARP_SIZE);
@@ -291,7 +268,7 @@ gpu_error_t gpu_bpm_reordering_buffer(gpu_buffer_t *mBuff)
   }else{
     GPU_ERROR(gpu_bpm_reorder_process(qry, cand, rebuff, res));
   }
-
+  // Succeed
   return (SUCCESS);
 }
 
@@ -304,7 +281,7 @@ gpu_error_t gpu_bpm_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
   cudaStream_t                idStream  = mBuff->idStream;
   size_t                      cpySize   = 0;
   float                       bufferUtilization;
-
+  // Defining buffer offsets
   cpySize += qry->totalQueriesEntries * sizeof(gpu_bpm_qry_entry_t);
   cpySize += qry->numQueries * sizeof(gpu_bpm_qry_info_t);
   cpySize += cand->numCandidates * sizeof(gpu_bpm_cand_info_t);
@@ -314,33 +291,29 @@ gpu_error_t gpu_bpm_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
   cpySize += res->numReorderedAlignments * sizeof(gpu_bpm_alg_entry_t);
   cpySize += res->numAlignments * sizeof(gpu_bpm_alg_entry_t);
   bufferUtilization = (double)cpySize / (double)mBuff->sizeBuffer;
-
+  // Compacting tranferences with high buffer occupation
   if(bufferUtilization > 0.15){
     cpySize  = ((void *) (rebuff->d_initWarpPerBucket + rebuff->numBuckets)) - ((void *) qry->d_queries);
     CUDA_ERROR(cudaMemcpyAsync(qry->d_queries, qry->h_queries, cpySize, cudaMemcpyHostToDevice, idStream));
   }else{
-    //Transfer Binary Queries to GPU
+    // Transfer Binary Queries to GPU
     cpySize = qry->totalQueriesEntries * sizeof(gpu_bpm_qry_entry_t);
     CUDA_ERROR(cudaMemcpyAsync(qry->d_queries, qry->h_queries, cpySize, cudaMemcpyHostToDevice, idStream));
-
-    //Transfer to GPU the information associated with Binary Queries
+    // Transfer to GPU the information associated with Binary Queries
     cpySize = qry->numQueries * sizeof(gpu_bpm_qry_info_t);
     CUDA_ERROR(cudaMemcpyAsync(qry->d_qinfo, qry->h_qinfo, cpySize, cudaMemcpyHostToDevice, idStream));
-
-    //Transfer Candidates to GPU
+    // Transfer Candidates to GPU
     cpySize = cand->numCandidates * sizeof(gpu_bpm_cand_info_t);
     CUDA_ERROR(cudaMemcpyAsync(cand->d_candidates, cand->h_candidates, cpySize, cudaMemcpyHostToDevice, idStream));
-
-    //Transfer reordered buffer to GPU
+    // Transfer reordered buffer to GPU
     cpySize = rebuff->candidatesPerBuffer * sizeof(uint32_t);
     CUDA_ERROR(cudaMemcpyAsync(rebuff->d_reorderBuffer, rebuff->h_reorderBuffer, cpySize, cudaMemcpyHostToDevice, idStream));
-
-    //Transfer bucket information to GPU
+    // Transfer bucket information to GPU
     cpySize = rebuff->numBuckets * sizeof(uint32_t);
     CUDA_ERROR(cudaMemcpyAsync(rebuff->d_initPosPerBucket, rebuff->h_initPosPerBucket, cpySize, cudaMemcpyHostToDevice, idStream));
     CUDA_ERROR(cudaMemcpyAsync(rebuff->d_initWarpPerBucket, rebuff->h_initWarpPerBucket, cpySize, cudaMemcpyHostToDevice, idStream));
   }
-
+  // Succeed
   return (SUCCESS);
 }
 
@@ -349,7 +322,7 @@ gpu_error_t gpu_bpm_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
   cudaStream_t                idStream  =  mBuff->idStream;
   gpu_bpm_alignments_buffer_t *res      = &mBuff->data.bpm.alignments;
   size_t                      cpySize;
-
+  // Avoiding transferences of the intermediate results (binning input work regularization)
   if(mBuff->data.bpm.queryBinning){
     cpySize = res->numAlignments * sizeof(gpu_bpm_alg_entry_t);
     CUDA_ERROR(cudaMemcpyAsync(res->h_alignments, res->d_alignments, cpySize, cudaMemcpyDeviceToHost, idStream));
@@ -357,7 +330,7 @@ gpu_error_t gpu_bpm_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
     cpySize = res->numReorderedAlignments * sizeof(gpu_bpm_alg_entry_t);
     CUDA_ERROR(cudaMemcpyAsync(res->h_reorderAlignments, res->d_reorderAlignments, cpySize, cudaMemcpyDeviceToHost, idStream));
   }
-
+  // Succeed
   return (SUCCESS);
 }
 
@@ -366,24 +339,19 @@ void gpu_bpm_send_buffer_(void* const bpmBuffer, const uint32_t numPEQEntries, c
 {
   gpu_buffer_t* const mBuff     = (gpu_buffer_t *) bpmBuffer;
   const uint32_t    idSupDevice = mBuff->idSupportedDevice;
-
   //Set real size of the things
   mBuff->data.bpm.queryBinning                = queryBinning;
   mBuff->data.bpm.queries.totalQueriesEntries = numPEQEntries;
   mBuff->data.bpm.queries.numQueries          = numQueries;
   mBuff->data.bpm.candidates.numCandidates    = numCandidates;
   mBuff->data.bpm.alignments.numAlignments    = numCandidates;
-
   //Select the device of the Multi-GPU platform
   CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
-
   //CPU->GPU Transfers & Process Kernel in Asynchronous way
   GPU_ERROR(gpu_bpm_reordering_buffer(mBuff));
   GPU_ERROR(gpu_bpm_transfer_CPU_to_GPU(mBuff));
-
   /* INCLUDED SUPPORT for future GPUs with PTX ASM code (JIT compiling) */
   GPU_ERROR(gpu_bpm_process_buffer(mBuff));
-
   //GPU->CPU Transfers
   GPU_ERROR(gpu_bpm_transfer_GPU_to_CPU(mBuff));
 }
@@ -394,14 +362,16 @@ Functions to receive & process a BPM buffer from GPU
 
 gpu_error_t gpu_bpm_reordering_alignments(gpu_buffer_t *mBuff)
 {
+  // Avoiding transferences of the intermediate results (binning input work regularization)
   if(mBuff->data.bpm.queryBinning == 0){
     gpu_bpm_reorder_buffer_t    *rebuff = &mBuff->data.bpm.reorderBuffer;
     gpu_bpm_alignments_buffer_t *res    = &mBuff->data.bpm.alignments;
     uint32_t idRes;
-
+    // Reverting the original input organization
     for(idRes = 0; idRes < res->numReorderedAlignments; idRes++)
       res->h_alignments[rebuff->h_reorderBuffer[idRes]] = res->h_reorderAlignments[idRes];
   }
+  // Succeed
   return (SUCCESS);
 }
 
@@ -409,10 +379,8 @@ void gpu_bpm_receive_buffer_(void* const bpmBuffer)
 {
   gpu_buffer_t* const mBuff  = (gpu_buffer_t *) bpmBuffer;
   const uint32_t idSupDevice = mBuff->idSupportedDevice;
-
   //Select the device of the Multi-GPU platform
   CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
-
   //Synchronize Stream (the thread wait for the commands done in the stream)
   CUDA_ERROR(cudaStreamSynchronize(mBuff->idStream));
   //Reorder the final results

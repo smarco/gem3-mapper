@@ -41,7 +41,7 @@ CUDA_SASS_FLAG_52=$(CUDA_SASS_FLAG_50) -gencode arch=compute_52,code=\"sm_52,com
 CUDA_SASS_FLAG_60=$(CUDA_SASS_FLAG_52) -gencode arch=compute_60,code=\"sm_60,compute_60\" -gencode arch=compute_61,code=\"sm_61,compute_61\" -gencode arch=compute_62,code=\"sm_62,compute_62\"
 CUDA_SASS_FLAGS=$(CUDA_SASS_FLAG_$(NVCC_MINIMAL_VERSION))
 
-CUDA_MODULES=gpu_fmi_decode gpu_fmi_ssearch gpu_fmi_asearch gpu_bpm_filter gpu_sa_decode
+CUDA_MODULES=gpu_fmi_decode gpu_fmi_ssearch gpu_fmi_asearch gpu_bpm_filter gpu_kmer_filter gpu_sa_decode
 CUDA_SRCS=$(addprefix $(FOLDER_SOURCE)/, $(addsuffix .cu, $(CUDA_MODULES)))
 CUDA_OBJS=$(addprefix $(FOLDER_BUILD)/, $(addsuffix .o, $(CUDA_MODULES)))
 
@@ -49,7 +49,8 @@ BASICS=gpu_commons gpu_buffer gpu_errors gpu_io gpu_sample gpu_module gpu_device
 FMI_MODULES=gpu_fmi_index gpu_fmi_table gpu_fmi_primitives gpu_fmi_primitives_decode gpu_fmi_primitives_ssearch gpu_fmi_primitives_asearch
 SA_MODULES=gpu_sa_index gpu_sa_primitives
 BPM_MODULES=gpu_bpm_primitives
-MODULES= $(FMI_MODULES) $(SA_MODULES) $(BPM_MODULES) $(BASICS)
+KMER_MODULES=gpu_kmer_primitives
+MODULES= $(FMI_MODULES) $(SA_MODULES) $(BPM_MODULES) $(KMER_MODULES) $(BASICS)
 SRCS=$(addprefix $(FOLDER_SOURCE)/, $(addsuffix .c, $(MODULES)))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(addsuffix .o, $(MODULES)))
 

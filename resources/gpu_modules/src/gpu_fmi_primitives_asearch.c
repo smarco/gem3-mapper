@@ -118,17 +118,15 @@ void gpu_fmi_asearch_init_buffer_(void* const fmiBuffer, const uint32_t averageQ
   const uint32_t      averageRegionsPerQuery = GPU_MAX(GPU_DIV_CEIL(averageQuerySize, maxRegionsFactor), GPU_FMI_MIN_REGIONS);
   const size_t        bytesPerQuery          = gpu_fmi_asearch_size_per_query(averageQuerySize, averageRegionsPerQuery);
   const uint32_t      numQueries             = sizeBuff / bytesPerQuery;
-
   //set the type of the buffer
   mBuff->typeBuffer = GPU_FMI_ADAPT_SEARCH;
-
-  //set real size of the input
+  // Set real size of the input
   mBuff->data.asearch.numMaxQueries         = numQueries;
   mBuff->data.asearch.numMaxBases           = numQueries * averageQuerySize;
   mBuff->data.asearch.numMaxRegions         = numQueries * averageRegionsPerQuery;
-  //internal data information
+  // Internal data information
   mBuff->data.asearch.maxRegionsFactor      = maxRegionsFactor;
-
+  // Set the corresponding buffer layout
   gpu_fmi_asearch_reallocate_host_buffer_layout(mBuff);
   gpu_fmi_asearch_reallocate_device_buffer_layout(mBuff);
 }
@@ -136,34 +134,30 @@ void gpu_fmi_asearch_init_buffer_(void* const fmiBuffer, const uint32_t averageQ
 void gpu_fmi_asearch_init_and_realloc_buffer_(void* const fmiBuffer, const uint32_t maxRegionsFactor, const uint32_t totalBases,
                                               const uint32_t totalQueries, const uint32_t totalRegions)
 {
+  // Buffer reinitialization
   gpu_buffer_t* const mBuff                  = (gpu_buffer_t *) fmiBuffer;
   const uint32_t      averageQuerySize       = GPU_DIV_CEIL(totalBases, totalQueries);
   const uint32_t      averageRegionsPerQuery = GPU_MAX(GPU_DIV_CEIL(averageQuerySize, maxRegionsFactor), GPU_FMI_MIN_REGIONS);
-
+  // Remap the buffer layout with new information trying to fit better
   gpu_fmi_asearch_init_buffer_(fmiBuffer, averageQuerySize, maxRegionsFactor);
-
+  // Checking if we need to reallocate a bigger buffer
   if( (totalBases   > gpu_fmi_asearch_buffer_get_max_bases_(fmiBuffer))   &&
       (totalQueries > gpu_fmi_asearch_buffer_get_max_queries_(fmiBuffer)) &&
       (totalRegions > gpu_fmi_asearch_buffer_get_max_regions_(fmiBuffer))){
-
     // Resize the GPU buffer to fit the required input
     const uint32_t      idSupDevice             = mBuff->idSupportedDevice;
     const float         resizeFactor            = 2.0;
     const size_t        bytesPerSearchBuffer    = totalQueries * gpu_fmi_asearch_size_per_query(averageQuerySize, averageRegionsPerQuery);
-
     //Recalculate the minimum buffer size
     mBuff->sizeBuffer = bytesPerSearchBuffer * resizeFactor;
-
     //FREE HOST AND DEVICE BUFFER
     GPU_ERROR(gpu_buffer_free(mBuff));
-
     //Select the device of the Multi-GPU platform
     CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
-
     //ALLOCATE HOST AND DEVICE BUFFER
     CUDA_ERROR(cudaHostAlloc((void**) &mBuff->h_rawData, mBuff->sizeBuffer, cudaHostAllocMapped));
     CUDA_ERROR(cudaMalloc((void**) &mBuff->d_rawData, mBuff->sizeBuffer));
-
+    // Remap the buffer layout with the new size
     gpu_fmi_asearch_init_buffer_(fmiBuffer, averageQuerySize, maxRegionsFactor);
   }
 }
@@ -179,14 +173,14 @@ gpu_error_t gpu_fmi_asearch_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
   const cudaStream_t                      idStream =  mBuff->idStream;
   size_t                                  cpySize  =  0;
   float                                   bufferUtilization;
-
+  // Defining buffer offsets
   cpySize += qryBuff->numBases   * sizeof(gpu_fmi_search_query_t);
   cpySize += qryBuff->numQueries * sizeof(gpu_fmi_search_query_info_t);
   cpySize += qryBuff->numQueries * sizeof(gpu_fmi_search_region_t);
   cpySize += regBuff->numRegions * sizeof(gpu_sa_search_inter_t);
   cpySize += regBuff->numRegions * sizeof(gpu_fmi_search_region_info_t);
   bufferUtilization = (double)cpySize / (double)mBuff->sizeBuffer;
-
+  // Compacting tranferences with high buffer occupation
   if(bufferUtilization > 0.15){
     cpySize  = ((void *) (qryBuff->d_regions + qryBuff->numQueries)) - ((void *) qryBuff->d_queries);
     CUDA_ERROR(cudaMemcpyAsync(qryBuff->d_queries, qryBuff->h_queries, cpySize, cudaMemcpyHostToDevice, idStream));
@@ -194,16 +188,14 @@ gpu_error_t gpu_fmi_asearch_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
     //Transfer Queries to GPU
     cpySize = qryBuff->numBases * sizeof(gpu_fmi_search_query_t);
     CUDA_ERROR(cudaMemcpyAsync(qryBuff->d_queries, qryBuff->h_queries, cpySize, cudaMemcpyHostToDevice, idStream));
-
     //Transfer to GPU the information associated with Queries
     cpySize = qryBuff->numQueries * sizeof(gpu_fmi_search_query_info_t);
     CUDA_ERROR(cudaMemcpyAsync(qryBuff->d_queryInfo, qryBuff->h_queryInfo, cpySize, cudaMemcpyHostToDevice, idStream));
-
     //Transfer Candidates to GPU
     cpySize = qryBuff->numQueries * sizeof(gpu_fmi_search_region_t);
     CUDA_ERROR(cudaMemcpyAsync(qryBuff->d_regions, qryBuff->h_regions, cpySize, cudaMemcpyHostToDevice, idStream));
   }
-
+  // Suceed
   return (SUCCESS);
 }
 
@@ -214,31 +206,29 @@ gpu_error_t gpu_fmi_asearch_transfer_GPU_to_CPU(gpu_buffer_t* const mBuff)
   const cudaStream_t                      idStream  =  mBuff->idStream;
         size_t                            cpySize   =  0;
         float                             bufferUtilization;
-
+  // Defining buffer offsets
   cpySize += qryBuff->numBases   * sizeof(gpu_fmi_search_query_t);
   cpySize += qryBuff->numQueries * sizeof(gpu_fmi_search_query_info_t);
   cpySize += qryBuff->numQueries * sizeof(gpu_fmi_search_region_t);
   cpySize += regBuff->numRegions * sizeof(gpu_sa_search_inter_t);
   cpySize += regBuff->numRegions * sizeof(gpu_fmi_search_region_info_t);
   bufferUtilization = (double)cpySize / (double)mBuff->sizeBuffer;
-
+  // Compacting tranferences with high buffer occupation
   if(bufferUtilization > 0.15){
     cpySize  = ((void *) (regBuff->h_regionsOffsets + regBuff->numRegions)) - ((void *) qryBuff->h_regions);
     CUDA_ERROR(cudaMemcpyAsync(qryBuff->h_regions, qryBuff->d_regions, cpySize, cudaMemcpyDeviceToHost, idStream));
   }else{
-    //Transfer Candidates to GPU
+    // Transfer Candidates to GPU
     cpySize = qryBuff->numQueries * sizeof(gpu_fmi_search_region_t);
     CUDA_ERROR(cudaMemcpyAsync(qryBuff->h_regions, qryBuff->d_regions, cpySize, cudaMemcpyDeviceToHost, idStream));
-
-    //Transfer Candidates to GPU
+    // Transfer Candidates to GPU
     cpySize = regBuff->numRegions * sizeof(gpu_sa_search_inter_t);
     CUDA_ERROR(cudaMemcpyAsync(regBuff->h_intervals, regBuff->d_intervals, cpySize, cudaMemcpyDeviceToHost, idStream));
-
-    //Transfer Candidates to GPU
+    // Transfer Candidates to GPU
     cpySize = regBuff->numRegions * sizeof(gpu_fmi_search_region_info_t);
     CUDA_ERROR(cudaMemcpyAsync(regBuff->h_regionsOffsets, regBuff->d_regionsOffsets, cpySize, cudaMemcpyDeviceToHost, idStream));
   }
-
+  // Suceed
   return (SUCCESS);
 }
 
@@ -247,15 +237,13 @@ void gpu_fmi_asearch_send_buffer_(void* const fmiBuffer, const uint32_t numQueri
 {
   gpu_buffer_t* const mBuff  = (gpu_buffer_t *) fmiBuffer;
   const uint32_t idSupDevice = mBuff->idSupportedDevice;
-
   //Set real size of the input
   mBuff->data.asearch.extraSteps         = extraSteps;
-  mBuff->data.asearch.occShrinkFactor    = BASE2LOG(alphabetSize);
+  mBuff->data.asearch.occShrinkFactor    = GPU_BASE2LOG(alphabetSize);
   mBuff->data.asearch.occMinThreshold    = occMinThreshold;
   mBuff->data.asearch.queries.numQueries = numQueries;
   mBuff->data.asearch.queries.numBases   = numBases;
   mBuff->data.asearch.regions.numRegions = numRegions;
-
   //Select the device of the Multi-GPU platform
   CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
   GPU_ERROR(gpu_fmi_asearch_transfer_CPU_to_GPU(mBuff));
@@ -266,7 +254,6 @@ void gpu_fmi_asearch_send_buffer_(void* const fmiBuffer, const uint32_t numQueri
 void gpu_fmi_asearch_receive_buffer_(const void* const fmiBuffer)
 {
   const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
-
   //Synchronize Stream (the thread wait for the commands done in the stream)
   CUDA_ERROR(cudaStreamSynchronize(mBuff->idStream));
 }

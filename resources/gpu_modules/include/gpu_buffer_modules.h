@@ -11,12 +11,14 @@
 #include "gpu_fmi_primitives.h"
 #include "gpu_sa_primitives.h"
 #include "gpu_bpm_primitives.h"
+#include "gpu_kmer_primitives.h"
 
 #ifndef GPU_BUFFER_MODULES_H_
 #define GPU_BUFFER_MODULES_H_
 
 typedef union{
   gpu_bpm_buffer_t         bpm;
+  gpu_kmer_buffer_t        kmer;
   gpu_fmi_asearch_buffer_t asearch;
   gpu_fmi_ssearch_buffer_t ssearch;
   gpu_fmi_decode_buffer_t  decode;

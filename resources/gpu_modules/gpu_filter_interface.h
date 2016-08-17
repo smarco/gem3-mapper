@@ -37,6 +37,8 @@ typedef enum
 /*
  * Common types for Device & Host
  */
+
+/* BPM filter data structures */
 typedef struct { /* each row 1 PEQ Entry (128bits) */
   uint32_t bitmap[GPU_BPM_PEQ_ALPHABET_SIZE][GPU_BPM_PEQ_SUBENTRIES];
 } gpu_bpm_qry_entry_t;
@@ -69,28 +71,59 @@ typedef struct {
   uint64_t          refSize;
 } gpu_reference_dto_t;
 
+/* K-MER filter data structures */
+typedef char      gpu_kmer_qry_entry_t;
+typedef uint32_t  gpu_kmer_alg_entry_t;
+
+typedef struct {
+  uint64_t position;
+  uint32_t query;
+  uint32_t size;
+} gpu_kmer_cand_info_t;
+
+typedef struct{
+  uint32_t init_offset;
+  uint32_t query_size;
+} gpu_kmer_qry_info_t;
+
 /*
  * Obtain Buffers
  */
+/* BPM filter get primitives */
 gpu_bpm_qry_entry_t* gpu_bpm_buffer_get_peq_entries_(const void* const bpmBuffer);
 gpu_bpm_cand_info_t* gpu_bpm_buffer_get_candidates_(const void* const bpmBuffer);
 gpu_bpm_qry_info_t*  gpu_bpm_buffer_get_peq_info_(const void* const bpmBuffer);
 gpu_bpm_alg_entry_t* gpu_bpm_buffer_get_alignments_(const void* const bpmBuffer);
-
+/* K-MER filter get primitives */
+gpu_kmer_qry_entry_t* gpu_kmer_buffer_get_queries_(const void* const kmerBuffer);
+gpu_kmer_cand_info_t* gpu_kmer_buffer_get_candidates_(const void* const kmerBuffer);
+gpu_kmer_qry_info_t*  gpu_kmer_buffer_get_qry_info_(const void* const kmerBuffer);
+gpu_kmer_alg_entry_t* gpu_kmer_buffer_get_alignments_(const void* const kmerBuffer);
 
 /*
  * Get elements
  */
+/* BPM filter get primitives */
 uint32_t gpu_bpm_buffer_get_max_peq_entries_(const void* const bpmBuffer);
 uint32_t gpu_bpm_buffer_get_max_candidates_(const void* const bpmBuffer);
 uint32_t gpu_bpm_buffer_get_max_queries_(const void* const bpmBuffer);
+/* K-MER filter get primitives */
+uint32_t gpu_kmer_buffer_get_max_qry_bases_(const void* const kmerBuffer);
+uint32_t gpu_kmer_buffer_get_max_candidates_(const void* const kmerBuffer);
+uint32_t gpu_kmer_buffer_get_max_queries_(const void* const kmerBuffer);
 
 /*
  * Main functions
  */
+/* BPM filter buffer primitives */
 void gpu_bpm_init_buffer_(void* const bpmBuffer, const uint32_t averageQuerySize, const uint32_t candidatesPerQuery);
 void gpu_bpm_send_buffer_(void* const bpmBuffer, const uint32_t numPEQEntries, const uint32_t numQueries, const uint32_t numCandidates, const uint32_t sizeCandidates);
 void gpu_bpm_receive_buffer_(void* const bpmBuffer);
 void gpu_bpm_init_and_realloc_buffer_(void *bpmBuffer, const uint32_t totalPEQEntries, const uint32_t totalCandidates, const uint32_t totalQueries);
+/* K-MER filter buffer primitives */
+void gpu_kmer_init_buffer_(void* const kmerBuffer, const uint32_t averageQuerySize, const uint32_t candidatesPerQuery);
+void gpu_kmer_send_buffer_(void* const kmerBuffer, const uint32_t numBases, const uint32_t numQueries, const uint32_t numCandidates, const uint32_t maxError);
+void gpu_kmer_receive_buffer_(void* const kmerBuffer);
+void gpu_kmer_init_and_realloc_buffer_(void *kmerBuffer, const uint32_t totalQueryBases, const uint32_t totalCandidates, const uint32_t totalQueries);
 
 #endif /* GPU_BPM_INTERFACE_H_ */
