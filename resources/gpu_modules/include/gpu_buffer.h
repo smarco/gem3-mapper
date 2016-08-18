@@ -24,6 +24,7 @@ typedef struct {
   uint32_t                numBuffers;
   uint32_t                idBuffer;
   cudaStream_t            idStream;
+  cudaStream_t            *listStreams;
   uint32_t                idSupportedDevice;
   gpu_device_info_t       **device;
   gpu_reference_buffer_t  *reference;
@@ -41,7 +42,7 @@ gpu_error_t gpu_buffer_get_min_memory_size(size_t *bytesPerBuffer);
 /* Primitives to schedule and manage the buffers */
 gpu_error_t gpu_buffer_configuration(gpu_buffer_t* const mBuff, const uint32_t idBuffer, const uint32_t idSupportedDevice,
                                      const size_t bytesPerBuffer, const uint32_t numBuffers, gpu_device_info_t** const device,
-                                     gpu_reference_buffer_t* const reference, gpu_index_buffer_t* const index);
+                                     cudaStream_t* const listStreams, gpu_reference_buffer_t* const reference, gpu_index_buffer_t* const index);
 gpu_error_t gpu_buffer_scheduling(gpu_buffer_t ***gpuBuffer, const uint32_t numBuffers, gpu_device_info_t** const device,
                                   gpu_reference_buffer_t *reference, gpu_index_buffer_t *index, float maxMbPerBuffer);
 

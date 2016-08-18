@@ -106,7 +106,7 @@ uint32_t gpu_buffer_get_id_supported_device_(const void* const gpuBuffer);
  */
 void gpu_io_save_indexed_structures_GEM_(const char* const fileName, const gpu_gem_fmi_dto_t* const gemFMindex, const gpu_gem_ref_dto_t* const gemRef, const gpu_gem_sa_dto_t* const gemSAindex, const gpu_module_t activeModules);
 void gpu_init_buffers_(gpu_buffers_dto_t* const buff, gpu_index_dto_t* const rawIndex, gpu_reference_dto_t* const rawRef, gpu_info_dto_t* const sys);
-void gpu_alloc_buffer_(void* const gpuBuffer);
+void gpu_alloc_buffer_(void* const gpuBuffer, const uint64_t idThread);
 void gpu_realloc_buffer_(void* const gpuBuffer, const float maxMbPerBuffer);
 void gpu_destroy_buffers_(gpu_buffers_dto_t* buff);
 

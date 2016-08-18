@@ -37,7 +37,7 @@ gpu_buffer_fmi_decode_t* gpu_buffer_fmi_decode_new(
   TIMER_RESET(&gpu_buffer_fmi_decode->timer);
   // Init Buffer
   const int64_t thread_id = gtid(); // Between [1,num_threads] (zero is master)
-  gpu_alloc_buffer_(gpu_buffer_fmi_decode->buffer);
+  gpu_alloc_buffer_(gpu_buffer_fmi_decode->buffer, thread_id);
   gpu_fmi_decode_init_buffer_(gpu_buffer_fmi_decode->buffer);
   PROF_STOP(GP_GPU_BUFFER_FMI_DECODE_ALLOC);
   // Return

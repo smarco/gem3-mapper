@@ -16,7 +16,7 @@
 Primitives to get devices properties
 ************************************************************/
 
-uint32_t gpu_device_get_threads_per_block(gpu_dev_arch_t architecture)
+uint32_t gpu_device_get_threads_per_block(const gpu_dev_arch_t architecture)
 {
   if(architecture & GPU_ARCH_FERMI)   return(GPU_THREADS_PER_BLOCK_FERMI);
   if(architecture & GPU_ARCH_KEPLER)  return(GPU_THREADS_PER_BLOCK_KEPLER);
@@ -24,7 +24,7 @@ uint32_t gpu_device_get_threads_per_block(gpu_dev_arch_t architecture)
   return(GPU_THREADS_PER_BLOCK_NEWGEN);
 }
 
-gpu_dev_arch_t gpu_device_get_architecture(uint32_t idDevice)
+gpu_dev_arch_t gpu_device_get_architecture(const uint32_t idDevice)
 {
   struct cudaDeviceProp devProp;
   CUDA_ERROR(cudaGetDeviceProperties(&devProp, idDevice));
@@ -41,7 +41,7 @@ gpu_dev_arch_t gpu_device_get_architecture(uint32_t idDevice)
   return(GPU_ARCH_NEWGEN);                                                    /* CC Y.X            */
 }
 
-uint32_t gpu_device_get_SM_cuda_cores(gpu_dev_arch_t architecture)
+uint32_t gpu_device_get_SM_cuda_cores(const gpu_dev_arch_t architecture)
 {
   switch (architecture) {
     case GPU_ARCH_TESLA:      return(8);
@@ -57,7 +57,7 @@ uint32_t gpu_device_get_SM_cuda_cores(gpu_dev_arch_t architecture)
   }
 }
 
-uint32_t gpu_device_get_cuda_cores(uint32_t idDevice)
+uint32_t gpu_device_get_cuda_cores(const uint32_t idDevice)
 {
   uint32_t coresPerSM;
   gpu_dev_arch_t architecture;
@@ -71,7 +71,7 @@ uint32_t gpu_device_get_cuda_cores(uint32_t idDevice)
   return(devProp.multiProcessorCount * coresPerSM);
 }
 
-size_t gpu_device_get_free_memory(uint32_t idDevice)
+size_t gpu_device_get_free_memory(const uint32_t idDevice)
 {
   size_t free, total;
   CUDA_ERROR(cudaSetDevice(idDevice));
@@ -101,12 +101,26 @@ uint32_t gpu_get_num_supported_devices_(const gpu_dev_arch_t selectedArchitectur
   return(numSupportedDevices);
 }
 
+uint32_t gpu_device_get_stream_configuration(const stream_config_t streamConfig, const uint64_t idThread, const uint32_t idBuffer)
+{
+  switch (streamConfig){
+    case GPU_STREAM_BUFFER_MAPPED:
+      return(idBuffer);
+    case GPU_STREAM_THREAD_MAPPED:
+      return(idThread);
+    case GPU_STREAM_APPLICATION_MAPPED:
+      return(GPU_DEVICE_STREAM_DEFAULT);
+    default: // Original GEM configuration
+      return(idBuffer);
+  }
+}
+
 
 /************************************************************
 Primitives to set devices
 ************************************************************/
 
-gpu_error_t gpu_device_characterize_all(gpu_device_info_t **dev, uint32_t numSupportedDevices)
+gpu_error_t gpu_device_characterize_all(gpu_device_info_t **dev, const uint32_t numSupportedDevices)
 {
   uint32_t idSupportedDevice, allSystemPerformance = 0, allSystemBandwidth = 0;
 
@@ -152,7 +166,7 @@ gpu_error_t gpu_device_synchronize_all(gpu_device_info_t **devices)
 }
 
 void gpu_device_kernel_thread_configuration(const gpu_device_info_t *device, const uint32_t numThreads,
-                                            dim3 *blocksPerGrid, dim3 *threadsPerBlock)
+                                            dim3* const blocksPerGrid, dim3* const threadsPerBlock)
 {
   if(device->architecture & (GPU_ARCH_FERMI)){
     //We use 2-Dimensional Grid (because Fermi is limited to 65535 Blocks per dim)
@@ -215,7 +229,7 @@ gpu_error_t gpu_device_setup_system(gpu_device_info_t **devices)
   return (SUCCESS);
 }
 
-gpu_error_t gpu_device_init(gpu_device_info_t **device, uint32_t idDevice, uint32_t idSupportedDevice,
+gpu_error_t gpu_device_init(gpu_device_info_t **device, const uint32_t idDevice, const uint32_t idSupportedDevice,
                             const gpu_dev_arch_t selectedArchitectures)
 {
   gpu_device_info_t *dev = NULL;

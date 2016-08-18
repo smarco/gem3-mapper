@@ -15,6 +15,9 @@
 /*************************************
 GPU Interface Objects
 **************************************/
+/* Defines related to GPU configurations*/
+#define GPU_DEVICE_STREAM_CONFIG      GPU_STREAM_THREAD_MAPPED
+#define GPU_DEVICE_STREAM_DEFAULT     0
 
 /* Defines related to GPU Architecture */
 #define GPU_WARP_SIZE                 32
@@ -50,6 +53,13 @@ typedef enum
   GPU_PAGE_ASSIGNED_AND_LOCKED   = GPU_PAGE_ASSIGNED | GPU_PAGE_LOCKED
 } memory_stats_t;
 
+typedef enum
+{
+  GPU_STREAM_BUFFER_MAPPED,
+  GPU_STREAM_THREAD_MAPPED,
+  GPU_STREAM_APPLICATION_MAPPED
+} stream_config_t;
+
 typedef struct {
   /* System specifications */
   uint32_t        numDevices;
@@ -73,13 +83,13 @@ typedef struct {
 } gpu_device_info_t;
 
 /* Primitives to get information for the scheduler */
-size_t          gpu_device_get_free_memory(uint32_t idDevice);
-gpu_dev_arch_t  gpu_device_get_architecture(uint32_t idDevice);
-uint32_t        gpu_device_get_SM_cuda_cores(gpu_dev_arch_t architecture);
-uint32_t        gpu_device_get_cuda_cores(uint32_t idDevice);
+size_t          gpu_device_get_free_memory(const uint32_t idDevice);
+gpu_dev_arch_t  gpu_device_get_architecture(const uint32_t idDevice);
+uint32_t        gpu_device_get_SM_cuda_cores(const gpu_dev_arch_t architecture);
+uint32_t        gpu_device_get_cuda_cores(const uint32_t idDevice);
 uint32_t        gpu_device_get_num_all();
-uint32_t        gpu_device_get_threads_per_block(gpu_dev_arch_t architecture);
-
+uint32_t        gpu_device_get_threads_per_block(const gpu_dev_arch_t architecture);
+uint32_t        gpu_device_get_stream_configuration(const stream_config_t streamConfig, const uint64_t idThread, const uint32_t idBuffer);
 
 /* Primitives to manage device driver options */
 gpu_error_t     gpu_device_set_local_memory_all(gpu_device_info_t **devices, enum cudaFuncCache cacheConfig);
@@ -92,7 +102,7 @@ gpu_error_t     gpu_device_screen_status(const uint32_t idDevice, const bool dev
 /* Primitives to initialize device options */
 gpu_error_t     gpu_device_init(gpu_device_info_t **devices, uint32_t idDevice, uint32_t idSupportedDevice, const gpu_dev_arch_t selectedArchitectures);
 gpu_error_t     gpu_device_characterize_all(gpu_device_info_t **devices, uint32_t numSupportedDevices);
-void            gpu_device_kernel_thread_configuration(const gpu_device_info_t *device, const uint32_t numThreads, dim3 *blocksPerGrid, dim3 *threadsPerBlock);
+void            gpu_device_kernel_thread_configuration(const gpu_device_info_t *device, const uint32_t numThreads, dim3* const blocksPerGrid, dim3* const threadsPerBlock);
 
 /* Functions to free all the buffer resources (HOST & DEVICE) */
 gpu_error_t     gpu_device_free_list(gpu_device_info_t ***devices);

@@ -71,6 +71,9 @@ gpu_error_t gpu_buffer_scheduling(gpu_buffer_t ***gpuBuffer, const uint32_t numB
   gpu_buffer_t **buffer = (gpu_buffer_t **) malloc(numBuffers * sizeof(gpu_buffer_t *));
   if (buffer == NULL) GPU_ERROR(E_ALLOCATE_MEM);
 
+  cudaStream_t* const listStreams = (cudaStream_t *) malloc(numBuffers * sizeof(cudaStream_t));
+  if (listStreams == NULL) GPU_ERROR(E_ALLOCATE_MEM);
+
   /* Assigning buffers for each GPU (to adapt the workload) */
   for(idSupportedDevice = 0; idSupportedDevice < numSupportedDevices; ++idSupportedDevice){
     size_t bytesPerDevice, bytesPerBuffer, minimumMemorySize, minBytesPerBuffer;
@@ -94,7 +97,7 @@ gpu_error_t gpu_buffer_scheduling(gpu_buffer_t ***gpuBuffer, const uint32_t numB
     for(idLocalBuffer = 0; idLocalBuffer < numBuffersPerDevice; ++idLocalBuffer){
       buffer[idGlobalBuffer] = (gpu_buffer_t *) malloc(sizeof(gpu_buffer_t));
       CUDA_ERROR(cudaSetDevice(idDevice));
-      GPU_ERROR(gpu_buffer_configuration(buffer[idGlobalBuffer],idGlobalBuffer,idSupportedDevice,bytesPerBuffer,numBuffers,device,reference,index));
+      GPU_ERROR(gpu_buffer_configuration(buffer[idGlobalBuffer],idGlobalBuffer,idSupportedDevice,bytesPerBuffer,numBuffers,device,listStreams,reference,index));
       idGlobalBuffer++;
     }
     remainderBuffers -= numBuffersPerDevice;
@@ -106,7 +109,7 @@ gpu_error_t gpu_buffer_scheduling(gpu_buffer_t ***gpuBuffer, const uint32_t numB
 
 gpu_error_t gpu_buffer_configuration(gpu_buffer_t* const mBuff, const uint32_t idBuffer, const uint32_t idSupportedDevice,
                                      const size_t bytesPerBuffer, const uint32_t numBuffers, gpu_device_info_t** const device,
-                                     gpu_reference_buffer_t* const reference, gpu_index_buffer_t* const index)
+                                     cudaStream_t* const listStreams, gpu_reference_buffer_t* const reference, gpu_index_buffer_t* const index)
 {
   /* Buffer information */
   mBuff->idBuffer           = idBuffer;
@@ -127,6 +130,9 @@ gpu_error_t gpu_buffer_configuration(gpu_buffer_t* const mBuff, const uint32_t i
 
   /* Create the CUDA stream per each buffer */
   CUDA_ERROR(cudaStreamCreate(&mBuff->idStream));
+
+  /* Anotate the global cuda stream (to communicate the stream proposals) */
+  listStreams[idBuffer] = mBuff->idStream;
 
   return(SUCCESS);
 }
@@ -200,6 +206,12 @@ void gpu_destroy_buffers_(gpu_buffers_dto_t* buff)
   GPU_ERROR(gpu_device_free_info_all(devices));
 
   if(mBuff != NULL){
+    // Deallocate the global streams
+    if(mBuff[0]->listStreams != NULL){
+      free(mBuff[0]->listStreams);
+      mBuff[0]->listStreams = NULL;
+    }
+    // Deallocate the internal buffers
     free(mBuff);
     mBuff = NULL;
     buff->buffer = NULL;
@@ -210,12 +222,16 @@ void gpu_destroy_buffers_(gpu_buffers_dto_t* buff)
 Primitives to schedule and manage the buffers
 ************************************************************/
 
-void gpu_alloc_buffer_(void* const gpuBuffer)
+void gpu_alloc_buffer_(void* const gpuBuffer, const uint64_t idThread)
 {
   gpu_buffer_t* const mBuff  = (gpu_buffer_t *) gpuBuffer;
   const uint32_t idSupDevice = mBuff->idSupportedDevice;
+  const uint32_t idBuffer    = mBuff->idBuffer;
+  const uint32_t idStream    = gpu_device_get_stream_configuration(GPU_DEVICE_STREAM_CONFIG, idThread - 1, idBuffer);
+
   mBuff->h_rawData = NULL;
   mBuff->d_rawData = NULL;
+  mBuff->idStream  = mBuff->listStreams[idStream];
 
   //Select the device of the Multi-GPU platform
   CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
