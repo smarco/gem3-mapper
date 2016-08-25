@@ -14,6 +14,11 @@
 #include "matches/matches_predictors.h"
 
 /*
+ * Constants
+ */
+#define MAPQ_CONFIDENCE_SCORE_MIN 10
+
+/*
  * Scoring Utils
  */
 uint8_t archive_score_probability_to_mapq(

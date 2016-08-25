@@ -119,7 +119,8 @@ void approximate_search_exact_filtering_adaptive_cutoff(
     region_search_t* const last_region = region_profile->filtering_region + (region_profile->num_filtering_regions-1);
     filtering_candidates_add_region_interval(
         filtering_candidates,search_parameters,pattern,
-        last_region->lo,last_region->hi,last_region->begin,last_region->end,0);
+        last_region->lo,last_region->hi,last_region->begin,
+        last_region->end,0,&region_profile->candidates_limited);
     PROFILE_STOP(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
     // Verify candidates
     PROFILE_START(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING,PROFILE_LEVEL);
@@ -213,6 +214,9 @@ void approximate_search_end(
   region_profile_t* const region_profile = &search->region_profile;
   matches_metrics_set_max_region_length(&matches->metrics,region_profile->max_region_length);
   matches_metrics_set_kmer_frequency(&matches->metrics,region_profile->kmer_frequency);
+  if (region_profile->candidates_limited) {
+    matches_metrics_set_limited_candidates(&matches->metrics,true);
+  }
   // Update MCS (maximum complete stratum)
   pattern_t* const pattern = &search->pattern;
   approximate_search_update_mcs(search,search->region_profile.num_filtered_regions + pattern->num_wildcards);

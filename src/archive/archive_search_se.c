@@ -70,7 +70,8 @@ void archive_search_se(
   // Compute the full search
   approximate_search(&archive_search->approximate_search,matches);
   // Select Matches
-  archive_select_se_matches(archive_search,&search_parameters->select_parameters_report,matches);
+  archive_select_se_matches(archive_search,
+      &search_parameters->select_parameters_report,matches,false);
   // Select alignment-Model and process accordingly
   archive_score_matches_se(archive_search,matches);
   // Check matches

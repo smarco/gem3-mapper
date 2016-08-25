@@ -217,7 +217,7 @@ option_t gem_mapper_options[] = {
   { 400, "mapping-mode", REQUIRED, TYPE_STRING, 4, VISIBILITY_USER, "'fast'|'thorough'|'complete'" , "(default=fast)" },
   { 'E', "complete-search-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=0.04, 4%)" },
   { 's', "complete-strata-after-best", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=1)" },
-  { 'e', "alignment-max-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=0.08, 8%)" },
+  { 'e', "alignment-max-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=0.10, 10%)" },
   { 401, "alignment-max-bandwidth", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=0.20, 20%)" },
   { 402, "alignment-max-gap-length", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=100)" },
   { 403, "alignment-global-min-identity", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=80%)" },
@@ -254,8 +254,7 @@ option_t gem_mapper_options[] = {
   { 800, "mapq-model", REQUIRED, TYPE_STRING, 8, VISIBILITY_ADVANCED, "'none'|'gem'" , "(default=gem)" },
   // TODO { 801, "mapq-threshold", REQUIRED, TYPE_INT, 8, VISIBILITY_DEVELOPER, "<number>" , "(default=0)" },
   /* Reporting */
-  { 'D', "min-reported-strata", REQUIRED, TYPE_FLOAT, 9, VISIBILITY_USER, "<number|percentage>|'all'" , "(stratum-wise, default=0)" },
-  { 'm', "min-reported-matches", REQUIRED, TYPE_INT,  9, VISIBILITY_USER, "<number>|'all'" , "(default=5)" },
+  { 'D', "min-reported-strata", REQUIRED, TYPE_FLOAT, 9, VISIBILITY_ADVANCED, "<number|percentage>|'all'" , "(stratum-wise, default=0)" },
   { 'M', "max-reported-matches", REQUIRED, TYPE_INT,  9, VISIBILITY_USER, "<number>|'all'" , "(default=5)" },
   /* Output Format */
   { 'F',  "output-format", REQUIRED, TYPE_STRING, 10, VISIBILITY_USER, "'MAP'|'SAM'" , "(default=SAM)" },
@@ -306,6 +305,10 @@ void gem_mapper_print_usage(const option_visibility_t visibility_level) {
   options_fprint_menu(stderr,gem_mapper_options,gem_mapper_groups,true,visibility_level);
 }
 void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters) {
+  // Parameters
+  char *bs_suffix1=0, *bs_suffix2=0;
+  bool min_reported_strata_set = false;
+  bool max_reported_matches_set = false;
   // Check number of parameters (quick usage & exit)
   if (argc <= 1) {
     gem_mapper_print_usage(VISIBILITY_USER);
@@ -321,7 +324,6 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
   search_paired_parameters_t* const paired_search = &search->search_paired_parameters;
   mapper_parameters_cuda_t* const cuda = &parameters->cuda;
   // Parse parameters
-  char *bs_suffix1=0, *bs_suffix2=0;
   struct option* getopt_options = options_adaptor_getopt(gem_mapper_options);
   string_t* const getopt_short_string = options_adaptor_getopt_short(gem_mapper_options);
   char* const getopt_short = string_get_buffer(getopt_short_string);
@@ -479,7 +481,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 's': // --complete-strata-after-best (default=1)
       input_text_parse_extended_double(optarg,(double*)&search->complete_strata_after_best);
       break;
-    case 'e': // --alignment-max-error (default=0.08, 8%)
+    case 'e': // --alignment-max-error (default=0.10, 10%)
       search->alignment_max_error = atof(optarg);
       break;
     case 401: // --alignment-max-bandwidth (default=0.20, 20%)
@@ -770,12 +772,11 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     }
     /* Reporting */
     case 'D': // --min-reported-strata
+      min_reported_strata_set = true;
       input_text_parse_extended_double(optarg,&search->select_parameters_report.min_reported_strata);
       break;
-    case 'm': // --min-reported-matches
-      input_text_parse_extended_uint64(optarg,&search->select_parameters_report.min_reported_matches);
-      break;
     case 'M': // --max-reported-matches
+      max_reported_matches_set = true;
       input_text_parse_extended_uint64(optarg,&search->select_parameters_report.max_reported_matches);
       break;
     /*  Output-format */
@@ -982,9 +983,8 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       "Quality threshold is zero (all base-calls will be considered wrong)");
   /* Reporting */
   gem_mapper_cond_error_msg(
-      search->select_parameters_report.min_reported_matches >
-          search->select_parameters_report.max_reported_matches,
-      "Option '--max-reported-matches' must be greater or equal than 'min-reported-matches'");
+      min_reported_strata_set && max_reported_matches_set,
+      "Options '--max-reported-matches' and 'min-reported-strata' cannot be used at the same time");
   gem_mapper_cond_error_msg(
       search->select_parameters_report.max_reported_matches == 0,
       "Option '--max-reported-matches' must be greater than zero'");

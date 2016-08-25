@@ -30,7 +30,7 @@ void filtering_region_align_debug(
     if (!aligned) {
       tab_fprintf(gem_log_get_stream(),
           "=> Region NOT-ALIGNED (distance=%lu,swg_score=%ld)\n",
-          match_trace->distance,match_trace->swg_score);
+          match_trace->event_distance,match_trace->swg_score);
       tab_global_dec();
     } else {
       // Text Candidate
@@ -39,7 +39,7 @@ void filtering_region_align_debug(
       uint8_t* const text = text_trace->text;
       // Print debug info
       tab_fprintf(gem_log_get_stream(),"=> Region ALIGNED (distance=%lu,swg_score=%ld)\n",
-          match_trace->distance,match_trace->swg_score);
+          match_trace->event_distance,match_trace->swg_score);
       tab_global_inc();
       output_map_alignment_pretty(gem_log_get_stream(),match_trace,matches,pattern->key,pattern->key_length,
           text+(match_trace->match_alignment.match_position - filtering_region->text_begin_position),
@@ -71,7 +71,7 @@ void filtering_region_align_clone(
   match_trace_dst->sequence_name = NULL;
   match_trace_dst->text_position = UINT64_MAX;
   // Clone match-trace (Score)
-  match_trace_dst->distance = match_trace_src->distance;
+  match_trace_dst->event_distance = match_trace_src->event_distance;
   match_trace_dst->edit_distance = match_trace_src->edit_distance;
   match_trace_dst->swg_score = match_trace_src->swg_score;
   // Clone match-alignment
@@ -88,7 +88,7 @@ void filtering_region_align_clone(
   // DEBUG
   gem_cond_debug_block(DEBUG_FILTERING_REGION) {
     tab_fprintf(gem_log_get_stream(),"=> Region CLONED (distance=%lu,swg_score=%ld)\n",
-        match_trace_dst->distance,match_trace_dst->swg_score);
+        match_trace_dst->event_distance,match_trace_dst->swg_score);
     tab_global_dec();
   }
 }
@@ -212,7 +212,7 @@ bool filtering_region_align(
         matches,match_trace);
   }
   // Check (re)alignment result
-  if (match_trace->distance==ALIGN_DISTANCE_INF || match_trace->swg_score < 0) {
+  if (match_trace->event_distance==ALIGN_DISTANCE_INF || match_trace->swg_score < 0) {
     PROF_INC_COUNTER(GP_ALIGNED_DISCARDED);
     filtering_region_align_debug(filtering_candidates,
         filtering_region,pattern,false,matches,match_trace); // DEBUG

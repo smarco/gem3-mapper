@@ -128,13 +128,12 @@ void collect_se_mapping_stats(archive_search_t* const archive_search, matches_t*
 	 update_counts(&archive_search->sequence,mstats,0);
 	 bs_strand_t bs = bs_strand_none;
 	 int read_type = -1;
-
-	 const uint64_t vector_match_trace_used = vector_get_used(matches->position_matches);
-	 if (gem_expect_false(vector_match_trace_used==0)) { // Unmapped
+	 const uint64_t num_match_traces = matches_get_num_match_traces(matches);
+	 if (gem_expect_false(num_match_traces==0)) { // Unmapped
 			mstats->unmapped[0]++;
 	 } else {
 			// We just look at primary alignments
-			match_trace_t* match = vector_get_mem(matches->position_matches,match_trace_t);
+			match_trace_t* match = matches_get_primary_match(matches);
 			update_distance_counts(matches, match, mstats, 0);
 			bs = match->bs_strand;
 			read_type = get_read_type(match);
@@ -160,11 +159,11 @@ void collect_pe_mapping_stats(archive_search_t* const archive_search1, archive_s
 	 int read_type1 = -1, read_type2 = -1;
 	 
 	 if (gem_expect_false(!paired_matches_is_mapped(paired_matches))) { // Non paired
-			const uint64_t vector_match_trace_used_end1 = vector_get_used(matches_end1->position_matches);
-			const uint64_t vector_match_trace_used_end2 = vector_get_used(matches_end2->position_matches);
+			const uint64_t vector_match_trace_used_end1 = matches_get_num_match_traces(matches_end1);
+			const uint64_t vector_match_trace_used_end2 = matches_get_num_match_traces(matches_end2);
 			if(vector_match_trace_used_end1 && vector_match_trace_used_end2) {
- 				 match_trace_t* prim_match_end1 = vector_get_mem(matches_end1->position_matches,match_trace_t);
-				 match_trace_t* prim_match_end2 = vector_get_mem(matches_end2->position_matches,match_trace_t);
+ 				 match_trace_t* prim_match_end1 = matches_get_primary_match(matches_end1);
+				 match_trace_t* prim_match_end2 = matches_get_primary_match(matches_end2);
 				 update_distance_counts(matches_end1, prim_match_end1, mstats, 0);
 				 update_distance_counts(matches_end2, prim_match_end2, mstats, 1);
 				 bs1 = prim_match_end1 -> bs_strand;
@@ -173,13 +172,13 @@ void collect_pe_mapping_stats(archive_search_t* const archive_search1, archive_s
 				 read_type2 = get_read_type(prim_match_end2);
 			} else if(vector_match_trace_used_end1) {
 				 mstats->unmapped[1]++;
-				 match_trace_t* prim_match_end1 = vector_get_mem(matches_end1->position_matches,match_trace_t);
+				 match_trace_t* prim_match_end1 = matches_get_primary_match(matches_end1);
 				 update_distance_counts(matches_end1, prim_match_end1, mstats, 0);
 				 bs1 = prim_match_end1->bs_strand;
 				 read_type1 = get_read_type(prim_match_end1);
 			} else if(vector_match_trace_used_end2) {
 				 mstats->unmapped[0]++;
-				 match_trace_t* prim_match_end2 = vector_get_mem(matches_end2->position_matches,match_trace_t);
+				 match_trace_t* prim_match_end2 = matches_get_primary_match(matches_end2);
 				 update_distance_counts(matches_end2, prim_match_end2, mstats, 1);
 				 bs2 = prim_match_end2->bs_strand;
 				 read_type2 = get_read_type(prim_match_end2);
@@ -205,8 +204,8 @@ void collect_pe_mapping_stats(archive_search_t* const archive_search1, archive_s
 						(*count)++;
 				 }
 			}
-			match_trace_t* const match_end1 = matches_get_match_trace(paired_matches->matches_end1,paired_map->match_end1_offset);
-			match_trace_t* const match_end2 = matches_get_match_trace(paired_matches->matches_end2,paired_map->match_end2_offset);
+			match_trace_t* const match_end1 = paired_map->match_trace_end1;
+			match_trace_t* const match_end2 = paired_map->match_trace_end2;
 			update_distance_counts(paired_matches->matches_end1, match_end1, mstats, 0);
 			update_distance_counts(paired_matches->matches_end2, match_end2, mstats, 1);
 			bs1 = match_end1 -> bs_strand;

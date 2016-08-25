@@ -58,6 +58,7 @@ typedef struct {
   /* Profile */
   uint64_t pattern_length;           // Length of the pattern
   uint64_t total_candidates;         // Total number of candidates (from exact matching regions)
+  bool candidates_limited;           // Limited number of candidates (due to selection)
   uint64_t max_region_length;        // Largest region length
   double kmer_frequency;
 } region_profile_t;

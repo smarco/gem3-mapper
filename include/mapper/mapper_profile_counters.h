@@ -171,7 +171,6 @@
 #define GP_FC_EXTEND_VERIFY_CANDIDATES_FOUND                364
 #define GP_FC_EXTEND_REALIGN_CANDIDATE_REGIONS              365
 
-#define GP_FC_CACHE_SEARCH                                  371
 #define GP_FC_CACHE_SEARCH_HIT                              372
 #define GP_FC_SELECT_PRUNE_HIT                              373
 

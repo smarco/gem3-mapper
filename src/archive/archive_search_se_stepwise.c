@@ -165,15 +165,19 @@ void archive_search_se_stepwise_verify_candidates_retrieve(
  */
 void archive_search_se_stepwise_finish_search(
     archive_search_t* const archive_search,
-    matches_t* const matches) {
+    matches_t* const matches,
+    const bool paired_end_search) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE_FINISH_SEARCH,PROFILE_LEVEL);
   // DEBUG
   archive_search_se_stepwise_debug_preface(archive_search,"Finish");
   // Finish Search
-  approximate_search_stepwise_finish(&archive_search->approximate_search,matches);
+  approximate_search(&archive_search->approximate_search,matches);
   // Select Matches
   search_parameters_t* const search_parameters = &archive_search->search_parameters;
-  archive_select_se_matches(archive_search,&search_parameters->select_parameters_report,matches);
+  select_parameters_t* const select_parameters = (paired_end_search) ?
+      &search_parameters->select_parameters_align:
+      &search_parameters->select_parameters_report;
+  archive_select_se_matches(archive_search,select_parameters,matches,paired_end_search);
   // Score Matches (Select alignment-Model and process accordingly)
   archive_score_matches_se(archive_search,matches);
   // Check matches

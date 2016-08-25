@@ -102,6 +102,7 @@ void archive_search_pe_new(
       archive,search_parameters,buffered_search,mm_stack);
   // Select align
   archive_select_configure_pe(*archive_search_end1);
+  archive_select_configure_pe(*archive_search_end2);
 }
 void archive_search_prepare_sequence(archive_search_t* const archive_search) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE_PREPARE_SEQUENCE,PROFILE_LEVEL);

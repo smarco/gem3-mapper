@@ -24,7 +24,8 @@ void archive_select_configure_pe(archive_search_t* const archive_search);
 void archive_select_se_matches(
     archive_search_t* const archive_search,
     select_parameters_t* const select_parameters,
-    matches_t* const matches);
+    matches_t* const matches,
+    const bool paired_end_search);
 void archive_select_pe_matches(
     archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2,

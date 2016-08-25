@@ -13,17 +13,14 @@
 void select_parameters_init(select_parameters_t* const select_parameters) {
   // Reporting
   select_parameters->min_reported_strata = 0;
-  select_parameters->min_reported_matches = 5;
   select_parameters->max_reported_matches = 5;
 }
 void select_parameters_configure_reporting(
     select_parameters_t* const select_parameters,
     const float min_reported_strata,
-    const uint64_t min_reported_matches,
     const uint64_t max_reported_matches) {
   // Reporting
   select_parameters->min_reported_strata = min_reported_strata;
-  select_parameters->min_reported_matches = min_reported_matches;
   select_parameters->max_reported_matches = max_reported_matches;
 }
 void select_parameters_instantiate_values(

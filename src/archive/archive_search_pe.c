@@ -108,10 +108,7 @@ void archive_search_pe(
   archive_search_end1->pe_search_state = archive_search_pe_state_begin;
   // PE search
   archive_search_pe_continue(archive_search_end1,archive_search_end2,paired_matches);
-  // PE select
-  archive_select_pe_matches(archive_search_end1,archive_search_end2,
-      &search_parameters->select_parameters_report,paired_matches);
-  // PE Score (Select alignment-Model and process accordingly)
+  // PE Score
   archive_score_matches_pe(archive_search_end1,archive_search_end2,paired_matches);
   // PE Check matches
   if (search_parameters->check_type!=archive_check_nothing) {

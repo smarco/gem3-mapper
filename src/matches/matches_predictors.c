@@ -7,6 +7,7 @@
  */
 
 #include "matches/matches_predictors.h"
+#include "archive/archive_score_se.h"
 
 /*
  * Utils
@@ -15,124 +16,78 @@
 #define SCORE_NORMALIZE(score,max_score) ((double)score/(double)max_score)
 
 /*
- * Match Compute Predictors
- */
-void match_predictors_compute_se(
-    match_predictors_t* const match_predictors,
-    matches_t* const matches,
-    match_trace_t* const match) {
-  // Unammped
-  if (match==NULL) {
-    match_predictors->map_edit_distance_norm = 0.0;
-    match_predictors->map_event_distance_norm = 0.0;
-    match_predictors->map_swg_score_norm = 0.0;
-  } else {
-    // Parameters
-    matches_metrics_t* const metrics = &matches->metrics;
-    const uint64_t read_length = metrics->read_length;
-    const int32_t swg_match_score = metrics->swg_match_score;
-    // Match
-    const double swg_norm_factor = (double)swg_match_score*(double)read_length;
-    match_predictors->map_edit_distance_norm = DISTANCE_NORMALIZE(match->edit_distance,read_length);
-    match_predictors->map_event_distance_norm = DISTANCE_NORMALIZE(match->distance,read_length);
-    match_predictors->map_swg_score_norm = SCORE_NORMALIZE(match->swg_score,swg_norm_factor);
-  }
-  match_predictors->map_template_size_sigma = MAX_TEMPLATE_LENGTH_SIGMAS;
-  match_predictors->mapq_end1 = 0;
-  match_predictors->mapq_end2 = 0;
-}
-void match_predictors_compute_pe(
-    match_predictors_t* const match_predictors,
-    paired_matches_t* const paired_matches,
-    paired_map_t* const paired_map) {
-  // Unammped
-  if (paired_map==NULL) {
-    match_predictors->map_edit_distance_norm = 0.0;
-    match_predictors->map_event_distance_norm = 0.0;
-    match_predictors->map_swg_score_norm = 0.0;
-    match_predictors->map_template_size_sigma = MAX_TEMPLATE_LENGTH_SIGMAS;
-    match_predictors->mapq_end1 = 0;
-    match_predictors->mapq_end2 = 0;
-  } else {
-    // Parameters
-    matches_metrics_t* const metrics = &paired_matches->metrics;
-    const uint64_t read_length = metrics->read_length;
-    const int32_t swg_match_score = metrics->swg_match_score;
-    // Match
-    const double swg_norm_factor = (double)swg_match_score*(double)read_length;
-    match_predictors->map_edit_distance_norm = DISTANCE_NORMALIZE(paired_map->edit_distance,read_length);
-    match_predictors->map_event_distance_norm = DISTANCE_NORMALIZE(paired_map->distance,read_length);
-    match_predictors->map_swg_score_norm = SCORE_NORMALIZE(paired_map->swg_score,swg_norm_factor);
-    // Template Size
-    match_predictors->map_template_size_sigma = paired_map->template_length_sigma;
-    // MAPQ Score
-    match_trace_t* const match_end1 = paired_map_get_match_end1(paired_matches,paired_map);
-    match_trace_t* const match_end2 = paired_map_get_match_end2(paired_matches,paired_map);
-    match_predictors->mapq_end1 = match_end1->mapq_score;
-    match_predictors->mapq_end2 = match_end2->mapq_score;
-  }
-}
-/*
  * Compute Predictors
  */
-void matches_predictors_compute_unmapped(
+void matches_predictors_compute_unique(
     matches_predictors_t* const predictors,
-    matches_metrics_t* const metrics) {
-  // Normalize event distances
-  predictors->best_map_event_distance_norm = 0.0;
-  predictors->subdominant_event_distance_norm = 0.0;
-  // Normalize edit distances
-  predictors->best_map_edit_distance_norm = 0.0;
-  predictors->subdominant_edit_distance_norm = 0.0;
-  // Normalize SWG scores
-  predictors->best_map_swg_score_norm =  0.0;
-  predictors->subdominant_swg_score_norm =  0.0;
-  // Template Size
-  predictors->best_map_template_size_sigma = MAX_TEMPLATE_LENGTH_SIGMAS;
-  predictors->subdominant_template_size_sigma = MAX_TEMPLATE_LENGTH_SIGMAS;
-}
-void matches_predictors_compute_mapped(
-    matches_predictors_t* const predictors,
-    matches_metrics_t* const metrics) {
+    matches_metrics_t* const metrics,
+    const uint64_t primary_edit_distance,
+    const uint64_t primary_event_distance,
+    const int32_t primary_swg_score,
+    const double primary_template_size_sigma) {
+  // Parameters
   const uint64_t read_length = metrics->read_length;
   const int32_t swg_match_score = metrics->swg_match_score;
-  // Auxiliary
-  uint64_t best_map_edit_distance;
-  uint64_t best_map_event_distance;
-  int32_t best_map_swg_score;
-  uint64_t subdominant_edit_distance;
-  uint64_t subdominant_event_distance;
-  int32_t subdominant_swg_score;
-  // Compute best/subdominant edit distance
-  best_map_edit_distance = metrics->min1_edit_distance;
-  subdominant_edit_distance = metrics->min2_edit_distance;
-  if (subdominant_edit_distance==UINT32_MAX) {
-    subdominant_edit_distance = read_length;
-  }
-  // Compute best/subdominant event distance
-  best_map_event_distance = metrics->min1_counter_value;
-  subdominant_event_distance = metrics->min2_counter_value;
-  if (subdominant_event_distance==UINT32_MAX) {
-    subdominant_event_distance = read_length;
-  }
-  // Compute best/subdominant SWG score
-  best_map_swg_score = metrics->max1_swg_score;
-  if (best_map_swg_score < 0) best_map_swg_score = 0;
-  subdominant_swg_score = metrics->max2_swg_score;
-  if (subdominant_swg_score < 0) subdominant_swg_score = 0;
-  // Normalize event distances
-  predictors->best_map_event_distance_norm = DISTANCE_NORMALIZE(best_map_event_distance,read_length);
-  predictors->subdominant_event_distance_norm = DISTANCE_NORMALIZE(subdominant_event_distance,read_length);
-  // Normalize edit distances
-  predictors->best_map_edit_distance_norm = DISTANCE_NORMALIZE(best_map_edit_distance,read_length);
-  predictors->subdominant_edit_distance_norm = DISTANCE_NORMALIZE(subdominant_edit_distance,read_length);
-  // Normalize SWG scores
   const double swg_norm_factor = swg_match_score*read_length;
-  predictors->best_map_swg_score_norm = SCORE_NORMALIZE(best_map_swg_score,swg_norm_factor);
-  predictors->subdominant_swg_score_norm = SCORE_NORMALIZE(subdominant_swg_score,swg_norm_factor);
-  // Template Size
-  predictors->best_map_template_size_sigma = metrics->min1_template_length_sigma;
-  predictors->subdominant_template_size_sigma = metrics->min2_template_length_sigma;
+  // Primary Match
+  predictors->primary_edit_distance_norm = DISTANCE_NORMALIZE(primary_edit_distance,read_length);
+  predictors->primary_event_distance_norm = DISTANCE_NORMALIZE(primary_event_distance,read_length);
+  predictors->primary_swg_score_norm = SCORE_NORMALIZE(primary_swg_score,swg_norm_factor);
+  predictors->primary_template_size_sigma_norm = primary_template_size_sigma/MAX_TEMPLATE_LENGTH_SIGMAS;
+  // Subdominant Match
+  predictors->subdominant_edit_distance_norm = 0.0;
+  predictors->subdominant_event_distance_norm = 0.0;
+  predictors->subdominant_swg_score_norm = 0.0;
+  predictors->subdominant_template_size_sigma_norm = 1.0;
+}
+void matches_predictors_compute_mmaps(
+    matches_predictors_t* const predictors,
+    matches_metrics_t* const metrics,
+    const uint64_t primary_edit_distance,
+    const uint64_t primary_event_distance,
+    const int32_t primary_swg_score,
+    const double primary_template_size_sigma,
+    const uint64_t subdominant_edit_distance,
+    const uint64_t subdominant_event_distance,
+    const int32_t subdominant_swg_score,
+    const double subdominant_template_size_sigma) {
+  // Parameters
+  const uint64_t read_length = metrics->read_length;
+  const int32_t swg_match_score = metrics->swg_match_score;
+  const double swg_norm_factor = swg_match_score*read_length;
+  // Primary Match
+  predictors->primary_edit_distance_norm = DISTANCE_NORMALIZE(primary_edit_distance,read_length);
+  predictors->primary_event_distance_norm = DISTANCE_NORMALIZE(primary_event_distance,read_length);
+  predictors->primary_swg_score_norm = SCORE_NORMALIZE(primary_swg_score,swg_norm_factor);
+  predictors->primary_template_size_sigma_norm = primary_template_size_sigma/MAX_TEMPLATE_LENGTH_SIGMAS;
+  // Subdominant Match
+  if (metrics->min_edit_distance_count > 1 ||
+      primary_edit_distance > metrics->min_edit_distance) {
+    predictors->subdominant_edit_distance_norm = DISTANCE_NORMALIZE(metrics->min_edit_distance,read_length);
+  } else {
+    predictors->subdominant_edit_distance_norm = DISTANCE_NORMALIZE(subdominant_edit_distance,read_length);
+  }
+  // Event distance
+  if (metrics->min_event_distance_count > 1 ||
+      primary_event_distance > metrics->min_event_distance) {
+    predictors->subdominant_event_distance_norm = DISTANCE_NORMALIZE(metrics->min_event_distance,read_length);
+  } else {
+    predictors->subdominant_event_distance_norm = DISTANCE_NORMALIZE(subdominant_event_distance,read_length);
+  }
+  // SWG
+  if (metrics->max_swg_score_count > 1 ||
+      primary_swg_score < metrics->max_swg_score) {
+    predictors->subdominant_swg_score_norm = SCORE_NORMALIZE(metrics->max_swg_score,swg_norm_factor);
+  } else {
+    predictors->subdominant_swg_score_norm = SCORE_NORMALIZE(subdominant_swg_score,swg_norm_factor);
+  }
+  // Template length
+  if (metrics->min_template_length_sigma_count > 1 ||
+      primary_template_size_sigma > metrics->min_template_length_sigma) {
+    predictors->subdominant_template_size_sigma_norm = metrics->min_template_length_sigma/MAX_TEMPLATE_LENGTH_SIGMAS;
+  } else {
+    predictors->subdominant_template_size_sigma_norm = subdominant_template_size_sigma/MAX_TEMPLATE_LENGTH_SIGMAS;
+  }
 }
 /*
  * Matches Compute Predictors
@@ -143,18 +98,33 @@ void matches_predictors_compute_se(
   // Parameters
   matches_metrics_t* const metrics = &matches->metrics;
   // Primary/Subdominant predictors
-  if (!matches_is_mapped(matches)) {
-    matches_predictors_compute_unmapped(predictors,metrics);
+  if (metrics->accepted_matches==0) return;
+  match_trace_t** const match_traces = matches_get_match_traces(matches);
+  match_trace_t* const primary_match = match_traces[0];
+  if (metrics->accepted_matches==1) {
+    matches_predictors_compute_unique(
+        predictors,metrics,primary_match->edit_distance,
+        primary_match->event_distance,primary_match->swg_score,
+        MAX_TEMPLATE_LENGTH_SIGMAS);
   } else {
-    matches_predictors_compute_mapped(predictors,metrics);
+    match_trace_t* const subdominant_match = match_traces[1];
+    matches_predictors_compute_mmaps(predictors,metrics,
+        primary_match->edit_distance,primary_match->event_distance,
+        primary_match->swg_score,MAX_TEMPLATE_LENGTH_SIGMAS,
+        subdominant_match->edit_distance,subdominant_match->event_distance,
+        subdominant_match->swg_score,MAX_TEMPLATE_LENGTH_SIGMAS);
   }
   // Search Scope
-  predictors->matches_accepted = metrics->total_matches_sampled;
+  predictors->accepted_candidates = (double)gem_loge((float)metrics->accepted_candidates)/(double)gem_loge(4);
+  predictors->accepted_matches = (double)gem_loge((float)metrics->accepted_matches)/(double)gem_loge(4);
   predictors->mcs_end1 = (matches->max_complete_stratum!=ALL) ? matches->max_complete_stratum : 0;
   predictors->mcs_end2 = 0;
   // Mappability
   predictors->max_region_length_norm = (double)metrics->max_region_length/metrics->proper_length;
   predictors->kmer_frequency = metrics->kmer_frequency;
+  // MAPQ
+  predictors->mapq_end1 = 0;
+  predictors->mapq_end2 = 0;
 }
 /*
  * PE-Matches Compute Predictors
@@ -164,15 +134,25 @@ void matches_predictors_compute_pe(
     paired_matches_t* const paired_matches) {
   // Parameters
   matches_metrics_t* const metrics = &paired_matches->metrics;
-  const uint64_t num_matches = paired_matches_get_num_maps(paired_matches);
   // Primary/Subdominant predictors
-  if (num_matches==0) {
-    matches_predictors_compute_unmapped(predictors,metrics);
+  if (metrics->accepted_matches==0) return;
+  paired_map_t* const primary_match = paired_matches_get_maps(paired_matches);
+  if (metrics->accepted_matches==1) {
+    matches_predictors_compute_unique(
+        predictors,metrics,primary_match->edit_distance,
+        primary_match->event_distance,primary_match->swg_score,
+        primary_match->template_length_sigma);
   } else {
-    matches_predictors_compute_mapped(predictors,metrics);
+    paired_map_t* const subdominant_match = primary_match+1;
+    matches_predictors_compute_mmaps(predictors,metrics,
+        primary_match->edit_distance,primary_match->event_distance,
+        primary_match->swg_score,primary_match->template_length_sigma,
+        subdominant_match->edit_distance,subdominant_match->event_distance,
+        subdominant_match->swg_score,subdominant_match->template_length_sigma);
   }
   // Search Scope
-  predictors->matches_accepted = metrics->total_matches_sampled;
+  predictors->accepted_candidates = (double)gem_loge((float)metrics->accepted_candidates)/(double)gem_loge(4);
+  predictors->accepted_matches = (double)gem_loge((float)metrics->accepted_matches)/(double)gem_loge(4);
   matches_t* const matches_end1 = paired_matches->matches_end1;
   matches_t* const matches_end2 = paired_matches->matches_end2;
   predictors->mcs_end1 = (matches_end1->max_complete_stratum!=ALL) ? matches_end1->max_complete_stratum : 0;
@@ -180,6 +160,11 @@ void matches_predictors_compute_pe(
   // Mappability
   predictors->max_region_length_norm = (double)metrics->max_region_length/metrics->proper_length;
   predictors->kmer_frequency = metrics->kmer_frequency;
+  // MAPQ
+  match_trace_t* const primary_end1 = primary_match->match_trace_end1;
+  match_trace_t* const primary_end2 = primary_match->match_trace_end2;
+  predictors->mapq_end1 = primary_end1->mapq_score;
+  predictors->mapq_end2 = primary_end2->mapq_score;
 }
 /*
  * Display
@@ -190,13 +175,13 @@ void matches_predictors_print(
     FILE* const stream,
     const char* const sequence_tag,
     const char* const match_class,
-    matches_predictors_t* const matches_predictors,
-    match_predictors_t* const match_predictors) {
+    matches_predictors_t* const matches_predictors) {
   /*
    * HEADER
-   *   tp tag class edit event swg sigma mapq_1 mapq_2
-   *   edit1 edit2 event1 event2 swg1 swg2 sigma1 sigma2
-   *   ack mcs1 mcs2 mrl kmerf
+   *   tp tag class
+   *   edit event swg sigma mapq_1 mapq_2
+   *   sub_edit sub_event sub_swg sub_sigma
+   *   ccand cmatch mcs1 mcs2 mrl kmerf
    */
   // tag
   fprintf(stream,"%s" MP_SEP,sequence_tag);
@@ -206,44 +191,35 @@ void matches_predictors_print(
    * edit event swg sigma mapq_1 mapq_2
    */
   // edit
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,match_predictors->map_edit_distance_norm);
+  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->primary_edit_distance_norm);
   // event
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,match_predictors->map_event_distance_norm);
+  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->primary_event_distance_norm);
   // swg
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,match_predictors->map_swg_score_norm);
+  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->primary_swg_score_norm);
   // sigma
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,match_predictors->map_template_size_sigma);
+  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->primary_template_size_sigma_norm);
   // mapq_1
-  fprintf(stream,"%02d" MP_SEP,match_predictors->mapq_end1);
+  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,(double)matches_predictors->mapq_end1/60.0);
   // mapq_2
-  fprintf(stream,"%02d" MP_SEP,match_predictors->mapq_end2);
+  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,(double)matches_predictors->mapq_end2/60.0);
   /*
-   * edit1 edit2 event1 event2 swg1 swg2
+   * sub_edit sub_event sub_swg sub_sigma
    */
-  // edit1
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->best_map_edit_distance_norm);
-  // edit2
+  // sub_edit
   fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->subdominant_edit_distance_norm);
-  // event1
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->best_map_event_distance_norm);
-  // event2
+  // sub_event
   fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->subdominant_event_distance_norm);
-  // swg1
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->best_map_swg_score_norm);
-  // swg2
+  // sub_swg
   fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->subdominant_swg_score_norm);
+  // sub_sigma
+  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->subdominant_template_size_sigma_norm);
   /*
-   * sigma1 sigma2
+   * ccand cmatch mcs1 mcs2 mrl kmerf
    */
-  // sigma1
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->best_map_template_size_sigma);
-  // sigma2
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->subdominant_template_size_sigma);
-  /*
-   * ack mcs1 mcs2 mrl kmerf
-   */
-  // ack
-  fprintf(stream,"%03"PRIu64 MP_SEP,matches_predictors->matches_accepted);
+  // ccand
+  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->accepted_candidates);
+  // cmatch
+  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->accepted_matches);
   // mcs1
   fprintf(stream,"%02"PRIu64 MP_SEP,matches_predictors->mcs_end1);
   // mcs2
@@ -257,23 +233,23 @@ void matches_predictors_se_print(
     FILE* const stream,
     const char* const sequence_tag,
     const matches_class_t matches_class,
-    matches_predictors_t* const matches_predictors,
-    match_predictors_t* const match_predictors) {
+    matches_predictors_t* const matches_predictors) {
   // Class
   switch (matches_class) {
     case matches_class_unmapped:
       break;
-    case matches_class_tie_d0:
-      matches_predictors_print(stream,sequence_tag,"noise ",matches_predictors,match_predictors);
+    case matches_class_tie_perfect:
+    case matches_class_tie:
+      matches_predictors_print(stream,sequence_tag,"tie   ",matches_predictors);
       break;
-    case matches_class_tie_d1:
-      matches_predictors_print(stream,sequence_tag,"tie   ",matches_predictors,match_predictors);
+    case matches_class_mmap_d1:
+      matches_predictors_print(stream,sequence_tag,"mmapD1",matches_predictors);
       break;
     case matches_class_mmap:
-      matches_predictors_print(stream,sequence_tag,"mmap  ",matches_predictors,match_predictors);
+      matches_predictors_print(stream,sequence_tag,"mmap  ",matches_predictors);
       break;
     case matches_class_unique:
-      matches_predictors_print(stream,sequence_tag,"unique",matches_predictors,match_predictors);
+      matches_predictors_print(stream,sequence_tag,"unique",matches_predictors);
       break;
     default:
       GEM_INVALID_CASE();
@@ -284,29 +260,32 @@ void matches_predictors_pe_print(
     FILE* const stream,
     const char* const sequence_tag,
     const paired_matches_class_t paired_matches_class,
-    matches_predictors_t* const matches_predictors,
-    match_predictors_t* const match_predictors) {
+    matches_predictors_t* const matches_predictors) {
   // Unmapped
   if (paired_matches_class==paired_matches_class_unmapped) return;
   // High quality ends
-  if (match_predictors->mapq_end1>=30 && match_predictors->mapq_end2>=30) {
-    matches_predictors_print(stream,sequence_tag,"signal ",matches_predictors,match_predictors);
+  const bool high_quality_ends =
+      matches_predictors->mapq_end1 >= MAPQ_CONFIDENCE_SCORE_MIN &&
+      matches_predictors->mapq_end2 >= MAPQ_CONFIDENCE_SCORE_MIN;
+  if (high_quality_ends) {
+    matches_predictors_print(stream,sequence_tag,"signal ",matches_predictors);
     return;
   }
   switch (paired_matches_class) {
     case paired_matches_class_unmapped:
       break;
-    case paired_matches_class_tie_d0:
-      matches_predictors_print(stream,sequence_tag,"noise ",matches_predictors,match_predictors);
+    case paired_matches_class_tie_perfect:
+    case paired_matches_class_tie:
+      matches_predictors_print(stream,sequence_tag,"tie ",matches_predictors);
       break;
-    case paired_matches_class_tie_d1:
-      matches_predictors_print(stream,sequence_tag,"tie   ",matches_predictors,match_predictors);
+    case paired_matches_class_mmap_d1:
+      matches_predictors_print(stream,sequence_tag,"mmapD1",matches_predictors);
       break;
     case paired_matches_class_mmap:
-      matches_predictors_print(stream,sequence_tag,"mmap  ",matches_predictors,match_predictors);
+      matches_predictors_print(stream,sequence_tag,"mmap  ",matches_predictors);
       break;
     case paired_matches_class_unique:
-      matches_predictors_print(stream,sequence_tag,"unique",matches_predictors,match_predictors);
+      matches_predictors_print(stream,sequence_tag,"unique",matches_predictors);
       break;
     default:
       GEM_INVALID_CASE();

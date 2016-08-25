@@ -17,12 +17,12 @@
  * Paired Matches
  */
 typedef struct {
-  uint64_t match_end1_offset;          // Map end1
-  uint64_t match_end2_offset;          // Map end2
+  match_trace_t* match_trace_end1;     // Map end1
+  match_trace_t* match_trace_end2;     // Map end2
   uint8_t mapq_score;                  // MAPQ score
   uint64_t template_length;            // Template observed length
   double template_length_sigma;        // Number of sigmas deviation from the std-distribution
-  uint64_t distance;                   // Distance of the paired-alignment
+  uint64_t event_distance;             // Distance of the paired-alignment
   uint64_t edit_distance;              // Edit Distance of the paired-alignment
   int32_t swg_score;                   // Distance of the paired-alignment
   pair_relation_t pair_relation;       // Pair relation (concordant/discordant)
@@ -34,7 +34,7 @@ typedef struct {
 /*
  * Accessors
  */
-uint64_t paired_map_compute_distance(
+uint64_t paired_map_compute_event_distance(
     const match_trace_t* const match_end1,
     const match_trace_t* const match_end2);
 uint64_t paired_map_compute_edit_distance(
@@ -44,7 +44,7 @@ uint64_t paired_map_compute_swg_score(
     const match_trace_t* const match_end1,
     const match_trace_t* const match_end2);
 
-uint64_t paired_map_get_distance(paired_map_t* const paired_map);
+uint64_t paired_map_get_event_distance(paired_map_t* const paired_map);
 uint64_t paired_map_get_edit_distance(paired_map_t* const paired_map);
 int32_t paired_map_get_swg_score(paired_map_t* const paired_map);
 

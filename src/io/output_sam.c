@@ -327,7 +327,7 @@ void output_sam_print_opt_field_tag_AS(
     case alignment_model_hamming:
     case alignment_model_levenshtein:
       bofprintf_string_literal(buffered_output_file,"\tAS:i:");
-      bofprintf_uint64(buffered_output_file,match_trace->distance);
+      bofprintf_uint64(buffered_output_file,match_trace->edit_distance);
       break;
     case alignment_model_gap_affine:
       bofprintf_string_literal(buffered_output_file,"\tAS:i:");
@@ -504,7 +504,7 @@ void output_sam_print_opt_field_tag_XS(
     case alignment_model_hamming:
     case alignment_model_levenshtein:
       bofprintf_string_literal(buffered_output_file,"\tXS:i:");
-      bofprintf_uint64(buffered_output_file,match_trace->distance);
+      bofprintf_uint64(buffered_output_file,match_trace->edit_distance);
       break;
     case alignment_model_gap_affine:
       bofprintf_string_literal(buffered_output_file,"\tXS:i:");
@@ -723,12 +723,15 @@ void output_sam_print_opt_field_tag_X5(
     buffered_output_file_reserve(buffered_output_file,1);
     bofprintf_char(buffered_output_file,'-');
   } else {
-    VECTOR_ITERATE(matches->position_matches,match_trace,match_number,match_trace_t) {
+    const uint64_t num_match_traces = matches_get_num_match_traces(matches);
+    match_trace_t** const match_traces = matches_get_match_traces(matches);
+    uint64_t i;
+    for (i=0;i<num_match_traces;++i) {
       // Separator
       buffered_output_file_reserve(buffered_output_file,1);
-      if (match_number > 0) bofprintf_char(buffered_output_file,',');
+      if (i > 0) bofprintf_char(buffered_output_file,',');
       // Print Match
-      output_map_print_match(buffered_output_file,matches,match_trace,true,map_format_v2);
+      output_map_print_match(buffered_output_file,matches,match_traces[i],true,map_format_v2);
     }
   }
 }
@@ -751,7 +754,7 @@ void output_sam_print_opt_field_tag_X5_pe(
         buffered_output_file_reserve(buffered_output_file,1);
         if (paired_map_number > 0) bofprintf_char(buffered_output_file,',');
         // Print Match
-        match_trace_t* const match_end1 = paired_map_get_match_end1(paired_matches,paired_map);
+        match_trace_t* const match_end1 = paired_map->match_trace_end1;
         output_map_print_match(buffered_output_file,matches_end1,match_end1,true,map_format_v2);
       }
     } else {
@@ -761,7 +764,7 @@ void output_sam_print_opt_field_tag_X5_pe(
         buffered_output_file_reserve(buffered_output_file,1);
         if (paired_map_number > 0) bofprintf_char(buffered_output_file,',');
         // Print Match
-        match_trace_t* const match_end2 = paired_map_get_match_end2(paired_matches,paired_map);
+        match_trace_t* const match_end2 = paired_map->match_trace_end2;
         output_map_print_match(buffered_output_file,matches_end2,match_end2,true,map_format_v2);
       }
     }
@@ -797,7 +800,7 @@ void output_sam_print_opt_field_tag_XA_match(
   // Print Distance
   buffered_output_file_reserve(buffered_output_file,INT_MAX_LENGTH+10);
   bofprintf_char(buffered_output_file,',');
-  bofprintf_uint64(buffered_output_file,subdominant_match->distance);
+  bofprintf_uint64(buffered_output_file,subdominant_match->edit_distance);
   bofprintf_char(buffered_output_file,';');
 }
 void output_sam_print_opt_field_tag_XA_se(
@@ -806,15 +809,15 @@ void output_sam_print_opt_field_tag_XA_se(
     const output_sam_parameters_t* const output_sam_parameters) {
   const uint64_t num_matches = matches_get_num_match_traces(matches);
   if (num_matches > 1) {
-    match_trace_t* match_trace = matches_get_match_trace_buffer(matches);
-    ++match_trace; // Skip primary
+    match_trace_t** match_traces = matches_get_match_traces(matches);
+    ++match_traces; // Skip primary
     // Reserve
     buffered_output_file_reserve(buffered_output_file,6);
     bofprintf_string_literal(buffered_output_file,"\tXA:Z:");
     uint64_t i;
-    for (i=1;i<num_matches;++i,++match_trace) {
+    for (i=1;i<num_matches;++i,++match_traces) {
       output_sam_print_opt_field_tag_XA_match(buffered_output_file,
-          matches,match_trace,output_sam_parameters);
+          matches,*match_traces,output_sam_parameters);
     }
   }
 }
@@ -832,7 +835,7 @@ void output_sam_print_opt_field_tag_XA_pe_end1(
     bofprintf_string_literal(buffered_output_file,"\tXA:Z:");
     uint64_t i;
     for (i=1;i<num_matches;++i,++paired_map) {
-      match_trace_t* const match_end1 = paired_map_get_match_end1(paired_matches,paired_map);
+      match_trace_t* const match_end1 = paired_map->match_trace_end1;
       output_sam_print_opt_field_tag_XA_match(buffered_output_file,matches,match_end1,output_sam_parameters);
     }
   }
@@ -851,7 +854,7 @@ void output_sam_print_opt_field_tag_XA_pe_end2(
     bofprintf_string_literal(buffered_output_file,"\tXA:Z:");
     uint64_t i;
     for (i=1;i<num_matches;++i,++paired_map) {
-      match_trace_t* const match_end2 = paired_map_get_match_end2(paired_matches,paired_map);
+      match_trace_t* const match_end2 = paired_map->match_trace_end2;
       output_sam_print_opt_field_tag_XA_match(buffered_output_file,matches,match_end2,output_sam_parameters);
     }
   }
@@ -1091,7 +1094,7 @@ void output_sam_print_optional_fields_se(
   if (match_trace) output_sam_print_opt_field_tag_AS(buffered_output_file,alignment_model,match_trace);
   // XS
   if (print_tag_XS && match_number+1 < num_matches) {
-    const match_trace_t* const next_match_trace = matches_get_match_trace(matches,match_number+1);
+    const match_trace_t* const next_match_trace = matches_get_match_traces(matches)[match_number+1];
     output_sam_print_opt_field_tag_XS(buffered_output_file,alignment_model,next_match_trace);
   }
 }
@@ -1132,7 +1135,7 @@ void output_sam_print_optional_fields_pe(
   if (match_trace) output_sam_print_opt_field_tag_AS(buffered_output_file,alignment_model,match_trace);
   // XS
   if (print_tag_XS && match_number+1 < num_matches) {
-    const match_trace_t* const next_match_trace = matches_get_match_trace(matches,match_number+1);
+    const match_trace_t* const next_match_trace = matches_get_match_traces(matches)[match_number+1];
     output_sam_print_opt_field_tag_XS(buffered_output_file,alignment_model,next_match_trace);
   }
 }
@@ -1166,14 +1169,17 @@ void output_sam_single_end_matches(
     bofprintf_char(buffered_output_file,'\n');
   } else {
     // Traverse all matches (Position-matches)
-    VECTOR_ITERATE(matches->position_matches,match_trace,match_number,match_trace_t) {
+    const uint64_t num_match_traces = matches_get_num_match_traces(matches);
+    match_trace_t** const match_traces = matches_get_match_traces(matches);
+    uint64_t i;
+    for (i=0;i<num_match_traces;++i) {
       // Print Core Fields
-      const bool secondary_alignment = (match_number>0);
-      output_sam_print_core_fields_se(buffered_output_file,&archive_search->sequence,matches,match_trace,
+      const bool secondary_alignment = (i>0);
+      output_sam_print_core_fields_se(buffered_output_file,&archive_search->sequence,matches,match_traces[i],
           secondary_alignment,supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
       // Print Optional Fields
       output_sam_print_optional_fields_se(buffered_output_file,archive_search,
-          matches,match_trace,match_number,false,output_sam_parameters);
+          matches,match_traces[i],i,false,output_sam_parameters);
       // GEM compatibility
       if (!secondary_alignment) {
         if (output_sam_parameters->print_gem_fields) {
@@ -1224,16 +1230,19 @@ void output_sam_paired_end_matches_unpaired(
      buffered_output_file_reserve(buffered_output_file,1);
      bofprintf_char(buffered_output_file,'\n');
   } else { // End Mapped
-     VECTOR_ITERATE(matches->position_matches,match_trace,match_number,match_trace_t) {
+    const uint64_t num_match_traces = matches_get_num_match_traces(matches);
+    match_trace_t** const match_traces = matches_get_match_traces(matches);
+    uint64_t i;
+    for (i=0;i<num_match_traces;++i) {
         // Print Core Fields
-        const bool secondary_alignment = (match_number>0);
+        const bool secondary_alignment = (i>0);
         output_sam_print_core_fields_pe(buffered_output_file,
-           &archive_search->sequence,matches,match_trace,match_number==0?primary_match_mate:NULL,
-           match_trace->mapq_score,0,is_map_first_in_pair,false,secondary_alignment,supplementary_alignment,
-           not_passing_QC,PCR_duplicate,output_sam_parameters);
+           &archive_search->sequence,matches,match_traces[i],i==0?primary_match_mate:NULL,
+           match_traces[i]->mapq_score,0,is_map_first_in_pair,false,secondary_alignment,
+           supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
         // Print Optional Fields
         output_sam_print_optional_fields_se(buffered_output_file,archive_search,
-            matches,match_trace,match_number,false,output_sam_parameters);
+            matches,match_traces[i],i,false,output_sam_parameters);
         // GEM compatibility
         if (!secondary_alignment) {
            if (output_sam_parameters->print_gem_fields) {
@@ -1261,9 +1270,9 @@ void output_sam_paired_end_matches_paired(
     paired_matches_t* const paired_matches,
     const output_sam_parameters_t* const output_sam_parameters) {
   // Parameters
-  const bool supplementary_alignment = false;   // TODO
-  const bool not_passing_QC = false;   // TODO
-  const bool PCR_duplicate = false;  // TODO
+  const bool supplementary_alignment = false; // TODO
+  const bool not_passing_QC = false; // TODO
+  const bool PCR_duplicate = false; // TODO
   matches_t* const matches_end1 = paired_matches->matches_end1;
   matches_t* const matches_end2 = paired_matches->matches_end2;
   // Traverse all matches (Position-matches)
@@ -1272,8 +1281,8 @@ void output_sam_paired_end_matches_paired(
   uint64_t match_number;
   for (match_number=0;match_number<num_paired_matches;++match_number,++paired_map) {
     const bool secondary_alignment = (match_number>0);
-    match_trace_t* const match_end1 = paired_map_get_match_end1(paired_matches,paired_map);
-    match_trace_t* const match_end2 =  paired_map_get_match_end2(paired_matches,paired_map);
+    match_trace_t* const match_end1 = paired_map->match_trace_end1;
+    match_trace_t* const match_end2 = paired_map->match_trace_end2;
     /*
      * End/1
      */
@@ -1340,10 +1349,10 @@ void output_sam_paired_end_matches(
     // Parameters
     matches_t* const matches_end1 = paired_matches->matches_end1;
     matches_t* const matches_end2 = paired_matches->matches_end2;
-    const uint64_t num_matches_end1 = vector_get_used(matches_end1->position_matches);
-    const uint64_t num_matches_end2 = vector_get_used(matches_end2->position_matches);
-    match_trace_t* const primary_match_end1 = num_matches_end1 ? vector_get_mem(matches_end1->position_matches,match_trace_t) : NULL;
-    match_trace_t* const primary_match_end2 = num_matches_end2 ? vector_get_mem(matches_end2->position_matches,match_trace_t) : NULL;
+    const uint64_t num_matches_end1 = matches_get_num_match_traces(matches_end1);
+    const uint64_t num_matches_end2 = matches_get_num_match_traces(matches_end2);
+    match_trace_t* const primary_match_end1 = num_matches_end1 ? matches_get_primary_match(matches_end1) : NULL;
+    match_trace_t* const primary_match_end2 = num_matches_end2 ? matches_get_primary_match(matches_end2) : NULL;
     // End1
     output_sam_paired_end_matches_unpaired(buffered_output_file,archive_search_end1,paired_end1,
         matches_end1,primary_match_end2,output_sam_parameters);
@@ -1356,4 +1365,3 @@ void output_sam_paired_end_matches(
   }
   PROF_STOP_TIMER(GP_OUTPUT_SAM_PE);
 }
-

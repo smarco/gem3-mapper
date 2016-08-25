@@ -40,7 +40,7 @@ void search_parameters_init_replacements(search_parameters_t* const search_param
 void search_parameters_init_error_model(search_parameters_t* const search_parameters) {
   search_parameters->complete_search_error = 0.04;
   search_parameters->complete_strata_after_best = 1.0;
-  search_parameters->alignment_max_error = 0.08;
+  search_parameters->alignment_max_error = 0.10;
   search_parameters->alignment_max_bandwidth = 0.20;
   search_parameters->alignment_global_min_identity = 0.80;
   search_parameters->alignment_global_min_swg_threshold = 0.20; // 0.20*read_length*match_score

@@ -187,8 +187,11 @@ void archive_check_se_matches(
   match_align_input.key = key;
   match_align_input.key_length = key_length;
   // Traverse all matches and check their CIGAR
-  PROF_ADD_COUNTER(GP_CHECK_NUM_MAPS,matches_get_num_match_traces(matches));
-  VECTOR_ITERATE(matches->position_matches,match_trace,match_trace_num,match_trace_t) {
+  const uint64_t num_match_traces = matches_get_num_match_traces(matches);
+  match_trace_t** const match_traces = matches_get_match_traces(matches);
+  PROF_ADD_COUNTER(GP_CHECK_NUM_MAPS,num_match_traces);
+  for (i=0;i<num_match_traces;++i) {
+    match_trace_t* const match_trace = match_traces[i];
     archive_check_se_match_retrieve_text(archive,match_trace,&match_align_input,mm_stack);
     // Check correctness
     match_alignment_t* const match_alignment = &match_trace->match_alignment;
@@ -202,10 +205,10 @@ void archive_check_se_matches(
     }
     if (check_type==archive_check_correct) continue;
     if (check_type==archive_check_correct__first_optimum) {
-      if (match_trace_num > 0) continue;
+      if (i > 0) continue;
     }
     // Check optimum alignment
-    if (match_trace_num==0) {
+    if (i==0) {
       PROF_INC_COUNTER(GP_CHECK_PRIMARY_SUBOPTIMAL);
     } else {
       PROF_INC_COUNTER(GP_CHECK_SUBDOMINANT_SUBOPTIMAL);
@@ -217,16 +220,16 @@ void archive_check_se_matches(
         &match_align_input,&optimum_match_trace,matches->cigar_vector,mm_stack);
     // Check result
     if (!optimal_alignment) {
-      if (match_trace_num==0) {
+      if (i==0) {
         PROF_INC_COUNTER(GP_CHECK_SUBDOMINANT_SUBOPTIMAL_FAIL);
         PROF_ADD_COUNTER(GP_CHECK_SUBDOMINANT_SUBOPTIMAL_DIFF,ABS(match_trace->swg_score-optimum_match_trace.swg_score));
         PROF_ADD_COUNTER(GP_CHECK_SUBDOMINANT_SUBOPTIMAL_SCORE,match_trace->swg_score);
-        PROF_ADD_COUNTER(GP_CHECK_SUBDOMINANT_SUBOPTIMAL_DISTANCE,match_trace->distance);
+        PROF_ADD_COUNTER(GP_CHECK_SUBDOMINANT_SUBOPTIMAL_DISTANCE,match_trace->edit_distance);
       } else {
         PROF_INC_COUNTER(GP_CHECK_PRIMARY_SUBOPTIMAL_FAIL);
         PROF_ADD_COUNTER(GP_CHECK_PRIMARY_SUBOPTIMAL_SCORE,match_trace->swg_score);
         PROF_ADD_COUNTER(GP_CHECK_PRIMARY_SUBOPTIMAL_DIFF,ABS(match_trace->swg_score-optimum_match_trace.swg_score));
-        PROF_ADD_COUNTER(GP_CHECK_PRIMARY_SUBOPTIMAL_DISTANCE,match_trace->distance);
+        PROF_ADD_COUNTER(GP_CHECK_PRIMARY_SUBOPTIMAL_DISTANCE,match_trace->edit_distance);
       }
       archive_check_se_match_print_suboptimum(stream,match_trace,matches,
           &match_align_input,sequence,&optimum_match_trace,archive->locator,mm_stack);

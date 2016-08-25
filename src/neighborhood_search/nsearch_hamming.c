@@ -66,8 +66,10 @@ void nsearch_hamming_terminate(
   filtering_candidates_t* const filtering_candidates = nsearch_schedule->search->filtering_candidates;
   search_parameters_t* const search_parameters = nsearch_schedule->search->search_parameters;
   pattern_t* const pattern = &nsearch_schedule->search->pattern;
-  filtering_candidates_add_region_interval(filtering_candidates,
-      search_parameters,pattern,lo,hi,0,pattern->key_length,align_distance);
+  bool limited;
+  filtering_candidates_add_region_interval(
+      filtering_candidates,search_parameters,pattern,
+      lo,hi,0,pattern->key_length,align_distance,&limited);
 #endif
 }
 /*

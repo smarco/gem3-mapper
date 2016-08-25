@@ -21,28 +21,21 @@
  */
 typedef struct {
   double coeff_intercept;
-  // Match
-  double coeff_map_edit_distance_norm;
-  double coeff_map_event_distance_norm;
-  double coeff_map_swg_score_norm;
-  // Template Size
-  double coeff_map_template_size_sigma;
-  // MAPQ
+  // Best Match
+  double coeff_primary_edit_distance_norm;
+  double coeff_primary_event_distance_norm;
+  double coeff_primary_swg_score_norm;
+  double coeff_primary_template_size_sigma_norm;
   double coeff_mapq_end1;
   double coeff_mapq_end2;
-  // Best Match (best in each distance metric)
-  double coeff_best_map_edit_distance_norm;
-  double coeff_best_map_event_distance_norm;
-  double coeff_best_map_swg_score_norm;
-  // Sub-dominant Match (sub-dominant in each distance metric)
+  // Sub-dominant Match
   double coeff_subdominant_edit_distance_norm;
   double coeff_subdominant_event_distance_norm;
   double coeff_subdominant_swg_score_norm;
-  // Template Size
-  double coeff_best_map_template_size_sigma;
-  double coeff_subdominant_template_size_sigma;
+  double coeff_subdominant_template_size_sigma_norm;
   // Search Scope
-  double coeff_matches_accepted;
+  double coeff_accepted_candidates;
+  double coeff_accepted_matches;
   double coeff_mcs_end1;
   double coeff_mcs_end2;
   // Mappability
@@ -52,7 +45,7 @@ typedef struct {
 typedef struct {
   matches_classify_logit_coeff_t unique_logit_coeff;
   matches_classify_logit_coeff_t mmaps_logit_coeff;
-  matches_classify_logit_coeff_t ties_logit_coeff;
+  matches_classify_logit_coeff_t mmaps_d1_logit_coeff;
 } matches_classify_logit_model_t;
 
 /*
@@ -60,23 +53,19 @@ typedef struct {
  */
 double matches_classify_logit(
     const matches_classify_logit_coeff_t* const logit_coeff,
-    const matches_predictors_t* const matches_predictors,
-    const match_predictors_t* const match_predictors);
+    const matches_predictors_t* const matches_predictors);
 
 /*
  * Matches Classify Probabilities (using Logistic Regression)
  */
 double matches_classify_logit_unique(
     const matches_classify_logit_model_t* const logit_model,
-    const matches_predictors_t* const matches_predictors,
-    const match_predictors_t* const match_predictors);
+    const matches_predictors_t* const matches_predictors);
 double matches_classify_logit_mmaps(
     const matches_classify_logit_model_t* const logit_model,
-    const matches_predictors_t* const matches_predictors,
-    const match_predictors_t* const match_predictors);
-double matches_classify_logit_ties(
+    const matches_predictors_t* const matches_predictors);
+double matches_classify_logit_mmaps_d1(
     const matches_classify_logit_model_t* const logit_model,
-    const matches_predictors_t* const matches_predictors,
-    const match_predictors_t* const match_predictors);
+    const matches_predictors_t* const matches_predictors);
 
 #endif /* MATCHES_CLASSIFY_LOGIT_H_ */

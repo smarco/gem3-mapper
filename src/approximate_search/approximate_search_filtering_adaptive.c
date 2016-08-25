@@ -76,6 +76,9 @@ void approximate_search_filtering_adaptive(
         approximate_search_exact_filtering_adaptive(search,matches);
         as_filtering_control_filtering_adaptive_next_state(search,matches); // Next State
         break;
+      case asearch_stage_filtering_adaptive_finished:
+        as_filtering_control_filtering_adaptive_next_state(search,matches); // Next State
+        break;
       case asearch_stage_local_alignment: // Local alignments
         approximate_search_align_local(search,matches);
         search->search_stage = asearch_stage_end; // Next State

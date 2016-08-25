@@ -106,7 +106,7 @@ void match_align_exact(
   match_trace->text_length = align_input->key_length;
   match_trace->sequence_name = NULL;
   match_trace->text_position = UINT64_MAX;
-  match_trace->distance = 0;
+  match_trace->event_distance = 0;
   match_trace->edit_distance = 0;
   match_trace->swg_score = align_swg_score_match(align_parameters->swg_penalties,(int32_t)key_length);
   // Set position/distance
@@ -174,8 +174,8 @@ void match_align_hamming(
   }
   match_alignment->effective_length = key_length;
   // Set distances
-  match_trace->distance = mismatches;
   match_trace->edit_distance = mismatches;
+  match_trace->event_distance = mismatches;
   match_trace->swg_score = align_swg_score_cigar(align_parameters->swg_penalties,
       matches->cigar_vector,match_alignment->cigar_offset,match_alignment->cigar_length);
   match_trace->match_scaffold = NULL;
@@ -216,12 +216,13 @@ void match_align_levenshtein(
   // Set distances
   if (match_alignment->score==-1) {
     PROF_INC_COUNTER(GP_ALIGNED_DISCARDED_SWG);
-    match_trace->distance = ALIGN_DISTANCE_INF;
     match_trace->edit_distance = ALIGN_DISTANCE_INF;
+    match_trace->event_distance = ALIGN_DISTANCE_INF;
     match_trace->swg_score = SWG_SCORE_MIN;
   } else {
-    match_trace->distance = match_alignment->score;
     match_trace->edit_distance = match_alignment->score;
+    match_trace->event_distance = matches_cigar_compute_event_distance(
+        matches->cigar_vector,match_alignment->cigar_offset,match_alignment->cigar_length);
     match_trace->swg_score = align_swg_score_cigar(align_parameters->swg_penalties,
         matches->cigar_vector,match_alignment->cigar_offset,match_alignment->cigar_length);
     // Store matching text
@@ -272,8 +273,9 @@ void match_align_smith_waterman_gotoh(
     PROFILE_CONTINUE(GP_MATCHES_ALIGN_SWG,PROFILE_LEVEL);
     if (match_scaffold->num_scaffold_regions==0) {
       PROF_INC_COUNTER(GP_ALIGNED_DISCARDED_SCAFFOLD);
+      match_trace->edit_distance = ALIGN_DISTANCE_INF;
+      match_trace->event_distance = ALIGN_DISTANCE_INF;
       match_trace->swg_score = SWG_SCORE_MIN;
-      match_trace->distance = ALIGN_DISTANCE_INF;
       return;
     }
   }
@@ -284,8 +286,9 @@ void match_align_smith_waterman_gotoh(
   match_alignment_t* const match_alignment = &match_trace->match_alignment;
   if (match_alignment->score == SWG_SCORE_MIN) { // Input trims not computed
     PROF_INC_COUNTER(GP_ALIGNED_DISCARDED_SWG);
+    match_trace->edit_distance = ALIGN_DISTANCE_INF;
+    match_trace->event_distance = ALIGN_DISTANCE_INF;
     match_trace->swg_score = SWG_SCORE_MIN;
-    match_trace->distance = ALIGN_DISTANCE_INF;
     return;
   }
   // Normalize CIGAR & Adjust Position (Translate RL if required)
@@ -296,8 +299,9 @@ void match_align_smith_waterman_gotoh(
     // Compute Local Alignment
     match_align_swg_local_alignment(matches,match_trace,align_input,align_parameters);
     if (match_trace->swg_score == 0) {
+      match_trace->edit_distance = ALIGN_DISTANCE_INF;
+      match_trace->event_distance = ALIGN_DISTANCE_INF;
       match_trace->swg_score = SWG_SCORE_MIN;
-      match_trace->distance = ALIGN_DISTANCE_INF;
       return;
     }
   }
@@ -305,7 +309,7 @@ void match_align_smith_waterman_gotoh(
   vector_t* const cigar_vector = matches->cigar_vector;
   const uint64_t cigar_offset = match_alignment->cigar_offset;
   const uint64_t cigar_length = match_alignment->cigar_length;
-  match_trace->distance = matches_cigar_compute_event_distance(cigar_vector,cigar_offset,cigar_length);
+  match_trace->event_distance = matches_cigar_compute_event_distance(cigar_vector,cigar_offset,cigar_length);
   match_trace->edit_distance = matches_cigar_compute_edit_distance(cigar_vector,cigar_offset,cigar_length);
   match_alignment->effective_length = matches_cigar_effective_length(cigar_vector,cigar_offset,cigar_length);
   match_trace->text_length = match_alignment->effective_length;

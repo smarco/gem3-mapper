@@ -94,7 +94,6 @@ uint64_t filtering_candidates_extend_match(
   PROFILE_START(GP_FC_EXTEND_REALIGN_CANDIDATE_REGIONS,PROFILE_LEVEL);
   matches_t* matches_candidate = (candidate_end==paired_end1) ?
       paired_matches->matches_end1 : paired_matches->matches_end2;
-  matches_hint_allocate_match_trace(matches_candidate,candidates_found); // Hint to matches
   // Align
   candidates_found = filtering_candidates_align_candidates(
       filtering_candidates,candidate_pattern,true,false,matches_candidate);

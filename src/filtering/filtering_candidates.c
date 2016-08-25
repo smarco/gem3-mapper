@@ -51,8 +51,6 @@ void filtering_candidates_destroy(filtering_candidates_t* const filtering_candid
   vector_delete(filtering_candidates->filtering_positions);
   vector_delete(filtering_candidates->filtering_regions);
   vector_delete(filtering_candidates->discarded_regions);
-  // Cache
-  filtering_region_cache_destroy(&filtering_candidates->filtering_region_cache);
 }
 /*
  * Memory Injection (Support Data Structures)
@@ -105,7 +103,8 @@ void filtering_candidates_add_region_interval(
     const uint64_t interval_hi,
     const uint64_t region_begin_pos,
     const uint64_t region_end_pos,
-    const uint64_t region_errors) {
+    const uint64_t region_errors,
+    bool* const candidates_limited) {
   // Check total candidates
   const uint64_t total_candidates = interval_hi-interval_lo;
   if (gem_expect_false(total_candidates==0)) return;
@@ -115,10 +114,13 @@ void filtering_candidates_add_region_interval(
   // Select matches
   select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;
   uint64_t interval_top;
-  if (exact_match && select_parameters->min_reported_strata_nominal==0) {
-    interval_top = interval_lo + MIN(select_parameters->max_reported_matches,total_candidates);
+  if (exact_match && select_parameters->min_reported_strata_nominal==0 &&
+      total_candidates > select_parameters->max_reported_matches) {
+    interval_top = interval_lo + select_parameters->max_reported_matches;
+    *candidates_limited = true;
   } else {
     interval_top = interval_hi;
+    *candidates_limited = false;
   }
   // Store candidate positions
   vector_t* const filtering_positions = filtering_candidates->filtering_positions;

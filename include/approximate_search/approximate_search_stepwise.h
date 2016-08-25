@@ -58,11 +58,4 @@ void approximate_search_stepwise_verify_candidates_retrieve(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     matches_t* const matches);
 
-/*
- * AM Stepwise :: Finish Search
- */
-void approximate_search_stepwise_finish(
-    approximate_search_t* const search,
-    matches_t* const matches);
-
 #endif /* APPROXIMATE_SEARCH_STEPWISE_H_ */

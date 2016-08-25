@@ -163,15 +163,13 @@ void output_map_print_paired_match(
     const paired_map_t* const paired_map,
     const output_map_format_t output_map_format) {
   // Map end/1
-  match_trace_t* const match_end1 = matches_get_match_trace(matches_end1,paired_map->match_end1_offset);
-  output_map_print_match(buffered_output_file,matches_end1,match_end1,false,output_map_format);
+  output_map_print_match(buffered_output_file,matches_end1,paired_map->match_trace_end1,false,output_map_format);
   buffered_output_file_reserve(buffered_output_file,2);
   // Paired-end Separator
   bofprintf_char(buffered_output_file,':');
   bofprintf_char(buffered_output_file,':');
   // Map end/2
-  match_trace_t* const match_end2 = matches_get_match_trace(matches_end2,paired_map->match_end2_offset);
-  output_map_print_match(buffered_output_file,matches_end2,match_end2,false,output_map_format);
+  output_map_print_match(buffered_output_file,matches_end2,paired_map->match_trace_end2,false,output_map_format);
   // MAPQ Score Separator
   bofprintf_char(buffered_output_file,':');
   bofprintf_char(buffered_output_file,':');
@@ -407,12 +405,15 @@ void output_map_single_end_matches(
     buffered_output_file_reserve(buffered_output_file,3);
     bofprintf_string_literal(buffered_output_file,"\t-\n");
   } else {
-    VECTOR_ITERATE(matches->position_matches,match_trace,match_number,match_trace_t) {
+    const uint64_t num_match_traces = matches_get_num_match_traces(matches);
+    match_trace_t** const match_traces = matches_get_match_traces(matches);
+    uint64_t i;
+    for (i=0;i<num_match_traces;++i) {
       // Separator
-      if (match_number==0) output_map_print_separator(buffered_output_file,'\t');
+      if (i==0) output_map_print_separator(buffered_output_file,'\t');
       else output_map_print_separator(buffered_output_file,',');
       // Print Match
-      output_map_print_match(buffered_output_file,matches,match_trace,true,output_map_parameters->format_version);
+      output_map_print_match(buffered_output_file,matches,match_traces[i],true,output_map_parameters->format_version);
     }
     // Next
     output_map_print_separator(buffered_output_file,'\n'); // Separator

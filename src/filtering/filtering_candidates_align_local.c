@@ -76,7 +76,7 @@ void filtering_candidates_align_local(
   // Add pending local matches (found so far)
   locator_t* const locator = filtering_candidates->archive->locator;
   mm_stack_t* const mm_stack = filtering_candidates->mm_stack;
-  matches_add_pending_local_matches(matches,locator,mm_stack);
+  matches_add_pending_local_matches(matches,locator);
   // Check total alignments found
   search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
   select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;

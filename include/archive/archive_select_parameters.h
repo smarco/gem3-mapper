@@ -17,7 +17,6 @@
 typedef struct {
   double min_reported_strata;
   uint64_t min_reported_strata_nominal;
-  uint64_t min_reported_matches;
   uint64_t max_reported_matches;
 } select_parameters_t;
 
@@ -28,8 +27,7 @@ void select_parameters_init(select_parameters_t* const select_parameters);
 
 void select_parameters_configure_reporting(
     select_parameters_t* const select_parameters,
-    const float min_decoded_strata,
-    const uint64_t min_reported_matches,
+    const float min_reported_strata,
     const uint64_t max_reported_matches);
 
 void select_parameters_instantiate_values(

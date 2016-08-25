@@ -31,13 +31,14 @@ typedef enum {
  * Matches Classes
  */
 typedef enum {
-  matches_class_unmapped = 0,
-  matches_class_tie_d0 = 1,
-  matches_class_tie_d1 = 2,
-  matches_class_mmap = 3,
-  matches_class_unique = 4,
+  matches_class_unmapped    = 0,
+  matches_class_tie_perfect = 1,
+  matches_class_tie         = 2,
+  matches_class_mmap_d1     = 3,
+  matches_class_mmap        = 4,
+  matches_class_unique      = 5,
 } matches_class_t;
-extern const char* matches_class_label[5];
+extern const char* matches_class_label[6];
 
 /*
  * Match (Trace-Match)
@@ -45,7 +46,6 @@ extern const char* matches_class_label[5];
 typedef struct {
   /* Type */
   match_type type;                   // Match type
-  uint64_t* match_trace_offset;      // Match-Trace offset in the the matches vector
   /* Location */
   char* sequence_name;               // Sequence name (After decoding.Eg Chr1)
   strand_t strand;                   // Mapping Strand
@@ -56,7 +56,7 @@ typedef struct {
   uint8_t* text;                     // Pointer to the matching-text
   uint64_t text_length;              // Length of the matching-text
   /* Distance/Score */
-  uint64_t distance;                 // Distance
+  uint64_t event_distance;           // Distance
   uint64_t edit_distance;            // Edit-Distance
   int32_t swg_score;                 // SWG Distance/Score
   uint8_t mapq_score;                // MAPQ Score
@@ -76,16 +76,17 @@ typedef struct {
   text_collection_t* text_collection;  // Stores text-traces (candidates/matches/regions/...)
   /* Matches Counters */
   matches_counters_t* counters;        // Global counters
-  /* Position Matches */
-  vector_t* position_matches;          // Matches (match_trace_t)
-  ihash_t* begin_pos_matches;          // Begin position (of the aligned match) in the text-space
-  ihash_t* end_pos_matches;            // End position (of the aligned match) in the text-space
-  /* Local Matches */
-  vector_t* local_matches;             // Local Matches (match_trace_t)
+  /* Matches */
+  vector_t* match_traces;              // Matches (match_trace_t*)
+  vector_t* match_traces_local;        // Local Matches (match_trace_t)
+  ihash_t* match_traces_begin;         // Begin position (of the aligned match) in the text-space
+  ihash_t* match_traces_end;           // End position (of the aligned match) in the text-space
   /* CIGAR */
   vector_t* cigar_vector;              // CIGAR operations storage (cigar_element_t)
   /* Metrics */
   matches_metrics_t metrics;           // Metrics
+  /* MM */
+  mm_stack_t* mm_stack;                // MM-stack
 } matches_t;
 
 /*
@@ -108,19 +109,16 @@ uint8_t matches_get_primary_mapq(matches_t* const matches);
 void matches_update_mcs(matches_t* const matches,const uint64_t current_mcs);
 
 /*
- * Index
- */
-void matches_index_rebuild(matches_t* const matches,mm_stack_t* const mm_stack);
-void matches_index_clear(matches_t* const matches);
-
-/*
  * Matches Accessors
  */
-match_trace_t* matches_get_match_trace_buffer(const matches_t* const matches);
-match_trace_t* matches_get_match_trace(const matches_t* const matches,const uint64_t offset);
-uint64_t matches_get_num_match_traces(const matches_t* const matches);
 void matches_clear_match_traces(const matches_t* const matches);
+uint64_t matches_get_num_match_traces(const matches_t* const matches);
+match_trace_t* matches_get_primary_match(const matches_t* const matches);
+match_trace_t** matches_get_match_traces(const matches_t* const matches);
 
+/*
+ * Match-Trace
+ */
 cigar_element_t* match_trace_get_cigar_buffer(const matches_t* const matches,const match_trace_t* const match_trace);
 uint64_t match_trace_get_cigar_length(const match_trace_t* const match_trace);
 uint64_t match_trace_get_event_distance(const match_trace_t* const match_trace);
@@ -131,30 +129,19 @@ int64_t match_trace_get_effective_length(
     const uint64_t cigar_length);
 
 /*
- * Matches Rank Consistency
+ * Sorting Matches
  */
-match_trace_t* matches_get_ranked_match_trace(
-    matches_t* const matches,
-    select_parameters_t* const select_parameters);
+void matches_sort_by_swg_score(matches_t* const matches);
+void matches_sort_by_sequence_name__position(matches_t* const matches);
 
 /*
- * Add Matches
+ * Add Match-Trace
  */
-bool matches_add_match_trace(
+match_trace_t* matches_add_match_trace(
     matches_t* const matches,
     const locator_t* const locator,
     match_trace_t* const match_trace,
-    mm_stack_t* const mm_stack);
-void matches_add_match_trace__preserve_rank(
-    matches_t* const matches,
-    const locator_t* const locator,
-    match_trace_t* const match_trace,
-    select_parameters_t* const select_parameters,
-    const alignment_model_t alignment_model,
-    match_trace_t** const match_trace_added,
-    bool* const match_added,
-    bool* const match_replaced,
-    mm_stack_t* const mm_stack);
+    bool* const match_replaced);
 
 /*
  * Local Matches
@@ -164,32 +151,20 @@ void matches_add_local_match_pending(
     match_trace_t* const match_trace);
 void matches_add_pending_local_matches(
     matches_t* const matches,
-    const locator_t* const locator,
-    mm_stack_t* const mm_stack);
-
-/*
- * Matches hints
- */
-void matches_hint_allocate_match_trace(
-    matches_t* const matches,
-    const uint64_t num_matches_trace_to_add);
-
-/*
- * Sorting Matches
- */
-void matches_sort_by_distance(matches_t* const matches);
-void matches_sort_by_swg_score(matches_t* const matches);
-void matches_sort_by_mapq_score(matches_t* const matches);
-void matches_sort_by_sequence_name__position(matches_t* const matches);
+    const locator_t* const locator);
 
 /*
  * Filters
  */
-void matches_filter_by_mapq(matches_t* const matches,const uint8_t mapq_threshold,mm_stack_t* const mm_stack);
+void matches_filter_by_mapq(
+    matches_t* const matches,
+    const uint8_t mapq_threshold);
 
 /*
  * Display
  */
-void matches_print(FILE* const stream,matches_t* const matches);
+void matches_print(
+    FILE* const stream,
+    matches_t* const matches);
 
 #endif /* MATCHES_H_ */

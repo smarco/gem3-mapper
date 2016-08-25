@@ -6,6 +6,7 @@
  */
 
 #include "archive/archive_search_pe_stepwise.h"
+#include "archive/archive_search_se_stepwise.h"
 #include "archive/archive_search.h"
 #include "archive/archive_search_parameters.h"
 #include "archive/archive_search_pe.h"
@@ -243,23 +244,13 @@ void archive_search_pe_stepwise_finish_search(
   // DEBUG
   archive_search_pe_stepwise_debug_preface(archive_search_end1,"Finish");
   // Finish SE-Search
-  approximate_search_stepwise_finish(&archive_search_end1->approximate_search,paired_matches->matches_end1);
-  approximate_search_stepwise_finish(&archive_search_end2->approximate_search,paired_matches->matches_end2);
-  // Select Matches
   search_parameters_t* const search_parameters = &archive_search_end1->search_parameters;
-  archive_select_se_matches(archive_search_end1,&search_parameters->select_parameters_report,paired_matches->matches_end1);
-  archive_select_se_matches(archive_search_end2,&search_parameters->select_parameters_report,paired_matches->matches_end2);
-  // Score Matches (Select alignment-Model and process accordingly)
-  archive_score_matches_se(archive_search_end1,paired_matches->matches_end1);
-  archive_score_matches_se(archive_search_end2,paired_matches->matches_end2);
-  // Finish PE-Search
+  archive_search_se_stepwise_finish_search(archive_search_end1,paired_matches->matches_end1,true);
+  archive_search_se_stepwise_finish_search(archive_search_end2,paired_matches->matches_end2,true);
   archive_search_end1->pe_search_state = archive_search_pe_state_recovery;
   archive_search_end1->pair_searched = true;
   archive_search_end2->pair_searched = true;
   archive_search_pe_continue(archive_search_end1,archive_search_end2,paired_matches);
-  // PE Select Matches
-  archive_select_pe_matches(archive_search_end1,archive_search_end2,
-      &search_parameters->select_parameters_report,paired_matches);
   // PE Score (Select alignment-Model and process accordingly)
   archive_score_matches_pe(archive_search_end1,archive_search_end2,paired_matches);
   // PE Check matches

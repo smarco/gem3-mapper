@@ -42,11 +42,12 @@ extern const char* asearch_processing_state_label[6];
 typedef enum {
   asearch_stage_begin = 0,                            // Beginning of the search
   asearch_stage_filtering_adaptive = 1,               // Adaptive filtering search
-  asearch_stage_neighborhood = 2,                     // Neighborhood search
-  asearch_stage_local_alignment = 3,                  // Local-Alignment filtering Search
-  asearch_stage_end = 4,                              // End of the search
+  asearch_stage_filtering_adaptive_finished = 2,      // Adaptive filtering search
+  asearch_stage_neighborhood = 3,                     // Neighborhood search
+  asearch_stage_local_alignment = 4,                  // Local-Alignment filtering Search
+  asearch_stage_end = 5,                              // End of the search
 } asearch_stage_t;
-extern const char* asearch_stage_label[5];
+extern const char* asearch_stage_label[6];
 
 /*
  * Approximate Search

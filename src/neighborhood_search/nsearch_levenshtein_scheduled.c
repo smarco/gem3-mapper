@@ -163,9 +163,10 @@ uint64_t nsearch_levenshtein_scheduled_terminate(
     region_end = global_key_end + max_error;
   }
   // Add interval
-  filtering_candidates_add_region_interval(filtering_candidates,
-      search_parameters,pattern,fm_2interval->backward_lo,
-      fm_2interval->backward_hi,region_begin,region_end,align_distance);
+  bool limited;
+  filtering_candidates_add_region_interval(
+      filtering_candidates,search_parameters,pattern,fm_2interval->backward_lo,
+      fm_2interval->backward_hi,region_begin,region_end,align_distance,&limited);
   return fm_2interval->backward_hi-fm_2interval->backward_lo;
 #endif
 }

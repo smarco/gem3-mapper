@@ -64,21 +64,20 @@ void as_hybrid_control_filtering_adaptive_next_state(
       }
       // Check match-class & error-reached
       matches_classify(matches);
-      if (matches->matches_class==matches_class_tie_d0 ||
+      if (matches->matches_class==matches_class_tie_perfect ||
           mcs >= search_parameters->complete_search_error_nominal+1) {
         search->search_stage = asearch_stage_end;
         return;
       }
       // Neighborhood Search : Frontier 0:1+0 & Beyond 0:0+0:0:1
-      match_trace_t* const match = matches_get_match_trace_buffer(matches);
-      const uint64_t edit_distance = match[0].edit_distance;
-      if (edit_distance+1 >= mcs) {
+      const uint64_t min_edit_distance = matches_metrics_get_min_edit_distance(&matches->metrics);
+      if (min_edit_distance+1 >= mcs) {
 #ifdef GEM_PROFILE
         PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL);
-        if (edit_distance+1 == mcs) PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_MAP_FRONTIER);
-        if (edit_distance >= mcs) PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_MAP_INCOMPLETE);
+        if (min_edit_distance+1 == mcs) PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_MAP_FRONTIER);
+        if (min_edit_distance >= mcs) PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_MAP_INCOMPLETE);
 #endif
-        search->current_max_complete_error = MIN(search->current_max_complete_error,edit_distance+1);
+        search->current_max_complete_error = MIN(search->current_max_complete_error,min_edit_distance+1);
         search->search_stage = asearch_stage_neighborhood;
         return;
       }
@@ -115,6 +114,9 @@ void approximate_search_hybrid(
         break;
       case asearch_stage_filtering_adaptive: // Exact-Filtering (Adaptive)
         approximate_search_exact_filtering_adaptive(search,matches);
+        as_hybrid_control_filtering_adaptive_next_state(search,matches); // Next State
+        break;
+      case asearch_stage_filtering_adaptive_finished:
         as_hybrid_control_filtering_adaptive_next_state(search,matches); // Next State
         break;
       case asearch_stage_neighborhood:

@@ -35,9 +35,11 @@ void approximate_search_neighborhood_exact_search(
   // fm_index_reverse_bsearch_fb(search->archive->fm_index,pattern->key,pattern->key_length,&hi,&lo);
   // fm_index_reverse_bsearch_bf(search->archive->fm_index,pattern->key,pattern->key_length,&hi,&lo);
   // Add interval
+  bool limited;
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
-  filtering_candidates_add_region_interval(filtering_candidates,
-      search->search_parameters,pattern,lo,hi,0,pattern->key_length,0);
+  filtering_candidates_add_region_interval(
+      filtering_candidates,search->search_parameters,pattern,
+      lo,hi,0,pattern->key_length,0,&limited);
   // Process+Verify candidates
   PROF_START(GP_NS_VERIFICATION);
   filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern,false);

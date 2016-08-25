@@ -37,6 +37,7 @@ const char* asearch_stage_label[] =
 {
     [asearch_stage_begin]  = "begin",
     [asearch_stage_filtering_adaptive]  = "filtering-adaptive",
+    [asearch_stage_filtering_adaptive_finished]  = "filtering-adaptive-finished",
     [asearch_stage_neighborhood]  = "neighborhood",
     [asearch_stage_local_alignment]  = "local-alignment",
     [asearch_stage_end]  = "end",

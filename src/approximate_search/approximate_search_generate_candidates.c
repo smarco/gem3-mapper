@@ -56,7 +56,8 @@ void approximate_search_generate_candidates_exact(
         filtering_candidates,search_parameters,pattern,
         region_search->lo,region_search->hi,
         region_search->begin,region_search->end,
-        (pattern->run_length) ? ALIGN_DISTANCE_INF : 0);
+        (pattern->run_length) ? ALIGN_DISTANCE_INF : 0,
+        &region_profile->candidates_limited);
     ++(region_profile->num_filtered_regions);
   } else {
     // Add all candidates from the region-profile
@@ -68,7 +69,8 @@ void approximate_search_generate_candidates_exact(
         filtering_candidates_add_region_interval(
             filtering_candidates,search_parameters,pattern,
             region_search[i].lo,region_search[i].hi,
-            region_search[i].begin,region_search[i].end,0);
+            region_search[i].begin,region_search[i].end,0,
+            &region_profile->candidates_limited);
         ++(region_profile->num_filtered_regions);
       }
     }

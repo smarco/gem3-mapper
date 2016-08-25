@@ -48,13 +48,12 @@ void matches_counters_sub(
  * Utils
  */
 uint64_t matches_counters_compact(matches_counters_t* const counters);
-void matches_counters_compute_matches_to_decode(
+void matches_counters_compute_matches_to_report(
     matches_counters_t* const counters,
     const uint64_t min_reported_strata,
-    const uint64_t min_reported_matches,
     const uint64_t max_reported_matches,
-    uint64_t* const reported_strata,
-    uint64_t* const last_stratum_reported_matches);
+    uint64_t* const matches_to_report,
+    uint64_t* const strata_to_report);
 
 /*
  * Display

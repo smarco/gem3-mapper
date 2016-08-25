@@ -69,6 +69,7 @@ void archive_search_se_stepwise_verify_candidates_retrieve(
  */
 void archive_search_se_stepwise_finish_search(
     archive_search_t* const archive_search,
-    matches_t* const matches);
+    matches_t* const matches,
+    const bool paired_end_search);
 
 #endif /* ARCHIVE_SEARCH_SE_STEPWISE_H_ */

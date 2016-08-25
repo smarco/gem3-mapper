@@ -21,12 +21,13 @@
  */
 typedef enum {
   paired_matches_class_unmapped = 0,
-  paired_matches_class_tie_d0 = 1,
-  paired_matches_class_tie_d1 = 2,
-  paired_matches_class_mmap = 3,
-  paired_matches_class_unique = 4,
+  paired_matches_class_tie_perfect = 1,
+  paired_matches_class_tie = 2,
+  paired_matches_class_mmap_d1 = 3,
+  paired_matches_class_mmap = 4,
+  paired_matches_class_unique = 5,
 } paired_matches_class_t;
-extern const char* paired_matches_class_label[7];
+extern const char* paired_matches_class_label[6];
 
 /*
  * Paired Matches
@@ -69,13 +70,6 @@ uint64_t paired_matches_counters_get_total_count(paired_matches_t* const paired_
 
 uint64_t paired_matches_get_first_stratum_matches(paired_matches_t* const paired_matches);
 
-match_trace_t* paired_map_get_match_end1(
-    paired_matches_t* const paired_matches,
-    const paired_map_t* const paired_map);
-match_trace_t* paired_map_get_match_end2(
-    paired_matches_t* const paired_matches,
-    const paired_map_t* const paired_map);
-
 /*
  * Adding Paired-Matches
  */
@@ -110,8 +104,7 @@ void paired_matches_filter_by_mapq(
 /*
  * Sort
  */
-void paired_matches_sort_by_distance(paired_matches_t* const paired_matches);
-void paired_matches_sort_by_mapq_score(paired_matches_t* const paired_matches);
+void paired_matches_sort_by_swg_score(paired_matches_t* const paired_matches);
 
 /*
  * Display
