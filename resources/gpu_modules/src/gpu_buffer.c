@@ -118,6 +118,7 @@ gpu_error_t gpu_buffer_configuration(gpu_buffer_t* const mBuff, const uint32_t i
   mBuff->device             = device;
   mBuff->sizeBuffer         = bytesPerBuffer;
   mBuff->typeBuffer         = GPU_NONE_MODULES;
+  mBuff->listStreams        = listStreams;
   /* Module structures */
   mBuff->index              = index;
   mBuff->reference          = reference;
