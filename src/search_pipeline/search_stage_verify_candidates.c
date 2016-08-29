@@ -52,10 +52,10 @@ search_stage_verify_candidates_t* search_stage_verify_candidates_new(
   text_collection_init(&search_stage_vc->text_collection);
   search_stage_vc->mm_stack = mm_stack;
   if (paired_end) {
-    search_stage_vc->paired_matches = paired_matches_new(mm_stack);
+    search_stage_vc->paired_matches = paired_matches_new();
     paired_matches_configure(search_stage_vc->paired_matches,&search_stage_vc->text_collection);
   } else {
-    search_stage_vc->matches = matches_new(mm_stack);
+    search_stage_vc->matches = matches_new();
     matches_configure(search_stage_vc->matches,&search_stage_vc->text_collection);
   }
   // Init Buffers

@@ -86,13 +86,14 @@ typedef struct {
   /* Metrics */
   matches_metrics_t metrics;           // Metrics
   /* MM */
-  mm_stack_t* mm_stack;                // MM-stack
+  mm_slab_t* mm_slab;                  // MM-Slab
+  mm_stack_t* mm_stack;                // MM-Stack
 } matches_t;
 
 /*
  * Setup
  */
-matches_t* matches_new(mm_stack_t* const mm_stack);
+matches_t* matches_new();
 void matches_configure(matches_t* const matches,text_collection_t* const text_collection);
 void matches_clear(matches_t* const matches);
 void matches_delete(matches_t* const matches);

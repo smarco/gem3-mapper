@@ -432,7 +432,7 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
   mm_search_t* const mm_search = mm_search_new();
   archive_search_se_new(parameters->archive,search_parameters,false,NULL,&mapper_search->archive_search);
   archive_search_se_inject_mm(mapper_search->archive_search,mm_search);
-  matches_t* const matches = matches_new(mm_search->mm_stack);
+  matches_t* const matches = matches_new();
   matches_configure(matches,mapper_search->archive_search->text_collection);
   archive_t* const archive = parameters->archive;
   archive_search_t* const archive_search = mapper_search->archive_search;
@@ -503,7 +503,7 @@ void* mapper_pe_thread(mapper_search_t* const mapper_search) {
   archive_search_pe_new(parameters->archive,base_search_parameters,false,NULL,
       &mapper_search->archive_search_end1,&mapper_search->archive_search_end2);
   archive_search_pe_inject_mm(mapper_search->archive_search_end1,mapper_search->archive_search_end2,mm_search);
-  mapper_search->paired_matches = paired_matches_new(mm_search->mm_stack);
+  mapper_search->paired_matches = paired_matches_new();
   paired_matches_configure(mapper_search->paired_matches,mapper_search->archive_search_end1->text_collection);
   archive_t* const archive = parameters->archive;
   archive_search_t* const archive_search_end1 = mapper_search->archive_search_end1;

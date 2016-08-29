@@ -33,7 +33,7 @@ const char* matches_class_label[] =
 /*
  * Setup
  */
-matches_t* matches_new(mm_stack_t* const mm_stack) {
+matches_t* matches_new() {
   // Allocate handler
   matches_t* const matches = mm_alloc(matches_t);
   // Search-matches state
@@ -41,17 +41,18 @@ matches_t* matches_new(mm_stack_t* const mm_stack) {
   matches->max_complete_stratum = ALL;
   // Matches Counters
   matches->counters = matches_counters_new();
+  // MM
+  matches->mm_slab = mm_slab_new_(BUFFER_SIZE_4M,BUFFER_SIZE_4M,MM_UNLIMITED_MEM,"matches.4MB");
+  matches->mm_stack = mm_stack_new(matches->mm_slab);
   // Position Matches
   matches->match_traces = vector_new(MATCHES_INIT_GLOBAL_MATCHES,match_trace_t*);
   matches->match_traces_local = vector_new(MATCHES_INIT_GLOBAL_MATCHES,match_trace_t*);
-  matches->match_traces_begin = ihash_new(mm_stack);
-  matches->match_traces_end = ihash_new(mm_stack);
+  matches->match_traces_begin = ihash_new(matches->mm_stack);
+  matches->match_traces_end = ihash_new(matches->mm_stack);
   // CIGAR buffer
   matches->cigar_vector = vector_new(MATCHES_INIT_CIGAR_OPS,cigar_element_t);
   // Init metrics
   matches_metrics_init(&matches->metrics);
-  // MM
-  matches->mm_stack = mm_stack;
   // Return
   return matches;
 }
@@ -78,7 +79,8 @@ void matches_delete(matches_t* const matches) {
   ihash_delete(matches->match_traces_begin);
   ihash_delete(matches->match_traces_end);
   vector_delete(matches->cigar_vector);
-  mm_stack_clear(matches->mm_stack);
+  mm_stack_delete(matches->mm_stack);
+  mm_slab_delete(matches->mm_slab);
   // Delete handler
   mm_free(matches);
 }

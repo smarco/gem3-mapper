@@ -50,6 +50,7 @@ void approximate_search_generate_candidates_exact(
   pattern_t* const pattern = &search->pattern;
   // Generate candidates for each region
   PROF_ADD_COUNTER(GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS,region_profile->num_filtering_regions);
+  region_profile->num_filtered_regions = 0;
   if (region_profile_has_exact_matches(region_profile)) {
     // Add exact matches
     filtering_candidates_add_region_interval(
@@ -71,8 +72,8 @@ void approximate_search_generate_candidates_exact(
             region_search[i].lo,region_search[i].hi,
             region_search[i].begin,region_search[i].end,0,
             &region_profile->candidates_limited);
-        ++(region_profile->num_filtered_regions);
       }
+      ++(region_profile->num_filtered_regions);
     }
   }
   PROFILE_STOP(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
@@ -98,6 +99,7 @@ void approximate_search_generate_candidates_buffered_copy(
   search->gpu_num_filtering_positions = num_filtering_positions;
   // Copy all candidates positions
   uint64_t i;
+  region_profile->num_filtered_regions = 0;
   for (i=0;i<num_filtering_regions;++i) {
     region_search_t* const filtering_region = region_profile->filtering_region + i;
     if (filtering_region->degree==REGION_FILTER_DEGREE_ZERO) {
