@@ -125,16 +125,11 @@ gpu_error_t gpu_buffer_configuration(gpu_buffer_t* const mBuff, const uint32_t i
   /* Chunk of RAW memory for the buffer */
   mBuff->h_rawData          = NULL;
   mBuff->d_rawData          = NULL;
-
   /* Set in which Device we create and initialize the structures */
   CUDA_ERROR(cudaSetDevice(mBuff->device[idSupportedDevice]->idDevice));
-
   /* Create the CUDA stream per each buffer */
-  CUDA_ERROR(cudaStreamCreate(&mBuff->idStream));
-
-  /* Anotate the global cuda stream (to communicate the stream proposals) */
-  listStreams[idBuffer] = mBuff->idStream;
-
+  CUDA_ERROR(cudaStreamCreate(&listStreams[idBuffer]));
+  /* Suceed */
   return(SUCCESS);
 }
 
@@ -199,7 +194,17 @@ void gpu_destroy_buffers_(gpu_buffers_dto_t* buff)
     const uint32_t idSupDevice = mBuff[idBuffer]->idSupportedDevice;
     CUDA_ERROR(cudaSetDevice(devices[idSupDevice]->idDevice));
     GPU_ERROR(gpu_buffer_free(mBuff[idBuffer]));
-    CUDA_ERROR(cudaStreamDestroy(mBuff[idBuffer]->idStream));
+    CUDA_ERROR(cudaStreamDestroy(mBuff[idBuffer]->listStreams[idBuffer]));
+  }
+
+  /* Deallocate the global streams */
+  if(mBuff[0]->listStreams != NULL){
+    free(mBuff[0]->listStreams);
+    mBuff[0]->listStreams = NULL;
+  }
+
+  /* Deallocate each buffer */
+  for(idBuffer = 0; idBuffer < numBuffers; idBuffer++){
     free(mBuff[idBuffer]);
   }
 
@@ -207,12 +212,6 @@ void gpu_destroy_buffers_(gpu_buffers_dto_t* buff)
   GPU_ERROR(gpu_device_free_info_all(devices));
 
   if(mBuff != NULL){
-    // Deallocate the global streams
-    if(mBuff[0]->listStreams != NULL){
-      free(mBuff[0]->listStreams);
-      mBuff[0]->listStreams = NULL;
-    }
-    // Deallocate the internal buffers
     free(mBuff);
     mBuff = NULL;
     buff->buffer = NULL;
@@ -232,7 +231,7 @@ void gpu_alloc_buffer_(void* const gpuBuffer, const uint64_t idThread)
 
   mBuff->h_rawData = NULL;
   mBuff->d_rawData = NULL;
-  mBuff->idStream  = mBuff->listStreams[idStream];
+  mBuff->idStream  = idStream;
 
   //Select the device of the Multi-GPU platform
   CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));

@@ -170,7 +170,7 @@ gpu_error_t gpu_fmi_asearch_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
 {
   const gpu_fmi_asearch_queries_buffer_t* qryBuff  = &mBuff->data.asearch.queries;
   const gpu_fmi_asearch_regions_buffer_t* regBuff  = &mBuff->data.asearch.regions;
-  const cudaStream_t                      idStream =  mBuff->idStream;
+  const cudaStream_t                      idStream =  mBuff->listStreams[mBuff->idStream];
   size_t                                  cpySize  =  0;
   float                                   bufferUtilization;
   // Defining buffer offsets
@@ -203,7 +203,7 @@ gpu_error_t gpu_fmi_asearch_transfer_GPU_to_CPU(gpu_buffer_t* const mBuff)
 {
   const gpu_fmi_asearch_queries_buffer_t* qryBuff   = &mBuff->data.asearch.queries;
   const gpu_fmi_asearch_regions_buffer_t* regBuff   = &mBuff->data.asearch.regions;
-  const cudaStream_t                      idStream  =  mBuff->idStream;
+  const cudaStream_t                      idStream  =  mBuff->listStreams[mBuff->idStream];
         size_t                            cpySize   =  0;
         float                             bufferUtilization;
   // Defining buffer offsets
@@ -254,8 +254,9 @@ void gpu_fmi_asearch_send_buffer_(void* const fmiBuffer, const uint32_t numQueri
 void gpu_fmi_asearch_receive_buffer_(const void* const fmiBuffer)
 {
   const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
+  const cudaStream_t  idStream    =  mBuff->listStreams[mBuff->idStream];
   //Synchronize Stream (the thread wait for the commands done in the stream)
-  CUDA_ERROR(cudaStreamSynchronize(mBuff->idStream));
+  CUDA_ERROR(cudaStreamSynchronize(idStream));
 }
 
 #endif /* GPU_FMI_PRIMITIVES_ASEARCH_C_ */

@@ -108,7 +108,7 @@ gpu_error_t gpu_fmi_ssearch_process_buffer(gpu_buffer_t* const mBuff)
   const uint32_t                                 numSeeds        =  mBuff->data.ssearch.seeds.numSeeds;
   const uint32_t                                 numMaxSeeds     =  mBuff->data.ssearch.numMaxSeeds;
   const uint32_t                                 numMaxIntervals =  mBuff->data.ssearch.numMaxIntervals;
-  const cudaStream_t                             idStream        =  mBuff->idStream;
+  const cudaStream_t                             idStream        =  mBuff->listStreams[mBuff->idStream];
   const uint32_t                                 idSupDev        =  mBuff->idSupportedDevice;
   const gpu_device_info_t* const                 device          =  mBuff->device[idSupDev];
 

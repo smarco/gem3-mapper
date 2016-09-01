@@ -15,11 +15,12 @@
 /* Local function for fmi-table rank queries */
 uint32_t countBitmapCPU(const uint32_t bitmap, const int32_t shift, const uint32_t idxCounterGroup)
 {
+  // Definning the bitmap masking for the corresponding interval
   uint32_t mask = GPU_UINT32_ONES << (GPU_UINT32_LENGTH - shift);
-
+  // Avoiding tha out-of-range interval bases
   mask = (shift > GPU_UINT32_LENGTH) ? GPU_UINT32_ONES : mask;
   mask = (shift > 0) ? mask : GPU_UINT32_ZEROS;
-
+  // Counting the FM-index entry internal bases
   mask = (idxCounterGroup) ? ~mask : mask;
   return (__builtin_popcount(bitmap & mask));
 }
@@ -29,33 +30,33 @@ uint32_t computeBitmapsCPU(uint32_t* const vbitmap, const uint32_t bitmapPositio
                            const uint32_t bit0, const uint32_t bit1,
                            const uint32_t missedEntry, const uint32_t idBitmap)
 {
+  // Compute the internal interval
   const int32_t  relativePosition = bitmapPosition - (idBitmap * GPU_UINT32_LENGTH);
   uint32_t bmpCollapsed, numCaracters;
-
+  // Computing the wavelet bitmap
   vbitmap[0] = bit0 ? vbitmap[0] : ~vbitmap[0];
   vbitmap[1] = bit1 ? vbitmap[1] : ~vbitmap[1];
-
+  // Counting the FM-index entry internal bases
   bmpCollapsed  = vbitmap[0] & vbitmap[1] & vbitmap[2];
   numCaracters  = countBitmapCPU(bmpCollapsed, relativePosition, missedEntry);
-
+  // Returning the occurence caracters
   return (numCaracters);
 }
 
 /* Local function for fmi-table rank queries */
 void LF_mapping_advance_step(const gpu_fmi_entry_t* const fmi, const uint64_t interval, uint64_t* const new_interval, const uint32_t base)
 {
+  // Defining bitmap layout
   const uint32_t NUM_BITMAPS = GPU_FMI_ENTRY_SIZE / GPU_UINT32_LENGTH;
   const uint32_t LUT[12] = {3,7,11,0,1,2,4,5,6,8,9,10};
-
+  // Indexing the FMI entry
   const uint64_t entryIdx       = interval / GPU_FMI_ENTRY_SIZE;
   const uint32_t bitmapPosition = interval % GPU_FMI_ENTRY_SIZE;
-
   // Gathering the base of the seed
   const uint32_t bit0 =  base & 0x1L;
   const uint32_t bit1 = (base & 0x2L) >> 1;
   const uint32_t missedEntry = (entryIdx % GPU_FMI_ALTERNATE_COUNTERS == bit1) ? 0 : 1;
   const uint64_t bigCounter  = fmi[entryIdx + missedEntry].counters[bit0];
-
   // Reorder bitmaps layout for low flag
   uint32_t numCharacters = 0;
   for(uint32_t idBitmap = 0; idBitmap < NUM_BITMAPS; ++idBitmap){
@@ -135,17 +136,15 @@ gpu_error_t gpu_fmi_table_process_backward_level(const gpu_fmi_entry_t* const h_
 gpu_error_t gpu_fmi_table_get_positions(const uint32_t idLevel, const uint32_t idEntry, const offset_table_t* const offsetsTableLUT,
                                         uint32_t* const idGlobalL, uint32_t* const idGlobalR)
 {
-  const uint32_t numBases            = GPU_FMI_TABLE_ALPHABET_SIZE;
   const uint32_t initOffsetCurrLevel = offsetsTableLUT[idLevel].init, topOffsetCurrLevel = offsetsTableLUT[idLevel].top;
-  const uint32_t numLeftElements     = topOffsetCurrLevel - initOffsetCurrLevel;
-  const uint32_t idLastLeftSubGroup  = ((numBases - 1) * (numLeftElements / numBases));
   // Creating the hash key to obtain the corresponding FMI interval
   const uint32_t idTableLeft  = idEntry;
   const uint32_t idTableRight = idTableLeft >> 2;
   // Gathering the table entries for L & R (specialized table layout)
   uint32_t idL = initOffsetCurrLevel + idTableLeft;
   uint32_t idR = initOffsetCurrLevel + idTableLeft + 1;
-  if(idTableLeft >= idLastLeftSubGroup) idR = topOffsetCurrLevel + idTableRight;
+  if((idEntry & GPU_FMI_TABLE_KEY_MASK) == (GPU_FMI_TABLE_ALPHABET_SIZE - 1))
+    idR = topOffsetCurrLevel + idTableRight;
   (* idGlobalL) = idL; (* idGlobalR) = idR;
   // Succeed
   return(SUCCESS);
@@ -157,7 +156,7 @@ gpu_error_t gpu_fmi_table_process_backward_links(const uint32_t idLevel, const u
   const uint32_t initOffsetCurrLevel = offsetsTableLUT[idLevel].init, topOffsetCurrLevel = offsetsTableLUT[idLevel].top;
   const uint32_t numEntries          = topOffsetCurrLevel - initOffsetCurrLevel;
   uint32_t idEntry;
-  //Extracts the superior link mark
+  // Extracts the superior link mark
   for(idEntry = 0; idEntry < numEntries; ++idEntry){
     uint64_t L, R, occ, linkContent = ((uint64_t)idLevel) << GPU_FMI_TABLE_FIELD_LENGTH;
     uint32_t idL, idR;
@@ -165,7 +164,7 @@ gpu_error_t gpu_fmi_table_process_backward_links(const uint32_t idLevel, const u
     L = fmiTableLUT[idL]; R = fmiTableLUT[idR];
     occ = R - L;
     if(occ <= occThreshold){
-      //Extracts the superior link mark
+      // Extracts the superior link mark
       const uint32_t idParentLevel     = idLevel - 1;
       const uint32_t offsetParentEntry = offsetsTableLUT[idParentLevel].init;
       const uint32_t idParentEntry     = idEntry & (~(GPU_UINT32_ONES << (idParentLevel << 1)));
@@ -270,7 +269,6 @@ gpu_error_t gpu_fmi_table_init(gpu_fmi_table_t* const fmiTable, const uint32_t n
 {
   uint32_t idSupDevice, totalElemTableLUT;
   GPU_ERROR(gpu_fmi_table_init_dto(fmiTable));
-
   GPU_ERROR(gpu_fmi_table_get_num_elements(numLevels, &totalElemTableLUT));
 
   fmiTable->maxLevelsTableLUT = numLevels;

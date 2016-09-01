@@ -126,7 +126,7 @@ Functions to transfer data HOST <-> DEVICE (Decode)
 gpu_error_t gpu_fmi_decode_transfer_CPU_to_GPU(gpu_buffer_t* const mBuff)
 {
   const gpu_fmi_decode_init_pos_buffer_t* initPosBuff = &mBuff->data.decode.initPositions;
-  const cudaStream_t                      idStream    =  mBuff->idStream;
+  const cudaStream_t                      idStream    =  mBuff->listStreams[mBuff->idStream];
   const size_t                            cpySize     =  initPosBuff->numDecodings * sizeof(gpu_fmi_decode_init_pos_t);
 
   //Transfer seeds from CPU to the GPU
@@ -139,7 +139,7 @@ gpu_error_t gpu_fmi_decode_transfer_GPU_to_CPU(gpu_buffer_t* const mBuff)
 {
   const gpu_fmi_decode_end_pos_buffer_t   *endPosBuff  = &mBuff->data.decode.endPositions;
   const gpu_fmi_decode_text_pos_buffer_t  *textPosBuff = &mBuff->data.decode.textPositions;
-  const cudaStream_t                      idStream     =  mBuff->idStream;
+  const cudaStream_t                      idStream     =  mBuff->listStreams[mBuff->idStream];
         size_t                            cpySize      =  0;
 
   //Transfer SA intervals (occurrence results) from CPU to the GPU
@@ -177,10 +177,10 @@ void gpu_fmi_decode_send_buffer_(void* const fmiBuffer, const uint32_t numDecodi
 
 void gpu_fmi_decode_receive_buffer_(const void* const fmiBuffer)
 {
-  const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
-
+  const gpu_buffer_t* const mBuff    = (gpu_buffer_t *) fmiBuffer;
+  const cudaStream_t        idStream =  mBuff->listStreams[mBuff->idStream];
   //Synchronize Stream (the thread wait for the commands done in the stream)
-  CUDA_ERROR(cudaStreamSynchronize(mBuff->idStream));
+  CUDA_ERROR(cudaStreamSynchronize(idStream));
 }
 
 #endif /* GPU_FMI_PRIMITIVES_DECODE_C_ */

@@ -180,7 +180,7 @@ Functions to transfer data HOST <-> DEVICE (E. SEARCH)
 gpu_error_t gpu_fmi_ssearch_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
 {
   const gpu_fmi_search_seeds_buffer_t*  seedBuff = &mBuff->data.ssearch.seeds;
-  const cudaStream_t                    idStream =  mBuff->idStream;
+  const cudaStream_t                    idStream =  mBuff->listStreams[mBuff->idStream];
   const size_t                          cpySize  =  seedBuff->numSeeds * sizeof(gpu_fmi_search_seed_t);
 
   //Transfer seeds from CPU to the GPU
@@ -192,7 +192,7 @@ gpu_error_t gpu_fmi_ssearch_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
 gpu_error_t gpu_fmi_ssearch_transfer_GPU_to_CPU(gpu_buffer_t* const mBuff)
 {
   const gpu_fmi_search_sa_inter_buffer_t* interBuff = &mBuff->data.ssearch.saIntervals;
-  const cudaStream_t                      idStream  =  mBuff->idStream;
+  const cudaStream_t                      idStream  =  mBuff->listStreams[mBuff->idStream];
   const size_t                            cpySize   =  interBuff->numIntervals * sizeof(gpu_sa_search_inter_t);
 
   //Transfer SA intervals (occurrence results) from CPU to the GPU
@@ -219,10 +219,11 @@ void gpu_fmi_ssearch_send_buffer_(void* const fmiBuffer, const uint32_t numSeeds
 
 void gpu_fmi_ssearch_receive_buffer_(const void* const fmiBuffer)
 {
-  const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
+  const gpu_buffer_t* const mBuff    = (gpu_buffer_t *) fmiBuffer;
+  const cudaStream_t        idStream =  mBuff->listStreams[mBuff->idStream];
 
   //Synchronize Stream (the thread wait for the commands done in the stream)
-  CUDA_ERROR(cudaStreamSynchronize(mBuff->idStream));
+  CUDA_ERROR(cudaStreamSynchronize(idStream));
 }
 
 #endif /* GPU_FMI_PRIMITIVES_C_ */

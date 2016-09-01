@@ -172,7 +172,7 @@ gpu_error_t gpu_kmer_process_buffer(gpu_buffer_t *mBuff)
   const gpu_kmer_queries_buffer_t* const    qry           = &mBuff->data.kmer.queries;
   const gpu_kmer_candidates_buffer_t* const cand          = &mBuff->data.kmer.candidates;
   const gpu_kmer_alignments_buffer_t* const res           = &mBuff->data.kmer.alignments;
-  const cudaStream_t                        idStream      =  mBuff->idStream;
+  const cudaStream_t                        idStream      =  mBuff->listStreams[mBuff->idStream];
   const uint32_t                            idSupDev      =  mBuff->idSupportedDevice;
   const gpu_device_info_t* const            device        =  mBuff->device[idSupDev];
   const uint32_t                            maxBases      =  mBuff->data.kmer.maxBases;

@@ -278,7 +278,7 @@ gpu_error_t gpu_bpm_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
   gpu_bpm_candidates_buffer_t *cand     = &mBuff->data.bpm.candidates;
   gpu_bpm_reorder_buffer_t    *rebuff   = &mBuff->data.bpm.reorderBuffer;
   gpu_bpm_alignments_buffer_t *res      = &mBuff->data.bpm.alignments;
-  cudaStream_t                idStream  = mBuff->idStream;
+  cudaStream_t                idStream  = mBuff->listStreams[mBuff->idStream];
   size_t                      cpySize   = 0;
   float                       bufferUtilization;
   // Defining buffer offsets
@@ -319,7 +319,7 @@ gpu_error_t gpu_bpm_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
 
 gpu_error_t gpu_bpm_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
 {
-  cudaStream_t                idStream  =  mBuff->idStream;
+  cudaStream_t                idStream  =  mBuff->listStreams[mBuff->idStream];
   gpu_bpm_alignments_buffer_t *res      = &mBuff->data.bpm.alignments;
   size_t                      cpySize;
   // Avoiding transferences of the intermediate results (binning input work regularization)
@@ -340,11 +340,13 @@ void gpu_bpm_send_buffer_(void* const bpmBuffer, const uint32_t numPEQEntries, c
   gpu_buffer_t* const mBuff     = (gpu_buffer_t *) bpmBuffer;
   const uint32_t    idSupDevice = mBuff->idSupportedDevice;
   //Set real size of the things
-  mBuff->data.bpm.queryBinning                = queryBinning;
-  mBuff->data.bpm.queries.totalQueriesEntries = numPEQEntries;
-  mBuff->data.bpm.queries.numQueries          = numQueries;
-  mBuff->data.bpm.candidates.numCandidates    = numCandidates;
-  mBuff->data.bpm.alignments.numAlignments    = numCandidates;
+  mBuff->data.bpm.queryBinning                      = queryBinning;
+  mBuff->data.bpm.queries.totalQueriesEntries       = numPEQEntries;
+  mBuff->data.bpm.queries.numQueries                = numQueries;
+  mBuff->data.bpm.candidates.numCandidates          = numCandidates;
+  mBuff->data.bpm.alignments.numAlignments          = numCandidates;
+  //ReorderAlignments elements are allocated just for divergent size queries
+  mBuff->data.bpm.alignments.numReorderedAlignments = 0;
   //Select the device of the Multi-GPU platform
   CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
   //CPU->GPU Transfers & Process Kernel in Asynchronous way
@@ -377,12 +379,13 @@ gpu_error_t gpu_bpm_reordering_alignments(gpu_buffer_t *mBuff)
 
 void gpu_bpm_receive_buffer_(void* const bpmBuffer)
 {
-  gpu_buffer_t* const mBuff  = (gpu_buffer_t *) bpmBuffer;
-  const uint32_t idSupDevice = mBuff->idSupportedDevice;
+  gpu_buffer_t* const mBuff       = (gpu_buffer_t *) bpmBuffer;
+  const uint32_t      idSupDevice = mBuff->idSupportedDevice;
+  const cudaStream_t  idStream    =  mBuff->listStreams[mBuff->idStream];
   //Select the device of the Multi-GPU platform
   CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
   //Synchronize Stream (the thread wait for the commands done in the stream)
-  CUDA_ERROR(cudaStreamSynchronize(mBuff->idStream));
+  CUDA_ERROR(cudaStreamSynchronize(idStream));
   //Reorder the final results
   GPU_ERROR(gpu_bpm_reordering_alignments(mBuff));
 }

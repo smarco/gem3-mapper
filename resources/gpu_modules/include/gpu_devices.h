@@ -16,7 +16,7 @@
 GPU Interface Objects
 **************************************/
 /* Defines related to GPU configurations*/
-#define GPU_DEVICE_STREAM_CONFIG      GPU_STREAM_THREAD_MAPPED
+#define GPU_DEVICE_STREAM_CONFIG      GPU_STREAM_BUFFER_MAPPED
 #define GPU_DEVICE_STREAM_DEFAULT     0
 
 /* Defines related to GPU Architecture */

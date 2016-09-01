@@ -259,6 +259,8 @@ gpu_error_t gpu_index_init(gpu_index_buffer_t** const index, const gpu_index_dto
   //Initialize the the active index modules
   iBuff->activeModules = activeModules & GPU_INDEX;
 
+  GPU_ERROR(gpu_fmi_index_init_dto(&iBuff->fmi));
+  GPU_ERROR(gpu_fmi_table_init_dto(&iBuff->fmi.table));
   GPU_ERROR(gpu_fmi_index_init(&iBuff->fmi, iBuff->fmi.bwtSize, numSupportedDevices));
   GPU_ERROR(gpu_fmi_table_init(&iBuff->fmi.table, iBuff->fmi.table.maxLevelsTableLUT, numSupportedDevices));
   GPU_ERROR(gpu_sa_index_init(&iBuff->sa, iBuff->sa.numEntries, iBuff->sa.sampligRate, numSupportedDevices));

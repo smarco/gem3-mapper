@@ -23,7 +23,7 @@ typedef struct {
   gpu_module_t            typeBuffer;
   uint32_t                numBuffers;
   uint32_t                idBuffer;
-  cudaStream_t            idStream;
+  uint32_t                idStream;
   cudaStream_t            *listStreams;
   uint32_t                idSupportedDevice;
   gpu_device_info_t       **device;

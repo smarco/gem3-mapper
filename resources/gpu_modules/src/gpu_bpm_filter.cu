@@ -156,7 +156,7 @@ gpu_error_t gpu_bpm_process_buffer(gpu_buffer_t *mBuff)
   const gpu_bpm_candidates_buffer_t* const  cand          = &mBuff->data.bpm.candidates;
   const gpu_bpm_reorder_buffer_t* const     rebuff        = &mBuff->data.bpm.reorderBuffer;
   const gpu_bpm_alignments_buffer_t* const  res           = &mBuff->data.bpm.alignments;
-  const cudaStream_t                        idStream      =  mBuff->idStream;
+  const cudaStream_t                        idStream      =  mBuff->listStreams[mBuff->idStream];
   const uint32_t                            idSupDev      =  mBuff->idSupportedDevice;
   const gpu_device_info_t* const            device        =  mBuff->device[idSupDev];
   const uint32_t                            numAlignments = res->numAlignments;

@@ -152,7 +152,7 @@ gpu_error_t gpu_kmer_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
   gpu_kmer_queries_buffer_t    *qry      = &mBuff->data.kmer.queries;
   gpu_kmer_candidates_buffer_t *cand     = &mBuff->data.kmer.candidates;
   gpu_kmer_alignments_buffer_t *res      = &mBuff->data.kmer.alignments;
-  cudaStream_t                 idStream  = mBuff->idStream;
+  cudaStream_t                 idStream  = mBuff->listStreams[mBuff->idStream];
   size_t                       cpySize   = 0;
   float                        bufferUtilization;
   // Defining buffer offsets
@@ -182,7 +182,7 @@ gpu_error_t gpu_kmer_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
 
 gpu_error_t gpu_kmer_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
 {
-  cudaStream_t                 idStream  =  mBuff->idStream;
+  cudaStream_t                 idStream  =  mBuff->listStreams[mBuff->idStream];
   gpu_kmer_alignments_buffer_t *res      = &mBuff->data.kmer.alignments;
   size_t                       cpySize;
   // Transfer Candidates to CPU
@@ -219,12 +219,13 @@ Functions to receive & process a K-MER buffer from GPU
 
 void gpu_kmer_receive_buffer_(void* const kmerBuffer)
 {
-  gpu_buffer_t* const mBuff  = (gpu_buffer_t *) kmerBuffer;
-  const uint32_t idSupDevice = mBuff->idSupportedDevice;
+  gpu_buffer_t* const mBuff       = (gpu_buffer_t *) kmerBuffer;
+  const uint32_t      idSupDevice = mBuff->idSupportedDevice;
+  const cudaStream_t  idStream    =  mBuff->listStreams[mBuff->idStream];
   //Select the device of the Multi-GPU platform
   CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
   //Synchronize Stream (the thread wait for the commands done in the stream)
-  CUDA_ERROR(cudaStreamSynchronize(mBuff->idStream));
+  CUDA_ERROR(cudaStreamSynchronize(idStream));
 }
 
 #endif /* GPU_KMER_PRIMITIVES_C_ */

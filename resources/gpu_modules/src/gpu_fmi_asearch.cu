@@ -36,7 +36,6 @@ GPU_INLINE __device__ void gpu_fmi_query_reverse_lookup(const uint64_t* const qu
     infoQuery = idEntryQuery;
   }
   //logical base extraction from cached request
-  //shiftBits = (GPU_FMI_BASES_PER_QUERY_ENTRY - idIntraQuery - 1) * GPU_FMI_BASE_QUERY_LENGTH;
   shiftBits = idIntraQuery * GPU_FMI_BASE_QUERY_LENGTH;
   base      = (infoBase >> shiftBits) & 0xFF;
   //return the requested data
@@ -53,25 +52,20 @@ GPU_INLINE __device__ void advance_step_LF_mapping(const gpu_fmi_device_entry_t*
   const uint32_t localWarpThreadIdx  = globalThreadIdx    % GPU_WARP_SIZE;
   const uint32_t localEntryIdx       = localWarpThreadIdx / GPU_FMI_THREADS_PER_ENTRY;
   const uint32_t localEntryThreadIdx = localWarpThreadIdx % GPU_FMI_THREADS_PER_ENTRY;
-
   // Communicate along the FMI entry group threads the L o R interval
   uint64_t       interval       = (localEntryIdx % GPU_FMI_ENTRIES_PER_QUERY) ? (* R) : (* L);
   const uint64_t entryIdx       =  interval / GPU_FMI_ENTRY_SIZE;
   const uint32_t bitmapPosition =  interval % GPU_FMI_ENTRY_SIZE;
-
   // Loading FM-index entry in thread cooperative way
   const uint32_t missedEntry   = (entryIdx % GPU_FMI_ALTERNATE_COUNTERS != bit1) ? 1 : 0;
   const uint64_t entryIdxFixed = (localEntryThreadIdx == 0) ? entryIdx + missedEntry : entryIdx;
   uint4 loadEntry              = fmi[entryIdxFixed].v[localEntryThreadIdx];
-
   // Compute LF-Mapping (th0 of each group contain the result)
   interval = LF_Mapping(loadEntry, seedExchBMP, missedEntry, localEntryThreadIdx, bitmapPosition, bit1, bit0);
-
   // Update interval & communicate the th0 (L, R) to the rest of group threads
   const uint32_t lane = GPU_SELECT_OFFSET(localWarpThreadIdx, GPU_FMI_THREADS_PER_QUERY);
   (* L) = shfl_64(interval, lane);
   (* R) = shfl_64(interval, lane + GPU_FMI_THREADS_PER_ENTRY);
-
 }
 
 void __global__ gpu_fmi_asearch_kernel(const gpu_fmi_device_entry_t* const fmi, const uint64_t bwtSize,
@@ -308,7 +302,6 @@ void __global__ gpu_fmi_asearch_table_linked_kernel(const gpu_fmi_device_entry_t
   const uint32_t globalThreadIdx     = gpu_get_thread_idx();
   const uint32_t localWarpThreadIdx  = globalThreadIdx % GPU_WARP_SIZE;
   const uint32_t idQuery             = globalThreadIdx / GPU_FMI_THREADS_PER_QUERY;
-
   // Sanity check (threads with asigned work will be executed)
   if (idQuery < numQueries){
     // Setting thread buffer affinity
@@ -316,11 +309,9 @@ void __global__ gpu_fmi_asearch_table_linked_kernel(const gpu_fmi_device_entry_t
     const uint64_t* const query          = (uint64_t*) (queries + queryInfo[idQuery].x);
     ulonglong2* const     regionInterval = regIntervals + regions[idQuery].x;
     uint2* const          regionOffset   = regOffset    + regions[idQuery].x;
-
     // Shared memory space dedicated for the internal FMI entry thread-communications
     __shared__ gpu_fmi_exch_bmp_mem_t   exchBMP[GPU_FMI_ENTRIES_PER_BLOCK];
                gpu_fmi_exch_bmp_mem_t * const seedExchBMP = &exchBMP[threadIdx.x / GPU_FMI_THREADS_PER_ENTRY];
-
     //Search variable declaration
     const uint32_t maxRegions = GPU_MAX(GPU_DIV_CEIL(querySize, maxRegionsFactor), GPU_FMI_MIN_REGIONS);
           uint32_t infoQuery = GPU_UINT32_ONES, idBase = 0, idRegion = 0, initBase = 0, endBase = 0;
@@ -335,7 +326,6 @@ void __global__ gpu_fmi_asearch_table_linked_kernel(const gpu_fmi_device_entry_t
       // Search initializations
       L = 0; R = bwtSize;
       idBase = initBase = endBase;
-
       // LUT initializations
       gpu_fmi_table_linked_lookup(query, querySize, &infoBase, &infoQuery, fmiTable, offsetsTable, maxLevels,
                                   &idBase, &L, &R, &foundN);
@@ -406,19 +396,16 @@ void __global__ gpu_fmi_asearch_table_kernel(const gpu_fmi_device_entry_t* const
   const uint32_t globalThreadIdx     = gpu_get_thread_idx();
   const uint32_t localWarpThreadIdx  = globalThreadIdx % GPU_WARP_SIZE;
   const uint32_t idQuery             = globalThreadIdx / GPU_FMI_THREADS_PER_QUERY;
-
   // Sanity check (threads with asigned work will be executed)
   if (idQuery < numQueries){
     // Setting thread buffer affinity
-    const uint32_t    querySize      = queryInfo[idQuery].y; // 1st query position
-    const uint64_t* const query      = (uint64_t*) (queries + queryInfo[idQuery].x);
-    ulonglong2* const regionInterval = regIntervals + regions[idQuery].x;
-    uint2* const      regionOffset   = regOffset    + regions[idQuery].x;
-
+    const uint32_t        querySize      = queryInfo[idQuery].y; // 1st query position
+    const uint64_t* const query          = (uint64_t*) (queries + queryInfo[idQuery].x);
+    ulonglong2* const     regionInterval = regIntervals + regions[idQuery].x;
+    uint2* const          regionOffset   = regOffset    + regions[idQuery].x;
     // Shared memory space dedicated for the internal FMI entry thread-communications
     __shared__ gpu_fmi_exch_bmp_mem_t   exchBMP[GPU_FMI_ENTRIES_PER_BLOCK];
                gpu_fmi_exch_bmp_mem_t * const seedExchBMP = &exchBMP[threadIdx.x / GPU_FMI_THREADS_PER_ENTRY];
-
     //Search variable declaration
     const uint32_t maxRegions = GPU_MAX(GPU_DIV_CEIL(querySize, maxRegionsFactor), GPU_FMI_MIN_REGIONS);
           uint32_t infoQuery = GPU_UINT32_ONES, idBase = 0, idRegion = 0, initBase = 0, endBase = 0;
@@ -564,7 +551,7 @@ gpu_error_t gpu_fmi_asearch_process_buffer(gpu_buffer_t* const mBuff)
   const uint32_t                            numBases         =  mBuff->data.asearch.queries.numBases;
   const uint32_t                            numMaxBases      =  mBuff->data.asearch.numMaxBases;
   // Getting device information
-  const cudaStream_t                        idStream         =  mBuff->idStream;
+  const cudaStream_t                        idStream         =  mBuff->listStreams[mBuff->idStream];
   const uint32_t                            idSupDev         =  mBuff->idSupportedDevice;
   const gpu_device_info_t* const            device           =  mBuff->device[idSupDev];
   // Search configuration
