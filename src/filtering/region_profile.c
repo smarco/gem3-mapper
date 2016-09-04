@@ -152,7 +152,6 @@ void region_profile_fill_gaps_add(
   filtering_region_filled[region_idx].begin = begin_region;
   filtering_region_filled[region_idx].end = end_region;
   filtering_region_filled[region_idx].degree = degree;
-  // filtering_region_filled[region_idx].lo = num_wildcards;
 }
 void region_profile_fill_gaps(
     region_profile_t* const region_profile,
@@ -224,6 +223,7 @@ void region_profile_merge_small_regions(
         filtering_region_before->end = filtering_region->end;
         filtering_region_before->degree = 0;
         ++filtering_region; ++i;
+        continue;
       } else if (filtering_region_after && filtering_region_after->degree==0 &&
                 (filtering_region_after->end - filtering_region_after->begin) >= proper_length) {
         // Merge with region-after
@@ -233,11 +233,13 @@ void region_profile_merge_small_regions(
         filtering_region_before = filtering_region_out;
         ++filtering_region_out;
         filtering_region += 2; i += 2;
+        continue;
       } else if (filtering_region_before) {
         // Merge with region-before
         filtering_region_before->end = filtering_region->end;
         filtering_region_before->degree = 0;
         ++filtering_region; ++i;
+        continue;
       } else if (filtering_region_after) {
         // Merge with region-after
         filtering_region_out->begin = filtering_region->begin;
@@ -246,16 +248,16 @@ void region_profile_merge_small_regions(
         filtering_region_before = filtering_region_out;
         ++filtering_region_out;
         filtering_region += 2; i += 2;
+        continue;
       }
-    } else {
-      // Copy region
-      if (filtering_region_out != filtering_region) {
-        *filtering_region_out = *filtering_region;
-      }
-      filtering_region_before = filtering_region_out;
-      ++filtering_region_out;
-      ++filtering_region; ++i;
     }
+    // Copy region
+    if (filtering_region_out != filtering_region) {
+      *filtering_region_out = *filtering_region;
+    }
+    filtering_region_before = filtering_region_out;
+    ++filtering_region_out;
+    ++filtering_region; ++i;
   }
   // Set total number of regions
   region_profile->num_filtering_regions = filtering_region_out - region_profile->filtering_region;

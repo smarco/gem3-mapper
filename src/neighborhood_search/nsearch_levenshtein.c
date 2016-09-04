@@ -34,8 +34,8 @@ void nsearch_levenshtein_query(
 uint64_t nsearch_levenshtein_terminate(
     nsearch_schedule_t* const nsearch_schedule,
     const uint64_t text_position,
-    const uint64_t lo,
-    const uint64_t hi,
+    uint64_t lo,
+    uint64_t hi,
     const uint64_t align_distance) {
   // PROFILE
   PROF_ADD_COUNTER(GP_NS_SEARCH_DEPTH,text_position);
@@ -46,9 +46,20 @@ uint64_t nsearch_levenshtein_terminate(
   fprintf(stdout,"\n");
   return 1;
 #else
+  // Parameters
   filtering_candidates_t* const filtering_candidates = nsearch_schedule->search->filtering_candidates;
   search_parameters_t* const search_parameters = nsearch_schedule->search->search_parameters;
+  select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;
   pattern_t* const pattern = &nsearch_schedule->search->pattern;
+  // FIXME: Depending on the mapping-strategy regulate this (avoid on complete-search)
+  // Limit the number of candidates (cases than can exponentially explode)
+  if (select_parameters->min_reported_strata_nominal==0) {
+    const uint64_t num_candidates = hi - lo;
+    if (num_candidates > select_parameters->max_reported_matches) {
+      hi = lo + select_parameters->max_reported_matches;
+    }
+  }
+  // Add candidates to filtering
   bool limited;
   filtering_candidates_add_region_interval(
       filtering_candidates,search_parameters,pattern,

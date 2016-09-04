@@ -51,7 +51,7 @@ void as_hybrid_control_filtering_adaptive_next_state(
     case asearch_processing_state_no_regions:
       search->current_max_complete_error = delta;
       search->search_stage = asearch_stage_neighborhood;
-      return;
+      break;
     case asearch_processing_state_candidates_verified:
       // Neighborhood Search : Unmapped
       if (!matches_is_mapped(matches)) {
@@ -60,14 +60,14 @@ void as_hybrid_control_filtering_adaptive_next_state(
         // Adjust max-error
         search->current_max_complete_error = mcs + delta;
         search->search_stage = asearch_stage_neighborhood;
-        return;
+        break;
       }
       // Check match-class & error-reached
       matches_classify(matches);
       if (matches->matches_class==matches_class_tie_perfect ||
           mcs >= search_parameters->complete_search_error_nominal+1) {
         search->search_stage = asearch_stage_end;
-        return;
+        break;
       }
       // Neighborhood Search : Frontier 0:1+0 & Beyond 0:0+0:0:1
       const uint64_t min_edit_distance = matches_metrics_get_min_edit_distance(&matches->metrics);
@@ -79,13 +79,18 @@ void as_hybrid_control_filtering_adaptive_next_state(
 #endif
         search->current_max_complete_error = MIN(search->current_max_complete_error,min_edit_distance+1);
         search->search_stage = asearch_stage_neighborhood;
-        return;
+        break;
       }
       search->search_stage = asearch_stage_end;
       break;
     default:
       GEM_INVALID_CASE();
       break;
+  }
+  // Check neighborhood-search & number of wildcards
+  if (search->search_stage==asearch_stage_neighborhood &&
+      search->pattern.num_wildcards > search->current_max_complete_error) {
+    search->search_stage = asearch_stage_end;
   }
 }
 void as_hybrid_control_neighborhood_next_state(
