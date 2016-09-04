@@ -41,7 +41,7 @@ void gpu_structures_write(
       /* (numLevels, Size) => (9, 0.8MB) (10, 3.2MB) (11, 13MB) (12, 52MB) (13, 210MB) */
       .num_levels_fmi_table     = RANK_MTABLE_LEVELS,
       .skip_levels_fmi_table    = rank_mtable->min_matching_depth,
-      .occ_threashold_fmi_table = 20,
+      .occ_threashold_fmi_table = RANK_MTABLE_MMD_THRESHOLD,
   };
   gpu_gem_sa_dto_t gpu_gem_sa_dto = {
       .sa           = sa_gem,
