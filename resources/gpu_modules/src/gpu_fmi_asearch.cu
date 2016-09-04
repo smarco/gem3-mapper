@@ -173,11 +173,11 @@ GPU_INLINE __device__ void gpu_fmi_table_get_positions(const uint32_t idLevel, c
 
 GPU_INLINE __device__ void gpu_fmi_table_linked_lookup(const uint64_t* const query, const uint32_t querySize, uint64_t* const infoBase, uint32_t* const infoQuery,
                                                        const uint64_t* const fmiTable, const uint2* const offsetsTable, const uint32_t maxLevels,
-                                                       uint32_t* const globalBase, uint64_t* const globalL, uint64_t* const globalR, bool* const globalFoundN)
+                                                       uint32_t* const globalBase, uint64_t* const globalL, uint64_t* const globalR)
 {
   uint32_t idTable = 0, idLevel = 0, idBase = (* globalBase);
   uint64_t L = (* globalL), R = (* globalR);
-  bool     foundN = (* globalFoundN);
+  bool     foundN = false;
   // Skipping the first n table levels where n = (OCC > OCC_THRESHOLD)
   while((idLevel < maxLevels - 1) && (idBase < querySize) && !foundN){
     uint32_t bit0, bit1, indexBase;
@@ -185,15 +185,13 @@ GPU_INLINE __device__ void gpu_fmi_table_linked_lookup(const uint64_t* const que
     // Gathering the base of the seed
     gpu_fmi_query_reverse_lookup(query, idBase, querySize, &base, infoBase, infoQuery);
     gpu_fmi_query_decompose(base, &bit0, &bit1, &foundN);
-    idBase++;
     if(!foundN){
       // Creating the hash key to obtain the corresponding FMI interval
       indexBase = bit0 | (bit1 << 1);
       idTable |= (indexBase << (idLevel << 1));
-      idLevel++;
+      idLevel++; idBase++;
     }
   }
-
   // Query the FMI table if seed no not start with N
   if(idLevel){
     uint32_t idL, idR, idLevelRestored;
@@ -213,7 +211,6 @@ GPU_INLINE __device__ void gpu_fmi_table_linked_lookup(const uint64_t* const que
   // Updating the search parameters
   (* globalL)      = L & GPU_FMI_TABLE_FIELD_MASK;
   (* globalR)      = R & GPU_FMI_TABLE_FIELD_MASK;
-  (* globalFoundN) = foundN;
   (* globalBase)   = idBase;
 }
 
@@ -327,8 +324,7 @@ void __global__ gpu_fmi_asearch_table_linked_kernel(const gpu_fmi_device_entry_t
       L = 0; R = bwtSize;
       idBase = initBase = endBase;
       // LUT initializations
-      gpu_fmi_table_linked_lookup(query, querySize, &infoBase, &infoQuery, fmiTable, offsetsTable, maxLevels,
-                                  &idBase, &L, &R, &foundN);
+      gpu_fmi_table_linked_lookup(query, querySize, &infoBase, &infoQuery, fmiTable, offsetsTable, maxLevels, &idBase, &L, &R);
       occ = R - L;
       //Searching for the next seed
       while((occ > occThreshold) && (idBase < querySize) && !foundN){
