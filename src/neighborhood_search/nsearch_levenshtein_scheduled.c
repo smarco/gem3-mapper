@@ -135,12 +135,13 @@ uint64_t nsearch_levenshtein_scheduled_terminate(
     const uint64_t align_distance) {
   // Parameters
   fm_2interval_t* const fm_2interval = &nsearch_query->fm_2interval;
+#ifdef NSEARCH_ENUMERATE
   // PROFILE
   PROF_ADD_COUNTER(GP_NS_SEARCH_DEPTH,text_length);
-  PROF_ADD_COUNTER(GP_NS_CANDIDATES_GENERATED,(fm_2interval->backward_hi-fm_2interval->backward_lo));
-#ifdef NSEARCH_ENUMERATE
+  PROF_ADD_COUNTER(GP_NS_CANDIDATES_GENERATED,1);
+  // Search Text
   nsearch_operation->text_position = text_length;
-  nsearch_operation_state_print_global_text(stdout,nsearch_operation); // Print Search Text
+  nsearch_operation_state_print_global_text(stdout,nsearch_operation); // Print
   return 1;
 #else
   // Parameters
@@ -162,6 +163,10 @@ uint64_t nsearch_levenshtein_scheduled_terminate(
     region_begin = BOUNDED_SUBTRACTION(global_key_end,max_region_scope,0);
     region_end = global_key_end + max_error;
   }
+  // PROFILE
+  PROF_ADD_COUNTER(GP_NS_SEARCH_DEPTH,text_length);
+  PROF_ADD_COUNTER(GP_NS_BRANCH_CANDIDATES_GENERATED,
+      (fm_2interval->backward_hi-fm_2interval->backward_lo));
   // Add interval
   bool limited;
   filtering_candidates_add_region_interval(

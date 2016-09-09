@@ -268,7 +268,8 @@
 #define GP_NS_DP_CELLS_COMPUTED                             640
 
 #define GP_NS_SEARCH_DEPTH                                  645
-#define GP_NS_CANDIDATES_GENERATED                          646
+#define GP_NS_SEARCH_CANDIDATES_GENERATED                   646
+#define GP_NS_BRANCH_CANDIDATES_GENERATED                   647
 
 /*
  * Checks

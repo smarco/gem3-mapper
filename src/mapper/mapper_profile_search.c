@@ -242,8 +242,11 @@ void mapper_profile_print_neighborhood_search(FILE* const stream) {
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_SEARCH_DEPTH),NULL,"     ",true);
   tab_fprintf(stream,"  --> NS.Cells.Computed                            ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_DP_CELLS_COMPUTED),NULL,"     ",true);
-  tab_fprintf(stream,"  --> NS.Candidates                                ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_CANDIDATES_GENERATED),
+  tab_fprintf(stream,"  --> NS.Branch.Candidates                         ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_BRANCH_CANDIDATES_GENERATED),
+                       PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"     ",true);
+  tab_fprintf(stream,"  --> NS.Search.Candidates                         ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_SEARCH_CANDIDATES_GENERATED),
                        PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"     ",true);
 }
 void mapper_profile_print_neighborhood_search_ranks(FILE* const stream) {

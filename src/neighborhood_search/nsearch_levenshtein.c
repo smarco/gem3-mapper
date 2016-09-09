@@ -39,7 +39,7 @@ uint64_t nsearch_levenshtein_terminate(
     const uint64_t align_distance) {
   // PROFILE
   PROF_ADD_COUNTER(GP_NS_SEARCH_DEPTH,text_position);
-  PROF_ADD_COUNTER(GP_NS_CANDIDATES_GENERATED,(hi-lo));
+  PROF_ADD_COUNTER(GP_NS_BRANCH_CANDIDATES_GENERATED,(hi-lo));
 #ifdef NSEARCH_ENUMERATE
   const uint8_t* const text = nsearch_schedule->pending_searches->text;
   dna_buffer_print(stdout,text,text_position+1,true);
@@ -162,7 +162,14 @@ void nsearch_levenshtein(
   nsearch_schedule_t nsearch_schedule;
   nsearch_schedule_init(&nsearch_schedule,nsearch_model_levenshtein,search,matches);
   nsearch_schedule_search(&nsearch_schedule);
-  // nsearch_schedule_print_profile(stderr,&nsearch_schedule); // PROFILE
+  // PROFILE
+#ifdef GEM_PROFILE
+  // nsearch_schedule_print_profile(stderr,&nsearch_schedule);
+  if (search->filtering_candidates != NULL) {
+    const uint64_t total_search_candidates = vector_get_used(search->filtering_candidates->filtering_positions);
+    PROF_ADD_COUNTER(GP_NS_SEARCH_CANDIDATES_GENERATED,total_search_candidates);
+  }
+#endif
 }
 /*
  * Neighborhood Search (Preconditioned by region profile)
@@ -174,7 +181,14 @@ void nsearch_levenshtein_preconditioned(
   nsearch_schedule_t nsearch_schedule;
   nsearch_schedule_init(&nsearch_schedule,nsearch_model_levenshtein,search,matches);
   nsearch_schedule_search_preconditioned(&nsearch_schedule);
-  // nsearch_schedule_print_profile(stderr,&nsearch_schedule); // PROFILE
+  // PROFILE
+#ifdef GEM_PROFILE
+  // nsearch_schedule_print_profile(stderr,&nsearch_schedule);
+  if (search->filtering_candidates != NULL) {
+    const uint64_t total_search_candidates = vector_get_used(search->filtering_candidates->filtering_positions);
+    PROF_ADD_COUNTER(GP_NS_SEARCH_CANDIDATES_GENERATED,total_search_candidates);
+  }
+#endif
 }
 /*
  * Display
