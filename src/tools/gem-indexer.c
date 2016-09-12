@@ -460,7 +460,7 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
   }
   // System
   if (parameters->max_memory==0) {
-    parameters->max_memory = mm_get_available_mem();
+    parameters->max_memory = mm_get_mem_total();
   }
   /*
    * Free
@@ -480,7 +480,7 @@ int main(int argc,char** argv) {
   parse_arguments(argc,argv,&parameters);
 
   // GEM Runtime setup
-  gruntime_init(parameters.num_threads,parameters.max_memory,parameters.tmp_folder);
+  gruntime_init(parameters.num_threads,parameters.tmp_folder);
   gem_info_set_stream(fopen(parameters.info_file_name,"wb")); // Set INFO file
   TIMER_RESTART(&gem_indexer_timer); // Start global timer
 

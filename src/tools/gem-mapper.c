@@ -1004,7 +1004,7 @@ int main(int argc,char** argv) {
 
   // Runtime setup
   const mapper_parameters_cuda_t* const cuda = &parameters.cuda;
-  gruntime_init(parameters.system.num_threads+1,parameters.system.max_memory,parameters.system.tmp_folder);
+  gruntime_init(parameters.system.num_threads+1,parameters.system.tmp_folder);
   PROFILE_START(GP_MAPPER_ALL,PHIGH);
   TIMER_RESET(&parameters.loading_time);
   TIMER_RESTART(&parameters.mapper_time);

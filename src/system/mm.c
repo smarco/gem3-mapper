@@ -30,6 +30,11 @@
 #include "system/fm.h"
 #include <sys/resource.h>
 
+#define MM_USE_SYSINFO
+#ifdef MM_USE_SYSINFO
+#include <sys/sysinfo.h>
+#endif
+
 /*
  * Config
  */
@@ -57,6 +62,7 @@
 #define GEM_ERROR_MEM_MAP_ZERO_FILE "Mapping zero-bytes File '%s' to memory"
 #define GEM_ERROR_MEM_ALG_FAILED "Failed aligning the memory address to the specified boundary"
 #define GEM_ERROR_MEM_STAT_MEMINFO "Could not stat '/proc/meminfo' (%s)"
+#define GEM_ERROR_MEM_SYSINFO "Error calling sysinfo"
 #define GEM_ERROR_MEM_PARSE_STATM "Could not parse stat-memory information"
 
 /*
@@ -588,7 +594,6 @@ void mm_write_mem(mm_t* const mem_manager,void* const src,const uint64_t num_byt
   memcpy(mem_manager->cursor,src,num_bytes);
   mem_manager->cursor += num_bytes;
 }
-
 /*
  * Status
  */
@@ -601,35 +606,23 @@ int64_t mm_get_stat_meminfo(const char* const label,const uint64_t label_length)
   // Open /proc/meminfo
   FILE* const meminfo = fopen("/proc/meminfo", "r");
   gem_cond_fatal_error__perror(meminfo == NULL,MEM_STAT_MEMINFO,"no such file");
-  // Parse /proc/meminfo
+  // Parse
   char *line = NULL;
   uint64_t chars_read=0, size=0;
   size_t line_length=0;
   while ((chars_read=getline(&line,&line_length,meminfo))!=-1) {
-    if (strncmp(line,"Cached:",7)==0) {
+    if (strncmp(line,label,label_length)==0) {
       sscanf(line,"%*s %"PRIu64"",&size);
       free(line); fclose(meminfo);
       return size*1024; // Bytes
     }
   }
   // Not found
-  free(line); fclose(meminfo);
+  free(line);
+  fclose(meminfo);
   return -1;
 }
-int64_t mm_get_available_cached_mem() {
-  const int64_t size = mm_get_stat_meminfo("Cached:",7);
-  gem_cond_fatal_error__perror(size==-1,MEM_STAT_MEMINFO,"Cached");
-  return size;
-}
-int64_t mm_get_available_free_mem() {
-  const int64_t size = mm_get_stat_meminfo("MemFree:",8);
-  gem_cond_fatal_error__perror(size==-1,MEM_STAT_MEMINFO,"MemFree");
-  return size;
-}
-int64_t mm_get_available_mem() {
-  return mm_get_available_free_mem()+mm_get_available_cached_mem();
-}
-int64_t mm_get_available_virtual_mem() {
+int64_t mm_get_mem_available_virtual() {
   // Get Total Program Size
   uint64_t vm_size = 0;
   FILE *statm = fopen("/proc/self/statm", "r");
@@ -642,4 +635,31 @@ int64_t mm_get_available_virtual_mem() {
   // Return Virtual Memory Available
   return lim.rlim_cur - vm_size; // Bytes
 }
+int64_t mm_get_mem_available_cached() {
+  const int64_t size = mm_get_stat_meminfo("Cached:",7);
+  gem_cond_fatal_error__perror(size==-1,MEM_STAT_MEMINFO,"Cached");
+  return size; // Bytes
+}
+int64_t mm_get_mem_available_free() {
+  const int64_t size = mm_get_stat_meminfo("MemFree:",8);
+  gem_cond_fatal_error__perror(size==-1,MEM_STAT_MEMINFO,"MemFree");
+  return size; // Bytes
+}
+int64_t mm_get_mem_available_total() {
+  return mm_get_mem_available_free()+mm_get_mem_available_cached(); // Bytes
+}
+#ifdef MM_USE_SYSINFO
+int64_t mm_get_mem_total() {
+  struct sysinfo info;
+  int error = sysinfo(&info);
+  gem_cond_fatal_error__perror(error!=0,MEM_SYSINFO);
+  return (int64_t)(info.totalram * info.mem_unit);// Bytes
+}
+#else
+int64_t mm_get_mem_total() {
+  const int64_t size = mm_get_stat_meminfo("MemTotal:",9);
+  gem_cond_fatal_error__perror(size==-1,MEM_STAT_MEMINFO,"MemTotal");
+  return size; // Bytes
+}
+#endif
 

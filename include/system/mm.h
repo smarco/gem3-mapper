@@ -248,9 +248,10 @@ void mm_write_mem(mm_t* const mem_manager,void* const src,const uint64_t num_byt
 
 // Status
 int64_t mm_get_page_size();
-int64_t mm_get_available_cached_mem();
-int64_t mm_get_available_free_mem();
-int64_t mm_get_available_mem();
-int64_t mm_get_available_virtual_mem();
+int64_t mm_get_mem_available_virtual();
+int64_t mm_get_mem_available_cached();
+int64_t mm_get_mem_available_free();
+int64_t mm_get_mem_available_total();
+int64_t mm_get_mem_total();
 
 #endif /* MEMORY_MANAGEMENT_H_ */

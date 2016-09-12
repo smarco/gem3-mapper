@@ -15,7 +15,9 @@
 /*
  * GEM Runtime
  */
-void gruntime_init(const uint64_t num_threads,const uint64_t max_memory,char* const tmp_folder) {
+void gruntime_init(
+    const uint64_t num_threads,
+    char* const tmp_folder) {
   // GEM error handler
   gem_handle_error_signals();
   // Setup Profiling (Add master thread)

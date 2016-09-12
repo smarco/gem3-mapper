@@ -956,9 +956,6 @@ void constructor_vector_sort_pos(const int num_elements,const int iterations) {
   // Free
   vector_delete(vector);
 }
-
-
-
 //#include <numa.h>
 //void constructor_numa() {
 //  if (numa_available() < 0) {
@@ -986,6 +983,14 @@ void constructor_vector_sort_pos(const int num_elements,const int iterations) {
 //    printf(" \n");
 //  }
 //}
+void constructor_show_mem() {
+  fprintf(stderr,"MM.Total %ld\n",mm_get_mem_total());
+  fprintf(stderr,"MM.PageSize %ld\n",mm_get_page_size());
+  fprintf(stderr,"MM.AvailableVirtualMem %ld\n",mm_get_mem_available_virtual());
+  fprintf(stderr,"MM.AvailableCached %ld\n",mm_get_mem_available_cached());
+  fprintf(stderr,"MM.AvailableFree %ld\n",mm_get_mem_available_free());
+  fprintf(stderr,"MM.AvailableTotal %ld\n",mm_get_mem_available_total());
+}
 /*
  * Generic Menu
  */
@@ -1139,10 +1144,10 @@ int main(int argc,char** argv) {
 //      0ul,archive_text_get_unitary_projection(archive->text,0));
 
   //constructor_vector_sort(parameters.param1,parameters.param2);
-  constructor_vector_sort_pos(parameters.param1,parameters.param2);
+  //constructor_vector_sort_pos(parameters.param1,parameters.param2);
 
-
-// constructor_numa();
+  // constructor_numa();
+  constructor_show_mem();
 
   return 0;
 }
