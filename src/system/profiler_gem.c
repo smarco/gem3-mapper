@@ -50,7 +50,7 @@ void PROF_NEW(const uint64_t num_threads) {
     }
   }
 }
-void PROF_DELETE() {
+void PROF_DELETE(void) {
   // Release all profile counters
   uint64_t i;
   for (i=0;i<gem_profile.num_threads;++i) {
@@ -172,7 +172,7 @@ double PROF_TIME_PER_CALL(const uint64_t timer) {
 /*
  * Utils
  */
-void PROF_REDUCE_SUM() {
+void PROF_REDUCE_SUM(void) {
   uint64_t i;
   for (i=1;i<gem_profile.num_threads;++i) {
     uint64_t j;
@@ -183,7 +183,7 @@ void PROF_REDUCE_SUM() {
     }
   }
 }
-void PROF_REDUCE_MAX() {
+void PROF_REDUCE_MAX(void) {
   uint64_t i;
   for (i=1;i<gem_profile.num_threads;++i) {
     uint64_t j;
@@ -194,7 +194,7 @@ void PROF_REDUCE_MAX() {
     }
   }
 }
-void PROF_REDUCE_MIN() {
+void PROF_REDUCE_MIN(void) {
   uint64_t i;
   for (i=1;i<gem_profile.num_threads;++i) {
     uint64_t j;
@@ -205,7 +205,7 @@ void PROF_REDUCE_MIN() {
     }
   }
 }
-void PROF_REDUCE_MEAN() {
+void PROF_REDUCE_MEAN(void) {
   uint64_t i;
   for (i=1;i<gem_profile.num_threads;++i) {
     uint64_t j;
@@ -216,7 +216,7 @@ void PROF_REDUCE_MEAN() {
     }
   }
 }
-void PROF_REDUCE_SAMPLE() {
+void PROF_REDUCE_SAMPLE(void) {
   uint64_t i, j;
   for (j=0;j<GP_MAX_COUNTERS;++j) {
     i=0;

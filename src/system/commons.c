@@ -231,21 +231,21 @@ void fprintf_uint64_footprint(FILE* const stream,const uint64_t word) {
 /*
  * System
  */
-uint64_t system_get_num_processors() {
+uint64_t system_get_num_processors(void) {
   const uint64_t num_processors = sysconf(_SC_NPROCESSORS_ONLN);
   return num_processors ? num_processors : 1;
 }
-char* system_get_cwd() {
+char* system_get_cwd(void) {
   char* const cwd = malloc(BUFFER_SIZE_2K);
   if (getcwd(cwd,BUFFER_SIZE_2K)==NULL) cwd[0]='\0';
   return cwd;
 }
-char* system_get_hostname() {
+char* system_get_hostname(void) {
   char* const hostname = malloc(BUFFER_SIZE_2K);
   if (gethostname(hostname,1024)) hostname[0]='\0';
   return hostname;
 }
-char* system_get_user_name() {
+char* system_get_user_name(void) {
   struct passwd *pw;
   uid_t uid = geteuid();
   pw = getpwuid(uid);

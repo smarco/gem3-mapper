@@ -1,17 +1,34 @@
 /*
- * PROJECT: GEMMapper
- * FILE: approximate_search_filtering.h
- * DATE: 06/06/2012
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
+ *   Approximate-String-Matching (ASM) using neighborhood-search (NS)
  */
 
 #include "approximate_search/approximate_search_neighborhood.h"
 #include "approximate_search/approximate_search_stages.h"
 #include "fm_index/fm_index_search.h"
-#include "filtering/filtering_candidates_process.h"
-#include "filtering/filtering_candidates_verify.h"
-#include "filtering/filtering_candidates_align.h"
+#include "filtering/candidates/filtering_candidates_process.h"
+#include "filtering/candidates/filtering_candidates_verify.h"
+#include "filtering/candidates/filtering_candidates_align.h"
 #include "neighborhood_search/nsearch_hamming.h"
 #include "neighborhood_search/nsearch_levenshtein.h"
 
@@ -37,7 +54,7 @@ void approximate_search_neighborhood_exact_search(
   // Add interval
   bool limited;
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
-  filtering_candidates_add_region_interval(
+  filtering_candidates_add_positions_from_interval(
       filtering_candidates,search->search_parameters,pattern,
       lo,hi,0,pattern->key_length,0,&limited);
   // Process+Verify candidates
@@ -65,7 +82,7 @@ void approximate_search_neighborhood_search_brute_force(
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
   pattern_t* const pattern = &search->pattern;
   // Generate Candidates (Select Alignment Model)
-  if (search_parameters->alignment_model == alignment_model_hamming) {
+  if (search_parameters->match_alignment_model == match_alignment_model_hamming) {
     nsearch_hamming_brute_force(search,matches);
   } else {
     nsearch_levenshtein_brute_force(search,true,matches);
@@ -96,7 +113,7 @@ void approximate_search_neighborhood_search_partition(
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
   pattern_t* const pattern = &search->pattern;
   // Generate Candidates (Select Alignment Model)
-  if (search_parameters->alignment_model == alignment_model_hamming) {
+  if (search_parameters->match_alignment_model == match_alignment_model_hamming) {
     nsearch_hamming(search,matches);
   } else {
     nsearch_levenshtein(search,matches);
@@ -131,7 +148,7 @@ void approximate_search_neighborhood_search_partition_preconditioned(
   // Compute error limits
   region_profile_compute_error_limits(region_profile,mcs,max_complete_error);
   // Generate Candidates (Select Alignment Model)
-  if (search_parameters->alignment_model == alignment_model_hamming) {
+  if (search_parameters->match_alignment_model == match_alignment_model_hamming) {
     nsearch_hamming_preconditioned(search,matches);
   } else {
     nsearch_levenshtein_preconditioned(search,matches);

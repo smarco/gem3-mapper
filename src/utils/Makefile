@@ -16,9 +16,11 @@ include $(ROOT_PATH)/Makefile.mk
 # Modules
 ###############################################################################
 MODULES=ihash \
+        interval_set \
         options_menu \
         packed_integer_array \
         priority_queue \
+        region_set \
         segmented_vector \
         shash \
         sparse_array_locator \
@@ -34,16 +36,12 @@ OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))
 ###############################################################################
 all: devel
 
-release: GEM_FLAGS=$(FLAGS_OPT) $(FLAGS_GENERAL) $(FLAGS_SUPPRESS_CHECKS)
 release: $(OBJS)
 
-devel: GEM_FLAGS=$(FLAGS_OPT) $(FLAGS_GENERAL) $(FLAGS_DEVEL)
 devel: $(OBJS)
 
-profile: GEM_FLAGS=$(FLAGS_OPT) $(FLAGS_GENERAL) $(FLAGS_DEVEL) $(FLAGS_PROFILE) $(FLAGS_GEM_DEBUG) $(FLAGS_GEM_PROFILE)
 profile: $(OBJS)
 
-debug: GEM_FLAGS=$(FLAGS_DEBUG) $(FLAGS_GENERAL) $(FLAGS_DEVEL) $(FLAGS_PROFILE) $(FLAGS_GEM_DEBUG) $(FLAGS_GEM_PROFILE)
 debug: $(OBJS)
 
 ###############################################################################

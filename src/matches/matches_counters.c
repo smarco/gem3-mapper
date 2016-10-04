@@ -16,7 +16,7 @@
 /*
  * Setup
  */
-matches_counters_t* matches_counters_new() {
+matches_counters_t* matches_counters_new(void) {
   // Allocate handler
   matches_counters_t* const counters = mm_alloc(matches_counters_t);
   // Init Counters

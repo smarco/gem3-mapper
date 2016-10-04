@@ -34,25 +34,25 @@ void gem_error_set_report_function(report_function_t function) {
 /*
  * Getters/Setters ELD-function/ELD-streams
  */
-FILE* gem_error_get_stream() {
+FILE* gem_error_get_stream(void) {
   return (error_stream!=NULL) ? error_stream : stderr;
 }
 void gem_error_set_stream(FILE* const stream) {
   error_stream = stream;
 }
-FILE* gem_log_get_stream() {
+FILE* gem_log_get_stream(void) {
   return (log_stream!=NULL) ? log_stream : stderr;
 }
 void gem_log_set_stream(FILE* const stream) {
   log_stream = stream;
 }
-FILE* gem_info_get_stream() {
+FILE* gem_info_get_stream(void) {
   return (info_stream!=NULL) ? info_stream : stderr;
 }
 void gem_info_set_stream(FILE* const stream) {
   info_stream = stream;
 }
-FILE* gem_debug_get_stream() {
+FILE* gem_debug_get_stream(void) {
   return (debug_stream!=NULL) ? debug_stream : stderr;
 }
 void gem_debug_set_stream(FILE* const stream) {
@@ -61,12 +61,12 @@ void gem_debug_set_stream(FILE* const stream) {
 /*
  * Mute/Articulate ELD-streams
  */
-void gem_mute_error_stream() {mute_error_stream=true;}
-void gem_mute_report_stream() {mute_report_stream=true;}
-void gem_articulate_error_stream() {mute_error_stream=false;}
-void gem_articulate_report_stream() {mute_report_stream=false;}
-bool gem_is_mute_error_stream() {return mute_error_stream;}
-bool gem_is_mute_report_stream() {return mute_report_stream;}
+void gem_mute_error_stream(void) {mute_error_stream=true;}
+void gem_mute_report_stream(void) {mute_report_stream=true;}
+void gem_articulate_error_stream(void) {mute_error_stream=false;}
+void gem_articulate_report_stream(void) {mute_report_stream=false;}
+bool gem_is_mute_error_stream(void) {return mute_error_stream;}
+bool gem_is_mute_report_stream(void) {return mute_report_stream;}
 /*
  * Time Printed Formated functions
  */
@@ -183,19 +183,19 @@ uint64_t global_tab = 0;
 void tab_global_print(FILE* const stream) {
   fprintf_tabs(stream,global_tab);
 }
-void tab_global_inc() {
+void tab_global_inc(void) {
   global_tab += 2;
 }
 void tab_global_add(const uint64_t amount) {
   global_tab += amount*2;
 }
-void tab_global_dec() {
+void tab_global_dec(void) {
   global_tab = (global_tab > 2) ? global_tab-2 : 0;
 }
 void tab_global_subtract(const uint64_t amount) {
   global_tab -= amount*2;
 }
-void tab_global_reset() {
+void tab_global_reset(void) {
   global_tab = 0;
 }
 /*

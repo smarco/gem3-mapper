@@ -29,11 +29,11 @@ void gem_thread_register_id(const uint64_t thread_id) {
     }
   } MUTEX_END_SECTION(threads_id_locator_mutex);
 }
-int64_t gem_thread_get_thread_id() {
+int64_t gem_thread_get_thread_id(void) {
   int64_t* const thread_id = ihash_get(threads_id_locator,(int64_t)pthread_self(),int64_t);
   return (thread_id) ? *thread_id : -1;
 }
-void gem_thread_cleanup() {
+void gem_thread_cleanup(void) {
   if (threads_id_locator!=NULL) {
     IHASH_BEGIN_ITERATE(threads_id_locator,it_key,it_element,int64_t) {
       mm_free(it_element);

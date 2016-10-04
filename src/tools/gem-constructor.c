@@ -6,6 +6,7 @@
  * DESCRIPTION: Loads/test things
  */
 
+#include "text/cdna_text.h"
 #include "utils/essentials.h"
 #include "utils/packed_integer_array.h"
 #include "utils/priority_queue.h"
@@ -19,12 +20,11 @@
 #include "archive/locator_builder.h"
 #include "archive/archive.h"
 #include "archive/archive_text.h"
-#include "data_structures/cdna_text.h"
-#include "filtering/filtering_candidates.h"
-#include "filtering/region_profile.h"
+#include "filtering/candidates/filtering_candidates.h"
+#include "filtering/region_profile/region_profile.h"
 #include "io/input_parser.h"
-#include "matches/match_align_dto.h"
-#include "matches/match_alignment.h"
+#include "matches/align/match_align_dto.h"
+#include "matches/align/match_alignment.h"
 #include "neighborhood_search/nsearch_hamming.h"
 #include "neighborhood_search/nsearch_levenshtein.h"
 
@@ -694,7 +694,6 @@ void constructor_ns_init(
   const char* const key = parameters.name_input_file;
   const uint64_t key_length = strlen(key);
   // Configure ASM-search
-  search->mm_stack = mm_stack;
   search->current_max_complete_error = max_error;
   search->region_profile.num_filtering_regions = 0;
   // Configure Key

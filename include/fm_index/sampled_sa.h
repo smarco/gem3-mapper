@@ -1,9 +1,27 @@
 /*
- * PROJECT: GEMMapper
- * FILE: sampled_sa.h
- * DATE: 06/06/2013
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
+ *   Implements a data structure that stores SA samples each certain
+ *   sampling-rate. Samples are stored bit-compacted
  */
 
 #ifndef SAMPLED_SA_H_
@@ -100,8 +118,7 @@ void sampled_sa_set_sample(
  */
 void sampled_sa_print(
     FILE* const stream,
-    sampled_sa_t* const sampled_sa,
-    const bool display_data);
+    sampled_sa_t* const sampled_sa);
 void sampled_sa_builder_print(
     FILE* const stream,
     sampled_sa_builder_t* const sampled_sa);

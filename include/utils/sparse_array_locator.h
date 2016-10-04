@@ -122,7 +122,7 @@ void sparse_array_locator_print(
 /*
  * Stats // TODO Enhance
  */
-sparse_array_locator_stats_t* sparse_array_locator_stats_new();
+sparse_array_locator_stats_t* sparse_array_locator_stats_new(void);
 void sparse_array_locator_stats_delete(
     sparse_array_locator_stats_t* const sparse_array_locator_stats);
 void sparse_array_locator_stats_calculate(

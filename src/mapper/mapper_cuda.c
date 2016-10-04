@@ -8,7 +8,7 @@
 #include "mapper/mapper_cuda.h"
 #include "mapper/mapper_cuda_se.h"
 #include "mapper/mapper_cuda_pe.h"
-#include "archive/archive_search.h"
+#include "archive/search/archive_search.h"
 #include "gpu/gpu_buffer_collection.h"
 #include "stats/report_stats.h"
 #include "system/profiler.h"
@@ -18,30 +18,7 @@
  */
 mapper_cuda_search_t* g_mapper_cuda_search; // Global searches on going
 pthread_mutex_t mapper_cuda_error_report_mutex = PTHREAD_MUTEX_INITIALIZER;
-void mapper_cuda_error_report(FILE* stream) {
-//  // Display thread info
-//  const uint64_t threads_id = gem_thread_get_thread_id();
-//  if (threads_id==0) {
-//    fprintf(stream,"GEM::Running-Thread (threadID = MASTER)\n");
-//  }
-//  // Display Threads-Info
-//  MUTEX_BEGIN_SECTION(mapper_cuda_error_report_mutex) {
-//    const uint64_t num_threads = g_mapper_cuda_search->mapper_parameters->system.num_threads;
-//    uint64_t i;
-//    for (i=0;i<num_threads;++i) {
-//      mapper_cuda_search_t* const mapper_cuda_search = g_mapper_cuda_search + i; // Thread
-//      fprintf(stream,"GEM::Running-Thread (threadID = %"PRIu64")\n",mapper_cuda_search->thread_id);
-//      // Display Input State
-//      const sequence_t* const sequence = archive_search_get_sequence(mapper_cuda_search->);
-//      tab_global_inc();
-//      mapper_display_input_state(stream,mapper_cuda_search->buffered_fasta_input,sequence);
-//      tab_global_dec();
-//      // Display Output State (TODO?)
-//      // Display Search State (TODO?)
-//    }
-//  // Display stats until now (if possible) (TODO?)
-//  } MUTEX_END_SECTION(mapper_cuda_error_report_mutex);
-}
+void mapper_cuda_error_report(FILE* stream) { }
 /*
  * Index loader
  */

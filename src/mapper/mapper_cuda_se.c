@@ -8,7 +8,7 @@
 #include "mapper/mapper_cuda_se.h"
 #include "mapper/mapper.h"
 #include "mapper/mapper_bisulfite.h"
-#include "archive/archive_search_se.h"
+#include "archive/search/archive_search_se.h"
 #include "io/input_file.h"
 
 /*
@@ -73,8 +73,8 @@ void mapper_se_cuda_region_profile(mapper_cuda_search_t* const mapper_search) {
     search_pipeline_allocate_se(search_pipeline,&archive_search);
     // Parse Sequence
     const error_code_t error_code = input_fasta_parse_sequence(
-        mapper_search->buffered_fasta_input_end1,archive_search_get_sequence(archive_search),
-        parameters->io.fastq_strictly_normalized,false);
+        mapper_search->buffered_fasta_input_end1,
+        archive_search_get_sequence(archive_search),false);
     gem_cond_fatal_error(error_code==INPUT_STATUS_FAIL,MAPPER_CUDA_ERROR_PARSING);
     PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
     // Bisulfite: Fully convert reads before searching into archive, making a copy of the original
@@ -201,9 +201,8 @@ void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_search) {
 /*
  * Mapper SE-CUDA
  */
-void mapper_cuda_se_thread_pipeline(
-    mapper_cuda_search_t* const mapper_search,
-    mm_stack_t* const mm_stack) {
+void mapper_cuda_se_thread_pipeline(mapper_cuda_search_t* const mapper_search) {
+  mm_stack_t* const mm_stack = mapper_search->search_pipeline->search_pipeline_handlers->mm_stack;
   while (!mapper_se_cuda_stage_read_input_sequences_exhausted(mapper_search)) {
     // Region Profile
     mapper_se_cuda_region_profile(mapper_search);
@@ -242,9 +241,8 @@ void* mapper_cuda_se_thread(mapper_cuda_search_t* const mapper_search) {
   mapper_search->pending_search_decode_candidates_end1 = NULL;
   mapper_search->pending_search_verify_candidates_end1 = NULL;
   // FASTA/FASTQ reading loop
-  mm_stack_t* const mm_stack = mapper_search->search_pipeline->mm_stack;
   mapper_search->reads_processed = 0;
-  mapper_cuda_se_thread_pipeline(mapper_search,mm_stack);
+  mapper_cuda_se_thread_pipeline(mapper_search);
   // Clean up
   ticker_update_mutex(mapper_search->ticker,mapper_search->reads_processed); // Update processed
   search_pipeline_delete(mapper_search->search_pipeline);

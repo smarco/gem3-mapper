@@ -10,7 +10,7 @@
 #define MAPPER_BISULFITE_H_
 
 #include "utils/essentials.h"
-#include "archive/archive_search.h"
+#include "archive/search/archive_search.h"
 
 void mapper_bisulfite_process_sequence_se(
     archive_search_t* const archive_search,

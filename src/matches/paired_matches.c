@@ -31,14 +31,12 @@ const char* paired_matches_class_label[] =
 /*
  * Setup
  */
-paired_matches_t* paired_matches_new() {
+paired_matches_t* paired_matches_new(void) {
   // Alloc
   paired_matches_t* const paired_matches = mm_alloc(paired_matches_t);
   // State
   paired_matches->paired_matches_class = paired_matches_class_unmapped;
   paired_matches->max_complete_stratum = ALL;
-  // Text Collection Buffer
-  paired_matches->text_collection = NULL;
   // Matches Counters
   paired_matches->counters = matches_counters_new();
   // Single-End Matches
@@ -51,10 +49,6 @@ paired_matches_t* paired_matches_new() {
   matches_metrics_init(&paired_matches->metrics);
   // Return
   return paired_matches;
-}
-void paired_matches_configure(paired_matches_t* const paired_matches,text_collection_t* const text_collection) {
-  // Text Collection Buffer
-  paired_matches->text_collection = text_collection;
 }
 void paired_matches_clear(paired_matches_t* const paired_matches,const bool clear_matches) {
   // State
@@ -264,7 +258,6 @@ uint64_t paired_matches_compute_template_length(
   return 0;
 }
 pair_relation_t paired_matches_compute_relation(
-    paired_matches_t* const paired_matches,
     const search_paired_parameters_t* const parameters,
     mapper_stats_t* const mapper_stats,
     match_trace_t* const match_trace_end1,
@@ -344,8 +337,8 @@ void paired_matches_find_pairs(
         pair_orientation_t pair_orientation;
         pair_layout_t pair_layout;
         const pair_relation_t pair_relation = paired_matches_compute_relation(
-            paired_matches,search_paired_parameters,mapper_stats,(*match_trace_end1),
-            (*match_trace_end2),&pair_orientation,&pair_layout,&template_length,&template_length_sigma);
+            search_paired_parameters,mapper_stats,(*match_trace_end1),(*match_trace_end2),
+            &pair_orientation,&pair_layout,&template_length,&template_length_sigma);
         switch (pair_relation) {
           case pair_relation_invalid: break;
           case pair_relation_discordant:

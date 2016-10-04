@@ -12,15 +12,12 @@
 ROOT_PATH=..
 include $(ROOT_PATH)/Makefile.mk
 
-
-
 ###############################################################################
 # Compile all Modules
 ###############################################################################
 SUBDIRS=align \
         approximate_search \
         archive \
-        data_structures \
         filtering \
         fm_index \
         gpu \
@@ -31,6 +28,7 @@ SUBDIRS=align \
         search_pipeline \
         stats \
         system \
+        text \
         utils \
         tools
 
@@ -50,7 +48,9 @@ debug: GEM_FLAGS=$(FLAGS_DEBUG) $(FLAGS_GENERAL) $(FLAGS_DEVEL) $(FLAGS_PROFILE)
 debug: MODE=debug
 debug: $(SUBDIRS)
 
+# Subdir rule
 export GEM_FLAGS
+export MODE
 $(SUBDIRS):
 	$(MAKE) --directory=$@ $(MODE)
 

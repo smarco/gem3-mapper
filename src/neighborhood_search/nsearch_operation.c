@@ -6,8 +6,8 @@
  * DESCRIPTION:
  */
 
+#include "text/dna_text.h"
 #include "neighborhood_search/nsearch_operation.h"
-#include "data_structures/dna_text.h"
 
 /*
  * Setup

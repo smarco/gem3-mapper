@@ -10,13 +10,30 @@
 #define MATCHES_CIGAR_H_
 
 #include "utils/essentials.h"
-#include "archive/locator.h"
-#include "data_structures/interval_set.h"
-#include "data_structures/text_collection.h"
-#include "align/align_swg.h"
-#include "matches/matches.h"
-#include "matches/matches_counters.h"
-#include "matches/matches_metrics.h"
+
+/*
+ * Alignment CIGAR (Mismatches/Indels/...)
+ */
+typedef enum {
+  cigar_null = 0,
+  cigar_match = 1,
+  cigar_mismatch = 2,
+  cigar_ins = 3,
+  cigar_del = 4,
+} cigar_t;
+typedef enum {
+  cigar_attr_none = 0,
+  cigar_attr_trim = 1,
+  cigar_attr_homopolymer = 2,
+} cigar_attr_t;
+typedef struct {
+  cigar_t type;              // Match, Mismatch, insertion or deletion
+  cigar_attr_t attributes;   // Attributes
+  union {
+    int32_t length;          // Match length
+    uint8_t mismatch;        // Mismatch base
+  };
+} cigar_element_t;
 
 /*
  * CIGAR Buffer Handling
@@ -91,7 +108,8 @@ uint64_t matches_cigar_compute_matching_bases(
     const uint64_t cigar_buffer_offset,
     const uint64_t cigar_length);
 
-int64_t matches_cigar_element_effective_length(const cigar_element_t* const cigar_element);
+int64_t matches_cigar_element_effective_length(
+    const cigar_element_t* const cigar_element);
 int64_t matches_cigar_effective_length(
     vector_t* const cigar_vector,
     const uint64_t cigar_offset,
@@ -101,10 +119,12 @@ int64_t matches_cigar_effective_length(
  * CIGAR Vector Compare
  */
 int matches_cigar_cmp(
-    vector_t* const cigar_vector_match0,
-    match_trace_t* const match0,
-    vector_t* const cigar_vector_match1,
-    match_trace_t* const match1);
+    vector_t* const cigar0_vector,
+    const uint64_t cigar0_offset,
+    const uint64_t cigar0_length,
+    vector_t* const cigar1_vector,
+    const uint64_t cigar1_offset,
+    const uint64_t cigar1_length);
 
 /*
  * Display

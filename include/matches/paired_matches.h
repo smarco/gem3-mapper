@@ -10,8 +10,8 @@
 #define PAIRED_MATCHES_H_
 
 #include "utils/essentials.h"
-#include "archive/archive_search_paired_parameters.h"
-#include "data_structures/sequence.h"
+#include "archive/search/archive_search_pe_parameters.h"
+#include "text/sequence.h"
 #include "matches/matches.h"
 #include "matches/paired_map.h"
 #include "mapper/mapper_stats.h"
@@ -36,8 +36,6 @@ typedef struct {
   /* State */
   paired_matches_class_t paired_matches_class; // Matches Class
   uint64_t max_complete_stratum;               // MCS
-  /* Text Collection Buffer */
-  text_collection_t* text_collection;          // Stores text-traces (candidates/matches/regions/...)
   /* Matches Counters */
   matches_counters_t* counters;                // Counters
   /* Single-End Matches */
@@ -53,8 +51,7 @@ typedef struct {
 /*
  * Setup
  */
-paired_matches_t* paired_matches_new();
-void paired_matches_configure(paired_matches_t* const paired_matches,text_collection_t* const text_collection);
+paired_matches_t* paired_matches_new(void);
 void paired_matches_clear(paired_matches_t* const paired_matches,const bool clear_matches);
 void paired_matches_delete(paired_matches_t* const paired_matches);
 

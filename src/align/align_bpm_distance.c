@@ -1,17 +1,34 @@
 /*
- * PROJECT: GEMMapper
- * FILE: align_bpm_distance.c
- * DATE: 06/06/2012
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
- * DESCRIPTION: BPM-distance (BitParalellMyers; bit-compressed alignment)
- *   Myers' Fast Bit-Vector algorithm to compute levenshtein distance
+ * DESCRIPTION:
+ *   Alignment module using BPM-algorithm to compute levenshtein distance
+ *   (Myers' Fast Bit-Vector algorithm to compute levenshtein distance)
  */
 
+#include "align/alignment.h"
+#include "text/dna_text.h"
+#include "text/pattern.h"
 #include "align/align_bpm_distance.h"
-#include "align/align.h"
-#include "data_structures/dna_text.h"
-#include "data_structures/pattern.h"
-#include "filtering/filtering_region.h"
+#include "filtering/region/filtering_region.h"
 
 /*
  * Mode/Debug
@@ -239,9 +256,8 @@ bool bpm_compute_edit_distance(
         min_score = current_score;
       }
     } else if (quick_abandon && min_score==ALIGN_DISTANCE_INF &&
-        current_score+pattern_left[top_level] > text_left+max_distance) {
+               current_score+pattern_left[top_level] > text_left+max_distance) {
       // Quick abandon, it doesn't match (bounded by best case scenario)
-      // TODO Test if (abandon_cond() && min_score!=ALIGN_DISTANCE_INF) return best_distace_score;
       PROF_STOP(GP_BPM_DISTANCE);
       PROF_INC_COUNTER(GP_BPM_DISTANCE_QUICK_ABANDON);
       *match_distance = ALIGN_DISTANCE_INF;
@@ -266,13 +282,13 @@ bool bpm_compute_edit_distance(
 uint64_t bpm_compute_edit_distance_all(
     bpm_pattern_t* const bpm_pattern,
     bpm_pattern_t* const bpm_pattern_tiles,
-    vector_t* const filtering_regions,
+    filtering_candidates_t* const filtering_candidates,
     const uint64_t text_trace_offset,
     const uint64_t begin_position,
     const uint8_t* const text,
     const uint64_t text_length,
     uint64_t max_distance,
-    mm_stack_t* const mm_stack) {
+    const uint64_t max_effective_bandwidth) {
   PROF_START(GP_BPM_ALL);
   // Pattern variables
   const uint64_t* PEQ = bpm_pattern->PEQ;
@@ -313,10 +329,10 @@ uint64_t bpm_compute_edit_distance_all(
         if (current_score==0) { // Don't try to optimize (exact match)
           const uint64_t text_end_offset = min_score_column+1;
           const uint64_t text_begin_offset = BOUNDED_SUBTRACTION(text_end_offset,key_length+min_score,0);
-          filtering_region_add(
-              filtering_regions,bpm_pattern,bpm_pattern_tiles,
+          filtering_candidates_add_region_verified(
+              filtering_candidates,bpm_pattern,bpm_pattern_tiles,
               text_trace_offset,begin_position,end_position,
-              min_score,text_begin_offset,text_end_offset,mm_stack);
+              min_score,max_effective_bandwidth,text_begin_offset,text_end_offset);
           ++num_matches_found; // Increment the number of matches found
         } else {
           match_found = true;
@@ -331,10 +347,10 @@ uint64_t bpm_compute_edit_distance_all(
       if (opt_steps_left==0) {
         const uint64_t text_end_offset = min_score_column+1;
         const uint64_t text_begin_offset = BOUNDED_SUBTRACTION(text_end_offset,key_length+min_score,0);
-        filtering_region_add(
-            filtering_regions,bpm_pattern,bpm_pattern_tiles,
+        filtering_candidates_add_region_verified(
+            filtering_candidates,bpm_pattern,bpm_pattern_tiles,
             text_trace_offset,begin_position,end_position,
-            min_score,text_begin_offset,text_end_offset,mm_stack);
+            min_score,max_effective_bandwidth,text_begin_offset,text_end_offset);
         ++num_matches_found; // Increment the number of matches found
         match_found = false;
       } else {
@@ -350,10 +366,10 @@ uint64_t bpm_compute_edit_distance_all(
   if (match_found) {
     const uint64_t text_end_offset = min_score_column+1;
     const uint64_t text_begin_offset = BOUNDED_SUBTRACTION(text_end_offset,key_length+min_score,0);
-    filtering_region_add(
-        filtering_regions,bpm_pattern,bpm_pattern_tiles,
+    filtering_candidates_add_region_verified(
+        filtering_candidates,bpm_pattern,bpm_pattern_tiles,
         text_trace_offset,begin_position,end_position,
-        min_score,text_begin_offset,text_end_offset,mm_stack);
+        min_score,max_effective_bandwidth,text_begin_offset,text_end_offset);
     ++num_matches_found; // Increment the number of matches found
   }
   PROF_INC_COUNTER(GP_BPM_ALL_MATCHES_FOUND);

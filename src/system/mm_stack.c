@@ -10,9 +10,6 @@
  *         Once mm_stack_free() is called, all memory requests are freed (all at once).
  *         No individual memory free is possible with this type of memory.
  */
-// TODO
-// Implement DEBUG/SECURITY mechanism with which we can say if memory has been
-// touched beyond limits (memsetting mem to sth and the checking after pop/push)
 
 #include "system/mm_stack.h"
 
@@ -21,7 +18,7 @@
  */
 #define MM_STACK_LOG      false
 #define MM_STACK_LOG_DEEP false
-//#define MM_STACK_DEBUG
+#define MM_STACK_DEBUG
 
 /*
  * Errors
@@ -78,11 +75,9 @@ mm_stack_t* mm_stack_new(mm_slab_t* const mm_slab) {
   return mm_stack;
 }
 void mm_stack_reap_segments(mm_stack_t* const mm_stack,const uint64_t resident_segments) {
-  mm_slab_lock(mm_stack->mm_slab);
   VECTOR_ITERATE_OFFSET(mm_stack->segments,stack_segment,position,resident_segments,mm_stack_segment_t) {
     mm_stack_segment_free(mm_stack,stack_segment);
   }
-  mm_slab_unlock(mm_stack->mm_slab);
   vector_set_used(mm_stack->segments,resident_segments); // Set segment available
 }
 void mm_stack_clear(mm_stack_t* const mm_stack) {
@@ -91,14 +86,17 @@ void mm_stack_clear(mm_stack_t* const mm_stack) {
   // Clear first Segment
   mm_stack_segment_reset(mm_stack,vector_get_elm(mm_stack->segments,0,mm_stack_segment_t));
   mm_stack->current_segment = 0; // Set current segment
+  // Delete malloc-requests
+  VECTOR_ITERATE(mm_stack->malloc_requests,malloc_request,p,void*) {
+    mm_free(*malloc_request); // Free remaining requests
+  }
+  vector_clear(mm_stack->malloc_requests);
 }
 void mm_stack_delete(mm_stack_t* const mm_stack) {
   // Delete Slab
-  mm_slab_lock(mm_stack->mm_slab);
   VECTOR_ITERATE(mm_stack->segments,stack_segment,p1,mm_stack_segment_t) {
     mm_stack_segment_free(mm_stack,stack_segment); // Return all slabs
   }
-  mm_slab_unlock(mm_stack->mm_slab);
   vector_delete(mm_stack->state); // Free stack state
   // Delete Segments vector
   vector_delete(mm_stack->segments);
@@ -189,10 +187,6 @@ void* mm_stack_memory_allocate(
     mm_stack_t* const mm_stack,
     uint64_t num_bytes,
     const bool zero_mem) {
-  // Issue malloc request
-  if (num_bytes > BUFFER_SIZE_1G) {
-    gem_warn(MM_STACK_LARGE_MEM,CONVERT_B_TO_MB(num_bytes),CONVERT_B_TO_MB(mm_stack->segment_size));
-  }
   void** memory;
   vector_alloc_new(mm_stack->malloc_requests,void*,memory);
   *memory = mm_malloc_(1,num_bytes,zero_mem,0);
@@ -205,7 +199,8 @@ void* mm_stack_memory_allocate(
     uint64_t num_bytes,
     const bool zero_mem) {
   // Get last stack segment
-  mm_stack_segment_t* current_segment = vector_get_elm(mm_stack->segments,mm_stack->current_segment,mm_stack_segment_t);
+  mm_stack_segment_t* current_segment =
+      vector_get_elm(mm_stack->segments,mm_stack->current_segment,mm_stack_segment_t);
   // Check requested bytes to ensure alignment to 16Bytes (128bits)
   if (num_bytes%16 != 0) num_bytes += 16-(num_bytes%16);
   // Check if there is enough free memory in the segment

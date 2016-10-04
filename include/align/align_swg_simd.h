@@ -1,9 +1,26 @@
 /*
- * PROJECT: GEMMapper
- * FILE: align_swg_simd.h
- * DATE: 06/06/2012
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
+ *   Efficient Smith-Waterman-Gotoh (SWG) alignment module using SIMD instructions
  */
 
 #ifndef ALIGN_SWG_SIMD_H_
@@ -46,13 +63,11 @@ bool align_swg_query_profile_compile_uint8(
     swg_query_profile_t* const swg_query_profile,
     const swg_penalties_t* swg_penalties,
     const uint8_t* const key,
-    const uint64_t key_length,
-    mm_stack_t* const mm_stack);
+    const uint64_t key_length);
 bool align_swg_query_profile_compile_int16(
     swg_query_profile_t* const swg_query_profile,
     const swg_penalties_t* swg_penalties,
     const uint8_t* const key,
-    const uint64_t key_length,
-    mm_stack_t* const mm_stack);
+    const uint64_t key_length);
 
 #endif /* ALIGN_SWG_SIMD_H_ */

@@ -106,9 +106,9 @@ void svector_write(fm_t* const file_manager,svector_t* const svector);
 /*
  * Display/Profile
  */
-void svector_print(FILE* const stream,svector_t* const svector);
-void svector_record_stats(svector_t* const svector);
-void svector_display_stats(FILE* const stream,svector_t* const svector);
+// TODO void svector_print(FILE* const stream,svector_t* const svector);
+// TODO void svector_record_stats(svector_t* const svector);
+// TODO void svector_display_stats(FILE* const stream,svector_t* const svector);
 
 /*
  * Iterators

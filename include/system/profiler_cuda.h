@@ -24,6 +24,6 @@ extern const uint32_t profiler_cuda_tags_colors[];
  * Profile Start/Stop
  */
 void PROFILE_CUDA_START(char* const name,const uint64_t cid);
-void PROFILE_CUDA_STOP();
+void PROFILE_CUDA_STOP(void);
 
 #endif /* PROFILE_CUDA_H_ */

@@ -9,9 +9,9 @@
 #include "utils/essentials.h"
 #include "utils/options_menu.h"
 #include "io/input_parser.h"
-#include "archive/archive_builder.h"
-#include "archive/archive_builder_text.h"
-#include "archive/archive_builder_index.h"
+#include "archive/builder/archive_builder.h"
+#include "archive/builder/archive_builder_text.h"
+#include "archive/builder/archive_builder_index.h"
 #include "system/profiler_timer.h"
 
 /*

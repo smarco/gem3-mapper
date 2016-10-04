@@ -15,24 +15,13 @@ include $(ROOT_PATH)/Makefile.mk
 ###############################################################################
 # Modules
 ###############################################################################
-MODULES=match_align \
-        match_alignment \
-        match_align_normalize \
-        match_align_rl \
-        match_align_swg \
-        match_align_swg_local \
-        matches \
+SUBDIRS=align \
+        classify \
+        scaffold
+        
+MODULES=matches \
         matches_cigar \
-        matches_classify \
-        matches_classify_logit \
-        matches_classify_logit_models \
         matches_counters \
-        matches_metrics \
-        matches_predictors \
-        match_scaffold \
-        match_scaffold_compose \
-        match_scaffold_levenshtein \
-        match_scaffold_region_chain \
         paired_map \
         paired_matches
 
@@ -42,20 +31,32 @@ OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))
 ###############################################################################
 # Compilation Modes
 ###############################################################################
-all: devel
+all: release
 
+release: $(SUBDIRS)
 release: $(OBJS)
 
+devel: $(SUBDIRS)
 devel: $(OBJS)
 
+profile: $(SUBDIRS)
 profile: $(OBJS)
 
+debug: $(SUBDIRS)
 debug: $(OBJS)
 
 ###############################################################################
 # Rules
 ###############################################################################
-	
-# General building rule
+
+# Building rule
 $(FOLDER_BUILD)/%.o : %.c
 	$(CC) $(GEM_FLAGS) $(PATH_INCLUDE) -c $< -o $@
+
+# Subdir rule
+export GEM_FLAGS
+export MODE
+$(SUBDIRS):
+	$(MAKE) --directory=$@ $(MODE)
+	
+.PHONY: $(SUBDIRS)

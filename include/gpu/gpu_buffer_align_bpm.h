@@ -1,9 +1,29 @@
 /*
- * PROJECT: GEMMapper
- * FILE: gpu_buffer_align_bpm.h
- * DATE: 06/06/2012
- * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
- *            Santiago Marco-Sola <santiagomsola@gmail.com>
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *  Copyright (c) 2011-2017 by Alejandro Chacon <alejandro.chacon@uab.es>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
+ * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
+ * DESCRIPTION:
+ *   GPU-adaptor module provides support data-structures and functions
+ *   to offload the alignment (i.e. verification stage) from a batch
+ *   of searches to the GPU (patterns against a set of candidate text-regions)
  */
 
 #ifndef GPU_BUFFER_ALIGN_BPM_H_
@@ -11,7 +31,7 @@
 
 #include "utils/essentials.h"
 #include "system/profiler_timer.h"
-#include "data_structures/pattern.h"
+#include "text/pattern.h"
 #include "gpu/gpu_buffer_collection.h"
 
 /*
@@ -41,7 +61,6 @@ void gpu_bpm_pattern_compile(
     bpm_pattern_t* const bpm_pattern,
     const uint64_t words128_per_tile,
     const uint64_t max_error);
-uint64_t gpu_bpm_pattern_get_entry_length();
 
 /*
  * Setup
@@ -56,7 +75,7 @@ void gpu_buffer_align_bpm_delete(gpu_buffer_align_bpm_t* const gpu_buffer_align_
 /*
  * Occupancy & Limits
  */
-uint64_t gpu_buffer_align_bpm_get_entry_length();
+uint64_t gpu_buffer_align_bpm_get_entry_length(void);
 uint64_t gpu_buffer_align_bpm_get_max_candidates(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
 uint64_t gpu_buffer_align_bpm_get_max_queries(gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
 

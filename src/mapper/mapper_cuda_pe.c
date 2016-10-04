@@ -9,8 +9,8 @@
 #include "mapper/mapper.h"
 #include "mapper/mapper_bisulfite.h"
 #include "io/input_file.h"
-#include "archive/archive_search_pe.h"
-#include "archive/archive_search_pe_stepwise.h"
+#include "archive/search/archive_search_pe.h"
+#include "archive/search/archive_search_pe_stepwise.h"
 
 /*
  * Profile
@@ -27,7 +27,8 @@ bool mapper_pe_cuda_stage_read_input_sequences_exhausted(mapper_cuda_search_t* c
   if (!buffered_input_file_eob(mapper_search->buffered_fasta_input_end1)) return false;
   // Reload buffer
   const uint64_t error_code = mapper_pe_reload_buffers(mapper_search->mapper_parameters,
-      mapper_search->buffered_fasta_input_end1,mapper_search->buffered_fasta_input_end2);
+      mapper_search->buffered_fasta_input_end1,mapper_search->buffered_fasta_input_end2,
+      mapper_search->search_pipeline->search_pipeline_handlers->mapper_stats);
   if (error_code==INPUT_STATUS_EOF) return true;
   // Clear pipeline (release intermediate memory & start pipeline fresh)
   search_pipeline_clear(mapper_search->search_pipeline);
@@ -221,9 +222,8 @@ void mapper_pe_cuda_finish_search(mapper_cuda_search_t* const mapper_search) {
 /*
  * Mapper PE-CUDA
  */
-void mapper_cuda_pe_thread_pipeline(
-    mapper_cuda_search_t* const mapper_search,
-    mm_stack_t* const mm_stack) {
+void mapper_cuda_pe_thread_pipeline(mapper_cuda_search_t* const mapper_search) {
+  mm_stack_t* const mm_stack = mapper_search->search_pipeline->search_pipeline_handlers->mm_stack;
   while (!mapper_pe_cuda_stage_read_input_sequences_exhausted(mapper_search)) {
     // Region Profile
     mapper_pe_cuda_region_profile(mapper_search);
@@ -263,9 +263,8 @@ void* mapper_cuda_pe_thread(mapper_cuda_search_t* const mapper_search) {
   mapper_search->pending_search_decode_candidates_end1 = NULL;
   mapper_search->pending_search_verify_candidates_end1 = NULL;
   // FASTA/FASTQ reading loop
-  mm_stack_t* const mm_stack = mapper_search->search_pipeline->mm_stack;
   mapper_search->reads_processed = 0;
-  mapper_cuda_pe_thread_pipeline(mapper_search,mm_stack);
+  mapper_cuda_pe_thread_pipeline(mapper_search);
   // Clean up
   ticker_update_mutex(mapper_search->ticker,mapper_search->reads_processed); // Update processed
   search_pipeline_delete(mapper_search->search_pipeline);

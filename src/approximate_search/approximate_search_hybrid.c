@@ -1,9 +1,28 @@
 /*
- * PROJECT: GEMMapper
- * FILE: approximate_search_hybrid.c
- * DATE: 06/06/2012
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
+ *   Approximate-String-Matching (ASM) using hybrid techniques.
+ *   Combines adaptive-filtering (AF) with neighborhood-search (NS)
+ *   to perform efficient complete searches
  */
 
 #include "approximate_search/approximate_search_hybrid.h"
@@ -11,9 +30,9 @@
 #include "approximate_search/approximate_search_region_profile.h"
 #include "approximate_search/approximate_search_generate_candidates.h"
 #include "approximate_search/approximate_search_neighborhood.h"
-#include "filtering/region_profile.h"
-#include "filtering/region_profile_schedule.h"
-#include "matches/matches_classify.h"
+#include "filtering/region_profile/region_profile.h"
+#include "filtering/region_profile/region_profile_schedule.h"
+#include "matches/classify/matches_classify.h"
 
 /*
  * Control
@@ -156,10 +175,10 @@ void approximate_search_hybrid_complete_search(
     return;
   }
   // Compute the region profile
-  approximate_search_region_profile_adaptive(search,region_profile_adaptive,search->mm_stack);
+  approximate_search_region_profile_adaptive(search,region_profile_adaptive);
   // Generate exact-candidates
   region_profile_schedule_filtering_exact(region_profile);
-  approximate_search_generate_candidates_exact(search,matches);
+  approximate_search_generate_candidates_exact(search);
   //  // Verify candidates
   //  filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
   //  filtering_candidates_process_candidates(filtering_candidates,pattern,true);
@@ -172,7 +191,7 @@ void approximate_search_hybrid_complete_search(
     search_parameters_t* const search_parameters = search->search_parameters;
     // Prepare region-profile (fill gaps)
     region_profile_fill_gaps(region_profile,pattern->key,pattern->key_length,
-        search_parameters->allowed_enc,pattern->num_wildcards,search->mm_stack);
+        search_parameters->allowed_enc,pattern->num_wildcards);
     region_profile_merge_small_regions(region_profile,search->archive->fm_index->proper_length);
     // Complete Search with NS-Search (preconditioned)
     approximate_search_neighborhood_search_partition_preconditioned(search,matches);

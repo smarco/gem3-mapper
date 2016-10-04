@@ -1,23 +1,42 @@
 /*
- * PROJECT: GEMMapper
- * FILE: bwt_basic.c
- * DATE: 06/06/2012
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
- * DESCRIPTION: Provides basic routines to encode a DNA text into a
- *              Burrows-Wheeler transform using a compact bit representation
- *              and counter buckets as to enhance Occ/rank queries
- * MODEL:
- *   NAME:      bwt_basic
- *   ALPHABET:  3bits (8 chars)
- *   LEVELS:    2-levels
- *   STEP:      1s
- *   COUNTERS:  (8x64b,8x16b)
- *   BITMAP:    64bits
- *   SAMPLED:   No
- *   OTHERS:    -
+ * DESCRIPTION:
+ *   BWT data structure (basic implementation not-sampled).
+ *   Provides basic routines to encode a DNA text into a
+ *   Burrows-Wheeler transform using a compact bit representation
+ *   and counter buckets as to enhance Occ/rank queries
+ *   MODEL:
+ *     NAME:      bwt_basic
+ *     ALPHABET:  3bits (8 chars)
+ *     LEVELS:    2-levels
+ *     STEP:      1s
+ *     COUNTERS:  (8x64b,8x16b)
+ *     BITMAP:    64bits
+ *     SAMPLED:   No
+ *     OTHERS:    -
  */
+
+#include "text/dna_text.h"
 #include "fm_index/bwt_basic.h"
-#include "data_structures/dna_text.h"
 
 /*
  * BWT Model & Version
@@ -178,7 +197,6 @@ void bwt_basic_builder_write_minor_block(
 bwt_basic_builder_t* bwt_basic_builder_new(
     dna_text_t* const bwt_text,
     const uint64_t* const character_occurrences,
-    const bool check,
     const bool verbose) {
   /*
    * Allocate & initialize builder

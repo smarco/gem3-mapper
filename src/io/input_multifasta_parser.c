@@ -6,8 +6,8 @@
  * DESCRIPTION: Input parser for MULTIFASTA files
  */
 
+#include "text/dna_text.h"
 #include "io/input_multifasta_parser.h"
-#include "data_structures/dna_text.h"
 
 /*
  * MultiFASTA parsing state

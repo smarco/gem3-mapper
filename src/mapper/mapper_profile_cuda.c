@@ -318,7 +318,7 @@ void mapper_profile_print_mapper_se_cuda(
   // CUDA
   mapper_profile_print_archive_search_se_cuda(stream,map_output);
   // Approximate Search
-  mapper_profile_print_approximate_search_summary(stream,true,true,map_output,num_threads);
+  mapper_profile_print_approximate_search_summary(stream);
 }
 /*
  * Mapper-CUDA PE
@@ -344,7 +344,7 @@ void mapper_profile_print_mapper_pe_cuda(
   // CUDA
   mapper_profile_print_archive_search_pe_cuda(stream,map_output);
   // Approximate Search
-  mapper_profile_print_approximate_search_summary(stream,true,true,map_output,num_threads);
+  mapper_profile_print_approximate_search_summary(stream);
 }
 #else /* GEM_PROFILE DISABLED */
 /*

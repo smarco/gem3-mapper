@@ -110,7 +110,7 @@ void mapper_profile_print_mapper_se(
   // Archive Search SE
   mapper_profile_print_archive_search_se(stream);
   // Approximate Search
-  mapper_profile_print_approximate_search_summary(stream,false,false,map_output,num_threads);
+  mapper_profile_print_approximate_search_summary(stream);
 }
 /*
  * Mapper PE
@@ -136,7 +136,7 @@ void mapper_profile_print_mapper_pe(
   // Archive Search SE
   mapper_profile_print_archive_search_pe(stream);
   // Approximate Search
-  mapper_profile_print_approximate_search_summary(stream,true,false,map_output,num_threads);
+  mapper_profile_print_approximate_search_summary(stream);
 }
 #else /* GEM_PROFILE DISABLED */
 void mapper_profile_print_mapper_se(

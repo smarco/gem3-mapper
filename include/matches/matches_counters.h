@@ -22,7 +22,7 @@ typedef struct {
 /*
  * Setup
  */
-matches_counters_t* matches_counters_new();
+matches_counters_t* matches_counters_new(void);
 void matches_counters_clear(matches_counters_t* const counters);
 void matches_counters_delete(matches_counters_t* const counters);
 

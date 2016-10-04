@@ -10,8 +10,8 @@
 #define SEARCH_STATE_REGION_PROFILE_H_
 
 #include "utils/essentials.h"
-#include "archive/archive_search.h"
-#include "archive/archive_search_cache.h"
+#include "archive/search/archive_search.h"
+#include "archive/search/archive_search_cache.h"
 #include "search_pipeline/search_stage_state.h"
 
 /*

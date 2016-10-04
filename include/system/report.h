@@ -30,21 +30,21 @@ void gem_error_set_report_function(report_function_t report_function);
 
 // Getters/Setters ELD-streams
 #define GEM_DEFAULT_REPORT_STREAM stderr
-FILE* gem_error_get_stream();
+FILE* gem_error_get_stream(void);
 void gem_error_set_stream(FILE* const stream);
-FILE* gem_log_get_stream();
+FILE* gem_log_get_stream(void);
 void gem_log_set_stream(FILE* const stream);
-FILE* gem_info_get_stream();
+FILE* gem_info_get_stream(void);
 void gem_info_set_stream(FILE* const stream);
-FILE* gem_debug_get_stream();
+FILE* gem_debug_get_stream(void);
 void gem_debug_set_stream(FILE* const stream);
 // Mute/Articulate ELD-streams
-void gem_mute_error_stream();
-void gem_mute_report_stream();
-void gem_articulate_error_stream();
-void gem_articulate_report_stream();
-bool gem_is_mute_error_stream();
-bool gem_is_mute_report_stream();
+void gem_mute_error_stream(void);
+void gem_mute_report_stream(void);
+void gem_articulate_error_stream(void);
+void gem_articulate_report_stream(void);
+bool gem_is_mute_error_stream(void);
+bool gem_is_mute_report_stream(void);
 /*
  * Low-level code report functions
  *
@@ -178,11 +178,11 @@ int tab_printf(const char* format,...);
  */
 void fprintf_tabs(FILE* const stream,const int num_spaces);
 void tab_global_print(FILE* const stream);
-void tab_global_inc();
+void tab_global_inc(void);
 void tab_global_add(const uint64_t amount);
-void tab_global_dec();
+void tab_global_dec(void);
 void tab_global_subtract(const uint64_t amount);
-void tab_global_reset();
+void tab_global_reset(void);
 /*
  * Ticker
  */

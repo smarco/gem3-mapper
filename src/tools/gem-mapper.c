@@ -240,7 +240,7 @@ option_t gem_mapper_options[] = {
   { 503, "pair-layout", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "'separate'|'overlap'|'contain'" , "(default=separated,overlap)" },
   { 504, "discordant-pair-layout", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "'separate'|'overlap'|'contain'" , "(default=contain)" },
   // TODO { 505, "pe-extension", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "'none'|'recovery'|'shortcut'|'all'" , "(default=none)" },
-  { 506, "pe-template-length", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "<min>,<max>," , "(default=disabled)" },
+  { 506, "pe-template-length", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "<min>,<max>,<samples>" , "(default=0,800,100)" },
   /* Bisulfite Alignment */
   { 601, "bisulfite-read", REQUIRED, TYPE_STRING, 6, VISIBILITY_ADVANCED, "'inferred','1','2','interleaved'",  "(default=inferred)" },
   /* Alignment Score */
@@ -426,21 +426,21 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     /* Qualities */
     case 'q': // --quality-format
       if (gem_strcaseeq(optarg,"ignore")) {
-        search->quality_format=qualities_ignore;
+        search->qualities_format = sequence_qualities_ignore;
       } else if (gem_strcaseeq(optarg,"offset-33")) {
-        search->quality_format=qualities_offset_33;
+        search->qualities_format = sequence_qualities_offset_33;
       } else if (gem_strcaseeq(optarg,"offset-64")) {
-        search->quality_format=qualities_offset_64;
+        search->qualities_format = sequence_qualities_offset_64;
       } else {
         gem_mapper_error_msg("Option '-q|--quality-format' must be 'ignore', 'offset-33' or 'offset-64'");
       }
       break;
     case 'Q': // --quality-model
       if (gem_strcaseeq(optarg,"gem")) {
-        search->quality_model=quality_model_type_gem;
+        search->qualities_model = sequence_qualities_model_gem;
         // TODO parameters->quality_score=gem_quality_score;
       } else if (gem_strcaseeq(optarg,"flat")) {
-        search->quality_model=quality_model_type_flat;
+        search->qualities_model = sequence_qualities_model_flat;
         // TODO parameters->quality_score=flat_quality_score;
       } else {
         gem_mapper_error_msg("Option '-Q|--quality-model' must be 'gem' or 'flat'");
@@ -657,14 +657,16 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
         gem_mapper_error_msg("Option '--pe-extension' must be 'none'|'recovery'|'shortcut'|'all'");
       }
       break;
-    case 506: { // --pe-template-length=<min>,<max> (default=disabled)
-      char *min=NULL, *max=NULL;
-      const int num_arguments = input_text_parse_csv_arguments(optarg,2,&min,&max);
+    case 506: { // --pe-template-length=<min>,<max>,<samples> (default=0,800,100)
+      char *min=NULL, *max=NULL, *num_samples=NULL;
+      const int num_arguments = input_text_parse_csv_arguments(optarg,3,&min,&max,&num_samples);
       gem_mapper_cond_error_msg(num_arguments!=2,"Option '--pe-template-length' wrong number of arguments");
-      // Parse minimum estimated template-length
-      input_text_parse_extended_uint64(min,&paired_search->min_initial_template_estimation);
-      // Parse maximum estimated template-length
-      input_text_parse_extended_uint64(max,&paired_search->max_initial_template_estimation);
+      // Parse minimum
+      input_text_parse_extended_uint64(min,&paired_search->template_length_estimation_min);
+      // Parse maximum
+      input_text_parse_extended_uint64(max,&paired_search->template_length_estimation_max);
+      // Parse num-samples
+      input_text_parse_extended_uint64(num_samples,&paired_search->template_length_estimation_samples);
       break;
     }
     /* Bisulfite Alignment */
@@ -695,13 +697,13 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     /* Alignment Score */
     case 700: // --alignment-model
       if (gem_strcaseeq(optarg,"none")) {
-        search->alignment_model = alignment_model_none;
+        search->match_alignment_model = match_alignment_model_none;
       } else if (gem_strcaseeq(optarg,"hamming")) {
-        search->alignment_model = alignment_model_hamming;
+        search->match_alignment_model = match_alignment_model_hamming;
       } else if (gem_strcaseeq(optarg,"edit") || gem_strcaseeq(optarg,"levenshtein") ) {
-        search->alignment_model = alignment_model_levenshtein;
+        search->match_alignment_model = match_alignment_model_levenshtein;
       } else if (gem_strcaseeq(optarg,"gap-affine")) {
-        search->alignment_model = alignment_model_gap_affine;
+        search->match_alignment_model = match_alignment_model_gap_affine;
       } else {
         gem_mapper_error_msg("Option '--alignment-model' must be 'none'|'hamming'|'edit'|'gap-affine'");
       }
@@ -838,15 +840,18 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       gem_mapper_cond_error_msg(num_arguments!=4,"Option '--cuda-buffers-model' wrong number of arguments");
       // Number of region-profile buffers per thread
       gem_mapper_cond_error_msg(input_text_parse_integer(
-          (const char** const)&num_fmi_bsearch_buffers,(int64_t*)&parameters->cuda.num_fmi_bsearch_buffers),
+          (const char** const)&num_fmi_bsearch_buffers,
+          (int64_t*)&parameters->cuda.num_fmi_bsearch_buffers),
           "Option '--cuda-buffers-model'. Error parsing 'region-profile buffers'");
       // Number of decode-candidates buffers per thread
       gem_mapper_cond_error_msg(input_text_parse_integer(
-          (const char** const)&num_fmi_decode_buffers,(int64_t*)&parameters->cuda.num_fmi_decode_buffers),
+          (const char** const)&num_fmi_decode_buffers,
+          (int64_t*)&parameters->cuda.num_fmi_decode_buffers),
           "Option '--cuda-buffers-model'. Error parsing 'decode-candidates buffers'");
       // Number of verify-candidates buffers per thread
       gem_mapper_cond_error_msg(input_text_parse_integer(
-          (const char** const)&num_bpm_buffers,(int64_t*)&parameters->cuda.num_bpm_buffers),
+          (const char** const)&num_bpm_buffers,
+          (int64_t*)&parameters->cuda.num_bpm_buffers),
           "Option '--cuda-buffers-model'. Error parsing 'verify-candidates buffers'");
       // Buffer size
       gem_mapper_cond_error_msg(input_text_parse_size(buffer_size,&parameters->cuda.gpu_buffer_size),

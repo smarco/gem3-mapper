@@ -10,9 +10,8 @@
 #define NSEARCH_PARTITION_H_
 
 #include "utils/essentials.h"
-#include "data_structures/interval_set.h"
 #include "fm_index/fm_index.h"
-#include "filtering/region_profile.h"
+#include "filtering/region_profile/region_profile.h"
 
 /*
  * Neighborhood-Search Error Partition

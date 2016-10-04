@@ -197,7 +197,7 @@ fm_t* fm_open_file(char* const file_name,const fm_mode mode) {
   // Return fm
   return file_manager;
 }
-fm_t* fm_open_temp_file() {
+fm_t* fm_open_temp_file(void) {
   // Allocate handler
   fm_t* const file_manager = mm_alloc(fm_t);
   // Open a file
@@ -590,14 +590,6 @@ uint64_t fm_read_mem(
   file_manager->byte_position += num_bytes_read;
   return num_bytes_read;
 }
-uint64_t fm_read_mem_parallel(
-    fm_t* const file_manager,
-    void* const dst,
-    const uint64_t num_bytes,
-    const uint64_t num_threads) {
-  GEM_NOT_IMPLEMENTED(); // TODO
-  return 0;
-}
 mm_t* fm_load_mem(fm_t* const file_manager,const uint64_t num_bytes) {
   GEM_CHECK_ZERO(num_bytes);
   // Allocate Memory
@@ -702,10 +694,6 @@ void fm_bulk_read_file(
   }
   // Read file
   fm_bulk_read_fd(fd,dst,(size==0) ? stat_info.st_size-offset : size);
-}
-void fm_bulk_read_file_parallel(
-    char* const file_name,void* const dst,const uint64_t offset,const uint64_t size,const uint64_t num_threads) {
-  GEM_NOT_IMPLEMENTED(); // TODO
 }
 /*
  * FileManager Wrappers

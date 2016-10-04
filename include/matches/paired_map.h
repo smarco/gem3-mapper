@@ -10,7 +10,7 @@
 #define PAIRED_MAP_H_
 
 #include "utils/essentials.h"
-#include "archive/archive_search_paired_parameters.h"
+#include "archive/search/archive_search_pe_parameters.h"
 #include "matches/matches.h"
 
 /*
@@ -40,7 +40,7 @@ uint64_t paired_map_compute_event_distance(
 uint64_t paired_map_compute_edit_distance(
     const match_trace_t* const match_end1,
     const match_trace_t* const match_end2);
-uint64_t paired_map_compute_swg_score(
+int32_t paired_map_compute_swg_score(
     const match_trace_t* const match_end1,
     const match_trace_t* const match_end2);
 

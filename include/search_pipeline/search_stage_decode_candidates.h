@@ -11,9 +11,10 @@
 
 
 #include "utils/essentials.h"
-#include "archive/archive_search.h"
-#include "archive/archive_search_cache.h"
+#include "archive/search/archive_search.h"
+#include "archive/search/archive_search_cache.h"
 #include "search_pipeline/search_stage_state.h"
+#include "search_pipeline/search_pipeline_handlers.h"
 
 /*
  * Search-group Decode Candidates
@@ -24,13 +25,8 @@ typedef struct {
   // Decode Candidates Buffers
   vector_t* buffers;                                        // Verify Candidates Buffers (search_stage_decode_candidates_buffer_t*)
   search_stage_iterator_t iterator;                         // Buffers State
-  // Support Data Structures
-  filtering_candidates_t filtering_candidates_forward_end1; // Filtering Candidates (end/1:F)
-  filtering_candidates_t filtering_candidates_reverse_end1; // Filtering Candidates (end/1:R)
-  filtering_candidates_t filtering_candidates_forward_end2; // Filtering Candidates (end/2:F)
-  filtering_candidates_t filtering_candidates_reverse_end2; // Filtering Candidates (end/2:R)
-  text_collection_t text_collection;                        // Stores text-traces
-  mm_stack_t* mm_stack;                                     // MM-Stack
+  /* Support Data Structures */
+  search_pipeline_handlers_t* search_pipeline_handlers;
 } search_stage_decode_candidates_t;
 
 /*
@@ -43,25 +39,13 @@ search_stage_decode_candidates_t* search_stage_decode_candidates_new(
     const uint32_t sampling_rate,
     const bool decode_sa_enabled,
     const bool decode_text_enabled,
-    mm_stack_t* const mm_stack);
-void search_stage_decode_candidates_prepare_se_search(
-    search_stage_decode_candidates_t* const search_stage_dc,
-    archive_search_t* const archive_search);
-void search_stage_decode_candidates_prepare_pe_search(
-    search_stage_decode_candidates_t* const search_stage_dc,
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2);
+    search_pipeline_handlers_t* const search_pipeline_handlers);
 void search_stage_decode_candidates_clear(
     search_stage_decode_candidates_t* const search_stage_dc,
     archive_search_cache_t* const archive_search_cache);
 void search_stage_decode_candidates_delete(
     search_stage_decode_candidates_t* const search_stage_dc,
     archive_search_cache_t* const archive_search_cache);
-
-/*
- * Accessors
- */
-bool search_stage_decode_candidates_is_empty(search_stage_decode_candidates_t* const search_stage_dc);
 
 /*
  * Send Searches (buffered)

@@ -1,8 +1,26 @@
 /*
- * PROJECT: GEMMapper
- * FILE: fm_index.c
- * DATE: 06/06/2012
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
+ * DESCRIPTION:
+ *   FM-Index data structure enables fast exact query of a text-index
  */
 
 #include "fm_index/fm_index.h"
@@ -45,7 +63,7 @@ void fm_index_write(
   if (verbose) sampled_sa_builder_print(gem_info_get_stream(),sampled_sa);
   sampled_sa_builder_delete_samples(sampled_sa); // Free Samples (Just the samples)
   // Generate BWT-Bitmap & rank_mtable
-  bwt_builder_t* const bwt_builder = bwt_builder_new(bwt_text,character_occurrences,sampled_sa,check,verbose);
+  bwt_builder_t* const bwt_builder = bwt_builder_new(bwt_text,character_occurrences,sampled_sa,verbose);
   if (verbose) bwt_builder_print(gem_info_get_stream(),bwt_builder);
   // Build mrank table
   rank_mtable_t* const rank_mtable = rank_mtable_builder_new(bwt_builder,verbose);
@@ -75,7 +93,7 @@ fm_index_t* fm_index_read_mem(mm_t* const memory_manager,const bool check) {
   // Load rank_mtable
   fm_index->rank_table = rank_mtable_read_mem(memory_manager);
   // Load BWT
-  fm_index->bwt = bwt_read_mem(memory_manager,check);
+  fm_index->bwt = bwt_read_mem(memory_manager);
   // Return
   return fm_index;
 }
@@ -210,7 +228,7 @@ void fm_index_print(
   tab_fprintf(stream,"    => BWT          %"PRIu64" MB (%2.3f%%)\n",CONVERT_B_TO_MB(bwt_size),PERCENTAGE(bwt_size,fm_index_size));
   tab_global_inc();
   // Sampled SuffixArray positions
-  sampled_sa_print(stream,fm_index->sampled_sa,false);
+  sampled_sa_print(stream,fm_index->sampled_sa);
   // Memoizated intervals
   rank_mtable_print(stream,fm_index->rank_table,true);
   // BWT structure

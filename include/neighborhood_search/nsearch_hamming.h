@@ -10,9 +10,9 @@
 #define NSEARCH_HAMMING_H_
 
 #include "utils/essentials.h"
-#include "data_structures/interval_set.h"
 #include "fm_index/fm_index.h"
-#include "filtering/region_profile.h"
+#include "approximate_search/approximate_search.h"
+#include "filtering/region_profile/region_profile.h"
 #include "neighborhood_search/nsearch_schedule.h"
 
 /*

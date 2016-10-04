@@ -1,17 +1,35 @@
 /*
- * PROJECT: GEMMapper
- * FILE: approximate_search_region_profile.c
- * DATE: 06/06/2012
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
+ *   Approximate-String-Matching (ASM) module to produce
+ *   region-profiles (i.e. key-partition with few candidates)
  */
 
-#include <approximate_search/approximate_search_stages.h>
+#include "approximate_search/approximate_search_stages.h"
 #include "approximate_search/approximate_search_region_profile.h"
-#include "filtering/region_profile.h"
-#include "filtering/region_profile_adaptive.h"
-#include "filtering/region_profile_fixed.h"
-#include "filtering/region_profile_schedule.h"
+#include "filtering/region_profile/region_profile.h"
+#include "filtering/region_profile/region_profile_adaptive.h"
+#include "filtering/region_profile/region_profile_fixed.h"
+#include "filtering/region_profile/region_profile_schedule.h"
 #include "fm_index/fm_index_search.h"
 
 /*
@@ -27,9 +45,9 @@
 /*
  * Benchmark
  */
-void approximate_search_region_profile_buffered_print_benchmark(approximate_search_t* const search);
 #ifdef CUDA_BENCHMARK_GENERATE_REGION_PROFILE
 FILE* benchmark_region_profile = NULL;
+void approximate_search_region_profile_buffered_print_benchmark(approximate_search_t* const search);
 #endif
 
 /*
@@ -63,12 +81,12 @@ void approximate_search_region_profile_close_region(
     filtering_region->degree = REGION_FILTER_DEGREE_ZERO;
     *total_candidates += num_candidates;
     ++(*num_regions_filtered);
+    // Accumulate Mappability
+    const uint64_t region_length = filtering_region->end - filtering_region->begin;
+    *max_region_length = MAX(*max_region_length,region_length);
   } else {
     filtering_region->degree = REGION_FILTER_NONE;
   }
-  // Accumulate Mappability
-  const uint64_t region_length = filtering_region->end - filtering_region->begin;
-  *max_region_length = MAX(*max_region_length,region_length);
 }
 void approximate_search_region_profile_static_close_profile(
     approximate_search_t* const search,
@@ -100,12 +118,12 @@ void approximate_search_region_profile_adaptive_close_profile(
     const uint64_t num_regions,
     const uint64_t num_regions_filtered,
     uint64_t total_candidates,
-    const uint64_t max_region_length) {
+    uint64_t max_region_length) {
   // Parameters
   region_profile_t* const region_profile = &search->region_profile;
   // Check exact matches
+  const uint64_t key_length = search->pattern.key_length;
   if (num_regions == 1 && num_regions_filtered == 0) {
-    const uint64_t key_length = search->pattern.key_length;
     region_search_t* const first_region = region_profile->filtering_region;
     if (first_region->begin==0 && first_region->end==key_length) {
       region_profile->num_filtering_regions = 1;
@@ -114,23 +132,26 @@ void approximate_search_region_profile_adaptive_close_profile(
     } else {
       region_profile->num_filtering_regions = 0;
     }
+    region_profile->max_region_length = 0;
   } else {
     region_profile->num_filtering_regions = num_regions;
+    if (num_regions > 0) {
+      region_search_t* const last_region =
+          region_profile->filtering_region + (region_profile->num_filtering_regions-1);
+      region_profile->max_region_length = MAX(max_region_length,last_region->begin);
+    } else {
+      region_profile->max_region_length = 0;
+    }
   }
   // Check number of regions
   if (region_profile->num_filtering_regions == 0) {
-    // Set State
+    // Set State & close region profile
     search->processing_state = asearch_processing_state_no_regions;
-    // Close region profile
     region_profile->total_candidates = 0;
   } else {
-    // Set State
+    // Set State & close region profile
     search->processing_state = asearch_processing_state_region_profiled;
-    // Close region profile
-    region_search_t* const last_region =
-        region_profile->filtering_region + (region_profile->num_filtering_regions-1);
     region_profile->total_candidates = total_candidates;
-    region_profile->max_region_length = MAX(max_region_length,last_region->begin);
   }
   // STATS
   approximate_search_region_profile_stats(region_profile);
@@ -140,8 +161,7 @@ void approximate_search_region_profile_adaptive_close_profile(
  */
 void approximate_search_region_profile_adaptive(
     approximate_search_t* const search,
-    const region_profile_strategy_t strategy,
-    mm_stack_t* const mm_stack) {
+    const region_profile_strategy_t strategy) {
   // Parameters
   const search_parameters_t* const parameters = search->search_parameters;
   fm_index_t* const fm_index = search->archive->fm_index;
@@ -165,7 +185,8 @@ void approximate_search_region_profile_adaptive(
       break;
     case region_profile_adaptive_limited:
       region_profile_generate_adaptive_limited(region_profile,fm_index,key,key_length,
-          parameters->allowed_enc,&parameters->region_profile_model,search->current_max_complete_error+1);
+          parameters->allowed_enc,&parameters->region_profile_model,
+          search->current_max_complete_error+1);
       break;
     default:
       GEM_INVALID_CASE();
@@ -173,7 +194,7 @@ void approximate_search_region_profile_adaptive(
   }
   // Compute K-mer frequency
   region_profile_compute_kmer_frequency(region_profile,
-      fm_index,key,key_length,parameters->allowed_enc,mm_stack);
+      fm_index,key,key_length,parameters->allowed_enc);
   gem_cond_debug_block(DEBUG_REGION_PROFILE_PRINT) { region_profile_print(stderr,region_profile,false); }
   // Check Zero-Region
   if (region_profile->num_filtering_regions==0) {
@@ -256,7 +277,6 @@ void approximate_search_region_profile_static_buffered_retrieve(
     approximate_search_t* const search,
     gpu_buffer_fmi_ssearch_t* const gpu_buffer_fmi_ssearch) {
   // Parameters
-  mm_stack_t* const mm_stack = search->mm_stack;
   search_parameters_t* const search_parameters = search->search_parameters;
   pattern_t* const pattern = &search->pattern;
   region_profile_t* const region_profile = &search->region_profile;
@@ -275,7 +295,8 @@ void approximate_search_region_profile_static_buffered_retrieve(
     // DEBUG
 #ifdef CUDA_CHECK_BUFFERED_REGION_PROFILE
     uint64_t hi, lo;
-    fm_index_bsearch(search->archive->fm_index,search->pattern.key+filtering_region->begin,
+    fm_index_bsearch(
+        search->archive->fm_index,search->pattern.key+filtering_region->begin,
         filtering_region->end-filtering_region->begin,&hi,&lo);
     gem_cond_error_msg(
              (hi-lo!=0 || filtering_region->hi-filtering_region->lo!=0) &&
@@ -291,7 +312,7 @@ void approximate_search_region_profile_static_buffered_retrieve(
   // Compute kmer frequency
   region_profile_compute_kmer_frequency(
       region_profile,search->archive->fm_index,pattern->key,
-      pattern->key_length,search_parameters->allowed_enc,mm_stack);
+      pattern->key_length,search_parameters->allowed_enc);
   // Close profile
   approximate_search_region_profile_static_close_profile(
       search,num_filtering_regions,num_regions_filtered,
@@ -310,13 +331,12 @@ void approximate_search_region_profile_adaptive_buffered_copy(
   region_profile_t* const region_profile = &search->region_profile;
   // Add query
   search->gpu_buffer_fmi_search_offset = gpu_buffer_fmi_asearch_add_query(
-      gpu_buffer_fmi_asearch,pattern,region_profile->max_regions_allocated);
+      gpu_buffer_fmi_asearch,pattern,region_profile->max_expected_regions);
 }
 void approximate_search_region_profile_adaptive_buffered_retrieve(
     approximate_search_t* const search,
     gpu_buffer_fmi_asearch_t* const gpu_buffer_fmi_asearch) {
   // Parameters
-  mm_stack_t* const mm_stack = search->mm_stack;
   search_parameters_t* const search_parameters = search->search_parameters;
   pattern_t* const pattern = &search->pattern;
   region_profile_t* const region_profile = &search->region_profile;
@@ -326,6 +346,8 @@ void approximate_search_region_profile_adaptive_buffered_retrieve(
   gpu_buffer_fmi_asearch_get_result_total_regions(
       gpu_buffer_fmi_asearch,search->gpu_buffer_fmi_search_offset,
       &regions_offset,&num_regions);
+  // Allocate region-profile
+  region_profile_allocate_regions(region_profile,num_regions); // Allocate
   // Traverse Region-Partition
   uint64_t num_regions_filtered = 0, max_region_length = 0, total_candidates = 0;
   uint64_t i;
@@ -344,7 +366,7 @@ void approximate_search_region_profile_adaptive_buffered_retrieve(
   // Compute kmer frequency
   region_profile_compute_kmer_frequency(
       region_profile,search->archive->fm_index,pattern->key,
-      pattern->key_length,search_parameters->allowed_enc,mm_stack);
+      pattern->key_length,search_parameters->allowed_enc);
   // Close profile
   approximate_search_region_profile_adaptive_close_profile(
       search,num_regions,num_regions_filtered,
@@ -355,8 +377,8 @@ void approximate_search_region_profile_adaptive_buffered_retrieve(
 /*
  * Benchmark
  */
-void approximate_search_region_profile_buffered_print_benchmark(approximate_search_t* const search) {
 #ifdef CUDA_BENCHMARK_GENERATE_REGION_PROFILE
+void approximate_search_region_profile_buffered_print_benchmark(approximate_search_t* const search) {
   // Parameters
   region_profile_t* const region_profile = &search->region_profile;
   // Prepare benchmark file
@@ -366,6 +388,6 @@ void approximate_search_region_profile_buffered_print_benchmark(approximate_sear
   // Print Region-Profile benchmark
   region_profile_print_benchmark(benchmark_region_profile,
       region_profile,search->archive->fm_index,search->pattern.key);
-#endif
 }
+#endif
 

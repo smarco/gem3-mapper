@@ -16,6 +16,7 @@ include $(ROOT_PATH)/Makefile.mk
 # Modules
 ###############################################################################
 MODULES=search_pipeline \
+        search_pipeline_handlers \
         search_stage_decode_candidates_buffer \
         search_stage_decode_candidates \
         search_stage_region_profile_buffer \

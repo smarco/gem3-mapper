@@ -6,10 +6,10 @@
  * DESCRIPTION:
  */
 
+#include "align/alignment.h"
 #include "neighborhood_search/nsearch_hamming.h"
 #include "neighborhood_search/nsearch_partition.h"
 #include "neighborhood_search/nsearch_schedule.h"
-#include "align/align.h"
 #include "fm_index/fm_index_query.h"
 
 /*
@@ -27,7 +27,7 @@ void nsearch_hamming_query(
   nsearch_schedule->pending_searches->text[current_position] = char_enc;
   *lo_out = 0; *hi_out = 1;
 #else
-  fm_index_t* const fm_index = nsearch_schedule->search->archive->fm_index;
+  fm_index_t* const fm_index = nsearch_schedule->archive->fm_index;
   *lo_out = bwt_erank(fm_index->bwt,char_enc,lo_in);
   *hi_out = bwt_erank(fm_index->bwt,char_enc,hi_in);
 #endif
@@ -42,7 +42,7 @@ void nsearch_hamming_directional_query(
 #ifdef NSEARCH_ENUMERATE
   nsearch_schedule->pending_searches->text[current_position] = char_enc;
 #else
-  fm_index_t* const fm_index = nsearch_schedule->search->archive->fm_index;
+  fm_index_t* const fm_index = nsearch_schedule->archive->fm_index;
   if (search_direction==direction_forward) {
     fm_index_2query_forward_query(fm_index,fm_2interval_in,fm_2interval_out,char_enc);
   } else {
@@ -56,18 +56,18 @@ void nsearch_hamming_terminate(
     const uint64_t hi,
     const uint64_t align_distance) {
   // PROFILE
-  PROF_ADD_COUNTER(GP_NS_SEARCH_DEPTH,nsearch_schedule->key_length);
+  PROF_ADD_COUNTER(GP_NS_SEARCH_DEPTH,nsearch_schedule->pattern->key_length);
   PROF_ADD_COUNTER(GP_NS_BRANCH_CANDIDATES_GENERATED,(hi-lo));
 #ifdef NSEARCH_ENUMERATE
   const uint8_t* const text = nsearch_schedule->pending_searches->text;
   dna_buffer_print(stdout,text,nsearch_schedule->key_length,false);
   fprintf(stdout,"\n");
 #else
-  filtering_candidates_t* const filtering_candidates = nsearch_schedule->search->filtering_candidates;
-  search_parameters_t* const search_parameters = nsearch_schedule->search->search_parameters;
-  pattern_t* const pattern = &nsearch_schedule->search->pattern;
+  filtering_candidates_t* const filtering_candidates = nsearch_schedule->filtering_candidates;
+  search_parameters_t* const search_parameters = nsearch_schedule->search_parameters;
+  pattern_t* const pattern = nsearch_schedule->pattern;
   bool limited;
-  filtering_candidates_add_region_interval(
+  filtering_candidates_add_positions_from_interval(
       filtering_candidates,search_parameters,pattern,
       lo,hi,0,pattern->key_length,align_distance,&limited);
 #endif
@@ -84,7 +84,8 @@ void nsearch_hamming_brute_force_step(
   uint64_t next_lo, next_hi;
   uint8_t char_enc;
   for (char_enc=0;char_enc<DNA_RANGE;++char_enc) {
-    const uint64_t next_error = current_error + (char_enc!=(nsearch_schedule->key[current_position]) ? 1 : 0);
+    const uint64_t next_error = current_error +
+        (char_enc!=(nsearch_schedule->pattern->key[current_position]) ? 1 : 0);
     if (next_error <= nsearch_schedule->max_error) {
       // Query
       nsearch_hamming_query(nsearch_schedule,current_position,char_enc,lo,hi,&next_lo,&next_hi);
@@ -105,23 +106,26 @@ void nsearch_hamming_brute_force(
     matches_t* const matches) {
   PROF_START(GP_NS_GENERATION);
   // Init
-  nsearch_schedule_t nsearch_schedule;
-  nsearch_schedule_init(&nsearch_schedule,nsearch_model_hamming,search,matches);
+  nsearch_schedule_init(search->nsearch_schedule,nsearch_model_hamming,
+      search->current_max_complete_error,search->archive,
+      &search->pattern,&search->region_profile,
+      search->search_parameters,search->filtering_candidates,
+      matches);
 #ifdef NSEARCH_ENUMERATE
   const uint64_t init_lo = 0;
   const uint64_t init_hi = 1;
 #else
   const uint64_t init_lo = 0;
-  const uint64_t init_hi = fm_index_get_length(nsearch_schedule.search->archive->fm_index);
+  const uint64_t init_hi = fm_index_get_length(search->nsearch_schedule->archive->fm_index);
 #endif
   // Search
-  nsearch_hamming_brute_force_step(&nsearch_schedule,
-      nsearch_schedule.key_length-1,0,init_lo,init_hi);
+  nsearch_hamming_brute_force_step(search->nsearch_schedule,
+      search->nsearch_schedule->pattern->key_length-1,0,init_lo,init_hi);
   // PROFILE
   // nsearch_schedule_print_profile(stderr,&nsearch_schedule);
-  PROF_ADD_COUNTER(GP_NS_NODES,nsearch_schedule.profile.ns_nodes);
-  PROF_ADD_COUNTER(GP_NS_NODES_SUCCESS,nsearch_schedule.profile.ns_nodes_success);
-  PROF_ADD_COUNTER(GP_NS_NODES_FAIL,nsearch_schedule.profile.ns_nodes_fail);
+  PROF_ADD_COUNTER(GP_NS_NODES,search->nsearch_schedule->profile.ns_nodes);
+  PROF_ADD_COUNTER(GP_NS_NODES_SUCCESS,search->nsearch_schedule->profile.ns_nodes_success);
+  PROF_ADD_COUNTER(GP_NS_NODES_FAIL,search->nsearch_schedule->profile.ns_nodes_fail);
   PROF_STOP(GP_NS_GENERATION);
 }
 /*
@@ -152,7 +156,8 @@ void nsearch_hamming_scheduled_search_operation_next(
   uint8_t char_enc;
   for (char_enc=0;char_enc<DNA_RANGE;++char_enc) {
     // Compute distance function & constraints
-    const uint64_t next_local_error = local_error + ((char_enc!=nsearch_schedule->key[current_position]) ? 1 : 0);
+    const uint64_t next_local_error = local_error +
+        ((char_enc!=nsearch_schedule->pattern->key[current_position]) ? 1 : 0);
     if (next_local_error+global_error > nsearch_operation->max_global_error) continue;
     if (limit_reached) {
       if (next_local_error < nsearch_operation->min_local_error) continue;
@@ -196,7 +201,7 @@ void nsearch_hamming_scheduled_search(nsearch_schedule_t* const nsearch_schedule
   // Init query
   fm_2interval_t fm_2interval;
 #ifndef NSEARCH_ENUMERATE
-  fm_index_2query_init(nsearch_schedule->search->archive->fm_index,&fm_2interval);
+  fm_index_2query_init(nsearch_schedule->archive->fm_index,&fm_2interval);
 #endif
   // Launch search
   // nsearch_schedule_print_pretty(stderr,nsearch_schedule); // DEBUG
@@ -214,15 +219,19 @@ void nsearch_hamming(
     approximate_search_t* const search,
     matches_t* const matches) {
   // Search
-  nsearch_schedule_t nsearch_schedule;
-  nsearch_schedule_init(&nsearch_schedule,nsearch_model_hamming,search,matches);
-  nsearch_schedule_search(&nsearch_schedule);
+  nsearch_schedule_init(
+      search->nsearch_schedule,nsearch_model_hamming,
+      search->current_max_complete_error,search->archive,
+      &search->pattern,&search->region_profile,
+      search->search_parameters,search->filtering_candidates,
+      matches);
+  nsearch_schedule_search(search->nsearch_schedule);
   // PROFILE
 #ifdef GEM_PROFILE
   // nsearch_schedule_print_profile(stderr,&nsearch_schedule);
   if (search->filtering_candidates != NULL) {
-    const uint64_t total_search_candidates = vector_get_used(search->filtering_candidates->filtering_positions);
-    PROF_ADD_COUNTER(GP_NS_SEARCH_CANDIDATES_GENERATED,total_search_candidates);
+    PROF_ADD_COUNTER(GP_NS_SEARCH_CANDIDATES_GENERATED,
+        filtering_candidates_get_num_positions(search->filtering_candidates));
   }
 #endif
 }
@@ -233,15 +242,19 @@ void nsearch_hamming_preconditioned(
     approximate_search_t* const search,
     matches_t* const matches) {
   // Search
-  nsearch_schedule_t nsearch_schedule;
-  nsearch_schedule_init(&nsearch_schedule,nsearch_model_hamming,search,matches);
-  nsearch_schedule_search_preconditioned(&nsearch_schedule);
+  nsearch_schedule_init(
+      search->nsearch_schedule,nsearch_model_hamming,
+      search->current_max_complete_error,search->archive,
+      &search->pattern,&search->region_profile,
+      search->search_parameters,search->filtering_candidates,
+      matches);
+  nsearch_schedule_search_preconditioned(search->nsearch_schedule);
   // PROFILE
 #ifdef GEM_PROFILE
   // nsearch_schedule_print_profile(stderr,&nsearch_schedule);
   if (search->filtering_candidates != NULL) {
-    const uint64_t total_search_candidates = vector_get_used(search->filtering_candidates->filtering_positions);
-    PROF_ADD_COUNTER(GP_NS_SEARCH_CANDIDATES_GENERATED,total_search_candidates);
+    PROF_ADD_COUNTER(GP_NS_SEARCH_CANDIDATES_GENERATED,
+        filtering_candidates_get_num_positions(search->filtering_candidates));
   }
 #endif
 }

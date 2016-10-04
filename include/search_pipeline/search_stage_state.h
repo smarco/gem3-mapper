@@ -10,8 +10,8 @@
 #define SEARCH_STAGE_STATE_H_
 
 #include "utils/essentials.h"
-#include "archive/archive_search.h"
-#include "archive/archive_search_se_stepwise.h"
+#include "archive/search/archive_search.h"
+#include "archive/search/archive_search_se_stepwise.h"
 
 /*
  * Buffer State

@@ -19,35 +19,46 @@
 void nsearch_schedule_init(
     nsearch_schedule_t* const nsearch_schedule,
     const nsearch_model_t nsearch_model,
-    approximate_search_t* const search,
+    const uint64_t max_complete_error,
+    archive_t* const archive,
+    pattern_t* const pattern,
+    region_profile_t* const region_profile,
+    search_parameters_t* const search_parameters,
+    filtering_candidates_t* const filtering_candidates,
     matches_t* const matches) {
   // Search Structures
   nsearch_schedule->search_id = 0;
-  nsearch_schedule->search = search;
+  nsearch_schedule->archive = archive;
+  nsearch_schedule->pattern = pattern;
+  nsearch_schedule->region_profile = region_profile;
+  nsearch_schedule->filtering_candidates = filtering_candidates;
   nsearch_schedule->matches = matches;
   // Search Parameters
+  nsearch_schedule->search_parameters = search_parameters;
   nsearch_schedule->nsearch_model = nsearch_model;
-  nsearch_schedule->key = search->pattern.key;
-  nsearch_schedule->key_length = search->pattern.key_length;
-  nsearch_schedule->max_error = search->current_max_complete_error;
+  nsearch_schedule->max_error = max_complete_error;
   // Search Operations
-  const uint64_t key_length = nsearch_schedule->key_length;
+  const uint64_t key_length = nsearch_schedule->pattern->key_length;
   const uint64_t max_error = nsearch_schedule->max_error;
   const uint64_t max_text_length = key_length + max_error;
   const uint64_t max_pending_ops = (uint64_t)ceil(gem_log2((float)(max_error+1))) + 1;
-  mm_stack_t* const mm_stack = search->mm_stack;
-  nsearch_operation_t* const pending_searches = mm_stack_calloc(mm_stack,max_pending_ops,nsearch_operation_t,false);
+  nsearch_operation_t* const pending_searches =
+      mm_stack_calloc(nsearch_schedule->mm_stack,max_pending_ops,nsearch_operation_t,false);
   nsearch_schedule->pending_searches = pending_searches;
   nsearch_schedule->num_pending_searches = 0;
   uint64_t i;
   for (i=0;i<max_pending_ops;++i) {
-    nsearch_operation_init(pending_searches+i,key_length,max_text_length,mm_stack);
+    nsearch_operation_init(pending_searches+i,
+        key_length,max_text_length,nsearch_schedule->mm_stack);
   }
   // Profiler
   nsearch_schedule->profile.ns_nodes = 0;
   nsearch_schedule->profile.ns_nodes_success = 0;
   nsearch_schedule->profile.ns_nodes_fail = 0;
-  // MM
+}
+void nsearch_schedule_inject_mm(
+    nsearch_schedule_t* const nsearch_schedule,
+    mm_stack_t* const mm_stack) {
   nsearch_schedule->mm_stack = mm_stack;
 }
 /*
@@ -82,7 +93,7 @@ bool nsearch_schedule_add_pending_search(
   const bool search_forward = (search_direction==direction_forward);
   const bool supercondensed = (search_forward) ?
           (nsearch_operation->global_key_begin == 0) :
-          (nsearch_operation->global_key_end == nsearch_schedule->key_length);
+          (nsearch_operation->global_key_end == nsearch_schedule->pattern->key_length);
   nsearch_levenshtein_state_prepare(&nsearch_operation->nsearch_state,supercondensed);
   // Return
   return true;
@@ -154,8 +165,9 @@ void nsearch_schedule_search_step(
 }
 void nsearch_schedule_search(nsearch_schedule_t* const nsearch_schedule) {
   PROF_START(GP_NS_GENERATION);
-  nsearch_schedule_search_step(nsearch_schedule,
-      0,nsearch_schedule->key_length,0,nsearch_schedule->max_error);
+  nsearch_schedule_search_step(
+      nsearch_schedule,0,nsearch_schedule->pattern->key_length,
+      0,nsearch_schedule->max_error);
   PROF_ADD_COUNTER(GP_NS_NODES,nsearch_schedule->profile.ns_nodes);
   PROF_ADD_COUNTER(GP_NS_NODES_SUCCESS,nsearch_schedule->profile.ns_nodes_success);
   PROF_ADD_COUNTER(GP_NS_NODES_FAIL,nsearch_schedule->profile.ns_nodes_fail);
@@ -171,7 +183,7 @@ void nsearch_schedule_search_preconditioned_step(
     const uint64_t chunk_min_error,
     const uint64_t chunk_max_error) {
   // PRE: (num_regions > 1)
-  region_profile_t* const region_profile = &nsearch_schedule->search->region_profile;
+  region_profile_t* const region_profile = nsearch_schedule->region_profile;
   region_search_t* const regions = region_profile->filtering_region;
   const uint64_t global_region_offset = regions[region_offset].begin;
   const uint64_t global_region_length = regions[region_offset+num_regions-1].end - regions[region_offset].begin;
@@ -230,11 +242,11 @@ void nsearch_schedule_search_preconditioned_step(
 }
 void nsearch_schedule_search_preconditioned(nsearch_schedule_t* const nsearch_schedule) {
   PROF_START(GP_NS_GENERATION);
-  region_profile_t* const region_profile = &nsearch_schedule->search->region_profile;
+  region_profile_t* const region_profile = nsearch_schedule->region_profile;
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
   if (num_filtering_regions <= 1) {
     nsearch_schedule_search_step(nsearch_schedule,
-        0,nsearch_schedule->key_length,0,nsearch_schedule->max_error);
+        0,nsearch_schedule->pattern->key_length,0,nsearch_schedule->max_error);
   } else {
     nsearch_schedule_search_preconditioned_step(nsearch_schedule,
         0,num_filtering_regions,0,nsearch_schedule->max_error);
@@ -250,8 +262,9 @@ void nsearch_schedule_search_preconditioned(nsearch_schedule_t* const nsearch_sc
 void nsearch_schedule_print(
     FILE* const stream,
     nsearch_schedule_t* const nsearch_schedule) {
+  const uint64_t key_length = nsearch_schedule->pattern->key_length;
   uint64_t offset = 0;
-  while (offset != nsearch_schedule->key_length) {
+  while (offset != key_length) {
     uint64_t i;
     for (i=0;i<nsearch_schedule->num_pending_searches;++i) {
       nsearch_operation_t* const pending_search = nsearch_schedule->pending_searches + i;
@@ -325,15 +338,16 @@ void nsearch_schedule_print_pretty(
   nsearch_schedule_print_data_t* const print_data =
       mm_stack_calloc(mm_stack,num_pending_searches,nsearch_schedule_print_data_t,true);
   // Set proper amplification factor
+  const uint64_t key_length = nsearch_schedule->pattern->key_length;
   uint64_t amplification = 1;
-  if (nsearch_schedule->key_length < 100) {
-    amplification = 100 / nsearch_schedule->key_length;
+  if (key_length < 100) {
+    amplification = 100 / key_length;
     if (amplification == 0) amplification = 1;
   }
   // Compute print info
   nsearch_operation_t* const pending_searches = nsearch_schedule->pending_searches;
   int64_t offset = 0, j=0, i;
-  while (offset != nsearch_schedule->key_length) {
+  while (offset != key_length) {
     for (i=0;i<num_pending_searches;++i) {
       nsearch_operation_t* const pending_search = pending_searches + i;
       if (pending_search->local_key_begin == offset) {
@@ -376,7 +390,7 @@ void nsearch_schedule_print_pretty(
   }
   fprintf(stream,"\n");
   // Print regions
-  region_profile_t* const region_profile = &nsearch_schedule->search->region_profile;
+  region_profile_t* const region_profile = nsearch_schedule->region_profile;
   if (region_profile->num_filtering_regions > 0) {
     const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
     fprintf(stream,"  => Regions        ");

@@ -6,8 +6,8 @@
  * DESCRIPTION:
  */
 
+#include "text/sequence.h"
 #include "io/output_map.h"
-#include "data_structures/sequence.h"
 
 /*
  * Constants
@@ -243,8 +243,7 @@ void output_map_single_end_print_tag(
 }
 void output_map_paired_end_print_tag(
     buffered_output_file_t* const buffered_output_file,
-    sequence_t* const seq_read_end1,
-    sequence_t* const seq_read_end2) {
+    sequence_t* const seq_read_end1) {
   // TODO Redefine behavior in case of mismatching tags
   // Print Tag + End-Info
   const uint64_t tag_length = string_get_length(&seq_read_end1->tag);
@@ -437,8 +436,7 @@ void output_map_paired_end_matches(
     output_map_single_end_matches(buffered_output_file,archive_search_end2,matches_end2,output_map_parameters);
   } else {
     // Print TAG
-    output_map_paired_end_print_tag(buffered_output_file,
-        &archive_search_end1->sequence,&archive_search_end2->sequence);
+    output_map_paired_end_print_tag(buffered_output_file,&archive_search_end1->sequence);
     // Print READ & QUALITIES
     output_map_print_separator(buffered_output_file,'\t'); // Separator
     output_map_paired_end_print_read__qualities(buffered_output_file,

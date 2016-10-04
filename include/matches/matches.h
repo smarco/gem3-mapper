@@ -10,13 +10,13 @@
 #define MATCHES_H_
 
 #include "utils/essentials.h"
-#include "data_structures/interval_set.h"
-#include "data_structures/text_collection.h"
+#include "text/text_collection.h"
 #include "archive/locator.h"
-#include "archive/archive_select_parameters.h"
+#include "archive/search/archive_select_parameters.h"
 #include "matches/matches_counters.h"
-#include "matches/match_alignment.h"
-#include "matches/matches_metrics.h"
+#include "matches/align/match_alignment.h"
+#include "matches/matches_cigar.h"
+#include "matches/classify/matches_metrics.h"
 
 /*
  * Matches Type
@@ -72,8 +72,6 @@ typedef struct {
   /* State */
   matches_class_t matches_class;
   uint64_t max_complete_stratum;
-  /* Text Collection Buffer */
-  text_collection_t* text_collection;  // Stores text-traces (candidates/matches/regions/...)
   /* Matches Counters */
   matches_counters_t* counters;        // Global counters
   /* Matches */
@@ -93,8 +91,7 @@ typedef struct {
 /*
  * Setup
  */
-matches_t* matches_new();
-void matches_configure(matches_t* const matches,text_collection_t* const text_collection);
+matches_t* matches_new(void);
 void matches_clear(matches_t* const matches);
 void matches_delete(matches_t* const matches);
 
@@ -120,7 +117,9 @@ match_trace_t** matches_get_match_traces(const matches_t* const matches);
 /*
  * Match-Trace
  */
-cigar_element_t* match_trace_get_cigar_buffer(const matches_t* const matches,const match_trace_t* const match_trace);
+cigar_element_t* match_trace_get_cigar_buffer(
+    const matches_t* const matches,
+    const match_trace_t* const match_trace);
 uint64_t match_trace_get_cigar_length(const match_trace_t* const match_trace);
 uint64_t match_trace_get_event_distance(const match_trace_t* const match_trace);
 int64_t match_trace_get_effective_length(
@@ -128,6 +127,11 @@ int64_t match_trace_get_effective_length(
     const uint64_t read_length,
     const uint64_t cigar_buffer_offset,
     const uint64_t cigar_length);
+int matche_trace_cigar_cmp(
+    vector_t* const cigar_vector_match0,
+    match_trace_t* const match0,
+    vector_t* const cigar_vector_match1,
+    match_trace_t* const match1);
 
 /*
  * Sorting Matches

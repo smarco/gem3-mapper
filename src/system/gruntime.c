@@ -27,7 +27,7 @@ void gruntime_init(
   // Setup temporal folder
   if (tmp_folder!=NULL) mm_set_tmp_folder(tmp_folder);
 }
-void gruntime_destroy() {
+void gruntime_destroy(void) {
   // Clean-up Profiler
   PROF_DELETE();
   // Clean-up Thread Info

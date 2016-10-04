@@ -221,11 +221,6 @@ uint64_t stats_vector_get_accumulated_count(stats_vector_t* const stats_vector) 
   stats_vector_iterator_delete(iterator);
   return acc_count;
 }
-uint64_t stats_vector_get_range_accumulated_count(
-    stats_vector_t* const stats_vector,const uint64_t value_from,const uint64_t value_to) {
-  // TODO
-  return 0;
-}
 /*
  * Inverse Index (index -> value)
  *   Given the stats_vector index returns the corresponding value/range.
@@ -257,12 +252,6 @@ void stats_vector_get_value_range(
     *lo_value = stats_vector->max_value + (index-stats_vector->max_index-1)*stats_vector->out_of_range_bucket_size;
     *hi_value = *lo_value + stats_vector->out_of_range_bucket_size;
   }
-}
-/*
- * Merge 2 stats-vector (adding bucket counting)
- */
-void stats_vector_merge(stats_vector_t* const stats_dst,stats_vector_t* const stats_src) {
-  // TODO
 }
 /*
  * Display (Printers)

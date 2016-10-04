@@ -21,7 +21,7 @@
 /*
  * Setup
  */
-mapper_stats_t* mapper_stats_new() {
+mapper_stats_t* mapper_stats_new(void) {
   // Alloc
   mapper_stats_t* const mapper_stats = mm_alloc(mapper_stats_t);
   // Init
@@ -32,6 +32,7 @@ mapper_stats_t* mapper_stats_new() {
 void mapper_stats_clear(mapper_stats_t* const mapper_stats) {
   // PE
   COUNTER_RESET(&mapper_stats->unique_template_size);
+  COUNTER_RESET(&mapper_stats->unique_template_size_ref);
   // Performance Stats
   TIMER_RESET(&mapper_stats->generate_candidates_timer);
   mapper_stats->generate_candidates_total_bases = 0;
@@ -47,27 +48,32 @@ void mapper_stats_delete(mapper_stats_t* const mapper_stats) {
  */
 void mapper_stats_template_init(
     mapper_stats_t* const search_stats,
+    const uint64_t template_num_samples,
     const uint64_t template_length_min,
     const uint64_t template_length_max) {
-  if (template_length_min!=UINT64_MAX && template_length_max!=UINT64_MAX &&
+  if (template_length_min!=UINT64_MAX &&
+      template_length_max!=UINT64_MAX &&
       template_length_min <= template_length_max) {
     gem_counter_t* const tlength = &search_stats->unique_template_size;
-    tlength->samples = 1000*MAPPER_STATS_TEMPLATE_LENGTH_MIN_SAMPLES+1;
+    const double mean = ((double)(template_length_min+template_length_max))/2.0;
+    const double dev = mean/6.0;
+    tlength->samples = template_num_samples;
     tlength->min = template_length_min;
     tlength->max = template_length_max;
-    const double mean = ((double)(template_length_min+template_length_max))/2.0;
     tlength->m_oldM = mean;
-    tlength->m_newM = (500.0)*(500.0)*(tlength->samples-1);
-    tlength->m_oldS = tlength->m_oldM;
-    tlength->m_newS = tlength->m_newM;
-    tlength->total = (uint64_t)((double)tlength->samples * tlength->m_oldM);
+    tlength->m_newM = tlength->m_oldM;
+    tlength->m_oldS = dev*dev*template_num_samples;
+    tlength->m_newS = tlength->m_oldS;
+    tlength->total = (uint64_t)((double)template_num_samples * mean);
   }
 }
 void mapper_stats_template_length_sample(
     mapper_stats_t* const search_stats,
     const uint64_t template_length) {
   COUNTER_ADD(&search_stats->unique_template_size,template_length);
-  gem_cond_log(MAPPING_STATS_LOG,"[GEM]> MappingStats.templateLength {mean=%f,std_dev=%f} (samples=%"PRIu64",samples_ci=%"PRIu64")",
+  gem_cond_log(MAPPING_STATS_LOG,
+      "[GEM]> MappingStats.templateLength {mean=%f,std_dev=%f} "
+      "(samples=%"PRIu64",samples_ci=%"PRIu64")",
       mapper_stats_template_length_get_mean(search_stats),
       mapper_stats_template_length_get_stddev(search_stats),
       mapper_stats_template_length_get_num_samples(search_stats),
@@ -84,7 +90,7 @@ uint64_t mapper_stats_template_length_get_ci_min_samples(
   const double std_dev = COUNTER_GET_STDDEV(&search_stats->unique_template_size);
   const double factor = (z*std_dev)/moe;
   const uint64_t min_samples = (uint64_t)(factor*factor)+1;
-  return MAX(1000,min_samples);
+  return min_samples;
 }
 bool mapper_stats_template_length_is_reliable(mapper_stats_t* const search_stats) {
   const uint64_t num_samples = mapper_stats_template_length_get_num_samples(search_stats);

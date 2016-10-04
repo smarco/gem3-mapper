@@ -1,9 +1,27 @@
 /*
- * PROJECT: GEMMapper
- * FILE: gpu_structures.c
- * DATE: 04/09/2014
- * AUTHOR(S): Alejandro Chacon <alejandro.chacon@uab.es>
- *            Santiago Marco-Sola <santiagomsola@gmail.com>
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *  Copyright (c) 2011-2017 by Alejandro Chacon <alejandro.chacon@uab.es>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
+ * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
+ * DESCRIPTION:
+ *   GPU-adaptor module provides functions to write a GEM3-GPU index
  */
 
 #include "gpu/gpu_structures.h"
@@ -24,7 +42,7 @@ void gpu_structures_write(
     bwt_builder_t* const bwt_builder,
     rank_mtable_t* const rank_mtable,
     uint64_t* const sa_gem,
-    const uint32_t sa_sampling) {
+    const uint64_t sa_sampling) {
   // Prepare ticket
   ticker_t ticker;
   ticker_percentage_reset(&ticker,true,"Building GPU-Index",0,0,true);
@@ -45,7 +63,7 @@ void gpu_structures_write(
   };
   gpu_gem_sa_dto_t gpu_gem_sa_dto = {
       .sa           = sa_gem,
-      .sa_sampling  = sa_sampling,
+      .sa_sampling  = (uint32_t)sa_sampling,
       .index_coding = GPU_INDEX_GEM_FULL,
       .sa_length    = bwt_builder->bwt.length,
   };
@@ -78,6 +96,6 @@ void gpu_structures_write(
     bwt_builder_t* const bwt_builder,
     rank_mtable_t* const rank_mtable,
     uint64_t* const sa_gem,
-    const uint32_t sa_sampling) { GEM_CUDA_NOT_SUPPORTED(); }
+    const uint64_t sa_sampling) { GEM_CUDA_NOT_SUPPORTED(); }
 
 #endif /* HAVE_CUDA */

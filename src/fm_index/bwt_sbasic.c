@@ -1,24 +1,42 @@
 /*
- * PROJECT: GEMMapper
- * FILE: bwt_sbasic.c
- * DATE: 06/06/2012
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
- * DESCRIPTION: Provides basic routines to encode a DNA text into a
- *              Burrows-Wheeler transform using a compact bit representation
- *              and counter buckets as to enhance Occ/rank queries
- * MODEL:
- *   NAME:      bwt_sbasic
- *   ALPHABET:  3bits (8 chars)
- *   LEVELS:    2-levels
- *   STEP:      1s
- *   COUNTERS:  (8x64b,8x16b)
- *   BITMAP:    64bits
- *   SAMPLED:   Yes
- *   OTHERS:    -
+ * DESCRIPTION:
+ *   BWT data structure (basic implementation sampled).
+ *   Provides basic routines to encode a DNA text into a
+ *   Burrows-Wheeler transform using a compact bit representation
+ *   and counter buckets as to enhance Occ/rank queries
+ *   MODEL:
+ *     NAME:      bwt_basic
+ *     ALPHABET:  3bits (8 chars)
+ *     LEVELS:    2-levels
+ *     STEP:      1s
+ *     COUNTERS:  (8x64b,8x16b)
+ *     BITMAP:    64bits
+ *     SAMPLED:   Yes
+ *     OTHERS:    -
  */
 
+#include "text/dna_text.h"
 #include "fm_index/bwt_sbasic.h"
-#include "data_structures/dna_text.h"
 
 /*
  * BWT Model & Version
@@ -195,8 +213,10 @@ void bwt_sbasic_builder_write_minor_block(
  * BWT Builder
  */
 bwt_sbasic_builder_t* bwt_sbasic_builder_new(
-    dna_text_t* const bwt_text,const uint64_t* const character_occurrences,
-    sampled_sa_builder_t* const sampled_sa,const bool check,const bool verbose) {
+    dna_text_t* const bwt_text,
+    const uint64_t* const character_occurrences,
+    sampled_sa_builder_t* const sampled_sa,
+    const bool verbose) {
   /*
    * Allocate & initialize builder
    */
@@ -285,7 +305,7 @@ void bwt_sbasic_builder_delete(bwt_sbasic_builder_t* const bwt_builder) {
 /*
  * BWT Loader
  */
-bwt_sbasic_t* bwt_sbasic_read_mem(mm_t* const memory_manager,const bool check) {
+bwt_sbasic_t* bwt_sbasic_read_mem(mm_t* const memory_manager) {
   // Allocate handler
   bwt_sbasic_t* const bwt = mm_alloc(bwt_sbasic_t);
   /* Meta-Data */
@@ -468,20 +488,29 @@ uint64_t bwt_sbasic_sampling_erank(const bwt_sbasic_t* const bwt,const uint64_t 
 /*
  * BWT Prefetched ERank
  */
-void bwt_sbasic_prefetch(const bwt_sbasic_t* const bwt,const uint64_t position,bwt_block_locator_t* const block_loc) {
+void bwt_sbasic_prefetch(
+    const bwt_sbasic_t* const bwt,
+    const uint64_t position,
+    bwt_block_locator_t* const block_loc) {
   BWT_PREFETCH_TICK();
   bwt_sbasic_get_block_location(bwt,position,block_loc);
   BWT_PREFETCH_BLOCK(block_loc);
 }
 uint64_t bwt_sbasic_prefetched_erank(
-    const bwt_sbasic_t* const bwt,const uint8_t char_enc,
-    const uint64_t position,const bwt_block_locator_t* const block_loc) {
+    const bwt_sbasic_t* const bwt,
+    const uint8_t char_enc,
+    const uint64_t position,
+    const bwt_block_locator_t* const block_loc) {
   BWT_ERANK_TICK();
   return bwt_sbasic_erank_(char_enc,block_loc->block_mod,block_loc->mayor_counters,block_loc->block_mem);
 }
 void bwt_sbasic_prefetched_erank_interval(
-    const bwt_sbasic_t* const bwt,const uint8_t char_enc,
-    const uint64_t lo_in,const uint64_t hi_in,uint64_t* const lo_out,uint64_t* const hi_out,
+    const bwt_sbasic_t* const bwt,
+    const uint8_t char_enc,
+    const uint64_t lo_in,
+    const uint64_t hi_in,
+    uint64_t* const lo_out,
+    uint64_t* const hi_out,
     const bwt_block_locator_t* const block_loc) {
   BWT_ERANK_INTERVAL_TICK();
   bwt_sbasic_erank_interval_(char_enc,lo_in,block_loc->block_mod,
@@ -516,8 +545,10 @@ void bwt_sbasic_prefetched_precompute_interval(
   block_elms->gap_mask = uint64_erank_inv_mask(lo % BWT_MINOR_BLOCK_LENGTH);
 }
 uint64_t bwt_sbasic_precomputed_erank(
-    const bwt_sbasic_t* const bwt,const uint8_t char_enc,
-    const bwt_block_locator_t* const block_loc,const bwt_block_elms_t* const block_elms) {
+    const bwt_sbasic_t* const bwt,
+    const uint8_t char_enc,
+    const bwt_block_locator_t* const block_loc,
+    const bwt_block_elms_t* const block_elms) {
   BWT_ERANK_TICK();
   // Return precomputed-erank
   const uint64_t sum_counters = block_loc->mayor_counters[char_enc] + ((uint16_t*)block_loc->block_mem)[char_enc];
@@ -525,9 +556,12 @@ uint64_t bwt_sbasic_precomputed_erank(
   return sum_counters + POPCOUNT_64(bitmap);
 }
 void bwt_sbasic_precomputed_erank_interval(
-    const bwt_sbasic_t* const bwt,const uint8_t char_enc,
-    uint64_t* const lo_out,uint64_t* const hi_out,
-    const bwt_block_locator_t* const block_loc,const bwt_block_elms_t* const block_elms) {
+    const bwt_sbasic_t* const bwt,
+    const uint8_t char_enc,
+    uint64_t* const lo_out,
+    uint64_t* const hi_out,
+    const bwt_block_locator_t* const block_loc,
+    const bwt_block_elms_t* const block_elms) {
   BWT_ERANK_INTERVAL_TICK();
   const uint64_t bitmap = block_elms->bitmap_1__2[char_enc & 3] & block_elms->bitmap_3[char_enc>>2];
   const uint64_t bitmap_gap = bitmap & block_elms->gap_mask;
@@ -580,7 +614,10 @@ uint64_t bwt_sbasic_LF__character(
   return rank_LF;
 }
 uint64_t bwt_sbasic_prefetched_LF__enc(
-    const bwt_sbasic_t* const bwt,const uint64_t position,uint8_t* const char_enc,bool* const is_sampled,
+    const bwt_sbasic_t* const bwt,
+    const uint64_t position,
+    uint8_t* const char_enc,
+    bool* const is_sampled,
     const bwt_block_locator_t* const block_loc) {
   BWT_LF_TICK();
   *is_sampled = bwt_sbasic_sampling_is_sampled_(block_loc->block_mod,block_loc->block_mem); // Retrieve sampled_bit

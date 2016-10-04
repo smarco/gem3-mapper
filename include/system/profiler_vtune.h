@@ -16,7 +16,7 @@
 /*
  * Profile Start/Stop
  */
-void PROFILE_VTUNE_START();
-void PROFILE_VTUNE_STOP();
+void PROFILE_VTUNE_START(void);
+void PROFILE_VTUNE_STOP(void);
 
 #endif /* PROFILE_VTUNE_H_ */

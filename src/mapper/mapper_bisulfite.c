@@ -6,8 +6,8 @@
  */
 
 #include "mapper/mapper_bisulfite.h"
-#include "archive/archive_search_se.h"
-#include "archive/archive_search_pe.h"
+#include "archive/search/archive_search_se.h"
+#include "archive/search/archive_search_pe.h"
 
 #define BISULFITE_SEQUENCE_INITIAL_LENGTH 200
 

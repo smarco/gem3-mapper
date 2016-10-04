@@ -12,7 +12,7 @@
 #include "system/commons.h"
 #include "io/input_file.h"
 #include "io/buffered_input_file.h"
-#include "data_structures/sequence.h"
+#include "text/sequence.h"
 
 /*
  * Input FASTA/FASTQ Constants
@@ -27,7 +27,6 @@
 int input_fasta_parse_sequence(
     buffered_input_file_t* const buffered_fasta_input,
     sequence_t* const sequence,
-    const bool strictly_normalized,
     const bool check_input_buffer);
 
 /*

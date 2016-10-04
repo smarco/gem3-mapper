@@ -1,20 +1,40 @@
 /*
- * PROJECT: GEMMapper
- * FILE: approximate_search.h
- * DATE: 06/06/2012
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
+ *   Approximate-String-Matching (ASM) main module.
+ *   Dispatch the search depending on the search-approach selected
+ *   and provides data structures for the search
  */
 
 #ifndef APPROXIMATE_SEARCH_H_
 #define APPROXIMATE_SEARCH_H_
 
-#include "archive/archive_search_parameters.h"
+#include "archive/search/archive_search_se_parameters.h"
 #include "archive/archive.h"
-#include "data_structures/pattern.h"
-#include "data_structures/interval_set.h"
-#include "filtering/region_profile.h"
-#include "filtering/filtering_candidates.h"
+#include "text/pattern.h"
+#include "filtering/region_profile/region_profile.h"
+#include "filtering/candidates/filtering_candidates.h"
+#include "filtering/candidates/filtering_candidates_buffered.h"
+#include "neighborhood_search/nsearch_schedule.h"
 
 /*
  * Debug
@@ -54,33 +74,27 @@ extern const char* asearch_stage_label[6];
  */
 typedef struct {
   /* Index Structures, Pattern & Parameters */
-  archive_t* archive;                                      // Archive
-  pattern_t pattern;                                       // Search Pattern
-  search_parameters_t* search_parameters;                  // Search Parameters
+  archive_t* archive;                                            // Archive
+  pattern_t pattern;                                             // Search Pattern
+  search_parameters_t* search_parameters;                        // Search Parameters
   /* Search State */
-  bool do_quality_search;                                  // Quality search
-  asearch_stage_t search_stage;                            // Current Search Stage
-  asearch_processing_state_t processing_state;             // Current Processing State
-  uint64_t current_max_complete_error;                     // Current max-error allowed (adjusted by matches found)
-  uint64_t current_max_complete_stratum;                   // Current mcs reached by the search (adjusted by matches found)
-  /* Search Structures */
-  region_profile_t region_profile;                         // Region Profile
-  filtering_candidates_t* filtering_candidates;            // Filtering Candidates
-  /* Buffered Search */
-  uint64_t gpu_buffer_fmi_search_offset;
+  bool do_quality_search;                                        // Quality search
+  asearch_stage_t search_stage;                                  // Current Search Stage
+  asearch_processing_state_t processing_state;                   // Current Processing State
+  uint64_t current_max_complete_error;                           // Current max-error allowed (adjusted by matches found)
+  uint64_t current_max_complete_stratum;                         // Current mcs reached by the search (adjusted by matches found)
+  /* Filtering Structures */
+  region_profile_t region_profile;                               // Region Profile
+  filtering_candidates_t* filtering_candidates;                  // Filtering Candidates
+  filtering_candidates_buffered_t filtering_candidates_buffered; // Filtering Candidates Buffered
+  /* GPU buffer(s) offsets */
+  uint64_t gpu_buffer_fmi_search_offset;                         // FMI-Buffer search offset
   uint64_t gpu_buffer_fmi_search_total;
-  uint64_t gpu_buffer_fmi_decode_offset;
+  uint64_t gpu_buffer_fmi_decode_offset;                         // FMI-Buffer decode offset
   uint64_t gpu_buffer_fmi_decode_total;
-  uint64_t gpu_buffer_align_offset;
-  filtering_position_buffered_t* gpu_filtering_positions;  // Filtering-Positions Info
-  uint64_t gpu_num_filtering_positions;                    // Total Buffered Filtering-Positions
-  filtering_region_buffered_t* gpu_filtering_regions;      // Filtering-Regions Info
-  uint64_t gpu_num_filtering_regions;                      // Total Buffered Filtering-Regions
-  /* Search Auxiliary Structures (external) */
-  text_collection_t* text_collection;                      // Stores text-traces
-  interval_set_t* interval_set;                            // Interval Set
-  /* MM */
-  mm_stack_t* mm_stack;                                    // MM-Stack
+  uint64_t gpu_buffer_align_offset;                              // FMI-Buffer align offset
+  /* Neighborhood Search Structures */
+  nsearch_schedule_t* nsearch_schedule;                          // Nsearch Scheduler
 } approximate_search_t;
 
 /*
@@ -91,25 +105,17 @@ void approximate_search_init(
     archive_t* const archive,
     search_parameters_t* const search_parameters);
 void approximate_search_reset(approximate_search_t* const search);
-void approximate_search_destroy(approximate_search_t* const search);
 
-/*
- * Memory Injection (Support Data Structures)
- */
-void approximate_search_inject_mm_stack(
+void approximate_search_inject_handlers(
     approximate_search_t* const search,
-    mm_stack_t* const mm_stack);
-void approximate_search_inject_interval_set(
-    approximate_search_t* const search,
-    interval_set_t* const interval_set);
-void approximate_search_inject_text_collection(
-    approximate_search_t* const search,
-    text_collection_t* const text_collection);
-void approximate_search_inject_filtering_candidates(
-    approximate_search_t* const search,
+    archive_t* const archive,
+    search_parameters_t* const search_parameters,
     filtering_candidates_t* const filtering_candidates,
-    text_collection_t* const text_collection,
-    mm_stack_t* const mm_stack);
+    filtering_candidates_mm_t* const filtering_candidates_mm,
+    filtering_candidates_buffered_mm_t* const filtering_candidates_buffered_mm,
+    nsearch_schedule_t* const nsearch_schedule,
+    mm_stack_t* const mm_region_profile,
+    mm_stack_t* const mm_nsearch);
 
 /*
  * Accessors

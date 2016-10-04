@@ -21,10 +21,10 @@ typedef void* (*pthread_handler_t)(void*);
  * Thread ID Locator
  */
 void gem_thread_register_id(const uint64_t thread_id);
-int64_t gem_thread_get_thread_id();
+int64_t gem_thread_get_thread_id(void);
 #define gtid() gem_thread_get_thread_id()
 
-void gem_thread_cleanup();
+void gem_thread_cleanup(void);
 
 /*
  * Mutex/ConditionalVars Helpers

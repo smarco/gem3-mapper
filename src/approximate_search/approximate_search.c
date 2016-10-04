@@ -1,9 +1,28 @@
 /*
- * PROJECT: GEMMapper
- * FILE: approximate_search.h
- * DATE: 06/06/2012
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
+ *   Approximate-String-Matching (ASM) main module.
+ *   Dispatch the search depending on the search-approach selected
+ *   and provides data structures for the search
  */
 
 #include "approximate_search/approximate_search.h"
@@ -11,7 +30,7 @@
 #include "approximate_search/approximate_search_filtering_complete.h"
 #include "approximate_search/approximate_search_neighborhood.h"
 #include "approximate_search/approximate_search_hybrid.h"
-#include "filtering/filtering_candidates.h"
+#include "filtering/candidates/filtering_candidates.h"
 
 /*
  * Profile
@@ -63,39 +82,28 @@ void approximate_search_reset(approximate_search_t* const search) {
   search->current_max_complete_stratum = 0;
   // Prepare region profile
   const uint64_t key_length = search->pattern.key_length;
-  region_profile_new(&search->region_profile,key_length,search->mm_stack);
+  region_profile_init(&search->region_profile,key_length);
 }
-void approximate_search_destroy(approximate_search_t* const search) {
-  /* NOP */
-}
-/*
- * Memory Injection (Support Data Structures)
- */
-void approximate_search_inject_mm_stack(
+void approximate_search_inject_handlers(
     approximate_search_t* const search,
-    mm_stack_t* const mm_stack) {
-  search->mm_stack = mm_stack;
-}
-void approximate_search_inject_interval_set(
-    approximate_search_t* const search,
-    interval_set_t* const interval_set) {
-  search->interval_set = interval_set;
-}
-void approximate_search_inject_text_collection(
-    approximate_search_t* const search,
-    text_collection_t* const text_collection) {
-  search->text_collection = text_collection;
-}
-void approximate_search_inject_filtering_candidates(
-    approximate_search_t* const search,
+    archive_t* const archive,
+    search_parameters_t* const search_parameters,
     filtering_candidates_t* const filtering_candidates,
-    text_collection_t* const text_collection,
-    mm_stack_t* const mm_stack) {
+    filtering_candidates_mm_t* const filtering_candidates_mm,
+    filtering_candidates_buffered_mm_t* const filtering_candidates_buffered_mm,
+    nsearch_schedule_t* const nsearch_schedule,
+    mm_stack_t* const mm_region_profile,
+    mm_stack_t* const mm_nsearch) {
+  // Filtering Candidates
   search->filtering_candidates = filtering_candidates;
-  filtering_candidates_inject_search(
-      search->filtering_candidates,search->archive,search->search_parameters);
-  filtering_candidates_inject_mm_stack(search->filtering_candidates,mm_stack);
-  filtering_candidates_inject_text_collection(search->filtering_candidates,text_collection);
+  filtering_candidates_inject_handlers(
+      filtering_candidates,archive,search_parameters,
+      filtering_candidates_mm,filtering_candidates_buffered_mm);
+  // Region Profile
+  region_profile_inject_mm(&search->region_profile,mm_region_profile);
+  // Nsearch
+  search->nsearch_schedule = nsearch_schedule;
+  nsearch_schedule_inject_mm(search->nsearch_schedule,mm_nsearch);
 }
 /*
  * Accessors
@@ -114,7 +122,7 @@ uint64_t approximate_search_get_num_decode_candidates(const approximate_search_t
   return region_profile->total_candidates;
 }
 uint64_t approximate_search_get_num_verify_candidates(const approximate_search_t* const search) {
-  return filtering_candidates_get_num_candidate_regions(search->filtering_candidates);
+  return filtering_candidates_get_num_regions(search->filtering_candidates);
 }
 /*
  * Approximate String Matching using the FM-index

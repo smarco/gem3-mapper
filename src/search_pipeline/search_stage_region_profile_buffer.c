@@ -6,7 +6,7 @@
  */
 
 #include "search_pipeline/search_stage_region_profile_buffer.h"
-#include "archive/archive_search_se_stepwise.h"
+#include "archive/search/archive_search_se_stepwise.h"
 
 /*
  * Profile
@@ -87,11 +87,11 @@ bool search_stage_region_profile_buffer_fits(
   // Compute dimensions
   uint64_t total_queries = 1;
   uint64_t total_bases = archive_search_end1->approximate_search.pattern.key_length;
-  uint64_t total_regions = archive_search_end1->approximate_search.region_profile.max_regions_allocated;
+  uint64_t total_regions = archive_search_end1->approximate_search.region_profile.max_expected_regions;
   if (archive_search_end2!=NULL) {
     ++total_queries;
     total_bases += archive_search_end2->approximate_search.pattern.key_length;
-    total_regions += archive_search_end2->approximate_search.region_profile.max_regions_allocated;
+    total_regions += archive_search_end2->approximate_search.region_profile.max_expected_regions;
   }
   // Return if current search fits in buffer
   return gpu_buffer_fmi_asearch_fits_in_buffer(

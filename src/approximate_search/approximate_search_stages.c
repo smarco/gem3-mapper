@@ -1,9 +1,33 @@
 /*
- * PROJECT: GEMMapper
- * FILE: approximate_search_stages.h
- * DATE: 06/06/2012
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
+ *   Approximate-String-Matching (ASM) module encapsulating
+ *   the basic search-stages that many ASM approaches use
+ *   Eg. Adaptive-filtering (AF) Search :=
+ *         approximate_search_begin() +
+ *         approximate_search_exact_filtering_adaptive() +
+ *         approximate_search_verify() +
+ *         [ approximate_search_align_local() ] +
+ *         approximate_search_end();
  */
 
 #include "approximate_search/approximate_search_stages.h"
@@ -12,13 +36,13 @@
 #include "approximate_search/approximate_search_generate_candidates.h"
 #include "approximate_search/approximate_search_verify_candidates.h"
 #include "approximate_search/approximate_search_neighborhood.h"
-#include "filtering/region_profile.h"
-#include "filtering/region_profile_adaptive.h"
-#include "filtering/region_profile_schedule.h"
-#include "filtering/filtering_candidates_process.h"
-#include "filtering/filtering_candidates_verify.h"
-#include "filtering/filtering_candidates_align.h"
-#include "filtering/filtering_candidates_align_local.h"
+#include "filtering/region_profile/region_profile.h"
+#include "filtering/region_profile/region_profile_adaptive.h"
+#include "filtering/region_profile/region_profile_schedule.h"
+#include "filtering/candidates/filtering_candidates_process.h"
+#include "filtering/candidates/filtering_candidates_verify.h"
+#include "filtering/candidates/filtering_candidates_align.h"
+#include "filtering/candidates/filtering_candidates_align_local.h"
 
 /*
  * Profile
@@ -60,7 +84,7 @@ void approximate_search_exact_filtering_adaptive(
     tab_global_inc();
   }
   // Region-Minimal Profile (Reduce the number of candidates per region and maximize number of regions)
-  approximate_search_region_profile_adaptive(search,region_profile_adaptive,search->mm_stack);
+  approximate_search_region_profile_adaptive(search,region_profile_adaptive);
   if (search->processing_state==asearch_processing_state_no_regions) return; // Corner case
   // Generate candidates
   region_profile_schedule_filtering_exact(&search->region_profile);
@@ -68,7 +92,7 @@ void approximate_search_exact_filtering_adaptive(
   const bool verify_candidates = (matches != NULL);
   if (verify_candidates) {
     // Generate candidates
-    approximate_search_generate_candidates_exact(search,matches);
+    approximate_search_generate_candidates_exact(search);
     // Process candidates
     filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern,true);
     // Verify candidates
@@ -113,11 +137,11 @@ void approximate_search_exact_filtering_adaptive_cutoff(
   region_profile_generator_init(&generator,region_profile,fm_index,key,key_length,allowed_enc,false);
   while (region_profile_generator_next_region(region_profile,&generator,profile_model)) {
     // Cut-off
-    if (region_profile->num_filtering_regions >= region_profile->max_regions_allocated) break;
+    if (region_profile->num_filtering_regions >= region_profile->max_expected_regions) break;
     // Generate candidates for the last region found
     PROFILE_START(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
     region_search_t* const last_region = region_profile->filtering_region + (region_profile->num_filtering_regions-1);
-    filtering_candidates_add_region_interval(
+    filtering_candidates_add_positions_from_interval(
         filtering_candidates,search_parameters,pattern,
         last_region->lo,last_region->hi,last_region->begin,
         last_region->end,0,&region_profile->candidates_limited);
@@ -170,8 +194,9 @@ void approximate_search_neighborhood(
   pattern_t* const pattern = &search->pattern;
   region_profile_t* const region_profile = &search->region_profile;
   // Prepare region-profile (fill gaps)
-  region_profile_fill_gaps(region_profile,pattern->key,pattern->key_length,
-      search_parameters->allowed_enc,pattern->num_wildcards,search->mm_stack);
+  region_profile_fill_gaps(
+      region_profile,pattern->key,pattern->key_length,
+      search_parameters->allowed_enc,pattern->num_wildcards);
   region_profile_merge_small_regions(region_profile,search->archive->fm_index->proper_length);
   // NS
   approximate_search_neighborhood_search_partition_preconditioned(search,matches);

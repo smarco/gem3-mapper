@@ -1,9 +1,26 @@
 /*
- * PROJECT: GEMMapper
- * FILE: align_swg_simd.c
- * DATE: 06/06/2012
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
+ *   Efficient Smith-Waterman-Gotoh (SWG) alignment module using SIMD instructions
  */
 
 #include "align/align_swg_simd.h"
@@ -13,7 +30,6 @@
  */
 void align_swg_query_profile_allocate_uint8(
     swg_query_profile_t* const swg_query_profile,
-    const swg_penalties_t* swg_penalties,
     const uint64_t max_expected_key_length,
     mm_stack_t* const mm_stack) {
   // Compute sizes 8-bits cell
@@ -29,7 +45,6 @@ void align_swg_query_profile_allocate_uint8(
 }
 void align_swg_query_profile_allocate_int16(
     swg_query_profile_t* const swg_query_profile,
-    const swg_penalties_t* swg_penalties,
     const uint64_t max_expected_key_length,
     mm_stack_t* const mm_stack) {
   // Compute sizes 16-bits cell
@@ -56,8 +71,8 @@ void align_swg_query_profile_init(
   const int32_t match_bias_uint8 = -min_profile_score;
   swg_query_profile->match_bias_uint8 = match_bias_uint8;
   // Allocate
-  align_swg_query_profile_allocate_uint8(swg_query_profile,swg_penalties,max_expected_key_length,mm_stack);
-  align_swg_query_profile_allocate_int16(swg_query_profile,swg_penalties,max_expected_key_length,mm_stack);
+  align_swg_query_profile_allocate_uint8(swg_query_profile,max_expected_key_length,mm_stack);
+  align_swg_query_profile_allocate_int16(swg_query_profile,max_expected_key_length,mm_stack);
 }
 /*
  * Compile SWG Query Profile
@@ -66,8 +81,7 @@ bool align_swg_query_profile_compile_uint8(
     swg_query_profile_t* const swg_query_profile,
     const swg_penalties_t* swg_penalties,
     const uint8_t* const key,
-    const uint64_t key_length,
-    mm_stack_t* const mm_stack) {
+    const uint64_t key_length) {
   // (Re)Compute sizes 8-bits cell
   const uint64_t num_segments_uint8 = UINT128_SIZE/UINT8_SIZE;
   const uint64_t segment_length_uint8 = DIV_CEIL(key_length,num_segments_uint8);
@@ -106,8 +120,7 @@ bool align_swg_query_profile_compile_int16(
     swg_query_profile_t* const swg_query_profile,
     const swg_penalties_t* swg_penalties,
     const uint8_t* const key,
-    const uint64_t key_length,
-    mm_stack_t* const mm_stack) {
+    const uint64_t key_length) {
   // (Re)Compute sizes 16-bits cell
   const uint64_t num_segments_int16 = UINT128_SIZE/UINT16_SIZE;
   const uint64_t segment_length_int16 = DIV_CEIL(key_length,num_segments_int16);

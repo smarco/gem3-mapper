@@ -7,7 +7,7 @@
  */
 
 #include "matches/matches_cigar.h"
-#include "matches/matches_classify.h"
+#include "matches/classify/matches_classify.h"
 
 /*
  * Error Messages
@@ -287,7 +287,8 @@ uint64_t matches_cigar_compute_matching_bases(
   }
   return matching_bases;
 }
-int64_t matches_cigar_element_effective_length(const cigar_element_t* const cigar_element) {
+int64_t matches_cigar_element_effective_length(
+    const cigar_element_t* const cigar_element) {
   switch (cigar_element->type) {
     case cigar_match:
       return cigar_element->length;
@@ -324,19 +325,19 @@ int64_t matches_cigar_effective_length(
  * CIGAR Vector Compare
  */
 int matches_cigar_cmp(
-    vector_t* const cigar_vector_match0,
-    match_trace_t* const match0,
-    vector_t* const cigar_vector_match1,
-    match_trace_t* const match1) {
-  const uint64_t match0_cigar_length = match0->match_alignment.cigar_length;
-  const uint64_t match1_cigar_length = match1->match_alignment.cigar_length;
-  if (match0_cigar_length != match1_cigar_length) return -1;
+    vector_t* const cigar0_vector,
+    const uint64_t cigar0_offset,
+    const uint64_t cigar0_length,
+    vector_t* const cigar1_vector,
+    const uint64_t cigar1_offset,
+    const uint64_t cigar1_length) {
+  if (cigar0_length != cigar1_length) return -1;
   // Locate CIGARs
-  cigar_element_t* const match0_cigar = vector_get_elm(cigar_vector_match0,match0->match_alignment.cigar_offset,cigar_element_t);
-  cigar_element_t* const match1_cigar = vector_get_elm(cigar_vector_match1,match1->match_alignment.cigar_offset,cigar_element_t);
+  cigar_element_t* const match0_cigar = vector_get_elm(cigar0_vector,cigar0_offset,cigar_element_t);
+  cigar_element_t* const match1_cigar = vector_get_elm(cigar1_vector,cigar1_offset,cigar_element_t);
   // Compare
   uint64_t i;
-  for (i=0;i<match0_cigar_length;++i) {
+  for (i=0;i<cigar0_length;++i) {
     if (match0_cigar[i].type != match1_cigar[i].type) return -1;
     if (match0_cigar[i].attributes != match1_cigar[i].attributes) return -1;
     switch (match0_cigar[i].type) {

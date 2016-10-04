@@ -30,7 +30,7 @@ fm_t* fm_open_file(char* const file_name,const fm_mode mode);
 fm_t* fm_open_FILE(FILE* const stream,const fm_mode mode);
 fm_t* fm_open_gzFILE(FILE* const stream,const fm_mode mode);
 fm_t* fm_open_bzFILE(FILE* const stream,const fm_mode mode);
-fm_t* fm_open_temp_file();
+fm_t* fm_open_temp_file(void);
 void fm_close(fm_t* const file_manager);
 
 /*
@@ -73,11 +73,11 @@ uint64_t fm_read_mem(
     fm_t* const file_manager,
     void* const dst,
     const uint64_t num_bytes);
-uint64_t fm_read_mem_parallel(
-    fm_t* const file_manager,
-    void* const dst,
-    const uint64_t num_bytes,
-    const uint64_t num_threads);
+// TODO uint64_t fm_read_mem_parallel(
+//    fm_t* const file_manager,
+//    void* const dst,
+//    const uint64_t num_bytes,
+//    const uint64_t num_threads);
 
 mm_t* fm_load_mem(fm_t* const file_manager,const uint64_t num_bytes);
 
@@ -105,12 +105,12 @@ void fm_bulk_read_file(
     void* const dst,
     const uint64_t offset,
     const uint64_t size);
-void fm_bulk_read_file_parallel(
-    char* const file_name,
-    void* const dst,
-    const uint64_t offset,
-    const uint64_t size,
-    const uint64_t num_threads);
+// TODO void fm_bulk_read_file_parallel(
+//    char* const file_name,
+//    void* const dst,
+//    const uint64_t offset,
+//    const uint64_t size,
+//    const uint64_t num_threads);
 
 /*
  * FileManager Wrappers

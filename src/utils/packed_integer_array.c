@@ -118,7 +118,7 @@ void packed_integer_array_builder_store(
   const uint64_t hi64_offset = UINT64_LENGTH-array->lo64_offset;
   if (hi64_offset < array->integer_length) {
     svector_write_iterator_next(&array->bitmap_writer);
-    uint64_t* next_word = svector_iterator_get_element(&array->bitmap_writer,uint64_t);
+    next_word = svector_iterator_get_element(&array->bitmap_writer,uint64_t);
     *next_word |= (integer >> hi64_offset);
   } else if (hi64_offset == array->integer_length) {
     svector_write_iterator_next(&array->bitmap_writer);

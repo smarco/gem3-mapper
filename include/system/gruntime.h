@@ -17,6 +17,6 @@
 void gruntime_init(
     const uint64_t num_threads,
     char* const tmp_folder);
-void gruntime_destroy();
+void gruntime_destroy(void);
 
 #endif /* GRUNTIME_H_ */

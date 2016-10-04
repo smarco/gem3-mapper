@@ -8,7 +8,7 @@
 
 #include "matches/matches.h"
 #include "matches/matches_cigar.h"
-#include "matches/matches_classify.h"
+#include "matches/classify/matches_classify.h"
 
 /*
  * Constants
@@ -33,7 +33,7 @@ const char* matches_class_label[] =
 /*
  * Setup
  */
-matches_t* matches_new() {
+matches_t* matches_new(void) {
   // Allocate handler
   matches_t* const matches = mm_alloc(matches_t);
   // Search-matches state
@@ -55,9 +55,6 @@ matches_t* matches_new() {
   matches_metrics_init(&matches->metrics);
   // Return
   return matches;
-}
-void matches_configure(matches_t* const matches,text_collection_t* const text_collection) {
-  matches->text_collection = text_collection;
 }
 void matches_clear(matches_t* const matches) {
   matches->matches_class = matches_class_unmapped;
@@ -160,7 +157,9 @@ match_trace_t** matches_get_match_traces(const matches_t* const matches) {
 /*
  * Match-Trace
  */
-cigar_element_t* match_trace_get_cigar_buffer(const matches_t* const matches,const match_trace_t* const match_trace) {
+cigar_element_t* match_trace_get_cigar_buffer(
+    const matches_t* const matches,
+    const match_trace_t* const match_trace) {
   return vector_get_elm(matches->cigar_vector,match_trace->match_alignment.cigar_offset,cigar_element_t);
 }
 uint64_t match_trace_get_cigar_length(const match_trace_t* const match_trace) {
@@ -175,7 +174,7 @@ int64_t match_trace_get_effective_length(
     const uint64_t cigar_buffer_offset,
     const uint64_t cigar_length) {
   // Exact Match
-  if (cigar_length==0) return read_length; // Even all-matching matches have CIGAR=1
+  if (cigar_length==0) return read_length; // Even exact-matching matches have CIGAR=1
   // Traverse CIGAR
   const cigar_element_t* cigar_element = vector_get_elm(matches->cigar_vector,cigar_buffer_offset,cigar_element_t);
   int64_t i, effective_length = read_length;
@@ -193,6 +192,15 @@ int64_t match_trace_get_effective_length(
   }
   GEM_INTERNAL_CHECK(effective_length >= 0,"Match effective length must be positive");
   return effective_length;
+}
+int matche_trace_cigar_cmp(
+    vector_t* const cigar_vector_match0,
+    match_trace_t* const match0,
+    vector_t* const cigar_vector_match1,
+    match_trace_t* const match1) {
+  return matches_cigar_cmp(
+      cigar_vector_match0,match0->match_alignment.cigar_offset,match0->match_alignment.cigar_length,
+      cigar_vector_match1,match1->match_alignment.cigar_offset,match1->match_alignment.cigar_length);
 }
 /*
  * Sorting Matches

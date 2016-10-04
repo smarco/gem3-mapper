@@ -6,12 +6,12 @@
  * DESCRIPTION: Retrieves sequences from a GEM-archive
  */
 
+#include "text/dna_text.h"
+#include "text/text_collection.h"
 #include "utils/essentials.h"
 #include "utils/options_menu.h"
 #include "utils/string_buffer.h"
 #include "io/input_parser.h"
-#include "data_structures/dna_text.h"
-#include "data_structures/text_collection.h"
 #include "archive/archive.h"
 #include "archive/archive_text.h"
 #include "archive/locator.h"
@@ -161,8 +161,9 @@ typedef struct {
  * Parsing
  */
 int retriever_query_parse(
-    retriever_data_t* const retriever_data,retriever_query_t* const retriever_query,
-    char* text_line,const uint64_t text_line_length) {
+    retriever_query_t* const retriever_query,
+    char* text_line,
+    const uint64_t text_line_length) {
   // Parse sequence name
   if (text_line_length==0) return -1;
   retriever_query->tag = (uint8_t*)text_line;
@@ -236,8 +237,8 @@ void retriever_query_location(
   const uint64_t text_length = index_end_position-index_begin_position;
   // Retrieve the sequence
   const uint64_t text_trace_offset = archive_text_retrieve_collection(
-      retriever_data->archive->text,&retriever_data->text_collection,index_begin_position,
-      text_length,retriever_query->strand==Reverse,false,retriever_data->mm_stack);
+      retriever_data->archive->text,&retriever_data->text_collection,
+      index_begin_position,text_length,retriever_query->strand==Reverse,false);
   const text_trace_t* const text_trace = text_collection_get_trace(&retriever_data->text_collection,text_trace_offset);
   const uint8_t* const text = text_trace->text; // Candidate
   // Output the sequence
@@ -280,7 +281,7 @@ int main(int argc,char** argv) {
     // Next query
     ++(retriever_query.id);
     // Parse query
-    if (retriever_query_parse(&retriever_data,&retriever_query,input_buffer,input_buffer_size)!=-1) {
+    if (retriever_query_parse(&retriever_query,input_buffer,input_buffer_size)!=-1) {
       // Query & output
       retriever_query_location(&retriever_data,&retriever_query);
     }

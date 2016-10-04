@@ -7,9 +7,10 @@
 
 #include "mapper/mapper.h"
 #include "mapper/mapper_bisulfite.h"
-#include "archive/archive_search.h"
-#include "archive/archive_search_se.h"
-#include "archive/archive_search_pe.h"
+#include "archive/search/archive_search.h"
+#include "archive/search/archive_search_handlers.h"
+#include "archive/search/archive_search_se.h"
+#include "archive/search/archive_search_pe.h"
 #include "stats/report_stats.h"
 #include "system/profiler.h"
 
@@ -25,7 +26,6 @@
 #define GEM_ERROR_MAPPER_PE_PARSE_UNSYNCH_INPUT_FILES_SINGLE "Parsing Input File. File '%s' doesn't contain a pair number of reads (cannot pair)"
 #define GEM_ERROR_MAPPER_PE_PARSE_UNSYNCH_INPUT_FILES_EOF "Parsing Input Files. File '%s' could not read second end (unexpected end-of-file)"
 #define GEM_ERROR_MAPPER_PE_PARSE_UNSYNCH_INPUT_FILES_NOT_EOF "Parsing Input Files. File '%s' has too many reads (expected end-of-file)"
-
 
 /*
  * Error Macros
@@ -263,10 +263,19 @@ void mapper_se_prepare_io_buffers(
 uint64_t mapper_pe_reload_buffers(
     mapper_parameters_t* const parameters,
     buffered_input_file_t* const buffered_fasta_input_end1,
-    buffered_input_file_t* const buffered_fasta_input_end2) {
-  /// Check end-of-block
+    buffered_input_file_t* const buffered_fasta_input_end2,
+    mapper_stats_t* const mapper_stats) {
+  // Check end-of-block
   error_code_t error_code;
   if (buffered_input_file_eob(buffered_fasta_input_end1)) {
+    // Reset template-length estimation
+    search_paired_parameters_t* const search_paired_parameters =
+        &parameters->search_parameters.search_paired_parameters;
+    mapper_stats_template_init(mapper_stats,
+        search_paired_parameters->template_length_estimation_samples,
+        search_paired_parameters->template_length_estimation_min,
+        search_paired_parameters->template_length_estimation_max);
+    // Read new input-block
     if (!parameters->io.separated_input_files) {
       error_code = buffered_input_file_reload(buffered_fasta_input_end1,0);
       if (error_code==INPUT_STATUS_EOF) return INPUT_STATUS_EOF;
@@ -326,13 +335,11 @@ error_code_t mapper_pe_parse_paired_sequences(
   error_code_t error_code;
   // Read end1
   error_code = input_fasta_parse_sequence(buffered_fasta_input_end1,
-      archive_search_get_sequence(archive_search_end1),
-      parameters->io.fastq_strictly_normalized,false);
+      archive_search_get_sequence(archive_search_end1),false);
   if (gem_expect_false(error_code!=INPUT_STATUS_OK)) return error_code;
   // Read end2
   error_code = input_fasta_parse_sequence(buffered_fasta_input_end2,
-      archive_search_get_sequence(archive_search_end2),
-      parameters->io.fastq_strictly_normalized,false);
+      archive_search_get_sequence(archive_search_end2),false);
   if (gem_expect_false(error_code!=INPUT_STATUS_OK)) return error_code;
   // OK
   PROF_ADD_COUNTER(GP_MAPPER_NUM_READS,2);
@@ -342,11 +349,9 @@ error_code_t mapper_pe_parse_paired_sequences(
  * Input (High-level)
  */
 error_code_t mapper_se_read_single_sequence(mapper_search_t* const mapper_search) {
-  const mapper_parameters_io_t* const parameters_io = &mapper_search->mapper_parameters->io;
   sequence_t* const sequence = archive_search_get_sequence(mapper_search->archive_search);
   const error_code_t error_code = input_fasta_parse_sequence(
-      mapper_search->buffered_fasta_input,sequence,
-      parameters_io->fastq_strictly_normalized,true);
+      mapper_search->buffered_fasta_input,sequence,true);
   if (gem_expect_false(error_code==INPUT_STATUS_FAIL)) pthread_exit(0); // Abort
   PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
   return error_code; // OK
@@ -354,8 +359,9 @@ error_code_t mapper_se_read_single_sequence(mapper_search_t* const mapper_search
 error_code_t mapper_pe_read_paired_sequences(mapper_search_t* const mapper_search) {
   error_code_t error_code;
   // Check/Reload buffers manually
-  error_code = mapper_pe_reload_buffers(mapper_search->mapper_parameters,
-      mapper_search->buffered_fasta_input_end1,mapper_search->buffered_fasta_input_end2);
+  error_code = mapper_pe_reload_buffers(
+      mapper_search->mapper_parameters,mapper_search->buffered_fasta_input_end1,
+      mapper_search->buffered_fasta_input_end2,mapper_search->archive_search_handlers->mapper_stats);
   if (error_code==INPUT_STATUS_EOF) return INPUT_STATUS_EOF;
   if (gem_expect_false(error_code==INPUT_STATUS_FAIL)) pthread_exit(0); // Abort
   // Read end1 & end2
@@ -428,15 +434,14 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
       &mapper_search->buffered_fasta_input,&mapper_search->buffered_output_file);
 
   // Create an Archive-Search
-  search_parameters_t* const search_parameters = &mapper_search->mapper_parameters->search_parameters;
-  mm_search_t* const mm_search = mm_search_new();
-  archive_search_se_new(parameters->archive,search_parameters,false,NULL,&mapper_search->archive_search);
-  archive_search_se_inject_mm(mapper_search->archive_search,mm_search);
-  matches_t* const matches = matches_new();
-  matches_configure(matches,mapper_search->archive_search->text_collection);
   archive_t* const archive = parameters->archive;
-  archive_search_t* const archive_search = mapper_search->archive_search;
   const bool bisulfite_index = (archive->type == archive_dna_bisulfite); // Bisulfite
+  search_parameters_t* const search_parameters = &mapper_search->mapper_parameters->search_parameters;
+  archive_search_handlers_t* const archive_search_handlers = archive_search_handlers_new();
+  archive_search_se_new(archive,search_parameters,false,NULL,&mapper_search->archive_search);
+  archive_search_t* const archive_search = mapper_search->archive_search;
+  archive_search_handlers_inject_se(archive_search,archive_search_handlers);
+  matches_t* const matches = matches_new();
 
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
@@ -466,7 +471,7 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
     }
 
     // Clear
-    mm_search_clear(mm_search);
+    archive_search_handlers_clear(archive_search_handlers);
     matches_clear(matches);
   }
   // Update processed
@@ -477,7 +482,7 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
   buffered_output_file_close(mapper_search->buffered_output_file);
   archive_search_delete(archive_search);
   matches_delete(matches);
-  mm_search_delete(mm_search);
+  archive_search_handlers_delete(archive_search_handlers);
 
   pthread_exit(0);
 }
@@ -495,26 +500,23 @@ void* mapper_pe_thread(mapper_search_t* const mapper_search) {
       &mapper_search->buffered_fasta_input_end2,&mapper_search->buffered_output_file);
 
   // Create an Archive-Search
-  mm_search_t* const mm_search = mm_search_new();
-  search_parameters_t* const base_search_parameters = &mapper_search->mapper_parameters->search_parameters;
-  mapper_stats_template_init(mm_search->mapper_stats,
-      base_search_parameters->search_paired_parameters.min_initial_template_estimation,
-      base_search_parameters->search_paired_parameters.max_initial_template_estimation);
-  archive_search_pe_new(parameters->archive,base_search_parameters,false,NULL,
-      &mapper_search->archive_search_end1,&mapper_search->archive_search_end2);
-  archive_search_pe_inject_mm(mapper_search->archive_search_end1,mapper_search->archive_search_end2,mm_search);
-  mapper_search->paired_matches = paired_matches_new();
-  paired_matches_configure(mapper_search->paired_matches,mapper_search->archive_search_end1->text_collection);
   archive_t* const archive = parameters->archive;
+  const bool bisulfite_index = (archive->type == archive_dna_bisulfite);
+  search_parameters_t* const search_parameters = &mapper_search->mapper_parameters->search_parameters;
+  mapper_search->archive_search_handlers = archive_search_handlers_new();
+  archive_search_pe_new(parameters->archive,search_parameters,false,NULL,
+      &mapper_search->archive_search_end1,&mapper_search->archive_search_end2);
+  archive_search_handlers_inject_pe(mapper_search->archive_search_end1,
+      mapper_search->archive_search_end2,mapper_search->archive_search_handlers);
+  mapper_search->paired_matches = paired_matches_new();
   archive_search_t* const archive_search_end1 = mapper_search->archive_search_end1;
   archive_search_t* const archive_search_end2 = mapper_search->archive_search_end2;
   paired_matches_t* const paired_matches = mapper_search->paired_matches;
-  const bool bisulfite_index = (archive->type == archive_dna_bisulfite);
 
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
   while (mapper_pe_read_paired_sequences(mapper_search)) {
-//    if (gem_streq(mapper_search->archive_search_end1->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000566494/1")) {
+//    if (gem_streq(mapper_search->archive_search_end1->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000001140/1")) {
 //      printf("HERE\n");
 //    }
 
@@ -540,7 +542,7 @@ void* mapper_pe_thread(mapper_search_t* const mapper_search) {
     }
 
     // Clear
-    mm_search_clear(mm_search);
+    archive_search_handlers_clear(mapper_search->archive_search_handlers);
     paired_matches_clear(paired_matches,true);
   }
   // Update processed
@@ -548,12 +550,14 @@ void* mapper_pe_thread(mapper_search_t* const mapper_search) {
 
   // Clean up
   buffered_input_file_close(mapper_search->buffered_fasta_input_end1);
-  if (parameters->io.separated_input_files) buffered_input_file_close(mapper_search->buffered_fasta_input_end2);
+  if (parameters->io.separated_input_files) {
+    buffered_input_file_close(mapper_search->buffered_fasta_input_end2);
+  }
   buffered_output_file_close(mapper_search->buffered_output_file);
   archive_search_delete(mapper_search->archive_search_end1);
   archive_search_delete(mapper_search->archive_search_end2);
   paired_matches_delete(mapper_search->paired_matches);
-  mm_search_delete(mm_search);
+  archive_search_handlers_delete(mapper_search->archive_search_handlers);
 
   pthread_exit(0);
 }

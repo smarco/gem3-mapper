@@ -13,8 +13,7 @@
  * Counters
  */
 void COUNTER_RESET(gem_counter_t* const counter) {
-  counter->total = 0.0;
-  counter->samples = 0;
+  memset(counter,0,sizeof(gem_counter_t));
 }
 void COUNTER_ADD(gem_counter_t* const counter,const uint64_t amount) {
   // Add to total & increment number of samples

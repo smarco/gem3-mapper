@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #define STACK_TRACE_SIZE 15
 pthread_mutex_t gem_print_stack_trace_mutex = PTHREAD_MUTEX_INITIALIZER;
-void gem_print_stack_trace() {
+void gem_print_stack_trace(void) {
   pthread_mutex_lock(&gem_print_stack_trace_mutex);
   {
     void *stack[STACK_TRACE_SIZE];
@@ -30,7 +30,7 @@ void gem_print_stack_trace() {
   pthread_mutex_unlock(&gem_print_stack_trace_mutex);
 }
 #else
-void gem_print_stack_trace() {}
+void gem_print_stack_trace(void) {}
 #endif
 
 /*
@@ -56,7 +56,7 @@ void gem_error_signal_handler(int signal) {
   exit(1);
   // pthread_mutex_unlock(&gem_error_signal_handler_mutex);
 }
-void gem_handle_error_signals() {
+void gem_handle_error_signals(void) {
   struct sigaction error_signal_handler;
   error_signal_handler.sa_handler = gem_error_signal_handler;
   sigemptyset(&error_signal_handler.sa_mask);
@@ -69,7 +69,7 @@ void gem_handle_error_signals() {
 /*
  * Print ErrNo
  */
-void gem_perror() {
+void gem_perror(void) {
   FILE* const error_stream = gem_error_get_stream();
   fprintf(error_stream,">> GEM.System.Error::%s (errno=%d)\n",strerror(errno),errno);
   fflush(error_stream);

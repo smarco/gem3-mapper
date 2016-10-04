@@ -22,17 +22,17 @@ typedef int32_t error_code_t;
 /*
  * StackTrace Printer
  */
-void gem_print_stack_trace();
+void gem_print_stack_trace(void);
 
 /*
  * Error Signal Handler
  */
-void gem_handle_error_signals();
+void gem_handle_error_signals(void);
 
 /*
  * Print ErrNo
  */
-void gem_perror();
+void gem_perror(void);
 
 /*
  * Handlers

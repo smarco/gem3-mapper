@@ -17,19 +17,20 @@
  */
 typedef struct {
   /* PE */
-  gem_counter_t unique_template_size; // Distribution of the observed template size (for uniq matches)
+  gem_counter_t unique_template_size;          // Distribution of the observed template-size (for uniq matches)
+  gem_counter_t unique_template_size_ref;      // Reference template-size to start collecting samples
   /* Performance Stats */
-  gem_timer_t generate_candidates_timer;
-  uint64_t generate_candidates_total_bases;
-  gem_timer_t extend_candidates_timer;
-  uint64_t extend_candidates_total_candidates;
-  uint64_t extend_candidates_total_bases;
+  gem_timer_t generate_candidates_timer;       // TODO
+  uint64_t generate_candidates_total_bases;    // TODO
+  gem_timer_t extend_candidates_timer;         // TODO
+  uint64_t extend_candidates_total_candidates; // TODO
+  uint64_t extend_candidates_total_bases;      // TODO
 } mapper_stats_t;
 
 /*
  * Setup
  */
-mapper_stats_t* mapper_stats_new();
+mapper_stats_t* mapper_stats_new(void);
 void mapper_stats_clear(mapper_stats_t* const mapper_stats);
 void mapper_stats_delete(mapper_stats_t* const mapper_stats);
 
@@ -38,6 +39,7 @@ void mapper_stats_delete(mapper_stats_t* const mapper_stats);
  */
 void mapper_stats_template_init(
     mapper_stats_t* const search_stats,
+    const uint64_t template_num_samples,
     const uint64_t template_length_min,
     const uint64_t template_length_max);
 void mapper_stats_template_length_sample(
@@ -57,6 +59,5 @@ uint64_t mapper_stats_template_length_get_expected_min(mapper_stats_t* const sea
 double mapper_stats_template_length_get_sigma_dev(
     mapper_stats_t* const search_stats,
     const uint64_t template_length);
-
 
 #endif /* MAPPER_STATS_H_ */

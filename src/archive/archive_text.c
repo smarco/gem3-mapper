@@ -1,9 +1,27 @@
 /*
- * PROJECT: GEMMapper
- * FILE: archive_text.c
- * DATE: 06/06/2013
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
+ *   Archive text module provides data structures and functions to
+ *   manipulate and query a genomic-text (ACGTN)
  */
 
 #include "archive/archive_text.h"
@@ -33,11 +51,11 @@ void archive_text_write(
   if (explicit_complement) {
     // Save all (except extra separator)
     dna_text_write_chunk(file_manager,enc_text,dna_text_get_length(enc_text)-1);
-    if (verbose) dna_text_print(gem_info_get_stream(),enc_text,dna_text_get_length(enc_text)-1);
+    if (verbose) dna_text_print(gem_info_get_stream(),enc_text);
   } else {
     // Save just forward text
     dna_text_write_chunk(file_manager,enc_text,forward_text_length);
-    if (verbose) dna_text_print(gem_info_get_stream(),enc_text,forward_text_length);
+    if (verbose) dna_text_print(gem_info_get_stream(),enc_text);
   }
   // Sampled RL-Index Positions
   if (sampled_rl!=NULL) sampled_rl_write(file_manager,sampled_rl);
@@ -111,11 +129,10 @@ void archive_text_retrieve(
     if (reverse_complement_text) {
       if (archive_text->explicit_complement) {
         const uint64_t position_fprojection = archive_text_get_projection(archive_text,text_position,text_length);
-        text_trace->text = dna_text_retrieve_sequence(
-            archive_text->enc_text,position_fprojection,text_length,mm_stack);
+        text_trace->text = dna_text_retrieve_sequence(archive_text->enc_text,position_fprojection);
       } else {
         // Reverse-Complement the text
-        uint8_t* const text = dna_text_retrieve_sequence(archive_text->enc_text,text_position,text_length,mm_stack);
+        uint8_t* const text = dna_text_retrieve_sequence(archive_text->enc_text,text_position);
         text_trace->text = mm_stack_calloc(mm_stack,text_length,uint8_t,false);
         uint64_t i_forward, i_backward;
         for (i_forward=0,i_backward=text_length-1;i_forward<text_length;++i_forward,--i_backward) {
@@ -123,12 +140,12 @@ void archive_text_retrieve(
         }
       }
     } else {
-      text_trace->text = dna_text_retrieve_sequence(archive_text->enc_text,text_position,text_length,mm_stack);
+      text_trace->text = dna_text_retrieve_sequence(archive_text->enc_text,text_position);
     }
   } else {
     // Forward projection
     const uint64_t position_fprojection = archive_text_get_projection(archive_text,text_position,text_length);
-    uint8_t* const text = dna_text_retrieve_sequence(archive_text->enc_text,position_fprojection,text_length,mm_stack);
+    uint8_t* const text = dna_text_retrieve_sequence(archive_text->enc_text,position_fprojection);
     if (reverse_complement_text) {
       text_trace->text = text;
     } else {
@@ -157,14 +174,15 @@ uint64_t archive_text_retrieve_collection(
     const uint64_t text_position,
     const uint64_t text_length,
     const bool reverse_complement_text,
-    const bool run_length_text,
-    mm_stack_t* const mm_stack) {
+    const bool run_length_text) {
   // Allocate text-trace
   const uint64_t text_trace_offset = text_collection_new_trace(text_collection);
   text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
   // Retrieve sequence
-  archive_text_retrieve(archive_text,text_position,text_length,
-      reverse_complement_text,run_length_text,text_trace,mm_stack);
+  archive_text_retrieve(
+      archive_text,text_position,text_length,
+      reverse_complement_text,run_length_text,
+      text_trace,text_collection->mm_text);
   // Return
   return text_trace_offset;
 }
@@ -191,7 +209,7 @@ void archive_text_print(
    */
   // Archive Text
   tab_global_inc();
-  dna_text_print(stream,archive_text->enc_text,dna_text_get_length(archive_text->enc_text));
+  dna_text_print(stream,archive_text->enc_text);
   tab_global_dec();
   // Sampled RL-Text
   tab_global_inc();

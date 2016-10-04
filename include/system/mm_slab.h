@@ -45,8 +45,6 @@ typedef struct {
   /* Slab Units */
   uint64_t slab_unit_size;     /* Bytes per slab unit */
   vector_t* slabs_units_free;  /* Free slab units (mm_slab_unit*) */
-  /* Mutex */
-  pthread_mutex_t slab_mutex;
   /* Internal */
   uint64_t segment_id_generator;
 } mm_slab_t;

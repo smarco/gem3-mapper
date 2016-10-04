@@ -1,11 +1,28 @@
 /*
- * PROJECT: GEMMapper
- * FILE: align_swg_score.c
- * DATE: 06/06/2012
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
+ *   Smith-Waterman-Gotoh (SWG) scoring module using custom SWG-penalties
+ *   Provides functions to handle scores & score alignment CIGARs
  */
-
 
 #include "align/align_swg_score.h"
 
@@ -59,7 +76,8 @@ int32_t align_swg_score_cigar(
   // Parameters
   const cigar_element_t* const cigar_buffer = vector_get_elm(cigar_vector,cigar_offset,cigar_element_t);
   // Traverse all CIGAR elements
-  int32_t score = 0, i;
+  uint64_t i;
+  int32_t score = 0;
   for (i=0;i<cigar_length;++i) {
     score += align_swg_score_cigar_element(swg_penalties,cigar_buffer+i);
   }
@@ -74,7 +92,8 @@ int32_t align_swg_score_cigar_excluding_deletions(
   // Parameters
   const cigar_element_t* const cigar_buffer = vector_get_elm(cigar_vector,cigar_offset,cigar_element_t);
   // Traverse all CIGAR elements
-  int32_t score = 0, i;
+  uint64_t i;
+  int32_t score = 0;
   for (i=0;i<cigar_length;++i) {
     const cigar_element_t* const cigar_element = cigar_buffer+i;
     if (cigar_element->type!=cigar_del) {

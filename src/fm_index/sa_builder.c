@@ -1,15 +1,31 @@
 /*
- * PROJECT: GEMMapper
- * FILE: sa_builder.c
- * DATE: 07/06/2013
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
  *   Implements a data storage structure as to classify SA positions with respect
  *   to it's stating k-mer. SA positions are stored in blocks of a given size
  */
 
+#include "text/dna_text.h"
 #include "fm_index/sa_builder.h"
-#include "data_structures/dna_text.h"
 #include "stats/stats_vector.h"
 
 /*
@@ -262,7 +278,6 @@ void sa_builder_store_suffixes_prepare(sa_builder_t* const sa_builder) {
   sa_builder_sa_groups_distribute(sa_builder);
 }
 void sa_builder_store_sa_pos(
-    sa_builder_t* const sa_builder,
     sa_group_t* const group,
     const uint64_t sa_pos,
     const uint64_t kmer_idx) {
@@ -287,7 +302,7 @@ void* sa_builder_store_suffixes_thread(const uint8_t thread_id) {
     kmer_idx = (kmer_idx<<DNA_EXT_RANGE_BITS) | enc_text[i];
     sa_group_t* const group = sa_groups + kmer_count[SA_BUILDER_KMER_MASK_INDEX(kmer_idx)];
     if (group->thread_responsible == thread_id) {
-      sa_builder_store_sa_pos(global_sa_builder,group,sa_pos,kmer_idx);
+      sa_builder_store_sa_pos(group,sa_pos,kmer_idx);
     }
     // Ticker update
     if (thread_id==0 && tp==SA_BUILDER_STORE_SUFFIXES_TICKER_STEP) {

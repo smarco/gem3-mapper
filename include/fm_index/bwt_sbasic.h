@@ -1,27 +1,45 @@
 /*
- * PROJECT: GEMMapper
- * FILE: bwt_sbasic.h
- * DATE: 06/06/2012
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
- * DESCRIPTION: Provides basic routines to encode a DNA text into a
- *              Burrows-Wheeler transform using a compact bit representation
- *              and counter buckets as to enhance Occ/rank queries
- * MODEL:
- *   NAME:      bwt_sbasic
- *   ALPHABET:  3bits (8 chars)
- *   LEVELS:    2-levels
- *   STEP:      1s
- *   COUNTERS:  (8x64b,8x16b)
- *   BITMAP:    64bits
- *   SAMPLED:   Yes
- *   OTHERS:    -
+ * DESCRIPTION:
+ *   BWT data structure (basic implementation sampled).
+ *   Provides basic routines to encode a DNA text into a
+ *   Burrows-Wheeler transform using a compact bit representation
+ *   and counter buckets as to enhance Occ/rank queries
+ *   MODEL:
+ *     NAME:      bwt_basic
+ *     ALPHABET:  3bits (8 chars)
+ *     LEVELS:    2-levels
+ *     STEP:      1s
+ *     COUNTERS:  (8x64b,8x16b)
+ *     BITMAP:    64bits
+ *     SAMPLED:   Yes
+ *     OTHERS:    -
  */
 
 #ifndef BWT_SBASIC_H_
 #define BWT_SBASIC_H_
 
 #include "fm_index/bwt_commons.h"
-#include "data_structures/dna_text.h"
+#include "text/dna_text.h"
 
 /*
  * BWT Structure
@@ -59,7 +77,6 @@ bwt_sbasic_builder_t* bwt_sbasic_builder_new(
     dna_text_t* const bwt_text,
     const uint64_t* const character_occurrences,
     sampled_sa_builder_t* const sampled_sa,
-    const bool check,
     const bool verbose);
 void bwt_sbasic_builder_write(
     fm_t* const file_manager,
@@ -69,7 +86,7 @@ void bwt_sbasic_builder_delete(bwt_sbasic_builder_t* const bwt_builder);
 /*
  * BWT Loader
  */
-bwt_sbasic_t* bwt_sbasic_read_mem(mm_t* const memory_manager,const bool check);
+bwt_sbasic_t* bwt_sbasic_read_mem(mm_t* const memory_manager);
 void bwt_sbasic_delete(bwt_sbasic_t* const bwt);
 
 /*

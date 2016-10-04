@@ -111,10 +111,10 @@ uint64_t stats_vector_get_count(stats_vector_t* const stats_vector,const uint64_
  * Bucket counters getters (Accumulated ranges)
  */
 uint64_t stats_vector_get_accumulated_count(stats_vector_t* const stats_vector);
-uint64_t stats_vector_get_range_accumulated_count(
-    stats_vector_t* const stats_vector,
-    const uint64_t value_from,
-    const uint64_t value_to);
+// TODO uint64_t stats_vector_get_range_accumulated_count(
+//    stats_vector_t* const stats_vector,
+//    const uint64_t value_from,
+//    const uint64_t value_to);
 
 /*
  * Inverse. Given the stats_vector_t index returns the corresponding value/range.
@@ -128,7 +128,7 @@ void stats_vector_get_value_range(
 /*
  * Merge 2 stats-vector (adding bucket counting)
  */
-void stats_vector_merge(stats_vector_t* const stats_dst,stats_vector_t* const stats_src);
+// TODO void stats_vector_merge(stats_vector_t* const stats_dst,stats_vector_t* const stats_src);
 
 /*
  * Display (Printers)

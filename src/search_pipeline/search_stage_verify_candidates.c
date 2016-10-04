@@ -7,7 +7,7 @@
 
 #include "search_pipeline/search_stage_verify_candidates.h"
 #include "search_pipeline/search_stage_verify_candidates_buffer.h"
-#include "archive/archive_search_se_stepwise.h"
+#include "archive/search/archive_search_se_stepwise.h"
 
 /*
  * Profile
@@ -40,23 +40,16 @@ search_stage_verify_candidates_t* search_stage_verify_candidates_new(
     const uint64_t num_buffers,
     const bool paired_end,
     const bool verify_candidates_enabled,
-    mm_stack_t* const mm_stack) {
+    search_pipeline_handlers_t* const search_pipeline_handlers) {
   // Alloc
   search_stage_verify_candidates_t* const search_stage_vc = mm_alloc(search_stage_verify_candidates_t);
   search_stage_vc->paired_end = paired_end;
   // Init Support Data Structures
-  filtering_candidates_init(&search_stage_vc->filtering_candidates_forward_end1);
-  filtering_candidates_init(&search_stage_vc->filtering_candidates_reverse_end1);
-  filtering_candidates_init(&search_stage_vc->filtering_candidates_forward_end2);
-  filtering_candidates_init(&search_stage_vc->filtering_candidates_reverse_end2);
-  text_collection_init(&search_stage_vc->text_collection);
-  search_stage_vc->mm_stack = mm_stack;
+  search_stage_vc->search_pipeline_handlers = search_pipeline_handlers;
   if (paired_end) {
     search_stage_vc->paired_matches = paired_matches_new();
-    paired_matches_configure(search_stage_vc->paired_matches,&search_stage_vc->text_collection);
   } else {
     search_stage_vc->matches = matches_new();
-    matches_configure(search_stage_vc->matches,&search_stage_vc->text_collection);
   }
   // Init Buffers
   uint64_t i;
@@ -84,6 +77,9 @@ void search_stage_verify_candidates_clear(
         search_stage_vc_get_buffer(search_stage_vc,i),archive_search_cache);
   }
   search_stage_vc->iterator.current_buffer_idx = 0; // Init iterator
+  // MM
+  filtering_candidates_buffered_mm_clear_regions(
+      &search_stage_vc->search_pipeline_handlers->fc_buffered_mm);
 }
 void search_stage_verify_candidates_delete(
     search_stage_verify_candidates_t* const search_stage_vc,
@@ -97,11 +93,6 @@ void search_stage_verify_candidates_delete(
   }
   vector_delete(search_stage_vc->buffers); // Delete vector
   // Delete Support Data Structures
-  filtering_candidates_destroy(&search_stage_vc->filtering_candidates_forward_end1);
-  filtering_candidates_destroy(&search_stage_vc->filtering_candidates_reverse_end1);
-  filtering_candidates_destroy(&search_stage_vc->filtering_candidates_forward_end2);
-  filtering_candidates_destroy(&search_stage_vc->filtering_candidates_reverse_end2);
-  text_collection_destroy(&search_stage_vc->text_collection);
   if (search_stage_vc->paired_end) {
     paired_matches_delete(search_stage_vc->paired_matches);
   } else {
@@ -227,6 +218,21 @@ bool search_stage_verify_candidates_retrieve_next(
 /*
  * Retrieve Searches (buffered)
  */
+void search_stage_verify_candidates_prepare(
+    archive_search_t* const archive_search,
+    search_pipeline_handlers_t* const search_pipeline_handlers,
+    filtering_candidates_t* const filtering_candidates) {
+  // Parameters
+  approximate_search_t* const search = &archive_search->approximate_search;
+  // Prepare Support Data Structures
+  filtering_candidates_clear(filtering_candidates);
+  search->filtering_candidates = filtering_candidates;
+  filtering_candidates_inject_handlers(
+      filtering_candidates,archive_search->archive,
+      &archive_search->search_parameters,
+      &search_pipeline_handlers->fc_verify_mm,
+      &search_pipeline_handlers->fc_buffered_mm);
+}
 bool search_stage_verify_candidates_retrieve_se_search(
     search_stage_verify_candidates_t* const search_stage_vc,
     archive_search_t** const archive_search) {
@@ -234,16 +240,12 @@ bool search_stage_verify_candidates_retrieve_se_search(
   search_stage_verify_candidates_buffer_t* current_buffer;
   const bool success = search_stage_verify_candidates_retrieve_next(search_stage_vc,&current_buffer,archive_search);
   if (!success) return false;
-  // Clear & Inject Support Data Structures
+  // Prepare Archive Search
+  search_pipeline_handlers_t* const search_pipeline_handlers = search_stage_vc->search_pipeline_handlers;
   matches_clear(search_stage_vc->matches);
-  filtering_candidates_clear(&search_stage_vc->filtering_candidates_forward_end1);
-  filtering_candidates_clear(&search_stage_vc->filtering_candidates_reverse_end1);
-  text_collection_clear(&search_stage_vc->text_collection);
-  archive_search_inject_text_collection(*archive_search,&search_stage_vc->text_collection);
-  archive_search_inject_filtering_candidates(*archive_search,
-      &search_stage_vc->filtering_candidates_forward_end1,
-      &search_stage_vc->filtering_candidates_reverse_end1,
-      &search_stage_vc->text_collection,search_stage_vc->mm_stack);
+  filtering_candidates_mm_clear(&search_pipeline_handlers->fc_verify_mm);
+  search_stage_verify_candidates_prepare(*archive_search,
+      search_pipeline_handlers,&search_pipeline_handlers->fc_verify_end1);
   // Retrieve candidates from the buffer
   archive_search_se_stepwise_verify_candidates_retrieve(*archive_search,
       current_buffer->gpu_buffer_align_bpm,search_stage_vc->matches);
@@ -262,37 +264,30 @@ bool search_stage_verify_candidates_retrieve_pe_search(
   // Retrieve next (End/1)
   success = search_stage_verify_candidates_retrieve_next(search_stage_vc,&current_buffer,archive_search_end1);
   if (!success) return false;
-  // Clear & Inject Support Data Structures (End/1)
-  paired_matches_clear(search_stage_vc->paired_matches,true); // Clear paired-matches
-  filtering_candidates_clear(&search_stage_vc->filtering_candidates_forward_end1);
-  filtering_candidates_clear(&search_stage_vc->filtering_candidates_reverse_end1);
-  text_collection_clear(&search_stage_vc->text_collection);
-  archive_search_inject_text_collection(*archive_search_end1,&search_stage_vc->text_collection);
-  archive_search_inject_filtering_candidates(*archive_search_end1,
-      &search_stage_vc->filtering_candidates_forward_end1,
-      &search_stage_vc->filtering_candidates_reverse_end1,
-      &search_stage_vc->text_collection,search_stage_vc->mm_stack);
+  // Clear paired-matches
+  paired_matches_clear(search_stage_vc->paired_matches,true);
+  // Prepare Archive Search
+  search_pipeline_handlers_t* const search_pipeline_handlers = search_stage_vc->search_pipeline_handlers;
+  filtering_candidates_mm_clear(&search_pipeline_handlers->fc_verify_mm);
+  search_stage_verify_candidates_prepare(*archive_search_end1,
+      search_pipeline_handlers,&search_pipeline_handlers->fc_verify_end1);
   // Retrieve candidates from the buffer (End/1)
-  archive_search_se_stepwise_verify_candidates_retrieve(*archive_search_end1,
-      current_buffer->gpu_buffer_align_bpm,search_stage_vc->paired_matches->matches_end1);
+  archive_search_se_stepwise_verify_candidates_retrieve(
+      *archive_search_end1,current_buffer->gpu_buffer_align_bpm,
+      search_stage_vc->paired_matches->matches_end1);
   /*
    * End/2
    */
   // Retrieve next (End/2)
   success = search_stage_verify_candidates_retrieve_next(search_stage_vc,&current_buffer,archive_search_end2);
   gem_cond_fatal_error(!success,SEARCH_STAGE_VC_UNPAIRED_QUERY);
-  // Clear & Inject Support Data Structures (End/2)
-  filtering_candidates_clear(&search_stage_vc->filtering_candidates_forward_end2);
-  filtering_candidates_clear(&search_stage_vc->filtering_candidates_reverse_end2);
-  text_collection_clear(&search_stage_vc->text_collection);
-  archive_search_inject_text_collection(*archive_search_end2,&search_stage_vc->text_collection);
-  archive_search_inject_filtering_candidates(*archive_search_end2,
-      &search_stage_vc->filtering_candidates_forward_end2,
-      &search_stage_vc->filtering_candidates_reverse_end2,
-      &search_stage_vc->text_collection,search_stage_vc->mm_stack);
-  // Retrieve candidates from the buffer (End/1)
-  archive_search_se_stepwise_verify_candidates_retrieve(*archive_search_end2,
-      current_buffer->gpu_buffer_align_bpm,search_stage_vc->paired_matches->matches_end2);
+  // Prepare Archive Search
+  search_stage_verify_candidates_prepare(*archive_search_end2,
+      search_pipeline_handlers,&search_pipeline_handlers->fc_verify_end2);
+  // Retrieve candidates from the buffer (End/2)
+  archive_search_se_stepwise_verify_candidates_retrieve(
+      *archive_search_end2,current_buffer->gpu_buffer_align_bpm,
+      search_stage_vc->paired_matches->matches_end2);
   // Return ok
   return true;
 }

@@ -104,7 +104,7 @@ int mm_mmap_mode[3] = { MAP_PRIVATE, MAP_SHARED, MAP_SHARED };
  */
 char* mm_temp_folder_path = MM_DEFAULT_TMP_FOLDER;
 
-char* mm_get_tmp_folder() {
+char* mm_get_tmp_folder(void) {
   return mm_temp_folder_path;
 }
 void mm_set_tmp_folder(char* const tmp_folder_path) {
@@ -237,7 +237,7 @@ mm_t* mm_bulk_mmalloc_temp(const uint64_t num_bytes) {
   gem_cond_fatal_error__perror(mem_manager->fd==-1,SYS_MKSTEMP,mem_manager->file_name);
   gem_cond_fatal_error__perror(unlink(mem_manager->file_name),SYS_HANDLE_TMP); // Make it temporary
   gem_log("Allocating memory mapped to disk: %s (%"PRIu64" MBytes) [PhysicalMem Available %"PRIu64" MBytes]",
-      mem_manager->file_name,num_bytes/1024/1024,mm_get_available_mem()/1024/1024);
+      mem_manager->file_name,num_bytes/1024/1024,mm_get_mem_available_total()/1024/1024);
   // Set the size of the temporary file (disk allocation)
   gem_cond_fatal_error__perror(lseek(mem_manager->fd,num_bytes-1,SEEK_SET)==-1,SYS_HANDLE_TMP);
   gem_cond_fatal_error__perror(write(mem_manager->fd,"",1)<=0,SYS_HANDLE_TMP);
@@ -286,7 +286,7 @@ void mm_bulk_free(mm_t* const mem_manager) {
 mm_t* mm_bulk_mmap_file(char* const file_name,const mm_mode mode,const bool populate_page_tables) {
   GEM_CHECK_NULL(file_name);
 #ifdef MM_NO_MMAP
-  return mm_bulk_mload_file(file_name,1);
+  return mm_bulk_mload_file(file_name);
 #else
   // Allocate handler
   mm_t* const mem_manager = mm_alloc(mm_t);
@@ -320,10 +320,10 @@ mm_t* mm_bulk_mmap_file(char* const file_name,const mm_mode mode,const bool popu
   return mem_manager;
 #endif
 }
-mm_t* mm_bulk_load_file(char* const file_name,const uint64_t num_threads) {
+mm_t* mm_bulk_load_file(char* const file_name) {
   GEM_CHECK_NULL(file_name);
 #ifdef MM_NO_MMAP
-  return mm_bulk_mload_file(file_name,num_threads);
+  return mm_bulk_mload_file(file_name);
 #else
   // Allocate handler
   mm_t* const mem_manager = mm_alloc(mm_t);
@@ -340,15 +340,11 @@ mm_t* mm_bulk_load_file(char* const file_name,const uint64_t num_threads) {
   mem_manager->cursor = mem_manager->memory;
   // MM_PRINT_MEM_ALIGMENT(mem_manager->memory); // Debug
   // Read the file and dump it into memory
-  if (num_threads>1 && (stat_info.st_size > num_threads*8)) {
-    fm_bulk_read_file_parallel(file_name,mem_manager->memory,0,0,num_threads);
-  } else {
-    fm_bulk_read_file(file_name,mem_manager->memory,0,0);
-  }
+  fm_bulk_read_file(file_name,mem_manager->memory,0,0);
   return mem_manager;
 #endif
 }
-mm_t* mm_bulk_mload_file(char* const file_name,const uint64_t num_threads) {
+mm_t* mm_bulk_mload_file(char* const file_name) {
   GEM_CHECK_NULL(file_name);
   // Retrieve input file info
   struct stat stat_info;
@@ -357,11 +353,7 @@ mm_t* mm_bulk_mload_file(char* const file_name,const uint64_t num_threads) {
   // Allocate memory to dump the content of the file
   mm_t* const mem_manager = mm_bulk_mmalloc(stat_info.st_size,false);
   // Read the file and dump it into memory
-  if (num_threads>1 && (stat_info.st_size > num_threads*8)) {
-    fm_bulk_read_file_parallel(file_name,mem_manager->memory,0,0,num_threads);
-  } else {
-    fm_bulk_read_file(file_name,mem_manager->memory,0,0);
-  }
+  fm_bulk_read_file(file_name,mem_manager->memory,0,0);
   return mem_manager;
 }
 
@@ -559,13 +551,6 @@ void mm_copy_mem(
   memcpy(dst,mem_manager->cursor,num_bytes);
   mem_manager->cursor += num_bytes;
 }
-void mm_copy_mem_parallel(
-    mm_t* const mem_manager,
-    void* const dst,
-    const uint64_t num_bytes,
-    const uint64_t num_threads) {
-  GEM_NOT_IMPLEMENTED(); // TODO
-}
 /*
  * Write functions
  */
@@ -597,7 +582,7 @@ void mm_write_mem(mm_t* const mem_manager,void* const src,const uint64_t num_byt
 /*
  * Status
  */
-int64_t mm_get_page_size() {
+int64_t mm_get_page_size(void) {
   int64_t page_size = sysconf(_SC_PAGESIZE);
   gem_cond_fatal_error__perror(page_size==-1,SYS_SYSCONF);
   return page_size; // Bytes
@@ -622,7 +607,7 @@ int64_t mm_get_stat_meminfo(const char* const label,const uint64_t label_length)
   fclose(meminfo);
   return -1;
 }
-int64_t mm_get_mem_available_virtual() {
+int64_t mm_get_mem_available_virtual(void) {
   // Get Total Program Size
   uint64_t vm_size = 0;
   FILE *statm = fopen("/proc/self/statm", "r");
@@ -635,28 +620,28 @@ int64_t mm_get_mem_available_virtual() {
   // Return Virtual Memory Available
   return lim.rlim_cur - vm_size; // Bytes
 }
-int64_t mm_get_mem_available_cached() {
+int64_t mm_get_mem_available_cached(void) {
   const int64_t size = mm_get_stat_meminfo("Cached:",7);
   gem_cond_fatal_error__perror(size==-1,MEM_STAT_MEMINFO,"Cached");
   return size; // Bytes
 }
-int64_t mm_get_mem_available_free() {
+int64_t mm_get_mem_available_free(void) {
   const int64_t size = mm_get_stat_meminfo("MemFree:",8);
   gem_cond_fatal_error__perror(size==-1,MEM_STAT_MEMINFO,"MemFree");
   return size; // Bytes
 }
-int64_t mm_get_mem_available_total() {
+int64_t mm_get_mem_available_total(void) {
   return mm_get_mem_available_free()+mm_get_mem_available_cached(); // Bytes
 }
 #ifdef MM_USE_SYSINFO
-int64_t mm_get_mem_total() {
+int64_t mm_get_mem_total(void) {
   struct sysinfo info;
   int error = sysinfo(&info);
   gem_cond_fatal_error__perror(error!=0,MEM_SYSINFO);
   return (int64_t)(info.totalram * info.mem_unit);// Bytes
 }
 #else
-int64_t mm_get_mem_total() {
+int64_t mm_get_mem_total(void) {
   const int64_t size = mm_get_stat_meminfo("MemTotal:",9);
   gem_cond_fatal_error__perror(size==-1,MEM_STAT_MEMINFO,"MemTotal");
   return size; // Bytes

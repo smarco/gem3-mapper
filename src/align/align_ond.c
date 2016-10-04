@@ -1,13 +1,31 @@
 /*
- * PROJECT: GEMMapper
- * FILE: align_ond.c
- * DATE: 06/06/2012
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
+ *   Alignment module using O(nd)-algorithm to compute levenshtein distance/alignment
+ *   (Myers' O(nd)-algorithm to compute levenshtein distance/alignment)
  */
 
+#include "align/alignment.h"
 #include "align/align_ond.h"
-#include "align/align.h"
 #include "matches/matches.h"
 #include "matches/matches_cigar.h"
 
@@ -148,13 +166,14 @@ void align_ond_backtrace_contours(
     const int32_t mid_column = upper_neighbor_line ? begin_column : begin_column + 1;
     // Store CIGAR matches
     if (end_column > mid_column) {
+      const uint64_t column_range = end_column-mid_column;
       uint64_t i;
-      for (i=1;i<end_column-mid_column;++i) {
+      for (i=1;i<column_range;++i) {
         if (align_input->key[v-i]!=align_input->text[h-i]) {
           fprintf(stderr,"Error\n");
         }
       }
-      matches_cigar_buffer_add_cigar_element(&cigar_buffer,cigar_match,end_column-mid_column);
+      matches_cigar_buffer_add_cigar_element(&cigar_buffer,cigar_match,column_range);
     }
     // Update position & check end
     h = begin_column;

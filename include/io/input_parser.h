@@ -11,7 +11,7 @@
 
 #include "utils/essentials.h"
 #include "io/input_file.h"
-#include "data_structures/sequence.h"
+#include "text/sequence.h"
 
 /*
  * Errors

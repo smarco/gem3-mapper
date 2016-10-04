@@ -13,8 +13,8 @@
 #include "search_pipeline/search_stage_region_profile.h"
 #include "search_pipeline/search_stage_decode_candidates.h"
 #include "search_pipeline/search_stage_verify_candidates.h"
-#include "archive/archive_search.h"
-#include "archive/archive_search_cache.h"
+#include "archive/search/archive_search.h"
+#include "archive/search/archive_search_cache.h"
 #include "mapper/mapper.h"
 
 /*
@@ -28,10 +28,7 @@ typedef struct {
   /* Archive-search cache */
   archive_search_cache_t* archive_search_cache;
   /* Support Data Structures */
-  mm_slab_t* mm_slab;                   // MM-Slab
-  mm_stack_t* mm_stack;                 // MM-Stack
-  mapper_stats_t* mapper_stats;         // Mapping Statistics
-  interval_set_t interval_set;          // Interval-Set
+  search_pipeline_handlers_t* search_pipeline_handlers;
 } search_pipeline_t;
 
 /*

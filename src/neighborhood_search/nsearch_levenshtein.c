@@ -26,7 +26,7 @@ void nsearch_levenshtein_query(
   nsearch_schedule->pending_searches->text[current_position] = char_enc;
   *lo_out = 0; *hi_out = 1;
 #else
-  fm_index_t* const fm_index = nsearch_schedule->search->archive->fm_index;
+  fm_index_t* const fm_index = nsearch_schedule->archive->fm_index;
   *lo_out = bwt_erank(fm_index->bwt,char_enc,lo_in);
   *hi_out = bwt_erank(fm_index->bwt,char_enc,hi_in);
 #endif
@@ -47,10 +47,10 @@ uint64_t nsearch_levenshtein_terminate(
   return 1;
 #else
   // Parameters
-  filtering_candidates_t* const filtering_candidates = nsearch_schedule->search->filtering_candidates;
-  search_parameters_t* const search_parameters = nsearch_schedule->search->search_parameters;
+  filtering_candidates_t* const filtering_candidates = nsearch_schedule->filtering_candidates;
+  search_parameters_t* const search_parameters = nsearch_schedule->search_parameters;
   select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;
-  pattern_t* const pattern = &nsearch_schedule->search->pattern;
+  pattern_t* const pattern = nsearch_schedule->pattern;
   // FIXME: Depending on the mapping-strategy regulate this (avoid on complete-search)
   // Limit the number of candidates (cases than can exponentially explode)
   if (select_parameters->min_reported_strata_nominal==0) {
@@ -61,7 +61,7 @@ uint64_t nsearch_levenshtein_terminate(
   }
   // Add candidates to filtering
   bool limited;
-  filtering_candidates_add_region_interval(
+  filtering_candidates_add_positions_from_interval(
       filtering_candidates,search_parameters,pattern,
       lo,hi,0,pattern->key_length,align_distance,&limited);
   return hi-lo;
@@ -78,8 +78,8 @@ uint64_t nsearch_levenshtein_brute_force_step(
     const uint64_t hi) {
   // Parameters
   const uint64_t max_error = nsearch_schedule->max_error;
-  const uint8_t* const key = nsearch_schedule->key;
-  const uint64_t key_length = nsearch_schedule->key_length;
+  const uint8_t* const key = nsearch_schedule->pattern->key;
+  const uint64_t key_length = nsearch_schedule->pattern->key_length;
   const uint64_t text_position = nsearch_operation->text_position;
   const uint64_t max_text_length = key_length + max_error;
   uint64_t total_matches_found = 0;
@@ -131,9 +131,13 @@ void nsearch_levenshtein_brute_force(
     matches_t* const matches) {
   PROF_START(GP_NS_GENERATION);
   // Init
-  nsearch_schedule_t nsearch_schedule;
-  nsearch_schedule_init(&nsearch_schedule,nsearch_model_levenshtein,search,matches);
-  nsearch_operation_t* const nsearch_operation = nsearch_schedule.pending_searches;
+  nsearch_schedule_init(
+      search->nsearch_schedule,nsearch_model_levenshtein,
+      search->current_max_complete_error,search->archive,
+      &search->pattern,&search->region_profile,
+      search->search_parameters,search->filtering_candidates,
+      matches);
+  nsearch_operation_t* const nsearch_operation = search->nsearch_schedule->pending_searches;
   nsearch_levenshtein_state_prepare(&nsearch_operation->nsearch_state,supercondensed);
   nsearch_operation->text_position = 0;
 #ifdef NSEARCH_ENUMERATE
@@ -141,15 +145,15 @@ void nsearch_levenshtein_brute_force(
   const uint64_t init_hi = 1;
 #else
   const uint64_t init_lo = 0;
-  const uint64_t init_hi = fm_index_get_length(nsearch_schedule.search->archive->fm_index);
+  const uint64_t init_hi = fm_index_get_length(search->nsearch_schedule->archive->fm_index);
 #endif
   // Search
-  nsearch_levenshtein_brute_force_step(&nsearch_schedule,nsearch_operation,supercondensed,init_lo,init_hi);
+  nsearch_levenshtein_brute_force_step(search->nsearch_schedule,nsearch_operation,supercondensed,init_lo,init_hi);
   // PROFILE
   // nsearch_schedule_print_profile(stderr,&nsearch_schedule);
-  PROF_ADD_COUNTER(GP_NS_NODES,nsearch_schedule.profile.ns_nodes);
-  PROF_ADD_COUNTER(GP_NS_NODES_SUCCESS,nsearch_schedule.profile.ns_nodes_success);
-  PROF_ADD_COUNTER(GP_NS_NODES_FAIL,nsearch_schedule.profile.ns_nodes_fail);
+  PROF_ADD_COUNTER(GP_NS_NODES,search->nsearch_schedule->profile.ns_nodes);
+  PROF_ADD_COUNTER(GP_NS_NODES_SUCCESS,search->nsearch_schedule->profile.ns_nodes_success);
+  PROF_ADD_COUNTER(GP_NS_NODES_FAIL,search->nsearch_schedule->profile.ns_nodes_fail);
   PROF_STOP(GP_NS_GENERATION);
 }
 /*
@@ -159,15 +163,19 @@ void nsearch_levenshtein(
     approximate_search_t* const search,
     matches_t* const matches) {
   // Search
-  nsearch_schedule_t nsearch_schedule;
-  nsearch_schedule_init(&nsearch_schedule,nsearch_model_levenshtein,search,matches);
-  nsearch_schedule_search(&nsearch_schedule);
+  nsearch_schedule_init(
+      search->nsearch_schedule,nsearch_model_levenshtein,
+      search->current_max_complete_error,search->archive,
+      &search->pattern,&search->region_profile,
+      search->search_parameters,search->filtering_candidates,
+      matches);
+  nsearch_schedule_search(search->nsearch_schedule);
   // PROFILE
 #ifdef GEM_PROFILE
   // nsearch_schedule_print_profile(stderr,&nsearch_schedule);
   if (search->filtering_candidates != NULL) {
-    const uint64_t total_search_candidates = vector_get_used(search->filtering_candidates->filtering_positions);
-    PROF_ADD_COUNTER(GP_NS_SEARCH_CANDIDATES_GENERATED,total_search_candidates);
+    PROF_ADD_COUNTER(GP_NS_SEARCH_CANDIDATES_GENERATED,
+        filtering_candidates_get_num_positions(search->filtering_candidates));
   }
 #endif
 }
@@ -178,15 +186,19 @@ void nsearch_levenshtein_preconditioned(
     approximate_search_t* const search,
     matches_t* const matches) {
   // Search
-  nsearch_schedule_t nsearch_schedule;
-  nsearch_schedule_init(&nsearch_schedule,nsearch_model_levenshtein,search,matches);
-  nsearch_schedule_search_preconditioned(&nsearch_schedule);
+  nsearch_schedule_init(
+      search->nsearch_schedule,nsearch_model_levenshtein,
+      search->current_max_complete_error,search->archive,
+      &search->pattern,&search->region_profile,
+      search->search_parameters,search->filtering_candidates,
+      matches);
+  nsearch_schedule_search_preconditioned(search->nsearch_schedule);
   // PROFILE
 #ifdef GEM_PROFILE
   // nsearch_schedule_print_profile(stderr,&nsearch_schedule);
   if (search->filtering_candidates != NULL) {
-    const uint64_t total_search_candidates = vector_get_used(search->filtering_candidates->filtering_positions);
-    PROF_ADD_COUNTER(GP_NS_SEARCH_CANDIDATES_GENERATED,total_search_candidates);
+    PROF_ADD_COUNTER(GP_NS_SEARCH_CANDIDATES_GENERATED,
+        filtering_candidates_get_num_positions(search->filtering_candidates));
   }
 #endif
 }
@@ -207,6 +219,6 @@ void nsearch_levenshtein_print_status(
     fprintf(stream,"[%lu] key[%lu,%lu) Local-text=",last_idx_op-i,
         nsearch_operation->global_key_begin,nsearch_operation->global_key_end);
     nsearch_operation_state_print_local_text(stream,nsearch_operation);
-    nsearch_operation_state_print(stream,nsearch_operation,nsearch_schedule->key);
+    nsearch_operation_state_print(stream,nsearch_operation,nsearch_schedule->pattern->key);
   }
 }

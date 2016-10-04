@@ -114,7 +114,7 @@ uint8_t input_file_get_current_char(input_file_t* const input_file) {
   return input_file->file_buffer[input_file->buffer_pos];
 }
 uint8_t input_file_get_char_at(input_file_t* const input_file,const uint64_t position_in_buffer) {
-  return input_file->file_buffer[input_file->buffer_pos];
+  return input_file->file_buffer[position_in_buffer];
 }
 char* input_file_get_nonull_file_name(input_file_t* const input_file) {
   return (input_file->file_manager!=NULL) ?

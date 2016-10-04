@@ -118,7 +118,7 @@ extern const uint64_t mm_mem_alignment_bits_mask[];
  */
 #define MM_DEFAULT_TMP_FOLDER ""
 
-char* mm_get_tmp_folder();
+char* mm_get_tmp_folder(void);
 void mm_set_tmp_folder(char* const tmp_folder_path);
 
 /******************************************************************************
@@ -190,8 +190,8 @@ mm_t* mm_bulk_mmalloc_temp(const uint64_t num_bytes);
 void mm_bulk_free(mm_t* const mem_manager);
 
 mm_t* mm_bulk_mmap_file(char* const file_name,const mm_mode mode,const bool populate_page_tables);
-mm_t* mm_bulk_load_file(char* const file_name,const uint64_t num_threads);
-mm_t* mm_bulk_mload_file(char* const file_name,const uint64_t num_threads);
+mm_t* mm_bulk_load_file(char* const file_name);
+mm_t* mm_bulk_mload_file(char* const file_name);
 
 // Accessors
 void* mm_get_mem(mm_t* const mem_manager);
@@ -232,11 +232,6 @@ void mm_copy_mem(
     mm_t* const mem_manager,
     void* const dst,
     const uint64_t num_bytes);
-void mm_copy_mem_parallel(
-    mm_t* const mem_manager,
-    void* const dst,
-    const uint64_t num_bytes,
-    const uint64_t num_threads);
 
 // Write
 #define mm_write(mem_manager,var) mm_write_mem(mem_manager,&var,sizeof(var))
@@ -247,11 +242,11 @@ void mm_write_uint8(mm_t* const mem_manager,const uint8_t data);
 void mm_write_mem(mm_t* const mem_manager,void* const src,const uint64_t num_bytes);
 
 // Status
-int64_t mm_get_page_size();
-int64_t mm_get_mem_available_virtual();
-int64_t mm_get_mem_available_cached();
-int64_t mm_get_mem_available_free();
-int64_t mm_get_mem_available_total();
-int64_t mm_get_mem_total();
+int64_t mm_get_page_size(void);
+int64_t mm_get_mem_available_virtual(void);
+int64_t mm_get_mem_available_cached(void);
+int64_t mm_get_mem_available_free(void);
+int64_t mm_get_mem_available_total(void);
+int64_t mm_get_mem_total(void);
 
 #endif /* MEMORY_MANAGEMENT_H_ */

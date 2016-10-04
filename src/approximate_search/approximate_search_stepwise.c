@@ -1,12 +1,33 @@
 /*
- * PROJECT: GEMMapper
- * FILE: approximate_search_filtering_stepwise.h
- * DATE: 06/06/2012
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
+ *   Approximate-String-Matching (ASM) module encapsulating
+ *   the basic stages in a step-wise approach. Mainly used to
+ *   horizontally process a batch of searches (doing each stage
+ *   for all searches at the same time before progressing to
+ *   the next search stage)
  */
 
-#include <approximate_search/approximate_search_stages.h>
+#include "approximate_search/approximate_search_stages.h"
 #include "approximate_search/approximate_search_stepwise.h"
 #include "approximate_search/approximate_search_region_profile.h"
 #include "approximate_search/approximate_search_verify_candidates.h"
@@ -14,8 +35,8 @@
 #include "approximate_search/approximate_search_filtering_adaptive.h"
 #include "approximate_search/approximate_search_control.h"
 #include "approximate_search/approximate_search_neighborhood.h"
-#include "filtering/region_profile_schedule.h"
-#include "filtering/filtering_candidates_align.h"
+#include "filtering/region_profile/region_profile_schedule.h"
+#include "filtering/candidates/filtering_candidates_align.h"
 
 /*
  * Profile
@@ -30,7 +51,7 @@ void approximate_search_stepwise_region_profile_adaptive_compute(
   PROF_START(GP_ASSW_REGION_PROFILE_UNSUCCESSFUL);
   // Re-Compute region profile
   search->processing_state = asearch_processing_state_begin;
-  approximate_search_region_profile_adaptive(search,region_profile_adaptive,search->mm_stack);
+  approximate_search_region_profile_adaptive(search,region_profile_adaptive);
   if (search->processing_state==asearch_processing_state_no_regions) return;
   // Schedule exact-candidates
   region_profile_schedule_filtering_exact(&search->region_profile);

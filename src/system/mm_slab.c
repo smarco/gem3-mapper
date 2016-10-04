@@ -86,10 +86,8 @@ mm_slab_t* mm_slab_new_(
   const uint64_t segment_pages = ((slab_segment_size+(sz-1))/sz); // SysPages
   mm_slab->slab_segment_size = segment_pages*sz;
   mm_slab->slab_unit_size = slab_size;
-    // gem_cond_error_msg(mm_slab->slab_segment_size%mm_slab->slab_unit_size!=0,
-    //   SLAB_WASTED_MEM,mm_slab->slab_segment_size,mm_slab->slab_unit_size);
-  // Init mutex
-  MUTEX_INIT(mm_slab->slab_mutex);
+  // gem_cond_error_msg(mm_slab->slab_segment_size%mm_slab->slab_unit_size!=0,
+  //   SLAB_WASTED_MEM,mm_slab->slab_segment_size,mm_slab->slab_unit_size);
   // Allocate vectors
   mm_slab->slabs_segments = vector_new(MM_SLAB_NUM_INITIAL_SEGMENTS,mm_slab_segment_t*);
   mm_slab->slabs_units_free = vector_new(MM_SLAB_NUM_INITIAL_SEGMENTS,mm_slab_segment_t*);
@@ -112,12 +110,6 @@ void mm_slab_delete(mm_slab_t* const mm_slab) {
 /*
  *  Accessors
  */
-void mm_slab_lock(mm_slab_t* const mm_slab) {
-  MUTEX_BEGIN_SECTION(mm_slab->slab_mutex);
-}
-void mm_slab_unlock(mm_slab_t* const mm_slab) {
-  MUTEX_END_SECTION(mm_slab->slab_mutex);
-}
 mm_slab_unit_t* mm_slab_get(mm_slab_t* const mm_slab) {
   // Check slabs available (Add new one if required)
   if (gem_expect_false(vector_get_used(mm_slab->slabs_units_free)==0)) {
@@ -137,15 +129,11 @@ void mm_slab_put(mm_slab_t* const mm_slab,mm_slab_unit_t* const mm_slab_unit) {
 
 mm_slab_unit_t* mm_slab_request(mm_slab_t* const mm_slab) {
   mm_slab_unit_t* mm_slab_unit;
-  MUTEX_BEGIN_SECTION(mm_slab->slab_mutex) {
-    mm_slab_unit = mm_slab_get(mm_slab);
-  } MUTEX_END_SECTION(mm_slab->slab_mutex);
+  mm_slab_unit = mm_slab_get(mm_slab);
   return mm_slab_unit;
 }
 void mm_slab_return(mm_slab_t* const mm_slab,mm_slab_unit_t* const mm_slab_unit) {
-  MUTEX_BEGIN_SECTION(mm_slab->slab_mutex) {
-    mm_slab_put(mm_slab,mm_slab_unit);
-  } MUTEX_END_SECTION(mm_slab->slab_mutex);
+  mm_slab_put(mm_slab,mm_slab_unit);
 }
 uint64_t mm_slab_get_slab_size(mm_slab_t* const mm_slab) {
   return mm_slab->slab_unit_size;
@@ -165,13 +153,11 @@ int mm_slab_cmp_slab_units(mm_slab_unit_t** const mm_slab_unit_a,mm_slab_unit_t*
   }
 }
 void mm_slab_defragment(mm_slab_t* const mm_slab) {
-  MUTEX_BEGIN_SECTION(mm_slab->slab_mutex) {
-    // Sort free slab units to serve them in memory increasing order
-    qsort(vector_get_mem(mm_slab->slabs_units_free,mm_slab_unit_t*),
-          vector_get_used(mm_slab->slabs_units_free),
-          sizeof(mm_slab_unit_t*),
-          (int (*)(const void *,const void *))mm_slab_cmp_slab_units);
-  } MUTEX_END_SECTION(mm_slab->slab_mutex);
+  // Sort free slab units to serve them in memory increasing order
+  qsort(vector_get_mem(mm_slab->slabs_units_free,mm_slab_unit_t*),
+        vector_get_used(mm_slab->slabs_units_free),
+        sizeof(mm_slab_unit_t*),
+        (int (*)(const void *,const void *))mm_slab_cmp_slab_units);
 }
 /*
  * Display/Profile
@@ -181,35 +167,33 @@ void mm_slab_print(
     mm_slab_t* const mm_slab,
     const bool show_internals) {
   GEM_CHECK_NULL(stream);
-  MUTEX_BEGIN_SECTION(mm_slab->slab_mutex) {
-    const uint64_t num_segments = vector_get_used(mm_slab->slabs_segments);
-    const uint64_t slab_units_per_segment = mm_slab->slab_segment_size/mm_slab->slab_unit_size;
-    const uint64_t slab_units_total = num_segments*slab_units_per_segment;
-    const uint64_t slab_units_free = vector_get_used(mm_slab->slabs_units_free);
-    // General Header
-    fprintf(stream,"Slab.totalSize %"PRIu64" bytes\n",CONVERT_B_TO_MB(num_segments*mm_slab->slab_segment_size));
-    // Display dimensions
-    fprintf(stream,"  --> Slab.segment.total %"PRIu64"\n",num_segments);
-    fprintf(stream,"  --> Slab.segment.size %"PRIu64"\n",mm_slab->slab_segment_size);
-    fprintf(stream,"    --> Slab.unit.size %"PRIu64" bytes\n",mm_slab->slab_unit_size);
-    fprintf(stream,"    --> Slab.unit.perSegment %"PRIu64" bytes\n",slab_units_per_segment);
-    fprintf(stream,"    --> Slab.unit.total %"PRIu64"\n",slab_units_total);
-    fprintf(stream,"      --> Slab.unit.free %"PRIu64"  (%02.4f%%)\n",
-        slab_units_free,PERCENTAGE(slab_units_free,slab_units_total));
-    if (show_internals) {
-      fprintf(stream,">>> Slab.segments.internals\n");
-      fprintf(stream,"ID \t Busy(%%busy)/Total \t SlabUnits \t MemoryAddrs\n");
-      VECTOR_ITERATE(mm_slab->slabs_segments,slabs_segment,ss_i,mm_slab_segment_t*) {
-        fprintf(stream,"%"PRIu64"\t%"PRIu64"(%02.4f%%)/%"PRIu64"\t%"PRIu64"\t%p\n",
-            (*slabs_segment)->segment_id,(*slabs_segment)->busy_slabs_units,
-            PERCENTAGE((*slabs_segment)->busy_slabs_units,(*slabs_segment)->total_slabs_units),
-            (*slabs_segment)->total_slabs_units,mm_get_allocated((*slabs_segment)->mm),mm_get_mem((*slabs_segment)->mm));
-      }
-      fprintf(stream,">>> Slab.units.internals\n");
-      fprintf(stream,"ID \t MemoryAddrs\n");
-      VECTOR_ITERATE(mm_slab->slabs_units_free,slabs_unit,su_i,mm_slab_unit_t*) {
-        fprintf(stream,"%"PRIu64" \t %p",(*slabs_unit)->slab_segment->segment_id,(*slabs_unit)->memory);
-      }
+  const uint64_t num_segments = vector_get_used(mm_slab->slabs_segments);
+  const uint64_t slab_units_per_segment = mm_slab->slab_segment_size/mm_slab->slab_unit_size;
+  const uint64_t slab_units_total = num_segments*slab_units_per_segment;
+  const uint64_t slab_units_free = vector_get_used(mm_slab->slabs_units_free);
+  // General Header
+  fprintf(stream,"Slab.totalSize %"PRIu64" bytes\n",CONVERT_B_TO_MB(num_segments*mm_slab->slab_segment_size));
+  // Display dimensions
+  fprintf(stream,"  --> Slab.segment.total %"PRIu64"\n",num_segments);
+  fprintf(stream,"  --> Slab.segment.size %"PRIu64"\n",mm_slab->slab_segment_size);
+  fprintf(stream,"    --> Slab.unit.size %"PRIu64" bytes\n",mm_slab->slab_unit_size);
+  fprintf(stream,"    --> Slab.unit.perSegment %"PRIu64" bytes\n",slab_units_per_segment);
+  fprintf(stream,"    --> Slab.unit.total %"PRIu64"\n",slab_units_total);
+  fprintf(stream,"      --> Slab.unit.free %"PRIu64"  (%02.4f%%)\n",
+      slab_units_free,PERCENTAGE(slab_units_free,slab_units_total));
+  if (show_internals) {
+    fprintf(stream,">>> Slab.segments.internals\n");
+    fprintf(stream,"ID \t Busy(%%busy)/Total \t SlabUnits \t MemoryAddrs\n");
+    VECTOR_ITERATE(mm_slab->slabs_segments,slabs_segment,ss_i,mm_slab_segment_t*) {
+      fprintf(stream,"%"PRIu64"\t%"PRIu64"(%02.4f%%)/%"PRIu64"\t%"PRIu64"\t%p\n",
+          (*slabs_segment)->segment_id,(*slabs_segment)->busy_slabs_units,
+          PERCENTAGE((*slabs_segment)->busy_slabs_units,(*slabs_segment)->total_slabs_units),
+          (*slabs_segment)->total_slabs_units,mm_get_allocated((*slabs_segment)->mm),mm_get_mem((*slabs_segment)->mm));
     }
-  } MUTEX_END_SECTION(mm_slab->slab_mutex);
+    fprintf(stream,">>> Slab.units.internals\n");
+    fprintf(stream,"ID \t MemoryAddrs\n");
+    VECTOR_ITERATE(mm_slab->slabs_units_free,slabs_unit,su_i,mm_slab_unit_t*) {
+      fprintf(stream,"%"PRIu64" \t %p",(*slabs_unit)->slab_segment->segment_id,(*slabs_unit)->memory);
+    }
+  }
 }

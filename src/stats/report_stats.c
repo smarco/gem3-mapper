@@ -257,27 +257,27 @@ void output_json_uint_array(FILE *fp,char *key,uint64_t *values,int n,int indent
 	 }
 }
 
-void output_mapping_stats(mapper_parameters_t *parameters, mapping_stats_t* mstats) {
+void output_mapping_stats(mapper_parameters_t *parameters,mapping_stats_t* mstats) {
 	 char *output_file = parameters->io.report_file_name;
 	 FILE *fp = fopen(output_file,"w");
 	 if(!fp) return;
 	 fputs("{\n",fp);
 	 int indent=1;
 	 int paired = 1;
-	 char *mapper_type;
+	 char *mapper_type_s;
 	 switch (parameters->mapper_type) {
 		case mapper_se:
-			mapper_type="Single";
+		  mapper_type_s="Single";
 			paired = 0;
 			break;
 		case mapper_pe:
-			mapper_type="Paired";
+		  mapper_type_s="Paired";
 			break;
 		default:
-			mapper_type="Unknown";
+		  mapper_type_s="Unknown";
 			break;
 	 }
-	 fprintf(fp,"%.*s\"MapperType\": \"%s\",\n",indent,indent_str,mapper_type);
+	 fprintf(fp,"%.*s\"MapperType\": \"%s\",\n",indent,indent_str,mapper_type_s);
 	 if(parameters->io.sam_parameters.read_group_header) {
 			char *p = parameters->io.sam_parameters.read_group_header;
 			size_t l = strlen(p) * 2 + 1;

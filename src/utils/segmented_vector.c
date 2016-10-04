@@ -36,11 +36,9 @@ svector_t* svector_new_(mm_slab_t* const mm_slab,const uint64_t element_size) {
 }
 void svector_delete(svector_t* const svector) {
   // Return all slabs
-  mm_slab_lock(svector->mm_slab);
   VECTOR_ITERATE(svector->segments,segment,position,vector_segment_t) {
     mm_slab_put(svector->mm_slab,segment->slab_unit);
   }
-  mm_slab_unlock(svector->mm_slab);
   // Free segments' vector
   vector_delete(svector->segments);
   // Free svector
@@ -53,11 +51,9 @@ void svector_clear(svector_t* const svector) {
 void svector_reap(svector_t* const svector) {
   if (svector->segments->used > svector->min_resident_segments) {
     // Reap non-resident segments // TODO Register Number of reaps
-    mm_slab_lock(svector->mm_slab);
     VECTOR_ITERATE_OFFSET(svector->segments,segment,position,svector->min_resident_segments,vector_segment_t) {
       mm_slab_put(svector->mm_slab,segment->slab_unit);
     }
-    mm_slab_unlock(svector->mm_slab);
     vector_set_used(svector->segments,svector->min_resident_segments);
   }
 }
@@ -152,37 +148,6 @@ void svector_write(
       break;
     }
   }
-}
-/*
- * Display/Profile
- */
-void svector_print(
-    FILE* const stream,
-    svector_t* const svector) {
-  // TODO // TODO // TODO // TODO
-  // TODO // TODO // TODO // TODO
-  // TODO // TODO // TODO // TODO
-  // TODO // TODO // TODO // TODO
-  // TODO // TODO // TODO // TODO
-  // TODO // TODO // TODO // TODO
-}
-void svector_record_stats(svector_t* const svector) {
-  // TODO // TODO // TODO // TODO
-  // TODO // TODO // TODO // TODO
-  // TODO // TODO // TODO // TODO
-  // TODO // TODO // TODO // TODO
-  // TODO // TODO // TODO // TODO
-  // TODO // TODO // TODO // TODO
-}
-void svector_display_stats(
-    FILE* const stream,
-    svector_t* const svector) {
-  // TODO // TODO // TODO // TODO
-  // TODO // TODO // TODO // TODO
-  // TODO // TODO // TODO // TODO
-  // TODO // TODO // TODO // TODO
-  // TODO // TODO // TODO // TODO
-  // TODO // TODO // TODO // TODO
 }
 /*
  * Iterators

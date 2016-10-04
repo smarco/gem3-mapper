@@ -1,11 +1,27 @@
 /*
- * PROJECT: GEMMapper
- * FILE: align_swg.c
- * DATE: 06/06/2012
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
+ *   Smith-Waterman-Gotoh (SWG) alignment module
  */
-
 
 #include "align/align_swg.h"
 #include "matches/matches_cigar.h"
@@ -25,7 +41,6 @@ void align_swg_traceback(
     const int32_t max_score,
     const uint64_t max_score_column,
     const int32_t single_gap,
-    const int32_t gap_extension,
     const bool begin_free,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector) {
@@ -282,8 +297,9 @@ void align_swg_base(
   match_alignment->effective_length = 0;
   match_alignment->score = 0;
   // Retrieve the alignment. Store the match (Backtrace and generate CIGAR)
-  align_swg_traceback(align_input,dp,max_score,max_score_column,
-      single_gap,gap_extension,true,match_alignment,cigar_vector);
+  align_swg_traceback(
+      align_input,dp,max_score,max_score_column,
+      single_gap,true,match_alignment,cigar_vector);
   // Clean-up
   mm_stack_pop_state(mm_stack); // Free
 }
@@ -363,8 +379,9 @@ void align_swg_full(
     max_score_column = num_columns-1;
   }
   // Retrieve the alignment. Store the match (Backtrace and generate CIGAR)
-  align_swg_traceback(align_input,dp,max_score,max_score_column,
-      single_gap,gap_extension,begin_free,match_alignment,cigar_vector);
+  align_swg_traceback(
+      align_input,dp,max_score,max_score_column,
+      single_gap,begin_free,match_alignment,cigar_vector);
   // Clean-up
   mm_stack_pop_state(mm_stack); // Free
   PROF_STOP(GP_SWG_ALIGN_FULL);
@@ -479,8 +496,9 @@ void align_swg_banded(
     max_score_column = num_columns-1;
   }
   // Retrieve the alignment. Store the match (Backtrace and generate CIGAR)
-  align_swg_traceback(align_input,dp,max_score,max_score_column,
-      single_gap,gap_extension,begin_free,match_alignment,cigar_vector);
+  align_swg_traceback(
+      align_input,dp,max_score,max_score_column,
+      single_gap,begin_free,match_alignment,cigar_vector);
   // Clean-up
   mm_stack_pop_state(mm_stack); // Free
   PROF_STOP(GP_SWG_ALIGN_BANDED);

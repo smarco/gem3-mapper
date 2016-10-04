@@ -7,7 +7,7 @@
 
 #include "search_pipeline/search_stage_region_profile.h"
 #include "search_pipeline/search_stage_region_profile_buffer.h"
-#include "archive/archive_search_se_stepwise.h"
+#include "archive/search/archive_search_se_stepwise.h"
 
 /*
  * Profile

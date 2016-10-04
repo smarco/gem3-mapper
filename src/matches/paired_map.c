@@ -21,7 +21,7 @@ uint64_t paired_map_compute_edit_distance(
     const match_trace_t* const match_end2) {
   return match_end1->edit_distance+match_end2->edit_distance;
 }
-uint64_t paired_map_compute_swg_score(
+int32_t paired_map_compute_swg_score(
     const match_trace_t* const match_end1,
     const match_trace_t* const match_end2) {
   return match_end1->swg_score+match_end2->swg_score;

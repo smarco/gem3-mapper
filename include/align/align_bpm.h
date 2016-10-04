@@ -11,8 +11,8 @@
 #define ALIGN_BPM_H_
 
 #include "utils/essentials.h"
-#include "matches/match_alignment.h"
-#include "matches/match_align_dto.h"
+#include "matches/align/match_alignment.h"
+#include "matches/align/match_align_dto.h"
 
 /*
  * BPM matrix

@@ -39,12 +39,12 @@ void PROFILE_CUDA_START(char* const name,const uint64_t cid) {
   event_attr.message.ascii = name;
   nvtxRangePushEx(&event_attr);
 }
-void PROFILE_CUDA_STOP() {
+void PROFILE_CUDA_STOP(void) {
   nvtxRangePop();
 }
 #else
   void PROFILE_CUDA_START(char* const name,const uint64_t cid) {}
-  void PROFILE_CUDA_STOP() {}
+  void PROFILE_CUDA_STOP(void) {}
 #endif /* GEM_PROFILE */
 /*
  * CUDA NOT-Supported

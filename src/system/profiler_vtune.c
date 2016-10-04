@@ -16,13 +16,13 @@
 
 #include "ittnotify.h"
 
-void PROFILE_VTUNE_START() {
+void PROFILE_VTUNE_START(void) {
   __itt_resume();
 }
-void PROFILE_VTUNE_STOP() {
+void PROFILE_VTUNE_STOP(void) {
   __itt_pause();
 }
 #else
-void PROFILE_VTUNE_START() {}
-void PROFILE_VTUNE_STOP() {}
+void PROFILE_VTUNE_START(void) {}
+void PROFILE_VTUNE_STOP(void) {}
 #endif

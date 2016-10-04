@@ -10,10 +10,9 @@
 #define NSEARCH_LEVENSHTEIN_SCHEDULED_H_
 
 #include "utils/essentials.h"
-#include "data_structures/interval_set.h"
 #include "fm_index/fm_index.h"
 #include "fm_index/fm_index_query.h"
-#include "filtering/region_profile.h"
+#include "filtering/region_profile/region_profile.h"
 #include "neighborhood_search/dp_matrix.h"
 #include "neighborhood_search/nsearch_schedule.h"
 

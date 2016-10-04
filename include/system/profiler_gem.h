@@ -38,7 +38,7 @@ typedef enum {
  * Setup
  */
 void PROF_NEW(const uint64_t num_threads);
-void PROF_DELETE();
+void PROF_DELETE(void);
 
 /*
  * PROFILE-TIME functions
@@ -88,11 +88,11 @@ double PROF_TIME_PER_CALL(const uint64_t timer); // ms/call
 /*
  * Utils
  */
-void PROF_REDUCE_SUM();
-void PROF_REDUCE_MAX();
-void PROF_REDUCE_MIN();
-void PROF_REDUCE_MEAN();
-void PROF_REDUCE_SAMPLE();
+void PROF_REDUCE_SUM(void);
+void PROF_REDUCE_MAX(void);
+void PROF_REDUCE_MIN(void);
+void PROF_REDUCE_MEAN(void);
+void PROF_REDUCE_SAMPLE(void);
 
 #else /* GEM_PROFILE DISABLED */
   // Profile Block

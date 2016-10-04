@@ -30,7 +30,9 @@
 /*
  * Check sorted
  */
-bool _(buffer_sort_check)(VECTOR_SORT_TYPE* const vector_mem,const int num_positions) {
+bool _(buffer_sort_check)(
+    VECTOR_SORT_TYPE* const vector_mem,
+    const int num_positions) {
   int i;
   for (i=1;i<num_positions;++i) {
     if (VECTOR_SORT_CMP(vector_mem + (i-1),vector_mem + i) > 0) {

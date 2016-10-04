@@ -11,8 +11,8 @@
 
 #include "utils/essentials.h"
 #include "io/buffered_output_file.h"
-#include "data_structures/sequence.h"
-#include "archive/archive_search.h"
+#include "text/sequence.h"
+#include "archive/search/archive_search.h"
 #include "matches/matches.h"
 #include "matches/paired_matches.h"
 

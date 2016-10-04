@@ -36,20 +36,15 @@ void mapper_profile_print_candidate_realign(FILE* const stream);
  * Neighborhood Search
  */
 void mapper_profile_print_neighborhood_search(FILE* const stream);
-void mapper_profile_print_neighborhood_search_ranks(FILE* const stream);
 
 /*
  * Approximate Search
  */
 void mapper_profile_print_approximate_search(FILE* const stream);
-void mapper_profile_print_approximate_search_ranks(FILE* const stream);
 
 /*
  * Approximate Search Profile Summary
  */
-void mapper_profile_print_approximate_search_summary(
-    FILE* const stream,const bool paired_end,
-    const bool cuda_workflow,const bool map_output,
-    const uint64_t num_threads);
+void mapper_profile_print_approximate_search_summary(FILE* const stream);
 
 #endif /* MAPPER_PROFILE_SEARCH_H_ */

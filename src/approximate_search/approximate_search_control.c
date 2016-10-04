@@ -1,15 +1,33 @@
 /*
- * PROJECT: GEMMapper
- * FILE: approximate_search_control.h
- * DATE: 06/06/2012
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
+ *   Approximate-String-Matching (ASM) search control functions (regulate
+ *   the depth of the search)
  */
 
 #include "approximate_search/approximate_search_control.h"
-#include "matches/matches_classify.h"
-#include "matches/matches_classify_logit.h"
-#include "matches/matches_classify_logit_models.h"
+#include "matches/classify/matches_classify.h"
+#include "matches/classify/matches_classify_logit.h"
+#include "matches/classify/matches_classify_logit_models.h"
 
 /*
  * Search Limits
@@ -17,8 +35,8 @@
 void asearch_control_adjust_current_max_error(
     approximate_search_t* const search,
     matches_t* const matches) {
-  const int64_t current_max_complete_error = search->current_max_complete_error;
-  const int64_t delta = search->search_parameters->complete_strata_after_best_nominal;
+  const uint64_t current_max_complete_error = search->current_max_complete_error;
+  const uint64_t delta = search->search_parameters->complete_strata_after_best_nominal;
   /*
    * Control delta error adjustment
    *   If delta parameter is set (and is below the maximum number of mismatches),
@@ -26,8 +44,8 @@ void asearch_control_adjust_current_max_error(
    *   the maximum number of mismatches to (mnzs+delta)
    */
   if (delta < current_max_complete_error) {
-    const int64_t fms = matches_metrics_get_min_edit_distance(&matches->metrics);
-    if (fms>=0 && fms+delta < current_max_complete_error) {
+    const uint64_t fms = matches_metrics_get_min_edit_distance(&matches->metrics);
+    if (fms+delta < current_max_complete_error) {
       search->current_max_complete_error = fms+delta;
     }
   }

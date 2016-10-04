@@ -1,10 +1,27 @@
 /*
- * PROJECT: GEMMapper
- * FILE: align_bpm_distance.h
- * DATE: 06/06/2012
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
- * DESCRIPTION: BPM-distance (BitParalellMyers; bit-compressed alignment)
- *   Myers' Fast Bit-Vector algorithm to compute levenshtein distance
+ * DESCRIPTION:
+ *   Alignment module using BPM-algorithm to compute levenshtein distance
+ *   (Myers' Fast Bit-Vector algorithm to compute levenshtein distance)
  */
 
 #ifndef ALIGN_BPM_DISTANCE_H_
@@ -12,6 +29,7 @@
 
 #include "utils/essentials.h"
 #include "align/align_bpm_pattern.h"
+#include "filtering/candidates/filtering_candidates.h"
 
 /*
  * Constants
@@ -67,8 +85,8 @@
   const uint8_t last = top_level-1; \
   if (gem_expect_false(score[last]<=max_distance__1)) { \
     const uint64_t last_score = score[last]+(MHin-PHin); \
-    const uint64_t Peq = PEQ[BPM_PATTERN_PEQ_IDX(top_level,enc_char)]; \
-    if (last_score<=max_distance && last<top && (MHin || (Peq & 1))) { \
+    if (last_score<=max_distance && last<top && (MHin || (PEQ[BPM_PATTERN_PEQ_IDX(top_level,enc_char)] & 1))) { \
+      const uint64_t Peq = PEQ[BPM_PATTERN_PEQ_IDX(top_level,enc_char)]; \
       /* Init block V */ \
       uint64_t Pv = BMP_W64_ONES; \
       uint64_t Mv = 0; \
@@ -133,12 +151,12 @@ bool bpm_compute_edit_distance(
 uint64_t bpm_compute_edit_distance_all(
     bpm_pattern_t* const bpm_pattern,
     bpm_pattern_t* const bpm_pattern_tiles,
-    vector_t* const filtering_regions,
+    filtering_candidates_t* const filtering_candidates,
     const uint64_t text_trace_offset,
     const uint64_t begin_position,
     const uint8_t* const text,
     const uint64_t text_length,
     uint64_t max_distance,
-    mm_stack_t* const mm_stack);
+    const uint64_t max_effective_bandwidth);
 
 #endif /* ALIGN_BPM_DISTANCE_H_ */

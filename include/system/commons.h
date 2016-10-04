@@ -310,10 +310,10 @@ typedef enum {
   DEVICE_GPU,
 } device_t;
 
-uint64_t system_get_num_processors();
-char* system_get_cwd();
-char* system_get_hostname();
-char* system_get_user_name();
+uint64_t system_get_num_processors(void);
+char* system_get_cwd(void);
+char* system_get_hostname(void);
+char* system_get_user_name(void);
 void system_print_info(FILE* const stream);
 
 void system_get_time(struct timespec *ts);

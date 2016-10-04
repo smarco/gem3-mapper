@@ -1,8 +1,27 @@
 /*
- * PROJECT: GEMMapper
- * FILE: sampled_sa.c
- * DATE: 06/06/2013
+ *  GEM-Mapper v3 (GEM3)
+ *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *
+ *  This file is part of GEM-Mapper v3 (GEM3).
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
+ * DESCRIPTION:
+ *   Implements a data structure that stores SA samples each certain
+ *   sampling-rate. Samples are stored bit-compacted
  */
 
 #include "fm_index/sampled_sa.h"
@@ -131,10 +150,10 @@ void sampled_sa_builder_write(
   packed_integer_array_builder_write(file_manager,sampled_sa->array_builder,sampled_sa->num_chunks);
 }
 uint64_t sampled_sa_builder_get_sa_sampling_rate(const sampled_sa_builder_t* const sampled_sa) {
-  return (1<<sampled_sa->sa_sampling_rate);
+  return (1ul<<sampled_sa->sa_sampling_rate);
 }
 uint64_t sampled_sa_builder_get_text_sampling_rate(const sampled_sa_builder_t* const sampled_sa) {
-  return (1<<sampled_sa->text_sampling_rate);
+  return (1ul<<sampled_sa->text_sampling_rate);
 }
 uint64_t* sampled_sa_builder_get_sampled_bitmap(const sampled_sa_builder_t* const sampled_sa) {
   return sampled_sa->sampled_bitmap_mem;
@@ -146,10 +165,10 @@ uint64_t sampled_sa_get_size(const sampled_sa_t* const sampled_sa) {
   return packed_integer_array_get_size(sampled_sa->packed_integer_array);
 }
 uint64_t sampled_sa_get_sa_sampling_rate(const sampled_sa_t* const sampled_sa) {
-  return (1<<sampled_sa->sa_sampling_rate);
+  return (1ul<<sampled_sa->sa_sampling_rate);
 }
 uint64_t sampled_sa_get_text_sampling_rate(const sampled_sa_t* const sampled_sa) {
-  return (1<<sampled_sa->text_sampling_rate);
+  return (1ul<<sampled_sa->text_sampling_rate);
 }
 void sampled_sa_prefetch_sample(
     const sampled_sa_t* const sampled_sa,
@@ -193,8 +212,7 @@ void sampled_sa_print_(
 }
 void sampled_sa_print(
     FILE* const stream,
-    sampled_sa_t* const sampled_sa,
-    const bool display_data) {
+    sampled_sa_t* const sampled_sa) {
   // Print Sampled-SA
   sampled_sa_print_(stream,
       sampled_sa->sa_sampling_rate,sampled_sa_get_sa_sampling_rate(sampled_sa),

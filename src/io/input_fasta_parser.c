@@ -6,9 +6,9 @@
  * DESCRIPTION: Input parser for FASTA/FASTQ/MULTIFASTA files
  */
 
+#include "text/dna_text.h"
 #include "io/input_fasta_parser.h"
 #include "io/input_parser.h"
-#include "data_structures/dna_text.h"
 
 /*
  * Error codes
@@ -213,8 +213,7 @@ int input_fasta_parse_sequence_qualities(
  */
 int input_fasta_parse_sequence_components(
     buffered_input_file_t* const buffered_input,
-    sequence_t* const sequence,
-    const bool strictly_normalized) {
+    sequence_t* const sequence) {
   // Parse TAG
   int status;
   status = input_fasta_parse_sequence_tag(buffered_input,sequence);
@@ -245,7 +244,6 @@ int input_fasta_parse_sequence_components(
 int input_fasta_parse_sequence(
     buffered_input_file_t* const buffered_input,
     sequence_t* const sequence,
-    const bool strictly_normalized,
     const bool check_input_buffer) {
   PROFILE_START(GP_INPUT_FASTA_PARSE_SEQUENCE,PROFILE_LEVEL);
   // Buffer handling
@@ -259,7 +257,7 @@ int input_fasta_parse_sequence(
   }
   // Parse FASTQ-record components
   sequence_clear(sequence); // Clear read
-  status = input_fasta_parse_sequence_components(buffered_input,sequence,strictly_normalized);
+  status = input_fasta_parse_sequence_components(buffered_input,sequence);
   if (status!=INPUT_STATUS_OK) {
     PROFILE_STOP(GP_INPUT_FASTA_PARSE_SEQUENCE,PROFILE_LEVEL);
     return status;

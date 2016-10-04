@@ -15,25 +15,11 @@ include $(ROOT_PATH)/Makefile.mk
 ###############################################################################
 # Modules
 ###############################################################################
-MODULES=archive_builder \
-        archive_builder_index \
-        archive_builder_text \
-        archive_builder_text_parser \
-        archive \
-        archive_check \
-        archive_score_pe \
-        archive_score_se \
-        archive_search \
-        archive_search_cache \
-        archive_search_paired_parameters \
-        archive_search_parameters \
-        archive_search_pe \
-        archive_search_pe_stages \
-        archive_search_pe_stepwise \
-        archive_search_se \
-        archive_search_se_stepwise \
-        archive_select \
-        archive_select_parameters \
+SUBDIRS=builder \
+        search \
+        score
+
+MODULES=archive \
         archive_text \
         archive_text_rl \
         locator_builder \
@@ -46,20 +32,32 @@ OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))
 ###############################################################################
 # Compilation Modes
 ###############################################################################
-all: devel
+all: release
 
+release: $(SUBDIRS)
 release: $(OBJS)
 
+devel: $(SUBDIRS)
 devel: $(OBJS)
 
+profile: $(SUBDIRS)
 profile: $(OBJS)
 
+debug: $(SUBDIRS)
 debug: $(OBJS)
 
 ###############################################################################
 # Rules
 ###############################################################################
-	
-# General building rule
+
+# Building rule
 $(FOLDER_BUILD)/%.o : %.c
 	$(CC) $(GEM_FLAGS) $(PATH_INCLUDE) -c $< -o $@
+
+# Subdir rule
+export GEM_FLAGS
+export MODE
+$(SUBDIRS):
+	$(MAKE) --directory=$@ $(MODE)
+	
+.PHONY: $(SUBDIRS)

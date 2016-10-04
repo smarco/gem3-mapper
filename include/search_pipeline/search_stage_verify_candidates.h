@@ -10,9 +10,10 @@
 #define SEARCH_STAGE_VERIFY_CANDIDATES_H_
 
 #include "utils/essentials.h"
-#include "archive/archive_search.h"
-#include "archive/archive_search_cache.h"
+#include "archive/search/archive_search.h"
+#include "archive/search/archive_search_cache.h"
 #include "search_pipeline/search_stage_state.h"
+#include "search_pipeline/search_pipeline_handlers.h"
 
 /*
  * Search-group Verify Candidates
@@ -27,12 +28,7 @@ typedef struct {
   /* Support Data Structures */
   matches_t* matches;                                       // Matches
   paired_matches_t* paired_matches;                         // Paired-Matches
-  filtering_candidates_t filtering_candidates_forward_end1; // Filtering Candidates (end/1:F)
-  filtering_candidates_t filtering_candidates_reverse_end1; // Filtering Candidates (end/1:R)
-  filtering_candidates_t filtering_candidates_forward_end2; // Filtering Candidates (end/2:F)
-  filtering_candidates_t filtering_candidates_reverse_end2; // Filtering Candidates (end/2:R)
-  text_collection_t text_collection;                        // Stores text-traces
-  mm_stack_t* mm_stack;                                     // MM-Stack
+  search_pipeline_handlers_t* search_pipeline_handlers;
 } search_stage_verify_candidates_t;
 
 /*
@@ -44,18 +40,13 @@ search_stage_verify_candidates_t* search_stage_verify_candidates_new(
     const uint64_t num_buffers,
     const bool paired_end,
     const bool verify_candidates_enabled,
-    mm_stack_t* const mm_stack);
+    search_pipeline_handlers_t* const search_pipeline_handlers);
 void search_stage_verify_candidates_clear(
     search_stage_verify_candidates_t* const search_stage_vc,
     archive_search_cache_t* const archive_search_cache);
 void search_stage_verify_candidates_delete(
     search_stage_verify_candidates_t* const search_stage_vc,
     archive_search_cache_t* const archive_search_cache);
-
-/*
- * Accessors
- */
-bool search_stage_verify_candidates_is_empty(search_stage_verify_candidates_t* const search_stage_vc);
 
 /*
  * Send Searches (buffered)

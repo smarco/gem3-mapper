@@ -102,7 +102,7 @@ uint64_t sparse_array_locator_get_erank(
     const uint64_t position) {
   SPARSE_ARRAY_LOCATOR_GET_MINOR_BLOCK_LOCATION(position,block_pos,block_mod);
   const uint64_t* const block = locator->bitmap + block_pos;
-  const uint16_t* const block_counter = ((uint16_t*)block) + 3;
+  const uint16_t* const block_counter = ((const uint16_t* const)block) + 3;
   const uint64_t block_masked = *block & uint64_mask_ones[block_mod];
   SPARSE_ARRAY_LOCATOR_GET_MAYOR_BLOCK_LOCATION(position,mayor_block);
   return locator->mayor_counters[mayor_block] +
@@ -117,7 +117,7 @@ bool sparse_array_locator_get_erank_if_marked(
   const uint64_t block = *block_addr;
   // Check if marked
   if ((block & (UINT64_ONE_MASK << block_mod))) {
-    const uint16_t* const block_counter = ((uint16_t*)block_addr) + 3;
+    const uint16_t* const block_counter = ((const uint16_t* const)block_addr) + 3;
     const uint64_t block_masked = block & uint64_erank_mask(block_mod);
     SPARSE_ARRAY_LOCATOR_GET_MAYOR_BLOCK_LOCATION(position,mayor_block);
     *erank = locator->mayor_counters[mayor_block] +
@@ -135,7 +135,7 @@ bool sparse_array_locator_get_erank__marked(
   const uint64_t* const block_addr = locator->bitmap + block_pos;
   const uint64_t block = *block_addr;
   // Check if marked
-  const uint16_t* const block_counter = ((uint16_t*)block_addr) + 3;
+  const uint16_t* const block_counter = ((const uint16_t* const)block_addr) + 3;
   const uint64_t block_masked = block & uint64_erank_mask(block_mod);
   SPARSE_ARRAY_LOCATOR_GET_MAYOR_BLOCK_LOCATION(position,mayor_block);
   *erank = locator->mayor_counters[mayor_block] +
@@ -422,7 +422,7 @@ void sparse_array_locator_print(
 /*
  * Stats
  */
-sparse_array_locator_stats_t* sparse_array_locator_stats_new() {
+sparse_array_locator_stats_t* sparse_array_locator_stats_new(void) {
   // Allocate
   sparse_array_locator_stats_t* const locator_stats = mm_alloc(sparse_array_locator_stats_t);
   // Locator Stats

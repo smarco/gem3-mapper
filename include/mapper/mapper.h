@@ -17,11 +17,12 @@
 #include "io/input_fasta_parser.h"
 #include "io/output_map.h"
 #include "io/output_sam.h"
-#include "data_structures/quality_model.h"
+#include "text/sequence_qualities_model.h"
 #include "archive/archive.h"
-#include "archive/archive_search.h"
-#include "archive/archive_search_parameters.h"
-#include "archive/archive_select.h"
+#include "archive/search/archive_search.h"
+#include "archive/search/archive_search_se_parameters.h"
+#include "archive/search/archive_select.h"
+#include "archive/search/archive_search_handlers.h"
 #include "gpu/gpu_buffer_collection.h"
 #include "stats/report_stats_mstats.h"
 
@@ -147,6 +148,7 @@ typedef struct {
 	/* Per thread stats report structures */
 	mapping_stats_t* mapping_stats;
   /* Archive-Search */
+	archive_search_handlers_t* archive_search_handlers;
   archive_search_t* archive_search;
   archive_search_t* archive_search_end1;
   archive_search_t* archive_search_end2;
@@ -191,7 +193,8 @@ void mapper_pe_prepare_io_buffers(
 uint64_t mapper_pe_reload_buffers(
     mapper_parameters_t* const parameters,
     buffered_input_file_t* const buffered_fasta_input_end1,
-    buffered_input_file_t* const buffered_fasta_input_end2);
+    buffered_input_file_t* const buffered_fasta_input_end2,
+    mapper_stats_t* const mapper_stats);
 error_code_t mapper_pe_parse_paired_sequences(
     const mapper_parameters_t* const parameters,
     buffered_input_file_t* const buffered_fasta_input_end1,
