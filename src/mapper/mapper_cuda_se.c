@@ -182,7 +182,7 @@ void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_search) {
   // Process all search-groups generated
   while (search_stage_verify_candidates_retrieve_se_search(stage_verify_candidates,&archive_search)) {
     // Finish Search
-    archive_search_se_stepwise_finish_search(archive_search,stage_verify_candidates->matches,false); // Finish search
+    archive_search_se_stepwise_finish_search(archive_search,stage_verify_candidates->matches); // Finish search
     // Bisulfite: Copy back original read
     if (bisulfite_index) mapper_bisulfite_restore_sequence_se(archive_search);
     // Output Matches

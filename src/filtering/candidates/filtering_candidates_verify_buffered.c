@@ -260,7 +260,7 @@ void filtering_candidates_verify_buffered_check_global_distance(
   //      "Whole.Read=%lu\tTileWise={bound=%lu}\tDiff=%lu\n",
   //      match_distance,global_distance,ABS(match_distance-global_distance));
   //  }
-  PROF_ADD_COUNTER(GP_FC_VERIFY_CANDIDATES_BUFFERED_DDIFF,ABS(match_distance-global_distance));
+  PROF_ADD_COUNTER(GP_FC_VERIFY_CANDIDATES_BUFFERED_DDIFF,ABS((int64_t)match_distance-(int64_t)global_distance));
 }
 /*
  * Compute filtering-region alignment

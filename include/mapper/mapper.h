@@ -11,7 +11,7 @@
 
 // GEM essentials
 #include "utils/essentials.h"
-#include "system/profiler.h"
+#include "profiler/profiler.h"
 #include "io/input_file.h"
 #include "io/input_parser.h"
 #include "io/input_fasta_parser.h"

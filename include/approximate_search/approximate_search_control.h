@@ -38,5 +38,25 @@ void asearch_control_adjust_current_max_error(
     approximate_search_t* const search,
     matches_t* const matches);
 
+/*
+ * Pattern test
+ */
+bool asearch_control_test_pattern(
+    approximate_search_t* const search);
+
+/*
+ * Accuracy test
+ */
+bool asearch_control_test_accuracy__adjust_depth(
+    approximate_search_t* const search,
+    matches_t* const matches);
+
+/*
+ * Local-alignment
+ */
+bool asearch_control_test_local_alignment(
+    approximate_search_t* const search,
+    matches_t* const matches);
+
 
 #endif /* APPROXIMATE_SEARCH_CONTROL_H_ */

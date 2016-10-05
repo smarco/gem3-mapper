@@ -14,13 +14,6 @@
 #include "system/mm_stack.h"
 
 /*
- * Debug
- */
-#define MM_STACK_LOG      false
-#define MM_STACK_LOG_DEEP false
-#define MM_STACK_DEBUG
-
-/*
  * Errors
  */
 #define GEM_ERROR_MM_STACK_LARGE_MEM "Stack Allocator. Allocating large chunk of memory " \
@@ -57,7 +50,9 @@ mm_stack_t* mm_stack_new(mm_slab_t* const mm_slab) {
   // Allocate handler
   mm_stack_t* const mm_stack = mm_alloc(mm_stack_t);
   mm_stack->id = no++;
-  gem_cond_log(MM_STACK_LOG,"[GEM]> mm_stack(%"PRIu64").new()",mm_stack->id);
+#ifdef MM_STACK_LOG
+  gem_log("[GEM]> mm_stack(%"PRIu64").new()",mm_stack->id);
+#endif
   // Initialize slab
   mm_stack->mm_slab = mm_slab;
   mm_stack->state = vector_new(MM_STACK_INITIAL_STATES,mm_stack_state_t); // Initialize stack state & dimensions
@@ -122,6 +117,13 @@ void mm_stack_push_state(mm_stack_t* const mm_stack) {
   state->memory_available = current_segment->memory_available;
   state->current_segment = mm_stack->current_segment;
   state->malloc_requests = vector_get_used(mm_stack->malloc_requests);
+  // Debug
+#ifdef MM_STACK_LOG_DEEP
+  gem_log("[GEM]> mm_stack(%"PRIu64").push "
+          "at offset=%"PRIu64"/"PRIu64" (%"PRIu64" available) [%"PRIu64" mallocs]",mm_stack->id,
+          current_segment->memory-current_segment->slab_unit->memory,mm_stack->current_segment,
+          current_segment->memory_available,state->malloc_requests);
+#endif
 }
 void mm_stack_pop_state(mm_stack_t* const mm_stack) {
   // Pop state
@@ -134,10 +136,20 @@ void mm_stack_pop_state(mm_stack_t* const mm_stack) {
   current_segment->memory_available = state->memory_available; // Memory available
   mm_stack->current_segment = state->current_segment; // Last segment
   // Restore malloc requests
-  VECTOR_ITERATE_OFFSET(mm_stack->malloc_requests,malloc_request,n,state->malloc_requests,void*) {
-    mm_free(*malloc_request); // Free requested
+  void** malloc_requests = vector_get_mem(mm_stack->malloc_requests,void*);
+  const uint64_t total_malloc_requests = vector_get_used(mm_stack->malloc_requests);
+  uint64_t i;
+  for (i=state->malloc_requests;i<total_malloc_requests;++i) {
+    mm_free(malloc_requests[i]); // Free
   }
   vector_set_used(mm_stack->malloc_requests,state->malloc_requests); // Set segment available
+  // Debug
+#ifdef MM_STACK_LOG_DEEP
+  gem_log("[GEM]> mm_stack(%"PRIu64").pop "
+          "at offset=%"PRIu64"/"PRIu64" (%"PRIu64" available) [%"PRIu64" mallocs]",mm_stack->id,
+          current_segment->memory-current_segment->slab_unit->memory,mm_stack->current_segment,
+          current_segment->memory_available,state->malloc_requests);
+#endif
 }
 /*
  * Align stack memory
@@ -172,8 +184,10 @@ mm_stack_segment_t* mm_stack_add_segment(mm_stack_t* const mm_stack) {
     stack_segment = vector_get_last_elm(mm_stack->segments,mm_stack_segment_t);
     // Init segment
     mm_stack_segment_allocate(mm_stack,stack_segment);
-    gem_cond_log(MM_STACK_LOG,"[GEM]> mm_stack(%"PRIu64").addSegment(%"PRIu64" x %"PRIu64" MB)",
+#ifdef MM_STACK_LOG
+    gem_log("[GEM]> mm_stack(%"PRIu64").addSegment(%"PRIu64" x %"PRIu64" MB)",
         mm_stack->id,vector_get_used(mm_stack->segments),CONVERT_B_TO_MB(mm_stack->segment_size));
+#endif
   }
   // Clear segment
   mm_stack_segment_reset(mm_stack,stack_segment);
@@ -190,6 +204,11 @@ void* mm_stack_memory_allocate(
   void** memory;
   vector_alloc_new(mm_stack->malloc_requests,void*,memory);
   *memory = mm_malloc_(1,num_bytes,zero_mem,0);
+#ifdef MM_STACK_LOG_DEEP
+  gem_log("[GEM]> mm_stack(%"PRIu64").requested "
+          "%lu Bytes from -malloc-system- available. Pointer %p",
+          mm_stack->id,num_bytes,*memory);
+#endif
   // Return memory
   return *memory;
 }
@@ -226,9 +245,10 @@ void* mm_stack_memory_allocate(
   current_segment->memory += num_bytes;
   current_segment->memory_available -= num_bytes;
   if (gem_expect_false(zero_mem)) memset(memory,0,num_bytes); // Set zero
-  gem_cond_log(MM_STACK_LOG_DEEP,
-      "[GEM]> mm_stack(%"PRIu64").requested %lu Bytes from %lu available. Pointer %p (diff=%lu)",
+#ifdef MM_STACK_LOG_DEEP
+  gem_log("[GEM]> mm_stack(%"PRIu64").requested %lu Bytes from %lu available. Pointer %p (diff=%lu)",
       mm_stack->id,num_bytes,current_segment->memory_available+num_bytes,memory,current_segment->memory-memory);
+#endif
   // Return memory
   return memory;
 }

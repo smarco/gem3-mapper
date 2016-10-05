@@ -19,23 +19,80 @@
  *   be followed as to rule out regions (key<->text) that match on the high level
  */
 typedef enum {
-  match_alignment_region_exact,
-  match_alignment_region_approximate,
+  match_alignment_region_exact       = 0,
+  match_alignment_region_approximate = 1,
 } match_alignment_region_type;
 
 typedef struct {
   /* Alignment-region type */
-  match_alignment_region_type region_type;
-  /* Error of the alignment-region */
-  uint64_t error;
-  uint64_t cigar_buffer_offset;
-  uint64_t cigar_length;
+  uint16_t _error;
+  uint16_t _type;
+  /* CIGAR alignment-region */
+  uint32_t _cigar_buffer_offset;
+  uint32_t _cigar_length;
   /* Coordinates of the region */
-  uint64_t key_begin;
-  uint64_t key_end;
-  uint64_t text_begin;
-  uint64_t text_end;
+  uint32_t _key_begin;
+  uint32_t _key_end;
+  uint32_t _text_begin;
+  uint32_t _text_end;
 } match_alignment_region_t;
+
+/*
+ * Accessors
+ */
+void match_alignment_region_init(
+    match_alignment_region_t* const match_alignment_region,
+    const match_alignment_region_type type,
+    const uint64_t error,
+    const uint64_t cigar_buffer_offset,
+    const uint64_t cigar_length,
+    const uint64_t key_begin,
+    const uint64_t key_end,
+    const uint64_t text_begin,
+    const uint64_t text_end);
+
+match_alignment_region_type match_alignment_region_get_type(
+    const match_alignment_region_t* const match_alignment_region);
+void match_alignment_region_set_type(
+    match_alignment_region_t* const match_alignment_region,
+    const match_alignment_region_type type);
+uint64_t match_alignment_region_get_error(
+    const match_alignment_region_t* const match_alignment_region);
+void match_alignment_region_set_error(
+    match_alignment_region_t* const match_alignment_region,
+    const uint64_t error);
+
+uint64_t match_alignment_region_get_cigar_buffer_offset(
+    const match_alignment_region_t* const match_alignment_region);
+uint64_t match_alignment_region_get_cigar_length(
+    const match_alignment_region_t* const match_alignment_region);
+uint64_t match_alignment_region_get_key_begin(
+    const match_alignment_region_t* const match_alignment_region);
+uint64_t match_alignment_region_get_key_end(
+    const match_alignment_region_t* const match_alignment_region);
+uint64_t match_alignment_region_get_text_begin(
+    const match_alignment_region_t* const match_alignment_region);
+uint64_t match_alignment_region_get_text_end(
+    const match_alignment_region_t* const match_alignment_region);
+
+void match_alignment_region_set_cigar_buffer_offset(
+    match_alignment_region_t* const match_alignment_region,
+    const uint64_t cigar_buffer_offset);
+void match_alignment_region_set_cigar_length(
+    match_alignment_region_t* const match_alignment_region,
+    const uint64_t cigar_length);
+void match_alignment_region_set_key_begin(
+    match_alignment_region_t* const match_alignment_region,
+    const uint64_t key_begin);
+void match_alignment_region_set_key_end(
+    match_alignment_region_t* const match_alignment_region,
+    const uint64_t key_end);
+void match_alignment_region_set_text_begin(
+    match_alignment_region_t* const match_alignment_region,
+    const uint64_t text_begin);
+void match_alignment_region_set_text_end(
+    match_alignment_region_t* const match_alignment_region,
+    const uint64_t text_end);
 
 /*
  * Key/Text Operators

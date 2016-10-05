@@ -142,27 +142,49 @@ void match_scaffold_exact_extend(
   const uint64_t last_region = num_alignment_regions-1;
   uint64_t i, inc_coverage = 0;
   for (i=0;i<num_alignment_regions;++i) {
-    // Try to left extend
+    /*
+     * Try to left extend
+     */
     match_alignment_region_t* const match_alignment_region = match_scaffold->alignment_regions + i;
-    const int64_t left_key_max = (i==0) ? 0 : match_scaffold->alignment_regions[i-1].key_end;
-    const int64_t left_text_max = (i==0) ? 0 : match_scaffold->alignment_regions[i-1].text_end;
-    int64_t left_key = match_alignment_region->key_begin-1;
-    int64_t left_text = match_alignment_region->text_begin-1;
-    while (left_key_max<=left_key && left_text_max<=left_text) {
-      // Check match
-      const uint8_t candidate_enc = text[left_text];
-      if (!allowed_enc[candidate_enc] || candidate_enc != key[left_key]) break;
-      --left_key;
-      --left_text;
-      ++inc_coverage;
+    const uint64_t region_key_begin = match_alignment_region_get_key_begin(match_alignment_region);
+    const uint64_t region_text_begin = match_alignment_region_get_text_begin(match_alignment_region);
+    if (region_key_begin>0 && region_text_begin>0) {
+      int64_t left_key_max, left_text_max;
+      if (i==0) {
+        left_key_max = 0;
+        left_text_max = 0;
+      } else {
+        match_alignment_region_t* const prev_alignment_region = match_scaffold->alignment_regions + (i-1);
+        left_key_max = match_alignment_region_get_key_end(prev_alignment_region);
+        left_text_max = match_alignment_region_get_text_end(prev_alignment_region);
+      }
+      int64_t left_key = region_key_begin-1;
+      int64_t left_text = region_text_begin-1;
+      while (left_key_max<=left_key && left_text_max<=left_text) {
+        // Check match
+        const uint8_t candidate_enc = text[left_text];
+        if (!allowed_enc[candidate_enc] || candidate_enc != key[left_key]) break;
+        --left_key;
+        --left_text;
+        ++inc_coverage;
+      }
+      match_alignment_region_set_key_begin(match_alignment_region,left_key+1);
+      match_alignment_region_set_text_begin(match_alignment_region,left_text+1);
     }
-    match_alignment_region->key_begin = left_key+1;
-    match_alignment_region->text_begin = left_text+1;
-    // Try to right extend
-    const int64_t right_key_max = (i==last_region) ? key_length-1 : match_scaffold->alignment_regions[i+1].key_begin-1;
-    const int64_t right_text_max = (i==last_region) ? text_length-1 : match_scaffold->alignment_regions[i+1].text_begin-1;
-    int64_t right_key = match_alignment_region->key_end;
-    int64_t right_text = match_alignment_region->text_end;
+    /*
+     * Try to right extend
+     */
+    int64_t right_key_max, right_text_max;
+    if (i==last_region) {
+      right_key_max = key_length-1;
+      right_text_max = text_length-1;
+    } else {
+      match_alignment_region_t* const next_alignment_region = match_scaffold->alignment_regions + (i+1);
+      right_key_max = match_alignment_region_get_key_begin(next_alignment_region)-1;
+      right_text_max = match_alignment_region_get_text_begin(next_alignment_region)-1;
+    }
+    int64_t right_key = match_alignment_region_get_key_end(match_alignment_region);
+    int64_t right_text = match_alignment_region_get_text_end(match_alignment_region);
     while (right_key_max>=right_key && right_text_max>=right_text) {
       // Check match
       const uint8_t candidate_enc = text[right_text];
@@ -171,8 +193,8 @@ void match_scaffold_exact_extend(
       ++right_text;
       ++inc_coverage;
     }
-    match_alignment_region->key_end = right_key;
-    match_alignment_region->text_end = right_text;
+    match_alignment_region_set_key_end(match_alignment_region,right_key);
+    match_alignment_region_set_text_end(match_alignment_region,right_text);
   }
   match_scaffold->scaffolding_coverage += inc_coverage;
 }

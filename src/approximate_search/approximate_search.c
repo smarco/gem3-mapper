@@ -145,7 +145,7 @@ void approximate_search(approximate_search_t* const search,matches_t* const matc
     case mapping_neighborhood_search_partition:
       approximate_search_neighborhood_search_partition(search,matches); // NS-partition mapping
       break;
-    case mapping_hybrid_thorough:
+    case mapping_hybrid_sensitive:
       approximate_search_hybrid(search,matches);
       break;
     case mapping_hybrid_complete:

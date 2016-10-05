@@ -25,14 +25,9 @@ void match_scaffold_compose_add_approximate_match(
       match_scaffold->alignment_regions + match_scaffold->num_alignment_regions;
   ++match_scaffold->num_alignment_regions;
   // Setup matching-region
-  match_alignment_region->region_type = match_alignment_region_approximate;
-  match_alignment_region->error = score;
-  match_alignment_region->key_begin = key_begin;
-  match_alignment_region->key_end = key_end;
-  match_alignment_region->text_begin = text_begin;
-  match_alignment_region->text_end = text_end;
-  match_alignment_region->cigar_buffer_offset = cigar_offset;
-  match_alignment_region->cigar_length = cigar_length;
+  match_alignment_region_init(
+      match_alignment_region,match_alignment_region_approximate,
+      score,cigar_offset,cigar_length,key_begin,key_end,text_begin,text_end);
 }
 match_alignment_region_t* match_scaffold_compose_add_exact_match(
     match_scaffold_t* const match_scaffold,
@@ -45,16 +40,13 @@ match_alignment_region_t* match_scaffold_compose_add_exact_match(
       match_scaffold->alignment_regions + match_scaffold->num_alignment_regions;
   ++match_scaffold->num_alignment_regions;
   // Set-up alignment-region
-  match_alignment_region->region_type = match_alignment_region_exact;
-  match_alignment_region->key_begin = *key_offset;
-  match_alignment_region->text_begin = *text_offset;
-  match_alignment_region->cigar_buffer_offset = cigar_offset;
-  match_alignment_region->cigar_length = 1;
+  match_alignment_region_init(
+      match_alignment_region,match_alignment_region_exact,0,cigar_offset,1,
+      *key_offset,*key_offset+match_length,*text_offset,*text_offset+match_length);
+  // Offset
   *key_offset += match_length;
   *text_offset += match_length;
   match_scaffold->scaffolding_coverage += match_length;
-  match_alignment_region->key_end = *key_offset;
-  match_alignment_region->text_end = *text_offset;
   // Return alignment-region
   return match_alignment_region;
 }
@@ -65,11 +57,12 @@ void match_scaffold_compose_add_mismatch(
     uint64_t* const text_offset,
     const uint64_t match_length) {
   // Extend matching-region
-  last_alignment_region->region_type = match_alignment_region_approximate;
-  last_alignment_region->cigar_length += 2; // Add the mismatch + matching
+  match_alignment_region_set_type(last_alignment_region,match_alignment_region_approximate);
+  match_alignment_region_set_cigar_length(last_alignment_region,
+      match_alignment_region_get_cigar_length(last_alignment_region)+2); // Add the mismatch + matching
   *key_offset += match_length;
   *text_offset += match_length;
   match_scaffold->scaffolding_coverage += match_length;
-  last_alignment_region->key_end = *key_offset;
-  last_alignment_region->text_end = *text_offset;
+  match_alignment_region_set_key_end(last_alignment_region,*key_offset);
+  match_alignment_region_set_text_end(last_alignment_region,*text_offset);
 }

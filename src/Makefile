@@ -25,6 +25,7 @@ SUBDIRS=align \
         mapper \
         matches \
         neighborhood_search \
+        profiler \
         search_pipeline \
         stats \
         system \

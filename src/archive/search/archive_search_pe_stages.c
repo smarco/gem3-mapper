@@ -74,7 +74,7 @@ void archive_search_pe_search_end1(
   // Parameters
   matches_t* const matches_end1 = paired_matches->matches_end1;
   // Full Search (End/1)
-  archive_search_se_stepwise_finish_search(archive_search_end1,matches_end1,true);
+  archive_search_se_stepwise_finish_search(archive_search_end1,matches_end1);
   archive_search_end1->pair_searched = true;
   // Test for extension of End/1 (Shortcut to avoid mapping end/2)
   archive_search_end1->pair_extended =
@@ -108,7 +108,7 @@ void archive_search_pe_search_end2(
     archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches) {
   // Full Search (End/2)
-  archive_search_se_stepwise_finish_search(archive_search_end2,paired_matches->matches_end2,true);
+  archive_search_se_stepwise_finish_search(archive_search_end2,paired_matches->matches_end2);
   archive_search_end2->pair_searched = true;
   // Next State
   archive_search_end1->pe_search_state = archive_search_pe_state_recovery;

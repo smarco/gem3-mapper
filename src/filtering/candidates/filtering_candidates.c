@@ -305,17 +305,18 @@ void filtering_candidates_compose_filtering_region_from_positions_exact(
   const uint64_t region_length =
       candidate_position->source_region_end -
       candidate_position->source_region_begin;
-  match_alignment_region->region_type = match_alignment_region_exact;
-  match_alignment_region->error = 0;
-  match_alignment_region->cigar_length = 0;
   // Read coordinates
-  match_alignment_region->key_begin = candidate_position->source_region_begin;
-  match_alignment_region->key_end = candidate_position->source_region_end;
+  const uint64_t region_key_begin = candidate_position->source_region_begin;
+  const uint64_t region_key_end = candidate_position->source_region_end;
   // Text coordinates (relative to the effective begin position)
-  match_alignment_region->text_begin =
+  const uint64_t region_text_begin =
       candidate_position->region_text_position -
       filtering_region->text_begin_position;
-  match_alignment_region->text_end = match_alignment_region->text_begin + region_length;
+  const uint64_t region_text_end = region_text_begin + region_length;
+  // Init alignment-region
+  match_alignment_region_init(
+      match_alignment_region,match_alignment_region_exact,0,0,0,
+      region_key_begin,region_key_end,region_text_begin,region_text_end);
   match_scaffold->scaffolding_coverage += region_length;
   // PROF
   PROF_ADD_COUNTER(GP_CANDIDATE_REGION_ALIGNMENT_COVERAGE,
@@ -355,18 +356,22 @@ void filtering_candidates_compose_filtering_region_from_positions(
       const uint64_t region_length =
           candidate_position->source_region_end -
           candidate_position->source_region_begin;
-      match_alignment_region->region_type = (candidate_position->source_region_error==0) ?
+      // Alignment-region type
+      const match_alignment_region_type region_type = (candidate_position->source_region_error==0) ?
           match_alignment_region_exact : match_alignment_region_approximate;
-      match_alignment_region->error = candidate_position->source_region_error;
-      match_alignment_region->cigar_length = 0;
+      const uint64_t region_error = candidate_position->source_region_error;
       // Read coordinates
-      match_alignment_region->key_begin = candidate_position->source_region_begin;
-      match_alignment_region->key_end = candidate_position->source_region_end;
+      const uint64_t region_key_begin = candidate_position->source_region_begin;
+      const uint64_t region_key_end = candidate_position->source_region_end;
       // Text coordinates (relative to the effective begin position)
-      match_alignment_region->text_begin =
+      const uint64_t region_text_begin =
           candidate_position->region_text_position -
           filtering_region->text_begin_position;
-      match_alignment_region->text_end = match_alignment_region->text_begin + region_length;
+      const uint64_t region_text_end = region_text_begin + region_length;
+      // Init alignment-region
+      match_alignment_region_init(
+          match_alignment_region,region_type,region_error,0,0,
+          region_key_begin,region_key_end,region_text_begin,region_text_end);
       match_scaffold->scaffolding_coverage += region_length;
     }
     // PROF

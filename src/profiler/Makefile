@@ -15,15 +15,11 @@ include $(ROOT_PATH)/Makefile.mk
 ###############################################################################
 # Modules
 ###############################################################################
-MODULES=commons \
-        errors \
-        fm \
-        gruntime \
-        gthread \
-        mm \
-        mm_slab \
-        mm_stack \
-        report
+MODULES=profiler \
+        profiler_cuda \
+        profiler_gem \
+        profiler_timer \
+        profiler_vtune
 
 SRCS=$(addsuffix .c, $(MODULES))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))
@@ -46,8 +42,10 @@ debug: $(OBJS)
 ###############################################################################
 
 # Building Exceptions
-$(FOLDER_BUILD)/fm.o : fm.c
-	$(CC) $(GEM_FLAGS) $(DEF_BZLIB) $(DEF_ZLIB) $(PATH_INCLUDE) -c $< -o $@
+$(FOLDER_BUILD)/profiler_cuda.o : profiler_cuda.c
+	$(CC) $(GEM_FLAGS) $(DEF_CUDA) $(DEF_CUDA_PROFILE) $(PATH_INCLUDE) $(CUDA_PATH_INCLUDE) -c $< -o $@
+$(FOLDER_BUILD)/profiler_vtune.o : profiler_vtune.c
+	$(CC) $(GEM_FLAGS) $(PATH_INCLUDE) $(FLAGS_GEM_VTUNE) $(VTUNE_PROFILE_INCLUDE) -c $< -o $@
 
 # General building rule
 $(FOLDER_BUILD)/%.o : %.c

@@ -10,7 +10,7 @@
 #define MAPPER_PROFILE_H_
 
 #include "utils/essentials.h"
-#include "system/profiler.h"
+#include "profiler/profiler.h"
 #include "mapper/mapper_profile_counters.h"
 
 

@@ -187,8 +187,7 @@ void archive_search_se_stepwise_verify_candidates_retrieve(
  */
 void archive_search_se_stepwise_finish_search(
     archive_search_t* const archive_search,
-    matches_t* const matches,
-    const bool paired_end_search) {
+    matches_t* const matches) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE_FINISH_SEARCH,PROFILE_LEVEL);
   // DEBUG
   archive_search_se_stepwise_debug_preface(archive_search,"Finish");
@@ -196,6 +195,7 @@ void archive_search_se_stepwise_finish_search(
   approximate_search(&archive_search->approximate_search,matches);
   // Select Matches
   search_parameters_t* const search_parameters = &archive_search->search_parameters;
+  const bool paired_end_search = search_parameters->search_paired_parameters.paired_end_search;
   select_parameters_t* const select_parameters = (paired_end_search) ?
       &search_parameters->select_parameters_align:
       &search_parameters->select_parameters_report;

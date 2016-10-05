@@ -7,7 +7,7 @@
  * DESCRIPTION: CUDA profile module
  */
 
-#include "system/profiler_cuda.h"
+#include "profiler/profiler_cuda.h"
 
 /*
  * CUDA Support

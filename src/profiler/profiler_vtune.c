@@ -7,7 +7,7 @@
  * DESCRIPTION: CUDA profile module
  */
 
-#include "system/profiler_vtune.h"
+#include "profiler/profiler_vtune.h"
 
 /*
  * CUDA Support

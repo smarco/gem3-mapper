@@ -26,6 +26,7 @@
  */
 
 #include "approximate_search/approximate_search_hybrid.h"
+#include "approximate_search/approximate_search_control.h"
 #include "approximate_search/approximate_search_stages.h"
 #include "approximate_search/approximate_search_region_profile.h"
 #include "approximate_search/approximate_search_generate_candidates.h"
@@ -37,91 +38,60 @@
 /*
  * Control
  */
-void as_hybrid_control_begin(approximate_search_t* const search) {
-  gem_cond_debug_block(DEBUG_SEARCH_STATE) {
-    tab_fprintf(stderr,"[GEM]>ASM::Basic Cases\n");
-    tab_global_inc();
+asearch_stage_t as_hybrid_control_begin(approximate_search_t* const search) {
+  // Test pattern
+  if (asearch_control_test_pattern(search)) {
+    PROF_INC_COUNTER(GP_AS_FILTERING_ADATIVE_CALL);
+    return asearch_stage_filtering_adaptive;
+  } else {
+    return asearch_stage_end;
   }
-  // Parameters
-  pattern_t* const pattern = &search->pattern;
-  const uint64_t key_length = pattern->key_length;
-  const uint64_t num_wildcards = pattern->num_wildcards;
-  // All characters are wildcards
-  if (key_length==num_wildcards || key_length==0) {
-    search->search_stage = asearch_stage_end;
-    return;
-  }
-  // Otherwise, go to standard exact filtering
-  search->search_stage = asearch_stage_filtering_adaptive;
-  PROF_INC_COUNTER(GP_AS_FILTERING_ADATIVE_CALL);
-  gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
-  return;
 }
-void as_hybrid_control_filtering_adaptive_next_state(
+asearch_stage_t as_hybrid_control_filtering_adaptive_next_state(
     approximate_search_t* const search,
     matches_t* const matches) {
   PROF_ADD_COUNTER(GP_AS_FILTERING_ADATIVE_MCS,search->region_profile.num_filtered_regions);
-  // Parameters
-  search_parameters_t* const search_parameters = search->search_parameters;
-  const uint64_t mcs = search->region_profile.num_filtered_regions;
-  const uint64_t delta = search->search_parameters->complete_strata_after_best_nominal;
   // Select state
   switch (search->processing_state) {
     case asearch_processing_state_no_regions:
-      search->current_max_complete_error = delta;
-      search->search_stage = asearch_stage_neighborhood;
-      break;
+      search->current_max_complete_error = 1;
+      if (search->pattern.num_wildcards > search->current_max_complete_error) {
+        return asearch_stage_end;
+      } else {
+        return asearch_stage_neighborhood;
+      }
     case asearch_processing_state_candidates_verified:
-      // Neighborhood Search : Unmapped
-      if (!matches_is_mapped(matches)) {
-        PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL);
-        PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_UNMAPPED);
-        // Adjust max-error
-        search->current_max_complete_error = mcs + delta;
-        search->search_stage = asearch_stage_neighborhood;
-        break;
-      }
-      // Check match-class & error-reached
-      matches_classify(matches);
-      if (matches->matches_class==matches_class_tie_perfect ||
-          mcs >= search_parameters->complete_search_error_nominal+1) {
-        search->search_stage = asearch_stage_end;
-        break;
-      }
-      // Neighborhood Search : Frontier 0:1+0 & Beyond 0:0+0:0:1
-      const uint64_t min_edit_distance = matches_metrics_get_min_edit_distance(&matches->metrics);
-      if (min_edit_distance+1 >= mcs) {
+      if (!asearch_control_test_accuracy__adjust_depth(search,matches)) {
 #ifdef GEM_PROFILE
         PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL);
-        if (min_edit_distance+1 == mcs) PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_MAP_FRONTIER);
-        if (min_edit_distance >= mcs) PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_MAP_INCOMPLETE);
+        if (!matches_is_mapped(matches)) {
+          PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_UNMAPPED);
+        } else {
+          const uint64_t mcs = search->region_profile.num_filtered_regions;
+          const uint64_t min_edit_distance = matches_metrics_get_min_edit_distance(&matches->metrics);
+          if (min_edit_distance+1 == mcs) PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_MAP_FRONTIER);
+          if (min_edit_distance >= mcs) PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_MAP_INCOMPLETE);
+        }
 #endif
-        search->current_max_complete_error = MIN(search->current_max_complete_error,min_edit_distance+1);
-        search->search_stage = asearch_stage_neighborhood;
-        break;
+        return asearch_stage_neighborhood;
+      } else {
+        return asearch_stage_end;
       }
-      search->search_stage = asearch_stage_end;
-      break;
     default:
       GEM_INVALID_CASE();
       break;
   }
-  // Check neighborhood-search & number of wildcards
-  if (search->search_stage==asearch_stage_neighborhood &&
-      search->pattern.num_wildcards > search->current_max_complete_error) {
-    search->search_stage = asearch_stage_end;
-  }
+  return asearch_stage_end;
 }
-void as_hybrid_control_neighborhood_next_state(
+asearch_stage_t as_hybrid_control_neighborhood_next_state(
     approximate_search_t* const search,
     matches_t* const matches) {
   PROF_ADD_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_MCS,search->current_max_complete_stratum);
-  search_parameters_t* const search_parameters = search->search_parameters;
-  if (search_parameters->local_alignment==local_alignment_never || matches_is_mapped(matches)) {
-    search->search_stage = asearch_stage_end;
-  } else {  // local_alignment_if_unmapped
+  if (asearch_control_test_local_alignment(search,matches)) {
     PROF_INC_COUNTER(GP_AS_LOCAL_ALIGN_CALL);
-    search->search_stage = asearch_stage_local_alignment;
+    return asearch_stage_local_alignment;
+  } else {
+    return asearch_stage_end;
   }
 }
 /*
@@ -134,18 +104,18 @@ void approximate_search_hybrid(
   while (true) {
     switch (search->search_stage) {
       case asearch_stage_begin: // Search Start. Check basic cases
-        as_hybrid_control_begin(search);
+        search->search_stage = as_hybrid_control_begin(search);
         break;
       case asearch_stage_filtering_adaptive: // Exact-Filtering (Adaptive)
         approximate_search_exact_filtering_adaptive(search,matches);
-        as_hybrid_control_filtering_adaptive_next_state(search,matches); // Next State
+        search->search_stage = as_hybrid_control_filtering_adaptive_next_state(search,matches);
         break;
       case asearch_stage_filtering_adaptive_finished:
-        as_hybrid_control_filtering_adaptive_next_state(search,matches); // Next State
+        search->search_stage = as_hybrid_control_filtering_adaptive_next_state(search,matches);
         break;
       case asearch_stage_neighborhood:
         approximate_search_neighborhood(search,matches);
-        as_hybrid_control_neighborhood_next_state(search,matches); // Next State
+        search->search_stage = as_hybrid_control_neighborhood_next_state(search,matches);
         break;
       case asearch_stage_local_alignment: // Local alignments
         approximate_search_align_local(search,matches);

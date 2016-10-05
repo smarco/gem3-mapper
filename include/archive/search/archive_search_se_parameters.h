@@ -42,7 +42,7 @@ typedef enum {
   mapping_adaptive_filtering_complete,     // Adaptive filtering guaranteeing complete search (forcing min regions)
   mapping_neighborhood_search_brute_force, // Neighborhood Search using brute-force
   mapping_neighborhood_search_partition,   // Neighborhood Search using partitions & bidirectional search
-  mapping_hybrid_thorough,                 // Hybrid search stopping until high-quality mapping(s) reached
+  mapping_hybrid_sensitive,                // Hybrid search stopping until high-quality mapping(s) reached
   mapping_hybrid_complete,                 // Hybrid Complete search (filtering & NS-search)
 } mapping_mode_t;
 typedef enum {

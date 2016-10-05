@@ -25,7 +25,8 @@ void nsearch_levenshtein_state_init(
   dp_matrix->columns = columns;
   uint64_t i;
   for (i=0;i<num_columns;++i) {
-    dp_matrix->columns[i].cells = mm_stack_calloc(mm_stack,num_rows,uint64_t,false);
+    // Allocate columns' cells (+1 due to the banded sentinels containing inf)
+    dp_matrix->columns[i].cells = mm_stack_calloc(mm_stack,num_rows+1,uint64_t,false);
   }
 }
 /*

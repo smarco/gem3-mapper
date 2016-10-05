@@ -198,8 +198,10 @@ void filtering_region_print_region_text(
     match_scaffold_t* const match_scaffold = &region->match_scaffold;
     for (s=0;s<match_scaffold->num_alignment_regions;++s) {
       match_alignment_region_t* const match_alignment_region = match_scaffold->alignment_regions + s;
-      const uint64_t max_text_scope = MIN(max_printed_length,match_alignment_region->text_end);
-      for (p=match_alignment_region->text_begin;p<max_text_scope;++p) display_text[p] = dna_decode(text[p]);
+      const uint64_t region_text_end = match_alignment_region_get_text_end(match_alignment_region);
+      const uint64_t region_text_begin = match_alignment_region_get_text_begin(match_alignment_region);
+      const uint64_t max_text_scope = MIN(max_printed_length,region_text_end);
+      for (p=region_text_begin;p<max_text_scope;++p) display_text[p] = dna_decode(text[p]);
     }
     // Display
     tab_fprintf(stream,"  => Text %.*s\n",max_printed_length,display_text);

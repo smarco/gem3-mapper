@@ -6,7 +6,7 @@
  * DESCRIPTION: GEM profile functions
  */
 
-#include "system/profiler_gem.h"
+#include "profiler/profiler_gem.h"
 #include "system/gthread.h"
 
 #ifdef GEM_PROFILE

@@ -29,7 +29,7 @@
 #define GPU_BUFFER_COLLECTION_H_
 
 #include "utils/essentials.h"
-#include "system/profiler_timer.h"
+#include "profiler/profiler_timer.h"
 #include "gpu/gpu_config.h"
 #include "archive/archive.h"
 

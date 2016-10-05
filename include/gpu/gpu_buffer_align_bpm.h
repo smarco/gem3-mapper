@@ -30,7 +30,7 @@
 #define GPU_BUFFER_ALIGN_BPM_H_
 
 #include "utils/essentials.h"
-#include "system/profiler_timer.h"
+#include "profiler/profiler_timer.h"
 #include "text/pattern.h"
 #include "gpu/gpu_buffer_collection.h"
 

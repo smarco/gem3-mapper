@@ -56,17 +56,26 @@ void match_scaffold_rl_translate_regions(
   for (i=0;i<num_alignment_regions;++i) {
     match_alignment_region_t* const match_alignment_region = match_scaffold->alignment_regions + i;
     // Translate into Text-Space
-    match_alignment_region->region_type = match_alignment_region_approximate;
+    match_alignment_region_set_type(match_alignment_region,match_alignment_region_approximate);
     // Translate CIGAR
     match_alignment_region_rl_translate(match_alignment_region,align_input,
         align_parameters->left_gap_alignment,matches->cigar_vector);
+    // Region boundaries
+    const uint64_t region_key_begin = match_alignment_region_get_key_begin(match_alignment_region);
+    const uint64_t region_key_end = match_alignment_region_get_key_end(match_alignment_region);
+    const uint64_t region_text_begin = match_alignment_region_get_text_begin(match_alignment_region);
+    const uint64_t region_text_end = match_alignment_region_get_text_end(match_alignment_region);
     // Translate offsets
     uint32_t* const rl_key_runs_acc = align_input->rl_key_runs_acc;
-    match_alignment_region->key_begin = archive_text_rl_get_decoded_offset_exl(rl_key_runs_acc,match_alignment_region->key_begin);
-    match_alignment_region->key_end = archive_text_rl_get_decoded_offset_exl(rl_key_runs_acc,match_alignment_region->key_end);
+    match_alignment_region_set_key_begin(match_alignment_region,
+        archive_text_rl_get_decoded_offset_exl(rl_key_runs_acc,region_key_begin));
+    match_alignment_region_set_key_end(match_alignment_region,
+        archive_text_rl_get_decoded_offset_exl(rl_key_runs_acc,region_key_end));
     uint32_t* const rl_text_runs_acc = align_input->rl_text_runs_acc;
-    match_alignment_region->text_begin = archive_text_rl_get_decoded_offset_exl(rl_text_runs_acc,match_alignment_region->text_begin);
-    match_alignment_region->text_end = archive_text_rl_get_decoded_offset_exl(rl_text_runs_acc,match_alignment_region->text_end);
+    match_alignment_region_set_text_begin(match_alignment_region,
+        archive_text_rl_get_decoded_offset_exl(rl_text_runs_acc,region_text_begin));
+    match_alignment_region_set_text_end(match_alignment_region,
+        archive_text_rl_get_decoded_offset_exl(rl_text_runs_acc,region_text_end));
   }
 }
 /*

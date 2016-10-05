@@ -12,7 +12,7 @@
 #include "archive/search/archive_search_se.h"
 #include "archive/search/archive_search_pe.h"
 #include "stats/report_stats.h"
-#include "system/profiler.h"
+#include "profiler/profiler.h"
 
 /*
  * Debug/Profile

@@ -6,5 +6,5 @@
  * DESCRIPTION: Simple time/functional profiler module
  */
 
-#include "system/profiler.h"
+#include "profiler/profiler.h"
 

@@ -50,7 +50,63 @@ void asearch_control_adjust_current_max_error(
     }
   }
 }
-
+/*
+ * Pattern test
+ */
+bool asearch_control_test_pattern(
+    approximate_search_t* const search) {
+  // Parameters
+  pattern_t* const pattern = &search->pattern;
+  const uint64_t key_length = pattern->key_length;
+  const uint64_t num_wildcards = pattern->num_wildcards;
+  // All characters are wildcards
+  return (key_length!=num_wildcards && key_length!=0);
+}
+/*
+ * Accuracy test
+ */
+bool asearch_control_test_accuracy__adjust_depth(
+    approximate_search_t* const search,
+    matches_t* const matches) {
+  // Parameters
+  search_parameters_t* const search_parameters = search->search_parameters;
+  const uint64_t mcs = search->region_profile.num_filtered_regions;
+  const uint64_t delta = 1;
+  // Test pattern
+  if (search->pattern.num_wildcards > search->current_max_complete_error) return true; // Done!
+  // Unmapped (not enough search depth)
+  if (!matches_is_mapped(matches)) {
+    search->current_max_complete_error = mcs + delta;  // Adjust max-error
+    if (search->pattern.num_wildcards > search->current_max_complete_error) return true; // Done!
+    return false;
+  }
+  // Ties (unsolvable)
+  matches_classify(matches);
+  if (matches->matches_class==matches_class_tie_perfect ||
+      mcs >= search_parameters->complete_search_error_nominal+1) {
+    return true; // Done!
+  }
+  // Frontier-case 0:1+0 & Beyond-case 0:0+0:0:1
+  const uint64_t min_edit_distance = matches_metrics_get_min_edit_distance(&matches->metrics);
+  if (min_edit_distance+1 >= mcs) {
+    search->current_max_complete_error = MIN(search->current_max_complete_error,min_edit_distance+1);
+    if (search->pattern.num_wildcards > search->current_max_complete_error) return true; // Done!
+    return false;
+  } else {
+    return true; // Done!
+  }
+}
+/*
+ * Local-alignment
+ */
+bool asearch_control_test_local_alignment(
+    approximate_search_t* const search,
+    matches_t* const matches) {
+  // Parameters
+  search_parameters_t* const search_parameters = search->search_parameters;
+  // Local alignment test
+  return (search_parameters->local_alignment!=local_alignment_never && !matches_is_mapped(matches));
+}
 
 
 ///*

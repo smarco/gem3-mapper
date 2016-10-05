@@ -214,7 +214,7 @@ option_t gem_mapper_options[] = {
   { 300, "gem-quality-threshold", REQUIRED, TYPE_INT, 3, VISIBILITY_ADVANCED, "<number>", "(default=26, that is e<=2e-3)" },
   { 301, "mismatch-alphabet", REQUIRED, TYPE_STRING, 4, VISIBILITY_ADVANCED, "<symbols>" , "(default='ACGT')" },
   /* Single-end Alignment */
-  { 400, "mapping-mode", REQUIRED, TYPE_STRING, 4, VISIBILITY_USER, "'fast'|'thorough'|'complete'" , "(default=fast)" },
+  { 400, "mapping-mode", REQUIRED, TYPE_STRING, 4, VISIBILITY_USER, "'fast'|'sensitive'|'customed'" , "(default=fast)" },
   { 'E', "complete-search-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=0.04, 4%)" },
   { 's', "complete-strata-after-best", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=1)" },
   { 'e', "alignment-max-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=0.10, 10%)" },
@@ -268,8 +268,9 @@ option_t gem_mapper_options[] = {
   { 1101, "tmp-folder", REQUIRED, TYPE_STRING, 11, VISIBILITY_DEVELOPER, "<temporal_dir_path>" , "(default=/tmp/)" },
   /* CUDA Settings */
 #ifdef HAVE_CUDA
-  { 1200, "cuda", OPTIONAL, TYPE_STRING, 12, VISIBILITY_USER, "", "(default=disabled)"},
-  { 1201, "cuda-buffers-model", REQUIRED, TYPE_STRING, 12, VISIBILITY_DEVELOPER, "<#BufferSearch,#BufferDecode,#BufferVerify,BufferSize>" , "(default=2,3,3,1M)" },
+  { 1200, "gpu", OPTIONAL, TYPE_STRING, 12, VISIBILITY_USER, "", "(default=disabled)"},
+  { 1201, "cuda", OPTIONAL, TYPE_STRING, 12, VISIBILITY_DEVELOPER, "", "(gpu alias)"},
+  { 1202, "gpu-buffers-model", REQUIRED, TYPE_STRING, 12, VISIBILITY_DEVELOPER, "<#BufferSearch,#BufferDecode,#BufferVerify,BufferSize>" , "(default=2,3,3,1M)" },
 #endif /* HAVE_CUDA */
   /* Presets/Hints */
   /* Debug */
@@ -455,7 +456,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       break;
     }
     /* Single-end Alignment */
-    case 400: // --mapping-mode in {'fast'|'thorough'|'complete'} (default=fast)
+    case 400: // --mapping-mode in {'fast'|'sensitive'|'customed'} (default=fast)
       // Filtering Modes
       if (gem_strcaseeq(optarg,"fast")) {
         search->mapping_mode = mapping_adaptive_filtering_fast;
@@ -467,12 +468,12 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       } else if (gem_strcaseeq(optarg,"complete-partition")) {
         search->mapping_mode = mapping_neighborhood_search_partition;
       // Hybrid Modes
-      } else if (gem_strcaseeq(optarg,"thorough")) {
-        search->mapping_mode = mapping_hybrid_thorough;
-      } else if (gem_strcaseeq(optarg,"complete") || gem_strcaseeq(optarg,"complete-hybrid")) {
+      } else if (gem_strcaseeq(optarg,"sensitive")) {
+        search->mapping_mode = mapping_hybrid_sensitive;
+      } else if (gem_strcaseeq(optarg,"customed") || gem_strcaseeq(optarg,"complete-hybrid")) {
         search->mapping_mode = mapping_hybrid_complete;
       } else {
-        gem_mapper_error_msg("Option '--mapping-mode' must be 'fast'|'thorough'|'complete'");
+        gem_mapper_error_msg("Option '--mapping-mode' must be 'fast'|'sensitive'|'customed'");
       }
       break;
     case 'E': // --complete-search-error (default=0.04, 4%)
@@ -824,15 +825,16 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 1101: // --tmp-folder
       parameters->system.tmp_folder = optarg;
       break;
-    /* CUDA Settings */
-    case 1200: // --cuda
+    /* GPU Settings */
+    case 1200: // --gpu
+    case 1201: // --cuda (alias)
       if (!gpu_supported()) GEM_CUDA_NOT_SUPPORTED();
       parameters->cuda.cuda_enabled = true;
       if (optarg && gem_strcaseeq(optarg,"emulated")) {
         parameters->cuda.cpu_emulation = true;
       }
       break;
-    case 1201: { // --cuda-buffers-model=2,3,3,1M
+    case 1202: { // --gpu-buffers-model=2,3,3,1M
       if (!gpu_supported()) GEM_CUDA_NOT_SUPPORTED();
       char *num_fmi_bsearch_buffers=NULL, *num_fmi_decode_buffers=NULL, *num_bpm_buffers=NULL, *buffer_size=NULL;
       const int num_arguments = input_text_parse_csv_arguments(optarg,4,
@@ -980,6 +982,12 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     search->mapq_model_se = mapq_model_gem;
   } else {
     parameters->mapper_type = mapper_se;
+  }
+  if (parameters->cuda.cuda_enabled) {
+    if (search->mapping_mode != mapping_adaptive_filtering_fast &&
+        search->mapping_mode != mapping_hybrid_sensitive) {
+      gem_mapper_error_msg("Option '--gpu' can only operate with '--mapping-mode' in {'fast'|'sensitive'}");
+    }
   }
   /* Qualities */
   gem_mapper_cond_error_msg(search->quality_threshold > 94,

@@ -11,7 +11,7 @@
 #include "archive/search/archive_search.h"
 #include "gpu/gpu_buffer_collection.h"
 #include "stats/report_stats.h"
-#include "system/profiler.h"
+#include "profiler/profiler.h"
 
 /*
  * Error report

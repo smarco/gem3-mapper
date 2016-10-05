@@ -21,6 +21,12 @@
 #include "system/mm_slab.h"
 #include "utils/vector.h"
 
+/*
+ * Debug
+ */
+#define MM_STACK_DEBUG
+//#define MM_STACK_LOG
+//#define MM_STACK_LOG_DEEP
 
 /*
  *  MM-Stack State
@@ -57,7 +63,7 @@ typedef struct {
   uint64_t current_segment;    // Last segment being used
   vector_t* segments;          // Memory segments (mm_stack_segment_t)
   /* Malloc requests */
-  vector_t* malloc_requests;   // malloc() requests (Non stacked)
+  vector_t* malloc_requests;   // (void*) malloc() requests (Non stacked)
   /* Slab allocator */
   mm_slab_t* mm_slab;          // Memory allocator
 } mm_stack_t;
@@ -89,24 +95,23 @@ void* mm_stack_memory_allocate(
     uint64_t num_bytes,
     const bool zero_mem);
 
-/*
+#ifdef MM_STACK_LOG_DEEP
 #define mm_stack_alloc(mm_stack,type) \
   ((type*)mm_stack_memory_allocate(mm_stack,sizeof(type),false))
 #define mm_stack_malloc(mm_stack,num_bytes) \
-  (fprintf(stderr,">MM-Alloc %lu from %s\n",(uint64_t)(num_bytes),__func__), \
+  (fprintf(stderr,"[GEM]> mm_stack(%"PRIu64") %lu from %s\n",mm_stack->id,(uint64_t)(num_bytes),__func__), \
   (       mm_stack_memory_allocate(mm_stack,(num_bytes),false)))
 #define mm_stack_calloc(mm_stack,num_elements,type,clear_mem) \
-  (fprintf(stderr,">MM-Alloc %lu from %s\n",(uint64_t)((num_elements)*sizeof(type)),__func__), \
+  (fprintf(stderr,"[GEM]> mm_stack(%"PRIu64") %lu from %s\n",mm_stack->id,(uint64_t)((num_elements)*sizeof(type)),__func__), \
   ((type*)mm_stack_memory_allocate(mm_stack,(num_elements)*sizeof(type),clear_mem)))
-*/
-
+#else
 #define mm_stack_alloc(mm_stack,type) \
   ((type*)mm_stack_memory_allocate(mm_stack,sizeof(type),false))
 #define mm_stack_malloc(mm_stack,num_bytes) \
   (       mm_stack_memory_allocate(mm_stack,(num_bytes),false))
 #define mm_stack_calloc(mm_stack,num_elements,type,clear_mem) \
   ((type*)mm_stack_memory_allocate(mm_stack,(num_elements)*sizeof(type),clear_mem))
-
+#endif
 
 #define mm_stack_malloc_uint64(mm_stack) mm_stack_malloc(mm_stack,sizeof(uint64_t))
 #define mm_stack_malloc_uint32(mm_stack) mm_stack_malloc(mm_stack,sizeof(uint32_t))

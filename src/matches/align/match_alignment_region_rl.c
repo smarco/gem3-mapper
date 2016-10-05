@@ -64,8 +64,12 @@ void match_alignment_region_rl_translate(
     match_align_input_t* const align_input,
     const bool left_gap_alignment,
     vector_t* const cigar_vector) {
+  // Parameters
+  const uint64_t region_key_begin = match_alignment_region_get_key_begin(match_alignment_region);
+  const uint64_t region_key_end = match_alignment_region_get_key_end(match_alignment_region);
+  const uint64_t region_text_begin = match_alignment_region_get_text_begin(match_alignment_region);
   // Allocate Translated CIGAR
-  const uint64_t rl_match_length = match_alignment_region->key_end-match_alignment_region->key_begin;
+  const uint64_t rl_match_length = region_key_end-region_key_begin;
   const uint64_t cigar_offset = vector_get_used(cigar_vector);
   vector_reserve_additional(cigar_vector,2*rl_match_length);
   cigar_element_t* cigar_buffer = vector_get_free_elm(cigar_vector,cigar_element_t); // Sentinel
@@ -74,12 +78,12 @@ void match_alignment_region_rl_translate(
   // Translate all match-CIGAR element
   match_alignment_region_rl_translate_cigar(
       &cigar_buffer,rl_match_length,align_input->rl_key_runs_acc,align_input->rl_text_runs_acc,
-      match_alignment_region->key_begin,match_alignment_region->text_begin,left_gap_alignment);
+      region_key_begin,region_text_begin,left_gap_alignment);
   // Set CIGAR buffer used
   if (cigar_buffer->type!=cigar_null) ++(cigar_buffer);
   const uint64_t num_cigar_elements = cigar_buffer - cigar_buffer_base;
   vector_add_used(cigar_vector,num_cigar_elements);
   // Setup translated CIGAR
-  match_alignment_region->cigar_length = num_cigar_elements;
-  match_alignment_region->cigar_buffer_offset = cigar_offset;
+  match_alignment_region_set_cigar_length(match_alignment_region,num_cigar_elements);
+  match_alignment_region_set_cigar_buffer_offset(match_alignment_region,cigar_offset);
 }

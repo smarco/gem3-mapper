@@ -10,7 +10,7 @@
 #include "system/errors.h"
 #include "system/mm.h"
 #include "system/gthread.h"
-#include "system/profiler_gem.h"
+#include "profiler/profiler_gem.h"
 
 /*
  * GEM Runtime

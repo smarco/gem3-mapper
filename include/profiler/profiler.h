@@ -10,9 +10,9 @@
 #define PROFILER_H_
 
 #include "system/commons.h"
-#include "system/profiler_gem.h"
-#include "system/profiler_cuda.h"
-#include "system/profiler_vtune.h"
+#include "profiler/profiler_gem.h"
+#include "profiler/profiler_cuda.h"
+#include "profiler/profiler_vtune.h"
 
 #ifdef GEM_PROFILE /* GEM_PROFILE ENABLED */
 

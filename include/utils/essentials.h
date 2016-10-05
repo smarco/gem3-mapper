@@ -27,7 +27,7 @@
 #include "system/mm_stack.h"
 
 // Basic Profiling
-#include "system/profiler.h"
+#include "profiler/profiler.h"
 
 // Basic Runtime
 #include "system/gruntime.h"

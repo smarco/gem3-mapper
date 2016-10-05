@@ -73,11 +73,13 @@ void filtering_candidates_align_local_exclude_tiles(
       // Skip resolved tiles
       if (alignment_tiles[tile_pos].distance!=ALIGN_DISTANCE_INF) continue;
       // Find nearest alignment-region
-      while (match_alignment_region!=NULL && match_alignment_region->key_end <= tile_key_begin) {
+      while (match_alignment_region!=NULL &&
+             match_alignment_region_get_key_end(match_alignment_region) <= tile_key_begin) {
         match_alignment_region = (++region_pos < num_alignment_regions) ? match_alignment_region+1 : NULL;
       }
       // Check overlapping
-      if (match_alignment_region==NULL || tile_key_end <= match_alignment_region->key_begin) {
+      if (match_alignment_region==NULL ||
+          tile_key_end <= match_alignment_region_get_key_begin(match_alignment_region)) {
         alignment_tiles[tile_pos].distance = ALIGN_DISABLED;
       }
       // Next

@@ -21,7 +21,7 @@ typedef enum {
 
 #include "system/commons.h"
 #include "system/mm.h"
-#include "system/profiler_timer.h"
+#include "profiler/profiler_timer.h"
 #include "stats/stats_counter.h"
 
 /*
