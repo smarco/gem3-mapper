@@ -70,31 +70,45 @@ bool asearch_control_test_accuracy__adjust_depth(
     matches_t* const matches) {
   // Parameters
   search_parameters_t* const search_parameters = search->search_parameters;
-  const uint64_t mcs = search->region_profile.num_filtered_regions;
-  const uint64_t delta = 1;
+  const uint64_t mcs = search->region_profile.num_filtered_regions; // (max_error_reached = mcs-1)
+  const uint64_t delta = search_parameters->complete_strata_after_best_nominal;
   // Test pattern
   if (search->pattern.num_wildcards > search->current_max_complete_error) return true; // Done!
-  // Unmapped (not enough search depth)
-  if (!matches_is_mapped(matches)) {
-    search->current_max_complete_error = mcs + delta;  // Adjust max-error
-    if (search->pattern.num_wildcards > search->current_max_complete_error) return true; // Done!
-    return false;
-  }
-  // Ties (unsolvable)
-  matches_classify(matches);
-  if (matches->matches_class==matches_class_tie_perfect ||
-      mcs >= search_parameters->complete_search_error_nominal+1) {
-    return true; // Done!
-  }
-  // Frontier-case 0:1+0 & Beyond-case 0:0+0:0:1
+  // Classify
   const uint64_t min_edit_distance = matches_metrics_get_min_edit_distance(&matches->metrics);
-  if (min_edit_distance+1 >= mcs) {
-    search->current_max_complete_error = MIN(search->current_max_complete_error,min_edit_distance+1);
-    if (search->pattern.num_wildcards > search->current_max_complete_error) return true; // Done!
-    return false;
-  } else {
-    return true; // Done!
+  matches_classify(matches);
+  switch (matches->matches_class) {
+    case matches_class_unmapped: // Unmapped (not enough search depth)
+      search->current_max_complete_error = mcs + delta; // Adjust max-error
+      break;// Not done
+    case matches_class_tie_perfect:
+    case matches_class_tie:
+      if (min_edit_distance <= mcs+1) { // (0:2+0:0) && (0+0:2:0) but not (0+0:0:2)
+        if (!search_parameters->search_paired_parameters.paired_end_search) return true; // Done!
+      }
+      search->current_max_complete_error = mcs + delta; // Adjust max-error
+      break; // Not done
+    case matches_class_mmap_d1:
+      if (min_edit_distance+1 <= mcs) { // (0:1+1:0)
+        if (!search_parameters->search_paired_parameters.paired_end_search) return true; // Done!
+      }
+      // no break
+    case matches_class_mmap:
+    case matches_class_unique:
+      // Frontier-case 0:1+0 & Beyond-case 0:0+0:0:1
+      if (min_edit_distance+1 < mcs) {
+        return true; // Done!
+      }
+      // Adjust max-error
+      search->current_max_complete_error = MIN(search->current_max_complete_error,min_edit_distance+1);
+      break; // Not done
+    default:
+      GEM_INVALID_CASE();
+      break;
   }
+  // Check error-scheduled
+  if (search->pattern.num_wildcards > search->current_max_complete_error) return true; // Done!
+  return false;
 }
 /*
  * Local-alignment
