@@ -29,9 +29,11 @@ void nsearch_levenshtein_brute_force(
  */
 void nsearch_levenshtein(
     approximate_search_t* const search,
+    const bool dynamic_filtering,
     matches_t* const matches);
 void nsearch_levenshtein_preconditioned(
     approximate_search_t* const search,
+    const bool dynamic_filtering,
     matches_t* const matches);
 
 /*

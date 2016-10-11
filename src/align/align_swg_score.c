@@ -123,6 +123,9 @@ int32_t align_swg_score_cigar_excluding_clipping(
   // Return score
   return score;
 }
+/*
+ * Bounding scores
+ */
 int32_t align_swg_score_compute_min_score_bound(
     const swg_penalties_t* const swg_penalties,
     const uint64_t edit_distance,
@@ -141,4 +144,28 @@ int32_t align_swg_score_compute_max_score_bound(
   const int32_t all_misms = align_swg_score_mismatch(swg_penalties)*edit_distance;
   return base_score + MAX(single_indel,all_misms);
 }
-
+/*
+ * Bounding edit distance
+ */
+int32_t align_swg_score_compute_min_edit_bound(
+    const swg_penalties_t* const swg_penalties,
+    const uint64_t swg_score,
+    const uint64_t key_length) {
+  // Parameters
+  const int32_t gap_open_score = swg_penalties->gap_open_score;
+  const int32_t gap_extension_score = swg_penalties->gap_extension_score;
+  const int32_t generic_mismatch_score = swg_penalties->generic_mismatch_score;
+  // Compute base score
+  const int32_t base_score = align_swg_score_match(swg_penalties,key_length);
+  const int32_t diff_score = base_score - swg_score;
+  // Compute min-edit bound
+  const int32_t multiple_mismatches = diff_score/generic_mismatch_score;
+  int32_t single_indel_length;
+  if (diff_score < gap_open_score+gap_extension_score) {
+    single_indel_length = key_length;
+  } else {
+    single_indel_length = (diff_score-gap_open_score)/gap_extension_score;
+  }
+  // Return min
+  return MIN(multiple_mismatches,single_indel_length);
+}

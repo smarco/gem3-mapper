@@ -66,7 +66,9 @@ typedef struct {
   // Search Parameters
   search_parameters_t* search_parameters;       // Search Parameters
   nsearch_model_t nsearch_model;                // Search error model
-  uint64_t max_error;
+  uint64_t max_error;                           // Max-error search allowed
+  uint64_t current_mcs;                         // Current mcs reached
+  bool dynamic_filtering;                       // Dynamic filtering (per branch closed)
   // Scheduler Operations
   nsearch_operation_t* pending_searches;        // Pending search operations
   uint64_t num_pending_searches;                // Total pending operations
@@ -82,6 +84,7 @@ void nsearch_schedule_init(
     nsearch_schedule_t* const nsearch_schedule,
     const nsearch_model_t nsearch_model,
     const uint64_t max_complete_error,
+    const bool dynamic_filtering,
     archive_t* const archive,
     pattern_t* const pattern,
     region_profile_t* const region_profile,
@@ -97,6 +100,12 @@ void nsearch_schedule_inject_mm(
  */
 void nsearch_schedule_search(nsearch_schedule_t* const nsearch_schedule);
 void nsearch_schedule_search_preconditioned(nsearch_schedule_t* const nsearch_schedule);
+
+/*
+ * Utils
+ */
+uint64_t nsearch_schedule_compute_min_error(
+    nsearch_schedule_t* const nsearch_schedule);
 
 /*
  * Display

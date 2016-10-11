@@ -236,16 +236,16 @@ void mapper_profile_print_neighborhood_search(FILE* const stream) {
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_NODES_SUCCESS),PROF_GET_COUNTER(GP_NS_NODES),"nodes",true);
   tab_fprintf(stream,"    --> NS.Nodes.Fail                              ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_NODES_FAIL),PROF_GET_COUNTER(GP_NS_NODES),"nodes",true);
-  tab_fprintf(stream,"  --> NS.Nodes.Prevented                           ");
+  tab_fprintf(stream,"    --> NS.Nodes.Prevented.MaxError                ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_NODES_DP_PREVENT),NULL,"nodes",true);
   tab_fprintf(stream,"  --> NS.Depth                                     ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_SEARCH_DEPTH),NULL,"     ",true);
   tab_fprintf(stream,"  --> NS.Cells.Computed                            ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_DP_CELLS_COMPUTED),NULL,"     ",true);
-  tab_fprintf(stream,"  --> NS.Branch.Candidates                         ");
+  tab_fprintf(stream,"  --> NS.Candidates.Branchwise                     ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_BRANCH_CANDIDATES_GENERATED),
                        PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"     ",true);
-  tab_fprintf(stream,"  --> NS.Search.Candidates                         ");
+  tab_fprintf(stream,"  --> NS.Candidates.TotalSearch                    ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_SEARCH_CANDIDATES_GENERATED),
                        PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"     ",true);
 }

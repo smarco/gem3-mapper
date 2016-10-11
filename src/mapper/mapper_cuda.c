@@ -8,6 +8,7 @@
 #include "mapper/mapper_cuda.h"
 #include "mapper/mapper_cuda_se.h"
 #include "mapper/mapper_cuda_pe.h"
+#include "mapper/mapper_io.h"
 #include "archive/search/archive_search.h"
 #include "gpu/gpu_buffer_collection.h"
 #include "stats/report_stats.h"

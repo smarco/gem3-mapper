@@ -76,6 +76,9 @@ int32_t align_swg_score_cigar_excluding_clipping(
     const uint64_t cigar_offset,
     const uint64_t cigar_length);
 
+/*
+ * Bounding scores
+ */
 int32_t align_swg_score_compute_min_score_bound(
     const swg_penalties_t* const swg_penalties,
     const uint64_t edit_distance,
@@ -83,6 +86,14 @@ int32_t align_swg_score_compute_min_score_bound(
 int32_t align_swg_score_compute_max_score_bound(
     const swg_penalties_t* const swg_penalties,
     const uint64_t edit_distance,
+    const uint64_t key_length);
+
+/*
+ * Bounding edit distance
+ */
+int32_t align_swg_score_compute_min_edit_bound(
+    const swg_penalties_t* const swg_penalties,
+    const uint64_t swg_score,
     const uint64_t key_length);
 
 #endif /* ALIGN_SWG_SCORE_H_ */

@@ -18,6 +18,8 @@ include $(ROOT_PATH)/Makefile.mk
 MODULES=dp_matrix \
         nsearch_hamming \
         nsearch_levenshtein \
+        nsearch_levenshtein_control \
+        nsearch_levenshtein_query \
         nsearch_levenshtein_scheduled \
         nsearch_levenshtein_state \
         nsearch_partition \

@@ -20,6 +20,7 @@ void nsearch_schedule_init(
     nsearch_schedule_t* const nsearch_schedule,
     const nsearch_model_t nsearch_model,
     const uint64_t max_complete_error,
+    const bool dynamic_filtering,
     archive_t* const archive,
     pattern_t* const pattern,
     region_profile_t* const region_profile,
@@ -37,6 +38,8 @@ void nsearch_schedule_init(
   nsearch_schedule->search_parameters = search_parameters;
   nsearch_schedule->nsearch_model = nsearch_model;
   nsearch_schedule->max_error = max_complete_error;
+  nsearch_schedule->current_mcs = 0;
+  nsearch_schedule->dynamic_filtering = dynamic_filtering;
   // Search Operations
   const uint64_t key_length = nsearch_schedule->pattern->key_length;
   const uint64_t max_error = nsearch_schedule->max_error;
@@ -116,6 +119,8 @@ void nsearch_schedule_search_step(
         chunk_offset,chunk_length,chunk_offset,chunk_length,
         chunk_min_error,chunk_min_error,chunk_max_error);
     if (!feasible_search) return; // Impossible search
+    // Compute current mcs
+    nsearch_schedule->current_mcs = nsearch_schedule_compute_min_error(nsearch_schedule);
     // Select nsearch-alignment model & Perform the search (Solve pending extensions)
     switch (nsearch_schedule->nsearch_model) {
       case nsearch_model_hamming: {
@@ -130,6 +135,8 @@ void nsearch_schedule_search_step(
         GEM_INVALID_CASE();
         break;
     }
+    // Increment mcs (if full search-operation performed)
+    ++(nsearch_schedule->current_mcs);
   } else {
     const uint64_t num_pending_searches = nsearch_schedule->num_pending_searches;
     // Compute error partition
@@ -257,6 +264,18 @@ void nsearch_schedule_search_preconditioned(nsearch_schedule_t* const nsearch_sc
   PROF_STOP(GP_NS_GENERATION);
 }
 /*
+ * Utils
+ */
+uint64_t nsearch_schedule_compute_min_error(
+    nsearch_schedule_t* const nsearch_schedule) {
+  uint64_t i, total_min_error = 0;
+  for (i=0;i<nsearch_schedule->num_pending_searches;++i) {
+    nsearch_operation_t* const pending_search = nsearch_schedule->pending_searches + i;
+    total_min_error += pending_search->min_local_error;
+  }
+  return total_min_error;
+}
+/*
  * Display
  */
 void nsearch_schedule_print(
@@ -339,14 +358,14 @@ void nsearch_schedule_print_pretty(
       mm_stack_calloc(mm_stack,num_pending_searches,nsearch_schedule_print_data_t,true);
   // Set proper amplification factor
   const uint64_t key_length = nsearch_schedule->pattern->key_length;
-  uint64_t amplification = 1;
+  uint64_t amplification = 1, i;
   if (key_length < 100) {
     amplification = 100 / key_length;
     if (amplification == 0) amplification = 1;
   }
   // Compute print info
   nsearch_operation_t* const pending_searches = nsearch_schedule->pending_searches;
-  int64_t offset = 0, j=0, i;
+  int64_t offset = 0, j=0;
   while (offset != key_length) {
     for (i=0;i<num_pending_searches;++i) {
       nsearch_operation_t* const pending_search = pending_searches + i;
@@ -415,7 +434,7 @@ void nsearch_schedule_print_pretty(
 void nsearch_schedule_print_profile(
     FILE* const stream,
     nsearch_schedule_t* const nsearch_schedule) {
-  fprintf(stderr,"%lu\t%lu\n",
+  fprintf(stream,"%lu\t%lu\n",
       nsearch_schedule->profile.ns_nodes_success,
       nsearch_schedule->profile.ns_nodes);
 }

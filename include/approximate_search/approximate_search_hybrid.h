@@ -38,11 +38,4 @@ void approximate_search_hybrid(
     approximate_search_t* const search,
     matches_t* const matches);
 
-/*
- * Approximate Complete-Search based on PURE filtering+NS-search
- */
-void approximate_search_hybrid_complete_search(
-    approximate_search_t* const search,
-    matches_t* const matches);
-
 #endif /* APPROXIMATE_SEARCH_HYBRID_H_ */

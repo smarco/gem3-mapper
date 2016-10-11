@@ -59,11 +59,12 @@ void archive_select_se_matches_discard(
   match_trace_t** match_trace_in = matches_get_match_traces(matches);
   match_trace_t** match_trace_out = match_trace_in;
   uint64_t i, num_matches_accepted = 0;
-  for (i=0;i<num_matches;++i) {
+  for (i=0;i<num_matches;++i,++match_trace_in) {
     // Remove unwanted ones
-    if (match_trace_in[i]->edit_distance > max_edit_distance) continue;
+    if ((*match_trace_in)->edit_distance > max_edit_distance) continue;
     *match_trace_out = *match_trace_in;
-    ++match_trace_out; ++num_matches_accepted;
+    ++match_trace_out;
+    ++num_matches_accepted;
   }
   if (num_matches_accepted != num_matches) {
     matches_metrics_set_limited_candidates(&matches->metrics,true);

@@ -37,6 +37,9 @@
 void asearch_control_adjust_current_max_error(
     approximate_search_t* const search,
     matches_t* const matches);
+bool asearch_control_max_matches_reached(
+    approximate_search_t* const search,
+    matches_t* const matches);
 
 /*
  * Pattern test

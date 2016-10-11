@@ -11,6 +11,8 @@
 #include "utils/options_menu.h"
 #include "stats/report_stats.h"
 #include "mapper/mapper.h"
+#include "mapper/mapper_parameters.h"
+#include "mapper/mapper_io.h"
 #include "mapper/mapper_cuda.h"
 #include "mapper/mapper_profile.h"
 #include "mapper/mapper_profile_cuda.h"
@@ -254,7 +256,7 @@ option_t gem_mapper_options[] = {
   { 800, "mapq-model", REQUIRED, TYPE_STRING, 8, VISIBILITY_ADVANCED, "'none'|'gem'" , "(default=gem)" },
   // TODO { 801, "mapq-threshold", REQUIRED, TYPE_INT, 8, VISIBILITY_DEVELOPER, "<number>" , "(default=0)" },
   /* Reporting */
-  { 'D', "min-reported-strata", REQUIRED, TYPE_FLOAT, 9, VISIBILITY_ADVANCED, "<number|percentage>|'all'" , "(stratum-wise, default=0)" },
+  { 'm', "min-reported-strata", REQUIRED, TYPE_FLOAT, 9, VISIBILITY_ADVANCED, "<number|percentage>|'all'" , "(stratum-wise, default=0)" },
   { 'M', "max-reported-matches", REQUIRED, TYPE_INT,  9, VISIBILITY_USER, "<number>|'all'" , "(default=5)" },
   /* Output Format */
   { 'F',  "output-format", REQUIRED, TYPE_STRING, 10, VISIBILITY_USER, "'MAP'|'SAM'" , "(default=SAM)" },
@@ -470,7 +472,9 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       // Hybrid Modes
       } else if (gem_strcaseeq(optarg,"sensitive")) {
         search->mapping_mode = mapping_hybrid_sensitive;
-      } else if (gem_strcaseeq(optarg,"customed") || gem_strcaseeq(optarg,"complete-hybrid")) {
+      } else if (gem_strcaseeq(optarg,"customed") ||
+                 gem_strcaseeq(optarg,"complete") ||
+                 gem_strcaseeq(optarg,"complete-hybrid")) {
         search->mapping_mode = mapping_hybrid_complete;
       } else {
         gem_mapper_error_msg("Option '--mapping-mode' must be 'fast'|'sensitive'|'customed'");
@@ -774,7 +778,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       break;
     }
     /* Reporting */
-    case 'D': // --min-reported-strata
+    case 'm': // --min-reported-strata
       min_reported_strata_set = true;
       input_text_parse_extended_double(optarg,&search->select_parameters_report.min_reported_strata);
       break;

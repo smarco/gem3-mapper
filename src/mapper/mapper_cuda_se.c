@@ -8,8 +8,10 @@
 #include "mapper/mapper_cuda_se.h"
 #include "mapper/mapper.h"
 #include "mapper/mapper_bisulfite.h"
+#include "mapper/mapper_io.h"
 #include "archive/search/archive_search_se.h"
 #include "io/input_file.h"
+#include "io/input_fasta_parser.h"
 
 /*
  * Profile

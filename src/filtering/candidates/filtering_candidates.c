@@ -402,7 +402,8 @@ void filtering_candidates_add_positions_from_interval(
   // Select matches
   select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;
   uint64_t interval_top;
-  if (exact_match && select_parameters->min_reported_strata_nominal==0 &&
+  if (exact_match &&
+      select_parameters->min_reported_strata_nominal==0 &&
       total_candidates > select_parameters->max_reported_matches) {
     interval_top = interval_lo + select_parameters->max_reported_matches;
     *candidates_limited = true;

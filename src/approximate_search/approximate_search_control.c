@@ -35,20 +35,30 @@
 void asearch_control_adjust_current_max_error(
     approximate_search_t* const search,
     matches_t* const matches) {
-  const uint64_t current_max_complete_error = search->current_max_complete_error;
-  const uint64_t delta = search->search_parameters->complete_strata_after_best_nominal;
   /*
    * Control delta error adjustment
    *   If delta parameter is set (and is below the maximum number of mismatches),
    *   finds the minimum non zero stratum (mnzs) and adjusts
    *   the maximum number of mismatches to (mnzs+delta)
    */
-  if (delta < current_max_complete_error) {
-    const uint64_t fms = matches_metrics_get_min_edit_distance(&matches->metrics);
-    if (fms+delta < current_max_complete_error) {
-      search->current_max_complete_error = fms+delta;
+  if (matches_is_mapped(matches)) {
+    const uint64_t current_max_complete_error = search->current_max_complete_error;
+    const uint64_t delta = search->search_parameters->complete_strata_after_best_nominal;
+    const uint64_t min_edit_distance = matches_metrics_get_min_edit_distance(&matches->metrics);
+    if (min_edit_distance+delta < current_max_complete_error) {
+      search->current_max_complete_error = min_edit_distance+delta;
     }
   }
+}
+bool asearch_control_max_matches_reached(
+    approximate_search_t* const search,
+    matches_t* const matches) {
+  search_parameters_t* const search_parameters = search->search_parameters;
+  select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;
+  return matches_max_matches_reached(
+      matches,search->region_profile.num_filtered_regions,search->pattern.key_length,
+      select_parameters->min_reported_strata_nominal,select_parameters->max_reported_matches,
+      &search_parameters->swg_penalties);
 }
 /*
  * Pattern test

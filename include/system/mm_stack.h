@@ -24,7 +24,7 @@
 /*
  * Debug
  */
-#define MM_STACK_DEBUG
+//#define MM_STACK_DEBUG
 //#define MM_STACK_LOG
 //#define MM_STACK_LOG_DEEP
 

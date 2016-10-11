@@ -40,6 +40,10 @@ void nsearch_levenshtein_state_init(
 void nsearch_levenshtein_state_prepare(
     nsearch_levenshtein_state_t* const nsearch_state,
     const bool supercondensed);
+void nsearch_levenshtein_state_prepare_column(
+    dp_column_t* const column,
+    const uint64_t column_position,
+    const bool supercondensed);
 
 /*
  * Accessors
@@ -82,7 +86,8 @@ void nsearch_levenshtein_state_compute_text_banded(
     const uint64_t text_length,
     const uint64_t max_error,
     uint64_t* const min_align_distance,
-    uint64_t* const min_align_distance_column);
+    uint64_t* const min_align_distance_column,
+    mm_stack_t* const mm_stack);
 void nsearch_levenshtein_state_compute_chararacter_banded(
     nsearch_levenshtein_state_t* const nsearch_state,
     const bool forward_search,
@@ -92,6 +97,7 @@ void nsearch_levenshtein_state_compute_chararacter_banded(
     const uint8_t text_char_enc,
     const uint64_t max_error,
     uint64_t* const min_val,
-    uint64_t* const align_distance);
+    uint64_t* const align_distance,
+    mm_stack_t* const mm_stack);
 
 #endif /* NSEARCH_LEVENSHTEIN_STATE_H_ */

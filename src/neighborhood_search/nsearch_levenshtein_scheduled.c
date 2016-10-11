@@ -9,172 +9,14 @@
 #include "neighborhood_search/nsearch_levenshtein_scheduled.h"
 #include "neighborhood_search/nsearch_levenshtein.h"
 #include "neighborhood_search/nsearch_levenshtein_state.h"
+#include "neighborhood_search/nsearch_levenshtein_query.h"
+#include "neighborhood_search/nsearch_levenshtein_control.h"
 #include "neighborhood_search/nsearch_partition.h"
+#include "filtering/candidates/filtering_candidates.h"
+#include "filtering/candidates/filtering_candidates_align.h"
+#include "filtering/candidates/filtering_candidates_process.h"
+#include "filtering/candidates/filtering_candidates_verify.h"
 
-/*
- * NSearch Query Helper
- */
-typedef struct {
-  fm_2interval_t fm_2interval;
-  fm_2erank_elms_t lo_2erank_elms;
-  fm_2erank_elms_t hi_2erank_elms;
-  uint64_t max_steps;
-} nsearch_query_t;
-
-/*
- * Levenshtein bidirectional query
- */
-void nsearch_levenshtein_scheduled_precompute_query(
-    nsearch_schedule_t* const nsearch_schedule,
-    const bool forward_search,
-    nsearch_query_t* const nsearch_query) {
-#ifndef NSEARCH_ENUMERATE
-  fm_index_t* const fm_index = nsearch_schedule->archive->fm_index;
-  if (forward_search) {
-    fm_index_2query_forward_precompute(
-        fm_index,&nsearch_query->fm_2interval,
-        &nsearch_query->lo_2erank_elms,&nsearch_query->hi_2erank_elms);
-  } else {
-    fm_index_2query_backward_precompute(
-        fm_index,&nsearch_query->fm_2interval,
-        &nsearch_query->lo_2erank_elms,&nsearch_query->hi_2erank_elms);
-  }
-#endif
-}
-uint64_t nsearch_levenshtein_scheduled_query(
-    nsearch_schedule_t* const nsearch_schedule,
-    nsearch_operation_t* const nsearch_operation,
-    const bool forward_search,
-    const int64_t current_position,
-    const uint8_t char_enc,
-    nsearch_query_t* const nsearch_query,
-    nsearch_query_t* const next_nsearch_query) {
-  // Store character
-  nsearch_operation->text[current_position] = char_enc;
-  nsearch_operation->text_position = current_position+1;
-  // Query character
-  fm_2interval_t* const fm_2interval = &next_nsearch_query->fm_2interval;
-#ifdef NSEARCH_ENUMERATE
-  next_nsearch_query->fm_2interval_out.backward_lo = 0;
-  next_nsearch_query->fm_2interval_out.backward_hi = 1;
-  next_nsearch_query->fm_2interval_out.forward_lo = 0;
-  next_nsearch_query->fm_2interval_out.forward_hi = 1;
-  return 1;
-#else
-  if (forward_search) {
-    fm_index_2query_precomputed_forward_query(
-        &nsearch_query->lo_2erank_elms,&nsearch_query->hi_2erank_elms,
-        &nsearch_query->fm_2interval,fm_2interval,char_enc);
-  } else {
-    fm_index_2query_precomputed_backward_query(
-        &nsearch_query->lo_2erank_elms,&nsearch_query->hi_2erank_elms,
-        &nsearch_query->fm_2interval,fm_2interval,char_enc);
-  }
-  // Return
-  return fm_2interval->backward_hi - fm_2interval->backward_lo;
-#endif
-}
-uint64_t nsearch_levenshtein_scheduled_query_exact(
-    nsearch_schedule_t* const nsearch_schedule,
-    nsearch_operation_t* const nsearch_operation,
-    const bool forward_search,
-    const int64_t current_position,
-    const uint8_t char_enc,
-    nsearch_query_t* const nsearch_query) {
-  // Store character
-  nsearch_operation->text[current_position] = char_enc;
-  nsearch_operation->text_position = current_position+1;
-  // Query character
-  fm_2interval_t* const fm_2interval = &nsearch_query->fm_2interval;
-#ifdef NSEARCH_ENUMERATE
-  fm_2interval->backward_lo = 0;
-  fm_2interval->backward_hi = 1;
-  fm_2interval->forward_lo = 0;
-  fm_2interval->forward_hi = 1;
-  // Return
-  return 1;
-#else
-  fm_index_t* const fm_index = nsearch_schedule->archive->fm_index;
-  if (forward_search) {
-    fm_index_2query_forward_query(fm_index,fm_2interval,fm_2interval,char_enc);
-  } else {
-    fm_index_2query_backward_query(fm_index,fm_2interval,fm_2interval,char_enc);
-  }
-  // Return
-  return fm_2interval->backward_hi - fm_2interval->backward_lo;
-#endif
-}
-bool nsearch_levenshtein_scheduled_cutoff(
-    nsearch_schedule_t* const nsearch_schedule,
-    const uint64_t num_candidates,
-    nsearch_query_t* const nsearch_query,
-    nsearch_query_t* const next_nsearch_query) {
-  // Parameters
-  search_parameters_t* const search_parameters = nsearch_schedule->search_parameters;
-  const uint64_t ns_filtering_threshold = search_parameters->region_profile_model.ns_filtering_threshold;
-  // Check number of candidates
-  if (num_candidates <= ns_filtering_threshold) {
-    if (nsearch_query->max_steps==0) {
-      next_nsearch_query->max_steps = search_parameters->region_profile_model.max_steps;
-      return false;
-    } else {
-      if (nsearch_query->max_steps == 1) return true;
-      next_nsearch_query->max_steps = nsearch_query->max_steps - 1;
-      return false;
-    }
-  } else {
-    next_nsearch_query->max_steps = 0;
-    return false;
-  }
-}
-uint64_t nsearch_levenshtein_scheduled_terminate(
-    nsearch_schedule_t* const nsearch_schedule,
-    nsearch_operation_t* const nsearch_operation,
-    const uint64_t text_length,
-    nsearch_query_t* const nsearch_query,
-    const uint64_t align_distance) {
-  // Parameters
-  fm_2interval_t* const fm_2interval = &nsearch_query->fm_2interval;
-#ifdef NSEARCH_ENUMERATE
-  // PROFILE
-  PROF_ADD_COUNTER(GP_NS_SEARCH_DEPTH,text_length);
-  PROF_ADD_COUNTER(GP_NS_CANDIDATES_GENERATED,1);
-  // Search Text
-  nsearch_operation->text_position = text_length;
-  nsearch_operation_state_print_global_text(stdout,nsearch_operation); // Print
-  return 1;
-#else
-  // Parameters
-  const bool forward_search = (nsearch_operation->search_direction==direction_forward);
-  filtering_candidates_t* const filtering_candidates = nsearch_schedule->filtering_candidates;
-  search_parameters_t* const search_parameters = nsearch_schedule->search_parameters;
-  pattern_t* const pattern = nsearch_schedule->pattern;
-  nsearch_operation->text_position = text_length;
-  // Compute region boundaries
-  const uint64_t max_error = nsearch_schedule->max_error;
-  const uint64_t global_key_begin = nsearch_operation->global_key_begin;
-  const uint64_t global_key_end = nsearch_operation->global_key_end;
-  const uint64_t max_region_scope = text_length + max_error;
-  uint64_t region_begin, region_end;
-  if (forward_search) {
-    region_begin = BOUNDED_SUBTRACTION(global_key_begin,max_error,0);
-    region_end = global_key_begin + max_region_scope;
-  } else {
-    region_begin = BOUNDED_SUBTRACTION(global_key_end,max_region_scope,0);
-    region_end = global_key_end + max_error;
-  }
-  // PROFILE
-  PROF_ADD_COUNTER(GP_NS_SEARCH_DEPTH,text_length);
-  PROF_ADD_COUNTER(GP_NS_BRANCH_CANDIDATES_GENERATED,
-      (fm_2interval->backward_hi-fm_2interval->backward_lo));
-  // Add interval
-  bool limited;
-  filtering_candidates_add_positions_from_interval(
-      filtering_candidates,search_parameters,pattern,fm_2interval->backward_lo,
-      fm_2interval->backward_hi,region_begin,region_end,align_distance,&limited);
-  return fm_2interval->backward_hi-fm_2interval->backward_lo;
-#endif
-}
 /*
  * Scheduled-Operation check distance
  */
@@ -199,7 +41,6 @@ bool nsearch_levenshtein_scheduled_align_distance_pass(
 /*
  * Scheduled-Operation Search (Performs each operational search)
  */
-//
 uint64_t nsearch_levenshtein_scheduled_search_next(
     nsearch_schedule_t* const nsearch_schedule,
     const uint64_t pending_searches,
@@ -210,7 +51,6 @@ uint64_t nsearch_levenshtein_scheduled_operation_step_query(
     const uint64_t pending_searches,
     nsearch_operation_t* const nsearch_operation,
     nsearch_query_t* const nsearch_query);
-//
 uint64_t nsearch_levenshtein_scheduled_operation_step_next(
     nsearch_schedule_t* const nsearch_schedule,
     const uint64_t pending_searches,
@@ -280,8 +120,9 @@ uint64_t nsearch_levenshtein_scheduled_operation_step_query(
   for (char_enc=0;char_enc<DNA_RANGE;++char_enc) {
     // Compute DP-next
     nsearch_levenshtein_state_compute_chararacter_banded(
-        nsearch_state,forward_search,key_chunk,key_chunk_length,
-        text_position,char_enc,max_error,&min_val,&align_distance);
+        nsearch_state,forward_search,key_chunk,
+        key_chunk_length,text_position,char_enc,max_error,
+        &min_val,&align_distance,nsearch_schedule->mm_stack);
     if (min_val > max_error) { // Check max-error constraints
       PROF_INC_COUNTER(GP_NS_NODES_DP_PREVENT);
       continue;
@@ -291,7 +132,7 @@ uint64_t nsearch_levenshtein_scheduled_operation_step_query(
         nsearch_schedule,nsearch_operation,forward_search,
         text_position,char_enc,nsearch_query,&next_nsearch_query);
     if (num_candidates==0) continue;
-    const bool finish_search = nsearch_levenshtein_scheduled_cutoff(
+    const bool finish_search = nsearch_levenshtein_candidates_cutoff(
         nsearch_schedule,num_candidates,nsearch_query,&next_nsearch_query);
     if (finish_search) {
       total_matches += nsearch_levenshtein_scheduled_terminate(
@@ -326,7 +167,7 @@ uint64_t nsearch_levenshtein_scheduled_operation_step_query_exact(
         nsearch_operation->text_position,char_enc,nsearch_query);
     NSEARCH_PROF_NODE(nsearch_schedule,num_candidates); // PROFILE
     if (num_candidates==0) return 0;
-    const bool finish_search = nsearch_levenshtein_scheduled_cutoff(
+    const bool finish_search = nsearch_levenshtein_candidates_cutoff(
         nsearch_schedule,num_candidates,nsearch_query,nsearch_query);
     if (finish_search) {
       return nsearch_levenshtein_scheduled_terminate(
@@ -359,7 +200,8 @@ uint64_t nsearch_levenshtein_scheduled_search_next(
       (current_nsearch_operation->search_direction != next_nsearch_operation->search_direction);
   const bool supercondensed = nsearch_operation_chained_prepare(
       current_nsearch_operation,next_nsearch_operation,
-      nsearch_schedule->pattern->key,nsearch_schedule->pattern->key_length,reverse_sequence);
+      nsearch_schedule->pattern->key,nsearch_schedule->pattern->key_length,
+      reverse_sequence,nsearch_schedule->mm_stack);
   if (!supercondensed) return 0;
   // Keep searching
   return nsearch_levenshtein_scheduled_operation_step_query(nsearch_schedule,

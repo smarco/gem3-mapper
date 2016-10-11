@@ -56,7 +56,8 @@ bool nsearch_operation_chained_prepare(
     nsearch_operation_t* const next_nsearch_operation,
     uint8_t* const key,
     const uint64_t key_length,
-    const bool reverse_sequence) {
+    const bool reverse_sequence,
+    mm_stack_t* const mm_stack) {
   // Prepare Sequence
   if (reverse_sequence) {
     nsearch_operation_chained_prepare_sequence_reverse(current_nsearch_operation,
@@ -77,7 +78,7 @@ bool nsearch_operation_chained_prepare(
   nsearch_levenshtein_state_compute_text_banded(
       next_nsearch_state,forward_search,key_chunk,
       key_chunk_length,text,text_length,next_max_error,
-      &min_align_distance,&min_align_distance_column);
+      &min_align_distance,&min_align_distance_column,mm_stack);
   // Check supercondensed operation-chain
   return !(key_chunk_length==key_length &&
            min_align_distance<=next_max_error &&

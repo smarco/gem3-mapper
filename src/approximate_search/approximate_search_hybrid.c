@@ -51,46 +51,63 @@ asearch_stage_t as_hybrid_control_filtering_adaptive_next_state(
     approximate_search_t* const search,
     matches_t* const matches) {
   PROF_ADD_COUNTER(GP_AS_FILTERING_ADATIVE_MCS,search->region_profile.num_filtered_regions);
-  // Select state
-  switch (search->processing_state) {
-    case asearch_processing_state_no_regions:
-      search->current_max_complete_error = 1;
-      if (search->pattern.num_wildcards > search->current_max_complete_error) {
-        return asearch_stage_end;
-      } else {
-        return asearch_stage_neighborhood;
-      }
-    case asearch_processing_state_candidates_verified:
-      if (!asearch_control_test_accuracy__adjust_depth(search,matches)) {
-#ifdef GEM_PROFILE
-        PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL);
-        if (!matches_is_mapped(matches)) {
-          PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_UNMAPPED);
+  if (search->search_parameters->mapping_mode==mapping_hybrid_sensitive) {
+    // Hybrid Sensitive
+    switch (search->processing_state) {
+      case asearch_processing_state_no_regions:
+        search->current_max_complete_error = 1;
+        if (search->pattern.num_wildcards > search->current_max_complete_error) {
+          return asearch_stage_end;
         } else {
-          const uint64_t mcs = search->region_profile.num_filtered_regions;
-          const uint64_t min_edit_distance = matches_metrics_get_min_edit_distance(&matches->metrics);
-          if (min_edit_distance+1 == mcs) PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_MAP_FRONTIER);
-          if (min_edit_distance >= mcs) PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_MAP_INCOMPLETE);
+          return asearch_stage_neighborhood;
         }
-#endif
-        return asearch_stage_neighborhood;
-      } else {
-        return asearch_stage_end;
-      }
-    default:
-      GEM_INVALID_CASE();
-      break;
+      case asearch_processing_state_candidates_verified:
+        if (!asearch_control_test_accuracy__adjust_depth(search,matches)) {
+  #ifdef GEM_PROFILE
+          PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL);
+          if (!matches_is_mapped(matches)) {
+            PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_UNMAPPED);
+          } else {
+            const uint64_t mcs = search->region_profile.num_filtered_regions;
+            const uint64_t min_edit_distance = matches_metrics_get_min_edit_distance(&matches->metrics);
+            if (min_edit_distance+1 == mcs) PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_MAP_FRONTIER);
+            if (min_edit_distance >= mcs) PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_MAP_INCOMPLETE);
+          }
+  #endif
+          return asearch_stage_neighborhood;
+        } else {
+          return asearch_stage_end;
+        }
+      default:
+        GEM_INVALID_CASE();
+        break;
+    }
+    return asearch_stage_end;
+  } else {
+    // Hybrid Complete
+    asearch_control_adjust_current_max_error(search,matches);
+    // Search over?
+    const uint64_t mcs = search->region_profile.num_filtered_regions;
+    if (search->current_max_complete_error <= mcs-1) return asearch_stage_end;
+    if (search->pattern.num_wildcards > search->current_max_complete_error) return asearch_stage_end;
+    // NS
+    return asearch_stage_neighborhood;
   }
-  return asearch_stage_end;
 }
 asearch_stage_t as_hybrid_control_neighborhood_next_state(
     approximate_search_t* const search,
     matches_t* const matches) {
   PROF_ADD_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_MCS,search->current_max_complete_stratum);
-  if (asearch_control_test_local_alignment(search,matches)) {
-    PROF_INC_COUNTER(GP_AS_LOCAL_ALIGN_CALL);
-    return asearch_stage_local_alignment;
+  if (search->search_parameters->mapping_mode==mapping_hybrid_sensitive) {
+    // Hybrid Sensitive
+    if (asearch_control_test_local_alignment(search,matches)) {
+      PROF_INC_COUNTER(GP_AS_LOCAL_ALIGN_CALL);
+      return asearch_stage_local_alignment;
+    } else {
+      return asearch_stage_end;
+    }
   } else {
+    // Hybrid Complete
     return asearch_stage_end;
   }
 }
@@ -129,43 +146,4 @@ void approximate_search_hybrid(
         break;
     }
   }
-}
-/*
- * Approximate Complete-Search based on PURE filtering+NS-search
- */
-void approximate_search_hybrid_complete_search(
-    approximate_search_t* const search,
-    matches_t* const matches) {
-  // Parameters
-  pattern_t* const pattern = &search->pattern;
-  region_profile_t* const region_profile = &search->region_profile;
-  // Exact Search
-  if (search->current_max_complete_error==0) {
-    approximate_search_neighborhood_exact_search(search,matches);
-    return;
-  }
-  // Compute the region profile
-  approximate_search_region_profile_adaptive(search,region_profile_adaptive);
-  // Generate exact-candidates
-  region_profile_schedule_filtering_exact(region_profile);
-  approximate_search_generate_candidates_exact(search);
-  //  // Verify candidates
-  //  filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
-  //  filtering_candidates_process_candidates(filtering_candidates,pattern,true);
-  //  filtering_candidates_verify_candidates(filtering_candidates,pattern);
-  //  // Align candidates
-  //  filtering_candidates_align_candidates(filtering_candidates,pattern,false,false,matches);
-  // Check max-complete-error to be reached
-  approximate_search_update_mcs(search,region_profile->num_filtered_regions + pattern->num_wildcards);
-  if (search->current_max_complete_stratum < search->current_max_complete_error + 1) {
-    search_parameters_t* const search_parameters = search->search_parameters;
-    // Prepare region-profile (fill gaps)
-    region_profile_fill_gaps(region_profile,pattern->key,pattern->key_length,
-        search_parameters->allowed_enc,pattern->num_wildcards);
-    region_profile_merge_small_regions(region_profile,search->archive->fm_index->proper_length);
-    // Complete Search with NS-Search (preconditioned)
-    approximate_search_neighborhood_search_partition_preconditioned(search,matches);
-  }
-  // Finish Search
-  approximate_search_end(search,matches);
 }

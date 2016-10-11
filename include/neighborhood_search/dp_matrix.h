@@ -14,8 +14,8 @@
 /*
  * Constants
  */
-#define NS_DISTANCE_INF                              UINT32_MAX
-#define NS_DISTANCE_SET_PRIORITY(cell_distance,prio) ((uint64_t)(cell_distance) | (uint64_t)(prio))
+#define NS_DISTANCE_INF                              (UINT32_MAX-UINT16_MAX)
+#define NS_DISTANCE_SET_PRIORITY(cell_distance,prio) ((uint32_t)(cell_distance) | (uint32_t)(prio))
 #define NS_DISTANCE_HAS_PRIORITY(cell_distance,prio) ((cell_distance)%2==prio)
 #define NS_DISTANCE_ENCODE(distance)                 ((distance)<<1)
 #define NS_DISTANCE_DECODE(distance)                 ((distance)>>1)
@@ -26,7 +26,7 @@
  */
 typedef struct {
   // Cells
-  uint64_t* cells;
+  uint32_t* cells;
   // Band
   uint64_t band_high_offset;
   uint64_t band_low_offset;

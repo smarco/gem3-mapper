@@ -25,9 +25,9 @@ void dp_matrix_traceback(
   tab_fprintf(stream,"");
   while (h > 0 && v > 0) {
     const bool match = dna_encode(text[h-1])==key[key_length-v];
-    const uint64_t current = NS_DISTANCE_DECODE(columns[h].cells[v]);
-    const uint64_t del = NS_DISTANCE_DECODE(columns[h].cells[v-1]) + 1;
-    const uint64_t sub = NS_DISTANCE_DECODE(columns[h-1].cells[v-1]) + (match ? 0 : 1);
+    const uint32_t current = NS_DISTANCE_DECODE(columns[h].cells[v]);
+    const uint32_t del = NS_DISTANCE_DECODE(columns[h].cells[v-1]) + 1;
+    const uint32_t sub = NS_DISTANCE_DECODE(columns[h-1].cells[v-1]) + (match ? 0 : 1);
     // const uint64_t ins = (dp_columns[h-1][v] & NSC_PROPER_CELL_EXTRACT_MASK) + 1;
     if (current == del) {
       fprintf(stream,"D"); --v;
@@ -56,10 +56,11 @@ void dp_column_print_summary(
     const uint64_t lo,
     const uint64_t hi) {
   const uint64_t num_rows = dp_matrix->num_rows;
-  uint64_t* const cells = dp_matrix->columns[column_position].cells;
-  uint64_t i, min = UINT64_MAX;
+  uint32_t* const cells = dp_matrix->columns[column_position].cells;
+  uint32_t min = NS_DISTANCE_INF;
+  uint64_t i;
   for (i=0;i<=num_rows;++i) min = MIN(min,cells[i]);
-  tab_fprintf(stream,">> [%"PRIu64"](#%"PRIu64"){min=%"PRIu64",last=%"PRIu64"}\n",
+  tab_fprintf(stream,">> [%"PRIu64"](#%"PRIu64"){min=%"PRIu32",last=%"PRIu32"}\n",
       column_position,hi-lo,min,cells[num_rows]);
 }
 void dp_matrix_print(
@@ -75,7 +76,9 @@ void dp_matrix_print(
   int64_t h, v;
   // Print Text
   fprintf(stream,"       ");
-  for (h=text_begin;h<text_end;++h) fprintf(stream,"   %c",dna_decode(text[h]));
+  for (h=text_begin;h<text_end;++h) {
+    fprintf(stream,"   %c",dna_decode(text[h]));
+  }
   fprintf(stream,"\n");
   // Print table
   const uint64_t num_columns = text_end-text_begin;
@@ -87,11 +90,11 @@ void dp_matrix_print(
       fprintf(stream,"    ");
     }
     for (h=0;h<=num_columns;++h) {
-      const uint64_t cell = dp_matrix->columns[h].cells[v];
+      const uint32_t cell = dp_matrix->columns[h].cells[v];
       if (cell > 1000) {
         fprintf(stream,"inf ");
       } else {
-        fprintf(stream,"%c%02lu ",NS_DISTANCE_HAS_PRIORITY(cell,0)? '*' : ' ',NS_DISTANCE_DECODE(cell));
+        fprintf(stream,"%c%02u ",NS_DISTANCE_HAS_PRIORITY(cell,0)? '*' : ' ',NS_DISTANCE_DECODE(cell));
       }
     }
     fprintf(stream,"\n");

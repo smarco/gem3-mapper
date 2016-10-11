@@ -670,7 +670,7 @@ void constructor_nsearch_region_permutations_n(
     }
     fprintf(stderr,")\t");
     // Search
-    nsearch_hamming_preconditioned(search,NULL);
+    nsearch_hamming_preconditioned(search,false,NULL);
   } else {
     for (i=1;i<left_length;++i) {
       region_profile->filtering_region[current_region].begin = offset;
@@ -723,7 +723,7 @@ void constructor_ns_hamming() {
   approximate_search_t search;
   constructor_ns_init(&search,mm_stack); // Configure
   // Search
-  nsearch_hamming(&search,NULL);
+  nsearch_hamming(&search,false,NULL);
 }
 void constructor_ns_hamming_2regions() {
   // Init NS-search
@@ -746,7 +746,7 @@ void constructor_ns_hamming_2regions() {
   region_profile->filtering_region[1].max = max_error-1;
   region_profile->num_filtering_regions = 2;
   // Search
-  nsearch_hamming_preconditioned(&search,NULL);
+  nsearch_hamming_preconditioned(&search,false,NULL);
 }
 void constructor_ns_hamming_permutations() {
   // Init NS-search
@@ -800,7 +800,7 @@ void constructor_ns_edit_partition() {
   approximate_search_t search;
   constructor_ns_init(&search,mm_stack); // Configure
   // Search
-  nsearch_levenshtein(&search,NULL);
+  nsearch_levenshtein(&search,false,NULL);
 }
 void constructor_ns_edit_2regions() {
   // Init NS-search
@@ -823,7 +823,7 @@ void constructor_ns_edit_2regions() {
   region_profile->filtering_region[1].max = max_error-1;
   region_profile->num_filtering_regions = 2;
   // Search
-  nsearch_levenshtein_preconditioned(&search,NULL);
+  nsearch_levenshtein_preconditioned(&search,false,NULL);
 }
 /*
  * LCS

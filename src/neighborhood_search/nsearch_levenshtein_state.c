@@ -23,10 +23,12 @@ void nsearch_levenshtein_state_init(
   // Allocate columns
   dp_column_t* const columns = mm_stack_calloc(mm_stack,num_columns,dp_column_t,false);
   dp_matrix->columns = columns;
+  // Allocate columns' cells (+1 due to the banded sentinels containing inf)
+  const uint64_t column_length = num_rows+1;
   uint64_t i;
-  for (i=0;i<num_columns;++i) {
-    // Allocate columns' cells (+1 due to the banded sentinels containing inf)
-    dp_matrix->columns[i].cells = mm_stack_calloc(mm_stack,num_rows+1,uint64_t,false);
+  dp_matrix->columns[0].cells = mm_stack_calloc(mm_stack,column_length,uint32_t,false);
+  for (i=1;i<num_columns;++i) {
+    dp_matrix->columns[i].cells = NULL; // lazy allocation
   }
 }
 /*
@@ -38,25 +40,25 @@ void nsearch_levenshtein_state_prepare(
   // Parameters
   dp_matrix_t* const dp_matrix = &nsearch_state->dp_matrix;
   dp_column_t* const columns = dp_matrix->columns;
-  const uint64_t num_columns = dp_matrix->num_columns;
   const uint64_t num_rows = dp_matrix->num_rows;
   // Init
   nsearch_state->supercondensed = supercondensed;
-  // Init first row
-  uint64_t i;
-  columns[0].cells[0] = NS_DISTANCE_SET_PRIORITY(NS_DISTANCE_ENCODE(0),1);
-  if (supercondensed) {
-    for (i=1;i<num_columns;++i) {
-      columns[i].cells[0] = NS_DISTANCE_SET_PRIORITY(NS_DISTANCE_ENCODE(0),0);
-    }
-  } else {
-    for (i=1;i<num_columns;++i) {
-      columns[i].cells[0] = NS_DISTANCE_SET_PRIORITY(NS_DISTANCE_ENCODE(i),1);
-    }
-  }
   // Init first column
+  uint64_t i;
+  columns->cells[0] = NS_DISTANCE_SET_PRIORITY(NS_DISTANCE_ENCODE(0),1);
   for (i=1;i<num_rows;++i) {
-    columns[0].cells[i] = NS_DISTANCE_SET_PRIORITY(NS_DISTANCE_ENCODE(i),1);
+    columns->cells[i] = NS_DISTANCE_SET_PRIORITY(NS_DISTANCE_ENCODE(i),1);
+  }
+}
+void nsearch_levenshtein_state_prepare_column(
+    dp_column_t* const column,
+    const uint64_t column_position,
+    const bool supercondensed) {
+  // Init
+  if (supercondensed) {
+    column->cells[0] = NS_DISTANCE_SET_PRIORITY(NS_DISTANCE_ENCODE(0),0);
+  } else {
+    column->cells[0] = NS_DISTANCE_SET_PRIORITY(NS_DISTANCE_ENCODE(column_position),1);
   }
 }
 /*
@@ -71,8 +73,9 @@ uint64_t nsearch_levenshtein_state_get_global_align_distance(
   if (text_length < key_length-max_error) return NS_DISTANCE_INF;
   // Fetch aling-distance
   dp_matrix_t* const dp_matrix = &nsearch_state->dp_matrix;
-  const uint64_t align_distance = dp_matrix->columns[text_length].cells[key_length];
-  return NS_DISTANCE_HAS_PRIORITY(align_distance,1) ? NS_DISTANCE_DECODE(align_distance) : NS_DISTANCE_INF;
+  const uint32_t align_distance = dp_matrix->columns[text_length].cells[key_length];
+  return NS_DISTANCE_HAS_PRIORITY(align_distance,1) ?
+      (uint64_t)NS_DISTANCE_DECODE(align_distance) : (uint64_t)NS_DISTANCE_INF;
 }
 uint64_t nsearch_levenshtein_state_get_local_align_distance(
     nsearch_levenshtein_state_t* const nsearch_state,
@@ -84,7 +87,7 @@ uint64_t nsearch_levenshtein_state_get_local_align_distance(
   if (global_text_length < global_key_length-max_error) return NS_DISTANCE_INF;
   // Check align-distance
   dp_matrix_t* const dp_matrix = &nsearch_state->dp_matrix;
-  const uint64_t align_distance =
+  const uint32_t align_distance =
       NS_DISTANCE_DECODE(dp_matrix->columns[global_text_length].cells[global_key_length]);
   // Backtrace DP until the local-key border is surpassed
   int64_t h = global_text_length, v = global_key_length;
@@ -94,10 +97,10 @@ uint64_t nsearch_levenshtein_state_get_local_align_distance(
     dp_column_t* const current_column = dp_matrix->columns + h;
     dp_column_t* const prev_column = current_column - 1;
     // Fetch cells
-    const uint64_t current_cell = current_column->cells[v];
-    const uint64_t sub = prev_column->cells[v-1];
-    const uint64_t del = current_column->cells[v-1] + 2;
-    const uint64_t ins = prev_column->cells[v] + 2;
+    const uint32_t current_cell = current_column->cells[v];
+    const uint32_t sub = prev_column->cells[v-1];
+    const uint32_t del = current_column->cells[v-1] + 2;
+    const uint32_t ins = prev_column->cells[v] + 2;
     // Backtrace
     if (current_cell == del) {
       --v; --v_left;
@@ -111,7 +114,7 @@ uint64_t nsearch_levenshtein_state_get_local_align_distance(
   }
   // Check current cell
   dp_column_t* const current_column = dp_matrix->columns + h;
-  return align_distance - NS_DISTANCE_DECODE(current_column->cells[v]);
+  return (uint64_t)align_distance - (uint64_t)NS_DISTANCE_DECODE(current_column->cells[v]);
 }
 /*
  * Compute DP
@@ -132,23 +135,25 @@ void nsearch_levenshtein_state_compute_chararacter(
   dp_column_t* const base_column = dp_matrix->columns + text_position;
   dp_column_t* const next_column = base_column + 1;
   // Fill columns
-  uint64_t column_min = NS_DISTANCE_INF, i;
+  uint32_t column_min = NS_DISTANCE_INF;
+  uint64_t i;
   for (i=1;i<=key_length;++i) {
     // Compute cells
     const uint64_t key_idx = forward_search ? (i-1) : (key_length-i);
-    const uint64_t del = next_column->cells[i-1] + 2;
-    const uint64_t sub = base_column->cells[i-1] + (text_char_enc==key[key_idx] ? 0 : 2);
-    const uint64_t ins = base_column->cells[i] + 2;
+    const uint32_t del = next_column->cells[i-1] + 2;
+    const uint32_t sub = base_column->cells[i-1] + (text_char_enc==key[key_idx] ? 0 : 2);
+    const uint32_t ins = base_column->cells[i] + 2;
     // Compute min
-    const uint64_t min2 = MIN(del,sub);
-    const uint64_t min3 = MIN(min2,ins);
+    const uint32_t min2 = MIN(del,sub);
+    const uint32_t min3 = MIN(min2,ins);
     next_column->cells[i] = min3;
     if (NS_DISTANCE_HAS_PRIORITY(min3,1)) column_min = MIN(column_min,min3); // Minimum with LOW priority
   }
   // Set min/align values
-  const uint64_t column_last = next_column->cells[key_length];
-  *min_val = NS_DISTANCE_DECODE(column_min);
-  *align_distance = NS_DISTANCE_HAS_PRIORITY(column_last,1) ? NS_DISTANCE_DECODE(column_last) : NS_DISTANCE_INF;
+  const uint32_t column_last = next_column->cells[key_length];
+  *min_val = (uint64_t)NS_DISTANCE_DECODE(column_min);
+  *align_distance = NS_DISTANCE_HAS_PRIORITY(column_last,1) ?
+      (uint64_t)NS_DISTANCE_DECODE(column_last) : (uint64_t)NS_DISTANCE_INF;
 }
 /*
  * Compute DP-Banded
@@ -162,13 +167,15 @@ void nsearch_levenshtein_state_compute_text_banded(
     const uint64_t text_length,
     const uint64_t max_error,
     uint64_t* const min_align_distance,
-    uint64_t* const min_align_distance_column) {
+    uint64_t* const min_align_distance_column,
+    mm_stack_t* const mm_stack) {
   uint64_t i, align_distance, dummy;
   *min_align_distance = NS_DISTANCE_INF;
   for (i=0;i<text_length;++i) {
     const uint8_t text_char_enc = text[i];
-    nsearch_levenshtein_state_compute_chararacter_banded(nsearch_state,
-        forward_search,key,key_length,i,text_char_enc,max_error,&dummy,&align_distance);
+    nsearch_levenshtein_state_compute_chararacter_banded(
+        nsearch_state,forward_search,key,key_length,i,
+        text_char_enc,max_error,&dummy,&align_distance,mm_stack);
     if (align_distance < *min_align_distance) {
       *min_align_distance = align_distance;
       *min_align_distance_column = i+1;
@@ -184,11 +191,17 @@ void nsearch_levenshtein_state_compute_chararacter_banded(
     const uint8_t text_char_enc,
     const uint64_t max_error,
     uint64_t* const min_val,
-    uint64_t* const align_distance) {
+    uint64_t* const align_distance,
+    mm_stack_t* const mm_stack) {
   // Index column (current_column=text_offset offset by 1)
   dp_matrix_t* const dp_matrix = &nsearch_state->dp_matrix;
   dp_column_t* const base_column = dp_matrix->columns + text_position;
-  dp_column_t* const next_column = base_column + 1;
+  dp_column_t* next_column = base_column + 1;
+  if (next_column->cells == NULL) { // Init (if needed)
+    next_column->cells = mm_stack_calloc(mm_stack,dp_matrix->num_rows+1,uint32_t,false);
+    nsearch_levenshtein_state_prepare_column(next_column,
+        text_position+1,nsearch_state->supercondensed);
+  }
   // Compute banded offsets
   const uint64_t row_limit = key_length+1;
   const uint64_t current_column = text_position+1;
@@ -203,29 +216,29 @@ void nsearch_levenshtein_state_compute_chararacter_banded(
     }
   }
   // Fill columns
-  uint64_t column_min = NS_DISTANCE_INF;
+  uint32_t column_min = NS_DISTANCE_INF;
   PROF_ADD_COUNTER(GP_NS_DP_CELLS_COMPUTED,v_banded_end-v_banded_begin);
   for (i=v_banded_begin;i<v_banded_end;++i) {
     // Compute cells
     const uint64_t key_idx = forward_search ? (i-1) : (key_length-i);
-    const uint64_t del = next_column->cells[i-1] + 2;
-    const uint64_t sub = base_column->cells[i-1] + (text_char_enc==key[key_idx] ? 0 : 2);
-    const uint64_t ins = base_column->cells[i] + 2;
+    const uint32_t del = next_column->cells[i-1] + 2;
+    const uint32_t sub = base_column->cells[i-1] + (text_char_enc==key[key_idx] ? 0 : 2);
+    const uint32_t ins = base_column->cells[i] + 2;
     // Compute min
-    const uint64_t min2 = MIN(del,sub);
-    const uint64_t min3 = MIN(min2,ins);
+    const uint32_t min2 = MIN(del,sub);
+    const uint32_t min3 = MIN(min2,ins);
     next_column->cells[i] = min3;
     if (NS_DISTANCE_HAS_PRIORITY(min3,1)) column_min = MIN(column_min,min3); // Minimum with LOW priority
   }
   next_column->cells[v_banded_end] = NS_DISTANCE_INF;
   // Set min/align values
-  *min_val = NS_DISTANCE_DECODE(column_min);
+  *min_val = (uint64_t)NS_DISTANCE_DECODE(column_min);
   if (v_banded_end == row_limit) {
-    const uint64_t column_last = next_column->cells[key_length];
+    const uint32_t column_last = next_column->cells[key_length];
     *align_distance = NS_DISTANCE_HAS_PRIORITY(column_last,1) ?
-        NS_DISTANCE_DECODE(column_last) : NS_DISTANCE_INF;
+        (uint64_t)NS_DISTANCE_DECODE(column_last) : (uint64_t)NS_DISTANCE_INF;
   } else {
-    *align_distance = NS_DISTANCE_INF;
+    *align_distance = (uint64_t)NS_DISTANCE_INF;
   }
 }
 

@@ -112,23 +112,27 @@ void approximate_search_neighborhood_search_partition(
   search_parameters_t* const search_parameters = search->search_parameters;
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
   pattern_t* const pattern = &search->pattern;
+  region_profile_clear(&search->region_profile); // Clear for scoring purposes
   // Generate Candidates (Select Alignment Model)
+  const bool dynamic_filtering = true;
   if (search_parameters->match_alignment_model == match_alignment_model_hamming) {
-    nsearch_hamming(search,matches);
+    nsearch_hamming(search,dynamic_filtering,matches);
   } else {
-    nsearch_levenshtein(search,matches);
+    nsearch_levenshtein(search,dynamic_filtering,matches);
   }
-  // Process+Verify candidates
-  PROF_START(GP_NS_VERIFICATION);
-  filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern,false);
-  filtering_candidates_verify_candidates(filtering_candidates,pattern);
-  PROF_STOP(GP_NS_VERIFICATION);
-  // Align
-  PROF_START(GP_NS_ALIGN);
-  filtering_candidates_align_candidates(filtering_candidates,pattern,false,false,matches);
-  PROF_STOP(GP_NS_ALIGN);
+  // Process+Verify+Align candidates
+  if (!dynamic_filtering) {
+    PROF_START(GP_NS_VERIFICATION);
+    filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern,false);
+    filtering_candidates_verify_candidates(filtering_candidates,pattern);
+    PROF_STOP(GP_NS_VERIFICATION);
+    PROF_START(GP_NS_ALIGN);
+    filtering_candidates_align_candidates(filtering_candidates,pattern,false,false,matches);
+    PROF_STOP(GP_NS_ALIGN);
+  }
   // Finish Search
-  approximate_search_update_mcs(search,search->current_max_complete_error+1);
+  const uint64_t mcs_reached = search->nsearch_schedule->current_mcs;
+  approximate_search_update_mcs(search,mcs_reached);
   approximate_search_end(search,matches);
   PROFILE_STOP(GP_AS_NEIGHBORHOOD_SEARCH,PROFILE_LEVEL);
 }
@@ -148,20 +152,23 @@ void approximate_search_neighborhood_search_partition_preconditioned(
   // Compute error limits
   region_profile_compute_error_limits(region_profile,mcs,max_complete_error);
   // Generate Candidates (Select Alignment Model)
+  const bool dynamic_filtering = true;
   if (search_parameters->match_alignment_model == match_alignment_model_hamming) {
-    nsearch_hamming_preconditioned(search,matches);
+    nsearch_hamming_preconditioned(search,dynamic_filtering,matches);
   } else {
-    nsearch_levenshtein_preconditioned(search,matches);
+    nsearch_levenshtein_preconditioned(search,dynamic_filtering,matches);
   }
-  // Process+Verify candidates
-  PROF_START(GP_NS_VERIFICATION);
-  filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern,false);
-  filtering_candidates_verify_candidates(filtering_candidates,pattern);
-  PROF_STOP(GP_NS_VERIFICATION);
-  // Align
-  PROF_START(GP_NS_ALIGN);
-  filtering_candidates_align_candidates(filtering_candidates,pattern,false,false,matches);
-  PROF_STOP(GP_NS_ALIGN);
+  // Process+Verify+Align candidates
+  if (!dynamic_filtering) {
+    PROF_START(GP_NS_VERIFICATION);
+    filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern,false);
+    filtering_candidates_verify_candidates(filtering_candidates,pattern);
+    PROF_STOP(GP_NS_VERIFICATION);
+    PROF_START(GP_NS_ALIGN);
+    filtering_candidates_align_candidates(filtering_candidates,pattern,false,false,matches);
+    PROF_STOP(GP_NS_ALIGN);
+  }
   // Update MCS
-  approximate_search_update_mcs(search,max_complete_error+1);
+  const uint64_t mcs_reached = search->nsearch_schedule->current_mcs;
+  approximate_search_update_mcs(search,mcs_reached);
 }

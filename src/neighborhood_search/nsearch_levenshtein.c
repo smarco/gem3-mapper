@@ -8,65 +8,10 @@
 
 #include "neighborhood_search/nsearch_levenshtein.h"
 #include "neighborhood_search/nsearch_levenshtein_state.h"
+#include "neighborhood_search/nsearch_levenshtein_query.h"
+#include "neighborhood_search/nsearch_levenshtein_control.h"
 #include "neighborhood_search/nsearch_partition.h"
 
-/*
- * Query
- */
-void nsearch_levenshtein_query(
-    nsearch_schedule_t* const nsearch_schedule,
-    nsearch_operation_t* const nsearch_operation,
-    const uint64_t current_position,
-    const uint8_t char_enc,
-    const uint64_t lo_in,
-    const uint64_t hi_in,
-    uint64_t* const lo_out,
-    uint64_t* const hi_out) {
-#ifdef NSEARCH_ENUMERATE
-  nsearch_schedule->pending_searches->text[current_position] = char_enc;
-  *lo_out = 0; *hi_out = 1;
-#else
-  fm_index_t* const fm_index = nsearch_schedule->archive->fm_index;
-  *lo_out = bwt_erank(fm_index->bwt,char_enc,lo_in);
-  *hi_out = bwt_erank(fm_index->bwt,char_enc,hi_in);
-#endif
-}
-uint64_t nsearch_levenshtein_terminate(
-    nsearch_schedule_t* const nsearch_schedule,
-    const uint64_t text_position,
-    uint64_t lo,
-    uint64_t hi,
-    const uint64_t align_distance) {
-  // PROFILE
-  PROF_ADD_COUNTER(GP_NS_SEARCH_DEPTH,text_position);
-  PROF_ADD_COUNTER(GP_NS_BRANCH_CANDIDATES_GENERATED,(hi-lo));
-#ifdef NSEARCH_ENUMERATE
-  const uint8_t* const text = nsearch_schedule->pending_searches->text;
-  dna_buffer_print(stdout,text,text_position+1,true);
-  fprintf(stdout,"\n");
-  return 1;
-#else
-  // Parameters
-  filtering_candidates_t* const filtering_candidates = nsearch_schedule->filtering_candidates;
-  search_parameters_t* const search_parameters = nsearch_schedule->search_parameters;
-  select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;
-  pattern_t* const pattern = nsearch_schedule->pattern;
-  // FIXME: Depending on the mapping-strategy regulate this (avoid on complete-search)
-  // Limit the number of candidates (cases than can exponentially explode)
-  if (select_parameters->min_reported_strata_nominal==0) {
-    const uint64_t num_candidates = hi - lo;
-    if (num_candidates > select_parameters->max_reported_matches) {
-      hi = lo + select_parameters->max_reported_matches;
-    }
-  }
-  // Add candidates to filtering
-  bool limited;
-  filtering_candidates_add_positions_from_interval(
-      filtering_candidates,search_parameters,pattern,
-      lo,hi,0,pattern->key_length,align_distance,&limited);
-  return hi-lo;
-#endif
-}
 /*
  * Levenshtein Brute Force
  */
@@ -133,8 +78,8 @@ void nsearch_levenshtein_brute_force(
   // Init
   nsearch_schedule_init(
       search->nsearch_schedule,nsearch_model_levenshtein,
-      search->current_max_complete_error,search->archive,
-      &search->pattern,&search->region_profile,
+      search->current_max_complete_error,false,
+      search->archive,&search->pattern,&search->region_profile,
       search->search_parameters,search->filtering_candidates,
       matches);
   nsearch_operation_t* const nsearch_operation = search->nsearch_schedule->pending_searches;
@@ -161,12 +106,13 @@ void nsearch_levenshtein_brute_force(
  */
 void nsearch_levenshtein(
     approximate_search_t* const search,
+    const bool dynamic_filtering,
     matches_t* const matches) {
   // Search
   nsearch_schedule_init(
       search->nsearch_schedule,nsearch_model_levenshtein,
-      search->current_max_complete_error,search->archive,
-      &search->pattern,&search->region_profile,
+      search->current_max_complete_error,dynamic_filtering,
+      search->archive,&search->pattern,&search->region_profile,
       search->search_parameters,search->filtering_candidates,
       matches);
   nsearch_schedule_search(search->nsearch_schedule);
@@ -184,12 +130,13 @@ void nsearch_levenshtein(
  */
 void nsearch_levenshtein_preconditioned(
     approximate_search_t* const search,
+    const bool dynamic_filtering,
     matches_t* const matches) {
   // Search
   nsearch_schedule_init(
       search->nsearch_schedule,nsearch_model_levenshtein,
-      search->current_max_complete_error,search->archive,
-      &search->pattern,&search->region_profile,
+      search->current_max_complete_error,dynamic_filtering,
+      search->archive,&search->pattern,&search->region_profile,
       search->search_parameters,search->filtering_candidates,
       matches);
   nsearch_schedule_search_preconditioned(search->nsearch_schedule);

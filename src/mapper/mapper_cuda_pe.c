@@ -8,6 +8,7 @@
 #include "mapper/mapper_cuda_pe.h"
 #include "mapper/mapper.h"
 #include "mapper/mapper_bisulfite.h"
+#include "mapper/mapper_io.h"
 #include "io/input_file.h"
 #include "archive/search/archive_search_pe.h"
 #include "archive/search/archive_search_pe_stepwise.h"

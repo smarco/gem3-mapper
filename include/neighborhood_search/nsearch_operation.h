@@ -52,7 +52,8 @@ bool nsearch_operation_chained_prepare(
     nsearch_operation_t* const next_nsearch_operation,
     uint8_t* const key,
     const uint64_t key_length,
-    const bool reverse_sequence);
+    const bool reverse_sequence,
+    mm_stack_t* const mm_stack);
 
 /*
  * Utils

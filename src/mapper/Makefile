@@ -20,6 +20,8 @@ MODULES=mapper_bisulfite \
         mapper_cuda \
         mapper_cuda_pe \
         mapper_cuda_se \
+        mapper_io \
+        mapper_parameters \
         mapper_profile \
         mapper_profile_cuda \
         mapper_profile_misc \

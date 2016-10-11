@@ -11,6 +11,7 @@
 
 #include "utils/essentials.h"
 #include "text/text_collection.h"
+#include "align/align_swg_score.h"
 #include "archive/locator.h"
 #include "archive/search/archive_select_parameters.h"
 #include "matches/matches_counters.h"
@@ -164,6 +165,17 @@ void matches_add_pending_local_matches(
 void matches_filter_by_mapq(
     matches_t* const matches,
     const uint8_t mapq_threshold);
+
+/*
+ * Condition Test
+ */
+bool matches_max_matches_reached(
+    matches_t* const matches,
+    const uint64_t mcs,
+    const uint64_t key_length,
+    const uint64_t min_reported_strata_nominal,
+    const uint64_t max_reported_matches,
+    swg_penalties_t* const swg_penalties);
 
 /*
  * Display
