@@ -12,6 +12,7 @@
 #include "filtering/candidates/filtering_candidates_process.h"
 #include "filtering/candidates/filtering_candidates_verify.h"
 #include "filtering/candidates/filtering_candidates_align.h"
+#include "matches/matches_test.h"
 
 /*
  * Search candidates cut-off
@@ -34,9 +35,9 @@ bool nsearch_levenshtein_candidates_cutoff(
     next_nsearch_query->num_eq_candidates_steps = 0; // Restart
   }
   next_nsearch_query->prev_num_candidates = num_candidates;
-//  // Check direct filtering step
-//  const uint64_t ns_quick_filtering_threshold = search_parameters->region_profile_model.ns_quick_filtering_threshold;
-//  if (num_candidates <= ns_quick_filtering_threshold) return true; // Cut-off
+  // Check direct filtering step
+  const uint64_t ns_quick_filtering_threshold = search_parameters->region_profile_model.ns_quick_filtering_threshold;
+  if (num_candidates <= ns_quick_filtering_threshold) return true; // Cut-off
   // Check optimization steps (if number of candidates below threshold)
   const uint64_t ns_opt_filtering_threshold = search_parameters->region_profile_model.ns_opt_filtering_threshold;
   if (num_candidates <= ns_opt_filtering_threshold) {
@@ -139,21 +140,6 @@ uint64_t nsearch_levenshtein_scheduled_terminate(
   filtering_candidates_add_positions_from_interval(
       filtering_candidates,search_parameters,pattern,fm_2interval->backward_lo,
       fm_2interval->backward_hi,region_begin,region_end,align_distance,&limited);
-  // Dynamic filtering
-  if (nsearch_schedule->dynamic_filtering) {
-    // Process+Verify candidates
-    PROF_START(GP_NS_VERIFICATION);
-    filtering_candidates_process_candidates(filtering_candidates,nsearch_schedule->pattern,false);
-    filtering_candidates_verify_candidates(filtering_candidates,pattern);
-    PROF_STOP(GP_NS_VERIFICATION);
-    // Align
-    PROF_START(GP_NS_ALIGN);
-    filtering_candidates_align_candidates(filtering_candidates,
-        pattern,false,false,nsearch_schedule->matches);
-    PROF_STOP(GP_NS_ALIGN);
-    // Check quick-abandon condition
-    nsearch_schedule->quick_abandon = nsearch_levenshtein_matches_cutoff(nsearch_schedule);
-  }
   // Return
   return fm_2interval->backward_hi-fm_2interval->backward_lo;
 #endif

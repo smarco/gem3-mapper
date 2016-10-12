@@ -136,6 +136,24 @@ void nsearch_schedule_search_step(
         GEM_INVALID_CASE();
         break;
     }
+    // Dynamic filtering
+    if (nsearch_schedule->dynamic_filtering) {
+      // Process+Verify candidates
+      PROF_START(GP_NS_VERIFICATION);
+      filtering_candidates_process_candidates(
+          nsearch_schedule->filtering_candidates,nsearch_schedule->pattern,false);
+      filtering_candidates_verify_candidates(
+          nsearch_schedule->filtering_candidates,nsearch_schedule->pattern);
+      PROF_STOP(GP_NS_VERIFICATION);
+      // Align
+      PROF_START(GP_NS_ALIGN);
+      filtering_candidates_align_candidates(
+          nsearch_schedule->filtering_candidates,nsearch_schedule->pattern,
+          false,false,nsearch_schedule->matches);
+      PROF_STOP(GP_NS_ALIGN);
+      // Check quick-abandon condition
+      nsearch_schedule->quick_abandon = nsearch_levenshtein_matches_cutoff(nsearch_schedule);
+    }
   } else {
     const uint64_t num_pending_searches = nsearch_schedule->num_pending_searches;
     // Compute error partition
