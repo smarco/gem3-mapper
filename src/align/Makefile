@@ -19,7 +19,6 @@
 #
 # PROJECT: GEM-Mapper v3 (GEM3)
 # AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
-# DESCRIPTION: Makefile to build all the alignment modules
 ###############################################################################
 
 ###############################################################################
