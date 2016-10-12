@@ -114,7 +114,7 @@ void approximate_search_neighborhood_search_partition(
   pattern_t* const pattern = &search->pattern;
   region_profile_clear(&search->region_profile); // Clear for scoring purposes
   // Generate Candidates (Select Alignment Model)
-  const bool dynamic_filtering = true;
+  const bool dynamic_filtering = false;
   if (search_parameters->match_alignment_model == match_alignment_model_hamming) {
     nsearch_hamming(search,dynamic_filtering,matches);
   } else {

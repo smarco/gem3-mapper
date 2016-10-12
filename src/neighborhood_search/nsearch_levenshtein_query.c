@@ -9,6 +9,27 @@
 #include "neighborhood_search/nsearch_levenshtein_query.h"
 
 /*
+ * Setup
+ */
+void nsearch_query_init(
+    nsearch_query_t* const nsearch_query,
+    fm_index_t* const fm_index) {
+  // Init interval
+#ifdef NSEARCH_ENUMERATE
+  nsearch_query->fm_2interval.backward_lo = 0;
+  nsearch_query->fm_2interval.backward_hi = 1;
+  nsearch_query->fm_2interval.forward_lo = 0;
+  nsearch_query->fm_2interval.forward_hi = 1;
+#else
+  fm_index_2query_init(fm_index,&nsearch_query->fm_2interval);
+#endif
+  // Init query cut-offs
+  nsearch_query->num_optimization_steps = 0;
+  nsearch_query->num_eq_candidates_steps = 0;
+  nsearch_query->prev_num_candidates = UINT64_MAX;
+}
+
+/*
  * Standard search query
  */
 void nsearch_levenshtein_query(

@@ -91,7 +91,7 @@ int32_t align_swg_score_compute_max_score_bound(
 /*
  * Bounding edit distance
  */
-int32_t align_swg_score_compute_min_edit_bound(
+int32_t align_swg_score_compute_max_edit_bound(
     const swg_penalties_t* const swg_penalties,
     const uint64_t swg_score,
     const uint64_t key_length);

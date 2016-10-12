@@ -42,7 +42,7 @@ FOLDER_TOOLS=$(ROOT_PATH)/tools
 HAVE_ZLIB = 1
 HAVE_BZLIB = 1
 HAVE_OPENMP = 1
-HAVE_CUDA = 1
+HAVE_CUDA = 0
 HAVE_LTO = 1
 HAVE_GOLD = 1
 
@@ -58,8 +58,54 @@ ifeq ($(VTUNE),true)
   FLAGS_GEM_VTUNE=-DGEM_VTUNE
 endif
 
+FLAGS_GCC_WARNINGS0=-Wcast-align \
+                    -Wlogical-op \
+                    -Wmaybe-uninitialized \
+                    -Wshadow \
+                    -Wstrict-aliasing=1 \
+                    -Wtype-limits \
+                    -Wuninitialized \
+                    -Wunused
+                    
+FLAGS_GCC_WARNINGS1=-Wconversion \
+                    -Wdouble-promotion \
+                    -Wfloat-conversion \
+                    -Wsign-compare \
+                    -Wsign-conversion \
+                    -Wcast-qual \
+                    -Wunused-parameter
+                   
+FLAGS_GCC_WARNINGS2=-Waggregate-return \
+                    -Wempty-body \
+                    -Wfloat-equal \
+                    -Wignored-qualifiers \
+                    -Wimplicit-fallthrough \
+                    -Wjump-misses-init \
+                    -Wmissing-field-initializers \
+                    -Wmissing-format-attribute \
+                    -Wno-aggressive-loop-optimizations \
+                    -Wpadded \
+                    -Wredundant-decls \
+                    -Wswitch-default \
+                    -Wswitch-enum \
+                    -Wunsafe-loop-optimizations \
+                    -Wuseless-cast
+
+FLAGS_GCC_WARNINGS3=-pedantic \
+                    -Wextra \
+                    -Wdangling-else \
+                    -Wtautological-compare \
+                    -Wduplicated-cond \
+                    -Wnull-dereference \
+                    -Wswitch-bool \
+                    -Wswitch-unreachable \
+                    -Wshift-overflow=2 \
+                    -Wshift-negative-value \
+                    -Wtraditional \
+                    -Wtraditional-conversion 
+                   
 ## Base flags (Generic Compiler)
-FLAGS_GENERAL=-Wall -std=c99
+FLAGS_GENERAL=-std=c99 -Wall # $(FLAGS_GCC_WARNINGS0)
 FLAGS_SUPPRESS_CHECKS=-DNDEBUG
 FLAGS_OPT=-O4
 FLAGS_DEVEL=-g

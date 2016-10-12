@@ -109,24 +109,20 @@
 #define GP_AS_NEIGHBORHOOD_SEARCH                           168
 #define GP_AS_NEIGHBORHOOD_SEARCH_MCS                       169
 #define GP_AS_NEIGHBORHOOD_SEARCH_CALL                      170
-#define GP_AS_NEIGHBORHOOD_SEARCH_CALL_UNMAPPED             171
-#define GP_AS_NEIGHBORHOOD_SEARCH_CALL_MAP_INCOMPLETE       172
-#define GP_AS_NEIGHBORHOOD_SEARCH_CALL_MAP_FRONTIER         173
-#define GP_AS_LOCAL_ALIGN                                   174
-#define GP_AS_LOCAL_ALIGN_CALL                              176
+#define GP_AS_LOCAL_ALIGN                                   171
+#define GP_AS_LOCAL_ALIGN_CALL                              172
 
-#define GP_AS_GENERATE_CANDIDATES                           185
-#define GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS      186
-#define GP_AS_GENERATE_CANDIDATES_PROCESSED                 195
-#define GP_AS_GENERATE_CANDIDATES_SKIPPED                   196
-#define GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING         197
+#define GP_AS_GENERATE_CANDIDATES                           205
+#define GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS      206
+#define GP_AS_GENERATE_CANDIDATES_PROCESSED                 205
+#define GP_AS_GENERATE_CANDIDATES_SKIPPED                   206
+#define GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING         207
 
-#define GP_ASSW_REGION_PROFILE_UNSUCCESSFUL                 200
-//#define GP_ASSW_REGION_PROFILE_
-#define GP_ASSW_DECODE_CANDIDATES_COPIED                    201
-#define GP_ASSW_DECODE_CANDIDATES_RETRIVED                  202
-#define GP_ASSW_VERIFY_CANDIDATES_TILES_COPIED              203
-#define GP_ASSW_VERIFY_CANDIDATES_TILES_RETRIVED            204
+#define GP_ASSW_REGION_PROFILE_UNSUCCESSFUL                 220
+#define GP_ASSW_DECODE_CANDIDATES_COPIED                    221
+#define GP_ASSW_DECODE_CANDIDATES_RETRIVED                  222
+#define GP_ASSW_VERIFY_CANDIDATES_TILES_COPIED              223
+#define GP_ASSW_VERIFY_CANDIDATES_TILES_RETRIVED            224
 
 /*
  * Region Profile
@@ -245,14 +241,27 @@
 #define GP_MATCHES_MAPS_ADDED                               590
 #define GP_MATCHES_MAPS_DUP                                 591
 
+#define GP_MATCHES_ACCURACY_CASE_CALLS                      600
+#define GP_MATCHES_ACCURACY_CASE_HIT                        601
+#define GP_MATCHES_ACCURACY_CASE_MISS                       602
+
+#define GP_MATCHES_ACCURACY_CASE_MAX_MATCHES                603
+#define GP_MATCHES_ACCURACY_CASE_UNMAPPED                   604
+#define GP_MATCHES_ACCURACY_CASE_TIE                        605
+#define GP_MATCHES_ACCURACY_CASE_MMAP_D1                    606
+#define GP_MATCHES_ACCURACY_CASE_MMAP                       607
+#define GP_MATCHES_ACCURACY_CASE_UNIQUE                     608
+#define GP_MATCHES_ACCURACY_CASE_MAP_INCOMPLETE             609
+#define GP_MATCHES_ACCURACY_CASE_MAP_FRONTIER               610
+
 /*
  * SWG
  */
-#define GP_SWG_ALIGN_FULL                                   600
-#define GP_SWG_ALIGN_FULL_LENGTH                            601
-#define GP_SWG_ALIGN_BANDED                                 602
-#define GP_SWG_ALIGN_BANDED_LENGTH                          603
-#define GP_SWG_ALIGN_BANDED_CELLS                           604
+#define GP_SWG_ALIGN_FULL                                   620
+#define GP_SWG_ALIGN_FULL_LENGTH                            621
+#define GP_SWG_ALIGN_BANDED                                 622
+#define GP_SWG_ALIGN_BANDED_LENGTH                          623
+#define GP_SWG_ALIGN_BANDED_CELLS                           624
 
 /*
  * Neighborhood Search

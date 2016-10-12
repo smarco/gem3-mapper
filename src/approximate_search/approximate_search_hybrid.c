@@ -59,21 +59,12 @@ asearch_stage_t as_hybrid_control_filtering_adaptive_next_state(
         if (search->pattern.num_wildcards > search->current_max_complete_error) {
           return asearch_stage_end;
         } else {
+          PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL);
           return asearch_stage_neighborhood;
         }
       case asearch_processing_state_candidates_verified:
         if (!asearch_control_test_accuracy__adjust_depth(search,matches)) {
-  #ifdef GEM_PROFILE
           PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL);
-          if (!matches_is_mapped(matches)) {
-            PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_UNMAPPED);
-          } else {
-            const uint64_t mcs = search->region_profile.num_filtered_regions;
-            const uint64_t min_edit_distance = matches_metrics_get_min_edit_distance(&matches->metrics);
-            if (min_edit_distance+1 == mcs) PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_MAP_FRONTIER);
-            if (min_edit_distance >= mcs) PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_MAP_INCOMPLETE);
-          }
-  #endif
           return asearch_stage_neighborhood;
         } else {
           return asearch_stage_end;
@@ -91,6 +82,7 @@ asearch_stage_t as_hybrid_control_filtering_adaptive_next_state(
     if (search->current_max_complete_error <= mcs-1) return asearch_stage_end;
     if (search->pattern.num_wildcards > search->current_max_complete_error) return asearch_stage_end;
     // NS
+    PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL);
     return asearch_stage_neighborhood;
   }
 }

@@ -422,30 +422,6 @@ void matches_filter_by_mapq(
   vector_update_used(matches->match_traces,match_out);
 }
 /*
- * Condition Test
- */
-bool matches_max_matches_reached(
-    matches_t* const matches,
-    const uint64_t mcs,
-    const uint64_t key_length,
-    const uint64_t min_reported_strata_nominal,
-    const uint64_t max_reported_matches,
-    swg_penalties_t* const swg_penalties) {
-  if (matches_is_mapped(matches) && min_reported_strata_nominal==0) {
-    const uint64_t num_matches = matches_get_num_match_traces(matches);
-    if (num_matches >= max_reported_matches) {
-      match_trace_t** const match_traces = matches_get_match_traces(matches);
-      // All matches beyond top_match will have lower swg-score
-      const match_trace_t* const top_match = match_traces[max_reported_matches-1];
-      const uint64_t bounded_edit_distance =
-          align_swg_score_compute_min_edit_bound(swg_penalties,top_match->swg_score,key_length);
-      // MCS sets the possibility of finding matches with distance max_error_reached+1
-      if (bounded_edit_distance <= mcs) return true;
-    }
-  }
-  return false;
-}
-/*
  * Display
  */
 void matches_print(

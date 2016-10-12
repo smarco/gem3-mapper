@@ -19,6 +19,7 @@
 /*
  * Levenshtein Scheduled Search
  */
-uint64_t nsearch_levenshtein_scheduled_search(nsearch_schedule_t* const nsearch_schedule);
+uint64_t nsearch_levenshtein_scheduled_search(
+    nsearch_schedule_t* const nsearch_schedule);
 
 #endif /* NSEARCH_LEVENSHTEIN_SCHEDULED_H_ */

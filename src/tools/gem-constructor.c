@@ -704,7 +704,9 @@ void constructor_ns_init(
   search->pattern.key_length = key_length;
   // Configure search-parameters
   search_parameters_t* search_parameters = mm_stack_alloc(mm_stack,search_parameters_t);
-  search_parameters->region_profile_model.ns_filtering_threshold = 0;
+  search_parameters->region_profile_model.ns_opt_filtering_threshold = 0;
+  search_parameters->region_profile_model.ns_quick_filtering_threshold = 0;
+  search_parameters->region_profile_model.ns_max_eq_candidates_steps = 10000;
   search->search_parameters = search_parameters;
 }
 void constructor_ns_hamming_brute() {

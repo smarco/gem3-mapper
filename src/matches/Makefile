@@ -22,6 +22,7 @@ SUBDIRS=align \
 MODULES=matches \
         matches_cigar \
         matches_counters \
+        matches_test \
         paired_map \
         paired_matches
 

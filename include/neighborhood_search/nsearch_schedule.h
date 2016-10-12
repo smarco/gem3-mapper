@@ -69,6 +69,7 @@ typedef struct {
   uint64_t max_error;                           // Max-error search allowed
   uint64_t current_mcs;                         // Current mcs reached
   bool dynamic_filtering;                       // Dynamic filtering (per branch closed)
+  bool quick_abandon;                           // Quick abandon
   // Scheduler Operations
   nsearch_operation_t* pending_searches;        // Pending search operations
   uint64_t num_pending_searches;                // Total pending operations

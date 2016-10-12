@@ -243,8 +243,7 @@ void approximate_search_end(
     matches_metrics_set_limited_candidates(&matches->metrics,true);
   }
   // Update MCS (maximum complete stratum)
-  pattern_t* const pattern = &search->pattern;
-  approximate_search_update_mcs(search,search->region_profile.num_filtered_regions + pattern->num_wildcards);
+  approximate_search_update_mcs(search,search->region_profile.num_filtered_regions); // (+ pattern->num_wildcards)
   matches_update_mcs(matches,search->current_max_complete_stratum);
   PROF_ADD_COUNTER(GP_AS_MCS,search->current_max_complete_stratum);
 }

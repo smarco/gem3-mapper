@@ -20,8 +20,17 @@ typedef struct {
   fm_2interval_t fm_2interval;
   fm_2erank_elms_t lo_2erank_elms;
   fm_2erank_elms_t hi_2erank_elms;
-  uint64_t max_steps;
+  uint64_t num_optimization_steps;
+  uint64_t num_eq_candidates_steps;
+  uint64_t prev_num_candidates;
 } nsearch_query_t;
+
+/*
+ * Setup
+ */
+void nsearch_query_init(
+    nsearch_query_t* const nsearch_query,
+    fm_index_t* const fm_index);
 
 /*
  * Standard search query

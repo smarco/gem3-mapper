@@ -279,6 +279,7 @@ void mapper_profile_print_approximate_search(FILE* const stream) {
   tab_fprintf(stream,"      => TIME.Local.Alignment                 ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_LOCAL_ALIGN),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"  |> Approximate.Search.Stages\n");
+  //
   tab_fprintf(stream,"    --> Approximate.Search                    ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MAPPER_NUM_READS),
       PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
@@ -288,18 +289,10 @@ void mapper_profile_print_approximate_search(FILE* const stream) {
   tab_fprintf(stream,"      --> Neighborhood.Search                 ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL),
       PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
-  tab_fprintf(stream,"        --> Neighborhood.Search.Unmapped      ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_UNMAPPED),
-      PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
-  tab_fprintf(stream,"        --> Neighborhood.Search.Incomplete    ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_MAP_INCOMPLETE),
-      PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
-  tab_fprintf(stream,"        --> Neighborhood.Search.Frontier      ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL_MAP_FRONTIER),
-      PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
   tab_fprintf(stream,"      --> Local.Alignment                     ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_LOCAL_ALIGN_CALL),
       PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
+  //
   tab_fprintf(stream,"    --> MCS.Approximate.Search                ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_MCS),
       PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"mcs  ",true);
@@ -309,6 +302,40 @@ void mapper_profile_print_approximate_search(FILE* const stream) {
   tab_fprintf(stream,"      --> MCS.Neighborhood.Search             ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_MCS),
       PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"mcs  ",true);
+  //
+  tab_fprintf(stream,"    --> Accuracy.Control                      ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_CALLS),
+      PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_CALLS),"calls",true);
+  tab_fprintf(stream,"      --> Accuracy.Hit                        ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_HIT),
+      PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_CALLS),"calls",true);
+  tab_fprintf(stream,"      --> Accuracy.Miss                       ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_MISS),
+      PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_CALLS),"calls",true);
+  tab_fprintf(stream,"        --> Accuracy.Miss.Unmapped            ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_UNMAPPED),
+      PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_CALLS),"calls",true);
+  tab_fprintf(stream,"        --> Accuracy.Miss.Tie                 ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_TIE),
+      PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_CALLS),"calls",true);
+  tab_fprintf(stream,"        --> Accuracy.Miss.MMapsD1             ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_MMAP_D1),
+      PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_CALLS),"calls",true);
+  tab_fprintf(stream,"        --> Accuracy.Miss.MMaps               ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_MMAP),
+      PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_CALLS),"calls",true);
+  tab_fprintf(stream,"        --> Accuracy.Miss.Unique              ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_UNIQUE),
+      PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_CALLS),"calls",true);
+  tab_fprintf(stream,"        --> Accuracy.Miss.Incomplete          ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_MAP_INCOMPLETE),
+      PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_CALLS),"calls",true);
+  tab_fprintf(stream,"        --> Accuracy.Miss.Frontier            ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_MAP_FRONTIER),
+      PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_CALLS),"calls",true);
+  tab_fprintf(stream,"        --> Accuracy.Miss.Rescued.MaxMatches  ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_MAX_MATCHES),
+      PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_CALLS),"calls",true);
 }
 /*
  * Ranks Profile

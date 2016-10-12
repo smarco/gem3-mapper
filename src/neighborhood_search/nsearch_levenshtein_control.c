@@ -23,21 +23,43 @@ bool nsearch_levenshtein_candidates_cutoff(
     nsearch_query_t* const next_nsearch_query) {
   // Parameters
   search_parameters_t* const search_parameters = nsearch_schedule->search_parameters;
-  const uint64_t ns_filtering_threshold = search_parameters->region_profile_model.ns_filtering_threshold;
-  // Check number of candidates
-  if (num_candidates <= ns_filtering_threshold) {
-    if (nsearch_query->max_steps==0) {
-      next_nsearch_query->max_steps = search_parameters->region_profile_model.max_steps;
-      return false;
+  // Check equal number of candidates
+  if (num_candidates == nsearch_query->prev_num_candidates) {
+    // Inc. steps with equal number of candidates
+    next_nsearch_query->num_eq_candidates_steps = nsearch_query->num_eq_candidates_steps + 1;
+    // Check max. steps with equal number of candidates
+    const uint64_t ns_max_eq_candidates_steps = search_parameters->region_profile_model.ns_max_eq_candidates_steps;
+    if (next_nsearch_query->num_eq_candidates_steps >= ns_max_eq_candidates_steps) return true; // Cut-off
+  } else {
+    next_nsearch_query->num_eq_candidates_steps = 0; // Restart
+  }
+  next_nsearch_query->prev_num_candidates = num_candidates;
+//  // Check direct filtering step
+//  const uint64_t ns_quick_filtering_threshold = search_parameters->region_profile_model.ns_quick_filtering_threshold;
+//  if (num_candidates <= ns_quick_filtering_threshold) return true; // Cut-off
+  // Check optimization steps (if number of candidates below threshold)
+  const uint64_t ns_opt_filtering_threshold = search_parameters->region_profile_model.ns_opt_filtering_threshold;
+  if (num_candidates <= ns_opt_filtering_threshold) {
+    if (nsearch_query->num_optimization_steps==0) {
+      next_nsearch_query->num_optimization_steps = search_parameters->region_profile_model.max_steps;
     } else {
-      if (nsearch_query->max_steps == 1) return true;
-      next_nsearch_query->max_steps = nsearch_query->max_steps - 1;
-      return false;
+      if (nsearch_query->num_optimization_steps == 1) return true; // Cut-off
+      next_nsearch_query->num_optimization_steps = nsearch_query->num_optimization_steps - 1;
     }
   } else {
-    next_nsearch_query->max_steps = 0;
-    return false;
+    next_nsearch_query->num_optimization_steps = 0;
   }
+  return false;
+}
+bool nsearch_levenshtein_matches_cutoff(
+    nsearch_schedule_t* const nsearch_schedule) {
+  uint64_t dummy = 0;
+  return matches_test_accuracy_reached(
+      nsearch_schedule->matches,
+      nsearch_schedule->current_mcs,
+      nsearch_schedule->pattern->key_length,
+      nsearch_schedule->search_parameters,
+      nsearch_schedule->max_error,&dummy);
 }
 /*
  * Standard search terminate search-branch
@@ -60,16 +82,7 @@ uint64_t nsearch_levenshtein_terminate(
   // Parameters
   filtering_candidates_t* const filtering_candidates = nsearch_schedule->filtering_candidates;
   search_parameters_t* const search_parameters = nsearch_schedule->search_parameters;
-  select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;
   pattern_t* const pattern = nsearch_schedule->pattern;
-  // FIXME: Depending on the mapping-strategy regulate this (avoid on complete-search)
-  // Limit the number of candidates (cases than can exponentially explode)
-  if (select_parameters->min_reported_strata_nominal==0) {
-    const uint64_t num_candidates = hi - lo;
-    if (num_candidates > select_parameters->max_reported_matches) {
-      hi = lo + select_parameters->max_reported_matches;
-    }
-  }
   // Add candidates to filtering
   bool limited;
   filtering_candidates_add_positions_from_interval(
@@ -138,8 +151,8 @@ uint64_t nsearch_levenshtein_scheduled_terminate(
     filtering_candidates_align_candidates(filtering_candidates,
         pattern,false,false,nsearch_schedule->matches);
     PROF_STOP(GP_NS_ALIGN);
-    // Check max-matches quit condition
-    // TODO
+    // Check quick-abandon condition
+    nsearch_schedule->quick_abandon = nsearch_levenshtein_matches_cutoff(nsearch_schedule);
   }
   // Return
   return fm_2interval->backward_hi-fm_2interval->backward_lo;

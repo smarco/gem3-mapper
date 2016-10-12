@@ -28,6 +28,7 @@
 #include "matches/classify/matches_classify.h"
 #include "matches/classify/matches_classify_logit.h"
 #include "matches/classify/matches_classify_logit_models.h"
+#include "matches/matches_test.h"
 
 /*
  * Search Limits
@@ -54,11 +55,9 @@ bool asearch_control_max_matches_reached(
     approximate_search_t* const search,
     matches_t* const matches) {
   search_parameters_t* const search_parameters = search->search_parameters;
-  select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;
-  return matches_max_matches_reached(
-      matches,search->region_profile.num_filtered_regions,search->pattern.key_length,
-      select_parameters->min_reported_strata_nominal,select_parameters->max_reported_matches,
-      &search_parameters->swg_penalties);
+  return matches_test_max_matches_reached(
+      matches,search->region_profile.num_filtered_regions,
+      search->pattern.key_length,search_parameters);
 }
 /*
  * Pattern test
@@ -78,46 +77,18 @@ bool asearch_control_test_pattern(
 bool asearch_control_test_accuracy__adjust_depth(
     approximate_search_t* const search,
     matches_t* const matches) {
-  // Parameters
-  search_parameters_t* const search_parameters = search->search_parameters;
-  const uint64_t mcs = search->region_profile.num_filtered_regions; // (max_error_reached = mcs-1)
-  const uint64_t delta = search_parameters->complete_strata_after_best_nominal;
   // Test pattern
   if (search->pattern.num_wildcards > search->current_max_complete_error) return true; // Done!
-  // Classify
-  const uint64_t min_edit_distance = matches_metrics_get_min_edit_distance(&matches->metrics);
-  matches_classify(matches);
-  switch (matches->matches_class) {
-    case matches_class_unmapped: // Unmapped (not enough search depth)
-      search->current_max_complete_error = mcs + delta; // Adjust max-error
-      break;// Not done
-    case matches_class_tie_perfect:
-    case matches_class_tie:
-      if (min_edit_distance <= mcs+1) { // (0:2+0:0) && (0+0:2:0) but not (0+0:0:2)
-        if (!search_parameters->search_paired_parameters.paired_end_search) return true; // Done!
-      }
-      search->current_max_complete_error = mcs + delta; // Adjust max-error
-      break; // Not done
-    case matches_class_mmap_d1:
-      if (min_edit_distance+1 <= mcs) { // (0:1+1:0)
-        if (!search_parameters->search_paired_parameters.paired_end_search) return true; // Done!
-      }
-      // no break
-    case matches_class_mmap:
-    case matches_class_unique:
-      // Frontier-case 0:1+0 & Beyond-case 0:0+0:0:1
-      if (min_edit_distance+1 < mcs) {
-        return true; // Done!
-      }
-      // Adjust max-error
-      search->current_max_complete_error = MIN(search->current_max_complete_error,min_edit_distance+1);
-      break; // Not done
-    default:
-      GEM_INVALID_CASE();
-      break;
-  }
+  // Test accuracy
+  search_parameters_t* const search_parameters = search->search_parameters;
+  const uint64_t mcs = search->region_profile.num_filtered_regions; // (max_error_reached = mcs-1)
+  const bool accuracy_reached = matches_test_accuracy_reached(
+      matches,mcs,search->pattern.key_length,search_parameters,
+      search->current_max_complete_error,&search->current_max_complete_error);
+  if (accuracy_reached) return true; // Done!
   // Check error-scheduled
   if (search->pattern.num_wildcards > search->current_max_complete_error) return true; // Done!
+  // Otherwise, return false
   return false;
 }
 /*
@@ -131,92 +102,4 @@ bool asearch_control_test_local_alignment(
   // Local alignment test
   return (search_parameters->local_alignment!=local_alignment_never && !matches_is_mapped(matches));
 }
-
-
-///*
-// * Search Control Stages
-// */
-//bool asearch_control_filter_ahead_candidates(
-//    approximate_search_t* const search,
-//    matches_t* const matches);
-//
-///*
-// * Search Fulfilled & Predictors
-// */
-//void asearch_control_compute_predictors(
-//    approximate_search_t* const search,
-//    matches_t* const matches,
-//    matches_predictors_t* const predictors);
-//bool asearch_control_fulfilled(
-//    approximate_search_t* const search,
-//    matches_t* const matches);
-
-
-///*
-// * Search Control Stages
-// */
-//bool asearch_control_filter_ahead_candidates(
-//    approximate_search_t* const search,
-//    matches_t* const matches) {
-//  // Parameters
-//  const search_parameters_t* const search_parameters = search->search_parameters;
-//  // Determines when the search is done following the mapping criteria
-//  switch (search_parameters->mapping_mode) {
-//    case mapping_adaptive_filtering_fast:
-//      return true;
-//    case mapping_adaptive_filtering_complete:
-//      return search_parameters->complete_strata_after_best_nominal < search->current_max_complete_error;
-//    default:
-//      GEM_INVALID_CASE();
-//      break;
-//  }
-//  return false;
-//}
-///*
-// * Search Fulfilled & Predictors
-// */
-//void asearch_control_compute_predictors(
-//    approximate_search_t* const search,
-//    matches_t* const matches,
-//    matches_predictors_t* const predictors) {
-//  // TODO Update MCS
-//  matches_predictors_compute(matches,predictors,&search->metrics,search->current_mcs);
-//}
-//bool asearch_control_fulfilled(
-//    approximate_search_t* const search,
-//    matches_t* const matches) {
-//  // Parameters
-//  const search_parameters_t* const search_parameters = search->search_parameters;
-//  if (matches==NULL) return false;
-//  // Determines when the search is done following the mapping criteria
-//  switch (search_parameters->mapping_mode) {
-//    case mapping_adaptive_filtering_fast: {
-//      // TODO     asearch_control_adjust_max_differences_using_strata(search,matches);
-//      if (matches->max_complete_stratum <= 1) return false;
-//      switch (matches_class) {
-//        case matches_class_tie_d0:
-//        case matches_class_tie_d1:
-//          return (matches->metrics.min1_edit_distance <= 1);
-//        case matches_class_unique: {
-//          matches_predictors_t predictors;
-//          asearch_control_compute_predictors(search,matches,&predictors);
-//          const double probability =
-//              matches_classify_logit_unique(&predictors,&logit_model_single_end_default);
-//          return (probability >= MATCHES_UNIQUE_CI);
-//        }
-//        case matches_class_unmapped:
-//        case matches_class_mmap:
-//        default:
-//          return false;
-//      }
-//      return false;
-//    }
-//    case mapping_adaptive_filtering_complete:
-//      // TODO
-//    default:
-//      GEM_INVALID_CASE();
-//      break;
-//  }
-//  return false;
-//}
 

@@ -536,7 +536,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       input_text_parse_extended_uint64(region_th,&search->region_profile_model.region_th);
       input_text_parse_extended_uint64(max_steps,&search->region_profile_model.max_steps);
       input_text_parse_extended_uint64(dec_factor,&search->region_profile_model.dec_factor);
-      input_text_parse_extended_uint64(ns_th,&search->region_profile_model.ns_filtering_threshold);
+      input_text_parse_extended_uint64(ns_th,&search->region_profile_model.ns_opt_filtering_threshold);
       input_text_parse_extended_uint64(region_length,&search->region_profile_model.region_length);
       break;
     }

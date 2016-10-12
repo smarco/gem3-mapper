@@ -40,6 +40,7 @@ void nsearch_schedule_init(
   nsearch_schedule->max_error = max_complete_error;
   nsearch_schedule->current_mcs = 0;
   nsearch_schedule->dynamic_filtering = dynamic_filtering;
+  nsearch_schedule->quick_abandon = false;
   // Search Operations
   const uint64_t key_length = nsearch_schedule->pattern->key_length;
   const uint64_t max_error = nsearch_schedule->max_error;
@@ -135,8 +136,6 @@ void nsearch_schedule_search_step(
         GEM_INVALID_CASE();
         break;
     }
-    // Increment mcs (if full search-operation performed)
-    ++(nsearch_schedule->current_mcs);
   } else {
     const uint64_t num_pending_searches = nsearch_schedule->num_pending_searches;
     // Compute error partition
@@ -155,6 +154,7 @@ void nsearch_schedule_search_step(
     nsearch_schedule_search_step(
         nsearch_schedule,epartition.offset_0,epartition.length_0,
         epartition.search_0_min_error,epartition.search_0_max_error);
+    if (nsearch_schedule->quick_abandon) return; // Quick abandon
     /*
      * Second partition (backward)
      */
@@ -168,13 +168,20 @@ void nsearch_schedule_search_step(
     nsearch_schedule_search_step(
         nsearch_schedule,epartition.offset_1,epartition.length_1,
         epartition.search_1_min_error,epartition.search_1_max_error);
+    // Unnecessary but => if (nsearch_schedule->quick_abandon) return; // Quick abandon
   }
 }
 void nsearch_schedule_search(nsearch_schedule_t* const nsearch_schedule) {
   PROF_START(GP_NS_GENERATION);
+  // Search
   nsearch_schedule_search_step(
       nsearch_schedule,0,nsearch_schedule->pattern->key_length,
       0,nsearch_schedule->max_error);
+  // Adjust MCS
+  if (!nsearch_schedule->quick_abandon) {
+    nsearch_schedule->current_mcs = nsearch_schedule->max_error+1;
+  }
+  // Profile
   PROF_ADD_COUNTER(GP_NS_NODES,nsearch_schedule->profile.ns_nodes);
   PROF_ADD_COUNTER(GP_NS_NODES_SUCCESS,nsearch_schedule->profile.ns_nodes_success);
   PROF_ADD_COUNTER(GP_NS_NODES_FAIL,nsearch_schedule->profile.ns_nodes_fail);
@@ -197,6 +204,7 @@ void nsearch_schedule_search_preconditioned_step(
   if (chunk_max_error==0 || global_region_length<=chunk_max_error) {
     nsearch_schedule_search_step(nsearch_schedule,
         global_region_offset,global_region_length,chunk_min_error,chunk_max_error);
+    if (nsearch_schedule->quick_abandon) return; // Quick abandon
   } else {
     bool feasible_search;
     const uint64_t num_pending_searches = nsearch_schedule->num_pending_searches;
@@ -224,6 +232,7 @@ void nsearch_schedule_search_preconditioned_step(
           nsearch_schedule,epartition.region_offset_0,epartition.num_regions_0,
           epartition.search_0_min_error,epartition.search_0_max_error);
     }
+    if (nsearch_schedule->quick_abandon) return; // Quick abandon
     /*
      * Second Partition
      */
@@ -245,10 +254,12 @@ void nsearch_schedule_search_preconditioned_step(
           nsearch_schedule,epartition.region_offset_1,epartition.num_regions_1,
           epartition.search_1_min_error,epartition.search_1_max_error);
     }
+    // Unnecessary but => if (nsearch_schedule->quick_abandon) return; // Quick abandon
   }
 }
 void nsearch_schedule_search_preconditioned(nsearch_schedule_t* const nsearch_schedule) {
   PROF_START(GP_NS_GENERATION);
+  // Search
   region_profile_t* const region_profile = nsearch_schedule->region_profile;
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
   if (num_filtering_regions <= 1) {
@@ -258,6 +269,11 @@ void nsearch_schedule_search_preconditioned(nsearch_schedule_t* const nsearch_sc
     nsearch_schedule_search_preconditioned_step(nsearch_schedule,
         0,num_filtering_regions,0,nsearch_schedule->max_error);
   }
+  // Adjust MCS
+  if (!nsearch_schedule->quick_abandon) {
+    nsearch_schedule->current_mcs = nsearch_schedule->max_error+1;
+  }
+  // Profile
   PROF_ADD_COUNTER(GP_NS_NODES,nsearch_schedule->profile.ns_nodes);
   PROF_ADD_COUNTER(GP_NS_NODES_SUCCESS,nsearch_schedule->profile.ns_nodes_success);
   PROF_ADD_COUNTER(GP_NS_NODES_FAIL,nsearch_schedule->profile.ns_nodes_fail);

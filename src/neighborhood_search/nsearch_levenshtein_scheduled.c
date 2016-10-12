@@ -143,6 +143,7 @@ uint64_t nsearch_levenshtein_scheduled_operation_step_query(
           nsearch_schedule,pending_searches,nsearch_operation,
           text_position+1,&next_nsearch_query,align_distance); // Next
     }
+    if (nsearch_schedule->quick_abandon) break; // Quick abandon
   }
   NSEARCH_PROF_NODE(nsearch_schedule,total_matches); // PROFILE
   return total_matches;
@@ -216,15 +217,7 @@ uint64_t nsearch_levenshtein_scheduled_search(nsearch_schedule_t* const nsearch_
   next_nsearch_operation->text_position = 0;
   // Prepare search-query
   nsearch_query_t nsearch_query;
-  nsearch_query.max_steps = 0;
-#ifdef NSEARCH_ENUMERATE
-  nsearch_query.fm_2interval.backward_lo = 0;
-  nsearch_query.fm_2interval.backward_hi = 1;
-  nsearch_query.fm_2interval.forward_lo = 0;
-  nsearch_query.fm_2interval.forward_hi = 1;
-#else
-  fm_index_2query_init(nsearch_schedule->archive->fm_index,&nsearch_query.fm_2interval);
-#endif
+  nsearch_query_init(&nsearch_query,nsearch_schedule->archive->fm_index);
   // Search
   if (next_nsearch_operation->max_global_error == 0) {
     return nsearch_levenshtein_scheduled_operation_step_query_exact(nsearch_schedule,
