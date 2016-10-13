@@ -27,6 +27,10 @@
 #include "neighborhood_search/nsearch_hamming.h"
 #include "neighborhood_search/nsearch_levenshtein.h"
 #include "neighborhood_search/nsearch_levenshtein_scheduled.h"
+#include "neighborhood_search/nsearch_levenshtein_control.h"
+#include "filtering/candidates/filtering_candidates_process.h"
+#include "filtering/candidates/filtering_candidates_verify.h"
+#include "filtering/candidates/filtering_candidates_align.h"
 
 /*
  * Setup
@@ -153,6 +157,8 @@ void nsearch_schedule_search_step(
     }
     // Dynamic filtering
     if (nsearch_schedule->dynamic_filtering) {
+      PROF_ADD_COUNTER(GP_NS_OPERATION_CANDIDATES_GENERATED,
+        filtering_candidates_get_num_positions(nsearch_schedule->filtering_candidates));
       // Process+Verify candidates
       PROF_START(GP_NS_VERIFICATION);
       filtering_candidates_process_candidates(

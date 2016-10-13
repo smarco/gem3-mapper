@@ -186,6 +186,10 @@
 #define GP_FC_CACHE_SEARCH_HIT                              372
 #define GP_FC_SELECT_PRUNE_HIT                              373
 
+#define GP_FC_SORT_BY_POSITION                              380
+#define GP_FC_SORT_BY_ALIGN_DIST                            381
+#define GP_FC_SORT_BY_COVERAGE                              382
+
 #define GP_CANDIDATE_POSITIONS                              400
 #define GP_CANDIDATE_REGIONS                                402
 #define GP_CANDIDATE_REGIONS_DUPLICATED                     403
@@ -294,7 +298,8 @@
 
 #define GP_NS_SEARCH_DEPTH                                  645
 #define GP_NS_SEARCH_CANDIDATES_GENERATED                   646
-#define GP_NS_BRANCH_CANDIDATES_GENERATED                   647
+#define GP_NS_OPERATION_CANDIDATES_GENERATED                647
+#define GP_NS_BRANCH_CANDIDATES_GENERATED                   648
 
 /*
  * Checks

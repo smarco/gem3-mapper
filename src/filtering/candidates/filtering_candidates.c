@@ -532,6 +532,10 @@ int64_t filtering_position_cmp_position(filtering_position_t** a,filtering_posit
 #define VECTOR_SORT_CMP(a,b)             filtering_region_cmp_align_distance(a,b)
 #include "utils/vector_sort.h"
 void filtering_candidates_sort_regions_by_align_distance(filtering_candidates_t* const filtering_candidates) {
+  PROF_ADD_COUNTER(GP_FC_SORT_BY_ALIGN_DIST,vector_get_used(filtering_candidates->filtering_regions));
+//  vector_sort_selection_align_distance(
+//		  vector_get_mem(filtering_candidates->filtering_regions,filtering_region_t*),
+//		  vector_get_used(filtering_candidates->filtering_regions));
   vector_sort_align_distance(filtering_candidates->filtering_regions);
 }
 #define VECTOR_SORT_NAME                 scaffold_coverage
@@ -539,6 +543,7 @@ void filtering_candidates_sort_regions_by_align_distance(filtering_candidates_t*
 #define VECTOR_SORT_CMP(a,b)             filtering_region_cmp_scaffold_coverage(a,b)
 #include "utils/vector_sort.h"
 void filtering_candidates_sort_regions_by_scaffold_coverage(filtering_candidates_t* const filtering_candidates) {
+  PROF_ADD_COUNTER(GP_FC_SORT_BY_COVERAGE,vector_get_used(filtering_candidates->filtering_regions));
   vector_sort_scaffold_coverage(filtering_candidates->filtering_regions);
 }
 #define VECTOR_SORT_NAME                 filtering_positions
@@ -546,6 +551,7 @@ void filtering_candidates_sort_regions_by_scaffold_coverage(filtering_candidates
 #define VECTOR_SORT_CMP(a,b)             filtering_position_cmp_position(a,b)
 #include "utils/vector_sort.h"
 void filtering_candidates_sort_positions(filtering_candidates_t* const filtering_candidates) {
+  PROF_ADD_COUNTER(GP_FC_SORT_BY_POSITION,vector_get_used(filtering_candidates->filtering_positions));
   vector_sort_filtering_positions(filtering_candidates->filtering_positions);
 }
 /*

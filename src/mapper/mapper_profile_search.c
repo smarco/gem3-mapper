@@ -236,6 +236,19 @@ void mapper_profile_print_candidate_realign(FILE* const stream) {
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CANDIDATE_REGION_LOCAL_ALIGNED),PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"regions  ",true);
 }
 /*
+ * Candidate misc
+ */
+void mapper_profile_print_candidate_misc(FILE* const stream) {
+  tab_fprintf(stream,"[GEM]>Profile.Candidate.Misc\n");
+  tab_fprintf(stream,"  |> Sorting\n");
+  tab_fprintf(stream,"    --> Sort.Candidate.by.Position          ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_SORT_BY_POSITION),NULL,"         ",true);
+  tab_fprintf(stream,"    --> Sort.Candidate.by.Distance          ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_SORT_BY_ALIGN_DIST),NULL,"         ",true);
+  tab_fprintf(stream,"    --> Sort.Candidate.by.Coverage          ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_SORT_BY_COVERAGE),NULL,"         ",true);
+}
+/*
  * Neighborhood Search
  */
 void mapper_profile_print_neighborhood_search(FILE* const stream) {
@@ -263,6 +276,9 @@ void mapper_profile_print_neighborhood_search(FILE* const stream) {
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_DP_CELLS_COMPUTED),NULL,"     ",true);
   tab_fprintf(stream,"  --> NS.Candidates.Branchwise                     ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_BRANCH_CANDIDATES_GENERATED),
+                       PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"     ",true);
+  tab_fprintf(stream,"  --> NS.Candidates.Operation                      ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_OPERATION_CANDIDATES_GENERATED),
                        PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"     ",true);
   tab_fprintf(stream,"  --> NS.Candidates.TotalSearch                    ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_SEARCH_CANDIDATES_GENERATED),
@@ -396,6 +412,8 @@ void mapper_profile_print_approximate_search_summary(FILE* const stream) {
   mapper_profile_print_candidate_verification(stream);
   // Candidate Realign
   mapper_profile_print_candidate_realign(stream);
+  // Candidate Misc
+  mapper_profile_print_candidate_misc(stream);
   // Neighborhood Search
   mapper_profile_print_neighborhood_search(stream);
   // TODO mapper_profile_print_mapper_ranks(stream);
@@ -426,6 +444,10 @@ void mapper_profile_print_candidate_verification(FILE* const stream) {}
  * Candidate realign
  */
 void mapper_profile_print_candidate_realign(FILE* const stream) {}
+/*
+ * Candidate misc
+ */
+void mapper_profile_print_candidate_misc(FILE* const stream) {}
 /*
  * Neighborhood Search
  */

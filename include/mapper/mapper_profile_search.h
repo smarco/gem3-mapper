@@ -51,6 +51,11 @@ void mapper_profile_print_candidate_verification(FILE* const stream);
 void mapper_profile_print_candidate_realign(FILE* const stream);
 
 /*
+ * Candidate misc
+ */
+void mapper_profile_print_candidate_misc(FILE* const stream);
+
+/*
  * Neighborhood Search
  */
 void mapper_profile_print_neighborhood_search(FILE* const stream);

@@ -28,6 +28,9 @@ uname -v = #5 SMP Fri May 6 14:39:56 CEST 2016
 /bin/universe          = unknown
 
 PATH: /home/smarco/bin
+PATH: /usr/local/software/CUDA/8.0.27
+PATH: /usr/local/software/CUDA/8.0.27/bin
+PATH: /usr/local/software/GCC/4.9.1/bin
 PATH: /usr/local/software/intel/vtune_amplifier_xe_2016.3.0.463186/bin64
 PATH: /usr/local/software/intel/compilers_and_libraries_2016.3.210/linux/bin/intel64
 PATH: /usr/local/software/intel/compilers_and_libraries_2016.3.210/linux/mpi/intel64/bin
@@ -47,12 +50,12 @@ PATH: /usr/games
 ## ----------- ##
 
 configure:2083: checking for gcc
-configure:2099: found /usr/bin/gcc
+configure:2099: found /usr/local/software/GCC/4.9.1/bin/gcc
 configure:2110: result: gcc
 configure:2339: checking for C compiler version
 configure:2348: gcc --version >&5
-gcc (Debian 4.7.2-5) 4.7.2
-Copyright (C) 2012 Free Software Foundation, Inc.
+gcc (GCC) 4.9.1
+Copyright (C) 2014 Free Software Foundation, Inc.
 This is free software; see the source for copying conditions.  There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
@@ -60,22 +63,22 @@ configure:2359: $? = 0
 configure:2348: gcc -v >&5
 Using built-in specs.
 COLLECT_GCC=gcc
-COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/4.7/lto-wrapper
-Target: x86_64-linux-gnu
-Configured with: ../src/configure -v --with-pkgversion='Debian 4.7.2-5' --with-bugurl=file:///usr/share/doc/gcc-4.7/README.Bugs --enable-languages=c,c++,go,fortran,objc,obj-c++ --prefix=/usr --program-suffix=-4.7 --enable-shared --enable-linker-build-id --with-system-zlib --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --with-gxx-include-dir=/usr/include/c++/4.7 --libdir=/usr/lib --enable-nls --with-sysroot=/ --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --enable-gnu-unique-object --enable-plugin --enable-objc-gc --with-arch-32=i586 --with-tune=generic --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu
+COLLECT_LTO_WRAPPER=/usr/local/software/GCC/4.9.1/libexec/gcc/x86_64-unknown-linux-gnu/4.9.1/lto-wrapper
+Target: x86_64-unknown-linux-gnu
+Configured with: ../configure --enable-languages=c,c++,fortran,lto --enable-lto --enable-checking=release --disable-multilib --enable-shared=yes --enable-static=yes --enable-threads=posix --enable-gold=default --enable-plugins --enable-ld --with-plugin-ld=ld.gold --enable-bootstrap --prefix=/usr/local/software/GCC/4.9.1 --with-local-prefix=/usr/local/software/GCC/4.9.1
 Thread model: posix
-gcc version 4.7.2 (Debian 4.7.2-5) 
+gcc version 4.9.1 (GCC) 
 configure:2359: $? = 0
 configure:2348: gcc -V >&5
 gcc: error: unrecognized command line option '-V'
 gcc: fatal error: no input files
 compilation terminated.
-configure:2359: $? = 4
+configure:2359: $? = 1
 configure:2348: gcc -qversion >&5
 gcc: error: unrecognized command line option '-qversion'
 gcc: fatal error: no input files
 compilation terminated.
-configure:2359: $? = 4
+configure:2359: $? = 1
 configure:2379: checking whether the C compiler works
 configure:2401: gcc    conftest.c  >&5
 configure:2405: $? = 0
@@ -121,6 +124,8 @@ configure:2944: gcc -E  conftest.c
 configure:2944: $? = 0
 configure:2958: gcc -E  conftest.c
 conftest.c:9:28: fatal error: ac_nonexistent.h: No such file or directory
+ #include <ac_nonexistent.h>
+                            ^
 compilation terminated.
 configure:2958: $? = 1
 configure: failed program was:
@@ -138,6 +143,8 @@ configure:3003: gcc -E  conftest.c
 configure:3003: $? = 0
 configure:3017: gcc -E  conftest.c
 conftest.c:9:28: fatal error: ac_nonexistent.h: No such file or directory
+ #include <ac_nonexistent.h>
+                            ^
 compilation terminated.
 configure:3017: $? = 1
 configure: failed program was:
