@@ -25,8 +25,7 @@
 
 void nsearch_parameters_init(nsearch_parameters_t* const nsearch_parameters) {
   nsearch_parameters->dynamic_filtering = true;
-  nsearch_parameters->dynamic_filtering_force_th = 500;
-  nsearch_parameters->filtering_quick_th = 2;
-  nsearch_parameters->filtering_region_opt_th = 20;
-  nsearch_parameters->filtering_region_opt_steps = 4;
+  nsearch_parameters->filtering_quick_th = 0;
+  nsearch_parameters->filtering_region_opt_th = 4;
+  nsearch_parameters->filtering_region_opt_steps = 10;
 }

@@ -22,6 +22,7 @@
  */
 
 #include "neighborhood_search/nsearch_levenshtein_control.h"
+#include "neighborhood_search/nsearch_filtering.h"
 #include "fm_index/fm_index_query.h"
 #include "filtering/candidates/filtering_candidates.h"
 #include "filtering/candidates/filtering_candidates_process.h"

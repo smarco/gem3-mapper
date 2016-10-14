@@ -29,7 +29,6 @@
 typedef struct {
   // Dynamic filtering
   bool dynamic_filtering;
-  uint64_t dynamic_filtering_force_th;
   // Search Cut-off(s)
   uint64_t filtering_quick_th;
   uint64_t filtering_region_opt_th;
