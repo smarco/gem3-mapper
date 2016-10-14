@@ -25,6 +25,7 @@
 #include "neighborhood_search/nsearch_levenshtein_state.h"
 #include "neighborhood_search/nsearch_levenshtein_query.h"
 #include "neighborhood_search/nsearch_levenshtein_control.h"
+#include "neighborhood_search/nsearch_filtering.h"
 #include "neighborhood_search/nsearch_partition.h"
 
 /*
@@ -64,7 +65,7 @@ uint64_t nsearch_levenshtein_brute_force_step(
       // Supercondensed Neighbourhood
       if (align_distance <= max_error) {
         total_matches_found += nsearch_levenshtein_terminate(
-            nsearch_schedule,text_position,next_lo,next_hi,align_distance);
+            nsearch_schedule,text_position,next_lo,next_hi,align_distance,true);
       } else if (text_position < max_text_length) {
         total_matches_found += nsearch_levenshtein_brute_force_step(
             nsearch_schedule,nsearch_operation,supercondensed,next_lo,next_hi);
@@ -77,7 +78,7 @@ uint64_t nsearch_levenshtein_brute_force_step(
       }
       if (align_distance <= max_error) {
         total_matches_found += nsearch_levenshtein_terminate(
-            nsearch_schedule,text_position,next_lo,next_hi,align_distance);
+            nsearch_schedule,text_position,next_lo,next_hi,align_distance,true);
       }
     }
   }
@@ -93,8 +94,8 @@ void nsearch_levenshtein_brute_force(
   // Init
   nsearch_schedule_init(
       search->nsearch_schedule,nsearch_model_levenshtein,
-      search->current_max_complete_error,false,
-      search->archive,&search->pattern,&search->region_profile,
+      search->current_max_complete_error,search->archive,
+      &search->pattern,&search->region_profile,
       search->search_parameters,search->filtering_candidates,
       matches);
   nsearch_operation_t* const nsearch_operation = search->nsearch_schedule->pending_searches;
@@ -121,16 +122,16 @@ void nsearch_levenshtein_brute_force(
  */
 void nsearch_levenshtein(
     approximate_search_t* const search,
-    const bool dynamic_filtering,
     matches_t* const matches) {
   // Search
   nsearch_schedule_init(
       search->nsearch_schedule,nsearch_model_levenshtein,
-      search->current_max_complete_error,dynamic_filtering,
-      search->archive,&search->pattern,&search->region_profile,
+      search->current_max_complete_error,search->archive,
+      &search->pattern,&search->region_profile,
       search->search_parameters,search->filtering_candidates,
       matches);
   nsearch_schedule_search(search->nsearch_schedule);
+  nsearch_filtering(search->nsearch_schedule);
   // PROFILE
 #ifdef GEM_PROFILE
   // nsearch_schedule_print_profile(stderr,&nsearch_schedule);
@@ -145,16 +146,16 @@ void nsearch_levenshtein(
  */
 void nsearch_levenshtein_preconditioned(
     approximate_search_t* const search,
-    const bool dynamic_filtering,
     matches_t* const matches) {
   // Search
   nsearch_schedule_init(
       search->nsearch_schedule,nsearch_model_levenshtein,
-      search->current_max_complete_error,dynamic_filtering,
-      search->archive,&search->pattern,&search->region_profile,
+      search->current_max_complete_error,search->archive,
+      &search->pattern,&search->region_profile,
       search->search_parameters,search->filtering_candidates,
       matches);
   nsearch_schedule_search_preconditioned(search->nsearch_schedule);
+  nsearch_filtering(search->nsearch_schedule);
   // PROFILE
 #ifdef GEM_PROFILE
   // nsearch_schedule_print_profile(stderr,&nsearch_schedule);

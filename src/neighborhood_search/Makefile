@@ -39,6 +39,8 @@ MODULES=dp_matrix \
         nsearch_levenshtein_state \
         nsearch_partition \
         nsearch_operation \
+        nsearch_filtering \
+        nsearch_parameters \
         nsearch_schedule
 
 SRCS=$(addsuffix .c, $(MODULES))

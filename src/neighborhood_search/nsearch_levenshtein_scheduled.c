@@ -81,7 +81,8 @@ uint64_t nsearch_levenshtein_scheduled_operation_step_next(
     if (nsearch_levenshtein_scheduled_align_distance_pass(nsearch_operation,text_length,align_distance)) {
       // EOS
       return nsearch_levenshtein_scheduled_terminate(
-          nsearch_schedule,nsearch_operation,text_length,nsearch_query,align_distance);
+          nsearch_schedule,nsearch_operation,
+          text_length,nsearch_query,align_distance,true);
     } else {
       // Keep doing queries in within this operation
       return nsearch_levenshtein_scheduled_operation_step_query(
@@ -152,7 +153,7 @@ uint64_t nsearch_levenshtein_scheduled_operation_step_query(
     if (finish_search) {
       total_matches += nsearch_levenshtein_scheduled_terminate(
           nsearch_schedule,nsearch_operation,
-          text_position+1,&next_nsearch_query,align_distance); // Terminate
+          text_position+1,&next_nsearch_query,align_distance,false); // Terminate
     } else {
       total_matches += nsearch_levenshtein_scheduled_operation_step_next(
           nsearch_schedule,pending_searches,nsearch_operation,
@@ -188,13 +189,14 @@ uint64_t nsearch_levenshtein_scheduled_operation_step_query_exact(
     if (finish_search) {
       return nsearch_levenshtein_scheduled_terminate(
           nsearch_schedule,nsearch_operation,
-          nsearch_operation->text_position,nsearch_query,0);
+          nsearch_operation->text_position,nsearch_query,0,false);
     }
   }
   // Keep searching
   if (pending_searches==0) {
     return nsearch_levenshtein_scheduled_terminate(
-        nsearch_schedule,nsearch_operation,nsearch_operation->text_position+1,nsearch_query,0);
+        nsearch_schedule,nsearch_operation,
+        nsearch_operation->text_position+1,nsearch_query,0,true);
   } else {
     return nsearch_levenshtein_scheduled_search_next(
         nsearch_schedule,pending_searches,nsearch_operation,nsearch_query);

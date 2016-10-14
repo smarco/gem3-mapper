@@ -26,9 +26,11 @@
 #include "approximate_search/approximate_search_neighborhood.h"
 #include "approximate_search/approximate_search_stages.h"
 #include "fm_index/fm_index_search.h"
+#include "filtering/candidates/filtering_candidates.h"
 #include "filtering/candidates/filtering_candidates_process.h"
 #include "filtering/candidates/filtering_candidates_verify.h"
 #include "filtering/candidates/filtering_candidates_align.h"
+#include "text/pattern.h"
 #include "neighborhood_search/nsearch_hamming.h"
 #include "neighborhood_search/nsearch_levenshtein.h"
 
@@ -110,25 +112,13 @@ void approximate_search_neighborhood_search_partition(
   PROFILE_START(GP_AS_NEIGHBORHOOD_SEARCH,PROFILE_LEVEL);
   // Parameters
   search_parameters_t* const search_parameters = search->search_parameters;
-  filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
-  pattern_t* const pattern = &search->pattern;
   region_profile_clear(&search->region_profile); // Clear for scoring purposes
   // Generate Candidates (Select Alignment Model)
-  const bool dynamic_filtering = false;
+  search_parameters->nsearch_parameters.dynamic_filtering = false;
   if (search_parameters->match_alignment_model == match_alignment_model_hamming) {
-    nsearch_hamming(search,dynamic_filtering,matches);
+    nsearch_hamming(search,matches);
   } else {
-    nsearch_levenshtein(search,dynamic_filtering,matches);
-  }
-  // Process+Verify+Align candidates
-  if (!dynamic_filtering) {
-    PROF_START(GP_NS_VERIFICATION);
-    filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern,false);
-    filtering_candidates_verify_candidates(filtering_candidates,pattern);
-    PROF_STOP(GP_NS_VERIFICATION);
-    PROF_START(GP_NS_ALIGN);
-    filtering_candidates_align_candidates(filtering_candidates,pattern,false,false,matches);
-    PROF_STOP(GP_NS_ALIGN);
+    nsearch_levenshtein(search,matches);
   }
   // Finish Search
   const uint64_t mcs_reached = search->nsearch_schedule->current_mcs;
@@ -144,29 +134,17 @@ void approximate_search_neighborhood_search_partition_preconditioned(
     matches_t* const matches) {
   // Parameters
   search_parameters_t* const search_parameters = search->search_parameters;
-  pattern_t* const pattern = &search->pattern;
   region_profile_t* const region_profile = &search->region_profile;
-  filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
   const uint64_t max_complete_error = search->current_max_complete_error;
   const uint64_t mcs = search->current_max_complete_stratum;
   // Compute error limits
   region_profile_compute_error_limits(region_profile,mcs,max_complete_error);
   // Generate Candidates (Select Alignment Model)
-  const bool dynamic_filtering = true;
+  search_parameters->nsearch_parameters.dynamic_filtering = true;
   if (search_parameters->match_alignment_model == match_alignment_model_hamming) {
-    nsearch_hamming_preconditioned(search,dynamic_filtering,matches);
+    nsearch_hamming_preconditioned(search,matches);
   } else {
-    nsearch_levenshtein_preconditioned(search,dynamic_filtering,matches);
-  }
-  // Process+Verify+Align candidates
-  if (!dynamic_filtering) {
-    PROF_START(GP_NS_VERIFICATION);
-    filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern,false);
-    filtering_candidates_verify_candidates(filtering_candidates,pattern);
-    PROF_STOP(GP_NS_VERIFICATION);
-    PROF_START(GP_NS_ALIGN);
-    filtering_candidates_align_candidates(filtering_candidates,pattern,false,false,matches);
-    PROF_STOP(GP_NS_ALIGN);
+    nsearch_levenshtein_preconditioned(search,matches);
   }
   // Update MCS
   const uint64_t mcs_reached = search->nsearch_schedule->current_mcs;

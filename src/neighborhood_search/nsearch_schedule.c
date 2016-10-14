@@ -27,10 +27,7 @@
 #include "neighborhood_search/nsearch_hamming.h"
 #include "neighborhood_search/nsearch_levenshtein.h"
 #include "neighborhood_search/nsearch_levenshtein_scheduled.h"
-#include "neighborhood_search/nsearch_levenshtein_control.h"
-#include "filtering/candidates/filtering_candidates_process.h"
-#include "filtering/candidates/filtering_candidates_verify.h"
-#include "filtering/candidates/filtering_candidates_align.h"
+#include "neighborhood_search/nsearch_filtering.h"
 
 /*
  * Setup
@@ -39,7 +36,6 @@ void nsearch_schedule_init(
     nsearch_schedule_t* const nsearch_schedule,
     const nsearch_model_t nsearch_model,
     const uint64_t max_complete_error,
-    const bool dynamic_filtering,
     archive_t* const archive,
     pattern_t* const pattern,
     region_profile_t* const region_profile,
@@ -58,7 +54,6 @@ void nsearch_schedule_init(
   nsearch_schedule->nsearch_model = nsearch_model;
   nsearch_schedule->max_error = max_complete_error;
   nsearch_schedule->current_mcs = 0;
-  nsearch_schedule->dynamic_filtering = dynamic_filtering;
   nsearch_schedule->quick_abandon = false;
   // Search Operations
   const uint64_t key_length = nsearch_schedule->pattern->key_length;
@@ -156,24 +151,10 @@ void nsearch_schedule_search_step(
         break;
     }
     // Dynamic filtering
-    if (nsearch_schedule->dynamic_filtering) {
+    if (nsearch_schedule->search_parameters->nsearch_parameters.dynamic_filtering) {
       PROF_ADD_COUNTER(GP_NS_OPERATION_CANDIDATES_GENERATED,
         filtering_candidates_get_num_positions(nsearch_schedule->filtering_candidates));
-      // Process+Verify candidates
-      PROF_START(GP_NS_VERIFICATION);
-      filtering_candidates_process_candidates(
-          nsearch_schedule->filtering_candidates,nsearch_schedule->pattern,false);
-      filtering_candidates_verify_candidates(
-          nsearch_schedule->filtering_candidates,nsearch_schedule->pattern);
-      PROF_STOP(GP_NS_VERIFICATION);
-      // Align
-      PROF_START(GP_NS_ALIGN);
-      filtering_candidates_align_candidates(
-          nsearch_schedule->filtering_candidates,nsearch_schedule->pattern,
-          false,false,nsearch_schedule->matches);
-      PROF_STOP(GP_NS_ALIGN);
-      // Check quick-abandon condition
-      nsearch_schedule->quick_abandon = nsearch_levenshtein_matches_cutoff(nsearch_schedule);
+      nsearch_filtering(nsearch_schedule);
     }
   } else {
     const uint64_t num_pending_searches = nsearch_schedule->num_pending_searches;

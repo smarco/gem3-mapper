@@ -83,11 +83,10 @@ typedef struct {
   nsearch_model_t nsearch_model;                // Search error model
   uint64_t max_error;                           // Max-error search allowed
   uint64_t current_mcs;                         // Current mcs reached
-  bool dynamic_filtering;                       // Dynamic filtering (per branch closed)
-  bool quick_abandon;                           // Quick abandon
   // Scheduler Operations
   nsearch_operation_t* pending_searches;        // Pending search operations
   uint64_t num_pending_searches;                // Total pending operations
+  bool quick_abandon;                           // Quick abandon search
   // Misc
   nsearch_schedule_profile_t profile;           // Profiler
   mm_stack_t* mm_stack;                         // MM
@@ -100,7 +99,6 @@ void nsearch_schedule_init(
     nsearch_schedule_t* const nsearch_schedule,
     const nsearch_model_t nsearch_model,
     const uint64_t max_complete_error,
-    const bool dynamic_filtering,
     archive_t* const archive,
     pattern_t* const pattern,
     region_profile_t* const region_profile,

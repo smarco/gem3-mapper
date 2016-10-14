@@ -48,11 +48,9 @@ void nsearch_hamming_scheduled_search(
  */
 void nsearch_hamming(
     approximate_search_t* const search,
-    const bool dynamic_filtering,
     matches_t* const matches);
 void nsearch_hamming_preconditioned(
     approximate_search_t* const search,
-    const bool dynamic_filtering,
     matches_t* const matches);
 
 #endif /* NSEARCH_HAMMING_H_ */

@@ -32,6 +32,7 @@
 #include "archive/search/archive_search_pe_parameters.h"
 #include "archive/search/archive_select_parameters.h"
 #include "filtering/region_profile/region_profile.h"
+#include "neighborhood_search/nsearch_parameters.h"
 #include "matches/align/match_align.h"
 
 /*
@@ -125,6 +126,7 @@ typedef struct {
   double alignment_global_min_identity;                 // Alignment minimum identity to be global
   double alignment_global_min_swg_threshold;            // Alignment minimum SWG score to be global
   region_profile_model_t region_profile_model;          // Region-Profile Model (Lightweight)
+  nsearch_parameters_t nsearch_parameters;              // NS parameters
   /* Local Alignment */
   local_alignment_t local_alignment;
   double alignment_local_min_identity;                  // Alignment minimum identity to be local

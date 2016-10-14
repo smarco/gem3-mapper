@@ -46,10 +46,6 @@ typedef struct {
   uint64_t region_th;                  // Max. number of candidates allowed per region
   uint64_t max_steps;                  // Max. number of characters to explore to improve the region
   uint64_t dec_factor;                 // Decreasing factor per step in region exploration
-  // NS
-  uint64_t ns_quick_filtering_threshold; // Max. number of candidates allowed to directly switch filtering
-  uint64_t ns_opt_filtering_threshold;   // Max. number of candidates allowed to switch from NS to filtering (previous optimization)
-  uint64_t ns_max_eq_candidates_steps;   // Max. steps allowed with the same number of candidates
   // Experimental
   uint64_t region_length;              // Region length (used in experimental tests)
 } region_profile_model_t;
@@ -99,6 +95,9 @@ void region_profile_clear(
 void region_profile_inject_mm(
     region_profile_t* const region_profile,
     mm_stack_t* const mm_stack);
+
+void region_profile_model_init(
+    region_profile_model_t* const region_profile_model);
 
 /*
  * Allocator

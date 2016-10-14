@@ -25,6 +25,7 @@
 #include "neighborhood_search/nsearch_hamming.h"
 #include "neighborhood_search/nsearch_partition.h"
 #include "neighborhood_search/nsearch_schedule.h"
+#include "neighborhood_search/nsearch_filtering.h"
 #include "fm_index/fm_index_query.h"
 
 /*
@@ -122,7 +123,7 @@ void nsearch_hamming_brute_force(
   PROF_START(GP_NS_GENERATION);
   // Init
   nsearch_schedule_init(search->nsearch_schedule,nsearch_model_hamming,
-      search->current_max_complete_error,false,search->archive,
+      search->current_max_complete_error,search->archive,
       &search->pattern,&search->region_profile,
       search->search_parameters,search->filtering_candidates,
       matches);
@@ -232,16 +233,16 @@ void nsearch_hamming_scheduled_search(nsearch_schedule_t* const nsearch_schedule
  */
 void nsearch_hamming(
     approximate_search_t* const search,
-    const bool dynamic_filtering,
     matches_t* const matches) {
   // Search
   nsearch_schedule_init(
       search->nsearch_schedule,nsearch_model_hamming,
-      search->current_max_complete_error,dynamic_filtering,
-      search->archive,&search->pattern,&search->region_profile,
+      search->current_max_complete_error,search->archive,
+      &search->pattern,&search->region_profile,
       search->search_parameters,search->filtering_candidates,
       matches);
   nsearch_schedule_search(search->nsearch_schedule);
+  nsearch_filtering(search->nsearch_schedule);
   // PROFILE
 #ifdef GEM_PROFILE
   // nsearch_schedule_print_profile(stderr,&nsearch_schedule);
@@ -256,16 +257,16 @@ void nsearch_hamming(
  */
 void nsearch_hamming_preconditioned(
     approximate_search_t* const search,
-    const bool dynamic_filtering,
     matches_t* const matches) {
   // Search
   nsearch_schedule_init(
       search->nsearch_schedule,nsearch_model_hamming,
-      search->current_max_complete_error,dynamic_filtering,
-      search->archive,&search->pattern,&search->region_profile,
+      search->current_max_complete_error,search->archive,
+      &search->pattern,&search->region_profile,
       search->search_parameters,search->filtering_candidates,
       matches);
   nsearch_schedule_search_preconditioned(search->nsearch_schedule);
+  nsearch_filtering(search->nsearch_schedule);
   // PROFILE
 #ifdef GEM_PROFILE
   // nsearch_schedule_print_profile(stderr,&nsearch_schedule);

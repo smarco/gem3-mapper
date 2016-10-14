@@ -685,7 +685,7 @@ void constructor_nsearch_region_permutations_n(
     }
     fprintf(stderr,")\t");
     // Search
-    nsearch_hamming_preconditioned(search,false,NULL);
+    nsearch_hamming_preconditioned(search,NULL);
   } else {
     for (i=1;i<left_length;++i) {
       region_profile->filtering_region[current_region].begin = offset;
@@ -719,9 +719,8 @@ void constructor_ns_init(
   search->pattern.key_length = key_length;
   // Configure search-parameters
   search_parameters_t* search_parameters = mm_stack_alloc(mm_stack,search_parameters_t);
-  search_parameters->region_profile_model.ns_opt_filtering_threshold = 0;
-  search_parameters->region_profile_model.ns_quick_filtering_threshold = 0;
-  search_parameters->region_profile_model.ns_max_eq_candidates_steps = 10000;
+  region_profile_model_init(&search_parameters->region_profile_model);
+  nsearch_parameters_init(&search_parameters->nsearch_parameters);
   search->search_parameters = search_parameters;
 }
 void constructor_ns_hamming_brute() {
@@ -740,7 +739,7 @@ void constructor_ns_hamming() {
   approximate_search_t search;
   constructor_ns_init(&search,mm_stack); // Configure
   // Search
-  nsearch_hamming(&search,false,NULL);
+  nsearch_hamming(&search,NULL);
 }
 void constructor_ns_hamming_2regions() {
   // Init NS-search
@@ -763,7 +762,7 @@ void constructor_ns_hamming_2regions() {
   region_profile->filtering_region[1].max = max_error-1;
   region_profile->num_filtering_regions = 2;
   // Search
-  nsearch_hamming_preconditioned(&search,false,NULL);
+  nsearch_hamming_preconditioned(&search,NULL);
 }
 void constructor_ns_hamming_permutations() {
   // Init NS-search
@@ -817,7 +816,7 @@ void constructor_ns_edit_partition() {
   approximate_search_t search;
   constructor_ns_init(&search,mm_stack); // Configure
   // Search
-  nsearch_levenshtein(&search,false,NULL);
+  nsearch_levenshtein(&search,NULL);
 }
 void constructor_ns_edit_2regions() {
   // Init NS-search
@@ -840,7 +839,7 @@ void constructor_ns_edit_2regions() {
   region_profile->filtering_region[1].max = max_error-1;
   region_profile->num_filtering_regions = 2;
   // Search
-  nsearch_levenshtein_preconditioned(&search,false,NULL);
+  nsearch_levenshtein_preconditioned(&search,NULL);
 }
 /*
  * LCS

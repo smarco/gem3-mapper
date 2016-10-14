@@ -103,16 +103,6 @@ void search_parameters_init_match_alignment_model(search_parameters_t* const sea
   search_parameters->swg_penalties.gap_open_score = -6;
   search_parameters->swg_penalties.gap_extension_score = -1;
 }
-void search_parameters_init_internals(search_parameters_t* const search_parameters) {
-  // Region-LightWeight Scheme = (20,4,2,2)
-  search_parameters->region_profile_model.region_th = 20;
-  search_parameters->region_profile_model.max_steps = 4;
-  search_parameters->region_profile_model.dec_factor = 1;
-  search_parameters->region_profile_model.region_length = 20;
-  search_parameters->region_profile_model.ns_quick_filtering_threshold = 2;
-  search_parameters->region_profile_model.ns_opt_filtering_threshold = 20;
-  search_parameters->region_profile_model.ns_max_eq_candidates_steps = 10;
-}
 void search_parameters_init(search_parameters_t* const search_parameters) {
   // Mapping strategy
   search_parameters->mapping_mode = mapping_adaptive_filtering_fast;
@@ -134,8 +124,10 @@ void search_parameters_init(search_parameters_t* const search_parameters) {
   search_paired_parameters_init(&search_parameters->search_paired_parameters);
   // Bisulfite
   search_parameters->bisulfite_read = bisulfite_read_inferred;
-  // Internals
-  search_parameters_init_internals(search_parameters);
+  // Region Profile
+  region_profile_model_init(&search_parameters->region_profile_model);
+  // Neighborhood Search
+  nsearch_parameters_init(&search_parameters->nsearch_parameters);
   // Select Parameters
   select_parameters_init(&search_parameters->select_parameters_report);
   select_parameters_init(&search_parameters->select_parameters_align);

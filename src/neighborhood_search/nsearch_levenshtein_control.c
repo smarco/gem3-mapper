@@ -30,7 +30,7 @@
 #include "matches/matches_test.h"
 
 /*
- * Search candidates cut-off
+ * Search cut-off(s)
  */
 bool nsearch_levenshtein_candidates_cutoff(
     nsearch_schedule_t* const nsearch_schedule,
@@ -39,25 +39,19 @@ bool nsearch_levenshtein_candidates_cutoff(
     nsearch_query_t* const next_nsearch_query) {
   // Parameters
   search_parameters_t* const search_parameters = nsearch_schedule->search_parameters;
-  // Check equal number of candidates
-  if (num_candidates == nsearch_query->prev_num_candidates) {
-    // Inc. steps with equal number of candidates
-    next_nsearch_query->num_eq_candidates_steps = nsearch_query->num_eq_candidates_steps + 1;
-    // Check max. steps with equal number of candidates
-    const uint64_t ns_max_eq_candidates_steps = search_parameters->region_profile_model.ns_max_eq_candidates_steps;
-    if (next_nsearch_query->num_eq_candidates_steps >= ns_max_eq_candidates_steps) return true; // Cut-off
-  } else {
-    next_nsearch_query->num_eq_candidates_steps = 0; // Restart
-  }
-  next_nsearch_query->prev_num_candidates = num_candidates;
-  // Check direct filtering step
-  const uint64_t ns_quick_filtering_threshold = search_parameters->region_profile_model.ns_quick_filtering_threshold;
-  if (num_candidates <= ns_quick_filtering_threshold) return true; // Cut-off
-  // Check optimization steps (if number of candidates below threshold)
-  const uint64_t ns_opt_filtering_threshold = search_parameters->region_profile_model.ns_opt_filtering_threshold;
-  if (num_candidates <= ns_opt_filtering_threshold) {
+  nsearch_parameters_t* const nsearch_parameters = &search_parameters->nsearch_parameters;
+  /*
+   * Direct filtering step
+   */
+  const uint64_t filtering_quick_th = nsearch_parameters->filtering_quick_th;
+  if (num_candidates <= filtering_quick_th) return true; // Cut-off
+  /*
+   * Optimization steps (if number of candidates below threshold)
+   */
+  const uint64_t filtering_region_opt_th = nsearch_parameters->filtering_region_opt_th;
+  if (num_candidates <= filtering_region_opt_th) {
     if (nsearch_query->num_optimization_steps==0) {
-      next_nsearch_query->num_optimization_steps = search_parameters->region_profile_model.max_steps;
+      next_nsearch_query->num_optimization_steps = nsearch_parameters->filtering_region_opt_steps;
     } else {
       if (nsearch_query->num_optimization_steps == 1) return true; // Cut-off
       next_nsearch_query->num_optimization_steps = nsearch_query->num_optimization_steps - 1;
@@ -65,6 +59,7 @@ bool nsearch_levenshtein_candidates_cutoff(
   } else {
     next_nsearch_query->num_optimization_steps = 0;
   }
+  // Default
   return false;
 }
 bool nsearch_levenshtein_matches_cutoff(
@@ -78,14 +73,30 @@ bool nsearch_levenshtein_matches_cutoff(
       nsearch_schedule->max_error,&dummy);
 }
 /*
- * Standard search terminate search-branch
+ * Candidate interval limit
+ */
+void nsearch_levenshtein_control_limit_interval(
+    select_parameters_t* const select_parameters,
+    uint64_t* const lo,
+    uint64_t* const hi) {
+  // Check
+  if (select_parameters->min_reported_strata_nominal==0) {
+    const uint64_t num_candidates = *hi - *lo;
+    if (num_candidates > select_parameters->max_reported_matches) {
+      *hi = *lo + select_parameters->max_reported_matches;
+    }
+  }
+}
+/*
+ * Search terminate branch
  */
 uint64_t nsearch_levenshtein_terminate(
     nsearch_schedule_t* const nsearch_schedule,
     const uint64_t text_position,
     uint64_t lo,
     uint64_t hi,
-    const uint64_t align_distance) {
+    const uint64_t align_distance,
+    const bool full_alignment) {
   // PROFILE
   PROF_ADD_COUNTER(GP_NS_SEARCH_DEPTH,text_position);
   PROF_ADD_COUNTER(GP_NS_BRANCH_CANDIDATES_GENERATED,(hi-lo));
@@ -99,6 +110,11 @@ uint64_t nsearch_levenshtein_terminate(
   filtering_candidates_t* const filtering_candidates = nsearch_schedule->filtering_candidates;
   search_parameters_t* const search_parameters = nsearch_schedule->search_parameters;
   pattern_t* const pattern = nsearch_schedule->pattern;
+  // Limit interval (if full alignment by means of NS)
+  if (full_alignment) {
+    nsearch_levenshtein_control_limit_interval(
+        &search_parameters->select_parameters_align,&lo,&hi);
+  }
   // Add candidates to filtering
   bool limited;
   filtering_candidates_add_positions_from_interval(
@@ -107,15 +123,13 @@ uint64_t nsearch_levenshtein_terminate(
   return hi-lo;
 #endif
 }
-/*
- * Scheduled search terminate search-branch
- */
 uint64_t nsearch_levenshtein_scheduled_terminate(
     nsearch_schedule_t* const nsearch_schedule,
     nsearch_operation_t* const nsearch_operation,
     const uint64_t text_length,
     nsearch_query_t* const nsearch_query,
-    const uint64_t align_distance) {
+    const uint64_t align_distance,
+    const bool full_alignment) {
   // Parameters
   fm_2interval_t* const fm_2interval = &nsearch_query->fm_2interval;
 #ifdef NSEARCH_ENUMERATE
@@ -146,15 +160,21 @@ uint64_t nsearch_levenshtein_scheduled_terminate(
     region_begin = BOUNDED_SUBTRACTION(global_key_end,max_region_scope,0);
     region_end = global_key_end + max_error;
   }
-  // PROFILE
-  PROF_ADD_COUNTER(GP_NS_SEARCH_DEPTH,text_length);
-  PROF_ADD_COUNTER(GP_NS_BRANCH_CANDIDATES_GENERATED,
-      (fm_2interval->backward_hi-fm_2interval->backward_lo));
+  // Limit interval (if full alignment by means of NS)
+  if (full_alignment) {
+    nsearch_levenshtein_control_limit_interval(
+        &search_parameters->select_parameters_align,
+        &fm_2interval->backward_lo,&fm_2interval->backward_hi);
+  }
   // Add interval
   bool limited;
   filtering_candidates_add_positions_from_interval(
       filtering_candidates,search_parameters,pattern,fm_2interval->backward_lo,
       fm_2interval->backward_hi,region_begin,region_end,align_distance,&limited);
+  // PROFILE
+  PROF_ADD_COUNTER(GP_NS_SEARCH_DEPTH,text_length);
+  PROF_ADD_COUNTER(GP_NS_BRANCH_CANDIDATES_GENERATED,
+      (fm_2interval->backward_hi-fm_2interval->backward_lo));
   // Return
   return fm_2interval->backward_hi-fm_2interval->backward_lo;
 #endif

@@ -36,8 +36,6 @@ typedef struct {
   fm_2erank_elms_t lo_2erank_elms;
   fm_2erank_elms_t hi_2erank_elms;
   uint64_t num_optimization_steps;
-  uint64_t num_eq_candidates_steps;
-  uint64_t prev_num_candidates;
 } nsearch_query_t;
 
 /*

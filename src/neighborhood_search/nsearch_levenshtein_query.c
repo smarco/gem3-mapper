@@ -38,10 +38,7 @@ void nsearch_query_init(
 #else
   fm_index_2query_init(fm_index,&nsearch_query->fm_2interval);
 #endif
-  // Init query cut-offs
   nsearch_query->num_optimization_steps = 0;
-  nsearch_query->num_eq_candidates_steps = 0;
-  nsearch_query->prev_num_candidates = UINT64_MAX;
 }
 
 /*

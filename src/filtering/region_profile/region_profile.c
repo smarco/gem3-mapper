@@ -57,6 +57,14 @@ void region_profile_inject_mm(
     mm_stack_t* const mm_stack) {
   region_profile->mm_stack = mm_stack;
 }
+void region_profile_model_init(
+    region_profile_model_t* const region_profile_model) {
+  // Region-LightWeight Scheme = (20,4,2,2)
+  region_profile_model->region_th = 20;
+  region_profile_model->max_steps = 4;
+  region_profile_model->dec_factor = 1;
+  region_profile_model->region_length = 20;
+}
 /*
  * Allocator
  */
