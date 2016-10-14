@@ -33,9 +33,10 @@
  * Select Parameters
  */
 typedef struct {
-  double min_reported_strata;
-  uint64_t min_reported_strata_nominal;
-  uint64_t max_reported_matches;
+  double min_reported_strata;            // Minimum number of complete strata to be reported (prop. read-length)
+  uint64_t min_reported_strata_nominal;  // Minimum number of complete strata to be reported (nominal)
+  uint64_t max_reported_matches;         // Maximum number of reported matches
+  uint64_t max_search_matches;           // Maximum number of searches matches (internal)
 } select_parameters_t;
 
 /*

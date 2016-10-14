@@ -43,8 +43,8 @@ bool nsearch_levenshtein_candidates_cutoff(
   /*
    * Direct filtering step
    */
-//  const uint64_t filtering_quick_th = nsearch_parameters->filtering_quick_th;
-//  if (num_candidates <= filtering_quick_th) return true; // Cut-off
+  const uint64_t filtering_quick_th = nsearch_parameters->filtering_quick_th;
+  if (num_candidates <= filtering_quick_th) return true; // Cut-off
   /*
    * Optimization steps (if number of candidates below threshold)
    */
@@ -171,12 +171,12 @@ uint64_t nsearch_levenshtein_scheduled_terminate(
   filtering_candidates_add_positions_from_interval(
       filtering_candidates,search_parameters,pattern,fm_2interval->backward_lo,
       fm_2interval->backward_hi,region_begin,region_end,align_distance,&limited);
-//  printf("Added %lu to a total of %lu\n",
-//		  fm_2interval->backward_hi-fm_2interval->backward_lo,
-//		  filtering_candidates_get_num_positions(filtering_candidates));
   // Dynamic filtering
   if (nsearch_schedule->search_parameters->nsearch_parameters.dynamic_filtering &&
-	  filtering_candidates_get_num_positions(nsearch_schedule->filtering_candidates) > 500) {
+	    filtering_candidates_get_num_positions(nsearch_schedule->filtering_candidates) >=
+        search_parameters->select_parameters_align.max_search_matches) {
+    PROF_ADD_COUNTER(GP_NS_BRANCH_CANDIDATES_GENERATED,
+      filtering_candidates_get_num_positions(nsearch_schedule->filtering_candidates));
     nsearch_filtering(nsearch_schedule);
   }
   // PROFILE

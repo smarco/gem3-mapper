@@ -60,6 +60,13 @@ bool matches_test_accuracy_reached(
   PROF_INC_COUNTER(GP_MATCHES_ACCURACY_CASE_CALLS);
   // Parameters
   const uint64_t delta = search_parameters->complete_strata_after_best_nominal; // (default = 1)
+  const uint64_t max_search_matches = search_parameters->select_parameters_align.max_search_matches;
+  // Check total number of matches found so far
+  if (matches_get_num_match_traces(matches) >= max_search_matches) {
+    PROF_INC_COUNTER(GP_MATCHES_ACCURACY_CASE_MAX_MATCHES);
+    PROF_INC_COUNTER(GP_MATCHES_ACCURACY_CASE_HIT);
+    return true; // Done!
+  }
   // Classify
   const uint64_t min_edit_distance = matches_metrics_get_min_edit_distance(&matches->metrics);
   matches_classify(matches);
