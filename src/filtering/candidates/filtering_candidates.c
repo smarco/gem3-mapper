@@ -178,6 +178,9 @@ void filtering_candidates_init_alignment(
     bpm_pattern_t* const bpm_pattern,
     bpm_pattern_t* const bpm_pattern_tiles,
     const bool force_reset) {
+	if (filtering_region->text_begin_position == 4381651913) {
+		printf("HERE");
+	}
   // Check alignment
   alignment_t* const alignment = &filtering_region->alignment;
   if (alignment->alignment_tiles!=NULL && !force_reset) return; // Already initialized

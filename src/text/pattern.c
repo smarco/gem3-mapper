@@ -244,7 +244,7 @@ void pattern_tiled_init(
   pattern_tiled->sequence_length = sequence_length;
   pattern_tiled->tile_offset = 0;
   // Calculate current tile dimensions (adjusted to initial conditions)
-  pattern_tiled->tile_next_offset_inc = pattern_tile_length - max_error;
+  pattern_tiled->tile_next_offset_inc = BOUNDED_SUBTRACTION(pattern_tile_length,max_error,0);
   pattern_tiled->tile_tall = MIN(pattern_tile_length,pattern_length);
   pattern_tiled->tile_wide = pattern_tiled->pattern_band_width + pattern_tiled->tile_next_offset_inc;
   if (pattern_tiled->tile_offset+pattern_tiled->tile_wide > pattern_tiled->sequence_length) {
