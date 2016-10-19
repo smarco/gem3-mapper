@@ -74,6 +74,7 @@ void approximate_search_region_profile_close_region(
     const uint64_t filtering_threshold,
     uint64_t* const total_candidates,
     uint64_t* const num_regions_filtered,
+    uint64_t* const avg_region_length,
     uint64_t* const max_region_length) {
   // Check number of candidates
   const uint64_t num_candidates = filtering_region->hi - filtering_region->lo;
@@ -84,6 +85,7 @@ void approximate_search_region_profile_close_region(
     // Accumulate Mappability
     const uint64_t region_length = filtering_region->end - filtering_region->begin;
     *max_region_length = MAX(*max_region_length,region_length);
+    *avg_region_length += region_length;
   } else {
     filtering_region->degree = REGION_FILTER_NONE;
   }
@@ -97,11 +99,13 @@ void approximate_search_region_profile_static_close_profile(
   // Parameters
   region_profile_t* const region_profile = &search->region_profile;
   // Check total number of filtering-regions
+  const uint64_t key_length = search->pattern.key_length;
   const uint64_t min_num_regions = num_filtering_regions/2;
   if (total_candidates!=0 && num_regions_filtered > min_num_regions) {
     // Close region profile
     region_profile->total_candidates = total_candidates;
     region_profile->max_region_length = max_region_length;
+    region_profile->avg_region_length /= region_profile->num_filtering_regions;
     // Set State
     search->processing_state = asearch_processing_state_region_profiled;
     // STATS
@@ -110,6 +114,8 @@ void approximate_search_region_profile_static_close_profile(
     // Set State
     region_profile->num_filtering_regions = 0;
     region_profile->total_candidates = 0;
+    region_profile->max_region_length = key_length;
+    region_profile->avg_region_length = key_length;
     search->processing_state = asearch_processing_state_no_regions;
   }
 }
@@ -118,7 +124,8 @@ void approximate_search_region_profile_adaptive_close_profile(
     const uint64_t num_regions,
     const uint64_t num_regions_filtered,
     uint64_t total_candidates,
-    uint64_t max_region_length) {
+    const uint64_t avg_region_length,
+    const uint64_t max_region_length) {
   // Parameters
   region_profile_t* const region_profile = &search->region_profile;
   // Check exact matches
@@ -132,26 +139,22 @@ void approximate_search_region_profile_adaptive_close_profile(
     } else {
       region_profile->num_filtering_regions = 0;
     }
-    region_profile->max_region_length = 0;
   } else {
     region_profile->num_filtering_regions = num_regions;
-    if (num_regions > 0) {
-      region_search_t* const last_region =
-          region_profile->filtering_region + (region_profile->num_filtering_regions-1);
-      region_profile->max_region_length = MAX(max_region_length,last_region->begin);
-    } else {
-      region_profile->max_region_length = 0;
-    }
   }
   // Check number of regions
   if (region_profile->num_filtering_regions == 0) {
     // Set State & close region profile
     search->processing_state = asearch_processing_state_no_regions;
     region_profile->total_candidates = 0;
+    region_profile->max_region_length = key_length;
+    region_profile->avg_region_length = key_length;
   } else {
     // Set State & close region profile
     search->processing_state = asearch_processing_state_region_profiled;
     region_profile->total_candidates = total_candidates;
+    region_profile->max_region_length = max_region_length;
+    region_profile->avg_region_length = avg_region_length/region_profile->num_filtering_regions;
   }
   // STATS
   approximate_search_region_profile_stats(region_profile);
@@ -232,7 +235,8 @@ void approximate_search_region_profile_static_compute(approximate_search_t* cons
   const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
   const uint64_t filtering_threshold = search_parameters->region_profile_model.region_th;
   // Traverse Region-Partition
-  uint64_t num_regions_filtered = 0, max_region_length = 0, total_candidates = 0;
+  uint64_t num_regions_filtered = 0, total_candidates = 0;
+  uint64_t avg_region_length = 0, max_region_length = 0;
   uint64_t i;
   for (i=0;i<num_filtering_regions;++i) {
     region_search_t* const filtering_region = region_profile->filtering_region + i;
@@ -242,7 +246,7 @@ void approximate_search_region_profile_static_compute(approximate_search_t* cons
     // Close region
     approximate_search_region_profile_close_region(
         filtering_region,filtering_threshold,&total_candidates,
-        &num_regions_filtered,&max_region_length);
+        &num_regions_filtered,&avg_region_length,&max_region_length);
   }
   // Close profile
   approximate_search_region_profile_static_close_profile(
@@ -285,7 +289,8 @@ void approximate_search_region_profile_static_buffered_retrieve(
   // Buffer offsets
   const uint64_t buffer_offset_begin = search->gpu_buffer_fmi_search_offset;
   // Traverse Region-Partition
-  uint64_t num_regions_filtered = 0, max_region_length = 0, total_candidates = 0;
+  uint64_t num_regions_filtered = 0, total_candidates = 0;
+  uint64_t avg_region_length = 0, max_region_length = 0;
   uint64_t i;
   for (i=0;i<num_filtering_regions;++i) {
     // Fetch region search-interval
@@ -307,7 +312,7 @@ void approximate_search_region_profile_static_buffered_retrieve(
     // Close region
     approximate_search_region_profile_close_region(
         filtering_region,filtering_threshold,&total_candidates,
-        &num_regions_filtered,&max_region_length);
+        &num_regions_filtered,&avg_region_length,&max_region_length);
   }
   // Compute kmer frequency
   region_profile_compute_kmer_frequency(
@@ -349,7 +354,8 @@ void approximate_search_region_profile_adaptive_buffered_retrieve(
   // Allocate region-profile
   region_profile_allocate_regions(region_profile,num_regions); // Allocate
   // Traverse Region-Partition
-  uint64_t num_regions_filtered = 0, max_region_length = 0, total_candidates = 0;
+  uint64_t num_regions_filtered = 0, total_candidates = 0;
+  uint64_t avg_region_length = 0, max_region_length = 0;
   uint64_t i;
   for (i=0;i<num_regions;++i) {
     // Fetch region search-interval
@@ -361,7 +367,7 @@ void approximate_search_region_profile_adaptive_buffered_retrieve(
     // Close region
     approximate_search_region_profile_close_region(
         filtering_region,filtering_threshold,&total_candidates,
-        &num_regions_filtered,&max_region_length);
+        &num_regions_filtered,&avg_region_length,&max_region_length);
   }
   // Compute kmer frequency
   region_profile_compute_kmer_frequency(
@@ -370,7 +376,7 @@ void approximate_search_region_profile_adaptive_buffered_retrieve(
   // Close profile
   approximate_search_region_profile_adaptive_close_profile(
       search,num_regions,num_regions_filtered,
-      total_candidates,max_region_length);
+      total_candidates,avg_region_length,max_region_length);
   // DEBUG
   gem_cond_debug_block(DEBUG_REGION_PROFILE_PRINT) { region_profile_print(stderr,region_profile,false); }
 }

@@ -237,8 +237,11 @@ void approximate_search_end(
   matches_metrics_set_read_length(&matches->metrics,search->pattern.key_length);
   matches_metrics_set_swg_match_score(&matches->metrics,search_parameters->swg_penalties.generic_match_score);
   region_profile_t* const region_profile = &search->region_profile;
-  matches_metrics_set_max_region_length(&matches->metrics,region_profile->max_region_length);
-  matches_metrics_set_kmer_frequency(&matches->metrics,region_profile->kmer_frequency);
+  matches_metrics_set_region_profile_metrics(
+      &matches->metrics,
+      region_profile->avg_region_length,
+      region_profile->max_region_length,
+      region_profile->kmer_frequency);
   if (region_profile->candidates_limited) {
     matches_metrics_set_limited_candidates(&matches->metrics,true);
   }

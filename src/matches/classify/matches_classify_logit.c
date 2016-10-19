@@ -67,6 +67,9 @@ double matches_classify_logit(
       logit_coeff->coeff_accepted_candidates *
       (double)matches_predictors->accepted_candidates
       +
+      logit_coeff->coeff_aligned_candidates *
+      (double)matches_predictors->aligned_candidates
+      +
       logit_coeff->coeff_accepted_matches *
       (double)matches_predictors->accepted_matches
       +
@@ -75,6 +78,9 @@ double matches_classify_logit(
       +
       logit_coeff->coeff_mcs_end2 *
       (double)matches_predictors->mcs_end2
+      +
+      logit_coeff->coeff_avg_region_length_norm *
+      (double)matches_predictors->avg_region_length_norm
       +
       logit_coeff->coeff_max_region_length_norm *
       (double)matches_predictors->max_region_length_norm

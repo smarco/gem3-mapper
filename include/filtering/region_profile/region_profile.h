@@ -79,6 +79,7 @@ typedef struct {
   uint64_t total_candidates;         // Total number of candidates (from exact matching-regions)
   bool candidates_limited;           // Limited number of candidates (due to selection)
   uint64_t max_region_length;        // Largest region length
+  uint64_t avg_region_length;        // Average region length
   double kmer_frequency;
   /* MM */
   mm_stack_t* mm_stack;

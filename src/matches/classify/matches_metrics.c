@@ -30,6 +30,7 @@ void matches_metrics_init(matches_metrics_t* const metrics) {
   // Matches
   metrics->accepted_candidates = 0;
   metrics->accepted_matches = 0;
+  metrics->aligned_alignments = 0;
   metrics->limited_candidates = false;
   // Matches Distance
   metrics->min_event_distance = UINT32_MAX;
@@ -72,14 +73,13 @@ void matches_metrics_set_swg_match_score(
     const int32_t swg_match_score) {
   metrics->swg_match_score = swg_match_score;
 }
-void matches_metrics_set_max_region_length(
+void matches_metrics_set_region_profile_metrics(
     matches_metrics_t* const metrics,
-    const uint64_t max_region_length) {
-  metrics->max_region_length = max_region_length;
-}
-void matches_metrics_set_kmer_frequency(
-    matches_metrics_t* const metrics,
+    const uint64_t avg_region_length,
+    const uint64_t max_region_length,
     const double kmer_frequency) {
+  metrics->avg_region_length = avg_region_length;
+  metrics->max_region_length = max_region_length;
   metrics->kmer_frequency = kmer_frequency;
 }
 void matches_metrics_add_accepted_candidates(
@@ -91,6 +91,11 @@ void matches_metrics_set_accepted_candidates(
     matches_metrics_t* const metrics,
     const uint64_t accepted_candidates) {
   metrics->accepted_candidates = accepted_candidates;
+}
+void matches_metrics_set_aligned_alignments(
+    matches_metrics_t* const metrics,
+    const uint64_t aligned_alignments) {
+  metrics->aligned_alignments = aligned_alignments;
 }
 void matches_metrics_set_limited_candidates(
     matches_metrics_t* const metrics,

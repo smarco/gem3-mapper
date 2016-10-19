@@ -105,6 +105,7 @@ void region_profile_generator_close_region(
   current_region->begin = key_position;
   const uint64_t region_length = current_region->end - current_region->begin;
   region_profile->max_region_length = MAX(region_profile->max_region_length,region_length);
+  region_profile->avg_region_length += region_length;
   // Set interval/candidates
   const uint64_t candidates_region = hi - lo;
   current_region->lo = lo;
@@ -134,15 +135,15 @@ void region_profile_generator_close_profile(
       region_profile->num_filtering_regions = 0;
       region_profile->total_candidates = 0;
     }
+    region_profile->max_region_length = generator->key_length;
+    region_profile->avg_region_length = generator->key_length;
   } else {
     // We extend the last region
     if (generator->allow_zero_regions) {
       region_profile_extend_last_region(region_profile,
           generator->fm_index,generator->key,generator->allowed_enc);
     }
-    // Add information about the last region
-    region_search_t* const last_region = region_profile->filtering_region + (region_profile->num_filtering_regions-1);
-    region_profile->max_region_length = MAX(region_profile->max_region_length,last_region->begin);
+    region_profile->avg_region_length /= region_profile->num_filtering_regions;
   }
 }
 bool region_profile_generator_add_character(
@@ -330,7 +331,7 @@ void region_profile_generate_adaptive_limited(
   // Init
   const uint64_t max_region_length = key_length/min_regions;
   region_profile_generator_t generator;
-  region_profile_generator_init(&generator,region_profile,fm_index,key,key_length,allowed_enc,true);
+  region_profile_generator_init(&generator,region_profile,fm_index,key,key_length,allowed_enc,false);
   // Delimit regions
   while (generator.key_position > 0) {
     // Cut-off

@@ -317,9 +317,9 @@ void archive_search_pe_end(
       search_parameters->swg_penalties.generic_match_score);
   region_profile_t* const region_profile_end1 = &archive_search_end1->approximate_search.region_profile;
   region_profile_t* const region_profile_end2 = &archive_search_end2->approximate_search.region_profile;
-  matches_metrics_set_max_region_length(&paired_matches->metrics,
-      MAX(region_profile_end1->max_region_length,region_profile_end2->max_region_length));
-  matches_metrics_set_kmer_frequency(&paired_matches->metrics,
+  matches_metrics_set_region_profile_metrics(&paired_matches->metrics,
+      (region_profile_end1->avg_region_length+region_profile_end2->avg_region_length)/2,
+      MAX(region_profile_end1->max_region_length,region_profile_end2->max_region_length),
       MAX(region_profile_end1->kmer_frequency,region_profile_end2->kmer_frequency));
   // Set MCS
   paired_matches->max_complete_stratum =

@@ -50,10 +50,12 @@ typedef struct {
   double coeff_subdominant_template_size_sigma_norm;
   // Search Scope
   double coeff_accepted_candidates;
+  double coeff_aligned_candidates;
   double coeff_accepted_matches;
   double coeff_mcs_end1;
   double coeff_mcs_end2;
   // Mappability
+  double coeff_avg_region_length_norm;
   double coeff_max_region_length_norm;
   double coeff_kmer_frequency;
 } matches_classify_logit_coeff_t;

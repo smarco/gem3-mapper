@@ -130,11 +130,14 @@ void matches_predictors_compute_se(
         subdominant_match->swg_score,MAX_TEMPLATE_LENGTH_SIGMAS);
   }
   // Search Scope
-  predictors->accepted_candidates = (double)gem_loge((float)metrics->accepted_candidates)/(double)gem_loge(4);
-  predictors->accepted_matches = (double)gem_loge((float)metrics->accepted_matches)/(double)gem_loge(4);
+  const double log4 = (double)gem_loge(4);
+  predictors->accepted_candidates = (double)gem_loge((float)metrics->accepted_candidates)/log4;
+  predictors->aligned_candidates = (double)gem_loge((float)metrics->aligned_alignments)/log4;
+  predictors->accepted_matches = (double)gem_loge((float)metrics->accepted_matches)/log4;
   predictors->mcs_end1 = (matches->max_complete_stratum!=ALL) ? matches->max_complete_stratum : 0;
   predictors->mcs_end2 = 0;
   // Mappability
+  predictors->avg_region_length_norm = (double)metrics->avg_region_length/metrics->proper_length;
   predictors->max_region_length_norm = (double)metrics->max_region_length/metrics->proper_length;
   predictors->kmer_frequency = metrics->kmer_frequency;
   // MAPQ
@@ -166,13 +169,16 @@ void matches_predictors_compute_pe(
         subdominant_match->swg_score,subdominant_match->template_length_sigma);
   }
   // Search Scope
-  predictors->accepted_candidates = (double)gem_loge((float)metrics->accepted_candidates)/(double)gem_loge(4);
-  predictors->accepted_matches = (double)gem_loge((float)metrics->accepted_matches)/(double)gem_loge(4);
+  const double log4 = (double)gem_loge(4);
+  predictors->accepted_candidates = (double)gem_loge((float)metrics->accepted_candidates)/log4;
+  predictors->aligned_candidates = (double)gem_loge((float)metrics->aligned_alignments)/log4;
+  predictors->accepted_matches = (double)gem_loge((float)metrics->accepted_matches)/log4;
   matches_t* const matches_end1 = paired_matches->matches_end1;
   matches_t* const matches_end2 = paired_matches->matches_end2;
   predictors->mcs_end1 = (matches_end1->max_complete_stratum!=ALL) ? matches_end1->max_complete_stratum : 0;
   predictors->mcs_end2 = (matches_end2->max_complete_stratum!=ALL) ? matches_end2->max_complete_stratum : 0;
   // Mappability
+  predictors->avg_region_length_norm = (double)metrics->avg_region_length/metrics->proper_length;
   predictors->max_region_length_norm = (double)metrics->max_region_length/metrics->proper_length;
   predictors->kmer_frequency = metrics->kmer_frequency;
   // MAPQ
@@ -229,16 +235,20 @@ void matches_predictors_print(
   // sub_sigma
   fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->subdominant_template_size_sigma_norm);
   /*
-   * ccand cmatch mcs1 mcs2 mrl kmerf
+   * ccand acand cmatch mcs1 mcs2 arl mrl kmerf
    */
   // ccand
   fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->accepted_candidates);
+  // acand
+  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->aligned_candidates);
   // cmatch
   fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->accepted_matches);
   // mcs1
   fprintf(stream,"%02"PRIu64 MP_SEP,matches_predictors->mcs_end1);
   // mcs2
   fprintf(stream,"%02"PRIu64 MP_SEP,matches_predictors->mcs_end2);
+  // arl
+  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->avg_region_length_norm);
   // mrl
   fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->max_region_length_norm);
   // kmerf

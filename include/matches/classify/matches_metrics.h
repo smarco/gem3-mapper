@@ -41,9 +41,11 @@ typedef struct {
   int32_t swg_match_score;
   /* Read Mappability */
   uint64_t max_region_length;
+  uint64_t avg_region_length;
   double kmer_frequency;
   /* Matches */
   uint64_t accepted_candidates;      // Total candidates accepted
+  uint64_t aligned_alignments;       // Total candidates aligned (and matching)
   bool limited_candidates;           // Number of candidates has been limited due to selection
   uint64_t accepted_matches;         // Total matches accepted
   /* Matches Distance */
@@ -81,9 +83,11 @@ void matches_metrics_set_read_length(
 void matches_metrics_set_swg_match_score(
     matches_metrics_t* const metrics,
     const int32_t swg_match_score);
-void matches_metrics_set_max_region_length(
+void matches_metrics_set_region_profile_metrics(
     matches_metrics_t* const metrics,
-    const uint64_t max_region_length);
+    const uint64_t avg_region_length,
+    const uint64_t max_region_length,
+    const double kmer_frequency);
 void matches_metrics_set_kmer_frequency(
     matches_metrics_t* const metrics,
     const double kmer_frequency);
@@ -93,6 +97,9 @@ void matches_metrics_add_accepted_candidates(
 void matches_metrics_set_accepted_candidates(
     matches_metrics_t* const metrics,
     const uint64_t accepted_candidates);
+void matches_metrics_set_aligned_alignments(
+    matches_metrics_t* const metrics,
+    const uint64_t aligned_alignments);
 void matches_metrics_set_limited_candidates(
     matches_metrics_t* const metrics,
     const bool limited);

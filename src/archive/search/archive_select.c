@@ -77,6 +77,7 @@ void archive_select_se_matches(
     matches_t* const matches) {
   PROFILE_START(GP_ARCHIVE_SELECT_SE_MATCHES,PROFILE_LEVEL);
   const uint64_t num_matches = matches_get_num_match_traces(matches);
+  matches_metrics_set_aligned_alignments(&matches->metrics,num_matches);
   // Check min-reported-strata constrain
   if (select_parameters->min_reported_strata_nominal > 0) {
     // Calculate the number of matches to decode wrt input parameters
@@ -105,6 +106,7 @@ void archive_select_pe_matches(
     paired_matches_t* const paired_matches) {
   // Update stats (Check number of paired-matches)
   const uint64_t num_matches = paired_matches_get_num_maps(paired_matches);
+  matches_metrics_set_aligned_alignments(&paired_matches->metrics,num_matches);
   if (num_matches==0) return;
   PROFILE_START(GP_ARCHIVE_SELECT_PE_MATCHES,PROFILE_LEVEL);
   // Sample unique

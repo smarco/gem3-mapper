@@ -50,6 +50,7 @@ void region_profile_clear(
   region_profile->total_candidates = 0;
   region_profile->candidates_limited = false;
   region_profile->max_region_length = 0;
+  region_profile->avg_region_length = 0;
   region_profile->kmer_frequency = 0.0;
 }
 void region_profile_inject_mm(

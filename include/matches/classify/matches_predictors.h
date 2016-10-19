@@ -45,10 +45,12 @@ typedef struct {
   double subdominant_template_size_sigma_norm;
   /* Search Scope */
   double accepted_candidates;
+  double aligned_candidates;
   double accepted_matches;
   uint64_t mcs_end1;
   uint64_t mcs_end2;
   /* Mappability */
+  double avg_region_length_norm;
   double max_region_length_norm;
   double kmer_frequency;
   /* MAPQ */
