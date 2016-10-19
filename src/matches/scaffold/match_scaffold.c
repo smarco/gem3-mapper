@@ -31,7 +31,8 @@
 /*
  * Debug
  */
-#define DEBUG_MATCH_SCAFFOLD       GEM_DEEP_DEBUG
+#define DEBUG_MATCH_SCAFFOLD        GEM_DEEP_DEBUG
+#define DEBUG_MATCH_SCAFFOLD_CHECK  false
 
 /*
  * Profile
@@ -95,26 +96,6 @@ void match_scaffold_rl_translate_regions(
 }
 /*
  * Adaptive Scaffolding of the alignment (Best effort)
- *   @align_input->key
- *   @align_input->key_length
- *   @align_input->bpm_pattern
- *   @align_input->bpm_pattern_tiles
- *   @align_input->text_position
- *   @align_input->text
- *   @align_input->text_length
- *   @align_input->key_trim_left
- *   @align_input->key_trim_right
- *   @align_input->text_offset_begin
- *   @align_input->text_offset_end
- *   @align_input->text_offset_base_begin
- *   @align_input->text_offset_base_end
- *   @align_parameters->max_error
- *   @align_parameters->left_gap_alignment
- *   @align_parameters->scaffolding_min_coverage
- *   @align_parameters->scaffolding_matching_min_length
- *   @align_parameters->scaffolding_homopolymer_min_context
- *   @match_scaffold->num_alignment_regions
- *   @match_scaffold->alignment_regions
  */
 void match_scaffold_adaptive(
     match_scaffold_t* const match_scaffold,
@@ -123,39 +104,36 @@ void match_scaffold_adaptive(
     matches_t* const matches,
     mm_stack_t* const mm_stack) {
   PROFILE_START(GP_MATCH_SCAFFOLD_ALIGNMENT,PROFILE_LEVEL);
-  // Translate alignment-regions
+  /*
+   * Translate alignment-regions
+   */
   const bool rl_space = match_scaffold->alignment_regions_rl;
   if (rl_space) {
     match_scaffold_rl_translate_regions(match_scaffold,align_input,align_parameters,matches);
     match_scaffold->alignment_regions_rl = false;
   }
-  // Select proper scaffold approach
-  switch (match_scaffold->scaffold_type) {
-    case scaffold_none:
-      // Scaffold chaining alignment-regions (from region-profile)
-      PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_ALIGNMENT_REGIONS,match_scaffold->num_alignment_regions);
-      PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_ALIGNMENT_COVERAGE,
-          (100*match_scaffold->scaffolding_coverage)/align_input->key_length);
-      match_scaffold->scaffold_type = scaffold_alignment_chain;
-      match_scaffold_chain(match_scaffold,align_input,align_parameters,!rl_space,mm_stack);
-      // Check coverage
-      PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_CHAIN_REGIONS_COVERAGE,
-          (100*match_scaffold->scaffolding_coverage)/align_input->key_length);
-      const uint64_t max_coverage_bound = BOUNDED_SUBTRACTION(
-          align_input->key_length,align_input->alignment->distance_min_bound,0);
-      if (max_coverage_bound >= align_parameters->global_min_identity &&
-          match_scaffold->scaffolding_coverage >= max_coverage_bound) break;
-      // no break
-    case scaffold_alignment_chain:
-      // Scaffold from Levenshtein-alignment
-      match_scaffold->scaffold_type = scaffold_levenshtein;
-      match_scaffold_levenshtein(match_scaffold,align_input,align_parameters,matches,mm_stack);
-      match_scaffold_chain(match_scaffold,align_input,align_parameters,false,mm_stack);
-      PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_COVERAGE,
-          (100*match_scaffold->scaffolding_coverage)/align_input->key_length);
-      // no break
-    default:
-      break;
+  /*
+   * Scaffold chaining alignment-regions (from region-profile)
+   */
+  PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_ALIGNMENT_REGIONS,match_scaffold->num_alignment_regions);
+  PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_ALIGNMENT_COVERAGE,
+      (100*match_scaffold->scaffolding_coverage)/align_input->key_length);
+  match_scaffold->scaffold_type = scaffold_alignment_chain;
+  match_scaffold_chain(match_scaffold,align_input,align_parameters,!rl_space,mm_stack);
+  PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_CHAIN_REGIONS_COVERAGE,
+      (100*match_scaffold->scaffolding_coverage)/align_input->key_length);
+  const uint64_t max_coverage_bound = BOUNDED_SUBTRACTION(
+      align_input->key_length,align_input->alignment->distance_min_bound,0);
+  if (max_coverage_bound < align_parameters->global_min_identity ||
+      match_scaffold->scaffolding_coverage < max_coverage_bound) { // Check coverage
+    /*
+     * Scaffold from Levenshtein-alignment
+     */
+    match_scaffold->scaffold_type = scaffold_levenshtein; // Set scaffold approach
+    match_scaffold_levenshtein(match_scaffold,align_input,align_parameters,matches,mm_stack);
+    match_scaffold_chain(match_scaffold,align_input,align_parameters,false,mm_stack);
+    PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_COVERAGE,
+        (100*match_scaffold->scaffolding_coverage)/align_input->key_length);
   }
   //  // DEBUG
   //  match_scaffold_print_pretty(stderr,matches,match_scaffold,
@@ -168,7 +146,27 @@ void match_scaffold_adaptive(
     match_scaffold_print(stderr,matches,match_scaffold);
     tab_global_dec();
   }
+  // CHECK
+  gem_cond_debug_block(DEBUG_MATCH_SCAFFOLD_CHECK) {
+    match_scaffold_check(match_scaffold,align_input,matches);
+  }
   PROFILE_STOP(GP_MATCH_SCAFFOLD_ALIGNMENT,PROFILE_LEVEL);
+}
+/*
+ * Check
+ */
+void match_scaffold_check(
+    match_scaffold_t* const match_scaffold,
+    match_align_input_t* const align_input,
+    matches_t* const matches) {
+  const uint64_t num_alignment_regions = match_scaffold->num_alignment_regions;
+  uint64_t i;
+  for (i=0;i<num_alignment_regions;++i) {
+    match_alignment_region_t* const match_alignment_region = match_scaffold->alignment_regions + i;
+    match_alignment_region_check(
+        match_alignment_region,align_input->key,
+        align_input->text,matches->cigar_vector);
+  }
 }
 /*
  * Sorting
@@ -177,7 +175,8 @@ void match_scaffold_adaptive(
 #define VECTOR_SORT_TYPE                 match_alignment_region_t
 #define VECTOR_SORT_CMP(a,b)             match_alignment_region_cmp_text_position(a,b)
 #include "utils/vector_sort.h"
-void match_scaffold_sort_alignment_regions(match_scaffold_t* const match_scaffold) {
+void match_scaffold_sort_alignment_regions(
+    match_scaffold_t* const match_scaffold) {
   buffer_sort_match_alignment_region(match_scaffold->alignment_regions,match_scaffold->num_alignment_regions);
 }
 /*

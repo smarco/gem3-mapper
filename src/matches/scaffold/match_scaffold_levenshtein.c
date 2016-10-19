@@ -44,7 +44,6 @@ void match_scaffold_levenshtein_compose_alignment(
     match_scaffold_t* const match_scaffold,
     matches_t* const matches,
     const match_alignment_t* const match_alignment,
-    uint8_t* const text,
     uint64_t key_offset,
     const uint64_t matching_min_length) {
   // Traverse CIGAR elements and compose scaffolding
@@ -103,9 +102,6 @@ void match_scaffold_levenshtein_compose_alignment(
 }
 /*
  * Levenshtein Scaffold Single Tile
- *   @align_input->key
- *   @align_input->text_position
- *   @align_input->text
  */
 void match_scaffold_levenshtein_tiled(
     match_scaffold_t* const match_scaffold,
@@ -119,28 +115,32 @@ void match_scaffold_levenshtein_tiled(
     const bool left_gap_alignment,
     matches_t* const matches,
     mm_stack_t* const mm_stack) {
+  // Parameters
+  uint8_t* const key = align_input->key + key_offset;
+  uint8_t* const text = align_input->text_padded + text_begin;
+  const uint64_t text_length = text_end - text_begin;
+  const uint64_t max_distance = distance_bound;
   // Fill Matrix (Pv,Mv)
   bpm_align_matrix_t bpm_align_matrix;
-  match_align_input_t bpm_align_input = {
-      .key = align_input->key + key_offset,
-      .bpm_pattern = bpm_pattern_tile,
-      .text = align_input->text + text_begin ,
-      .text_length = text_end - text_begin,
-  };
-  const uint64_t max_distance = distance_bound;
-  align_bpm_compute_matrix(&bpm_align_input,max_distance,&bpm_align_matrix,mm_stack);
-  PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_CELLS,
-      bpm_pattern_tile->pattern_length*bpm_align_input.text_length);
+  align_bpm_compute_matrix(
+      bpm_pattern_tile,text,text_length,
+      max_distance,&bpm_align_matrix,mm_stack);
+  PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_CELLS,bpm_pattern_tile->pattern_length*text_length);
   if (bpm_align_matrix.min_score != ALIGN_DISTANCE_INF) {
     // Backtrace and generate CIGAR
     const uint64_t match_position = align_input->text_position + text_begin;
     match_alignment_t match_alignment;
     match_alignment.match_position = match_position;
-    align_bpm_backtrace_matrix(&bpm_align_input,left_gap_alignment,
+    align_bpm_backtrace_matrix(
+        bpm_pattern_tile,key,text,left_gap_alignment,
         &bpm_align_matrix,&match_alignment,matches->cigar_vector);
     // Store the offset (from the beginning of the text)
-    match_alignment.match_text_offset = text_begin +
-        (match_alignment.match_position - match_position);
+    // Account for the text-padding offset
+    const uint64_t alignment_offset = match_alignment.match_position - match_position;
+    const uint64_t text_padding = align_input->text_padding;
+    gem_fatal_check_msg(text_begin + alignment_offset < text_padding,
+        "Scaffold levenshtein. Negative coordinates because of padding");
+    match_alignment.match_text_offset = text_begin + alignment_offset - text_padding;
     //    // DEBUG
     //    match_alignment_print_pretty(stderr,&match_alignment,
     //        matches->cigar_vector,align_input->key + key_offset,bpm_pattern_tile->pattern_length,
@@ -149,25 +149,11 @@ void match_scaffold_levenshtein_tiled(
     // Add the alignment to the scaffold
     match_scaffold_levenshtein_compose_alignment(
         match_scaffold,matches,&match_alignment,
-        align_input->text,key_offset,matching_min_length);
+        key_offset,matching_min_length);
   }
 }
 /*
  * Levenshtein Scaffold Tiled
- *   @align_input->key
- *   @align_input->key_length
- *   @align_input->key_trim_left
- *   @align_input->key_trim_right
- *   @align_input->bpm_pattern
- *   @align_input->bpm_pattern_tiles
- *   @align_input->text_position
- *   @align_input->text
- *   @align_input->text_length
- *   @align_input->text_offset_base_begin
- *   @align_input->text_offset_base_end
- *   @align_parameters->max_error
- *   @align_parameters->left_gap_alignment
- *   @align_parameters->min_matching_length
  */
 bool match_scaffold_levenshtein(
     match_scaffold_t* const match_scaffold,
@@ -178,9 +164,7 @@ bool match_scaffold_levenshtein(
   PROF_INC_COUNTER(GP_MATCH_SCAFFOLD_EDIT_SCAFFOLDS);
   PROFILE_START(GP_MATCH_SCAFFOLD_EDIT,PROFILE_LEVEL);
   // Parameters
-  const uint64_t key_trim_left = align_input->key_trim_left;
-  const uint64_t key_trim_right = align_input->key_trim_right;
-  const uint64_t key_length =  align_input->key_length - key_trim_left - key_trim_right;
+  const uint64_t key_length =  align_input->key_length;
   const uint64_t matching_min_length = align_parameters->scaffolding_matching_min_length;
   const uint64_t max_alignment_regions = DIV_CEIL(key_length,matching_min_length);
   const bool left_gap_alignment = align_parameters->left_gap_alignment;
@@ -191,30 +175,32 @@ bool match_scaffold_levenshtein(
   // Push stack state
   mm_stack_push_state(mm_stack);
   // Compute dimensions
-  bpm_pattern_t* const bpm_pattern_tiles = align_input->bpm_pattern_tiles;
-  const uint64_t num_tiles = bpm_pattern_tiles->num_pattern_tiles;
+  alignment_tile_t* const alignment_tiles = align_input->alignment->alignment_tiles;
+  alignment_filters_t* const filters = align_input->alignment_filters;
+  alignment_filters_tile_t* const filters_tiles = filters->tiles;
+  const uint64_t num_tiles = filters->num_tiles;
   PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_TILES_TOTAL,num_tiles);
   // Compute the scaffolding of each tile
-  alignment_tile_t* const alignment_tile = align_input->alignment->alignment_tiles;
-  uint64_t tile_pos, key_offset = key_trim_left;
+  uint64_t tile_pos, key_offset = 0;
   for (tile_pos=0;tile_pos<num_tiles;++tile_pos) {
     // Scaffold tile
-    bpm_pattern_t* const bpm_pattern_tile = bpm_pattern_tiles + tile_pos;
-    const uint64_t tile_length = bpm_pattern_tile->pattern_length;
-    const uint64_t match_distance = alignment_tile[tile_pos].distance;
-    PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_TILES_SKIPPED,(match_distance!=ALIGN_DISABLED)?0:1);
-    if (match_distance!=ALIGN_DISABLED) {
-//      if (match_distance==0) {
-//        uint64_t k_off = key_offset, t_off = alignment_tile[tile_pos].text_begin_offset;
-//        match_scaffold_compose_add_exact_match(match_scaffold,&k_off,&t_off,tile_length); // Add Match
-//      } ... TODO
-      const uint64_t text_begin_offset = alignment_tile[tile_pos].text_begin_offset;
-      const uint64_t text_end_offset = alignment_tile[tile_pos].text_end_offset;
-      const uint64_t distance_bound = (match_distance<tile_length) ? match_distance : tile_length;
+    alignment_tile_t* const alignment_tile = alignment_tiles + tile_pos;
+    alignment_filters_tile_t* const filters_tile = filters_tiles + tile_pos;
+    const uint64_t max_distance = filters_tile->max_error;
+    const uint64_t tile_length = filters_tile->tile_length;
+    PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_TILES_SKIPPED,(alignment_tile->distance==ALIGN_DISABLED)?1:0);
+    const uint64_t match_distance = alignment_tile->distance;
+    if (match_distance!=ALIGN_DISABLED && match_distance!=ALIGN_DISTANCE_INF) {
+      // TODO if (match_distance==0) { match_scaffold_compose_add_exact_match(...); // Add Match
+      const uint64_t text_begin_offset = alignment_tile->text_begin_offset;
+      const uint64_t text_end_offset = alignment_tile->text_end_offset;
+      const uint64_t distance_bound = MIN(match_distance,max_distance);
       mm_stack_push_state(mm_stack); // Push stack state
-      match_scaffold_levenshtein_tiled(match_scaffold,align_input,
-          bpm_pattern_tile,key_offset,text_begin_offset,text_end_offset,
-          distance_bound,matching_min_length,left_gap_alignment,matches,mm_stack);
+      match_scaffold_levenshtein_tiled(
+          match_scaffold,align_input,filters_tile->bpm_pattern_tile,
+          key_offset,text_begin_offset,text_end_offset,
+          distance_bound,matching_min_length,left_gap_alignment,
+          matches,mm_stack);
       mm_stack_pop_state(mm_stack); // Pop stack state
       PROF_INC_COUNTER(GP_MATCH_SCAFFOLD_EDIT_TILES_ALIGN);
     }
@@ -233,25 +219,4 @@ bool match_scaffold_levenshtein(
   PROFILE_STOP(GP_MATCH_SCAFFOLD_EDIT,PROFILE_LEVEL);
   return match_scaffold->num_alignment_regions > 0;
 }
-
-
-////    /*
-////     * Debug OND
-////     */
-////    match_alignment_t ond_match_alignment;
-////    ond_match_alignment.match_position = 0;
-////    match_align_input_t ond_align_input;
-////    ond_align_input.key = align_input->key;
-////    ond_align_input.key_length = align_input->key_length;
-////    ond_align_input.text = align_input->text; //  + align_input->align_match_begin_column;
-////    ond_align_input.text_length = align_input->text_length; // align_input->align_match_end_column - align_input->align_match_begin_column;
-////    align_ond_match(&ond_align_input,ond_align_input.text_length,
-////        &ond_match_alignment,matches->cigar_vector,mm_stack);
-////    // Display
-////    match_alignment_print_pretty(stderr,&ond_match_alignment,
-////        matches->cigar_vector,ond_align_input.key,ond_align_input.key_length,
-////        ond_align_input.text,ond_align_input.text_length,mm_stack);
-////    return match_scaffold->num_alignment_regions > 0;
-
-
 

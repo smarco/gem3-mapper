@@ -38,6 +38,11 @@
 #define PROFILE_LEVEL PHIGH
 
 /*
+ * Debug
+ */
+//#define DEBUG_MAPPER_DISPLAY_EACH_READ_TIME
+
+/*
  * Report
  */
 void mapper_display_input_state(
@@ -152,11 +157,15 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
     if (bisulfite_index) mapper_bisulfite_process_sequence_se(archive_search,search_parameters);
 
     // Search into the archive
-//    gem_timer_t timer;
-//    TIMER_RESTART(&timer);
+#ifdef DEBUG_MAPPER_DISPLAY_EACH_READ_TIME
+    gem_timer_t timer;
+    TIMER_RESTART(&timer);
     archive_search_se(archive_search,matches);
-//    TIMER_STOP(&timer);
-//    fprintf(stderr,"Done %s in %2.4f ms.\n",archive_search->sequence.tag.buffer,TIMER_GET_TOTAL_MS(&timer));
+    TIMER_STOP(&timer);
+    fprintf(stderr,"Done %s in %2.4f ms.\n",archive_search->sequence.tag.buffer,TIMER_GET_TOTAL_MS(&timer));
+#else
+    archive_search_se(archive_search,matches);
+#endif
 
     // Bisulfite: Copy back original read
     if (bisulfite_index) mapper_bisulfite_restore_sequence_se(archive_search);

@@ -110,9 +110,6 @@ bool filtering_candidates_align_region(
           filtering_candidates,region,pattern->run_length,&match_trace);
   // Align the region
   if (!match_trace_aligned) {
-	if (region->text_begin_position == 4381651913) {
-		printf("HERE");
-	}
     match_trace_aligned = filtering_region_align(filtering_candidates,
         region,pattern,local_alignment,matches,&match_trace);
     if (!match_trace_aligned) return false; // Not aligned or subdominant

@@ -52,6 +52,13 @@ struct _bpm_pattern_t {
 };
 
 /*
+ * Constants
+ */
+#define BPM_MIN_TILE_LENGTH 128
+#define BPM_PREFERED_TILE_LENGTH 256
+#define BPM_MAX_TILE_LENGTH 512
+
+/*
  * Pattern Accessors
  */
 #define BPM_PATTERN_PEQ_IDX(word_pos,encoded_character)   ((word_pos*DNA__N_RANGE)+(encoded_character))
@@ -68,10 +75,10 @@ bpm_pattern_t* bpm_pattern_compile(
 /*
  * Compile Pattern Tiles
  */
-bpm_pattern_t* bpm_pattern_compile_tiles(
+void bpm_pattern_compile_tiles(
     bpm_pattern_t* const bpm_pattern,
-    const uint64_t prefered_words64_per_tile,
-    const uint64_t max_error,
-    mm_stack_t* const mm_stack);
+    const uint64_t offset_words64,
+    const uint64_t tile_length,
+    bpm_pattern_t* const bpm_pattern_tile);
 
 #endif /* ALIGN_BPM_PATTERN_H_ */

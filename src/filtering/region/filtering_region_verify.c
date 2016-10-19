@@ -33,7 +33,6 @@
  * Debug
  */
 #define DEBUG_FILTERING_REGION  GEM_DEEP_DEBUG
-//#define FILTERING_REGION_VERIFY_CHECK_KMER_FILTER
 
 /*
  * Profile
@@ -74,7 +73,7 @@ void filtering_region_verify_hamming(
   // Parameters
   const uint8_t* const key = pattern->key;
   const uint64_t key_length = pattern->key_length;
-  const uint64_t max_error = filtering_region->max_error;
+  const uint64_t max_error = pattern->max_effective_filtering_error;
   const uint64_t text_base_offset =
       filtering_region->text_source_region_offset -
       filtering_region->key_source_region_offset;
@@ -102,45 +101,6 @@ void filtering_region_verify_hamming(
 /*
  * Verify Leveshtein
  */
-bool filtering_region_verify_levenshtein_kmer_filter(
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
-    text_trace_t* const text_trace,
-    mm_stack_t* const mm_stack) {
-  // Parameters
-  const uint8_t* const text = text_trace->text;
-  const uint64_t text_length = text_trace->text_length;
-  alignment_t* const alignment = &filtering_region->alignment;
-  // Compile kmer-filter trimmed
-  kmer_counting_t* kmer_counting;
-  if (filtering_region->key_trimmed) {
-    mm_stack_push_state(mm_stack);
-    kmer_counting = mm_stack_alloc(mm_stack,kmer_counting_t);
-    kmer_counting_compile(
-        kmer_counting,pattern->key+filtering_region->key_trim_left,
-        filtering_region->key_trimmed_length,filtering_region->max_error,mm_stack);
-  } else {
-    kmer_counting = &pattern->kmer_counting;
-  }
-  // Kmer Filter
-  const uint64_t test_positive = kmer_counting_filter(kmer_counting,text,text_length);
-  if (filtering_region->key_trimmed) mm_stack_pop_state(mm_stack);
-  if (test_positive==ALIGN_DISTANCE_INF) {
-    alignment->distance_min_bound = ALIGN_DISTANCE_INF;
-    PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_DISCARDED);
-    #ifdef FILTERING_REGION_VERIFY_CHECK_KMER_FILTER
-    // DEBUG
-    const bpm_pattern_t* const bpm_pattern = &pattern->bpm_pattern;
-    uint64_t distance, match_column;
-    bpm_compute_edit_distance(bpm_pattern,text,text_length,&distance,match_column,max_error,true);
-    gem_cond_error_msg(distance != ALIGN_DISTANCE_INF,
-        "Filtering.Region.Verify: K-mer filtering wrong discarding (edit-distance=%lu)",distance);
-    #endif
-    return false;
-  }
-  PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_ACCEPTED);
-  return true;
-}
 void filtering_region_verify_levenshtein(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
@@ -148,22 +108,19 @@ void filtering_region_verify_levenshtein(
     text_trace_t* const text_trace,
     const bool kmer_filter,
     mm_stack_t* const mm_stack) {
-  // Generalized Kmer-Counting filter [Prefilter]
-  if (kmer_filter) {
-    if (!filtering_region_verify_levenshtein_kmer_filter(
-        filtering_region,pattern,text_trace,mm_stack)) return;
-  }
-  // Get BPM-Pattern
-  bpm_pattern_t* bpm_pattern, *bpm_pattern_tiles;
-  filtering_region_bpm_pattern_select(filtering_region,
-      pattern,&bpm_pattern,&bpm_pattern_tiles,mm_stack);
+  // Parameters
+  const uint64_t max_error = pattern->max_effective_filtering_error;
+  const uint64_t text_length = text_trace->text_padded_length;
+  uint8_t* const text = text_trace->text_padded;
   // Prepare Alignment
-  filtering_candidates_init_alignment(filtering_candidates,
-      filtering_region,bpm_pattern,bpm_pattern_tiles,false);
-  // Myers's BPM algorithm [EditFilter]
-  alignment_verify_levenshtein_bpm(
-      &filtering_region->alignment,filtering_region->max_error,
-      bpm_pattern,bpm_pattern_tiles,text_trace);
+  filtering_candidates_init_alignment(
+      filtering_candidates,&filtering_region->alignment,
+      pattern,text_length,max_error,false);
+  // Verify Levenshtein
+  alignment_verify_levenshtein(
+      &filtering_region->alignment,
+      &pattern->alignment_filters,
+      pattern->key,text,max_error);
 }
 /*
  * Verify (Switch)
@@ -180,7 +137,7 @@ bool filtering_region_verify(
   text_collection_t* const text_collection = &filtering_candidates->text_collection;
   alignment_t* const alignment = &filtering_region->alignment;
   // Check align-distance (already known or verified)
-  if (alignment->distance_min_bound == ALIGN_DISTANCE_INF) {
+  if (alignment->distance_min_bound == ALIGN_DISTANCE_UNKNOWN) {
     // Retrieve text-candidate
     filtering_region_retrieve_text(filtering_region,pattern,archive_text,text_collection);
     text_trace_t* const text_trace = text_collection_get_trace(
@@ -218,47 +175,11 @@ bool filtering_region_verify(
     return false;
   }
 }
-uint64_t filtering_region_verify_multiple_hits(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern) {
-  // Text (candidate)
-  text_trace_t* const text_trace = text_collection_get_trace(
-      &filtering_candidates->text_collection,filtering_region->text_trace_offset);
-  const uint8_t* const text = text_trace->text;
-  const uint64_t text_length = text_trace->text_length;
-  // Pattern
-  bpm_pattern_t* const bpm_pattern = pattern->bpm_pattern;
-  bpm_pattern_t* const bpm_pattern_tiles = pattern->bpm_pattern_tiles;
-  const uint64_t max_filtering_error = filtering_region->max_error;
-  // Select alignment model
-  uint64_t num_matches_found;
-  switch (filtering_candidates->search_parameters->match_alignment_model) {
-    case match_alignment_model_levenshtein:
-    case match_alignment_model_gap_affine:
-      // 3. Myers's BPM algorithm
-      num_matches_found =
-          bpm_compute_edit_distance_all(bpm_pattern,
-              bpm_pattern_tiles,filtering_candidates,
-              filtering_region->text_trace_offset,
-              filtering_region->text_begin_position,
-              text,text_length,max_filtering_error,
-              pattern->max_effective_bandwidth);
-      break;
-    case match_alignment_model_none:
-    default:
-      GEM_INVALID_CASE();
-      break;
-  }
-  // Return number of filtering regions added (accepted)
-  PROF_ADD_COUNTER(GP_ACCEPTED_REGIONS,num_matches_found);
-  return num_matches_found;
-}
 uint64_t filtering_region_verify_extension(
     filtering_candidates_t* const filtering_candidates,
     const uint64_t text_trace_offset,
     const uint64_t index_position,
-    const pattern_t* const pattern) {
+    pattern_t* const pattern) {
   PROFILE_START(GP_FC_EXTEND_VERIFY_CANDIDATE_REGIONS,PROFILE_LEVEL);
   // Text (candidate)
   text_trace_t* const text_trace = text_collection_get_trace(
@@ -267,19 +188,12 @@ uint64_t filtering_region_verify_extension(
   const uint64_t text_length = text_trace->text_length;
   // Pattern
   const uint64_t max_filtering_error = pattern->max_effective_filtering_error;
-  // 1. Hamming switch
-  // TODO if (match_alignment_model==match_alignment_model_hamming) { }
-  // 2. Generalized Counting filter
-  // TODO
-  // 3. Myers's BPM algorithm
-  bpm_pattern_t* const bpm_pattern = pattern->bpm_pattern;
-  bpm_pattern_t* const bpm_pattern_tiles = pattern->bpm_pattern_tiles;
+  // Myers's BPM algorithm
   const uint64_t num_matches_found =
       bpm_compute_edit_distance_all(
-          bpm_pattern,bpm_pattern_tiles,
-          filtering_candidates,text_trace_offset,
-          index_position,text,text_length,
-          max_filtering_error,pattern->max_effective_bandwidth);
+          pattern,filtering_candidates,
+          text_trace_offset,index_position,
+          text,text_length,max_filtering_error);
   PROF_ADD_COUNTER(GP_ACCEPTED_REGIONS,num_matches_found);
   PROF_ADD_COUNTER(GP_FC_EXTEND_VERIFY_CANDIDATES_LENGTH,text_length);
   // Return number of filtering regions added (accepted)

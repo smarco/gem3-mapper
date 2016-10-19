@@ -45,12 +45,6 @@ typedef struct {
 
 /*
  * Smith-waterman-gotoh Base (ie. no-optimizations)
- *   @align_input->key
- *   @align_input->key_length
- *   @align_input->text
- *   @align_input->text_length
- *   @align_parameters->swg_penalties
- *   @match_alignment->match_position (Adjusted)
  */
 void align_swg_base(
     match_align_input_t* const align_input,
@@ -60,15 +54,6 @@ void align_swg_base(
     mm_stack_t* const mm_stack);
 /*
  * Smith-Waterman-Gotoh - Main procedure (Dispatcher)
- *   @align_input->key
- *   @align_input->key_length
- *   @align_input->text
- *   @align_input->text_length
- *   @align_parameters->swg_penalties
- *   @align_parameters->allowed_enc
- *   @align_parameters->max_bandwidth
- *   @match_alignment->match_position (Adjusted)
- *   @match_alignment->cigar_length (Cumulative)
  */
 void align_swg(
     match_align_input_t* const align_input,

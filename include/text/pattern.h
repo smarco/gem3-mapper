@@ -27,7 +27,7 @@
 #include "utils/essentials.h"
 #include "align/align_bpm_pattern.h"
 #include "archive/search/archive_search_se_parameters.h"
-#include "filtering/region/kmer_counting.h"
+#include "align/alignment_filters.h"
 
 /*
  * Approximate Search Pattern
@@ -50,11 +50,8 @@ typedef struct {
   uint64_t num_non_canonical_bases;
   uint64_t max_effective_filtering_error;
   uint64_t max_effective_bandwidth;
-  /* K-mers counting */
-  kmer_counting_t kmer_counting;
-  /* Pattern BitVector-Encoded (Myers-DP) */
-  bpm_pattern_t* bpm_pattern;
-  bpm_pattern_t* bpm_pattern_tiles;
+  /* Alignment filters */
+  alignment_filters_t alignment_filters;
 } pattern_t;
 
 /*
@@ -81,11 +78,6 @@ typedef struct {
 } pattern_tiled_t;
 
 /*
- * Constants
- */
-#define PATTERN_BPM_WORDS64_PER_TILE 4
-
-/*
  * Pattern Prepare
  */
 void pattern_init(
@@ -110,17 +102,6 @@ void pattern_tiled_init(
     const uint64_t max_error);
 void pattern_tiled_calculate_next(pattern_tiled_t* const pattern_tiled);
 uint64_t pattern_tiled_bound_matching_path(pattern_tiled_t* const pattern_tiled);
-
-/*
- * Pattern Trimmed
- */
-void pattern_trimmed_init(
-    pattern_t* const pattern,
-    bpm_pattern_t** const bpm_pattern_trimmed,
-    bpm_pattern_t** const bpm_pattern_trimmed_tiles,
-    const uint64_t key_trimmed_length,
-    const uint64_t key_trim_left,
-    mm_stack_t* const mm_stack);
 
 /*
  * Display

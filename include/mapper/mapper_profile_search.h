@@ -49,6 +49,12 @@ void mapper_profile_print_candidate_verification(FILE* const stream);
  * Candidate realign
  */
 void mapper_profile_print_candidate_realign(FILE* const stream);
+void mapper_profile_print_candidate_realign_local(FILE* const stream);
+
+/*
+ * Candidate Scaffold
+ */
+void mapper_profile_print_candidate_scaffold(FILE* const stream);
 
 /*
  * Candidate misc

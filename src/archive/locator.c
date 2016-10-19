@@ -176,18 +176,10 @@ uint64_t locator_lookup_interval_index_4way(
         }
       }
     }
-    if (!(locator->intervals[lo].begin_position <= index_position &&
-            index_position < locator->intervals[hi-1].end_position)) {
-    	printf("Locator %lu <= %lu < %lu\n",
-    			locator->intervals[lo].begin_position,
-    			index_position,
-    			locator->intervals[hi-1].end_position);
-        GEM_INTERNAL_CHECK(
-            locator->intervals[lo].begin_position <= index_position &&
-            index_position < locator->intervals[hi-1].end_position,
-            "Locator-Interval Binary Search. Wrong Boundaries");
-    }
-
+    GEM_INTERNAL_CHECK(
+        locator->intervals[lo].begin_position <= index_position &&
+        index_position < locator->intervals[hi-1].end_position,
+        "Locator-Interval Binary Search. Wrong Boundaries");
   } while (hi-lo > 1);
   // Return Interval
   return lo;

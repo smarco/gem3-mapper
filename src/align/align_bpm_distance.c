@@ -280,16 +280,16 @@ bool bpm_compute_edit_distance(
  * BPM all matches
  */
 uint64_t bpm_compute_edit_distance_all(
-    bpm_pattern_t* const bpm_pattern,
-    bpm_pattern_t* const bpm_pattern_tiles,
+    pattern_t* const pattern,
     filtering_candidates_t* const filtering_candidates,
     const uint64_t text_trace_offset,
     const uint64_t begin_position,
     const uint8_t* const text,
     const uint64_t text_length,
-    uint64_t max_distance,
-    const uint64_t max_effective_bandwidth) {
+    uint64_t max_distance) {
   PROF_START(GP_BPM_ALL);
+  // Parameters
+  bpm_pattern_t* const bpm_pattern = pattern->alignment_filters.bpm_pattern;
   // Pattern variables
   const uint64_t* PEQ = bpm_pattern->PEQ;
   const uint64_t num_words64 = bpm_pattern->pattern_num_words64;
@@ -330,9 +330,9 @@ uint64_t bpm_compute_edit_distance_all(
           const uint64_t text_end_offset = min_score_column+1;
           const uint64_t text_begin_offset = BOUNDED_SUBTRACTION(text_end_offset,key_length+min_score,0);
           filtering_candidates_add_region_verified(
-              filtering_candidates,bpm_pattern,bpm_pattern_tiles,
-              text_trace_offset,begin_position,end_position,
-              min_score,max_effective_bandwidth,text_begin_offset,text_end_offset);
+              filtering_candidates,pattern,
+              text_trace_offset,text_begin_offset,text_end_offset,
+              begin_position,end_position,min_score);
           ++num_matches_found; // Increment the number of matches found
         } else {
           match_found = true;
@@ -348,9 +348,9 @@ uint64_t bpm_compute_edit_distance_all(
         const uint64_t text_end_offset = min_score_column+1;
         const uint64_t text_begin_offset = BOUNDED_SUBTRACTION(text_end_offset,key_length+min_score,0);
         filtering_candidates_add_region_verified(
-            filtering_candidates,bpm_pattern,bpm_pattern_tiles,
-            text_trace_offset,begin_position,end_position,
-            min_score,max_effective_bandwidth,text_begin_offset,text_end_offset);
+            filtering_candidates,pattern,
+            text_trace_offset,text_begin_offset,text_end_offset,
+            begin_position,end_position,min_score);
         ++num_matches_found; // Increment the number of matches found
         match_found = false;
       } else {
@@ -367,9 +367,9 @@ uint64_t bpm_compute_edit_distance_all(
     const uint64_t text_end_offset = min_score_column+1;
     const uint64_t text_begin_offset = BOUNDED_SUBTRACTION(text_end_offset,key_length+min_score,0);
     filtering_candidates_add_region_verified(
-        filtering_candidates,bpm_pattern,bpm_pattern_tiles,
-        text_trace_offset,begin_position,end_position,
-        min_score,max_effective_bandwidth,text_begin_offset,text_end_offset);
+        filtering_candidates,pattern,
+        text_trace_offset,text_begin_offset,text_end_offset,
+        begin_position,end_position,min_score);
     ++num_matches_found; // Increment the number of matches found
   }
   PROF_INC_COUNTER(GP_BPM_ALL_MATCHES_FOUND);

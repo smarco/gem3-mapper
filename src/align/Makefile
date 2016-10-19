@@ -31,14 +31,15 @@ include $(ROOT_PATH)/Makefile.mk
 # Modules
 ###############################################################################
 MODULES=alignment \
+        alignment_filters \
         align_bpm_distance \
         align_bpm_pattern \
         align_bpm \
+        align_kmer_filter \
         align_ond \
         align_swg_score \
         align_swg_simd \
-        align_swg \
-        
+        align_swg
 
 SRCS=$(addsuffix .c, $(MODULES))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))

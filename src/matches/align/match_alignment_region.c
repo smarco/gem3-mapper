@@ -23,6 +23,7 @@
 
 #include "matches/align/match_alignment_region.h"
 #include "matches/matches_cigar.h"
+#include "align/alignment.h"
 
 /*
  * Accessors
@@ -152,6 +153,42 @@ int match_alignment_region_cmp_text_position(
     const match_alignment_region_t* const a,
     const match_alignment_region_t* const b) {
   return a->_text_begin - b->_text_begin;
+}
+/*
+ * Check
+ */
+void match_alignment_region_check(
+    match_alignment_region_t* const match_alignment_region,
+    uint8_t* const key,
+    uint8_t* const text,
+    vector_t* const cigar_vector) {
+  // Parameters
+  const uint64_t key_region_length = match_alignment_region->_key_end - match_alignment_region->_key_begin;
+  uint8_t* const key_region = key + match_alignment_region->_key_begin;
+  const uint64_t text_region_length = match_alignment_region->_text_end - match_alignment_region->_text_begin;
+  uint8_t* const text_region = text + match_alignment_region->_text_begin;
+  // Check
+  bool alignment_correct;
+  if (match_alignment_region->_error == 0) {
+    // Check all matching characters
+    uint64_t i;
+    for (i=0;i<text_region_length;++i) {
+      if (key[i] != text[i]) {
+        alignment_correct = false;
+        break;
+      }
+    }
+    alignment_correct = true;
+  } else {
+    alignment_correct = alignment_check(
+        stderr,key_region,key_region_length,
+        text_region,text_region_length,
+        cigar_vector,match_alignment_region->_cigar_buffer_offset,
+        match_alignment_region->_cigar_length,false);
+  }
+  if (!alignment_correct) {
+    gem_fatal_error_msg("Match alignment-region check. Invalid alignment (region)");
+  }
 }
 /*
  * Display

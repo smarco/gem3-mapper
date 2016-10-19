@@ -29,15 +29,16 @@
 #define ALIGNMENT_H_
 
 #include "utils/essentials.h"
-#include "align/align_bpm_pattern.h"
 #include "text/text_collection.h"
+#include "align/alignment_filters.h"
 
 /*
  * Constants
  */
-#define ALIGN_DISTANCE_INF     UINT32_MAX
-#define ALIGN_COLUMN_INF       UINT64_MAX
-#define ALIGN_DISABLED         (UINT32_MAX-1)
+#define ALIGN_COLUMN_INF            UINT64_MAX
+#define ALIGN_DISTANCE_INF         (UINT32_MAX)
+#define ALIGN_DISTANCE_UNKNOWN     (UINT32_MAX-1)
+#define ALIGN_DISABLED             (UINT32_MAX-2)
 
 /*
  * Region Alignment
@@ -48,10 +49,24 @@ typedef struct {
   uint64_t text_end_offset;                 // Text end offset
 } alignment_tile_t;
 typedef struct {
-  uint64_t num_tiles;                // Total number of tiles
-  uint64_t distance_min_bound;       // Distance min-bound (Sum all tile distances)
-  alignment_tile_t* alignment_tiles; // Alignment of all tiles
+  uint64_t num_tiles;                       // Total number of tiles
+  uint64_t distance_min_bound;              // Distance min-bound (Sum all tile distances)
+  uint64_t distance_rank;
+  alignment_tile_t* alignment_tiles;        // Alignment of all tiles
 } alignment_t;
+
+/*
+ * Setup
+ */
+void alignment_init(
+    alignment_t* const alignment,
+    const uint64_t key_length,
+    const uint64_t text_begin_offset,
+    const uint64_t text_end_offset,
+    const uint64_t max_error,
+    const uint64_t num_tiles,
+    const uint64_t tile_length,
+    mm_stack_t* const mm_stack);
 
 /*
  * Check matches (CIGAR string against text & pattern)
@@ -79,13 +94,19 @@ int64_t alignment_compute_edit_distance(
     uint64_t* const position);
 
 /*
- * Verify levenshtein using BPM
+ * Verify levenshtein using Filters (BPM + kmer-counting)
  */
-void alignment_verify_levenshtein_bpm(
+uint64_t alignment_verify_levenshtein_kmer_filter(
+    alignment_tile_t* const alignment_tile,
+    alignment_filters_tile_t* const filters_tiles,
+    uint8_t* const key,
+    uint8_t* const text,
+    mm_stack_t* const mm_stack);
+void alignment_verify_levenshtein(
     alignment_t* const alignment,
-    const uint64_t filtering_max_error,
-    bpm_pattern_t* const bpm_pattern,
-    bpm_pattern_t* const bpm_pattern_tiles,
-    text_trace_t* const text_trace);
+    alignment_filters_t* const filters,
+    uint8_t* const key,
+    uint8_t* const text,
+    const uint64_t max_error);
 
 #endif /* ALIGNMENT_H_ */

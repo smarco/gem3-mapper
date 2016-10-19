@@ -100,6 +100,10 @@ void filtering_region_retrieve_text(
     filtering_region->text_trace_offset = archive_text_retrieve_collection(
         archive_text,text_collection,text_position,text_length,false,false);
   }
+  // Compute padded-text
+  text_collection_compose_padded_text(
+      text_collection,filtering_region->text_trace_offset,
+      filtering_region->key_trim_left,filtering_region->key_trim_right);
 }
 /*
  * Compute key trims
@@ -120,45 +124,12 @@ void filtering_region_compute_key_trims(
     filtering_region->key_trim_right = (key_fix_end > text_fix_end) ? key_fix_end - text_fix_end : 0;
     filtering_region->key_trimmed_length =
         pattern->key_length - filtering_region->key_trim_left - filtering_region->key_trim_right;
-    // Set max-error
-    const double max_error_factor = (double)pattern->max_effective_filtering_error / (double)key_length;
-    const double max_bandwidth_factor = (double)pattern->max_effective_bandwidth / (double)key_length;
-    filtering_region->max_error = max_error_factor * (double)filtering_region->key_trimmed_length;
-    filtering_region->max_bandwidth = max_bandwidth_factor * (double)filtering_region->key_trimmed_length;
     // Set trimmed & init fields
     filtering_region->key_trimmed = true;
-    filtering_region->bpm_pattern_trimmed = NULL;
-    filtering_region->bpm_pattern_trimmed_tiles = NULL;
   } else {
     filtering_region->key_trim_left = 0;
     filtering_region->key_trim_right = 0;
     filtering_region->key_trimmed = false;
-  }
-}
-/*
- * Select proper BPM-Pattern
- */
-void filtering_region_bpm_pattern_select(
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
-    bpm_pattern_t** const bpm_pattern,
-    bpm_pattern_t** const bpm_pattern_tiles,
-    mm_stack_t* const mm_stack) {
-  // Select BPM-Pattern
-  if (filtering_region->key_trimmed) {
-    // Check compiled
-    if (filtering_region->bpm_pattern_trimmed==NULL) {
-      pattern_trimmed_init(pattern,
-          &filtering_region->bpm_pattern_trimmed,
-          &filtering_region->bpm_pattern_trimmed_tiles,
-          filtering_region->key_trimmed_length,
-          filtering_region->key_trim_left,mm_stack);
-    }
-    *bpm_pattern = filtering_region->bpm_pattern_trimmed;
-    *bpm_pattern_tiles = filtering_region->bpm_pattern_trimmed_tiles;
-  } else {
-    *bpm_pattern = pattern->bpm_pattern;
-    *bpm_pattern_tiles = pattern->bpm_pattern_tiles;
   }
 }
 /*
@@ -169,7 +140,8 @@ int filtering_region_locator_cmp_position(
     const filtering_region_locator_t* const b) {
   return a->position - b->position;
 }
-void filtering_region_locator_sort_positions(vector_t* const filtering_region_locators) {
+void filtering_region_locator_sort_positions(
+    vector_t* const filtering_region_locators) {
   void* array = vector_get_mem(filtering_region_locators,filtering_region_locator_t);
   const size_t count = vector_get_used(filtering_region_locators);
   qsort(array,count,sizeof(filtering_region_locator_t),
@@ -249,9 +221,9 @@ void filtering_region_print(
       region->text_begin_position,region->text_end_position,
       region->text_end_position-region->text_begin_position,
       region->match_scaffold.num_alignment_regions,
-      alignment->distance_min_bound==ALIGN_DISTANCE_INF ?
-          (int64_t)-1 : (int64_t)alignment->distance_min_bound);
-  if (alignment->distance_min_bound!=ALIGN_DISTANCE_INF) {
+      alignment->distance_min_bound!=ALIGN_DISTANCE_UNKNOWN ?
+          (int64_t)alignment->distance_min_bound : (int64_t)-1);
+  if (alignment->distance_min_bound!=ALIGN_DISTANCE_UNKNOWN) {
     alignment_tile_t* const alignment_tile = alignment->alignment_tiles;
     fprintf(stream,"align-range=(%"PRIu64",%"PRIu64"))\n",
         alignment_tile[0].text_begin_offset,

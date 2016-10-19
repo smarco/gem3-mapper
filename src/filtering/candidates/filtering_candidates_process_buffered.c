@@ -162,7 +162,7 @@ void filtering_candidates_decode_filtering_positions_buffered(
         fm_index_decode(filtering_candidates->archive->fm_index,region_lo+i);
     // Adjust Position
     filtering_candidates_compute_text_coordinates(filtering_candidates,fposition,pattern);
-    fposition->align_distance = exact_match ? 0 : ALIGN_DISTANCE_INF;
+    fposition->align_distance = exact_match ? 0 : ALIGN_DISTANCE_UNKNOWN;
   }
   PROF_ADD_COUNTER(GP_FC_DECODE_POSITIONS,num_candidates);
   PROF_ADD_COUNTER(GP_ASSW_DECODE_CANDIDATES_RETRIVED,num_candidates);
@@ -212,7 +212,7 @@ void filtering_candidates_decode_sa_filtering_positions_buffered(
           filtering_candidates,batch+i,fposition,region_lo,current_position+i);
       // Adjust Position
       filtering_candidates_compute_text_coordinates(filtering_candidates,fposition,pattern);
-      fposition->align_distance = exact_match ? 0 : ALIGN_DISTANCE_INF;
+      fposition->align_distance = exact_match ? 0 : ALIGN_DISTANCE_UNKNOWN;
     }
     // Next batch
     current_position = current_position + batch_size;
@@ -252,7 +252,7 @@ void filtering_candidates_decode_text_filtering_positions_buffered(
         fposition,i,region_lo,gpu_buffer_fmi_decode,buffer_offset_begin);
     // Adjust Position
     filtering_candidates_compute_text_coordinates(filtering_candidates,fposition,pattern);
-    fposition->align_distance = exact_match ? 0 : ALIGN_DISTANCE_INF;
+    fposition->align_distance = exact_match ? 0 : ALIGN_DISTANCE_UNKNOWN;
   }
   PROF_ADD_COUNTER(GP_FC_DECODE_POSITIONS,num_candidates);
   PROF_ADD_COUNTER(GP_ASSW_DECODE_CANDIDATES_RETRIVED,num_candidates);

@@ -29,6 +29,7 @@ typedef struct match_align_parameters_t match_align_parameters_t;
 
 #include "utils/essentials.h"
 #include "align/alignment.h"
+#include "align/alignment_filters.h"
 #include "align/align_bpm_pattern.h"
 #include "align/align_swg_score.h"
 #include "align/align_swg_simd.h"
@@ -43,14 +44,14 @@ struct match_align_input_t {
   uint64_t key_length;
   uint64_t key_trim_left;                  // Alignment trim
   uint64_t key_trim_right;                 // Alignment trim
-  bpm_pattern_t* bpm_pattern;
-  bpm_pattern_t* bpm_pattern_tiles;
-  swg_query_profile_t* swg_query_profile;
+  alignment_filters_t* alignment_filters;  // Alignment filters
   /* Text */
   uint64_t text_trace_offset;              // Text-Trace Offset
   uint64_t text_position;                  // Text position
   uint8_t* text;                           // Text (candidate)
   uint64_t text_length;                    // Text full length (whole decoded text)
+  uint8_t* text_padded;                    // Text padded to fill key-trims (if any)
+  uint64_t text_padding;                   // Text padding length (left padding)
   alignment_t* alignment;                  // Text alignment
   /* RL-Input */
   bool run_length;

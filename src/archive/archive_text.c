@@ -167,6 +167,9 @@ void archive_text_retrieve(
         text_trace->text,text_length,text_trace->rl_text,
         &text_trace->rl_text_length,text_trace->rl_runs_acc);
   }
+  // Init Padded Text
+  text_trace->text_padded = text_trace->text;
+  text_trace->text_padded_length = text_trace->text_length;
 }
 uint64_t archive_text_retrieve_collection(
     archive_text_t* const archive_text,
@@ -180,9 +183,8 @@ uint64_t archive_text_retrieve_collection(
   text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
   // Retrieve sequence
   archive_text_retrieve(
-      archive_text,text_position,text_length,
-      reverse_complement_text,run_length_text,
-      text_trace,text_collection->mm_text);
+      archive_text,text_position,text_length,reverse_complement_text,
+      run_length_text,text_trace,text_collection->mm_text);
   // Return
   return text_trace_offset;
 }

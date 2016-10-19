@@ -65,6 +65,7 @@ void filtering_region_align_configure_hamming(
   align_input->key_length          = key_length;
   align_input->sequence_clip_left  = pattern->clip_left;
   align_input->sequence_clip_right = pattern->clip_right;
+  align_input->alignment_filters   = &pattern->alignment_filters;
   align_input->text_trace_offset   = filtering_region->text_trace_offset;
   align_input->text_position       = filtering_region->text_begin_position; // Base position
   align_input->text                = text_trace->text;
@@ -90,16 +91,17 @@ void filtering_region_align_configure_levenshtein(
   alignment_t* const alignment = &filtering_region->alignment;
   const uint64_t align_distance = pattern->max_effective_filtering_error;
   // Align input
-  filtering_region_bpm_pattern_select(filtering_region,pattern,
-      &align_input->bpm_pattern,&align_input->bpm_pattern_tiles,mm_stack);
   align_input->sequence_clip_left  = pattern->clip_left;
   align_input->sequence_clip_right = pattern->clip_right;
   align_input->key                 = key;
   align_input->key_length          = key_length;
+  align_input->alignment_filters   = &pattern->alignment_filters;
   align_input->text_trace_offset   = filtering_region->text_trace_offset;
   align_input->text_position       = filtering_region->text_begin_position;
   align_input->text                = text_trace->text;
   align_input->text_length         = text_trace->text_length;
+  align_input->text_padded         = text_trace->text_padded;
+  align_input->text_padding        = filtering_region->key_trim_left;
   align_input->alignment           = alignment;
   // Align Parameters
   align_parameters->max_error          = align_distance;
@@ -128,20 +130,21 @@ void filtering_region_align_configure_swg(
   align_input->key_length               = key_length;
   align_input->key_trim_left            = filtering_region->key_trim_left;
   align_input->key_trim_right           = filtering_region->key_trim_right;
+  align_input->alignment_filters        = &pattern->alignment_filters;
   align_input->text_trace_offset        = filtering_region->text_trace_offset;
   align_input->text_position            = filtering_region->text_begin_position;
   align_input->text                     = text_trace->text;
   align_input->text_length              = text_trace->text_length;
+  align_input->text_padded              = text_trace->text_padded;
+  align_input->text_padding             = filtering_region->key_trim_left;
   align_input->alignment                = &filtering_region->alignment;
-  filtering_region_bpm_pattern_select(filtering_region,pattern,
-      &align_input->bpm_pattern,&align_input->bpm_pattern_tiles,mm_stack);
   // RL-Input
   align_input->run_length               = pattern->run_length;
   align_input->rl_key_runs_acc          = pattern->rl_runs_acc;
   align_input->rl_text_runs_acc         = text_trace->rl_runs_acc;
   // Align Parameters
-  align_parameters->max_error                       = filtering_region->max_error;
-  align_parameters->max_bandwidth                   = filtering_region->max_bandwidth;
+  align_parameters->max_error                       = pattern->max_effective_filtering_error;
+  align_parameters->max_bandwidth                   = pattern->max_effective_bandwidth;
   align_parameters->left_gap_alignment              = left_gap_alignment;
   align_parameters->global_min_identity             = search_parameters->alignment_global_min_identity_nominal;
   align_parameters->global_min_swg_threshold        = search_parameters->alignment_global_min_swg_threshold_nominal;

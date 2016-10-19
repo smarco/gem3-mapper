@@ -32,6 +32,53 @@
 #include "matches/matches_cigar.h"
 
 /*
+ * Debug
+ */
+#define FILTERING_REGION_VERIFY_CHECK_KMER_FILTER false
+
+/*
+ * Setup
+ */
+void alignment_init(
+    alignment_t* const alignment,
+    const uint64_t key_length,
+    const uint64_t text_begin_offset,
+    const uint64_t text_end_offset,
+    const uint64_t max_error,
+    const uint64_t num_tiles,
+    const uint64_t tile_length,
+    mm_stack_t* const mm_stack) {
+  // Allocate alignment
+  alignment->num_tiles = num_tiles;
+  alignment->distance_min_bound = ALIGN_DISTANCE_UNKNOWN;
+  if (alignment->alignment_tiles==NULL) {
+    alignment->alignment_tiles = mm_stack_calloc(mm_stack,num_tiles,alignment_tile_t,false);
+  }
+  // Init all tiles
+  const uint64_t text_length = text_end_offset-text_begin_offset;
+  alignment_tile_t* const alignment_tiles = alignment->alignment_tiles;
+  if (num_tiles==1) {
+    alignment_tiles->distance = ALIGN_DISTANCE_UNKNOWN;
+    alignment_tiles->text_end_offset = text_end_offset;
+    alignment_tiles->text_begin_offset = text_begin_offset;
+  } else {
+    // Error parameters
+    const uint64_t adjusted_max_error = MIN(max_error,tile_length);
+    // Calculate tile dimensions
+    pattern_tiled_t pattern_tiled;
+    pattern_tiled_init(&pattern_tiled,key_length,tile_length,text_length,adjusted_max_error);
+    uint64_t tile_pos;
+    for (tile_pos=0;tile_pos<num_tiles;++tile_pos) {
+      // Init Tile
+      alignment_tiles[tile_pos].distance = ALIGN_DISTANCE_UNKNOWN;
+      alignment_tiles[tile_pos].text_end_offset = text_begin_offset+pattern_tiled.tile_offset+pattern_tiled.tile_wide;
+      alignment_tiles[tile_pos].text_begin_offset = text_begin_offset+pattern_tiled.tile_offset;
+      // Calculate next tile
+      pattern_tiled_calculate_next(&pattern_tiled);
+    }
+  }
+}
+/*
  * Check matches (CIGAR string against text & pattern)
  */
 bool alignment_check(
@@ -177,50 +224,112 @@ int64_t alignment_dp_compute_edit_distance(
   return distance;
 }
 /*
- * Verify levenshtein using BPM
+ * Verify levenshtein using Filters (BPM + kmer-counting)
  */
-void alignment_verify_levenshtein_bpm(
-    alignment_t* const alignment,
-    const uint64_t filtering_max_error,
-    bpm_pattern_t* const bpm_pattern,
-    bpm_pattern_t* const bpm_pattern_tiles,
-    text_trace_t* const text_trace) {
+uint64_t alignment_verify_levenshtein_kmer_filter(
+    alignment_tile_t* const alignment_tile,
+    alignment_filters_tile_t* const filters_tiles,
+    uint8_t* const key,
+    uint8_t* const text,
+    mm_stack_t* const mm_stack) {
   // Parameters
-  const uint8_t* const text = text_trace->text;
-  const uint64_t num_pattern_tiles = bpm_pattern_tiles->num_pattern_tiles;
+  const uint64_t tile_offset = alignment_tile->text_begin_offset;
+  const uint64_t tile_wide = alignment_tile->text_end_offset-alignment_tile->text_begin_offset;
+  // Check kmer-filter compiled
+  if (filters_tiles->kmer_filter_tile==NULL) {
+    filters_tiles->kmer_filter_tile = mm_stack_alloc(mm_stack,kmer_counting_t);
+    kmer_counting_compile(
+        filters_tiles->kmer_filter_tile,
+        key + filters_tiles->tile_offset,
+        filters_tiles->tile_length,
+        filters_tiles->max_error,
+        mm_stack);
+  }
+  // Kmer Filter
+  const uint64_t test_positive = kmer_counting_filter(
+      filters_tiles->kmer_filter_tile,text+tile_offset,tile_wide);
+  if (test_positive==ALIGN_DISTANCE_INF) {
+    PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_DISCARDED);
+    // DEBUG
+    gem_cond_debug_block(FILTERING_REGION_VERIFY_CHECK_KMER_FILTER)  {
+      const bpm_pattern_t* const bpm_pattern = filters_tiles->bpm_pattern_tile;
+      uint64_t distance, match_column;
+      bpm_compute_edit_distance(bpm_pattern,text+tile_offset,tile_wide,
+          &distance,&match_column,filters_tiles->max_error,false);
+      gem_cond_error_msg(distance != ALIGN_DISTANCE_INF,
+          "Filtering.Region.Verify: K-mer filtering wrong discarding (edit-distance=%lu)",distance);
+    }
+    return ALIGN_DISTANCE_INF;
+  } else {
+    PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_ACCEPTED);
+    return ALIGN_DISTANCE_UNKNOWN;
+  }
+}
+void alignment_verify_levenshtein_bpm(
+    alignment_tile_t* const alignment_tile,
+    alignment_filters_tile_t* const filters_tiles,
+    const uint8_t* const text,
+    uint64_t* const tile_distance,
+    uint64_t* const tile_match_column) {
+  // Parameters
+  bpm_pattern_t* const bpm_pattern_tile = filters_tiles->bpm_pattern_tile;
+  // Align BPM
+  const uint64_t max_tile_error = filters_tiles->max_error;
+  const uint64_t tile_offset = alignment_tile->text_begin_offset;
+  const uint64_t tile_wide = alignment_tile->text_end_offset-alignment_tile->text_begin_offset;
+  bpm_compute_edit_distance(bpm_pattern_tile,text+tile_offset,
+      tile_wide,tile_distance,tile_match_column,max_tile_error,false); // TODO Activate quick-abandon at compile tiles
+  PROF_INC_COUNTER(GP_BMP_DISTANCE_NUM_TILES_VERIFIED);
+}
+void alignment_verify_levenshtein(
+    alignment_t* const alignment,
+    alignment_filters_t* const filters,
+    uint8_t* const key,
+    uint8_t* const text,
+    const uint64_t max_error) {
+  // Parameters
   alignment_tile_t* const alignment_tiles = alignment->alignment_tiles;
-  const uint64_t max_error = MIN(filtering_max_error,bpm_pattern->pattern_length);
+  // Parameters pattern
+  alignment_filters_tile_t* const alignment_filters_tiles = filters->tiles;
+  const uint64_t num_pattern_tiles = filters->num_tiles;
   // Align tiles
-  uint64_t max_remaining_error = max_error;
   uint64_t tile_pos, global_distance=0;
-  PROF_ADD_COUNTER(GP_BMP_DISTANCE_NUM_TILES,num_pattern_tiles);
+  PROF_ADD_COUNTER(GP_CANDIDATE_TILES,num_pattern_tiles);
   for (tile_pos=0;tile_pos<num_pattern_tiles;++tile_pos) {
     alignment_tile_t* const alignment_tile = alignment_tiles + tile_pos;
-    if (alignment_tile->distance!=ALIGN_DISTANCE_INF) {
-      global_distance += alignment_tile->distance;
+    alignment_filters_tile_t* const alignment_filters_tile = alignment_filters_tiles + tile_pos;
+    if (alignment_tile->distance!=ALIGN_DISTANCE_UNKNOWN) {
+      if (alignment_tile->distance==ALIGN_DISTANCE_INF) {
+        global_distance = ALIGN_DISTANCE_INF;
+      } else {
+        global_distance += alignment_tile->distance;
+      }
     } else {
-      bpm_pattern_t* const bpm_pattern_tile = bpm_pattern_tiles+tile_pos;
-      const uint64_t max_tile_error = MIN(max_remaining_error,bpm_pattern->pattern_length);
-      const uint64_t tile_offset = alignment_tile->text_begin_offset;
-      const uint64_t tile_wide = alignment_tile->text_end_offset-alignment_tile->text_begin_offset;
       uint64_t tile_distance, tile_match_column;
-      bpm_compute_edit_distance(bpm_pattern_tile,text+tile_offset,
-          tile_wide,&tile_distance,&tile_match_column,max_tile_error,false);
-      PROF_INC_COUNTER(GP_BMP_DISTANCE_NUM_TILES_VERIFIED);
+      // Use kmer filter
+      tile_distance = alignment_verify_levenshtein_kmer_filter(
+          alignment_tile,alignment_filters_tile,key,text,filters->mm_stack);
+      // Check BPM
+      if (tile_distance==ALIGN_DISTANCE_UNKNOWN) {
+        alignment_verify_levenshtein_bpm(
+            alignment_tile,alignment_filters_tile,
+            text,&tile_distance,&tile_match_column);
+      }
+      alignment_tile->distance = tile_distance;
       // Store tile alignment
-      if (tile_distance!=ALIGN_DISTANCE_INF) {
+      if (tile_distance==ALIGN_DISTANCE_INF) {
+        global_distance = ALIGN_DISTANCE_INF;
+        break; // Stop verify
+      } else {
         const uint64_t tile_end_offset = tile_match_column+1;
-        const uint64_t tile_tall = bpm_pattern_tile->pattern_length;
+        const uint64_t tile_tall = alignment_filters_tile->tile_length;
         const uint64_t tile_begin_offset = BOUNDED_SUBTRACTION(tile_end_offset,tile_tall+tile_distance,0);
+        const uint64_t tile_offset = alignment_tile->text_begin_offset;
         alignment_tile->distance = tile_distance;
         alignment_tile->text_end_offset = tile_offset + tile_end_offset;
         alignment_tile->text_begin_offset = tile_offset + tile_begin_offset;
         // Update distance
-        max_remaining_error = BOUNDED_SUBTRACTION(max_remaining_error,tile_distance,0);
         global_distance += tile_distance;
-      } else {
-        global_distance = ALIGN_DISTANCE_INF;
-        break; // Stop verify
       }
     }
     // Check global-distance

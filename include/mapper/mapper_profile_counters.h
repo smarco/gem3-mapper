@@ -170,6 +170,10 @@
 #define GP_FC_VERIFY_CANDIDATES_BUFFERED_DDIFF              340
 #define GP_FC_REALIGN_CANDIDATE_REGIONS                     341
 #define GP_FC_REALIGN_LOCAL_CANDIDATE_REGIONS               342
+#define GP_FC_REALIGN_LOCAL_RANK                            343
+#define GP_FC_REALIGN_LOCAL_RANK_TOTAL                      344
+#define GP_FC_REALIGN_LOCAL_RANK_TILES                      345
+#define GP_FC_REALIGN_LOCAL_RANK_ZERO                       346
 
 #define GP_FC_KMER_COUNTER_FILTER                           350
 #define GP_FC_KMER_COUNTER_FILTER_NA                        351
@@ -198,6 +202,7 @@
 #define GP_CANDIDATE_REGION_ALIGNMENT_COVERAGE              406
 #define GP_CANDIDATE_REGION_LOCAL                           407
 #define GP_CANDIDATE_REGION_LOCAL_ALIGNED                   408
+#define GP_CANDIDATE_TILES                                  409
 
 #define GP_ACCEPTED_REGIONS                                 410
 #define GP_DISCARDED_REGIONS                                411
@@ -228,13 +233,14 @@
 #define GP_MATCH_SCAFFOLD_EDIT_TILES_SKIPPED                462
 #define GP_MATCH_SCAFFOLD_EDIT_CELLS                        463
 
-#define GP_BPM_DISTANCE                                     470
-#define GP_BMP_DISTANCE_NUM_TILES                           471
+#define GP_BPM_DISTANCE                                     471
 #define GP_BMP_DISTANCE_NUM_TILES_VERIFIED                  472
 #define GP_BPM_DISTANCE_QUICK_ABANDON                       473
 #define GP_BPM_DISTANCE_TEXT_LENGTH                         474
 #define GP_BPM_DISTANCE_KEY_LENGTH                          475
 #define GP_BPM_DISTANCE_CELLS                               476
+
+#define GP_BPM_COMPUTE_MATRIX                               478
 
 #define GP_BPM_ALL                                          480
 #define GP_BPM_ALL_QUICK_ABANDON                            481

@@ -235,7 +235,7 @@ option_t gem_mapper_options[] = {
   { 400, "mapping-mode", REQUIRED, TYPE_STRING, 4, VISIBILITY_USER, "'fast'|'sensitive'|'customed'" , "(default=fast)" },
   { 'E', "complete-search-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=0.04, 4%)" },
   { 's', "complete-strata-after-best", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=1)" },
-  { 'e', "alignment-max-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=0.10, 10%)" },
+  { 'e', "alignment-max-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=0.12, 12%)" },
   { 401, "alignment-max-bandwidth", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=0.20, 20%)" },
   { 402, "alignment-max-gap-length", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=100)" },
   { 403, "alignment-global-min-identity", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=80%)" },
@@ -502,7 +502,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 's': // --complete-strata-after-best (default=1)
       input_text_parse_extended_double(optarg,(double*)&search->complete_strata_after_best);
       break;
-    case 'e': // --alignment-max-error (default=0.10, 10%)
+    case 'e': // --alignment-max-error (default=0.12, 12%)
       search->alignment_max_error = atof(optarg);
       break;
     case 401: // --alignment-max-bandwidth (default=0.20, 20%)

@@ -216,10 +216,10 @@ bool filtering_region_align(
         &filtering_candidates->text_collection,false,true,true);
   }
   // Select Model
-  if (pattern->run_length ||
-      filtering_region->key_trimmed ||
+  if (filtering_region->alignment.distance_min_bound > 0 ||
       filtering_region->alignment.num_tiles > 1 ||
-      filtering_region->alignment.distance_min_bound > 0) {
+      filtering_region->key_trimmed ||
+      pattern->run_length) {
     filtering_region_align_inexact(
         filtering_candidates,filtering_region,pattern,
         local_alignment,matches,match_trace);

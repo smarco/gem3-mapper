@@ -22,6 +22,7 @@
  */
 
 #include "text/text_collection.h"
+#include "text/dna_text.h"
 
 /*
  * Constants
@@ -63,4 +64,30 @@ text_trace_t* text_collection_get_trace(
 }
 uint64_t text_collection_get_num_traces(const text_collection_t* const text_collection) {
   return vector_get_used(text_collection->text_traces);
+}
+/*
+ * Padding
+ */
+void text_collection_compose_padded_text(
+    text_collection_t* const text_collection,
+    const uint64_t text_trace_offset,
+    const uint64_t key_trim_left,
+    const uint64_t key_trim_right) {
+  // Fetch trace
+  text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
+  // Check trims
+  if (key_trim_left > 0 || key_trim_right > 0) {
+    // Allocate
+    const uint64_t text_padded_length = text_trace->text_length + key_trim_left + key_trim_right;
+    text_trace->text_padded = mm_stack_calloc(text_collection->mm_text,text_padded_length,uint8_t,false);
+    text_trace->text_padded_length = text_padded_length;
+    // Add left-trim
+    uint64_t i;
+    for (i=0;i<key_trim_left;++i) text_trace->text_padded[i] = ENC_DNA_CHAR_N;
+    // Copy original text
+    memcpy(text_trace->text_padded+i,text_trace->text,text_trace->text_length);
+    i += text_trace->text_length;
+    // Add rigth-trim
+    for (;i<text_padded_length;++i) text_trace->text_padded[i] = ENC_DNA_CHAR_N;
+  }
 }

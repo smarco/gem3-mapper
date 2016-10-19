@@ -183,36 +183,33 @@ void pattern_init(
    * Compute the effective number of differences
    * and compile the BMP-Pattern & k-mer filter
    */
-  if (pattern->key_length == 0) { // Check length
+  const uint64_t key_length = pattern->key_length;
+  if (key_length == 0) { // Check length
     pattern->max_effective_filtering_error = 0;
     pattern->max_effective_bandwidth = 0;
-    pattern->bpm_pattern = NULL;
-    pattern->bpm_pattern_tiles = NULL;
   } else {
+    // Set max-error
     const uint64_t max_effective_filtering_error =
         parameters->alignment_max_error_nominal +
         pattern->num_low_quality_bases +
         pattern->num_non_canonical_bases +
         pattern->num_wildcards;
+    pattern->max_effective_filtering_error = MIN(max_effective_filtering_error,key_length);
+    // Set max-bandwidth and adjust (no increment over BPM_MAX_TILE_LENGTH)
     const uint64_t max_effective_bandwidth =
         parameters->alignment_max_bandwidth_nominal +
         pattern->num_low_quality_bases +
         pattern->num_non_canonical_bases +
         pattern->num_wildcards;
-    pattern->max_effective_filtering_error = MIN(max_effective_filtering_error,pattern->key_length);
-    pattern->max_effective_bandwidth = MIN(max_effective_bandwidth,pattern->key_length);
-    // if (pattern->max_effective_filtering_error > 0) return; // Old-style
-    // Prepare kmer-counting filter
-    if (kmer_filter_compile) {
-      kmer_counting_compile(&pattern->kmer_counting,pattern->key,
-          pattern->key_length,pattern->max_effective_filtering_error,mm_stack);
-    } else {
-      pattern->kmer_counting.enabled = false;
+    pattern->max_effective_bandwidth = MIN(max_effective_bandwidth,key_length);
+    if (key_length >= BPM_MAX_TILE_LENGTH) {
+      const double max_bandwidth_rate = (double)pattern->max_effective_bandwidth/(double)key_length;
+      pattern->max_effective_bandwidth = (uint64_t)ceil((double)BPM_MAX_TILE_LENGTH*max_bandwidth_rate);
     }
-    // Prepare BPM pattern
-    pattern->bpm_pattern = bpm_pattern_compile(pattern->key,pattern->key_length,mm_stack);
-    pattern->bpm_pattern_tiles = bpm_pattern_compile_tiles(pattern->bpm_pattern,
-        PATTERN_BPM_WORDS64_PER_TILE,pattern->max_effective_filtering_error,mm_stack);
+    // Compile filters
+    alignment_filters_compile(
+        &pattern->alignment_filters,pattern->key,key_length,
+        pattern->max_effective_filtering_error,mm_stack);
   }
 }
 void pattern_clear(pattern_t* const pattern) {
@@ -292,22 +289,6 @@ uint64_t pattern_tiled_bound_matching_path(pattern_tiled_t* const pattern_tiled)
     pattern_tiled->prev_tile_match_position = pattern_tiled->tile_match_column;
     return 0;
   }
-}
-/*
- * Pattern Trimmed
- */
-void pattern_trimmed_init(
-    pattern_t* const pattern,
-    bpm_pattern_t** const bpm_pattern_trimmed,
-    bpm_pattern_t** const bpm_pattern_trimmed_tiles,
-    const uint64_t key_trimmed_length,
-    const uint64_t key_trim_left,
-    mm_stack_t* const mm_stack) {
-  const uint64_t max_error = pattern->max_effective_filtering_error;
-  // Compile BPM-Pattern Trimmed
-  *bpm_pattern_trimmed = bpm_pattern_compile(pattern->key+key_trim_left,key_trimmed_length,mm_stack);
-  *bpm_pattern_trimmed_tiles = bpm_pattern_compile_tiles(
-      *bpm_pattern_trimmed,PATTERN_BPM_WORDS64_PER_TILE,max_error,mm_stack);
 }
 /*
  * Display

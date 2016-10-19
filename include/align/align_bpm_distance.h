@@ -149,14 +149,12 @@ bool bpm_compute_edit_distance(
     const bool quick_abandon);
 // Find all local minimums
 uint64_t bpm_compute_edit_distance_all(
-    bpm_pattern_t* const bpm_pattern,
-    bpm_pattern_t* const bpm_pattern_tiles,
+    pattern_t* const pattern,
     filtering_candidates_t* const filtering_candidates,
     const uint64_t text_trace_offset,
     const uint64_t begin_position,
     const uint8_t* const text,
     const uint64_t text_length,
-    uint64_t max_distance,
-    const uint64_t max_effective_bandwidth);
+    uint64_t max_distance);
 
 #endif /* ALIGN_BPM_DISTANCE_H_ */

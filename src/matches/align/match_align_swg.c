@@ -34,13 +34,6 @@
 
 /*
  * SWG Align alignment-region (@match_alignment_region)
- *   @align_input->key
- *   @align_input->text
- *   @align_parameters->swg_penalties
- *   @align_parameters->left_gap_alignment
- *   @align_parameters->allowed_enc
- *   @align_parameters->max_bandwidth
- *   @match_alignment->cigar_length (Cumulative)
  */
 void match_align_swg_add_alignment_region(
     const match_alignment_region_t* const match_alignment_region,
@@ -242,19 +235,6 @@ void match_align_swg_compute_alignment_type(
 }
 /*
  * SWG Alignment
- *   @align_input->key
- *   @align_input->key_length
- *   @align_input->text
- *   @align_input->text_length
- *   @align_parameters->swg_penalties
- *   @align_parameters->left_gap_alignment
- *   @align_parameters->allowed_enc
- *   @align_parameters->max_bandwidth
- *   @match_scaffold->alignment_regions
- *   @match_scaffold->num_alignment_regions
- *   @match_alignment->cigar_length (Cumulative)
- *   @match_alignment->effective_length (Cumulative)
- *   @match_alignment->score (Cumulative)
  */
 uint64_t match_align_swg_chain_scaffold_to_first(
     matches_t* const matches,

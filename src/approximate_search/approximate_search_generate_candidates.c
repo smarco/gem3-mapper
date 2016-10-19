@@ -73,7 +73,7 @@ void approximate_search_generate_candidates_exact(approximate_search_t* const se
         filtering_candidates,search_parameters,pattern,
         region_search->lo,region_search->hi,
         region_search->begin,region_search->end,
-        (pattern->run_length) ? ALIGN_DISTANCE_INF : 0,
+        (pattern->run_length) ? ALIGN_DISTANCE_UNKNOWN : 0,
         &region_profile->candidates_limited);
     ++(region_profile->num_filtered_regions);
   } else {

@@ -75,9 +75,18 @@ void match_scaffold_adaptive(
     mm_stack_t* const mm_stack);
 
 /*
+ * Check
+ */
+void match_scaffold_check(
+    match_scaffold_t* const match_scaffold,
+    match_align_input_t* const align_input,
+    matches_t* const matches);
+
+/*
  * Sorting
  */
-void match_scaffold_sort_alignment_regions(match_scaffold_t* const match_scaffold);
+void match_scaffold_sort_alignment_regions(
+    match_scaffold_t* const match_scaffold);
 
 /*
  * Display

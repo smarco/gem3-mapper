@@ -35,19 +35,15 @@
 
 /*
  * BPM. Compute BPM-DP-Matrix
- *   @align_input->bpm_pattern
- *   @align_input->text
- *   @align_input->text_length
  */
 void align_bpm_compute_matrix(
-    match_align_input_t* const align_input,
+    bpm_pattern_t* const bpm_pattern,
+    uint8_t* const text,
+    const uint64_t text_length,
     uint64_t max_distance,
     bpm_align_matrix_t* const bpm_align_matrix,
     mm_stack_t* const mm_stack) {
-  // Parameters
-  const bpm_pattern_t* const bpm_pattern = align_input->bpm_pattern;
-  uint8_t* const text = align_input->text;
-  const uint64_t text_length = align_input->text_length;
+  PROF_START(GP_BPM_COMPUTE_MATRIX);
   // Pattern variables
   const uint64_t* PEQ = bpm_pattern->PEQ;
   const uint64_t num_words64 = bpm_pattern->pattern_num_words64;
@@ -137,28 +133,21 @@ void align_bpm_compute_matrix(
   // Return optimal column/distance
   bpm_align_matrix->min_score = min_score;
   bpm_align_matrix->min_score_column = min_score_column;
+  PROF_STOP(GP_BPM_COMPUTE_MATRIX);
 }
 /*
  * BPM. Recover CIGAR from a matching string
- *   @align_input->key
- *   @align_input->bpm_pattern
- *   @align_input->text
- *   @bpm_align_matrix->Pv
- *   @bpm_align_matrix->Mv
- *   @bpm_align_matrix->min_score
- *   @match_alignment->match_position (Adjusted)
  */
 void align_bpm_backtrace_matrix(
-    match_align_input_t* const align_input,
+    const bpm_pattern_t* const bpm_pattern,
+    const uint8_t* const key,
+    uint8_t* const text,
     const bool left_gap_alignment,
     bpm_align_matrix_t* const bpm_align_matrix,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector) {
   // Parameters
-  const uint8_t* const key = align_input->key;
-  const bpm_pattern_t* const bpm_pattern = align_input->bpm_pattern;
   const uint64_t pattern_length = bpm_pattern->pattern_length;
-  uint8_t* const text = align_input->text;
   const uint64_t* const Pv = bpm_align_matrix->Pv;
   const uint64_t* const Mv = bpm_align_matrix->Mv;
   // Allocate CIGAR string memory (worst case)
@@ -251,14 +240,12 @@ void align_bpm_backtrace_matrix(
 }
 /*
  * BPM Align match
- *   @align_input->key
- *   @align_input->bpm_pattern
- *   @align_input->text
- *   @align_input->text_length
- *   @match_alignment->match_position (Adjusted)
  */
 void align_bpm_match(
-    match_align_input_t* const align_input,
+    bpm_pattern_t* const bpm_pattern,
+    uint8_t* const key,
+    uint8_t* const text,
+    const uint64_t text_length,
     const uint64_t max_distance,
     const bool left_gap_alignment,
     match_alignment_t* const match_alignment,
@@ -267,7 +254,9 @@ void align_bpm_match(
   // Fill Matrix (Pv,Mv)
   mm_stack_push_state(mm_stack); // Save stack state
   bpm_align_matrix_t bpm_align_matrix;
-  align_bpm_compute_matrix(align_input,max_distance,&bpm_align_matrix,mm_stack);
+  align_bpm_compute_matrix(
+      bpm_pattern,text,text_length,
+      max_distance,&bpm_align_matrix,mm_stack);
   // Set distance
   match_alignment->score = bpm_align_matrix.min_score;
   if (bpm_align_matrix.min_score == ALIGN_DISTANCE_INF) {
@@ -276,7 +265,9 @@ void align_bpm_match(
     return;
   }
   // Backtrace and generate CIGAR
-  align_bpm_backtrace_matrix(align_input,left_gap_alignment,&bpm_align_matrix,match_alignment,cigar_vector);
+  align_bpm_backtrace_matrix(
+      bpm_pattern,key,text,left_gap_alignment,
+      &bpm_align_matrix,match_alignment,cigar_vector);
   // Free
   mm_stack_pop_state(mm_stack);
 }

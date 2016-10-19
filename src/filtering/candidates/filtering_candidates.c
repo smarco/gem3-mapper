@@ -117,12 +117,6 @@ filtering_region_t* filtering_candidates_allocate_discarded_region(
   vector_insert(filtering_candidates->discarded_regions,region,filtering_region_t*);
   return region;
 }
-alignment_tile_t* filtering_candidates_allocate_alignment_tiles(
-    filtering_candidates_t* const filtering_candidates,
-    const uint64_t num_alignment_tiles) {
-  return mm_stack_calloc(filtering_candidates->mm->mm_alignment_tiles,
-      num_alignment_tiles,alignment_tile_t,false);
-}
 match_alignment_region_t* filtering_candidates_allocate_alignment_regions(
     filtering_candidates_t* const filtering_candidates,
     const uint64_t num_alignment_regions) {
@@ -132,62 +126,22 @@ match_alignment_region_t* filtering_candidates_allocate_alignment_regions(
 /*
  * Prepare Alignment
  */
-void filtering_candidates_init_alignment_tiles(
-    filtering_candidates_t* const filtering_candidates,
-    alignment_t* const alignment,
-    bpm_pattern_t* const bpm_pattern,
-    bpm_pattern_t* const bpm_pattern_tiles,
-    const uint64_t text_begin_offset,
-    const uint64_t text_end_offset,
-    const uint64_t max_error) {
-  // Allocate alignment
-  const uint64_t num_tiles = bpm_pattern_tiles->num_pattern_tiles;
-  alignment->num_tiles = num_tiles;
-  alignment->distance_min_bound = bpm_pattern->pattern_length;
-  if (alignment->alignment_tiles==NULL) {
-    alignment->alignment_tiles =
-        filtering_candidates_allocate_alignment_tiles(filtering_candidates,num_tiles);
-  }
-  // Init all tiles
-  const uint64_t text_length = text_end_offset-text_begin_offset;
-  alignment_tile_t* const alignment_tiles = alignment->alignment_tiles;
-  if (num_tiles==1) {
-    alignment_tiles->distance = ALIGN_DISTANCE_INF;
-    alignment_tiles->text_end_offset = text_end_offset;
-    alignment_tiles->text_begin_offset = text_begin_offset;
-  } else {
-    // Calculate tile dimensions
-    const uint64_t effective_max_error = MIN(max_error,bpm_pattern->pattern_length);
-    pattern_tiled_t pattern_tiled;
-    pattern_tiled_init(&pattern_tiled,bpm_pattern->pattern_length,
-        bpm_pattern_tiles->tile_length,text_length,effective_max_error);
-    uint64_t tile_pos;
-    for (tile_pos=0;tile_pos<num_tiles;++tile_pos) {
-      // Init Tile
-      alignment_tiles[tile_pos].distance = ALIGN_DISTANCE_INF;
-      alignment_tiles[tile_pos].text_end_offset = text_begin_offset+pattern_tiled.tile_offset+pattern_tiled.tile_wide;
-      alignment_tiles[tile_pos].text_begin_offset = text_begin_offset+pattern_tiled.tile_offset;
-      // Calculate next tile
-      pattern_tiled_calculate_next(&pattern_tiled);
-    }
-  }
-}
 void filtering_candidates_init_alignment(
     filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const filtering_region,
-    bpm_pattern_t* const bpm_pattern,
-    bpm_pattern_t* const bpm_pattern_tiles,
+    alignment_t* const alignment,
+    pattern_t* const pattern,
+    const uint64_t text_length,
+    const uint64_t max_error,
     const bool force_reset) {
-	if (filtering_region->text_begin_position == 4381651913) {
-		printf("HERE");
-	}
   // Check alignment
-  alignment_t* const alignment = &filtering_region->alignment;
   if (alignment->alignment_tiles!=NULL && !force_reset) return; // Already initialized
-  // Prepare alignment
-  const uint64_t text_length = filtering_region->text_end_position-filtering_region->text_begin_position;
-  filtering_candidates_init_alignment_tiles(filtering_candidates,alignment,
-      bpm_pattern,bpm_pattern_tiles,0,text_length,filtering_region->max_error);
+  // Init alignment
+  alignment_init(
+      alignment,pattern->key_length,
+      0,text_length,max_error,
+      pattern->alignment_filters.num_tiles,
+      pattern->alignment_filters.tile_length,
+      filtering_candidates->mm->mm_alignment_tiles);
 }
 /*
  * Accessors
@@ -291,7 +245,7 @@ void filtering_candidates_compose_filtering_region_from_positions_exact(
   alignment->distance_min_bound = 0;
   const uint64_t key_length = (pattern->run_length) ? pattern->rl_key_length : pattern->key_length;
   alignment->num_tiles = 1;
-  alignment->alignment_tiles = filtering_candidates_allocate_alignment_tiles(filtering_candidates,1);
+  alignment->alignment_tiles = mm_stack_alloc(filtering_candidates->mm->mm_alignment_tiles,alignment_tile_t);
   alignment->alignment_tiles->distance = 0;
   alignment->alignment_tiles->text_begin_offset = align_offset;
   alignment->alignment_tiles->text_end_offset = align_offset + key_length;
@@ -338,7 +292,7 @@ void filtering_candidates_compose_filtering_region_from_positions(
   filtering_position_t** const candidate_positions = filtering_candidates_get_positions(filtering_candidates);
   // Prepare Region-Alignment
   alignment_t* const alignment = &filtering_region->alignment;
-  alignment->distance_min_bound = ALIGN_DISTANCE_INF;
+  alignment->distance_min_bound = ALIGN_DISTANCE_UNKNOWN;
   alignment->alignment_tiles = NULL;
   // Compose alignment-regions
   PROF_ADD_COUNTER(GP_CANDIDATE_REGION_ALIGNMENT_REGIONS_TOTAL,last_candidate_idx-first_candidate_idx+1);
@@ -424,7 +378,7 @@ void filtering_candidates_add_positions_from_interval(
     filtering_position->source_region_end = region_end_pos;
     filtering_position->source_region_error = region_errors;
     filtering_position->region_index_position = index_position;
-    filtering_position->align_distance = exact_match ? 0 : ALIGN_DISTANCE_INF;
+    filtering_position->align_distance = exact_match ? 0 : ALIGN_DISTANCE_UNKNOWN;
   }
 }
 /*
@@ -464,9 +418,6 @@ void filtering_candidates_add_region_from_group_positions(
     filtering_region->key_trim_right = 0;
     filtering_region->key_trimmed = false;
   }
-  // Set max-error & max-bandwidth
-  filtering_region->max_error = pattern->max_effective_filtering_error;
-  filtering_region->max_bandwidth = pattern->max_effective_bandwidth;
   // Prepare region-alignment & compose regions-matching
   if (align_distance==0) {
     filtering_candidates_compose_filtering_region_from_positions_exact(
@@ -481,15 +432,13 @@ void filtering_candidates_add_region_from_group_positions(
 }
 void filtering_candidates_add_region_verified(
     filtering_candidates_t* const filtering_candidates,
-    bpm_pattern_t* const bpm_pattern,
-    bpm_pattern_t* const bpm_pattern_tiles,
+    pattern_t* const pattern,
     const uint64_t text_trace_offset,
+    const uint64_t text_begin_offset,
+    const uint64_t text_end_offset,
     const uint64_t begin_position,
     const uint64_t end_position,
-    const uint64_t align_distance,
-    const uint64_t max_effective_bandwidth,
-    const uint64_t text_begin_offset,
-    const uint64_t text_end_offset) {
+    const uint64_t align_distance) {
   // Allocate new filtering-region
   filtering_region_t* const filtering_region = filtering_candidates_allocate_region(filtering_candidates);
   // State
@@ -504,50 +453,30 @@ void filtering_candidates_add_region_verified(
   filtering_region->key_trim_left = 0;
   filtering_region->key_trim_right = 0;
   filtering_region->key_trimmed = false;
-  // Trimmed Pattern
-  filtering_region->max_error = align_distance;
-  filtering_region->max_bandwidth = max_effective_bandwidth;
-  filtering_region->bpm_pattern_trimmed = NULL;
-  filtering_region->bpm_pattern_trimmed_tiles = NULL;
   // Scaffolding
   match_scaffold_init(&filtering_region->match_scaffold);
   // Regions-Alignment
   alignment_t* const alignment = &filtering_region->alignment;
   alignment->alignment_tiles = NULL;
-  filtering_candidates_init_alignment_tiles(
-      filtering_candidates,alignment,bpm_pattern,
-      bpm_pattern_tiles,text_begin_offset,text_end_offset,align_distance);
+  const uint64_t text_length = text_end_offset-text_begin_offset;
+  filtering_candidates_init_alignment(
+      filtering_candidates,alignment,
+      pattern,text_length,align_distance,false);
 }
 /*
  * Sorting
  */
+int filtering_position_cmp_position(filtering_position_t** a,filtering_position_t** b) {
+  return (int64_t)(*a)->text_end_position - (int64_t)(*b)->text_end_position;
+}
 int filtering_region_cmp_align_distance(filtering_region_t** a,filtering_region_t** b) {
   return (*a)->alignment.distance_min_bound - (*b)->alignment.distance_min_bound;
 }
 int filtering_region_cmp_scaffold_coverage(filtering_region_t** a,filtering_region_t** b) {
   return (*b)->match_scaffold.scaffolding_coverage - (*a)->match_scaffold.scaffolding_coverage;
 }
-int64_t filtering_position_cmp_position(filtering_position_t** a,filtering_position_t** b) {
-  return (int64_t)(*a)->text_end_position - (int64_t)(*b)->text_end_position;
-}
-#define VECTOR_SORT_NAME                 align_distance
-#define VECTOR_SORT_TYPE                 filtering_region_t*
-#define VECTOR_SORT_CMP(a,b)             filtering_region_cmp_align_distance(a,b)
-#include "utils/vector_sort.h"
-void filtering_candidates_sort_regions_by_align_distance(filtering_candidates_t* const filtering_candidates) {
-  PROF_ADD_COUNTER(GP_FC_SORT_BY_ALIGN_DIST,vector_get_used(filtering_candidates->filtering_regions));
-//  vector_sort_selection_align_distance(
-//		  vector_get_mem(filtering_candidates->filtering_regions,filtering_region_t*),
-//		  vector_get_used(filtering_candidates->filtering_regions));
-  vector_sort_align_distance(filtering_candidates->filtering_regions);
-}
-#define VECTOR_SORT_NAME                 scaffold_coverage
-#define VECTOR_SORT_TYPE                 filtering_region_t*
-#define VECTOR_SORT_CMP(a,b)             filtering_region_cmp_scaffold_coverage(a,b)
-#include "utils/vector_sort.h"
-void filtering_candidates_sort_regions_by_scaffold_coverage(filtering_candidates_t* const filtering_candidates) {
-  PROF_ADD_COUNTER(GP_FC_SORT_BY_COVERAGE,vector_get_used(filtering_candidates->filtering_regions));
-  vector_sort_scaffold_coverage(filtering_candidates->filtering_regions);
+int filtering_region_cmp_align_rank(filtering_region_t** a,filtering_region_t** b) {
+  return (*b)->alignment.distance_rank - (*a)->alignment.distance_rank;
 }
 #define VECTOR_SORT_NAME                 filtering_positions
 #define VECTOR_SORT_TYPE                 filtering_position_t*
@@ -556,6 +485,30 @@ void filtering_candidates_sort_regions_by_scaffold_coverage(filtering_candidates
 void filtering_candidates_sort_positions(filtering_candidates_t* const filtering_candidates) {
   PROF_ADD_COUNTER(GP_FC_SORT_BY_POSITION,vector_get_used(filtering_candidates->filtering_positions));
   vector_sort_filtering_positions(filtering_candidates->filtering_positions);
+}
+#define VECTOR_SORT_NAME                 align_distance
+#define VECTOR_SORT_TYPE                 filtering_region_t*
+#define VECTOR_SORT_CMP(a,b)             filtering_region_cmp_align_distance(a,b)
+#include "utils/vector_sort.h"
+void filtering_candidates_sort_regions_by_align_distance(filtering_candidates_t* const filtering_candidates) {
+  PROF_ADD_COUNTER(GP_FC_SORT_BY_ALIGN_DIST,vector_get_used(filtering_candidates->filtering_regions));
+  vector_sort_align_distance(filtering_candidates->filtering_regions);
+}
+#define VECTOR_SORT_NAME                 scaffold_coverage
+#define VECTOR_SORT_TYPE                 filtering_region_t*
+#define VECTOR_SORT_CMP(a,b)             filtering_region_cmp_scaffold_coverage(a,b)
+#include "utils/vector_sort.h"
+void filtering_candidates_sort_discarded_by_scaffold_coverage(filtering_candidates_t* const filtering_candidates) {
+  PROF_ADD_COUNTER(GP_FC_SORT_BY_COVERAGE,vector_get_used(filtering_candidates->discarded_regions));
+  vector_sort_scaffold_coverage(filtering_candidates->discarded_regions);
+}
+#define VECTOR_SORT_NAME                 align_rank
+#define VECTOR_SORT_TYPE                 filtering_region_t*
+#define VECTOR_SORT_CMP(a,b)             filtering_region_cmp_align_rank(a,b)
+#include "utils/vector_sort.h"
+void filtering_candidates_sort_discarded_by_rank(filtering_candidates_t* const filtering_candidates) {
+  PROF_ADD_COUNTER(GP_FC_SORT_BY_COVERAGE,vector_get_used(filtering_candidates->discarded_regions));
+  vector_sort_align_rank(filtering_candidates->discarded_regions);
 }
 /*
  * Display

@@ -130,7 +130,14 @@ int match_alignment_region_key_cmp(
 int match_alignment_region_cmp_text_position(
     const match_alignment_region_t* const a,
     const match_alignment_region_t* const b);
-
+/*
+ * Check
+ */
+void match_alignment_region_check(
+    match_alignment_region_t* const match_alignment_region,
+    uint8_t* const key,
+    uint8_t* const text,
+    vector_t* const cigar_vector);
 /*
  * Display
  */

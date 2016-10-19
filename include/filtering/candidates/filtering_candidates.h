@@ -105,9 +105,6 @@ filtering_region_t* filtering_candidates_allocate_region(
     filtering_candidates_t* const filtering_candidates);
 filtering_region_t* filtering_candidates_allocate_discarded_region(
     filtering_candidates_t* const filtering_candidates);
-alignment_tile_t* filtering_candidates_allocate_alignment_tiles(
-    filtering_candidates_t* const filtering_candidates,
-    const uint64_t num_alignment_tiles);
 match_alignment_region_t* filtering_candidates_allocate_alignment_regions(
     filtering_candidates_t* const filtering_candidates,
     const uint64_t num_alignment_regions);
@@ -115,19 +112,12 @@ match_alignment_region_t* filtering_candidates_allocate_alignment_regions(
 /*
  * Prepare Alignment
  */
-void filtering_candidates_init_alignment_tiles(
-    filtering_candidates_t* const filtering_candidates,
-    alignment_t* const alignment,
-    bpm_pattern_t* const bpm_pattern,
-    bpm_pattern_t* const bpm_pattern_tiles,
-    const uint64_t text_begin_offset,
-    const uint64_t text_end_offset,
-    const uint64_t max_error);
 void filtering_candidates_init_alignment(
     filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const filtering_region,
-    bpm_pattern_t* const bpm_pattern,
-    bpm_pattern_t* const bpm_pattern_tiles,
+    alignment_t* const alignment,
+    pattern_t* const pattern,
+    const uint64_t text_length,
+    const uint64_t max_error,
     const bool force_reset);
 
 /*
@@ -213,22 +203,21 @@ void filtering_candidates_add_region_from_group_positions(
     const bool run_length_text);
 void filtering_candidates_add_region_verified(
     filtering_candidates_t* const filtering_candidates,
-    bpm_pattern_t* const bpm_pattern,
-    bpm_pattern_t* const bpm_pattern_tiles,
+    pattern_t* const pattern,
     const uint64_t text_trace_offset,
+    const uint64_t text_begin_offset,
+    const uint64_t text_end_offset,
     const uint64_t begin_position,
     const uint64_t end_position,
-    const uint64_t align_distance,
-    const uint64_t max_effective_bandwidth,
-    const uint64_t text_begin_offset,
-    const uint64_t text_end_offset);
+    const uint64_t align_distance);
 
 /*
  * Sorting
  */
-void filtering_candidates_sort_regions_by_align_distance(filtering_candidates_t* const filtering_candidates);
-void filtering_candidates_sort_regions_by_scaffold_coverage(filtering_candidates_t* const filtering_candidates);
 void filtering_candidates_sort_positions(filtering_candidates_t* const filtering_candidates);
+void filtering_candidates_sort_regions_by_align_distance(filtering_candidates_t* const filtering_candidates);
+void filtering_candidates_sort_discarded_by_scaffold_coverage(filtering_candidates_t* const filtering_candidates);
+void filtering_candidates_sort_discarded_by_rank(filtering_candidates_t* const filtering_candidates);
 
 /*
  * Display

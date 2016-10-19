@@ -174,6 +174,7 @@ void filtering_candidates_compute_text_coordinates(
   archive_t* const archive = filtering_candidates->archive;
   locator_t* const locator = archive->locator;
   archive_text_t* const archive_text = archive->text;
+  const uint64_t max_effective_bandwidth = pattern->max_effective_bandwidth;
   const uint64_t key_length = (pattern->run_length) ? pattern->rl_key_length : pattern->key_length;
   const uint64_t key_begin_offset = filtering_position->source_region_begin;
   const uint64_t key_end_offset = key_length - filtering_position->source_region_begin;
@@ -186,8 +187,9 @@ void filtering_candidates_compute_text_coordinates(
     filtering_position->locator_interval = locator_interval;
     // Compute boundaries
     filtering_candidates_compute_text_boundaries(
-        filtering_position,region_text_position_rl,pattern->max_effective_bandwidth,
-        key_begin_offset,key_end_offset,locator_interval->rl_begin_position,locator_interval->rl_end_position);
+        filtering_position,region_text_position_rl,
+        max_effective_bandwidth,key_begin_offset,key_end_offset,
+        locator_interval->rl_begin_position,locator_interval->rl_end_position);
     // Store source-region offsets
     filtering_position->source_region_text_offset = region_text_position_rl - filtering_position->text_begin_position;
   } else {
@@ -197,8 +199,9 @@ void filtering_candidates_compute_text_coordinates(
     filtering_position->locator_interval = locator_interval;
     // Compute boundaries
     filtering_candidates_compute_text_boundaries(
-        filtering_position,filtering_position->region_text_position,pattern->max_effective_bandwidth,
-        key_begin_offset,key_end_offset,locator_interval->begin_position,locator_interval->end_position);
+        filtering_position,filtering_position->region_text_position,
+        max_effective_bandwidth,key_begin_offset,key_end_offset,
+        locator_interval->begin_position,locator_interval->end_position);
     // Store source-region offsets
     filtering_position->source_region_text_offset = region_text_position - filtering_position->text_begin_position;
   }

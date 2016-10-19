@@ -65,11 +65,7 @@ typedef struct {
   uint64_t key_trim_left;                   // Key left trim  (due to position correction wrt the reference limits)
   uint64_t key_trim_right;                  // Key right trim (due to position correction wrt the reference limits)
   bool key_trimmed;                         // Key has been trimmed (due to dangling ends; projected to the text-candidate)
-  bpm_pattern_t* bpm_pattern_trimmed;       // BPM-Pattern Trimmed
-  bpm_pattern_t* bpm_pattern_trimmed_tiles; // BPM-Pattern Trimmed & Tiled
   /* Alignment */
-  uint64_t max_error;                       // Maximum effective error
-  uint64_t max_bandwidth;                   // Maximum effective bandwidth
   alignment_t alignment;                    // Filtering Region Alignment
   match_scaffold_t match_scaffold;          // Alignment-regions supporting the filtering region (Scaffolding)
 } filtering_region_t;
@@ -108,19 +104,10 @@ void filtering_region_compute_key_trims(
     pattern_t* const pattern);
 
 /*
- * Filtering Region BPM-Pattern
- */
-void filtering_region_bpm_pattern_select(
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
-    bpm_pattern_t** const bpm_pattern,
-    bpm_pattern_t** const bpm_pattern_tiles,
-    mm_stack_t* const mm_stack);
-
-/*
  * Sorting
  */
-void filtering_region_locator_sort_positions(vector_t* const filtering_region_locators);
+void filtering_region_locator_sort_positions(
+    vector_t* const filtering_region_locators);
 
 /*
  * Display

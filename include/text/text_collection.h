@@ -30,9 +30,12 @@
  * Text Collection
  */
 typedef struct {
-  /* Encoded Text    */
+  /* Encoded Text */
   uint8_t* text;                // Encoded text
   uint64_t text_length;         // Text length
+  /* Padded Text */
+  uint8_t* text_padded;         // Encoded text
+  uint64_t text_padded_length;  // Text length
   /* RL-Encoded Text */
   uint8_t* rl_text;             // RL-Encoded Text
   uint64_t rl_text_length;      // RL-Encoded Text length
@@ -65,5 +68,14 @@ text_trace_t* text_collection_get_trace(
     const text_collection_t* const text_collection,
     const uint64_t text_trace_offset);
 uint64_t text_collection_get_num_traces(const text_collection_t* const text_collection);
+
+/*
+ * Padding
+ */
+void text_collection_compose_padded_text(
+    text_collection_t* const text_collection,
+    const uint64_t text_trace_offset,
+    const uint64_t key_trim_left,
+    const uint64_t key_trim_right);
 
 #endif /* TEXT_COLLECTION_H_ */

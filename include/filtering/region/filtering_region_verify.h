@@ -44,6 +44,6 @@ uint64_t filtering_region_verify_extension(
     filtering_candidates_t* const filtering_candidates,
     const uint64_t text_trace_offset,
     const uint64_t index_position,
-    const pattern_t* const pattern);
+    pattern_t* const pattern);
 
 #endif /* FILTERING_REGION_VERIFY_H_ */

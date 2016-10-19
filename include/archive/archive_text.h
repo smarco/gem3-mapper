@@ -101,7 +101,6 @@ uint64_t archive_text_retrieve_collection(
     const bool reverse_complement_text,
     const bool run_length_text);
 
-
 /*
  * Display
  */

@@ -84,8 +84,8 @@ uint64_t gpu_buffer_align_bpm_get_num_queries(gpu_buffer_align_bpm_t* const gpu_
 
 void gpu_buffer_align_bpm_compute_dimensions(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
-    bpm_pattern_t* const bpm_pattern,
-    bpm_pattern_t* const bpm_pattern_tiles,
+    const uint64_t key_length,
+    const uint64_t num_tiles,
     const uint64_t num_candidates,
     uint64_t* const total_entries,
     uint64_t* const total_queries,
@@ -101,8 +101,7 @@ bool gpu_buffer_align_bpm_fits_in_buffer(
  */
 void gpu_buffer_align_bpm_add_pattern(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
-    bpm_pattern_t* const bpm_pattern,
-    bpm_pattern_t* const bpm_pattern_tiles);
+    pattern_t* const pattern);
 void gpu_buffer_align_bpm_add_candidate(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
     const uint64_t tile_offset,
