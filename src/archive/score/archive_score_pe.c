@@ -36,25 +36,39 @@
 #define PROFILE_LEVEL PMED
 
 /*
+ * PE Predictors Model
+ */
+const matches_classify_logit_model_t* archive_score_matches_pe_get_model(
+    search_parameters_t* const search_parameters) {
+  if (search_parameters->mapping_mode==mapping_adaptive_filtering_fast) {
+    return &logit_model_paired_end_fast;
+  } else {
+    return &logit_model_paired_end_sensitive;
+  }
+}
+/*
  * PE Score Categories
  */
-uint8_t archive_score_matches_pe_default_mmaps_d1(const matches_predictors_t* const matches_predictors) {
-  const double pr = matches_classify_logit_mmaps_d1(
-      &logit_model_paired_end_default,matches_predictors);
+uint8_t archive_score_matches_pe_default_mmaps_d1(
+    const matches_classify_logit_model_t* const classify_model,
+    const matches_predictors_t* const matches_predictors) {
+  const double pr = matches_classify_logit_mmaps_d1(classify_model,matches_predictors);
   if (pr < PAIRED_MATCHES_MIN_CI) return 5;
   if (pr < PAIRED_MATCHES_TIES_CI) return 7;
   return archive_score_probability_scale(pr-PAIRED_MATCHES_TIES_CI,1.-PAIRED_MATCHES_TIES_CI,10,28);
 }
-uint8_t archive_score_matches_pe_default_mmap(const matches_predictors_t* const matches_predictors) {
-  const double pr = matches_classify_logit_mmaps(
-      &logit_model_paired_end_default,matches_predictors);
+uint8_t archive_score_matches_pe_default_mmap(
+    const matches_classify_logit_model_t* const classify_model,
+    const matches_predictors_t* const matches_predictors) {
+  const double pr = matches_classify_logit_mmaps(classify_model,matches_predictors);
   if (pr < PAIRED_MATCHES_MIN_CI) return 5;
   if (pr < PAIRED_MATCHES_MMAPS_CI) return 8;
   return archive_score_probability_scale(pr-PAIRED_MATCHES_MMAPS_CI,1.-PAIRED_MATCHES_MMAPS_CI,30,48);
 }
-uint8_t archive_score_matches_pe_default_unique(const matches_predictors_t* const matches_predictors) {
-  const double pr = matches_classify_logit_unique(
-      &logit_model_paired_end_default,matches_predictors);
+uint8_t archive_score_matches_pe_default_unique(
+    const matches_classify_logit_model_t* const classify_model,
+    const matches_predictors_t* const matches_predictors) {
+  const double pr = matches_classify_logit_unique(classify_model,matches_predictors);
   if (pr < PAIRED_MATCHES_MIN_CI) return 5;
   if (pr < PAIRED_MATCHES_UNIQUE_CI) return 9;
   return archive_score_probability_scale(pr-PAIRED_MATCHES_UNIQUE_CI,1.-PAIRED_MATCHES_UNIQUE_CI,50,59);
@@ -62,7 +76,9 @@ uint8_t archive_score_matches_pe_default_unique(const matches_predictors_t* cons
 /*
  * PE Scoring Models
  */
-void archive_score_matches_pe_default(paired_matches_t* const paired_matches) {
+void archive_score_matches_pe_default(
+    paired_matches_t* const paired_matches,
+    const matches_classify_logit_model_t* const classify_model) {
   // Unmapped
   if (paired_matches->paired_matches_class==paired_matches_class_unmapped) return;
   // Score subdominant matches (MAPQ=0)
@@ -94,22 +110,27 @@ void archive_score_matches_pe_default(paired_matches_t* const paired_matches) {
       break;
     case paired_matches_class_mmap_d1:
       matches_predictors_compute_pe(&matches_predictors,paired_matches);
-      paired_map[0].mapq_score = (high_quality_ends) ? 29 : archive_score_matches_pe_default_mmaps_d1(&matches_predictors);
+      paired_map[0].mapq_score = (high_quality_ends) ?
+          29 : archive_score_matches_pe_default_mmaps_d1(classify_model,&matches_predictors);
       break;
     case paired_matches_class_mmap:
       matches_predictors_compute_pe(&matches_predictors,paired_matches);
-      paired_map[0].mapq_score = (high_quality_ends) ? 49 : archive_score_matches_pe_default_mmap(&matches_predictors);
+      paired_map[0].mapq_score = (high_quality_ends) ?
+          49 : archive_score_matches_pe_default_mmap(classify_model,&matches_predictors);
       break;
     case paired_matches_class_unique:
       matches_predictors_compute_pe(&matches_predictors,paired_matches);
-      paired_map[0].mapq_score = (high_quality_ends) ? 60 : archive_score_matches_pe_default_unique(&matches_predictors);
+      paired_map[0].mapq_score = (high_quality_ends) ?
+          60 : archive_score_matches_pe_default_unique(classify_model,&matches_predictors);
       break;
     default:
       GEM_INVALID_CASE();
       break;
   }
 }
-void archive_score_matches_pe_stratify(paired_matches_t* const paired_matches) {
+void archive_score_matches_pe_stratify(
+    paired_matches_t* const paired_matches,
+    const matches_classify_logit_model_t* const classify_model) {
   // Score subdominant matches (MAPQ=0)
   paired_map_t* const paired_map = paired_matches_get_maps(paired_matches);
   const uint64_t num_paired_map = paired_matches_get_num_maps(paired_matches);
@@ -150,7 +171,7 @@ void archive_score_matches_pe_stratify(paired_matches_t* const paired_matches) {
       if (high_quality_ends) {
         paired_map[0].mapq_score = 38;
       } else {
-        const double pr = matches_classify_logit_mmaps_d1(&logit_model_paired_end_default,&matches_predictors);
+        const double pr = matches_classify_logit_mmaps_d1(classify_model,&matches_predictors);
         if (pr < 0.90) {
           paired_map[0].mapq_score = 39;
         } else {
@@ -163,7 +184,7 @@ void archive_score_matches_pe_stratify(paired_matches_t* const paired_matches) {
       if (high_quality_ends) {
         paired_map[0].mapq_score = 98;
       } else {
-        const double pr = matches_classify_logit_mmaps(&logit_model_paired_end_default,&matches_predictors);
+        const double pr = matches_classify_logit_mmaps(classify_model,&matches_predictors);
         if (pr < 0.90) {
           paired_map[0].mapq_score = 99;
         } else {
@@ -176,7 +197,7 @@ void archive_score_matches_pe_stratify(paired_matches_t* const paired_matches) {
       if (high_quality_ends) {
         paired_map[0].mapq_score = 198;
       } else {
-        const double pr = matches_classify_logit_unique(&logit_model_paired_end_default,&matches_predictors);
+        const double pr = matches_classify_logit_unique(classify_model,&matches_predictors);
         if (pr < 0.90) {
           paired_map[0].mapq_score = 199;
         } else {
@@ -202,6 +223,8 @@ void archive_score_matches_pe(
   // Check no-align model
   search_parameters_t* const search_parameters = &archive_search_end1->search_parameters;
   if (search_parameters->match_alignment_model==match_alignment_model_none) return;
+  // Fetch predictors-model
+  const matches_classify_logit_model_t* const classify_model = archive_score_matches_pe_get_model(search_parameters);
   // Classify
   paired_matches_classify(paired_matches);
   /*
@@ -211,14 +234,14 @@ void archive_score_matches_pe(
   switch (search_parameters->mapq_model_pe) {
     case mapq_model_none: break;
     case mapq_model_classify:
-      archive_score_matches_pe_stratify(paired_matches);
+      archive_score_matches_pe_stratify(paired_matches,classify_model);
       break;
     case mapq_model_gem:
-      archive_score_matches_pe_default(paired_matches);
+      archive_score_matches_pe_default(paired_matches,classify_model);
       break;
     case mapq_model_dump_predictors: {
       // Score default
-      archive_score_matches_pe_stratify(paired_matches);
+      archive_score_matches_pe_stratify(paired_matches,classify_model);
       // Compute predictors
       matches_predictors_t matches_predictors;
       matches_predictors_compute_pe(&matches_predictors,paired_matches);

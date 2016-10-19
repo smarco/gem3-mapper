@@ -29,7 +29,8 @@
 /*
  * SE-Model DEFAULT
  */
-extern const matches_classify_logit_model_t logit_model_single_end_default;
+extern const matches_classify_logit_model_t logit_model_single_end_fast;
+extern const matches_classify_logit_model_t logit_model_single_end_sensitive;
 
 #define MATCHES_MIN_CI                 0.90
 #define MATCHES_UNIQUE_CI              0.99
@@ -39,7 +40,8 @@ extern const matches_classify_logit_model_t logit_model_single_end_default;
 /*
  * PE-Model DEFAULT
  */
-extern const matches_classify_logit_model_t logit_model_paired_end_default;
+extern const matches_classify_logit_model_t logit_model_paired_end_fast;
+extern const matches_classify_logit_model_t logit_model_paired_end_sensitive;
 
 #define PAIRED_MATCHES_MIN_CI          0.90
 #define PAIRED_MATCHES_UNIQUE_CI       0.99
