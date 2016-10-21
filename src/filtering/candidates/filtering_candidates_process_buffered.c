@@ -272,7 +272,7 @@ void filtering_candidates_process_candidates_buffered(
   PROFILE_START(GP_FC_COMPOSE_REGIONS,PROFILE_LEVEL);
   search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
   filtering_candidates_compose_filtering_regions(
-      filtering_candidates,pattern,compose_alignment_regions && !search_parameters->force_full_swg);
+      filtering_candidates,pattern,compose_alignment_regions && !search_parameters->alignment_force_full_swg);
   PROFILE_STOP(GP_FC_COMPOSE_REGIONS,PROFILE_LEVEL);
   PROF_ADD_COUNTER(GP_CANDIDATE_REGIONS,filtering_candidates_get_num_regions(filtering_candidates));
   // Return total candidate regions

@@ -519,9 +519,9 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       break;
     case 405: // --alignment-local in {'never'|'if-unmapped'} (default=if-unmapped)
       if (gem_strcaseeq(optarg,"never")) {
-        search->local_alignment = local_alignment_never;
+        search->alignment_local = local_alignment_never;
       } else if (gem_strcaseeq(optarg,"if-unmapped")) {
-        search->local_alignment = local_alignment_if_unmapped;
+        search->alignment_local = local_alignment_if_unmapped;
       } else {
         gem_mapper_error_msg("Option '--alignment-local' must be 'never'|'if-unmapped'");
       }
@@ -533,7 +533,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       input_text_parse_extended_double(optarg,(double*)&search->alignment_local_min_swg_threshold);
       break;
     case 408: // --alignment-force-full-swg (default=true)
-      search->force_full_swg = input_text_parse_extended_bool(optarg);
+      search->alignment_force_full_swg = input_text_parse_extended_bool(optarg);
       break;
     case 409: // --alignment-scaffolding-min-matching_length (default=10)
       input_text_parse_extended_double(optarg,(double*)&search->alignment_scaffolding_min_matching_length);

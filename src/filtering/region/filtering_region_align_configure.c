@@ -152,7 +152,7 @@ void filtering_region_align_configure_swg(
   align_parameters->local_min_identity              = search_parameters->alignment_local_min_identity_nominal;
   align_parameters->local_min_swg_threshold         = search_parameters->alignment_local_min_swg_threshold_nominal;
   align_parameters->max_aligned_gap_length          = search_parameters->alignment_max_aligned_gap_length_nominal;
-  align_parameters->force_full_swg                  = search_parameters->force_full_swg;
+  align_parameters->alignment_force_full_swg        = search_parameters->alignment_force_full_swg;
   align_parameters->scaffolding_min_coverage        = search_parameters->alignment_scaffolding_min_coverage_nominal;
   align_parameters->scaffolding_matching_min_length = search_parameters->alignment_scaffolding_min_matching_length_nominal;
   align_parameters->allowed_enc                     = search_parameters->allowed_enc;

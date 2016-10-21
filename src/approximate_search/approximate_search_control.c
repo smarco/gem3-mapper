@@ -100,6 +100,6 @@ bool asearch_control_test_local_alignment(
   // Parameters
   search_parameters_t* const search_parameters = search->search_parameters;
   // Local alignment test
-  return (search_parameters->local_alignment!=local_alignment_never && !matches_is_mapped(matches));
+  return (search_parameters->alignment_local!=local_alignment_never && !matches_is_mapped(matches));
 }
 

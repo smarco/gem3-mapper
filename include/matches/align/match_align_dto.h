@@ -70,7 +70,7 @@ struct match_align_parameters_t {
   uint64_t local_min_identity;
   int64_t local_min_swg_threshold;
   bool left_gap_alignment;
-  bool force_full_swg;
+  bool alignment_force_full_swg;
   uint64_t scaffolding_matching_min_length;
   uint64_t scaffolding_min_coverage;
   bool cigar_curation;

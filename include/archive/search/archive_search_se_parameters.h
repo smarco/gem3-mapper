@@ -123,16 +123,17 @@ typedef struct {
   double alignment_max_error;
   double alignment_max_bandwidth;
   double alignment_max_aligned_gap_length;              // Maximum length of gap to be aligned
+  bool   alignment_force_full_swg;                      // Force full SWG-Alignment
   double alignment_global_min_identity;                 // Alignment minimum identity to be global
   double alignment_global_min_swg_threshold;            // Alignment minimum SWG score to be global
   region_profile_model_t region_profile_model;          // Region-Profile Model (Lightweight)
   nsearch_parameters_t nsearch_parameters;              // NS parameters
   /* Local Alignment */
-  local_alignment_t local_alignment;
+  local_alignment_t alignment_local;
   double alignment_local_min_identity;                  // Alignment minimum identity to be local
   double alignment_local_min_swg_threshold;             // Alignment minimum SWG score to be local
+  uint64_t alignment_local_max_candidates;
   /* Scaffolding */
-  bool force_full_swg;                                  // Force full SWG-Alignment
   double alignment_scaffolding_min_coverage;            // Minimum length of the alignment-region (chaining alignment-regions)
   double alignment_scaffolding_min_matching_length;     // Minimum matching chunk to be considered
   bool cigar_curation;

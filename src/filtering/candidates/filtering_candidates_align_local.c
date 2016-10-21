@@ -79,8 +79,9 @@ void filtering_candidates_align_local(
   // Sort by scaffold-coverage
   filtering_candidates_sort_discarded_by_scaffold_coverage(filtering_candidates);
   // Local-align the most promising regions
+  const uint64_t max_regions_considered = MIN(num_regions_discarded,search_parameters->alignment_local_max_candidates);
   uint64_t i;
-  for (i=0;i<num_regions_discarded;++i) {
+  for (i=0;i<max_regions_considered;++i) {
     filtering_region_t* const filtering_region = regions_discarded[i];
     // Cut-off max-reported matches
     if (total_matches >= max_reported_matches) break;

@@ -354,7 +354,7 @@ void match_align_swg(
   match_alignment->cigar_offset = vector_get_used(matches->cigar_vector);
   match_alignment->cigar_length = 0;
   // Check the number of alignment-regions
-  if (align_parameters->force_full_swg) {
+  if (align_parameters->alignment_force_full_swg) {
     // Add left trim
     if (align_input->key_trim_left > 0) {
       matches_cigar_vector_append_deletion(matches->cigar_vector,

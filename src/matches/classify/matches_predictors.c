@@ -204,55 +204,71 @@ void matches_predictors_print(
    *   sub_edit sub_event sub_swg sub_sigma
    *   ccand cmatch mcs1 mcs2 mrl kmerf
    */
-  // tag
-  fprintf(stream,"%s" MP_SEP,sequence_tag);
-  // class
-  fprintf(stream,"%s" MP_SEP,match_class);
-  /*
-   * edit event swg sigma mapq_1 mapq_2
-   */
-  // edit
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->primary_edit_distance_norm);
-  // event
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->primary_event_distance_norm);
-  // swg
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->primary_swg_score_norm);
-  // sigma
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->primary_template_size_sigma_norm);
-  // mapq_1
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,(double)matches_predictors->mapq_end1/60.0);
-  // mapq_2
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,(double)matches_predictors->mapq_end2/60.0);
-  /*
-   * sub_edit sub_event sub_swg sub_sigma
-   */
-  // sub_edit
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->subdominant_edit_distance_norm);
-  // sub_event
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->subdominant_event_distance_norm);
-  // sub_swg
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->subdominant_swg_score_norm);
-  // sub_sigma
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->subdominant_template_size_sigma_norm);
-  /*
-   * ccand acand cmatch mcs1 mcs2 arl mrl kmerf
-   */
-  // ccand
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->accepted_candidates);
-  // acand
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->aligned_candidates);
-  // cmatch
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->accepted_matches);
-  // mcs1
-  fprintf(stream,"%02"PRIu64 MP_SEP,matches_predictors->mcs_end1);
-  // mcs2
-  fprintf(stream,"%02"PRIu64 MP_SEP,matches_predictors->mcs_end2);
-  // arl
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->avg_region_length_norm);
-  // mrl
-  fprintf(stream,MP_DOUBLE_FORMAT MP_SEP,matches_predictors->max_region_length_norm);
-  // kmerf
-  fprintf(stream,MP_DOUBLE_FORMAT "\n",matches_predictors->kmer_frequency);
+  fprintf(stream,
+      /*
+       * tag class
+       */
+      "%s" MP_SEP /* tag   */
+      "%s" MP_SEP /* class */
+      /*
+       * edit event swg sigma mapq_1 mapq_2
+       */
+      MP_DOUBLE_FORMAT MP_SEP /* edit   */
+      MP_DOUBLE_FORMAT MP_SEP /* event  */
+      MP_DOUBLE_FORMAT MP_SEP /* swg    */
+      MP_DOUBLE_FORMAT MP_SEP /* sigma  */
+      MP_DOUBLE_FORMAT MP_SEP /* mapq_1 */
+      MP_DOUBLE_FORMAT MP_SEP /* mapq_2 */
+      /*
+       * sub_edit sub_event sub_swg sub_sigma
+       */
+      MP_DOUBLE_FORMAT MP_SEP /* sub_edit  */
+      MP_DOUBLE_FORMAT MP_SEP /* sub_event */
+      MP_DOUBLE_FORMAT MP_SEP /* sub_swg   */
+      MP_DOUBLE_FORMAT MP_SEP /* sub_sigma */
+      /*
+       * ccand acand cmatch mcs1 mcs2 arl mrl kmerf
+       */
+      MP_DOUBLE_FORMAT MP_SEP /* ccand  */
+      MP_DOUBLE_FORMAT MP_SEP /* acand  */
+      MP_DOUBLE_FORMAT MP_SEP /* cmatch */
+      "%02"PRIu64 MP_SEP      /* mcs1   */
+      "%02"PRIu64 MP_SEP      /* mcs2   */
+      MP_DOUBLE_FORMAT MP_SEP /* arl    */
+      MP_DOUBLE_FORMAT MP_SEP /* mrl    */
+      MP_DOUBLE_FORMAT "\n",  /* kmerf  */
+      /*
+       * tag class
+       */
+      sequence_tag, /* tag   */
+      match_class,  /* class */
+      /*
+       * edit event swg sigma mapq_1 mapq_2
+       */
+      matches_predictors->primary_edit_distance_norm,       /* edit   */
+      matches_predictors->primary_event_distance_norm,      /* event  */
+      matches_predictors->primary_swg_score_norm,           /* swg    */
+      matches_predictors->primary_template_size_sigma_norm, /* sigma  */
+      (double)matches_predictors->mapq_end1/60.0,           /* mapq_1 */
+      (double)matches_predictors->mapq_end2/60.0,           /* mapq_2 */
+      /*
+       * sub_edit sub_event sub_swg sub_sigma
+       */
+      matches_predictors->subdominant_edit_distance_norm,       /* sub_edit  */
+      matches_predictors->subdominant_event_distance_norm,      /* sub_event */
+      matches_predictors->subdominant_swg_score_norm,           /* sub_swg   */
+      matches_predictors->subdominant_template_size_sigma_norm, /* sub_sigma */
+      /*
+       * ccand acand cmatch mcs1 mcs2 arl mrl kmerf
+       */
+      matches_predictors->accepted_candidates,    /* ccand  */
+      matches_predictors->aligned_candidates,     /* acand  */
+      matches_predictors->accepted_matches,       /* cmatch */
+      matches_predictors->mcs_end1,               /* mcs1   */
+      matches_predictors->mcs_end2,               /* mcs2   */
+      matches_predictors->avg_region_length_norm, /* arl    */
+      matches_predictors->max_region_length_norm, /* mrl    */
+      matches_predictors->kmer_frequency);        /* kmerf  */
 }
 void matches_predictors_se_print(
     FILE* const stream,
