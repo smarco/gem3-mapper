@@ -46,6 +46,6 @@ void search_paired_parameters_init(search_paired_parameters_t* const search_pair
   search_paired_parameters->min_template_length = 0;
   search_paired_parameters->max_template_length = 10000;
   search_paired_parameters->template_length_estimation_min = 0;
-  search_paired_parameters->template_length_estimation_max = 800;
+  search_paired_parameters->template_length_estimation_max = 1000;
   search_paired_parameters->template_length_estimation_samples = 100;
 }

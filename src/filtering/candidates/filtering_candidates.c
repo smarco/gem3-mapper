@@ -457,26 +457,27 @@ void filtering_candidates_add_region_verified(
   match_scaffold_init(&filtering_region->match_scaffold);
   // Regions-Alignment
   alignment_t* const alignment = &filtering_region->alignment;
-  alignment->alignment_tiles = NULL;
-  const uint64_t text_length = text_end_offset-text_begin_offset;
-  filtering_candidates_init_alignment(
-      filtering_candidates,alignment,
-      pattern,text_length,align_distance,false);
+  alignment->distance_min_bound = align_distance;
+  alignment->num_tiles = 1;
+  alignment->alignment_tiles = mm_stack_alloc(filtering_candidates->mm->mm_alignment_tiles,alignment_tile_t);
+  alignment->alignment_tiles->text_begin_offset = text_begin_offset;
+  alignment->alignment_tiles->text_end_offset = text_end_offset;
+  alignment->alignment_tiles->distance = align_distance;
 }
 /*
  * Sorting
  */
-int filtering_position_cmp_position(filtering_position_t** a,filtering_position_t** b) {
+int64_t filtering_position_cmp_position(filtering_position_t** a,filtering_position_t** b) {
   return (int64_t)(*a)->text_end_position - (int64_t)(*b)->text_end_position;
 }
-int filtering_region_cmp_align_distance(filtering_region_t** a,filtering_region_t** b) {
-  return (*a)->alignment.distance_min_bound - (*b)->alignment.distance_min_bound;
+int64_t filtering_region_cmp_align_distance(filtering_region_t** a,filtering_region_t** b) {
+  return (int64_t)(*a)->alignment.distance_min_bound - (int64_t)(*b)->alignment.distance_min_bound;
 }
-int filtering_region_cmp_scaffold_coverage(filtering_region_t** a,filtering_region_t** b) {
-  return (*b)->match_scaffold.scaffolding_coverage - (*a)->match_scaffold.scaffolding_coverage;
+int64_t filtering_region_cmp_scaffold_coverage(filtering_region_t** a,filtering_region_t** b) {
+  return (int64_t)(*b)->match_scaffold.scaffolding_coverage - (int64_t)(*a)->match_scaffold.scaffolding_coverage;
 }
-int filtering_region_cmp_align_rank(filtering_region_t** a,filtering_region_t** b) {
-  return (*b)->alignment.distance_rank - (*a)->alignment.distance_rank;
+int64_t filtering_region_cmp_align_rank(filtering_region_t** a,filtering_region_t** b) {
+  return (int64_t)(*b)->alignment.distance_rank - (int64_t)(*a)->alignment.distance_rank;
 }
 #define VECTOR_SORT_NAME                 filtering_positions
 #define VECTOR_SORT_TYPE                 filtering_position_t*

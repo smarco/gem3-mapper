@@ -132,6 +132,8 @@ void approximate_search_stepwise_region_profile_adaptive_generate(
       case asearch_stage_filtering_adaptive:
         search->search_stage = asearch_stage_filtering_adaptive;
         return;
+      case asearch_stage_end:
+    	return;
       default:
         GEM_INVALID_CASE();
         break;

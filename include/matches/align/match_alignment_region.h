@@ -124,10 +124,10 @@ bool match_alignment_region_text_overlap(
 /*
  * Compare
  */
-int match_alignment_region_key_cmp(
+int64_t match_alignment_region_key_cmp(
     match_alignment_region_t* const match_alignment_region_a,
     match_alignment_region_t* const match_alignment_region_b);
-int match_alignment_region_cmp_text_position(
+int64_t match_alignment_region_cmp_text_position(
     const match_alignment_region_t* const a,
     const match_alignment_region_t* const b);
 /*

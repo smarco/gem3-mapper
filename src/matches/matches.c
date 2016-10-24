@@ -306,7 +306,9 @@ void matches_add_match_trace_preserve_sorted(matches_t* const matches) {
 void match_trace_locate(
     match_trace_t* const match_trace,
     const locator_t* const locator) {
-  GEM_INTERNAL_CHECK(match_trace->match_alignment.effective_length >= 0,"Match effective length must be positive");
+  GEM_INTERNAL_CHECK(
+		  match_trace->match_alignment.effective_length >= 0,
+		  "Match effective length must be positive");
   location_t location;
   locator_map(locator,match_trace->match_alignment.match_position,&location);
   match_trace->text_position = location.position;

@@ -144,15 +144,15 @@ bool match_alignment_region_text_overlap(
 /*
  * Compare
  */
-int match_alignment_region_key_cmp(
+int64_t match_alignment_region_key_cmp(
     match_alignment_region_t* const match_alignment_region_a,
     match_alignment_region_t* const match_alignment_region_b) {
-  return (int)match_alignment_region_a->_key_begin - (int)match_alignment_region_b->_key_begin;
+  return (int64_t)match_alignment_region_a->_key_begin - (int64_t)match_alignment_region_b->_key_begin;
 }
-int match_alignment_region_cmp_text_position(
+int64_t match_alignment_region_cmp_text_position(
     const match_alignment_region_t* const a,
     const match_alignment_region_t* const b) {
-  return a->_text_begin - b->_text_begin;
+  return (int64_t)a->_text_begin - (int64_t)b->_text_begin;
 }
 /*
  * Check
