@@ -22,7 +22,7 @@ exp(cbind(OR = coef(mylogit), confint(mylogit)))
  * SE NEW
  */
 // ALL
-mylogit <- glm(tp ~ edit+event+swg+sigma+mapq_1+mapq_2+sub_edit+sub_event+sub_swg+sub_sigma+ccand+cmatch+mcs1+mcs2+mrl+kmerf , data = data1, family = "binomial")
+mylogit <- glm(tp ~ edit+event+swg+sigma+mapq_1+mapq_2+sub_edit+sub_event+sub_swg+sub_sigma+ccand+acand+cmatch+mcs1+mcs2+arl+mrl+kmerf , data = data1, family = "binomial")
 
 // SE
 mylogit <- glm(tp ~ edit+event+swg+sub_edit+sub_event+sub_swg+ccand+cmatch+mcs1+mrl+kmerf , data = data1, family = "binomial")
