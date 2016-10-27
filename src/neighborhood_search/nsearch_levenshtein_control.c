@@ -173,12 +173,13 @@ uint64_t nsearch_levenshtein_scheduled_terminate(
       filtering_candidates,search_parameters,pattern,fm_2interval->backward_lo,
       fm_2interval->backward_hi,region_begin,region_end,align_distance,&limited);
   // Dynamic filtering
-  if (nsearch_schedule->search_parameters->nsearch_parameters.dynamic_filtering &&
-	    filtering_candidates_get_num_positions(nsearch_schedule->filtering_candidates) >=
-        search_parameters->select_parameters_align.max_search_matches) {
-    PROF_ADD_COUNTER(GP_NS_BRANCH_CANDIDATES_GENERATED,
-      filtering_candidates_get_num_positions(nsearch_schedule->filtering_candidates));
-    nsearch_filtering(nsearch_schedule);
+  if (nsearch_schedule->search_parameters->nsearch_parameters.dynamic_filtering) {
+    const uint64_t num_candidate_positions =
+        filtering_candidates_get_num_positions(nsearch_schedule->filtering_candidates);
+    if (num_candidate_positions >= search_parameters->select_parameters_align.max_search_matches) {
+      PROF_ADD_COUNTER(GP_NS_BRANCH_CANDIDATES_GENERATED,num_candidate_positions);
+      nsearch_filtering(nsearch_schedule);
+    }
   }
   // PROFILE
   PROF_ADD_COUNTER(GP_NS_SEARCH_DEPTH,text_length);

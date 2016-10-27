@@ -27,9 +27,9 @@
 #include "utils/essentials.h"
 
 typedef struct {
-  // Dynamic filtering
+  // Dynamic filtering and search cut-offs
   bool dynamic_filtering;
-  // Search Cut-off(s)
+  bool dynamic_matches_cutoff;
   uint64_t filtering_quick_th;
   uint64_t filtering_region_opt_th;
   uint64_t filtering_region_opt_steps;

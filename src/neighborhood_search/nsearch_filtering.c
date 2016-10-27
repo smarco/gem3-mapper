@@ -32,7 +32,7 @@
  */
 void nsearch_filtering(nsearch_schedule_t* const nsearch_schedule) {
   // Quick check to avoid further processing
-  if (filtering_candidates_get_num_positions(nsearch_schedule->filtering_candidates)>0) {
+  if (filtering_candidates_get_num_positions(nsearch_schedule->filtering_candidates) > 0) {
     // Process+Verify candidates
     PROF_START(GP_NS_VERIFICATION);
     filtering_candidates_process_candidates(
@@ -47,6 +47,8 @@ void nsearch_filtering(nsearch_schedule_t* const nsearch_schedule) {
         false,false,nsearch_schedule->matches);
     PROF_STOP(GP_NS_ALIGN);
     // Check quick-abandon condition
-    nsearch_schedule->quick_abandon = nsearch_levenshtein_matches_cutoff(nsearch_schedule);
+    if (nsearch_schedule->search_parameters->nsearch_parameters.dynamic_matches_cutoff) {
+      nsearch_schedule->quick_abandon = nsearch_levenshtein_matches_cutoff(nsearch_schedule);
+    }
   }
 }
