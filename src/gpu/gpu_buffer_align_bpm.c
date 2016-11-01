@@ -242,13 +242,11 @@ void gpu_buffer_align_bpm_pattern_decompile(
 }
 void gpu_buffer_align_bpm_pattern_compile(
     gpu_bpm_qry_entry_t* const pattern_entry,
-    const bpm_pattern_t* const bpm_pattern,
-    const uint64_t num_tiles,
-    const uint64_t tile_length) {
+    const bpm_pattern_t* const bpm_pattern) {
   // Copy PEQ pattern
   const uint64_t bpm_pattern_num_words = bpm_pattern->pattern_num_words64;
-  const uint64_t gpu_pattern_length = num_tiles*tile_length;
-  const uint64_t gpu_pattern_num_words = gpu_pattern_length/UINT64_LENGTH;
+  const uint64_t pattern_length = bpm_pattern->pattern_length;
+  const uint64_t gpu_pattern_num_words = DIV_CEIL(pattern_length,GPU_ALIGN_BPM_ENTRY_LENGTH)*2;
   const uint32_t* PEQ = (uint32_t*) bpm_pattern->PEQ;
   uint64_t i, entry=0, subentry=0;
   for (i=0;i<bpm_pattern_num_words;++i) {
@@ -300,7 +298,7 @@ void gpu_buffer_align_bpm_add_pattern(
   uint64_t i, buffer_entries_added = 0;
   for (i=0;i<num_tiles;++i,++buffer_pattern_query) {
     // Compute tile dimensions
-    const uint64_t tile_length = alignment_filters[i].tile_length;
+    const uint64_t tile_length = alignment_filters->tiles[i].tile_length;
     const uint64_t tile_entries = DIV_CEIL(tile_length,GPU_ALIGN_BPM_ENTRY_LENGTH);
     // Set entry & size
     buffer_pattern_query->posEntry = buffer_entries_offset + buffer_entries_added;
@@ -319,7 +317,7 @@ void gpu_buffer_align_bpm_add_pattern(
   bpm_pattern_t* const bpm_pattern = alignment_filters->bpm_pattern;
   gpu_bpm_qry_entry_t* const buffer_pattern_entry = gpu_bpm_buffer_get_peq_entries_(gpu_buffer) + buffer_entries_offset;
   gpu_buffer_align_bpm->num_entries += num_entries;
-  gpu_buffer_align_bpm_pattern_compile(buffer_pattern_entry,bpm_pattern,num_tiles,alignment_filters->tile_length);
+  gpu_buffer_align_bpm_pattern_compile(buffer_pattern_entry,bpm_pattern);
 }
 void gpu_buffer_align_bpm_add_candidate(
     gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
