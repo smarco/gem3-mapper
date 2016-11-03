@@ -123,12 +123,8 @@ void buffered_input_file_read_buffer(
     // Read lines
     buffer_filled = input_file_sliced_read_lines(
         input_file_sliced,input_buffer,buffered_input->prefered_read_size,
-        forced_read_lines,&total_read_lines,&total_read_size);
-    buffered_input->input_last_buffer_line_end = input_file_sliced->current_buffer_line; // Set buffer limit
-    // Check input-buffer
-    if (input_file_sliced_eob(input_file_sliced,input_buffer)) {
-      input_file_sliced_input_buffer_next(input_file_sliced); // Next input-buffer
-    }
+        forced_read_lines,&total_read_lines,&total_read_size,
+        &buffered_input->input_last_buffer_line_end);
   }
   buffered_input->num_lines = total_read_lines; // Set buffer lines
   input_file_sliced->current_input_line += total_read_lines; // Update input line

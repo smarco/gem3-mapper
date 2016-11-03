@@ -231,19 +231,14 @@ void input_file_sliced_discard_exhausted_buffers(
 /*
  * Read input-buffer lines
  */
-bool input_file_sliced_eob(
-    input_file_sliced_t* const input_file_sliced,
-    input_buffer_t* const current_file_buffer) {
-  const uint64_t total_lines = vector_get_used(current_file_buffer->line_lengths) - 1;
-  return input_file_sliced->current_buffer_line == total_lines;
-}
 bool input_file_sliced_read_lines(
     input_file_sliced_t* const input_file_sliced,
     input_buffer_t* const current_file_buffer,
     const uint64_t prefered_read_size,
     const uint64_t forced_read_lines,
     uint64_t* const total_read_lines,
-    uint64_t* const total_read_size) {
+    uint64_t* const total_read_size,
+    uint64_t* const input_last_buffer_line_end) {
   // Parameters
   const uint64_t total_lines = vector_get_used(current_file_buffer->line_lengths) - 1;
   uint32_t* const line_lengths = vector_get_mem(current_file_buffer->line_lengths,uint32_t);
@@ -262,6 +257,7 @@ bool input_file_sliced_read_lines(
         (forced_read_lines==0 && read_lines%8==0 && read_size>=prefered_read_size)) {
       input_file_sliced->current_buffer_offset = current_buffer_offset;
       input_file_sliced->current_buffer_line = current_buffer_line;
+      *input_last_buffer_line_end = input_file_sliced->current_buffer_line; // Set buffer limit
       *total_read_lines = read_lines;
       *total_read_size = read_size;
       return true;
@@ -273,8 +269,14 @@ bool input_file_sliced_read_lines(
   current_buffer_offset += line_length;
   input_file_sliced->current_buffer_offset = current_buffer_offset;
   input_file_sliced->current_buffer_line = current_buffer_line;
+  *input_last_buffer_line_end = input_file_sliced->current_buffer_line; // Set buffer limit
   *total_read_lines = read_lines;
   *total_read_size = read_size;
+  // Next input-buffer
+  input_file_sliced->current_buffer = NULL;
+  ++(input_file_sliced->current_buffer_id);
+  input_file_sliced->current_buffer_offset = 0;
+  input_file_sliced->current_buffer_line = 0;
   // Check amount of data read
   return (forced_read_lines==0 && read_lines%8==0 && read_size>=prefered_read_size);
 }

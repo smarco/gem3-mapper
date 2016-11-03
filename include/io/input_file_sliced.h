@@ -104,16 +104,14 @@ void input_file_sliced_discard_exhausted_buffers(
 /*
  * Read input-buffer lines
  */
-bool input_file_sliced_eob(
-    input_file_sliced_t* const input_file_sliced,
-    input_buffer_t* const current_file_buffer);
 bool input_file_sliced_read_lines(
     input_file_sliced_t* const input_file_sliced,
     input_buffer_t* const current_file_buffer,
     const uint64_t prefered_read_size,
     const uint64_t forced_read_lines,
     uint64_t* const total_read_lines,
-    uint64_t* const total_read_size);
+    uint64_t* const total_read_size,
+    uint64_t* const input_last_buffer_line_end);
 
 /*
  * Current Input-Buffer

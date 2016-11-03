@@ -32,9 +32,9 @@
 #include "utils/essentials.h"
 
 typedef enum {
-  input_buffer_ready,
   input_buffer_empty,
   input_buffer_processing,
+  input_buffer_ready,
 } input_buffer_state;
 typedef struct {
   /* Buffer info */
