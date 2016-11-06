@@ -16,7 +16,7 @@ GPU_INLINE __device__ void gpu_bpm_filter_local_kernel(const gpu_bpm_device_qry_
                                                        const gpu_bpm_cand_info_t *d_candidates, const uint32_t *d_reorderBuffer,
                                                        gpu_bpm_alg_entry_t *d_results, const gpu_bpm_qry_info_t *d_qinfo,
                                                        const uint32_t idCandidate, const uint64_t sizeRef, const uint32_t numResults,
-                                                       const uint32_t intraQueryThreadIdx, const uint32_t threadsPerQuery, const uint32_t binning)
+                                                       const uint32_t intraQueryThreadIdx, const uint32_t threadsPerQuery, const bool binning)
 {
   if (idCandidate < numResults){
     const uint64_t *localCandidate;
@@ -24,7 +24,7 @@ GPU_INLINE __device__ void gpu_bpm_filter_local_kernel(const gpu_bpm_device_qry_
     const uint32_t BMPS_SIZE       = GPU_BPM_PEQ_LENGTH_PER_CUDA_THREAD * PEQS_PER_THREAD;
     const uint32_t BMPS_PER_THREAD = BMPS_SIZE / GPU_UINT32_LENGTH;
 
-    const uint32_t originalCandidate  = (binning) ? idCandidate : d_reorderBuffer[idCandidate];
+    const uint32_t originalCandidate  = (binning) ? d_reorderBuffer[idCandidate] : idCandidate;
     const uint64_t positionRef        = d_candidates[originalCandidate].position;
     const uint32_t sizeQuery          = d_qinfo[d_candidates[originalCandidate].query].size;
     const uint32_t entry              = d_qinfo[d_candidates[originalCandidate].query].posEntry + (intraQueryThreadIdx * PEQS_PER_THREAD);
@@ -123,7 +123,7 @@ GPU_INLINE __device__ void gpu_bpm_filter_local_kernel(const gpu_bpm_device_qry_
 __global__ void gpu_bpm_filter_kernel(const gpu_bpm_device_qry_entry_t* const d_queries, const uint64_t* const d_reference, const gpu_bpm_cand_info_t* const d_candidates,
                                       const uint32_t* const d_reorderBuffer, gpu_bpm_alg_entry_t* const d_reorderResults, const gpu_bpm_qry_info_t* const d_qinfo,
                                       const uint64_t sizeRef,  const uint32_t numResults, const uint32_t* const d_initPosPerBucket, const uint32_t* const d_initWarpPerBucket,
-                                      const uint32_t numWarps, const uint32_t binning)
+                                      const uint32_t numWarps, const bool binning)
 {
   const uint32_t globalThreadIdx = gpu_get_thread_idx();
   const uint32_t globalWarpIdx   = globalThreadIdx / GPU_WARP_SIZE;
@@ -162,8 +162,8 @@ gpu_error_t gpu_bpm_process_buffer(gpu_buffer_t *mBuff)
   const uint32_t                            numAlignments = res->numAlignments;
   const uint32_t                            maxCandidates = mBuff->data.bpm.maxCandidates;
   const uint32_t                            maxAlignments = mBuff->data.bpm.maxAlignments;
-  const uint32_t                            numResults    = (mBuff->data.bpm.queryBinning) ? res->numAlignments : res->numReorderedAlignments;
-  gpu_bpm_alg_entry_t*                      d_results     = (mBuff->data.bpm.queryBinning) ? res->d_alignments  : res->d_reorderAlignments;
+  const uint32_t                            numResults    = (mBuff->data.bpm.queryBinning) ? res->numReorderedAlignments : res->numAlignments;
+  gpu_bpm_alg_entry_t*                      d_results     = (mBuff->data.bpm.queryBinning) ? res->d_reorderAlignments : res->d_alignments;
 
   dim3 blocksPerGrid, threadsPerBlock;
   const uint32_t numThreads = rebuff->numWarps * GPU_WARP_SIZE;

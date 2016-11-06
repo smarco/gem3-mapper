@@ -40,12 +40,17 @@ uint32_t gpu_gen_mask(const int32_t shift)
   return(mask);
 }
 
-uint8_t base2log(uint16_t value)
+uint8_t gpu_base2log(uint16_t value)
 {
     uint8_t result = 0;
     while (value >>= 1)
         result++;
     return(result);
+}
+
+bool gpu_is_pow_two(uint32_t value)
+{
+    return ((value != 0) && ((value & (value - 1)) == 0));
 }
 
 #endif /* GPU_COMMONS_C_ */

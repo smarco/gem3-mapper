@@ -242,7 +242,8 @@ gpu_error_t gpu_bpm_reorder_process(const gpu_bpm_queries_buffer_t* const qry, c
 
 gpu_error_t gpu_bpm_reordering_buffer(gpu_buffer_t *mBuff)
 {
-  const uint32_t                           binning  = mBuff->data.bpm.queryBinning;
+  const uint32_t                           binSize  = mBuff->data.bpm.queryBinSize;
+  const bool                               binning  = mBuff->data.bpm.queryBinning;
   const gpu_bpm_queries_buffer_t* const    qry      = &mBuff->data.bpm.queries;
   const gpu_bpm_candidates_buffer_t* const cand     = &mBuff->data.bpm.candidates;
         gpu_bpm_alignments_buffer_t* const res      = &mBuff->data.bpm.alignments;
@@ -258,15 +259,15 @@ gpu_error_t gpu_bpm_reordering_buffer(gpu_buffer_t *mBuff)
     rebuff->h_initWarpPerBucket[idBucket] = 0;
   }
   if(binning){
+    GPU_ERROR(gpu_bpm_reorder_process(qry, cand, rebuff, res));
+  }else{
     //Calculate the number of warps necessaries in the GPU
-    rebuff->numWarps = GPU_DIV_CEIL(binning * cand->numCandidates, GPU_WARP_SIZE);
+    rebuff->numWarps = GPU_DIV_CEIL(binSize * cand->numCandidates, GPU_WARP_SIZE);
     //Fill the start warp_id & candidate for each bucket
-    for(idBucket = binning; idBucket < rebuff->numBuckets; idBucket++){
+    for(idBucket = binSize; idBucket < rebuff->numBuckets; idBucket++){
       rebuff->h_initPosPerBucket[idBucket]  = cand->numCandidates;
       rebuff->h_initWarpPerBucket[idBucket] = rebuff->numWarps;
     }
-  }else{
-    GPU_ERROR(gpu_bpm_reorder_process(qry, cand, rebuff, res));
   }
   // Succeed
   return (SUCCESS);
@@ -324,23 +325,24 @@ gpu_error_t gpu_bpm_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
   size_t                      cpySize;
   // Avoiding transferences of the intermediate results (binning input work regularization)
   if(mBuff->data.bpm.queryBinning){
-    cpySize = res->numAlignments * sizeof(gpu_bpm_alg_entry_t);
-    CUDA_ERROR(cudaMemcpyAsync(res->h_alignments, res->d_alignments, cpySize, cudaMemcpyDeviceToHost, idStream));
-  }else{
     cpySize = res->numReorderedAlignments * sizeof(gpu_bpm_alg_entry_t);
     CUDA_ERROR(cudaMemcpyAsync(res->h_reorderAlignments, res->d_reorderAlignments, cpySize, cudaMemcpyDeviceToHost, idStream));
+  }else{
+    cpySize = res->numAlignments * sizeof(gpu_bpm_alg_entry_t);
+    CUDA_ERROR(cudaMemcpyAsync(res->h_alignments, res->d_alignments, cpySize, cudaMemcpyDeviceToHost, idStream));
   }
   // Succeed
   return (SUCCESS);
 }
 
 void gpu_bpm_send_buffer_(void* const bpmBuffer, const uint32_t numPEQEntries, const uint32_t numQueries,
-                          const uint32_t numCandidates, const uint32_t queryBinning)
+                          const uint32_t numCandidates, const uint32_t queryBinSize)
 {
-  gpu_buffer_t* const mBuff     = (gpu_buffer_t *) bpmBuffer;
-  const uint32_t    idSupDevice = mBuff->idSupportedDevice;
+  gpu_buffer_t* const mBuff                         = (gpu_buffer_t *) bpmBuffer;
+  const uint32_t    idSupDevice                     = mBuff->idSupportedDevice;
   //Set real size of the things
-  mBuff->data.bpm.queryBinning                      = queryBinning;
+  mBuff->data.bpm.queryBinning                      = !GPU_ISPOW2(queryBinSize);
+  mBuff->data.bpm.queryBinSize                      = mBuff->data.bpm.queryBinning ? 0 : queryBinSize;
   mBuff->data.bpm.queries.totalQueriesEntries       = numPEQEntries;
   mBuff->data.bpm.queries.numQueries                = numQueries;
   mBuff->data.bpm.candidates.numCandidates          = numCandidates;
@@ -365,7 +367,7 @@ Functions to receive & process a BPM buffer from GPU
 gpu_error_t gpu_bpm_reordering_alignments(gpu_buffer_t *mBuff)
 {
   // Avoiding transferences of the intermediate results (binning input work regularization)
-  if(mBuff->data.bpm.queryBinning == 0){
+  if(mBuff->data.bpm.queryBinning){
     gpu_bpm_reorder_buffer_t    *rebuff = &mBuff->data.bpm.reorderBuffer;
     gpu_bpm_alignments_buffer_t *res    = &mBuff->data.bpm.alignments;
     uint32_t idRes;
@@ -381,7 +383,7 @@ void gpu_bpm_receive_buffer_(void* const bpmBuffer)
 {
   gpu_buffer_t* const mBuff       = (gpu_buffer_t *) bpmBuffer;
   const uint32_t      idSupDevice = mBuff->idSupportedDevice;
-  const cudaStream_t  idStream    =  mBuff->listStreams[mBuff->idStream];
+  const cudaStream_t  idStream    = mBuff->listStreams[mBuff->idStream];
   //Select the device of the Multi-GPU platform
   CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
   //Synchronize Stream (the thread wait for the commands done in the stream)

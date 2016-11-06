@@ -340,11 +340,11 @@ uint64_t filtering_candidates_verify_buffered_retrieve_alignment(
       alignment_tile->text_end_offset = tile_offset + tile_end_offset;
       alignment_tile->text_begin_offset = tile_offset + tile_begin_offset;
       // DEBUG
-      //#ifdef CUDA_CHECK_BUFFERED_VERIFY_CANDIDATES
+      #ifdef CUDA_CHECK_BUFFERED_VERIFY_CANDIDATES
       filtering_candidates_verify_buffered_check_tile_distance(
           filtering_candidates,filters_tile->bpm_pattern_tile,gpu_buffer_align_bpm,
           candidate_tile_idx+tile_pos,tile_distance,tile_match_column);
-      //#endif
+      #endif
       // Check global distance
       if (alignment->distance_min_bound != ALIGN_DISTANCE_INF) {
         alignment->distance_min_bound += alignment_tile->distance;

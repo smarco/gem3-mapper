@@ -90,7 +90,8 @@ typedef struct {
   uint32_t                    maxReorderBuffer;
   uint32_t                    maxAlignments;
   uint32_t                    maxBuckets;
-  uint32_t                    queryBinning;
+  uint32_t                    queryBinSize;
+  bool                        queryBinning;
   gpu_bpm_queries_buffer_t    queries;
   gpu_bpm_candidates_buffer_t candidates;
   gpu_bpm_reorder_buffer_t    reorderBuffer;

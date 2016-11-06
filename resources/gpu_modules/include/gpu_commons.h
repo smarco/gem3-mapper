@@ -53,7 +53,8 @@ Common constants for Device & Host
 #define GPU_ALIGN_TO(ADDR,BYTES)            ((void*)(GPU_DIV_CEIL((uint64_t)ADDR,BYTES) * BYTES))
 #define GPU_POW2(NUM)                       (GPU_UINT32_MASK_ONE_LOW<<(NUM))
 #define GPU_POW4(NUM)                       (GPU_UINT32_MASK_ONE_LOW<<((NUM)<<1))
-#define GPU_BASE2LOG(NUM)                   (base2log(NUM))
+#define GPU_BASE2LOG(NUM)                   (gpu_base2log(NUM))
+#define GPU_ISPOW2(NUM)                     (gpu_is_pow_two(NUM))
 
 /* Conversion utils */
 #define GPU_CONVERT_BYTES_TO_BITS(number) ((number) * 8)
@@ -101,6 +102,7 @@ Common constants for Device & Host
 uint32_t gpu_bit_reverse(uint32_t a);
 uint32_t gpu_gen_mask(const int32_t shift);
 uint32_t gpu_count_active_bits(uint32_t a);
-uint8_t  base2log(const uint16_t value);
+uint8_t  gpu_base2log(const uint16_t value);
+bool     gpu_is_pow_two(uint32_t value);
 
 #endif /* GPU_COMMONS_H_ */
