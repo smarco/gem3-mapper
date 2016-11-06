@@ -178,10 +178,6 @@ void filtering_candidates_verify_buffered_add(
   for (candidate_pos=0;candidate_pos<num_filtering_regions;++candidate_pos) {
     // Filtering region
     filtering_region_t* const filtering_region = regions_in[candidate_pos];
-
-    // TODO ERASE ME
-    filtering_region->alignment.distance_rank = gpu_buffer_align_bpm_get_num_candidates(gpu_buffer_align_bpm);
-
     // Filter out exact-matches & key-trimmed regions
     if (filtering_region->alignment.distance_min_bound==0 || filtering_region->key_trimmed) {
       filtering_candidates_verify_buffered_store_region(
@@ -387,12 +383,6 @@ void filtering_candidates_verify_buffered_retrieve(
     // Retrieve region
     filtering_region_buffered_t* const region_buffered = filtering_region_buffer + region_pos;
     alignment_t* const alignment = &region_buffered->alignment;
-
-    // TODO ERASE ME
-    if (region_buffered->alignment.distance_rank!=candidate_tile_idx) {
-    	fprintf(stderr,"Error in offsets\n");
-    }
-
     // Detect exact-matches
     if (region_buffered->alignment.distance_min_bound == 0) {
       filtering_region_t* const region_accepted = filtering_candidates_allocate_region(filtering_candidates);
