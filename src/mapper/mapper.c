@@ -171,9 +171,11 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
     if (bisulfite_index) mapper_bisulfite_restore_sequence_se(archive_search);
 
     // Output matches
-    mapper_se_output_matches(parameters,mapper_search->buffered_output_file,
-        archive_search,matches,mapper_search->mapping_stats);
-    // output_fastq(mapper_search->buffered_output_file,&mapper_search->archive_search->sequence);
+    //mapper_se_output_matches(parameters,mapper_search->buffered_output_file,
+    //    archive_search,matches,mapper_search->mapping_stats);
+    if (mapper_search->archive_search->approximate_search.ns_used) {
+      output_fastq(mapper_search->buffered_output_file,&mapper_search->archive_search->sequence);
+    }
 
     // Update processed
     if (++reads_processed == parameters->io.mapper_ticker_step) {

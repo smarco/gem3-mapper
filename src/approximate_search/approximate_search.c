@@ -75,6 +75,7 @@ void approximate_search_init(
 }
 void approximate_search_reset(approximate_search_t* const search) {
   // Reset Approximate Search State
+  search->ns_used = false;
   search->search_stage = asearch_stage_begin;
   search->processing_state = asearch_processing_state_begin;
   const uint64_t max_complete_error = search->search_parameters->complete_search_error_nominal;
