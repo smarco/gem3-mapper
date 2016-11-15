@@ -54,7 +54,7 @@ FOLDER_TOOLS=$(ROOT_PATH)/tools
 # Configure flags
 ###############################################################################
 
-HAVE_ZLIB = 1
+HAVE_ZLIB = 
 HAVE_BZLIB = 1
 HAVE_OPENMP = 1
 HAVE_CUDA = 1

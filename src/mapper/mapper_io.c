@@ -211,22 +211,27 @@ void mapper_se_output_matches(
     archive_search_t* const archive_search,
     matches_t* const matches,
     mapping_stats_t *mstats) {
-#ifdef MAPPER_OUTPUT
-  switch (parameters->io.output_format) {
-    case MAP:
-      output_map_single_end_matches(buffered_output_file,archive_search,matches,&parameters->io.map_parameters);
-      break;
-    case SAM:
-      output_sam_single_end_matches(buffered_output_file,archive_search,matches,&parameters->io.sam_parameters);
-      break;
-    default:
-      GEM_INVALID_CASE();
-      break;
+
+  if (archive_search->approximate_search.ns) {
+    output_fastq(buffered_output_file,&archive_search->sequence);
   }
-  if (mstats) {
-    collect_se_mapping_stats(archive_search,matches,mstats);
-  }
-#endif
+
+//#ifdef MAPPER_OUTPUT
+//  switch (parameters->io.output_format) {
+//    case MAP:
+//      output_map_single_end_matches(buffered_output_file,archive_search,matches,&parameters->io.map_parameters);
+//      break;
+//    case SAM:
+//      output_sam_single_end_matches(buffered_output_file,archive_search,matches,&parameters->io.sam_parameters);
+//      break;
+//    default:
+//      GEM_INVALID_CASE();
+//      break;
+//  }
+//  if (mstats) {
+//    collect_se_mapping_stats(archive_search,matches,mstats);
+//  }
+//#endif
 }
 void mapper_pe_output_matches(
     mapper_parameters_t* const parameters,

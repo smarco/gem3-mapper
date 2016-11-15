@@ -72,6 +72,7 @@ void approximate_search_init(
   // Index Structures & Parameters
   search->archive = archive;
   search->search_parameters = search_parameters;
+  search->ns = false;
 }
 void approximate_search_reset(approximate_search_t* const search) {
   // Reset Approximate Search State

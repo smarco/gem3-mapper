@@ -95,6 +95,8 @@ typedef struct {
   uint64_t gpu_buffer_align_offset;                              // FMI-Buffer align offset
   /* Neighborhood Search Structures */
   nsearch_schedule_t* nsearch_schedule;                          // Nsearch Scheduler
+
+  bool ns;
 } approximate_search_t;
 
 /*
