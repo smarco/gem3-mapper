@@ -39,7 +39,8 @@ MODULES=matches \
         matches_counters \
         matches_test \
         paired_map \
-        paired_matches
+        paired_matches \
+        paired_matches_test
 
 SRCS=$(addsuffix .c, $(MODULES))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))

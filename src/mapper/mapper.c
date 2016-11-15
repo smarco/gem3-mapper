@@ -171,11 +171,9 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
     if (bisulfite_index) mapper_bisulfite_restore_sequence_se(archive_search);
 
     // Output matches
-    //mapper_se_output_matches(parameters,mapper_search->buffered_output_file,
-    //    archive_search,matches,mapper_search->mapping_stats);
-    if (mapper_search->archive_search->approximate_search.ns_used) {
-      output_fastq(mapper_search->buffered_output_file,&mapper_search->archive_search->sequence);
-    }
+    mapper_se_output_matches(parameters,mapper_search->buffered_output_file,
+        archive_search,matches,mapper_search->mapping_stats);
+    // output_fastq(mapper_search->buffered_output_file,&mapper_search->archive_search->sequence);
 
     // Update processed
     if (++reads_processed == parameters->io.mapper_ticker_step) {
@@ -243,7 +241,16 @@ void* mapper_pe_thread(mapper_search_t* const mapper_search) {
     if (bisulfite_index) mapper_bisulfite_process_sequence_pe(archive_search_end1,archive_search_end2);
 
     // Search into the archive
+#ifdef DEBUG_MAPPER_DISPLAY_EACH_READ_TIME
+    gem_timer_t timer;
+    TIMER_RESTART(&timer);
     archive_search_pe(archive_search_end1,archive_search_end2,paired_matches);
+    TIMER_STOP(&timer);
+    fprintf(stderr,"Done %s in %2.4f ms.\n",
+      archive_search_end1->sequence.tag.buffer,TIMER_GET_TOTAL_MS(&timer));
+#else
+    archive_search_pe(archive_search_end1,archive_search_end2,paired_matches);
+#endif
 
     // Bisulfite: Copy back original read
     if (bisulfite_index) mapper_bisulfite_restore_sequence_pe(archive_search_end1,archive_search_end2);

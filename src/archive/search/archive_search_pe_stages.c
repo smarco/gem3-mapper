@@ -191,13 +191,25 @@ uint64_t archive_search_pe_extend_matches(
   filtering_candidates_t* const filtering_candidates =
       candidate_archive_search->approximate_search.filtering_candidates;
   pattern_t* const candidate_pattern = &candidate_archive_search->approximate_search.pattern;
-  uint64_t total_matches_found = 0;
-  // Iterate over all matches of the extended end
+  // Set MCS
+  const uint64_t max_complete_stratum =
+      ((matches_end1->max_complete_stratum!=ALL) ? matches_end1->max_complete_stratum : 0) +
+      ((matches_end2->max_complete_stratum!=ALL) ? matches_end2->max_complete_stratum : 0);
+  /*
+   * Iterate over all matches of the extended end
+   */
   const uint64_t num_extended_match_traces = matches_get_num_match_traces(extended_matches);
   match_trace_t** const extended_match_traces = matches_get_match_traces(extended_matches);
+  uint64_t total_matches_found = 0;
   uint64_t i;
   for (i=0;i<num_extended_match_traces;++i) {
-    if (extended_match_traces[i]->type == match_type_extended) continue; // Skip matches retrieved from extension
+    // Abandon if accuracy reached (maximum matches reached)
+    if (paired_matches_test_accuracy_reached(
+        paired_matches,search_paired_parameters,max_complete_stratum)) {
+      break;
+    }
+    // Skip matches retrieved from extension
+    if (extended_match_traces[i]->type == match_type_extended) continue;
     if (search_paired_parameters->pair_orientation[pair_orientation_FR] == pair_relation_concordant) {
       // Extend (filter nearby region)
       PROF_INC_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_NUM_MATCHES);

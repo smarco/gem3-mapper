@@ -193,10 +193,10 @@ fm_t* fm_open_file(char* const file_name,const fm_mode mode) {
   file_manager->file = fdopen(file_manager->fd,fm_file_open_flags[mode]);
   gem_cond_fatal_error__perror(file_manager->file==NULL,FM_FDOPEN,file_name);
 #ifdef HAVE_BZLIB
-  file_manager->gz_file = NULL;
-#endif
-#ifdef HAVE_BZLIB
   file_manager->bz_file = NULL;
+#endif
+#ifdef HAVE_ZLIB
+  file_manager->gz_file = NULL;
 #endif
   // Attributes
   file_manager->mode = mode;
@@ -228,10 +228,10 @@ fm_t* fm_open_temp_file(void) {
   file_manager->file = fdopen(file_manager->fd,fm_file_open_flags[FM_READ_WRITE]);
   gem_cond_fatal_error__perror(file_manager->file==NULL,FM_FDOPEN,file_manager->file_name);
 #ifdef HAVE_BZLIB
-  file_manager->gz_file = NULL;
-#endif
-#ifdef HAVE_BZLIB
   file_manager->bz_file = NULL;
+#endif
+#ifdef HAVE_ZLIB
+  file_manager->gz_file = NULL;
 #endif
   // Attributes
   file_manager->mode = FM_READ_WRITE;
@@ -249,10 +249,10 @@ fm_t* fm_open_FILE(FILE* const stream,const fm_mode mode) {
   file_manager->fd = 0;
   file_manager->file = stream;
 #ifdef HAVE_BZLIB
-  file_manager->gz_file = NULL;
-#endif
-#ifdef HAVE_BZLIB
   file_manager->bz_file = NULL;
+#endif
+#ifdef HAVE_ZLIB
+  file_manager->gz_file = NULL;
 #endif
   // Attributes
   file_manager->mode = mode;
@@ -265,7 +265,7 @@ fm_t* fm_open_FILE(FILE* const stream,const fm_mode mode) {
   return file_manager;
 }
 fm_t* fm_open_gzFILE(FILE* const stream,const fm_mode mode) {
-#ifndef HAVE_BZLIB
+#ifndef HAVE_ZLIB
   gem_fatal_error(FM_NO_ZLIB_SUPPORT);
   return NULL;
 #else
@@ -274,9 +274,6 @@ fm_t* fm_open_gzFILE(FILE* const stream,const fm_mode mode) {
   // File
   file_manager->fd = 0;
   file_manager->file = stream;
-#ifdef HAVE_BZLIB
-  file_manager->gz_file = NULL;
-#endif
 #ifdef HAVE_BZLIB
   file_manager->bz_file = NULL;
 #endif
@@ -301,7 +298,9 @@ fm_t* fm_open_bzFILE(FILE* const stream,const fm_mode mode) {
   // File
   file_manager->fd = 0;
   file_manager->file = stream;
+#ifdef HAVE_ZLIB
   file_manager->gz_file = NULL;
+#endif
   file_manager->bz_file = NULL;
   // Attributes
   file_manager->mode = mode;
