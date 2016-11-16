@@ -72,7 +72,6 @@ void approximate_search_init(
   // Index Structures & Parameters
   search->archive = archive;
   search->search_parameters = search_parameters;
-  search->ns = false;
 }
 void approximate_search_reset(approximate_search_t* const search) {
   // Reset Approximate Search State
@@ -84,6 +83,7 @@ void approximate_search_reset(approximate_search_t* const search) {
   // Prepare region profile
   const uint64_t key_length = search->pattern.key_length;
   region_profile_init(&search->region_profile,key_length);
+  search->ns = false;
 }
 void approximate_search_inject_handlers(
     approximate_search_t* const search,
