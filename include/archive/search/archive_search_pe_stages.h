@@ -56,10 +56,6 @@ uint64_t archive_search_pe_extend_matches(
     archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches,
     const sequence_end_t candidate_end);
-void archive_search_pe_recovery(
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches);
 
 void archive_search_pe_find_pairs(
     archive_search_t* const archive_search_end1,

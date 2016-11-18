@@ -123,7 +123,6 @@ void approximate_search_hybrid(
         search->search_stage = as_hybrid_control_filtering_adaptive_next_state(search,matches);
         break;
       case asearch_stage_neighborhood:
-        search->ns = true;
         approximate_search_neighborhood(search,matches);
         search->search_stage = as_hybrid_control_neighborhood_next_state(search,matches);
         break;

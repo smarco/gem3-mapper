@@ -33,7 +33,6 @@
  */
 bool paired_matches_test_accuracy_reached(
     paired_matches_t* const paired_matches,
-    search_parameters_t* const search_parameters,
-    const uint64_t mcs);
+    search_parameters_t* const search_parameters);
 
 #endif /* PAIRED_MATCHES_TEST_H_ */

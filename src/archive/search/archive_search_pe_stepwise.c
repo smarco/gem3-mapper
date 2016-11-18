@@ -269,7 +269,7 @@ void archive_search_pe_stepwise_finish_search(
   search_parameters_t* const search_parameters = &archive_search_end1->search_parameters;
   archive_search_se_stepwise_finish_search(archive_search_end1,paired_matches->matches_end1);
   archive_search_se_stepwise_finish_search(archive_search_end2,paired_matches->matches_end2);
-  archive_search_end1->pe_search_state = archive_search_pe_state_recovery;
+  archive_search_end1->pe_search_state = archive_search_pe_state_find_pairs;
   archive_search_end1->pair_searched = true;
   archive_search_end2->pair_searched = true;
   archive_search_pe_continue(archive_search_end1,archive_search_end2,paired_matches);

@@ -40,9 +40,8 @@ const char* archive_search_pe_state_label[] =
     [0] = "begin",
     [1] = "search-end1",
     [2] = "search-end2",
-    [3] = "recovery",
-    [4] = "find-pairs",
-    [5] = "end",
+    [3] = "find-pairs",
+    [4] = "end",
 };
 
 /*

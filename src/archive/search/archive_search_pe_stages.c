@@ -30,6 +30,7 @@
 #include "archive/search/archive_select.h"
 #include "archive/score/archive_score_se.h"
 #include "approximate_search/approximate_search_verify_candidates.h"
+#include "matches/paired_matches_test.h"
 
 /*
  * Debug
@@ -111,7 +112,7 @@ void archive_search_pe_search_end2(
   archive_search_se_stepwise_finish_search(archive_search_end2,paired_matches->matches_end2);
   archive_search_end2->pair_searched = true;
   // Next State
-  archive_search_end1->pe_search_state = archive_search_pe_state_recovery;
+  archive_search_end1->pe_search_state = archive_search_pe_state_find_pairs;
 }
 /*
  * PE Search extension (aligning found matches nearby)
@@ -191,10 +192,6 @@ uint64_t archive_search_pe_extend_matches(
   filtering_candidates_t* const filtering_candidates =
       candidate_archive_search->approximate_search.filtering_candidates;
   pattern_t* const candidate_pattern = &candidate_archive_search->approximate_search.pattern;
-  // Set MCS
-  const uint64_t max_complete_stratum =
-      ((matches_end1->max_complete_stratum!=ALL) ? matches_end1->max_complete_stratum : 0) +
-      ((matches_end2->max_complete_stratum!=ALL) ? matches_end2->max_complete_stratum : 0);
   /*
    * Iterate over all matches of the extended end
    */
@@ -203,11 +200,6 @@ uint64_t archive_search_pe_extend_matches(
   uint64_t total_matches_found = 0;
   uint64_t i;
   for (i=0;i<num_extended_match_traces;++i) {
-    // Abandon if accuracy reached (maximum matches reached)
-    if (paired_matches_test_accuracy_reached(
-        paired_matches,search_paired_parameters,max_complete_stratum)) {
-      break;
-    }
     // Skip matches retrieved from extension
     if (extended_match_traces[i]->type == match_type_extended) continue;
     if (search_paired_parameters->pair_orientation[pair_orientation_FR] == pair_relation_concordant) {
@@ -225,14 +217,11 @@ uint64_t archive_search_pe_extend_matches(
   // Return
   return total_matches_found;
 }
-/*
- * PE Search recovery via extending found matches
- */
 void archive_search_pe_recovery(
     archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches) {
-  // Paired-end recovery by extension
+  // Paired-end recovery by extension (End/1)
   if (!archive_search_end1->pair_extended) {
     if (archive_search_pe_use_recovery_extension(archive_search_end1,archive_search_end2,paired_matches)) {
       // Extend End/1
@@ -248,6 +237,7 @@ void archive_search_pe_recovery(
       PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_EXTENSION_RECOVERY,PROFILE_LEVEL);
     }
   }
+  // Paired-end recovery by extension (End/2)
   if (!archive_search_end2->pair_extended) {
     if (archive_search_pe_use_recovery_extension(archive_search_end1,archive_search_end2,paired_matches)) {
       // Extend End/2
@@ -263,20 +253,17 @@ void archive_search_pe_recovery(
       PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_EXTENSION_RECOVERY,PROFILE_LEVEL);
     }
   }
-  // Next State
-  archive_search_end1->pe_search_state = archive_search_pe_state_find_pairs;
 }
 /*
  * PE Search cross-matching valid pairs
  */
-void archive_search_pe_find_pairs(
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches) {
+void archive_search_pe_cross_pair_ends(
+    search_parameters_t* const search_parameters,
+    mapper_stats_t* const mapper_stats,
+    paired_matches_t* const paired_matches,
+    const bool pair_discordant) {
   // Parameters
-  search_parameters_t* const search_parameters = &archive_search_end1->search_parameters;
   search_paired_parameters_t* const search_paired_parameters = &search_parameters->search_paired_parameters;
-  mapper_stats_t* const mapper_stats = archive_search_end1->mapper_stats;
   // Pair matches (Cross-link matches from both ends)
   const uint64_t num_matches_end1 = matches_get_num_match_traces(paired_matches->matches_end1);
   const uint64_t num_matches_end2 = matches_get_num_match_traces(paired_matches->matches_end2);
@@ -284,26 +271,41 @@ void archive_search_pe_find_pairs(
     PROFILE_START(GP_ARCHIVE_SEARCH_PE_FINISH_SEARCH,PROFILE_LEVEL);
     paired_matches_clear(paired_matches,false); // Clean sheet
     paired_matches_find_pairs(paired_matches,search_paired_parameters,mapper_stats);
-    paired_matches_find_discordant_pairs(paired_matches,search_paired_parameters); // Find discordant (if required)
     PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_FINISH_SEARCH,PROFILE_LEVEL);
   }
-  // Check number of paired-matches
-  const uint64_t num_matches = paired_matches_get_num_maps(paired_matches);
-  if (num_matches == 0) {
-    if (!archive_search_end2->pair_searched) {
-      archive_search_end1->pe_search_state = archive_search_pe_state_search_end2;
-      return;
-    }
+  // Find discordant (if required)
+  if (pair_discordant) {
+    paired_matches_find_discordant_pairs(paired_matches,search_paired_parameters);
   }
   // PE Select Matches
   archive_select_pe_matches(
-      &search_parameters->select_parameters_report,
-      archive_search_end1->mapper_stats,paired_matches);
-  // Check for subdominant ends & force extension
-  if ((!archive_search_end1->pair_extended || !archive_search_end1->pair_extended) &&
-      archive_search_pe_use_recovery_extension(archive_search_end1,archive_search_end2,paired_matches)) {
-    archive_search_end1->pe_search_state = archive_search_pe_state_recovery;
-    return;
+      &search_parameters->select_parameters_report,mapper_stats,paired_matches);
+}
+void archive_search_pe_find_pairs(
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2,
+    paired_matches_t* const paired_matches) {
+  // Parameters
+  search_parameters_t* const search_parameters = &archive_search_end1->search_parameters;
+  mapper_stats_t* const mapper_stats = archive_search_end1->mapper_stats;
+  // Find pairs
+  archive_search_pe_cross_pair_ends(search_parameters,mapper_stats,paired_matches,false);
+  // Check accuracy reached
+  if (!paired_matches_test_accuracy_reached(paired_matches,search_parameters)) {
+    // Check paired-matches (for shortcut extension failure)
+    const uint64_t num_matches = paired_matches_get_num_maps(paired_matches);
+    if (num_matches == 0 && !archive_search_end2->pair_searched) {
+      archive_search_end1->pe_search_state = archive_search_pe_state_search_end2;
+      return;
+    }
+    // Check paired-matches (subdominant ends => force extension)
+    if ((!archive_search_end1->pair_extended || !archive_search_end1->pair_extended) &&
+        archive_search_pe_use_recovery_extension(archive_search_end1,archive_search_end2,paired_matches)) {
+      // Recovery by extension
+      archive_search_pe_recovery(archive_search_end1,archive_search_end2,paired_matches);
+      // Find pairs
+      archive_search_pe_cross_pair_ends(search_parameters,mapper_stats,paired_matches,true);
+    }
   }
   // Next State
   archive_search_end1->pe_search_state = archive_search_pe_state_end;

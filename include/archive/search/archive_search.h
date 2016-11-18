@@ -39,9 +39,8 @@ typedef enum {
   archive_search_pe_state_begin = 0,                     // Beginning of the search
   archive_search_pe_state_search_end1 = 1,               // Generate candidates for end1
   archive_search_pe_state_search_end2 = 2,               // Generate candidates for end2
-  archive_search_pe_state_recovery = 3,                  // Recover by extension when needed
-  archive_search_pe_state_find_pairs = 4,                // Cross-link matches from both ends
-  archive_search_pe_state_end = 5                        // End of the current workflow
+  archive_search_pe_state_find_pairs = 3,                // Cross-link matches from both ends
+  archive_search_pe_state_end = 4                        // End of the current workflow
 } archive_search_pe_state_t;
 extern const char* archive_search_pe_state_label[7];
 

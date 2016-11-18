@@ -64,9 +64,6 @@ void archive_search_pe_continue(
       case archive_search_pe_state_search_end2:
         archive_search_pe_search_end2(archive_search_end1,archive_search_end2,paired_matches);
         break;
-      case archive_search_pe_state_recovery:
-        archive_search_pe_recovery(archive_search_end1,archive_search_end2,paired_matches);
-        break;
       case archive_search_pe_state_find_pairs:
         archive_search_pe_find_pairs(archive_search_end1,archive_search_end2,paired_matches);
         break;
