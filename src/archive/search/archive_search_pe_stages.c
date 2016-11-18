@@ -195,6 +195,7 @@ uint64_t archive_search_pe_extend_matches(
   /*
    * Iterate over all matches of the extended end
    */
+  const uint64_t max_searched_matches = search_parameters->select_parameters_align.max_reported_matches;
   const uint64_t num_extended_match_traces = matches_get_num_match_traces(extended_matches);
   match_trace_t** const extended_match_traces = matches_get_match_traces(extended_matches);
   uint64_t total_matches_found = 0;
@@ -208,6 +209,8 @@ uint64_t archive_search_pe_extend_matches(
       total_matches_found += approximate_search_verify_extend_candidate(filtering_candidates,
           candidate_pattern,extended_match_traces[i],mapper_stats,paired_matches,candidate_end);
     }
+    // Check total matches found
+    if (total_matches_found >= max_searched_matches) break;
   }
   PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES,PROFILE_LEVEL);
   // (Re)Score Matches
@@ -262,20 +265,18 @@ void archive_search_pe_cross_pair_ends(
     mapper_stats_t* const mapper_stats,
     paired_matches_t* const paired_matches,
     const bool pair_discordant) {
-  // Parameters
-  search_paired_parameters_t* const search_paired_parameters = &search_parameters->search_paired_parameters;
   // Pair matches (Cross-link matches from both ends)
   const uint64_t num_matches_end1 = matches_get_num_match_traces(paired_matches->matches_end1);
   const uint64_t num_matches_end2 = matches_get_num_match_traces(paired_matches->matches_end2);
   if (num_matches_end1 > 0 && num_matches_end2 > 0) {
     PROFILE_START(GP_ARCHIVE_SEARCH_PE_FINISH_SEARCH,PROFILE_LEVEL);
     paired_matches_clear(paired_matches,false); // Clean sheet
-    paired_matches_find_pairs(paired_matches,search_paired_parameters,mapper_stats);
+    paired_matches_find_pairs(paired_matches,search_parameters,mapper_stats);
     PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_FINISH_SEARCH,PROFILE_LEVEL);
   }
   // Find discordant (if required)
   if (pair_discordant) {
-    paired_matches_find_discordant_pairs(paired_matches,search_paired_parameters);
+    paired_matches_find_discordant_pairs(paired_matches,search_parameters);
   }
   // PE Select Matches
   archive_select_pe_matches(

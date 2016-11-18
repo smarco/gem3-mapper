@@ -230,7 +230,7 @@ void* mapper_pe_thread(mapper_search_t* const mapper_search) {
       mapper_search->buffered_fasta_input_end1,mapper_search->buffered_fasta_input_end2,
       mapper_search->archive_search_handlers,mapper_search->archive_search_end1,
       mapper_search->archive_search_end2)) {
-//    if (gem_streq(mapper_search->archive_search_end1->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000000959/1")) {
+//    if (gem_streq(mapper_search->archive_search_end1->sequence.tag.buffer,"HWI-ST550_0118:8:1206:5303:58272/1")) {
 //      printf("HERE\n");
 //    }
 
