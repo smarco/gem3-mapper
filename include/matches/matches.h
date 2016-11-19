@@ -150,12 +150,6 @@ int matche_trace_cigar_cmp(
     match_trace_t* const match1);
 
 /*
- * Sorting Matches
- */
-void matches_sort_by_swg_score(matches_t* const matches);
-void matches_sort_by_sequence_name__position(matches_t* const matches);
-
-/*
  * Add Match-Trace
  */
 match_trace_t* matches_add_match_trace(
@@ -163,6 +157,13 @@ match_trace_t* matches_add_match_trace(
     const locator_t* const locator,
     match_trace_t* const match_trace,
     bool* const match_replaced);
+
+/*
+ * Sort
+ */
+void matches_traces_sort_by_genomic_position(
+    match_trace_t** const match_traces,
+    const uint64_t num_match_traces);
 
 /*
  * Local Matches

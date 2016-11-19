@@ -130,8 +130,7 @@ void search_parameters_init(search_parameters_t* const search_parameters) {
   // Neighborhood Search
   nsearch_parameters_init(&search_parameters->nsearch_parameters);
   // Select Parameters
-  select_parameters_init(&search_parameters->select_parameters_report);
-  select_parameters_init(&search_parameters->select_parameters_align);
+  select_parameters_init(&search_parameters->select_parameters);
   // Check
   search_parameters->check_type = archive_check_nothing;
   // MAPQ Score
@@ -242,8 +241,7 @@ void search_instantiate_values(
   SEARCH_INSTANTIATE_VALUE(search_parameters,alignment_scaffolding_min_matching_length,pattern_length);
   SEARCH_INSTANTIATE_VALUE(search_parameters,cigar_curation_min_end_context,pattern_length);
   // Instantiate Select Parameters Values
-  select_parameters_instantiate_values(&search_parameters->select_parameters_report,pattern_length);
-  select_parameters_instantiate_values(&search_parameters->select_parameters_align,pattern_length);
+  select_parameters_instantiate_values(&search_parameters->select_parameters,pattern_length);
 }
 /*
  * Display

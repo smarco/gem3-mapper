@@ -66,13 +66,12 @@ void approximate_search_stepwise_region_profile_limit_exact_matches(
   region_profile->candidates_limited = false;
   if (region_profile_has_exact_matches(region_profile)) {
     search_parameters_t* const search_parameters = search->search_parameters;
-    select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;
+    select_parameters_t* const select_parameters = &search_parameters->select_parameters;
     region_search_t* const filtering_region = region_profile->filtering_region;
     const uint64_t total_candidates = filtering_region->hi - filtering_region->lo;
-    if (select_parameters->min_reported_strata_nominal==0 &&
-        total_candidates > select_parameters->max_reported_matches) {
-      filtering_region->hi = filtering_region->lo + select_parameters->max_reported_matches;
-      region_profile->total_candidates = select_parameters->max_reported_matches;
+    if (total_candidates > select_parameters->max_searched_matches) {
+      filtering_region->hi = filtering_region->lo + select_parameters->max_searched_matches;
+      region_profile->total_candidates = select_parameters->max_searched_matches;
       region_profile->candidates_limited = true;
     }
   }

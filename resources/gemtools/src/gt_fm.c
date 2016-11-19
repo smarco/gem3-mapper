@@ -111,7 +111,11 @@ GT_INLINE gt_fm* gt_fm_open_file(char* const file_name,const gt_fm_mode mode) {
   gt_cond_fatal_error(fm->file_name==NULL,STRDUP);
   fm->file_size = UINT64_MAX;
   // Check BZIP/GZIP compress formats (low layer)
-  if (mode==GT_FM_READ) gt_fm_check_file_type(fm,file_name);
+  if (mode==GT_FM_READ) {
+    gt_fm_check_file_type(fm,file_name);
+  } else {
+    fm->file_type = GT_FM_REGULAR_FILE;
+  }
   // Initialize file manager
   gt_fm_initialize(fm);
   // Return fm

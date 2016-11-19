@@ -142,8 +142,7 @@ typedef struct {
   match_alignment_model_t match_alignment_model;
   swg_penalties_t swg_penalties;
   /* Select Parameters */
-  select_parameters_t select_parameters_report;         // Select parameters (Used to report results)
-  select_parameters_t select_parameters_align;          // Select parameters (Used to prune work internally)
+  select_parameters_t select_parameters;                // Select parameters (Used to report results)
   /* MAPQ Score */
   mapq_model_t mapq_model_se;
   mapq_model_t mapq_model_pe;

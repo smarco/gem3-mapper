@@ -83,8 +83,8 @@ void nsearch_levenshtein_control_limit_interval(
   // Check
   if (select_parameters->min_reported_strata_nominal==0) {
     const uint64_t num_candidates = *hi - *lo;
-    if (num_candidates > select_parameters->max_reported_matches) {
-      *hi = *lo + select_parameters->max_reported_matches;
+    if (num_candidates > select_parameters->max_searched_matches) {
+      *hi = *lo + select_parameters->max_searched_matches;
     }
   }
 }
@@ -113,8 +113,7 @@ uint64_t nsearch_levenshtein_terminate(
   pattern_t* const pattern = nsearch_schedule->pattern;
   // Limit interval (if full alignment by means of NS)
   if (full_alignment) {
-    nsearch_levenshtein_control_limit_interval(
-        &search_parameters->select_parameters_align,&lo,&hi);
+    nsearch_levenshtein_control_limit_interval(&search_parameters->select_parameters,&lo,&hi);
   }
   // Add candidates to filtering
   bool limited;
@@ -164,7 +163,7 @@ uint64_t nsearch_levenshtein_scheduled_terminate(
   // Limit interval (if full alignment by means of NS)
   if (full_alignment) {
     nsearch_levenshtein_control_limit_interval(
-        &search_parameters->select_parameters_align,
+        &search_parameters->select_parameters,
         &fm_2interval->backward_lo,&fm_2interval->backward_hi);
   }
   // Add interval
@@ -174,9 +173,10 @@ uint64_t nsearch_levenshtein_scheduled_terminate(
       fm_2interval->backward_hi,region_begin,region_end,align_distance,&limited);
   // Dynamic filtering
   if (nsearch_schedule->search_parameters->nsearch_parameters.dynamic_filtering) {
+    const uint64_t max_searched_matches = search_parameters->select_parameters.max_searched_matches;
     const uint64_t num_candidate_positions =
         filtering_candidates_get_num_positions(nsearch_schedule->filtering_candidates);
-    if (num_candidate_positions >= search_parameters->select_parameters_align.max_search_matches) {
+    if (num_candidate_positions >= max_searched_matches) {
       PROF_ADD_COUNTER(GP_NS_BRANCH_CANDIDATES_GENERATED,num_candidate_positions);
       nsearch_filtering(nsearch_schedule);
     }

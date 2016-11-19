@@ -58,6 +58,7 @@ paired_matches_t* paired_matches_new(void) {
   // Single-End Matches
   paired_matches->matches_end1 = matches_new();
   paired_matches->matches_end2 = matches_new();
+  paired_matches->extended_matches = vector_new(PAIRED_MATCHES_INIT_MATCHES,match_trace_t*);
   // Paired-End Matches
   paired_matches->paired_maps = vector_new(PAIRED_MATCHES_INIT_MATCHES,paired_map_t);
   paired_matches->discordant_paired_maps = vector_new(PAIRED_MATCHES_INIT_MATCHES,paired_map_t);
@@ -89,6 +90,7 @@ void paired_matches_delete(paired_matches_t* const paired_matches) {
   // Single-End Matches
   matches_delete(paired_matches->matches_end1);
   matches_delete(paired_matches->matches_end2);
+  vector_delete(paired_matches->extended_matches);
   // Paired-End Matches
   vector_delete(paired_matches->paired_maps);
   vector_delete(paired_matches->discordant_paired_maps);
@@ -165,7 +167,7 @@ void paired_matches_add(
   paired_map->swg_score = pair_swg_score;
 }
 /*
- * Finding Pairs
+ * Compute Pairs Relation
  */
 pair_orientation_t paired_matches_compute_orientation(
     const match_trace_t* const match_trace_end1,
@@ -311,83 +313,131 @@ pair_relation_t paired_matches_compute_relation(
   }
   return pair_relation;
 }
-match_trace_t** paired_matches_find_pairs_locate_by_sequence_name(
-    matches_t* const matches,
-    const char* const sequence_name) {
-  match_trace_t** match_trace = matches_get_match_traces(matches);
-  match_trace_t** const match_trace_sentinel = match_trace + matches_get_num_match_traces(matches);
-  while (match_trace < match_trace_sentinel) {
-    if (gem_streq(sequence_name,(*match_trace)->sequence_name)) return match_trace;
-    ++match_trace;
+/*
+ * Cross pair matches
+ */
+void paired_matches_cross_pair(
+    paired_matches_t* const paired_matches,
+    search_parameters_t* const search_parameters,
+    mapper_stats_t* const mapper_stats,
+    match_trace_t* const match_trace_end1,
+    match_trace_t* const match_trace_end2) {
+  // Parameters
+  search_paired_parameters_t* const search_paired_parameters = &search_parameters->search_paired_parameters;
+  const pair_discordant_search_t discordant_search = search_paired_parameters->pair_discordant_search;
+  // Check layout
+  double template_length_sigma;
+  pair_orientation_t pair_orientation;
+  pair_layout_t pair_layout;
+  uint64_t template_length;
+  const pair_relation_t pair_relation = paired_matches_compute_relation(
+      search_paired_parameters,mapper_stats,match_trace_end1,match_trace_end2,
+      &pair_orientation,&pair_layout,&template_length,&template_length_sigma);
+  switch (pair_relation) {
+    case pair_relation_invalid:
+      break;
+    case pair_relation_discordant:
+      if (discordant_search == pair_discordant_search_never) break;
+      paired_matches_add(paired_matches,match_trace_end1,match_trace_end2,
+          pair_relation_discordant,pair_orientation,pair_layout,template_length,template_length_sigma);
+      break;
+    case pair_relation_concordant: {
+      paired_matches_add(paired_matches,match_trace_end1,match_trace_end2,
+          pair_relation_concordant,pair_orientation,pair_layout,template_length,template_length_sigma);
+      break;
+    }
+    default:
+      GEM_INVALID_CASE();
+      break;
   }
-  return NULL;
+}
+/*
+ * Find Pairs
+ */
+uint64_t paired_matches_find_pairs_locate(
+    match_trace_t** const match_trace_sorted,
+    const uint64_t num_match_traces,
+    const char* const sequence_name) {
+  uint64_t i;
+  for (i=0;i<num_match_traces;++i) {
+    if (gem_streq(sequence_name,match_trace_sorted[i]->sequence_name)) return i;
+  }
+  return num_match_traces;
+}
+void paired_matches_find_pairs_sorted(
+    paired_matches_t* const paired_matches,
+    search_parameters_t* const search_parameters,
+    mapper_stats_t* const mapper_stats,
+    match_trace_t** const matches_sorted_end1,
+    const uint64_t num_matches_end1,
+    match_trace_t** const matches_sorted_end2,
+    const uint64_t num_matches_end2) {
+  /*
+   * Traverse all matches from the first end
+   *   Might be interesting to implement a binary search of closest valid
+   *   position and quick abandon after exploring feasible pairs (TODO)
+   *   Shortcomings:
+   *     Not compatible with discordant pairs
+   *     Not really useful for regular mapping of a few matches on both sides
+   */
+  uint64_t position_end1;
+  for (position_end1=0;position_end1<num_matches_end1;++position_end1) {
+    // Fetch match-trace end/1
+    match_trace_t* const match_trace_end1 = matches_sorted_end1[position_end1];
+    const char* sequence_name = match_trace_end1->sequence_name;
+    uint64_t position_end2 = paired_matches_find_pairs_locate(matches_sorted_end2,num_matches_end2,sequence_name);
+    while (position_end2 < num_matches_end2) {
+      // Fetch match-trace end/2
+      match_trace_t* const match_trace_end2 = matches_sorted_end2[position_end2];
+      if (!gem_streq(sequence_name,match_trace_end2->sequence_name)) break;
+      // Cross pair
+      paired_matches_cross_pair(
+          paired_matches,search_parameters,mapper_stats,
+          match_trace_end1,match_trace_end2);
+      ++position_end2; // Next
+    }
+    // Check matches found
+    const uint64_t max_searched_paired_matches = search_parameters->select_parameters.max_searched_paired_matches;
+    const uint64_t num_paired_map = paired_matches_get_num_maps(paired_matches);
+    if (num_paired_map >= max_searched_paired_matches) {
+      paired_matches_sort_by_swg_score(paired_matches); // Sort
+      if (paired_matches_test_accuracy_reached(paired_matches,search_parameters)) return; // Quick abandon condition
+    }
+  }
 }
 void paired_matches_find_pairs(
     paired_matches_t* const paired_matches,
     search_parameters_t* const search_parameters,
-    mapper_stats_t* const mapper_stats) {
-  // TODO Binary search of closest valid position and quick abandon after exploring feasible pairs
+    mapper_stats_t* const mapper_stats,
+    mm_stack_t* const mm_stack) {
   // Parameters
-  search_paired_parameters_t* const search_paired_parameters = &search_parameters->search_paired_parameters;
   matches_t* const matches_end1 = paired_matches->matches_end1;
   matches_t* const matches_end2 = paired_matches->matches_end2;
-  const pair_discordant_search_t discordant_search = search_paired_parameters->pair_discordant_search;
-  // Sort both ends by (chr_name,position)
-  matches_sort_by_sequence_name__position(matches_end1);
-  matches_sort_by_sequence_name__position(matches_end2);
-  // Traverse all matches from the first end
+  const uint64_t num_matches_end1 = matches_get_num_match_traces(matches_end1);
+  const uint64_t num_matches_end2 = matches_get_num_match_traces(matches_end2);
+  // Allocate matches placeholders
+  mm_stack_push_state(mm_stack);
+  match_trace_t** const matches_sorted_end1 = mm_stack_calloc(mm_stack,num_matches_end1,match_trace_t*,false);
+  match_trace_t** const matches_sorted_end2 = mm_stack_calloc(mm_stack,num_matches_end2,match_trace_t*,false);
+  // Create matches placeholders
   match_trace_t** match_trace_end1 = matches_get_match_traces(matches_end1);
   match_trace_t** match_trace_end2 = matches_get_match_traces(matches_end2);
-  match_trace_t** const match_trace_end1_sentinel =
-      match_trace_end1 + matches_get_num_match_traces(matches_end1);
-  match_trace_t** const match_trace_end2_sentinel =
-      match_trace_end2 + matches_get_num_match_traces(matches_end2);
-  uint64_t template_length;
-  double template_length_sigma;
-  while (match_trace_end1 < match_trace_end1_sentinel) {
-    // Traverse all possible pairs for @match_trace_end1
-    const char* sequence_name = (*match_trace_end1)->sequence_name;
-    match_trace_end2 = paired_matches_find_pairs_locate_by_sequence_name(matches_end2,sequence_name);
-    if (match_trace_end2 != NULL) {
-      while (match_trace_end2 < match_trace_end2_sentinel &&
-    		 gem_streq(sequence_name,(*match_trace_end2)->sequence_name)) {
-        pair_orientation_t pair_orientation;
-        pair_layout_t pair_layout;
-        const pair_relation_t pair_relation = paired_matches_compute_relation(
-            search_paired_parameters,mapper_stats,(*match_trace_end1),(*match_trace_end2),
-            &pair_orientation,&pair_layout,&template_length,&template_length_sigma);
-        switch (pair_relation) {
-          case pair_relation_invalid: break;
-          case pair_relation_discordant:
-            if (discordant_search == pair_discordant_search_never) break;
-            paired_matches_add(paired_matches,(*match_trace_end1),(*match_trace_end2),
-                pair_relation_discordant,pair_orientation,pair_layout,template_length,template_length_sigma);
-            break;
-          case pair_relation_concordant: {
-            paired_matches_add(paired_matches,(*match_trace_end1),(*match_trace_end2),
-                pair_relation_concordant,pair_orientation,pair_layout,template_length,template_length_sigma);
-            break;
-          }
-          default:
-            GEM_INVALID_CASE();
-            break;
-        }
-        ++match_trace_end2;
-      }
-    }
-    // Check matches found
-    const uint64_t max_reported_matches = search_parameters->select_parameters_align.max_reported_matches;
-    const uint64_t num_paired_map = paired_matches_get_num_maps(paired_matches);
-    if (num_paired_map >= max_reported_matches) {
-      paired_matches_sort_by_swg_score(paired_matches); // Sort
-      if (paired_matches_test_accuracy_reached(paired_matches,search_parameters)) break; // Quick abandon condition
-    }
-    // Next
-    ++match_trace_end1;
-  }
+  uint64_t i;
+  for (i=0;i<num_matches_end1;++i) matches_sorted_end1[i] = match_trace_end1[i];
+  for (i=0;i<num_matches_end2;++i) matches_sorted_end2[i] = match_trace_end2[i];
+  // Sort both ends by (chr_name,position)
+  matches_traces_sort_by_genomic_position(matches_sorted_end1,num_matches_end1);
+  matches_traces_sort_by_genomic_position(matches_sorted_end2,num_matches_end2);
+  // Traverse all matches and cross-pair
+  paired_matches_find_pairs_sorted(
+      paired_matches,search_parameters,mapper_stats,
+      matches_sorted_end1,num_matches_end1,
+      matches_sorted_end2,num_matches_end2);
   // Update number of matches candidates
-  matches_metrics_set_accepted_candidates(
-      &paired_matches->metrics,vector_get_used(paired_matches->paired_maps));
+  const uint64_t num_paired_maps = vector_get_used(paired_matches->paired_maps);
+  matches_metrics_set_accepted_candidates(&paired_matches->metrics,num_paired_maps);
+  // Pop stack
+  mm_stack_pop_state(mm_stack);
 }
 void paired_matches_find_discordant_pairs(
     paired_matches_t* const paired_matches,

@@ -56,10 +56,10 @@ void filtering_candidates_align_local(
   matches_add_pending_local_matches(matches,locator);
   // Check total alignments found
   search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
-  select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;
-  const uint64_t max_reported_matches = select_parameters->max_reported_matches;
+  select_parameters_t* const select_parameters = &search_parameters->select_parameters;
+  const uint64_t max_searched_matches = select_parameters->max_searched_matches;
   uint64_t total_matches = matches_get_num_match_traces(matches);
-  if (total_matches >= max_reported_matches) {
+  if (total_matches >= max_searched_matches) {
     // DEBUG
     gem_cond_debug_block(DEBUG_FILTERING_CANDIDATES) {
       tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Candidates (local_align)\n");
@@ -84,7 +84,7 @@ void filtering_candidates_align_local(
   for (i=0;i<max_regions_considered;++i) {
     filtering_region_t* const filtering_region = regions_discarded[i];
     // Cut-off max-reported matches
-    if (total_matches >= max_reported_matches) break;
+    if (total_matches >= max_searched_matches) break;
     // Exclude tiles
     filtering_candidates_align_local_exclude_tiles(filtering_candidates,filtering_region,pattern);
     // Cut-off rank

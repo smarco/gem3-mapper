@@ -730,7 +730,7 @@ GT_INLINE void gt_map_placeholder_delete(gt_map_placeholder* const map_placehold
 }
 GT_INLINE void gt_map_placeholder_clear(gt_map_placeholder* const map_placeholder) {
   GT_NULL_CHECK(map_placeholder);
-  memset(map_placeholder,0,sizeof(map_placeholder));
+  memset(map_placeholder,0,sizeof(gt_map_placeholder));
 }
 GT_INLINE void gt_map_placeholder_set_sam_fields(gt_map_placeholder* const map_placeholder,
     const bool not_passing_QC,const bool PCR_duplicate,const uint32_t hard_trim_left,const uint32_t hard_trim_right) {

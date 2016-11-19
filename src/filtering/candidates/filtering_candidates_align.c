@@ -51,15 +51,16 @@ bool filtering_candidates_align_is_subdominant(
     matches_t* const matches) {
   // Parameters
   search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
-  select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;
+  select_parameters_t* const select_parameters = &search_parameters->select_parameters;
   const match_alignment_model_t match_alignment_model = search_parameters->match_alignment_model;
   swg_penalties_t* const swg_penalties = &search_parameters->swg_penalties;
   alignment_t* const alignment = &filtering_region->alignment;
   const uint64_t num_matches = matches_get_num_match_traces(matches);
   // Basic cases
   const uint64_t min_reported_strata = select_parameters->min_reported_strata_nominal;
-  const uint64_t max_reported_matches = select_parameters->max_reported_matches;
-  if (num_matches == 0 || num_matches < max_reported_matches || min_reported_strata > 0) return false;
+  const uint64_t max_searched_matches = select_parameters->max_searched_matches;
+  if (min_reported_strata > 0) return false;
+  if (num_matches == 0 || num_matches < max_searched_matches) return false;
   if (match_alignment_model != match_alignment_model_gap_affine) return false;
   // Bounded Cases (Only pays off to align matches that can be include within user report limits)
   // The candidate needs to have a expected max-score than the current max
@@ -67,7 +68,7 @@ bool filtering_candidates_align_is_subdominant(
   const uint64_t candidate_max_score_bound = align_swg_score_compute_max_score_bound(
       swg_penalties,candidate_edit_distance_bound,pattern->key_length);
   match_trace_t** const match_traces = matches_get_match_traces(matches);
-  return candidate_max_score_bound <= match_traces[max_reported_matches-1]->swg_score;
+  return candidate_max_score_bound <= match_traces[max_searched_matches-1]->swg_score;
 }
 /*
  * Filtering Candidates Cache
@@ -126,7 +127,13 @@ bool filtering_candidates_align_region(
     match_trace_t* const match_trace_added =
         matches_add_match_trace(matches,locator,&match_trace,&match_replaced);
     if (match_trace_added==NULL) return false;
-    if (extended_match) match_trace_added->type = match_type_extended;
+    if (extended_match) {
+      match_trace_added->type = match_type_extended;
+      vector_t* const extended_matches = filtering_candidates->extended_matches;
+      if (!match_replaced && extended_matches!=NULL) {
+        vector_insert(extended_matches,match_trace_added,match_trace_t*);
+      }
+    }
     filtering_region_transient_cache_add(
         &filtering_candidates->filtering_region_cache,region,match_trace_added);
     return !match_replaced; // Return (Repeated?)

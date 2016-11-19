@@ -56,6 +56,7 @@ void filtering_candidates_init(filtering_candidates_t* const filtering_candidate
   filtering_candidates->filtering_positions = vector_new(CANDIDATE_POSITIONS_INIT,filtering_position_t*);
   filtering_candidates->filtering_regions = vector_new(CANDIDATE_POSITIONS_INIT,filtering_region_t*);
   filtering_candidates->discarded_regions = vector_new(CANDIDATE_POSITIONS_INIT,filtering_region_t*);
+  filtering_candidates->extended_matches = NULL;
   // Cache
   filtering_region_cache_init(&filtering_candidates->filtering_region_cache);
   // Text-Collection
@@ -66,6 +67,7 @@ void filtering_candidates_clear(filtering_candidates_t* const filtering_candidat
   vector_clear(filtering_candidates->filtering_positions);
   vector_clear(filtering_candidates->filtering_regions);
   vector_clear(filtering_candidates->discarded_regions);
+  filtering_candidates->extended_matches = NULL;
   // Text-Collection
   text_collection_clear(&filtering_candidates->text_collection);
 }
@@ -357,12 +359,12 @@ void filtering_candidates_add_positions_from_interval(
   const uint64_t key_length = pattern->key_length;
   const bool exact_match = region_errors==0 && region_begin_pos==0 && region_end_pos==key_length;
   // Select matches
-  select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;
+  select_parameters_t* const select_parameters = &search_parameters->select_parameters;
   uint64_t interval_top;
   if (exact_match &&
       select_parameters->min_reported_strata_nominal==0 &&
-      total_candidates > select_parameters->max_reported_matches) {
-    interval_top = interval_lo + select_parameters->max_reported_matches;
+      total_candidates > select_parameters->max_searched_matches) {
+    interval_top = interval_lo + select_parameters->max_searched_matches;
     *candidates_limited = true;
   } else {
     interval_top = interval_hi;

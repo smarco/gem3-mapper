@@ -9,6 +9,8 @@
 #ifndef GT_COMMONS_H_
 #define GT_COMMONS_H_
 
+#define inline
+
 /*
  * VERSION
  */

@@ -19,6 +19,7 @@ MODULES=archive_search \
         archive_search_cache \
         archive_search_handlers \
         archive_search_pe \
+        archive_search_pe_extend \
         archive_search_pe_parameters \
         archive_search_pe_stages \
         archive_search_pe_stepwise \

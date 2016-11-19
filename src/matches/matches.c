@@ -236,14 +236,14 @@ int match_trace_cmp_swg_score(const match_trace_t** const _a,const match_trace_t
   if (a->text_position > b->text_position) return  1;
   return 0;
 }
-void matches_sort_by_swg_score(matches_t* const matches) {
-  // Sort
-  const uint64_t num_matches = matches_get_num_match_traces(matches);
-  match_trace_t** const match_traces = matches_get_match_traces(matches);
-  qsort(match_traces,num_matches,sizeof(match_trace_t*),
-      (int (*)(const void *,const void *))match_trace_cmp_swg_score);
-}
-int match_trace_cmp_sequence_name__position(const match_trace_t** const _a,const match_trace_t** const _b) {
+//void matches_sort_by_swg_score(matches_t* const matches) {
+//  // Sort
+//  const uint64_t num_matches = matches_get_num_match_traces(matches);
+//  match_trace_t** const match_traces = matches_get_match_traces(matches);
+//  qsort(match_traces,num_matches,sizeof(match_trace_t*),
+//      (int (*)(const void *,const void *))match_trace_cmp_swg_score);
+//}
+int match_trace_cmp_genomic_position(const match_trace_t** const _a,const match_trace_t** const _b) {
   const match_trace_t* const a = *_a;
   const match_trace_t* const b = *_b;
   const int cmp_name = gem_strcmp(a->sequence_name,b->sequence_name);
@@ -252,12 +252,12 @@ int match_trace_cmp_sequence_name__position(const match_trace_t** const _a,const
   if (a->text_position > b->text_position) return  1;
   return 0;
 }
-void matches_sort_by_sequence_name__position(matches_t* const matches) {
+void matches_traces_sort_by_genomic_position(
+    match_trace_t** const match_traces,
+    const uint64_t num_match_traces) {
   // Sort global matches (match_trace_t) wrt distance
-  const uint64_t num_matches = matches_get_num_match_traces(matches);
-  match_trace_t** const match_traces = matches_get_match_traces(matches);
-  qsort(match_traces,num_matches,sizeof(match_trace_t*),
-      (int (*)(const void *,const void *))match_trace_cmp_sequence_name__position);
+  qsort(match_traces,num_match_traces,sizeof(match_trace_t*),
+        (int (*)(const void *,const void *))match_trace_cmp_genomic_position);
 }
 void matches_add_match_trace_insert_sorted(
     matches_t* const matches,

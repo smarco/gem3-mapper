@@ -43,7 +43,7 @@ bool paired_matches_test_accuracy_reached(
       return false;
     case paired_matches_class_tie_perfect:
     case paired_matches_class_tie: {
-    	const uint64_t max_reported_matches = search_parameters->select_parameters_report.max_reported_matches;
+    	const uint64_t max_reported_matches = search_parameters->select_parameters.max_reported_matches;
       const uint64_t max_complete_stratum =
           ((matches_end1->max_complete_stratum!=ALL) ? matches_end1->max_complete_stratum : 0) +
           ((matches_end2->max_complete_stratum!=ALL) ? matches_end2->max_complete_stratum : 0);

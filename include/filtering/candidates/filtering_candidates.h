@@ -74,6 +74,8 @@ typedef struct {
   filtering_region_cache_t filtering_region_cache; // Filtering-Region Cache
   /* Text-Collection */
   text_collection_t text_collection;               // Stores text-traces
+  /* Extended matches */
+  vector_t* extended_matches;                      // Results from extending matches
   /* MM */
   filtering_candidates_mm_t* mm;                   // Filtering-Candidates MM
   filtering_candidates_buffered_mm_t* buffered_mm; // Filtering-Candidates MM Buffered

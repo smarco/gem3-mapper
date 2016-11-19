@@ -33,14 +33,14 @@ bool matches_test_max_matches_reached(
     const uint64_t key_length,
     search_parameters_t* const search_parameters) {
   // Parameters
-  select_parameters_t* const select_parameters = &search_parameters->select_parameters_align;
+  select_parameters_t* const select_parameters = &search_parameters->select_parameters;
   // Check matches
   if (matches_is_mapped(matches) && select_parameters->min_reported_strata_nominal==0) {
     const uint64_t num_matches = matches_get_num_match_traces(matches);
-    if (num_matches >= select_parameters->max_reported_matches) {
+    if (num_matches >= select_parameters->max_searched_matches) {
       match_trace_t** const match_traces = matches_get_match_traces(matches);
       // All matches beyond top_match will have lower swg-score
-      const match_trace_t* const top_match = match_traces[select_parameters->max_reported_matches-1];
+      const match_trace_t* const top_match = match_traces[select_parameters->max_searched_matches-1];
       const uint64_t bounded_edit_distance =
           align_swg_score_compute_max_edit_bound(
               &search_parameters->swg_penalties,top_match->swg_score,key_length);
@@ -60,11 +60,9 @@ bool matches_test_accuracy_reached(
   PROF_INC_COUNTER(GP_MATCHES_ACCURACY_CASE_CALLS);
   // Parameters
   const uint64_t delta = search_parameters->complete_strata_after_best_nominal; // (default = 1)
-  const uint64_t max_search_matches =
-      MAX(search_parameters->select_parameters_align.max_search_matches,
-          search_parameters->select_parameters_report.max_search_matches);
+  const uint64_t max_searched_matches = search_parameters->select_parameters.max_searched_matches;
   // Check total number of matches found so far
-  if (matches_get_num_match_traces(matches) >= max_search_matches) {
+  if (matches_get_num_match_traces(matches) >= max_searched_matches) {
     PROF_INC_COUNTER(GP_MATCHES_ACCURACY_CASE_MAX_MATCHES);
     PROF_INC_COUNTER(GP_MATCHES_ACCURACY_CASE_HIT);
     return true; // Done!

@@ -36,16 +36,15 @@
  */
 void archive_select_configure_se(archive_search_t* const archive_search) {
   search_parameters_t* const search_parameters = &archive_search->search_parameters;
-  select_parameters_t* const select_parameters_report = &search_parameters->select_parameters_report;
-  select_parameters_t* const select_parameters_align = &search_parameters->select_parameters_align;
-  select_parameters_align->min_reported_strata = select_parameters_report->min_reported_strata;
-  select_parameters_align->max_reported_matches = select_parameters_report->max_reported_matches;
+  select_parameters_t* const select_parameters = &search_parameters->select_parameters;
+  select_parameters->max_searched_matches = select_parameters->max_reported_matches;
+  select_parameters->max_searched_paired_matches = 0;
 }
 void archive_select_configure_pe(archive_search_t* const archive_search) {
   search_parameters_t* const search_parameters = &archive_search->search_parameters;
-  select_parameters_t* const select_parameters_align = &search_parameters->select_parameters_align;
-  select_parameters_align->min_reported_strata = 0;
-  select_parameters_align->max_reported_matches = 100;
+  select_parameters_t* const select_parameters = &search_parameters->select_parameters;
+  select_parameters->max_searched_matches = 100;
+  select_parameters->max_searched_paired_matches = 20;
 }
 /*
  * Select Matches
@@ -78,21 +77,23 @@ void archive_select_se_matches(
   PROFILE_START(GP_ARCHIVE_SELECT_SE_MATCHES,PROFILE_LEVEL);
   const uint64_t num_matches = matches_get_num_match_traces(matches);
   matches_metrics_set_aligned_alignments(&matches->metrics,num_matches);
+  // Parameters
+  const uint64_t min_reported_strata_nominal = select_parameters->min_reported_strata_nominal;
+  const uint64_t max_reported_matches = select_parameters->max_searched_matches;
   // Check min-reported-strata constrain
-  if (select_parameters->min_reported_strata_nominal > 0) {
+  if (min_reported_strata_nominal > 0) {
     // Calculate the number of matches to decode wrt input parameters
     uint64_t strata_to_report = 0, matches_to_report = 0;
     matches_counters_compute_matches_to_report(matches->counters,
-        select_parameters->min_reported_strata_nominal,
-        select_parameters->max_reported_matches,
+        min_reported_strata_nominal,max_reported_matches,
         &matches_to_report,&strata_to_report);
     // Discard unwanted matches
     if (matches_to_report > 0) {
       archive_select_se_matches_discard(matches,strata_to_report);
     }
-  } else if (num_matches > select_parameters->max_reported_matches) {
+  } else if (num_matches > max_reported_matches) {
     // Discard unwanted
-    vector_set_used(matches->match_traces,select_parameters->max_reported_matches);
+    vector_set_used(matches->match_traces,max_reported_matches);
     matches_metrics_set_limited_candidates(&matches->metrics,true);
   }
   PROFILE_STOP(GP_ARCHIVE_SELECT_SE_MATCHES,PROFILE_LEVEL);

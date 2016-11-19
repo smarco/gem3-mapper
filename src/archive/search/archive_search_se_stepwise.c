@@ -195,10 +195,7 @@ void archive_search_se_stepwise_finish_search(
   approximate_search(&archive_search->approximate_search,matches);
   // Select Matches
   search_parameters_t* const search_parameters = &archive_search->search_parameters;
-  const bool paired_end_search = search_parameters->search_paired_parameters.paired_end_search;
-  select_parameters_t* const select_parameters = (paired_end_search) ?
-      &search_parameters->select_parameters_align:
-      &search_parameters->select_parameters_report;
+  select_parameters_t* const select_parameters = &search_parameters->select_parameters;
   archive_select_se_matches(archive_search,select_parameters,matches);
   // Score Matches (Select alignment-Model and process accordingly)
   archive_score_matches_se(archive_search,matches);

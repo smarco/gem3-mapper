@@ -795,11 +795,11 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     /* Reporting */
     case 'm': // --min-reported-strata
       min_reported_strata_set = true;
-      input_text_parse_extended_double(optarg,&search->select_parameters_report.min_reported_strata);
+      input_text_parse_extended_double(optarg,&search->select_parameters.min_reported_strata);
       break;
     case 'M': // --max-reported-matches
       max_reported_matches_set = true;
-      input_text_parse_extended_uint64(optarg,&search->select_parameters_report.max_reported_matches);
+      input_text_parse_extended_uint64(optarg,&search->select_parameters.max_reported_matches);
       break;
     /*  Output-format */
     case 'F': // --output-format
@@ -1018,7 +1018,7 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
       min_reported_strata_set && max_reported_matches_set,
       "Options '--max-reported-matches' and 'min-reported-strata' cannot be used at the same time");
   gem_mapper_cond_error_msg(
-      search->select_parameters_report.max_reported_matches == 0,
+      search->select_parameters.max_reported_matches == 0,
       "Option '--max-reported-matches' must be greater than zero'");
   // Free
   string_destroy(getopt_short_string);

@@ -57,6 +57,7 @@ typedef struct {
   /* Single-End Matches */
   matches_t* matches_end1;                     // Matches end1
   matches_t* matches_end2;                     // Matches end2
+  vector_t* extended_matches;                  // Matches product from extension (match_trace_t*)
   /* Paired-End Matches */
   vector_t* paired_maps;                       // Paired Maps (paired_map_t)
   vector_t* discordant_paired_maps;            // Discordant Paired Maps (paired_map_t)
@@ -97,12 +98,23 @@ void paired_matches_add(
     const double template_length_sigma);
 
 /*
+ * Cross pair matches
+ */
+void paired_matches_cross_pair(
+    paired_matches_t* const paired_matches,
+    search_parameters_t* const search_parameters,
+    mapper_stats_t* const mapper_stats,
+    match_trace_t* const match_trace_end1,
+    match_trace_t* const match_trace_end2);
+
+/*
  * Finding Pairs
  */
 void paired_matches_find_pairs(
-	paired_matches_t* const paired_matches,
-	search_parameters_t* const search_parameters,
-	mapper_stats_t* const mapper_stats);
+    paired_matches_t* const paired_matches,
+    search_parameters_t* const search_parameters,
+    mapper_stats_t* const mapper_stats,
+    mm_stack_t* const mm_stack);
 void paired_matches_find_discordant_pairs(
     paired_matches_t* const paired_matches,
     search_parameters_t* const search_parameters);
