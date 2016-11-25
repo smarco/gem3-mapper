@@ -119,18 +119,19 @@ typedef struct {
 typedef struct {
   /* CMD line */
   int argc;
-  char** argv;
-  char* gem_version;
+  char** argv;                                    // Arguments String
+  char* gem_version;                              // GEM version
   /* GEM Structures */
   archive_t* archive;                             // GEM Archive
   gpu_buffer_collection_t* gpu_buffer_collection; // GEM-GPU Index
-  input_file_sliced_t* input_file;
-  input_file_sliced_t* input_file_end1;
-  input_file_sliced_t* input_file_end2;
-  pthread_mutex_t input_file_mutex;
-  FILE* output_stream;
-  output_file_t* output_file;
+  input_file_sliced_t* input_file;                // Single file input
+  input_file_sliced_t* input_file_end1;           // Split file input (end/1)
+  input_file_sliced_t* input_file_end2;           // Split file input (end/2)
+  pthread_mutex_t input_file_mutex;               // Input-mutex
+  FILE* output_stream;                            // Output Stream
+  output_file_t* output_file;                     // Output Handler
   mapping_stats_t* global_mapping_stats;          // Stats Report
+  pthread_mutex_t error_report_mutex;             // Mutex for error reporting
   /* Mapper Type */
   mapper_type mapper_type;
   /* I/O Parameters */

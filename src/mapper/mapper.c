@@ -43,22 +43,39 @@
 //#define DEBUG_MAPPER_DISPLAY_EACH_READ_TIME
 
 /*
- * Report
+ * Error Report
  */
-void mapper_display_input_state(
+mapper_search_t* g_mapper_searches; // Global searches on going
+pthread_mutex_t mapper_error_report_mutex = PTHREAD_MUTEX_INITIALIZER;
+void mapper_error_report_cmd(
+    FILE* stream,
+    mapper_parameters_t* const mapper_parameters) {
+  // Display header
+  fprintf(stream,"GEM::Version %s\n",mapper_parameters->gem_version);
+  fprintf(stream,"GEM::CMD");
+  // Print CMD line used
+  uint64_t i;
+  for (i=0;i<mapper_parameters->argc;++i) {
+    fprintf(stream," %s",mapper_parameters->argv[i]);
+  }
+  fprintf(stream,"\n");
+}
+void mapper_error_report_input_state(
     FILE* stream,
     buffered_input_file_t* const buffered_fasta_input,
     const sequence_t* const sequence) {
+  // Display header
+  fprintf(stream,"GEM::Input.State\n");
   // Check NULL
-  if (sequence==NULL) { tab_fprintf(stream,"Sequence is NULL\n"); return; }
-  if (buffered_fasta_input==NULL) { tab_fprintf(stream,"Buffered_fasta_input is NULL\n"); return; }
+  if (sequence==NULL) { fprintf(stream,"Sequence is NULL\n"); return; }
+  if (buffered_fasta_input==NULL) { fprintf(stream,"Buffered_fasta_input is NULL\n"); return; }
   // Dump FASTA/FASTQ read
   if (!string_is_null(&sequence->tag) && !string_is_null(&sequence->read)) {
     const bool has_qualities = sequence_has_qualities(sequence);
     char* const end_tag =
         (sequence->end_info == paired_end1) ? "/1" :
       ( (sequence->end_info == paired_end2) ? "/2" : " " );
-    tab_fprintf(stream,"Sequence (File '%s' Line '%"PRIu64"')\n",
+    fprintf(stream,"Sequence (File '%s' Line '%"PRIu64"')\n",
         buffered_input_file_get_file_name(buffered_fasta_input),
         buffered_fasta_input->current_buffer_line_no - (has_qualities ? 4 : 2));
     if (has_qualities) {
@@ -78,50 +95,46 @@ void mapper_display_input_state(
           PRIs_content(&sequence->read));
     }
   } else {
-    tab_fprintf(stream,"Current sequence is <<Empty>>\n");
+    fprintf(stream,"Current sequence is <<Empty>>\n");
   }
 }
-/*
- * Error Report
- */
-mapper_search_t* g_mapper_searches; // Global searches on going
-pthread_mutex_t mapper_error_report_mutex = PTHREAD_MUTEX_INITIALIZER;
 void mapper_error_report(FILE* stream) {
-  // Display thread info
+  // Select thread
   const uint64_t threads_id = gem_thread_get_thread_id();
   if (threads_id==0) {
-    fprintf(stream,"GEM::Running-Thread (threadID = MASTER)\n");
-  }
-  // Display Threads-Info
-  MUTEX_BEGIN_SECTION(mapper_error_report_mutex) {
-    const uint64_t num_threads = g_mapper_searches->mapper_parameters->system.num_threads;
-    uint64_t i;
-    for (i=0;i<num_threads;++i) {
-      mapper_search_t* const mapper_search = g_mapper_searches + i; // Thread
-      if (mapper_search->paired_end) {
-        if (mapper_search->buffered_fasta_input == NULL) continue;
-        fprintf(stream,"GEM::Running-Thread (threadID = %"PRIu64") currently processing\n",mapper_search->thread_id);
-        // Display Input State
+    mapper_parameters_t* const mapper_parameters = g_mapper_searches->mapper_parameters;
+    MUTEX_BEGIN_SECTION(mapper_parameters->error_report_mutex) {
+      fprintf(stream,"GEM::Unexpected error occurred. Sorry for the inconvenience\n"
+                     "     Feedback and bug reporting it's highly appreciated,\n"
+                     "     => Please report or email (gem.mapper.dev@gmail.com)\n");
+      fprintf(stream,"GEM::Running-Thread (threadID = MASTER)\n");
+      fprintf(stream,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+      mapper_error_report_cmd(stream,mapper_parameters);
+    } MUTEX_END_SECTION(mapper_parameters->error_report_mutex);
+  } else {
+    mapper_search_t* const mapper_search = g_mapper_searches + (threads_id-1); // Thread
+    mapper_parameters_t* const mapper_parameters = mapper_search->mapper_parameters;
+    MUTEX_BEGIN_SECTION(mapper_parameters->error_report_mutex) {
+      // Display CMD used
+      fprintf(stream,"GEM::Unexpected error occurred. Sorry for the inconvenience\n"
+                     "     Feedback and bug reporting it's highly appreciated,\n"
+                     "     => Please report or email (gem.mapper.dev@gmail.com)\n");
+      fprintf(stream,"GEM::Running-Thread (threadID = MASTER)\n");
+      fprintf(stream,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+      mapper_error_report_cmd(stream,mapper_parameters);
+      fprintf(stream,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+      // Display Input State
+      if (!mapper_search->paired_end) {
         const sequence_t* const sequence = archive_search_get_sequence(mapper_search->archive_search);
-        tab_global_inc();
-        mapper_display_input_state(stream,mapper_search->buffered_fasta_input,sequence);
-        tab_global_dec();
+        mapper_error_report_input_state(stream,mapper_search->buffered_fasta_input,sequence);
       } else {
-        if (mapper_search->buffered_fasta_input_end1 == NULL || mapper_search->buffered_fasta_input_end2) continue;
-        fprintf(stream,"GEM::Running-Thread (threadID = %"PRIu64") currently processing\n",mapper_search->thread_id);
-        // Display Input State
         const sequence_t* const sequence_end1 = archive_search_get_sequence(mapper_search->archive_search_end1);
         const sequence_t* const sequence_end2 = archive_search_get_sequence(mapper_search->archive_search_end2);
-        tab_global_inc();
-        mapper_display_input_state(stream,mapper_search->buffered_fasta_input_end1,sequence_end1);
-        mapper_display_input_state(stream,mapper_search->buffered_fasta_input_end2,sequence_end2);
-        tab_global_dec();
+        mapper_error_report_input_state(stream,mapper_search->buffered_fasta_input_end1,sequence_end1);
+        mapper_error_report_input_state(stream,mapper_search->buffered_fasta_input_end2,sequence_end2);
       }
-      // Display Output State (TODO?)
-      // Display Search State (TODO?)
-    }
-  // Display stats until now (if possible) (TODO?)
-  } MUTEX_END_SECTION(mapper_error_report_mutex);
+    } MUTEX_END_SECTION(mapper_parameters->error_report_mutex);
+  }
 }
 /*
  * SE Mapper
@@ -294,9 +307,10 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
       "Archive.RL-Text not supported for Paired-End Mode (yet...)");
   // Setup threads
   const uint64_t num_threads = mapper_parameters->system.num_threads;
-  mapper_search_t* const mapper_search = mm_calloc(num_threads,mapper_search_t,false); // Allocate mapper searches
+  mapper_search_t* const mapper_search = mm_calloc(num_threads,mapper_search_t,false);
   // Set error-report function
   g_mapper_searches = mapper_search;
+  MUTEX_INIT(mapper_parameters->error_report_mutex);
   gem_error_set_report_function(mapper_error_report);
   // Prepare output file/parameters (SAM headers)
   archive_t* const archive = mapper_parameters->archive;
@@ -342,7 +356,8 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
 		}
     // Launch thread
     gem_cond_fatal_error__perror(
-        pthread_create(mapper_search[i].thread_data,0,mapper_thread,(void*)(mapper_search+i)),SYS_THREAD_CREATE);
+        pthread_create(mapper_search[i].thread_data,0,
+            mapper_thread,(void*)(mapper_search+i)),SYS_THREAD_CREATE);
   }
   // Join all threads
   for (i=0;i<num_threads;++i) {
@@ -358,6 +373,7 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
 		 mm_free(mstats);
 	}
   // Clean up
+	MUTEX_DESTROY(mapper_parameters->error_report_mutex);
   mm_free(mapper_search);
 }
 void mapper_se_run(mapper_parameters_t* const mapper_parameters) {

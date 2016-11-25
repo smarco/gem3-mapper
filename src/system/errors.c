@@ -64,13 +64,13 @@ void gem_error_signal_handler(int signal) {
       report_function_t report_function = gem_error_get_report_function();
       if (report_function!=NULL) report_function(error_stream);
       // Print signal label
-      fprintf(stderr,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+      fprintf(error_stream,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
       fprintf(error_stream,">> GEM.System.Error::Signal raised (no=%d) [errno=%d,%s]\n",signal,errno,strerror(errno));
-      fprintf(stderr,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+      fprintf(error_stream,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
       fflush(error_stream);
     }
   exit(1);
-  // pthread_mutex_unlock(&gem_error_signal_handler_mutex);
+  pthread_mutex_unlock(&gem_error_signal_handler_mutex);
 }
 void gem_handle_error_signals(void) {
   struct sigaction error_signal_handler;

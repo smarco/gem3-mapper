@@ -37,7 +37,12 @@
  */
 mapper_cuda_search_t* g_mapper_cuda_search; // Global searches on going
 pthread_mutex_t mapper_cuda_error_report_mutex = PTHREAD_MUTEX_INITIALIZER;
-void mapper_cuda_error_report(FILE* stream) { }
+void mapper_cuda_error_report(FILE* stream) {
+  fprintf(stream,"GEM::Unexpected error occurred. Sorry for the inconvenience\n"
+                 "     Please re-run in CPU mode to isolate the problem\n"
+                 "     Feedback and bug reporting it's highly appreciated,\n"
+                 "     => Please report or email (gem.mapper.dev@gmail.com)\n");
+}
 /*
  * Index loader
  */
