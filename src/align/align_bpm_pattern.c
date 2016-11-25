@@ -74,6 +74,7 @@ bpm_pattern_t* bpm_pattern_compile(
   uint64_t i;
   for (i=0;i<pattern_length;++i) {
     const uint8_t enc_char = pattern[i];
+    if (enc_char==ENC_DNA_CHAR_N) continue; // N's Inequality
     const uint64_t block = i/BPM_W64_LENGTH;
     const uint64_t mask = 1ull<<(i%BPM_W64_LENGTH);
     bpm_pattern->PEQ[BPM_PATTERN_PEQ_IDX(block,enc_char)] |= mask;

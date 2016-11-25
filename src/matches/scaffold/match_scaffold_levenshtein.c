@@ -68,7 +68,7 @@ void match_scaffold_levenshtein_compose_alignment(
           last_alignment_region = match_scaffold_compose_add_exact_match(
               match_scaffold,&key_offset,&text_offset,cigar_offset + i,match_length); // Add Match
           gem_fatal_check_msg((int64_t)text_offset < (int64_t)text_padding,
-              "Scaffold levenshtein. Negative coordinates because of padding");
+              "Scaffold levenshtein. Match negative coordinates (because of padding)");
         }
         ++i;
         break;
@@ -141,6 +141,8 @@ void match_scaffold_levenshtein_tiled(
     // (accounting for the text-padding offset)
     const uint64_t alignment_offset = match_alignment.match_position - match_position;
     const uint64_t text_padding = align_input->text_padding;
+    gem_fatal_check_msg(text_begin + alignment_offset < text_padding,
+        "Scaffold levenshtein. Negative coordinates because of padding");
     match_alignment.match_text_offset = text_begin + alignment_offset - text_padding;
     //    // DEBUG
     //    match_alignment_print_pretty(stderr,&match_alignment,

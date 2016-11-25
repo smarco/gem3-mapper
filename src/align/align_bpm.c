@@ -168,7 +168,7 @@ void align_bpm_backtrace_matrix(
     // Select CIGAR operation
     const bool deletion = Pv[bdp_idx] & mask;
     const bool insertion = Mv[(bdp_idx-num_words64)] & mask;
-    const bool match = text[h]==key[v];
+    const bool match = text[h]==key[v] && key[v]!=ENC_DNA_CHAR_N; // N's Inequality
     cigar_t operation;
     if (left_gap_alignment) {
       if (deletion) {
