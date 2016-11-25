@@ -56,25 +56,25 @@ void gem_perror(void);
 // Error Code
 #define gem_error(gem_error_name,args...) \
   gem_report_error_begin_block(GEM_LABEL_ERROR,gem_error_name,##args) \
-  gem_report_end_block(1,0,0,0)
+  gem_report_end_block(0,0,0,0)
 #define gem_fatal_error(gem_error_name,args...) \
   gem_report_error_begin_block(GEM_LABEL_FATAL_ERROR,gem_error_name,##args) \
-  gem_report_end_block(1,1,1,1)
+  gem_report_end_block(0,0,1,1)
 #define gem_fatal_error__perror(gem_error_name,args...) \
   gem_report_error_begin_block(GEM_LABEL_FATAL_ERROR,gem_error_name,##args) \
   gem_perror(); \
-  gem_report_end_block(1,1,1,1)
+  gem_report_end_block(0,0,1,1)
 // Error Message
 #define gem_error_msg(gem_error_msg,args...) \
   gem_report_begin_block(GEM_LABEL_ERROR,error,gem_error_msg,##args) \
-  gem_report_end_block(1,0,0,0)
+  gem_report_end_block(0,0,0,0)
 #define gem_fatal_error_msg(gem_error_msg,args...) \
   gem_report_begin_block(GEM_LABEL_FATAL_ERROR,error,gem_error_msg,##args) \
-  gem_report_end_block(1,1,1,1)
+  gem_report_end_block(0,0,1,1)
 #define gem_fatal_error_msg__perror(gem_error_msg,args...) \
   gem_report_begin_block(GEM_LABEL_FATAL_ERROR,error,gem_error_msg,##args) \
   gem_perror(); \
-  gem_report_end_block(1,1,1,1)
+  gem_report_end_block(0,0,1,1)
 // Warning
 #define gem_warn(gem_warning_name,args...) \
   gem_report_error_begin_block(GEM_LABEL_WARNING,gem_warning_name,##args) \

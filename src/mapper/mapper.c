@@ -100,28 +100,29 @@ void mapper_error_report_input_state(
 }
 void mapper_error_report(FILE* stream) {
   // Select thread
-  const uint64_t threads_id = gem_thread_get_thread_id();
-  if (threads_id==0) {
+  const uint64_t thread_id = gem_thread_get_thread_id();
+  if (thread_id==0) {
     mapper_parameters_t* const mapper_parameters = g_mapper_searches->mapper_parameters;
     MUTEX_BEGIN_SECTION(mapper_parameters->error_report_mutex) {
+      fprintf(stream,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
       fprintf(stream,"GEM::Unexpected error occurred. Sorry for the inconvenience\n"
                      "     Feedback and bug reporting it's highly appreciated,\n"
                      "     => Please report or email (gem.mapper.dev@gmail.com)\n");
       fprintf(stream,"GEM::Running-Thread (threadID = MASTER)\n");
       fprintf(stream,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
-      mapper_error_report_cmd(stream,mapper_parameters);
+      mapper_error_report_cmd(stream,mapper_parameters); // Display CMD used
     } MUTEX_END_SECTION(mapper_parameters->error_report_mutex);
   } else {
-    mapper_search_t* const mapper_search = g_mapper_searches + (threads_id-1); // Thread
+    mapper_search_t* const mapper_search = g_mapper_searches + (thread_id-1); // Thread
     mapper_parameters_t* const mapper_parameters = mapper_search->mapper_parameters;
     MUTEX_BEGIN_SECTION(mapper_parameters->error_report_mutex) {
-      // Display CMD used
+      fprintf(stream,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
       fprintf(stream,"GEM::Unexpected error occurred. Sorry for the inconvenience\n"
                      "     Feedback and bug reporting it's highly appreciated,\n"
                      "     => Please report or email (gem.mapper.dev@gmail.com)\n");
-      fprintf(stream,"GEM::Running-Thread (threadID = MASTER)\n");
+      fprintf(stream,"GEM::Running-Thread (threadID = %lu)\n",thread_id);
       fprintf(stream,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
-      mapper_error_report_cmd(stream,mapper_parameters);
+      mapper_error_report_cmd(stream,mapper_parameters); // Display CMD used
       fprintf(stream,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
       // Display Input State
       if (!mapper_search->paired_end) {
