@@ -45,6 +45,7 @@ void match_scaffold_levenshtein_compose_alignment(
     matches_t* const matches,
     const match_alignment_t* const match_alignment,
     uint64_t key_offset,
+    const uint64_t text_padding,
     const uint64_t matching_min_length) {
   // Traverse CIGAR elements and compose scaffolding
   const uint64_t cigar_offset = match_alignment->cigar_offset;
@@ -66,6 +67,8 @@ void match_scaffold_levenshtein_compose_alignment(
         } else {
           last_alignment_region = match_scaffold_compose_add_exact_match(
               match_scaffold,&key_offset,&text_offset,cigar_offset + i,match_length); // Add Match
+          gem_fatal_check_msg((int64_t)text_offset < (int64_t)text_padding,
+              "Scaffold levenshtein. Negative coordinates because of padding");
         }
         ++i;
         break;
@@ -135,11 +138,9 @@ void match_scaffold_levenshtein_tiled(
         bpm_pattern_tile,key,text,left_gap_alignment,
         &bpm_align_matrix,&match_alignment,matches->cigar_vector);
     // Store the offset (from the beginning of the text)
-    // Account for the text-padding offset
+    // (accounting for the text-padding offset)
     const uint64_t alignment_offset = match_alignment.match_position - match_position;
     const uint64_t text_padding = align_input->text_padding;
-    gem_fatal_check_msg(text_begin + alignment_offset < text_padding,
-        "Scaffold levenshtein. Negative coordinates because of padding");
     match_alignment.match_text_offset = text_begin + alignment_offset - text_padding;
     //    // DEBUG
     //    match_alignment_print_pretty(stderr,&match_alignment,
@@ -149,7 +150,7 @@ void match_scaffold_levenshtein_tiled(
     // Add the alignment to the scaffold
     match_scaffold_levenshtein_compose_alignment(
         match_scaffold,matches,&match_alignment,
-        key_offset,matching_min_length);
+        key_offset,text_padding,matching_min_length);
   }
 }
 /*
