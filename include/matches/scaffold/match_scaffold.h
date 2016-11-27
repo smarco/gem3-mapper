@@ -65,6 +65,16 @@ void match_scaffold_init(match_scaffold_t* const match_scaffold);
 bool match_scaffold_is_null(match_scaffold_t* const match_scaffold);
 
 /*
+ * Exact Scaffolding of the alignment
+ */
+void match_scaffold_exact(
+    match_scaffold_t* const match_scaffold,
+    match_align_input_t* const align_input,
+    match_align_parameters_t* const align_parameters,
+    matches_t* const matches,
+    mm_stack_t* const mm_stack);
+
+/*
  * Adaptive Scaffolding of the alignment (Best effort)
  */
 void match_scaffold_adaptive(

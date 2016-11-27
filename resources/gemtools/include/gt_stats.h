@@ -79,6 +79,48 @@
 #define GT_STATS_UNIQ_RANGE_X 9
 #define GT_STATS_UNIQ_RANGE 10
 
+#define GT_STATS_DELTA_EDIT_RANGE_0    0
+#define GT_STATS_DELTA_EDIT_RANGE_1    1
+#define GT_STATS_DELTA_EDIT_RANGE_2    2
+#define GT_STATS_DELTA_EDIT_RANGE_3    3
+#define GT_STATS_DELTA_EDIT_RANGE_4    4
+#define GT_STATS_DELTA_EDIT_RANGE_5    5
+#define GT_STATS_DELTA_EDIT_RANGE_6    6
+#define GT_STATS_DELTA_EDIT_RANGE_7    7
+#define GT_STATS_DELTA_EDIT_RANGE_8    8
+#define GT_STATS_DELTA_EDIT_RANGE_9    9
+#define GT_STATS_DELTA_EDIT_RANGE_10  10
+#define GT_STATS_DELTA_EDIT_RANGE_BEHOND       11
+#define GT_STATS_DELTA_EDIT_RANGE_INCONSISTENT 12
+#define GT_STATS_DELTA_EDIT_RANGE_UNIQUE       13
+#define GT_STATS_DELTA_EDIT_RANGE_UNMAPPED     14
+#define GT_STATS_DELTA_EDIT_RANGE              15
+
+#define GT_STATS_DELTA_SWG_RANGE_0    0
+#define GT_STATS_DELTA_SWG_RANGE_1    1
+#define GT_STATS_DELTA_SWG_RANGE_2    2
+#define GT_STATS_DELTA_SWG_RANGE_3    3
+#define GT_STATS_DELTA_SWG_RANGE_4    4
+#define GT_STATS_DELTA_SWG_RANGE_5    5
+#define GT_STATS_DELTA_SWG_RANGE_10   6
+#define GT_STATS_DELTA_SWG_RANGE_20   7
+#define GT_STATS_DELTA_SWG_RANGE_BEHOND       8
+#define GT_STATS_DELTA_SWG_RANGE_INCONSISTENT 9
+#define GT_STATS_DELTA_SWG_RANGE_UNIQUE       10
+#define GT_STATS_DELTA_SWG_RANGE_UNMAPPED     11
+#define GT_STATS_DELTA_SWG_RANGE              12
+
+#define GT_STATS_CLASSES_TIE_PERFECT 0
+#define GT_STATS_CLASSES_TIE         1
+#define GT_STATS_CLASSES_MMAP_D1     2
+#define GT_STATS_CLASSES_MMAP        3
+#define GT_STATS_CLASSES_UNIQUE      4
+#define GT_STATS_CLASSES_UNMAPPED    5
+#define GT_STATS_CLASSES_RANGE       6
+
+#define GT_STATS_MAPQ_BEHOND 61
+#define GT_STATS_MAPQ_RANGE  62
+
 #define GT_STATS_LARGE_READ_POS_RANGE 1000
 #define GT_STATS_SHORT_READ_POS_RANGE 100
 
@@ -242,18 +284,21 @@ typedef struct {
   uint64_t *avg_quality;       /* GT_STATS_QUAL_SCORE_RANGE */
   uint64_t *mmap__avg_quality; /* GT_STATS_QUAL_SCORE__MMAP_RANGE */
   // Nucleotide counting
-  uint64_t *nt_counting;   /* GT_STATS_MISMS_BASE_RANGE */
+  uint64_t *nt_counting;       /* GT_STATS_MISMS_BASE_RANGE */
   // Mapped/Maps
-  uint64_t num_blocks;     // SE => 1 block. PE => 2 blocks
-  uint64_t num_alignments; // Number of alignments (independently of the type{SE,PE} or the syntax used in the file)
+  uint64_t num_blocks;         // SE => 1 block. PE => 2 blocks
+  uint64_t num_alignments;     // Number of alignments (independently of the type{SE,PE} or the syntax used in the file)
   uint64_t num_maps;
-  uint64_t num_mapped; // number of mapped reads for SE and number of mapped properly paired for templates
+  uint64_t num_mapped;         // number of mapped reads for SE and number of mapped properly paired for templates
   // SE/PE read and mapping counts
-  uint64_t num_mapped_reads; // number of total mapped reads, counts 2 for a mapped paired template and checks unpaired pairs
-  // MMap Distribution
-  uint64_t *mmap;          /* GT_STATS_MMAP_RANGE */
-  // Uniq Distribution
-  uint64_t *uniq;          /* GT_STATS_UNIQ_RANGE */
+  uint64_t num_mapped_reads;   // number of total mapped reads, counts 2 for a mapped paired template and checks unpaired pairs
+  // Maps Distribution
+  uint64_t *mmap;              /* GT_STATS_MMAP_RANGE */
+  uint64_t *uniq;              /* GT_STATS_UNIQ_RANGE */
+  uint64_t *delta_edit;        /* GT_STATS_DELTA_EDIT_RANGE */
+  uint64_t *delta_swg;         /* GT_STATS_DELTA_SWG_RANGE */
+  uint64_t *classes;           /* GT_STATS_CLASSES_RANGE */
+  uint64_t *mapq;              /* GT_STATS_MAPQ_RANGE */
   // Error Profile
   gt_maps_profile *maps_profile;
   // Split maps info

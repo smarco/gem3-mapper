@@ -240,7 +240,7 @@ void match_align_smith_waterman_gotoh(
   match_trace->sequence_name = NULL;
   match_trace->text_position = UINT64_MAX;
   // Scaffold the alignment
-  if (!align_parameters->alignment_force_full_swg) {
+  if (!align_parameters->alignment_force_full_swg && !align_parameters->local_alignment) {
     PROFILE_PAUSE(GP_MATCHES_ALIGN_SWG,PROFILE_LEVEL);
     match_scaffold_adaptive(match_scaffold,align_input,align_parameters,matches,mm_stack);
     PROFILE_CONTINUE(GP_MATCHES_ALIGN_SWG,PROFILE_LEVEL);

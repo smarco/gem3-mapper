@@ -34,7 +34,15 @@ bool matches_test_max_matches_reached(
     search_parameters_t* const search_parameters) {
   // Parameters
   select_parameters_t* const select_parameters = &search_parameters->select_parameters;
-  // Check matches
+  // Hard max-matches limit
+  //  const uint64_t max_searched_matches = search_parameters->select_parameters.max_searched_matches;
+  //  // Check total number of matches found so far
+  //  if (matches_get_num_match_traces(matches) >= max_searched_matches) {
+  //    PROF_INC_COUNTER(GP_MATCHES_ACCURACY_CASE_MAX_MATCHES);
+  //    PROF_INC_COUNTER(GP_MATCHES_ACCURACY_CASE_HIT);
+  //    return true; // Done!
+  //  }
+  // Soft max-matches limit
   if (matches_is_mapped(matches) && select_parameters->min_reported_strata_nominal==0) {
     const uint64_t num_matches = matches_get_num_match_traces(matches);
     if (num_matches >= select_parameters->max_searched_matches) {
@@ -45,7 +53,11 @@ bool matches_test_max_matches_reached(
           align_swg_score_compute_max_edit_bound(
               &search_parameters->swg_penalties,top_match->swg_score,key_length);
       // MCS sets the possibility of finding matches with distance max_error_reached+1
-      if (bounded_edit_distance <= mcs) return true;
+      if (bounded_edit_distance <= mcs) {
+        PROF_INC_COUNTER(GP_MATCHES_ACCURACY_CASE_MAX_MATCHES);
+        PROF_INC_COUNTER(GP_MATCHES_ACCURACY_CASE_HIT);
+        return true;
+      }
     }
   }
   return false;
@@ -56,23 +68,16 @@ bool matches_test_accuracy_reached(
     const uint64_t key_length,
     search_parameters_t* const search_parameters,
     const uint64_t max_complete_error,
-    uint64_t* const max_complete_error_required) {
+    uint64_t* const suggested_max_complete_error) {
   PROF_INC_COUNTER(GP_MATCHES_ACCURACY_CASE_CALLS);
-  // Parameters
-  const uint64_t delta = search_parameters->complete_strata_after_best_nominal; // (default = 1)
-  const uint64_t max_searched_matches = search_parameters->select_parameters.max_searched_matches;
-  // Check total number of matches found so far
-  if (matches_get_num_match_traces(matches) >= max_searched_matches) {
-    PROF_INC_COUNTER(GP_MATCHES_ACCURACY_CASE_MAX_MATCHES);
-    PROF_INC_COUNTER(GP_MATCHES_ACCURACY_CASE_HIT);
-    return true; // Done!
-  }
   // Classify
+  const uint64_t delta = search_parameters->complete_strata_after_best_nominal; // (default = 1)
   const uint64_t min_edit_distance = matches_metrics_get_min_edit_distance(&matches->metrics);
+  const uint64_t mms = min_edit_distance + 1; // Minimum matching stratum
   matches_classify(matches);
   switch (matches->matches_class) {
     case matches_class_unmapped: // Unmapped (not enough search depth)
-      *max_complete_error_required = mcs + delta; // Adjust max-error
+      *suggested_max_complete_error = mcs + delta; // Adjust max-error
       PROF_INC_COUNTER(GP_MATCHES_ACCURACY_CASE_UNMAPPED);
       break; // Not done
     case matches_class_tie_perfect:
@@ -83,7 +88,7 @@ bool matches_test_accuracy_reached(
           return true; // Done!
         }
       }
-      *max_complete_error_required = mcs + delta; // Adjust max-error
+      *suggested_max_complete_error = mcs + delta; // Adjust max-error
       PROF_INC_COUNTER(GP_MATCHES_ACCURACY_CASE_TIE);
       break; // Not done
     case matches_class_mmap_d1:
@@ -103,8 +108,8 @@ bool matches_test_accuracy_reached(
         return true; // Done!
       }
       // Adjust max-error
-      *max_complete_error_required = MIN(max_complete_error,min_edit_distance+1);
-      if (*max_complete_error_required+1 <= mcs) {
+      *suggested_max_complete_error = MIN(max_complete_error,min_edit_distance+1);
+      if (*suggested_max_complete_error+1 <= mcs) {
         PROF_INC_COUNTER(GP_MATCHES_ACCURACY_CASE_HIT);
         return true; // Done!
       }
@@ -123,13 +128,6 @@ bool matches_test_accuracy_reached(
   if (min_edit_distance+1 == mcs) PROF_INC_COUNTER(GP_MATCHES_ACCURACY_CASE_MAP_FRONTIER);
   if (min_edit_distance >= mcs) PROF_INC_COUNTER(GP_MATCHES_ACCURACY_CASE_MAP_INCOMPLETE);
 #endif
-  // Candidates
-  const bool max_matches_reached = matches_test_max_matches_reached(matches,mcs,key_length,search_parameters);
-  if (max_matches_reached) {
-    PROF_INC_COUNTER(GP_MATCHES_ACCURACY_CASE_MAX_MATCHES);
-    PROF_INC_COUNTER(GP_MATCHES_ACCURACY_CASE_HIT);
-    return true; // Done!
-  }
   // Return
   PROF_INC_COUNTER(GP_MATCHES_ACCURACY_CASE_MISS);
   return false;

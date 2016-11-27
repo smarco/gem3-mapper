@@ -75,11 +75,27 @@ GT_INLINE uint64_t gt_map_get_global_distance(gt_map* const map) {
   }
   return distance;
 }
-
 GT_INLINE uint64_t gt_map_get_no_split_distance(gt_map* const map){
   return gt_map_get_global_distance(map) - (gt_map_get_num_blocks(map)-1);
 }
-
+// SWG-Distance
+GT_INLINE int64_t gt_map_get_swg_score(gt_map* const map) {
+  GT_MAP_CHECK(map);
+  // Indels are taken into account to calculate the length
+  int64_t swg_score = map->base_length;
+  GT_MISMS_ITERATE(map,misms_it) {
+    switch (misms_it->misms_type) {
+      case MISMS:
+        swg_score -= 4;
+        break;
+      case INS:
+      case DEL:
+        swg_score -= 6 + gt_misms_get_size(misms_it);
+        break;
+    }
+  }
+  return swg_score;
+}
 // Bases aligned (Mismatches not included)
 GT_INLINE uint64_t gt_map_get_bases_aligned(gt_map* const map) {
   GT_MAP_CHECK(map);

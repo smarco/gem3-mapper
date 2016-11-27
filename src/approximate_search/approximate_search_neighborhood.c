@@ -114,7 +114,6 @@ void approximate_search_neighborhood_search_partition(
   search_parameters_t* const search_parameters = search->search_parameters;
   region_profile_clear(&search->region_profile); // Clear for scoring purposes
   // Generate Candidates (Select Alignment Model)
-  search_parameters->nsearch_parameters.dynamic_matches_cutoff = false;
   if (search_parameters->match_alignment_model == match_alignment_model_hamming) {
     nsearch_hamming(search,matches);
   } else {
@@ -140,7 +139,6 @@ void approximate_search_neighborhood_search_partition_preconditioned(
   // Compute error limits
   region_profile_compute_error_limits(region_profile,mcs,max_complete_error);
   // Generate Candidates (Select Alignment Model)
-  search_parameters->nsearch_parameters.dynamic_matches_cutoff = true;
   if (search_parameters->match_alignment_model == match_alignment_model_hamming) {
     nsearch_hamming_preconditioned(search,matches);
   } else {

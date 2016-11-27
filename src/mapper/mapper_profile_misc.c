@@ -84,6 +84,46 @@ void mapper_profile_print_sam_output(FILE* const stream,const bool paired_end) {
   }
 }
 /*
+ * Strata-deltas
+ */
+void mapper_profile_print_se_matches(FILE* const stream) {
+  profile_t* const profile = PROF_GET_PROFILE();
+  tab_fprintf(stream,"[GEM]>Profile.Matches.SE.Strata.Deltas\n");
+  tab_fprintf(stream,"  --> Matches.SE.Classification\n");
+  tab_fprintf(stream,"    --> Matches.SE.Tie.perfect               ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GT_MATCHES_SE_TIE_PERFECT),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
+  tab_fprintf(stream,"    --> Matches.SE.Tie                       ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GT_MATCHES_SE_TIE),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
+  tab_fprintf(stream,"    --> Matches.SE.MMap.d1                   ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GT_MATCHES_SE_MMAP_D1),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
+  tab_fprintf(stream,"    --> Matches.SE.MMap                      ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GT_MATCHES_SE_MMAP),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
+  tab_fprintf(stream,"    --> Matches.SE.Unique                    ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GT_MATCHES_SE_UNIQUE),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
+  tab_fprintf(stream,"    --> Matches.SE.Unmapped                  ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GT_MATCHES_SE_UNMAPPED),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
+  tab_fprintf(stream,"  --> Strata.Deltas.Edit\n");
+  tab_fprintf(stream,"    --> Strata.Deltas.Edit.Unconsistent      ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GT_MATCHES_SE_EDIT_UNCONSISTENT),
+      PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
+  tab_fprintf(stream,"    --> Strata.Deltas.Edit.Consistent        ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GT_MATCHES_SE_EDIT_CONSISTENT),
+      PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
+  tab_global_inc(); tab_global_inc();
+  stats_vector_display(stream,profile->strata_deltas_edit,true,true,NULL);
+  tab_global_dec(); tab_global_dec();
+  tab_fprintf(stream,"  --> Strata.Deltas.SWG\n");
+  tab_fprintf(stream,"    --> Strata.Deltas.SWG.Unconsistent      ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GT_MATCHES_SE_SWG_UNCONSISTENT),
+      PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
+  tab_fprintf(stream,"    --> Strata.Deltas.SWG.Consistent        ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GT_MATCHES_SE_SWG_CONSISTENT),
+      PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
+  tab_global_inc(); tab_global_inc();
+  stats_vector_display(stream,profile->strata_deltas_swg,true,true,NULL);
+  tab_global_dec(); tab_global_dec();
+}
+/*
  * Checks
  */
 void mapper_profile_print_checks(FILE* const stream) {
@@ -117,16 +157,19 @@ void mapper_profile_print_checks(FILE* const stream) {
 void mapper_profile_print_mapper_efficiency_ratios(FILE* const stream) {
   // Efficiency Ratios
   fprintf(stream,    "[GEM]>Profile.Efficiency.Ratios\n");
-  tab_fprintf(stream,"  --> Ranks/Read               %10.3f ranks/read\n",
-      (float)COUNTER_GET_TOTAL(PROF_GET_RANK(GP_MAPPER_ALL))/
-      (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MAPPER_NUM_READS)));
-  tab_fprintf(stream,"    --> Ranks/Alignment        %10.3f ranks/alg\n",
-      (float)COUNTER_GET_TOTAL(PROF_GET_RANK(GP_MAPPER_ALL))/
-      (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MATCHES_MAPS_ADDED)));
+  tab_fprintf(stream,"  => TIME.Mapper.All             ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_ALL),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"    => TIME.Load.Index           ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_LOAD_INDEX),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"    => TIME.Mapper.All           ");
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_MAPPER_MAPPING),PROF_GET_TIMER(GP_MAPPER_ALL));
+  tab_fprintf(stream,"  |> Mappings\n");
+  tab_fprintf(stream,"  --> Total.Reads                                     ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MAPPER_NUM_READS),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads  ",true);
   tab_fprintf(stream,"  --> Time/Read                %10.3f ms\n",
       (float)TIMER_GET_TOTAL_MS(PROF_GET_TIMER(GP_MAPPER_ALL))/
       (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MAPPER_NUM_READS)));
-  tab_fprintf(stream,"    --> Time/Alignment         %10.3f us\n",
+  tab_fprintf(stream,"    --> Time/Matches           %10.3f us\n",
       (float)TIMER_GET_TOTAL_US(PROF_GET_TIMER(GP_MAPPER_ALL))/
       (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MATCHES_MAPS_ADDED)));
   tab_fprintf(stream,"  --> Throughput\n");
@@ -136,6 +179,12 @@ void mapper_profile_print_mapper_efficiency_ratios(FILE* const stream) {
   tab_fprintf(stream,"  --> Reads/s            %10.3f\n",reads_per_sec);
   tab_fprintf(stream,"  --> MegaReads/h        %10.3f\n",reads_per_sec*3600.0/1000000.0);
   tab_fprintf(stream,"  --> GigaReads/d        %10.3f\n",reads_per_sec*3600.0*24.0/1000000000.0);
+  tab_fprintf(stream,"  --> Ranks/Read               %10.3f ranks/read\n",
+      (float)COUNTER_GET_TOTAL(PROF_GET_RANK(GP_MAPPER_ALL))/
+      (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MAPPER_NUM_READS)));
+  tab_fprintf(stream,"    --> Ranks/Matches          %10.3f ranks/alg\n",
+      (float)COUNTER_GET_TOTAL(PROF_GET_RANK(GP_MAPPER_ALL))/
+      (float)COUNTER_GET_TOTAL(PROF_GET_COUNTER(GP_MATCHES_MAPS_ADDED)));
 }
 #else /* GEM_PROFILE DISABLED */
 /*
@@ -147,6 +196,10 @@ void mapper_profile_print_io(FILE* const stream) {}
  */
 void mapper_profile_print_map_output(FILE* const stream,const bool paired_end) {}
 void mapper_profile_print_sam_output(FILE* const stream,const bool paired_end) {}
+/*
+ * Strata-deltas
+ */
+void mapper_profile_print_se_matches(FILE* const stream) {}
 /*
  * Checks
  */

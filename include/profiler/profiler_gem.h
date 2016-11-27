@@ -38,6 +38,7 @@ typedef enum {
 #include "system/mm.h"
 #include "profiler/profiler_timer.h"
 #include "stats/stats_counter.h"
+#include "stats/stats_vector.h"
 
 /*
  * Profiler Types
@@ -50,10 +51,34 @@ typedef enum {
 #define PROF_BLOCK()
 
 /*
+ * Profile
+ */
+typedef struct {
+  /* General timers,counters & ranks */
+  gem_timer_t* timers;                  // Time counters
+  gem_counter_t* counters;              // General counters & functions
+  gem_reference_counter_t* ranks;       // Ranks counters
+  /* Other counters */
+  stats_vector_t* strata_deltas_edit;   // Strata-deltas stats
+  stats_vector_t* strata_deltas_swg;    // Strata-deltas stats
+} profile_t;
+typedef struct {
+  // Profiler
+  profile_t* profile;
+  // Limits
+  uint64_t num_threads;
+} profiler_t;
+
+/*
  * Setup
  */
 void PROF_NEW(const uint64_t num_threads);
 void PROF_DELETE(void);
+
+/*
+ * Accessors
+ */
+profile_t* PROF_GET_PROFILE();
 
 /*
  * PROFILE-TIME functions

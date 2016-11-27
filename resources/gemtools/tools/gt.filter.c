@@ -243,6 +243,7 @@ gt_input_file* gt_filter_open_input_file(char* const name_input_file) {
       GT_INVALID_CASE();
       break;
   }
+  return NULL;
 }
 gt_output_file* gt_filter_open_output_file(char* const name_output_file) {
   switch (parameters.output_compression) {
@@ -265,6 +266,7 @@ gt_output_file* gt_filter_open_output_file(char* const name_output_file) {
       GT_INVALID_CASE();
       break;
   }
+  return NULL;
 }
 /*
  * Helper to get num maps correctly also for unpaired 

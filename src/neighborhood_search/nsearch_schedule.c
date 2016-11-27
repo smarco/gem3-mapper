@@ -150,12 +150,6 @@ void nsearch_schedule_search_step(
         GEM_INVALID_CASE();
         break;
     }
-    // Dynamic filtering
-    if (nsearch_schedule->search_parameters->nsearch_parameters.dynamic_filtering) {
-      PROF_ADD_COUNTER(GP_NS_OPERATION_CANDIDATES_GENERATED,
-        filtering_candidates_get_num_positions(nsearch_schedule->filtering_candidates));
-      nsearch_filtering(nsearch_schedule);
-    }
   } else {
     const uint64_t num_pending_searches = nsearch_schedule->num_pending_searches;
     // Compute error partition

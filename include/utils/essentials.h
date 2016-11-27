@@ -43,9 +43,6 @@
 #include "system/mm_slab.h"
 #include "system/mm_stack.h"
 
-// Basic Profiling
-#include "profiler/profiler.h"
-
 // Basic Runtime
 #include "system/gruntime.h"
 
@@ -55,6 +52,9 @@
 #include "utils/segmented_vector.h"
 #include "utils/hash.h"
 #include "utils/string_buffer.h"
+
+// Basic Profiling
+#include "profiler/profiler.h"
 
 // Mapper Profiling Counters
 #include "mapper/mapper_profile_counters.h"

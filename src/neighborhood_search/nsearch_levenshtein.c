@@ -109,7 +109,8 @@ void nsearch_levenshtein_brute_force(
   const uint64_t init_hi = fm_index_get_length(search->nsearch_schedule->archive->fm_index);
 #endif
   // Search
-  nsearch_levenshtein_brute_force_step(search->nsearch_schedule,nsearch_operation,supercondensed,init_lo,init_hi);
+  nsearch_levenshtein_brute_force_step(
+      search->nsearch_schedule,nsearch_operation,supercondensed,init_lo,init_hi);
   // PROFILE
   // nsearch_schedule_print_profile(stderr,&nsearch_schedule);
   PROF_ADD_COUNTER(GP_NS_NODES,search->nsearch_schedule->profile.ns_nodes);

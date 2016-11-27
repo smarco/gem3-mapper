@@ -79,9 +79,10 @@ asearch_stage_t as_hybrid_control_filtering_adaptive_next_state(
     asearch_control_adjust_current_max_error(search,matches);
     // Search over?
     const uint64_t mcs = search->region_profile.num_filtered_regions;
-    if (search->current_max_complete_error <= mcs-1) return asearch_stage_end;
+    if (search->current_max_complete_error+1 <= mcs) return asearch_stage_end;
     if (search->pattern.num_wildcards > search->current_max_complete_error) return asearch_stage_end;
     // NS
+    search->search_parameters->nsearch_parameters.matches_accuracy_cutoff = false;
     PROF_INC_COUNTER(GP_AS_NEIGHBORHOOD_SEARCH_CALL);
     return asearch_stage_neighborhood;
   }

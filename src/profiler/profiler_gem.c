@@ -27,20 +27,9 @@
 #ifdef GEM_PROFILE
 
 /*
- * Profile
+ * THE GREAT PROFILER
  */
-typedef struct {
-  gem_timer_t* timers;            // Time counters
-  gem_counter_t* counters;        // General counters & functions
-  gem_reference_counter_t* ranks; // Ranks counters
-} profile_t;
-typedef struct {
-  // Profiler
-  profile_t* profile;
-  // Limits
-  uint64_t num_threads;
-} profiler_t;
-profiler_t gem_profile; // THE GREAT PROFILER
+profiler_t gem_profile;
 
 /*
  * Setup
@@ -53,9 +42,13 @@ void PROF_NEW(const uint64_t num_threads) {
   // Allocate all profiles
   uint64_t i;
   for (i=0;i<num_threads;++i) {
+    // Allocate
     gem_profile.profile[i].timers = mm_calloc(GP_MAX_COUNTERS,gem_timer_t,true);
     gem_profile.profile[i].counters = mm_calloc(GP_MAX_COUNTERS,gem_counter_t,true);
     gem_profile.profile[i].ranks = mm_calloc(GP_MAX_COUNTERS,gem_reference_counter_t,true);
+    // Others
+    gem_profile.profile[i].strata_deltas_edit = stats_vector_step_range_new(10,1,10);
+    gem_profile.profile[i].strata_deltas_swg = stats_vector_step_range_new(20,1,10);
     // Initialize minimums (towards combine helps a lot)
     uint64_t j;
     for (j=0;j<GP_MAX_COUNTERS;++j) {
@@ -72,8 +65,16 @@ void PROF_DELETE(void) {
     mm_free(gem_profile.profile[i].timers);
     mm_free(gem_profile.profile[i].counters);
     mm_free(gem_profile.profile[i].ranks);
+    stats_vector_delete(gem_profile.profile[i].strata_deltas_edit);
+    stats_vector_delete(gem_profile.profile[i].strata_deltas_swg);
   }
   mm_free(gem_profile.profile);
+}
+/*
+ * Accessors
+ */
+profile_t* PROF_GET_PROFILE() {
+  return gem_profile.profile;
 }
 /*
  * PROFILE-TIME functions
@@ -236,7 +237,7 @@ void PROF_REDUCE_SAMPLE(void) {
   for (j=0;j<GP_MAX_COUNTERS;++j) {
     i=0;
     while (i<gem_profile.num_threads-1 && gem_profile.profile[i].timers[j].time_ns.total==0) i++;
-    gem_profile.profile[0].timers[j].time_ns = gem_profile.profile[i].timers[j].time_ns;
+    gem_profile.profile[0].timers[j] = gem_profile.profile[i].timers[j];
     i=0;
     while (i<gem_profile.num_threads-1 && gem_profile.profile[i].counters[j].total==0) i++;
     gem_profile.profile[0].counters[j] = gem_profile.profile[i].counters[j];

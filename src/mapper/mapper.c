@@ -334,6 +334,7 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
   mapping_stats_t* const mstats = mapper_parameters->global_mapping_stats ?
       mm_calloc(num_threads,mapping_stats_t,false) : NULL;
   // Launch threads
+  PROF_START(GP_MAPPER_MAPPING);
   pthread_handler_t mapper_thread;
   if (paired_end) {
     mapper_thread = (pthread_handler_t) mapper_pe_thread;
@@ -368,6 +369,7 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
   PROFILE_VTUNE_STOP(); // Vtune
   ticker_finish(&ticker);
   ticker_mutex_cleanup(&ticker);
+  PROF_STOP(GP_MAPPER_MAPPING);
 	// Merge report stats
 	if (mstats) {
 		 merge_mapping_stats(mapper_parameters->global_mapping_stats,mstats,num_threads);

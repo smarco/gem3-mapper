@@ -123,12 +123,12 @@ void COUNTER_PRINT_STATS(
     const char* const units) {
   // Print Samples
   const uint64_t num_samples = COUNTER_GET_NUM_SAMPLES(counter);
-  if (num_samples >= BUFFER_SIZE_1G) {
-    fprintf(stream," (samples=%"PRIu64"G",num_samples/BUFFER_SIZE_1G);
-  } else if (num_samples >= BUFFER_SIZE_1M) {
-    fprintf(stream," (samples=%"PRIu64"M",num_samples/BUFFER_SIZE_1M);
-  } else if (num_samples >= BUFFER_SIZE_1K) {
-    fprintf(stream," (samples=%"PRIu64"K",num_samples/BUFFER_SIZE_1K);
+  if (num_samples >= METRIC_FACTOR_1G) {
+    fprintf(stream," (samples=%"PRIu64"G",num_samples/METRIC_FACTOR_1G);
+  } else if (num_samples >= METRIC_FACTOR_1M) {
+    fprintf(stream," (samples=%"PRIu64"M",num_samples/METRIC_FACTOR_1M);
+  } else if (num_samples >= METRIC_FACTOR_1K) {
+    fprintf(stream," (samples=%"PRIu64"K",num_samples/METRIC_FACTOR_1K);
   } else {
     fprintf(stream," (samples=%"PRIu64"",num_samples);
     if (num_samples==0) {
@@ -138,56 +138,56 @@ void COUNTER_PRINT_STATS(
   }
   // Print Mean
   const double mean = COUNTER_GET_MEAN(counter);
-  if (mean >= BUFFER_SIZE_1G) {
-    fprintf(stream,"{mean%.2fG",mean/BUFFER_SIZE_1G);
-  } else if (mean >= BUFFER_SIZE_1M) {
-    fprintf(stream,"{mean%.2fM",mean/BUFFER_SIZE_1M);
-  } else if (mean >= BUFFER_SIZE_1K) {
-    fprintf(stream,"{mean%.2fK",mean/BUFFER_SIZE_1K);
+  if (mean >= METRIC_FACTOR_1G) {
+    fprintf(stream,"{mean%.2fG",mean/METRIC_FACTOR_1G);
+  } else if (mean >= METRIC_FACTOR_1M) {
+    fprintf(stream,"{mean%.2fM",mean/METRIC_FACTOR_1M);
+  } else if (mean >= METRIC_FACTOR_1K) {
+    fprintf(stream,"{mean%.2fK",mean/METRIC_FACTOR_1K);
   } else {
     fprintf(stream,"{mean%.2f",mean);
   }
   // Print Min
   const uint64_t min = COUNTER_GET_MIN(counter);
-  if (min >= BUFFER_SIZE_1G) {
-    fprintf(stream,",min%.2fG",(double)min/BUFFER_SIZE_1G);
-  } else if (min >= BUFFER_SIZE_1M) {
-    fprintf(stream,",min%.2fM",(double)min/BUFFER_SIZE_1M);
-  } else if (min >= BUFFER_SIZE_1K) {
-    fprintf(stream,",min%.2fK",(double)min/BUFFER_SIZE_1K);
+  if (min >= METRIC_FACTOR_1G) {
+    fprintf(stream,",min%.2fG",(double)min/METRIC_FACTOR_1G);
+  } else if (min >= METRIC_FACTOR_1M) {
+    fprintf(stream,",min%.2fM",(double)min/METRIC_FACTOR_1M);
+  } else if (min >= METRIC_FACTOR_1K) {
+    fprintf(stream,",min%.2fK",(double)min/METRIC_FACTOR_1K);
   } else {
     fprintf(stream,",min%.2f",(double)min);
   }
   // Print Max
   const uint64_t max = COUNTER_GET_MAX(counter);
-  if (max >= BUFFER_SIZE_1G) {
-    fprintf(stream,",Max%.2fG",(double)max/BUFFER_SIZE_1G);
-  } else if (max >= BUFFER_SIZE_1M) {
-    fprintf(stream,",Max%.2fM",(double)max/BUFFER_SIZE_1M);
-  } else if (max >= BUFFER_SIZE_1K) {
-    fprintf(stream,",Max%.2fK",(double)max/BUFFER_SIZE_1K);
+  if (max >= METRIC_FACTOR_1G) {
+    fprintf(stream,",Max%.2fG",(double)max/METRIC_FACTOR_1G);
+  } else if (max >= METRIC_FACTOR_1M) {
+    fprintf(stream,",Max%.2fM",(double)max/METRIC_FACTOR_1M);
+  } else if (max >= METRIC_FACTOR_1K) {
+    fprintf(stream,",Max%.2fK",(double)max/METRIC_FACTOR_1K);
   } else {
     fprintf(stream,",Max%.2f",(double)max);
   }
   // Print Variance
   const uint64_t var = COUNTER_GET_VARIANCE(counter);
-  if (var >= BUFFER_SIZE_1G) {
-    fprintf(stream,",Var%.2fG",(double)var/BUFFER_SIZE_1G);
-  } else if (var >= BUFFER_SIZE_1M) {
-    fprintf(stream,",Var%.2fM",(double)var/BUFFER_SIZE_1M);
-  } else if (var >= BUFFER_SIZE_1K) {
-    fprintf(stream,",Var%.2fK",(double)var/BUFFER_SIZE_1K);
+  if (var >= METRIC_FACTOR_1G) {
+    fprintf(stream,",Var%.2fG",(double)var/METRIC_FACTOR_1G);
+  } else if (var >= METRIC_FACTOR_1M) {
+    fprintf(stream,",Var%.2fM",(double)var/METRIC_FACTOR_1M);
+  } else if (var >= METRIC_FACTOR_1K) {
+    fprintf(stream,",Var%.2fK",(double)var/METRIC_FACTOR_1K);
   } else {
     fprintf(stream,",Var%.2f",(double)var);
   }
   // Print Standard Deviation
   const uint64_t stdDev = COUNTER_GET_STDDEV(counter);
-  if (stdDev >= BUFFER_SIZE_1G) {
-    fprintf(stream,",StdDev%.2fG)}\n",(double)stdDev/BUFFER_SIZE_1G);
-  } else if (stdDev >= BUFFER_SIZE_1M) {
-    fprintf(stream,",StdDev%.2fM)}\n",(double)stdDev/BUFFER_SIZE_1M);
-  } else if (stdDev >= BUFFER_SIZE_1K) {
-    fprintf(stream,",StdDev%.2fK)}\n",(double)stdDev/BUFFER_SIZE_1K);
+  if (stdDev >= METRIC_FACTOR_1G) {
+    fprintf(stream,",StdDev%.2fG)}\n",(double)stdDev/METRIC_FACTOR_1G);
+  } else if (stdDev >= METRIC_FACTOR_1M) {
+    fprintf(stream,",StdDev%.2fM)}\n",(double)stdDev/METRIC_FACTOR_1M);
+  } else if (stdDev >= METRIC_FACTOR_1K) {
+    fprintf(stream,",StdDev%.2fK)}\n",(double)stdDev/METRIC_FACTOR_1K);
   } else {
     fprintf(stream,",StdDev%.2f)}\n",(double)stdDev);
   }
@@ -200,12 +200,12 @@ void COUNTER_PRINT(
     const bool full_report) {
   const uint64_t total = COUNTER_GET_TOTAL(counter);
   // Print Total
-  if (total >= BUFFER_SIZE_1G) {
-    fprintf(stream,"%7.2f G%s",(double)total/BUFFER_SIZE_1G,units);
-  } else if (total >= BUFFER_SIZE_1M) {
-    fprintf(stream,"%7.2f M%s",(double)total/BUFFER_SIZE_1M,units);
-  } else if (total >= BUFFER_SIZE_1K) {
-    fprintf(stream,"%7.2f K%s",(double)total/BUFFER_SIZE_1K,units);
+  if (total >= METRIC_FACTOR_1G) {
+    fprintf(stream,"%7.2f G%s",(double)total/METRIC_FACTOR_1G,units);
+  } else if (total >= METRIC_FACTOR_1M) {
+    fprintf(stream,"%7.2f M%s",(double)total/METRIC_FACTOR_1M,units);
+  } else if (total >= METRIC_FACTOR_1K) {
+    fprintf(stream,"%7.2f K%s",(double)total/METRIC_FACTOR_1K,units);
   } else {
     fprintf(stream,"%7.2f %s ",(double)total,units);
   }
@@ -250,12 +250,12 @@ void PERCENTAGE_PRINT(
   fprintf(stream,"%7.2f %%%s\t\t",mean,units);
   // Print Samples
   const uint64_t num_samples = COUNTER_GET_NUM_SAMPLES(counter);
-  if (num_samples >= BUFFER_SIZE_1G) {
-    fprintf(stream," (samples=%"PRIu64"G",num_samples/BUFFER_SIZE_1G);
-  } else if (num_samples >= BUFFER_SIZE_1M) {
-    fprintf(stream," (samples=%"PRIu64"M",num_samples/BUFFER_SIZE_1M);
-  } else if (num_samples >= BUFFER_SIZE_1K) {
-    fprintf(stream," (samples=%"PRIu64"K",num_samples/BUFFER_SIZE_1K);
+  if (num_samples >= METRIC_FACTOR_1G) {
+    fprintf(stream," (samples=%"PRIu64"G",num_samples/METRIC_FACTOR_1G);
+  } else if (num_samples >= METRIC_FACTOR_1M) {
+    fprintf(stream," (samples=%"PRIu64"M",num_samples/METRIC_FACTOR_1M);
+  } else if (num_samples >= METRIC_FACTOR_1K) {
+    fprintf(stream," (samples=%"PRIu64"K",num_samples/METRIC_FACTOR_1K);
   } else {
     fprintf(stream," (samples=%"PRIu64"",num_samples);
   }

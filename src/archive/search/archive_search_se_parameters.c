@@ -66,7 +66,7 @@ void search_parameters_init_error_model(search_parameters_t* const search_parame
   search_parameters->alignment_local = local_alignment_if_unmapped;
   search_parameters->alignment_local_min_identity = 40.0;
   search_parameters->alignment_local_min_swg_threshold = 20.0;
-  search_parameters->alignment_local_max_candidates = 1000;
+  search_parameters->alignment_local_max_candidates = 100;
   search_parameters->alignment_scaffolding_min_coverage = 0.80;
   search_parameters->alignment_scaffolding_min_matching_length = 10.0;
   search_parameters->cigar_curation = true;

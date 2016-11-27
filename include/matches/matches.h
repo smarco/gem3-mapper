@@ -33,6 +33,7 @@
 #include "matches/align/match_alignment.h"
 #include "matches/matches_cigar.h"
 #include "matches/classify/matches_metrics.h"
+#include "stats/stats_vector.h"
 
 /*
  * Matches Type

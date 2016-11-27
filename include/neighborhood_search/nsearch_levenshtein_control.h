@@ -36,8 +36,6 @@ bool nsearch_levenshtein_candidates_cutoff(
     const uint64_t num_candidates,
     nsearch_query_t* const nsearch_query,
     nsearch_query_t* const next_nsearch_query);
-bool nsearch_levenshtein_matches_cutoff(
-    nsearch_schedule_t* const nsearch_schedule);
 
 /*
  * Search terminate branch

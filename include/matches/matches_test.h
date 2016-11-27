@@ -42,6 +42,6 @@ bool matches_test_accuracy_reached(
     const uint64_t key_length,
     search_parameters_t* const search_parameters,
     const uint64_t max_complete_error,
-    uint64_t* const max_complete_error_required);
+    uint64_t* const suggested_max_complete_error);
 
 #endif /* MATCHES_TEST_H_ */

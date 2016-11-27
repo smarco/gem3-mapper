@@ -24,7 +24,8 @@
 #ifndef STATS_VECTOR_H_
 #define STATS_VECTOR_H_
 
-#include "utils/essentials.h"
+#include "system/commons.h"
+#include "utils/hash.h"
 #include "stats/stats_counter.h"
 
 /*

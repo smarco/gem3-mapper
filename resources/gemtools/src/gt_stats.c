@@ -421,6 +421,190 @@ GT_INLINE void gt_stats_get_uniq_distribution(uint64_t* const uniq,const int64_t
     ++uniq[GT_STATS_UNIQ_RANGE_BEHOND];
   }
 }
+GT_INLINE void gt_stats_get_delta_edit_distribution(uint64_t* const delta_edit,gt_template* const template) {
+  const uint64_t num_mmaps = gt_template_get_num_mmaps(template);
+  if (num_mmaps==0) {
+    ++(delta_edit[GT_STATS_DELTA_EDIT_RANGE_UNMAPPED]);
+  } else if (num_mmaps==1) {
+    ++(delta_edit[GT_STATS_DELTA_EDIT_RANGE_UNIQUE]);
+  } else {
+    uint64_t delta, edit_primary, edit_secondary;
+    if (gt_template_get_num_blocks(template)==2) {
+      gt_mmap* const primary = gt_template_get_mmap(template,0);
+      gt_mmap* const secondary = gt_template_get_mmap(template,1);
+      edit_primary =
+          gt_map_get_levenshtein_distance(primary->mmap[0]) +
+          gt_map_get_levenshtein_distance(primary->mmap[1]);
+      edit_secondary =
+          gt_map_get_levenshtein_distance(secondary->mmap[0]) +
+          gt_map_get_levenshtein_distance(secondary->mmap[1]);
+    } else {
+      gt_alignment* const alignment = gt_template_get_block(template,0);
+      gt_map* const primary = gt_alignment_get_map(alignment,0);
+      gt_map* const secondary = gt_alignment_get_map(alignment,1);
+      edit_primary = gt_map_get_levenshtein_distance(primary);
+      edit_secondary = gt_map_get_levenshtein_distance(secondary);
+    }
+    if (edit_primary > edit_secondary) {
+      ++delta_edit[GT_STATS_DELTA_EDIT_RANGE_INCONSISTENT];
+    } else {
+      delta = edit_secondary - edit_primary;
+      if (delta==0) {
+        ++delta_edit[GT_STATS_DELTA_EDIT_RANGE_0];
+      } else if (delta==1) {
+        ++delta_edit[GT_STATS_DELTA_EDIT_RANGE_1];
+      } else if (delta==2) {
+        ++delta_edit[GT_STATS_DELTA_EDIT_RANGE_2];
+      } else if (delta==3) {
+        ++delta_edit[GT_STATS_DELTA_EDIT_RANGE_3];
+      } else if (delta==4) {
+        ++delta_edit[GT_STATS_DELTA_EDIT_RANGE_4];
+      } else if (delta==5) {
+        ++delta_edit[GT_STATS_DELTA_EDIT_RANGE_5];
+      } else if (delta==6) {
+        ++delta_edit[GT_STATS_DELTA_EDIT_RANGE_6];
+      } else if (delta==7) {
+        ++delta_edit[GT_STATS_DELTA_EDIT_RANGE_7];
+      } else if (delta==8) {
+        ++delta_edit[GT_STATS_DELTA_EDIT_RANGE_8];
+      } else if (delta==9) {
+        ++delta_edit[GT_STATS_DELTA_EDIT_RANGE_9];
+      } else if (delta==10) {
+        ++delta_edit[GT_STATS_DELTA_EDIT_RANGE_10];
+      } else {
+        ++delta_edit[GT_STATS_DELTA_EDIT_RANGE_BEHOND];
+      }
+    }
+  }
+}
+GT_INLINE void gt_stats_get_delta_swg_distribution(uint64_t* const delta_swg,gt_template* const template) {
+  const uint64_t num_mmaps = gt_template_get_num_mmaps(template);
+  if (num_mmaps==0) {
+    ++(delta_swg[GT_STATS_DELTA_SWG_RANGE_UNMAPPED]);
+  } else if (num_mmaps==1) {
+    ++(delta_swg[GT_STATS_DELTA_SWG_RANGE_UNIQUE]);
+  } else {
+    int64_t delta, swg_primary, swg_secondary;
+    if (gt_template_get_num_blocks(template)==2) {
+      gt_mmap* const primary = gt_template_get_mmap(template,0);
+      gt_mmap* const secondary = gt_template_get_mmap(template,1);
+      swg_primary =
+          gt_map_get_swg_score(primary->mmap[0]) +
+          gt_map_get_swg_score(primary->mmap[1]);
+      swg_secondary =
+          gt_map_get_swg_score(secondary->mmap[0]) +
+          gt_map_get_swg_score(secondary->mmap[1]);
+    } else {
+      gt_alignment* const alignment = gt_template_get_block(template,0);
+      gt_map* const primary = gt_alignment_get_map(alignment,0);
+      gt_map* const secondary = gt_alignment_get_map(alignment,1);
+      swg_primary = gt_map_get_swg_score(primary);
+      swg_secondary = gt_map_get_swg_score(secondary);
+    }
+    if (swg_primary < swg_secondary) {
+      ++delta_swg[GT_STATS_DELTA_SWG_RANGE_INCONSISTENT];
+    } else {
+      delta = swg_primary - swg_secondary;
+      if (delta==0) {
+        ++delta_swg[GT_STATS_DELTA_SWG_RANGE_0];
+      } else if (delta==1) {
+        ++delta_swg[GT_STATS_DELTA_SWG_RANGE_1];
+      } else if (delta==2) {
+        ++delta_swg[GT_STATS_DELTA_SWG_RANGE_2];
+      } else if (delta==3) {
+        ++delta_swg[GT_STATS_DELTA_SWG_RANGE_3];
+      } else if (delta==4) {
+        ++delta_swg[GT_STATS_DELTA_SWG_RANGE_4];
+      } else if (delta==5) {
+        ++delta_swg[GT_STATS_DELTA_SWG_RANGE_5];
+      } else if (delta<=10) {
+        ++delta_swg[GT_STATS_DELTA_SWG_RANGE_10];
+      } else if (delta<=20) {
+        ++delta_swg[GT_STATS_DELTA_SWG_RANGE_20];
+      } else {
+        ++delta_swg[GT_STATS_DELTA_SWG_RANGE_BEHOND];
+      }
+    }
+  }
+}
+GT_INLINE void gt_stats_get_classes_distribution(uint64_t* const classes,gt_template* const template) {
+  const uint64_t num_mmaps = gt_template_get_num_mmaps(template);
+  if (num_mmaps==0) {
+    ++(classes[GT_STATS_CLASSES_UNMAPPED]);
+  } else if (num_mmaps==1) {
+    ++(classes[GT_STATS_CLASSES_UNIQUE]);
+  } else {
+    uint64_t delta, edit_primary, edit_secondary;
+    if (gt_template_get_num_blocks(template)==2) {
+      gt_mmap* const primary = gt_template_get_mmap(template,0);
+      gt_mmap* const secondary = gt_template_get_mmap(template,1);
+      edit_primary =
+          gt_map_get_levenshtein_distance(primary->mmap[0]) +
+          gt_map_get_levenshtein_distance(primary->mmap[1]);
+      edit_secondary =
+          gt_map_get_levenshtein_distance(secondary->mmap[0]) +
+          gt_map_get_levenshtein_distance(secondary->mmap[1]);
+    } else {
+      gt_alignment* const alignment = gt_template_get_block(template,0);
+      gt_map* const primary = gt_alignment_get_map(alignment,0);
+      gt_map* const secondary = gt_alignment_get_map(alignment,1);
+      edit_primary = gt_map_get_levenshtein_distance(primary);
+      edit_secondary = gt_map_get_levenshtein_distance(secondary);
+    }
+    if (edit_primary > edit_secondary) {
+      ++(classes[GT_STATS_CLASSES_TIE]);
+    } else {
+      delta = edit_secondary - edit_primary;
+      if (delta==0) {
+        if (gt_template_get_num_blocks(template)==2) {
+          gt_mmap* const primary = gt_template_get_mmap(template,0);
+          gt_mmap* const secondary = gt_template_get_mmap(template,1);
+          if (gt_map_cmp_cigar(primary->mmap[0],secondary->mmap[0])==0 &&
+              gt_map_cmp_cigar(primary->mmap[1],secondary->mmap[1])==0) {
+            ++(classes[GT_STATS_CLASSES_TIE_PERFECT]);
+          } else {
+            ++(classes[GT_STATS_CLASSES_TIE]);
+          }
+        } else {
+          gt_alignment* const alignment = gt_template_get_block(template,0);
+          gt_map* const primary = gt_alignment_get_map(alignment,0);
+          gt_map* const secondary = gt_alignment_get_map(alignment,1);
+          if (gt_map_cmp_cigar(primary,secondary)==0) {
+            ++(classes[GT_STATS_CLASSES_TIE_PERFECT]);
+          } else {
+            ++(classes[GT_STATS_CLASSES_TIE]);
+          }
+        }
+      } else if (delta==1) {
+        ++(classes[GT_STATS_CLASSES_MMAP_D1]);
+      } else {
+        ++(classes[GT_STATS_CLASSES_MMAP]);
+      }
+    }
+  }
+}
+GT_INLINE void gt_stats_get_mapq_distribution(uint64_t* const mapq_distribution,gt_template* const template) {
+  const uint64_t num_mmaps = gt_template_get_num_mmaps(template);
+  if (num_mmaps > 0) {
+    uint8_t mapq_score;
+    if (gt_template_get_num_blocks(template)==2) {
+      gt_mmap* const primary = gt_template_get_mmap(template,0);
+      mapq_score = primary->attributes.phred_score;
+      if (primary->mmap[0]->phred_score!=primary->mmap[1]->phred_score) {
+        mapq_score = GT_MIN(primary->mmap[0]->phred_score,primary->mmap[1]->phred_score);
+      }
+    } else {
+      gt_alignment* const alignment = gt_template_get_block(template,0);
+      gt_map* const primary = gt_alignment_get_map(alignment,0);
+      mapq_score = primary->phred_score;
+    }
+    if (mapq_score<=60) {
+      ++(mapq_distribution[mapq_score]);
+    } else {
+      ++(mapq_distribution[GT_STATS_MAPQ_BEHOND]);
+    }
+  }
+}
 GT_INLINE void gt_stats_get_inss_distribution(uint64_t* const inss,const int64_t insert_size) {
   // Check boundaries
   if (insert_size<GT_STATS_INSS_MIN) {
@@ -533,6 +717,10 @@ GT_INLINE gt_stats* gt_stats_new() {
   stats->num_mapped_reads=0;
   stats->mmap = gt_calloc(GT_STATS_MMAP_RANGE,uint64_t,true); // MMaps
   stats->uniq = gt_calloc(GT_STATS_UNIQ_RANGE,uint64_t,true); // Uniq
+  stats->delta_edit = gt_calloc(GT_STATS_DELTA_EDIT_RANGE,uint64_t,true); // Uniq
+  stats->delta_swg = gt_calloc(GT_STATS_DELTA_SWG_RANGE,uint64_t,true); // Uniq
+  stats->classes = gt_calloc(GT_STATS_CLASSES_RANGE,uint64_t,true); // Uniq
+  stats->mapq = gt_calloc(GT_STATS_MAPQ_RANGE,uint64_t,true); // Uniq
   // Maps Error Profile
   stats->maps_profile = gt_maps_profile_new();
   // Split maps Profile
@@ -567,6 +755,10 @@ GT_INLINE void gt_stats_clear(gt_stats* const stats) {
   memset(stats->mmap,0,GT_STATS_MMAP_RANGE*sizeof(uint64_t)); // MMaps
   // Uniq Distribution
   memset(stats->uniq,0,GT_STATS_UNIQ_RANGE*sizeof(uint64_t)); // Uniq
+  memset(stats->delta_edit,0,GT_STATS_DELTA_EDIT_RANGE*sizeof(uint64_t));
+  memset(stats->delta_swg,0,GT_STATS_DELTA_SWG_RANGE*sizeof(uint64_t));
+  memset(stats->classes,0,GT_STATS_CLASSES_RANGE*sizeof(uint64_t));
+  memset(stats->mapq,0,GT_STATS_MAPQ_RANGE*sizeof(uint64_t));
   // Maps Error Profile
   gt_maps_profile_clear(stats->maps_profile);
   // Split maps Profile
@@ -584,6 +776,10 @@ GT_INLINE void gt_stats_delete(gt_stats* const stats) {
   gt_free(stats->nt_counting);
   gt_free(stats->mmap);
   gt_free(stats->uniq);
+  gt_free(stats->delta_edit);
+  gt_free(stats->delta_swg);
+  gt_free(stats->classes);
+  gt_free(stats->mapq);
   gt_maps_profile_delete(stats->maps_profile);
   gt_splitmaps_profile_delete(stats->splitmaps_profile);
   gt_population_profile_delete(stats->population_profile);
@@ -617,10 +813,13 @@ GT_INLINE void gt_stats_merge(gt_stats** const stats,const uint64_t stats_array_
     stats[0]->num_maps += stats[i]->num_maps;
     stats[0]->num_mapped += stats[i]->num_mapped;
     stats[0]->num_mapped_reads += stats[i]->num_mapped_reads;
-    // MMap Distribution
+    // Maps Distribution
     GT_STATS_VECTOR_ADD(stats[0]->mmap,stats[i]->mmap,GT_STATS_MMAP_RANGE);
-    // Uniq Distribution
     GT_STATS_VECTOR_ADD(stats[0]->uniq,stats[i]->uniq,GT_STATS_UNIQ_RANGE);
+    GT_STATS_VECTOR_ADD(stats[0]->delta_edit,stats[i]->delta_edit,GT_STATS_DELTA_EDIT_RANGE);
+    GT_STATS_VECTOR_ADD(stats[0]->delta_swg,stats[i]->delta_swg,GT_STATS_DELTA_SWG_RANGE);
+    GT_STATS_VECTOR_ADD(stats[0]->classes,stats[i]->classes,GT_STATS_CLASSES_RANGE);
+    GT_STATS_VECTOR_ADD(stats[0]->mapq,stats[i]->mapq,GT_STATS_MAPQ_RANGE);
     // Merge Maps Error Profile
     gt_maps_profile_merge(stats[0]->maps_profile,stats[i]->maps_profile);
     // Merge SplitMaps Profile
@@ -793,6 +992,16 @@ GT_INLINE void gt_stats_make_maps_error_profile(
   gt_stats_get_misms(maps_error_profile->deletion_length,total_del_length,alignment_total_length);
   gt_stats_get_misms(maps_error_profile->errors_events,total_errors_events,alignment_total_length);
 }
+void gt_stats_make_map_distribution_profile(
+    gt_stats* const stats,
+    gt_template* const template,
+    const uint64_t alignment_total_length) {
+  gt_stats_get_uniq_distribution(stats->uniq,gt_template_get_uniq_degree(template)); // Uniq Distribution
+  gt_stats_get_delta_edit_distribution(stats->delta_edit,template);
+  gt_stats_get_delta_swg_distribution(stats->delta_swg,template);
+  gt_stats_get_classes_distribution(stats->classes,template);
+  gt_stats_get_mapq_distribution(stats->mapq,template);
+}
 GT_INLINE void gt_stats_make_mmaps_profile(
     gt_stats* const stats,gt_template* const template,
     const uint64_t alignment_total_length,gt_stats_analysis* const stats_analysis) {
@@ -894,7 +1103,10 @@ GT_INLINE void gt_stats_make_mmaps_profile(
   }
 }
 GT_INLINE void gt_stats_calculate_template_stats(
-    gt_stats* const stats,gt_template* const template,gt_sequence_archive* seq_archive,gt_stats_analysis* const stats_analysis) {
+    gt_stats* const stats,
+    gt_template* const template,
+    gt_sequence_archive* seq_archive,
+    gt_stats_analysis* const stats_analysis) {
   // Basic stats
   const uint64_t num_blocks = gt_template_get_num_blocks(template);
   uint64_t num_maps = (stats_analysis->use_map_counters) ?
@@ -939,11 +1151,7 @@ GT_INLINE void gt_stats_calculate_template_stats(
   }
   stats->total_bases += alignment_total_length;
   /*
-   * Uniq Distribution
-   */
-  gt_stats_get_uniq_distribution(stats->uniq,gt_template_get_uniq_degree(template));
-  /*
-   * Maps/MMaps STATS
+   * Map/MMaps distribution profile
    */
   ++stats->num_alignments;
   stats->num_blocks += num_blocks;
@@ -953,6 +1161,7 @@ GT_INLINE void gt_stats_calculate_template_stats(
     stats->total_bases_aligned += alignment_total_length;
     stats->num_maps += num_maps;
   }
+  gt_stats_make_map_distribution_profile(stats,template,alignment_total_length);
   /*
    * MMaps Profile {Insert Size Distribution, Error Profile, SM Profile, ...}
    */
@@ -1246,6 +1455,83 @@ GT_INLINE void gt_stats_print_uniq_distribution(FILE* stream,uint64_t* const uni
   const uint64_t accum = uniq[GT_STATS_UNIQ_RANGE_100]+uniq[GT_STATS_UNIQ_RANGE_500]+uniq[GT_STATS_UNIQ_RANGE_BEHOND];
   fprintf(stream,"  -->   (50,inf) \t=> "GT_STATS_PRINT_UNIQ_FORMAT,accum,100.0*(float)(accum)/(float)num_alignments);
 }
+GT_INLINE void gt_stats_print_delta_edit_distribution(
+    FILE* stream,
+    uint64_t* const delta_edit,
+    const uint64_t num_reads) {
+#define GT_STATS_PRINT_STRATAE_FORMAT "%8" PRIu64 " \t %1.3f%%\n"
+#define GT_STATS_PRINT_STRATAE(RANGE) delta_edit[RANGE],100.0*(float)delta_edit[RANGE]/(float)num_reads
+  if(!num_reads) return;
+  fprintf(stream,"Delta.Edit.ranges\n");
+  fprintf(stream,"  --> [Inconsis] \t=> "GT_STATS_PRINT_STRATAE_FORMAT,GT_STATS_PRINT_STRATAE(GT_STATS_DELTA_EDIT_RANGE_INCONSISTENT));
+  fprintf(stream,"  --> [Unmapped] \t=> "GT_STATS_PRINT_STRATAE_FORMAT,GT_STATS_PRINT_STRATAE(GT_STATS_DELTA_EDIT_RANGE_UNMAPPED));
+  fprintf(stream,"  -->   [Unique] \t=> "GT_STATS_PRINT_STRATAE_FORMAT,GT_STATS_PRINT_STRATAE(GT_STATS_DELTA_EDIT_RANGE_UNIQUE));
+  fprintf(stream,"  -->        [0] \t=> "GT_STATS_PRINT_STRATAE_FORMAT,GT_STATS_PRINT_STRATAE(GT_STATS_DELTA_EDIT_RANGE_0));
+  fprintf(stream,"  -->        [1] \t=> "GT_STATS_PRINT_STRATAE_FORMAT,GT_STATS_PRINT_STRATAE(GT_STATS_DELTA_EDIT_RANGE_1));
+  fprintf(stream,"  -->        [2] \t=> "GT_STATS_PRINT_STRATAE_FORMAT,GT_STATS_PRINT_STRATAE(GT_STATS_DELTA_EDIT_RANGE_2));
+  fprintf(stream,"  -->        [3] \t=> "GT_STATS_PRINT_STRATAE_FORMAT,GT_STATS_PRINT_STRATAE(GT_STATS_DELTA_EDIT_RANGE_3));
+  fprintf(stream,"  -->        [4] \t=> "GT_STATS_PRINT_STRATAE_FORMAT,GT_STATS_PRINT_STRATAE(GT_STATS_DELTA_EDIT_RANGE_4));
+  fprintf(stream,"  -->        [5] \t=> "GT_STATS_PRINT_STRATAE_FORMAT,GT_STATS_PRINT_STRATAE(GT_STATS_DELTA_EDIT_RANGE_5));
+  fprintf(stream,"  -->        [6] \t=> "GT_STATS_PRINT_STRATAE_FORMAT,GT_STATS_PRINT_STRATAE(GT_STATS_DELTA_EDIT_RANGE_6));
+  fprintf(stream,"  -->        [7] \t=> "GT_STATS_PRINT_STRATAE_FORMAT,GT_STATS_PRINT_STRATAE(GT_STATS_DELTA_EDIT_RANGE_7));
+  fprintf(stream,"  -->        [8] \t=> "GT_STATS_PRINT_STRATAE_FORMAT,GT_STATS_PRINT_STRATAE(GT_STATS_DELTA_EDIT_RANGE_8));
+  fprintf(stream,"  -->        [9] \t=> "GT_STATS_PRINT_STRATAE_FORMAT,GT_STATS_PRINT_STRATAE(GT_STATS_DELTA_EDIT_RANGE_9));
+  fprintf(stream,"  -->        [10]\t=> "GT_STATS_PRINT_STRATAE_FORMAT,GT_STATS_PRINT_STRATAE(GT_STATS_DELTA_EDIT_RANGE_10));
+  fprintf(stream,"  -->    [11,int)\t=> "GT_STATS_PRINT_STRATAE_FORMAT,GT_STATS_PRINT_STRATAE(GT_STATS_DELTA_EDIT_RANGE_BEHOND));
+}
+GT_INLINE void gt_stats_print_delta_swg_distribution(
+    FILE* stream,
+    uint64_t* const delta_swg,
+    const uint64_t num_reads) {
+#define GT_STATS_PRINT_STRATAS_FORMAT "%8" PRIu64 " \t %1.3f%%\n"
+#define GT_STATS_PRINT_STRATAS(RANGE) delta_swg[RANGE],100.0*(float)delta_swg[RANGE]/(float)num_reads
+  if(!num_reads) return;
+  fprintf(stream,"Delta.SWG.ranges\n");
+  fprintf(stream,"  --> [Inconsis] \t=> "GT_STATS_PRINT_STRATAS_FORMAT,GT_STATS_PRINT_STRATAS(GT_STATS_DELTA_SWG_RANGE_INCONSISTENT));
+  fprintf(stream,"  --> [Unmapped] \t=> "GT_STATS_PRINT_STRATAS_FORMAT,GT_STATS_PRINT_STRATAS(GT_STATS_DELTA_SWG_RANGE_UNMAPPED));
+  fprintf(stream,"  -->   [Unique] \t=> "GT_STATS_PRINT_STRATAS_FORMAT,GT_STATS_PRINT_STRATAS(GT_STATS_DELTA_SWG_RANGE_UNIQUE));
+  fprintf(stream,"  -->        [0] \t=> "GT_STATS_PRINT_STRATAS_FORMAT,GT_STATS_PRINT_STRATAS(GT_STATS_DELTA_SWG_RANGE_0));
+  fprintf(stream,"  -->        [1] \t=> "GT_STATS_PRINT_STRATAS_FORMAT,GT_STATS_PRINT_STRATAS(GT_STATS_DELTA_SWG_RANGE_1));
+  fprintf(stream,"  -->        [2] \t=> "GT_STATS_PRINT_STRATAS_FORMAT,GT_STATS_PRINT_STRATAS(GT_STATS_DELTA_SWG_RANGE_2));
+  fprintf(stream,"  -->        [3] \t=> "GT_STATS_PRINT_STRATAS_FORMAT,GT_STATS_PRINT_STRATAS(GT_STATS_DELTA_SWG_RANGE_3));
+  fprintf(stream,"  -->        [4] \t=> "GT_STATS_PRINT_STRATAS_FORMAT,GT_STATS_PRINT_STRATAS(GT_STATS_DELTA_SWG_RANGE_4));
+  fprintf(stream,"  -->        [5] \t=> "GT_STATS_PRINT_STRATAS_FORMAT,GT_STATS_PRINT_STRATAS(GT_STATS_DELTA_SWG_RANGE_5));
+  fprintf(stream,"  -->     (5,10] \t=> "GT_STATS_PRINT_STRATAS_FORMAT,GT_STATS_PRINT_STRATAS(GT_STATS_DELTA_SWG_RANGE_10));
+  fprintf(stream,"  -->    (10,20] \t=> "GT_STATS_PRINT_STRATAS_FORMAT,GT_STATS_PRINT_STRATAS(GT_STATS_DELTA_SWG_RANGE_20));
+  fprintf(stream,"  -->   (20,inf) \t=> "GT_STATS_PRINT_STRATAS_FORMAT,GT_STATS_PRINT_STRATAS(GT_STATS_DELTA_SWG_RANGE_BEHOND));
+}
+GT_INLINE void gt_stats_print_classes_distribution(
+    FILE* stream,
+    uint64_t* const classes,
+    const uint64_t num_reads) {
+#define GT_STATS_PRINT_CLASSES_FORMAT "%8" PRIu64 " \t %1.3f%%\n"
+#define GT_STATS_PRINT_CLASSES(RANGE) classes[RANGE],100.0*(float)classes[RANGE]/(float)num_reads
+  if(!num_reads) return;
+  fprintf(stream,"Classes\n");
+  fprintf(stream,"  -->  [Unique]      \t=> "GT_STATS_PRINT_CLASSES_FORMAT,GT_STATS_PRINT_CLASSES(GT_STATS_CLASSES_UNIQUE));
+  fprintf(stream,"  -->  [MMap]        \t=> "GT_STATS_PRINT_CLASSES_FORMAT,GT_STATS_PRINT_CLASSES(GT_STATS_CLASSES_MMAP));
+  fprintf(stream,"  -->  [MMap-D1]     \t=> "GT_STATS_PRINT_CLASSES_FORMAT,GT_STATS_PRINT_CLASSES(GT_STATS_CLASSES_MMAP_D1));
+  fprintf(stream,"  -->  [Tie]         \t=> "GT_STATS_PRINT_CLASSES_FORMAT,GT_STATS_PRINT_CLASSES(GT_STATS_CLASSES_TIE));
+  fprintf(stream,"  -->  [Tie.Perfect] \t=> "GT_STATS_PRINT_CLASSES_FORMAT,GT_STATS_PRINT_CLASSES(GT_STATS_CLASSES_TIE_PERFECT));
+  fprintf(stream,"  -->  [Unmmapped]   \t=> "GT_STATS_PRINT_CLASSES_FORMAT,GT_STATS_PRINT_CLASSES(GT_STATS_CLASSES_UNMAPPED));
+}
+GT_INLINE void gt_stats_print_mapq_distribution(
+    FILE* stream,
+    uint64_t* const mapq,
+    const uint64_t num_reads) {
+#define GT_STATS_PRINT_MAPQ_FORMAT "%8" PRIu64 " \t %1.3f%%"
+#define GT_STATS_PRINT_MAPQ(RANGE) mapq[RANGE],100.0*(float)mapq[RANGE]/(float)num_reads
+  if(!num_reads) return;
+  fprintf(stream,"MAPQ.ranges\n");
+  uint64_t i;
+  fprintf(stream,"  -->    (60,255) => "GT_STATS_PRINT_MAPQ_FORMAT"\n",GT_STATS_PRINT_MAPQ(GT_STATS_MAPQ_BEHOND));
+  fprintf(stream,"  -->        [60] => "GT_STATS_PRINT_MAPQ_FORMAT"\n",GT_STATS_PRINT_MAPQ(60));
+  for (i=0;i<20;++i) {
+    fprintf(stream,"  -->        [%lu] => "GT_STATS_PRINT_MAPQ_FORMAT,59-i,GT_STATS_PRINT_MAPQ(59-i));
+    fprintf(stream,"  [%lu] => "GT_STATS_PRINT_MAPQ_FORMAT,40-i,GT_STATS_PRINT_MAPQ(40-i));
+    fprintf(stream,"  [%lu] => "GT_STATS_PRINT_MAPQ_FORMAT"\n",20-i,GT_STATS_PRINT_MAPQ(20-i));
+  }
+}
 GT_INLINE uint64_t gt_stats_inss_distribution_get_range(uint64_t* const inss,const uint64_t from,const uint64_t to) {
   uint64_t i, accum;
   for (accum=0,i=from;i<=to;++i) accum += inss[i];
@@ -1509,7 +1795,11 @@ GT_INLINE void gt_stats_print_maps_stats(FILE* stream,gt_stats* const stats,cons
   gt_stats_print_mmap_distribution(stream,stats->mmap,num_templates,stats->num_mapped);
   gt_stats_print_length__mmap_distribution(stream,stats->length__mmap,num_templates);
   gt_stats_print_mmap__qualities_distribution(stream,stats->mmap__avg_quality,num_templates);
+  gt_stats_print_mapq_distribution(stream,stats->mapq,num_templates);
   gt_stats_print_uniq_distribution(stream,stats->uniq,num_templates);
+  gt_stats_print_classes_distribution(stream,stats->classes,num_templates);
+  gt_stats_print_delta_edit_distribution(stream,stats->delta_edit,num_templates);
+  gt_stats_print_delta_swg_distribution(stream,stats->delta_swg,num_templates);
   fprintf(stream,"Strand.combinations \n");
   if (paired_end) {
     fprintf(stream,"  --> F+R %" PRIu64 " (%2.3f%%) \n",maps_profile->pair_strand_fr,GT_GET_PERCENTAGE(maps_profile->pair_strand_fr,stats->num_maps));

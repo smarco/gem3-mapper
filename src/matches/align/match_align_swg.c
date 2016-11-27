@@ -77,7 +77,7 @@ void match_align_swg_add_alignment_region(
             .text_length = text_matching_length,
         };
         match_align_parameters_t align_chunk_parameters = {
-            .max_bandwidth = region_error+1, // FIXME Include CIGAR when generating approximate regions
+            .max_bandwidth = region_error+1, // TODO Include CIGAR when generating approximate regions
             .left_gap_alignment = align_parameters->left_gap_alignment,
             .allowed_enc = align_parameters->allowed_enc,
             .swg_penalties = align_parameters->swg_penalties,

@@ -108,7 +108,8 @@ void mapper_profile_print_archive_search_pe(FILE* const stream) {
  * Mapper SE
  */
 void mapper_profile_print_mapper_se(
-    FILE* const stream,const bool map_output,
+    FILE* const stream,
+    const bool map_output,
     const uint64_t num_threads) {
   // Main
   tab_fprintf(stream,"[GEM]>Profile.Mapper\n");
@@ -130,12 +131,16 @@ void mapper_profile_print_mapper_se(
   mapper_profile_print_archive_search_se(stream);
   // Approximate Search
   mapper_profile_print_approximate_search_summary(stream);
+  // Matches SE
+  mapper_profile_print_se_matches(stream);
 }
 /*
  * Mapper PE
  */
 void mapper_profile_print_mapper_pe(
-    FILE* const stream,const bool map_output,const uint64_t num_threads) {
+    FILE* const stream,
+    const bool map_output,
+    const uint64_t num_threads) {
   // All
   tab_fprintf(stream,"[GEM]>Profile.Mapper\n");
   tab_fprintf(stream,"  => TIME.Mapper                           ");
@@ -159,7 +164,11 @@ void mapper_profile_print_mapper_pe(
 }
 #else /* GEM_PROFILE DISABLED */
 void mapper_profile_print_mapper_se(
-    FILE* const stream,const bool map_output,const uint64_t num_threads) {}
+    FILE* const stream,
+    const bool map_output,
+    const uint64_t num_threads) {}
 void mapper_profile_print_mapper_pe(
-    FILE* const stream,const bool map_output,const uint64_t num_threads) {}
+    FILE* const stream,
+    const bool map_output,
+    const uint64_t num_threads) {}
 #endif

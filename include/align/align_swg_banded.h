@@ -20,31 +20,25 @@
  * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
- *   Mapper-profile module provides functions to display
- *   the GEM-profiling counters of the mapper
+ *   Smith-Waterman-Gotoh (SWG) alignment module
  */
 
-#ifndef MAPPER_PROFILE_H_
-#define MAPPER_PROFILE_H_
+#ifndef ALIGN_SWG_BANDED_H_
+#define ALIGN_SWG_BANDED_H_
 
 #include "utils/essentials.h"
-#include "profiler/profiler.h"
-#include "mapper/mapper_profile_counters.h"
+#include "matches/align/match_align_dto.h"
 
 /*
- * Mapper SE
+ * SWG Banded
  */
-void mapper_profile_print_mapper_se(
-    FILE* const stream,
-    const bool map_output,
-    const uint64_t num_threads);
+void align_swg_banded(
+    match_align_input_t* const align_input,
+    match_align_parameters_t* const align_parameters,
+    const bool begin_free,
+    const bool end_free,
+    match_alignment_t* const match_alignment,
+    vector_t* const cigar_vector,
+    mm_stack_t* const mm_stack);
 
-/*
- * Mapper PE
- */
-void mapper_profile_print_mapper_pe(
-    FILE* const stream,
-    const bool map_output,
-    const uint64_t num_threads);
-
-#endif /* MAPPER_PROFILE_H_ */
+#endif /* ALIGN_SWG_BANDED_H_ */

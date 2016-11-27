@@ -24,8 +24,10 @@
 #include "neighborhood_search/nsearch_parameters.h"
 
 void nsearch_parameters_init(nsearch_parameters_t* const nsearch_parameters) {
-  nsearch_parameters->dynamic_filtering = true;
-  nsearch_parameters->dynamic_matches_cutoff = false;
+  // Filtering cut-offs
+  nsearch_parameters->matches_accuracy_cutoff = true;
+  nsearch_parameters->matches_max_searched_cutoff = true;
+  nsearch_parameters->filtering_max_candidates_acc = 1000;
   nsearch_parameters->filtering_quick_th = 0;
   nsearch_parameters->filtering_region_opt_th = 4;
   nsearch_parameters->filtering_region_opt_steps = 10;

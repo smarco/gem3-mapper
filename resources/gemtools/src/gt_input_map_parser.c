@@ -985,11 +985,13 @@ GT_INLINE gt_status gt_imp_parse_map(
         if (parsed_score) return GT_IMP_PE_MAP_BAD_CHARACTER;
         parsed_score = true;
         if ((error_code=gt_imp_parse_map_score_v0(text_line,&((*return_map)->gt_score) ))) return error_code;
+        (*return_map)->phred_score = (*return_map)->gt_score;
         break;
       case GT_IMP_PE_MAP_ATTRIBUTE_SCORE_GEMv1:
         if (parsed_score) return GT_IMP_PE_MAP_BAD_CHARACTER;
         parsed_score = true;
         if ((error_code=gt_imp_parse_map_score_v1(text_line,&((*return_map)->gt_score) ))) return error_code;
+        (*return_map)->phred_score = (*return_map)->gt_score;
         break;
       default:
         return error_code;
@@ -1101,9 +1103,11 @@ GT_INLINE gt_status gt_imp_parse_template_maps(
     mmap_attr.distance = gt_mmap_get_global_distance(mmap,2);
     if (error_code==GT_IMP_PE_MMAP_ATTRIBUTE_SCORE) {
       if ((error_code=gt_imp_parse_map_score_v1(text_line,&mmap_attr.gt_score))) return error_code;
+      mmap_attr.phred_score = mmap_attr.gt_score;
       error_code = gt_imp_next_element(text_line);
     } else {
       mmap_attr.gt_score = GT_MAP_NO_GT_SCORE;
+      mmap_attr.phred_score = 0;
     }
     /*
      * Add the MMap to the template and Maps to individual alignments
@@ -1210,6 +1214,7 @@ GT_INLINE gt_status gt_imp_parse_alignment_maps(const char** const text_line,gt_
         case GT_IMP_PE_MMAP_ATTRIBUTE_SCORE:
           if (parsed_score) return GT_IMP_PE_MAP_BAD_CHARACTER;
           if ((error_code=gt_imp_parse_map_score_v1(text_line,&map_head->gt_score))) return error_code;
+          map_head->phred_score = map_head->gt_score;
           parsed_score = true;
           error_code = gt_imp_next_element(text_line);
           break;
@@ -1278,6 +1283,7 @@ GT_INLINE gt_status gt_imp_map_blocks(const char** const text_line,gt_map** cons
       case GT_IMP_PE_MMAP_ATTRIBUTE_SCORE:
         if (parsed_score) return GT_IMP_PE_MAP_BAD_CHARACTER;
         if ((error_code=gt_imp_parse_map_score_v1(text_line,&map_head->gt_score))) return error_code;
+        map_head->phred_score = map_head->gt_score;
         parsed_score = true;
         error_code = gt_imp_next_element(text_line);
         break;

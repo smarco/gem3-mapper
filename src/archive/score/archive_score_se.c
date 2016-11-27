@@ -186,6 +186,43 @@ void archive_score_matches_se_stratify(
       break;
   }
 }
+#ifdef GEM_PROFILE /* GEM_PROFILE ENABLED */
+void archive_score_matches_se_profile(matches_t* const matches) {
+  // Profile matches classification
+  switch (matches->matches_class) {
+    case matches_class_tie_perfect: PROF_INC_COUNTER(GT_MATCHES_SE_TIE_PERFECT); break;
+    case matches_class_tie: PROF_INC_COUNTER(GT_MATCHES_SE_TIE); break;
+    case matches_class_mmap_d1: PROF_INC_COUNTER(GT_MATCHES_SE_MMAP_D1); break;
+    case matches_class_mmap: PROF_INC_COUNTER(GT_MATCHES_SE_MMAP); break;
+    case matches_class_unique: PROF_INC_COUNTER(GT_MATCHES_SE_UNIQUE); return;
+    case matches_class_unmapped: PROF_INC_COUNTER(GT_MATCHES_SE_UNMAPPED); return;
+    default:
+      GEM_INVALID_CASE();
+      break;
+  }
+  // Parameters
+  profile_t* const profile = PROF_GET_PROFILE();
+  matches_metrics_t* const metrics = &matches->metrics;
+  match_trace_t* const primary_match = matches_get_match_traces(matches)[0];
+  match_trace_t* const secondary_match = matches_get_match_traces(matches)[1];
+  // Compute strata-delta (edit)
+  if (primary_match->edit_distance > metrics->min_edit_distance) {
+    PROF_INC_COUNTER(GT_MATCHES_SE_EDIT_UNCONSISTENT);
+  } else {
+    PROF_INC_COUNTER(GT_MATCHES_SE_EDIT_CONSISTENT);
+    stats_vector_add(profile->strata_deltas_edit,secondary_match->edit_distance-primary_match->edit_distance,1);
+  }
+  // Compute strata-delta (swg)
+  if (primary_match->swg_score < metrics->max_swg_score) {
+    PROF_INC_COUNTER(GT_MATCHES_SE_SWG_UNCONSISTENT);
+  } else {
+    PROF_INC_COUNTER(GT_MATCHES_SE_SWG_CONSISTENT);
+    stats_vector_add(profile->strata_deltas_swg,primary_match->swg_score-secondary_match->swg_score,1);
+  }
+}
+#else
+void archive_score_matches_se_profile(matches_t* const matches) {}
+#endif
 /*
  * Archive Scoring SE
  */
@@ -201,6 +238,7 @@ void archive_score_matches_se(
   const matches_classify_logit_model_t* const classify_model = archive_score_matches_se_get_model(search_parameters);
   // Classify
   matches_classify(matches);
+  archive_score_matches_se_profile(matches);
   /*
    * Select scoring model
    */

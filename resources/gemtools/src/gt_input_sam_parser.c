@@ -383,13 +383,13 @@ GT_INLINE gt_status gt_isp_parse_sam_cigar(char** const text_line,gt_map** _map,
     }
   }
   gt_map_set_base_length(map,position);
-  // Consider map CIGAR in the reverse strand
-  if (reverse_strand) {
-    *_map = map;
-    GT_MAP_ITERATE(map,map_it) {
-      gt_map_reverse_misms(map_it);
-    }
-  }
+//  // Consider map CIGAR in the reverse strand
+//  if (reverse_strand) {
+//    *_map = map;
+//    GT_MAP_ITERATE(map,map_it) {
+//      gt_map_reverse_misms(map_it);
+//    }
+//  }
   return 0;
 }
 
@@ -410,17 +410,87 @@ GT_INLINE gt_status gt_isp_parse_sam_cigar(char** const text_line,gt_map** _map,
   if ((*text_line)[0]==char1 && (*text_line)[1]==char2 && (*text_line)[2]!=EOL && (*text_line)[3]==type_char) {
 #define GT_ISP_END_OPT_FIELD }}
 
-//GT_INLINE gt_status gt_isp_parse_sam_opt_md(
-//    const char** const text_line,gt_alignment* const alignment,
-//    gt_vector* const maps_vector,gt_sam_pending_end* const pending) {
-//  *text_line+=5;
-//  while (**text_line!=TAB && **text_line!=EOL) { // Read new attached maps
-//    if (!gt_is_number(**text_line)) return GT_ISP_PE_EXPECTED_NUMBER;
-//    GT_PARSE_NUMBER(text_line,number);
-//  }
-//  return 0;
-//}
-
+GT_INLINE void gt_isp_parse_sam_opt_md_next_mismatch(
+    gt_map* const map,
+    gt_misms** const misms,
+    uint64_t* const position) {
+  if (*misms==NULL) {
+    *position = 0;
+  } else {
+    ++(*position);
+  }
+  if (*position < gt_map_get_num_misms(map)) {
+    *misms = gt_map_get_misms(map,*position);
+  } else {
+    *position = UINT64_MAX;
+    *misms = NULL;
+  }
+}
+GT_INLINE gt_status gt_isp_parse_sam_opt_md(
+    const char** const text_line,
+    gt_alignment* const alignment,
+    gt_vector* const maps_vector,
+    gt_sam_pending_end* const pending) {
+  // Skip TAG
+  *text_line+=5;
+  // Need to begin with number
+  if (!gt_is_number(**text_line)) return GT_ISP_PE_EXPECTED_NUMBER;
+  // Allocate new misms vector
+  gt_vector* misms_vector = gt_vector_new(4,sizeof(gt_misms));
+  // Prepare Mismatches-iterator
+  gt_map* const map = *gt_vector_get_elm(maps_vector,0,gt_map*);
+  gt_misms* misms = NULL;
+  uint64_t misms_pos;
+  gt_isp_parse_sam_opt_md_next_mismatch(map,&misms,&misms_pos);
+  // Parse Mismatches
+  uint64_t key_pos=0, text_pos=0, number=0;
+  while (**text_line!=TAB && **text_line!=EOL) {
+    // Check MD CIGAR
+    if (**text_line=='^') {
+      ++(*text_line);
+      while (gt_is_dna(**text_line)) ++(*text_line);
+    } else if (gt_is_dna(**text_line)) {
+      gt_misms mismatch;
+      mismatch.misms_type = MISMS;
+      mismatch.position = key_pos;
+      mismatch.base = **text_line;
+      gt_vector_insert(misms_vector,mismatch,gt_misms);
+      ++(*text_line);
+      ++key_pos;
+    } else {
+      // Match
+      if (!gt_is_number(**text_line)) {
+        fprintf(stderr,"Error parsing MD\n"); exit(0);
+      }
+      GT_PARSE_NUMBER(text_line,number);
+      // Check CIGAR mismatches
+      while (misms!=NULL && misms->position <= key_pos+number) { // Next
+        // Account mismatch
+        switch (misms->misms_type) {
+          case MISMS: break;
+          case INS:
+            text_pos += misms->size;
+            break;
+          case DEL:
+            key_pos += misms->size;
+            break;
+          default:
+            break;
+        }
+        // Insert & next
+        gt_vector_insert(misms_vector,*misms,gt_misms);
+        gt_isp_parse_sam_opt_md_next_mismatch(map,&misms,&misms_pos);
+      }
+      // Next
+      key_pos += number;
+      text_pos += number;
+    }
+  }
+  // Swap vectors & free
+  GT_SWAP(map->mismatches,misms_vector);
+  gt_vector_delete(misms_vector);
+  return 0;
+}
 GT_INLINE gt_status gt_isp_parse_sam_opt_xa_bwa(
     const char** const text_line,gt_alignment* const alignment,
     gt_vector* const maps_vector,gt_sam_pending_end* const pending) {
@@ -455,6 +525,7 @@ GT_INLINE gt_status gt_isp_parse_sam_opt_xa_bwa(
     GT_ISP_PARSE_SAM_ALG_CHECK_PREMATURE_EOL();
     GT_NEXT_CHAR(text_line);
     // Edit distance
+    GT_PARSE_NUMBER(text_line,map->gt_score);
     GT_READ_UNTIL(text_line,**text_line==SEMICOLON);
     if (**text_line==SEMICOLON) GT_NEXT_CHAR(text_line);
     // Add it to the list
@@ -481,13 +552,13 @@ GT_INLINE gt_status gt_isp_parse_sam_optional_field(
     }
   } GT_ISP_END_OPT_FIELD;
 
-//  GT_ISP_IF_OPT_FIELD(text_line,'M','D','Z') {
-//    if (is_mapped) {
-//      if (gt_isp_parse_sam_opt_md(text_line,alignment,maps_vector,pending)) {
-//        *text_line = init_opt_field;
-//      }
-//    }
-//  } GT_ISP_END_OPT_FIELD;
+  GT_ISP_IF_OPT_FIELD(text_line,'M','D','Z') {
+    if (is_mapped) {
+      if (gt_isp_parse_sam_opt_md(text_line,alignment,maps_vector,pending)) {
+        *text_line = init_opt_field;
+      }
+    }
+  } GT_ISP_END_OPT_FIELD;
 
   /*
    * SAM-like field (store it as attribute and skip)
@@ -706,7 +777,8 @@ GT_INLINE gt_status gt_isp_parse_sam_alignment(
    */
   while (**text_line==TAB) {
     GT_NEXT_CHAR(text_line);
-    if ((error_code=gt_isp_parse_sam_optional_field((const char** const)text_line,alignment,maps_vector,pending,is_mapped))) {
+    if ((error_code=gt_isp_parse_sam_optional_field(
+        (const char** const)text_line,alignment,maps_vector,pending,is_mapped))) {
       if (maps_vector) {
         GT_VECTOR_ITERATE(maps_vector,map_elm,map_pos,gt_map*) gt_map_delete(*map_elm);
       }
@@ -726,6 +798,15 @@ GT_INLINE gt_status gt_isp_parse_sam_alignment(
       }
     }
     gt_vector_delete(maps_vector);
+  }
+  /*
+   * Reverse CIGAR (if needed)
+   *   Just before XA due to MD synch
+   */
+  if (reverse_strand) {
+    GT_MAP_ITERATE(map,map_it) {
+      gt_map_reverse_misms(map_it);
+    }
   }
   return 0;
 }

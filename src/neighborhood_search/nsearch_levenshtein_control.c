@@ -63,16 +63,6 @@ bool nsearch_levenshtein_candidates_cutoff(
   // Default
   return false;
 }
-bool nsearch_levenshtein_matches_cutoff(
-    nsearch_schedule_t* const nsearch_schedule) {
-  uint64_t dummy = 0;
-  return matches_test_accuracy_reached(
-      nsearch_schedule->matches,
-      nsearch_schedule->current_mcs,
-      nsearch_schedule->pattern->key_length,
-      nsearch_schedule->search_parameters,
-      nsearch_schedule->max_error,&dummy);
-}
 /*
  * Candidate interval limit
  */
@@ -171,15 +161,15 @@ uint64_t nsearch_levenshtein_scheduled_terminate(
   filtering_candidates_add_positions_from_interval(
       filtering_candidates,search_parameters,pattern,fm_2interval->backward_lo,
       fm_2interval->backward_hi,region_begin,region_end,align_distance,&limited);
-  // Dynamic filtering
-  if (nsearch_schedule->search_parameters->nsearch_parameters.dynamic_filtering) {
-    const uint64_t max_searched_matches = search_parameters->select_parameters.max_searched_matches;
-    const uint64_t num_candidate_positions =
-        filtering_candidates_get_num_positions(nsearch_schedule->filtering_candidates);
-    if (num_candidate_positions >= max_searched_matches) {
-      PROF_ADD_COUNTER(GP_NS_BRANCH_CANDIDATES_GENERATED,num_candidate_positions);
-      nsearch_filtering(nsearch_schedule);
-    }
+  // Filtering
+  nsearch_parameters_t* const nsearch_parameters = &nsearch_schedule->search_parameters->nsearch_parameters;
+  const uint64_t max_searched_matches = search_parameters->select_parameters.max_searched_matches;
+  const uint64_t max_candidates_acc = nsearch_parameters->filtering_max_candidates_acc;
+  const uint64_t num_candidates =
+      filtering_candidates_get_num_positions(nsearch_schedule->filtering_candidates);
+  PROF_ADD_COUNTER(GP_NS_BRANCH_CANDIDATES_GENERATED,num_candidates);
+  if (num_candidates >= max_searched_matches || num_candidates >= max_candidates_acc) {
+    nsearch_filtering(nsearch_schedule);
   }
   // PROFILE
   PROF_ADD_COUNTER(GP_NS_SEARCH_DEPTH,text_length);

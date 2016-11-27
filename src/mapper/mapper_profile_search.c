@@ -303,9 +303,9 @@ void mapper_profile_print_neighborhood_search(FILE* const stream) {
   tab_fprintf(stream,"  --> NS.Candidates.Branchwise                     ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_BRANCH_CANDIDATES_GENERATED),
                        PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"     ",true);
-  tab_fprintf(stream,"  --> NS.Candidates.Operation                      ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_OPERATION_CANDIDATES_GENERATED),
-                       PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"     ",true);
+//  tab_fprintf(stream,"  --> NS.Candidates.Operation                      ");
+//  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_OPERATION_CANDIDATES_GENERATED),
+//                       PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"     ",true);
   tab_fprintf(stream,"  --> NS.Candidates.TotalSearch                    ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_NS_SEARCH_CANDIDATES_GENERATED),
                        PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"     ",true);

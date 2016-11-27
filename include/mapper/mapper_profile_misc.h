@@ -42,6 +42,11 @@ void mapper_profile_print_map_output(FILE* const stream,const bool paired_end);
 void mapper_profile_print_sam_output(FILE* const stream,const bool paired_end);
 
 /*
+ * Strata-deltas
+ */
+void mapper_profile_print_se_matches(FILE* const stream);
+
+/*
  * Checks
  */
 void mapper_profile_print_checks(FILE* const stream);

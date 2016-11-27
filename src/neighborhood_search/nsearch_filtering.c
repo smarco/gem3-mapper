@@ -26,6 +26,7 @@
 #include "filtering/candidates/filtering_candidates_process.h"
 #include "filtering/candidates/filtering_candidates_verify.h"
 #include "filtering/candidates/filtering_candidates_align.h"
+#include "matches/matches_test.h"
 
 /*
  * NS Filter candidates
@@ -47,8 +48,23 @@ void nsearch_filtering(nsearch_schedule_t* const nsearch_schedule) {
         false,false,nsearch_schedule->matches);
     PROF_STOP(GP_NS_ALIGN);
     // Check quick-abandon condition
-    if (nsearch_schedule->search_parameters->nsearch_parameters.dynamic_matches_cutoff) {
-      nsearch_schedule->quick_abandon = nsearch_levenshtein_matches_cutoff(nsearch_schedule);
+    nsearch_parameters_t* const nsearch_parameters = &nsearch_schedule->search_parameters->nsearch_parameters;
+    if (nsearch_parameters->matches_accuracy_cutoff) {
+      uint64_t dummy = 0;
+      const bool accuracy_reached =
+          matches_test_accuracy_reached(
+              nsearch_schedule->matches,nsearch_schedule->current_mcs,
+              nsearch_schedule->pattern->key_length,nsearch_schedule->search_parameters,
+              nsearch_schedule->max_error,&dummy);
+      nsearch_schedule->quick_abandon = accuracy_reached;
+    }
+    // Test max-matches
+    if (!nsearch_schedule->quick_abandon && nsearch_parameters->matches_max_searched_cutoff) {
+      const bool max_matches_reached =
+          matches_test_max_matches_reached(
+              nsearch_schedule->matches,nsearch_schedule->current_mcs,
+              nsearch_schedule->pattern->key_length,nsearch_schedule->search_parameters);
+      nsearch_schedule->quick_abandon = max_matches_reached;
     }
   }
 }

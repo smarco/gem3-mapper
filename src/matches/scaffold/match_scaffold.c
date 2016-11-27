@@ -95,6 +95,37 @@ void match_scaffold_rl_translate_regions(
   }
 }
 /*
+ * Exact Scaffolding of the alignment
+ */
+void match_scaffold_exact(
+    match_scaffold_t* const match_scaffold,
+    match_align_input_t* const align_input,
+    match_align_parameters_t* const align_parameters,
+    matches_t* const matches,
+    mm_stack_t* const mm_stack) {
+  // Check scaffold-type
+  if (match_scaffold->scaffold_type == scaffold_none) {
+    /*
+     * Translate alignment-regions
+     */
+    const bool rl_space = match_scaffold->alignment_regions_rl;
+    if (rl_space) {
+      match_scaffold_rl_translate_regions(match_scaffold,align_input,align_parameters,matches);
+      match_scaffold->alignment_regions_rl = false;
+    }
+    /*
+     * Scaffold chaining alignment-regions (from region-profile)
+     */
+    PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_ALIGNMENT_REGIONS,match_scaffold->num_alignment_regions);
+    PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_ALIGNMENT_COVERAGE,
+        (100*match_scaffold->scaffolding_coverage)/align_input->key_length);
+    match_scaffold->scaffold_type = scaffold_alignment_chain;
+    match_scaffold_chain(match_scaffold,align_input,align_parameters,!rl_space,mm_stack);
+    PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_CHAIN_REGIONS_COVERAGE,
+        (100*match_scaffold->scaffolding_coverage)/align_input->key_length);
+  }
+}
+/*
  * Adaptive Scaffolding of the alignment (Best effort)
  */
 void match_scaffold_adaptive(
@@ -105,35 +136,24 @@ void match_scaffold_adaptive(
     mm_stack_t* const mm_stack) {
   PROFILE_START(GP_MATCH_SCAFFOLD_ALIGNMENT,PROFILE_LEVEL);
   /*
-   * Translate alignment-regions
+   * Exact scaffolding
    */
-  const bool rl_space = match_scaffold->alignment_regions_rl;
-  if (rl_space) {
-    match_scaffold_rl_translate_regions(match_scaffold,align_input,align_parameters,matches);
-    match_scaffold->alignment_regions_rl = false;
-  }
+  match_scaffold_exact(match_scaffold,align_input,align_parameters,matches,mm_stack);
   /*
-   * Scaffold chaining alignment-regions (from region-profile)
+   * Adaptive scaffolding
    */
-  PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_ALIGNMENT_REGIONS,match_scaffold->num_alignment_regions);
-  PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_ALIGNMENT_COVERAGE,
-      (100*match_scaffold->scaffolding_coverage)/align_input->key_length);
-  match_scaffold->scaffold_type = scaffold_alignment_chain;
-  match_scaffold_chain(match_scaffold,align_input,align_parameters,!rl_space,mm_stack);
-  PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_CHAIN_REGIONS_COVERAGE,
-      (100*match_scaffold->scaffolding_coverage)/align_input->key_length);
-  const uint64_t max_coverage_bound = BOUNDED_SUBTRACTION(
-      align_input->key_length,align_input->alignment->distance_min_bound,0);
-  if (max_coverage_bound < align_parameters->global_min_identity ||
-      match_scaffold->scaffolding_coverage < max_coverage_bound) { // Check coverage
-    /*
-     * Scaffold from Levenshtein-alignment
-     */
-    match_scaffold->scaffold_type = scaffold_levenshtein; // Set scaffold approach
-    match_scaffold_levenshtein(match_scaffold,align_input,align_parameters,matches,mm_stack);
-    match_scaffold_chain(match_scaffold,align_input,align_parameters,false,mm_stack);
-    PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_COVERAGE,
-        (100*match_scaffold->scaffolding_coverage)/align_input->key_length);
+  if (match_scaffold->scaffold_type == scaffold_alignment_chain) {
+    const uint64_t max_coverage_bound = BOUNDED_SUBTRACTION(
+        align_input->key_length,align_input->alignment->distance_min_bound,0);
+    if (max_coverage_bound < align_parameters->global_min_identity ||
+        match_scaffold->scaffolding_coverage < max_coverage_bound) { // Check coverage
+      // Scaffold from Levenshtein-alignment
+      match_scaffold->scaffold_type = scaffold_levenshtein; // Set scaffold approach
+      match_scaffold_levenshtein(match_scaffold,align_input,align_parameters,matches,mm_stack);
+      match_scaffold_chain(match_scaffold,align_input,align_parameters,false,mm_stack);
+      PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_COVERAGE,
+          (100*match_scaffold->scaffolding_coverage)/align_input->key_length);
+    }
   }
   //  // DEBUG
   //  match_scaffold_print_pretty(stderr,matches,match_scaffold,

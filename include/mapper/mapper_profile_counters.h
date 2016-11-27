@@ -33,12 +33,13 @@
  */
 #define GP_MAPPER_ALL                                         0
 #define GP_MAPPER_LOAD_INDEX                                  1
-#define GP_MAPPER_NUM_READS                                   2
+#define GP_MAPPER_MAPPING                                     2
+#define GP_MAPPER_NUM_READS                                   3
 
-#define GP_OUTPUT_MAP_SE                                      3
-#define GP_OUTPUT_MAP_PE                                      4
-#define GP_OUTPUT_SAM_SE                                      5
-#define GP_OUTPUT_SAM_PE                                      6
+#define GP_OUTPUT_MAP_SE                                     10
+#define GP_OUTPUT_MAP_PE                                     11
+#define GP_OUTPUT_SAM_SE                                     12
+#define GP_OUTPUT_SAM_PE                                     13
 
 /*
  * Archive Search SE
@@ -280,14 +281,26 @@
 #define GP_MATCHES_ACCURACY_CASE_MAP_INCOMPLETE             609
 #define GP_MATCHES_ACCURACY_CASE_MAP_FRONTIER               610
 
+#define GT_MATCHES_SE_EDIT_UNCONSISTENT                     611
+#define GT_MATCHES_SE_EDIT_CONSISTENT                       612
+#define GT_MATCHES_SE_SWG_UNCONSISTENT                      613
+#define GT_MATCHES_SE_SWG_CONSISTENT                        614
+
+#define GT_MATCHES_SE_TIE_PERFECT                           615
+#define GT_MATCHES_SE_TIE                                   616
+#define GT_MATCHES_SE_MMAP_D1                               617
+#define GT_MATCHES_SE_MMAP                                  618
+#define GT_MATCHES_SE_UNIQUE                                619
+#define GT_MATCHES_SE_UNMAPPED                              620
+
 /*
  * SWG
  */
-#define GP_SWG_ALIGN_FULL                                   620
-#define GP_SWG_ALIGN_FULL_LENGTH                            621
-#define GP_SWG_ALIGN_BANDED                                 622
-#define GP_SWG_ALIGN_BANDED_LENGTH                          623
-#define GP_SWG_ALIGN_BANDED_CELLS                           624
+#define GP_SWG_ALIGN_FULL                                   625
+#define GP_SWG_ALIGN_FULL_LENGTH                            626
+#define GP_SWG_ALIGN_BANDED                                 627
+#define GP_SWG_ALIGN_BANDED_LENGTH                          628
+#define GP_SWG_ALIGN_BANDED_CELLS                           629
 
 /*
  * Neighborhood Search
@@ -304,7 +317,6 @@
 
 #define GP_NS_SEARCH_DEPTH                                  645
 #define GP_NS_SEARCH_CANDIDATES_GENERATED                   646
-#define GP_NS_OPERATION_CANDIDATES_GENERATED                647
 #define GP_NS_BRANCH_CANDIDATES_GENERATED                   648
 
 /*

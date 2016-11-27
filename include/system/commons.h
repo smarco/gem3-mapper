@@ -96,6 +96,7 @@
 #define COLON ':'
 #define HASH '#'
 #define UNDERSCORE '_'
+
 // Buffer sizes
 #define BUFFER_SIZE_1K   (1ul<<10)
 #define BUFFER_SIZE_2K   (1ul<<11)
@@ -126,6 +127,11 @@
 #define BUFFER_SIZE_64G  (1ul<<36)
 #define BUFFER_SIZE_128G (1ul<<37)
 #define BUFFER_SIZE_256G (1ul<<38)
+
+// Metric Factors
+#define METRIC_FACTOR_1K   (1000ul)
+#define METRIC_FACTOR_1M   (1000000ul)
+#define METRIC_FACTOR_1G   (1000000000ul)
 
 // Number of lines
 #define NUM_LINES_1K      (1000ul)

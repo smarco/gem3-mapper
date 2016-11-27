@@ -31,6 +31,18 @@
 #include "matches/matches_test.h"
 
 /*
+ * Pattern test
+ */
+bool asearch_control_test_pattern(
+    approximate_search_t* const search) {
+  // Parameters
+  pattern_t* const pattern = &search->pattern;
+  const uint64_t key_length = pattern->key_length;
+  const uint64_t num_wildcards = pattern->num_wildcards;
+  // All characters are wildcards
+  return (key_length!=num_wildcards && key_length!=0);
+}
+/*
  * Search Limits
  */
 void asearch_control_adjust_current_max_error(
@@ -60,18 +72,6 @@ bool asearch_control_max_matches_reached(
       search->pattern.key_length,search_parameters);
 }
 /*
- * Pattern test
- */
-bool asearch_control_test_pattern(
-    approximate_search_t* const search) {
-  // Parameters
-  pattern_t* const pattern = &search->pattern;
-  const uint64_t key_length = pattern->key_length;
-  const uint64_t num_wildcards = pattern->num_wildcards;
-  // All characters are wildcards
-  return (key_length!=num_wildcards && key_length!=0);
-}
-/*
  * Accuracy test
  */
 bool asearch_control_test_accuracy__adjust_depth(
@@ -82,10 +82,16 @@ bool asearch_control_test_accuracy__adjust_depth(
   // Test accuracy
   search_parameters_t* const search_parameters = search->search_parameters;
   const uint64_t mcs = search->region_profile.num_filtered_regions; // (max_error_reached = mcs-1)
-  const bool accuracy_reached = matches_test_accuracy_reached(
-      matches,mcs,search->pattern.key_length,search_parameters,
+  const bool accuracy_reached =
+      matches_test_accuracy_reached(
+          matches,mcs,search->pattern.key_length,search_parameters,
       search->current_max_complete_error,&search->current_max_complete_error);
   if (accuracy_reached) return true; // Done!
+  // Test max-matches
+  const bool max_matches_reached =
+      matches_test_max_matches_reached(
+          matches,mcs,search->pattern.key_length,search_parameters);
+  if (max_matches_reached) return true; // Done!
   // Check error-scheduled
   if (search->pattern.num_wildcards > search->current_max_complete_error) return true; // Done!
   // Otherwise, return false
