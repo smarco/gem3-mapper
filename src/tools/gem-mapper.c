@@ -511,10 +511,10 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
     case 402: // --alignment-max-gap-length (default=100)
       input_text_parse_extended_double(optarg,(double*)&search->alignment_max_aligned_gap_length);
       break;
-    case 403: // --alignment-global-min-identity (default=40)
+    case 403: // --alignment-global-min-identity (default=80%)
       input_text_parse_extended_double(optarg,(double*)&search->alignment_global_min_identity);
       break;
-    case 404: // --alignment-global-min-score (default=0.20)
+    case 404: // --alignment-global-min-score (default=40%)
       input_text_parse_extended_double(optarg,(double*)&search->alignment_global_min_swg_threshold);
       break;
     case 405: // --alignment-local in {'never'|'if-unmapped'} (default=if-unmapped)

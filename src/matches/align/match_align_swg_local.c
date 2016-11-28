@@ -40,8 +40,8 @@ typedef struct {
 void match_align_swg_local_alignment_add_gap(
     cigar_element_t** const local_cigar_buffer,
     const uint64_t begin_key_pos,
-    const uint64_t begin_text_pos,
     const uint64_t end_key_pos,
+    const uint64_t begin_text_pos,
     const uint64_t end_text_pos) {
   // Compute sentinels differences
   const uint64_t key_pos_diff = end_key_pos - begin_key_pos;
@@ -87,6 +87,7 @@ void match_align_swg_local_alignment(
   vector_t* const cigar_vector = matches->cigar_vector;
   match_alignment_t* const match_alignment = &match_trace->match_alignment;
   // Prepare CIGARs
+  const uint64_t local_cigar_offset = vector_get_used(cigar_vector);
   const uint64_t global_cigar_length = match_alignment->cigar_length;
   vector_reserve_additional(cigar_vector,global_cigar_length);
   cigar_element_t* const global_cigar_buffer = vector_get_elm(cigar_vector,match_alignment->cigar_offset,cigar_element_t);
@@ -106,9 +107,9 @@ void match_align_swg_local_alignment(
   // Traverse all CIGAR elements
   uint64_t key_pos = 0, text_pos = 0;
   uint64_t global_key_pos = 0, global_text_pos = 0;
-  uint64_t local_identity = 0, i;
+  uint64_t local_identity = 0, i, num_local_chunks_added = 0;
   int64_t local_score = 0, global_score = 0;
-  for (i=0;i<global_cigar_length;++i) {
+  for (i=0;i<global_cigar_length;) {
     // Add CIGAR operation
     switch (global_cigar_buffer[i].type) {
       case cigar_match: {
@@ -148,17 +149,19 @@ void match_align_swg_local_alignment(
       local_max.local_identity = local_identity;
       local_max.local_end_key_pos = key_pos;
       local_max.local_end_text_pos = text_pos;
-      local_max.local_end_cigar = i;
+      local_max.local_end_cigar = i-1;
     } else if (local_score < 0) {
       // Store local-max alignment chunk
       if (local_max.local_score >= local_min_swg_threshold &&
           local_max.local_identity >= local_min_identity) {
         match_align_swg_local_alignment_add_gap(&local_cigar_buffer,
-            global_key_pos,global_text_pos,local_max.local_begin_key_pos,local_max.local_begin_text_pos);
+            global_key_pos,local_max.local_begin_key_pos,
+            global_text_pos,local_max.local_begin_text_pos);
         match_align_swg_local_alignment_add_local_chunk(global_cigar_buffer,&local_cigar_buffer,&local_max);
         global_key_pos = local_max.local_end_key_pos;
         global_text_pos = local_max.local_end_text_pos;
         global_score += local_max.local_score;
+        ++num_local_chunks_added;
       }
       // Reset
       local_score = 0;
@@ -174,20 +177,29 @@ void match_align_swg_local_alignment(
   if (local_max.local_score >= local_min_swg_threshold &&
       local_max.local_identity >= local_min_identity) {
     match_align_swg_local_alignment_add_gap(&local_cigar_buffer,
-        global_key_pos,global_text_pos,local_max.local_begin_key_pos,local_max.local_begin_text_pos);
-    match_align_swg_local_alignment_add_local_chunk(global_cigar_buffer,&local_cigar_buffer,&local_max);
+        global_key_pos,local_max.local_begin_key_pos,
+        global_text_pos,local_max.local_begin_text_pos);
+    match_align_swg_local_alignment_add_local_chunk(
+        global_cigar_buffer,&local_cigar_buffer,&local_max);
     global_key_pos = local_max.local_end_key_pos;
     global_text_pos = local_max.local_end_text_pos;
     global_score += local_max.local_score;
+    ++num_local_chunks_added;
   }
   // Add final trim (if needed)
   if (global_key_pos != align_input->key_length) {
     match_align_swg_local_alignment_add_gap(
-        &local_cigar_buffer,global_key_pos,0,align_input->key_length,0);
+        &local_cigar_buffer,global_key_pos,align_input->key_length,0,0);
   }
-  // Set local-CIGAR buffer used
-  const uint64_t local_cigar_used = local_cigar_buffer-local_cigar_buffer_base;
-  vector_add_used(cigar_vector,local_cigar_used);
-  // Set SWG-Score
-  match_trace->swg_score = global_score;
+  // Finish
+  if (num_local_chunks_added==0) {
+    match_trace->swg_score = SWG_SCORE_MIN;
+  } else {
+    // Set local-CIGAR buffer used
+    const uint64_t local_cigar_used = local_cigar_buffer-local_cigar_buffer_base;
+    vector_add_used(cigar_vector,local_cigar_used);
+    match_alignment->cigar_length = local_cigar_used;
+    match_alignment->cigar_offset = local_cigar_offset;
+    match_trace->swg_score = global_score; // Set SWG-Score
+  }
 }

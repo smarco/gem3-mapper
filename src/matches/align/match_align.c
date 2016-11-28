@@ -271,12 +271,17 @@ void match_align_smith_waterman_gotoh(
   if (match_trace->type == match_type_local) {
     // Compute Local Alignment
     match_align_swg_local_alignment(matches,match_trace,align_input,align_parameters);
-    if (match_trace->swg_score == 0) {
+    if (match_trace->swg_score == SWG_SCORE_MIN) {
       match_trace->edit_distance = ALIGN_DISTANCE_INF;
       match_trace->event_distance = ALIGN_DISTANCE_INF;
       match_trace->swg_score = SWG_SCORE_MIN;
       return;
     }
+    match_align_normalize(matches,match_trace,align_input,align_parameters);
+    const uint64_t matching_bases =
+        matches_cigar_compute_matching_bases(matches->cigar_vector,
+            match_alignment->cigar_offset,match_alignment->cigar_length);
+    match_trace->swg_score = matching_bases;
   }
   // Compute distance + edit distance + effective-length
   vector_t* const cigar_vector = matches->cigar_vector;

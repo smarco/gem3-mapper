@@ -62,7 +62,7 @@ void search_parameters_init_error_model(search_parameters_t* const search_parame
   search_parameters->alignment_max_aligned_gap_length = 100.0;
   search_parameters->alignment_force_full_swg = false;
   search_parameters->alignment_global_min_identity = 0.80;
-  search_parameters->alignment_global_min_swg_threshold = 0.20; // 0.20*read_length*match_score
+  search_parameters->alignment_global_min_swg_threshold = 0.40; // 0.40*read_length*match_score
   search_parameters->alignment_local = local_alignment_if_unmapped;
   search_parameters->alignment_local_min_identity = 40.0;
   search_parameters->alignment_local_min_swg_threshold = 20.0;
