@@ -181,10 +181,6 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
     archive_search_se(archive_search,matches);
 #endif
 
-    sleep(2);
-    int* a = NULL;
-    *a = 4;
-
     // Bisulfite: Copy back original read
     if (bisulfite_index) mapper_bisulfite_restore_sequence_se(archive_search);
 

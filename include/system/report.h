@@ -90,13 +90,13 @@ bool gem_is_mute_log_stream(void);
  */
 #ifdef GEM_DEBUG_FORCE_SEGFAULT_AT_ERROR
   #define gem_report_end_block(print_gem_report,print_stack_trace,exit_code) \
-      if (print_gem_report) gem_error_get_report_function(gem_stream); \
+      if (print_gem_report) gem_error_get_report_function()(gem_stream); \
       if (print_stack_trace) gem_print_stack_trace(); \
       if (exit_code) { raise(SIGSEGV); exit(exit_code); } \
     } while (0)
 #else
   #define gem_report_end_block(print_gem_report,print_stack_trace,exit_code) \
-      if (print_gem_report) gem_error_get_report_function(gem_stream); \
+      if (print_gem_report) gem_error_get_report_function()(gem_stream); \
       if (print_stack_trace) gem_print_stack_trace(); \
       if (exit_code) exit(exit_code); \
     } while (0)

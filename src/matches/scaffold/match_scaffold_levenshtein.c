@@ -45,7 +45,6 @@ void match_scaffold_levenshtein_compose_alignment(
     matches_t* const matches,
     const match_alignment_t* const match_alignment,
     uint64_t key_offset,
-    const uint64_t text_padding,
     const uint64_t matching_min_length) {
   // Traverse CIGAR elements and compose scaffolding
   const uint64_t cigar_offset = match_alignment->cigar_offset;
@@ -67,8 +66,6 @@ void match_scaffold_levenshtein_compose_alignment(
         } else {
           last_alignment_region = match_scaffold_compose_add_exact_match(
               match_scaffold,&key_offset,&text_offset,cigar_offset + i,match_length); // Add Match
-          gem_fatal_check_msg((int64_t)text_offset < (int64_t)text_padding,
-              "Scaffold levenshtein. Match negative coordinates (because of padding)");
         }
         ++i;
         break;
@@ -100,7 +97,6 @@ void match_scaffold_levenshtein_compose_alignment(
         GEM_INVALID_CASE();
         break;
     }
-
   }
 }
 /*
@@ -143,16 +139,17 @@ void match_scaffold_levenshtein_tiled(
     const uint64_t text_padding = align_input->text_padding;
     gem_fatal_check_msg(text_begin + alignment_offset < text_padding,
         "Scaffold levenshtein. Negative coordinates because of padding");
+    // Offset wrt text (without padding)
     match_alignment.match_text_offset = text_begin + alignment_offset - text_padding;
-    //    // DEBUG
-    //    match_alignment_print_pretty(stderr,&match_alignment,
-    //        matches->cigar_vector,align_input->key + key_offset,bpm_pattern_tile->pattern_length,
-    //        align_input->text+match_alignment.match_text_offset,
-    //        text_end-match_alignment.match_text_offset,mm_stack);
+    //// DEBUG
+    //match_alignment_print_pretty(stderr,&match_alignment,matches->cigar_vector,
+    //  align_input->key + key_offset,bpm_pattern_tile->pattern_length,
+    //  align_input->text_padded + text_begin + alignment_offset,
+    //  text_end-match_alignment.match_text_offset,mm_stack);
     // Add the alignment to the scaffold
     match_scaffold_levenshtein_compose_alignment(
         match_scaffold,matches,&match_alignment,
-        key_offset,text_padding,matching_min_length);
+        key_offset,matching_min_length);
   }
 }
 /*
