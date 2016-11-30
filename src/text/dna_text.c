@@ -228,7 +228,7 @@ dna_text_t* dna_text_read_mem(mm_t* const memory_manager) {
   dna_text_t* const dna_text = mm_alloc(dna_text_t);
   // Read header
   const uint64_t dna_text_model_no = mm_read_uint64(memory_manager);
-  gem_cond_fatal_error(dna_text_model_no!=DNA_TEXT_MODEL_NO,
+  gem_cond_error(dna_text_model_no!=DNA_TEXT_MODEL_NO,
       DNA_TEXT_WRONG_MODEL_NO,dna_text_model_no,(uint64_t)DNA_TEXT_MODEL_NO);
   dna_text->type = mm_read_uint64(memory_manager);
   dna_text->length = mm_read_uint64(memory_manager);

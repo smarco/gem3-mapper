@@ -55,20 +55,14 @@ FILE* gem_debug_get_stream(void);
 void gem_debug_set_stream(FILE* const stream);
 // Mute/Articulate ELD-streams
 void gem_mute_error_stream(void);
-void gem_mute_report_stream(void);
 void gem_articulate_error_stream(void);
-void gem_articulate_report_stream(void);
 bool gem_is_mute_error_stream(void);
-bool gem_is_mute_report_stream(void);
+void gem_mute_log_stream(void);
+void gem_articulate_log_stream(void);
+bool gem_is_mute_log_stream(void);
 /*
- * Low-level code report functions
- *
- * E.g. EXITING ERROR (FATAL)
- *  gem_report_error_begin_block(args...) {
- *    ..Code Block..
- *  } gem_report_end_block(args...);
- *
- * E.g. NOT-EXITING
+ * ERROR Report BEGIN-Macros
+ * E.g.
  *  gem_report_error_begin_block(args...) {
  *    ..Code Block..
  *  } gem_report_end_block(args...);
@@ -76,98 +70,67 @@ bool gem_is_mute_report_stream(void);
 #define gem_report_error_begin_block(gem_label,gem_error_name,args...) \
   do { \
     FILE* const gem_stream=gem_error_get_stream(); \
-    if (!gem_is_mute_report_stream()) { \
+    if (!gem_is_mute_error_stream()) { \
       fprintf(gem_stream,gem_label" (%s:%d,%s)\n "GEM_ERROR_##gem_error_name"\n", \
         GEM_ERROR_BASENAME(__FILE__),__LINE__,__func__, ##args); \
       fflush(gem_stream); \
     }
-#define gem_report_begin_block(gem_label,stream,gem_report_msg,args...) \
+#define gem_report_error_msg_begin_block(gem_label,stream,gem_report_msg,args...) \
   do { \
     FILE* const gem_stream=gem_##stream##_get_stream(); \
-    if (!gem_is_mute_report_stream()) { \
+    if (!gem_is_mute_error_stream()) { \
       fprintf(gem_stream,gem_label" (%s:%d,%s)\n "gem_report_msg"\n", \
         GEM_ERROR_BASENAME(__FILE__),__LINE__,__func__, ##args); \
       fflush(gem_stream); \
     }
-#define gem_report_raw_begin_block(gem_label,stream,gem_report_msg,args...) \
-  do { \
-    FILE* const gem_stream=gem_##stream##_get_stream(); \
-    if (!gem_is_mute_report_stream()) { \
-      fprintf(gem_stream,gem_label":: "gem_report_msg"\n",##args); \
-      fflush(gem_stream); \
-    }
-#define gem_report__timestamp_begin_block(gem_label,stream,gem_report_msg,args...) \
-  do { \
-    FILE* const gem_stream=gem_##stream##_get_stream(); \
-    if (!gem_is_mute_report_stream()) { \
-      tfprintf(gem_stream,gem_label":: "gem_report_msg"\n",##args); \
-      fflush(gem_stream); \
-    }
-// Gem error report end block (forces SEGFAULT so the IDE-debugger can capture the breakpoint -handy-)
+/*
+ * ERROR Report END-Macros
+ *   Gem error report end block (forces SEGFAULT so
+ *   the IDE-debugger can capture the breakpoint -handy-)
+ */
 #ifdef GEM_DEBUG_FORCE_SEGFAULT_AT_ERROR
-  #define gem_report_end_block(print_gem_report,print_stack_trace,do_exit,exit_code) \
-      if (print_gem_report) gem_error_get_report_function()(gem_stream); \
+  #define gem_report_end_block(print_gem_report,print_stack_trace,exit_code) \
+      if (print_gem_report) gem_error_get_report_function(gem_stream); \
       if (print_stack_trace) gem_print_stack_trace(); \
-      if (do_exit) { raise(SIGSEGV); exit(exit_code); } \
+      if (exit_code) { raise(SIGSEGV); exit(exit_code); } \
     } while (0)
 #else
-  #define gem_report_end_block(print_gem_report,print_stack_trace,do_exit,exit_code) \
-      if (print_gem_report) gem_error_get_report_function()(gem_stream); \
+  #define gem_report_end_block(print_gem_report,print_stack_trace,exit_code) \
+      if (print_gem_report) gem_error_get_report_function(gem_stream); \
       if (print_stack_trace) gem_print_stack_trace(); \
-      if (do_exit) exit(exit_code); \
+      if (exit_code) exit(exit_code); \
     } while (0)
 #endif
 /*
- * Log Utilities
+ * LOG Report END-Macros
+ *   Gem error report end block (forces SEGFAULT so
+ *   the IDE-debugger can capture the breakpoint -handy-)
+ *
+ *   gem_log()
+ *   gem_slog()
+ *   gem_cond_log()
  */
 // Simple LOG
 #define gem_slog(gem_log_msg,args...) \
   do { \
     FILE* const gem_stream=gem_log_get_stream(); \
-    if (!gem_is_mute_report_stream()) { \
+    if (!gem_is_mute_log_stream()) { \
       fprintf(gem_stream,gem_log_msg,##args); \
       fflush(gem_stream); \
     } \
   } while (0)
-// Time LOG
-#define gem_xlog(gem_log_msg,args...) \
-  gem_report__timestamp_begin_block(GEM_LABEL_LOG,log,gem_log_msg,##args) \
-  gem_report_end_block(0,0,0,0)
 #define gem_log(gem_log_msg,args...) \
   do { \
     FILE* const gem_stream=gem_log_get_stream(); \
-    if (!gem_is_mute_report_stream()) { \
+    if (!gem_is_mute_log_stream()) { \
       tfprintf(gem_stream,gem_log_msg"\n",##args); \
       fflush(gem_stream); \
     } \
   } while (0)
-// Conditional Time LOG
 #define gem_cond_log(condition,gem_log_msg,args...) \
   do { \
     if (__builtin_expect((condition),0)){ \
       gem_log(gem_log_msg,##args); \
-    } \
-  } while (0)
-// File LOG
-#define gem_flog(stream,gem_log_msg,args...) \
-  do { \
-    fprintf(stream,gem_log_msg,##args); \
-    fflush(stream); \
-  } while (0)
-// Conditional File LOG
-#define gem_cond_flog(condition,stream,gem_log_msg,args...) \
-  do { \
-    if (__builtin_expect((condition),0)){ \
-      gem_flog(stream,gem_log_msg,##args); \
-    } \
-  } while (0)
-// Info LOG
-#define gem_info(gem_info_msg,args...) \
-  do { \
-    FILE* const gem_stream=gem_info_get_stream(); \
-    if (!gem_is_mute_report_stream()) { \
-      fprintf(gem_stream,gem_info_msg,##args); \
-      fflush(gem_stream); \
     } \
   } while (0)
 /*

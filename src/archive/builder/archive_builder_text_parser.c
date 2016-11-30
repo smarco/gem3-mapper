@@ -66,7 +66,7 @@ void archive_builder_inspect_text(
   // Rewind input MULTIFASTA
   input_file_rewind(input_multifasta);
   // Log
-  gem_info("Inspected text %"PRIu64" characters (%s). Requesting %"PRIu64" MB (enc_text)\n",
+  gem_slog("Inspected text %"PRIu64" characters (%s). Requesting %"PRIu64" MB (enc_text)\n",
       enc_text_length,"index_complement=yes",CONVERT_B_TO_MB(enc_text_length));
   // Allocate Text (Circular BWT extra)
   archive_builder->enc_text = dna_text_padded_new(enc_text_length,2,SA_BWT_PADDED_LENGTH);
@@ -166,7 +166,7 @@ void archive_builder_generate_text_add_sequence(
   input_multifasta_state_t* const parsing_state = &(archive_builder->parsing_state);
   // Close sequence
   if (parsing_state->multifasta_read_state==Reading_sequence) {
-    gem_cond_fatal_error(input_multifasta_get_text_sequence_length(parsing_state)==0,
+    gem_cond_error(input_multifasta_get_text_sequence_length(parsing_state)==0,
         MULTIFASTA_SEQ_EMPTY,PRI_input_file_content(input_multifasta));
     archive_builder_generate_text_process_unknowns(archive_builder); // Check Ns
     archive_builder_generate_text_close_sequence(archive_builder);   // Close last sequence
@@ -179,7 +179,7 @@ void archive_builder_generate_text_add_sequence(
     if (MFASTA_IS_ANY_TAG_SEPARATOR(tag_buffer[tag_length])) break;
   }
   tag_buffer[tag_length] = EOS;
-  gem_cond_fatal_error(tag_length==0,MULTIFASTA_TAG_EMPTY,PRI_input_file_content(input_multifasta));
+  gem_cond_error(tag_length==0,MULTIFASTA_TAG_EMPTY,PRI_input_file_content(input_multifasta));
   // Add to locator
   parsing_state->tag_id = locator_builder_add_sequence(archive_builder->locator,tag_buffer,tag_length);
   // Open interval
@@ -193,7 +193,7 @@ void archive_builder_generate_text_process_character(
     const char current_char) {
   // Check Character
   if (current_char==DNA_CHAR_N || !is_extended_dna(current_char)) { // Handle Ns
-    gem_cond_fatal_error(!is_iupac_code(current_char),
+    gem_cond_error(!is_iupac_code(current_char),
         MULTIFASTA_INVALID_CHAR,PRI_input_file_content(input_multifasta),current_char);
     ++(archive_builder->parsing_state.ns_pending);
   } else { // Other character
@@ -212,7 +212,7 @@ void archive_builder_generate_forward_text(
     const bool verbose) {
   // Check MultiFASTA
   input_file_check_buffer(input_multifasta);
-  gem_cond_fatal_error((char)input_file_get_current_char(input_multifasta)!=FASTA_TAG_BEGIN,
+  gem_cond_error((char)input_file_get_current_char(input_multifasta)!=FASTA_TAG_BEGIN,
       MULTIFASTA_BEGINNING_TAG,PRI_input_file_content(input_multifasta));
   // Prepare ticket
   ticker_t ticker;
@@ -245,7 +245,7 @@ void archive_builder_generate_forward_text(
   // Close sequence
   archive_builder_generate_text_process_unknowns(archive_builder); // Check Ns
   archive_builder_generate_text_close_sequence(archive_builder);
-  gem_cond_fatal_error(input_multifasta_get_text_sequence_length(&archive_builder->parsing_state)==0,
+  gem_cond_error(input_multifasta_get_text_sequence_length(&archive_builder->parsing_state)==0,
       MULTIFASTA_SEQ_EMPTY,PRI_input_file_content(input_multifasta)); // Check sequence not null
   // Free
   vector_delete(line_buffer);

@@ -321,7 +321,7 @@ void sa_builder_store_suffixes(
   global_sa_builder = sa_builder; // Set global data
   sa_builder_store_suffixes_prepare(sa_builder); // Begin
   // DEBUG
-  sa_builder_display_stats(gem_info_get_stream(),sa_builder,true);
+  sa_builder_display_stats(gem_log_get_stream(),sa_builder,true);
   /*
    * Launch Writing Threads
    */

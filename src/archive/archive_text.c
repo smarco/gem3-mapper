@@ -51,11 +51,11 @@ void archive_text_write(
   if (explicit_complement) {
     // Save all (except extra separator)
     dna_text_write_chunk(file_manager,enc_text,dna_text_get_length(enc_text)-1);
-    if (verbose) dna_text_print(gem_info_get_stream(),enc_text);
+    if (verbose) dna_text_print(gem_log_get_stream(),enc_text);
   } else {
     // Save just forward text
     dna_text_write_chunk(file_manager,enc_text,forward_text_length);
-    if (verbose) dna_text_print(gem_info_get_stream(),enc_text);
+    if (verbose) dna_text_print(gem_log_get_stream(),enc_text);
   }
   // Sampled RL-Index Positions
   if (sampled_rl!=NULL) sampled_rl_write(file_manager,sampled_rl);
@@ -68,7 +68,7 @@ archive_text_t* archive_text_read_mem(mm_t* const memory_manager) {
   archive_text_t* const archive_text = mm_alloc(archive_text_t);
   // Read Header
   const uint64_t archive_text_model_no = mm_read_uint64(memory_manager);
-  gem_cond_fatal_error(archive_text_model_no!=ARCHIVE_TEXT_MODEL_NO,
+  gem_cond_error(archive_text_model_no!=ARCHIVE_TEXT_MODEL_NO,
       ARCHIVE_TEXT_WRONG_MODEL_NO,archive_text_model_no,(uint64_t)ARCHIVE_TEXT_MODEL_NO);
   archive_text->run_length = (mm_read_uint64(memory_manager)==1); // RL-Text
   archive_text->explicit_complement = (mm_read_uint64(memory_manager)==1); // Explicit RC-text

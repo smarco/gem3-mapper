@@ -181,6 +181,10 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
     archive_search_se(archive_search,matches);
 #endif
 
+    sleep(2);
+    int* a = NULL;
+    *a = 4;
+
     // Bisulfite: Copy back original read
     if (bisulfite_index) mapper_bisulfite_restore_sequence_se(archive_search);
 
@@ -357,13 +361,13 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
 		  mapper_search[i].mapping_stats = NULL;
 		}
     // Launch thread
-    gem_cond_fatal_error__perror(
+    gem_cond_fatal_error(
         pthread_create(mapper_search[i].thread_data,0,
             mapper_thread,(void*)(mapper_search+i)),SYS_THREAD_CREATE);
   }
   // Join all threads
   for (i=0;i<num_threads;++i) {
-    gem_cond_fatal_error__perror(pthread_join(*(mapper_search[i].thread_data),0),SYS_THREAD_JOIN);
+    gem_cond_fatal_error(pthread_join(*(mapper_search[i].thread_data),0),SYS_THREAD_JOIN);
     mm_free(mapper_search[i].thread_data);
   }
   PROFILE_VTUNE_STOP(); // Vtune

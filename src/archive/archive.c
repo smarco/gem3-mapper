@@ -47,7 +47,8 @@ archive_t* archive_read_mem(mm_t* const memory_manager,const bool read_text_only
   archive->mm = memory_manager;
   // Load archive meta-data
   const uint64_t archive_model_no = mm_read_uint64(memory_manager);
-  gem_cond_fatal_error(archive_model_no!=ARCHIVE_MODEL_NO,ARCHIVE_WRONG_MODEL_NO,archive_model_no,(uint64_t)ARCHIVE_MODEL_NO);
+  gem_cond_error(archive_model_no!=ARCHIVE_MODEL_NO,
+      ARCHIVE_WRONG_MODEL_NO,archive_model_no,(uint64_t)ARCHIVE_MODEL_NO);
   archive->type = mm_read_uint64(archive->mm);
   mm_read_uint64(archive->mm); // archive->indexed_complement // TODO Remove with next index change
   archive->ns_threshold = mm_read_uint64(archive->mm);

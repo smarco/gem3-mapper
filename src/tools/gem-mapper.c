@@ -54,14 +54,6 @@ char* const gem_version = GEM_VERSION_STRING(GEM_VERSION);
       exit(1); \
     } \
   } while (0)
-#define gem_mapper_cond_error_msg__perror(condition,error_msg,args...) \
-  do { \
-    if (__builtin_expect((condition),0)){ \
-      gem_mapper_error_report(error_msg,##args); \
-      gem_perror(); \
-      exit(1); \
-    } \
-  } while (0)
 
 /*
  * GEM-mapper Parsing
@@ -141,7 +133,7 @@ void gem_mapper_open_output(mapper_parameters_t* const parameters) {
   } else {
     gem_cond_log(parameters->misc.verbose_user,"[Outputting to '%s']",parameters->io.output_file_name);
     parameters->output_stream = fopen(parameters->io.output_file_name,"w");
-    gem_mapper_cond_error_msg__perror(parameters->output_stream==NULL,
+    gem_mapper_cond_error_msg(parameters->output_stream==NULL,
         "Couldn't open output file '%s'",parameters->io.output_file_name);
   }
   // Open output file
@@ -174,19 +166,19 @@ void gem_mapper_print_profile(mapper_parameters_t* const parameters) {
     default: GEM_INVALID_CASE(); break;
   }
   // System
-  system_print_info(gem_info_get_stream());
+  system_print_info(gem_log_get_stream());
   // Parameters
-  // mapper_parameters_print(gem_info_get_stream(),parameters);
+  // mapper_parameters_print(gem_log_get_stream(),parameters);
   // Mapper
   if (!parameters->cuda.cuda_enabled) {
     // CPU Mapper
     switch (parameters->mapper_type) {
       case mapper_se:
-        mapper_profile_print_mapper_se(gem_info_get_stream(),
+        mapper_profile_print_mapper_se(gem_log_get_stream(),
             parameters->io.output_format==MAP,parameters->system.num_threads);
         break;
       case mapper_pe:
-        mapper_profile_print_mapper_pe(gem_info_get_stream(),
+        mapper_profile_print_mapper_pe(gem_log_get_stream(),
             parameters->io.output_format==MAP,parameters->system.num_threads);
         break;
       default:
@@ -196,11 +188,11 @@ void gem_mapper_print_profile(mapper_parameters_t* const parameters) {
     // CUDA Mapper
     switch (parameters->mapper_type) {
       case mapper_se:
-        mapper_profile_print_mapper_se_cuda(gem_info_get_stream(),
+        mapper_profile_print_mapper_se_cuda(gem_log_get_stream(),
             parameters->io.output_format==MAP,parameters->system.num_threads);
         break;
       case mapper_pe:
-        mapper_profile_print_mapper_pe_cuda(gem_info_get_stream(),
+        mapper_profile_print_mapper_pe_cuda(gem_log_get_stream(),
             parameters->io.output_format==MAP,parameters->system.num_threads);
         break;
       default:
@@ -839,7 +831,9 @@ void parse_arguments(int argc,char** argv,mapper_parameters_t* const parameters)
           "Option '--threads-cuda'. Error parsing 'num_selecting_threads'");
       break;
     case 1100: // --max-memory
-      gem_cond_fatal_error(input_text_parse_size(optarg,&(parameters->system.max_memory)),PARSING_SIZE,"--max-memory",optarg);
+      gem_mapper_cond_error_msg(
+          input_text_parse_size(optarg,&(parameters->system.max_memory)),
+          "Error parsing --max-memory. '%s' not a valid size (Eg. 2GB)",optarg);
       break;
     case 1101: // --tmp-folder
       parameters->system.tmp_folder = optarg;

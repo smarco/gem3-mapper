@@ -101,7 +101,7 @@ void mapper_pe_cuda_region_profile(mapper_cuda_search_t* const mapper_search) {
     const error_code_t error_code = mapper_pe_parse_paired_sequences(parameters,
         mapper_search->buffered_fasta_input_end1,mapper_search->buffered_fasta_input_end2,
         archive_search_end1,archive_search_end2);
-    gem_cond_fatal_error(error_code==INPUT_STATUS_FAIL,MAPPER_CUDA_ERROR_PARSING);
+    gem_cond_error(error_code==INPUT_STATUS_FAIL,MAPPER_CUDA_ERROR_PARSING);
     // Bisulfite: Fully convert reads before searching into archive, making a copy of the original
     if (bisulfite_index) mapper_bisulfite_process_sequence_pe(archive_search_end1,archive_search_end2);
     // Generate Candidates (Search into the archive)

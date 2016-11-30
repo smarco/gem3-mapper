@@ -151,14 +151,14 @@ void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,const bool pai
   	mapper_cuda_setup_thread(mapper_search+i,i,mapper_parameters,gpu_buffers_offset,mstats,&ticker);
   	gpu_buffers_offset += num_gpu_buffers_per_thread;
     // Launch thread
-    gem_cond_fatal_error__perror(
+    gem_cond_fatal_error(
         pthread_create(mapper_search[i].thread_data,0,
             (void* (*)(void*) )(paired_end ? mapper_cuda_pe_thread : mapper_cuda_se_thread),
             (void* )(mapper_search + i)),SYS_THREAD_CREATE);
   }
   // Join all threads
   for (i=0;i<num_threads;++i) {
-    gem_cond_fatal_error__perror(pthread_join(*(mapper_search[i].thread_data),0),SYS_THREAD_JOIN);
+    gem_cond_fatal_error(pthread_join(*(mapper_search[i].thread_data),0),SYS_THREAD_JOIN);
     mm_free(mapper_search[i].thread_data);
   }
   PROFILE_VTUNE_STOP(); // Vtune

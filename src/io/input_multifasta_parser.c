@@ -77,7 +77,7 @@ void input_multifasta_parse_tag(input_file_t* const input_multifasta,string_t* c
   // Prepare to add a new TAG
   string_clear(tag);
   // Check empty tag
-  gem_cond_fatal_error(!input_file_next_char(input_multifasta),
+  gem_cond_error(!input_file_next_char(input_multifasta),
       MULTIFASTA_TAG_EMPTY,PRI_input_file_content(input_multifasta));
   // Read tag
   char current_char = input_file_get_current_char(input_multifasta);
@@ -91,7 +91,7 @@ void input_multifasta_parse_tag(input_file_t* const input_multifasta,string_t* c
     string_append_char(tag,current_char);
   }
   // Check empty and append EOS
-  gem_cond_fatal_error(string_get_length(tag)==0,
+  gem_cond_error(string_get_length(tag)==0,
       MULTIFASTA_TAG_EMPTY,PRI_input_file_content(input_multifasta)); // Empty TAG
   string_append_eos(tag);
   // Skip the rest of the line
@@ -102,7 +102,7 @@ void input_multifasta_parse_tag(input_file_t* const input_multifasta,string_t* c
 }
 void input_multifasta_skip_tag(input_file_t* const input_multifasta) {
   // Check empty tag
-  gem_cond_fatal_error(!input_file_next_char(input_multifasta),
+  gem_cond_error(!input_file_next_char(input_multifasta),
       MULTIFASTA_TAG_EMPTY,PRI_input_file_content(input_multifasta));
   // Read tag
   char current_char = input_file_get_current_char(input_multifasta);

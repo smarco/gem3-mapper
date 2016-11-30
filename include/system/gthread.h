@@ -45,13 +45,13 @@ void gem_thread_cleanup(void);
  * Mutex/ConditionalVars Helpers
  */
 #define MUTEX_INIT(mutex) \
-  gem_cond_fatal_error__perror(pthread_mutex_init(&(mutex),NULL),SYS_MUTEX_INIT);
+  gem_cond_fatal_error(pthread_mutex_init(&(mutex),NULL),SYS_MUTEX_INIT);
 #define MUTEX_DESTROY(mutex) \
-  gem_cond_fatal_error__perror(pthread_mutex_destroy(&(mutex)),SYS_MUTEX_DESTROY);
+  gem_cond_fatal_error(pthread_mutex_destroy(&(mutex)),SYS_MUTEX_DESTROY);
 #define MUTEX_BEGIN_SECTION(mutex) \
-  gem_cond_fatal_error__perror(pthread_mutex_lock(&(mutex)),SYS_MUTEX);
+  gem_cond_fatal_error(pthread_mutex_lock(&(mutex)),SYS_MUTEX);
 #define MUTEX_END_SECTION(mutex) \
-  gem_cond_fatal_error__perror(pthread_mutex_unlock(&(mutex)),SYS_MUTEX);
+  gem_cond_fatal_error(pthread_mutex_unlock(&(mutex)),SYS_MUTEX);
 
 #define CV_INIT(cv) \
   gem_cond_fatal_error(pthread_cond_init(&(cv),NULL),SYS_COND_VAR_INIT);

@@ -134,7 +134,7 @@ void fm_initialize(fm_t* const file_manager) {
     case FM_GZIPPED_FILE: {
       // TODO: patch FM_READ_WRITE
       file_manager->fd = fileno(file_manager->file);
-      gem_cond_fatal_error__perror(file_manager->fd==-1,FM_FILENO);
+      gem_cond_fatal_error(file_manager->fd==-1,FM_FILENO);
       file_manager->gz_file = gzdopen(file_manager->fd,fm_gzfile_open_flags[file_manager->mode]);
       gem_cond_fatal_error(!file_manager->gz_file,FM_GZOPEN);
       break;
@@ -162,10 +162,10 @@ void fm_initialize(fm_t* const file_manager) {
 void fm_check_file_type(fm_t* const file_manager,char* const file_name) {
   // Check FILE stats
   struct stat stat_info;
-  gem_cond_fatal_error__perror(stat(file_name,&stat_info)==-1,FM_STAT,file_name);
+  gem_cond_fatal_error(stat(file_name,&stat_info)==-1,FM_STAT,file_name);
   // Open the FILE and check type
   FILE* file;
-  gem_cond_fatal_error__perror(!(file=fopen(file_name,"r")),FM_OPEN,file_name);
+  gem_cond_fatal_error(!(file=fopen(file_name,"r")),FM_OPEN,file_name);
   if (S_ISREG(stat_info.st_mode)) { // Regular file
     file_manager->file_type = FM_REGULAR_FILE;
     file_manager->file_size = stat_info.st_size;
@@ -182,16 +182,16 @@ void fm_check_file_type(fm_t* const file_manager,char* const file_name) {
     file_manager->file_type = FM_STREAM;
     file_manager->file_size = UINT64_MAX;
   }
-  gem_cond_fatal_error__perror(fclose(file),FM_CLOSE,file_name);
+  gem_cond_fatal_error(fclose(file),FM_CLOSE,file_name);
 }
 fm_t* fm_open_file(char* const file_name,const fm_mode mode) {
   // Allocate handler
   fm_t* file_manager = mm_alloc(fm_t);
   // File
   file_manager->fd = open(file_name,fm_open_flags[mode],S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
-  gem_cond_fatal_error__perror(file_manager->fd==-1,FM_OPEN,file_name);
+  gem_cond_fatal_error(file_manager->fd==-1,FM_OPEN,file_name);
   file_manager->file = fdopen(file_manager->fd,fm_file_open_flags[mode]);
-  gem_cond_fatal_error__perror(file_manager->file==NULL,FM_FDOPEN,file_name);
+  gem_cond_fatal_error(file_manager->file==NULL,FM_FDOPEN,file_name);
 #ifdef HAVE_BZLIB
   file_manager->bz_file = NULL;
 #endif
@@ -222,11 +222,11 @@ fm_t* fm_open_temp_file(void) {
   sprintf(file_manager->file_name,"%sfm_temp_XXXXXX",mm_get_tmp_folder());
   // Make it temporary
   file_manager->fd = mkstemp(file_manager->file_name);
-  gem_cond_fatal_error__perror(file_manager->fd==-1,SYS_MKSTEMP,file_manager->file_name);
-  gem_cond_fatal_error__perror(unlink(file_manager->file_name),SYS_HANDLE_TMP); // Make it temporal
+  gem_cond_fatal_error(file_manager->fd==-1,SYS_MKSTEMP,file_manager->file_name);
+  gem_cond_fatal_error(unlink(file_manager->file_name),SYS_HANDLE_TMP); // Make it temporal
   // File
   file_manager->file = fdopen(file_manager->fd,fm_file_open_flags[FM_READ_WRITE]);
-  gem_cond_fatal_error__perror(file_manager->file==NULL,FM_FDOPEN,file_manager->file_name);
+  gem_cond_fatal_error(file_manager->file==NULL,FM_FDOPEN,file_manager->file_name);
 #ifdef HAVE_BZLIB
   file_manager->bz_file = NULL;
 #endif
@@ -317,10 +317,10 @@ void fm_close(fm_t* const file_manager) {
   // Close fm
   switch (file_manager->file_type) {
     case FM_STREAM:
-      gem_cond_fatal_error__perror(fclose(file_manager->file),FM_CLOSE,file_manager->file_name);
+      gem_cond_fatal_error(fclose(file_manager->file),FM_CLOSE,file_manager->file_name);
       break;
     case FM_REGULAR_FILE:
-      gem_cond_fatal_error__perror(fclose(file_manager->file),FM_CLOSE,file_manager->file_name);
+      gem_cond_fatal_error(fclose(file_manager->file),FM_CLOSE,file_manager->file_name);
       break;
 #ifdef HAVE_ZLIB
     case FM_GZIPPED_FILE:
@@ -395,7 +395,7 @@ void fm_seek(fm_t* const file_manager,const uint64_t position) {
   if (file_manager->file_type==FM_REGULAR_FILE) {
     if (file_manager->byte_position!=position) {
       // True Skip (if possible)
-      gem_cond_fatal_error__perror(fseek(file_manager->file,position,SEEK_SET),FM_SEEK,
+      gem_cond_fatal_error(fseek(file_manager->file,position,SEEK_SET),FM_SEEK,
           file_manager->file_name,file_manager->byte_position+position);
       // Update locator
       file_manager->byte_position = position;
@@ -403,7 +403,7 @@ void fm_seek(fm_t* const file_manager,const uint64_t position) {
     }
 #ifdef HAVE_ZLIB
 	} else if(FM_IS_READING(file_manager->mode) && file_manager->file_type==FM_GZIPPED_FILE) {
-      gem_cond_fatal_error__perror(gzseek(file_manager->gz_file,position,SEEK_SET)<0,FM_SEEK,
+      gem_cond_fatal_error(gzseek(file_manager->gz_file,position,SEEK_SET)<0,FM_SEEK,
           file_manager->file_name,file_manager->byte_position+position);
       // Update locator
       file_manager->byte_position = position;
@@ -421,9 +421,9 @@ void fm_seek(fm_t* const file_manager,const uint64_t position) {
 				file_manager->skip_read_buffer=NULL;
 		 }
 		 file_manager->fd = open(file_manager->file_name,fm_open_flags[file_manager->mode],S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
-		 gem_cond_fatal_error__perror(file_manager->fd==-1,FM_OPEN,file_manager->file_name);
+		 gem_cond_fatal_error(file_manager->fd==-1,FM_OPEN,file_manager->file_name);
 		 file_manager->file = fdopen(file_manager->fd,fm_file_open_flags[file_manager->mode]);
-		 gem_cond_fatal_error__perror(file_manager->file==NULL,FM_FDOPEN,file_manager->file_name);
+		 gem_cond_fatal_error(file_manager->file==NULL,FM_FDOPEN,file_manager->file_name);
 		 int bzerror;
 		 file_manager->bz_file = BZ2_bzReadOpen(&bzerror,file_manager->file,0,0,NULL,0);
 		 gem_cond_fatal_error(bzerror!=BZ_OK,FM_BZOPEN);
@@ -442,7 +442,7 @@ void fm_skip_forward(fm_t* const file_manager,const uint64_t num_bytes) {
      */
     if (file_manager->file_type==FM_STREAM || file_manager->file_type==FM_REGULAR_FILE) {
       // True Skip (if possible)
-      gem_cond_fatal_error__perror(fseek(file_manager->file,num_bytes,SEEK_CUR),FM_SEEK,
+      gem_cond_fatal_error(fseek(file_manager->file,num_bytes,SEEK_CUR),FM_SEEK,
           file_manager->file_name,file_manager->byte_position+num_bytes);
       // Update locator
       file_manager->byte_position += num_bytes;
@@ -536,7 +536,7 @@ void fm_skip_align_4KB(fm_t* const file_manager) {
 }
 void fm_skip_align_mempage(fm_t* const file_manager) {
   int64_t sz = sysconf(_SC_PAGESIZE);
-  gem_cond_fatal_error__perror(sz==-1,SYS_SYSCONF);
+  gem_cond_fatal_error(sz==-1,SYS_SYSCONF);
   fm_skip_align(file_manager,sz);
 }
 /*
@@ -651,7 +651,7 @@ void fm_write_mem(fm_t* const file_manager,const void* const src,const uint64_t 
   switch (file_manager->file_type) {
     case FM_STREAM:
     case FM_REGULAR_FILE: {
-      gem_cond_fatal_error__perror(fwrite(src,1,num_bytes,file_manager->file)!=num_bytes,FM_WRITE,file_manager->file_name);
+      gem_cond_fatal_error(fwrite(src,1,num_bytes,file_manager->file)!=num_bytes,FM_WRITE,file_manager->file_name);
       break;
     }
 #ifdef HAVE_ZLIB
@@ -689,7 +689,7 @@ void fm_bulk_read_fd(
     // Copy chunk
     gem_cond_log(FM_DEEP_DEBUG,"[GEM]> Reading 'read(...)' %lu bytes from offset %lu ...",chunk_size,bytes_written);
     bytes_read = read(fd,dst+bytes_written,chunk_size);
-    gem_cond_fatal_error__perror(bytes_read!=chunk_size,FM_FDREAD,chunk_size,fd);
+    gem_cond_fatal_error(bytes_read!=chunk_size,FM_FDREAD,chunk_size,fd);
     gem_cond_log(FM_DEEP_DEBUG,"[GEM]> ... done! (%lu bytes read)",bytes_read);
     bytes_written += chunk_size;
   }
@@ -701,12 +701,12 @@ void fm_bulk_read_file(
     const uint64_t size) {
   // Retrieve input file info
   struct stat stat_info;
-  gem_cond_fatal_error__perror(stat(file_name,&stat_info)==-1,FM_STAT,file_name);
+  gem_cond_fatal_error(stat(file_name,&stat_info)==-1,FM_STAT,file_name);
   // Open file descriptor
   const int fd = open(file_name,O_RDONLY,S_IRUSR);
-  gem_cond_fatal_error__perror(fd==-1,FM_FDOPEN,file_name);
+  gem_cond_fatal_error(fd==-1,FM_FDOPEN,file_name);
   if (offset > 0) {
-    gem_cond_fatal_error__perror(lseek(fd,offset,SEEK_SET)==-1,FM_SEEK,file_name,offset); // Seek
+    gem_cond_fatal_error(lseek(fd,offset,SEEK_SET)==-1,FM_SEEK,file_name,offset); // Seek
   }
   // Read file
   fm_bulk_read_fd(fd,dst,(size==0) ? stat_info.st_size-offset : size);
@@ -715,20 +715,20 @@ void fm_bulk_read_file(
  * FileManager Wrappers
  */
 void gem_stat(char* const file_name,struct stat *stat_info) {
-  gem_cond_fatal_error__perror(stat(file_name,stat_info)==-1,FM_STAT,file_name);
+  gem_cond_fatal_error(stat(file_name,stat_info)==-1,FM_STAT,file_name);
 }
 int gem_open_fd(char* const file_name,const int flags,const mode_t mode) {
   int fd = open(file_name,flags,mode);
-  gem_cond_fatal_error__perror(fd==-1,FM_OPEN,file_name);
+  gem_cond_fatal_error(fd==-1,FM_OPEN,file_name);
   return fd;
 }
 FILE* gem_open_FILE(char* const file_name,const char* opentype) {
   FILE* const file = fopen(file_name,opentype);
-  gem_cond_fatal_error__perror(file==NULL,FM_FDOPEN,file_name);
+  gem_cond_fatal_error(file==NULL,FM_FDOPEN,file_name);
   return file;
 }
 void gem_unlink(char* const file_name) {
-  gem_cond_fatal_error__perror(unlink(file_name),FM_UNLINK,file_name);
+  gem_cond_fatal_error(unlink(file_name),FM_UNLINK,file_name);
 }
 /*
  * Utils
@@ -754,7 +754,7 @@ bool gem_access(char* const path,const fm_mode mode) {
 uint64_t gem_file_size(const char* const file_name) {
   // Check FILE stats
   struct stat stat_info;
-  gem_cond_fatal_error__perror(stat(file_name,&stat_info)==-1,FM_STAT,file_name);
+  gem_cond_fatal_error(stat(file_name,&stat_info)==-1,FM_STAT,file_name);
   return stat_info.st_size;
 }
 /*

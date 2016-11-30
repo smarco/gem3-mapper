@@ -63,7 +63,7 @@ locator_t* locator_read_mem(mm_t* const memory_manager) {
   locator_t* const locator = mm_alloc(locator_t);
   // Read locator
   const uint64_t locator_model_no = mm_read_uint64(memory_manager);
-  gem_cond_fatal_error(locator_model_no!=LOCATOR_MODEL_NO,
+  gem_cond_error(locator_model_no!=LOCATOR_MODEL_NO,
       LOCATOR_WRONG_MODEL_NO,locator_model_no,(uint64_t)LOCATOR_MODEL_NO);
   locator->num_intervals = mm_read_uint64(memory_manager);
   locator->num_tags = mm_read_uint64(memory_manager);

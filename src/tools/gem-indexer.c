@@ -214,7 +214,7 @@ void indexer_process_multifasta(archive_builder_t* const archive_builder,indexer
     // TODO if (parameters->dump_run_length_text) archive_builder_text_dump(archive_builder,".text.rl");
   }
   // DEBUG
-  locator_builder_print(gem_info_get_stream(),archive_builder->locator, parameters->dump_locator_intervals);
+  locator_builder_print(gem_log_get_stream(),archive_builder->locator, parameters->dump_locator_intervals);
   if (parameters->dump_indexed_text) archive_builder_text_dump(archive_builder,".text");
   // Write Metadata
   archive_builder_write_header(archive_builder);
@@ -496,7 +496,7 @@ int main(int argc,char** argv) {
 
   // GEM Runtime setup
   gruntime_init(parameters.num_threads,parameters.tmp_folder);
-  gem_info_set_stream(fopen(parameters.info_file_name,"wb")); // Set INFO file
+  gem_log_set_stream(fopen(parameters.info_file_name,"wb")); // Set INFO file
   TIMER_RESTART(&gem_indexer_timer); // Start global timer
 
   // GEM Archive Builder

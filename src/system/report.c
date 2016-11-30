@@ -32,10 +32,8 @@ void (*gem_report_function)(FILE*)=gem_report_void;
 // GEM error/output streams
 FILE* error_stream=NULL;
 FILE* log_stream=NULL;
-FILE* info_stream=NULL;
-FILE* debug_stream=NULL;
 bool mute_error_stream = false;
-bool mute_report_stream = false;
+bool mute_log_stream = false;
 
 /*
  * Getters/Setters ELD-function
@@ -46,9 +44,6 @@ report_function_t gem_error_get_report_function() {
 void gem_error_set_report_function(report_function_t function) {
   gem_report_function = function;
 }
-/*
- * Getters/Setters ELD-function/ELD-streams
- */
 FILE* gem_error_get_stream(void) {
   return (error_stream!=NULL) ? error_stream : stderr;
 }
@@ -61,27 +56,15 @@ FILE* gem_log_get_stream(void) {
 void gem_log_set_stream(FILE* const stream) {
   log_stream = stream;
 }
-FILE* gem_info_get_stream(void) {
-  return (info_stream!=NULL) ? info_stream : stderr;
-}
-void gem_info_set_stream(FILE* const stream) {
-  info_stream = stream;
-}
-FILE* gem_debug_get_stream(void) {
-  return (debug_stream!=NULL) ? debug_stream : stderr;
-}
-void gem_debug_set_stream(FILE* const stream) {
-  debug_stream = stream;
-}
 /*
  * Mute/Articulate ELD-streams
  */
 void gem_mute_error_stream(void) {mute_error_stream=true;}
-void gem_mute_report_stream(void) {mute_report_stream=true;}
 void gem_articulate_error_stream(void) {mute_error_stream=false;}
-void gem_articulate_report_stream(void) {mute_report_stream=false;}
 bool gem_is_mute_error_stream(void) {return mute_error_stream;}
-bool gem_is_mute_report_stream(void) {return mute_report_stream;}
+void gem_mute_log_stream(void) {mute_log_stream=true;}
+void gem_articulate_log_stream(void) {mute_log_stream=false;}
+bool gem_is_mute_log_stream(void) {return mute_log_stream;}
 /*
  * Time Printed Formated functions
  */

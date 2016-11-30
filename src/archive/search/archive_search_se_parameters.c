@@ -169,7 +169,7 @@ void search_configure_replacements(
       ++count;
     }
   }
-  gem_cond_fatal_error(count==0,ASP_REPLACEMENT_EMPTY);
+  gem_cond_error(count==0,ASP_REPLACEMENT_EMPTY);
   search_parameters->mismatch_alphabet_length = count;
 }
 void search_configure_match_alignment_model(

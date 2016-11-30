@@ -44,7 +44,7 @@ sampled_sa_t* sampled_sa_read_mem(mm_t* const memory_manager) {
   sampled_sa_t* const sampled_sa = mm_alloc(sampled_sa_t);
   // Read Meta-Data
   const uint64_t sampled_sa_model_no = mm_read_uint64(memory_manager);
-  gem_cond_fatal_error(sampled_sa_model_no!=SAMPLED_SA_MODEL_NO,SAMPLED_SA_WRONG_MODEL_NO,
+  gem_cond_error(sampled_sa_model_no!=SAMPLED_SA_MODEL_NO,SAMPLED_SA_WRONG_MODEL_NO,
       sampled_sa_model_no,(uint64_t)SAMPLED_SA_MODEL_NO);
   sampled_sa->index_length = mm_read_uint64(memory_manager);
   sampled_sa->sa_sampling_rate = mm_read_uint64(memory_manager);

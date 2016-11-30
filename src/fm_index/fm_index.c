@@ -60,14 +60,14 @@ void fm_index_write(
   fm_write_uint64(file_manager,0ull); // TODO Remove with next index upgrade
   // Write Sampled-SA & Free Samples
   sampled_sa_builder_write(file_manager,sampled_sa);
-  if (verbose) sampled_sa_builder_print(gem_info_get_stream(),sampled_sa);
+  if (verbose) sampled_sa_builder_print(gem_log_get_stream(),sampled_sa);
   sampled_sa_builder_delete_samples(sampled_sa); // Free Samples (Just the samples)
   // Generate BWT-Bitmap & rank_mtable
   bwt_builder_t* const bwt_builder = bwt_builder_new(bwt_text,character_occurrences,sampled_sa,verbose);
-  if (verbose) bwt_builder_print(gem_info_get_stream(),bwt_builder);
+  if (verbose) bwt_builder_print(gem_log_get_stream(),bwt_builder);
   // Build mrank table
   rank_mtable_t* const rank_mtable = rank_mtable_builder_new(bwt_builder,verbose);
-  if (verbose) rank_mtable_print(gem_info_get_stream(),rank_mtable,false);
+  if (verbose) rank_mtable_print(gem_log_get_stream(),rank_mtable,false);
   // Write mrank table
   rank_mtable_builder_write(file_manager,rank_mtable);
   // Write BWT
@@ -84,7 +84,7 @@ fm_index_t* fm_index_read_mem(mm_t* const memory_manager,const bool check) {
   fm_index_t* const fm_index = mm_alloc(fm_index_t);
   // Read Header
   const uint64_t fm_index_model_no = mm_read_uint64(memory_manager);
-  gem_cond_fatal_error(fm_index_model_no!=FM_INDEX_MODEL_NO,FM_INDEX_WRONG_MODEL_NO,fm_index_model_no,(uint64_t)FM_INDEX_MODEL_NO);
+  gem_cond_error(fm_index_model_no!=FM_INDEX_MODEL_NO,FM_INDEX_WRONG_MODEL_NO,fm_index_model_no,(uint64_t)FM_INDEX_MODEL_NO);
   fm_index->text_length = mm_read_uint64(memory_manager);
   fm_index->proper_length = mm_read_uint64(memory_manager);
   mm_read_uint64(memory_manager); // TODO Remove with next index upgrade

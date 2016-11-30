@@ -96,7 +96,7 @@ void mapper_se_cuda_region_profile(mapper_cuda_search_t* const mapper_search) {
     const error_code_t error_code = input_fasta_parse_sequence(
         mapper_search->buffered_fasta_input_end1,
         archive_search_get_sequence(archive_search),false);
-    gem_cond_fatal_error(error_code==INPUT_STATUS_FAIL,MAPPER_CUDA_ERROR_PARSING);
+    gem_cond_error(error_code==INPUT_STATUS_FAIL,MAPPER_CUDA_ERROR_PARSING);
     PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
     // Bisulfite: Fully convert reads before searching into archive, making a copy of the original
     if (bisulfite_index) mapper_bisulfite_process_sequence_se(archive_search,&parameters->search_parameters);

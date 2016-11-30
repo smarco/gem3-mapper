@@ -230,7 +230,7 @@ void filtering_candidates_verify_buffered_check_tile_distance(
       &check_tile_match_end_column,bpm_pattern_tile->pattern_length,false);
   if (tile_distance!=check_tile_distance || tile_match_column!=check_tile_match_end_column) {
     if (uncalled_bases_text == 0) {
-      gem_error_msg("Filtering.Candidates.Verify.Buffered. Check verify candidate "
+      gem_fatal_error_msg("Filtering.Candidates.Verify.Buffered. Check verify candidate "
           "(Distance:%d!=%lu) (MatchPos:%d!=%lu) (Text.Uncalled.bases=%lu)",
           tile_distance,check_tile_distance,tile_match_column,
           check_tile_match_end_column,uncalled_bases_text);

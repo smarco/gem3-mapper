@@ -97,7 +97,7 @@ mm_slab_t* mm_slab_new_(
   mm_slab->segment_id_generator = 0; // Init ids
   // Set page size
   const int64_t sz = sysconf(_SC_PAGESIZE);
-  gem_cond_fatal_error__perror(sz==-1,SYS_SYSCONF);
+  gem_cond_fatal_error(sz==-1,SYS_SYSCONF);
   // Set sizes (always multiples of the page size)
   const uint64_t segment_pages = ((slab_segment_size+(sz-1))/sz); // SysPages
   mm_slab->slab_segment_size = segment_pages*sz;

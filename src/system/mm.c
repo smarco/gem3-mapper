@@ -217,7 +217,7 @@ mm_t* mm_bulk_mmalloc(const uint64_t num_bytes,const bool use_huge_pages) {
   int flags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE;
   if (use_huge_pages) flags |= MAP_HUGETLB;
   mem_manager->memory = mmap(0,num_bytes,PROT_READ|PROT_WRITE,flags,-1,0);
-  gem_cond_fatal_error__perror(mem_manager->memory==MAP_FAILED,MEM_ALLOC_MMAP_FAIL,num_bytes);
+  gem_cond_fatal_error(mem_manager->memory==MAP_FAILED,MEM_ALLOC_MMAP_FAIL,num_bytes);
   mem_manager->cursor = mem_manager->memory;
   // Set MM
   mem_manager->mem_type = MM_MMAPPED;
@@ -241,14 +241,14 @@ mm_t* mm_bulk_mmalloc_temp(const uint64_t num_bytes) {
   sprintf(mem_manager->file_name,"%smm_temp_XXXXXX",mm_get_tmp_folder());
   // Create temporary file
   mem_manager->fd = mkstemp(mem_manager->file_name);
-  gem_cond_fatal_error__perror(mem_manager->fd==-1,SYS_MKSTEMP,mem_manager->file_name);
-  gem_cond_fatal_error__perror(unlink(mem_manager->file_name),SYS_HANDLE_TMP); // Make it temporary
+  gem_cond_fatal_error(mem_manager->fd==-1,SYS_MKSTEMP,mem_manager->file_name);
+  gem_cond_fatal_error(unlink(mem_manager->file_name),SYS_HANDLE_TMP); // Make it temporary
   gem_log("Allocating memory mapped to disk: %s (%"PRIu64" MBytes) [PhysicalMem Available %"PRIu64" MBytes]",
       mem_manager->file_name,num_bytes/1024/1024,mm_get_mem_available_total()/1024/1024);
   // Set the size of the temporary file (disk allocation)
-  gem_cond_fatal_error__perror(lseek(mem_manager->fd,num_bytes-1,SEEK_SET)==-1,SYS_HANDLE_TMP);
-  gem_cond_fatal_error__perror(write(mem_manager->fd,"",1)<=0,SYS_HANDLE_TMP);
-  gem_cond_fatal_error__perror(lseek(mem_manager->fd,0,SEEK_SET)==-1,SYS_HANDLE_TMP);
+  gem_cond_fatal_error(lseek(mem_manager->fd,num_bytes-1,SEEK_SET)==-1,SYS_HANDLE_TMP);
+  gem_cond_fatal_error(write(mem_manager->fd,"",1)<=0,SYS_HANDLE_TMP);
+  gem_cond_fatal_error(lseek(mem_manager->fd,0,SEEK_SET)==-1,SYS_HANDLE_TMP);
   /*
    * Mmap file.
    *   - MAP_SHARED as we the mapping will be reflected on disk (no copy-on-write)
@@ -261,7 +261,7 @@ mm_t* mm_bulk_mmalloc_temp(const uint64_t num_bytes) {
    *       triggering the OOM killer (Linux) or causing a SIGSEGV.
    */
   mem_manager->memory = mmap(NULL,num_bytes,PROT_READ|PROT_WRITE,MAP_SHARED|MAP_NORESERVE,mem_manager->fd,0);
-  gem_cond_fatal_error__perror(mem_manager->memory==MAP_FAILED,MEM_ALLOC_MMAP_DISK_FAIL,num_bytes,mem_manager->file_name);
+  gem_cond_fatal_error(mem_manager->memory==MAP_FAILED,MEM_ALLOC_MMAP_DISK_FAIL,num_bytes,mem_manager->file_name);
   mem_manager->cursor = mem_manager->memory;
   // Set MM
   mem_manager->mem_type = MM_MMAPPED;
@@ -281,9 +281,9 @@ void mm_bulk_free(mm_t* const mem_manager) {
 #ifdef MM_NO_MMAP
     mm_free(mem_manager->memory);
 #else
-    gem_cond_fatal_error__perror(munmap(mem_manager->memory,mem_manager->allocated)==-1,SYS_UNMAP);
+    gem_cond_fatal_error(munmap(mem_manager->memory,mem_manager->allocated)==-1,SYS_UNMAP);
     if (mem_manager->fd!=-1) {
-      gem_cond_fatal_error__perror(close(mem_manager->fd),SYS_HANDLE_TMP);
+      gem_cond_fatal_error(close(mem_manager->fd),SYS_HANDLE_TMP);
     }
 #endif
   }
@@ -316,7 +316,7 @@ mm_t* mm_bulk_mmap_file(char* const file_name,const mm_mode mode,const bool popu
   int flags = mm_mmap_mode[mode];
   if (mode==MM_READ_ONLY && populate_page_tables) flags |= MAP_POPULATE;
   mem_manager->memory = mmap(0,stat_info.st_size,mm_proc_flags[mode],flags,mem_manager->fd,0);
-  gem_cond_fatal_error__perror(mem_manager->memory==MAP_FAILED,SYS_MMAP_FILE,file_name);
+  gem_cond_fatal_error(mem_manager->memory==MAP_FAILED,SYS_MMAP_FILE,file_name);
   mem_manager->cursor = mem_manager->memory;
   // Set MM
   mem_manager->mem_type = MM_MMAPPED;
@@ -336,7 +336,7 @@ mm_t* mm_bulk_load_file(char* const file_name) {
   mm_t* const mem_manager = mm_alloc(mm_t);
   // Retrieve input file info
   struct stat stat_info;
-  gem_cond_fatal_error__perror(stat(file_name,&stat_info)==-1,SYS_STAT,file_name);
+  gem_cond_fatal_error(stat(file_name,&stat_info)==-1,SYS_STAT,file_name);
   gem_cond_fatal_error(stat_info.st_size==0,MEM_MAP_ZERO_FILE,file_name);
   // Allocate memory to dump the content of the file
   mem_manager->memory = mm_malloc(stat_info.st_size);
@@ -355,7 +355,7 @@ mm_t* mm_bulk_mload_file(char* const file_name) {
   GEM_CHECK_NULL(file_name);
   // Retrieve input file info
   struct stat stat_info;
-  gem_cond_fatal_error__perror(stat(file_name,&stat_info)==-1,SYS_STAT,file_name);
+  gem_cond_fatal_error(stat(file_name,&stat_info)==-1,SYS_STAT,file_name);
   gem_cond_fatal_error(stat_info.st_size==0,MEM_MAP_ZERO_FILE,file_name);
   // Allocate memory to dump the content of the file
   mm_t* const mem_manager = mm_bulk_mmalloc(stat_info.st_size,false);
@@ -514,7 +514,7 @@ void mm_skip_align_4KB(mm_t* const mem_manager) {
 }
 void mm_skip_align_mempage(mm_t* const mem_manager) {
   const int64_t page_size = mm_get_page_size();
-  gem_cond_fatal_error__perror(page_size==-1,SYS_SYSCONF);
+  gem_cond_fatal_error(page_size==-1,SYS_SYSCONF);
   mm_skip_align(mem_manager,page_size);
 }
 /*
@@ -591,13 +591,13 @@ void mm_write_mem(mm_t* const mem_manager,void* const src,const uint64_t num_byt
  */
 int64_t mm_get_page_size(void) {
   int64_t page_size = sysconf(_SC_PAGESIZE);
-  gem_cond_fatal_error__perror(page_size==-1,SYS_SYSCONF);
+  gem_cond_fatal_error(page_size==-1,SYS_SYSCONF);
   return page_size; // Bytes
 }
 int64_t mm_get_stat_meminfo(const char* const label,const uint64_t label_length) {
   // Open /proc/meminfo
   FILE* const meminfo = fopen("/proc/meminfo", "r");
-  gem_cond_fatal_error__perror(meminfo == NULL,MEM_STAT_MEMINFO,"no such file");
+  gem_cond_fatal_error(meminfo == NULL,MEM_STAT_MEMINFO,"no such file");
   // Parse
   char *line = NULL;
   uint64_t chars_read=0, size=0;
@@ -629,12 +629,12 @@ int64_t mm_get_mem_available_virtual(void) {
 }
 int64_t mm_get_mem_available_cached(void) {
   const int64_t size = mm_get_stat_meminfo("Cached:",7);
-  gem_cond_fatal_error__perror(size==-1,MEM_STAT_MEMINFO,"Cached");
+  gem_cond_fatal_error(size==-1,MEM_STAT_MEMINFO,"Cached");
   return size; // Bytes
 }
 int64_t mm_get_mem_available_free(void) {
   const int64_t size = mm_get_stat_meminfo("MemFree:",8);
-  gem_cond_fatal_error__perror(size==-1,MEM_STAT_MEMINFO,"MemFree");
+  gem_cond_fatal_error(size==-1,MEM_STAT_MEMINFO,"MemFree");
   return size; // Bytes
 }
 int64_t mm_get_mem_available_total(void) {
@@ -644,13 +644,13 @@ int64_t mm_get_mem_available_total(void) {
 int64_t mm_get_mem_total(void) {
   struct sysinfo info;
   int error = sysinfo(&info);
-  gem_cond_fatal_error__perror(error!=0,MEM_SYSINFO);
+  gem_cond_fatal_error(error!=0,MEM_SYSINFO);
   return (int64_t)(info.totalram * info.mem_unit);// Bytes
 }
 #else
 int64_t mm_get_mem_total(void) {
   const int64_t size = mm_get_stat_meminfo("MemTotal:",9);
-  gem_cond_fatal_error__perror(size==-1,MEM_STAT_MEMINFO,"MemTotal");
+  gem_cond_fatal_error(size==-1,MEM_STAT_MEMINFO,"MemTotal");
   return size; // Bytes
 }
 #endif

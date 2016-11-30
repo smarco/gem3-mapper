@@ -39,6 +39,7 @@ void gem_print_stack_trace(void) {
     void *stack[STACK_TRACE_SIZE];
     size_t size = backtrace(stack,STACK_TRACE_SIZE);
     fprintf(stderr,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+    gem_perror();
     fprintf(stderr,"<GEM::StackTrace>\n");
     backtrace_symbols_fd(stack,size,2);
     fprintf(stderr,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");

@@ -306,7 +306,7 @@ uint32_t gpu_buffer_fmi_asearch_get_mean_query_length(
 uint64_t gpu_buffer_fmi_asearch_add_query(
     gpu_buffer_fmi_asearch_t* const gpu_buffer_fmi_asearch,
     pattern_t* const pattern,
-    const uint64_t max_regions) { GEM_CUDA_NOT_SUPPORTED(); }
+    const uint64_t max_regions) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
 void gpu_buffer_fmi_asearch_get_result_total_regions(
     gpu_buffer_fmi_asearch_t* const gpu_buffer_fmi_asearch,
     const uint64_t query_offset,
