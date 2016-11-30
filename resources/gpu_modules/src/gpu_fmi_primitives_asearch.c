@@ -13,6 +13,16 @@
 #include "../include/gpu_fmi_primitives.h"
 #include "../include/gpu_sa_primitives.h"
 
+#ifdef GPU_FMI_DEBUG
+//Data classified by num of regions
+uint32_t histogram_queries[15]            = {0};
+uint32_t histogram_query_candidates[15]   = {0};
+//Data classified by region size
+uint32_t histogram_regions[110]           = {0};
+uint32_t histogram_region_candidates[110] = {0};
+uint32_t histogram_coverage[110]          = {0};
+#endif
+
 /************************************************************
 Functions to get the GPU FMI buffers
 ************************************************************/
@@ -41,6 +51,42 @@ gpu_fmi_search_region_info_t* gpu_fmi_asearch_buffer_get_regions_offsets_(const 
   const gpu_buffer_t* const mBuff = (gpu_buffer_t *) fmiBuffer;
   return(mBuff->data.asearch.regions.h_regionsOffsets);
 }
+
+/************************************************************
+Functions to debug internals
+************************************************************/
+
+#ifdef GPU_FMI_DEBUG
+void gpu_buffer_fmi_asearch_process_histogram(const gpu_buffer_t* const mBuff){
+  uint32_t idQuery = 0, numBases = 0, numQueries = mBuff->data.asearch.queries.numQueries;
+  for(idQuery = 0; idQuery < numQueries; ++idQuery){
+    //Getting query stats
+    uint32_t idRegion = 0, numRegions = mBuff->data.asearch.queries.h_regions[idQuery].num_regions;
+    uint32_t offset   = mBuff->data.asearch.queries.h_regions[idQuery].init_offset;
+    for(idRegion = 0, numBases = 0; idRegion < numRegions; ++idRegion){
+      //Getting region stats
+      uint32_t hi  = mBuff->data.asearch.regions.h_intervals[offset + idRegion].hi;
+      uint32_t low = mBuff->data.asearch.regions.h_intervals[offset + idRegion].low;
+      uint32_t init_offset   = mBuff->data.asearch.regions.h_regionsOffsets[offset + idRegion].init_offset;
+      uint32_t end_offset    = mBuff->data.asearch.regions.h_regionsOffsets[offset + idRegion].end_offset;
+      //Setting region stats
+      uint32_t numCandidates = hi - low;
+      uint32_t regionSize    = end_offset - init_offset;
+      numBases += regionSize;
+      // Setting the num candidates per read
+      histogram_query_candidates[numRegions] += numCandidates;
+      // Setting the num candidates per region
+      histogram_region_candidates[regionSize] += numCandidates;
+      // Setting the region size
+      histogram_regions[regionSize]++;
+    }
+    // Setting the num reads
+    histogram_queries[numRegions]++;
+    // Setting all regions coverage over the read
+    histogram_coverage[numBases]++;
+  }
+}
+#endif  
 
 /************************************************************
 Functions to get the maximum elements of the buffers
@@ -257,7 +303,41 @@ void gpu_fmi_asearch_receive_buffer_(const void* const fmiBuffer)
   const cudaStream_t  idStream    =  mBuff->listStreams[mBuff->idStream];
   //Synchronize Stream (the thread wait for the commands done in the stream)
   CUDA_ERROR(cudaStreamSynchronize(idStream));
+  #ifdef GPU_FMI_DEBUG
+    gpu_buffer_fmi_asearch_process_histogram(mBuff);
+  #endif
 }
+
+#ifdef GPU_FMI_DEBUG
+void gpu_fmi_asearch_print_histograms()
+{
+  uint32_t i = 0;
+  printf("histogram_queries: Setting the num reads \n");
+  for(i = 0; i < 15; i++)
+    printf("%u\t%u\n", i, histogram_queries[i]);
+  printf("\n\n");
+
+  printf("histogram_query_candidates: Setting num candidates per read \n");
+  for(i = 0; i < 15; i++)
+    printf("%u\t%u\n", i, histogram_query_candidates[i]);
+  printf("\n\n");
+
+  printf("histogram_regions: Setting num region per size \n");
+  for(i = 0; i < 110; i++)
+    printf("%u\t%u\n", i, histogram_regions[i]);
+  printf("\n\n");
+
+  printf("histogram_region_candidates: Setting num candidates per size \n");
+  for(i = 0; i < 110; i++)
+    printf("%u\t%u\n", i, histogram_region_candidates[i]);
+  printf("\n\n");
+
+  printf("histogram_coverage: Setting all regions coverage over the read \n");
+  for(i = 0; i < 110; i++)
+    printf("%u\t%u\n", i, histogram_coverage[i]);
+  printf("\n\n");
+}
+#endif
 
 #endif /* GPU_FMI_PRIMITIVES_ASEARCH_C_ */
 

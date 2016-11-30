@@ -129,6 +129,7 @@ void __global__ gpu_fmi_asearch_kernel(const gpu_fmi_device_entry_t* const fmi, 
             if((occ < shrinkOccThreshold) && (occ != 0) && !foundN){
               endL = L; endR = R;
               endBase = idBase;
+              shrinkOccThreshold = occ;
             }
             shrinkOccThreshold >>= occShrinkFactor;
           }
@@ -143,7 +144,7 @@ void __global__ gpu_fmi_asearch_kernel(const gpu_fmi_device_entry_t* const fmi, 
     }
     // Save region profile info (number of extracted regions)
     if((localWarpThreadIdx % GPU_FMI_THREADS_PER_QUERY) == 0){
-      if(idRegion == 0 && !foundN){
+      if((idRegion == 0) && (querySize == (endBase - initBase))){
         // Save extracted region (SA intervals + Query position)
         regionInterval[idRegion] = make_ulonglong2(L, R);
         regionOffset[idRegion]   = make_uint2(querySize - endBase, querySize - initBase);
@@ -356,6 +357,7 @@ void __global__ gpu_fmi_asearch_table_linked_kernel(const gpu_fmi_device_entry_t
             if((occ < shrinkOccThreshold) && (occ != 0) && !foundN){
               endL = L; endR = R;
               endBase = idBase;
+              shrinkOccThreshold = occ;
             }
             shrinkOccThreshold >>= occShrinkFactor;
           }
@@ -370,7 +372,7 @@ void __global__ gpu_fmi_asearch_table_linked_kernel(const gpu_fmi_device_entry_t
     }
     // Save region profile info (number of extracted regions)
     if((localWarpThreadIdx % GPU_FMI_THREADS_PER_QUERY) == 0){
-      if(idRegion == 0 && !foundN){
+      if((idRegion == 0) && (querySize == (endBase - initBase))){
         // Save extracted region (SA intervals + Query position)
         regionInterval[idRegion] = make_ulonglong2(L, R);
         regionOffset[idRegion]   = make_uint2(querySize - endBase, querySize - initBase);
@@ -451,6 +453,7 @@ void __global__ gpu_fmi_asearch_table_kernel(const gpu_fmi_device_entry_t* const
             if((occ < shrinkOccThreshold) && (occ != 0) && !foundN){
               endL = L; endR = R;
               endBase = idBase;
+              shrinkOccThreshold = occ;
             }
             shrinkOccThreshold >>= occShrinkFactor;
           }
@@ -465,7 +468,7 @@ void __global__ gpu_fmi_asearch_table_kernel(const gpu_fmi_device_entry_t* const
     }
     // Save region profile info (number of extracted regions)
     if((localWarpThreadIdx % GPU_FMI_THREADS_PER_QUERY) == 0){
-      if(idRegion == 0 && !foundN){
+      if((idRegion == 0) && (querySize == (endBase - initBase))){
         // Save extracted region (SA intervals + Query position)
         regionInterval[idRegion] = make_ulonglong2(L, R);
         regionOffset[idRegion]   = make_uint2(querySize - endBase, querySize - initBase);
