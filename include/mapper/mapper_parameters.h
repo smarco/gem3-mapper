@@ -142,13 +142,16 @@ typedef struct {
   mapper_parameters_system_t system;
   /* CUDA settings */
   mapper_parameters_cuda_t cuda;
-  /* Hints*/
-  // mapper_parameters_hints_t hints;
   /* Miscellaneous */
   mapper_parameters_misc_t misc;
   /* Profile */
   gem_timer_t mapper_time;
   gem_timer_t loading_time;
+  /* Parsing Arguments Flags */
+  bool min_reported_strata_set;
+  bool max_reported_matches_set;
+  char *bs_suffix1;
+  char *bs_suffix2;
 } mapper_parameters_t;
 
 /*

@@ -27,15 +27,169 @@
 #include "filtering/region_profile/region_profile_schedule.h"
 
 /*
- * Region Profile Scheduling
+ * Sorting regions
  */
-void region_profile_schedule_filtering_exact(region_profile_t* const region_profile) {
+typedef struct {
+  int idx;
+  int value;
+} region_sort_t;
+int region_sort_cmp_value(
+    const region_sort_t* const a,
+    const region_sort_t* const b) {
+  return (int)a->value - (int)b->value;
+}
+void region_sort_sort(
+    region_sort_t* const region_sort,
+    const uint64_t num_regions) {
+  qsort(region_sort,num_regions,sizeof(region_sort_t),
+      (int (*)(const void *,const void *))region_sort_cmp_value);
+}
+/*
+ * Schedule all exact
+ */
+bool region_profile_schedule_exact_matches(region_profile_t* const region_profile) {
+  // Parameters
+  const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
+  region_search_t* const filtering_region = region_profile->filtering_region;
+  // Detect
+  if (num_filtering_regions==1) {
+    if (filtering_region->begin==0 && filtering_region->end==region_profile->pattern_length) {
+      filtering_region->degree = REGION_FILTER_DEGREE_ZERO;
+      region_profile->total_candidates = filtering_region->hi - filtering_region->lo;
+      region_profile->max_region_length = region_profile->pattern_length;
+      region_profile->avg_region_length = region_profile->pattern_length;
+      region_profile->num_filtered_regions = 0;
+      return true;
+    }
+  }
+  return false;
+}
+/*
+ * Schedule all exact
+ */
+void region_profile_schedule_exact_all(region_profile_t* const region_profile) {
+  // Check exact matches
+  if (region_profile_schedule_exact_matches(region_profile)) return;
   // Parameters
   const uint64_t num_regions = region_profile->num_filtering_regions;
   region_search_t* const filtering_region = region_profile->filtering_region;
+  // Init region-profile metrics
+  region_profile->total_candidates = 0;
+  region_profile->num_filtered_regions = 0;
+  region_profile->max_region_length = 0;
+  region_profile->avg_region_length = 0;
   // Assign degree-zero to all regions
   uint64_t i;
   for (i=0;i<num_regions;++i) {
+    const uint64_t region_length = filtering_region[i].end - filtering_region[i].begin;
+    // Schedule
     filtering_region[i].degree = REGION_FILTER_DEGREE_ZERO;
+    ++(region_profile->num_filtered_regions);
+    // Compute metrics
+    region_profile->total_candidates += filtering_region[i].hi - filtering_region[i].lo;
+    region_profile->max_region_length = MAX(region_profile->max_region_length,region_length);
+    region_profile->avg_region_length += region_length;
+  }
+  if (region_profile->num_filtered_regions > 0) {
+    region_profile->avg_region_length /= region_profile->num_filtered_regions;
   }
 }
+void region_profile_schedule_exact_best(
+    region_profile_t* const region_profile,
+    const uint64_t num_regions) {
+  // Check exact matches
+  if (region_profile_schedule_exact_matches(region_profile)) return;
+  // Allocate sorting vector
+  mm_stack_t* const mm_stack = region_profile->mm_stack;
+  mm_stack_push_state(mm_stack);
+  const uint64_t total_regions = region_profile->num_filtering_regions;
+  region_sort_t* const region_sort = mm_stack_calloc(mm_stack,total_regions,region_sort_t,false);
+  // Prepare sorting vetor
+  region_search_t* const filtering_region = region_profile->filtering_region;
+  uint64_t i;
+  for (i=0;i<total_regions;++i) {
+    region_sort[i].idx = i;
+    region_sort[i].value = filtering_region[i].hi - filtering_region[i].lo; // Num candidates
+  }
+  // Sort vector
+  region_sort_sort(region_sort,total_regions);
+  // Init region-profile metrics
+  region_profile->total_candidates = 0;
+  region_profile->num_filtered_regions = 0;
+  region_profile->max_region_length = 0;
+  region_profile->avg_region_length = 0;
+  // Schedule regions
+  for (i=0;i<total_regions;++i) {
+    if (i<num_regions) {
+      const uint64_t region_length = filtering_region[i].end - filtering_region[i].begin;
+      // Schedule
+      filtering_region[region_sort[i].idx].degree = REGION_FILTER_DEGREE_ZERO;
+      ++(region_profile->num_filtered_regions);
+      // Compute metrics
+      region_profile->total_candidates +=
+          filtering_region[region_sort[i].idx].hi - filtering_region[region_sort[i].idx].lo;
+      region_profile->max_region_length = MAX(region_profile->max_region_length,region_length);
+      region_profile->avg_region_length += region_length;
+    } else {
+      // Discard region
+      filtering_region[region_sort[i].idx].degree = REGION_FILTER_NONE;
+    }
+  }
+  if (region_profile->num_filtered_regions > 0) {
+    region_profile->avg_region_length /= region_profile->num_filtered_regions;
+  }
+  // Free
+  mm_stack_pop_state(mm_stack);
+}
+void region_profile_schedule_exact_thresholded(
+    region_profile_t* const region_profile,
+    const uint64_t candidates_threshold) {
+  // Check exact matches
+  if (region_profile_schedule_exact_matches(region_profile)) return;
+  // Parameters
+  const uint64_t num_regions = region_profile->num_filtering_regions;
+  region_search_t* const filtering_region = region_profile->filtering_region;
+  // Init region-profile metrics
+  region_profile->total_candidates = 0;
+  region_profile->num_filtered_regions = 0;
+  region_profile->max_region_length = 0;
+  region_profile->avg_region_length = 0;
+  // Assign degree-zero to all regions
+  uint64_t i;
+  for (i=0;i<num_regions;++i) {
+    const uint64_t num_candidates = filtering_region[i].hi - filtering_region[i].lo;
+    if (num_candidates <= candidates_threshold) {
+      const uint64_t region_length = filtering_region[i].end - filtering_region[i].begin;
+      // Schedule
+      filtering_region[i].degree = REGION_FILTER_DEGREE_ZERO;
+      ++(region_profile->num_filtered_regions);
+      // Compute metrics
+      region_profile->total_candidates += num_candidates;
+      region_profile->max_region_length = MAX(region_profile->max_region_length,region_length);
+      region_profile->avg_region_length += region_length;
+    } else {
+      // Discard region
+      filtering_region[i].degree = REGION_FILTER_NONE;
+    }
+  }
+  if (region_profile->num_filtered_regions > 0) {
+    region_profile->avg_region_length /= region_profile->num_filtered_regions;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

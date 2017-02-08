@@ -461,10 +461,7 @@ void mapper_profile_print_approximate_search_summary(FILE* const stream) {
 /*
  * Region Profile
  */
-void mapper_profile_print_region_profile_fixed(FILE* const stream) {}
-void mapper_profile_print_region_profile_lightweight(FILE* const stream) {}
-void mapper_profile_print_region_profile_heavyweight(FILE* const stream) {}
-void mapper_profile_print_region_profile_delimit(FILE* const stream) {}
+void mapper_profile_print_region_profile(FILE* const stream) {}
 /*
  * Candidates Generation
  */

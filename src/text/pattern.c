@@ -76,7 +76,8 @@ void pattern_init_encode(
     for (j=0;i<sequence_length;++i,++j) {
       const char character = read[i];
       if (!is_dna_canonical(character)) ++num_non_canonical_bases;
-      if (!parameters->allowed_chars[(uint8_t)character]) ++num_wildcards;
+      // TODO if (!parameters->allowed_chars[(uint8_t)character]) ++num_wildcards;
+      if (dna_encode(character)==ENC_DNA_CHAR_N) ++num_wildcards;
       pattern->key[j] = dna_encode(character);
     }
   } else {
@@ -84,11 +85,14 @@ void pattern_init_encode(
     for (j=0;i<sequence_length;++i,++j) {
       const char character = read[i];
       if (!is_dna_canonical(character)) ++num_non_canonical_bases;
-      if (!parameters->allowed_chars[(uint8_t)character]) {
-        ++num_wildcards;
-      } else if (pattern->quality_mask[i]!=qm_real) {
-        ++num_low_quality_bases;
-      }
+      // TODO
+//      if (!parameters->allowed_chars[(uint8_t)character]) {
+//        ++num_wildcards;
+//      } else
+//      if (pattern->quality_mask[i]!=qm_real) {
+//        ++num_low_quality_bases;
+//      }
+      if (dna_encode(character)==ENC_DNA_CHAR_N) ++num_wildcards;
       pattern->key[j] = dna_encode(character);
     }
   }

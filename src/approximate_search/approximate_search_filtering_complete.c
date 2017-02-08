@@ -47,17 +47,16 @@ void approximate_search_filtering_complete(
     matches_t* const matches) {
   // Parameters
   pattern_t* const pattern = &search->pattern;
-  region_profile_t* const region_profile = &search->region_profile;
   // Exact Search
   if (search->current_max_complete_error==0) {
     approximate_search_neighborhood_exact_search(search,matches);
     return;
   }
-  // Compute the region profile
-  approximate_search_region_profile_adaptive(search,region_profile_adaptive_limited);
+  // Compute the region profile (adaptive limited to guarantee completeness)
+  search->search_parameters->region_profile_model.strategy = region_profile_adaptive_limited;
+  approximate_search_region_profile(search);
   if (search->processing_state==asearch_processing_state_no_regions) return;
   // Generate exact-candidates
-  region_profile_schedule_filtering_exact(region_profile);
   approximate_search_generate_candidates_exact(search);
   // Verify candidates
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;

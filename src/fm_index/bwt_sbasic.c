@@ -413,9 +413,13 @@ uint64_t bwt_sbasic_erank_(
 }
 /* Computes and returns the rank of an interval located in the same block */
 void bwt_sbasic_erank_interval_(
-    const uint8_t char_enc,const uint64_t lo_value,const uint64_t block_mod,
-    const uint64_t* const mayor_counters,const uint64_t* const block_mem,
-    uint64_t* const lo,uint64_t* const hi) {
+    const uint8_t char_enc,
+    const uint64_t lo_value,
+    const uint64_t block_mod,
+    const uint64_t* const mayor_counters,
+    const uint64_t* const block_mem,
+    uint64_t* const lo,
+    uint64_t* const hi) {
   // Fetching Regular DNA Characters
   const uint64_t sum_counters = mayor_counters[char_enc] + ((uint16_t*)block_mem)[char_enc];
   const uint64_t bitmap = (block_mem[2]^xor_table_3[char_enc]) &

@@ -40,25 +40,34 @@ GEM_TOOLS_SRC=$(addsuffix .c, $(GEM_TOOLS))
 GEM_TOOLS_BIN=$(addprefix $(FOLDER_BIN)/, $(GEM_TOOLS))
 
 ###############################################################################
+# Modules
+###############################################################################
+SUBDIRS=interface
+
+###############################################################################
 # Compilation Modes
 ###############################################################################
 all: devel
 
+release: $(SUBDIRS)
 release: GEM_VERSION=-DGEM_VERSION=$(VERSION)-release 
 release: GEM_PATHS=$(PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB)
 release: GEM_LIBS=$(CUDA_LIB) $(LIBS) $(VTUNE_PROFILE_LIB)
 release: $(GEM_TOOLS_BIN)
 
+devel: $(SUBDIRS)
 devel: GEM_VERSION=-DGEM_VERSION=$(VERSION)-devel
 devel: GEM_PATHS=$(PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB)
 devel: GEM_LIBS=$(CUDA_LIB) $(LIBS) $(VTUNE_PROFILE_LIB)
 devel: $(GEM_TOOLS_BIN)
 
+profile: $(SUBDIRS)
 profile: GEM_VERSION=-DGEM_VERSION=$(VERSION)-profile
 profile: GEM_PATHS=$(PATH_INCLUDE) $(CUDA_PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB)
 profile: GEM_LIBS=$(CUDA_LIB) $(LIBS) $(CUDA_PROFILE_LIB) $(VTUNE_PROFILE_LIB)
 profile: $(GEM_TOOLS_BIN)
 
+debug: $(SUBDIRS)
 debug: GEM_VERSION=-DGEM_VERSION=$(VERSION)-debug 
 debug: GEM_PATHS=$(PATH_INCLUDE) $(CUDA_PATH_INCLUDE) $(PATH_LIB) $(CUDA_PATH_LIB) 
 debug: GEM_LIBS=$(CUDA_LIB) $(LIBS) $(CUDA_PROFILE_LIB) $(VTUNE_PROFILE_LIB)
@@ -77,16 +86,22 @@ else
 endif
 	
 # GEM Tools	
-$(FOLDER_BIN)/gem-mapper: $(LIB_GEM_CORE) gem-mapper.c 
+$(FOLDER_BIN)/gem-mapper: $(FOLDER_BUILD)/*.o gem-mapper.c 
 	$(CC) $(GEM_FLAGS) $(GEM_VERSION) $(DEF_CUDA) $(notdir $@).c $(FOLDER_BUILD)/*.o -o $@ $(FLAGS_LINK) $(GEM_PATHS) $(GEM_LIBS)  
 
-$(FOLDER_BIN)/gem-indexer: $(LIB_GEM_CORE) gem-indexer.c
+$(FOLDER_BIN)/gem-indexer: $(FOLDER_BUILD)/*.o gem-indexer.c
 	$(CC) $(GEM_FLAGS) $(GEM_VERSION) $(DEF_CUDA) $(notdir $@).c $(FOLDER_BUILD)/*.o -o $@ $(FLAGS_LINK) $(GEM_PATHS) $(GEM_LIBS)  
 	
-$(FOLDER_BIN)/gem-retriever: $(LIB_GEM_CORE) gem-retriever.c
+$(FOLDER_BIN)/gem-retriever: $(FOLDER_BUILD)/*.o gem-retriever.c
 	$(CC) $(GEM_FLAGS) $(GEM_VERSION) $(notdir $@).c $(FOLDER_BUILD)/*.o -o $@ $(FLAGS_LINK) $(GEM_PATHS) $(GEM_LIBS) 
 
-$(FOLDER_BIN)/gem-constructor: $(LIB_GEM_CORE) gem-constructor.c
+$(FOLDER_BIN)/gem-constructor: $(FOLDER_BUILD)/*.o gem-constructor.c
 	$(CC) $(GEM_FLAGS) $(GEM_VERSION) $(notdir $@).c $(FOLDER_BUILD)/*.o -o $@ $(FLAGS_LINK) $(GEM_PATHS) $(GEM_LIBS) 
 	
-
+# Subdir rule
+export GEM_FLAGS
+export MODE
+$(SUBDIRS):
+	$(MAKE) --directory=$@ $(MODE)
+	
+.PHONY: $(SUBDIRS)

@@ -51,10 +51,8 @@ void approximate_search_stepwise_region_profile_adaptive_compute(
   PROF_START(GP_ASSW_REGION_PROFILE_UNSUCCESSFUL);
   // Re-Compute region profile
   search->processing_state = asearch_processing_state_begin;
-  approximate_search_region_profile_adaptive(search,region_profile_adaptive);
+  approximate_search_region_profile(search);
   if (search->processing_state==asearch_processing_state_no_regions) return;
-  // Schedule exact-candidates
-  region_profile_schedule_filtering_exact(&search->region_profile);
   // Set State
   search->processing_state = asearch_processing_state_region_profiled;
   PROF_STOP(GP_ASSW_REGION_PROFILE_UNSUCCESSFUL);

@@ -31,6 +31,7 @@
 
 #include "text/pattern.h"
 #include "filtering/region_profile/region_profile_adaptive.h"
+#include "filtering/region_profile/region_profile_schedule.h"
 
 /*
  * Debug
@@ -103,14 +104,9 @@ void region_profile_generator_close_region(
   region_search_t* const current_region = region_profile->filtering_region + region_profile->num_filtering_regions;
   // Set range
   current_region->begin = key_position;
-  const uint64_t region_length = current_region->end - current_region->begin;
-  region_profile->max_region_length = MAX(region_profile->max_region_length,region_length);
-  region_profile->avg_region_length += region_length;
   // Set interval/candidates
-  const uint64_t candidates_region = hi - lo;
   current_region->lo = lo;
   current_region->hi = hi;
-  region_profile->total_candidates += candidates_region;
   ++(region_profile->num_filtering_regions);
 }
 void region_profile_generator_close_profile(
@@ -130,21 +126,18 @@ void region_profile_generator_close_profile(
       first_region->lo = generator->lo;
       first_region->hi = generator->hi;
       region_profile->num_filtering_regions = 1;
-      region_profile->total_candidates = generator->hi - generator->lo;
     } else {
       region_profile->num_filtering_regions = 0;
-      region_profile->total_candidates = 0;
     }
-    region_profile->max_region_length = generator->key_length;
-    region_profile->avg_region_length = generator->key_length;
   } else {
     // We extend the last region
     if (generator->allow_zero_regions) {
       region_profile_extend_last_region(region_profile,
           generator->fm_index,generator->key,generator->allowed_enc);
     }
-    region_profile->avg_region_length /= region_profile->num_filtering_regions;
   }
+  // Select regions & schedule filtering
+  region_profile_schedule_exact_all(region_profile);
 }
 bool region_profile_generator_add_character(
     region_profile_generator_t* const generator,
@@ -170,6 +163,7 @@ bool region_profile_generator_add_character(
     // Check Region-Candidates Progress
     generator->expected_count /= profile_model->dec_factor;
     if (num_candidates < generator->expected_count) {
+      generator->expected_count = num_candidates; // Dynamic Update
       region_profile_generator_save_cut_point(generator); // Refresh cut point
     }
     // Check maximum steps allowed to optimize region
@@ -276,7 +270,8 @@ void region_profile_generate_adaptive(
   const uint64_t max_regions_profiled = MIN(max_regions,region_profile->max_expected_regions);
   // Init
   region_profile_generator_t generator;
-  region_profile_generator_init(&generator,region_profile,fm_index,key,key_length,allowed_enc,allow_zero_regions);
+  region_profile_generator_init(&generator,region_profile,
+      fm_index,key,key_length,allowed_enc,allow_zero_regions);
   // Delimit regions
   while (generator.key_position > 0) {
     // Cut-off
@@ -292,7 +287,8 @@ void region_profile_generate_adaptive(
       region_profile_generator_disallow_character(&generator,profile_model);
     } else {
       // Rank query
-      region_profile_query_character(generator.fm_index,&generator.rank_mquery,&generator.lo,&generator.hi,enc_char);
+      region_profile_query_character(generator.fm_index,
+          &generator.rank_mquery,&generator.lo,&generator.hi,enc_char);
       // Add the character to the region profile
       region_profile_generator_add_character(&generator,profile_model,proper_length);
     }
@@ -313,8 +309,7 @@ void region_profile_generate_adaptive_limited(
     const uint8_t* const key,
     const uint64_t key_length,
     const bool* const allowed_enc,
-    const region_profile_model_t* const profile_model,
-    const uint64_t min_regions) {
+    const region_profile_model_t* const profile_model) {
   PROFILE_START(GP_REGION_PROFILE_ADAPTIVE,PROFILE_LEVEL);
   // DEBUG
   gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
@@ -328,6 +323,7 @@ void region_profile_generate_adaptive_limited(
   // Parameters
   rank_mtable_t* const rank_mtable = fm_index->rank_table;
   const uint64_t min_matching_depth = rank_mtable->min_matching_depth;
+  const uint64_t min_regions = profile_model->num_regions;
   // Init
   const uint64_t max_region_length = key_length/min_regions;
   region_profile_generator_t generator;

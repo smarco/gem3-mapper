@@ -32,21 +32,9 @@
 #include "gpu/gpu_buffer_fmi_asearch.h"
 
 /*
- * Region profile generation
- */
-typedef enum {
-  // Adaptive Profile (reducing the number of candidates and using cut-off conditions)
-  region_profile_adaptive,
-  // Adaptive Profile (limiting the maximum length of the region)
-  region_profile_adaptive_limited,
-} region_profile_strategy_t;
-
-/*
  * Region Profile Adaptive
  */
-void approximate_search_region_profile_adaptive(
-    approximate_search_t* const search,
-    const region_profile_strategy_t strategy);
+void approximate_search_region_profile(approximate_search_t* const search);
 
 /*
  * Region Partition Fixed

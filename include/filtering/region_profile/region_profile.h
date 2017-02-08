@@ -41,15 +41,37 @@
 #define REGION_FILTER_DEGREE_ONE  2
 #define REGION_FILTER_DEGREE_TWO  3
 
+/*
+ * Region profile strategy (aka seeding approach)
+ */
+typedef enum {
+  region_profile_fixed,            // Fixed region length
+  region_profile_factor,           // Factor Pattern Partitioning (fixed to reach e errors) [Classical]
+  region_profile_CKS,              // Fixed-length h-samples & select those with min. candidates [fastHASH]
+  region_profile_OPS,              // Optimal non-overlapping fixed-length k-mers [Hobbes]
+  region_profile_adaptive,         // Adaptive Pattern Partitioning (cut-off conditions) [GEM]
+  region_profile_adaptive_limited, // Adaptive Pattern Partitioning (limiting the maximum length of the region) [GEM-var]
+  region_profile_MEM,              // Maximal exact matches [CUSHAW2]
+  region_profile_SMEM,             // Super Maximal exact matches [BWA-MEM]
+  region_profile_OPP,              // Optimal pattern partitioning
+  region_profile_test
+} region_profile_strategy_t;
 typedef struct {
-  // Region Profile
+  // Strategy
+  region_profile_strategy_t strategy;  // Region profile strategy
+  // General parameters (depending on the strategy)
+  uint64_t num_regions;                // Total number of regions to generate
+  uint64_t region_length;              // Region length (or seed length)
+  uint64_t region_step;                // Separation between regions
+  // Adaptive parameters
   uint64_t region_th;                  // Max. number of candidates allowed per region
   uint64_t max_steps;                  // Max. number of characters to explore to improve the region
   uint64_t dec_factor;                 // Decreasing factor per step in region exploration
-  // Experimental
-  uint64_t region_length;              // Region length (used in experimental tests)
 } region_profile_model_t;
-// Filtering regions
+
+/*
+ * Filtering regions
+ */
 typedef struct {
   // Ranges of the region [begin,end)
   uint64_t begin;
@@ -63,11 +85,10 @@ typedef struct {
   uint64_t max;
   uint64_t min;
 } region_search_t;
-// Region Profile
-typedef struct {
-  uint64_t id;
-  uint64_t value;
-} region_locator_t;
+
+/*
+ * Region Profile
+ */
 typedef struct {
   /* Regions */
   region_search_t* filtering_region; // Filtering regions
@@ -122,6 +143,10 @@ void region_profile_query_character(
     uint64_t* const lo,
     uint64_t* const hi,
     const uint8_t enc_char);
+void region_profile_query_regions(
+    region_profile_t* const region_profile,
+    fm_index_t* const fm_index,
+    const uint8_t* const key);
 void region_profile_extend_last_region(
     region_profile_t* const region_profile,
     fm_index_t* const fm_index,
@@ -158,6 +183,13 @@ void region_profile_compute_kmer_frequency(
     const bool* const allowed_enc);
 
 /*
+ * Cmp
+ */
+int region_profile_cmp(
+    region_profile_t* const region_profile_a,
+    region_profile_t* const region_profile_b);
+
+/*
  * Sort
  */
 void region_profile_sort_by_candidates(region_profile_t* const region_profile);
@@ -175,6 +207,11 @@ void region_profile_print(
     FILE* const stream,
     const region_profile_t* const region_profile,
     const bool display_error_limits);
+void region_profile_print_pretty(
+    FILE* const stream,
+    const region_profile_t* const region_profile,
+    const char* const label,
+    bool print_all_regions);
 
 /*
  * Iterator

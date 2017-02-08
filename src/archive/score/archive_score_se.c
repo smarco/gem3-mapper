@@ -28,6 +28,7 @@
 #include "matches/classify/matches_classify.h"
 #include "matches/classify/matches_classify_logit.h"
 #include "matches/classify/matches_classify_logit_models.h"
+#include "profiler/profiler.h"
 
 /*
  * Profile

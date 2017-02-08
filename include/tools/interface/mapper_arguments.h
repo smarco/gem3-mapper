@@ -19,27 +19,47 @@
  *
  * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
- * DESCRIPTION:
- *   Region-Profile module provides functions to generate candidate
- *   bwt-positions from a region-profile.
  */
 
-#ifndef REGION_PROFILE_SCHEDULE_H_
-#define REGION_PROFILE_SCHEDULE_H_
+#ifndef MAPPER_ARGUMENTS_H_
+#define MAPPER_ARGUMENTS_H_
 
 #include "utils/essentials.h"
-#include "filtering/region_profile/region_profile.h"
+#include "utils/options_menu.h"
+#include "mapper/mapper_parameters.h"
 
 /*
- * Region Profile Scheduling
+ * Mapper options Menu
  */
-void region_profile_schedule_exact_all(
-    region_profile_t* const region_profile);
-void region_profile_schedule_exact_best(
-    region_profile_t* const region_profile,
-    const uint64_t num_regions);
-void region_profile_schedule_exact_thresholded(
-    region_profile_t* const region_profile,
-    const uint64_t candidates_threshold);
+extern option_t gem_mapper_options[];
+extern char* gem_mapper_groups[];
 
-#endif /* REGION_PROFILE_SCHEDULE_H_ */
+/*
+ * Mapper Error
+ */
+#define mapper_error_msg(error_msg,args...) \
+  fprintf(stderr,"GEM-Mapper error:\n> "error_msg"\n",##args); \
+  exit(1)
+#define mapper_cond_error_msg(condition,error_msg,args...) \
+  do { \
+    if (__builtin_expect((condition),0)){ \
+      mapper_error_msg(error_msg,##args); \
+      exit(1); \
+    } \
+  } while (0)
+
+/*
+ * Mapper Usage
+ */
+void gem_mapper_print_usage(const option_visibility_t visibility_level);
+
+/*
+ * Mapper Arguments Parsing
+ */
+void gem_mapper_parse_arguments(
+    int argc,
+    char** argv,
+    mapper_parameters_t* const parameters,
+    char* const gem_version);
+
+#endif /* MAPPER_ARGUMENTS_H_ */

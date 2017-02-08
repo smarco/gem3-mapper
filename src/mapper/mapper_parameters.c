@@ -116,10 +116,13 @@ void mapper_parameters_set_defaults(mapper_parameters_t* const mapper_parameters
   mapper_parameters_set_defaults_system(&mapper_parameters->system);
   /* CUDA settings */
   mapper_parameters_set_defaults_cuda(&mapper_parameters->cuda);
-  /* Hints */
-  // mapper_parameters_set_defaults_hints(&mapper_parameters->hints);
   /* Miscellaneous */
   mapper_parameters_set_defaults_misc(&mapper_parameters->misc);
+  /* Parsing Arguments Flags */
+  mapper_parameters->min_reported_strata_set = false;
+  mapper_parameters->max_reported_matches_set = false;
+  mapper_parameters->bs_suffix1 = NULL;
+  mapper_parameters->bs_suffix2 = NULL;
 }
 /*
  * Mapper parameters display

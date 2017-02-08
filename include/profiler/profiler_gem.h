@@ -24,16 +24,6 @@
 #ifndef PROFILER_GEM_H_
 #define PROFILER_GEM_H_
 
-typedef enum {
-  reduce_sum,
-  reduce_max,
-  reduce_min,
-  reduce_mean,
-  reduce_sample
-} profile_reduce_type;
-
-#ifdef GEM_PROFILE /* GEM_PROFILE ENABLED */
-
 #include "system/commons.h"
 #include "system/mm.h"
 #include "profiler/profiler_timer.h"
@@ -41,18 +31,15 @@ typedef enum {
 #include "stats/stats_vector.h"
 
 /*
- * Profiler Types
- */
-#define GP_MAX_COUNTERS 1000
-
-/*
- * Profile Block
- */
-#define PROF_BLOCK()
-
-/*
  * Profile
  */
+typedef enum {
+  reduce_sum,
+  reduce_max,
+  reduce_min,
+  reduce_mean,
+  reduce_sample
+} profile_reduce_type;
 typedef struct {
   /* General timers,counters & ranks */
   gem_timer_t* timers;                  // Time counters
@@ -68,6 +55,18 @@ typedef struct {
   // Limits
   uint64_t num_threads;
 } profiler_t;
+
+#ifdef GEM_PROFILE /* GEM_PROFILE ENABLED */
+
+/*
+ * Profiler Types
+ */
+#define GP_MAX_COUNTERS 1000
+
+/*
+ * Profile Block
+ */
+#define PROF_BLOCK()
 
 /*
  * Setup

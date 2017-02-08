@@ -20,26 +20,33 @@
  * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
- *   Region-Profile module provides functions to generate candidate
- *   bwt-positions from a region-profile.
  */
 
-#ifndef REGION_PROFILE_SCHEDULE_H_
-#define REGION_PROFILE_SCHEDULE_H_
+#ifndef REGION_PROFILE_MEM_H_
+#define REGION_PROFILE_MEM_H_
 
 #include "utils/essentials.h"
+#include "fm_index/fm_index.h"
 #include "filtering/region_profile/region_profile.h"
 
 /*
- * Region Profile Scheduling
+ * MEMs region profile
  */
-void region_profile_schedule_exact_all(
-    region_profile_t* const region_profile);
-void region_profile_schedule_exact_best(
+void region_profile_generate_mem(
     region_profile_t* const region_profile,
-    const uint64_t num_regions);
-void region_profile_schedule_exact_thresholded(
-    region_profile_t* const region_profile,
-    const uint64_t candidates_threshold);
+    fm_index_t* const fm_index,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const bool* const allowed_enc);
 
-#endif /* REGION_PROFILE_SCHEDULE_H_ */
+/*
+ * SMEMs region profile
+ */
+void region_profile_generate_smem(
+    region_profile_t* const region_profile,
+    fm_index_t* const fm_index,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const bool* const allowed_enc);
+
+#endif /* REGION_PROFILE_MEM_H_ */

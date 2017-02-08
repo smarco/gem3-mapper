@@ -15,13 +15,7 @@ include $(ROOT_PATH)/Makefile.mk
 ###############################################################################
 # Modules
 ###############################################################################
-MODULES=region_profile \
-        region_profile_adaptive \
-        region_profile_fixed \
-        region_profile_mem \
-        region_profile_optimum \
-        region_profile_schedule \
-        region_profile_split
+MODULES=mapper_arguments
 
 SRCS=$(addsuffix .c, $(MODULES))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))
@@ -45,4 +39,4 @@ debug: $(OBJS)
 	
 # General building rule
 $(FOLDER_BUILD)/%.o : %.c
-	$(CC) $(GEM_FLAGS) $(PATH_INCLUDE) -c $< -o $@
+	$(CC) $(GEM_FLAGS) $(DEF_CUDA) $(PATH_INCLUDE) -c $< -o $@

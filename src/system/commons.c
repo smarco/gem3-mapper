@@ -94,6 +94,27 @@ const uint64_t uint64_mask_mod_pow2[] =
 /*
  * Common numerical data processing/formating
  */
+uint64_t integer_num_ciphers(const uint64_t number) {
+  return (number >= 10000000000000000000ull) ? 20 :
+         (number >= 1000000000000000000ull) ? 19 :
+         (number >= 100000000000000000ull) ? 18 :
+         (number >= 10000000000000000ull) ? 17 :
+         (number >= 1000000000000000ull) ? 16 :
+         (number >= 100000000000000ull) ? 15 :
+         (number >= 10000000000000ull) ? 14 :
+         (number >= 1000000000000ull) ? 13 :
+         (number >= 100000000000ull) ? 12 :
+         (number >= 10000000000ull) ? 11 :
+         (number >= 1000000000ull) ? 10 :
+         (number >= 100000000ull) ? 9 :
+         (number >= 10000000ull) ? 8 :
+         (number >= 1000000ull) ? 7 :
+         (number >= 100000ull) ? 6 :
+         (number >= 10000ull) ? 5 :
+         (number >= 1000ull) ? 4 :
+         (number >= 100ull) ? 3 :
+         (number >= 10ull) ? 2 : 1;
+}
 uint64_t integer_proportion(const double proportion,const uint64_t length) {
   if (proportion<=0.0) return 0;
   if (proportion>=1.0) return (uint64_t)proportion;

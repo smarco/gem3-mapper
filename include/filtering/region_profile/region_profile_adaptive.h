@@ -94,7 +94,6 @@ void region_profile_generate_adaptive_limited(
     const uint8_t* const key,
     const uint64_t key_length,
     const bool* const allowed_enc,
-    const region_profile_model_t* const profile_model,
-    const uint64_t min_regions);
+    const region_profile_model_t* const profile_model);
 
 #endif /* REGION_PROFILE_ADAPTIVE_H_ */

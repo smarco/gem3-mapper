@@ -26,6 +26,7 @@
 
 #include "text/pattern.h"
 #include "filtering/region_profile/region_profile.h"
+#include "fm_index/fm_index_search.h"
 
 /*
  * Constants
@@ -60,11 +61,16 @@ void region_profile_inject_mm(
 }
 void region_profile_model_init(
     region_profile_model_t* const region_profile_model) {
-  // Region-LightWeight Scheme = (20,4,2,2)
+  // Strategy
+  region_profile_model->strategy = region_profile_adaptive;
+  // General parameters (depending on the strategy)
+  region_profile_model->num_regions = 5;
+  region_profile_model->region_length = 20;
+  region_profile_model->region_step = 20;
+  // Adaptive parameters. LightWeight Scheme = (20,4,1)
   region_profile_model->region_th = 20;
   region_profile_model->max_steps = 4;
   region_profile_model->dec_factor = 1;
-  region_profile_model->region_length = 20;
 }
 /*
  * Allocator
@@ -152,6 +158,17 @@ void region_profile_query_character(
       // Return rank
       *hi = sum_counters_hi + POPCOUNT_64((bitmap_hi & uint64_mask_ones[(block_mod_hi)]));
     }
+  }
+}
+void region_profile_query_regions(
+    region_profile_t* const region_profile,
+    fm_index_t* const fm_index,
+    const uint8_t* const key) {
+  // Iterate over all regions
+  REGION_PROFILE_ITERATE(region_profile,region,i) {
+    // Query
+    fm_index_bsearch(fm_index,key+region->begin,
+        region->end-region->begin,&region->hi,&region->lo);
   }
 }
 void region_profile_extend_last_region(
@@ -377,6 +394,29 @@ void region_profile_compute_kmer_frequency(
   mm_stack_pop_state(mm_stack);
 }
 /*
+ * Cmp
+ */
+int region_profile_cmp(
+    region_profile_t* const region_profile_a,
+    region_profile_t* const region_profile_b) {
+  // Compare number of regions
+  if (region_profile_a->num_filtering_regions !=
+      region_profile_b->num_filtering_regions) return 1;
+  // Compare regions
+  const uint64_t num_regions = region_profile_a->num_filtering_regions;
+  region_search_t* filtering_region_a = region_profile_a->filtering_region;
+  region_search_t* filtering_region_b = region_profile_b->filtering_region;
+  uint64_t i;
+  for (i=0;i<num_regions;++i,++filtering_region_a,++filtering_region_b) {
+    if (filtering_region_a->begin != filtering_region_b->begin) return 1;
+    if (filtering_region_a->end != filtering_region_b->end) return 1;
+    if (filtering_region_a->hi != filtering_region_b->hi) return 1;
+    if (filtering_region_a->lo != filtering_region_b->lo) return 1;
+  }
+  // Return equals
+  return 0;
+}
+/*
  * Sort
  */
 int region_search_cmp_candidates(const region_search_t* const a,const region_search_t* const b) {
@@ -427,6 +467,34 @@ void region_profile_print_region(
         region->min,region->max);
   }
 }
+void region_profile_print_region_pretty(
+    FILE* const stream,
+    const uint64_t region_idx,
+    const uint64_t filter_degree,
+    const uint64_t region_begin,
+    const uint64_t region_end,
+    const uint64_t region_candidates) {
+  int64_t i;
+  // Print candidates label
+  const uint64_t region_length = region_end-region_begin;
+  if (region_candidates!=UINT64_MAX) {
+    tab_fprintf(stream,"                     ");
+    const uint64_t ciphers = integer_num_ciphers(region_candidates);
+    int64_t offset = region_begin + (region_length)/2 - ciphers/2;
+    for (i=0;i<offset;++i) fprintf(stream," ");
+    fprintf(stream,"%lu\n",region_candidates);
+  }
+  // Print region
+  tab_fprintf(stream,"    [#%03lu]%s ",region_idx,filter_degree==0 ? "(Selected)" : "          ");
+  for (i=0;i<region_begin;++i) fprintf(stream," ");
+  if (region_length <= 1) {
+    fprintf(stream,"|\n");
+  } else {
+    fprintf(stream,"|"); ++i;
+    for (;i<region_end-1;++i) fprintf(stream,"-");
+    fprintf(stream,"|\n");
+  }
+}
 void region_profile_print(
     FILE* const stream,
     const region_profile_t* const region_profile,
@@ -437,6 +505,28 @@ void region_profile_print(
   tab_fprintf(stream,"  => Filtering.Regions\n");
   REGION_PROFILE_ITERATE(region_profile,region,position) {
     region_profile_print_region(stream,region,position,display_error_limits);
+  }
+  fflush(stream);
+}
+void region_profile_print_pretty(
+    FILE* const stream,
+    const region_profile_t* const region_profile,
+    const char* const label,
+    bool print_all_regions) {
+  // Count selected regions
+  tab_fprintf(stream,"[GEM]>Region.Profile (%s) (regions=%lu/%lu,cand=%lu)\n",
+      label,region_profile->num_filtered_regions,
+      region_profile->num_filtering_regions,
+      region_profile->total_candidates);
+  region_profile_print_region_pretty(stream,
+      region_profile->num_filtering_regions,1,0,
+      region_profile->pattern_length,UINT64_MAX);
+  REGION_PROFILE_ITERATE(region_profile,region,position) {
+    if (region->degree>0 || print_all_regions) {
+      region_profile_print_region_pretty(
+          stream,position,region->degree,
+          region->begin,region->end,region->hi-region->lo);
+    }
   }
   fflush(stream);
 }

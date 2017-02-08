@@ -373,6 +373,22 @@ int sa_builder_suffix_cmp(const uint64_t* const a,const uint64_t* const b) {
     return memcmp(global_enc_text,global_enc_text+sa_pos_b+cmp_length,global_enc_text_length-(sa_pos_b+cmp_length));
   }
 }
+int sa_builder_suffix_n_cmp(
+    const uint64_t text_position_a,
+    const uint64_t text_position_b,
+    const uint64_t n) {
+  // Eliminate the encoded text (PiggyBack)
+  const void* a1 = global_enc_text+text_position_a;
+  PREFETCH(a1);
+  const void* a2 = global_enc_text+text_position_b;
+  PREFETCH(a2);
+  // Compute compare length
+  const bool a_lt_b = (text_position_a < text_position_b);
+  uint64_t cmp_length = (a_lt_b) ? global_enc_text_length-text_position_b : global_enc_text_length-text_position_a;
+  if (n < cmp_length) cmp_length = n;
+  // N compare
+  return memcmp(a1,a2,cmp_length);
+}
 /*
  *  Multikey quicksort (from Bentley-Sedgewick)
  *    Stops when text_depth reaches Shallow_depth_limit

@@ -31,22 +31,48 @@
 #include "filtering/region_profile/region_profile.h"
 
 /*
- * Region Profile Schedule (generate the region partition)
+ * Region profile partition (not query, just delimit)
  */
-void region_profile_generate_fixed_partition(
+void region_profile_partition_fixed(
     region_profile_t* const region_profile,
     const uint8_t* const key,
     const uint64_t key_length,
     const bool* const allowed_enc,
-    const uint64_t min_region_length);
+    const uint64_t region_length,
+    const bool allow_gap_extending);
 
 /*
- * Region Profile Schedule (query the region partition into the index)
+ * Fixed region-length region profile
  */
-void region_profile_generate_fixed_query(
+void region_profile_generate_fixed(
     region_profile_t* const region_profile,
     fm_index_t* const fm_index,
-    const uint8_t* const key);
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const uint64_t region_length,
+    const uint64_t region_step);
+
+/*
+ * Cheap k-mer selection
+ */
+void region_profile_generate_cks(
+    region_profile_t* const region_profile,
+    fm_index_t* const fm_index,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const bool* const allowed_enc,
+    const uint64_t region_length,
+    const uint64_t num_regions);
+
+/*
+ * Factors region profile (divide the read in equal parts)
+ */
+void region_profile_generate_factors(
+    region_profile_t* const region_profile,
+    fm_index_t* const fm_index,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const uint64_t num_regions);
 
 /*
  * Display/Benchmark

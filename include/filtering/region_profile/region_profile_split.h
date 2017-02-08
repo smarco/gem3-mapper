@@ -20,26 +20,39 @@
  * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
- *   Region-Profile module provides functions to generate candidate
- *   bwt-positions from a region-profile.
  */
 
-#ifndef REGION_PROFILE_SCHEDULE_H_
-#define REGION_PROFILE_SCHEDULE_H_
+#ifndef REGION_PROFILE_SPLIT_H_
+#define REGION_PROFILE_SPLIT_H_
 
 #include "utils/essentials.h"
+#include "fm_index/fm_index.h"
 #include "filtering/region_profile/region_profile.h"
 
 /*
- * Region Profile Scheduling
+ * Compute vector of dec factors
  */
-void region_profile_schedule_exact_all(
-    region_profile_t* const region_profile);
-void region_profile_schedule_exact_best(
-    region_profile_t* const region_profile,
-    const uint64_t num_regions);
-void region_profile_schedule_exact_thresholded(
-    region_profile_t* const region_profile,
-    const uint64_t candidates_threshold);
+void region_profile_split_fdec(
+    FILE* const stream,
+    fm_index_t* const fm_index,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const bool* const allowed_enc,
+    const uint64_t region_length,
+    mm_stack_t* const mm_stack);
 
-#endif /* REGION_PROFILE_SCHEDULE_H_ */
+/*
+ * Compute splitters
+ */
+void region_profile_splitters(
+    region_profile_t* const region_profile,
+    fm_index_t* const fm_index,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const bool* const allowed_enc,
+    const uint64_t sample_length,
+    const uint64_t num_regions,
+    mm_stack_t* const mm_stack);
+
+
+#endif /* REGION_PROFILE_SPLIT_H_ */

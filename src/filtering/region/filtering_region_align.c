@@ -151,7 +151,13 @@ void filtering_region_align_inexact(
   // Select alignment model
   switch (match_alignment_model) {
     case match_alignment_model_none:
-      GEM_NOT_IMPLEMENTED();
+      // Configure Alignment
+      filtering_region_align_configure_hamming(
+          &align_input,&align_parameters,filtering_region,
+          search_parameters,pattern,text_trace);
+      // Hamming Align
+      match_align_pseudoalignment(matches,match_trace,&align_input,&align_parameters);
+      filtering_region->status = filtering_region_aligned;
       break;
     case match_alignment_model_hamming: {
       // Configure Alignment

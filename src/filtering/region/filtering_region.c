@@ -133,21 +133,6 @@ void filtering_region_compute_key_trims(
   }
 }
 /*
- * Sorting
- */
-int filtering_region_locator_cmp_position(
-    const filtering_region_locator_t* const a,
-    const filtering_region_locator_t* const b) {
-  return a->position - b->position;
-}
-void filtering_region_locator_sort_positions(
-    vector_t* const filtering_region_locators) {
-  void* array = vector_get_mem(filtering_region_locators,filtering_region_locator_t);
-  const size_t count = vector_get_used(filtering_region_locators);
-  qsort(array,count,sizeof(filtering_region_locator_t),
-      (int (*)(const void *,const void *))filtering_region_locator_cmp_position);
-}
-/*
  * Display
  */
 void filtering_region_print_region_text(

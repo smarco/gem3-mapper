@@ -152,11 +152,11 @@ bool filtering_region_verify(
       }
       case match_alignment_model_levenshtein:
       case match_alignment_model_gap_affine:
+      case match_alignment_model_none:
         // Verify Levenshtein
         filtering_region_verify_levenshtein(filtering_candidates,filtering_region,
             pattern,text_trace,kmer_filter,filtering_candidates->mm->mm_general);
         break;
-      case match_alignment_model_none:
       default:
         GEM_INVALID_CASE();
         break;

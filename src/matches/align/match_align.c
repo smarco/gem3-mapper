@@ -130,6 +130,45 @@ void match_align_exact(
   PROFILE_STOP(GP_MATCHES_ALIGN_EXACT,PROFILE_LEVEL);
 }
 /*
+ * Pseudo-Alignment
+ */
+void match_align_pseudoalignment(
+    matches_t* const matches,
+    match_trace_t* const match_trace,
+    match_align_input_t* const align_input,
+    match_align_parameters_t* const align_parameters) {
+  // Parameters
+  alignment_t* const alignment = align_input->alignment;
+  const uint64_t text_offset_begin = alignment->alignment_tiles->text_begin_offset;
+  const uint64_t key_length = align_input->key_length;
+  uint8_t* const text = align_input->text + text_offset_begin;
+  // Configure match-trace
+  match_trace->type = match_type_regular;
+  match_trace->text_trace_offset = align_input->text_trace_offset;
+  match_trace->text = text;
+  match_trace->text_length = key_length;
+  match_trace->sequence_name = NULL;
+  match_trace->text_position = UINT64_MAX;
+  match_alignment_t* const match_alignment = &match_trace->match_alignment;
+  match_alignment->match_text_offset = text_offset_begin;
+  match_alignment->match_position = align_input->text_position + text_offset_begin;
+  match_alignment->cigar_offset = vector_get_used(matches->cigar_vector);
+  match_alignment->cigar_length = 0;
+  match_alignment->score = alignment->distance_min_bound;
+  // Set CIGAR
+  matches_cigar_vector_append_match(matches->cigar_vector,
+      &match_alignment->cigar_length,key_length,cigar_attr_none);
+  match_alignment->effective_length = key_length;
+  // Set distances
+  match_trace->edit_distance = match_alignment->score;
+  match_trace->event_distance = match_alignment->score;
+  match_trace->swg_score = match_alignment->score;
+  // Store matching text
+  match_trace->match_scaffold = NULL;
+  match_trace->text = align_input->text + match_alignment->match_text_offset;
+  match_trace->text_length = match_alignment->effective_length;
+}
+/*
  * Hamming Alignment (Only mismatches)
  */
 void match_align_hamming(

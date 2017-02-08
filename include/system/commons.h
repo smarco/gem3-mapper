@@ -259,6 +259,8 @@ uint64_t gem_rand_IID(const uint64_t min,const uint64_t max);
 extern const uint64_t uint64_mask_mod_pow2[];
 #define MOD_POW2(NUMERATOR,DENOMINATOR_LOG2) ((NUMERATOR) & uint64_mask_mod_pow2[DENOMINATOR_LOG2])
 
+uint64_t integer_num_ciphers(const uint64_t number);
+
 uint64_t integer_proportion(const double proportion,const uint64_t length);
 uint64_t integer_lower_power_of_two(uint64_t number);
 uint64_t integer_upper_power_of_two(uint64_t number);

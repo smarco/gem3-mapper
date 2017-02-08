@@ -74,14 +74,6 @@ typedef struct {
  * Filtering Region Auxiliary Structures
  */
 typedef struct {
-  /* Filtering region */
-  filtering_region_t* filtering_region;
-  /* Location */
-  sequence_end_t sequence_end;
-  strand_t strand;
-  uint64_t position;
-} filtering_region_locator_t;
-typedef struct {
   /* Location */
   uint64_t begin_position;
   uint64_t end_position;
@@ -102,12 +94,6 @@ void filtering_region_retrieve_text(
 void filtering_region_compute_key_trims(
     filtering_region_t* const filtering_region,
     pattern_t* const pattern);
-
-/*
- * Sorting
- */
-void filtering_region_locator_sort_positions(
-    vector_t* const filtering_region_locators);
 
 /*
  * Display

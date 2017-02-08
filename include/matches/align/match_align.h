@@ -48,6 +48,15 @@ void match_align_exact(
     match_align_parameters_t* const align_parameters);
 
 /*
+ * Pseudo-Alignment
+ */
+void match_align_pseudoalignment(
+    matches_t* const matches,
+    match_trace_t* const match_trace,
+    match_align_input_t* const align_input,
+    match_align_parameters_t* const align_parameters);
+
+/*
  * Hamming Alignment (Only mismatches)
  */
 void match_align_hamming(
