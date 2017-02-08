@@ -233,6 +233,7 @@
 #define GP_MATCH_SCAFFOLD_EDIT_TILES_ALIGN                  461
 #define GP_MATCH_SCAFFOLD_EDIT_TILES_SKIPPED                462
 #define GP_MATCH_SCAFFOLD_EDIT_CELLS                        463
+#define GP_MATCH_SCAFFOLD_EDIT_TILES_DISTANCE_BOUND         464
 
 #define GP_BPM_DISTANCE                                     471
 #define GP_BMP_DISTANCE_NUM_TILES_VERIFIED                  472

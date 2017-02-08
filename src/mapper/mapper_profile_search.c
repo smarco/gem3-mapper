@@ -258,6 +258,8 @@ void mapper_profile_print_candidate_scaffold(FILE* const stream) {
   tab_fprintf(stream,"          --> Scaffold.Edit.Tiles.Align            ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCH_SCAFFOLD_EDIT_TILES_ALIGN),
                        PROF_GET_COUNTER(GP_MATCH_SCAFFOLD_EDIT_TILES_TOTAL),"tiles    ",true);
+  tab_fprintf(stream,"          --> Scaffold.Edit.Tiles.DistanceBound    ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCH_SCAFFOLD_EDIT_TILES_DISTANCE_BOUND),NULL,"error    ",true);
   tab_fprintf(stream,"        --> Scaffold.Edit.Cells.Computed           ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCH_SCAFFOLD_EDIT_CELLS),NULL,"cells    ",true);
 }

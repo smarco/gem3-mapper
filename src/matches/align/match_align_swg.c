@@ -131,7 +131,8 @@ bool match_align_swg_region(
     const uint64_t key_chunk_length,
     const uint64_t text_chunk_begin_offset,
     const uint64_t text_chunk_length,
-    const bool begin_free,const bool end_free,
+    const bool begin_free,
+    const bool end_free,
     mm_stack_t* const mm_stack) {
   // Parameters
   const uint64_t max_aligned_gap_length = align_parameters->max_aligned_gap_length;

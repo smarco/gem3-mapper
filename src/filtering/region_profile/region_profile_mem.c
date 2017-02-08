@@ -82,12 +82,12 @@ void region_profile_generate_mem(
       // Compute MEM
       region_profile_compute_mem(filtering_region,
           fm_index,key,key_length,allowed_enc,i);
-      if (filtering_region->begin < last_begin_position) {
-        last_begin_position = filtering_region->begin;
-        // Next region
-        ++filtering_region;
-        ++num_regions;
-      }
+      // This cond. is commented as otherwise it will generate SMEMs only
+      // if (filtering_region->begin < last_begin_position) {
+      last_begin_position = filtering_region->begin;
+      // Next region
+      ++filtering_region;
+      ++num_regions;
     }
     // Next position
     --i;

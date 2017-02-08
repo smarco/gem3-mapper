@@ -195,6 +195,7 @@ bool match_scaffold_levenshtein(
       const uint64_t text_begin_offset = alignment_tile->text_begin_offset;
       const uint64_t text_end_offset = alignment_tile->text_end_offset;
       const uint64_t distance_bound = MIN(match_distance,max_distance);
+      PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_TILES_DISTANCE_BOUND,distance_bound);
       mm_stack_push_state(mm_stack); // Push stack state
       match_scaffold_levenshtein_tiled(
           match_scaffold,align_input,filters_tile->bpm_pattern_tile,
