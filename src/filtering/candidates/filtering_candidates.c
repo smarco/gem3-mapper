@@ -141,8 +141,8 @@ void filtering_candidates_init_alignment(
   alignment_init(
       alignment,pattern->key_length,
       0,text_length,max_error,
-      pattern->alignment_filters.num_tiles,
-      pattern->alignment_filters.tile_length,
+      pattern->pattern_tiled.num_tiles,
+      pattern->pattern_tiled.tile_length,
       filtering_candidates->mm->mm_alignment_tiles);
 }
 /*

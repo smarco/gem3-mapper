@@ -24,7 +24,7 @@
  *   fixed/static key partition (with a fixed length size)
  */
 
-#include "text/pattern.h"
+#include "align/pattern/pattern.h"
 #include "filtering/region_profile/region_profile_fixed.h"
 #include "filtering/region_profile/region_profile_schedule.h"
 #include "fm_index/fm_index_search.h"
@@ -96,7 +96,8 @@ void region_profile_generate_fixed(
     const uint8_t* const key,
     const uint64_t key_length,
     const uint64_t region_length,
-    const uint64_t region_step) {
+    const uint64_t region_step,
+    const uint64_t region_error) {
   // Init & allocate region profile
   const uint64_t max_regions = DIV_CEIL(key_length,region_step);
   region_profile_clear(region_profile);
@@ -118,7 +119,7 @@ void region_profile_generate_fixed(
   // Query region profile
   region_profile_query_regions(region_profile,fm_index,key);
   // Schedule to filter all
-  region_profile_schedule_exact_all(region_profile);
+  region_profile_schedule_all(region_profile,region_error);
 }
 /*
  * Cheap k-mer selection

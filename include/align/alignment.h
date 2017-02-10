@@ -30,7 +30,7 @@
 
 #include "utils/essentials.h"
 #include "text/text_collection.h"
-#include "align/alignment_filters.h"
+#include "align/pattern/pattern_tiled.h"
 
 /*
  * Constants
@@ -41,7 +41,7 @@
 #define ALIGN_DISABLED             (UINT32_MAX-2)
 
 /*
- * Region Alignment
+ * Alignment (tiled)
  */
 typedef struct {
   uint64_t distance;                        // Distance
@@ -94,17 +94,22 @@ int64_t alignment_compute_edit_distance(
     uint64_t* const position);
 
 /*
- * Verify levenshtein using Filters (BPM + kmer-counting)
+ * Verify edit distance using kmer-counting
  */
-uint64_t alignment_verify_levenshtein_kmer_filter(
-    alignment_tile_t* const alignment_tile,
-    alignment_filters_tile_t* const filters_tiles,
+void alignment_verify_edit_kmer(
+    alignment_t* const alignment,
+    pattern_tiled_t* const pattern_tiled,
     uint8_t* const key,
     uint8_t* const text,
-    mm_stack_t* const mm_stack);
-void alignment_verify_levenshtein(
+    const uint64_t text_length,
+    const uint64_t max_error);
+
+/*
+ * Verify edit distance using BPM
+ */
+void alignment_verify_edit_bpm(
     alignment_t* const alignment,
-    alignment_filters_t* const filters,
+    pattern_tiled_t* const pattern_tiled,
     uint8_t* const key,
     uint8_t* const text,
     const uint64_t max_error);

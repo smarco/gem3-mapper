@@ -65,7 +65,7 @@ void filtering_region_align_configure_hamming(
   align_input->key_length          = key_length;
   align_input->sequence_clip_left  = pattern->clip_left;
   align_input->sequence_clip_right = pattern->clip_right;
-  align_input->alignment_filters   = &pattern->alignment_filters;
+  align_input->pattern_tiled       = &pattern->pattern_tiled;
   align_input->text_trace_offset   = filtering_region->text_trace_offset;
   align_input->text_position       = filtering_region->text_begin_position; // Base position
   align_input->text                = text_trace->text;
@@ -95,7 +95,7 @@ void filtering_region_align_configure_levenshtein(
   align_input->sequence_clip_right = pattern->clip_right;
   align_input->key                 = key;
   align_input->key_length          = key_length;
-  align_input->alignment_filters   = &pattern->alignment_filters;
+  align_input->pattern_tiled       = &pattern->pattern_tiled;
   align_input->text_trace_offset   = filtering_region->text_trace_offset;
   align_input->text_position       = filtering_region->text_begin_position;
   align_input->text                = text_trace->text;
@@ -130,7 +130,7 @@ void filtering_region_align_configure_swg(
   align_input->key_length               = key_length;
   align_input->key_trim_left            = filtering_region->key_trim_left;
   align_input->key_trim_right           = filtering_region->key_trim_right;
-  align_input->alignment_filters        = &pattern->alignment_filters;
+  align_input->pattern_tiled            = &pattern->pattern_tiled;
   align_input->text_trace_offset        = filtering_region->text_trace_offset;
   align_input->text_position            = filtering_region->text_begin_position;
   align_input->text                     = text_trace->text;

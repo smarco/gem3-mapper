@@ -29,7 +29,7 @@
 #define FILTERING_CANDIDATES_PROCESS_H_
 
 #include "filtering/candidates/filtering_candidates.h"
-#include "text/pattern.h"
+#include "align/pattern/pattern.h"
 
 /*
  * Constants

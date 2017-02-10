@@ -34,6 +34,16 @@
 /*
  * Levenshtein Brute Force
  */
+void nsearch_levenshtein_base(
+    approximate_search_t* const search,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const uint64_t key_offset,
+    const uint64_t max_error);
+
+/*
+ * Levenshtein Brute Force
+ */
 void nsearch_levenshtein_brute_force(
     approximate_search_t* const search,
     const bool supercondensed,

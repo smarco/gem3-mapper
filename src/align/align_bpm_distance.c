@@ -26,7 +26,7 @@
 
 #include "align/alignment.h"
 #include "text/dna_text.h"
-#include "text/pattern.h"
+#include "align/pattern/pattern.h"
 #include "align/align_bpm_distance.h"
 #include "filtering/region/filtering_region.h"
 
@@ -289,7 +289,7 @@ uint64_t bpm_compute_edit_distance_all(
     uint64_t max_distance) {
   PROF_START(GP_BPM_ALL);
   // Parameters
-  bpm_pattern_t* const bpm_pattern = pattern->alignment_filters.bpm_pattern;
+  bpm_pattern_t* const bpm_pattern = pattern->pattern_tiled.bpm_pattern;
   // Pattern variables
   const uint64_t* PEQ = bpm_pattern->PEQ;
   const uint64_t num_words64 = bpm_pattern->pattern_num_words64;

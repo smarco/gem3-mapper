@@ -73,7 +73,7 @@ void region_profile_generate_mem(
   region_profile_allocate_regions(region_profile,key_length); // Allocate
   // Compute MEM for each key position
   region_search_t* filtering_region = region_profile->filtering_region; // Filtering regions
-  uint64_t last_begin_position = key_length, num_regions = 0;
+  uint64_t num_regions = 0;
   uint64_t i;
   for (i=key_length;i>0;) {
     // Fetch character
@@ -84,7 +84,6 @@ void region_profile_generate_mem(
           fm_index,key,key_length,allowed_enc,i);
       // This cond. is commented as otherwise it will generate SMEMs only
       // if (filtering_region->begin < last_begin_position) {
-      last_begin_position = filtering_region->begin;
       // Next region
       ++filtering_region;
       ++num_regions;

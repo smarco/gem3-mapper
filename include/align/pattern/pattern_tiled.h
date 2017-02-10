@@ -22,42 +22,45 @@
  * DESCRIPTION:
  */
 
-#ifndef ALIGNMENT_FILTERS_H_
-#define ALIGNMENT_FILTERS_H_
+#ifndef PATTERN_TILED_H_
+#define PATTERN_TILED_H_
 
 #include "utils/essentials.h"
 #include "align/align_bpm_pattern.h"
 #include "align/align_kmer_filter.h"
 
+/*
+ * Pattern tiled
+ */
 typedef struct {
   /* Tile attributes */
   uint64_t tile_offset;
   uint64_t tile_length;
   uint64_t max_error;
-  /* Filters */
+  /* BPM Filter */
   bpm_pattern_t* bpm_pattern_tile;
   kmer_counting_t* kmer_filter_tile;
-} alignment_filters_tile_t;
+} pattern_tile_t;
 typedef struct {
   /* Tile dimensions */
   uint64_t num_tiles;
   uint64_t tile_length;
   /* Global filters */
   bpm_pattern_t* bpm_pattern; // BPM filter
-  /* Tiled filters */
-  alignment_filters_tile_t* tiles;
+  /* Tiles */
+  pattern_tile_t* tiles;
   /* MM */
   mm_stack_t* mm_stack;
-} alignment_filters_t;
+} pattern_tiled_t;
 
 /*
- * Compile alignment filters & tiles
+ * Compile alignment tiles (and filters)
  */
-void alignment_filters_compile(
-    alignment_filters_t* const alignment_filters,
+void pattern_tiled_compile(
+    pattern_tiled_t* const pattern_tiled,
     uint8_t* const key,
     const uint64_t key_length,
     const uint64_t max_error,
     mm_stack_t* const mm_stack);
 
-#endif /* ALIGNMENT_FILTERS_H_ */
+#endif /* PATTERN_TILED_H_ */

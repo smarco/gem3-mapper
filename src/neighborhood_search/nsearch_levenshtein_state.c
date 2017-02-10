@@ -143,12 +143,18 @@ void nsearch_levenshtein_state_compute_chararacter(
     const uint8_t text_char_enc,
     const uint64_t max_error,
     uint64_t* const min_val,
-    uint64_t* const align_distance) {
+    uint64_t* const align_distance,
+    mm_stack_t* const mm_stack) {
   // Parameters
   dp_matrix_t* const dp_matrix = &nsearch_state->dp_matrix;
   // Index column (current_column=text_offset offset by 1)
   dp_column_t* const base_column = dp_matrix->columns + text_position;
   dp_column_t* const next_column = base_column + 1;
+  if (next_column->cells == NULL) { // Init (if needed)
+    next_column->cells = mm_stack_calloc(mm_stack,dp_matrix->num_rows+1,uint32_t,false);
+    nsearch_levenshtein_state_prepare_column(next_column,
+        text_position+1,nsearch_state->supercondensed);
+  }
   // Fill columns
   uint32_t column_min = NS_DISTANCE_INF;
   uint64_t i;

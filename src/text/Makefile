@@ -33,7 +33,6 @@ include $(ROOT_PATH)/Makefile.mk
 MODULES=cdna_bitwise_text \
         cdna_text \
         dna_text \
-        pattern \
         sequence \
         sequence_qualities_model \
         text_collection

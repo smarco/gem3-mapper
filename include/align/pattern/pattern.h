@@ -27,7 +27,7 @@
 #include "utils/essentials.h"
 #include "align/align_bpm_pattern.h"
 #include "archive/search/archive_search_se_parameters.h"
-#include "align/alignment_filters.h"
+#include "align/pattern/pattern_tiled.h"
 
 /*
  * Approximate Search Pattern
@@ -51,11 +51,11 @@ typedef struct {
   uint64_t max_effective_filtering_error;
   uint64_t max_effective_bandwidth;
   /* Alignment filters */
-  alignment_filters_t alignment_filters;
+  pattern_tiled_t pattern_tiled;
 } pattern_t;
 
 /*
- * Tiled Pattern
+ * Pattern Tiling Generator
  */
 typedef struct {
   // Current tile dimensions
@@ -71,11 +71,7 @@ typedef struct {
   uint64_t pattern_max_error;
   uint64_t pattern_remaining_length;
   uint64_t sequence_length;
-  // Tile matching information
-  uint64_t tile_distance;
-  uint64_t tile_match_column;
-  uint64_t prev_tile_match_position;
-} pattern_tiled_t;
+} pattern_tiling_t;
 
 /*
  * Pattern Prepare
@@ -92,16 +88,16 @@ void pattern_clear(pattern_t* const pattern);
 bool pattern_is_null(pattern_t* const pattern);
 
 /*
- * Pattern Tiling
+ * Pattern tiling Generation
  */
-void pattern_tiled_init(
-    pattern_tiled_t* const pattern_tiled,
+void pattern_tiling_init(
+    pattern_tiling_t* const pattern_tiling,
     const uint64_t pattern_length,
     const uint64_t pattern_tile_length,
     const uint64_t sequence_length,
     const uint64_t max_error);
-void pattern_tiled_calculate_next(pattern_tiled_t* const pattern_tiled);
-uint64_t pattern_tiled_bound_matching_path(pattern_tiled_t* const pattern_tiled);
+void pattern_tiling_next(
+    pattern_tiling_t* const pattern_tiling);
 
 /*
  * Display

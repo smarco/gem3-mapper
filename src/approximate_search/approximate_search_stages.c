@@ -83,14 +83,14 @@ void approximate_search_exact_filtering_adaptive(
     tab_global_inc();
     tab_global_inc();
   }
-  // Region-Minimal Profile (Reduce the number of candidates per region and maximize number of regions)
+  // Region Profile (a.k.a. seeding stage)
   approximate_search_region_profile(search);
   if (search->processing_state==asearch_processing_state_no_regions) return; // Corner case
   // Verify Candidates (if needed)
   const bool verify_candidates = (matches != NULL);
   if (verify_candidates) {
     // Generate candidates
-    approximate_search_generate_candidates_exact(search);
+    approximate_search_generate_candidates(search);
     // Process candidates
     filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern,true);
     // Verify candidates

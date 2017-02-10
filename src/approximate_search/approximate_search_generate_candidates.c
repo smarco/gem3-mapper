@@ -34,6 +34,7 @@
 #include "filtering/region_profile/region_profile.h"
 #include "filtering/region_profile/region_profile_adaptive.h"
 #include "filtering/region_profile/region_profile_schedule.h"
+#include "neighborhood_search/nsearch_levenshtein.h"
 
 /*
  * Debug
@@ -55,7 +56,7 @@ FILE* benchmark_decode_candidates = NULL;
 /*
  * Generate Candidates from Region-Profile (Exact Regions)
  */
-void approximate_search_generate_candidates_exact(approximate_search_t* const search) {
+void approximate_search_generate_candidates(approximate_search_t* const search) {
   PROFILE_START(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
   // Parameters
   search_parameters_t* const search_parameters = search->search_parameters;
@@ -82,12 +83,19 @@ void approximate_search_generate_candidates_exact(approximate_search_t* const se
     for (i=0;i<num_filtering_regions;++i) {
       PROF_INC_COUNTER(GP_AS_GENERATE_CANDIDATES_PROCESSED);
       // Generate exact-candidates for the region
-      if (region_search[i].degree == REGION_FILTER_DEGREE_ZERO) {
+      const uint64_t degree = region_search[i].degree;
+      if (degree == REGION_FILTER_NONE) continue;
+      if (degree == REGION_FILTER_DEGREE_ZERO) {
         filtering_candidates_add_positions_from_interval(
             filtering_candidates,search_parameters,pattern,
             region_search[i].lo,region_search[i].hi,
             region_search[i].begin,region_search[i].end,0,
             &region_profile->candidates_limited);
+      } else {
+        nsearch_levenshtein_base(
+            search,pattern->key+region_search[i].begin,
+            region_search[i].end-region_search[i].begin,
+            region_search[i].begin,degree-1);
       }
       ++(region_profile->num_filtered_regions);
     }

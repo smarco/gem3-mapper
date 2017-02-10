@@ -62,8 +62,10 @@ option_t gem_mapper_options[] = {
   { 409, "alignment-scaffolding-min-matching_length", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<number|percentage>" , "(default=10)" },
   { 410, "alignment-curation", OPTIONAL, TYPE_STRING, 4, VISIBILITY_ADVANCED, "" , "(default=true)" },
   { 411, "alignment-curation-min-end-context", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<number|percentage>" , "(default=2)" },
-  { 412, "region-model", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<strategy>,<num_regions>,<region_length>,<region_step>" , "" },
-  { 413, "region-model-adaptive", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<app_threshold>,<app_steps>,<app_dec>" , "" },
+  { 412, "candidate-generation", REQUIRED, TYPE_STRING, 4, VISIBILITY_DEVELOPER, "<strategy>[,<arguments>]" , "" },
+  { 413, "candidate-generation-adaptive", REQUIRED, TYPE_STRING, 4, VISIBILITY_DEVELOPER, "<app_threshold>,<app_steps>,<app_dec>" , "" },
+  { 414, "candidate-verification", REQUIRED, TYPE_STRING, 4, VISIBILITY_DEVELOPER, "'BPM'|'chained'" , "" },
+  { 415, "qgram-filter", REQUIRED, TYPE_STRING, 4, VISIBILITY_DEVELOPER, "<num_slices>,<qgram_length>" , "" },
   /* Paired-end Alignment */
   { 'p', "paired-end-alignment", NO_ARGUMENT, TYPE_NONE, 5, VISIBILITY_USER, "" , "" },
   { 'l', "min-template-length", REQUIRED, TYPE_INT, 5, VISIBILITY_USER, "<number>" , "(default=disabled)" },
@@ -473,50 +475,112 @@ bool gem_mapper_parse_arguments_single_end(
     case 411: // --alignment-curation-min-end-context (default=2)
       input_text_parse_extended_double(optarg,(double*)&search->cigar_curation_min_end_context);
       return true;
-    case 412: { // --region-model <strategy>,<num_regions>,<region_length>,<region_step>
-      char *strategy=NULL, *num_regions=NULL, *region_length=NULL, *region_step=NULL;
-      const int num_arguments = input_text_parse_csv_arguments(optarg,4,
-          &strategy,&num_regions,&region_length,&region_step);
-      mapper_cond_error_msg(num_arguments!=4,"Option '--region-model' wrong syntax (e.g. --region-model=fixed,4,10,10)");
-      if (strcmp(strategy,"fixed")==0) {
+    case 412: { // --candidate-generation <strategy>,<num_regions>,<region_length>,<region_step>
+      char *strategy=NULL, *num_regions=NULL, *region_length=NULL, *region_step=NULL, *region_error=NULL;
+      if (strncasecmp(optarg,"fixed,",6)==0) {
+        // --candidate-generation fixed,<region_length>,<region_step>,<region_error>
+        const int num_arguments = input_text_parse_csv_arguments(optarg,4,
+            &strategy,&region_length,&region_step,&region_error);
+        mapper_cond_error_msg(num_arguments!=4,
+            "Invalid usage '--candidate-generation fixed,<region_length>,<region_step>,<region_error>'");
         search->region_profile_model.strategy = region_profile_fixed;
-      } else if (strcmp(strategy,"CKS")==0) {
+        input_text_parse_extended_uint64(region_length,&search->region_profile_model.region_length);
+        input_text_parse_extended_uint64(region_step,&search->region_profile_model.region_step);
+        input_text_parse_extended_uint64(region_error,&search->region_profile_model.region_error);
+      } else if (strncasecmp(optarg,"CKS,",4)==0) {
+        // --candidate-generation CKS,<num_regions>,<region_length>
+        const int num_arguments = input_text_parse_csv_arguments(optarg,3,&strategy,&num_regions,&region_length);
+        mapper_cond_error_msg(num_arguments!=3,
+            "Invalid usage '--candidate-generation CKS,<num_regions>,<region_length>'");
         search->region_profile_model.strategy = region_profile_CKS;
-      } else if (strcmp(strategy,"OPS")==0) {
+        input_text_parse_extended_uint64(num_regions,&search->region_profile_model.num_regions);
+        input_text_parse_extended_uint64(region_length,&search->region_profile_model.region_length);
+      } else if (strncasecmp(optarg,"OPS,",4)==0) {
+        // --candidate-generation OPS,<num_regions>,<region_length>
+        const int num_arguments = input_text_parse_csv_arguments(optarg,3,&strategy,&num_regions,&region_length);
+        mapper_cond_error_msg(num_arguments!=3,
+            "Invalid usage '--candidate-generation OPS,<num_regions>,<region_length>'");
         search->region_profile_model.strategy = region_profile_OPS;
-      } else if (strcmp(strategy,"factor")==0) {
+        input_text_parse_extended_uint64(num_regions,&search->region_profile_model.num_regions);
+        input_text_parse_extended_uint64(region_length,&search->region_profile_model.region_length);
+      } else if (strncasecmp(optarg,"factors,",8)==0) {
+        // --candidate-generation factors,<num_regions>,<region_error>
+        const int num_arguments = input_text_parse_csv_arguments(optarg,3,&strategy,&num_regions,&region_error);
+        mapper_cond_error_msg(num_arguments!=3,
+            "Invalid usage '--candidate-generation factors,<num_regions>,<region_error>'");
         search->region_profile_model.strategy = region_profile_factor;
-      } else if (strcmp(strategy,"adaptive")==0) {
+        input_text_parse_extended_uint64(num_regions,&search->region_profile_model.num_regions);
+        input_text_parse_extended_uint64(region_error,&search->region_profile_model.region_error);
+      } else if (strncasecmp(optarg,"adaptive,",9)==0) {
+        // --candidate-generation adaptive
+        mapper_cond_error_msg(strcasecmp(optarg,"adaptive")!=0,"Invalid usage '--candidate-generation adaptive'");
         search->region_profile_model.strategy = region_profile_adaptive;
-      } else if (strcmp(strategy,"adaptive-limited")==0) {
+      } else if (strncasecmp(optarg,"adaptive-limited,",17)==0) {
+        // --candidate-generation adaptive-limited
+        mapper_cond_error_msg(strcasecmp(optarg,"adaptive-limited")!=0,
+            "Invalid usage '--candidate-generation adaptive-limited'");
         search->region_profile_model.strategy = region_profile_adaptive_limited;
-      } else if (strcmp(strategy,"MEM")==0) {
+      } else if (strncasecmp(optarg,"MEM,",4)==0) {
+        // --candidate-generation MEM
+        mapper_cond_error_msg(strcasecmp(optarg,"MEM")!=0,"Invalid usage '--candidate-generation MEM'");
         search->region_profile_model.strategy = region_profile_MEM;
-      } else if (strcmp(strategy,"SMEM")==0) {
+      } else if (strncasecmp(optarg,"SMEM,",5)==0) {
+        // --candidate-generation SMEM
+        mapper_cond_error_msg(strcasecmp(optarg,"SMEM")!=0,"Invalid usage '--candidate-generation SMEM'");
         search->region_profile_model.strategy = region_profile_SMEM;
-      } else if (strcmp(strategy,"OPP")==0) {
+      } else if (strncasecmp(optarg,"OPP,",4)==0) {
+        // --candidate-generation OPP,<num_regions>
+        const int num_arguments = input_text_parse_csv_arguments(optarg,2,&strategy,&num_regions);
+        mapper_cond_error_msg(num_arguments!=2,
+            "Invalid usage '--candidate-generation OPP,<num_regions>'");
         search->region_profile_model.strategy = region_profile_OPP;
-      } else if (strcmp(strategy,"test")==0) {
+        input_text_parse_extended_uint64(num_regions,&search->region_profile_model.num_regions);
+      } else if (strncasecmp(optarg,"test,",5)==0) {
+        // --candidate-generation <strategy>,<num_regions>,<region_length>,<region_step>,<region_error>
+        const int num_arguments = input_text_parse_csv_arguments(optarg,5,
+            &strategy,&num_regions,&region_length,&region_step,&region_error);
+        mapper_cond_error_msg(num_arguments!=5,
+            "Invalid usage '--candidate-generation fixed,<num_regions>,<region_length>,<region_step>,<region_error>'");
         search->region_profile_model.strategy = region_profile_test;
+        input_text_parse_extended_uint64(num_regions,&search->region_profile_model.num_regions);
+        input_text_parse_extended_uint64(region_length,&search->region_profile_model.region_length);
+        input_text_parse_extended_uint64(region_step,&search->region_profile_model.region_step);
+        input_text_parse_extended_uint64(region_error,&search->region_profile_model.region_error);
       } else {
         mapper_error_msg(
-            "Invalid <strategy> from option '--region-model'. "
-            "Select from 'fixed','CKS','OPS','factor',"
+            "Invalid <strategy> from option '--candidate-generation'. "
+            "Select from 'fixed','CKS','OPS','factors',"
             "'adaptive','adaptive-limited','MEM','SMEM','OPP','test'");
       }
-      input_text_parse_extended_uint64(num_regions,&search->region_profile_model.num_regions);
-      input_text_parse_extended_uint64(region_length,&search->region_profile_model.region_length);
-      input_text_parse_extended_uint64(region_step,&search->region_profile_model.region_step);
       return true;
     }
-    case 413: { // --region-model-adaptive <app_threshold>,<app_steps>,<app_dec>
+    case 413: { // --candidate-generation-adaptive <app_threshold>,<app_steps>,<app_dec>
       char *region_th=NULL, *max_steps=NULL, *dec_factor=NULL;
       const int num_arguments = input_text_parse_csv_arguments(
           optarg,3,&region_th,&max_steps,&dec_factor);
-      mapper_cond_error_msg(num_arguments!=3,"Option '--app-region-model' wrong number of arguments");
+      mapper_cond_error_msg(num_arguments!=3,
+          "Option '--candidate-generation-adaptive' wrong arguments (<app_threshold>,<app_steps>,<app_dec>)");
       input_text_parse_extended_uint64(region_th,&search->region_profile_model.region_th);
       input_text_parse_extended_uint64(max_steps,&search->region_profile_model.max_steps);
       input_text_parse_extended_uint64(dec_factor,&search->region_profile_model.dec_factor);
+      search->region_profile_model.strategy = region_profile_adaptive;
+      return true;
+    }
+    case 414: // --candidate-verification in 'BPM'|'chained'
+      if (gem_strcaseeq(optarg,"BPM")) {
+        search->candidate_verification.strategy = candidate_verification_BPM;
+      } else if (gem_strcaseeq(optarg,"chained")) {
+        search->candidate_verification.strategy = candidate_verification_chained;
+      } else {
+        mapper_error_msg("Option '--candidate-verification' must be 'BPM'|'chained'");
+      }
+      return true;
+    case 415: { // --qgram-filter <num_slices>,<qgram_length>
+      char *num_slices=NULL, *qgram_length=NULL;
+      const int num_arguments = input_text_parse_csv_arguments(optarg,2,&num_slices,&qgram_length);
+      mapper_cond_error_msg(num_arguments!=2,"Option '--qgram-filter' wrong arguments (<num_slices>,<qgram_length>)");
+      input_text_parse_extended_uint64(num_slices,&search->candidate_verification.num_slices);
+      input_text_parse_extended_uint64(qgram_length,&search->candidate_verification.kmer_length);
       return true;
     }
   }

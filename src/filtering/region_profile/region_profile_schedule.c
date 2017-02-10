@@ -176,11 +176,35 @@ void region_profile_schedule_exact_thresholded(
     region_profile->avg_region_length /= region_profile->num_filtered_regions;
   }
 }
-
-
-
-
-
+void region_profile_schedule_all(
+    region_profile_t* const region_profile,
+    const uint64_t region_error) {
+  // Check exact matches
+  if (region_profile_schedule_exact_matches(region_profile)) return;
+  // Parameters
+  const uint64_t num_regions = region_profile->num_filtering_regions;
+  region_search_t* const filtering_region = region_profile->filtering_region;
+  // Init region-profile metrics
+  region_profile->total_candidates = 0;
+  region_profile->num_filtered_regions = 0;
+  region_profile->max_region_length = 0;
+  region_profile->avg_region_length = 0;
+  // Assign degree-zero to all regions
+  uint64_t i;
+  for (i=0;i<num_regions;++i) {
+    const uint64_t region_length = filtering_region[i].end - filtering_region[i].begin;
+    // Schedule
+    filtering_region[i].degree = region_error+1;
+    ++(region_profile->num_filtered_regions);
+    // Compute metrics
+    region_profile->total_candidates += filtering_region[i].hi - filtering_region[i].lo;
+    region_profile->max_region_length = MAX(region_profile->max_region_length,region_length);
+    region_profile->avg_region_length += region_length;
+  }
+  if (region_profile->num_filtered_regions > 0) {
+    region_profile->avg_region_length /= region_profile->num_filtered_regions;
+  }
+}
 
 
 

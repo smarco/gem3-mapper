@@ -128,7 +128,8 @@ void approximate_search_region_profile(approximate_search_t* const search) {
       region_profile_generate_fixed(
           region_profile,fm_index,key,key_length,
           parameters->region_profile_model.region_length,
-          parameters->region_profile_model.region_step);
+          parameters->region_profile_model.region_step,
+          parameters->region_profile_model.region_error);
       // region_profile_print(stderr,region_profile,false);
       break;
     case region_profile_factor:
@@ -184,7 +185,8 @@ void approximate_search_region_profile(approximate_search_t* const search) {
       region_profile_generate_fixed(
           region_profile,fm_index,key,key_length,
           parameters->region_profile_model.region_length,
-          parameters->region_profile_model.region_step);
+          parameters->region_profile_model.region_step,
+          parameters->region_profile_model.region_error);
       region_profile_print_pretty(stderr,region_profile,"Fixed",false);
       // CKS
       region_profile_generate_cks(

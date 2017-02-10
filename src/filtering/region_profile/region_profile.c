@@ -24,7 +24,7 @@
  *   for a candidate generation stage within a filtering process
  */
 
-#include "text/pattern.h"
+#include "align/pattern/pattern.h"
 #include "filtering/region_profile/region_profile.h"
 #include "fm_index/fm_index_search.h"
 
@@ -67,6 +67,7 @@ void region_profile_model_init(
   region_profile_model->num_regions = 5;
   region_profile_model->region_length = 20;
   region_profile_model->region_step = 20;
+  region_profile_model->region_error = 0;
   // Adaptive parameters. LightWeight Scheme = (20,4,1)
   region_profile_model->region_th = 20;
   region_profile_model->max_steps = 4;

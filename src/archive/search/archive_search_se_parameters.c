@@ -55,6 +55,7 @@ void search_parameters_init_replacements(search_parameters_t* const search_param
   search_parameters->allowed_enc[ENC_DNA_CHAR_N] = false;
 }
 void search_parameters_init_error_model(search_parameters_t* const search_parameters) {
+  // Search
   search_parameters->complete_search_error = 0.04;
   search_parameters->complete_strata_after_best = 1.0;
   search_parameters->alignment_max_error = 0.12;
@@ -71,6 +72,13 @@ void search_parameters_init_error_model(search_parameters_t* const search_parame
   search_parameters->alignment_scaffolding_min_matching_length = 10.0;
   search_parameters->cigar_curation = true;
   search_parameters->cigar_curation_min_end_context = 2.0;
+  search_parameters->candidate_verification.strategy = candidate_verification_chained;
+  search_parameters->candidate_verification.num_slices = 1;
+  search_parameters->candidate_verification.kmer_length = 6;
+  // Region Profile
+  region_profile_model_init(&search_parameters->region_profile_model);
+  // Neighborhood Search
+  nsearch_parameters_init(&search_parameters->nsearch_parameters);
 }
 void search_parameters_init_match_alignment_model(search_parameters_t* const search_parameters) {
   search_parameters->match_alignment_model = match_alignment_model_gap_affine;
@@ -125,10 +133,6 @@ void search_parameters_init(search_parameters_t* const search_parameters) {
   search_paired_parameters_init(&search_parameters->search_paired_parameters);
   // Bisulfite
   search_parameters->bisulfite_read = bisulfite_read_inferred;
-  // Region Profile
-  region_profile_model_init(&search_parameters->region_profile_model);
-  // Neighborhood Search
-  nsearch_parameters_init(&search_parameters->nsearch_parameters);
   // Select Parameters
   select_parameters_init(&search_parameters->select_parameters);
   // Check

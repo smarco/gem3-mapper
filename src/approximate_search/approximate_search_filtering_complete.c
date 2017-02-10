@@ -57,7 +57,7 @@ void approximate_search_filtering_complete(
   approximate_search_region_profile(search);
   if (search->processing_state==asearch_processing_state_no_regions) return;
   // Generate exact-candidates
-  approximate_search_generate_candidates_exact(search);
+  approximate_search_generate_candidates(search);
   // Verify candidates
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
   filtering_candidates_process_candidates(filtering_candidates,pattern,true);

@@ -113,13 +113,21 @@ void mapper_profile_print_candidate_verification(FILE* const stream) {
   tab_fprintf(stream,"      --> Alignment.Tiles                         ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_CANDIDATE_TILES),PROF_GET_COUNTER(GP_CANDIDATE_TILES),"tiles    ",true);
   tab_fprintf(stream,"      --> Kmer.Counting\n");
+  tab_fprintf(stream,"        --> Kmer.Counting.Candidates              ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_KMER_COUNTER_FILTER_CANDIDATES),PROF_GET_COUNTER(GP_FC_KMER_COUNTER_FILTER_CANDIDATES),"         ",true);
   tab_fprintf(stream,"        --> Kmer.Counting.Discarded               ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_KMER_COUNTER_FILTER_DISCARDED),PROF_GET_COUNTER(GP_CANDIDATE_TILES),"         ",true);
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_KMER_COUNTER_FILTER_DISCARDED),PROF_GET_COUNTER(GP_FC_KMER_COUNTER_FILTER_CANDIDATES),"         ",true);
   tab_fprintf(stream,"        --> Kmer.Counting.Accepted                ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_KMER_COUNTER_FILTER_ACCEPTED),PROF_GET_COUNTER(GP_CANDIDATE_TILES),"         ",true);
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_KMER_COUNTER_FILTER_ACCEPTED),PROF_GET_COUNTER(GP_FC_KMER_COUNTER_FILTER_CANDIDATES),"         ",true);
   tab_fprintf(stream,"        --> Kmer.Counting.Accepted.NA             ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_KMER_COUNTER_FILTER_NA),PROF_GET_COUNTER(GP_CANDIDATE_TILES),"         ",true);
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_KMER_COUNTER_FILTER_NA),PROF_GET_COUNTER(GP_FC_KMER_COUNTER_FILTER_CANDIDATES),"         ",true);
   tab_fprintf(stream,"      --> BPM\n");
+  tab_fprintf(stream,"        --> BPM.Candidates                        ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_BPM_FILTER_CANDIDATES),PROF_GET_COUNTER(GP_FC_BPM_FILTER_CANDIDATES),"         ",true);
+  tab_fprintf(stream,"        --> BPM.Discarded                         ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_BPM_FILTER_DISCARDED),PROF_GET_COUNTER(GP_FC_BPM_FILTER_CANDIDATES),"         ",true);
+  tab_fprintf(stream,"        --> BPM.Accepted                          ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_FC_BPM_FILTER_ACCEPTED),PROF_GET_COUNTER(GP_FC_BPM_FILTER_CANDIDATES),"         ",true);
   tab_fprintf(stream,"        --> BPM.Tiles.Computed                    ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_BMP_DISTANCE_NUM_TILES_VERIFIED),PROF_GET_COUNTER(GP_CANDIDATE_TILES),"tiles    ",true);
   tab_fprintf(stream,"          --> BPM.Tile.Tall                       ");
@@ -129,13 +137,11 @@ void mapper_profile_print_candidate_verification(FILE* const stream) {
   tab_fprintf(stream,"          --> BPM.Cells.Computed                  ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_BPM_DISTANCE_CELLS),NULL,"cells    ",true);
   tab_fprintf(stream,"          --> BPM.Quick.Abandon                   ");
-    COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_BPM_DISTANCE_QUICK_ABANDON),PROF_GET_COUNTER(GP_CANDIDATE_TILES),"         ",true);
-  tab_fprintf(stream,"        --> Alignment.Discarded                   ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_DISCARDED_REGIONS),PROF_GET_COUNTER(GP_CANDIDATE_REGIONS),"         ",true);
-  tab_fprintf(stream,"        --> Alignment.Accepted                    ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ACCEPTED_REGIONS),PROF_GET_COUNTER(GP_CANDIDATE_REGIONS),"         ",true);
-  tab_fprintf(stream,"    --> Accepted.Regions                          ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ACCEPTED_REGIONS),PROF_GET_COUNTER(GP_CANDIDATE_POSITIONS),"regions  ",true);
+    COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_BPM_DISTANCE_QUICK_ABANDON),PROF_GET_COUNTER(GP_BMP_DISTANCE_NUM_TILES_VERIFIED),"         ",true);
+  tab_fprintf(stream,"      --> Alignment.Discarded                     ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_DISCARDED_REGIONS),PROF_GET_COUNTER(GP_CANDIDATE_REGIONS),"regions  ",true);
+  tab_fprintf(stream,"      --> Alignment.Accepted                      ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_ACCEPTED_REGIONS),PROF_GET_COUNTER(GP_CANDIDATE_REGIONS),"regions  ",true);
 }
 /*
  * Candidate realign

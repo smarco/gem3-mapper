@@ -28,7 +28,7 @@
 
 #include "filtering/candidates/filtering_candidates.h"
 #include "filtering/region/filtering_region.h"
-#include "text/pattern.h"
+#include "align/pattern/pattern.h"
 #include "matches/matches.h"
 
 
@@ -36,14 +36,6 @@
  * Exclude tiles
  */
 void filtering_candidates_align_local_exclude_tiles(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern);
-
-/*
- * Rank local-region
- */
-void filtering_candidates_align_local_rank(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
     pattern_t* const pattern);

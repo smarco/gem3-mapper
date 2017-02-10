@@ -177,9 +177,14 @@
 #define GP_FC_REALIGN_LOCAL_RANK_ZERO                       346
 
 #define GP_FC_KMER_COUNTER_FILTER                           350
-#define GP_FC_KMER_COUNTER_FILTER_NA                        351
-#define GP_FC_KMER_COUNTER_FILTER_DISCARDED                 352
-#define GP_FC_KMER_COUNTER_FILTER_ACCEPTED                  353
+#define GP_FC_KMER_COUNTER_FILTER_CANDIDATES                351
+#define GP_FC_KMER_COUNTER_FILTER_NA                        352
+#define GP_FC_KMER_COUNTER_FILTER_DISCARDED                 353
+#define GP_FC_KMER_COUNTER_FILTER_ACCEPTED                  354
+
+#define GP_FC_BPM_FILTER_CANDIDATES                         355
+#define GP_FC_BPM_FILTER_DISCARDED                          356
+#define GP_FC_BPM_FILTER_ACCEPTED                           357
 
 #define GP_FC_EXTEND_MATCH                                  360
 #define GP_FC_EXTEND_RETRIEVE_CANDIDATE_REGIONS             361

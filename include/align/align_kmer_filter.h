@@ -33,33 +33,38 @@
  * Kmer counting filter
  */
 typedef struct {
-  bool enabled;
+  // Filter parameters
+  uint64_t kmer_length;
+  uint64_t kmer_mask;
+  uint64_t num_kmers;
+  // Pattern parameters
+  uint64_t pattern_length;
+  // Tables
   uint16_t* kmer_count_text;
   uint16_t* kmer_count_pattern;
-  uint64_t pattern_length;
-  uint64_t max_error;
 } kmer_counting_t;
 
 /*
- * Compile Pattern
+ * Setup
  */
 void kmer_counting_compile(
     kmer_counting_t* const kmer_counting,
-    uint8_t* const pattern,
-    const uint64_t pattern_length,
-    const uint64_t max_error,
+    uint8_t* const key,
+    const uint64_t key_length,
+    const uint64_t kmer_length,
     mm_stack_t* const mm_stack);
-void kmer_counting_set_error(
-    kmer_counting_t* const kmer_counting,
-    const uint64_t pattern_length,
-    const uint64_t max_error);
 
 /*
- * Filter text region
+ * Filter
  */
-uint64_t kmer_counting_filter(
-    const kmer_counting_t* const kmer_counting,
+uint64_t kmer_counting_min_bound(
+    kmer_counting_t* const kmer_counting,
     const uint8_t* const text,
     const uint64_t text_length);
+bool kmer_counting_filter(
+    kmer_counting_t* const kmer_counting,
+    const uint8_t* const text,
+    const uint64_t text_length,
+    const uint64_t max_error);
 
 #endif /* ALIGN_KMER_FILTER_H_ */

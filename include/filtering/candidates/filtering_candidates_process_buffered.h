@@ -32,7 +32,7 @@
 
 #include "filtering/candidates/filtering_candidates.h"
 #include "filtering/candidates/filtering_candidates_buffered.h"
-#include "text/pattern.h"
+#include "align/pattern/pattern.h"
 #include "gpu/gpu_buffer_fmi_decode.h"
 
 /*

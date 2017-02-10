@@ -82,13 +82,13 @@ bool search_stage_verify_candidates_buffer_fits(
   uint64_t total_entries = 0,total_queries = 0,total_candidates = 0;
   pattern_t* const pattern_end1 = &archive_search_end1->approximate_search.pattern;
   gpu_buffer_align_bpm_compute_dimensions(gpu_buffer_align_bpm,
-      pattern_end1->key_length,pattern_end1->alignment_filters.num_tiles,
+      pattern_end1->key_length,pattern_end1->pattern_tiled.num_tiles,
       archive_search_get_num_verify_candidates(archive_search_end1),
       &total_entries,&total_queries,&total_candidates);
   if (archive_search_end2!=NULL) {
     pattern_t* const pattern_end2 = &archive_search_end2->approximate_search.pattern;
     gpu_buffer_align_bpm_compute_dimensions(gpu_buffer_align_bpm,
-        pattern_end2->key_length,pattern_end2->alignment_filters.num_tiles,
+        pattern_end2->key_length,pattern_end2->pattern_tiled.num_tiles,
         archive_search_get_num_verify_candidates(archive_search_end2),
         &total_entries,&total_queries,&total_candidates);
   }

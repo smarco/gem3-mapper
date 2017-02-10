@@ -30,7 +30,7 @@
 
 #include "utils/essentials.h"
 #include "text/sequence.h"
-#include "text/pattern.h"
+#include "align/pattern/pattern.h"
 #include "text/text_collection.h"
 #include "archive/archive_text.h"
 #include "matches/scaffold/match_scaffold.h"

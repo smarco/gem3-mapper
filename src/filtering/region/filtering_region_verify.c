@@ -33,6 +33,7 @@
  * Debug
  */
 #define DEBUG_FILTERING_REGION  GEM_DEEP_DEBUG
+#define DEBUG_FILTERING_REGION_VERIFY_KMER_FILTER false
 
 /*
  * Profile
@@ -105,22 +106,41 @@ void filtering_region_verify_levenshtein(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
     pattern_t* const pattern,
-    text_trace_t* const text_trace,
-    const bool kmer_filter,
-    mm_stack_t* const mm_stack) {
+    text_trace_t* const text_trace) {
   // Parameters
+  search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
+  const candidate_verification_t candidate_verification = search_parameters->candidate_verification;
+  const bool chained_filters = (candidate_verification.strategy == candidate_verification_chained);
   const uint64_t max_error = pattern->max_effective_filtering_error;
   const uint64_t text_length = text_trace->text_padded_length;
   uint8_t* const text = text_trace->text_padded;
+  alignment_t* const alignment = &filtering_region->alignment;
   // Prepare Alignment
   filtering_candidates_init_alignment(
       filtering_candidates,&filtering_region->alignment,
       pattern,text_length,max_error,false);
-  // Verify Levenshtein
-  alignment_verify_levenshtein(
-      &filtering_region->alignment,
-      &pattern->alignment_filters,
-      pattern->key,text,max_error);
+  // Filter using kmer-counting
+  if (chained_filters) {
+    alignment_verify_edit_kmer(
+        &filtering_region->alignment,&pattern->pattern_tiled,
+        pattern->key,text,text_length,max_error);
+    if (alignment->distance_min_bound==ALIGN_DISTANCE_INF) {
+      // DEBUG
+      gem_cond_debug_block(DEBUG_FILTERING_REGION_VERIFY_KMER_FILTER)  {
+        const bpm_pattern_t* const bpm_pattern = pattern->pattern_tiled.bpm_pattern;
+        uint64_t distance, match_column;
+        bpm_compute_edit_distance(bpm_pattern,text,text_length,
+            &distance,&match_column,max_error,false);
+        gem_cond_error_msg(distance != ALIGN_DISTANCE_INF,
+            "Filtering.Region.Verify: K-mer filtering wrong discarding (edit-distance=%lu)",distance);
+      }
+      // Return Discarded
+      return;
+    }
+  }
+  // Filter using BPM
+  alignment_verify_edit_bpm(&filtering_region->alignment,
+      &pattern->pattern_tiled,pattern->key,text,max_error);
 }
 /*
  * Verify (Switch)
@@ -128,8 +148,7 @@ void filtering_region_verify_levenshtein(
 bool filtering_region_verify(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
-    const bool kmer_filter) {
+    pattern_t* const pattern) {
   PROF_START(GP_FC_VERIFY_CANDIDATES_REGION);
   // Parameters
   archive_text_t* const archive_text = filtering_candidates->archive->text;
@@ -146,16 +165,18 @@ bool filtering_region_verify(
     switch (search_parameters->match_alignment_model) {
       case match_alignment_model_hamming: {
         // Verify Hamming
-        filtering_region_verify_hamming(filtering_region,pattern,text_trace,
-            search_parameters->allowed_enc,filtering_candidates->mm->mm_general);
+        filtering_region_verify_hamming(
+            filtering_region,pattern,text_trace,
+            search_parameters->allowed_enc,
+            filtering_candidates->mm->mm_general);
         break;
       }
       case match_alignment_model_levenshtein:
       case match_alignment_model_gap_affine:
       case match_alignment_model_none:
         // Verify Levenshtein
-        filtering_region_verify_levenshtein(filtering_candidates,filtering_region,
-            pattern,text_trace,kmer_filter,filtering_candidates->mm->mm_general);
+        filtering_region_verify_levenshtein(filtering_candidates,
+            filtering_region,pattern,text_trace);
         break;
       default:
         GEM_INVALID_CASE();

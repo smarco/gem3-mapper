@@ -284,10 +284,10 @@ void gpu_buffer_align_bpm_add_pattern(
     pattern_t* const pattern) {
   // Parameters (Buffer & Dimensions)
   const uint64_t key_length = pattern->key_length;
-  alignment_filters_t* const alignment_filters = &pattern->alignment_filters;
+  pattern_tiled_t* const pattern_tiled = &pattern->pattern_tiled;
   const uint64_t buffer_entries_offset = gpu_buffer_align_bpm->num_entries;
   void* const gpu_buffer = gpu_buffer_align_bpm->buffer;
-  const uint64_t num_tiles = alignment_filters->num_tiles;
+  const uint64_t num_tiles = pattern_tiled->num_tiles;
   const uint64_t num_entries = DIV_CEIL(key_length,GPU_ALIGN_BPM_ENTRY_LENGTH);
   // Add query (Metadata)
   const uint32_t buffer_pattern_query_offset = gpu_buffer_align_bpm->num_queries;
@@ -298,7 +298,7 @@ void gpu_buffer_align_bpm_add_pattern(
   uint64_t i, buffer_entries_added = 0;
   for (i=0;i<num_tiles;++i,++buffer_pattern_query) {
     // Compute tile dimensions
-    const uint64_t tile_length = alignment_filters->tiles[i].tile_length;
+    const uint64_t tile_length = pattern_tiled->tiles[i].tile_length;
     const uint64_t tile_entries = DIV_CEIL(tile_length,GPU_ALIGN_BPM_ENTRY_LENGTH);
     // Set entry & size
     buffer_pattern_query->posEntry = buffer_entries_offset + buffer_entries_added;
@@ -314,7 +314,7 @@ void gpu_buffer_align_bpm_add_pattern(
     }
   }
   // [DTO] Compile PEQ pattern (Add pattern entries)
-  bpm_pattern_t* const bpm_pattern = alignment_filters->bpm_pattern;
+  bpm_pattern_t* const bpm_pattern = pattern_tiled->bpm_pattern;
   gpu_bpm_qry_entry_t* const buffer_pattern_entry = gpu_bpm_buffer_get_peq_entries_(gpu_buffer) + buffer_entries_offset;
   gpu_buffer_align_bpm->num_entries += num_entries;
   gpu_buffer_align_bpm_pattern_compile(buffer_pattern_entry,bpm_pattern);

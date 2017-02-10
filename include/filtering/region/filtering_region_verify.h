@@ -30,7 +30,7 @@
 
 #include "filtering/candidates/filtering_candidates.h"
 #include "filtering/region/filtering_region.h"
-#include "text/pattern.h"
+#include "align/pattern/pattern.h"
 
 /*
  * Region Verification
@@ -38,8 +38,7 @@
 bool filtering_region_verify(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
-    const bool kmer_filter);
+    pattern_t* const pattern);
 uint64_t filtering_region_verify_extension(
     filtering_candidates_t* const filtering_candidates,
     const uint64_t text_trace_offset,

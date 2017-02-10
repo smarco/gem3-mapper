@@ -31,7 +31,7 @@
 #include "filtering/region_profile/region_profile.h"
 
 /*
- * Region Profile Scheduling
+ * Exact Scheduling
  */
 void region_profile_schedule_exact_all(
     region_profile_t* const region_profile);
@@ -41,5 +41,12 @@ void region_profile_schedule_exact_best(
 void region_profile_schedule_exact_thresholded(
     region_profile_t* const region_profile,
     const uint64_t candidates_threshold);
+
+/*
+ * Approximate Scheduling
+ */
+void region_profile_schedule_all(
+    region_profile_t* const region_profile,
+    const uint64_t region_error);
 
 #endif /* REGION_PROFILE_SCHEDULE_H_ */

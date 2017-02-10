@@ -28,7 +28,7 @@
 #define FILTERING_REGION_ALIGN_CONFIGURE_H_
 
 #include "filtering/region/filtering_region.h"
-#include "text/pattern.h"
+#include "align/pattern/pattern.h"
 #include "archive/search/archive_search_se_parameters.h"
 
 /*

@@ -24,24 +24,14 @@
 ###############################################################################
 # Definitions
 ###############################################################################
-ROOT_PATH=../..
+ROOT_PATH=../../..
 include $(ROOT_PATH)/Makefile.mk
 
 ###############################################################################
 # Modules
 ###############################################################################
-SUBDIRS=pattern
-
-MODULES=alignment \
-        align_bpm_distance \
-        align_bpm_pattern \
-        align_bpm \
-        align_kmer_filter \
-        align_ond \
-        align_swg_banded \
-        align_swg_score \
-        align_swg_simd \
-        align_swg
+MODULES=pattern \
+        pattern_tiled
 
 SRCS=$(addsuffix .c, $(MODULES))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))
@@ -51,13 +41,13 @@ OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))
 ###############################################################################
 all: devel
 
-release: $(SUBDIRS) $(OBJS)
+release: $(OBJS)
 
-devel: $(SUBDIRS) $(OBJS)
+devel: $(OBJS)
 
-profile: $(SUBDIRS) $(OBJS)
+profile: $(OBJS)
 
-debug: $(SUBDIRS) $(OBJS)
+debug: $(OBJS)
 
 ###############################################################################
 # Rules
@@ -66,11 +56,3 @@ debug: $(SUBDIRS) $(OBJS)
 # General building rule
 $(FOLDER_BUILD)/%.o : %.c
 	$(CC) $(GEM_FLAGS) $(PATH_INCLUDE) -c $< -o $@
-	
-# Subdir rule
-export GEM_FLAGS
-export MODE
-$(SUBDIRS):
-	$(MAKE) --directory=$@ $(MODE)
-	
-.PHONY: $(SUBDIRS)

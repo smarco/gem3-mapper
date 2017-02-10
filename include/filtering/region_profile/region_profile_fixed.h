@@ -50,7 +50,8 @@ void region_profile_generate_fixed(
     const uint8_t* const key,
     const uint64_t key_length,
     const uint64_t region_length,
-    const uint64_t region_step);
+    const uint64_t region_step,
+    const uint64_t region_error);
 
 /*
  * Cheap k-mer selection

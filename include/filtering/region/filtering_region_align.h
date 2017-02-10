@@ -29,7 +29,7 @@
 
 #include "filtering/candidates/filtering_candidates.h"
 #include "filtering/region/filtering_region.h"
-#include "text/pattern.h"
+#include "align/pattern/pattern.h"
 #include "matches/matches.h"
 
 /*

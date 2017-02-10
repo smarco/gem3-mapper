@@ -63,6 +63,7 @@ typedef struct {
   uint64_t num_regions;                // Total number of regions to generate
   uint64_t region_length;              // Region length (or seed length)
   uint64_t region_step;                // Separation between regions
+  uint64_t region_error;               // Error in the region
   // Adaptive parameters
   uint64_t region_th;                  // Max. number of candidates allowed per region
   uint64_t max_steps;                  // Max. number of characters to explore to improve the region

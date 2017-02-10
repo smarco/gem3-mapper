@@ -23,7 +23,7 @@
 
 #include "filtering/region_profile/region_profile_optimum.h"
 #include "filtering/region_profile/region_profile_schedule.h"
-#include "text/pattern.h"
+#include "align/pattern/pattern.h"
 #include "fm_index/fm_index_search.h"
 
 /*

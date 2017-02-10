@@ -34,7 +34,7 @@
 /*
  * Generate Candidates from Region-Profile
  */
-void approximate_search_generate_candidates_exact(
+void approximate_search_generate_candidates(
     approximate_search_t* const search);
 
 /*

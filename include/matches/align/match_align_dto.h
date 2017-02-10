@@ -29,10 +29,10 @@ typedef struct match_align_parameters_t match_align_parameters_t;
 
 #include "utils/essentials.h"
 #include "align/alignment.h"
-#include "align/alignment_filters.h"
 #include "align/align_bpm_pattern.h"
 #include "align/align_swg_score.h"
 #include "align/align_swg_simd.h"
+#include "align/pattern/pattern_tiled.h"
 #include "text/text_collection.h"
 
 struct match_align_input_t {
@@ -44,7 +44,7 @@ struct match_align_input_t {
   uint64_t key_length;
   uint64_t key_trim_left;                  // Alignment trim
   uint64_t key_trim_right;                 // Alignment trim
-  alignment_filters_t* alignment_filters;  // Alignment filters
+  pattern_tiled_t* pattern_tiled;          // Pattern tiled
   /* Text */
   uint64_t text_trace_offset;              // Text-Trace Offset
   uint64_t text_position;                  // Text position

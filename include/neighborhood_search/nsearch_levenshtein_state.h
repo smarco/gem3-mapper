@@ -87,7 +87,8 @@ void nsearch_levenshtein_state_compute_chararacter(
     const uint8_t text_char_enc,
     const uint64_t max_error,
     uint64_t* const min_val,
-    uint64_t* const align_distance);
+    uint64_t* const align_distance,
+    mm_stack_t* const mm_stack);
 
 /*
  * Compute DP-Banded

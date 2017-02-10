@@ -26,7 +26,7 @@
  */
 
 #include "align/alignment.h"
-#include "text/pattern.h"
+#include "align/pattern/pattern.h"
 #include "filtering/region/filtering_region.h"
 #include "archive/archive_text_rl.h"
 

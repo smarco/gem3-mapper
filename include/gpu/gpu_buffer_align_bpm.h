@@ -31,7 +31,7 @@
 
 #include "utils/essentials.h"
 #include "profiler/profiler_timer.h"
-#include "text/pattern.h"
+#include "align/pattern/pattern.h"
 #include "gpu/gpu_buffer_collection.h"
 
 /*

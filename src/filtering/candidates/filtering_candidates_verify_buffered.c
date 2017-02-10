@@ -99,14 +99,11 @@ uint64_t filtering_candidates_verify_buffered_add_region(
   const uint64_t max_error = pattern->max_effective_filtering_error;
   // Prepare Alignment-Tiles
   alignment_t* const alignment = &filtering_region->alignment;
-  alignment_filters_t* const filters = &pattern->alignment_filters;
   const uint64_t text_length = filtering_region->text_end_position - filtering_region->text_begin_position;
   filtering_candidates_init_alignment(filtering_candidates,
       alignment,pattern,text_length,max_error,false);
   // BPM-GPU put all candidates (tiles)
   const bool use_kmer_filter = (pattern->key_length > BPM_PREFERED_TILE_LENGTH);
-  alignment_tile_t* const alignment_tiles = alignment->alignment_tiles;
-  alignment_filters_tile_t* const filters_tiles = filters->tiles;
   const uint64_t num_tiles = alignment->num_tiles;
   uint64_t tile_pos, total_candidates_added=0;
   // Check pre-filters
@@ -115,29 +112,16 @@ uint64_t filtering_candidates_verify_buffered_add_region(
     // Retrieve text-candidate
     filtering_region_retrieve_text(filtering_region,pattern,archive_text,text_collection);
     text_trace = text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
-    // Traverse all tiles
-    for (tile_pos=0;tile_pos<num_tiles;++tile_pos) {
-      // Fetch tiles
-      alignment_tile_t* const alignment_tile = alignment_tiles + tile_pos;
-      alignment_filters_tile_t* const filters_tile = filters_tiles + tile_pos;
-      // K-mer filter
-      if (alignment_tile->distance==ALIGN_DISTANCE_UNKNOWN) {
-        alignment_tile->distance =
-            alignment_verify_levenshtein_kmer_filter(
-                alignment_tile,filters_tile,pattern->key,
-                text_trace->text_padded,filters->mm_stack);
-        if (alignment_tile->distance==ALIGN_DISTANCE_INF) {
-          alignment->distance_min_bound = ALIGN_DISTANCE_INF; // Skip candidate
-          break;
-        }
-      }
-    }
+    // K-mer filter
+    alignment_verify_edit_kmer(
+        alignment,&pattern->pattern_tiled,pattern->key,
+        text_trace->text_padded,text_trace->text_padded_length,max_error);
   }
   // Add candidate to GPU BPM-buffer
   if (alignment->distance_min_bound!=ALIGN_DISTANCE_INF) {
     for (tile_pos=0;tile_pos<num_tiles;++tile_pos) {
       // Fetch tiles
-      alignment_tile_t* const alignment_tile = alignment_tiles + tile_pos;
+      alignment_tile_t* const alignment_tile = alignment->alignment_tiles + tile_pos;
       // Add tile to GPU BPM-buffer
       const uint64_t candidate_text_position = filtering_region->text_begin_position + alignment_tile->text_begin_offset;
       const uint64_t candidate_length = alignment_tile->text_end_offset-alignment_tile->text_begin_offset;
@@ -285,8 +269,8 @@ void filtering_candidates_verify_buffered_compute_alignment(
       archive_text,text_collection,candidate_position,candidate_length,false,false);
   text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
   // Myers's BPM algorithm [EditFilter]
-  alignment_verify_levenshtein(
-      alignment,&pattern->alignment_filters,
+  alignment_verify_edit_bpm(
+      alignment,&pattern->pattern_tiled,
       pattern->key,text_trace->text_padded,
       pattern->max_effective_filtering_error);
   // Pop
@@ -311,7 +295,7 @@ uint64_t filtering_candidates_verify_buffered_retrieve_alignment(
   alignment->distance_min_bound = 0;
   for (tile_pos=0;tile_pos<num_tiles;++tile_pos) {
     alignment_tile_t* const alignment_tile = alignment_tiles + tile_pos;
-    alignment_filters_tile_t* const filters_tile = pattern->alignment_filters.tiles + tile_pos;
+    pattern_tile_t* const pattern_tile = pattern->pattern_tiled.tiles + tile_pos;
     if (alignment_tile->distance!=ALIGN_DISTANCE_UNKNOWN) {
       if (alignment_tile->distance==ALIGN_DISTANCE_INF) {
         alignment->distance_min_bound = ALIGN_DISTANCE_INF;
@@ -323,14 +307,14 @@ uint64_t filtering_candidates_verify_buffered_retrieve_alignment(
       uint32_t tile_distance=0, tile_match_column=0;
       gpu_buffer_align_bpm_get_result(gpu_buffer_align_bpm,
           candidate_tile_idx+tile_pos,&tile_distance,&tile_match_column);
-      if (tile_distance > filters_tile->max_error) { // As CPU version
+      if (tile_distance > pattern_tile->max_error) { // As CPU version
         alignment_tile->distance = ALIGN_DISTANCE_INF;
         alignment->distance_min_bound = ALIGN_DISTANCE_INF;
       }
       // Offsets
       const uint64_t tile_offset = alignment_tile->text_begin_offset;
       const uint64_t tile_end_offset = tile_match_column+1;
-      const uint64_t tile_tall = filters_tile->tile_length;
+      const uint64_t tile_tall = pattern_tile->tile_length;
       const uint64_t tile_begin_offset = BOUNDED_SUBTRACTION(tile_end_offset,tile_tall+tile_distance,0);
       alignment_tile->distance = tile_distance;
       alignment_tile->text_end_offset = tile_offset + tile_end_offset;
@@ -338,7 +322,7 @@ uint64_t filtering_candidates_verify_buffered_retrieve_alignment(
       // DEBUG
       #ifdef CUDA_CHECK_BUFFERED_VERIFY_CANDIDATES
       filtering_candidates_verify_buffered_check_tile_distance(
-          filtering_candidates,filters_tile->bpm_pattern_tile,gpu_buffer_align_bpm,
+          filtering_candidates,pattern_tile->bpm_pattern_tile,gpu_buffer_align_bpm,
           candidate_tile_idx+tile_pos,tile_distance,tile_match_column);
       #endif
       // Check global distance
@@ -357,7 +341,7 @@ uint64_t filtering_candidates_verify_buffered_retrieve_alignment(
   #ifdef CUDA_CHECK_BUFFERED_VERIFY_CANDIDATES
   filtering_candidates_verify_buffered_check_global_distance(
       filtering_candidates,region_buffered,
-      pattern->alignment_filters.bpm_pattern,
+      pattern->pattern_tiled.bpm_pattern,
       alignment->distance_min_bound);
   #endif
   // Return
@@ -396,7 +380,7 @@ void filtering_candidates_verify_buffered_retrieve(
     if (key_length > text_length) {
       filtering_region_t trimmed_region;
       filtering_candidates_verify_buffered_load_region(&trimmed_region,region_buffered,pattern);
-      if (filtering_region_verify(filtering_candidates,&trimmed_region,pattern,false)) {
+      if (filtering_region_verify(filtering_candidates,&trimmed_region,pattern)) {
         filtering_region_t* const region_accepted =
             filtering_candidates_allocate_region(filtering_candidates);
         *region_accepted = trimmed_region;

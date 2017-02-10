@@ -27,7 +27,7 @@
 #include "utils/essentials.h"
 #include "archive/archive.h"
 #include "archive/search/archive_search_se_parameters.h"
-#include "text/pattern.h"
+#include "align/pattern/pattern.h"
 #include "filtering/candidates/filtering_candidates.h"
 #include "filtering/region_profile/region_profile.h"
 #include "matches/matches.h"

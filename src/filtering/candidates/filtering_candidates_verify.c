@@ -60,7 +60,7 @@ uint64_t filtering_candidates_verify_filtering_regions(
       regions_out[num_regions_out++] = filtering_region;
     } else {
       // Verify region
-      if (filtering_region_verify(filtering_candidates,filtering_region,pattern,true)) {
+      if (filtering_region_verify(filtering_candidates,filtering_region,pattern)) {
         regions_out[num_regions_out++] = filtering_region;
         ++num_regions_accepted;
       } else {

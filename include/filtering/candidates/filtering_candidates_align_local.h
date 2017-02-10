@@ -25,7 +25,7 @@
  */
 
 #include "filtering/candidates/filtering_candidates.h"
-#include "text/pattern.h"
+#include "align/pattern/pattern.h"
 
 /*
  * Align Candidates (Local)

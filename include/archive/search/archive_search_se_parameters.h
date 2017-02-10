@@ -52,6 +52,21 @@ typedef enum {
 } local_alignment_t;
 
 /*
+ * Candidate verification strategies
+ */
+typedef enum {
+  candidate_verification_BPM,
+  candidate_verification_chained
+} candidate_verification_strategy_type;
+typedef struct {
+  // Strategy
+  candidate_verification_strategy_type strategy;
+  // Kmer filter
+  uint64_t num_slices;
+  uint64_t kmer_length;
+} candidate_verification_t;
+
+/*
  * Bisulfite Reads-Mode
  */
 typedef enum {
@@ -127,6 +142,7 @@ typedef struct {
   double alignment_global_min_identity;                 // Alignment minimum identity to be global
   double alignment_global_min_swg_threshold;            // Alignment minimum SWG score to be global
   region_profile_model_t region_profile_model;          // Region-Profile Model (Lightweight)
+  candidate_verification_t candidate_verification;      // Candidate verification strategy
   nsearch_parameters_t nsearch_parameters;              // NS parameters
   /* Local Alignment */
   local_alignment_t alignment_local;

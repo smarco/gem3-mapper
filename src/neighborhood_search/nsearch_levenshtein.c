@@ -29,6 +29,74 @@
 #include "neighborhood_search/nsearch_partition.h"
 
 /*
+ * Levenshtein Base Search
+ */
+void nsearch_levenshtein_base_step(
+    nsearch_levenshtein_state_t* const nsearch_state,
+    approximate_search_t* const search,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const uint64_t key_offset,
+    const uint64_t text_length,
+    const uint64_t max_error,
+    const uint64_t lo,
+    const uint64_t hi) {
+  // Parameters
+  mm_stack_t* const mm_stack = search->nsearch_schedule->mm_stack;
+  const uint64_t max_text_length = key_length + max_error;
+  // Expand node for all characters
+  uint64_t next_lo, next_hi;
+  uint8_t char_enc;
+  for (char_enc=0;char_enc<DNA_RANGE;++char_enc) {
+    // Compute DP-next
+    uint64_t min_val, align_distance;
+    nsearch_levenshtein_state_compute_chararacter(
+        nsearch_state,false,key,key_length,
+        text_length,char_enc,max_error,&min_val,
+        &align_distance,mm_stack);
+    if (min_val > max_error) continue;
+    // Query
+    next_lo = bwt_erank(search->archive->fm_index->bwt,char_enc,lo);
+    next_hi = bwt_erank(search->archive->fm_index->bwt,char_enc,hi);
+    if (next_lo >= next_hi) continue;
+    // Keep searching (Supercondensed Neighbourhood)
+    if (align_distance <= max_error) {
+      bool candidates_limited;
+      filtering_candidates_add_positions_from_interval(
+          search->filtering_candidates,search->search_parameters,
+          &search->pattern,next_lo,next_hi,
+          key_offset,key_offset+key_length,
+          align_distance,&candidates_limited);
+    } else if (text_length < max_text_length) {
+      nsearch_levenshtein_base_step(
+          nsearch_state,search,key,key_length,key_offset,
+          text_length+1,max_error,next_lo,next_hi);
+    }
+  }
+}
+void nsearch_levenshtein_base(
+    approximate_search_t* const search,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const uint64_t key_offset,
+    const uint64_t max_error) {
+  // Parameters
+  mm_stack_t* const mm_stack = search->nsearch_schedule->mm_stack;
+  // Allocate
+  mm_stack_push_state(mm_stack);
+  nsearch_levenshtein_state_t nsearch_state;
+  nsearch_levenshtein_state_init(&nsearch_state,key_length+1,key_length+max_error+2,mm_stack);
+  nsearch_levenshtein_state_prepare(&nsearch_state,true);
+  // Run the search
+  const uint64_t init_lo = 0;
+  const uint64_t init_hi = fm_index_get_length(search->archive->fm_index);
+  nsearch_levenshtein_base_step(
+      &nsearch_state,search,key,key_length,
+      key_offset,0,max_error,init_lo,init_hi);
+  // Free
+  mm_stack_pop_state(mm_stack);
+}
+/*
  * Levenshtein Brute Force
  */
 uint64_t nsearch_levenshtein_brute_force_step(
@@ -38,6 +106,7 @@ uint64_t nsearch_levenshtein_brute_force_step(
     const uint64_t lo,
     const uint64_t hi) {
   // Parameters
+  mm_stack_t* const mm_stack = nsearch_schedule->mm_stack;
   const uint64_t max_error = nsearch_schedule->max_error;
   const uint8_t* const key = nsearch_schedule->pattern->key;
   const uint64_t key_length = nsearch_schedule->pattern->key_length;
@@ -52,7 +121,7 @@ uint64_t nsearch_levenshtein_brute_force_step(
     uint64_t min_val, align_distance;
     nsearch_levenshtein_state_compute_chararacter(
         &nsearch_operation->nsearch_state,false,key,key_length,
-        text_position,char_enc,max_error,&min_val,&align_distance);
+        text_position,char_enc,max_error,&min_val,&align_distance,mm_stack);
     if (min_val > max_error) continue;
     // Query
     nsearch_levenshtein_query(

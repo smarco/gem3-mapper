@@ -29,7 +29,7 @@
  *       - There are too many exact matches (preventing unique regions)
  */
 
-#include "text/pattern.h"
+#include "align/pattern/pattern.h"
 #include "filtering/region_profile/region_profile_adaptive.h"
 #include "filtering/region_profile/region_profile_schedule.h"
 

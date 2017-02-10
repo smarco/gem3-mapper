@@ -21,7 +21,7 @@
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  */
 
-#include "text/pattern.h"
+#include "align/pattern/pattern.h"
 #include "align/alignment.h"
 #include "matches/scaffold/match_scaffold_levenshtein.h"
 #include "matches/scaffold/match_scaffold_compose.h"
@@ -176,18 +176,17 @@ bool match_scaffold_levenshtein(
   mm_stack_push_state(mm_stack);
   // Compute dimensions
   alignment_tile_t* const alignment_tiles = align_input->alignment->alignment_tiles;
-  alignment_filters_t* const filters = align_input->alignment_filters;
-  alignment_filters_tile_t* const filters_tiles = filters->tiles;
-  const uint64_t num_tiles = filters->num_tiles;
+  pattern_tiled_t* const pattern_tiled = align_input->pattern_tiled;
+  const uint64_t num_tiles = pattern_tiled->num_tiles;
   PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_TILES_TOTAL,num_tiles);
   // Compute the scaffolding of each tile
   uint64_t tile_pos, key_offset = 0;
   for (tile_pos=0;tile_pos<num_tiles;++tile_pos) {
     // Scaffold tile
     alignment_tile_t* const alignment_tile = alignment_tiles + tile_pos;
-    alignment_filters_tile_t* const filters_tile = filters_tiles + tile_pos;
-    const uint64_t max_distance = filters_tile->max_error;
-    const uint64_t tile_length = filters_tile->tile_length;
+    pattern_tile_t* const pattern_tile = pattern_tiled->tiles + tile_pos;
+    const uint64_t max_distance = pattern_tile->max_error;
+    const uint64_t tile_length = pattern_tile->tile_length;
     PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_TILES_SKIPPED,(alignment_tile->distance==ALIGN_DISABLED)?1:0);
     const uint64_t match_distance = alignment_tile->distance;
     if (match_distance!=ALIGN_DISABLED && match_distance!=ALIGN_DISTANCE_INF) {
@@ -198,7 +197,7 @@ bool match_scaffold_levenshtein(
       PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_TILES_DISTANCE_BOUND,distance_bound);
       mm_stack_push_state(mm_stack); // Push stack state
       match_scaffold_levenshtein_tiled(
-          match_scaffold,align_input,filters_tile->bpm_pattern_tile,
+          match_scaffold,align_input,pattern_tile->bpm_pattern_tile,
           key_offset,text_begin_offset,text_end_offset,
           distance_bound,matching_min_length,left_gap_alignment,
           matches,mm_stack);
