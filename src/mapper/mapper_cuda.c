@@ -61,8 +61,12 @@ void mapper_load_gpu_index(mapper_parameters_t* const parameters) {
   gem_cond_fatal_error_msg(!gem_access(gpu_index_name,FM_READ),"Couldn't load gpu-index '%s'",gpu_index_name);
   gem_cond_log(parameters->misc.verbose_user,"[Loading GPU Index '%s']",gpu_index_name);
   // Load GPU Index & Prepare Buffers
-  parameters->gpu_buffer_collection = gpu_buffer_collection_new(gpu_index_name,
-      num_gpu_buffers,cuda_parameters->gpu_buffer_size,parameters->misc.verbose_dev);
+  parameters->gpu_buffer_collection =
+      gpu_buffer_collection_new(
+        gpu_index_name,num_gpu_buffers,
+        cuda_parameters->gpu_buffer_size,
+        cuda_parameters->gpu_devices,
+        parameters->misc.verbose_dev);
   free(gpu_index_name);
   TIMER_STOP(&parameters->loading_time);
 }

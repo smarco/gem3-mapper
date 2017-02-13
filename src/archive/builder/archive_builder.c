@@ -35,6 +35,7 @@ archive_builder_t* archive_builder_new(
     fm_t* const output_file,
     char* const output_file_name_prefix,
     const archive_type type,
+    const bool gpu_index,
     const uint64_t ns_threshold,
     const sampling_rate_t sa_sampling_rate,
     const sampling_rate_t text_sampling_rate,
@@ -47,6 +48,7 @@ archive_builder_t* archive_builder_new(
    */
   archive_builder->type = type;
   archive_builder->ns_threshold = ns_threshold;
+  archive_builder->gpu_index = gpu_index;
   archive_builder->sa_sampling_rate = sa_sampling_rate;
   archive_builder->text_sampling_rate = text_sampling_rate;
   /*
@@ -102,9 +104,8 @@ void archive_builder_write_header(archive_builder_t* const archive_builder) {
   // Write Header
   fm_write_uint64(archive_builder->output_file_manager,ARCHIVE_MODEL_NO);
   fm_write_uint64(archive_builder->output_file_manager,archive_builder->type);
-  fm_write_uint64(archive_builder->output_file_manager,1ull); // TODO Remove next index upgrade
+  fm_write_uint64(archive_builder->output_file_manager,archive_builder->gpu_index);
   fm_write_uint64(archive_builder->output_file_manager,archive_builder->ns_threshold);
-  fm_write_uint64(archive_builder->output_file_manager,0ull); // TODO Remove next index upgrade
 }
 void archive_builder_write_locator(archive_builder_t* const archive_builder) {
   // Write Locator

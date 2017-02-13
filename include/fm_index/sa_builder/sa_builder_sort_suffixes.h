@@ -1,7 +1,6 @@
 /*
  *  GEM-Mapper v3 (GEM3)
  *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
- *  Copyright (c) 2011-2017 by Alejandro Chacon <alejandro.chacon@uab.es>
  *
  *  This file is part of GEM-Mapper v3 (GEM3).
  *
@@ -20,28 +19,24 @@
  *
  * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
- * DESCRIPTION:
- *   GPU-adaptor module provides functions to write a GEM3-GPU index
  */
 
-#ifndef GPU_STRUCTURES_H_
-#define GPU_STRUCTURES_H_
+#ifndef SA_BUILDER_SORT_SUFFIXES_H_
+#define SA_BUILDER_SORT_SUFFIXES_H_
 
 #include "utils/essentials.h"
-#include "fm_index/bwt/bwt.h"
-#include "fm_index/rank_mtable.h"
-#include "text/dna_text.h"
+#include "fm_index/sa_builder/sa_builder.h"
 
 /*
- * GPU Structures Write
+ * Sorting Suffixes
+ *   1.- Count all suffixes
+ *   2.- Store all suffixes
+ *   3.- Sort all suffixes
  */
-void gpu_structures_write(
-    const char* const index_file_name_prefix,
-    dna_text_t* const enc_text,
-    const uint64_t forward_text_length,
-    bwt_builder_t* const bwt_builder,
-    rank_mtable_t* const rank_mtable,
-    uint64_t* const sa_gem,
-    const uint64_t sa_sampling);
+void sa_builder_sort_suffixes(
+    sa_builder_t* const sa_builder,
+    dna_text_t* const enc_bwt,
+    sampled_sa_builder_t* const sampled_sa,
+    const bool verbose);
 
-#endif /* GPU_STRUCTURES_H_ */
+#endif /* SA_BUILDER_SORT_SUFFIXES_H_ */

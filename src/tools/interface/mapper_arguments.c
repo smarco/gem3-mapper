@@ -105,7 +105,7 @@ option_t gem_mapper_options[] = {
   /* CUDA Settings */
 #ifdef HAVE_CUDA
   { 1200, "gpu", OPTIONAL, TYPE_STRING, 12, VISIBILITY_USER, "", "(default=disabled)"},
-  { 1201, "cuda", OPTIONAL, TYPE_STRING, 12, VISIBILITY_DEVELOPER, "", "(gpu alias)"},
+  { 1201, "gpu-devices", REQUIRED, TYPE_STRING, 12, VISIBILITY_USER, "", "(default=all)"},
   { 1202, "gpu-buffers-model", REQUIRED, TYPE_STRING, 12, VISIBILITY_DEVELOPER, "<#BufferSearch,#BufferDecode,#BufferVerify,BufferSize>" , "(default=2,3,3,1M)" },
 #endif /* HAVE_CUDA */
   /* Presets/Hints */
@@ -214,7 +214,7 @@ void gem_mapper_parameters_check(mapper_parameters_t* const parameters) {
   } else {
     parameters->mapper_type = mapper_se;
   }
-  if (parameters->cuda.cuda_enabled) {
+  if (parameters->cuda.gpu_enabled) {
     if (search->mapping_mode != mapping_adaptive_filtering_fast &&
         search->mapping_mode != mapping_hybrid_sensitive) {
       mapper_error_msg("Option '--gpu' can only operate with '--mapping-mode' in {'fast'|'sensitive'}");
@@ -960,13 +960,29 @@ bool gem_mapper_parse_arguments_gpu(
   // GPU
   switch (option) {
     case 1200: // --gpu
-    case 1201: // --cuda (alias)
       if (!gpu_supported()) GEM_CUDA_NOT_SUPPORTED();
-      parameters->cuda.cuda_enabled = true;
+      parameters->cuda.gpu_enabled = true;
       if (optarg && gem_strcaseeq(optarg,"emulated")) {
         parameters->cuda.cpu_emulation = true;
       }
       return true;
+    case 1201: // --gpu-devices (default=all)
+      if (gem_strcaseeq(optarg,"all")) {
+        parameters->cuda.gpu_devices = UINT64_MAX;
+      } else {
+        char* devices_active[64];
+        const int num_devices = input_text_parse_csv_array(optarg,devices_active,64);
+        // Parse devices active
+        uint64_t i;
+        parameters->cuda.gpu_devices = 0;
+        for (i=0;i<num_devices;++i) {
+          int64_t device_no;
+          if (!input_text_parse_integer((const char ** const)(devices_active + i),&device_no)) {
+            parameters->cuda.gpu_devices |= ((uint64_t)1 << device_no);
+          }
+        }
+      }
+      break;
     case 1202: { // --gpu-buffers-model=2,3,3,1M
       if (!gpu_supported()) GEM_CUDA_NOT_SUPPORTED();
       char *num_fmi_bsearch_buffers=NULL, *num_fmi_decode_buffers=NULL, *num_bpm_buffers=NULL, *buffer_size=NULL;

@@ -35,6 +35,8 @@
 /*
  * Constants
  */
+#define SA_BUILDER_STORE_SUFFIXES_TICKER_STEP 10000000
+
 #define DS_SHALLOW_LIMIT            100
 #define DS_MK_QUICKSORT_THRESHOLD    20
 
@@ -158,25 +160,6 @@ sa_builder_t* sa_builder_new(
     const uint64_t num_threads,
     const uint64_t max_memory);
 void sa_builder_delete(sa_builder_t* const sa_builder);
-
-/*
- * Sorting Suffixes
- *   1.- Count all suffixes
- *   2.- Store all suffixes
- *   3.- Sort all suffixes
- */
-void sa_builder_count_suffixes(
-    sa_builder_t* const sa_builder,
-    uint64_t* const character_occurrences,
-    const bool verbose);
-void sa_builder_store_suffixes(
-    sa_builder_t* const sa_builder,
-    const bool verbose);
-void sa_builder_sort_suffixes(
-    sa_builder_t* const sa_builder,
-    dna_text_t* const enc_bwt,
-    sampled_sa_builder_t* const sampled_sa,
-    const bool verbose);
 
 /*
  * Stats

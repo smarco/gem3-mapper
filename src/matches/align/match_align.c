@@ -237,10 +237,11 @@ void match_align_levenshtein(
   // Levenshtein Align
   match_alignment_t* const match_alignment = &match_trace->match_alignment;
   match_alignment->match_position = align_input->text_position;
+  const uint64_t edit_bound = align_input->alignment->distance_min_bound;
   align_bpm_match(
       align_input->pattern_tiled->bpm_pattern,
       align_input->key,align_input->text,
-      align_input->text_length,align_parameters->max_error,
+      align_input->text_length,edit_bound,//align_parameters->max_error, // FIXME
       align_parameters->left_gap_alignment,match_alignment,
       matches->cigar_vector,mm_stack);
   // Set distances

@@ -19,20 +19,23 @@
  *
  * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
- * DESCRIPTION:
- *   BWT common constants & tables
  */
 
-#include "fm_index/bwt_commons.h"
+#ifndef SA_BUILDER_COUNT_SUFFIXES_H_
+#define SA_BUILDER_COUNT_SUFFIXES_H_
 
-/*
- * Profile
- */
-uint64_t _bwt_ranks = 0; // Bwt rank counter
+#include "utils/essentials.h"
+#include "fm_index/sa_builder/sa_builder.h"
 
 /*
- * XOR table to mask bitmap depending based on the character (enc)
+ * Sorting Suffixes
+ *   1.- Count all suffixes
+ *   2.- Store all suffixes
+ *   3.- Sort all suffixes
  */
-const int64_t xor_table_1[] = {-1ll, -1ll, -1ll, -1ll, -0ll, -0ll, -0ll, -0ll};
-const int64_t xor_table_2[] = {-1ll, -1ll, -0ll, -0ll, -1ll, -1ll, -0ll, -0ll};
-const int64_t xor_table_3[] = {-1ll, -0ll, -1ll, -0ll, -1ll, -0ll, -1ll, -0ll};
+void sa_builder_count_suffixes(
+    sa_builder_t* const sa_builder,
+    uint64_t* const character_occurrences,
+    const bool verbose);
+
+#endif /* SA_BUILDER_COUNT_SUFFIXES_H_ */

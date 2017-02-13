@@ -76,7 +76,8 @@ typedef struct {
 /* CUDA settings */
 typedef struct {
   /* CUDA */
-  bool cuda_enabled;
+  bool gpu_enabled;
+  uint64_t gpu_devices;                  // Bitmask with GPU devices active
   /* I/O */
   uint64_t input_block_size;
   uint64_t input_buffer_size;

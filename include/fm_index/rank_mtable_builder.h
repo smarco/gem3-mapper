@@ -29,7 +29,7 @@
 #define RANK_MTABLE_BUILDER_H_
 
 #include "utils/essentials.h"
-#include "fm_index/bwt.h"
+#include "fm_index/bwt/bwt.h"
 #include "fm_index/rank_mtable.h"
 
 /*

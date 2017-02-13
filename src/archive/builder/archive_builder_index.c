@@ -27,6 +27,9 @@
 #include "text/dna_text.h"
 #include "archive/builder/archive_builder_index.h"
 #include "archive/builder/archive_builder_text.h"
+#include "fm_index/sa_builder/sa_builder_count_suffixes.h"
+#include "fm_index/sa_builder/sa_builder_store_suffixes.h"
+#include "fm_index/sa_builder/sa_builder_sort_suffixes.h"
 
 /*
  * Build BWT (SA)

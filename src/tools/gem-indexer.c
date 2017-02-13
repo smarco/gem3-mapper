@@ -98,14 +98,16 @@ void indexer_parameters_set_defaults(indexer_parameters_t* const parameters) {
   /* MultiFasta Processing */
   parameters->ns_threshold=50;
   /* Index */
-  parameters->sa_sampling_rate=SAMPLING_RATE_8;
-  parameters->text_sampling_rate=SAMPLING_RATE_4;
   parameters->run_length_index = false;
   parameters->bisulfite_index = false;
 #ifdef HAVE_CUDA
   parameters->gpu_index = true;
+  parameters->sa_sampling_rate=SAMPLING_RATE_8;
+  parameters->text_sampling_rate=SAMPLING_RATE_4;
 #else
   parameters->gpu_index = false;
+  parameters->sa_sampling_rate=SAMPLING_RATE_NONE;
+  parameters->text_sampling_rate=SAMPLING_RATE_4;
 #endif
   /* Debug */
   parameters->dump_locator_intervals=true;
@@ -259,9 +261,6 @@ void indexer_cleanup(archive_builder_t* const archive_builder,indexer_parameters
 /*
  * GEM-Indexer options Menu
  */
-// TODO { 'g', "graph", REQUIRED, TYPE_STRING, 2 , VISIBILITY_USER, "<graph_file>" , "(GRAPH-File)" },
-// TODO { 'c', "index-colorspace", NO_ARGUMENT, TYPE_NONE, 2 , true, "" , "(default=false)" },
-// TODO { 405, "dump-graph-links", OPTIONAL, TYPE_NONE, 4 , true, "" , "" },
 option_t gem_indexer_options[] = {
   /* I/O */
   { 'i', "input", REQUIRED, TYPE_STRING, 2 , VISIBILITY_USER, "<input_file>" , "(Multi-FASTA)" },
@@ -504,9 +503,9 @@ int main(int argc,char** argv) {
   const archive_type type = (parameters.bisulfite_index) ? archive_dna_bisulfite : archive_dna;
   archive_builder_t* const archive_builder = archive_builder_new(index_file,
       parameters.output_index_file_name_prefix,type,
-      parameters.ns_threshold,parameters.sa_sampling_rate,
-      parameters.text_sampling_rate,parameters.num_threads,
-      parameters.max_memory);
+      parameters.gpu_index,parameters.ns_threshold,
+      parameters.sa_sampling_rate,parameters.text_sampling_rate,
+      parameters.num_threads,parameters.max_memory);
 
   // Process MultiFASTA
   indexer_process_multifasta(archive_builder,&parameters);

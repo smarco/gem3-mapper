@@ -1,7 +1,6 @@
 /*
  *  GEM-Mapper v3 (GEM3)
  *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
- *  Copyright (c) 2011-2017 by Alejandro Chacon <alejandro.chacon@uab.es>
  *
  *  This file is part of GEM-Mapper v3 (GEM3).
  *
@@ -21,27 +20,19 @@
  * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
- *   GPU-adaptor module provides functions to write a GEM3-GPU index
+ *   BWT common constants & tables
  */
 
-#ifndef GPU_STRUCTURES_H_
-#define GPU_STRUCTURES_H_
-
-#include "utils/essentials.h"
-#include "fm_index/bwt/bwt.h"
-#include "fm_index/rank_mtable.h"
-#include "text/dna_text.h"
+#include "fm_index/bwt/bwt_commons.h"
 
 /*
- * GPU Structures Write
+ * Profile
  */
-void gpu_structures_write(
-    const char* const index_file_name_prefix,
-    dna_text_t* const enc_text,
-    const uint64_t forward_text_length,
-    bwt_builder_t* const bwt_builder,
-    rank_mtable_t* const rank_mtable,
-    uint64_t* const sa_gem,
-    const uint64_t sa_sampling);
+uint64_t _bwt_ranks = 0; // Bwt rank counter
 
-#endif /* GPU_STRUCTURES_H_ */
+/*
+ * XOR table to mask bitmap depending based on the character (enc)
+ */
+const int64_t xor_table_1[] = {-1ll, -1ll, -1ll, -1ll, -0ll, -0ll, -0ll, -0ll};
+const int64_t xor_table_2[] = {-1ll, -1ll, -0ll, -0ll, -1ll, -1ll, -0ll, -0ll};
+const int64_t xor_table_3[] = {-1ll, -0ll, -1ll, -0ll, -1ll, -0ll, -1ll, -0ll};

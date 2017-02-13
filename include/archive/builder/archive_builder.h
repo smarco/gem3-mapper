@@ -31,32 +31,26 @@
 #include "io/input_multifasta_parser.h"
 #include "archive/archive.h"
 #include "archive/locator_builder.h"
-#include "fm_index/sa_builder.h"
+#include "fm_index/sa_builder/sa_builder.h"
 #include "fm_index/rank_mtable_builder.h"
 
 /*
  * Debug
  */
 #define ARCHIVE_BUILDER_DEBUG_SUFFIX_LENGTH   100
-#define ARCHIVE_BUILDER_DEBUG_RECORD_STATS false
+#define ARCHIVE_BUILDER_DEBUG_RECORD_STATS    false
 
 /*
  * Archive Builder (Indexer)
  */
 typedef struct {
-  /*
-   * Meta-information
-   */
+  /* Meta-information */
   archive_type type;                       // Archive type
   uint64_t ns_threshold;                   // Minimum length of a stretch of Ns to be removed
-  /*
-   * Archive Components
-   */
-  /* MFASTA Input parsing */
-  input_multifasta_state_t parsing_state;   // Text-Building state
-  /* SA-Builder */
+  bool gpu_index;                          // Index generated used GPU compiled GEM
+  /* Archive */
+  input_multifasta_state_t parsing_state;   // Text-Building state (MFASTA Input parsing)
   sa_builder_t* sa_builder;                 // SA-Builder
-  /* Locator */
   locator_builder_t* locator;               // Sequence locator (from MultiFASTA)
   /* Text */
   uint64_t forward_text_length;             // Length of the forward text
@@ -72,13 +66,9 @@ typedef struct {
   /* Output */
   char* output_file_name_prefix;            // Output Text FileName Prefix
   fm_t* output_file_manager;                // Output Manager
-  /*
-   * Misc
-   */
-  /* Build Parameters */
-  uint64_t num_threads;                     // Total number threads to split the work across
-  uint64_t max_memory;
   /* Misc */
+  uint64_t num_threads;                     // Total number threads to split the work across
+  uint64_t max_memory;                      // Max. memory to use
   ticker_t ticker;                          // Index Builder Ticker
   /* MM */
   mm_slab_t* mm_slab_8MB;                   // MM-Slab
@@ -92,6 +82,7 @@ archive_builder_t* archive_builder_new(
     fm_t* const output_file,
     char* const output_file_name_prefix,
     const archive_type type,
+    const bool gpu_index,
     const uint64_t ns_threshold,
     const sampling_rate_t sa_sampling_rate,
     const sampling_rate_t text_sampling_rate,

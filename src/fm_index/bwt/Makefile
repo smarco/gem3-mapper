@@ -24,21 +24,15 @@
 ###############################################################################
 # Definitions
 ###############################################################################
-ROOT_PATH=../..
+ROOT_PATH=../../..
 include $(ROOT_PATH)/Makefile.mk
 
 ###############################################################################
 # Modules
 ###############################################################################
-SUBDIRS=sa_builder \
-        bwt
-        
-MODULES=fm_index \
-        fm_index_query \
-        fm_index_search \
-        rank_mtable_builder \
-        rank_mtable \
-        sampled_sa
+MODULES=bwt_basic \
+        bwt_commons \
+        bwt_sbasic
 
 SRCS=$(addsuffix .c, $(MODULES))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))
@@ -48,13 +42,13 @@ OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))
 ###############################################################################
 all: devel
 
-release: $(SUBDIRS) $(OBJS)
+release: $(OBJS)
 
-devel: $(SUBDIRS) $(OBJS)
+devel: $(OBJS)
 
-profile: $(SUBDIRS) $(OBJS)
+profile: $(OBJS)
 
-debug: $(SUBDIRS) $(OBJS)
+debug: $(OBJS)
 
 ###############################################################################
 # Rules
@@ -63,11 +57,3 @@ debug: $(SUBDIRS) $(OBJS)
 # General building rule
 $(FOLDER_BUILD)/%.o : %.c
 	$(CC) $(GEM_FLAGS) $(PATH_INCLUDE) -c $< -o $@
-	
-# Subdir rule
-export GEM_FLAGS
-export MODE
-$(SUBDIRS):
-	$(MAKE) --directory=$@ $(MODE)
-	
-.PHONY: $(SUBDIRS)

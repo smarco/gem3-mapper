@@ -32,8 +32,8 @@
 /*
  * BWT-Models
  */
-#include "fm_index/bwt_sbasic.h"
-#include "fm_index/bwt_basic.h"
+#include "fm_index/bwt/bwt_sbasic.h"
+#include "fm_index/bwt/bwt_basic.h"
 
 /*
  * Instantiate BWT Models

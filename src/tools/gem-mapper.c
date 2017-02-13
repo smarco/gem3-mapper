@@ -100,8 +100,8 @@ void gem_mapper_open_output(mapper_parameters_t* const parameters) {
   }
   // Open output file
   const mapper_parameters_cuda_t* const cuda = &parameters->cuda;
-  const uint64_t max_output_buffers = (cuda->cuda_enabled) ? cuda->output_num_buffers : parameters->io.output_num_buffers;
-  const uint64_t output_buffer_size = (cuda->cuda_enabled) ? cuda->output_buffer_size : parameters->io.output_buffer_size;
+  const uint64_t max_output_buffers = (cuda->gpu_enabled) ? cuda->output_num_buffers : parameters->io.output_num_buffers;
+  const uint64_t output_buffer_size = (cuda->gpu_enabled) ? cuda->output_buffer_size : parameters->io.output_buffer_size;
   switch (parameters->io.output_compression) {
     case FM_GZIPPED_FILE:
       parameters->output_file = output_gzip_stream_new(parameters->output_stream,max_output_buffers,output_buffer_size);
@@ -132,7 +132,7 @@ void gem_mapper_print_profile(mapper_parameters_t* const parameters) {
   // Parameters
   // mapper_parameters_print(gem_log_get_stream(),parameters);
   // Mapper
-  if (!parameters->cuda.cuda_enabled) {
+  if (!parameters->cuda.gpu_enabled) {
     // CPU Mapper
     switch (parameters->mapper_type) {
       case mapper_se:
@@ -190,7 +190,7 @@ int main(int argc,char** argv) {
   }
 
   // Launch mapper
-  if (!cuda->cuda_enabled) {
+  if (!cuda->gpu_enabled) {
     switch (parameters.mapper_type) {
       case mapper_se:
         mapper_se_run(&parameters);

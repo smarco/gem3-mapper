@@ -66,7 +66,8 @@ void mapper_parameters_set_defaults_cuda(mapper_parameters_cuda_t* const cuda) {
   /* CUDA settings */
   const uint64_t num_processors = system_get_num_processors();
   /* CUDA */
-  cuda->cuda_enabled=false;
+  cuda->gpu_enabled=false;
+  cuda->gpu_devices=UINT64_MAX;
   /* I/O */
   cuda->input_block_size = BUFFER_SIZE_32M;
   cuda->input_buffer_size = BUFFER_SIZE_4M;

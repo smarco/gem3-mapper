@@ -35,7 +35,7 @@
 /*
  * Archive Model & Version
  */
-#define ARCHIVE_MODEL_NO 5010ull
+#define ARCHIVE_MODEL_NO 5011ull
 
 /*
  * Archive
@@ -47,6 +47,7 @@ typedef enum {
 typedef struct {
   // Meta-information
   archive_type type;                // Archive type
+  bool gpu_index;                   // GPU Index
   uint64_t ns_threshold;            // Stretches of Ns (|Ns| >= ns_threshold) are not indexed
   bool indexed_reverse_text;        // Indexed reverse text (backwards text)
   // Locator
@@ -70,7 +71,6 @@ void archive_delete(archive_t* const archive);
 /*
  * Archive Accessors
  */
-// TODO uint64_t archive_get_size(const archive_t* const archive);
 uint64_t archive_get_index_length(const archive_t* const archive);
 
 /*

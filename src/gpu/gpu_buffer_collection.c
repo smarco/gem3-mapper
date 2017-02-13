@@ -44,6 +44,7 @@ gpu_buffer_collection_t* gpu_buffer_collection_new(
     char* const gpu_index_name,
     const uint64_t num_buffers,
     const uint64_t buffer_size,
+    const uint64_t gpu_devices,
     const bool verbose) {
   PROFILE_START(GP_GPU_BUFFER_COLLECTION_INIT,PROFILE_LEVEL);
   // Allocate Buffer Collection

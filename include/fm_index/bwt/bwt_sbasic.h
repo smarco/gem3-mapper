@@ -38,7 +38,7 @@
 #ifndef BWT_SBASIC_H_
 #define BWT_SBASIC_H_
 
-#include "fm_index/bwt_commons.h"
+#include "fm_index/bwt/bwt_commons.h"
 #include "text/dna_text.h"
 
 /*
