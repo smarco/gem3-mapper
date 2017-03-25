@@ -31,7 +31,6 @@
 #include "utils/essentials.h"
 #include "text/sequence.h"
 #include "align/pattern/pattern.h"
-#include "text/text_collection.h"
 #include "archive/archive_text.h"
 #include "matches/scaffold/match_scaffold.h"
 
@@ -57,7 +56,7 @@ typedef struct {
   uint64_t text_source_region_offset;       // Text-Offset to the begin of the source-region
   uint64_t key_source_region_offset;        // Key-Offset to the begin of the source-region
   /* Text */
-  uint64_t text_trace_offset;               // Text-trace
+  text_trace_t text_trace;                  // Text-trace
   uint64_t text_begin_position;             // Region effective begin position (adjusted to error boundaries)
   uint64_t text_end_position;               // Region effective end position (adjusted to error boundaries)
   /* Key */
@@ -86,7 +85,7 @@ void filtering_region_retrieve_text(
     filtering_region_t* const filtering_region,
     pattern_t* const pattern,
     archive_text_t* const archive_text,
-    text_collection_t* const text_collection);
+    mm_allocator_t* const mm_allocator);
 
 /*
  * Filtering Region Key Trims
@@ -101,7 +100,6 @@ void filtering_region_compute_key_trims(
 void filtering_region_print(
     FILE* const stream,
     filtering_region_t* const region,
-    const text_collection_t* const text_collection,
     const bool print_region_text,
     const bool print_alignment_regions,
     const bool print_alignment);

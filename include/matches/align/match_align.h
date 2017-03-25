@@ -73,7 +73,7 @@ void match_align_levenshtein(
     match_trace_t* const match_trace,
     match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 
 /*
  * SWG Alignment (Gap-affine)
@@ -84,6 +84,6 @@ void match_align_smith_waterman_gotoh(
     match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
     match_scaffold_t* const match_scaffold,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 
 #endif /* MATCH_ALIGN_H_ */

@@ -125,21 +125,22 @@ void match_scaffold_chain_store_lis(
   match_scaffold->scaffolding_coverage = lis_vector[0].coverage;
 }
 void match_scaffold_chain_alignment_regions(
-    match_scaffold_t* const match_scaffold,
-    mm_stack_t* const mm_stack) {
+    match_scaffold_t* const match_scaffold) {
   PROFILE_START(GP_MATCH_SCAFFOLD_CHAIN_REGIONS,PROFILE_LEVEL);
+  // Parameters
+  mm_allocator_t* const mm_allocator = match_scaffold->mm_allocator;
   // Sort alignment regions by text-offsets
   match_scaffold_sort_alignment_regions(match_scaffold);
   // Allocate DP-LIS table
-  mm_stack_push_state(mm_stack);
+  mm_allocator_push_state(mm_allocator);
   const int64_t num_alignment_regions = match_scaffold->num_alignment_regions;
-  match_scaffold_lis_t* const lis_vector = mm_stack_calloc(
-      mm_stack,num_alignment_regions,match_scaffold_lis_t,true);
+  match_scaffold_lis_t* const lis_vector = mm_allocator_calloc(
+      mm_allocator,num_alignment_regions,match_scaffold_lis_t,true);
   // Compute LIS (longest increasing sequence of alignment-regions)
   match_scaffold_chain_compute_lis(match_scaffold,lis_vector);
   // Keep the best chain (given by the LIS)
   match_scaffold_chain_store_lis(match_scaffold,lis_vector);
-  mm_stack_pop_state(mm_stack);
+  mm_allocator_pop_state(mm_allocator);
 
 }
 /*
@@ -147,7 +148,6 @@ void match_scaffold_chain_alignment_regions(
  */
 void match_scaffold_exact_extend(
     match_scaffold_t* const match_scaffold,
-    const bool* const allowed_enc,
     const uint8_t* const key,
     const uint64_t key_length,
     const uint8_t* const text,
@@ -178,7 +178,7 @@ void match_scaffold_exact_extend(
       while (left_key_max<=left_key && left_text_max<=left_text) {
         // Check match
         const uint8_t candidate_enc = text[left_text];
-        if (!allowed_enc[candidate_enc] || candidate_enc != key[left_key]) break;
+        if (candidate_enc == ENC_DNA_CHAR_N || candidate_enc != key[left_key]) break;
         --left_key;
         --left_text;
         ++inc_coverage;
@@ -203,7 +203,7 @@ void match_scaffold_exact_extend(
     while (right_key_max>=right_key && right_text_max>=right_text) {
       // Check match
       const uint8_t candidate_enc = text[right_text];
-      if (!allowed_enc[candidate_enc] || candidate_enc != key[right_key]) break;
+      if (candidate_enc == ENC_DNA_CHAR_N || candidate_enc != key[right_key]) break;
       ++right_key;
       ++right_text;
       ++inc_coverage;
@@ -220,9 +220,7 @@ void match_scaffold_exact_extend(
 void match_scaffold_chain(
     match_scaffold_t* const match_scaffold,
     match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
-    const bool exact_extend,
-    mm_stack_t* const mm_stack) {
+    const bool exact_extend) {
   PROF_INC_COUNTER(GP_MATCH_SCAFFOLD_CHAIN_REGIONS_SCAFFOLDS);
   PROFILE_START(GP_MATCH_SCAFFOLD_CHAIN_REGIONS,PROFILE_LEVEL);
   // Parameters
@@ -230,14 +228,13 @@ void match_scaffold_chain(
   const uint64_t key_length = align_input->key_length;
   const uint8_t* const text = align_input->text;
   const uint64_t text_length = align_input->text_length;
-  const bool* const allowed_enc = align_parameters->allowed_enc;
   // Find a compatible chain of alignment-regions
   if (match_scaffold->num_alignment_regions > 0) {
-    match_scaffold_chain_alignment_regions(match_scaffold,mm_stack);
+    match_scaffold_chain_alignment_regions(match_scaffold);
     if (match_scaffold->num_alignment_regions > 0) {
       // Extend alignment-regions as to maximize coverage
       if (exact_extend && match_scaffold->scaffolding_coverage < key_length) {
-        match_scaffold_exact_extend(match_scaffold,allowed_enc,key,key_length,text,text_length);
+        match_scaffold_exact_extend(match_scaffold,key,key_length,text,text_length);
       }
       match_scaffold->match_alignment.score =
           key_length - match_scaffold->scaffolding_coverage; // Set score as matching bases

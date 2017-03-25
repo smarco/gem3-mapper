@@ -43,7 +43,7 @@ void archive_check_se_matches(
     sequence_t* const sequence,
     matches_t* const matches,
     const archive_check_type check_type,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 void archive_check_pe_matches(
     archive_t* const archive,
     const match_alignment_model_t match_alignment_model,
@@ -52,6 +52,6 @@ void archive_check_pe_matches(
     sequence_t* const sequence_end2,
     paired_matches_t* const paired_matches,
     const archive_check_type check_type,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 
 #endif /* ARCHIVE_CHECK_H_ */

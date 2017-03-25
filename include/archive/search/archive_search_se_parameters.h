@@ -62,19 +62,9 @@ typedef struct {
   // Strategy
   candidate_verification_strategy_type strategy;
   // Kmer filter
-  uint64_t num_slices;
+  uint64_t kmer_tiles;
   uint64_t kmer_length;
 } candidate_verification_t;
-
-/*
- * Bisulfite Reads-Mode
- */
-typedef enum {
-  bisulfite_read_inferred,
-  bisulfite_read_1,
-  bisulfite_read_2,
-  bisulfite_read_interleaved
-} bisulfite_read_t;
 
 /*
  * Check Type
@@ -117,22 +107,24 @@ typedef enum {
 typedef struct {
   /* Mapping strategy (Mapping mode + properties) */
   mapping_mode_t mapping_mode;                         // Mapping mode
-  search_paired_parameters_t search_paired_parameters; // Paired-end
   bisulfite_read_t bisulfite_read;                     // Bisulfite mode
   /* Clipping */
   clipping_type clipping;
   uint64_t clip_left;
   uint64_t clip_right;
   /* Qualities */
-  sequence_qualities_model_t qualities_model;          // TODO Revision pending
-  sequence_qualities_format_t qualities_format;        // TODO Revision pending
-  uint64_t quality_threshold;             // TODO Revision pending
-  /* Replacements (Regulates the bases that can be replaced/mismatched) */
-  char mismatch_alphabet[DNA_EXT_RANGE];  // TODO Revision pending
-  uint64_t mismatch_alphabet_length;      // TODO Revision pending
-  bool allowed_chars[256];                // TODO Revision pending
-  bool allowed_enc[DNA_EXT_RANGE];        // TODO Revision pending
-  /* Search error model */
+  sequence_qualities_format_t qualities_format;
+  uint64_t quality_threshold;
+  /* Approximate Search */
+  region_profile_model_t region_profile_model;          // Region-Profile Model (Lightweight)
+  candidate_verification_t candidate_verification;      // Candidate verification strategy
+  nsearch_parameters_t nsearch_parameters;              // NS parameters
+  bool gpu_stage_region_profile_enabled;
+  bool gpu_stage_decode_enabled;
+  bool gpu_stage_kmer_filter_enabled;
+  bool gpu_stage_bpm_distance_enabled;
+  bool gpu_stage_bpm_align_enabled;
+  /* Global alignment */
   double complete_search_error;
   double complete_strata_after_best;
   double alignment_max_error;
@@ -141,9 +133,8 @@ typedef struct {
   bool   alignment_force_full_swg;                      // Force full SWG-Alignment
   double alignment_global_min_identity;                 // Alignment minimum identity to be global
   double alignment_global_min_swg_threshold;            // Alignment minimum SWG score to be global
-  region_profile_model_t region_profile_model;          // Region-Profile Model (Lightweight)
-  candidate_verification_t candidate_verification;      // Candidate verification strategy
-  nsearch_parameters_t nsearch_parameters;              // NS parameters
+  match_alignment_model_t match_alignment_model;        // Alignment Model/Score
+  swg_penalties_t swg_penalties;
   /* Local Alignment */
   local_alignment_t alignment_local;
   double alignment_local_min_identity;                  // Alignment minimum identity to be local
@@ -154,15 +145,14 @@ typedef struct {
   double alignment_scaffolding_min_matching_length;     // Minimum matching chunk to be considered
   bool cigar_curation;
   double cigar_curation_min_end_context;
-  /* Alignment Model/Score */
-  match_alignment_model_t match_alignment_model;
-  swg_penalties_t swg_penalties;
   /* Select Parameters */
   select_parameters_t select_parameters;                // Select parameters (Used to report results)
   /* MAPQ Score */
   mapq_model_t mapq_model_se;
   mapq_model_t mapq_model_pe;
   uint8_t mapq_threshold;
+  /* Paired-end Search */
+  search_paired_parameters_t search_paired_parameters;  // Paired-end
   /* Nominal search parameters (Evaluated to read-length) */
   uint64_t complete_search_error_nominal;
   uint64_t complete_strata_after_best_nominal;
@@ -181,7 +171,7 @@ typedef struct {
 } search_parameters_t;
 
 /*
- * Search Parameters
+ * Search Parameters Init
  */
 void search_parameters_init(search_parameters_t* const search_parameters);
 
@@ -190,14 +180,9 @@ void search_configure_mapping_strategy(
     const mapping_mode_t mapping_mode);
 void search_configure_quality_model(
     search_parameters_t* const search_parameters,
-    const sequence_qualities_model_t qualities_model,
     const sequence_qualities_format_t qualities_format,
     const uint64_t quality_threshold);
-void search_configure_replacements(
-    search_parameters_t* const search_parameters,
-    const char* const mismatch_alphabet,
-    const uint64_t mismatch_alphabet_length);
-void search_configure_match_alignment_model(
+void search_configure_alignment_model(
     search_parameters_t* const search_parameters,
     const match_alignment_model_t match_alignment_model);
 void search_configure_alignment_match_scores(
@@ -217,10 +202,5 @@ void search_instantiate_values(
 void search_parameters_print(
     FILE* const stream,
     search_parameters_t* const search_parameters);
-
-/*
- * Error Msg
- */
-#define GEM_ERROR_ASP_REPLACEMENT_EMPTY "Search Parameters. Valid replacements set cannot be empty"
 
 #endif /* ARCHIVE_SEARCH_PARAMETERS_H_ */

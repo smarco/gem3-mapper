@@ -260,7 +260,7 @@ void archive_score_matches_se(
       matches_predictors_compute_se(&matches_predictors,matches);
       // Dump predictors
       matches_predictors_se_print(
-          stdout,sequence_get_tag(&archive_search->sequence),
+          stdout,sequence_get_tag(archive_search->input_sequence),
           matches->matches_class,&matches_predictors);
       break;
     }

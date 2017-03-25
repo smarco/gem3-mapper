@@ -104,7 +104,7 @@ typedef struct {
   uint64_t avg_region_length;        // Average region length
   double kmer_frequency;
   /* MM */
-  mm_stack_t* mm_stack;
+  mm_allocator_t* mm_allocator;      // MM-Allocator
 } region_profile_t;
 
 /*
@@ -113,14 +113,15 @@ typedef struct {
 void region_profile_init(
     region_profile_t* const region_profile,
     const uint64_t pattern_length);
+void region_profile_model_init(
+    region_profile_model_t* const region_profile_model);
 void region_profile_clear(
     region_profile_t* const region_profile);
 void region_profile_inject_mm(
     region_profile_t* const region_profile,
-    mm_stack_t* const mm_stack);
-
-void region_profile_model_init(
-    region_profile_model_t* const region_profile_model);
+    mm_allocator_t* const mm_allocator);
+void region_profile_destroy(
+    region_profile_t* const region_profile);
 
 /*
  * Allocator
@@ -151,8 +152,7 @@ void region_profile_query_regions(
 void region_profile_extend_last_region(
     region_profile_t* const region_profile,
     fm_index_t* const fm_index,
-    const uint8_t* const key,
-    const bool* const allowed_enc);
+    const uint8_t* const key);
 
 /*
  * Region Search Prepare
@@ -161,7 +161,6 @@ void region_profile_fill_gaps(
     region_profile_t* const region_profile,
     const uint8_t* const key,
     const uint64_t key_length,
-    const bool* const allowed_enc,
     const uint64_t num_wildcards);
 void region_profile_merge_small_regions(
     region_profile_t* const region_profile,
@@ -180,8 +179,7 @@ void region_profile_compute_kmer_frequency(
     region_profile_t* const region_profile,
     fm_index_t* const fm_index,
     const uint8_t* const key,
-    const uint64_t key_length,
-    const bool* const allowed_enc);
+    const uint64_t key_length);
 
 /*
  * Cmp

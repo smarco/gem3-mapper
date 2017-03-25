@@ -205,11 +205,11 @@ void output_map_alignment_pretty(
     const uint64_t key_length,
     uint8_t* const text,
     const uint64_t text_length,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   tab_fprintf(stream,"%s:%"PRIu64":%c\n",match_trace->sequence_name,
       match_trace->text_position,(match_trace->strand==Forward)?'+':'-');
   match_alignment_print_pretty(stream,&match_trace->match_alignment,
-      matches->cigar_vector,key,key_length,text,text_length,mm_stack);
+      matches->cigar_vector,key,key_length,text,text_length,mm_allocator);
 }
 /*
  * Separator
@@ -409,10 +409,10 @@ void output_map_single_end_matches(
     output_map_parameters_t* const output_map_parameters) {
   PROF_START_TIMER(GP_OUTPUT_MAP_SE);
   // Print TAG
-  output_map_single_end_print_tag(buffered_output_file,&archive_search->sequence);
+  output_map_single_end_print_tag(buffered_output_file,archive_search->input_sequence);
   // Print READ & QUALITIES
   output_map_print_separator(buffered_output_file,'\t'); // Separator
-  output_map_single_end_print_read__qualities(buffered_output_file,&archive_search->sequence);
+  output_map_single_end_print_read__qualities(buffered_output_file,archive_search->input_sequence);
   // Print COUNTERS
   output_map_print_separator(buffered_output_file,'\t'); // Separator
   output_map_print_counters(buffered_output_file,matches->counters,matches->max_complete_stratum,false);
@@ -453,11 +453,13 @@ void output_map_paired_end_matches(
     output_map_single_end_matches(buffered_output_file,archive_search_end2,matches_end2,output_map_parameters);
   } else {
     // Print TAG
-    output_map_paired_end_print_tag(buffered_output_file,&archive_search_end1->sequence);
+    output_map_paired_end_print_tag(buffered_output_file,archive_search_end1->input_sequence);
     // Print READ & QUALITIES
     output_map_print_separator(buffered_output_file,'\t'); // Separator
-    output_map_paired_end_print_read__qualities(buffered_output_file,
-        &archive_search_end1->sequence,&archive_search_end2->sequence);
+    output_map_paired_end_print_read__qualities(
+        buffered_output_file,
+        archive_search_end1->input_sequence,
+        archive_search_end2->input_sequence);
     // Print COUNTERS
     output_map_print_separator(buffered_output_file,'\t'); // Separator
     output_map_print_counters(buffered_output_file,paired_matches->counters,paired_matches->max_complete_stratum,false);

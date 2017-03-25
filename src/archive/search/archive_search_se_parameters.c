@@ -32,55 +32,9 @@
   parameters->field_name##_nominal = integer_proportion(parameters->field_name,pattern_length)
 
 /*
- * Region profile default parameters
+ * Alignment default parameters
  */
-void search_parameters_init_replacements(search_parameters_t* const search_parameters) {
-  // Reset
-  memset(search_parameters->allowed_chars,0,256*sizeof(bool));
-  memset(search_parameters->allowed_enc,0,DNA_EXT_RANGE*sizeof(bool));
-  search_parameters->mismatch_alphabet[0] = DNA_CHAR_A;
-  search_parameters->mismatch_alphabet[1] = DNA_CHAR_C;
-  search_parameters->mismatch_alphabet[2] = DNA_CHAR_G;
-  search_parameters->mismatch_alphabet[3] = DNA_CHAR_T;
-  search_parameters->mismatch_alphabet_length = 4;
-  search_parameters->allowed_chars[DNA_CHAR_A] = true;
-  search_parameters->allowed_chars[DNA_CHAR_C] = true;
-  search_parameters->allowed_chars[DNA_CHAR_G] = true;
-  search_parameters->allowed_chars[DNA_CHAR_T] = true;
-  search_parameters->allowed_chars[DNA_CHAR_N] = false;
-  search_parameters->allowed_enc[ENC_DNA_CHAR_A] = true;
-  search_parameters->allowed_enc[ENC_DNA_CHAR_C] = true;
-  search_parameters->allowed_enc[ENC_DNA_CHAR_G] = true;
-  search_parameters->allowed_enc[ENC_DNA_CHAR_T] = true;
-  search_parameters->allowed_enc[ENC_DNA_CHAR_N] = false;
-}
-void search_parameters_init_error_model(search_parameters_t* const search_parameters) {
-  // Search
-  search_parameters->complete_search_error = 0.04;
-  search_parameters->complete_strata_after_best = 1.0;
-  search_parameters->alignment_max_error = 0.12;
-  search_parameters->alignment_max_bandwidth = 0.20;
-  search_parameters->alignment_max_aligned_gap_length = 100.0;
-  search_parameters->alignment_force_full_swg = false;
-  search_parameters->alignment_global_min_identity = 0.80;
-  search_parameters->alignment_global_min_swg_threshold = 0.40; // 0.40*read_length*match_score
-  search_parameters->alignment_local = local_alignment_if_unmapped;
-  search_parameters->alignment_local_min_identity = 40.0;
-  search_parameters->alignment_local_min_swg_threshold = 20.0;
-  search_parameters->alignment_local_max_candidates = 100;
-  search_parameters->alignment_scaffolding_min_coverage = 0.80;
-  search_parameters->alignment_scaffolding_min_matching_length = 10.0;
-  search_parameters->cigar_curation = true;
-  search_parameters->cigar_curation_min_end_context = 2.0;
-  search_parameters->candidate_verification.strategy = candidate_verification_chained;
-  search_parameters->candidate_verification.num_slices = 1;
-  search_parameters->candidate_verification.kmer_length = 6;
-  // Region Profile
-  region_profile_model_init(&search_parameters->region_profile_model);
-  // Neighborhood Search
-  nsearch_parameters_init(&search_parameters->nsearch_parameters);
-}
-void search_parameters_init_match_alignment_model(search_parameters_t* const search_parameters) {
+void search_parameters_init_alignment_model(search_parameters_t* const search_parameters) {
   search_parameters->match_alignment_model = match_alignment_model_gap_affine;
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_A] = +1;
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_C] = -4;
@@ -112,35 +66,66 @@ void search_parameters_init_match_alignment_model(search_parameters_t* const sea
   search_parameters->swg_penalties.gap_open_score = -6;
   search_parameters->swg_penalties.gap_extension_score = -1;
 }
+void search_parameters_init_alignment(search_parameters_t* const search_parameters) {
+  /* Global Alignment */
+  search_parameters->complete_search_error = 0.04;
+  search_parameters->complete_strata_after_best = 1.0;
+  search_parameters->alignment_max_error = 0.12;
+  search_parameters->alignment_max_bandwidth = 0.20;
+  search_parameters->alignment_max_aligned_gap_length = 100.0;
+  search_parameters->alignment_force_full_swg = false;
+  search_parameters->alignment_global_min_identity = 0.80;
+  search_parameters->alignment_global_min_swg_threshold = 0.40; // 0.40*read_length*match_score
+  /* Local Alignment */
+  search_parameters->alignment_local = local_alignment_if_unmapped;
+  search_parameters->alignment_local_min_identity = 40.0;
+  search_parameters->alignment_local_min_swg_threshold = 20.0;
+  search_parameters->alignment_local_max_candidates = 100;
+  search_parameters->alignment_scaffolding_min_coverage = 0.80;
+  search_parameters->alignment_scaffolding_min_matching_length = 10.0;
+  search_parameters->cigar_curation = true;
+  search_parameters->cigar_curation_min_end_context = 2.0;
+  search_parameters->candidate_verification.strategy = candidate_verification_chained;
+  search_parameters->candidate_verification.kmer_tiles = 2;
+  search_parameters->candidate_verification.kmer_length = 6;
+  // Alignment Model
+  search_parameters_init_alignment_model(search_parameters);
+}
+/*
+ * Search Parameters Init
+ */
 void search_parameters_init(search_parameters_t* const search_parameters) {
   // Mapping strategy
   search_parameters->mapping_mode = mapping_adaptive_filtering_fast;
+  // Bisulfite
+  search_parameters->bisulfite_read = bisulfite_read_inferred;
   // Clipping
   search_parameters->clipping = clipping_uncalled;
   search_parameters->clip_left = 0;
   search_parameters->clip_right = 0;
   // Qualities
-  search_parameters->qualities_model = sequence_qualities_model_gem;
   search_parameters->qualities_format = sequence_qualities_ignore;
   search_parameters->quality_threshold = 26;
-  // Replacements
-  search_parameters_init_replacements(search_parameters);
-  // Search error model
-  search_parameters_init_error_model(search_parameters);
-  // Alignment Model/Score
-  search_parameters_init_match_alignment_model(search_parameters);
-  // Paired End
-  search_paired_parameters_init(&search_parameters->search_paired_parameters);
-  // Bisulfite
-  search_parameters->bisulfite_read = bisulfite_read_inferred;
+  // Approximate Search
+  region_profile_model_init(&search_parameters->region_profile_model); // Region Profile
+  nsearch_parameters_init(&search_parameters->nsearch_parameters); // Neighborhood Search
+  search_parameters->gpu_stage_region_profile_enabled = false;
+  search_parameters->gpu_stage_decode_enabled = false;
+  search_parameters->gpu_stage_kmer_filter_enabled = false;
+  search_parameters->gpu_stage_bpm_distance_enabled = false;
+  search_parameters->gpu_stage_bpm_align_enabled = false;
+  // Alignment Parameters
+  search_parameters_init_alignment(search_parameters);
   // Select Parameters
   select_parameters_init(&search_parameters->select_parameters);
-  // Check
-  search_parameters->check_type = archive_check_nothing;
   // MAPQ Score
   search_parameters->mapq_model_se = mapq_model_gem;
   search_parameters->mapq_model_pe = mapq_model_gem;
   search_parameters->mapq_threshold = 0;
+  // Paired End
+  search_paired_parameters_init(&search_parameters->search_paired_parameters);
+  // Check
+  search_parameters->check_type = archive_check_nothing;
 }
 void search_configure_mapping_strategy(
     search_parameters_t* const search_parameters,
@@ -149,34 +134,12 @@ void search_configure_mapping_strategy(
 }
 void search_configure_quality_model(
     search_parameters_t* const search_parameters,
-    const sequence_qualities_model_t qualities_model,
     const sequence_qualities_format_t qualities_format,
     const uint64_t quality_threshold) {
-  search_parameters->qualities_model = qualities_model;
   search_parameters->qualities_format = qualities_format;
   search_parameters->quality_threshold = quality_threshold;
 }
-void search_configure_replacements(
-    search_parameters_t* const search_parameters,
-    const char* const mismatch_alphabet,
-    const uint64_t mismatch_alphabet_length) {
-  // Reset
-  search_parameters_init_replacements(search_parameters);
-  // Filter replacements
-  uint64_t i, count;
-  for (i=0,count=0;i<mismatch_alphabet_length;i++) {
-    if (is_dna(mismatch_alphabet[i])) {
-      const char c = dna_normalized(mismatch_alphabet[i]);
-      search_parameters->mismatch_alphabet[count] = c;
-      search_parameters->allowed_chars[(uint8_t)c] = true;
-      search_parameters->allowed_enc[dna_encode(c)] = true;
-      ++count;
-    }
-  }
-  gem_cond_error(count==0,ASP_REPLACEMENT_EMPTY);
-  search_parameters->mismatch_alphabet_length = count;
-}
-void search_configure_match_alignment_model(
+void search_configure_alignment_model(
     search_parameters_t* const search_parameters,
     const match_alignment_model_t match_alignment_model) {
   search_parameters->match_alignment_model = match_alignment_model;

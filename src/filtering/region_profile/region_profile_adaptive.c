@@ -76,7 +76,6 @@ void region_profile_generator_init(
     fm_index_t* const fm_index,
     const uint8_t* const key,
     const uint64_t key_length,
-    const bool* const allowed_enc,
     const bool allow_zero_regions) {
   // Region profile
   generator->region_profile = region_profile;
@@ -89,7 +88,6 @@ void region_profile_generator_init(
   generator->fm_index = fm_index;
   generator->key = key;
   generator->key_length = key_length;
-  generator->allowed_enc = allowed_enc;
   generator->allow_zero_regions = allow_zero_regions;
   // Query state
   generator->key_position = key_length;
@@ -132,8 +130,8 @@ void region_profile_generator_close_profile(
   } else {
     // We extend the last region
     if (generator->allow_zero_regions) {
-      region_profile_extend_last_region(region_profile,
-          generator->fm_index,generator->key,generator->allowed_enc);
+      region_profile_extend_last_region(
+          region_profile,generator->fm_index,generator->key);
     }
   }
   // Select regions & schedule filtering
@@ -200,7 +198,8 @@ bool region_profile_generator_disallow_character(
         generator->last_cut,generator->lo_cut,generator->hi_cut);
     new_region = true;
   }
-  while (generator->key_position > 0 && !generator->allowed_enc[generator->key[generator->key_position-1]]) {
+  while (generator->key_position > 0 &&
+         generator->key[generator->key_position-1]==ENC_DNA_CHAR_N) {
     --(generator->key_position);
   }
   region_profile_generator_restart(generator);
@@ -222,7 +221,7 @@ bool region_profile_generator_next_region(
     --(generator->key_position);
     const uint8_t enc_char = generator->key[generator->key_position];
     // Handling wildcards
-    if (!generator->allowed_enc[enc_char]) {
+    if (enc_char == ENC_DNA_CHAR_N) {
       if (region_profile_generator_disallow_character(generator,profile_model)) {
         PROFILE_STOP(GP_REGION_PROFILE_ADAPTIVE,PROFILE_LEVEL);
         return true; // New region available
@@ -251,7 +250,6 @@ void region_profile_generate_adaptive(
     fm_index_t* const fm_index,
     const uint8_t* const key,
     const uint64_t key_length,
-    const bool* const allowed_enc,
     const region_profile_model_t* const profile_model,
     const uint64_t max_regions,
     const bool allow_zero_regions) {
@@ -270,8 +268,8 @@ void region_profile_generate_adaptive(
   const uint64_t max_regions_profiled = MIN(max_regions,region_profile->max_expected_regions);
   // Init
   region_profile_generator_t generator;
-  region_profile_generator_init(&generator,region_profile,
-      fm_index,key,key_length,allowed_enc,allow_zero_regions);
+  region_profile_generator_init(&generator,
+      region_profile,fm_index,key,key_length,allow_zero_regions);
   // Delimit regions
   while (generator.key_position > 0) {
     // Cut-off
@@ -283,7 +281,7 @@ void region_profile_generate_adaptive(
     --(generator.key_position);
     const uint8_t enc_char = key[generator.key_position];
     // Handling wildcards
-    if (!allowed_enc[enc_char]) {
+    if (enc_char == ENC_DNA_CHAR_N) {
       region_profile_generator_disallow_character(&generator,profile_model);
     } else {
       // Rank query
@@ -308,7 +306,6 @@ void region_profile_generate_adaptive_limited(
     fm_index_t* const fm_index,
     const uint8_t* const key,
     const uint64_t key_length,
-    const bool* const allowed_enc,
     const region_profile_model_t* const profile_model) {
   PROFILE_START(GP_REGION_PROFILE_ADAPTIVE,PROFILE_LEVEL);
   // DEBUG
@@ -327,7 +324,7 @@ void region_profile_generate_adaptive_limited(
   // Init
   const uint64_t max_region_length = key_length/min_regions;
   region_profile_generator_t generator;
-  region_profile_generator_init(&generator,region_profile,fm_index,key,key_length,allowed_enc,false);
+  region_profile_generator_init(&generator,region_profile,fm_index,key,key_length,false);
   // Delimit regions
   while (generator.key_position > 0) {
     // Cut-off
@@ -336,7 +333,7 @@ void region_profile_generate_adaptive_limited(
     --(generator.key_position);
     const uint8_t enc_char = key[generator.key_position];
     // Handling wildcards
-    if (!allowed_enc[enc_char]) {
+    if (enc_char == ENC_DNA_CHAR_N) {
       region_profile_generator_disallow_character(&generator,profile_model);
     } else {
       // Rank query

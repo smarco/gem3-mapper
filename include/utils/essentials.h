@@ -41,7 +41,7 @@
 // Memory Manager module
 #include "system/mm.h"
 #include "system/mm_slab.h"
-#include "system/mm_stack.h"
+#include "system/mm_allocator.h"
 
 // Basic Runtime
 #include "system/gruntime.h"

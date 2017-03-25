@@ -11,11 +11,13 @@ do
 
 for mode in se pe
 do
-
-echo -en "Checking sample.$specie.l100.$mode.$mapping\t"
-DIFF=$(diff sample.$specie.l100.$mode.$mapping.$VA.map sample.$specie.l100.$mode.$mapping.$VB.map)
-if [ "$DIFF" == "" ]; then echo "[OK]"; else echo "[FAILED]"; fi;
-
+  # CMP
+  echo -en "Checking sample.$specie.l100.$mode.$mapping\t"
+  DIFF=$(diff sample.$specie.l100.$mode.$mapping.$VA.map sample.$specie.l100.$mode.$mapping.$VB.map)
+  if [ "$DIFF" == "" ]; then echo -n "[OK]"; else echo -n "[FAILED]"; fi;
+  # TIME
+  grep GEMMapper sample.$specie.l100.$mode.$mapping.$VA.log | awk '{printf " "$8}'
+  grep GEMMapper sample.$specie.l100.$mode.$mapping.$VB.log | awk '{printf " vs "$8"\n"}'
 done
 done
 done

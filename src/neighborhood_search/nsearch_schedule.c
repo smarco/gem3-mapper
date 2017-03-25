@@ -61,13 +61,13 @@ void nsearch_schedule_init(
   const uint64_t max_text_length = key_length + max_error;
   const uint64_t max_pending_ops = (uint64_t)ceil(gem_log2((float)(max_error+1))) + 1;
   nsearch_operation_t* const pending_searches =
-      mm_stack_calloc(nsearch_schedule->mm_stack,max_pending_ops,nsearch_operation_t,false);
+      mm_allocator_calloc(nsearch_schedule->mm_allocator,max_pending_ops,nsearch_operation_t,false);
   nsearch_schedule->pending_searches = pending_searches;
   nsearch_schedule->num_pending_searches = 0;
   uint64_t i;
   for (i=0;i<max_pending_ops;++i) {
     nsearch_operation_init(pending_searches+i,
-        key_length,max_text_length,nsearch_schedule->mm_stack);
+        key_length,max_text_length,nsearch_schedule->mm_allocator);
   }
   // Profiler
   nsearch_schedule->profile.ns_nodes = 0;
@@ -76,8 +76,8 @@ void nsearch_schedule_init(
 }
 void nsearch_schedule_inject_mm(
     nsearch_schedule_t* const nsearch_schedule,
-    mm_stack_t* const mm_stack) {
-  nsearch_schedule->mm_stack = mm_stack;
+    mm_allocator_t* const mm_allocator) {
+  nsearch_schedule->mm_allocator = mm_allocator;
 }
 /*
  * Add pending search
@@ -380,12 +380,12 @@ typedef struct {
 void nsearch_schedule_print_pretty(
     FILE* const stream,
     nsearch_schedule_t* const nsearch_schedule) {
-  // Save stack state & allocate mem
-  mm_stack_t* const mm_stack = nsearch_schedule->mm_stack;
-  mm_stack_push_state(mm_stack);
+  // Save allocator state & allocate mem
+  mm_allocator_t* const mm_allocator = nsearch_schedule->mm_allocator;
+  mm_allocator_push_state(mm_allocator);
   const uint64_t num_pending_searches = nsearch_schedule->num_pending_searches;
   nsearch_schedule_print_data_t* const print_data =
-      mm_stack_calloc(mm_stack,num_pending_searches,nsearch_schedule_print_data_t,true);
+      mm_allocator_calloc(mm_allocator,num_pending_searches,nsearch_schedule_print_data_t,true);
   // Set proper amplification factor
   const uint64_t key_length = nsearch_schedule->pattern->key_length;
   uint64_t amplification = 1, i;
@@ -459,7 +459,7 @@ void nsearch_schedule_print_pretty(
   }
   // Succint print
   // nsearch_schedule_print(stream,nsearch_schedule);
-  mm_stack_pop_state(mm_stack);
+  mm_allocator_pop_state(mm_allocator);
 }
 void nsearch_schedule_print_profile(
     FILE* const stream,

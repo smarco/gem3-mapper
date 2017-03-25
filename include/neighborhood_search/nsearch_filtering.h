@@ -25,6 +25,7 @@
 #define NSEARCH_FILTERING_H_
 
 #include "utils/essentials.h"
+#include "filtering/candidates/filtering_candidates_accessors.h"
 #include "neighborhood_search/nsearch_schedule.h"
 
 /*

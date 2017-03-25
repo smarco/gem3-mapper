@@ -55,7 +55,12 @@ gpu_buffer_collection_t* gpu_buffer_collection_new(
   gpu_buffers_dto->buffer = NULL;
   gpu_buffers_dto->numBuffers = num_buffers;
   gpu_buffers_dto->maxMbPerBuffer = CONVERT_B_TO_MB(buffer_size);
-  gpu_buffers_dto->activeModules = GPU_FMI_ADAPT_SEARCH | GPU_FMI_DECODE_POS | GPU_BPM_FILTER | GPU_KMER_FILTER | GPU_SA_DECODE_POS;
+  gpu_buffers_dto->activeModules =
+      GPU_FMI_ADAPT_SEARCH |
+      GPU_FMI_DECODE_POS |
+      GPU_SA_DECODE_POS |
+      GPU_KMER_FILTER |
+      GPU_BPM_FILTER;
   buffer_collection->gpu_buffers_dto = gpu_buffers_dto;
   gpu_index_dto_t gpu_index_dto = {
     .filename             = gpu_index_name,
@@ -92,17 +97,23 @@ gpu_buffer_collection_t* gpu_buffer_collection_new(
   gpu_init_buffers_(gpu_buffers_dto,&gpu_index_dto,&gpu_reference_dto,&gpu_info_dto);
   buffer_collection->internal_buffers = gpu_buffers_dto->buffer;
   // Set active modules
-  buffer_collection->gpu_region_profile_available         = gpu_info_dto.activatedModules & GPU_FMI_ADAPT_SEARCH;
-  buffer_collection->gpu_decode_candidates_sa_available   = gpu_info_dto.activatedModules & GPU_FMI_DECODE_POS;
-  buffer_collection->gpu_decode_candidates_text_available = gpu_info_dto.activatedModules & GPU_SA_DECODE_POS;
-  buffer_collection->gpu_verify_candidates_available      = gpu_info_dto.activatedModules & GPU_BPM_FILTER;
-  // TODO Check if the K-MER module is active something like:
-  //buffer_collection->gpu_filter_candidates_available      = gpu_info_dto.activatedModules & GPU_KMER_FILTER;
+  buffer_collection->gpu_region_profile_available = gpu_info_dto.activatedModules & GPU_FMI_ADAPT_SEARCH;
+  buffer_collection->gpu_decode_sa_available = gpu_info_dto.activatedModules & GPU_FMI_DECODE_POS;
+  buffer_collection->gpu_decode_text_available = gpu_info_dto.activatedModules & GPU_SA_DECODE_POS;
+  if (buffer_collection->gpu_decode_sa_available !=
+      buffer_collection->gpu_decode_text_available) {
+    buffer_collection->gpu_decode_sa_available   = false; // Decode goes all or none
+    buffer_collection->gpu_decode_text_available = false; // Decode goes all or none
+  }
+  buffer_collection->gpu_kmer_filter_available = gpu_info_dto.activatedModules & GPU_KMER_FILTER;
+  buffer_collection->gpu_bpm_distance_available = gpu_info_dto.activatedModules & GPU_BPM_FILTER;
+  buffer_collection->gpu_bpm_distance_available = false; // TODO gpu_info_dto.activatedModules & GPU_BPM_ALIGN;
   // Return
   PROFILE_STOP(GP_GPU_BUFFER_COLLECTION_INIT,PROFILE_LEVEL);
   return buffer_collection;
 }
-void gpu_buffer_collection_delete(gpu_buffer_collection_t* const gpu_buffer_collection) {
+void gpu_buffer_collection_delete(
+    gpu_buffer_collection_t* const gpu_buffer_collection) {
   gpu_destroy_buffers_((gpu_buffers_dto_t*)gpu_buffer_collection->gpu_buffers_dto); // Destroy buffers
   mm_free(gpu_buffer_collection->gpu_buffers_dto); // Free DTO
   mm_free(gpu_buffer_collection); // Free Handler
@@ -126,6 +137,7 @@ gpu_buffer_collection_t* gpu_buffer_collection_new(
     char* const gpu_index_name,
     const uint64_t num_buffers,
     const uint64_t buffer_size,
+    const uint64_t gpu_devices,
     const bool verbose) {
   GEM_CUDA_NOT_SUPPORTED();
   return NULL;

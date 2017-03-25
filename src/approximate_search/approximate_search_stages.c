@@ -39,6 +39,7 @@
 #include "filtering/region_profile/region_profile.h"
 #include "filtering/region_profile/region_profile_adaptive.h"
 #include "filtering/region_profile/region_profile_schedule.h"
+#include "filtering/candidates/filtering_candidates_accessors.h"
 #include "filtering/candidates/filtering_candidates_process.h"
 #include "filtering/candidates/filtering_candidates_verify.h"
 #include "filtering/candidates/filtering_candidates_align.h"
@@ -116,7 +117,6 @@ void approximate_search_exact_filtering_adaptive_cutoff(
   archive_t* const archive = search->archive;
   fm_index_t* const fm_index = archive->fm_index;
   pattern_t* const pattern = &search->pattern;
-  const bool* const allowed_enc = search_parameters->allowed_enc;
   region_profile_t* const region_profile = &search->region_profile;
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
   // Select Key (Regular/RL)
@@ -132,7 +132,7 @@ void approximate_search_exact_filtering_adaptive_cutoff(
   // Iterate process of region-candidates-verification
   const region_profile_model_t* const profile_model = &search_parameters->region_profile_model;
   region_profile_generator_t generator;
-  region_profile_generator_init(&generator,region_profile,fm_index,key,key_length,allowed_enc,false);
+  region_profile_generator_init(&generator,region_profile,fm_index,key,key_length,false);
   while (region_profile_generator_next_region(region_profile,&generator,profile_model)) {
     // Cut-off
     if (region_profile->num_filtering_regions >= region_profile->max_expected_regions) break;
@@ -188,13 +188,11 @@ void approximate_search_neighborhood(
     matches_t* const matches) {
   PROFILE_START(GP_AS_NEIGHBORHOOD_SEARCH,PROFILE_LEVEL);
   // Parameters
-  search_parameters_t* const search_parameters = search->search_parameters;
   pattern_t* const pattern = &search->pattern;
   region_profile_t* const region_profile = &search->region_profile;
   // Prepare region-profile (fill gaps)
-  region_profile_fill_gaps(
-      region_profile,pattern->key,pattern->key_length,
-      search_parameters->allowed_enc,pattern->num_wildcards);
+  region_profile_fill_gaps(region_profile,
+      pattern->key,pattern->key_length,pattern->num_wildcards);
   region_profile_merge_small_regions(region_profile,search->archive->fm_index->proper_length);
   // NS
   approximate_search_neighborhood_search_partition_preconditioned(search,matches);

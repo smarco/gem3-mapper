@@ -16,14 +16,16 @@ include $(ROOT_PATH)/Makefile.mk
 # Modules
 ###############################################################################
 MODULES=filtering_candidates \
+        filtering_candidates_accessors \
         filtering_candidates_align \
         filtering_candidates_align_local \
         filtering_candidates_buffered \
+        filtering_candidates_buffered_bpm_align \
+        filtering_candidates_buffered_bpm_distance \
+        filtering_candidates_buffered_kmer_filter \
+        filtering_candidates_buffered_process \
         filtering_candidates_extend \
-        filtering_candidates_mm \
-        filtering_candidates_process_buffered \
         filtering_candidates_process \
-        filtering_candidates_verify_buffered \
         filtering_candidates_verify
 
 SRCS=$(addsuffix .c, $(MODULES))

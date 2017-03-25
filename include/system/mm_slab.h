@@ -51,7 +51,6 @@ struct _mm_slab_segment_t {
 typedef struct {
   /* Slab */
   uint64_t slab_id;            /* Slab ID */
-  char* description;           /* Slab Description */
   uint64_t max_memory;         /* Maximum memory allocatable before going to disk (tmp files) */
   uint64_t requested_memory;   /* Total memory requested by the slab */
   /* Slab Segments */
@@ -72,12 +71,11 @@ typedef struct {
 /*
  * Setup
  */
-#define mm_slab_new(slab_size) mm_slab_new_(slab_size,MM_SLAB_SEGMENT_INITIAL_SIZE,MM_UNLIMITED_MEM,"")
+#define mm_slab_new(slab_size) mm_slab_new_(slab_size,4*slab_size,MM_UNLIMITED_MEM)
 mm_slab_t* mm_slab_new_(
-    const uint64_t slab_size,
-    const uint64_t slab_segment_size,
-    const uint64_t max_allocatable_memory,
-    char* const description);
+    const uint64_t slab_unit_size,
+    const uint64_t slab_group_size,
+    const uint64_t max_allocatable_memory);
 void mm_slab_delete(mm_slab_t* const mm_slab);
 
 /*

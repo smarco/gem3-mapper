@@ -46,7 +46,7 @@ void align_ond_compute_lcs_distance(
     const int32_t text_length,
     uint64_t* const lcs_distance,
     uint64_t* const match_end_column,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 
 /*
  * O(ND) Align
@@ -55,7 +55,7 @@ void align_ond_compute_contours(
     match_align_input_t* const align_input,
     const int32_t max_distance,
     align_ond_contours_t* const align_ond_contours,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 void align_ond_backtrace_contours(
     match_align_input_t* const align_input,
     align_ond_contours_t* const align_ond_contours,
@@ -66,7 +66,7 @@ void align_ond_match(
     const int32_t max_distance,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 
 /*
  * Display

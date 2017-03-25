@@ -30,7 +30,6 @@
 #define GEM_LABEL_ERROR "GEM::Error"
 #define GEM_LABEL_FATAL_ERROR "GEM::FatalError"
 #define GEM_LABEL_DEBUG "GEM::Debug"
-#define GEM_LABEL_LOG "GEM::Log"
 #define GEM_LABEL_WARNING "GEM::Warning"
 
 // Base-name of the sources
@@ -49,10 +48,6 @@ FILE* gem_error_get_stream(void);
 void gem_error_set_stream(FILE* const stream);
 FILE* gem_log_get_stream(void);
 void gem_log_set_stream(FILE* const stream);
-FILE* gem_info_get_stream(void);
-void gem_info_set_stream(FILE* const stream);
-FILE* gem_debug_get_stream(void);
-void gem_debug_set_stream(FILE* const stream);
 // Mute/Articulate ELD-streams
 void gem_mute_error_stream(void);
 void gem_articulate_error_stream(void);
@@ -75,9 +70,9 @@ bool gem_is_mute_log_stream(void);
         GEM_ERROR_BASENAME(__FILE__),__LINE__,__func__, ##args); \
       fflush(gem_stream); \
     }
-#define gem_report_error_msg_begin_block(gem_label,stream,gem_report_msg,args...) \
+#define gem_report_error_msg_begin_block(gem_label,gem_report_msg,args...) \
   do { \
-    FILE* const gem_stream=gem_##stream##_get_stream(); \
+    FILE* const gem_stream=gem_error_get_stream(); \
     if (!gem_is_mute_error_stream()) { \
       fprintf(gem_stream,gem_label" (%s:%d,%s)\n "gem_report_msg"\n", \
         GEM_ERROR_BASENAME(__FILE__),__LINE__,__func__, ##args); \

@@ -80,7 +80,7 @@ void align_swg_banded(
     const bool end_free,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Parameters
   const uint8_t* const key = align_input->key;
   const uint64_t key_length = align_input->key_length;
@@ -102,12 +102,12 @@ void align_swg_banded(
   }
   PROF_START(GP_SWG_ALIGN_BANDED);
   // Allocate memory
-  mm_stack_push_state(mm_stack); // Save stack state
+  mm_allocator_push_state(mm_allocator); // Save allocator state
   const uint64_t num_rows = (key_length+1);
   const uint64_t num_rows_1 = num_rows-1;
   const uint64_t num_columns = (text_length+1);
   PROF_ADD_COUNTER(GP_SWG_ALIGN_BANDED_CELLS,num_columns*max_bandwidth);
-  swg_cell_t** const dp = align_swg_allocate_table(num_columns+1,num_rows+1,mm_stack);
+  swg_cell_t** const dp = align_swg_allocate_table(num_columns+1,num_rows+1,mm_allocator);
   // Initialize DP-matrix
   const swg_matching_score_t* const matching_score = &swg_penalties->matching_score;
   const int32_t gap_extension = swg_penalties->gap_extension_score;
@@ -152,6 +152,6 @@ void align_swg_banded(
       align_input,dp,max_score,max_score_column,
       single_gap,begin_free,match_alignment,cigar_vector);
   // Clean-up
-  mm_stack_pop_state(mm_stack); // Free
+  mm_allocator_pop_state(mm_allocator); // Free
   PROF_STOP(GP_SWG_ALIGN_BANDED);
 }

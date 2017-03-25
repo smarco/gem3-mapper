@@ -26,8 +26,10 @@
 
 #include "utils/essentials.h"
 #include "search_pipeline/search_stage_region_profile.h"
-#include "search_pipeline/search_stage_decode_candidates.h"
-#include "search_pipeline/search_stage_verify_candidates.h"
+#include "search_pipeline/search_stage_decode.h"
+#include "search_pipeline/search_stage_kmer_filter.h"
+#include "search_pipeline/search_stage_bpm_distance.h"
+#include "search_pipeline/search_stage_bpm_align.h"
 #include "archive/search/archive_search.h"
 #include "archive/search/archive_search_cache.h"
 #include "mapper/mapper.h"
@@ -38,8 +40,10 @@
 typedef struct {
   /* Search-Stages buffer to verify candidates */
   search_stage_region_profile_t* stage_region_profile;
-  search_stage_decode_candidates_t* stage_decode_candidates;
-  search_stage_verify_candidates_t* stage_verify_candidates;
+  search_stage_decode_t* stage_decode;
+  search_stage_kmer_filter_t* stage_kmer_filter;
+  search_stage_bpm_distance_t* stage_bpm_distance;
+  search_stage_bpm_align_t* stage_bpm_align;
   /* Archive-search cache */
   archive_search_cache_t* archive_search_cache;
   /* Support Data Structures */
@@ -67,5 +71,8 @@ void search_pipeline_allocate_pe(
     search_pipeline_t* const search_pipeline,
     archive_search_t** const archive_search_end1,
     archive_search_t** const archive_search_end2);
+void search_pipeline_free(
+    search_pipeline_t* const search_pipeline,
+    archive_search_t* const archive_search_end);
 
 #endif /* SEARCH_PIPELINE_H_ */

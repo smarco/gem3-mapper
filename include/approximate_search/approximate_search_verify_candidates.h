@@ -28,7 +28,9 @@
 #define APPROXIMATE_SEARCH_VERIFY_CANDIDATES_H_
 
 #include "approximate_search/approximate_search.h"
-#include "gpu/gpu_buffer_align_bpm.h"
+#include "gpu/gpu_buffer_kmer_filter.h"
+#include "gpu/gpu_buffer_bpm_distance.h"
+#include "gpu/gpu_buffer_bpm_align.h"
 #include "matches/paired_matches.h"
 #include "mapper/mapper_stats.h"
 
@@ -51,14 +53,35 @@ uint64_t approximate_search_verify_extend_candidate(
     const sequence_end_t candidate_end);
 
 /*
- * Verify Candidates Buffered
+ * Kmer-filter Buffered
  */
-void approximate_search_verify_candidates_buffered_copy(
+void approximate_search_kmer_filter_buffered_copy(
     approximate_search_t* const search,
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
-void approximate_search_verify_candidates_buffered_retrieve(
+    gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter);
+void approximate_search_kmer_filter_buffered_retrieve(
     approximate_search_t* const search,
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
+    gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter);
+
+/*
+ * BPM-Distance Buffered
+ */
+void approximate_search_bpm_distance_buffered_copy(
+    approximate_search_t* const search,
+    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance);
+void approximate_search_bpm_distance_buffered_retrieve(
+    approximate_search_t* const search,
+    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
+    matches_t* const matches);
+
+/*
+ * BPM-Align Buffered
+ */
+void approximate_search_bpm_align_buffered_copy(
+    approximate_search_t* const search,
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
+void approximate_search_bpm_align_buffered_retrieve(
+    approximate_search_t* const search,
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
     matches_t* const matches);
 
 #endif /* APPROXIMATE_SEARCH_VERIFY_CANDIDATES_H_ */

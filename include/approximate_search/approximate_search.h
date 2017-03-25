@@ -89,12 +89,14 @@ typedef struct {
   filtering_candidates_buffered_t filtering_candidates_buffered; // Filtering Candidates Buffered
   /* GPU buffer(s) offsets */
   uint64_t gpu_buffer_fmi_search_offset;                         // FMI-Buffer search offset
-  uint64_t gpu_buffer_fmi_search_total;
   uint64_t gpu_buffer_fmi_decode_offset;                         // FMI-Buffer decode offset
-  uint64_t gpu_buffer_fmi_decode_total;
-  uint64_t gpu_buffer_align_offset;                              // FMI-Buffer align offset
+  uint64_t gpu_buffer_kmer_filter_offset;                        // FMI-Buffer kmer-filter offset
+  uint64_t gpu_buffer_bpm_distance_offset;                       // FMI-Buffer distance offset
+  uint64_t gpu_buffer_bpm_align_offset;                          // FMI-Buffer align offset
   /* Neighborhood Search Structures */
   nsearch_schedule_t* nsearch_schedule;                          // Nsearch Scheduler
+  /* MM */
+  mm_allocator_t* mm_allocator;
 } approximate_search_t;
 
 /*
@@ -103,19 +105,19 @@ typedef struct {
 void approximate_search_init(
     approximate_search_t* const search,
     archive_t* const archive,
-    search_parameters_t* const search_parameters);
-void approximate_search_reset(approximate_search_t* const search);
-
-void approximate_search_inject_handlers(
-    approximate_search_t* const search,
-    archive_t* const archive,
     search_parameters_t* const search_parameters,
     filtering_candidates_t* const filtering_candidates,
-    filtering_candidates_mm_t* const filtering_candidates_mm,
-    filtering_candidates_buffered_mm_t* const filtering_candidates_buffered_mm,
     nsearch_schedule_t* const nsearch_schedule,
-    mm_stack_t* const mm_region_profile,
-    mm_stack_t* const mm_nsearch);
+    mm_allocator_t* const mm_allocator);
+void approximate_search_destroy(approximate_search_t* const search);
+
+/*
+ * Prepare
+ */
+void approximate_search_prepare(
+    approximate_search_t* const search,
+    const bool run_length_pattern,
+    sequence_t* const sequence);
 
 /*
  * Accessors
@@ -126,7 +128,7 @@ void approximate_search_update_mcs(
 
 uint64_t approximate_search_get_num_regions_profile(const approximate_search_t* const search);
 uint64_t approximate_search_get_num_decode_candidates(const approximate_search_t* const search);
-uint64_t approximate_search_get_num_verify_candidates(const approximate_search_t* const search);
+uint64_t approximate_search_get_num_filtering_candidates(const approximate_search_t* const search);
 
 /*
  * Aproximate String Search

@@ -48,6 +48,6 @@ void match_align_swg(
     match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
     match_scaffold_t* const match_scaffold,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 
 #endif /* MATCH_ALIGN_SWG_H_ */

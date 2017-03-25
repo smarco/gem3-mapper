@@ -74,7 +74,7 @@ uint64_t nsearch_levenshtein_scheduled_operation_step_next(
     nsearch_query_t* const nsearch_query,
     const uint64_t align_distance) {
   //  // Debug
-  //  if (nsearch_operation_state_text_eq(nsearch_operation,"ACGGTAC",nsearch_schedule->mm_stack)) {
+  //  if (nsearch_operation_state_text_eq(nsearch_operation,"ACGGTAC",nsearch_schedule->mm_allocator)) {
   //    nsearch_operation_state_print(stderr,nsearch_operation,nsearch_schedule->key);
   //  }
   if (pending_searches==0) {
@@ -138,7 +138,7 @@ uint64_t nsearch_levenshtein_scheduled_operation_step_query(
     nsearch_levenshtein_state_compute_chararacter_banded(
         nsearch_state,forward_search,key_chunk,
         key_chunk_length,text_position,char_enc,max_error,
-        &min_val,&align_distance,nsearch_schedule->mm_stack);
+        &min_val,&align_distance,nsearch_schedule->mm_allocator);
     if (min_val > max_error) { // Check max-error constraints
       PROF_INC_COUNTER(GP_NS_NODES_DP_PREVENT);
       continue;
@@ -219,7 +219,7 @@ uint64_t nsearch_levenshtein_scheduled_search_next(
   const bool supercondensed = nsearch_operation_chained_prepare(
       current_nsearch_operation,next_nsearch_operation,
       nsearch_schedule->pattern->key,nsearch_schedule->pattern->key_length,
-      reverse_sequence,nsearch_schedule->mm_stack);
+      reverse_sequence,nsearch_schedule->mm_allocator);
   if (!supercondensed) return 0;
   // Keep searching
   return nsearch_levenshtein_scheduled_operation_step_query(nsearch_schedule,

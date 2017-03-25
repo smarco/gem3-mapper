@@ -114,7 +114,7 @@ void paired_matches_find_pairs(
     paired_matches_t* const paired_matches,
     search_parameters_t* const search_parameters,
     mapper_stats_t* const mapper_stats,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 void paired_matches_find_discordant_pairs(
     paired_matches_t* const paired_matches,
     search_parameters_t* const search_parameters);

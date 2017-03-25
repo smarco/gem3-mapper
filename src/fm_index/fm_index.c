@@ -50,24 +50,24 @@ void fm_index_write(
     bwt_builder_t** const bwt_builder_out,
     rank_mtable_t** const rank_mtable_out,
     const bool check,
-    const bool verbose) {
+    const bool verbose,
+    FILE* const info_file) {
   // Write Header
   const uint64_t text_length = dna_text_get_length(bwt_text);
   const uint64_t proper_length = gem_log2(text_length)/2;
   fm_write_uint64(file_manager,FM_INDEX_MODEL_NO);
   fm_write_uint64(file_manager,text_length);
   fm_write_uint64(file_manager,proper_length);
-  fm_write_uint64(file_manager,0ull); // TODO Remove with next index upgrade
   // Write Sampled-SA & Free Samples
   sampled_sa_builder_write(file_manager,sampled_sa);
-  if (verbose) sampled_sa_builder_print(gem_log_get_stream(),sampled_sa);
+  if (info_file) sampled_sa_builder_print(info_file,sampled_sa);
   sampled_sa_builder_delete_samples(sampled_sa); // Free Samples (Just the samples)
   // Generate BWT-Bitmap & rank_mtable
   bwt_builder_t* const bwt_builder = bwt_builder_new(bwt_text,character_occurrences,sampled_sa,verbose);
-  if (verbose) bwt_builder_print(gem_log_get_stream(),bwt_builder);
+  if (info_file) bwt_builder_print(info_file,bwt_builder);
   // Build mrank table
   rank_mtable_t* const rank_mtable = rank_mtable_builder_new(bwt_builder,verbose);
-  if (verbose) rank_mtable_print(gem_log_get_stream(),rank_mtable,false);
+  if (info_file) rank_mtable_print(info_file,rank_mtable,false);
   // Write mrank table
   rank_mtable_builder_write(file_manager,rank_mtable);
   // Write BWT
@@ -87,7 +87,6 @@ fm_index_t* fm_index_read_mem(mm_t* const memory_manager,const bool check) {
   gem_cond_error(fm_index_model_no!=FM_INDEX_MODEL_NO,FM_INDEX_WRONG_MODEL_NO,fm_index_model_no,(uint64_t)FM_INDEX_MODEL_NO);
   fm_index->text_length = mm_read_uint64(memory_manager);
   fm_index->proper_length = mm_read_uint64(memory_manager);
-  mm_read_uint64(memory_manager); // TODO Remove with next index upgrade
   // Load Sampled SA
   fm_index->sampled_sa = sampled_sa_read_mem(memory_manager);
   // Load rank_mtable

@@ -47,7 +47,6 @@ void region_profile_generate_optimum_variable(
     fm_index_t* const fm_index,
     const uint8_t* const key,
     const uint64_t key_length,
-    const bool* const allowed_enc,
     const uint64_t num_regions);
 
 #endif /* REGION_PROFILE_OPTIMUM_H_ */

@@ -54,7 +54,9 @@ void mapper_load_gpu_index(mapper_parameters_t* const parameters) {
   const uint64_t num_gpu_buffers_per_thread =
       cuda_parameters->num_fmi_bsearch_buffers +
       cuda_parameters->num_fmi_decode_buffers +
-      cuda_parameters->num_bpm_buffers;
+      cuda_parameters->num_kmer_filter_buffers +
+      cuda_parameters->num_bpm_distance_buffers +
+      cuda_parameters->num_bpm_align_buffers;
   const uint64_t num_gpu_buffers = num_gpu_buffers_per_thread * num_threads;
   // Prepare/Check index path
   char* const gpu_index_name = gem_strcat(parameters->io.index_file_name,".gpu");
@@ -115,14 +117,19 @@ void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,const bool pai
   const uint64_t num_gpu_buffers_per_thread =
       cuda_parameters->num_fmi_bsearch_buffers +
       cuda_parameters->num_fmi_decode_buffers +
-      cuda_parameters->num_bpm_buffers;
+      cuda_parameters->num_kmer_filter_buffers +
+      cuda_parameters->num_bpm_distance_buffers +
+      cuda_parameters->num_bpm_align_buffers;
   // Load GPU GEM-Index & Prepare Buffers
   mapper_load_gpu_index(mapper_parameters);
   // Load GEM-Index
   mapper_load_index(mapper_parameters);
   gem_cond_fatal_error_msg(
       mapper_parameters->archive->text->run_length,
-      "Archive.RL-Text not supported for CUDA (yet...)");
+      "Archive RL-Text not supported for CUDA (yet...)");
+  gem_cond_fatal_error_msg(
+      !mapper_parameters->archive->gpu_index,
+      "Archive was not built with CUDA support (please re-run gem-indexer for GPU)");
   // I/O (SAM headers)
   archive_t* const archive = mapper_parameters->archive;
   const bool bisulfite_index = (archive->type == archive_dna_bisulfite);

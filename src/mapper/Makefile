@@ -30,8 +30,7 @@ include $(ROOT_PATH)/Makefile.mk
 ###############################################################################
 # Modules
 ###############################################################################
-MODULES=mapper_bisulfite \
-        mapper \
+MODULES=mapper \
         mapper_cuda \
         mapper_cuda_pe \
         mapper_cuda_se \

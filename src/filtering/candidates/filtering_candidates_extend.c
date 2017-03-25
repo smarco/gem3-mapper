@@ -94,15 +94,19 @@ uint64_t filtering_candidates_extend_match(
       candidate_pattern->key_length,max_filtering_error,max_template_size,
       &candidate_begin_position,&candidate_end_position);
   const uint64_t candidate_length = candidate_end_position-candidate_begin_position;
-  const uint64_t text_trace_offset = archive_text_retrieve_collection(
-        archive_text,&filtering_candidates->text_collection,
-        candidate_begin_position,candidate_length,false,false);
+  text_trace_t text_trace;
+  archive_text_retrieve(
+      archive_text,candidate_begin_position,candidate_length,
+      false,false,&text_trace,filtering_candidates->mm_allocator);
   PROFILE_STOP(GP_FC_EXTEND_RETRIEVE_CANDIDATE_REGIONS,PROFILE_LEVEL);
   /*
    * Verify candidate region (may contain multiple matches)
    */
-  uint64_t candidates_found = filtering_region_verify_extension(
-      filtering_candidates,text_trace_offset,candidate_begin_position,candidate_pattern);
+  uint64_t candidates_found =
+      filtering_region_verify_extension(
+          filtering_candidates,&text_trace,
+          candidate_begin_position,candidate_pattern);
+  text_trace_destroy(&text_trace,filtering_candidates->mm_allocator); // Free
   if (candidates_found==0) { PROFILE_STOP(GP_FC_EXTEND_MATCH,PROFILE_LEVEL); return 0; }
   /*
    * Align accepted candidates

@@ -41,23 +41,9 @@ void region_profile_init(
     const uint64_t pattern_length) {
   // Set length & max-expected regions
   region_profile->pattern_length = pattern_length;
-  region_profile->max_expected_regions = MAX(REGION_PROFILE_MIN_REGIONS_ALLOCATED,DIV_CEIL(pattern_length,10));
+  region_profile->max_expected_regions =
+      MAX(REGION_PROFILE_MIN_REGIONS_ALLOCATED,DIV_CEIL(pattern_length,10));
   region_profile->filtering_region = NULL;
-}
-void region_profile_clear(
-    region_profile_t* const region_profile) {
-  region_profile->num_filtering_regions = 0;
-  region_profile->num_filtered_regions = 0;
-  region_profile->total_candidates = 0;
-  region_profile->candidates_limited = false;
-  region_profile->max_region_length = 0;
-  region_profile->avg_region_length = 0;
-  region_profile->kmer_frequency = 0.0;
-}
-void region_profile_inject_mm(
-    region_profile_t* const region_profile,
-    mm_stack_t* const mm_stack) {
-  region_profile->mm_stack = mm_stack;
 }
 void region_profile_model_init(
     region_profile_model_t* const region_profile_model) {
@@ -73,13 +59,39 @@ void region_profile_model_init(
   region_profile_model->max_steps = 4;
   region_profile_model->dec_factor = 1;
 }
+void region_profile_clear(
+    region_profile_t* const region_profile) {
+  region_profile->num_filtering_regions = 0;
+  region_profile->num_filtered_regions = 0;
+  region_profile->total_candidates = 0;
+  region_profile->candidates_limited = false;
+  region_profile->max_region_length = 0;
+  region_profile->avg_region_length = 0;
+  region_profile->kmer_frequency = 0.0;
+}
+void region_profile_inject_mm(
+    region_profile_t* const region_profile,
+    mm_allocator_t* const mm_allocator) {
+  region_profile->mm_allocator = mm_allocator;
+}
+void region_profile_destroy(
+    region_profile_t* const region_profile) {
+  if (region_profile->filtering_region != NULL) {
+    mm_allocator_free(region_profile->mm_allocator,region_profile->filtering_region);
+  }
+}
 /*
  * Allocator
  */
 void region_profile_allocate_regions(
     region_profile_t* const region_profile,
     const uint64_t num_regions) {
-  region_profile->filtering_region = mm_stack_calloc(region_profile->mm_stack,num_regions,region_search_t,false);
+  if (num_regions > 0) {
+    region_profile->filtering_region =
+        mm_allocator_calloc(region_profile->mm_allocator,num_regions,region_search_t,false);
+  } else {
+    region_profile->filtering_region = NULL;
+  }
 }
 /*
  * Accessors
@@ -175,8 +187,7 @@ void region_profile_query_regions(
 void region_profile_extend_last_region(
     region_profile_t* const region_profile,
     fm_index_t* const fm_index,
-    const uint8_t* const key,
-    const bool* const allowed_enc) {
+    const uint8_t* const key) {
   // Tries to extend the last region of the profile to the end of the key (position 0)
   // Merge the tail with the last region
   region_search_t* const last_region = region_profile->filtering_region + (region_profile->num_filtering_regions-1);
@@ -186,7 +197,7 @@ void region_profile_extend_last_region(
       if (last_region->hi==last_region->lo) break;
       // Query step
       const uint8_t enc_char = key[last_region->begin-1];
-      if (!allowed_enc[enc_char]) break;
+      if (enc_char == ENC_DNA_CHAR_N) break;
       last_region->lo=bwt_erank(fm_index->bwt,enc_char,last_region->lo);
       last_region->hi=bwt_erank(fm_index->bwt,enc_char,last_region->hi);
       --last_region->begin;
@@ -213,10 +224,9 @@ void region_profile_fill_gaps(
     region_profile_t* const region_profile,
     const uint8_t* const key,
     const uint64_t key_length,
-    const bool* const allowed_enc,
     const uint64_t num_wildcards) {
   // Parameters
-  mm_stack_t* const mm_stack = region_profile->mm_stack;
+  mm_allocator_t* const mm_allocator = region_profile->mm_allocator;
   // Sort regions by position
   region_profile_sort_by_position(region_profile);
   // Current filtering-regions
@@ -225,7 +235,7 @@ void region_profile_fill_gaps(
   // Allocate new filtering-regions
   const uint64_t max_regions = 2*(num_wildcards+regions_left)+1;
   region_search_t* const filtering_region_filled =
-      mm_stack_calloc(mm_stack,MIN(key_length,max_regions),region_search_t,false);
+      mm_allocator_calloc(mm_allocator,MIN(key_length,max_regions),region_search_t,false);
   uint64_t num_filtering_regions_filled = 0;
   // Fill gaps
   uint64_t begin = 0, end = 0;
@@ -351,16 +361,15 @@ void region_profile_compute_kmer_frequency(
     region_profile_t* const region_profile,
     fm_index_t* const fm_index,
     const uint8_t* const key,
-    const uint64_t key_length,
-    const bool* const allowed_enc) {
+    const uint64_t key_length) {
   // Parameters
-  mm_stack_t* const mm_stack = region_profile->mm_stack;
+  mm_allocator_t* const mm_allocator = region_profile->mm_allocator;
   // Push
-  mm_stack_push_state(mm_stack);
+  mm_allocator_push_state(mm_allocator);
   // Init mquery
   rank_mtable_t* const rank_mtable = fm_index->rank_table;
   const uint64_t max_samples = DIV_CEIL(key_length,RANK_MTABLE_SEARCH_DEPTH);
-  rank_mquery_t* const rank_mquery = mm_stack_calloc(mm_stack,max_samples,rank_mquery_t,false);
+  rank_mquery_t* const rank_mquery = mm_allocator_calloc(mm_allocator,max_samples,rank_mquery_t,false);
   // Traverse the read & compute the frequency of contiguous kmers
   int64_t i, samples = 0;
   rank_mquery_t* current_rank_mquery = rank_mquery;
@@ -368,7 +377,7 @@ void region_profile_compute_kmer_frequency(
   for (i=key_length-1;i>=0;--i) {
     // Fetch character
     const uint8_t enc_char = key[i];
-    if (!allowed_enc[enc_char]) {
+    if (enc_char == ENC_DNA_CHAR_N) {
       rank_mquery_new(current_rank_mquery); // Reset
       continue;
     }
@@ -392,7 +401,7 @@ void region_profile_compute_kmer_frequency(
   }
   region_profile->kmer_frequency = (double)( frequency/((float)samples*gem_loge(4)) );
   // Free
-  mm_stack_pop_state(mm_stack);
+  mm_allocator_pop_state(mm_allocator);
 }
 /*
  * Cmp

@@ -68,42 +68,56 @@ const char* asearch_stage_label[] =
 void approximate_search_init(
     approximate_search_t* const search,
     archive_t* const archive,
-    search_parameters_t* const search_parameters) {
-  // Index Structures & Parameters
+    search_parameters_t* const search_parameters,
+    filtering_candidates_t* const filtering_candidates,
+    nsearch_schedule_t* const nsearch_schedule,
+    mm_allocator_t* const mm_allocator) {
+  // Archive & Search Parameters
   search->archive = archive;
   search->search_parameters = search_parameters;
+  // Filtering Candidates
+  search->filtering_candidates = filtering_candidates;
+  if (filtering_candidates!=NULL) {
+    filtering_candidates_inject_handlers(
+        filtering_candidates,archive,search_parameters,mm_allocator);
+  }
+  // Filtering Candidates Buffered
+  filtering_candidates_buffered_inject_handlers(
+      &search->filtering_candidates_buffered,mm_allocator);
+  // Region Profile
+  region_profile_inject_mm(&search->region_profile,mm_allocator);
+  // Nsearch
+  search->nsearch_schedule = nsearch_schedule;
+  nsearch_schedule_inject_mm(search->nsearch_schedule,mm_allocator);
+  // MM
+  search->mm_allocator = mm_allocator;
 }
-void approximate_search_reset(approximate_search_t* const search) {
+void approximate_search_destroy(approximate_search_t* const search) {
+  // Pattern
+  pattern_destroy(&search->pattern,search->mm_allocator);
+  // Region Profile
+  region_profile_destroy(&search->region_profile);
+}
+/*
+ * Prepare
+ */
+void approximate_search_prepare(
+    approximate_search_t* const search,
+    const bool run_length_pattern,
+    sequence_t* const sequence) {
+  // Pattern
+  pattern_init(
+      &search->pattern,sequence,&search->do_quality_search,
+      search->search_parameters,run_length_pattern,search->mm_allocator);
+  // Region profile
+  const uint64_t key_length = search->pattern.key_length;
+  region_profile_init(&search->region_profile,key_length);
   // Reset Approximate Search State
   search->search_stage = asearch_stage_begin;
   search->processing_state = asearch_processing_state_begin;
   const uint64_t max_complete_error = search->search_parameters->complete_search_error_nominal;
   search->current_max_complete_error = MIN(max_complete_error,search->pattern.max_effective_filtering_error);
   search->current_max_complete_stratum = 0;
-  // Prepare region profile
-  const uint64_t key_length = search->pattern.key_length;
-  region_profile_init(&search->region_profile,key_length);
-}
-void approximate_search_inject_handlers(
-    approximate_search_t* const search,
-    archive_t* const archive,
-    search_parameters_t* const search_parameters,
-    filtering_candidates_t* const filtering_candidates,
-    filtering_candidates_mm_t* const filtering_candidates_mm,
-    filtering_candidates_buffered_mm_t* const filtering_candidates_buffered_mm,
-    nsearch_schedule_t* const nsearch_schedule,
-    mm_stack_t* const mm_region_profile,
-    mm_stack_t* const mm_nsearch) {
-  // Filtering Candidates
-  search->filtering_candidates = filtering_candidates;
-  filtering_candidates_inject_handlers(
-      filtering_candidates,archive,search_parameters,
-      filtering_candidates_mm,filtering_candidates_buffered_mm);
-  // Region Profile
-  region_profile_inject_mm(&search->region_profile,mm_region_profile);
-  // Nsearch
-  search->nsearch_schedule = nsearch_schedule;
-  nsearch_schedule_inject_mm(search->nsearch_schedule,mm_nsearch);
 }
 /*
  * Accessors
@@ -121,7 +135,7 @@ uint64_t approximate_search_get_num_decode_candidates(const approximate_search_t
   const region_profile_t* const region_profile = &search->region_profile;
   return region_profile->total_candidates;
 }
-uint64_t approximate_search_get_num_verify_candidates(const approximate_search_t* const search) {
+uint64_t approximate_search_get_num_filtering_candidates(const approximate_search_t* const search) {
   return filtering_candidates_get_num_regions(search->filtering_candidates);
 }
 /*

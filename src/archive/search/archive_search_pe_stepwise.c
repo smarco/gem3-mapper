@@ -58,7 +58,7 @@ void archive_search_pe_stepwise_debug_preface(
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_PE_STEPWISE) {
     tab_fprintf(stderr,
         "[GEM]>ArchiveSearch.STEPWISE.PE :: %s (Tag=%s)\n",
-        label,archive_search->sequence.tag.buffer);
+        label,archive_search->input_sequence->tag.buffer);
     tab_global_inc();
   }
 }
@@ -76,9 +76,9 @@ void archive_search_pe_stepwise_init_search(
   // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_PE_STEPWISE) {
     tab_fprintf(stderr,"[GEM]>ArchiveSearch.STEPWISE.PE :: Region.Profile.Generate\n");
-    tab_fprintf(gem_log_get_stream(),"  => Tag %s\n",archive_search_end1->sequence.tag.buffer);
-    tab_fprintf(gem_log_get_stream(),"  => Sequence.End1 %s\n",archive_search_end1->sequence.read.buffer);
-    tab_fprintf(gem_log_get_stream(),"  => Sequence.End2 %s\n",archive_search_end2->sequence.read.buffer);
+    tab_fprintf(gem_log_get_stream(),"  => Tag %s\n",archive_search_end1->input_sequence->tag.buffer);
+    tab_fprintf(gem_log_get_stream(),"  => Sequence.End1 %s\n",archive_search_end1->input_sequence->read.buffer);
+    tab_fprintf(gem_log_get_stream(),"  => Sequence.End2 %s\n",archive_search_end2->input_sequence->read.buffer);
   }
   // Init
   archive_search_end1->pair_searched = false;
@@ -86,8 +86,6 @@ void archive_search_pe_stepwise_init_search(
   archive_search_end1->pair_extended_shortcut = false;
   archive_search_end2->pair_searched = false;
   archive_search_end2->pair_extended = false;
-  archive_search_reset(archive_search_end1);
-  archive_search_reset(archive_search_end2);
   PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_INIT,PROFILE_LEVEL);
 }
 /*
@@ -186,75 +184,145 @@ void archive_search_pe_stepwise_region_profile_adaptive_retrieve(
 /*
  * Stepwise: Decode-Candidates
  */
-void archive_search_pe_stepwise_decode_candidates_copy(
+void archive_search_pe_stepwise_decode_copy(
     archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2,
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
-  PROFILE_START(GP_ARCHIVE_SEARCH_PE_DECODE_CANDIDATES_COPY,PROFILE_LEVEL);
+  PROFILE_START(GP_ARCHIVE_SEARCH_PE_DECODE_COPY,PROFILE_LEVEL);
   // DEBUG
   archive_search_pe_stepwise_debug_preface(archive_search_end1,"Decode.Candidates.Copy");
   // Decode-Candidates Copy
-  approximate_search_stepwise_decode_candidates_copy(
+  approximate_search_stepwise_decode_copy(
       &archive_search_end1->approximate_search,gpu_buffer_fmi_decode);
-  approximate_search_stepwise_decode_candidates_copy(
+  approximate_search_stepwise_decode_copy(
       &archive_search_end2->approximate_search,gpu_buffer_fmi_decode);
   // DEBUG
   archive_search_pe_stepwise_debug_epilogue();
-  PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_DECODE_CANDIDATES_COPY,PROFILE_LEVEL);
+  PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_DECODE_COPY,PROFILE_LEVEL);
 }
-void archive_search_pe_stepwise_decode_candidates_retrieve(
+void archive_search_pe_stepwise_decode_retrieve(
     archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2,
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
-  PROFILE_START(GP_ARCHIVE_SEARCH_PE_DECODE_CANDIDATES_RETRIEVE,PROFILE_LEVEL);
+  PROFILE_START(GP_ARCHIVE_SEARCH_PE_DECODE_RETRIEVE,PROFILE_LEVEL);
   // DEBUG
   archive_search_pe_stepwise_debug_preface(archive_search_end1,"Decode.Candidates.Retrieve");
   // Decode-Candidates Retrieve
-  approximate_search_stepwise_decode_candidates_retrieve(
+  approximate_search_stepwise_decode_retrieve(
       &archive_search_end1->approximate_search,gpu_buffer_fmi_decode);
-  approximate_search_stepwise_decode_candidates_retrieve(
+  approximate_search_stepwise_decode_retrieve(
       &archive_search_end2->approximate_search,gpu_buffer_fmi_decode);
   // DEBUG
   archive_search_pe_stepwise_debug_epilogue();
-  PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_DECODE_CANDIDATES_RETRIEVE,PROFILE_LEVEL);
+  PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_DECODE_RETRIEVE,PROFILE_LEVEL);
 }
 /*
- * Stepwise: Verify-Candidates
+ * Stepwise: Kmer-filter
  */
-void archive_search_pe_stepwise_verify_candidates_copy(
+void archive_search_pe_stepwise_kmer_filter_copy(
     archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2,
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
-  PROFILE_START(GP_ARCHIVE_SEARCH_PE_VERIFY_CANDIDATES_COPY,PROFILE_LEVEL);
+    gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter) {
+  PROFILE_START(GP_ARCHIVE_SEARCH_PE_KMER_FILTER_COPY,PROFILE_LEVEL);
   // DEBUG
-  archive_search_pe_stepwise_debug_preface(archive_search_end1,"Verify.Candidates.Copy");
+  archive_search_pe_stepwise_debug_preface(archive_search_end1,"Kmer.Filter.Copy");
+  // Kmer-filter Copy
+  approximate_search_stepwise_kmer_filter_copy(
+      &archive_search_end1->approximate_search,gpu_buffer_kmer_filter);
+  approximate_search_stepwise_kmer_filter_copy(
+      &archive_search_end2->approximate_search,gpu_buffer_kmer_filter);
+  // DEBUG
+  archive_search_pe_stepwise_debug_epilogue();
+  PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_KMER_FILTER_COPY,PROFILE_LEVEL);
+}
+void archive_search_pe_stepwise_kmer_filter_retrieve(
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2,
+    gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter) {
+  PROFILE_START(GP_ARCHIVE_SEARCH_PE_KMER_FILTER_RETRIEVE,PROFILE_LEVEL);
+  // DEBUG
+  archive_search_pe_stepwise_debug_preface(archive_search_end1,"Kmer.Filter.Retrieve");
+  // Kmer-filter Retrieve
+  approximate_search_stepwise_kmer_filter_retrieve(
+      &archive_search_end1->approximate_search,gpu_buffer_kmer_filter);
+  approximate_search_stepwise_kmer_filter_retrieve(
+      &archive_search_end2->approximate_search,gpu_buffer_kmer_filter);
+  // DEBUG
+  archive_search_pe_stepwise_debug_epilogue();
+  PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_KMER_FILTER_RETRIEVE,PROFILE_LEVEL);
+}
+/*
+ * Stepwise: BPM-Distance
+ */
+void archive_search_pe_stepwise_bpm_distance_copy(
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2,
+    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance) {
+  PROFILE_START(GP_ARCHIVE_SEARCH_PE_BPM_DISTANCE_COPY,PROFILE_LEVEL);
+  // DEBUG
+  archive_search_pe_stepwise_debug_preface(archive_search_end1,"BPM.Distance.Copy");
   // Verify-Candidates Copy
-  approximate_search_stepwise_verify_candidates_copy(
-      &archive_search_end1->approximate_search,gpu_buffer_align_bpm);
-  approximate_search_stepwise_verify_candidates_copy(
-      &archive_search_end2->approximate_search,gpu_buffer_align_bpm);
+  approximate_search_stepwise_bpm_distance_copy(
+      &archive_search_end1->approximate_search,gpu_buffer_bpm_distance);
+  approximate_search_stepwise_bpm_distance_copy(
+      &archive_search_end2->approximate_search,gpu_buffer_bpm_distance);
   // DEBUG
   archive_search_pe_stepwise_debug_epilogue();
-  PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_VERIFY_CANDIDATES_COPY,PROFILE_LEVEL);
+  PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_BPM_DISTANCE_COPY,PROFILE_LEVEL);
 }
-void archive_search_pe_stepwise_verify_candidates_retrieve(
+void archive_search_pe_stepwise_bpm_distance_retrieve(
     archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2,
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
+    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
     matches_t* const matches) {
-  PROFILE_START(GP_ARCHIVE_SEARCH_PE_VERIFY_CANDIDATES_RETRIEVE,PROFILE_LEVEL);
+  PROFILE_START(GP_ARCHIVE_SEARCH_PE_BPM_DISTANCE_RETRIEVE,PROFILE_LEVEL);
   // DEBUG
-  archive_search_pe_stepwise_debug_preface(archive_search_end1,"Verify.Candidates.Retrieve");
+  archive_search_pe_stepwise_debug_preface(archive_search_end1,"BPM.Distance.Retrieve");
   // Verify-Candidates Retrieve
-  approximate_search_stepwise_verify_candidates_retrieve(
-      &archive_search_end1->approximate_search,gpu_buffer_align_bpm,matches);
-  approximate_search_stepwise_verify_candidates_retrieve(
-      &archive_search_end2->approximate_search,gpu_buffer_align_bpm,matches);
+  approximate_search_stepwise_bpm_distance_retrieve(
+      &archive_search_end1->approximate_search,gpu_buffer_bpm_distance,matches);
+  approximate_search_stepwise_bpm_distance_retrieve(
+      &archive_search_end2->approximate_search,gpu_buffer_bpm_distance,matches);
   // DEBUG
   archive_search_pe_stepwise_debug_epilogue();
-  PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_VERIFY_CANDIDATES_RETRIEVE,PROFILE_LEVEL);
+  PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_BPM_DISTANCE_RETRIEVE,PROFILE_LEVEL);
 }
-
+/*
+ * Stepwise: BPM-Align
+ */
+void archive_search_pe_stepwise_bpm_align_copy(
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2,
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
+  PROFILE_START(GP_ARCHIVE_SEARCH_PE_BPM_ALIGN_COPY,PROFILE_LEVEL);
+  // DEBUG
+  archive_search_pe_stepwise_debug_preface(archive_search_end1,"BPM.Align.Copy");
+  // Verify-Candidates Copy
+  approximate_search_stepwise_bpm_align_copy(
+      &archive_search_end1->approximate_search,gpu_buffer_bpm_align);
+  approximate_search_stepwise_bpm_align_copy(
+      &archive_search_end2->approximate_search,gpu_buffer_bpm_align);
+  // DEBUG
+  archive_search_pe_stepwise_debug_epilogue();
+  PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_BPM_ALIGN_COPY,PROFILE_LEVEL);
+}
+void archive_search_pe_stepwise_bpm_align_retrieve(
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2,
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
+    matches_t* const matches) {
+  PROFILE_START(GP_ARCHIVE_SEARCH_PE_BPM_ALIGN_RETRIEVE,PROFILE_LEVEL);
+  // DEBUG
+  archive_search_pe_stepwise_debug_preface(archive_search_end1,"BPM.Align.Retrieve");
+  // Verify-Candidates Retrieve
+  approximate_search_stepwise_bpm_align_retrieve(
+      &archive_search_end1->approximate_search,gpu_buffer_bpm_align,matches);
+  approximate_search_stepwise_bpm_align_retrieve(
+      &archive_search_end2->approximate_search,gpu_buffer_bpm_align,matches);
+  // DEBUG
+  archive_search_pe_stepwise_debug_epilogue();
+  PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_BPM_ALIGN_RETRIEVE,PROFILE_LEVEL);
+}
 /*
  * Stepwise: Finish Search
  */
@@ -279,9 +347,9 @@ void archive_search_pe_stepwise_finish_search(
   if (search_parameters->check_type!=archive_check_nothing) {
     archive_check_pe_matches(
         archive_search_end1->archive,search_parameters->match_alignment_model,
-        &search_parameters->swg_penalties,&archive_search_end1->sequence,
-        &archive_search_end2->sequence,paired_matches,
-        search_parameters->check_type,archive_search_end1->mm_stack);
+        &search_parameters->swg_penalties,archive_search_end1->input_sequence,
+        archive_search_end2->input_sequence,paired_matches,
+        search_parameters->check_type,archive_search_end1->mm_allocator);
   }
   // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_PE_STEPWISE) {

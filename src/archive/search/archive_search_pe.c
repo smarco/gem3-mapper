@@ -86,9 +86,9 @@ void archive_search_pe(
     paired_matches_t* const paired_matches) {
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_PE) {
     tab_fprintf(stderr,"[GEM]>ArchiveSearch.PE\n");
-    tab_fprintf(gem_log_get_stream(),"  => Tag %s\n",archive_search_end1->sequence.tag.buffer);
-    tab_fprintf(gem_log_get_stream(),"  => Sequence/1 %s\n",archive_search_end1->sequence.read.buffer);
-    tab_fprintf(gem_log_get_stream(),"  => Sequence/2 %s\n",archive_search_end2->sequence.read.buffer);
+    tab_fprintf(gem_log_get_stream(),"  => Tag %s\n",archive_search_end1->input_sequence->tag.buffer);
+    tab_fprintf(gem_log_get_stream(),"  => Sequence/1 %s\n",archive_search_end1->input_sequence->read.buffer);
+    tab_fprintf(gem_log_get_stream(),"  => Sequence/2 %s\n",archive_search_end2->input_sequence->read.buffer);
     tab_global_inc();
   }
   // Parameters
@@ -103,9 +103,9 @@ void archive_search_pe(
   if (search_parameters->check_type!=archive_check_nothing) {
     archive_check_pe_matches(
         archive_search_end1->archive,search_parameters->match_alignment_model,
-        &search_parameters->swg_penalties,&archive_search_end1->sequence,
-        &archive_search_end2->sequence,paired_matches,
-        search_parameters->check_type,archive_search_end1->mm_stack);
+        &search_parameters->swg_penalties,archive_search_end1->input_sequence,
+        archive_search_end2->input_sequence,paired_matches,
+        search_parameters->check_type,archive_search_end1->mm_allocator);
   }
   // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_PE) {
@@ -126,9 +126,9 @@ void archive_search_pe_print(
   tab_fprintf(stream,"[GEM]>ArchiveSearch.PE\n");
   tab_global_inc();
   tab_fprintf(stream,"=> PE.Input\n");
-  tab_fprintf(stream,"=>   Tag %s\n",archive_search_end1->sequence.tag.buffer);
-  tab_fprintf(stream,"=>   Sequence/1 %s\n",archive_search_end1->sequence.read.buffer);
-  tab_fprintf(stream,"=>   Sequence/2 %s\n",archive_search_end2->sequence.read.buffer);
+  tab_fprintf(stream,"=>   Tag %s\n",archive_search_end1->input_sequence->tag.buffer);
+  tab_fprintf(stream,"=>   Sequence/1 %s\n",archive_search_end1->input_sequence->read.buffer);
+  tab_fprintf(stream,"=>   Sequence/2 %s\n",archive_search_end2->input_sequence->read.buffer);
   tab_fprintf(stream,"=>   Search.State %s\n",archive_search_pe_state_label[archive_search_end1->pe_search_state]);
   tab_fprintf(stream,"=> ASM.Parameters\n");
   tab_global_inc();

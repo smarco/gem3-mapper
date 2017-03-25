@@ -27,6 +27,7 @@
 #include "neighborhood_search/nsearch_schedule.h"
 #include "neighborhood_search/nsearch_filtering.h"
 #include "fm_index/fm_index_query.h"
+#include "filtering/candidates/filtering_candidates_accessors.h"
 
 /*
  * Query

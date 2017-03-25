@@ -29,60 +29,51 @@
 
 #include "utils/essentials.h"
 #include "filtering/candidates/filtering_candidates.h"
-#include "filtering/candidates/filtering_candidates_mm.h"
 #include "matches/align/match_alignment.h"
-
-/*
- * Filtering position/region buffered
- */
-typedef struct {
-  // Source Region
-  uint64_t source_region_begin;        // Source-region Begin
-  uint64_t source_region_end;          // Source-region End
-} filtering_position_buffered_t;
-typedef struct {
-  /* Source Region Offset */
-  uint32_t text_source_region_offset;          // Text-Offset to the begin of the source-region
-  uint32_t key_source_region_offset;           // Key-Offset to the begin of the source-region
-  /* Text */
-  uint64_t text_begin_position;                // Region effective begin position (adjusted to error boundaries)
-  uint64_t text_end_position;                  // Region effective end position (adjusted to error boundaries)
-  /* Alignment */
-  alignment_t alignment;                       // Alignment
-  match_alignment_region_t* alignment_regions; // Match alignment-regions
-  uint64_t num_alignment_regions;
-  uint64_t scaffold_coverage;
-} filtering_region_buffered_t;
 
 /*
  * Filtering Candidates Buffered
  */
 typedef struct {
-  // Filtering Positions
-  filtering_position_buffered_t* positions_buffered;
+  /* Filtering Positions */
+  filtering_position_t** positions;
   uint64_t num_positions;
-  // Filtering Regions
-  filtering_region_buffered_t* regions_buffered;
+  /* Filtering Regions */
+  filtering_region_t** regions;
   uint64_t num_regions;
+  /* Discarded Regions */
+  filtering_region_t** discarded_regions;
+  uint64_t num_discarded_regions;
+  /* MM */
+  mm_allocator_t* mm_allocator;
 } filtering_candidates_buffered_t;
 
 /*
  * Setup
  */
-void filtering_candidates_buffered_clear(
-    filtering_candidates_buffered_t* const filtering_candidates_buffered);
+void filtering_candidates_buffered_inject_handlers(
+    filtering_candidates_buffered_t* const filtering_candidates_buffered,
+    mm_allocator_t* const mm_allocator);
 
 /*
  * Allocators
  */
 void filtering_candidates_buffered_allocate_positions(
-    filtering_candidates_t* const filtering_candidates,
     filtering_candidates_buffered_t* const filtering_candidates_buffered,
     const uint64_t num_filtering_positions);
+void filtering_candidates_buffered_free_positions(
+    filtering_candidates_buffered_t* const filtering_candidates_buffered);
+
 void filtering_candidates_buffered_allocate_regions(
-    filtering_candidates_t* const filtering_candidates,
     filtering_candidates_buffered_t* const filtering_candidates_buffered,
     const uint64_t num_filtering_regions);
+void filtering_candidates_buffered_free_regions(
+    filtering_candidates_buffered_t* const filtering_candidates_buffered);
 
+void filtering_candidates_buffered_allocate_discarded_regions(
+    filtering_candidates_buffered_t* const filtering_candidates_buffered,
+    const uint64_t num_discarded_regions);
+void filtering_candidates_buffered_free_discarded_regions(
+    filtering_candidates_buffered_t* const filtering_candidates_buffered);
 
 #endif /* FILTERING_CANDIDATES_BUFFERED_H_ */

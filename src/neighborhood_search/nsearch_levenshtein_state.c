@@ -30,18 +30,18 @@ void nsearch_levenshtein_state_init(
     nsearch_levenshtein_state_t* const nsearch_levenshtein_state,
     const uint64_t num_rows,
     const uint64_t num_columns,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Init dp_matrix
   dp_matrix_t* const dp_matrix = &nsearch_levenshtein_state->dp_matrix;
   dp_matrix->num_rows = num_rows;
   dp_matrix->num_columns = num_columns;
   // Allocate columns
-  dp_column_t* const columns = mm_stack_calloc(mm_stack,num_columns,dp_column_t,false);
+  dp_column_t* const columns = mm_allocator_calloc(mm_allocator,num_columns,dp_column_t,false);
   dp_matrix->columns = columns;
   // Allocate columns' cells (+1 due to the banded sentinels containing inf)
   const uint64_t column_length = num_rows+1;
   uint64_t i;
-  dp_matrix->columns[0].cells = mm_stack_calloc(mm_stack,column_length,uint32_t,false);
+  dp_matrix->columns[0].cells = mm_allocator_calloc(mm_allocator,column_length,uint32_t,false);
   for (i=1;i<num_columns;++i) {
     dp_matrix->columns[i].cells = NULL; // lazy allocation
   }
@@ -144,14 +144,14 @@ void nsearch_levenshtein_state_compute_chararacter(
     const uint64_t max_error,
     uint64_t* const min_val,
     uint64_t* const align_distance,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Parameters
   dp_matrix_t* const dp_matrix = &nsearch_state->dp_matrix;
   // Index column (current_column=text_offset offset by 1)
   dp_column_t* const base_column = dp_matrix->columns + text_position;
   dp_column_t* const next_column = base_column + 1;
   if (next_column->cells == NULL) { // Init (if needed)
-    next_column->cells = mm_stack_calloc(mm_stack,dp_matrix->num_rows+1,uint32_t,false);
+    next_column->cells = mm_allocator_calloc(mm_allocator,dp_matrix->num_rows+1,uint32_t,false);
     nsearch_levenshtein_state_prepare_column(next_column,
         text_position+1,nsearch_state->supercondensed);
   }
@@ -189,14 +189,14 @@ void nsearch_levenshtein_state_compute_text_banded(
     const uint64_t max_error,
     uint64_t* const min_align_distance,
     uint64_t* const min_align_distance_column,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   uint64_t i, align_distance, dummy;
   *min_align_distance = NS_DISTANCE_INF;
   for (i=0;i<text_length;++i) {
     const uint8_t text_char_enc = text[i];
     nsearch_levenshtein_state_compute_chararacter_banded(
         nsearch_state,forward_search,key,key_length,i,
-        text_char_enc,max_error,&dummy,&align_distance,mm_stack);
+        text_char_enc,max_error,&dummy,&align_distance,mm_allocator);
     if (align_distance < *min_align_distance) {
       *min_align_distance = align_distance;
       *min_align_distance_column = i+1;
@@ -213,13 +213,13 @@ void nsearch_levenshtein_state_compute_chararacter_banded(
     const uint64_t max_error,
     uint64_t* const min_val,
     uint64_t* const align_distance,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Index column (current_column=text_offset offset by 1)
   dp_matrix_t* const dp_matrix = &nsearch_state->dp_matrix;
   dp_column_t* const base_column = dp_matrix->columns + text_position;
   dp_column_t* next_column = base_column + 1;
   if (next_column->cells == NULL) { // Init (if needed)
-    next_column->cells = mm_stack_calloc(mm_stack,dp_matrix->num_rows+1,uint32_t,false);
+    next_column->cells = mm_allocator_calloc(mm_allocator,dp_matrix->num_rows+1,uint32_t,false);
     nsearch_levenshtein_state_prepare_column(next_column,
         text_position+1,nsearch_state->supercondensed);
   }

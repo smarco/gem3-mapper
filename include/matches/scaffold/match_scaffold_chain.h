@@ -35,8 +35,6 @@
 void match_scaffold_chain(
     match_scaffold_t* const match_scaffold,
     match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
-    const bool exact_extend,
-    mm_stack_t* const mm_stack);
+    const bool exact_extend);
 
 #endif /* MATCH_SCAFFOLD_CHAIN_H_ */

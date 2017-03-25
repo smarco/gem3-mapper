@@ -21,8 +21,8 @@
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  */
 
+#include <text/text_trace.h>
 #include "text/dna_text.h"
-#include "text/text_collection.h"
 #include "utils/essentials.h"
 #include "utils/options_menu.h"
 #include "utils/string_buffer.h"
@@ -74,8 +74,7 @@ typedef struct {
   /* Archive */
   archive_t* archive;
   /* Misc */
-  text_collection_t text_collection;
-  mm_stack_t* mm_stack;
+  mm_allocator_t* mm_allocator;
 } retriever_data_t;
 // Defaults
 void retriever_parameters_set_defaults(retriever_parameters_t* const parameters) {
@@ -251,11 +250,12 @@ void retriever_query_location(
   }
   const uint64_t text_length = index_end_position-index_begin_position;
   // Retrieve the sequence
-  const uint64_t text_trace_offset = archive_text_retrieve_collection(
-      retriever_data->archive->text,&retriever_data->text_collection,
-      index_begin_position,text_length,retriever_query->strand==Reverse,false);
-  const text_trace_t* const text_trace = text_collection_get_trace(&retriever_data->text_collection,text_trace_offset);
-  const uint8_t* const text = text_trace->text; // Candidate
+  text_trace_t text_trace;
+  archive_text_retrieve(
+      retriever_data->archive->text,index_begin_position,
+      text_length,retriever_query->strand==Reverse,false,
+      &text_trace,retriever_data->mm_allocator);
+  const uint8_t* const text = text_trace.text; // Candidate
   // Output the sequence
   uint64_t i;
   for (i=0;i<text_length;++i) {
@@ -283,9 +283,8 @@ int main(int argc,char** argv) {
   gem_cond_log(parameters->verbose,"... done");
 
   // Allocate
-  mm_slab_t* const mm_slab = mm_slab_new_(BUFFER_SIZE_64M,BUFFER_SIZE_512M,MM_UNLIMITED_MEM,"");
-  retriever_data.mm_stack = mm_stack_new(mm_slab);
-  text_collection_init(&retriever_data.text_collection);
+  mm_slab_t* const mm_slab = mm_slab_new_(BUFFER_SIZE_64M,BUFFER_SIZE_512M,MM_UNLIMITED_MEM);
+  retriever_data.mm_allocator = mm_allocator_new(mm_slab);
 
   // Read all retriever queries
   retriever_query_t retriever_query;
@@ -300,12 +299,12 @@ int main(int argc,char** argv) {
       // Query & output
       retriever_query_location(&retriever_data,&retriever_query);
     }
+    mm_allocator_clear(retriever_data.mm_allocator);
   }
 
   // Clean-up
   if (input_buffer!=NULL) free(input_buffer);
-  text_collection_destroy(&retriever_data.text_collection);
-  mm_stack_delete(retriever_data.mm_stack);
+  mm_allocator_delete(retriever_data.mm_allocator);
   mm_slab_delete(mm_slab);
   archive_delete(retriever_data.archive); // Delete archive
   return 0;

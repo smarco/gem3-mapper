@@ -55,36 +55,33 @@ void filtering_region_retrieve_text(
     filtering_region_t* const filtering_region,
     pattern_t* const pattern,
     archive_text_t* const archive_text,
-    text_collection_t* const text_collection) {
+    mm_allocator_t* const mm_allocator) {
   // Check already retrieved
-  if (filtering_region->text_trace_offset != UINT64_MAX) return;
+  if (filtering_region->text_trace.text!=NULL) return;
   // Retrieve Text
-  uint64_t text_length;
   if (archive_text->run_length) {
     // Translate RL-Text positions (RL-text encoded)
     const uint64_t text_begin_position = archive_text_rl_position_translate(
-        archive_text,filtering_region->text_begin_position,text_collection->mm_text);
+        archive_text,filtering_region->text_begin_position,mm_allocator);
     const uint64_t text_end_position = archive_text_rl_position_translate(
-        archive_text,filtering_region->text_end_position,text_collection->mm_text);
+        archive_text,filtering_region->text_end_position,mm_allocator);
     // Retrieve Text
-    text_length = text_end_position - text_begin_position;
-    const uint64_t text_trace_offset = archive_text_retrieve_collection(
-        archive_text,text_collection,text_begin_position,text_length,false,true);
+    const uint64_t text_length = text_end_position - text_begin_position;
+    archive_text_retrieve(
+        archive_text,text_begin_position,text_length,
+        false,true,&filtering_region->text_trace,mm_allocator);
     // Configure filtering-region
-    text_trace_t* const text_trace = text_collection_get_trace(text_collection,text_trace_offset);
-    filtering_region->text_trace_offset = text_trace_offset;
     filtering_region->text_begin_position = text_begin_position;
     filtering_region->text_end_position = text_end_position;
     // Set fix position
     filtering_region->text_source_region_offset = archive_text_rl_get_decoded_offset_exl(
-        text_trace->rl_runs_acc,filtering_region->text_source_region_offset);
+        filtering_region->text_trace.rl_runs_acc,filtering_region->text_source_region_offset);
     filtering_region->key_source_region_offset = archive_text_rl_get_decoded_offset_exl(
         pattern->rl_runs_acc,filtering_region->key_source_region_offset);
     // Compute key trims
     filtering_region_compute_key_trims(filtering_region,pattern);
     //    // DEBUG
-    //    text_trace_t* const text_trace = text_collection_get_trace(
-    //        text_collection,filtering_region->text_trace_offset);
+    //    text_trace_t* const text_trace = &filtering_region->text_trace;
     //    fprintf(stderr,">Text\n");
     //    dna_buffer_print(stderr,text_trace->text,text_trace->text_length,false);
     //    fprintf(stderr,"\n");
@@ -96,14 +93,15 @@ void filtering_region_retrieve_text(
   } else {
     // Retrieve Text
     const uint64_t text_position = filtering_region->text_begin_position;
-    text_length = filtering_region->text_end_position - filtering_region->text_begin_position;
-    filtering_region->text_trace_offset = archive_text_retrieve_collection(
-        archive_text,text_collection,text_position,text_length,false,false);
+    const uint64_t text_length = filtering_region->text_end_position - filtering_region->text_begin_position;
+    archive_text_retrieve(
+        archive_text,text_position,text_length,
+        false,false,&filtering_region->text_trace,mm_allocator);
   }
   // Compute padded-text
-  text_collection_compose_padded_text(
-      text_collection,filtering_region->text_trace_offset,
-      filtering_region->key_trim_left,filtering_region->key_trim_right);
+  text_trace_compose_padded_text(
+      &filtering_region->text_trace,filtering_region->key_trim_left,
+      filtering_region->key_trim_right,mm_allocator);
 }
 /*
  * Compute key trims
@@ -137,41 +135,39 @@ void filtering_region_compute_key_trims(
  */
 void filtering_region_print_region_text(
     FILE* const stream,
-    filtering_region_t* const region,
-    const text_collection_t* const text_collection) {
-  if (text_collection!=NULL && region->text_trace_offset!=UINT64_MAX) {
-    // Retrieve text
-    const uint64_t text_length = region->text_end_position-region->text_begin_position;
-    const text_trace_t* const text_trace = text_collection_get_trace(text_collection,region->text_trace_offset);
-    uint8_t* const text = text_trace->text;
-    // Allocate display text
-    const uint64_t max_printed_length = MIN(200,text_length);
-    uint64_t i;
+    filtering_region_t* const region) {
+  // Check text-trace
+  if (region->text_trace.text == NULL) return;
+  // Retrieve text
+  uint8_t* const text = region->text_trace.text;
+  const uint64_t text_length = region->text_end_position-region->text_begin_position;
+  // Allocate display text
+  const uint64_t max_printed_length = MIN(200,text_length);
+  uint64_t i;
 #ifdef DEBUG_DISPLAY_MATCHING_TEXT
-    char* const display_text = malloc(max_printed_length);
-    uint64_t s, p;
-    for (i=0;i<max_printed_length;++i) display_text[i] = 'a'+(dna_decode(text[i])-'A');
-    // Upper-case alignment-regions
-    match_scaffold_t* const match_scaffold = &region->match_scaffold;
-    for (s=0;s<match_scaffold->num_alignment_regions;++s) {
-      match_alignment_region_t* const match_alignment_region = match_scaffold->alignment_regions + s;
-      const uint64_t region_text_end = match_alignment_region_get_text_end(match_alignment_region);
-      const uint64_t region_text_begin = match_alignment_region_get_text_begin(match_alignment_region);
-      const uint64_t max_text_scope = MIN(max_printed_length,region_text_end);
-      for (p=region_text_begin;p<max_text_scope;++p) display_text[p] = dna_decode(text[p]);
-    }
-    // Display
-    tab_fprintf(stream,"  => Text %.*s\n",max_printed_length,display_text);
-    // Free
-    free(display_text);
-#else
-    tab_fprintf(stream,"  => Text ");
-    for (i=0;i<max_printed_length;++i) {
-      fprintf(stream,"%c",dna_decode(text[i]));
-    }
-    fprintf(stream,"\n");
-#endif
+  char* const display_text = malloc(max_printed_length);
+  uint64_t s, p;
+  for (i=0;i<max_printed_length;++i) display_text[i] = 'a'+(dna_decode(text[i])-'A');
+  // Upper-case alignment-regions
+  match_scaffold_t* const match_scaffold = &region->match_scaffold;
+  for (s=0;s<match_scaffold->num_alignment_regions;++s) {
+    match_alignment_region_t* const match_alignment_region = match_scaffold->alignment_regions + s;
+    const uint64_t region_text_end = match_alignment_region_get_text_end(match_alignment_region);
+    const uint64_t region_text_begin = match_alignment_region_get_text_begin(match_alignment_region);
+    const uint64_t max_text_scope = MIN(max_printed_length,region_text_end);
+    for (p=region_text_begin;p<max_text_scope;++p) display_text[p] = dna_decode(text[p]);
   }
+  // Display
+  tab_fprintf(stream,"  => Text %.*s\n",max_printed_length,display_text);
+  // Free
+  free(display_text);
+#else
+  tab_fprintf(stream,"  => Text ");
+  for (i=0;i<max_printed_length;++i) {
+    fprintf(stream,"%c",dna_decode(text[i]));
+  }
+  fprintf(stream,"\n");
+#endif
 }
 void filtering_region_print_alignment(
     FILE* const stream,
@@ -193,7 +189,6 @@ void filtering_region_print_alignment(
 void filtering_region_print(
     FILE* const stream,
     filtering_region_t* const region,
-    const text_collection_t* const text_collection,
     const bool print_region_text,
     const bool print_alignment_regions,
     const bool print_alignment) {
@@ -218,11 +213,9 @@ void filtering_region_print(
   }
   // Print Region-Text
   if (print_region_text) {
-    if (text_collection!=NULL && region->text_trace_offset!=UINT64_MAX) {
-      tab_global_inc();
-      filtering_region_print_region_text(stream,region,text_collection);
-      tab_global_dec();
-    }
+    tab_global_inc();
+    filtering_region_print_region_text(stream,region);
+    tab_global_dec();
   }
   // Print Alignment-Regions
   if (print_alignment_regions) {

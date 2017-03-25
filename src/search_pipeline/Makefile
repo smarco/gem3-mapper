@@ -32,13 +32,17 @@ include $(ROOT_PATH)/Makefile.mk
 ###############################################################################
 MODULES=search_pipeline \
         search_pipeline_handlers \
-        search_stage_decode_candidates_buffer \
-        search_stage_decode_candidates \
+        search_stage_bpm_align_buffer \
+        search_stage_bpm_align \
+        search_stage_bpm_distance_buffer \
+        search_stage_bpm_distance \
+        search_stage_decode_buffer \
+        search_stage_decode \
+        search_stage_kmer_filter_buffer \
+        search_stage_kmer_filter \
         search_stage_region_profile_buffer \
         search_stage_region_profile \
-        search_stage_state \
-        search_stage_verify_candidates_buffer \
-        search_stage_verify_candidates
+        search_stage_state 
 
 SRCS=$(addsuffix .c, $(MODULES))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))

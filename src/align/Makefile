@@ -36,7 +36,7 @@ MODULES=alignment \
         align_bpm_distance \
         align_bpm_pattern \
         align_bpm \
-        align_kmer_filter \
+        align_kmer_filter_nway \
         align_ond \
         align_swg_banded \
         align_swg_score \

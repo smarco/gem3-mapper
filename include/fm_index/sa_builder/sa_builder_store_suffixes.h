@@ -33,6 +33,8 @@
  *   2.- Store all suffixes
  *   3.- Sort all suffixes
  */
+void sa_builder_store_suffixes_prepare(
+    sa_builder_t* const sa_builder);
 void sa_builder_store_suffixes(
     sa_builder_t* const sa_builder,
     const bool verbose);

@@ -40,7 +40,8 @@ search_stage_region_profile_buffer_t* search_stage_region_profile_buffer_new(
     const uint32_t extra_search_steps,
     const uint32_t alphabet_size) {
   // Alloc
-  search_stage_region_profile_buffer_t* const region_profile_buffer = mm_alloc(search_stage_region_profile_buffer_t);
+  search_stage_region_profile_buffer_t* const region_profile_buffer =
+      mm_alloc(search_stage_region_profile_buffer_t);
   // Init gpu-buffer
 #ifdef GPU_REGION_PROFILE_ADAPTIVE
   region_profile_buffer->gpu_buffer_fmi_asearch = gpu_buffer_fmi_asearch_new(
@@ -60,34 +61,22 @@ search_stage_region_profile_buffer_t* search_stage_region_profile_buffer_new(
   return region_profile_buffer;
 }
 void search_stage_region_profile_buffer_clear(
-    search_stage_region_profile_buffer_t* const region_profile_buffer,
-    archive_search_cache_t* const archive_search_cache) {
+    search_stage_region_profile_buffer_t* const region_profile_buffer) {
 #ifdef GPU_REGION_PROFILE_ADAPTIVE
   gpu_buffer_fmi_asearch_clear(region_profile_buffer->gpu_buffer_fmi_asearch);
 #else
   gpu_buffer_fmi_ssearch_clear(region_profile_buffer->gpu_buffer_fmi_ssearch);
 #endif
-  // Return searches to the cache
-  if (archive_search_cache!=NULL) {
-    VECTOR_ITERATE(region_profile_buffer->archive_searches,archive_search,n,archive_search_t*) {
-      archive_search_cache_free(archive_search_cache,*archive_search);
-    }
-  }
   // Clear searches vector
   vector_clear(region_profile_buffer->archive_searches);
 }
 void search_stage_region_profile_buffer_delete(
-    search_stage_region_profile_buffer_t* const region_profile_buffer,
-    archive_search_cache_t* const archive_search_cache) {
+    search_stage_region_profile_buffer_t* const region_profile_buffer) {
 #ifdef GPU_REGION_PROFILE_ADAPTIVE
   gpu_buffer_fmi_asearch_delete(region_profile_buffer->gpu_buffer_fmi_asearch);
 #else
   gpu_buffer_fmi_ssearch_delete(region_profile_buffer->gpu_buffer_fmi_ssearch);
 #endif
-  // Return searches to the cache
-  VECTOR_ITERATE(region_profile_buffer->archive_searches,archive_search,n,archive_search_t*) {
-    archive_search_cache_free(archive_search_cache,*archive_search);
-  }
   // Delete searches vector
   vector_delete(region_profile_buffer->archive_searches);
   mm_free(region_profile_buffer);
@@ -130,7 +119,7 @@ bool search_stage_region_profile_buffer_fits(
  */
 void search_stage_region_profile_buffer_send(
     search_stage_region_profile_buffer_t* const region_profile_buffer) {
-  PROF_ADD_COUNTER(GP_SEARCH_STAGE_REGION_PROFILE_SEARCHES_IN_BUFFER,
+  PROF_ADD_COUNTER(GP_SSTAGE_REGION_PROFILE_BUFFER_SEARCHES,
       vector_get_used(region_profile_buffer->archive_searches));
 #ifdef GPU_REGION_PROFILE_ADAPTIVE
   gpu_buffer_fmi_asearch_send(region_profile_buffer->gpu_buffer_fmi_asearch);
@@ -152,14 +141,12 @@ void search_stage_region_profile_buffer_receive(
 void search_stage_region_profile_buffer_add(
     search_stage_region_profile_buffer_t* const region_profile_buffer,
     archive_search_t* const archive_search) {
-  // Add archive-search
   vector_insert(region_profile_buffer->archive_searches,archive_search,archive_search_t*);
 }
 void search_stage_region_profile_buffer_retrieve(
     search_stage_region_profile_buffer_t* const region_profile_buffer,
     const uint64_t search_idx,
     archive_search_t** const archive_search) {
-  // Retrieve archive-search
   *archive_search = *vector_get_elm(region_profile_buffer->archive_searches,search_idx,archive_search_t*);
 }
 

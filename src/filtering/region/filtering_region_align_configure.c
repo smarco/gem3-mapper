@@ -43,7 +43,7 @@ void filtering_region_align_configure_exact(
   align_input->sequence_clip_left  = pattern->clip_left;
   align_input->sequence_clip_right = pattern->clip_right;
   align_input->text_position       = filtering_region->text_begin_position;
-  align_input->text_trace_offset   = filtering_region->text_trace_offset;
+  align_input->text_trace          = &filtering_region->text_trace;
   align_input->alignment           = &filtering_region->alignment;
   // Align Parameters
   align_parameters->swg_penalties  = swg_penalties;
@@ -53,12 +53,10 @@ void filtering_region_align_configure_hamming(
     match_align_parameters_t* const align_parameters,
     filtering_region_t* const filtering_region,
     search_parameters_t* const search_parameters,
-    pattern_t* const pattern,
-    text_trace_t* const text_trace) {
+    pattern_t* const pattern) {
   // Parameters
   uint8_t* const key = pattern->key;
   const uint64_t key_length = pattern->key_length;
-  bool* const allowed_enc = search_parameters->allowed_enc;
   swg_penalties_t* const swg_penalties = &search_parameters->swg_penalties;
   // Align input
   align_input->key                 = key;
@@ -66,13 +64,12 @@ void filtering_region_align_configure_hamming(
   align_input->sequence_clip_left  = pattern->clip_left;
   align_input->sequence_clip_right = pattern->clip_right;
   align_input->pattern_tiled       = &pattern->pattern_tiled;
-  align_input->text_trace_offset   = filtering_region->text_trace_offset;
+  align_input->text_trace          = &filtering_region->text_trace;
   align_input->text_position       = filtering_region->text_begin_position; // Base position
-  align_input->text                = text_trace->text;
+  align_input->text                = filtering_region->text_trace.text;
   align_input->text_length         = key_length;
   align_input->alignment           = &filtering_region->alignment;
   // Align Parameters
-  align_parameters->allowed_enc    = allowed_enc;
   align_parameters->swg_penalties  = swg_penalties;
 }
 void filtering_region_align_configure_levenshtein(
@@ -81,9 +78,8 @@ void filtering_region_align_configure_levenshtein(
     filtering_region_t* const filtering_region,
     search_parameters_t* const search_parameters,
     pattern_t* const pattern,
-    text_trace_t* const text_trace,
     const bool left_gap_alignment,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Parameters
   uint8_t* const key = pattern->key;
   const uint64_t key_length = pattern->key_length;
@@ -96,11 +92,11 @@ void filtering_region_align_configure_levenshtein(
   align_input->key                 = key;
   align_input->key_length          = key_length;
   align_input->pattern_tiled       = &pattern->pattern_tiled;
-  align_input->text_trace_offset   = filtering_region->text_trace_offset;
+  align_input->text_trace          = &filtering_region->text_trace;
   align_input->text_position       = filtering_region->text_begin_position;
-  align_input->text                = text_trace->text;
-  align_input->text_length         = text_trace->text_length;
-  align_input->text_padded         = text_trace->text_padded;
+  align_input->text                = filtering_region->text_trace.text;
+  align_input->text_length         = filtering_region->text_trace.text_length;
+  align_input->text_padded         = filtering_region->text_trace.text_padded;
   align_input->text_padding        = filtering_region->key_trim_left;
   align_input->alignment           = alignment;
   // Align Parameters
@@ -117,10 +113,9 @@ void filtering_region_align_configure_swg(
     filtering_region_t* const filtering_region,
     search_parameters_t* const search_parameters,
     pattern_t* const pattern,
-    text_trace_t* const text_trace,
     const bool left_gap_alignment,
     const bool local_alignment,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Parameters
   const uint64_t key_length = pattern->key_length;
   // Align input
@@ -131,17 +126,17 @@ void filtering_region_align_configure_swg(
   align_input->key_trim_left            = filtering_region->key_trim_left;
   align_input->key_trim_right           = filtering_region->key_trim_right;
   align_input->pattern_tiled            = &pattern->pattern_tiled;
-  align_input->text_trace_offset        = filtering_region->text_trace_offset;
+  align_input->text_trace               = &filtering_region->text_trace;
   align_input->text_position            = filtering_region->text_begin_position;
-  align_input->text                     = text_trace->text;
-  align_input->text_length              = text_trace->text_length;
-  align_input->text_padded              = text_trace->text_padded;
+  align_input->text                     = filtering_region->text_trace.text;
+  align_input->text_length              = filtering_region->text_trace.text_length;
+  align_input->text_padded              = filtering_region->text_trace.text_padded;
   align_input->text_padding             = filtering_region->key_trim_left;
   align_input->alignment                = &filtering_region->alignment;
   // RL-Input
   align_input->run_length               = pattern->run_length;
   align_input->rl_key_runs_acc          = pattern->rl_runs_acc;
-  align_input->rl_text_runs_acc         = text_trace->rl_runs_acc;
+  align_input->rl_text_runs_acc         = filtering_region->text_trace.rl_runs_acc;
   // Align Parameters
   align_parameters->max_error                       = pattern->max_effective_filtering_error;
   align_parameters->max_bandwidth                   = pattern->max_effective_bandwidth;
@@ -155,7 +150,6 @@ void filtering_region_align_configure_swg(
   align_parameters->alignment_force_full_swg        = search_parameters->alignment_force_full_swg;
   align_parameters->scaffolding_min_coverage        = search_parameters->alignment_scaffolding_min_coverage_nominal;
   align_parameters->scaffolding_matching_min_length = search_parameters->alignment_scaffolding_min_matching_length_nominal;
-  align_parameters->allowed_enc                     = search_parameters->allowed_enc;
   align_parameters->swg_penalties                   = &search_parameters->swg_penalties;
   align_parameters->cigar_curation                  = search_parameters->cigar_curation;
   align_parameters->cigar_curation_min_end_context  = search_parameters->cigar_curation_min_end_context_nominal;

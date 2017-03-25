@@ -52,17 +52,30 @@ typedef struct {
   uint64_t scaffolding_coverage;
   /* Underlying Alignment */
   match_alignment_t match_alignment;
+  /* MM */
+  mm_allocator_t* mm_allocator;
 } match_scaffold_t;
 
 /*
  * Setup
  */
-void match_scaffold_init(match_scaffold_t* const match_scaffold);
+void match_scaffold_init(
+    match_scaffold_t* const match_scaffold,
+    mm_allocator_t* const mm_allocator);
+void match_scaffold_destroy(
+    match_scaffold_t* const match_scaffold);
 
 /*
  * Accessors
  */
 bool match_scaffold_is_null(match_scaffold_t* const match_scaffold);
+
+match_alignment_region_t* match_scaffold_allocate_alignment_region(
+    match_scaffold_t* const match_scaffold,
+    const uint64_t num_alignment_regions);
+void match_scaffold_free_alignment_region(
+    match_scaffold_t* const match_scaffold,
+    match_alignment_region_t* const match_alignment_region);
 
 /*
  * Exact Scaffolding of the alignment
@@ -70,9 +83,8 @@ bool match_scaffold_is_null(match_scaffold_t* const match_scaffold);
 void match_scaffold_exact(
     match_scaffold_t* const match_scaffold,
     match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
-    matches_t* const matches,
-    mm_stack_t* const mm_stack);
+    const bool left_gap_alignment,
+    matches_t* const matches);
 
 /*
  * Adaptive Scaffolding of the alignment (Best effort)
@@ -81,8 +93,7 @@ void match_scaffold_adaptive(
     match_scaffold_t* const match_scaffold,
     match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
-    matches_t* const matches,
-    mm_stack_t* const mm_stack);
+    matches_t* const matches);
 
 /*
  * Check

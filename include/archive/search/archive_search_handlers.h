@@ -31,43 +31,47 @@
 
 #include "utils/essentials.h"
 #include "archive/search/archive_search.h"
-#include "text/text_collection.h"
 #include "filtering/candidates/filtering_candidates.h"
+#include "neighborhood_search/nsearch_schedule.h"
 #include "mapper/mapper_stats.h"
 
 /*
  * Archive Search Handlers
  */
 typedef struct {
+  /* Archive */
+  archive_t* archive;
   /* Filtering candidates */
   filtering_candidates_t filtering_candidates_end1;
   filtering_candidates_t filtering_candidates_end2;
-  filtering_candidates_mm_t filtering_candidates_mm;
   /* Neighborhood Search */
   nsearch_schedule_t nsearch_schedule;
   /* Stats */
   mapper_stats_t* mapper_stats;         // Mapping Statistics
   /* MM */
   mm_slab_t* mm_slab;                   // MM-Slab
-  mm_stack_t* mm_stack;                 // MM-Stack
+  mm_allocator_t* mm_allocator;         // MM-Allocator
 } archive_search_handlers_t;
 
 /*
  * Archive Search Handlers
  */
-archive_search_handlers_t* archive_search_handlers_new(void);
+archive_search_handlers_t* archive_search_handlers_new(archive_t* const archive);
 void archive_search_handlers_clear(archive_search_handlers_t* const handlers);
 void archive_search_handlers_delete(archive_search_handlers_t* const handlers);
 
 /*
- * Handlers Injection (Support Data Structures)
+ * Archive Search Handlers Injection (Support Data Structures)
  */
-void archive_search_handlers_inject_se(
+void archive_search_handlers_prepare_se(
     archive_search_t* const archive_search,
+    sequence_t* const sequence,
     archive_search_handlers_t* const handlers);
-void archive_search_handlers_inject_pe(
+void archive_search_handlers_prepare_pe(
     archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2,
+    sequence_t* const sequence_end1,
+    sequence_t* const sequence_end2,
     archive_search_handlers_t* const handlers);
 
 #endif /* ARCHIVE_SEARCH_HANDLERS_H_ */

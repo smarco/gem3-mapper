@@ -57,7 +57,7 @@ void nsearch_operation_init(
     nsearch_operation_t* const nsearch_operation,
     const uint64_t max_key_length,
     const uint64_t max_text_length,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 
 /*
  * Prepare Operation Chained
@@ -68,7 +68,7 @@ bool nsearch_operation_chained_prepare(
     uint8_t* const key,
     const uint64_t key_length,
     const bool reverse_sequence,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 
 /*
  * Utils
@@ -76,7 +76,7 @@ bool nsearch_operation_chained_prepare(
 bool nsearch_operation_state_text_eq(
     nsearch_operation_t* const nsearch_operation,
     char* const text,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 
 /*
  * Display

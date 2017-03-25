@@ -59,8 +59,6 @@ void archive_search_pe_begin(
   archive_search_end1->pair_extended_shortcut = false;
   archive_search_end2->pair_searched = false;
   archive_search_end2->pair_extended = false;
-  archive_search_reset(archive_search_end1); // Init (End/1)
-  archive_search_reset(archive_search_end2); // Init (End/2)
   PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_INIT,PROFILE_LEVEL);
   // Next State
   archive_search_end1->pe_search_state = archive_search_pe_state_search_end1;
@@ -197,14 +195,14 @@ void archive_search_pe_cross_pair_ends(
     search_parameters_t* const search_parameters,
     mapper_stats_t* const mapper_stats,
     paired_matches_t* const paired_matches,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Pair matches (Cross-link matches from both ends)
   const uint64_t num_matches_end1 = matches_get_num_match_traces(paired_matches->matches_end1);
   const uint64_t num_matches_end2 = matches_get_num_match_traces(paired_matches->matches_end2);
   if (num_matches_end1 > 0 && num_matches_end2 > 0) {
     PROFILE_START(GP_ARCHIVE_SEARCH_PE_FINISH_SEARCH,PROFILE_LEVEL);
     paired_matches_clear(paired_matches,false); // Clean sheet
-    paired_matches_find_pairs(paired_matches,search_parameters,mapper_stats,mm_stack);
+    paired_matches_find_pairs(paired_matches,search_parameters,mapper_stats,mm_allocator);
     PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_FINISH_SEARCH,PROFILE_LEVEL);
   }
   // Sort paired-matches
@@ -217,9 +215,9 @@ void archive_search_pe_find_pairs(
   // Parameters
   search_parameters_t* const search_parameters = &archive_search_end1->search_parameters;
   mapper_stats_t* const mapper_stats = archive_search_end1->mapper_stats;
-  mm_stack_t* const mm_stack = archive_search_end1->mm_stack;
+  mm_allocator_t* const mm_allocator = archive_search_end1->mm_allocator;
   // Find pairs
-  archive_search_pe_cross_pair_ends(search_parameters,mapper_stats,paired_matches,mm_stack);
+  archive_search_pe_cross_pair_ends(search_parameters,mapper_stats,paired_matches,mm_allocator);
   // Check accuracy reached
   if (!paired_matches_test_accuracy_reached(paired_matches,search_parameters)) {
     // Check paired-matches (for shortcut extension failure)

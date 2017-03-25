@@ -25,28 +25,26 @@
 #include "text/dna_text.h"
 #include "text/sequence.h"
 
-#define SEQUENCE_TAG_INITIAL_LENGTH 80
-#define SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH 40
-#define SEQUENCE_INITIAL_LENGTH 200
-
 /*
  * Constructor
  */
-void sequence_init(sequence_t* const sequence) {
-  string_init(&sequence->tag,SEQUENCE_TAG_INITIAL_LENGTH);
-  string_init(&sequence->read,SEQUENCE_INITIAL_LENGTH);
-  string_init(&sequence->qualities,SEQUENCE_INITIAL_LENGTH);
+void sequence_init(
+    sequence_t* const sequence,
+    const bisulfite_read_t bisulfite_read_mode,
+    mm_allocator_t* const mm_allocator) {
+  // Sequence fields
+  string_init(&sequence->tag,SEQUENCE_TAG_INITIAL_LENGTH,mm_allocator);
+  string_init(&sequence->read,SEQUENCE_INITIAL_LENGTH,mm_allocator);
+  string_init(&sequence->qualities,SEQUENCE_INITIAL_LENGTH,mm_allocator);
   sequence->end_info = single_end;
-  string_init(&sequence->casava_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH);
-  string_init(&sequence->extra_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH);
-}
-void sequence_init_mm(sequence_t* const sequence,mm_stack_t* const mm_stack) {
-  string_init_mm(&sequence->tag,SEQUENCE_TAG_INITIAL_LENGTH,mm_stack);
-  string_init_mm(&sequence->read,SEQUENCE_INITIAL_LENGTH,mm_stack);
-  string_init_mm(&sequence->qualities,SEQUENCE_INITIAL_LENGTH,mm_stack);
-  sequence->end_info = single_end;
-  string_init_mm(&sequence->casava_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH,mm_stack);
-  string_init_mm(&sequence->extra_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH,mm_stack);
+  // Extra fields
+  string_init(&sequence->casava_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH,mm_allocator);
+  string_init(&sequence->extra_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH,mm_allocator);
+  // Bisulfite
+  if (bisulfite_read_mode!=bisulfite_disabled) {
+    sequence->bs_sequence_end = (bisulfite_read_mode==bisulfite_read_2) ? paired_end2 : paired_end1;
+    string_init(&sequence->bs_original_sequence,SEQUENCE_BISULFITE_INITIAL_LENGTH,mm_allocator);
+  }
 }
 void sequence_clear(sequence_t* const sequence) {
   string_clear(&sequence->tag);
@@ -117,7 +115,7 @@ bool sequence_equals(sequence_t* const sequence_a,sequence_t* const sequence_b) 
 void sequence_generate_reverse(sequence_t* const sequence,sequence_t* const rev_sequence) {
   // Prepare rc_string (Read)
   const uint64_t seq_buffer_length = string_get_length(&sequence->read);
-  string_resize(&rev_sequence->read,seq_buffer_length);
+  string_resize(&rev_sequence->read,seq_buffer_length,false);
   string_clear(&rev_sequence->read);
   // Reverse Read
   int64_t pos;
@@ -134,7 +132,7 @@ void sequence_generate_reverse(sequence_t* const sequence,sequence_t* const rev_
 void sequence_generate_reverse_complement(sequence_t* const sequence,sequence_t* const rc_sequence) {
   // Prepare rc_string (Read)
   const uint64_t seq_buffer_length = string_get_length(&sequence->read);
-  string_resize(&rc_sequence->read,seq_buffer_length);
+  string_resize(&rc_sequence->read,seq_buffer_length,false);
   string_clear(&rc_sequence->read);
   // Reverse-Complement Read
   int64_t pos;

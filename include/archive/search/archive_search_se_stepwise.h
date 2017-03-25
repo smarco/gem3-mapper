@@ -35,13 +35,10 @@
 #include "gpu/gpu_buffer_fmi_asearch.h"
 #include "gpu/gpu_buffer_fmi_ssearch.h"
 #include "gpu/gpu_buffer_fmi_decode.h"
-#include "gpu/gpu_buffer_align_bpm.h"
+#include "gpu/gpu_buffer_kmer_filter.h"
+#include "gpu/gpu_buffer_bpm_distance.h"
+#include "gpu/gpu_buffer_bpm_align.h"
 #include "matches/matches.h"
-
-/*
- * Stepwise: Init Search
- */
-void archive_search_se_stepwise_init_search(archive_search_t* const archive_search);
 
 /*
  * Stepwise: Region-Profile
@@ -67,22 +64,43 @@ void archive_search_se_stepwise_region_profile_adaptive_retrieve(
 /*
  * Stepwise: Decode-Candidates
  */
-void archive_search_se_stepwise_decode_candidates_copy(
+void archive_search_se_stepwise_decode_copy(
     archive_search_t* const archive_search,
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode);
-void archive_search_se_stepwise_decode_candidates_retrieve(
+void archive_search_se_stepwise_decode_retrieve(
     archive_search_t* const archive_search,
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode);
 
 /*
- * Stepwise: Verify-Candidates
+ * Stepwise: Kmer-filter
  */
-void archive_search_se_stepwise_verify_candidates_copy(
+void archive_search_se_stepwise_kmer_filter_copy(
     archive_search_t* const archive_search,
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
-void archive_search_se_stepwise_verify_candidates_retrieve(
+    gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter);
+void archive_search_se_stepwise_kmer_filter_retrieve(
     archive_search_t* const archive_search,
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
+    gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter);
+
+/*
+ * Stepwise: BPM-Distance
+ */
+void archive_search_se_stepwise_bpm_distance_copy(
+    archive_search_t* const archive_search,
+    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance);
+void archive_search_se_stepwise_bpm_distance_retrieve(
+    archive_search_t* const archive_search,
+    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
+    matches_t* const matches);
+
+/*
+ * Stepwise: BPM-Align
+ */
+void archive_search_se_stepwise_bpm_align_copy(
+    archive_search_t* const archive_search,
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
+void archive_search_se_stepwise_bpm_align_retrieve(
+    archive_search_t* const archive_search,
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
     matches_t* const matches);
 
 /*

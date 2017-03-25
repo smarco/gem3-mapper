@@ -157,7 +157,7 @@ typedef struct {
 } test_t;
 
 void constructor_svector_load() {
-  mm_slab_t* const slab = mm_slab_new_(BUFFER_SIZE_64M,BUFFER_SIZE_512M,MM_UNLIMITED_MEM,"");
+  mm_slab_t* const slab = mm_slab_new_(BUFFER_SIZE_64M,BUFFER_SIZE_512M,MM_UNLIMITED_MEM);
   svector_t* const svector = svector_new(slab,test_t);
   svector_iterator_t iterator;
 
@@ -599,7 +599,7 @@ void constructor_swg() {
 //  int32_t alignment_score=0;
 //  vector_t* const cigar_vector = vector_new(100,cigar_element_t);
 //  swg_penalties_t swg_penalties;
-//  mm_stack_t* mm_stack = mm_stack_new(mm_slab_new(BUFFER_SIZE_8M));
+//  mm_allocator_t* mm_allocator = mm_allocator_new(mm_slab_new(BUFFER_SIZE_8M));
 //  swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_A] = +1;
 //  swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_C] = -4;
 //  swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_G] = -4;
@@ -642,17 +642,17 @@ void constructor_swg() {
 //  // SWG
 //  swg_align_match_base(key_enc,key_length,&swg_penalties,&match_position,
 //      text_enc,text_length,cigar_vector,&cigar_length,
-//      &effective_length,&alignment_score,mm_stack);
+//      &effective_length,&alignment_score,mm_allocator);
 //  printf("\n");
 //  // SWG SIMD
 //  swg_query_profile_t swg_query_profile;
-//  swg_init_query_profile(&swg_query_profile,&swg_penalties,key_length,mm_stack);
+//  swg_init_query_profile(&swg_query_profile,&swg_penalties,key_length,mm_allocator);
 //  swg_align_match_int16_simd128(key_enc,key_length,&swg_query_profile,&swg_penalties,
 //      &match_position,text_enc,text_length,true,true,cigar_vector,&cigar_length,
-//      &effective_length,&alignment_score,mm_stack);
+//      &effective_length,&alignment_score,mm_allocator);
 //  swg_align_match_int16_simd128(key_enc,key_length,&swg_query_profile,&swg_penalties,
 //      &match_position,text_enc,text_length,true,true,cigar_vector,&cigar_length,
-//      &effective_length,&alignment_score,mm_stack);
+//      &effective_length,&alignment_score,mm_allocator);
 //  // Free
 //  vector_delete(cigar_vector);
 }
@@ -699,11 +699,33 @@ void constructor_nsearch_region_permutations_n(
   }
 }
 /*
+ * MM-Allocator
+ */
+void constructor_allocator() {
+  mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
+  mm_allocator_t* const mm_allocator = mm_allocator_new(slab);
+
+  void* request_1 = mm_allocator_malloc(mm_allocator,40);
+  void* request_2 = mm_allocator_malloc(mm_allocator,8);
+  void* request_3 = mm_allocator_malloc(mm_allocator,60);
+  mm_allocator_print(stderr,mm_allocator,true);
+
+  mm_allocator_free(mm_allocator,request_2);
+  mm_allocator_print(stderr,mm_allocator,true);
+
+  mm_allocator_free(mm_allocator,request_3);
+  mm_allocator_free(mm_allocator,request_1);
+  mm_allocator_print(stderr,mm_allocator,true);
+
+  mm_allocator_delete(mm_allocator);
+  mm_slab_delete(slab);
+}
+/*
  * NS Hamming
  */
 void constructor_ns_init(
     approximate_search_t* const search,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Search Parameters
   const uint64_t max_error = parameters.number;
   const char* const key = parameters.name_input_file;
@@ -713,12 +735,12 @@ void constructor_ns_init(
   search->region_profile.num_filtering_regions = 0;
   // Configure Key
   uint64_t i;
-  search->pattern.key = mm_stack_calloc(mm_stack,key_length,uint8_t,true);
+  search->pattern.key = mm_allocator_calloc(mm_allocator,key_length,uint8_t,true);
   for (i=0;i<key_length;++i) search->pattern.key[i] = dna_encode(key[i]);
   search->pattern.key[key_length] = '\0';
   search->pattern.key_length = key_length;
   // Configure search-parameters
-  search_parameters_t* search_parameters = mm_stack_alloc(mm_stack,search_parameters_t);
+  search_parameters_t* search_parameters = mm_allocator_alloc(mm_allocator,search_parameters_t);
   region_profile_model_init(&search_parameters->region_profile_model);
   nsearch_parameters_init(&search_parameters->nsearch_parameters);
   search->search_parameters = search_parameters;
@@ -726,32 +748,32 @@ void constructor_ns_init(
 void constructor_ns_hamming_brute() {
   // Init NS-search
   mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_stack_t* const mm_stack = mm_stack_new(slab);
+  mm_allocator_t* const mm_allocator = mm_allocator_new(slab);
   approximate_search_t search;
-  constructor_ns_init(&search,mm_stack); // Configure
+  constructor_ns_init(&search,mm_allocator); // Configure
   // Search
   nsearch_hamming_brute_force(&search,NULL);
 }
 void constructor_ns_hamming() {
   // Init NS-search
   mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_stack_t* const mm_stack = mm_stack_new(slab);
+  mm_allocator_t* const mm_allocator = mm_allocator_new(slab);
   approximate_search_t search;
-  constructor_ns_init(&search,mm_stack); // Configure
+  constructor_ns_init(&search,mm_allocator); // Configure
   // Search
   nsearch_hamming(&search,NULL);
 }
 void constructor_ns_hamming_2regions() {
   // Init NS-search
   mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_stack_t* const mm_stack = mm_stack_new(slab);
+  mm_allocator_t* const mm_allocator = mm_allocator_new(slab);
   approximate_search_t search;
-  constructor_ns_init(&search,mm_stack); // Configure
+  constructor_ns_init(&search,mm_allocator); // Configure
   // Configure Region Profile
   const uint64_t key_length = search.pattern.key_length;
   const uint64_t max_error = search.current_max_complete_error;
   region_profile_t* const region_profile = &search.region_profile;
-  region_profile->filtering_region = mm_stack_calloc(mm_stack,2,region_search_t,true);
+  region_profile->filtering_region = mm_allocator_calloc(mm_allocator,2,region_search_t,true);
   region_profile->filtering_region[0].begin = 0;
   region_profile->filtering_region[0].end = 3;
   region_profile->filtering_region[0].min = 1;
@@ -767,15 +789,15 @@ void constructor_ns_hamming_2regions() {
 void constructor_ns_hamming_permutations() {
   // Init NS-search
   mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_stack_t* const mm_stack = mm_stack_new(slab);
+  mm_allocator_t* const mm_allocator = mm_allocator_new(slab);
   approximate_search_t search;
-  constructor_ns_init(&search,mm_stack); // Configure
+  constructor_ns_init(&search,mm_allocator); // Configure
   // Configure Region Profile
   const uint64_t key_length = search.pattern.key_length;
   const uint64_t num_filtering_regions = parameters.param1;
   region_profile_t* const region_profile = &search.region_profile;
   region_profile->num_filtering_regions = num_filtering_regions;
-  region_profile->filtering_region = mm_stack_calloc(mm_stack,num_filtering_regions,region_search_t,true);
+  region_profile->filtering_region = mm_allocator_calloc(mm_allocator,num_filtering_regions,region_search_t,true);
   // Generate all possible partitions
   constructor_nsearch_region_permutations_n(&search,region_profile,0,0,key_length);
 }
@@ -785,14 +807,14 @@ void constructor_ns_hamming_permutations() {
 void constructor_nsearch_region_permutations() {
   // Init NS-search
   mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_stack_t* const mm_stack = mm_stack_new(slab);
+  mm_allocator_t* const mm_allocator = mm_allocator_new(slab);
   approximate_search_t search;
-  constructor_ns_init(&search,mm_stack); // Configure
+  constructor_ns_init(&search,mm_allocator); // Configure
   // Configure Region Profile
   const uint64_t num_filtering_regions = 4;
   region_profile_t* const region_profile = &search.region_profile;
   region_profile->num_filtering_regions = num_filtering_regions;
-  region_profile->filtering_region = mm_stack_calloc(mm_stack,num_filtering_regions,region_search_t,true);
+  region_profile->filtering_region = mm_allocator_calloc(mm_allocator,num_filtering_regions,region_search_t,true);
   // Generate all possible partitions
   const uint64_t key_length = search.pattern.key_length;
   constructor_nsearch_region_permutations_n(&search,region_profile,0,0,key_length);
@@ -803,32 +825,32 @@ void constructor_nsearch_region_permutations() {
 void constructor_ns_edit_brute(const bool supercondensed) {
   // Init NS-search
   mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_stack_t* const mm_stack = mm_stack_new(slab);
+  mm_allocator_t* const mm_allocator = mm_allocator_new(slab);
   approximate_search_t search;
-  constructor_ns_init(&search,mm_stack); // Configure
+  constructor_ns_init(&search,mm_allocator); // Configure
   // Search
   nsearch_levenshtein_brute_force(&search,supercondensed,NULL);
 }
 void constructor_ns_edit_partition() {
   // Init NS-search
   mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_stack_t* const mm_stack = mm_stack_new(slab);
+  mm_allocator_t* const mm_allocator = mm_allocator_new(slab);
   approximate_search_t search;
-  constructor_ns_init(&search,mm_stack); // Configure
+  constructor_ns_init(&search,mm_allocator); // Configure
   // Search
   nsearch_levenshtein(&search,NULL);
 }
 void constructor_ns_edit_2regions() {
   // Init NS-search
   mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_stack_t* const mm_stack = mm_stack_new(slab);
+  mm_allocator_t* const mm_allocator = mm_allocator_new(slab);
   approximate_search_t search;
-  constructor_ns_init(&search,mm_stack); // Configure
+  constructor_ns_init(&search,mm_allocator); // Configure
   // Configure region-profile
   const uint64_t key_length = search.pattern.key_length;
   const uint64_t max_error = search.current_max_complete_error;
   region_profile_t* const region_profile = &search.region_profile;
-  region_profile->filtering_region = mm_stack_calloc(mm_stack,2,region_search_t,true);
+  region_profile->filtering_region = mm_allocator_calloc(mm_allocator,2,region_search_t,true);
   region_profile->filtering_region[0].begin = 0;
   region_profile->filtering_region[0].end = 3;
   region_profile->filtering_region[0].min = 1;
@@ -845,9 +867,9 @@ void constructor_ns_edit_2regions() {
  * LCS
  */
 void constructor_lsc() {
-  // MM-Stack
+  // MM-Allocator
   mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_stack_t* const mm_stack = mm_stack_new(slab);
+  mm_allocator_t* const mm_allocator = mm_allocator_new(slab);
   // Text & key
   char* text = "ACAAGTA";
   char* key =  "ACGT";
@@ -867,7 +889,7 @@ void constructor_lsc() {
 
 //  // Compute LCS
 //  uint64_t lcs_distance, match_end_column;
-//  align_ond_compute_lcs_distance(enc_key,key_length,enc_text,text_length,&lcs_distance,&match_end_column,0,mm_stack);
+//  align_ond_compute_lcs_distance(enc_key,key_length,enc_text,text_length,&lcs_distance,&match_end_column,0,mm_allocator);
 //  printf("  => LCS %lu (col=%lu)\n",lcs_distance,match_end_column);
 
   // Prepare input
@@ -881,12 +903,12 @@ void constructor_lsc() {
   vector_t* cigar_vector = vector_new(100,cigar_element_t);
   match_alignment_t match_alignment;
   match_alignment.match_position = 0;
-  align_ond_match(&align_input,max_distance,&match_alignment,cigar_vector,mm_stack);
+  align_ond_match(&align_input,max_distance,&match_alignment,cigar_vector,mm_allocator);
   // Display
   match_alignment_print_pretty(stderr,&match_alignment,
       cigar_vector,enc_key,key_length,
-      enc_text,text_length,mm_stack);
-//      enc_text+match_alignment.match_position,text_length,mm_stack);
+      enc_text,text_length,mm_allocator);
+//      enc_text+match_alignment.match_position,text_length,mm_allocator);
 }
 
 #define VECTOR_SORT_NAME            int
@@ -1125,6 +1147,9 @@ int main(int argc,char** argv) {
   // constructor_priority_queue();
   //  constructor_itoa();
   // constructor_swg();
+
+  constructor_allocator();
+  return 0;
 
   if (gem_strcaseeq(parameters.option,"hamming-brute")) {
     constructor_ns_hamming_brute();

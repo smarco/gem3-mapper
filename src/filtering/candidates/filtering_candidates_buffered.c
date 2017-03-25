@@ -29,31 +29,52 @@
 /*
  * Setup
  */
-void filtering_candidates_buffered_clear(
-    filtering_candidates_buffered_t* const filtering_candidates_buffered) {
-  filtering_candidates_buffered->positions_buffered = NULL;
+void filtering_candidates_buffered_inject_handlers(
+    filtering_candidates_buffered_t* const filtering_candidates_buffered,
+    mm_allocator_t* const mm_allocator) {
+  // Init structures
+  filtering_candidates_buffered->positions = NULL;
   filtering_candidates_buffered->num_positions = 0;
-  filtering_candidates_buffered->regions_buffered = NULL;
+  filtering_candidates_buffered->regions = NULL;
   filtering_candidates_buffered->num_regions = 0;
+  filtering_candidates_buffered->discarded_regions = NULL;
+  filtering_candidates_buffered->num_discarded_regions = 0;
+  // MM
+  filtering_candidates_buffered->mm_allocator = mm_allocator;
 }
 /*
  * Allocators
  */
 void filtering_candidates_buffered_allocate_positions(
-    filtering_candidates_t* const filtering_candidates,
     filtering_candidates_buffered_t* const filtering_candidates_buffered,
     const uint64_t num_filtering_positions) {
-  filtering_candidates_buffered->positions_buffered =
-      mm_stack_calloc(filtering_candidates->buffered_mm->mm_positions,
-          num_filtering_positions,filtering_position_buffered_t,false);
-  filtering_candidates_buffered->num_positions = num_filtering_positions;
+  filtering_candidates_buffered->positions = mm_allocator_calloc(
+      filtering_candidates_buffered->mm_allocator,num_filtering_positions,filtering_position_t*,false);
+}
+void filtering_candidates_buffered_free_positions(
+    filtering_candidates_buffered_t* const filtering_candidates_buffered) {
+  mm_allocator_free(filtering_candidates_buffered->mm_allocator,filtering_candidates_buffered->positions);
+  filtering_candidates_buffered->positions = NULL;
 }
 void filtering_candidates_buffered_allocate_regions(
-    filtering_candidates_t* const filtering_candidates,
     filtering_candidates_buffered_t* const filtering_candidates_buffered,
     const uint64_t num_filtering_regions) {
-  filtering_candidates_buffered->regions_buffered =
-      mm_stack_calloc(filtering_candidates->buffered_mm->mm_regions,
-          num_filtering_regions,filtering_region_buffered_t,false);
-  filtering_candidates_buffered->num_regions = num_filtering_regions;
+  filtering_candidates_buffered->regions = mm_allocator_calloc(
+      filtering_candidates_buffered->mm_allocator,num_filtering_regions,filtering_region_t*,false);
+}
+void filtering_candidates_buffered_free_regions(
+    filtering_candidates_buffered_t* const filtering_candidates_buffered) {
+  mm_allocator_free(filtering_candidates_buffered->mm_allocator,filtering_candidates_buffered->regions);
+  filtering_candidates_buffered->regions = NULL;
+}
+void filtering_candidates_buffered_allocate_discarded_regions(
+    filtering_candidates_buffered_t* const filtering_candidates_buffered,
+    const uint64_t num_discarded_regions) {
+  filtering_candidates_buffered->discarded_regions = mm_allocator_calloc(
+      filtering_candidates_buffered->mm_allocator,num_discarded_regions,filtering_region_t*,false);
+}
+void filtering_candidates_buffered_free_discarded_regions(
+    filtering_candidates_buffered_t* const filtering_candidates_buffered) {
+  mm_allocator_free(filtering_candidates_buffered->mm_allocator,filtering_candidates_buffered->discarded_regions);
+  filtering_candidates_buffered->discarded_regions = NULL;
 }

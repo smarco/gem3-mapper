@@ -29,7 +29,6 @@
 #define ALIGNMENT_H_
 
 #include "utils/essentials.h"
-#include "text/text_collection.h"
 #include "align/pattern/pattern_tiled.h"
 
 /*
@@ -65,8 +64,7 @@ void alignment_init(
     const uint64_t text_end_offset,
     const uint64_t max_error,
     const uint64_t num_tiles,
-    const uint64_t tile_length,
-    mm_stack_t* const mm_stack);
+    const uint64_t tile_length);
 
 /*
  * Check matches (CIGAR string against text & pattern)
@@ -100,9 +98,12 @@ void alignment_verify_edit_kmer(
     alignment_t* const alignment,
     pattern_tiled_t* const pattern_tiled,
     uint8_t* const key,
+    const uint64_t key_length,
     uint8_t* const text,
     const uint64_t text_length,
-    const uint64_t max_error);
+    const uint64_t max_error,
+    const uint64_t kmer_tiles,
+    const uint64_t kmer_length);
 
 /*
  * Verify edit distance using BPM

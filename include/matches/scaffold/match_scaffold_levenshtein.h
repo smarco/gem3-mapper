@@ -36,7 +36,6 @@ bool match_scaffold_levenshtein(
     match_scaffold_t* const match_scaffold,
     match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
-    matches_t* const matches,
-    mm_stack_t* const mm_stack);
+    matches_t* const matches);
 
 #endif /* MATCH_SCAFFOLD_LEVENSHTEIN_H_ */

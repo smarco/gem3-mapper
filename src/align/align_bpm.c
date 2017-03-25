@@ -42,7 +42,7 @@ void align_bpm_compute_matrix(
     const uint64_t text_length,
     uint64_t max_distance,
     bpm_align_matrix_t* const bpm_align_matrix,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   PROF_START(GP_BPM_COMPUTE_MATRIX);
   // Pattern variables
   const uint64_t* PEQ = bpm_pattern->PEQ;
@@ -52,8 +52,8 @@ void align_bpm_compute_matrix(
   const int64_t* const init_score = bpm_pattern->init_score;
   // Allocate auxiliary matrix
   const uint64_t aux_matrix_size = num_words64*UINT64_SIZE*(text_length+1); /* (+1 base-column) */
-  uint64_t* const Pv = (uint64_t*)mm_stack_malloc(mm_stack,aux_matrix_size);
-  uint64_t* const Mv = (uint64_t*)mm_stack_malloc(mm_stack,aux_matrix_size);
+  uint64_t* const Pv = (uint64_t*)mm_allocator_malloc(mm_allocator,aux_matrix_size);
+  uint64_t* const Mv = (uint64_t*)mm_allocator_malloc(mm_allocator,aux_matrix_size);
   bpm_align_matrix->Mv = Mv;
   bpm_align_matrix->Pv = Pv;
   // Initialize search
@@ -250,18 +250,18 @@ void align_bpm_match(
     const bool left_gap_alignment,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Fill Matrix (Pv,Mv)
-  mm_stack_push_state(mm_stack); // Save stack state
+  mm_allocator_push_state(mm_allocator); // Save allocator state
   bpm_align_matrix_t bpm_align_matrix;
   align_bpm_compute_matrix(
       bpm_pattern,text,text_length,
-      max_distance,&bpm_align_matrix,mm_stack);
+      max_distance,&bpm_align_matrix,mm_allocator);
   // Set distance
   match_alignment->score = bpm_align_matrix.min_score;
   if (bpm_align_matrix.min_score == ALIGN_DISTANCE_INF) {
     match_alignment->cigar_length = 0;
-    mm_stack_pop_state(mm_stack); // Free
+    mm_allocator_pop_state(mm_allocator); // Free
     return;
   }
   // Backtrace and generate CIGAR
@@ -269,5 +269,5 @@ void align_bpm_match(
       bpm_pattern,key,text,left_gap_alignment,
       &bpm_align_matrix,match_alignment,cigar_vector);
   // Free
-  mm_stack_pop_state(mm_stack);
+  mm_allocator_pop_state(mm_allocator);
 }

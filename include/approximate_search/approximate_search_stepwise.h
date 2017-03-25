@@ -35,7 +35,9 @@
 #include "gpu/gpu_buffer_fmi_ssearch.h"
 #include "gpu/gpu_buffer_fmi_asearch.h"
 #include "gpu/gpu_buffer_fmi_decode.h"
-#include "gpu/gpu_buffer_align_bpm.h"
+#include "gpu/gpu_buffer_kmer_filter.h"
+#include "gpu/gpu_buffer_bpm_distance.h"
+#include "gpu/gpu_buffer_bpm_align.h"
 
 /*
  * AM Stepwise :: Region Profile
@@ -61,22 +63,42 @@ void approximate_search_stepwise_region_profile_adaptive_retrieve(
 /*
  * AM Stepwise :: Decode Candidates
  */
-void approximate_search_stepwise_decode_candidates_copy(
+void approximate_search_stepwise_decode_copy(
     approximate_search_t* const search,
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode);
-void approximate_search_stepwise_decode_candidates_retrieve(
+void approximate_search_stepwise_decode_retrieve(
     approximate_search_t* const search,
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode);
 
 /*
- * AM Stepwise :: Verify Candidates
+ * AM Stepwise :: Kmer-filter
  */
-void approximate_search_stepwise_verify_candidates_copy(
+void approximate_search_stepwise_kmer_filter_copy(
     approximate_search_t* const search,
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm);
-void approximate_search_stepwise_verify_candidates_retrieve(
+    gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter);
+void approximate_search_stepwise_kmer_filter_retrieve(
     approximate_search_t* const search,
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
+    gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter);
+
+/*
+ * AM Stepwise :: BPM-Distance
+ */
+void approximate_search_stepwise_bpm_distance_copy(
+    approximate_search_t* const search,
+    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance);
+void approximate_search_stepwise_bpm_distance_retrieve(
+    approximate_search_t* const search,
+    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
     matches_t* const matches);
 
+/*
+ * AM Stepwise :: BPM-Align
+ */
+void approximate_search_stepwise_bpm_align_copy(
+    approximate_search_t* const search,
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
+void approximate_search_stepwise_bpm_align_retrieve(
+    approximate_search_t* const search,
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
+    matches_t* const matches);
 #endif /* APPROXIMATE_SEARCH_STEPWISE_H_ */

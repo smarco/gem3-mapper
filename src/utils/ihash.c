@@ -34,22 +34,22 @@
  * Allocators
  */
 #undef  uthash_malloc
-#define uthash_malloc(sz)   (ihash->mm_stack!=NULL ? mm_stack_malloc(ihash->mm_stack,sz) : malloc(sz))
+#define uthash_malloc(sz)   (ihash->mm_allocator!=NULL ? mm_allocator_malloc(ihash->mm_allocator,sz) : malloc(sz))
 #undef  uthash_free
-#define uthash_free(ptr,sz) if (ihash->mm_stack==NULL) free(ptr);
+#define uthash_free(ptr,sz) if (ihash->mm_allocator==NULL) free(ptr);
 
 /*
  * Constructor
  */
-ihash_t* ihash_new(mm_stack_t* const mm_stack) {
+ihash_t* ihash_new(mm_allocator_t* const mm_allocator) {
   ihash_t* const ihash = mm_alloc(ihash_t);
   ihash->head = NULL; // uthash initializer
-  ihash->mm_stack = mm_stack;
+  ihash->mm_allocator = mm_allocator;
   return ihash;
 }
 void ihash_clear(ihash_t* const ihash) {
   ihash_element_t *ihash_element, *tmp;
-  if (ihash->mm_stack != NULL) {
+  if (ihash->mm_allocator != NULL) {
     ihash->head = NULL; // uthash initializer
   } else {
     HASH_ITER(hh,ihash->head,ihash_element,tmp) {

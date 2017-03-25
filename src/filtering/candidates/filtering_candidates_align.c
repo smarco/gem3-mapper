@@ -81,8 +81,7 @@ bool filtering_candidates_align_search_filtering_region_cache(
   // Search the cache
   match_trace_t* const match_trace_cache =
       filtering_region_transient_cache_search(
-          &filtering_candidates->filtering_region_cache,region,
-          &filtering_candidates->text_collection);
+          &filtering_candidates->filtering_region_cache,region);
   if (match_trace_cache==NULL) return false;
   // Clone the match-trace found in the cache
   filtering_region_align_clone(match_trace_cache,match_trace,region);
@@ -91,19 +90,22 @@ bool filtering_candidates_align_search_filtering_region_cache(
 /*
  * Filtering Candidates Region Align
  */
-bool filtering_candidates_align_region(
+void filtering_candidates_align_region(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const region,
     pattern_t* const pattern,
     const bool local_alignment,
     const bool extended_match,
-    matches_t* const matches) {
+    matches_t* const matches,
+    bool* const region_accepted,
+    bool* const match_accepted) {
   // Parameters
   archive_t* const archive = filtering_candidates->archive;
   locator_t* const locator = archive->locator;
   archive_text_t* const archive_text = archive->text;
   // Retrieve Candidate (if needed)
-  filtering_region_retrieve_text(region,pattern,archive_text,&filtering_candidates->text_collection);
+  filtering_region_retrieve_text(region,
+      pattern,archive_text,filtering_candidates->mm_allocator);
   // Search Cache (Before jumping into aligning the region)
   match_trace_t match_trace;
   bool match_trace_aligned = !extended_match &&
@@ -113,20 +115,30 @@ bool filtering_candidates_align_region(
   if (!match_trace_aligned) {
     match_trace_aligned = filtering_region_align(filtering_candidates,
         region,pattern,local_alignment,matches,&match_trace);
-    if (!match_trace_aligned) return false; // Not aligned or subdominant
+    if (!match_trace_aligned) { // Not aligned or subdominant
+      *region_accepted = false;
+      *match_accepted = false;
+      return;
+    }
   }
   // Add to matches
   const bool set_local_match_aside = (!local_alignment && !extended_match);
   if (set_local_match_aside && match_trace.type == match_type_local) {
     // Add Local Alignment (Pending)
     matches_add_local_match_pending(matches,&match_trace);
-    return false; // Return (not added)
+    *region_accepted = true;
+    *match_accepted = false;
+    return;
   } else {
     // Add Global Alignment
     bool match_replaced;
     match_trace_t* const match_trace_added =
         matches_add_match_trace(matches,locator,&match_trace,&match_replaced);
-    if (match_trace_added==NULL) return false;
+    if (match_trace_added==NULL) {
+      *region_accepted = true;
+      *match_accepted = false;
+      return;
+    }
     if (extended_match) {
       match_trace_added->type = match_type_extended;
       vector_t* const extended_matches = filtering_candidates->extended_matches;
@@ -136,7 +148,9 @@ bool filtering_candidates_align_region(
     }
     filtering_region_transient_cache_add(
         &filtering_candidates->filtering_region_cache,region,match_trace_added);
-    return !match_replaced; // Return (Repeated?)
+    *region_accepted = true;
+    *match_accepted = !match_replaced; // Repeated?
+    return;
   }
 }
 /*
@@ -168,11 +182,13 @@ uint64_t filtering_candidates_align_candidates(
   // Traverse all accepted candidates (text-space)
   uint64_t n, num_regions_out = 0, num_regions_discarded = 0;
   uint64_t num_accepted_regions = 0, num_accepted_candidates = 0;
+  bool region_accepted, match_accepted;
   for (n=0;n<num_filtering_regions;++n) {
     filtering_region_t* const filtering_region = regions_in[n];
     // Skip other regions
     if (filtering_region->status != filtering_region_accepted) {
-      regions_out[num_regions_out++] = filtering_region;
+      regions_out[num_regions_out++] = filtering_region; // FIXME
+      fprintf(stderr,"THIS SHOULDNT BE HERE ------------------------------------------------------>>> \n");
       continue;
     }
     ++num_accepted_candidates;
@@ -191,11 +207,17 @@ uint64_t filtering_candidates_align_candidates(
       continue;
     }
     // Align Region
-    const bool accepted_region =
-        filtering_candidates_align_region(
-            filtering_candidates,filtering_region,pattern,
-            local_alignment,extended_match,matches);
-    if (accepted_region) ++num_accepted_regions;
+    filtering_candidates_align_region(
+        filtering_candidates,filtering_region,pattern,
+        local_alignment,extended_match,matches,
+        &region_accepted,&match_accepted);
+    if (!region_accepted) {
+      filtering_region->status = filtering_region_accepted_subdominant;
+      regions_discarded[num_regions_discarded++] = filtering_region;
+    } else {
+      filtering_candidates_free_region(filtering_candidates,filtering_region); // Free
+      if (match_accepted) ++num_accepted_regions;
+    }
   }
   // Update used
   matches_metrics_add_accepted_candidates(&matches->metrics,num_accepted_candidates);

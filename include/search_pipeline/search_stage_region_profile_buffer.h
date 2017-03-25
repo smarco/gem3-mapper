@@ -42,7 +42,6 @@ typedef struct {
   vector_t* archive_searches;                       // Vector of archive-searches (archive_search_t*)
 } search_stage_region_profile_buffer_t;
 
-
 /*
  * Setup
  */
@@ -54,11 +53,9 @@ search_stage_region_profile_buffer_t* search_stage_region_profile_buffer_new(
     const uint32_t extra_search_steps,
     const uint32_t alphabet_size);
 void search_stage_region_profile_buffer_clear(
-    search_stage_region_profile_buffer_t* const region_profile_buffer,
-    archive_search_cache_t* const archive_search_cache);
+    search_stage_region_profile_buffer_t* const region_profile_buffer);
 void search_stage_region_profile_buffer_delete(
-    search_stage_region_profile_buffer_t* const region_profile_buffer,
-    archive_search_cache_t* const archive_search_cache);
+    search_stage_region_profile_buffer_t* const region_profile_buffer);
 
 /*
  * Occupancy

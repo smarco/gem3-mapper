@@ -25,10 +25,10 @@
 #define MATCHES_H_
 
 #include "utils/essentials.h"
-#include "text/text_collection.h"
 #include "align/align_swg_score.h"
 #include "archive/locator.h"
 #include "archive/search/archive_select_parameters.h"
+#include "text/text_trace.h"
 #include "matches/matches_counters.h"
 #include "matches/align/match_alignment.h"
 #include "matches/matches_cigar.h"
@@ -69,7 +69,7 @@ typedef struct {
   bs_strand_t bs_strand;             // Bisulfite Strand
   uint64_t text_position;            // Position of the match in the text. Local text (Eg wrt Chr1)
   /* Reference-Text */
-  uint64_t text_trace_offset;        // Trace-offset in the text-collection
+  text_trace_t* text_trace;          // Text-trace
   uint8_t* text;                     // Pointer to the matching-text
   uint64_t text_length;              // Length of the matching-text
   /* Distance/Score */
@@ -102,7 +102,7 @@ typedef struct {
   matches_metrics_t metrics;           // Metrics
   /* MM */
   mm_slab_t* mm_slab;                  // MM-Slab
-  mm_stack_t* mm_stack;                // MM-Stack
+  mm_allocator_t* mm_allocator;        // MM-Allocator
 } matches_t;
 
 /*

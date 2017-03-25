@@ -51,7 +51,7 @@ void archive_text_rl_encode(
 uint64_t archive_text_rl_position_translate(
     archive_text_t* const archive_text,
     const uint64_t position_rl,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 
 /*
  * Utils

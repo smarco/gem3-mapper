@@ -77,7 +77,9 @@ void mapper_parameters_set_defaults_cuda(mapper_parameters_cuda_t* const cuda) {
   cuda->gpu_buffer_size = BUFFER_SIZE_1M;
   cuda->num_fmi_bsearch_buffers = 2;
   cuda->num_fmi_decode_buffers = 3;
-  cuda->num_bpm_buffers = 3;
+  cuda->num_kmer_filter_buffers = 3;
+  cuda->num_bpm_distance_buffers = 3;
+  cuda->num_bpm_align_buffers = 3;
   /* Stages Configuration */
   cuda->cpu_emulation=false;
 }

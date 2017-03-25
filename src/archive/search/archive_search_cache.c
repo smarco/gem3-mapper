@@ -39,27 +39,21 @@
  * Setup
  */
 archive_search_cache_t* archive_search_cache_new(
-    archive_t* const archive,
     search_parameters_t* const search_parameters) {
   // Alloc
   archive_search_cache_t* const archive_search_cache = mm_alloc(archive_search_cache_t);
   // Initialize cache
   archive_search_cache->archive_search_cache = vector_new(ARCHIVE_SEARCH_CACHE_INIT_SIZE,archive_search_t*);
-  archive_search_cache->archive = archive;
+  // Search Parameters
   archive_search_cache->search_parameters = search_parameters;
-  // MM
-  archive_search_cache->mm_slab = mm_slab_new_(BUFFER_SIZE_8M,BUFFER_SIZE_8M,MM_UNLIMITED_MEM,"archive_search_cache.8MB");
-  archive_search_cache->mm_stack = mm_stack_new(archive_search_cache->mm_slab);
   // Return
   return archive_search_cache;
 }
 void archive_search_cache_delete(archive_search_cache_t* const archive_search_cache) {
   // Delete all archive_search_t objects in cache
-  VECTOR_ITERATE(archive_search_cache->archive_search_cache,archive_search_ptr,n,archive_search_t*) {
-    archive_search_destroy(*archive_search_ptr);
+  VECTOR_ITERATE(archive_search_cache->archive_search_cache,archive_search,n,archive_search_t*) {
+    archive_search_delete(*archive_search);
   }
-  mm_stack_delete(archive_search_cache->mm_stack);
-  mm_slab_delete(archive_search_cache->mm_slab);
   // Free handlers
   vector_delete(archive_search_cache->archive_search_cache);
   mm_free(archive_search_cache);
@@ -76,46 +70,26 @@ void archive_search_cache_se_alloc(
     vector_dec_used(archive_search_cache->archive_search_cache);
   } else {
     // Allocate a new archive-search
-    *archive_search = mm_stack_alloc(archive_search_cache->mm_stack,archive_search_t); // Allocate handler
-    archive_search_init(
-        *archive_search,archive_search_cache->archive,
-        archive_search_cache->search_parameters,true,
-        archive_search_cache->mm_stack); // Prepare
-    archive_select_configure_se(*archive_search); // Select align
+    archive_search_se_new(archive_search_cache->search_parameters,true,archive_search);
   }
 }
 void archive_search_cache_pe_alloc(
     archive_search_cache_t* const archive_search_cache,
     archive_search_t** const archive_search_end1,
     archive_search_t** const archive_search_end2) {
-  // Allocate End/1
-  if (vector_get_used(archive_search_cache->archive_search_cache) > 0) {
+  // Allocate
+  if (vector_get_used(archive_search_cache->archive_search_cache) > 1) {
     *archive_search_end1 = *vector_get_last_elm(archive_search_cache->archive_search_cache,archive_search_t*);
     vector_dec_used(archive_search_cache->archive_search_cache);
-  } else {
-    *archive_search_end1 = mm_stack_alloc(archive_search_cache->mm_stack,archive_search_t); // Allocate handler
-    archive_search_init(
-        *archive_search_end1,archive_search_cache->archive,
-        archive_search_cache->search_parameters,true,
-        archive_search_cache->mm_stack); // Prepare
-    archive_select_configure_pe(*archive_search_end1); // Select align
-  }
-  // Allocate End/2
-  if (vector_get_used(archive_search_cache->archive_search_cache) > 0) {
     *archive_search_end2 = *vector_get_last_elm(archive_search_cache->archive_search_cache,archive_search_t*);
     vector_dec_used(archive_search_cache->archive_search_cache);
   } else {
-    *archive_search_end2 = mm_stack_alloc(archive_search_cache->mm_stack,archive_search_t); // Allocate handler
-    archive_search_init(
-        *archive_search_end2,archive_search_cache->archive,
-        archive_search_cache->search_parameters,true,
-        archive_search_cache->mm_stack); // Prepare
-    archive_select_configure_pe(*archive_search_end2); // Select align
+    archive_search_pe_new(archive_search_cache->search_parameters,true,archive_search_end1,archive_search_end2);
   }
 }
 void archive_search_cache_free(
     archive_search_cache_t* const archive_search_cache,
     archive_search_t* const archive_search) {
-  // Add it to the cache
+  // Return it to the cache
   vector_insert(archive_search_cache->archive_search_cache,archive_search,archive_search_t*);
 }

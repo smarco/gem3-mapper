@@ -163,14 +163,14 @@ void approximate_search_stepwise_region_profile_adaptive_retrieve(
 /*
  * AM Stepwise :: Decode Candidates
  */
-void approximate_search_stepwise_decode_candidates_copy(
+void approximate_search_stepwise_decode_copy(
     approximate_search_t* const search,
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
   if (search->processing_state == asearch_processing_state_region_profiled) {
     approximate_search_generate_candidates_buffered_copy(search,gpu_buffer_fmi_decode);
   }
 }
-void approximate_search_stepwise_decode_candidates_retrieve(
+void approximate_search_stepwise_decode_retrieve(
     approximate_search_t* const search,
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
   if (search->processing_state == asearch_processing_state_region_profiled) {
@@ -178,22 +178,63 @@ void approximate_search_stepwise_decode_candidates_retrieve(
   }
 }
 /*
- * AM Stepwise :: Verify Candidates
+ * AM Stepwise :: Kmer-filter
  */
-void approximate_search_stepwise_verify_candidates_copy(
+void approximate_search_stepwise_kmer_filter_copy(
     approximate_search_t* const search,
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm) {
+    gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter) {
   if (search->processing_state == asearch_processing_state_candidates_processed) {
-    approximate_search_verify_candidates_buffered_copy(search,gpu_buffer_align_bpm);
+    approximate_search_kmer_filter_buffered_copy(search,gpu_buffer_kmer_filter);
   }
 }
-void approximate_search_stepwise_verify_candidates_retrieve(
+void approximate_search_stepwise_kmer_filter_retrieve(
     approximate_search_t* const search,
-    gpu_buffer_align_bpm_t* const gpu_buffer_align_bpm,
+    gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter) {
+  if (search->search_stage==asearch_stage_filtering_adaptive) {
+    if (search->processing_state == asearch_processing_state_candidates_processed) {
+      approximate_search_kmer_filter_buffered_retrieve(search,gpu_buffer_kmer_filter);
+    }
+    search->search_stage = asearch_stage_filtering_adaptive_finished;
+  }
+}
+/*
+ * AM Stepwise :: BPM-Distance
+ */
+void approximate_search_stepwise_bpm_distance_copy(
+    approximate_search_t* const search,
+    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance) {
+  if (search->processing_state == asearch_processing_state_candidates_processed) {
+    approximate_search_bpm_distance_buffered_copy(search,gpu_buffer_bpm_distance);
+  }
+}
+void approximate_search_stepwise_bpm_distance_retrieve(
+    approximate_search_t* const search,
+    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
     matches_t* const matches) {
   if (search->search_stage==asearch_stage_filtering_adaptive) {
     if (search->processing_state == asearch_processing_state_candidates_processed) {
-      approximate_search_verify_candidates_buffered_retrieve(search,gpu_buffer_align_bpm,matches);
+      approximate_search_bpm_distance_buffered_retrieve(search,gpu_buffer_bpm_distance,matches);
+    }
+    search->search_stage = asearch_stage_filtering_adaptive_finished;
+  }
+}
+/*
+ * AM Stepwise :: BPM-Align
+ */
+void approximate_search_stepwise_bpm_align_copy(
+    approximate_search_t* const search,
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
+  if (search->processing_state == asearch_processing_state_candidates_processed) {
+    approximate_search_bpm_align_buffered_copy(search,gpu_buffer_bpm_align);
+  }
+}
+void approximate_search_stepwise_bpm_align_retrieve(
+    approximate_search_t* const search,
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
+    matches_t* const matches) {
+  if (search->search_stage==asearch_stage_filtering_adaptive) {
+    if (search->processing_state == asearch_processing_state_candidates_processed) {
+      approximate_search_bpm_align_buffered_retrieve(search,gpu_buffer_bpm_align,matches);
     }
     search->search_stage = asearch_stage_filtering_adaptive_finished;
   }

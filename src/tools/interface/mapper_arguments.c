@@ -43,9 +43,7 @@ option_t gem_mapper_options[] = {
   { 206, "clipping", OPTIONAL, TYPE_STRING, 2, VISIBILITY_ADVANCED, "'none'|'uncalled'|'masked'|'fixed,<left_clip>,<right_clip>'", "(default=uncalled)" },
   /* Qualities */
   { 'q', "quality-format", REQUIRED, TYPE_STRING, 3, VISIBILITY_ADVANCED, "'ignore'|'offset-33'|'offset-64'", "(default=offset-33)" },
-  { 'Q', "quality-model", REQUIRED, TYPE_STRING, 3, VISIBILITY_ADVANCED, "'gem'|'flat'", "(default=gem)" },
-  { 300, "gem-quality-threshold", REQUIRED, TYPE_INT, 3, VISIBILITY_ADVANCED, "<number>", "(default=26, that is e<=2e-3)" },
-  { 301, "mismatch-alphabet", REQUIRED, TYPE_STRING, 4, VISIBILITY_ADVANCED, "<symbols>" , "(default='ACGT')" },
+  { 300, "quality-threshold", REQUIRED, TYPE_INT, 3, VISIBILITY_ADVANCED, "<number>", "(default=26, that is e<=2e-3)" },
   /* Single-end Alignment */
   { 400, "mapping-mode", REQUIRED, TYPE_STRING, 4, VISIBILITY_USER, "'fast'|'sensitive'|'customed'" , "(default=fast)" },
   { 'E', "complete-search-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=0.04, 4%)" },
@@ -65,7 +63,7 @@ option_t gem_mapper_options[] = {
   { 412, "candidate-generation", REQUIRED, TYPE_STRING, 4, VISIBILITY_DEVELOPER, "<strategy>[,<arguments>]" , "" },
   { 413, "candidate-generation-adaptive", REQUIRED, TYPE_STRING, 4, VISIBILITY_DEVELOPER, "<app_threshold>,<app_steps>,<app_dec>" , "" },
   { 414, "candidate-verification", REQUIRED, TYPE_STRING, 4, VISIBILITY_DEVELOPER, "'BPM'|'chained'" , "" },
-  { 415, "qgram-filter", REQUIRED, TYPE_STRING, 4, VISIBILITY_DEVELOPER, "<num_slices>,<qgram_length>" , "" },
+  { 415, "qgram-filter", REQUIRED, TYPE_STRING, 4, VISIBILITY_DEVELOPER, "<kmer_tiles>,<qgram_length>" , "" },
   /* Paired-end Alignment */
   { 'p', "paired-end-alignment", NO_ARGUMENT, TYPE_NONE, 5, VISIBILITY_USER, "" , "" },
   { 'l', "min-template-length", REQUIRED, TYPE_INT, 5, VISIBILITY_USER, "<number>" , "(default=disabled)" },
@@ -106,7 +104,7 @@ option_t gem_mapper_options[] = {
 #ifdef HAVE_CUDA
   { 1200, "gpu", OPTIONAL, TYPE_STRING, 12, VISIBILITY_USER, "", "(default=disabled)"},
   { 1201, "gpu-devices", REQUIRED, TYPE_STRING, 12, VISIBILITY_USER, "", "(default=all)"},
-  { 1202, "gpu-buffers-model", REQUIRED, TYPE_STRING, 12, VISIBILITY_DEVELOPER, "<#BufferSearch,#BufferDecode,#BufferVerify,BufferSize>" , "(default=2,3,3,1M)" },
+  { 1202, "gpu-buffers-model", REQUIRED, TYPE_STRING, 12, VISIBILITY_DEVELOPER, "<#BSearch,#BDecode,#BKmer,#BBPMDistance,#BBPMAlign,BufferSize>" , "(default=2,3,3,3,3,1M)" },
 #endif /* HAVE_CUDA */
   /* Presets/Hints */
   /* Debug */
@@ -373,26 +371,9 @@ bool gem_mapper_parse_arguments_qualities(
             "Option '-q|--quality-format' must be 'ignore', 'offset-33' or 'offset-64'");
       }
       return true;
-    case 'Q': // --quality-model
-      if (gem_strcaseeq(optarg, "gem")) {
-        search->qualities_model = sequence_qualities_model_gem;
-        // TODO parameters->quality_score=gem_quality_score;
-      } else if (gem_strcaseeq(optarg, "flat")) {
-        search->qualities_model = sequence_qualities_model_flat;
-        // TODO parameters->quality_score=flat_quality_score;
-      } else {
-        mapper_error_msg("Option '-Q|--quality-model' must be 'gem' or 'flat'");
-      }
-      return true;
-    case 300: // --gem-quality-threshold (default=26, that is e<=2e-3)
+    case 300: // --quality-threshold (default=26, that is e<=2e-3)
       input_text_parse_extended_uint64(optarg, &search->quality_threshold);
       return true;
-    case 301: { // --mismatch-alphabet (default='ACGT')
-      const char* const mismatch_alphabet = optarg;
-      search_configure_replacements(search, mismatch_alphabet,
-          gem_strlen(mismatch_alphabet));
-      return true;
-    }
   }
   // Not found
   return false;
@@ -576,10 +557,10 @@ bool gem_mapper_parse_arguments_single_end(
       }
       return true;
     case 415: { // --qgram-filter <num_slices>,<qgram_length>
-      char *num_slices=NULL, *qgram_length=NULL;
-      const int num_arguments = input_text_parse_csv_arguments(optarg,2,&num_slices,&qgram_length);
-      mapper_cond_error_msg(num_arguments!=2,"Option '--qgram-filter' wrong arguments (<num_slices>,<qgram_length>)");
-      input_text_parse_extended_uint64(num_slices,&search->candidate_verification.num_slices);
+      char *kmer_tiles=NULL, *qgram_length=NULL;
+      const int num_arguments = input_text_parse_csv_arguments(optarg,2,&kmer_tiles,&qgram_length);
+      mapper_cond_error_msg(num_arguments!=2,"Option '--qgram-filter' wrong arguments (<kmer_tiles>,<qgram_length>)");
+      input_text_parse_extended_uint64(kmer_tiles,&search->candidate_verification.kmer_tiles);
       input_text_parse_extended_uint64(qgram_length,&search->candidate_verification.kmer_length);
       return true;
     }
@@ -985,28 +966,45 @@ bool gem_mapper_parse_arguments_gpu(
       break;
     case 1202: { // --gpu-buffers-model=2,3,3,1M
       if (!gpu_supported()) GEM_CUDA_NOT_SUPPORTED();
-      char *num_fmi_bsearch_buffers=NULL, *num_fmi_decode_buffers=NULL, *num_bpm_buffers=NULL, *buffer_size=NULL;
-      const int num_arguments = input_text_parse_csv_arguments(optarg,4,
-          &num_fmi_bsearch_buffers,&num_fmi_decode_buffers,&num_bpm_buffers,&buffer_size);
-      mapper_cond_error_msg(num_arguments!=4,"Option '--cuda-buffers-model' wrong number of arguments");
+      char* num_fmi_bsearch_buffers=NULL;
+      char* num_fmi_decode_buffers=NULL;
+      char* num_bpm_kmer_filter_buffers=NULL;
+      char* num_bpm_distance_buffers=NULL;
+      char* num_bpm_align_buffers=NULL;
+      char* buffer_size=NULL;
+      const int num_arguments = input_text_parse_csv_arguments(optarg,6,
+          &num_fmi_bsearch_buffers,&num_fmi_decode_buffers,
+          &num_bpm_kmer_filter_buffers,&num_bpm_distance_buffers,
+          &num_bpm_align_buffers,&buffer_size);
+      mapper_cond_error_msg(num_arguments!=4,"Option '--gpu-buffers-model' wrong number of arguments");
       // Number of region-profile buffers per thread
       mapper_cond_error_msg(input_text_parse_integer(
           (const char** const)&num_fmi_bsearch_buffers,
           (int64_t*)&parameters->cuda.num_fmi_bsearch_buffers),
-          "Option '--cuda-buffers-model'. Error parsing 'region-profile buffers'");
+          "Option '--gpu-buffers-model'. Error parsing 'region-profile buffers'");
       // Number of decode-candidates buffers per thread
       mapper_cond_error_msg(input_text_parse_integer(
           (const char** const)&num_fmi_decode_buffers,
           (int64_t*)&parameters->cuda.num_fmi_decode_buffers),
-          "Option '--cuda-buffers-model'. Error parsing 'decode-candidates buffers'");
-      // Number of verify-candidates buffers per thread
+          "Option '--gpu-buffers-model'. Error parsing 'decode-candidates buffers'");
+      // Number of Kmer-Filter candidates buffers per thread
       mapper_cond_error_msg(input_text_parse_integer(
-          (const char** const)&num_bpm_buffers,
-          (int64_t*)&parameters->cuda.num_bpm_buffers),
-          "Option '--cuda-buffers-model'. Error parsing 'verify-candidates buffers'");
+          (const char** const)&num_bpm_kmer_filter_buffers,
+          (int64_t*)&parameters->cuda.num_kmer_filter_buffers),
+          "Option '--gpu-buffers-model'. Error parsing 'Kmer-Filter candidates buffers'");
+      // Number of BPM-Distance candidates buffers per thread
+      mapper_cond_error_msg(input_text_parse_integer(
+          (const char** const)&num_bpm_distance_buffers,
+          (int64_t*)&parameters->cuda.num_bpm_distance_buffers),
+          "Option '--gpu-buffers-model'. Error parsing 'BPM-Distance candidates buffers'");
+      // Number of BPM-Align candidates buffers per thread
+      mapper_cond_error_msg(input_text_parse_integer(
+          (const char** const)&num_bpm_align_buffers,
+          (int64_t*)&parameters->cuda.num_bpm_align_buffers),
+          "Option '--gpu-buffers-model'. Error parsing 'BPM-Align candidates buffers'");
       // Buffer size
       mapper_cond_error_msg(input_text_parse_size(buffer_size,&parameters->cuda.gpu_buffer_size),
-          "Option '--cuda-buffers-model'. Error parsing 'buffer_size'");
+          "Option '--gpu-buffers-model'. Error parsing 'buffer_size'");
       return true;
     }
   }

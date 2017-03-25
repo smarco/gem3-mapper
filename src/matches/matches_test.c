@@ -73,7 +73,7 @@ bool matches_test_accuracy_reached(
   // Classify
   const uint64_t delta = search_parameters->complete_strata_after_best_nominal; // (default = 1)
   const uint64_t min_edit_distance = matches_metrics_get_min_edit_distance(&matches->metrics);
-  const uint64_t mms = min_edit_distance + 1; // Minimum matching stratum
+  // const uint64_t mms = min_edit_distance + 1; // Minimum matching stratum
   matches_classify(matches);
   switch (matches->matches_class) {
     case matches_class_unmapped: // Unmapped (not enough search depth)

@@ -76,7 +76,7 @@ void align_swg_traceback(
         } else if (dp[h][v].M == dp[h][v].I) {
           traceback_matrix = cigar_ins;
         } else {
-          if (key[v-1] != text[h-1]) {
+          if (key[v-1] != text[h-1] || key[v-1] == ENC_DNA_CHAR_N) { // N's Inequality
             // Mismatch
             matches_cigar_buffer_add_mismatch(&cigar_buffer_sentinel,text[h-1]);
             --h; --v;
@@ -123,12 +123,12 @@ void align_swg_traceback(
 swg_cell_t** align_swg_allocate_table(
     const uint64_t num_columns,
     const uint64_t num_rows,
-    mm_stack_t* const mm_stack) {
-  swg_cell_t** const dp = mm_stack_malloc(mm_stack,num_columns*sizeof(swg_cell_t*));
+    mm_allocator_t* const mm_allocator) {
+  swg_cell_t** const dp = mm_allocator_malloc(mm_allocator,num_columns*sizeof(swg_cell_t*));
   const uint64_t row_size = num_rows*sizeof(swg_cell_t);
   uint64_t column;
   for (column=0;column<num_columns;++column) {
-    dp[column] = mm_stack_malloc(mm_stack,row_size);
+    dp[column] = mm_allocator_malloc(mm_allocator,row_size);
   }
   return dp;
 }
@@ -234,7 +234,7 @@ void align_swg_base(
     match_align_parameters_t* const align_parameters,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Parameters
   const uint8_t* const key = align_input->key;
   const uint64_t key_length = align_input->key_length;
@@ -242,11 +242,11 @@ void align_swg_base(
   const uint64_t text_length = align_input->text_length;
   const swg_penalties_t* swg_penalties = align_parameters->swg_penalties;
   // Initialize
-  mm_stack_push_state(mm_stack); // Save stack state
+  mm_allocator_push_state(mm_allocator); // Save allocator state
   const uint64_t num_rows = (key_length+1);
   const uint64_t num_columns = (text_length+1);
   uint64_t column, row;
-  swg_cell_t** const dp = align_swg_allocate_table(num_columns,num_rows,mm_stack);
+  swg_cell_t** const dp = align_swg_allocate_table(num_columns,num_rows,mm_allocator);
   // Initialize first row
   const swg_matching_score_t* const matching_score = &swg_penalties->matching_score;
   const int32_t single_gap = swg_penalties->gap_open_score + swg_penalties->gap_extension_score; // g(1)
@@ -280,7 +280,7 @@ void align_swg_base(
     }
   }
   // DEBUG
-    // align_swg_match_table_print(dp,MIN(10,key_length),MIN(10,key_length));
+  // align_swg_match_table_print(dp,MIN(10,key_length),MIN(10,key_length));
   // Init Match
   match_alignment->cigar_length = 0;
   match_alignment->effective_length = 0;
@@ -290,7 +290,7 @@ void align_swg_base(
       align_input,dp,max_score,max_score_column,
       single_gap,true,match_alignment,cigar_vector);
   // Clean-up
-  mm_stack_pop_state(mm_stack); // Free
+  mm_allocator_pop_state(mm_allocator); // Free
 }
 /*
  * SWG Full (Computes full DP-matrix)
@@ -302,7 +302,7 @@ void align_swg_full(
     const bool end_free,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   PROF_START(GP_SWG_ALIGN_FULL);
   // Parameters
   const uint8_t* const key = align_input->key;
@@ -311,11 +311,11 @@ void align_swg_full(
   const uint64_t text_length = align_input->text_length;
   const swg_penalties_t* swg_penalties = align_parameters->swg_penalties;
   // Allocate memory
-  mm_stack_push_state(mm_stack); // Save stack state
+  mm_allocator_push_state(mm_allocator); // Save allocator state
   const uint64_t num_rows = (key_length+1);
   const uint64_t num_rows_1 = num_rows-1;
   const uint64_t num_columns = (text_length+1);
-  swg_cell_t** const dp = align_swg_allocate_table(num_columns+1,num_rows+1,mm_stack);
+  swg_cell_t** const dp = align_swg_allocate_table(num_columns+1,num_rows+1,mm_allocator);
   // Initialize DP-matrix
   const swg_matching_score_t* const matching_score = &swg_penalties->matching_score;
   const int32_t gap_extension = swg_penalties->gap_extension_score;
@@ -365,7 +365,7 @@ void align_swg_full(
       align_input,dp,max_score,max_score_column,
       single_gap,begin_free,match_alignment,cigar_vector);
   // Clean-up
-  mm_stack_pop_state(mm_stack); // Free
+  mm_allocator_pop_state(mm_allocator); // Free
   PROF_STOP(GP_SWG_ALIGN_FULL);
 }
 /*
@@ -378,14 +378,13 @@ void align_swg(
     const bool end_free,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Parameters
   const uint8_t* const key = align_input->key;
   const uint64_t key_length = align_input->key_length;
   uint8_t* const text = align_input->text;
   const uint64_t text_length = align_input->text_length;
   const swg_penalties_t* swg_penalties = align_parameters->swg_penalties;
-  const bool* const allowed_enc = align_parameters->allowed_enc;
   // Check lengths
   if (key_length == 0 && text_length == 0) {
     match_alignment->score = 0;
@@ -413,7 +412,7 @@ void align_swg(
     // Mismatch/Match
     const uint8_t key_enc = key[0];
     const uint8_t text_enc = text[0];
-    if (!allowed_enc[text_enc] || text_enc != key_enc) {
+    if (text_enc == ENC_DNA_CHAR_N || text_enc != key_enc) {
       matches_cigar_vector_append_mismatch(cigar_vector,&match_alignment->cigar_length,text_enc,cigar_attr_none);
       match_alignment->score = align_swg_score_mismatch(swg_penalties);
     } else {
@@ -424,7 +423,7 @@ void align_swg(
   } else {
     PROF_ADD_COUNTER(GP_SWG_ALIGN_BANDED_LENGTH,text_length);
     align_swg_banded(align_input,align_parameters,
-        begin_free,end_free,match_alignment,cigar_vector,mm_stack);
+        begin_free,end_free,match_alignment,cigar_vector,mm_allocator);
   }
 }
 /*

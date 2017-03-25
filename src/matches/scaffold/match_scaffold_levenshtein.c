@@ -113,7 +113,7 @@ void match_scaffold_levenshtein_tiled(
     const uint64_t matching_min_length,
     const bool left_gap_alignment,
     matches_t* const matches,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Parameters
   uint8_t* const key = align_input->key + key_offset;
   uint8_t* const text = align_input->text_padded + text_begin;
@@ -123,7 +123,7 @@ void match_scaffold_levenshtein_tiled(
   bpm_align_matrix_t bpm_align_matrix;
   align_bpm_compute_matrix(
       bpm_pattern_tile,text,text_length,
-      max_distance,&bpm_align_matrix,mm_stack);
+      max_distance,&bpm_align_matrix,mm_allocator);
   PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_CELLS,bpm_pattern_tile->pattern_length*text_length);
   if (bpm_align_matrix.min_score != ALIGN_DISTANCE_INF) {
     // Backtrace and generate CIGAR
@@ -145,7 +145,7 @@ void match_scaffold_levenshtein_tiled(
     //match_alignment_print_pretty(stderr,&match_alignment,matches->cigar_vector,
     //  align_input->key + key_offset,bpm_pattern_tile->pattern_length,
     //  align_input->text_padded + text_begin + alignment_offset,
-    //  text_end-match_alignment.match_text_offset,mm_stack);
+    //  text_end-match_alignment.match_text_offset,mm_allocator);
     // Add the alignment to the scaffold
     match_scaffold_levenshtein_compose_alignment(
         match_scaffold,matches,&match_alignment,
@@ -159,8 +159,7 @@ bool match_scaffold_levenshtein(
     match_scaffold_t* const match_scaffold,
     match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
-    matches_t* const matches,
-    mm_stack_t* const mm_stack) {
+    matches_t* const matches) {
   PROF_INC_COUNTER(GP_MATCH_SCAFFOLD_EDIT_SCAFFOLDS);
   PROFILE_START(GP_MATCH_SCAFFOLD_EDIT,PROFILE_LEVEL);
   // Parameters
@@ -170,10 +169,13 @@ bool match_scaffold_levenshtein(
   const bool left_gap_alignment = align_parameters->left_gap_alignment;
   // Init Scaffold
   match_scaffold->num_alignment_regions = 0;
-  match_scaffold->alignment_regions =
-      mm_stack_calloc(mm_stack,max_alignment_regions,match_alignment_region_t,false);
-  // Push stack state
-  mm_stack_push_state(mm_stack);
+  if (match_scaffold->alignment_regions!=NULL) {
+    match_scaffold_free_alignment_region(match_scaffold,match_scaffold->alignment_regions);
+  }
+  match_scaffold->alignment_regions = match_scaffold_allocate_alignment_region(match_scaffold,max_alignment_regions);
+  // Push allocator state
+  mm_allocator_t* const mm_allocator = match_scaffold->mm_allocator;
+  mm_allocator_push_state(mm_allocator);
   // Compute dimensions
   alignment_tile_t* const alignment_tiles = align_input->alignment->alignment_tiles;
   pattern_tiled_t* const pattern_tiled = align_input->pattern_tiled;
@@ -195,20 +197,20 @@ bool match_scaffold_levenshtein(
       const uint64_t text_end_offset = alignment_tile->text_end_offset;
       const uint64_t distance_bound = MIN(match_distance,max_distance);
       PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_TILES_DISTANCE_BOUND,distance_bound);
-      mm_stack_push_state(mm_stack); // Push stack state
+      mm_allocator_push_state(mm_allocator); // Push allocator state
       match_scaffold_levenshtein_tiled(
-          match_scaffold,align_input,pattern_tile->bpm_pattern_tile,
+          match_scaffold,align_input,&pattern_tile->bpm_pattern_tile,
           key_offset,text_begin_offset,text_end_offset,
           distance_bound,matching_min_length,left_gap_alignment,
-          matches,mm_stack);
-      mm_stack_pop_state(mm_stack); // Pop stack state
+          matches,mm_allocator);
+      mm_allocator_pop_state(mm_allocator); // Pop allocator state
       PROF_INC_COUNTER(GP_MATCH_SCAFFOLD_EDIT_TILES_ALIGN);
     }
     // Next
     key_offset += tile_length;
   }
-  // Pop stack state
-  mm_stack_pop_state(mm_stack);
+  // Pop allocator state
+  mm_allocator_pop_state(mm_allocator);
   // DEBUG
   gem_cond_debug_block(DEBUG_MATCH_SCAFFOLD_EDIT) {
     tab_fprintf(gem_log_get_stream(),"[GEM]>Match.Scaffold.Edit.Tiled\n");

@@ -59,25 +59,59 @@ void filtering_candidates_init(filtering_candidates_t* const filtering_candidate
   filtering_candidates->extended_matches = NULL;
   // Cache
   filtering_region_cache_init(&filtering_candidates->filtering_region_cache);
-  // Text-Collection
-  text_collection_init(&filtering_candidates->text_collection);
 }
-void filtering_candidates_clear(filtering_candidates_t* const filtering_candidates) {
-  // Candidates
+void filtering_candidates_init_alignment(
+    filtering_candidates_t* const filtering_candidates,
+    alignment_t* const alignment,
+    pattern_t* const pattern,
+    const uint64_t text_length,
+    const uint64_t max_error) {
+  // Check alignment
+  if (alignment->alignment_tiles!=NULL) return; // Already initialized
+  // Allocate & initialize alignment
+  const uint64_t num_tiles = pattern->pattern_tiled.num_tiles;
+  alignment->alignment_tiles =
+      filtering_candidates_allocate_alignment_tiles(filtering_candidates,num_tiles);
+  alignment_init(
+      alignment,pattern->key_length,0,text_length,max_error,
+      num_tiles,pattern->pattern_tiled.tile_length);
+}
+void filtering_candidates_clear(
+    filtering_candidates_t* const filtering_candidates,
+    const bool free_memory) {
+  // Candidate Positions
+  if (free_memory) {
+    VECTOR_ITERATE(filtering_candidates->filtering_positions,position,p,filtering_position_t*) {
+      filtering_candidates_free_position(filtering_candidates,*position);
+    }
+  }
   vector_clear(filtering_candidates->filtering_positions);
+  // Candidate Regions
+  if (free_memory) {
+    VECTOR_ITERATE(filtering_candidates->filtering_regions,region,r,filtering_region_t*) {
+      filtering_candidates_free_region(filtering_candidates,*region);
+    }
+  }
   vector_clear(filtering_candidates->filtering_regions);
+  // Discarded Regions
+  if (free_memory) {
+    VECTOR_ITERATE(filtering_candidates->discarded_regions,dis_region,dr,filtering_region_t*) {
+      filtering_candidates_free_region(filtering_candidates,*dis_region);
+    }
+  }
   vector_clear(filtering_candidates->discarded_regions);
+  // Extended Matches
   filtering_candidates->extended_matches = NULL;
-  // Text-Collection
-  text_collection_clear(&filtering_candidates->text_collection);
 }
-void filtering_candidates_destroy(filtering_candidates_t* const filtering_candidates) {
+void filtering_candidates_destroy(
+    filtering_candidates_t* const filtering_candidates,
+    const bool free_memory) {
+  // Clear structures
+  filtering_candidates_clear(filtering_candidates,free_memory);
   // Candidates
   vector_delete(filtering_candidates->filtering_positions);
   vector_delete(filtering_candidates->filtering_regions);
   vector_delete(filtering_candidates->discarded_regions);
-  // Text-Collection
-  text_collection_destroy(&filtering_candidates->text_collection);
 }
 /*
  * Handlers Injection (Support Data Structures)
@@ -86,78 +120,62 @@ void filtering_candidates_inject_handlers(
     filtering_candidates_t* const filtering_candidates,
     archive_t* const archive,
     search_parameters_t* const search_parameters,
-    filtering_candidates_mm_t* const filtering_candidates_mm,
-    filtering_candidates_buffered_mm_t* const filtering_candidates_buffered_mm) {
+    mm_allocator_t* const mm_allocator) {
+  // Inject Hanlders
   filtering_candidates->archive = archive;
   filtering_candidates->search_parameters = search_parameters;
-  filtering_candidates->mm = filtering_candidates_mm;
-  filtering_candidates->buffered_mm = filtering_candidates_buffered_mm;
-  if (filtering_candidates_buffered_mm != NULL) {
-    filtering_candidates->mm->mm_alignment_regions = filtering_candidates_buffered_mm->mm_regions_attr;
-    filtering_candidates->mm->mm_alignment_tiles = filtering_candidates_buffered_mm->mm_regions_attr;
-  }
-  text_collection_inject_mm(&filtering_candidates->text_collection,filtering_candidates->mm->mm_text);
+  filtering_candidates->mm_allocator = mm_allocator;
+  // Clear structures
+  filtering_candidates_clear(filtering_candidates,false);
 }
 /*
  * Allocators
  */
 filtering_position_t* filtering_candidates_allocate_position(
     filtering_candidates_t* const filtering_candidates) {
-  filtering_position_t* const position = mm_stack_alloc(filtering_candidates->mm->mm_positions,filtering_position_t);
+  filtering_position_t* const position = mm_allocator_calloc(
+      filtering_candidates->mm_allocator,1,filtering_position_t,true);
   vector_insert(filtering_candidates->filtering_positions,position,filtering_position_t*);
   return position;
 }
+void filtering_candidates_free_position(
+    const filtering_candidates_t* const filtering_candidates,
+    filtering_position_t* const filtering_position) {
+  // Free handler
+  mm_allocator_free(filtering_candidates->mm_allocator,filtering_position);
+}
 filtering_region_t* filtering_candidates_allocate_region(
     filtering_candidates_t* const filtering_candidates) {
-  filtering_region_t* const region = mm_stack_alloc(filtering_candidates->mm->mm_regions,filtering_region_t);
+  filtering_region_t* const region = mm_allocator_calloc(
+      filtering_candidates->mm_allocator,1,filtering_region_t,true);
   vector_insert(filtering_candidates->filtering_regions,region,filtering_region_t*);
   return region;
 }
-filtering_region_t* filtering_candidates_allocate_discarded_region(
-    filtering_candidates_t* const filtering_candidates) {
-  filtering_region_t* const region = mm_stack_alloc(filtering_candidates->mm->mm_regions,filtering_region_t);
-  vector_insert(filtering_candidates->discarded_regions,region,filtering_region_t*);
-  return region;
-}
-match_alignment_region_t* filtering_candidates_allocate_alignment_regions(
-    filtering_candidates_t* const filtering_candidates,
-    const uint64_t num_alignment_regions) {
-  return mm_stack_calloc(filtering_candidates->mm->mm_alignment_regions,
-      num_alignment_regions,match_alignment_region_t,false);
-}
-/*
- * Prepare Alignment
- */
-void filtering_candidates_init_alignment(
-    filtering_candidates_t* const filtering_candidates,
-    alignment_t* const alignment,
-    pattern_t* const pattern,
-    const uint64_t text_length,
-    const uint64_t max_error,
-    const bool force_reset) {
-  // Check alignment
-  if (alignment->alignment_tiles!=NULL && !force_reset) return; // Already initialized
-  // Init alignment
-  alignment_init(
-      alignment,pattern->key_length,
-      0,text_length,max_error,
-      pattern->pattern_tiled.num_tiles,
-      pattern->pattern_tiled.tile_length,
-      filtering_candidates->mm->mm_alignment_tiles);
-}
-/*
- * Accessors
- */
-uint64_t filtering_candidates_count_regions_by_status(
+void filtering_candidates_free_region(
     const filtering_candidates_t* const filtering_candidates,
-    const filtering_region_status_t filtering_region_status) {
-  const uint64_t num_filtering_regions = filtering_candidates_get_num_regions(filtering_candidates);
-  filtering_region_t** const filtering_region = filtering_candidates_get_regions(filtering_candidates);
-  uint64_t count = 0, n;
-  for (n=0;n<num_filtering_regions;++n) {
-    if (filtering_region[n]->status == filtering_region_status) ++count;
+    filtering_region_t* const filtering_region) {
+  // Free text trace
+  text_trace_destroy(&filtering_region->text_trace,filtering_candidates->mm_allocator);
+  // Free alignment tiles
+  filtering_candidates_free_alignment_tiles(
+      filtering_candidates,filtering_region->alignment.alignment_tiles);
+  // Free scaffold
+  match_scaffold_destroy(&filtering_region->match_scaffold);
+  // Free handler
+  mm_allocator_free(filtering_candidates->mm_allocator,filtering_region);
+}
+alignment_tile_t* filtering_candidates_allocate_alignment_tiles(
+    filtering_candidates_t* const filtering_candidates,
+    const uint64_t num_alignment_tiles) {
+  return mm_allocator_calloc(filtering_candidates->mm_allocator,
+      num_alignment_tiles,alignment_tile_t,false);
+}
+void filtering_candidates_free_alignment_tiles(
+    const filtering_candidates_t* const filtering_candidates,
+    alignment_tile_t* const alignment_tile) {
+  if (alignment_tile!=NULL) {
+    mm_allocator_free(filtering_candidates->mm_allocator,alignment_tile);
   }
-  return count;
 }
 /*
  * Filtering Positions
@@ -176,7 +194,13 @@ filtering_position_t** filtering_candidates_get_positions(
   return vector_get_mem(filtering_candidates->filtering_positions,filtering_position_t*);
 }
 void filtering_candidates_clear_positions(
-    const filtering_candidates_t* const filtering_candidates) {
+    const filtering_candidates_t* const filtering_candidates,
+    const bool free_positions) {
+  if (free_positions) {
+    VECTOR_ITERATE(filtering_candidates->filtering_positions,position,p,filtering_position_t*) {
+      filtering_candidates_free_position(filtering_candidates,*position);
+    }
+  }
   vector_clear(filtering_candidates->filtering_positions);
 }
 /*
@@ -196,7 +220,13 @@ filtering_region_t** filtering_candidates_get_regions(
   return vector_get_mem(filtering_candidates->filtering_regions,filtering_region_t*);
 }
 void filtering_candidates_clear_regions(
-    const filtering_candidates_t* const filtering_candidates) {
+    const filtering_candidates_t* const filtering_candidates,
+    const bool free_regions) {
+  if (free_regions) {
+    VECTOR_ITERATE(filtering_candidates->filtering_regions,region,r,filtering_region_t*) {
+      filtering_candidates_free_region(filtering_candidates,*region);
+    }
+  }
   vector_clear(filtering_candidates->filtering_regions);
 }
 /*
@@ -227,244 +257,14 @@ filtering_region_t** filtering_candidates_reserve_discarded_regions(
   return vector_get_free_elm(filtering_candidates->discarded_regions,filtering_region_t*);
 }
 void filtering_candidates_clear_discarded_regions(
-    const filtering_candidates_t* const filtering_candidates) {
-  vector_clear(filtering_candidates->discarded_regions);
-}
-/*
- * Compose filtering-region (from a group of candidate-positions)
- */
-void filtering_candidates_compose_filtering_region_from_positions_exact(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
-    const uint64_t candidate_idx,
-    const uint64_t align_offset,
-    const bool run_length_text) {
-  // Parameters
-  filtering_position_t* const candidate_position = filtering_candidates_get_positions(filtering_candidates)[candidate_idx];
-  // Prepare alignment
-  alignment_t* const alignment = &filtering_region->alignment;
-  alignment->distance_min_bound = 0;
-  const uint64_t key_length = (pattern->run_length) ? pattern->rl_key_length : pattern->key_length;
-  alignment->num_tiles = 1;
-  alignment->alignment_tiles = mm_stack_alloc(filtering_candidates->mm->mm_alignment_tiles,alignment_tile_t);
-  alignment->alignment_tiles->distance = 0;
-  alignment->alignment_tiles->text_begin_offset = align_offset;
-  alignment->alignment_tiles->text_end_offset = align_offset + key_length;
-  // Compose scaffolding
-  PROF_ADD_COUNTER(GP_CANDIDATE_REGION_ALIGNMENT_REGIONS_TOTAL,1);
-  match_scaffold_t* const match_scaffold = &filtering_region->match_scaffold;
-  match_scaffold_init(match_scaffold);
-  match_scaffold->alignment_regions = filtering_candidates_allocate_alignment_regions(filtering_candidates,1);
-  match_scaffold->num_alignment_regions = 1;
-  match_scaffold->alignment_regions_rl = run_length_text;
-  match_scaffold->scaffolding_coverage = 0;
-  // Compose alignment-regions
-  match_alignment_region_t* const match_alignment_region = match_scaffold->alignment_regions;
-  const uint64_t region_length =
-      candidate_position->source_region_end -
-      candidate_position->source_region_begin;
-  // Read coordinates
-  const uint64_t region_key_begin = candidate_position->source_region_begin;
-  const uint64_t region_key_end = candidate_position->source_region_end;
-  // Text coordinates (relative to the effective begin position)
-  const uint64_t region_text_begin =
-      candidate_position->region_text_position -
-      filtering_region->text_begin_position;
-  const uint64_t region_text_end = region_text_begin + region_length;
-  // Init alignment-region
-  match_alignment_region_init(
-      match_alignment_region,match_alignment_region_exact,0,0,0,
-      region_key_begin,region_key_end,region_text_begin,region_text_end);
-  match_scaffold->scaffolding_coverage += region_length;
-  // PROF
-  PROF_ADD_COUNTER(GP_CANDIDATE_REGION_ALIGNMENT_COVERAGE,
-      (100*match_scaffold->scaffolding_coverage)/
-      ((pattern->run_length) ? pattern->rl_key_length : pattern->key_length));
-}
-void filtering_candidates_compose_filtering_region_from_positions(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
-    const uint64_t first_candidate_idx,
-    const uint64_t last_candidate_idx,
-    const bool compose_alignment_regions,
-    const bool run_length_text) {
-  // Parameters
-  filtering_position_t** const candidate_positions = filtering_candidates_get_positions(filtering_candidates);
-  // Prepare Region-Alignment
-  alignment_t* const alignment = &filtering_region->alignment;
-  alignment->distance_min_bound = ALIGN_DISTANCE_UNKNOWN;
-  alignment->alignment_tiles = NULL;
-  // Compose alignment-regions
-  PROF_ADD_COUNTER(GP_CANDIDATE_REGION_ALIGNMENT_REGIONS_TOTAL,last_candidate_idx-first_candidate_idx+1);
-  match_scaffold_t* const match_scaffold = &filtering_region->match_scaffold;
-  match_scaffold_init(match_scaffold);
-  if (compose_alignment_regions) {
-    const uint64_t num_alignment_regions = last_candidate_idx-first_candidate_idx+1;
-    match_scaffold->alignment_regions =
-        filtering_candidates_allocate_alignment_regions(filtering_candidates,num_alignment_regions);
-    match_scaffold->num_alignment_regions = num_alignment_regions;
-    match_scaffold->alignment_regions_rl = run_length_text;
-    match_scaffold->scaffolding_coverage = 0;
-    uint64_t i;
-    for (i=0;i<num_alignment_regions;++i) {
-      match_alignment_region_t* const match_alignment_region = match_scaffold->alignment_regions + i;
-      filtering_position_t* const candidate_position = candidate_positions[first_candidate_idx + i];
-      // Region error
-      const uint64_t region_length =
-          candidate_position->source_region_end -
-          candidate_position->source_region_begin;
-      // Alignment-region type
-      const match_alignment_region_type region_type = (candidate_position->source_region_error==0) ?
-          match_alignment_region_exact : match_alignment_region_approximate;
-      const uint64_t region_error = candidate_position->source_region_error;
-      // Read coordinates
-      const uint64_t region_key_begin = candidate_position->source_region_begin;
-      const uint64_t region_key_end = candidate_position->source_region_end;
-      // Text coordinates (relative to the effective begin position)
-      const uint64_t region_text_begin =
-          candidate_position->region_text_position -
-          filtering_region->text_begin_position;
-      const uint64_t region_text_end = region_text_begin + region_length;
-      // Init alignment-region
-      match_alignment_region_init(
-          match_alignment_region,region_type,region_error,0,0,
-          region_key_begin,region_key_end,region_text_begin,region_text_end);
-      match_scaffold->scaffolding_coverage += region_length;
+    const filtering_candidates_t* const filtering_candidates,
+    const bool free_regions) {
+  if (free_regions) {
+    VECTOR_ITERATE(filtering_candidates->discarded_regions,dis_region,dr,filtering_region_t*) {
+      filtering_candidates_free_region(filtering_candidates,*dis_region);
     }
-    // PROF
-    PROF_ADD_COUNTER(GP_CANDIDATE_REGION_ALIGNMENT_COVERAGE,
-        (100*match_scaffold->scaffolding_coverage)/
-        ((pattern->run_length) ? pattern->rl_key_length : pattern->key_length));
   }
-}
-/*
- * Adding Positions (Candidate Positions)
- */
-void filtering_candidates_add_positions_from_interval(
-    filtering_candidates_t* const filtering_candidates,
-    search_parameters_t* const search_parameters,
-    pattern_t* const pattern,
-    const uint64_t interval_lo,
-    const uint64_t interval_hi,
-    const uint64_t region_begin_pos,
-    const uint64_t region_end_pos,
-    const uint64_t region_errors,
-    bool* const candidates_limited) {
-  // Check total candidates
-  const uint64_t total_candidates = interval_hi-interval_lo;
-  if (gem_expect_false(total_candidates==0)) return;
-  // Check for exact matches (whole read)
-  const uint64_t key_length = pattern->key_length;
-  const bool exact_match = region_errors==0 && region_begin_pos==0 && region_end_pos==key_length;
-  // Select matches
-  select_parameters_t* const select_parameters = &search_parameters->select_parameters;
-  uint64_t interval_top;
-  if (exact_match &&
-      select_parameters->min_reported_strata_nominal==0 &&
-      total_candidates > select_parameters->max_searched_matches) {
-    interval_top = interval_lo + select_parameters->max_searched_matches;
-    *candidates_limited = true;
-  } else {
-    interval_top = interval_hi;
-    *candidates_limited = false;
-  }
-  // Store candidate positions
-  uint64_t index_position;
-  for (index_position=interval_lo;index_position<interval_top;++index_position) {
-    // Allocate
-    filtering_position_t* const filtering_position = filtering_candidates_allocate_position(filtering_candidates);
-    // Configure
-    filtering_position->source_region_begin = region_begin_pos;
-    filtering_position->source_region_end = region_end_pos;
-    filtering_position->source_region_error = region_errors;
-    filtering_position->region_index_position = index_position;
-    filtering_position->align_distance = exact_match ? 0 : ALIGN_DISTANCE_UNKNOWN;
-  }
-}
-/*
- * Adding Region (filtering regions)
- */
-void filtering_candidates_add_region_from_group_positions(
-    filtering_candidates_t* const filtering_candidates,
-    pattern_t* const pattern,
-    const uint64_t first_candidate_idx,
-    const uint64_t last_candidate_idx,
-    const uint64_t align_distance,
-    const uint64_t align_offset,
-    const bool compose_alignment_regions,
-    const bool run_length_text) {
-  // Parameters
-  filtering_position_t** const candidate_positions = filtering_candidates_get_positions(filtering_candidates);
-  // Allow new filtering-region & store it
-  filtering_region_t* const filtering_region = filtering_candidates_allocate_region(filtering_candidates);
-  // State
-  filtering_region->status = filtering_region_unverified; // Newly created region (unverified)
-  // Location
-  filtering_position_t* const first_candidate = candidate_positions[first_candidate_idx];
-  filtering_position_t* const last_candidate = candidate_positions[last_candidate_idx];
-  filtering_region->text_trace_offset = UINT64_MAX; // Unassigned
-  filtering_region->text_begin_position = first_candidate->text_begin_position;
-  filtering_region->text_end_position = last_candidate->text_end_position;
-  // Source-region offsets
-  filtering_region->text_source_region_offset = first_candidate->source_region_text_offset;
-  filtering_region->key_source_region_offset = first_candidate->source_region_begin;
-  PROF_ADD_COUNTER(GP_CANDIDATE_REGION_LENGTH,
-      filtering_region->text_end_position-filtering_region->text_begin_position);
-  // Compute key trims (if we know the real text dimensions)
-  if (!run_length_text) {
-    filtering_region_compute_key_trims(filtering_region,pattern);
-  } else {
-    filtering_region->key_trim_left = 0;
-    filtering_region->key_trim_right = 0;
-    filtering_region->key_trimmed = false;
-  }
-  // Prepare region-alignment & compose regions-matching
-  if (align_distance==0) {
-    filtering_candidates_compose_filtering_region_from_positions_exact(
-        filtering_candidates,filtering_region,pattern,
-        first_candidate_idx,align_offset,run_length_text);
-  } else {
-    filtering_candidates_compose_filtering_region_from_positions(
-        filtering_candidates,filtering_region,pattern,
-        first_candidate_idx,last_candidate_idx,
-        compose_alignment_regions,run_length_text);
-  }
-}
-void filtering_candidates_add_region_verified(
-    filtering_candidates_t* const filtering_candidates,
-    pattern_t* const pattern,
-    const uint64_t text_trace_offset,
-    const uint64_t text_begin_offset,
-    const uint64_t text_end_offset,
-    const uint64_t begin_position,
-    const uint64_t end_position,
-    const uint64_t align_distance) {
-  // Allocate new filtering-region
-  filtering_region_t* const filtering_region = filtering_candidates_allocate_region(filtering_candidates);
-  // State
-  filtering_region->status = filtering_region_accepted;
-  // Text-trace
-  filtering_region->text_trace_offset = text_trace_offset;
-  // Location
-  filtering_region->text_source_region_offset = 0;
-  filtering_region->key_source_region_offset = 0;
-  filtering_region->text_begin_position = begin_position;
-  filtering_region->text_end_position = end_position;
-  filtering_region->key_trim_left = 0;
-  filtering_region->key_trim_right = 0;
-  filtering_region->key_trimmed = false;
-  // Scaffolding
-  match_scaffold_init(&filtering_region->match_scaffold);
-  // Regions-Alignment
-  alignment_t* const alignment = &filtering_region->alignment;
-  alignment->distance_min_bound = align_distance;
-  alignment->num_tiles = 1;
-  alignment->alignment_tiles = mm_stack_alloc(filtering_candidates->mm->mm_alignment_tiles,alignment_tile_t);
-  alignment->alignment_tiles->text_begin_offset = text_begin_offset;
-  alignment->alignment_tiles->text_end_offset = text_end_offset;
-  alignment->alignment_tiles->distance = align_distance;
+  vector_clear(filtering_candidates->discarded_regions);
 }
 /*
  * Sorting
@@ -520,7 +320,6 @@ void filtering_candidates_print_regions_by_status(
     FILE* const stream,
     vector_t* const filtering_regions,
     const filtering_region_status_t status,
-    const text_collection_t* const text_collection,
     const bool print_alignment_regions) {
   uint64_t i, total_printed = 0;
   const uint64_t num_regions = vector_get_used(filtering_regions);
@@ -536,7 +335,7 @@ void filtering_candidates_print_regions_by_status(
   tab_global_inc();
   for (i=0;i<num_regions;++i) {
     if (fregion[i]->status!=status) continue;
-    filtering_region_print(stream,fregion[i],text_collection,false,print_alignment_regions,true);
+    filtering_region_print(stream,fregion[i],false,print_alignment_regions,true);
   }
   tab_global_dec();
 }
@@ -545,21 +344,20 @@ void filtering_candidates_print_regions(
     filtering_candidates_t* const filtering_candidates,
     const bool print_alignment_regions) {
   tab_fprintf(stream,"[GEM]>Filtering.Regions\n");
-  text_collection_t* const text_collection = &filtering_candidates->text_collection;
   vector_t* const filtering_regions = filtering_candidates->filtering_regions;
   vector_t* const discarded_regions = filtering_candidates->discarded_regions;
   filtering_candidates_print_regions_by_status(
-      stream,filtering_regions,filtering_region_pending,text_collection,print_alignment_regions);
+      stream,filtering_regions,filtering_region_pending,print_alignment_regions);
   filtering_candidates_print_regions_by_status(
-      stream,filtering_regions,filtering_region_unverified,text_collection,print_alignment_regions);
+      stream,filtering_regions,filtering_region_unverified,print_alignment_regions);
   filtering_candidates_print_regions_by_status(
-      stream,discarded_regions,filtering_region_verified_discarded,text_collection,print_alignment_regions);
+      stream,discarded_regions,filtering_region_verified_discarded,print_alignment_regions);
   filtering_candidates_print_regions_by_status(
-      stream,filtering_regions,filtering_region_accepted,text_collection,print_alignment_regions);
+      stream,filtering_regions,filtering_region_accepted,print_alignment_regions);
   filtering_candidates_print_regions_by_status(
-      stream,discarded_regions,filtering_region_accepted_subdominant,text_collection,print_alignment_regions);
+      stream,discarded_regions,filtering_region_accepted_subdominant,print_alignment_regions);
   filtering_candidates_print_regions_by_status(
-      stream,filtering_regions,filtering_region_aligned,text_collection,print_alignment_regions);
+      stream,filtering_regions,filtering_region_aligned,print_alignment_regions);
   const uint64_t total_regions =
       filtering_candidates_get_num_regions(filtering_candidates) +
       vector_get_used(filtering_candidates->discarded_regions);

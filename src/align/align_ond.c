@@ -39,11 +39,11 @@ void align_ond_compute_lcs_distance(
     const int32_t text_length,
     uint64_t* const lcs_distance,
     uint64_t* const match_end_column,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Allocation
-  mm_stack_push_state(mm_stack);
+  mm_allocator_push_state(mm_allocator);
   const int32_t max_lcs = key_length + text_length;
-  int32_t* const V = mm_stack_calloc(mm_stack,max_lcs,int32_t,true);
+  int32_t* const V = mm_allocator_calloc(mm_allocator,max_lcs,int32_t,true);
   // Init
   int32_t d, k;
   V[1] = 0;
@@ -67,7 +67,7 @@ void align_ond_compute_lcs_distance(
       if (end_column >= text_length && end_row >= key_length) {
         *lcs_distance = d;
         *match_end_column = end_column;
-        mm_stack_pop_state(mm_stack);
+        mm_allocator_pop_state(mm_allocator);
         return;
       }
     }
@@ -75,7 +75,7 @@ void align_ond_compute_lcs_distance(
   // Not found
   *lcs_distance = ALIGN_DISTANCE_INF;
   *match_end_column = ALIGN_COLUMN_INF;
-  mm_stack_pop_state(mm_stack);
+  mm_allocator_pop_state(mm_allocator);
 }
 /*
  * O(ND) Align
@@ -84,7 +84,7 @@ void align_ond_compute_contours(
     match_align_input_t* const align_input,
     const int32_t max_distance,
     align_ond_contours_t* const align_ond_contours,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Parameters
   const int32_t key_length = align_input->key_length;
   const uint8_t* const key = align_input->key;
@@ -92,12 +92,12 @@ void align_ond_compute_contours(
   const uint8_t* const text = align_input->text;
   // Allocation
   const int32_t num_contours = max_distance+2; // (+1) init (+1) max-distance
-  align_ond_contours->contour = mm_stack_calloc(mm_stack,num_contours,int32_t*,false);
+  align_ond_contours->contour = mm_allocator_calloc(mm_allocator,num_contours,int32_t*,false);
   int32_t i;
-  align_ond_contours->contour[0] = mm_stack_calloc(mm_stack,2,int32_t,false);
+  align_ond_contours->contour[0] = mm_allocator_calloc(mm_allocator,2,int32_t,false);
   for (i=1;i<num_contours;++i) {
     const int32_t d = i-1;
-    align_ond_contours->contour[i] = mm_stack_calloc(mm_stack,2*d+1,int32_t,false) + d /* offset */;
+    align_ond_contours->contour[i] = mm_allocator_calloc(mm_allocator,2*d+1,int32_t,false) + d /* offset */;
   }
   // Compute contours
   int32_t d, k;
@@ -221,29 +221,29 @@ void align_ond_match(
     const int32_t max_distance,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Compute contours
-  mm_stack_push_state(mm_stack); // Save stack state
+  mm_allocator_push_state(mm_allocator); // Save allocator state
   align_ond_contours_t align_ond_contours;
-  align_ond_compute_contours(align_input,max_distance,&align_ond_contours,mm_stack);
+  align_ond_compute_contours(align_input,max_distance,&align_ond_contours,mm_allocator);
   // Set distance
   match_alignment->score = align_ond_contours.lcs_distance;
   if (align_ond_contours.lcs_distance == ALIGN_DISTANCE_INF) {
     match_alignment->cigar_length = 0;
-    mm_stack_pop_state(mm_stack); // Free
+    mm_allocator_pop_state(mm_allocator); // Free
     return;
   }
   // Backtrace and generate CIGAR
   align_ond_backtrace_contours(align_input,&align_ond_contours,match_alignment,cigar_vector);
   // Free
-  mm_stack_pop_state(mm_stack);
+  mm_allocator_pop_state(mm_allocator);
 }
 ///*
 // * O(ND) Align (ends-free prototype)
 // */
 //void align_ond_compute_contours(
 //    match_align_input_t* const align_input,const int32_t max_distance,
-//    align_ond_contours_t* const align_ond_contours,mm_stack_t* const mm_stack) {
+//    align_ond_contours_t* const align_ond_contours,mm_allocator_t* const mm_allocator) {
 //  // Parameters
 //  const int32_t key_length = align_input->key_length;
 //  const uint8_t* const key = align_input->key;
@@ -252,11 +252,11 @@ void align_ond_match(
 //  // Allocation
 //  const uint32_t num_contours = max_distance+2; // (+1) init (+1) max-distance
 //  const uint32_t num_klines = 2*max_distance+1;
-//  align_ond_contours->contour = mm_stack_calloc(mm_stack,num_contours,int32_t*,false);
+//  align_ond_contours->contour = mm_allocator_calloc(mm_allocator,num_contours,int32_t*,false);
 //  int32_t i;
 //  for (i=0;i<num_contours;++i) {
 //    align_ond_contours->contour[i] =
-//        mm_stack_calloc(mm_stack,num_klines,int32_t,false) + max_distance; /* offset */
+//        mm_allocator_calloc(mm_allocator,num_klines,int32_t,false) + max_distance; /* offset */
 //  }
 //  // Init
 //  for (i=-max_distance;i<=0;++i) align_ond_contours->contour[0][i] = -1;

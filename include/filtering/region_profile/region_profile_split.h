@@ -39,7 +39,7 @@ void region_profile_split_fdec(
     const uint64_t key_length,
     const bool* const allowed_enc,
     const uint64_t region_length,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 
 /*
  * Compute splitters
@@ -52,7 +52,7 @@ void region_profile_splitters(
     const bool* const allowed_enc,
     const uint64_t sample_length,
     const uint64_t num_regions,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 
 
 #endif /* REGION_PROFILE_SPLIT_H_ */

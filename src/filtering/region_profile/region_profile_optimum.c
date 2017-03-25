@@ -83,16 +83,16 @@ void region_profile_generate_optimum_fixed(
     return;
   }
   // Parameters
-  mm_stack_t* const mm_stack = region_profile->mm_stack;
+  mm_allocator_t* const mm_allocator = region_profile->mm_allocator;
   // Init
   region_profile_clear(region_profile);
   region_profile_allocate_regions(region_profile,num_regions); // Allocate
   // Allocate
-  mm_stack_push_state(mm_stack);
+  mm_allocator_push_state(mm_allocator);
   optimum_table_interval_t* const optimum_table_interval =
-      mm_stack_calloc(mm_stack,key_length,optimum_table_interval_t,false);
+      mm_allocator_calloc(mm_allocator,key_length,optimum_table_interval_t,false);
   optimum_fixed_cell_t* const optimum_fixed_cell =
-      mm_stack_calloc(mm_stack,num_regions*key_length,optimum_fixed_cell_t,false);
+      mm_allocator_calloc(mm_allocator,num_regions*key_length,optimum_fixed_cell_t,false);
   // Init
   int64_t i, level, current_idx;
   for (i=0;i<key_length;++i) {
@@ -165,7 +165,7 @@ void region_profile_generate_optimum_fixed(
   // Schedule to filter all
   region_profile_schedule_exact_all(region_profile);
   // Free
-  mm_stack_pop_state(mm_stack);
+  mm_allocator_pop_state(mm_allocator);
 }
 /*
  * Region Profile Optimum (Variable region-length)
@@ -174,8 +174,7 @@ void region_profile_optimum_compute_occ(
     uint64_t** const occ,
     fm_index_t* const fm_index,
     const uint8_t* const key,
-    const uint64_t key_length,
-    const bool* const allowed_enc) {
+    const uint64_t key_length) {
   int64_t end, begin;
   // Starting from e, search backwards
   for (end=key_length-1;end>=0;--end) {
@@ -184,7 +183,7 @@ void region_profile_optimum_compute_occ(
     uint64_t hi = fm_index_get_length(fm_index);
     for (begin=end;begin>=0;--begin) {
       const uint8_t enc_char = key[begin];
-      if (!allowed_enc[enc_char]) {
+      if (enc_char == ENC_DNA_CHAR_N) {
         for (;begin>=0;--begin) occ[begin][end] = 0;
         break;
       }
@@ -203,7 +202,6 @@ void region_profile_generate_optimum_variable(
     fm_index_t* const fm_index,
     const uint8_t* const key,
     const uint64_t key_length,
-    const bool* const allowed_enc,
     const uint64_t num_regions) {
   // Base check
   if (num_regions==0 || num_regions > key_length) {
@@ -213,23 +211,23 @@ void region_profile_generate_optimum_variable(
     return;
   }
   // Parameters
-  mm_stack_t* const mm_stack = region_profile->mm_stack;
+  mm_allocator_t* const mm_allocator = region_profile->mm_allocator;
   // Init
   region_profile_clear(region_profile);
   region_profile_allocate_regions(region_profile,num_regions); // Allocate
   // Compute occurrences table
   uint64_t i;
-  uint64_t** const occ = mm_stack_calloc(mm_stack,key_length,uint64_t*,false);
+  uint64_t** const occ = mm_allocator_calloc(mm_allocator,key_length,uint64_t*,false);
   for (i=0;i<key_length;++i) {
-    occ[i] = mm_stack_calloc(mm_stack,key_length,uint64_t,true);
+    occ[i] = mm_allocator_calloc(mm_allocator,key_length,uint64_t,true);
   }
-  region_profile_optimum_compute_occ(occ,fm_index,key,key_length,allowed_enc);
+  region_profile_optimum_compute_occ(occ,fm_index,key,key_length);
   // Allocate optimum pattern partition (opp)
   const uint64_t last_position = key_length-1;
   optimum_variable_cell_t** const opp =
-      mm_stack_calloc(mm_stack,num_regions,optimum_variable_cell_t*,true);
+      mm_allocator_calloc(mm_allocator,num_regions,optimum_variable_cell_t*,true);
   for (i=0;i<num_regions;++i) {
-    opp[i] = mm_stack_calloc(mm_stack,key_length,optimum_variable_cell_t,true);
+    opp[i] = mm_allocator_calloc(mm_allocator,key_length,optimum_variable_cell_t,true);
   }
   // Init
   for (i=0;i<key_length;++i) {

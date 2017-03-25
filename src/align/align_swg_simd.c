@@ -31,38 +31,38 @@
 void align_swg_query_profile_allocate_uint8(
     swg_query_profile_t* const swg_query_profile,
     const uint64_t max_expected_key_length,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Compute sizes 8-bits cell
   const uint64_t num_segments_uint8 = UINT128_SIZE/UINT8_SIZE;
   const uint64_t segment_length_uint8 = DIV_CEIL(max_expected_key_length,num_segments_uint8);
   const uint64_t key_effective_length_uint8 = segment_length_uint8*num_segments_uint8;
   // Allocate 8-bits cell
-  mm_stack_skip_align(mm_stack,UINT128_SIZE); // Align mm-stack & allocate
   uint8_t enc;
   for (enc=0;enc<DNA__N_RANGE;++enc) {
-    swg_query_profile->query_profile_uint8[enc] = mm_stack_calloc(mm_stack,key_effective_length_uint8,uint8_t,true);
+    swg_query_profile->query_profile_uint8[enc] =
+        mm_allocator_calloc(mm_allocator,key_effective_length_uint8,uint8_t,true);
   }
 }
 void align_swg_query_profile_allocate_int16(
     swg_query_profile_t* const swg_query_profile,
     const uint64_t max_expected_key_length,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Compute sizes 16-bits cell
   const uint64_t num_segments_int16 = UINT128_SIZE/UINT16_SIZE;
   const uint64_t segment_length_int16 = DIV_CEIL(max_expected_key_length,num_segments_int16);
   const uint64_t key_effective_length_uint16 = segment_length_int16*num_segments_int16;
   // Allocate 16-bits cell
-  mm_stack_skip_align(mm_stack,UINT128_SIZE); // Align mm-stack & allocate
   uint8_t enc;
   for (enc=0;enc<DNA__N_RANGE;++enc) {
-    swg_query_profile->query_profile_int16[enc] = (int16_t*) mm_stack_calloc(mm_stack,key_effective_length_uint16,uint8_t,true);
+    swg_query_profile->query_profile_int16[enc] =
+        (int16_t*)mm_allocator_calloc(mm_allocator,key_effective_length_uint16,uint8_t,true);
   }
 }
 void align_swg_query_profile_init(
     swg_query_profile_t* const swg_query_profile,
     const swg_penalties_t* swg_penalties,
     const uint64_t max_expected_key_length,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Penalties
   const int32_t generic_match_score = swg_penalties->generic_match_score;
   const int32_t generic_mismatch_score = swg_penalties->generic_mismatch_score;
@@ -71,8 +71,8 @@ void align_swg_query_profile_init(
   const int32_t match_bias_uint8 = -min_profile_score;
   swg_query_profile->match_bias_uint8 = match_bias_uint8;
   // Allocate
-  align_swg_query_profile_allocate_uint8(swg_query_profile,max_expected_key_length,mm_stack);
-  align_swg_query_profile_allocate_int16(swg_query_profile,max_expected_key_length,mm_stack);
+  align_swg_query_profile_allocate_uint8(swg_query_profile,max_expected_key_length,mm_allocator);
+  align_swg_query_profile_allocate_int16(swg_query_profile,max_expected_key_length,mm_allocator);
 }
 /*
  * Compile SWG Query Profile
@@ -170,15 +170,14 @@ bool align_swg_query_profile_compile_int16(
 //  }
 //}
 //int16_t** swg_align_match_allocate_table_int16(
-//    const uint64_t num_columns,const uint64_t num_rows,mm_stack_t* const mm_stack) {
+//    const uint64_t num_columns,const uint64_t num_rows,mm_allocator_t* const mm_allocator) {
 //  // Allocate the pointers
-//  int16_t** const dp = mm_stack_malloc(mm_stack,num_columns*sizeof(int16_t*));
+//  int16_t** const dp = mm_allocator_malloc(mm_allocator,num_columns*sizeof(int16_t*));
 //  // Allocate all the columns
-//  mm_stack_skip_align(mm_stack,UINT128_SIZE); // Align Stack Memory
 //  const uint64_t row_size = num_rows*sizeof(int16_t);
 //  uint64_t column;
 //  for (column=0;column<num_columns;++column) {
-//    dp[column] = mm_stack_malloc(mm_stack,row_size);
+//    dp[column] = mm_allocator_malloc(mm_allocator,row_size);
 //  }
 //  return dp;
 //}
@@ -214,19 +213,19 @@ bool align_swg_query_profile_compile_int16(
 //    const swg_penalties_t* swg_penalties,uint64_t* const match_position,uint8_t* const text,
 //    const uint64_t text_length,const bool begin_free,const bool end_free,vector_t* const cigar_vector,
 //    uint64_t* const cigar_length,int64_t* const effective_length,int32_t* const alignment_score,
-//    mm_stack_t* const mm_stack) {
+//    mm_allocator_t* const mm_allocator) {
 //  // Compile query profile
-//  swg_compile_query_profile_int16(swg_query_profile,swg_penalties,key,key_length,mm_stack);
+//  swg_compile_query_profile_int16(swg_query_profile,swg_penalties,key,key_length,mm_allocator);
 //  // Allocate memory
-//  mm_stack_push_state(mm_stack); // Save stack state
+//  mm_allocator_push_state(mm_allocator); // Save allocator state
 //  const uint64_t num_segments_16b = UINT128_SIZE/UINT16_SIZE; // Elements in each SIMD-vectors
 //  const uint64_t segment_length = swg_query_profile->segment_length_int16; // Number of SIMD-vectors
 //  const uint64_t key_effective_length = swg_query_profile->key_effective_length_int16; // Number of SIMD-vectors
 //  const uint64_t num_columns = (text_length+1);
 //  const uint64_t num_rows = key_effective_length;
-//  int16_t** const dp_M = swg_align_match_allocate_table_int16(num_columns,num_rows,mm_stack);
-//  int16_t** const dp_I = swg_align_match_allocate_table_int16(num_columns+1,num_rows,mm_stack);
-//  int16_t** const dp_D = swg_align_match_allocate_table_int16(num_columns,num_rows,mm_stack);
+//  int16_t** const dp_M = swg_align_match_allocate_table_int16(num_columns,num_rows,mm_allocator);
+//  int16_t** const dp_I = swg_align_match_allocate_table_int16(num_columns+1,num_rows,mm_allocator);
+//  int16_t** const dp_D = swg_align_match_allocate_table_int16(num_columns,num_rows,mm_allocator);
 //  // Initialize DP-matrix
 //  const int16_t gap_extension = (-swg_penalties->gap_extension_score);
 //  const int16_t gap_open = (-swg_penalties->gap_open_score);
@@ -310,7 +309,7 @@ bool align_swg_query_profile_compile_int16(
 //  // DEBUG
 //  swg_align_match_table_print_int16(dp_M,MIN(10,key_length),MIN(10,key_length),segment_length);
 //  // Clean & return
-//  mm_stack_pop_state(mm_stack,false); // Free
+//  mm_allocator_pop_state(mm_allocator,false); // Free
 //  *alignment_score = max_score_column; // FIXME
 //  *alignment_score = max_score_global; // FIXME
 //}
@@ -334,15 +333,15 @@ bool align_swg_query_profile_compile_int16(
 //  }
 //}
 //uint8_t** swg_align_match_allocate_table_uint8(
-//    const uint64_t num_columns,const uint64_t num_rows,mm_stack_t* const mm_stack) {
+//    const uint64_t num_columns,const uint64_t num_rows,mm_allocator_t* const mm_allocator) {
 //  // Allocate the pointers
-//  uint8_t** const dp = mm_stack_malloc(mm_stack,num_columns*sizeof(uint8_t*));
+//  uint8_t** const dp = mm_allocator_malloc(mm_allocator,num_columns*sizeof(uint8_t*));
 //  // Allocate all the columns
-//  mm_stack_skip_align(mm_stack,UINT128_SIZE); // Align Stack Memory
+//  mm_allocator_skip_align(mm_allocator,UINT128_SIZE); // Align allocator Memory
 //  const uint64_t row_size = num_rows*sizeof(uint8_t);
 //  uint64_t column;
 //  for (column=0;column<num_columns;++column) {
-//    dp[column] = mm_stack_malloc(mm_stack,row_size);
+//    dp[column] = mm_allocator_malloc(mm_allocator,row_size);
 //  }
 //  return dp;
 //}
@@ -377,21 +376,21 @@ bool align_swg_query_profile_compile_int16(
 //    const swg_penalties_t* swg_penalties,uint64_t* const match_position,uint8_t* const text,
 //    const uint64_t text_length,const bool begin_free,const bool end_free,vector_t* const cigar_vector,
 //    uint64_t* const cigar_length,int64_t* const effective_length,int32_t* const alignment_score,
-//    mm_stack_t* const mm_stack) {
+//    mm_allocator_t* const mm_allocator) {
 //  // Compile query profile
-//  if (!swg_compile_query_profile_uint8(swg_query_profile,swg_penalties,key,key_length,mm_stack)) {
+//  if (!swg_compile_query_profile_uint8(swg_query_profile,swg_penalties,key,key_length,mm_allocator)) {
 //    return false; // TODO
 //  }
 //  // Allocate memory
-//  mm_stack_push_state(mm_stack); // Save stack state
+//  mm_allocator_push_state(mm_allocator); // Save allocator state
 //  const uint64_t num_segments_8b = UINT128_SIZE/UINT8_SIZE; // Elements in each SIMD-vectors
 //  const uint64_t segment_length = swg_query_profile->segment_length_uint8; // Number of SIMD-vectors
 //  const uint64_t key_effective_length = swg_query_profile->key_effective_length_uint8; // Number of SIMD-vectors
 //  const uint64_t num_columns = (text_length+1);
 //  const uint64_t num_rows = key_effective_length;
-//  uint8_t** const dp_M = swg_align_match_allocate_table_uint8(num_columns,num_rows,mm_stack); // TODO key_length
-//  uint8_t** const dp_I = swg_align_match_allocate_table_uint8(num_columns+1,num_rows,mm_stack);
-//  uint8_t** const dp_D = swg_align_match_allocate_table_uint8(num_columns,num_rows,mm_stack);
+//  uint8_t** const dp_M = swg_align_match_allocate_table_uint8(num_columns,num_rows,mm_allocator); // TODO key_length
+//  uint8_t** const dp_I = swg_align_match_allocate_table_uint8(num_columns+1,num_rows,mm_allocator);
+//  uint8_t** const dp_D = swg_align_match_allocate_table_uint8(num_columns,num_rows,mm_allocator);
 //  // Initialize DP-matrix
 //  const uint8_t gap_extension = (-swg_penalties->gap_extension_score);
 //  const uint8_t gap_open = (-swg_penalties->gap_open_score);
@@ -486,7 +485,7 @@ bool align_swg_query_profile_compile_int16(
 //  // DEBUG
 //  swg_align_match_table_print_uint8(dp_M,MIN(10,key_length),MIN(10,key_length),segment_length,matrix_bias);
 //  // Clean & return
-//  mm_stack_pop_state(mm_stack,false); // Free
+//  mm_allocator_pop_state(mm_allocator,false); // Free
 //  *alignment_score = max_score_column; // FIXME
 //  *alignment_score = max_score_global; // FIXME
 //  return ((int)max_score_global + (int)match_bias < 255);

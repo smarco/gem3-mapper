@@ -60,14 +60,10 @@ void archive_search_se(
   PROFILE_START(GP_ARCHIVE_SEARCH_SE,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE) {
     tab_fprintf(stderr,"[GEM]>ArchiveSearch.SE\n");
-    tab_fprintf(gem_log_get_stream(),"  => Tag %s\n",archive_search->sequence.tag.buffer);
-    tab_fprintf(gem_log_get_stream(),"  => Sequence %s\n",archive_search->sequence.read.buffer);
+    tab_fprintf(gem_log_get_stream(),"  => Tag %s\n",archive_search->input_sequence->tag.buffer);
+    tab_fprintf(gem_log_get_stream(),"  => Sequence %s\n",archive_search->input_sequence->read.buffer);
     tab_global_inc();
   }
-//  gem_timer_t timer;
-//  TIMER_RESTART(&timer); // DEBUG // FIXME
-  // Reset initial values (Prepare pattern(s), instantiate parameters values, ...)
-  archive_search_reset(archive_search);
   // Search the pattern(s)
   search_parameters_t* const search_parameters = &archive_search->search_parameters;
   // Compute the full search
@@ -80,14 +76,9 @@ void archive_search_se(
   if (search_parameters->check_type!=archive_check_nothing) {
     archive_check_se_matches(
         archive_search->archive,search_parameters->match_alignment_model,
-        &search_parameters->swg_penalties,&archive_search->sequence,
-        matches,search_parameters->check_type,archive_search->mm_stack);
+        &search_parameters->swg_penalties,archive_search->input_sequence,
+        matches,search_parameters->check_type,archive_search->mm_allocator);
   }
-//  TIMER_STOP(&timer); // DEBUG // FIXME
-//  if (TIMER_GET_TOTAL_MS(&timer) > 100.0) {
-//    fprintf(stdout,"Total time taken %2.3f ms\n",TIMER_GET_TOTAL_MS(&timer));
-//    sequence_print(stderr,&archive_search->sequence);
-//  }
   // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_SE) {
     tab_global_inc();

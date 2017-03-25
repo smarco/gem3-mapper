@@ -33,10 +33,6 @@
  * Quality Data Structures
  */
 typedef enum {
-  sequence_qualities_model_flat,
-  sequence_qualities_model_gem
-} sequence_qualities_model_t;
-typedef enum {
   sequence_qualities_ignore,
   sequence_qualities_offset_33,
   sequence_qualities_offset_64
@@ -51,7 +47,6 @@ typedef enum {
  */
 void sequence_qualities_model_process(
     sequence_t* const sequence,
-    const sequence_qualities_model_t qualities_model,
     const sequence_qualities_format_t quality_format,
     const uint64_t quality_threshold,
     uint8_t* const quality_mask);

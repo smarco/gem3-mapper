@@ -45,17 +45,15 @@ void filtering_region_align_configure_hamming(
     match_align_parameters_t* const align_parameters,
     filtering_region_t* const filtering_region,
     search_parameters_t* const search_parameters,
-    pattern_t* const pattern,
-    text_trace_t* const text_trace);
+    pattern_t* const pattern);
 void filtering_region_align_configure_levenshtein(
     match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
     filtering_region_t* const filtering_region,
     search_parameters_t* const search_parameters,
     pattern_t* const pattern,
-    text_trace_t* const text_trace,
     const bool left_gap_alignment,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 
 /*
  * Configure SWG-based Alignment
@@ -66,9 +64,8 @@ void filtering_region_align_configure_swg(
     filtering_region_t* const filtering_region,
     search_parameters_t* const search_parameters,
     pattern_t* const pattern,
-    text_trace_t* const text_trace,
     const bool left_gap_alignment,
     const bool local_alignment,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 
 #endif /* FILTERING_REGION_ALIGN_CONFIGURE_H_ */

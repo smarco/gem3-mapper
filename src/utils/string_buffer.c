@@ -32,49 +32,33 @@
 /*
  * Setup
  */
-void string_init_(string_t* const string,char* const buffer,const uint64_t length,mm_stack_t* const mm_stack) {
+void string_init(
+    string_t* const string,
+    const uint64_t length,
+    mm_allocator_t* const mm_allocator) {
   // Initialize
-  if (buffer!=NULL) {
-    // Static String
-    string->buffer = buffer;
-    string->allocated = 0;
-    string->length = gem_strlen(buffer);
-    string->mm_stack = NULL;
-  } else if (mm_stack!=NULL) {
-    // Dynamic-mmStack String
-    string->buffer = mm_stack_malloc(mm_stack,length+1);
-    string->buffer[0] = EOS;
-    string->allocated = length+1;
-    string->length = 0;
-    string->mm_stack = mm_stack;
-  } else {
-    // Dynamic-heap String
-    string->buffer = mm_malloc(length+1);
-    string->buffer[0] = EOS;
-    string->allocated = length+1;
-    string->length = 0;
-    string->mm_stack = NULL;
-  }
+  string->buffer = (mm_allocator!=NULL) ?
+      mm_allocator_malloc(mm_allocator,length+1) :
+      mm_malloc(length+1);
+  string->buffer[0] = EOS;
+  string->allocated = length+1;
+  string->length = 0;
+  string->mm_allocator = mm_allocator;
 }
-void string_init(string_t* const string,const uint64_t length) {
-  // Initialize Dynamic-heap String
-  string_init_(string,NULL,length,NULL);
-}
-void string_init_static(string_t* const string,char* const buffer) {
-  // Initialize Static String
-  string_init_(string,buffer,0,NULL);
-}
-void string_init_mm(string_t* const string,const uint64_t length,mm_stack_t* const mm_stack) {
-  // Initialize Dynamic-mmStack String
-  string_init_(string,NULL,length,mm_stack);
-}
-void string_resize(string_t* const string,const uint64_t length) {
-  const uint64_t new_buffer_size = length+1;
+void string_resize(
+    string_t* const string,
+    const uint64_t length,
+    const bool keep_content) {
+  uint64_t new_buffer_size = length+1;
   if (string->allocated < new_buffer_size) {
-    if (string->mm_stack!=NULL) {
-      const char* const old_buffer = string->buffer;
-      string->buffer = mm_stack_malloc(string->mm_stack,new_buffer_size);
-      strncpy(string->buffer,old_buffer,string->length);
+    new_buffer_size = (3*new_buffer_size)/2;
+    if (string->mm_allocator!=NULL) {
+      // Allocate
+      char* old_buffer = string->buffer;
+      string->buffer = mm_allocator_malloc(string->mm_allocator,new_buffer_size);
+      if (keep_content) strncpy(string->buffer,old_buffer,string->length);
+      // Free
+      mm_allocator_free(string->mm_allocator,old_buffer);
     } else {
       string->buffer = mm_realloc(string->buffer,new_buffer_size);
     }
@@ -82,67 +66,68 @@ void string_resize(string_t* const string,const uint64_t length) {
   }
 }
 void string_clear(string_t* const string) {
-  if (string->allocated) {
-    // Dynamic String
-    string->buffer[0] = EOS;
-  } else {
-    // Static String
-    string->buffer = NULL;
-  }
+  string->buffer[0] = EOS;
   string->length = 0;
 }
 void string_destroy(string_t* const string) {
-  if (string->allocated && string->mm_stack==NULL) {
+  if (string->mm_allocator!=NULL) {
+    mm_allocator_free(string->mm_allocator,string->buffer);
+  } else {
     mm_free(string->buffer);
   }
 }
 /*
  * Accessors
  */
-void string_set_buffer(string_t* const string,char* const buffer,const uint64_t length) {
-  if (gem_expect_true(string->allocated)) {
-    // Dynamic String
-    string_resize(string,length);
-    gem_strncpy(string->buffer,buffer,length);
-    string->length = length;
-  } else {
-    // Static String
-    string->buffer = buffer;
-    string->length = length;
-  }
+void string_set_buffer(
+    string_t* const string,
+    char* const buffer,
+    const uint64_t length) {
+  string_resize(string,length,false);
+  gem_strncpy(string->buffer,buffer,length);
+  string->length = length;
 }
 char* string_get_buffer(string_t* const string) {
   return string->buffer;
 }
-void string_set_length(string_t* const string,const uint64_t length) {
+void string_set_length(
+    string_t* const string,
+    const uint64_t length) {
   string->length = length;
 }
 uint64_t string_get_length(string_t* const string) {
   return string->length;
 }
-char* string_char_at(string_t* const string,const uint64_t pos) {
+char* string_char_at(
+    string_t* const string,
+    const uint64_t pos) {
   gem_fatal_check(pos>string->length,POSITION_OUT_OF_RANGE,pos,(uint64_t)0,string->length);
   return string->buffer+pos;
 }
 /*
  * Basic editing
  */
-void string_append_char(string_t* const string,const char character) {
-  string_resize(string,string->length);
+void string_append_char(
+    string_t* const string,
+    const char character) {
+  string_resize(string,string->length,true);
   string->buffer[string->length] = character; // NOTE: No EOS appended
   ++string->length;
 }
 void string_append_eos(string_t* const string) {
-  string_resize(string,string->length);
+  string_resize(string,string->length,true);
   string->buffer[string->length] = EOS;
 }
 /*
  * Append & trimming
  */
-void string_left_append_buffer(string_t* const string,const char* const buffer,const uint64_t length) {
+void string_left_append_buffer(
+    string_t* const string,
+    const char* const buffer,
+    const uint64_t length) {
   const uint64_t base_length = string->length;
   const uint64_t final_length = base_length+length;
-  string_resize(string,final_length);
+  string_resize(string,final_length,true);
   // Shift dst characters to the left
   char* const string_buffer = string->buffer;
   int64_t i;
@@ -155,11 +140,13 @@ void string_left_append_buffer(string_t* const string,const char* const buffer,c
   }
   string->length = final_length;
 }
-void string_left_append_string(string_t* const string_dst,string_t* const string_src) {
+void string_left_append_string(
+    string_t* const string_dst,
+    string_t* const string_src) {
   const uint64_t base_src_length = string_src->length;
   const uint64_t base_dst_length = string_dst->length;
   const uint64_t final_length = base_dst_length+base_src_length;
-  string_resize(string_dst,final_length);
+  string_resize(string_dst,final_length,true);
   // Shift dst characters to the left
   char* const buffer_src = string_src->buffer;
   char* const buffer_dst = string_dst->buffer;
@@ -173,21 +160,28 @@ void string_left_append_string(string_t* const string_dst,string_t* const string
   }
   string_dst->length = final_length;
 }
-void string_right_append_buffer(string_t* const string,const char* const buffer,const uint64_t length) {
+void string_right_append_buffer(
+    string_t* const string,
+    const char* const buffer,
+    const uint64_t length) {
   const uint64_t final_length = string->length+length;
-  string_resize(string,final_length);
+  string_resize(string,final_length,true);
   strncpy(string->buffer+string->length,buffer,length);
   string->buffer[final_length] = EOS;
   string->length = final_length;
 }
-void string_right_append_string(string_t* const string_dst,string_t* const string_src) {
+void string_right_append_string(
+    string_t* const string_dst,
+    string_t* const string_src) {
   const uint64_t final_length = string_dst->length+string_src->length;
-  string_resize(string_dst,final_length);
+  string_resize(string_dst,final_length,true);
   strncpy(string_dst->buffer+string_dst->length,string_src->buffer,string_src->length);
   string_dst->buffer[final_length] = EOS;
   string_dst->length = final_length;
 }
-void string_trim_left(string_t* const string,const uint64_t length) {
+void string_trim_left(
+    string_t* const string,
+    const uint64_t length) {
   if (length > 0) {
     if (gem_expect_false(length >= string->length)) {
       string_clear(string);
@@ -200,7 +194,9 @@ void string_trim_left(string_t* const string,const uint64_t length) {
     }
   }
 }
-void string_trim_right(string_t* const string,const uint64_t length) {
+void string_trim_right(
+    string_t* const string,
+    const uint64_t length) {
   if (length > 0) {
     if (gem_expect_false(length >= string->length)) {
       string_clear(string);
@@ -210,10 +206,12 @@ void string_trim_right(string_t* const string,const uint64_t length) {
     }
   }
 }
-void string_copy_reverse(string_t* const string_dst,string_t* const string_src) {
+void string_copy_reverse(
+    string_t* const string_dst,
+    string_t* const string_src) {
   // Prepare Buffer
   const uint64_t length = string_get_length(string_src);
-  string_resize(string_dst,length);
+  string_resize(string_dst,length,false);
   string_clear(string_dst);
   // Reverse Read
   int64_t pos;
@@ -228,9 +226,11 @@ void string_copy_reverse(string_t* const string_dst,string_t* const string_src) 
  */
 bool string_is_null(const string_t* const string) {
   if (gem_expect_false(string==NULL || string->length==0)) return true;
-  return gem_expect_true(string->allocated > 0) ? string->buffer[0]==EOS : false;
+  return string->buffer[0]==EOS;
 }
-int64_t string_cmp(string_t* const string_a,string_t* const string_b) {
+int64_t string_cmp(
+    string_t* const string_a,
+    string_t* const string_b) {
   char* const buffer_a = string_a->buffer;
   char* const buffer_b = string_b->buffer;
   const uint64_t min_length = MIN(string_a->length,string_b->length);
@@ -247,16 +247,24 @@ int64_t string_cmp(string_t* const string_a,string_t* const string_b) {
     }
   }
 }
-int64_t string_ncmp(string_t* const string_a,string_t* const string_b,const uint64_t length) {
+int64_t string_ncmp(
+    string_t* const string_a,
+    string_t* const string_b,
+    const uint64_t length) {
   char* const buffer_a = string_a->buffer;
   char* const buffer_b = string_b->buffer;
   const uint64_t min_length = MIN(MIN(string_a->length,string_b->length),length);
   return gem_strncmp(buffer_a,buffer_b,min_length);
 }
-bool string_equals(string_t* const string_a,string_t* const string_b) {
+bool string_equals(
+    string_t* const string_a,
+    string_t* const string_b) {
   return string_cmp(string_a,string_b)==0;
 }
-bool string_nequals(string_t* const string_a,string_t* const string_b,const uint64_t length) {
+bool string_nequals(
+    string_t* const string_a,
+    string_t* const string_b,
+    const uint64_t length) {
   return string_ncmp(string_a,string_b,length)==0;
 }
 /*
@@ -265,55 +273,57 @@ bool string_nequals(string_t* const string_a,string_t* const string_b,const uint
 string_t* string_dup(string_t* const string) {
   string_t* const string_cpy = mm_alloc(string_t);
   // Duplicate
-  if (string->allocated==0) {
-    // Static String
-    string_init_(string_cpy,string->buffer,0,NULL);
-  } else {
-    // Dynamic String
-    string_init_(string_cpy,NULL,string->length,string->mm_stack);
-    strncpy(string_cpy->buffer,string->buffer,string->length);
-  }
+  string_init(string_cpy,string->length,string->mm_allocator);
+  strncpy(string_cpy->buffer,string->buffer,string->length);
   string_cpy->length = string->length;
   return string_cpy;
 }
-void string_copy(string_t* const string_dst,string_t* const string_src) {
-  string_resize(string_dst,string_src->length);
+void string_copy(
+    string_t* const string_dst,
+    string_t* const string_src) {
+  string_resize(string_dst,string_src->length,false);
   strncpy(string_dst->buffer,string_src->buffer,string_src->length);
   string_dst->length = string_src->length;
 }
 /*
  * String Printers
  */
-int sbprintf_v(string_t* const string,const char *template,va_list v_args) {
+int sbprintf_v(
+    string_t* const string,
+    const char *template,
+    va_list v_args) {
   int chars_printed;
-  if (string->allocated>0) { // Allocate memory
-    const uint64_t mem_required = calculate_memory_required_v(template,v_args);
-    string_resize(string,mem_required);
-  }
-  chars_printed=vsprintf(string_get_buffer(string),template,v_args);
+  const uint64_t mem_required = calculate_memory_required_v(template,v_args);
+  string_resize(string,mem_required,false);
+  chars_printed = vsprintf(string_get_buffer(string),template,v_args);
   string_set_length(string,chars_printed);
   string_get_buffer(string)[chars_printed] = EOS;
   return chars_printed;
 }
-int sbprintf(string_t* const string,const char *template,...) {
+int sbprintf(
+    string_t* const string,
+    const char *template,...) {
   va_list v_args;
   va_start(v_args,template);
   const int chars_printed = sbprintf_v(string,template,v_args);
   va_end(v_args);
   return chars_printed;
 }
-int sbprintf_append_v(string_t* const string,const char *template,va_list v_args) {
+int sbprintf_append_v(
+    string_t* const string,
+    const char *template,
+    va_list v_args) {
   int chars_printed = string_get_length(string);
-  if (string->allocated>0) { // Allocate memory
-    const uint64_t mem_required = calculate_memory_required_v(template,v_args);
-    string_resize(string,mem_required+chars_printed);
-  }
-  chars_printed+=vsprintf(string_get_buffer(string)+chars_printed,template,v_args);
+  const uint64_t mem_required = calculate_memory_required_v(template,v_args);
+  string_resize(string,mem_required+chars_printed,true);
+  chars_printed += vsprintf(string_get_buffer(string)+chars_printed,template,v_args);
   string_set_length(string,chars_printed);
   string_get_buffer(string)[chars_printed] = EOS;
   return chars_printed;
 }
-int sbprintf_append(string_t* const string,const char *template,...) {
+int sbprintf_append(
+    string_t* const string,
+    const char *template,...) {
   va_list v_args;
   va_start(v_args,template);
   const int chars_printed = sbprintf_append_v(string,template,v_args);

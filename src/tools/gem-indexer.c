@@ -65,6 +65,7 @@ typedef struct {
   char* output_index_file_name_prefix;
   uint64_t ns_threshold;
   /* Index */
+  bool sampling_rate_set;
   sampling_rate_t sa_sampling_rate;
   sampling_rate_t text_sampling_rate;
   bool run_length_index;
@@ -86,6 +87,7 @@ typedef struct {
   /* Miscellaneous */
   bool info_file_name_provided;
   char* info_file_name;
+  FILE* info_file;
   bool verbose;
 } indexer_parameters_t;
 // Defaults
@@ -100,14 +102,15 @@ void indexer_parameters_set_defaults(indexer_parameters_t* const parameters) {
   /* Index */
   parameters->run_length_index = false;
   parameters->bisulfite_index = false;
+  parameters->sampling_rate_set = false;
 #ifdef HAVE_CUDA
   parameters->gpu_index = true;
+  parameters->text_sampling_rate=SAMPLING_RATE_32;
   parameters->sa_sampling_rate=SAMPLING_RATE_8;
-  parameters->text_sampling_rate=SAMPLING_RATE_4;
 #else
   parameters->gpu_index = false;
-  parameters->sa_sampling_rate=SAMPLING_RATE_NONE;
   parameters->text_sampling_rate=SAMPLING_RATE_4;
+  parameters->sa_sampling_rate=SAMPLING_RATE_NONE;
 #endif
   /* Debug */
   parameters->dump_locator_intervals=true;
@@ -125,6 +128,7 @@ void indexer_parameters_set_defaults(indexer_parameters_t* const parameters) {
   /* Miscellaneous */
   parameters->info_file_name_provided=false;
   parameters->info_file_name=NULL;
+  parameters->info_file=NULL;
   parameters->verbose=true;
 }
 /*
@@ -216,7 +220,9 @@ void indexer_process_multifasta(archive_builder_t* const archive_builder,indexer
     // TODO if (parameters->dump_run_length_text) archive_builder_text_dump(archive_builder,".text.rl");
   }
   // DEBUG
-  locator_builder_print(gem_log_get_stream(),archive_builder->locator, parameters->dump_locator_intervals);
+  if (parameters->info_file) {
+    locator_builder_print(parameters->info_file,archive_builder->locator,parameters->dump_locator_intervals);
+  }
   if (parameters->dump_indexed_text) archive_builder_text_dump(archive_builder,".text");
   // Write Metadata
   archive_builder_write_header(archive_builder);
@@ -267,8 +273,13 @@ option_t gem_indexer_options[] = {
   { 'o', "output", REQUIRED, TYPE_STRING, 2 , VISIBILITY_USER, "<output_prefix>" , "" },
   { 'N', "strip-unknown-bases-threshold", REQUIRED, TYPE_INT, 2 , VISIBILITY_ADVANCED, "'disable'|<integer>" , "(default=50)" },
   /* Index */
-  { 's', "text-sampling-rate", REQUIRED, TYPE_INT, 3 , VISIBILITY_ADVANCED, "<sampling_rate>" , "(default=4)" },
+#ifdef HAVE_CUDA
+  { 's', "text-sampling-rate", REQUIRED, TYPE_INT, 3 , VISIBILITY_ADVANCED, "<sampling_rate>" , "(default=32)" },
   { 'S', "SA-sampling-rate", REQUIRED, TYPE_INT, 3 , VISIBILITY_ADVANCED, "<sampling_rate>" , "(default=8)" },
+#else
+  { 's', "text-sampling-rate", REQUIRED, TYPE_INT, 3 , VISIBILITY_ADVANCED, "<sampling_rate>" , "(default=4)" },
+  { 'S', "SA-sampling-rate", REQUIRED, TYPE_INT, 3 , VISIBILITY_ADVANCED, "<sampling_rate>" , "(disabled)" },
+#endif
   { 'r', "run-length-index", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_USER, "" , "(default=false)" },
   { 'b', "bisulfite-index", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_USER, "" , "(default=false)" },
 #ifdef HAVE_CUDA
@@ -336,6 +347,7 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
     case 's': { // --text_sampling-rate
       const uint64_t sampling = atol(optarg);
       switch (sampling) {
+        case 0:   parameters->text_sampling_rate=SAMPLING_RATE_NONE; break;
         case 1:   parameters->text_sampling_rate=SAMPLING_RATE_1; break;
         case 2:   parameters->text_sampling_rate=SAMPLING_RATE_2; break;
         case 4:   parameters->text_sampling_rate=SAMPLING_RATE_4; break;
@@ -349,11 +361,13 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
           gem_indexer_error_msg("Sampling rate argument not valid (--text_sampling-rate)");
           break;
       }
+      parameters->sampling_rate_set = true;
     }
     break;
     case 'S': { // --SA-sampling-rate
       const uint64_t sampling = atol(optarg);
       switch (sampling) {
+        case 0:   parameters->sa_sampling_rate=SAMPLING_RATE_NONE; break;
         case 1:   parameters->sa_sampling_rate=SAMPLING_RATE_1; break;
         case 2:   parameters->sa_sampling_rate=SAMPLING_RATE_2; break;
         case 4:   parameters->sa_sampling_rate=SAMPLING_RATE_4; break;
@@ -367,6 +381,7 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
           gem_indexer_error_msg("Sampling rate argument not valid (--SA-sampling-rate)");
           break;
       }
+      parameters->sampling_rate_set = true;
     }
     break;
     case 'r': // --run-length-index
@@ -468,6 +483,11 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
     parameters->output_index_file_name_prefix = parameters->output_index_file_name;
     parameters->output_index_file_name = gem_strcat(parameters->output_index_file_name_prefix,".gem");
   }
+  // Sampling rate
+  if (!parameters->gpu_index && !parameters->sampling_rate_set) {
+    parameters->text_sampling_rate = SAMPLING_RATE_4;
+    parameters->sa_sampling_rate = SAMPLING_RATE_NONE;
+  }
   // Info file
   if (!parameters->info_file_name_provided)  {
     parameters->info_file_name = gem_strcat(parameters->output_index_file_name_prefix,".info");
@@ -495,7 +515,7 @@ int main(int argc,char** argv) {
 
   // GEM Runtime setup
   gruntime_init(parameters.num_threads,parameters.tmp_folder);
-  gem_log_set_stream(fopen(parameters.info_file_name,"wb")); // Set INFO file
+  parameters.info_file = fopen(parameters.info_file_name,"wb"); // Set INFO file
   TIMER_RESTART(&gem_indexer_timer); // Start global timer
 
   // GEM Archive Builder
@@ -505,7 +525,8 @@ int main(int argc,char** argv) {
       parameters.output_index_file_name_prefix,type,
       parameters.gpu_index,parameters.ns_threshold,
       parameters.sa_sampling_rate,parameters.text_sampling_rate,
-      parameters.num_threads,parameters.max_memory);
+      parameters.num_threads,parameters.max_memory,
+      parameters.info_file);
 
   // Process MultiFASTA
   indexer_process_multifasta(archive_builder,&parameters);
@@ -519,13 +540,19 @@ int main(int argc,char** argv) {
    */
   TIMER_STOP(&gem_indexer_timer);
   if (parameters.verbose) {
-    tfprintf(stderr,"[GEM Index '%s' was successfully built in %2.3f min.] (see '%s.info' for further info)\n",
-        parameters.output_index_file_name,TIMER_GET_TOTAL_M(&gem_indexer_timer),
-        parameters.output_index_file_name_prefix);
+    tfprintf(stderr,"[GEM Index '%s' was successfully built in %2.3f min.]",
+        parameters.output_index_file_name,TIMER_GET_TOTAL_M(&gem_indexer_timer));
+    if (parameters.info_file) {
+      fprintf(stderr," (see '%s.info' for further info)\n",
+          parameters.output_index_file_name_prefix);
+    } else {
+      fprintf(stderr,"\n");
+    }
   }
 
   // Free
   indexer_cleanup(archive_builder,&parameters);
+  if (parameters.info_file) fclose(parameters.info_file);
   gruntime_destroy();
 
   return 0;

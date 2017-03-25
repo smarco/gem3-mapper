@@ -24,9 +24,9 @@
  *   algorithms (full or tiled)
  */
 
+#include <gpu/gpu_buffer_bpm_distance.h>
 #include "text/dna_text.h"
 #include "align/align_bpm_pattern.h"
-#include "gpu/gpu_buffer_align_bpm.h"
 
 /*
  * Checks
@@ -44,12 +44,11 @@
 /*
  * Compile Pattern
  */
-bpm_pattern_t* bpm_pattern_compile(
+void bpm_pattern_compile(
+    bpm_pattern_t* const bpm_pattern,
     uint8_t* const pattern,
     const uint64_t pattern_length,
-    mm_stack_t* const mm_stack) {
-  // Alloc
-  bpm_pattern_t* const bpm_pattern = mm_stack_alloc(mm_stack,bpm_pattern_t);
+    mm_allocator_t* const mm_allocator) {
   // Calculate dimensions
   const uint64_t pattern_num_words64 = DIV_CEIL(pattern_length,BPM_W64_LENGTH);
   const uint64_t PEQ_length = pattern_num_words64*BPM_W64_LENGTH;
@@ -62,13 +61,15 @@ bpm_pattern_t* bpm_pattern_compile(
   const uint64_t aux_vector_size = pattern_num_words64*BPM_W64_SIZE;
   const uint64_t PEQ_size = DNA__N_RANGE*aux_vector_size;
   const uint64_t score_size = pattern_num_words64*UINT64_SIZE;
-  bpm_pattern->PEQ = mm_stack_malloc(mm_stack,PEQ_size);
-  bpm_pattern->P = mm_stack_malloc(mm_stack,aux_vector_size);
-  bpm_pattern->M = mm_stack_malloc(mm_stack,aux_vector_size);
-  bpm_pattern->level_mask = mm_stack_malloc(mm_stack,aux_vector_size);
-  bpm_pattern->score = mm_stack_malloc(mm_stack,score_size);
-  bpm_pattern->init_score = mm_stack_malloc(mm_stack,score_size);
-  bpm_pattern->pattern_left = mm_stack_malloc(mm_stack,(pattern_num_words64+1)*UINT64_SIZE);
+  const uint64_t total_memory = PEQ_size + 3*aux_vector_size + 2*score_size + (pattern_num_words64+1)*UINT64_SIZE;
+  void* memory = mm_allocator_malloc(mm_allocator,total_memory);
+  bpm_pattern->PEQ = memory; memory += PEQ_size;
+  bpm_pattern->P = memory; memory += aux_vector_size;
+  bpm_pattern->M = memory; memory += aux_vector_size;
+  bpm_pattern->level_mask = memory; memory += aux_vector_size;
+  bpm_pattern->score = memory; memory += score_size;
+  bpm_pattern->init_score = memory; memory += score_size;
+  bpm_pattern->pattern_left = memory;
   // Init PEQ
   memset(bpm_pattern->PEQ,0,PEQ_size);
   uint64_t i;
@@ -109,8 +110,11 @@ bpm_pattern_t* bpm_pattern_compile(
     bpm_pattern->level_mask[top] = BPM_W64_MASK;
     bpm_pattern->init_score[top] = BPM_W64_LENGTH;
   }
-  // Return
-  return bpm_pattern;
+}
+void bpm_pattern_destroy(
+    bpm_pattern_t* const bpm_pattern,
+    mm_allocator_t* const mm_allocator) {
+  mm_allocator_free(mm_allocator,bpm_pattern->PEQ);
 }
 /*
  * Compile Pattern Tiles

@@ -151,7 +151,6 @@ bool bpm_compute_edit_distance(
 uint64_t bpm_compute_edit_distance_all(
     pattern_t* const pattern,
     filtering_candidates_t* const filtering_candidates,
-    const uint64_t text_trace_offset,
     const uint64_t begin_position,
     const uint8_t* const text,
     const uint64_t text_length,

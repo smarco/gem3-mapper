@@ -36,7 +36,6 @@ void region_profile_partition_fixed(
     region_profile_t* const region_profile,
     const uint8_t* const key,
     const uint64_t key_length,
-    const bool* const allowed_enc,
     const uint64_t region_length,
     const bool allow_gap_extending) {
   // Init & allocate region profile
@@ -52,7 +51,7 @@ void region_profile_partition_fixed(
     if (num_filtering_regions >= max_regions) break;
     // Get next character & check allowed
     const uint8_t enc_char = key[i];
-    if (!allowed_enc[enc_char]) { // Skip bad characters
+    if (enc_char==ENC_DNA_CHAR_N) { // Skip bad characters
       // Extend last region to cover the gap (if any)
       if (allow_gap_extending && current_region_length>0 && num_filtering_regions>0) {
         region_search_t* const last_region_search =
@@ -129,7 +128,6 @@ void region_profile_generate_cks(
     fm_index_t* const fm_index,
     const uint8_t* const key,
     const uint64_t key_length,
-    const bool* const allowed_enc,
     const uint64_t region_length,
     const uint64_t num_regions) {
   /*

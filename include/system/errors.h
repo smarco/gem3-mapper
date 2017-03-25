@@ -58,13 +58,13 @@ void gem_perror(void);
   gem_report_error_begin_block(GEM_LABEL_ERROR,gem_error_name,##args) \
   gem_report_end_block(0,0,1)
 #define gem_error_msg(gem_error_msg,args...) \
-  gem_report_error_msg_begin_block(GEM_LABEL_ERROR,error,gem_error_msg,##args) \
+  gem_report_error_msg_begin_block(GEM_LABEL_ERROR,gem_error_msg,##args) \
   gem_report_end_block(0,0,1)
 #define gem_fatal_error(gem_error_name,args...) \
   gem_report_error_begin_block(GEM_LABEL_FATAL_ERROR,gem_error_name,##args) \
   gem_report_end_block(1,1,1)
 #define gem_fatal_error_msg(gem_error_msg,args...) \
-  gem_report_error_msg_begin_block(GEM_LABEL_FATAL_ERROR,error,gem_error_msg,##args) \
+  gem_report_error_msg_begin_block(GEM_LABEL_FATAL_ERROR,gem_error_msg,##args) \
   gem_report_end_block(1,1,1)
 // Conditional Error Code
 #define gem_cond_error(condition,gem_error_name,args...) \
@@ -81,7 +81,7 @@ void gem_perror(void);
   gem_report_error_begin_block(GEM_LABEL_WARNING,gem_warning_name,##args) \
   gem_report_end_block(0,0,0)
 #define gem_warn_msg(gem_warn_msg,args...) \
-  gem_report_error_msg_begin_block(GEM_LABEL_WARNING,error,gem_warn_msg,##args) \
+  gem_report_error_msg_begin_block(GEM_LABEL_WARNING,gem_warn_msg,##args) \
   gem_report_end_block(0,0,0)
 // Conditional Warning
 #define gem_cond_warn(condition,warning_name,args...) \
@@ -91,7 +91,7 @@ void gem_perror(void);
 // Debug
 #ifdef GEM_DEBUG
   #define gem_debug_msg(gem_debug_msg,args...) \
-    gem_report_error_msg_begin_block(GEM_LABEL_DEBUG,debug,gem_debug_msg,##args) \
+    gem_report_error_msg_begin_block(GEM_LABEL_DEBUG,gem_debug_msg,##args) \
     gem_report_end_block(1,0,0)
   #define gem_debug_block()
   #define gem_cond_debug_block(condition) if (condition)

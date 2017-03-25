@@ -32,9 +32,12 @@ void pattern_tiled_compile(
     uint8_t* const key,
     const uint64_t key_length,
     const uint64_t max_error,
-    mm_stack_t* const mm_stack) {
+    const uint64_t kmer_tiles,
+    const uint64_t kmer_length,
+    const uint64_t kmer_enabled,
+    mm_allocator_t* const mm_allocator) {
   // Init
-  pattern_tiled->mm_stack = mm_stack;
+  pattern_tiled->mm_allocator = mm_allocator;
   // Compute tiling dimensions (adjust to min-128/max-512 tile lengths)
   const uint64_t min_tiles = DIV_CEIL(max_error,BPM_MIN_TILE_LENGTH);
   const uint64_t min_tiles_length = min_tiles * BPM_MIN_TILE_LENGTH;
@@ -51,19 +54,21 @@ void pattern_tiled_compile(
   if (tile_length > BPM_MAX_TILE_LENGTH) tile_length = BPM_MAX_TILE_LENGTH;
   pattern_tiled->tile_length = tile_length;
   pattern_tiled->num_tiles = DIV_CEIL(key_length,tile_length);
-  // Compile Global filters
-  pattern_tiled->bpm_pattern = bpm_pattern_compile(key,key_length,mm_stack); // Compile BPM pattern
-  // Configure alignment-filter tiles
+  // Compile BPM pattern (Global filters)
+  bpm_pattern_compile(&pattern_tiled->bpm_pattern,key,key_length,mm_allocator);
+  kmer_counting_compile_nway(
+      &pattern_tiled->kmer_filter_nway,key,key_length,
+      kmer_tiles,kmer_length,!kmer_enabled,mm_allocator);
+  // Configure tiles
   if (pattern_tiled->num_tiles==1) {
-    pattern_tiled->tiles = mm_stack_alloc(mm_stack,pattern_tile_t);
+    pattern_tiled->tiles = mm_allocator_alloc(mm_allocator,pattern_tile_t);
     pattern_tiled->tiles->tile_offset = 0;
     pattern_tiled->tiles->tile_length = key_length;
     pattern_tiled->tiles->max_error = MIN(max_error,key_length);
     pattern_tiled->tiles->bpm_pattern_tile = pattern_tiled->bpm_pattern;
-    pattern_tiled->tiles->kmer_filter_tile = NULL;
   } else {
     // Allocate
-    pattern_tiled->tiles = mm_stack_calloc(mm_stack,pattern_tiled->num_tiles,pattern_tile_t,false);
+    pattern_tiled->tiles = mm_allocator_calloc(mm_allocator,pattern_tiled->num_tiles,pattern_tile_t,false);
     // Compile tiles
     const double max_error_rate = (double)max_error/(double)key_length;
     uint64_t key_length_left = key_length, key_offset = 0;
@@ -79,13 +84,20 @@ void pattern_tiled_compile(
       tile->max_error = (uint64_t)ceil(max_error_rate*(double)actual_tile_length);
       key_length_left -= actual_tile_length;
       key_offset += actual_tile_length;
-      // Init filters
-      tile->bpm_pattern_tile = mm_stack_alloc(mm_stack,bpm_pattern_t);
-      tile->kmer_filter_tile = NULL;
       // Compile BPM-Tile
-      bpm_pattern_compile_tiles(pattern_tiled->bpm_pattern,
-          offset_words64,tile->tile_length,tile->bpm_pattern_tile);
-      offset_words64 += tile->bpm_pattern_tile->pattern_num_words64;
+      bpm_pattern_compile_tiles(
+          &pattern_tiled->bpm_pattern,offset_words64,
+          tile->tile_length,&tile->bpm_pattern_tile);
+      offset_words64 += tile->bpm_pattern_tile.pattern_num_words64;
     }
   }
+}
+void pattern_tiled_destroy(
+    pattern_tiled_t* const pattern_tiled,
+    mm_allocator_t* const mm_allocator) {
+  // BPM
+  bpm_pattern_destroy(&pattern_tiled->bpm_pattern,mm_allocator);
+  // kmer-filter
+  kmer_counting_destroy(&pattern_tiled->kmer_filter_nway,mm_allocator);
+  mm_allocator_free(mm_allocator,pattern_tiled->tiles);
 }

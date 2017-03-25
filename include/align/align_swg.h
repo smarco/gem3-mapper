@@ -49,7 +49,7 @@ typedef struct {
 swg_cell_t** align_swg_allocate_table(
     const uint64_t num_columns,
     const uint64_t num_rows,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 void align_swg_init_table_banded_opt(
     swg_cell_t** const dp,
     const uint64_t num_columns,
@@ -67,7 +67,7 @@ void align_swg_base(
     match_align_parameters_t* const align_parameters,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 
 /*
  * Smith-Waterman-Gotoh - Main procedure (Dispatcher)
@@ -78,7 +78,7 @@ void align_swg(
     const bool begin_free,const bool end_free,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 
 /*
  * Smith-Waterman-Gotoh - BackTrace

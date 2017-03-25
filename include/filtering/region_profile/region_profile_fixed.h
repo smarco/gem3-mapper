@@ -37,7 +37,6 @@ void region_profile_partition_fixed(
     region_profile_t* const region_profile,
     const uint8_t* const key,
     const uint64_t key_length,
-    const bool* const allowed_enc,
     const uint64_t region_length,
     const bool allow_gap_extending);
 
@@ -61,7 +60,6 @@ void region_profile_generate_cks(
     fm_index_t* const fm_index,
     const uint8_t* const key,
     const uint64_t key_length,
-    const bool* const allowed_enc,
     const uint64_t region_length,
     const uint64_t num_regions);
 

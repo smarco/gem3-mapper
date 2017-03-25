@@ -27,7 +27,8 @@
 /*
  * Initialize mapping stats
  */
-void init_mapping_stats(mapping_stats_t* mstats) {
+void init_mapping_stats(
+    mapping_stats_t* const mstats) {
 	 int i,read;
 	 for(read=0;read<2;read++) {
 			mstats->unmapped[read]=0;
@@ -42,8 +43,9 @@ void init_mapping_stats(mapping_stats_t* mstats) {
 	 mstats->correct_pairs=0;
 	 mstats->insert_size_dist=ihash_new(NULL);
 }
-
-void merge_ihash(ihash_t* ihash1, ihash_t* ihash2) {
+void merge_ihash(
+    ihash_t* ihash1,
+    ihash_t* ihash2) {
 	 ihash_element_t* ih;
 	 for(ih=ihash2->head;ih;ih=ih->hh.next) {
 			uint64_t* count;
@@ -58,8 +60,10 @@ void merge_ihash(ihash_t* ihash1, ihash_t* ihash2) {
 			}
 	 }
 }
-
-void merge_mapping_stats(mapping_stats_t* global_mstats, mapping_stats_t* mstats, uint64_t num_threads) {
+void merge_mapping_stats(
+    mapping_stats_t* const global_mstats,
+    mapping_stats_t* const mstats,
+    const uint64_t num_threads) {
 	 init_mapping_stats(global_mstats);
 	 uint64_t i;
 	 for(i=0;i<num_threads;i++) {
@@ -80,10 +84,11 @@ void merge_mapping_stats(mapping_stats_t* global_mstats, mapping_stats_t* mstats
 			merge_ihash(global_mstats->insert_size_dist,mstats[i].insert_size_dist);
 	 }
 }
-
 int btab[256]={ ['A'] = 1, ['C'] = 2, ['G'] = 3, ['T'] = 4 };
-
-void update_counts(sequence_t* const seq_read, mapping_stats_t* mstats,int end) {
+void update_counts(
+    sequence_t* const seq_read,
+    mapping_stats_t* const mstats,
+    const int end) {
 	 string_t* const read = &seq_read->read;
 	 const uint64_t len = string_get_length(read);
 	 uint64_t* count;
@@ -99,8 +104,10 @@ void update_counts(sequence_t* const seq_read, mapping_stats_t* mstats,int end) 
 	 char *p = string_get_buffer(read);
 	 while(*p) mstats->base_counts[0][end][btab[(int)*p++]]++;
 }
-
-void update_distance_counts(matches_t* const matches, match_trace_t* const match_trace, mapping_stats_t* mstats, int end) {
+void update_distance_counts(
+    matches_t* const matches,
+    match_trace_t* const match_trace,
+    mapping_stats_t* mstats, int end) {
 	 vector_t* const cigar_vector = matches->cigar_vector;
 	 const uint64_t cigar_buffer_offset = match_trace->match_alignment.cigar_offset;
 	 const uint64_t cigar_length = match_trace->match_alignment.cigar_length;
@@ -120,19 +127,21 @@ void update_distance_counts(matches_t* const matches, match_trace_t* const match
 			(*count)++;
 	 }	 
 }
-
-void update_conversion_counts(sequence_t* const seq_read, mapping_stats_t* mstats,int end,bs_strand_t bs,int read_type) {
+void update_conversion_counts(
+    sequence_t* const seq_read,
+    mapping_stats_t* mstats,
+    const int end,
+    const bs_strand_t bs,
+    const int read_type) {
 	 int cnv_idx[4][4] = {{0,0,0,0},{1,0,3,5},{2,0,4,6},{0,0,0,0}};
-	 
-	 int idx=cnv_idx[bs][read_type];
+	 int idx = cnv_idx[bs][read_type];
 	 if(idx) {
 			string_t* const read = &seq_read->read;
 			char *p = string_get_buffer(read);
 			while(*p) mstats->base_counts[idx][end][btab[(int)*p++]]++;
 	 }
 }
-
-int get_read_type(match_trace_t* match) {
+int get_read_type(match_trace_t* const match) {
 	 char *control_seqs[]={SEQUENCING_CONTROL, UNDERCONVERSION_CONTROL, OVERCONVERSION_CONTROL,0};
 	 char* seq = match->sequence_name;
 	 char* p;
@@ -140,9 +149,11 @@ int get_read_type(match_trace_t* match) {
 	 while((p = control_seqs[i++])) if(strstr(seq, p)) break;
 	 return i%4;
 }
-
-void collect_se_mapping_stats(archive_search_t* const archive_search, matches_t* const matches, mapping_stats_t* mstats) {
-	 update_counts(&archive_search->sequence,mstats,0);
+void collect_se_mapping_stats(
+    archive_search_t* const archive_search,
+    matches_t* const matches,
+    mapping_stats_t* mstats) {
+	 update_counts(archive_search->input_sequence,mstats,0);
 	 bs_strand_t bs = bs_strand_none;
 	 int read_type = -1;
 	 const uint64_t num_match_traces = matches_get_num_match_traces(matches);
@@ -155,7 +166,7 @@ void collect_se_mapping_stats(archive_search_t* const archive_search, matches_t*
 			bs = match->bs_strand;
 			read_type = get_read_type(match);
 			if(match->mapq_score>0) {
-				 update_conversion_counts(&archive_search->sequence, mstats, 0, bs, read_type);
+				 update_conversion_counts(archive_search->input_sequence, mstats, 0, bs, read_type);
 			}
 			mstats->hist_mapq[(int)match->mapq_score]++;
 			if(bs == bs_strand_C2T) mstats->BSreads[0][0]++;
@@ -163,18 +174,18 @@ void collect_se_mapping_stats(archive_search_t* const archive_search, matches_t*
 			if(read_type>=0) mstats->reads[0][read_type]++;
 	 }
 }
-
-void collect_pe_mapping_stats(archive_search_t* const archive_search1, archive_search_t* const archive_search2,
- 	 paired_matches_t* const paired_matches, mapping_stats_t* mstats) {
-
-	 update_counts(&archive_search1->sequence,mstats,0);
-	 update_counts(&archive_search2->sequence,mstats,1);
+void collect_pe_mapping_stats(
+    archive_search_t* const archive_search1,
+    archive_search_t* const archive_search2,
+ 	  paired_matches_t* const paired_matches,
+ 	  mapping_stats_t* mstats) {
+	 update_counts(archive_search1->input_sequence,mstats,0);
+	 update_counts(archive_search2->input_sequence,mstats,1);
 	 matches_t* const matches_end1 = paired_matches->matches_end1;
 	 matches_t* const matches_end2 = paired_matches->matches_end2;	 
 	 bs_strand_t bs1,bs2;
 	 bs1 = bs2 = bs_strand_none;
 	 int read_type1 = -1, read_type2 = -1;
-	 
 	 if (gem_expect_false(!paired_matches_is_mapped(paired_matches))) { // Non paired
 			const uint64_t vector_match_trace_used_end1 = matches_get_num_match_traces(matches_end1);
 			const uint64_t vector_match_trace_used_end2 = matches_get_num_match_traces(matches_end2);
@@ -230,8 +241,8 @@ void collect_pe_mapping_stats(archive_search_t* const archive_search1, archive_s
 			read_type1 = read_type2 = get_read_type(match_end1);
 			mstats->hist_mapq[(int)paired_map->mapq_score]++;
 			if(paired_map->mapq_score>0) {
-				 update_conversion_counts(&archive_search1->sequence, mstats, 0, bs1, read_type1);
-				 update_conversion_counts(&archive_search2->sequence, mstats, 1, bs2, read_type2);
+				 update_conversion_counts(archive_search1->input_sequence, mstats, 0, bs1, read_type1);
+				 update_conversion_counts(archive_search2->input_sequence, mstats, 1, bs2, read_type2);
 			}
 	 }
 	 if(bs1 == bs_strand_C2T) mstats->BSreads[0][0]++;
@@ -241,15 +252,23 @@ void collect_pe_mapping_stats(archive_search_t* const archive_search1, archive_s
 	 if(read_type1>=0) mstats->reads[0][read_type1]++;
 	 if(read_type2>=0) mstats->reads[1][read_type2]++;
 }
-
 char *indent_str="\t\t\t\t\t\t\t\t";
 #define MAX_JSON_ARRAY_LINE 8
-
-void output_json_uint_element(FILE *fp,char *key,uint64_t value,int indent,bool last) {
+void output_json_uint_element(
+    FILE *fp,
+    char *key,
+    uint64_t value,
+    int indent,
+    bool last) {
 	 fprintf(fp,"%.*s\"%s\": %"PRIu64"%s",indent,indent_str,key,value,last?"\n":",\n");
 }
-
-void output_json_uint_array(FILE *fp,char *key,uint64_t *values,int n,int indent,bool last) {
+void output_json_uint_array(
+    FILE *fp,
+    char *key,
+    uint64_t *values,
+    int n,
+    int indent,
+    bool last) {
 	 if(n<=MAX_JSON_ARRAY_LINE) {
 			fprintf(fp,"%.*s\"%s\": ",indent,indent_str,key);
 			int i;
@@ -273,8 +292,9 @@ void output_json_uint_array(FILE *fp,char *key,uint64_t *values,int n,int indent
 			fprintf(fp,"%.*s%s",indent,indent_str,last?"]\n":"],\n");
 	 }
 }
-
-void output_mapping_stats(mapper_parameters_t *parameters,mapping_stats_t* mstats) {
+void output_mapping_stats(
+    mapper_parameters_t* const parameters,
+    mapping_stats_t* const mstats) {
 	 char *output_file = parameters->io.report_file_name;
 	 FILE *fp = fopen(output_file,"w");
 	 if(!fp) return;
@@ -328,7 +348,6 @@ void output_mapping_stats(mapper_parameters_t *parameters,mapping_stats_t* mstat
 	 char* read_type[]={"General","SequencingControl","UnderConversionControl","OverConversionControl"};
 	 char* conv_type[]={"C2T","G2A"};
 	 int i,j,k;
-
 	 fprintf(fp,"%.*s\"Reads\": {\n",indent++,indent_str);
 	 if(paired) {
 			for(i=0;i<4;i++) {

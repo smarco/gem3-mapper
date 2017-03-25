@@ -36,7 +36,6 @@ void region_profile_compute_mem(
     fm_index_t* const fm_index,
     const uint8_t* const key,
     const uint64_t key_length,
-    const bool* const allowed_enc,
     const uint64_t end_position) {
   // Init
   uint64_t prev_lo=0, lo = 0;
@@ -45,7 +44,7 @@ void region_profile_compute_mem(
   while (position>=0) {
     // Fetch character
     const uint8_t enc_char = key[position];
-    if (!allowed_enc[enc_char]) break;
+    if (enc_char == ENC_DNA_CHAR_N) break;
     // Query index
     lo = bwt_sbasic_erank(fm_index->bwt,enc_char,lo);
     hi = bwt_sbasic_erank(fm_index->bwt,enc_char,hi);
@@ -66,8 +65,7 @@ void region_profile_generate_mem(
     region_profile_t* const region_profile,
     fm_index_t* const fm_index,
     const uint8_t* const key,
-    const uint64_t key_length,
-    const bool* const allowed_enc) {
+    const uint64_t key_length) {
   // Init
   region_profile_clear(region_profile);
   region_profile_allocate_regions(region_profile,key_length); // Allocate
@@ -78,10 +76,9 @@ void region_profile_generate_mem(
   for (i=key_length;i>0;) {
     // Fetch character
     const uint8_t enc_char = key[i-1];
-    if (allowed_enc[enc_char]) {
+    if (enc_char != ENC_DNA_CHAR_N) {
       // Compute MEM
-      region_profile_compute_mem(filtering_region,
-          fm_index,key,key_length,allowed_enc,i);
+      region_profile_compute_mem(filtering_region,fm_index,key,key_length,i);
       // This cond. is commented as otherwise it will generate SMEMs only
       // if (filtering_region->begin < last_begin_position) {
       // Next region
@@ -124,7 +121,6 @@ uint64_t region_profile_compute_smem(
     fm_index_t* const fm_index,
     const uint8_t* const key,
     const uint64_t key_length,
-    const bool* const allowed_enc,
     const uint64_t init_position,
     smem_interval_vector_t* const smem_interval_vector) {
   // Init
@@ -136,7 +132,7 @@ uint64_t region_profile_compute_smem(
   for (i=init_position;i<key_length;++i) {
     // Fetch character
     const uint8_t enc_char = key[i];
-    if (!allowed_enc[enc_char]) {
+    if (enc_char == ENC_DNA_CHAR_N) {
       next_interval.backward_hi = 0;
       next_interval.backward_lo = 0;
     } else {
@@ -163,7 +159,7 @@ uint64_t region_profile_compute_smem(
     for (i=init_position-1;i>=0;--i) {
       // Fetch character
       const uint8_t enc_char = key[i];
-      if (!allowed_enc[enc_char]) {
+      if (enc_char == ENC_DNA_CHAR_N) {
         next_interval.backward_hi = 0;
         next_interval.backward_lo = 0;
         break;
@@ -200,36 +196,34 @@ void region_profile_generate_smem(
     region_profile_t* const region_profile,
     fm_index_t* const fm_index,
     const uint8_t* const key,
-    const uint64_t key_length,
-    const bool* const allowed_enc) {
+    const uint64_t key_length) {
   // Parameters
-  mm_stack_t* const mm_stack = region_profile->mm_stack;
+  mm_allocator_t* const mm_allocator = region_profile->mm_allocator;
   // Init
   region_profile_clear(region_profile);
   region_profile_allocate_regions(region_profile,key_length);
   // Allocate
-  mm_stack_push_state(mm_stack);
+  mm_allocator_push_state(mm_allocator);
   smem_interval_vector_t smem_interval_vector;
   smem_interval_vector.smem_interval =
-      mm_stack_calloc(mm_stack,key_length,smem_interval_t,false);
+      mm_allocator_calloc(mm_allocator,key_length,smem_interval_t,false);
   // Compute SMEMs for each key position
   uint64_t i;
   region_profile->num_filtering_regions = 0;
   for (i=0;i<key_length;) {
     // Compute SMEMs
-    if (!allowed_enc[key[i]]) {
+    if (key[i] == ENC_DNA_CHAR_N) {
       ++i;
     } else {
       const uint64_t next_pos = region_profile_compute_smem(
-          region_profile,fm_index,key,key_length,
-          allowed_enc,i,&smem_interval_vector);
+          region_profile,fm_index,key,key_length,i,&smem_interval_vector);
       i = next_pos;
     }
   }
   // Schedule to filter all
   region_profile_schedule_exact_all(region_profile);
   // Free
-  mm_stack_pop_state(mm_stack);
+  mm_allocator_pop_state(mm_allocator);
 }
 ///*
 // * PAPER IMPLEMENTATION (correcting a couple of errors)

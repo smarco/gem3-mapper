@@ -54,18 +54,13 @@ uint64_t filtering_candidates_verify_filtering_regions(
       filtering_candidates_reserve_discarded_regions(filtering_candidates,num_filtering_regions);
   uint64_t n, num_regions_accepted = 0, num_regions_out = 0, num_regions_discarded = 0;
   for (n=0;n<num_filtering_regions;++n) {
-    // Check region status (Skip other than unverified)
+    // Verify region
     filtering_region_t* const filtering_region = regions_in[n];
-    if (filtering_region->status!=filtering_region_unverified) {
+    if (filtering_region_verify(filtering_candidates,filtering_region,pattern)) {
       regions_out[num_regions_out++] = filtering_region;
+      ++num_regions_accepted;
     } else {
-      // Verify region
-      if (filtering_region_verify(filtering_candidates,filtering_region,pattern)) {
-        regions_out[num_regions_out++] = filtering_region;
-        ++num_regions_accepted;
-      } else {
-        regions_discarded[num_regions_discarded++] = filtering_region;
-      }
+      regions_discarded[num_regions_discarded++] = filtering_region;
     }
   }
   // Update Used

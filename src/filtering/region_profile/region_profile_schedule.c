@@ -100,10 +100,10 @@ void region_profile_schedule_exact_best(
   // Check exact matches
   if (region_profile_schedule_exact_matches(region_profile)) return;
   // Allocate sorting vector
-  mm_stack_t* const mm_stack = region_profile->mm_stack;
-  mm_stack_push_state(mm_stack);
+  mm_allocator_t* const mm_allocator = region_profile->mm_allocator;
+  mm_allocator_push_state(mm_allocator);
   const uint64_t total_regions = region_profile->num_filtering_regions;
-  region_sort_t* const region_sort = mm_stack_calloc(mm_stack,total_regions,region_sort_t,false);
+  region_sort_t* const region_sort = mm_allocator_calloc(mm_allocator,total_regions,region_sort_t,false);
   // Prepare sorting vetor
   region_search_t* const filtering_region = region_profile->filtering_region;
   uint64_t i;
@@ -139,7 +139,7 @@ void region_profile_schedule_exact_best(
     region_profile->avg_region_length /= region_profile->num_filtered_regions;
   }
   // Free
-  mm_stack_pop_state(mm_stack);
+  mm_allocator_pop_state(mm_allocator);
 }
 void region_profile_schedule_exact_thresholded(
     region_profile_t* const region_profile,

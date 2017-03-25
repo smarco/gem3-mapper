@@ -77,21 +77,19 @@ void mm_slab_add_new_segment(mm_slab_t* const mm_slab) {
     vector_insert(mm_slab->slabs_units_free,mm_slab_unit,mm_slab_unit_t*);
   }
   gem_cond_log(MM_SLAB_DEBUG_REQUESTED_SEGMENTS,
-      "[Slab:%"PRIu64"-%s]Has allocated %"PRIu64" MB",mm_slab->slab_id,mm_slab->description,
+      "[Slab:%"PRIu64"]Has allocated %"PRIu64" MB",mm_slab->slab_id,
       (vector_get_used(mm_slab->slabs_segments)*mm_slab->slab_segment_size)/1024/1024);
   gem_cond_log(MM_SLAB_LOG,"[GEM]> mm_slab(%"PRIu64").addSegment(%"PRIu64" MB)",
       mm_slab->slab_id,CONVERT_B_TO_MB(mm_slab->slab_segment_size));
 }
 mm_slab_t* mm_slab_new_(
-    const uint64_t slab_size,
-    const uint64_t slab_segment_size,
-    const uint64_t max_allocatable_memory,
-    char* const description) {
-  gem_cond_fatal_error(slab_segment_size < slab_size,MM_SLAB_WRONG_DIMENSIONS,slab_segment_size,slab_size);
+    const uint64_t slab_unit_size,
+    const uint64_t slab_group_size,
+    const uint64_t max_allocatable_memory) {
+  gem_cond_fatal_error(slab_group_size < slab_unit_size,MM_SLAB_WRONG_DIMENSIONS,slab_group_size,slab_unit_size);
   mm_slab_t* const mm_slab = mm_alloc(mm_slab_t);
   mm_slab->slab_id = gem_rand_IID(0,UINT16_MAX);
   gem_cond_log(MM_SLAB_LOG,"[GEM]> mm_slab(%"PRIu64").new()",mm_slab->slab_id);
-  mm_slab->description = description;
   mm_slab->max_memory = max_allocatable_memory;
   mm_slab->requested_memory = 0;
   mm_slab->segment_id_generator = 0; // Init ids
@@ -99,9 +97,9 @@ mm_slab_t* mm_slab_new_(
   const int64_t sz = sysconf(_SC_PAGESIZE);
   gem_cond_fatal_error(sz==-1,SYS_SYSCONF);
   // Set sizes (always multiples of the page size)
-  const uint64_t segment_pages = ((slab_segment_size+(sz-1))/sz); // SysPages
+  const uint64_t segment_pages = ((slab_group_size+(sz-1))/sz); // SysPages
   mm_slab->slab_segment_size = segment_pages*sz;
-  mm_slab->slab_unit_size = slab_size;
+  mm_slab->slab_unit_size = slab_unit_size;
   // gem_cond_error_msg(mm_slab->slab_segment_size%mm_slab->slab_unit_size!=0,
   //   SLAB_WASTED_MEM,mm_slab->slab_segment_size,mm_slab->slab_unit_size);
   // Allocate vectors

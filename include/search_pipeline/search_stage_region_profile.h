@@ -26,7 +26,6 @@
 
 #include "utils/essentials.h"
 #include "archive/search/archive_search.h"
-#include "archive/search/archive_search_cache.h"
 #include "search_pipeline/search_stage_state.h"
 
 /*
@@ -52,25 +51,18 @@ search_stage_region_profile_t* search_stage_region_profile_new(
     const uint32_t extra_search_steps,
     const uint32_t alphabet_size);
 void search_stage_region_profile_clear(
-    search_stage_region_profile_t* const search_stage_rp,
-    archive_search_cache_t* const archive_search_cache);
+    search_stage_region_profile_t* const search_stage);
 void search_stage_region_profile_delete(
-    search_stage_region_profile_t* const search_stage_rp,
-    archive_search_cache_t* const archive_search_cache);
-
-/*
- * Accessors
- */
-bool search_stage_region_profile_is_empty(search_stage_region_profile_t* const search_stage_rp);
+    search_stage_region_profile_t* const search_stage);
 
 /*
  * Send Searches (buffered)
  */
 bool search_stage_region_profile_send_se_search(
-    search_stage_region_profile_t* const search_stage_rp,
+    search_stage_region_profile_t* const search_stage,
     archive_search_t* const archive_search);
 bool search_stage_region_profile_send_pe_search(
-    search_stage_region_profile_t* const search_stage_rp,
+    search_stage_region_profile_t* const search_stage,
     archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2);
 
@@ -78,12 +70,12 @@ bool search_stage_region_profile_send_pe_search(
  * Retrieve Searches (buffered)
  */
 bool search_stage_region_profile_retrieve_finished(
-    search_stage_region_profile_t* const search_stage_rp);
+    search_stage_region_profile_t* const search_stage);
 bool search_stage_region_profile_retrieve_se_search(
-    search_stage_region_profile_t* const search_stage_rp,
+    search_stage_region_profile_t* const search_stage,
     archive_search_t** const archive_search);
 bool search_stage_region_profile_retrieve_pe_search(
-    search_stage_region_profile_t* const search_stage_rp,
+    search_stage_region_profile_t* const search_stage,
     archive_search_t** const archive_search_end1,
     archive_search_t** const archive_search_end2);
 

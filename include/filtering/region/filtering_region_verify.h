@@ -41,7 +41,7 @@ bool filtering_region_verify(
     pattern_t* const pattern);
 uint64_t filtering_region_verify_extension(
     filtering_candidates_t* const filtering_candidates,
-    const uint64_t text_trace_offset,
+    text_trace_t* const text_trace,
     const uint64_t index_position,
     pattern_t* const pattern);
 

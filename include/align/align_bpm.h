@@ -49,7 +49,7 @@ void align_bpm_compute_matrix(
     const uint64_t text_length,
     uint64_t max_distance,
     bpm_align_matrix_t* const bpm_align_matrix,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 
 /*
  * BPM. Recover CIGAR from a matching string
@@ -75,6 +75,6 @@ void align_bpm_match(
     const bool left_gap_alignment,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 
 #endif /* ALIGN_BPM_H_ */

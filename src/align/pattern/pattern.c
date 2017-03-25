@@ -21,9 +21,9 @@
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  */
 
+#include "gpu/gpu_buffer_bpm_distance.h"
 #include "align/pattern/pattern.h"
 #include "archive/archive_text_rl.h"
-#include "gpu/gpu_buffer_align_bpm.h"
 #include "gpu/gpu_config.h"
 
 /*
@@ -130,12 +130,12 @@ void pattern_init_encode(
 void pattern_init_encode_rl(
     pattern_t* const pattern,
     const bool run_length_pattern,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   if (run_length_pattern) {
     pattern->run_length = true;
     // Allocate
-    pattern->rl_key = mm_stack_calloc(mm_stack,pattern->key_length,uint8_t,false);
-    pattern->rl_runs_acc = mm_stack_calloc(mm_stack,pattern->key_length,uint32_t,false);
+    pattern->rl_key = mm_allocator_calloc(mm_allocator,pattern->key_length,uint8_t,false);
+    pattern->rl_runs_acc = mm_allocator_calloc(mm_allocator,pattern->key_length,uint32_t,false);
     // RL encode
     archive_text_rl_encode(pattern->key,
         pattern->key_length,pattern->rl_key,
@@ -159,17 +159,18 @@ void pattern_init(
     bool* const do_quality_search,
     const search_parameters_t* const parameters,
     const bool run_length_pattern,
-    const bool kmer_filter_compile,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Allocate pattern memory
   const uint64_t sequence_length = sequence_get_length(sequence);
-  pattern->key = mm_stack_calloc(mm_stack,sequence_length,uint8_t,false);
+  pattern->key = mm_allocator_calloc(mm_allocator,sequence_length,uint8_t,false);
   // Set quality search & Build quality model & mask
-  *do_quality_search = (parameters->qualities_format!=sequence_qualities_ignore) && sequence_has_qualities(sequence);
+  *do_quality_search =
+      (parameters->qualities_format!=sequence_qualities_ignore) &&
+       sequence_has_qualities(sequence);
   if (*do_quality_search) {
-    pattern->quality_mask = mm_stack_calloc(mm_stack,sequence_length,uint8_t,false);
-    sequence_qualities_model_process(sequence,
-        parameters->qualities_model,parameters->qualities_format,
+    pattern->quality_mask = mm_allocator_calloc(mm_allocator,sequence_length,uint8_t,false);
+    sequence_qualities_model_process(
+        sequence,parameters->qualities_format,
         parameters->quality_threshold,pattern->quality_mask);
   } else {
     pattern->quality_mask = NULL;
@@ -182,7 +183,7 @@ void pattern_init(
   // Compute then pattern
   pattern_init_encode(pattern,sequence,parameters);
   // Compute the RL-pattern
-  pattern_init_encode_rl(pattern,run_length_pattern,mm_stack);
+  pattern_init_encode_rl(pattern,run_length_pattern,mm_allocator);
   /*
    * Compute the effective number of differences
    * and compile the BMP-Pattern & k-mer filter
@@ -212,14 +213,35 @@ void pattern_init(
     }
     // Compile BPM filter
     pattern_tiled_compile(
-        &pattern->pattern_tiled,pattern->key,key_length,
-        pattern->max_effective_filtering_error,mm_stack);
+        &pattern->pattern_tiled,pattern->key,
+        key_length,pattern->max_effective_filtering_error,
+        parameters->candidate_verification.kmer_tiles,
+        parameters->candidate_verification.kmer_length,
+        parameters->gpu_stage_kmer_filter_enabled,mm_allocator);
   }
 }
-void pattern_clear(pattern_t* const pattern) {
-  pattern->key_length = 0; // Clear the pattern
+void pattern_destroy(
+    pattern_t* const pattern,
+    mm_allocator_t* const mm_allocator) {
+  // Pattern
+  if (pattern->key != NULL) {
+    mm_allocator_free(mm_allocator,pattern->key);
+  }
+  if (pattern->quality_mask != NULL) {
+    mm_allocator_free(mm_allocator,pattern->quality_mask);
+  }
+  if (pattern->rl_key != NULL) {
+    mm_allocator_free(mm_allocator,pattern->rl_key);
+  }
+  if (pattern->rl_runs_acc != NULL) {
+    mm_allocator_free(mm_allocator,pattern->rl_runs_acc);
+  }
+  pattern->key_length = 0;
+  // Pattern Tiles
+  pattern_tiled_destroy(&pattern->pattern_tiled,mm_allocator);
 }
-bool pattern_is_null(pattern_t* const pattern) {
+bool pattern_is_null(
+    pattern_t* const pattern) {
   return (pattern->key_length == 0);
 }
 /*

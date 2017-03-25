@@ -24,11 +24,12 @@
  *   from a region-profile/key-partition
  */
 
+#include <filtering/candidates/filtering_candidates_buffered_process.h>
 #include "align/alignment.h"
 #include "approximate_search/approximate_search_generate_candidates.h"
 #include "approximate_search/approximate_search_control.h"
+#include "filtering/candidates/filtering_candidates_accessors.h"
 #include "filtering/candidates/filtering_candidates_process.h"
-#include "filtering/candidates/filtering_candidates_process_buffered.h"
 #include "filtering/candidates/filtering_candidates_verify.h"
 #include "filtering/candidates/filtering_candidates_align.h"
 #include "filtering/region_profile/region_profile.h"
@@ -112,34 +113,30 @@ void approximate_search_generate_candidates_buffered_copy(
     approximate_search_t* const search,
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
   // Parameters
-  region_profile_t* const region_profile = &search->region_profile;
-  const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
   filtering_candidates_buffered_t* const filtering_candidates_buffered = &search->filtering_candidates_buffered;
-  // Store Buffer Positions
-  const uint64_t num_filtering_positions = region_profile->total_candidates;
-  search->gpu_buffer_fmi_decode_offset = gpu_buffer_fmi_decode_get_num_queries(gpu_buffer_fmi_decode);
-  search->gpu_buffer_fmi_decode_total = num_filtering_positions;
-  filtering_candidates_buffered_allocate_positions(
-      filtering_candidates,filtering_candidates_buffered,num_filtering_positions);
-  filtering_position_buffered_t* filtering_position_buffered = filtering_candidates_buffered->positions_buffered;
-  // Copy all candidates positions
-  uint64_t i;
-  region_profile->num_filtered_regions = 0;
-  for (i=0;i<num_filtering_regions;++i) {
-    region_search_t* const filtering_region = region_profile->filtering_region + i;
-    if (filtering_region->degree==REGION_FILTER_DEGREE_ZERO) {
-      uint64_t bwt_position;
-      for (bwt_position=filtering_region->lo;bwt_position<filtering_region->hi;++bwt_position) {
-        gpu_buffer_fmi_decode_add_query(gpu_buffer_fmi_decode,bwt_position);
-        filtering_position_buffered->source_region_begin = filtering_region->begin;
-        filtering_position_buffered->source_region_end = filtering_region->end;
-        ++filtering_position_buffered;
-      }
-      ++(region_profile->num_filtered_regions);
-    }
+  // Generate candidates
+  approximate_search_generate_candidates(search);
+  const uint64_t num_filtering_positions = filtering_candidates_get_num_positions(filtering_candidates);
+  if (num_filtering_positions==0) {
+    filtering_candidates_buffered->num_positions = 0;
+    return;
   }
-  PROF_ADD_COUNTER(GP_ASSW_DECODE_CANDIDATES_COPIED,region_profile->total_candidates);
+  // Allocate buffered positions
+  filtering_position_t** const positions = filtering_candidates_get_positions(filtering_candidates);
+  filtering_candidates_buffered_allocate_positions(filtering_candidates_buffered,num_filtering_positions);
+  filtering_position_t** const positions_buffered = filtering_candidates_buffered->positions;
+  // Copy candidates positions to GPU buffer
+  uint64_t i;
+  search->gpu_buffer_fmi_decode_offset = gpu_buffer_fmi_decode_get_num_queries(gpu_buffer_fmi_decode);
+  for (i=0;i<num_filtering_positions;++i) {
+    positions_buffered[i] = positions[i];
+    gpu_buffer_fmi_decode_add_query(gpu_buffer_fmi_decode,positions[i]->region_index_position);
+  }
+  filtering_candidates_buffered->num_positions = num_filtering_positions;
+  // Clear positions in filtering candidates (stoted buffered)
+  filtering_candidates_clear_positions(filtering_candidates,false);
+  PROF_ADD_COUNTER(GP_ASSW_DECODE_CANDIDATES_COPIED,num_filtering_positions);
   // BENCHMARK
   #ifdef CUDA_BENCHMARK_GENERATE_DECODE_CANDIDATES
   approximate_search_generate_candidates_buffered_print_benchmark(search);
@@ -149,39 +146,33 @@ void approximate_search_generate_candidates_buffered_retrieve(
     approximate_search_t* const search,
     gpu_buffer_fmi_decode_t* const gpu_buffer_fmi_decode) {
   // Parameters
-  region_profile_t* const region_profile = &search->region_profile;
-  const uint64_t num_filtering_regions = region_profile->num_filtering_regions;
+  const uint64_t gpu_buffer_fmi_decode_offset = search->gpu_buffer_fmi_decode_offset;
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
   filtering_candidates_buffered_t* const filtering_candidates_buffered = &search->filtering_candidates_buffered;
-  // Add all candidates positions
-  const bool decode_text_enabled = gpu_buffer_fmi_decode->decode_text_enabled;
-  const bool decode_sa_enabled = gpu_buffer_fmi_decode->decode_sa_enabled;
-  uint64_t gpu_buffer_fmi_decode_offset = search->gpu_buffer_fmi_decode_offset;
-  uint64_t i, buffered_positions_offset = 0;
-  for (i=0;i<num_filtering_regions;++i) {
-    region_search_t* const region_search = region_profile->filtering_region + i;
-    if (region_search->degree==REGION_FILTER_DEGREE_ZERO) {
-      // Retrieve/Decode all pending candidates
-      const uint64_t pending_candidates = region_search->hi - region_search->lo;
-      if (decode_text_enabled) {
-        filtering_candidates_decode_text_filtering_positions_buffered(
-            filtering_candidates,filtering_candidates_buffered,buffered_positions_offset,
-            &search->pattern,region_search,gpu_buffer_fmi_decode,gpu_buffer_fmi_decode_offset);
-      } else if (decode_sa_enabled) {
-        filtering_candidates_decode_sa_filtering_positions_buffered(
-            filtering_candidates,filtering_candidates_buffered,buffered_positions_offset,
-            &search->pattern,region_search,gpu_buffer_fmi_decode,gpu_buffer_fmi_decode_offset);
-      } else {
-        filtering_candidates_decode_filtering_positions_buffered(
-            filtering_candidates,filtering_candidates_buffered,buffered_positions_offset,
-            &search->pattern,region_search);
-      }
-      gpu_buffer_fmi_decode_offset += pending_candidates;
-      buffered_positions_offset += pending_candidates;
-    }
+  // Check filtering positions
+  const uint64_t num_filtering_positions = filtering_candidates_buffered->num_positions;
+  if (num_filtering_positions==0) {
+    search->processing_state = asearch_processing_state_candidates_processed;
+    return; // No filtering positions
+  }
+  // Retrieve decoded positions
+  if (gpu_buffer_fmi_decode->decode_text_enabled) {
+    filtering_candidates_buffered_decode_text_positions(
+        filtering_candidates,filtering_candidates_buffered,
+        &search->pattern,gpu_buffer_fmi_decode,gpu_buffer_fmi_decode_offset);
+  } else if (gpu_buffer_fmi_decode->decode_sa_enabled) {
+    filtering_candidates_buffered_decode_sampled_sa_positions(
+        filtering_candidates,filtering_candidates_buffered,
+        &search->pattern,gpu_buffer_fmi_decode,gpu_buffer_fmi_decode_offset);
+  } else {
+    filtering_candidates_buffered_decode_sa_positions(
+        filtering_candidates,filtering_candidates_buffered,
+        &search->pattern);
   }
   // Process all candidates
-  filtering_candidates_process_candidates_buffered(search->filtering_candidates,&search->pattern,true);
+  filtering_candidates_buffered_process_candidates(search->filtering_candidates,&search->pattern,true);
+  // Free buffered positions
+  filtering_candidates_buffered_free_positions(&search->filtering_candidates_buffered);
   // Set state to verify-candidates
   search->processing_state = asearch_processing_state_candidates_processed;
 }

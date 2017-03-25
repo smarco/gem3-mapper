@@ -36,15 +36,15 @@ void match_alignment_print_pretty(
     const uint64_t key_length,
     uint8_t* const text,
     const uint64_t text_length,
-    mm_stack_t* const mm_stack) {
-  mm_stack_push_state(mm_stack);
+    mm_allocator_t* const mm_allocator) {
+  mm_allocator_push_state(mm_allocator);
   tab_fprintf(stream,"[GEM]>Match.alignment\n");
   tab_global_inc();
   tab_fprintf(stream,"=> CIGAR  ");
   const uint64_t max_buffer_length = text_length+key_length+1;
-  char* const key_alg = mm_stack_calloc(mm_stack,max_buffer_length,char,true);
-  char* const ops_alg = mm_stack_calloc(mm_stack,max_buffer_length,char,true);
-  char* const text_alg = mm_stack_calloc(mm_stack,max_buffer_length,char,true);
+  char* const key_alg = mm_allocator_calloc(mm_allocator,max_buffer_length,char,true);
+  char* const ops_alg = mm_allocator_calloc(mm_allocator,max_buffer_length,char,true);
+  char* const text_alg = mm_allocator_calloc(mm_allocator,max_buffer_length,char,true);
   cigar_element_t* cigar_element = vector_get_elm(cigar_vector,match_alignment->cigar_offset,cigar_element_t);
   uint64_t i, j, alg_pos = 0, read_pos = 0, text_pos = 0;
   for (i=0;i<match_alignment->cigar_length;++i,++cigar_element) {
@@ -110,5 +110,5 @@ void match_alignment_print_pretty(
   tab_fprintf(stream,"        %s  \n",ops_alg);
   tab_fprintf(stream,"   TXT--%s--\n",text_alg);
   tab_global_dec();
-  mm_stack_pop_state(mm_stack);
+  mm_allocator_pop_state(mm_allocator);
 }

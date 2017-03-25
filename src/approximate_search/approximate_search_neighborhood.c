@@ -27,6 +27,7 @@
 #include "approximate_search/approximate_search_stages.h"
 #include "fm_index/fm_index_search.h"
 #include "filtering/candidates/filtering_candidates.h"
+#include "filtering/candidates/filtering_candidates_accessors.h"
 #include "filtering/candidates/filtering_candidates_process.h"
 #include "filtering/candidates/filtering_candidates_verify.h"
 #include "filtering/candidates/filtering_candidates_align.h"

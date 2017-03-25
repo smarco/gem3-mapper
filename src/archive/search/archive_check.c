@@ -36,7 +36,7 @@ void archive_check_se_match_retrieve_text(
     archive_t* const archive,
     match_trace_t* const match_trace,
     match_align_input_t* const match_align_input,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Retrieve location
   locator_t* const locator = archive->locator;
   const uint8_t* const tag = (uint8_t*)match_trace->sequence_name;
@@ -60,7 +60,7 @@ void archive_check_se_match_retrieve_text(
     match_align_input->text = forward_text+text_offset_begin;
   } else { // Reverse
     uint64_t i;
-    reverse_text = mm_stack_calloc(mm_stack,text_length,uint8_t,false);
+    reverse_text = mm_allocator_calloc(mm_allocator,text_length,uint8_t,false);
     for (i=0;i<text_length;++i) {
       reverse_text[text_length-i-1] = dna_encoded_complement(forward_text[i]);
     }
@@ -75,7 +75,7 @@ bool archive_check_se_match_check_optimum(
     match_align_input_t* const match_align_input,
     match_trace_t* const optimum_match_trace,
     vector_t* const cigar_vector,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   optimum_match_trace->sequence_name = match_trace->sequence_name;
   optimum_match_trace->strand = match_trace->strand;
   optimum_match_trace->match_alignment.match_position = match_align_input->text_position;
@@ -91,7 +91,7 @@ bool archive_check_se_match_check_optimum(
           .swg_penalties = swg_penalties,
       };
       align_swg_base(match_align_input,&match_align_parameters,
-          &optimum_match_trace->match_alignment,cigar_vector,mm_stack);
+          &optimum_match_trace->match_alignment,cigar_vector,mm_allocator);
       optimum_match_trace->swg_score = optimum_match_trace->match_alignment.score;
       return (optimum_match_trace->swg_score == match_trace->swg_score);
       }
@@ -109,7 +109,7 @@ void archive_check_se_match_print(
     matches_t* const matches,
     match_align_input_t* const match_align_input,
     sequence_t* const sequence,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   tab_fprintf(stream,"[GEM]>Check.SE\n");
   tab_global_inc();
   tab_fprintf(stream,"=> Match check failed (%s)\n",label);
@@ -120,7 +120,7 @@ void archive_check_se_match_print(
   tab_global_inc();
   match_alignment_print_pretty(stream,&match_trace->match_alignment,
       matches->cigar_vector,match_align_input->key,match_align_input->key_length,
-      match_align_input->text,match_trace->match_alignment.effective_length,mm_stack);
+      match_align_input->text,match_trace->match_alignment.effective_length,mm_allocator);
   tab_global_dec();
   // Supporting Edit-alignment
   match_scaffold_t* const match_scaffold = (match_scaffold_t*) match_trace->match_scaffold;
@@ -145,9 +145,9 @@ void archive_check_se_match_print_incorrect(
     matches_t* const matches,
     match_align_input_t* const match_align_input,
     sequence_t* const sequence,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   archive_check_se_match_print(stream,"INCORRECT",
-      match_trace,matches,match_align_input,sequence,mm_stack);
+      match_trace,matches,match_align_input,sequence,mm_allocator);
 }
 void archive_check_se_match_print_suboptimum(
     FILE* const stream,
@@ -157,9 +157,9 @@ void archive_check_se_match_print_suboptimum(
     sequence_t* const sequence,
     match_trace_t* const optimum_match_trace,
     locator_t* const locator,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   archive_check_se_match_print(stream,"SUBOPTIMUM",
-      match_trace,matches,match_align_input,sequence,mm_stack);
+      match_trace,matches,match_align_input,sequence,mm_allocator);
   tab_global_inc();
   tab_fprintf(stream,"=> Suboptimum.Alignment.Score (match-found=%d,best-alg=%d)\n",
       match_trace->swg_score,optimum_match_trace->swg_score);
@@ -181,7 +181,7 @@ void archive_check_se_match_print_suboptimum(
       stream,&optimum_match_trace->match_alignment,
       matches->cigar_vector,match_align_input->key,
       match_align_input->key_length,match_align_input->text+opt_alignment_offset,
-      optimum_match_trace->match_alignment.effective_length,mm_stack);
+      optimum_match_trace->match_alignment.effective_length,mm_allocator);
   tab_global_dec();
   tab_global_dec();
 }
@@ -192,15 +192,15 @@ void archive_check_se_matches(
     sequence_t* const sequence,
     matches_t* const matches,
     const archive_check_type check_type,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Parameters
   PROF_INC_COUNTER(GP_CHECK_NUM_READS);
-  mm_stack_push_state(mm_stack);
+  mm_allocator_push_state(mm_allocator);
   FILE* const stream = gem_error_get_stream();
   const char* const sequence_buffer = string_get_buffer(&sequence->read);
   const uint64_t key_length = sequence_get_length(sequence);
   // Prepare
-  uint8_t* const key = mm_stack_calloc(mm_stack,key_length,uint8_t,false);
+  uint8_t* const key = mm_allocator_calloc(mm_allocator,key_length,uint8_t,false);
   uint64_t i;
   for (i=0;i<key_length;++i) key[i] = dna_encode(sequence_buffer[i]);
   match_align_input_t match_align_input;
@@ -212,7 +212,7 @@ void archive_check_se_matches(
   PROF_ADD_COUNTER(GP_CHECK_NUM_MAPS,num_match_traces);
   for (i=0;i<num_match_traces;++i) {
     match_trace_t* const match_trace = match_traces[i];
-    archive_check_se_match_retrieve_text(archive,match_trace,&match_align_input,mm_stack);
+    archive_check_se_match_retrieve_text(archive,match_trace,&match_align_input,mm_allocator);
     // Check correctness
     match_alignment_t* const match_alignment = &match_trace->match_alignment;
     const bool correct_alignment = alignment_check(stream,key,key_length,match_align_input.text,
@@ -220,7 +220,7 @@ void archive_check_se_matches(
         match_alignment->cigar_length,true);
     if (!correct_alignment) {
       PROF_INC_COUNTER(GP_CHECK_INCORRECT);
-      archive_check_se_match_print_incorrect(stream,match_trace,matches,&match_align_input,sequence,mm_stack);
+      archive_check_se_match_print_incorrect(stream,match_trace,matches,&match_align_input,sequence,mm_allocator);
       break; // FAIL
     }
     if (check_type==archive_check_correct) continue;
@@ -237,7 +237,7 @@ void archive_check_se_matches(
     match_trace_t optimum_match_trace;
     const bool optimal_alignment =
         archive_check_se_match_check_optimum(match_trace,match_alignment_model,swg_penalties,
-        &match_align_input,&optimum_match_trace,matches->cigar_vector,mm_stack);
+        &match_align_input,&optimum_match_trace,matches->cigar_vector,mm_allocator);
     // Check result
     if (!optimal_alignment) {
       if (i==0) {
@@ -252,11 +252,11 @@ void archive_check_se_matches(
         PROF_ADD_COUNTER(GP_CHECK_PRIMARY_SUBOPTIMAL_DISTANCE,match_trace->edit_distance);
       }
       archive_check_se_match_print_suboptimum(stream,match_trace,matches,
-          &match_align_input,sequence,&optimum_match_trace,archive->locator,mm_stack);
+          &match_align_input,sequence,&optimum_match_trace,archive->locator,mm_allocator);
       break; // FAIL
     }
   }
-  mm_stack_pop_state(mm_stack);
+  mm_allocator_pop_state(mm_allocator);
 }
 void archive_check_pe_matches(
     archive_t* const archive,
@@ -266,13 +266,13 @@ void archive_check_pe_matches(
     sequence_t* const sequence_end2,
     paired_matches_t* const paired_matches,
     const archive_check_type check_type,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Check individually end1
   archive_check_se_matches(archive,match_alignment_model,swg_penalties,sequence_end1,
-      paired_matches->matches_end1,check_type,mm_stack);
+      paired_matches->matches_end1,check_type,mm_allocator);
   // Check individually end2
   archive_check_se_matches(archive,match_alignment_model,swg_penalties,sequence_end2,
-      paired_matches->matches_end2,check_type,mm_stack);
+      paired_matches->matches_end2,check_type,mm_allocator);
   // TODO More checks related with template-size orientation, etc (But this might be stats better)
 }
 

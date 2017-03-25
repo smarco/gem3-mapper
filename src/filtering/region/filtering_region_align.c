@@ -52,8 +52,7 @@ void filtering_region_align_debug(
       tab_global_dec();
     } else {
       // Text Candidate
-      const text_trace_t* const text_trace = text_collection_get_trace(
-          &filtering_candidates->text_collection,filtering_region->text_trace_offset);
+      const text_trace_t* const text_trace = &filtering_region->text_trace;
       uint8_t* const text = text_trace->text;
       // Print debug info
       tab_fprintf(gem_log_get_stream(),"=> Region ALIGNED (distance=%lu,swg_score=%ld)\n",
@@ -61,7 +60,7 @@ void filtering_region_align_debug(
       tab_global_inc();
       output_map_alignment_pretty(gem_log_get_stream(),match_trace,matches,pattern->key,pattern->key_length,
           text+(match_trace->match_alignment.match_position - filtering_region->text_begin_position),
-          match_trace->match_alignment.effective_length,filtering_candidates->mm->mm_general);
+          match_trace->match_alignment.effective_length,filtering_candidates->mm_allocator);
       tab_global_dec();
       tab_global_dec();
     }
@@ -81,7 +80,7 @@ void filtering_region_align_clone(
   }
   match_trace_dst->type = match_trace_src->type;
   // Clone match-trace (Match Text (Reference)
-  match_trace_dst->text_trace_offset = match_trace_src->text_trace_offset;
+  match_trace_dst->text_trace = match_trace_src->text_trace;
   match_trace_dst->text = match_trace_src->text;
   match_trace_dst->text_length = match_trace_src->text_length;
   // Clone match-trace (Match)
@@ -141,11 +140,9 @@ void filtering_region_align_inexact(
   PROF_INC_COUNTER(GP_ALIGNED_INEXACT);
   // Parameters
   archive_text_t* const archive_text = filtering_candidates->archive->text;
-  text_collection_t* const text_collection = &filtering_candidates->text_collection;
-  text_trace_t* const text_trace = text_collection_get_trace(text_collection,filtering_region->text_trace_offset);
   search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
   const match_alignment_model_t match_alignment_model = search_parameters->match_alignment_model;
-  mm_stack_t* const mm_stack = filtering_candidates->mm->mm_general;
+  mm_allocator_t* const mm_allocator = filtering_candidates->mm_allocator;
   match_align_input_t align_input;
   match_align_parameters_t align_parameters;
   // Select alignment model
@@ -154,7 +151,7 @@ void filtering_region_align_inexact(
       // Configure Alignment
       filtering_region_align_configure_hamming(
           &align_input,&align_parameters,filtering_region,
-          search_parameters,pattern,text_trace);
+          search_parameters,pattern);
       // Hamming Align
       match_align_pseudoalignment(matches,match_trace,&align_input,&align_parameters);
       filtering_region->status = filtering_region_aligned;
@@ -163,7 +160,7 @@ void filtering_region_align_inexact(
       // Configure Alignment
       filtering_region_align_configure_hamming(
           &align_input,&align_parameters,filtering_region,
-          search_parameters,pattern,text_trace);
+          search_parameters,pattern);
       // Hamming Align
       match_align_hamming(matches,match_trace,&align_input,&align_parameters);
       filtering_region->status = filtering_region_aligned;
@@ -176,9 +173,9 @@ void filtering_region_align_inexact(
       const bool left_gap_alignment = (position_strand==Forward);
       filtering_region_align_configure_levenshtein(
           &align_input,&align_parameters,filtering_region,
-          search_parameters,pattern,text_trace,left_gap_alignment,mm_stack);
+          search_parameters,pattern,left_gap_alignment,mm_allocator);
       // Levenshtein Align
-      match_align_levenshtein(matches,match_trace,&align_input,&align_parameters,mm_stack);
+      match_align_levenshtein(matches,match_trace,&align_input,&align_parameters,mm_allocator);
       break;
     }
     case match_alignment_model_gap_affine: {
@@ -188,16 +185,16 @@ void filtering_region_align_inexact(
       const bool left_gap_alignment = (position_strand==Forward);
       filtering_region_align_configure_swg(
           &align_input,&align_parameters,filtering_region,search_parameters,
-          pattern,text_trace,left_gap_alignment,local_alignment,mm_stack);
+          pattern,left_gap_alignment,local_alignment,mm_allocator);
       // Gap-affine Align
       match_align_smith_waterman_gotoh(matches,match_trace,
-          &align_input,&align_parameters,&filtering_region->match_scaffold,mm_stack);
+          &align_input,&align_parameters,&filtering_region->match_scaffold,mm_allocator);
       //      // DEBUG
       //      fprintf(stderr,"[GEM]>Text-Alignment\n");
       //      match_alignment_print_pretty(stderr,&match_trace->match_alignment,
       //          matches->cigar_vector,pattern->key,pattern->key_length,
       //          text_trace->text+match_trace->match_alignment.match_text_offset,
-      //          text_trace->text_length,mm_stack);
+      //          text_trace->text_length,mm_allocator);
       break;
     }
     default:
@@ -218,8 +215,7 @@ bool filtering_region_align(
   gem_cond_debug_block(DEBUG_FILTERING_REGION) {
     tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Region (region_align)\n");
     tab_global_inc();
-    filtering_region_print(gem_log_get_stream(),filtering_region,
-        &filtering_candidates->text_collection,false,true,true);
+    filtering_region_print(gem_log_get_stream(),filtering_region,false,true,true);
   }
   // Select Model
   if (filtering_region->alignment.distance_min_bound > 0 ||

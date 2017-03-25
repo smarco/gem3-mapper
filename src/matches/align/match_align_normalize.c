@@ -185,7 +185,7 @@ void match_align_normalize(
   //  match_alignment_print_pretty(stderr,&match_trace->match_alignment,
   //      matches->cigar_vector,align_input->key,align_input->key_length,
   //      align_input->text+match_trace->match_alignment.match_text_offset,
-  //      align_input->text_length,mm_stack);
+  //      align_input->text_length,mm_allocator);
   // Normalize alignment
   match_align_normalize_cigar(match_trace,cigar_vector,align_parameters);
   // Adjust

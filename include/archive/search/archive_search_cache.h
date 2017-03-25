@@ -37,20 +37,14 @@
 typedef struct {
   /* Archive-Search Cache */
   vector_t* archive_search_cache;         // Already allocated & configured Slab (archive_search_t*)
-  /* Archive & Parameters */
-  archive_t* archive;                     // Archive
-  search_parameters_t* search_parameters; // Search Parameters
-  /* MM */
-  mm_slab_t* mm_slab;                     // MM-Slab (private)
-  mm_stack_t* mm_stack;                   // MM-Stack (private)
+  /* Search Parameters */
+  search_parameters_t* search_parameters;
 } archive_search_cache_t;
 
 /*
  * Setup
  */
-archive_search_cache_t* archive_search_cache_new(
-    archive_t* const archive,
-    search_parameters_t* const search_parameters);
+archive_search_cache_t* archive_search_cache_new(search_parameters_t* const search_parameters);
 void archive_search_cache_delete(archive_search_cache_t* const archive_search_cache);
 
 /*

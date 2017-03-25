@@ -27,7 +27,7 @@
 
 #include "utils/essentials.h"
 #include "align/align_bpm_pattern.h"
-#include "align/align_kmer_filter.h"
+#include "align/align_kmer_filter_nway.h"
 
 /*
  * Pattern tiled
@@ -38,19 +38,19 @@ typedef struct {
   uint64_t tile_length;
   uint64_t max_error;
   /* BPM Filter */
-  bpm_pattern_t* bpm_pattern_tile;
-  kmer_counting_t* kmer_filter_tile;
+  bpm_pattern_t bpm_pattern_tile;
 } pattern_tile_t;
 typedef struct {
   /* Tile dimensions */
   uint64_t num_tiles;
   uint64_t tile_length;
   /* Global filters */
-  bpm_pattern_t* bpm_pattern; // BPM filter
+  bpm_pattern_t bpm_pattern;
+  kmer_counting_nway_t kmer_filter_nway;
   /* Tiles */
   pattern_tile_t* tiles;
   /* MM */
-  mm_stack_t* mm_stack;
+  mm_allocator_t* mm_allocator;
 } pattern_tiled_t;
 
 /*
@@ -61,6 +61,12 @@ void pattern_tiled_compile(
     uint8_t* const key,
     const uint64_t key_length,
     const uint64_t max_error,
-    mm_stack_t* const mm_stack);
+    const uint64_t kmer_tiles,
+    const uint64_t kmer_length,
+    const uint64_t kmer_enabled,
+    mm_allocator_t* const mm_allocator);
+void pattern_tiled_destroy(
+    pattern_tiled_t* const pattern_tiled,
+    mm_allocator_t* const mm_allocator);
 
 #endif /* PATTERN_TILED_H_ */

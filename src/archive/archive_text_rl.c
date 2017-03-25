@@ -67,7 +67,7 @@ void archive_text_rl_encode(
 uint64_t archive_text_rl_position_translate(
     archive_text_t* const archive_text,
     const uint64_t position_rl,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Retrieve first sampled position
   const uint64_t sampled_position_rl = position_rl / SAMPLED_RL_SAMPLING_RATE;
   const uint64_t remainder_rl = position_rl % SAMPLED_RL_SAMPLING_RATE;
@@ -77,15 +77,15 @@ uint64_t archive_text_rl_position_translate(
     return sampled_position;
   } else {
     // Retrieve text-RL
-    mm_stack_push_state(mm_stack);
+    mm_allocator_push_state(mm_allocator);
     const uint64_t remainder_max_expanded_length = remainder_rl * TEXT_RL_MAX_RUN_LENGTH;
     text_trace_t text_trace;
     archive_text_retrieve(archive_text,sampled_position,
-        remainder_max_expanded_length,false,true,&text_trace,mm_stack);
+        remainder_max_expanded_length,false,true,&text_trace,mm_allocator);
     // Compute offset from @sampled_position_rl to @position_rl
     const uint64_t remainder = text_trace.rl_runs_acc[remainder_rl-1];
     // Return
-    mm_stack_pop_state(mm_stack);
+    mm_allocator_pop_state(mm_allocator);
     return sampled_position + remainder;
   }
 }

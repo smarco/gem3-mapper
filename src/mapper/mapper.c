@@ -26,9 +26,9 @@
 
 #include "mapper/mapper.h"
 #include "mapper/mapper_io.h"
-#include "mapper/mapper_bisulfite.h"
 #include "archive/search/archive_search_se.h"
 #include "archive/search/archive_search_pe.h"
+#include "text/sequence_bisulfite.h"
 #include "io/output_sam.h"
 #include "profiler/profiler.h"
 
@@ -125,14 +125,15 @@ void mapper_error_report(FILE* stream) {
       mapper_error_report_cmd(stream,mapper_parameters); // Display CMD used
       fprintf(stream,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
       // Display Input State
-      if (!mapper_search->paired_end) {
-        const sequence_t* const sequence = archive_search_get_sequence(mapper_search->archive_search);
-        mapper_error_report_input_state(stream,mapper_search->buffered_fasta_input,sequence);
+      mapper_io_handler_t* const mapper_io_handler = mapper_search->mapper_io_handler;
+      if (!mapper_search->mapper_io_handler->paired_end) {
+        const sequence_t* const sequence = *mapper_search->sequence_end1;
+        mapper_error_report_input_state(stream,mapper_io_handler->buffered_fasta_input_end1,sequence);
       } else {
-        const sequence_t* const sequence_end1 = archive_search_get_sequence(mapper_search->archive_search_end1);
-        const sequence_t* const sequence_end2 = archive_search_get_sequence(mapper_search->archive_search_end2);
-        mapper_error_report_input_state(stream,mapper_search->buffered_fasta_input_end1,sequence_end1);
-        mapper_error_report_input_state(stream,mapper_search->buffered_fasta_input_end2,sequence_end2);
+        const sequence_t* const sequence_end1 = *mapper_search->sequence_end1;
+        const sequence_t* const sequence_end2 = *mapper_search->sequence_end2;
+        mapper_error_report_input_state(stream,mapper_io_handler->buffered_fasta_input_end1,sequence_end1);
+        mapper_error_report_input_state(stream,mapper_io_handler->buffered_fasta_input_end2,sequence_end2);
       }
     } MUTEX_END_SECTION(mapper_parameters->error_report_mutex);
   }
@@ -144,50 +145,48 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
   // GEM-thread error handler
   gem_thread_register_id(mapper_search->thread_id+1);
 
-  // Create new buffered reader/writer
+  // Parameters
   mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
-  mapper_se_prepare_io_buffers(parameters,parameters->io.input_buffer_size,
-      &mapper_search->buffered_fasta_input,&mapper_search->buffered_output_file);
-
-  // Create an Archive-Search
-  archive_t* const archive = parameters->archive;
-  const bool bisulfite_index = (archive->type == archive_dna_bisulfite); // Bisulfite
   search_parameters_t* const search_parameters = &mapper_search->mapper_parameters->search_parameters;
-  archive_search_handlers_t* const archive_search_handlers = archive_search_handlers_new();
-  archive_search_se_new(archive,search_parameters,false,NULL,&mapper_search->archive_search);
-  archive_search_t* const archive_search = mapper_search->archive_search;
-  archive_search_handlers_inject_se(archive_search,archive_search_handlers);
-  mapper_search->matches = matches_new();
-  matches_t* const matches = mapper_search->matches;
+  archive_t* const archive = parameters->archive;
+  mapper_io_handler_t* mapper_io_handler;
+  archive_search_handlers_t* archive_search_handlers;
+  archive_search_t* archive_search;
+  matches_t* matches;
+  sequence_t* sequence;
+
+  // Init search structures
+  archive_search_handlers = archive_search_handlers_new(archive);
+  archive_search_se_new(search_parameters,false,&archive_search);
+  matches = matches_new();
+
+  // Init I/O handler
+  mapper_io_handler = mapper_io_handler_new_se(
+      parameters,parameters->io.input_buffer_size,
+      archive_search_handlers->mm_allocator);
+
+  // Set structures pointers (DEBUG)
+  mapper_search->mapper_io_handler = mapper_io_handler;
+  mapper_search->sequence_end1 = &sequence;
 
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
-  while (mapper_se_read_single_sequence(mapper_search->archive_search,mapper_search->buffered_fasta_input)) {
-//    if (gem_streq(mapper_search->archive_search->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000001140/1")) {
-//      printf("HERE\n");
-//    }
-
-    // Bisulfite: Fully convert reads before searching into archive, making a copy of the original
-    if (bisulfite_index) mapper_bisulfite_process_sequence_se(archive_search,search_parameters);
+  while (mapper_read_sequence(mapper_io_handler,true,&sequence)) {
+    // Prepare Search
+    archive_search_handlers_prepare_se(archive_search,sequence,archive_search_handlers);
 
     // Search into the archive
 #ifdef DEBUG_MAPPER_DISPLAY_EACH_READ_TIME
     gem_timer_t timer;
-    TIMER_RESTART(&timer);
-    archive_search_se(archive_search,matches);
-    TIMER_STOP(&timer);
-    fprintf(stderr,"Done %s in %2.4f ms.\n",archive_search->sequence.tag.buffer,TIMER_GET_TOTAL_MS(&timer));
+    TIMER_RESTART(&timer); archive_search_se(archive_search,matches); TIMER_STOP(&timer);
+    fprintf(stderr,"Done %s in %2.4f ms.\n",sequence->tag.buffer,TIMER_GET_TOTAL_MS(&timer));
 #else
     archive_search_se(archive_search,matches);
 #endif
 
-    // Bisulfite: Copy back original read
-    if (bisulfite_index) mapper_bisulfite_restore_sequence_se(archive_search);
-
     // Output matches
-    mapper_se_output_matches(parameters,mapper_search->buffered_output_file,
+    mapper_io_handler_output_matches(mapper_io_handler,
         archive_search,matches,mapper_search->mapping_stats);
-    // output_fastq(mapper_search->buffered_output_file,&mapper_search->archive_search->sequence);
 
     // Update processed
     if (++reads_processed == parameters->io.mapper_ticker_step) {
@@ -195,20 +194,20 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
       reads_processed=0;
     }
 
+    // Clear (these are not needed => just wipe clean all mm_allocator)
+    // archive_search_destroy(archive_search);
+    // filtering_candidates_clear(&archive_search_handlers->filtering_candidates_end1,true);
     // Clear
     archive_search_handlers_clear(archive_search_handlers);
     matches_clear(matches);
   }
   // Update processed
   ticker_update_mutex(mapper_search->ticker,reads_processed);
-
   // Clean up
-  buffered_input_file_close(mapper_search->buffered_fasta_input);
-  buffered_output_file_close(mapper_search->buffered_output_file);
-  archive_search_delete(archive_search);
   matches_delete(matches);
+  archive_search_delete(archive_search);
   archive_search_handlers_delete(archive_search_handlers);
-
+  mapper_io_handler_delete(mapper_io_handler);
   pthread_exit(0);
 }
 /*
@@ -218,57 +217,56 @@ void* mapper_pe_thread(mapper_search_t* const mapper_search) {
   // GEM-thread error handler
   gem_thread_register_id(mapper_search->thread_id+1);
 
-  // Create new buffered reader/writer
+  // Parameters
   mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
-  mapper_pe_prepare_io_buffers(
-      parameters,parameters->io.input_buffer_size,&mapper_search->buffered_fasta_input_end1,
-      &mapper_search->buffered_fasta_input_end2,&mapper_search->buffered_output_file);
-
-  // Create an Archive-Search
-  archive_t* const archive = parameters->archive;
-  const bool bisulfite_index = (archive->type == archive_dna_bisulfite);
   search_parameters_t* const search_parameters = &mapper_search->mapper_parameters->search_parameters;
-  mapper_search->archive_search_handlers = archive_search_handlers_new();
-  archive_search_pe_new(parameters->archive,search_parameters,false,NULL,
-      &mapper_search->archive_search_end1,&mapper_search->archive_search_end2);
-  archive_search_handlers_inject_pe(mapper_search->archive_search_end1,
-      mapper_search->archive_search_end2,mapper_search->archive_search_handlers);
-  mapper_search->paired_matches = paired_matches_new();
-  archive_search_t* const archive_search_end1 = mapper_search->archive_search_end1;
-  archive_search_t* const archive_search_end2 = mapper_search->archive_search_end2;
-  paired_matches_t* const paired_matches = mapper_search->paired_matches;
+  archive_t* const archive = parameters->archive;
+  mapper_io_handler_t* mapper_io_handler;
+  archive_search_handlers_t* archive_search_handlers;
+  archive_search_t* archive_search_end1;
+  archive_search_t* archive_search_end2;
+  paired_matches_t* paired_matches;
+  sequence_t* sequence_end1;
+  sequence_t* sequence_end2;
+
+  // Init search structures
+  archive_search_handlers = archive_search_handlers_new(archive);
+  archive_search_pe_new(search_parameters,false,&archive_search_end1,&archive_search_end2);
+  paired_matches = paired_matches_new();
+
+  // Init I/O handler
+  mapper_io_handler = mapper_io_handler_new_pe(
+      parameters,parameters->io.input_buffer_size,
+      archive_search_handlers->mapper_stats,
+      archive_search_handlers->mm_allocator);
+
+  // Set structures pointers (DEBUG)
+  mapper_search->mapper_io_handler = mapper_io_handler;
+  mapper_search->sequence_end1 = &sequence_end1;
+  mapper_search->sequence_end2 = &sequence_end2;
 
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
-  while (mapper_pe_read_paired_sequences(mapper_search->mapper_parameters,
-      mapper_search->buffered_fasta_input_end1,mapper_search->buffered_fasta_input_end2,
-      mapper_search->archive_search_handlers,mapper_search->archive_search_end1,
-      mapper_search->archive_search_end2)) {
-//    if (gem_streq(mapper_search->archive_search_end1->sequence.tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000001140/1")) {
-//      printf("HERE\n");
-//    }
-
-    // Bisulfite: Fully convert reads before searching into archive, making a copy of the original
-    if (bisulfite_index) mapper_bisulfite_process_sequence_pe(archive_search_end1,archive_search_end2);
+  while (mapper_read_paired_sequence(mapper_io_handler,true,&sequence_end1,&sequence_end2)) {
+    // Prepare Search
+    archive_search_handlers_prepare_pe(
+        archive_search_end1,archive_search_end2,
+        sequence_end1,sequence_end2,
+        archive_search_handlers);
 
     // Search into the archive
 #ifdef DEBUG_MAPPER_DISPLAY_EACH_READ_TIME
     gem_timer_t timer;
-    TIMER_RESTART(&timer);
-    archive_search_pe(archive_search_end1,archive_search_end2,paired_matches);
-    TIMER_STOP(&timer);
-    fprintf(stderr,"Done %s in %2.4f ms.\n",
-      archive_search_end1->sequence.tag.buffer,TIMER_GET_TOTAL_MS(&timer));
+    TIMER_RESTART(&timer); archive_search_pe(archive_search_end1,archive_search_end2,paired_matches); TIMER_STOP(&timer);
+    fprintf(stderr,"Done %s in %2.4f ms.\n",sequence_end1->tag.buffer,TIMER_GET_TOTAL_MS(&timer));
 #else
     archive_search_pe(archive_search_end1,archive_search_end2,paired_matches);
 #endif
 
-    // Bisulfite: Copy back original read
-    if (bisulfite_index) mapper_bisulfite_restore_sequence_pe(archive_search_end1,archive_search_end2);
-
     // Output matches
-    mapper_pe_output_matches(parameters,mapper_search->buffered_output_file,
-        archive_search_end1,archive_search_end2,paired_matches,mapper_search->mapping_stats);
+    mapper_io_handler_output_paired_matches(
+        mapper_io_handler,archive_search_end1,archive_search_end2,
+        paired_matches,mapper_search->mapping_stats);
     //output_fastq(mapper_search->buffered_output_file,&archive_search_end1->sequence);
     //output_fastq(mapper_search->buffered_output_file,&archive_search_end2->sequence);
 
@@ -278,24 +276,24 @@ void* mapper_pe_thread(mapper_search_t* const mapper_search) {
       reads_processed=0;
     }
 
+    // Clear (these are not needed => just wipe clean all mm_allocator)
+//    archive_search_destroy(archive_search_end1);
+//    archive_search_destroy(archive_search_end2);
+//    filtering_candidates_clear(&archive_search_handlers->filtering_candidates_end1,true);
+//    filtering_candidates_clear(&archive_search_handlers->filtering_candidates_end2,true);
     // Clear
-    archive_search_handlers_clear(mapper_search->archive_search_handlers);
+    archive_search_handlers_clear(archive_search_handlers);
     paired_matches_clear(paired_matches,true);
   }
   // Update processed
   ticker_update_mutex(mapper_search->ticker,reads_processed);
 
   // Clean up
-  buffered_input_file_close(mapper_search->buffered_fasta_input_end1);
-  if (parameters->io.separated_input_files) {
-    buffered_input_file_close(mapper_search->buffered_fasta_input_end2);
-  }
-  buffered_output_file_close(mapper_search->buffered_output_file);
-  archive_search_delete(mapper_search->archive_search_end1);
-  archive_search_delete(mapper_search->archive_search_end2);
-  paired_matches_delete(mapper_search->paired_matches);
-  archive_search_handlers_delete(mapper_search->archive_search_handlers);
-
+  archive_search_delete(archive_search_end1);
+  archive_search_delete(archive_search_end2);
+  paired_matches_delete(paired_matches);
+  archive_search_handlers_delete(archive_search_handlers);
+  mapper_io_handler_delete(mapper_io_handler);
   pthread_exit(0);
 }
 /*
@@ -304,8 +302,15 @@ void* mapper_pe_thread(mapper_search_t* const mapper_search) {
 void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_end) {
   // Load GEM-Index
   mapper_load_index(mapper_parameters);
-  gem_cond_fatal_error_msg(paired_end && mapper_parameters->archive->text->run_length,
+  gem_cond_fatal_error_msg(
+      paired_end && mapper_parameters->archive->text->run_length,
       "Archive.RL-Text not supported for Paired-End Mode (yet...)");
+  if (mapper_parameters->archive->gpu_index) {
+    gem_warn_msg(
+        "Running CPU-mode using GPU-index; "
+        "CPU-index can achieve better performance "
+        "(gem-indexer --gpu-index=false)");
+  }
   // Setup threads
   const uint64_t num_threads = mapper_parameters->system.num_threads;
   mapper_search_t* const mapper_search = mm_calloc(num_threads,mapper_search_t,false);
@@ -345,7 +350,6 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
   PROFILE_VTUNE_START(); // Vtune
   for (i=0;i<num_threads;++i) {
     // Setup thread
-    mapper_search[i].paired_end = paired_end;
     mapper_search[i].thread_id = i;
     mapper_search[i].thread_data = mm_alloc(pthread_t);
     mapper_search[i].mapper_parameters = mapper_parameters;

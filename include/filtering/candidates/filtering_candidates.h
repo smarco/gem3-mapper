@@ -31,7 +31,6 @@
 #include "utils/essentials.h"
 #include "archive/archive.h"
 #include "archive/search/archive_search_se_parameters.h"
-#include "filtering/candidates/filtering_candidates_mm.h"
 #include "filtering/region/filtering_region.h"
 #include "filtering/region/filtering_region_cache.h"
 #include "matches/align/match_alignment_region.h"
@@ -72,21 +71,28 @@ typedef struct {
   vector_t* discarded_regions;                     // Discarded regions (filtering_region_t*)
   /* Cache */
   filtering_region_cache_t filtering_region_cache; // Filtering-Region Cache
-  /* Text-Collection */
-  text_collection_t text_collection;               // Stores text-traces
   /* Extended matches */
   vector_t* extended_matches;                      // Results from extending matches
   /* MM */
-  filtering_candidates_mm_t* mm;                   // Filtering-Candidates MM
-  filtering_candidates_buffered_mm_t* buffered_mm; // Filtering-Candidates MM Buffered
+  mm_allocator_t* mm_allocator;                    // MM-Allocator
 } filtering_candidates_t;
 
 /*
  * Setup
  */
 void filtering_candidates_init(filtering_candidates_t* const filtering_candidates);
-void filtering_candidates_clear(filtering_candidates_t* const filtering_candidates);
-void filtering_candidates_destroy(filtering_candidates_t* const filtering_candidates);
+void filtering_candidates_init_alignment(
+    filtering_candidates_t* const filtering_candidates,
+    alignment_t* const alignment,
+    pattern_t* const pattern,
+    const uint64_t text_length,
+    const uint64_t max_error);
+void filtering_candidates_clear(
+    filtering_candidates_t* const filtering_candidates,
+    const bool free_memory);
+void filtering_candidates_destroy(
+    filtering_candidates_t* const filtering_candidates,
+    const bool free_memory);
 
 /*
  * Handlers Injection (Support Data Structures)
@@ -95,39 +101,29 @@ void filtering_candidates_inject_handlers(
     filtering_candidates_t* const filtering_candidates,
     archive_t* const archive,
     search_parameters_t* const search_parameters,
-    filtering_candidates_mm_t* const filtering_candidates_mm,
-    filtering_candidates_buffered_mm_t* const filtering_candidates_buffered_mm);
+    mm_allocator_t* const mm_allocator);
 
 /*
  * Allocators
  */
 filtering_position_t* filtering_candidates_allocate_position(
     filtering_candidates_t* const filtering_candidates);
+void filtering_candidates_free_position(
+    const filtering_candidates_t* const filtering_candidates,
+    filtering_position_t* const filtering_position);
+
 filtering_region_t* filtering_candidates_allocate_region(
     filtering_candidates_t* const filtering_candidates);
-filtering_region_t* filtering_candidates_allocate_discarded_region(
-    filtering_candidates_t* const filtering_candidates);
-match_alignment_region_t* filtering_candidates_allocate_alignment_regions(
-    filtering_candidates_t* const filtering_candidates,
-    const uint64_t num_alignment_regions);
-
-/*
- * Prepare Alignment
- */
-void filtering_candidates_init_alignment(
-    filtering_candidates_t* const filtering_candidates,
-    alignment_t* const alignment,
-    pattern_t* const pattern,
-    const uint64_t text_length,
-    const uint64_t max_error,
-    const bool force_reset);
-
-/*
- * Accessors
- */
-uint64_t filtering_candidates_count_regions_by_status(
+void filtering_candidates_free_region(
     const filtering_candidates_t* const filtering_candidates,
-    const filtering_region_status_t filtering_region_status);
+    filtering_region_t* const filtering_region);
+
+alignment_tile_t* filtering_candidates_allocate_alignment_tiles(
+    filtering_candidates_t* const filtering_candidates,
+    const uint64_t num_alignment_tiles);
+void filtering_candidates_free_alignment_tiles(
+    const filtering_candidates_t* const filtering_candidates,
+    alignment_tile_t* const alignment_tile);
 
 /*
  * Filtering Positions
@@ -141,7 +137,8 @@ void filtering_candidates_set_num_positions(
 filtering_position_t** filtering_candidates_get_positions(
     const filtering_candidates_t* const filtering_candidates);
 void filtering_candidates_clear_positions(
-    const filtering_candidates_t* const filtering_candidates);
+    const filtering_candidates_t* const filtering_candidates,
+    const bool free_positions);
 
 /*
  * Filtering Regions
@@ -155,7 +152,8 @@ void filtering_candidates_set_num_regions(
 filtering_region_t** filtering_candidates_get_regions(
     const filtering_candidates_t* const filtering_candidates);
 void filtering_candidates_clear_regions(
-    const filtering_candidates_t* const filtering_candidates);
+    const filtering_candidates_t* const filtering_candidates,
+    const bool free_regions);
 
 /*
  * Discarded Regions
@@ -175,43 +173,8 @@ filtering_region_t** filtering_candidates_reserve_discarded_regions(
     const filtering_candidates_t* const filtering_candidates,
     const uint64_t num_regions);
 void filtering_candidates_clear_discarded_regions(
-    const filtering_candidates_t* const filtering_candidates);
-
-/*
- * Adding Positions (Candidate Positions)
- */
-void filtering_candidates_add_positions_from_interval(
-    filtering_candidates_t* const filtering_candidates,
-    search_parameters_t* const search_parameters,
-    pattern_t* const pattern,
-    const uint64_t interval_lo,
-    const uint64_t interval_hi,
-    const uint64_t region_begin_pos,
-    const uint64_t region_end_pos,
-    const uint64_t region_errors,
-    bool* const candidates_limited);
-
-/*
- * Adding Region (filtering regions)
- */
-void filtering_candidates_add_region_from_group_positions(
-    filtering_candidates_t* const filtering_candidates,
-    pattern_t* const pattern,
-    const uint64_t first_candidate_idx,
-    const uint64_t last_candidate_idx,
-    const uint64_t align_distance,
-    const uint64_t align_offset,
-    const bool compose_alignment_regions,
-    const bool run_length_text);
-void filtering_candidates_add_region_verified(
-    filtering_candidates_t* const filtering_candidates,
-    pattern_t* const pattern,
-    const uint64_t text_trace_offset,
-    const uint64_t text_begin_offset,
-    const uint64_t text_end_offset,
-    const uint64_t begin_position,
-    const uint64_t end_position,
-    const uint64_t align_distance);
+    const filtering_candidates_t* const filtering_candidates,
+    const bool free_regions);
 
 /*
  * Sorting

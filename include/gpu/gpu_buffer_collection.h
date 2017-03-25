@@ -40,9 +40,11 @@ typedef struct {
   uint64_t num_buffers;               // Total number of buffers allocated
   /* Active Modules */
   bool gpu_region_profile_available;
-  bool gpu_decode_candidates_sa_available;
-  bool gpu_decode_candidates_text_available;
-  bool gpu_verify_candidates_available;
+  bool gpu_decode_sa_available;
+  bool gpu_decode_text_available;
+  bool gpu_kmer_filter_available;
+  bool gpu_bpm_distance_available;
+  bool gpu_bpm_align_available;
 } gpu_buffer_collection_t;
 
 /*
@@ -54,7 +56,8 @@ gpu_buffer_collection_t* gpu_buffer_collection_new(
     const uint64_t buffer_size,
     const uint64_t gpu_devices,
     const bool verbose);
-void gpu_buffer_collection_delete(gpu_buffer_collection_t* const gpu_buffer_collection);
+void gpu_buffer_collection_delete(
+    gpu_buffer_collection_t* const gpu_buffer_collection);
 
 /*
  * Accessors

@@ -247,7 +247,7 @@ void archive_score_matches_pe(
       matches_predictors_compute_pe(&matches_predictors,paired_matches);
       // Dump predictors
       matches_predictors_pe_print(
-          stdout,sequence_get_tag(&archive_search_end1->sequence),
+          stdout,sequence_get_tag(archive_search_end1->input_sequence),
           paired_matches->paired_matches_class,&matches_predictors);
       break;
     }

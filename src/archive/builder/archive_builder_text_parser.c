@@ -66,7 +66,8 @@ void archive_builder_inspect_text(
   // Rewind input MULTIFASTA
   input_file_rewind(input_multifasta);
   // Log
-  gem_slog("Inspected text %"PRIu64" characters (%s). Requesting %"PRIu64" MB (enc_text)\n",
+  tfprintf(gem_log_get_stream(),
+      "Inspected text %"PRIu64" characters (%s). Requesting %"PRIu64" MB (enc_text)\n",
       enc_text_length,"index_complement=yes",CONVERT_B_TO_MB(enc_text_length));
   // Allocate Text (Circular BWT extra)
   archive_builder->enc_text = dna_text_padded_new(enc_text_length,2,SA_BWT_PADDED_LENGTH);

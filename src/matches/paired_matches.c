@@ -409,16 +409,16 @@ void paired_matches_find_pairs(
     paired_matches_t* const paired_matches,
     search_parameters_t* const search_parameters,
     mapper_stats_t* const mapper_stats,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Parameters
   matches_t* const matches_end1 = paired_matches->matches_end1;
   matches_t* const matches_end2 = paired_matches->matches_end2;
   const uint64_t num_matches_end1 = matches_get_num_match_traces(matches_end1);
   const uint64_t num_matches_end2 = matches_get_num_match_traces(matches_end2);
   // Allocate matches placeholders
-  mm_stack_push_state(mm_stack);
-  match_trace_t** const matches_sorted_end1 = mm_stack_calloc(mm_stack,num_matches_end1,match_trace_t*,false);
-  match_trace_t** const matches_sorted_end2 = mm_stack_calloc(mm_stack,num_matches_end2,match_trace_t*,false);
+  mm_allocator_push_state(mm_allocator);
+  match_trace_t** const matches_sorted_end1 = mm_allocator_calloc(mm_allocator,num_matches_end1,match_trace_t*,false);
+  match_trace_t** const matches_sorted_end2 = mm_allocator_calloc(mm_allocator,num_matches_end2,match_trace_t*,false);
   // Create matches placeholders
   match_trace_t** match_trace_end1 = matches_get_match_traces(matches_end1);
   match_trace_t** match_trace_end2 = matches_get_match_traces(matches_end2);
@@ -436,8 +436,8 @@ void paired_matches_find_pairs(
   // Update number of matches candidates
   const uint64_t num_paired_maps = vector_get_used(paired_matches->paired_maps);
   matches_metrics_set_accepted_candidates(&paired_matches->metrics,num_paired_maps);
-  // Pop stack
-  mm_stack_pop_state(mm_stack);
+  // Pop allocator state
+  mm_allocator_pop_state(mm_allocator);
 }
 void paired_matches_find_discordant_pairs(
     paired_matches_t* const paired_matches,

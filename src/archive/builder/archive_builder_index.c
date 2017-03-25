@@ -51,6 +51,10 @@ void archive_builder_index_build_bwt(
   // Count k-mers
   sa_builder_count_suffixes(archive_builder->sa_builder,archive_builder->character_occurrences,verbose);
   // Write SA-positions
+  sa_builder_store_suffixes_prepare(archive_builder->sa_builder); // Prepare storage for Writing
+  if (archive_builder->info_file) {
+    sa_builder_display_stats(archive_builder->info_file,archive_builder->sa_builder,true); // DEBUG
+  }
   sa_builder_store_suffixes(archive_builder->sa_builder,verbose);
   // Sort suffixes & sample SA
   archive_builder->sampled_sa = sampled_sa_builder_new(

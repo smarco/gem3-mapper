@@ -86,10 +86,10 @@ void region_profile_split_fdec(
     const uint64_t key_length,
     const bool* const allowed_enc,
     const uint64_t region_length,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Allocate fdec vector
-  mm_stack_push_state(mm_stack);
-//  double* const fdec = mm_stack_calloc(mm_stack,key_length,double,true);
+  mm_allocator_push_state(mm_allocator);
+//  double* const fdec = mm_allocator_calloc(mm_allocator,key_length,double,true);
 //  double global_fdec;
 //  // Compute global fdec
 //  uint64_t length;
@@ -112,7 +112,7 @@ void region_profile_split_fdec(
 //    position -= 1;
 //  }
   // Free
-  mm_stack_pop_state(mm_stack);
+  mm_allocator_pop_state(mm_allocator);
 }
 /*
  * Compute splitters
@@ -125,14 +125,14 @@ void region_profile_splitters(
     const bool* const allowed_enc,
     const uint64_t sample_length,
     const uint64_t num_regions,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Init
   region_profile_clear(region_profile);
   region_profile_allocate_regions(region_profile,key_length); // Allocate
   // Allocate fdec vector
-  mm_stack_push_state(mm_stack);
+  mm_allocator_push_state(mm_allocator);
   const int64_t fdec_length = key_length - sample_length;
-  double* const fdec = mm_stack_calloc(mm_stack,fdec_length,double,true);
+  double* const fdec = mm_allocator_calloc(mm_allocator,fdec_length,double,true);
   // Compute fdec vector
   uint64_t occ=UINT64_MAX, prev_occ=UINT64_MAX;
   double accumulated = 0.0;
@@ -157,7 +157,7 @@ void region_profile_splitters(
   filtering_region->begin = 0;
   // Init splitters
   const double split_fdec = accumulated/num_regions;
-  uint64_t h = sample_length; //sample_length/2;
+  // uint64_t h = sample_length; //sample_length/2;
   accumulated = 0.0;
   // Split accumulated
   position = 0;
@@ -190,7 +190,7 @@ void region_profile_splitters(
   // Schedule to filter all
   region_profile_schedule_exact_all(region_profile);
   // Free
-  mm_stack_pop_state(mm_stack);
+  mm_allocator_pop_state(mm_allocator);
 }
 /*
  * Display
@@ -274,14 +274,14 @@ void region_profile_split_print_occ(
 //    const bool* const allowed_enc,
 //    const uint64_t sample_length,
 //    const uint64_t num_regions,
-//    mm_stack_t* const mm_stack) {
+//    mm_allocator_t* const mm_allocator) {
 //  // Init
 //  region_profile_clear(region_profile);
 //  region_profile_allocate_regions(region_profile,key_length); // Allocate
 //  // Allocate fdec vector
-//  mm_stack_push_state(mm_stack);
+//  mm_allocator_push_state(mm_allocator);
 //  const int64_t fdec_length = key_length - sample_length;
-//  double* const fdec = mm_stack_calloc(mm_stack,fdec_length,double,true);
+//  double* const fdec = mm_allocator_calloc(mm_allocator,fdec_length,double,true);
 //  // Compute fdec vector
 //  uint64_t occ=UINT64_MAX, prev_occ=UINT64_MAX;
 //  double accumulated = 1.0;
@@ -335,5 +335,5 @@ void region_profile_split_print_occ(
 //  // Schedule to filter all
 //  region_profile_schedule_exact_all(region_profile);
 //  // Free
-//  mm_stack_pop_state(mm_stack);
+//  mm_allocator_pop_state(mm_allocator);
 //}

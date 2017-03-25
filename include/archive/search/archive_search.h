@@ -57,55 +57,57 @@ typedef struct {
   bool pair_extended_shortcut;               // Paired extension performed (to shortcut)
   /* Parameters */
   search_parameters_t search_parameters;     // Search parameters
-  sequence_t sequence;                       // Input Sequence
+  sequence_t* input_sequence;                // Input Sequence
   bool buffered_search;                      // Buffered Search
-  /* Parameters-BS */
-  string_t* bs_original_sequence;            // Bisulfite original sequence before conversion
-  sequence_end_t bs_sequence_end;            // Bisulfite sequence end
   /* Approximate Search */
   approximate_search_t approximate_search;   // Approximate Search State
   /* Stats */
   mapper_stats_t* mapper_stats;              // Mapping statistics
   /* MM */
-  mm_stack_t* mm_stack;                      // MM-Stack
+  mm_allocator_t* mm_allocator;              // MM-Allocator
 } archive_search_t;
 
 /*
  * Setup
  */
-void archive_search_init(
-    archive_search_t* const archive_search,
-    archive_t* const archive,
-    search_parameters_t* const search_parameters,
-    const bool buffered_search,
-    mm_stack_t* const mm_stack);
-void archive_search_destroy(archive_search_t* const archive_search);
-
 void archive_search_se_new(
-    archive_t* const archive,
     search_parameters_t* const search_parameters,
     const bool buffered_search,
-    mm_stack_t* const mm_stack,
     archive_search_t** const archive_search);
 void archive_search_pe_new(
-    archive_t* const archive,
     search_parameters_t* const search_parameters,
     const bool buffered_search,
-    mm_stack_t* const mm_stack,
     archive_search_t** const archive_search_end1,
     archive_search_t** const archive_search_end2);
-void archive_search_reset(archive_search_t* const archive_search);
-void archive_search_delete(archive_search_t* const archive_search);
+void archive_search_destroy(
+    archive_search_t* const archive_search);
+void archive_search_delete(
+    archive_search_t* const archive_search);
+
+/*
+ * Prepare Search
+ */
+void archive_search_prepare_sequence(
+    archive_search_t* const archive_search,
+    sequence_t* const sequence);
+void archive_search_inject_handlers(
+    archive_search_t* const archive_search,
+    archive_t* const archive,
+    filtering_candidates_t* const filtering_candidates,
+    nsearch_schedule_t* const nsearch_schedule,
+    mapper_stats_t* const mapper_stats,
+    mm_allocator_t* const mm_allocator);
 
 /*
  * Accessors
  */
-sequence_t* archive_search_get_sequence(const archive_search_t* const archive_search);
 bool archive_search_finished(const archive_search_t* const archive_search);
 
 uint64_t archive_search_get_num_regions_profile(const archive_search_t* const archive_search);
 uint64_t archive_search_get_num_decode_candidates(const archive_search_t* const archive_search);
-uint64_t archive_search_get_num_verify_candidates(const archive_search_t* const archive_search);
+uint64_t archive_search_get_num_kmer_filter_candidates(const archive_search_t* const archive_search);
+uint64_t archive_search_get_num_bpm_distance_candidates(const archive_search_t* const archive_search);
+uint64_t archive_search_get_num_bpm_align_candidates(const archive_search_t* const archive_search);
 
 /*
  * Errors

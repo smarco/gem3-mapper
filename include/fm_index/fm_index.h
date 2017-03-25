@@ -56,7 +56,8 @@ void fm_index_write(
     bwt_builder_t** const bwt_builder_out,
     rank_mtable_t** const rank_mtable_out,
     const bool check,
-    const bool verbose);
+    const bool verbose,
+    FILE* const info_file);
 
 /*
  * Loader

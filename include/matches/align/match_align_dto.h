@@ -33,7 +33,7 @@ typedef struct match_align_parameters_t match_align_parameters_t;
 #include "align/align_swg_score.h"
 #include "align/align_swg_simd.h"
 #include "align/pattern/pattern_tiled.h"
-#include "text/text_collection.h"
+#include "text/text_trace.h"
 
 struct match_align_input_t {
   /* Sequence */
@@ -46,7 +46,7 @@ struct match_align_input_t {
   uint64_t key_trim_right;                 // Alignment trim
   pattern_tiled_t* pattern_tiled;          // Pattern tiled
   /* Text */
-  uint64_t text_trace_offset;              // Text-Trace Offset
+  text_trace_t* text_trace;                // Text-Trace
   uint64_t text_position;                  // Text position
   uint8_t* text;                           // Text (candidate)
   uint64_t text_length;                    // Text full length (whole decoded text)
@@ -59,7 +59,6 @@ struct match_align_input_t {
   uint32_t* rl_text_runs_acc;
 };
 struct match_align_parameters_t {
-  bool* allowed_enc;
   swg_penalties_t* swg_penalties;
   uint64_t max_error;
   uint64_t max_bandwidth;

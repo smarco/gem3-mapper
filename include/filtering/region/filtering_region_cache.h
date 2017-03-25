@@ -57,7 +57,6 @@ void filtering_region_transient_cache_add(
  */
 match_trace_t* filtering_region_transient_cache_search(
     filtering_region_cache_t* const filtering_region_cache,
-    filtering_region_t* const filtering_region,
-    text_collection_t* const text_collection);
+    filtering_region_t* const filtering_region);
 
 #endif /* FILTERING_REGION_CACHE_H_ */

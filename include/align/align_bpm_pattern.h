@@ -67,10 +67,14 @@ struct _bpm_pattern_t {
 /*
  * Compile Pattern
  */
-bpm_pattern_t* bpm_pattern_compile(
+void bpm_pattern_compile(
+    bpm_pattern_t* const bpm_pattern,
     uint8_t* const pattern,
     const uint64_t pattern_length,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
+void bpm_pattern_destroy(
+    bpm_pattern_t* const bpm_pattern,
+    mm_allocator_t* const mm_allocator);
 
 /*
  * Compile Pattern Tiles

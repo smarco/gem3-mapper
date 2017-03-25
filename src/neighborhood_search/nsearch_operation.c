@@ -31,15 +31,15 @@ void nsearch_operation_init(
     nsearch_operation_t* const nsearch_operation,
     const uint64_t max_key_length,
     const uint64_t max_text_length,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Compute dimensions
   const uint64_t num_rows = max_key_length + 1;     // (+1) Initial Conditions Row
   const uint64_t num_columns = max_text_length + 2; // (+1) Initial Conditions Column
                                                     // (+1) Auxiliary Column (check there is no valid match)
   // Allocate text
-  nsearch_operation->text = mm_stack_calloc(mm_stack,num_columns,uint8_t,false);
+  nsearch_operation->text = mm_allocator_calloc(mm_allocator,num_columns,uint8_t,false);
   // Init levenshtein state
-  nsearch_levenshtein_state_init(&nsearch_operation->nsearch_state,num_rows,num_columns,mm_stack);
+  nsearch_levenshtein_state_init(&nsearch_operation->nsearch_state,num_rows,num_columns,mm_allocator);
 }
 /*
  * Prepare Operation Chained
@@ -72,7 +72,7 @@ bool nsearch_operation_chained_prepare(
     uint8_t* const key,
     const uint64_t key_length,
     const bool reverse_sequence,
-    mm_stack_t* const mm_stack) {
+    mm_allocator_t* const mm_allocator) {
   // Prepare Sequence
   if (reverse_sequence) {
     nsearch_operation_chained_prepare_sequence_reverse(current_nsearch_operation,
@@ -93,7 +93,7 @@ bool nsearch_operation_chained_prepare(
   nsearch_levenshtein_state_compute_text_banded(
       next_nsearch_state,forward_search,key_chunk,
       key_chunk_length,text,text_length,next_max_error,
-      &min_align_distance,&min_align_distance_column,mm_stack);
+      &min_align_distance,&min_align_distance_column,mm_allocator);
   // Check supercondensed operation-chain
   return !(key_chunk_length==key_length &&
            min_align_distance<=next_max_error &&
@@ -105,12 +105,12 @@ bool nsearch_operation_chained_prepare(
 bool nsearch_operation_state_text_eq(
     nsearch_operation_t* const nsearch_operation,
     char* const text,
-    mm_stack_t* const mm_stack) {
-  mm_stack_push_state(mm_stack);
+    mm_allocator_t* const mm_allocator) {
+  mm_allocator_push_state(mm_allocator);
   const uint64_t text_length = strlen(text);
   const bool forward_search = (nsearch_operation->search_direction==direction_forward);
   // Allocate text
-  uint8_t* const enc_text = mm_stack_calloc(mm_stack,text_length,uint8_t,true);
+  uint8_t* const enc_text = mm_allocator_calloc(mm_allocator,text_length,uint8_t,true);
   // Encode
   uint64_t i;
   if (forward_search) {
@@ -127,7 +127,7 @@ bool nsearch_operation_state_text_eq(
   for (i=0;eq && i<text_length;++i) {
     eq = (nsearch_operation->text[i] == enc_text[i]);
   }
-  mm_stack_pop_state(mm_stack);
+  mm_allocator_pop_state(mm_allocator);
   return eq;
 }
 /*

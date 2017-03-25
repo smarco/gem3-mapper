@@ -57,13 +57,13 @@ matches_t* matches_new(void) {
   // Matches Counters
   matches->counters = matches_counters_new();
   // MM
-  matches->mm_slab = mm_slab_new_(BUFFER_SIZE_4M,BUFFER_SIZE_4M,MM_UNLIMITED_MEM,"matches.4MB");
-  matches->mm_stack = mm_stack_new(matches->mm_slab);
+  matches->mm_slab = mm_slab_new_(BUFFER_SIZE_4M,BUFFER_SIZE_4M,MM_UNLIMITED_MEM);
+  matches->mm_allocator = mm_allocator_new(matches->mm_slab);
   // Position Matches
   matches->match_traces = vector_new(MATCHES_INIT_GLOBAL_MATCHES,match_trace_t*);
   matches->match_traces_local = vector_new(MATCHES_INIT_GLOBAL_MATCHES,match_trace_t*);
-  matches->match_traces_begin = ihash_new(matches->mm_stack);
-  matches->match_traces_end = ihash_new(matches->mm_stack);
+  matches->match_traces_begin = ihash_new(matches->mm_allocator);
+  matches->match_traces_end = ihash_new(matches->mm_allocator);
   // CIGAR buffer
   matches->cigar_vector = vector_new(MATCHES_INIT_CIGAR_OPS,cigar_element_t);
   // Init metrics
@@ -81,7 +81,7 @@ void matches_clear(matches_t* const matches) {
   ihash_clear(matches->match_traces_begin);
   ihash_clear(matches->match_traces_end);
   vector_clear(matches->cigar_vector);
-  mm_stack_clear(matches->mm_stack);
+  mm_allocator_clear(matches->mm_allocator);
 }
 void matches_delete(matches_t* const matches) {
   // Delete all
@@ -91,7 +91,7 @@ void matches_delete(matches_t* const matches) {
   ihash_delete(matches->match_traces_begin);
   ihash_delete(matches->match_traces_end);
   vector_delete(matches->cigar_vector);
-  mm_stack_delete(matches->mm_stack);
+  mm_allocator_delete(matches->mm_allocator);
   mm_slab_delete(matches->mm_slab);
   // Delete handler
   mm_free(matches);
@@ -326,7 +326,7 @@ void match_trace_copy(
     match_trace_t* const match_trace_src) {
   /* Text (Reference) */
   match_trace_dst->type = match_trace_src->type;
-  match_trace_dst->text_trace_offset = match_trace_src->text_trace_offset;
+  match_trace_dst->text_trace = match_trace_src->text_trace;
   match_trace_dst->text = match_trace_src->text;
   match_trace_dst->text_length = match_trace_src->text_length;
   /* Match */
@@ -359,7 +359,7 @@ match_trace_t* matches_add_match_trace(
     match_trace_locate(match_trace,locator);
     // Add the match-trace
     PROF_INC_COUNTER(GP_MATCHES_MAPS_ADDED);
-    match_trace_t* const new_match_trace = mm_stack_alloc(matches->mm_stack,match_trace_t);
+    match_trace_t* const new_match_trace = mm_allocator_alloc(matches->mm_allocator,match_trace_t);
     match_trace_copy(new_match_trace,match_trace);
     // Index
     matches_index_match(matches,new_match_trace);
@@ -403,7 +403,7 @@ match_trace_t* matches_add_match_trace(
 void matches_add_local_match_pending(
     matches_t* const matches,
     match_trace_t* const match_trace) {
-  match_trace_t* const new_match_trace = mm_stack_alloc(matches->mm_stack,match_trace_t);
+  match_trace_t* const new_match_trace = mm_allocator_alloc(matches->mm_allocator,match_trace_t);
   match_trace_copy(new_match_trace,match_trace);
   vector_insert(matches->match_traces_local,new_match_trace,match_trace_t*);
 }

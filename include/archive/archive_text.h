@@ -29,8 +29,8 @@
 
 #include "utils/essentials.h"
 #include "archive/sampled_rl.h"
-#include "text/text_collection.h"
 #include "text/dna_text.h"
+#include "text/text_trace.h"
 
 /*
  * Archive Text
@@ -92,14 +92,7 @@ void archive_text_retrieve(
     const bool reverse_complement_text,
     const bool run_length_text,
     text_trace_t* const text_trace,
-    mm_stack_t* const mm_stack);
-uint64_t archive_text_retrieve_collection(
-    archive_text_t* const archive_text,
-    const text_collection_t* const text_collection,
-    const uint64_t text_position,
-    const uint64_t text_length,
-    const bool reverse_complement_text,
-    const bool run_length_text);
+    mm_allocator_t* const mm_allocator);
 
 /*
  * Display

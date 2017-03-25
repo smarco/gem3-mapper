@@ -33,20 +33,13 @@
 /*
  * Quality Model (from sequence into qm_values)
  */
-void sequence_qualities_model_process_flat(
+void sequence_qualities_model_process(
     sequence_t* const sequence,
-    uint8_t* const quality_mask) {
-  const uint64_t key_length = sequence_get_length(sequence);
-  uint64_t i;
-  for (i=0;i<key_length;++i) quality_mask[i] = qm_real;
-}
-void sequence_qualities_model_process_gem(
-    sequence_t* const sequence,
-    const sequence_qualities_format_t qualities_format,
+    const sequence_qualities_format_t quality_format,
     const uint64_t quality_threshold,
     uint8_t* const quality_mask) {
   uint64_t enc_diff;
-  switch (qualities_format) {
+  switch (quality_format) {
     case sequence_qualities_offset_33:
       enc_diff = 33;
       break;
@@ -63,24 +56,6 @@ void sequence_qualities_model_process_gem(
     const int64_t quality = *string_char_at(&sequence->qualities,i) - enc_diff;
     gem_cond_error(quality < 0,QUALITY_NEGATIVE,string_get_buffer(&sequence->qualities)[i],i);
     quality_mask[i] = (quality >= quality_threshold) ? qm_real : qm_pseudo;
-  }
-}
-void sequence_qualities_model_process(
-    sequence_t* const sequence,
-    const sequence_qualities_model_t qualities_model,
-    const sequence_qualities_format_t qualities_format,
-    const uint64_t quality_threshold,
-    uint8_t* const quality_mask) {
-  switch (qualities_model) {
-    case sequence_qualities_model_flat:
-      sequence_qualities_model_process_flat(sequence,quality_mask);
-      break;
-    case sequence_qualities_model_gem:
-      sequence_qualities_model_process_gem(sequence,qualities_format,quality_threshold,quality_mask);
-      break;
-    default:
-      GEM_INVALID_CASE();
-      break;
   }
 }
 

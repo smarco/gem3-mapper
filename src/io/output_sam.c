@@ -325,7 +325,7 @@ void output_sam_parse_read_group_header(
   gem_cond_fatal_error_msg(q - p > 255,"Option '-r|--sam-read-group-header' has ID longer than 255 characters");
   sam_parameters->read_group_header = r;
   sam_parameters->read_group_id = mm_malloc(sizeof(string_t));
-  string_init(sam_parameters->read_group_id, q - p + 1);
+  string_init(sam_parameters->read_group_id, q - p + 1,NULL);
   string_set_buffer(sam_parameters->read_group_id, p, q - p);
 }
 /*
@@ -1172,10 +1172,12 @@ void output_sam_single_end_matches(
   const uint64_t vector_match_trace_used = matches_get_num_match_traces(matches);
   if (gem_expect_false(vector_match_trace_used==0)) {
     // Print Unmapped
-    output_sam_print_core_fields_se(buffered_output_file,&archive_search->sequence,matches,NULL,false,
+    output_sam_print_core_fields_se(
+        buffered_output_file,archive_search->input_sequence,matches,NULL,false,
         supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
     // Print Optional Fields
-    output_sam_print_optional_fields_se(buffered_output_file,archive_search,matches,NULL,0,false,output_sam_parameters);
+    output_sam_print_optional_fields_se(buffered_output_file,
+        archive_search,matches,NULL,0,false,output_sam_parameters);
     // GEM compatibility
     if (output_sam_parameters->print_gem_fields) {
       output_sam_print_opt_field_tag_X4(buffered_output_file,matches);
@@ -1192,7 +1194,7 @@ void output_sam_single_end_matches(
     for (i=0;i<num_match_traces;++i) {
       // Print Core Fields
       const bool secondary_alignment = (i>0);
-      output_sam_print_core_fields_se(buffered_output_file,&archive_search->sequence,matches,match_traces[i],
+      output_sam_print_core_fields_se(buffered_output_file,archive_search->input_sequence,matches,match_traces[i],
           secondary_alignment,supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
       // Print Optional Fields
       output_sam_print_optional_fields_se(buffered_output_file,archive_search,
@@ -1234,7 +1236,7 @@ void output_sam_paired_end_matches_unpaired(
   if (num_matches == 0) { // End Unmapped
      // Print Core Fields
      output_sam_print_core_fields_pe(buffered_output_file,
-        &archive_search->sequence,matches,NULL,primary_match_mate,0,0,is_map_first_in_pair,
+        archive_search->input_sequence,matches,NULL,primary_match_mate,0,0,is_map_first_in_pair,
         false,false,supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
      // Print Optional Fields
      output_sam_print_optional_fields_se(buffered_output_file,archive_search,matches,NULL,0,false,output_sam_parameters);
@@ -1254,7 +1256,7 @@ void output_sam_paired_end_matches_unpaired(
         // Print Core Fields
         const bool secondary_alignment = (i>0);
         output_sam_print_core_fields_pe(buffered_output_file,
-           &archive_search->sequence,matches,match_traces[i],i==0?primary_match_mate:NULL,
+           archive_search->input_sequence,matches,match_traces[i],i==0?primary_match_mate:NULL,
            match_traces[i]->mapq_score,0,is_map_first_in_pair,false,secondary_alignment,
            supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
         // Print Optional Fields
@@ -1305,7 +1307,7 @@ void output_sam_paired_end_matches_paired(
      */
     // Print Core Fields
     output_sam_print_core_fields_pe(
-        buffered_output_file,&archive_search_end1->sequence,
+        buffered_output_file,archive_search_end1->input_sequence,
         matches_end1,match_end1,match_end2,paired_map->mapq_score,
         paired_map->template_length,true,true,secondary_alignment,
         supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
@@ -1329,7 +1331,7 @@ void output_sam_paired_end_matches_paired(
      */
     // Print Core Fields
     output_sam_print_core_fields_pe(
-        buffered_output_file,&archive_search_end2->sequence,
+        buffered_output_file,archive_search_end2->input_sequence,
         matches_end2,match_end2,match_end1,paired_map->mapq_score,
         paired_map->template_length,false,true,secondary_alignment,
         supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);

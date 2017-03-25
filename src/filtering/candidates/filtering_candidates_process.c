@@ -26,6 +26,7 @@
  */
 
 #include "align/alignment.h"
+#include "filtering/candidates/filtering_candidates_accessors.h"
 #include "filtering/candidates/filtering_candidates_process.h"
 #include "archive/archive_text_rl.h"
 #include "archive/sampled_rl.h"
@@ -112,7 +113,7 @@ uint64_t filtering_candidates_compose_filtering_regions(
     candidate_idx += num_regions_matching;
   }
   // Clear candidate positions
-  filtering_candidates_clear_positions(filtering_candidates);
+  filtering_candidates_clear_positions(filtering_candidates,true);
   // DEBUG
   gem_cond_debug_block(DEBUG_FILTERING_CANDIDATES) {
     tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Candidates (compose_filtering_regions)\n");
@@ -191,7 +192,8 @@ void filtering_candidates_compute_text_coordinates(
         max_effective_bandwidth,key_begin_offset,key_end_offset,
         locator_interval->rl_begin_position,locator_interval->rl_end_position);
     // Store source-region offsets
-    filtering_position->source_region_text_offset = region_text_position_rl - filtering_position->text_begin_position;
+    filtering_position->source_region_text_offset =
+        region_text_position_rl - filtering_position->text_begin_position;
   } else {
     // Locate text position
     const uint64_t region_text_position = filtering_position->region_text_position;
@@ -203,7 +205,8 @@ void filtering_candidates_compute_text_coordinates(
         max_effective_bandwidth,key_begin_offset,key_end_offset,
         locator_interval->begin_position,locator_interval->end_position);
     // Store source-region offsets
-    filtering_position->source_region_text_offset = region_text_position - filtering_position->text_begin_position;
+    filtering_position->source_region_text_offset =
+        region_text_position - filtering_position->text_begin_position;
   }
 }
 /*

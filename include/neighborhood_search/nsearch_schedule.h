@@ -89,7 +89,7 @@ typedef struct {
   bool quick_abandon;                           // Quick abandon search
   // Misc
   nsearch_schedule_profile_t profile;           // Profiler
-  mm_stack_t* mm_stack;                         // MM
+  mm_allocator_t* mm_allocator;                 // MM-Allocator
 } nsearch_schedule_t;
 
 /*
@@ -107,7 +107,7 @@ void nsearch_schedule_init(
     matches_t* const matches);
 void nsearch_schedule_inject_mm(
     nsearch_schedule_t* const nsearch_schedule,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 
 /*
  * Schedule the search

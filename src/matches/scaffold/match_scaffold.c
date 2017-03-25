@@ -42,7 +42,9 @@
 /*
  * Setup
  */
-void match_scaffold_init(match_scaffold_t* const match_scaffold) {
+void match_scaffold_init(
+    match_scaffold_t* const match_scaffold,
+    mm_allocator_t* const mm_allocator) {
   // Scaffold Properties
   match_scaffold->scaffold_type = scaffold_none;
   match_scaffold->alignment_regions_rl = false;
@@ -52,6 +54,15 @@ void match_scaffold_init(match_scaffold_t* const match_scaffold) {
   match_scaffold->scaffolding_coverage = 0;
   // Underlying Alignment
   match_scaffold->match_alignment.cigar_length = 0;
+  // MM
+  match_scaffold->mm_allocator = mm_allocator;
+}
+void match_scaffold_destroy(
+    match_scaffold_t* const match_scaffold) {
+  if (match_scaffold->alignment_regions!=NULL) {
+    match_scaffold_free_alignment_region(
+        match_scaffold,match_scaffold->alignment_regions);
+  }
 }
 /*
  * Accessors
@@ -59,13 +70,24 @@ void match_scaffold_init(match_scaffold_t* const match_scaffold) {
 bool match_scaffold_is_null(match_scaffold_t* const match_scaffold) {
   return match_scaffold->num_alignment_regions==0;
 }
+match_alignment_region_t* match_scaffold_allocate_alignment_region(
+    match_scaffold_t* const match_scaffold,
+    const uint64_t num_alignment_regions) {
+  return mm_allocator_calloc(match_scaffold->mm_allocator,
+      num_alignment_regions,match_alignment_region_t,false);
+}
+void match_scaffold_free_alignment_region(
+    match_scaffold_t* const match_scaffold,
+    match_alignment_region_t* const match_alignment_region) {
+  mm_allocator_free(match_scaffold->mm_allocator,match_alignment_region);
+}
 /*
  * RL-Translation
  */
 void match_scaffold_rl_translate_regions(
     match_scaffold_t* const match_scaffold,
     match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
+    const bool left_gap_alignment,
     matches_t* const matches) {
   const uint64_t num_alignment_regions = match_scaffold->num_alignment_regions;
   uint64_t i;
@@ -74,8 +96,8 @@ void match_scaffold_rl_translate_regions(
     // Translate into Text-Space
     match_alignment_region_set_type(match_alignment_region,match_alignment_region_approximate);
     // Translate CIGAR
-    match_alignment_region_rl_translate(match_alignment_region,align_input,
-        align_parameters->left_gap_alignment,matches->cigar_vector);
+    match_alignment_region_rl_translate(match_alignment_region,
+        align_input,left_gap_alignment,matches->cigar_vector);
     // Region boundaries
     const uint64_t region_key_begin = match_alignment_region_get_key_begin(match_alignment_region);
     const uint64_t region_key_end = match_alignment_region_get_key_end(match_alignment_region);
@@ -100,9 +122,10 @@ void match_scaffold_rl_translate_regions(
 void match_scaffold_exact(
     match_scaffold_t* const match_scaffold,
     match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
-    matches_t* const matches,
-    mm_stack_t* const mm_stack) {
+    const bool left_gap_alignment,
+    matches_t* const matches) {
+  // Parameters
+  mm_allocator_t* const mm_allocator = mm_allocator;
   // Check scaffold-type
   if (match_scaffold->scaffold_type == scaffold_none) {
     /*
@@ -110,7 +133,7 @@ void match_scaffold_exact(
      */
     const bool rl_space = match_scaffold->alignment_regions_rl;
     if (rl_space) {
-      match_scaffold_rl_translate_regions(match_scaffold,align_input,align_parameters,matches);
+      match_scaffold_rl_translate_regions(match_scaffold,align_input,left_gap_alignment,matches);
       match_scaffold->alignment_regions_rl = false;
     }
     /*
@@ -120,7 +143,7 @@ void match_scaffold_exact(
     PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_ALIGNMENT_COVERAGE,
         (100*match_scaffold->scaffolding_coverage)/align_input->key_length);
     match_scaffold->scaffold_type = scaffold_alignment_chain;
-    match_scaffold_chain(match_scaffold,align_input,align_parameters,!rl_space,mm_stack);
+    match_scaffold_chain(match_scaffold,align_input,!rl_space);
     PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_CHAIN_REGIONS_COVERAGE,
         (100*match_scaffold->scaffolding_coverage)/align_input->key_length);
   }
@@ -132,16 +155,11 @@ void match_scaffold_adaptive(
     match_scaffold_t* const match_scaffold,
     match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
-    matches_t* const matches,
-    mm_stack_t* const mm_stack) {
+    matches_t* const matches) {
   PROFILE_START(GP_MATCH_SCAFFOLD_ALIGNMENT,PROFILE_LEVEL);
-  /*
-   * Exact scaffolding
-   */
-  match_scaffold_exact(match_scaffold,align_input,align_parameters,matches,mm_stack);
-  /*
-   * Adaptive scaffolding
-   */
+  // Exact scaffolding
+  match_scaffold_exact(match_scaffold,align_input,align_parameters,matches);
+  // Adaptive scaffolding
   if (match_scaffold->scaffold_type == scaffold_alignment_chain) {
     const uint64_t max_coverage_bound = BOUNDED_SUBTRACTION(
         align_input->key_length,align_input->alignment->distance_min_bound,0);
@@ -149,8 +167,8 @@ void match_scaffold_adaptive(
         match_scaffold->scaffolding_coverage < max_coverage_bound) { // Check coverage
       // Scaffold from Levenshtein-alignment
       match_scaffold->scaffold_type = scaffold_levenshtein; // Set scaffold approach
-      match_scaffold_levenshtein(match_scaffold,align_input,align_parameters,matches,mm_stack);
-      match_scaffold_chain(match_scaffold,align_input,align_parameters,false,mm_stack);
+      match_scaffold_levenshtein(match_scaffold,align_input,align_parameters,matches);
+      match_scaffold_chain(match_scaffold,align_input,false);
       PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_COVERAGE,
           (100*match_scaffold->scaffolding_coverage)/align_input->key_length);
     }
@@ -158,7 +176,7 @@ void match_scaffold_adaptive(
   //  // DEBUG
   //  match_scaffold_print_pretty(stderr,matches,match_scaffold,
   //      align_input->key,align_input->key_length,
-  //      align_input->text,align_input->text_length,mm_stack);
+  //      align_input->text,align_input->text_length,mm_allocator);
   // DEBUG
   gem_cond_debug_block(DEBUG_MATCH_SCAFFOLD) {
     tab_fprintf(gem_log_get_stream(),"[GEM]>Match.Scaffold (scaffold alignment)\n");

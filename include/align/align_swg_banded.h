@@ -39,6 +39,6 @@ void align_swg_banded(
     const bool end_free,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 
 #endif /* ALIGN_SWG_BANDED_H_ */

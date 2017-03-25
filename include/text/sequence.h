@@ -33,14 +33,36 @@
 #define SEQUENCE_QUALITY_IS_VALID(character) (33 <= (character))
 
 /*
+ * Constants
+ */
+#define SEQUENCE_TAG_INITIAL_LENGTH 80
+#define SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH 80
+#define SEQUENCE_INITIAL_LENGTH 200
+#define SEQUENCE_BISULFITE_INITIAL_LENGTH 200
+
+/*
+ * Bisulfite Sequence
+ */
+typedef enum {
+  bisulfite_disabled,
+  bisulfite_read_inferred,
+  bisulfite_read_1,
+  bisulfite_read_2,
+  bisulfite_read_interleaved
+} bisulfite_read_t;
+
+/*
  * Sequence
  */
 typedef enum { single_end=0, paired_end1=1, paired_end2=2 } sequence_end_t;
 typedef struct {
   /* Sequence */
-  string_t tag;
-  string_t read;
-  string_t qualities;
+  string_t tag;                    // Sequence Tag
+  string_t read;                   // Sequence Read
+  string_t qualities;              // Sequence Qualities
+  /* BS-Sequence */
+  string_t bs_original_sequence;   // Bisulfite original sequence before conversion
+  sequence_end_t bs_sequence_end;  // Bisulfite sequence end
   /* Attributes */
   bool has_qualities;
   sequence_end_t end_info;
@@ -51,8 +73,10 @@ typedef struct {
 /*
  * Constructor
  */
-void sequence_init(sequence_t* const sequence);
-void sequence_init_mm(sequence_t* const sequence,mm_stack_t* const mm_stack);
+void sequence_init(
+    sequence_t* const sequence,
+    const bisulfite_read_t bisulfite_read_mode,
+    mm_allocator_t* const mm_allocator);
 void sequence_clear(sequence_t* const sequence);
 void sequence_destroy(sequence_t* const sequence);
 

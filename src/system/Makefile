@@ -37,7 +37,7 @@ MODULES=commons \
         gthread \
         mm \
         mm_slab \
-        mm_stack \
+        mm_allocator \
         report
 
 SRCS=$(addsuffix .c, $(MODULES))

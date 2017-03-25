@@ -42,7 +42,7 @@ void nsearch_levenshtein_base_step(
     const uint64_t lo,
     const uint64_t hi) {
   // Parameters
-  mm_stack_t* const mm_stack = search->nsearch_schedule->mm_stack;
+  mm_allocator_t* const mm_allocator = search->nsearch_schedule->mm_allocator;
   const uint64_t max_text_length = key_length + max_error;
   // Expand node for all characters
   uint64_t next_lo, next_hi;
@@ -53,7 +53,7 @@ void nsearch_levenshtein_base_step(
     nsearch_levenshtein_state_compute_chararacter(
         nsearch_state,false,key,key_length,
         text_length,char_enc,max_error,&min_val,
-        &align_distance,mm_stack);
+        &align_distance,mm_allocator);
     if (min_val > max_error) continue;
     // Query
     next_lo = bwt_erank(search->archive->fm_index->bwt,char_enc,lo);
@@ -81,11 +81,11 @@ void nsearch_levenshtein_base(
     const uint64_t key_offset,
     const uint64_t max_error) {
   // Parameters
-  mm_stack_t* const mm_stack = search->nsearch_schedule->mm_stack;
+  mm_allocator_t* const mm_allocator = search->nsearch_schedule->mm_allocator;
   // Allocate
-  mm_stack_push_state(mm_stack);
+  mm_allocator_push_state(mm_allocator);
   nsearch_levenshtein_state_t nsearch_state;
-  nsearch_levenshtein_state_init(&nsearch_state,key_length+1,key_length+max_error+2,mm_stack);
+  nsearch_levenshtein_state_init(&nsearch_state,key_length+1,key_length+max_error+2,mm_allocator);
   nsearch_levenshtein_state_prepare(&nsearch_state,true);
   // Run the search
   const uint64_t init_lo = 0;
@@ -94,7 +94,7 @@ void nsearch_levenshtein_base(
       &nsearch_state,search,key,key_length,
       key_offset,0,max_error,init_lo,init_hi);
   // Free
-  mm_stack_pop_state(mm_stack);
+  mm_allocator_pop_state(mm_allocator);
 }
 /*
  * Levenshtein Brute Force
@@ -106,7 +106,7 @@ uint64_t nsearch_levenshtein_brute_force_step(
     const uint64_t lo,
     const uint64_t hi) {
   // Parameters
-  mm_stack_t* const mm_stack = nsearch_schedule->mm_stack;
+  mm_allocator_t* const mm_allocator = nsearch_schedule->mm_allocator;
   const uint64_t max_error = nsearch_schedule->max_error;
   const uint8_t* const key = nsearch_schedule->pattern->key;
   const uint64_t key_length = nsearch_schedule->pattern->key_length;
@@ -121,7 +121,7 @@ uint64_t nsearch_levenshtein_brute_force_step(
     uint64_t min_val, align_distance;
     nsearch_levenshtein_state_compute_chararacter(
         &nsearch_operation->nsearch_state,false,key,key_length,
-        text_position,char_enc,max_error,&min_val,&align_distance,mm_stack);
+        text_position,char_enc,max_error,&min_val,&align_distance,mm_allocator);
     if (min_val > max_error) continue;
     // Query
     nsearch_levenshtein_query(

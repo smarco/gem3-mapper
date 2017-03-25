@@ -70,6 +70,7 @@ typedef struct {
   uint64_t num_threads;                     // Total number threads to split the work across
   uint64_t max_memory;                      // Max. memory to use
   ticker_t ticker;                          // Index Builder Ticker
+  FILE* info_file;                          // Index info file
   /* MM */
   mm_slab_t* mm_slab_8MB;                   // MM-Slab
   mm_slab_t* mm_slab_32MB;                  // MM-Slab
@@ -87,7 +88,8 @@ archive_builder_t* archive_builder_new(
     const sampling_rate_t sa_sampling_rate,
     const sampling_rate_t text_sampling_rate,
     const uint64_t num_threads,
-    const uint64_t max_memory);
+    const uint64_t max_memory,
+    FILE* const info_file);
 void archive_builder_delete(archive_builder_t* const archive_builder);
 
 /*

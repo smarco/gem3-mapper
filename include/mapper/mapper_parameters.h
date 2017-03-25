@@ -87,7 +87,9 @@ typedef struct {
   uint64_t gpu_buffer_size;              // Size of each GPU-buffer
   uint64_t num_fmi_bsearch_buffers;      // Number of FMI-BSearch buffers per thread
   uint64_t num_fmi_decode_buffers;       // Number of FMI-Decode buffers per thread
-  uint64_t num_bpm_buffers;              // Number of BPM buffers per thread
+  uint64_t num_kmer_filter_buffers;      // Number of Kmer-filter buffers per thread
+  uint64_t num_bpm_distance_buffers;     // Number of BPM-Distance buffers per thread
+  uint64_t num_bpm_align_buffers;        // Number of BPM-Align buffers per thread
   /* Stages Configuration */
   bool cpu_emulation;
 } mapper_parameters_cuda_t;

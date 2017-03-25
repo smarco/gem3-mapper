@@ -58,7 +58,7 @@ void align_swg_query_profile_init(
     swg_query_profile_t* const swg_query_profile,
     const swg_penalties_t* swg_penalties,
     const uint64_t max_expected_key_length,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 bool align_swg_query_profile_compile_uint8(
     swg_query_profile_t* const swg_query_profile,
     const swg_penalties_t* swg_penalties,

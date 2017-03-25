@@ -66,7 +66,7 @@ void output_map_alignment_pretty(
     const uint64_t key_length,
     uint8_t* const text,
     const uint64_t text_length,
-    mm_stack_t* const mm_stack);
+    mm_allocator_t* const mm_allocator);
 /*
  * MAP fields
  */

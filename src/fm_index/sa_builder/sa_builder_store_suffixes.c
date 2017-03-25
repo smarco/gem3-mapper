@@ -194,20 +194,11 @@ void* sa_builder_store_suffixes_thread(const uint8_t thread_id) {
 void sa_builder_store_suffixes(
     sa_builder_t* const sa_builder,
     const bool verbose) {
-  /*
-   * Prepare storage for Writing
-   */
   global_sa_builder = sa_builder; // Set global data
-  sa_builder_store_suffixes_prepare(sa_builder); // Begin
-  // DEBUG
-  sa_builder_display_stats(gem_log_get_stream(),sa_builder,true);
-  /*
-   * Launch Writing Threads
-   */
+  // Launch Writing Threads
   const uint64_t ticker_max = dna_text_get_length(sa_builder->enc_text)+SA_BWT_CYCLIC_LENGTH;
   ticker_percentage_reset(&sa_builder->ticker,
-      verbose,"Building-BWT::Generating SA-Positions",
-      ticker_max,SA_BUILDER_STORE_SUFFIXES_TICKER_STEP,true);
+      verbose,"Building-BWT::Generating SA-Positions",ticker_max,1,true);
   const uint64_t num_threads = sa_builder->num_threads;
   uint64_t i;
   for (i=0;i<num_threads;++i) {

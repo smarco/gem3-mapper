@@ -33,7 +33,8 @@
 #define OVERCONVERSION_CONTROL "NC_001604.1"
 #define SEQUENCING_CONTROL "NC_001422.1"
 
-void init_mapping_stats(mapping_stats_t *mstats);
+void init_mapping_stats(
+    mapping_stats_t* const mstats);
 
 void collect_se_mapping_stats(
     archive_search_t* const archive_search,
@@ -45,7 +46,12 @@ void collect_pe_mapping_stats(
     paired_matches_t* const paired_matches,
     mapping_stats_t* mstats);
 
-void output_mapping_stats(mapper_parameters_t *parameters,mapping_stats_t* mstats);
-void merge_mapping_stats(mapping_stats_t *global_mstats,mapping_stats_t *mapping_stats,uint64_t num_threads);
+void output_mapping_stats(
+    mapper_parameters_t* const parameters,
+    mapping_stats_t* const mstats);
+void merge_mapping_stats(
+    mapping_stats_t* const global_mstats,
+    mapping_stats_t* const mstats,
+    const uint64_t num_threads);
 
 #endif
