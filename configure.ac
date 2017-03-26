@@ -1,3 +1,27 @@
+###############################################################################
+#  GEM-Mapper v3 (GEM3)
+#  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+#
+#  This file is part of GEM-Mapper v3 (GEM3).
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# PROJECT: GEM-Mapper v3 (GEM3)
+# AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
+#            Alejandro Chacon <alejandro.chacond@gmail.com>
+###############################################################################
+
 AC_INIT([GEMMapper],[3.0])
  
 AC_PROG_CC
@@ -93,28 +117,40 @@ AC_ARG_ENABLE([cuda],
 if test "$enable_cuda" != "no" ; then
   # Provide custom CUDA path or set to default    
   AC_ARG_WITH([cuda], [  --with-cuda=PREFIX      Prefix of your CUDA installation path (default=/usr/local/cuda)], 
-                      [cuda_prefix=$withval], 
-                      [cuda_prefix="/usr/local/cuda"])
-   
+                      [cuda_sdk_prefix=$withval], 
+                      [cuda_sdk_prefix="/usr/local/cuda"])
+
   # Checking for nvcc
   VALID_CUDA=yes
-  AC_MSG_CHECKING([nvcc in $cuda_prefix/bin])
-  if test -x "$cuda_prefix/bin/nvcc"; then
+  AC_MSG_CHECKING([nvcc in $cuda_sdk_prefix/bin])
+  if test -x "$cuda_sdk_prefix/bin/nvcc"; then
     AC_MSG_RESULT([found])
+    cuda_bin_path="$cuda_sdk_prefix/bin"
+    cuda_lib_path="$cuda_sdk_prefix/lib64"
+    cuda_include_path="$cuda_sdk_prefix/include"
   else 
     AC_MSG_RESULT([not found])
-    AC_MSG_WARN([Couldn't find cuda nvcc compiler])
-    VALID_CUDA=no
-  fi  
+    cuda_repo_prefix="/usr"
+    AC_MSG_CHECKING([for alternative nvcc location in $cuda_repo_prefix/bin])
+    if test -x "$cuda_repo_prefix/bin/nvcc"; then
+      AC_MSG_RESULT([found])
+      cuda_bin_path="$cuda_repo_prefix/bin"
+      cuda_lib_path="$cuda_repo_prefix/lib/x86_64-linux-gnu"
+      cuda_include_path="$cuda_repo_prefix/include"
+    else 
+      AC_MSG_WARN([Couldn't find cuda nvcc compiler])
+      VALID_CUDA=no
+    fi
+  fi
    
   # Saving the current flags
   ax_save_CFLAGS="${CPPFLAGS}"
   ax_save_LDFLAGS="${LDFLAGS}"
    
-  AC_CHECK_FILE([$cuda_prefix/lib64],
+  AC_CHECK_FILE([$cuda_lib_path],
   [  
-    LDFLAGS+=" -L$cuda_prefix/lib64"
-    AC_CHECK_LIB([cuda], [cuInit], , [VALID_CUDA=no])
+    LDFLAGS+=" -L$cuda_lib_path"
+    AC_CHECK_LIB([cuda], [main], , [VALID_CUDA=no])
     AC_CHECK_LIB([cudart], [main], , [VALID_CUDA=no])
   ],
   [  
@@ -122,9 +158,9 @@ if test "$enable_cuda" != "no" ; then
     VALID_CUDA=no
   ])
    
-  AC_CHECK_FILE([$cuda_prefix/include],
+  AC_CHECK_FILE([$cuda_include_path],
   [
-    CPPFLAGS+=" -I$cuda_prefix/include"
+    CPPFLAGS+=" -I$cuda_include_path"
     AC_CHECK_HEADERS([cuda.h cuda_runtime.h], , [VALID_CUDA=no])
   ],
   [
@@ -134,7 +170,9 @@ if test "$enable_cuda" != "no" ; then
    
   if test "x$VALID_CUDA" = xyes ; then
     AC_SUBST([HAVE_CUDA], [1])
-    AC_SUBST([CUDA_PATH], [$cuda_prefix])
+    AC_SUBST([CUDA_BIN_PATH], [$cuda_bin_path])
+    AC_SUBST([CUDA_LIB_PATH], [$cuda_lib_path])
+    AC_SUBST([CUDA_INCLUDE_PATH], [$cuda_include_path])
   else
     AC_SUBST([HAVE_CUDA], [0])
     AC_MSG_WARN([Building the binaries without CUDA support])

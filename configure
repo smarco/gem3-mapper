@@ -620,7 +620,9 @@ ac_includes_default="\
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
-CUDA_PATH
+CUDA_INCLUDE_PATH
+CUDA_LIB_PATH
+CUDA_BIN_PATH
 HAVE_CUDA
 HAVE_GOLD
 HAVE_LTO
@@ -656,6 +658,7 @@ infodir
 docdir
 oldincludedir
 includedir
+runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -729,6 +732,7 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
+runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
@@ -981,6 +985,15 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
+  -runstatedir | --runstatedir | --runstatedi | --runstated \
+  | --runstate | --runstat | --runsta | --runst | --runs \
+  | --run | --ru | --r)
+    ac_prev=runstatedir ;;
+  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
+  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
+  | --run=* | --ru=* | --r=*)
+    runstatedir=$ac_optarg ;;
+
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1118,7 +1131,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir
+		libdir localedir mandir runstatedir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1271,6 +1284,7 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
+  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -3466,40 +3480,54 @@ if test "$enable_cuda" != "no" ; then
 
 # Check whether --with-cuda was given.
 if test "${with_cuda+set}" = set; then :
-  withval=$with_cuda; cuda_prefix=$withval
+  withval=$with_cuda; cuda_sdk_prefix=$withval
 else
-  cuda_prefix="/usr/local/cuda"
+  cuda_sdk_prefix="/usr/local/cuda"
 fi
 
 
   # Checking for nvcc
   VALID_CUDA=yes
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking nvcc in $cuda_prefix/bin" >&5
-$as_echo_n "checking nvcc in $cuda_prefix/bin... " >&6; }
-  if test -x "$cuda_prefix/bin/nvcc"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking nvcc in $cuda_sdk_prefix/bin" >&5
+$as_echo_n "checking nvcc in $cuda_sdk_prefix/bin... " >&6; }
+  if test -x "$cuda_sdk_prefix/bin/nvcc"; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: found" >&5
 $as_echo "found" >&6; }
+    cuda_bin_path="$cuda_sdk_prefix/bin"
+    cuda_lib_path="$cuda_sdk_prefix/lib64"
+    cuda_include_path="$cuda_sdk_prefix/include"
   else
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: not found" >&5
 $as_echo "not found" >&6; }
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Couldn't find cuda nvcc compiler" >&5
+    cuda_repo_prefix="/usr"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for alternative nvcc location in $cuda_repo_prefix/bin" >&5
+$as_echo_n "checking for alternative nvcc location in $cuda_repo_prefix/bin... " >&6; }
+    if test -x "$cuda_repo_prefix/bin/nvcc"; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: found" >&5
+$as_echo "found" >&6; }
+      cuda_bin_path="$cuda_repo_prefix/bin"
+      cuda_lib_path="$cuda_repo_prefix/lib/x86_64-linux-gnu"
+      cuda_include_path="$cuda_repo_prefix/include"
+    else
+      { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Couldn't find cuda nvcc compiler" >&5
 $as_echo "$as_me: WARNING: Couldn't find cuda nvcc compiler" >&2;}
-    VALID_CUDA=no
+      VALID_CUDA=no
+    fi
   fi
 
   # Saving the current flags
   ax_save_CFLAGS="${CPPFLAGS}"
   ax_save_LDFLAGS="${LDFLAGS}"
 
-  as_ac_File=`$as_echo "ac_cv_file_$cuda_prefix/lib64" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $cuda_prefix/lib64" >&5
-$as_echo_n "checking for $cuda_prefix/lib64... " >&6; }
+  as_ac_File=`$as_echo "ac_cv_file_$cuda_lib_path" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $cuda_lib_path" >&5
+$as_echo_n "checking for $cuda_lib_path... " >&6; }
 if eval \${$as_ac_File+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   test "$cross_compiling" = yes &&
   as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "$cuda_prefix/lib64"; then
+if test -r "$cuda_lib_path"; then
   eval "$as_ac_File=yes"
 else
   eval "$as_ac_File=no"
@@ -3510,10 +3538,10 @@ eval ac_res=\$$as_ac_File
 $as_echo "$ac_res" >&6; }
 if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
 
-    LDFLAGS+=" -L$cuda_prefix/lib64"
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for cuInit in -lcuda" >&5
-$as_echo_n "checking for cuInit in -lcuda... " >&6; }
-if ${ac_cv_lib_cuda_cuInit+:} false; then :
+    LDFLAGS+=" -L$cuda_lib_path"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lcuda" >&5
+$as_echo_n "checking for main in -lcuda... " >&6; }
+if ${ac_cv_lib_cuda_main+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
@@ -3521,33 +3549,27 @@ LIBS="-lcuda  $LIBS"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char cuInit ();
+
 int
 main ()
 {
-return cuInit ();
+return main ();
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_cuda_cuInit=yes
+  ac_cv_lib_cuda_main=yes
 else
-  ac_cv_lib_cuda_cuInit=no
+  ac_cv_lib_cuda_main=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_cuda_cuInit" >&5
-$as_echo "$ac_cv_lib_cuda_cuInit" >&6; }
-if test "x$ac_cv_lib_cuda_cuInit" = xyes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_cuda_main" >&5
+$as_echo "$ac_cv_lib_cuda_main" >&6; }
+if test "x$ac_cv_lib_cuda_main" = xyes; then :
   cat >>confdefs.h <<_ACEOF
 #define HAVE_LIBCUDA 1
 _ACEOF
@@ -3609,15 +3631,15 @@ $as_echo "$as_me: WARNING: Couldn't find cuda lib directory" >&2;}
 fi
 
 
-  as_ac_File=`$as_echo "ac_cv_file_$cuda_prefix/include" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $cuda_prefix/include" >&5
-$as_echo_n "checking for $cuda_prefix/include... " >&6; }
+  as_ac_File=`$as_echo "ac_cv_file_$cuda_include_path" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $cuda_include_path" >&5
+$as_echo_n "checking for $cuda_include_path... " >&6; }
 if eval \${$as_ac_File+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   test "$cross_compiling" = yes &&
   as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "$cuda_prefix/include"; then
+if test -r "$cuda_include_path"; then
   eval "$as_ac_File=yes"
 else
   eval "$as_ac_File=no"
@@ -3628,7 +3650,7 @@ eval ac_res=\$$as_ac_File
 $as_echo "$ac_res" >&6; }
 if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
 
-    CPPFLAGS+=" -I$cuda_prefix/include"
+    CPPFLAGS+=" -I$cuda_include_path"
     for ac_header in cuda.h cuda_runtime.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
@@ -3657,7 +3679,11 @@ fi
   if test "x$VALID_CUDA" = xyes ; then
     HAVE_CUDA=1
 
-    CUDA_PATH=$cuda_prefix
+    CUDA_BIN_PATH=$cuda_bin_path
+
+    CUDA_LIB_PATH=$cuda_lib_path
+
+    CUDA_INCLUDE_PATH=$cuda_include_path
 
   else
     HAVE_CUDA=0

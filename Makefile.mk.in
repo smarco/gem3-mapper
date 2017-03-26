@@ -19,6 +19,7 @@
 #
 # PROJECT: GEM-Mapper v3 (GEM3)
 # AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
+#            Alejandro Chacon <alejandro.chacond@gmail.com>
 ###############################################################################
 
 ###############################################################################
@@ -192,10 +193,10 @@ ifeq ($(HAVE_CUDA),1)
   # Paths
   DEF_CUDA=-DHAVE_CUDA
   PATH_CUDA=@CUDA_PATH@
-  NVCC=$(PATH_CUDA)/bin/nvcc
+  NVCC=@CUDA_BIN_PATH@/nvcc
   # CUDA Libs
-  CUDA_PATH_INCLUDE+=-I$(PATH_CUDA)/include
-  CUDA_PATH_LIB+=-L$(PATH_CUDA)/lib64
+  CUDA_PATH_INCLUDE+=-I@CUDA_INCLUDE_PATH@
+  CUDA_PATH_LIB+=-L@CUDA_LIB_PATH@
   CUDA_PROFILE_LIB=-lnvToolsExt
   CUDA_LIB=-lcuda -lcudart -lstdc++
 endif

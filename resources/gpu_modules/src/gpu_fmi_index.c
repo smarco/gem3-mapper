@@ -510,9 +510,9 @@ void gpu_index_set_layout_bitmap(gpu_index_bitmap_entry_t* const h_bitmap_BWT, g
   for(idFMIBucket = 0; idFMIBucket < NUM_PACKET_BMP_ENTRIES; ++idFMIBucket)                                 // Iterate over BMP entries (4)
     h_bitmap_BWT[idFMIBucket].bitmaps[NUM_PACKET_FMI_ENTRIES - 1] = ~ h_bitmap_BWT[idFMIBucket].bitmaps[NUM_PACKET_FMI_ENTRIES - 1];
 
-    for(idPacket = 0; idPacket < NUM_PACKET_BMP_ENTRIES; ++idPacket){                                       // Iterate over BMP entries (4)
-      for(idFMIBucket = 0; idFMIBucket < NUM_PACKET_FMI_ENTRIES; ++idFMIBucket){                            // Iterate over FMI bitmaps (3)
-        h_fmi->bitmaps[LUT[idPacket * NUM_PACKET_FMI_ENTRIES + idFMIBucket]] =  h_bitmap_BWT[idPacket].bitmaps[idFMIBucket];
+  for(idPacket = 0; idPacket < NUM_PACKET_BMP_ENTRIES; ++idPacket){                                       // Iterate over BMP entries (4)
+    for(idFMIBucket = 0; idFMIBucket < NUM_PACKET_FMI_ENTRIES; ++idFMIBucket){                            // Iterate over FMI bitmaps (3)
+      h_fmi->bitmaps[LUT[idPacket * NUM_PACKET_FMI_ENTRIES + idFMIBucket]] =  h_bitmap_BWT[idPacket].bitmaps[idFMIBucket];
     }
   }
 }
