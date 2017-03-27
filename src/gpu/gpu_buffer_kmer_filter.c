@@ -190,7 +190,7 @@ void gpu_buffer_kmer_filter_add_pattern(
   uint64_t i;
   for (i=0;i<num_tiles;++i) {
     gpu_kmer_qry_info[i].init_offset = query_buffer_offset_base + kmer_counting->key_tiles[i].begin;
-    gpu_kmer_qry_info[i].query_size = kmer_counting->key_tiles[i].end-kmer_counting->key_tiles[i].begin;
+    gpu_kmer_qry_info[i].query_size  = kmer_counting->key_tiles[i].end-kmer_counting->key_tiles[i].begin;
   }
   kmer_counting->gpu_query_offset = gpu_buffer_kmer_filter->num_queries;
   gpu_buffer_kmer_filter->num_queries += num_tiles;

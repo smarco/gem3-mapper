@@ -61,7 +61,7 @@ float gpu_kmer_size_per_candidate(const uint32_t averageQuerySize, const uint32_
   const size_t bytesPerQuery        = averageQuerySize * sizeof(gpu_kmer_qry_entry_t) + sizeof(gpu_kmer_qry_info_t);
   const size_t bytesCandidate       = sizeof(gpu_kmer_cand_info_t);
   const size_t bytesResult          = sizeof(gpu_kmer_alg_entry_t);
-  // Calculate the necesary bytes for each K-MER filter operation
+  // Calculate the necessary bytes for each K-MER filter operation
   return((bytesPerQuery/(float)candidatesPerQuery) + bytesCandidate + bytesResult);
 }
 
@@ -71,8 +71,8 @@ void gpu_kmer_reallocate_host_buffer_layout(gpu_buffer_t* mBuff)
   //Adjust the host buffer layout (input)
   mBuff->data.kmer.queries.h_queries = GPU_ALIGN_TO(rawAlloc,16);
   rawAlloc = (void *) (mBuff->data.kmer.queries.h_queries + mBuff->data.kmer.maxBases);
-  mBuff->data.kmer.queries.d_queryInfo = GPU_ALIGN_TO(rawAlloc,16);
-  rawAlloc = (void *) (mBuff->data.kmer.queries.d_queryInfo + mBuff->data.kmer.maxQueries);
+  mBuff->data.kmer.queries.h_queryInfo = GPU_ALIGN_TO(rawAlloc,16);
+  rawAlloc = (void *) (mBuff->data.kmer.queries.h_queryInfo + mBuff->data.kmer.maxQueries);
   mBuff->data.kmer.candidates.h_candidates = GPU_ALIGN_TO(rawAlloc,16);
   rawAlloc = (void *) (mBuff->data.kmer.candidates.h_candidates + mBuff->data.kmer.maxCandidates);
   //Adjust the host buffer layout (output)
