@@ -194,7 +194,6 @@ void approximate_search_stepwise_kmer_filter_retrieve(
     if (search->processing_state == asearch_processing_state_candidates_processed) {
       approximate_search_kmer_filter_buffered_retrieve(search,gpu_buffer_kmer_filter);
     }
-    search->search_stage = asearch_stage_filtering_adaptive_finished;
   }
 }
 /*

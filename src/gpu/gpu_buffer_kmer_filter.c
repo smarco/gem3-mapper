@@ -42,6 +42,7 @@
 #define GPU_KMER_FILTER_MIN_NUM_SAMPLES             1
 #define GPU_KMER_FILTER_AVERAGE_QUERY_LENGTH      150
 #define GPU_KMER_FILTER_CANDIDATES_PER_QUERY       20
+#define GPU_KMER_FILTER_QUERY_PADDING               8
 
 /*
  * CUDA Support
@@ -140,10 +141,12 @@ bool gpu_buffer_kmer_filter_fits_in_buffer(
   uint64_t max_queries = gpu_buffer_kmer_filter_get_max_queries(gpu_buffer_kmer_filter);
   uint64_t max_candidates = gpu_buffer_kmer_filter_get_max_candidates(gpu_buffer_kmer_filter);
   uint64_t query_buffer_size = gpu_buffer_kmer_filter_get_query_buffer_size(gpu_buffer_kmer_filter);
+  // Compute total bases + padding (worst case)
+  const uint64_t total_bases_padded = total_queries_length + 2*GPU_KMER_FILTER_QUERY_PADDING;
   // Check available space in buffer for the pattern
   if (gpu_buffer_kmer_filter->num_queries+total_queries > max_queries ||
       gpu_buffer_kmer_filter->num_candidates+total_candidates > max_candidates ||
-      gpu_buffer_kmer_filter->query_buffer_offset+total_queries_length > query_buffer_size) {
+      gpu_buffer_kmer_filter->query_buffer_offset+total_bases_padded > query_buffer_size) {
     // Check buffer occupancy
     if (gpu_buffer_kmer_filter->num_queries > 0) {
       return false; // Leave it to the next fresh buffer
@@ -151,7 +154,7 @@ bool gpu_buffer_kmer_filter_fits_in_buffer(
     // Reallocate buffer
     gpu_kmer_init_and_realloc_buffer_(
         gpu_buffer_kmer_filter->buffer,
-        total_queries_length,total_candidates,total_queries);
+        total_bases_padded,total_candidates,total_queries);
     // Check reallocated buffer dimensions (error otherwise)
     max_queries = gpu_buffer_kmer_filter_get_max_queries(gpu_buffer_kmer_filter);
     gem_cond_fatal_error(total_queries > max_queries,
@@ -160,8 +163,8 @@ bool gpu_buffer_kmer_filter_fits_in_buffer(
     gem_cond_fatal_error(total_candidates > max_candidates,
         GPU_KMER_FILTER_MAX_CANDIDATES,total_candidates,max_candidates);
     query_buffer_size = gpu_buffer_kmer_filter_get_query_buffer_size(gpu_buffer_kmer_filter);
-    gem_cond_fatal_error(total_queries_length > query_buffer_size,
-        GPU_KMER_FILTER_QUERY_BUFFER_SIZE,total_queries_length,query_buffer_size);
+    gem_cond_fatal_error(total_bases_padded > query_buffer_size,
+        GPU_KMER_FILTER_QUERY_BUFFER_SIZE,total_bases_padded,query_buffer_size);
     // Return OK (after reallocation)
     return true;
   }
@@ -176,22 +179,30 @@ void gpu_buffer_kmer_filter_add_pattern(
     kmer_counting_nway_t* const kmer_counting) {
   // Parameters
   void* const gpu_buffer = gpu_buffer_kmer_filter->buffer;
-  // Add query content (key)
-  const uint64_t query_buffer_offset_base = gpu_buffer_kmer_filter->query_buffer_offset;
-  gpu_kmer_qry_entry_t* const gpu_kmer_qry_entry =
-      gpu_kmer_buffer_get_queries_(gpu_buffer) + gpu_buffer_kmer_filter->query_buffer_offset;
-  memcpy(gpu_kmer_qry_entry,kmer_counting->key,kmer_counting->key_length);
-  gpu_buffer_kmer_filter->query_buffer_offset += kmer_counting->key_length;
-  COUNTER_ADD(&gpu_buffer_kmer_filter->query_length,kmer_counting->key_length); // Stats
   // Add query (all tiles)
+  gpu_kmer_qry_entry_t* const gpu_kmer_qry_entry = gpu_kmer_buffer_get_queries_(gpu_buffer);
   gpu_kmer_qry_info_t* const gpu_kmer_qry_info =
       gpu_kmer_buffer_get_qry_info_(gpu_buffer) + gpu_buffer_kmer_filter->num_queries;
   const uint64_t num_tiles = kmer_counting->num_tiles;
-  uint64_t i;
+  uint64_t i, query_buffer_offset;
+  query_buffer_offset = gpu_buffer_kmer_filter->query_buffer_offset;
   for (i=0;i<num_tiles;++i) {
-    gpu_kmer_qry_info[i].init_offset = query_buffer_offset_base + kmer_counting->key_tiles[i].begin;
-    gpu_kmer_qry_info[i].query_size  = kmer_counting->key_tiles[i].end-kmer_counting->key_tiles[i].begin;
+    // Copy query
+    const uint64_t query_size = kmer_counting->key_tiles[i].end-kmer_counting->key_tiles[i].begin;
+    memcpy(gpu_kmer_qry_entry+query_buffer_offset,
+        kmer_counting->key+kmer_counting->key_tiles[i].begin,query_size);
+    COUNTER_ADD(&gpu_buffer_kmer_filter->query_length,query_size); // Stats
+    // Set query info
+    gpu_kmer_qry_info[i].init_offset = query_buffer_offset;
+    gpu_kmer_qry_info[i].query_size = query_size;
+    // Account for padding
+    query_buffer_offset += query_size;
+    const uint64_t num_bases_mod = query_size % GPU_KMER_FILTER_QUERY_PADDING;
+    if (num_bases_mod > 0) {
+      query_buffer_offset += GPU_KMER_FILTER_QUERY_PADDING - num_bases_mod;
+    }
   }
+  gpu_buffer_kmer_filter->query_buffer_offset = query_buffer_offset;
   kmer_counting->gpu_query_offset = gpu_buffer_kmer_filter->num_queries;
   gpu_buffer_kmer_filter->num_queries += num_tiles;
   // Update candidates per query

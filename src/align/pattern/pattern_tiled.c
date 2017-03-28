@@ -23,6 +23,7 @@
  */
 
 #include "align/pattern/pattern_tiled.h"
+#include "gpu/gpu_config.h"
 
 /*
  * Compile alignment tiles (and filters)
@@ -56,9 +57,15 @@ void pattern_tiled_compile(
   pattern_tiled->num_tiles = DIV_CEIL(key_length,tile_length);
   // Compile BPM pattern (Global filters)
   bpm_pattern_compile(&pattern_tiled->bpm_pattern,key,key_length,mm_allocator);
+#ifdef GPU_CHECK_KMER_FILTER
+  kmer_counting_compile_nway(
+      &pattern_tiled->kmer_filter_nway,key,key_length,
+      kmer_tiles,kmer_length,true,mm_allocator);
+#else
   kmer_counting_compile_nway(
       &pattern_tiled->kmer_filter_nway,key,key_length,
       kmer_tiles,kmer_length,!kmer_enabled,mm_allocator);
+#endif
   // Configure tiles
   if (pattern_tiled->num_tiles==1) {
     pattern_tiled->tiles = mm_allocator_alloc(mm_allocator,pattern_tile_t);
