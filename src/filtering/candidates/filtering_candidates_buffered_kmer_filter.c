@@ -153,9 +153,9 @@ void filtering_candidates_buffered_kmer_filter_retrieve_region(
     filtering_candidates_buffered_t* const filtering_candidates_buffered,
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
-    const uint64_t candidate_tile_idx,
     pattern_t* const pattern,
-    gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter) {
+    gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter,
+    uint64_t* const gpu_buffer_offset) {
   // Parameters
   alignment_t* const alignment = &filtering_region->alignment;
   pattern_tiled_t* const pattern_tiled = &pattern->pattern_tiled;
@@ -182,18 +182,18 @@ void filtering_candidates_buffered_kmer_filter_retrieve_region(
   uint64_t min_distance_bound;
   if (gpu_buffer_kmer_filter->kmer_filter_enabled) {
     min_distance_bound = gpu_buffer_kmer_filter_get_min_edit_bound(
-        gpu_buffer_kmer_filter,candidate_tile_idx,
+        gpu_buffer_kmer_filter,*gpu_buffer_offset,
         pattern_tiled->kmer_filter_nway.num_tiles);
+    *gpu_buffer_offset += pattern_tiled->kmer_filter_nway.num_tiles;
     // DEBUG
     #ifdef GPU_CHECK_KMER_FILTER
     const uint64_t min_distance_bound_check =
         filtering_candidates_buffered_kmer_filter_compute_alignment(
             filtering_candidates,filtering_region,pattern);
-    //if (min_distance_bound != min_distance_bound_check) {
-    //if (min_distance_bound > min_distance_bound_check) {
+    if (min_distance_bound_check != min_distance_bound) {
       fprintf(stderr,"GPU.Kmer-Filter. Difference detected (CPU=%lu;GPU=%lu)\n",
           min_distance_bound_check,min_distance_bound);
-    //}
+    }
     #endif
   } else {
     min_distance_bound =
@@ -229,15 +229,13 @@ void filtering_candidates_buffered_kmer_filter_retrieve(
   filtering_candidates_buffered_allocate_discarded_regions(filtering_candidates_buffered,num_filtering_regions);
   filtering_candidates_buffered->num_discarded_regions = 0;
   // Traverse all filtering regions buffered
-  const uint64_t num_tiles = pattern->pattern_tiled.kmer_filter_nway.num_tiles;
-  uint64_t region_pos, candidate_tile_idx = gpu_buffer_kmer_filter_offset;
+  uint64_t region_pos, gpu_buffer_offset = gpu_buffer_kmer_filter_offset;
   for (region_pos=0;region_pos<num_filtering_regions;++region_pos) {
     // Retrieve region
     filtering_region_t* const region_buffered = filtering_candidates_buffered->regions[region_pos];
     filtering_candidates_buffered_kmer_filter_retrieve_region(
-        filtering_candidates_buffered,filtering_candidates,region_buffered,
-        candidate_tile_idx,pattern,gpu_buffer_kmer_filter);
-    candidate_tile_idx += num_tiles;
+        filtering_candidates_buffered,filtering_candidates,
+        region_buffered,pattern,gpu_buffer_kmer_filter,&gpu_buffer_offset);
   }
   // Free (buffered regions and kmer-counting)
   filtering_candidates_buffered_free_regions(filtering_candidates_buffered);

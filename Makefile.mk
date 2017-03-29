@@ -56,7 +56,7 @@ FOLDER_TOOLS=$(ROOT_PATH)/tools
 ###############################################################################
 
 HAVE_ZLIB = 1
-HAVE_BZLIB = 
+HAVE_BZLIB = 1
 HAVE_OPENMP = 1
 HAVE_CUDA = 1
 HAVE_LTO = 1
@@ -193,10 +193,10 @@ ifeq ($(HAVE_CUDA),1)
   # Paths
   DEF_CUDA=-DHAVE_CUDA
   PATH_CUDA=@CUDA_PATH@
-  NVCC=/usr/bin/nvcc
+  NVCC=/usr/local/cuda/bin/nvcc
   # CUDA Libs
-  CUDA_PATH_INCLUDE+=-I/usr/include
-  CUDA_PATH_LIB+=-L/usr/lib/x86_64-linux-gnu
+  CUDA_PATH_INCLUDE+=-I/usr/local/cuda/include
+  CUDA_PATH_LIB+=-L/usr/local/cuda/lib64
   CUDA_PROFILE_LIB=-lnvToolsExt
   CUDA_LIB=-lcuda -lcudart -lstdc++
 endif

@@ -250,7 +250,6 @@ __global__ void gpu_kmer_filter_kernel(const gpu_kmer_qry_entry_t* const d_queri
     // Compile all k-mers from text
     gpu_kmer_filter_candidate(kmerCountQuery, kmerCountCandidate, sizeQuery, sizeCandidate, reference, positionRef, &filterDistance);
     d_filterResult[idAlignment] = filterDistance;
-    printf("TILE: %d - DISTANCE: %d \n", threadIdx.x, filterDistance);
   }
 }
 

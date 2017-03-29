@@ -229,10 +229,6 @@ void gpu_kmer_receive_buffer_(void* const kmerBuffer)
   CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
   //Synchronize Stream (the thread wait for the commands done in the stream)
   CUDA_ERROR(cudaStreamSynchronize(idStream));
-  for(i = 0; i < res->numAlignments; i++)
-  {
-	  printf("BUFF: TILE: %d - Distance: %d \n", i, res->h_alignments[i]);
-  }
 }
 
 #endif /* GPU_KMER_PRIMITIVES_C_ */
