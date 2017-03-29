@@ -236,15 +236,21 @@ __global__ void gpu_kmer_filter_kernel(const gpu_kmer_qry_entry_t* const d_queri
     const uint32_t sizeCandidate   = d_candidates[idAlignment].size;
     const uint32_t sizeQuery       = d_qinfo[d_candidates[idAlignment].query].query_size;
     const uint64_t* const query    = (uint64_t*) (d_queries + d_qinfo[d_candidates[idAlignment].query].init_offset);
+    uint32_t i = 0;
     // Filter initialization
     uint32_t filterDistance = 0;
     uint16_t kmerCountCandidate[GPU_KMER_COUNTING_NUM_KMERS] = {0};
     uint16_t kmerCountQuery[GPU_KMER_COUNTING_NUM_KMERS]     = {0};
+    for(i = 0; i < GPU_KMER_COUNTING_NUM_KMERS; i++){
+        kmerCountCandidate[i] = 0;
+        kmerCountQuery[i]     = 0;
+    }
     // Compile all k-mers from pattern
     gpu_kmer_filter_compile_pattern(kmerCountQuery, query, sizeQuery);
     // Compile all k-mers from text
     gpu_kmer_filter_candidate(kmerCountQuery, kmerCountCandidate, sizeQuery, sizeCandidate, reference, positionRef, &filterDistance);
     d_filterResult[idAlignment] = filterDistance;
+    printf("TILE: %d - DISTANCE: %d \n", threadIdx.x, filterDistance);
   }
 }
 

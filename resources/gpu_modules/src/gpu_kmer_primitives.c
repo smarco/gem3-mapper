@@ -115,11 +115,11 @@ void gpu_kmer_init_buffer_(void* const kmerBuffer, const uint32_t averageQuerySi
 
 void gpu_kmer_init_and_realloc_buffer_(void *kmerBuffer, const uint32_t totalBases, const uint32_t totalCandidates, const uint32_t totalQueries)
 {
-  // Buffer reinitialization
+  // Buffer re-initialization
   gpu_buffer_t* const mBuff = (gpu_buffer_t *) kmerBuffer;
   const uint32_t averageQuerySize       = totalBases / totalQueries;
   const uint32_t candidatesPerQuery     = totalCandidates / totalQueries;
-  // Remap the buffer layout with new information trying to fit better
+  // Re-map the buffer layout with new information trying to fit better
   gpu_kmer_init_buffer_(kmerBuffer, averageQuerySize, candidatesPerQuery);
   // Checking if we need to reallocate a bigger buffer
   if( (totalBases      > gpu_kmer_buffer_get_max_qry_bases_(kmerBuffer))   &&
@@ -161,7 +161,7 @@ gpu_error_t gpu_kmer_transfer_CPU_to_GPU(gpu_buffer_t *mBuff)
   cpySize += cand->numCandidates * sizeof(gpu_kmer_cand_info_t);
   cpySize += res->numAlignments * sizeof(gpu_kmer_alg_entry_t);
   bufferUtilization = (double)cpySize / (double)mBuff->sizeBuffer;
-  // Compacting tranferences with high buffer occupation
+  // Compacting transference with high buffer occupation
   if(bufferUtilization > 0.15){
     cpySize  = ((void *) (cand->d_candidates + cand->numCandidates)) - ((void *) qry->d_queries);
     CUDA_ERROR(cudaMemcpyAsync(qry->d_queries, qry->h_queries, cpySize, cudaMemcpyHostToDevice, idStream));
@@ -195,8 +195,8 @@ gpu_error_t gpu_kmer_transfer_GPU_to_CPU(gpu_buffer_t *mBuff)
 void gpu_kmer_send_buffer_(void* const kmerBuffer, const uint32_t numBases, const uint32_t numQueries,
                            const uint32_t numCandidates, const uint32_t maxError)
 {
-  gpu_buffer_t* const mBuff     = (gpu_buffer_t *) kmerBuffer;
-  const uint32_t    idSupDevice = mBuff->idSupportedDevice;
+  gpu_buffer_t* const mBuff       = (gpu_buffer_t *) kmerBuffer;
+  const uint32_t      idSupDevice = mBuff->idSupportedDevice;
   //Set real size of the things
   mBuff->data.kmer.queries.numBases            = numBases;
   mBuff->data.kmer.queries.numQueries          = numQueries;
@@ -222,10 +222,17 @@ void gpu_kmer_receive_buffer_(void* const kmerBuffer)
   gpu_buffer_t* const mBuff       = (gpu_buffer_t *) kmerBuffer;
   const uint32_t      idSupDevice = mBuff->idSupportedDevice;
   const cudaStream_t  idStream    =  mBuff->listStreams[mBuff->idStream];
+  uint32_t i = 0;
+  gpu_kmer_alignments_buffer_t *res      = &mBuff->data.kmer.alignments;
+
   //Select the device of the Multi-GPU platform
   CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
   //Synchronize Stream (the thread wait for the commands done in the stream)
   CUDA_ERROR(cudaStreamSynchronize(idStream));
+  for(i = 0; i < res->numAlignments; i++)
+  {
+	  printf("BUFF: TILE: %d - Distance: %d \n", i, res->h_alignments[i]);
+  }
 }
 
 #endif /* GPU_KMER_PRIMITIVES_C_ */
