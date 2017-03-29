@@ -14,69 +14,25 @@
 #include "../include/gpu_text_core.h"
 
 
-GPU_INLINE __device__ uint8_t gpu_kmer_query_lookup(const uint64_t* const query, const uint32_t idBase, ulong2* const globalInfo)
-{
-  //Query meta information to reduce the main memory requests
-  uint64_t infoBase  = globalInfo->x; // Packet 8 bases (cached)
-  uint64_t infoQuery = globalInfo->y; // Position cached
-  //Address the cached block request (hash function)
-  const uint32_t idEntryQuery = idBase / GPU_KMER_BASES_PER_QUERY_ENTRY;
-  const uint32_t idIntraQuery = idBase % GPU_KMER_BASES_PER_QUERY_ENTRY;
-  uint8_t base;
-  //Make the query request if data was not cached
-  if((infoQuery != idEntryQuery) || (infoQuery == GPU_UINT64_ONES)){
-    infoBase  = LDG(query + idEntryQuery);
-    infoQuery = idEntryQuery;
-  }
-  //logical base extraction from cached request
-  base = (infoBase >> (idIntraQuery * GPU_KMER_BASE_QUERY_LENGTH)) & GPU_KMER_BASE_QUERY_MASK;
-  //return the requested data
-  globalInfo->x = infoBase;      //contain query cached data
-  globalInfo->y = infoQuery;     //contain the query position cached data
-  return(base); //requested base
-}
-
-GPU_INLINE __device__ uint8_t gpu_kmer_candidate_lookup(const uint64_t* const reference, const uint64_t refPosition, ulong2* const globalInfo)
-{
-  //Query meta information to reduce the main memory requests
-  uint64_t infoBase      = globalInfo->x; // Packet 32 bases (cached)
-  uint64_t infoCandidate = globalInfo->y; // Position cached
-  //Address the cached block request (hash function)
-  const uint64_t idEntryCandidate = refPosition / GPU_KMER_BASES_PER_CANDIDATE_ENTRY;
-  const uint64_t idIntraCandidate = refPosition % GPU_KMER_BASES_PER_CANDIDATE_ENTRY;
-  uint8_t base;
-  //Make the query request if data was not cached
-  if((infoCandidate != idEntryCandidate) || (infoCandidate == GPU_UINT64_ONES)){
-    infoBase      = LDG(&reference[idEntryCandidate]);
-    infoCandidate = idEntryCandidate;
-  }
-  //logical base extraction from cached request
-  base = (infoBase >> (idIntraCandidate * GPU_KMER_BASE_CANDIDATE_LENGTH)) & GPU_KMER_BASE_CANDIDATE_MASK;
-  //return the requested data
-  globalInfo->x = infoBase;      //contain query cached data
-  globalInfo->y = infoCandidate; //contain the query position cached data
-  return(base);                  //requested base
-}
-
 // Compile Pattern
 GPU_INLINE __device__ void gpu_kmer_filter_compile_pattern(uint16_t* const kmerCountQuery, const uint64_t* const query, const uint32_t queryLength)
 {
   // Count kmers in query
+  const uint32_t baseQueryLength = GPU_KMER_BASE_QUERY_LENGTH;
   uint32_t pos = 0, kmerIdx = 0;
   ulong2   infoQuery = GPU_TEXT_INIT;
   // Compose the first k-mer
   for (pos = 0; pos < (GPU_KMER_COUNTING_LENGTH - 1); ++pos) {
-    const uint8_t encBase = gpu_kmer_query_lookup(query, pos, &infoQuery);
+    const uint8_t encBase = gpu_text_lookup(query, pos, &infoQuery, baseQueryLength);
     GPU_KMER_COUNTING_ADD_INDEX(kmerIdx, encBase); // Update kmer-index
   }
   // Compile all k-mers
   for (pos = (GPU_KMER_COUNTING_LENGTH - 1); pos < queryLength; ++pos) {
-    const uint8_t encBase = gpu_kmer_query_lookup(query, pos, &infoQuery);
+    const uint8_t encBase = gpu_text_lookup(query, pos, &infoQuery, baseQueryLength);
     GPU_KMER_COUNTING_ADD_INDEX(kmerIdx, encBase); // Update kmer-index
     kmerCountQuery[kmerIdx]++;                     // Increment kmer-count
   }
 }
-
 
 // Filter text region
 GPU_INLINE __device__ void gpu_kmer_filter_candidate_cutoff(const uint16_t* const kmerCountQuery, uint16_t* const kmerCountCandidate,
@@ -85,6 +41,7 @@ GPU_INLINE __device__ void gpu_kmer_filter_candidate_cutoff(const uint16_t* cons
                                                      	 	const uint32_t maxErrorRatio, uint32_t* const filterDistance)
 {
   // Prepare filter
+  const uint32_t baseCandidateLength = GPU_KMER_BASE_CANDIDATE_LENGTH;
   const uint32_t maxError = queryLength * (maxErrorRatio / 100);
   const uint32_t kmersRequired = queryLength - (GPU_KMER_COUNTING_LENGTH - 1) - GPU_KMER_COUNTING_LENGTH * maxError;
   const uint32_t totalKmersCandidate = GPU_MAX(candidateLength, queryLength);
@@ -94,13 +51,13 @@ GPU_INLINE __device__ void gpu_kmer_filter_candidate_cutoff(const uint16_t* cons
   ulong2   infoCandidate = GPU_TEXT_INIT;
   // Initial window fill (Composing the first k-mer)
   while (endPos < (GPU_KMER_COUNTING_LENGTH - 1)){
-    const uint8_t encChar = gpu_kmer_candidate_lookup(candidates, offsetCandPos + endPos, &infoCandidate);
+    const uint8_t encChar = gpu_text_lookup(candidates, offsetCandPos + endPos, &infoCandidate, baseCandidateLength);
     GPU_KMER_COUNTING_ADD_INDEX(kmerIdxEnd, encChar); // Update kmer-index
     ++endPos;
   }
   // Initial window fill
   while ((endPos < initChunk) && !cutOffResult) {
-      const uint8_t encBaseEnd = gpu_kmer_candidate_lookup(candidates, offsetCandPos + endPos, &infoCandidate);
+      const uint8_t encBaseEnd = gpu_text_lookup(candidates, offsetCandPos + endPos, &infoCandidate, baseCandidateLength);
       GPU_KMER_COUNTING_ADD_INDEX(kmerIdxEnd, encBaseEnd); // Update kmer-index
       const uint16_t countQuery = kmerCountQuery[kmerIdxEnd];
       if (countQuery > 0 && kmerCountCandidate[kmerIdxEnd]++ < countQuery) ++kmersInCandidate;
@@ -113,19 +70,19 @@ GPU_INLINE __device__ void gpu_kmer_filter_candidate_cutoff(const uint16_t* cons
   }
   // Sliding window count (Composing the first k-mer)
   while (beginPos < (GPU_KMER_COUNTING_LENGTH - 1) && !cutOffResult) {
-    const uint8_t encBaseBegin = gpu_kmer_candidate_lookup(candidates, offsetCandPos + beginPos, &infoCandidate);
+    const uint8_t encBaseBegin = gpu_text_lookup(candidates, offsetCandPos + beginPos, &infoCandidate, baseCandidateLength);
     GPU_KMER_COUNTING_ADD_INDEX(kmerIdxBegin, encBaseBegin);
     ++beginPos;
   }
   // Sliding window count (End processing)
   while ((endPos < candidateLength) && !cutOffResult) {
     // Begin (Decrement kmer-count)
-    const uint8_t encBaseBegin = gpu_kmer_candidate_lookup(candidates, offsetCandPos + beginPos, &infoCandidate);
+    const uint8_t encBaseBegin = gpu_text_lookup(candidates, offsetCandPos + beginPos, &infoCandidate, baseCandidateLength);
     GPU_KMER_COUNTING_ADD_INDEX(kmerIdxBegin, encBaseBegin);
     const uint16_t countQueryBegin = kmerCountQuery[kmerIdxBegin];
     if (countQueryBegin > 0 && kmerCountCandidate[kmerIdxBegin]-- <= countQueryBegin) --kmersInCandidate;
     // End (Increment kmer-count)
-    const uint8_t encBaseEnd = gpu_kmer_candidate_lookup(candidates, offsetCandPos + endPos, &infoCandidate);
+    const uint8_t encBaseEnd = gpu_text_lookup(candidates, offsetCandPos + endPos, &infoCandidate, baseCandidateLength);
     GPU_KMER_COUNTING_ADD_INDEX(kmerIdxEnd, encBaseEnd);
     const uint16_t countQueryEnd = kmerCountQuery[kmerIdxEnd];
     if (countQueryEnd > 0 && kmerCountCandidate[kmerIdxEnd]++ < countQueryEnd) ++kmersInCandidate;
@@ -142,12 +99,13 @@ GPU_INLINE __device__ void gpu_kmer_filter_candidate_cutoff(const uint16_t* cons
 }
 
 // Filter text region
-GPU_INLINE __device__ void gpu_kmer_filter_candidate_full(const uint16_t* const kmerCountQuery, uint16_t* const kmerCountCandidate,
-                                                          const uint32_t queryLength, const uint32_t candidateLength,
-                                                          const uint64_t* const candidates, const uint64_t offsetCandPos,
-                                                          uint32_t* const filterDistance)
+GPU_INLINE __device__ void gpu_kmer_filter_candidate_sliding_window(const uint16_t* const kmerCountQuery, uint16_t* const kmerCountCandidate,
+                                                          	  	  	const uint32_t queryLength, const uint32_t candidateLength,
+                                                          	  	    const uint64_t* const candidates, const uint64_t offsetCandPos,
+                                                          	  	    uint32_t* const filterDistance)
 {
   // Prepare filter
+  const uint32_t baseCandidateLength = GPU_KMER_BASE_CANDIDATE_LENGTH;
   const uint32_t initChunk = GPU_MIN(candidateLength, queryLength);
   const uint32_t maxKmers  = GPU_MIN(candidateLength, queryLength) - (GPU_KMER_COUNTING_LENGTH - 1);
   uint32_t beginPos = 0, kmerIdxBegin = 0, endPos = 0, kmerIdxEnd = 0;
@@ -155,14 +113,14 @@ GPU_INLINE __device__ void gpu_kmer_filter_candidate_full(const uint16_t* const 
   int32_t  kmersInCandidate = 0, kmerDistance = 0;
   // Initial window fill (Composing the first k-mer)
   while (endPos < (GPU_KMER_COUNTING_LENGTH - 1)){
-    const uint8_t encChar = gpu_kmer_candidate_lookup(candidates, offsetCandPos + endPos, &infoCandidateEnd);
+    const uint8_t encChar = gpu_text_lookup(candidates, offsetCandPos + endPos, &infoCandidateEnd, baseCandidateLength);
     GPU_KMER_COUNTING_ADD_INDEX(kmerIdxEnd, encChar); // Update kmer-index
     ++endPos;
   }
   beginPos = endPos; kmerIdxBegin = kmerIdxEnd;
   // Initial window fill
   while (endPos < initChunk) {
-      const uint8_t encBaseEnd = gpu_kmer_candidate_lookup(candidates, offsetCandPos + endPos, &infoCandidateEnd);
+      const uint8_t encBaseEnd = gpu_text_lookup(candidates, offsetCandPos + endPos, &infoCandidateEnd, baseCandidateLength);
       GPU_KMER_COUNTING_ADD_INDEX(kmerIdxEnd, encBaseEnd); // Update kmer-index
       const uint16_t countQuery = kmerCountQuery[kmerIdxEnd];
       if ((countQuery > 0) && (kmerCountCandidate[kmerIdxEnd]++ <= countQuery)) ++kmersInCandidate;
@@ -172,12 +130,12 @@ GPU_INLINE __device__ void gpu_kmer_filter_candidate_full(const uint16_t* const 
   kmerDistance = kmersInCandidate;
   while (endPos < candidateLength) {
     // Begin (Decrement kmer-count)
-    const uint8_t encBaseBegin = gpu_kmer_candidate_lookup(candidates, offsetCandPos + beginPos, &infoCandidateBegin);
+    const uint8_t encBaseBegin = gpu_text_lookup(candidates, offsetCandPos + beginPos, &infoCandidateBegin, baseCandidateLength);
     GPU_KMER_COUNTING_ADD_INDEX(kmerIdxBegin, encBaseBegin);
     const uint16_t countQueryBegin = kmerCountQuery[kmerIdxBegin];
     if ((countQueryBegin > 0) && ((kmerCountCandidate[kmerIdxBegin]--) <= countQueryBegin)) --kmersInCandidate;
     // End (Increment kmer-count)
-    const uint8_t encBaseEnd = gpu_kmer_candidate_lookup(candidates, offsetCandPos + endPos, &infoCandidateEnd);
+    const uint8_t encBaseEnd = gpu_text_lookup(candidates, offsetCandPos + endPos, &infoCandidateEnd, baseCandidateLength);
     GPU_KMER_COUNTING_ADD_INDEX(kmerIdxEnd, encBaseEnd);
     const uint16_t countQueryEnd = kmerCountQuery[kmerIdxEnd];
     if ((countQueryEnd > 0) && (kmerCountCandidate[kmerIdxEnd]++ <= countQueryEnd)) ++kmersInCandidate;
@@ -190,26 +148,28 @@ GPU_INLINE __device__ void gpu_kmer_filter_candidate_full(const uint16_t* const 
   (* filterDistance) = (maxKmers - kmerDistance) / GPU_KMER_COUNTING_LENGTH;
 }
 
+
 // Filter text region
 GPU_INLINE __device__ void gpu_kmer_filter_candidate(const uint16_t* const kmerCountQuery, uint16_t* const kmerCountCandidate,
                                                      const uint32_t queryLength, const uint32_t candidateLength,
-                                                     const uint64_t* const candidates, const uint64_t offsetCandPos,
+                                                     const uint64_t* const candidate, const uint64_t offsetCandPos,
                                                      uint32_t* const filterDistance)
 {
   // Prepare filter
+  const uint32_t baseCandidateLength = GPU_KMER_BASE_CANDIDATE_LENGTH;
   const uint32_t maxKmers = GPU_MIN(candidateLength, queryLength) - (GPU_KMER_COUNTING_LENGTH - 1);
   uint32_t endPos = 0, kmerIdxEnd = 0;
   ulong2   infoCandidateEnd = GPU_TEXT_INIT;
   int32_t  kmersInCandidate = 0, kmerDistance = 0;
   // Initial window fill (Composing the first k-mer)
   while (endPos < (GPU_KMER_COUNTING_LENGTH - 1)){
-    const uint8_t encChar = gpu_kmer_candidate_lookup(candidates, offsetCandPos + endPos, &infoCandidateEnd);
+    const uint8_t encChar = gpu_text_lookup(candidate, offsetCandPos + endPos, &infoCandidateEnd, baseCandidateLength);
     GPU_KMER_COUNTING_ADD_INDEX(kmerIdxEnd, encChar); // Update kmer-index
     endPos++;
   }
   // Sliding window count (End processing)
   while (endPos < candidateLength) {
-    const uint8_t encBaseEnd = gpu_kmer_candidate_lookup(candidates, offsetCandPos + endPos, &infoCandidateEnd);
+    const uint8_t encBaseEnd = gpu_text_lookup(candidate, offsetCandPos + endPos, &infoCandidateEnd, baseCandidateLength);
     GPU_KMER_COUNTING_ADD_INDEX(kmerIdxEnd, encBaseEnd);
     const uint16_t countQueryEnd     = kmerCountQuery[kmerIdxEnd];
     const uint16_t countCandidateEnd = kmerCountCandidate[kmerIdxEnd];
@@ -236,15 +196,10 @@ __global__ void gpu_kmer_filter_kernel(const gpu_kmer_qry_entry_t* const d_queri
     const uint32_t sizeCandidate   = d_candidates[idAlignment].size;
     const uint32_t sizeQuery       = d_qinfo[d_candidates[idAlignment].query].query_size;
     const uint64_t* const query    = (uint64_t*) (d_queries + d_qinfo[d_candidates[idAlignment].query].init_offset);
-    uint32_t i = 0;
     // Filter initialization
     uint32_t filterDistance = 0;
     uint16_t kmerCountCandidate[GPU_KMER_COUNTING_NUM_KMERS] = {0};
     uint16_t kmerCountQuery[GPU_KMER_COUNTING_NUM_KMERS]     = {0};
-    for(i = 0; i < GPU_KMER_COUNTING_NUM_KMERS; i++){
-        kmerCountCandidate[i] = 0;
-        kmerCountQuery[i]     = 0;
-    }
     // Compile all k-mers from pattern
     gpu_kmer_filter_compile_pattern(kmerCountQuery, query, sizeQuery);
     // Compile all k-mers from text

@@ -138,7 +138,7 @@ void gpu_kmer_init_and_realloc_buffer_(void *kmerBuffer, const uint32_t totalBas
     //ALLOCATE HOST AND DEVICE BUFFER
     CUDA_ERROR(cudaHostAlloc((void**) &mBuff->h_rawData, mBuff->sizeBuffer, cudaHostAllocMapped));
     CUDA_ERROR(cudaMalloc((void**) &mBuff->d_rawData, mBuff->sizeBuffer));
-    // Remap the buffer layout with the new size
+    // Re-map the buffer layout with the new size
     gpu_kmer_init_buffer_(kmerBuffer, averageQuerySize, candidatesPerQuery);
   }
 }
@@ -221,9 +221,7 @@ void gpu_kmer_receive_buffer_(void* const kmerBuffer)
 {
   gpu_buffer_t* const mBuff       = (gpu_buffer_t *) kmerBuffer;
   const uint32_t      idSupDevice = mBuff->idSupportedDevice;
-  const cudaStream_t  idStream    =  mBuff->listStreams[mBuff->idStream];
-  uint32_t i = 0;
-  gpu_kmer_alignments_buffer_t *res      = &mBuff->data.kmer.alignments;
+  const cudaStream_t  idStream    = mBuff->listStreams[mBuff->idStream];
 
   //Select the device of the Multi-GPU platform
   CUDA_ERROR(cudaSetDevice(mBuff->device[idSupDevice]->idDevice));
