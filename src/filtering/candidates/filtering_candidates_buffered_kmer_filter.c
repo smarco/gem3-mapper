@@ -189,7 +189,8 @@ void filtering_candidates_buffered_kmer_filter_retrieve_region(
     const uint64_t min_distance_bound_check =
         filtering_candidates_buffered_kmer_filter_compute_alignment(
             filtering_candidates,filtering_region,pattern);
-    if (min_distance_bound_check != min_distance_bound) {
+    //if (min_distance_bound != min_distance_bound_check) {
+    if (min_distance_bound > min_distance_bound_check) {
       fprintf(stderr,"GPU.Kmer-Filter. Difference detected (CPU=%lu;GPU=%lu)\n",
           min_distance_bound_check,min_distance_bound);
     }

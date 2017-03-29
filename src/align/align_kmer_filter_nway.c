@@ -138,10 +138,12 @@ void kmer_counting_compile_nway(
     if (count_pattern_kmers) {
       uint64_t pos, kmer_idx=0, acc=0;
       for (pos=chunk_offset;pos<chunk_end;++pos) {
+        //uint8_t enc_char = key[pos];
         const uint8_t enc_char = key[pos];
         if (enc_char==ENC_DNA_CHAR_N) {
           acc = 0;
         } else {
+          //enc_char &= 0x3;
           KMER_COUNTING_ADD_INDEX__MASK(kmer_idx,enc_char); // Update kmer-index
           if (acc < kmer_counting->kmer_length-1) {
             ++acc; // Inc accumulator
