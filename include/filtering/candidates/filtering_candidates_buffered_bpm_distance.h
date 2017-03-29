@@ -51,4 +51,4 @@ void filtering_candidates_buffered_bpm_distance_retrieve(
     filtering_candidates_buffered_t* const filtering_candidates_buffered,
     pattern_t* const pattern,
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
-    const uint64_t gpu_buffer_align_offset);
+    const uint64_t gpu_buffer_bpm_distance_offset);

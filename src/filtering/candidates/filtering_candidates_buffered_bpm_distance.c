@@ -189,7 +189,7 @@ void filtering_candidates_buffered_bpm_distance_retrieve_alignment(
     pattern_t* const pattern,
     const uint64_t max_error,
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
-    const uint64_t candidate_tile_idx) {
+    uint64_t* const gpu_buffer_offset) {
   // Parameters
   const uint64_t num_tiles = alignment->num_tiles;
   alignment_tile_t* const alignment_tiles = alignment->alignment_tiles;
@@ -209,7 +209,7 @@ void filtering_candidates_buffered_bpm_distance_retrieve_alignment(
       // Retrieve alignment distance/column
       uint32_t tile_distance=0, tile_match_column=0;
       gpu_buffer_bpm_distance_get_result(gpu_buffer_bpm_distance,
-          candidate_tile_idx+tile_pos,&tile_distance,&tile_match_column);
+          *gpu_buffer_offset+tile_pos,&tile_distance,&tile_match_column);
       if (tile_distance > pattern_tile->max_error) { // As CPU version
         alignment_tile->distance = ALIGN_DISTANCE_INF;
         alignment->distance_min_bound = ALIGN_DISTANCE_INF;
@@ -226,8 +226,8 @@ void filtering_candidates_buffered_bpm_distance_retrieve_alignment(
       // DEBUG
       #ifdef GPU_CHECK_BPM_DISTANCE
       filtering_candidates_buffered_bpm_distance_check_tile_distance(
-          filtering_candidates,pattern_tile->bpm_pattern_tile,gpu_buffer_bpm_distance,
-          candidate_tile_idx+tile_pos,tile_distance,tile_match_column);
+          filtering_candidates,&pattern_tile->bpm_pattern_tile,gpu_buffer_bpm_distance,
+          *gpu_buffer_offset+tile_pos,tile_distance,tile_match_column);
       #endif
       // Check global distance
       if (alignment->distance_min_bound != ALIGN_DISTANCE_INF) {
@@ -235,6 +235,8 @@ void filtering_candidates_buffered_bpm_distance_retrieve_alignment(
       }
     }
   }
+  // Increment offset
+  *gpu_buffer_offset += num_tiles;
   // Check global distance
   if (alignment->distance_min_bound != ALIGN_DISTANCE_INF &&
       alignment->distance_min_bound > max_error) {
@@ -245,16 +247,16 @@ void filtering_candidates_buffered_bpm_distance_retrieve_alignment(
   #ifdef GPU_CHECK_BPM_DISTANCE
   filtering_candidates_buffered_bpm_distance_check_global_distance(
       filtering_candidates,filtering_region,
-      pattern->pattern_tiled.bpm_pattern,
+      &pattern->pattern_tiled.bpm_pattern,
       alignment->distance_min_bound);
   #endif
 }
 void filtering_candidates_buffered_bpm_distance_retrieve_region(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
-    const uint64_t candidate_tile_idx,
     pattern_t* const pattern,
-    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance) {
+    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
+    uint64_t* const gpu_buffer_offset) {
   // Parameters
   const uint64_t key_length = pattern->key_length;
   const uint64_t max_error = pattern->max_effective_filtering_error;
@@ -289,7 +291,7 @@ void filtering_candidates_buffered_bpm_distance_retrieve_region(
   if (gpu_buffer_bpm_distance->bpm_distance_enabled) {
     filtering_candidates_buffered_bpm_distance_retrieve_alignment(
         filtering_candidates,filtering_region,alignment,pattern,
-        max_error,gpu_buffer_bpm_distance,candidate_tile_idx);
+        max_error,gpu_buffer_bpm_distance,gpu_buffer_offset);
   } else {
     filtering_candidates_buffered_bpm_distance_compute_distance(
         filtering_candidates,filtering_region,alignment,pattern);
@@ -310,20 +312,19 @@ void filtering_candidates_buffered_bpm_distance_retrieve(
     filtering_candidates_buffered_t* const filtering_candidates_buffered,
     pattern_t* const pattern,
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
-    const uint64_t gpu_buffer_align_offset) {
+    const uint64_t gpu_buffer_bpm_distance_offset) {
   PROFILE_START(GP_FC_VERIFY_CANDIDATES_BUFFERED,PROFILE_LEVEL);
   // Check filtering regions
   const uint64_t num_filtering_regions = filtering_candidates_buffered->num_regions;
   if (num_filtering_regions==0) return; // No filtering regions
   // Traverse all filtering regions buffered
-  uint64_t region_pos, candidate_tile_idx = gpu_buffer_align_offset;
+  uint64_t region_pos, gpu_buffer_offset = gpu_buffer_bpm_distance_offset;
   for (region_pos=0;region_pos<num_filtering_regions;++region_pos) {
     // Retrieve region
     filtering_region_t* const filtering_region = filtering_candidates_buffered->regions[region_pos];
     filtering_candidates_buffered_bpm_distance_retrieve_region(
-        filtering_candidates,filtering_region,candidate_tile_idx,
-        pattern,gpu_buffer_bpm_distance);
-    candidate_tile_idx += filtering_region->alignment.num_tiles;
+        filtering_candidates,filtering_region,pattern,
+        gpu_buffer_bpm_distance,&gpu_buffer_offset);
   }
   // Add buffered discarded regions
   const uint64_t num_discarded_regions = filtering_candidates_buffered->num_discarded_regions;

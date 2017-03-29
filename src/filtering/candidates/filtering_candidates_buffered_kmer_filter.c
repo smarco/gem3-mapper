@@ -80,8 +80,7 @@ void filtering_candidates_buffered_kmer_filter_add_filtering_regions(
     filtering_region_t* const filtering_region = regions_in[candidate_pos];
     region_buffered[candidate_pos] = filtering_region;
     // Filter out exact-matches & key-trimmed regions
-    if (filtering_region->alignment.distance_min_bound==0
-        /* || filtering_region->key_trimmed FIXME */) {
+    if (filtering_region->alignment.distance_min_bound==0 || filtering_region->key_trimmed) {
       continue; // Next
     }
     // Prepare Kmer-filter (candidate)
@@ -130,11 +129,10 @@ uint64_t filtering_candidates_buffered_kmer_filter_compute_alignment(
   archive_text_t* const archive_text = filtering_candidates->archive->text;
   mm_allocator_t* const mm_allocator = filtering_candidates->mm_allocator;
   const uint64_t max_error = pattern->max_effective_filtering_error;
-  // Push
-  mm_allocator_push_state(mm_allocator);
   // Retrieve text
   const uint64_t candidate_position = filtering_region->text_begin_position;
-  const uint64_t candidate_length = filtering_region->text_end_position-filtering_region->text_begin_position;
+  const uint64_t candidate_length =
+      filtering_region->text_end_position - filtering_region->text_begin_position;
   archive_text_retrieve(
       archive_text,candidate_position,candidate_length,
       false,false,&filtering_region->text_trace,
@@ -145,8 +143,6 @@ uint64_t filtering_candidates_buffered_kmer_filter_compute_alignment(
       &pattern->pattern_tiled.kmer_filter_nway,
       text_trace->text,text_trace->text_length,
       max_error,mm_allocator);
-  // Pop
-  mm_allocator_pop_state(mm_allocator);
   // Return
   return distance_min_bound;
 }
@@ -166,31 +162,21 @@ void filtering_candidates_buffered_kmer_filter_retrieve_region(
   const uint64_t max_error = pattern->max_effective_filtering_error;
   // Detect exact-matches
   if (filtering_region->alignment.distance_min_bound == 0) {
-    filtering_region->status = filtering_region_accepted; // Accepted candidate
+    vector_insert(filtering_candidates->filtering_regions,filtering_region,filtering_region_t*);
+    PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_ACCEPTED);
+    return;
+  }
+  // Detect trimmed matches
+  if (filtering_region->key_trimmed) {
     alignment->distance_min_bound = ALIGN_DISTANCE_UNKNOWN;
     vector_insert(filtering_candidates->filtering_regions,filtering_region,filtering_region_t*);
     PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_ACCEPTED);
     return;
   }
-//  // Detect trimmed matches
-//  const uint64_t text_length = region_buffered->text_end_position - region_buffered->text_begin_position;
-//  if (key_length > text_length) {
-//    if (filtering_region_kmer_filter(filtering_candidates,region_buffered,pattern)) {
-//      PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_ACCEPTED);
-//      vector_insert(filtering_candidates->filtering_regions,region_buffered,filtering_region_t*);
-//    } else {
-//      PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_DISCARDED);
-//      vector_insert(filtering_candidates->discarded_regions,region_buffered,filtering_region_t*);
-//    }
-//    return;
-//  }
   // Detect already discarded region
   if (alignment->distance_min_bound==ALIGN_DISTANCE_INF) {
-    GEM_INVALID_CASE(); // FIXME
-//    filtering_region->status = filtering_region_verified_discarded;
-//    alignment->distance_min_bound = ALIGN_DISTANCE_INF;
-//    vector_insert(filtering_candidates->discarded_regions,filtering_region,filtering_region_t*);
-    return;
+    GEM_INVALID_CASE(); // FIXME FIXME FIXME FIXME FIXME
+    return;             // FIXME FIXME FIXME FIXME FIXME
   }
   // Retrieve min-bound
   uint64_t min_distance_bound;
@@ -214,17 +200,18 @@ void filtering_candidates_buffered_kmer_filter_retrieve_region(
             filtering_candidates,filtering_region,pattern);
   }
   if (min_distance_bound <= max_error) {
-    filtering_region->status = filtering_region_accepted; // Accepted candidate
     alignment->distance_min_bound = ALIGN_DISTANCE_UNKNOWN;
     vector_insert(filtering_candidates->filtering_regions,filtering_region,filtering_region_t*);
-    PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_DISCARDED);
+    PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_ACCEPTED);
   } else {
-    filtering_region->status = filtering_region_verified_discarded; // Discarded candidate
+    // Discarded candidate
+    filtering_region->status = filtering_region_verified_discarded;
     alignment->distance_min_bound = ALIGN_DISTANCE_INF;
+    // Add to discarded candidates (buffered)
     const uint64_t num_discarded_regions = filtering_candidates_buffered->num_discarded_regions;
     filtering_candidates_buffered->discarded_regions[num_discarded_regions] = filtering_region;
     ++(filtering_candidates_buffered->num_discarded_regions);
-    PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_ACCEPTED);
+    PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_DISCARDED);
   }
 }
 void filtering_candidates_buffered_kmer_filter_retrieve(
@@ -251,8 +238,9 @@ void filtering_candidates_buffered_kmer_filter_retrieve(
         candidate_tile_idx,pattern,gpu_buffer_kmer_filter);
     candidate_tile_idx += num_tiles;
   }
-  // Free buffered regions
+  // Free (buffered regions and kmer-counting)
   filtering_candidates_buffered_free_regions(filtering_candidates_buffered);
+  kmer_counting_destroy(&pattern->pattern_tiled.kmer_filter_nway,filtering_candidates->mm_allocator);
   // DEBUG
   PROFILE_STOP(GP_FC_VERIFY_CANDIDATES_BUFFERED,PROFILE_LEVEL);
   gem_cond_debug_block(DEBUG_FILTERING_CANDIDATES) {

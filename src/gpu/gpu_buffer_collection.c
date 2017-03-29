@@ -107,7 +107,14 @@ gpu_buffer_collection_t* gpu_buffer_collection_new(
   }
   buffer_collection->gpu_kmer_filter_available = gpu_info_dto.activatedModules & GPU_KMER_FILTER;
   buffer_collection->gpu_bpm_distance_available = gpu_info_dto.activatedModules & GPU_BPM_FILTER;
-  buffer_collection->gpu_bpm_distance_available = false; // TODO gpu_info_dto.activatedModules & GPU_BPM_ALIGN;
+  // TODO buffer_collection->gpu_bpm_align_available = gpu_info_dto.activatedModules & GPU_BPM_ALIGN;
+
+  // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+  buffer_collection->gpu_kmer_filter_available = false;
+  buffer_collection->gpu_bpm_distance_available = true;
+  buffer_collection->gpu_bpm_align_available = false;
+  // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+
   // Return
   PROFILE_STOP(GP_GPU_BUFFER_COLLECTION_INIT,PROFILE_LEVEL);
   return buffer_collection;

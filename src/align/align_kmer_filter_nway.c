@@ -159,14 +159,17 @@ void kmer_counting_compile_nway(
 void kmer_counting_destroy(
     kmer_counting_nway_t* const kmer_counting,
     mm_allocator_t* const mm_allocator) {
-  if (kmer_counting->kmer_count_text!=NULL) {
-    mm_allocator_free(mm_allocator,kmer_counting->kmer_count_text);
+  if (kmer_counting->key_tiles!=NULL) {
+    mm_allocator_free(mm_allocator,kmer_counting->key_tiles);
+    mm_allocator_free(mm_allocator,kmer_counting->text_tiles);
+    if (kmer_counting->kmer_count_text!=NULL) {
+      mm_allocator_free(mm_allocator,kmer_counting->kmer_count_text);
+    }
+    if (kmer_counting->kmer_count_pattern!=NULL) {
+      mm_allocator_free(mm_allocator,kmer_counting->kmer_count_pattern);
+    }
+    kmer_counting->key_tiles = NULL;
   }
-  if (kmer_counting->kmer_count_pattern!=NULL) {
-    mm_allocator_free(mm_allocator,kmer_counting->kmer_count_pattern);
-  }
-  mm_allocator_free(mm_allocator,kmer_counting->key_tiles);
-  mm_allocator_free(mm_allocator,kmer_counting->text_tiles);
 }
 /*
  * K-mer counting tiling
