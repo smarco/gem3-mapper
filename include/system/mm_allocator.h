@@ -73,6 +73,8 @@ typedef struct {
  * MM-Allocator
  */
 typedef struct {
+  /* ID */
+  uint64_t segment_id;
   /* Memory */
   void* memory_base;            // Pointer to memory
   uint64_t segment_size;        // Total memory available
@@ -90,8 +92,9 @@ typedef struct {
 typedef struct {
   /* Allocator Memory */
   uint64_t allocator_id;        // Allocator ID
+  vector_t* segments_index;     // Sorted Memory segments (mm_allocator_segment_t*)
+  vector_t* segments_cbuffer;   // Circular-Buffer of Memory segments (mm_allocator_segment_t*)
   uint64_t segment_idx;         // Current segment being used
-  vector_t* segments;           // Allocator Memory segments (mm_allocator_segment_t)
   /* Malloc Memory */
   vector_t* malloc_requests;    // Malloc requests (void*)
   /* Allocator States */
@@ -99,6 +102,14 @@ typedef struct {
   /* MM-Slab allocator */
   mm_slab_t* mm_slab;           // Memory allocator
 } mm_allocator_t;
+
+/*
+ * MM-Allocator Reference (for fast deallocation)
+ */
+typedef struct {
+  uint32_t segment_id;
+  uint32_t request_offset;
+} mm_allocator_reference_t;
 
 /*
  * Setup
@@ -129,22 +140,26 @@ void* mm_allocator_allocate(
     ,const char* func_name,
     uint64_t line_no
 #endif
-    );
+    ,mm_allocator_reference_t* const mm_reference);
 
 #ifdef MM_ALLOCATOR_LOG
 #define mm_allocator_alloc(mm_allocator,type) \
-  ((type*)mm_allocator_allocate(mm_allocator,sizeof(type),false,__func__,(uint64_t)__LINE__))
+  ((type*)mm_allocator_allocate(mm_allocator,sizeof(type),false,__func__,(uint64_t)__LINE__,NULL))
 #define mm_allocator_malloc(mm_allocator,num_bytes) \
-  (mm_allocator_allocate(mm_allocator,(num_bytes),false,__func__,(uint64_t)__LINE__))
+  (mm_allocator_allocate(mm_allocator,(num_bytes),false,__func__,(uint64_t)__LINE__,NULL))
 #define mm_allocator_calloc(mm_allocator,num_elements,type,clear_mem) \
-  ((type*)mm_allocator_allocate(mm_allocator,(num_elements)*sizeof(type),clear_mem,__func__,(uint64_t)__LINE__))
+  ((type*)mm_allocator_allocate(mm_allocator,(num_elements)*sizeof(type),clear_mem,__func__,(uint64_t)__LINE__,NULL))
+#define mm_allocator_allocate_reference(mm_allocator,num_bytes,zero_mem,reference) \
+  mm_allocator_allocate(mm_allocator,num_bytes,zero_mem,__func__,(uint64_t)__LINE__,reference)
 #else
 #define mm_allocator_alloc(mm_allocator,type) \
-  ((type*)mm_allocator_allocate(mm_allocator,sizeof(type),false))
+  ((type*)mm_allocator_allocate(mm_allocator,sizeof(type),false,NULL))
 #define mm_allocator_malloc(mm_allocator,num_bytes) \
-  (mm_allocator_allocate(mm_allocator,(num_bytes),false))
+  (mm_allocator_allocate(mm_allocator,(num_bytes),false,NULL))
 #define mm_allocator_calloc(mm_allocator,num_elements,type,clear_mem) \
-  ((type*)mm_allocator_allocate(mm_allocator,(num_elements)*sizeof(type),clear_mem))
+  ((type*)mm_allocator_allocate(mm_allocator,(num_elements)*sizeof(type),clear_mem,NULL))
+#define mm_allocator_allocate_reference(mm_allocator,num_bytes,zero_mem,reference) \
+  mm_allocator_allocate(mm_allocator,num_bytes,zero_mem,reference)
 #endif
 
 #define mm_allocator_uint64(mm_allocator) mm_allocator_malloc(mm_allocator,sizeof(uint64_t))
@@ -158,6 +173,10 @@ void* mm_allocator_allocate(
 void mm_allocator_free(
     mm_allocator_t* const mm_allocator,
     void* memory);
+void mm_allocator_free_reference(
+    mm_allocator_t* const mm_allocator,
+    void* memory,
+    mm_allocator_reference_t* const mm_reference);
 
 /*
  * State Push/Pop
@@ -169,7 +188,8 @@ void mm_allocator_push_memory_state(
     uint64_t line_no
 #endif
     );
-void mm_allocator_pop_memory_state(mm_allocator_t* const mm_allocator);
+void mm_allocator_pop_memory_state(
+    mm_allocator_t* const mm_allocator);
 
 #ifdef MM_ALLOCATOR_LOG
 #define mm_allocator_push_state(mm_allocator) mm_allocator_push_memory_state(mm_allocator,__func__,(uint64_t)__LINE__)

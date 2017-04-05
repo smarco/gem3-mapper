@@ -37,9 +37,12 @@ void string_init(
     const uint64_t length,
     mm_allocator_t* const mm_allocator) {
   // Initialize
-  string->buffer = (mm_allocator!=NULL) ?
-      mm_allocator_malloc(mm_allocator,length+1) :
-      mm_malloc(length+1);
+  if (mm_allocator!=NULL) {
+    string->buffer = mm_allocator_allocate_reference(
+        mm_allocator,length+1,false,&string->mm_reference);
+  } else {
+    string->buffer = mm_malloc(length+1);
+  }
   string->buffer[0] = EOS;
   string->allocated = length+1;
   string->length = 0;
@@ -53,12 +56,15 @@ void string_resize(
   if (string->allocated < new_buffer_size) {
     new_buffer_size = (3*new_buffer_size)/2;
     if (string->mm_allocator!=NULL) {
+      // Keep old buffer/ref
+      char* buffer_old = string->buffer;
+      mm_allocator_reference_t mm_reference_old = string->mm_reference;
       // Allocate
-      char* old_buffer = string->buffer;
-      string->buffer = mm_allocator_malloc(string->mm_allocator,new_buffer_size);
-      if (keep_content) strncpy(string->buffer,old_buffer,string->length);
+      string->buffer = mm_allocator_allocate_reference(
+          string->mm_allocator,new_buffer_size,false,&string->mm_reference);
+      if (keep_content) strncpy(string->buffer,buffer_old,string->length);
       // Free
-      mm_allocator_free(string->mm_allocator,old_buffer);
+      mm_allocator_free_reference(string->mm_allocator,buffer_old,&mm_reference_old);
     } else {
       string->buffer = mm_realloc(string->buffer,new_buffer_size);
     }
@@ -71,7 +77,8 @@ void string_clear(string_t* const string) {
 }
 void string_destroy(string_t* const string) {
   if (string->mm_allocator!=NULL) {
-    mm_allocator_free(string->mm_allocator,string->buffer);
+    mm_allocator_free_reference(
+        string->mm_allocator,string->buffer,&string->mm_reference);
   } else {
     mm_free(string->buffer);
   }

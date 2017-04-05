@@ -153,7 +153,7 @@ void collect_se_mapping_stats(
     archive_search_t* const archive_search,
     matches_t* const matches,
     mapping_stats_t* mstats) {
-	 update_counts(archive_search->input_sequence,mstats,0);
+	 update_counts(archive_search->sequence,mstats,0);
 	 bs_strand_t bs = bs_strand_none;
 	 int read_type = -1;
 	 const uint64_t num_match_traces = matches_get_num_match_traces(matches);
@@ -166,7 +166,7 @@ void collect_se_mapping_stats(
 			bs = match->bs_strand;
 			read_type = get_read_type(match);
 			if(match->mapq_score>0) {
-				 update_conversion_counts(archive_search->input_sequence, mstats, 0, bs, read_type);
+				 update_conversion_counts(archive_search->sequence, mstats, 0, bs, read_type);
 			}
 			mstats->hist_mapq[(int)match->mapq_score]++;
 			if(bs == bs_strand_C2T) mstats->BSreads[0][0]++;
@@ -179,8 +179,8 @@ void collect_pe_mapping_stats(
     archive_search_t* const archive_search2,
  	  paired_matches_t* const paired_matches,
  	  mapping_stats_t* mstats) {
-	 update_counts(archive_search1->input_sequence,mstats,0);
-	 update_counts(archive_search2->input_sequence,mstats,1);
+	 update_counts(archive_search1->sequence,mstats,0);
+	 update_counts(archive_search2->sequence,mstats,1);
 	 matches_t* const matches_end1 = paired_matches->matches_end1;
 	 matches_t* const matches_end2 = paired_matches->matches_end2;	 
 	 bs_strand_t bs1,bs2;
@@ -241,8 +241,8 @@ void collect_pe_mapping_stats(
 			read_type1 = read_type2 = get_read_type(match_end1);
 			mstats->hist_mapq[(int)paired_map->mapq_score]++;
 			if(paired_map->mapq_score>0) {
-				 update_conversion_counts(archive_search1->input_sequence, mstats, 0, bs1, read_type1);
-				 update_conversion_counts(archive_search2->input_sequence, mstats, 1, bs2, read_type2);
+				 update_conversion_counts(archive_search1->sequence, mstats, 0, bs1, read_type1);
+				 update_conversion_counts(archive_search2->sequence, mstats, 1, bs2, read_type2);
 			}
 	 }
 	 if(bs1 == bs_strand_C2T) mstats->BSreads[0][0]++;

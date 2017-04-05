@@ -73,13 +73,16 @@ bool match_scaffold_is_null(match_scaffold_t* const match_scaffold) {
 match_alignment_region_t* match_scaffold_allocate_alignment_region(
     match_scaffold_t* const match_scaffold,
     const uint64_t num_alignment_regions) {
-  return mm_allocator_calloc(match_scaffold->mm_allocator,
-      num_alignment_regions,match_alignment_region_t,false);
+  return mm_allocator_allocate_reference(match_scaffold->mm_allocator,
+      num_alignment_regions*sizeof(match_alignment_region_t),
+      false,&match_scaffold->mm_reference);
 }
 void match_scaffold_free_alignment_region(
     match_scaffold_t* const match_scaffold,
     match_alignment_region_t* const match_alignment_region) {
-  mm_allocator_free(match_scaffold->mm_allocator,match_alignment_region);
+  mm_allocator_free_reference(
+      match_scaffold->mm_allocator,
+      match_alignment_region,&match_scaffold->mm_reference);
 }
 /*
  * RL-Translation

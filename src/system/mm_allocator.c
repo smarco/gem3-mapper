@@ -58,10 +58,12 @@
  */
 void mm_allocator_segment_allocate(
     mm_allocator_segment_t* const mm_allocator_segment,
+    const uint64_t segment_id,
     mm_slab_t* const mm_slab) {
   // Slab-Unit
   mm_slab_unit_t* const slab_unit = mm_slab_request(mm_slab);
   mm_allocator_segment->slab_unit = slab_unit;
+  mm_allocator_segment->segment_id = segment_id;
   // Memory
   mm_allocator_segment->memory_base = slab_unit->memory;
   mm_allocator_segment->segment_size = mm_slab_get_slab_size(mm_slab);
@@ -83,16 +85,20 @@ void mm_allocator_segment_free(
   mm_slab_put(mm_slab,mm_allocator_segment->slab_unit);
   vector_delete(mm_allocator_segment->mem_requests);
 }
-void mm_allocator_segment_reap(mm_allocator_t* const mm_allocator) {
-  // Free unused segments (from the end)
-  VECTOR_ITERATE_OFFSET(mm_allocator->segments,segment,p,mm_allocator->segment_idx+1,mm_allocator_segment_t) {
-    mm_allocator_segment_free(segment,mm_allocator->mm_slab);
-  }
-  vector_set_used(mm_allocator->segments,mm_allocator->segment_idx+1);
-}
 /*
  * Allocator Setup
  */
+mm_allocator_segment_t* mm_allocator_new_segment(mm_allocator_t* const mm_allocator) {
+  // Allocate new segment
+  const uint64_t segment_id = vector_get_used(mm_allocator->segments_index);
+  mm_allocator_segment_t* const mm_allocator_segment = mm_alloc(mm_allocator_segment_t);
+  mm_allocator_segment_allocate(mm_allocator_segment,segment_id,mm_allocator->mm_slab);
+  // Insert
+  vector_insert(mm_allocator->segments_index,mm_allocator_segment,mm_allocator_segment_t*);
+  vector_insert(mm_allocator->segments_cbuffer,mm_allocator_segment,mm_allocator_segment_t*);
+  // Return
+  return mm_allocator_segment;
+}
 mm_allocator_t* mm_allocator_new(mm_slab_t* const mm_slab) {
   static int no = 0;
   // Allocate handler
@@ -100,25 +106,27 @@ mm_allocator_t* mm_allocator_new(mm_slab_t* const mm_slab) {
   mm_allocator->allocator_id = no++;
   // Initialize segments
   mm_allocator->segment_idx = 0;
-  mm_allocator->segments = vector_new(MM_ALLOCATOR_INITIAL_SEGMENTS,mm_allocator_segment_t);
-  vector_set_used(mm_allocator->segments,MM_ALLOCATOR_INITIAL_SEGMENTS_ALLOCATED);
-  VECTOR_ITERATE(mm_allocator->segments,allocator_segment,position,mm_allocator_segment_t) {
-    mm_allocator_segment_allocate(allocator_segment,mm_slab);
+  mm_allocator->segments_index = vector_new(MM_ALLOCATOR_INITIAL_SEGMENTS,mm_allocator_segment_t*);
+  mm_allocator->segments_cbuffer = vector_new(MM_ALLOCATOR_INITIAL_SEGMENTS,mm_allocator_segment_t*);
+  // Initialize slab
+  mm_allocator->mm_slab = mm_slab;
+  // Allocate initial segments
+  uint64_t i;
+  for (i=0;i<MM_ALLOCATOR_INITIAL_SEGMENTS_ALLOCATED;++i) {
+    mm_allocator_new_segment(mm_allocator);
   }
   // Malloc Memory
   mm_allocator->malloc_requests = vector_new(MM_ALLOCATOR_INITIAL_MALLOC_REQUESTS,void*);
   // Allocator States
   mm_allocator->states = vector_new(MM_ALLOCATOR_INITIAL_STATES,mm_allocator_state_t);
-  // Initialize slab
-  mm_allocator->mm_slab = mm_slab;
   // Return
   return mm_allocator;
 }
 void mm_allocator_clear(mm_allocator_t* const mm_allocator) {
   // Clear segments
   mm_allocator->segment_idx = 0;
-  VECTOR_ITERATE(mm_allocator->segments,segment,p,mm_allocator_segment_t) {
-    mm_allocator_segment_clear(segment);
+  VECTOR_ITERATE(mm_allocator->segments_index,segment_ptr,p,mm_allocator_segment_t*) {
+    mm_allocator_segment_clear(*segment_ptr);
   }
   // Clear malloc memory
   VECTOR_ITERATE(mm_allocator->malloc_requests,malloc_request,m,void*) {
@@ -130,10 +138,12 @@ void mm_allocator_clear(mm_allocator_t* const mm_allocator) {
 }
 void mm_allocator_delete(mm_allocator_t* const mm_allocator) {
   // Free segments
-  VECTOR_ITERATE(mm_allocator->segments,segment,p,mm_allocator_segment_t) {
-    mm_allocator_segment_free(segment,mm_allocator->mm_slab);
+  VECTOR_ITERATE(mm_allocator->segments_index,segment_ptr,p,mm_allocator_segment_t*) {
+    mm_allocator_segment_free(*segment_ptr,mm_allocator->mm_slab);
+    mm_free(*segment_ptr);
   }
-  vector_delete(mm_allocator->segments);
+  vector_delete(mm_allocator->segments_index);
+  vector_delete(mm_allocator->segments_cbuffer);
   // Free malloc memory
   VECTOR_ITERATE(mm_allocator->malloc_requests,malloc_request,m,void*) {
     mm_free(*malloc_request); // Free remaining requests
@@ -143,6 +153,18 @@ void mm_allocator_delete(mm_allocator_t* const mm_allocator) {
   vector_delete(mm_allocator->states);
   // Free handler
   mm_free(mm_allocator);
+}
+/*
+ * Accessors
+ */
+mm_allocator_segment_t* mm_allocator_get_segment(
+    mm_allocator_t* const mm_allocator,
+    const uint64_t segment_idx) {
+  return *(vector_get_elm(mm_allocator->segments_cbuffer,segment_idx,mm_allocator_segment_t*));
+}
+uint64_t mm_allocator_get_num_segments(
+    mm_allocator_t* const mm_allocator) {
+  return vector_get_used(mm_allocator->segments_cbuffer);
 }
 /*
  * Utils
@@ -159,7 +181,7 @@ void mm_allocator_compute_occupation(
   // Traverse all segments
   uint64_t segment_idx, request_idx;
   for (segment_idx=0;segment_idx<=mm_allocator->segment_idx;++segment_idx) {
-    mm_allocator_segment_t* const segment = vector_get_elm(mm_allocator->segments,segment_idx,mm_allocator_segment_t);
+    mm_allocator_segment_t* const segment = mm_allocator_get_segment(mm_allocator,segment_idx);
     const uint64_t num_requests = vector_get_used(segment->mem_requests);
     mm_allocator_request_t* request = vector_get_mem(segment->mem_requests,mm_allocator_request_t);
     for (request_idx=0;request_idx<num_requests;++request_idx,++request) {
@@ -178,21 +200,12 @@ void mm_allocator_compute_occupation(
 /*
  * Allocator allocate
  */
-mm_allocator_segment_t* mm_allocator_allocate_new_segment(mm_allocator_t* const mm_allocator) {
-  // Add new segment
-  vector_reserve_additional(mm_allocator->segments,1);
-  vector_inc_used(mm_allocator->segments);
-  mm_allocator_segment_t* const mm_allocator_segment =
-      vector_get_last_elm(mm_allocator->segments,mm_allocator_segment_t);
-  mm_allocator_segment_allocate(mm_allocator_segment,mm_allocator->mm_slab);
-  return mm_allocator_segment;
-}
 mm_allocator_segment_t* mm_allocator_allocate_reserve(
     mm_allocator_t* const mm_allocator,
     uint64_t num_bytes) {
   // Fetch current segment
   mm_allocator_segment_t* const curr_segment =
-      vector_get_elm(mm_allocator->segments,mm_allocator->segment_idx,mm_allocator_segment_t);
+      mm_allocator_get_segment(mm_allocator,mm_allocator->segment_idx);
   // Check available segment size
   if (curr_segment->offset_available + num_bytes <= curr_segment->segment_size) {
     return curr_segment;
@@ -200,14 +213,14 @@ mm_allocator_segment_t* mm_allocator_allocate_reserve(
   // Check overall segment size
   if (num_bytes <= curr_segment->segment_size) {
     ++(mm_allocator->segment_idx);
-    const uint64_t num_segments = vector_get_used(mm_allocator->segments);
+    const uint64_t num_segments = mm_allocator_get_num_segments(mm_allocator);
     if (mm_allocator->segment_idx < num_segments) {
       mm_allocator_segment_t* const next_segment =
-          vector_get_elm(mm_allocator->segments,mm_allocator->segment_idx,mm_allocator_segment_t);
+          mm_allocator_get_segment(mm_allocator,mm_allocator->segment_idx);
       mm_allocator_segment_clear(next_segment);
       return next_segment;
     } else {
-      return mm_allocator_allocate_new_segment(mm_allocator);
+      return mm_allocator_new_segment(mm_allocator);
     }
   } else {
     // Memory request over segment size
@@ -223,7 +236,7 @@ void* mm_allocator_allocate(
     ,const char* func_name,
     uint64_t line_no
 #endif
-    ) {
+    ,mm_allocator_reference_t* const mm_reference) {
   // Zero check
   gem_fatal_check(num_bytes==0,MM_ALLOCATOR_ALLOC_ZERO);
   // Ensure alignment to 16 Bytes boundaries (128bits)
@@ -237,6 +250,11 @@ void* mm_allocator_allocate(
   mm_allocator_segment_t* const segment = mm_allocator_allocate_reserve(mm_allocator,num_bytes);
 #endif
   if (segment != NULL) {
+    // Set reference
+    if (gem_expect_false(mm_reference!=NULL)) {
+      mm_reference->segment_id = segment->segment_id;
+      mm_reference->request_offset = vector_get_used(segment->mem_requests);
+    }
     // Serve Allocator Memory (Add request to segment)
     mm_allocator_request_t* request;
     vector_alloc_new(segment->mem_requests,mm_allocator_request_t,request);
@@ -250,11 +268,17 @@ void* mm_allocator_allocate(
     // Clear memory
     void* const memory = segment->memory_base + request->offset;
     if (gem_expect_false(zero_mem)) memset(memory,0,num_bytes); // Set zero
+    // Return
     return memory;
   } else {
     // Serve Malloc Memory
     void* const memory = mm_malloc_(1,num_bytes,zero_mem,0);
     vector_insert(mm_allocator->malloc_requests,memory,void*);
+    // Set reference
+    if (gem_expect_false(mm_reference!=NULL)) {
+      mm_reference->segment_id = UINT32_MAX;
+    }
+    // Return
     return memory;
   }
 }
@@ -264,22 +288,22 @@ void* mm_allocator_allocate(
 void mm_allocator_search_segment(
     mm_allocator_t* const mm_allocator,
     void* const memory,
-    mm_allocator_segment_t** const segment,
-    uint64_t* const segment_idx) {
+    mm_allocator_segment_t** const out_segment,
+    uint64_t* const out_segment_idx) {
   // Traverse all used segments
-  const uint64_t segments_used = vector_get_used(mm_allocator->segments);
-  mm_allocator_segment_t* segments = vector_get_mem(mm_allocator->segments,mm_allocator_segment_t);
+  const uint64_t segments_used = mm_allocator_get_num_segments(mm_allocator);
   uint64_t i;
-  for (i=0;i<segments_used;++i,++segments) {
-    if (segments->memory_base <= memory &&
-        (memory - segments->memory_base) < segments->segment_size) {
-      *segment = segments;
-      *segment_idx = i;
+  for (i=0;i<segments_used;++i) {
+    mm_allocator_segment_t* const segment = mm_allocator_get_segment(mm_allocator,i);
+    if (segment->memory_base <= memory &&
+        (memory - segment->memory_base) < segment->segment_size) {
+      *out_segment = segment;
+      *out_segment_idx = i;
       return;
     }
   }
   // Segment not found.
-  *segment = NULL;
+  *out_segment = NULL;
 }
 void mm_allocator_search_request(
     mm_allocator_segment_t* const segment,
@@ -302,32 +326,6 @@ void mm_allocator_search_request(
         hi = mid;
       }
     }
-//    // 4-way search of the request
-//    uint64_t lo = 0;
-//    uint64_t hi = total_requests-1;
-//    while (lo < hi) {
-//      const uint64_t search_range = hi-lo;
-//      const uint64_t quarter = (search_range>=4) ? search_range/4 : 1;
-//      uint64_t pivot_begin = lo + quarter;
-//      if (offset_request <= requests[pivot_begin].offset) {
-//        hi = pivot_begin;
-//      } else {
-//        uint64_t pivot_end =  pivot_begin + quarter;
-//        if (offset_request < requests[pivot_end].offset) {
-//          lo = pivot_begin;
-//          hi = pivot_end-1;
-//        } else {
-//          pivot_begin = pivot_end;
-//          pivot_end += quarter;
-//          if (offset_request < requests[pivot_end].offset) {
-//            lo = pivot_begin;
-//            hi = pivot_end-1;
-//          } else {
-//            lo = pivot_end;
-//          }
-//        }
-//      }
-//    }
     // Return request
     *request = requests + lo;
     *request_idx = lo;
@@ -342,18 +340,19 @@ void mm_allocator_search_request(
  */
 bool mm_allocator_free_recycle_segment(mm_allocator_t* const mm_allocator) {
   // Fetch first segment & clean
-  mm_allocator_segment_t* const segment = vector_get_mem(mm_allocator->segments,mm_allocator_segment_t);
-  mm_allocator_segment_clear(segment);
+  mm_allocator_segment_t** const segments =
+      vector_get_mem(mm_allocator->segments_cbuffer,mm_allocator_segment_t*);
+  mm_allocator_segment_t* const first_segment = segments[0];
+  mm_allocator_segment_clear(first_segment);
   // Check segment
-  const uint64_t num_segments = vector_get_used(mm_allocator->segments);
+  const uint64_t num_segments = mm_allocator_get_num_segments(mm_allocator);
   if (mm_allocator->segment_idx==0) return false; // No need to recycle
   // Shift segments
-  mm_allocator_segment_t first_segment = *segment;
   uint64_t i;
   for (i=0;i<num_segments-1;++i) {
-    segment[i] = segment[i+1];
+    segments[i] = segments[i+1];
   }
-  segment[num_segments-1] = first_segment;
+  segments[num_segments-1] = first_segment;
   --(mm_allocator->segment_idx);
   return true; // Recycling done
 }
@@ -371,12 +370,12 @@ bool mm_allocator_free_contiguous_segment(mm_allocator_segment_t* const segment)
   return true; // Segment fully freed
 }
 void mm_allocator_free_contiguous_memory(mm_allocator_t* const mm_allocator) {
-  mm_allocator_segment_t* segment = vector_get_mem(mm_allocator->segments,mm_allocator_segment_t);
+  mm_allocator_segment_t* segment = mm_allocator_get_segment(mm_allocator,0);
   while (mm_allocator_free_contiguous_segment(segment)) {
     // Recycle free segment (first one)
     if (!mm_allocator_free_recycle_segment(mm_allocator)) break;
     // Fetch next segment
-    segment = vector_get_mem(mm_allocator->segments,mm_allocator_segment_t);
+    segment = mm_allocator_get_segment(mm_allocator,0);
   }
 }
 void mm_allocator_free_malloc(
@@ -434,9 +433,33 @@ void mm_allocator_free(
     // Free request
     MM_ALLOCATOR_REQUEST_SET_FREE(request);
     // Free contiguous request(s)
-    if (segment_idx==0 && !stacked_pending) {
+    // if (segment_idx==0 && !stacked_pending) {
+    if (!stacked_pending && segment->request_freed_idx==request_idx) {
       mm_allocator_free_contiguous_memory(mm_allocator);
     }
+  }
+}
+void mm_allocator_free_reference(
+    mm_allocator_t* const mm_allocator,
+    void* memory,
+    mm_allocator_reference_t* const mm_reference) {
+  // Malloc Memory
+  if (gem_expect_false(mm_reference->segment_id==UINT32_MAX)) {
+    mm_allocator_free_malloc(mm_allocator,memory);
+    return;
+  }
+  // Allocator Memory. Fetch request
+  mm_allocator_segment_t* const segment = *(vector_get_elm(
+      mm_allocator->segments_index,mm_reference->segment_id,mm_allocator_segment_t*));
+  mm_allocator_request_t* const request = vector_get_elm(
+      segment->mem_requests,mm_reference->request_offset,mm_allocator_request_t);
+  gem_cond_fatal_error(MM_ALLOCATOR_REQUEST_IS_FREE(request),MM_ALLOCATOR_FREE_DOUBLE);
+  // Free request
+  MM_ALLOCATOR_REQUEST_SET_FREE(request);
+  // Free contiguous request(s)
+  const bool stacked_pending = (vector_get_used(mm_allocator->states)>0);
+  if (!stacked_pending && segment->request_freed_idx==mm_reference->request_offset) {
+    mm_allocator_free_contiguous_memory(mm_allocator);
   }
 }
 /*
@@ -454,8 +477,7 @@ void mm_allocator_push_memory_state(
   vector_alloc_new(mm_allocator->states,mm_allocator_state_t,state);
   // Setup state
   state->segment_idx = mm_allocator->segment_idx;
-  mm_allocator_segment_t* const curr_segment =
-      vector_get_elm(mm_allocator->segments,mm_allocator->segment_idx,mm_allocator_segment_t);
+  mm_allocator_segment_t* const curr_segment = mm_allocator_get_segment(mm_allocator,mm_allocator->segment_idx);
   state->num_requests = vector_get_used(curr_segment->mem_requests);
   state->offset_available = curr_segment->offset_available;
   state->num_malloc_requests = vector_get_used(mm_allocator->malloc_requests);
@@ -464,14 +486,14 @@ void mm_allocator_push_memory_state(
   state->line_no = line_no;
 #endif
 }
-void mm_allocator_pop_memory_state(mm_allocator_t* const mm_allocator) {
+void mm_allocator_pop_memory_state(
+    mm_allocator_t* const mm_allocator) {
   // Pop state
   mm_allocator_state_t* const state = vector_get_last_elm(mm_allocator->states,mm_allocator_state_t);
   vector_dec_used(mm_allocator->states);
   // Restore allocated memory state
   mm_allocator->segment_idx = state->segment_idx;
-  mm_allocator_segment_t* const curr_segment =
-      vector_get_elm(mm_allocator->segments,mm_allocator->segment_idx,mm_allocator_segment_t);
+  mm_allocator_segment_t* const curr_segment = mm_allocator_get_segment(mm_allocator,state->segment_idx);
   vector_set_used(curr_segment->mem_requests,state->num_requests);
   curr_segment->offset_available = state->offset_available;
   // Restore malloc memory state
@@ -550,7 +572,7 @@ void mm_allocator_print_requests(
   uint64_t free_block = 0;
   fprintf(stream,"  => Memory.requests\n");
   for (segment_idx=0;segment_idx<=mm_allocator->segment_idx;++segment_idx) {
-    mm_allocator_segment_t* const segment = vector_get_elm(mm_allocator->segments,segment_idx,mm_allocator_segment_t);
+    mm_allocator_segment_t* const segment = mm_allocator_get_segment(mm_allocator,segment_idx);
     const uint64_t num_requests = vector_get_used(segment->mem_requests);
     for (local_request_idx=0;local_request_idx<num_requests;++local_request_idx,++global_request_idx) {
       mm_allocator_request_t* const request =
@@ -581,8 +603,8 @@ void mm_allocator_print(
   // Print header
   fprintf(stream,"[GEM]> MM-Allocator Report\n");
   // Print segment information
-  const uint64_t num_segments = vector_get_used(mm_allocator->segments);
-  const uint64_t segment_size = vector_get_elm(mm_allocator->segments,0,mm_allocator_segment_t)->segment_size;
+  const uint64_t num_segments = mm_allocator_get_num_segments(mm_allocator);
+  const uint64_t segment_size = mm_allocator_get_segment(mm_allocator,0)->segment_size;
   fprintf(stream,"  => Segments.allocated %lu\n",num_segments);
   fprintf(stream,"    => Segments.size %lu MB\n",CONVERT_B_TO_MB(segment_size));
   fprintf(stream,"    => Memory.available %lu MB\n",num_segments*CONVERT_B_TO_MB(segment_size));
@@ -597,7 +619,7 @@ void mm_allocator_print(
   mm_allocator_print_states(stream,mm_allocator);
   // Print memory requests
   if (display_requests) {
-    mm_allocator_print_requests(stream,mm_allocator,true);
+    mm_allocator_print_requests(stream,mm_allocator,false);
   }
 }
 

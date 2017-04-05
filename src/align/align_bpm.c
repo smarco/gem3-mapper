@@ -138,6 +138,47 @@ void align_bpm_compute_matrix(
 /*
  * BPM. Recover CIGAR from a matching string
  */
+const cigar_t align_bpm_backtrace_operation[16] = {
+    /*
+     * left_gap_alignment x deletion x insertion x match
+     */
+//  if (!left_gap_alignment)
+//  if (match) {
+//    operation = cigar_match;
+//  } else if (deletion) {
+//    operation = cigar_del;
+//  } else if (insertion) {
+//    operation = cigar_ins;
+//  } else {
+//    operation = cigar_mismatch;
+//  }
+    /* 0000 */ cigar_mismatch,
+    /* 0001 */ cigar_match,
+    /* 0010 */ cigar_ins,
+    /* 0011 */ cigar_match,
+    /* 0100 */ cigar_del,
+    /* 0101 */ cigar_match,
+    /* 0110 */ cigar_del,
+    /* 0111 */ cigar_match,
+//  if (left_gap_alignment)
+//  if (deletion) {
+//    operation = cigar_del;
+//  } else if (insertion) {
+//    operation = cigar_ins;
+//  } else if (match) {
+//    operation = cigar_match;
+//  } else {
+//    operation = cigar_mismatch;
+//  }
+    /* 1000 */ cigar_mismatch,
+    /* 1001 */ cigar_match,
+    /* 1010 */ cigar_ins,
+    /* 1011 */ cigar_ins,
+    /* 1100 */ cigar_del,
+    /* 1101 */ cigar_del,
+    /* 1110 */ cigar_del,
+    /* 1111 */ cigar_del,
+};
 void align_bpm_backtrace_matrix(
     const bpm_pattern_t* const bpm_pattern,
     const uint8_t* const key,
@@ -166,26 +207,33 @@ void align_bpm_backtrace_matrix(
     const uint64_t bdp_idx = BPM_PATTERN_BDP_IDX(h+1,num_words64,block);
     const uint64_t mask = 1L << (v % UINT64_LENGTH);
     // Select CIGAR operation
-    const bool deletion = Pv[bdp_idx] & mask;
-    const bool insertion = Mv[(bdp_idx-num_words64)] & mask;
-    const bool match = text[h]==key[v] && key[v]!=ENC_DNA_CHAR_N; // N's Inequality
+    //    const uint64_t left_gap_alignment_b = (left_gap_alignment==true);
+    //    const uint64_t deletion = (Pv[bdp_idx] & mask) != 0;
+    //    const uint64_t insertion = (Mv[(bdp_idx-num_words64)] & mask) != 0;
+    //    const uint64_t match = (text[h]==key[v] && key[v]!=ENC_DNA_CHAR_N) != 0; // N's Inequality
+    //    const uint64_t operation_idx = left_gap_alignment_b<<3 | deletion<<2 | insertion<<1 | match;
+    //    const cigar_t operation = align_bpm_backtrace_operation[operation_idx];
+    // CIGAR operation Test
+    #define IS_DELETION   (Pv[bdp_idx] & mask)
+    #define IS_INSERTION  (Mv[(bdp_idx-num_words64)] & mask)
+    #define IS_MATCH      ((text[h]==key[v] && key[v]!=ENC_DNA_CHAR_N))
     cigar_t operation;
     if (left_gap_alignment) {
-      if (deletion) {
+      if (IS_DELETION) {
         operation = cigar_del;
-      } else if (insertion) {
+      } else if (IS_INSERTION) {
         operation = cigar_ins;
-      } else if (match) {
+      } else if (IS_MATCH) {
         operation = cigar_match;
       } else {
         operation = cigar_mismatch;
       }
     } else {
-      if (match) {
+      if (IS_MATCH) {
         operation = cigar_match;
-      } else if (deletion) {
+      } else if (IS_DELETION) {
         operation = cigar_del;
-      } else if (insertion) {
+      } else if (IS_INSERTION) {
         operation = cigar_ins;
       } else {
         operation = cigar_mismatch;

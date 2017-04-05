@@ -88,7 +88,8 @@ void filtering_region_verify_hamming(
     if (alignment->distance_min_bound != ALIGN_DISTANCE_INF) {
       alignment->num_tiles = 1;
       alignment_tile_t* const alignment_tiles =
-          filtering_candidates_allocate_alignment_tiles(filtering_candidates,1);
+          filtering_candidates_allocate_alignment_tiles(
+              filtering_candidates,1,&alignment->mm_reference);
       alignment->alignment_tiles = alignment_tiles;
       alignment_tiles->distance = alignment->distance_min_bound;
       alignment_tiles->text_begin_offset = text_base_offset;
@@ -104,11 +105,10 @@ void filtering_region_verify_hamming(
 void filtering_region_verify_levenshtein(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
+    const bool kmer_count_filter,
     pattern_t* const pattern) {
   // Parameters
   search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
-  const candidate_verification_t candidate_verification = search_parameters->candidate_verification;
-  const bool chained_filters = (candidate_verification.strategy == candidate_verification_chained);
   const uint64_t max_error = pattern->max_effective_filtering_error;
   text_trace_t* const text_trace = &filtering_region->text_trace;
   const uint64_t text_length = text_trace->text_padded_length;
@@ -117,7 +117,7 @@ void filtering_region_verify_levenshtein(
   // Prepare Alignment
   filtering_candidates_init_alignment(filtering_candidates,alignment,pattern,text_length,max_error);
   // Filter using kmer-counting
-  if (chained_filters) {
+  if (kmer_count_filter) {
     alignment_verify_edit_kmer(
         &filtering_region->alignment,&pattern->pattern_tiled,
         pattern->key,pattern->key_length,text,text_length,max_error,
@@ -147,6 +147,7 @@ void filtering_region_verify_levenshtein(
 bool filtering_region_verify(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
+    const bool kmer_count_filter,
     pattern_t* const pattern) {
   PROF_START(GP_FC_VERIFY_CANDIDATES_REGION);
   // Parameters
@@ -171,7 +172,8 @@ bool filtering_region_verify(
       case match_alignment_model_none:
         // Verify Levenshtein
         filtering_region_verify_levenshtein(
-            filtering_candidates,filtering_region,pattern);
+            filtering_candidates,filtering_region,
+            kmer_count_filter,pattern);
         break;
       default:
         GEM_INVALID_CASE();

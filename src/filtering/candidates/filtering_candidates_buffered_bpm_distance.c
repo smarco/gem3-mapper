@@ -272,7 +272,7 @@ void filtering_candidates_buffered_bpm_distance_retrieve_region(
   const uint64_t text_length =
       filtering_region->text_end_position - filtering_region->text_begin_position;
   if (key_length > text_length) {
-    if (filtering_region_verify(filtering_candidates,filtering_region,pattern)) {
+    if (filtering_region_verify(filtering_candidates,filtering_region,false,pattern)) {
       PROF_INC_COUNTER(GP_ACCEPTED_REGIONS);
       vector_insert(filtering_candidates->filtering_regions,filtering_region,filtering_region_t*);
     } else {

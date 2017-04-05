@@ -46,6 +46,10 @@ uint64_t filtering_candidates_verify_filtering_regions(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const pattern) {
   PROFILE_START(GP_FC_VERIFY_CANDIDATES,PROFILE_LEVEL);
+  // Parameters
+  search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
+  const candidate_verification_t candidate_verification = search_parameters->candidate_verification;
+  const bool kmer_count_filter = (candidate_verification.strategy == candidate_verification_chained);
   // Traverse all regions (text-space)
   const uint64_t num_filtering_regions = filtering_candidates_get_num_regions(filtering_candidates);
   filtering_region_t** const regions_in = filtering_candidates_get_regions(filtering_candidates);
@@ -56,7 +60,7 @@ uint64_t filtering_candidates_verify_filtering_regions(
   for (n=0;n<num_filtering_regions;++n) {
     // Verify region
     filtering_region_t* const filtering_region = regions_in[n];
-    if (filtering_region_verify(filtering_candidates,filtering_region,pattern)) {
+    if (filtering_region_verify(filtering_candidates,filtering_region,kmer_count_filter,pattern)) {
       regions_out[num_regions_out++] = filtering_region;
       ++num_regions_accepted;
     } else {

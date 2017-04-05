@@ -54,6 +54,7 @@ typedef struct {
   match_alignment_t match_alignment;
   /* MM */
   mm_allocator_t* mm_allocator;
+  mm_allocator_reference_t mm_reference;
 } match_scaffold_t;
 
 /*

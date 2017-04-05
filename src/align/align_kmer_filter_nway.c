@@ -109,15 +109,20 @@ void kmer_counting_compile_nway(
   kmer_counting->key_tile_length = key_tile_length;
   if (kmer_counting->key_tile_length < kmer_counting->kmer_length) return; // Disabled kmer counting
   kmer_counting->num_tiles = num_tiles;
-  kmer_counting->key_tiles = mm_allocator_calloc(mm_allocator,num_tiles,kmer_counting_key_tile_t,false);
-  kmer_counting->text_tiles = mm_allocator_calloc(mm_allocator,num_tiles,kmer_counting_text_tile_t,false);
   // Profile tables
   if (count_pattern_kmers) {
-    kmer_counting->kmer_count_text =
-        mm_allocator_calloc(mm_allocator,kmer_counting->num_kmers*num_tiles,uint16_t,false);
-    kmer_counting->kmer_count_pattern =
-        mm_allocator_calloc(mm_allocator,kmer_counting->num_kmers*num_tiles,uint16_t,true);
+    const uint64_t tiles_size = num_tiles * sizeof(kmer_counting_key_tile_t);
+    const uint64_t kmer_table_size = kmer_counting->num_kmers*num_tiles*sizeof(uint16_t);
+    void* const memory = mm_allocator_malloc(mm_allocator,2*tiles_size+2*kmer_table_size);
+    kmer_counting->key_tiles = memory;
+    kmer_counting->text_tiles = memory + tiles_size;
+    kmer_counting->kmer_count_text = memory + 2*tiles_size;
+    kmer_counting->kmer_count_pattern = memory + 2*tiles_size + kmer_table_size;
   } else {
+    const uint64_t tiles_size = num_tiles * sizeof(kmer_counting_key_tile_t);
+    void* const memory = mm_allocator_malloc(mm_allocator,2*tiles_size);
+    kmer_counting->key_tiles = memory;
+    kmer_counting->text_tiles = memory + tiles_size;
     kmer_counting->kmer_count_text = NULL;
     kmer_counting->kmer_count_pattern = NULL;
   }
@@ -138,19 +143,17 @@ void kmer_counting_compile_nway(
     if (count_pattern_kmers) {
       uint64_t pos, kmer_idx=0, acc=0;
       for (pos=chunk_offset;pos<chunk_end;++pos) {
-        uint8_t enc_char = key[pos];
-        //const uint8_t enc_char = key[pos];
-        //if (enc_char==ENC_DNA_CHAR_N) {
-        //  acc = 0;
-        //} else {
-          enc_char &= 0x3;
+        const uint8_t enc_char = key[pos];
+        if (gem_expect_false(enc_char==ENC_DNA_CHAR_N)) {
+          acc = 0;
+        } else {
           KMER_COUNTING_ADD_INDEX__MASK(kmer_idx,enc_char); // Update kmer-index
           if (acc < kmer_counting->kmer_length-1) {
             ++acc; // Inc accumulator
           } else {
             ++(kmer_count_pattern[kmer_idx*num_tiles+chunk_idx]); // Increment kmer-count
           }
-        //}
+        }
       }
     }
     // Next chunk
@@ -163,13 +166,6 @@ void kmer_counting_destroy(
     mm_allocator_t* const mm_allocator) {
   if (kmer_counting->key_tiles!=NULL) {
     mm_allocator_free(mm_allocator,kmer_counting->key_tiles);
-    mm_allocator_free(mm_allocator,kmer_counting->text_tiles);
-    if (kmer_counting->kmer_count_text!=NULL) {
-      mm_allocator_free(mm_allocator,kmer_counting->kmer_count_text);
-    }
-    if (kmer_counting->kmer_count_pattern!=NULL) {
-      mm_allocator_free(mm_allocator,kmer_counting->kmer_count_pattern);
-    }
     kmer_counting->key_tiles = NULL;
   }
 }

@@ -71,7 +71,8 @@ void filtering_candidates_init_alignment(
   // Allocate & initialize alignment
   const uint64_t num_tiles = pattern->pattern_tiled.num_tiles;
   alignment->alignment_tiles =
-      filtering_candidates_allocate_alignment_tiles(filtering_candidates,num_tiles);
+      filtering_candidates_allocate_alignment_tiles(
+          filtering_candidates,num_tiles,&alignment->mm_reference);
   alignment_init(
       alignment,pattern->key_length,0,text_length,max_error,
       num_tiles,pattern->pattern_tiled.tile_length);
@@ -133,8 +134,10 @@ void filtering_candidates_inject_handlers(
  */
 filtering_position_t* filtering_candidates_allocate_position(
     filtering_candidates_t* const filtering_candidates) {
-  filtering_position_t* const position = mm_allocator_calloc(
-      filtering_candidates->mm_allocator,1,filtering_position_t,true);
+  mm_allocator_reference_t mm_reference;
+  filtering_position_t* const position = mm_allocator_allocate_reference(
+      filtering_candidates->mm_allocator,sizeof(filtering_position_t),false,&mm_reference);
+  position->mm_reference = mm_reference;
   vector_insert(filtering_candidates->filtering_positions,position,filtering_position_t*);
   return position;
 }
@@ -142,12 +145,16 @@ void filtering_candidates_free_position(
     const filtering_candidates_t* const filtering_candidates,
     filtering_position_t* const filtering_position) {
   // Free handler
-  mm_allocator_free(filtering_candidates->mm_allocator,filtering_position);
+  mm_allocator_free_reference(
+      filtering_candidates->mm_allocator,
+      filtering_position,&filtering_position->mm_reference);
 }
 filtering_region_t* filtering_candidates_allocate_region(
     filtering_candidates_t* const filtering_candidates) {
-  filtering_region_t* const region = mm_allocator_calloc(
-      filtering_candidates->mm_allocator,1,filtering_region_t,true);
+  mm_allocator_reference_t mm_reference;
+  filtering_region_t* const region = mm_allocator_allocate_reference(
+      filtering_candidates->mm_allocator,sizeof(filtering_region_t),false,&mm_reference);
+  region->mm_reference = mm_reference;
   vector_insert(filtering_candidates->filtering_regions,region,filtering_region_t*);
   return region;
 }
@@ -158,23 +165,30 @@ void filtering_candidates_free_region(
   text_trace_destroy(&filtering_region->text_trace,filtering_candidates->mm_allocator);
   // Free alignment tiles
   filtering_candidates_free_alignment_tiles(
-      filtering_candidates,filtering_region->alignment.alignment_tiles);
+      filtering_candidates,filtering_region->alignment.alignment_tiles,
+      &filtering_region->alignment.mm_reference);
   // Free scaffold
   match_scaffold_destroy(&filtering_region->match_scaffold);
   // Free handler
-  mm_allocator_free(filtering_candidates->mm_allocator,filtering_region);
+  mm_allocator_free_reference(
+      filtering_candidates->mm_allocator,
+      filtering_region,&filtering_region->mm_reference);
 }
 alignment_tile_t* filtering_candidates_allocate_alignment_tiles(
     filtering_candidates_t* const filtering_candidates,
-    const uint64_t num_alignment_tiles) {
-  return mm_allocator_calloc(filtering_candidates->mm_allocator,
-      num_alignment_tiles,alignment_tile_t,false);
+    const uint64_t num_alignment_tiles,
+    mm_allocator_reference_t* const mm_reference) {
+  return mm_allocator_allocate_reference(filtering_candidates->mm_allocator,
+      num_alignment_tiles*sizeof(alignment_tile_t),false,mm_reference);
 }
 void filtering_candidates_free_alignment_tiles(
     const filtering_candidates_t* const filtering_candidates,
-    alignment_tile_t* const alignment_tile) {
+    alignment_tile_t* const alignment_tile,
+    mm_allocator_reference_t* const mm_reference) {
   if (alignment_tile!=NULL) {
-    mm_allocator_free(filtering_candidates->mm_allocator,alignment_tile);
+    mm_allocator_free_reference(
+        filtering_candidates->mm_allocator,
+        alignment_tile,mm_reference);
   }
 }
 /*

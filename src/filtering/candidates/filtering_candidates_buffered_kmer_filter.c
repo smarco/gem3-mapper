@@ -173,11 +173,6 @@ void filtering_candidates_buffered_kmer_filter_retrieve_region(
     PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_ACCEPTED);
     return;
   }
-  // Detect already discarded region
-  if (alignment->distance_min_bound==ALIGN_DISTANCE_INF) {
-    GEM_INVALID_CASE(); // FIXME FIXME FIXME FIXME FIXME
-    return;             // FIXME FIXME FIXME FIXME FIXME
-  }
   // Retrieve min-bound
   uint64_t min_distance_bound;
   if (gpu_buffer_kmer_filter->kmer_filter_enabled) {
@@ -196,9 +191,9 @@ void filtering_candidates_buffered_kmer_filter_retrieve_region(
     }
     #endif
   } else {
-    min_distance_bound =
-        filtering_candidates_buffered_kmer_filter_compute_alignment(
-            filtering_candidates,filtering_region,pattern);
+    min_distance_bound = 0; // Unknown
+//        filtering_candidates_buffered_kmer_filter_compute_alignment(
+//            filtering_candidates,filtering_region,pattern);
   }
   if (min_distance_bound <= max_error) {
     alignment->distance_min_bound = ALIGN_DISTANCE_UNKNOWN;

@@ -126,9 +126,19 @@ swg_cell_t** align_swg_allocate_table(
     mm_allocator_t* const mm_allocator) {
   swg_cell_t** const dp = mm_allocator_malloc(mm_allocator,num_columns*sizeof(swg_cell_t*));
   const uint64_t row_size = num_rows*sizeof(swg_cell_t);
+  const uint64_t table_size = num_columns*row_size;
+  // Switch to improve allocation efficiency
   uint64_t column;
-  for (column=0;column<num_columns;++column) {
-    dp[column] = mm_allocator_malloc(mm_allocator,row_size);
+  if (table_size < BUFFER_SIZE_2M) {
+    void* memory = mm_allocator_malloc(mm_allocator,table_size);
+    for (column=0;column<num_columns;++column) {
+      dp[column] = memory;
+      memory += row_size;
+    }
+  } else {
+    for (column=0;column<num_columns;++column) {
+      dp[column] = mm_allocator_malloc(mm_allocator,row_size);
+    }
   }
   return dp;
 }

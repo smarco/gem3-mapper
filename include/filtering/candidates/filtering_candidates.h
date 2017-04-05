@@ -45,18 +45,20 @@ typedef struct {
   uint64_t decode_distance;
   uint64_t decode_sampled_pos;
   // Region location
-  uint64_t region_index_position;      // Begin region position (index-space)
-  uint64_t region_text_position;       // Begin region position (text-space)
-  uint64_t align_distance;             // Align-distance if already know (NSed positions)
+  uint64_t region_index_position;        // Begin region position (index-space)
+  uint64_t region_text_position;         // Begin region position (text-space)
+  uint64_t align_distance;               // Align-distance if already know (NSed positions)
   // Source Region
-  uint64_t source_region_begin;        // Source-region Begin
-  uint64_t source_region_end;          // Source-region End
-  uint64_t source_region_error;        // Source-region Error
-  uint64_t source_region_text_offset;  // Source-region Text-Offset
+  uint64_t source_region_begin;          // Source-region Begin
+  uint64_t source_region_end;            // Source-region End
+  uint64_t source_region_error;          // Source-region Error
+  uint64_t source_region_text_offset;    // Source-region Text-Offset
   // Position
-  uint64_t sequence_id;                // Id of the sequence the position belongs to
-  uint64_t text_begin_position;        // Region effective begin position (adjusted to error boundaries)
-  uint64_t text_end_position;          // Region effective end position (adjusted to error boundaries)
+  uint64_t sequence_id;                  // Id of the sequence the position belongs to
+  uint64_t text_begin_position;          // Region effective begin position (adjusted to error boundaries)
+  uint64_t text_end_position;            // Region effective end position (adjusted to error boundaries)
+  // MM
+  mm_allocator_reference_t mm_reference; // MM Reference
 } filtering_position_t;
 /*
  * Filtering Candidates
@@ -120,10 +122,12 @@ void filtering_candidates_free_region(
 
 alignment_tile_t* filtering_candidates_allocate_alignment_tiles(
     filtering_candidates_t* const filtering_candidates,
-    const uint64_t num_alignment_tiles);
+    const uint64_t num_alignment_tiles,
+    mm_allocator_reference_t* const mm_reference);
 void filtering_candidates_free_alignment_tiles(
     const filtering_candidates_t* const filtering_candidates,
-    alignment_tile_t* const alignment_tile);
+    alignment_tile_t* const alignment_tile,
+    mm_allocator_reference_t* const mm_reference);
 
 /*
  * Filtering Positions

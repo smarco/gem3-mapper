@@ -55,7 +55,7 @@ void archive_search_configure(
   memcpy(&archive_search->search_parameters,search_parameters,sizeof(search_parameters_t));
   archive_search->buffered_search = buffered_search;
   // Sequence
-  archive_search->input_sequence = NULL;
+  archive_search->sequence = NULL;
 }
 void archive_search_se_new(
     search_parameters_t* const search_parameters,
@@ -86,9 +86,9 @@ void archive_search_destroy(
   // Clear Approximate Search
   approximate_search_destroy(&archive_search->approximate_search);
   // Clear Sequence
-  sequence_destroy(archive_search->input_sequence);
-  mm_allocator_free(archive_search->mm_allocator,archive_search->input_sequence);
-  archive_search->input_sequence = NULL;
+  sequence_destroy(archive_search->sequence);
+  mm_allocator_free(archive_search->mm_allocator,archive_search->sequence);
+  archive_search->sequence = NULL;
 }
 void archive_search_delete(
     archive_search_t* const archive_search) {
@@ -105,7 +105,7 @@ void archive_search_prepare_sequence(
   // Instantiate parameters actual-values
   const uint64_t sequence_length = sequence_get_length(sequence);
   search_instantiate_values(&archive_search->search_parameters,sequence_length);
-  archive_search->input_sequence = sequence;
+  archive_search->sequence = sequence;
   // Prepare the pattern
   const bool run_length_pattern = archive_search->archive->text->run_length;
   approximate_search_prepare(

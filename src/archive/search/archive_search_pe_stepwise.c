@@ -58,7 +58,7 @@ void archive_search_pe_stepwise_debug_preface(
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_PE_STEPWISE) {
     tab_fprintf(stderr,
         "[GEM]>ArchiveSearch.STEPWISE.PE :: %s (Tag=%s)\n",
-        label,archive_search->input_sequence->tag.buffer);
+        label,archive_search->sequence->tag.buffer);
     tab_global_inc();
   }
 }
@@ -76,9 +76,9 @@ void archive_search_pe_stepwise_init_search(
   // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_PE_STEPWISE) {
     tab_fprintf(stderr,"[GEM]>ArchiveSearch.STEPWISE.PE :: Region.Profile.Generate\n");
-    tab_fprintf(gem_log_get_stream(),"  => Tag %s\n",archive_search_end1->input_sequence->tag.buffer);
-    tab_fprintf(gem_log_get_stream(),"  => Sequence.End1 %s\n",archive_search_end1->input_sequence->read.buffer);
-    tab_fprintf(gem_log_get_stream(),"  => Sequence.End2 %s\n",archive_search_end2->input_sequence->read.buffer);
+    tab_fprintf(gem_log_get_stream(),"  => Tag %s\n",archive_search_end1->sequence->tag.buffer);
+    tab_fprintf(gem_log_get_stream(),"  => Sequence.End1 %s\n",archive_search_end1->sequence->read.buffer);
+    tab_fprintf(gem_log_get_stream(),"  => Sequence.End2 %s\n",archive_search_end2->sequence->read.buffer);
   }
   // Init
   archive_search_end1->pair_searched = false;
@@ -347,8 +347,8 @@ void archive_search_pe_stepwise_finish_search(
   if (search_parameters->check_type!=archive_check_nothing) {
     archive_check_pe_matches(
         archive_search_end1->archive,search_parameters->match_alignment_model,
-        &search_parameters->swg_penalties,archive_search_end1->input_sequence,
-        archive_search_end2->input_sequence,paired_matches,
+        &search_parameters->swg_penalties,archive_search_end1->sequence,
+        archive_search_end2->sequence,paired_matches,
         search_parameters->check_type,archive_search_end1->mm_allocator);
   }
   // DEBUG

@@ -409,10 +409,10 @@ void output_map_single_end_matches(
     output_map_parameters_t* const output_map_parameters) {
   PROF_START_TIMER(GP_OUTPUT_MAP_SE);
   // Print TAG
-  output_map_single_end_print_tag(buffered_output_file,archive_search->input_sequence);
+  output_map_single_end_print_tag(buffered_output_file,archive_search->sequence);
   // Print READ & QUALITIES
   output_map_print_separator(buffered_output_file,'\t'); // Separator
-  output_map_single_end_print_read__qualities(buffered_output_file,archive_search->input_sequence);
+  output_map_single_end_print_read__qualities(buffered_output_file,archive_search->sequence);
   // Print COUNTERS
   output_map_print_separator(buffered_output_file,'\t'); // Separator
   output_map_print_counters(buffered_output_file,matches->counters,matches->max_complete_stratum,false);
@@ -453,13 +453,13 @@ void output_map_paired_end_matches(
     output_map_single_end_matches(buffered_output_file,archive_search_end2,matches_end2,output_map_parameters);
   } else {
     // Print TAG
-    output_map_paired_end_print_tag(buffered_output_file,archive_search_end1->input_sequence);
+    output_map_paired_end_print_tag(buffered_output_file,archive_search_end1->sequence);
     // Print READ & QUALITIES
     output_map_print_separator(buffered_output_file,'\t'); // Separator
     output_map_paired_end_print_read__qualities(
         buffered_output_file,
-        archive_search_end1->input_sequence,
-        archive_search_end2->input_sequence);
+        archive_search_end1->sequence,
+        archive_search_end2->sequence);
     // Print COUNTERS
     output_map_print_separator(buffered_output_file,'\t'); // Separator
     output_map_print_counters(buffered_output_file,paired_matches->counters,paired_matches->max_complete_stratum,false);

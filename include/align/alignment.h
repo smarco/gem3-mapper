@@ -52,6 +52,8 @@ typedef struct {
   uint64_t distance_min_bound;              // Distance min-bound (Sum all tile distances)
   uint64_t distance_rank;
   alignment_tile_t* alignment_tiles;        // Alignment of all tiles
+  // MM
+  mm_allocator_reference_t mm_reference;    // MM Reference
 } alignment_t;
 
 /*

@@ -57,7 +57,7 @@ typedef struct {
   bool pair_extended_shortcut;               // Paired extension performed (to shortcut)
   /* Parameters */
   search_parameters_t search_parameters;     // Search parameters
-  sequence_t* input_sequence;                // Input Sequence
+  sequence_t* sequence;                      // Input Sequence
   bool buffered_search;                      // Buffered Search
   /* Approximate Search */
   approximate_search_t approximate_search;   // Approximate Search State

@@ -67,6 +67,8 @@ typedef struct {
   /* Alignment */
   alignment_t alignment;                    // Filtering Region Alignment
   match_scaffold_t match_scaffold;          // Alignment-regions supporting the filtering region (Scaffolding)
+  // MM
+  mm_allocator_reference_t mm_reference;    // MM Reference
 } filtering_region_t;
 
 /*

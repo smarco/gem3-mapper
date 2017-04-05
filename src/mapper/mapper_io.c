@@ -338,7 +338,7 @@ void mapper_io_handler_output_matches(
     mapping_stats_t* const mstats) {
   // Bisulfite: Copy back original read
   if (mapper_io_handler->archive_bisulfite) {
-    sequence_bisulfite_restore_se(archive_search->input_sequence);
+    sequence_bisulfite_restore_se(archive_search->sequence);
   }
   // Output
 #ifdef MAPPER_OUTPUT
@@ -373,7 +373,7 @@ void mapper_io_handler_output_paired_matches(
   // Bisulfite: Copy back original read
   if (mapper_io_handler->archive_bisulfite) {
     sequence_bisulfite_restore_pe(
-        archive_search_end1->input_sequence,archive_search_end2->input_sequence);
+        archive_search_end1->sequence,archive_search_end2->sequence);
   }
   // Output
 #ifdef MAPPER_OUTPUT

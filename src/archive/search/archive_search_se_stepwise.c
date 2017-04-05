@@ -52,7 +52,7 @@ void archive_search_se_stepwise_debug_prologue(
     tab_fprintf(stderr,"[GEM]>ArchiveSearch.STEPWISE.SE :: %s (stage=%s,%s) (Tag=%s)\n",
         label,asearch_stage_label[archive_search->approximate_search.search_stage],
         asearch_processing_state_label[archive_search->approximate_search.processing_state],
-        archive_search->input_sequence->tag.buffer);
+        archive_search->sequence->tag.buffer);
     tab_global_inc();
   }
 }
@@ -245,7 +245,7 @@ void archive_search_se_stepwise_finish_search(
   if (search_parameters->check_type!=archive_check_nothing) {
     archive_check_se_matches(
         archive_search->archive,search_parameters->match_alignment_model,
-        &search_parameters->swg_penalties,archive_search->input_sequence,
+        &search_parameters->swg_penalties,archive_search->sequence,
         matches,search_parameters->check_type,archive_search->mm_allocator);
   }
   // DEBUG
