@@ -61,7 +61,7 @@ gpu_buffer_kmer_filter_t* gpu_buffer_kmer_filter_new(
   // Init buffer
   gpu_buffer_kmer_filter->kmer_filter_enabled = kmer_filter_enabled;
   gpu_buffer_kmer_filter->buffer = gpu_buffer_collection_get_buffer(gpu_buffer_collection,buffer_no);
-  gpu_kmer_init_buffer_(gpu_buffer_kmer_filter->buffer,
+  gpu_kmer_filter_init_buffer_(gpu_buffer_kmer_filter->buffer,
       gpu_buffer_kmer_filter_get_mean_query_length(gpu_buffer_kmer_filter),
       gpu_buffer_kmer_filter_get_mean_candidates_per_query(gpu_buffer_kmer_filter));
   gpu_buffer_kmer_filter->num_queries = 0;
@@ -82,7 +82,7 @@ gpu_buffer_kmer_filter_t* gpu_buffer_kmer_filter_new(
 void gpu_buffer_kmer_filter_clear(
     gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter) {
   // Init buffer
-  gpu_kmer_init_buffer_(gpu_buffer_kmer_filter->buffer,
+  gpu_kmer_filter_init_buffer_(gpu_buffer_kmer_filter->buffer,
       gpu_buffer_kmer_filter_get_mean_query_length(gpu_buffer_kmer_filter),
       gpu_buffer_kmer_filter_get_mean_candidates_per_query(gpu_buffer_kmer_filter));
   gpu_buffer_kmer_filter->num_queries = 0;
@@ -99,15 +99,15 @@ void gpu_buffer_kmer_filter_delete(
  */
 uint64_t gpu_buffer_kmer_filter_get_max_candidates(
     gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter) {
-  return gpu_kmer_buffer_get_max_candidates_(gpu_buffer_kmer_filter->buffer);
+  return gpu_kmer_filter_buffer_get_max_candidates_(gpu_buffer_kmer_filter->buffer);
 }
 uint64_t gpu_buffer_kmer_filter_get_max_queries(
     gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter) {
-  return gpu_kmer_buffer_get_max_queries_(gpu_buffer_kmer_filter->buffer);
+  return gpu_kmer_filter_buffer_get_max_queries_(gpu_buffer_kmer_filter->buffer);
 }
 uint64_t gpu_buffer_kmer_filter_get_query_buffer_size(
     gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter) {
-  return gpu_kmer_buffer_get_max_qry_bases_(gpu_buffer_kmer_filter->buffer);
+  return gpu_kmer_filter_buffer_get_max_qry_bases_(gpu_buffer_kmer_filter->buffer);
 }
 /*
  * Occupancy
@@ -152,7 +152,7 @@ bool gpu_buffer_kmer_filter_fits_in_buffer(
       return false; // Leave it to the next fresh buffer
     }
     // Reallocate buffer
-    gpu_kmer_init_and_realloc_buffer_(
+    gpu_kmer_filter_init_and_realloc_buffer_(
         gpu_buffer_kmer_filter->buffer,
         total_bases_padded,total_candidates,total_queries);
     // Check reallocated buffer dimensions (error otherwise)
@@ -180,9 +180,9 @@ void gpu_buffer_kmer_filter_add_pattern(
   // Parameters
   void* const gpu_buffer = gpu_buffer_kmer_filter->buffer;
   // Add query (all tiles)
-  gpu_kmer_qry_entry_t* const gpu_kmer_qry_entry = gpu_kmer_buffer_get_queries_(gpu_buffer);
-  gpu_kmer_qry_info_t* const gpu_kmer_qry_info =
-      gpu_kmer_buffer_get_qry_info_(gpu_buffer) + gpu_buffer_kmer_filter->num_queries;
+  gpu_kmer_filter_qry_entry_t* const gpu_kmer_qry_entry = gpu_kmer_filter_buffer_get_queries_(gpu_buffer);
+  gpu_kmer_filter_qry_info_t* const gpu_kmer_qry_info =
+      gpu_kmer_filter_buffer_get_qry_info_(gpu_buffer) + gpu_buffer_kmer_filter->num_queries;
   const uint64_t num_tiles = kmer_counting->num_tiles;
   uint64_t i, query_buffer_offset;
   query_buffer_offset = gpu_buffer_kmer_filter->query_buffer_offset;
@@ -213,8 +213,8 @@ void gpu_buffer_kmer_filter_add_candidate(
     kmer_counting_nway_t* const kmer_counting,
     const uint64_t candidate_text_position) {
   // Add candidates
-  gpu_kmer_cand_info_t* const gpu_kmer_cand_info =
-      gpu_kmer_buffer_get_candidates_(gpu_buffer_kmer_filter->buffer) + gpu_buffer_kmer_filter->num_candidates;
+  gpu_kmer_filter_cand_info_t* const gpu_kmer_cand_info =
+      gpu_kmer_filter_buffer_get_candidates_(gpu_buffer_kmer_filter->buffer) + gpu_buffer_kmer_filter->num_candidates;
   const uint64_t num_tiles = kmer_counting->num_tiles;
   uint64_t i;
   for (i=0;i<num_tiles;++i) {
@@ -238,8 +238,8 @@ uint32_t gpu_buffer_kmer_filter_get_min_edit_bound(
     const uint64_t candidate_base_offset,
     const uint64_t num_tiles) {
   // Get alignment result(s)
-  gpu_kmer_alg_entry_t* const gpu_kmer_alg_entry =
-      gpu_kmer_buffer_get_alignments_(gpu_buffer_kmer_filter->buffer) + candidate_base_offset;
+  gpu_kmer_filter_alg_entry_t* const gpu_kmer_alg_entry =
+      gpu_kmer_filter_buffer_get_alignments_(gpu_buffer_kmer_filter->buffer) + candidate_base_offset;
   // Add the bound of all tiles
   uint64_t i, min_edit_bound = 0;
   for (i=0;i<num_tiles;++i) {
@@ -299,7 +299,7 @@ void gpu_buffer_kmer_filter_send(
   // Select computing device
   if (gpu_buffer_kmer_filter->kmer_filter_enabled) {
     if (gpu_buffer_kmer_filter->num_candidates > 0) {
-      gpu_kmer_send_buffer_(
+      gpu_kmer_filter_send_buffer_(
           gpu_buffer_kmer_filter->buffer,
           gpu_buffer_kmer_filter->query_buffer_offset,
           gpu_buffer_kmer_filter->num_queries,
@@ -314,7 +314,7 @@ void gpu_buffer_kmer_filter_receive(
   PROF_START(GP_GPU_BUFFER_KMER_FILTER_RECEIVE);
   if (gpu_buffer_kmer_filter->kmer_filter_enabled) {
     if (gpu_buffer_kmer_filter->num_candidates > 0) {
-      gpu_kmer_receive_buffer_(gpu_buffer_kmer_filter->buffer);
+      gpu_kmer_filter_receive_buffer_(gpu_buffer_kmer_filter->buffer);
     }
   }
   PROF_STOP(GP_GPU_BUFFER_KMER_FILTER_RECEIVE);

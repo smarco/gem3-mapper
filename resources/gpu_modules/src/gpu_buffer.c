@@ -51,7 +51,7 @@ gpu_error_t gpu_buffer_get_min_memory_size(size_t *bytesPerBuffer)
   const uint32_t averageQuerySize       = 100;
   const uint32_t averageRegionsPerQuery = 10;
 
-  const size_t bytesPerBPMBuffer     = GPU_BPM_MIN_ELEMENTS        * gpu_bpm_size_per_candidate(averarageNumPEQEntries,candidatesPerQuery);
+  const size_t bytesPerBPMBuffer     = GPU_BPM_FILTER_MIN_ELEMENTS * gpu_bpm_filter_size_per_candidate(averarageNumPEQEntries,candidatesPerQuery);
   const size_t bytesPerSSearchBuffer = GPU_FMI_SEARCH_MIN_ELEMENTS * gpu_fmi_asearch_size_per_query(averageQuerySize, averageRegionsPerQuery);
   const size_t bytesPerASearchBuffer = GPU_FMI_SEARCH_MIN_ELEMENTS * gpu_fmi_ssearch_input_size();
   const size_t bytesPerDecodeBuffer  = GPU_FMI_DECODE_MIN_ELEMENTS * gpu_fmi_decode_input_size();

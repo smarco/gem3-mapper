@@ -10,15 +10,17 @@
 /* Include all the supported modules */
 #include "gpu_fmi_primitives.h"
 #include "gpu_sa_primitives.h"
-#include "gpu_bpm_primitives.h"
-#include "gpu_kmer_primitives.h"
+#include "gpu_bpm_primitives_filter.h"
+#include "gpu_bpm_primitives_align.h"
+#include "gpu_kmer_primitives_filter.h"
 
 #ifndef GPU_BUFFER_MODULES_H_
 #define GPU_BUFFER_MODULES_H_
 
 typedef union{
-  gpu_bpm_buffer_t         bpm;
-  gpu_kmer_buffer_t        kmer;
+  gpu_bpm_align_buffer_t   abpm;
+  gpu_bpm_filter_buffer_t  fbpm;
+  gpu_kmer_filter_buffer_t fkmer;
   gpu_fmi_asearch_buffer_t asearch;
   gpu_fmi_ssearch_buffer_t ssearch;
   gpu_fmi_decode_buffer_t  decode;

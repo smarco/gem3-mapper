@@ -65,7 +65,7 @@ typedef struct {                                  // FMI Entry (64 Bytes) using:
   uint32_t bitmaps[GPU_FMI_BITMAPS_PER_ENTRY];		// 5 letters: 12 Bitmaps x 32 bits (3 uint128_t)
 } gpu_fmi_entry_t;
 
-typedef uint64_t	gpu_fmi_decode_init_pos_t;
+typedef uint64_t  gpu_fmi_decode_init_pos_t;
 typedef uint64_t  gpu_fmi_decode_text_pos_t;
 typedef char      gpu_fmi_search_query_t;
 

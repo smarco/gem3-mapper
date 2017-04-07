@@ -17,6 +17,39 @@ extern "C" {
 }
 #include "gpu_resources.h"
 
+__device__ const gpu_char4_t GPU_CIGAR_INIT = {0, 0, GPU_CIGAR_NULL, 0};
+                                                                                 //(x,y) Matrix DP movement; CIGAR op; Match efficiency;
+__device__ const gpu_bpm_align_device_cigar_entry_t GPU_CIGAR_DEVICE_NULL      = { 0, 0, GPU_CIGAR_NULL,      0};
+__device__ const gpu_bpm_align_device_cigar_entry_t GPU_CIGAR_DEVICE_MATCH     = {-1,-1, GPU_CIGAR_MATCH,     0};
+__device__ const gpu_bpm_align_device_cigar_entry_t GPU_CIGAR_DEVICE_MISSMATCH = {-1,-1, GPU_CIGAR_MISSMATCH, 0};
+__device__ const gpu_bpm_align_device_cigar_entry_t GPU_CIGAR_DEVICE_INSERTION = {-1, 0, GPU_CIGAR_INSERTION, 1};
+__device__ const gpu_bpm_align_device_cigar_entry_t GPU_CIGAR_DEVICE_DELETION  = { 0,-1, GPU_CIGAR_DELETION, -1};
+
+                                                                                   //List of cigar events
+__device__ const gpu_bpm_align_device_cigar_entry_t gpu_bmp_align_cigar_events[] = {{ 0, 0, GPU_CIGAR_NULL,      0},
+                                                                                    {-1,-1, GPU_CIGAR_MATCH,     0},
+                                                                                    {-1,-1, GPU_CIGAR_MISSMATCH, 0},
+                                                                                    {-1, 0, GPU_CIGAR_INSERTION, 1},
+                                                                                    { 0,-1, GPU_CIGAR_DELETION, -1}};
+
+__device__ const gpu_bpm_align_device_cigar_entry_t gpu_bmp_align_cigar_lut[16] = {//Left Cigar Alignment
+                                                                                   {-1,-1, GPU_CIGAR_MISSMATCH, 0},
+                                                                                   {-1,-1, GPU_CIGAR_MATCH,     0},
+                                                                                   {-1, 0, GPU_CIGAR_INSERTION, 1},
+                                                                                   {-1, 0, GPU_CIGAR_INSERTION, 1},
+                                                                                   { 0,-1, GPU_CIGAR_DELETION, -1},
+                                                                                   { 0,-1, GPU_CIGAR_DELETION, -1},
+                                                                                   { 0,-1, GPU_CIGAR_DELETION, -1},
+                                                                                   { 0,-1, GPU_CIGAR_DELETION, -1},
+                                                                                   //Right Cigar Alignment
+                                                                                   {-1,-1, GPU_CIGAR_MISSMATCH, 0},
+                                                                                   {-1,-1, GPU_CIGAR_MATCH,     0},
+                                                                                   {-1, 0, GPU_CIGAR_INSERTION, 1},
+                                                                                   {-1,-1, GPU_CIGAR_MATCH,     0},
+                                                                                   { 0,-1, GPU_CIGAR_DELETION, -1},
+                                                                                   {-1,-1, GPU_CIGAR_MATCH,     0},
+                                                                                   { 0,-1, GPU_CIGAR_DELETION, -1},
+                                                                                   {-1,-1, GPU_CIGAR_MATCH,     0}};
 
 GPU_INLINE __device__ void cooperative_shift(uint32_t *value, const uint32_t shiftedBits,
                                              const uint32_t localThreadIdx, const uint32_t BMPS_PER_THREAD)
@@ -57,24 +90,6 @@ GPU_INLINE __device__ void cooperative_sum(const uint32_t *A, const uint32_t *B,
     }
     UADD__IN_CARRY(carry, 0, 0);
   }
-}
-
-GPU_INLINE __device__ void set_BMP(uint32_t *BMP, const uint4 BMPv4)
-{
-  BMP[0] = BMPv4.x;
-  BMP[1] = BMPv4.y;
-  BMP[2] = BMPv4.z;
-  BMP[3] = BMPv4.w;
-}
-
-inline __device__ uint32_t select(const int32_t indexWord, uint32_t *BMP, uint32_t value, const uint32_t BMPS_PER_THREAD)
-{
-  #pragma unroll
-  for(uint32_t i = 0; i < BMPS_PER_THREAD; ++i){
-    const uint32_t tmp = BMP[i];
-    value = (indexWord == i) ? tmp : value;
-  }
-  return value;
 }
 
 #endif /* GPU_BPM_CORE_H_ */

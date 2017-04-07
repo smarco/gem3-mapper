@@ -39,7 +39,15 @@ extern "C" {
 #endif
 
 /*************************************
-GPU Side defines (ASM instructions)
+GPU Side conversion types
+**************************************/
+typedef union{
+  char4    v4;
+  uint32_t s;
+} gpu_char4_t;
+
+/*************************************
+GPU Side definitions (ASM instructions)
 **************************************/
 
 // output temporal carry in internal register
@@ -168,6 +176,45 @@ GPU_INLINE __device__ uint32_t gpu_get_lane_idx(){
   uint32_t laneid;
   asm volatile("mov.u32 %0, %%laneid;" : "=r"(laneid));
   return(laneid);
+}
+
+// Compose
+GPU_INLINE __device__ void gpu_decompose_uintv4(uint32_t* const arrayV4, const uint4 scalarV4)
+{
+	arrayV4[0] = scalarV4.x;
+	arrayV4[1] = scalarV4.y;
+	arrayV4[2] = scalarV4.z;
+	arrayV4[3] = scalarV4.w;
+}
+
+// Decompose
+GPU_INLINE __device__ uint4 gpu_compose_uintv4(const uint32_t* const arrayV4)
+{
+  uint4 scalarV4 = {arrayV4[0], arrayV4[1], arrayV4[2], arrayV4[3]};
+  return(scalarV4);
+}
+
+// Extract
+GPU_INLINE __device__ uint32_t gpu_extract_uintv4(const int32_t idElement, const uint32_t* const arrayV4)
+{
+  const uint32_t VECTOR_LENGHT = 4;
+  uint32_t       value         = arrayV4[0];
+  #pragma unroll
+  for(uint32_t i = 1; i < VECTOR_LENGHT; ++i){
+    const uint32_t tmp = arrayV4[i];
+    value = (idElement == i) ? tmp : value;
+  }
+  return value;
+}
+
+// Select
+GPU_INLINE __device__ uint32_t gpu_select_uintv4(const int32_t idElement, const uint4 scalarV4)
+{
+  uint32_t value = scalarV4.x;
+  value = (idElement == 1) ? scalarV4.y : value;
+  value = (idElement == 2) ? scalarV4.z : value;
+  value = (idElement == 3) ? scalarV4.w : value;
+  return value;
 }
 
 #endif /* GPU_RESOURCES_H_ */

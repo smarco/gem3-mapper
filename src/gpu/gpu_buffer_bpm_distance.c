@@ -1,7 +1,7 @@
 /*
  *  GEM-Mapper v3 (GEM3)
  *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
- *  Copyright (c) 2011-2017 by Alejandro Chacon <alejandro.chacon@uab.es>
+ *  Copyright (c) 2011-2017 by Alejandro Chacon <alejandro.chacond@gmail.com>
  *
  *  This file is part of GEM-Mapper v3 (GEM3).
  *
@@ -20,6 +20,7 @@
  *
  * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
+ *            Alejandro Chacon <alejandro.chacond@gmail.com>
  * DESCRIPTION:
  */
 
@@ -40,11 +41,11 @@
 /*
  * Constants :: GPU BMP-Distance
  */
-#define GPU_BPM_DISTANCE_NUM_SUB_ENTRIES  GPU_BPM_PEQ_SUBENTRIES
-#define GPU_BPM_DISTANCE_ENTRY_LENGTH     GPU_BPM_PEQ_ENTRY_LENGTH
-#define GPU_BPM_DISTANCE_SUBENTRY_LENGTH  GPU_BPM_PEQ_SUBENTRY_LENGTH
+#define GPU_BPM_DISTANCE_NUM_SUB_ENTRIES  GPU_BPM_FILTER_PEQ_SUBENTRIES
+#define GPU_BPM_DISTANCE_ENTRY_LENGTH     GPU_BPM_FILTER_PEQ_ENTRY_LENGTH
+#define GPU_BPM_DISTANCE_SUBENTRY_LENGTH  GPU_BPM_FILTER_PEQ_SUBENTRY_LENGTH
 #define GPU_BPM_DISTANCE_ENTRY_SIZE       (GPU_BPM_DISTANCE_ENTRY_LENGTH/UINT8_LENGTH)
-#define GPU_BPM_DISTANCE_ALPHABET_LENGTH  GPU_BPM_PEQ_ALPHABET_SIZE
+#define GPU_BPM_DISTANCE_ALPHABET_LENGTH  GPU_BPM_FILTER_PEQ_ALPHABET_SIZE
 
 /*
  * Constants :: Buffer Hints
@@ -82,7 +83,7 @@ gpu_buffer_bpm_distance_t* gpu_buffer_bpm_distance_new(
   // Init buffer
   const int64_t thread_id = gtid(); // Between [1,num_threads] (zero is master)
   gpu_alloc_buffer_(gpu_buffer_bpm_distance->buffer, thread_id);
-  gpu_bpm_init_buffer_(gpu_buffer_bpm_distance->buffer,
+  gpu_bpm_filter_init_buffer_(gpu_buffer_bpm_distance->buffer,
       gpu_buffer_bpm_distance_get_mean_query_length(gpu_buffer_bpm_distance),
       gpu_buffer_bpm_distance_get_mean_candidates_per_tile(gpu_buffer_bpm_distance));
   PROF_STOP(GP_GPU_BUFFER_BPM_DISTANCE_ALLOC);
@@ -92,7 +93,7 @@ gpu_buffer_bpm_distance_t* gpu_buffer_bpm_distance_new(
 void gpu_buffer_bpm_distance_clear(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance) {
   // Init buffer
-  gpu_bpm_init_buffer_(gpu_buffer_bpm_distance->buffer,
+  gpu_bpm_filter_init_buffer_(gpu_buffer_bpm_distance->buffer,
       gpu_buffer_bpm_distance_get_mean_query_length(gpu_buffer_bpm_distance),
       gpu_buffer_bpm_distance_get_mean_candidates_per_tile(gpu_buffer_bpm_distance));
   // Dimensions Hints
@@ -114,15 +115,15 @@ uint64_t gpu_buffer_bpm_distance_get_entry_length(void) {
 }
 uint64_t gpu_buffer_bpm_distance_get_max_candidates(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance) {
-  return gpu_bpm_buffer_get_max_candidates_(gpu_buffer_bpm_distance->buffer);
+  return gpu_bpm_filter_buffer_get_max_candidates_(gpu_buffer_bpm_distance->buffer);
 }
 uint64_t gpu_buffer_bpm_distance_get_max_queries(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance) {
-  return gpu_bpm_buffer_get_max_queries_(gpu_buffer_bpm_distance->buffer);
+  return gpu_bpm_filter_buffer_get_max_queries_(gpu_buffer_bpm_distance->buffer);
 }
 uint64_t gpu_buffer_bpm_distance_get_max_entries(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance) {
-  return gpu_bpm_buffer_get_max_peq_entries_(gpu_buffer_bpm_distance->buffer);
+  return gpu_bpm_filter_buffer_get_max_peq_entries_(gpu_buffer_bpm_distance->buffer);
 }
 uint64_t gpu_buffer_bpm_distance_get_num_candidates(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance) {
@@ -163,7 +164,7 @@ bool gpu_buffer_bpm_distance_fits_in_buffer(
       return false; // Leave it to the next fresh buffer
     }
     // Reallocate buffer
-    gpu_bpm_init_and_realloc_buffer_(
+    gpu_bpm_filter_init_and_realloc_buffer_(
         gpu_buffer_bpm_distance->buffer,
         total_entries,total_candidates,total_queries);
     // Check reallocated buffer dimensions (error otherwise)
@@ -186,7 +187,7 @@ bool gpu_buffer_bpm_distance_fits_in_buffer(
  * Pattern Compile/Decompile
  */
 void gpu_buffer_bpm_distance_pattern_decompile(
-    gpu_bpm_qry_entry_t* const pattern_entry,
+    gpu_bpm_filter_qry_entry_t* const pattern_entry,
     const uint32_t pattern_length,
     bpm_pattern_t* const bpm_pattern,
     mm_allocator_t* const mm_allocator) {
@@ -252,7 +253,7 @@ void gpu_buffer_bpm_distance_pattern_decompile(
   }
 }
 void gpu_buffer_bpm_distance_pattern_compile(
-    gpu_bpm_qry_entry_t* const pattern_entry,
+    gpu_bpm_filter_qry_entry_t* const pattern_entry,
     const bpm_pattern_t* const bpm_pattern) {
   // Copy PEQ pattern
   const uint64_t bpm_pattern_num_words = bpm_pattern->pattern_num_words64;
@@ -305,8 +306,8 @@ void gpu_buffer_bpm_distance_add_pattern(
   (gpu_buffer_bpm_distance->num_queries) += num_tiles;
   gpu_buffer_bpm_distance->current_query_offset = buffer_pattern_query_offset;
   // Add query (for all tiles)
-  gpu_bpm_qry_info_t* buffer_pattern_query =
-      gpu_bpm_buffer_get_peq_info_(gpu_buffer) + buffer_pattern_query_offset;
+  gpu_bpm_filter_qry_info_t* buffer_pattern_query =
+      gpu_bpm_filter_buffer_get_peq_info_(gpu_buffer) + buffer_pattern_query_offset;
   uint64_t i, buffer_entries_added = 0;
   for (i=0;i<num_tiles;++i,++buffer_pattern_query) {
     // Compute tile dimensions
@@ -327,8 +328,8 @@ void gpu_buffer_bpm_distance_add_pattern(
   }
   // [DTO] Compile PEQ pattern (Add pattern entries)
   bpm_pattern_t* const bpm_pattern = &pattern_tiled->bpm_pattern;
-  gpu_bpm_qry_entry_t* const buffer_pattern_entry =
-      gpu_bpm_buffer_get_peq_entries_(gpu_buffer) + buffer_entries_offset;
+  gpu_bpm_filter_qry_entry_t* const buffer_pattern_entry =
+      gpu_bpm_filter_buffer_get_peq_entries_(gpu_buffer) + buffer_entries_offset;
   gpu_buffer_bpm_distance->num_entries += num_entries;
   gpu_buffer_bpm_distance_pattern_compile(buffer_pattern_entry,bpm_pattern);
 }
@@ -339,16 +340,16 @@ void gpu_buffer_bpm_distance_add_candidate(
     const uint64_t candidate_length) {
   // Insert candidate
 #ifdef GEM_PROFILE
-  gpu_bpm_qry_info_t* const pattern_query =
-      gpu_bpm_buffer_get_peq_info_(gpu_buffer_bpm_distance->buffer) +
+  gpu_bpm_filter_qry_info_t* const pattern_query =
+      gpu_bpm_filter_buffer_get_peq_info_(gpu_buffer_bpm_distance->buffer) +
       (gpu_buffer_bpm_distance->current_query_offset + tile_offset);
   PROF_INC_COUNTER(GP_GPU_BUFFER_BPM_DISTANCE_NUM_QUERIES);
   PROF_ADD_COUNTER(GP_GPU_BUFFER_BPM_DISTANCE_CANDIDATES_LENGTH,candidate_length);
   PROF_ADD_COUNTER(GP_GPU_BUFFER_BPM_DISTANCE_CELLS,candidate_length*pattern_query->size);
 #endif
   const uint64_t candidate_offset = gpu_buffer_bpm_distance->num_candidates;
-  gpu_bpm_cand_info_t* const candidate =
-      gpu_bpm_buffer_get_candidates_(gpu_buffer_bpm_distance->buffer) + candidate_offset;
+  gpu_bpm_filter_cand_info_t* const candidate =
+      gpu_bpm_filter_buffer_get_candidates_(gpu_buffer_bpm_distance->buffer) + candidate_offset;
   candidate->query = gpu_buffer_bpm_distance->current_query_offset + tile_offset;
   candidate->position = candidate_text_position;
   candidate->size = candidate_length;
@@ -360,8 +361,8 @@ void gpu_buffer_bpm_distance_get_candidate(
     uint64_t* const candidate_text_position,
     uint32_t* const candidate_length) {
   // Get candidate
-  gpu_bpm_cand_info_t* const candidate =
-      gpu_bpm_buffer_get_candidates_(gpu_buffer_bpm_distance->buffer) + candidate_offset;
+  gpu_bpm_filter_cand_info_t* const candidate =
+      gpu_bpm_filter_buffer_get_candidates_(gpu_buffer_bpm_distance->buffer) + candidate_offset;
   *candidate_text_position = candidate->position;
   *candidate_length = candidate->size;
 }
@@ -371,8 +372,8 @@ void gpu_buffer_bpm_distance_get_result(
     uint32_t* const levenshtein_distance,
     uint32_t* const levenshtein_match_pos) {
   // Get candidate results
-  gpu_bpm_alg_entry_t* const result =
-      gpu_bpm_buffer_get_alignments_(gpu_buffer_bpm_distance->buffer) + candidate_offset;
+  gpu_bpm_filter_alg_entry_t* const result =
+      gpu_bpm_filter_buffer_get_alignments_(gpu_buffer_bpm_distance->buffer) + candidate_offset;
   *levenshtein_distance = result->score;
   *levenshtein_match_pos = result->column;
 }
@@ -384,12 +385,12 @@ void gpu_buffer_bpm_distance_retrieve_pattern(
   // Parameters
   void* const gpu_buffer = gpu_buffer_bpm_distance->buffer;
   // Get candidate
-  gpu_bpm_cand_info_t* const candidate = gpu_bpm_buffer_get_candidates_(gpu_buffer) + candidate_offset;
+  gpu_bpm_filter_cand_info_t* const candidate = gpu_bpm_filter_buffer_get_candidates_(gpu_buffer) + candidate_offset;
   // Get Query & Entry
-  gpu_bpm_qry_info_t* const pattern_query =
-      gpu_bpm_buffer_get_peq_info_(gpu_buffer) + candidate->query;
-  gpu_bpm_qry_entry_t* const pattern_entry =
-      gpu_bpm_buffer_get_peq_entries_(gpu_buffer) + pattern_query->posEntry;
+  gpu_bpm_filter_qry_info_t* const pattern_query =
+      gpu_bpm_filter_buffer_get_peq_info_(gpu_buffer) + candidate->query;
+  gpu_bpm_filter_qry_entry_t* const pattern_entry =
+      gpu_bpm_filter_buffer_get_peq_entries_(gpu_buffer) + pattern_query->posEntry;
   // Decompile
   gpu_buffer_bpm_distance_pattern_decompile(pattern_entry,pattern_query->size,bpm_pattern,mm_allocator);
 }
@@ -444,7 +445,7 @@ void gpu_buffer_bpm_distance_send(
   // Select computing device
   if (gpu_buffer_bpm_distance->bpm_distance_enabled) {
     if (gpu_buffer_bpm_distance->num_candidates > 0) {
-      gpu_bpm_send_buffer_(gpu_buffer_bpm_distance->buffer,gpu_buffer_bpm_distance->num_entries,
+      gpu_bpm_filter_send_buffer_(gpu_buffer_bpm_distance->buffer,gpu_buffer_bpm_distance->num_entries,
           gpu_buffer_bpm_distance->num_queries,gpu_buffer_bpm_distance->num_candidates,
           (gpu_buffer_bpm_distance->query_same_length==UINT32_MAX) ?
               0 : gpu_buffer_bpm_distance->query_same_length);
@@ -457,7 +458,7 @@ void gpu_buffer_bpm_distance_receive(
   PROF_START(GP_GPU_BUFFER_BPM_DISTANCE_RECEIVE);
   if (gpu_buffer_bpm_distance->bpm_distance_enabled) {
     if (gpu_buffer_bpm_distance->num_candidates > 0) {
-      gpu_bpm_receive_buffer_(gpu_buffer_bpm_distance->buffer);
+      gpu_bpm_filter_receive_buffer_(gpu_buffer_bpm_distance->buffer);
     }
   }
   PROF_STOP(GP_GPU_BUFFER_BPM_DISTANCE_RECEIVE);

@@ -18,6 +18,7 @@
 #define	GPU_UINT32_LENGTH     32
 
 #include "gpu_filter_interface.h"
+#include "gpu_align_interface.h"
 #include "gpu_index_interface.h"
 
 /*
@@ -41,6 +42,7 @@ typedef enum
   GPU_SA_DECODE_POS     = GPU_UINT32_ONE_MASK << 3,
   GPU_BPM_FILTER        = GPU_UINT32_ONE_MASK << 4,
   GPU_KMER_FILTER       = GPU_UINT32_ONE_MASK << 5,
+  GPU_BPM_ALIGN         = GPU_UINT32_ONE_MASK << 6,
   /* GPU data structures */
   GPU_FMI               = GPU_FMI_ADAPT_SEARCH | GPU_FMI_EXACT_SEARCH | GPU_FMI_DECODE_POS,
   GPU_SA                = GPU_SA_DECODE_POS,
@@ -49,9 +51,10 @@ typedef enum
   /* GPU stages          */
   GPU_SEEDING           = GPU_INDEX,
   GPU_FILTERING         = GPU_REFERENCE,
+  GPU_ALIGNMENT         = GPU_BPM_ALIGN,
   /* General setups      */
   GPU_NONE_MODULES      = 0,
-  GPU_ALL_MODULES       = GPU_SEEDING | GPU_FILTERING
+  GPU_ALL_MODULES       = GPU_SEEDING | GPU_FILTERING | GPU_ALIGNMENT
 } gpu_module_t;
 
 typedef enum

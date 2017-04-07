@@ -12,16 +12,16 @@
 
 #include "../include/gpu_bpm_core.h"
 
-GPU_INLINE __device__ void gpu_bpm_filter_local_kernel(const gpu_bpm_device_qry_entry_t * __restrict d_queries, const uint64_t * __restrict d_reference,
-                                                       const gpu_bpm_cand_info_t *d_candidates, const uint32_t *d_reorderBuffer,
-                                                       gpu_bpm_alg_entry_t *d_results, const gpu_bpm_qry_info_t *d_qinfo,
+GPU_INLINE __device__ void gpu_bpm_filter_local_kernel(const gpu_bpm_filter_device_qry_entry_t * __restrict d_queries, const uint64_t * __restrict d_reference,
+                                                       const gpu_bpm_filter_cand_info_t *d_candidates, const uint32_t *d_reorderBuffer,
+                                                       gpu_bpm_filter_alg_entry_t* const d_results, const gpu_bpm_filter_qry_info_t *d_qinfo,
                                                        const uint32_t idCandidate, const uint64_t sizeRef, const uint32_t numResults,
                                                        const uint32_t intraQueryThreadIdx, const uint32_t threadsPerQuery, const bool binning)
 {
   if (idCandidate < numResults){
     const uint64_t *localCandidate;
     const uint32_t PEQS_PER_THREAD = 1;
-    const uint32_t BMPS_SIZE       = GPU_BPM_PEQ_LENGTH_PER_CUDA_THREAD * PEQS_PER_THREAD;
+    const uint32_t BMPS_SIZE       = GPU_BPM_FILTER_PEQ_LENGTH_PER_CUDA_THREAD * PEQS_PER_THREAD;
     const uint32_t BMPS_PER_THREAD = BMPS_SIZE / GPU_UINT32_LENGTH;
 
     const uint32_t originalCandidate  = (binning) ? d_reorderBuffer[idCandidate] : idCandidate;
@@ -43,8 +43,6 @@ GPU_INLINE __device__ void gpu_bpm_filter_local_kernel(const gpu_bpm_device_qry_
       uint32_t  Ph[BMPS_PER_THREAD], Mh[BMPS_PER_THREAD],  Pv[BMPS_PER_THREAD], Mv[BMPS_PER_THREAD];
       uint32_t  Xv[BMPS_PER_THREAD], Xh[BMPS_PER_THREAD], tEq[BMPS_PER_THREAD], Eq[BMPS_PER_THREAD];
       uint32_t sum[BMPS_PER_THREAD];
-      uint32_t PH, MH;
-      uint4    Eqv4;
 
       localCandidate = d_reference + (positionRef / GPU_REFERENCE_CHARS_PER_ENTRY);
 
@@ -57,6 +55,8 @@ GPU_INLINE __device__ void gpu_bpm_filter_local_kernel(const gpu_bpm_device_qry_
       lastCandidateEntry = localCandidate[idEntry];
 
       for(idColumn = 0; idColumn < sizeCandidate; idColumn++){
+        uint32_t PH, MH;
+
         if((idColumn % GPU_REFERENCE_CHARS_PER_ENTRY) == 0){
           idEntry++;
           currentCandidateEntry = localCandidate[idEntry];
@@ -66,8 +66,8 @@ GPU_INLINE __device__ void gpu_bpm_filter_local_kernel(const gpu_bpm_device_qry_
 
         #pragma unroll
         for(uint32_t idPEQ = 0, idBMP = 0; idPEQ < PEQS_PER_THREAD; ++idPEQ, idBMP+=4){
-          Eqv4 = LDG(&d_queries[entry + idPEQ].bitmap[candidate & GPU_REFERENCE_MASK_BASE]);
-          set_BMP(Eq + idBMP, Eqv4);
+          uint4 Eqv4 = LDG(&d_queries[entry + idPEQ].bitmap[candidate & GPU_REFERENCE_MASK_BASE]);
+          gpu_decompose_uintv4(Eq + idBMP, Eqv4);
         }
 
         #pragma unroll
@@ -92,10 +92,10 @@ GPU_INLINE __device__ void gpu_bpm_filter_local_kernel(const gpu_bpm_device_qry_
         for(uint32_t idBMP = 0; idBMP < BMPS_PER_THREAD; ++idBMP)
           Mh[idBMP] = Pv[idBMP] & Xh[idBMP];
 
-        PH = select(indexWord, Ph, PH, BMPS_PER_THREAD);
-        MH = select(indexWord, Mh, MH, BMPS_PER_THREAD);
-
+        PH = gpu_extract_uintv4(indexWord, Ph);
+        MH = gpu_extract_uintv4(indexWord, Mh);
         score += (((PH & mask) != 0) - ((MH & mask) != 0));
+
         cooperative_shift(Ph, 1, intraQueryThreadIdx, BMPS_PER_THREAD);
         cooperative_shift(Mh, 1, intraQueryThreadIdx, BMPS_PER_THREAD);
 
@@ -120,8 +120,8 @@ GPU_INLINE __device__ void gpu_bpm_filter_local_kernel(const gpu_bpm_device_qry_
   }
 }
 
-__global__ void gpu_bpm_filter_kernel(const gpu_bpm_device_qry_entry_t* const d_queries, const uint64_t* const d_reference, const gpu_bpm_cand_info_t* const d_candidates,
-                                      const uint32_t* const d_reorderBuffer, gpu_bpm_alg_entry_t* const d_reorderResults, const gpu_bpm_qry_info_t* const d_qinfo,
+__global__ void gpu_bpm_filter_kernel(const gpu_bpm_filter_device_qry_entry_t* const d_queries, const uint64_t* const d_reference, const gpu_bpm_filter_cand_info_t* const d_candidates,
+                                      const uint32_t* const d_reorderBuffer, gpu_bpm_filter_alg_entry_t* const d_reorderResults, const gpu_bpm_filter_qry_info_t* const d_qinfo,
                                       const uint64_t sizeRef,  const uint32_t numResults, const uint32_t* const d_initPosPerBucket, const uint32_t* const d_initWarpPerBucket,
                                       const uint32_t numWarps, const bool binning)
 {
@@ -149,21 +149,21 @@ __global__ void gpu_bpm_filter_kernel(const gpu_bpm_device_qry_entry_t* const d_
 }
 
 extern "C"
-gpu_error_t gpu_bpm_process_buffer(gpu_buffer_t *mBuff)
+gpu_error_t gpu_bpm_filter_process_buffer(gpu_buffer_t *mBuff)
 {
-  const gpu_reference_buffer_t* const       ref           =  mBuff->reference;
-  const gpu_bpm_queries_buffer_t* const     qry           = &mBuff->data.bpm.queries;
-  const gpu_bpm_candidates_buffer_t* const  cand          = &mBuff->data.bpm.candidates;
-  const gpu_bpm_reorder_buffer_t* const     rebuff        = &mBuff->data.bpm.reorderBuffer;
-  const gpu_bpm_alignments_buffer_t* const  res           = &mBuff->data.bpm.alignments;
-  const cudaStream_t                        idStream      =  mBuff->listStreams[mBuff->idStream];
-  const uint32_t                            idSupDev      =  mBuff->idSupportedDevice;
-  const gpu_device_info_t* const            device        =  mBuff->device[idSupDev];
-  const uint32_t                            numAlignments = res->numAlignments;
-  const uint32_t                            maxCandidates = mBuff->data.bpm.maxCandidates;
-  const uint32_t                            maxAlignments = mBuff->data.bpm.maxAlignments;
-  const uint32_t                            numResults    = (mBuff->data.bpm.queryBinning) ? res->numReorderedAlignments : res->numAlignments;
-  gpu_bpm_alg_entry_t*                      d_results     = (mBuff->data.bpm.queryBinning) ? res->d_reorderAlignments : res->d_alignments;
+  const gpu_reference_buffer_t* const             ref           =  mBuff->reference;
+  const gpu_bpm_filter_queries_buffer_t* const    qry           = &mBuff->data.fbpm.queries;
+  const gpu_bpm_filter_candidates_buffer_t* const cand          = &mBuff->data.fbpm.candidates;
+  const gpu_scheduler_buffer_t* const             rebuff        = &mBuff->data.fbpm.reorderBuffer;
+  const gpu_bpm_filter_alignments_buffer_t* const res           = &mBuff->data.fbpm.alignments;
+  const cudaStream_t                              idStream      =  mBuff->listStreams[mBuff->idStream];
+  const uint32_t                                  idSupDev      =  mBuff->idSupportedDevice;
+  const gpu_device_info_t* const                  device        =  mBuff->device[idSupDev];
+  const uint32_t                                  numAlignments =  res->numAlignments;
+  const uint32_t                                  maxCandidates =  mBuff->data.fbpm.maxCandidates;
+  const uint32_t                                  maxAlignments =  mBuff->data.fbpm.maxAlignments;
+  const uint32_t                                  numResults    = (mBuff->data.fbpm.queryBinning) ? res->numReorderedAlignments : res->numAlignments;
+  gpu_bpm_filter_alg_entry_t* const               d_results     = (mBuff->data.fbpm.queryBinning) ? res->d_reorderAlignments : res->d_alignments;
 
   dim3 blocksPerGrid, threadsPerBlock;
   const uint32_t numThreads = rebuff->numWarps * GPU_WARP_SIZE;
@@ -172,11 +172,11 @@ gpu_error_t gpu_bpm_process_buffer(gpu_buffer_t *mBuff)
   if((numAlignments > maxCandidates) || (numAlignments > maxAlignments)) 
     return(E_OVERFLOWING_BUFFER);
 
-  gpu_bpm_filter_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_bpm_device_qry_entry_t *)qry->d_queries, ref->d_reference[idSupDev],
+  gpu_bpm_filter_kernel<<<blocksPerGrid, threadsPerBlock, 0, idStream>>>((gpu_bpm_filter_device_qry_entry_t *)qry->d_queries, ref->d_reference[idSupDev],
                                                                           cand->d_candidates, rebuff->d_reorderBuffer, d_results,
                                                                           qry->d_qinfo, ref->size, numResults,
                                                                           rebuff->d_initPosPerBucket, rebuff->d_initWarpPerBucket,
-                                                                          rebuff->numWarps, mBuff->data.bpm.queryBinning);
+                                                                          rebuff->numWarps, mBuff->data.fbpm.queryBinning);
   return(SUCCESS);
 }
 
