@@ -16,7 +16,7 @@
 Functions to get the GPU BPM buffer sizes
 ************************************************************/
 
-uint32_t gpu_bpm_align_align_buffer_get_max_peq_entries_(const void* const bpmBuffer){
+uint32_t gpu_bpm_align_buffer_get_max_peq_entries_(const void* const bpmBuffer){
   const gpu_buffer_t* const mBuff = (gpu_buffer_t *) bpmBuffer;
   return(mBuff->data.abpm.maxPEQEntries);
 }
