@@ -174,24 +174,16 @@ uint64_t filtering_candidates_align_candidates(
   // Prepare Candidate Vectors
   filtering_candidates_sort_regions_by_align_distance(filtering_candidates); // Sort wrt align_distance
   filtering_region_t** const regions_in = filtering_candidates_get_regions(filtering_candidates);
-  filtering_region_t** const regions_out = regions_in;
   filtering_region_t** const regions_discarded =
       filtering_candidates_reserve_discarded_regions(filtering_candidates,num_filtering_regions);
   // Clear cache
   filtering_region_cache_clear(&filtering_candidates->filtering_region_cache);
   // Traverse all accepted candidates (text-space)
-  uint64_t n, num_regions_out = 0, num_regions_discarded = 0;
-  uint64_t num_accepted_regions = 0, num_accepted_candidates = 0;
+  uint64_t n, num_accepted_regions = 0;
   bool region_accepted, match_accepted;
   for (n=0;n<num_filtering_regions;++n) {
+    // Fetch
     filtering_region_t* const filtering_region = regions_in[n];
-    // Skip other regions
-    if (filtering_region->status != filtering_region_accepted) {
-      regions_out[num_regions_out++] = filtering_region; // FIXME
-      fprintf(stderr,"THIS SHOULDNT BE HERE ------------------------------------------------------>>> \n");
-      continue;
-    }
-    ++num_accepted_candidates;
     // Check if candidate is subdominant (check distance bounds)
     bool candidate_subdominant = false;
     if (!extended_match) {
@@ -203,7 +195,6 @@ uint64_t filtering_candidates_align_candidates(
       PROF_INC_COUNTER(GP_FC_SELECT_PRUNE_HIT);
       matches_metrics_set_limited_candidates(&matches->metrics,true);
       filtering_region->status = filtering_region_accepted_subdominant;
-      regions_discarded[num_regions_discarded++] = filtering_region;
       continue;
     }
     // Align Region
@@ -213,14 +204,23 @@ uint64_t filtering_candidates_align_candidates(
         &region_accepted,&match_accepted);
     if (!region_accepted) {
       filtering_region->status = filtering_region_accepted_subdominant;
-      regions_discarded[num_regions_discarded++] = filtering_region;
     } else {
-      filtering_candidates_free_region(filtering_candidates,filtering_region); // Free
+      filtering_region->status = filtering_region_accepted;
       if (match_accepted) ++num_accepted_regions;
     }
   }
+  // Clean
+  uint64_t num_regions_out = 0, num_regions_discarded = 0;
+  for (n=0;n<num_filtering_regions;++n) {
+    filtering_region_t* const filtering_region = regions_in[n];
+    if (filtering_region->status == filtering_region_accepted_subdominant) {
+      regions_discarded[num_regions_discarded++] = filtering_region;
+    } else {
+      filtering_candidates_free_region(filtering_candidates,filtering_region); // Free
+    }
+  }
   // Update used
-  matches_metrics_add_accepted_candidates(&matches->metrics,num_accepted_candidates);
+  matches_metrics_add_accepted_candidates(&matches->metrics,num_filtering_regions);
   filtering_candidates_set_num_regions(filtering_candidates,num_regions_out);
   filtering_candidates_add_num_discarded_regions(filtering_candidates,num_regions_discarded);
   // DEBUG

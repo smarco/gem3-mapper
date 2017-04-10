@@ -111,18 +111,20 @@ void kmer_counting_compile_nway(
   kmer_counting->num_tiles = num_tiles;
   // Profile tables
   if (count_pattern_kmers) {
-    const uint64_t tiles_size = num_tiles * sizeof(kmer_counting_key_tile_t);
+    const uint64_t key_tiles_size = num_tiles * sizeof(kmer_counting_key_tile_t);
+    const uint64_t text_tiles_size = num_tiles * sizeof(kmer_counting_text_tile_t);
     const uint64_t kmer_table_size = kmer_counting->num_kmers*num_tiles*sizeof(uint16_t);
-    void* const memory = mm_allocator_malloc(mm_allocator,2*tiles_size+2*kmer_table_size);
+    void* const memory = mm_allocator_malloc(mm_allocator,key_tiles_size+text_tiles_size+2*kmer_table_size);
     kmer_counting->key_tiles = memory;
-    kmer_counting->text_tiles = memory + tiles_size;
-    kmer_counting->kmer_count_text = memory + 2*tiles_size;
-    kmer_counting->kmer_count_pattern = memory + 2*tiles_size + kmer_table_size;
+    kmer_counting->text_tiles = memory + key_tiles_size;
+    kmer_counting->kmer_count_text = memory + key_tiles_size + text_tiles_size;
+    kmer_counting->kmer_count_pattern = memory + key_tiles_size + text_tiles_size + kmer_table_size;
   } else {
-    const uint64_t tiles_size = num_tiles * sizeof(kmer_counting_key_tile_t);
-    void* const memory = mm_allocator_malloc(mm_allocator,2*tiles_size);
+    const uint64_t key_tiles_size = num_tiles * sizeof(kmer_counting_key_tile_t);
+    const uint64_t text_tiles_size = num_tiles * sizeof(kmer_counting_text_tile_t);
+    void* const memory = mm_allocator_malloc(mm_allocator,key_tiles_size+text_tiles_size);
     kmer_counting->key_tiles = memory;
-    kmer_counting->text_tiles = memory + tiles_size;
+    kmer_counting->text_tiles = memory + key_tiles_size;
     kmer_counting->kmer_count_text = NULL;
     kmer_counting->kmer_count_pattern = NULL;
   }
