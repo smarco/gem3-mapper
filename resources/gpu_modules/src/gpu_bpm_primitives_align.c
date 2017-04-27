@@ -96,14 +96,16 @@ float gpu_bpm_align_size_per_candidate(const uint32_t averageQuerySize, const ui
 {
   const size_t averageNumPEQEntries = GPU_DIV_CEIL(averageQuerySize, GPU_BPM_ALIGN_PEQ_ENTRY_LENGTH);
   const size_t averageCigarSize     = averageQuerySize + 1;
-  const size_t bytesPerQuery        = averageNumPEQEntries * sizeof(gpu_bpm_align_qry_entry_t) + sizeof(gpu_bpm_align_qry_info_t);
-  const size_t bytesCandidate       = averageCandidateSize * sizeof(gpu_bpm_align_cand_entry_t) + sizeof(gpu_bpm_align_cand_entry_t);
-  const size_t bytesCigar           = candidatesPerQuery * averageCigarSize * sizeof(gpu_bpm_align_cigar_entry_t) + sizeof(gpu_bpm_align_cigar_info_t);
+  const size_t bytesPerQueryPEQ     = averageNumPEQEntries * sizeof(gpu_bpm_align_peq_entry_t);
+  const size_t bytesPerQueryRaw     = GPU_ROUND_TO(averageQuerySize * sizeof(gpu_bpm_align_qry_entry_t), 8);
+  const size_t bytesPerQuery        = bytesPerQueryRaw + bytesPerQueryPEQ + sizeof(gpu_bpm_align_qry_info_t);
+  const size_t bytesCandidate       = GPU_ROUND_TO(averageCandidateSize * sizeof(gpu_bpm_align_cand_entry_t), 8) + sizeof(gpu_bpm_align_cand_info_t);
+  const size_t bytesCigar           = (averageCigarSize * sizeof(gpu_bpm_align_cigar_entry_t)) + sizeof(gpu_bpm_align_cigar_info_t);
   const size_t bytesReorderCigar    = sizeof(gpu_bpm_align_cigar_info_t);
   const size_t bytesBinningProcess  = sizeof(uint32_t);
   // Calculate the necessary bytes for each BPM Align operation
-  return((bytesPerQuery/(float)candidatesPerQuery) + bytesCandidate
-      + bytesCigar + bytesReorderCigar + bytesBinningProcess);
+  const size_t sizePerCandidate     = (bytesPerQuery / (float)candidatesPerQuery) + bytesCandidate + bytesCigar + bytesReorderCigar + bytesBinningProcess;
+  return(sizePerCandidate);
 }
 
 uint32_t gpu_bpm_align_candidates_for_binning_padding()
@@ -187,8 +189,8 @@ void gpu_bpm_align_init_buffer_(void* const bpmBuffer, const uint32_t averageQue
   const uint32_t      averageNumPEQEntries    = GPU_DIV_CEIL(averageQuerySize, GPU_BPM_ALIGN_PEQ_ENTRY_LENGTH);
   const uint32_t      averageCigarSize        = averageQuerySize + 1;
   const uint32_t      numInputs               = (uint32_t)(sizeBuff / gpu_bpm_align_size_per_candidate(averageQuerySize, averageCandidateSize, candidatesPerQuery));
-  const uint32_t      maxCandidates           = numInputs - gpu_bpm_align_candidates_for_binning_padding();
   const uint32_t      bucketPaddingCandidates = gpu_bpm_align_candidates_for_binning_padding();
+  const uint32_t      maxCandidates           = (bucketPaddingCandidates < numInputs) ? numInputs - bucketPaddingCandidates : 0;
   //set the type of the buffer
   mBuff->typeBuffer = GPU_BPM_ALIGN;
   //Set real size of the input
