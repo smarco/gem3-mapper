@@ -35,17 +35,12 @@
 #include "align/align_bpm_distance.h"
 
 /*
- * Debug
- */
-#define DEBUG_FILTERING_CANDIDATES GEM_DEEP_DEBUG
-
-/*
  * Profile
  */
 #define PROFILE_LEVEL PMED
 
 /*
- * BPM-Buffered Add (Candidates Verification)
+ * BPM-Distance Buffered Add (Candidates Verification)
  */
 void filtering_candidates_buffered_bpm_distance_prepare_buffers(
     filtering_candidates_t* const filtering_candidates,
@@ -180,7 +175,7 @@ void filtering_candidates_buffered_bpm_distance_compute_distance(
   mm_allocator_pop_state(mm_allocator);
 }
 /*
- * Retrieve filtering-region alignment from GPU-buffer
+ * BPM-Distance Buffered Retrieve (Candidates Verification)
  */
 void filtering_candidates_buffered_bpm_distance_retrieve_alignment(
     filtering_candidates_t* const filtering_candidates,
@@ -208,7 +203,7 @@ void filtering_candidates_buffered_bpm_distance_retrieve_alignment(
     } else {
       // Retrieve alignment distance/column
       uint32_t tile_distance=0, tile_match_column=0;
-      gpu_buffer_bpm_distance_get_result(gpu_buffer_bpm_distance,
+      gpu_buffer_bpm_distance_get_distance(gpu_buffer_bpm_distance,
           *gpu_buffer_offset+tile_pos,&tile_distance,&tile_match_column);
       if (tile_distance > pattern_tile->max_error) { // As CPU version
         alignment_tile->distance = ALIGN_DISTANCE_INF;
@@ -264,7 +259,6 @@ void filtering_candidates_buffered_bpm_distance_retrieve_region(
   // Detect exact-matches
   if (filtering_region->alignment.distance_min_bound == 0) {
     filtering_region->status = filtering_region_accepted; // Accepted candidate
-    vector_insert(filtering_candidates->filtering_regions,filtering_region,filtering_region_t*);
     PROF_INC_COUNTER(GP_ACCEPTED_REGIONS);
     return;
   }
@@ -274,17 +268,14 @@ void filtering_candidates_buffered_bpm_distance_retrieve_region(
   if (key_length > text_length) {
     if (filtering_region_verify(filtering_candidates,filtering_region,false,pattern)) {
       PROF_INC_COUNTER(GP_ACCEPTED_REGIONS);
-      vector_insert(filtering_candidates->filtering_regions,filtering_region,filtering_region_t*);
     } else {
       PROF_INC_COUNTER(GP_DISCARDED_REGIONS);
-      vector_insert(filtering_candidates->discarded_regions,filtering_region,filtering_region_t*);
     }
     return;
   }
   // Detect already discarded region
   if (alignment->distance_min_bound==ALIGN_DISTANCE_INF) {
     filtering_region->status = filtering_region_verified_discarded;
-    vector_insert(filtering_candidates->discarded_regions,filtering_region,filtering_region_t*);
     return;
   }
   // Retrieve & compose verified region
@@ -298,12 +289,10 @@ void filtering_candidates_buffered_bpm_distance_retrieve_region(
   }
   if (alignment->distance_min_bound <= max_error) {
     filtering_region->status = filtering_region_accepted; // Accepted candidate
-    vector_insert(filtering_candidates->filtering_regions,filtering_region,filtering_region_t*);
     PROF_INC_COUNTER(GP_ACCEPTED_REGIONS);
   } else {
     filtering_region->status = filtering_region_verified_discarded; // Discarded candidate
     alignment->distance_min_bound = ALIGN_DISTANCE_INF; // To force CPU/GPU same
-    vector_insert(filtering_candidates->discarded_regions,filtering_region,filtering_region_t*);
     PROF_INC_COUNTER(GP_DISCARDED_REGIONS);
   }
 }
@@ -326,23 +315,7 @@ void filtering_candidates_buffered_bpm_distance_retrieve(
         filtering_candidates,filtering_region,pattern,
         gpu_buffer_bpm_distance,&gpu_buffer_offset);
   }
-  // Add buffered discarded regions
-  const uint64_t num_discarded_regions = filtering_candidates_buffered->num_discarded_regions;
-  filtering_region_t** const discarded_regions = filtering_candidates_buffered->discarded_regions;
-  for (region_pos=0;region_pos<num_discarded_regions;++region_pos) {
-    vector_insert(filtering_candidates->discarded_regions,discarded_regions[region_pos],filtering_region_t*);
-  }
-  // Free buffered regions and discarded regions
-  filtering_candidates_buffered_free_regions(filtering_candidates_buffered);
-  filtering_candidates_buffered_free_discarded_regions(filtering_candidates_buffered);
-  // DEBUG
   PROFILE_STOP(GP_FC_VERIFY_CANDIDATES_BUFFERED,PROFILE_LEVEL);
-  gem_cond_debug_block(DEBUG_FILTERING_CANDIDATES) {
-    tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Candidates (verify_regions_BPM_buffer)\n");
-    tab_global_inc();
-    filtering_candidates_print_regions(gem_log_get_stream(),filtering_candidates,false);
-    tab_global_dec();
-  }
 }
 /*
  * BPM-Buffered Checkers (Candidates Verification)

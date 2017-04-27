@@ -68,25 +68,24 @@ bool search_stage_kmer_filter_buffer_fits(
     archive_search_t* const archive_search_end2) {
   gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter = kmer_filter_buffer->gpu_buffer_kmer_filter;
   // Compute dimensions
-  uint64_t total_entries = 0,total_queries = 0,total_candidates = 0;
+  uint64_t total_queries = 0, total_queries_length = 0, total_candidates = 0;
   pattern_t* const pattern_end1 = &archive_search_end1->approximate_search.pattern;
   kmer_counting_nway_t* const kmer_counting_nway_end1 = &pattern_end1->pattern_tiled.kmer_filter_nway;
   gpu_buffer_kmer_filter_compute_dimensions(
       gpu_buffer_kmer_filter,kmer_counting_nway_end1,
       archive_search_get_num_kmer_filter_candidates(archive_search_end1),
-      &total_entries,&total_queries,&total_candidates);
+      &total_queries,&total_queries_length,&total_candidates);
   if (archive_search_end2!=NULL) {
     pattern_t* const pattern_end2 = &archive_search_end2->approximate_search.pattern;
     kmer_counting_nway_t* const kmer_counting_nway_end2 = &pattern_end2->pattern_tiled.kmer_filter_nway;
     gpu_buffer_kmer_filter_compute_dimensions(
         gpu_buffer_kmer_filter,kmer_counting_nway_end2,
         archive_search_get_num_kmer_filter_candidates(archive_search_end2),
-        &total_entries,&total_queries,&total_candidates);
+        &total_queries,&total_queries_length,&total_candidates);
   }
   // Return if current search fits in buffer
   return gpu_buffer_kmer_filter_fits_in_buffer(
-      gpu_buffer_kmer_filter,total_entries,
-      total_queries,total_candidates);
+      gpu_buffer_kmer_filter,total_queries,total_queries_length,total_candidates);
 }
 /*
  * Send/Receive

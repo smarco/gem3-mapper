@@ -89,8 +89,7 @@ void archive_search_se_stepwise_bpm_distance_copy(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance);
 void archive_search_se_stepwise_bpm_distance_retrieve(
     archive_search_t* const archive_search,
-    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
-    matches_t* const matches);
+    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance);
 
 /*
  * Stepwise: BPM-Align

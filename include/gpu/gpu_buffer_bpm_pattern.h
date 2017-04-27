@@ -21,25 +21,42 @@
  * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
- *   GPU-adaptor module provides support functions to configure the GPU workflow
  */
 
+#ifndef GPU_BUFFER_BPM_PATTERN_H_
+#define GPU_BUFFER_BPM_PATTERN_H_
+
+#include "utils/essentials.h"
+#include "align/pattern/pattern.h"
 #include "gpu/gpu_config.h"
 
 /*
- * CUDA Supported
+ * Constants
  */
-#ifdef HAVE_CUDA
-
-bool gpu_supported(void) {
-  return (gpu_get_num_supported_devices_(GPU_ARCH_SUPPORTED) > 0);
-}
+#define GPU_BPM_ALPHABET_LENGTH  GPU_BPM_FILTER_PEQ_ALPHABET_SIZE
+#define GPU_BPM_ENTRY_LENGTH     GPU_BPM_FILTER_PEQ_ENTRY_LENGTH
+#define GPU_BPM_ENTRY_SIZE       (GPU_BPM_FILTER_PEQ_ENTRY_LENGTH / UINT8_LENGTH)
+#define GPU_BPM_NUM_SUB_ENTRIES  GPU_BPM_FILTER_PEQ_SUBENTRIES
+#define GPU_BPM_SUBENTRY_LENGTH  GPU_BPM_FILTER_PEQ_SUBENTRY_LENGTH
 
 /*
- * CUDA NOT-Supported
+ * Aliased query-entry
  */
-#else
+typedef struct {
+  uint32_t bitmap[GPU_BPM_ALPHABET_LENGTH][GPU_BPM_NUM_SUB_ENTRIES];
+} gpu_bpm_peq_entry_t;
 
-bool gpu_supported(void) { return false; }
+/*
+ * Compile/Decompile Query Entries [DTO]
+ */
+void gpu_buffer_bpm_pattern_compile(
+    gpu_bpm_peq_entry_t* const pattern_entry,
+    const bpm_pattern_t* const bpm_pattern);
+void gpu_buffer_bpm_pattern_decompile(
+    gpu_bpm_peq_entry_t* const pattern_entry,
+    const uint32_t pattern_length,
+    bpm_pattern_t* const bpm_pattern,
+    mm_allocator_t* const mm_allocator);
 
-#endif /* HAVE_CUDA */
+#endif /* GPU_BUFFER_BPM_PATTERN_H_ */
+

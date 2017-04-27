@@ -89,30 +89,34 @@ void match_scaffold_free_alignment_region(
  */
 void match_scaffold_rl_translate_regions(
     match_scaffold_t* const match_scaffold,
-    match_align_input_t* const align_input,
-    const bool left_gap_alignment,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
     matches_t* const matches) {
+  // Paramters
+  uint32_t* const rl_key_runs_acc = pattern->rl_runs_acc;
+  uint32_t* const rl_text_runs_acc = text_trace->rl_runs_acc;
+  const bool left_gap_alignment = (text_trace->strand==Forward);
   const uint64_t num_alignment_regions = match_scaffold->num_alignment_regions;
+  // Translate all regions
   uint64_t i;
   for (i=0;i<num_alignment_regions;++i) {
     match_alignment_region_t* const match_alignment_region = match_scaffold->alignment_regions + i;
     // Translate into Text-Space
     match_alignment_region_set_type(match_alignment_region,match_alignment_region_approximate);
     // Translate CIGAR
-    match_alignment_region_rl_translate(match_alignment_region,
-        align_input,left_gap_alignment,matches->cigar_vector);
+    match_alignment_region_rl_translate(
+        match_alignment_region,rl_key_runs_acc,rl_text_runs_acc,
+        left_gap_alignment,matches->cigar_vector);
     // Region boundaries
     const uint64_t region_key_begin = match_alignment_region_get_key_begin(match_alignment_region);
     const uint64_t region_key_end = match_alignment_region_get_key_end(match_alignment_region);
     const uint64_t region_text_begin = match_alignment_region_get_text_begin(match_alignment_region);
     const uint64_t region_text_end = match_alignment_region_get_text_end(match_alignment_region);
     // Translate offsets
-    uint32_t* const rl_key_runs_acc = align_input->rl_key_runs_acc;
     match_alignment_region_set_key_begin(match_alignment_region,
         archive_text_rl_get_decoded_offset_exl(rl_key_runs_acc,region_key_begin));
     match_alignment_region_set_key_end(match_alignment_region,
         archive_text_rl_get_decoded_offset_exl(rl_key_runs_acc,region_key_end));
-    uint32_t* const rl_text_runs_acc = align_input->rl_text_runs_acc;
     match_alignment_region_set_text_begin(match_alignment_region,
         archive_text_rl_get_decoded_offset_exl(rl_text_runs_acc,region_text_begin));
     match_alignment_region_set_text_end(match_alignment_region,
@@ -120,61 +124,64 @@ void match_scaffold_rl_translate_regions(
   }
 }
 /*
- * Exact Scaffolding of the alignment
+ * Region Chain Scaffolding
  */
-void match_scaffold_exact(
+void match_scaffold_region_chain(
     match_scaffold_t* const match_scaffold,
-    match_align_input_t* const align_input,
-    const bool left_gap_alignment,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
     matches_t* const matches) {
-  // Parameters
-  mm_allocator_t* const mm_allocator = mm_allocator;
-  // Check scaffold-type
-  if (match_scaffold->scaffold_type == scaffold_none) {
-    /*
-     * Translate alignment-regions
-     */
-    const bool rl_space = match_scaffold->alignment_regions_rl;
-    if (rl_space) {
-      match_scaffold_rl_translate_regions(match_scaffold,align_input,left_gap_alignment,matches);
-      match_scaffold->alignment_regions_rl = false;
-    }
-    /*
-     * Scaffold chaining alignment-regions (from region-profile)
-     */
-    PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_ALIGNMENT_REGIONS,match_scaffold->num_alignment_regions);
-    PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_ALIGNMENT_COVERAGE,
-        (100*match_scaffold->scaffolding_coverage)/align_input->key_length);
-    match_scaffold->scaffold_type = scaffold_alignment_chain;
-    match_scaffold_chain(match_scaffold,align_input,!rl_space);
-    PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_CHAIN_REGIONS_COVERAGE,
-        (100*match_scaffold->scaffolding_coverage)/align_input->key_length);
+  // Translate alignment-regions
+  const bool rl_space = match_scaffold->alignment_regions_rl;
+  if (rl_space) {
+    match_scaffold_rl_translate_regions(
+        match_scaffold,pattern,text_trace,matches);
+    match_scaffold->alignment_regions_rl = false;
   }
+  // PROF
+  PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_ALIGNMENT_REGIONS,match_scaffold->num_alignment_regions);
+  PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_ALIGNMENT_COVERAGE,
+      (100*match_scaffold->scaffolding_coverage)/pattern->key_length);
+  // Scaffold chaining alignment-regions (from region-profile)
+  match_scaffold_chain(match_scaffold,pattern,text_trace,!rl_space);
+  // PROF
+  PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_CHAIN_REGIONS_COVERAGE,
+      (100*match_scaffold->scaffolding_coverage)/pattern->key_length);
 }
 /*
  * Adaptive Scaffolding of the alignment (Best effort)
  */
 void match_scaffold_adaptive(
     match_scaffold_t* const match_scaffold,
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
+    alignment_t* const alignment,
+    const uint64_t global_min_identity,
+    const uint64_t matching_min_length,
     matches_t* const matches) {
   PROFILE_START(GP_MATCH_SCAFFOLD_ALIGNMENT,PROFILE_LEVEL);
-  // Exact scaffolding
-  match_scaffold_exact(match_scaffold,align_input,align_parameters,matches);
-  // Adaptive scaffolding
-  if (match_scaffold->scaffold_type == scaffold_alignment_chain) {
-    const uint64_t max_coverage_bound = BOUNDED_SUBTRACTION(
-        align_input->key_length,align_input->alignment->distance_min_bound,0);
-    if (max_coverage_bound < align_parameters->global_min_identity ||
-        match_scaffold->scaffolding_coverage < max_coverage_bound) { // Check coverage
+  // Region-Chain scaffolding
+  if (match_scaffold->scaffold_type == scaffold_none) {
+    match_scaffold_region_chain(match_scaffold,pattern,text_trace,matches);
+    match_scaffold->scaffold_type = scaffold_region_chain; // Set scaffold approach
+  }
+  // Levenshtein scaffolding
+  const uint64_t key_length = pattern->key_length;
+  if (match_scaffold->scaffold_type <= scaffold_region_chain) {
+    // Check coverage
+    const uint64_t match_distance_min_bound = alignment->distance_min_bound;
+    const uint64_t max_coverage_bound = BOUNDED_SUBTRACTION(key_length,match_distance_min_bound,0);
+    if (max_coverage_bound < global_min_identity ||
+        match_scaffold->scaffolding_coverage < max_coverage_bound) {
       // Scaffold from Levenshtein-alignment
-      match_scaffold->scaffold_type = scaffold_levenshtein; // Set scaffold approach
-      match_scaffold_levenshtein(match_scaffold,align_input,align_parameters,matches);
-      match_scaffold_chain(match_scaffold,align_input,false);
+      match_scaffold_levenshtein(
+          match_scaffold,pattern,text_trace,
+          alignment,matching_min_length,matches);
+      match_scaffold_chain(match_scaffold,pattern,text_trace,false);
       PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_COVERAGE,
-          (100*match_scaffold->scaffolding_coverage)/align_input->key_length);
+          (100*match_scaffold->scaffolding_coverage)/key_length);
     }
+    match_scaffold->scaffold_type = scaffold_levenshtein;
   }
   //  // DEBUG
   //  match_scaffold_print_pretty(stderr,matches,match_scaffold,
@@ -189,7 +196,7 @@ void match_scaffold_adaptive(
   }
   // CHECK
   gem_cond_debug_block(DEBUG_MATCH_SCAFFOLD_CHECK) {
-    match_scaffold_check(match_scaffold,align_input,matches);
+    match_scaffold_check(match_scaffold,pattern,text_trace,matches);
   }
   PROFILE_STOP(GP_MATCH_SCAFFOLD_ALIGNMENT,PROFILE_LEVEL);
 }
@@ -198,15 +205,16 @@ void match_scaffold_adaptive(
  */
 void match_scaffold_check(
     match_scaffold_t* const match_scaffold,
-    match_align_input_t* const align_input,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
     matches_t* const matches) {
   const uint64_t num_alignment_regions = match_scaffold->num_alignment_regions;
   uint64_t i;
   for (i=0;i<num_alignment_regions;++i) {
     match_alignment_region_t* const match_alignment_region = match_scaffold->alignment_regions + i;
     match_alignment_region_check(
-        match_alignment_region,align_input->key,
-        align_input->text,matches->cigar_vector);
+        match_alignment_region,pattern->key,
+        text_trace->text,matches->cigar_vector);
   }
 }
 /*
@@ -230,8 +238,8 @@ void match_scaffold_print(
   tab_fprintf(stream,"[GEM]>Scaffold.Alignment.Regions\n");
   switch (match_scaffold->scaffold_type) {
     case scaffold_none: tab_fprintf(stream,"  => Scaffold.type -None-\n"); break;
-    case scaffold_alignment_chain: tab_fprintf(stream,"  => Scaffold.type alignment.chain\n"); break;
-    case scaffold_levenshtein: tab_fprintf(stream,"  => Scaffold.type levenshtein\n"); break;
+    case scaffold_region_chain: tab_fprintf(stream,"  => Scaffold.type RegionChain\n"); break;
+    case scaffold_levenshtein: tab_fprintf(stream,"  => Scaffold.type Levenshtein\n"); break;
     default:
       GEM_INVALID_CASE();
       break;

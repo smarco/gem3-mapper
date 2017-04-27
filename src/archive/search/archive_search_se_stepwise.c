@@ -188,13 +188,12 @@ void archive_search_se_stepwise_bpm_distance_copy(
 }
 void archive_search_se_stepwise_bpm_distance_retrieve(
     archive_search_t* const archive_search,
-    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
-    matches_t* const matches) {
+    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE_BPM_DISTANCE_RETRIEVE,PROFILE_LEVEL);
   archive_search_se_stepwise_debug_prologue(archive_search,"BPM.Distance.Retrieve");
   // Verify-Candidates Retrieve
   approximate_search_stepwise_bpm_distance_retrieve(
-      &archive_search->approximate_search,gpu_buffer_bpm_distance,matches);
+      &archive_search->approximate_search,gpu_buffer_bpm_distance);
   archive_search_se_stepwise_debug_epilogue();
   PROFILE_STOP(GP_ARCHIVE_SEARCH_SE_BPM_DISTANCE_RETRIEVE,PROFILE_LEVEL);
 }
@@ -205,7 +204,7 @@ void archive_search_se_stepwise_bpm_align_copy(
     archive_search_t* const archive_search,
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE_BPM_ALIGN_COPY,PROFILE_LEVEL);
-  archive_search_se_stepwise_debug_prologue(archive_search,"BPM.Distance.Copy");
+  archive_search_se_stepwise_debug_prologue(archive_search,"BPM.Align.Copy");
   // Verify-Candidates Copy
   approximate_search_stepwise_bpm_align_copy(
       &archive_search->approximate_search,gpu_buffer_bpm_align);
@@ -217,7 +216,7 @@ void archive_search_se_stepwise_bpm_align_retrieve(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
     matches_t* const matches) {
   PROFILE_START(GP_ARCHIVE_SEARCH_SE_BPM_ALIGN_RETRIEVE,PROFILE_LEVEL);
-  archive_search_se_stepwise_debug_prologue(archive_search,"BPM.Distance.Retrieve");
+  archive_search_se_stepwise_debug_prologue(archive_search,"BPM.Align.Retrieve");
   // Verify-Candidates Retrieve
   approximate_search_stepwise_bpm_align_retrieve(
       &archive_search->approximate_search,gpu_buffer_bpm_align,matches);

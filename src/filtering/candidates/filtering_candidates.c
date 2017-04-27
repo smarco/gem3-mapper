@@ -229,6 +229,14 @@ void filtering_candidates_set_num_regions(
     const uint64_t num_regions) {
   vector_set_used(filtering_candidates->filtering_regions,num_regions);
 }
+uint64_t filtering_candidates_get_num_region_tiles_length(
+    const filtering_candidates_t* const filtering_candidates) {
+  uint64_t region_tiles_length = 0;
+  VECTOR_ITERATE(filtering_candidates->filtering_regions,region,r,filtering_region_t*) {
+    region_tiles_length += (*region)->text_end_position - (*region)->text_begin_position;
+  }
+  return region_tiles_length;
+}
 filtering_region_t** filtering_candidates_get_regions(
     const filtering_candidates_t* const filtering_candidates) {
   return vector_get_mem(filtering_candidates->filtering_regions,filtering_region_t*);

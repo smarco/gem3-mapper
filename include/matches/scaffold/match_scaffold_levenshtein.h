@@ -30,12 +30,44 @@
 #include "matches/matches.h"
 
 /*
+ * Setup
+ */
+void match_scaffold_levenshtein_allocate(
+    match_scaffold_t* const match_scaffold,
+    const uint64_t key_length,
+    const uint64_t matching_min_length);
+
+/*
+ * Compose the scaffolding
+ */
+void match_scaffold_levenshtein_compose_alignment(
+    match_scaffold_t* const match_scaffold,
+    const match_alignment_t* const match_alignment,
+    uint64_t key_offset,
+    const uint64_t matching_min_length,
+    matches_t* const matches);
+
+/*
  * Levenshtein Scaffold Tiled
+ */
+void match_scaffold_levenshtein_tile(
+    match_scaffold_t* const match_scaffold,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
+    alignment_tile_t* const alignment_tile,
+    pattern_tile_t* const pattern_tile,
+    const uint64_t matching_min_length,
+    matches_t* const matches);
+
+/*
+ * Levenshtein Scaffold
  */
 bool match_scaffold_levenshtein(
     match_scaffold_t* const match_scaffold,
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
+    alignment_t* const alignment,
+    const uint64_t matching_min_length,
     matches_t* const matches);
 
 #endif /* MATCH_SCAFFOLD_LEVENSHTEIN_H_ */

@@ -25,6 +25,7 @@
 #define MATCH_SCAFFOLD_H_
 
 #include "utils/essentials.h"
+#include "align/pattern/pattern.h"
 #include "matches/matches.h"
 #include "matches/align/match_align_dto.h"
 #include "matches/align/match_alignment_region.h"
@@ -33,10 +34,10 @@
  * Match Scaffold Type
  */
 typedef enum {
-  scaffold_none,
-  scaffold_alignment_chain,
-  scaffold_levenshtein,
-  scaffold_swg,
+  scaffold_none = 0,
+  scaffold_region_chain = 1,
+  scaffold_levenshtein = 2,
+  scaffold_swg = 3,
 } match_scaffold_type;
 
 /*
@@ -79,12 +80,12 @@ void match_scaffold_free_alignment_region(
     match_alignment_region_t* const match_alignment_region);
 
 /*
- * Exact Scaffolding of the alignment
+ * Region Chain Scaffolding
  */
-void match_scaffold_exact(
+void match_scaffold_region_chain(
     match_scaffold_t* const match_scaffold,
-    match_align_input_t* const align_input,
-    const bool left_gap_alignment,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
     matches_t* const matches);
 
 /*
@@ -92,8 +93,11 @@ void match_scaffold_exact(
  */
 void match_scaffold_adaptive(
     match_scaffold_t* const match_scaffold,
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
+    alignment_t* const alignment,
+    const uint64_t global_min_identity,
+    const uint64_t matching_min_length,
     matches_t* const matches);
 
 /*
@@ -101,7 +105,8 @@ void match_scaffold_adaptive(
  */
 void match_scaffold_check(
     match_scaffold_t* const match_scaffold,
-    match_align_input_t* const align_input,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
     matches_t* const matches);
 
 /*

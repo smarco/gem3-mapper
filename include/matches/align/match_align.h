@@ -81,6 +81,7 @@ void match_align_levenshtein(
 void match_align_smith_waterman_gotoh(
     matches_t* const matches,
     match_trace_t* const match_trace,
+    pattern_t* const pattern,
     match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
     match_scaffold_t* const match_scaffold,

@@ -172,6 +172,11 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
   while (mapper_read_sequence(mapper_io_handler,true,&sequence)) {
+//    // DEBUG
+//    if (gem_streq(sequence->tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000000004/1")) {
+//      printf("HERE\n");
+//    }
+
     // Prepare Search
     archive_search_handlers_prepare_se(archive_search,sequence,archive_search_handlers);
 

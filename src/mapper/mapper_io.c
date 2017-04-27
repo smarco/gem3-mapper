@@ -288,9 +288,6 @@ error_code_t mapper_read_sequence(
   if (mapper_io_handler->archive_bisulfite) {
     sequence_bisulfite_process_se(*sequence,mapper_io_handler->bisulfite_read);
   }
-//    if (gem_streq(sequence->tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000001140/1")) {
-//      printf("HERE\n");
-//    }
   // Return
   PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
   return error_code;
@@ -321,9 +318,6 @@ error_code_t mapper_read_paired_sequence(
   if (mapper_io_handler->archive_bisulfite) {
     sequence_bisulfite_process_pe(*sequence_end1,*sequence_end2);
   }
-//    if (gem_streq(sequence_end1->tag.buffer,"H.Sapiens.1M.Illumina.l100.low.000001140/1")) {
-//      printf("HERE\n");
-//    }
   // Return
   PROF_ADD_COUNTER(GP_MAPPER_NUM_READS,2);
   return INPUT_STATUS_OK;

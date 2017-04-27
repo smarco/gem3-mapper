@@ -28,6 +28,7 @@
 #define GPU_CONFIG_H_
 
 #include "utils/essentials.h"
+#include "resources/gpu_modules/gpu_interface.h"
 
 /*
  * Region-Profile Adaptive (if not define, static seeds are generated)

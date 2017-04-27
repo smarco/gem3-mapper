@@ -27,6 +27,7 @@
 #include "align/alignment.h"
 #include "filtering/region/filtering_region_align.h"
 #include "filtering/region/filtering_region_align_configure.h"
+#include "matches/align/match_align.h"
 #include "io/output_map.h"
 
 /*
@@ -139,7 +140,6 @@ void filtering_region_align_inexact(
     match_trace_t* const match_trace) {
   PROF_INC_COUNTER(GP_ALIGNED_INEXACT);
   // Parameters
-  archive_text_t* const archive_text = filtering_candidates->archive->text;
   search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
   const match_alignment_model_t match_alignment_model = search_parameters->match_alignment_model;
   mm_allocator_t* const mm_allocator = filtering_candidates->mm_allocator;
@@ -168,27 +168,22 @@ void filtering_region_align_inexact(
     }
     case match_alignment_model_levenshtein: {
       // Configure Alignment
-      const strand_t position_strand =
-          archive_text_get_position_strand(archive_text,filtering_region->text_begin_position);
-      const bool left_gap_alignment = (position_strand==Forward);
       filtering_region_align_configure_levenshtein(
           &align_input,&align_parameters,filtering_region,
-          search_parameters,pattern,left_gap_alignment,mm_allocator);
+          search_parameters,pattern,mm_allocator);
       // Levenshtein Align
       match_align_levenshtein(matches,match_trace,&align_input,&align_parameters,mm_allocator);
       break;
     }
     case match_alignment_model_gap_affine: {
       // Configure Alignment
-      const strand_t position_strand =
-          archive_text_get_position_strand(archive_text,filtering_region->text_begin_position);
-      const bool left_gap_alignment = (position_strand==Forward);
       filtering_region_align_configure_swg(
           &align_input,&align_parameters,filtering_region,search_parameters,
-          pattern,left_gap_alignment,local_alignment,mm_allocator);
+          pattern,local_alignment,mm_allocator);
       // Gap-affine Align
-      match_align_smith_waterman_gotoh(matches,match_trace,
-          &align_input,&align_parameters,&filtering_region->match_scaffold,mm_allocator);
+      match_align_smith_waterman_gotoh(
+          matches,match_trace,pattern,&align_input,&align_parameters,
+          &filtering_region->match_scaffold,mm_allocator);
       //      // DEBUG
       //      fprintf(stderr,"[GEM]>Text-Alignment\n");
       //      match_alignment_print_pretty(stderr,&match_trace->match_alignment,

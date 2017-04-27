@@ -125,6 +125,8 @@ void archive_text_retrieve(
   text_trace->text_allocated = false;
   text_trace->text_padded_allocated = false;
   text_trace->text_length = text_length;
+  text_trace->strand = archive_text_get_position_strand(archive_text,text_position);
+  text_trace->position = text_position;
   if (text_position < archive_text->forward_text_length || archive_text->explicit_complement) {
     if (reverse_complement_text) {
       if (archive_text->explicit_complement) {

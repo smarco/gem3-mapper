@@ -26,7 +26,6 @@
  */
 
 #include "gpu/gpu_buffer_collection.h"
-#include "resources/gpu_modules/gpu_interface.h"
 
 /*
  * Profile

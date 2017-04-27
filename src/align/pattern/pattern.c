@@ -21,7 +21,6 @@
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  */
 
-#include "gpu/gpu_buffer_bpm_distance.h"
 #include "align/pattern/pattern.h"
 #include "archive/archive_text_rl.h"
 #include "gpu/gpu_config.h"

@@ -25,11 +25,15 @@
 #define TEXT_TRACE_H_
 
 #include "utils/essentials.h"
+#include "text/dna_text.h"
 
 /*
  * Text Collection
  */
 typedef struct {
+  /* Location */
+  uint64_t position;            // Text position
+  strand_t strand;              // Strand
   /* Encoded Text */
   uint8_t* text;                // Encoded text
   bool text_allocated;          // MM-Allocated text

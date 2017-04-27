@@ -34,7 +34,8 @@
  */
 void match_scaffold_chain(
     match_scaffold_t* const match_scaffold,
-    match_align_input_t* const align_input,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
     const bool exact_extend);
 
 #endif /* MATCH_SCAFFOLD_CHAIN_H_ */

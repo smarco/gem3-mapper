@@ -24,7 +24,6 @@
  */
 
 #include "gpu/gpu_buffer_kmer_filter.h"
-#include "resources/gpu_modules/gpu_interface.h"
 
 /*
  * Errors
@@ -125,18 +124,18 @@ void gpu_buffer_kmer_filter_compute_dimensions(
     kmer_counting_nway_t* const kmer_counting,
     const uint64_t num_candidates,
     uint64_t* const total_queries,
-    uint64_t* const total_candidates,
-    uint64_t* const total_queries_length) {
+    uint64_t* const total_queries_length,
+    uint64_t* const total_candidates) {
   // Calculate dimensions
   *total_queries += kmer_counting->num_tiles;
-  *total_candidates += kmer_counting->num_tiles*num_candidates;
   *total_queries_length += kmer_counting->key_length;
+  *total_candidates += kmer_counting->num_tiles*num_candidates;
 }
 bool gpu_buffer_kmer_filter_fits_in_buffer(
     gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter,
     const uint64_t total_queries,
-    const uint64_t total_candidates,
-    const uint64_t total_queries_length) {
+    const uint64_t total_queries_length,
+    const uint64_t total_candidates) {
   // Get Limits
   uint64_t max_queries = gpu_buffer_kmer_filter_get_max_queries(gpu_buffer_kmer_filter);
   uint64_t max_candidates = gpu_buffer_kmer_filter_get_max_candidates(gpu_buffer_kmer_filter);
@@ -360,13 +359,13 @@ void gpu_buffer_kmer_filter_compute_dimensions(
     kmer_counting_nway_t* const kmer_counting,
     const uint64_t num_candidates,
     uint64_t* const total_queries,
-    uint64_t* const total_candidates,
-    uint64_t* const total_queries_length) { GEM_CUDA_NOT_SUPPORTED(); }
+    uint64_t* const total_queries_length,
+    uint64_t* const total_candidates) { GEM_CUDA_NOT_SUPPORTED(); }
 bool gpu_buffer_kmer_filter_fits_in_buffer(
     gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter,
     const uint64_t total_queries,
-    const uint64_t total_candidates,
-    const uint64_t total_queries_length) { GEM_CUDA_NOT_SUPPORTED(); return false; }
+    const uint64_t total_queries_length,
+    const uint64_t total_candidates) { GEM_CUDA_NOT_SUPPORTED(); return false; }
 /*
  * Accessors
  */

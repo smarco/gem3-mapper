@@ -28,7 +28,6 @@
 
 #include "gpu/gpu_buffer_fmi_ssearch.h"
 #include "fm_index/fm_index_search.h"
-#include "resources/gpu_modules/gpu_interface.h"
 
 /*
  * Constants

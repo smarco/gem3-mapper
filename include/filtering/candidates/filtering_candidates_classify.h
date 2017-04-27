@@ -19,25 +19,33 @@
  *
  * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
- * DESCRIPTION:
  */
-
-#ifndef FILTERING_REGION_ALIGN_LOCAL_H_
-#define FILTERING_REGION_ALIGN_LOCAL_H_
-
 
 #include "filtering/candidates/filtering_candidates.h"
-#include "filtering/region/filtering_region.h"
 #include "align/pattern/pattern.h"
-#include "matches/matches.h"
-
 
 /*
- * Exclude tiles
+ * Filtering candidates classify as subdominant match
+ * (Expected best score worse than all the found matches so far)
  */
-void filtering_candidates_align_local_exclude_tiles(
+bool filtering_candidates_classify_subdominant_match(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
-    pattern_t* const pattern);
+    pattern_t* const pattern,
+    matches_t* const matches);
 
-#endif /* FILTERING_REGION_ALIGN_LOCAL_H_ */
+/*
+ * Filtering candidates classify as subdominant region
+ * compared with a reference score/distance
+ */
+bool filtering_candidates_classify_subdominant_region_edit(
+    filtering_candidates_t* const filtering_candidates,
+    const uint64_t filtering_region_rank,
+    const uint64_t filtering_region_edit_bound,
+    const uint64_t reference_edit_bound);
+bool filtering_candidates_classify_subdominant_region_swg(
+    filtering_candidates_t* const filtering_candidates,
+    const uint64_t filtering_region_rank,
+    const int32_t filtering_region_score_bound,
+    const int32_t reference_score_bound);
+

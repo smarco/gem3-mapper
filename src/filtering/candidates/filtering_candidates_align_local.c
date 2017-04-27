@@ -27,7 +27,6 @@
 #include "align/alignment.h"
 #include "filtering/candidates/filtering_candidates_align_local.h"
 #include "filtering/candidates/filtering_candidates_align.h"
-#include "filtering/region/filtering_region_align_local.h"
 #include "filtering/region/filtering_region_verify.h"
 
 /*
@@ -70,25 +69,16 @@ void filtering_candidates_align_local(
   const uint64_t num_regions_discarded = filtering_candidates_get_num_discarded_regions(filtering_candidates);
   PROF_ADD_COUNTER(GP_CANDIDATE_REGION_LOCAL,num_regions_discarded);
   filtering_region_t** const regions_discarded = filtering_candidates_get_discarded_regions(filtering_candidates);
-  match_align_input_t align_input;
   uint64_t i;
   for (i=0;i<num_regions_discarded;++i) {
     filtering_region_t* const filtering_region = regions_discarded[i];
     // Retrieve Text
     filtering_region_retrieve_text(filtering_region,pattern,archive_text,filtering_candidates->mm_allocator);
     text_trace_t* const text_trace = &filtering_region->text_trace;
-    // Configure
-    align_input.key = pattern->key;
-    align_input.key_length = pattern->key_length;
-    align_input.text = text_trace->text;
-    align_input.text_length = text_trace->text_length;
-    const strand_t position_strand =
-        archive_text_get_position_strand(archive_text,filtering_region->text_begin_position);
-    const bool left_gap_alignment = (position_strand==Forward);
-    // Exact extend
-    match_scaffold_exact(
-        &filtering_region->match_scaffold,
-        &align_input,left_gap_alignment,matches);
+    // Exact extend and region chain scaffold
+    if (filtering_region->match_scaffold.scaffold_type <= scaffold_none) {
+      match_scaffold_region_chain(&filtering_region->match_scaffold,pattern,text_trace,matches);
+    }
   }
   /*
    * Local-align the most promising regions

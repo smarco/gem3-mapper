@@ -76,7 +76,8 @@ void match_alignment_region_rl_translate_cigar(
  */
 void match_alignment_region_rl_translate(
     match_alignment_region_t* const match_alignment_region,
-    match_align_input_t* const align_input,
+    uint32_t* const rl_key_runs_acc,
+    uint32_t* const rl_text_runs_acc,
     const bool left_gap_alignment,
     vector_t* const cigar_vector) {
   // Parameters
@@ -92,7 +93,8 @@ void match_alignment_region_rl_translate(
   cigar_buffer->type = cigar_null; // Trick
   // Translate all match-CIGAR element
   match_alignment_region_rl_translate_cigar(
-      &cigar_buffer,rl_match_length,align_input->rl_key_runs_acc,align_input->rl_text_runs_acc,
+      &cigar_buffer,rl_match_length,
+      rl_key_runs_acc,rl_text_runs_acc,
       region_key_begin,region_text_begin,left_gap_alignment);
   // Set CIGAR buffer used
   if (cigar_buffer->type!=cigar_null) ++(cigar_buffer);

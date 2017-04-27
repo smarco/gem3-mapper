@@ -141,12 +141,11 @@ void match_scaffold_chain_alignment_regions(
   // Keep the best chain (given by the LIS)
   match_scaffold_chain_store_lis(match_scaffold,lis_vector);
   mm_allocator_pop_state(mm_allocator);
-
 }
 /*
  * Exact extend alignment-regions
  */
-void match_scaffold_exact_extend(
+void match_scaffold_chain_exact_extend(
     match_scaffold_t* const match_scaffold,
     const uint8_t* const key,
     const uint64_t key_length,
@@ -219,22 +218,23 @@ void match_scaffold_exact_extend(
  */
 void match_scaffold_chain(
     match_scaffold_t* const match_scaffold,
-    match_align_input_t* const align_input,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
     const bool exact_extend) {
   PROF_INC_COUNTER(GP_MATCH_SCAFFOLD_CHAIN_REGIONS_SCAFFOLDS);
   PROFILE_START(GP_MATCH_SCAFFOLD_CHAIN_REGIONS,PROFILE_LEVEL);
   // Parameters
-  const uint8_t* const key = align_input->key;
-  const uint64_t key_length = align_input->key_length;
-  const uint8_t* const text = align_input->text;
-  const uint64_t text_length = align_input->text_length;
+  const uint8_t* const key = pattern->key;
+  const uint64_t key_length = pattern->key_length;
+  const uint8_t* const text = text_trace->text;
+  const uint64_t text_length = text_trace->text_length;
   // Find a compatible chain of alignment-regions
   if (match_scaffold->num_alignment_regions > 0) {
     match_scaffold_chain_alignment_regions(match_scaffold);
     if (match_scaffold->num_alignment_regions > 0) {
       // Extend alignment-regions as to maximize coverage
       if (exact_extend && match_scaffold->scaffolding_coverage < key_length) {
-        match_scaffold_exact_extend(match_scaffold,key,key_length,text,text_length);
+        match_scaffold_chain_exact_extend(match_scaffold,key,key_length,text,text_length);
       }
       match_scaffold->match_alignment.score =
           key_length - match_scaffold->scaffolding_coverage; // Set score as matching bases
@@ -243,7 +243,7 @@ void match_scaffold_chain(
     }
   }
   // Set score & coverage
-  match_scaffold->match_alignment.score = align_input->key_length;
+  match_scaffold->match_alignment.score = key_length;
   match_scaffold->scaffolding_coverage = 0;
   PROFILE_STOP(GP_MATCH_SCAFFOLD_CHAIN_REGIONS,PROFILE_LEVEL);
 }

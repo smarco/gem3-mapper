@@ -30,24 +30,29 @@
 #include "profiler/profiler_timer.h"
 #include "align/pattern/pattern.h"
 #include "gpu/gpu_buffer_collection.h"
+#include "gpu/gpu_buffer_bpm_pattern.h"
 
 /*
  * GPU BMP Buffer
  */
 typedef struct {
-  /* GPU Generic Buffer*/
+  /* GPU Buffer */
   void* buffer;                       // GPU Generic Buffer
-  /* Dimensions Hints */
-  gem_counter_t query_length;         // Tracks queries' length
-  gem_counter_t candidates_per_tile;  // Tracks number of candidates per tile
-  uint32_t query_same_length;         // Tracks same-read-length buffers
   /* Buffer state */
   bool bpm_align_enabled;             // Enabled GPU-computing BPM-Distance
-  uint32_t current_query_offset;
-  uint32_t num_entries;
-  uint32_t num_queries;
-  uint32_t num_candidates;
-  /* Profile */
+  uint32_t current_query_offset;      // Current query offset (Once a pattern is added)
+  /* Buffer Queries */
+  uint32_t num_queries;               // Total queries
+  uint32_t num_query_entries;         // Total query-entries (BPM encoded chunks)
+  uint32_t query_buffer_offset;       // Current query-buffer offset (Plain text)
+  /* Buffer Candidates */
+  uint32_t num_candidates;            // Total candidates
+  uint32_t candidate_buffer_offset;   // Current candidate-buffer offset (Plain text)
+  /* Stats */
+  gem_counter_t query_length;         // Tracks queries' length
+  gem_counter_t candidate_length;     // Tracks candidates' length
+  gem_counter_t candidates_per_tile;  // Tracks number of candidates per tile
+  uint32_t query_same_length;         // Tracks same-read-length buffers
   gem_timer_t timer;
 } gpu_buffer_bpm_align_t;
 
@@ -67,62 +72,81 @@ void gpu_buffer_bpm_align_delete(
  * Occupancy & Limits
  */
 uint64_t gpu_buffer_bpm_align_get_entry_length(void);
-uint64_t gpu_buffer_bpm_align_get_max_candidates(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
 uint64_t gpu_buffer_bpm_align_get_max_queries(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
-
+uint64_t gpu_buffer_bpm_align_get_max_query_entries(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
+uint64_t gpu_buffer_bpm_align_get_max_query_buffer_size(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
+uint64_t gpu_buffer_bpm_align_get_max_candidates(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
+uint64_t gpu_buffer_bpm_align_get_max_candidate_buffer_size(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
 uint64_t gpu_buffer_bpm_align_get_num_candidates(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
-uint64_t gpu_buffer_bpm_align_get_num_queries(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
 
+/*
+ * Dimensions
+ */
 void gpu_buffer_bpm_align_compute_dimensions(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
     pattern_t* const pattern,
     const uint64_t num_candidates,
-    uint64_t* const total_entries,
+    const uint64_t candidates_length,
     uint64_t* const total_queries,
-    uint64_t* const total_candidates);
+    uint64_t* const total_query_entries,
+    uint64_t* const total_query_length,
+    uint64_t* const total_candidates,
+    uint64_t* const total_candidates_length);
 bool gpu_buffer_bpm_align_fits_in_buffer(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
-    const uint64_t total_entries,
     const uint64_t total_queries,
-    const uint64_t total_candidates);
+    const uint64_t total_query_entries,
+    const uint64_t total_query_length,
+    const uint64_t total_candidates,
+    const uint64_t total_candidates_length);
 
 /*
- * Accessors
+ * Pattern accessor
  */
 void gpu_buffer_bpm_align_add_pattern(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
     pattern_t* const pattern);
+
+/*
+ * Candidate accessor
+ */
 void gpu_buffer_bpm_align_add_candidate(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
     const uint64_t tile_offset,
-    const uint64_t candidate_text_position,
-    const uint64_t candidate_length);
-
-void gpu_buffer_bpm_align_get_candidate(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
-    const uint64_t candidate_offset,
-    uint64_t* const candidate_text_position,
-    uint32_t* const candidate_length);
-void gpu_buffer_bpm_align_get_result(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
-    const uint64_t candidate_offset,
-    uint32_t* const levenshtein_distance,
-    uint32_t* const levenshtein_match_pos);
+    uint8_t* const candidate_buffer,
+    const uint64_t candidate_length,
+    const bool left_gap_align);
 
 /*
- * Hints
+ * Alignment accessor (CIGAR)
+ */
+void gpu_buffer_bpm_align_retrieve_alignment(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
+    const uint64_t candidate_offset,
+    match_alignment_t* const match_alignment,
+    vector_t* const cigar_vector);
+
+/*
+ * Stats accessors
  */
 void gpu_buffer_bpm_align_record_query_length(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
     const uint64_t query_length);
+void gpu_buffer_bpm_align_record_candidate_length(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
+    const uint64_t candidate_length);
 void gpu_buffer_bpm_align_record_candidates_per_tile(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
     const uint64_t num_candidates);
 uint64_t gpu_buffer_bpm_align_get_mean_query_length(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
+uint64_t gpu_buffer_bpm_align_get_mean_candidate_length(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
 uint64_t gpu_buffer_bpm_align_get_mean_candidates_per_tile(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);

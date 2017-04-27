@@ -27,7 +27,6 @@
  */
 
 #include "gpu/gpu_buffer_fmi_decode.h"
-#include "resources/gpu_modules/gpu_interface.h"
 
 /*
  * Errors

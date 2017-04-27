@@ -65,19 +65,6 @@
 #define KMER_COUNTING_FILTER_CHAR(enc_char) ((enc_char) % ENC_DNA_CHAR_N)
 
 /*
- * Kmer counting
- */
-#define KMER_COUNTING_INC_COUNT(count_text,count_pattern,kmers_in_text,max_kmers_in_text) \
-  if (gem_expect_false(count_pattern > 0 && count_text < count_pattern)) { \
-    ++kmers_in_text; \
-    max_kmers_in_text = MAX(max_kmers_in_text,kmers_in_text);\
-  }
-#define KMER_COUNTING_DEC_COUNT(count_text,count_pattern,kmers_in_text) \
-  if (gem_expect_false(count_pattern > 0 && count_text <= count_pattern)) { \
-    --kmers_in_text; \
-  }
-
-/*
  * Compile Pattern
  */
 void kmer_counting_compile_nway(
@@ -114,7 +101,7 @@ void kmer_counting_compile_nway(
     const uint64_t key_tiles_size = num_tiles * sizeof(kmer_counting_key_tile_t);
     const uint64_t text_tiles_size = num_tiles * sizeof(kmer_counting_text_tile_t);
     const uint64_t kmer_table_size = kmer_counting->num_kmers*num_tiles*sizeof(uint16_t);
-    void* const memory = mm_allocator_malloc(mm_allocator,key_tiles_size+text_tiles_size+2*kmer_table_size);
+    void* const memory = mm_allocator_calloc(mm_allocator,key_tiles_size+text_tiles_size+2*kmer_table_size,uint8_t,true);
     kmer_counting->key_tiles = memory;
     kmer_counting->text_tiles = memory + key_tiles_size;
     kmer_counting->kmer_count_text = memory + key_tiles_size + text_tiles_size;
@@ -122,7 +109,7 @@ void kmer_counting_compile_nway(
   } else {
     const uint64_t key_tiles_size = num_tiles * sizeof(kmer_counting_key_tile_t);
     const uint64_t text_tiles_size = num_tiles * sizeof(kmer_counting_text_tile_t);
-    void* const memory = mm_allocator_malloc(mm_allocator,key_tiles_size+text_tiles_size);
+    void* const memory = mm_allocator_calloc(mm_allocator,key_tiles_size+text_tiles_size,uint8_t,true);
     kmer_counting->key_tiles = memory;
     kmer_counting->text_tiles = memory + key_tiles_size;
     kmer_counting->kmer_count_text = NULL;
@@ -205,6 +192,18 @@ void kmer_counting_prepare_tiling(
 /*
  * K-mer counting operators
  */
+/*
+ * Kmer counting
+ */
+#define KMER_COUNTING_INC_COUNT(count_text,count_pattern,kmers_in_text,max_kmers_in_text) \
+  if (gem_expect_false(count_pattern > 0 && count_text < count_pattern)) { \
+    ++kmers_in_text; \
+    max_kmers_in_text = MAX(max_kmers_in_text,kmers_in_text);\
+  }
+#define KMER_COUNTING_DEC_COUNT(count_text,count_pattern,kmers_in_text) \
+  if (gem_expect_false(count_pattern > 0 && count_text <= count_pattern)) { \
+    --kmers_in_text; \
+  }
 void kmer_counting_decrement_kmer_count(
     kmer_counting_text_tile_t* const chunk,
     const uint64_t kmer_begin,
@@ -214,7 +213,10 @@ void kmer_counting_decrement_kmer_count(
     uint16_t* const pattern_count_ptr) {
   const uint16_t text_count = *text_count_ptr;
   const uint16_t pattern_count = *pattern_count_ptr;
-  KMER_COUNTING_DEC_COUNT(text_count,pattern_count,chunk->curr_text_kmers);
+  // KMER_COUNTING_DEC_COUNT(text_count,pattern_count,chunk->curr_text_kmers);
+  if (gem_expect_false(pattern_count > 0 && text_count <= pattern_count)) {
+    --(chunk->curr_text_kmers);
+  }
   --(*text_count_ptr);
 }
 #define KMER_COUNTING_DECREMENT(chunk_idx) \
@@ -233,7 +235,11 @@ void kmer_counting_increment_kmer_count(
     uint16_t* const pattern_count_ptr) {
   const uint16_t text_count = *text_count_ptr;
   const uint16_t pattern_count = *pattern_count_ptr;
-  KMER_COUNTING_INC_COUNT(text_count,pattern_count,chunk->curr_text_kmers,chunk->max_text_kmers);
+  // KMER_COUNTING_INC_COUNT(text_count,pattern_count,chunk->curr_text_kmers,chunk->max_text_kmers);
+  if (gem_expect_false(pattern_count > 0 && text_count < pattern_count)) {
+    ++(chunk->curr_text_kmers);
+    chunk->max_text_kmers = MAX(chunk->max_text_kmers,chunk->curr_text_kmers);
+  }
   ++(*text_count_ptr);
 }
 #define KMER_COUNTING_INCREMENT(chunk_idx) \

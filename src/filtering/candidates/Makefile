@@ -24,6 +24,7 @@ MODULES=filtering_candidates \
         filtering_candidates_buffered_bpm_distance \
         filtering_candidates_buffered_kmer_filter \
         filtering_candidates_buffered_process \
+        filtering_candidates_classify \
         filtering_candidates_extend \
         filtering_candidates_process \
         filtering_candidates_verify

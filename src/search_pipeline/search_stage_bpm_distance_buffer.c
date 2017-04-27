@@ -68,23 +68,23 @@ bool search_stage_bpm_distance_buffer_fits(
   gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance =
       bpm_distance_buffer->gpu_buffer_bpm_distance;
   // Compute dimensions
-  uint64_t total_entries = 0,total_queries = 0,total_candidates = 0;
+  uint64_t total_queries = 0,total_query_entries = 0,total_candidates = 0;
   pattern_t* const pattern_end1 = &archive_search_end1->approximate_search.pattern;
   gpu_buffer_bpm_distance_compute_dimensions(
       gpu_buffer_bpm_distance,pattern_end1,
       archive_search_get_num_bpm_distance_candidates(archive_search_end1),
-      &total_entries,&total_queries,&total_candidates);
+      &total_queries,&total_query_entries,&total_candidates);
   if (archive_search_end2!=NULL) {
     pattern_t* const pattern_end2 = &archive_search_end2->approximate_search.pattern;
     gpu_buffer_bpm_distance_compute_dimensions(
         gpu_buffer_bpm_distance,pattern_end2,
         archive_search_get_num_bpm_distance_candidates(archive_search_end2),
-        &total_entries,&total_queries,&total_candidates);
+        &total_queries,&total_query_entries,&total_candidates);
   }
   // Return if current search fits in buffer
   return gpu_buffer_bpm_distance_fits_in_buffer(
-      gpu_buffer_bpm_distance,total_entries,
-      total_queries,total_candidates);
+      gpu_buffer_bpm_distance,total_queries,
+      total_query_entries,total_candidates);
 }
 /*
  * Send/Receive

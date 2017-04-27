@@ -129,6 +129,7 @@ void approximate_search_update_mcs(
 uint64_t approximate_search_get_num_regions_profile(const approximate_search_t* const search);
 uint64_t approximate_search_get_num_decode_candidates(const approximate_search_t* const search);
 uint64_t approximate_search_get_num_filtering_candidates(const approximate_search_t* const search);
+uint64_t approximate_search_get_num_filtering_candidate_tiles_length(const approximate_search_t* const search);
 
 /*
  * Aproximate String Search

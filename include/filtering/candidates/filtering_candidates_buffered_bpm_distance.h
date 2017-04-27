@@ -34,7 +34,7 @@
 #include "gpu/gpu_buffer_bpm_distance.h"
 
 /*
- * BPM-Buffered Add (Candidates Verification)
+ * BPM-Distance Buffered Add (Candidates Verification)
  */
 void filtering_candidates_buffered_bpm_distance_add(
     filtering_candidates_t* const filtering_candidates,
@@ -44,7 +44,7 @@ void filtering_candidates_buffered_bpm_distance_add(
     uint64_t* const gpu_buffer_align_offset);
 
 /*
- * BPM-Buffered Retrieve (Candidates Verification)
+ * BPM-Distance Buffered Retrieve (Candidates Verification)
  */
 void filtering_candidates_buffered_bpm_distance_retrieve(
     filtering_candidates_t* const filtering_candidates,

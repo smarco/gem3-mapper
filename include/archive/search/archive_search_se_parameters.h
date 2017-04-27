@@ -33,7 +33,6 @@
 #include "archive/search/archive_select_parameters.h"
 #include "filtering/region_profile/region_profile.h"
 #include "neighborhood_search/nsearch_parameters.h"
-#include "matches/align/match_align.h"
 
 /*
  * Search Modes

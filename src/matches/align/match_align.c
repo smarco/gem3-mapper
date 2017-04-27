@@ -269,6 +269,7 @@ void match_align_levenshtein(
 void match_align_smith_waterman_gotoh(
     matches_t* const matches,
     match_trace_t* const match_trace,
+    pattern_t* const pattern,
     match_align_input_t* const align_input,
     match_align_parameters_t* const align_parameters,
     match_scaffold_t* const match_scaffold,
@@ -281,7 +282,10 @@ void match_align_smith_waterman_gotoh(
   // Scaffold the alignment
   if (!align_parameters->alignment_force_full_swg && !align_parameters->local_alignment) {
     PROFILE_PAUSE(GP_MATCHES_ALIGN_SWG,PROFILE_LEVEL);
-    match_scaffold_adaptive(match_scaffold,align_input,align_parameters,matches);
+    match_scaffold_adaptive(match_scaffold,pattern,
+        align_input->text_trace,align_input->alignment,
+        align_parameters->global_min_identity,
+        align_parameters->scaffolding_matching_min_length,matches);
     PROFILE_CONTINUE(GP_MATCHES_ALIGN_SWG,PROFILE_LEVEL);
     if (match_scaffold->num_alignment_regions==0) {
       PROF_INC_COUNTER(GP_ALIGNED_DISCARDED_SCAFFOLD);

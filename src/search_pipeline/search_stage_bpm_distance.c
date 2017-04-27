@@ -63,11 +63,6 @@ search_stage_bpm_distance_t* search_stage_bpm_distance_new(
   search_stage->paired_end = paired_end;
   // Init Support Data Structures
   search_stage->search_pipeline_handlers = search_pipeline_handlers;
-  if (paired_end) {
-    search_stage->paired_matches = paired_matches_new();
-  } else {
-    search_stage->matches = matches_new();
-  }
   // Init Buffers
   uint64_t i;
   search_stage->buffers = vector_new(num_buffers,search_stage_bpm_distance_buffer_t*);
@@ -104,12 +99,6 @@ void search_stage_bpm_distance_delete(
         search_stage_bpm_distance_get_buffer(search_stage,i));
   }
   vector_delete(search_stage->buffers); // Delete vector
-  // Delete Support Data Structures
-  if (search_stage->paired_end) {
-    paired_matches_delete(search_stage->paired_matches);
-  } else {
-    matches_delete(search_stage->matches);
-  }
   // Free handler
   mm_free(search_stage);
 }
@@ -255,12 +244,11 @@ bool search_stage_bpm_distance_retrieve_se_search(
   if (!success) return false;
   // Prepare Archive Search
   search_pipeline_handlers_t* const search_pipeline_handlers = search_stage->search_pipeline_handlers;
-  matches_clear(search_stage->matches);
   search_stage_bpm_distance_prepare(*archive_search,
       search_pipeline_handlers,&search_pipeline_handlers->fc_bpm_distance_end1);
   // Retrieve candidates from the buffer
-  archive_search_se_stepwise_bpm_distance_retrieve(*archive_search,
-      current_buffer->gpu_buffer_bpm_distance,search_stage->matches);
+  archive_search_se_stepwise_bpm_distance_retrieve(
+      *archive_search,current_buffer->gpu_buffer_bpm_distance);
   // Return
   return true;
 }
@@ -276,16 +264,13 @@ bool search_stage_bpm_distance_retrieve_pe_search(
   // Retrieve next (End/1)
   success = search_stage_bpm_distance_retrieve_next(search_stage,&current_buffer,archive_search_end1);
   if (!success) return false;
-  // Clear paired-matches
-  paired_matches_clear(search_stage->paired_matches,true);
   // Prepare Archive Search
   search_pipeline_handlers_t* const search_pipeline_handlers = search_stage->search_pipeline_handlers;
   search_stage_bpm_distance_prepare(*archive_search_end1,
       search_pipeline_handlers,&search_pipeline_handlers->fc_bpm_distance_end1);
   // Retrieve candidates from the buffer (End/1)
   archive_search_se_stepwise_bpm_distance_retrieve(
-      *archive_search_end1,current_buffer->gpu_buffer_bpm_distance,
-      search_stage->paired_matches->matches_end1);
+      *archive_search_end1,current_buffer->gpu_buffer_bpm_distance);
   /*
    * End/2
    */
@@ -297,8 +282,7 @@ bool search_stage_bpm_distance_retrieve_pe_search(
       search_pipeline_handlers,&search_pipeline_handlers->fc_bpm_distance_end2);
   // Retrieve candidates from the buffer (End/2)
   archive_search_se_stepwise_bpm_distance_retrieve(
-      *archive_search_end2,current_buffer->gpu_buffer_bpm_distance,
-      search_stage->paired_matches->matches_end2);
+      *archive_search_end2,current_buffer->gpu_buffer_bpm_distance);
   // Return ok
   return true;
 }

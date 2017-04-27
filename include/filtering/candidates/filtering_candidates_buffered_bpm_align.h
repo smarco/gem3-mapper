@@ -34,7 +34,7 @@
 #include "gpu/gpu_buffer_bpm_align.h"
 
 /*
- * BPM-Buffered Add (Candidates Verification)
+ * BPM-Align Buffered Add (Candidates Scaffolding)
  */
 void filtering_candidates_buffered_bpm_align_add(
     filtering_candidates_t* const filtering_candidates,
@@ -44,11 +44,12 @@ void filtering_candidates_buffered_bpm_align_add(
     uint64_t* const gpu_buffer_align_offset);
 
 /*
- * BPM-Buffered Retrieve (Candidates Verification)
+ * BPM-Align Buffered Retrieve (Candidates Scaffolding)
  */
 void filtering_candidates_buffered_bpm_align_retrieve(
     filtering_candidates_t* const filtering_candidates,
     filtering_candidates_buffered_t* const filtering_candidates_buffered,
     pattern_t* const pattern,
+    matches_t* const matches,
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
     const uint64_t gpu_buffer_align_offset);

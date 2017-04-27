@@ -108,6 +108,7 @@ uint64_t archive_search_get_num_decode_candidates(const archive_search_t* const 
 uint64_t archive_search_get_num_kmer_filter_candidates(const archive_search_t* const archive_search);
 uint64_t archive_search_get_num_bpm_distance_candidates(const archive_search_t* const archive_search);
 uint64_t archive_search_get_num_bpm_align_candidates(const archive_search_t* const archive_search);
+uint64_t archive_search_get_num_bpm_align_candidate_tiles_length(const archive_search_t* const archive_search);
 
 /*
  * Errors

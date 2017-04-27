@@ -35,19 +35,20 @@
  * GPU BMP Buffer
  */
 typedef struct {
-  /* GPU Generic Buffer*/
+  /* GPU Buffer */
   void* buffer;                       // GPU Generic Buffer
-  /* Dimensions Hints */
+  /* Buffer state */
+  bool bpm_distance_enabled;          // Enabled GPU-computing BPM-Distance
+  uint32_t current_query_offset;      // Current query offset (Once a pattern is added)
+  /* Buffer Queries */
+  uint32_t num_queries;               // Total queries
+  uint32_t num_query_entries;         // Total query-entries (BPM encoded chunks)
+  /* Buffer Candidates */
+  uint32_t num_candidates;            // Total candidates
+  /* Stats */
   gem_counter_t query_length;         // Tracks queries' length
   gem_counter_t candidates_per_tile;  // Tracks number of candidates per tile
   uint32_t query_same_length;         // Tracks same-read-length buffers
-  /* Buffer state */
-  bool bpm_distance_enabled;          // Enabled GPU-computing BPM-Distance
-  uint32_t current_query_offset;
-  uint32_t num_entries;
-  uint32_t num_queries;
-  uint32_t num_candidates;
-  /* Profile */
   gem_timer_t timer;
 } gpu_buffer_bpm_distance_t;
 
@@ -71,55 +72,57 @@ uint64_t gpu_buffer_bpm_distance_get_max_candidates(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance);
 uint64_t gpu_buffer_bpm_distance_get_max_queries(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance);
-
 uint64_t gpu_buffer_bpm_distance_get_num_candidates(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance);
-uint64_t gpu_buffer_bpm_distance_get_num_queries(
-    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance);
 
+/*
+ * Dimensions
+ */
 void gpu_buffer_bpm_distance_compute_dimensions(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
     pattern_t* const pattern,
     const uint64_t num_candidates,
-    uint64_t* const total_entries,
     uint64_t* const total_queries,
+    uint64_t* const total_query_entries,
     uint64_t* const total_candidates);
 bool gpu_buffer_bpm_distance_fits_in_buffer(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
-    const uint64_t total_entries,
     const uint64_t total_queries,
+    const uint64_t total_query_entries,
     const uint64_t total_candidates);
 
 /*
- * Accessors
+ * Pattern accessor
  */
 void gpu_buffer_bpm_distance_add_pattern(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
     pattern_t* const pattern);
+
+/*
+ * Candidate accessor
+ */
 void gpu_buffer_bpm_distance_add_candidate(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
     const uint64_t tile_offset,
     const uint64_t candidate_text_position,
     const uint64_t candidate_length);
-
 void gpu_buffer_bpm_distance_get_candidate(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
     const uint64_t candidate_offset,
     uint64_t* const candidate_text_position,
     uint32_t* const candidate_length);
-void gpu_buffer_bpm_distance_get_result(
+
+/*
+ * Alignment distance accessor
+ */
+void gpu_buffer_bpm_distance_get_distance(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
     const uint64_t candidate_offset,
     uint32_t* const levenshtein_distance,
     uint32_t* const levenshtein_match_pos);
-void gpu_buffer_bpm_distance_retrieve_pattern(
-    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
-    const uint64_t candidate_offset,
-    bpm_pattern_t* const bpm_pattern,
-    mm_allocator_t* const mm_allocator);
 
 /*
- * Hints
+ * Stats accessors
  */
 void gpu_buffer_bpm_distance_record_query_length(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,

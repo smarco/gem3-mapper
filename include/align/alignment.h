@@ -37,7 +37,6 @@
 #define ALIGN_COLUMN_INF            UINT64_MAX
 #define ALIGN_DISTANCE_INF         (UINT32_MAX)
 #define ALIGN_DISTANCE_UNKNOWN     (UINT32_MAX-1)
-#define ALIGN_DISABLED             (UINT32_MAX-2)
 
 /*
  * Alignment (tiled)

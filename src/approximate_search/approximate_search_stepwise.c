@@ -208,13 +208,11 @@ void approximate_search_stepwise_bpm_distance_copy(
 }
 void approximate_search_stepwise_bpm_distance_retrieve(
     approximate_search_t* const search,
-    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
-    matches_t* const matches) {
+    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance) {
   if (search->search_stage==asearch_stage_filtering_adaptive) {
     if (search->processing_state == asearch_processing_state_candidates_processed) {
-      approximate_search_bpm_distance_buffered_retrieve(search,gpu_buffer_bpm_distance,matches);
+      approximate_search_bpm_distance_buffered_retrieve(search,gpu_buffer_bpm_distance);
     }
-    search->search_stage = asearch_stage_filtering_adaptive_finished;
   }
 }
 /*

@@ -26,10 +26,8 @@
 
 #include "filtering/candidates/filtering_candidates_align.h"
 #include "filtering/candidates/filtering_candidates_process.h"
+#include "filtering/candidates/filtering_candidates_classify.h"
 #include "filtering/region/filtering_region_align.h"
-
-#define FILTERING_CANDIDATES_ALIGN_CACHE
-#define FILTERING_CANDIDATES_ALIGN_SELECT_PRUNE
 
 /*
  * Debug
@@ -42,38 +40,9 @@
 #define PROFILE_LEVEL PMED
 
 /*
- * Filtering Candidate distance bound
- */
-bool filtering_candidates_align_is_subdominant(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
-    matches_t* const matches) {
-  // Parameters
-  search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
-  select_parameters_t* const select_parameters = &search_parameters->select_parameters;
-  const match_alignment_model_t match_alignment_model = search_parameters->match_alignment_model;
-  swg_penalties_t* const swg_penalties = &search_parameters->swg_penalties;
-  alignment_t* const alignment = &filtering_region->alignment;
-  const uint64_t num_matches = matches_get_num_match_traces(matches);
-  // Basic cases
-  const uint64_t min_reported_strata = select_parameters->min_reported_strata_nominal;
-  const uint64_t max_searched_matches = select_parameters->max_searched_matches;
-  if (min_reported_strata > 0) return false;
-  if (num_matches == 0 || num_matches < max_searched_matches) return false;
-  if (match_alignment_model != match_alignment_model_gap_affine) return false;
-  // Bounded Cases (Only pays off to align matches that can be include within user report limits)
-  // The candidate needs to have a expected max-score than the current max
-  const uint64_t candidate_edit_distance_bound = alignment->distance_min_bound;
-  const uint64_t candidate_max_score_bound = align_swg_score_compute_max_score_bound(
-      swg_penalties,candidate_edit_distance_bound,pattern->key_length);
-  match_trace_t** const match_traces = matches_get_match_traces(matches);
-  return candidate_max_score_bound <= match_traces[max_searched_matches-1]->swg_score;
-}
-/*
  * Filtering Candidates Cache
  */
-bool filtering_candidates_align_search_filtering_region_cache(
+bool filtering_candidates_align_search_cache(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const region,
     const uint64_t run_length,
@@ -109,7 +78,7 @@ void filtering_candidates_align_region(
   // Search Cache (Before jumping into aligning the region)
   match_trace_t match_trace;
   bool match_trace_aligned = !extended_match &&
-      filtering_candidates_align_search_filtering_region_cache(
+      filtering_candidates_align_search_cache(
           filtering_candidates,region,pattern->run_length,&match_trace);
   // Align the region
   if (!match_trace_aligned) {
@@ -188,7 +157,7 @@ uint64_t filtering_candidates_align_candidates(
     bool candidate_subdominant = false;
     if (!extended_match) {
       candidate_subdominant =
-          filtering_candidates_align_is_subdominant(
+          filtering_candidates_classify_subdominant_match(
               filtering_candidates,filtering_region,pattern,matches);
     }
     if (candidate_subdominant) {

@@ -70,8 +70,7 @@ void approximate_search_bpm_distance_buffered_copy(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance);
 void approximate_search_bpm_distance_buffered_retrieve(
     approximate_search_t* const search,
-    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
-    matches_t* const matches);
+    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance);
 
 /*
  * BPM-Align Buffered

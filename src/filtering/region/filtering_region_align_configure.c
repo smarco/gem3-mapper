@@ -78,7 +78,6 @@ void filtering_region_align_configure_levenshtein(
     filtering_region_t* const filtering_region,
     search_parameters_t* const search_parameters,
     pattern_t* const pattern,
-    const bool left_gap_alignment,
     mm_allocator_t* const mm_allocator) {
   // Parameters
   uint8_t* const key = pattern->key;
@@ -101,7 +100,7 @@ void filtering_region_align_configure_levenshtein(
   align_input->alignment           = alignment;
   // Align Parameters
   align_parameters->max_error          = align_distance;
-  align_parameters->left_gap_alignment = left_gap_alignment;
+  align_parameters->left_gap_alignment = (filtering_region->text_trace.strand==Forward);
   align_parameters->swg_penalties      = &search_parameters->swg_penalties;
 }
 /*
@@ -113,7 +112,6 @@ void filtering_region_align_configure_swg(
     filtering_region_t* const filtering_region,
     search_parameters_t* const search_parameters,
     pattern_t* const pattern,
-    const bool left_gap_alignment,
     const bool local_alignment,
     mm_allocator_t* const mm_allocator) {
   // Parameters
@@ -140,7 +138,7 @@ void filtering_region_align_configure_swg(
   // Align Parameters
   align_parameters->max_error                       = pattern->max_effective_filtering_error;
   align_parameters->max_bandwidth                   = pattern->max_effective_bandwidth;
-  align_parameters->left_gap_alignment              = left_gap_alignment;
+  align_parameters->left_gap_alignment              = (filtering_region->text_trace.strand==Forward);
   align_parameters->global_min_identity             = search_parameters->alignment_global_min_identity_nominal;
   align_parameters->global_min_swg_threshold        = search_parameters->alignment_global_min_swg_threshold_nominal;
   align_parameters->local_alignment                 = local_alignment;

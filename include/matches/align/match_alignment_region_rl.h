@@ -34,7 +34,8 @@
  */
 void match_alignment_region_rl_translate(
     match_alignment_region_t* const match_alignment_region,
-    match_align_input_t* const align_input,
+    uint32_t* const rl_key_runs_acc,
+    uint32_t* const rl_text_runs_acc,
     const bool left_gap_alignment,
     vector_t* const cigar_vector);
 

@@ -215,6 +215,35 @@ void mapper_se_cuda_bpm_distance(mapper_cuda_search_t* const mapper_search) {
   PROFILE_STOP(GP_MAPPER_CUDA_SE_BPM_DISTANCE,PROFILE_LEVEL);
 }
 /*
+ * BPM-Align Candidates
+ */
+void mapper_se_cuda_bpm_align(mapper_cuda_search_t* const mapper_search) {
+  PROFILE_START(GP_MAPPER_CUDA_SE_BPM_ALIGN,PROFILE_LEVEL);
+  // Parameters
+  search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
+  search_stage_bpm_distance_t* const stage_bpm_distance = search_pipeline->stage_bpm_distance;
+  search_stage_bpm_align_t* const stage_bpm_align = search_pipeline->stage_bpm_align;
+  archive_search_t* archive_search = NULL;
+  // Reschedule search (that couldn't fit into the buffer)
+  if (mapper_search->pending_bpm_align_end1!=NULL) {
+    search_stage_bpm_align_send_se_search(stage_bpm_align,mapper_search->pending_bpm_align_end1);
+    mapper_search->pending_bpm_align_end1 = NULL;
+  }
+  // Read from stage BPM-Distance
+  bool pending_searches;
+  while ((pending_searches=search_stage_bpm_distance_retrieve_se_search(stage_bpm_distance,&archive_search))) {
+    // Send to stage BPM-Align
+    const bool search_sent = search_stage_bpm_align_send_se_search(stage_bpm_align,archive_search);
+    if (!search_sent) {
+      mapper_search->pending_bpm_align_end1 = archive_search; // Pending Search
+      break;
+    }
+  }
+  // Clean
+  if (!pending_searches) search_stage_bpm_distance_clear(stage_bpm_distance);
+  PROFILE_STOP(GP_MAPPER_CUDA_SE_BPM_ALIGN,PROFILE_LEVEL);
+}
+/*
  * Finish Search
  */
 void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_search) {
@@ -222,26 +251,30 @@ void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_search) {
   // Parameters
   mapper_parameters_t* const parameters = mapper_search->mapper_parameters;
   search_pipeline_t* const search_pipeline = mapper_search->search_pipeline;
-  search_stage_bpm_distance_t* const stage_bpm_distance = search_pipeline->stage_bpm_distance;
+  search_stage_bpm_align_t* const stage_bpm_align = search_pipeline->stage_bpm_align;
   archive_search_t* archive_search = NULL;
-  // Read from stage BPM-Distance
-  while (search_stage_bpm_distance_retrieve_se_search(stage_bpm_distance,&archive_search)) {
+  // Read from stage BPM-Align
+  while (search_stage_bpm_align_retrieve_se_search(stage_bpm_align,&archive_search)) {
     // Finish Search
-    archive_search_se_stepwise_finish_search(archive_search,stage_bpm_distance->matches); // Finish search
+    archive_search_se_stepwise_finish_search(archive_search,stage_bpm_align->matches); // Finish search
     // Output Matches
     mapper_io_handler_output_matches(
         mapper_search->mapper_io_handler,archive_search,
-        stage_bpm_distance->matches,mapper_search->mapping_stats);
+        stage_bpm_align->matches,mapper_search->mapping_stats);
     // Update processed
     if (++mapper_search->reads_processed == parameters->io.mapper_ticker_step) {
       ticker_update_mutex(mapper_search->ticker,mapper_search->reads_processed);
       mapper_search->reads_processed = 0;
     }
+
+//    // MM FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+//    mm_allocator_print(stderr,search_pipeline->search_pipeline_handlers->mm_allocator,true);
+
     // Free
     search_pipeline_free(search_pipeline,archive_search);
   }
   // Clean
-  search_stage_bpm_distance_clear(stage_bpm_distance);
+  search_stage_bpm_align_clear(stage_bpm_align);
   PROFILE_STOP(GP_MAPPER_CUDA_SE_FINISH_SEARCH,PROFILE_LEVEL);
 }
 /*
@@ -258,10 +291,14 @@ void mapper_cuda_se_thread_pipeline(mapper_cuda_search_t* const mapper_search) {
         // Kmer-filter
         mapper_se_cuda_kmer_filter(mapper_search);
         do {
-        // BPM-Distance
-        mapper_se_cuda_bpm_distance(mapper_search);
-        // Finish Search
-        mapper_se_cuda_finish_search(mapper_search);
+          // BPM-Distance
+          mapper_se_cuda_bpm_distance(mapper_search);
+          do {
+            // BPM-Align
+            mapper_se_cuda_bpm_align(mapper_search);
+            // Finish Search
+            mapper_se_cuda_finish_search(mapper_search);
+          } while (!mapper_se_cuda_stage_bpm_distance_output_exhausted(mapper_search));
         } while (!mapper_se_cuda_stage_kmer_filter_output_exhausted(mapper_search));
       } while (!mapper_se_cuda_stage_decode_output_exhausted(mapper_search));
     } while (!mapper_se_cuda_stage_region_profile_output_exhausted(mapper_search));

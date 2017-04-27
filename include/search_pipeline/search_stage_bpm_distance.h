@@ -40,8 +40,6 @@ typedef struct {
   vector_t* buffers;                                        // Verify Candidates Buffers (search_group_buffer_vc_t*)
   search_stage_iterator_t iterator;                         // Buffers State
   /* Support Data Structures */
-  matches_t* matches;                                       // Matches
-  paired_matches_t* paired_matches;                         // Paired-Matches
   search_pipeline_handlers_t* search_pipeline_handlers;
 } search_stage_bpm_distance_t;
 

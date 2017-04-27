@@ -280,9 +280,9 @@ void archive_search_pe_stepwise_bpm_distance_retrieve(
   archive_search_pe_stepwise_debug_preface(archive_search_end1,"BPM.Distance.Retrieve");
   // Verify-Candidates Retrieve
   approximate_search_stepwise_bpm_distance_retrieve(
-      &archive_search_end1->approximate_search,gpu_buffer_bpm_distance,matches);
+      &archive_search_end1->approximate_search,gpu_buffer_bpm_distance);
   approximate_search_stepwise_bpm_distance_retrieve(
-      &archive_search_end2->approximate_search,gpu_buffer_bpm_distance,matches);
+      &archive_search_end2->approximate_search,gpu_buffer_bpm_distance);
   // DEBUG
   archive_search_pe_stepwise_debug_epilogue();
   PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_BPM_DISTANCE_RETRIEVE,PROFILE_LEVEL);

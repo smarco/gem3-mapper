@@ -86,12 +86,12 @@ void gpu_buffer_kmer_filter_compute_dimensions(
     kmer_counting_nway_t* const kmer_counting,
     const uint64_t num_candidates,
     uint64_t* const total_queries,
-    uint64_t* const total_candidates,
-    uint64_t* const total_queries_length);
+    uint64_t* const total_queries_length,
+    uint64_t* const total_candidates);
 bool gpu_buffer_kmer_filter_fits_in_buffer(
     gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter,
-    const uint64_t total_entries,
     const uint64_t total_queries,
+    const uint64_t total_queries_length,
     const uint64_t total_candidates);
 
 /*

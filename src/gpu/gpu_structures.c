@@ -25,7 +25,7 @@
  */
 
 #include "gpu/gpu_structures.h"
-#include "resources/gpu_modules/gpu_interface.h"
+#include "gpu/gpu_config.h"
 
 /*
  * CUDA Supported

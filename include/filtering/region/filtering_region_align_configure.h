@@ -52,7 +52,6 @@ void filtering_region_align_configure_levenshtein(
     filtering_region_t* const filtering_region,
     search_parameters_t* const search_parameters,
     pattern_t* const pattern,
-    const bool left_gap_alignment,
     mm_allocator_t* const mm_allocator);
 
 /*
@@ -64,7 +63,6 @@ void filtering_region_align_configure_swg(
     filtering_region_t* const filtering_region,
     search_parameters_t* const search_parameters,
     pattern_t* const pattern,
-    const bool left_gap_alignment,
     const bool local_alignment,
     mm_allocator_t* const mm_allocator);
 

@@ -108,17 +108,11 @@ void approximate_search_bpm_distance_buffered_copy(
 }
 void approximate_search_bpm_distance_buffered_retrieve(
     approximate_search_t* const search,
-    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
-    matches_t* const matches) {
+    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance) {
   // Retrieve
   filtering_candidates_buffered_bpm_distance_retrieve(
       search->filtering_candidates,&search->filtering_candidates_buffered,
       &search->pattern,gpu_buffer_bpm_distance,search->gpu_buffer_bpm_distance_offset);
-  // Align
-  filtering_candidates_align_candidates(
-      search->filtering_candidates,&search->pattern,false,false,matches);
-  // Update state
-  search->processing_state = asearch_processing_state_candidates_verified;
 }
 /*
  * BPM-Align Buffered
@@ -138,7 +132,8 @@ void approximate_search_bpm_align_buffered_retrieve(
   // Retrieve
   filtering_candidates_buffered_bpm_align_retrieve(
       search->filtering_candidates,&search->filtering_candidates_buffered,
-      &search->pattern,gpu_buffer_bpm_align,search->gpu_buffer_bpm_align_offset);
+      &search->pattern,matches,gpu_buffer_bpm_align,
+      search->gpu_buffer_bpm_align_offset);
   // Align
   filtering_candidates_align_candidates(
       search->filtering_candidates,&search->pattern,false,false,matches);
