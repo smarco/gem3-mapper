@@ -125,7 +125,7 @@ gpu_error_t gpu_module_manager_per_device(gpu_reference_buffer_t* const referenc
       break;
     case GPU_GEM_POLICY:           // (GEM Default Allocation)
       GPU_ERROR(gpu_module_allocator_per_device(reference, index, idDevice, numBuffers, userSelectedModules, &tmpAllocatedModules));
-      (* activatedModules) = tmpAllocatedModules | GPU_REFERENCE; // Reference is the minimum required module to be execute
+      (* activatedModules) = tmpAllocatedModules | GPU_REFERENCE | GPU_BPM_ALIGN; // Reference is the minimum required module to be execute
       (* allocatedModules) = tmpAllocatedModules;
       break;
     default:
