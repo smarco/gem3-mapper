@@ -72,6 +72,8 @@ bool filtering_region_cache_cmp_regions(
   const text_trace_t* const text_trace_a = &filtering_region_a->text_trace;
   const text_trace_t* const text_trace_b = &filtering_region_b->text_trace;
   if (text_trace_a->text_length != text_trace_b->text_length) return false;
+  // Compare strand (due to left-gap alignment, same text on diff strand can give diff alignments)
+  if (text_trace_a->strand != text_trace_b->strand) return false;
   // Compare read // TODO Shrink to text-boundaries offsets
   return (memcmp(text_trace_a->text,text_trace_b->text,text_trace_a->text_length)==0);
 }

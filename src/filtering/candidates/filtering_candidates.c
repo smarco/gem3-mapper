@@ -295,7 +295,10 @@ int64_t filtering_position_cmp_position(filtering_position_t** a,filtering_posit
   return (int64_t)(*a)->text_end_position - (int64_t)(*b)->text_end_position;
 }
 int64_t filtering_region_cmp_align_distance(filtering_region_t** a,filtering_region_t** b) {
-  return (int64_t)(*a)->alignment.distance_min_bound - (int64_t)(*b)->alignment.distance_min_bound;
+  const int64_t cmp = (int64_t)(*a)->alignment.distance_min_bound - (int64_t)(*b)->alignment.distance_min_bound;
+  if (cmp) return cmp;
+  // Compare position (Helps stability)
+  return (int64_t)(*a)->text_begin_position - (int64_t)(*b)->text_begin_position;
 }
 int64_t filtering_region_cmp_scaffold_coverage(filtering_region_t** a,filtering_region_t** b) {
   return (int64_t)(*b)->match_scaffold.scaffolding_coverage - (int64_t)(*a)->match_scaffold.scaffolding_coverage;

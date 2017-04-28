@@ -41,6 +41,7 @@ typedef struct {
   /* Buffer state */
   bool bpm_align_enabled;             // Enabled GPU-computing BPM-Distance
   uint32_t current_query_offset;      // Current query offset (Once a pattern is added)
+  uint32_t current_candidates_added;  // Current number of candidates added
   /* Buffer Queries */
   uint32_t num_queries;               // Total queries
   uint32_t num_query_entries;         // Total query-entries (BPM encoded chunks)
@@ -131,25 +132,6 @@ void gpu_buffer_bpm_align_retrieve_alignment(
     const uint64_t candidate_offset,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector);
-
-/*
- * Stats accessors
- */
-void gpu_buffer_bpm_align_record_query_length(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
-    const uint64_t query_length);
-void gpu_buffer_bpm_align_record_candidate_length(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
-    const uint64_t candidate_length);
-void gpu_buffer_bpm_align_record_candidates_per_tile(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
-    const uint64_t num_candidates);
-uint64_t gpu_buffer_bpm_align_get_mean_query_length(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
-uint64_t gpu_buffer_bpm_align_get_mean_candidate_length(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
-uint64_t gpu_buffer_bpm_align_get_mean_candidates_per_tile(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
 
 /*
  * Send/Receive

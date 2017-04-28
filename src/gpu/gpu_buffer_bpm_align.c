@@ -62,6 +62,49 @@
  */
 #ifdef HAVE_CUDA
 /*
+ * Stats accessors
+ */
+void gpu_buffer_bpm_align_record_query_length(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
+    const uint64_t query_length) {
+  COUNTER_ADD(&gpu_buffer_bpm_align->query_length,query_length);
+}
+void gpu_buffer_bpm_align_record_candidate_length(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
+    const uint64_t candidate_length) {
+  COUNTER_ADD(&gpu_buffer_bpm_align->candidate_length,candidate_length);
+}
+void gpu_buffer_bpm_align_record_candidates_per_tile(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
+    const uint64_t candidates_per_tile) {
+  PROF_ADD_COUNTER(GP_GPU_BUFFER_BPM_ALIGN_CANDIDATE_PER_TILE,candidates_per_tile);
+  COUNTER_ADD(&gpu_buffer_bpm_align->candidates_per_tile,candidates_per_tile);
+}
+uint64_t gpu_buffer_bpm_align_get_mean_query_length(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
+  if (COUNTER_GET_NUM_SAMPLES(&gpu_buffer_bpm_align->query_length) >= GPU_BPM_ALIGN_MIN_NUM_SAMPLES) {
+    return (uint64_t)ceil(COUNTER_GET_MEAN(&gpu_buffer_bpm_align->query_length));
+  } else {
+    return GPU_BPM_ALIGN_AVERAGE_QUERY_LENGTH;
+  }
+}
+uint64_t gpu_buffer_bpm_align_get_mean_candidate_length(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
+  if (COUNTER_GET_NUM_SAMPLES(&gpu_buffer_bpm_align->candidate_length) >= GPU_BPM_ALIGN_MIN_NUM_SAMPLES) {
+    return (uint64_t)ceil(COUNTER_GET_MEAN(&gpu_buffer_bpm_align->candidate_length));
+  } else {
+    return GPU_BPM_ALIGN_CANDIDATES_PER_TILE;
+  }
+}
+uint64_t gpu_buffer_bpm_align_get_mean_candidates_per_tile(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
+  if (COUNTER_GET_NUM_SAMPLES(&gpu_buffer_bpm_align->candidates_per_tile) >= GPU_BPM_ALIGN_MIN_NUM_SAMPLES) {
+    return (uint64_t)ceil(COUNTER_GET_MEAN(&gpu_buffer_bpm_align->candidates_per_tile));
+  } else {
+    return GPU_BPM_ALIGN_CANDIDATES_PER_TILE;
+  }
+}
+/*
  * Setup
  */
 gpu_buffer_bpm_align_t* gpu_buffer_bpm_align_new(
@@ -75,6 +118,7 @@ gpu_buffer_bpm_align_t* gpu_buffer_bpm_align_new(
   gpu_buffer_bpm_align->buffer = gpu_buffer_collection_get_buffer(gpu_buffer_collection,buffer_no);
   gpu_buffer_bpm_align->bpm_align_enabled = bpm_align_enabled;
   gpu_buffer_bpm_align->current_query_offset = 0;
+  gpu_buffer_bpm_align->current_candidates_added = 0;
   // Buffer Queries
   gpu_buffer_bpm_align->num_queries = 0;
   gpu_buffer_bpm_align->num_query_entries = 0;
@@ -108,6 +152,7 @@ void gpu_buffer_bpm_align_clear(
       gpu_buffer_bpm_align_get_mean_candidates_per_tile(gpu_buffer_bpm_align));
   // Clear buffer
   gpu_buffer_bpm_align->current_query_offset = 0;
+  gpu_buffer_bpm_align->current_candidates_added = 0;
   gpu_buffer_bpm_align->num_queries = 0;
   gpu_buffer_bpm_align->num_query_entries = 0;
   gpu_buffer_bpm_align->query_buffer_offset = 0;
@@ -290,6 +335,13 @@ void gpu_buffer_bpm_align_add_query_text(
 void gpu_buffer_bpm_align_add_pattern(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
     pattern_t* const pattern) {
+  // Stats
+  if (gpu_buffer_bpm_align->current_candidates_added != 0) {
+    gpu_buffer_bpm_align_record_candidates_per_tile(
+        gpu_buffer_bpm_align,gpu_buffer_bpm_align->current_candidates_added);
+    gpu_buffer_bpm_align->current_candidates_added = 0;
+  }
+  gpu_buffer_bpm_align_record_query_length(gpu_buffer_bpm_align,pattern->key_length);
   // Add Query (Metadata)
   gpu_buffer_bpm_align_add_query_info(gpu_buffer_bpm_align,pattern);
   // Add Query (Entries / PEQ pattern)
@@ -324,12 +376,15 @@ void gpu_buffer_bpm_align_add_candidate(
   gpu_candidate_info->size = candidate_length;
   gpu_candidate_info->leftGapAlign = left_gap_align;
   ++(gpu_buffer_bpm_align->num_candidates);
+  ++(gpu_buffer_bpm_align->current_candidates_added);
   // Add candidate text
   const uint64_t candidate_buffer_offset = gpu_buffer_bpm_align->candidate_buffer_offset;
   gpu_bpm_align_cand_entry_t* const gpu_candidate_buffer =
       gpu_bpm_align_buffer_get_candidates_(gpu_buffer_bpm_align->buffer) + candidate_buffer_offset;
   memcpy(gpu_candidate_buffer,candidate_buffer,candidate_length);
   gpu_buffer_bpm_align->candidate_buffer_offset += candidate_length;
+  // Stats
+  gpu_buffer_bpm_align_record_candidate_length(gpu_buffer_bpm_align,candidate_length);
 }
 /*
  * Alignment accessor (CIGAR)
@@ -382,49 +437,6 @@ void gpu_buffer_bpm_align_retrieve_alignment(
         GEM_INVALID_CASE();
         break;
     }
-  }
-}
-/*
- * Stats accessors
- */
-void gpu_buffer_bpm_align_record_query_length(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
-    const uint64_t query_length) {
-  COUNTER_ADD(&gpu_buffer_bpm_align->query_length,query_length);
-}
-void gpu_buffer_bpm_align_record_candidate_length(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
-    const uint64_t candidate_length) {
-  COUNTER_ADD(&gpu_buffer_bpm_align->candidate_length,candidate_length);
-}
-void gpu_buffer_bpm_align_record_candidates_per_tile(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
-    const uint64_t candidates_per_tile) {
-  PROF_ADD_COUNTER(GP_GPU_BUFFER_BPM_ALIGN_CANDIDATE_PER_TILE,candidates_per_tile);
-  COUNTER_ADD(&gpu_buffer_bpm_align->candidates_per_tile,candidates_per_tile);
-}
-uint64_t gpu_buffer_bpm_align_get_mean_query_length(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
-  if (COUNTER_GET_NUM_SAMPLES(&gpu_buffer_bpm_align->query_length) >= GPU_BPM_ALIGN_MIN_NUM_SAMPLES) {
-    return (uint64_t)ceil(COUNTER_GET_MEAN(&gpu_buffer_bpm_align->query_length));
-  } else {
-    return GPU_BPM_ALIGN_AVERAGE_QUERY_LENGTH;
-  }
-}
-uint64_t gpu_buffer_bpm_align_get_mean_candidate_length(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
-  if (COUNTER_GET_NUM_SAMPLES(&gpu_buffer_bpm_align->candidate_length) >= GPU_BPM_ALIGN_MIN_NUM_SAMPLES) {
-    return (uint64_t)ceil(COUNTER_GET_MEAN(&gpu_buffer_bpm_align->candidate_length));
-  } else {
-    return GPU_BPM_ALIGN_CANDIDATES_PER_TILE;
-  }
-}
-uint64_t gpu_buffer_bpm_align_get_mean_candidates_per_tile(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
-  if (COUNTER_GET_NUM_SAMPLES(&gpu_buffer_bpm_align->candidates_per_tile) >= GPU_BPM_ALIGN_MIN_NUM_SAMPLES) {
-    return (uint64_t)ceil(COUNTER_GET_MEAN(&gpu_buffer_bpm_align->candidates_per_tile));
-  } else {
-    return GPU_BPM_ALIGN_CANDIDATES_PER_TILE;
   }
 }
 /*
@@ -556,24 +568,6 @@ void gpu_buffer_bpm_align_retrieve_alignment(
     const uint64_t candidate_offset,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector) {  }
-/*
- * Hints
- */
-void gpu_buffer_bpm_align_record_query_length(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
-    const uint64_t query_length) {  }
-void gpu_buffer_bpm_align_record_candidate_length(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
-    const uint64_t candidate_length) {  }
-void gpu_buffer_bpm_align_record_candidates_per_tile(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
-    const uint64_t num_candidates) {  }
-uint64_t gpu_buffer_bpm_align_get_mean_query_length(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) { return 0; }
-uint64_t gpu_buffer_bpm_align_get_mean_candidates_length(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) { return 0; }
-uint64_t gpu_buffer_bpm_align_get_mean_candidates_per_tile(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) { return 0; }
 /*
  * Send/Receive
  */

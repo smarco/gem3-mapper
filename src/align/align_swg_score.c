@@ -133,7 +133,7 @@ int32_t align_swg_score_compute_min_score_bound(
   const int32_t base_score = align_swg_score_match(swg_penalties,key_length-edit_distance);
   const int32_t single_indel = align_swg_score_deletion(swg_penalties,edit_distance);
   const int32_t all_misms = align_swg_score_mismatch(swg_penalties)*edit_distance;
-  return base_score + MIN(single_indel,all_misms);
+  return base_score + MIN(single_indel,all_misms); // Max penalization
 }
 int32_t align_swg_score_compute_max_score_bound(
     const swg_penalties_t* const swg_penalties,
@@ -142,7 +142,7 @@ int32_t align_swg_score_compute_max_score_bound(
   const int32_t base_score = align_swg_score_match(swg_penalties,key_length-edit_distance);
   const int32_t single_indel = align_swg_score_deletion(swg_penalties,edit_distance);
   const int32_t all_misms = align_swg_score_mismatch(swg_penalties)*edit_distance;
-  return base_score + MAX(single_indel,all_misms);
+  return base_score + MAX(single_indel,all_misms); // Min penalization
 }
 /*
  * Bounding edit distance

@@ -25,6 +25,7 @@
 #include "align/alignment.h"
 #include "matches/scaffold/match_scaffold_levenshtein.h"
 #include "matches/scaffold/match_scaffold_compose.h"
+#include "matches/scaffold/match_scaffold_chain.h"
 #include "align/align_bpm.h"
 
 /*
@@ -157,11 +158,11 @@ void match_scaffold_levenshtein_tile_align_bpm(
         "Scaffold levenshtein. Negative coordinates because of padding");
     // Offset wrt text (without padding)
     match_alignment.match_text_offset = text_begin + alignment_offset - text_padding;
-    //// DEBUG
-    //match_alignment_print_pretty(stderr,&match_alignment,matches->cigar_vector,
-    //  align_input->key + key_offset,bpm_pattern_tile->pattern_length,
-    //  align_input->text_padded + text_begin + alignment_offset,
-    //  text_end-match_alignment.match_text_offset,mm_allocator);
+    //    // DEBUG
+    //    match_alignment_print_pretty(stderr,&match_alignment,matches->cigar_vector,
+    //      key + key_offset,bpm_pattern_tile->pattern_length,
+    //      text_trace->text_padded + text_begin + alignment_offset,
+    //      text_end-match_alignment.match_text_offset,mm_allocator);
     // Add the alignment to the scaffold
     match_scaffold_levenshtein_compose_alignment(
         match_scaffold,&match_alignment,
@@ -234,6 +235,8 @@ bool match_scaffold_levenshtein(
         alignment_tile,pattern_tile,
         matching_min_length,matches);
   }
+  // Chains scaffolds
+  match_scaffold_chain(match_scaffold,pattern,text_trace,false);
   // DEBUG
   gem_cond_debug_block(DEBUG_MATCH_SCAFFOLD_EDIT) {
     tab_fprintf(gem_log_get_stream(),"[GEM]>Match.Scaffold.Levenshtein\n");

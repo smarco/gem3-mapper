@@ -112,9 +112,9 @@ void match_alignment_region_set_text_end(
 /*
  * Key/Text Operators
  */
-uint64_t match_alignment_region_text_coverage(
+int match_alignment_region_text_coverage(
     match_alignment_region_t* const match_alignment_region);
-uint64_t match_alignment_region_text_distance(
+int match_alignment_region_text_distance(
     match_alignment_region_t* const match_alignment_region_a,
     match_alignment_region_t* const match_alignment_region_b);
 bool match_alignment_region_text_overlap(
@@ -124,9 +124,9 @@ bool match_alignment_region_text_overlap(
 /*
  * Compare
  */
-int64_t match_alignment_region_key_cmp(
-    match_alignment_region_t* const match_alignment_region_a,
-    match_alignment_region_t* const match_alignment_region_b);
+int64_t match_alignment_region_cmp_key_position(
+    const match_alignment_region_t* const a,
+    const match_alignment_region_t* const b);
 int64_t match_alignment_region_cmp_text_position(
     const match_alignment_region_t* const a,
     const match_alignment_region_t* const b);

@@ -59,6 +59,36 @@
  */
 #ifdef HAVE_CUDA
 /*
+ * Stats accessors
+ */
+void gpu_buffer_bpm_distance_record_query_length(
+    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
+    const uint64_t query_length) {
+  COUNTER_ADD(&gpu_buffer_bpm_distance->query_length,query_length);
+}
+void gpu_buffer_bpm_distance_record_candidates_per_tile(
+    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
+    const uint64_t candidates_per_tile) {
+  PROF_ADD_COUNTER(GP_GPU_BUFFER_BPM_DISTANCE_CANDIDATES_PER_TILE,candidates_per_tile);
+  COUNTER_ADD(&gpu_buffer_bpm_distance->candidates_per_tile,candidates_per_tile);
+}
+uint64_t gpu_buffer_bpm_distance_get_mean_query_length(
+    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance) {
+  if (COUNTER_GET_NUM_SAMPLES(&gpu_buffer_bpm_distance->query_length) >= GPU_BPM_DISTANCE_MIN_NUM_SAMPLES) {
+    return (uint64_t)ceil(COUNTER_GET_MEAN(&gpu_buffer_bpm_distance->query_length));
+  } else {
+    return GPU_BPM_DISTANCE_AVERAGE_QUERY_LENGTH;
+  }
+}
+uint64_t gpu_buffer_bpm_distance_get_mean_candidates_per_tile(
+    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance) {
+  if (COUNTER_GET_NUM_SAMPLES(&gpu_buffer_bpm_distance->candidates_per_tile) >= GPU_BPM_DISTANCE_MIN_NUM_SAMPLES) {
+    return (uint64_t)ceil(COUNTER_GET_MEAN(&gpu_buffer_bpm_distance->candidates_per_tile));
+  } else {
+    return GPU_BPM_DISTANCE_CANDIDATES_PER_TILE;
+  }
+}
+/*
  * Setup
  */
 gpu_buffer_bpm_distance_t* gpu_buffer_bpm_distance_new(
@@ -77,6 +107,7 @@ gpu_buffer_bpm_distance_t* gpu_buffer_bpm_distance_new(
   gpu_buffer_bpm_distance->buffer = gpu_buffer_collection_get_buffer(gpu_buffer_collection,buffer_no);
   gpu_buffer_bpm_distance->bpm_distance_enabled = bpm_distance_enabled;
   gpu_buffer_bpm_distance->current_query_offset = 0;
+  gpu_buffer_bpm_distance->current_candidates_added = 0;
   // Buffer Queries
   gpu_buffer_bpm_distance->num_queries = 0;
   gpu_buffer_bpm_distance->num_query_entries = 0;
@@ -100,6 +131,7 @@ void gpu_buffer_bpm_distance_clear(
       gpu_buffer_bpm_distance_get_mean_candidates_per_tile(gpu_buffer_bpm_distance));
   // Clear buffer
   gpu_buffer_bpm_distance->current_query_offset = 0;
+  gpu_buffer_bpm_distance->current_candidates_added = 0;
   gpu_buffer_bpm_distance->num_queries = 0;
   gpu_buffer_bpm_distance->num_query_entries = 0;
   gpu_buffer_bpm_distance->num_candidates = 0;
@@ -238,6 +270,13 @@ void gpu_buffer_bpm_distance_add_query_entries(
 void gpu_buffer_bpm_distance_add_pattern(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
     pattern_t* const pattern) {
+  // Stats
+  if (gpu_buffer_bpm_distance->current_candidates_added != 0) {
+    gpu_buffer_bpm_distance_record_candidates_per_tile(
+        gpu_buffer_bpm_distance,gpu_buffer_bpm_distance->current_candidates_added);
+    gpu_buffer_bpm_distance->current_candidates_added = 0;
+  }
+  gpu_buffer_bpm_distance_record_query_length(gpu_buffer_bpm_distance,pattern->key_length);
   // Add Query (Metadata)
   gpu_buffer_bpm_distance_add_query_info(gpu_buffer_bpm_distance,pattern);
   // Add Query (Entries / PEQ pattern)
@@ -267,6 +306,7 @@ void gpu_buffer_bpm_distance_add_candidate(
   candidate->position = candidate_text_position;
   candidate->size = candidate_length;
   ++(gpu_buffer_bpm_distance->num_candidates);
+  ++(gpu_buffer_bpm_distance->current_candidates_added);
 }
 void gpu_buffer_bpm_distance_get_candidate(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
@@ -292,36 +332,6 @@ void gpu_buffer_bpm_distance_get_distance(
       gpu_bpm_filter_buffer_get_alignments_(gpu_buffer_bpm_distance->buffer) + candidate_offset;
   *levenshtein_distance = result->score;
   *levenshtein_match_pos = result->column;
-}
-/*
- * Stats accessors
- */
-void gpu_buffer_bpm_distance_record_query_length(
-    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
-    const uint64_t query_length) {
-  COUNTER_ADD(&gpu_buffer_bpm_distance->query_length,query_length);
-}
-void gpu_buffer_bpm_distance_record_candidates_per_tile(
-    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
-    const uint64_t candidates_per_tile) {
-  PROF_ADD_COUNTER(GP_GPU_BUFFER_BPM_DISTANCE_CANDIDATES_PER_TILE,candidates_per_tile);
-  COUNTER_ADD(&gpu_buffer_bpm_distance->candidates_per_tile,candidates_per_tile);
-}
-uint64_t gpu_buffer_bpm_distance_get_mean_query_length(
-    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance) {
-  if (COUNTER_GET_NUM_SAMPLES(&gpu_buffer_bpm_distance->query_length) >= GPU_BPM_DISTANCE_MIN_NUM_SAMPLES) {
-    return (uint64_t)ceil(COUNTER_GET_MEAN(&gpu_buffer_bpm_distance->query_length));
-  } else {
-    return GPU_BPM_DISTANCE_AVERAGE_QUERY_LENGTH;
-  }
-}
-uint64_t gpu_buffer_bpm_distance_get_mean_candidates_per_tile(
-    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance) {
-  if (COUNTER_GET_NUM_SAMPLES(&gpu_buffer_bpm_distance->candidates_per_tile) >= GPU_BPM_DISTANCE_MIN_NUM_SAMPLES) {
-    return (uint64_t)ceil(COUNTER_GET_MEAN(&gpu_buffer_bpm_distance->candidates_per_tile));
-  } else {
-    return GPU_BPM_DISTANCE_CANDIDATES_PER_TILE;
-  }
 }
 /*
  * Send/Receive
@@ -437,19 +447,6 @@ void gpu_buffer_bpm_distance_get_distance(
     const uint64_t candidate_offset,
     uint32_t* const levenshtein_distance,
     uint32_t* const levenshtein_match_pos) { GEM_CUDA_NOT_SUPPORTED(); }
-/*
- * Stats accessors
- */
-void gpu_buffer_bpm_distance_record_query_length(
-    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
-    const uint64_t query_length) { GEM_CUDA_NOT_SUPPORTED(); }
-void gpu_buffer_bpm_distance_record_candidates_per_tile(
-    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
-    const uint64_t num_candidates) { GEM_CUDA_NOT_SUPPORTED(); }
-uint64_t gpu_buffer_bpm_distance_get_mean_query_length(
-    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
-uint64_t gpu_buffer_bpm_distance_get_mean_candidates_per_tile(
-    gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance) { GEM_CUDA_NOT_SUPPORTED(); return 0; }
 /*
  * Send/Receive
  */

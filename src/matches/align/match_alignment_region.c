@@ -126,14 +126,14 @@ void match_alignment_region_set_text_end(
 /*
  * Key/Text Operators
  */
-uint64_t match_alignment_region_text_coverage(
+int match_alignment_region_text_coverage(
     match_alignment_region_t* const match_alignment_region) {
-  return match_alignment_region->_text_end - match_alignment_region->_text_begin;
+  return (int)match_alignment_region->_text_end - (int)match_alignment_region->_text_begin;
 }
-uint64_t match_alignment_region_text_distance(
+int match_alignment_region_text_distance(
     match_alignment_region_t* const match_alignment_region_a,
     match_alignment_region_t* const match_alignment_region_b) {
-  return match_alignment_region_b->_text_begin - match_alignment_region_a->_text_end;
+  return (int)match_alignment_region_b->_text_begin - (int)match_alignment_region_a->_text_end;
 }
 bool match_alignment_region_text_overlap(
     match_alignment_region_t* const match_alignment_region_a,
@@ -144,10 +144,10 @@ bool match_alignment_region_text_overlap(
 /*
  * Compare
  */
-int64_t match_alignment_region_key_cmp(
-    match_alignment_region_t* const match_alignment_region_a,
-    match_alignment_region_t* const match_alignment_region_b) {
-  return (int64_t)match_alignment_region_a->_key_begin - (int64_t)match_alignment_region_b->_key_begin;
+int64_t match_alignment_region_cmp_key_position(
+    const match_alignment_region_t* const a,
+    const match_alignment_region_t* const b) {
+  return (int64_t)a->_key_begin - (int64_t)b->_key_begin;
 }
 int64_t match_alignment_region_cmp_text_position(
     const match_alignment_region_t* const a,

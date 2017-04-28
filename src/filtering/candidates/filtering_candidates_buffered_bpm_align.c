@@ -35,6 +35,7 @@
 #include "align/align_bpm_pattern.h"
 #include "align/align_bpm_distance.h"
 #include "matches/scaffold/match_scaffold_levenshtein.h"
+#include "matches/scaffold/match_scaffold_chain.h"
 
 /*
  * Debug
@@ -52,10 +53,13 @@
  */
 int64_t filtering_region_cmp_buffered_regions(filtering_region_t** a,filtering_region_t** b) {
   // Check state
-  if ((*a)->status != filtering_region_accepted) return  1;
-  if ((*b)->status != filtering_region_accepted) return -1;
+  if ((*a)->status != filtering_region_accepted && (*b)->status == filtering_region_accepted) return  1;
+  if ((*a)->status == filtering_region_accepted && (*b)->status != filtering_region_accepted) return -1;
   // Compare distance
-  return (int64_t)(*a)->alignment.distance_min_bound - (int64_t)(*b)->alignment.distance_min_bound;
+  const int64_t cmp = (int64_t)(*a)->alignment.distance_min_bound - (int64_t)(*b)->alignment.distance_min_bound;
+  if (cmp) return cmp;
+  // Compare position (Helps stability)
+  return (int64_t)(*a)->text_begin_position - (int64_t)(*b)->text_begin_position;
 }
 #define VECTOR_SORT_NAME                 buffered_regions
 #define VECTOR_SORT_TYPE                 filtering_region_t*
@@ -76,7 +80,7 @@ void filtering_candidates_buffered_bpm_align_discard_subdominant_edit(
     pattern_t* const pattern) {
   // Parameters
   const uint64_t num_regions = filtering_candidates_buffered->num_regions;
-  // Traverse all regions until subdominant
+  // Traverse all regions and discard subdominant
   uint64_t i, best_distance = UINT64_MAX;
   for (i=0;i<num_regions;++i) {
     // Fetch region
@@ -90,7 +94,6 @@ void filtering_candidates_buffered_bpm_align_discard_subdominant_edit(
     if (is_subdominant) break;
     // Accept & update distance
     best_distance = edit_distance_bound;
-    filtering_region->status = filtering_region_accepted;
   }
   // Set remaining regions as subdominant
   for (;i<num_regions;++i) {
@@ -114,15 +117,16 @@ void filtering_candidates_buffered_bpm_align_discard_subdominant_swg(
     if (filtering_region->status != filtering_region_accepted) break;
     // Check subdominant
     const uint64_t edit_distance_bound = filtering_region->alignment.distance_min_bound;
-    const int32_t score_bound = align_swg_score_compute_max_score_bound(
+    const int32_t max_score_bound = align_swg_score_compute_max_score_bound(
         swg_penalties,edit_distance_bound,pattern->key_length);
     const bool is_subdominant =
         filtering_candidates_classify_subdominant_region_swg(
-            filtering_candidates,i,score_bound,best_score);
+            filtering_candidates,i,max_score_bound,best_score);
     if (is_subdominant) break;
     // Accept & update distance
-    best_score = score_bound;
-    filtering_region->status = filtering_region_accepted;
+    const int32_t min_score_bound = align_swg_score_compute_min_score_bound(
+        swg_penalties,edit_distance_bound,pattern->key_length);
+    best_score = MIN(best_score,min_score_bound);
   }
   // Set remaining regions as subdominant
   for (;i<num_regions;++i) {
@@ -182,7 +186,7 @@ bool filtering_candidates_buffered_bpm_align_prepare_scaffold(
 /*
  * BPM-Buffered Add (Candidates Alignment)
  */
-uint64_t filtering_candidates_buffered_bpm_align_add_region(
+void filtering_candidates_buffered_bpm_align_add_region(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
     pattern_t* const pattern,
@@ -193,7 +197,7 @@ uint64_t filtering_candidates_buffered_bpm_align_add_region(
   alignment_t* const alignment = &filtering_region->alignment;
   const uint64_t num_tiles = alignment->num_tiles;
   // Add candidate to GPU BPM-buffer
-  uint64_t tile_pos, total_candidates_added=0;
+  uint64_t tile_pos;
   for (tile_pos=0;tile_pos<num_tiles;++tile_pos) {
     // Fetch tiles
     alignment_tile_t* const alignment_tile = alignment->alignment_tiles + tile_pos;
@@ -208,13 +212,10 @@ uint64_t filtering_candidates_buffered_bpm_align_add_region(
       gpu_buffer_bpm_align_add_candidate(
           gpu_buffer_bpm_align,tile_pos,text_trace->text_padded,
           text_trace->text_padded_length,left_gap_alignment);
-      ++total_candidates_added;
     }
   }
-  // Return total candidates added
-  return total_candidates_added;
 }
-uint64_t filtering_candidates_buffered_bpm_align_add_filtering_regions(
+void filtering_candidates_buffered_bpm_align_add_filtering_regions(
     filtering_candidates_t* const filtering_candidates,
     filtering_candidates_buffered_t* const filtering_candidates_buffered,
     pattern_t* const pattern,
@@ -223,7 +224,7 @@ uint64_t filtering_candidates_buffered_bpm_align_add_filtering_regions(
   archive_text_t* const archive_text = filtering_candidates->archive->text;
   // Traverse all regions and add those accepted
   const uint64_t num_regions = filtering_candidates_buffered->num_regions;
-  uint64_t candidate_pos, total_candidates_added = 0;
+  uint64_t candidate_pos;
   for (candidate_pos=0;candidate_pos<num_regions;++candidate_pos) {
     // Fetch region
     filtering_region_t* const filtering_region = filtering_candidates_buffered->regions[candidate_pos];
@@ -239,15 +240,10 @@ uint64_t filtering_candidates_buffered_bpm_align_add_filtering_regions(
             filtering_candidates,filtering_region,pattern);
     if (!scaffold_candidate) continue; // Next
     // Add filtering-region
-    total_candidates_added +=
-        filtering_candidates_buffered_bpm_align_add_region(
-            filtering_candidates,filtering_region,
-            pattern,candidate_pos,gpu_buffer_bpm_align);
+    filtering_candidates_buffered_bpm_align_add_region(
+        filtering_candidates,filtering_region,
+        pattern,candidate_pos,gpu_buffer_bpm_align);
   }
-  // Record stats
-  gpu_buffer_bpm_align_record_candidates_per_tile(gpu_buffer_bpm_align,total_candidates_added);
-  // Return total added
-  return total_candidates_added;
 }
 void filtering_candidates_buffered_bpm_align_add(
     filtering_candidates_t* const filtering_candidates,
@@ -271,14 +267,12 @@ void filtering_candidates_buffered_bpm_align_add(
   *gpu_buffer_align_offset = gpu_buffer_bpm_align_get_num_candidates(gpu_buffer_bpm_align);
   // Add the pattern to the buffer (add new queries)
   gpu_buffer_bpm_align_add_pattern(gpu_buffer_bpm_align,pattern);
-  gpu_buffer_bpm_align_record_query_length(gpu_buffer_bpm_align,pattern->key_length);
   // Add all eligible filtering regions
-  const uint64_t total_candidates_added =
-      filtering_candidates_buffered_bpm_align_add_filtering_regions(
-          filtering_candidates,filtering_candidates_buffered,pattern,gpu_buffer_bpm_align);
+  filtering_candidates_buffered_bpm_align_add_filtering_regions(
+      filtering_candidates,filtering_candidates_buffered,pattern,gpu_buffer_bpm_align);
   // PROF
-  PROF_ADD_COUNTER(GP_CANDIDATE_TILES,total_candidates_added);
-  PROF_ADD_COUNTER(GP_BMP_DISTANCE_NUM_TILES_VERIFIED,total_candidates_added);
+  PROF_ADD_COUNTER(GP_CANDIDATE_TILES,gpu_buffer_bpm_align->current_candidates_added);
+  PROF_ADD_COUNTER(GP_BMP_DISTANCE_NUM_TILES_VERIFIED,gpu_buffer_bpm_align->current_candidates_added);
 }
 /*
  * BPM-Align Buffered Retrieve (Candidates Scaffolding)
@@ -354,6 +348,11 @@ void filtering_candidates_buffered_bpm_align_retrieve_scaffold(
         pattern_tile,alignment_tile,matches,
         gpu_buffer_bpm_align,gpu_buffer_offset);
   }
+  // CHECK
+  //  match_scaffold_print(stderr,matches,&filtering_region->match_scaffold);
+  //  filtering_candidates_buffered_bpm_align_compute_scaffold(
+  //      filtering_candidates,filtering_region,pattern,matches);
+  //  match_scaffold_print(stderr,matches,&filtering_region->match_scaffold);
 }
 void filtering_candidates_buffered_bpm_align_compute_scaffold(
     filtering_candidates_t* const filtering_candidates,
@@ -410,6 +409,12 @@ void filtering_candidates_buffered_bpm_align_retrieve_region(
     filtering_candidates_buffered_bpm_align_compute_scaffold(
         filtering_candidates,filtering_region,pattern,matches);
   }
+  // Chains scaffolds
+  match_scaffold_chain(
+      &filtering_region->match_scaffold,pattern,
+      &filtering_region->text_trace,false);
+  filtering_region->match_scaffold.scaffold_type = scaffold_levenshtein;
+  // Add to filtering regions
   vector_insert(filtering_candidates->filtering_regions,filtering_region,filtering_region_t*);
 }
 void filtering_candidates_buffered_bpm_align_retrieve(

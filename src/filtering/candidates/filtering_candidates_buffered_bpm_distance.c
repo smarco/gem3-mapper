@@ -54,7 +54,7 @@ void filtering_candidates_buffered_bpm_distance_prepare_buffers(
   *gpu_buffer_align_offset = gpu_buffer_bpm_distance_get_num_candidates(gpu_buffer_bpm_distance);
   filtering_candidates_buffered->num_regions = num_filtering_regions;
 }
-uint64_t filtering_candidates_buffered_bpm_distance_add_region(
+void filtering_candidates_buffered_bpm_distance_add_region(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
     pattern_t* const pattern,
@@ -70,7 +70,7 @@ uint64_t filtering_candidates_buffered_bpm_distance_add_region(
       filtering_candidates,alignment,pattern,text_length,max_error);
   // BPM-GPU put all candidates (tiles)
   const uint64_t num_tiles = alignment->num_tiles;
-  uint64_t tile_pos, total_candidates_added=0;
+  uint64_t tile_pos;
   // Add candidate to GPU BPM-buffer
   for (tile_pos=0;tile_pos<num_tiles;++tile_pos) {
     // Fetch tiles
@@ -82,13 +82,10 @@ uint64_t filtering_candidates_buffered_bpm_distance_add_region(
         alignment_tile->text_end_offset-alignment_tile->text_begin_offset;
     gpu_buffer_bpm_distance_add_candidate(gpu_buffer_bpm_distance,
         tile_pos,candidate_text_position,candidate_length);
-    ++total_candidates_added;
   }
   PROF_ADD_COUNTER(GP_ASSW_VERIFY_CANDIDATES_TILES_COPIED,num_tiles);
-  // Return total candidates added
-  return total_candidates_added;
 }
-uint64_t filtering_candidates_buffered_bpm_distance_add_filtering_regions(
+void filtering_candidates_buffered_bpm_distance_add_filtering_regions(
     filtering_candidates_t* const filtering_candidates,
     filtering_candidates_buffered_t* const filtering_candidates_buffered,
     pattern_t* const pattern,
@@ -98,7 +95,7 @@ uint64_t filtering_candidates_buffered_bpm_distance_add_filtering_regions(
   filtering_region_t** const region_buffered = filtering_candidates_buffered->regions;
   const uint64_t num_filtering_regions = filtering_candidates_get_num_regions(filtering_candidates);
   // Add all regions
-  uint64_t candidate_pos, total_candidates_added = 0;
+  uint64_t candidate_pos;
   for (candidate_pos=0;candidate_pos<num_filtering_regions;++candidate_pos) {
     // Filtering region
     filtering_region_t* const filtering_region = regions_in[candidate_pos];
@@ -108,14 +105,12 @@ uint64_t filtering_candidates_buffered_bpm_distance_add_filtering_regions(
       continue; // Next
     }
     // Add filtering-region
-    total_candidates_added += filtering_candidates_buffered_bpm_distance_add_region(
-        filtering_candidates,filtering_region,pattern,candidate_pos,gpu_buffer_bpm_distance);
+    filtering_candidates_buffered_bpm_distance_add_region(
+        filtering_candidates,filtering_region,
+        pattern,candidate_pos,gpu_buffer_bpm_distance);
   }
-  gpu_buffer_bpm_distance_record_candidates_per_tile(gpu_buffer_bpm_distance,total_candidates_added);
   // Clear filtering regions (regions buffered)
   filtering_candidates_clear_regions(filtering_candidates,false);
-  // Return
-  return total_candidates_added;
 }
 void filtering_candidates_buffered_bpm_distance_add(
     filtering_candidates_t* const filtering_candidates,
@@ -135,14 +130,12 @@ void filtering_candidates_buffered_bpm_distance_add(
       gpu_buffer_bpm_distance,gpu_buffer_align_offset);
   // Add the pattern to the buffer (add new queries)
   gpu_buffer_bpm_distance_add_pattern(gpu_buffer_bpm_distance,pattern);
-  gpu_buffer_bpm_distance_record_query_length(gpu_buffer_bpm_distance,pattern->key_length);
   // Add all filtering regions (candidates in text-space)
-  const uint64_t total_candidates_added =
-      filtering_candidates_buffered_bpm_distance_add_filtering_regions(
-          filtering_candidates,filtering_candidates_buffered,pattern,gpu_buffer_bpm_distance);
+  filtering_candidates_buffered_bpm_distance_add_filtering_regions(
+      filtering_candidates,filtering_candidates_buffered,pattern,gpu_buffer_bpm_distance);
   // PROF
-  PROF_ADD_COUNTER(GP_CANDIDATE_TILES,total_candidates_added);
-  PROF_ADD_COUNTER(GP_BMP_DISTANCE_NUM_TILES_VERIFIED,total_candidates_added);
+  PROF_ADD_COUNTER(GP_CANDIDATE_TILES,gpu_buffer_bpm_distance->current_candidates_added);
+  PROF_ADD_COUNTER(GP_BMP_DISTANCE_NUM_TILES_VERIFIED,gpu_buffer_bpm_distance->current_candidates_added);
 }
 /*
  * Compute filtering-region distance

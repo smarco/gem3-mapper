@@ -177,7 +177,6 @@ void match_scaffold_adaptive(
       match_scaffold_levenshtein(
           match_scaffold,pattern,text_trace,
           alignment,matching_min_length,matches);
-      match_scaffold_chain(match_scaffold,pattern,text_trace,false);
       PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_EDIT_COVERAGE,
           (100*match_scaffold->scaffolding_coverage)/key_length);
     }
