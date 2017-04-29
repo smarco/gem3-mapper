@@ -349,10 +349,10 @@ void filtering_candidates_buffered_bpm_align_retrieve_scaffold(
         gpu_buffer_bpm_align,gpu_buffer_offset);
   }
   // CHECK
-  //  match_scaffold_print(stderr,matches,&filtering_region->match_scaffold);
-  //  filtering_candidates_buffered_bpm_align_compute_scaffold(
-  //      filtering_candidates,filtering_region,pattern,matches);
-  //  match_scaffold_print(stderr,matches,&filtering_region->match_scaffold);
+    match_scaffold_print(stderr,matches,&filtering_region->match_scaffold);
+    filtering_candidates_buffered_bpm_align_compute_scaffold(
+        filtering_candidates,filtering_region,pattern,matches);
+    match_scaffold_print(stderr,matches,&filtering_region->match_scaffold);
 }
 void filtering_candidates_buffered_bpm_align_compute_scaffold(
     filtering_candidates_t* const filtering_candidates,
