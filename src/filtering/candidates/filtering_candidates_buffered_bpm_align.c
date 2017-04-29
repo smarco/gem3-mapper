@@ -209,9 +209,11 @@ void filtering_candidates_buffered_bpm_align_add_region(
     if (match_distance!=ALIGN_DISTANCE_INF) {
       text_trace_t* const text_trace = &filtering_region->text_trace;
       const bool left_gap_alignment = (text_trace->strand==Forward);
+      uint8_t* const text = text_trace->text_padded + alignment_tile->text_begin_offset;
+      const uint64_t text_length = alignment_tile->text_end_offset - alignment_tile->text_begin_offset;
       gpu_buffer_bpm_align_add_candidate(
-          gpu_buffer_bpm_align,tile_pos,text_trace->text_padded,
-          text_trace->text_padded_length,left_gap_alignment);
+          gpu_buffer_bpm_align,tile_pos,
+          text,text_length,left_gap_alignment);
     }
   }
 }
@@ -277,6 +279,30 @@ void filtering_candidates_buffered_bpm_align_add(
 /*
  * BPM-Align Buffered Retrieve (Candidates Scaffolding)
  */
+void filtering_candidates_buffered_bpm_align_compute_scaffold(
+    filtering_candidates_t* const filtering_candidates,
+    filtering_region_t* const filtering_region,
+    pattern_t* const pattern,
+    matches_t* const matches) {
+  // Parameters
+  search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
+  alignment_t* const alignment = &filtering_region->alignment;
+  // Allocate scaffold
+  match_scaffold_t* const match_scaffold = &filtering_region->match_scaffold;
+  const uint64_t matching_min_length = search_parameters->alignment_scaffolding_min_matching_length_nominal;
+  match_scaffold_levenshtein_allocate(match_scaffold,pattern->key_length,matching_min_length);
+  // Traverse all tiles from candidate
+  text_trace_t* const text_trace = &filtering_region->text_trace;
+  const uint64_t num_tiles = alignment->num_tiles;
+  uint64_t tile_pos;
+  for (tile_pos=0;tile_pos<num_tiles;++tile_pos) {
+    alignment_tile_t* const alignment_tile = alignment->alignment_tiles + tile_pos;
+    pattern_tile_t* const pattern_tile = pattern->pattern_tiled.tiles + tile_pos;
+    match_scaffold_levenshtein_tile(
+        match_scaffold,pattern,text_trace,alignment_tile,
+        pattern_tile,matching_min_length,matches);
+  }
+}
 void filtering_candidates_buffered_bpm_align_retrieve_scaffold_tile(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
@@ -296,7 +322,7 @@ void filtering_candidates_buffered_bpm_align_retrieve_scaffold_tile(
     text_trace_t* const text_trace = &filtering_region->text_trace;
     const uint64_t match_position = text_trace->position + text_begin;
     match_alignment_t match_alignment;
-    match_alignment.match_position = match_position;
+    match_alignment.match_position = match_position + text_begin;
     gpu_buffer_bpm_align_retrieve_alignment(
         gpu_buffer_bpm_align,*gpu_buffer_offset,
         &match_alignment,matches->cigar_vector);
@@ -349,34 +375,10 @@ void filtering_candidates_buffered_bpm_align_retrieve_scaffold(
         gpu_buffer_bpm_align,gpu_buffer_offset);
   }
   // CHECK
-    match_scaffold_print(stderr,matches,&filtering_region->match_scaffold);
-    filtering_candidates_buffered_bpm_align_compute_scaffold(
-        filtering_candidates,filtering_region,pattern,matches);
-    match_scaffold_print(stderr,matches,&filtering_region->match_scaffold);
-}
-void filtering_candidates_buffered_bpm_align_compute_scaffold(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
-    matches_t* const matches) {
-  // Parameters
-  search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
-  alignment_t* const alignment = &filtering_region->alignment;
-  // Allocate scaffold
-  match_scaffold_t* const match_scaffold = &filtering_region->match_scaffold;
-  const uint64_t matching_min_length = search_parameters->alignment_scaffolding_min_matching_length_nominal;
-  match_scaffold_levenshtein_allocate(match_scaffold,pattern->key_length,matching_min_length);
-  // Traverse all tiles from candidate
-  text_trace_t* const text_trace = &filtering_region->text_trace;
-  const uint64_t num_tiles = alignment->num_tiles;
-  uint64_t tile_pos;
-  for (tile_pos=0;tile_pos<num_tiles;++tile_pos) {
-    alignment_tile_t* const alignment_tile = alignment->alignment_tiles + tile_pos;
-    pattern_tile_t* const pattern_tile = pattern->pattern_tiled.tiles + tile_pos;
-    match_scaffold_levenshtein_tile(
-        match_scaffold,pattern,text_trace,alignment_tile,
-        pattern_tile,matching_min_length,matches);
-  }
+  match_scaffold_print(stderr,matches,&filtering_region->match_scaffold);
+  filtering_candidates_buffered_bpm_align_compute_scaffold(
+      filtering_candidates,filtering_region,pattern,matches);
+  match_scaffold_print(stderr,matches,&filtering_region->match_scaffold);
 }
 void filtering_candidates_buffered_bpm_align_retrieve_region(
     filtering_candidates_t* const filtering_candidates,

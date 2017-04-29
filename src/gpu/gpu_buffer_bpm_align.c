@@ -56,6 +56,8 @@
 #define GPU_BPM_ALIGN_MIN_NUM_SAMPLES           1
 #define GPU_BPM_ALIGN_AVERAGE_QUERY_LENGTH      150
 #define GPU_BPM_ALIGN_CANDIDATES_PER_TILE       20
+#define GPU_BPM_ALIGN_QUERY_PADDING             8
+#define GPU_BPM_ALIGN_CANDIDATE_PADDING         8
 
 /*
  * CUDA Support
@@ -229,20 +231,23 @@ bool gpu_buffer_bpm_align_fits_in_buffer(
   uint64_t max_query_buffer_size = gpu_buffer_bpm_align_get_max_query_buffer_size(gpu_buffer_bpm_align);
   uint64_t max_candidates = gpu_buffer_bpm_align_get_max_candidates(gpu_buffer_bpm_align);
   uint64_t max_candidate_buffer_size = gpu_buffer_bpm_align_get_max_candidate_buffer_size(gpu_buffer_bpm_align);
+  // Account for padding
+  const uint64_t total_query_length_padded = total_query_length + 2*GPU_BPM_ALIGN_QUERY_PADDING;
+  const uint64_t total_candidates_length_padded = total_candidates_length + 2*GPU_BPM_ALIGN_CANDIDATE_PADDING;
   // Check available space in buffer for the pattern
   if (gpu_buffer_bpm_align->num_queries+total_queries > max_queries ||
       gpu_buffer_bpm_align->num_query_entries+total_query_entries > max_query_entries ||
-      gpu_buffer_bpm_align->query_buffer_offset+total_query_length > max_query_buffer_size ||
+      gpu_buffer_bpm_align->query_buffer_offset+total_query_length_padded > max_query_buffer_size ||
       gpu_buffer_bpm_align->num_candidates+total_candidates > max_candidates ||
-      gpu_buffer_bpm_align->candidate_buffer_offset+total_candidates_length > max_candidate_buffer_size) {
+      gpu_buffer_bpm_align->candidate_buffer_offset+total_candidates_length_padded > max_candidate_buffer_size) {
     // Check buffer occupancy
     if (gpu_buffer_bpm_align->num_queries > 0) {
       return false; // Leave it to the next fresh buffer
     }
     // Reallocate buffer
     gpu_bpm_align_init_and_realloc_buffer_(
-        gpu_buffer_bpm_align->buffer,total_query_entries,total_query_length,
-        total_candidates_length,total_queries,total_candidates);
+        gpu_buffer_bpm_align->buffer,total_query_entries,total_query_length_padded,
+        total_candidates_length_padded,total_queries,total_candidates);
     // Check reallocated buffer dimensions (error otherwise)
     max_queries = gpu_buffer_bpm_align_get_max_queries(gpu_buffer_bpm_align);
     gem_cond_fatal_error(total_queries > max_queries,
@@ -251,14 +256,14 @@ bool gpu_buffer_bpm_align_fits_in_buffer(
     gem_cond_fatal_error(total_query_entries > max_query_entries,
         GPU_BPM_ALIGN_MAX_PATTERN_ENTRIES,total_query_entries,max_query_entries);
     max_query_buffer_size = gpu_buffer_bpm_align_get_max_query_buffer_size(gpu_buffer_bpm_align);
-    gem_cond_fatal_error(total_query_length > max_query_buffer_size,
-        GPU_BPM_ALIGN_MAX_PATTERN_LENGTH,total_query_length,max_query_buffer_size);
+    gem_cond_fatal_error(total_query_length_padded > max_query_buffer_size,
+        GPU_BPM_ALIGN_MAX_PATTERN_LENGTH,total_query_length_padded,max_query_buffer_size);
     max_candidates = gpu_buffer_bpm_align_get_max_candidates(gpu_buffer_bpm_align);
     gem_cond_fatal_error(total_candidates > max_candidates,
         GPU_BPM_ALIGN_MAX_CANDIDATES,total_candidates,max_candidates);
     max_candidate_buffer_size = gpu_buffer_bpm_align_get_max_candidate_buffer_size(gpu_buffer_bpm_align);
-    gem_cond_fatal_error(total_candidates_length > max_candidate_buffer_size,
-        GPU_BPM_ALIGN_MAX_CANDIDATE_LENGTH,total_candidates_length,max_candidate_buffer_size);
+    gem_cond_fatal_error(total_candidates_length_padded > max_candidate_buffer_size,
+        GPU_BPM_ALIGN_MAX_CANDIDATE_LENGTH,total_candidates_length_padded,max_candidate_buffer_size);
     // Return OK (after reallocation)
     return true;
   }
@@ -332,7 +337,12 @@ void gpu_buffer_bpm_align_add_query_text(
   gpu_bpm_align_qry_entry_t* const gpu_query_buffer =
       gpu_bpm_align_buffer_get_queries_(gpu_buffer_bpm_align->buffer) + query_buffer_offset;
   memcpy(gpu_query_buffer,key,key_length);
+  // Account for padding
   gpu_buffer_bpm_align->query_buffer_offset += key_length;
+  const uint64_t num_bases_mod = key_length % GPU_BPM_ALIGN_QUERY_PADDING;
+  if (num_bases_mod > 0) {
+    gpu_buffer_bpm_align->query_buffer_offset += GPU_BPM_ALIGN_QUERY_PADDING - num_bases_mod;
+  }
 }
 void gpu_buffer_bpm_align_add_pattern(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
@@ -383,7 +393,12 @@ void gpu_buffer_bpm_align_add_candidate(
   gpu_bpm_align_cand_entry_t* const gpu_candidate_buffer =
       gpu_bpm_align_buffer_get_candidates_(gpu_buffer_bpm_align->buffer) + candidate_buffer_offset;
   memcpy(gpu_candidate_buffer,candidate_buffer,candidate_length);
+  // Account for padding
   gpu_buffer_bpm_align->candidate_buffer_offset += candidate_length;
+  const uint64_t num_bases_mod = candidate_length % GPU_BPM_ALIGN_CANDIDATE_PADDING;
+  if (num_bases_mod > 0) {
+    gpu_buffer_bpm_align->candidate_buffer_offset += GPU_BPM_ALIGN_CANDIDATE_PADDING - num_bases_mod;
+  }
   // Stats
   gpu_buffer_bpm_align_record_candidate_length(gpu_buffer_bpm_align,candidate_length);
 }
@@ -399,15 +414,7 @@ void gpu_buffer_bpm_align_retrieve_alignment(
   gpu_bpm_align_cigar_info_t* const gpu_alignment =
       gpu_bpm_align_buffer_get_cigars_info_(gpu_buffer_bpm_align->buffer) + candidate_offset;
   match_alignment->effective_length = gpu_alignment->matchEffLenght;
-  match_alignment->match_position = 0;
-  /* TODO  TODO  TODO
-   * match_alignment->match_position =
-   *   filtering_region->text_begin_position +
-   *   tile_offset +
-   *   gpu_alignment->initCood;
-   * TODO  TODO  TODO
-   */
-  match_alignment->match_text_offset = gpu_alignment->initCood.x;
+  match_alignment->match_position += gpu_alignment->initCood.x;
   // Allocate CIGAR string memory (worst case)
   match_alignment->cigar_offset = vector_get_used(cigar_vector); // Set CIGAR offset
   match_alignment->cigar_length = gpu_alignment->cigarLenght;
