@@ -40,14 +40,15 @@ typedef struct {
   void* buffer;                       // GPU Generic Buffer
   /* Buffer state */
   bool kmer_filter_enabled;           // Enabled GPU-computing BPM-Distance
+  uint32_t current_query_offset;      // Current query offset (Once a pattern is added)
+  uint32_t current_candidates_added;  // Current number of candidates added
+  /* Buffer Queries & Candidates */
   uint32_t num_queries;
-  uint32_t num_candidates;
   uint32_t query_buffer_offset;
-  /* Dimensions Hints */
+  uint32_t num_candidates;
+  /* Stats */
   gem_counter_t query_length;         // Tracks queries' length
-  uint32_t acc_candidates_per_query;
   gem_counter_t candidates_per_query; // Tracks number of candidates per query
-  /* Profile */
   gem_timer_t timer;
 } gpu_buffer_kmer_filter_t;
 
@@ -64,23 +65,22 @@ void gpu_buffer_kmer_filter_delete(
     gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter);
 
 /*
- * Limits
+ * Occupancy & Limits
  */
-uint64_t gpu_buffer_kmer_filter_get_max_candidates(
-    gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter);
 uint64_t gpu_buffer_kmer_filter_get_max_queries(
     gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter);
 uint64_t gpu_buffer_kmer_filter_get_query_buffer_size(
     gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter);
-
-/*
- * Occupancy
- */
-uint64_t gpu_buffer_kmer_filter_get_num_candidates(
+uint64_t gpu_buffer_kmer_filter_get_max_candidates(
     gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter);
 uint64_t gpu_buffer_kmer_filter_get_num_queries(
     gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter);
+uint64_t gpu_buffer_kmer_filter_get_num_candidates(
+    gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter);
 
+/*
+ * Dimensions
+ */
 void gpu_buffer_kmer_filter_compute_dimensions(
     gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter,
     kmer_counting_nway_t* const kmer_counting,
@@ -109,16 +109,6 @@ uint32_t gpu_buffer_kmer_filter_get_min_edit_bound(
     gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter,
     const uint64_t candidate_base_offset,
     const uint64_t num_tiles);
-
-/*
- * Hints
- */
-void gpu_buffer_kmer_filter_record_candidates_per_query(
-    gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter);
-uint64_t gpu_buffer_kmer_filter_get_mean_query_length(
-    gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter);
-uint64_t gpu_buffer_kmer_filter_get_mean_candidates_per_query(
-    gpu_buffer_kmer_filter_t* const gpu_buffer_kmer_filter);
 
 /*
  * Send/Receive

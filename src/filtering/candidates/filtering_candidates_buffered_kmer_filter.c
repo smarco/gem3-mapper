@@ -39,6 +39,11 @@
 #define PROFILE_LEVEL PMED
 
 /*
+ * Constants
+ */
+#define FILTERING_CANDIDATES_KMER_FILTER_MIN_KEY_LENGTH 250
+
+/*
  * Kmer-Filter Buffered Add
  */
 void filtering_candidates_buffered_kmer_filter_prepare_buffers(
@@ -80,7 +85,9 @@ void filtering_candidates_buffered_kmer_filter_add_filtering_regions(
     filtering_region_t* const filtering_region = regions_in[candidate_pos];
     region_buffered[candidate_pos] = filtering_region;
     // Filter out exact-matches & key-trimmed regions
-    if (filtering_region->alignment.distance_min_bound==0 || filtering_region->key_trimmed) {
+    if (filtering_region->alignment.distance_min_bound==0 ||
+        filtering_region->key_trimmed ||
+        pattern->key_length < FILTERING_CANDIDATES_KMER_FILTER_MIN_KEY_LENGTH) {
       continue; // Next
     }
     // Prepare Kmer-filter (candidate)
@@ -167,7 +174,8 @@ void filtering_candidates_buffered_kmer_filter_retrieve_region(
     return;
   }
   // Detect trimmed matches
-  if (filtering_region->key_trimmed) {
+  if (filtering_region->key_trimmed ||
+      pattern->key_length < FILTERING_CANDIDATES_KMER_FILTER_MIN_KEY_LENGTH) {
     alignment->distance_min_bound = ALIGN_DISTANCE_UNKNOWN;
     vector_insert(filtering_candidates->filtering_regions,filtering_region,filtering_region_t*);
     PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_ACCEPTED);

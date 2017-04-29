@@ -302,6 +302,8 @@ void gpu_buffer_bpm_align_add_query_info(
         gpu_buffer_bpm_align->query_same_length = UINT32_MAX; // Not the same length
       }
     }
+    // Stats
+    gpu_buffer_bpm_align_record_query_length(gpu_buffer_bpm_align,tile_length);
   }
 }
 void gpu_buffer_bpm_align_add_query_entries(
@@ -341,7 +343,6 @@ void gpu_buffer_bpm_align_add_pattern(
         gpu_buffer_bpm_align,gpu_buffer_bpm_align->current_candidates_added);
     gpu_buffer_bpm_align->current_candidates_added = 0;
   }
-  gpu_buffer_bpm_align_record_query_length(gpu_buffer_bpm_align,pattern->key_length);
   // Add Query (Metadata)
   gpu_buffer_bpm_align_add_query_info(gpu_buffer_bpm_align,pattern);
   // Add Query (Entries / PEQ pattern)
@@ -414,7 +415,7 @@ void gpu_buffer_bpm_align_retrieve_alignment(
   cigar_element_t* const cigar_buffer = vector_get_free_elm(cigar_vector,cigar_element_t); // Sentinel
   // Convert CIGAR
   gpu_bpm_align_cigar_entry_t* const gpu_alignment_cigar =
-      gpu_bpm_align_buffer_get_cigars_(gpu_buffer_bpm_align->buffer);
+      gpu_bpm_align_buffer_get_cigars_(gpu_buffer_bpm_align->buffer) + gpu_alignment->cigarStartPos;
   uint64_t i;
   for (i=0;i<gpu_alignment->cigarLenght;++i) {
     switch (gpu_alignment_cigar[i].event) {
@@ -438,6 +439,7 @@ void gpu_buffer_bpm_align_retrieve_alignment(
         break;
     }
   }
+  vector_add_used(cigar_vector,gpu_alignment->cigarLenght);
 }
 /*
  * Send/Receive
