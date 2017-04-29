@@ -64,11 +64,10 @@ typedef struct {
 
 typedef struct {
   // Max allocation parameters for internal cigar results
-  uint32_t              offsetCigarStart;
-  uint32_t              offsetCigarLength;
+  uint32_t                    offsetCigarStart;
   // Return Cigar results
-  gpu_bpm_align_coord_t initCood;
-  gpu_bpm_align_coord_t endCood;
+  gpu_bpm_align_coord_t       initCood;
+  gpu_bpm_align_coord_t       endCood;
   uint32_t 				      matchEffLenght;
   uint32_t 				      cigarStartPos;
   uint32_t				      cigarLenght;

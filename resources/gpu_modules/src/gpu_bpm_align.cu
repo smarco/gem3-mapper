@@ -31,7 +31,7 @@ GPU_INLINE __device__ void gpu_bpm_align_backtrace(const uint32_t* const dpPV, c
   const uint32_t offsetQueryThreadIdx = gpu_get_lane_idx() - intraQueryThreadIdx;
   // Initializing back-trace data variables
   ulong2   infoCandidate = GPU_TEXT_INIT, infoQuery = GPU_TEXT_INIT;
-  int32_t x = minColumn, y = sizeQuery - 1, matchEffLenght = 0;
+  int32_t  x = minColumn, y = sizeQuery - 1, matchEffLenght = 0;
   // Decomposing the CIGAR LUT
   const char4* const globalCigarTableLeft  = (char4*)  gpu_bmp_align_cigar_lut;
   const char4* const globalCigarTableRight = (char4*) (gpu_bmp_align_cigar_lut + GPU_BMP_ALIGN_CIGAR_LUT_OFFSET);
@@ -58,27 +58,32 @@ GPU_INLINE __device__ void gpu_bpm_align_backtrace(const uint32_t* const dpPV, c
       const uint32_t cigarEventEntry = deletion | insertion | match;
       // Recover CIGAR from DP matrix
       const char4* const localCigarTable = (leftGapAlign) ? globalCigarTableLeft : globalCigarTableRight;
+      //printf("baseCand=%d, baseQuery=%d \n", encBaseCandidate, encBaseQuery);
       cigarOP.v4 = LDG(&localCigarTable[cigarEventEntry]);
     }
     // Communicate OP variable to the rest of the group threads
     cigarOP.s = shfl_32(cigarOP.s, offsetQueryThreadIdx + dpActiveThread);
     x += cigarOP.v4.x; y += cigarOP.v4.y; event = cigarOP.v4.z; matchEffLenght += cigarOP.v4.w;
-    accNum++;
+    printf("pos=%d, accNum=%d, event=%d, matchEff=%d [x=%d, y=%d]\n", sizeQuery - cigarLenght, accNum, event, matchEffLenght, x, y);
     // Save CIGAR string from end to start position & Resetting the CIGAR stats
-    if((intraQueryThreadIdx == 0) && (event != accEvent) && (event != GPU_CIGAR_NULL)){
+    if((intraQueryThreadIdx == 0) && (event != accEvent) && (accEvent != GPU_CIGAR_NULL)){
       const gpu_bpm_align_cigar_entry_t cigarEntry = {accEvent, accNum};
+      printf("===================> SAVE: pos=%d, event=%d, num=%d \n", sizeQuery - cigarLenght, accEvent, accNum);
       dpCIGAR[sizeQuery - cigarLenght] = cigarEntry;
-      accEvent = event; event = GPU_CIGAR_NULL; accNum = 0; cigarLenght++;
+      accNum = 0; cigarLenght++;
     }
+    accEvent = event; accNum++;
   }
   // Master thread saves the last part of the cigar
   if (intraQueryThreadIdx  == (threadsPerQuery - 1)){
-  const gpu_bpm_align_coord_t initCood =  {x, y};
+    const gpu_bpm_align_coord_t initCood =  {x, y + 1};
+    const bool pendingEvents = (accNum - 1) == 0;
 	// Saving the last CIGAR status event
-	if(event != GPU_CIGAR_NULL){
+	if(pendingEvents){
     const gpu_bpm_align_cigar_entry_t cigarEntry = {event, accNum};
 	  dpCIGAR[sizeQuery - cigarLenght] = cigarEntry;
 	  cigarLenght++;
+	  printf("=================E0> SAVE: pos=%d, event=%d, num=%d \n", sizeQuery - cigarLenght, event, accNum);
 	}
     // Saving the remainder semi-global deletion events
     if(y >= 0){
@@ -86,19 +91,26 @@ GPU_INLINE __device__ void gpu_bpm_align_backtrace(const uint32_t* const dpPV, c
       const gpu_bpm_align_cigar_entry_t cigarEntry = {GPU_CIGAR_DELETION, numEvents};
 	    dpCIGAR[sizeQuery - cigarLenght] = cigarEntry;
 	    matchEffLenght -= numEvents;
+	    printf("=================E1> SAVE: pos=%d, event=%d, num=%d \n", sizeQuery - cigarLenght, GPU_CIGAR_DELETION, numEvents);
     }
     // Returning back-trace results
     (* initCoodRes)       = initCood;
     (* matchEffLenghtRes) = matchEffLenght;
     (* cigarLenghtRes)    = cigarLenght;
+    printf("\n\n x=%d, y=%d, match=%d, cigarL=%d \n\n", initCood.x, initCood.y, matchEffLenght, cigarLenght);
+    for(int32_t id = 0; id < cigarLenght; id++){
+    	const gpu_bpm_align_cigar_entry_t cigarEntry = dpCIGAR[sizeQuery - id];
+    	printf("id=%d, cEvent=%d, cOcc=%d \n", id, cigarEntry.event, cigarEntry.occurrences);
+    }
+    printf("\n\n\n");
   }
 }
 
 GPU_INLINE __device__ void gpu_bpm_align_dp_matrix(uint4* const dpPV, uint4* const dpMV,
-												                           const gpu_bpm_align_device_qry_entry_t* const PEQs, const uint64_t* const candidate,
-												                           const uint32_t sizeQuery, const uint32_t sizeCandidate,
-												                           const uint32_t intraQueryThreadIdx, const uint32_t threadsPerQuery,
-												                           uint32_t* const endMinColumn, uint32_t* const endMinScore)
+												   const gpu_bpm_align_device_qry_entry_t* const PEQs, const uint64_t* const candidate,
+												   const uint32_t sizeQuery, const uint32_t sizeCandidate,
+												   const uint32_t intraQueryThreadIdx, const uint32_t threadsPerQuery,
+												   uint32_t* const endMinColumn, uint32_t* const endMinScore)
 {
   const uint32_t BMPS_SIZE       = GPU_BPM_ALIGN_PEQ_LENGTH_PER_CUDA_THREAD;
   const uint32_t BMPS_PER_THREAD = BMPS_SIZE / GPU_UINT32_LENGTH;
@@ -190,10 +202,10 @@ GPU_INLINE __device__ void gpu_bpm_align_local_kernel(const gpu_bpm_align_qry_en
   const uint32_t sizeCandidate                       = d_candidateInfo[idCandidate].size;
   const bool leftGapAlign                            = d_candidateInfo[idCandidate].leftGapAlign;
   // Data Buffers
-  const uint64_t* const candidate   			           = (uint64_t*) (d_candidates + d_candidateInfo[idCandidate].posEntryBase);
+  const uint64_t* const candidate   			     = (uint64_t*) (d_candidates + d_candidateInfo[idCandidate].posEntryBase);
   const uint64_t* const query                        = (uint64_t*) (d_queries + d_queryInfo[idQuery].posEntryBase);
   const gpu_bpm_align_device_qry_entry_t* const PEQs = d_PEQs + d_queryInfo[idQuery].posEntryPEQ + intraQueryThreadIdx;
-  gpu_bpm_align_cigar_entry_t* const cigar           = d_cigars + d_cigarInfo[idCigar].offsetCigarStart + d_cigarInfo[idCigar].offsetCigarLength - 1;
+  gpu_bpm_align_cigar_entry_t* const cigar           = d_cigars + d_cigarInfo[idCigar].offsetCigarStart;
   gpu_bpm_align_cigar_info_t* const cigarInfo        = d_cigarInfo + idCigar;
 
   // Local Memory (DP Matrix allocated in the CUDA stack)
@@ -219,8 +231,10 @@ GPU_INLINE __device__ void gpu_bpm_align_local_kernel(const gpu_bpm_align_qry_en
   cigarInfo->endCood.x      = minColumn;
   cigarInfo->endCood.y      = sizeQuery - 1;
   cigarInfo->matchEffLenght = matchEffLenght;
-  cigarInfo->cigarStartPos  = sizeQuery - cigarLenght - 1;
-  cigarInfo->cigarLenght    = cigarLenght;
+  cigarInfo->cigarStartPos  = sizeQuery - cigarLenght + 1;
+  cigarInfo->cigarLenght    = cigarLenght - 1;
+
+  //printf("\n", );
 }
 
 __global__ void gpu_bpm_align_kernel(const gpu_bpm_align_qry_entry_t* const d_queries,  const gpu_bpm_align_device_qry_entry_t * const d_PEQs, const gpu_bpm_align_qry_info_t* const d_queryInfo,
