@@ -61,8 +61,6 @@ typedef struct {
   // Profile tables
   uint16_t* kmer_count_text;              // Text profile (kmers on text)
   uint16_t* kmer_count_pattern;           // Key chunks profile (kmers on each key chunk)
-  // GPU
-  uint64_t gpu_query_offset;              // GPU-query offset
 } kmer_counting_nway_t;
 
 /*

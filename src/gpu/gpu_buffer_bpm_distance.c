@@ -250,6 +250,8 @@ void gpu_buffer_bpm_distance_add_query_info(
         gpu_buffer_bpm_distance->query_same_length = UINT32_MAX; // Not the same length
       }
     }
+    // Stats
+    gpu_buffer_bpm_distance_record_query_length(gpu_buffer_bpm_distance,tile_length);
   }
 }
 void gpu_buffer_bpm_distance_add_query_entries(
@@ -276,7 +278,6 @@ void gpu_buffer_bpm_distance_add_pattern(
         gpu_buffer_bpm_distance,gpu_buffer_bpm_distance->current_candidates_added);
     gpu_buffer_bpm_distance->current_candidates_added = 0;
   }
-  gpu_buffer_bpm_distance_record_query_length(gpu_buffer_bpm_distance,pattern->key_length);
   // Add Query (Metadata)
   gpu_buffer_bpm_distance_add_query_info(gpu_buffer_bpm_distance,pattern);
   // Add Query (Entries / PEQ pattern)
