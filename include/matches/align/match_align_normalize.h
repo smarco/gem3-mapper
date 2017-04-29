@@ -25,8 +25,8 @@
 #define MATCH_ALIGN_NORMALIZE_H_
 
 #include "utils/essentials.h"
+#include "archive/search/archive_search_se_parameters.h"
 #include "matches/matches.h"
-#include "matches/align/match_align_dto.h"
 
 /*
  * SWG Normalize CIGAR & Adjust Position (Translate RL-CIGAR if required)
@@ -34,7 +34,6 @@
 void match_align_normalize(
     matches_t* const matches,
     match_trace_t* const match_trace,
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters);
+    search_parameters_t* const search_parameters);
 
 #endif /* MATCH_ALIGN_NORMALIZE_H_ */

@@ -41,6 +41,8 @@ typedef struct {
   /* Padded Text */
   uint8_t* text_padded;         // Encoded text
   bool text_padded_allocated;   // MM-Allocated text-padded
+  uint64_t text_padded_left;    // Text left padding
+  uint64_t text_padded_right;   // Text right padding
   uint64_t text_padded_length;  // Text length
   /* RL-Encoded Text */
   uint8_t* rl_text;             // RL-Encoded Text

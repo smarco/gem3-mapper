@@ -30,6 +30,23 @@
 #include "matches/matches_cigar.h"
 
 /*
+ * Auxiliary data structures
+ */
+typedef struct {
+  /* Key */
+  uint8_t* key;
+  uint64_t key_length;
+  uint64_t key_trim_left;                  // Alignment trim
+  uint64_t key_trim_right;                 // Alignment trim
+  /* Text */
+  uint64_t text_position;                  // Text position
+  uint8_t* text;                           // Text (candidate)
+  uint64_t text_length;                    // Text full length (whole decoded text)
+  uint8_t* text_padded;                    // Text padded to fill key-trims (if any)
+  uint64_t text_padding;                   // Text padding length (left padding)
+} match_align_input_t;
+
+/*
  * Check Matches
  */
 void archive_check_se_match_retrieve_text(
@@ -86,15 +103,14 @@ bool archive_check_se_match_check_optimum(
     case match_alignment_model_levenshtein:
       GEM_NOT_IMPLEMENTED();
       break;
-    case match_alignment_model_gap_affine: {
-      match_align_parameters_t match_align_parameters = {
-          .swg_penalties = swg_penalties,
-      };
-      align_swg_base(match_align_input,&match_align_parameters,
-          &optimum_match_trace->match_alignment,cigar_vector,mm_allocator);
+    case match_alignment_model_gap_affine:
+      align_swg_base(
+          match_align_input->key,match_align_input->key_length,
+          match_align_input->text,match_align_input->text_length,
+          swg_penalties,&optimum_match_trace->match_alignment,
+          cigar_vector,mm_allocator);
       optimum_match_trace->swg_score = optimum_match_trace->match_alignment.score;
       return (optimum_match_trace->swg_score == match_trace->swg_score);
-      }
       break;
     default:
       GEM_INVALID_CASE();

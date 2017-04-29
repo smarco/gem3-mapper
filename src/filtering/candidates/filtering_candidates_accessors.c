@@ -70,9 +70,7 @@ void filtering_candidates_compose_filtering_region_from_positions_exact(
   alignment->distance_min_bound = 0;
   const uint64_t key_length = (pattern->run_length) ? pattern->rl_key_length : pattern->key_length;
   alignment->num_tiles = 1;
-  alignment->alignment_tiles =
-      filtering_candidates_allocate_alignment_tiles(
-          filtering_candidates,1,&alignment->mm_reference);
+  alignment->alignment_tiles = filtering_candidates_allocate_alignment_tiles(filtering_candidates,1);
   alignment->alignment_tiles->distance = 0;
   alignment->alignment_tiles->text_begin_offset = align_offset;
   alignment->alignment_tiles->text_end_offset = align_offset + key_length;
@@ -284,9 +282,7 @@ void filtering_candidates_add_region_verified(
   alignment_t* const alignment = &filtering_region->alignment;
   alignment->distance_min_bound = align_distance;
   alignment->num_tiles = 1;
-  alignment->alignment_tiles =
-      filtering_candidates_allocate_alignment_tiles(
-          filtering_candidates,1,&alignment->mm_reference);
+  alignment->alignment_tiles = filtering_candidates_allocate_alignment_tiles(filtering_candidates,1);
   alignment->alignment_tiles->text_begin_offset = text_begin_offset;
   alignment->alignment_tiles->text_end_offset = text_end_offset;
   alignment->alignment_tiles->distance = align_distance;

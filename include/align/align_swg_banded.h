@@ -27,16 +27,21 @@
 #define ALIGN_SWG_BANDED_H_
 
 #include "utils/essentials.h"
-#include "matches/align/match_align_dto.h"
+#include "align/align_swg_score.h"
+#include "matches/align/match_alignment.h"
 
 /*
  * SWG Banded
  */
 void align_swg_banded(
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    uint8_t* const text,
+    uint64_t text_length,
+    const swg_penalties_t* const swg_penalties,
     const bool begin_free,
     const bool end_free,
+    const uint64_t max_bandwidth,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,
     mm_allocator_t* const mm_allocator);

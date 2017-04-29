@@ -43,36 +43,44 @@ void match_aling_add_clipping(
  */
 void match_align_exact(
     matches_t* const matches,
-    match_trace_t* const match_trace,
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters);
+    search_parameters_t* const search_parameters,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
+    alignment_t* const alignment,
+    match_trace_t* const match_trace);
 
 /*
  * Pseudo-Alignment
  */
 void match_align_pseudoalignment(
     matches_t* const matches,
-    match_trace_t* const match_trace,
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters);
+    search_parameters_t* const search_parameters,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
+    alignment_t* const alignment,
+    match_trace_t* const match_trace);
 
 /*
  * Hamming Alignment (Only mismatches)
  */
 void match_align_hamming(
     matches_t* const matches,
-    match_trace_t* const match_trace,
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters);
+    search_parameters_t* const search_parameters,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
+    alignment_t* const alignment,
+    match_trace_t* const match_trace);
 
 /*
- * Levenshtein Alignment (edit distance)
+ * Levenshtein Alignment (Edit distance)
  */
 void match_align_levenshtein(
     matches_t* const matches,
+    search_parameters_t* const search_parameters,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
+    alignment_t* const alignment,
     match_trace_t* const match_trace,
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
     mm_allocator_t* const mm_allocator);
 
 /*
@@ -80,11 +88,13 @@ void match_align_levenshtein(
  */
 void match_align_smith_waterman_gotoh(
     matches_t* const matches,
-    match_trace_t* const match_trace,
+    search_parameters_t* const search_parameters,
     pattern_t* const pattern,
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
+    text_trace_t* const text_trace,
+    alignment_t* const alignment,
     match_scaffold_t* const match_scaffold,
+    const bool local_alignment,
+    match_trace_t* const match_trace,
     mm_allocator_t* const mm_allocator);
 
 #endif /* MATCH_ALIGN_H_ */

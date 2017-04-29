@@ -31,7 +31,10 @@
  * SWG - BackTrace
  */
 void align_swg_traceback(
-    match_align_input_t* const align_input,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    uint8_t* const text,
+    const uint64_t text_length,
     swg_cell_t** const dp,
     const int32_t max_score,
     const uint64_t max_score_column,
@@ -39,11 +42,6 @@ void align_swg_traceback(
     const bool begin_free,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector) {
-  // Parameters
-  const uint8_t* const key = align_input->key;
-  const uint64_t key_length = align_input->key_length;
-  uint8_t* const text = align_input->text;
-  const uint64_t text_length = align_input->text_length;
   // Allocate CIGAR string memory (worst case)
   vector_reserve_additional(cigar_vector,key_length+text_length); // Reserve
   cigar_element_t* cigar_buffer_sentinel = vector_get_free_elm(cigar_vector,cigar_element_t); // Sentinel
@@ -240,17 +238,14 @@ void align_swg_init_table_banded_opt(
  * Smith-waterman-gotoh Base (ie. no-optimizations)
  */
 void align_swg_base(
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    uint8_t* const text,
+    const uint64_t text_length,
+    const swg_penalties_t* swg_penalties,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,
     mm_allocator_t* const mm_allocator) {
-  // Parameters
-  const uint8_t* const key = align_input->key;
-  const uint64_t key_length = align_input->key_length;
-  uint8_t* const text = align_input->text;
-  const uint64_t text_length = align_input->text_length;
-  const swg_penalties_t* swg_penalties = align_parameters->swg_penalties;
   // Initialize
   mm_allocator_push_state(mm_allocator); // Save allocator state
   const uint64_t num_rows = (key_length+1);
@@ -297,8 +292,9 @@ void align_swg_base(
   match_alignment->score = 0;
   // Retrieve the alignment. Store the match (Backtrace and generate CIGAR)
   align_swg_traceback(
-      align_input,dp,max_score,max_score_column,
-      single_gap,true,match_alignment,cigar_vector);
+      key,key_length,text,text_length,dp,max_score,
+      max_score_column,single_gap,true,
+      match_alignment,cigar_vector);
   // Clean-up
   mm_allocator_pop_state(mm_allocator); // Free
 }
@@ -306,20 +302,17 @@ void align_swg_base(
  * SWG Full (Computes full DP-matrix)
  */
 void align_swg_full(
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    uint8_t* const text,
+    const uint64_t text_length,
+    const swg_penalties_t* const swg_penalties,
     const bool begin_free,
     const bool end_free,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,
     mm_allocator_t* const mm_allocator) {
   PROF_START(GP_SWG_ALIGN_FULL);
-  // Parameters
-  const uint8_t* const key = align_input->key;
-  const uint64_t key_length = align_input->key_length;
-  uint8_t* const text = align_input->text;
-  const uint64_t text_length = align_input->text_length;
-  const swg_penalties_t* swg_penalties = align_parameters->swg_penalties;
   // Allocate memory
   mm_allocator_push_state(mm_allocator); // Save allocator state
   const uint64_t num_rows = (key_length+1);
@@ -372,8 +365,9 @@ void align_swg_full(
   }
   // Retrieve the alignment. Store the match (Backtrace and generate CIGAR)
   align_swg_traceback(
-      align_input,dp,max_score,max_score_column,
-      single_gap,begin_free,match_alignment,cigar_vector);
+      key,key_length,text,text_length,dp,max_score,
+      max_score_column,single_gap,begin_free,
+      match_alignment,cigar_vector);
   // Clean-up
   mm_allocator_pop_state(mm_allocator); // Free
   PROF_STOP(GP_SWG_ALIGN_FULL);
@@ -382,19 +376,18 @@ void align_swg_full(
  * Smith-Waterman-Gotoh - Main procedure (Dispatcher)
  */
 void align_swg(
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    uint8_t* const text,
+    const uint64_t text_length,
+    const swg_penalties_t* const swg_penalties,
     const bool begin_free,
     const bool end_free,
+    const uint64_t max_bandwidth,
+    const bool left_gap_alignment,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,
     mm_allocator_t* const mm_allocator) {
-  // Parameters
-  const uint8_t* const key = align_input->key;
-  const uint64_t key_length = align_input->key_length;
-  uint8_t* const text = align_input->text;
-  const uint64_t text_length = align_input->text_length;
-  const swg_penalties_t* swg_penalties = align_parameters->swg_penalties;
   // Check lengths
   if (key_length == 0 && text_length == 0) {
     match_alignment->score = 0;
@@ -432,8 +425,11 @@ void align_swg(
     match_alignment->effective_length = 1;
   } else {
     PROF_ADD_COUNTER(GP_SWG_ALIGN_BANDED_LENGTH,text_length);
-    align_swg_banded(align_input,align_parameters,
-        begin_free,end_free,match_alignment,cigar_vector,mm_allocator);
+    align_swg_banded(
+        key,key_length,text,text_length,
+        swg_penalties,begin_free,end_free,
+        max_bandwidth,match_alignment,
+        cigar_vector,mm_allocator);
   }
 }
 /*

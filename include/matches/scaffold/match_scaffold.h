@@ -26,8 +26,8 @@
 
 #include "utils/essentials.h"
 #include "align/pattern/pattern.h"
+#include "align/alignment.h"
 #include "matches/matches.h"
-#include "matches/align/match_align_dto.h"
 #include "matches/align/match_alignment_region.h"
 
 /*
@@ -55,7 +55,6 @@ typedef struct {
   match_alignment_t match_alignment;
   /* MM */
   mm_allocator_t* mm_allocator;
-  mm_allocator_reference_t mm_reference;
 } match_scaffold_t;
 
 /*

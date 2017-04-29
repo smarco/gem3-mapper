@@ -177,6 +177,8 @@ void archive_text_retrieve(
   // Init Padded Text
   text_trace->text_padded = text_trace->text;
   text_trace->text_padded_length = text_trace->text_length;
+  text_trace->text_padded_left = 0;
+  text_trace->text_padded_right = 0;
 }
 /*
  * Display

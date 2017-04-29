@@ -236,9 +236,11 @@ void* mm_allocator_allocate(
     ,const char* func_name,
     uint64_t line_no
 #endif
-    ,mm_allocator_reference_t* const mm_reference) {
+    ) {
   // Zero check
   gem_fatal_check(num_bytes==0,MM_ALLOCATOR_ALLOC_ZERO);
+  // Add mm_reference payload
+  num_bytes += sizeof(mm_allocator_reference_t);
   // Ensure alignment to 16 Bytes boundaries (128bits)
   if (num_bytes%16 != 0) {
     num_bytes += 16 - (num_bytes%16); // Serve more bytes
@@ -250,12 +252,14 @@ void* mm_allocator_allocate(
   mm_allocator_segment_t* const segment = mm_allocator_allocate_reserve(mm_allocator,num_bytes);
 #endif
   if (segment != NULL) {
+    // Serve Allocator Memory
+    void* const memory = segment->memory_base + segment->offset_available;
+    if (gem_expect_false(zero_mem)) memset(memory,0,num_bytes); // Set zero
     // Set reference
-    if (gem_expect_false(mm_reference!=NULL)) {
-      mm_reference->segment_id = segment->segment_id;
-      mm_reference->request_offset = vector_get_used(segment->mem_requests);
-    }
-    // Serve Allocator Memory (Add request to segment)
+    mm_allocator_reference_t* const mm_reference = memory;
+    mm_reference->segment_id = segment->segment_id;
+    mm_reference->request_offset = vector_get_used(segment->mem_requests);
+    // Add request to segment
     mm_allocator_request_t* request;
     vector_alloc_new(segment->mem_requests,mm_allocator_request_t,request);
     request->offset = segment->offset_available;
@@ -265,21 +269,17 @@ void* mm_allocator_allocate(
     request->line_no = line_no;
 #endif
     segment->offset_available += num_bytes;
-    // Clear memory
-    void* const memory = segment->memory_base + request->offset;
-    if (gem_expect_false(zero_mem)) memset(memory,0,num_bytes); // Set zero
     // Return
-    return memory;
+    return memory + sizeof(mm_allocator_reference_t);
   } else {
     // Serve Malloc Memory
     void* const memory = mm_malloc_(1,num_bytes,zero_mem,0);
     vector_insert(mm_allocator->malloc_requests,memory,void*);
     // Set reference
-    if (gem_expect_false(mm_reference!=NULL)) {
-      mm_reference->segment_id = UINT32_MAX;
-    }
+    mm_allocator_reference_t* const mm_reference = memory;
+    mm_reference->segment_id = UINT32_MAX;
     // Return
-    return memory;
+    return memory + sizeof(mm_allocator_reference_t);
   }
 }
 /*
@@ -412,40 +412,42 @@ void mm_allocator_free_malloc(
   // Address not found. Raise error
   gem_fatal_error(MM_ALLOCATOR_FREE_INVALID_MALLOC_ADDRESS);
 }
+//void mm_allocator_free( // Old free implementation searching for the request
+//    mm_allocator_t* const mm_allocator,
+//    void* memory) {
+//  // Search for memory segment
+//  mm_allocator_segment_t* segment;
+//  uint64_t segment_idx;
+//  mm_allocator_search_segment(mm_allocator,memory,&segment,&segment_idx);
+//  if (segment==NULL) {
+//    // Malloc Memory. Search for request in malloc requests
+//    mm_allocator_free_malloc(mm_allocator,memory);
+//  } else {
+//    // Parameters
+//    const bool stacked_pending = (vector_get_used(mm_allocator->states)>0);
+//    // Allocator Memory. Search for request inside segment
+//    mm_allocator_request_t* request;
+//    uint64_t request_idx;
+//    mm_allocator_search_request(segment,memory,&request,&request_idx);
+//    gem_cond_fatal_error(MM_ALLOCATOR_REQUEST_IS_FREE(request),MM_ALLOCATOR_FREE_DOUBLE);
+//    // Free request
+//    MM_ALLOCATOR_REQUEST_SET_FREE(request);
+//    // Free contiguous request(s)
+//    // if (segment_idx==0 && !stacked_pending) {
+//    if (!stacked_pending && segment->request_freed_idx==request_idx) {
+//      mm_allocator_free_contiguous_memory(mm_allocator);
+//    }
+//  }
+//}
 void mm_allocator_free(
     mm_allocator_t* const mm_allocator,
-    void* memory) {
-  // Search for memory segment
-  mm_allocator_segment_t* segment;
-  uint64_t segment_idx;
-  mm_allocator_search_segment(mm_allocator,memory,&segment,&segment_idx);
-  if (segment==NULL) {
-    // Malloc Memory. Search for request in malloc requests
-    mm_allocator_free_malloc(mm_allocator,memory);
-  } else {
-    // Parameters
-    const bool stacked_pending = (vector_get_used(mm_allocator->states)>0);
-    // Allocator Memory. Search for request inside segment
-    mm_allocator_request_t* request;
-    uint64_t request_idx;
-    mm_allocator_search_request(segment,memory,&request,&request_idx);
-    gem_cond_fatal_error(MM_ALLOCATOR_REQUEST_IS_FREE(request),MM_ALLOCATOR_FREE_DOUBLE);
-    // Free request
-    MM_ALLOCATOR_REQUEST_SET_FREE(request);
-    // Free contiguous request(s)
-    // if (segment_idx==0 && !stacked_pending) {
-    if (!stacked_pending && segment->request_freed_idx==request_idx) {
-      mm_allocator_free_contiguous_memory(mm_allocator);
-    }
-  }
-}
-void mm_allocator_free_reference(
-    mm_allocator_t* const mm_allocator,
-    void* memory,
-    mm_allocator_reference_t* const mm_reference) {
+    void* const memory) {
+  // Fetch mm-reference
+  void* const effective_memory = memory - sizeof(mm_allocator_reference_t);
+  mm_allocator_reference_t* const mm_reference = effective_memory;
   // Malloc Memory
   if (gem_expect_false(mm_reference->segment_id==UINT32_MAX)) {
-    mm_allocator_free_malloc(mm_allocator,memory);
+    mm_allocator_free_malloc(mm_allocator,effective_memory);
     return;
   }
   // Allocator Memory. Fetch request

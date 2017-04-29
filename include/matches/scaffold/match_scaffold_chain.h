@@ -25,7 +25,6 @@
 #define MATCH_SCAFFOLD_CHAIN_H_
 
 #include "utils/essentials.h"
-#include "matches/align/match_align_dto.h"
 #include "matches/scaffold/match_scaffold.h"
 #include "matches/matches.h"
 

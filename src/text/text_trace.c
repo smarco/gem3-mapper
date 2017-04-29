@@ -62,4 +62,6 @@ void text_trace_compose_padded_text(
     // Add rigth-trim
     for (;i<text_padded_length;++i) text_trace->text_padded[i] = ENC_DNA_CHAR_N;
   }
+  text_trace->text_padded_left = key_trim_left;
+  text_trace->text_padded_right = key_trim_right;
 }

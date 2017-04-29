@@ -74,20 +74,17 @@ void align_swg_banded_compute_column(
   }
 }
 void align_swg_banded(
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    uint8_t* const text,
+    uint64_t text_length,
+    const swg_penalties_t* const swg_penalties,
     const bool begin_free,
     const bool end_free,
+    const uint64_t max_bandwidth,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,
     mm_allocator_t* const mm_allocator) {
-  // Parameters
-  const uint8_t* const key = align_input->key;
-  const uint64_t key_length = align_input->key_length;
-  uint8_t* const text = align_input->text;
-  uint64_t text_length = align_input->text_length;
-  const swg_penalties_t* swg_penalties = align_parameters->swg_penalties;
-  const uint64_t max_bandwidth = align_parameters->max_bandwidth;
   // Initialize band-limits
   if (text_length > key_length + max_bandwidth) { // Text too long for band
     if (!begin_free && !end_free) {
@@ -149,8 +146,9 @@ void align_swg_banded(
   }
   // Retrieve the alignment. Store the match (Backtrace and generate CIGAR)
   align_swg_traceback(
-      align_input,dp,max_score,max_score_column,
-      single_gap,begin_free,match_alignment,cigar_vector);
+      key,key_length,text,text_length,dp,max_score,
+      max_score_column,single_gap,begin_free,
+      match_alignment,cigar_vector);
   // Clean-up
   mm_allocator_pop_state(mm_allocator); // Free
   PROF_STOP(GP_SWG_ALIGN_BANDED);

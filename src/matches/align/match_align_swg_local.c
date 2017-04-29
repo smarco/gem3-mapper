@@ -77,13 +77,15 @@ void match_align_swg_local_alignment_add_local_chunk(
  */
 void match_align_swg_local_alignment(
     matches_t* const matches,
-    match_trace_t* const match_trace,
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters) {
+    search_parameters_t* const search_parameters,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
+    match_scaffold_t* const match_scaffold,
+    match_trace_t* const match_trace) {
   // Parameters
-  const swg_penalties_t* const swg_penalties = align_parameters->swg_penalties;
-  const int64_t local_min_swg_threshold = align_parameters->local_min_swg_threshold;
-  const uint64_t local_min_identity = align_parameters->local_min_identity;
+  const swg_penalties_t* const swg_penalties = &search_parameters->swg_penalties;
+  const int64_t local_min_swg_threshold = search_parameters->alignment_local_min_swg_threshold_nominal;
+  const uint64_t local_min_identity = search_parameters->alignment_local_min_identity_nominal;
   vector_t* const cigar_vector = matches->cigar_vector;
   match_alignment_t* const match_alignment = &match_trace->match_alignment;
   // Prepare CIGARs
@@ -187,9 +189,9 @@ void match_align_swg_local_alignment(
     ++num_local_chunks_added;
   }
   // Add final trim (if needed)
-  if (global_key_pos != align_input->key_length) {
+  if (global_key_pos != pattern->key_length) {
     match_align_swg_local_alignment_add_gap(
-        &local_cigar_buffer,global_key_pos,align_input->key_length,0,0);
+        &local_cigar_buffer,global_key_pos,pattern->key_length,0,0);
   }
   // Finish
   if (num_local_chunks_added==0) {

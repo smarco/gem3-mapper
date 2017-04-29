@@ -148,8 +148,6 @@ void filtering_candidates_buffered_bpm_distance_compute_distance(
   // Parameters
   archive_text_t* const archive_text = filtering_candidates->archive->text;
   mm_allocator_t* const mm_allocator = filtering_candidates->mm_allocator;
-  // Push
-  mm_allocator_push_state(mm_allocator);
   // Retrieve text
   const uint64_t candidate_position = filtering_region->text_begin_position;
   const uint64_t candidate_length =
@@ -159,6 +157,8 @@ void filtering_candidates_buffered_bpm_distance_compute_distance(
       false,false,&filtering_region->text_trace,
       filtering_candidates->mm_allocator);
   text_trace_t* const text_trace = &filtering_region->text_trace;
+  // Push
+  mm_allocator_push_state(mm_allocator);
   // Myers's BPM algorithm [EditFilter]
   alignment_verify_edit_bpm(
       alignment,&pattern->pattern_tiled,

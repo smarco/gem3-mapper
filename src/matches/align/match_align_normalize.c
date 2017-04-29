@@ -29,14 +29,14 @@
  * Normalize Alignment
  */
 bool match_align_normalize_cigar_trim(
-    match_align_parameters_t* const align_parameters,
     const cigar_element_t* const cigar_element,
+    const uint64_t min_context_length,
     uint64_t* const trim_length,
     uint64_t* const match_position) {
   switch (cigar_element->type) {
     case cigar_match:
       // Small Match
-      if (cigar_element->length < align_parameters->cigar_curation_min_end_context) {
+      if (cigar_element->length < min_context_length) {
         *trim_length += cigar_element->length;
         if (match_position!=NULL) *match_position += cigar_element->length;
         return true;
@@ -63,19 +63,21 @@ bool match_align_normalize_cigar_trim(
 }
 void match_align_normalize_cigar(
     match_trace_t* const match_trace,
-    vector_t* const cigar_vector,
-    match_align_parameters_t* const align_parameters) {
+    search_parameters_t* const search_parameters,
+    const bool left_gap_alignment,
+    vector_t* const cigar_vector) {
   // Parameters
-  const bool left_gap_alignment = align_parameters->left_gap_alignment;
   match_alignment_t* const match_alignment = &match_trace->match_alignment;
+  const uint64_t min_context_length = search_parameters->cigar_curation_min_end_context_nominal;
   const uint64_t cigar_length = match_alignment->cigar_length;
-  cigar_element_t* const cigar_buffer = vector_get_elm(cigar_vector,match_alignment->cigar_offset,cigar_element_t);
+  cigar_element_t* const cigar_buffer =
+      vector_get_elm(cigar_vector,match_alignment->cigar_offset,cigar_element_t);
   uint64_t normalized_cigar_length = 0, indel_length = 0, i = 0, j = 0;
   // Trim the beginning of the read
   while (j < cigar_length) {
     cigar_element_t* const cigar_element = cigar_buffer + j;
-    if (!match_align_normalize_cigar_trim(align_parameters,
-        cigar_element,&indel_length,&match_alignment->match_position)) {
+    if (!match_align_normalize_cigar_trim(
+        cigar_element,min_context_length,&indel_length,&match_alignment->match_position)) {
       break;
     }
     // Trim
@@ -145,11 +147,11 @@ void match_align_normalize_cigar(
     // Check match or deletion at the end
     cigar_element_t* last_cigar_element = cigar_buffer + (normalized_cigar_length-1);
     indel_length = 0;
-    if (match_align_normalize_cigar_trim(align_parameters,last_cigar_element,&indel_length,NULL)) {
+    if (match_align_normalize_cigar_trim(last_cigar_element,min_context_length,&indel_length,NULL)) {
       // Chain all the mismatches & deletions at the end
       while (last_cigar_element > cigar_buffer) {
         --last_cigar_element;
-        if (!match_align_normalize_cigar_trim(align_parameters,last_cigar_element,&indel_length,NULL)) break;
+        if (!match_align_normalize_cigar_trim(last_cigar_element,min_context_length,&indel_length,NULL)) break;
         --normalized_cigar_length;
       }
       // Merge all of them
@@ -169,11 +171,11 @@ void match_align_normalize_cigar(
 void match_align_normalize(
     matches_t* const matches,
     match_trace_t* const match_trace,
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters) {
+    search_parameters_t* const search_parameters) {
   // Parameters
-  vector_t* const cigar_vector = matches->cigar_vector;
+  text_trace_t* const text_trace = match_trace->text_trace;
   match_alignment_t* const match_alignment = &match_trace->match_alignment;
+  vector_t* const cigar_vector = matches->cigar_vector;
   //  // DEBUG
   //  match_align_normalize_cigar(match_trace,cigar_vector,align_parameters);
   //  match_alignment->match_text_offset = match_alignment->match_position - align_input->text_position;
@@ -187,8 +189,9 @@ void match_align_normalize(
   //      align_input->text+match_trace->match_alignment.match_text_offset,
   //      align_input->text_length,mm_allocator);
   // Normalize alignment
-  match_align_normalize_cigar(match_trace,cigar_vector,align_parameters);
+  const bool left_gap_alignment = (text_trace->strand == Forward);
+  match_align_normalize_cigar(match_trace,search_parameters,left_gap_alignment,cigar_vector);
   // Adjust
-  match_alignment->match_text_offset = match_alignment->match_position - align_input->text_position;
-  match_trace->text = align_input->text + match_alignment->match_text_offset;
+  match_alignment->match_text_offset = match_alignment->match_position - text_trace->position;
+  match_trace->text = text_trace->text + match_alignment->match_text_offset;
 }

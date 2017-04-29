@@ -27,7 +27,9 @@
 #define ALIGN_SWG_H_
 
 #include "utils/essentials.h"
-#include "matches/align/match_align_dto.h"
+#include "align/align_swg.h"
+#include "align/align_swg_score.h"
+#include "matches/align/match_alignment.h"
 
 /*
  * Constants
@@ -59,12 +61,16 @@ void align_swg_init_table_banded_opt(
     const bool begin_free,
     const int32_t single_gap,
     const int32_t gap_extension);
+
 /*
  * Smith-waterman-gotoh Base (i.e. no-optimizations)
  */
 void align_swg_base(
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    uint8_t* const text,
+    const uint64_t text_length,
+    const swg_penalties_t* swg_penalties,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,
     mm_allocator_t* const mm_allocator);
@@ -73,9 +79,15 @@ void align_swg_base(
  * Smith-Waterman-Gotoh - Main procedure (Dispatcher)
  */
 void align_swg(
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
-    const bool begin_free,const bool end_free,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    uint8_t* const text,
+    const uint64_t text_length,
+    const swg_penalties_t* const swg_penalties,
+    const bool begin_free,
+    const bool end_free,
+    const uint64_t max_bandwidth,
+    const bool left_gap_alignment,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,
     mm_allocator_t* const mm_allocator);
@@ -84,7 +96,10 @@ void align_swg(
  * Smith-Waterman-Gotoh - BackTrace
  */
 void align_swg_traceback(
-    match_align_input_t* const align_input,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    uint8_t* const text,
+    const uint64_t text_length,
     swg_cell_t** const dp,
     const int32_t max_score,
     const uint64_t max_score_column,

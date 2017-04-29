@@ -329,11 +329,11 @@ void filtering_candidates_buffered_bpm_align_retrieve_scaffold_tile(
     // Store the offset (from the beginning of the text)
     // (accounting for the text-padding offset)
     const uint64_t alignment_offset = match_alignment.match_position - match_position;
-    const uint64_t text_padding = text_trace->text_padded_length - text_trace->text_length;
-    gem_fatal_check_msg(text_begin + alignment_offset < text_padding,
+    const uint64_t text_padded_left = text_trace->text_padded_left;
+    gem_fatal_check_msg(text_begin + alignment_offset < text_padded_left,
         "Scaffold levenshtein. Negative coordinates because of padding");
     // Offset wrt text (without padding)
-    match_alignment.match_text_offset = text_begin + alignment_offset - text_padding;
+    match_alignment.match_text_offset = text_begin + alignment_offset - text_padded_left;
 //      // DEBUG
 //      match_alignment_print_pretty(stderr,&match_alignment,matches->cigar_vector,
 //        pattern->key + key_offset,pattern_tile->bpm_pattern_tile.pattern_length,

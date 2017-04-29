@@ -26,7 +26,6 @@
 
 #include "utils/essentials.h"
 #include "matches/scaffold/match_scaffold.h"
-#include "matches/align/match_align_dto.h"
 #include "matches/matches.h"
 
 /*

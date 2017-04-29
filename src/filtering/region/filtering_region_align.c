@@ -26,7 +26,6 @@
 
 #include "align/alignment.h"
 #include "filtering/region/filtering_region_align.h"
-#include "filtering/region/filtering_region_align_configure.h"
 #include "matches/align/match_align.h"
 #include "io/output_map.h"
 
@@ -121,14 +120,12 @@ void filtering_region_align_exact(
   PROF_INC_COUNTER(GP_ALIGNED_EXACT);
   // Parameters
   search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
-  match_align_input_t align_input;
-  match_align_parameters_t align_parameters;
-  // Configure Alignment
-  filtering_region_align_configure_exact(
-      &align_input,&align_parameters,
-      filtering_region,search_parameters,pattern);
+  text_trace_t* const text_trace = &filtering_region->text_trace;
+  alignment_t* const alignment = &filtering_region->alignment;
   // Add exact match
-  match_align_exact(matches,match_trace,&align_input,&align_parameters);
+  match_align_exact(
+      matches,search_parameters,pattern,
+      text_trace,alignment,match_trace);
   filtering_region->status = filtering_region_aligned; // Set status
 }
 void filtering_region_align_inexact(
@@ -142,48 +139,41 @@ void filtering_region_align_inexact(
   // Parameters
   search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
   const match_alignment_model_t match_alignment_model = search_parameters->match_alignment_model;
+  text_trace_t* const text_trace = &filtering_region->text_trace;
+  alignment_t* const alignment = &filtering_region->alignment;
   mm_allocator_t* const mm_allocator = filtering_candidates->mm_allocator;
-  match_align_input_t align_input;
-  match_align_parameters_t align_parameters;
   // Select alignment model
   switch (match_alignment_model) {
     case match_alignment_model_none:
-      // Configure Alignment
-      filtering_region_align_configure_hamming(
-          &align_input,&align_parameters,filtering_region,
-          search_parameters,pattern);
       // Hamming Align
-      match_align_pseudoalignment(matches,match_trace,&align_input,&align_parameters);
+      match_align_pseudoalignment(
+          matches,search_parameters,pattern,
+          text_trace,alignment,match_trace);
       filtering_region->status = filtering_region_aligned;
       break;
     case match_alignment_model_hamming: {
-      // Configure Alignment
-      filtering_region_align_configure_hamming(
-          &align_input,&align_parameters,filtering_region,
-          search_parameters,pattern);
       // Hamming Align
-      match_align_hamming(matches,match_trace,&align_input,&align_parameters);
+      match_align_hamming(
+          matches,search_parameters,pattern,
+          text_trace,alignment,match_trace);
       filtering_region->status = filtering_region_aligned;
       break;
     }
     case match_alignment_model_levenshtein: {
-      // Configure Alignment
-      filtering_region_align_configure_levenshtein(
-          &align_input,&align_parameters,filtering_region,
-          search_parameters,pattern,mm_allocator);
       // Levenshtein Align
-      match_align_levenshtein(matches,match_trace,&align_input,&align_parameters,mm_allocator);
+      match_align_levenshtein(
+          matches,search_parameters,pattern,
+          text_trace,alignment,match_trace,mm_allocator);
       break;
     }
     case match_alignment_model_gap_affine: {
-      // Configure Alignment
-      filtering_region_align_configure_swg(
-          &align_input,&align_parameters,filtering_region,search_parameters,
-          pattern,local_alignment,mm_allocator);
       // Gap-affine Align
       match_align_smith_waterman_gotoh(
-          matches,match_trace,pattern,&align_input,&align_parameters,
-          &filtering_region->match_scaffold,mm_allocator);
+          matches,search_parameters,pattern,
+          &filtering_region->text_trace,
+          &filtering_region->alignment,
+          &filtering_region->match_scaffold,
+          local_alignment,match_trace,mm_allocator);
       //      // DEBUG
       //      fprintf(stderr,"[GEM]>Text-Alignment\n");
       //      match_alignment_print_pretty(stderr,&match_trace->match_alignment,
@@ -196,7 +186,7 @@ void filtering_region_align_inexact(
       GEM_INVALID_CASE();
       break;
   }
-  PROF_ADD_COUNTER(GP_ALIGNED_REGIONS_LENGTH,align_input.text_length);
+  PROF_ADD_COUNTER(GP_ALIGNED_REGIONS_LENGTH,text_trace->text_length);
 }
 bool filtering_region_align(
     filtering_candidates_t* const filtering_candidates,

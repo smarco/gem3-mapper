@@ -28,7 +28,7 @@
 #define ALIGN_OND_H_
 
 #include "utils/essentials.h"
-#include "matches/align/match_align_dto.h"
+#include "matches/align/match_alignment.h"
 
 typedef struct {
   int32_t** contour;
@@ -52,17 +52,26 @@ void align_ond_compute_lcs_distance(
  * O(ND) Align
  */
 void align_ond_compute_contours(
-    match_align_input_t* const align_input,
+    const uint8_t* const key,
+    const int32_t key_length,
+    const uint8_t* const text,
+    const int32_t text_length,
     const int32_t max_distance,
     align_ond_contours_t* const align_ond_contours,
     mm_allocator_t* const mm_allocator);
 void align_ond_backtrace_contours(
-    match_align_input_t* const align_input,
+    const uint8_t* const key,
+    const int32_t key_length,
+    const uint8_t* const text,
+    const int32_t text_length,
     align_ond_contours_t* const align_ond_contours,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector);
 void align_ond_match(
-    match_align_input_t* const align_input,
+    const uint8_t* const key,
+    const int32_t key_length,
+    const uint8_t* const text,
+    const int32_t text_length,
     const int32_t max_distance,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,

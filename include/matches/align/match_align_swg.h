@@ -25,7 +25,6 @@
 #define MATCH_ALIGN_SWG_H_
 
 #include "utils/essentials.h"
-#include "matches/align/match_align_dto.h"
 #include "matches/align/match_alignment.h"
 #include "matches/scaffold/match_scaffold.h"
 #include "matches/matches.h"
@@ -37,17 +36,18 @@
 void match_align_swg_compute_alignment_type(
     matches_t* const matches,
     match_trace_t* const match_trace,
-    match_align_parameters_t* const align_parameters);
+    search_parameters_t* const search_parameters);
 
 /*
  * SWG Alignment
  */
 void match_align_swg(
     matches_t* const matches,
-    match_trace_t* const match_trace,
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters,
+    search_parameters_t* const search_parameters,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
     match_scaffold_t* const match_scaffold,
+    match_trace_t* const match_trace,
     mm_allocator_t* const mm_allocator);
 
 #endif /* MATCH_ALIGN_SWG_H_ */

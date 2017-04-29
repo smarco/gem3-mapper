@@ -38,8 +38,7 @@ void string_init(
     mm_allocator_t* const mm_allocator) {
   // Initialize
   if (mm_allocator!=NULL) {
-    string->buffer = mm_allocator_allocate_reference(
-        mm_allocator,length+1,false,&string->mm_reference);
+    string->buffer = mm_allocator_malloc(mm_allocator,length+1);
   } else {
     string->buffer = mm_malloc(length+1);
   }
@@ -58,13 +57,11 @@ void string_resize(
     if (string->mm_allocator!=NULL) {
       // Keep old buffer/ref
       char* buffer_old = string->buffer;
-      mm_allocator_reference_t mm_reference_old = string->mm_reference;
       // Allocate
-      string->buffer = mm_allocator_allocate_reference(
-          string->mm_allocator,new_buffer_size,false,&string->mm_reference);
+      string->buffer = mm_allocator_malloc(string->mm_allocator,new_buffer_size);
       if (keep_content) strncpy(string->buffer,buffer_old,string->length);
       // Free
-      mm_allocator_free_reference(string->mm_allocator,buffer_old,&mm_reference_old);
+      mm_allocator_free(string->mm_allocator,buffer_old);
     } else {
       string->buffer = mm_realloc(string->buffer,new_buffer_size);
     }
@@ -77,8 +74,7 @@ void string_clear(string_t* const string) {
 }
 void string_destroy(string_t* const string) {
   if (string->mm_allocator!=NULL) {
-    mm_allocator_free_reference(
-        string->mm_allocator,string->buffer,&string->mm_reference);
+    mm_allocator_free(string->mm_allocator,string->buffer);
   } else {
     mm_free(string->buffer);
   }

@@ -140,26 +140,22 @@ void* mm_allocator_allocate(
     ,const char* func_name,
     uint64_t line_no
 #endif
-    ,mm_allocator_reference_t* const mm_reference);
+    );
 
 #ifdef MM_ALLOCATOR_LOG
 #define mm_allocator_alloc(mm_allocator,type) \
-  ((type*)mm_allocator_allocate(mm_allocator,sizeof(type),false,__func__,(uint64_t)__LINE__,NULL))
+  ((type*)mm_allocator_allocate(mm_allocator,sizeof(type),false,__func__,(uint64_t)__LINE__))
 #define mm_allocator_malloc(mm_allocator,num_bytes) \
-  (mm_allocator_allocate(mm_allocator,(num_bytes),false,__func__,(uint64_t)__LINE__,NULL))
+  (mm_allocator_allocate(mm_allocator,(num_bytes),false,__func__,(uint64_t)__LINE__))
 #define mm_allocator_calloc(mm_allocator,num_elements,type,clear_mem) \
-  ((type*)mm_allocator_allocate(mm_allocator,(num_elements)*sizeof(type),clear_mem,__func__,(uint64_t)__LINE__,NULL))
-#define mm_allocator_allocate_reference(mm_allocator,num_bytes,zero_mem,reference) \
-  mm_allocator_allocate(mm_allocator,num_bytes,zero_mem,__func__,(uint64_t)__LINE__,reference)
+  ((type*)mm_allocator_allocate(mm_allocator,(num_elements)*sizeof(type),clear_mem,__func__,(uint64_t)__LINE__))
 #else
 #define mm_allocator_alloc(mm_allocator,type) \
-  ((type*)mm_allocator_allocate(mm_allocator,sizeof(type),false,NULL))
+  ((type*)mm_allocator_allocate(mm_allocator,sizeof(type),false))
 #define mm_allocator_malloc(mm_allocator,num_bytes) \
-  (mm_allocator_allocate(mm_allocator,(num_bytes),false,NULL))
+  (mm_allocator_allocate(mm_allocator,(num_bytes),false))
 #define mm_allocator_calloc(mm_allocator,num_elements,type,clear_mem) \
-  ((type*)mm_allocator_allocate(mm_allocator,(num_elements)*sizeof(type),clear_mem,NULL))
-#define mm_allocator_allocate_reference(mm_allocator,num_bytes,zero_mem,reference) \
-  mm_allocator_allocate(mm_allocator,num_bytes,zero_mem,reference)
+  ((type*)mm_allocator_allocate(mm_allocator,(num_elements)*sizeof(type),clear_mem))
 #endif
 
 #define mm_allocator_uint64(mm_allocator) mm_allocator_malloc(mm_allocator,sizeof(uint64_t))
@@ -172,11 +168,7 @@ void* mm_allocator_allocate(
  */
 void mm_allocator_free(
     mm_allocator_t* const mm_allocator,
-    void* memory);
-void mm_allocator_free_reference(
-    mm_allocator_t* const mm_allocator,
-    void* memory,
-    mm_allocator_reference_t* const mm_reference);
+    void* const memory);
 
 /*
  * State Push/Pop

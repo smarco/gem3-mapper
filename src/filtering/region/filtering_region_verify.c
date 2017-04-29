@@ -88,8 +88,7 @@ void filtering_region_verify_hamming(
     if (alignment->distance_min_bound != ALIGN_DISTANCE_INF) {
       alignment->num_tiles = 1;
       alignment_tile_t* const alignment_tiles =
-          filtering_candidates_allocate_alignment_tiles(
-              filtering_candidates,1,&alignment->mm_reference);
+          filtering_candidates_allocate_alignment_tiles(filtering_candidates,1);
       alignment->alignment_tiles = alignment_tiles;
       alignment_tiles->distance = alignment->distance_min_bound;
       alignment_tiles->text_begin_offset = text_base_offset;

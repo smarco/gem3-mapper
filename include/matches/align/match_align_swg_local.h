@@ -25,16 +25,20 @@
 #define MATCH_ALIGN_SWG_LOCAL_H_
 
 #include "utils/essentials.h"
+#include "archive/search/archive_search_se_parameters.h"
+#include "align/pattern/pattern.h"
+#include "matches/scaffold/match_scaffold.h"
 #include "matches/matches.h"
-#include "matches/align/match_align_dto.h"
 
 /*
  * SWG-Local Alignment
  */
 void match_align_swg_local_alignment(
     matches_t* const matches,
-    match_trace_t* const match_trace,
-    match_align_input_t* const align_input,
-    match_align_parameters_t* const align_parameters);
+    search_parameters_t* const search_parameters,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
+    match_scaffold_t* const match_scaffold,
+    match_trace_t* const match_trace);
 
 #endif /* MATCH_ALIGN_SWG_LOCAL_H_ */

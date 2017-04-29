@@ -38,7 +38,6 @@
 #include "filtering/candidates/filtering_candidates.h"
 #include "filtering/region_profile/region_profile.h"
 #include "io/input_parser.h"
-#include "matches/align/match_align_dto.h"
 #include "matches/align/match_alignment.h"
 #include "neighborhood_search/nsearch_hamming.h"
 #include "neighborhood_search/nsearch_levenshtein.h"
@@ -868,8 +867,8 @@ void constructor_ns_edit_2regions() {
  */
 void constructor_lsc() {
   // MM-Allocator
-  mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
-  mm_allocator_t* const mm_allocator = mm_allocator_new(slab);
+//  mm_slab_t* const slab = mm_slab_new(BUFFER_SIZE_16M);
+//  mm_allocator_t* const mm_allocator = mm_allocator_new(slab);
   // Text & key
   char* text = "ACAAGTA";
   char* key =  "ACGT";
@@ -892,23 +891,18 @@ void constructor_lsc() {
 //  align_ond_compute_lcs_distance(enc_key,key_length,enc_text,text_length,&lcs_distance,&match_end_column,0,mm_allocator);
 //  printf("  => LCS %lu (col=%lu)\n",lcs_distance,match_end_column);
 
-  // Prepare input
-  match_align_input_t align_input;
-  align_input.key = enc_key;
-  align_input.key_length = key_length;
-  align_input.text = enc_text;
-  align_input.text_length = text_length;
-  const uint64_t max_distance = key_length+text_length;
-  // Align O(ND)
-  vector_t* cigar_vector = vector_new(100,cigar_element_t);
-  match_alignment_t match_alignment;
-  match_alignment.match_position = 0;
-  align_ond_match(&align_input,max_distance,&match_alignment,cigar_vector,mm_allocator);
-  // Display
-  match_alignment_print_pretty(stderr,&match_alignment,
-      cigar_vector,enc_key,key_length,
-      enc_text,text_length,mm_allocator);
-//      enc_text+match_alignment.match_position,text_length,mm_allocator);
+//  // Prepare input
+//  const uint64_t max_distance = key_length+text_length;
+//  // Align O(ND)
+//  vector_t* cigar_vector = vector_new(100,cigar_element_t);
+//  match_alignment_t match_alignment;
+//  match_alignment.match_position = 0;
+//  align_ond_match(&align_input,max_distance,&match_alignment,cigar_vector,mm_allocator);
+//  // Display
+//  match_alignment_print_pretty(stderr,&match_alignment,
+//      cigar_vector,enc_key,key_length,
+//      enc_text,text_length,mm_allocator);
+////      enc_text+match_alignment.match_position,text_length,mm_allocator);
 }
 
 #define VECTOR_SORT_NAME            int

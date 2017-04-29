@@ -57,8 +57,6 @@ typedef struct {
   uint64_t sequence_id;                  // Id of the sequence the position belongs to
   uint64_t text_begin_position;          // Region effective begin position (adjusted to error boundaries)
   uint64_t text_end_position;            // Region effective end position (adjusted to error boundaries)
-  // MM
-  mm_allocator_reference_t mm_reference; // MM Reference
 } filtering_position_t;
 /*
  * Filtering Candidates
@@ -122,12 +120,10 @@ void filtering_candidates_free_region(
 
 alignment_tile_t* filtering_candidates_allocate_alignment_tiles(
     filtering_candidates_t* const filtering_candidates,
-    const uint64_t num_alignment_tiles,
-    mm_allocator_reference_t* const mm_reference);
+    const uint64_t num_alignment_tiles);
 void filtering_candidates_free_alignment_tiles(
     const filtering_candidates_t* const filtering_candidates,
-    alignment_tile_t* const alignment_tile,
-    mm_allocator_reference_t* const mm_reference);
+    alignment_tile_t* const alignment_tile);
 
 /*
  * Filtering Positions

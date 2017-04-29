@@ -37,8 +37,7 @@ typedef struct {
   uint64_t allocated;           // Number of bytes allocated
   uint64_t length;              // Length of the string (not including EOS)
   /* MM */
-  mm_allocator_t* mm_allocator;             // MM-Allocator
-  mm_allocator_reference_t mm_reference;    // MM-Reference
+  mm_allocator_t* mm_allocator; // MM-Allocator
 } string_t;
 
 // Direction (traversal)

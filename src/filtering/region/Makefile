@@ -16,7 +16,6 @@ include $(ROOT_PATH)/Makefile.mk
 # Modules
 ###############################################################################
 MODULES=filtering_region_align \
-        filtering_region_align_configure \
         filtering_region \
         filtering_region_cache \
         filtering_region_verify
