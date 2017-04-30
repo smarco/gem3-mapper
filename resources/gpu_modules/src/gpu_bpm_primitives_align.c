@@ -481,13 +481,18 @@ void gpu_bpm_align_receive_buffer_(void* const bpmBuffer)
   CUDA_ERROR(cudaStreamSynchronize(idStream));
   //Reorder the final results
   GPU_ERROR(gpu_bpm_align_reordering_alignments(mBuff));
-  const uint32_t cigarStartPos = mBuff->data.abpm.cigars.h_cigarsInfo[0].cigarStartPos;
-  const uint32_t cigarStartEnd = cigarStartPos + mBuff->data.abpm.cigars.h_cigarsInfo[0].cigarLenght;
-  printf("startCigar=%d, endCigar=%d \n", cigarStartPos, cigarStartEnd);
-  for(uint32_t id = cigarStartPos; id < cigarStartEnd; id++){
-  	const gpu_bpm_align_cigar_entry_t cigarEntry = mBuff->data.abpm.cigars.h_cigars[id];
-  	printf("id=%d, cEvent=%d, cOcc=%d \n", id, cigarEntry.event, cigarEntry.occurrences);
-  }
+
+  /*
+  const uint32_t numCigars = mBuff->data.abpm.cigars.numCigars;
+  for(uint32_t idCigar = 0; idCigar<numCigars; ++idCigar){
+	  const uint32_t cigarStartPos = mBuff->data.abpm.cigars.h_cigarsInfo[idCigar].cigarStartPos;
+	  const uint32_t cigarStartEnd = cigarStartPos + mBuff->data.abpm.cigars.h_cigarsInfo[idCigar].cigarLenght;
+	  printf("startCigar=%d, endCigar=%d \n", cigarStartPos, cigarStartEnd);
+	  for(uint32_t id = cigarStartPos; id < cigarStartEnd; id++){
+		  const gpu_bpm_align_cigar_entry_t cigarEntry = mBuff->data.abpm.cigars.h_cigars[id];
+		  printf("id=%d, cEvent=%d, cOcc=%d \n", id, cigarEntry.event, cigarEntry.occurrences);
+	  }
+  }*/
 }
 
 #endif /* GPU_BPM_PRIMITIVES_ALIGN_C_ */
