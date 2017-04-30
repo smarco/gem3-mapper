@@ -79,7 +79,7 @@ GPU_INLINE __device__ void gpu_bpm_align_backtrace(const uint32_t* const dpPV, c
     const gpu_bpm_align_coord_t initCood =  {x, y + 1};
     const bool pendingEvents = accNum - 1;
 	// Saving the last CIGAR status event
-	/*if(pendingEvents){
+	if(pendingEvents){
     const gpu_bpm_align_cigar_entry_t cigarEntry = {event, accNum};
 	  dpCIGAR[sizeQuery - cigarLenght] = cigarEntry;
 	  cigarLenght++;
@@ -92,7 +92,7 @@ GPU_INLINE __device__ void gpu_bpm_align_backtrace(const uint32_t* const dpPV, c
 	    dpCIGAR[sizeQuery - cigarLenght] = cigarEntry;
 	    matchEffLenght -= numEvents;
 	    //printf("=================E1> SAVE: pos=%d, event=%d, num=%d \n", sizeQuery - cigarLenght, GPU_CIGAR_DELETION, numEvents);
-    }*/
+    }
     // Returning back-trace results
     (* initCoodRes)       = initCood;
     (* matchEffLenghtRes) = matchEffLenght;
