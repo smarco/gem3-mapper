@@ -433,6 +433,7 @@ void gpu_buffer_bpm_align_retrieve_alignment(
       gpu_bpm_align_buffer_get_cigars_(gpu_buffer_bpm_align->buffer) + gpu_alignment->cigarStartPos;
   uint64_t i, text_offset = gpu_alignment->initCood.x;
   for (i=0;i<gpu_alignment->cigarLenght;++i) {
+    cigar_buffer[i].attributes = cigar_attr_none;
     switch (gpu_alignment_cigar[i].event) {
       case GPU_CIGAR_MATCH:
         cigar_buffer[i].type = cigar_match;
@@ -447,7 +448,6 @@ void gpu_buffer_bpm_align_retrieve_alignment(
       case GPU_CIGAR_INSERTION:
         cigar_buffer[i].type = cigar_ins;
         cigar_buffer[i].length = gpu_alignment_cigar[i].occurrences;
-        cigar_buffer[i].attributes = cigar_attr_none;
         text_offset += gpu_alignment_cigar[i].occurrences;
         break;
       case GPU_CIGAR_DELETION:
