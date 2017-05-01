@@ -376,9 +376,8 @@ void filtering_candidates_buffered_bpm_align_retrieve_scaffold_tile(
     const uint64_t text_begin = alignment_tile->text_begin_offset;
     text_trace_t* const text_trace = &filtering_region->text_trace;
     uint8_t* const text = text_trace->text_padded + text_begin;
-    const uint64_t match_position = text_trace->position;
     match_alignment_t match_alignment;
-    match_alignment.match_position = match_position + text_begin;
+    match_alignment.match_position = text_trace->position + text_begin;
     gpu_buffer_bpm_align_retrieve_alignment(
         gpu_buffer_bpm_align,text,*gpu_buffer_offset,
         &match_alignment,matches->cigar_vector);
@@ -391,12 +390,12 @@ void filtering_candidates_buffered_bpm_align_retrieve_scaffold_tile(
 #endif
     // Store the offset (from the beginning of the text)
     // (accounting for the text-padding offset)
-    const uint64_t alignment_offset = match_alignment.match_position - match_position;
+    const uint64_t alignment_offset = match_alignment.match_position - text_trace->position;
     const uint64_t text_padded_left = text_trace->text_padded_left;
-    gem_fatal_check_msg(text_begin + alignment_offset < text_padded_left,
+    gem_fatal_check_msg(alignment_offset < text_padded_left,
         "Scaffold levenshtein. Negative coordinates because of padding");
     // Offset wrt text (without padding)
-    match_alignment.match_text_offset = text_begin + alignment_offset - text_padded_left;
+    match_alignment.match_text_offset = alignment_offset - text_padded_left;
 //      // DEBUG
 //      match_alignment_print_pretty(stderr,&match_alignment,matches->cigar_vector,
 //        pattern->key + key_offset,pattern_tile->bpm_pattern_tile.pattern_length,
