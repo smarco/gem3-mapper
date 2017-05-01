@@ -40,51 +40,17 @@ GPU_INLINE __device__ void gpu_bpm_align_backtrace(const uint32_t* const dpPV, c
   gpu_bpm_align_cigar_event_t accEvent = GPU_CIGAR_NULL, event = GPU_CIGAR_NULL;
   uint32_t cigarLenght = 0, accNum = 0;
 
-  /*
-  const uint32_t THREAD = 5;
-  if(threadIdx.x == THREAD)
-  printf("\n CANDIDATE:  -- LeftGapAlign: %d \n", leftGapAlign);
-  for(uint32_t pos = 0; pos < minColumn; ++pos){
-	  char base;
-	  const uint8_t encBaseCandidate = ((uint8_t*)candidate)[pos];//gpu_text_lookup(candidate, pos, &infoCandidate, GPU_BMP_ALIGN_BASE_CANDIDATE_LENGTH);
-	  if(encBaseCandidate == 0) base = 'A';
-	  if(encBaseCandidate == 1) base = 'C';
-	  if(encBaseCandidate == 2) base = 'G';
-	  if(encBaseCandidate == 3) base = 'T';
-	  if(encBaseCandidate == 4) base = 'N';
-      if(threadIdx.x == THREAD)
-	  printf("%c", base);
-  }
-
-  if(threadIdx.x == THREAD)
-  printf("\n QUERY:\n");
-  for(uint32_t pos = 0; pos < sizeQuery; ++pos){
-	  char base;
-      const uint8_t  encBaseQuery     = ((uint8_t*)query)[pos];//gpu_text_lookup(query, pos, &infoQuery, GPU_BMP_ALIGN_BASE_QUERY_LENGTH);
-	  if(encBaseQuery == 0) base = 'A';
-	  if(encBaseQuery == 1) base = 'C';
-	  if(encBaseQuery == 2) base = 'G';
-	  if(encBaseQuery == 3) base = 'T';
-	  if(encBaseQuery == 4) base = 'N';
-      if(threadIdx.x == THREAD)
-	  printf("%c", base);
-  }
-  if(threadIdx.x == THREAD)
-	  printf("\n TRACE:\n");*/
-
   // Performing the back-trace to extract the cigar string
-  while ((y >= 0) && (x > 0)){
+  while ((y >= 0) && (x >= 0)){
     // Thread managing
     const uint32_t dpActiveThread     =  y / GPU_BPM_ALIGN_PEQ_ENTRY_LENGTH;
     const uint32_t dpLocalThreadEntry = (y % GPU_BPM_ALIGN_PEQ_ENTRY_LENGTH) / GPU_UINT32_LENGTH;
     if(intraQueryThreadIdx == dpActiveThread){
       // Read query and candidate bases
-      const uint8_t  encBaseCandidate = ((uint8_t*)candidate)[x];
-      const uint8_t  encBaseQuery     = ((uint8_t*)query)[y];
-      //const uint8_t  encBaseCandidate = gpu_text_lookup(candidate, x, &infoCandidate, GPU_BMP_ALIGN_BASE_CANDIDATE_LENGTH);
-      //const uint8_t  encBaseQuery     = gpu_text_lookup(query, y, &infoQuery, GPU_BMP_ALIGN_BASE_QUERY_LENGTH);
+      const uint8_t  encBaseCandidate = gpu_text_lookup(candidate, x, &infoCandidate, GPU_BMP_ALIGN_BASE_CANDIDATE_LENGTH);
+      const uint8_t  encBaseQuery     = gpu_text_lookup(query, y, &infoQuery, GPU_BMP_ALIGN_BASE_QUERY_LENGTH);
       // Indexation for the dpMatrix element
-      const uint32_t idBMP   = (x * threadColumnEntries) + dpLocalThreadEntry;
+      const uint32_t idBMP   = ((x + 1) * threadColumnEntries) + dpLocalThreadEntry;
       const uint32_t maskBMP = GPU_UINT32_ONE_MASK << (y % GPU_UINT32_LENGTH);
       // Select CIGAR operation on LUT
       const uint32_t deletion  = ((dpPV[idBMP] & maskBMP) != 0) << 2;
@@ -101,8 +67,6 @@ GPU_INLINE __device__ void gpu_bpm_align_backtrace(const uint32_t* const dpPV, c
     // Save CIGAR string from end to start position & Resetting the CIGAR stats
     if((intraQueryThreadIdx == 0) && (((event != accEvent) && (accEvent != GPU_CIGAR_NULL)) || (accEvent == GPU_CIGAR_MISSMATCH))){
       const gpu_bpm_align_cigar_entry_t cigarEntry = {accEvent, accNum};
-      //if(threadIdx.x == THREAD)
-    	  //printf("===================> SAVE: pos=%d, event=%d, num=%d \n", sizeQuery - cigarLenght, accEvent, accNum);
       dpCIGAR[sizeQuery - cigarLenght] = cigarEntry;
       accNum = 0; cigarLenght++;
     }
@@ -111,22 +75,16 @@ GPU_INLINE __device__ void gpu_bpm_align_backtrace(const uint32_t* const dpPV, c
   // Master thread saves the last part of the cigar
   if (intraQueryThreadIdx  == (threadsPerQuery - 1)){
     const gpu_bpm_align_coord_t initCood =  {x + 1, y + 1};
-    //const bool pendingEvents = accNum - 1;
 	// Saving the last CIGAR status event
-	//if(pendingEvents){
     const gpu_bpm_align_cigar_entry_t cigarEntry = {event, accNum};
-	  dpCIGAR[sizeQuery - cigarLenght] = cigarEntry;
-	  cigarLenght++;
-      //if(threadIdx.x == THREAD)
-    	  //printf("=================E0> SAVE: pos=%d, event=%d, num=%d \n", sizeQuery - cigarLenght, event, accNum);
-	//}
+	dpCIGAR[sizeQuery - cigarLenght] = cigarEntry;
+	cigarLenght++;
     // Saving the remainder semi-global deletion events
     if(y >= 0){
       const uint32_t numEvents = y + 1;
       const gpu_bpm_align_cigar_entry_t cigarEntry = {GPU_CIGAR_DELETION, numEvents};
-	    dpCIGAR[sizeQuery - cigarLenght] = cigarEntry;
-	    //if(threadIdx.x == THREAD)
-	      //printf("=================E1> SAVE: pos=%d, event=%d, num=%d \n", sizeQuery - cigarLenght, GPU_CIGAR_DELETION, numEvents);
+	  dpCIGAR[sizeQuery - cigarLenght] = cigarEntry;
+      cigarLenght++;
     }
     // Returning back-trace results
     (* initCoodRes)       = initCood;
@@ -163,10 +121,12 @@ GPU_INLINE __device__ void gpu_bpm_align_dp_matrix(uint4* const dpPV, uint4* con
       Mv[idBMP] = 0;
     }
 
+    dpPV[0] = gpu_compose_uintv4(Pv);
+    dpMV[0] = gpu_compose_uintv4(Mv);
+
     for(idColumn = 0; idColumn < sizeCandidate; idColumn++){
       uint32_t PH, MH;
-      const uint8_t encBase = ((uint8_t*)candidate)[idColumn];
-      //const uint8_t encBase = gpu_text_lookup(candidate, idColumn, &infoCandidate, GPU_BMP_ALIGN_BASE_CANDIDATE_LENGTH);
+      const uint8_t encBase = gpu_text_lookup(candidate, idColumn, &infoCandidate, GPU_BMP_ALIGN_BASE_CANDIDATE_LENGTH);
       const uint4 Eqv4 = LDG(&PEQs->bitmap[encBase]);
       gpu_decompose_uintv4(Eq, Eqv4);
 
@@ -207,8 +167,8 @@ GPU_INLINE __device__ void gpu_bpm_align_dp_matrix(uint4* const dpPV, uint4* con
       for(uint32_t idBMP = 0; idBMP < BMPS_PER_THREAD; ++idBMP)
         Mv[idBMP] = Ph[idBMP] & Xv[idBMP];
 
-      dpPV[idColumn] = gpu_compose_uintv4(Pv);
-      dpMV[idColumn] = gpu_compose_uintv4(Mv);
+      dpPV[idColumn + 1] = gpu_compose_uintv4(Pv);
+      dpMV[idColumn + 1] = gpu_compose_uintv4(Mv);
 
       minColumn = (score < minScore) ? idColumn : minColumn;
       minScore  = (score < minScore) ? score    : minScore;
@@ -262,7 +222,6 @@ GPU_INLINE __device__ void gpu_bpm_align_local_kernel(const gpu_bpm_align_qry_en
   cigarInfo->endCood.y      = sizeQuery - 1;
   cigarInfo->cigarStartPos  = offsetCigarStart + sizeQuery - cigarLenght + 1;
   cigarInfo->cigarLenght    = cigarLenght;
-  ///printf("threadid: %d - idCandidate %d - posEntryBase %d \n", threadIdx.x, idCandidate, d_candidateInfo[idCandidate].posEntryBase);
 }
 
 __global__ void gpu_bpm_align_kernel(const gpu_bpm_align_qry_entry_t* const d_queries,  const gpu_bpm_align_device_qry_entry_t * const d_PEQs, const gpu_bpm_align_qry_info_t* const d_queryInfo,
