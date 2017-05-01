@@ -976,7 +976,7 @@ bool gem_mapper_parse_arguments_gpu(
           &num_fmi_bsearch_buffers,&num_fmi_decode_buffers,
           &num_bpm_kmer_filter_buffers,&num_bpm_distance_buffers,
           &num_bpm_align_buffers,&buffer_size);
-      mapper_cond_error_msg(num_arguments!=4,"Option '--gpu-buffers-model' wrong number of arguments");
+      mapper_cond_error_msg(num_arguments!=6,"Option '--gpu-buffers-model' wrong number of arguments");
       // Number of region-profile buffers per thread
       mapper_cond_error_msg(input_text_parse_integer(
           (const char** const)&num_fmi_bsearch_buffers,
