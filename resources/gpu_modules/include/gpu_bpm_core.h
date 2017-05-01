@@ -36,20 +36,20 @@ __device__ const gpu_bpm_align_device_cigar_entry_t gpu_bmp_align_cigar_lut[16] 
                                                                                    {-1,-1, GPU_CIGAR_MISSMATCH, 0},
                                                                                    {-1,-1, GPU_CIGAR_MATCH,     0},
                                                                                    {-1, 0, GPU_CIGAR_INSERTION, 1},
-                                                                                   {-1, 0, GPU_CIGAR_INSERTION, 1},
+                                                                                   {-1,-1, GPU_CIGAR_MATCH,     0},
                                                                                    { 0,-1, GPU_CIGAR_DELETION, -1},
+                                                                                   {-1,-1, GPU_CIGAR_MATCH,     0},
                                                                                    { 0,-1, GPU_CIGAR_DELETION, -1},
-                                                                                   { 0,-1, GPU_CIGAR_DELETION, -1},
-                                                                                   { 0,-1, GPU_CIGAR_DELETION, -1},
+                                                                                   {-1,-1, GPU_CIGAR_MATCH,     0},
                                                                                    //Right Cigar Alignment
                                                                                    {-1,-1, GPU_CIGAR_MISSMATCH, 0},
                                                                                    {-1,-1, GPU_CIGAR_MATCH,     0},
                                                                                    {-1, 0, GPU_CIGAR_INSERTION, 1},
-                                                                                   {-1,-1, GPU_CIGAR_MATCH,     0},
+                                                                                   {-1, 0, GPU_CIGAR_INSERTION, 1},
                                                                                    { 0,-1, GPU_CIGAR_DELETION, -1},
-                                                                                   {-1,-1, GPU_CIGAR_MATCH,     0},
                                                                                    { 0,-1, GPU_CIGAR_DELETION, -1},
-                                                                                   {-1,-1, GPU_CIGAR_MATCH,     0}};
+                                                                                   { 0,-1, GPU_CIGAR_DELETION, -1},
+                                                                                   { 0,-1, GPU_CIGAR_DELETION, -1}};
 
 GPU_INLINE __device__ void cooperative_shift(uint32_t *value, const uint32_t shiftedBits,
                                              const uint32_t localThreadIdx, const uint32_t BMPS_PER_THREAD)

@@ -388,7 +388,7 @@ void gpu_buffer_bpm_align_add_candidate(
   gpu_bpm_align_cand_info_t* const gpu_candidate_info =
       gpu_bpm_align_buffer_get_candidates_info_(gpu_buffer_bpm_align->buffer) + num_candidates;
   gpu_candidate_info->idQuery = gpu_buffer_bpm_align->current_query_idx + tile_idx;
-  gpu_candidate_info->posEntryBase = gpu_buffer_bpm_align->current_query_buffer_offset + tile_offset;
+  gpu_candidate_info->posEntryBase = gpu_buffer_bpm_align->candidate_buffer_offset;
   gpu_candidate_info->size = candidate_length;
   gpu_candidate_info->leftGapAlign = left_gap_align;
   ++(gpu_buffer_bpm_align->num_candidates);
