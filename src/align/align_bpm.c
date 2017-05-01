@@ -218,7 +218,7 @@ void align_bpm_backtrace_matrix(
     #define IS_INSERTION  (Mv[(bdp_idx-num_words64)] & mask)
     #define IS_MATCH      ((text[h]==key[v] && key[v]!=ENC_DNA_CHAR_N))
     cigar_t operation;
-    if (left_gap_alignment) {
+    if (!left_gap_alignment) {
       if (IS_DELETION) {
         operation = cigar_del;
       } else if (IS_INSERTION) {
