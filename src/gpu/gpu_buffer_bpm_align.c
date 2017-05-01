@@ -318,6 +318,7 @@ void gpu_buffer_bpm_align_add_query_info(
     const uint64_t tile_entries = DIV_CEIL(tile_length,GPU_BPM_ALIGN_ENTRY_LENGTH);
     // Set entry & size
     gpu_queries_info->posEntryBase = gpu_buffer_bpm_align->current_query_buffer_offset + tile_offset;
+    gem_fatal_check_msg((gpu_queries_info->posEntryBase%8) != 0,"BPM.Align. Unaligned offset");
     gpu_queries_info->posEntryPEQ = num_query_entries + buffer_entries_added;
     gpu_queries_info->size = tile_length;
     buffer_entries_added += tile_entries;
@@ -389,6 +390,7 @@ void gpu_buffer_bpm_align_add_candidate(
       gpu_bpm_align_buffer_get_candidates_info_(gpu_buffer_bpm_align->buffer) + num_candidates;
   gpu_candidate_info->idQuery = gpu_buffer_bpm_align->current_query_idx + tile_idx;
   gpu_candidate_info->posEntryBase = gpu_buffer_bpm_align->candidate_buffer_offset;
+  gem_fatal_check_msg((gpu_candidate_info->posEntryBase%8) != 0,"BPM.Align. Unaligned offset");
   gpu_candidate_info->size = candidate_length;
   gpu_candidate_info->leftGapAlign = left_gap_align;
   ++(gpu_buffer_bpm_align->num_candidates);
