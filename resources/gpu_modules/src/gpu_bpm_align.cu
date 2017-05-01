@@ -73,16 +73,16 @@ GPU_INLINE __device__ void gpu_bpm_align_backtrace(const uint32_t* const dpPV, c
 	  printf("\n TRACE:\n");*/
 
   // Performing the back-trace to extract the cigar string
-  while ((y >= 0) && (x >= 0)){
+  while ((y >= 0) && (x > 0)){
     // Thread managing
     const uint32_t dpActiveThread     =  y / GPU_BPM_ALIGN_PEQ_ENTRY_LENGTH;
     const uint32_t dpLocalThreadEntry = (y % GPU_BPM_ALIGN_PEQ_ENTRY_LENGTH) / GPU_UINT32_LENGTH;
     if(intraQueryThreadIdx == dpActiveThread){
       // Read query and candidate bases
-      //const uint8_t  encBaseCandidate = ((uint8_t*)candidate)[x];
-      //const uint8_t  encBaseQuery     = ((uint8_t*)query)[y];
-      const uint8_t  encBaseCandidate = gpu_text_lookup(candidate, x, &infoCandidate, GPU_BMP_ALIGN_BASE_CANDIDATE_LENGTH);
-      const uint8_t  encBaseQuery     = gpu_text_lookup(query, y, &infoQuery, GPU_BMP_ALIGN_BASE_QUERY_LENGTH);
+      const uint8_t  encBaseCandidate = ((uint8_t*)candidate)[x];
+      const uint8_t  encBaseQuery     = ((uint8_t*)query)[y];
+      //const uint8_t  encBaseCandidate = gpu_text_lookup(candidate, x, &infoCandidate, GPU_BMP_ALIGN_BASE_CANDIDATE_LENGTH);
+      //const uint8_t  encBaseQuery     = gpu_text_lookup(query, y, &infoQuery, GPU_BMP_ALIGN_BASE_QUERY_LENGTH);
       // Indexation for the dpMatrix element
       const uint32_t idBMP   = (x * threadColumnEntries) + dpLocalThreadEntry;
       const uint32_t maskBMP = GPU_UINT32_ONE_MASK << (y % GPU_UINT32_LENGTH);
@@ -165,8 +165,8 @@ GPU_INLINE __device__ void gpu_bpm_align_dp_matrix(uint4* const dpPV, uint4* con
 
     for(idColumn = 0; idColumn < sizeCandidate; idColumn++){
       uint32_t PH, MH;
-      //const uint8_t encBase = ((uint8_t*)candidate)[idColumn];
-      const uint8_t encBase = gpu_text_lookup(candidate, idColumn, &infoCandidate, GPU_BMP_ALIGN_BASE_CANDIDATE_LENGTH);
+      const uint8_t encBase = ((uint8_t*)candidate)[idColumn];
+      //const uint8_t encBase = gpu_text_lookup(candidate, idColumn, &infoCandidate, GPU_BMP_ALIGN_BASE_CANDIDATE_LENGTH);
       const uint4 Eqv4 = LDG(&PEQs->bitmap[encBase]);
       gpu_decompose_uintv4(Eq, Eqv4);
 
