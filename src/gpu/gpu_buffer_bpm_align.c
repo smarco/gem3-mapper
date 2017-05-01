@@ -119,7 +119,8 @@ gpu_buffer_bpm_align_t* gpu_buffer_bpm_align_new(
   // Initialize buffer state
   gpu_buffer_bpm_align->buffer = gpu_buffer_collection_get_buffer(gpu_buffer_collection,buffer_no);
   gpu_buffer_bpm_align->bpm_align_enabled = bpm_align_enabled;
-  gpu_buffer_bpm_align->current_query_offset = 0;
+  gpu_buffer_bpm_align->current_query_idx = 0;
+  gpu_buffer_bpm_align->current_query_buffer_offset = 0;
   gpu_buffer_bpm_align->current_candidates_added = 0;
   // Buffer Queries
   gpu_buffer_bpm_align->num_queries = 0;
@@ -153,7 +154,8 @@ void gpu_buffer_bpm_align_clear(
       gpu_buffer_bpm_align_get_mean_candidate_length(gpu_buffer_bpm_align),
       gpu_buffer_bpm_align_get_mean_candidates_per_tile(gpu_buffer_bpm_align));
   // Clear buffer
-  gpu_buffer_bpm_align->current_query_offset = 0;
+  gpu_buffer_bpm_align->current_query_idx = 0;
+  gpu_buffer_bpm_align->current_query_buffer_offset = 0;
   gpu_buffer_bpm_align->current_candidates_added = 0;
   gpu_buffer_bpm_align->num_queries = 0;
   gpu_buffer_bpm_align->num_query_entries = 0;
@@ -273,6 +275,25 @@ bool gpu_buffer_bpm_align_fits_in_buffer(
 /*
  * Pattern accessor
  */
+void gpu_buffer_bpm_align_add_query_text(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
+    pattern_t* const pattern) {
+  // Parameters
+  const uint64_t key_length = pattern->key_length;
+  const uint8_t* const key = pattern->key;
+  const uint32_t query_buffer_offset = gpu_buffer_bpm_align->query_buffer_offset;
+  gpu_buffer_bpm_align->current_query_buffer_offset = query_buffer_offset;
+  // Add query text
+  gpu_bpm_align_qry_entry_t* const gpu_query_buffer =
+      gpu_bpm_align_buffer_get_queries_(gpu_buffer_bpm_align->buffer) + query_buffer_offset;
+  memcpy(gpu_query_buffer,key,key_length);
+  // Account for padding
+  gpu_buffer_bpm_align->query_buffer_offset += key_length;
+  const uint64_t num_bases_mod = key_length % GPU_BPM_ALIGN_QUERY_PADDING;
+  if (num_bases_mod > 0) {
+    gpu_buffer_bpm_align->query_buffer_offset += GPU_BPM_ALIGN_QUERY_PADDING - num_bases_mod;
+  }
+}
 void gpu_buffer_bpm_align_add_query_info(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
     pattern_t* const pattern) {
@@ -285,7 +306,7 @@ void gpu_buffer_bpm_align_add_query_info(
   // Add Query (Metadata)
   const uint32_t num_queries = gpu_buffer_bpm_align->num_queries;
   (gpu_buffer_bpm_align->num_queries) += num_tiles;
-  gpu_buffer_bpm_align->current_query_offset = num_queries;
+  gpu_buffer_bpm_align->current_query_idx = num_queries;
   // Add Query Tiles (Metadata)
   gpu_bpm_align_qry_info_t* gpu_queries_info =
       gpu_bpm_align_buffer_get_queries_info_(gpu_buffer) + num_queries;
@@ -293,9 +314,10 @@ void gpu_buffer_bpm_align_add_query_info(
   for (i=0;i<num_tiles;++i,++gpu_queries_info) {
     // Compute tile dimensions
     const uint64_t tile_length = pattern_tiled->tiles[i].tile_length;
+    const uint64_t tile_offset = pattern_tiled->tiles[i].tile_offset;
     const uint64_t tile_entries = DIV_CEIL(tile_length,GPU_BPM_ALIGN_ENTRY_LENGTH);
     // Set entry & size
-    gpu_queries_info->posEntryBase = num_query_entries;
+    gpu_queries_info->posEntryBase = gpu_buffer_bpm_align->current_query_buffer_offset + tile_offset;
     gpu_queries_info->posEntryPEQ = num_query_entries + buffer_entries_added;
     gpu_queries_info->size = tile_length;
     buffer_entries_added += tile_entries;
@@ -326,24 +348,6 @@ void gpu_buffer_bpm_align_add_query_entries(
   gpu_buffer_bpm_pattern_compile((gpu_bpm_peq_entry_t*)gpu_queries_entry,bpm_pattern);
   gpu_buffer_bpm_align->num_query_entries += num_entries;
 }
-void gpu_buffer_bpm_align_add_query_text(
-    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
-    pattern_t* const pattern) {
-  // Parameters
-  const uint64_t key_length = pattern->key_length;
-  const uint8_t* const key = pattern->key;
-  const uint32_t query_buffer_offset = gpu_buffer_bpm_align->query_buffer_offset;
-  // Add query text
-  gpu_bpm_align_qry_entry_t* const gpu_query_buffer =
-      gpu_bpm_align_buffer_get_queries_(gpu_buffer_bpm_align->buffer) + query_buffer_offset;
-  memcpy(gpu_query_buffer,key,key_length);
-  // Account for padding
-  gpu_buffer_bpm_align->query_buffer_offset += key_length;
-  const uint64_t num_bases_mod = key_length % GPU_BPM_ALIGN_QUERY_PADDING;
-  if (num_bases_mod > 0) {
-    gpu_buffer_bpm_align->query_buffer_offset += GPU_BPM_ALIGN_QUERY_PADDING - num_bases_mod;
-  }
-}
 void gpu_buffer_bpm_align_add_pattern(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
     pattern_t* const pattern) {
@@ -353,18 +357,19 @@ void gpu_buffer_bpm_align_add_pattern(
         gpu_buffer_bpm_align,gpu_buffer_bpm_align->current_candidates_added);
     gpu_buffer_bpm_align->current_candidates_added = 0;
   }
+  // Add Query Text
+  gpu_buffer_bpm_align_add_query_text(gpu_buffer_bpm_align,pattern);
   // Add Query (Metadata)
   gpu_buffer_bpm_align_add_query_info(gpu_buffer_bpm_align,pattern);
   // Add Query (Entries / PEQ pattern)
   gpu_buffer_bpm_align_add_query_entries(gpu_buffer_bpm_align,pattern);
-  // Add Query Text
-  gpu_buffer_bpm_align_add_query_text(gpu_buffer_bpm_align,pattern);
 }
 /*
  * Candidate accessor
  */
 void gpu_buffer_bpm_align_add_candidate(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
+    const uint64_t tile_idx,
     const uint64_t tile_offset,
     uint8_t* const candidate_buffer,
     const uint64_t candidate_length,
@@ -373,7 +378,7 @@ void gpu_buffer_bpm_align_add_candidate(
 #ifdef GEM_PROFILE
   gpu_bpm_align_qry_info_t* const gpu_queries_info =
       gpu_bpm_align_buffer_get_queries_info_(gpu_buffer_bpm_align->buffer) +
-      (gpu_buffer_bpm_align->current_query_offset + tile_offset);
+      (gpu_buffer_bpm_align->current_query_idx + tile_idx);
   PROF_INC_COUNTER(GP_GPU_BUFFER_BPM_ALIGN_NUM_QUERIES);
   PROF_ADD_COUNTER(GP_GPU_BUFFER_BPM_ALIGN_CANDIDATE_LENGTH,candidate_length);
   PROF_ADD_COUNTER(GP_GPU_BUFFER_BPM_ALIGN_CELLS,candidate_length*gpu_queries_info->size);
@@ -382,8 +387,8 @@ void gpu_buffer_bpm_align_add_candidate(
   const uint64_t num_candidates = gpu_buffer_bpm_align->num_candidates;
   gpu_bpm_align_cand_info_t* const gpu_candidate_info =
       gpu_bpm_align_buffer_get_candidates_info_(gpu_buffer_bpm_align->buffer) + num_candidates;
-  gpu_candidate_info->idQuery = gpu_buffer_bpm_align->current_query_offset + tile_offset;
-  gpu_candidate_info->posEntryBase = gpu_buffer_bpm_align->current_query_offset;
+  gpu_candidate_info->idQuery = gpu_buffer_bpm_align->current_query_idx + tile_idx;
+  gpu_candidate_info->posEntryBase = gpu_buffer_bpm_align->current_query_buffer_offset + tile_offset;
   gpu_candidate_info->size = candidate_length;
   gpu_candidate_info->leftGapAlign = left_gap_align;
   ++(gpu_buffer_bpm_align->num_candidates);
@@ -407,6 +412,7 @@ void gpu_buffer_bpm_align_add_candidate(
  */
 void gpu_buffer_bpm_align_retrieve_alignment(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
+    uint8_t* const candidate_buffer,
     const uint64_t candidate_offset,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector) {
@@ -423,19 +429,23 @@ void gpu_buffer_bpm_align_retrieve_alignment(
   // Convert CIGAR
   gpu_bpm_align_cigar_entry_t* const gpu_alignment_cigar =
       gpu_bpm_align_buffer_get_cigars_(gpu_buffer_bpm_align->buffer) + gpu_alignment->cigarStartPos;
-  uint64_t i;
+  uint64_t i, text_offset = gpu_alignment->initCood.x;
   for (i=0;i<gpu_alignment->cigarLenght;++i) {
     switch (gpu_alignment_cigar[i].event) {
       case GPU_CIGAR_MATCH:
         cigar_buffer[i].type = cigar_match;
         cigar_buffer[i].length = gpu_alignment_cigar[i].occurrences;
+        text_offset += gpu_alignment_cigar[i].occurrences;
         break;
       case GPU_CIGAR_MISSMATCH:
         cigar_buffer[i].type = cigar_mismatch;
+        cigar_buffer[i].mismatch = candidate_buffer[text_offset];
+        ++text_offset;
         break;
       case GPU_CIGAR_INSERTION:
         cigar_buffer[i].type = cigar_ins;
         cigar_buffer[i].length = gpu_alignment_cigar[i].occurrences;
+        text_offset += gpu_alignment_cigar[i].occurrences;
         break;
       case GPU_CIGAR_DELETION:
         cigar_buffer[i].type = cigar_del;
@@ -565,6 +575,7 @@ void gpu_buffer_bpm_align_add_pattern(
  */
 void gpu_buffer_bpm_align_add_candidate(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
+    const uint64_t tile_idx,
     const uint64_t tile_offset,
     uint8_t* const candidate_buffer,
     const uint64_t candidate_length,
@@ -574,6 +585,7 @@ void gpu_buffer_bpm_align_add_candidate(
  */
 void gpu_buffer_bpm_align_retrieve_alignment(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
+    uint8_t* const candidate_buffer,
     const uint64_t candidate_offset,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector) {  }
