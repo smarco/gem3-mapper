@@ -41,7 +41,7 @@ GPU_INLINE __device__ void gpu_bpm_align_backtrace(const uint32_t* const dpPV, c
   uint32_t cigarLenght = 0, accNum = 0;
 
   /*
-  const uint32_t THREAD = 1;
+  const uint32_t THREAD = 5;
   if(threadIdx.x == THREAD)
   printf("\n CANDIDATE:  -- LeftGapAlign: %d \n", leftGapAlign);
   for(uint32_t pos = 0; pos < minColumn; ++pos){
@@ -70,7 +70,7 @@ GPU_INLINE __device__ void gpu_bpm_align_backtrace(const uint32_t* const dpPV, c
 	  printf("%c", base);
   }
   if(threadIdx.x == THREAD)
-	  printf("\n TRACE:\n"); */
+	  printf("\n TRACE:\n");*/
 
   // Performing the back-trace to extract the cigar string
   while ((y >= 0) && (x >= 0)){
@@ -99,7 +99,7 @@ GPU_INLINE __device__ void gpu_bpm_align_backtrace(const uint32_t* const dpPV, c
     cigarOP.s = shfl_32(cigarOP.s, offsetQueryThreadIdx + dpActiveThread);
     x += cigarOP.v4.x; y += cigarOP.v4.y; event = cigarOP.v4.z;
     // Save CIGAR string from end to start position & Resetting the CIGAR stats
-    if((intraQueryThreadIdx == 0) && (event != accEvent) && (accEvent != GPU_CIGAR_NULL)){
+    if((intraQueryThreadIdx == 0) && (((event != accEvent) && (accEvent != GPU_CIGAR_NULL)) || (accEvent == GPU_CIGAR_MISSMATCH))){
       const gpu_bpm_align_cigar_entry_t cigarEntry = {accEvent, accNum};
       //if(threadIdx.x == THREAD)
     	  //printf("===================> SAVE: pos=%d, event=%d, num=%d \n", sizeQuery - cigarLenght, accEvent, accNum);
@@ -111,15 +111,15 @@ GPU_INLINE __device__ void gpu_bpm_align_backtrace(const uint32_t* const dpPV, c
   // Master thread saves the last part of the cigar
   if (intraQueryThreadIdx  == (threadsPerQuery - 1)){
     const gpu_bpm_align_coord_t initCood =  {x + 1, y + 1};
-    const bool pendingEvents = accNum - 1;
+    //const bool pendingEvents = accNum - 1;
 	// Saving the last CIGAR status event
-	if(pendingEvents){
+	//if(pendingEvents){
     const gpu_bpm_align_cigar_entry_t cigarEntry = {event, accNum};
 	  dpCIGAR[sizeQuery - cigarLenght] = cigarEntry;
 	  cigarLenght++;
       //if(threadIdx.x == THREAD)
     	  //printf("=================E0> SAVE: pos=%d, event=%d, num=%d \n", sizeQuery - cigarLenght, event, accNum);
-	}
+	//}
     // Saving the remainder semi-global deletion events
     if(y >= 0){
       const uint32_t numEvents = y + 1;
