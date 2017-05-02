@@ -148,8 +148,6 @@ uint64_t filtering_candidates_get_num_regions(
 void filtering_candidates_set_num_regions(
     const filtering_candidates_t* const filtering_candidates,
     const uint64_t num_regions);
-uint64_t filtering_candidates_get_num_region_tiles_length(
-    const filtering_candidates_t* const filtering_candidates);
 
 filtering_region_t** filtering_candidates_get_regions(
     const filtering_candidates_t* const filtering_candidates);

@@ -190,9 +190,13 @@ uint64_t gpu_buffer_bpm_align_get_max_candidates(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
   return gpu_bpm_align_buffer_get_max_candidates_(gpu_buffer_bpm_align->buffer);
 }
-uint64_t gpu_buffer_bpm_align_get_max_candidate_buffer_size(
+uint64_t gpu_buffer_bpm_align_get_max_candidate_length(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
   return gpu_bpm_align_buffer_get_max_candidate_size_(gpu_buffer_bpm_align->buffer);
+}
+uint64_t gpu_buffer_bpm_align_get_max_candidate_buffer_size(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
+  return gpu_bpm_align_buffer_get_max_candidate_bases_(gpu_buffer_bpm_align->buffer);
 }
 uint64_t gpu_buffer_bpm_align_get_num_candidates(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
@@ -543,6 +547,8 @@ uint64_t gpu_buffer_bpm_align_get_max_query_entries(
 uint64_t gpu_buffer_bpm_align_get_max_query_buffer_size(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) { return 0; }
 uint64_t gpu_buffer_bpm_align_get_max_candidates(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) { return 0; }
+uint64_t gpu_buffer_bpm_align_get_max_candidate_length(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) { return 0; }
 uint64_t gpu_buffer_bpm_align_get_max_candidate_buffer_size(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) { return 0; }

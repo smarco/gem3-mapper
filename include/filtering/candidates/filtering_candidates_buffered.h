@@ -76,4 +76,12 @@ void filtering_candidates_buffered_allocate_discarded_regions(
 void filtering_candidates_buffered_free_discarded_regions(
     filtering_candidates_buffered_t* const filtering_candidates_buffered);
 
+/*
+ * Accessors
+ */
+uint64_t filtering_candidates_buffered_get_num_regions(
+    const filtering_candidates_buffered_t* const filtering_candidates_buffered);
+uint64_t filtering_candidates_buffered_get_region_tiles_length(
+    const filtering_candidates_buffered_t* const filtering_candidates_buffered);
+
 #endif /* FILTERING_CANDIDATES_BUFFERED_H_ */

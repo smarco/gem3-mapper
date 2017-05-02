@@ -82,6 +82,8 @@ uint64_t gpu_buffer_bpm_align_get_max_query_buffer_size(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
 uint64_t gpu_buffer_bpm_align_get_max_candidates(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
+uint64_t gpu_buffer_bpm_align_get_max_candidate_length(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
 uint64_t gpu_buffer_bpm_align_get_max_candidate_buffer_size(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
 uint64_t gpu_buffer_bpm_align_get_num_candidates(

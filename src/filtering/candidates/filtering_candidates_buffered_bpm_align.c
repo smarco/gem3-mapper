@@ -263,6 +263,11 @@ void filtering_candidates_buffered_bpm_align_add(
     filtering_candidates_buffered->num_regions = 0;
     return;
   }
+  // Check max-candidate length
+  const uint64_t max_candidate_length = gpu_buffer_bpm_align_get_max_candidate_length(gpu_buffer_bpm_align);
+  if (pattern->pattern_tiled.tile_length > max_candidate_length) {
+    return;
+  }
   // Sort buffered regions
   filtering_candidates_buffered_bpm_align_sort_regions(filtering_candidates_buffered);
   // Discard subdominant regions (prepare eligible regions)
@@ -481,6 +486,23 @@ void filtering_candidates_buffered_bpm_align_retrieve_region(
   // Add to filtering regions
   vector_insert(filtering_candidates->filtering_regions,filtering_region,filtering_region_t*);
 }
+void filtering_candidates_buffered_bpm_align_disabled_retrieve(
+    filtering_candidates_t* const filtering_candidates,
+    filtering_candidates_buffered_t* const filtering_candidates_buffered) {
+  // Parameters
+  const uint64_t num_regions = filtering_candidates_buffered->num_regions;
+  // Retrieve region
+  uint64_t candidate_pos;
+  for (candidate_pos=0;candidate_pos<num_regions;++candidate_pos) {
+    // Retrieve region
+    filtering_region_t* const filtering_region = filtering_candidates_buffered->regions[candidate_pos];
+    if (filtering_region->status == filtering_region_accepted) {
+      vector_insert(filtering_candidates->filtering_regions,filtering_region,filtering_region_t*);
+    } else {
+      vector_insert(filtering_candidates->discarded_regions,filtering_region,filtering_region_t*);
+    }
+  }
+}
 void filtering_candidates_buffered_bpm_align_retrieve(
     filtering_candidates_t* const filtering_candidates,
     filtering_candidates_buffered_t* const filtering_candidates_buffered,
@@ -491,6 +513,13 @@ void filtering_candidates_buffered_bpm_align_retrieve(
   // Check filtering regions
   const uint64_t num_regions = filtering_candidates_buffered->num_regions;
   if (num_regions==0) return;
+  // Check max-candidate length
+  const uint64_t max_candidate_length = gpu_buffer_bpm_align_get_max_candidate_length(gpu_buffer_bpm_align);
+  if (pattern->pattern_tiled.tile_length > max_candidate_length) {
+    filtering_candidates_buffered_bpm_align_disabled_retrieve(
+        filtering_candidates,filtering_candidates_buffered);
+    return;
+  }
   // Traverse all filtering regions buffered
   uint64_t candidate_pos, gpu_buffer_offset = gpu_buffer_align_offset;
   for (candidate_pos=0;candidate_pos<num_regions;++candidate_pos) {

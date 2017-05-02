@@ -78,3 +78,19 @@ void filtering_candidates_buffered_free_discarded_regions(
   mm_allocator_free(filtering_candidates_buffered->mm_allocator,filtering_candidates_buffered->discarded_regions);
   filtering_candidates_buffered->discarded_regions = NULL;
 }
+/*
+ * Accessors
+ */
+uint64_t filtering_candidates_buffered_get_num_regions(
+    const filtering_candidates_buffered_t* const filtering_candidates_buffered) {
+  return filtering_candidates_buffered->num_regions;
+}
+uint64_t filtering_candidates_buffered_get_region_tiles_length(
+    const filtering_candidates_buffered_t* const filtering_candidates_buffered) {
+  uint64_t i, region_tiles_length = 0;
+  for (i=0;i<filtering_candidates_buffered->num_regions;++i) {
+    filtering_region_t* const filtering_region = filtering_candidates_buffered->regions[i];
+    region_tiles_length += filtering_region->text_end_position - filtering_region->text_begin_position;
+  }
+  return region_tiles_length;
+}

@@ -138,8 +138,13 @@ uint64_t approximate_search_get_num_decode_candidates(const approximate_search_t
 uint64_t approximate_search_get_num_filtering_candidates(const approximate_search_t* const search) {
   return filtering_candidates_get_num_regions(search->filtering_candidates);
 }
-uint64_t approximate_search_get_num_filtering_candidate_tiles_length(const approximate_search_t* const search) {
-  return filtering_candidates_get_num_region_tiles_length(search->filtering_candidates);
+uint64_t approximate_search_get_num_filtering_candidates_buffered(
+    const approximate_search_t* const search) {
+  return filtering_candidates_buffered_get_num_regions(&search->filtering_candidates_buffered);
+}
+uint64_t approximate_search_get_num_filtering_candidate_buffered_tiles_length(
+    const approximate_search_t* const search) {
+  return filtering_candidates_buffered_get_region_tiles_length(&search->filtering_candidates_buffered);
 }
 /*
  * Approximate String Matching using the FM-index
