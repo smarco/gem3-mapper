@@ -50,7 +50,6 @@ option_t gem_mapper_options[] = {
   { 's', "complete-strata-after-best", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=1)" },
   { 'e', "alignment-max-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=0.12, 12%)" },
   { 401, "alignment-max-bandwidth", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=0.20, 20%)" },
-  { 402, "alignment-max-gap-length", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=100)" },
   { 403, "alignment-global-min-identity", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=80%)" },
   { 404, "alignment-global-min-score", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=0.20)" },
   { 405, "alignment-local", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "'never'|'if-unmapped'" , "(default=if-unmapped)" },
@@ -419,9 +418,6 @@ bool gem_mapper_parse_arguments_single_end(
       return true;
     case 401: // --alignment-max-bandwidth (default=0.20, 20%)
       input_text_parse_extended_double(optarg,(double*)&search->alignment_max_bandwidth);
-      return true;
-    case 402: // --alignment-max-gap-length (default=100)
-      input_text_parse_extended_double(optarg,(double*)&search->alignment_max_aligned_gap_length);
       return true;
     case 403: // --alignment-global-min-identity (default=80%)
       input_text_parse_extended_double(optarg,(double*)&search->alignment_global_min_identity);

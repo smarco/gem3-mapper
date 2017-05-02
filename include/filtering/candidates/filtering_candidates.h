@@ -71,8 +71,6 @@ typedef struct {
   vector_t* discarded_regions;                     // Discarded regions (filtering_region_t*)
   /* Cache */
   filtering_region_cache_t filtering_region_cache; // Filtering-Region Cache
-  /* Extended matches */
-  vector_t* extended_matches;                      // Results from extending matches
   /* MM */
   mm_allocator_t* mm_allocator;                    // MM-Allocator
 } filtering_candidates_t;

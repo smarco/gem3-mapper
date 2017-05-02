@@ -125,10 +125,9 @@ void match_scaffold_chain_backtrace_lis(
 }
 void match_scaffold_chain_alignment_regions(
     match_scaffold_t* const match_scaffold,
-    const bool left_gap_alignment) {
+    const bool left_gap_alignment,
+    mm_allocator_t* const mm_allocator) {
   PROFILE_START(GP_MATCH_SCAFFOLD_CHAIN_REGIONS,PROFILE_LEVEL);
-  // Parameters
-  mm_allocator_t* const mm_allocator = match_scaffold->mm_allocator;
   // Sort alignment regions by text-offsets
   match_scaffold_sort_alignment_regions(match_scaffold);
   // Allocate DP-LIS table
@@ -258,7 +257,8 @@ void match_scaffold_chain(
     match_scaffold_t* const match_scaffold,
     pattern_t* const pattern,
     text_trace_t* const text_trace,
-    const bool exact_extend) {
+    const bool exact_extend,
+    mm_allocator_t* const mm_allocator) {
   PROF_INC_COUNTER(GP_MATCH_SCAFFOLD_CHAIN_REGIONS_SCAFFOLDS);
   PROFILE_START(GP_MATCH_SCAFFOLD_CHAIN_REGIONS,PROFILE_LEVEL);
   // Parameters
@@ -269,7 +269,7 @@ void match_scaffold_chain(
   // Find a compatible chain of alignment-regions
   if (match_scaffold->num_alignment_regions > 0) {
     const bool left_gap_alignment = (text_trace->strand==Forward);
-    match_scaffold_chain_alignment_regions(match_scaffold,left_gap_alignment);
+    match_scaffold_chain_alignment_regions(match_scaffold,left_gap_alignment,mm_allocator);
     if (match_scaffold->num_alignment_regions > 0) {
       // Extend alignment-regions as to maximize coverage
       if (exact_extend && match_scaffold->scaffolding_coverage < key_length) {

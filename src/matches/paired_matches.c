@@ -58,7 +58,6 @@ paired_matches_t* paired_matches_new(void) {
   // Single-End Matches
   paired_matches->matches_end1 = matches_new();
   paired_matches->matches_end2 = matches_new();
-  paired_matches->extended_matches = vector_new(PAIRED_MATCHES_INIT_MATCHES,match_trace_t*);
   // Paired-End Matches
   paired_matches->paired_maps = vector_new(PAIRED_MATCHES_INIT_MATCHES,paired_map_t);
   paired_matches->discordant_paired_maps = vector_new(PAIRED_MATCHES_INIT_MATCHES,paired_map_t);
@@ -90,7 +89,6 @@ void paired_matches_delete(paired_matches_t* const paired_matches) {
   // Single-End Matches
   matches_delete(paired_matches->matches_end1);
   matches_delete(paired_matches->matches_end2);
-  vector_delete(paired_matches->extended_matches);
   // Paired-End Matches
   vector_delete(paired_matches->paired_maps);
   vector_delete(paired_matches->discordant_paired_maps);

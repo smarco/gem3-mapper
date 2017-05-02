@@ -47,6 +47,7 @@ void match_align_swg(
     pattern_t* const pattern,
     text_trace_t* const text_trace,
     match_scaffold_t* const match_scaffold,
+    const bool local_alignment,
     match_trace_t* const match_trace,
     mm_allocator_t* const mm_allocator);
 

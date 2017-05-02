@@ -412,33 +412,6 @@ void mm_allocator_free_malloc(
   // Address not found. Raise error
   gem_fatal_error(MM_ALLOCATOR_FREE_INVALID_MALLOC_ADDRESS);
 }
-//void mm_allocator_free( // Old free implementation searching for the request
-//    mm_allocator_t* const mm_allocator,
-//    void* memory) {
-//  // Search for memory segment
-//  mm_allocator_segment_t* segment;
-//  uint64_t segment_idx;
-//  mm_allocator_search_segment(mm_allocator,memory,&segment,&segment_idx);
-//  if (segment==NULL) {
-//    // Malloc Memory. Search for request in malloc requests
-//    mm_allocator_free_malloc(mm_allocator,memory);
-//  } else {
-//    // Parameters
-//    const bool stacked_pending = (vector_get_used(mm_allocator->states)>0);
-//    // Allocator Memory. Search for request inside segment
-//    mm_allocator_request_t* request;
-//    uint64_t request_idx;
-//    mm_allocator_search_request(segment,memory,&request,&request_idx);
-//    gem_cond_fatal_error(MM_ALLOCATOR_REQUEST_IS_FREE(request),MM_ALLOCATOR_FREE_DOUBLE);
-//    // Free request
-//    MM_ALLOCATOR_REQUEST_SET_FREE(request);
-//    // Free contiguous request(s)
-//    // if (segment_idx==0 && !stacked_pending) {
-//    if (!stacked_pending && segment->request_freed_idx==request_idx) {
-//      mm_allocator_free_contiguous_memory(mm_allocator);
-//    }
-//  }
-//}
 void mm_allocator_free(
     mm_allocator_t* const mm_allocator,
     void* const memory) {

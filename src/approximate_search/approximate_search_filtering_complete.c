@@ -63,7 +63,7 @@ void approximate_search_filtering_complete(
   filtering_candidates_process_candidates(filtering_candidates,pattern,true);
   filtering_candidates_verify_candidates(filtering_candidates,pattern);
   // Align candidates
-  filtering_candidates_align_candidates(filtering_candidates,pattern,false,false,matches);
+  filtering_candidates_align_candidates(filtering_candidates,pattern,false,matches);
   // Finish search
   approximate_search_end(search,matches);
 }

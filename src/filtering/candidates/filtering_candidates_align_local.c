@@ -77,7 +77,9 @@ void filtering_candidates_align_local(
     text_trace_t* const text_trace = &filtering_region->text_trace;
     // Exact extend and region chain scaffold
     if (filtering_region->match_scaffold.scaffold_type <= scaffold_none) {
-      match_scaffold_region_chain(&filtering_region->match_scaffold,pattern,text_trace,matches);
+      match_scaffold_region_chain(
+          &filtering_region->match_scaffold,pattern,
+          text_trace,matches,filtering_candidates->mm_allocator);
     }
   }
   /*
@@ -97,7 +99,7 @@ void filtering_candidates_align_local(
     PROF_INC_COUNTER(GP_CANDIDATE_REGION_LOCAL_ALIGNED);
     filtering_candidates_align_region(
         filtering_candidates,filtering_region,pattern,
-        true,false,matches,&region_accepted,&match_accepted);
+        true,matches,&region_accepted,&match_accepted);
     if (region_accepted && match_accepted) ++total_matches;
   }
   // Clear discarded-candidates

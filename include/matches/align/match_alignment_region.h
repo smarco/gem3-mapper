@@ -40,16 +40,16 @@ typedef enum {
 
 typedef struct {
   /* Alignment-region type */
-  uint16_t _error;
-  uint16_t _type;
+  uint16_t error;
+  uint16_t type;
   /* CIGAR alignment-region */
-  uint32_t _cigar_buffer_offset;
-  uint32_t _cigar_length;
+  uint32_t cigar_buffer_offset;
+  uint32_t cigar_length;
   /* Coordinates of the region */
-  uint32_t _key_begin;
-  uint32_t _key_end;
-  uint32_t _text_begin;
-  uint32_t _text_end;
+  uint32_t key_begin;
+  uint32_t key_end;
+  uint32_t text_begin;
+  uint32_t text_end;
 } match_alignment_region_t;
 
 /*

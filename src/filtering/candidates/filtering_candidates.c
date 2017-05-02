@@ -56,7 +56,6 @@ void filtering_candidates_init(filtering_candidates_t* const filtering_candidate
   filtering_candidates->filtering_positions = vector_new(CANDIDATE_POSITIONS_INIT,filtering_position_t*);
   filtering_candidates->filtering_regions = vector_new(CANDIDATE_POSITIONS_INIT,filtering_region_t*);
   filtering_candidates->discarded_regions = vector_new(CANDIDATE_POSITIONS_INIT,filtering_region_t*);
-  filtering_candidates->extended_matches = NULL;
   // Cache
   filtering_region_cache_init(&filtering_candidates->filtering_region_cache);
 }
@@ -101,8 +100,6 @@ void filtering_candidates_clear(
     }
   }
   vector_clear(filtering_candidates->discarded_regions);
-  // Extended Matches
-  filtering_candidates->extended_matches = NULL;
 }
 void filtering_candidates_destroy(
     filtering_candidates_t* const filtering_candidates,
@@ -160,7 +157,9 @@ void filtering_candidates_free_region(
   filtering_candidates_free_alignment_tiles(
       filtering_candidates,filtering_region->alignment.alignment_tiles);
   // Free scaffold
-  match_scaffold_destroy(&filtering_region->match_scaffold);
+  match_scaffold_destroy(
+      &filtering_region->match_scaffold,
+      filtering_candidates->mm_allocator);
   // Free handler
   mm_allocator_free(filtering_candidates->mm_allocator,filtering_region);
 }

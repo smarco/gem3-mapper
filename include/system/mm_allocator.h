@@ -36,7 +36,7 @@
  * Debug
  */
 //#define MM_ALLOCATOR_MALLOC
-#define MM_ALLOCATOR_LOG
+//#define MM_ALLOCATOR_LOG
 
 /*
  * MM-Allocator Segments

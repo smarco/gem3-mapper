@@ -57,7 +57,6 @@ typedef struct {
   /* Single-End Matches */
   matches_t* matches_end1;                     // Matches end1
   matches_t* matches_end2;                     // Matches end2
-  vector_t* extended_matches;                  // Matches product from extension (match_trace_t*)
   /* Paired-End Matches */
   vector_t* paired_maps;                       // Paired Maps (paired_map_t)
   vector_t* discordant_paired_maps;            // Discordant Paired Maps (paired_map_t)

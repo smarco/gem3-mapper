@@ -93,6 +93,10 @@ void matches_cigar_vector_append_cigar_element(
     vector_t* const cigar_vector,
     uint64_t* const cigar_length,
     cigar_element_t* const cigar_element);
+void matches_cigar_vector_insert_cigar_element(
+    vector_t* const cigar_vector,
+    const int64_t position,
+    cigar_element_t* const cigar_element);
 
 /*
  * CIGAR Vector Utils

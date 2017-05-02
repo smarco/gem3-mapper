@@ -115,8 +115,9 @@ uint64_t filtering_candidates_extend_match(
   matches_t* matches_candidate = (candidate_end==paired_end1) ?
       paired_matches->matches_end1 : paired_matches->matches_end2;
   // Align
-  candidates_found = filtering_candidates_align_candidates(
-      filtering_candidates,candidate_pattern,true,false,matches_candidate);
+  candidates_found =
+      filtering_candidates_align_extended_candidates(
+          filtering_candidates,candidate_pattern,matches_candidate);
   PROFILE_STOP(GP_FC_EXTEND_REALIGN_CANDIDATE_REGIONS,PROFILE_LEVEL);
   PROFILE_STOP(GP_FC_EXTEND_MATCH,PROFILE_LEVEL);
   // Return number of extended-matches found

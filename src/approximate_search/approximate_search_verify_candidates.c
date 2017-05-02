@@ -59,7 +59,7 @@ void approximate_search_verify_candidates(
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
   // Verify Candidates
   filtering_candidates_verify_candidates(filtering_candidates,pattern);
-  filtering_candidates_align_candidates(filtering_candidates,pattern,false,false,matches);
+  filtering_candidates_align_candidates(filtering_candidates,pattern,false,matches);
   search->processing_state = asearch_processing_state_candidates_verified;
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
 }
@@ -136,7 +136,7 @@ void approximate_search_bpm_align_buffered_retrieve(
       search->gpu_buffer_bpm_align_offset);
   // Align
   filtering_candidates_align_candidates(
-      search->filtering_candidates,&search->pattern,false,false,matches);
+      search->filtering_candidates,&search->pattern,false,matches);
   // Update state
   search->processing_state = asearch_processing_state_candidates_verified;
 }

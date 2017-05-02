@@ -44,16 +44,19 @@
 void match_scaffold_levenshtein_allocate(
     match_scaffold_t* const match_scaffold,
     const uint64_t key_length,
-    const uint64_t matching_min_length) {
+    const uint64_t matching_min_length,
+    mm_allocator_t* const mm_allocator) {
   // Parameters
   const uint64_t max_alignment_regions = DIV_CEIL(key_length,matching_min_length);
   // Init & allocate
   match_scaffold->num_alignment_regions = 0;
   if (match_scaffold->alignment_regions!=NULL) {
-    match_scaffold_free_alignment_region(match_scaffold,match_scaffold->alignment_regions);
+    match_scaffold_free_alignment_region(
+        match_scaffold,match_scaffold->alignment_regions,mm_allocator);
   }
   match_scaffold->alignment_regions =
-      match_scaffold_allocate_alignment_region(match_scaffold,max_alignment_regions);
+      match_scaffold_allocate_alignment_region(
+          match_scaffold,max_alignment_regions,mm_allocator);
 }
 /*
  * Compose the scaffolding
@@ -158,10 +161,11 @@ void match_scaffold_levenshtein_tile_align_bpm(
     // Offset wrt text (without padding)
     match_alignment.match_text_offset = alignment_offset - text_padding_left;
     //    // DEBUG
-    //    match_alignment_print_pretty(stderr,&match_alignment,matches->cigar_vector,
-    //      key + key_offset,bpm_pattern_tile->pattern_length,
-    //      text_trace->text_padded + text_begin + alignment_offset,
-    //      text_end-match_alignment.match_text_offset,mm_allocator);
+    //    alignment_print_pretty(stderr,
+    //        key+key_offset,100-key_offset,
+    //        text_trace->text+match_alignment.match_text_offset,
+    //        text_trace->text_length-match_alignment.match_text_offset,matches->cigar_vector,
+    //        match_alignment.cigar_offset,match_alignment.cigar_length,mm_allocator);
     // Add the alignment to the scaffold
     match_scaffold_levenshtein_compose_alignment(
         match_scaffold,&match_alignment,
@@ -176,7 +180,8 @@ void match_scaffold_levenshtein_tile(
     alignment_tile_t* const alignment_tile,
     pattern_tile_t* const pattern_tile,
     const uint64_t matching_min_length,
-    matches_t* const matches) {
+    matches_t* const matches,
+    mm_allocator_t* const mm_allocator) {
   // Check tile distance
   const uint64_t match_distance = alignment_tile->distance;
   //  if (match_distance==0) { // TODO
@@ -192,7 +197,6 @@ void match_scaffold_levenshtein_tile(
     const uint64_t text_end = alignment_tile->text_end_offset;
     const uint64_t max_distance = MIN(match_distance,pattern_tile->max_error);
     // BPM Scaffold
-    mm_allocator_t* const mm_allocator = match_scaffold->mm_allocator;
     mm_allocator_push_state(mm_allocator); // Push allocator state
     match_scaffold_levenshtein_tile_align_bpm(
         match_scaffold,key,key_offset,bpm_pattern_tile,
@@ -215,11 +219,14 @@ bool match_scaffold_levenshtein(
     text_trace_t* const text_trace,
     alignment_t* const alignment,
     const uint64_t matching_min_length,
-    matches_t* const matches) {
+    matches_t* const matches,
+    mm_allocator_t* const mm_allocator) {
   PROF_INC_COUNTER(GP_MATCH_SCAFFOLD_EDIT_SCAFFOLDS);
   PROFILE_START(GP_MATCH_SCAFFOLD_EDIT,PROFILE_LEVEL);
   // Allocate scaffold
-  match_scaffold_levenshtein_allocate(match_scaffold,pattern->key_length,matching_min_length);
+  match_scaffold_levenshtein_allocate(
+      match_scaffold,pattern->key_length,
+      matching_min_length,mm_allocator);
   // Compute dimensions
   pattern_tiled_t* const pattern_tiled = &pattern->pattern_tiled;
   const uint64_t num_tiles = pattern_tiled->num_tiles;
@@ -232,10 +239,11 @@ bool match_scaffold_levenshtein(
     match_scaffold_levenshtein_tile(
         match_scaffold,pattern,text_trace,
         alignment_tile,pattern_tile,
-        matching_min_length,matches);
+        matching_min_length,matches,
+        mm_allocator);
   }
   // Chains scaffolds
-  match_scaffold_chain(match_scaffold,pattern,text_trace,false);
+  match_scaffold_chain(match_scaffold,pattern,text_trace,false,mm_allocator);
   // DEBUG
   gem_cond_debug_block(DEBUG_MATCH_SCAFFOLD_EDIT) {
     tab_fprintf(gem_log_get_stream(),"[GEM]>Match.Scaffold.Levenshtein\n");

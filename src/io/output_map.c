@@ -30,6 +30,7 @@
  * Constants
  */
 #define OUTPUT_MAP_COUNTERS_MIN_COMPACT_ZEROS 5
+//#define OUTPUT_MAP_SWG_SCORE_SUCCINT
 
 /*
  * Utils
@@ -151,6 +152,13 @@ void output_map_print_match(
   // Print Position
   bofprintf_char(buffered_output_file,':');
   bofprintf_uint64(buffered_output_file,match_trace->text_position+1); /* Base-1 */
+#ifdef OUTPUT_MAP_SWG_SCORE_SUCCINT
+  // SWG Score
+  bofprintf_char(buffered_output_file,':');
+  bofprintf_int64(buffered_output_file,match_trace->swg_score);
+  bofprintf_char(buffered_output_file,':');
+  bofprintf_uint64(buffered_output_file,match_trace->match_alignment.effective_length);
+#else
   // Print CIGAR
   bofprintf_char(buffered_output_file,':');
   const cigar_element_t* const cigar_buffer = match_trace_get_cigar_buffer(matches,match_trace);
@@ -166,6 +174,7 @@ void output_map_print_match(
       GEM_NOT_IMPLEMENTED();
       break;
   }
+#endif
   if (print_mapq) {
     bofprintf_char(buffered_output_file,':');
     bofprintf_char(buffered_output_file,':');
@@ -208,8 +217,10 @@ void output_map_alignment_pretty(
     mm_allocator_t* const mm_allocator) {
   tab_fprintf(stream,"%s:%"PRIu64":%c\n",match_trace->sequence_name,
       match_trace->text_position,(match_trace->strand==Forward)?'+':'-');
-  match_alignment_print_pretty(stream,&match_trace->match_alignment,
-      matches->cigar_vector,key,key_length,text,text_length,mm_allocator);
+  match_alignment_print_pretty(
+      stream,&match_trace->match_alignment,
+      key,key_length,text,text_length,
+      matches->cigar_vector,mm_allocator);
 }
 /*
  * Separator

@@ -176,10 +176,11 @@ void filtering_region_align_inexact(
           local_alignment,match_trace,mm_allocator);
       //      // DEBUG
       //      fprintf(stderr,"[GEM]>Text-Alignment\n");
-      //      match_alignment_print_pretty(stderr,&match_trace->match_alignment,
-      //          matches->cigar_vector,pattern->key,pattern->key_length,
-      //          text_trace->text+match_trace->match_alignment.match_text_offset,
-      //          text_trace->text_length,mm_allocator);
+      //      match_alignment_print_pretty(
+      //          stderr,&match_trace->match_alignment,
+      //          pattern->key,pattern->key_length,
+      //          text_trace->text,text_trace->text_length,
+      //          matches->cigar_vector,mm_allocator);
       break;
     }
     default:

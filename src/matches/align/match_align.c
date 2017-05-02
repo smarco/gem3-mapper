@@ -297,7 +297,8 @@ void match_align_smith_waterman_gotoh(
     match_scaffold_adaptive(
         match_scaffold,pattern,text_trace,alignment,
         search_parameters->alignment_global_min_identity_nominal,
-        search_parameters->alignment_scaffolding_min_matching_length_nominal,matches);
+        search_parameters->alignment_scaffolding_min_matching_length_nominal,
+        matches,mm_allocator);
     PROFILE_CONTINUE(GP_MATCHES_ALIGN_SWG,PROFILE_LEVEL);
     if (match_scaffold->num_alignment_regions==0) {
       PROF_INC_COUNTER(GP_ALIGNED_DISCARDED_SCAFFOLD);
@@ -311,7 +312,7 @@ void match_align_smith_waterman_gotoh(
   // Align SWG
   match_align_swg(
       matches,search_parameters,pattern,text_trace,
-      match_scaffold,match_trace,mm_allocator);
+      match_scaffold,local_alignment,match_trace,mm_allocator);
   // Check for bad alignments (discarded)
   match_alignment_t* const match_alignment = &match_trace->match_alignment;
   if (match_alignment->score == SWG_SCORE_MIN) { // Input trims not computed

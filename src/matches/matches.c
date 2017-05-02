@@ -29,7 +29,7 @@
  * Constants
  */
 #define MATCHES_INIT_INTERVAL_MATCHES  100
-#define MATCHES_INIT_GLOBAL_MATCHES   1000
+#define MATCHES_INIT_GLOBAL_MATCHES    100
 #define MATCHES_INIT_CIGAR_OPS        5000
 
 /*
@@ -59,9 +59,10 @@ matches_t* matches_new(void) {
   // MM
   matches->mm_slab = mm_slab_new_(BUFFER_SIZE_4M,BUFFER_SIZE_4M,MM_UNLIMITED_MEM);
   matches->mm_allocator = mm_allocator_new(matches->mm_slab);
-  // Position Matches
+  // Match-Traces
   matches->match_traces = vector_new(MATCHES_INIT_GLOBAL_MATCHES,match_trace_t*);
   matches->match_traces_local = vector_new(MATCHES_INIT_GLOBAL_MATCHES,match_trace_t*);
+  matches->match_traces_extended = vector_new(MATCHES_INIT_GLOBAL_MATCHES,match_trace_t*);
   matches->match_traces_begin = ihash_new(matches->mm_allocator);
   matches->match_traces_end = ihash_new(matches->mm_allocator);
   // CIGAR buffer
@@ -78,6 +79,7 @@ void matches_clear(matches_t* const matches) {
   matches_metrics_init(&matches->metrics);
   vector_clear(matches->match_traces);
   vector_clear(matches->match_traces_local);
+  vector_clear(matches->match_traces_extended);
   ihash_clear(matches->match_traces_begin);
   ihash_clear(matches->match_traces_end);
   vector_clear(matches->cigar_vector);
@@ -88,6 +90,7 @@ void matches_delete(matches_t* const matches) {
   matches_counters_delete(matches->counters);
   vector_delete(matches->match_traces);
   vector_delete(matches->match_traces_local);
+  vector_delete(matches->match_traces_extended);
   ihash_delete(matches->match_traces_begin);
   ihash_delete(matches->match_traces_end);
   vector_delete(matches->cigar_vector);

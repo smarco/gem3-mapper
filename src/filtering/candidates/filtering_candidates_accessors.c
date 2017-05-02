@@ -77,8 +77,10 @@ void filtering_candidates_compose_filtering_region_from_positions_exact(
   // Compose scaffolding
   PROF_ADD_COUNTER(GP_CANDIDATE_REGION_ALIGNMENT_REGIONS_TOTAL,1);
   match_scaffold_t* const match_scaffold = &filtering_region->match_scaffold;
-  match_scaffold_init(match_scaffold,filtering_candidates->mm_allocator);
-  match_scaffold->alignment_regions = match_scaffold_allocate_alignment_region(match_scaffold,1);
+  match_scaffold_init(match_scaffold);
+  match_scaffold->alignment_regions =
+      match_scaffold_allocate_alignment_region(
+          match_scaffold,1,filtering_candidates->mm_allocator);
   match_scaffold->num_alignment_regions = 1;
   match_scaffold->alignment_regions_rl = run_length_text;
   match_scaffold->scaffolding_coverage = 0;
@@ -122,10 +124,12 @@ void filtering_candidates_compose_filtering_region_from_positions(
   // Compose alignment-regions
   PROF_ADD_COUNTER(GP_CANDIDATE_REGION_ALIGNMENT_REGIONS_TOTAL,last_candidate_idx-first_candidate_idx+1);
   match_scaffold_t* const match_scaffold = &filtering_region->match_scaffold;
-  match_scaffold_init(match_scaffold,filtering_candidates->mm_allocator);
+  match_scaffold_init(match_scaffold);
   if (compose_alignment_regions) {
     const uint64_t num_alignment_regions = last_candidate_idx-first_candidate_idx+1;
-    match_scaffold->alignment_regions = match_scaffold_allocate_alignment_region(match_scaffold,num_alignment_regions);
+    match_scaffold->alignment_regions =
+        match_scaffold_allocate_alignment_region(
+            match_scaffold,num_alignment_regions,filtering_candidates->mm_allocator);
     match_scaffold->num_alignment_regions = num_alignment_regions;
     match_scaffold->alignment_regions_rl = run_length_text;
     match_scaffold->scaffolding_coverage = 0;
@@ -277,7 +281,7 @@ void filtering_candidates_add_region_verified(
   filtering_region->key_trim_right = 0;
   filtering_region->key_trimmed = false;
   // Scaffolding
-  match_scaffold_init(&filtering_region->match_scaffold,filtering_candidates->mm_allocator);
+  match_scaffold_init(&filtering_region->match_scaffold);
   // Regions-Alignment
   alignment_t* const alignment = &filtering_region->alignment;
   alignment->distance_min_bound = align_distance;

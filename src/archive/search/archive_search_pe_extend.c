@@ -87,36 +87,37 @@ uint64_t archive_search_pe_extend_matches_ends(
   approximate_search_t* const approximate_search = &candidate_archive_search->approximate_search;
   filtering_candidates_t* const filtering_candidates = approximate_search->filtering_candidates;
   pattern_t* const candidate_pattern = &candidate_archive_search->approximate_search.pattern;
-  // Inject extended-vector to filtering_candidates
-  filtering_candidates->extended_matches = paired_matches->extended_matches;
+  // Check orientation
+  if (search_paired_parameters->pair_orientation[pair_orientation_FR] != pair_relation_concordant) {
+    return 0;
+  }
   // Iterate over all matches of the extended end
   const uint64_t num_extended_match_traces = matches_get_num_match_traces(extended_matches);
   match_trace_t** const extended_match_traces = matches_get_match_traces(extended_matches);
   uint64_t i, total_matches_found = 0;
   for (i=0;i<num_extended_match_traces;++i) {
+    // Fetch match
+    match_trace_t* const extended_match = extended_match_traces[i];
     // Skip matches retrieved from extension
-    if (extended_match_traces[i]->type == match_type_extended) continue;
-    // Check orientation
-    if (search_paired_parameters->pair_orientation[pair_orientation_FR] == pair_relation_concordant) {
-      PROF_INC_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_NUM_MATCHES);
-      // Extend (filter nearby region)
-      vector_clear(filtering_candidates->extended_matches);
-      total_matches_found += approximate_search_verify_extend_candidate(filtering_candidates,
-          candidate_pattern,extended_match_traces[i],mapper_stats,paired_matches,candidate_end);
-    }
+    if (extended_match->type == match_type_extended) continue;
+    // Extend (filter nearby region)
+    PROF_INC_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_NUM_MATCHES);
+    vector_clear(candidate_matches->match_traces_extended);
+    total_matches_found += approximate_search_verify_extend_candidate(filtering_candidates,
+        candidate_pattern,extended_match,mapper_stats,paired_matches,candidate_end);
     // Cross-Pair extended matches
-    const uint64_t num_matches_result = vector_get_used(filtering_candidates->extended_matches);
-    match_trace_t** const matches_result = vector_get_mem(filtering_candidates->extended_matches,match_trace_t*);
+    const uint64_t num_matches_result = vector_get_used(candidate_matches->match_traces_extended);
+    match_trace_t** const matches_result = vector_get_mem(candidate_matches->match_traces_extended,match_trace_t*);
     uint64_t j;
     for (j=0;j<num_matches_result;++j) {
       if (candidate_end == paired_end2) {
         paired_matches_cross_pair(
             paired_matches,search_parameters,mapper_stats,
-            extended_match_traces[i],matches_result[j]);
+            extended_match,matches_result[j]);
       } else {
         paired_matches_cross_pair(
             paired_matches,search_parameters,mapper_stats,
-            matches_result[j],extended_match_traces[i]);
+            matches_result[j],extended_match);
       }
     }
     // Check total matches found

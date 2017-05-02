@@ -107,8 +107,8 @@ bool archive_check_se_match_check_optimum(
       align_swg_base(
           match_align_input->key,match_align_input->key_length,
           match_align_input->text,match_align_input->text_length,
-          swg_penalties,&optimum_match_trace->match_alignment,
-          cigar_vector,mm_allocator);
+          swg_penalties,(match_trace->strand==Forward),
+          &optimum_match_trace->match_alignment,cigar_vector,mm_allocator);
       optimum_match_trace->swg_score = optimum_match_trace->match_alignment.score;
       return (optimum_match_trace->swg_score == match_trace->swg_score);
       break;
@@ -134,9 +134,11 @@ void archive_check_se_match_print(
   // Alignment
   tab_fprintf(stream,"=> Alignment\n");
   tab_global_inc();
-  match_alignment_print_pretty(stream,&match_trace->match_alignment,
-      matches->cigar_vector,match_align_input->key,match_align_input->key_length,
-      match_align_input->text,match_trace->match_alignment.effective_length,mm_allocator);
+  match_alignment_print_pretty(
+      stream,&match_trace->match_alignment,
+      match_align_input->key,match_align_input->key_length,
+      match_align_input->text,match_trace->match_alignment.effective_length,
+      matches->cigar_vector,mm_allocator);
   tab_global_dec();
   // Supporting Edit-alignment
   match_scaffold_t* const match_scaffold = (match_scaffold_t*) match_trace->match_scaffold;
@@ -195,9 +197,10 @@ void archive_check_se_match_print_suboptimum(
   tab_global_inc();
   match_alignment_print_pretty(
       stream,&optimum_match_trace->match_alignment,
-      matches->cigar_vector,match_align_input->key,
-      match_align_input->key_length,match_align_input->text+opt_alignment_offset,
-      optimum_match_trace->match_alignment.effective_length,mm_allocator);
+      match_align_input->key,match_align_input->key_length,
+      match_align_input->text+opt_alignment_offset,
+      optimum_match_trace->match_alignment.effective_length,
+      matches->cigar_vector,mm_allocator);
   tab_global_dec();
   tab_global_dec();
 }
@@ -231,9 +234,10 @@ void archive_check_se_matches(
     archive_check_se_match_retrieve_text(archive,match_trace,&match_align_input,mm_allocator);
     // Check correctness
     match_alignment_t* const match_alignment = &match_trace->match_alignment;
-    const bool correct_alignment = alignment_check(stream,key,key_length,match_align_input.text,
-        match_alignment->effective_length,matches->cigar_vector,match_alignment->cigar_offset,
-        match_alignment->cigar_length,true);
+    const bool correct_alignment = alignment_check(
+        stream,key,key_length,match_align_input.text,
+        match_alignment->effective_length,matches->cigar_vector,
+        match_alignment->cigar_offset,match_alignment->cigar_length,false,true);
     if (!correct_alignment) {
       PROF_INC_COUNTER(GP_CHECK_INCORRECT);
       archive_check_se_match_print_incorrect(stream,match_trace,matches,&match_align_input,sequence,mm_allocator);

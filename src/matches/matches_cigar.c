@@ -167,6 +167,23 @@ void matches_cigar_vector_append_cigar_element(
       break;
   }
 }
+void matches_cigar_vector_insert_cigar_element(
+    vector_t* const cigar_vector,
+    const int64_t position,
+    cigar_element_t* const cigar_element) {
+  // Reserve element & shift elements
+  vector_reserve_additional(cigar_vector,1);
+  cigar_element_t* const cigar_element_buffer = vector_get_mem(cigar_vector,cigar_element_t);
+  const uint64_t cigar_vector_used = vector_get_used(cigar_vector);
+  int64_t i;
+  for (i=cigar_vector_used-1;i>=position;--i) {
+    cigar_element_buffer[i+1] = cigar_element_buffer[i];
+  }
+  // Insert new element
+  cigar_element_buffer[position] = *cigar_element;
+  // Set used
+  vector_set_used(cigar_vector,cigar_vector_used+1);
+}
 /*
  * CIGAR Vector Utils
  */

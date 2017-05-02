@@ -72,7 +72,6 @@ void search_parameters_init_alignment(search_parameters_t* const search_paramete
   search_parameters->complete_strata_after_best = 1.0;
   search_parameters->alignment_max_error = 0.12;
   search_parameters->alignment_max_bandwidth = 0.20;
-  search_parameters->alignment_max_aligned_gap_length = 100.0;
   search_parameters->alignment_force_full_swg = false;
   search_parameters->alignment_global_min_identity = 0.80;
   search_parameters->alignment_global_min_swg_threshold = 0.40; // 0.40*read_length*match_score
@@ -81,6 +80,7 @@ void search_parameters_init_alignment(search_parameters_t* const search_paramete
   search_parameters->alignment_local_min_identity = 40.0;
   search_parameters->alignment_local_min_swg_threshold = 20.0;
   search_parameters->alignment_local_max_candidates = 100;
+  search_parameters->swg_score_dropoff = 100;
   search_parameters->alignment_scaffolding_min_coverage = 0.80;
   search_parameters->alignment_scaffolding_min_matching_length = 10.0;
   search_parameters->cigar_curation = true;
@@ -203,7 +203,6 @@ void search_instantiate_values(
   SEARCH_INSTANTIATE_VALUE(search_parameters,alignment_global_min_swg_threshold,max_swg_score);
   SEARCH_INSTANTIATE_VALUE(search_parameters,alignment_local_min_identity,pattern_length);
   SEARCH_INSTANTIATE_VALUE(search_parameters,alignment_local_min_swg_threshold,max_swg_score);
-  SEARCH_INSTANTIATE_VALUE(search_parameters,alignment_max_aligned_gap_length,pattern_length);
   SEARCH_INSTANTIATE_VALUE(search_parameters,alignment_scaffolding_min_coverage,pattern_length);
   SEARCH_INSTANTIATE_VALUE(search_parameters,alignment_scaffolding_min_matching_length,pattern_length);
   SEARCH_INSTANTIATE_VALUE(search_parameters,cigar_curation_min_end_context,pattern_length);
@@ -228,7 +227,6 @@ void search_parameters_print(
   tab_fprintf(stream,"  => Alignment.Global.min.swg.threshold %lu\n",search_parameters->alignment_global_min_swg_threshold_nominal);
   tab_fprintf(stream,"  => Alignment.Local.min.identity %lu\n",search_parameters->alignment_local_min_identity_nominal);
   tab_fprintf(stream,"  => Alignment.Local.min.swg.threshold %lu\n",search_parameters->alignment_local_min_swg_threshold_nominal);
-  tab_fprintf(stream,"  => Alignment.Local.max.gap.length %lu\n",search_parameters->alignment_max_aligned_gap_length_nominal);
   tab_fprintf(stream,"  => Alignment.scaffolding.min.coverage %lu\n",search_parameters->alignment_scaffolding_min_coverage_nominal);
   tab_fprintf(stream,"  => Alignment.scaffolding.min.matching.length %lu\n",search_parameters->alignment_scaffolding_min_matching_length_nominal);
   tab_fprintf(stream,"  => Cigar.curation.min.end.context %lu\n",search_parameters->cigar_curation_min_end_context_nominal);

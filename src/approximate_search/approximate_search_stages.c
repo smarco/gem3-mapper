@@ -148,7 +148,7 @@ void approximate_search_exact_filtering_adaptive_cutoff(
     PROFILE_START(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING,PROFILE_LEVEL);
     filtering_candidates_process_candidates(filtering_candidates,pattern,true);
     filtering_candidates_verify_candidates(filtering_candidates,pattern);
-    filtering_candidates_align_candidates(filtering_candidates,pattern,false,false,matches);
+    filtering_candidates_align_candidates(filtering_candidates,pattern,false,matches);
     PROFILE_STOP(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING,PROFILE_LEVEL);
     // Cut-off condition
     ++(region_profile->num_filtered_regions);
@@ -175,7 +175,7 @@ void approximate_search_verify(
   // Realign
   if (num_accepted_regions > 0) {
     filtering_candidates_align_candidates(
-        search->filtering_candidates,&search->pattern,false,false,matches);
+        search->filtering_candidates,&search->pattern,false,matches);
   }
   // Update state
   search->processing_state = asearch_processing_state_candidates_verified;

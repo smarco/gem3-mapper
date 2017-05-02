@@ -31,15 +31,24 @@
  * SWG - BackTrace
  */
 void align_swg_traceback(
+    /* Input key/Text */
     const uint8_t* const key,
     const uint64_t key_length,
     uint8_t* const text,
     const uint64_t text_length,
+    const bool reverse_strings,
+    /* DP Computed */
     swg_cell_t** const dp,
     const int32_t max_score,
+    const uint64_t max_score_row,
     const uint64_t max_score_column,
+    /* SWG Scoring */
     const int32_t single_gap,
+    const swg_matching_score_t* const matching_score,
+    /* Alignment Parameters */
     const bool begin_free,
+    const bool left_gap_alignment,
+    /* Match-Alignment Results */
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector) {
   // Allocate CIGAR string memory (worst case)
@@ -51,9 +60,10 @@ void align_swg_traceback(
   int64_t match_effective_length = key_length;
   int32_t match_alignment_score = max_score;
   int64_t h = max_score_column;
-  int64_t v = key_length;
+  int64_t v = max_score_row;
   cigar_t traceback_matrix = cigar_match;
   while (v > 0 && h > 0) {
+    // Apply operation
     switch (traceback_matrix) {
       case cigar_del:
         // Traceback D-matrix
@@ -69,17 +79,35 @@ void align_swg_traceback(
         break;
       default:
         // Traceback M-matrix
-        if (dp[h][v].M == dp[h][v].D) {
-          traceback_matrix = cigar_del;
-        } else if (dp[h][v].M == dp[h][v].I) {
-          traceback_matrix = cigar_ins;
-        } else {
-          if (key[v-1] != text[h-1] || key[v-1] == ENC_DNA_CHAR_N) { // N's Inequality
-            // Mismatch
-            matches_cigar_buffer_add_mismatch(&cigar_buffer_sentinel,text[h-1]);
+        if (left_gap_alignment) {
+          const uint8_t enc_text = text[(reverse_strings) ? text_length - h : h-1];
+          const uint8_t enc_key = key[(reverse_strings) ? key_length - v : v-1];
+          const int32_t match = dp[h-1][v-1].M + (*matching_score)[enc_text][enc_key];
+          if (dp[h][v].M == match) {
+            if (enc_key != enc_text || enc_key == ENC_DNA_CHAR_N) { // N's Inequality
+              matches_cigar_buffer_add_mismatch(&cigar_buffer_sentinel,enc_text); // Mismatch
+            } else {
+              matches_cigar_buffer_add_cigar_element(&cigar_buffer_sentinel,cigar_match,1); // Match
+            }
             --h; --v;
+          } else if (dp[h][v].M == dp[h][v].D) {
+            traceback_matrix = cigar_del;
+          } else { // if (dp[h][v].M == dp[h][v].I) {
+            traceback_matrix = cigar_ins;
+          }
+        } else {
+          if (dp[h][v].M == dp[h][v].D) {
+            traceback_matrix = cigar_del;
+          } else if (dp[h][v].M == dp[h][v].I) {
+            traceback_matrix = cigar_ins;
           } else {
-            matches_cigar_buffer_add_cigar_element(&cigar_buffer_sentinel,cigar_match,1); // Match
+            const uint8_t enc_text = text[(reverse_strings) ? text_length - h : h-1];
+            const uint8_t enc_key = key[(reverse_strings) ? key_length - v : v-1];
+            if (enc_key != enc_text || enc_key == ENC_DNA_CHAR_N) { // N's Inequality
+              matches_cigar_buffer_add_mismatch(&cigar_buffer_sentinel,enc_text); // Mismatch
+            } else {
+              matches_cigar_buffer_add_cigar_element(&cigar_buffer_sentinel,cigar_match,1); // Match
+            }
             --h; --v;
           }
         }
@@ -103,7 +131,7 @@ void align_swg_traceback(
   const uint64_t num_cigar_elements = cigar_buffer_sentinel - cigar_buffer_base;
   vector_add_used(cigar_vector,num_cigar_elements);
   // Reverse CIGAR Elements
-  if (num_cigar_elements > 0) {
+  if (!reverse_strings && num_cigar_elements > 0) {
     const uint64_t middle_point = num_cigar_elements/2;
     uint64_t i;
     for (i=0;i<middle_point;++i) {
@@ -116,7 +144,7 @@ void align_swg_traceback(
   match_alignment->score = match_alignment_score; // Update alignment-score
 }
 /*
- * SWG - Init
+ * SWG Init
  */
 swg_cell_t** align_swg_allocate_table(
     const uint64_t num_columns,
@@ -168,41 +196,6 @@ void align_swg_init_table_banded(
     const bool begin_free,
     const int32_t single_gap,
     const int32_t gap_extension) {
-  uint64_t column, row;
-  // Initialize first column
-  dp[0][0].D = SWG_SCORE_MIN; // Not used
-  dp[0][0].I = SWG_SCORE_MIN; // Not used
-  dp[0][0].M = 0;
-  dp[0][1].M = single_gap; // g(1)
-  dp[0][1].I = SWG_SCORE_MIN;
-  for (row=2;row<band_low_offset;++row) {
-    dp[0][row].M = dp[0][row-1].M + gap_extension; // g(row)
-    dp[0][row].I = SWG_SCORE_MIN;
-  }
-  // Initialize first row
-  if (begin_free) {
-    for (column=1;column<num_columns;++column) {
-      dp[column][0].M = 0;
-      dp[column][0].D = SWG_SCORE_MIN;
-    }
-  } else {
-    dp[1][0].M = single_gap;
-    dp[1][0].D = SWG_SCORE_MIN;
-    for (column=2;column<column_start_band;++column) {
-      dp[column][0].M = dp[column-1][0].M + gap_extension;
-      dp[column][0].D = SWG_SCORE_MIN;
-    }
-  }
-}
-void align_swg_init_table_banded_opt(
-    swg_cell_t** const dp,
-    const uint64_t num_columns,
-    const uint64_t num_rows,
-    const uint64_t column_start_band,
-    const uint64_t band_low_offset,
-    const bool begin_free,
-    const int32_t single_gap,
-    const int32_t gap_extension) {
   dp[0][0].D = SWG_SCORE_MIN; // Not used
   dp[0][0].I = SWG_SCORE_MIN; // Not used
   dp[0][0].M = 0;
@@ -235,6 +228,60 @@ void align_swg_init_table_banded_opt(
   }
 }
 /*
+ * SWG Lazy Init
+ */
+void align_swg_allocate__init_column_banded(
+    swg_cell_t** const dp,
+    const uint64_t column_idx,
+    const uint64_t column_start_band,
+    const uint64_t band_low_offset,
+    const uint64_t band_high_offset,
+    const int32_t single_gap,
+    const int32_t gap_extension,
+    mm_allocator_t* const mm_allocator) {
+  // Check column index
+  if (column_idx == 0) {
+    // Allocate first and second column
+    const uint64_t effective_column_length = band_low_offset + 3;
+    const uint64_t effective_column_size = effective_column_length*sizeof(swg_cell_t);
+    dp[0] = mm_allocator_malloc(mm_allocator,effective_column_size);
+    dp[1] = mm_allocator_malloc(mm_allocator,effective_column_size);
+    // Initialize first column
+    dp[0][0].D = SWG_SCORE_MIN; // Not used
+    dp[0][0].I = SWG_SCORE_MIN; // Not used
+    dp[0][0].M = 0;
+    dp[0][1].M = single_gap; // g(1)
+    dp[0][1].I = SWG_SCORE_MIN;
+    uint64_t row;
+    for (row=2;row<band_low_offset;++row) {
+      dp[0][row].M = dp[0][row-1].M + gap_extension; // g(row)
+      dp[0][row].I = SWG_SCORE_MIN;
+    }
+  } else {
+    // Allocate next-column
+    const uint64_t effective_column_length = (band_low_offset+3) - band_high_offset;
+    const uint64_t effective_column_size = effective_column_length*sizeof(swg_cell_t);
+    const uint64_t mem_band_offset = band_high_offset*sizeof(swg_cell_t);
+    dp[column_idx+1] = mm_allocator_malloc(mm_allocator,effective_column_size) - mem_band_offset;
+    // Init
+    if (column_idx == 1) {
+      // Initialize second column
+      dp[1][0].M = single_gap;
+      dp[1][0].D = SWG_SCORE_MIN;
+      dp[1][1].D = single_gap + single_gap;
+      dp[1][1].I = SWG_SCORE_MIN;
+      uint64_t row;
+      for (row=2;row<band_low_offset;++row) {
+        dp[1][row].I = dp[0][row].M + single_gap;
+      }
+    } else if (column_idx < column_start_band) {
+      dp[column_idx][0].M = dp[column_idx-1][0].M + gap_extension;
+      dp[column_idx][0].D = SWG_SCORE_MIN;
+      dp[column_idx][1].D = dp[column_idx][0].M + single_gap;
+    }
+  }
+}
+/*
  * Smith-waterman-gotoh Base (ie. no-optimizations)
  */
 void align_swg_base(
@@ -243,6 +290,7 @@ void align_swg_base(
     uint8_t* const text,
     const uint64_t text_length,
     const swg_penalties_t* swg_penalties,
+    const bool left_gap_alignment,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,
     mm_allocator_t* const mm_allocator) {
@@ -284,16 +332,16 @@ void align_swg_base(
       max_score_column = column;
     }
   }
-  // DEBUG
-  // align_swg_match_table_print(dp,MIN(10,key_length),MIN(10,key_length));
   // Init Match
   match_alignment->cigar_length = 0;
   match_alignment->effective_length = 0;
   match_alignment->score = 0;
   // Retrieve the alignment. Store the match (Backtrace and generate CIGAR)
   align_swg_traceback(
-      key,key_length,text,text_length,dp,max_score,
-      max_score_column,single_gap,true,
+      key,key_length,text,text_length,false,
+      dp,max_score,key_length,max_score_column,
+      single_gap,matching_score,
+      true,left_gap_alignment,
       match_alignment,cigar_vector);
   // Clean-up
   mm_allocator_pop_state(mm_allocator); // Free
@@ -309,6 +357,7 @@ void align_swg_full(
     const swg_penalties_t* const swg_penalties,
     const bool begin_free,
     const bool end_free,
+    const bool left_gap_alignment,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,
     mm_allocator_t* const mm_allocator) {
@@ -324,7 +373,7 @@ void align_swg_full(
   const int32_t gap_extension = swg_penalties->gap_extension_score;
   const int32_t gap_open = swg_penalties->gap_open_score;
   const int32_t single_gap = gap_open + gap_extension; // g(1)
-  align_swg_init_table_banded_opt(dp,num_columns,num_rows,
+  align_swg_init_table_banded(dp,num_columns,num_rows,
       num_columns,num_rows,false,single_gap,gap_extension); // Initialize first/second column
   /*
    * Compute DP-matrix
@@ -365,8 +414,10 @@ void align_swg_full(
   }
   // Retrieve the alignment. Store the match (Backtrace and generate CIGAR)
   align_swg_traceback(
-      key,key_length,text,text_length,dp,max_score,
-      max_score_column,single_gap,begin_free,
+      key,key_length,text,text_length,false,
+      dp,max_score,key_length,max_score_column,
+      single_gap,matching_score,
+      begin_free,left_gap_alignment,
       match_alignment,cigar_vector);
   // Clean-up
   mm_allocator_pop_state(mm_allocator); // Free
@@ -381,9 +432,9 @@ void align_swg(
     uint8_t* const text,
     const uint64_t text_length,
     const swg_penalties_t* const swg_penalties,
+    const uint64_t max_bandwidth,
     const bool begin_free,
     const bool end_free,
-    const uint64_t max_bandwidth,
     const bool left_gap_alignment,
     match_alignment_t* const match_alignment,
     vector_t* const cigar_vector,
@@ -391,21 +442,17 @@ void align_swg(
   // Check lengths
   if (key_length == 0 && text_length == 0) {
     match_alignment->score = 0;
-    match_alignment->effective_length = 0;
   } else if (key_length == 0 && text_length > 0) {
     if (begin_free) {
       // Adjust position
       match_alignment->match_position += text_length;
       match_alignment->score = 0;
-      match_alignment->effective_length = 0;
     } else if (!end_free) {
       // Insertion <+@text_length>
       matches_cigar_vector_append_insertion(cigar_vector,&match_alignment->cigar_length,text_length,cigar_attr_none);
       match_alignment->score = align_swg_score_insertion(swg_penalties,text_length);
-      match_alignment->effective_length = text_length;
     } else {
       match_alignment->score = 0;
-      match_alignment->effective_length = 0;
     }
   } else if (key_length > 0 && text_length == 0) {
     // Deletion <-@key_length>
@@ -422,14 +469,13 @@ void align_swg(
       matches_cigar_vector_append_match(cigar_vector,&match_alignment->cigar_length,1,cigar_attr_none);
       match_alignment->score = align_swg_score_match(swg_penalties,1);
     }
-    match_alignment->effective_length = 1;
   } else {
     PROF_ADD_COUNTER(GP_SWG_ALIGN_BANDED_LENGTH,text_length);
     align_swg_banded(
         key,key_length,text,text_length,
-        swg_penalties,begin_free,end_free,
-        max_bandwidth,match_alignment,
-        cigar_vector,mm_allocator);
+        swg_penalties,max_bandwidth,
+        begin_free,end_free,left_gap_alignment,
+        match_alignment,cigar_vector,mm_allocator);
   }
 }
 /*

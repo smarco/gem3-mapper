@@ -44,8 +44,9 @@ void nsearch_filtering(nsearch_schedule_t* const nsearch_schedule) {
     // Align
     PROF_START(GP_NS_ALIGN);
     filtering_candidates_align_candidates(
-        nsearch_schedule->filtering_candidates,nsearch_schedule->pattern,
-        false,false,nsearch_schedule->matches);
+        nsearch_schedule->filtering_candidates,
+        nsearch_schedule->pattern,false,
+        nsearch_schedule->matches);
     PROF_STOP(GP_NS_ALIGN);
     // Check quick-abandon condition
     nsearch_parameters_t* const nsearch_parameters = &nsearch_schedule->search_parameters->nsearch_parameters;

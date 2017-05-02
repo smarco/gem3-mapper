@@ -39,107 +39,107 @@ void match_alignment_region_init(
     const uint64_t text_begin,
     const uint64_t text_end) {
   match_alignment_region_set_type(match_alignment_region,type);
-  match_alignment_region->_error = error;
-  match_alignment_region->_cigar_buffer_offset = cigar_buffer_offset;
-  match_alignment_region->_cigar_length = cigar_length;
-  match_alignment_region->_key_begin = key_begin;
-  match_alignment_region->_key_end = key_end;
-  match_alignment_region->_text_begin = text_begin;
-  match_alignment_region->_text_end = text_end;
+  match_alignment_region->error = error;
+  match_alignment_region->cigar_buffer_offset = cigar_buffer_offset;
+  match_alignment_region->cigar_length = cigar_length;
+  match_alignment_region->key_begin = key_begin;
+  match_alignment_region->key_end = key_end;
+  match_alignment_region->text_begin = text_begin;
+  match_alignment_region->text_end = text_end;
 }
 match_alignment_region_type match_alignment_region_get_type(
     const match_alignment_region_t* const match_alignment_region) {
-  return match_alignment_region->_type;
+  return match_alignment_region->type;
 }
 void match_alignment_region_set_type(
     match_alignment_region_t* const match_alignment_region,
     const match_alignment_region_type type) {
   if (type==0) {
-    match_alignment_region->_type = match_alignment_region_exact;
+    match_alignment_region->type = match_alignment_region_exact;
   } else {
-    match_alignment_region->_type = match_alignment_region_approximate;
+    match_alignment_region->type = match_alignment_region_approximate;
   }
 }
 uint64_t match_alignment_region_get_error(
     const match_alignment_region_t* const match_alignment_region) {
-  return match_alignment_region->_error;
+  return match_alignment_region->error;
 }
 void match_alignment_region_set_error(
     match_alignment_region_t* const match_alignment_region,
     const uint64_t error) {
-  match_alignment_region->_error = error;
+  match_alignment_region->error = error;
 }
 uint64_t match_alignment_region_get_cigar_buffer_offset(
     const match_alignment_region_t* const match_alignment_region) {
-  return match_alignment_region->_cigar_buffer_offset;
+  return match_alignment_region->cigar_buffer_offset;
 }
 uint64_t match_alignment_region_get_cigar_length(
     const match_alignment_region_t* const match_alignment_region) {
-  return match_alignment_region->_cigar_length;
+  return match_alignment_region->cigar_length;
 }
 uint64_t match_alignment_region_get_key_begin(
     const match_alignment_region_t* const match_alignment_region) {
-  return match_alignment_region->_key_begin;
+  return match_alignment_region->key_begin;
 }
 uint64_t match_alignment_region_get_key_end(
     const match_alignment_region_t* const match_alignment_region) {
-  return match_alignment_region->_key_end;
+  return match_alignment_region->key_end;
 }
 uint64_t match_alignment_region_get_text_begin(
     const match_alignment_region_t* const match_alignment_region) {
-  return match_alignment_region->_text_begin;
+  return match_alignment_region->text_begin;
 }
 uint64_t match_alignment_region_get_text_end(
     const match_alignment_region_t* const match_alignment_region) {
-  return match_alignment_region->_text_end;
+  return match_alignment_region->text_end;
 }
 void match_alignment_region_set_cigar_buffer_offset(
     match_alignment_region_t* const match_alignment_region,
     const uint64_t cigar_buffer_offset) {
-  match_alignment_region->_cigar_buffer_offset = cigar_buffer_offset;
+  match_alignment_region->cigar_buffer_offset = cigar_buffer_offset;
 }
 void match_alignment_region_set_cigar_length(
     match_alignment_region_t* const match_alignment_region,
     const uint64_t cigar_length) {
-  match_alignment_region->_cigar_length = cigar_length;
+  match_alignment_region->cigar_length = cigar_length;
 }
 void match_alignment_region_set_key_begin(
     match_alignment_region_t* const match_alignment_region,
     const uint64_t key_begin) {
-  match_alignment_region->_key_begin = key_begin;
+  match_alignment_region->key_begin = key_begin;
 }
 void match_alignment_region_set_key_end(
     match_alignment_region_t* const match_alignment_region,
     const uint64_t key_end) {
-  match_alignment_region->_key_end = key_end;
+  match_alignment_region->key_end = key_end;
 }
 void match_alignment_region_set_text_begin(
     match_alignment_region_t* const match_alignment_region,
     const uint64_t text_begin) {
-  match_alignment_region->_text_begin = text_begin;
+  match_alignment_region->text_begin = text_begin;
 }
 void match_alignment_region_set_text_end(
     match_alignment_region_t* const match_alignment_region,
     const uint64_t text_end) {
-  match_alignment_region->_text_end = text_end;
+  match_alignment_region->text_end = text_end;
 }
 /*
  * Key/Text Operators
  */
 int match_alignment_region_text_coverage(
     match_alignment_region_t* const match_alignment_region) {
-  return (int)match_alignment_region->_text_end - (int)match_alignment_region->_text_begin;
+  return (int)match_alignment_region->text_end - (int)match_alignment_region->text_begin;
 }
 int match_alignment_region_text_distance(
     match_alignment_region_t* const match_alignment_region_a,
     match_alignment_region_t* const match_alignment_region_b) {
-  return (int)match_alignment_region_b->_text_begin - (int)match_alignment_region_a->_text_end;
+  return (int)match_alignment_region_b->text_begin - (int)match_alignment_region_a->text_end;
 }
 bool match_alignment_region_text_overlap(
     match_alignment_region_t* const match_alignment_region_a,
     match_alignment_region_t* const match_alignment_region_b) {
-  return !(match_alignment_region_a->_text_end <= match_alignment_region_b->_text_begin ||
-           match_alignment_region_b->_text_end <= match_alignment_region_a->_text_begin);
+  return !(match_alignment_region_a->text_end <= match_alignment_region_b->text_begin ||
+           match_alignment_region_b->text_end <= match_alignment_region_a->text_begin);
 }
 /*
  * Compare
@@ -147,12 +147,12 @@ bool match_alignment_region_text_overlap(
 int64_t match_alignment_region_cmp_key_position(
     const match_alignment_region_t* const a,
     const match_alignment_region_t* const b) {
-  return (int64_t)a->_key_begin - (int64_t)b->_key_begin;
+  return (int64_t)a->key_begin - (int64_t)b->key_begin;
 }
 int64_t match_alignment_region_cmp_text_position(
     const match_alignment_region_t* const a,
     const match_alignment_region_t* const b) {
-  return (int64_t)a->_text_begin - (int64_t)b->_text_begin;
+  return (int64_t)a->text_begin - (int64_t)b->text_begin;
 }
 /*
  * Check
@@ -163,13 +163,13 @@ void match_alignment_region_check(
     uint8_t* const text,
     vector_t* const cigar_vector) {
   // Parameters
-  const uint64_t key_region_length = match_alignment_region->_key_end - match_alignment_region->_key_begin;
-  uint8_t* const key_region = key + match_alignment_region->_key_begin;
-  const uint64_t text_region_length = match_alignment_region->_text_end - match_alignment_region->_text_begin;
-  uint8_t* const text_region = text + match_alignment_region->_text_begin;
+  const uint64_t key_region_length = match_alignment_region->key_end - match_alignment_region->key_begin;
+  uint8_t* const key_region = key + match_alignment_region->key_begin;
+  const uint64_t text_region_length = match_alignment_region->text_end - match_alignment_region->text_begin;
+  uint8_t* const text_region = text + match_alignment_region->text_begin;
   // Check
   bool alignment_correct;
-  if (match_alignment_region->_error == 0) {
+  if (match_alignment_region->error == 0) {
     // Check all matching characters
     uint64_t i;
     for (i=0;i<text_region_length;++i) {
@@ -183,8 +183,8 @@ void match_alignment_region_check(
     alignment_correct = alignment_check(
         stderr,key_region,key_region_length,
         text_region,text_region_length,
-        cigar_vector,match_alignment_region->_cigar_buffer_offset,
-        match_alignment_region->_cigar_length,false);
+        cigar_vector,match_alignment_region->cigar_buffer_offset,
+        match_alignment_region->cigar_length,false,false);
   }
   if (!alignment_correct) {
     gem_fatal_error_msg("Match alignment-region check. Invalid alignment (region)");
@@ -211,16 +211,16 @@ void match_alignment_region_print(
       break;
   }
   tab_fprintf(stream,"-> [%"PRIu64",%"PRIu64") ~> [+%"PRIu64",+%"PRIu64")",
-      match_alignment_region->_key_begin,match_alignment_region->_key_end,
-      match_alignment_region->_text_begin,match_alignment_region->_text_end);
+      match_alignment_region->key_begin,match_alignment_region->key_end,
+      match_alignment_region->text_begin,match_alignment_region->text_end);
   // Print CIGAR
   if (matches!=NULL &&
       match_alignment_region_get_type(match_alignment_region)==match_alignment_region_approximate &&
-      match_alignment_region->_cigar_length>0) {
+      match_alignment_region->cigar_length>0) {
     tab_fprintf(stream,"\tCIGAR=");
     match_cigar_print(stream,matches->cigar_vector,
-        match_alignment_region->_cigar_buffer_offset,
-        match_alignment_region->_cigar_length);
+        match_alignment_region->cigar_buffer_offset,
+        match_alignment_region->cigar_length);
   }
   tab_fprintf(stream,"\n");
 }
@@ -232,15 +232,15 @@ void match_alignment_region_print_pretty(
     uint8_t* const text) {
   // Compute offset
   uint64_t i, offset_text = 0, offset_key = 0;
-  if (match_alignment_region->_key_begin > match_alignment_region->_text_begin) {
-    offset_key = match_alignment_region->_key_begin-match_alignment_region->_text_begin;
+  if (match_alignment_region->key_begin > match_alignment_region->text_begin) {
+    offset_key = match_alignment_region->key_begin-match_alignment_region->text_begin;
   } else {
-    offset_text = match_alignment_region->_text_begin-match_alignment_region->_key_begin;
+    offset_text = match_alignment_region->text_begin-match_alignment_region->key_begin;
     for (i=0;i<offset_text;++i) fprintf(stream," ");
   }
   // Print Key
   for (i=offset_key;i<key_length;++i) {
-    if (match_alignment_region->_key_begin <= i && i < match_alignment_region->_key_end) {
+    if (match_alignment_region->key_begin <= i && i < match_alignment_region->key_end) {
       if (text[offset_text+i]==key[i]) {
         fprintf(stream,"%c",dna_decode(key[i]));
       } else {

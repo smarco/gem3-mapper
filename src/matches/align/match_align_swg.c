@@ -25,6 +25,7 @@
 #include "matches/align/match_align_swg.h"
 #include "matches/align/match_align.h"
 #include "align/align_swg.h"
+#include "align/align_swg_banded.h"
 #include "archive/archive_text_rl.h"
 
 /*
@@ -32,6 +33,37 @@
  */
 #define PROFILE_LEVEL PLOW
 
+/*
+ * Constants
+ */
+#define MATCH_ALIGN_SWG_CHECK
+
+/*
+ * SWG Align Check
+ */
+void match_align_swg_check(
+    matches_t* const matches,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
+    match_alignment_t* const match_alignment,
+    mm_allocator_t* const mm_allocator) {
+  match_alignment->effective_length =
+      matches_cigar_effective_length(matches->cigar_vector,
+          match_alignment->cigar_offset,match_alignment->cigar_length);
+  const bool check_correct = match_alignment_check(
+      stderr,match_alignment,
+      pattern->key,pattern->key_length,
+      text_trace->text,text_trace->text_length,
+      matches->cigar_vector,true,mm_allocator);
+  if (!check_correct) {
+    match_alignment_print_pretty(
+      stderr,match_alignment,
+      pattern->key,pattern->key_length,
+      text_trace->text+match_alignment->match_text_offset,
+      match_alignment->effective_length,
+      matches->cigar_vector,mm_allocator);
+  }
+}
 /*
  * SWG Align alignment-region (@match_alignment_region)
  */
@@ -78,8 +110,9 @@ void match_align_swg_add_alignment_region(
         swg_penalties_t* const swg_penalties = &search_parameters->swg_penalties;
         // Force (re)computing the CIGAR from the alignment-region (missing CIGAR or never computed)
         align_swg(
-            key,key_length,text,text_length,swg_penalties,
-            false,false,max_bandwidth,left_gap_alignment,
+            key,key_length,text,text_length,
+            swg_penalties,max_bandwidth,
+            false,false,left_gap_alignment,
             match_alignment,cigar_vector,mm_allocator);
       }
       break;
@@ -89,38 +122,9 @@ void match_align_swg_add_alignment_region(
   }
 }
 /*
- * SWG Bride the gap
- */
-void match_align_swg_add_gap(
-    matches_t* const matches,
-    match_alignment_t* const match_alignment,
-    const uint64_t key_chunk_length,
-    const uint64_t text_chunk_length,
-    const bool trim) {
-  vector_t* const cigar_vector = matches->cigar_vector;
-  if (trim) {
-    // Trim the alignment
-    if (key_chunk_length > 0) {
-      matches_cigar_vector_append_deletion(cigar_vector,
-          &match_alignment->cigar_length,key_chunk_length,cigar_attr_trim);
-    }
-  } else {
-    // Delete the read chunk
-    if (key_chunk_length > 0) {
-      matches_cigar_vector_append_deletion(cigar_vector,
-          &match_alignment->cigar_length,key_chunk_length,cigar_attr_none);
-    }
-    // Insert the text chunk
-    if (text_chunk_length > 0) {
-      matches_cigar_vector_append_insertion(cigar_vector,
-          &match_alignment->cigar_length,text_chunk_length,cigar_attr_none);
-    }
-  }
-}
-/*
  * SWG Align region
  */
-bool match_align_swg_region(
+void match_align_swg_region(
     matches_t* const matches,
     search_parameters_t* const search_parameters,
     pattern_t* const pattern,
@@ -129,19 +133,75 @@ bool match_align_swg_region(
     const uint64_t key_chunk_length,
     const uint64_t text_chunk_begin_offset,
     const uint64_t text_chunk_length,
-    const bool begin_free,
-    const bool end_free,
+    const bool local_alignment,
     match_alignment_t* const match_alignment,
     mm_allocator_t* const mm_allocator) {
   // Parameters
-  const uint64_t max_aligned_gap_length = search_parameters->alignment_max_aligned_gap_length_nominal;
+  const int64_t swg_score_dropoff = search_parameters->swg_score_dropoff;
+  const uint64_t max_aligned_gap_length = swg_score_dropoff;
   vector_t* const cigar_vector = matches->cigar_vector;
-  // Keep CIGAR state
-  const uint64_t cigar_length = match_alignment->cigar_length;
-  const uint64_t cigar_vector_used = vector_get_used(cigar_vector);
   // SWG-Align
   if (key_chunk_length > max_aligned_gap_length || text_chunk_length > max_aligned_gap_length) {
-    match_alignment->score = SWG_SCORE_MIN;
+    // Parameters
+    const uint8_t* const key_forward = pattern->key + key_chunk_begin_offset;
+    const uint64_t key_length_forward = key_chunk_length;
+    uint8_t* const text_forward = text_trace->text + text_chunk_begin_offset;
+    const uint64_t text_length_forward = text_chunk_length;
+    const bool left_gap_alignment = (text_trace->strand == Forward);
+    swg_penalties_t* const swg_penalties = &search_parameters->swg_penalties;
+    const uint64_t max_bandwidth = pattern->max_effective_bandwidth;
+    // SWG-Align Extend Forward
+    uint64_t total_key_aligned_forward, total_text_aligned_forward;
+    align_swg_banded_extend(
+        key_forward,key_length_forward,
+        text_forward,text_length_forward,
+        false,local_alignment,
+        swg_penalties,max_bandwidth,swg_score_dropoff,
+        left_gap_alignment,match_alignment,
+        &total_key_aligned_forward,&total_text_aligned_forward,
+        cigar_vector,mm_allocator);
+    // Check bases aligned
+    if (total_key_aligned_forward < key_length_forward ||
+        total_text_aligned_forward < text_length_forward) {
+      // Parameters
+      const uint8_t* const key_reverse = key_forward + total_key_aligned_forward;
+      const uint64_t key_length_reverse = key_length_forward - total_key_aligned_forward;
+      uint8_t* const text_reverse = text_forward + total_text_aligned_forward;
+      const uint64_t text_length_reverse = text_length_forward - total_text_aligned_forward;
+      const uint64_t cigar_gap_position = match_alignment->cigar_offset + match_alignment->cigar_length;
+      // SWG-Align Extend Left
+      uint64_t total_key_aligned_reverse = 0, total_text_aligned_reverse = 0;
+      if (key_length_reverse > 0 && text_length_reverse > 0) {
+        align_swg_banded_extend(
+            key_reverse,key_length_reverse,
+            text_reverse,text_length_reverse,
+            true,local_alignment,swg_penalties,
+            max_bandwidth,swg_score_dropoff,
+            left_gap_alignment,match_alignment,
+            &total_key_aligned_reverse,&total_text_aligned_reverse,
+            cigar_vector,mm_allocator);
+      }
+      // Add key gap
+      const uint64_t key_gap = key_chunk_length - total_key_aligned_forward - total_key_aligned_reverse;
+      if (key_gap > 0) {
+        cigar_element_t cigar_element;
+        cigar_element.type = cigar_del;
+        cigar_element.length = key_gap;
+        cigar_element.attributes = cigar_attr_none;
+        matches_cigar_vector_insert_cigar_element(cigar_vector,cigar_gap_position,&cigar_element);
+        ++(match_alignment->cigar_length);
+      }
+      // Add text gap
+      const uint64_t text_gap = text_chunk_length - total_text_aligned_forward - total_text_aligned_reverse;
+      if (text_gap > 0) {
+        cigar_element_t cigar_element;
+        cigar_element.type = cigar_ins;
+        cigar_element.length = text_gap;
+        cigar_element.attributes = cigar_attr_none;
+        matches_cigar_vector_insert_cigar_element(cigar_vector,cigar_gap_position,&cigar_element);
+        ++(match_alignment->cigar_length);
+      }
+    }
   } else {
     // Parameters
     const uint8_t* const key = pattern->key + key_chunk_begin_offset;
@@ -151,74 +211,80 @@ bool match_align_swg_region(
     const bool left_gap_alignment = (text_trace->strand == Forward);
     swg_penalties_t* const swg_penalties = &search_parameters->swg_penalties;
     const uint64_t max_bandwidth = pattern->max_effective_bandwidth;
+    // Keep CIGAR state
+    const uint64_t cigar_length = match_alignment->cigar_length;
+    const uint64_t cigar_vector_used = vector_get_used(cigar_vector);
     // Align gap between alignment-regions
     align_swg(
-        key,key_length,text,text_length,swg_penalties,
-        begin_free,end_free,max_bandwidth,left_gap_alignment,
+        key,key_length,text,text_length,
+        swg_penalties,max_bandwidth,
+        false,false,left_gap_alignment,
         match_alignment,cigar_vector,mm_allocator);
+    // Check alignment result
+    if (match_alignment->score == SWG_SCORE_MIN) {
+      // Restore the CIGAR
+      match_alignment->cigar_length = cigar_length;
+      vector_set_used(cigar_vector,cigar_vector_used);
+      // Bride the gap
+      if (key_chunk_length > 0) { // Delete the read chunk
+        matches_cigar_vector_append_deletion(cigar_vector,
+            &match_alignment->cigar_length,key_chunk_length,cigar_attr_none);
+      }
+      if (text_chunk_length > 0) { // Insert the text chunk
+        matches_cigar_vector_append_insertion(cigar_vector,
+            &match_alignment->cigar_length,text_chunk_length,cigar_attr_none);
+      }
+    }
   }
-  // Check alignment result
-  if (match_alignment->score == SWG_SCORE_MIN) {
-    // Restore the CIGAR
-    match_alignment->cigar_length = cigar_length;
-    vector_set_used(cigar_vector,cigar_vector_used);
-    // Bride the gap
-    match_align_swg_add_gap(matches,match_alignment,key_chunk_length,text_chunk_length,begin_free||end_free);
-    return false;
-  } else {
-    return true;
+}
+uint64_t match_align_swg_region_extend(
+    matches_t* const matches,
+    search_parameters_t* const search_parameters,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
+    const uint64_t key_chunk_begin_offset,
+    const uint64_t key_chunk_length,
+    const uint64_t text_chunk_begin_offset,
+    const uint64_t text_chunk_length,
+    const bool reverse_extension,
+    const bool local_alignment,
+    match_alignment_t* const match_alignment,
+    mm_allocator_t* const mm_allocator) {
+  // Parameters
+  vector_t* const cigar_vector = matches->cigar_vector;
+  // Parameters
+  const uint8_t* const key = pattern->key + key_chunk_begin_offset;
+  const uint64_t key_length = key_chunk_length;
+  uint8_t* const text = text_trace->text + text_chunk_begin_offset;
+  const uint64_t text_length = text_chunk_length;
+  const bool left_gap_alignment = (text_trace->strand == Forward);
+  swg_penalties_t* const swg_penalties = &search_parameters->swg_penalties;
+  const uint64_t max_bandwidth = pattern->max_effective_bandwidth;
+  const int64_t swg_score_dropoff = search_parameters->swg_score_dropoff;
+  // SWG-Align Extend
+  uint64_t total_key_aligned, total_text_aligned;
+  align_swg_banded_extend(
+      key,key_length,text,text_length,
+      reverse_extension,local_alignment,
+      swg_penalties,max_bandwidth,swg_score_dropoff,
+      left_gap_alignment,match_alignment,
+      &total_key_aligned,&total_text_aligned,
+      cigar_vector,mm_allocator);
+  // Check key-aligned (key-trim)
+  if (total_key_aligned < key_length) {
+    // Add final key-trim (Local maximum)
+    const uint64_t trim_pos = reverse_extension ?
+        match_alignment->cigar_offset :
+        match_alignment->cigar_offset + match_alignment->cigar_length;
+    cigar_element_t cigar_element;
+    cigar_element.type = cigar_del;
+    cigar_element.length = key_length-total_key_aligned;
+    cigar_element.attributes = cigar_attr_none;
+    matches_cigar_vector_insert_cigar_element(cigar_vector,trim_pos,&cigar_element);
+    ++(match_alignment->cigar_length);
   }
-}
-bool match_align_swg_middle_region(
-    matches_t* const matches,
-    search_parameters_t* const search_parameters,
-    pattern_t* const pattern,
-    text_trace_t* const text_trace,
-    const uint64_t key_chunk_begin_offset,
-    const uint64_t key_chunk_length,
-    const uint64_t text_chunk_begin_offset,
-    const uint64_t text_chunk_length,
-    match_alignment_t* const match_alignment,
-    mm_allocator_t* const mm_allocator) {
-  return match_align_swg_region(
-      matches,search_parameters,pattern,text_trace,
-      key_chunk_begin_offset,key_chunk_length,
-      text_chunk_begin_offset,text_chunk_length,
-      false,false,match_alignment,mm_allocator);
-}
-bool match_align_swg_begin_region(
-    matches_t* const matches,
-    search_parameters_t* const search_parameters,
-    pattern_t* const pattern,
-    text_trace_t* const text_trace,
-    const uint64_t key_chunk_begin_offset,
-    const uint64_t key_chunk_length,
-    const uint64_t text_chunk_begin_offset,
-    const uint64_t text_chunk_length,
-    match_alignment_t* const match_alignment,
-    mm_allocator_t* const mm_allocator) {
-  return match_align_swg_region(
-      matches,search_parameters,pattern,text_trace,
-      key_chunk_begin_offset,key_chunk_length,
-      text_chunk_begin_offset,text_chunk_length,
-      true,false,match_alignment,mm_allocator);
-}
-bool match_align_swg_end_region(
-    matches_t* const matches,
-    search_parameters_t* const search_parameters,
-    pattern_t* const pattern,
-    text_trace_t* const text_trace,
-    const uint64_t key_chunk_begin_offset,
-    const uint64_t key_chunk_length,
-    const uint64_t text_chunk_begin_offset,
-    const uint64_t text_chunk_length,
-    match_alignment_t* const match_alignment,
-    mm_allocator_t* const mm_allocator) {
-  return match_align_swg_region(
-      matches,search_parameters,pattern,text_trace,
-      key_chunk_begin_offset,key_chunk_length,
-      text_chunk_begin_offset,text_chunk_length,
-      false,true,match_alignment,mm_allocator);
+  // Return match offset (text offset)
+  return text_length - total_text_aligned;
 }
 /*
  * Compute alignment type (local/global) wrt identity/score thresholds
@@ -259,6 +325,7 @@ uint64_t match_align_swg_chain_scaffold_to_first(
     pattern_t* const pattern,
     text_trace_t* const text_trace,
     match_scaffold_t* const match_scaffold,
+    const bool local_alignment,
     match_trace_t* const match_trace,
     mm_allocator_t* const mm_allocator) {
   // Parameters
@@ -274,18 +341,15 @@ uint64_t match_align_swg_chain_scaffold_to_first(
   const uint64_t text_chunk_length = BOUNDED_ADDITION(key_chunk_length,max_bandwidth,first_text_begin);
   const uint64_t text_chunk_begin_offset = first_text_begin - text_chunk_length;
   // Chain to first alignment-region
-  match_alignment->match_position += text_chunk_begin_offset; // Offset match position
   uint64_t match_begin_position = match_alignment->match_position; // Save match position
-  const bool feasible_alignment =
-      match_align_swg_begin_region(
+  const uint64_t match_position_offset =
+      match_align_swg_region_extend(
           matches,search_parameters,pattern,text_trace,
           key_chunk_begin_offset,key_chunk_length,
           text_chunk_begin_offset,text_chunk_length,
-          match_alignment,mm_allocator);
-  match_begin_position = (feasible_alignment) ?
-      match_alignment->match_position :
-      match_begin_position + text_chunk_length;
-  return match_begin_position;
+          true,local_alignment,match_alignment,mm_allocator);
+  match_alignment->match_text_offset = text_chunk_begin_offset + match_position_offset;
+  return match_begin_position + text_chunk_begin_offset + match_position_offset;
 }
 void match_align_swg_chain_scaffold_from_last(
     matches_t* const matches,
@@ -293,6 +357,7 @@ void match_align_swg_chain_scaffold_from_last(
     pattern_t* const pattern,
     text_trace_t* const text_trace,
     match_scaffold_t* const match_scaffold,
+    const bool local_alignment,
     match_trace_t* const match_trace,
     mm_allocator_t* const mm_allocator) {
   // Parameters
@@ -312,11 +377,11 @@ void match_align_swg_chain_scaffold_from_last(
   const uint64_t text_chunk_begin_offset = last_text_end;
   const uint64_t text_chunk_length = text_chunk_end_offset-last_text_end;
   // Chain from last alignment-region
-  match_align_swg_end_region(
+  match_align_swg_region_extend(
       matches,search_parameters,pattern,text_trace,
       key_chunk_begin_offset,key_chunk_length,
       text_chunk_begin_offset,text_chunk_length,
-      match_alignment,mm_allocator);
+      false,local_alignment,match_alignment,mm_allocator);
 }
 void match_align_swg_chain_scaffold(
     matches_t* const matches,
@@ -324,6 +389,7 @@ void match_align_swg_chain_scaffold(
     pattern_t* const pattern,
     text_trace_t* const text_trace,
     match_scaffold_t* const match_scaffold,
+    const bool local_alignment,
     match_trace_t* const match_trace,
     mm_allocator_t* const mm_allocator) {
   // Parameters
@@ -335,7 +401,7 @@ void match_align_swg_chain_scaffold(
   const uint64_t match_begin_position =
       match_align_swg_chain_scaffold_to_first(
           matches,search_parameters,pattern,text_trace,
-          match_scaffold,match_trace,mm_allocator);
+          match_scaffold,local_alignment,match_trace,mm_allocator);
   // Add first alignment-region
   match_align_swg_add_alignment_region(
       alignment_regions,search_parameters,pattern,text_trace,
@@ -356,11 +422,11 @@ void match_align_swg_chain_scaffold(
     const uint64_t text_chunk_begin_offset = prev_text_end;
     const uint64_t text_chunk_length = current_text_begin - text_chunk_begin_offset;
     // Align the gap
-    match_align_swg_middle_region(
-        matches,search_parameters,pattern,text_trace,
-        key_chunk_begin_offset,key_chunk_length,
-        text_chunk_begin_offset,text_chunk_length,
-        match_alignment,mm_allocator);
+    match_align_swg_region(
+          matches,search_parameters,pattern,text_trace,
+          key_chunk_begin_offset,key_chunk_length,
+          text_chunk_begin_offset,text_chunk_length,
+          local_alignment,match_alignment,mm_allocator);
     // Add alignment-region
     match_align_swg_add_alignment_region(
         current_alignment_region,search_parameters,pattern,text_trace,
@@ -369,7 +435,7 @@ void match_align_swg_chain_scaffold(
   // Chain from last alignment-region
   match_align_swg_chain_scaffold_from_last(
       matches,search_parameters,pattern,text_trace,
-      match_scaffold,match_trace,mm_allocator);
+      match_scaffold,local_alignment,match_trace,mm_allocator);
   // Post-processing
   match_alignment->score = 0; // Deferred calculation
   match_alignment->match_position = match_begin_position; // Restore match position
@@ -380,6 +446,7 @@ void match_align_swg(
     pattern_t* const pattern,
     text_trace_t* const text_trace,
     match_scaffold_t* const match_scaffold,
+    const bool local_alignment,
     match_trace_t* const match_trace,
     mm_allocator_t* const mm_allocator) {
   // Configure match-alignment
@@ -406,8 +473,9 @@ void match_align_swg(
     const uint64_t max_bandwidth = pattern->max_effective_bandwidth;
     // Full SWG
     align_swg(
-        key,key_length,text,text_length,swg_penalties,
-        true,true,max_bandwidth,left_gap_alignment,
+        key,key_length,text,text_length,
+        swg_penalties,max_bandwidth,
+        true,true,left_gap_alignment,
         match_alignment,cigar_vector,mm_allocator);
     // Add right trim
     if (text_trace->text_padded_right > 0) {
@@ -424,6 +492,11 @@ void match_align_swg(
     // Chain alignment-regions and align gaps (SWG)
     match_align_swg_chain_scaffold(
         matches,search_parameters,pattern,text_trace,
-        match_scaffold,match_trace,mm_allocator);
+        match_scaffold,local_alignment,match_trace,mm_allocator);
   }
+  // Check
+#ifdef MATCH_ALIGN_SWG_CHECK
+  match_align_swg_check(matches,pattern,
+      text_trace,match_alignment,mm_allocator);
+#endif
 }

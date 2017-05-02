@@ -66,20 +66,6 @@ void alignment_init(
     const uint64_t tile_length);
 
 /*
- * Check matches (CIGAR string against text & pattern)
- */
-bool alignment_check(
-    FILE* const stream,
-    const uint8_t* const key,
-    const uint64_t key_length,
-    const uint8_t* const text,
-    const uint64_t text_length,
-    vector_t* const cigar_vector,
-    uint64_t const cigar_offset,
-    uint64_t const cigar_length,
-    const bool verbose);
-
-/*
  * Compute edit distance (Basic DP-Matrix Alignment)
  */
 int64_t alignment_compute_edit_distance(
@@ -113,5 +99,34 @@ void alignment_verify_edit_bpm(
     uint8_t* const key,
     uint8_t* const text,
     const uint64_t max_error);
+
+/*
+ * Check alignment (CIGAR string against text & pattern)
+ */
+bool alignment_check(
+    FILE* const stream,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const uint8_t* const text,
+    const uint64_t text_length,
+    vector_t* const cigar_vector,
+    uint64_t const cigar_offset,
+    uint64_t const cigar_length,
+    const bool local_alignment,
+    const bool verbose);
+
+/*
+ * Display
+ */
+void alignment_print_pretty(
+    FILE* const stream,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const uint8_t* const text,
+    const uint64_t text_length,
+    vector_t* const cigar_vector,
+    uint64_t const cigar_offset,
+    uint64_t const cigar_length,
+    mm_allocator_t* const mm_allocator);
 
 #endif /* ALIGNMENT_H_ */

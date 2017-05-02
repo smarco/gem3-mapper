@@ -128,7 +128,6 @@ typedef struct {
   double complete_strata_after_best;
   double alignment_max_error;
   double alignment_max_bandwidth;
-  double alignment_max_aligned_gap_length;              // Maximum length of gap to be aligned
   bool   alignment_force_full_swg;                      // Force full SWG-Alignment
   double alignment_global_min_identity;                 // Alignment minimum identity to be global
   double alignment_global_min_swg_threshold;            // Alignment minimum SWG score to be global
@@ -139,6 +138,7 @@ typedef struct {
   double alignment_local_min_identity;                  // Alignment minimum identity to be local
   double alignment_local_min_swg_threshold;             // Alignment minimum SWG score to be local
   uint64_t alignment_local_max_candidates;
+  int64_t swg_score_dropoff;                            // SWG-Alignment local dropoff score
   /* Scaffolding */
   double alignment_scaffolding_min_coverage;            // Minimum length of the alignment-region (chaining alignment-regions)
   double alignment_scaffolding_min_matching_length;     // Minimum matching chunk to be considered
@@ -157,7 +157,6 @@ typedef struct {
   uint64_t complete_strata_after_best_nominal;
   uint64_t alignment_max_error_nominal;
   uint64_t alignment_max_bandwidth_nominal;
-  uint64_t alignment_max_aligned_gap_length_nominal;
   uint64_t alignment_global_min_identity_nominal;
   uint64_t alignment_global_min_swg_threshold_nominal;
   uint64_t alignment_local_min_identity_nominal;

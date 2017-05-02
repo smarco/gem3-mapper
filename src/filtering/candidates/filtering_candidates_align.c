@@ -64,7 +64,6 @@ void filtering_candidates_align_region(
     filtering_region_t* const region,
     pattern_t* const pattern,
     const bool local_alignment,
-    const bool extended_match,
     matches_t* const matches,
     bool* const region_accepted,
     bool* const match_accepted) {
@@ -77,7 +76,7 @@ void filtering_candidates_align_region(
       pattern,archive_text,filtering_candidates->mm_allocator);
   // Search Cache (Before jumping into aligning the region)
   match_trace_t match_trace;
-  bool match_trace_aligned = !extended_match &&
+  bool match_trace_aligned =
       filtering_candidates_align_search_cache(
           filtering_candidates,region,pattern->run_length,&match_trace);
   // Align the region
@@ -91,8 +90,7 @@ void filtering_candidates_align_region(
     }
   }
   // Add to matches
-  const bool set_local_match_aside = (!local_alignment && !extended_match);
-  if (set_local_match_aside && match_trace.type == match_type_local) {
+  if (match_trace.type == match_type_local && !local_alignment) {
     // Add Local Alignment (Pending)
     matches_add_local_match_pending(matches,&match_trace);
     *region_accepted = true;
@@ -108,13 +106,6 @@ void filtering_candidates_align_region(
       *match_accepted = false;
       return;
     }
-    if (extended_match) {
-      match_trace_added->type = match_type_extended;
-      vector_t* const extended_matches = filtering_candidates->extended_matches;
-      if (!match_replaced && extended_matches!=NULL) {
-        vector_insert(extended_matches,match_trace_added,match_trace_t*);
-      }
-    }
     filtering_region_transient_cache_add(
         &filtering_candidates->filtering_region_cache,region,match_trace_added);
     *region_accepted = true;
@@ -122,13 +113,55 @@ void filtering_candidates_align_region(
     return;
   }
 }
+void filtering_candidates_align_extended_region(
+    filtering_candidates_t* const filtering_candidates,
+    filtering_region_t* const region,
+    pattern_t* const pattern,
+    matches_t* const matches,
+    bool* const region_accepted,
+    bool* const match_accepted) {
+  // Parameters
+  archive_t* const archive = filtering_candidates->archive;
+  locator_t* const locator = archive->locator;
+  archive_text_t* const archive_text = archive->text;
+  // Retrieve Candidate (if needed)
+  filtering_region_retrieve_text(region,
+      pattern,archive_text,filtering_candidates->mm_allocator);
+  // Align the region
+  match_trace_t match_trace;
+  bool match_trace_aligned =
+      filtering_region_align(
+          filtering_candidates,region,pattern,
+          false,matches,&match_trace);
+  if (!match_trace_aligned) { // Not aligned
+    *region_accepted = false;
+    *match_accepted = false;
+    return;
+  }
+  // Add to matches (Global/Local Alignment)
+  bool match_replaced;
+  match_trace_t* const match_trace_added =
+      matches_add_match_trace(matches,locator,&match_trace,&match_replaced);
+  if (match_trace_added==NULL) {
+    *region_accepted = true;
+    *match_accepted = false;
+    return;
+  }
+  // Add to extended-matches (Global/Local Alignment)
+  match_trace_added->type = match_type_extended;
+  if (!match_replaced) {
+    vector_insert(matches->match_traces_extended,match_trace_added,match_trace_t*);
+  }
+  *region_accepted = true;
+  *match_accepted = !match_replaced; // Repeated?
+  return;
+}
 /*
  * Filtering Candidates (Re)Alignment
  */
 uint64_t filtering_candidates_align_candidates(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const pattern,
-    const bool extended_match,
     const bool local_alignment,
     matches_t* const matches) {
   // DEBUG
@@ -148,18 +181,15 @@ uint64_t filtering_candidates_align_candidates(
   // Clear cache
   filtering_region_cache_clear(&filtering_candidates->filtering_region_cache);
   // Traverse all accepted candidates (text-space)
-  uint64_t n, num_accepted_regions = 0;
+  uint64_t n, num_accepted_matches = 0;
   bool region_accepted, match_accepted;
   for (n=0;n<num_filtering_regions;++n) {
     // Fetch
     filtering_region_t* const filtering_region = regions_in[n];
     // Check if candidate is subdominant (check distance bounds)
-    bool candidate_subdominant = false;
-    if (!extended_match) {
-      candidate_subdominant =
-          filtering_candidates_classify_subdominant_match(
-              filtering_candidates,filtering_region,pattern,matches);
-    }
+    bool candidate_subdominant =
+        filtering_candidates_classify_subdominant_match(
+            filtering_candidates,filtering_region,pattern,matches);
     if (candidate_subdominant) {
       PROF_INC_COUNTER(GP_FC_SELECT_PRUNE_HIT);
       matches_metrics_set_limited_candidates(&matches->metrics,true);
@@ -168,24 +198,23 @@ uint64_t filtering_candidates_align_candidates(
     }
     // Align Region
     filtering_candidates_align_region(
-        filtering_candidates,filtering_region,pattern,
-        local_alignment,extended_match,matches,
-        &region_accepted,&match_accepted);
+        filtering_candidates,filtering_region,pattern,local_alignment,
+        matches,&region_accepted,&match_accepted);
     if (!region_accepted) {
       filtering_region->status = filtering_region_accepted_subdominant;
     } else {
       filtering_region->status = filtering_region_accepted;
-      if (match_accepted) ++num_accepted_regions;
+      if (match_accepted) ++num_accepted_matches;
     }
   }
   // Clean
   uint64_t num_regions_out = 0, num_regions_discarded = 0;
   for (n=0;n<num_filtering_regions;++n) {
     filtering_region_t* const filtering_region = regions_in[n];
-    if (filtering_region->status == filtering_region_accepted_subdominant) {
-      regions_discarded[num_regions_discarded++] = filtering_region;
-    } else {
+    if (filtering_region->status==filtering_region_accepted) {
       filtering_candidates_free_region(filtering_candidates,filtering_region); // Free
+    } else {
+      regions_discarded[num_regions_discarded++] = filtering_region;
     }
   }
   // Update used
@@ -202,5 +231,49 @@ uint64_t filtering_candidates_align_candidates(
   }
   // Return total accepted regions
   PROFILE_STOP(GP_FC_REALIGN_CANDIDATE_REGIONS,PROFILE_LEVEL);
-  return num_accepted_regions;
+  return num_accepted_matches;
+}
+uint64_t filtering_candidates_align_extended_candidates(
+    filtering_candidates_t* const filtering_candidates,
+    pattern_t* const pattern,
+    matches_t* const matches) {
+  // DEBUG
+  gem_cond_debug_block(DEBUG_FILTERING_CANDIDATES) {
+    tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Candidates (align_acepted_regions)\n");
+    tab_global_inc();
+  }
+  // Check number of filtering regions
+  const uint64_t num_filtering_regions = filtering_candidates_get_num_regions(filtering_candidates);
+  if (num_filtering_regions==0) return 0;
+  PROFILE_START(GP_FC_REALIGN_CANDIDATE_REGIONS,PROFILE_LEVEL);
+  // Sort
+  filtering_candidates_sort_regions_by_align_distance(filtering_candidates); // Sort wrt align_distance
+  // Traverse all accepted candidates
+  filtering_region_t** const regions_in = filtering_candidates_get_regions(filtering_candidates);
+  uint64_t n, num_accepted_matches = 0;
+  for (n=0;n<num_filtering_regions;++n) {
+    // Fetch Region
+    filtering_region_t* const filtering_region = regions_in[n];
+    // Align Region
+    bool region_accepted, match_accepted;
+    filtering_candidates_align_extended_region(
+        filtering_candidates,filtering_region,pattern,
+        matches,&region_accepted,&match_accepted);
+    if (!region_accepted) {
+      filtering_region->status = filtering_region_accepted_subdominant;
+    } else {
+      filtering_region->status = filtering_region_accepted;
+      if (match_accepted) ++num_accepted_matches;
+    }
+    // Free
+    filtering_candidates_free_region(filtering_candidates,filtering_region);
+  }
+  // Clean
+  filtering_candidates_set_num_regions(filtering_candidates,0);
+
+  matches_metrics_add_accepted_candidates(&matches->metrics,num_filtering_regions);
+
+  // Return total accepted regions
+  PROFILE_STOP(GP_FC_REALIGN_CANDIDATE_REGIONS,PROFILE_LEVEL);
+  return num_accepted_matches;
 }

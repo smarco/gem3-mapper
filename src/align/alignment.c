@@ -70,97 +70,6 @@ void alignment_init(
   }
 }
 /*
- * Check matches (CIGAR string against text & pattern)
- */
-bool alignment_check(
-    FILE* const stream,
-    const uint8_t* const key,
-    const uint64_t key_length,
-    const uint8_t* const text,
-    const uint64_t text_length,
-    vector_t* const cigar_vector,
-    uint64_t const cigar_offset,
-    uint64_t const cigar_length,
-    const bool verbose) {
-  // Traverse CIGAR
-  cigar_element_t* const cigar_base = vector_get_elm(cigar_vector,cigar_offset,cigar_element_t);
-  uint64_t read_pos=0, text_pos=0;
-  uint64_t i;
-  for (i=0;i<cigar_length;++i) {
-    cigar_element_t* const cigar_element = cigar_base + i;
-    switch (cigar_element->type) {
-      case cigar_match: {
-        // Check all matching characters
-        uint64_t j;
-        for (j=0;j<cigar_element->length;++j) {
-          if (key[read_pos] != text[text_pos]) {
-            if (verbose) {
-              fprintf(stream,"Align Check. Alignment not matching "
-                  "(key[%"PRIu64"]=%c != text[%"PRIu64"]=%c)\n",
-                  read_pos,dna_decode(key[read_pos]),text_pos,
-                  dna_decode(text[text_pos]));
-            }
-            return false;
-          }
-          ++read_pos;
-          ++text_pos;
-        }
-        break;
-      }
-      case cigar_mismatch:
-        // Check mismatch
-        if (key[read_pos] == text[text_pos]) {
-          if (verbose) {
-            fprintf(stream,"Align Check. Alignment not mismatching "
-                "(key[%"PRIu64"]=%c == text[%"PRIu64"]=%c, CIGAR=%c)\n",
-              read_pos,dna_decode(key[read_pos]),text_pos,dna_decode(text[text_pos]),
-              dna_decode(cigar_element->mismatch));
-          }
-          return false;
-        } else if (cigar_element->mismatch != text[text_pos]) {
-          if (verbose) {
-            fprintf(stream,"Align Check. Alignment not mismatching as CIGAR states "
-                "(key[%"PRIu64"]=%c == text[%"PRIu64"]=%c, CIGAR=%c)\n",
-              read_pos,dna_decode(key[read_pos]),text_pos,dna_decode(text[text_pos]),
-              dna_decode(cigar_element->mismatch));
-          }
-          return false;
-        }
-        ++read_pos;
-        ++text_pos;
-        break;
-      case cigar_ins:
-        text_pos += cigar_element->length;
-        break;
-      case cigar_del:
-        read_pos += cigar_element->length;
-        break;
-      case cigar_null:
-        gem_cond_error_msg(verbose,"Align Check. CIGAR Null");
-        return false;
-        break;
-      default:
-        break;
-    }
-  }
-  // Check alignment length
-  if (read_pos != key_length) {
-    if (verbose) {
-      fprintf(stream,"Align Check. Alignment incorrect length "
-          "(key-aligned=%"PRIu64",key-length=%"PRIu64")\n",read_pos,key_length);
-    }
-    return false;
-  }
-  if (text_pos != text_length) {
-    if (verbose) {
-      fprintf(stream,"Align Check. Alignment incorrect length "
-          "(text-aligned=%"PRIu64",text-length=%"PRIu64")\n",text_pos,text_length);
-    }
-    return false;
-  }
-  return true;
-}
-/*
  * Compute edit distance (Basic DP-Matrix Alignment)
  */
 int64_t alignment_dp_compute_edit_distance(
@@ -325,4 +234,185 @@ void alignment_verify_edit_bpm(
       PROF_INC_COUNTER(GP_FC_BPM_FILTER_ACCEPTED);
     }
   }
+}
+/*
+ * Check alignment (CIGAR string against text & pattern)
+ */
+bool alignment_check(
+    FILE* const stream,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const uint8_t* const text,
+    const uint64_t text_length,
+    vector_t* const cigar_vector,
+    uint64_t const cigar_offset,
+    uint64_t const cigar_length,
+    const bool local_alignment,
+    const bool verbose) {
+  // Traverse CIGAR
+  uint64_t read_pos=0, text_pos=0;
+  uint64_t i;
+  for (i=0;i<cigar_length;++i) {
+    cigar_element_t* const cigar_element = vector_get_elm(cigar_vector,cigar_offset+i,cigar_element_t);
+    switch (cigar_element->type) {
+      case cigar_match: {
+        // Check all matching characters
+        uint64_t j;
+        for (j=0;j<cigar_element->length;++j) {
+          if (key[read_pos] != text[text_pos]) {
+            if (verbose) {
+              fprintf(stream,"Align Check. Alignment not matching "
+                  "(key[%"PRIu64"]=%c != text[%"PRIu64"]=%c)\n",
+                  read_pos,dna_decode(key[read_pos]),text_pos,
+                  dna_decode(text[text_pos]));
+            }
+            return false;
+          }
+          ++read_pos;
+          ++text_pos;
+        }
+        break;
+      }
+      case cigar_mismatch:
+        // Check mismatch
+        if (key[read_pos] == text[text_pos]) {
+          if (verbose) {
+            fprintf(stream,"Align Check. Alignment not mismatching "
+                "(key[%"PRIu64"]=%c == text[%"PRIu64"]=%c, CIGAR=%c)\n",
+              read_pos,dna_decode(key[read_pos]),text_pos,dna_decode(text[text_pos]),
+              dna_decode(cigar_element->mismatch));
+          }
+          return false;
+        } else if (cigar_element->mismatch != text[text_pos]) {
+          if (verbose) {
+            fprintf(stream,"Align Check. Alignment not mismatching as CIGAR states "
+                "(key[%"PRIu64"]=%c == text[%"PRIu64"]=%c, CIGAR=%c)\n",
+              read_pos,dna_decode(key[read_pos]),text_pos,dna_decode(text[text_pos]),
+              dna_decode(cigar_element->mismatch));
+          }
+          return false;
+        }
+        ++read_pos;
+        ++text_pos;
+        break;
+      case cigar_ins:
+        text_pos += cigar_element->length;
+        break;
+      case cigar_del:
+        read_pos += cigar_element->length;
+        break;
+      case cigar_null:
+        gem_cond_error_msg(verbose,"Align Check. CIGAR Null");
+        return false;
+        break;
+      default:
+        break;
+    }
+  }
+  // Local Alignment
+  if (local_alignment) return true;
+  // Check alignment length
+  if (read_pos != key_length) {
+    if (verbose) {
+      fprintf(stream,"Align Check. Alignment incorrect length "
+          "(key-aligned=%"PRIu64",key-length=%"PRIu64")\n",read_pos,key_length);
+    }
+    return false;
+  }
+  if (text_pos != text_length) {
+    if (verbose) {
+      fprintf(stream,"Align Check. Alignment incorrect length "
+          "(text-aligned=%"PRIu64",text-length=%"PRIu64")\n",text_pos,text_length);
+    }
+    return false;
+  }
+  return true;
+}
+/*
+ * Display
+ */
+void alignment_print_pretty(
+    FILE* const stream,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const uint8_t* const text,
+    const uint64_t text_length,
+    vector_t* const cigar_vector,
+    uint64_t const cigar_offset,
+    uint64_t const cigar_length,
+    mm_allocator_t* const mm_allocator) {
+  mm_allocator_push_state(mm_allocator);
+  tab_fprintf(stream,"[GEM]>Match.alignment\n");
+  tab_global_inc();
+  tab_fprintf(stream,"=> CIGAR  ");
+  const uint64_t max_buffer_length = text_length+key_length+1;
+  char* const key_alg = mm_allocator_calloc(mm_allocator,max_buffer_length,char,true);
+  char* const ops_alg = mm_allocator_calloc(mm_allocator,max_buffer_length,char,true);
+  char* const text_alg = mm_allocator_calloc(mm_allocator,max_buffer_length,char,true);
+  cigar_element_t* cigar_element = vector_get_elm(cigar_vector,cigar_offset,cigar_element_t);
+  uint64_t i, j, alg_pos = 0, read_pos = 0, text_pos = 0;
+  for (i=0;i<cigar_length;++i,++cigar_element) {
+    switch (cigar_element->type) {
+      case cigar_match:
+        fprintf(stream,"%d",(uint32_t)cigar_element->length);
+        for (j=0;j<cigar_element->length;++j) {
+          if (key[read_pos] != text[text_pos]) {
+            key_alg[alg_pos] = dna_decode(key[read_pos]);
+            ops_alg[alg_pos] = 'X';
+            text_alg[alg_pos++] = dna_decode(text[text_pos]);
+          } else {
+            key_alg[alg_pos] = dna_decode(key[read_pos]);
+            ops_alg[alg_pos] = '|';
+            text_alg[alg_pos++] = dna_decode(text[text_pos]);
+          }
+          read_pos++; text_pos++;
+        }
+        break;
+      case cigar_mismatch:
+        fprintf(stream,"%c",dna_decode(cigar_element->mismatch));
+        if (key[read_pos] != text[text_pos]) {
+          key_alg[alg_pos] = dna_decode(key[read_pos++]);
+          ops_alg[alg_pos] = 'M';
+          text_alg[alg_pos++] = dna_decode(text[text_pos++]);
+        } else {
+          key_alg[alg_pos] = dna_decode(key[read_pos++]);
+          ops_alg[alg_pos] = '!';
+          text_alg[alg_pos++] = dna_decode(text[text_pos++]);
+        }
+        break;
+      case cigar_ins:
+        fprintf(stream,">%u+",cigar_element->length);
+        for (j=0;j<cigar_element->length;++j) {
+          key_alg[alg_pos] = '-';
+          ops_alg[alg_pos] = ' ';
+          text_alg[alg_pos++] = dna_decode(text[text_pos++]);
+        }
+        break;
+      case cigar_del:
+        for (j=0;j<cigar_element->length;++j) {
+          key_alg[alg_pos] = dna_decode(key[read_pos++]);
+          ops_alg[alg_pos] = ' ';
+          text_alg[alg_pos++] = '-';
+        }
+        if (cigar_element->attributes==cigar_attr_trim) {
+          fprintf(stream,"(%u)",cigar_element->length);
+        } else {
+          fprintf(stream,">%u-",cigar_element->length);
+        }
+        break;
+      default:
+        GEM_INVALID_CASE();
+        break;
+    }
+  }
+  key_alg[alg_pos] = '\0';
+  ops_alg[alg_pos] = '\0';
+  text_alg[alg_pos] = '\0';
+  fprintf(stream,"\n");
+  tab_fprintf(stream,"=> Pretty.Alignment\n");
+  tab_fprintf(stream,"   KEY--%s--\n",key_alg);
+  tab_fprintf(stream,"        %s  \n",ops_alg);
+  tab_fprintf(stream,"   TXT--%s--\n",text_alg);
+  tab_global_dec();
+  mm_allocator_pop_state(mm_allocator);
 }

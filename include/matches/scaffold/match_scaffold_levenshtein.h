@@ -34,7 +34,8 @@
 void match_scaffold_levenshtein_allocate(
     match_scaffold_t* const match_scaffold,
     const uint64_t key_length,
-    const uint64_t matching_min_length);
+    const uint64_t matching_min_length,
+    mm_allocator_t* const mm_allocator);
 
 /*
  * Compose the scaffolding
@@ -56,7 +57,8 @@ void match_scaffold_levenshtein_tile(
     alignment_tile_t* const alignment_tile,
     pattern_tile_t* const pattern_tile,
     const uint64_t matching_min_length,
-    matches_t* const matches);
+    matches_t* const matches,
+    mm_allocator_t* const mm_allocator);
 
 /*
  * Levenshtein Scaffold
@@ -67,6 +69,7 @@ bool match_scaffold_levenshtein(
     text_trace_t* const text_trace,
     alignment_t* const alignment,
     const uint64_t matching_min_length,
-    matches_t* const matches);
+    matches_t* const matches,
+    mm_allocator_t* const mm_allocator);
 
 #endif /* MATCH_SCAFFOLD_LEVENSHTEIN_H_ */

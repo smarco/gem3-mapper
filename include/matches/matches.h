@@ -93,7 +93,8 @@ typedef struct {
   matches_counters_t* counters;        // Global counters
   /* Matches */
   vector_t* match_traces;              // Matches (match_trace_t*)
-  vector_t* match_traces_local;        // Local Matches (match_trace_t)
+  vector_t* match_traces_local;        // Local Matches (match_trace_t*)
+  vector_t* match_traces_extended;     // Extended Matches (match_trace_t*)
   ihash_t* match_traces_begin;         // Begin position (of the aligned match) in the text-space
   ihash_t* match_traces_end;           // End position (of the aligned match) in the text-space
   /* CIGAR */

@@ -48,16 +48,29 @@ typedef enum {
 } match_alignment_model_t;
 
 /*
- * Display
+ * Check
  */
-void match_alignment_print_pretty(
+bool match_alignment_check(
     FILE* const stream,
     match_alignment_t* const match_alignment,
-    vector_t* const cigar_vector,
     uint8_t* const key,
     const uint64_t key_length,
     uint8_t* const text,
     const uint64_t text_length,
+    vector_t* const cigar_vector,
+    const bool verbose,
+    mm_allocator_t* const mm_allocator);
+/*
+ *  Display
+ */
+void match_alignment_print_pretty(
+    FILE* const stream,
+    match_alignment_t* const match_alignment,
+    uint8_t* const key,
+    const uint64_t key_length,
+    uint8_t* const text,
+    const uint64_t text_length,
+    vector_t* const cigar_vector,
     mm_allocator_t* const mm_allocator);
 
 #endif /* MATCH_ALIGNMENT_H_ */

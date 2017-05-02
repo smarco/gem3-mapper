@@ -39,10 +39,27 @@ void align_swg_banded(
     uint8_t* const text,
     uint64_t text_length,
     const swg_penalties_t* const swg_penalties,
+    const uint64_t max_bandwidth,
     const bool begin_free,
     const bool end_free,
-    const uint64_t max_bandwidth,
+    const bool left_gap_alignment,
     match_alignment_t* const match_alignment,
+    vector_t* const cigar_vector,
+    mm_allocator_t* const mm_allocator);
+void align_swg_banded_extend(
+    const uint8_t* const key,
+    const uint64_t key_length,
+    uint8_t* const text,
+    uint64_t text_length,
+    const bool reverse_extension,
+    const bool local_extension,
+    const swg_penalties_t* const swg_penalties,
+    const uint64_t max_bandwidth,
+    const int64_t swg_score_dropoff,
+    const bool left_gap_alignment,
+    match_alignment_t* const match_alignment,
+    uint64_t* const max_key_aligned,
+    uint64_t* const max_text_aligned,
     vector_t* const cigar_vector,
     mm_allocator_t* const mm_allocator);
 

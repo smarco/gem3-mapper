@@ -35,7 +35,6 @@ void filtering_candidates_align_region(
     filtering_region_t* const region,
     pattern_t* const pattern,
     const bool local_alignment,
-    const bool extended_match,
     matches_t* const matches,
     bool* const region_accepted,
     bool* const match_accepted);
@@ -46,6 +45,9 @@ void filtering_candidates_align_region(
 uint64_t filtering_candidates_align_candidates(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const pattern,
-    const bool extended_match,
     const bool local_alignment,
+    matches_t* const matches);
+uint64_t filtering_candidates_align_extended_candidates(
+    filtering_candidates_t* const filtering_candidates,
+    pattern_t* const pattern,
     matches_t* const matches);

@@ -53,18 +53,16 @@ typedef struct {
   uint64_t scaffolding_coverage;
   /* Underlying Alignment */
   match_alignment_t match_alignment;
-  /* MM */
-  mm_allocator_t* mm_allocator;
 } match_scaffold_t;
 
 /*
  * Setup
  */
 void match_scaffold_init(
+    match_scaffold_t* const match_scaffold);
+void match_scaffold_destroy(
     match_scaffold_t* const match_scaffold,
     mm_allocator_t* const mm_allocator);
-void match_scaffold_destroy(
-    match_scaffold_t* const match_scaffold);
 
 /*
  * Accessors
@@ -73,10 +71,12 @@ bool match_scaffold_is_null(match_scaffold_t* const match_scaffold);
 
 match_alignment_region_t* match_scaffold_allocate_alignment_region(
     match_scaffold_t* const match_scaffold,
-    const uint64_t num_alignment_regions);
+    const uint64_t num_alignment_regions,
+    mm_allocator_t* const mm_allocator);
 void match_scaffold_free_alignment_region(
     match_scaffold_t* const match_scaffold,
-    match_alignment_region_t* const match_alignment_region);
+    match_alignment_region_t* const match_alignment_region,
+    mm_allocator_t* const mm_allocator);
 
 /*
  * Region Chain Scaffolding
@@ -85,7 +85,8 @@ void match_scaffold_region_chain(
     match_scaffold_t* const match_scaffold,
     pattern_t* const pattern,
     text_trace_t* const text_trace,
-    matches_t* const matches);
+    matches_t* const matches,
+    mm_allocator_t* const mm_allocator);
 
 /*
  * Adaptive Scaffolding of the alignment (Best effort)
@@ -97,7 +98,8 @@ void match_scaffold_adaptive(
     alignment_t* const alignment,
     const uint64_t global_min_identity,
     const uint64_t matching_min_length,
-    matches_t* const matches);
+    matches_t* const matches,
+    mm_allocator_t* const mm_allocator);
 
 /*
  * Check

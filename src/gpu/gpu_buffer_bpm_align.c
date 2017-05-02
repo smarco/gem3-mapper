@@ -566,14 +566,14 @@ void gpu_buffer_bpm_align_compute_dimensions(
     uint64_t* const total_query_entries,
     uint64_t* const total_query_length,
     uint64_t* const total_candidates,
-    uint64_t* const total_candidates_length);
+    uint64_t* const total_candidates_length) {  }
 bool gpu_buffer_bpm_align_fits_in_buffer(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
     const uint64_t total_queries,
     const uint64_t total_query_entries,
     const uint64_t total_query_length,
     const uint64_t total_candidates,
-    const uint64_t total_candidates_length);
+    const uint64_t total_candidates_length) { return 0; }
 /*
  * Pattern accessor
  */
