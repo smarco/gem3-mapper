@@ -45,8 +45,7 @@ const char* filtering_region_status_label[] =
     [1] = "unverified",
     [2] = "verified-discarded",
     [3] = "accepted",
-    [4] = "accepted-subdominant",
-    [5] = "aligned",
+    [4] = "accepted-subdominant"
 };
 /*
  * Retrieve filtering region text-candidate

@@ -58,15 +58,15 @@ void approximate_search_verify_candidates(
   pattern_t* const pattern = &search->pattern;
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
   // Verify Candidates
-  filtering_candidates_verify_candidates(filtering_candidates,pattern);
-  filtering_candidates_align_candidates(filtering_candidates,pattern,false,matches);
+  filtering_candidates_verify_candidates(filtering_candidates,pattern,matches);
+  filtering_candidates_align_candidates(filtering_candidates,pattern,matches);
   search->processing_state = asearch_processing_state_candidates_verified;
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); }
 }
 /*
  * Verify Extend Candidate
  */
-uint64_t approximate_search_verify_extend_candidate(
+void approximate_search_verify_extend_candidate(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const candidate_pattern,
     const match_trace_t* const extended_match,
@@ -136,7 +136,7 @@ void approximate_search_bpm_align_buffered_retrieve(
       search->gpu_buffer_bpm_align_offset);
   // Align
   filtering_candidates_align_candidates(
-      search->filtering_candidates,&search->pattern,false,matches);
+      search->filtering_candidates,&search->pattern,matches);
   // Update state
   search->processing_state = asearch_processing_state_candidates_verified;
 }

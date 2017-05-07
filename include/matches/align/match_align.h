@@ -93,7 +93,15 @@ void match_align_smith_waterman_gotoh(
     text_trace_t* const text_trace,
     alignment_t* const alignment,
     match_scaffold_t* const match_scaffold,
-    const bool local_alignment,
+    match_trace_t* const match_trace,
+    mm_allocator_t* const mm_allocator);
+void match_align_smith_waterman_gotoh_local(
+    matches_t* const matches,
+    search_parameters_t* const search_parameters,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
+    alignment_t* const alignment,
+    match_scaffold_t* const match_scaffold,
     match_trace_t* const match_trace,
     mm_allocator_t* const mm_allocator);
 

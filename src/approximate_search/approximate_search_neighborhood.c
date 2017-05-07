@@ -63,11 +63,11 @@ void approximate_search_neighborhood_exact_search(
   // Process+Verify candidates
   PROF_START(GP_NS_VERIFICATION);
   filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern,false);
-  filtering_candidates_verify_candidates(filtering_candidates,pattern);
+  filtering_candidates_verify_candidates(filtering_candidates,pattern,matches);
   PROF_STOP(GP_NS_VERIFICATION);
   // Align
   PROF_START(GP_NS_ALIGN);
-  filtering_candidates_align_candidates(filtering_candidates,pattern,false,matches);
+  filtering_candidates_align_candidates(filtering_candidates,pattern,matches);
   PROF_STOP(GP_NS_ALIGN);
   // Finish Search
   approximate_search_update_mcs(search,1);
@@ -93,11 +93,11 @@ void approximate_search_neighborhood_search_brute_force(
   // Process+Verify candidates
   PROF_START(GP_NS_VERIFICATION);
   filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern,false);
-  filtering_candidates_verify_candidates(filtering_candidates,pattern);
+  filtering_candidates_verify_candidates(filtering_candidates,pattern,matches);
   PROF_STOP(GP_NS_VERIFICATION);
   // Align
   PROF_START(GP_NS_ALIGN);
-  filtering_candidates_align_candidates(filtering_candidates,pattern,false,matches);
+  filtering_candidates_align_candidates(filtering_candidates,pattern,matches);
   PROF_STOP(GP_NS_ALIGN);
   // Finish Search
   approximate_search_update_mcs(search,search->current_max_complete_error+1);

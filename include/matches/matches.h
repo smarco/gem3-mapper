@@ -129,6 +129,7 @@ void matches_update_mcs(matches_t* const matches,const uint64_t current_mcs);
  */
 void matches_clear_match_traces(const matches_t* const matches);
 uint64_t matches_get_num_match_traces(const matches_t* const matches);
+uint64_t matches_get_num_match_traces_extended(const matches_t* const matches);
 match_trace_t* matches_get_primary_match(const matches_t* const matches);
 match_trace_t** matches_get_match_traces(const matches_t* const matches);
 
@@ -152,15 +153,6 @@ int matche_trace_cigar_cmp(
     match_trace_t* const match1);
 
 /*
- * Add Match-Trace
- */
-match_trace_t* matches_add_match_trace(
-    matches_t* const matches,
-    const locator_t* const locator,
-    match_trace_t* const match_trace,
-    bool* const match_replaced);
-
-/*
  * Sort
  */
 void matches_traces_sort_by_genomic_position(
@@ -168,12 +160,25 @@ void matches_traces_sort_by_genomic_position(
     const uint64_t num_match_traces);
 
 /*
- * Local Matches
+ * Adding Match-traces
  */
-void matches_add_local_match_pending(
+match_trace_t* matches_add_match_trace(
+    matches_t* const matches,
+    const locator_t* const locator,
+    match_trace_t* const match_trace,
+    bool* const match_replaced);
+void matches_add_match_trace_extended(
+    matches_t* const matches,
+    const locator_t* const locator,
+    match_trace_t* const match_trace);
+void matches_add_match_trace_local_pending(
     matches_t* const matches,
     match_trace_t* const match_trace);
-void matches_add_pending_local_matches(
+
+void matches_local_pending_add_to_regular_matches(
+    matches_t* const matches,
+    const locator_t* const locator);
+void matches_local_pending_add_to_extended_matches(
     matches_t* const matches,
     const locator_t* const locator);
 

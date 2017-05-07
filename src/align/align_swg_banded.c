@@ -220,23 +220,23 @@ void align_swg_banded_extend(
     uint64_t text_length,
     const bool reverse_extension,
     const bool local_extension,
+    const int32_t base_score,
     const swg_penalties_t* const swg_penalties,
     const uint64_t max_bandwidth,
-    const int64_t swg_score_dropoff,
     const bool left_gap_alignment,
     match_alignment_t* const match_alignment,
     uint64_t* const max_key_aligned,
     uint64_t* const max_text_aligned,
     vector_t* const cigar_vector,
     mm_allocator_t* const mm_allocator) {
-  // Check limits
+  // Check trivial cases
   if (key_length == 0) {
     match_alignment->score = 0;
     *max_key_aligned = 0;
     *max_text_aligned = 0;
     return;
   }
-  if (text_length == 0) { // Text too short for band
+  if (text_length == 0) {
     matches_cigar_vector_append_deletion(
         cigar_vector,&match_alignment->cigar_length,
         key_length,cigar_attr_none);
@@ -247,8 +247,6 @@ void align_swg_banded_extend(
     *max_text_aligned = 0;
     return;
   }
-  PROF_START(GP_SWG_ALIGN_BANDED);
-  mm_allocator_push_state(mm_allocator); // Save allocator state
   // Parameters
   const swg_matching_score_t* const matching_score = &swg_penalties->matching_score;
   const int32_t gap_extension = swg_penalties->gap_extension_score;
@@ -257,6 +255,7 @@ void align_swg_banded_extend(
   const int32_t generic_match_score = swg_penalties->generic_match_score;
   const uint64_t num_rows = (key_length+1);
   const uint64_t num_columns = (text_length+1);
+  PROF_START(GP_SWG_ALIGN_BANDED);
   PROF_ADD_COUNTER(GP_SWG_ALIGN_BANDED_CELLS,num_columns*max_bandwidth);
   // Initialize band
   int64_t column_start_band = max_bandwidth + 2;
@@ -264,6 +263,7 @@ void align_swg_banded_extend(
   uint64_t band_high_offset = 0;
   uint64_t band_low_offset = (max_bandwidth+1 < num_rows) ? max_bandwidth+2 : num_rows;
   // Initialize DP-matrix (lazy allocation)
+  mm_allocator_push_state(mm_allocator); // Save allocator state
   swg_cell_t** const dp = mm_allocator_malloc(mm_allocator,num_columns*sizeof(swg_cell_t*));
   align_swg_allocate__init_column_banded(
       dp,0,column_start_band,
@@ -273,11 +273,7 @@ void align_swg_banded_extend(
   int32_t max_score, max_local_score;
   uint64_t column, max_local_score_row;
   uint64_t max_score_column, max_score_row;
-  if (local_extension) {
-    max_score = 0; // No Alignment
-    max_score_column = 0;
-    max_score_row = 0;
-  } else {
+  if (!local_extension) {
     max_score = gap_open + key_length*gap_extension; // Init as full deletion
     max_score_column = 0;
     max_score_row = key_length;
@@ -297,24 +293,26 @@ void align_swg_banded_extend(
         &max_local_score,&max_local_score_row);
     // Check score
     if (local_extension) {
-      if (max_local_score > max_score) {
-        max_score = max_local_score;
-        max_score_column = column;
-        max_score_row = max_local_score_row;
-      } else if (max_score-max_local_score > swg_score_dropoff) {
+      if (base_score + max_local_score <= 0) {
+        ++column;
         break; // Drop-off
       }
     } else if (band_low_offset==num_rows) {
       if (dp[column][band_low_offset-1].M > max_score) {
         max_score_column = column;
-        max_score_row = band_low_offset-1;
-        max_score = dp[column][band_low_offset-1].M;
+        max_score_row = num_rows-1;
+        max_score = dp[column][num_rows-1].M;
       } else {
         const int64_t key_left = num_rows - max_local_score_row;
         const int64_t max_expected_score = max_local_score + key_left*generic_match_score;
         if (max_expected_score <= max_score) break; // Drop-off
       }
     }
+  }
+  if (local_extension) {
+    max_score_column = column-1;
+    max_score_row = band_low_offset-1;
+    max_score = dp[max_score_column][max_score_row].M;
   }
   *max_key_aligned = max_score_row;
   *max_text_aligned = max_score_column;

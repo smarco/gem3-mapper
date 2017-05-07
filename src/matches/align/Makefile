@@ -21,6 +21,7 @@ MODULES=match_align \
         match_alignment_region_rl \
         match_align_normalize \
         match_align_swg \
+        match_align_swg_chained \
         match_align_swg_local
 
 SRCS=$(addsuffix .c, $(MODULES))

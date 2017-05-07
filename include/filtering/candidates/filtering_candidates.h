@@ -179,6 +179,7 @@ void filtering_candidates_clear_discarded_regions(
  */
 void filtering_candidates_sort_positions(filtering_candidates_t* const filtering_candidates);
 void filtering_candidates_sort_regions_by_align_distance(filtering_candidates_t* const filtering_candidates);
+void filtering_candidates_sort_regions_by_scaffold_coverage(filtering_candidates_t* const filtering_candidates);
 void filtering_candidates_sort_discarded_by_scaffold_coverage(filtering_candidates_t* const filtering_candidates);
 void filtering_candidates_sort_discarded_by_rank(filtering_candidates_t* const filtering_candidates);
 

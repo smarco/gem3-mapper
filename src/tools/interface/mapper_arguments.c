@@ -63,6 +63,7 @@ option_t gem_mapper_options[] = {
   { 413, "candidate-generation-adaptive", REQUIRED, TYPE_STRING, 4, VISIBILITY_DEVELOPER, "<app_threshold>,<app_steps>,<app_dec>" , "" },
   { 414, "candidate-verification", REQUIRED, TYPE_STRING, 4, VISIBILITY_DEVELOPER, "'BPM'|'chained'" , "" },
   { 415, "qgram-filter", REQUIRED, TYPE_STRING, 4, VISIBILITY_DEVELOPER, "<kmer_tiles>,<qgram_length>" , "" },
+  { 416, "candidate-drop-off", OPTIONAL, TYPE_STRING, 10, VISIBILITY_USER, "'true'|'false'" , "(default=true)" },
   /* Paired-end Alignment */
   { 'p', "paired-end-alignment", NO_ARGUMENT, TYPE_NONE, 5, VISIBILITY_USER, "" , "" },
   { 'l', "min-template-length", REQUIRED, TYPE_INT, 5, VISIBILITY_USER, "<number>" , "(default=disabled)" },
@@ -545,9 +546,9 @@ bool gem_mapper_parse_arguments_single_end(
     }
     case 414: // --candidate-verification in 'BPM'|'chained'
       if (gem_strcaseeq(optarg,"BPM")) {
-        search->candidate_verification.strategy = candidate_verification_BPM;
+        search->candidate_verification.verification_strategy = verification_BPM;
       } else if (gem_strcaseeq(optarg,"chained")) {
-        search->candidate_verification.strategy = candidate_verification_chained;
+        search->candidate_verification.verification_strategy = verification_chained;
       } else {
         mapper_error_msg("Option '--candidate-verification' must be 'BPM'|'chained'");
       }
@@ -560,6 +561,9 @@ bool gem_mapper_parse_arguments_single_end(
       input_text_parse_extended_uint64(qgram_length,&search->candidate_verification.kmer_length);
       return true;
     }
+    case 416: // --candidate-drop-off in {'true'|'false'} (default=true)
+      search->candidate_verification.candidate_local_drop_off = (optarg==NULL) ? true : input_text_parse_extended_bool(optarg);
+      return true;
   }
   // Not found
   return false;

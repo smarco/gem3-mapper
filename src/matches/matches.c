@@ -166,6 +166,9 @@ void matches_clear_match_traces(const matches_t* const matches) {
 uint64_t matches_get_num_match_traces(const matches_t* const matches) {
   return vector_get_used(matches->match_traces);
 }
+uint64_t matches_get_num_match_traces_extended(const matches_t* const matches) {
+  return vector_get_used(matches->match_traces_extended);
+}
 match_trace_t* matches_get_primary_match(const matches_t* const matches) {
   return matches_get_match_traces(matches)[0];
 }
@@ -304,7 +307,7 @@ void matches_add_match_trace_preserve_sorted(matches_t* const matches) {
   }
 }
 /*
- * Add Match-Trace
+ * Adding Match-traces
  */
 void match_trace_locate(
     match_trace_t* const match_trace,
@@ -400,17 +403,28 @@ match_trace_t* matches_add_match_trace(
     }
   }
 }
-/*
- * Local Matches
- */
-void matches_add_local_match_pending(
+void matches_add_match_trace_extended(
+    matches_t* const matches,
+    const locator_t* const locator,
+    match_trace_t* const match_trace) {
+  bool match_replaced;
+  match_trace_t* const match_trace_added =
+      matches_add_match_trace(matches,locator,match_trace,&match_replaced);
+  if (match_trace_added!=NULL) {
+    match_trace_added->type = match_type_extended;
+    if (!match_replaced) {
+      vector_insert(matches->match_traces_extended,match_trace_added,match_trace_t*);
+    }
+  }
+}
+void matches_add_match_trace_local_pending(
     matches_t* const matches,
     match_trace_t* const match_trace) {
   match_trace_t* const new_match_trace = mm_allocator_alloc(matches->mm_allocator,match_trace_t);
   match_trace_copy(new_match_trace,match_trace);
   vector_insert(matches->match_traces_local,new_match_trace,match_trace_t*);
 }
-void matches_add_pending_local_matches(
+void matches_local_pending_add_to_regular_matches(
     matches_t* const matches,
     const locator_t* const locator) {
   const uint64_t num_match_traces_local = vector_get_used(matches->match_traces_local);
@@ -420,6 +434,19 @@ void matches_add_pending_local_matches(
   for (i=0;i<num_match_traces_local;++i) {
     match_trace_t* const match_traces = match_traces_local[i];
     matches_add_match_trace(matches,locator,match_traces,&match_replaced);
+  }
+  vector_clear(matches->match_traces_local);
+}
+void matches_local_pending_add_to_extended_matches(
+    matches_t* const matches,
+    const locator_t* const locator) {
+  const uint64_t num_match_traces_local = vector_get_used(matches->match_traces_local);
+  match_trace_t** const match_traces_local = vector_get_mem(matches->match_traces_local,match_trace_t*);
+  uint64_t i;
+  for (i=0;i<num_match_traces_local;++i) {
+    match_trace_t* const match_traces = match_traces_local[i];
+    match_traces->type = match_type_extended;
+    vector_insert(matches->match_traces_extended,match_traces,match_trace_t*);
   }
   vector_clear(matches->match_traces_local);
 }

@@ -19,25 +19,28 @@
  *
  * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
- * DESCRIPTION:
- *   Archive-Search Paired-End module encapsulating basic
- *   PE-search stages
  */
 
-#ifndef ARCHIVE_SEARCH_PE_EXTEND_H_
-#define ARCHIVE_SEARCH_PE_EXTEND_H_
+#ifndef MATCH_ALIGN_SWG_CHAINED_H_
+#define MATCH_ALIGN_SWG_CHAINED_H_
 
 #include "utils/essentials.h"
-#include "archive/search/archive_search.h"
-#include "matches/paired_matches.h"
+#include "matches/align/match_alignment.h"
+#include "matches/scaffold/match_scaffold.h"
+#include "matches/matches.h"
+#include "matches/matches_cigar.h"
 
 /*
- * Extend matches
+ * SWG Chained
  */
-void archive_search_pe_extend_matches(
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches,
-    const sequence_end_t candidate_end);
+void match_align_swg_chained(
+    matches_t* const matches,
+    search_parameters_t* const search_parameters,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
+    match_scaffold_t* const match_scaffold,
+    const bool local_alignment,
+    match_trace_t* const match_trace,
+    mm_allocator_t* const mm_allocator);
 
-#endif /* ARCHIVE_SEARCH_PE_EXTEND_H_ */
+#endif /* MATCH_ALIGN_SWG_CHAINED_H_ */

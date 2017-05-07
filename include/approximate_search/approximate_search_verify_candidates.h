@@ -44,7 +44,7 @@ void approximate_search_verify_candidates(
 /*
  * Verify Extend Candidate
  */
-uint64_t approximate_search_verify_extend_candidate(
+void approximate_search_verify_extend_candidate(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const candidate_pattern,
     const match_trace_t* const extended_match,

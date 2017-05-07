@@ -29,9 +29,22 @@
 #include "align/pattern/pattern.h"
 
 /*
+ * Exact-Extend Candidates
+ */
+void filtering_candidates_extend_candidates(
+    filtering_candidates_t* const filtering_candidates,
+    pattern_t* const pattern,
+    matches_t* const matches);
+void filtering_candidates_extend_discarded_candidates(
+    filtering_candidates_t* const filtering_candidates,
+    pattern_t* const pattern,
+    matches_t* const matches);
+
+/*
  * Verify Candidates
  */
 uint64_t filtering_candidates_verify_candidates(
     filtering_candidates_t* const filtering_candidates,
-    pattern_t* const pattern);
+    pattern_t* const pattern,
+    matches_t* const matches);
 

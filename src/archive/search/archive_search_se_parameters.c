@@ -32,10 +32,9 @@
   parameters->field_name##_nominal = integer_proportion(parameters->field_name,pattern_length)
 
 /*
- * Alignment default parameters
+ * Init
  */
-void search_parameters_init_alignment_model(search_parameters_t* const search_parameters) {
-  search_parameters->match_alignment_model = match_alignment_model_gap_affine;
+void search_parameters_init_alignment_swg_penalties(search_parameters_t* const search_parameters) {
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_A] = +1;
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_C] = -4;
   search_parameters->swg_penalties.matching_score[ENC_DNA_CHAR_A][ENC_DNA_CHAR_G] = -4;
@@ -79,21 +78,32 @@ void search_parameters_init_alignment(search_parameters_t* const search_paramete
   search_parameters->alignment_local = local_alignment_if_unmapped;
   search_parameters->alignment_local_min_identity = 40.0;
   search_parameters->alignment_local_min_swg_threshold = 20.0;
-  search_parameters->alignment_local_max_candidates = 100;
   search_parameters->swg_score_dropoff = 100;
   search_parameters->alignment_scaffolding_min_coverage = 0.80;
   search_parameters->alignment_scaffolding_min_matching_length = 10.0;
   search_parameters->cigar_curation = true;
   search_parameters->cigar_curation_min_end_context = 2.0;
-  search_parameters->candidate_verification.strategy = candidate_verification_chained;
+  /* Candidate verification */
+  search_parameters->candidate_verification.verification_strategy = verification_chained;
+  search_parameters->candidate_verification.candidate_local_drop_off = false;
   search_parameters->candidate_verification.kmer_tiles = 2;
   search_parameters->candidate_verification.kmer_length = 6;
   // Alignment Model
-  search_parameters_init_alignment_model(search_parameters);
+  search_parameters->match_alignment_model = match_alignment_model_gap_affine;
+  search_parameters_init_alignment_swg_penalties(search_parameters);
 }
-/*
- * Search Parameters Init
- */
+void select_parameters_init_mapq(search_parameters_t* const search_parameters) {
+  search_parameters->mapq_model_se = mapq_model_gem;
+  search_parameters->mapq_model_pe = mapq_model_gem;
+  search_parameters->mapq_threshold = 0;
+}
+void select_parameters_init_gpu(search_parameters_t* const search_parameters) {
+  search_parameters->gpu_stage_region_profile_enabled = false;
+  search_parameters->gpu_stage_decode_enabled = false;
+  search_parameters->gpu_stage_kmer_filter_enabled = false;
+  search_parameters->gpu_stage_bpm_distance_enabled = false;
+  search_parameters->gpu_stage_bpm_align_enabled = false;
+}
 void search_parameters_init(search_parameters_t* const search_parameters) {
   // Mapping strategy
   search_parameters->mapping_mode = mapping_adaptive_filtering_fast;
@@ -107,26 +117,24 @@ void search_parameters_init(search_parameters_t* const search_parameters) {
   search_parameters->qualities_format = sequence_qualities_ignore;
   search_parameters->quality_threshold = 26;
   // Approximate Search
-  region_profile_model_init(&search_parameters->region_profile_model); // Region Profile
-  nsearch_parameters_init(&search_parameters->nsearch_parameters); // Neighborhood Search
-  search_parameters->gpu_stage_region_profile_enabled = false;
-  search_parameters->gpu_stage_decode_enabled = false;
-  search_parameters->gpu_stage_kmer_filter_enabled = false;
-  search_parameters->gpu_stage_bpm_distance_enabled = false;
-  search_parameters->gpu_stage_bpm_align_enabled = false;
+  region_profile_model_init(&search_parameters->region_profile_model);
+  nsearch_parameters_init(&search_parameters->nsearch_parameters);
   // Alignment Parameters
   search_parameters_init_alignment(search_parameters);
   // Select Parameters
   select_parameters_init(&search_parameters->select_parameters);
   // MAPQ Score
-  search_parameters->mapq_model_se = mapq_model_gem;
-  search_parameters->mapq_model_pe = mapq_model_gem;
-  search_parameters->mapq_threshold = 0;
+  select_parameters_init_mapq(search_parameters);
   // Paired End
   search_paired_parameters_init(&search_parameters->search_paired_parameters);
+  // GPU
+  select_parameters_init_gpu(search_parameters);
   // Check
   search_parameters->check_type = archive_check_nothing;
 }
+/*
+ * Accessors
+ */
 void search_configure_mapping_strategy(
     search_parameters_t* const search_parameters,
     const mapping_mode_t mapping_mode) {
@@ -224,9 +232,9 @@ void search_parameters_print(
   tab_fprintf(stream,"  => Alingment.max.error %lu\n",search_parameters->alignment_max_error_nominal);
   tab_fprintf(stream,"  => Alingment.max.bandwidth %lu\n",search_parameters->alignment_max_bandwidth_nominal);
   tab_fprintf(stream,"  => Alignment.Global.min.identity %lu\n",search_parameters->alignment_global_min_identity_nominal);
-  tab_fprintf(stream,"  => Alignment.Global.min.swg.threshold %lu\n",search_parameters->alignment_global_min_swg_threshold_nominal);
+  tab_fprintf(stream,"  => Alignment.Global.min.swg.threshold %d\n",search_parameters->alignment_global_min_swg_threshold_nominal);
   tab_fprintf(stream,"  => Alignment.Local.min.identity %lu\n",search_parameters->alignment_local_min_identity_nominal);
-  tab_fprintf(stream,"  => Alignment.Local.min.swg.threshold %lu\n",search_parameters->alignment_local_min_swg_threshold_nominal);
+  tab_fprintf(stream,"  => Alignment.Local.min.swg.threshold %d\n",search_parameters->alignment_local_min_swg_threshold_nominal);
   tab_fprintf(stream,"  => Alignment.scaffolding.min.coverage %lu\n",search_parameters->alignment_scaffolding_min_coverage_nominal);
   tab_fprintf(stream,"  => Alignment.scaffolding.min.matching.length %lu\n",search_parameters->alignment_scaffolding_min_matching_length_nominal);
   tab_fprintf(stream,"  => Cigar.curation.min.end.context %lu\n",search_parameters->cigar_curation_min_end_context_nominal);

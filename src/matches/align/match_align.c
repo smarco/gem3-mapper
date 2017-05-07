@@ -168,6 +168,10 @@ void match_align_pseudoalignment(
   match_trace->match_scaffold = NULL;
   match_trace->text = text_trace->text + match_alignment->match_text_offset;
   match_trace->text_length = match_alignment->effective_length;
+  // Add clipping to CIGAR
+  match_aling_add_clipping(
+      match_trace,matches->cigar_vector,
+      pattern->clip_left,pattern->clip_right);
 }
 /*
  * Hamming Alignment (Only mismatches)
@@ -215,10 +219,14 @@ void match_align_hamming(
   // Set distances
   match_trace->edit_distance = mismatches;
   match_trace->event_distance = mismatches;
-  match_trace->swg_score = align_swg_score_cigar(
+  match_trace->swg_score = align_swg_score_cigar_excluding_clipping(
       &search_parameters->swg_penalties,matches->cigar_vector,
       match_alignment->cigar_offset,match_alignment->cigar_length);
   match_trace->match_scaffold = NULL;
+  // Add clipping to CIGAR
+  match_aling_add_clipping(
+      match_trace,matches->cigar_vector,
+      pattern->clip_left,pattern->clip_right);
   PROFILE_STOP(GP_MATCHES_ALIGN_HAMMING,PROFILE_LEVEL);
 }
 /*
@@ -263,13 +271,18 @@ void match_align_levenshtein(
     match_trace->edit_distance = match_alignment->score;
     match_trace->event_distance = matches_cigar_compute_event_distance(
         cigar_vector,match_alignment->cigar_offset,match_alignment->cigar_length);
-    match_trace->swg_score = align_swg_score_cigar(&search_parameters->swg_penalties,
-        cigar_vector,match_alignment->cigar_offset,match_alignment->cigar_length);
+    match_trace->swg_score = align_swg_score_cigar_excluding_clipping(
+        &search_parameters->swg_penalties,cigar_vector,
+        match_alignment->cigar_offset,match_alignment->cigar_length);
     // Store matching text
     match_trace->match_scaffold = NULL;
     match_alignment->match_text_offset = match_alignment->match_position - text_trace->position;
     match_trace->text = text + match_alignment->match_text_offset;
     match_trace->text_length = match_alignment->effective_length;
+    // Add clipping to CIGAR
+    match_aling_add_clipping(
+        match_trace,matches->cigar_vector,
+        pattern->clip_left,pattern->clip_right);
   }
   PROFILE_STOP(GP_MATCHES_ALIGN_LEVENSHTEIN,PROFILE_LEVEL);
 }
@@ -283,16 +296,16 @@ void match_align_smith_waterman_gotoh(
     text_trace_t* const text_trace,
     alignment_t* const alignment,
     match_scaffold_t* const match_scaffold,
-    const bool local_alignment,
     match_trace_t* const match_trace,
     mm_allocator_t* const mm_allocator) {
   PROFILE_START(GP_MATCHES_ALIGN_SWG,PROFILE_LEVEL);
   // Configure match-trace
+  match_trace->type = match_type_regular;
   match_trace->text_trace = text_trace;
   match_trace->sequence_name = NULL;
   match_trace->text_position = UINT64_MAX;
   // Scaffold the alignment
-  if (!search_parameters->alignment_force_full_swg && !local_alignment) {
+  if (!search_parameters->alignment_force_full_swg) {
     PROFILE_PAUSE(GP_MATCHES_ALIGN_SWG,PROFILE_LEVEL);
     match_scaffold_adaptive(
         match_scaffold,pattern,text_trace,alignment,
@@ -300,57 +313,75 @@ void match_align_smith_waterman_gotoh(
         search_parameters->alignment_scaffolding_min_matching_length_nominal,
         matches,mm_allocator);
     PROFILE_CONTINUE(GP_MATCHES_ALIGN_SWG,PROFILE_LEVEL);
-    if (match_scaffold->num_alignment_regions==0) {
-      PROF_INC_COUNTER(GP_ALIGNED_DISCARDED_SCAFFOLD);
-      match_trace->edit_distance = ALIGN_DISTANCE_INF;
-      match_trace->event_distance = ALIGN_DISTANCE_INF;
-      match_trace->swg_score = SWG_SCORE_MIN;
-      return;
-    }
   }
   match_trace->match_scaffold = match_scaffold;
   // Align SWG
+  match_alignment_t* const match_alignment = &match_trace->match_alignment;
   match_align_swg(
       matches,search_parameters,pattern,text_trace,
-      match_scaffold,local_alignment,match_trace,mm_allocator);
-  // Check for bad alignments (discarded)
-  match_alignment_t* const match_alignment = &match_trace->match_alignment;
-  if (match_alignment->score == SWG_SCORE_MIN) { // Input trims not computed
-    PROF_INC_COUNTER(GP_ALIGNED_DISCARDED_SWG);
-    match_trace->edit_distance = ALIGN_DISTANCE_INF;
-    match_trace->event_distance = ALIGN_DISTANCE_INF;
+      match_scaffold,false,match_trace,mm_allocator);
+  if (match_alignment->score == SWG_SCORE_MIN) {
     match_trace->swg_score = SWG_SCORE_MIN;
+    PROF_INC_COUNTER(GP_ALIGNED_DISCARDED_SWG);
+    PROFILE_STOP(GP_MATCHES_ALIGN_SWG,PROFILE_LEVEL);
     return;
   }
-  // Normalize CIGAR & Adjust Position (Translate RL if required)
+  // Normalize CIGAR (Adjust Position, Translate RL, ...)
   match_align_normalize(matches,match_trace,search_parameters);
-  // Compute matching bases (identity) + score
+  match_align_swg_compute_alignment_type(matches,match_trace,search_parameters);
+  if (match_trace->type == match_type_local) {
+    match_trace->swg_score = SWG_SCORE_MIN;
+    PROF_INC_COUNTER(GP_ALIGNED_DISCARDED_SWG);
+    PROFILE_STOP(GP_MATCHES_ALIGN_SWG,PROFILE_LEVEL);
+    return;
+  }
+  // Add clipping to CIGAR
+  match_aling_add_clipping(
+      match_trace,matches->cigar_vector,
+      pattern->clip_left,pattern->clip_right);
+  PROFILE_STOP(GP_MATCHES_ALIGN_SWG,PROFILE_LEVEL);
+}
+void match_align_smith_waterman_gotoh_local(
+    matches_t* const matches,
+    search_parameters_t* const search_parameters,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
+    alignment_t* const alignment,
+    match_scaffold_t* const match_scaffold,
+    match_trace_t* const match_trace,
+    mm_allocator_t* const mm_allocator) {
+  PROFILE_START(GP_MATCHES_ALIGN_SWG,PROFILE_LEVEL);
+  // Configure match-trace
+  match_trace->type = match_type_regular;
+  match_trace->text_trace = text_trace;
+  match_trace->sequence_name = NULL;
+  match_trace->text_position = UINT64_MAX;
+  match_trace->match_scaffold = match_scaffold;
+  // Align SWG
+  match_alignment_t* const match_alignment = &match_trace->match_alignment;
+  match_align_swg(
+      matches,search_parameters,pattern,text_trace,
+      match_scaffold,true,match_trace,mm_allocator);
+  if (match_alignment->score == SWG_SCORE_MIN) {
+    match_trace->swg_score = SWG_SCORE_MIN;
+    PROF_INC_COUNTER(GP_ALIGNED_DISCARDED_SWG);
+    PROFILE_STOP(GP_MATCHES_ALIGN_SWG,PROFILE_LEVEL);
+    return;
+  }
+  // Normalize CIGAR (Adjust Position, Translate RL, ...)
+  match_align_normalize(matches,match_trace,search_parameters);
   match_align_swg_compute_alignment_type(matches,match_trace,search_parameters);
   if (match_trace->type == match_type_local) {
     // Compute Local Alignment
     match_align_swg_local_alignment(
-        matches,search_parameters,pattern,text_trace,
-        match_scaffold,match_trace);
-    if (match_trace->swg_score == SWG_SCORE_MIN) {
-      match_trace->edit_distance = ALIGN_DISTANCE_INF;
-      match_trace->event_distance = ALIGN_DISTANCE_INF;
-      match_trace->swg_score = SWG_SCORE_MIN;
-      return;
-    }
-    match_align_normalize(matches,match_trace,search_parameters);
-    const uint64_t matching_bases =
-        matches_cigar_compute_matching_bases(matches->cigar_vector,
-            match_alignment->cigar_offset,match_alignment->cigar_length);
-    match_trace->swg_score = matching_bases;
+        matches,search_parameters,pattern,
+        text_trace,match_scaffold,match_trace);
+  } else {
+    // Add clipping to CIGAR
+    match_aling_add_clipping(
+        match_trace,matches->cigar_vector,
+        pattern->clip_left,pattern->clip_right);
   }
-  // Compute distance + edit distance + effective-length
-  vector_t* const cigar_vector = matches->cigar_vector;
-  const uint64_t cigar_offset = match_alignment->cigar_offset;
-  const uint64_t cigar_length = match_alignment->cigar_length;
-  match_trace->event_distance = matches_cigar_compute_event_distance(cigar_vector,cigar_offset,cigar_length);
-  match_trace->edit_distance = matches_cigar_compute_edit_distance(cigar_vector,cigar_offset,cigar_length);
-  match_alignment->effective_length = matches_cigar_effective_length(cigar_vector,cigar_offset,cigar_length);
-  match_trace->text_length = match_alignment->effective_length;
   PROFILE_STOP(GP_MATCHES_ALIGN_SWG,PROFILE_LEVEL);
 }
 

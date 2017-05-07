@@ -83,11 +83,11 @@ void archive_search_pe_search_end1(
     archive_search_end1->pair_extended_shortcut = true; // Debug
     PROF_INC_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTENSION_SHORTCUT_TOTAL);
     PROFILE_START(GP_ARCHIVE_SEARCH_PE_EXTENSION_SHORTCUT,PROFILE_LEVEL);
-    const uint64_t num_matches_found = archive_search_pe_extend_matches(
+    archive_search_pe_extend_matches(
         archive_search_end1,archive_search_end2,paired_matches,paired_end2);
     PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_EXTENSION_SHORTCUT,PROFILE_LEVEL);
     // Check results of the extension
-    if (num_matches_found > 0) {
+    if (paired_matches_get_num_maps(paired_matches) > 0) {
       PROF_INC_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTENSION_SHORTCUT_SUCCESS);
       // Next State
       archive_search_end1->pe_search_state = archive_search_pe_state_find_pairs;
@@ -158,14 +158,13 @@ void archive_search_pe_recovery(
     archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches) {
-  uint64_t total_matches_found;
   // Paired-end recovery by extension (End/1)
   if (!archive_search_end1->pair_extended) {
     if (archive_search_pe_use_recovery_extension(archive_search_end1,archive_search_end2,paired_matches)) {
       // Extend End/1
       PROF_INC_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTENSION_RECOVERY_TOTAL);
       PROFILE_START(GP_ARCHIVE_SEARCH_PE_EXTENSION_RECOVERY,PROFILE_LEVEL);
-      total_matches_found = archive_search_pe_extend_matches(
+      archive_search_pe_extend_matches(
           archive_search_end1,archive_search_end2,paired_matches,paired_end2);
       archive_search_end1->pair_extended = true;
       PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_EXTENSION_RECOVERY,PROFILE_LEVEL);
@@ -174,7 +173,7 @@ void archive_search_pe_recovery(
   // Check max-matches reached
   search_parameters_t* const search_parameters = &archive_search_end1->search_parameters;
   const uint64_t max_searched_paired_matches = search_parameters->select_parameters.max_searched_paired_matches;
-  if (total_matches_found >= max_searched_paired_matches) return;
+  if (paired_matches_get_num_maps(paired_matches) >= max_searched_paired_matches) return;
   // Paired-end recovery by extension (End/2)
   if (!archive_search_end2->pair_extended) {
     if (archive_search_pe_use_recovery_extension(archive_search_end1,archive_search_end2,paired_matches)) {

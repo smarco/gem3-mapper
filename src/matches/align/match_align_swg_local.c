@@ -24,7 +24,7 @@
 #include "matches/align/match_align_swg_local.h"
 
 /*
- * SWG-Local MAX
+ * SWG-Local
  */
 typedef struct {
   uint64_t local_begin_key_pos;
@@ -35,42 +35,92 @@ typedef struct {
   uint64_t local_end_cigar;
   int64_t local_score;
   uint64_t local_identity;
-} match_align_swg_local_max_t;
+} match_align_swg_local_t;
 
-void match_align_swg_local_alignment_add_gap(
-    cigar_element_t** const local_cigar_buffer,
-    const uint64_t begin_key_pos,
-    const uint64_t end_key_pos,
-    const uint64_t begin_text_pos,
-    const uint64_t end_text_pos) {
-  // Compute sentinels differences
-  const uint64_t key_pos_diff = end_key_pos - begin_key_pos;
-  const uint64_t text_pos_diff = end_text_pos - begin_text_pos;
-  // Delete the read chunk
-  if (key_pos_diff > 0) {
-    (*local_cigar_buffer)->type = cigar_del;
-    (*local_cigar_buffer)->length = key_pos_diff;
-    (*local_cigar_buffer)->attributes = cigar_attr_none;
-    ++(*local_cigar_buffer);
-  }
-  // Insert the text chunk
-  if (text_pos_diff > 0) {
-    (*local_cigar_buffer)->type = cigar_ins;
-    (*local_cigar_buffer)->length = text_pos_diff;
-    (*local_cigar_buffer)->attributes = cigar_attr_none;
-    ++(*local_cigar_buffer);
-  }
-}
-void match_align_swg_local_alignment_add_local_chunk(
+/*
+ * SWG-Local Compose Alignment
+ */
+void match_align_swg_local_alignment_add_match_compose_cigar(
+    matches_t* const matches,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
+    match_align_swg_local_t* const local_alignment,
     cigar_element_t* const global_cigar_buffer,
-    cigar_element_t** const local_cigar_buffer,
-    match_align_swg_local_max_t* const local_max) {
-  // Add local-CIGAR
-  uint64_t i;
-  for (i=local_max->local_begin_cigar;i<=local_max->local_end_cigar;++i) {
-     **local_cigar_buffer = global_cigar_buffer[i];
-     ++(*local_cigar_buffer);
+    match_alignment_t* const match_alignment) {
+  // Parameters
+  vector_t* const cigar_vector = matches->cigar_vector;
+  // Reserve CIGAR
+  match_alignment->cigar_offset = vector_get_used(cigar_vector);
+  const uint64_t max_local_cigar_length = local_alignment->local_end_cigar-local_alignment->local_begin_cigar+2;
+  vector_reserve_additional(cigar_vector,max_local_cigar_length);
+  cigar_element_t* local_cigar_buffer = vector_get_free_elm(cigar_vector,cigar_element_t);
+  uint64_t cigar_length = 0;
+  // Begin trim
+  const uint64_t begin_trim = pattern->clip_left + local_alignment->local_begin_key_pos;
+  if (begin_trim > 0) {
+    local_cigar_buffer->type = cigar_del;
+    local_cigar_buffer->length = begin_trim;
+    local_cigar_buffer->attributes = cigar_attr_trim;
+    ++local_cigar_buffer;
+    ++cigar_length;
   }
+  // Compose local CIGAR
+  uint64_t i;
+  for (i=local_alignment->local_begin_cigar;i<local_alignment->local_end_cigar;++i) {
+    *local_cigar_buffer = global_cigar_buffer[i];
+    ++local_cigar_buffer;
+    ++cigar_length;
+  }
+  // End trim
+  const uint64_t end_trim = pattern->clip_right + (pattern->key_length-local_alignment->local_end_key_pos);
+  if (end_trim > 0) {
+    local_cigar_buffer->type = cigar_del;
+    local_cigar_buffer->length = end_trim;
+    local_cigar_buffer->attributes = cigar_attr_trim;
+    ++local_cigar_buffer;
+    ++cigar_length;
+  }
+  vector_add_used(cigar_vector,cigar_length);
+  match_alignment->cigar_length = cigar_length;
+}
+void match_align_swg_local_alignment_add_match(
+    matches_t* const matches,
+    search_parameters_t* const search_parameters,
+    pattern_t* const pattern,
+    text_trace_t* const text_trace,
+    match_scaffold_t* const match_scaffold,
+    const uint64_t match_position,
+    match_align_swg_local_t* const local_alignment,
+    cigar_element_t* const global_cigar_buffer) {
+  // Parameters
+  vector_t* const cigar_vector = matches->cigar_vector;
+  match_trace_t match_trace;
+  match_alignment_t* const match_alignment = &match_trace.match_alignment;
+  // Configure match-trace
+  match_trace.type = match_type_local;
+  match_trace.text_trace = text_trace;
+  match_trace.sequence_name = NULL;
+  match_trace.text_position = UINT64_MAX;
+  match_trace.match_scaffold = match_scaffold;
+  // Position
+  match_alignment->match_position = match_position + local_alignment->local_begin_text_pos;
+  match_alignment->match_text_offset = match_alignment->match_position - text_trace->position;
+  // Compose CIGAR
+  match_align_swg_local_alignment_add_match_compose_cigar(
+      matches,pattern,text_trace,local_alignment,
+      global_cigar_buffer,match_alignment);
+  // Compute distances
+  const uint64_t cigar_offset = match_alignment->cigar_offset;
+  const uint64_t cigar_length = match_alignment->cigar_length;
+  match_trace.event_distance = matches_cigar_compute_event_distance(cigar_vector,cigar_offset,cigar_length);
+  match_trace.edit_distance = matches_cigar_compute_edit_distance(cigar_vector,cigar_offset,cigar_length);
+  match_trace.swg_score = align_swg_score_cigar_excluding_clipping(
+      &search_parameters->swg_penalties,cigar_vector,cigar_offset,cigar_length);
+  match_alignment->effective_length = matches_cigar_effective_length(cigar_vector,cigar_offset,cigar_length);
+  match_trace.text = text_trace->text + match_alignment->match_text_offset;
+  match_trace.text_length = match_alignment->effective_length;
+  // Add to local pending
+  matches_add_match_trace_local_pending(matches,&match_trace);
 }
 /*
  * SWG-Local Alignment
@@ -84,19 +134,16 @@ void match_align_swg_local_alignment(
     match_trace_t* const match_trace) {
   // Parameters
   const swg_penalties_t* const swg_penalties = &search_parameters->swg_penalties;
-  const int64_t local_min_swg_threshold = search_parameters->alignment_local_min_swg_threshold_nominal;
+  const int32_t local_min_swg_threshold = search_parameters->alignment_local_min_swg_threshold_nominal;
   const uint64_t local_min_identity = search_parameters->alignment_local_min_identity_nominal;
   vector_t* const cigar_vector = matches->cigar_vector;
   match_alignment_t* const match_alignment = &match_trace->match_alignment;
+  const uint64_t match_position = match_alignment->match_position;
   // Prepare CIGARs
-  const uint64_t local_cigar_offset = vector_get_used(cigar_vector);
-  const uint64_t global_cigar_length = match_alignment->cigar_length;
-  vector_reserve_additional(cigar_vector,global_cigar_length);
-  cigar_element_t* const global_cigar_buffer = vector_get_elm(cigar_vector,match_alignment->cigar_offset,cigar_element_t);
-  cigar_element_t* local_cigar_buffer = vector_get_free_elm(cigar_vector,cigar_element_t);
-  const cigar_element_t* const local_cigar_buffer_base = local_cigar_buffer;
+  const uint64_t cigar_length = match_alignment->cigar_length;
+  cigar_element_t* const cigar_buffer = vector_get_elm(cigar_vector,match_alignment->cigar_offset,cigar_element_t);
   // Local Max
-  match_align_swg_local_max_t local_max = {
+  match_align_swg_local_t local_max = {
     .local_begin_key_pos = 0,
     .local_end_key_pos = 0,
     .local_begin_text_pos = 0,
@@ -107,101 +154,103 @@ void match_align_swg_local_alignment(
     .local_identity = 0,
   };
   // Traverse all CIGAR elements
-  uint64_t key_pos = 0, text_pos = 0;
-  uint64_t global_key_pos = 0, global_text_pos = 0;
-  uint64_t local_identity = 0, i, num_local_chunks_added = 0;
-  int64_t local_score = 0, global_score = 0;
-  for (i=0;i<global_cigar_length;) {
+  uint64_t key_end = 0, text_end = 0;
+  uint64_t i, local_identity = 0;
+  int64_t local_score = 0, max_local_score = SWG_SCORE_MIN;
+  cigar_t previous_type = cigar_null;
+  for (i=0;i<cigar_length;) {
     // Add CIGAR operation
-    switch (global_cigar_buffer[i].type) {
+    switch (cigar_buffer[i].type) {
       case cigar_match: {
-        const int32_t match_length = global_cigar_buffer[i].length;
+        const int32_t match_length = cigar_buffer[i].length;
         local_score += align_swg_score_match(swg_penalties,match_length);
         local_identity += match_length;
-        text_pos += match_length;
-        key_pos += match_length;
+        text_end += match_length;
+        key_end += match_length;
         break;
       }
       case cigar_mismatch:
         local_score += align_swg_score_mismatch(swg_penalties);
-        ++text_pos;
-        ++key_pos;
+        ++text_end;
+        ++key_end;
         break;
       case cigar_ins: {
-        const int32_t indel_length = global_cigar_buffer[i].length;
+        const int32_t indel_length = cigar_buffer[i].length;
         local_score += align_swg_score_insertion(swg_penalties,indel_length);
-        text_pos += indel_length;
+        text_end += indel_length;
+        if (previous_type == cigar_del) {
+          local_score = 0;
+          local_identity = 0;
+          local_max.local_score = 0;
+          local_max.local_identity = 0;
+          local_max.local_begin_key_pos = key_end;
+          local_max.local_begin_text_pos = text_end;
+          previous_type = cigar_buffer[i].type;
+          local_max.local_begin_cigar = ++i;
+          continue; // Reset
+        }
         break;
       }
       case cigar_del: {
-        const int32_t indel_length = global_cigar_buffer[i].length;
+        const int32_t indel_length = cigar_buffer[i].length;
         local_score += align_swg_score_deletion(swg_penalties,indel_length);
-        key_pos += indel_length;
+        key_end += indel_length;
+        if (previous_type == cigar_ins) {
+          local_score = 0;
+          local_identity = 0;
+          local_max.local_score = 0;
+          local_max.local_identity = 0;
+          local_max.local_begin_key_pos = key_end;
+          local_max.local_begin_text_pos = text_end;
+          previous_type = cigar_buffer[i].type;
+          local_max.local_begin_cigar = ++i;
+          continue; // Reset
+        }
         break;
       }
       default:
         GEM_INVALID_CASE();
         break;
     }
+    // Next
+    previous_type = cigar_buffer[i].type;
     ++i;
     // Check local score
     if (local_score > local_max.local_score) {
       // Max local score
       local_max.local_score = local_score;
       local_max.local_identity = local_identity;
-      local_max.local_end_key_pos = key_pos;
-      local_max.local_end_text_pos = text_pos;
-      local_max.local_end_cigar = i-1;
+      local_max.local_end_key_pos = key_end;
+      local_max.local_end_text_pos = text_end;
+      local_max.local_end_cigar = i;
     } else if (local_score < 0) {
-      // Store local-max alignment chunk
+      // Check local swg-score and identity
       if (local_max.local_score >= local_min_swg_threshold &&
           local_max.local_identity >= local_min_identity) {
-        match_align_swg_local_alignment_add_gap(&local_cigar_buffer,
-            global_key_pos,local_max.local_begin_key_pos,
-            global_text_pos,local_max.local_begin_text_pos);
-        match_align_swg_local_alignment_add_local_chunk(global_cigar_buffer,&local_cigar_buffer,&local_max);
-        global_key_pos = local_max.local_end_key_pos;
-        global_text_pos = local_max.local_end_text_pos;
-        global_score += local_max.local_score;
-        ++num_local_chunks_added;
+        match_align_swg_local_alignment_add_match(
+            matches,search_parameters,pattern,text_trace,
+            match_scaffold,match_position,&local_max,cigar_buffer);
+        // Update positions & score
+        max_local_score = MAX(max_local_score,local_max.local_score);
       }
       // Reset
       local_score = 0;
       local_identity = 0;
       local_max.local_score = 0;
       local_max.local_identity = 0;
-      local_max.local_begin_key_pos = key_pos;
-      local_max.local_begin_text_pos = text_pos;
+      local_max.local_begin_key_pos = key_end;
+      local_max.local_begin_text_pos = text_end;
       local_max.local_begin_cigar = i;
     }
   }
-  // Check local score
+  // Check local swg-score and identity
   if (local_max.local_score >= local_min_swg_threshold &&
       local_max.local_identity >= local_min_identity) {
-    match_align_swg_local_alignment_add_gap(&local_cigar_buffer,
-        global_key_pos,local_max.local_begin_key_pos,
-        global_text_pos,local_max.local_begin_text_pos);
-    match_align_swg_local_alignment_add_local_chunk(
-        global_cigar_buffer,&local_cigar_buffer,&local_max);
-    global_key_pos = local_max.local_end_key_pos;
-    global_text_pos = local_max.local_end_text_pos;
-    global_score += local_max.local_score;
-    ++num_local_chunks_added;
-  }
-  // Add final trim (if needed)
-  if (global_key_pos != pattern->key_length) {
-    match_align_swg_local_alignment_add_gap(
-        &local_cigar_buffer,global_key_pos,pattern->key_length,0,0);
+    match_align_swg_local_alignment_add_match(
+        matches,search_parameters,pattern,text_trace,
+        match_scaffold,match_position,&local_max,cigar_buffer);
+    max_local_score = MAX(max_local_score,local_max.local_score);
   }
   // Finish
-  if (num_local_chunks_added==0) {
-    match_trace->swg_score = SWG_SCORE_MIN;
-  } else {
-    // Set local-CIGAR buffer used
-    const uint64_t local_cigar_used = local_cigar_buffer-local_cigar_buffer_base;
-    vector_add_used(cigar_vector,local_cigar_used);
-    match_alignment->cigar_length = local_cigar_used;
-    match_alignment->cigar_offset = local_cigar_offset;
-    match_trace->swg_score = global_score; // Set SWG-Score
-  }
+  match_trace->swg_score = max_local_score;
 }

@@ -42,10 +42,9 @@ typedef enum {
   filtering_region_unverified=1,            // Region still unverified
   filtering_region_verified_discarded=2,    // Region verified but too distant
   filtering_region_accepted=3,              // Region accepted by pre-filters
-  filtering_region_accepted_subdominant=4,  // Region accepted by pre-filters but sub-dominant (by ranking)
-  filtering_region_aligned=5,               // Region aligned
+  filtering_region_accepted_subdominant=4   // Region accepted by pre-filters but sub-dominant (by ranking)
 } filtering_region_status_t;
-extern const char* filtering_region_status_label[6];
+extern const char* filtering_region_status_label[5];
 /*
  * Filtering Region
  */

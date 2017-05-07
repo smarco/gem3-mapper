@@ -428,7 +428,7 @@ void mm_allocator_free(
       mm_allocator->segments_index,mm_reference->segment_id,mm_allocator_segment_t*));
   mm_allocator_request_t* const request = vector_get_elm(
       segment->mem_requests,mm_reference->request_offset,mm_allocator_request_t);
-  gem_cond_fatal_error(MM_ALLOCATOR_REQUEST_IS_FREE(request),MM_ALLOCATOR_FREE_DOUBLE);
+  gem_fatal_check(MM_ALLOCATOR_REQUEST_IS_FREE(request),MM_ALLOCATOR_FREE_DOUBLE);
   // Free request
   MM_ALLOCATOR_REQUEST_SET_FREE(request);
   // Free contiguous request(s)

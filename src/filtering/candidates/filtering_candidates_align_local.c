@@ -27,6 +27,7 @@
 #include "align/alignment.h"
 #include "filtering/candidates/filtering_candidates_align_local.h"
 #include "filtering/candidates/filtering_candidates_align.h"
+#include "filtering/candidates/filtering_candidates_verify.h"
 #include "filtering/region/filtering_region_verify.h"
 
 /*
@@ -42,18 +43,42 @@
 /*
  * Filtering Candidates (Re)Alignment
  */
+void filtering_candidates_align_local_discarded(
+    filtering_candidates_t* const filtering_candidates,
+    pattern_t* const pattern,
+    matches_t* const matches) {
+  // Parameters
+  search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
+  select_parameters_t* const select_parameters = &search_parameters->select_parameters;
+  const uint64_t max_searched_matches = select_parameters->max_searched_matches;
+  // Exact extend all discarded regions
+  filtering_candidates_extend_discarded_candidates(filtering_candidates,pattern,matches);
+  // Local-align the most promising regions
+  filtering_region_t** const regions_discarded = filtering_candidates_get_discarded_regions(filtering_candidates);
+  const uint64_t num_regions_discarded = filtering_candidates_get_num_discarded_regions(filtering_candidates);
+  uint64_t i;
+  for (i=0;i<num_regions_discarded;++i) {
+    // Cut-off max-reported matches
+    filtering_region_t* const filtering_region = regions_discarded[i];
+    if (matches_get_num_match_traces(matches) >= max_searched_matches) break;
+    // Align Region
+    PROF_INC_COUNTER(GP_CANDIDATE_REGION_LOCAL_ALIGNED);
+    const int32_t swg_score =
+        filtering_candidates_align_local_region(
+            filtering_candidates,filtering_region,pattern,matches);
+  }
+  // Clear discarded-candidates
+  filtering_candidates_clear_discarded_regions(filtering_candidates,true);
+  PROF_ADD_COUNTER(GP_CANDIDATE_REGION_LOCAL,num_regions_discarded);
+}
 void filtering_candidates_align_local(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const pattern,
     matches_t* const matches) {
   PROFILE_START(GP_FC_REALIGN_LOCAL_CANDIDATE_REGIONS,PROFILE_LEVEL);
-  // Parameters
-  archive_text_t* const archive_text = filtering_candidates->archive->text;
+  // Add pending local matches (found so far)
   locator_t* const locator = filtering_candidates->archive->locator;
-  /*
-   * Add pending local matches (found so far)
-   */
-  matches_add_pending_local_matches(matches,locator);
+  matches_local_pending_add_to_regular_matches(matches,locator);
   // Check total alignments found
   search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
   select_parameters_t* const select_parameters = &search_parameters->select_parameters;
@@ -63,47 +88,8 @@ void filtering_candidates_align_local(
     PROFILE_STOP(GP_FC_REALIGN_LOCAL_CANDIDATE_REGIONS,PROFILE_LEVEL);
     return;
   }
-  /*
-   * Exact extend all discarded regions
-   */
-  const uint64_t num_regions_discarded = filtering_candidates_get_num_discarded_regions(filtering_candidates);
-  PROF_ADD_COUNTER(GP_CANDIDATE_REGION_LOCAL,num_regions_discarded);
-  filtering_region_t** const regions_discarded = filtering_candidates_get_discarded_regions(filtering_candidates);
-  uint64_t i;
-  for (i=0;i<num_regions_discarded;++i) {
-    filtering_region_t* const filtering_region = regions_discarded[i];
-    // Retrieve Text
-    filtering_region_retrieve_text(filtering_region,pattern,archive_text,filtering_candidates->mm_allocator);
-    text_trace_t* const text_trace = &filtering_region->text_trace;
-    // Exact extend and region chain scaffold
-    if (filtering_region->match_scaffold.scaffold_type <= scaffold_none) {
-      match_scaffold_region_chain(
-          &filtering_region->match_scaffold,pattern,
-          text_trace,matches,filtering_candidates->mm_allocator);
-    }
-  }
-  /*
-   * Local-align the most promising regions
-   */
-  // Sort by scaffold-coverage
-  filtering_region_cache_clear(&filtering_candidates->filtering_region_cache); // Clear cache
-  filtering_candidates_sort_discarded_by_scaffold_coverage(filtering_candidates);
-  const uint64_t max_regions_considered =
-      MIN(num_regions_discarded,search_parameters->alignment_local_max_candidates);
-  bool region_accepted, match_accepted;
-  for (i=0;i<max_regions_considered;++i) {
-    filtering_region_t* const filtering_region = regions_discarded[i];
-    // Cut-off max-reported matches
-    if (total_matches >= max_searched_matches) break;
-    // Align Region
-    PROF_INC_COUNTER(GP_CANDIDATE_REGION_LOCAL_ALIGNED);
-    filtering_candidates_align_region(
-        filtering_candidates,filtering_region,pattern,
-        true,matches,&region_accepted,&match_accepted);
-    if (region_accepted && match_accepted) ++total_matches;
-  }
-  // Clear discarded-candidates
-  filtering_candidates_clear_discarded_regions(filtering_candidates,true);
+  // Local align all discarded regions
+  filtering_candidates_align_local_discarded(filtering_candidates,pattern,matches);
   // DEBUG
   gem_cond_debug_block(DEBUG_FILTERING_CANDIDATES) {
     tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Candidates (local_align)\n");

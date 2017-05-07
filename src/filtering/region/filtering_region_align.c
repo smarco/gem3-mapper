@@ -37,15 +37,30 @@
 /*
  * Debug
  */
-void filtering_region_align_debug(
+void filtering_region_align_debug_prologue(
+    filtering_region_t* const filtering_region) {
+  PROF_INC_COUNTER(GP_ALIGNED_REGIONS);
+  gem_cond_debug_block(DEBUG_FILTERING_REGION) {
+    tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Region (region_align)\n");
+    tab_global_inc();
+    filtering_region_print(gem_log_get_stream(),filtering_region,false,true,true);
+  }
+}
+void filtering_region_align_debug_epilogue(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
     pattern_t* const pattern,
-    const bool aligned,
     matches_t* const matches,
     match_trace_t* const match_trace) {
+  // Check alignment result
+  if (match_trace->swg_score == SWG_SCORE_MIN) {
+    PROF_INC_COUNTER(GP_ALIGNED_DISCARDED);
+  } else {
+    PROF_INC_COUNTER(GP_ALIGNED_ACCEPTED);
+  }
+  // Deep debug
   gem_cond_debug_block(DEBUG_FILTERING_REGION) {
-    if (!aligned) {
+    if (match_trace->swg_score == SWG_SCORE_MIN) {
       tab_fprintf(gem_log_get_stream(),
           "=> Region NOT-ALIGNED (distance=%lu,swg_score=%ld)\n",
           match_trace->event_distance,match_trace->swg_score);
@@ -111,125 +126,102 @@ void filtering_region_align_clone(
 /*
  * Region (Re)Align
  */
-void filtering_region_align_exact(
+bool filtering_region_align(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
     pattern_t* const pattern,
     matches_t* const matches,
     match_trace_t* const match_trace) {
-  PROF_INC_COUNTER(GP_ALIGNED_EXACT);
-  // Parameters
-  search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
-  text_trace_t* const text_trace = &filtering_region->text_trace;
-  alignment_t* const alignment = &filtering_region->alignment;
-  // Add exact match
-  match_align_exact(
-      matches,search_parameters,pattern,
-      text_trace,alignment,match_trace);
-  filtering_region->status = filtering_region_aligned; // Set status
-}
-void filtering_region_align_inexact(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
-    const bool local_alignment,
-    matches_t* const matches,
-    match_trace_t* const match_trace) {
-  PROF_INC_COUNTER(GP_ALIGNED_INEXACT);
   // Parameters
   search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
   const match_alignment_model_t match_alignment_model = search_parameters->match_alignment_model;
   text_trace_t* const text_trace = &filtering_region->text_trace;
   alignment_t* const alignment = &filtering_region->alignment;
   mm_allocator_t* const mm_allocator = filtering_candidates->mm_allocator;
-  // Select alignment model
-  switch (match_alignment_model) {
-    case match_alignment_model_none:
-      // Hamming Align
-      match_align_pseudoalignment(
-          matches,search_parameters,pattern,
-          text_trace,alignment,match_trace);
-      filtering_region->status = filtering_region_aligned;
-      break;
-    case match_alignment_model_hamming: {
-      // Hamming Align
-      match_align_hamming(
-          matches,search_parameters,pattern,
-          text_trace,alignment,match_trace);
-      filtering_region->status = filtering_region_aligned;
-      break;
-    }
-    case match_alignment_model_levenshtein: {
-      // Levenshtein Align
-      match_align_levenshtein(
-          matches,search_parameters,pattern,
-          text_trace,alignment,match_trace,mm_allocator);
-      break;
-    }
-    case match_alignment_model_gap_affine: {
-      // Gap-affine Align
-      match_align_smith_waterman_gotoh(
-          matches,search_parameters,pattern,
-          &filtering_region->text_trace,
-          &filtering_region->alignment,
-          &filtering_region->match_scaffold,
-          local_alignment,match_trace,mm_allocator);
-      //      // DEBUG
-      //      fprintf(stderr,"[GEM]>Text-Alignment\n");
-      //      match_alignment_print_pretty(
-      //          stderr,&match_trace->match_alignment,
-      //          pattern->key,pattern->key_length,
-      //          text_trace->text,text_trace->text_length,
-      //          matches->cigar_vector,mm_allocator);
-      break;
-    }
-    default:
-      GEM_INVALID_CASE();
-      break;
-  }
-  PROF_ADD_COUNTER(GP_ALIGNED_REGIONS_LENGTH,text_trace->text_length);
-}
-bool filtering_region_align(
-    filtering_candidates_t* const filtering_candidates,
-    filtering_region_t* const filtering_region,
-    pattern_t* const pattern,
-    const bool local_alignment,
-    matches_t* const matches,
-    match_trace_t* const match_trace) {
   // DEBUG
-  PROF_INC_COUNTER(GP_ALIGNED_REGIONS);
-  gem_cond_debug_block(DEBUG_FILTERING_REGION) {
-    tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Region (region_align)\n");
-    tab_global_inc();
-    filtering_region_print(gem_log_get_stream(),filtering_region,false,true,true);
-  }
+  filtering_region_align_debug_prologue(filtering_region);
   // Select Model
   if (filtering_region->alignment.distance_min_bound > 0 ||
       filtering_region->alignment.num_tiles > 1 ||
       filtering_region->key_trimmed ||
       pattern->run_length) {
-    filtering_region_align_inexact(
-        filtering_candidates,filtering_region,pattern,
-        local_alignment,matches,match_trace);
+    PROF_INC_COUNTER(GP_ALIGNED_INEXACT);
+    // Select alignment model
+    switch (match_alignment_model) {
+      case match_alignment_model_none:
+        // Hamming Align
+        match_align_pseudoalignment(
+            matches,search_parameters,pattern,
+            text_trace,alignment,match_trace);
+        break;
+      case match_alignment_model_hamming: {
+        // Hamming Align
+        match_align_hamming(
+            matches,search_parameters,pattern,
+            text_trace,alignment,match_trace);
+        break;
+      }
+      case match_alignment_model_levenshtein: {
+        // Levenshtein Align
+        match_align_levenshtein(
+            matches,search_parameters,pattern,
+            text_trace,alignment,match_trace,mm_allocator);
+        break;
+      }
+      case match_alignment_model_gap_affine: {
+        // Gap-affine Align
+        match_align_smith_waterman_gotoh(
+            matches,search_parameters,pattern,
+            &filtering_region->text_trace,
+            &filtering_region->alignment,
+            &filtering_region->match_scaffold,
+            match_trace,mm_allocator);
+        break;
+      }
+      default:
+        GEM_INVALID_CASE();
+        break;
+    }
+    PROF_ADD_COUNTER(GP_ALIGNED_REGIONS_LENGTH,text_trace->text_length);
   } else {
-    filtering_region_align_exact(
-        filtering_candidates,filtering_region,pattern,
-        matches,match_trace);
-  }
-  // Check (re)alignment result
-  if (match_trace->event_distance==ALIGN_DISTANCE_INF || match_trace->swg_score < 0) {
-    PROF_INC_COUNTER(GP_ALIGNED_DISCARDED);
-    filtering_region_align_debug(filtering_candidates,
-        filtering_region,pattern,false,matches,match_trace); // DEBUG
-    return false; // Discarded
-  } else {
-    PROF_INC_COUNTER(GP_ALIGNED_ACCEPTED);
+    PROF_INC_COUNTER(GP_ALIGNED_EXACT);
+    // Add exact match
+    match_align_exact(
+        matches,search_parameters,pattern,
+        text_trace,alignment,match_trace);
     // Add input-clipping to CIGAR
-    match_aling_add_clipping(match_trace,matches->cigar_vector,pattern->clip_left,pattern->clip_right);
-    // Assign Aligned-status & store offset
-    filtering_region->status = filtering_region_aligned;
-    filtering_region_align_debug(filtering_candidates,
-        filtering_region,pattern,true,matches,match_trace); // DEBUG
-    return true; // OK
+    match_aling_add_clipping(
+        match_trace,matches->cigar_vector,
+        pattern->clip_left,pattern->clip_right);
   }
+  // DEBUG
+  filtering_region_align_debug_epilogue(filtering_candidates,
+      filtering_region,pattern,matches,match_trace);
+  // Return alignment result
+  return (match_trace->swg_score != SWG_SCORE_MIN);
+}
+bool filtering_region_align_local(
+    filtering_candidates_t* const filtering_candidates,
+    filtering_region_t* const filtering_region,
+    pattern_t* const pattern,
+    matches_t* const matches,
+    match_trace_t* const match_trace) {
+  // DEBUG
+  filtering_region_align_debug_prologue(filtering_region);
+  // Parameters
+  search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
+  text_trace_t* const text_trace = &filtering_region->text_trace;
+  alignment_t* const alignment = &filtering_region->alignment;
+  match_scaffold_t* const match_scaffold = &filtering_region->match_scaffold;
+  mm_allocator_t* const mm_allocator = filtering_candidates->mm_allocator;
+  // Gap-affine Align
+  match_align_smith_waterman_gotoh_local(
+      matches,search_parameters,pattern,
+      text_trace,alignment,match_scaffold,
+      match_trace,mm_allocator);
+  // DEBUG
+  filtering_region_align_debug_epilogue(filtering_candidates,
+      filtering_region,pattern,matches,match_trace);
+  // Return alignment result
+  return (match_trace->swg_score != SWG_SCORE_MIN);
 }

@@ -47,7 +47,12 @@ bool filtering_region_align(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
     pattern_t* const pattern,
-    const bool local_alignment,
+    matches_t* const matches,
+    match_trace_t* const match_trace);
+bool filtering_region_align_local(
+    filtering_candidates_t* const filtering_candidates,
+    filtering_region_t* const filtering_region,
+    pattern_t* const pattern,
     matches_t* const matches,
     match_trace_t* const match_trace);
 

@@ -275,7 +275,7 @@ bool alignment_check(
       }
       case cigar_mismatch:
         // Check mismatch
-        if (key[read_pos] == text[text_pos]) {
+        if (key[read_pos] == text[text_pos] && key[read_pos] != ENC_DNA_CHAR_N) {
           if (verbose) {
             fprintf(stream,"Align Check. Alignment not mismatching "
                 "(key[%"PRIu64"]=%c == text[%"PRIu64"]=%c, CIGAR=%c)\n",

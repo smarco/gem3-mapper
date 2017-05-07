@@ -61,9 +61,9 @@ void approximate_search_filtering_complete(
   // Verify candidates
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
   filtering_candidates_process_candidates(filtering_candidates,pattern,true);
-  filtering_candidates_verify_candidates(filtering_candidates,pattern);
+  filtering_candidates_verify_candidates(filtering_candidates,pattern,matches);
   // Align candidates
-  filtering_candidates_align_candidates(filtering_candidates,pattern,false,matches);
+  filtering_candidates_align_candidates(filtering_candidates,pattern,matches);
   // Finish search
   approximate_search_end(search,matches);
 }

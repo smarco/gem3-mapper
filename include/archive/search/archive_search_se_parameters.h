@@ -54,12 +54,13 @@ typedef enum {
  * Candidate verification strategies
  */
 typedef enum {
-  candidate_verification_BPM,
-  candidate_verification_chained
-} candidate_verification_strategy_type;
+  verification_BPM = 0,
+  verification_chained = 1,
+} verification_strategy_t;
 typedef struct {
-  // Strategy
-  candidate_verification_strategy_type strategy;
+  // Verification Strategy
+  verification_strategy_t verification_strategy;
+  bool candidate_local_drop_off;
   // Kmer filter
   uint64_t kmer_tiles;
   uint64_t kmer_length;
@@ -137,8 +138,7 @@ typedef struct {
   local_alignment_t alignment_local;
   double alignment_local_min_identity;                  // Alignment minimum identity to be local
   double alignment_local_min_swg_threshold;             // Alignment minimum SWG score to be local
-  uint64_t alignment_local_max_candidates;
-  int64_t swg_score_dropoff;                            // SWG-Alignment local dropoff score
+  int32_t swg_score_dropoff;                            // SWG-Alignment local dropoff score
   /* Scaffolding */
   double alignment_scaffolding_min_coverage;            // Minimum length of the alignment-region (chaining alignment-regions)
   double alignment_scaffolding_min_matching_length;     // Minimum matching chunk to be considered
@@ -158,9 +158,9 @@ typedef struct {
   uint64_t alignment_max_error_nominal;
   uint64_t alignment_max_bandwidth_nominal;
   uint64_t alignment_global_min_identity_nominal;
-  uint64_t alignment_global_min_swg_threshold_nominal;
+  int32_t alignment_global_min_swg_threshold_nominal;
   uint64_t alignment_local_min_identity_nominal;
-  uint64_t alignment_local_min_swg_threshold_nominal;
+  int32_t alignment_local_min_swg_threshold_nominal;
   uint64_t alignment_scaffolding_min_coverage_nominal;
   uint64_t alignment_scaffolding_min_matching_length_nominal;
   uint64_t cigar_curation_min_end_context_nominal;
@@ -169,10 +169,13 @@ typedef struct {
 } search_parameters_t;
 
 /*
- * Search Parameters Init
+ * Init
  */
 void search_parameters_init(search_parameters_t* const search_parameters);
 
+/*
+ * Accessors
+ */
 void search_configure_mapping_strategy(
     search_parameters_t* const search_parameters,
     const mapping_mode_t mapping_mode);

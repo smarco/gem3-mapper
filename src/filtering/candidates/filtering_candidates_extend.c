@@ -66,7 +66,7 @@ void filtering_candidates_compute_extension_region(
 /*
  * Pair Extension
  */
-uint64_t filtering_candidates_extend_match(
+void filtering_candidates_extend_match(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const candidate_pattern,
     const match_trace_t* const extended_match,
@@ -107,7 +107,7 @@ uint64_t filtering_candidates_extend_match(
           filtering_candidates,&text_trace,
           candidate_begin_position,candidate_pattern);
   text_trace_destroy(&text_trace,filtering_candidates->mm_allocator); // Free
-  if (candidates_found==0) { PROFILE_STOP(GP_FC_EXTEND_MATCH,PROFILE_LEVEL); return 0; }
+  if (candidates_found==0) { PROFILE_STOP(GP_FC_EXTEND_MATCH,PROFILE_LEVEL); return; }
   /*
    * Align accepted candidates
    */
@@ -115,11 +115,8 @@ uint64_t filtering_candidates_extend_match(
   matches_t* matches_candidate = (candidate_end==paired_end1) ?
       paired_matches->matches_end1 : paired_matches->matches_end2;
   // Align
-  candidates_found =
-      filtering_candidates_align_extended_candidates(
-          filtering_candidates,candidate_pattern,matches_candidate);
+  filtering_candidates_align_extended_candidates(
+      filtering_candidates,candidate_pattern,matches_candidate);
   PROFILE_STOP(GP_FC_EXTEND_REALIGN_CANDIDATE_REGIONS,PROFILE_LEVEL);
   PROFILE_STOP(GP_FC_EXTEND_MATCH,PROFILE_LEVEL);
-  // Return number of extended-matches found
-  return candidates_found;
 }

@@ -31,7 +31,7 @@
 /*
  * Pair Extension
  */
-uint64_t filtering_candidates_extend_match(
+void filtering_candidates_extend_match(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const candidate_pattern,
     const match_trace_t* const extended_match,

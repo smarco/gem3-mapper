@@ -304,6 +304,10 @@ void filtering_candidates_sort_regions_by_align_distance(filtering_candidates_t*
 #define VECTOR_SORT_TYPE                 filtering_region_t*
 #define VECTOR_SORT_CMP(a,b)             filtering_region_cmp_scaffold_coverage(a,b)
 #include "utils/vector_sort.h"
+void filtering_candidates_sort_regions_by_scaffold_coverage(filtering_candidates_t* const filtering_candidates) {
+  PROF_ADD_COUNTER(GP_FC_SORT_BY_COVERAGE,vector_get_used(filtering_candidates->filtering_regions));
+  vector_sort_scaffold_coverage(filtering_candidates->filtering_regions);
+}
 void filtering_candidates_sort_discarded_by_scaffold_coverage(filtering_candidates_t* const filtering_candidates) {
   PROF_ADD_COUNTER(GP_FC_SORT_BY_COVERAGE,vector_get_used(filtering_candidates->discarded_regions));
   vector_sort_scaffold_coverage(filtering_candidates->discarded_regions);
@@ -359,8 +363,6 @@ void filtering_candidates_print_regions(
       stream,filtering_regions,filtering_region_accepted,print_alignment_regions);
   filtering_candidates_print_regions_by_status(
       stream,discarded_regions,filtering_region_accepted_subdominant,print_alignment_regions);
-  filtering_candidates_print_regions_by_status(
-      stream,filtering_regions,filtering_region_aligned,print_alignment_regions);
   const uint64_t total_regions =
       filtering_candidates_get_num_regions(filtering_candidates) +
       vector_get_used(filtering_candidates->discarded_regions);
