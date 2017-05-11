@@ -24,13 +24,13 @@
  *   PE-search stages
  */
 
+#include "matches/paired_matches_accuracy.h"
 #include "archive/search/archive_search_pe_stages.h"
 #include "archive/search/archive_search_pe.h"
 #include "archive/search/archive_search_se_stepwise.h"
 #include "archive/search/archive_search_pe_extend.h"
 #include "archive/search/archive_select.h"
 #include "archive/score/archive_score_se.h"
-#include "matches/paired_matches_test.h"
 
 /*
  * Debug
@@ -148,7 +148,7 @@ bool archive_search_pe_use_recovery_extension(
       paired_matches->matches_end2->metrics.mapq < MAPQ_CONFIDENCE_SCORE_MIN) {
     return true;
   } else if (paired_matches_get_num_maps(paired_matches) > 0) {
-    paired_map_t* const primary_paired_map = paired_matches_get_maps(paired_matches);
+    paired_map_t* const primary_paired_map = paired_matches_get_primary_map(paired_matches);
     return primary_paired_map->match_trace_end1->mapq_score < MAPQ_CONFIDENCE_SCORE_MIN ||
            primary_paired_map->match_trace_end2->mapq_score < MAPQ_CONFIDENCE_SCORE_MIN;
   }
@@ -170,10 +170,9 @@ void archive_search_pe_recovery(
       PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_EXTENSION_RECOVERY,PROFILE_LEVEL);
     }
   }
-  // Check max-matches reached
+  // Check Accuracy Reached (Quick abandon condition)
   search_parameters_t* const search_parameters = &archive_search_end1->search_parameters;
-  const uint64_t max_searched_paired_matches = search_parameters->select_parameters.max_searched_paired_matches;
-  if (paired_matches_get_num_maps(paired_matches) >= max_searched_paired_matches) return;
+  if (paired_matches_accuracy_reached(paired_matches,search_parameters)) return;
   // Paired-end recovery by extension (End/2)
   if (!archive_search_end2->pair_extended) {
     if (archive_search_pe_use_recovery_extension(archive_search_end1,archive_search_end2,paired_matches)) {
@@ -204,8 +203,6 @@ void archive_search_pe_cross_pair_ends(
     paired_matches_find_pairs(paired_matches,search_parameters,mapper_stats,mm_allocator);
     PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_FINISH_SEARCH,PROFILE_LEVEL);
   }
-  // Sort paired-matches
-  paired_matches_sort_by_swg_score(paired_matches);
 }
 void archive_search_pe_find_pairs(
     archive_search_t* const archive_search_end1,
@@ -218,7 +215,7 @@ void archive_search_pe_find_pairs(
   // Find pairs
   archive_search_pe_cross_pair_ends(search_parameters,mapper_stats,paired_matches,mm_allocator);
   // Check accuracy reached
-  if (!paired_matches_test_accuracy_reached(paired_matches,search_parameters)) {
+  if (!paired_matches_accuracy_reached(paired_matches,search_parameters)) {
     // Check paired-matches (for shortcut extension failure)
     const uint64_t num_matches = paired_matches_get_num_maps(paired_matches);
     if (num_matches == 0 && !archive_search_end2->pair_searched) {

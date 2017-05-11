@@ -112,17 +112,15 @@ void archive_select_pe_matches(
   PROFILE_START(GP_ARCHIVE_SELECT_PE_MATCHES,PROFILE_LEVEL);
   // Sample unique
   if (num_matches==1) {
-    const paired_map_t* const paired_map = paired_matches_get_maps(paired_matches);
+    paired_map_t* const paired_map = paired_matches_get_primary_map(paired_matches);
     if (paired_map->pair_relation==pair_relation_concordant) {
       mapper_stats_template_length_sample(mapper_stats,paired_map->template_length);
     }
-  } else {
-    paired_matches_sort_by_swg_score(paired_matches);
   }
   // Discard unwanted
-  const uint64_t num_paired_matches = vector_get_used(paired_matches->paired_maps);
+  const uint64_t num_paired_matches = paired_matches_get_num_maps(paired_matches);
   if (num_paired_matches > select_parameters->max_reported_matches) {
-    vector_set_used(paired_matches->paired_maps,select_parameters->max_reported_matches);
+    paired_matches_limit_maps(paired_matches,select_parameters->max_reported_matches);
   }
   PROFILE_STOP(GP_ARCHIVE_SELECT_PE_MATCHES,PROFILE_LEVEL);
 }

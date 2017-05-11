@@ -65,8 +65,8 @@ void match_align_swg_chained_add_region(
         match_alignment->score = 0;
         for (i=0;i<region_cigar_length;++i) {
           cigar_element_t* const cigar_element = vector_get_elm(cigar_vector,region_cigar_buffer_offset+i,cigar_element_t);
-          matches_cigar_vector_append_cigar_element(cigar_vector,&match_alignment->cigar_length,cigar_element);
           match_alignment->score += align_swg_score_cigar_element(swg_penalties,cigar_element);
+          matches_cigar_vector_append_cigar_element(cigar_vector,&match_alignment->cigar_length,cigar_element);
         }
       } else {
         // Parameters

@@ -21,13 +21,13 @@
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  */
 
-#include "matches/matches_test.h"
+#include "matches/matches_accuracy.h"
 #include "matches/classify/matches_classify.h"
 
 /*
  * Matches Condition Tests
  */
-bool matches_test_max_matches_reached(
+bool matches_accuracy_max_matches_reached(
     matches_t* const matches,
     const uint64_t mcs,
     const uint64_t key_length,
@@ -62,7 +62,7 @@ bool matches_test_max_matches_reached(
   }
   return false;
 }
-bool matches_test_accuracy_reached(
+bool matches_accuracy_reached(
     matches_t* const matches,
     const uint64_t mcs,
     const uint64_t key_length,

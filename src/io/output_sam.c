@@ -766,22 +766,28 @@ void output_sam_print_opt_field_tag_X5_pe(
   } else {
     if (sequence_end == paired_end1) {
       matches_t* const matches_end1 = paired_matches->matches_end1;
-      VECTOR_ITERATE_CONST(paired_matches->paired_maps,paired_map,paired_map_number,paired_map_t) {
+      const uint64_t num_maps = paired_matches_get_num_maps(paired_matches);
+      paired_map_t** const paired_maps = paired_matches_get_maps(paired_matches);
+      uint64_t i;
+      for (i=0;i<num_maps;++i) {
         // Separator
         buffered_output_file_reserve(buffered_output_file,1);
-        if (paired_map_number > 0) bofprintf_char(buffered_output_file,',');
+        if (i > 0) bofprintf_char(buffered_output_file,',');
         // Print Match
-        match_trace_t* const match_end1 = paired_map->match_trace_end1;
+        match_trace_t* const match_end1 = paired_maps[i]->match_trace_end1;
         output_map_print_match(buffered_output_file,matches_end1,match_end1,true,map_format_v2);
       }
     } else {
       matches_t* const matches_end2 = paired_matches->matches_end2;
-      VECTOR_ITERATE_CONST(paired_matches->paired_maps,paired_map,paired_map_number,paired_map_t) {
+      const uint64_t num_maps = paired_matches_get_num_maps(paired_matches);
+      paired_map_t** const paired_maps = paired_matches_get_maps(paired_matches);
+      uint64_t i;
+      for (i=0;i<num_maps;++i) {
         // Separator
         buffered_output_file_reserve(buffered_output_file,1);
-        if (paired_map_number > 0) bofprintf_char(buffered_output_file,',');
+        if (i > 0) bofprintf_char(buffered_output_file,',');
         // Print Match
-        match_trace_t* const match_end2 = paired_map->match_trace_end2;
+        match_trace_t* const match_end2 = paired_maps[i]->match_trace_end2;
         output_map_print_match(buffered_output_file,matches_end2,match_end2,true,map_format_v2);
       }
     }
@@ -845,14 +851,13 @@ void output_sam_print_opt_field_tag_XA_pe_end1(
   const uint64_t num_matches = paired_matches_get_num_maps(paired_matches);
   if (num_matches > 1) {
     matches_t* const matches = paired_matches->matches_end1;
-    paired_map_t* paired_map = paired_matches_get_maps(paired_matches);
-    ++paired_map; // Skip primary
+    paired_map_t** const paired_map = paired_matches_get_maps(paired_matches);
     // Reserve
     buffered_output_file_reserve(buffered_output_file,6);
     bofprintf_string_literal(buffered_output_file,"\tXA:Z:");
     uint64_t i;
-    for (i=1;i<num_matches;++i,++paired_map) {
-      match_trace_t* const match_end1 = paired_map->match_trace_end1;
+    for (i=1;i<num_matches;++i) { // Skip primary
+      match_trace_t* const match_end1 = paired_map[i]->match_trace_end1;
       output_sam_print_opt_field_tag_XA_match(buffered_output_file,matches,match_end1,output_sam_parameters);
     }
   }
@@ -864,14 +869,13 @@ void output_sam_print_opt_field_tag_XA_pe_end2(
   const uint64_t num_matches = paired_matches_get_num_maps(paired_matches);
   if (num_matches > 1) {
     matches_t* const matches = paired_matches->matches_end2;
-    paired_map_t* paired_map = paired_matches_get_maps(paired_matches);
-    ++paired_map; // Skip primary
+    paired_map_t** const paired_map = paired_matches_get_maps(paired_matches);
     // Reserve
     buffered_output_file_reserve(buffered_output_file,6);
     bofprintf_string_literal(buffered_output_file,"\tXA:Z:");
     uint64_t i;
-    for (i=1;i<num_matches;++i,++paired_map) {
-      match_trace_t* const match_end2 = paired_map->match_trace_end2;
+    for (i=1;i<num_matches;++i) { // Skip primary
+      match_trace_t* const match_end2 = paired_map[i]->match_trace_end2;
       output_sam_print_opt_field_tag_XA_match(buffered_output_file,matches,match_end2,output_sam_parameters);
     }
   }
@@ -1296,10 +1300,11 @@ void output_sam_paired_end_matches_paired(
   matches_t* const matches_end2 = paired_matches->matches_end2;
   // Traverse all matches (Position-matches)
   const uint64_t num_paired_matches = paired_matches_get_num_maps(paired_matches);
-  paired_map_t* paired_map = paired_matches_get_maps(paired_matches);
+  paired_map_t** const paired_maps = paired_matches_get_maps(paired_matches);
   uint64_t match_number;
-  for (match_number=0;match_number<num_paired_matches;++match_number,++paired_map) {
+  for (match_number=0;match_number<num_paired_matches;++match_number) {
     const bool secondary_alignment = (match_number>0);
+    paired_map_t* const paired_map = paired_maps[match_number];
     match_trace_t* const match_end1 = paired_map->match_trace_end1;
     match_trace_t* const match_end2 = paired_map->match_trace_end2;
     /*

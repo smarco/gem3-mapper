@@ -46,14 +46,13 @@ void match_scaffold_levenshtein_allocate(
     const uint64_t key_length,
     const uint64_t matching_min_length,
     mm_allocator_t* const mm_allocator) {
-  // Parameters
-  const uint64_t max_alignment_regions = DIV_CEIL(key_length,matching_min_length);
   // Init & allocate
   match_scaffold->num_alignment_regions = 0;
   if (match_scaffold->alignment_regions!=NULL) {
     match_scaffold_free_alignment_region(
         match_scaffold,match_scaffold->alignment_regions,mm_allocator);
   }
+  const uint64_t max_alignment_regions = DIV_CEIL(key_length,matching_min_length)+1;
   match_scaffold->alignment_regions =
       match_scaffold_allocate_alignment_region(
           match_scaffold,max_alignment_regions,mm_allocator);
@@ -84,8 +83,10 @@ void match_scaffold_levenshtein_compose_alignment(
           key_offset += match_length;
           last_alignment_region = NULL; // Nullify last alignment-region
         } else {
-          last_alignment_region = match_scaffold_compose_add_exact_match(
-              match_scaffold,&key_offset,&text_offset,cigar_offset + i,match_length); // Add Match
+          last_alignment_region =
+              match_scaffold_compose_add_exact_match(
+                  match_scaffold,&key_offset,&text_offset,
+                  cigar_offset + i,match_length); // Add Match
         }
         ++i;
         break;
@@ -94,7 +95,8 @@ void match_scaffold_levenshtein_compose_alignment(
         // Tolerate mismatches if well delimited between exact alignment-regions
         if (last_alignment_region!=NULL && i+1<cigar_length &&
             cigar_buffer[i+1].type==cigar_match && cigar_buffer[i+1].length >= matching_min_length) {
-          match_scaffold_compose_add_mismatch(match_scaffold,last_alignment_region,
+          match_scaffold_compose_add_mismatch(
+              match_scaffold,last_alignment_region,
               &key_offset,&text_offset,cigar_buffer[i+1].length+1);
           i += 2;
         } else {

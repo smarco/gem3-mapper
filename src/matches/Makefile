@@ -37,10 +37,10 @@ SUBDIRS=align \
 MODULES=matches \
         matches_cigar \
         matches_counters \
-        matches_test \
+        matches_accuracy \
         paired_map \
         paired_matches \
-        paired_matches_test
+        paired_matches_accuracy
 
 SRCS=$(addsuffix .c, $(MODULES))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))

@@ -21,22 +21,22 @@
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  */
 
-#ifndef MATCHES_TEST_H_
-#define MATCHES_TEST_H_
+#ifndef MATCHES_ACCURACY_H_
+#define MATCHES_ACCURACY_H_
 
 #include "utils/essentials.h"
 #include "archive/search/archive_search_se_parameters.h"
 #include "matches/matches.h"
 
 /*
- * Matches Condition Tests
+ * Matches Accuracy Tests
  */
-bool matches_test_max_matches_reached(
+bool matches_accuracy_max_matches_reached(
     matches_t* const matches,
     const uint64_t mcs,
     const uint64_t key_length,
     search_parameters_t* const search_parameters);
-bool matches_test_accuracy_reached(
+bool matches_accuracy_reached(
     matches_t* const matches,
     const uint64_t mcs,
     const uint64_t key_length,
@@ -44,4 +44,4 @@ bool matches_test_accuracy_reached(
     const uint64_t max_complete_error,
     uint64_t* const suggested_max_complete_error);
 
-#endif /* MATCHES_TEST_H_ */
+#endif /* MATCHES_ACCURACY_H_ */

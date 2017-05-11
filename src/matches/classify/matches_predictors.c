@@ -154,14 +154,14 @@ void matches_predictors_compute_pe(
   matches_metrics_t* const metrics = &paired_matches->metrics;
   // Primary/Subdominant predictors
   if (metrics->accepted_matches==0) return;
-  paired_map_t* const primary_match = paired_matches_get_maps(paired_matches);
+  paired_map_t* const primary_match = paired_matches_get_primary_map(paired_matches);
   if (metrics->accepted_matches==1) {
     matches_predictors_compute_unique(
         predictors,metrics,primary_match->edit_distance,
         primary_match->event_distance,primary_match->swg_score,
         primary_match->template_length_sigma);
   } else {
-    paired_map_t* const subdominant_match = primary_match+1;
+    paired_map_t* const subdominant_match = paired_matches_get_secondary_map(paired_matches);
     matches_predictors_compute_mmaps(predictors,metrics,
         primary_match->edit_distance,primary_match->event_distance,
         primary_match->swg_score,primary_match->template_length_sigma,

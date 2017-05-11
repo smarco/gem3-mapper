@@ -37,7 +37,7 @@
 /*
  * Constants
  */
-#define MATCH_ALIGN_SWG_CHECK
+//#define MATCH_ALIGN_SWG_CHECK
 
 /*
  * SWG Align Check

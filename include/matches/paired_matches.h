@@ -58,10 +58,13 @@ typedef struct {
   matches_t* matches_end1;                     // Matches end1
   matches_t* matches_end2;                     // Matches end2
   /* Paired-End Matches */
-  vector_t* paired_maps;                       // Paired Maps (paired_map_t)
-  vector_t* discordant_paired_maps;            // Discordant Paired Maps (paired_map_t)
+  vector_t* paired_maps;                       // Paired Maps (paired_map_t*)
+  vector_t* discordant_paired_maps;            // Discordant Paired Maps (paired_map_t*)
   /* Paired-Matches Metrics */
   matches_metrics_t metrics;                   // PE-Matches Metrics
+  /* MM */
+  mm_slab_t* mm_slab;                          // MM-Slab
+  mm_allocator_t* mm_allocator;                // MM-Allocator
 } paired_matches_t;
 
 /*
@@ -75,13 +78,20 @@ void paired_matches_delete(paired_matches_t* const paired_matches);
  * Accessors
  */
 bool paired_matches_is_mapped(const paired_matches_t* const paired_matches);
-uint64_t paired_matches_get_num_maps(const paired_matches_t* const paired_matches);
-paired_map_t* paired_matches_get_maps(paired_matches_t* const paired_matches);
-
 uint64_t paired_matches_counters_get_count(paired_matches_t* const paired_matches,const uint64_t distance);
 uint64_t paired_matches_counters_get_total_count(paired_matches_t* const paired_matches);
+uint64_t paired_matches_get_first_stratum_num_matches(paired_matches_t* const paired_matches);
 
-uint64_t paired_matches_get_first_stratum_matches(paired_matches_t* const paired_matches);
+paired_map_t* paired_matches_get_primary_map(paired_matches_t* const paired_matches);
+paired_map_t* paired_matches_get_secondary_map(paired_matches_t* const paired_matches);
+
+uint64_t paired_matches_get_num_maps(const paired_matches_t* const paired_matches);
+paired_map_t** paired_matches_get_maps(paired_matches_t* const paired_matches);
+
+uint64_t paired_matches_get_num_discordant_maps(const paired_matches_t* const paired_matches);
+paired_map_t** paired_matches_get_discordant_maps(paired_matches_t* const paired_matches);
+
+void paired_matches_limit_maps(const paired_matches_t* const paired_matches,const uint64_t num_maps);
 
 /*
  * Adding Paired-Matches
@@ -95,6 +105,9 @@ void paired_matches_add(
     const pair_layout_t pair_layout,
     const uint64_t template_length,
     const double template_length_sigma);
+void paired_matches_add_map(
+    paired_matches_t* const paired_matches,
+    paired_map_t* const paired_map);
 
 /*
  * Cross pair matches
@@ -117,18 +130,6 @@ void paired_matches_find_pairs(
 void paired_matches_find_discordant_pairs(
     paired_matches_t* const paired_matches,
     search_parameters_t* const search_parameters);
-
-/*
- * Filters
- */
-void paired_matches_filter_by_mapq(
-    paired_matches_t* const paired_matches,
-    const uint8_t mapq_threshold);
-
-/*
- * Sort
- */
-void paired_matches_sort_by_swg_score(paired_matches_t* const paired_matches);
 
 /*
  * Display

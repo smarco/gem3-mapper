@@ -24,11 +24,11 @@
  *   the depth of the search)
  */
 
+#include "matches/matches_accuracy.h"
 #include "approximate_search/approximate_search_control.h"
 #include "matches/classify/matches_classify.h"
 #include "matches/classify/matches_classify_logit.h"
 #include "matches/classify/matches_classify_logit_models.h"
-#include "matches/matches_test.h"
 
 /*
  * Pattern test
@@ -67,7 +67,7 @@ bool asearch_control_max_matches_reached(
     approximate_search_t* const search,
     matches_t* const matches) {
   search_parameters_t* const search_parameters = search->search_parameters;
-  return matches_test_max_matches_reached(
+  return matches_accuracy_max_matches_reached(
       matches,search->region_profile.num_filtered_regions,
       search->pattern.key_length,search_parameters);
 }
@@ -83,13 +83,13 @@ bool asearch_control_test_accuracy__adjust_depth(
   search_parameters_t* const search_parameters = search->search_parameters;
   const uint64_t mcs = search->region_profile.num_filtered_regions; // (max_error_reached = mcs-1)
   const bool accuracy_reached =
-      matches_test_accuracy_reached(
+      matches_accuracy_reached(
           matches,mcs,search->pattern.key_length,search_parameters,
       search->current_max_complete_error,&search->current_max_complete_error);
   if (accuracy_reached) return true; // Done!
   // Test max-matches
   const bool max_matches_reached =
-      matches_test_max_matches_reached(
+      matches_accuracy_max_matches_reached(
           matches,mcs,search->pattern.key_length,search_parameters);
   if (max_matches_reached) return true; // Done!
   // Check error-scheduled

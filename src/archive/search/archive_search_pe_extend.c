@@ -24,11 +24,11 @@
  *   PE-search stages
  */
 
+#include "matches/paired_matches_accuracy.h"
 #include "archive/search/archive_search_pe_extend.h"
 #include "archive/search/archive_select.h"
 #include "archive/score/archive_score_se.h"
 #include "approximate_search/approximate_search_verify_candidates.h"
-#include "matches/paired_matches_test.h"
 //#include "archive/search/archive_search_pe.h"
 //#include "archive/search/archive_search_se_stepwise.h"
 
@@ -81,8 +81,6 @@ void archive_search_pe_extend_matches_ends(
   PROF_INC_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES_TOTAL);
   PROFILE_START(GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES,PROFILE_LEVEL);
   // Parameters
-  select_parameters_t* const select_parameters = &search_parameters->select_parameters;
-  const uint64_t max_searched_paired_matches = select_parameters->max_searched_paired_matches;
   search_paired_parameters_t* const search_paired_parameters = &search_parameters->search_paired_parameters;
   approximate_search_t* const approximate_search = &candidate_archive_search->approximate_search;
   filtering_candidates_t* const filtering_candidates = approximate_search->filtering_candidates;
@@ -97,8 +95,10 @@ void archive_search_pe_extend_matches_ends(
   for (i=0;i<num_extended_match_traces;++i) {
     // Fetch match
     match_trace_t* const extended_match = extended_match_traces[i];
-    // Skip already extended matches
+    // Skip extended or subdominant ends
     if (extended_match->type == match_type_extended) continue;
+    if (paired_matches_accuracy_subdominant_end(
+          paired_matches,search_parameters,candidate_matches,extended_match)) continue;
     // Extend (filter nearby region)
     PROF_INC_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_NUM_MATCHES);
     vector_clear(candidate_matches->match_traces_extended);
@@ -121,8 +121,8 @@ void archive_search_pe_extend_matches_ends(
             matches_result[j],extended_match);
       }
     }
-    // Check total matches found
-    if (paired_matches_get_num_maps(paired_matches) >= max_searched_paired_matches) break;
+    // Check Accuracy Reached (Quick abandon condition)
+    if (paired_matches_accuracy_reached(paired_matches,search_parameters)) return;
   }
   PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES,PROFILE_LEVEL);
 }

@@ -21,6 +21,7 @@
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  */
 
+#include "matches/matches_accuracy.h"
 #include "neighborhood_search/nsearch_levenshtein_control.h"
 #include "neighborhood_search/nsearch_filtering.h"
 #include "fm_index/fm_index_query.h"
@@ -28,7 +29,6 @@
 #include "filtering/candidates/filtering_candidates_process.h"
 #include "filtering/candidates/filtering_candidates_verify.h"
 #include "filtering/candidates/filtering_candidates_align.h"
-#include "matches/matches_test.h"
 
 /*
  * Search cut-off(s)

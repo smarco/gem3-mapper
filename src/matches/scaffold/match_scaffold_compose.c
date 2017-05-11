@@ -56,8 +56,9 @@ match_alignment_region_t* match_scaffold_compose_add_exact_match(
   ++match_scaffold->num_alignment_regions;
   // Set-up alignment-region
   match_alignment_region_init(
-      match_alignment_region,match_alignment_region_exact,0,cigar_offset,1,
-      *key_offset,*key_offset+match_length,*text_offset,*text_offset+match_length);
+      match_alignment_region,match_alignment_region_exact,
+      0,cigar_offset,1,*key_offset,*key_offset+match_length,
+      *text_offset,*text_offset+match_length);
   // Offset
   *key_offset += match_length;
   *text_offset += match_length;

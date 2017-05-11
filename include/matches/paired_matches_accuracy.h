@@ -21,18 +21,27 @@
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  */
 
-#ifndef PAIRED_MATCHES_TEST_H_
-#define PAIRED_MATCHES_TEST_H_
+#ifndef PAIRED_MATCHES_ACCURACY_H_
+#define PAIRED_MATCHES_ACCURACY_H_
 
 #include "utils/essentials.h"
 #include "archive/search/archive_search_se_parameters.h"
 #include "matches/paired_matches.h"
 
 /*
- * Paired Matches Condition Test
+ * Paired Matches Accuracy Tests
  */
-bool paired_matches_test_accuracy_reached(
+bool paired_matches_accuracy_reached(
     paired_matches_t* const paired_matches,
     search_parameters_t* const search_parameters);
 
-#endif /* PAIRED_MATCHES_TEST_H_ */
+/*
+ * Subdominant End
+ */
+bool paired_matches_accuracy_subdominant_end(
+    paired_matches_t* const paired_matches,
+    search_parameters_t* const search_parameters,
+    matches_t* const candidate_matches,
+    match_trace_t* const extended_match);
+
+#endif /* PAIRED_MATCHES_ACCURACY_H_ */

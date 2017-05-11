@@ -67,8 +67,8 @@ void paired_matches_classify(paired_matches_t* const paired_matches) {
     return;
   }
   // Tie-d0
-  paired_map_t* const primary_match = paired_matches_get_maps(paired_matches);
-  paired_map_t* const subdominant_match = primary_match + 1;
+  paired_map_t* const primary_match = paired_matches_get_maps(paired_matches)[0];
+  paired_map_t* const subdominant_match = paired_matches_get_maps(paired_matches)[1];
   if (primary_match->swg_score == subdominant_match->swg_score &&
       primary_match->template_length_sigma == subdominant_match->template_length_sigma) {
     paired_matches->paired_matches_class = paired_matches_class_tie_perfect;

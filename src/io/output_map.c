@@ -480,14 +480,14 @@ void output_map_paired_end_matches(
     } else {
       // Print PAIRED MATCHES (Traverse all matches (Position-matches))
       const uint64_t num_paired_map = paired_matches_get_num_maps(paired_matches);
-      paired_map_t* const paired_map = paired_matches_get_maps(paired_matches);
+      paired_map_t** const paired_map = paired_matches_get_maps(paired_matches);
       uint64_t i;
       for (i=0;i<num_paired_map;++i) {
         // Separator
         output_map_print_separator(buffered_output_file,(i==0) ? '\t' : ',');
         // Paired-Map
         output_map_print_paired_match(buffered_output_file,matches_end1,
-            matches_end2,paired_map+i,output_map_parameters->format_version);
+            matches_end2,paired_map[i],output_map_parameters->format_version);
       }
     }
     output_map_print_separator(buffered_output_file,'\n');

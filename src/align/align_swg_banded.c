@@ -264,7 +264,7 @@ void align_swg_banded_extend(
   uint64_t band_low_offset = (max_bandwidth+1 < num_rows) ? max_bandwidth+2 : num_rows;
   // Initialize DP-matrix (lazy allocation)
   mm_allocator_push_state(mm_allocator); // Save allocator state
-  swg_cell_t** const dp = mm_allocator_malloc(mm_allocator,num_columns*sizeof(swg_cell_t*));
+  swg_cell_t** const dp = mm_allocator_malloc(mm_allocator,(num_columns+1)*sizeof(swg_cell_t*));
   align_swg_allocate__init_column_banded(
       dp,0,column_start_band,
       band_low_offset,band_high_offset,

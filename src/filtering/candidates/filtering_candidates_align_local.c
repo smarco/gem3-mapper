@@ -63,9 +63,8 @@ void filtering_candidates_align_local_discarded(
     if (matches_get_num_match_traces(matches) >= max_searched_matches) break;
     // Align Region
     PROF_INC_COUNTER(GP_CANDIDATE_REGION_LOCAL_ALIGNED);
-    const int32_t swg_score =
-        filtering_candidates_align_local_region(
-            filtering_candidates,filtering_region,pattern,matches);
+    filtering_candidates_align_local_region(
+        filtering_candidates,filtering_region,pattern,matches);
   }
   // Clear discarded-candidates
   filtering_candidates_clear_discarded_regions(filtering_candidates,true);

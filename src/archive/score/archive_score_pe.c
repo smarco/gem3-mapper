@@ -79,20 +79,22 @@ uint8_t archive_score_matches_pe_default_unique(
 void archive_score_matches_pe_default(
     paired_matches_t* const paired_matches,
     const matches_classify_logit_model_t* const classify_model) {
+  // Parameters
+  const uint64_t num_maps = paired_matches_get_num_maps(paired_matches);
+  paired_map_t** const paired_maps = paired_matches_get_maps(paired_matches);
   // Unmapped
   if (paired_matches->paired_matches_class==paired_matches_class_unmapped) return;
   // Score subdominant matches (MAPQ=0)
-  const uint64_t num_paired_map = paired_matches_get_num_maps(paired_matches);
-  paired_map_t* const paired_map = paired_matches_get_maps(paired_matches);
   uint64_t i;
-  for (i=0;i<num_paired_map;++i) paired_map[i].mapq_score = 0;
+  for (i=0;i<num_maps;++i) paired_maps[i]->mapq_score = 0;
   // Classify
-  match_trace_t* const primary_end1 = paired_map->match_trace_end1;
-  match_trace_t* const primary_end2 = paired_map->match_trace_end2;
+  paired_map_t* const primary_map = paired_maps[0];
+  match_trace_t* const primary_end1 = primary_map->match_trace_end1;
+  match_trace_t* const primary_end2 = primary_map->match_trace_end2;
   // Discordant
-  if (paired_map[0].pair_relation==pair_relation_discordant ||
+  if (primary_map->pair_relation==pair_relation_discordant ||
       primary_end1->type == match_type_local || primary_end2->type == match_type_local) {
-    paired_map[0].mapq_score = 2;
+    primary_map->mapq_score = 2;
     return;
   }
   const bool high_quality_ends =
@@ -101,26 +103,26 @@ void archive_score_matches_pe_default(
   matches_predictors_t matches_predictors;
   switch (paired_matches->paired_matches_class) {
     case paired_matches_class_tie_perfect:
-      if (num_paired_map==2) {
-        paired_map[0].mapq_score = 1;
+      if (num_maps==2) {
+        primary_map->mapq_score = 1;
       }
       break;
     case paired_matches_class_tie:
-      paired_map[0].mapq_score = (high_quality_ends) ? 4 : 3;
+      primary_map->mapq_score = (high_quality_ends) ? 4 : 3;
       break;
     case paired_matches_class_mmap_d1:
       matches_predictors_compute_pe(&matches_predictors,paired_matches);
-      paired_map[0].mapq_score = (high_quality_ends) ?
+      primary_map->mapq_score = (high_quality_ends) ?
           29 : archive_score_matches_pe_default_mmaps_d1(classify_model,&matches_predictors);
       break;
     case paired_matches_class_mmap:
       matches_predictors_compute_pe(&matches_predictors,paired_matches);
-      paired_map[0].mapq_score = (high_quality_ends) ?
+      primary_map->mapq_score = (high_quality_ends) ?
           49 : archive_score_matches_pe_default_mmap(classify_model,&matches_predictors);
       break;
     case paired_matches_class_unique:
       matches_predictors_compute_pe(&matches_predictors,paired_matches);
-      paired_map[0].mapq_score = (high_quality_ends) ?
+      primary_map->mapq_score = (high_quality_ends) ?
           60 : archive_score_matches_pe_default_unique(classify_model,&matches_predictors);
       break;
     default:
@@ -131,21 +133,23 @@ void archive_score_matches_pe_default(
 void archive_score_matches_pe_stratify(
     paired_matches_t* const paired_matches,
     const matches_classify_logit_model_t* const classify_model) {
-  // Score subdominant matches (MAPQ=0)
-  paired_map_t* const paired_map = paired_matches_get_maps(paired_matches);
-  const uint64_t num_paired_map = paired_matches_get_num_maps(paired_matches);
-  uint64_t i;
-  for (i=0;i<num_paired_map;++i) paired_map[i].mapq_score = 0;
+  // Parameters
+  const uint64_t num_maps = paired_matches_get_num_maps(paired_matches);
+  paired_map_t** const paired_maps = paired_matches_get_maps(paired_matches);
   // Unmmapped
   if (paired_matches->paired_matches_class==paired_matches_class_unmapped) return;
+  // Score subdominant matches (MAPQ=0)
+  uint64_t i;
+  for (i=0;i<num_maps;++i) paired_maps[i]->mapq_score = 0;
   // Discordant
-  if (paired_map[0].pair_relation==pair_relation_discordant) {
-    paired_map[0].mapq_score = 1;
+  paired_map_t* const primary_map = paired_maps[0];
+  if (primary_map->pair_relation==pair_relation_discordant) {
+    primary_map->mapq_score = 1;
     return;
   }
   // Classify
-  match_trace_t* const primary_end1 = paired_map->match_trace_end1;
-  match_trace_t* const primary_end2 = paired_map->match_trace_end2;
+  match_trace_t* const primary_end1 = primary_map->match_trace_end1;
+  match_trace_t* const primary_end2 = primary_map->match_trace_end2;
   const bool high_quality_ends =
       primary_end1->mapq_score >= MAPQ_CONFIDENCE_SCORE_MIN &&
       primary_end2->mapq_score >= MAPQ_CONFIDENCE_SCORE_MIN;
@@ -160,48 +164,48 @@ void archive_score_matches_pe_stratify(
   matches_predictors_compute_pe(&matches_predictors,paired_matches);
   switch (paired_matches->paired_matches_class) {
     case paired_matches_class_tie_perfect: {
-      paired_map[0].mapq_score = 1;
+      primary_map->mapq_score = 1;
       break;
     }
     case paired_matches_class_tie: {
-      paired_map[0].mapq_score = 2;
+      primary_map->mapq_score = 2;
       break;
     }
     case paired_matches_class_mmap_d1: {
       if (high_quality_ends) {
-        paired_map[0].mapq_score = 38;
+        primary_map->mapq_score = 38;
       } else {
         const double pr = matches_classify_logit_mmaps_d1(classify_model,&matches_predictors);
         if (pr < 0.90) {
-          paired_map[0].mapq_score = 39;
+          primary_map->mapq_score = 39;
         } else {
-          paired_map[0].mapq_score = archive_score_probability_scale(pr-0.90,1.0-0.90,40,90);
+          primary_map->mapq_score = archive_score_probability_scale(pr-0.90,1.0-0.90,40,90);
         }
       }
       break;
     }
     case paired_matches_class_mmap: {
       if (high_quality_ends) {
-        paired_map[0].mapq_score = 98;
+        primary_map->mapq_score = 98;
       } else {
         const double pr = matches_classify_logit_mmaps(classify_model,&matches_predictors);
         if (pr < 0.90) {
-          paired_map[0].mapq_score = 99;
+          primary_map->mapq_score = 99;
         } else {
-          paired_map[0].mapq_score = archive_score_probability_scale(pr-0.90,1.0-0.90,100,150);
+          primary_map->mapq_score = archive_score_probability_scale(pr-0.90,1.0-0.90,100,150);
         }
       }
       break;
     }
     case paired_matches_class_unique: {
       if (high_quality_ends) {
-        paired_map[0].mapq_score = 198;
+        primary_map->mapq_score = 198;
       } else {
         const double pr = matches_classify_logit_unique(classify_model,&matches_predictors);
         if (pr < 0.90) {
-          paired_map[0].mapq_score = 199;
+          primary_map->mapq_score = 199;
         } else {
-          paired_map[0].mapq_score = archive_score_probability_scale(pr-0.90,1.0-0.90,200,250);
+          primary_map->mapq_score = archive_score_probability_scale(pr-0.90,1.0-0.90,200,250);
         }
       }
       break;

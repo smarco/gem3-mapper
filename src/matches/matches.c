@@ -57,7 +57,7 @@ matches_t* matches_new(void) {
   // Matches Counters
   matches->counters = matches_counters_new();
   // MM
-  matches->mm_slab = mm_slab_new_(BUFFER_SIZE_4M,BUFFER_SIZE_4M,MM_UNLIMITED_MEM);
+  matches->mm_slab = mm_slab_new_(BUFFER_SIZE_1M,BUFFER_SIZE_1M,MM_UNLIMITED_MEM);
   matches->mm_allocator = mm_allocator_new(matches->mm_slab);
   // Match-Traces
   matches->match_traces = vector_new(MATCHES_INIT_GLOBAL_MATCHES,match_trace_t*);
@@ -96,7 +96,6 @@ void matches_delete(matches_t* const matches) {
   vector_delete(matches->cigar_vector);
   mm_allocator_delete(matches->mm_allocator);
   mm_slab_delete(matches->mm_slab);
-  // Delete handler
   mm_free(matches);
 }
 /*

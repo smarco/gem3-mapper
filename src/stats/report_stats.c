@@ -217,7 +217,7 @@ void collect_pe_mapping_stats(
 			mstats->hist_mapq[0]++;
 	 } else {
 			// We just look at primary alignments
-			paired_map_t* paired_map = vector_get_mem(paired_matches->paired_maps,paired_map_t);
+			paired_map_t* const paired_map = paired_matches_get_primary_map(paired_matches);
 			if(paired_map->pair_relation == pair_relation_concordant) { // Only collect template length stats for concordant pairs
 				 mstats->correct_pairs++;
 				 int64_t tlen=paired_map->template_length;
