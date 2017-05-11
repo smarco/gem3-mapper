@@ -27,6 +27,7 @@ GPU_INLINE __device__ void gpu_bpm_align_backtrace(const uint32_t* const dpPV, c
 												   gpu_bpm_align_coord_t* const initCoodRes, uint32_t* const cigarLenghtRes)
 {
   // Initializing back-trace threading variables
+  const uint32_t masterThreadIdx      = threadsPerQuery - 1;
   const uint32_t threadColumnEntries  = GPU_BPM_ALIGN_PEQ_ENTRY_LENGTH / GPU_UINT32_LENGTH;
   const uint32_t offsetQueryThreadIdx = gpu_get_lane_idx() - intraQueryThreadIdx;
   // Initializing back-trace data variables
@@ -39,7 +40,6 @@ GPU_INLINE __device__ void gpu_bpm_align_backtrace(const uint32_t* const dpPV, c
   gpu_char4_t cigarOP  = GPU_CIGAR_INIT;
   gpu_bpm_align_cigar_event_t accEvent = GPU_CIGAR_NULL, event = GPU_CIGAR_NULL;
   uint32_t cigarLenght = 0, accNum = 0;
-
   // Performing the back-trace to extract the cigar string
   while ((y >= 0) && (x >= 0)){
     // Thread managing
@@ -65,15 +65,16 @@ GPU_INLINE __device__ void gpu_bpm_align_backtrace(const uint32_t* const dpPV, c
     cigarOP.s = shfl_32(cigarOP.s, offsetQueryThreadIdx + dpActiveThread);
     x += cigarOP.v4.x; y += cigarOP.v4.y; event = cigarOP.v4.z;
     // Save CIGAR string from end to start position & Resetting the CIGAR stats
-    if((intraQueryThreadIdx == 0) && (((event != accEvent) && (accEvent != GPU_CIGAR_NULL)) || (accEvent == GPU_CIGAR_MISSMATCH))){
+    if((accEvent == GPU_CIGAR_MISSMATCH) || ((event != accEvent) && (accEvent != GPU_CIGAR_NULL))){
       const gpu_bpm_align_cigar_entry_t cigarEntry = {accEvent, accNum};
-      dpCIGAR[sizeQuery - cigarLenght] = cigarEntry;
+      if (intraQueryThreadIdx == masterThreadIdx)
+    	dpCIGAR[sizeQuery - cigarLenght] = cigarEntry;
       accNum = 0; cigarLenght++;
     }
     accEvent = event; accNum++;
   }
   // Master thread saves the last part of the cigar
-  if (intraQueryThreadIdx  == (threadsPerQuery - 1)){
+  if (intraQueryThreadIdx  == masterThreadIdx){
     const gpu_bpm_align_coord_t initCood =  {x + 1, y + 1};
 	// Saving the last CIGAR status event
     const gpu_bpm_align_cigar_entry_t cigarEntry = {event, accNum};
